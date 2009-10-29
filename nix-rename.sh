@@ -1,3 +1,4 @@
+# run from with single directory
 pass=""
 if test "$#" -eq 0; then
 	pass=-1;

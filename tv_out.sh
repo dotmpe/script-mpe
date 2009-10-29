@@ -1,3 +1,4 @@
+# Toggle S-Video out on Thinkpad T41
 xrandr --output S-video --off
 xrandr --output S-video --set load_detection 1
 # PAL-B
