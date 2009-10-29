@@ -34,6 +34,6 @@ if __name__ == '__main__':
 	rstlist.reverse()
 	rstlist.append("%i. %s" % (len(dir.split(sep)), name))
 
-	print "\n.. header::\n\t\n\t",
-	print "\n\t".join(rstlist)
+	print "\n.. header::\n\n\t.. class:: location-list\n\n\t\t",
+	print "\n\t\t".join(rstlist)
 	print
