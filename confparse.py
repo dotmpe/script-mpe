@@ -2,7 +2,7 @@ import os, types, ConfigParser
 
 
 config_paths = (
-    [], 
+    ['','.'], 
     ['~', '.'],
     ['/etc/', ]
 )
@@ -172,12 +172,13 @@ class Settings(Values):
 
 def ini(*files):
     cp = ConfigParser.ConfigParser()
-    cp.read(files)
+    cp.read(*files)
     return Settings(cp)
 
 
 if __name__ == '__main__':
 
+    print list(get_config('confparse.test.ini'))
     dlcsrc = get_config('dlcs-rc').next()
     print 'dlcsrc', dlcsrc
 

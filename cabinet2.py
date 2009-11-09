@@ -1,7 +1,11 @@
 #!/usr/bin/env python
-"""cabinet - Search and tag archived paths. 
+"""cabinet - 
+
+Restricted paths allow for interpretation.
+
 """
 import os, sys, re, datetime, optparse
+
 
 
 DATE_FORMAT = "%(year)s-%(month)s-%(day)s"
