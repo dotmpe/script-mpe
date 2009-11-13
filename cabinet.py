@@ -72,11 +72,11 @@ class CabinetQuery:
         sorts = sortspec.split(',')
         self.sort_order = sort_order
 
-    EGREP_LBOUND = r'(^|(.*?[^a-zA-Z0-9]))'
+    EGREP_LBOUND = r'(^|(.*?[^a-zA-Z0-9]))+'
     EGREP_MID = r'[^a-zA-Z0-9](.*?[^a-zA-Z0-9])?'
-    EGREP_RBOUND = r'($|([^a-zA-Z0-9].*?))'
-    #EGREP_ARCHIVE = r'^%s([0-9]{4})(%s([0-9]{2})){0,2}%s$' % (EGREP_LBOUND, EGREP_MID, EGREP_RBOUND)
-    EGREP_ARCHIVE = r'^%s([0-9]{4})[^a-zA-Z0-9](([0-9]{2})|([^a-zA-Z0-9].*?)){0,2}%s$' % (EGREP_LBOUND, EGREP_RBOUND)
+    EGREP_RBOUND = r'($|([^a-zA-Z0-9].*?))+'
+    EGREP_ARCHIVE = r'^%s([0-9]{4})(%s([0-9]{2})){0,2}%s$' % (EGREP_LBOUND, EGREP_MID, EGREP_RBOUND)
+	#EGREP_ARCHIVE = r'^%s([0-9]{4})[^a-zA-Z0-9](([0-9]{2})|([^a-zA-Z0-9].*?)){0,2}%s$' % (EGREP_LBOUND, EGREP_RBOUND)
 
     EGREP_ARCHIVE = r'^.*?([0-9]{4}).*?([0-9]{2}).*?([0-9]{2}).*$'
 
@@ -87,7 +87,7 @@ class CabinetQuery:
         """
 
 		# FIXME: this isn't working, replace with native regex?
-        cmd = 'find "%s" -regextype posix-egrep ' % self.directory
+        cmd = 'find -L "%s" -regextype posix-egrep ' % self.directory
         for path in self.tags:
             if len(path) > 1:
                 cmd = cmd + ' -iregex "^%s%s' % (self.EGREP_LBOUND, path.pop(0))
@@ -97,11 +97,14 @@ class CabinetQuery:
             else:
                 cmd = cmd + ' -iregex "^%s%s%s$" ' % (self.EGREP_LBOUND,
                         path.pop(), self.EGREP_RBOUND)
-        fl = os.popen(cmd)
-        paths = [line.strip() for line in fl.readlines()]
-        status = fl.close()
+
+        fi,fo,fe = os.popen3(cmd)
+        paths = [line.strip() for line in fo.readlines()]
+        status = fo.close()
         if status:
+            #print >>sys.stderr, fe.read()
             raise "Error %i while running '%s'" % (status, cmd)
+
         return paths
 
     def finalize(self):

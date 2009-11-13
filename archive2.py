@@ -1,4 +1,12 @@
+#!/usr/bin/env python
 """Archive - file personal documents, keep symlink.
+
+path Symlink
+path Archive (Symlink or Locator)
+path Locator
+path Bundle
+
+
 """
 import sys, os, re, datetime, itertools
 

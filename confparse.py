@@ -1,30 +1,6 @@
 import os, types, ConfigParser
 
 
-config_paths = (
-    ['','.'], 
-    ['~', '.'],
-    ['/etc/', ]
-)
-
-
-def get_config(name):
-    """
-    Yield all existing config paths. See config_paths.
-    """
-
-    paths = list(config_paths)
-
-    for dir in paths:
-        if dir and dir[-1] == '.':
-            dir[-1] += name
-        else:
-            dir.append(name)
-        path = os.path.expanduser(os.path.join(*dir))
-        if os.path.exists(path):
-            yield path
-
-
 class Value(object):    
 
     def __init__(self, section, name):
@@ -55,7 +31,6 @@ class Values(object):
 
 #            for name in parentvalues.options(section):
 #                self._init_option(name)
-#
 
     def _init_option(self, name):
         assert '.' not in name
@@ -169,11 +144,6 @@ class Settings(Values):
         return "Settings {\n  %s\n}" % '\n  '.join([
             "%s: %s" % (c, getattr(self, c)) for c in
                 self.parser.sections()])
-
-def ini(*files):
-    cp = ConfigParser.ConfigParser()
-    cp.read(*files)
-    return Settings(cp)
 
 
 if __name__ == '__main__':
