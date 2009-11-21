@@ -1,9 +1,0 @@
-#!/bin/sh
-# Via `Linux Mail Server <http://www.berend.org/linux_mail_server.php>`_ tutorial
-mv /home/berend/mail/.missed_spam/new/* \
-	/home/berend/mail/.missed_spam/cur 2>/dev/null
-mv /home/berend/mail/.missed_ham/new/* \
-	/home/berend/mail/.missed_ham/cur 2>/dev/null
-/usr/bin/sb_mboxtrain.py -d /home/berend/.spambayes.db \
-	-g /home/berend/mail/.missed_ham \
-	-s /home/berend/mail/.missed_spam
