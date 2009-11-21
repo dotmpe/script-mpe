@@ -7,41 +7,41 @@ are either too old or too large.
 import os, re, optparse, confparse
 
 
-config = confparse.get_config('archive')
+config = confparse.get_config('cllct.rc')
 "Root configuration file."
 
-settings = confparse.ini(config)
+settings = confparse.yaml(*config)
 "Static, persisted settings."
 
 
 # Settings with hard-coded defaults
 
-volumes = settings.rsr.volumes.getlist([ '%(home)/htdocs/' ])
+volumes = settings.rsr.volumes#.getlist([ '%(home)/htdocs/' ])
 "Physically disjunct storage trees."
 
-archive_root = settings.archive.root.getstr('%(volumes)')
+archive_root = settings.archive.root#.getstr('%(volumes)')
 "Root for current archive."
 
-archived = settings.volumes.archives([])
+archived = settings.volumes.archives#.getlist([])
 "Roots of older archives."
 
-archive_sep = settings.archive.separator.getstr(os.sep)
+archive_sep = settings.archive.separator#.getstr(os.sep)
 "Used in auto-generated archive paths."
 
-archive_format = settings.archive.format.getstr(
-        '%%(year)s%(archive.separator)s%%(month)#20s%(archive.separator)s%%(day)#20s')
+archive_format = settings.archive.format#.getstr(
+#        '%%(year)s%(archive.separator)s%%(month)#20s%(archive.separator)s%%(day)#20s')
 "Archive part of auto-generated paths."
 
 
 # Dynamic values
 
-root_volume = settings.default.volume.getstr
+root_volume = settings.default.volume#.getstr
 
-minimum_age = settings.archive.minimum_age.getint('0')
-maximum_age = settings.archive.maximum_age.getsec('3 days')
+minimum_age = settings.archive.minimum_age#.getint('0')
+maximum_age = settings.archive.maximum_age#.getsec('3 days')
 
-minimum_size = settings.archive.minimum_size.getint('1')
-maximum_size = settings.archive.maximum_size.getsize('10MB') # 1024**3
+minimum_size = settings.archive.minimum_size#.getint('1')
+maximum_size = settings.archive.maximum_size#.getsize('10MB') # 1024**3
 
 
 # Command-line frontend
