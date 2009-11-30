@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """
-Catalog provided paths. Catalog entries can be referenced by volume, 
-content-hash. Content may be redundantly stored across multiple volumes.
+Catalog provided paths. Catalog entries can be referenced by path relative to
+volume or rather by content-hash. 
+Content may be redundantly stored across multiple volumes.
 
 Each storage location has a unique identifier and may (temporarily) hold 
 resources. It has a fixed size.
