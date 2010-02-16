@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
-Experiment
+Experiment, interactive interface.
+Tagging.
 """
 import os, sys, re, anydbm
 

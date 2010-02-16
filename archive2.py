@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Archive - file personal documents, keep symlink.
+"""Archive - file downloaded and personal documents, keep symlink.
 
 path Symlink
 path Archive (Symlink or Locator)
@@ -77,6 +77,7 @@ def archive(path, root=None, archive_root=archive_root):
 
 
 def main():
+    #global ignore, illegal
 
     cwd = '/home/berend/htdocs/'#os.getcwd()
 
