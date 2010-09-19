@@ -27,7 +27,6 @@ function rpad {
     done;
     echo "$word"; 
 }
-
 function lpad {
     if [ "$1" ]; then
         word="$1";
@@ -53,6 +52,7 @@ function lpad {
     while [ ${#word} -gt $len ]; do
         word=${word:1:$((${#word}-1))}
     done;
+    echo "$word"
 }
 function cpad {
     if [ "$1" ]; then
@@ -85,5 +85,12 @@ function cpad {
             word=${word:1:$((${#word}-1))}
         fi;
     done;
+  
     echo "$word";
 }
+if [ ${0:${#0}-9} == "string.sh" ]
+then
+    $1 ${@:2}
+else    
+    $0 ${@:1}
+fi
