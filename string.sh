@@ -91,6 +91,9 @@ function cpad {
 if [ ${0:${#0}-9} == "string.sh" ]
 then
     $1 ${@:2}
-else    
-    $0 ${@:1}
+#else 
+# XXX: function scope is local, but still overriden by any like-named symlinks
+#    string_sh=$(readlink $0)
+#    echo $0 $string_sh
+#    $string_sh $0 ${@:1}
 fi
