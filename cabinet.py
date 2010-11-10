@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """cabinet - Search and tag for archived, tagged paths. 
 
-Wrapper around GNU find.
-.. `POSIX 'find'`__. incompat. no iregex, no iname, just name.
+Wrapper around GNU find. Builds complect -iregex patterns.
+
+`POSIX 'find'`__. incompat (has no iregex or iname, just name).
 
 Cabinet paths are semi-structured paths with tags.
 
