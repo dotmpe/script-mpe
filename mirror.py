@@ -22,12 +22,12 @@ if '-n' in args:
     args.remove('-n')
     noact = True
 
+trgtroot = os.path.abspath(args.pop())
+
 if args:
     srcroot = os.path.abspath(args.pop(0))
 else:
     srcroot = os.path.abspath('.')
-
-trgtroot = os.path.abspath(args.pop())
 
 
 assert not args, "Usage: mirror [src-root-dir=.] trgt-root-dir"
@@ -60,7 +60,7 @@ for path in paths:
         continue
     trgt = os.path.join(trgtroot, path[len(srcroot):].strip(os.sep))
     if os.path.exists(trgt):
-        if not os.path.isdir(src):
+        if not os.path.isdir(path):
             print >>sys.stderr, "Mirror: fail, target %s exists" % trgt
         continue            
     if verbose:
@@ -76,4 +76,7 @@ for path in paths:
             if not os.path.exists(os.path.dirname(trgt)):
                 os.makedirs(os.path.dirname(trgt))
             shutil.copy2(path, trgt)
+
+if noact:
+    print "** DRY RUN **"
 
