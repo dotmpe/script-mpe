@@ -1,7 +1,7 @@
 #!/bin/sh
 
-:after: http://blog.tplus1.com/index.php/2007/08/29/how-to-use-vimdiff-as-the-subversion-diff-tool/
-:after: http://dinomite.net/2008/subversion-diff-with-vimdiff/
+#:after: http://blog.tplus1.com/index.php/2007/08/29/how-to-use-vimdiff-as-the-subversion-diff-tool/
+#:after: http://dinomite.net/2008/subversion-diff-with-vimdiff/
 
 DIFF="/usr/bin/vimdiff"
 # use the 6th and 7th parameter
