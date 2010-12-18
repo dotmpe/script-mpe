@@ -2,6 +2,9 @@
 """
 2010-12-18
     pathlist2dot, terse syntax for hierarchical graphs.
+
+    Very hacky, perhaps in-memory triple storage could help out for more
+    convenient version.
     
 Syntax
     - line-base
@@ -48,9 +51,21 @@ def graph(pathfile,
         out = "\n\tlabel=\"%s\";" % title
 
     for line in lines:
-        if line.startswith('@'):
-            out += "\n\tlabel=\"%s\";\n" % line.strip('@').strip()
-            continue
+
+        p += 1
+        if p >= len(colors):
+            p = 0
+
+        attr = None
+        if '@' in line:
+            if line.startswith('@'):
+                out += "\n\tlabel=\"%s\";\n" % line.strip('@').strip()
+                continue
+            p = line.find('@')
+            attr = line[p+1:].strip().split('=')
+            line = line[:p]
+            #print >>sys.stderr,"Found attribute %s" % attr
+
         if '/' in line:
             line, replcnt = re.subn('/\s*', '/ ', line)
         if ':' in line:
@@ -58,10 +73,6 @@ def graph(pathfile,
         if '=' in line:
             line, replcnt = re.subn('=', ' =', line)
         path = re.split('\s+', line)
-
-        p += 1
-        if p == len(colors):
-            p = 0
 
         while path:
             style = ''
@@ -89,15 +100,26 @@ def graph(pathfile,
                 style = STYLE_COMMON_NODE
                 label = re.subn('[\[\]]','',label)[0]
                 if merge_common:
+                    out += "//node:%s, label:%s\n" % (node, label);
                     out += "\t%s [label=\"%s\",%s]\n;" % (label, label, style)
                     parent = _join(path)
                     if not parent:
                         continue
                     out += "\t%s -> %s [color=%s];\n" % (parent, label, colors[p])
                     continue
-            out += "\t%s [label=\"%s\",%s]\n;" % (node, label, style)
 
-            parent = _join(path)
+            if attr: # attach extra attr at leaf
+                style += '%s=\"%s\",' % tuple(attr)
+
+            out += "\t%s [label=\"%s\",%s];\n" % (node, label, style)
+            if attr: # attach extra attr at leaf only, and no coloured edge
+                attr = None
+                continue
+
+            if path and path[-1] and path[-1][0] == '[' and merge_common:
+                parent = _join([path[-1]])
+            else:
+                parent = _join(path)
             if not parent:
                 continue
             out += "\t%s -> %s [color=%s];\n" % (parent, node, colors[p])
