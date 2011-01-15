@@ -4,8 +4,8 @@ schema = \
         "digraph metadata { "
 #        "\t\nrankdir=LR;"
 "\t\nfontcolor=grey;fontsize=20;"
-        "\t\nscale=0.7;"
-        "\t\nnode[fontsize=19,height=0.1,width=0.1,style=filled,fontcolor=black,fillcolor=white];"
+        "\t\nscale=0.5;"
+        "\t\nnode[fontsize=9,height=0.1,width=0.1,style=filled,fontcolor=black,fillcolor=white];"
         "\t\nbgcolor=black;"
         "\t\n%s"
         "}",

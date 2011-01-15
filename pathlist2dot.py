@@ -42,7 +42,7 @@ def graph(pathfile,
             l for l in open(pathfile).readlines() 
             if not l.startswith('#') or not l.strip()
         ]
-    p = 0
+    coloridx = 0
 
     _join = lambda path:re.subn(nonid,'','_'.join(path))[0]
 
@@ -51,11 +51,10 @@ def graph(pathfile,
         out = "\n\tlabel=\"%s\";" % title
 
     for line in lines:
-
-        p += 1
-        if p >= len(colors):
-            p = 0
-
+        coloridx += 1
+        if coloridx >= len(colors):
+            coloridx = 0
+        #print >>sys.stderr,len(colors), p
         attr = None
         if '@' in line:
             if line.startswith('@'):
@@ -105,7 +104,7 @@ def graph(pathfile,
                     parent = _join(path)
                     if not parent:
                         continue
-                    out += "\t%s -> %s [color=%s];\n" % (parent, label, colors[p])
+                    out += "\t%s -> %s [color=%s];\n" % (parent, label, colors[coloridx])
                     continue
 
             if attr: # attach extra attr at leaf
@@ -122,7 +121,7 @@ def graph(pathfile,
                 parent = _join(path)
             if not parent:
                 continue
-            out += "\t%s -> %s [color=%s];\n" % (parent, node, colors[p])
+            out += "\t%s -> %s [color=%s];\n" % (parent, node, colors[coloridx])
 
     return template % out
 
