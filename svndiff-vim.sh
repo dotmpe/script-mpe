@@ -5,11 +5,11 @@
 
 DIFF="/usr/bin/vimdiff"
 # use the 6th and 7th parameter
-shift 5
-#LEFT=${6}
-#RIGHT=${7}
-#$DIFF $LEFT $RIGHT
-vimdiff "$@"
+#shift 5
+#$DIFF "$@"
+LEFT=${6}
+RIGHT=${7}
+$DIFF $LEFT $RIGHT
 
 # Return an errorcode of 0 if no differences were detected, 1 if some were.
 # Any other errorcode will be treated as fatal.
