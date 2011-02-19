@@ -6,7 +6,7 @@ Move files and symlink to archive root if needed.
 Exceptions are when the files
 are either too old or too large.
 """
-import os, sys, re, datetime, optparse, itertools
+import os, sys, re, fnmatch, datetime, optparse, itertools
 
 import confparse
 
@@ -34,7 +34,12 @@ archive_sep = settings.archive.separator#.getstr(os.sep)
 
 archive_format = settings.archive.format#.getstr(
 #        '%%(year)s%(archive.separator)s%%(month)#20s%(archive.separator)s%%(day)#20s')
+archive_format = os.sep.join((
+    '%(year)#04i', '%(month)#02i', '%(day)#02i'))
 "Archive part of auto-generated paths."
+
+
+#settings.rsr.exclude.getlist([])
 
 
 # Dynamic values
@@ -75,9 +80,19 @@ options_spec = (
         "The directory in which the ``archive-format`` is based in. " }),
     ('--archive-format', {'default': archive_format, 'help':
         "Used when autoformatting a path. " }),
+
+# see rgrep params of that name
+    ('--exclude-dir', {'action':'append'}),
+    ('--exclude-from', {}),
+    ('--exclude', {'action':'append'}),
+
+    ('--clear-exclude-dirs', {}),
+    ('--clear-exclude', {}),
+
+    (('-n', '--no-act'), {'default':False,'action':'store_true'}),
 )
 
-
+# TODO: override from sys.argv
 
 #strippath = re.compile('^[\.\/]+|[\.\/]$').sub
 #splittag = re.compile('[\.\/]').split
@@ -95,10 +110,8 @@ options_spec = (
 #    '.git',
 #)
 delimiter = re.compile('[\/\._\[\]\(\),\+-]')
-#illegal = re.compile('[\ ~:\$\&\"\'\*]')
+illegal = re.compile('[\ ~:\$\&\"\'\*]')
 #maxsize = 10*1024**2
-#archive_format = os.sep.join((
-#    '%(year)#04i', '%(month)#02i', '%(day)#02i'))
 
 
 def archived(path):
@@ -118,18 +131,18 @@ def archived(path):
                 if len(part)==4:
                     year = part
                 else:
-                    log("Ignored %s in <%s>", part, path)
+                    log(action, "Ignored %s in <%s>", part, path)
             else:
                 if len(part) == 1:
                     part = '0'+part
                 if not month:
                     if not (0 < int(part) <= 12):
-                        log("Illegal month number %s after year %s <%s>",
+                        log(action, "Illegal month number %s after year %s <%s>",
                             part, year, path)
                     month = part
                 else:
                     if not (0 < int(part) <= 31): 
-                        log("Illegal day number %s for %s-%s <%s>",
+                        log(action, "Illegal day number %s for %s-%s <%s>",
                             part, year, month, path)
                     day = part
         if year and month and day:
@@ -142,9 +155,7 @@ def isarchive(path):
     return len(archived(path)) == 1
 
 
-
-
-def archive(path, root=None, archive_root=archive_root):
+def archive(path, root=None, archive_root=None):
 
     #datetuple = datetime.datetime.now().timetuple()[:3]
     # or use mtime
@@ -153,25 +164,43 @@ def archive(path, root=None, archive_root=archive_root):
     date = dict(itertools.izip(
             ('year','month','day'), datetuple))
 
-    if not root:
-        root = os.getcwd()
-    
-    newpath = os.path.join(archive_root, archive_format % date,
-            path.replace(root,''))
+    ro = 0
+    if not root.startswith('.'):
+        ro = len(root)
+    newpath = os.path.join(archive_root, 
+            archive_format % date,
+            path[ro:])
 
-    print 'Toarchive', path, '->', root, newpath
+    if not settings.rsr.no_act:
+        assert os.path.exists(path), path
+        assert os.path.isfile(path), path
+        target_dir = os.path.dirname(newpath)
+        print path, newpath, target_dir
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+        os.rename(path, newpath)
+    else:
+        log(debug, 'Toarchive %s -> %s', path, newpath)
     #os.path.rename(path, newpath)
     #os.path.symlink(path, newpath)
 
 
 system, debug, info, action, warning, error = range(0,6)
+CHATTER = 1
 
 def log(level, msg, *args):
     print >>sys.stderr, msg % args
 
 
 def ignored(path):
-    pass
+    if os.path.isdir(path):
+        name = os.path.basename(path)
+        for dp in settings.rsr.exclude_dir:
+            if fnmatch.fnmatch(name, dp):
+                return True
+    for pp in settings.rsr.exclude:
+        if fnmatch.fnmatch(path, pp):
+            return True
 
 
 def archive_recursive(path):
@@ -182,9 +211,7 @@ def archive_recursive(path):
             cpath = os.path.join(root, name)
 
             skip = ignored(cpath)
-            if skip:
-                log(action, 'Ingored %s', cpath)
-            else:
+            if not skip:
                 skip = illegal.search(cpath) is not None
                 if skip:
                     log(warning, 'Illegal characters in %s', cpath)
@@ -194,6 +221,7 @@ def archive_recursive(path):
                         log(action, 'Skipping: too large: %s', cpath)
 
             if skip:
+                log(action, 'Ingored %s', cpath)
                 if os.path.isdir(cpath):
                     dirs.remove(name)
                 else:
@@ -201,17 +229,23 @@ def archive_recursive(path):
 
             if not os.path.isdir(cpath):
                 if not isarchive(cpath):
-                    archive(cpath, cwd)
+                    archive(cpath, path, settings.archive.root)
                 else:
-                    print archived(cpath), cpath
+                    pass#archived(cpath), cpath
 
 
-def main():
+
+if __name__ == '__main__':
 
     prsr = optparse.OptionParser(usage=usage_descr)
     for a,k in options_spec:
-        prsr.add_option(a, **k)
+        if isinstance(a, tuple):
+            prsr.add_option(*a, **k)
+        else:
+            prsr.add_option(a, **k)
     opts, args = prsr.parse_args()
+
+    settings.rsr.no_act = opts.no_act
 
     if not args:
         args = [os.getcwd()]
@@ -223,7 +257,4 @@ def main():
         else:
             archive_recursive(path)
 
-
-if __name__ == '__main__':
-    main()
 
