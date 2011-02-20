@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-"""
+"""archive file - rewrite locator so that file is beneath archive-root,
+adding a date tag.
+
 Take a set of paths and assert that each real location is an archived path.
 Move files and symlink to archive root if needed. 
 
@@ -20,37 +22,24 @@ settings = confparse.yaml(*config)
 
 # Settings with hard-coded defaults
 
-volumes = settings.rsr.volumes#.getlist([ '%(home)/htdocs/' ])
-"Physically disjunct storage trees."
-
-archive_root = settings.archive.root#.getstr('%(volumes)')
+#volumes = settings.rsr.volumes#.getlist([ '%(home)/htdocs/' ])
+#"Physically disjunct storage trees."
+#
+archive_root = settings.volume.cabinet.root
+#archive_root = settings.rsr.volumes.archive #.getstr('%(volumes)')
 "Root for current archive."
+#
+#archived = settings.volumes.archives#.getlist([])
+#"Roots of older archives."
+#
+#archive_sep = settings.archive.separator#.getstr(os.sep)
+#"Used in auto-generated archive paths."
 
-archived = settings.volumes.archives#.getlist([])
-"Roots of older archives."
-
-archive_sep = settings.archive.separator#.getstr(os.sep)
-"Used in auto-generated archive paths."
-
-archive_format = settings.archive.format#.getstr(
+#archive_format = settings.archive.format#.getstr(
 #        '%%(year)s%(archive.separator)s%%(month)#20s%(archive.separator)s%%(day)#20s')
 archive_format = os.sep.join((
     '%(year)#04i', '%(month)#02i', '%(day)#02i'))
 "Archive part of auto-generated paths."
-
-
-#settings.rsr.exclude.getlist([])
-
-
-# Dynamic values
-
-root_volume = settings.default.volume#.getstr
-
-minimum_age = settings.archive.minimum_age#.getint('0')
-maximum_age = settings.archive.maximum_age#.getsec('3 days')
-
-minimum_size = settings.archive.minimum_size#.getint('1')
-maximum_size = settings.archive.maximum_size#.getsize('10MB') # 1024**3
 
 
 # Command-line frontend
@@ -59,9 +48,19 @@ usage_descr = "%archive [options] paths"
 
 long_descr = __doc__
 
+root_volume = settings.default.volume#.getstr
+
+minimum_age = settings.rsr.minimum_age#.getint('0')
+maximum_age = settings.rsr.maximum_age#.getsec('3 days')
+
+minimum_size = settings.rsr.minimum_size#.getint('1')
+maximum_size = settings.rsr.maximum_size#.getsize('10MB') # 1024**3
+
 options_spec = (
-    ('--min-age', {'default': minimum_age, 'help':
-        "The minimum age to put in the cabinet, %default seconds by default. " }),
+    ('--min-age', { 
+        'dest': 'minimum_age',
+        'default': minimum_age, 
+        'help': "The minimum age to put in the cabinet, %default seconds by default. " }),
     ('--max-age', {'default': maximum_age, 'help':
         "The maximum age to put in the cabinet is usually determined by how "
         "far back the current archive volume goes. See ``ignore-age``." }),
@@ -80,6 +79,8 @@ options_spec = (
         "The directory in which the ``archive-format`` is based in. " }),
     ('--archive-format', {'default': archive_format, 'help':
         "Used when autoformatting a path. " }),
+
+    ('--archive-prefix', {'help': " " }),
 
 # see rgrep params of that name
     ('--exclude-dir', {'action':'append'}),
@@ -167,15 +168,18 @@ def archive(path, root=None, archive_root=None):
     ro = 0
     if not root.startswith('.'):
         ro = len(root)
-    newpath = os.path.join(archive_root, 
-            archive_format % date,
+    newpath = os.path.join(
+            archive_root, 
+            settings.rsr.archive_format
+            % date,
+            settings.rsr.archive_prefix +
             path[ro:])
 
     if not settings.rsr.no_act:
         assert os.path.exists(path), path
         assert os.path.isfile(path), path
         target_dir = os.path.dirname(newpath)
-        print path, newpath, target_dir
+        #print path, newpath, target_dir
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
         os.rename(path, newpath)
@@ -229,7 +233,7 @@ def archive_recursive(path):
 
             if not os.path.isdir(cpath):
                 if not isarchive(cpath):
-                    archive(cpath, path, settings.archive.root)
+                    archive(cpath, path, settings.volume.cabinet.root)
                 else:
                     pass#archived(cpath), cpath
 
@@ -244,8 +248,8 @@ if __name__ == '__main__':
         else:
             prsr.add_option(a, **k)
     opts, args = prsr.parse_args()
-
-    settings.rsr.no_act = opts.no_act
+    
+    settings.rsr.override(opts)
 
     if not args:
         args = [os.getcwd()]

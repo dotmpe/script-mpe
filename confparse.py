@@ -37,7 +37,6 @@ class Values(dict):
                 else:
                     self[key] = defaults[key]
 
-
     def __getitem__(self, name):
         mod = self
         if '.' in name:
@@ -50,9 +49,16 @@ class Values(dict):
             return dict.__getitem__(self, name)
         return mod.__getitem__(name)
 
-
     def __getattr__(self, name):
         return dict.__getitem__(self, name)
+
+    def override(self, settings):
+        for k in dir(settings):
+            if k.startswith('_'):
+                continue
+            v = getattr(settings, k)
+            if v:
+                self[k] = v
 
 
 def yaml(path): 
