@@ -2,34 +2,32 @@ import os, types, syck
 from pprint import pformat
 
 
-config_paths = (
-    [], 
-    ['~', '.'],
-    ['/etc/', ]
+config_prefix = (
+    '',  # local (cwd) name
+    '.', # local hidden name
+    '~/.', # hidden name in $HOME
+    '/etc/' # name in /etc/
 )
 
-
-def get_config(name):
+def get_config(name, paths=config_prefix):
 
     """
-    Yield all existing config paths. See config_paths.
+    Yield all existing config paths. See config_prefix for search path.
+
+    Expands '~/' and '~`username`/' sequences.
     """
 
-    paths = list(config_paths)
+    paths = list(paths)
 
-    for dir in paths:
-        if dir and dir[-1] == '.':
-            dir[-1] += name
-        else:
-            dir.append(name)
-        path = os.path.expanduser(os.path.join(*dir))
+    for prefix in paths:
+        path = os.path.expanduser(prefix + name)
         if os.path.exists(path):
             yield path
 
 
 class Values(dict):
     
-    def __init__(self, defaults):
+    def __init__(self, defaults=None):
         if defaults:
             for key in defaults:
                 if isinstance(defaults[key], dict):
@@ -61,9 +59,32 @@ class Values(dict):
                 self[k] = v
 
 
-def yaml(path): 
+def yaml(path, *args):
+    assert not args, "Cannot override from multiple files "
     data = syck.load(open(path).read())
     return Values(data)
+
+
+def init_config(name, paths=config_prefix, default=None):
+    
+    """
+    Expect one existing config for name, otherwise initialize.
+
+    Note that default must be a complete path that is matched by
+    confparse.config_prefix.
+    """
+
+    rcfile = get_config(name, paths=paths)
+
+    if not rcfile:
+        assert default, "Not initialized: %s for %s" % (name, paths)
+        rcfile = os.path.expanduser(default)
+
+    os.path.mknode(rcfile)
+    # XXX: redundant op, check paths constraint setting
+    assert get_config(name, paths=paths) == rcfile
+
+    return yaml(rcfile)
 
 
 if __name__ == '__main__':
