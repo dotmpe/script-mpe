@@ -1,1 +1,1 @@
-/home/berend/src/xu/translit/transquoter.py
+/src/xu/translit/transquoter.py
