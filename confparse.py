@@ -1,6 +1,17 @@
-import os, types, syck
+import os, sys, types
 from pprint import pformat
 
+try:
+    import syck
+    yaml_load = syck.load
+    yaml_dump = syck.dump
+except ImportError, e:
+    try:
+        import yaml
+        yaml_load = yaml.load
+        yaml_dump = yaml.dump
+    except ImportError, e:
+        print >>sys.stderr, "confparse.py: no YAML parser"
 
 config_prefix = (
     '',  # local (cwd) name
@@ -19,19 +30,29 @@ def get_config(name, paths=config_prefix):
 
     paths = list(paths)
 
+    found = []
     for prefix in paths:
         path = os.path.expanduser(prefix + name)
         if os.path.exists(path):
-            yield path
+            if not os.path.realpath(path) in found:
+                yield path
+                found.append(os.path.realpath(path))
 
 
 class Values(dict):
-    
-    def __init__(self, defaults=None):
+   
+    def __init__(self, defaults=None, file=None, root=None):
+        self.__dict__['parent'] = root
+        #self.updated = False
+        if file:
+            self.__dict__['file'] = file
+        #self.__dict__.update(dict(
+        #    parent=root, updated=False, file=file))
+        #print '1', self.__dict__
         if defaults:
             for key in defaults:
                 if isinstance(defaults[key], dict):
-                    self[key] = Values(defaults[key])
+                    self[key] = Values(defaults[key], root=self)
                 else:
                     self[key] = defaults[key]
 
@@ -47,8 +68,39 @@ class Values(dict):
             return dict.__getitem__(self, name)
         return mod.__getitem__(name)
 
+    def getroot(self):
+        mod = self
+        while mod.parent:
+            mod = mod.parent
+        return mod
+
+    def __setitem__(self, name, v):
+        #self.getroot().updated = True
+        mod = self
+        if '.' in name:
+            path = name.split('.')
+            while path:
+                comp = path.pop(0)
+                if comp not in mod:
+                    mod[comp] = Values(root=mod)
+                mod = mod[comp]
+                if len(path) == 1:
+                    name = path.pop(0)
+        else:
+            return dict.__setitem__(self, name, v)
+        return mod.__setitem__(name, v)
+
+    def __setattr__(self, name, v):
+        if name in self.__dict__:
+            self.__dict__[name] = v
+        else:
+            return dict.__setitem__(self, name, v)
+
     def __getattr__(self, name):
-        return dict.__getitem__(self, name)
+        if name in self.__dict__:
+            return self.__dict__[name]
+        else:
+            return dict.__getitem__(self, name)
 
     def override(self, settings):
         for k in dir(settings):
@@ -58,11 +110,22 @@ class Values(dict):
             if v:
                 self[k] = v
 
+    def commit(self):
+        if self.parent:
+            self.root().commit()
+        else:
+            file = self.__dict__['file']
+            os.rename(file, file+'~')
+            data = self.copy()
+            yaml_dump(data, open(file, 'a+'))
+
+    def copy(self):
+        return dict([ (k, hasattr(self[k], 'copy') and self[k].copy() or self[k] ) for k in self ])
 
 def yaml(path, *args):
-    assert not args, "Cannot override from multiple files "
-    data = syck.load(open(path).read())
-    return Values(data)
+    assert not args, "Cannot override from multiple files: %s, %s " % (path, args)
+    data = yaml_load(open(path).read())
+    return Values(data, file=path)
 
 
 def init_config(name, paths=config_prefix, default=None):
@@ -89,14 +152,31 @@ def init_config(name, paths=config_prefix, default=None):
 
 if __name__ == '__main__':
 
-    cllct_runcom = get_config('cllct.rc').next()
-    print 'cllct.rc', cllct_runcom
+    print list(get_config('testrc'))
+    test_runcom = '.testrc'
+    test_runcom = get_config('testrc').next()
+    print 'testrc', test_runcom
 
     #cllct_settings = ini(cllct_runcom) # old ConfigParser based, see confparse experiments.
-    cllct_settings = yaml(cllct_runcom)
+    test_settings = yaml(test_runcom)
 
-    print 'cllct_settings', pformat(cllct_settings)
+    print 'test_settings', pformat(test_settings)
 
-    print cllct_settings.cllct.test
+    if 'foo' in test_settings and test_settings.foo == 'bar':
+        test_settings.foo = 'baz'
+    else:
+        test_settings.foo = 'bar'
+
+    test_settings.path = Values(root=test_settings)
+    test_settings.path.to = Values(root=test_settings.path)
+    test_settings.path.to.some = Values(root=test_settings.path.to)
+    test_settings.path.to.some.leaf = 1    
+    test_settings.path.to.some.str = 'ABC'
+    test_settings.path.to.some.tuple = (1,2,3,)
+    test_settings.path.to.some.list = [1,2,3,]
+    test_settings.commit()
+
+    print 'test_settings', pformat(test_settings)
+
 
 
