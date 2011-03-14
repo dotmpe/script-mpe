@@ -19,6 +19,20 @@ config_prefix = (
     '~/.', # hidden name in $HOME
     '/etc/' # name in /etc/
 )
+            
+def backup(file):
+    cnt = 0
+    psuf = ''
+    bup = file+'~'
+    while os.path.exists(bup):
+        print bup
+        cnt += 1
+        if psuf:
+            bup = bup[:-len(psuf)] + str(cnt)
+        else:
+            bup += str(cnt)
+        psuf = str(cnt)
+    os.rename(file, bup)
 
 def get_config(name, paths=config_prefix):
 
@@ -115,12 +129,20 @@ class Values(dict):
             self.root().commit()
         else:
             file = self.__dict__['file']
-            os.rename(file, file+'~')
+            backup(file)
             data = self.copy()
             yaml_dump(data, open(file, 'a+'))
 
     def copy(self):
         return dict([ (k, hasattr(self[k], 'copy') and self[k].copy() or self[k] ) for k in self ])
+
+    def reload(self):
+        if self.__dict__['parent']:
+#        if self.parent:
+            raise Exception("Cannot reload node")
+        file = self.__dict__['file']
+        return yaml(file)
+
 
 def yaml(path, *args):
     assert not args, "Cannot override from multiple files: %s, %s " % (path, args)

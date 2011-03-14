@@ -129,18 +129,67 @@ def get_default_route():
     else:
         raise Exception
 
-def main():
+
+def assert_node(host):
+    global settings
+    if host not in settings.node:
+        addr = socket.gethostbyname(host)
+        node = {
+            'mac': get_mac(addr),
+            'ip': addr,
+        }
+        #setattr(settings.node, host, confparse.Values(node,root=settings.node))
+        settings.node[host] = confparse.Values(node,root=settings.node)
+        settings.commit()
+        settings = settings.reload()
+
+def assert_gateway(node):
+    assert 'domain' in node
+    assert 'local' in node
+
+def get_hostname():
+    host = socket.gethostname().split('.').pop(0)
+    getfqdn = socket.getfqdn()
+    if getfqdn.split('.').pop(0) != host:
+        err("Hostname does not match subdomain: %s (%s)", host, getfqdn)
+    assert_node(host)    
+    return host
+
+def get_gateway():    
+    default_routes = get_default_route()
+    if not default_routes:
+        return None
+
+    node = None
+    gateway_node = None
+    for gateway in default_routes:
+        m = get_mac(gateway)
+        if not m:
+            continue
+        try:
+            gateway_node = socket.gethostbyaddr(gateway)[0]
+        except socket.herror, e:
+            err(e)
+            continue
+        if gateway_node and node:
+            err("Multiple gateways, keeping first: %s, %s", node, gateway_node)
+        else:
+            node = gateway_node
+
+    if node:
+        assert_node(node)
+        assert_gateway(node)
+
+    return node
+
+def info():
     # determine gateway, and identify node by hardware address
     # record new gateways
 
     # print some stuff
-    getfqdn = socket.getfqdn()
-    hostname = socket.gethostname().split('.').pop(0)
+    hostname = get_hostname()
     print "On node:", hostname
-
-    if getfqdn.split('.').pop(0) != hostname:
-        err("Hostname does not match subdomain: %s (%s)", hostname, getfqdn)
-  
+    gateway = get_gateway()
     print 'Internet gateway: '
     default_routes = get_default_route()
     for gateway in default_routes:
@@ -227,6 +276,29 @@ def main():
     #for domain in settings.domain:
     #    print domain
 
+def main():
+    """
+    - check current host is known
+    - check gateway is known
+    - set local or mobile domain to gateway internal domain
+
+    Once ready, print hostname or node, local domain and internet domain if
+    available. Ie.:
+
+        mybox network.internal example.net
+
+    Domain may be 'local' while offline (no default route to internet)
+    or 'mobile' for unrecognized routes/gateways.
+    """
+
+    hostname = get_hostname()
+    assert hostname
+    gateway = get_gateway()
+    if not gateway:
+    	err("No internet uplink. ")
+        print hostname, 
+    else:
+        print hostname, gateway
 
 if __name__ == '__main__':
     main()
