@@ -140,10 +140,14 @@ def assert_node(host):
         }
         #setattr(settings.node, host, confparse.Values(node,root=settings.node))
         settings.node[host] = confparse.Values(node,root=settings.node)
+        assert isinstance(settings.copy()['domain']['brix']['brixmaster'], dict)
+        assert not isinstance(settings.copy()['domain']['brix']['brixmaster'], confparse.Values)
+        print 'Adding', host, node
         settings.commit()
         settings = settings.reload()
 
 def assert_gateway(node):
+    return
     assert 'domain' in node
     assert 'local' in node
 

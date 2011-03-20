@@ -25,7 +25,6 @@ def backup(file):
     psuf = ''
     bup = file+'~'
     while os.path.exists(bup):
-        print bup
         cnt += 1
         if psuf:
             bup = bup[:-len(psuf)] + str(cnt)
@@ -54,6 +53,12 @@ def get_config(name, paths=config_prefix):
 
 
 class Values(dict):
+
+    def __str__(self):
+        return '<Values>'
+   
+    def __repr__(self):
+        return 'Values(%s)'%self.keys()#+str(dict(values))+')'
    
     def __init__(self, defaults=None, file=None, root=None):
         self.__dict__['parent'] = root
@@ -84,8 +89,8 @@ class Values(dict):
 
     def getroot(self):
         mod = self
-        while mod.parent:
-            mod = mod.parent
+        while mod.__dict__['parent']:
+            mod = mod.__dict__['parent']
         return mod
 
     def __setitem__(self, name, v):
@@ -125,7 +130,7 @@ class Values(dict):
                 self[k] = v
 
     def commit(self):
-        if self.parent:
+        if self.__dict__['parent']:
             self.root().commit()
         else:
             file = self.__dict__['file']
@@ -134,11 +139,18 @@ class Values(dict):
             yaml_dump(data, open(file, 'a+'))
 
     def copy(self):
-        return dict([ (k, hasattr(self[k], 'copy') and self[k].copy() or self[k] ) for k in self ])
+        c = dict()
+        for k in self:
+            if hasattr(self[k], 'copy'):
+                c[k] = self[k].copy()
+            elif hasattr(self[k], 'keys') and not self[k].keys():
+                c[k] = dict()
+            else:
+                c[k] = self[k]
+        return c
 
     def reload(self):
         if self.__dict__['parent']:
-#        if self.parent:
             raise Exception("Cannot reload node")
         file = self.__dict__['file']
         return yaml(file)
