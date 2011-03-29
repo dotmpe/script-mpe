@@ -51,6 +51,17 @@ def get_config(name, paths=config_prefix):
                 yield path
                 found.append(os.path.realpath(path))
 
+def find_parent(markerleaf, path):
+    parts = os.path.split(path.strip(os.sep))
+    while parts:
+        cpath = os.path.join(*parts)
+        if path.startswith(os.sep):
+            cpath = os.sep+cpath
+        for prefix in ('', '.'):
+            cleaf = os.path.join(cpath, prefix+markerleaf)
+            if os.path.exists(cleaf):
+                return cleaf
+        parts = parts[:-1]
 
 class Values(dict):
 
