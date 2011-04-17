@@ -45,27 +45,64 @@ def newgroup(spec=None):
     nodes[group] = spec
     if spec:
         for subnode in resolve(spec):
-            print group, '->', subnode
+            print '\t' + group, '->', subnode
 
     groupcnt += 1
     return group
 
+def print_seq(node, group):
+    seq = None
+    for g in group:
+        if isinstance(g, str):
+            if '|' in g:
+                seq = 'or'
+                print "%s[label=\"%s\"]" % (node,seq.upper())
+            elif ',' in g:
+                seq = 'and'
+                print "%s[label=\"%s\"]" % (node,seq.upper())
+    for g in group:
+        if isinstance(g, list):
+            n = newgroup()
+            print_seq(n, g)
+            print '\t'+ node, '->', n
+        elif seq == 'and':
+            for sub in g.split(','):
+                sub = sub.strip()
+                if not sub:
+                    continue
+                for s in resolve(sub):
+                    print '\t'+ node, '->', s
+        elif seq == 'or':
+            for sub in g.split('|'):
+                sub = sub.strip()
+                if not sub:
+                    continue
+                for s in resolve(sub):
+                    print '\t'+ node, '->', s
+
 def parse_seq(spec, node=None):
     if not node:
         node = newgroup()
-    
-    p1, p2, p3 = spec.find(','), spec.find('|'), spec.find('(')
+    stack = []
+    group = ['']
+    depth = 0
+    while spec:
+        c, spec = spec[0], spec[1:]
+        if c == '(':
+            stack.append(group)
+            group.append([''])
+            group = group[-1]
+            #depth = len(stack)
+        elif c == ')':
+            group = stack.pop()
+        #elif c == ',':
+        #    group.append(item)
+        #elif c == '|':
+        #    group.append(item)
+        else:
+            group[-1] += c
 
-    if p1 < p2: # and-seq
-    	pass
-    elif p2 < p1: # or-seq
-        pass
-
-    if p3 < first:
-        pass # subgroup 
-
-    #while spec:
-    #    pass 
+    print_seq(node, group)
     return node
 
 def resolve(spec):
@@ -84,31 +121,29 @@ def resolve(spec):
         #print 'GROUP', spec
         spec = spec.strip()[1:-1]
         for node in resolve(spec.strip()):
+            print "%s[label=\"%s\"]" % (node,'GROUP')
             yield node
     elif MULTIPLE.match(spec):
         pass#print 'MULTIPLE', spec
         n = newgroup(spec.strip()[:-1])
+        print "%s[label=\"%s\"]" % (n,'MULTIPLE')
         yield n
     elif MAYBE_ONE.match(spec):
         pass #print 'MAYBE_ONE', spec
         n = newgroup(spec.strip()[:-1])
+        print "%s[label=\"%s\"]" % (n,'MAYBE_ONE')
         yield n
     elif MORE.match(spec):
         pass #print 'MORE', spec
         n = newgroup(spec.strip()[:-1])
+        print "%s[label=\"%s\"]" % (n,'MORE')
         yield n
     elif SEQ.search(spec):
         #print 'SEQ', spec
         yield parse_seq(spec.strip())
     else:
-    	assert re.match('[a-z\.]+', spec), spec
-    	yield spec
-
-    #if spec not in specs:
-    #    nodecnt+=1
-    #    specs[spec] = "node_"+ str(nodecnt)
-    #    #print specs[spec], "[label=\"%s\"]" % spec
-    #yield specs[spec]
+        assert re.match('[a-z\.]+', spec), spec
+        yield spec
 
 def define(name, spec):
     pass#print name
