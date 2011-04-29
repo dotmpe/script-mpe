@@ -114,7 +114,7 @@ def at_line(offset, width, data):
 ((offset, width), chars, len(data), len(lines))
 
 
-def get_tagged_comment(offset, width, data):
+def get_tagged_comment(offset, width, data, language_keys=('unix_generic','c', 'c_line')):
     """
     Return the comment span that has a tag embedded at offset/width.
 
@@ -132,10 +132,11 @@ def get_tagged_comment(offset, width, data):
 
     lines = data.split('\n')
 
-    language_key = 'unix_generic'
-    # TODO:
-    language_keys = {
+    # TODO: groups of filetype tags for each flavour scanned comment
+    comment_flavours = {
+            'unix_generic': (),
             'c':   ('c', 'js', 'hx', 'php', ),
+            'c_line':   ('c', 'js', 'hx', 'php', ),
             'vim': ('vim', 'vimrc'),
             'rst': ('rst', 'text',),
             'sql': ('sql', 'mysql',),
@@ -145,40 +146,48 @@ def get_tagged_comment(offset, width, data):
             'xml': ('xml', 'xslt', 'xsd', 'relax', 'xhtml', 'html'),
             'sgml': ('sgml','html'),
         }
+    # Start and end regex patterns per comment flavour
     language_markup = {
-            'unix_generic': ('^#.*$',)
+            'unix_generic': ('^#.*$',),
+            'c': ('^\s*(\/\*).*$','^.*(\*\/)\s*$'),
+            'c_line': ('^\s*\/\/.*$',),
         }
 
-    comment_scan = language_markup[language_key]
-    match_start = re.compile(comment_scan[0], re.M).match
-    if len(comment_scan) > 1:
-        match_end = re.compile(comment_scan[1], re.M).match
-    else:
-        match_end = match_start
-    
-    data = lines[tag_line]
-    start_line = tag_line 
-    comment_start = line_offset
-    while match_start(data):
-        data = lines[start_line-1]
-        if match_start(data):
-            start_line -= 1
-            comment_start -= len(data)    
-    
-    data = lines[tag_line]
-    end_line = tag_line
-    comment_end = line_offset + len(data)
-    while match_end(data):
-        data = lines[end_line+1]
-        if match_end(data):
-            end_line += 1
-            comment_end += len(data)
-    
-    return (comment_start, comment_end), (start_line, end_line)
+    for language_key in language_keys:
+        comment_scan = language_markup[language_key]
+        match_start = re.compile(comment_scan[0], re.M).match
+
+        if not match_start(lines[tag_line]):
+            continue
+
+        if len(comment_scan) > 1:
+            match_end = re.compile(comment_scan[1], re.M).match
+        else:
+            match_end = match_start
+        
+        data = lines[tag_line]
+        start_line = tag_line 
+        comment_start = line_offset
+        while match_start(data):
+            data = lines[start_line-1]
+            if match_start(data):
+                start_line -= 1
+                comment_start -= len(data)    
+        
+        data = lines[tag_line]
+        end_line = tag_line
+        comment_end = line_offset + len(data)
+        while match_end(data):
+            data = lines[end_line+1]
+            if match_end(data):
+                end_line += 1
+                comment_end += len(data)
+        
+        return language_key, (comment_start, comment_end), (start_line, end_line)
 
 
 def get_service(t):
-    __import__('gtd_'+t)
+    __import__('radical_'+t)
     pass
 
 def find(session, tags, matchbox, paths):
@@ -202,9 +211,12 @@ def find(session, tags, matchbox, paths):
                 # TODO
                 for match in matchbox[tagname].finditer(data):
                     start, end = match.start(), match.end()
-                    comment_span = get_tagged_comment(start, end-start, data)
-                    (comment_start, comment_end), (start_line, end_line) = comment_span
-                    print p, comment_span, data[comment_start:comment_end]
+                    comment = get_tagged_comment(start, end-start, data)
+                    if not comment: 
+                        continue
+                    comment_flavour, span, lines = comment
+                    (comment_start, comment_end), (start_line, end_line) = span, lines
+                    print p, comment_flavour, data[comment_start:comment_end]
                     current_id = None
                     #print '\t',t,m
 
@@ -225,13 +237,13 @@ def main():
     paths = sys.argv[1:]
 
     tags = {
-        'TODO': ('%(tagname)s:%(id)i', 'numeric_index'),
+        'TODO': ('%(tagname)s:%(numid)i', 'numeric_index'),
 #        'FIXME': ('%(tagname)s:%(id)s', 'tiny_ticket'),
         'XXX': None,
 #        'FACIOCRM': ('%(tagname)s-%(id)i', 'atlassian_jira'),
     }
 
-    dbref = 'sqlite:////gtd.sqlite';
+    dbref = 'sqlite:////radical.sqlite';
 
     matchbox = {}
     for tagname in tags:
