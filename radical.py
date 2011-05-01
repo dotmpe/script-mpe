@@ -24,12 +24,10 @@ WIP
 
 Configuration
 -------------
-- Comment Regexes.
 - Tag[, ID-Format[, ID-Generator]]
-- Default-ID-Generator
-- Default-ID-Format
+- Comment start/end scan Regexes.
 
-Tags may be rewritten to the document with an ID.
+Tags may be rewritten to the document with an ID?
 
 Project Changelog
 -----------------
@@ -39,10 +37,18 @@ Project Changelog
 2011-04-30
     Adding command-line options and separate storage service implementations,
     improved scanning, parsing of tagged comments.
+2011-05-01
+    Improved parser.
 
 
 Issues
 -------
+- Tagging multiline comments is desirable, nesting is not.
+  If a comment block starts with a tag, but contains other tags, it is parsed as
+  a line comment. (Normally a comment starting with a tag covers all the
+  lines in the block)
+  
+
 - If this'd use a extended context on the document IO stream, it could handle
   different line-endines. Currently UNIX-only.
 - There are only two styles of comment markup implemented, which captures a
@@ -64,11 +70,9 @@ Issues
 """
 # TODO:1: Integrate gate content stream
 # TODO:2: Extend supported comment styles
-# TODO:3: Scan for other literals, recognize language constructs.
 
-#TODO comments run from the 
-#start to the end line.
-#whitespace collapsed.
+# TODO:3: Scan for other literals, recognize language constructs. 
+
 
 import optparse, os, re, sys
 from pprint import pformat
@@ -121,9 +125,9 @@ def store_comments(session, data, comment_span, flavour_spec, tagname, matchbox)
 # Content data scanning
 
 
-end_of_description = re.compile('([\.?!](?: |$))', re.M).search
+end_of_description = re.compile('([\.?!](?:\ |$))', re.M + re.S).search
 
-end_of_line = re.compile('($)', re.M).search
+end_of_line = re.compile('($)').search
 
 
 def at_line(offset, width, data):
@@ -139,7 +143,8 @@ def at_line(offset, width, data):
 "Span is beyond document bounds: %r while document bytes:%r %r, lines:%s " % \
 ((offset, width), chars, len(data), len(lines))
 
-collapse_ws = re.compile('\s*').sub
+collapse_ws_sub = re.compile(r'[\ \n]+').sub
+collapse_ws = lambda s: collapse_ws_sub(' ', s)
 
 def get_tagged_comment(offset, width, data, language_keys, matchbox):
     """
@@ -156,7 +161,10 @@ def get_tagged_comment(offset, width, data, language_keys, matchbox):
     for language_key in language_keys:
 
         comment_scan = matchbox[language_key]
-        match_start, match_end = comment_scan[0].match, comment_scan[1].match
+        match_start = comment_scan[0].match
+        match_end = None
+        if len(comment_scan)>1:
+            match_end = comment_scan[1].match
 
         if not match_start(lines[tag_line]):
             continue
@@ -169,7 +177,10 @@ def get_tagged_comment(offset, width, data, language_keys, matchbox):
             if match_start(data):
                 start_line -= 1
                 comment_start -= len(data) + 1
-        
+       
+        if not match_end:
+            match_end = match_start
+
         data = lines[tag_line]
         end_line = tag_line
         comment_end = line_offset + len(data)
@@ -181,18 +192,30 @@ def get_tagged_comment(offset, width, data, language_keys, matchbox):
         
         return language_key, (comment_start, comment_end), (start_line, end_line)
 
-def clean_comment(match, data, (start, end)):
+def scan_for_tag(tags, matchbox, data):
+    pos = len(data)
+    for t in tags:
+        m = matchbox[t].search(data)
+        if m and m.start() < pos:
+            pos = m.start()
+    if pos == len(data):
+        return None
+    else:
+        return pos
+
+def trim_comment(match, data, (start, end)):
     comment_data = data[start:end]
 
     # strip heading and trailing comment markup metachars
     m = match[0].match(comment_data)
     if not m:
-        # No start match, not a line-comment or tag not at start of comment
-        print (match, m, comment_data)
+        print (m, comment_data)
+
     _1 = comment_data[m.end(1):]
     start += m.end(1)
 
-    if match[1] != match[0]:
+    # and trailing markup if non-line comments
+    if len(match)>1:
         m = match[1].match(_1)
         _2 = _1[:m.start(1)]
         end = start + m.start(1)
@@ -203,13 +226,32 @@ def clean_comment(match, data, (start, end)):
 
     # strip heading and collapse trailing whitespace
 
-    m = re.match('^.*[^\s]+(\ \s*)$', _2, re.M)
+    m = re.match('^.*(\s*)$', _2, re.M + re.S)
     if m:
-        end = start + m.start(1) + 1
+        end = start + m.start(1)
+        if data[end] == ' ':
+            end += 1
 
     start += re.search('[^\s]', _2).start()
 
     return data[start:end], (start, end)
+
+def clean_comment(scan, data):
+  
+    d = 0
+    if len(scan) == 1:
+        for m in re.finditer(scan[0], data, re.M):
+            #print (m.start(), m.end()), (m.start(1), m.end(1)), repr(data[m.start(1)-d:m.end(1)-d])
+            data = data[:m.start(1)-d] + data[m.end(1)-d:]
+            d += m.end(1) - m.start(1)
+
+    else:
+        raise NotImplemented
+        data = re.sub(scan[0], ' ', data, re.M)
+        if len(scan)>1:
+            data = re.sub(scan[1], '', data)
+
+    return data
 
 def find(session, matchbox, source, data):
     """
@@ -247,29 +289,55 @@ def find(session, matchbox, source, data):
             if not comment: 
                 continue
             comment_flavour, comment_span, lines = comment
+            #print '-------------',source, comment_span
+            #print 1, repr(data[slice(*comment_span)])
+            #print
 
             # Clean comment from markup and adjust source span
             comment_data, comment_span = \
-                    clean_comment(matchbox[comment_flavour], data, 
+                    trim_comment(matchbox[comment_flavour], data, 
                                                                 comment_span)
 
             (comment_start, comment_end) = comment_span
+            #print 2, repr(data[slice(*comment_span)])
+            #print 'end'
+            #continue
 
-            if comment_start == match.start():
+            # Determine end of tag value: the Issue description
+            inline = False
+
+            next_tag = scan_for_tag(rc.tags, matchbox,
+                    data[match.end():comment_end])
+            if next_tag:
+                next_tag = next_tag + match.end()
+
+            if not next_tag and comment_start == match.start():
                 # Comment starts with Tag, Tag spans entire comment block
                 description_end = comment_end
             else:
+                inline = True
                 # Scan for end of Issue description
                 find_description_end = end_of_description(data[match.end():comment_end])
                 if find_description_end:
                     description_end = match.end() + find_description_end.end()
                 else: # Line comment
-                    description_end = match.end() + end_of_line(data[match.end():comment_end]).end()
+                    end_offset = end_of_line(data[match.end():comment_end]).end()
+                    # TODO: stop at end of line
+                    description_end = match.end() + end_offset
 
-            tag_data = data[match.end():description_end].lstrip()
+            # Always stop at next tag
+            if next_tag and next_tag < description_end:
+                description_end = next_tag
+
+            # Get and further clean the issue text from the source data
+            tag_data = clean_comment(rc.comment_scan[comment_flavour],
+                    data[match.end():description_end].lstrip())
+            if inline:
+                tag_data = collapse_ws(tag_data)
+                if not tag_data.endswith(' '):
+                    tag_data += ' '
 
             # Tracked or anonymous tags
-            #print tag_span, tagname, data[slice(*tag_span)], match.groups()
             if rc.tags[tagname]:
                 current_id = None
                 if match.group(2):
@@ -303,33 +371,33 @@ def find(session, matchbox, source, data):
 
 # TODO: replace by cllct.osutil once that is packaged
 def parse_argv_split(options, argv, usage="%prog [args] [options]"):
-	"""Parse argument vector to a an arguments list and an
-	option dictionary. Return parser, optsv, args tuple.
-	"""
-	parser = optparse.OptionParser(usage)
+    """Parse argument vector to a an arguments list and an
+    option dictionary. Return parser, optsv, args tuple.
+    """
+    parser = optparse.OptionParser(usage)
 
-	optnames = []
-	nullable = []
-	for opt in options:
-		#parser.add_option(*_optprefix(opt[0]), **opt[1])
-		parser.add_option(*opt[0], **opt[1])
-		if 'dest' in opt[1]:
-			optnames.append(opt[1]['dest'])
-		else:
-			optnames.append(opt[0][-1].lstrip('-').replace('-','_'))
-		if 'default' not in opt[1]:
-			nullable.append(optnames[-1])
+    optnames = []
+    nullable = []
+    for opt in options:
+        #parser.add_option(*_optprefix(opt[0]), **opt[1])
+        parser.add_option(*opt[0], **opt[1])
+        if 'dest' in opt[1]:
+            optnames.append(opt[1]['dest'])
+        else:
+            optnames.append(opt[0][-1].lstrip('-').replace('-','_'))
+        if 'default' not in opt[1]:
+            nullable.append(optnames[-1])
 
-	optsv, args = parser.parse_args(argv)
+    optsv, args = parser.parse_args(argv)
 
     # FIXME: instead of degrade by converting to dict, add optname/nullable name
     # lists to options Values instance
-	opts = {}
-	for name in optnames:
-		if not hasattr(optsv, name) and name in nullable:
-			continue
-		opts[name] = getattr(optsv, name)
-	return parser, opts, args
+    opts = {}
+    for name in optnames:
+        if not hasattr(optsv, name) and name in nullable:
+            continue
+        opts[name] = getattr(optsv, name)
+    return parser, opts, args
 
 def find_files(session, matchbox, paths):
     """
@@ -394,7 +462,7 @@ DEFAULT_RC = os.path.join(os.path.expanduser('~'), '.radicalrc')
 
 # Start/end regex patterns per comment flavour
 STD_COMMENT_SCAN = {
-        'unix_generic': ['^(\s*#).*$',],
+        'unix_generic': ['^(\s*\#).*$',],
         'c': ['^(\s*\/\*).*$','^.*(\*\/\s*)$'],
         'c_line': ['^(\s*\/\/).*$',],
     }
@@ -528,13 +596,13 @@ def main(argv=None):
         matchbox[tagname] = re.compile(pattern)
 
     for flavour in rc.comment_scan:
-    	scan = rc.comment_scan[flavour]
+        scan = rc.comment_scan[flavour]
         match_start = re.compile(scan[0], re.M)
         if len(scan) > 1:
             match_end = re.compile(scan[1], re.M)
+            matchbox[flavour] = (match_start, match_end)
         else:
-            match_end = match_start
-        matchbox[flavour] = (match_start, match_end)
+            matchbox[flavour] = (match_start, )
 
 
     dbsession = get_session(rc.dbref)
