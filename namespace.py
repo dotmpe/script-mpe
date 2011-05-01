@@ -40,7 +40,7 @@ try:
             print '%sTyping tags for%s %s%s%s' % (c[5], c[0], c[1], name, c[0])
             path = FS_Path_split(os.path.join( root, name ))
             for tag in path:
-                # Ask about each new tag, TODO: or rename, fuzzy match
+                # Ask about each new tag, TODO: or rename, fuzzy match.      
                 if tag not in tags:
                     type = raw_input('%s%s%s:?' % (c[6], tag, c[0]) )
                     if not type: type = 'Tag'

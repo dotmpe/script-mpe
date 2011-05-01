@@ -72,5 +72,9 @@ def comment(dbsession, comment, numid=None):
         return new_comment.numid
 
 
+def new_issue(tag, description):
+    print ('New', tag, description,)
 
+def update_issue(tag, iid, description):
+    print ('Updated', tag, iid, description,)
 

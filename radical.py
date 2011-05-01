@@ -120,7 +120,11 @@ def store_comments(session, data, comment_span, flavour_spec, tagname, matchbox)
 
 # Content data scanning
 
-collapse_ws = re.compile('\s*').sub
+
+end_of_description = re.compile('([\.?!](?: |$))', re.M).search
+
+end_of_line = re.compile('($)', re.M).search
+
 
 def at_line(offset, width, data):
     #data = data.decode('utf-8')
@@ -135,7 +139,9 @@ def at_line(offset, width, data):
 "Span is beyond document bounds: %r while document bytes:%r %r, lines:%s " % \
 ((offset, width), chars, len(data), len(lines))
 
-def get_tagged_comment(offset, width, data, language_keys, language_scan):
+collapse_ws = re.compile('\s*').sub
+
+def get_tagged_comment(offset, width, data, language_keys, matchbox):
     """
     Return the comment span that has a tag embedded at offset/width.
     This scans for continues sequences of comment lines, and may return spans
@@ -148,16 +154,12 @@ def get_tagged_comment(offset, width, data, language_keys, language_scan):
     lines = data.split('\n')
 
     for language_key in language_keys:
-        comment_scan = language_scan[language_key]
-        match_start = re.compile(comment_scan[0], re.M).match
+
+        comment_scan = matchbox[language_key]
+        match_start, match_end = comment_scan[0].match, comment_scan[1].match
 
         if not match_start(lines[tag_line]):
             continue
-
-        if len(comment_scan) > 1:
-            match_end = re.compile(comment_scan[1], re.M).match
-        else:
-            match_end = match_start
         
         data = lines[tag_line]
         start_line = tag_line 
@@ -166,7 +168,7 @@ def get_tagged_comment(offset, width, data, language_keys, language_scan):
             data = lines[start_line-1]
             if match_start(data):
                 start_line -= 1
-                comment_start -= len(data)    
+                comment_start -= len(data) + 1
         
         data = lines[tag_line]
         end_line = tag_line
@@ -175,9 +177,39 @@ def get_tagged_comment(offset, width, data, language_keys, language_scan):
             data = lines[end_line+1]
             if match_end(data):
                 end_line += 1
-                comment_end += len(data)
+                comment_end += len(data) + 1
         
         return language_key, (comment_start, comment_end), (start_line, end_line)
+
+def clean_comment(match, data, (start, end)):
+    comment_data = data[start:end]
+
+    # strip heading and trailing comment markup metachars
+    m = match[0].match(comment_data)
+    if not m:
+        # No start match, not a line-comment or tag not at start of comment
+        print (match, m, comment_data)
+    _1 = comment_data[m.end(1):]
+    start += m.end(1)
+
+    if match[1] != match[0]:
+        m = match[1].match(_1)
+        _2 = _1[:m.start(1)]
+        end = start + m.start(1)
+    else:
+        _2 = _1
+
+    assert _2 == data[start:end]
+
+    # strip heading and collapse trailing whitespace
+
+    m = re.match('^.*[^\s]+(\ \s*)$', _2, re.M)
+    if m:
+        end = start + m.start(1) + 1
+
+    start += re.search('[^\s]', _2).start()
+
+    return data[start:end], (start, end)
 
 def find(session, matchbox, source, data):
     """
@@ -199,7 +231,11 @@ def find(session, matchbox, source, data):
     """
     global rc
 
-    for tagname in matchbox:
+    for tagname in rc.tags:
+
+        service = None
+        if rc.tags[tagname] and len(rc.tags[tagname]) > 2:
+            service = get_service(rc.tags[tagname][2])
 
         for match in matchbox[tagname].finditer(data):
             tag_span = match.start(), match.end()
@@ -207,12 +243,30 @@ def find(session, matchbox, source, data):
             # Get entire comment
             comment = get_tagged_comment(tag_span[0],
                     tag_span[1]-tag_span[0], data,
-                    rc.comment_flavours, rc.comment_scan)
+                    rc.comment_flavours, matchbox)
             if not comment: 
                 continue
             comment_flavour, comment_span, lines = comment
-            #(comment_start, comment_end), (start_line, end_line) = comment_span, lines
-            comment_data = data[slice(*comment_span)]
+
+            # Clean comment from markup and adjust source span
+            comment_data, comment_span = \
+                    clean_comment(matchbox[comment_flavour], data, 
+                                                                comment_span)
+
+            (comment_start, comment_end) = comment_span
+
+            if comment_start == match.start():
+                # Comment starts with Tag, Tag spans entire comment block
+                description_end = comment_end
+            else:
+                # Scan for end of Issue description
+                find_description_end = end_of_description(data[match.end():comment_end])
+                if find_description_end:
+                    description_end = match.end() + find_description_end.end()
+                else: # Line comment
+                    description_end = match.end() + end_of_line(data[match.end():comment_end]).end()
+
+            tag_data = data[match.end():description_end].lstrip()
 
             # Tracked or anonymous tags
             #print tag_span, tagname, data[slice(*tag_span)], match.groups()
@@ -222,17 +276,18 @@ def find(session, matchbox, source, data):
                     assert tagname in rc.tags, "Need index type for tracked tag at %s" % (tag_span,)
                     current_id = match.group(2)
                 if current_id:
-                    print 'Existing:', tagname, current_id, source, tag_span, repr(data[slice(*tag_span)])
+                    #print 'Existing:', tagname, current_id, source, tag_span, repr(data[slice(*tag_span)])
                     pass
+                    service.update_issue(tagname, current_id, tag_data)
                 else:
-                    print 'New:', tagname, source, tag_span, repr(data[slice(*tag_span)])
+                    #print 'New:', tagname, source, tag_span, repr(data[slice(*tag_span)])
                     pass # Identify new tracked tagged comment
+                    new_id = service.new_issue(tagname, tag_data)
                     # Write ID to file
             else:
-                print 'Anonymous:', tagname, source, tag_span, repr(data[slice(*tag_span)])
+                #print 'Anonymous:', tagname, source, tag_span, repr(data[slice(*tag_span)])
                 pass # Anonymous tag
 
-            style_regexes = rc.comment_scan[comment_flavour]
             continue
             # TODO: store
             #for tagged in store_comments(session, data, comment_span, 
@@ -241,6 +296,7 @@ def find(session, matchbox, source, data):
             #    if tags[tagname]:
             #        id_pattern, id_fmt, id_generator = tags[tagname]
             #        storage = get_service(id_generator)
+
 
 
 # Utils
@@ -299,8 +355,7 @@ def get_session(dbref):
     return session
 
 def get_service(t):
-    __import__('radical_'+t)
-    pass
+    return __import__('radical_'+t)
 
 def err(msg, *args):
     print >> sys.stderr, msg % args
@@ -321,6 +376,7 @@ DEFAULT_DB = "sqlite:///%s" % os.path.join(
 DEFAULT_RC = os.path.join(os.path.expanduser('~'), '.radicalrc')
 
 # TODO: groups of filetype tags for each flavour scanned comment
+
 # XXX: probably use gate to map between content-type and format tag
 #flavour_format_map = {
 #        'unix_generic': (),
@@ -331,7 +387,7 @@ DEFAULT_RC = os.path.join(os.path.expanduser('~'), '.radicalrc')
 #        'sql': ('sql', 'mysql',),
 #        'ini':  ('ini',),
 #        'py':  ('py',),
-#        # XXX: collapse htm and html
+# XXX: collapse htm and html
 #        'xml': ('xml', 'xslt', 'xsd', 'relax', 'xhtml', 'html'),
 #        'sgml': ('sgml','html'),
 #    }
@@ -471,7 +527,21 @@ def main(argv=None):
             pattern = rc.tags[tagname][0] % tagname
         matchbox[tagname] = re.compile(pattern)
 
+    for flavour in rc.comment_scan:
+    	scan = rc.comment_scan[flavour]
+        match_start = re.compile(scan[0], re.M)
+        if len(scan) > 1:
+            match_end = re.compile(scan[1], re.M)
+        else:
+            match_end = match_start
+        matchbox[flavour] = (match_start, match_end)
+
+
     dbsession = get_session(rc.dbref)
+
+    if not paths:
+        paths = ['.']
+
     find_files(dbsession, matchbox, paths) 
 
 
