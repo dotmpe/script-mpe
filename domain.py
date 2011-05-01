@@ -10,7 +10,7 @@ import confparse
 
 
 config = confparse.get_config('cllct.rc')
-"Root configuration file."
+"Configuration filename."
 
 settings = confparse.yaml(*config)
 "Static, persisted settings."

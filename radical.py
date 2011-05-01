@@ -37,7 +37,8 @@ Project Changelog
     Initial version. Planning for numeric and tiny ID. Need to recode hexdigest
     to full alphanumeric key.
 2011-04-30
-    Adding command-line options and separate storage service implementations.
+    Adding command-line options and separate storage service implementations,
+    improved scanning, parsing of tagged comments.
 
 
 Issues
@@ -69,14 +70,20 @@ Issues
 #start to the end line.
 #whitespace collapsed.
 
-import os, re, sys
+import optparse, os, re, sys
+from pprint import pformat
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
                         ForeignKey, Table, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
+#from cllct.osutil import parse_argv_split
 
+import confparse
+
+
+# Storage model
 
 Base = declarative_base()
 
@@ -102,6 +109,7 @@ class Comment(Base):
 
 
 # Storage & service IO
+
 def store_comments(session, data, comment_span, flavour_spec, tagname, matchbox):
     """
     """
@@ -109,7 +117,10 @@ def store_comments(session, data, comment_span, flavour_spec, tagname, matchbox)
     
     pass
 
+
 # Content data scanning
+
+collapse_ws = re.compile('\s*').sub
 
 def at_line(offset, width, data):
     #data = data.decode('utf-8')
@@ -124,9 +135,7 @@ def at_line(offset, width, data):
 "Span is beyond document bounds: %r while document bytes:%r %r, lines:%s " % \
 ((offset, width), chars, len(data), len(lines))
 
-collapse_ws = re.compile('\s*').sub
-
-def get_tagged_comment(offset, width, data, language_scan):
+def get_tagged_comment(offset, width, data, language_keys, language_scan):
     """
     Return the comment span that has a tag embedded at offset/width.
     This scans for continues sequences of comment lines, and may return spans
@@ -138,7 +147,7 @@ def get_tagged_comment(offset, width, data, language_scan):
 
     lines = data.split('\n')
 
-    for language_key in language_scan:
+    for language_key in language_keys:
         comment_scan = language_scan[language_key]
         match_start = re.compile(comment_scan[0], re.M).match
 
@@ -170,12 +179,7 @@ def get_tagged_comment(offset, width, data, language_scan):
         
         return language_key, (comment_start, comment_end), (start_line, end_line)
 
-
-def get_service(t):
-    __import__('radical_'+t)
-    pass
-
-def find(session, tags, matchbox, data, comment_flavours):
+def find(session, matchbox, source, data):
     """
     Look for tags in data, using the compiled tag regexes
     in matchbox, and post processing each found flavour of comment block to the
@@ -193,6 +197,8 @@ def find(session, tags, matchbox, data, comment_flavours):
     - Unix line comments (starting with '#', optionally whitespace prefixed).
     - FIXME: C-style line and block comments.
     """
+    global rc
+
     for tagname in matchbox:
 
         for match in matchbox[tagname].finditer(data):
@@ -201,7 +207,7 @@ def find(session, tags, matchbox, data, comment_flavours):
             # Get entire comment
             comment = get_tagged_comment(tag_span[0],
                     tag_span[1]-tag_span[0], data,
-                    comment_flavours)
+                    rc.comment_flavours, rc.comment_scan)
             if not comment: 
                 continue
             comment_flavour, comment_span, lines = comment
@@ -210,34 +216,66 @@ def find(session, tags, matchbox, data, comment_flavours):
 
             # Tracked or anonymous tags
             #print tag_span, tagname, data[slice(*tag_span)], match.groups()
-            if tags[tagname]:
+            if rc.tags[tagname]:
                 current_id = None
                 if match.group(2):
-                    assert tagname in tags, "Need index type for tracked tag at %s" % (tag_span,)
+                    assert tagname in rc.tags, "Need index type for tracked tag at %s" % (tag_span,)
                     current_id = match.group(2)
                 if current_id:
-                    print 'Existing:', tagname, current_id, tag_span, comment_data
+                    print 'Existing:', tagname, current_id, source, tag_span, repr(data[slice(*tag_span)])
                     pass
                 else:
-                    print 'New:', tagname, tag_span, comment_data
+                    print 'New:', tagname, source, tag_span, repr(data[slice(*tag_span)])
                     pass # Identify new tracked tagged comment
                     # Write ID to file
             else:
-                print 'Anonymous:', tagname, tag_span, comment_data
+                print 'Anonymous:', tagname, source, tag_span, repr(data[slice(*tag_span)])
                 pass # Anonymous tag
 
-            style_regexes = comment_flavours[comment_flavour]
+            style_regexes = rc.comment_scan[comment_flavour]
             continue
             # TODO: store
-            for tagged in store_comments(session, data, comment_span, 
-                    style_regexes, tagname, matchbox[tagname]):
-                storage = None
-                if tags[tagname]:
-                    id_pattern, id_fmt, id_generator = tags[tagname]
-                    storage = get_service(id_generator)
+            #for tagged in store_comments(session, data, comment_span, 
+            #        style_regexes, tagname, matchbox[tagname]):
+            #    storage = None
+            #    if tags[tagname]:
+            #        id_pattern, id_fmt, id_generator = tags[tagname]
+            #        storage = get_service(id_generator)
 
 
-def find_files(session, tags, matchbox, paths, comment_flavours):
+# Utils
+
+# TODO: replace by cllct.osutil once that is packaged
+def parse_argv_split(options, argv, usage="%prog [args] [options]"):
+	"""Parse argument vector to a an arguments list and an
+	option dictionary. Return parser, optsv, args tuple.
+	"""
+	parser = optparse.OptionParser(usage)
+
+	optnames = []
+	nullable = []
+	for opt in options:
+		#parser.add_option(*_optprefix(opt[0]), **opt[1])
+		parser.add_option(*opt[0], **opt[1])
+		if 'dest' in opt[1]:
+			optnames.append(opt[1]['dest'])
+		else:
+			optnames.append(opt[0][-1].lstrip('-').replace('-','_'))
+		if 'default' not in opt[1]:
+			nullable.append(optnames[-1])
+
+	optsv, args = parser.parse_args(argv)
+
+    # FIXME: instead of degrade by converting to dict, add optname/nullable name
+    # lists to options Values instance
+	opts = {}
+	for name in optnames:
+		if not hasattr(optsv, name) and name in nullable:
+			continue
+		opts[name] = getattr(optsv, name)
+	return parser, opts, args
+
+def find_files(session, matchbox, paths):
     """
     Look for tags in the data at each file path.
     """
@@ -247,14 +285,12 @@ def find_files(session, tags, matchbox, paths, comment_flavours):
             err("Path does not exist: %s", p)
         elif os.path.isdir(p):
             subs = [ os.path.join(p, d) for d in os.listdir(p) ]
-            find_files(session, tags, matchbox, subs, comment_flavours)
+            find_files(session, matchbox, subs)
         elif not os.path.isfile(p):
             err("Ignored non-file path: %s", p)
         else:
             data = open(p).read()
-            find(session, tags, matchbox, data, comment_flavours)
-                    
-# 
+            find(session, matchbox, p, data)
 
 def get_session(dbref):
     engine = create_engine(dbref)
@@ -262,58 +298,201 @@ def get_session(dbref):
     session = sessionmaker(bind=engine)()
     return session
 
+def get_service(t):
+    __import__('radical_'+t)
+    pass
+
 def err(msg, *args):
     print >> sys.stderr, msg % args
 
-#
 
-def main():
-    paths = sys.argv[1:]
- 
-    dbref = 'sqlite:////radical.sqlite';
+# Optparse callbacks
+def append_comment_scan(option, value, parser):
+    print (option, value, parser)
+    pass
 
-    # TODO: groups of filetype tags for each flavour scanned comment
-    # XXX: probably use gate to map between content-type and format tag
-    #flavour_format_map = {
-    #        'unix_generic': (),
-    #        'c':   ('c', 'js', 'hx', 'php', ),
-    #        'c_line':   ('c', 'js', 'hx', 'php', ),
-    #        'vim': ('vim', 'vimrc'),
-    #        'rst': ('rst', 'text',),
-    #        'sql': ('sql', 'mysql',),
-    #        'ini':  ('ini',),
-    #        'py':  ('py',),
-    #        # XXX: collapse htm and html
-    #        'xml': ('xml', 'xslt', 'xsd', 'relax', 'xhtml', 'html'),
-    #        'sgml': ('sgml','html'),
-    #    }
 
-    # Start/end regex patterns per comment flavour
-    comment_flavours = {
-            'unix_generic': ('^(\s*#).*$',),
-            'c': ('^(\s*\/\*).*$','^.*(\*\/\s*)$'),
-            'c_line': ('^(\s*\/\/).*$',),
-        }
-    # Tag pattern, format and index type
-    tags = {
-        'TODO': ('(%s)\:?(?:([0-9]+)\:)?', '%(tagname)s:%(numid)i', 'numeric_index'),
-#        'FIXME': ('%(tagname)s:%(id)s', 'tiny_ticket'),
-        'XXX': None,
-#        'FACIOCRM': ('%(tagname)s-%(id)i', 'atlassian_jira'),
+# Static metadata
+
+__usage__ = """Usage: %prog [options] paths """
+
+DEFAULT_DB = "sqlite:///%s" % os.path.join(
+                                    os.path.expanduser('~'), '.radical.sqlite')
+DEFAULT_RC = os.path.join(os.path.expanduser('~'), '.radicalrc')
+
+# TODO: groups of filetype tags for each flavour scanned comment
+# XXX: probably use gate to map between content-type and format tag
+#flavour_format_map = {
+#        'unix_generic': (),
+#        'c':   ('c', 'js', 'hx', 'php', ),
+#        'c_line':   ('c', 'js', 'hx', 'php', ),
+#        'vim': ('vim', 'vimrc'),
+#        'rst': ('rst', 'text',),
+#        'sql': ('sql', 'mysql',),
+#        'ini':  ('ini',),
+#        'py':  ('py',),
+#        # XXX: collapse htm and html
+#        'xml': ('xml', 'xslt', 'xsd', 'relax', 'xhtml', 'html'),
+#        'sgml': ('sgml','html'),
+#    }
+
+# Start/end regex patterns per comment flavour
+STD_COMMENT_SCAN = {
+        'unix_generic': ['^(\s*#).*$',],
+        'c': ['^(\s*\/\*).*$','^.*(\*\/\s*)$'],
+        'c_line': ['^(\s*\/\/).*$',],
     }
+# Tag pattern, format and index type
+DEFAULT_TAGS = {
+    'TODO': ['(%s)[:_\s-](?:([0-9]+)[\s\:])?', '%(tagname)s:%(numid)i', 'numeric_index'],
+#        'FIXME': ('%(tagname)s:%(id)s', 'tiny_ticket'),
+    'XXX': None,
+#        'FACIOCRM': ('%(tagname)s-%(id)i', 'atlassian_jira'),
+}
+
+__options__ = (
+    (('-c', '--config'),{ 'metavar':'PATH', 'default': DEFAULT_RC, 
+        'dest': "config_file",
+        'help': "Run time configuration. This is loaded after parsing command "
+        "line options, non-default option values wil override persisted "
+        "values (see --update-config) (default: %default). " }),
+
+    (('-C', '--update-config'),{ 'action':'store_true', 'help': "Write back "
+        "configuration after updating the settings with non-default option "
+        "values.  This will lose any formatting and comments in the "
+        "serialized configuration. " }),
+
+    (('-d', '--database'),{ 'metavar':'URI', 'dest':'dbref',
+        'help': "A URI formatted relational DB access description, as "
+            "supported by sqlalchemy. Ex:"
+            " `sqlite:///radical.sqlite`,"
+            " `mysql://radical-user@localhost/radical`. "
+            "The default value (%default) may be overwritten by configuration "
+            "and/or command line option. ",
+        'default': DEFAULT_DB }),
+
+    # -f PATTERN   Include only matching files.
+
+    (('-F', '--add-flavour'),{ 'action': 'callback', 'callback': append_comment_scan,
+        'help': "Scan for these comment flavours only, by default all known fla." }),
+
+    (('--list-flavours',),{ 'action':'store_true', 'help': "" }),
+    (('--list-tags',),{ 'action':'store_true', 'help': "" }),
+
+    (('--print-config',),{ 'action':'store_true', 'help': "" }),
+
+    #(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
+    #(('-r', '--recurse'),{'action':'store_true', 'default': True,
+    #    'help': 'Recurse into directory paths (default: %default)'}),
+
+#    (('-v', ''),{'dest':'verboseness','default': 0, 'action':'count',
+#        'help': "Increase chattyness (defaults to 0 or the CLLCT_DEBUG env.  var.)"}),
+    (('-V', '--version'),{ 'action':'version', 'help': "" }),
+)
+
+
+# Main
+
+rc = confparse.Values()
+
+# XXX: or only list the complement of these (the setting keys)?
+rc_transient = ['print_config', 'list_flavours', 'list_tags', 'update_config']
+
+def rc_init_default():
+    global rc
+    # TODO: setup.py script
+    os.mknod(DEFAULT_RC)
+    rc = confparse.yaml(DEFAULT_RC)
+
+    rc.set_source_key('config_file')
+    rc.config_file = DEFAULT_RC
+
+    rc.tags = DEFAULT_TAGS
+    rc.comment_scan = STD_COMMENT_SCAN
+    rc.comment_flavours = rc.comment_scan.keys()
+    rc.dbref = DEFAULT_DB
+
+    rc.commit()
+
+def rc_cli_override(parser, opts):
+    global rc
+    for o in opts:
+        if o in rc_transient:
+            continue
+        elif hasattr(rc, o):
+            setattr(rc, o, opts[o])
+        else:
+            err("Ignored option %s", o)
+
+
+def main(argv=None):
+    global rc
+
+    if not argv:
+        argv = sys.argv[1:]
+    parser, opts, paths = parse_argv_split(__options__, argv, __usage__)
+
+    rc_cli_override(parser, opts)
+    if opts['update_config']:
+        rc.commit()
+
+    if opts['print_config']:
+        yaml_dump(rc.copy(), sys.stdout)
+        return
+
+    elif opts['list_flavours']:
+        for flavour in rc.comment_scan:
+            print "%s:\n\tstart:\t%s" % ((flavour,)+
+                    tuple(rc.comment_scan[flavour][:1]))
+            if len(rc.comment_scan[flavour]) > 1:
+                print "\tend:\t%s" % rc.comment_scan[flavour][1]
+            print
+        return
+
+    elif opts['list_tags']:
+        for tag in rc.tags:
+            print "%s:" % (tag)
+            if rc.tags[tag]:
+                if len(rc.tags[tag]) > 0:
+                    print "\tmatch:\t%s" % (rc.tags[tag][0] % tag)
+                if len(rc.tags[tag]) > 1:
+                    print "\tformat:\t%s" % rc.tags[tag][1]
+                if len(rc.tags[tag]) > 2:
+                    print "\tindex:\t%s" % rc.tags[tag][2]
+            else:
+                print "\tmatch:\t(%s)" % tag
+            print
+        return
 
     matchbox = {}
-    for tagname in tags:
+    for tagname in rc.tags:
         pattern = r"(%s)" % tagname
-        if tags[tagname]:
-            pattern = tags[tagname][0] % tagname
+        if rc.tags[tagname]:
+            pattern = rc.tags[tagname][0] % tagname
         matchbox[tagname] = re.compile(pattern)
 
-    dbsession = get_session(dbref)
-    find_files(dbsession, tags, matchbox, paths, comment_flavours) 
+    dbsession = get_session(rc.dbref)
+    find_files(dbsession, matchbox, paths) 
 
 
 if __name__ == '__main__':
+
+    rcfile = list(confparse.get_config('radicalrc'))
+    if rcfile:
+        rc.config_file = rcfile.pop()
+    else:
+        rc.config_file = DEFAULT_RC
+    "Configuration filename."
+
+    if not rc.config_file or not os.path.exists(rc.config_file):
+        rc_init_default()
+    assert rc.config_file, \
+        "No existing configuration found, please rerun/repair installation. "
+
+    rc = confparse.yaml(rc.config_file)
+    "Static, persisted settings."
+
     main()
+    "Start CLI invocation handling. "
 
 # vim:et:

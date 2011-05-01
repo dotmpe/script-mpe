@@ -74,11 +74,15 @@ class Values(dict):
     def __repr__(self):
         return 'Values(%s)'%self.keys()#+str(dict(values))+')'
    
-    def __init__(self, defaults=None, file=None, root=None):
+    def __init__(self, defaults=None, file=None, root=None, source_key=None):
         self.__dict__['parent'] = root
         #self.updated = False
+        if not source_key:
+            source_key = 'file'
+        self.__dict__['source_key'] = source_key
         if file:
-            self.__dict__['file'] = file
+            self[source_key] = file
+            #self.__dict__[self.source_key] = file
         #self.__dict__.update(dict(
         #    parent=root, updated=False, file=file))
         #print '1', self.__dict__
@@ -88,6 +92,23 @@ class Values(dict):
                     self[key] = Values(defaults[key], root=self)
                 else:
                     self[key] = defaults[key]
+
+    def set_source_key(self, key):
+        ckey = self.source_key
+        if ckey and ckey in self:
+            value = self.source
+            del self[ckey]
+        self.__dict__['source_key'] = key
+        if ckey and value:
+            self[self.source_key] = value
+
+    @property
+    def source_key(self):
+        return self.__dict__['source_key']
+
+    @property
+    def source(self):
+        return self[self.source_key]
 
     def __getitem__(self, name):
         mod = self
@@ -147,7 +168,9 @@ class Values(dict):
         if self.__dict__['parent']:
             self.root().commit()
         else:
-            file = self.__dict__['file']
+            #assert 'source_key' in self
+            #file = self[self['source_key']]
+            file = self.source;#__dict__[self.__dict__['source_key']]
             backup(file)
             data = self.copy()
             yaml_dump(data, open(file, 'a+'))
@@ -166,7 +189,7 @@ class Values(dict):
     def reload(self):
         if self.__dict__['parent']:
             raise Exception("Cannot reload node")
-        file = self.__dict__['file']
+        file = self.__dict__[self.__dict__['source_key']]
         return yaml(file)
 
 
