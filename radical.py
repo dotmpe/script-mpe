@@ -39,7 +39,8 @@ Project Changelog
     improved scanning, parsing of tagged comments.
 2011-05-01
     Improved parser.
-
+2011-05-04
+    Improved parser.
 
 Issues
 -------
@@ -91,26 +92,66 @@ import confparse
 
 Base = declarative_base()
 
-class Index(Base):
+class CommentTag(Base):
     __tablename__ = 'tags'
     tagname = Column(String(16), primary_key=True)
-    storage = Column(String(1024))
+    #storage = Column(String(1024))
 
-indices_comments = Table('indices_comments', Base.metadata,
-        Column('index', ForeignKey('tags.tagname'), index=True),
-        Column('comment', ForeignKey('document_embedded_comments.id'), index=True)
-    )
+#indices_comments = Table('indices_comments', Base.metadata,
+#        Column('tag', ForeignKey('tags.tagname'), index=True),
+#        Column('comment', ForeignKey('document_embedded_comments.id'), index=True)
+#    )
 
-class Comment(Base):
-    __tablename__ = 'document_embedded_comments'
+#class Comment(Base):
+#    __tablename__ = 'document_embedded_comments'
+#    id = Column(Integer(11), primary_key=True)
+#    pattern = Column(String(255))
+#    tags = relationship(Tag, secondary=indices_comments, backref='comments')
+
+class TrackedIssue(Base):
+    __tablename__ = 'issues'
     id = Column(Integer(11), primary_key=True)
-    filename = Column(String(255), index=True)
-    pattern = Column(String(255))
+    tag_id = Column(String(16), ForeignKey('tags.tagname'))
+    tag = relationship(CommentTag, primaryjoin=tag_id == CommentTag.tagname,
+            backref='issues')
+    description = Column(Text, index=True)
+    inline = Column(Boolean, default=False)
     # XXX: unique on filename/linenumber?
-    last_seen_linenumber = Column(Integer(11))
-    tags = relationship(Index, secondary=indices_comments, backref='comments')
-    comment = Column(Text, index=True)
+    filename = Column(String(255), index=True)
+    last_seen_startline = Column(Integer(11))
 
+
+class EmbeddedIssue:
+    def __init__(self, file_name, comment_span, tag_name, tag_id, tag_span,
+            description_span, inline, comment_flavour):
+        self.file_name = file_name
+        self.tag_name = tag_name
+        self.tag_id = tag_id
+        self.comment_span = comment_span
+        self.tag_span = tag_span
+        self.description_span = description_span
+        self.inline = inline
+        self.comment_flavour = comment_flavour
+
+    def __str__(self):
+        data = open(self.file_name).read()
+        return "<%s> %s %s %s\n\t%s\n\t" % (
+                self.file_name, self.tag_name, self.inline, data[slice(*self.tag_span)],
+                self.description
+            )
+        
+    @property
+    def description(self):
+        global rc
+        data = open(self.file_name).read()
+        description = clean_comment(
+                rc.comment_scan[self.comment_flavour],
+                data[slice(*self.description_span)].lstrip())
+        if self.inline:
+            description = collapse_ws(description)
+            if not description.endswith(' '):
+                description += ' '
+        return description
 
 # Storage & service IO
 
@@ -127,8 +168,15 @@ def store_comments(session, data, comment_span, flavour_spec, tagname, matchbox)
 
 end_of_description = re.compile('([\.?!](?:\ |$))', re.M + re.S).search
 
-end_of_line = re.compile('($)').search
+#end_of_line = re.compile('$').search
 
+def end_of_line(data):
+    pos = 0
+    for c in data:
+        if c == '\n':
+            return pos
+        pos += 1
+    
 
 def at_line(offset, width, data):
     #data = data.decode('utf-8')
@@ -142,6 +190,7 @@ def at_line(offset, width, data):
     assert not (offset+width > chars),  \
 "Span is beyond document bounds: %r while document bytes:%r %r, lines:%s " % \
 ((offset, width), chars, len(data), len(lines))
+
 
 collapse_ws_sub = re.compile(r'[\ \n]+').sub
 collapse_ws = lambda s: collapse_ws_sub(' ', s)
@@ -209,7 +258,7 @@ def trim_comment(match, data, (start, end)):
     # strip heading and trailing comment markup metachars
     m = match[0].match(comment_data)
     if not m:
-        print (m, comment_data)
+        raise Exception(m, comment_data)
 
     _1 = comment_data[m.end(1):]
     start += m.end(1)
@@ -275,10 +324,6 @@ def find(session, matchbox, source, data):
 
     for tagname in rc.tags:
 
-        service = None
-        if rc.tags[tagname] and len(rc.tags[tagname]) > 2:
-            service = get_service(rc.tags[tagname][2])
-
         for match in matchbox[tagname].finditer(data):
             tag_span = match.start(), match.end()
 
@@ -289,21 +334,14 @@ def find(session, matchbox, source, data):
             if not comment: 
                 continue
             comment_flavour, comment_span, lines = comment
-            #print '-------------',source, comment_span
-            #print 1, repr(data[slice(*comment_span)])
-            #print
 
             # Clean comment from markup and adjust source span
             comment_data, comment_span = \
                     trim_comment(matchbox[comment_flavour], data, 
                                                                 comment_span)
-
             (comment_start, comment_end) = comment_span
-            #print 2, repr(data[slice(*comment_span)])
-            #print 'end'
-            #continue
 
-            # Determine end of tag value: the Issue description
+            # Determine end of tag value: the Issue description boundary
             inline = False
 
             next_tag = scan_for_tag(rc.tags, matchbox,
@@ -321,13 +359,30 @@ def find(session, matchbox, source, data):
                 if find_description_end:
                     description_end = match.end() + find_description_end.end()
                 else: # Line comment
-                    end_offset = end_of_line(data[match.end():comment_end]).end()
-                    # TODO: stop at end of line
-                    description_end = match.end() + end_offset
+                    end_offset = end_of_line(data[match.end():comment_end])#.end()
+                    if end_offset:
+                        # TODO: stop at end of line
+                        description_end = match.end() + end_offset
+                    else:
+                        description_end = comment_end
 
             # Always stop at next tag
             if next_tag and next_tag < description_end:
                 description_end = next_tag
+
+            current_id = None
+            if rc.tags[tagname]:
+                if match.group(2):
+                    assert tagname in rc.tags, "Need index type for tracked tag at %s" % (tag_span,)
+                    current_id = match.group(2)
+                else:
+                    current_id = -1
+
+            yield EmbeddedIssue(source, (comment_start, comment_end), tagname,
+                    current_id, 
+                    (match.start(), match.end()), (match.end(),
+                        description_end), inline, comment_flavour)
+            continue
 
             # Get and further clean the issue text from the source data
             tag_data = clean_comment(rc.comment_scan[comment_flavour],
@@ -337,33 +392,22 @@ def find(session, matchbox, source, data):
                 if not tag_data.endswith(' '):
                     tag_data += ' '
 
-            # Tracked or anonymous tags
+            # Use tracker service, or anonymous tags
             if rc.tags[tagname]:
                 current_id = None
                 if match.group(2):
                     assert tagname in rc.tags, "Need index type for tracked tag at %s" % (tag_span,)
                     current_id = match.group(2)
+
                 if current_id:
                     #print 'Existing:', tagname, current_id, source, tag_span, repr(data[slice(*tag_span)])
-                    pass
-                    service.update_issue(tagname, current_id, tag_data)
+                    yield source, tagname, current_id, tag_data
                 else:
                     #print 'New:', tagname, source, tag_span, repr(data[slice(*tag_span)])
-                    pass # Identify new tracked tagged comment
-                    new_id = service.new_issue(tagname, tag_data)
-                    # Write ID to file
+                    yield source, tagname, -1, tag_data # Identify new tracked tagged comment
             else:
                 #print 'Anonymous:', tagname, source, tag_span, repr(data[slice(*tag_span)])
-                pass # Anonymous tag
-
-            continue
-            # TODO: store
-            #for tagged in store_comments(session, data, comment_span, 
-            #        style_regexes, tagname, matchbox[tagname]):
-            #    storage = None
-            #    if tags[tagname]:
-            #        id_pattern, id_fmt, id_generator = tags[tagname]
-            #        storage = get_service(id_generator)
+                yield source, tagname, None, tag_data # Anonymous tag
 
 
 
@@ -409,12 +453,15 @@ def find_files(session, matchbox, paths):
             err("Path does not exist: %s", p)
         elif os.path.isdir(p):
             subs = [ os.path.join(p, d) for d in os.listdir(p) ]
-            find_files(session, matchbox, subs)
+            for f in find_files(session, matchbox, subs):
+                yield f
         elif not os.path.isfile(p):
             err("Ignored non-file path: %s", p)
         else:
             data = open(p).read()
-            find(session, matchbox, p, data)
+            for f in find(session, matchbox, p, data):
+                yield f
+
 
 def get_session(dbref):
     engine = create_engine(dbref)
@@ -468,9 +515,9 @@ STD_COMMENT_SCAN = {
     }
 # Tag pattern, format and index type
 DEFAULT_TAGS = {
-    'TODO': ['(%s)[:_\s-](?:([0-9]+)[\s\:])?', '%(tagname)s:%(numid)i', 'numeric_index'],
+    'TODO': ['(%s)[:_\s-](?:([0-9]+)[\s:])?', '%(tagname)s:%(numid)i', 'numeric_index'],
 #        'FIXME': ('%(tagname)s:%(id)s', 'tiny_ticket'),
-    'XXX': None,
+    'XXX': ['(%s)[:_\s-](?:([0-9]+)[\s:])?',],
 #        'FACIOCRM': ('%(tagname)s-%(id)i', 'atlassian_jira'),
 }
 
@@ -501,7 +548,7 @@ __options__ = (
         'help': "Scan for these comment flavours only, by default all known fla." }),
 
     (('--list-flavours',),{ 'action':'store_true', 'help': "" }),
-    (('--list-tags',),{ 'action':'store_true', 'help': "" }),
+    (('--list-scans',),{ 'action':'store_true', 'help': "" }),
 
     (('--print-config',),{ 'action':'store_true', 'help': "" }),
 
@@ -520,7 +567,7 @@ __options__ = (
 rc = confparse.Values()
 
 # XXX: or only list the complement of these (the setting keys)?
-rc_transient = ['print_config', 'list_flavours', 'list_tags', 'update_config']
+rc_transient = ['print_config', 'list_flavours', 'list_scans', 'update_config']
 
 def rc_init_default():
     global rc
@@ -573,7 +620,7 @@ def main(argv=None):
             print
         return
 
-    elif opts['list_tags']:
+    elif opts['list_scans']:
         for tag in rc.tags:
             print "%s:" % (tag)
             if rc.tags[tag]:
@@ -610,7 +657,21 @@ def main(argv=None):
     if not paths:
         paths = ['.']
 
-    find_files(dbsession, matchbox, paths) 
+
+    service = None
+    if rc.tags[tagname] and len(rc.tags[tagname]) > 2:
+        service = get_service(rc.tags[tagname][2])
+
+    for embedded in find_files(dbsession, matchbox,
+            paths):
+        if embedded.tag_id:
+            if embedded.tag_id == -1:
+                new_id = service.new_issue(embedded.tag_name, embedded.description)
+            else:
+                service.update_issue(embedded.tag_name, embedded.tag_id,
+                        embedded.description)
+        else:
+            pass
 
 
 if __name__ == '__main__':
