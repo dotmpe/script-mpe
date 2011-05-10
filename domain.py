@@ -1,5 +1,129 @@
 #!/usr/bin/python
+"""Local Domain Scan
+=================
+Identify local and remote boxes and current network.
+
+- Every box is considered a network node with one or more NIC.
+- All boxes use a hostname as primary identifier. 
+- Every network is a set of permanent and 'roaming' NIC.
+
+Future
+-------
+- Current local network is identified by gateway interface (by MAC address).
+- Nodes may be identified by SSH key (or PGP?).
+- All local network addresses are mapped.
+- Then a ip-hostname lookup table is build.
+- http://muthanna.com/quickswitch/ would be a nice tool to do the actual 
+  host/interfaces/... config switching.
+- Global online status is by PING to some known server. Perhaps Google, perhaps
+  some DNS or even a more appropiate server?
+  
+Settings
+---------
+- YAML, rewritten on update.
+- FIXME: Contains generated nodes.
+  Better keep dynamic values separated.
+
+
+:Schema:
+    ``node``
+        `host-id`
+            ``host``: `Hostname`
+            ``interface``: 
+                - `HardwareAddress`
+    ``network``
+        `net-id`
+            ``ID``: `Network ID`
+            ``nodes``: 
+                - `HardwareAddress`
+            ``default route``: `HardwareAddress`
+    ``domain``
+        - `tld`
+            - `name`
+                - ``net``: `net-id`
+                  ``ipv4``: `ip`
+                
+                - `sub`
+                    ``net``: `net-id`
+                    ``ipv4``: `ip`
+
+:Dynamic:
+    ``interfaces``
+        `HardwareAddress`: `host-id`
+    ``nodes``
+        `HardwareAddress`: `net-id`
+    ``hosts``
+        `ip`:
+            ``fqdn``: `domain`
+            ``aliases``:
+                - `host-id`
+            
+
+# TODO: build gateway from 
+    ``gateways``
+        `HardwareAddress`
+            ``internal``: `net-id`
+            ``external``: `ip`
+
+scrap
+------
+node:
+  wrt54g2.lan:
+  orb:
+  iris:
+  maelstrom:
+  sam:
+  pandora:
+    - name: en0
+      ether: 10:9a:dd:4c:d5:a8 
+    - name: en1
+      ether: c8:bc:c8:ed:be:c1 
+  midway:
+  brixmaster:
+  dotmpe: 109.72.86.5
+  brixcrm.com: 212.79.236.226
+  brixcrm.nl: 89.105.210.233
+  brixnet.nl: 89.105.204.141
+  oostereind: 83.119.152.57
+
+domain:
+  brix:
+    brixmaster: {}
+    pandora: {}
+  com:
+    brixcrm: {}
+    dotmpe:
+      htdocs:
+        bzr: {}
+        cms: {}
+        dist: {}
+        git: {}
+        project: {}
+        services: {}
+        usr: {}
+        www: {}
+  mobile:
+    moto: {}
+    pandora: {}
+    sam:
+      htdocs:
+        facio: {}
+        usr: {}
+  nl:
+    brixcrm: {}
+    brixnet: {}
+  oostereind:
+    iris: {}
+  pandora:
+    andromeda: {}
+    clamshell:
+      htdocs:
+        facio: {}
+        usr: {}
+"""
+import datetime
 import os
+from pprint import pformat
 import re
 import socket
 import sys
@@ -14,6 +138,28 @@ config = confparse.get_config('cllct.rc')
 
 settings = confparse.yaml(*config)
 "Static, persisted settings."
+
+def reload():
+    global settings
+    settings = settings.reload()
+    if 'dynamic' not in settings:
+        settings['dynamic'] = []
+    # Reparse interfaces
+    settings['interfaces'] = confparse.Values({}, root=settings)
+    for host in settings.node:
+        for mac in settings.node[host].interface:
+            assert mac not in settings.interfaces
+            settings.interfaces[mac] = host
+    if 'interfaces' not in settings.dynamic:
+        settings.dynamic.append('interfaces')
+    # Reparse nodes
+    settings['nodes'] = confparse.Values({}, root=settings)
+    for network in settings.network:
+        for mac in settings.network[network].nodes:
+            assert mac not in settings.nodes
+            settings.nodes[mac] = network
+    if 'nodes' not in settings.dynamic:
+        settings.dynamic.append('nodes')
 
 def err(msg, *args):
     print >>sys.stderr, msg % args
@@ -111,6 +257,9 @@ def get_dest_info(addr):
         yield iface, ipaddr, host, hwaddr
 
 def get_mac(addr):
+    """
+    Return MAC for IP address (as reported by ARP).
+    """
     a = get_dest_info(addr)
     try:
         return a.next()[3]
@@ -130,8 +279,54 @@ def get_default_route():
         raise Exception
 
 
-def assert_node(host):
+def assert_node(host, mac):
     global settings
+    if host not in settings.node:
+        node = {
+            'host': host,
+            'interface': [mac],
+        }
+        settings.node[host.lower()] = node
+        settings.commit()
+        reload()
+        print 'Added new node: `%s <%s>`_' % (host, mac)
+
+def _old_2():
+    global settings
+    if mac not in settings.node:
+        print """
+Unknown Interface
+-----------------
+Found an unknown node: %s.
+
+For most boxes, this interface will be permanently connected to one network.
+But if this node is mobile, it may belong to more than one network.
+""" % (mac,)
+        v = raw_input("Mobile? [yN] ")
+        if v != None or v.lower() != 'n':
+            pass #
+        print """
+Enter an ID for this network. If the network ID alreay
+exists, the interface will be listed in the nodes for this network. Otherwise a
+new network is created.
+"""
+        
+        network_id = raw_input("Network ID? [a-z][a-z0-9]*")
+        if network_id not in settings.network:
+            v = raw_input("Insert new network? [Y|n] ")
+            if v != None or v.lower() != 'y':
+                return
+            settings.network[network_id] = {
+                    'domain': None,
+                    'nodes': [ mac ] }
+        settings.node[mac] = {
+                'net': network_id }
+        settings.commit()
+        settings = settings.reload()
+
+        print 'Added new node: %s' % mac
+
+def _old_1(host):
     if host not in settings.node:
         addr = socket.gethostbyname(host)
         node = {
@@ -140,11 +335,12 @@ def assert_node(host):
         }
         #setattr(settings.node, host, confparse.Values(node,root=settings.node))
         settings.node[host] = confparse.Values(node,root=settings.node)
-        assert isinstance(settings.copy()['domain']['brix']['brixmaster'], dict)
+        assert isinstance(settings.copy()['domain']['brix']['brixmaster'],
+                dict), pformat(settings.copy()['domain']['brix'])
         assert not isinstance(settings.copy()['domain']['brix']['brixmaster'], confparse.Values)
         print 'Adding', host, node
-        settings.commit()
-        settings = settings.reload()
+        #settings.commit()
+        #settings = settings.reload()
 
 def assert_gateway(node):
     return
@@ -156,7 +352,6 @@ def get_hostname():
     getfqdn = socket.getfqdn()
     if getfqdn.split('.').pop(0) != host:
         err("Hostname does not match subdomain: %s (%s)", host, getfqdn)
-    assert_node(host)    
     return host
 
 def get_gateway():    
@@ -164,27 +359,52 @@ def get_gateway():
     if not default_routes:
         return None
 
-    node = None
-    gateway_node = None
-    for gateway in default_routes:
-        m = get_mac(gateway)
-        if not m:
+    # Try to identify one gateway
+    gateway_addr, mac = None, None
+    for gateway_addr in default_routes:
+        mac = get_mac(gateway_addr)
+        if not mac:
             continue
-        try:
-            gateway_node = socket.gethostbyaddr(gateway)[0]
-        except socket.herror, e:
-            err(e)
-            continue
-        if gateway_node and node:
-            err("Multiple gateways, keeping first: %s, %s", node, gateway_node)
+    if not mac:
+        if not gateway_addr:
+            raise Exception("No up-link. ")
         else:
-            node = gateway_node
+            raise Exception("Unable to identify gateway at %s. " % gateway_addr)
+    #print 'Gateway: `%s <%s>`' % (gateway, mac)
+    if len(default_routes) > 1:
+        print "Warning multiple routes, ignored possibly valid gateways"
 
-    if node:
-        assert_node(node)
-        assert_gateway(node)
+    gateway = None
+    if mac not in settings.interfaces:
+        print """
+Unknown Gateway
+---------------
+:Node: `%s <%s>`
 
-    return node
+Please enter a hostname for this node. Give an existing host to list this
+interface under that node entry.
+""" % (gateway_addr, mac)
+
+        while not gateway:
+            gateway = raw_input("Gateway hostname? ")
+            if gateway in settings.node:
+                print """
+Existing node
+-------------
+::
+
+    %s
+""" % pformat(settings.node[gateway])
+                v = raw_input("Add? [Yn]")
+                if v != None and v.lower() != 'y':
+                    gateway = None
+        assert gateway, (gateway_addr, mac)
+        assert_node(gateway, mac)
+
+    gateway = settings.interfaces[mac]
+    gateway = settings.node[gateway]['host']
+
+    return gateway, mac, gateway_addr
 
 def info():
     # determine gateway, and identify node by hardware address
@@ -295,14 +515,45 @@ def main():
     or 'mobile' for unrecognized routes/gateways.
     """
 
-    hostname = get_hostname()
-    assert hostname
-    gateway = get_gateway()
+    print """
+Local domain check
+==================
+:Date: %s """ % datetime.datetime.now().isoformat()
+
+    host = get_hostname()
+    assert host
+    addr = socket.gethostbyname(host)
+    assert addr, host
+    ifinfo = parse_ifconfig()
+    mac = None
+    for iface, attr in ifinfo:
+        if 'inet' in attr:
+            if 'ip' in attr['inet']:
+                mac = attr['mac']
+                break
+    #if not mac: # XXX:?
+    #    mac = get_mac(addr)
+    assert mac, addr
+    assert_node(host, mac)
+    host = settings.node[host]['host']
+    assert host
+    print ':Host: `%s <%s>`' % (host, mac)
+    gateway, gateway_mac, gateway_addr = get_gateway()
+    print ':Gateway: `%s <%s>`' % (gateway, gateway_mac)
+    network_id = settings.nodes[gateway_mac]
+    network = settings.network[network_id]['ID']
+    print ':Network ID: `%s <%s>`' % (network, network_id)
+
     if not gateway:
-    	err("No internet uplink. ")
-        print hostname, 
+        err("No internet uplink. ")
+        #print host, 
     else:
-        print hostname, gateway
+        pass#print host, gateway
+
+    global settings
+    settings.commit()
+    reload()
 
 if __name__ == '__main__':
+    reload()
     main()
