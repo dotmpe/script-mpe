@@ -1,4 +1,4 @@
-import os, sys, types
+import os, re, sys, types
 from pprint import pformat
 
 try:
@@ -21,6 +21,11 @@ config_prefix = (
 )
             
 def backup(file):
+    """
+    Move existing file to numbered backup location.
+    If file is a symlink, its target is moved.
+    """
+    # Find non-existant path with suffix '~[0-9]*'
     cnt = 0
     psuf = ''
     bup = file+'~'
@@ -31,7 +36,12 @@ def backup(file):
         else:
             bup += str(cnt)
         psuf = str(cnt)
-    os.rename(file, bup)
+    # Copy or move currentfile to suffixed
+    #if not re.match('~[0-9]*', file):
+    if os.path.islink(file):
+        os.rename(os.path.realpath(file), bup)
+    else:
+        os.rename(file, bup)
 
 def get_config(name, paths=config_prefix):
 
@@ -189,7 +199,7 @@ class Values(dict):
     def reload(self):
         if self.__dict__['parent']:
             raise Exception("Cannot reload node")
-        file = self.__dict__[self.__dict__['source_key']]
+        file = self.source
         return yaml(file)
 
 

@@ -133,6 +133,29 @@ class EmbeddedIssue:
         self.inline = inline
         self.comment_flavour = comment_flavour
 
+    def format(self):
+        if len(rc.tags[self.tag_name]) > 1:
+            p = rc.tags[self.tag_name][1]
+        else:
+            p = "%s:"
+            if self.tag_id != None:
+                p += '%i:'
+        if self.tag_id != None:
+            return p % (self.tag_name, self.tag_id)
+        else:
+            return p % self.tag_name
+
+    def set_new_id(self, id):
+        global rc
+        data = open(self.file_name).read()
+        data = data[:self.tag_span[0]] + self.format() + data[self.description_span[0]:]
+        #print self.file_name, data
+        #open(self.file_name, 'w+').write(data)
+
+    def store(self, session):
+        if self.tag_id:
+            pass
+        
     def __str__(self):
         data = open(self.file_name).read()
         return "<%s> %s %s %s\n\t%s\n\t" % (
@@ -515,7 +538,7 @@ STD_COMMENT_SCAN = {
     }
 # Tag pattern, format and index type
 DEFAULT_TAGS = {
-    'TODO': ['(%s)[:_\s-](?:([0-9]+)[\s:])?', '%(tagname)s:%(numid)i', 'numeric_index'],
+        'TODO': ['(%s)[:_\s-](?:([0-9]+)[\s:])?', '%s:%i:', 'numeric_index'],
 #        'FIXME': ('%(tagname)s:%(id)s', 'tiny_ticket'),
     'XXX': ['(%s)[:_\s-](?:([0-9]+)[\s:])?',],
 #        'FACIOCRM': ('%(tagname)s-%(id)i', 'atlassian_jira'),
@@ -667,11 +690,14 @@ def main(argv=None):
         if embedded.tag_id:
             if embedded.tag_id == -1:
                 new_id = service.new_issue(embedded.tag_name, embedded.description)
+                embedded.set_new_id(new_id)
             else:
                 service.update_issue(embedded.tag_name, embedded.tag_id,
                         embedded.description)
         else:
             pass
+
+        embedded.store(dbsession)
 
 
 if __name__ == '__main__':
