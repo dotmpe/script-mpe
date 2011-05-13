@@ -1,3 +1,7 @@
+"""
+- Keys can contain periods ('.'), but in the configuration these will always be
+  expanded to module attributes, and thus serialized to nested dictionaries.
+"""
 import os, re, sys, types
 from pprint import pformat
 
@@ -98,10 +102,34 @@ class Values(dict):
         #print '1', self.__dict__
         if defaults:
             for key in defaults:
-                if isinstance(defaults[key], dict):
-                    self[key] = Values(defaults[key], root=self)
+                self.initialize(key, defaults[key])
+
+    def initialize(self, key, value):
+        if isinstance(value, dict):
+            self[key] = Values(value, root=self)
+        elif isinstance(value, list):
+            _list = [i for i in value]
+            self[key] = []
+            for c in value:
+                if isinstance(c, dict):
+                    i = Values(c, root=self)
+                elif isinstance(c, list):
+                    # XXX: hardcoded recursion depth (at 2)
+                    i = []
+                    for c2 in c:
+                        if isinstance(c2, dict):
+                            i2 = Values(c2, root=self)
+                        elif isinstance(c2, list):
+                            raise Exception("list recursion")
+                        else:
+                            i2 = c2
+                        i.append(i2)
                 else:
-                    self[key] = defaults[key]
+                    i = c
+                self[key].append(i)
+        else:
+            self[key] = value
+
 
     def set_source_key(self, key):
         ckey = self.source_key
@@ -186,12 +214,39 @@ class Values(dict):
             yaml_dump(data, open(file, 'a+'))
 
     def copy(self):
+        """
+        Return flat dicts 'n lists copy.
+        """
         c = dict()
         for k in self:
             if hasattr(self[k], 'copy'):
                 c[k] = self[k].copy()
             elif hasattr(self[k], 'keys') and not self[k].keys():
                 c[k] = dict()
+            elif isinstance(self[k], list):
+                # XXX: hardcoded recursion depth (at 2)
+                c[k] = []
+                for c1 in self[k]:
+                    if hasattr(c1, 'copy'):
+                        i = c1.copy()
+                    elif hasattr(c1, 'keys') and not c1.keys():
+                        i = dict()
+                    elif isinstance(c1, list):
+                        i = []
+                        for c2 in c1:
+                            if hasattr(c2, 'copy'):
+                                i2 = c2.copy()
+                            elif hasattr(c2, 'keys') and not c2.keys():
+                                i2 = dict()
+                            elif isinstance(c2, list):
+                                raise Exception("list recursion")
+                            else:
+                                i2 = c2
+                            i.append(i2)
+                    else:
+                        i = c1
+                    c[k].append(i)
+
             else:
                 c[k] = self[k]
         return c
