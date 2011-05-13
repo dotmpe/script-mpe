@@ -1,6 +1,8 @@
 """
 - Keys can contain periods ('.'), but in the configuration these will always be
   expanded to module attributes, and thus serialized to nested dictionaries.
+- Handling of lists is fairly primitive and could be buggy in cases? Recursion
+  depth is fixed by implementation at 2 levels.  
 """
 import os, re, sys, types
 from pprint import pformat

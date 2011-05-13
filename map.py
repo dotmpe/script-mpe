@@ -28,11 +28,18 @@ Using this out of sync detection, this script can propagate changes found on any
 side, local or remote. The configuration accepts more than two sides and can
 keep several host/directory paths in sync.
 
+The only downside versus an RCS is that only one host may run out of sync at any
+time, and that all hosts need to be online for a successful synchronisation. 
+One a host is offline during synchronisation it will also need to be updated by
+hand.
+
+
 Options
 -------
 
 """
 
+import optparse
 import os
 import socket
 import sys
@@ -46,6 +53,14 @@ config = confparse.get_config('cllct.rc')
 settings = confparse.yaml(*config)
 "Static, persisted settings."
 
+usage_descr = """%prog [options] [path-or-map-id]*"""
+
+options_spec = (
+    ('--manifest-log', {'default': manifest_file, 'help':
+        "The file in which local changes are logged once detected. " }),
+)
+
+
 
 def reload():
     global settings
@@ -55,7 +70,6 @@ def reload():
     # List all sync'ed map-id's for this host
     settings['sync'] = confparse.Values({}, root=settings)
     hostname = socket.gethostname()
-    print hostname
     for map_id in settings.map:
         for side in settings.map[map_id]:
             if side.host != hostname:
@@ -71,6 +85,8 @@ def main(argv=[]):
     reload()
     settings.commit()
     pwd = os.getcwd()
+
+
 
 if __name__ == '__main__':
     main()
