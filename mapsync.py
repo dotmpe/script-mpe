@@ -56,6 +56,7 @@ settings = confparse.yaml(*config)
 "Static, persisted settings."
     
 hostname = socket.gethostname()
+username = getpass.getuser()
 
 mapsync_file = settings.mapsync.log_file
 
@@ -164,10 +165,17 @@ def remote_mapsync_delta(map_id, host, remotepath):
     #
     worktree_timestamp = None
     proc = subprocess.Popen(
-            ['ssh', getpass.getuser()+'@'+host, "'cd %s'; find " % path]
+            ['ssh', username+'@'+host, "'~/project/script.mpe/findlatest.py %s'" % path]
             stderr=subprocess.PIPE, stdout=subprocess.PIPE,
             close_fds=True
         )
+    errresp = proc.stderr.read()
+    if errresp:
+        errresp = "Error: "+ errresp.replace('scp: ', host).strip()
+        raise Exception(errresp)
+    else:
+        print 'done', (proc.stdout.read(),)
+    #
     return mapsync_timestamp, worktree_timestamp
 
 def human_readable_timedelta(td):
