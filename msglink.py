@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-"""msglink - symlink email to pwd
+"""msglink - symlink email to cwd
 
 Search ~/mail dir for a pattern,
 foreach result as filed email message,
 find date and subject line in file,
 symlink to message from current dir,
-unsing date and subject line for name.
+using date and subject line for name.
 """
 import sys
 import os

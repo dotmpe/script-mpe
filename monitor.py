@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """
 Report updated and modified files in monitored trees.
+
+XXX: integrate with cllct
 """
 import os, re, optparse, confparse, itertools
 
