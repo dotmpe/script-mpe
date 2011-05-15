@@ -41,7 +41,7 @@ def remote_proc(host, cmd):
         )
     errresp = proc.stderr.read()
     if errresp:
-        errresp = "Error: "+ errresp.replace('scp: ', host).strip()
+        errresp = "Error: "+ errresp.replace('ssh: ', host).strip()
         raise Exception(errresp)
     else:
         return proc.stdout.read().strip()

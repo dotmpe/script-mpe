@@ -64,7 +64,7 @@ import re
 import socket
 import subprocess
 import sys
-from lib import is_versioned, remote_proc, datetime_to_timestamp
+from lib import is_versioned, remote_proc, datetime_to_timestamp, timestamp_to_datetime
 
 import confparse
 
@@ -173,9 +173,25 @@ def remote_mapsync_delta(map_id, host, remotepath):
     #
     return mapsync_timestamp, worktree_timestamp
 
-def remote_copy(src, trgt):
+def rsync(*flags):
+    args = ['rsync'] + list(flags)
     proc = subprocess.Popen(
-            ['scp', '-pq', src, trgt], 
+            args,
+            stderr=subprocess.PIPE, stdout=subprocess.PIPE,
+            close_fds=True
+        )
+    errresp = proc.stderr.read()
+    if errresp:
+        errresp = "Error: "+ errresp.strip()
+        raise Exception(errresp)
+    info('rsync %s', " ".join(args) )
+    print proc.stdout.read()
+    info('rsync done')
+
+def remote_copy(src, trgt):
+    args = ['scp', '-pq', src, trgt]
+    proc = subprocess.Popen(
+            args,
             stderr=subprocess.PIPE, stdout=subprocess.PIPE,
             close_fds=True
         )
@@ -183,15 +199,18 @@ def remote_copy(src, trgt):
     if errresp:
         errresp = "Error: "+ errresp.replace('scp: ', host).strip()
         raise Exception(errresp)
-    print 'done', (proc.stdout.read(),)
+    info(" ".join(args))
+    print proc.stdout.read()
+    info('scp -pq done')
 
 class Map:
-    def __init__(self, map_id, host, path):
+    def __init__(self, map_id, host, path, mapsync):
         self.map_id = map_id
         self.path = path
         self.host = host
         self.worktree_stamp = None
         self.mapsync_stamp = None
+        self.container = mapsync
 
     def fetch_stamps(self):
         if self.islocal:
@@ -203,22 +222,24 @@ class Map:
 
     def update_log(self, timestamp):
         """
-        Lock all sides. Update all insync sides to new log file.
+        Update log at current side.
         """
         global settings, hostname
+        if isinstance(timestamp, float):
+            timestamp = int(round(timestamp))
+        assert isinstance(timestamp, int), type(timestamp)
         log_file = None
         if self.islocal:
             log_file = os.path.join(self.path, settings.mapsync.log_file)
             open(log_file, 'w').write("%s\n" % timestamp)
+            os.utime(log_file, (timestamp, timestamp))
         else:
             rc = os.path.expanduser(os.path.join('~', '.mapsync'))
             log_file = os.path.join(rc, 'remote', self.map_id, host, settings.mapsync.log_file)
             assert os.path.exists(log_file), log_file
             open(log_file, 'w').write("%s\n" % timestamp)
-            #for other in 
-            #    other_path = os.path.join(other
-            #    remote_copy(log_file, host, remote_path)
-        os.utime(log_file, timestamp, timestamp)
+            os.utime(log_file, (timestamp, timestamp))
+            remote_copy(log_file, str(self)+os.sep+settings.mapsync.log_file)
 
     @property
     def islocal(self):
@@ -249,7 +270,12 @@ class Map:
         return 0.0
 
     def __str__(self):
-        return "%s:%s" % (self.host, self.path)
+        global hostname
+        if self.host != hostname:
+            return "%s:%s" % (self.host, self.path)
+        else:
+            return self.path
+
 
 class MapSync:
     def __init__(self, map_id):
@@ -258,7 +284,7 @@ class MapSync:
         self.hosts = {}
         self.maps = []
     def add(self, host, path, fetch_stamps=True):
-        side = Map(self.map_id, host, path)
+        side = Map(self.map_id, host, path, self)
         if fetch_stamps:
             side.fetch_stamps()
         if path not in self.paths:
@@ -346,12 +372,13 @@ def sync(map_id, do_sync=True):
         return mapsync
 
     synctime = datetime.datetime.now()
-    info("sync time %s", synctime)
-    synctimestamp = datetime_to_timestamp(synctime)
-
+    synctimestamp = float(synctime.strftime('%s'))
+    #info("sync time %s", datetime.datetime.utcfromtimestamp(synctimestamp))
+    info("sync time %s", datetime.datetime.fromtimestamp(synctimestamp))
+    info("sync time %s", synctimestamp)
 
     # Synchronize if needed/possible
-    to_sync = None
+    sync_from = None
     if not out_of_sync:
         if not new_paths:
             print "mapsync: nothing to sync"
@@ -360,30 +387,41 @@ def sync(map_id, do_sync=True):
         print "mapsync: multiple sides out of sync"
         raise Exception("n-way merge not supported")
     else:
-        to_sync = out_of_sync[0]
+        sync_from = out_of_sync[0]
 
-    if to_sync:
-        sync_from = mapsync.find_optimum_source(to_sync)
-        if not sync_from:
-            fatal("cannot sync %s:%s, no up-to-date copy", to_sync.host,
-                    to_sync.path)
-        assert sync_from
+    if sync_from:
+        info('updating logs to %s', synctime)
+        sync_from.update_log(synctimestamp)
 
-        to_sync.update_log(synctime)
-
-        info('sync %s to %s', sync_from, to_sync)
-
-        #print "rsync -avzuin --delete %s/ %s:%s" % (
-        #            local_path, host, path)
+        for map in mapsync.maps:
+            if map.path == sync_from.path or map.host == sync_from.host:
+            	continue
+            if not map.insync:
+                assert not map.initialized
+                #fatal("cannot sync %s:%s, no up-to-date copy", to_sync.host,
+                #        to_sync.path)
+                continue
+            #mapsync.synchronize(sync_from, map)
+            info('sync %s to %s', sync_from, map)
+            rsync('-avzi', '--delete', '%s/' % sync_from,
+                    '%s:%s' % map)
+    else:
+        info('updating logs to %s', synctime)
+        for map in mapsync.maps:
+            if not map.insync:
+                continue
+            map.update_log(synctimestamp)
 
     # Initialize new locations
     for map in new_paths:
         sync_from = mapsync.find_optimum_source(map)
         if not sync_from:
-            fatal("cannot sync %s:%s, no up-to-date copy", map.host,
-                    map.path)
+            fatal("cannot sync %s:%s, no up-to-date copy", 
+                    map.host, map.path)
         assert sync_from, map
-        print 'new copy', map
+        info('new copy: %s', map)
+        rsync('-avzi', '--delete', '%s/' % sync_from, str(map))
+        info("ready: copy: %s", map)
 
     return
 
