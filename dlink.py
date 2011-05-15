@@ -1,6 +1,10 @@
 #!/usr/bin/python
 """
-Double link
+Double link.
+
+ $ dlink link-path
+ ln -s link-path link-target.link.n
+
 """
 
 import sys, os
