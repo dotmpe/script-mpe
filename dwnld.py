@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+TODO
+    Find metadata storage on OS X.
+"""
 import os
 import urllib2
 try:
