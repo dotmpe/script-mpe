@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 """
-2010-11-28 Preliminary version
+2010-11-28 
+    Preliminary version
+2011-05-15
+    Fixed bugs and issues with symbolic links.
 """
 from fnmatch import fnmatch
 from itertools import chain
 import os
 from os import readlink
-from os.path import exists, join, normpath, isdir, islink, isfile, basename, islink
+from os.path import dirname, exists, join, normpath, isdir, islink, isfile, basename, islink
 import optparse
 import sys
 
@@ -17,7 +20,8 @@ dirs, files, links = {},{},{}
 _d, _f, _l = 0,0,0
 def dirnid(path):
     global _d
-    path = os.path.realpath(path)
+    if os.path.exists(path):
+        path = os.path.realpath(path)
     if path not in dirs:
         _d += 1
         dirs[path] = 'd'+str(_d)
@@ -31,7 +35,6 @@ def filenid(path):
     return files[path]
 def linknid(path):
     global _l
-    path = os.path.realpath(path)
     if path not in links:
         _l += 1
         links[path] = 'l'+str(_l)
@@ -46,11 +49,17 @@ def shortnid(path):
     else:
         return os.sep.join(nparts)
 
+def err(v, *args):
+    if args:
+        v = v % args
+    print >> sys.stderr, v
+
 def print_tree(opts, path):
     print "digraph 123 {"
     print 'rankdir=LR'
     fshier = []
     slinks = []
+    brokenlinks = []
     nids = {}
     for root, dirs, files in os.walk(path):
         rootnid = dirnid(root)
@@ -61,16 +70,30 @@ def print_tree(opts, path):
             if islink(subpath):
                 nid = linknid(subpath)
                 target = readlink(subpath)
+                if not target.startswith(os.sep):
+                    target = os.path.join(dirname(subpath), target)
+                targetnid = None
                 if islink(target):
                     print nid+"[shape=plaintext,color=coral,style=bold,label=\"%s\"]" % basename(subpath)
                     targetnid = linknid(target)
+                    print targetnid+"[shape=plaintext,color=coral,label=\"%s\"]" % target
+                    slinks.append((nid, targetnid))
                 elif isdir(target):
                     print nid+"[shape=folder,color=coral,style=bold,label=\"%s\"]" % basename(subpath)
                     targetnid = dirnid(target)
+                    print targetnid+"[shape=folder,color=cornflowerblue,label=\"%s\"]" % target
+                    slinks.append((nid, targetnid))
                 elif isfile(target):                    
                     print nid+"[shape=note,color=coral,style=bold,label=\"%s\"]" % basename(subpath)
                     targetnid = filenid(target)
-                slinks.append((nid, targetnid))
+                    print targetnid+"[shape=note,color=darkolivegreen,label=\"%s\"]" % target
+                    slinks.append((nid, targetnid))
+                else:
+                    err("unknown path: %s", target)
+                    targetnid = dirnid(target)
+                    print nid+"[color=coral,label=\"%s\"]" % basename(subpath)
+                    print targetnid+"[color=red,label=\"%s\"]" % target
+                    brokenlinks.append((nid, targetnid))
             elif isdir(subpath):
                 nid = dirnid(subpath)
                 print nid+"[shape=folder,color=cornflowerblue,style=bold,label=\"%s\"]" % basename(subpath)
@@ -90,6 +113,10 @@ def print_tree(opts, path):
     for p, s in slinks:
         print "%s -> %s" % (p, s)
 
+    print "edge[color=red]"
+    for p, s in brokenlinks:
+        print "%s -> %s" % (p, s)
+
     print "}"
 
 
@@ -99,7 +126,7 @@ usage_descr = "%prog [options] paths"
 long_descr = __doc__
 
 argv_descr = (
-        ('--exclude', {'action': 'append','default':[]}),
+    ('--exclude', {'action': 'append','default':[]}),
     ('--exclude-dir', {'action': 'append','default':[]}),
 )
 
