@@ -476,6 +476,7 @@ def find_files(session, matchbox, paths):
             err("Path does not exist: %s", p)
         elif os.path.isdir(p):
             subs = [ os.path.join(p, d) for d in os.listdir(p) ]
+            # recurse
             for f in find_files(session, matchbox, subs):
                 yield f
         elif not os.path.isfile(p):
@@ -501,7 +502,7 @@ def err(msg, *args):
 
 # Optparse callbacks
 def append_comment_scan(option, value, parser):
-    print (option, value, parser)
+    print 'TODO comment_scan', (option, value, parser)
     pass
 
 
@@ -622,6 +623,7 @@ def rc_cli_override(parser, opts):
 def main(argv=None):
     global rc
 
+    # parse arguments
     if not argv:
         argv = sys.argv[1:]
     parser, opts, paths = parse_argv_split(__options__, argv, __usage__)
@@ -658,6 +660,7 @@ def main(argv=None):
             print
         return
 
+    # pre-compile patterns
     matchbox = {}
     for tagname in rc.tags:
         pattern = r"(%s)" % tagname
@@ -674,17 +677,18 @@ def main(argv=None):
         else:
             matchbox[flavour] = (match_start, )
 
-
+    # start db session
     dbsession = get_session(rc.dbref)
 
     if not paths:
         paths = ['.']
 
-
+    # get backend service
     service = None
     if rc.tags[tagname] and len(rc.tags[tagname]) > 2:
         service = get_service(rc.tags[tagname][2])
 
+    # iterate paths
     for embedded in find_files(dbsession, matchbox,
             paths):
         if embedded.tag_id:
