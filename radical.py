@@ -63,7 +63,7 @@ WIP
 
 Configuration
 -------------
-- SQLite DB reference
+- SQL DB reference (SQLite, MySQL, ...)
 - Tag, Scan RegEx[, ID Format[, Service Backend]]
 - Comment Flavour, (Start) Scan RegEx[, End RegEx]
 
@@ -551,8 +551,8 @@ def append_comment_scan(option, value, parser):
 
 PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
 
-__version__ = "0.1"
-__usage__ = """Usage: %prog [options] paths """
+VERSION = "0.1"
+USAGE = """Usage: %prog [options] paths """
 
 DEFAULT_DB = "sqlite:///%s" % os.path.join(
                                     os.path.expanduser('~'), '.radical.sqlite')
@@ -590,7 +590,7 @@ DEFAULT_TAGS = {
 #        'FACIOCRM': ('%(tagname)s-%(id)i', 'atlassian_jira'),
 }
 
-__options__ = (
+OPTIONS = (
     (('-c', '--config'),{ 'metavar':'NAME', 'default': DEFAULT_RC, 
         'dest': "config_file",
         'help': "Run time configuration. This is loaded after parsing command "
@@ -696,8 +696,8 @@ def main(argv=None):
     # parse arguments
     if not argv:
         argv = sys.argv[1:]
-    parser, opts, paths = parse_argv_split(__options__, argv, __usage__,
-            __version__)
+    parser, opts, paths = parse_argv_split(OPTIONS, argv, USAGE,
+            VERSION)
 
     if 'config_key' in opts and opts['config_key']:
         rc = getattr(settings, opts['config_key'])
