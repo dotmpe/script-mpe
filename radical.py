@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Free Radical
-============
+Radical
+=======
 Index and identify tagged comments in documents and source code.
 
 Introduction
@@ -63,10 +63,11 @@ WIP
 
 Configuration
 -------------
-- Tag[, ID-Format[, ID-Generator]]
-- Comment start/end scan Regexes.
+- SQLite DB reference
+- Tag, Scan RegEx[, ID Format[, Service Backend]]
+- Comment Flavour, (Start) Scan RegEx[, End RegEx]
 
-Tags may be rewritten to the document with an ID?
+Tags may be rewritten to the document with an ID.
 
 Project Changelog
 -----------------
@@ -186,7 +187,7 @@ class EmbeddedIssue:
             return p % self.tag_name
 
     def set_new_id(self, id):
-        global rc
+        global settings, rc
         data = open(self.file_name).read()
         data = data[:self.tag_span[0]] + self.format() + data[self.description_span[0]:]
         #print self.file_name, data
@@ -205,7 +206,7 @@ class EmbeddedIssue:
         
     @property
     def description(self):
-        global rc
+        global settings
         data = open(self.file_name).read()
         description = clean_comment(
                 rc.comment_scan[self.comment_flavour],
@@ -383,7 +384,7 @@ def find(session, matchbox, source, data):
     - Unix line comments (starting with '#', optionally whitespace prefixed).
     - FIXME: C-style line and block comments.
     """
-    global rc
+    global settings, rc
 
     for tagname in rc.tags:
 
@@ -477,11 +478,11 @@ def find(session, matchbox, source, data):
 # Utils
 
 # TODO: replace by cllct.osutil once that is packaged
-def parse_argv_split(options, argv, usage="%prog [args] [options]"):
+def parse_argv_split(options, argv, usage="%prog [args] [options]", version=""):
     """Parse argument vector to a an arguments list and an
     option dictionary. Return parser, optsv, args tuple.
     """
-    parser = optparse.OptionParser(usage)
+    parser = optparse.OptionParser(usage, version=version)
 
     optnames = []
     nullable = []
@@ -548,11 +549,15 @@ def append_comment_scan(option, value, parser):
 
 # Static metadata
 
+PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
+
+__version__ = "0.1"
 __usage__ = """Usage: %prog [options] paths """
 
 DEFAULT_DB = "sqlite:///%s" % os.path.join(
                                     os.path.expanduser('~'), '.radical.sqlite')
-DEFAULT_RC = os.path.join(os.path.expanduser('~'), '.radicalrc')
+DEFAULT_RC = 'cllct.rc'
+DEFAULT_CONFIG_KEY = PROG_NAME
 
 # TODO: groups of filetype tags for each flavour scanned comment
 
@@ -586,11 +591,15 @@ DEFAULT_TAGS = {
 }
 
 __options__ = (
-    (('-c', '--config'),{ 'metavar':'PATH', 'default': DEFAULT_RC, 
+    (('-c', '--config'),{ 'metavar':'NAME', 'default': DEFAULT_RC, 
         'dest': "config_file",
         'help': "Run time configuration. This is loaded after parsing command "
         "line options, non-default option values wil override persisted "
         "values (see --update-config) (default: %default). " }),
+    (('-K', '--config-key'),{ 'metavar':'ID', 'default': DEFAULT_CONFIG_KEY, 
+        'dest': "config_key",
+        'help': "Settings root node for run time configuration. "
+        " (default: %default). " }),
 
     (('-C', '--update-config'),{ 'action':'store_true', 'help': "Write back "
         "configuration after updating the settings with non-default option "
@@ -622,38 +631,59 @@ __options__ = (
 
 #    (('-v', ''),{'dest':'verboseness','default': 0, 'action':'count',
 #        'help': "Increase chattyness (defaults to 0 or the CLLCT_DEBUG env.  var.)"}),
-    (('-V', '--version'),{ 'action':'version', 'help': "" }),
 )
 
 
 # Main
 
-rc = confparse.Values()
+settings = confparse.Values()
+"Global settings, set to Values loaded from config_file. "
+rc = None
+"Runtime settings for this script. "
 
 # XXX: or only list the complement of these (the setting keys)?
 rc_transient = ['print_config', 'list_flavours', 'list_scans', 'update_config']
 
-def rc_init_default():
-    global rc
+def rc_init_default(config_key=DEFAULT_CONFIG_KEY):
+    global settings, rc
     # TODO: setup.py script
-    os.mknod(DEFAULT_RC)
-    rc = confparse.yaml(DEFAULT_RC)
 
-    rc.set_source_key('config_file')
-    rc.config_file = DEFAULT_RC
+    if settings.config_file:
+        rc_file = settings.config_file
+    else:
+        rc_file = os.path.join(os.path.expanduser('~'), '.'+DEFAULT_RC)
+
+    os.mknod(rc_file)
+    settings = confparse.yaml(rc_file)
+
+    if config_key:
+        setattr(settings, config_key, confparse.Values())
+        rc = getattr(rc, config_key)
+    else:
+        rc = settings
+
+    settings.set_source_key('config_file')
+    settings.config_file = DEFAULT_RC
 
     rc.tags = DEFAULT_TAGS
     rc.comment_scan = STD_COMMENT_SCAN
     rc.comment_flavours = rc.comment_scan.keys()
     rc.dbref = DEFAULT_DB
 
-    rc.commit()
+    v = raw_input("Write new config to %s? [Yn]")
+    if not v.strip() or v.lower().strip() == 'y':
+        settings.commit()
+        print "File rewritten. "
+    else:
+        print "Not writing file. "
 
 def rc_cli_override(parser, opts):
-    global rc
+    global settings, rc
     for o in opts:
         if o in rc_transient:
             continue
+        elif hasattr(settings, o):
+            setattr(settings, o, opts[o])
         elif hasattr(rc, o):
             setattr(rc, o, opts[o])
         else:
@@ -661,19 +691,27 @@ def rc_cli_override(parser, opts):
 
 
 def main(argv=None):
-    global rc
+    global rc, settings
 
     # parse arguments
     if not argv:
         argv = sys.argv[1:]
-    parser, opts, paths = parse_argv_split(__options__, argv, __usage__)
+    parser, opts, paths = parse_argv_split(__options__, argv, __usage__,
+            __version__)
+
+    if 'config_key' in opts and opts['config_key']:
+        rc = getattr(settings, opts['config_key'])
+    elif 'config_key' not in opts:
+        rc = getattr(settings, DEFAULT_CONFIG_KEY)
+    else:
+        rc = settings
 
     rc_cli_override(parser, opts)
     if opts['update_config']:
         rc.commit()
 
     if opts['print_config']:
-        yaml_dump(rc.copy(), sys.stdout)
+        confparse.yaml_dump(rc.copy(), sys.stdout)
         return
 
     elif opts['list_flavours']:
@@ -746,22 +784,20 @@ def main(argv=None):
 
 if __name__ == '__main__':
 
-    rcfile = list(confparse.get_config('radicalrc'))
+    rcfile = list(confparse.get_config(DEFAULT_RC))
     if rcfile:
-        rc.config_file = rcfile.pop()
+        settings.config_file = rcfile.pop()
     else:
-        rc.config_file = DEFAULT_RC
+        settings.config_file = DEFAULT_RC
     "Configuration filename."
 
-    if not rc.config_file or not os.path.exists(rc.config_file):
+    if not settings.config_file or not os.path.exists(settings.config_file):
         rc_init_default()
-    assert rc.config_file, \
+    assert settings.config_file, \
         "No existing configuration found, please rerun/repair installation. "
 
-    settings = confparse.yaml(rc.config_file)
+    settings = confparse.yaml(settings.config_file)
     "Static, persisted settings."
-
-    rc = settings.radical
 
     main()
     "Start CLI invocation handling. "

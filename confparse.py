@@ -57,13 +57,18 @@ def get_config(name, paths=config_prefix):
     Expands '~/' and '~`username`/' sequences.
     """
 
+    if os.path.exists(name):
+        yield name
+
     paths = list(paths)
+    if not paths:
+        paths = [os.sep] # ! Only search root
 
     found = []
     for prefix in paths:
         path = os.path.expanduser(prefix + name)
         if os.path.exists(path):
-            if not os.path.realpath(path) in found:
+            if os.path.realpath(path) not in found:
                 yield path
                 found.append(os.path.realpath(path))
 
