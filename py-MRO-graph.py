@@ -120,8 +120,8 @@ def main():
 	MROgraph(*docnodes)
 
 if __name__=="__main__": 
-    # testHierarchy() # generates a postscript diagram of A and M hierarchies
-    main()
+    testHierarchy() # generates a postscript diagram of A and M hierarchies
+    #main()
 
 #</MROgraph.py>
 # vim:setlocal expandtab:

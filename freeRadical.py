@@ -1,15 +1,54 @@
 #!/usr/bin/env python
+"""
+Free Radical
+============
+Index and identify tagged comments in documents and source code.
 
-"""radical - Index and identify tagged comments in documents and source code.
+Introduction
+-------------
+The motivation for this program is that working on a software project is an
+ongoing effort to identify and locate existing problems, and room for 
+enhancements.
+
+However, only one problem can be solved at a time. Thus it will be required
+to defer certain (sub)problems or newly encountered problems to a later time.
+
+This program allows to track TODO, FIXME, XXX or even ISSUE:MyId kind of
+tags in source code, and keep their description in sync with a field on a
+remote issue tracker. New issues may simply be created by embedded a *comment*
+such as::
+
+    MYPROJECT: Referencing object X means coupling, which interferes with
+    refactoring plans of MYPROJECT-43.
+
+and then run `radical`. The 'MYPROJECT:' in the source would be rewritten to 
+e.g. 'MYPROJECT:109:', while the text is entered as a title into the
+remote issue tracker for the new ticket MYPROJECT-109. 
+
+This tag may remain in the source code as long as needed.
+It might be an option to remove all these artefacts from source again
+before commit, though realisticly these would linger until the
+issue gets closed.
+
+This afford to track existing issues and to create new ones, or to simply
+list all tagged comments for a certain code-base. 
 
 Overview
 --------
-- Comments run from the end of the tag to the next '.\s' sequence or the end of
-  the line. 
+- Comments run from the end of the tag to either the next '.\s' sequence or 
+  the end of the line, or a new tag. 
 - Comment whitespace is collapsed and trimmed.  
 - Comments starting with a tag are continued to the end of the comment line or
   block. Only indentation- and heading/trailing-whitespace is trimmed, meaning
   line markup and other 'preformatting' is retained.
+- Tagged comments may be bound to a ticket in a remote tracker, or unbound;
+  and tracked, or untracked. Bound tags are always tracked (have an unique
+  ID), while unbound tags may be either tracked (explicitly) or untracked
+  (implicitly).
+- All tagged comments are recorded in a relational database supported by
+  SQLAlchemy, and this script also provides an ORM for that data model.
+- Service backends allow to keep an tagged comment in sync with a remote
+  ticket.
 
 Standard tags
 -------------
@@ -41,6 +80,8 @@ Project Changelog
     Improved parser.
 2011-05-04
     Improved parser.
+2011-05-22 
+    Updating documentation.
 
 Issues
 -------

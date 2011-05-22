@@ -1,6 +1,12 @@
 #!/bin/bash
+# Usage:
 #
-# yz KEY-1 "1h 15m" "Comment Text"
+#   yz KEY-1 "1h 15m" "Comment Text"
+#
+# Changelog
+# ~~~~~~~~~~
+# 2011-05-21
+#   First version.
 
 JIRA=/src/atlassian-jira-cli/jira-cli-2.0.0/jira.sh
 

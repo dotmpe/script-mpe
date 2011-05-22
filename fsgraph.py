@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""
+"""fsgraph - filesystreem tree to DOT graph
+
 2010-11-28 
     Preliminary version
 2011-05-15
