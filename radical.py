@@ -89,7 +89,6 @@ Issues
   If a comment block starts with a tag, but contains other tags, it is parsed as
   a line comment. (Normally a comment starting with a tag covers all the
   lines in the block)
-  
 
 - If this'd use a extended context on the document IO stream, it could handle
   different line-endines. Currently UNIX-only.
@@ -759,8 +758,10 @@ if __name__ == '__main__':
     assert rc.config_file, \
         "No existing configuration found, please rerun/repair installation. "
 
-    rc = confparse.yaml(rc.config_file)
+    settings = confparse.yaml(rc.config_file)
     "Static, persisted settings."
+
+    rc = settings.radical
 
     main()
     "Start CLI invocation handling. "

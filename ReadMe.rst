@@ -29,6 +29,8 @@ Scripts
     generate inheritance hierarchies for Python (broken)
   pathlist2dot
     generic path to GraphViz_ DOT graph generator
+  radical
+    tracking tagged source comments (TODO, FIXME, et al.)
   relink
     rewrite symbolic link targets using regular expression
   snip
