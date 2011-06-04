@@ -1,10 +1,31 @@
-"""
+"""confparse - persisted metadata
+
+This module stores and loads configuration settings. Once loaded,
+confparse._.name provides access to the structure from storage (see Values)
+Structure may consist of dictionaries, lists and primitive values.
+
+get_config(leafname)
+    Search all parent directories for `leafname`. Returns all existing paths
+    considering the given name and a set of prefixes and suffixes.
+
+script.config.suffix
+    A list of
+
+Flavours:
+    - Python source
+    - YAML
+    - Filetree
+
+Consider:
+
 - Keys can contain periods ('.'), but in the configuration these will always be
   expanded to module attributes, and thus serialized to nested dictionaries.
 - Handling of lists is fairly primitive and could be buggy in cases? Recursion
-  depth is fixed by implementation at 2 levels.  
+  depth is fixed by implementation at 2 levels for complex objects in lists.
 """
 import os, re, sys, types
+from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
+from os.path import join, dirname, exists, isdir, realpath
 from pprint import pformat
 
 try:
@@ -19,13 +40,69 @@ except ImportError, e:
     except ImportError, e:
         print >>sys.stderr, "confparse.py: no YAML parser"
 
+_ = None
+"In-mem. settings. "
+
+_paths = {}
+"Source-paths for settings. "
+
 config_prefix = (
     '',  # local (cwd) name
     '.', # local hidden name
+)
+
+config_path = (
     '~/.', # hidden name in $HOME
     '/etc/' # name in /etc/
 )
-            
+
+config_suffix = (
+    '',
+    '.yaml',
+    '.conf',
+)
+
+
+def expand_config_path(name, paths=config_prefix):
+
+    """
+    Yield all existing config paths. See config_prefix for search path.
+
+    Expands '~/' and '~`username`/' sequences.
+    """
+
+    return find_config_path(name, path=getcwd(), paths=list(paths))
+
+def tree_paths(path):
+    parts = path.strip(os.sep).split(os.sep)
+    while parts:
+        cpath = os.path.join(*parts)
+        if path.startswith(os.sep):
+            cpath = os.sep+cpath
+        yield cpath
+        parts.pop()
+        #parts = parts[:-1]
+
+def find_config_path(markerleaf, path=None, prefixes=config_prefix,
+        suffixes=config_suffix, paths=[]):
+    """
+    Search paths for markerleaf with prefixes/suffixes.
+    """
+    if path:
+    	paths.extend(tree_paths(path))
+    for cpath in paths:
+        for prefix in prefixes:
+            for suffix in suffixes:
+            	cleaf = markerleaf
+                if not markerleaf.startswith(prefix):
+                	cleaf = prefix + markerleaf
+                if not markerleaf.endswith(suffix):
+                	cleaf += suffix
+                cleaf = os.path.join(cpath, cleaf)
+                if os.path.exists(cleaf):
+                    yield cleaf
+
+
 def backup(file):
     """
     Move existing file to numbered backup location.
@@ -49,52 +126,23 @@ def backup(file):
     else:
         os.rename(file, bup)
 
-def get_config(name, paths=config_prefix):
+class ValueStorage:
+    def __init__(self, path):
+        self.path = path
 
-    """
-    Yield all existing config paths. See config_prefix for search path.
 
-    Expands '~/' and '~`username`/' sequences.
-    """
-
-    if os.path.exists(name):
-        yield name
-
-    paths = list(paths)
-    if not paths:
-        paths = [os.sep] # ! Only search root
-
-    found = []
-    for prefix in paths:
-        path = os.path.expanduser(prefix + name)
-        if os.path.exists(path):
-            if os.path.realpath(path) not in found:
-                yield path
-                found.append(os.path.realpath(path))
-
-def find_parent(markerleaf, path):
-    parts = path.strip(os.sep).split(os.sep)
-    while parts:
-        cpath = os.path.join(*parts)
-        if path.startswith(os.sep):
-            cpath = os.sep+cpath
-        for prefix in ('', '.'):
-            if prefix and markerleaf.startswith(prefix):
-                continue
-            cleaf = os.path.join(cpath, prefix+markerleaf)
-            if os.path.exists(cleaf):
-                return cleaf
-        parts = parts[:-1]
-
+class YAMLStorage(ValueStorage):
+    def __init__(self, path):
+        ValueStorage.__init__(self, path)
 
 class Values(dict):
 
     def __str__(self):
         return '<Values>'
-   
+
     def __repr__(self):
         return 'Values(%s)'%self.keys()#+str(dict(values))+')'
-   
+
     def __init__(self, defaults=None, file=None, root=None, source_key=None):
         self.__dict__['parent'] = root
         #self.updated = False
@@ -176,7 +224,7 @@ class Values(dict):
     def __setitem__(self, name, v):
         #self.getroot().updated = True
         mod = self
-        if '.' in name:
+        if '.' in name: # expand dotted paths
             path = name.split('.')
             while path:
                 comp = path.pop(0)
@@ -210,15 +258,17 @@ class Values(dict):
                 self[k] = v
 
     def commit(self):
-        if self.__dict__['parent']:
-            self.root().commit()
-        else:
-            #assert 'source_key' in self
-            #file = self[self['source_key']]
-            file = self.source;#__dict__[self.__dict__['source_key']]
-            backup(file)
-            data = self.copy()
-            yaml_dump(data, open(file, 'a+'))
+        print self.changelog
+
+        #if self.__dict__['parent']:
+        #    self.root().commit()
+        #else:
+        #    #assert 'source_key' in self
+        #    #file = self[self['source_key']]
+        #    file = self.source;#__dict__[self.__dict__['source_key']]
+        #    backup(file)
+        #    data = self.copy()
+        #    yaml_dump(data, open(file, 'a+'))
 
     def copy(self):
         """
@@ -272,7 +322,7 @@ def yaml(path, *args):
 
 
 def init_config(name, paths=config_prefix, default=None):
-    
+
     """
     Expect one existing config for name, otherwise initialize.
 
@@ -292,14 +342,31 @@ def init_config(name, paths=config_prefix, default=None):
 
     return yaml(rcfile)
 
+# Main interface
 
-if __name__ == '__main__':
+def load_file(path, type=None):
+    global _paths, _
+    settings = yaml(path)
+    #settings = Values(data, file=path)
+    #if path not in _paths:
+    #	_paths[path] = genid
+    #	setattr(_, genid, settings)
+    return settings
 
-    print list(get_config('testrc'))
-    test_runcom = '.testrc'
-    test_runcom = get_config('testrc').next()
-    print 'testrc', test_runcom
+def load(name, paths=config_prefix):
+    global _
+    configs = expand_config_path(name, paths=paths)
+    config = configs.next()
+    _paths[config] = name
+    settings = load_file(config)
+    setattr(_, name, settings)
+    return settings
 
+_ = Values()
+
+# Testing
+
+def test1():
     #cllct_settings = ini(cllct_runcom) # old ConfigParser based, see confparse experiments.
     test_settings = yaml(test_runcom)
 
@@ -313,7 +380,7 @@ if __name__ == '__main__':
     test_settings.path = Values(root=test_settings)
     test_settings.path.to = Values(root=test_settings.path)
     test_settings.path.to.some = Values(root=test_settings.path.to)
-    test_settings.path.to.some.leaf = 1    
+    test_settings.path.to.some.leaf = 1
     test_settings.path.to.some.str = 'ABC'
     test_settings.path.to.some.tuple = (1,2,3,)
     test_settings.path.to.some.list = [1,2,3,]
@@ -321,5 +388,7 @@ if __name__ == '__main__':
 
     print 'test_settings', pformat(test_settings)
 
+if __name__ == '__main__':
+	test1()
 
 

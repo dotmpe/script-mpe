@@ -46,6 +46,18 @@ Libraries
   confparse
     parse settings from yaml
 
+Configuration
+  cllct.rc
+    Global metadata file with settings shared by scripts and experimental
+    projects. Default: ~/.cllctrc. This file is rewritten so it may be
+    convienient to a separate copy for manual editing.
+
+
+  cllct
+    Per volume metadata directory.
+
+
+
 .. _graphvix: http://www.graphviz.org/
 .. _maildir: http://en.wikipedia.org/wiki/Maildir
 .. _Transliterature Project: translit_
