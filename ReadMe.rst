@@ -6,6 +6,19 @@ project.
 Documentation
   - `Working on projects`__
 
+Design
+  Cmd
+    build
+      co
+    clean
+
+  Cmd (no-op)
+    info
+      stat [default]
+        dmk
+        dep
+    test
+
 Scripts
   cabinet
     WIP: archive files and query

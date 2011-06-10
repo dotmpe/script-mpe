@@ -4,7 +4,7 @@ This module stores and loads configuration settings. Once loaded,
 confparse._.name provides access to the structure from storage (see Values)
 Structure may consist of dictionaries, lists and primitive values.
 
-get_config(leafname)
+expand_config_path(leafname)
     Search all parent directories for `leafname`. Returns all existing paths
     considering the given name and a set of prefixes and suffixes.
 
@@ -25,7 +25,7 @@ Consider:
 """
 import os, re, sys, types
 from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
-from os.path import join, dirname, exists, isdir, realpath
+from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
 
 try:
@@ -52,7 +52,7 @@ config_prefix = (
 )
 
 config_path = (
-    '~/.', # hidden name in $HOME
+    '~/', # hidden name in $HOME
     '/etc/' # name in /etc/
 )
 
@@ -63,7 +63,7 @@ config_suffix = (
 )
 
 
-def expand_config_path(name, paths=config_prefix):
+def expand_config_path(name, paths=config_path):
 
     """
     Yield all existing config paths. See config_prefix for search path.
@@ -89,19 +89,19 @@ def find_config_path(markerleaf, path=None, prefixes=config_prefix,
     Search paths for markerleaf with prefixes/suffixes.
     """
     if path:
-    	paths.extend(tree_paths(path))
+        paths.extend(tree_paths(path))
     for cpath in paths:
         for prefix in prefixes:
             for suffix in suffixes:
-            	cleaf = markerleaf
+                #print (cpath, prefix, suffix,)
+                cleaf = markerleaf
                 if not markerleaf.startswith(prefix):
-                	cleaf = prefix + markerleaf
+                    cleaf = prefix + markerleaf
                 if not markerleaf.endswith(suffix):
-                	cleaf += suffix
-                cleaf = os.path.join(cpath, cleaf)
+                    cleaf += suffix
+                cleaf = os.path.expanduser(os.path.join(cpath, cleaf))
                 if os.path.exists(cleaf):
                     yield cleaf
-
 
 def backup(file):
     """
@@ -126,24 +126,18 @@ def backup(file):
     else:
         os.rename(file, bup)
 
-class ValueStorage:
-    def __init__(self, path):
-        self.path = path
-
-
-class YAMLStorage(ValueStorage):
-    def __init__(self, path):
-        ValueStorage.__init__(self, path)
 
 class Values(dict):
 
     def __str__(self):
-        return '<Values>'
+        return '<Values:%s>' % self.path()
 
     def __repr__(self):
         return 'Values(%s)'%self.keys()#+str(dict(values))+')'
 
     def __init__(self, defaults=None, file=None, root=None, source_key=None):
+        self.__dict__['changelog'] = []
+        self.__dict__['initialized'] = False
         self.__dict__['parent'] = root
         #self.updated = False
         if not source_key:
@@ -158,6 +152,7 @@ class Values(dict):
         if defaults:
             for key in defaults:
                 self.initialize(key, defaults[key])
+        self.__dict__['initialized'] = True
 
     def initialize(self, key, value):
         if isinstance(value, dict):
@@ -221,8 +216,29 @@ class Values(dict):
             mod = mod.__dict__['parent']
         return mod
 
+    def getsource(self):
+        mod = self
+        while mod.__dict__['parent']:
+            supmod = mod.__dict__['parent']
+            if not supmod:
+                break
+            if supmod.source_key and supmod.source_key in supmod:
+                return supmod
+            mod = supmod
+        return mod
+
+    def append_changelog(self, key):
+        if not self.getroot().__dict__['initialized']:
+            return
+        #print 'append_changelog', self, key, self.source_key
+        if key == '.source_key' or key == '.'+self.source_key:
+            return
+        src = self.getsource()
+        cl = src.__dict__['changelog']
+        if key not in cl:
+            cl.append(key)
+
     def __setitem__(self, name, v):
-        #self.getroot().updated = True
         mod = self
         if '.' in name: # expand dotted paths
             path = name.split('.')
@@ -234,7 +250,11 @@ class Values(dict):
                 if len(path) == 1:
                     name = path.pop(0)
         else:
+            k = self.path()+'.'+name
+            self.append_changelog(k)
             return dict.__setitem__(self, name, v)
+        k = self.path()+'.'+name
+        self.append_changelog(k)
         return mod.__setitem__(name, v)
 
     def __setattr__(self, name, v):
@@ -249,6 +269,17 @@ class Values(dict):
         else:
             return dict.__getitem__(self, name)
 
+    def path(self):
+        pp = ''
+        p = self.__dict__['parent'] 
+        if p:
+            pp = p.path()
+            for k in p.keys():
+                if p[k] == self:
+                    pp += '.' +k
+                    break
+        return pp
+
     def override(self, settings):
         for k in dir(settings):
             if k.startswith('_'):
@@ -257,18 +288,24 @@ class Values(dict):
             if v:
                 self[k] = v
 
-    def commit(self):
-        print self.changelog
+    @property
+    def changelog(self):
+        return self.__dict__['changelog']
 
-        #if self.__dict__['parent']:
-        #    self.root().commit()
-        #else:
-        #    #assert 'source_key' in self
-        #    #file = self[self['source_key']]
-        #    file = self.source;#__dict__[self.__dict__['source_key']]
-        #    backup(file)
-        #    data = self.copy()
-        #    yaml_dump(data, open(file, 'a+'))
+    def commit(self):
+        #print self
+        #print self.getsource()
+        #print self.getsource().changelog
+
+        if self.__dict__['parent']:
+            self.root().commit()
+        else:
+            #assert 'source_key' in self
+            #file = self[self['source_key']]
+            file = self.source;#__dict__[self.__dict__['source_key']]
+            backup(file)
+            data = self.copy()
+            yaml_dump(data, open(file, 'a+'))
 
     def copy(self):
         """
@@ -308,17 +345,39 @@ class Values(dict):
                 c[k] = self[k]
         return c
 
+
+class FSValues(Values):
+
+    @classmethod
+    def load(cls, path):
+        return
+        data = fs_load(open(path).read())
+        settings = cls(data, file=path)
+        return settings
+
+class YAMLValues(Values):
+#    def __init__(self, path):
+#        ValueStorage.__init__(self, path)
+
+    @classmethod
+    def load(cls, path):
+        data = yaml_load(open(path).read())
+        settings = cls(data, file=path)
+        #if path not in _paths:
+        #    _paths[path] = genid
+        #    setattr(_, genid, settings)
+        return settings
+
     def reload(self):
         if self.__dict__['parent']:
             raise Exception("Cannot reload node")
         file = self.source
-        return yaml(file)
+        return load_path(file)
 
 
 def yaml(path, *args):
     assert not args, "Cannot override from multiple files: %s, %s " % (path, args)
-    data = yaml_load(open(path).read())
-    return Values(data, file=path)
+    return load_path(path, type=YAMLValues)
 
 
 def init_config(name, paths=config_prefix, default=None):
@@ -330,7 +389,7 @@ def init_config(name, paths=config_prefix, default=None):
     confparse.config_prefix.
     """
 
-    rcfile = get_config(name, paths=paths)
+    rcfile = expand_config_path(name, paths=paths)
 
     if not rcfile:
         assert default, "Not initialized: %s for %s" % (name, paths)
@@ -338,57 +397,34 @@ def init_config(name, paths=config_prefix, default=None):
 
     os.path.mknode(rcfile)
     # XXX: redundant op, check paths constraint setting
-    assert get_config(name, paths=paths) == rcfile
+    assert expand_config_path(name, paths=paths) == rcfile
 
     return yaml(rcfile)
 
+
 # Main interface
 
-def load_file(path, type=None):
+def load_path(path, type=YAMLValues):
     global _paths, _
-    settings = yaml(path)
-    #settings = Values(data, file=path)
-    #if path not in _paths:
-    #	_paths[path] = genid
-    #	setattr(_, genid, settings)
-    return settings
+    return getattr(type, 'load')(path)
 
 def load(name, paths=config_prefix):
     global _
     configs = expand_config_path(name, paths=paths)
     config = configs.next()
+    ext = splitext(config)[1]
+    if isdir(config):
+        values_type = FSValues 
+    else:
+        values_type = YAMLValues
     _paths[config] = name
-    settings = load_file(config)
+    settings = load_path(config, type=values_type)
     setattr(_, name, settings)
     return settings
 
 _ = Values()
 
-# Testing
-
-def test1():
-    #cllct_settings = ini(cllct_runcom) # old ConfigParser based, see confparse experiments.
-    test_settings = yaml(test_runcom)
-
-    print 'test_settings', pformat(test_settings)
-
-    if 'foo' in test_settings and test_settings.foo == 'bar':
-        test_settings.foo = 'baz'
-    else:
-        test_settings.foo = 'bar'
-
-    test_settings.path = Values(root=test_settings)
-    test_settings.path.to = Values(root=test_settings.path)
-    test_settings.path.to.some = Values(root=test_settings.path.to)
-    test_settings.path.to.some.leaf = 1
-    test_settings.path.to.some.str = 'ABC'
-    test_settings.path.to.some.tuple = (1,2,3,)
-    test_settings.path.to.some.list = [1,2,3,]
-    test_settings.commit()
-
-    print 'test_settings', pformat(test_settings)
 
 if __name__ == '__main__':
-	test1()
-
-
+    configs = list(expand_config_path('cllct.rc')) 
+    assert configs == ['/Users/berend/.cllct.rc'], configs

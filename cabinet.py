@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 """cabinet - Search and tag for archived, tagged paths. 
 
-Wrapper around GNU find. Builds complect -iregex patterns.
-
+Wrapper around GNU find. Builds complex -iregex patterns.
 `POSIX 'find'`__. incompat (has no iregex or iname, just name).
 
-Cabinet paths are semi-structured paths with tags.
+Cabinet paths are semi-structured paths 
 
 Tags are alfanumeric parts of paths, on both sides delimited by non-alfanumeric 
 characters. These are used for looking op certain types of paths.

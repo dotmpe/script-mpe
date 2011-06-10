@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Python abstraction of 'timeEdition' database.
 
@@ -39,6 +38,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
 import confparse
+from libcmd import Cmd
 
 SqlBase = declarative_base()
 
@@ -97,16 +97,11 @@ def get_session(dbref):
 
 # Main
 
-class Application:
+class WorkLog(Cmd):
 
     "Class variables"
-    NAME = os.path.splitext(os.path.basename(__file__))[0]
-    VERSION = "0.1"
-    USAGE = """Usage: %prog [options] paths """
     DEFAULT_DB = "sqlite:///%s" % os.path.join(
                                     os.path.expanduser('~'), '.%s.sqlite' % NAME)
-    DEFAULT_RC = 'cllct.rc'
-    DEFAULT_CONFIG_KEY = NAME
 
     OPTIONS = (
     )
@@ -117,24 +112,6 @@ class Application:
     "Complete Values tree with settings. "
     rc = None
     "Values subtree for current program. "
-
-    def main(self, argv=None):
-        rcfile = list(confparse.get_config(self.DEFAULT_RC))
-        if rcfile:
-            self.settings.config_file = rcfile.pop()
-        else:
-            self.settings.config_file = self.DEFAULT_RC
-        "Configuration filename. "
-
-        if not self.settings.config_file or not os.path.exists(self.settings.config_file):
-            self.rc_init_default()
-        assert self.settings.config_file, \
-            "No existing configuration found, please rerun/repair installation. "
-
-        self.settings = confparse.yaml(self.settings.config_file)
-        "Static, persisted self.settings. "
-  
-        parser, opts, args = self.parse_argv(argv)
 
     def rc_init_default(self):
         assert False, "TODO: implementing default values for existing settings "
@@ -147,7 +124,7 @@ class Application:
 
         assert not os.path.exists(rc_file), "File exists: %s" % rc_file
         os.mknod(rc_file)
-        self.settings = confparse.yaml(rc_file)
+        self.settings = confparse.load_path(rc_file)
 
         if config_key:
             setattr(settings, config_key, confparse.Values())
@@ -169,34 +146,6 @@ class Application:
         else:
             print "Not writing file. "
 
-    # TODO: rewrite to cllct.osutil once that is packaged
-    def parse_argv(self):
-        if not argv:
-            argv = sys.argv[1:]
-        parser, opts, paths = parse_argv_split(
-                self.OPTIONS, argv, self.USAGE, self.VERSION)
-
-        parser = optparse.OptionParser(USAGE, version=VERSION)
-        optnames = []
-        nullable = []
-        for opt in OPTIONS:
-            #parser.add_option(*_optprefix(opt[0]), **opt[1])
-            parser.add_option(*opt[0], **opt[1])
-            if 'dest' in opt[1]:
-                optnames.append(opt[1]['dest'])
-            else:
-                optnames.append(opt[0][-1].lstrip('-').replace('-','_'))
-            if 'default' not in opt[1]:
-                nullable.append(optnames[-1])
-
-        optsv, args = parser.parse_args(argv)
-        opts = {}
-        for name in optnames:
-            if not hasattr(optsv, name) and name in nullable:
-                continue
-            opts[name] = getattr(optsv, name)
-        return parser, opts, args
-
 if __name__ == '__main__':
-    app = Application()
+    app = WorkLog()
     app.main()

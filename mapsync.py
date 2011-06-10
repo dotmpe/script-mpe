@@ -69,10 +69,10 @@ from lib import is_versioned, remote_proc, datetime_to_timestamp, timestamp_to_d
 import confparse
 
 
-config = confparse.get_config('cllct.rc')
+config = confparse.expand_config_path('cllct.rc')
 "Configuration filename."
 
-settings = confparse.yaml(*config)
+settings = confparse.load_path(*config)
 "Static, persisted settings."
     
 hostname = socket.gethostname()

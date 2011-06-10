@@ -4,6 +4,14 @@ MK                  += $/Rules.mk
 #      ------------ -- 
 
 
+co::
+	@$(call log_line,info,$@,Trying to update..)
+	@\
+		VERBOSE=$(VERBOSE);\
+	\
+	$(ll) done 
+
+
 test::
 	@$(call log_line,info,$@,Starting tests..)
 	@\

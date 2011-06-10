@@ -13,10 +13,10 @@ from os.path import join, isdir
 import confparse
 
 
-config = confparse.get_config('cllct.rc')
+config = confparse.expand_config_path('cllct.rc')
 "Find configuration file. "
 
-settings = confparse.yaml(*config)
+settings = confparse.load_path(*config)
 "Parse settings. "
 
 
@@ -77,7 +77,7 @@ def volume_meta(path, init=False):
 
     # return parsed but no error on missing volume meta 
     if rc:
-        return confparse.yaml(*rc)
+        return confparse.load_path(*rc)
 
 
 if __name__ == '__main__':

@@ -13,10 +13,10 @@ import os, sys, re, fnmatch, datetime, optparse, itertools
 import confparse
 
 
-config = confparse.get_config('cllct.rc')
+config = confparse.expand_config_path('cllct.rc')
 "Root configuration file."
 
-settings = confparse.yaml(*config)
+settings = confparse.load_path(config.next())
 "Static, persisted settings."
 
 

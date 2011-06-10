@@ -10,10 +10,10 @@ import sys
 #import confparse
 #
 #
-#config = confparse.get_config('cllct.rc')
+#config = confparse.expand_config_path('cllct.rc')
 #"Configuration filename."
 #
-#settings = confparse.yaml(*config)
+#settings = confparse.load_path(*config)
 #"Static, persisted settings."
     
 hostname = socket.gethostname()

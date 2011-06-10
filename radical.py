@@ -654,7 +654,7 @@ def rc_init_default(config_key=DEFAULT_CONFIG_KEY):
         rc_file = os.path.join(os.path.expanduser('~'), '.'+DEFAULT_RC)
 
     os.mknod(rc_file)
-    settings = confparse.yaml(rc_file)
+    settings = confparse.load_path(rc_file)
 
     if config_key:
         setattr(settings, config_key, confparse.Values())
@@ -796,7 +796,7 @@ if __name__ == '__main__':
     assert settings.config_file, \
         "No existing configuration found, please rerun/repair installation. "
 
-    settings = confparse.yaml(settings.config_file)
+    settings = confparse.load_path(settings.config_file)
     "Static, persisted settings."
 
     main()
