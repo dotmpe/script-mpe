@@ -1,2 +1,5 @@
 *.pyc
 htmlcov
+.jira
+.coverage
+.account.*

@@ -359,12 +359,15 @@ def get_gateway():
     if not default_routes:
         return None
 
+    print ":Routes: \n\t" + "\n\t".join(['`#_%i <%s>`' % (i, addr) for i, addr in
+        enumerate(default_routes)])
+
     # Try to identify one gateway
     gateway_addr, mac = None, None
     for gateway_addr in default_routes:
         mac = get_mac(gateway_addr)
-        if not mac:
-            continue
+        if mac:
+            break
     if not mac:
         if not gateway_addr:
             raise Exception("No up-link. ")
@@ -402,7 +405,11 @@ Existing node
         assert_node(gateway, mac)
 
     gateway = settings.interfaces[mac]
+    #print ":Default route: `%s <%s %s>`" % (gateway, gateway_addr, mac)
+
     gateway = settings.node[gateway]['host']
+
+    print ":Default route: `%s <%s %s>`" % (gateway, gateway_addr, mac)
 
     return gateway, mac, gateway_addr
 
@@ -549,6 +556,8 @@ Local domain check
         #print host, 
     else:
         pass#print host, gateway
+
+    #print 'ifinfo', pformat(ifinfo)
 
     global settings
     settings.commit()
