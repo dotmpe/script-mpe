@@ -24,20 +24,20 @@ Settings
 - FIXME: Contains generated nodes.
   Better keep dynamic values separated.
 
-
 :Schema:
-    ``node``
+    ``node`` a Map<Str,Node>
         `host-id`
-            ``host``: `Hostname`
+            ``host``: `HostName`
             ``interface``: 
                 - `HardwareAddress`
-    ``network``
+    ``network`` a Map<Str,Network>
         `net-id`
-            ``ID``: `Network ID`
+            ``name``: `NetworkName`
             ``nodes``: 
-                - `HardwareAddress`
-            ``default route``: `HardwareAddress`
-    ``domain``
+                - `HardwareAddress` a Node
+            ``routes``: 
+                - `HardwareAddress` a Gateway
+    ``domain`` a Tree<Str,Domain>
         - `tld`
             - `name`
                 - ``net``: `net-id`
@@ -414,8 +414,10 @@ Existing node
     return gateway, mac, gateway_addr
 
 def info():
-    # determine gateway, and identify node by hardware address
-    # record new gateways
+    """
+    determine gateway, and identify node by hardware address
+    record new gateways
+    """
 
     # print some stuff
     hostname = get_hostname()
@@ -507,25 +509,8 @@ def info():
     #for domain in settings.domain:
     #    print domain
 
-def main():
-    """
-    - check current host is known
-    - check gateway is known
-    - set local or mobile domain to gateway internal domain
-
-    Once ready, print hostname or node, local domain and internet domain if
-    available. Ie.:
-
-        mybox network.internal example.net
-
-    Domain may be 'local' while offline (no default route to internet)
-    or 'mobile' for unrecognized routes/gateways.
-    """
-
-    print """
-Local domain check
-==================
-:Date: %s """ % datetime.datetime.now().isoformat()
+def get_current_node():
+    global settings
 
     host = get_hostname()
     assert host
@@ -544,22 +529,62 @@ Local domain check
     assert_node(host, mac)
     host = settings.node[host]['host']
     assert host
+    return host, addr, mac
+
+NS_NET = '//wtwtg.org/taxus/network#'
+NS_NET_ID = 'urn:org.wtwtg.org:taxus:network#'
+NS_ = 'taxus:Network'
+
+
+def network_name(network_id):
+    global settings
+
+    network = settings.network[network_id]
+    if 'name' in network:
+        return "`%s <%s%s>`" % (network['name'], NS_NET, network_id)
+    else:
+        return "<%s%s>" % (NS_NET, network_id)
+
+def main():
+    """
+    - check current host is known
+    - check gateway (default route) is known
+    - set local or mobile domain to gateway internal domain
+
+    Once ready, print hostname or node, local domain and internet domain if
+    available. Ie.:
+
+        example network.internal example.net
+
+    Domain may be 'local' while offline (no default route to internet)
+    or 'mobile' for unrecognized routes/gateways.
+    """
+    global settings
+
+    print """
+Local domain check
+==================
+:Date: %s """ % datetime.datetime.now().isoformat()
+
+    host, addr, mac = get_current_node()
     print ':Host: `%s <%s>`' % (host, mac)
+
     gateway, gateway_mac, gateway_addr = get_gateway()
     print ':Gateway: `%s <%s>`' % (gateway, gateway_mac)
+
     network_id = settings.nodes[gateway_mac]
-    network = settings.network[network_id]['ID']
-    print ':Network ID: `%s <%s>`' % (network, network_id)
+    network = network_name(network_id)
+
+    print ':Network:', network
 
     if not gateway:
         err("No internet uplink. ")
-        #print host, 
+        print host, 'local'
     else:
         pass#print host, gateway
 
     #print 'ifinfo', pformat(ifinfo)
 
-    global settings
     settings.commit()
     reload()
 
