@@ -1,0 +1,21 @@
+#!/bin/bash
+if test ! -d "$1"; 
+then
+    echo "Need BZR to checkout from"
+    exit
+fi
+#old bzr fast-export --plain $1 | git fast-import
+
+# new
+
+if test ! -e ".git/bzr.mark"
+then
+    bzr fast-export       --export-marks=.git/bzr.mark $1 \
+      | git-fast-import   --export-marks=.git/git.mark ;
+else
+    bzr fast-export       --import-marks=.git/bzr.mark \
+                          --export-marks=.git/bzr.mark $1 \
+      | git fast-import   --import-marks=.git/git.mark \
+                          --export-marks=.git/git.mark ;
+fi
+
