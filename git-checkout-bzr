@@ -6,11 +6,10 @@ then
 fi
 #old bzr fast-export --plain $1 | git fast-import
 
-# new
 
-if test -d ".git"
+if test ! -d ".git"
 then
-    echo "Cannot run from existing GIT"
+    echo "Need to run from existing GIT"
     exit -2
 fi
 
