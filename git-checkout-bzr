@@ -2,16 +2,22 @@
 if test ! -d "$1"; 
 then
     echo "Need BZR to checkout from"
-    exit
+    exit -1
 fi
 #old bzr fast-export --plain $1 | git fast-import
 
 # new
 
+if test ! -d ".git"
+then
+    echo "Need to run from existing GIT"
+    exit -2
+fi
+
 if test ! -e ".git/bzr.mark"
 then
     bzr fast-export       --export-marks=.git/bzr.mark $1 \
-      | git-fast-import   --export-marks=.git/git.mark ;
+      | git fast-import   --export-marks=.git/git.mark ;
 else
     bzr fast-export       --import-marks=.git/bzr.mark \
                           --export-marks=.git/bzr.mark $1 \

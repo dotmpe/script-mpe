@@ -266,18 +266,6 @@ def get_mac(addr):
     except StopIteration, e:
         return
 
-def get_default_route():
-    if sys.platform == 'darwin':
-        data = [l.strip() for l in
-                os.popen("netstat -nr | grep '^default' | awk '/default/ {print $2}' ").readlines()]
-        return data
-    elif sys.platform == 'linux2':
-        data = [l.strip() for l in
-                os.popen("ip route show default | grep '^default' | awk '/default/ {print $3}' ").readlines()]
-        return data
-    else:
-        raise Exception
-
 
 def assert_node(host, mac):
     global settings
@@ -347,71 +335,7 @@ def assert_gateway(node):
     assert 'domain' in node
     assert 'local' in node
 
-def get_hostname():
-    host = socket.gethostname().split('.').pop(0)
-    getfqdn = socket.getfqdn()
-    if getfqdn.split('.').pop(0) != host:
-        err("Hostname does not match subdomain: %s (%s)", host, getfqdn)
-    return host
-
-def get_gateway():    
-    default_routes = get_default_route()
-    if not default_routes:
-        return None
-
-    print ":Routes: \n\t" + "\n\t".join(['`#_%i <%s>`' % (i, addr) for i, addr in
-        enumerate(default_routes)])
-
-    # Try to identify one gateway
-    gateway_addr, mac = None, None
-    for gateway_addr in default_routes:
-        mac = get_mac(gateway_addr)
-        if mac:
-            break
-    if not mac:
-        if not gateway_addr:
-            raise Exception("No up-link. ")
-        else:
-            raise Exception("Unable to identify gateway at %s. " % gateway_addr)
-    #print 'Gateway: `%s <%s>`' % (gateway, mac)
-    if len(default_routes) > 1:
-        print "Warning multiple routes, ignored possibly valid gateways"
-
-    gateway = None
-    if mac not in settings.interfaces:
-        print """
-Unknown Gateway
----------------
-:Node: `%s <%s>`
-
-Please enter a hostname for this node. Give an existing host to list this
-interface under that node entry.
-""" % (gateway_addr, mac)
-
-        while not gateway:
-            gateway = raw_input("Gateway hostname? ")
-            if gateway in settings.node:
-                print """
-Existing node
--------------
-::
-
-    %s
-""" % pformat(settings.node[gateway])
-                v = raw_input("Add? [Yn]")
-                if v != None and v.lower() != 'y':
-                    gateway = None
-        assert gateway, (gateway_addr, mac)
-        assert_node(gateway, mac)
-
-    gateway = settings.interfaces[mac]
-    #print ":Default route: `%s <%s %s>`" % (gateway, gateway_addr, mac)
-
-    gateway = settings.node[gateway]['host']
-
-    print ":Default route: `%s <%s %s>`" % (gateway, gateway_addr, mac)
-
-    return gateway, mac, gateway_addr
+from rsrlib.plug.net import get_hostname, get_gateway
 
 def info():
     """

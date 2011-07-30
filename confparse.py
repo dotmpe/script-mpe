@@ -74,11 +74,15 @@ def expand_config_path(name, paths=config_path):
     return find_config_path(name, path=getcwd(), paths=list(paths))
 
 def tree_paths(path):
+    """
+    Yield all paths traversing from path to root.
+    """
     parts = path.strip(os.sep).split(os.sep)
     while parts:
         cpath = os.path.join(*parts)
         if path.startswith(os.sep):
             cpath = os.sep+cpath
+        
         yield cpath
         parts.pop()
         #parts = parts[:-1]
@@ -90,7 +94,8 @@ def find_config_path(markerleaf, path=None, prefixes=config_prefix,
     """
     if path:
         paths.extend(tree_paths(path))
-    for cpath in paths:
+    while paths:
+        cpath = paths.pop(0)
         for prefix in prefixes:
             for suffix in suffixes:
                 #print (cpath, prefix, suffix,)
@@ -292,7 +297,7 @@ class Values(dict):
     def changelog(self):
         return self.__dict__['changelog']
 
-    def commit(self):
+    def commit(self, backup=True):
         #print self
         #print self.getsource()
         #print self.getsource().changelog
@@ -303,7 +308,8 @@ class Values(dict):
             #assert 'source_key' in self
             #file = self[self['source_key']]
             file = self.source;#__dict__[self.__dict__['source_key']]
-            backup(file)
+            if backup:
+                backup(file)
             data = self.copy()
             yaml_dump(data, open(file, 'a+'))
 
@@ -354,6 +360,7 @@ class FSValues(Values):
         data = fs_load(open(path).read())
         settings = cls(data, file=path)
         return settings
+
 
 class YAMLValues(Values):
 #    def __init__(self, path):

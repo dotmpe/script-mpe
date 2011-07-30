@@ -19,8 +19,9 @@ CSV, iCal and XML though so there is no integration with any issue tracking.
 - there is no tracking of one single specific task, ie. an issue ID.  
 - though there is a description attribute for each work log entry.
 - there is no on-the-fly switching of client/project/task, the GUI is disabled
-  during record. That is somewhat of a hindrance, but justified by the use case
-  of the app: it records an manages time done on 'other tasks'. 
+  during record. That is somewhat of a shortcoming. Also the record overview is
+  implemented as modal dialog. All in all the GUI is convenient but no more
+  helpful than that.
 
 ChangeLog
 ----------
@@ -33,7 +34,7 @@ import optparse
 import sys
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
-                        ForeignKey, Table, Index
+                        ForeignKey, Table, Index, DateTime, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
@@ -47,50 +48,73 @@ The standard timeEdition sqlite3 database as of version 1.1.6.
 ::
 
     CREATE TABLE customers(id INTEGER PRIMARY KEY, name VARCHAR(255), color VARCHAR(32), icalCalID VARCHAR(255));
-    CREATE TABLE projectTasks(id INTEGER PRIMARY KEY, projectID INTEGER, taskID INTEGER);
+    CREATE TABLE projectTask(id INTEGER PRIMARY KEY, projectID INTEGER, taskID INTEGER);
     CREATE TABLE projects(id INTEGER PRIMARY KEY, name VARCHAR(255), customerID INTEGER, projectTime INTEGER,status INTEGER);
     CREATE TABLE recordStateTable(recStartDate VARCHAR(32), which VARCHAR(10));
     CREATE TABLE records(id INTEGER PRIMARY KEY, fromTime DATETIME, toTime DATETIME, customerID INTEGER, projectID INTEGER, taskID INTEGER, icalEventID VARCHAR(255), comments TEXT, GoogleEditURL VARCHAR(255), OutlookEntryID VARCHAR(255));
     CREATE TABLE tasks(id INTEGER PRIMARY KEY, name VARCHAR(255), rate REAL);
+
 """
 
-class Customers(SqlBase):
+class Customer(SqlBase):
     __tablename__ = 'customers'
-    id = Column(Integer(11), primary_key=True)
+    customer_id = Column('id', Integer(11), primary_key=True)
     name = Column(String(255), unique=True)
     color = Column(String(32))
     icalCalID = Column(String(255))
 
-class ProjectTasks(SqlBase):
-    __tablename__ = 'projectTasks'
-    id = Column(Integer(11), primary_key=True)
-    projectID = Column(ForeignKey('projects.id'))
-    taskID = Column(ForeignKey('tasks.id'))
 
-class Projects(SqlBase):
+class Project(SqlBase):
     __tablename__ = 'projects'
-    id = Column(Integer(11), primary_key=True)
+    project_id = Column('id', Integer(11), primary_key=True)
     name = Column(String(255), index=True)
-    customerID = Column(ForeignKey('customers.id'))
+    customerID = Column(Integer(11), ForeignKey('customers.id'))
+    customer = relationship(Customer,
+            primaryjoin=Customer.customer_id==customerID, backref='projects')
     projectTime = Column(Integer())
     status = Column(Boolean())
 
-class RecordStateTable(SqlBase):
-    __tablename__ = 'recordStateTable'
-    id = Column(Integer(11), primary_key=True)
 
-class Records(SqlBase):
+#class RecordStateTable(SqlBase):
+#    __tablename__ = 'recordStateTable'
+#    recStartDate = Column(String(32))
+#    which = Column(String(10))
+
+
+class Record(SqlBase):
     __tablename__ = 'records'
-    id = Column(Integer(11), primary_key=True)
+    record_id = Column('id', Integer(11), primary_key=True)
+    fromTime = Column(DateTime)
+    toTime = Column(DateTime)
+    customerID = Column(Integer(11), ForeignKey('customers.id'))
+    projectID = Column(Integer(11), ForeignKey('projects.id'))
+    taskID = Column(Integer(11), ForeignKey('tasks.id'))
+    icalEventID = Column(String(255))
+    comments = Column(Text)
+    GoogleEditURL = Column(String(255))
+    OutlookEntryID = Column(String(255))
 
-class Tasks(SqlBase):
+
+class Task(SqlBase):
     __tablename__ = 'tasks'
-    id = Column(Integer(11), primary_key=True)
+    task_id = Column('id', Integer(11), primary_key=True)
+    name = Column(String(255))
+    rate = Column(Float)
 
-def get_session(dbref):
+
+projectTask = Table('projectTasks', SqlBase.metadata,
+    Column('id', Integer(11), primary_key=True),
+    Column('projectID', Integer(11), ForeignKey('projects.id')),
+    Column('taskID', Integer(11), ForeignKey('tasks.id'))
+)
+Project.tasks = relationship(Task, secondary=projectTask, backref='projects')
+
+
+def get_session(dbref, initialize=False):
     engine = create_engine(dbref)
-    # Issue CREATE's 
-    SqlBase.metadata.create_all(engine)
+    if initialize:
+        # Issue CREATE's 
+        SqlBase.metadata.create_all(engine)
     session = sessionmaker(bind=engine)()
     return session
 
@@ -100,10 +124,11 @@ def get_session(dbref):
 class WorkLog(Cmd):
 
     "Class variables"
-    DEFAULT_DB = "sqlite:///%s" % os.path.join(
-                                    os.path.expanduser('~'), '.%s.sqlite' % NAME)
+    NAME = os.path.expanduser('~/Library/Application Support/timeEdition/timeEditionData.edb')
+    DEFAULT_DB = "sqlite:///%s" % NAME
 
     OPTIONS = (
+            (('d', 'dbref'), {'default':DEFAULT_DB, 'metavar':'DB'}),
     )
 
     "Instance vars. "
@@ -146,6 +171,19 @@ class WorkLog(Cmd):
         else:
             print "Not writing file. "
 
+    def init(self, parser, dbref=None):
+        session = get_session(dbref, initialize=True)
+
+    def query(self, parser, dbref=None):
+        session = get_session(dbref)
+        #print list(session.query(Customer).all())
+        #print list(session.query(Project).all())
+        for task, project, customer in session.query(Task, Project, Customer).all():#join('projects', 'customer').all():
+            print customer.name, '\t\t',project.name, '\t\t',task.name
+        print dbref
+
+
 if __name__ == '__main__':
     app = WorkLog()
     app.main()
+

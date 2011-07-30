@@ -15,6 +15,15 @@ settings = confparse.load_path(*config)
 "Parse settings. "
 
 
+def _optprefix(*args):
+    p = '-'
+    while args:
+        arg = args[0]
+        yield p+arg
+        if p == '-':
+            p = '--'
+        args = args[1:]
+
 class Cmd:
 
     # Class variables
@@ -54,8 +63,7 @@ class Cmd:
         optnames = []
         nullable = []
         for opt in self.OPTIONS:
-            #parser.add_option(*_optprefix(opt[0]), **opt[1])
-            parser.add_option(*opt[0], **opt[1])
+            parser.add_option(*list(_optprefix(*opt[0])), **opt[1])
             if 'dest' in opt[1]:
                 optnames.append(opt[1]['dest'])
             else:
@@ -96,8 +104,16 @@ class Cmd:
         assert hasattr(self, cmd), cmd
         cmd_ = getattr(self, cmd)
         assert callable(cmd_), cmd_
-        cmd_(parser, opts, args)
-        
+        cmd_(parser, *args, **opts)
+
+    def rc_init_default(self):
+        pass # default no-op
+
+    def help(self, parser, opts, args):
+        print """
+        libcmd.Cmd.help
+        """
+
 
 if __name__ == '__main__':
     Cmd().main()
