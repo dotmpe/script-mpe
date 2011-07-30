@@ -8,9 +8,9 @@ fi
 
 # new
 
-if test ! -d ".git"
+if test -d ".git"
 then
-    echo "Need to run from existing GIT"
+    echo "Cannot run from existing GIT"
     exit -2
 fi
 
