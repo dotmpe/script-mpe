@@ -1,3 +1,4 @@
+# Non recursive make, partial rule file. See github mkdocs.
 include                $(MK_SHARE)Core/Main.dirstack.mk
 MK                  += $/Rules.mk
 #
@@ -9,7 +10,7 @@ co::
 	@\
 		VERBOSE=$(VERBOSE);\
 	\
-	$(ll) done 
+	$(ll) Todo
 
 
 test::
