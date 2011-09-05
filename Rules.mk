@@ -5,12 +5,13 @@ MK                  += $/Rules.mk
 #      ------------ -- 
 
 
+GIT_$d              := $(shell find "$d" -iname ".git")
+BZR_$d              := $(shell find "$d" -iname ".bzr")
+HG_$d               := $(shell find "$d" -iname ".hg")
 co::
 	@$(call log_line,info,$@,Trying to update..)
-	@\
-		VERBOSE=$(VERBOSE);\
-	\
-	$(ll) Todo
+	$(clean-checkout)
+co:: DIR := $d
 
 
 test::
