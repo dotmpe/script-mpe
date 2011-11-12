@@ -13,9 +13,9 @@ function update()
         && git commit \
         && return 1
     ) || (
-        echo "Synchronizing" \
+        echo "Synchronizing..." \
         && ( [ "$(git status|grep 'On branch test')" ] || (
-            echo "Switching to environment branch " && git checkout test && update && return 2
+            echo "Switching to environment branch..." && git checkout test
         ) ) \
         && echo Rebasing.. && ( git pull --rebase origin test || exit 1 ) \
         && echo Publishing... && ( git push origin test || exit 2 ) \
