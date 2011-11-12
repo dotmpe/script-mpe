@@ -75,7 +75,7 @@ do
 done
 echo OK
 #update $1
-#$EDITOR $1
+$EDITOR $1
 #update $1
 #commit $1
 
