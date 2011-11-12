@@ -60,6 +60,9 @@ done
 echo OK
 #update $1
 $EDITOR $1
+echo You where editing $1
+prompt -p "Continue? [Y/n] " C
+echo $C
 #update $1
 #commit $1
 
