@@ -4,10 +4,26 @@ echo 'Origin:' $origin
 [ "$origin" ] || ( echo Need to work from GIT checkout. && exit 2 )
 [ "$EDITOR" ] || ( echo Editor environment not set. && exit 3 )
 
+function update()
+{
+    echo Updating...
+    [ "$(git status|grep '(new.file\|added\|modified\|deleted):')" ] && (
+        echo "Consolidating..." \
+        && git add --interactive \
+        && git commit \
+        && return 1
+    ) || ( 
+        echo "Synchronizing" \
+        && return 1
+    ) || ( 
+        echo "Clean."
+        return 0 
+    )
+}
 function update-git()
 {
     echo Updating...
-    [ "$(git status|grep '(added\|modified\|deleted):')" ] && (
+    [ "$(git status|grep '(new\ file\|added\|modified\|deleted):')" ] && (
         echo "Adding..." \
         && git add --interactive \
         && git commit \
@@ -46,17 +62,17 @@ function commit()
     echo git commit
     echo git push origin test
 }
-update-git
-dirty=$!
+update
+dirty=$?
 while [ $dirty ];
 do 
     echo Dirty...
-    update-git
-    dirty=$!
+    update
+    dirty=$?
 done
 echo OK
 #update $1
-$EDITOR $1
+#$EDITOR $1
 #update $1
 #commit $1
 
