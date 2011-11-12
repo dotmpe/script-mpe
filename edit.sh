@@ -17,7 +17,7 @@ function update()
         && ( [ "$(git status|grep 'On branch test')" ] || (
             git checkout test && update && return 1
         ) ) \
-        && return 1
+        && return 0
     ) || ( 
         echo "Clean."
         return 0 
