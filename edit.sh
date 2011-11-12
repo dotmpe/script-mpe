@@ -59,10 +59,15 @@ do
 done
 echo OK
 #update $1
-$EDITOR $1
-echo You where editing $1
-read -n 1 -p "Continue? [Y/n] " C
-echo $C
+while 1
+do
+    $EDITOR $1
+    echo You where editing $1
+    read -n 1 -p "Continue? [Y/n] " C
+    echo $C
+    ( [ "$C" == "n" ] && [ "$C" == "N" ] ) && exit
+done
+
 #update $1
 #commit $1
 
