@@ -12,17 +12,15 @@ function update()
         && git add --interactive \
         && git commit \
         && return 1
-    ) || ( 
+    ) || (
         echo "Synchronizing" \
         && ( [ "$(git status|grep 'On branch test')" ] || (
-            git checkout test && update && return 1
+            echo "Switching to environment branch " && git checkout test && update && return 2
         ) ) \
-        && ( git pull origin test && return 2 ) \
-        && return 0
-    ) || ( 
-        echo "Clean."
-        return 0 
-    )
+        && ( echo Rebasing.. && ( git pull --rebase origin test || exit 1 ) && return 3 ) \
+        && ( echo Publishing... && ( git push origin test || exit 2 ) && return 4 ) \
+        && ( echo Nothing more todo. && return 0 )
+    ) 
 }
 function edit()
 {
@@ -63,6 +61,7 @@ echo OK
 while [ 1 ]
 do
     $EDITOR $1
+    update
     echo You where editing $1
     read -n 1 -p "Continue? [Y/n] " C
     ( [ "$C" = "n" ] || [ "$C" = "N" ] ) && exit 0
