@@ -5,19 +5,17 @@ echo 'Origin:' $origin
 
 function update-git()
 {
-    echo In update
-    git status
+    echo Updating...
     [ "$(git status|grep '(added\|modified\|deleted):')" ] && (
-        echo "Adding" \
+        echo "Adding..." \
         && git add --interactive \
-        && git commit; \
-        return 1
+        && git commit \
+        && return 1
     ) || ( \
-        echo "Whut?"
+        echo "Synchronizing" \
         [ "$(git status|grep 'On branch master')" ] || (
-            git checkout master && update
-        )
-        return 1
+            git checkout master && update && return 1
+        ) \
     ) || \
         return 0
 }
