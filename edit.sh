@@ -23,22 +23,6 @@ function update()
         return 0 
     )
 }
-function update-git()
-{
-    echo Updating...
-    [ "$(git status|grep '(new\ file\|added\|modified\|deleted):')" ] && (
-        echo "Adding..." \
-        && git add --interactive \
-        && git commit \
-        && return 1
-    ) || ( \
-        echo "Synchronizing"; \
-        [ "$(git status|grep 'On branch test')" ] || (
-            git checkout test && update && return 1
-        ) \
-    ) || \
-        return 0
-}
 function edit()
 {
     ( 
