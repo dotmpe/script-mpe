@@ -17,9 +17,9 @@ function update()
         && ( [ "$(git status|grep 'On branch test')" ] || (
             echo "Switching to environment branch " && git checkout test && update && return 2
         ) ) \
-        && ( echo Rebasing.. && ( git pull --rebase origin test || exit 1 ) && return 3 ) \
-        && ( echo Publishing... && ( git push origin test || exit 2 ) && return 4 ) \
-        && ( echo Nothing more todo. && return 0 )
+        && echo Rebasing.. && ( git pull --rebase origin test || exit 1 ) \
+        && echo Publishing... && ( git push origin test || exit 2 ) \
+        && return 0 
     ) 
 }
 function edit()
