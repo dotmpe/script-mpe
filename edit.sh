@@ -64,8 +64,7 @@ do
     $EDITOR $1
     echo You where editing $1
     read -n 1 -p "Continue? [Y/n] " C
-    echo $C
-    ( [ "$C" == "n" ] && [ "$C" == "N" ] ) && exit
+    ( [ "$C" = "n" ] || [ "$C" = "N" ] ) && exit 0
 done
 
 #update $1
