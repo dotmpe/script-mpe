@@ -13,8 +13,8 @@ function update-git()
         && return 1
     ) || ( \
         echo "Synchronizing"; \
-        [ "$(git status|grep 'On branch master')" ] || (
-            git checkout master && update && return 1
+        [ "$(git status|grep 'On branch test')" ] || (
+            git checkout test && update && return 1
         ) \
     ) || \
         return 0
@@ -43,7 +43,7 @@ function commit()
 {
     echo git add $1
     echo git commit
-    echo git push origin master
+    echo git push origin test
 }
 echo "Calling update"
 update-git
