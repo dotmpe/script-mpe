@@ -1,8 +1,9 @@
 #!/bin/bash
 origin=$(git remote -v|grep origin|grep fetch|sed -e 's/^origin.\(.*\)..fetch./\1/g')
 echo 'Origin:' $origin
-[ -n "$origin" ] || ( echo Need to work from GIT checkout. && exit 2 )
-[ -n "$EDITOR" ] || ( echo Editor environment not set. && exit 3 )
+[ -z "$origin" ] && ( echo Need to work from GIT checkout. && exit 2 )
+[ -z "$EDITOR" ] && ( echo Editor environment not set. && exit 3 )
+
 function update-git()
 {
     echo Updating...
