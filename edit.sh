@@ -46,12 +46,11 @@ function commit()
     echo git commit
     echo git push origin test
 }
-echo "Calling update"
 update-git
 dirty=$!
 while [ $dirty ];
 do 
-    echo Dirty
+    echo Dirty...
     update-git
     dirty=$!
 done
