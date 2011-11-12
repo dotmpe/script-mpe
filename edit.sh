@@ -7,13 +7,16 @@ echo 'Origin:' $origin
 function update()
 {
     echo Updating...
-    [ "$(git status|grep '(new.file\|added\|modified\|deleted):')" ] && (
+    [ "$(git status|grep '\(new.file\|added\|modified\|deleted\):')" ] && (
         echo "Consolidating..." \
         && git add --interactive \
         && git commit \
         && return 1
     ) || ( 
         echo "Synchronizing" \
+        && ( [ "$(git status|grep 'On branch test')" ] || (
+            git checkout test && update && return 1
+        ) ) \
         && return 1
     ) || ( 
         echo "Clean."
