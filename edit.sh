@@ -69,7 +69,7 @@ update
 dirty=$?
 while [ $dirty ];
 do 
-    echo Dirty...
+    echo Dirty... $dirty
     update
     dirty=$?
 done
