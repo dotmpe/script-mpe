@@ -64,16 +64,18 @@ function sync()
     echo OK
 }
 # Main
-#sync
-#while [ 1 ]
-#do
-#    $EDITOR $1
-#    sync
-#    echo You where editing $1
-#    read -n 1 -p "Continue? [Y/n] " C
-#    ( [ "$C" = "n" ] || [ "$C" = "N" ] ) && exit 0
-#done
+sync
+while [ 1 ]
+do
+    $EDITOR $1
+    sync
+    echo You where editing $1
+    read -n 1 -p "Continue? [Y/n] " C
+    ( [ "$C" = "n" ] || [ "$C" = "N" ] ) && exit 0
+done
 
-d=.
-[ -f "$1" ] && d=$(dirname $1)
-update.sh $d
+# TODO: use externals
+#d=.
+#[ -f "$1" ] && d=$(dirname $1)
+#update.sh $d
+
