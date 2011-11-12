@@ -7,6 +7,7 @@ echo 'Origin:' $origin
 function update()
 {
     echo Updating...
+    echo test @ origin
     [ "$(git status|grep '\(new.file\|added\|modified\|deleted\):')" ] && (
         echo "Consolidating..." \
         && git add --interactive \
