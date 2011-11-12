@@ -2,7 +2,7 @@
 origin=$(git remote -v|grep origin|grep fetch|sed -e 's/^origin.\(.*\)..fetch./\1/g')
 echo 'Origin:' $origin
 [ "$origin" ] || ( echo Need to work from GIT checkout. && exit 2 )
-
+[ "$EDITOR" ] || ( echo Editor environment not set. && exit 3 )
 function update-git()
 {
     echo Updating...
@@ -55,7 +55,7 @@ do
     dirty=$!
 done
 #update $1
-#$EDITOR $1
+$EDITOR $1
 #update $1
 #commit $1
 
