@@ -12,7 +12,7 @@ function update-git()
         && git commit \
         && return 1
     ) || ( \
-        echo "Synchronizing" \
+        echo "Synchronizing"; \
         [ "$(git status|grep 'On branch master')" ] || (
             git checkout master && update && return 1
         ) \
