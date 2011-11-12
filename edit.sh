@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# This will start an editing session for file $1
+# 
+# The session is started by synchronizing using GIT and one origin remote
+# repository. Then $EDITOR is started for the file. 
+# Upon closing, the environment is resynchronized. 
+#
 origin=$(git remote -v|grep origin|grep fetch|sed -e 's/^origin.\(.*\)..fetch./\1/g')
 echo 'Origin:' $origin
 [ "$origin" ] || ( echo Need to work from GIT checkout. && exit 2 )
@@ -19,7 +26,9 @@ function update()
             echo "Switching to environment branch..." && git checkout test
         ) ) \
         && echo Rebasing.. && ( git pull --rebase origin test || exit 1 ) \
-        && echo Publishing... && ( git push origin test || exit 2 ) \
+        && echo Publishing... && ( \
+            git push origin test || exit 2 \
+        ) \
         && return 0 
     ) 
 }
@@ -41,33 +50,30 @@ function edit()
     ) || (
         echo git status $1
     )
-    #git diff HEAD --no-ext-diff -- $1
 }
-function commit()
+function sync()
 {
-    echo git add $1
-    echo git commit
-    echo git push origin test
-}
-update
-dirty=$?
-while [ $dirty -ne 0 ];
-do 
-    echo Dirty... $dirty
     update
     dirty=$?
-done
-echo OK
-#update $1
-while [ 1 ]
-do
-    $EDITOR $1
-    update
-    echo You where editing $1
-    read -n 1 -p "Continue? [Y/n] " C
-    ( [ "$C" = "n" ] || [ "$C" = "N" ] ) && exit 0
-done
+    while [ $dirty -ne 0 ];
+    do 
+        echo Dirty... $dirty
+        update
+        dirty=$?
+    done
+    echo OK
+}
+# Main
+#sync
+#while [ 1 ]
+#do
+#    $EDITOR $1
+#    sync
+#    echo You where editing $1
+#    read -n 1 -p "Continue? [Y/n] " C
+#    ( [ "$C" = "n" ] || [ "$C" = "N" ] ) && exit 0
+#done
 
-#update $1
-#commit $1
-
+d=.
+[ -f "$1" ] && d=$(dirname $1)
+update.sh $d
