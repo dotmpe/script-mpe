@@ -59,7 +59,7 @@ do
 done
 echo OK
 #update $1
-while 1
+while [ 1 ]
 do
     $EDITOR $1
     echo You where editing $1
