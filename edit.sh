@@ -67,7 +67,7 @@ function commit()
 }
 update
 dirty=$?
-while [ $dirty ];
+while [ $dirty -ne 0 ];
 do 
     echo Dirty... $dirty
     update
