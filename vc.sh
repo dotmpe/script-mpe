@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 
-PSEP="\[\033[1;30m\]:\[\033[00m\]"
-PAT="\[\033[1;30m\]@\[\033[00m\]"
+HELP="vc - version-control helper functions "
+
+# __vc_git_ps1 : cbwisur
+# c: ''|'BARE:'
+# b: branchname
+# w: '*'
+# i: '+'|'#'
+# s: '$'
+# u: '%'
+# 
 
 __vc_bzrdir ()
 {
@@ -9,10 +17,124 @@ __vc_bzrdir ()
     bzr info 2> /dev/null | grep 'branch root' | sed 's/^\ *branch\ root:\ //'
 }
 
+# __vc_gitdir accepts 0 or 1 arguments (i.e., location)
+# returns location of .git repo
+__vc_gitdir ()
+{
+	if [ -z "${1-}" ]; then
+		if [ -n "${__vc_git_dir-}" ]; then
+			echo "$__vc_git_dir"
+		elif [ -d .git ]; then
+			echo .git
+		else
+			git rev-parse --git-dir 2>/dev/null
+		fi
+	elif [ -d "$1/.git" ]; then
+		echo "$1/.git"
+	else
+		echo "$1"
+	fi
+}
+
+# __vc_git_ps1 accepts 0 or 1 arguments (i.e., format string)
+# returns text to add to bash PS1 prompt (includes branch name)
+__vc_git_ps1 ()
+{
+	local g="$(__vc_gitdir)"
+	if [ -n "$g" ]; then
+		local r
+		local b
+		if [ -f "$g/rebase-merge/interactive" ]; then
+			r="|REBASE-i"
+			b="$(cat "$g/rebase-merge/head-name")"
+		elif [ -d "$g/rebase-merge" ]; then
+			r="|REBASE-m"
+			b="$(cat "$g/rebase-merge/head-name")"
+		else
+			if [ -d "$g/rebase-apply" ]; then
+				if [ -f "$g/rebase-apply/rebasing" ]; then
+					r="|REBASE"
+				elif [ -f "$g/rebase-apply/applying" ]; then
+					r="|AM"
+				else
+					r="|AM/REBASE"
+				fi
+			elif [ -f "$g/MERGE_HEAD" ]; then
+				r="|MERGING"
+			elif [ -f "$g/BISECT_LOG" ]; then
+				r="|BISECTING"
+			fi
+
+			b="$(git symbolic-ref HEAD 2>/dev/null)" || {
+
+				b="$(
+				case "${GIT_PS1_DESCRIBE_STYLE-}" in
+				(contains)
+					git describe --contains HEAD ;;
+				(branch)
+					git describe --contains --all HEAD ;;
+				(describe)
+					git describe HEAD ;;
+				(* | default)
+					git describe --exact-match HEAD ;;
+				esac 2>/dev/null)" ||
+
+				b="$(cut -c1-7 "$g/HEAD" 2>/dev/null)..." ||
+				b="unknown"
+				b="($b)"
+			}
+		fi
+
+		local w
+		local i
+		local s
+		local u
+		local c
+
+		if [ "true" = "$(git rev-parse --is-inside-git-dir 2>/dev/null)" ]; then
+			if [ "true" = "$(git rev-parse --is-bare-repository 2>/dev/null)" ]; then
+				c="BARE:"
+			else
+				b="GIT_DIR!"
+			fi
+		elif [ "true" = "$(git rev-parse --is-inside-work-tree 2>/dev/null)" ]; then
+			if [ -n "${GIT_PS1_SHOWDIRTYSTATE-}" ]; then
+				if [ "$(git config --bool bash.showDirtyState)" != "false" ]; then
+					git diff --no-ext-diff --ignore-submodules \
+						--quiet --exit-code || w="*"
+					if git rev-parse --quiet --verify HEAD >/dev/null; then
+						git diff-index --cached --quiet \
+							--ignore-submodules HEAD -- || i="+"
+					else
+						i="#"
+					fi
+				fi
+			fi
+			if [ -n "${GIT_PS1_SHOWSTASHSTATE-}" ]; then
+			        git rev-parse --verify refs/stash >/dev/null 2>&1 && s="$"
+			fi
+
+			if [ -n "${GIT_PS1_SHOWUNTRACKEDFILES-}" ]; then
+			   if [ -n "$(git ls-files --others --exclude-standard)" ]; then
+			      u="%"
+			   fi
+			fi
+		fi
+
+		if [ -n "${1-}" ]; then
+			printf "$1" "$c${b##refs/heads/}$w$i$s$u$r"
+		else
+			printf " (%s)" "$c${b##refs/heads/}$w$i$s$u$r"
+		fi
+	fi
+}
+
+. ~/.conf/bash/git-completion.bash
+
 __vc_pull ()
 {
     cd $1
-	local git=$(__gitdir)
+	local git=$(__vc_gitdir)
     local bzr=$(__vc_bzrdir)
 	if [ "$git" ]; then
 	    git pull;
@@ -26,7 +148,7 @@ __vc_pull ()
 __vc_push ()
 {
     cd $1
-	local git=$(__gitdir)
+	local git=$(__vc_gitdir)
     local bzr=$(__vc_bzrdir)
 	if [ "$git" ]; then
 	    git push origin master;
@@ -42,24 +164,24 @@ __vc_status ()
 	local w short repo sub
 	w=$1;
 	short=${w/#"$HOME"/"~"}
-	local git=$(__gitdir)
+	local git=$(__vc_gitdir)
 	local bzr=$(__vc_bzrdir)
 	if [ "$git" ]; then
-		s=$(git show . |grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')
+		rev=$(git show . |grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')
 		short=${short%$sub}
-		echo $short$PSEP$(__git_ps1 "[git:%s $s]")$sub
+		echo $short $(__vc_git_ps1 "[git:%s $rev]") $sub
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
 		sub=${w##$(realpath $bzr)}
-		short=${short%$sub}
+		/dev/null short=${short%$sub}
 		local revno=$(bzr revno)
 		local s=''
 		if [ "$(bzr status|grep added)" ]; then s="${s}+"; fi
 		if [ "$(bzr status|grep modified)" ]; then s="${s}*"; fi
 		if [ "$(bzr status|grep removed)" ]; then s="${s}-"; fi
-		if [ "$(bzr status|grep unknown)" ]; then s="${s}?"; fi
+		if [ "$(bzr status|grep unknown)" ]; then s="${s}%"; fi
 		if [ -n "$s" ]; then s=" ${s}"; fi;
-		echo "$short$PSEP[bzr:$revno$s]$sub"
+		echo "$short [bzr:$s $revno]$sub"
 	else if [ -d ".svn" ]; then
 		local r=$(svn info | sed -n -e '/^Revision: \([0-9]*\).*$/s//\1/p' )
 		local s=""
@@ -81,4 +203,9 @@ __vc_ps1 ()
 {
     __vc_status $1
 }
+
+# Main
+if [ "$(basename \"$0\")" = "vc.sh" ]; then
+    echo -e $(__vc_status .)
+fi
 
