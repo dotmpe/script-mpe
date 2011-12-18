@@ -297,7 +297,7 @@ class Values(dict):
     def changelog(self):
         return self.__dict__['changelog']
 
-    def commit(self, backup=True):
+    def commit(self, do_backup=True):
         #print self
         #print self.getsource()
         #print self.getsource().changelog
@@ -308,7 +308,7 @@ class Values(dict):
             #assert 'source_key' in self
             #file = self[self['source_key']]
             file = self.source;#__dict__[self.__dict__['source_key']]
-            if backup:
+            if do_backup:
                 backup(file)
             data = self.copy()
             yaml_dump(data, open(file, 'a+'))
@@ -418,7 +418,9 @@ def load_path(path, type=YAMLValues):
 def load(name, paths=config_prefix):
     global _
     configs = expand_config_path(name, paths=paths)
-    config = configs.next()
+    while configs:
+        config = configs.next()
+        if os.path.exists(config): break
     ext = splitext(config)[1]
     if isdir(config):
         values_type = FSValues 
