@@ -43,6 +43,7 @@ class Comment(Base):
     comment_hash = Column(String(32), index=True, unique=True)
 
 
+# TODO:1:
 def comment(dbsession, comment, numid=None):
     comment_hash = hashlib.md5(comment).hexdigest()
 
@@ -73,8 +74,10 @@ def comment(dbsession, comment, numid=None):
 
 
 def new_issue(tag, description):
+# TODO
     print ('New', tag, description,)
 
 def update_issue(tag, iid, description):
+# TODO
     print ('Updated', tag, iid, description,)
 

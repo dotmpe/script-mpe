@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Python abstraction of 'timeEdition' database.
 
@@ -27,7 +28,34 @@ ChangeLog
 ----------
 2011-05-22
   Creation of script.
+2011-12-18
+  Review. Rewrote to use libcmd.
 
+Schema
+------
+Customer
+ * name:String(255)
+ * color:String(32)
+ * icalEventID:String(255)
+
+Project
+ * name:String(255)
+ * customer:Customer
+ * projectTime:Integer
+ * status:Boolean
+ * tasks:List<Task>
+
+Record
+ * from,toTime:DateTime
+ * customer:Customer
+ * project:Project
+ * task:Task
+ * comments:Text
+
+Task 
+ * name:String(255)
+ * rate:Float
+ 
 """
 import os
 import optparse
@@ -35,11 +63,12 @@ import sys
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
                         ForeignKey, Table, Index, DateTime, Float
+import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
 import confparse
-from libcmd import Cmd
+from libcmd import Cmd, err
 
 SqlBase = declarative_base()
 
@@ -123,22 +152,23 @@ def get_session(dbref, initialize=False):
 
 class WorkLog(Cmd):
 
-    "Class variables"
-    NAME = os.path.expanduser('~/Library/Application Support/timeEdition/timeEditionData.edb')
-    DEFAULT_DB = "sqlite:///%s" % NAME
+    NAME = os.path.splitext(os.path.basename(__file__))[0]
 
-    OPTIONS = (
-            (('d', 'dbref'), {'default':DEFAULT_DB, 'metavar':'DB'}),
-    )
+    DB_PATH = os.path.expanduser('~/Library/Application Support/timeEdition/timeEditionData.edb')
+    DEFAULT_DB = "sqlite:///%s" % DB_PATH
 
-    "Instance vars. "
+    DEFAULT_CONFIG_KEY = NAME
 
-    settings = confparse.Values()
-    "Complete Values tree with settings. "
-    rc = None
-    "Values subtree for current program. "
+    TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['query']
+    DEFAULT_ACTION = 'stat'
 
-    def rc_init_default(self):
+    def get_opts(self):
+        return Cmd.get_opts(self) + (
+                (('-d', '--dbref'), {'default':self.DEFAULT_DB, 'metavar':'DB'}),
+                (('-q', '--query'), {'action':'store_true'}),
+            )
+
+    def init_config_defaults(self):
         assert False, "TODO: implementing default values for existing settings "
 
         if self.settings.config_file:
@@ -171,17 +201,23 @@ class WorkLog(Cmd):
         else:
             print "Not writing file. "
 
-    def init(self, parser, dbref=None):
+    def init(self, dbref=None):
         session = get_session(dbref, initialize=True)
 
-    def query(self, parser, dbref=None):
+    def query(self, dbref=None, **opts):
         session = get_session(dbref)
-        #print list(session.query(Customer).all())
+#print list(session.query(Customer).all())
         #print list(session.query(Project).all())
-        for task, project, customer in session.query(Task, Project, Customer).all():#join('projects', 'customer').all():
-            print customer.name, '\t\t',project.name, '\t\t',task.name
+        try:
+            for task, project, customer in session.query(Task, Project, Customer).all():#join('projects', 'customer').all():
+                print customer.name, '\t\t',project.name, '\t\t',task.name
+        except sqlalchemy.exc.OperationalError, e:
+            err("Error query DB %s: %s", dbref, e)
+            return 1
         print dbref
 
+    def stat(self, *args, **opts):
+        print 'No stats'
 
 if __name__ == '__main__':
     app = WorkLog()
