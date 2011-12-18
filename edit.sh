@@ -1,23 +1,36 @@
 #!/bin/bash
+#
+# This will start an editing session for file $1
+# 
+# The session is started by synchronizing using GIT and one origin remote
+# repository. Then $EDITOR is started for the file. 
+# Upon closing, the environment is resynchronized. 
+#
 origin=$(git remote -v|grep origin|grep fetch|sed -e 's/^origin.\(.*\)..fetch./\1/g')
 echo 'Origin:' $origin
 [ "$origin" ] || ( echo Need to work from GIT checkout. && exit 2 )
+[ "$EDITOR" ] || ( echo Editor environment not set. && exit 3 )
 
-function update-git()
+function update()
 {
     echo Updating...
-    [ "$(git status|grep '(added\|modified\|deleted):')" ] && (
-        echo "Adding..." \
+    echo test @ origin
+    [ "$(git status|grep '\(new.file\|added\|modified\|deleted\):')" ] && (
+        echo "Consolidating..." \
         && git add --interactive \
         && git commit \
         && return 1
-    ) || ( \
-        echo "Synchronizing"; \
-        [ "$(git status|grep 'On branch master')" ] || (
-            git checkout master && update && return 1
+    ) || (
+        echo "Synchronizing..." \
+        && ( [ "$(git status|grep 'On branch test')" ] || (
+            echo "Switching to environment branch..." && git checkout test
+        ) ) \
+        && echo Rebasing.. && ( git pull --rebase origin test || exit 1 ) \
+        && echo Publishing... && ( \
+            git push origin test || exit 2 \
         ) \
-    ) || \
-        return 0
+        && return 0 
+    ) 
 }
 function edit()
 {
@@ -37,25 +50,32 @@ function edit()
     ) || (
         echo git status $1
     )
-    #git diff HEAD --no-ext-diff -- $1
 }
-function commit()
+function sync()
 {
-    echo git add $1
-    echo git commit
-    echo git push origin master
+    update
+    dirty=$?
+    while [ $dirty -ne 0 ];
+    do 
+        echo Dirty... $dirty
+        update
+        dirty=$?
+    done
+    echo OK
 }
-echo "Calling update"
-update-git
-dirty=$!
-while [ $dirty ];
-do 
-    echo Dirty
-    update-git
-    dirty=$!
+# Main
+sync
+while [ 1 ]
+do
+    $EDITOR $1
+    sync
+    echo You where editing $1
+    read -n 1 -p "Continue? [Y/n] " C
+    ( [ "$C" = "n" ] || [ "$C" = "N" ] ) && exit 0
 done
-#update $1
-#$EDITOR $1
-#update $1
-#commit $1
+
+# TODO: use externals
+#d=.
+#[ -f "$1" ] && d=$(dirname $1)
+#update.sh $d
 
