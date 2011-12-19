@@ -1,6 +1,7 @@
 from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath
 import unittest
+from pprint import pformat
 
 import confparse
 from confparse import expand_config_path, load
@@ -13,6 +14,7 @@ class TestCase(unittest.TestCase):
         import os
         print getcwd()
         print os.popen('tree -a %s' % self.testdir).read()
+
 
 class Test2(TestCase):
 
@@ -44,7 +46,7 @@ class Test2(TestCase):
         conf = expand_config_path(self.NAME).next() 
         self.assertEqual(conf, self.name)
         settings = load(self.NAME)
-        #self.assertEqual(load_path(conf), settings)
+        #self.assertEqual(load(conf), settings)
 
 
 class Test1(TestCase):
@@ -95,6 +97,13 @@ class Test1(TestCase):
         self.assert_('bar' in test_settings.foo)
         self.assert_('var' in test_settings.foo.bar)
         self.assert_(test_settings.source_key in test_settings)
+
+        test_settings.foo.bar.mod = load(self.RC)
+# XXX: darwin
+        self.assert_('/private/var/tmp/test1/.testrc' == test_settings.file)
+        self.assert_('foo' in test_settings.foo.bar.mod)
+        self.assert_('bar' in test_settings.foo.bar.mod.foo)
+        self.assert_('var' in test_settings.foo.bar.mod.foo.bar)
 
     def test_3_set_string(self):
         test_settings = load(self.RC)

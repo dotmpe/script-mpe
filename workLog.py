@@ -84,14 +84,12 @@ The standard timeEdition sqlite3 database as of version 1.1.6.
     CREATE TABLE tasks(id INTEGER PRIMARY KEY, name VARCHAR(255), rate REAL);
 
 """
-
 class Customer(SqlBase):
     __tablename__ = 'customers'
     customer_id = Column('id', Integer(11), primary_key=True)
     name = Column(String(255), unique=True)
     color = Column(String(32))
     icalCalID = Column(String(255))
-
 
 class Project(SqlBase):
     __tablename__ = 'projects'
@@ -103,12 +101,10 @@ class Project(SqlBase):
     projectTime = Column(Integer())
     status = Column(Boolean())
 
-
-#class RecordStateTable(SqlBase):
-#    __tablename__ = 'recordStateTable'
-#    recStartDate = Column(String(32))
-#    which = Column(String(10))
-
+class RecordStateTable(SqlBase):
+    __tablename__ = 'recordStateTable'
+    recStartDate = Column(String(32))
+    which = Column(String(255)) # XXX: was 10?
 
 class Record(SqlBase):
     __tablename__ = 'records'
@@ -123,13 +119,11 @@ class Record(SqlBase):
     GoogleEditURL = Column(String(255))
     OutlookEntryID = Column(String(255))
 
-
 class Task(SqlBase):
     __tablename__ = 'tasks'
     task_id = Column('id', Integer(11), primary_key=True)
     name = Column(String(255))
     rate = Column(Float)
-
 
 projectTask = Table('projectTasks', SqlBase.metadata,
     Column('id', Integer(11), primary_key=True),

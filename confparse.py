@@ -415,12 +415,16 @@ def load_path(path, type=YAMLValues):
     global _paths, _
     return getattr(type, 'load')(path)
 
-def load(name, paths=config_prefix):
+def load(name, paths=config_path):
     global _
     configs = expand_config_path(name, paths=paths)
-    while configs:
-        config = configs.next()
-        if os.path.exists(config): break
+    try:
+        while configs:
+            config = configs.next()
+            if os.path.exists(config): break
+    except StopIteration, e:
+        print "Unable to load settings for",name, paths
+        sys.exit(1)
     ext = splitext(config)[1]
     if isdir(config):
         values_type = FSValues 
