@@ -2,6 +2,8 @@
 TODO: reinvent rsr using script libs
 TODO: where to store settings, data; need split-settings/composite-db
 """
+import os
+
 import confparse
 from libcmd import Cmd, err
 from taxus import Node, INode, initialize

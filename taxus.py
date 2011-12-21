@@ -62,6 +62,7 @@ The Description column in the diagram is there to get an idea, while most such
 data should be stored a suitable triple store.
 
 """
+import os
 from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
@@ -72,6 +73,7 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 
 #from debug import PrintedRecordMixin 
 
+from libcmd import Cmd
 
 SqlBase = declarative_base()
 
@@ -84,7 +86,7 @@ class Session(object):
     @staticmethod
     def get_instance(name='default', dbref=DEFAULT_STORE):
         if name not in Session.sessions:
-            Session.sessions[name] = initialize(dbref)
+            Session.sessions[name] = get_session(dbref)
         return Session.sessions[name]
 
     # 
@@ -423,13 +425,48 @@ class Token(Node):
     refs = relationship(Locator, secondary=token_locator_table)
 
 
-def initialize(dbref, create=False):
+def get_session(dbref, initialize=False):
     engine = create_engine(dbref, encoding='utf8')
-    if create:
+    if initialize:
         SqlBase.metadata.create_all(engine)  # issue DDL create 
         print 'Updated schema'
     session = sessionmaker(bind=engine)()
     return session
+
+
+class Taxus(Cmd):
+
+    NAME = os.path.splitext(os.path.basename(__file__))[0]
+
+    DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
+    DEFAULT_DB = "sqlite:///%s" % DB_PATH
+
+    DEFAULT_CONFIG_KEY = NAME
+
+    TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['query', 'init_database']
+    DEFAULT_ACTION = 'query'
+    
+    def get_opts(self):
+        return Cmd.get_opts(self) + (
+                (('-d', '--dbref'), {'default':self.DEFAULT_DB, 'metavar':'DB'}),
+                (('-q', '--query'), {'action':'store_true'}),
+                (('-X', '--init-database'), {'action':'store_true'}),
+            )
+
+    def query(self, dbref=None, **opts):
+        session = get_session(dbref)
+        print session.query(Node).all()
+
+    def init_database(self, dbref=None, **opts):
+        session = get_session(dbref, initialize=True)
+
+    def init_config_defaults(self, dbref=None, **opts):
+        pass
+
+
+if __name__ == '__main__':
+    app = Taxus()
+    app.main()
 
 
 
@@ -510,9 +547,9 @@ if __name__ == '__main__':
 #    engine = create_engine('sqlite:///test.sqlite')#, echo=True)
 
     #dbref = 'mysql://root:MassRootSql@robin/taxus'
-    #s = initialize(dbref)
+    #s = get_session(dbref)
     dbref = 'mysql://root:MassRootSql@robin/taxus_o'
-    s = initialize(dbref, create=True)
+    #s = get_session(dbref, create=True)
     #test_tree(s)
     #test_annotate(s)
     #test_print(s)

@@ -16,30 +16,39 @@ class TestCase(unittest.TestCase):
         print os.popen('tree -a %s' % self.testdir).read()
 
 
-class Test2(TestCase):
-
-    NAME = 'test2'
-    PWD = 'test/sub/dir/'
+class AbstractConfparseTest(TestCase):
 
     def setUp(self):
-        self.testdir = join(dirname(tmpnam()), Test2.NAME)
+        self.testdir = join(dirname(tmpnam()), self.NAME)
         makedirs(self.testdir)
 
-        self.name = realpath(join(self.testdir, '.' + Test2.NAME))
+        self.name = realpath(join(self.testdir, '.' + self.RC))
         makedirs(self.name)
 
-        self.pwd = join(self.testdir, Test2.PWD)
+        self.pwd = join(self.testdir, self.PWD)
         makedirs(self.pwd)
 
         self.cwd = getcwd()
         chdir(self.pwd)
+        open(self.name, 'w+').write("""\nfoo: \n   bar: {var: v}\n   test4:
+                [{foo: bar}]""")
+
+        print self.testdir
+        print self.name
+        print self.pwd
+        self._print_test_files()
 
     def tearDown(self):
-        #print 'removed', self.pwd, self.name, self.testdir
         chdir(self.cwd)
+        unlink(self.name)
         removedirs(self.pwd)
-        removedirs(self.name)
         #removedirs(self.testdir)
+
+class Test2(AbstractConfparseTest):
+
+    NAME = 'test2'
+    RCS = ['testrc']
+    PWD = 'test/sub/dir/'
 
     def test_1_(self):
         #self._print_test_files()
@@ -47,6 +56,28 @@ class Test2(TestCase):
         self.assertEqual(conf, self.name)
         settings = load(self.NAME)
         #self.assertEqual(load(conf), settings)
+    """
+    Values({
+        'default':{},
+        'global':{
+            'config_file':'/etc/test2.rc'
+        },
+        'config_file':'/home/berend/.test2/rc',
+        'net.example.my': {
+            'foo':'bar',
+        },
+        'net.example.my2': {
+            'config_file': '/tmp/my2/.rc',
+            'foo': 'bar',
+            'root': '/home/berend/.test2/rc',
+            'sub': {
+                'config_file': '/tmp/my2/sub/.rc',
+                'foo2': 'bar',
+                'root': '/tmp/my2/.rc',
+            }
+        }
+    })
+    """
 
 
 class Test1(TestCase):
@@ -58,21 +89,6 @@ class Test1(TestCase):
     NAME = 'test1'
     RC = 'testrc'
     PWD = 'test/sub/dir/'
-
-    def setUp(self):
-        self.testdir = join(dirname(tmpnam()), Test1.NAME)
-        self.name = realpath(join(self.testdir, '.' + Test1.RC))
-        self.pwd = join(self.testdir, Test1.PWD)
-        makedirs(self.pwd)
-        self.cwd = getcwd()
-        chdir(self.pwd)
-        open(self.name, 'w+').write("""\nfoo: \n   bar: {var: v}\n   test4:
-                [{foo: bar}]""")
-
-    def tearDown(self):
-        chdir(self.cwd)
-        unlink(self.name)
-        removedirs(self.pwd)
 
     def test_0_init(self):
         self.assert_(exists(self.testdir))
@@ -100,6 +116,10 @@ class Test1(TestCase):
 
         test_settings.foo.bar.mod = load(self.RC)
 # XXX: darwin
+        self.assertEqual(test_settings.default_config_key, 'config_file')
+        self.assertEqual(test_settings.default_source_key, 'default')
+        self.assertEqual(test_settings.config_key, 'config_file')
+        self.assertEqual(test_settings.source_key, 'default')
         self.assert_('/private/var/tmp/test1/.testrc' == test_settings.file)
         self.assert_('foo' in test_settings.foo.bar.mod)
         self.assert_('bar' in test_settings.foo.bar.mod.foo)
