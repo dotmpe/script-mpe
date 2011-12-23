@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+import os
 from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath
 import unittest
@@ -44,7 +46,7 @@ class AbstractConfparseTest(TestCase):
         removedirs(self.pwd)
         #removedirs(self.testdir)
 
-class Test2(AbstractConfparseTest):
+class Test2(TestCase):
 
     NAME = 'test2'
     RCS = ['testrc']
@@ -78,6 +80,22 @@ class Test2(AbstractConfparseTest):
         }
     })
     """
+
+    def setUp(self):
+        self.name = 'cllct/project'
+        self.cwd = os.getcwd()
+        os.chdir('/tmp')
+        os.makedirs('.cllct/')
+        self.realname = os.path.realpath('.'+self.name)
+        open(self.realname, 'w+').write("id: 1\n")
+    def test_2_(self):
+        self.assert_(os.path.exists(self.realname))
+        rcfile = list(confparse.expand_config_path(self.name))
+        self.assertEqual(rcfile, [self.realname])
+    def tearDown(self):
+        os.unlink('.cllct/project')
+        os.rmdir('.cllct/')
+        os.chdir(self.cwd)
 
 
 class Test1(TestCase):
@@ -214,5 +232,5 @@ def test1():
     print 'test_settings', pformat(test_settings)
 
 if __name__ == '__main__':
-	unittest.main()
+    unittest.main()
 

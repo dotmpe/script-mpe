@@ -1,219 +1,133 @@
 #!/usr/bin/env python
 """
-Python abstraction of 'timeEdition' database.
+:created: 2011-12-23
 
-- (auto) tag untagged work log entries (append tag to description)
-- allow query by client/project/task or issue and
+Trying to create simple model to log work. 
+Lookup the project for the CWD, and list/add/update tickets and tasks.
 
-  * print issue-id date time log
-  * print date time log
+Changelog
+---------
+2011-12-23
+    - Moved timeEdition experimental code, starting new generic version.
 
-Introduction
--------------
-Monitor time spent on work. Every time record is assigned a customer, project 
-and task ID. The database is initialized by timeEdition, which provides a GUI
-to easily toggle the clock on a customer/project/task. It only allows export to 
-CSV, iCal and XML though so there is no integration with any issue tracking.
-
-- 'task' is a generic description from a set that may be specific to a project
-  but by default is a copy of a default list.
-- there is no tracking of one single specific task, ie. an issue ID.  
-- though there is a description attribute for each work log entry.
-- there is no on-the-fly switching of client/project/task, the GUI is disabled
-  during record. That is somewhat of a shortcoming. Also the record overview is
-  implemented as modal dialog. All in all the GUI is convenient but no more
-  helpful than that.
-
-ChangeLog
-----------
-2011-05-22
-  Creation of script.
-2011-12-18
-  Review. Rewrote to use libcmd.
-
-Schema
-------
-Customer
- * name:String(255)
- * color:String(32)
- * icalEventID:String(255)
-
-Project
- * name:String(255)
- * customer:Customer
- * projectTime:Integer
- * status:Boolean
- * tasks:List<Task>
-
-Record
- * from,toTime:DateTime
- * customer:Customer
- * project:Project
- * task:Task
- * comments:Text
-
-Task 
- * name:String(255)
- * rate:Float
- 
 """
 import os
-import optparse
-import sys
 
-from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
-                        ForeignKey, Table, Index, DateTime, Float
-import sqlalchemy.exc
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, backref, sessionmaker
+from sqlalchemy import Column, Integer, String, Boolean, Text, \
+    ForeignKey, Table, Index, DateTime
+from sqlalchemy.orm import relationship
 
-import confparse
-from libcmd import Cmd, err
+import libcmd
+import taxus
+from taxus import Taxus
 
-SqlBase = declarative_base()
 
-"""
-The standard timeEdition sqlite3 database as of version 1.1.6.
-::
+# Data model 
 
-    CREATE TABLE customers(id INTEGER PRIMARY KEY, name VARCHAR(255), color VARCHAR(32), icalCalID VARCHAR(255));
-    CREATE TABLE projectTask(id INTEGER PRIMARY KEY, projectID INTEGER, taskID INTEGER);
-    CREATE TABLE projects(id INTEGER PRIMARY KEY, name VARCHAR(255), customerID INTEGER, projectTime INTEGER,status INTEGER);
-    CREATE TABLE recordStateTable(recStartDate VARCHAR(32), which VARCHAR(10));
-    CREATE TABLE records(id INTEGER PRIMARY KEY, fromTime DATETIME, toTime DATETIME, customerID INTEGER, projectID INTEGER, taskID INTEGER, icalEventID VARCHAR(255), comments TEXT, GoogleEditURL VARCHAR(255), OutlookEntryID VARCHAR(255));
-    CREATE TABLE tasks(id INTEGER PRIMARY KEY, name VARCHAR(255), rate REAL);
+class Project(taxus.Description):
+    """
+    """
+    __tablename__ = 'wlprojects'
+    __mapper_args__ = {'polymorphic_identity': 'worklog-project'}
 
-"""
-class Customer(SqlBase):
-    __tablename__ = 'customers'
-    customer_id = Column('id', Integer(11), primary_key=True)
-    name = Column(String(255), unique=True)
-    color = Column(String(32))
-    icalCalID = Column(String(255))
+    project_id = Column('id', Integer, ForeignKey('frags.id'), primary_key=True)
 
-class Project(SqlBase):
-    __tablename__ = 'projects'
-    project_id = Column('id', Integer(11), primary_key=True)
-    name = Column(String(255), index=True)
-    customerID = Column(Integer(11), ForeignKey('customers.id'))
-    customer = relationship(Customer,
-            primaryjoin=Customer.customer_id==customerID, backref='projects')
-    projectTime = Column(Integer())
-    status = Column(Boolean())
 
-class RecordStateTable(SqlBase):
-    __tablename__ = 'recordStateTable'
-    recStartDate = Column(String(32))
-    which = Column(String(255)) # XXX: was 10?
+class Ticket(taxus.Description):
+    """
+    Represent a task with associated effort.
+    """
+    __tablename__ = 'wltickets'
+    __mapper_args__ = {'polymorphic_identity': 'fragment:worklog-ticket'}
 
-class Record(SqlBase):
-    __tablename__ = 'records'
-    record_id = Column('id', Integer(11), primary_key=True)
+    ticket_id = Column('id', Integer, ForeignKey('frags.id'), primary_key=True)
+
+    project_id = Column(Integer, ForeignKey('wlprojects.id'))
+    project = relationship(Project, primaryjoin=project_id==Project.project_id)
+    time_estimated = Column(Integer)
+    time_spent = Column(Integer)
+    #worklog = relationship('Entry', 
+    #        primaryjoin='wltickets.id == wlrecords.ticket_id')
+    comments = relationship(taxus.Comment, 
+            primaryjoin= taxus.Node.id == taxus.Comment.annotated_node )
+    #status = Column(Enum ...
+    active = Column(Boolean)
+
+
+class Entry(taxus.Description):
+    """
+    Represent an expenditure of effort.
+    """
+    __tablename__ = 'wlrecords'
+    __mapper_args__ = {'polymorphic_identity': 'fragment:worklog-record'}
+
+    wl_entry_id = Column('id', Integer, ForeignKey('frags.id'), primary_key=True)
+
+    ticket_id = Column(Integer, ForeignKey('wltickets.id'))
+    ticket = relationship(Ticket, primaryjoin=ticket_id == Ticket.ticket_id,
+            backref='worklog')
+
     fromTime = Column(DateTime)
     toTime = Column(DateTime)
-    customerID = Column(Integer(11), ForeignKey('customers.id'))
-    projectID = Column(Integer(11), ForeignKey('projects.id'))
-    taskID = Column(Integer(11), ForeignKey('tasks.id'))
-    icalEventID = Column(String(255))
     comments = Column(Text)
-    GoogleEditURL = Column(String(255))
-    OutlookEntryID = Column(String(255))
-
-class Task(SqlBase):
-    __tablename__ = 'tasks'
-    task_id = Column('id', Integer(11), primary_key=True)
-    name = Column(String(255))
-    rate = Column(Float)
-
-projectTask = Table('projectTasks', SqlBase.metadata,
-    Column('id', Integer(11), primary_key=True),
-    Column('projectID', Integer(11), ForeignKey('projects.id')),
-    Column('taskID', Integer(11), ForeignKey('tasks.id'))
-)
-Project.tasks = relationship(Task, secondary=projectTask, backref='projects')
 
 
-def get_session(dbref, initialize=False):
-    engine = create_engine(dbref)
-    if initialize:
-        # Issue CREATE's 
-        SqlBase.metadata.create_all(engine)
-    session = sessionmaker(bind=engine)()
-    return session
+# Main app
 
-
-# Main
-
-class WorkLog(Cmd):
+class workLog(Taxus):
 
     NAME = os.path.splitext(os.path.basename(__file__))[0]
 
-    DB_PATH = os.path.expanduser('~/Library/Application Support/timeEdition/timeEditionData.edb')
-    DEFAULT_DB = "sqlite:///%s" % DB_PATH
-
     DEFAULT_CONFIG_KEY = NAME
 
-    TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['query']
-    DEFAULT_ACTION = 'stat'
+    TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + ['']
+    DEFAULT_ACTION = 'tasks'
 
     def get_opts(self):
-        return Cmd.get_opts(self) + (
-                (('-d', '--dbref'), {'default':self.DEFAULT_DB, 'metavar':'DB'}),
-                (('-q', '--query'), {'action':'store_true'}),
+        return Taxus.get_opts(self) + ()
+
+    def tasks(self, *args, **opts):
+        dbref = opts.get('dbref')
+        print self.session.query(Ticket)\
+                .filter(Ticket.active == True).all()
+
+    # Manage project nodes
+
+    project_subcmd_aliases = {
+            'rm': 'remove',
+            'upd': 'update',
+            'ad': 'add',
+        }
+
+    def project(self, args, opts):
+        subcmd = args[0]
+        while subcmd in self.project_subcmd_aliases:
+            subcmd = project_subcmd_aliases[subcmd]
+        assert subcmd in ('add', 'update', 'remove'), subcmd
+        getattr(self, "project_%s" % subcmd)(args[1:], opts)
+
+    def project_add(self, args, opts):
+        s = self.session
+        projectfile = self.get_config('cllct/project')
+        projectdata = confparse.load_path(projectfile)
+        pass
+# XXX: rethink what to store..
+        #projectdata.location.ref
+        name = args[0]
+        #project_NS = 
+        node = Project(name=name,
+                date_added=datetime.now(),
+                #namespace=project_NS
             )
+        print node
+        pass
 
-    def init_config_defaults(self):
-        assert False, "TODO: implementing default values for existing settings "
+    def project_remove(self, args, opts):
+        pass
 
-        if self.settings.config_file:
-            rc_file = self.settings.config_file
-        else:
-            rc_file = os.path.join(os.path.expanduser('~'),
-                    '.'+self.DEFAULT_RC)
-
-        assert not os.path.exists(rc_file), "File exists: %s" % rc_file
-        os.mknod(rc_file)
-        self.settings = confparse.load_path(rc_file)
-
-        if config_key:
-            setattr(settings, config_key, confparse.Values())
-            self.rc = getattr(rc, config_key)
-        else:
-            self.rc = settings
-
-        "Default some global settings: "
-        self.settings.set_source_key('config_file')
-        self.settings.config_file = Application.DEFAULT_RC
-
-        "Default program specific settings: "
-        self.rc.dbref = Application.DEFAULT_DB
-
-        v = raw_input("Write new config to %s? [Yn]")
-        if not v.strip() or v.lower().strip() == 'y':
-            self.settings.commit()
-            print "File rewritten. "
-        else:
-            print "Not writing file. "
-
-    def init(self, dbref=None):
-        session = get_session(dbref, initialize=True)
-
-    def query(self, dbref=None, **opts):
-        session = get_session(dbref)
-#print list(session.query(Customer).all())
-        #print list(session.query(Project).all())
-        try:
-            for task, project, customer in session.query(Task, Project, Customer).all():#join('projects', 'customer').all():
-                print customer.name, '\t\t',project.name, '\t\t',task.name
-        except sqlalchemy.exc.OperationalError, e:
-            err("Error query DB %s: %s", dbref, e)
-            return 1
-        print dbref
-
-    def stat(self, *args, **opts):
-        print 'No stats'
+    def project_update(self, args, opts):
+        pass
 
 if __name__ == '__main__':
-    app = WorkLog()
+    app = workLog()
     app.main()
-

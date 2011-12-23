@@ -129,9 +129,9 @@ TODO:
       \--------------------\                            |
                            |          Comment           |
    EmbeddedIssue           |           * inode:INode ---/
-    * tag:CommentTag ------/           * line_span_start,end:Integer(11)
-    * tag_span_start,end:Integer(11)   * comment:Text
-    * description_span_start,end       * comment_span_start,end:Integer(11)
+    * tag:CommentTag ------/           * line_span_start,end:Integer
+    * tag_span_start,end:Integer       * comment:Text
+    * description_span_start,end       * comment_span_start,end:Integer
     * inline:Boolean                     ^
     * comment:Comment -------------------/
       ^
@@ -157,7 +157,9 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 #from cllct.osutil import parse_argv_split
 
 import confparse
-from libcmd import Cmd, err
+from libcmd import Cmd, err, optparse_override_handler
+import taxus
+from taxus import Taxus
 
 
 # Storage model
@@ -182,7 +184,7 @@ class CommentTag(Base):
 
 class TrackedIssue(Base):
     __tablename__ = 'issues'
-    id = Column(Integer(11), primary_key=True)
+    id = Column(Integer, primary_key=True)
     tag_id = Column(String(16), ForeignKey('tags.tagname'))
     tag = relationship(CommentTag, primaryjoin=tag_id == CommentTag.tagname,
             backref='issues')
@@ -190,7 +192,7 @@ class TrackedIssue(Base):
     inline = Column(Boolean, default=False)
     # XXX: unique on filename/linenumber?
     filename = Column(String(255), index=True)
-    last_seen_startline = Column(Integer(11))
+    last_seen_startline = Column(Integer)
 
 
 class EmbeddedIssue:
@@ -539,8 +541,21 @@ def find_files(session, matchbox, paths):
         else:
             data = open(p).read()
             comment_flavours = detect_flavour(p, data)
-            for tag in find(session, matchbox, p, data, comment_flavours):
-                yield tag
+
+            try:
+                tag_generator = find(session, matchbox, p, data, comment_flavours)
+            except Exception, e:
+                err("Find: %s", e)
+                tag_generator = None
+
+            while tag_generator:
+                try:
+                    tag = tag_generator.next()
+                    yield tag
+                except StopIteration, e:
+                    tag_generator = None
+                except Exception, e:
+                    err("Find: %s", e)
 
 
 def get_session(dbref):
@@ -595,21 +610,21 @@ rc = confparse.Values()
 
 # Main
 
-class App(Cmd):
+class Radical(taxus.Taxus):
 
     PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
 
     VERSION = "0.1"
     USAGE = """Usage: %prog [options] paths """
 
-    DEFAULT_DB = "sqlite:///%s" % os.path.join(
-                                        os.path.expanduser('~'), '.radical.sqlite')
-    DEFAULT_RC = 'cllct.rc'
+    #DEFAULT_DB = "sqlite:///%s" % os.path.join(
+    #                                    os.path.expanduser('~'), '.radical.sqlite')
+    #DEFAULT_RC = 'cllct.rc'
     DEFAULT_CONFIG_KEY = PROG_NAME
 
-    NONTRANSIENT_OPTS = Cmd.NONTRANSIENT_OPTS + [
-        'list_flavours', 'list_scans' ]
-    TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + [ 'run_embedded_issue_scan' ]
+    #NONTRANSIENT_OPTS = Taxus.NONTRANSIENT_OPTS + [
+    #    'list_flavours', 'list_scans' ]
+    TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + [ 'run_embedded_issue_scan' ]
     DEFAULT_ACTION = 'run_embedded_issue_scan'
 
     def get_opts(self):
@@ -628,8 +643,16 @@ class App(Cmd):
             (('-F', '--add-flavour'),{ 'action': 'callback', 'callback': append_comment_scan,
                 'help': "Scan for these comment flavours only, by default all known fla." }),
 
-            (('--list-flavours',),{ 'action':'store_true', 'help': "" }),
-            (('--list-scans',),{ 'action':'store_true', 'help': "" }),
+            (('--list-flavours',),{ 
+                'action':'callback', 'dest': 'command',
+                'callback': optparse_override_handler,
+                'callback_args': ('list_flavours',), 
+                'help': "" }),
+            (('--list-scans',),{ 
+                'action':'callback', 'dest': 'command',
+                'callback': optparse_override_handler,
+                'callback_args': ('list_scans',), 
+                'help': "" }),
 
             #(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
             #(('-r', '--recurse'),{'action':'store_true', 'default': True,
@@ -643,7 +666,7 @@ class App(Cmd):
         self.rc.comment_flavours = self.rc.comment_scan.keys()
         self.rc.dbref = self.DEFAULT_DB
 
-    def list_flavours(self):
+    def list_flavours(self, args, opts):
         for flavour in self.rc.comment_scan:
             print "%s:\n\tstart:\t%s" % ((flavour,)+
                     tuple(self.rc.comment_scan[flavour][:1]))
@@ -652,7 +675,7 @@ class App(Cmd):
             print
         return
 
-    def list_scans(self):
+    def list_scans(self, args, opts):
         for tag in self.rc.tags:
             print "%s:" % (tag)
             if self.rc.tags[tag]:
@@ -667,7 +690,7 @@ class App(Cmd):
             print
         return
 
-    def run_embedded_issue_scan(self, paths=[]):
+    def run_embedded_issue_scan(self, paths, opts):
         # pre-compile patterns
         matchbox = {}
         for tagname in self.rc.tags:
@@ -725,6 +748,6 @@ class App(Cmd):
             #embedded.store(dbsession)
 
 if __name__ == '__main__':
-    App().main()
+    Radical().main()
 
 # vim:et:

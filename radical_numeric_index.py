@@ -38,7 +38,7 @@ Base = declarative_base()
 
 class Comment(Base):
     __tablename__ = 'document_embedded_comments_tinyid'
-    numid = Column(Integer(11), primary_key=True)
+    numid = Column(Integer, primary_key=True)
     comment = Column(Text, index=True)
     comment_hash = Column(String(32), index=True, unique=True)
 

@@ -34,6 +34,7 @@ from taxus import Node, INode, initialize
 class FileDescription(Node):
     __tablename__ = 'filedescription'
     __mapper_args__ = {'polymorphic_identity': 'filedescription'}
+
     filedescription_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
     description = Column(String(255), unique=True)
 
@@ -41,8 +42,10 @@ class FileInfo(Node):
     __tablename__ = 'fileinfo'
     __mapper_args__ = {'polymorphic_identity': 'filedescription'}
     fileinfo_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+
     inode_id = Column('inode_id', ForeignKey('inodes.id'))
     inode = relationship(INode, primaryjoin= inode_id == INode.inode_id )
+
     description_id = Column(ForeignKey('filedescription.id'), index=True)
     description = relationship(FileDescription, 
             primaryjoin=description_id == FileDescription.filedescription_id)

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 """
+Build on confparse module to create boostrapping for CL apps.
+
+TODO: segment configuration
 """
 import optparse
 import os
@@ -7,6 +10,7 @@ import sys
 from os.path import join, isdir
 
 import confparse
+import taxus_out as adaptable
 
 
 settings = confparse.load('cllct.rc')
@@ -17,20 +21,38 @@ def err(msg, *args):
     "Print error or other syslog notice. "
     print >> sys.stderr, msg % args
 
-def optparse_override_handler(option, optstr, value, parser):
+
+# Option Callbacks for optparse.OptionParser.
+
+def optparse_decrement_message(option, optstr, value, parser):
+    "Lower output-message threshold. "
+    parser.values.quiet = False
+    parser.values.messages -= 1
+
+def optparse_override_quiet(option, optstr, value, parser):
+    "Turn off non-essential output. "
+    parser.values.quiet = True
+    parser.values.interactive = False
+    parser.values.messages = 4 # skip warning and below
+
+def optparse_override_handler(option, optstr, value, parser, new_value):
     """
-    Handler for callback Option of optparse.OptionParser.
-    Option string is converted to value and stored at 'dest'.
-    This wil override previous Options that wrote the 'dest' setting.
+    Override value of `option.dest`.
+    If no new_value given, the option string is converted and used.
     """
     assert not value
+    if new_value:
+        value = new_value
+    else:
+        value = optstr.strip('-').replace('-','_')
     values = parser.values
     dest = option.dest
-    setattr(values, dest, optstr.strip('-').replace('-','_'))
+    setattr(values, dest, value)
+
+
+# Main application
 
 class Cmd(object):
-
-    # Class variables
 
     NAME = os.path.splitext(os.path.basename(__file__))[0]
     VERSION = "0.1"
@@ -42,39 +64,78 @@ class Cmd(object):
 
     def get_opts(self):
         return (
-            (('-c', '--config'),{ 'metavar':'NAME', 'default': self.DEFAULT_RC, 
+            (('-c', '--config',),{ 'metavar':'NAME', 
                 'dest': "config_file",
+                'default': self.DEFAULT_RC, 
                 'help': "Run time configuration. This is loaded after parsing command "
-                "line options, non-default option values wil override persisted "
-                "values (see --update-config) (default: %default). " }),
+                    "line options, non-default option values wil override persisted "
+                    "values (see --update-config) (default: %default). " }),
 
-            (('-K', '--config-key'),{ 'metavar':'ID', 'default': self.DEFAULT_CONFIG_KEY, 
-                'dest': "config_key",
+            (('-K', '--config-key',),{ 'metavar':'ID', 
+                'default': self.DEFAULT_CONFIG_KEY, 
                 'help': "Settings root node for run time configuration. "
-                " (default: %default). " }),
+                    " (default: %default). " }),
 
-            (('-U', '--update-config'),{ 'action':'store_true', 'help': "Write back "
+            (('-U', '--update-config',),{ 'action':'store_true', 'help': "Write back "
                 "configuration after updating the settings with non-default option "
                 "values.  This will lose any formatting and comments in the "
-                "serialized configuration. " }),
+                "serialized configuration. ",
+                'default': False }),
 
-            (('-C', '--command'),{ 'metavar':'ID', 'help': " "
-                "(default: %default). ", 'default': self.DEFAULT_ACTION }),
+            (('-C', '--command'),{ 'metavar':'ID', 
+                'help': "Action (default: %default). ", 
+                'default': self.DEFAULT_ACTION }),
+    
+            (('-m', '--message-level',),{ 'metavar':'level',
+                'help': "Increase chatter by lowering "
+                    "message threshold. Overriden by --quiet or --verbose. "
+                    "Levels are 0--7 (debug--emergency) with default of 2 (notice). "
+                    "Others 1:info, 3:warning, 4:error, 5:alert, and 6:critical.",
+                'default': 2,
+            }),
+    
+            (('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
+                "threshold. Overriden by --quiet or --message-level.",
+                'action': 'callback',
+                'callback': optparse_decrement_message}),
+    
+            (('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
+                "and prompts (--interactive). ", 
+                'dest': 'quiet', 
+                'default': False,
+                'action': 'callback',
+                'callback': optparse_override_quiet }),
+
+            (('--interactive',),{ 'help': "Prompt user if needed, this is"
+                    " the default. ", 
+                'default': True,
+                'action': 'store_true' }),
+
+            (('--non-interactive',),{ 
+                'help': "Never prompt, solve or raise error. ", 
+                'dest': 'interactive', 
+                'default': True,
+                'action': 'store_false' }),
 
             (('--init-config',),{ 'action': 'callback', 'help': "(Re)initialize "
                 "runtime-configuration with default values. ",
-                'dest': 'command', 'callback': optparse_override_handler }),
+                'dest': 'command', 
+                'callback': optparse_override_handler }),
 
             (('--print-config',),{ 'action':'callback', 'help': "",
-                'dest': 'command', 'callback': optparse_override_handler }),
+                'dest': 'command', 
+                'callback': optparse_override_handler }),
 
-#    (('-v', ''),{'dest':'verboseness','default': 0, 'action':'count',
-#        'help': "Increase chattyness (defaults to 0 or the CLLCT_DEBUG env.  var.)"}),
         )
 
     "Options are divided into a couple of classes, unclassified keys are treated "
     "as rc settings. "
-    TRANSIENT_OPTS = ['config_key', 'init_config', 'print_config', 'update_config', 'command']
+    TRANSIENT_OPTS = [
+            'config_key', 'init_config', 'print_config', 'update_config',
+            'command',
+            'quiet', 'message_level',
+            'interactive'
+        ]
     ""
     DEFAULT_ACTION = 'print_config'
 
@@ -109,40 +170,40 @@ class Cmd(object):
         nullable = []
         for opt in options:
             parser.add_option(*opt[0], **opt[1])
-            if 'dest' in opt[1]:
-                optnames.append(opt[1]['dest'])
-            else:
-                optnames.append(opt[0][-1].lstrip('-').replace('-','_'))
-            if 'default' not in opt[1]:
-                nullable.append(optnames[-1])
 
         optsv, args = parser.parse_args(argv)
-        opts = {}
 
-        # FIXME: instead of degrade by converting to dict, add optname/nullable name
-        # lists to options Values instance
-        for name in optnames:
-            if not hasattr(optsv, name) and name in nullable:
-                continue
-            opts[name] = getattr(optsv, name)
-        return parser, opts, args
+        return parser, optsv, args
 
     def rc_cli_override(self, parser, opts):
         """
         Update settings from values from parsed options. Use --update-config to 
         write them to disk.
         """
-        for o in opts:
-            if o in self.TRANSIENT_OPTS: # opt-key does not indicate setting
-                continue
-            elif hasattr(self.settings, o):
-                setattr(self.settings, o, opts[o])
-            elif hasattr(self.rc, o):
-                setattr(self.rc, o, opts[o])
-            else:
-                err("Ignored option override for %s: %s", self.settings.config_file, o)
+# XXX:
+        #for o in opts.keys():
+        #    if o in self.TRANSIENT_OPTS: # opt-key does not indicate setting
+        #        continue
+        #    elif hasattr(self.settings, o):
+        #        setattr(self.settings, o, opts[o])
+        #    elif hasattr(self.rc, o):
+        #        setattr(self.rc, o, opts[o])
+        #    else:
+        #        err("Ignored option override for %s: %s", self.settings.config_file, o)
+
+    main_handlers = [
+            'main_config',
+            'main_cli'
+        ]
 
     def main(self, argv=None):
+        parser, opts, args = self.main_default(argv)
+        for hname in self.main_handlers:
+            hfunc = getattr(self, hname)
+            hfunc(parser, opts, args)
+
+    def main_default(self, argv=None):
+
         rcfile = list(confparse.expand_config_path(self.DEFAULT_RC))
         if rcfile:
             config_file = rcfile.pop()
@@ -151,14 +212,15 @@ class Cmd(object):
             config_file = self.DEFAULT_RC
         "Configuration filename."
 
-        if not os.path.exists(config_file) and:
+        if not os.path.exists(config_file):
+            assert False, "Missing %s"%config_file
             self.init_config_file()
+        self.settings.config_file = config_file
 
         #    self.init_config() # case 1: 
         #        # file does not exist at all, init is automatic
         #assert self.settings.config_file, \
         #    "No existing configuration found, please rerun/repair installation. "
-
         
         self.settings = confparse.load_path(self.settings.config_file)
         "Static, persisted self.settings. "
@@ -172,11 +234,9 @@ class Cmd(object):
         parser, opts, args = self.parse_argv(self.get_opts(), argv, self.USAGE,
                 self.VERSION)
 
-        self.cli_main(parser, opts, args)
+        return parser, opts, args
 
-    def cli_main(self, parser, optdict, args):
-
-        opts = parser.values
+    def main_config(self, parser, opts, args):
 
         # Get a reference to the RC; searches config_file for specific section
 
@@ -189,17 +249,21 @@ class Cmd(object):
                 self.init_config_submod()
             else:
                 err("Config key must exist in %s ('%s'), use --init-config. " % (
-                    opts['config_file'], opts['config_key']))
+                    opts.config_file, opts.config_key))
                 sys.exit(1)
         self.rc = getattr(self.settings, config_key)
 
-        self.rc_cli_override(parser, optdict)
+        self.rc_cli_override(parser, opts)
+
+    def main_cli(self, parser, opts, args):
 
         actions = [opts.command]
         while actions:
-            action = actions.pop(0)
-            assert callable(action), action
-            ret = getattr(self, action)(*args, **optdict)
+            actionId = actions.pop(0)
+            action = getattr(self, actionId)
+            assert callable(action), (action, actionId)
+            ret = action(list(args), opts)
+            #print actionId, adaptable.IFormatted(ret)
             if isinstance(ret, tuple):
                 action, prio = ret
                 assert isinstance(action, str)
@@ -212,7 +276,11 @@ class Cmd(object):
             else:
                 if not ret:
                     ret = 0
-                sys.exit(ret)
+                if isinstance(ret, int) or isinstance(ret, str) and ret.isdigit(ret):
+                    sys.exit(ret)
+                elif isinstance(ret, str):
+                    err(ret)
+                    sys.exit(1)
 
     def init_config_file(self):
         pass
@@ -276,6 +344,10 @@ class Cmd(object):
         else:
             err("Config section is empty");
         return False
+
+    def get_config(self, name):
+        rcfile = list(confparse.expand_config_path(name))
+        print name, rcfile
 
     def stat(self, *args, **opts):
         print parser, opts, args
