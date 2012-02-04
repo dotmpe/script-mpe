@@ -17,6 +17,7 @@ def err(msg, *args):
     "Print error or other syslog notice. "
     print >> sys.stderr, msg % args
 
+
 def optparse_override_handler(option, optstr, value, parser):
     """
     Handler for callback Option of optparse.OptionParser.
@@ -28,9 +29,9 @@ def optparse_override_handler(option, optstr, value, parser):
     dest = option.dest
     setattr(values, dest, optstr.strip('-').replace('-','_'))
 
-class Cmd(object):
 
-    # Class variables
+
+class Cmd(object):
 
     NAME = os.path.splitext(os.path.basename(__file__))[0]
     VERSION = "0.1"
@@ -146,20 +147,20 @@ class Cmd(object):
         rcfile = list(confparse.expand_config_path(self.DEFAULT_RC))
         if rcfile:
             config_file = rcfile.pop()
-            # debug("Ignored paths rcfile
         else:
             config_file = self.DEFAULT_RC
         "Configuration filename."
 
-        if not os.path.exists(config_file) and:
+        if not os.path.exists(config_file):# and:
             self.init_config_file()
+
+        self.load_config(config_file)
 
         #    self.init_config() # case 1: 
         #        # file does not exist at all, init is automatic
-        #assert self.settings.config_file, \
-        #    "No existing configuration found, please rerun/repair installation. "
+        assert self.settings.config_file, \
+            "No existing configuration found, please rerun/repair installation. "
 
-        
         self.settings = confparse.load_path(self.settings.config_file)
         "Static, persisted self.settings. "
         # settings are already loaded, file initialized if needed
@@ -169,12 +170,8 @@ class Cmd(object):
         # parse arguments
         if not argv:
             argv = sys.argv[1:]
-        parser, opts, args = self.parse_argv(self.get_opts(), argv, self.USAGE,
+        parser, optdict, args = self.parse_argv(self.get_opts(), argv, self.USAGE,
                 self.VERSION)
-
-        self.cli_main(parser, opts, args)
-
-    def cli_main(self, parser, optdict, args):
 
         opts = parser.values
 
@@ -197,9 +194,11 @@ class Cmd(object):
 
         actions = [opts.command]
         while actions:
-            action = actions.pop(0)
-            assert callable(action), action
-            ret = getattr(self, action)(*args, **optdict)
+            action_name = actions.pop(0)
+            action = getattr(self, action_name)
+            assert callable(action), (self, action_name, action)
+# FIXME: merge opts with rc before running command, (see init/update-config)
+            ret = action(*args)
             if isinstance(ret, tuple):
                 action, prio = ret
                 assert isinstance(action, str)
@@ -214,13 +213,27 @@ class Cmd(object):
                     ret = 0
                 sys.exit(ret)
 
+    def load_config(self, config_file, config_key=None):
+        settings = confparse.load_path(config_file)
+        settings.set_source_key('config_file')
+        settings.config_file = config_file
+        if not config_key:
+            config_key = self.NAME
+        if hasattr(settings, config_key):
+            self.rc = getattr(settings, config_key)
+        else:
+            raise Exception("Config key %s does not exist in %s" % (config_key,
+                config_file))
+        self.config_key = config_key
+        self.settings = settings
+
     def init_config_file(self):
         pass
-
     def init_config_submod(self):
         pass
 
     def init_config(self, **opts):
+
         config_key = self.NAME
         # TODO: setup.py script
 
@@ -269,12 +282,17 @@ class Cmd(object):
         self.rc.commit()
 
     def print_config(self, config_file=None, **opts):
-        print self.settings
-        print self.rc.parent, self.settings.config_file
+        print ">>> libcmd.Cmd.print_config(config_file=%r, **%r)" % (config_file,
+                opts)
+        print '# self.settings =', self.settings
+        if self.rc:
+            print '# self.rc =',self.rc
+            print '# self.rc.parent =', self.rc.parent
+        print '# self.settings.config_file =', self.settings.config_file
         if self.rc:
             confparse.yaml_dump(self.rc.copy(), sys.stdout)
         else:
-            err("Config section is empty");
+            err("Config section %r is empty", self.config_key)
         return False
 
     def stat(self, *args, **opts):

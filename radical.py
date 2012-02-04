@@ -96,6 +96,8 @@ Changelog
     Updating documentation.
 2011-12-18
     Partial documentation, implementation review. Refactored to use libcmd.
+2012-02-04
+    Lost some recent development
 
 Issues
 ------
@@ -122,9 +124,9 @@ TODO:
 ::
 
                                                       INode
-                                                        ^
-   CommentTag                                           |
-    * tagname:String(16)                                |
+                                                        - type
+   CommentTag                                           - local_path
+    * tagname:String(16)                                - stat (size, etc)
       ^                                                 |
       \--------------------\                            |
                            |          Comment           |
@@ -607,8 +609,8 @@ class App(Cmd):
     DEFAULT_RC = 'cllct.rc'
     DEFAULT_CONFIG_KEY = PROG_NAME
 
-    NONTRANSIENT_OPTS = Cmd.NONTRANSIENT_OPTS + [
-        'list_flavours', 'list_scans' ]
+    #NONTRANSIENT_OPTS = [
+    #    'list_flavours', 'list_scans' ]
     TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + [ 'run_embedded_issue_scan' ]
     DEFAULT_ACTION = 'run_embedded_issue_scan'
 

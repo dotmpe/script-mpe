@@ -6,7 +6,7 @@ import os
 
 import confparse
 from libcmd import Cmd, err
-from taxus import Node, INode, initialize
+from taxus import Node, INode, get_session
 
 
 class Rsr(Cmd):
@@ -28,7 +28,7 @@ class Rsr(Cmd):
             )
 
     def list_nodes(self, *args, **kwds):
-        session = initialize(kwds['dbref'])
+        session = get_session(kwds['dbref'])
         print session.query(Node).all()
 
 
