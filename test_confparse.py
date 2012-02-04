@@ -1,5 +1,7 @@
+#!/usr/bin/env python
 import sys
-from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd, popen
+from os import unlink, removedirs, makedirs, tmpnam, chdir, \
+        getcwd, popen, rmdir
 from os.path import join, dirname, exists, isdir, realpath
 import unittest
 from pprint import pformat
@@ -78,6 +80,22 @@ class CPTest2(AbstractConfparseTest):
         }
     })
     """
+
+    def setUp(self):
+        self.name = 'cllct/project'
+        self.cwd = getcwd()
+        chdir('/tmp')
+        makedirs('.cllct/')
+        self.realname = realpath('.'+self.name)
+        open(self.realname, 'w+').write("id: 1\n")
+    def test_2_(self):
+        self.assert_(exists(self.realname))
+        rcfile = list(confparse.expand_config_path(self.name))
+        self.assertEqual(rcfile, [self.realname])
+    def tearDown(self):
+        unlink('.cllct/project')
+        rmdir('.cllct/')
+        chdir(self.cwd)
 
 
 class CPTest1(AbstractConfparseTest):
@@ -225,4 +243,5 @@ def test1():
     print 'test_settings', pformat(test_settings)
 
 if __name__ == '__main__':
-	unittest.main()
+    unittest.main()
+
