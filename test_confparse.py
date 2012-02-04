@@ -1,4 +1,5 @@
-from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
+import sys
+from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd, popen
 from os.path import join, dirname, exists, isdir, realpath
 import unittest
 from pprint import pformat
@@ -8,52 +9,51 @@ from confparse import expand_config_path, load
 
 
 
-class TestCase(unittest.TestCase):
-
-    def _print_test_files(self):
-        import os
-        print getcwd()
-        print os.popen('tree -a %s' % self.testdir).read()
-
-
-class AbstractConfparseTest(TestCase):
+class AbstractConfparseTest(unittest.TestCase, object):
 
     def setUp(self):
-        self.testdir = join(dirname(tmpnam()), self.NAME)
-        makedirs(self.testdir)
+        if sys.platform == 'Darwin':
+            self.tmpdir = '/private/var/tmp/'
+        elif sys.platform == 'linux2':
+            self.tmpdir = '/tmp/'
 
-        self.name = realpath(join(self.testdir, '.' + self.RC))
-        makedirs(self.name)
+        self.testrootdir = join(self.tmpdir, self.NAME)
+        #self.testrootdir = join(dirname(tmpnam()), self.NAME)
+        makedirs(self.testrootdir)
 
-        self.pwd = join(self.testdir, self.PWD)
+        self.pwd = join(self.testrootdir, self.PWD)
         makedirs(self.pwd)
 
         self.cwd = getcwd()
         chdir(self.pwd)
-        open(self.name, 'w+').write("""\nfoo: \n   bar: {var: v}\n   test4:
+        open(self.RC, 'w+').write("""\nfoo: \n   bar: {var: v}\n   test4:
                 [{foo: bar}]""")
-
-        print self.testdir
-        print self.name
-        print self.pwd
-        self._print_test_files()
+        #self._print_test_files()
 
     def tearDown(self):
+        #self._print_test_files()
+        chdir(self.pwd)
+        unlink(self.RC)
         chdir(self.cwd)
-        unlink(self.name)
         removedirs(self.pwd)
-        #removedirs(self.testdir)
 
-class Test2(AbstractConfparseTest):
+    def _print_test_files(self):
+        #print os.popen('tree -a %s' % self.testrootdir).read()
+        cwd = getcwd()
+        print popen('tree -a %s' % cwd).read()
+
+
+
+class CPTest2(AbstractConfparseTest):
 
     NAME = 'test2'
-    RCS = ['testrc']
+    RC = 'testrc'
     PWD = 'test/sub/dir/'
 
     def test_1_(self):
         #self._print_test_files()
         conf = expand_config_path(self.NAME).next() 
-        self.assertEqual(conf, self.name)
+        #self.assertEqual(conf, self.name)
         settings = load(self.NAME)
         #self.assertEqual(load(conf), settings)
     """
@@ -80,7 +80,7 @@ class Test2(AbstractConfparseTest):
     """
 
 
-class Test1(TestCase):
+class CPTest1(AbstractConfparseTest):
 
     """
     Work on settings in test/.testrc from test/sub/dir/
@@ -91,36 +91,41 @@ class Test1(TestCase):
     PWD = 'test/sub/dir/'
 
     def test_0_init(self):
-        self.assert_(exists(self.testdir))
-        self.assert_(isdir(self.testdir))
+        self.assert_(exists(self.testrootdir))
+        self.assert_(isdir(self.testrootdir))
         self.assert_(exists(self.pwd))
         self.assert_(isdir(self.pwd))
         self.assertEqual(getcwd(), realpath(self.pwd))
-        self.assert_(exists(self.name))
+        self.assert_(exists(self.RC))
         #self._print_test_files()
 
     def test_1_find_config(self):
         rcs = list(expand_config_path('testrc'))
-        test_runcom = '.testrc'
-        self.assertEqual(rcs, [self.name])
+        self.assertEqual(rcs, [join(getcwd(), self.RC)])
         test_runcom = expand_config_path('testrc').next()
         return test_runcom
 
     def test_2_load(self):
         test_settings = load(self.RC)
         self.assertEqual(getattr(confparse._, self.RC), test_settings)
+
         self.assert_('foo' in test_settings)
         self.assert_('bar' in test_settings.foo)
         self.assert_('var' in test_settings.foo.bar)
         self.assert_(test_settings.source_key in test_settings)
 
+        self.assertEqual(test_settings.default_source_key, 'config_file')
+        source_key = test_settings.source_key
+        self.assertEqual(source_key, 'config_file')
+        self.assert_(hasattr(test_settings, source_key))
+
+        self.assertEqual(test_settings.default_config_key, 'default')
+#        self.assertEqual(test_settings.config_key, 'config_file')
+
+        self.assertEqual(self.tmpdir+'test1/'+self.PWD+'testrc', getattr(test_settings, source_key))
+        # XXX: merge configs? self.assertEqual(tmpdir+'test1/.testrc', getattr(test_settings, source_key))
+
         test_settings.foo.bar.mod = load(self.RC)
-# XXX: darwin
-        self.assertEqual(test_settings.default_config_key, 'config_file')
-        self.assertEqual(test_settings.default_source_key, 'default')
-        self.assertEqual(test_settings.config_key, 'config_file')
-        self.assertEqual(test_settings.source_key, 'default')
-        self.assert_('/private/var/tmp/test1/.testrc' == test_settings.file)
         self.assert_('foo' in test_settings.foo.bar.mod)
         self.assert_('bar' in test_settings.foo.bar.mod.foo)
         self.assert_('var' in test_settings.foo.bar.mod.foo.bar)
@@ -147,13 +152,15 @@ class Test1(TestCase):
         self.assertEqual(test_settings.foo.test4[0].foo, 'bar')
 
     def test_5_copy(self):
-        test_settings = load(self.RC)
+        pwd = getcwd()
+        test_settings = load(self.RC, paths=confparse.config_path+(pwd,))
         self.assertEqual(test_settings.copy(), {
             'foo': {
                 'bar': {'var': 'v'},
                 'test4': [{'foo': 'bar'}], 
             }, 
-            'file': '/private/var/tmp/test1/.testrc',
+            #'file': '/tmp/test1/.testrc',
+            'config_file': '/tmp/test1/test/sub/dir/testrc',
         });
         test_settings = self.test_3_set_string()
         self.assertEqual(test_settings.copy(), {
@@ -164,7 +171,8 @@ class Test1(TestCase):
                 'bar': {'var': 'v'},
                 'test4': [{'foo': 'bar'}], 
             }, 
-            'file': '/private/var/tmp/test1/.testrc'
+            #'file': '/tmp/test1/.testrc'
+            'config_file': '/tmp/test1/test/sub/dir/testrc',
         });
         #print test_settings
         #print test_settings.keys()
@@ -176,7 +184,9 @@ class Test1(TestCase):
         self.assertEqual(test_settings.getsource(), test_settings)
         test_settings.commit()
 
-        test_settings.reload()
+        # FIXME: confparse.commit is not really tested
+        #test_settings.reload()
+        test_settings = self.test_5_copy()
         self.assertEqual(test_settings.copy(), {
             'test1': 'value', 
             'test2': {
@@ -185,7 +195,8 @@ class Test1(TestCase):
                 'bar': {'var': 'v'},
                 'test4': [{'foo': 'bar'}], 
             }, 
-            'file': '/private/var/tmp/test1/.testrc'
+            #'config_file': self.tmpdir+'test1/.testrc'
+            'config_file': self.tmpdir+'test1/test/sub/dir/testrc'
         });
 
 
@@ -215,4 +226,3 @@ def test1():
 
 if __name__ == '__main__':
 	unittest.main()
-

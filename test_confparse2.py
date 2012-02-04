@@ -6,7 +6,7 @@ from confparse2 import obj_dic, obj_lis
 
 
 
-class Test(unittest.TestCase):
+class CP2Test1(unittest.TestCase):
 
     def test_1_read_dict(self):
         d = obj_dic({'test':'foo'})

@@ -19,8 +19,8 @@ test::
 	@\
 		PYTHONPATH=$$PYTHONPATH:./;\
 		PATH=$$PATH:~/bin;\
-		TEST_PY=confparse_test.py;\
-		TEST_LIB=confparse;\
+		TEST_PY=test.py;\
+		TEST_LIB=confparse,confparse2,taxus,rsr,radical,workLog;\
 		VERBOSE=2;\
     $(test-python)
 

@@ -363,7 +363,7 @@ class YAMLValues(Values):
         """
         Save settings in nearest config module.
         """
-        print 'commit', self
+        print '!!! NO-op: commit', self
 
         mod = self.getsource()
         #mod.copy(prune_mod=True)
@@ -453,8 +453,8 @@ def load(name, paths=config_path):
             config = configs.next()
             if os.path.exists(config): break
     except StopIteration, e:
-        print "Unable to find config file for", name, paths
-        sys.exit(1)
+        raise Exception("Unable to find config file for", name, paths)
+        #sys.exit(1)
     ext = splitext(config)[1]
     if isdir(config):
         values_type = FSValues 

@@ -1,0 +1,10 @@
+import unittest
+
+from test_confparse import CPTest1, CPTest2
+from test_confparse2 import CP2Test1
+from test_radical import RadicalTestCase
+
+if __name__ == '__main__':
+	unittest.main()
+
+
