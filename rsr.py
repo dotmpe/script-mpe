@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 TODO: reinvent rsr using script libs
 TODO: where to store settings, data; need split-settings/composite-db
@@ -28,7 +29,9 @@ class Rsr(Cmd):
             )
 
     def list_nodes(self, *args, **kwds):
-        session = get_session(kwds['dbref'])
+        print args
+        a, opts = args
+        session = get_session(opts.dbref)
         print session.query(Node).all()
 
 

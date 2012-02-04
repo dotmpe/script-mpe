@@ -259,6 +259,7 @@ def current_hostname(initialize=False, interactive=False):
             err("FQDN is same as hostname")
             # cannot figure out what host to use
             while interactive:
+                print hostnames
                 hostname = prompt_choice_with_input("Which? ", hostnames[1])
                 if hostname: break
             #if not interactive:
@@ -276,7 +277,7 @@ class INode(Node):
     inode_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
     inode_number = Column(Integer, unique=True)
 
-    filesystem_id = Column(Integer, ForeignKey(''))
+    #filesystem_id = Column(Integer, ForeignKey('nodes.id'))
 
     itype = Column(Integer, index=True, unique=True)
     local_path = Column(String(255), index=True, unique=True)
@@ -705,7 +706,7 @@ class Taxus(Cmd):
     # Main handler config
 
     main_handlers = [
-            'main_config',
+            #'main_config',
             'main_session',
             'main_cli'
         ]

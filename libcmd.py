@@ -192,7 +192,7 @@ class Cmd(object):
         #        err("Ignored option override for %s: %s", self.settings.config_file, o)
 
     main_handlers = [
-            'main_config',
+#            'main_config',
             'main_cli'
         ]
 
@@ -254,6 +254,8 @@ class Cmd(object):
 
         self.rc_cli_override(parser, opts)
 
+        return parser, opts, args
+
     def main_cli(self, parser, opts, args):
 
         actions = [opts.command]
@@ -262,8 +264,8 @@ class Cmd(object):
             action = getattr(self, actionId)
             assert callable(action), (action, actionId)
 # FIXME: merge opts with rc before running command, (see init/update-config)
-            #ret = action(list(args), opts)
-            ret = action(*args)
+            ret = action(list(args), opts)
+            #ret = action(*args)
             #print actionId, adaptable.IFormatted(ret)
             if isinstance(ret, tuple):
                 action, prio = ret
