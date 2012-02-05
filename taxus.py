@@ -99,8 +99,13 @@ class SessionMixin(object):
     def get_instance(name='default', dbref=None):
         if name not in SessionMixin.sessions:
             assert dbref, "session does not exists: %s" % name
-            SessionMixin.sessions[name] = get_session(dbref)
-        return SessionMixin.sessions[name]
+            session = get_session(dbref)
+            SessionMixin.sessions[name] = session
+        else:
+            session = SessionMixin.sessions[name]
+            assert session.engine
+            print session.engine
+        return session
 
     # 
     key_names = ['id']
@@ -526,6 +531,11 @@ class Variant(Resource):
     # descriptions - many-to-may to Description.variants
 
 
+class QName():
+    pass#ns = ...
+
+
+
 class Namespace(Variant):
     """
     """
@@ -708,12 +718,12 @@ class Taxus(Cmd):
     main_handlers = [
             #'main_config',
             'main_session',
-            'main_cli'
+            'main_run_actions'
         ]
 
-    def main_session(self, parser, opts, args):
-        opts = parser.values
-
+    def main_session(self, opts, args):
+    
+        # Initialize session, 'default' may have ben initialized already
         self.session = SessionMixin.get_instance('default', opts.dbref)#optdict.get('dbref'))
         if not self.session and not opts.command.startswith('init'):
             err("Cannot get storage session, perhaps use --init-database? ")

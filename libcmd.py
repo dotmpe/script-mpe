@@ -4,6 +4,7 @@ Build on confparse module to create boostrapping for CL apps.
 
 TODO: segment configuration
 """
+import inspect
 import optparse
 import os
 import sys
@@ -159,8 +160,8 @@ class Cmd(object):
         #    else:
         #        assert False, k
 
-    # TODO: rewrite to cllct.osutil once that is packaged
     def parse_argv(self, options, argv, usage, version):
+        # TODO: rewrite to cllct.osutil once that is packaged
         #parser, opts, paths = parse_argv_split(
         #        self.OPTIONS, argv, self.USAGE, self.VERSION)
 
@@ -175,7 +176,7 @@ class Cmd(object):
 
         return parser, optsv, args
 
-    def rc_cli_override(self, parser, opts):
+    def main_option_overrides(self, parser, opts):
         """
         Update settings from values from parsed options. Use --update-config to 
         write them to disk.
@@ -193,52 +194,38 @@ class Cmd(object):
 
     main_handlers = [
 #            'main_config',
-            'main_cli'
+            'main_run_actions'
         ]
 
     def main(self, argv=None):
-        parser, opts, args = self.main_default(argv)
+        opts, args = self.main_default(argv)
         for hname in self.main_handlers:
             hfunc = getattr(self, hname)
-            hfunc(parser, opts, args)
+            hfunc(opts, args)
 
     def main_default(self, argv=None):
-
-        rcfile = list(confparse.expand_config_path(self.DEFAULT_RC))
-        if rcfile:
-            config_file = rcfile.pop()
-        else:
-            config_file = self.DEFAULT_RC
-        "Configuration filename."
-
-        if not os.path.exists(config_file):
-            self.init_config_file()
-            #assert False, "Missing %s"%config_file
+        """
+        Prepare `self.settings` by loading nearest configuration file,
+        then parse ARGV
+        """
+        config_file = self.get_config_file()
         self.settings.config_file = config_file
-
-        self.load_config(config_file)
-
+        self.settings = confparse.load_path(self.settings.config_file)
+        "Static, persisted self.settings. "
         #    self.init_config() # case 1: 
         #        # file does not exist at all, init is automatic
         assert self.settings.config_file, \
             "No existing configuration found, please rerun/repair installation. "
-        
-        self.settings = confparse.load_path(self.settings.config_file)
-        "Static, persisted self.settings. "
-        # settings are already loaded, file initialized if needed
-        # XXX: cannot overwrite file location
-        self.settings.config_file = config_file
-  
+ 
+        #self.main_user_defaults()
+
         # parse arguments
         if not argv:
             argv = sys.argv[1:]
-        parser, optdict, args = self.parse_argv(self.get_opts(), argv, self.USAGE,
-                self.VERSION)
-
-        opts = parser.values
+        parser, opts, args = self.parse_argv(
+                self.get_opts(), argv, self.USAGE, self.VERSION)
 
         # Get a reference to the RC; searches config_file for specific section
-
         config_key = self.DEFAULT_CONFIG_KEY
         if hasattr(opts, 'config_key') and opts.config_key:
             config_key = opts.config_key
@@ -250,22 +237,59 @@ class Cmd(object):
                 err("Config key must exist in %s ('%s'), use --init-config. " % (
                     opts.config_file, opts.config_key))
                 sys.exit(1)
+
         self.rc = getattr(self.settings, config_key)
 
-        self.rc_cli_override(parser, opts)
+        #self.main_option_overrides(parser, opts)
 
-        return parser, opts, args
+        self.parser = parser
 
-    def main_cli(self, parser, opts, args):
+        return opts, args
 
+    def main_prepare_kwds(self, handler, opts, args):
+        func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
+                inspect.getargspec(handler)
+            
+        assert func_arg_vars.pop(0) == 'self'
+        ret_args, ret_kwds = (), {}
+
+        if func_kwds_var:
+            ret_kwds = {'options':None,'args':None}
+
+        if func_defaults:
+            func_defaults = list(func_defaults) 
+
+        while func_defaults:
+            arg_name = func_arg_vars.pop()
+            if not hasattr(self.settings, arg_name):
+                value = func_defaults.pop()
+            else:
+                value = getattr(self.settings, arg_name)
+            ret_kwds[arg_name] = value
+        
+        if func_args_var:
+            assert len(args) >= len(func_arg_vars), (args, func_arg_vars, handler)
+        else:
+            assert len(args) == len(func_arg_vars), (args, func_arg_vars, handler)
+        args += tuple(args)
+
+        if "options" in ret_kwds:
+            ret_kwds['options'] = opts
+        if "arguments" in ret_kwds:
+            ret_kwds['arguments'] = args
+
+# FIXME: merge opts with rc before running command, (see init/update-config)
+        return ret_args, ret_kwds
+
+    def main_run_actions(self, opts, args):
         actions = [opts.command]
         while actions:
             actionId = actions.pop(0)
             action = getattr(self, actionId)
             assert callable(action), (action, actionId)
-# FIXME: merge opts with rc before running command, (see init/update-config)
-            ret = action(list(args), opts)
-            #ret = action(*args)
+            err("Notice: running %s", actionId)
+            arg_list, kwd_dict = self.main_prepare_kwds(action, opts, args)
+            ret = action(*arg_list, **kwd_dict)
             #print actionId, adaptable.IFormatted(ret)
             if isinstance(ret, tuple):
                 action, prio = ret
@@ -284,6 +308,19 @@ class Cmd(object):
                 elif isinstance(ret, str):
                     err(ret)
                     sys.exit(1)
+
+    def get_config_file(self):
+        rcfile = list(confparse.expand_config_path(self.DEFAULT_RC))
+        if rcfile:
+            config_file = rcfile.pop()
+        else:
+            config_file = self.DEFAULT_RC
+        "Configuration filename."
+
+        if not os.path.exists(config_file):
+            assert False, "Missing %s, perhaps use init_config_file"%config_file
+        
+        return config_file
 
     def load_config(self, config_file, config_key=None):
         settings = confparse.load_path(config_file)
@@ -371,8 +408,18 @@ class Cmd(object):
         rcfile = list(confparse.expand_config_path(name))
         print name, rcfile
 
-    def stat(self, *args, **opts):
-        print parser, opts, args
+    def stat(self, options=None, arguments=None):
+        if not self.rc:
+            err("Missing run-com for %s", self.NAME)
+        elif not self.rc.version:
+            err("Missing version for run-com")
+        elif self.VERSION != self.rc.version:
+            if self.VERSION > self.rc.version:
+                err("Run com requires upgrade")
+            else:
+                err("Run com version mismatch: %s vs %s", self.rc.version,
+                        self.VERSION)
+        print arguments, options
 
     def help(self, parser, opts, args):
         print """

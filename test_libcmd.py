@@ -16,7 +16,7 @@ class CMDTest1(unittest.TestCase):
         # XXX: internals
 
         default = app.main_default()
-        assert isinstance(default, tuple) and len(default) == 3
+        assert isinstance(default, tuple) and len(default) == 2
 
 
 if __name__ == '__main__':

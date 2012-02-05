@@ -7,10 +7,10 @@ import os
 
 import confparse
 from libcmd import Cmd, err
-from taxus import Node, INode, get_session
+from taxus import Taxus, Node, INode, get_session
 
 
-class Rsr(Cmd):
+class Rsr(Taxus):
 
     NAME = os.path.splitext(os.path.basename(__file__))[0]
 
@@ -28,11 +28,11 @@ class Rsr(Cmd):
                 (('-q', '--query'), {'action':'store_true'}),
             )
 
-    def list_nodes(self, *args, **kwds):
-        print args
-        a, opts = args
-        session = get_session(opts.dbref)
-        print session.query(Node).all()
+    def list_nodes(self, **kwds):
+        print self.session.query(Node).all()
+
+    def import_bookmarks(self, args, parse, **kwds):
+        print self.session
 
 
 if __name__ == '__main__':
