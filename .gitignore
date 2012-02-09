@@ -3,3 +3,4 @@
 /.coverage
 /htmlcov
 .test
+.cllct

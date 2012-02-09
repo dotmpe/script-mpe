@@ -28,6 +28,8 @@ from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
 
+from lib import tree_paths
+
 try:
     import syck
     yaml_load = syck.load
@@ -73,28 +75,26 @@ def expand_config_path(name, paths=config_path):
 
     return find_config_path(name, path=getcwd(), paths=list(paths))
 
-def tree_paths(path):
-
-    """
-    Yield all paths traversing from path to root.
-    """
-
-    parts = path.strip(os.sep).split(os.sep)
-    while parts:
-        cpath = os.path.join(*parts)
-        if path.startswith(os.sep):
-            cpath = os.sep+cpath
-        
-        yield cpath
-        parts.pop()
-        #parts = parts[:-1]
-
 def find_config_path(markerleaf, path=None, prefixes=config_prefix,
         suffixes=config_suffix, paths=[], exists=os.path.exists):
 
     """
     Search paths for markerleaf with prefixes/suffixes. Yields only existing
-    paths.
+    paths. The sequence is depth-first.
+
+    Defaults:
+        Prefix: '', '.'
+        Path: '~/', '/etc/'
+        Suffix: '', '.yaml', '.conf'
+
+    Path, if given, should be a directory.
+
+    Rationale
+    ---------
+    It is useful to find paths with name `markerleaf`, starting at a certain
+    point in the tree and traversing upwards. Prefix and suffix lists add further
+    flexibility which usually equals the abilitiy to match both hidden and
+    non-hidden filenames, and to match any set of giving filename extensions.
     """
 
     if path:

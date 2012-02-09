@@ -28,7 +28,7 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 
 from libcmd import Cmd, err
 import confparse
-from taxus import Node, INode, initialize
+from taxus import Node, INode, get_session
 
 
 class FileDescription(Node):
@@ -60,7 +60,7 @@ class FileInfoApp(Cmd):
     DEFAULT_CONFIG_KEY = NAME
 
     TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['file_info']
-    NONTRANSIENT_OPTS = Cmd.NONTRANSIENT_OPTS 
+    #NONTRANSIENT_OPTS = Cmd.NONTRANSIENT_OPTS 
     DEFAULT_ACTION = 'file_info'
 
     def get_opts(self):
@@ -76,13 +76,7 @@ class FileInfoApp(Cmd):
             if not os.path.isfile(p):
                 err("Ignored non-file %s", p)
                 continue
-            stdin,stdout,stderr = os.popen3('file -bs %s' % p)
-            #TODO:stdin,stdout,stderr = subprocess.popen3('file -s %s' % p)
-            stdin.close()
-            errors = stderr.read()
-            if errors:
-                err(errors)
-            format_description = stdout.read().strip()
+            format_description = lib.cmd('file -bs %r', p).strip()
             print p, format_description
 
 if __name__ == '__main__':
