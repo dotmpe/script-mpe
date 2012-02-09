@@ -181,9 +181,9 @@ __vc_status ()
 	local bzr=$(__vc_bzrdir $w)
 
 	if [ "$git" ]; then
-		rev=$(git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')
         realgit=$(cd $git; pwd -P)
         realgit=${realgit%/.git}
+		rev=$(git show $realgit | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')
 		sub=${realcwd##$realgit}
 		short=${short%$sub}
 		echo $short$(__vc_git_ps1 "[git:%s $rev]")$sub
