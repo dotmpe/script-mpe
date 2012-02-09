@@ -186,7 +186,7 @@ __vc_status ()
         realgit=${realgit%/.git}
 		sub=${realcwd##$realgit}
 		short=${short%$sub/}
-		echo $short $(__vc_git_ps1 "[git:%s $rev]")$sub
+		echo $(__vc_git_ps1 "[git:%s $rev]")$sub
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
         realbzr=$(cd $bzr; pwd -P)
@@ -221,13 +221,15 @@ __vc_status ()
 # ? : untracked "
 __vc_ps1 ()
 {
-    __vc_status $1
+    d=$1
+    [ -z "$d" ] && d=$(pwd)
+    __vc_status $d
 }
 
 # Main
-#if [ -n "$0" ] && [ $0 != "-bash" ]; then
-#    if [ "$(basename $0)" = "vc.sh" ]; then
-#        [ -n "$1" ] && [ ! -d "$1" ] && echo "No such directory $1" && exit 3
-#        echo -e $(__vc_status $p)
-#    fi
-#fi
+if [ -n "$0" ] && [ $0 != "-bash" ]; then
+    if [ "$(basename $0)" = "vc.sh" ]; then
+        [ -n "$1" ] && [ ! -d "$1" ] && echo "No such directory $1" && exit 3
+        echo -e $(__vc_status $p)
+    fi
+fi
