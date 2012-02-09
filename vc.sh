@@ -185,7 +185,7 @@ __vc_status ()
         realgit=$(cd $git; pwd -P)
         realgit=${realgit%/.git}
 		sub=${realcwd##$realgit}
-		short=${short%$sub/}
+		short=${short%$sub}
 		echo $short$(__vc_git_ps1 "[git:%s $rev]")$sub
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
