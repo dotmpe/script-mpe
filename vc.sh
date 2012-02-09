@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-
+#
+# SCM util functions and pretty PS1 prompt for git, bzr
+#
 HELP="vc - version-control helper functions "
 
 # __vc_git_ps1 : cbwisur
@@ -14,25 +16,32 @@ HELP="vc - version-control helper functions "
 __vc_bzrdir ()
 {
     cd $1;
-    bzr info 2> /dev/null | grep 'branch root' | sed 's/^\ *branch\ root:\ //'
+	root=$(bzr info 2> /dev/null | grep 'branch root')
+	if [ -n "$root" ]; then
+		echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
+	fi
 }
 
 # __vc_gitdir accepts 0 or 1 arguments (i.e., location)
 # returns location of .git repo
 __vc_gitdir ()
 {
-	if [ -z "${1-}" ]; then
-		if [ -n "${__vc_git_dir-}" ]; then
-			echo "$__vc_git_dir"
-		elif [ -d .git ]; then
-			echo .git
-		else
-			git rev-parse --git-dir 2>/dev/null
-		fi
-	elif [ -d "$1/.git" ]; then
-		echo "$1/.git"
-	else
-		echo "$1"
+	#if [ -z "${1-}" ]; then
+	#	if [ -n "${__vc_git_dir-}" ]; then
+	#		echo "$__vc_git_dir"
+	#	elif [ -d .git ]; then
+	#		echo ".git"
+	#	else
+    #        cd $1
+	#		git rev-parse --git-dir 2>/dev/null
+	#	fi
+	D=$1
+	[ -n "$D" ] || D=.
+	if [ -d "$D/.git" ]; then
+		echo "$D/.git"
+    else
+        cd $D
+        git rev-parse --git-dir 2>/dev/null
 	fi
 }
 
@@ -162,35 +171,46 @@ __vc_push ()
 __vc_status ()
 {
 	local w short repo sub
+
 	w=$1;
+	cd $w
+    realcwd=$(pwd -P)
 	short=${w/#"$HOME"/"~"}
-	local git=$(__vc_gitdir)
-	local bzr=$(__vc_bzrdir)
+
+	local git=$(__vc_gitdir $w)
+	local bzr=$(__vc_bzrdir $w)
+
 	if [ "$git" ]; then
-		rev=$(git show . |grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')
-		short=${short%$sub}
-		echo $short $(__vc_git_ps1 "[git:%s $rev]") $sub
+		rev=$(git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')
+        realgit=$(cd $git; pwd -P)
+        realgit=${realgit%/.git}
+		sub=${realcwd##$realgit}
+		short=${short%$sub/}
+		echo $short $(__vc_git_ps1 "[git:%s $rev]")$sub
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
-		sub=${w##$(realpath $bzr)}
-		/dev/null short=${short%$sub}
+        realbzr=$(cd $bzr; pwd -P)
+        realbzr=${realbzr%/.bzr}
+		sub=${realcwd##$realbzr}
+		short=${short%$sub/}
 		local revno=$(bzr revno)
 		local s=''
 		if [ "$(bzr status|grep added)" ]; then s="${s}+"; fi
 		if [ "$(bzr status|grep modified)" ]; then s="${s}*"; fi
 		if [ "$(bzr status|grep removed)" ]; then s="${s}-"; fi
 		if [ "$(bzr status|grep unknown)" ]; then s="${s}%"; fi
-		if [ -n "$s" ]; then s=" ${s}"; fi;
-		echo "$short [bzr:$s $revno]$sub"
-	else if [ -d ".svn" ]; then
-		local r=$(svn info | sed -n -e '/^Revision: \([0-9]*\).*$/s//\1/p' )
-		local s=""
-		if [ "$(svn status | grep -q -v '^?')" ]; then s="${s}*"; fi
-		if [ -n "$s" ]; then s=" ${s}"; fi;
-		echo "$short$PSEP[svn:r$r$s]"
+		[ -n "$s" ] && s="$s "
+		echo "$short$PSEP [bzr:$s$revno]$sub"
+	#else if [ -d ".svn" ]; then
+	#	local r=$(svn info | sed -n -e '/^Revision: \([0-9]*\).*$/s//\1/p' )
+	#	local s=""
+	#	local sub=
+	#	if [ "$(svn status | grep -q -v '^?')" ]; then s="${s}*"; fi
+	#	if [ -n "$s" ]; then s=" ${s}"; fi;
+	#	echo "$short$PSEP [svn:r$r$s]$sub"
 	else
 		echo $short
-	fi;fi;fi
+	fi;fi;
 }
 
 # <userpath>[<branchname><branchstate>]<branchpath>
@@ -205,7 +225,9 @@ __vc_ps1 ()
 }
 
 # Main
-if [ "$(basename \"$0\")" = "vc.sh" ]; then
-    echo -e $(__vc_status .)
-fi
-
+#if [ -n "$0" ] && [ $0 != "-bash" ]; then
+#    if [ "$(basename $0)" = "vc.sh" ]; then
+#        [ -n "$1" ] && [ ! -d "$1" ] && echo "No such directory $1" && exit 3
+#        echo -e $(__vc_status $p)
+#    fi
+#fi
