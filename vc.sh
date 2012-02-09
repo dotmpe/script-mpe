@@ -186,7 +186,7 @@ __vc_status ()
 		rev=$(git show $realgit | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')
 		sub=${realcwd##$realgit}
 		short=${short%$sub}
-		echo $short$(__vc_git_ps1 "[git:%s $rev]")$sub
+		echo $short $(__vc_git_ps1 "[git:%s $rev]")$sub
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
         realbzr=$(cd $bzr; pwd -P)
