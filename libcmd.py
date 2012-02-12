@@ -63,17 +63,18 @@ class Cmd(object):
     DEFAULT_RC = 'cllct.rc'
     DEFAULT_CONFIG_KEY = NAME
 
-    def get_opts(self):
+    @classmethod
+    def get_opts(klass):
         return (
             (('-c', '--config',),{ 'metavar':'NAME', 
                 'dest': "config_file",
-                'default': self.DEFAULT_RC, 
+                'default': klass.DEFAULT_RC, 
                 'help': "Run time configuration. This is loaded after parsing command "
                     "line options, non-default option values wil override persisted "
                     "values (see --update-config) (default: %default). " }),
 
             (('-K', '--config-key',),{ 'metavar':'ID', 
-                'default': self.DEFAULT_CONFIG_KEY, 
+                'default': klass.DEFAULT_CONFIG_KEY, 
                 'help': "Settings root node for run time configuration. "
                     " (default: %default). " }),
 
@@ -85,7 +86,7 @@ class Cmd(object):
 
             (('-C', '--command'),{ 'metavar':'ID', 
                 'help': "Action (default: %default). ", 
-                'default': self.DEFAULT_ACTION }),
+                'default': klass.DEFAULT_ACTION }),
     
             (('-m', '--message-level',),{ 'metavar':'level',
                 'help': "Increase chatter by lowering "
@@ -223,7 +224,7 @@ class Cmd(object):
         if not argv:
             argv = sys.argv[1:]
         parser, opts, args = self.parse_argv(
-                self.get_opts(), argv, self.USAGE, self.VERSION)
+                self.get_options(), argv, self.USAGE, self.VERSION)
 
         # Get a reference to the RC; searches config_file for specific section
         config_key = self.DEFAULT_CONFIG_KEY
@@ -247,6 +248,7 @@ class Cmd(object):
         return opts, args
 
     def main_prepare_kwds(self, handler, opts, args):
+        #print handler, opts, args, inspect.getargspec(handler)
         func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
                 inspect.getargspec(handler)
             
@@ -261,9 +263,8 @@ class Cmd(object):
 
         while func_defaults:
             arg_name = func_arg_vars.pop()
-            if not hasattr(self.settings, arg_name):
-                value = func_defaults.pop()
-            else:
+            value = func_defaults.pop()
+            if hasattr(self.settings, arg_name):
                 value = getattr(self.settings, arg_name)
             ret_kwds[arg_name] = value
         
@@ -400,8 +401,6 @@ class Cmd(object):
         print '# self.settings.config_file =', self.settings.config_file
         if self.rc:
             confparse.yaml_dump(self.rc.copy(), sys.stdout)
-        else:
-            err("Config section %r is empty", self.config_key)
         return False
 
     def get_config(self, name):

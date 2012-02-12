@@ -25,12 +25,15 @@ class Rsr(Taxus):
 
     TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['query']
     DEFAULT_ACTION = 'list_nodes'
-    
-    def get_opts(self):
-        return Cmd.get_opts(self) + (
-                (('-d', '--dbref'), {'default':self.DEFAULT_DB, 'metavar':'DB'}),
-                (('-q', '--query'), {'action':'store_true'}),
+
+    @classmethod
+    def get_opts(klass):
+        return (
             )
+
+    @staticmethod
+    def get_options():
+        return Cmd.get_opts() + Taxus.get_opts() + Rsr.get_opts()
 
     def list_nodes(self, **kwds):
         print self.session.query(Node).all()
@@ -72,6 +75,7 @@ class Rsr(Taxus):
                 else:
                     if Metafile.has_metafile(cleaf):
                         metafile = Metafile(cleaf)
+                        # TODO:
         vdb.close()
 
     def init_volume(self):
@@ -97,9 +101,9 @@ class Rsr(Taxus):
                 break
         return vdb
 
-
     # XXX: /Volume-checksum
 
+    
 
 if __name__ == '__main__':
     app = Rsr()

@@ -100,11 +100,11 @@ class SessionMixin(object):
         if name not in SessionMixin.sessions:
             assert dbref, "session does not exists: %s" % name
             session = get_session(dbref)
+            #assert session.engine, "new session has no engine"
             SessionMixin.sessions[name] = session
         else:
             session = SessionMixin.sessions[name]
-            assert session.engine
-            print session.engine
+            #assert session.engine, "existing session does not have engine"
         return session
 
     # 
@@ -128,6 +128,7 @@ class SessionMixin(object):
         
     def exists(self):
         return self.fetch() != None 
+
 
 class NodeSet(object):
     zope.interface.implements(taxus_out.INodeSet)
@@ -257,7 +258,10 @@ def current_hostname(initialize=False, interactive=False):
 
     elif initialize:
 
-        hostnames = socket.gethostbyaddr(socket.gethostname())
+        hostname = socket.gethostname()
+        print hostname
+
+        hostnames = socket.gethostbyaddr(hostname)
         if socket.getfqdn() != socket.gethostname():
             hostname = hostnames[0] +"."
         else:
@@ -679,11 +683,12 @@ class Taxus(Cmd):
 
     TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['query', 'init_database']
     DEFAULT_ACTION = 'query'
-    
-    def get_opts(self):
-        return Cmd.get_opts(self) + (
+
+    @classmethod
+    def get_opts(klass):
+        return (
                 (('-d', '--dbref'), { 'metavar':'URI', 
-                    'default': self.DEFAULT_DB, 
+                    'default': klass.DEFAULT_DB, 
                     'dest': 'dbref',
                     'help': "A URI formatted relational DB access description "
                         "(SQLAlchemy implementation). Ex: "
@@ -712,6 +717,10 @@ class Taxus(Cmd):
                     'callback': libcmd.optparse_override_handler,
                     'help': "TODO" }),
             )
+
+    @staticmethod
+    def get_options():
+        return Cmd.get_opts() + Taxus.get_opts()
 
     # Main handler config
 
@@ -742,19 +751,19 @@ class Taxus(Cmd):
         pass
 
     # Extra commands
-    def init_host(self, args, opts):
+    def init_host(self, options=None):
         """
         Tie Host to current system. Initialize Host if needed. 
         """
-        hostnamestr = current_hostname(True, opts.interactive)
+        hostnamestr = current_hostname(True, options.interactive)
         assert hostnamestr
-        hostname = self.hostname_find([hostnamestr], opts)
+        hostname = self.hostname_find([hostnamestr], options)
         if not hostname:
             hostname = Name(name=hostnamestr,
                     date_added=datetime.now())
             hostname.commit()
         assert hostname
-        host = self.host_find([hostname], opts)
+        host = self.host_find([hostname], options)
         if not host:
             host = Host(hostname=hostname,
                     date_added=datetime.now())
@@ -764,8 +773,8 @@ class Taxus(Cmd):
         print taxus_out.IFormatted(host).__str__()
         return host
 
-    def init_database(self, args, opts):
-        dbref = opts.dbref
+    def init_database(self, options=None):
+        dbref = options.dbref
         print "Applying SQL DDL to DB %s " % dbref
         self.session = get_session(dbref, initialize=True)
         return self.session
