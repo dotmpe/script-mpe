@@ -679,6 +679,8 @@ class Taxus(Cmd):
     DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
     DEFAULT_DB = "sqlite:///%s" % DB_PATH
 
+    DEFAULT_OBJECT_DB = os.path.expanduser('~/.cllct/objects.db')
+
     DEFAULT_CONFIG_KEY = NAME
 
     TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['query', 'init_database']
@@ -687,6 +689,10 @@ class Taxus(Cmd):
     @classmethod
     def get_opts(klass):
         return (
+                (('-g', '--global-objects'), { 'metavar':'URI', 
+                    'default': klass.DEFAULT_OBJECT_DB, 
+                    'dest': 'objectdbref',
+                    }),
                 (('-d', '--dbref'), { 'metavar':'URI', 
                     'default': klass.DEFAULT_DB, 
                     'dest': 'dbref',
@@ -731,6 +737,12 @@ class Taxus(Cmd):
         ]
 
     def main_session(self, opts, args):
+
+        """
+        - Init 'default' SA session for taxus.
+        - Get the current taxus Host from SA session.
+        - Init 'global' persisted object store.
+        """
     
         # Initialize session, 'default' may have ben initialized already
         self.session = SessionMixin.get_instance('default', opts.dbref)#optdict.get('dbref'))

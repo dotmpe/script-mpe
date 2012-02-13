@@ -44,6 +44,9 @@ def main():
     metainfo = bencode.bdecode(torrent_file.read())
     info = metainfo['info']
     pieces = StringIO.StringIO(info['pieces'])
+    print metainfo
+    print len(info['pieces'])/20, "pieces, piece length:",info['piece length']
+    return
     # Iterate through pieces
     for piece in pieces_generator(info):
         # Compare piece hash with expected hash
