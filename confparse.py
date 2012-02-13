@@ -28,7 +28,7 @@ from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
 
-from lib import tree_paths
+from script_mpe.lib import tree_paths
 
 try:
     import syck

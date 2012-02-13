@@ -42,35 +42,38 @@ def cmd(cmd, *args):
     errors = stderr.read()
     if errors:
         err(errors)
-    return stdout.read()
+    value = stdout.read()
+    if not value:# and not nullable:
+        raise Exception("OS invocation %r returned nothing" % cmd)
+    return value
+
+def get_checksum_sub(path, checksum_name='sha1'):
+    """
+    Utitilize OS <checksum_name>sum command which is likely more 
+    efficient than reading in files in native Python.
+
+    Returns the hexadecimal encoded digest directly.
+    """
+    data = cmd("%ssum %r", checksum_name, path)
+    p = data.index(' ')
+    hex_checksum, filename = data[:p], data[p:].strip()
+    # XXX: sanity check..
+    assert filename == path, (filename, path)
+    return hex_checksum
 
 def get_sha1sum_sub(path):
-    """
-    Utitilize OS sha1sum command which is likely more efficient than
-    reading in the file in case of large files.
-
-    Returns the hex formatted digest directly.
-    """
-    data = cmd("sha1sum %r", path)
-    p = data.index(' ')
-    hex_checksum, filename = data[:p], data[p:].strip()
-    # XXX: sanity check..
-    assert filename == path, (filename, path)
-    return hex_checksum
+    return get_checksum_sub(path)
 
 def get_md5sum_sub(path):
-    """
-    Utitilize OS md5sum command which is likely more efficient than
-    reading in the file in case of large files.
+    return get_checksum_sub(path, 'md5')
 
-    Returns the hex formatted digest directly.
-    """
-    data = cmd("md5sum %r", path)
-    p = data.index(' ')
-    hex_checksum, filename = data[:p], data[p:].strip()
-    # XXX: sanity check..
-    assert filename == path, (filename, path)
-    return hex_checksum
+def get_format_description_sub(path):
+    format_descr = cmd("file -bs %r", path)
+    return format_descr
+
+def get_mediatype_sub(path):
+    mediatypespec = cmd("file -bsi %r", path)
+    return mediatypespec
 
 def remote_proc(host, cmd):
     proc = subprocess.Popen(
@@ -86,17 +89,21 @@ def remote_proc(host, cmd):
     else:
         return proc.stdout.read().strip()
 
-def human_readable_bytesize(length):
+def human_readable_bytesize(length, suffix=True, suffix_as_separator=False):
+    assert suffix
     if length > 1024**4:
-        return "%sG" % (float(length)/1024**4)
+        s =  "%sG" % (float(length)/1024**4)
     elif length > 1024**3:
-        return "%sG" % (float(length)/1024**3)
+        s =  "%sG" % (float(length)/1024**3)
     elif length > 1024**2:
-        return "%sM" % (float(length)/1024**2)
+        s =  "%sM" % (float(length)/1024**2)
     elif length > 1024:
-        return "%sk" % (float(length)/1024)
+        s =  "%sk" % (float(length)/1024)
     else:
-        return "%s" % length
+        s =  "%s" % length
+    if suffix_as_separator and not s[-1].isdigit():
+        s = s[:-1].replace('.', s[-1])
+    return s
 
 def tree_paths(path):
 

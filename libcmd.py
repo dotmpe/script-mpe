@@ -304,11 +304,11 @@ class Cmd(object):
             else:
                 if not ret:
                     ret = 0
-                if isinstance(ret, int) or isinstance(ret, str) and ret.isdigit(ret):
-                    sys.exit(ret)
-                elif isinstance(ret, str):
-                    err(ret)
-                    sys.exit(1)
+                #if isinstance(ret, int) or isinstance(ret, str) and ret.isdigit(ret):
+                #    sys.exit(ret)
+                #elif isinstance(ret, str):
+                #    err(ret)
+                #    sys.exit(1)
 
     def get_config_file(self):
         rcfile = list(confparse.expand_config_path(self.DEFAULT_RC))
