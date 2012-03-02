@@ -70,7 +70,6 @@ Configuration
     Per volume metadata directory.
 
 
-
 .. _graphvix: http://www.graphviz.org/
 .. _maildir: http://en.wikipedia.org/wiki/Maildir
 .. _Transliterature Project: translit_
