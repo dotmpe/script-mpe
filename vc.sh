@@ -204,8 +204,120 @@ __vc_ps1 ()
     __vc_status $1
 }
 
-# Main
-if [ "$(basename \"$0\")" = "vc.sh" ]; then
-    echo -e $(__vc_status .)
-fi
+# --porcelain not available with old git version @iris
+## Exit with 1 if dirty
+#git_evil_dirty ()
+#{
+#    [[ $(git diff --shortstat 2> /dev/null | tail -n1) != "" ]] && exit 1
+#}
+## Return '*' if branch is dirty
+#__git_evil_dirty ()
+#{
+#    expr `git status --porcelain 2> /dev/null | grep "^??" | wc -l`
+#}
+#
+## Return untracked files
+#__git_evil_num_untracked ()
+#{
+#    expr `git status --porcelain 2> /dev/null | grep "^??" | wc -l`
+#}
 
+__git_evil_status ()
+{
+    git status > /tmp/.git-status
+    l=0
+    s=0
+    e=0
+    case $1 in 
+        staged)
+            # Changes to be committed:
+            while read line;
+            do
+                if [ $s -eq 0 ] 
+                then
+                    if $(echo "$line"|grep -q '^#\ Changes.to.be.committed.')
+                    then
+                        s=$(( 3 + $l ))
+                    fi
+                else
+                    if $(echo "$line"|grep -q '^#\ [A-Z].*$' -) || \
+                        $(echo "$line"|grep -q '^no.*$' -)
+                    then
+                        e=$l
+                        break;
+                    fi
+                fi
+                l=$(($l + 1))
+            done < /tmp/.git-status
+            ;;
+        changed)
+            # Changed but not updated:
+            while read line;
+            do
+                if [ $s -eq 0 ] 
+                then
+                    if $(echo "$line"|grep -q '^#\ Changed.but.not.updated.')
+                    then
+                        s=$(( 3 + $l ))
+                    fi
+                else
+                    if $(echo "$line"|grep -q '^#\ [A-Z].*$' -) || \
+                        $(echo "$line"|grep -q '^no.*$' -)
+                    then
+                        e=$l
+                        break;
+                    fi
+                fi
+                l=$(($l + 1))
+            done < /tmp/.git-status
+            ;;
+        untracked)
+            # Untracked files:
+            while read line;
+            do
+                if [ $s -eq 0 ] 
+                then
+                    if $(echo "$line"|grep -q '^#\ Untracked.files.')
+                    then
+                        s=$(( 3 + $l ))
+                    fi
+                else
+                    if $(echo "$line"|grep -q '^#\ [A-Z].*$' -) || \
+                        $(echo "$line"|grep -q '^no.*$' -)
+                    then
+                        e=$l
+                        break;
+                    fi
+                fi
+                l=$(($l + 1))
+            done < /tmp/.git-status
+            ;;
+    esac
+    [ $s -ne 0 ] && [ $e -eq 0 ] && e=$l
+    head -n $(( $e )) /tmp/.git-status | tail -n +$s | grep -v '^#\s*$'
+}
+
+__git_staged ()
+{
+    git st | grep 'modified:' | wc -l
+}
+
+__git_changed ()
+{
+    git st | wc -l 
+}
+
+__git_untracked ()
+{
+    git st | wc -l
+}
+
+# Main
+#if [ "$(basename $0)" = "vc.sh" ]; then
+#    echo -e $(__vc_status .)
+#if [ -n "$0" ] && [ $0 != "-bash" ]; then
+#    if [ "$(basename $0)" = "vc.sh" ]; then
+#        [ -n "$1" ] && [ ! -d "$1" ] && echo "No such directory $1" && exit 3
+#        echo -e vc-status[$1]=$(__vc_status $1)
+#    fi
+#fi
