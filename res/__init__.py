@@ -148,7 +148,7 @@ class HTTPResponse(HTTPHeader):
     pass
 
 
-class Metalink(PersistedMetaObject):
+class Metafile(PersistedMetaObject): # XXX: Metalink
 
     """
     Headers for the resource entity in the file.

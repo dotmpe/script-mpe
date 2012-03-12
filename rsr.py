@@ -11,7 +11,7 @@ import lib
 import confparse
 from libcmd import Cmd, err
 from taxus import Taxus, Node, INode, Volume, get_session
-from res import PersistedObject, Metafile
+from res import PersistedMetaObject, Metafile
 
 
 class Rsr(Taxus):
@@ -49,7 +49,7 @@ class Rsr(Taxus):
         """
         Initialize default object store (for rsr.res)
         """
-        self.objectdb = PersistedObject.get_store('default', opts.objectdbref)
+        self.objectdb = PersistedMetaObject.get_store('default', opts.objectdbref)
 
     def main_volume(self, opts, args):
         volume = self.find_volume()
@@ -57,7 +57,7 @@ class Rsr(Taxus):
             err("Not in a volume")
             return
         err("On volume: %r", volume)
-        self.volumedb = PersistedObject.get_store('volume', volume)
+        self.volumedb = PersistedMetaObject.get_store('volume', volume)
 
     def main_clean(self, opts, args):
         self.volumedb.close()
@@ -65,8 +65,17 @@ class Rsr(Taxus):
     def list_nodes(self, **kwds):
         print self.session.query(Node).all()
 
-    def import_bookmarks(self, args, parse, **kwds):
+    def import_bookmarks(self):
+        """
+        Import from
+          - HTML
+          - Legacy delicious XML
+        """
         print self.session
+    
+    def dump_bookmarks(self):
+        pass
+
 
     # Volume-checksum dev:
 
@@ -95,7 +104,7 @@ class Rsr(Taxus):
                 self.volumedb[metafile.key] = metafile
 
     def init_volume(self):
-        #PersistedObject.get_store('global')
+        #PersistedMetaObject.get_store('global')
         path = os.getcwd()
         #Volume.create(path)
         cdir = os.path.join(path, '.cllct')
