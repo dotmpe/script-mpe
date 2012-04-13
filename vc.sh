@@ -229,7 +229,9 @@ __vc_ps1 ()
 # Main
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
     if [ "$(basename $0)" = "vc.sh" ]; then
-        [ -n "$1" ] && [ ! -d "$1" ] && echo "No such directory $1" && exit 3
-        echo -e vc-status[$1]=$(__vc_status $1)
+        F="$1"
+        [ -z "$F" ] && F=.
+        [ -n "$F" ] && [ ! -d "$F" ] && echo "No such directory $F" && exit 3
+        echo -e vc-status[$F]=$(__vc_status $F)
     fi
 fi
