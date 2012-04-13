@@ -235,3 +235,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
         echo -e vc-status[$F]=$(__vc_status $F)
     fi
 fi
+
+exit
+
+# XXX: old code from iris...
