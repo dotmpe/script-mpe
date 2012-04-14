@@ -7,6 +7,10 @@ import socket
 import subprocess
 import sys
 
+from os.path import basename, join,\
+        isdir
+
+
 #import confparse
 #
 #
@@ -24,13 +28,52 @@ username = getpass.getuser()
 rcs_path = re.compile('^.*\/\.(svn|git|bzr)$')
 
 def is_versioned(dirpath):
-    assert os.path.isdir(dirpath), dirpath
+    assert isdir(dirpath), dirpath
     for d in os.listdir(dirpath):
-        p = os.path.join(dirpath, d)
+        p = join(dirpath, d)
         m = rcs_path.match(p)
         if m:
             return True
 
+def cmd(cmd, *args):
+    stdin,stdout,stderr = os.popen3(cmd % args)
+    #TODO:stdin,stdout,stderr = subprocess.popen3('file -s %s' % p)
+    stdin.close()
+    errors = stderr.read()
+    if errors:
+        err(errors)
+    value = stdout.read()
+    if not value:# and not nullable:
+        raise Exception("OS invocation %r returned nothing" % cmd)
+    return value
+
+def get_checksum_sub(path, checksum_name='sha1'):
+    """
+    Utitilize OS <checksum_name>sum command which is likely more 
+    efficient than reading in files in native Python.
+
+    Returns the hexadecimal encoded digest directly.
+    """
+    data = cmd("%ssum %r", checksum_name, path)
+    p = data.index(' ')
+    hex_checksum, filename = data[:p], data[p:].strip()
+    # XXX: sanity check..
+    assert filename == path, (filename, path)
+    return hex_checksum
+
+def get_sha1sum_sub(path):
+    return get_checksum_sub(path)
+
+def get_md5sum_sub(path):
+    return get_checksum_sub(path, 'md5')
+
+def get_format_description_sub(path):
+    format_descr = cmd("file -bs %r", path)
+    return format_descr
+
+def get_mediatype_sub(path):
+    mediatypespec = cmd("file -bsi %r", path)
+    return mediatypespec
 
 def remote_proc(host, cmd):
     proc = subprocess.Popen(
@@ -46,6 +89,37 @@ def remote_proc(host, cmd):
     else:
         return proc.stdout.read().strip()
 
+def human_readable_bytesize(length, suffix=True, suffix_as_separator=False):
+    assert suffix
+    if length > 1024**4:
+        s =  "%sG" % (float(length)/1024**4)
+    elif length > 1024**3:
+        s =  "%sG" % (float(length)/1024**3)
+    elif length > 1024**2:
+        s =  "%sM" % (float(length)/1024**2)
+    elif length > 1024:
+        s =  "%sk" % (float(length)/1024)
+    else:
+        s =  "%s" % length
+    if suffix_as_separator and not s[-1].isdigit():
+        s = s[:-1].replace('.', s[-1])
+    return s
+
+def tree_paths(path):
+
+    """
+    Yield all paths traversing from path to root.
+    """
+
+    parts = path.strip(os.sep).split(os.sep)
+    while parts:
+        cpath = join(*parts)
+        if path.startswith(os.sep):
+            cpath = os.sep+cpath
+        
+        yield cpath
+        parts.pop()
+        #parts = parts[:-1]
 
 
 # The epoch used in the datetime API.
@@ -81,6 +155,8 @@ def timestamp_to_datetime(timestamp, epoch=EPOCH):
 
 
 if __name__ == '__main__':
+    print get_sha1sum_sub("volume.py");
+
     for f in sys.argv:
         if not os.path.exists(f):
             continue

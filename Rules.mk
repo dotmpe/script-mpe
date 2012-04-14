@@ -14,15 +14,46 @@ co::
 co:: DIR := $d
 
 
-test::
-	@$(call log_line,info,$@,Starting tests..)
+STRGT += test_py_$d test_sa_$d
+test:: test_py_$d test_sa_$d
+
+REPO=cllct
+DB_SQLITE_TEST=.test/db.sqlite
+DB_SQLITE_DEV=/home/berend/.$(REPO)/db.sqlite
+
+test_py_$d test_sa_$d :: D := $/
+
+test_py_$d::
+	@$(call log_line,info,$@,Starting python unittests..)
 	@\
 		PYTHONPATH=$$PYTHONPATH:./;\
 		PATH=$$PATH:~/bin;\
-		TEST_PY=confparse_test.py;\
-		TEST_LIB=confparse;\
+		TEST_PY=test.py;\
+		TEST_LIB=confparse,confparse2,taxus,rsr,radical,workLog;\
 		VERBOSE=2;\
-    $(test-python)
+	$(test-python);
+
+test_sa_$d::
+	@$(call log_line,info,$@,Testing SQLAlchemy repository..);
+	@\
+	DBREF=sqlite:///$(DB_SQLITE_TEST);\
+	sqlite3 $(DB_SQLITE_TEST) ".q"; \
+	python $D$(REPO)/manage.py test --repository=$(REPO) --url=$$DBREF
+
+sa-upgrade::
+	./manage.py upgrade
+
+stat::
+	@\
+    $(call log,header2,Repository,$(REPO) [$(DB_SQLITE_DEV)]);\
+    SCHEMA_VERSION=$$(python $(REPO)/manage.py version $(REPO));\
+    $(call log,header2,Repository version,$$SCHEMA_VERSION);\
+    DB_FORMAT=$$(file -bs $(DB_SQLITE_DEV));\
+    $(call log,header2,DB format,$$DB_FORMAT);\
+	DBREF=sqlite:///$(DB_SQLITE_DEV);\
+    DB_VERSION=$$(python $(REPO)/manage.py db_version $$DBREF $(REPO));\
+    $(call log,header2,DB schema version,$$DB_VERSION);\
+    [ -e manage.py ] || migrate manage manage.py --repository=$(REPO) --url=$$DBREF
 
 
 #      ------------ --

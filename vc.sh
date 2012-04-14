@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-
+#
+# SCM util functions and pretty PS1 prompt for git, bzr
+#
 HELP="vc - version-control helper functions "
 
+# Flags legenda:
+#
 # __vc_git_ps1 : cbwisur
 # c: ''|'BARE:'
 # b: branchname
@@ -14,25 +18,32 @@ HELP="vc - version-control helper functions "
 __vc_bzrdir ()
 {
     cd $1;
-    bzr info 2> /dev/null | grep 'branch root' | sed 's/^\ *branch\ root:\ //'
+	root=$(bzr info 2> /dev/null | grep 'branch root')
+	if [ -n "$root" ]; then
+		echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
+	fi
 }
 
 # __vc_gitdir accepts 0 or 1 arguments (i.e., location)
 # returns location of .git repo
 __vc_gitdir ()
 {
-	if [ -z "${1-}" ]; then
-		if [ -n "${__vc_git_dir-}" ]; then
-			echo "$__vc_git_dir"
-		elif [ -d .git ]; then
-			echo .git
-		else
-			git rev-parse --git-dir 2>/dev/null
-		fi
-	elif [ -d "$1/.git" ]; then
-		echo "$1/.git"
-	else
-		echo "$1"
+	#if [ -z "${1-}" ]; then
+	#	if [ -n "${__vc_git_dir-}" ]; then
+	#		echo "$__vc_git_dir"
+	#	elif [ -d .git ]; then
+	#		echo ".git"
+	#	else
+    #        cd $1
+	#		git rev-parse --git-dir 2>/dev/null
+	#	fi
+	D=$1
+	[ -n "$D" ] || D=.
+	if [ -d "$D/.git" ]; then
+		echo "$D/.git"
+    else
+        cd $D
+        git rev-parse --git-dir 2>/dev/null
 	fi
 }
 
@@ -162,35 +173,46 @@ __vc_push ()
 __vc_status ()
 {
 	local w short repo sub
+
 	w=$1;
+	cd $w
+    realcwd=$(pwd -P)
 	short=${w/#"$HOME"/"~"}
-	local git=$(__vc_gitdir)
-	local bzr=$(__vc_bzrdir)
+
+	local git=$(__vc_gitdir $w)
+	local bzr=$(__vc_bzrdir $w)
+
 	if [ "$git" ]; then
-		rev=$(git show . |grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')
+        realgit=$(cd $git; pwd -P)
+        realgit=${realgit%/.git}
+		rev=$(git show $realgit | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')
+		sub=${realcwd##$realgit}
 		short=${short%$sub}
-		echo $short $(__vc_git_ps1 "[git:%s $rev]") $sub
+		echo $short $(__vc_git_ps1 "[git:%s $rev]")$sub
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
-		sub=${w##$(realpath $bzr)}
-		/dev/null short=${short%$sub}
+        realbzr=$(cd $bzr; pwd -P)
+        realbzr=${realbzr%/.bzr}
+		sub=${realcwd##$realbzr}
+		short=${short%$sub/}
 		local revno=$(bzr revno)
 		local s=''
 		if [ "$(bzr status|grep added)" ]; then s="${s}+"; fi
 		if [ "$(bzr status|grep modified)" ]; then s="${s}*"; fi
 		if [ "$(bzr status|grep removed)" ]; then s="${s}-"; fi
 		if [ "$(bzr status|grep unknown)" ]; then s="${s}%"; fi
-		if [ -n "$s" ]; then s=" ${s}"; fi;
-		echo "$short [bzr:$s $revno]$sub"
-	else if [ -d ".svn" ]; then
-		local r=$(svn info | sed -n -e '/^Revision: \([0-9]*\).*$/s//\1/p' )
-		local s=""
-		if [ "$(svn status | grep -q -v '^?')" ]; then s="${s}*"; fi
-		if [ -n "$s" ]; then s=" ${s}"; fi;
-		echo "$short$PSEP[svn:r$r$s]"
+		[ -n "$s" ] && s="$s "
+		echo "$short$PSEP [bzr:$s$revno]$sub"
+	#else if [ -d ".svn" ]; then
+	#	local r=$(svn info | sed -n -e '/^Revision: \([0-9]*\).*$/s//\1/p' )
+	#	local s=""
+	#	local sub=
+	#	if [ "$(svn status | grep -q -v '^?')" ]; then s="${s}*"; fi
+	#	if [ -n "$s" ]; then s=" ${s}"; fi;
+	#	echo "$short$PSEP [svn:r$r$s]$sub"
 	else
 		echo $short
-	fi;fi;fi
+	fi;fi;
 }
 
 # <userpath>[<branchname><branchstate>]<branchpath>
@@ -201,123 +223,18 @@ __vc_status ()
 # ? : untracked "
 __vc_ps1 ()
 {
-    __vc_status $1
-}
-
-# --porcelain not available with old git version @iris
-## Exit with 1 if dirty
-#git_evil_dirty ()
-#{
-#    [[ $(git diff --shortstat 2> /dev/null | tail -n1) != "" ]] && exit 1
-#}
-## Return '*' if branch is dirty
-#__git_evil_dirty ()
-#{
-#    expr `git status --porcelain 2> /dev/null | grep "^??" | wc -l`
-#}
-#
-## Return untracked files
-#__git_evil_num_untracked ()
-#{
-#    expr `git status --porcelain 2> /dev/null | grep "^??" | wc -l`
-#}
-
-__git_evil_status ()
-{
-    git status > /tmp/.git-status
-    l=0
-    s=0
-    e=0
-    case $1 in 
-        staged)
-            # Changes to be committed:
-            while read line;
-            do
-                if [ $s -eq 0 ] 
-                then
-                    if $(echo "$line"|grep -q '^#\ Changes.to.be.committed.')
-                    then
-                        s=$(( 3 + $l ))
-                    fi
-                else
-                    if $(echo "$line"|grep -q '^#\ [A-Z].*$' -) || \
-                        $(echo "$line"|grep -q '^no.*$' -)
-                    then
-                        e=$l
-                        break;
-                    fi
-                fi
-                l=$(($l + 1))
-            done < /tmp/.git-status
-            ;;
-        changed)
-            # Changed but not updated:
-            while read line;
-            do
-                if [ $s -eq 0 ] 
-                then
-                    if $(echo "$line"|grep -q '^#\ Changed.but.not.updated.')
-                    then
-                        s=$(( 3 + $l ))
-                    fi
-                else
-                    if $(echo "$line"|grep -q '^#\ [A-Z].*$' -) || \
-                        $(echo "$line"|grep -q '^no.*$' -)
-                    then
-                        e=$l
-                        break;
-                    fi
-                fi
-                l=$(($l + 1))
-            done < /tmp/.git-status
-            ;;
-        untracked)
-            # Untracked files:
-            while read line;
-            do
-                if [ $s -eq 0 ] 
-                then
-                    if $(echo "$line"|grep -q '^#\ Untracked.files.')
-                    then
-                        s=$(( 3 + $l ))
-                    fi
-                else
-                    if $(echo "$line"|grep -q '^#\ [A-Z].*$' -) || \
-                        $(echo "$line"|grep -q '^no.*$' -)
-                    then
-                        e=$l
-                        break;
-                    fi
-                fi
-                l=$(($l + 1))
-            done < /tmp/.git-status
-            ;;
-    esac
-    [ $s -ne 0 ] && [ $e -eq 0 ] && e=$l
-    head -n $(( $e )) /tmp/.git-status | tail -n +$s | grep -v '^#\s*$'
-}
-
-__git_staged ()
-{
-    git st | grep 'modified:' | wc -l
-}
-
-__git_changed ()
-{
-    git st | wc -l 
-}
-
-__git_untracked ()
-{
-    git st | wc -l
+    d=$1
+    [ -z "$d" ] && d=$(pwd)
+    __vc_status $d
 }
 
 # Main
-#if [ "$(basename $0)" = "vc.sh" ]; then
-#    echo -e $(__vc_status .)
-#if [ -n "$0" ] && [ $0 != "-bash" ]; then
-#    if [ "$(basename $0)" = "vc.sh" ]; then
-#        [ -n "$1" ] && [ ! -d "$1" ] && echo "No such directory $1" && exit 3
-#        echo -e vc-status[$1]=$(__vc_status $1)
-#    fi
-#fi
+if [ -n "$0" ] && [ $0 != "-bash" ]; then
+    if [ "$(basename $0)" = "vc.sh" ]; then
+        F="$1"
+        [ -z "$F" ] && F=.
+        [ -n "$F" ] && [ ! -d "$F" ] && echo "No such directory $F" && exit 3
+        echo -e vc-status[$F]=$(__vc_status $F)
+    fi
+fi
+

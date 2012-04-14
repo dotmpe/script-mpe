@@ -1,0 +1,43 @@
+<html>
+  <head>
+    <script>
+      function appendResults(text) {
+        var results = document.getElementById('results');
+        results.appendChild(document.createElement('P'));
+        results.appendChild(document.createTextNode(text));
+      }
+
+      function makeRequest() {
+        var request = gapi.client.urlshortener.url.get({
+          'shortUrl': 'http://goo.gl/fbsS'
+        });
+        request.execute(function(response) {
+          console.log(response);
+          appendResults(response.longUrl);
+        });
+      }
+      function auth() {
+        var CLIENT_ID = '1036999515151.apps.googleusercontent.com';
+        //CLIENT_SECRET = 'NqAGUmPQbOpekA17u90l3Tel';
+        var config = {
+          'client_id': CLIENT_ID,
+          'scope': 'https://www.googleapis.com/auth/urlshortener'
+        };
+        gapi.auth.authorize(config, function() {
+          console.log('login complete');
+          console.log(gapi.auth.getToken());
+        });
+      }
+      function load() {
+        var API_KEY = 'AIzaSyDCBLX3IjoEdsaHQaBpBk2RAyeOziwVq0g';
+        gapi.client.setApiKey(API_KEY);
+        gapi.client.load('urlshortener', 'v1', makeRequest);
+      }
+    </script>
+    <script src="https://apis.google.com/js/client.js?onload=load"></script>
+  </head>
+  <body>
+    <div id="results"></div>
+    <button onclick="auth();">Authorize</button>
+  </body>
+</html>

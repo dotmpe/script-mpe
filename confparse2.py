@@ -58,8 +58,8 @@ class Object(Base):
 #            self.__dict__[name] = obj_lis(value, name=name, super_=self)
 ##            setattr(self, name, obj_lis(value, name=name, super_=self))
 #        else:
-#            self.__dict__[name] = UserValue(name, value, self)
-##        	setattr(self, name, UserValue(name, value, self))
+#            self.__dict__[name] = PropertyValue(name, value, self)
+##        	setattr(self, name, PropertyValue(name, value, self))
 
     def copy(self):
         keys = [k for k in self.__dict__.keys() if not k.startswith('_')]
@@ -69,24 +69,28 @@ class Object(Base):
             for k, v in items ])
 
 
-class UserValue(Base):
+class PropertyValue(Base):
     def __init__(self, k, v, super_):
         self.value = v
         self._super = super_
         self._name = k
-        super(UserValue, self).__init__()#k, super_)
+        super(PropertyValue, self).__init__()#k, super_)
+
+    def __getattr__(self, obj, objtype=None):
+        print '<getattr', self, obj, objtype, '>'
 
     def __get__(self, obj, objtype=None):
-        #print '<get', self, obj, objtype, '>'
+#        print '<get', self, obj, objtype, '>'
         return self.value
 
     def __set__(self, obj, value):
-        #print '<set', self, obj, objtype, '>'
+#        print '<set', self, obj, objtype, '>'
         assert isinstance(value, type(self.value))
         self.value = value
 
     def __str__(self):
-        return str(self.value)
+# XXX
+        return 'PropertyValue:'+str(self.value)
 
     def __delete__(self, obj):
         pass
@@ -109,7 +113,7 @@ def obj_lis(l, name='obj_lis', super_=None):
         elif isinstance(j, seqs):
             setattr(class_, k, obj_lis(j, name=k, super_=class_))
         else:
-            setattr(class_, k, UserValue(k, j, class_))
+            setattr(class_, k, PropertyValue(k, j, class_))
     return class_()
     top = class_()#name, super_)
     return top
@@ -123,11 +127,12 @@ def obj_dic(d, name='obj_dic', super_=None):
         elif isinstance(j, seqs):
             setattr(class_, i, obj_lis(j, name=i, super_=class_))
         else:
-            setattr(class_, i, UserValue(i, j, class_))
+            setattr(class_, i, PropertyValue(i, j, class_))
+            a = getattr(class_, i)
     return class_()
     top = class_()#name, super_)
     return top
 
 
-o = obj_dic({'test':'foo'})
+#o = obj_dic({'test':'foo'})
 
