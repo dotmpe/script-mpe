@@ -1,18 +1,22 @@
 """
 Read metadata from metafiles.
 
+- Persist composite objects
+- Metalink4 <-> HTTPResponseHeaders
+
 - Content-*
 
 """
 import base64
+from bsddb import dbshelve
 import calendar
-import time
 import datetime
 from fnmatch import fnmatch
 import hashlib
 import os
 import rfc822
 import shelve
+import time
 import traceback
 
 import lib
@@ -20,9 +24,10 @@ from taxus import get_session
 from libcmd import err
 from rsrlib.store import UpgradedPickle, Object
 
+
 ISO_8601_DATETIME = '%Y-%m-%dT%H:%M:%SZ'
 
-class PersistedObject(Object):
+class PersistedMetaObject(Object):
 
     stores = {}
     "list of loaded stores (static) class scope"
@@ -33,19 +38,19 @@ class PersistedObject(Object):
     def get_store(Klass, name=None, dbref=None):
         if not name:
             name = Klass.default_store
-        if name not in PersistedObject.stores:
+        if name not in PersistedMetaObject.stores:
             assert dbref, "store does not exists: %s" % name
             store = shelve.open(dbref)
-            PersistedObject.stores[name] = store
+            PersistedMetaObject.stores[name] = store
         else:
-            store = PersistedObject.stores[name]
+            store = PersistedMetaObject.stores[name]
         return store
 
     def load(self, name=None):
-        store = PersistedObject.get_store(name=name)
+        store = PersistedMetaObject.get_store(name=name)
         store[self.key()] = self
 
-class ContentID(PersistedObject):
+class ContentID(PersistedMetaObject):
     """
     """
 
@@ -91,7 +96,59 @@ def last_modified_header(filepath):
     last_modified = time.strftime(ISO_8601_DATETIME, ltime_tuple)
     return last_modified
 
-class Metafile(PersistedObject):
+
+class MIMEHeader(PersistedMetaObject):
+    headers = None
+    def __init__(self):
+        super(PersistedMetaObject, self).__init__()
+        self.headers = {}
+    def parse_data(self, lines):
+        key, value = "", ""
+        for idx, line in enumerate(lines):
+            if not line.strip():
+                if value:
+                    self.headers[key] = value
+                break
+            continuation = line[0].isspace()
+            if continuation:
+                value += line.strip()
+            else:
+                if value:
+                    self.headers[key] = value
+                key = line[:p].strip()
+                assert key, (idx, line)
+                value = line[p+1:].strip()
+    #def parse(self, source):
+    #    pass
+    def write(self, fl):
+        if not hasattr(fl, 'write'):
+            if not os.path.exists(str(fl)):
+                os.mknod(str(fl))
+            fl = open(str(fl), 'w+')
+        # XXX: writes string only. cannot break maxlength without have knowledge of header
+        for key in self.headers.keys():
+            value = self.headers[key]
+            fl.write("%s: %s\n" % (key, value))
+        fl.close()
+
+class SHA1Sum(object):
+    checksums = None
+    def __init__(self):
+        self.checksums = {}
+    def parse_data(self, lines):
+        for line in lines:
+            p = line.find(' ')
+            checksum, filepath = line[:p].strip(), line[p+1:].strip()
+            self.checksums[checksum] = filepath
+
+class HTTPHeader(MIMEHeader):
+    pass
+
+class HTTPResponse(HTTPHeader):
+    pass
+
+
+class Metafile(PersistedMetaObject): # XXX: Metalink
 
     """
     Headers for the resource entity in the file.
@@ -266,5 +323,6 @@ class Metafile(PersistedObject):
             self.data[header] = value
             fl.write("%s: %s" % (header, value))
         fl.close()
+
 
 
