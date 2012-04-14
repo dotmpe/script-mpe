@@ -6,6 +6,15 @@ project.
 Documentation
   - `Working on projects`__
 
+GIT Branches
+  master
+    Main branch, topic branches  eventually reintegrated here
+
+    dev
+        ..
+    test
+        Writing and running tests
+
 Design
   Cmd
     build
