@@ -13,7 +13,7 @@ GIT Branches
     dev
         ..
     test
-        Writing and running tests
+        Writing and running tests. Main devel at dm.
 
 Design
   Cmd
