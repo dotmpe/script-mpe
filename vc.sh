@@ -4,6 +4,8 @@
 #
 HELP="vc - version-control helper functions "
 
+# Flags legenda:
+#
 # __vc_git_ps1 : cbwisur
 # c: ''|'BARE:'
 # b: branchname
@@ -236,6 +238,3 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
     fi
 fi
 
-exit
-
-# XXX: old code from iris...
