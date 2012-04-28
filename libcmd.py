@@ -2,7 +2,19 @@
 """
 Build on confparse module to create boostrapping for CL apps.
 
-TODO: segment configuration
+TODO: segment configuration, see confparse.
+TODO: command line parser should not need before hand option specs;
+  allow for run-time resolving of dependent component.
+
+
+WIP, see libcmd2
+- Configuration is composite of static config, system config and user config
+- PersistedObject allows several indices of local objects storage, depends on Configuration
+- 
+- StatusCommand depends on 
+- SQLStore depends on Configuration, 
+
+
 """
 import inspect
 import optparse
