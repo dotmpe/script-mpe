@@ -1,0 +1,25 @@
+lib
+    - Adding namespace declarations to command classes. 
+      Registered through lib.namespaces.
+    - Trying first support for unicode file names. Need more generic handling,
+      and tests.
+
+libcmd
+    - Adding new class vars, rewrote Cmd.main
+
+main
+    - Rewrote Main to use AbstractTargetResolver and Resourcer base
+      instead of Taxus.
+
+res
+    - new class Volume, Workspace.. to replace taxus.Volume? 
+    - Extended res.File ignore pattern mechanism to ignored names and paths,
+      same for res.Dir.
+    - Split ISO8601 datetime formatting to seperate function.
+    - Updated, rewrote Metafile api.
+
+rsr
+    - Rsr: Rewrote handlers  for new libcmd
+
+taxus
+    - Taxus: Rewrote handlers  for new libcmd

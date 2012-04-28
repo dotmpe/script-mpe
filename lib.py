@@ -23,6 +23,10 @@ from os.path import basename, join,\
 hostname = socket.gethostname()
 username = getpass.getuser()
 
+namespaces = {}
+
+RSR_NS = 'rsr', 'http://name.wtwta.nl/#/rsr'
+
 # Util functions
 
 rcs_path = re.compile('^.*\/\.(svn|git|bzr)$')
@@ -41,7 +45,7 @@ def cmd(cmd, *args):
     stdin.close()
     errors = stderr.read()
     if errors:
-        err(errors)
+        raise Exception(errors)
     value = stdout.read()
     if not value:# and not nullable:
         raise Exception("OS invocation %r returned nothing" % cmd)
@@ -54,7 +58,8 @@ def get_checksum_sub(path, checksum_name='sha1'):
 
     Returns the hexadecimal encoded digest directly.
     """
-    data = cmd("%ssum %r", checksum_name, path)
+    pathd = path.decode('utf-8')
+    data = cmd("%ssum \"%s\"", checksum_name, pathd)
     p = data.index(' ')
     hex_checksum, filename = data[:p], data[p:].strip()
     # XXX: sanity check..
@@ -68,11 +73,12 @@ def get_md5sum_sub(path):
     return get_checksum_sub(path, 'md5')
 
 def get_format_description_sub(path):
-    format_descr = cmd("file -bs %r", path)
+    format_descr = cmd("file -bs %r", path).strip()
     return format_descr
 
 def get_mediatype_sub(path):
-    mediatypespec = cmd("file -bsi %r", path)
+    mediatypespec = cmd("xdg-mime query filetype %r", path).strip()
+    #mediatypespec = cmd("file -bsi %r", path).strip()
     return mediatypespec
 
 def remote_proc(host, cmd):

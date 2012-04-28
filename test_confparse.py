@@ -53,7 +53,7 @@ class CPTest2(AbstractConfparseTest):
     PWD = 'test/sub/dir/'
 
     def test_1_(self):
-        #self._print_test_files()
+        self._print_test_files()
         conf = expand_config_path(self.NAME).next() 
         #self.assertEqual(conf, self.name)
         settings = load(self.NAME)

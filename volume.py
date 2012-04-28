@@ -44,7 +44,7 @@ class Volume(Taxus):
             'upd': 'update',
             'ad': 'add',
         }
-
+            
     def volume(self, args, opts):
         subcmd = args[0]
         while subcmd in subcmd_aliases:
@@ -60,8 +60,8 @@ class Volume(Taxus):
         if args:
             opts.name = args.pop(0)
         assert opts.name, opts.name
-        if args:
-            opts.ref = 
+        #if args:
+        #    opts.ref = 
         assert opts.ref, opts.ref
 
         l = self.locator_find(opts.ref)

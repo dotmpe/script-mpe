@@ -10,6 +10,7 @@ import os
 import sys
 from os.path import join, isdir
 
+import lib
 import confparse
 import taxus_out as adaptable
 
@@ -55,16 +56,37 @@ def optparse_override_handler(option, optstr, value, parser, new_value):
 
 class Cmd(object):
 
+    # XXX: old, to be replaced by  cmdline.Command
+
     NAME = os.path.splitext(os.path.basename(__file__))[0]
     VERSION = "0.1"
-
+    
     USAGE = """Usage: %prog [options] paths """
 
     DEFAULT_RC = 'cllct.rc'
     DEFAULT_CONFIG_KEY = NAME
 
+    NAMESPACE = 'cmd', 'http://project.dotmpe.com/script/#/cmdline.Command'
+
+    HANDLERS = [
+            'cmd:static', # collect (semi)-static settings
+            'cmd:config', # load (user) configuration
+            'cmd:options', # parse (user) command-line arguments
+                # to set and override settings, and get one or more targets
+            'cmd:actions', # run targets
+        ]
+
+    DEPENDS = {
+            'cmd:static': [],
+            'cmd:config': ['cmd:static'],
+            'cmd:options': ['cmd:config'],
+        }
+
     @classmethod
     def get_opts(klass):
+        """
+        Return tuples with command-line option specs.
+        """
         return (
             (('-c', '--config',),{ 'metavar':'NAME', 
                 'dest': "config_file",
@@ -129,6 +151,25 @@ class Cmd(object):
                 'callback': optparse_override_handler }),
 
         )
+    
+    @staticmethod
+    def get_options():
+        """
+        Collect all options for the current class if used as Main command.
+        Should be implemented by subclasses.
+        """
+        pass
+
+    def get_prerequisites(self, name):
+        """
+        Return list of dependecies for options or target looking at class 
+        inheritance chain.
+        """
+        assert ':' in name
+        for klass in self.__class__.mro():
+            if hasattr(klass, 'DEPENDS'):
+                if name in klass.DEPENDS:
+                    return klass.DEPENDS[name]
 
     "Options are divided into a couple of classes, unclassified keys are treated "
     "as rc settings. "
@@ -161,7 +202,16 @@ class Cmd(object):
         #    else:
         #        assert False, k
 
+        self.actions = {}
+
     def parse_argv(self, options, argv, usage, version):
+        """
+        Given the option spec and argument vector,
+        parse it into a dictionary and a list of arguments.
+        Uses Python standard library (OptionParser).
+        Returns a tuple of the parser and option-values instances,
+        and a list left-over arguments.
+        """
         # TODO: rewrite to cllct.osutil once that is packaged
         #parser, opts, paths = parse_argv_split(
         #        self.OPTIONS, argv, self.USAGE, self.VERSION)
@@ -175,7 +225,13 @@ class Cmd(object):
 
         optsv, args = parser.parse_args(argv)
 
-        return parser, optsv, args
+        optsd = {}
+        for name in dir(optsv):
+            v = getattr(optsv, name)
+            if not name.startswith('_') and not callable(v):
+                optsd[name] = v
+
+        return parser, optsv, optsd, args
 
     def main_option_overrides(self, parser, opts):
         """
@@ -193,38 +249,143 @@ class Cmd(object):
         #    else:
         #        err("Ignored option override for %s: %s", self.settings.config_file, o)
 
-    main_handlers = [
-#            'main_config',
-            'main_run_actions'
-        ]
+    def load_action(self, name):
+# lazy load; prepare a dictionary with all needed props
+        if ':' in name:
+            nsid = name.split(':')[0]
+            assert nsid in lib.namespaces, "Error: NS-ID %s not registered" % nsid
+            ns = lib.namespaces[nsid]
+        else:
+            ns = self.namespace
+
+        if ':' not in name:
+            name = ns[0] +':'+ name
+
+        if name not in self.actions:
+            sid = name.replace('-', '_').replace(':', '_')
+
+            depends = self.get_prerequisites(name)
+            if depends:
+                for i, dep in enumerate(depends):
+                    if ':' not in dep:
+                        depends[i] = ns[0]+':'+dep
+
+            self.actions[name] = sid, depends
+
+        return name
 
     def main(self, argv=None):
-        opts, args = self.main_default(argv)
-        for hname in self.main_handlers:
-            hfunc = getattr(self, hname)
-            hfunc(opts, args)
+        """
+        Run targets called for by user. Implemented now by CLI parsing.
+        But before even target is known, some elementary handlers need to be
+        invoked to prepare config and options. Each class may compose their own
+        list in HANDLERS.
 
-    def main_default(self, argv=None):
+        Each handler corresponds to a actions, and return either value instances
+        and/or new sets of actions, or an exit code if it is done or requests an 
+        exit. New actions are inserted into the batch list after its generator.
         """
-        Prepare `self.settings` by loading nearest configuration file,
-        then parse ARGV
-        """
+        # lazy init
+        actions = []
+        for handler in self.HANDLERS:
+            aid = self.load_action(handler)
+            #XXXif aid not in actions:
+            actions.append(aid)
+      
+        # each handler works from values prepared by previous handlers
+        # the accumulated values are kept in a 'session' list and dictionary
+        arg_list = []
+        kwd_dict = {}
+# neatly corresponds to Python function arguments and named parameters
+# further development may employ disk and database caches for object instances,
+# cache validation is not implemented though
+
+        act = 0
+        while act < len(actions):
+            aid = actions[act]
+            err("%s: %s", act, aid)
+            action, depends = self.actions[aid]
+            if depends:
+                for depend in depends:
+                    did = self.load_action(depend)
+                    if did in actions:
+                        err("No need for %s", did)
+                        continue
+                    # requeue this action
+                    if aid not in actions:
+                        err("Need %s", did)
+                        actions.insert(act-1, aid)
+                    # start with prerequisite first
+                    actions.insert(act-1, did)
+                    continue
+
+            err("Notice: running %s", aid)
+
+            ret = getattr(self, action)(**kwd_dict)
+            if not inspect.isgenerator(ret) and not isinstance(ret, tuple):
+                ret = (ret,)
+
+            next_actions = []
+
+            # action may yield multiple values
+            for r in ret:
+                # use integer to indicate target status, request interupts
+                if isinstance(r, int):
+                    pass
+                # strings refer to the id of the action to run next
+                elif isinstance(r, str):
+                    a = self.load_action(r)
+                    next_actions.append(a)
+                # explicitly update function arguments 
+                elif isinstance(r, list):
+                    arg_list = r
+                elif isinstance(r, dict):
+                    kwd_dict = r
+
+            if next_actions:
+                next_actions.extend(actions)
+                actions = next_actions
+           
+            act += 1
+
+        # run
+        #opts, args = self.main_default(argv)
+        #for hname in self.HANDLERS:
+        #    hfunc = getattr(self, hname)
+        #    try:
+        #        hfunc(opts, args)
+        #    except KeyboardInterrupt, e:
+        #        pass
+
+    def cmd_static(self, **kwds):
         config_file = self.get_config_file()
         self.settings.config_file = config_file
-        self.settings = confparse.load_path(self.settings.config_file)
-        "Static, persisted self.settings. "
+        kwds['config_file'] = config_file
+        yield kwds
+
+    def cmd_config(self, **kwds):
         #    self.init_config() # case 1: 
         #        # file does not exist at all, init is automatic
         assert self.settings.config_file, \
             "No existing configuration found, please rerun/repair installation. "
- 
         #self.main_user_defaults()
+        config_file = self.settings.config_file
+        self.settings = confparse.load_path(config_file)
+        "Static, persisted self.settings. "
+        self.settings.config_file = config_file
 
+    def cmd_options(self, argv=[], **kwds):
+        """
+        Prepare `self.settings` by loading nearest configuration file,
+        then parse ARGV
+        """
         # parse arguments
         if not argv:
             argv = sys.argv[1:]
-        parser, opts, args = self.parse_argv(
+
+        parser, opts, kwds_, args = self.parse_argv(
                 self.get_options(), argv, self.USAGE, self.VERSION)
+        yield kwds_
 
         # Get a reference to the RC; searches config_file for specific section
         config_key = self.DEFAULT_CONFIG_KEY
@@ -245,7 +406,10 @@ class Cmd(object):
 
         self.parser = parser
 
-        return opts, args
+        kwds['opts'] = opts 
+
+        yield kwds
+
 
     def main_prepare_kwds(self, handler, opts, args):
         #print handler, opts, args, inspect.getargspec(handler)
@@ -282,15 +446,16 @@ class Cmd(object):
 # FIXME: merge opts with rc before running command, (see init/update-config)
         return ret_args, ret_kwds
 
-    def main_run_actions(self, opts, args):
+    def cmd_actions(self, opts=None, **kwds):
+        err("Cmd: Running actions")
         actions = [opts.command]
         while actions:
             actionId = actions.pop(0)
             action = getattr(self, actionId)
             assert callable(action), (action, actionId)
             err("Notice: running %s", actionId)
-            arg_list, kwd_dict = self.main_prepare_kwds(action, opts, args)
-            ret = action(*arg_list, **kwd_dict)
+            arg_list, kwd_dict = self.main_prepare_kwds(action, opts, [])#args)
+            ret = action(**kwd_dict)
             #print actionId, adaptable.IFormatted(ret)
             if isinstance(ret, tuple):
                 action, prio = ret
@@ -382,7 +547,7 @@ class Cmd(object):
             print "Not writing file. "
 
     def init_config_defaults(self):
-        self.rc.version = self.VERSION;
+        self.rc.version = self.VERSION
 
     def update_config(self):
         #if not self.rc.root == self.settings:
@@ -425,6 +590,7 @@ class Cmd(object):
         libcmd.Cmd.help
         """
 
+lib.namespaces.update((Cmd.NAMESPACE,))
 
 if __name__ == '__main__':
     Cmd().main()

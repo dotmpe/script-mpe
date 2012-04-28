@@ -84,6 +84,7 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 #from debug import PrintedRecordMixin 
 
 import taxus_out
+import lib
 import libcmd
 from libcmd import Cmd, err
 
@@ -571,6 +572,8 @@ class Relocated(Resource):
 
 class Volume(Resource):
 
+    # XXX: merge with res.Volume
+
     """
     A particular storage of serialized entities, 
     as in a local filesystem tree or a blob store.
@@ -686,6 +689,23 @@ class Taxus(Cmd):
     TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['query', 'init_database']
     DEFAULT_ACTION = 'query'
 
+    # Main handler config
+
+    HANDLERS = [
+            'cmd:static',
+            'cmd:config',
+            'cmd:options',
+            'taxus:session', # set up SQL session
+            'cmd:actions',
+            #'taxus:close',
+        ]
+
+    NAMESPACE = 'taxus', 'http://name.wtwta.nl/#/taxus'
+    DEPENDS = {
+            'session': ['config', ],
+            'query': ['session', ]
+        }
+
     @classmethod
     def get_opts(klass):
         return (
@@ -728,15 +748,10 @@ class Taxus(Cmd):
     def get_options():
         return Cmd.get_opts() + Taxus.get_opts()
 
-    # Main handler config
+    def get_prerequisites(self, action):
+        pass
 
-    main_handlers = [
-            #'main_config',
-            'main_session',
-            'main_run_actions'
-        ]
-
-    def main_session(self, opts, args):
+    def taxus_session(self, opts=None, **kwds):
 
         """
         - Init 'default' SA session for taxus.
@@ -892,6 +907,9 @@ class Taxus(Cmd):
                 comment=comment,
                 date_added=datetime.now())
         return node
+
+
+lib.namespaces.update((Taxus.NAMESPACE,))
 
 if __name__ == '__main__':
     app = Taxus()
