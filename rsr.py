@@ -179,11 +179,23 @@ class Rsr(Taxus):
             err("DB exists")
             return
         db = shelve.open(vdb)
+        #DB_MODE = 'n'
+        #db = anydbm.open(vdb, DB_MODE)
+        db['mounts'] = [path]
         db.close()
-        #db['mounts'] = [path]
+
+    def find_volume(self):
+        vdb = None
+        cwd = os.getcwd()
+        for path in confparse.find_config_path("cllct", cwd):
+            vdb = os.path.join(path, 'volume.db')
+            if os.path.exists(vdb):
+                break
+        return vdb
 
     def count_volume_files(self):
         print len(self.volumedb.keys())
+
     # XXX: /Volume-checksum
 
 lib.namespaces.update((Rsr.NAMESPACE,))
