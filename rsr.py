@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """
-TODO: reinvent rsr using script libs
-TODO: where to store settings, data; need split-settings/composite-db
-
+See Resourcer.rst
 """
 import os
 import shelve
