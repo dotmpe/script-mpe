@@ -4,6 +4,9 @@ MK                  += $/Rules.mk
 #
 #      ------------ -- 
 
+STRGT               += test_py_$d test_sa_$d
+
+#      ------------ -- 
 
 GIT_$d              := $(shell find "$d" -iname ".git")
 BZR_$d              := $(shell find "$d" -iname ".bzr")
@@ -15,14 +18,18 @@ co:: DIR := $d
 
 #      ------------ -- 
 
-STRGT += test_py_$d test_sa_$d
-test:: test_py_$d test_sa_$d
-
 REPO=cllct
 DB_SQLITE_TEST=.test/db.sqlite
 DB_SQLITE_DEV=/home/berend/.$(REPO)/db.sqlite
 
 $(eval $(shell [ -d $/.build ] || mkdir $/.build ))
+
+
+###    Test targets
+#
+#      ------------ -- 
+
+test:: test_py_$d test_sa_$d
 
 test_py_$d test_sa_$d :: D := $/
 
@@ -34,7 +41,13 @@ test_py_$d::
 		TEST_PY=test.py;\
 		TEST_LIB=confparse,confparse2,taxus,rsr,radical,workLog;\
 		VERBOSE=2;\
-	$(test-python);
+    $(test-python) 2> test.log
+	@if [ -n "$$(tail -1 test.log|grep OK)" ]; then \
+	    $(ll) Success "$@" "see" test.log; \
+    else \
+	    $(ll) Errors "$@" "$$(tail -1 test.log)"; \
+	    $(ll) Errors "$@" see test.log; \
+    fi
 
 test_sa_$d::
 	@$(call log_line,info,$@,Testing SQLAlchemy repository..);
