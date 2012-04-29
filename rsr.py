@@ -39,6 +39,8 @@ class Rsr(Taxus):
 
     NAMESPACE = lib.RSR_NS
 
+    volumedb = None
+
     @classmethod
     def get_opts(klass):
         """
@@ -83,10 +85,11 @@ class Rsr(Taxus):
         pass # load index
         
     def rsr_clean(self, opts=None, **kwds):#, args):
-        vlen = len(self.volumedb)
-        err("Rsr: Closing volumedb")
-        self.volumedb.close()
-        err("Rsr: Closed, %i keys", vlen)
+		if self.volumedb:
+			vlen = len(self.volumedb)
+			err("Rsr: Closing volumedb")
+			self.volumedb.close()
+			err("Rsr: Closed, %i keys", vlen)
     #
     def list_nodes(self, **kwds):
         print self.session.query(Node).all()

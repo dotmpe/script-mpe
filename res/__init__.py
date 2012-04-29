@@ -8,6 +8,7 @@ Read metadata from metafiles.
 
 """
 import base64
+import bsddb
 from bsddb import dbshelve
 import calendar
 import datetime
@@ -41,7 +42,10 @@ class PersistedMetaObject(Object):
             name = Klass.default_store
         if name not in PersistedMetaObject.stores:
             assert dbref, "store does not exists: %s" % name
-            store = shelve.open(dbref)
+            try:
+                store = shelve.open(dbref)
+            except bsddb.db.DBNoSuchFileError, e:
+                assert not e, "cannot open store: %s, %s, %s" %(name, dbref, e)
             PersistedMetaObject.stores[name] = store
         else:
             store = PersistedMetaObject.stores[name]

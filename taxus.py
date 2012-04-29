@@ -236,6 +236,7 @@ class Host(Node):
             .filter(Name.name == hostname_).one()
         return session.query(klass).filter(Host.hostname == hostname).one()
 
+
 def prompt_choice_with_input(promptstr, choices):
     assert isinstance(choices, list)
     i = 0
@@ -671,8 +672,8 @@ def get_session(dbref, initialize=False):
 #   engine = create_engine(dbref, encoding='utf8', convert_unicode=False)
 #    engine = create_engine('sqlite:///test.sqlite')#, echo=True)
 
-    #dbref = 'mysql://root:MassRootSql@robin/taxus'
-    #dbref = 'mysql://root:MassRootSql@robin/taxus_o'
+    #dbref = 'mysql://robin/taxus'
+    #dbref = 'mysql://robin/taxus_o'
 
 
 class Taxus(Cmd):
@@ -782,6 +783,7 @@ class Taxus(Cmd):
         """
         Tie Host to current system. Initialize Host if needed. 
         """
+#        assert self.volumedb, "Must have DB first "
         hostnamestr = current_hostname(True, options.interactive)
         assert hostnamestr
         hostname = self.hostname_find([hostnamestr], options)
