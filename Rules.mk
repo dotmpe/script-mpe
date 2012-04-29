@@ -10,9 +10,10 @@ BZR_$d              := $(shell find "$d" -iname ".bzr")
 HG_$d               := $(shell find "$d" -iname ".hg")
 co::
 	@$(call log_line,info,$@,Trying to update..)
-	$(clean-checkout)
+	@$(clean-checkout)
 co:: DIR := $d
 
+#      ------------ -- 
 
 STRGT += test_py_$d test_sa_$d
 test:: test_py_$d test_sa_$d
@@ -20,6 +21,8 @@ test:: test_py_$d test_sa_$d
 REPO=cllct
 DB_SQLITE_TEST=.test/db.sqlite
 DB_SQLITE_DEV=/home/berend/.$(REPO)/db.sqlite
+
+$(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 
 test_py_$d test_sa_$d :: D := $/
 
