@@ -47,6 +47,10 @@ class Rsr(Taxus):
         Return tuples with command-line option specs.
         """
         return (
+                (('-F', '--output-file'), { 'metavar':'NAME', 
+                    'default': None, 
+                    'dest': 'filename',
+                }),
             )
 
     @staticmethod
@@ -196,6 +200,9 @@ class Rsr(Taxus):
 
     def count_volume_files(self):
         print len(self.volumedb.keys())
+
+    def repo_update(self, args):
+        print args
 
     # XXX: /Volume-checksum
 
