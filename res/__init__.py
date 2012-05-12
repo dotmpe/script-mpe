@@ -81,6 +81,7 @@ class File(object):
             if fnmatch(name, p):
                 return True
 
+
 class Dir(object):
 
     ignore_names = (
@@ -95,7 +96,7 @@ class Dir(object):
             'sam*bup*',
             '*.bup',
             '.git',
-    )
+        )
 
     ignore_paths = (
             '*.git',
@@ -110,7 +111,6 @@ class Dir(object):
         for p in klass.ignore_names:
             if fnmatch(name, p):
                 return True
-
 
 
 
@@ -324,26 +324,29 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
         return os.path.exists(self.get_metafile())
 
     @classmethod
-    def walk(self, path):
+    def walk(self, path, max_depth=-1):
         """
         Walk all files that may have a metafile, and notice any metafile(-like)
         neighbors.
         """
         for root, nodes, leafs in os.walk(path):
-
-            for node in nodes:
+            for node in list(nodes):
                 dirpath = os.path.join(root, node)
                 if not os.path.exists(dirpath):
-                    err("Error: missing %s", dirpath)
-                    continue
-                if Dir.ignored(dirpath):
-                    #err("Ignored directory %r", dirpath)
+                    err("Error: reported non existant node %s", dirpath)
                     nodes.remove(node)
-
+                    continue
+                depth = dirpath.replace(path,'').strip('/').count('/')
+                if Dir.ignored(dirpath):
+                    err("Ignored directory %r", dirpath)
+                    nodes.remove(node)
+                elif max_depth != -1:
+                    if depth >= max_depth:
+                        nodes.remove(node)
             for leaf in leafs:
                 cleaf = os.path.join(root, leaf)
                 if not os.path.exists(dirpath):
-                    err("Error: missing %s", cleaf)
+                    err("Error: non existant leaf %s", cleaf)
                     continue
                 if not os.path.isfile(cleaf) or os.path.islink(cleaf):
                     #err("Ignored non-regular file %r", cleaf)
@@ -463,4 +466,45 @@ class Volume(Workspace):
                 path = None
         if path:
             return Volume(path)
+
+
+class Repo(object):
+
+    repo_match = (
+            ".git",
+            ".svn"
+        )
+
+    @classmethod
+    def is_repo(klass, path):
+        for n in klass.repo_match:
+            if os.path.exists(os.path.join(path, n)):
+                return True
+
+    @classmethod
+    def walk(klass, path, bare=False, max_depth=-1):
+        """
+        Walk all files that may have a metafile, and notice any metafile(-like)
+        neighbors.
+        """
+        assert not bare
+        for root, nodes, leafs in os.walk(path):
+            for node in list(nodes):
+                dirpath = os.path.join(root, node)
+                if not os.path.exists(dirpath):
+                    err("Error: reported non existant node %s", dirpath)
+                    nodes.remove(node)
+                    continue
+                depth = dirpath.replace(path,'').strip('/').count('/')
+                if Dir.ignored(dirpath):
+                    err("Ignored directory %r", dirpath)
+                    nodes.remove(node)
+                    continue
+                elif max_depth != -1:
+                    if depth >= max_depth:
+                        nodes.remove(node)
+                        continue
+                if klass.is_repo(dirpath):
+                    nodes.remove(node)
+                    yield dirpath
 
