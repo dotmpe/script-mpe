@@ -98,6 +98,7 @@ class Rsr(Taxus):
     def list_nodes(self, **kwds):
         print self.session.query(Node).all()
 
+    # 
     def import_bookmarks(self):
         """
         Import from
@@ -108,7 +109,6 @@ class Rsr(Taxus):
     
     def dump_bookmarks(self):
         pass
-
 
     # Volume-checksum dev:
 

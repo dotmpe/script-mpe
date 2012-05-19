@@ -110,7 +110,8 @@ class Target(object):
             hname = Name.fetch(hid)
             depids = [
                 clss.parse_name(depid, handler_module.namespace)
-                for depid in handler_module.depends[hname.name]]
+                for depid in handler_module.depends[hname.name]
+            ]
             target_handler = clss.register_target(hname, depids)
 
             # This would allow mapping a target instance back to its class
@@ -144,7 +145,11 @@ class AbstractTargetResolver(object):
     namespace = None, None
 
     handlers = [
+#            'cmd:targets'
         ]
+    depends = {
+#            'cmd:targets': [ 'cmd:options' ]
+        }
 
     depends = {
         }

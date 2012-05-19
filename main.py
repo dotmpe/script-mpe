@@ -2,7 +2,7 @@
 
 from target import Name, Target, AbstractTargetResolver
 from cmdline import Command
-from resources import Resourcer
+from resourcer import Resourcer
 
 from libcmd import Cmd
 from taxus import Taxus
@@ -12,7 +12,7 @@ from radical import Radical
 from finfo import FileInfoApp
 
 
-class Main(AbstractTargetResolver, Resourcer):
+class Main(Resourcer):
     pass
 
     #namespace = 'script-mpe', 'http://name.wtwta.nl/#/rsr'

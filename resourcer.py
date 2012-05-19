@@ -1,5 +1,9 @@
+#!/usr/bin/env python
 """
 """
+import os
+
+import confparse
 import lib
 from target import Target, AbstractTargetResolver
 from cmdline import err, Command
@@ -12,50 +16,35 @@ class Resourcer(Command, AbstractTargetResolver):
     namespace = 'rsr', 'http://project.dotmpe.com/script/#/cmdline.Resourcer'
 
     handlers = [
-            'cmd:options'
+            'cmd:options' # need one in this list
         ]
     depends = {
-            'rsr:volume': [],
+            'rsr:volume': ['cmd:options'],
             'rsr:update-volume': ['rsr:volume'],
             'rsr:shared-lib': ['rsr:volume'],
+            'rsr:list-checksums': ['rsr:volume'],
+            'rsr:ls': ['rsr:volume'],
             'rsr:update-content': ['rsr:shared-lib'],
         }
-
-    def rsr_shared_lib(self, volume=None):
-        libs = confparse.Value(dict(
-            path='/usr/lib/cllct',
-            ))
-        yield dict(sharedlib=libs)
-
-    def rsr_objects(self, opts=None, sharedlib=None):
-        """
-        Initialize default object store (for rsr.res)
-        """
-        sharedlib.objects = PersistedMetaObject.get_store('default', 
-                opts.objectdbref)
-
-    def rsr_content(self, opts=None, sharedlib=None):
-        sharedlib.contents = PersistedMetaObject.get_store('default', 
-                opts.contentdbref)
 
     def rsr_volume(self, prog=None, opts=None):
         volume = Volume.find(prog.pwd)
         if not volume:
             err("Not in a volume")
             yield 1
-        err("rsr:volume %r", volume)
+        err("rsr:volume %r for %s", volume.db, volume.full_path)
         yield dict(volume=volume)
         volumedb = PersistedMetaObject.get_store('volume', volume.db)
-        err("rsr:volume index %i", len(volumedb))
+        err("rsr:volume index length: %i", len(volumedb))
         yield dict(volumedb=volumedb)
         #Metafile.default_extension = '.meta'
         #Metafile.basedir = 'media/application/metalink/'
 
-    def rsr_content_20(self, opts=None):
-        pass # load index
-
-    def rsr_content_sha1(self, opts=None):
-        pass # load index
+#    def rsr_content_20(self, opts=None):
+#        pass # load index
+#
+#    def rsr_content_sha1(self, opts=None):
+#        pass # load index
         
     def rsr_clean(self, volumedb=None):
         vlen = len(volumedb)
@@ -114,6 +103,44 @@ class Resourcer(Command, AbstractTargetResolver):
                 print '\tOK'
 
         volumedb.sync()
+
+    def rsr_shared_lib(self, volume=None):
+        libs = confparse.Values(dict(
+                path='/usr/lib/cllct',
+            ))
+        yield dict(sharedlib=libs)
+
+#    def rsr_objects(self, opts=None, sharedlib=None):
+#        """
+#        Initialize default object store (for rsr.res)
+#        """
+#        sharedlib.objects = PersistedMetaObject.get_store('default', 
+#                opts.objectdbref)
+
+#    def rsr_update_content(self, opts=None, sharedlib=None):
+#        sharedlib.contents = PersistedMetaObject.get_store('default', 
+#                opts.contentdbref)
+
+    def rsr_ls(self, volume=None, volumedb=None):
+        cwd = os.getcwd();
+        lnames = os.listdir(cwd)
+        for name in lnames:
+            path = os.path.join(cwd, name)
+            metafile = Metafile(path)
+            if not metafile.non_zero():
+                print "------", path.replace(cwd, '.')
+                continue
+            print metafile.data['Digest'], path.replace(cwd, '.')
+        print
+        print os.getcwd(), volume.path, len(lnames)
+
+
+    def rsr_list_checksums(self, volume=None, volumedb=None):
+        i = 0
+        for i, p in enumerate(volumedb):
+            print p
+        print i, 'total', volume.path
+
 
 lib.namespaces.update((Resourcer.namespace,))
 Target.register(Resourcer)

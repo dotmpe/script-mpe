@@ -285,6 +285,10 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
                 ISO_8601_DATETIME)[0:6])
 
     def needs_update(self):
+        """
+        XXX: This mechanism is very rough. The entire file is rewritten, not just
+        updated values.
+        """
         needs_update = (
             not self.non_zero(),
             self.mtime < os.path.getmtime( self.path ),
@@ -298,8 +302,27 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
         if 'Content-Length' in self.data:
             rs, ms = os.path.getsize(self.path), int(self.data['Content-Length'])
             needs_update += (rs != ms,)
-        #print 'needs_update', needs_update
-        return max(needs_update)
+
+        # xxx: chatter
+        updates = [i for i in needs_update if i]
+        attr = ['digest', 'first-seen', 'last-seen', 'last-modified', 'content-length']
+        for i1, i2 in enumerate(needs_update):
+            if not i2:
+                continue
+            if i1 == 0:
+                print '\tNew Metafile'
+            elif i1 == 1:
+                print '\tUpdated file'
+            elif i1 == 7:
+                print '\tFile changed size'
+            else:
+                print '\tNew attribute', attr[i1-2]
+        # /xxx:chatter 
+
+        needs_update = updates != []
+        if needs_update:
+            print "\t",len(updates), 'updates'
+            return needs_update
 
     #
     @classmethod
