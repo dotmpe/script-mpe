@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+"""
+"""
 import optparse
 import os
 import sys
@@ -122,7 +125,7 @@ class Command(object):
 
     def get_options(self):
         opts = []
-        for klass in self.__class__.mro():
+        for klass in Target.module_list:
             if hasattr(klass, 'get_opts'):
                 opts += list(klass.get_opts())
         return opts
@@ -185,12 +188,16 @@ class Command(object):
         ))
         yield dict(prog=prog)
 
-    def cmd_config(self):
+    def cmd_config(self, prog=None):
         """
         Init settings object from persisted config.
         """
+        assert prog, (self, prog)
         config_file = self.find_config_file()
-        yield dict(config_file=config_file)
+
+        prog.update(dict(
+            config_file=config_file,
+        ))
         yield dict(settings=confparse.load_path(config_file))
 
     def cmd_options(self, settings=None, prog=None):
@@ -198,21 +205,29 @@ class Command(object):
         Parse arguments
         """
         parser, opts, kwds_, args = self.parse_argv(
-                self.get_options(), prog['argv'], prog['usage'], prog['version'])
-        yield kwds_
-        yield dict(opts=opts, optparser=parser)
-        yield args
+                self.get_options(), 
+                prog['argv'], 
+                prog['usage'], 
+                prog['version'])
+        prog.update(dict(
+            optparser=parser
+        ))
+        yield dict(
+            args=args,
+            kwds=kwds_,
+            opts=opts
+        )
 
-    def cmd_targets(self, optparser=None, settings=None, prog=None):
+    def cmd_targets(self, settings=None, prog=None):
         """
         xxx: deprecate? use --help.
         """
         optparser.print_targets()
-        targets = optparser.targets
+        targets = prog['optparser'].targets
         yield dict(targets=targets)
 
-    def cmd_help(self, optparser=None, settings=None, prog=None):
-        optparser.print_help()
+    def cmd_help(self, settings=None, prog=None):
+        prog['optparser'].print_help()
        
 
 lib.namespaces.update((Command.namespace,))

@@ -5,8 +5,9 @@ import os
 
 import confparse
 import lib
+import log
 from target import Target, AbstractTargetResolver
-from cmdline import err, Command
+from cmdline import Command
 from res import Volume
 from res import PersistedMetaObject, Metafile
 
@@ -30,12 +31,12 @@ class Resourcer(Command, AbstractTargetResolver):
     def rsr_volume(self, prog=None, opts=None):
         volume = Volume.find(prog.pwd)
         if not volume:
-            err("Not in a volume")
+            log.err("Not in a volume")
             yield 1
-        err("rsr:volume %r for %s", volume.db, volume.full_path)
+        log.err("rsr:volume %r for %s", volume.db, volume.full_path)
         yield dict(volume=volume)
         volumedb = PersistedMetaObject.get_store('volume', volume.db)
-        err("rsr:volume index length: %i", len(volumedb))
+        log.err("rsr:volume index length: %i", len(volumedb))
         yield dict(volumedb=volumedb)
         #Metafile.default_extension = '.meta'
         #Metafile.basedir = 'media/application/metalink/'
@@ -48,9 +49,9 @@ class Resourcer(Command, AbstractTargetResolver):
         
     def rsr_clean(self, volumedb=None):
         vlen = len(volumedb)
-        err("Rsr: Closing volumedb")
+        log.err("Rsr: Closing volumedb")
         volumedb.close()
-        err("Rsr: Closed, %i keys", vlen)
+        log.err("Rsr: Closed, %i keys", vlen)
 
     def rsr_update_volume(self, prog=None, volume=None, volumedb=None, opts=None):
         """
@@ -79,21 +80,21 @@ class Resourcer(Command, AbstractTargetResolver):
             #metafile.basedir = 'media/application/metalink/'
             #if metafile.key in volumedb:
             #    metafile = volumedb[metafile.key]
-            #    #err("Found %s in volumedb", metafile.key)
+            #    #log.err("Found %s in volumedb", metafile.key)
             #else:
             #    new = True
             if metafile.needs_update():
-                err("Updating metafile for %s", metafile.path)
+                log.err("Updating metafile for %s", metafile.path)
                 metafile.update()
                 updated = True
             #if updated or metafile.key not in volumedb:
-            #    err("Writing %s to volumedb", metafile.key)
+            #    log.err("Writing %s to volumedb", metafile.key)
             #    volumedb[metafile.key] = metafile
             #    new = True
             if new or updated:
                 #if options.persist_meta:
                 #if metafile.non_zero:
-                #    err("Overwriting previous metafile at %s", metafile.path)
+                #    log.err("Overwriting previous metafile at %s", metafile.path)
                 metafile.write()
                 for k in metafile.data:
                     print '\t'+k+':', metafile.data[k]

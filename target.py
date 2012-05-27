@@ -23,9 +23,15 @@ class Name(object):
         self.name = name
         self.ns = ns
 
+    @property
     def local_name(self):
         p = self.name.index(':')
         return self.name[p+1:]
+
+    @property
+    def prefix(self):
+        p = self.name.index(':')
+        return self.name[:p]
 
     def __repr__(self):
         return "Name(%r, ns=%r)" % (self.name, self.ns)
@@ -98,9 +104,13 @@ class Target(object):
 
     modules = {}
     "Mapping of NS prefix, Objects providing target handlers"
+    module_list = []
 
     @classmethod
     def register(clss, handler_module):
+        assert handler_module not in clss.module_list
+        clss.module_list.append(handler_module)
+
         for hid in handler_module.depends:
 
             # Register each target if not already instantiated
@@ -114,14 +124,14 @@ class Target(object):
 
             # This would allow mapping a target instance back to its class
             # XXX: this has not been in use 
-            hns = hname.ns[0]
+            hns = hname.prefix
             if hns not in clss.modules:
                 clss.modules[hns] = []
             clss.modules[hns].append(handler_module)
 
     @classmethod
     def get_module(clss, target):
-        nsprefix = target.name.ns[0]
+        nsprefix = target.name.prefix
         tname = target.name.name
         for mod in clss.modules[nsprefix]:
             if tname in mod.depends:
@@ -169,6 +179,7 @@ class AbstractTargetResolver(object):
         ti = 0
         while ti < len(targets):
             target = targets[ti]
+            log.info(str(target))
 
             """
             Skip if the action was already performed,

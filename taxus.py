@@ -143,6 +143,14 @@ class ResultSet(NodeSet):
         self.query = query
 
 
+class Tag(SqlBase, SessionMixin):
+
+    __tablename__ = 'tags'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=True)
+    sid = Column(String(255), nullable=True)
+
+
 class Node(SqlBase, SessionMixin):
 
     zope.interface.implements(taxus_out.INode)

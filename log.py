@@ -117,14 +117,14 @@ def log(level, msg, *args):
         msg = msg.replace('{%s}' % k, palette[k])
     print >>sys.stderr, msg % args
 
-emerg = lambda x,*y: log(emerg, x, *y)
-alert = lambda x,*y: log(alert, x, *y)
-crit = lambda x,*y: log(crit, x, *y)
-err = lambda x,*y: log(err, x, *y)
-warn = lambda x,*y: log(warn, x, *y)
-note = lambda x,*y: log(note, x, *y)
-info = lambda x,*y: log(info, x, *y)
-debug = lambda x,*y: log(debug, x, *y)
+emerg = lambda x,*y: log(EMERG, x, *y)
+alert = lambda x,*y: log(ALERT, x, *y)
+crit =  lambda x,*y: log(CRIT,  x, *y)
+err =   lambda x,*y: log(ERR,   x, *y)
+warn =  lambda x,*y: log(WARN,  x, *y)
+note =  lambda x,*y: log(NOTE,  x, *y)
+info =  lambda x,*y: log(INFO,  x, *y)
+debug = lambda x,*y: log(DEBUG, x, *y)
 
 if __name__ == '__main__':
     import sys

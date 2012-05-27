@@ -3,6 +3,8 @@
 """
 import os, sys, re, anydbm
 
+import txs
+
 from cmdline import Command
 import lib
 import log
@@ -14,16 +16,20 @@ class Lind(Command, AbstractTargetResolver):
     namespace = 'lnd', 'http://project.dotmpe.com/script/#/cmdline.Lind'
 
     handlers = [
-            #xxx
-            'cmd:prog', # need one in this list
-            'cmd:config', # need one in this list
-            'cmd:options' # need one in this list
+            'lnd:tag'
         ]
     depends = {
-            'lnd:tag': ['cmd:options'],
+            'lnd:tag': ['txs:session'],
         }
 
-    def lnd_tag(self, prog=None, opts=None, settings=None):
+    @classmethod
+    def get_opts(clss):
+        """
+        Return tuples with command-line option specs.
+        """
+        return ()
+
+    def lnd_tag(self, prog=None, opts=None, settings=None, sa=None):
         """
         Experiment, interactive interface.
         Tagging.
