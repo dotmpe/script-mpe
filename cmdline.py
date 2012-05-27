@@ -4,7 +4,7 @@ import sys
 
 import confparse
 import lib
-from libcmd import err
+import log
 from target import Target
 
 
@@ -20,7 +20,7 @@ class OptionParser(optparse.OptionParser):
             file = sys.stdout
         encoding = self._get_encoding(file)
         file.write(self.format_help().encode(encoding, "replace"))
-        print len(self.option_list), 'options'
+        log.info("%s options", len(self.option_list))
         print >> file
         self.print_targets(fl=file)
 
@@ -55,6 +55,7 @@ def optparse_override_quiet(option, optstr, value, parser):
 
 def optparse_print_help(options, optstr, value, parser):
     parser.print_help()
+
 
 class Command(object):
 

@@ -2,7 +2,7 @@
 """cabinet - Search and tag for archived, tagged paths. 
 
 Wrapper around GNU find. Builds complex -iregex patterns.
-`POSIX 'find'`__. incompat (has no iregex or iname, just name).
+Note `POSIX 'find'`__ is incompat (has no iregex or iname, just name).
 
 Cabinet paths are semi-structured paths 
 

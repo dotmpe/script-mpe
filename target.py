@@ -8,12 +8,10 @@ import inspect
 import sys
 
 
+import log
 import lib
 
 
-
-def info(msg, lvl, *args):
-    pass
 
 class Name(object):
 
@@ -63,7 +61,7 @@ class Target(object):
         if name.name not in clss.instances:
             clss.instances[name.name] = self
         else:
-            log("warn: %s already in %s.instances",(self, clss))
+            log.warn("%s already in %s.instances",(self, clss))
    
     instances = {}
     "Static map of name, target instances. "
