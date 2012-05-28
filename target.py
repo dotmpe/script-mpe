@@ -266,6 +266,7 @@ class AbstractTargetResolver(object):
             handler = getattr(mod_class(), target.name_id)
             # execute and iterate through generator
             ret = handler(**self.select_kwds(handler, kwds))
+
             # TODO: suspend and stack operations for sub targets
             if isinstance(ret, list):
                 ret = tuple(ret)

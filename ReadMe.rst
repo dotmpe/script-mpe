@@ -3,6 +3,8 @@ script.mpe
 Various tools and ongoing experiments that have not yet deserved their own
 project.
 
+See 'main.py' for an integrated approach to the tooling.
+
 Documentation
   - `Working on projects`__
 
