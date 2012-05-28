@@ -3,12 +3,13 @@
 """
 import optparse
 import os
+import re
 import sys
 
 import confparse
 import lib
 import log
-from target import Target
+from target import Target, keywords, arguments, targets
 
 
 
@@ -179,6 +180,7 @@ class Command(object):
         """
         Command-line program static properties.
         """
+        log.debug("{bblack}cmd{bwhite}:prog{default}")
         prog = confparse.Values(dict(
             argv=sys.argv[1:],
             usage="Usage % [options|targets]",
@@ -186,25 +188,28 @@ class Command(object):
             version="0.1",
             pwd=os.getcwd(),
         ))
-        yield dict(prog=prog)
+        yield keywords(prog=prog)
 
     def cmd_config(self, prog=None):
         """
         Init settings object from persisted config.
         """
+        log.debug("{bblack}cmd{bwhite}:config{default}")
         assert prog, (self, prog)
         config_file = self.find_config_file()
 
         prog.update(dict(
             config_file=config_file,
         ))
-        yield dict(settings=confparse.load_path(config_file))
+        yield keywords(
+                settings=confparse.load_path(config_file))
 
     def cmd_options(self, settings=None, prog=None):
         """
         Parse arguments
         """
-        parser, opts, kwds_, args = self.parse_argv(
+        log.debug("{bblack}cmd{bwhite}:options{default}")
+        parser, opts, kwds_, args_ = self.parse_argv(
                 self.get_options(), 
                 prog['argv'], 
                 prog['usage'], 
@@ -212,21 +217,33 @@ class Command(object):
         prog.update(dict(
             optparser=parser
         ))
-        yield dict(
-            args=args,
-            kwds=kwds_,
-            opts=opts
+        yield keywords(kwds_)
+        yield keywords(
+            opts=opts,
         )
+        args = arguments()
+        targs = targets()
+        args_ = list(args_)
+        while args_:
+            a = args_.pop()
+            if re.match('[a-z][a-z0-9]+:[a-z0-9-]', a.lower()):
+                targs = targets(targs+(a,))
+            else:
+                args = arguments(args+(a,))
+        yield targs
+        yield args
 
     def cmd_targets(self, settings=None, prog=None):
         """
         xxx: deprecate? use --help.
         """
+        log.debug("{bblack}cmd{bwhite}:targets{default}")
         optparser.print_targets()
         targets = prog['optparser'].targets
-        yield dict(targets=targets)
+        yield keywords(targets=targets)
 
     def cmd_help(self, settings=None, prog=None):
+        log.debug("{bblack}cmd{bwhite}:help{default}")
         prog['optparser'].print_help()
        
 

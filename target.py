@@ -13,6 +13,16 @@ import lib
 
 
 
+class targets(tuple):
+    def __str__(self):
+        return 'targets'+tuple.__str__(self)
+class keywords(dict): 
+    def __str__(self):
+        return 'keywords'+tuple.__str__(self)
+class arguments(tuple): 
+    def __str__(self):
+        return 'arguments'+tuple.__str__(self)
+
 class Name(object):
 
     def __init__(self, name, ns=None):
@@ -34,10 +44,11 @@ class Name(object):
         return self.name[:p]
 
     def __repr__(self):
+        return "%s:%s" % (self.prefix, self.local_name)
         return "Name(%r, ns=%r)" % (self.name, self.ns)
 
     def __str__(self):
-        return self.local_name()
+        return "%s:%s" % (self.prefix, self.local_name)
 
     instances = {}
     "Static map of name, target instances. "
@@ -46,7 +57,7 @@ class Name(object):
     def fetch(clss, name, ns=None):
         if isinstance(name, Name):
             return name
-        assert ':' in name
+        assert ':' in name, name
         if name not in clss.instances:
             n = Name(name, ns)
             clss.instances[name] = n
@@ -72,8 +83,11 @@ class Target(object):
     instances = {}
     "Static map of name, target instances. "
 
+    def __repr__(self):
+        return "Target[%r]" % self.name
+
     def __str__(self):
-        return "Target:%r" % self.name
+        return "Target[%s]" % self.name
 
     @staticmethod
     def parse_name(name, default_ns=None):
@@ -168,25 +182,32 @@ class AbstractTargetResolver(object):
 
     def main(self):
        
-        targets = []
+        execution_list = []
 
+        log.info("Starting with: %s", " ".join(self.handlers))
         for h in self.handlers:
             target = self.fetch_target(h)
-            targets.append(target)
+            execution_list.append(target)
 
         kwds = {}
 
+        hl = len(execution_list)
         ti = 0
-        while ti < len(targets):
-            target = targets[ti]
-            log.info(str(target))
+        ei = 0
+        while ti < len(execution_list):
+            target = execution_list[ti]
+            ei += 1
+            #log.debug("At iteration %s", ei)
+            #log.debug("At index %s", ti + 1)
+            assert isinstance(ti, int)
 
             """
             Skip if the action was already performed,
             perhaps as dependency of an earlier target.
             """
-            if target in targets[:ti]:
+            if target in execution_list[:ti]:
                 ti += 1
+                assert False
                 print 'skipped', ti, target
                 continue
 
@@ -198,16 +219,24 @@ class AbstractTargetResolver(object):
                     dep = self.fetch_target(dep)
                     #print 'dep', dep, target
                     #assert (dep != target) and \
-                    #    (dep not in targets[:ti+1]), \
+                    #    (dep not in execution_list[:ti+1]), \
                     #        "Cyclical: depency %s for %s" % (dep, target)
-                    if dep not in targets[:ti]:
-                        targets.insert(ti, dep)
-                if targets[ti] != target:
-                    #print 'new depends', target.depends
+                    if dep not in execution_list[:ti]:
+                        log.note('New depedency {bwhite}%s {default}for {bwhite}%s', dep, target)
+                        execution_list.insert(ti, dep)
+                    else:
+                        log.debug('Already satisfied %s for %s', dep, target)
+
+                if execution_list[ti] != target:
+                    #log.debug('Restarting, new depedencies (#%s; @%s)', 
+                    #        ei, ti+1)
                     continue
 
+            log.info("{bblue}Executing{bwhite} @%s.{default} %s", 
+                    ti, str(target))
             mod_class = Target.get_module(target)
             handler = getattr(mod_class(), target.name_id)
+            # execute and iterate through generator
             ret = handler(**self.select_kwds(handler, kwds))
             if isinstance(ret, list):
                 ret = tuple(ret)
@@ -221,24 +250,31 @@ class AbstractTargetResolver(object):
                     sys.exit(r)
                 # strings refer to the id of the action to run next
                 elif isinstance(r, str):
-                    r = [r]
-                elif isinstance(r, dict):
+                    r = targets([r])
+                elif isinstance(r, keywords):
                     kwds.update(r)
-                if isinstance(r, list):
+                if isinstance(r, targets):
                     for epi in r:
                         a = self.fetch_target(epi)
+                        if a in execution_list[:ti]:
+                            log.note("Already satisfied epilogue? %s", a)
+                            continue
                         #    (a.name.name not in target.depends) and \
                         assert (a != target) and \
-                            (a not in targets[:ti]), \
+                            (a not in execution_list[:ti]), \
                                 "Cyclical: epilog %s for %s" % (a, target)
                         epilogue.append(a)
            
             #if epilogue:
             #    print 'new epilogue', [t.name for t in epilogue]
             for epi in epilogue:
-                targets.insert(ti+1, epi)
+                execution_list.insert(ti+1, epi)
 
             ti += 1
+            log.info("{bblue}Done{bwhite}: %s{default}", target)
+            log.debug("Looping, ready for iteration #%s, index @%s; %s more steps", 
+                    ei, ti+1, len(execution_list[ti:]))
+
 
     def select_kwds(self, handler, kwds):
         func_arg_vars, func_args_var, func_kwds_var, func_defaults = \

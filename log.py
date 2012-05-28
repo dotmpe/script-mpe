@@ -3,6 +3,11 @@
 # An output colorizer for syslog.
 # 
 import sys
+
+import zope.interface
+
+import taxus_out
+
 # $template custom,"TS:%timereported%;PRI:%pri%;PRI-text:%PRI-text%;APP:%app-name%;PID:%procid%;MID:%msgid%;HOSTNAME:%hostname%;msg:%msg%;FROMHOST:%FROMHOST%;STRUCTURED-DATA:%STRUCTURED-DATA%\n"
 #
 c00="\x1b[0;0;30m" # black/grey
@@ -102,6 +107,8 @@ def log(level, msg, *args):
   7. Debug.
     """
     assert isinstance(level, int)
+    if not isinstance(msg, (basestring, int, float)):
+        msg = str(msg)
     title = {
     	    0:'{bred}Emergency{bwhite}',
     	    1:'{red}Alert{white}',
@@ -115,7 +122,16 @@ def log(level, msg, *args):
         msg = title[level] +': '+ msg
     for k in palette:
         msg = msg.replace('{%s}' % k, palette[k])
-    print >>sys.stderr, msg % args
+   
+    # XXX: nicer to put in __repr/str__
+    args = list(args)
+    for i, a in enumerate(args):
+        interfaces = list(zope.interface.providedBy(a).interfaces())
+        if interfaces == [taxus_out.IPrimitive]:
+            args[i] = taxus_out.IFormatted(a).__str__()
+        elif not isinstance(a, (int, float,str,unicode)):
+            args[i] = str(a)
+    print >>sys.stderr, msg % tuple(args)
 
 emerg = lambda x,*y: log(EMERG, x, *y)
 alert = lambda x,*y: log(ALERT, x, *y)

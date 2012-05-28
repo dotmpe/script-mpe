@@ -1,19 +1,28 @@
 #!/usr/bin/env python
 
 from target import Name, Target, AbstractTargetResolver
+#from libcmd import Cmd
 from cmdline import Command
+
+#from taxus import Taxus
+from txs import Txs
+from lind import  Lind
+#from rsr import Rsr
 from resourcer import Resourcer
-
-from libcmd import Cmd
-from taxus import Taxus
-from rsr import Rsr
-from volume import Volume
-from radical import Radical
-from finfo import FileInfoApp
+#from volume import Volume
+#from radical import Radical
+#from finfo import FileInfoApp
 
 
-class Main(Resourcer):
-    pass
+class Main(Command, AbstractTargetResolver):
+
+    handlers = [
+            'cmd:options'
+        ]
+
+    @classmethod
+    def get_opts(self):
+        return ()
 
     #namespace = 'script-mpe', 'http://name.wtwta.nl/#/rsr'
 

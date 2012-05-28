@@ -10,51 +10,73 @@ only one type for a node record at any time.
 TODO: redraw this diagram.
 Inheritance hierarchy and relations::
 
+                         Node
+                          * name:String(255)
+                          * type
+                          * date-added
+                          * deleted
+                          * date-deleted
 
-                          Node
-                           * name:String(255)
-                           * type
-                           * date-added
-                           * (date-)deleted
+                              A
+                              |
+           .-------------- .--^-------. ----------. -----. 
+           |               |          |            |      |   
+          INode            |         Status       Host    |
+           * local_path    |          * nr         * hostname 
+           * itype         |          * http_code         |
+           * size          |                              |
+           * cum_size      |          ^                   |
+           * host          |          |                   |
+                           |          |                   | 
+        A                  |          |                   | 
+        |                  |          |                   | 
+     CachedContent        Resource    |                   |    
+      * cid                * status --/                   |        
+      * size               * location:Location            | 
+      * charset            * last/a/u-time                |  
+      * partial            * allowed                      | 
+      * expires                                           |
+      * etag               A                              |
+      * encodings          |                              |
+                           |                              | 
+      ^                    |                        /--< Description
+      |                    |                        |     * namespace:Namespace
+      |  Invariant --------'-- Variant              |      
+      \-- * content        |    * vary              |     A               
+          * mediatype      |    * descriptions >----/     |         
+          * languages      |                              '-- Comment       
+                           |    A                         |    * node:Node
+                           |    |                         |    * comment:Text
+                           |    |                         |     
+               ChecksumDigest    |   Namespace                  '-- ...
+                * sha1     |    * prefix:String           * subject    
+                * md5      |                              * predicate   
+                           '-- Relocated                  * object     
+                           |    * redirect:Location 
+                           |    * temporary:Bool
+                           |                                                
+                           '-- Bookmark                  Formula         
+                                                             * statements
 
-                               A
-                               |
-           .--------------- .--^--------. ----------. --------.
-           |                |           |           |         | 
-          INode             |          Status      Locator    | 
-           * local_path     |           * nr        * ref     | 
-           * ntype          |                       * checksums  
-           * size           |           ^                     |
-           * cum_size       |           |           ^         |
-                            |           |           |         | 
-        A             V     |           |           |         | 
-        |             |     |           |           |         | 
-     CachedContent    |    Resource     |           |         |    
-      * cid           |     * status ---/           |         |        
-      * size          |     * location -------------/         | 
-      * charset       |     * last/a/u-time         |         |  
-      * partial       |     * allowed               |         | 
-      * expires       |                             |         |
-      * etag          |     A                       |         |
-                      |     |                       |         | 
-      ^               /-----|-----------------------/   /--< Description
-      |               |     |                       |   |     * namespace:Namespace
-      |  Invariant ---|-----'---- Variant           |   |      
-      \-- * content   |     |      * vary           |   |     A               
-          * mediatype |     |      * descriptions >-|---/     |         
-          * languages |     |                       |         '-- Comment       
-                      |     |      A                |         |    * node:Node
-                      ^     |      |                |         |    * comment:Text
-                            |      |                |         |     
-               Checksum     |     Namespace         |         '-- ...
-                * sha1      |      * prefix:String  |         * subject    
-                * md5       |                       |         * predicate   
-                            '---- Relocated         |         * object     
-                            |      * redirect ------/
-                            |      * temporary:Bool
-                            |                                                   
-                            '---- Bookmark                   Formula         
-                                                              * statements
+    ID 
+     * id
+     * date-added
+     * deleted
+     * date-deleted
+
+         A
+         |
+     .---^------.
+     |          |
+     |        Name
+     |         * id
+     |         * name
+     |
+   Locator   
+    * id
+    * ref
+    * checksums
+
                                                                                   
 
 
@@ -71,6 +93,7 @@ TODO: move all models to _model module.
 import sys
 import os
 from datetime import datetime
+import re
 import socket
 
 import zope.interface
@@ -85,6 +108,7 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 
 import taxus_out
 import lib
+import log
 import libcmd
 from libcmd import Cmd, err
 
@@ -97,10 +121,10 @@ class SessionMixin(object):
     sessions = {}
 
     @staticmethod
-    def get_instance(name='default', dbref=None):
+    def get_instance(name='default', dbref=None, init=False):
         if name not in SessionMixin.sessions:
             assert dbref, "session does not exists: %s" % name
-            session = get_session(dbref)
+            session = get_session(dbref, init)
             #assert session.engine, "new session has no engine"
             SessionMixin.sessions[name] = session
         else:
@@ -143,13 +167,6 @@ class ResultSet(NodeSet):
         self.query = query
 
 
-class Tag(SqlBase, SessionMixin):
-
-    __tablename__ = 'tags'
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=True)
-    sid = Column(String(255), nullable=True)
-
 
 class Node(SqlBase, SessionMixin):
 
@@ -182,49 +199,162 @@ class ID(SqlBase, SessionMixin):
     __tablename__ = 'ids'
     id = Column(Integer, primary_key=True)
 
-    discriminator = Column('type', String(50))
-    __mapper_args__ = {'polymorphic_on': discriminator}
-
     date_added = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
 
 
-class Name(ID):
+class Name(SqlBase, SessionMixin):
 
     """
     A global identifier name.
     """
 
-    __tablename__ = 'ids_name'
-    __mapper_args__ = {'polymorphic_identity': 'name'}
+    zope.interface.implements(taxus_out.IID)
 
-    name_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
+    __tablename__ = 'ids_name'
+    id = Column(Integer, primary_key=True)
+
+    date_added = Column(DateTime, index=True, nullable=False)
+    deleted = Column(Boolean, index=True, default=False)
+    date_deleted = Column(DateTime)
 
     name = Column(String(255), index=True, unique=True)
 
 
-# mapping table for Checksum [1-*] Locator
-locator_checksum = Table('locator_checksum', SqlBase.metadata,
+# mapping table for Host [1-1] Locator
+#locator_host = Table('locator_host', SqlBase.metadata,
+#    Column('locator_ida', ForeignKey('ids_lctr.id')),
+#    Column('host_idb', ForeignKey('hosts.id'))
+#)
+# mapping table for ChecksumDigest [1-*] Locator
+locators_checksum = Table('locators_checksum', SqlBase.metadata,
+    Column('locators_ida', ForeignKey('ids_lctr.id')),
+    Column('chk_idb', ForeignKey('ids_chk.id'))
+)
+# mapping table for Tag [*-*] Locator
+locators_tags = Table('locators_tags', SqlBase.metadata,
     Column('locator_ida', ForeignKey('ids_lctr.id')),
-    Column('chk_idb', ForeignKey('chks.id'))
+    Column('tags_idb', ForeignKey('ids_tag.id'))
 )
 
-class Locator(ID):
+class Locator(SqlBase, SessionMixin):
 
     """
     A global identifier for retrieval of remote content.
     """
+    zope.interface.implements(taxus_out.IID)
 
     __tablename__ = 'ids_lctr'
-    __mapper_args__ = {'polymorphic_identity': 'locator'}
+    id = Column(Integer, primary_key=True)
 
-    locator_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
+    date_added = Column(DateTime, index=True, nullable=False)
+    deleted = Column(Boolean, index=True, default=False)
+    date_deleted = Column(DateTime)
 
-    ref = Column(String(255), index=True, unique=True)
-   
-    checksums = relationship('Checksum', secondary=locator_checksum,
-        backref='locator')
+    #ref = Column(String(255), index=True, unique=True)
+    # XXX: varchar(255) would be much too small for many URL locators 
+    ref = Column(Text(2048), index=True, unique=True)
+
+    @property
+    def scheme(self):
+        ref = self.ref
+        if re.match(r'^[a-z][a-z0-1-]+:.*$', ref):
+            return ref.split(':')[0]
+
+    @property
+    def path(self):
+        ref = self.ref
+        scheme = self.scheme
+        if scheme: # remove scheme
+            assert ref.startswith(scheme+':'), ref
+            ref = ref[len(scheme)+1:]
+        # FIXME:
+        if self.host:
+            if ref.startswith("//"): # remove netpath 
+                ref = ref[2+len(self.host):]
+            return ref
+        else:
+            assert ref.startswith('//'), ref
+            ref = ref[2:]
+            p = ref.find('/')
+            if p != -1: # split of host
+                return ref[p:]
+            else:
+                assert not "No path", ref
+
+    checksum = relationship('ChecksumDigest', secondary=locators_checksum,
+        backref='location')
+    tags = relationship('Tag', secondary=locators_tags,
+        backref='locations')
+    host_id = Column(Integer, ForeignKey('hosts.id'))
+    host = relationship('Host', primaryjoin="Locator.host_id==Host.host_id",
+        backref='locations')
+
+
+class Tag(SqlBase, SessionMixin):
+
+    """
+    """
+    zope.interface.implements(taxus_out.IID)
+
+    __tablename__ = 'ids_tag'
+    id = Column(Integer, primary_key=True)
+
+    date_added = Column(DateTime, index=True, nullable=False)
+    deleted = Column(Boolean, index=True, default=False)
+    date_deleted = Column(DateTime)
+
+    name = Column(String(255), nullable=True)
+    #sid = Column(String(255), nullable=True)
+
+
+class ChecksumDigest(SqlBase, SessionMixin):
+
+    """
+    Superclass for fixed length content checksums
+    and other lossy content digests.
+    """
+    __tablename__ = 'ids_chk'
+
+    id = Column(Integer, primary_key=True)
+
+    date_added = Column(DateTime, index=True, nullable=False)
+    deleted = Column(Boolean, index=True, default=False)
+    date_deleted = Column(DateTime)
+
+    digest_type = Column('digest_type', String(50))
+    __mapper_args__ = {'polymorphic_on': digest_type}
+
+
+class SHA1Digest(ChecksumDigest):
+    """
+    A 160bit digest.
+    """
+    __tablename__ = 'ids_chk_sha1'
+    sha1_id = Column('id', Integer, ForeignKey('ids_chk.id'), primary_key=True)
+    __mapper_args__ = {'polymorphic_identity': 'SHA1'}
+    digest = Column(String(40), index=True, unique=True, nullable=False)
+
+
+class MD5Digest(ChecksumDigest):
+    """
+    A 128 bit digest.
+    """
+    __tablename__ = 'ids_chk_md5'
+    md5_id = Column('id', Integer, ForeignKey('ids_chk.id'), primary_key=True)
+    __mapper_args__ = {'polymorphic_identity': 'MD5'}
+    digest = Column(String(32), index=True, unique=True, nullable=False)
+
+
+#class TTHDigest(ChecksumDigest):
+#    """
+#    ???
+#    """
+#    tth_id = Column('id', Integer, ForeignKey('chks.id'), primary_key=True)
+#    __mapper_args__ = {'polymorphic_identity': 'TTH'}
+#    block_size = Column(Integer, default=1024)
+#    digest = Column(String(32), index=True, unique=True, nullable=False)
 
 
 class Host(Node):
@@ -235,7 +365,7 @@ class Host(Node):
 
     host_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
     hostname_id = Column(Integer, ForeignKey('ids_name.id'))
-    hostname = relationship(Name, primaryjoin=hostname_id==Name.name_id)
+    hostname = relationship(Name, primaryjoin=hostname_id==Name.id)
 
     @classmethod
     def current(klass, session):
@@ -243,6 +373,10 @@ class Host(Node):
         hostname = session.query(Name)\
             .filter(Name.name == hostname_).one()
         return session.query(klass).filter(Host.hostname == hostname).one()
+
+    @property
+    def netpath(self):
+        return "//%s" % self.hostname.name
 
 
 def prompt_choice_with_input(promptstr, choices):
@@ -269,7 +403,8 @@ def current_hostname(initialize=False, interactive=False):
     elif initialize:
 
         hostname = socket.gethostname()
-        print hostname
+        assert not isinstance(hostname, (tuple, list)), hostname
+        log.debug(hostname)
 
         hostnames = socket.gethostbyaddr(hostname)
         if socket.getfqdn() != socket.gethostname():
@@ -288,6 +423,7 @@ def current_hostname(initialize=False, interactive=False):
             print "Stored %s in %s" % (hostname, hostname_file)
     return hostname
 
+
 class INode(Node):
 
     __tablename__ = 'inodes'
@@ -299,36 +435,16 @@ class INode(Node):
     #filesystem_id = Column(Integer, ForeignKey('nodes.id'))
 
     itype = Column(Integer, index=True, unique=True)
-    local_path = Column(String(255), index=True, unique=True)
 
-    host_id = Column(Integer, ForeignKey('hosts.id'))
-    host = relationship(Host, primaryjoin=Host.host_id==host_id)
+    locator_id = Column(ForeignKey('ids_lctr.id'), index=True)
+    location = relationship(Locator, primaryjoin=locator_id == Locator.id)
+
+    #local_path = Column(String(255), index=True, unique=True)
+
+    #host_id = Column(Integer, ForeignKey('hosts.id'))
+    #host = relationship(Host, primaryjoin=Host.host_id==host_id)
 
 
-# mapping table for Checksum [1-*] INode 
-#inode_checksum = Table('inode_checksum', SqlBase.metadata,
-#    Column('inode_ida', ForeignKey(INode.inode_id)),
-#    Column('chk_idb', ForeignKey('chks.id'))
-#)
-
-class Checksum(Node):
-
-    __tablename__ = 'chks'
-    __mapper_args__ = {'polymorphic_identity': 'checksum'}
-
-    checksum_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-
-    sha1 = Column(String(32), index=True, unique=True, nullable=False)
-    md5 = Column(String(32), index=True, unique=True, nullable=False)
-
-    def __str__(self):
-        return """    :MD5: %s
-    :SHA1: %s
-
-""" % (self.md5, self.sha1)
-
-#INode.checksum = relationship('Checksum', secondary=inode_checksum,
-#        backref='paths')
 
 
 class CachedContent(INode):
@@ -395,7 +511,7 @@ class Resource(Node):
     status = relationship(Status, primaryjoin=status_id == Status.http_code)
 
     locator_id = Column(ForeignKey('ids_lctr.id'), index=True)
-    location = relationship(Locator, primaryjoin=locator_id == Locator.locator_id)
+    location = relationship(Locator, primaryjoin=locator_id == Locator.id)
     "Content-Location. , size=0"
 
     last_access = Column(DateTime)
@@ -574,7 +690,7 @@ class Relocated(Resource):
     relocated_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
 
     refnew_id = Column(ForeignKey('ids_lctr.id'), index=True)
-    redirect = relationship(Locator, primaryjoin=refnew_id == Locator.locator_id)
+    redirect = relationship(Locator, primaryjoin=refnew_id == Locator.id)
 
     temporary = Column(Boolean)
 
@@ -615,7 +731,7 @@ class Bookmark(Resource):
     bookmark_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
 
     ref_id = Column(Integer, ForeignKey('ids_lctr.id'))
-    ref = relationship(Locator, primaryjoin=Locator.locator_id==ref_id)
+    ref = relationship(Locator, primaryjoin=Locator.id==ref_id)
 
     extended = Column(Text(65535))#, index=True)
     "Textual annotation of the referenced resource. "
@@ -672,6 +788,7 @@ class Token(Node):
 def get_session(dbref, initialize=False):
     engine = create_engine(dbref, encoding='utf8')
     if initialize:
+        log.info("Applying SQL DDL to DB %s ", dbref)
         SqlBase.metadata.create_all(engine)  # issue DDL create 
         print 'Updated schema'
     session = sessionmaker(bind=engine)()
@@ -854,6 +971,7 @@ class Taxus(Cmd):
         return node
 
     def find_inode(self, path):
+        # FIXME: rwrite to locator?
         inode = INode(local_path=path)
         inode.host = self.find_host()
         return inode

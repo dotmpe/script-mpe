@@ -7,7 +7,8 @@ import zope.interface
 from zope.interface.interface import adapter_hooks
 from zope.interface.adapter import AdapterRegistry
 
-import libcmd
+#import taxus
+#import libcmd
 
 registry = AdapterRegistry()
 
@@ -47,6 +48,7 @@ class IDFormatter(object):
 
     def __str__(self, indent=0):
         ctx = self.context
+        import taxus
         if hasattr(ctx, 'name'):
             return "<urn:com.dotmpe:%s>"%str(ctx.name)
         elif isinstance(ctx, taxus.Locator):
@@ -69,9 +71,11 @@ class NodeFormatter(object):
             indentstr+"%s: %s" % (k.key, IFormatted(getattr(ctx,
                 k.key)).__str__(indent+1)) 
             #"%s: %s" % (k.key, getattr(ctx, k.key)) 
-            for k in ctx.__mapper__.iterate_properties]
-        header = "%s <%s" % ( cn(ctx), ctx.id )
-        return "%s\n%s" % (header, '\n'.join(fields))
+            for k in ctx.__mapper__.iterate_properties
+            if not k.key.endswith('id')]
+        #header = "%s <%s>" % ( cn(ctx), ctx.id )
+        header = "Node <%s>" % ( ctx.id ,)
+        return "[%s\n\t%s]" % (header, '\n\t'.join(fields))
 
 
 class NodeSetFormatter(object):
@@ -112,7 +116,9 @@ def hook(provided, object):
     adapter = registry.lookup1(
             adapted, provided, '')
     if not adapter:
-        libcmd.err("Could not adapt %s:%s > %s", object, adapted, provided)
+        import sys
+        #libcmd.err("Could not adapt %s:%s > %s", object, adapted, provided)
+        print >>sys.stderr, "Could not adapt %s:%s > %s" %(object, adapted, provided)
     return adapter(object)
 
 adapter_hooks.append(hook)

@@ -28,6 +28,10 @@ class Resourcer(Command, AbstractTargetResolver):
             'rsr:update-content': ['rsr:shared-lib'],
         }
 
+    @classmethod
+    def get_opts(self):
+        return ()
+
     def rsr_volume(self, prog=None, opts=None):
         volume = Volume.find(prog.pwd)
         if not volume:
