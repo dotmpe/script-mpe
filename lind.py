@@ -53,8 +53,9 @@ class Lind(Command, AbstractTargetResolver):
                 for name in files + dirs:
                     log.info("{bblack}Typing tags for {green}%s{default}",
                             name)
-                    path = FS_Path_split(os.path.join( root, name ))
+                    path = FS_Path_split(os.path.join(root, name))
                     for tag in path:
+                        yield 
                         # Ask about each new tag, TODO: or rename, fuzzy match.      
                         if tag not in tags:
                             type = raw_input('%s%s%s:?' % (
@@ -67,8 +68,8 @@ class Lind(Command, AbstractTargetResolver):
                         for tag in path if tag in tags] ))
 
         except KeyboardInterrupt, e:
-            print e
-            pass
+            log.err(e)
+            yield 1
 
 
 lib.namespaces.update((Lind.namespace,))

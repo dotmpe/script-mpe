@@ -3,6 +3,28 @@ Defines the AbstractTargetResolver, which runs targets of registered
 handler modules.
 
 See main
+
+- Targets are methods on registered classes.
+- Targets selectively accept keywords from a known pool of keys.
+- Targets may depend on other targets:
+  
+  - prerequisites are targets executed before, and
+  - TODO: subtargets are targets that are executed during another target
+    and need to finish before the target can complete.
+  - Epilogue targets run after a target has completed.
+  
+- Target execution order and the *prerequisite dependency chain* is hardcoded,
+  sub- and epilogue targets are dynamic.
+- Targets are generators once executed, yields may be auxiliary structures such as 
+  a lists of sub- or epilogue targets.
+- The keywords aux. structure defines additional parameters to sub(sequent) targets.
+- The targets aux. structure defines additional targets to run, as a subtarget 
+  if targets.required is True, or after else as first thing the epilogue.
+
+- FIXME: The arguments aux. structure is unused.
+- The arguments aux. structure may be used to communicate generic or  
+  iterable paramers to (sub)targets.
+
 """
 import inspect
 import sys
@@ -14,6 +36,12 @@ import lib
 
 
 class targets(tuple):
+    def __init__(self, *args):
+        self.required = False
+        tuple.__init__(self)
+    def required(self):
+        self.required = True
+        return self
     def __str__(self):
         return 'targets'+tuple.__str__(self)
 class keywords(dict): 
@@ -238,6 +266,7 @@ class AbstractTargetResolver(object):
             handler = getattr(mod_class(), target.name_id)
             # execute and iterate through generator
             ret = handler(**self.select_kwds(handler, kwds))
+            # TODO: suspend and stack operations for sub targets
             if isinstance(ret, list):
                 ret = tuple(ret)
             if not ( inspect.isgenerator(ret) or isinstance(ret, tuple) ):
