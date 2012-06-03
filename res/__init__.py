@@ -22,8 +22,9 @@ import traceback
 
 import lib
 import confparse
-from taxus import get_session
-from libcmd import err
+import cmdline
+#from taxus import get_session
+import log
 from rsrlib.store import UpgradedPickle, Object
 
 
@@ -61,8 +62,11 @@ class File(object):
             '._*',
             '.crdownload',
             '.DS_Store',
-            '.swp',
-    )
+            '*.swp',
+            '*.swo',
+            '*.swn',
+            '.git*',
+        )
 
     ignore_paths = (
             '*.pyc',
@@ -86,16 +90,19 @@ class Dir(object):
 
     ignore_names = (
             '._*',
+            '.metadata',
+            '.conf',
             'RECYCLER',
             '.TemporaryItems',
             '.Trash*',
+            'cllct',
             '.cllct',
             'System Volume Information',
             'Desktop',
             'project',
             'sam*bup*',
             '*.bup',
-            '.git',
+            '.git*',
         )
 
     ignore_paths = (
@@ -112,6 +119,70 @@ class Dir(object):
             if fnmatch(name, p):
                 return True
 
+    @classmethod
+    def prompt_recurse(clss, opts):
+        v = cmdline.Prompt.query("Recurse dir?", ("Yes", "No", "All"))
+        if v is 2:
+            opts.recurse = True
+            return True
+        elif v is 0:
+            return True
+        return False
+
+    walk_opts = confparse.Values(dict(
+        interactive=False,
+        recurse=False,
+        max_depth=-1,
+    ))
+    @staticmethod
+    def walk(path, opts=walk_opts):
+        if opts.max_depth > 0:
+            assert opts.recurse
+        for root, dirs, files in os.walk(path):
+            for node in list(dirs):
+                if not opts.recurse and not opts.interactive:
+                    dirs.remove(node)
+                    continue
+                dirpath = os.path.join(root, node)
+                if not os.path.exists(dirpath):
+                    log.err("Error: reported non existant node %s", dirpath)
+                    dirs.remove(node)
+                    continue
+                depth = dirpath.replace(path,'').strip('/').count('/')
+                if Dir.ignored(dirpath):
+                    log.err("Ignored directory %r", dirpath)
+                    dirs.remove(node)
+                    continue
+                elif opts.max_depth != -1 and depth >= opts.max_depth:
+                    dirs.remove(node)
+                    continue
+                elif opts.interactive:
+                    log.info(dirpath)
+                    if not Dir.prompt_recurse(opts):
+                        dirs.remove(node)
+                try:
+                    dirpath.encode('ascii')
+                except UnicodeDecodeError, e:
+                    log.err("Ignored non-ascii filename %s", dirpath)
+                    continue
+                yield dirpath
+            for leaf in list(files):
+                filepath = os.path.join(root, leaf)
+                if not os.path.exists(filepath):
+                    log.err("Error: non existant leaf %s", filepath)
+                    continue
+                if os.path.islink(filepath) or not os.path.isfile(filepath):
+                    log.err("Ignored non-regular file %r", filepath)
+                    continue
+                if File.ignored(filepath):
+                    #log.err("Ignored file %r", filepath)
+                    continue
+                try:
+                    filepath.encode('ascii')
+                except UnicodeDecodeError, e:
+                    log.err("Ignored non-ascii filename %s", filepath)
+                    continue
+                yield filepath
 
 
 def md5_content_digest_header(filepath):
@@ -348,6 +419,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 
     @classmethod
     def walk(self, path, max_depth=-1):
+        # XXX: may rewrite to Dir.walk
         """
         Walk all files that may have a metafile, and notice any metafile(-like)
         neighbors.
@@ -356,12 +428,12 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
             for node in list(nodes):
                 dirpath = os.path.join(root, node)
                 if not os.path.exists(dirpath):
-                    err("Error: reported non existant node %s", dirpath)
+                    log.err("Error: reported non existant node %s", dirpath)
                     nodes.remove(node)
                     continue
                 depth = dirpath.replace(path,'').strip('/').count('/')
                 if Dir.ignored(dirpath):
-                    err("Ignored directory %r", dirpath)
+                    log.err("Ignored directory %r", dirpath)
                     nodes.remove(node)
                 elif max_depth != -1:
                     if depth >= max_depth:
@@ -369,17 +441,17 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
             for leaf in leafs:
                 cleaf = os.path.join(root, leaf)
                 if not os.path.exists(dirpath):
-                    err("Error: non existant leaf %s", cleaf)
+                    log.err("Error: non existant leaf %s", cleaf)
                     continue
                 if not os.path.isfile(cleaf) or os.path.islink(cleaf):
-                    #err("Ignored non-regular file %r", cleaf)
+                    #log.err("Ignored non-regular file %r", cleaf)
                     continue
                 if File.ignored(cleaf):
-                    #err("Ignored file %r", cleaf)
+                    #log.err("Ignored file %r", cleaf)
                     continue
                 if Metafile.is_metafile(cleaf, strict=False):
                     if not Metafile(cleaf).path:
-                        err("Metafile without resource file")
+                        log.err("Metafile without resource file")
                 else:
                     yield cleaf
 
@@ -404,7 +476,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
                     value = handler(self.path)
                 except Exception, e:
                     traceback.print_exc()
-                    err("%s: %s", header, e)
+                    log.err("%s: %s", header, e)
                     continue
 
                 #print header, value
@@ -506,6 +578,7 @@ class Repo(object):
 
     @classmethod
     def walk(klass, path, bare=False, max_depth=-1):
+        # XXX: may rewrite to Dir.walk
         """
         Walk all files that may have a metafile, and notice any metafile(-like)
         neighbors.
@@ -515,12 +588,12 @@ class Repo(object):
             for node in list(nodes):
                 dirpath = os.path.join(root, node)
                 if not os.path.exists(dirpath):
-                    err("Error: reported non existant node %s", dirpath)
+                    log.err("Error: reported non existant node %s", dirpath)
                     nodes.remove(node)
                     continue
                 depth = dirpath.replace(path,'').strip('/').count('/')
                 if Dir.ignored(dirpath):
-                    err("Ignored directory %r", dirpath)
+                    log.err("Ignored directory %r", dirpath)
                     nodes.remove(node)
                     continue
                 elif max_depth != -1:

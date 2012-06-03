@@ -2,15 +2,16 @@
 """
 Use of the target framework.
 
-TODO:
+ToDo:
     - Rewrite so target execution is stacked. May want to review
       handler/execution list sequence.
-    - Rerwite taxus INode to be polymorphic: Dir, File, Dev..
+    - volume, radical, finfo need a rewrite to use the new cmdline.
+
 Work in progress:
     - lnd:tag - Interactive .. can txs: be interactive?
 
-Discarded
-    - volume, radical, finfo need a rewrite to use the new cmdline.
+Issues:
+    - Rewrite taxus INode to be polymorphic: Dir, File, Dev..
 
 """
 from target import Name, Target, AbstractTargetResolver

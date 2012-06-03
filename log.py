@@ -128,7 +128,7 @@ def log(level, msg, *args):
     for i, a in enumerate(args):
         interfaces = list(zope.interface.providedBy(a).interfaces())
         if interfaces == [taxus_out.IPrimitive]:
-            args[i] = taxus_out.IFormatted(a).__str__()
+            args[i] = taxus_out.IFormatted(a).toString()
         elif not isinstance(a, (int, float,str,unicode)):
             args[i] = str(a)
     print >>sys.stderr, msg % tuple(args)

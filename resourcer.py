@@ -29,8 +29,26 @@ class Resourcer(Command, AbstractTargetResolver):
         }
 
     @classmethod
-    def get_opts(self):
-        return ()
+    def get_opts(clss):
+        return (
+
+            (('-R', '--recurse', '--recursive'),{ 
+                'dest': "recurse",
+                'default': False,
+                'action': 'store_true',
+                'help': "For directory listings, do not descend into "
+                    "subdirectories by default. "
+                    }),
+
+            (('-L', '--max-depth', '--maxdepth'),{ 
+                'dest': "max_depth",
+                'default': -1,
+                'help': "Recurse in as many sublevels as given. This may be "
+                    " set in addition to 'recurse'. 0 is not recursing and -1 "
+                    "means no maximum level. "
+                }),
+
+        )
 
     def rsr_volume(self, prog=None, opts=None):
         volume = Volume.find(prog.pwd)

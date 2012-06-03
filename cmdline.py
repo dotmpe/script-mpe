@@ -61,6 +61,39 @@ def optparse_print_help(options, optstr, value, parser):
     parser.print_help()
 
 
+class Prompt(object):
+
+    @classmethod
+    def ask(clss, question, yes_no='Yn'):
+        yes, no = yes_no.split()
+        assert yes.isupper() or no.isupper()
+        v = raw_input('%s [%s] ' % (question, yes_no))
+        if not v:
+            if yes.isupper():
+                v = yes
+            else:
+                v = no
+        elif v.upper() not in yes_no.upper():
+            return
+        return v.upper() == yes.upper()
+
+    @classmethod
+    def query(clss, question, options=()):
+        assert options
+        opts = ''.join([o[0] for o in options]).title()
+        while True:
+            v = raw_input('%s [%s] or [?help] ' % (question, opts)).strip()
+            if not v:
+                v = opts[0]
+            if v == 'help'  or v in '?h':
+                print ("Choose from %s. Default is %r, use --recurse option to "
+                    "override. ") % (', '.join(options), options[0])
+            if v.upper() in opts.upper():
+                choice = opts.upper().index(v.upper())
+                print 'Answer:', options[choice] 
+                return choice
+
+
 class Command(object):
 
     # XXX: to replace libcmd.Cmd

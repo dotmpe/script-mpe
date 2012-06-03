@@ -3,6 +3,13 @@ Output handling using Zope adapters.
 
 TODO: create various output adapters for various formats 
 """
+#import sys, codecs, locale
+#print locale.getpreferredencoding()
+#print sys.stdout.encoding
+#print str(sys.stdout.encoding)
+#sys.stdout = codecs.getwriter('UTF-8')(sys.stdout);
+#print str(sys.stdout.encoding)
+
 import zope.interface
 from zope.interface.interface import adapter_hooks
 from zope.interface.adapter import AdapterRegistry
@@ -33,8 +40,17 @@ class PrimitiveFormatter(object):
     def __init__(self, context):
         self.context = context
 
+    def toString(self):
+        if isinstance(self.context, unicode) or isinstance(self.context, str):
+            return self.context
+        else:
+            return str(self.context)
+
     def __str__(self, indent=0):
         return str(self.context)
+
+    def __unicode__(self, indent=0):
+        return unicode(self.context)
 
 class IDFormatter(object):
     """

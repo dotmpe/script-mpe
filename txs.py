@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 """
 """
-import os, sys, re, anydbm
+import os, stat, sys
+import re, anydbm
 from datetime import datetime
 
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
 from cmdline import Command
 import lib
 import libcmd
 import log
+import res
 from target import Target, AbstractTargetResolver, keywords, targets
 # XXX
 from taxus import SqlBase, SessionMixin, current_hostname, \
@@ -24,7 +24,7 @@ import taxus_out
 
 
 
-class URLResolver(object):
+class LocalPathResolver(object):
 
     def __init__(self, host, sasession):
         self.host = host
@@ -35,16 +35,22 @@ class URLResolver(object):
         Return INode object for current directory.
         """
         cwd = os.path.abspath(os.getcwd())
-        ref = "file:%s%s" % (self.host.netpath, cwd)
+        if not opts.init:
+            assert os.path.isdir(cwd)
+        return self.get(cwd, opts)
+
+    def get(self, path, opts):
+        ref = "file:%s%s" % (self.host.netpath, path)
         try:
             return self.sa.query(INode)\
                     .join('location')\
+                    .filter(Node.ntype == INode.Dir)\
                     .filter(Locator.ref == ref)\
                     .one()
         except NoResultFound, e:
             pass
         if not opts.init:
-            log.warn("Not a known dir %s", cwd)
+            log.warn("Not a known path %s", path)
             return
         locator = Locator(
                 ref=ref,
@@ -53,12 +59,29 @@ class URLResolver(object):
         #        host=self.host,
         locator.commit()
         inode = INode(
-                #inode_number=,
-                #itype=,
+                ntype=self.get_type(path),
                 location=locator,
                 date_added=datetime.now())
         inode.commit()
         return inode
+
+    def get_type(self, path):
+        mode = os.stat(path).st_mode
+        if stat.S_ISLNK(mode):#os.path.islink(path)
+            return INode.Symlink
+        elif stat.S_ISFIFO(mode):
+            return INode.FIFO
+        elif stat.S_ISBLK(mode):
+            return INode.Device
+        elif stat.S_ISSOCK(mode):
+            return INode.Socket
+        elif os.path.ismount(path):
+            return INode.Mount
+        elif stat.S_ISDIR(mode):#os.path.isdir(path):
+            return INode.Dir
+        elif stat.S_ISREG(mode):#os.path.isfile(path):
+            return INode.File
+
 
 # to replace taxus.py
 class Txs(Command, AbstractTargetResolver, SessionMixin):
@@ -76,7 +99,7 @@ class Txs(Command, AbstractTargetResolver, SessionMixin):
             'txs:pwd': ['txs:session'],
             'txs:ls': ['txs:pwd'],
 #            'txs:status': ['txs:session'],
-#            'txs:run': ['txs:session'],
+            'txs:run': ['txs:session'],
         }
 
     DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
@@ -182,12 +205,7 @@ class Txs(Command, AbstractTargetResolver, SessionMixin):
         dbref = opts.dbref
         if opts.init:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
-        #engine = create_engine(dbref, encoding='utf8')
-        #if opts.init:
-            #log.info("Applying SQL DDL to DB %s ", dbref)
         sa = SessionMixin.get_instance('default', opts.dbref, opts.init)
-            #SqlBase.metadata.create_all(engine)
-        #sa = sessionmaker(bind=engine)()
         # Host
         hostnamestr = current_hostname(opts.init, opts.interactive)
         if opts.init:
@@ -218,21 +236,20 @@ class Txs(Command, AbstractTargetResolver, SessionMixin):
                 .filter(Name.name == hostnamestr).one()
             if not host:
                 log.crit("Could not get host")
-        urlresolver = URLResolver(host, sa)
+        urlresolver = LocalPathResolver(host, sa)
         yield keywords(sa=sa, ur=urlresolver)
 
     def txs_pwd(self, prog=None, sa=None, ur=None, opts=None, settings=None):
         log.debug("{bblack}txs{bwhite}:pwd{default}")
         pwd = ur.getPWD(opts)
-        if opts.init:
-            log.note("New INode %s", pwd)
         yield keywords(pwd=pwd)
 
     def txs_ls(self, prog=None, sa=None, ur=None, opts=None, settings=None):
         log.debug("{bblack}txs{bwhite}:ls{default}")
-        print ur.getPWD(opts)
+        node = ur.getPWD(opts)
+        print sa.query(Node).all()
 
-    def txs_run(self, sa=None, opts=None, settings=None):
+    def txs_run(self, sa=None, ur=None, opts=None, settings=None):
         log.debug("{bblack}txs{bwhite}:run{default}")
         # XXX: Interactive part, see lind.
         """
@@ -246,21 +263,26 @@ class Txs(Command, AbstractTargetResolver, SessionMixin):
                 os.path.realpath('.') + os.sep)
         cwd = os.getcwd()
         try:
-            for root, dirs, files in os.walk(cwd):
-                for name in files + dirs:
-                    log.info("{bblack}Typing tags for {green}%s{default}",
-                            name)
-                    path = FS_Path_split(os.path.join( root, name ))
-                    for tag in path:
-                        # Ask about each new tag, TODO: or rename, fuzzy match.      
-                        if tag not in tags:
-                            type = raw_input('%s%s%s:?' % (
-                                log.palette['yellow'], tag,
-                                log.palette['default']) )
-                            if not type: type = 'Tag'
-                            tags[tag] = type
-                    log.info(''.join( [ "{bwhite} %s:{green}%s{default}" % (tag, name)
-                        for tag in path if tag in tags] ))
+            for pathstr in res.Dir.walk(cwd, opts):
+                path = ur.get(pathstr, opts)
+                parts = FS_Path_split(pathstr)
+
+                for tagstr in parts:
+                    try:
+                        tag = sa.query(Tag).filter(Tag.name == tagstr).one()
+                    except NoResultFound, e:
+                        pass
+                    continue
+                    # Ask about each new tag, TODO: or rename, fuzzy match.      
+                    if tag not in tags:
+                        type = raw_input('%s%s%s:?' % (
+                            log.palette['yellow'], tag,
+                            log.palette['default']) )
+                        if not type: type = 'Tag'
+                        tags[tag] = type
+                log.info(pathstr)
+                #log.info(''.join( [ "{bwhite} %s:{green}%s{default}" % (tag, name)
+                #    for tag in parts if tag in tags] ))
         except KeyboardInterrupt, e:
             pass
           

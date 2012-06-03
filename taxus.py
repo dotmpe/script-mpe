@@ -23,10 +23,10 @@ Inheritance hierarchy and relations::
            |               |          |            |      |   
           INode            |         Status       Host    |
            * local_path    |          * nr         * hostname 
-           * itype         |          * http_code         |
-           * size          |                              |
-           * cum_size      |          ^                   |
-           * host          |          |                   |
+           * size          |          * http_code         |
+           * cum_size      |                              |
+           * host          |          ^                   |
+                           |          |                   |
                            |          |                   | 
         A                  |          |                   | 
         |                  |          |                   | 
@@ -146,9 +146,19 @@ class SessionMixin(object):
         session.add(self)
         session.commit()
 
-    def fetch(self):
+    def find(self, keydict=None):
+        try:
+            return self.fetch(keydict=keydict)
+        except NoResultFound, e:
+            log.err("No results for %s.find(%s)", cn(self), keydict)
+
+    def fetch(self, keydict=None):
+        """
+        Keydict must be filter parameters that return exactly one record.
+        """
         session = SessionMixin.get_instance()
-        keydict = self.key()
+        if not keydict:
+            keydict = self.key()
         return session.query(self.__class__).filter(**keydict).one()
         
     def exists(self):
@@ -175,8 +185,8 @@ class Node(SqlBase, SessionMixin):
     __tablename__ = 'nodes'
     id = Column(Integer, primary_key=True)
 
-    discriminator = Column('type', String(50))
-    __mapper_args__ = {'polymorphic_on': discriminator}
+    ntype = Column('ntype', String(50))
+    __mapper_args__ = {'polymorphic_on': ntype}
     
     name = Column(String(255), nullable=True)
     
@@ -305,7 +315,7 @@ class Tag(SqlBase, SessionMixin):
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
 
-    name = Column(String(255), nullable=True)
+    name = Column(String(255), unique=True, nullable=True)
     #sid = Column(String(255), nullable=True)
 
 
@@ -430,11 +440,9 @@ class INode(Node):
     __mapper_args__ = {'polymorphic_identity': 'inode'}
 
     inode_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-    inode_number = Column(Integer, unique=True)
+    #inode_number = Column(Integer, unique=True)
 
     #filesystem_id = Column(Integer, ForeignKey('nodes.id'))
-
-    itype = Column(Integer, index=True, unique=True)
 
     locator_id = Column(ForeignKey('ids_lctr.id'), index=True)
     location = relationship(Locator, primaryjoin=locator_id == Locator.id)
@@ -444,7 +452,63 @@ class INode(Node):
     #host_id = Column(Integer, ForeignKey('hosts.id'))
     #host = relationship(Host, primaryjoin=Host.host_id==host_id)
 
+    Dir = 'inode:dir'
+    File = 'inode:file'
+    Symlink = 'inode:symlink'
+    Device = 'inode:device'
+    Mount = 'inode:mount'
+    FIFO = 'inode:fifo'
+    Socket = 'inode:socket'
 
+
+class Dir(INode):
+
+    __tablename__ = 'dirs'
+    __mapper_args__ = {'polymorphic_identity': INode.Dir}
+
+    dir_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
+
+class File(INode):
+
+    __tablename__ = 'files'
+    __mapper_args__ = {'polymorphic_identity': INode.File}
+
+    file_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
+
+class Symlink(INode):
+
+    __tablename__ = 'symlinks'
+    __mapper_args__ = {'polymorphic_identity': INode.Symlink}
+    
+    symlink_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
+
+class Device(INode):
+
+    __tablename__ = 'devices'
+    __mapper_args__ = {'polymorphic_identity': INode.Device}
+
+    device_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
+
+class Mount(INode):
+
+    __tablename__ = 'mounts'
+    __mapper_args__ = {'polymorphic_identity': INode.Mount}
+
+    mount_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
+
+class FIFO(INode):
+
+    __tablename__ = 'fifos'
+    __mapper_args__ = {'polymorphic_identity': INode.FIFO}
+
+    fifo_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
+
+class Socket(INode):
+
+    __tablename__ = 'sockets'
+    __mapper_args__ = {'polymorphic_identity': INode.Socket}
+
+    socket_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
 
 
 class CachedContent(INode):
@@ -786,7 +850,8 @@ class Token(Node):
 
 
 def get_session(dbref, initialize=False):
-    engine = create_engine(dbref, encoding='utf8')
+    engine = create_engine(dbref)#, encoding='utf8')
+    #engine.raw_connection().connection.text_factory = unicode
     if initialize:
         log.info("Applying SQL DDL to DB %s ", dbref)
         SqlBase.metadata.create_all(engine)  # issue DDL create 
