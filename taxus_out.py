@@ -19,12 +19,38 @@ from zope.interface.adapter import AdapterRegistry
 
 registry = AdapterRegistry()
 
+# generic types for stored object
 class IID(zope.interface.Interface): pass
 class IPrimitive(zope.interface.Interface): pass
 class INode(zope.interface.Interface): pass
 class INodeSet(zope.interface.Interface):
     nodes = zope.interface.Attribute("The list of nodes. ")
+
+# output media types
 class IFormatted(zope.interface.Interface): pass
+# XXX: unused
+class IInteractive(IFormatted): pass#zope.interface.Interface): pass
+
+# on line (retrievable) and cachable types
+class IResource(zope.interface.Interface): pass
+class IPersisted(IResource): pass
+"""
+XXX: figure out interface methods/properties or related interfaces.
+
+IResource may be interactive and/or multipart aggregate resources.
+Ie. an IResource may consist of or contain other IResource instances, 
+build dynamically during or for a communication session.
+
+These are Variant resources meaning their format can change and their
+content is a derivative; it may have other representations, and may be opaque,
+or publicize an internal schema somehow.
+
+Non-variant resources are fixed bytestreams of which only the envelope
+changes (ie. the transmission encoding(s), parent archive or non-file storage 
+location). These types may implement IPersisted.
+"""
+
+# /xxx
 
 def cn(obj):
     return obj.__class__.__name__
