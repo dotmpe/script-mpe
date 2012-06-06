@@ -113,7 +113,7 @@ class Target(object):
         else:
             log.warn("%s already in %s.instances",(self, clss))
 
-# FIXME: add parameters
+    # FIXME: add parameters
     def __repr__(self):
         return "Target[%r]" % self.name_id
 
@@ -161,6 +161,11 @@ class Target(object):
             h = clss(hname, deps)
         return clss.instances[hname.name]
 
+    @classmethod
+    def fetch(clss, name):
+        assert name.name in clss.instances, "No such target: %s" % name.name
+        return clss.instances[name.name]
+
     modules = {}
     "Mapping of NS prefix, Objects providing target handlers"
     module_list = []
@@ -197,10 +202,28 @@ class Target(object):
                 return mod
         assert False, "No module for %s" % tname
 
+    namespaces = {}
+
     @classmethod
-    def fetch(clss, name):
-        assert name.name in clss.instances, "No such target: %s" % name.name
-        return clss.instances[name.name]
+    def register_namespace(clss, **props):
+        assert 'prefix' in props
+        ns = confparse.Values(props)
+        clss.namespaces[ns.prefix] = ns
+        return ns
+
+
+    handlers = {}
+
+    @classmethod
+    def register_handler(clss, ns, name, *depends):
+        assert ns.prefix in clss.namespaces \
+                and clss.namespaces[ns.prefix].uriref == ns.uriref
+        def decorate(handler):
+            clss.handlers[ns.prefix + ':' + name] = confparse.Values(dict(
+                    handler=handler,
+                    depends=depends
+                ))
+        return decorate
 
 
 class ExecGraph(object):
@@ -269,8 +292,6 @@ class ExecGraph(object):
 # XXX: work in progress
 
     def __init__(self, root=[]):
-        # lookup map for node instances
-        self.nodes = {}
         # P(s,o) lookup map for target and results structure
         self.edges = confparse.Values(dict(
                 sub={},
@@ -281,8 +302,11 @@ class ExecGraph(object):
         if root:
             for i, node in enumerate(root):
                 assert not isinstance(node, list), "Is that needed?"
-                root[i] = self.deref(node)
+                root[i] = self.key(node)
         self.exectree = root
+        self.pointer = None
+        if self.exectree:
+            self.pointer = '0'
 
     @staticmethod
     def init(node):
@@ -290,19 +314,26 @@ class ExecGraph(object):
         return Target.fetch(n)
 
     def instance(self, node):
+        import res
         if not res.iface.ITarget.providedBy(node):
             node = ExecGraph.init(node)
         return node
 
+    def key(self, node):
+        import res
+        if res.iface.ITarget.providedBy(node):
+            node = node.key
+        return node
+
     def append(self, S_target, O_target):
         S_target = self.instance(S_target)
-        node = self.nodes[S_target.key]
+        node = Target.handlers[S_target.key]
         O_target = self.instance(O_target)
         node.results.append(O_target)
 
     def require(self, S_target, O_target):
         S_target = self.instance(S_target)
-        node = self.nodes[S_target]
+        node = Target.handlers[S_target]
         O_target = self.instance(O_target)
         node.requires.append(O_target)
 
@@ -310,18 +341,29 @@ class ExecGraph(object):
         return self.get(node)
 
     def get(self, node):
-        return self.nodes[node]
+        return Target.handlers[node]
 
     def set(self, node):
-        self.nodes[node]
-
-    def start(self, node):
-        assert node in self.nodes
-        self.current_node = node
+        Target.handlers[node]
 
     @property
     def current(self):
-        return self.nodes[self.current_node]
+        if not self.pointer:
+            return
+        path = map(int,self.pointer.split('.'))
+        nodeid = None
+        level = self.exectree
+        while path:
+            index = path.pop(0)
+            level = level[index]
+            if isinstance(level, tuple):
+                level = level[0]
+            if path:
+                assert isinstance(level, list), level
+            else:
+                assert isinstance(level, str), level
+                nodeid = level
+        return Target.handlers[nodeid]
         
     def __nonzero__(self):
         return not self.finished()
@@ -330,14 +372,74 @@ class ExecGraph(object):
         return not self.current_node
 
     def nextTarget(self):
-        if isinstance(self.current, list):
-            pass
+        print self.current.depends
+        print self.current.handler
         if self.current.depends:
             pass
-        if self.current.requires:
-            pass
-        if self.current.results:
-            pass
+        #if self.current.requires:
+        #    pass
+        #if self.current.results:
+        #    pass
+        assert False
+
+class ContextStack(object):
+    """A stack of states. Setting an attribute overwrites the last
+    value, but deleting the value reactivates the old one.
+    Default values can be set on construction.
+    
+    This is used for important states during output of rst,
+    e.g. indent level, last bullet type.
+    """
+    
+    def __init__(self, defaults=None):
+        '''Initialise _defaults and _stack, but avoid calling __setattr__'''
+        if defaults is None:
+            
+            
+            object.__setattr__(self, '_defaults', {})
+        else:
+            object.__setattr__(self, '_defaults', dict(defaults))
+        object.__setattr__(self, '_stack', {})
+
+    def __getattr__(self, name):
+        '''Return last value of name in stack, or default.'''
+        if name in self._stack:
+            return self._stack[name][-1]
+        if name in self._defaults:
+            return self._defaults[name]
+        raise AttributeError
+
+    def append(self, name, value):
+        l = list(getattr(self, name))
+        l.append(value)
+        setattr(self, name, l)
+
+    def __setattr__(self, name, value):
+        '''Pushes a new value for name onto the stack.'''
+        if name in self._stack:
+            self._stack[name].append(value)
+        else:
+            self._stack[name] = [value]
+
+    def __delattr__(self, name):
+        '''Remove a value of name from the stack.'''
+        if name not in self._stack:
+            raise AttributeError
+        del self._stack[name][-1]
+        if not self._stack[name]:
+            del self._stack[name]
+   
+    def depth(self, name):
+        l = len(self._stack[name])
+        if l:
+            return l-1
+
+    def previous(self, name):
+        if len(self._stack[name]) > 1:
+            return self._stack[name][-2]
+
+    def __repr__(self):
+        return repr(self._stack)
 
 
 
@@ -356,18 +458,16 @@ class AbstractTargetResolver(object):
         }
 
     def main(self):
-      
+        assert self.handlers, "Need at least one static target to bootstrap"
         execution_graph = ExecGraph(self.handlers)
         stack = ContextStack()
         self.run(execution_graph, stack)
 
     def run(self, execution_graph, context, args=[], kwds={}):
-
+        import res
         target = execution_graph.nextTarget()
-
         context.generator = target(
                         **self.select_kwds(target, kwds))
-
         for r in context.generator:
             assert not args, "TODO: %s" % args
             if res.ITarget.providedBy(r):
@@ -384,7 +484,6 @@ class AbstractTargetResolver(object):
                 args.extend(arguments)
             elif isinstance(r, keywords):
                 kwds.update(keywords)
-
         del context.generator
 
     def select_kwds(self, target, kwds):

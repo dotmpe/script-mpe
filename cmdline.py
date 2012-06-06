@@ -205,80 +205,90 @@ class Command(object):
             assert False, "Missing %s, perhaps use init_config_file"%config_file
         
         return config_file
-
-
-    ## Handlers
-
-    def cmd_prog(self):
-        """
-        Command-line program static properties.
-        """
-        log.debug("{bblack}cmd{bwhite}:prog{default}")
-        prog = confparse.Values(dict(
-            argv=sys.argv[1:],
-            usage="Usage % [options|targets]",
-            name=os.path.splitext(os.path.basename(__file__))[0],
-            version="0.1",
-            pwd=os.getcwd(),
-        ))
-        yield keywords(prog=prog)
-
-    def cmd_config(self, prog=None):
-        """
-        Init settings object from persisted config.
-        """
-        log.debug("{bblack}cmd{bwhite}:config{default}")
-        assert prog, (self, prog)
-        config_file = self.find_config_file()
-
-        prog.update(dict(
-            config_file=config_file,
-        ))
-        yield keywords(
-                settings=confparse.load_path(config_file))
-
-    def cmd_options(self, settings=None, prog=None):
-        """
-        Parse arguments
-        """
-        log.debug("{bblack}cmd{bwhite}:options{default}")
-        parser, opts, kwds_, args_ = self.parse_argv(
-                self.get_options(), 
-                prog['argv'], 
-                prog['usage'], 
-                prog['version'])
-        prog.update(dict(
-            optparser=parser
-        ))
-        yield keywords(kwds_)
-        yield keywords(
-            opts=opts,
-        )
-        args = arguments()
-        targs = targets()
-        args_ = list(args_)
-        while args_:
-            a = args_.pop()
-            if re.match('[a-z][a-z0-9]+:[a-z0-9-]', a.lower()):
-                targs = targets(targs+(a,))
-            else:
-                args = arguments(args+(a,))
-        yield targs
-        yield args
-
-    def cmd_targets(self, settings=None, prog=None):
-        """
-        xxx: deprecate? use --help.
-        """
-        log.debug("{bblack}cmd{bwhite}:targets{default}")
-        optparser.print_targets()
-        targets = prog['optparser'].targets
-        yield keywords(targets=targets)
-
-    def cmd_help(self, settings=None, prog=None):
-        log.debug("{bblack}cmd{bwhite}:help{default}")
-        prog['optparser'].print_help()
        
 
-lib.namespaces.update((Command.namespace,))
-Target.register(Command)
+#lib.namespaces.update((Command.namespace,))
+#Target.register(Command)
+
+
+NS = Target.register_namespace(
+    prefix='cmd',
+    uriref='http://project.dotmpe.com/script/#/cmdline'
+)
+
+@Target.register_handler(NS, 'prog')
+def cmd_prog():
+    """
+    Command-line program static properties.
+    """
+    log.debug("{bblack}cmd{bwhite}:prog{default}")
+    prog = confparse.Values(dict(
+        argv=sys.argv[1:],
+        usage="Usage % [options|targets]",
+        name=os.path.splitext(os.path.basename(__file__))[0],
+        version="0.1",
+        pwd=os.getcwd(),
+    ))
+    yield keywords(prog=prog)
+
+@Target.register_handler(NS, 'config', 'cmd:prog')
+def cmd_config(prog=None):
+    """
+    Init settings object from persisted config.
+    """
+    log.debug("{bblack}cmd{bwhite}:config{default}")
+    assert prog, prog
+    config_file = self.find_config_file()
+
+    prog.update(dict(
+        config_file=config_file,
+    ))
+    yield keywords(
+            settings=confparse.load_path(config_file))
+
+@Target.register_handler(NS, 'options', 'cmd:config')
+def cmd_options(settings=None, prog=None):
+    """
+    Parse arguments
+    """
+    log.debug("{bblack}cmd{bwhite}:options{default}")
+    parser, opts, kwds_, args_ = self.parse_argv(
+            self.get_options(), 
+            prog['argv'], 
+            prog['usage'], 
+            prog['version'])
+    prog.update(dict(
+        optparser=parser
+    ))
+    yield keywords(kwds_)
+    yield keywords(
+        opts=opts,
+    )
+    args = arguments()
+    targs = targets()
+    args_ = list(args_)
+    while args_:
+        a = args_.pop()
+        if re.match('[a-z][a-z0-9]+:[a-z0-9-]', a.lower()):
+            targs = targets(targs+(a,))
+        else:
+            args = arguments(args+(a,))
+    yield targs
+    yield args
+
+@Target.register_handler(NS, 'help', 'cmd:options')
+def cmd_help(self, settings=None, prog=None):
+    log.debug("{bblack}cmd{bwhite}:help{default}")
+    prog['optparser'].print_help()
+
+@Target.register_handler(NS, 'targets', 'cmd:options')
+def cmd_targets(self, settings=None, prog=None):
+    """
+    xxx: deprecate? use --help.
+    """
+    log.debug("{bblack}cmd{bwhite}:targets{default}")
+    optparser.print_targets()
+    targets = prog['optparser'].targets
+    yield keywords(targets=targets)
+
+
