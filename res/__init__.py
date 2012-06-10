@@ -106,7 +106,7 @@ class Repo(object):
         Walk all files that may have a metafile, and notice any metafile(-like)
         neighbors.
         """
-        assert not bare
+        assert not bare, 'TODO'
         for root, nodes, leafs in os.walk(path):
             for node in list(nodes):
                 dirpath = os.path.join(root, node)

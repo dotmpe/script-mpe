@@ -4,7 +4,7 @@ handler modules.
 
 See main
 
-- Targets are methods on registered classes.
+- Targets are recipes to perform particualr tasks. 
 - Targets selectively accept keywords from a known pool of keys.
 - Targets may depend on other targets:
   
@@ -27,31 +27,37 @@ See main
 
 - XXX: the name module is misused abit in a python context in that here it is a class
   providing various instance methods called targets. Rewrite possibly.
+
+
 """
 import inspect
 import sys
-
+from UserDict import UserDict
+from UserList import UserList
 
 import log
 import lib
 import confparse
 
 
-class targets(tuple):
+class targets(UserList):
     def __init__(self, *args):
         self.required = False
-        tuple.__init__(self)
+        UserList.__init__(self)
     def required(self):
         self.required = True
         return self
     def __str__(self):
-        return 'targets'+tuple.__str__(self)
-class keywords(dict): 
+        return 'targets'+UserList.__str__(self)
+class keywords(UserDict): 
+    def __init__(self, **kwds):
+        UserDict.__init__(self)
+        self.update(kwds)
+#    def __str__(self):
+#        return 'keywords'+UserDict.__str__(self)
+class arguments(UserList): 
     def __str__(self):
-        return 'keywords'+tuple.__str__(self)
-class arguments(tuple): 
-    def __str__(self):
-        return 'arguments'+tuple.__str__(self)
+        return 'arguments'+UserList.__str__(self)
 
 class Name(object):
 
@@ -89,6 +95,9 @@ class Name(object):
     def fetch(clss, name, ns=None):
         if isinstance(name, Name):
             return name
+        assert isinstance(name, str), name
+        if not ns:
+            assert ':' in name, name
         assert ':' in name, name
         if name not in clss.instances:
             n = Name(name, ns)
@@ -100,10 +109,11 @@ class Name(object):
 
 class Target(object):
 
-    def __init__(self, name, depends=[], values={}):
+    def __init__(self, name, depends=[], handler=None, values={}):
         assert isinstance(name, Name), name
         self.name = name
-        self.depends = depends
+        self.depends = list(depends)
+        self.handler = handler
         self.values = values
 
         clss = self.__class__
@@ -124,10 +134,10 @@ class Target(object):
     def name_id(self):
         return self.name.name.replace('-', '_').replace(':', '_')
 
-    @property
-    def handler(self):
-        mod_class = Target.get_module(self)
-        return getattr(mod_class(), target.name_id)
+#    @property
+#    def handler(self):
+#        mod_class = Target.get_module(self)
+#        return getattr(mod_class(), target.name_id)
 
     # Static
 
@@ -163,44 +173,48 @@ class Target(object):
 
     @classmethod
     def fetch(clss, name):
+        assert isinstance(name, Name), name
+        assert name.name in clss.handlers
+        return clss.handlers[name.name]
+# XXX
         assert name.name in clss.instances, "No such target: %s" % name.name
         return clss.instances[name.name]
 
-    modules = {}
-    "Mapping of NS prefix, Objects providing target handlers"
-    module_list = []
-
-    @classmethod
-    def register(clss, handler_module):
-        assert handler_module not in clss.module_list
-        clss.module_list.append(handler_module)
-
-        for hid in handler_module.depends:
-
-            # Register each target if not already instantiated
-            hid = clss.parse_name(hid, handler_module.namespace)
-            hname = Name.fetch(hid)
-            depids = [
-                clss.parse_name(depid, handler_module.namespace)
-                for depid in handler_module.depends[hname.name]
-            ]
-            target_handler = clss.register_target(hname, depids)
-
-            # This would allow mapping a target instance back to its class
-            # XXX: this has not been in use 
-            hns = hname.prefix
-            if hns not in clss.modules:
-                clss.modules[hns] = []
-            clss.modules[hns].append(handler_module)
-
-    @classmethod
-    def get_module(clss, target):
-        nsprefix = target.name.prefix
-        tname = target.name.name
-        for mod in clss.modules[nsprefix]:
-            if tname in mod.depends:
-                return mod
-        assert False, "No module for %s" % tname
+#    modules = {}
+#    "Mapping of NS prefix, Objects providing target handlers"
+#    module_list = []
+#
+#    @classmethod
+#    def register(clss, handler_module):
+#        assert handler_module not in clss.module_list
+#        clss.module_list.append(handler_module)
+#
+#        for hid in handler_module.depends:
+#
+#            # Register each target if not already instantiated
+#            hid = clss.parse_name(hid, handler_module.namespace)
+#            hname = Name.fetch(hid)
+#            depids = [
+#                clss.parse_name(depid, handler_module.namespace)
+#                for depid in handler_module.depends[hname.name]
+#            ]
+#            target_handler = clss.register_target(hname, depids)
+#
+#            # This would allow mapping a target instance back to its class
+#            # XXX: this has not been in use 
+#            hns = hname.prefix
+#            if hns not in clss.modules:
+#                clss.modules[hns] = []
+#            clss.modules[hns].append(handler_module)
+#
+#    @classmethod
+#    def get_module(clss, target):
+#        nsprefix = target.name.prefix
+#        tname = target.name.name
+#        for mod in clss.modules[nsprefix]:
+#            if tname in mod.depends:
+#                return mod
+#        assert False, "No module for %s" % tname
 
     namespaces = {}
 
@@ -216,13 +230,26 @@ class Target(object):
 
     @classmethod
     def register_handler(clss, ns, name, *depends):
+        """
+        New method: handler gets registered upon declaration
+        to its qname. This stores two values, a references to the
+        handler and a list of prerequisite targets. These two form
+        the template for the ITarget implementation, used
+        by ExecGraph.
+        """
         assert ns.prefix in clss.namespaces \
                 and clss.namespaces[ns.prefix].uriref == ns.uriref
         def decorate(handler):
-            clss.handlers[ns.prefix + ':' + name] = confparse.Values(dict(
+            handler_id = Name.fetch(ns.prefix +':'+ name, ns=ns)
+            #
+#            Target.instances[ns.prefix +':'+ name] = handler
+            #
+            print 'Handler', handler_id
+            clss.handlers[ns.prefix + ':' + name] = Target(handler_id,
+                    depends=depends,
                     handler=handler,
-                    depends=depends
-                ))
+                )
+            return handler
         return decorate
 
 
@@ -299,14 +326,21 @@ class ExecGraph(object):
                 ob={}
             ))
         # nested tree structure
+        self.execlist = []
+        self.pointer = 0
         if root:
-            for i, node in enumerate(root):
-                assert not isinstance(node, list), "Is that needed?"
-                root[i] = self.key(node)
-        self.exectree = root
-        self.pointer = None
-        if self.exectree:
-            self.pointer = '0'
+            for node in root:
+                self.put(node)
+    
+    def __contains__(self, other):
+        other = self.instance(other)
+        for i in self.execlist:
+            assert res.iface.ITarget.providedBy(i), i
+            if other.key == i.key:
+                return True
+            if other.key in i.depends:
+                pass
+        assert False
 
     @staticmethod
     def init(node):
@@ -317,15 +351,33 @@ class ExecGraph(object):
         import res
         if not res.iface.ITarget.providedBy(node):
             node = ExecGraph.init(node)
+        assert node.name.name in Target.handlers, node
         return node
 
     def key(self, node):
         import res
         if res.iface.ITarget.providedBy(node):
             node = node.key
+        assert node in Target.handlers
         return node
 
+    def put(self, target, idx=-1):
+        if idx == -1:
+            idx = self.pointer
+        assert idx >= 0, idx
+        assert idx <= len(self.execlist), idx
+        target = self.instance(target)
+        assert target.handler, target
+        while idx >= len(self.execlist):
+            self.execlist.append(None)
+        self.execlist[idx] = target
+        self.pointer += 1
+#        print self.pointer, self.execlist
+
     def append(self, S_target, O_target):
+        """
+        Append a result for the given
+        """
         S_target = self.instance(S_target)
         node = Target.handlers[S_target.key]
         O_target = self.instance(O_target)
@@ -348,22 +400,7 @@ class ExecGraph(object):
 
     @property
     def current(self):
-        if not self.pointer:
-            return
-        path = map(int,self.pointer.split('.'))
-        nodeid = None
-        level = self.exectree
-        while path:
-            index = path.pop(0)
-            level = level[index]
-            if isinstance(level, tuple):
-                level = level[0]
-            if path:
-                assert isinstance(level, list), level
-            else:
-                assert isinstance(level, str), level
-                nodeid = level
-        return Target.handlers[nodeid]
+        return self.execlist[self.pointer-1]
         
     def __nonzero__(self):
         return not self.finished()
@@ -372,15 +409,22 @@ class ExecGraph(object):
         return not self.current_node
 
     def nextTarget(self):
-        print self.current.depends
-        print self.current.handler
-        if self.current.depends:
-            pass
-        #if self.current.requires:
-        #    pass
-        #if self.current.results:
-        #    pass
+        target = self.current
+
+        # resolve static dependencies
+        while target.depends:
+            dep = target.depends.pop(0)
+            self.put(dep, self.pointer)
+            assert self.current, (self.pointer, self.execlist)
+            target = self.current
+            if not target.depends:
+                return self.current
+
+        print self.execlist
+        print 'nextTarget', self.pointer, self.current
+        
         assert False
+
 
 class ContextStack(object):
     """A stack of states. Setting an attribute overwrites the last
@@ -394,8 +438,6 @@ class ContextStack(object):
     def __init__(self, defaults=None):
         '''Initialise _defaults and _stack, but avoid calling __setattr__'''
         if defaults is None:
-            
-            
             object.__setattr__(self, '_defaults', {})
         else:
             object.__setattr__(self, '_defaults', dict(defaults))
@@ -450,12 +492,7 @@ class AbstractTargetResolver(object):
     handlers = [
 #            'cmd:targets'
         ]
-    depends = {
 #            'cmd:targets': [ 'cmd:options' ]
-        }
-
-    depends = {
-        }
 
     def main(self):
         assert self.handlers, "Need at least one static target to bootstrap"
@@ -466,11 +503,15 @@ class AbstractTargetResolver(object):
     def run(self, execution_graph, context, args=[], kwds={}):
         import res
         target = execution_graph.nextTarget()
-        context.generator = target(
+        assert target
+        assert isinstance(kwds, dict)
+        context.generator = target.handler(
                         **self.select_kwds(target, kwds))
         for r in context.generator:
             assert not args, "TODO: %s" % args
-            if res.ITarget.providedBy(r):
+            if isinstance(r, str):
+                pass
+            if res.iface.ITarget.providedBy(r):
                 if r.required:
                     execution_graph.require(target, r)
                     self.run(execution_graph, context, args=args, kwds=kwds)
@@ -483,13 +524,13 @@ class AbstractTargetResolver(object):
             elif isinstance(r, arguments):
                 args.extend(arguments)
             elif isinstance(r, keywords):
-                kwds.update(keywords)
+                kwds.update(r)
         del context.generator
 
     def select_kwds(self, target, kwds):
         func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
                 inspect.getargspec(target.handler)
-        assert func_arg_vars.pop(0) == 'self'
+#        assert func_arg_vars.pop(0) == 'self'
         ret_kwds = {}
 
         if func_defaults:
@@ -506,8 +547,6 @@ class AbstractTargetResolver(object):
             ret_kwds['options'] = opts
 
         return ret_kwds
-
-
 
 # XXX: trying to rewrite to hierarchical target resolver
 

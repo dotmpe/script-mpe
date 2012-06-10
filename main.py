@@ -19,8 +19,8 @@ from target import Name, Target, AbstractTargetResolver
 from cmdline import Command
 
 #from taxus import Taxus
-from txs import Txs
-from lind import  Lind
+import txs
+import lind
 #from rsr import Rsr
 from resourcer import Resourcer
 #from volume import Volume

@@ -201,8 +201,8 @@ class Txs(Command, AbstractTargetResolver, SessionMixin):
         return node
           
 
-lib.namespaces.update((Txs.namespace,))
-Target.register(Txs)
+#lib.namespaces.update((Txs.namespace,))
+#Target.register(Txs)
 
 
 # TODO; test and remove from taxus.py
@@ -301,8 +301,3 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
     except KeyboardInterrupt, e:
         pass
 
-
-
-
-if __name__ == '__main__':
-    Txs().main()

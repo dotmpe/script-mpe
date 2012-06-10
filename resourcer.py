@@ -165,10 +165,10 @@ class Resourcer(Command, AbstractTargetResolver):
         print i, 'total', volume.path
 
 
-lib.namespaces.update((Resourcer.namespace,))
-Target.register(Resourcer)
+#lib.namespaces.update((Resourcer.namespace,))
+#Target.register(Resourcer)
 
 
-if __name__ == '__main__':
-    Resourcer().main()
+#if __name__ == '__main__':
+#    Resourcer().main()
 
