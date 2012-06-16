@@ -1,10 +1,30 @@
-"""
-Defines the AbstractTargetResolver, which runs targets of registered
-handler modules.
+"""target
+
+    Namespace
+     - prefix (global preference)
+     - prefixes (alt.; non-unique or distinct)
+     - uriref (canonical ID)
+
+    Name
+     - name
+     - &ns:Namespace
+     - @qname
+     
+    Target
+     - &name:Name
+     - &handler (callable)
+     - depends
+
+    ExecGraph
+     - from/to/three:<Target,Target,Target>
+     - execlist (minimally cmd:options, from there on: anything from cmdline)
+
+    ContextStack
+
 
 See main
 
-- Targets are methods on registered classes.
+- Targets are recipes to perform particualr tasks. 
 - Targets selectively accept keywords from a known pool of keys.
 - Targets may depend on other targets:
   
@@ -25,58 +45,99 @@ See main
 - The arguments aux. structure may be used to communicate generic or  
   iterable paramers to (sub)targets.
 
+- XXX: the name module is misused abit in a python context in that here it is a class
+  providing various instance methods called targets. Rewrite possibly.
+
+
 """
-import inspect
 import sys
 
+import zope.interface
 
 import log
 import lib
+import res
+import confparse
 
 
 
-class targets(tuple):
-    def __init__(self, *args):
-        self.required = False
-        tuple.__init__(self)
-    def required(self):
-        self.required = True
-        return self
-    def __str__(self):
-        return 'targets'+tuple.__str__(self)
-class keywords(dict): 
-    def __str__(self):
-        return 'keywords'+tuple.__str__(self)
-class arguments(tuple): 
-    def __str__(self):
-        return 'arguments'+tuple.__str__(self)
+class Namespace(object):
+
+    def __init__(self, prefix, uriref, prefixes=[]):
+        self.uriref = uriref
+        self.prefix = prefix
+        if prefix not in prefixes:
+            prefixes.append(prefix)
+        self.prefixes = prefixes
+
+    # Static
+
+    instances = {}
+    "Static map with URI, target instances. "
+
+    prefixes = {}
+    "Static map for preferred prefix name. "
+
+    @classmethod
+    def register(clss, prefix, uriref):#, preferred=True, override_preferred=False):
+        # fetch or init Ns
+        if uriref in clss.instances:
+            ns = clss.instances[uriref]
+            if prefix not in ns.prefixes:
+                ns.prefixes.append(prefix)
+        else:
+            ns = clss(prefix, uriref, prefixes=[prefix])
+            clss.instances[uriref] = ns
+        # validate or assert prefix
+        if prefix in clss.prefixes:
+            assert clss.prefixes[prefix] == uriref
+        else:
+            clss.prefixes[prefix] = uriref
+
+        return ns
+
+    @classmethod
+    def fetch(clss, prefix):
+        return clss.instances[clss.prefixes[prefix]]
+
 
 class Name(object):
 
-    def __init__(self, name, ns=None):
-        assert ':' in name, (name, ns)
-        if not ns:
-            p = name.index(':')
-            ns = lib.namespaces[name[:p]]
+    zope.interface.implements(res.iface.IName)
+
+    """
+    Names are simple strings. They are made globally unique
+    by prefixes, such as URI's or QName prefixes. A static part
+    keeps a global mapping by QNames.
+    """
+
+    def __init__(self, name, ns):
+        assert isinstance(ns, Namespace), ns
         self.name = name
         self.ns = ns
 
     @property
-    def local_name(self):
-        p = self.name.index(':')
-        return self.name[p+1:]
+    def qname(self):
+        return self.prefix +':'+ self.name
 
     @property
     def prefix(self):
-        p = self.name.index(':')
-        return self.name[:p]
+        return self.ns.prefix
 
     def __repr__(self):
-        return "%s:%s" % (self.prefix, self.local_name)
-        return "Name(%r, ns=%r)" % (self.name, self.ns)
+        return "%s:%s" % (self.prefix, self.name)
 
     def __str__(self):
-        return "%s:%s" % (self.prefix, self.local_name)
+        return "%s:%s" % (self.prefix, self.name)
+
+    def __eq__(self, other):
+        if hasattr(other, 'name') and hasattr(other, 'ns'):
+            if other.name == self.name:
+                if other.ns.uriref == self.ns.uriref:
+                    return True
+        return False
+
+    # Static
 
     instances = {}
     "Static map of name, target instances. "
@@ -85,37 +146,62 @@ class Name(object):
     def fetch(clss, name, ns=None):
         if isinstance(name, Name):
             return name
-        assert ':' in name, name
-        if name not in clss.instances:
-            n = Name(name, ns)
+        assert isinstance(name, str), name
+        if ':' in name:
+            p = name.index(':')
+            if not ns:
+                ns = Namespace.fetch(name[:p])
+            name = name[p+1:]
+        else:
+            assert ns
+        n = Name(name, ns)
+        if n.qname not in clss.instances:
             clss.instances[name] = n
         else:
-            n = clss.instances[name]
+            n1 = clss.instances[name]
+            assert n == n1
         return n
+
+    @classmethod
+    def register(clss, **props):
+        assert 'prefix' in props
+        ns = confparse.Values(props)
+        clss.namespaces[ns.prefix] = ns
+        return ns
 
 
 class Target(object):
 
-    def __init__(self, name, depends=[], values={}):
+    zope.interface.implements(res.iface.ITarget)
+
+    def __init__(self, name, depends=[], handler=None, values={}):
         assert isinstance(name, Name), name
         self.name = name
-        self.depends = depends
+        self.depends = list(depends)
+        self.handler = handler
         self.values = values
-
         clss = self.__class__
-        if name.name not in clss.instances:
-            clss.instances[name.name] = self
+        # auto static register
+        if name.qname not in clss.instances:
+            clss.instances[name.qname] = self
         else:
             log.warn("%s already in %s.instances",(self, clss))
-   
-    instances = {}
-    "Static map of name, target instances. "
 
+    # FIXME: add parameters
     def __repr__(self):
-        return "Target[%r]" % self.name
+        return "Target[%r]" % self.name_id
 
     def __str__(self):
         return "Target[%s]" % self.name
+    
+    @property
+    def name_id(self):
+        return self.name.qname.replace('-', '_').replace(':', '_')
+
+    # Static
+
+    instances = {}
+    "Mapping of name, target instances. "
 
     @staticmethod
     def parse_name(name, default_ns=None):
@@ -144,188 +230,68 @@ class Target(object):
             h = clss(hname, deps)
         return clss.instances[hname.name]
 
-    modules = {}
-    "Mapping of NS prefix, Objects providing target handlers"
-    module_list = []
-
-    @classmethod
-    def register(clss, handler_module):
-        assert handler_module not in clss.module_list
-        clss.module_list.append(handler_module)
-
-        for hid in handler_module.depends:
-
-            # Register each target if not already instantiated
-            hid = clss.parse_name(hid, handler_module.namespace)
-            hname = Name.fetch(hid)
-            depids = [
-                clss.parse_name(depid, handler_module.namespace)
-                for depid in handler_module.depends[hname.name]
-            ]
-            target_handler = clss.register_target(hname, depids)
-
-            # This would allow mapping a target instance back to its class
-            # XXX: this has not been in use 
-            hns = hname.prefix
-            if hns not in clss.modules:
-                clss.modules[hns] = []
-            clss.modules[hns].append(handler_module)
-
-    @classmethod
-    def get_module(clss, target):
-        nsprefix = target.name.prefix
-        tname = target.name.name
-        for mod in clss.modules[nsprefix]:
-            if tname in mod.depends:
-                return mod
-        assert False, "No module for %s" % tname
-
     @classmethod
     def fetch(clss, name):
+        assert isinstance(name, Name), name
+        assert name.name in clss.handlers
+        return clss.handlers[name.name]
+# XXX
         assert name.name in clss.instances, "No such target: %s" % name.name
         return clss.instances[name.name]
-    
-    @property
-    def name_id(self):
-        return self.name.name.replace('-', '_').replace(':', '_')
+
+#    modules = {}
+#    "Mapping of NS prefix, Objects providing target handlers"
+#    module_list = []
+#
+#    @classmethod
+#    def register(clss, handler_module):
+#        assert handler_module not in clss.module_list
+#        clss.module_list.append(handler_module)
+#
+#        for hid in handler_module.depends:
+#
+#            # Register each target if not already instantiated
+#            hid = clss.parse_name(hid, handler_module.namespace)
+#            hname = Name.fetch(hid)
+#            depids = [
+#                clss.parse_name(depid, handler_module.namespace)
+#                for depid in handler_module.depends[hname.name]
+#            ]
+#            target_handler = clss.register_target(hname, depids)
+#
+#            # This would allow mapping a target instance back to its class
+#            # XXX: this has not been in use 
+#            hns = hname.prefix
+#            if hns not in clss.modules:
+#                clss.modules[hns] = []
+#            clss.modules[hns].append(handler_module)
+#
+#    @classmethod
+#    def get_module(clss, target):
+#        nsprefix = target.name.prefix
+#        tname = target.name.name
+#        for mod in clss.modules[nsprefix]:
+#            if tname in mod.depends:
+#                return mod
+#        assert False, "No module for %s" % tname
 
 
-class AbstractTargetResolver(object):
+    handlers = {}
 
-    namespace = None, None
-
-    handlers = [
-#            'cmd:targets'
-        ]
-    depends = {
-#            'cmd:targets': [ 'cmd:options' ]
-        }
-
-    depends = {
-        }
-
-    def fetch_target(self, name):
-        n = Name.fetch(name)
-        return Target.fetch(n)
-
-    def main(self):
-       
-        execution_list = []
-
-        log.info("Starting with: %s", " ".join(self.handlers))
-        for h in self.handlers:
-            target = self.fetch_target(h)
-            execution_list.append(target)
-
-        kwds = {}
-
-        hl = len(execution_list)
-        ti = 0
-        ei = 0
-        while ti < len(execution_list):
-            target = execution_list[ti]
-            ei += 1
-            #log.debug("At iteration %s", ei)
-            #log.debug("At index %s", ti + 1)
-            assert isinstance(ti, int)
-
-            """
-            Skip if the action was already performed,
-            perhaps as dependency of an earlier target.
-            """
-            if target in execution_list[:ti]:
-                ti += 1
-                assert False
-                print 'skipped', ti, target
-                continue
-
-            """
-            Prepend any dependency before the current target.
-            """
-            if target.depends:
-                for dep in target.depends:
-                    dep = self.fetch_target(dep)
-                    #print 'dep', dep, target
-                    #assert (dep != target) and \
-                    #    (dep not in execution_list[:ti+1]), \
-                    #        "Cyclical: depency %s for %s" % (dep, target)
-                    if dep not in execution_list[:ti]:
-                        log.note('New depedency {bwhite}%s {default}for {bwhite}%s', dep, target)
-                        execution_list.insert(ti, dep)
-                    else:
-                        log.debug('Already satisfied %s for %s', dep, target)
-
-                if execution_list[ti] != target:
-                    #log.debug('Restarting, new depedencies (#%s; @%s)', 
-                    #        ei, ti+1)
-                    continue
-
-            log.info("{bblue}Executing{bwhite} @%s.{default} %s", 
-                    ti, str(target))
-            mod_class = Target.get_module(target)
-            handler = getattr(mod_class(), target.name_id)
-            # execute and iterate through generator
-            ret = handler(**self.select_kwds(handler, kwds))
-
-            # TODO: suspend and stack operations for sub targets
-            if isinstance(ret, list):
-                ret = tuple(ret)
-            if not ( inspect.isgenerator(ret) or isinstance(ret, tuple) ):
-                ret = (ret,)
-           
-            epilogue = []
-            for r in ret:
-                # use integer to indicate target status, request interupts
-                if isinstance(r, int):
-                    sys.exit(r)
-                # strings refer to the id of the action to run next
-                elif isinstance(r, str):
-                    r = targets([r])
-                elif isinstance(r, keywords):
-                    kwds.update(r)
-                if isinstance(r, targets):
-                    for epi in r:
-                        a = self.fetch_target(epi)
-                        if a in execution_list[:ti]:
-                            log.note("Already satisfied epilogue? %s", a)
-                            continue
-                        #    (a.name.name not in target.depends) and \
-                        assert (a != target) and \
-                            (a not in execution_list[:ti]), \
-                                "Cyclical: epilog %s for %s" % (a, target)
-                        epilogue.append(a)
-           
-            #if epilogue:
-            #    print 'new epilogue', [t.name for t in epilogue]
-            for epi in epilogue:
-                execution_list.insert(ti+1, epi)
-
-            ti += 1
-            log.info("{bblue}Done{bwhite}: %s{default}", target)
-            log.debug("Looping, ready for iteration #%s, index @%s; %s more steps", 
-                    ei, ti+1, len(execution_list[ti:]))
-
-
-    def select_kwds(self, handler, kwds):
-        func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
-                inspect.getargspec(handler)
-        assert func_arg_vars.pop(0) == 'self'
-        ret_kwds = {}
-
-        if func_defaults:
-            func_defaults = list(func_defaults) 
-
-        while func_defaults:
-            arg_name = func_arg_vars.pop()
-            value = func_defaults.pop()
-            if arg_name in kwds:
-                value = kwds[arg_name]
-            ret_kwds[arg_name] = value
-        
-        if "options" in ret_kwds:
-            ret_kwds['options'] = opts
-
-        return ret_kwds
-
-
+    @classmethod
+    def register(clss, ns, name, *depends):
+        """
+        """
+        assert ns.prefix in Namespace.prefixes \
+                and Namespace.prefixes[ns.prefix] == ns.uriref
+        handler_id = ns.prefix +':'+ name
+        handler_name = Name.fetch(handler_id, ns=ns)
+        def decorate(handler):
+            clss.handlers[handler_id] = clss(
+                    handler_name,
+                    depends=depends,
+                    handler=handler,
+                )
+            return handler
+        return decorate
 

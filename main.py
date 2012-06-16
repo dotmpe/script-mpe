@@ -12,14 +12,12 @@ Work in progress:
 
 Issues:
     - Rewrite taxus INode to be polymorphic: Dir, File, Dev..
-
 """
-from target import Name, Target, AbstractTargetResolver
 #from libcmd import Cmd
-from cmdline import Command
+import cmdline
 #from taxus import Taxus
-from txs import Txs
-from lind import  Lind
+import txs
+import lind
 #from rsr import Rsr
 from resourcer import Resourcer
 #from volume import Volume
@@ -27,32 +25,9 @@ from resourcer import Resourcer
 #from finfo import FileInfoApp
 
 
-class Main(Command, AbstractTargetResolver):
-
-    handlers = [
-            'cmd:options'
-        ]
-
-    @classmethod
-    def get_opts(self):
-        return ()
-
-    #namespace = 'script-mpe', 'http://name.wtwta.nl/#/rsr'
-
-    #handlers = [
-    #        'cmd:options',
-    #    ]
-    #@classmethod
-    #def get_opts(klass):
-    #    return ()
-
-    #@staticmethod
-    #def get_options():
-    #    return Cmd.get_opts() \
-    #            + Taxus.get_opts() \
-    #            + Rsr.get_opts()
-
+#namespace = 'script-mpe', 'http://name.wtwta.nl/#/rsr'
 
 if __name__ == '__main__':
-    Main().main()
+
+    cmdline.TargetResolver().main(['cmd:options'])
 

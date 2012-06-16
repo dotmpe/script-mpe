@@ -159,6 +159,9 @@ def timestamp_to_datetime(timestamp, epoch=EPOCH):
 
     return date
 
+def cn(obj):
+    return obj.__class__.__name__
+
 
 if __name__ == '__main__':
     print get_sha1sum_sub("volume.py");
