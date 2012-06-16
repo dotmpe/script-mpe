@@ -3,11 +3,19 @@ Output handling using Zope adapters.
 
 TODO: create various output adapters for various formats 
 """
+#import sys, codecs, locale
+#print locale.getpreferredencoding()
+#print sys.stdout.encoding
+#print str(sys.stdout.encoding)
+#sys.stdout = codecs.getwriter('UTF-8')(sys.stdout);
+#print str(sys.stdout.encoding)
+
 import zope.interface
 from zope.interface.interface import adapter_hooks
 from zope.interface.adapter import AdapterRegistry
 
-import libcmd
+#import taxus
+#import libcmd
 
 registry = AdapterRegistry()
 
@@ -32,8 +40,17 @@ class PrimitiveFormatter(object):
     def __init__(self, context):
         self.context = context
 
+    def toString(self):
+        if isinstance(self.context, unicode) or isinstance(self.context, str):
+            return self.context
+        else:
+            return str(self.context)
+
     def __str__(self, indent=0):
         return str(self.context)
+
+    def __unicode__(self, indent=0):
+        return unicode(self.context)
 
 class IDFormatter(object):
     """
@@ -47,6 +64,7 @@ class IDFormatter(object):
 
     def __str__(self, indent=0):
         ctx = self.context
+        import taxus
         if hasattr(ctx, 'name'):
             return "<urn:com.dotmpe:%s>"%str(ctx.name)
         elif isinstance(ctx, taxus.Locator):
@@ -69,9 +87,11 @@ class NodeFormatter(object):
             indentstr+"%s: %s" % (k.key, IFormatted(getattr(ctx,
                 k.key)).__str__(indent+1)) 
             #"%s: %s" % (k.key, getattr(ctx, k.key)) 
-            for k in ctx.__mapper__.iterate_properties]
-        header = "%s <%s" % ( cn(ctx), ctx.id )
-        return "%s\n%s" % (header, '\n'.join(fields))
+            for k in ctx.__mapper__.iterate_properties
+            if not k.key.endswith('id')]
+        #header = "%s <%s>" % ( cn(ctx), ctx.id )
+        header = "Node <%s>" % ( ctx.id ,)
+        return "[%s\n\t%s]" % (header, '\n\t'.join(fields))
 
 
 class NodeSetFormatter(object):
@@ -112,7 +132,9 @@ def hook(provided, object):
     adapter = registry.lookup1(
             adapted, provided, '')
     if not adapter:
-        libcmd.err("Could not adapt %s:%s > %s", object, adapted, provided)
+        import sys
+        #libcmd.err("Could not adapt %s:%s > %s", object, adapted, provided)
+        print >>sys.stderr, "Could not adapt %s:%s > %s" %(object, adapted, provided)
     return adapter(object)
 
 adapter_hooks.append(hook)

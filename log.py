@@ -2,6 +2,12 @@
 #
 # An output colorizer for syslog.
 # 
+import sys
+
+import zope.interface
+
+import taxus_out
+
 # $template custom,"TS:%timereported%;PRI:%pri%;PRI-text:%PRI-text%;APP:%app-name%;PID:%procid%;MID:%msgid%;HOSTNAME:%hostname%;msg:%msg%;FROMHOST:%FROMHOST%;STRUCTURED-DATA:%STRUCTURED-DATA%\n"
 #
 c00="\x1b[0;0;30m" # black/grey
@@ -63,6 +69,88 @@ def main(logfifo):
         except Exception, e:
             print logline
 
+# xxx: new logger code may 2012
+# syslog compat. levels
+EMERG, ALERT, CRIT, ERR, WARN, NOTE, INFO, DEBUG = range(0,8)
+#CHATTER = 1
+
+palette = dict(
+    default='\x1b[0;0m', # default
+    black='\x1b[0;30m', # black/d-gray
+    bblack='\x1b[1;30m', # bold black/d-gray
+    red='\x1b[0;31m', # red
+    bred='\x1b[1;31m', # 
+    green='\x1b[0;32m', # green
+    bgreen='\x1b[1;32m', # green
+    yellow='\x1b[0;33m', # orange
+    byellow='\x1b[1;33m', # yellow/orange
+    blue='\x1b[0;34m', # blue
+    bblue='\x1b[1;34m', # blue
+    magenta='\x1b[0;35m', # magenta
+    bmagenta='\x1b[1;35m',
+    cyan='\x1b[0;36m', # cyan
+    bcyan='\x1b[1;36m', 
+    white='\x1b[0;37m', # white/l-gray
+    bwhite='\x1b[1;37m', # bright white
+)
+
+def log(level, msg, *args):
+    """
+    TODO:
+  0. Emergency (emerg), system is unusable.
+  1. Alert, immeadeate action required.
+  2. Critical (crit).
+  3. Error (err).
+  4. Warning (warn).
+  5. Notice (note).
+  6. Informational (info).
+  7. Debug.
+    """
+    assert isinstance(level, int)
+    if not isinstance(msg, (basestring, int, float)):
+        msg = str(msg)
+    title = {
+    	    0:'{bred}Emergency{bwhite}',
+    	    1:'{red}Alert{white}',
+    	    2:'{red}Critical{white}',
+    	    3:'{byellow}Error{default}',
+    	    4:'{yellow}warning{default}',
+            5:'{green}Note{default}',
+            #6:'{bblack}info{default}',
+    	    7:'{bblack}Debug{default}'}
+    if level in title:
+        msg = title[level] +': '+ msg
+    for k in palette:
+        msg = msg.replace('{%s}' % k, palette[k])
+   
+    # XXX: nicer to put in __repr/str__
+    args = list(args)
+    for i, a in enumerate(args):
+        interfaces = list(zope.interface.providedBy(a).interfaces())
+        if interfaces == [taxus_out.IPrimitive]:
+            args[i] = taxus_out.IFormatted(a).toString()
+        elif not isinstance(a, (int, float,str,unicode)):
+            args[i] = str(a)
+    print >>sys.stderr, msg % tuple(args)
+
+emerg = lambda x,*y: log(EMERG, x, *y)
+alert = lambda x,*y: log(ALERT, x, *y)
+crit =  lambda x,*y: log(CRIT,  x, *y)
+err =   lambda x,*y: log(ERR,   x, *y)
+warn =  lambda x,*y: log(WARN,  x, *y)
+note =  lambda x,*y: log(NOTE,  x, *y)
+info =  lambda x,*y: log(INFO,  x, *y)
+debug = lambda x,*y: log(DEBUG, x, *y)
+
 if __name__ == '__main__':
     import sys
-    main(*sys.argv[1:])
+    #main(*sys.argv[1:])
+
+    log(EMERG, "Test test {green}test{default}")
+    log(ALERT, "Test test {green}test{default}")
+    log(CRIT, "Test test {green}test{default}")
+    log(ERR, "Test test {green}test{default}")
+    log(WARN, "Test test {green}test{default}")
+    log(NOTE, "Test test {green}test{default}")
+    log(INFO, "Test test {green}test{default}")
+    log(DEBUG, "Test test {green}test{default}")
