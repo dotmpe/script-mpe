@@ -2,7 +2,7 @@
 
 from target import Name, Target, AbstractTargetResolver
 from cmdline import Command
-from resources import Resourcer
+from resourcer import Resourcer
 
 from libcmd import Cmd
 from taxus import Taxus

@@ -33,6 +33,22 @@ test:: test_py_$d test_sa_$d
 
 test_py_$d test_sa_$d :: D := $/
 
+debug_py_$d::
+	@$(call log_line,info,$@,Starting python unittests..)
+	@\
+		PYTHONPATH=$$PYTHONPATH:./;\
+		PATH=$$PATH:~/bin;\
+		TEST_PY=main.py;\
+		TEST_LIB=confparse,confparse2,taxus,rsr,radical,workLog;\
+		VERBOSE=2;\
+    $(test-python) 2> test.log
+	@if [ -n "$$(tail -1 test.log|grep OK)" ]; then \
+	    $(ll) Success "$@" "see" test.log; \
+    else \
+	    $(ll) Errors "$@" "$$(tail -1 test.log)"; \
+	    $(ll) Errors "$@" see test.log; \
+    fi
+
 test_py_$d::
 	@$(call log_line,info,$@,Starting python unittests..)
 	@\
