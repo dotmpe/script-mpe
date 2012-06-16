@@ -4,16 +4,17 @@ import os, sys, re, anydbm
 
 import txs
 import log
-from target import Target
+from cmdline import Keywords, Targets
+from target import Namespace, Target
 
 
 
-NS = Target.register_namespace(
+NS = Namespace.register(
     prefix='lnd',
     uriref='http://project.dotmpe.com/script/#/cmdline.Lind'
 )
 
-@Target.register_handler(NS, 'tag', 'txs:pwd')
+@Target.register(NS, 'tag', 'txs:pwd')
 def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
     """
     Experiment, interactive interface.

@@ -1,6 +1,26 @@
-"""
-Defines the AbstractTargetResolver, which runs targets of registered
-handler modules.
+"""target
+
+    Namespace
+     - prefix (global preference)
+     - prefixes (alt.; non-unique or distinct)
+     - uriref (canonical ID)
+
+    Name
+     - name
+     - &ns:Namespace
+     - @qname
+     
+    Target
+     - &name:Name
+     - &handler (callable)
+     - depends
+
+    ExecGraph
+     - from/to/three:<Target,Target,Target>
+     - execlist (minimally cmd:options, from there on: anything from cmdline)
+
+    ContextStack
+
 
 See main
 
@@ -30,61 +50,92 @@ See main
 
 
 """
-import inspect
 import sys
-from UserDict import UserDict
-from UserList import UserList
+
+import zope.interface
 
 import log
 import lib
+import res
 import confparse
 
 
-class targets(UserList):
-    def __init__(self, *args):
-        self.required = False
-        UserList.__init__(self)
-    def required(self):
-        self.required = True
-        return self
-    def __str__(self):
-        return 'targets'+UserList.__str__(self)
-class keywords(UserDict): 
-    def __init__(self, **kwds):
-        UserDict.__init__(self)
-        self.update(kwds)
-#    def __str__(self):
-#        return 'keywords'+UserDict.__str__(self)
-class arguments(UserList): 
-    def __str__(self):
-        return 'arguments'+UserList.__str__(self)
+
+class Namespace(object):
+
+    def __init__(self, prefix, uriref, prefixes=[]):
+        self.uriref = uriref
+        self.prefix = prefix
+        if prefix not in prefixes:
+            prefixes.append(prefix)
+        self.prefixes = prefixes
+
+    # Static
+
+    instances = {}
+    "Static map with URI, target instances. "
+
+    prefixes = {}
+    "Static map for preferred prefix name. "
+
+    @classmethod
+    def register(clss, prefix, uriref):#, preferred=True, override_preferred=False):
+        # fetch or init Ns
+        if uriref in clss.instances:
+            ns = clss.instances[uriref]
+            if prefix not in ns.prefixes:
+                ns.prefixes.append(prefix)
+        else:
+            ns = clss(prefix, uriref, prefixes=[prefix])
+            clss.instances[uriref] = ns
+        # validate or assert prefix
+        if prefix in clss.prefixes:
+            assert clss.prefixes[prefix] == uriref
+        else:
+            clss.prefixes[prefix] = uriref
+
+        return ns
+
+    @classmethod
+    def fetch(clss, prefix):
+        return clss.instances[clss.prefixes[prefix]]
+
 
 class Name(object):
 
-    def __init__(self, name, ns=None):
-        assert ':' in name, (name, ns)
-        if not ns:
-            p = name.index(':')
-            ns = lib.namespaces[name[:p]]
+    zope.interface.implements(res.iface.IName)
+
+    """
+    Names are simple strings. They are made globally unique
+    by prefixes, such as URI's or QName prefixes. A static part
+    keeps a global mapping by QNames.
+    """
+
+    def __init__(self, name, ns):
+        assert isinstance(ns, Namespace), ns
         self.name = name
         self.ns = ns
 
     @property
-    def local_name(self):
-        p = self.name.index(':')
-        return self.name[p+1:]
+    def qname(self):
+        return self.prefix +':'+ self.name
 
     @property
     def prefix(self):
-        p = self.name.index(':')
-        return self.name[:p]
+        return self.ns.prefix
 
     def __repr__(self):
-        return "%s:%s" % (self.prefix, self.local_name)
-        return "Name(%r, ns=%r)" % (self.name, self.ns)
+        return "%s:%s" % (self.prefix, self.name)
 
     def __str__(self):
-        return "%s:%s" % (self.prefix, self.local_name)
+        return "%s:%s" % (self.prefix, self.name)
+
+    def __eq__(self, other):
+        if hasattr(other, 'name') and hasattr(other, 'ns'):
+            if other.name == self.name:
+                if other.ns.uriref == self.ns.uriref:
+                    return True
+        return False
 
     # Static
 
@@ -96,18 +147,32 @@ class Name(object):
         if isinstance(name, Name):
             return name
         assert isinstance(name, str), name
-        if not ns:
-            assert ':' in name, name
-        assert ':' in name, name
-        if name not in clss.instances:
-            n = Name(name, ns)
+        if ':' in name:
+            p = name.index(':')
+            if not ns:
+                ns = Namespace.fetch(name[:p])
+            name = name[p+1:]
+        else:
+            assert ns
+        n = Name(name, ns)
+        if n.qname not in clss.instances:
             clss.instances[name] = n
         else:
-            n = clss.instances[name]
+            n1 = clss.instances[name]
+            assert n == n1
         return n
+
+    @classmethod
+    def register(clss, **props):
+        assert 'prefix' in props
+        ns = confparse.Values(props)
+        clss.namespaces[ns.prefix] = ns
+        return ns
 
 
 class Target(object):
+
+    zope.interface.implements(res.iface.ITarget)
 
     def __init__(self, name, depends=[], handler=None, values={}):
         assert isinstance(name, Name), name
@@ -115,11 +180,10 @@ class Target(object):
         self.depends = list(depends)
         self.handler = handler
         self.values = values
-
         clss = self.__class__
         # auto static register
-        if name.name not in clss.instances:
-            clss.instances[name.name] = self
+        if name.qname not in clss.instances:
+            clss.instances[name.qname] = self
         else:
             log.warn("%s already in %s.instances",(self, clss))
 
@@ -132,12 +196,7 @@ class Target(object):
     
     @property
     def name_id(self):
-        return self.name.name.replace('-', '_').replace(':', '_')
-
-#    @property
-#    def handler(self):
-#        mod_class = Target.get_module(self)
-#        return getattr(mod_class(), target.name_id)
+        return self.name.qname.replace('-', '_').replace(':', '_')
 
     # Static
 
@@ -216,439 +275,23 @@ class Target(object):
 #                return mod
 #        assert False, "No module for %s" % tname
 
-    namespaces = {}
-
-    @classmethod
-    def register_namespace(clss, **props):
-        assert 'prefix' in props
-        ns = confparse.Values(props)
-        clss.namespaces[ns.prefix] = ns
-        return ns
-
 
     handlers = {}
 
     @classmethod
-    def register_handler(clss, ns, name, *depends):
+    def register(clss, ns, name, *depends):
         """
-        New method: handler gets registered upon declaration
-        to its qname. This stores two values, a references to the
-        handler and a list of prerequisite targets. These two form
-        the template for the ITarget implementation, used
-        by ExecGraph.
         """
-        assert ns.prefix in clss.namespaces \
-                and clss.namespaces[ns.prefix].uriref == ns.uriref
+        assert ns.prefix in Namespace.prefixes \
+                and Namespace.prefixes[ns.prefix] == ns.uriref
+        handler_id = ns.prefix +':'+ name
+        handler_name = Name.fetch(handler_id, ns=ns)
         def decorate(handler):
-            handler_id = Name.fetch(ns.prefix +':'+ name, ns=ns)
-            #
-#            Target.instances[ns.prefix +':'+ name] = handler
-            #
-            print 'Handler', handler_id
-            clss.handlers[ns.prefix + ':' + name] = Target(handler_id,
+            clss.handlers[handler_id] = clss(
+                    handler_name,
                     depends=depends,
                     handler=handler,
                 )
             return handler
         return decorate
-
-
-class ExecGraph(object):
-
-    """
-    This allows to model interdependencies of nodes in the execution tree,
-    and provide a session context for results generated by individual targets.
-    Ie. result objects are linked to their original target execution context.
-
-    Targets should be represented by nodes, interdependencies are structured by
-    directed links between nodes. Links may be references to the following
-    predicate names:
-
-    - cmd:prequisite
-    - cmd:request
-    - cmd:result
-  
-    Connected as in this schema::
-
-          Tprerequisite  <--- Tcurrent ---> Trequest
-                                 |
-                                 V
-                         Tresult or Rresult  
-                               
-    T represents an ITarget, R for IResource. Only ITarget can be executed,
-    though a target may be a factory (one-to-one instance cardinality) for a 
-    certain resource.
-
-    Targets are parametrized by a shared, global context expressed in a
-    dictionary, 'kwds'. These parameters do not normally affect their identity.
-    Targets gain access to results of other targets through this too, as it is 
-    updated in place.
-
-    TODO: arguments list?
-    XXX: schema for all this?
-
-    Targets depend on their prequisites, and on their generated requirements.
-    Required targets cannot depend on their generator. 
-    Result targets may, but need not to depend on their generator.
-
-    If a 'cmd:result' points to a target, it is executed sometime after 
-    the generator target. The object of this predicate may also be a
-    non-target node, representing an calculated or retrieve object that 
-    implements IFormatted, and may implement IResource or IPersisted.
-
-    All links branch out from the current node (the execution target),
-    allowing to retrieve the next target.
-    Target may appear at multiple places as dependencies.
-    Targets are identified by an opaquely generated key, allowing a target
-    to parametrize its ID. This should also ensure dependencies are uniquely
-    identified and executed only once. The target's implementation should
-    select the proper values to do this.
-
-    Through these links an additional structure is build up, the dynamic
-    execution tree. ExecGraph is non-zero until all nodes in this tree are
-    executed.  Because the nodes of this tree are not unique, a global 
-    pointer is kept to the current node of this tree. Execution resolution
-    progresses depth-first ofcourse since nested targets are requirements.
-    Result targets are executed at the first lowest depth they occur.
-    ie. the same level of- but after their generator.
-    The structure is asimple nested list with node keys.
-    The final structure may be processed for use in audit trails and other 
-    types of session- and change logs.
-    """
-
-# XXX: work in progress
-
-    def __init__(self, root=[]):
-        # P(s,o) lookup map for target and results structure
-        self.edges = confparse.Values(dict(
-                sub={},
-                pred={},
-                ob={}
-            ))
-        # nested tree structure
-        self.execlist = []
-        self.pointer = 0
-        if root:
-            for node in root:
-                self.put(node)
-    
-    def __contains__(self, other):
-        other = self.instance(other)
-        for i in self.execlist:
-            assert res.iface.ITarget.providedBy(i), i
-            if other.key == i.key:
-                return True
-            if other.key in i.depends:
-                pass
-        assert False
-
-    @staticmethod
-    def init(node):
-        n = Name.fetch(node)
-        return Target.fetch(n)
-
-    def instance(self, node):
-        import res
-        if not res.iface.ITarget.providedBy(node):
-            node = ExecGraph.init(node)
-        assert node.name.name in Target.handlers, node
-        return node
-
-    def key(self, node):
-        import res
-        if res.iface.ITarget.providedBy(node):
-            node = node.key
-        assert node in Target.handlers
-        return node
-
-    def put(self, target, idx=-1):
-        if idx == -1:
-            idx = self.pointer
-        assert idx >= 0, idx
-        assert idx <= len(self.execlist), idx
-        target = self.instance(target)
-        assert target.handler, target
-        while idx >= len(self.execlist):
-            self.execlist.append(None)
-        self.execlist[idx] = target
-        self.pointer += 1
-#        print self.pointer, self.execlist
-
-    def append(self, S_target, O_target):
-        """
-        Append a result for the given
-        """
-        S_target = self.instance(S_target)
-        node = Target.handlers[S_target.key]
-        O_target = self.instance(O_target)
-        node.results.append(O_target)
-
-    def require(self, S_target, O_target):
-        S_target = self.instance(S_target)
-        node = Target.handlers[S_target]
-        O_target = self.instance(O_target)
-        node.requires.append(O_target)
-
-    def __getitem__(self, node):
-        return self.get(node)
-
-    def get(self, node):
-        return Target.handlers[node]
-
-    def set(self, node):
-        Target.handlers[node]
-
-    @property
-    def current(self):
-        return self.execlist[self.pointer-1]
-        
-    def __nonzero__(self):
-        return not self.finished()
-
-    def finished(self):
-        return not self.current_node
-
-    def nextTarget(self):
-        target = self.current
-
-        # resolve static dependencies
-        while target.depends:
-            dep = target.depends.pop(0)
-            self.put(dep, self.pointer)
-            assert self.current, (self.pointer, self.execlist)
-            target = self.current
-            if not target.depends:
-                return self.current
-
-        print self.execlist
-        print 'nextTarget', self.pointer, self.current
-        
-        assert False
-
-
-class ContextStack(object):
-    """A stack of states. Setting an attribute overwrites the last
-    value, but deleting the value reactivates the old one.
-    Default values can be set on construction.
-    
-    This is used for important states during output of rst,
-    e.g. indent level, last bullet type.
-    """
-    
-    def __init__(self, defaults=None):
-        '''Initialise _defaults and _stack, but avoid calling __setattr__'''
-        if defaults is None:
-            object.__setattr__(self, '_defaults', {})
-        else:
-            object.__setattr__(self, '_defaults', dict(defaults))
-        object.__setattr__(self, '_stack', {})
-
-    def __getattr__(self, name):
-        '''Return last value of name in stack, or default.'''
-        if name in self._stack:
-            return self._stack[name][-1]
-        if name in self._defaults:
-            return self._defaults[name]
-        raise AttributeError
-
-    def append(self, name, value):
-        l = list(getattr(self, name))
-        l.append(value)
-        setattr(self, name, l)
-
-    def __setattr__(self, name, value):
-        '''Pushes a new value for name onto the stack.'''
-        if name in self._stack:
-            self._stack[name].append(value)
-        else:
-            self._stack[name] = [value]
-
-    def __delattr__(self, name):
-        '''Remove a value of name from the stack.'''
-        if name not in self._stack:
-            raise AttributeError
-        del self._stack[name][-1]
-        if not self._stack[name]:
-            del self._stack[name]
-   
-    def depth(self, name):
-        l = len(self._stack[name])
-        if l:
-            return l-1
-
-    def previous(self, name):
-        if len(self._stack[name]) > 1:
-            return self._stack[name][-2]
-
-    def __repr__(self):
-        return repr(self._stack)
-
-
-
-class AbstractTargetResolver(object):
-
-    namespace = None, None
-
-    handlers = [
-#            'cmd:targets'
-        ]
-#            'cmd:targets': [ 'cmd:options' ]
-
-    def main(self):
-        assert self.handlers, "Need at least one static target to bootstrap"
-        execution_graph = ExecGraph(self.handlers)
-        stack = ContextStack()
-        self.run(execution_graph, stack)
-
-    def run(self, execution_graph, context, args=[], kwds={}):
-        import res
-        target = execution_graph.nextTarget()
-        assert target
-        assert isinstance(kwds, dict)
-        context.generator = target.handler(
-                        **self.select_kwds(target, kwds))
-        for r in context.generator:
-            assert not args, "TODO: %s" % args
-            if isinstance(r, str):
-                pass
-            if res.iface.ITarget.providedBy(r):
-                if r.required:
-                    execution_graph.require(target, r)
-                    self.run(execution_graph, context, args=args, kwds=kwds)
-                else:
-                    execution_graph.append(target, r)
-            elif isinstance(r, int):
-                if r == 0:
-                    assert not execution_graph, '???'
-                sys.exit(r)
-            elif isinstance(r, arguments):
-                args.extend(arguments)
-            elif isinstance(r, keywords):
-                kwds.update(r)
-        del context.generator
-
-    def select_kwds(self, target, kwds):
-        func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
-                inspect.getargspec(target.handler)
-#        assert func_arg_vars.pop(0) == 'self'
-        ret_kwds = {}
-
-        if func_defaults:
-            func_defaults = list(func_defaults) 
-
-        while func_defaults:
-            arg_name = func_arg_vars.pop()
-            value = func_defaults.pop()
-            if arg_name in kwds:
-                value = kwds[arg_name]
-            ret_kwds[arg_name] = value
-        
-        if "options" in ret_kwds:
-            ret_kwds['options'] = opts
-
-        return ret_kwds
-
-# XXX: trying to rewrite to hierarchical target resolver
-
-    def fetch_target(self, name):
-        n = Name.fetch(name)
-        return Target.fetch(n)
-
-    def main_old():
-        execution_list = []
-
-        log.info("Starting with: %s", " ".join(self.handlers))
-        for h in self.handlers:
-            target = self.fetch_target(h)
-            execution_list.append(target)
-
-        kwds = {}
-
-        hl = len(execution_list)
-        ti = 0
-        ei = 0
-        while ti < len(execution_list):
-            target = execution_list[ti]
-            ei += 1
-            #log.debug("At iteration %s", ei)
-            #log.debug("At index %s", ti + 1)
-            assert isinstance(ti, int)
-
-            """
-            Skip if the action was already performed,
-            perhaps as dependency of an earlier target.
-            """
-            if target in execution_list[:ti]:
-                ti += 1
-                assert False
-                print 'skipped', ti, target
-                continue
-
-            """
-            Prepend any dependency before the current target.
-            """
-            if target.depends:
-                for dep in target.depends:
-                    dep = self.fetch_target(dep)
-                    #print 'dep', dep, target
-                    #assert (dep != target) and \
-                    #    (dep not in execution_list[:ti+1]), \
-                    #        "Cyclical: depency %s for %s" % (dep, target)
-                    if dep not in execution_list[:ti]:
-                        log.note('New depedency {bwhite}%s {default}for {bwhite}%s', dep, target)
-                        execution_list.insert(ti, dep)
-                    else:
-                        log.debug('Already satisfied %s for %s', dep, target)
-
-                if execution_list[ti] != target:
-                    #log.debug('Restarting, new depedencies (#%s; @%s)', 
-                    #        ei, ti+1)
-                    continue
-
-            log.info("{bblue}Executing{bwhite} @%s.{default} %s", 
-                    ti, str(target))
-            mod_class = Target.get_module(target)
-            handler = getattr(mod_class(), target.name_id)
-            # execute and iterate through generator
-            ret = handler(**self.select_kwds(handler, kwds))
-
-            # TODO: suspend and stack operations for sub targets
-            if isinstance(ret, list):
-                ret = tuple(ret)
-            if not ( inspect.isgenerator(ret) or isinstance(ret, tuple) ):
-                ret = (ret,)
-           
-            epilogue = []
-            for r in ret:
-                # use integer to indicate target status, request interupts
-                if isinstance(r, int):
-                    sys.exit(r)
-                # strings refer to the id of the action to run next
-                elif isinstance(r, str):
-                    r = targets([r])
-                elif isinstance(r, keywords):
-                    kwds.update(r)
-                if isinstance(r, targets):
-                    for epi in r:
-                        a = self.fetch_target(epi)
-                        if a in execution_list[:ti]:
-                            log.note("Already satisfied epilogue? %s", a)
-                            continue
-                        #    (a.name.name not in target.depends) and \
-                        assert (a != target) and \
-                            (a not in execution_list[:ti]), \
-                                "Cyclical: epilog %s for %s" % (a, target)
-                        epilogue.append(a)
-           
-            #if epilogue:
-            #    print 'new epilogue', [t.name for t in epilogue]
-            for epi in epilogue:
-                execution_list.insert(ti+1, epi)
-
-            ti += 1
-            log.info("{bblue}Done{bwhite}: %s{default}", target)
-            log.debug("Looping, ready for iteration #%s, index @%s; %s more steps", 
-                    ei, ti+1, len(execution_list[ti:]))
-
-
 

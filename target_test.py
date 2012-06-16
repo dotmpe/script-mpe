@@ -1,8 +1,8 @@
 import lib
-from target import Name, Target, AbstractTargetResolver
+from target import Name, Target, TargetResolver
 
 
-class Core(AbstractTargetResolver):
+class Core(TargetResolver):
 
     namespace = 'rsr', 'http://name.wtwta.nl/#/rsr'
 

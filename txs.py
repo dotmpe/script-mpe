@@ -9,12 +9,12 @@ from datetime import datetime
 from sqlalchemy.orm.exc import NoResultFound
 
 import confparse
-from cmdline import Command
 import lib
 import libcmd
 import log
 import res
-from target import Target, AbstractTargetResolver, keywords, targets
+from target import Namespace, Target
+from cmdline import Keywords, Targets
 # XXX
 from taxus import SqlBase, SessionMixin, current_hostname, \
         Node, INode, CachedContent, \
@@ -86,7 +86,7 @@ class LocalPathResolver(object):
 
 
 # to replace taxus.py
-class Txs(Command, AbstractTargetResolver, SessionMixin):
+class Txs:#(Command, SessionMixin):
 
     namespace = 'txs', 'http://project.dotmpe.com/script/#/cmdline.Taxus'
 
@@ -207,11 +207,11 @@ class Txs(Command, AbstractTargetResolver, SessionMixin):
 
 # TODO; test and remove from taxus.py
 
-NS = Target.register_namespace(
+NS = Namespace.register(
     prefix='txs',
     uriref='http://project.dotmpe.com/script/#/cmdline.Taxus')
 
-@Target.register_handler(NS, 'session', 'cmd:options')
+@Target.register(NS, 'session', 'cmd:options')
 def txs_session(prog=None, sa=None, opts=None, settings=None):
     # SA session
     dbref = opts.dbref
@@ -249,21 +249,21 @@ def txs_session(prog=None, sa=None, opts=None, settings=None):
         if not host:
             log.crit("Could not get host")
     urlresolver = LocalPathResolver(host, sa)
-    yield keywords(sa=sa, ur=urlresolver)
+    yield Keywords(sa=sa, ur=urlresolver)
 
-@Target.register_handler(NS, 'pwd', 'txs:session')
+@Target.register(NS, 'pwd', 'txs:session')
 def txs_pwd(prog=None, sa=None, ur=None, opts=None, settings=None):
     log.debug("{bblack}txs{bwhite}:pwd{default}")
     pwd = ur.getPWD(opts)
-    yield keywords(pwd=pwd)
+    yield Keywords(pwd=pwd)
 
-@Target.register_handler(NS, 'ls', 'txs:pwd')
+@Target.register(NS, 'ls', 'txs:pwd')
 def txs_ls(prog=None, sa=None, ur=None, opts=None, settings=None):
     log.debug("{bblack}txs{bwhite}:ls{default}")
     node = ur.getPWD(opts)
     print sa.query(Node).all()
 
-@Target.register_handler(NS, 'run', 'txs:session')
+@Target.register(NS, 'run', 'txs:session')
 def txs_run(sa=None, ur=None, opts=None, settings=None):
     log.debug("{bblack}txs{bwhite}:run{default}")
     # XXX: Interactive part, see lind.

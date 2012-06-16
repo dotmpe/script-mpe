@@ -6,13 +6,13 @@ import os
 import confparse
 import lib
 import log
-from target import Target, AbstractTargetResolver
-from cmdline import Command
+from target import Target
+#from cmdline import Command
 from res import Volume
 from res import PersistedMetaObject, Metafile
 
 
-class Resourcer(Command, AbstractTargetResolver):
+class Resourcer:#(Command):
 
     namespace = 'rsr', 'http://project.dotmpe.com/script/#/cmdline.Resourcer'
 
