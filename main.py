@@ -3,8 +3,6 @@
 Use of the target framework.
 
 ToDo:
-    - Rewrite so target execution is stacked. May want to review
-      handler/execution list sequence.
     - volume, radical, finfo need a rewrite to use the new cmdline.
 
 Work in progress:
@@ -12,15 +10,15 @@ Work in progress:
 
 Issues:
     - Rewrite taxus INode to be polymorphic: Dir, File, Dev..
+
 """
-#from libcmd import Cmd
+import lib
+from libcmd import TargetResolver
 import cmdline
-#from taxus import Taxus
 import txs
 import lind
-#from rsr import Rsr
-from resourcer import Resourcer
-#from volume import Volume
+import rsr
+import volume
 #from radical import Radical
 #from finfo import FileInfoApp
 
@@ -29,5 +27,5 @@ from resourcer import Resourcer
 
 if __name__ == '__main__':
 
-    cmdline.TargetResolver().main(['cmd:options'])
+    TargetResolver().main(['cmd:options'])
 

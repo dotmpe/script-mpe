@@ -11,9 +11,8 @@ import os
 
 
 import iface
-import lib
+#import lib
 import confparse
-import cmdline
 #from taxus import get_session
 import log
 

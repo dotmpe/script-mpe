@@ -2,8 +2,8 @@ from fnmatch import fnmatch
 import os
 
 import confparse
-import cmdline
 import log
+from lib import Prompt
 
 
 class File(object):
@@ -71,7 +71,7 @@ class Dir(object):
 
     @classmethod
     def prompt_recurse(clss, opts):
-        v = cmdline.Prompt.query("Recurse dir?", ("Yes", "No", "All"))
+        v = Prompt.query("Recurse dir?", ("Yes", "No", "All"))
         if v is 2:
             opts.recurse = True
             return True
@@ -107,9 +107,16 @@ class Dir(object):
                     dirs.remove(node)
                     continue
                 elif opts.interactive:
-                    log.info(dirpath)
+                    log.info("Interactive walk: %s",dirpath)
                     if not Dir.prompt_recurse(opts):
                         dirs.remove(node)
+                assert isinstance(dirpath, basestring)
+                try:
+                    dirpath = unicode(dirpath)
+                except UnicodeDecodeError, e:
+                    log.err("Ignored non-ascii/illegal filename %s", dirpath)
+                    continue
+                assert isinstance(dirpath, unicode)
                 try:
                     dirpath.encode('ascii')
                 except UnicodeDecodeError, e:
@@ -127,10 +134,17 @@ class Dir(object):
                 if File.ignored(filepath):
                     #log.err("Ignored file %r", filepath)
                     continue
+                assert isinstance(filepath, basestring)
+                try:
+                    filepath = unicode(filepath)
+                except UnicodeDecodeError, e:
+                    log.err("Ignored non-ascii/illegal filename %s", filepath)
+                    continue
+                assert isinstance(filepath, unicode)
                 try:
                     filepath.encode('ascii')
-                except UnicodeDecodeError, e:
-                    log.err("Ignored non-ascii filename %s", filepath)
+                except UnicodeEncodeError, e:
+                    log.err("Ignored non-ascii/illegal filename %s", filepath)
                     continue
                 yield filepath
 

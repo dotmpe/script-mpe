@@ -33,20 +33,22 @@ test:: test_py_$d test_sa_$d
 
 test_py_$d test_sa_$d :: D := $/
 
+# Generate a coverage report of one or more runs to find stale code
 debug_py_$d::
 	@$(call log_line,info,$@,Starting python unittests..)
 	@\
 		PYTHONPATH=$$PYTHONPATH:./;\
 		PATH=$$PATH:~/bin;\
-		TEST_PY=main.py;\
-		TEST_LIB=confparse,confparse2,taxus,rsr,radical,workLog;\
+        TEST_PY="main.py txs:ls cmd:targets cmd:help";\
+		TEST_LIB=cmdline,target,res,txs,taxus,lind,resourcer;\
+		HTML_DIR=debug-coverage;\
 		VERBOSE=2;\
-    $(test-python) 2> test.log
-	@if [ -n "$$(tail -1 test.log|grep OK)" ]; then \
-	    $(ll) Success "$@" "see" test.log; \
+    $(test-python) 2> debug.log
+	@if [ -n "$$(tail -1 debug.log|grep OK)" ]; then \
+	    $(ll) Success "$@" "see" debug.log; \
     else \
-	    $(ll) Errors "$@" "$$(tail -1 test.log)"; \
-	    $(ll) Errors "$@" see test.log; \
+	    $(ll) Errors "$@" "$$(tail -1 debug.log)"; \
+	    $(ll) Errors "$@" see debug.log; \
     fi
 
 test_py_$d::
@@ -56,6 +58,7 @@ test_py_$d::
 		PATH=$$PATH:~/bin;\
 		TEST_PY=test.py;\
 		TEST_LIB=confparse,confparse2,taxus,rsr,radical,workLog;\
+		HTML_DIR=test-coverage;\
 		VERBOSE=2;\
     $(test-python) 2> test.log
 	@if [ -n "$$(tail -1 test.log|grep OK)" ]; then \

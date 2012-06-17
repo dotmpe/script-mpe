@@ -3,6 +3,7 @@ import getpass
 import optparse
 import os
 import re
+import select
 import socket
 import subprocess
 import sys
@@ -10,7 +11,7 @@ import sys
 from os.path import basename, join,\
         isdir
 
-
+import log
 #import confparse
 #
 #
@@ -23,7 +24,6 @@ from os.path import basename, join,\
 hostname = socket.gethostname()
 username = getpass.getuser()
 
-namespaces = {}
 
 RSR_NS = 'rsr', 'http://name.wtwta.nl/#/rsr'
 
@@ -111,23 +111,6 @@ def human_readable_bytesize(length, suffix=True, suffix_as_separator=False):
         s = s[:-1].replace('.', s[-1])
     return s
 
-def tree_paths(path):
-
-    """
-    Yield all paths traversing from path to root.
-    """
-
-    parts = path.strip(os.sep).split(os.sep)
-    while parts:
-        cpath = join(*parts)
-        if path.startswith(os.sep):
-            cpath = os.sep+cpath
-        
-        yield cpath
-        parts.pop()
-        #parts = parts[:-1]
-
-
 # The epoch used in the datetime API.
 EPOCH = datetime.datetime.utcfromtimestamp(0)
 
@@ -174,4 +157,88 @@ if __name__ == '__main__':
                 ('a',os.path.getatime(f)),
                 ('m',os.path.getmtime(f)),):
             print n, timestamp_to_datetime(ts), f
+
+
+
+# http://code.activestate.com/recipes/134892-getch-like-unbuffered-character-reading-from-stdin/
+class _Getch:
+    """Gets a single character from standard input.  Does not echo to the
+screen."""
+    def __init__(self):
+        try:
+            self.impl = _GetchWindows()
+        except ImportError:
+            self.impl = _GetchUnix()
+
+    def __call__(self): return self.impl()
+
+class _GetchUnix:
+    def __init__(self):
+        import tty, sys
+
+    def __call__(self):
+        import sys, tty, termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+            if ch == '\x03':
+                raise KeyboardInterrupt
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
+class _GetchWindows:
+    def __init__(self):
+        import msvcrt
+
+    def __call__(self):
+        import msvcrt
+        return msvcrt.getch()
+
+getch = _Getch()
+
+class Prompt(object):
+
+    """
+    Static interactive templates for readline user-interaction.
+    """
+
+    @classmethod
+    def ask(clss, question, yes_no='Yn'):
+        yes, no = yes_no.split()
+        assert yes.isupper() or no.isupper()
+        v = raw_input('%s [%s] ' % (question, yes_no))
+        if not v:
+            if yes.isupper():
+                v = yes
+            else:
+                v = no
+        elif v.upper() not in yes_no.upper():
+            return
+        return v.upper() == yes.upper()
+
+    @classmethod
+    def query(clss, question, options=()):
+        assert options
+        opts = ''.join([o[0] for o in options]).title()
+        while True:
+            print log.format_line('{green}%s {bwhite}[{bblack}%s{bwhite}]{default} or [?help] ') % (question, opts)
+#            v = sys.stdin.read(1)
+            v = getch()
+            #v = raw_input(
+            #        log.format_line('{green}%s {bwhite}[{bblack}%s{bwhite}]{default} or [?help] ') 
+            #        % (question, opts)).strip()
+            if not v:
+                v = opts[0]
+            if v == 'help'  or v in '?h':
+                print ("Choose from %s. Default is %r, use --recurse option to "
+                    "override. ") % (', '.join(options), options[0])
+            if v.upper() in opts.upper():
+                choice = opts.upper().index(v.upper())
+                print 'Answer:', options[choice] 
+                return choice
+
+
 

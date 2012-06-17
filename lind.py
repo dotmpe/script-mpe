@@ -4,8 +4,9 @@ import os, sys, re, anydbm
 
 import txs
 import log
-from cmdline import Keywords, Targets
-from target import Namespace, Target
+from libname import Namespace, Name
+from libcmd import Targets, Arguments, Keywords, Options,\
+    Target 
 
 
 
@@ -13,6 +14,8 @@ NS = Namespace.register(
     prefix='lnd',
     uriref='http://project.dotmpe.com/script/#/cmdline.Lind'
 )
+
+Options.register(NS, )
 
 @Target.register(NS, 'tag', 'txs:pwd')
 def lnd_tag(opts=None, sa=None, ur=None, pwd=None):

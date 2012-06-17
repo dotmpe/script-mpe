@@ -109,8 +109,8 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 import taxus_out
 import lib
 import log
-import libcmd
-from libcmd import Cmd, err
+
+
 
 SqlBase = declarative_base()
 
@@ -231,6 +231,11 @@ class Name(SqlBase, SessionMixin):
 
     name = Column(String(255), index=True, unique=True)
 
+    def __str__(self):
+        return "<%s %r>" % (lib.cn(self), self.name)
+
+    def __repr__(self):
+        return "<Name %r>" % self.name
 
 # mapping table for Host [1-1] Locator
 #locator_host = Table('locator_host', SqlBase.metadata,
@@ -300,6 +305,9 @@ class Locator(SqlBase, SessionMixin):
     host_id = Column(Integer, ForeignKey('hosts.id'))
     host = relationship('Host', primaryjoin="Locator.host_id==Host.host_id",
         backref='locations')
+
+    def __str__(self):
+        return "<%s %r>" % (lib.cn(self), self.ref)
 
 
 class Tag(SqlBase, SessionMixin):
@@ -388,6 +396,11 @@ class Host(Node):
     def netpath(self):
         return "//%s" % self.hostname.name
 
+    def __str__(self):
+        return "<Host %s>" % self.hostname
+
+    def __repr__(self):
+        return "<Host %r>" % self.hostname
 
 def prompt_choice_with_input(promptstr, choices):
     assert isinstance(choices, list)
@@ -420,7 +433,7 @@ def current_hostname(initialize=False, interactive=False):
         if socket.getfqdn() != socket.gethostname():
             hostname = hostnames[0] +"."
         else:
-            err("FQDN is same as hostname")
+            log.err("FQDN is same as hostname")
             # cannot figure out what host to use
             while interactive:
                 print hostnames
@@ -459,6 +472,12 @@ class INode(Node):
     Mount = 'inode:mount'
     FIFO = 'inode:fifo'
     Socket = 'inode:socket'
+
+    def __str__(self):
+        return "<%s %s>" % (lib.cn(self), self.location)
+
+    def __repr__(self):
+        return "<%s %s>" % (lib.cn(self), self.location)
 
 
 class Dir(INode):
@@ -866,107 +885,7 @@ def get_session(dbref, initialize=False):
     #dbref = 'mysql://robin/taxus_o'
 
 
-class Taxus(Cmd):
-
-    NAME = os.path.splitext(os.path.basename(__file__))[0]
-
-    DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
-    DEFAULT_DB = "sqlite:///%s" % DB_PATH
-
-    DEFAULT_OBJECT_DB = os.path.expanduser('~/.cllct/objects.db')
-
-    DEFAULT_CONFIG_KEY = NAME
-
-    TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['query', 'init_database']
-    DEFAULT_ACTION = 'query'
-
-    # Main handler config
-
-    HANDLERS = [
-            'cmd:static',
-            'cmd:config',
-            'cmd:options',
-            'taxus:session', # set up SQL session
-            'cmd:actions',
-            #'taxus:close',
-        ]
-
-    NAMESPACE = 'taxus', 'http://name.wtwta.nl/#/taxus'
-    DEPENDS = {
-            'session': ['config', ],
-            'query': ['session', ]
-        }
-
-    @classmethod
-    def get_opts(klass):
-        return (
-                (('-g', '--global-objects'), { 'metavar':'URI', 
-                    'default': klass.DEFAULT_OBJECT_DB, 
-                    'dest': 'objectdbref',
-                    }),
-                (('-d', '--dbref'), { 'metavar':'URI', 
-                    'default': klass.DEFAULT_DB, 
-                    'dest': 'dbref',
-                    'help': "A URI formatted relational DB access description "
-                        "(SQLAlchemy implementation). Ex: "
-                        " `sqlite:///taxus.sqlite`,"
-                        " `mysql://taxus-user@localhost/taxus`. "
-                        "The default value (%default) may be overwritten by configuration "
-                        "and/or command line option. " }),
-
-                (('-q', '--query'), {'action':'callback', 
-                    'callback_args': ('query',),
-                    'callback': libcmd.optparse_override_handler,
-                    'dest': 'command',
-                    'help': "TODO" }),
-#'-X', 
-                (('--init-database',), {
-                    'action': 'callback', 
-                    'callback_args': ('init_database',),
-                    'dest': 'command', 
-                    'callback': libcmd.optparse_override_handler,
-                    'help': "TODO" }),
-
-                (('--init-host',), {
-                    'action': 'callback', 
-                    'callback_args': ('init_host',),
-                    'dest': 'command', 
-                    'callback': libcmd.optparse_override_handler,
-                    'help': "TODO" }),
-            )
-
-    @staticmethod
-    def get_options():
-        return Cmd.get_opts() + Taxus.get_opts()
-
-    def get_prerequisites(self, action):
-        pass
-
-    def taxus_session(self, opts=None, **kwds):
-
-        """
-        - Init 'default' SA session for taxus.
-        - Get the current taxus Host from SA session.
-        - Init 'global' persisted object store.
-        """
-    
-        # Initialize session, 'default' may have ben initialized already
-        self.session = SessionMixin.get_instance('default', opts.dbref)#optdict.get('dbref'))
-        if not self.session and not opts.command.startswith('init'):
-            err("Cannot get storage session, perhaps use --init-database? ")
-            sys.exit(1)
-
-        try:
-            self.host = self.host_find([], opts)
-        except Exception, e:
-            self.host = None
-            err("Query failure: %s", e)
-        if not self.host and not opts.command.startswith('init'):
-            err("Unknown host, perhaps use --init-host? ")
-            sys.exit(1)
-
-    def init_config_defaults(self, dbref=None, **opts):
-        pass
+class Taxus(object):
 
     # Extra commands
     def init_host(self, options=None):
@@ -997,43 +916,6 @@ class Taxus(Cmd):
         print "Applying SQL DDL to DB %s " % dbref
         self.session = get_session(dbref, initialize=True)
         return self.session
-
-    def hostname_find(self, args, opts):
-        if not args:
-            hostnamestr = current_hostname()
-        else:
-            hostnamestr = args.pop(0)
-        if not hostnamestr:
-            return
-        try:
-            name = self.session\
-                    .query(Name)\
-                    .filter(Name.name == hostnamestr).one()
-        except NoResultFound, e:
-            name = None
-        return name
-
-    def host_find(self, args, opts):
-        """
-        Identify given or current host.
-        """
-        name = None
-        if args:
-            name = args.pop(0)
-        if not isinstance(name, Name):
-            name = self.hostname_find([name], opts)
-        if not name:
-            name = self.hostname_find(args, opts)
-        if not name and not opts.command.startswith('init'):
-            err("Cannot find hostname, %s", args)
-            return
-        node = Node
-        try:
-            node = self.session.query(Host)\
-                    .filter(Host.hostname == name).one()
-        except NoResultFound, e:
-            return
-        return node
 
     def find_inode(self, path):
         # FIXME: rwrite to locator?
@@ -1100,83 +982,4 @@ class Taxus(Cmd):
                 comment=comment,
                 date_added=datetime.now())
         return node
-
-
-lib.namespaces.update((Taxus.NAMESPACE,))
-
-if __name__ == '__main__':
-    app = Taxus()
-    app.main()
-
-
-
-# Testing
-
-def test_tree(s):
-
-    now = datetime.now()
-
-    n = Node(name='/', date_added=now)
-    s.add(n), s.commit()
-
-    n = Node(space_id=1, name='test1', date_added=now)
-    s.add(n), s.commit()
-    n = Node(space_id=2, name='test1.1', date_added=now)
-    s.add(n), s.commit()
-
-    now = datetime.now()
-    r = Resource(space_id=1, name='Resource 1 (1.1)', date_added=now)
-    s.add(r), s.commit()
-
-    now = datetime.now()
-    r = Resource(space_id=4, name='Resource 2 (1.1.1)', date_added=now)
-    s.add(r), s.commit()
-
-def test_annotate(s):
-
-    now = datetime.now()
-    ref1 = Locator(name='Local Web Site Reference 1', ref='http://localhost/', date_added=now)
-    s.add(ref1), s.commit()
-
-    rs1 = Resource(name='Local Web Site', location=ref1, date_added=now)
-    s.add(rs1), s.commit()
-
-    now = datetime.now()
-    bm = Bookmark(name='My bookmark', ref=ref1, date_added=now)
-    s.add(bm), s.commit()
-
-    now = datetime.now()
-    ref2 = Locator(name='Internet Web Site', ref='http://example.net/', date_added=now)
-    s.add(ref2), s.commit()
-
-    now = datetime.now()
-    bm = Bookmark(name='My bookmark 2', ref=ref2, date_added=now)#, size=1230)
-    s.add(bm), s.commit()
-
-
-def test_variants(s):
-
-    now = datetime.now()
-
-    v = Invariant(name='test')
-
-def test_print(s):
-
-    #print s.query(Locator, Resource).join('location').filter_by(ref='http://example.net/').all()
-    print 'all', s.query(Resource, Locator).join('location').all()
-    print
-    print 'localhost', s.query(Resource, Locator).join('location').filter(Locator.ref=='http://localhost/').all()
-    print 'localhost', s.query(Resource, Locator).join('location').filter_by(ref='http://localhost/').all()
-    print
-
-    print
-    print 'Printing nodes'
-    for n in s.query(Node).all():
-        n.record_format = 'format2'
-        print str(n), [n.id for n in n.children]
-
-    print
-    print 'Printing resources'
-    for r in list(s.query(Resource).all()):
-        print r
 

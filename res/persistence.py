@@ -1,6 +1,9 @@
 """
 Object-Storage mapping.
 """
+import shelve
+import bsddb
+
 from rsrlib.store import UpgradedPickle, Object
 
 

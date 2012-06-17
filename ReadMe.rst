@@ -67,7 +67,9 @@ Scripts
     current directory
 
 Libraries
-  confparse
+  The following modules have no executable interface.
+
+  confparse (std python)
     parse settings from yaml
 
 Configuration

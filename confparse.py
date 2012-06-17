@@ -22,13 +22,14 @@ Consider:
   expanded to module attributes, and thus serialized to nested dictionaries.
 - Handling of lists is fairly primitive and could be buggy in cases? Recursion
   depth is fixed by implementation at 2 levels for complex objects in lists.
+
+TODO: segment configuration into multiple files.
 """
 import os, re, sys, types
 from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
 
-from script_mpe.lib import tree_paths
 
 try:
     import syck
@@ -63,6 +64,22 @@ config_suffix = (
     '.yaml',
     '.conf',
 )
+
+
+def tree_paths(path):
+
+    """
+    Yield all paths traversing from path to root.
+    """
+
+    parts = path.strip(os.sep).split(os.sep)
+    while parts:
+        cpath = join(*parts)
+        if path.startswith(os.sep):
+            cpath = os.sep+cpath
+        
+        yield cpath
+        parts.pop()
 
 
 def expand_config_path(name, paths=config_path):
@@ -121,9 +138,15 @@ class Values(dict):
 
     default_source_key = 'config_file'
     default_config_key = 'default'
+#
+#    def keys(self):
+#        return [x for x in self.__dict__ if not x.startswith('_')]
+
+    def __len__(self):
+        return len(self.keys())
 
     def __str__(self):
-        return '<Values:%s>' % self.path()
+        return '<Values:%s(#%s)>' % (self.path(), len(self))
 
     def __repr__(self):
         return 'Values(%s)'%self.keys()#+str(dict(values))+')'
@@ -468,6 +491,7 @@ def load(name, paths=config_path):
 _ = Values()
 
 
+# XXX: testing
 if __name__ == '__main__':
     configs = list(expand_config_path('cllct.rc')) 
     assert configs == ['/Users/berend/.cllct.rc'], configs
