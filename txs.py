@@ -233,6 +233,7 @@ def txs_session(prog=None, sa=None, opts=None, settings=None):
 @Target.register(NS, 'pwd', 'txs:session')
 def txs_pwd(prog=None, sa=None, ur=None, opts=None, settings=None):
     log.debug("{bblack}txs{bwhite}:pwd{default}")
+    assert ur
     cwd = os.path.abspath(os.getcwd())
     pwd = ur.getDir(cwd, opts)
     yield pwd

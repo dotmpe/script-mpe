@@ -194,7 +194,7 @@ def cmd_options(settings=None, prog=None):
     while args_:
         a = args_.pop()
         if re.match('[a-z][a-z0-9]+:[a-z0-9-]', a.lower()):
-            targs = Targets(targs+(a,))
+            targs = Targets(*(targs.items+(a,)))
         else:
             args = Arguments(args+(a,))
     yield targs

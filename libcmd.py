@@ -113,15 +113,23 @@ class Handler(object):
 #        self.results = results
 
 
-class Targets(tuple):
+class Targets(object):#tuple):
     def __init__(self, *args):
+        super(Targets, self).__init__()
         self.required = False
-        tuple.__init__(self, *args)
+        self.items = args
     def required(self):
         self.required = True
         return self
     def __str__(self):
-        return 'targets'+tuple.__str__(self)
+        assert isinstance(self.items, tuple)
+        return 'targets%r'%self.items
+    def __iter__(self):
+        for i in self.items:
+        	yield i
+#    def __add__(self, other):
+#        if isinstance(other, (list, tuple, Targets)):
+#        	return self.items + other
 
 class Keywords(UserDict): 
     def __init__(self, **kwds):
@@ -324,7 +332,7 @@ class ExecGraph(object):
             node = node.key
         if res.iface.IName.providedBy(node):
             node = node.qname
-        assert isinstance(node, str)
+        assert isinstance(node, str), node
         return node
 
     def index(self, node):
@@ -386,10 +394,12 @@ class ExecGraph(object):
         S_target = self.instance(S_target)
         O_name = self.name(O_target) 
         assert S_target.key in self.execlist
-        idx = self.index(S_target)
+        idx = self.index(S_target.key)
         if O_name not in self.execlist:
-            self.put(O_target, idx)
+            #print 'TODO put', O_name, O_target
+            self.put(O_name, idx)
             O_target = self.instance(O_target)
+            self.pointer -= 1
         # make the edges 
         #XXX:self._assert(S_target, self.P_requires, O_target)
         #(for antonym we can traverse the reverse mapping)
@@ -680,6 +690,7 @@ class TargetResolver(object):
                         #args.extend(r)
                     elif isinstance(r, Targets):
                         for t in r:
+                            assert isinstance(t, str), t
                             execution_graph.require(target, t)
                     elif isinstance(r, Keywords):
                         kwds.update(r)

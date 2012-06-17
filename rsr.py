@@ -52,28 +52,15 @@ Options.register(NS,
 #
 
 @Target.register(NS, 'shared-lib', 'cmd:options')
-def rsr_shared_lib():
+def rsr_shared_lib(prog=None):
     libs = confparse.Values(dict(
             path='/usr/lib/cllct',
         ))
+    prog.update(dict(sharedlib=libs))
     yield Keywords(sharedlib=libs)
+    yield libs
 
-@Target.register(NS, 'volume', 'rsr:shared-lib')
-def rsr_volume(prog=None, opts=None):
-    log.debug("{bblack}rsr{bwhite}:volume{default}")
-    volume = Volume.find(prog.pwd)
-    if not volume:
-        log.err("Not in a volume")
-        yield 1
-    log.note("rsr:volume %r for %s", volume.db, volume.full_path)
-    yield Keywords(volume=volume)
-    volumedb = PersistedMetaObject.get_store('volume', volume.db)
-    log.info("rsr:volume index length: %i", len(volumedb))
-    yield Keywords(volumedb=volumedb)
-    #Metafile.default_extension = '.meta'
-    #Metafile.basedir = 'media/application/metalink/'
-
-@Target.register(NS, 'init-volume', 'rsr:shared-lib')
+@Target.register(NS, 'init-volume', 'txs:pwd', 'rsr:shared-lib')
 def rsr_init_volume():
     #PersistedMetaObject.get_store('global')
     path = os.getcwd()
@@ -81,15 +68,37 @@ def rsr_init_volume():
     cdir = os.path.join(path, '.cllct')
     if not os.path.exists(cdir):
         os.mkdir(cdir)
-    vdb = os.path.join(cdir, 'volume.db')
-    if os.path.exists(vdb):
-        err("DB exists")
-        return
-    db = shelve.open(vdb)
-    #DB_MODE = 'n'
-    #db = anydbm.open(vdb, DB_MODE)
-    db['mounts'] = [path]
-    db.close()
+    dbpath = os.path.join(cdir, 'volume.db')
+    if os.path.exists(dbpath):
+        log.err("DB exists at %s", dbpath)
+    else:
+        db = shelve.open(dbpath)
+        #DB_MODE = 'n'
+        #db = anydbm.open(dbpath, DB_MODE)
+        db['mounts'] = [path]
+        log.info("Created new volume database %s", dbpath)
+        db.close()
+
+@Target.register(NS, 'volume', 'rsr:shared-lib')
+def rsr_volume(prog=None, opts=None):
+    log.debug("{bblack}rsr{bwhite}:volume{default}")
+    volume = Volume.find(prog.pwd)
+    if not volume:
+        if opts.init:
+            name = Name.fetch('rsr:init-volume')
+            assert name, name
+            yield Targets('rsr:init-volume',)
+        else:
+            log.err("Not in a volume")
+            yield 1
+    else:
+        log.note("rsr:volume %r for %s", volume.db, volume.full_path)
+        yield Keywords(volume=volume)
+        volumedb = PersistedMetaObject.get_store('volume', volume.db)
+        log.info("rsr:volume index length: %i", len(volumedb))
+        yield Keywords(volumedb=volumedb)
+    #Metafile.default_extension = '.meta'
+    #Metafile.basedir = 'media/application/metalink/'
 
 
 #@Target.register(NS, 'clean', 'cmd:options')
