@@ -13,6 +13,7 @@ from libcmd import Targets, Arguments, Keywords, Options,\
     Target 
 from res import PersistedMetaObject, Metafile, Volume
 
+from taxus import Node, SHA1Digest, MD5Digest
 
 
 NS = Namespace.register(
@@ -76,7 +77,7 @@ def rsr_init_volume():
         #DB_MODE = 'n'
         #db = anydbm.open(dbpath, DB_MODE)
         db['mounts'] = [path]
-        log.info("Created new volume database %s", dbpath)
+        log.note("Created new volume database at %s", dbpath)
         db.close()
 
 @Target.register(NS, 'volume', 'rsr:shared-lib')
@@ -101,6 +102,21 @@ def rsr_volume(prog=None, opts=None):
     #Metafile.basedir = 'media/application/metalink/'
 
 
+@Target.register(NS, 'ls', 'rsr:volume')
+def rsr_ls(volume=None, volumedb=None):
+    cwd = os.getcwd();
+    lnames = os.listdir(cwd)
+    for name in lnames:
+        path = os.path.join(cwd, name)
+        metafile = Metafile(path)
+        if not metafile.non_zero():
+            print "------", path.replace(cwd, '.')
+            continue
+        print metafile.data['Digest'], path.replace(cwd, '.')
+    print
+    print os.getcwd(), volume.path, len(lnames)
+
+
 #@Target.register(NS, 'clean', 'cmd:options')
 #def rsr_clean(volumedb=None):
 #    log.debug("{bblack}rsr{bwhite}:clean{default}")
@@ -110,8 +126,13 @@ def rsr_volume(prog=None, opts=None):
 #    log.err("Rsr: Closed, %i keys", vlen)
 
 
-@Target.register(NS, 'update-volume', 'rsr:volume')
-def rsr_update_volume(prog=None, volume=None, volumedb=None, opts=None):
+@Target.register(NS, 'list-volume', 'rsr:volume', 'txs:session')
+def rsr_list_volume(prog=None, sa=None, ur=None, volume=None, volumedb=None, opts=None):
+    for r in sa.query(Node).all():
+        print r
+
+@Target.register(NS, 'update-volume', 'rsr:volume', 'txs:session')
+def rsr_update_volume(prog=None, sa=None, ur=None, volume=None, volumedb=None, opts=None):
     """
     Walk all files, gather metadata into metafile.
 
@@ -130,8 +151,9 @@ def rsr_update_volume(prog=None, volume=None, volumedb=None, opts=None):
     """ 
     log.debug("{bblack}rsr{bwhite}:update-volume{default}")
     i = 0
+    log.info("Walking %s", prog.pwd)
     for path in Metafile.walk(prog.pwd):
-        print path
+        log.debug("Found %s", path)
         i += 1
         new, updated = False, False
         metafile = Metafile(path)
@@ -151,6 +173,11 @@ def rsr_update_volume(prog=None, volume=None, volumedb=None, opts=None):
         #    volumedb[metafile.key] = metafile
         #    new = True
         if new or updated:
+            node = ur.get(metafile.path, opts)
+            sha1digest = SHA1Digest(digest=metafile.data['Digest'])
+#            md5digest = MD5Digest(digest=metafile[
+            node.checksum = [ sha1digest, ]#md5digest ]
+            node.commit()
             #if options.persist_meta:
             #if metafile.non_zero:
             #    log.err("Overwriting previous metafile at %s", metafile.path)
@@ -164,22 +191,6 @@ def rsr_update_volume(prog=None, volume=None, volumedb=None, opts=None):
 
     volumedb.sync()
 
-
-#@Target.register(NS, 'ls', 'rsr:volume')
-#def rsr_ls(volume=None, volumedb=None):
-#    cwd = os.getcwd();
-#    lnames = os.listdir(cwd)
-#    for name in lnames:
-#        path = os.path.join(cwd, name)
-#        metafile = Metafile(path)
-#        if not metafile.non_zero():
-#            print "------", path.replace(cwd, '.')
-#            continue
-#        print metafile.data['Digest'], path.replace(cwd, '.')
-#    print
-#    print os.getcwd(), volume.path, len(lnames)
-#
-#
 #@Target.register(NS, 'volume', 'rsr:shared-lib')
 #def rsr_update_content(opts=None, sharedlib=None):
 #    sharedlib.contents = PersistedMetaObject.get_store('default', 

@@ -1,6 +1,6 @@
 """
 """
-import os, stat, sys
+import os, sys
 import re, anydbm
 from datetime import datetime
 
@@ -20,69 +20,10 @@ from taxus import SqlBase, SessionMixin, current_hostname, \
         Node, INode, CachedContent, \
         ID, Name, Locator, \
         Host, \
-        Locator, Tag, ChecksumDigest, SHA1Digest
+        Locator, Tag, ChecksumDigest, SHA1Digest, \
+        LocalPathResolver
 import taxus_out
 
-
-
-class LocalPathResolver(object):
-
-    def __init__(self, host, sasession):
-        self.host = host
-        self.sa = sasession
-
-    def getDir(self, path, opts, exists=True):
-        """
-        Return INode object for current directory.
-        """
-        if exists:
-            assert os.path.isdir(path), "Missing %s"%path
-        node = self.get(path, opts)
-        assert node, "Required: %s"%path
-        return node
-
-    def get(self, path, opts):
-        ref = "file:%s%s" % (self.host.netpath, path)
-        try:
-            return self.sa.query(INode)\
-                    .join('location')\
-                    .filter(Node.ntype == INode.Dir)\
-                    .filter(Locator.ref == ref)\
-                    .one()
-        except NoResultFound, e:
-            pass
-        if not opts.init:
-            log.warn("Not a known path %s", path)
-            return
-        locator = Locator(
-                ref=ref,
-                date_added=datetime.now())
-        #locator.host
-        #        host=self.host,
-        locator.commit()
-        inode = INode(
-                ntype=self.get_type(path),
-                location=locator,
-                date_added=datetime.now())
-        inode.commit()
-        return inode
-
-    def get_type(self, path):
-        mode = os.stat(path).st_mode
-        if stat.S_ISLNK(mode):#os.path.islink(path)
-            return INode.Symlink
-        elif stat.S_ISFIFO(mode):
-            return INode.FIFO
-        elif stat.S_ISBLK(mode):
-            return INode.Device
-        elif stat.S_ISSOCK(mode):
-            return INode.Socket
-        elif os.path.ismount(path):
-            return INode.Mount
-        elif stat.S_ISDIR(mode):#os.path.isdir(path):
-            return INode.Dir
-        elif stat.S_ISREG(mode):#os.path.isfile(path):
-            return INode.File
 
 
 DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')

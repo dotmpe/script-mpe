@@ -1,13 +1,16 @@
+import base64
+import calendar
 import datetime
 import os
 import hashlib
+import time
 import traceback
 
-import calendar
 import lib
 import util
+import log
 from persistence import PersistedMetaObject
-
+import res.fs
 
 
 class Metafile(PersistedMetaObject): # XXX: Metalink
@@ -95,14 +98,14 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
         if 'X-Last-Modified' in self.data:
             datestr = self.data['X-Last-Modified']
             return calendar.timegm( time.strptime(datestr,
-                ISO_8601_DATETIME)[0:6])
+                util.ISO_8601_DATETIME)[0:6])
 
     @property
     def utime(self):
         if 'X-Last-Update' in self.data:
             datestr = self.data['X-Last-Update']
             return calendar.timegm( time.strptime(datestr,
-                ISO_8601_DATETIME)[0:6])
+                util.ISO_8601_DATETIME)[0:6])
 
     def needs_update(self):
         """
@@ -168,7 +171,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 
     @classmethod
     def walk(self, path, max_depth=-1):
-        # XXX: may rewrite to Dir.walk
+        # XXX: may rewrite to res.fi.Dir.walk
         """
         Walk all files that may have a metafile, and notice any metafile(-like)
         neighbors.
@@ -181,7 +184,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
                     nodes.remove(node)
                     continue
                 depth = dirpath.replace(path,'').strip('/').count('/')
-                if Dir.ignored(dirpath):
+                if res.fs.Dir.ignored(dirpath):
                     log.err("Ignored directory %r", dirpath)
                     nodes.remove(node)
                 elif max_depth != -1:
@@ -195,7 +198,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
                 if not os.path.isfile(cleaf) or os.path.islink(cleaf):
                     #log.err("Ignored non-regular file %r", cleaf)
                     continue
-                if File.ignored(cleaf):
+                if res.fs.File.ignored(cleaf):
                     #log.err("Ignored file %r", cleaf)
                     continue
                 if Metafile.is_metafile(cleaf, strict=False):
