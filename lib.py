@@ -47,8 +47,8 @@ def cmd(cmd, *args):
     if errors:
         raise Exception(errors)
     value = stdout.read()
-    if not value:# and not nullable:
-        raise Exception("OS invocation %r returned nothing" % cmd)
+#    if not value:# and not nullable:
+#        raise Exception("OS invocation %r returned nothing" % cmd)
     return value
 
 def get_checksum_sub(path, checksum_name='sha1'):

@@ -171,12 +171,12 @@ class NodeSet(object):
     def __init__(self, iterable):
         self.nodes = iterable
 
+
 class ResultSet(NodeSet):
     #zope.interface.implements(taxus_out.INodeSet)
     def __init__(self, query, iterable):
         super(ResultSet, self).__init__(iterable)
         self.query = query
-
 
 
 class Node(SqlBase, SessionMixin):
@@ -237,6 +237,7 @@ class Name(SqlBase, SessionMixin):
 
     def __repr__(self):
         return "<Name %r>" % self.name
+
 
 # mapping table for Host [1-1] Locator
 #locator_host = Table('locator_host', SqlBase.metadata,

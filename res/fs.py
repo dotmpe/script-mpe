@@ -4,7 +4,10 @@ import os
 import confparse
 import log
 from lib import Prompt
+import re
 
+
+PATH_R = re.compile("[A-Za-z0-9\/\.,\[\]\(\)_-]")
 
 class File(object):
 
@@ -24,6 +27,10 @@ class File(object):
             '*.part',
             '*.incomplete',
         )
+
+    @classmethod
+    def sane(klass, path):
+        return PATH_R.match(path)
 
     @classmethod
     def ignored(klass, path):
@@ -58,6 +65,10 @@ class Dir(object):
     ignore_paths = (
             '*.git',
         )
+
+    @classmethod
+    def sane(klass, path):
+        return PATH_R.match(path)
 
     @classmethod
     def ignored(klass, path):

@@ -144,14 +144,14 @@ def find_config_file():
 def cmd_prog():
     """
     Command-line program static properties.
+    Just assembles a few key values.
     """
     log.debug("{bblack}cmd{bwhite}:prog{default}")
     prog = confparse.Values(dict(
-        argv=sys.argv[1:],
-        usage="Usage % [options|targets]",
         name=os.path.splitext(os.path.basename(__file__))[0],
         version="0.1",
-        pwd=os.getcwd(),
+        argv=sys.argv[1:],
+        usage="Usage % [options|targets]",
     ))
     yield Keywords(prog=prog)
 
@@ -163,11 +163,10 @@ def cmd_config(prog=None):
     log.debug("{bblack}cmd{bwhite}:config{default}")
     assert prog, prog
     config_file = find_config_file()
-
-    prog.update(dict(
-        config_file=config_file,
-    ))
     yield Keywords(
+            prog=dict(
+                    config_file=config_file
+                ),
             settings=confparse.load_path(config_file))
 
 @Target.register(NS, 'options', 'cmd:config')
@@ -176,18 +175,22 @@ def cmd_options(settings=None, prog=None):
     Parse arguments
     """
     log.debug("{bblack}cmd{bwhite}:options{default}")
+    assert prog, prog
+    assert settings, settings
+    options = Options.get_options()
     parser, opts, kwds_, args_ = parse_argv(
-            Options.get_options(), 
-            prog['argv'], 
-            prog['usage'], 
-            prog['version'])
-    prog.update(dict(
-        optparser=parser
-    ))
+            options,
+            prog.argv, 
+            prog.usage, 
+            prog.version)
     yield Keywords(**kwds_)
     yield Keywords(
-        opts=opts,
-    )
+            prog=confparse.Values(dict(
+                options=options,
+                optparser=parser
+            )),
+            opts=opts,
+        )
     args = Arguments()
     targs = Targets()
     args_ = list(args_)
@@ -201,18 +204,43 @@ def cmd_options(settings=None, prog=None):
     yield args
 
 @Target.register(NS, 'help', 'cmd:options')
-def cmd_help(settings=None, prog=None):
+def cmd_help(prog=None):
     log.debug("{bblack}cmd{bwhite}:help{default}")
-    prog['optparser'].print_help()
+    assert prog, prog
+    prog.optparser.print_help()
 
 @Target.register(NS, 'targets', 'cmd:options')
-def cmd_targets(settings=None, prog=None):
+def cmd_targets(prog=None):
     """
     xxx: deprecate? use --help.
     """
     log.debug("{bblack}cmd{bwhite}:targets{default}")
-    optparser = prog['optparser']
-    optparser.print_targets()
-    yield Keywords(targets=optparser.targets)
+    prog.optparser.print_targets()
+    yield Keywords(targets=prog.optparser.targets)
 
 
+# XXX: Illustration of the three kwd types by cmdline
+import zope.interface
+from zope.interface import Attribute, implements
+# cmd:prog<IProgram>
+class IProgram(zope.interface.Interface):
+    # cmd:config
+    argv = Attribute('')
+    usage = Attribute('')
+    name = Attribute('')
+    version = Attribute('')
+    # cmd:config
+    config_file = Attribute('')
+    # cmd:options
+    options = Attribute('')
+    optparser = Attribute('')
+   
+# cmd:opts<IOptions>
+class IOptions(zope.interface.Interface):
+    init = Attribute('')
+    force = Attribute('')
+    recurse = Attribute('')
+
+# cmd:settings<ISettings>
+class ISettings(zope.interface.Interface):
+    pass

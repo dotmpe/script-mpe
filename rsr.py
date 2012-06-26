@@ -1,5 +1,7 @@
 """
 See Resourcer.rst
+
+- Builds upon cmdline.
 """
 import os
 import shelve
@@ -11,7 +13,7 @@ import confparse
 from libname import Namespace, Name
 from libcmd import Targets, Arguments, Keywords, Options,\
     Target 
-from res import PersistedMetaObject, Metafile, Volume
+from res import PersistedMetaObject, Metafile, Volume, Repo
 
 from taxus import Node, SHA1Digest, MD5Digest
 
@@ -48,23 +50,50 @@ Options.register(NS,
 
 
 
-#def rsr_workspace(opts=None):
-#    pass # determine, init dir
-#
+@Target.register(NS, 'userdir', 'cmd:options')
+def rsr_userdir(prog=None, settings=None):
+    userdir = os.path.expanduser(settings.rsr.lib.paths.userdir)
+    yield Keywords(
+        prog=dict(userdir=userdir))
 
-@Target.register(NS, 'shared-lib', 'cmd:options')
-def rsr_shared_lib(prog=None):
-    libs = confparse.Values(dict(
-            path='/usr/lib/cllct',
-        ))
-    prog.update(dict(sharedlib=libs))
-    yield Keywords(sharedlib=libs)
-    yield libs
 
-@Target.register(NS, 'init-volume', 'txs:pwd', 'rsr:shared-lib')
-def rsr_init_volume():
-    #PersistedMetaObject.get_store('global')
+@Target.register(NS, 'lib', 'rsr:userdir')
+def rsr_lib(prog=None, settings=None):
+    """
+    Initialize shared object indices. 
+    
+    This creates PersistedMetaObject sessions
+    for a database in the system directory, and one for the current user.
+    The current user session is also set as default session.
+    """
+    sysdir = settings.rsr.lib.paths.systemdir
+    sysdbpath = os.path.join(sysdir,
+            settings.rsr.lib.name)
+    usrdbpath = os.path.join(prog.userdir,
+            settings.rsr.lib.name)
+    sysdb = PersistedMetaObject.get_store('system', sysdbpath)
+    usrdb = PersistedMetaObject.get_store('user', usrdbpath)
+    assert usrdb == PersistedMetaObject.get_store('default', usrdbpath)
+    yield Keywords(
+        objects=confparse.Values(dict(
+                system=sysdb,
+                user=usrdb
+            )),
+        )
+
+
+@Target.register(NS, 'pwd', 'cmd:options')
+def rsr_pwd(prog=None, opts=None, settings=None):
+    log.debug("{bblack}rsr{bwhite}:pwd{default}")
     path = os.getcwd()
+    yield Keywords(prog=dict(pwd=path))
+
+
+@Target.register(NS, 'init-volume', 'rsr:pwd', 'rsr:lib')
+def rsr_init_volume(prog=None):
+    log.debug("{bblack}rsr{bwhite}:init-volume{default}")
+    #PersistedMetaObject.get_store('global')
+    path = prog.pwd
     #Volume.create(path)
     cdir = os.path.join(path, '.cllct')
     if not os.path.exists(cdir):
@@ -80,8 +109,13 @@ def rsr_init_volume():
         log.note("Created new volume database at %s", dbpath)
         db.close()
 
+
 @Target.register(NS, 'volume', 'rsr:shared-lib')
 def rsr_volume(prog=None, opts=None):
+    """
+    Return the current volume. In --init mode, a volume is created
+    in the current directory.
+    """
     log.debug("{bblack}rsr{bwhite}:volume{default}")
     volume = Volume.find(prog.pwd)
     if not volume:
@@ -104,6 +138,9 @@ def rsr_volume(prog=None, opts=None):
 
 @Target.register(NS, 'ls', 'rsr:volume')
 def rsr_ls(volume=None, volumedb=None):
+    """
+
+    """
     cwd = os.getcwd();
     lnames = os.listdir(cwd)
     for name in lnames:
@@ -112,7 +149,7 @@ def rsr_ls(volume=None, volumedb=None):
         if not metafile.non_zero():
             print "------", path.replace(cwd, '.')
             continue
-        print metafile.data['Digest'], path.replace(cwd, '.')
+        #print metafile.data['Digest'], path.replace(cwd, '.')
     print
     print os.getcwd(), volume.path, len(lnames)
 
@@ -127,27 +164,15 @@ def rsr_ls(volume=None, volumedb=None):
 
 
 @Target.register(NS, 'list-volume', 'rsr:volume', 'txs:session')
-def rsr_list_volume(prog=None, sa=None, ur=None, volume=None, volumedb=None, opts=None):
+def rsr_list_volume(prog=None, volume=None, opts=None):
     for r in sa.query(Node).all():
         print r
 
-@Target.register(NS, 'update-volume', 'rsr:volume', 'txs:session')
-def rsr_update_volume(prog=None, sa=None, ur=None, volume=None, volumedb=None, opts=None):
+
+@Target.register(NS, 'scan', 'rsr:volume')
+def rsr_scan(prog=None, volume=None, opts=None):
     """
     Walk all files, gather metadata into metafile.
-
-    Create metafile if needed. Fill in 
-        - X-First-Seen
-    This and every following update also write:
-        - X-Last-Update
-        - X-Meta-Checksum
-    Metafile is reloaded when
-        - Metafile modification exceeds X-Last-Update
-    Updates of all fields are done when:
-        - File modification exceeds X-Last-Modified
-        - File size does not match Length
-        - If any of above mentioned and at least one Digest field is not present.
-
     """ 
     log.debug("{bblack}rsr{bwhite}:update-volume{default}")
     i = 0
@@ -155,41 +180,44 @@ def rsr_update_volume(prog=None, sa=None, ur=None, volume=None, volumedb=None, o
     for path in Metafile.walk(prog.pwd):
         log.debug("Found %s", path)
         i += 1
-        new, updated = False, False
-        metafile = Metafile(path)
-        #if options:
+        metafile, metacache = Metafile(path), None
+        #if opts.persist_meta 
+            #if metafile.exists:
+            #metafile.rebase(basedir)
         #metafile.basedir = 'media/application/metalink/'
-        #if metafile.key in volumedb:
-        #    metafile = volumedb[metafile.key]
-        #    #log.err("Found %s in volumedb", metafile.key)
-        #else:
-        #    new = True
+        if metafile.has_metafile():
+            log.err("Re-read persisted metafile for %s", metafile.path)
+        metacache, metaupdate = None, None
+        if metafile.key in volumedb:
+            metacache = volumedb[metafile.key]
+            log.info("Found cached metafile for %s", metafile.key)
+            #metacmp = metafile.compare(metacache)
+        if metacache and metafile.has_metafile():
+            assert metacache == metafile, \
+                    "Corrupted cache, or metafile was updated externally. "
+        else:
+            metafile = metacache
         if metafile.needs_update():
-            log.err("Updating metafile for %s", metafile.path)
-            metafile.update()
-            updated = True
-        #if updated or metafile.key not in volumedb:
-        #    log.err("Writing %s to volumedb", metafile.key)
+            log.note("Needs update %s", metafile.path)
+            #log.note("Updating metafile for %s", metafile.path)
+            #metaupdate = metafile.update()
+        #if metafile.key not in volumedb:
+        #    log.note("Writing %s to volumedb", metafile.key)
         #    volumedb[metafile.key] = metafile
-        #    new = True
-        if new or updated:
-            node = ur.get(metafile.path, opts)
-            sha1digest = SHA1Digest(digest=metafile.data['Digest'])
-#            md5digest = MD5Digest(digest=metafile[
-            node.checksum = [ sha1digest, ]#md5digest ]
-            node.commit()
+        if not metafile.has_metafile() or metafile.updated:
             #if options.persist_meta:
-            #if metafile.non_zero:
-            #    log.err("Overwriting previous metafile at %s", metafile.path)
-            metafile.write()
+            #    if metafile.non_zero:
+            #        log.warn("Overwriting previous metafile at %s", metafile.path)
+            #    metafile.write()
             for k in metafile.data:
                 print '\t'+k+':', metafile.data[k]
             print '\tSize: ', lib.human_readable_bytesize(
                 metafile.data['Content-Length'], suffix_as_separator=True)
         else:
             print '\tOK'
+        yield metafile
+    #volumedb.sync()
 
-    volumedb.sync()
 
 #@Target.register(NS, 'volume', 'rsr:shared-lib')
 #def rsr_update_content(opts=None, sharedlib=None):
@@ -198,14 +226,20 @@ def rsr_update_volume(prog=None, sa=None, ur=None, volume=None, volumedb=None, o
 #
 #def rsr_count_volume_files(volumedb):
 #    print len(volumedb.keys())
-#
-#def rsr_repo_update(self, options=None):
-#    pwd = os.getcwd()
-#    i = 0
-#    for path in Repo.walk(pwd, max_depth=2):
-#        i += 1
-#        print i,path
-#
+
+@Target.register(NS, 'repo-update', 'rsr:lib', 'rsr:pwd')
+def rsr_repo_update(prog=None, objects=None, opts=None):
+    i = 0
+    for repo in Repo.walk(prog.pwd, max_depth=2):
+        i += 1
+        assert repo.rtype
+        assert repo.path
+        print repo.rtype, repo.path, 
+        if repo.uri:
+            print repo.uri
+        else:
+            print 
+
 #@Target.register(NS, 'list-checksums', 'rsr:volume')
 #def rsr_list_checksums(volume=None, volumedb=None):
 #    i = 0
@@ -233,3 +267,12 @@ def rsr_update_volume(prog=None, sa=None, ur=None, volume=None, volumedb=None, o
 #def rsr_dump_bookmarks(self):
 #    pass
 #
+
+# XXX: Illustration of the kwd types by rsr
+import zope.interface
+from zope.interface import Attribute, implements
+# rsr:volume<IVolume>
+class IVolume(zope.interface.Interface):
+    pass
+    # rsr:volume
+

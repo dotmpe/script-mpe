@@ -11,6 +11,8 @@ class PersistedMetaObject(Object):
 
     stores = {}
     "list of loaded stores (static) class scope"
+    sessions = {}
+    "list of loaded stores (static) class scope"
     default_store = 'default'
     "name of default store, to customize per type"
 
@@ -18,18 +20,22 @@ class PersistedMetaObject(Object):
     def get_store(Klass, name=None, dbref=None):
         if not name:
             name = Klass.default_store
-        if name not in PersistedMetaObject.stores:
+        if name not in PersistedMetaObject.sessions:
             assert dbref, "store does not exists: %s" % name
-            try:
-                store = shelve.open(dbref)
-            except bsddb.db.DBNoSuchFileError, e:
-                assert not e, "cannot open store: %s, %s, %s" %(name, dbref, e)
-            PersistedMetaObject.stores[name] = store
+            if dbref not in PersistedMetaObject.stores:
+                try:
+                    store = shelve.open(dbref)
+                except bsddb.db.DBNoSuchFileError, e:
+                    assert not e, "cannot open store: %s, %s, %s" %(name, dbref, e)
+                PersistedMetaObject.stores[dbref] = store
+            else:
+                store = PersistedMetaObject.stores[dbref]
+            PersistedMetaObject.sessions[name] = store
         else:
-            store = PersistedMetaObject.stores[name]
+            store = PersistedMetaObject.sessions[name]
         return store
 
-    def load(self, name=None):
-        store = PersistedMetaObject.get_store(name=name)
+    def load(self, session=None):
+        store = PersistedMetaObject.get_store(name=session)
         store[self.key()] = self
 

@@ -137,7 +137,7 @@ def txs_session(prog=None, sa=None, opts=None, settings=None):
     if opts.init:
         log.debug("Initializing SQLAlchemy session for %s", dbref)
     sa = SessionMixin.get_instance('default', opts.dbref, opts.init)
-    # Host
+    # Host (Name + Host object)
     hostnamestr = current_hostname(opts.init, opts.interactive)
     if opts.init:
         hostname = hostname_find([hostnamestr], sa)
@@ -173,12 +173,29 @@ def txs_session(prog=None, sa=None, opts=None, settings=None):
 
 @Target.register(NS, 'pwd', 'txs:session')
 def txs_pwd(prog=None, sa=None, ur=None, opts=None, settings=None):
+    """
+    Return the current path.
+    """
     log.debug("{bblack}txs{bwhite}:pwd{default}")
     assert ur
     cwd = os.path.abspath(os.getcwd())
     pwd = ur.getDir(cwd, opts)
     yield pwd
     yield Keywords(pwd=pwd)
+
+
+@Target.register(NS, 'scan', 'txs:session')
+def txs_scan(prog=None, sa=None, ur=None, opts=None, settings=None):
+    log.debug("{bblack}txs{bwhite}:scan{default}")
+    offset = len(prog.results.resources)-1
+    yield Target('rsr:scan')
+    for metafile in prog.results.resources[offset:]:
+        print metafile.has_metafile() or metafile.updated
+        #node = ur.get(metafile.path, opts)
+        #sha1digest = SHA1Digest(digest=metafile.data['Digest'])
+        #md5digest = MD5Digest(digest=metafile[
+        #node.checksum = [ sha1digest, ]#md5digest ]
+        #node.commit()
 
 
 @Target.register(NS, 'run', 'txs:session')

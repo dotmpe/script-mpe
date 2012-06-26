@@ -22,6 +22,19 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
     XXX: This is obviously the same as metalink format, and should learn from
         that. Metalink has also been expressed as HTTP headers, though the
         proposed standard [RFC 5854] specifies XML formatting.
+
+    Fill in 
+        - X-First-Seen
+    First and every following update also write:
+        - X-Last-Update
+        - X-Meta-Checksum
+    Metafile is reloaded when
+        - Metafile modification exceeds X-Last-Update
+    Updates of all fields are done when:
+        - File modification exceeds X-Last-Modified
+        - File size does not match Length
+        - If any of above mentioned and at least one Digest field is not present.
+
     """
     default_extension = '.meta'
     related_extensions = [
@@ -59,6 +72,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
         #    if self.has_metafile():
         #        if update and self.needs_update():
         #            self.update()
+        self.updated = False
 
     def set_path(self, path):
         if path.endswith('.meta'):
@@ -66,9 +80,16 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
         #assert os.path.exists(path), path
         self.path = path
 
+    # PersistedMetaObject
+
     @property
     def key(self):
+        """
+        Metafiles belong to a file. The Key ID is the MD5 digest of its path.
+        """
         return hashlib.md5(self.path).hexdigest()
+
+    #
 
     def get_metafile(self):
         if not self.basedir:

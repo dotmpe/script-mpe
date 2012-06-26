@@ -29,6 +29,7 @@ import os, re, sys, types
 from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
+from UserDict import UserDict
 
 
 try:
@@ -306,6 +307,40 @@ class Values(dict):
             if v:
                 self[k] = v
 
+    def deep_update(self, other):
+        """
+        Update for key from other,
+        combine existing keys.
+        """
+        keys = None
+        if isinstance(other, (UserDict, dict, Values)):
+            keys = other.keys()
+        assert keys, repr(other)
+        for o in keys:
+            assert o in other or hasattr(other, o), o
+            if o not in other:
+                v = getattr(other, o)
+            else:
+                v = other[o]
+            if hasattr(self, o):
+                t = getattr(self, o)
+                #if not isinstance(t, (UserDict, Values, dict)):
+                #    print "Warning: skipped override of %s" % o
+                #    continue
+                if hasattr(t, 'deep_update'):
+                    t.deep_update(v)
+                    v = t
+                elif hasattr(t, 'update'):
+                    t.update(v)
+                    v = t
+                else:
+                    pass
+                #elif hasattr(v, 'deep_update'):
+                #    v.deep_update(t)
+                #elif hasattr(v, 'update'):
+                #    v.update(t)
+            setattr(self, o, v)
+
     @property
     def changelog(self):
         return self.__dict__['changelog']
@@ -493,5 +528,18 @@ _ = Values()
 
 # XXX: testing
 if __name__ == '__main__':
+    v1 = Values(dict(foo='this1', bar='this1'))
+    #print v1.keys()
+    #print list(dir(v1))
+    v2 = Values(dict(foo=dict(bar='other1', baz='other1')))
+    print v1.copy(), v2.copy()
+    print '------'
+    v1.deep_update(v2)
+    print v1.copy()
+    print '------'
+    v1 = Values(dict(foo=dict(bar='123')))
+    v1.deep_update(v2)
+    print v1.copy()
+    print '------'
     configs = list(expand_config_path('cllct.rc')) 
     assert configs == ['/Users/berend/.cllct.rc'], configs

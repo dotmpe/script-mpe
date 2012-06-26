@@ -3,8 +3,6 @@ script.mpe
 Various tools and ongoing experiments that have not yet deserved their own
 project.
 
-See 'main.py' for an integrated approach to the tooling.
-
 Documentation
   - `Working on projects`__
 
@@ -17,20 +15,43 @@ GIT Branches
     test
         Writing and running tests. Main devel at dm.
 
-Design
-  Cmd
-    build
-      co
-    clean
+Wanted
+  search
+    Plain and simple.
+  worklog
+    Show active tasks, start and stop sessions bound to selected resources, 
+    log notes.
+  catalog
+    Move content onto one of the permanent volumes,
+    requireing certain organizational metadata.
+  archive
+    Put (personal) content away in encrypted archives, but keep some metadata.
 
-  Cmd (no-op)
-    info
-      stat [default]
-        dmk
-        dep
-    test
+Main
+  rsr
+    - Basic local file management: consolidation, tagging, metadata.
+    - Per-user object storage in shelve, data indexes in anydbs.
+    - Volumes separate segments of the file space.
+  taxus
+    Relational database for distributed metadata, distributed addressing of
+    data (multi-user/host filespace).
+  lind
+    Interactive frontends to rsr and taxus.
+  workLog
+    Interactive work session manager with timing.
+  radical  
+    - tracking tagged source comments (TODO, FIXME, et al.)
+      TODO: Tagged comment and embedded sentinel manager for 
+      inline file annotation and resource linking.
+  gate
+    - Resource registration and lookup mechanisms.
+    - Content negotiation.
 
-Scripts
+Libraries
+  confparse (std python)
+    parse settings from yaml
+
+Unsorted
   cabinet
     WIP: archive files and query
   domain
@@ -53,8 +74,6 @@ Scripts
     generate inheritance hierarchies for Python (broken)
   pathlist2dot
     generic path to GraphViz_ DOT graph generator
-  radical
-    tracking tagged source comments (TODO, FIXME, et al.)
   relink
     rewrite symbolic link targets using regular expression
   snip
@@ -65,12 +84,6 @@ Scripts
   update
     update any GIT, Bazaar, Subversion or Mercurial working trees beneath the
     current directory
-
-Libraries
-  The following modules have no executable interface.
-
-  confparse (std python)
-    parse settings from yaml
 
 Configuration
   cllct.rc

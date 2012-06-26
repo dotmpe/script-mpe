@@ -31,6 +31,7 @@ import sys
 
 import zope
 
+import lib
 import log
 from libname import Name, Namespace
 import res
@@ -126,17 +127,28 @@ class Targets(object):#tuple):
         return 'targets%r'%self.items
     def __iter__(self):
         for i in self.items:
-        	yield i
+            yield i
 #    def __add__(self, other):
 #        if isinstance(other, (list, tuple, Targets)):
 #        	return self.items + other
 
-class Keywords(UserDict): 
+class Keywords(dict): 
     def __init__(self, **kwds):
-        UserDict.__init__(self)
+        dict.__init__(self)
         self.update(kwds)
     def __str__(self):
         return 'keywords %r' % self
+    def deep_update(self, other):
+        for o in other:
+            if o in self:
+                if hasattr(self[o], 'deep_update'):
+                    self[o].deep_update(other[o])
+                elif hasattr(self[o], 'update'):
+                    self[o].update(other[o])
+                else:
+                    self[o] = other[o]
+            else:
+                self[o] = other[o]
 
 class Arguments(tuple): 
     def __str__(self):
@@ -662,9 +674,11 @@ class TargetResolver(object):
     def run(self, execution_graph, context, args=[], kwds={}):
         log.debug('Target resolver starting with %s', execution_graph.execlist)
         target = execution_graph.nextTarget()
+        if not kwds:
+            kwds = Keywords()
         while target:
             log.note('Run: %s', target.name)
-            assert isinstance(kwds, dict)
+            assert isinstance(kwds, Keywords), lib.cn(kwds)
             context.generator = target.handler.func(
                             **self.select_kwds(target.handler.func, kwds))
             if not context.generator:
@@ -693,7 +707,7 @@ class TargetResolver(object):
                             assert isinstance(t, str), t
                             execution_graph.require(target, t)
                     elif isinstance(r, Keywords):
-                        kwds.update(r)
+                        kwds.deep_update(r)
                     else:
                         log.warn("Ignored yield %r", r)
             del context.generator
