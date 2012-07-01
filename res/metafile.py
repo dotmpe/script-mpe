@@ -61,6 +61,8 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
     allow_multiple = ('Link',) #'Digest',)
     basedir = None
 
+    # XXX:digests = {}
+
     def __init__(self, path=None, data={}, update=False):
         self.path = None
         if path:
@@ -90,6 +92,19 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
         return hashlib.md5(self.path).hexdigest()
 
     #
+
+    def get(self, name):
+        if name in self.data:
+            return self.data[name]
+
+    def set(self, name, value):
+        if name in self.data:
+            assert isinstance(self.data[name], list), name
+            v = self.data[name]
+            v.append(value)
+            self.data[name] = v
+        else:
+            self.data[name] = value
 
     def get_metafile(self):
         if not self.basedir:
@@ -237,8 +252,10 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
         envelope = (
                 ('X-Meta-Checksum', lambda x: self.get_meta_hash()),
                 ('X-Last-Modified', util.last_modified_header),
-                ('X-Last-Update', lambda x: util.iso8601_datetime_format(now.timetuple())),
-                ('X-Last-Seen', lambda x: util.iso8601_datetime_format(now.timetuple())),
+                ('X-Last-Update', 
+                        lambda x: util.iso8601_datetime_format(now.timetuple())),
+                ('X-Last-Seen', 
+                        lambda x: util.iso8601_datetime_format(now.timetuple())),
             )
         for handlers in self.handlers, envelope:
             for header, handler in handlers:

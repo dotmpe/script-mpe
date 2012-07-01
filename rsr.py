@@ -276,3 +276,4 @@ class IVolume(zope.interface.Interface):
     pass
     # rsr:volume
 
+
