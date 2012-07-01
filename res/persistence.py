@@ -65,12 +65,12 @@ class PersistedMetaObject(Object):
         Prepare this class, run for each class that defines an indices
         array.
         """
-        default = PersistedMetaObject.get_store('default', 
-                '.cllct/persistence-test-shelve.db')
-        setattr(Klass, 'default', default)
+        default = Klass.get_store('default', '.cllct/objects.db')
+        klass = Klass.__name__
+        setattr(Klass, 'default-'+klass, default)
         for idxname in Klass.indices:
-            store = PersistedMetaObject.get_store(idxname, 
-                    '.cllct/index-'+idxname+'.db')
+            store = Klass.get_store(idxname, 
+                    '.cllct/index-'+klass+'-'+idxname+'.db')
             setattr(Klass, idxname, store)
        
     @classmethod
@@ -131,35 +131,6 @@ class PersistedMetaObject(Object):
                 objkey, typ, idxname)
         return session[objkey]
 
-    def set(self, idxname, value):
-        """
-        """
-        Klass = self.__class__
-        idx = getattr(Klass, idxname)
-        if value in idx:
-            objkey = idx[value]
-            assert objkey == self.key(),\
-                    "%s: cannot overwrite value for other object: %s.test=%s" %\
-                    (self, objkey, value)
-        if idxname in self.__dict__:
-            old = self.__dict__[idxname]
-            assert idx[old] == self.key(),\
-                    "Can only replace indexed value for this class, not %s" % (
-                            idx[old] )
-            del self.__dict__[idxname]
-            print 'Deleting', old
-            del idx[old]
-        self.__dict__[idxname] = value
-        idx[value] = self.key()
-
-    def get_this(self):
-        Klass = self.__class__
-        if 'this' not in self.data: # lazy load
-            this = Klass.this[self.key()]
-            self.data['this'] = this
-        return self.data['this']
-        return id(self)
-
 
     # Instance
 
@@ -185,6 +156,35 @@ class PersistedMetaObject(Object):
 
     def __str__(self):
         return "MyObj[%s;]" % ( self.key(), )
+
+    def set(self, idxname, value):
+        """
+        """
+        Klass = self.__class__
+        idx = getattr(Klass, idxname)
+        if value in idx:
+            objkey = idx[value]
+            assert objkey == self.key(),\
+                    "%s: cannot overwrite value for other object: %s.test=%s" %\
+                    (self, objkey, value)
+        if idxname in self.__dict__:
+            old = self.__dict__[idxname]
+            assert idx[old] == self.key(),\
+                    "Can only replace indexed value for this class, not %s" % (
+                            idx[old] )
+            del self.__dict__[idxname]
+            print 'Deleting', old
+            del idx[old]
+        self.__dict__[idxname] = value
+        idx[value] = self.key()
+
+    def get(self, idxname):
+        if idxname not in self.__dict__: # lazy load
+            Klass = self.__class__
+            idx = getattr(Klass, idxname)
+            value = idx[self.key()]
+            self.__dict__[idxname] = value
+        return getattr(self, idxname)
 
 
 

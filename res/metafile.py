@@ -13,6 +13,21 @@ from persistence import PersistedMetaObject
 import res.fs
 
 
+#class SHA1Sum(object):
+#    checksums = None
+#    def __init__(self):
+#        self.checksums = {}
+#    def parse_data(self, lines):
+#        for line in lines:
+#            p = line.find(' ')
+#            checksum, filepath = line[:p].strip(), line[p+1:].strip()
+#            self.checksums[checksum] = filepath
+#    def __iter__(self):
+#        return iter(self.checksums)
+#    def __getitem__(self, checksum):
+#        return self.checksums[checksum]
+
+
 class Metafile(PersistedMetaObject): # XXX: Metalink
 
     """
@@ -313,5 +328,6 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
             #fl.write("%s: %s" % (header, value))
         fl.close()
 
+# TEST
 
 

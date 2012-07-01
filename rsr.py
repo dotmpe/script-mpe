@@ -49,37 +49,11 @@ Options.register(NS,
     )
 
 
-
 @Target.register(NS, 'userdir', 'cmd:options')
 def rsr_userdir(prog=None, settings=None):
     userdir = os.path.expanduser(settings.rsr.lib.paths.userdir)
     yield Keywords(
         prog=dict(userdir=userdir))
-
-
-@Target.register(NS, 'lib', 'rsr:userdir')
-def rsr_lib(prog=None, settings=None):
-    """
-    Initialize shared object indices. 
-    
-    This creates PersistedMetaObject sessions
-    for a database in the system directory, and one for the current user.
-    The current user session is also set as default session.
-    """
-    sysdir = settings.rsr.lib.paths.systemdir
-    sysdbpath = os.path.join(sysdir,
-            settings.rsr.lib.name)
-    usrdbpath = os.path.join(prog.userdir,
-            settings.rsr.lib.name)
-    sysdb = PersistedMetaObject.get_store('system', sysdbpath)
-    usrdb = PersistedMetaObject.get_store('user', usrdbpath)
-    assert usrdb == PersistedMetaObject.get_store('default', usrdbpath)
-    yield Keywords(
-        objects=confparse.Values(dict(
-                system=sysdb,
-                user=usrdb
-            )),
-        )
 
 
 @Target.register(NS, 'pwd', 'cmd:options')
@@ -89,7 +63,62 @@ def rsr_pwd(prog=None, opts=None, settings=None):
     yield Keywords(prog=dict(pwd=path))
 
 
-@Target.register(NS, 'init-volume', 'rsr:pwd', 'rsr:lib')
+@Target.register(NS, 'shared-lib', 'rsr:userdir')
+def rsr_shared_lib(prog=None, settings=None):
+    """
+    Initialize shared object indices. 
+    
+    This creates PersistedMetaObject sessions
+    for a database in the system directory, and one for the current user.
+    The current user session is also set as default session.
+    """
+    # Normally /var/lib/cllct
+    sysdir = settings.rsr.lib.paths.systemdir
+    sysdbpath = os.path.join(sysdir,
+            settings.rsr.lib.name)
+    # Normally ~/.cllct
+    usrdbpath = os.path.join(prog.userdir,
+            settings.rsr.lib.name)
+    # Initialize shelves
+    sysdb = PersistedMetaObject.get_store('system', sysdbpath)
+    usrdb = PersistedMetaObject.get_store('user', usrdbpath)
+    # XXX: 'default' is set to user-database
+    assert usrdb == PersistedMetaObject.get_store('default', usrdbpath)
+    yield Keywords(
+        objects=confparse.Values(dict(
+                system=sysdb,
+                user=usrdb
+            )),
+        )
+
+
+@Target.register(NS, 'volume', 'rsr:shared-lib')
+def rsr_volume(prog=None, opts=None):
+    """
+    Return the current volume. In --init mode, a volume is created
+    in the current directory.
+    """
+    log.debug("{bblack}rsr{bwhite}:volume{default}")
+    Volume.init()
+    volume = Volume.find('pwd', prog.pwd)
+    if not volume:
+        if opts.init:
+            name = Name.fetch('rsr:init-volume')
+            assert name, name
+            yield Targets('rsr:init-volume',)
+        else:
+            log.err("Not in a volume")
+            yield 1
+    else:
+        log.note("rsr:volume %r for %s", volume.db, volume.full_path)
+        yield Keywords(volume=volume)
+        volumedb = PersistedMetaObject.get_store('volume', volume.db)
+        log.info("rsr:volume index length: %i", len(volumedb))
+        yield Keywords(volumedb=volumedb)
+    #Metafile.default_extension = '.meta'
+    #Metafile.basedir = 'media/application/metalink/'
+
+@Target.register(NS, 'init-volume', 'rsr:pwd', 'rsr:shared-lib')
 def rsr_init_volume(prog=None):
     log.debug("{bblack}rsr{bwhite}:init-volume{default}")
     #PersistedMetaObject.get_store('global')
@@ -109,31 +138,6 @@ def rsr_init_volume(prog=None):
         log.note("Created new volume database at %s", dbpath)
         db.close()
 
-
-@Target.register(NS, 'volume', 'rsr:shared-lib')
-def rsr_volume(prog=None, opts=None):
-    """
-    Return the current volume. In --init mode, a volume is created
-    in the current directory.
-    """
-    log.debug("{bblack}rsr{bwhite}:volume{default}")
-    volume = Volume.find(prog.pwd)
-    if not volume:
-        if opts.init:
-            name = Name.fetch('rsr:init-volume')
-            assert name, name
-            yield Targets('rsr:init-volume',)
-        else:
-            log.err("Not in a volume")
-            yield 1
-    else:
-        log.note("rsr:volume %r for %s", volume.db, volume.full_path)
-        yield Keywords(volume=volume)
-        volumedb = PersistedMetaObject.get_store('volume', volume.db)
-        log.info("rsr:volume index length: %i", len(volumedb))
-        yield Keywords(volumedb=volumedb)
-    #Metafile.default_extension = '.meta'
-    #Metafile.basedir = 'media/application/metalink/'
 
 
 @Target.register(NS, 'ls', 'rsr:volume')
