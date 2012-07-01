@@ -9,7 +9,11 @@ Changelog
 ---------
 2011-12-23
     - Moved timeEdition experimental code, starting new generic version.
-
+2012-06-30
+    - Rethinking about serial format.
+      Items should be branched and sorted dynamically.
+      Underlying data is somehting graphlike but with limited associations and
+      heuristic implementations.
 """
 import os
 
