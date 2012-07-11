@@ -97,7 +97,8 @@ Changelog
 2011-12-18
     Partial documentation, implementation review. Refactored to use libcmd.
 2012-02-04
-    Lost some recent development
+    Lost some recent development.
+    Exploration of interface in libtaxus/linetags.py
 
 Issues
 ------

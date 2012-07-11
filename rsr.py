@@ -10,7 +10,7 @@ import lib
 import confparse
 from libcmd import Cmd, err
 from taxus import Taxus, Node, INode, get_session #Volume
-from res import PersistedMetaObject, Metafile, Volume
+from res import PersistedMetaObject, Metafile, Volume, Repo
 
 
 class Rsr(Taxus):
@@ -47,6 +47,10 @@ class Rsr(Taxus):
         Return tuples with command-line option specs.
         """
         return (
+                (('-F', '--output-file'), { 'metavar':'NAME', 
+                    'default': None, 
+                    'dest': 'outputfile',
+                }),
             )
 
     @staticmethod
@@ -94,6 +98,7 @@ class Rsr(Taxus):
     def list_nodes(self, **kwds):
         print self.session.query(Node).all()
 
+    # 
     def import_bookmarks(self):
         """
         Import from
@@ -104,7 +109,6 @@ class Rsr(Taxus):
     
     def dump_bookmarks(self):
         pass
-
 
     # Volume-checksum dev:
 
@@ -196,6 +200,13 @@ class Rsr(Taxus):
 
     def count_volume_files(self):
         print len(self.volumedb.keys())
+
+    def repo_update(self, options=None):
+        pwd = os.getcwd()
+        i = 0
+        for path in Repo.walk(pwd, max_depth=2):
+            i += 1
+            print i,path
 
     # XXX: /Volume-checksum
 

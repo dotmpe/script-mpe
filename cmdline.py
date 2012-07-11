@@ -1,11 +1,49 @@
+#!/usr/bin/env python
+"""
+"""
 import optparse
 import os
+import re
 import sys
 
 import confparse
 import lib
-from libcmd import err
-from target import Target
+import log
+from target import Target, keywords, arguments, targets
+
+
+
+class OptionParser(optparse.OptionParser):
+    
+    def __init__(self, usage, version=None):
+        optparse.OptionParser.__init__(self, usage, version=version)
+        self._targets = None
+
+    def print_help(self, file=None):
+        if file is None:
+            file = sys.stdout
+        encoding = self._get_encoding(file)
+        file.write(self.format_help().encode(encoding, "replace"))
+        log.info("%s options", len(self.option_list))
+        print >> file
+        self.print_targets(fl=file)
+
+    @property
+    def targets(self):
+        """
+        Instance property for convenience.
+        """
+        if not self._targets:
+            self._targets = Target.instances.keys()
+            self._targets.sort()
+        return self._targets
+    
+    def print_targets(self, fl=None):
+        targets = self.targets
+        print >>fl, "Targets: "
+        for target in targets:
+            print >>fl, '  -', target
+        print >>fl, len(targets), 'targets'
 
 
 def optparse_decrement_message(option, optstr, value, parser):
@@ -18,6 +56,42 @@ def optparse_override_quiet(option, optstr, value, parser):
     parser.values.quiet = True
     parser.values.interactive = False
     parser.values.messages = 4 # skip warning and below
+
+def optparse_print_help(options, optstr, value, parser):
+    parser.print_help()
+
+
+class Prompt(object):
+
+    @classmethod
+    def ask(clss, question, yes_no='Yn'):
+        yes, no = yes_no.split()
+        assert yes.isupper() or no.isupper()
+        v = raw_input('%s [%s] ' % (question, yes_no))
+        if not v:
+            if yes.isupper():
+                v = yes
+            else:
+                v = no
+        elif v.upper() not in yes_no.upper():
+            return
+        return v.upper() == yes.upper()
+
+    @classmethod
+    def query(clss, question, options=()):
+        assert options
+        opts = ''.join([o[0] for o in options]).title()
+        while True:
+            v = raw_input('%s [%s] or [?help] ' % (question, opts)).strip()
+            if not v:
+                v = opts[0]
+            if v == 'help'  or v in '?h':
+                print ("Choose from %s. Default is %r, use --recurse option to "
+                    "override. ") % (', '.join(options), options[0])
+            if v.upper() in opts.upper():
+                choice = opts.upper().index(v.upper())
+                print 'Answer:', options[choice] 
+                return choice
 
 
 class Command(object):
@@ -32,7 +106,9 @@ class Command(object):
             #'cmd:static': [],
             'cmd:prog': [],
             'cmd:config': ['cmd:prog'],
-            'cmd:options': ['cmd:config',]
+            'cmd:options': ['cmd:config',],
+            'cmd:help': ['cmd:options'],
+            'cmd:targets': ['cmd:options']
         }
 
     default_rc = 'cllct.rc'
@@ -43,6 +119,7 @@ class Command(object):
         Return tuples with command-line option specs.
         """
         return (
+
             (('-c', '--config',),{ 'metavar':'NAME', 
                 'dest': "config_file",
                 'default': clss.default_rc, 
@@ -51,31 +128,38 @@ class Command(object):
                     "values (see --update-config) (default: %default). " }),
 
             (('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
-                "threshold. Overriden by --quiet or --message-level.",
+                    "threshold. Overriden by --quiet or --message-level.",
                 'action': 'callback',
                 'callback': optparse_decrement_message}),
     
             (('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
-                "and prompts (--interactive). ", 
+                    "and prompts (--interactive). ", 
                 'dest': 'quiet', 
                 'default': False,
                 'action': 'callback',
                 'callback': optparse_override_quiet }),
 
-            (('--interactive',),{ 'help': "Prompt user if needed, this is"
-                    " the default. ", 
+            (('--interactive',),{ 'help': "Force user prompt in certain "
+                    "situations. This is the default. ", 
                 'default': True,
                 'action': 'store_true' }),
+
             (('--non-interactive',),{ 
-                'help': "Never prompt, solve or raise error. ", 
+                'help': "Never prompt, auto-solve situation by defaults or "
+                    "preferences. Otherwise raise error for unclear or risky "
+                    "situations. But remember user preferences may override! "
+                    "This option should ensure execution completes unattended, "
+                    "and as soon soon as possible, but early failure cannot always "
+                    "be guaranteed. ", 
                 'dest': 'interactive', 
                 'default': True,
                 'action': 'store_false' }),
+
         )
 
     def get_options(self):
         opts = []
-        for klass in self.__class__.mro():
+        for klass in Target.module_list:
             if hasattr(klass, 'get_opts'):
                 opts += list(klass.get_opts())
         return opts
@@ -92,7 +176,7 @@ class Command(object):
         #parser, opts, paths = parse_argv_split(
         #        self.OPTIONS, argv, self.USAGE, self.VERSION)
 
-        parser = optparse.OptionParser(usage, version=version)
+        parser = OptionParser(usage, version=version)
 
         optnames = []
         nullable = []
@@ -129,6 +213,7 @@ class Command(object):
         """
         Command-line program static properties.
         """
+        log.debug("{bblack}cmd{bwhite}:prog{default}")
         prog = confparse.Values(dict(
             argv=sys.argv[1:],
             usage="Usage % [options|targets]",
@@ -136,25 +221,64 @@ class Command(object):
             version="0.1",
             pwd=os.getcwd(),
         ))
-        yield dict(prog=prog)
+        yield keywords(prog=prog)
 
-    def cmd_config(self):
+    def cmd_config(self, prog=None):
         """
         Init settings object from persisted config.
         """
+        log.debug("{bblack}cmd{bwhite}:config{default}")
+        assert prog, (self, prog)
         config_file = self.find_config_file()
-        yield dict(config_file=config_file)
-        yield dict(settings=confparse.load_path(config_file))
+
+        prog.update(dict(
+            config_file=config_file,
+        ))
+        yield keywords(
+                settings=confparse.load_path(config_file))
 
     def cmd_options(self, settings=None, prog=None):
         """
         Parse arguments
         """
-        parser, opts, kwds_, args = self.parse_argv(
-                self.get_options(), prog['argv'], prog['usage'], prog['version'])
-        yield kwds_
-        yield dict(opts=opts)
+        log.debug("{bblack}cmd{bwhite}:options{default}")
+        parser, opts, kwds_, args_ = self.parse_argv(
+                self.get_options(), 
+                prog['argv'], 
+                prog['usage'], 
+                prog['version'])
+        prog.update(dict(
+            optparser=parser
+        ))
+        yield keywords(kwds_)
+        yield keywords(
+            opts=opts,
+        )
+        args = arguments()
+        targs = targets()
+        args_ = list(args_)
+        while args_:
+            a = args_.pop()
+            if re.match('[a-z][a-z0-9]+:[a-z0-9-]', a.lower()):
+                targs = targets(targs+(a,))
+            else:
+                args = arguments(args+(a,))
+        yield targs
         yield args
+
+    def cmd_targets(self, settings=None, prog=None):
+        """
+        xxx: deprecate? use --help.
+        """
+        log.debug("{bblack}cmd{bwhite}:targets{default}")
+        optparser.print_targets()
+        targets = prog['optparser'].targets
+        yield keywords(targets=targets)
+
+    def cmd_help(self, settings=None, prog=None):
+        log.debug("{bblack}cmd{bwhite}:help{default}")
+        prog['optparser'].print_help()
+       
 
 lib.namespaces.update((Command.namespace,))
 Target.register(Command)

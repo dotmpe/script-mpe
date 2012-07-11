@@ -1,19 +1,42 @@
 #!/usr/bin/env python
+"""
+Use of the target framework.
 
+ToDo:
+    - Rewrite so target execution is stacked. May want to review
+      handler/execution list sequence.
+    - volume, radical, finfo need a rewrite to use the new cmdline.
+
+Work in progress:
+    - lnd:tag - Interactive .. can txs: be interactive?
+
+Issues:
+    - Rewrite taxus INode to be polymorphic: Dir, File, Dev..
+
+"""
 from target import Name, Target, AbstractTargetResolver
+#from libcmd import Cmd
 from cmdline import Command
-from resources import Resourcer
 
-from libcmd import Cmd
-from taxus import Taxus
-from rsr import Rsr
-from volume import Volume
-from radical import Radical
-from finfo import FileInfoApp
+#from taxus import Taxus
+from txs import Txs
+from lind import  Lind
+#from rsr import Rsr
+from resourcer import Resourcer
+#from volume import Volume
+#from radical import Radical
+#from finfo import FileInfoApp
 
 
-class Main(AbstractTargetResolver, Resourcer):
-    pass
+class Main(Command, AbstractTargetResolver):
+
+    handlers = [
+            'cmd:options'
+        ]
+
+    @classmethod
+    def get_opts(self):
+        return ()
 
     #namespace = 'script-mpe', 'http://name.wtwta.nl/#/rsr'
 
