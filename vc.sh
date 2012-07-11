@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash -x
 #
 # SCM util functions and pretty PS1 prompt for git, bzr
 #
@@ -17,7 +17,7 @@ HELP="vc - version-control helper functions "
 
 __vc_bzrdir ()
 {
-    cd $1;
+    cd "$1";
 	root=$(bzr info 2> /dev/null | grep 'branch root')
 	if [ -n "$root" ]; then
 		echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
@@ -37,12 +37,12 @@ __vc_gitdir ()
     #        cd $1
 	#		git rev-parse --git-dir 2>/dev/null
 	#	fi
-	D=$1
+	D="$1"
 	[ -n "$D" ] || D=.
 	if [ -d "$D/.git" ]; then
 		echo "$D/.git"
     else
-        cd $D
+        cd "$D"
         git rev-parse --git-dir 2>/dev/null
 	fi
 }
@@ -144,7 +144,7 @@ __vc_git_ps1 ()
 
 __vc_pull ()
 {
-    cd $1
+    cd "$1"
 	local git=$(__vc_gitdir)
     local bzr=$(__vc_bzrdir)
 	if [ "$git" ]; then
@@ -158,7 +158,7 @@ __vc_pull ()
 
 __vc_push ()
 {
-    cd $1
+    cd "$1"
 	local git=$(__vc_gitdir)
     local bzr=$(__vc_bzrdir)
 	if [ "$git" ]; then
@@ -174,24 +174,24 @@ __vc_status ()
 {
 	local w short repo sub
 
-	w=$1;
-	cd $w
-    realcwd=$(pwd -P)
-	short=${w/#"$HOME"/"~"}
+	w="$1";
+	cd "$w"
+    realcwd="$(pwd -P)"
+	short="${w/#$HOME/~}"
 
-	local git=$(__vc_gitdir $w)
-	local bzr=$(__vc_bzrdir $w)
+	local git=$(__vc_gitdir "$w")
+	local bzr=$(__vc_bzrdir "$w")
 
 	if [ "$git" ]; then
-        realgit=$(cd $git; pwd -P)
-        realgit=${realgit%/.git}
-		rev=$(git show $realgit | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')
-		sub=${realcwd##$realgit}
-		short=${short%$sub}
+        realgit="$(cd "$git"; pwd -P)"
+        realgit="${realgit%/.git}"
+		rev="$(git show $realgit | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+		sub="${realcwd##$realgit}"
+		short="${short%$sub}"
 		echo $short $(__vc_git_ps1 "[git:%s $rev]")$sub
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
-        realbzr=$(cd $bzr; pwd -P)
+        realbzr="$(cd "$bzr"; pwd -P)"
         realbzr=${realbzr%/.bzr}
 		sub=${realcwd##$realbzr}
 		short=${short%$sub/}
@@ -223,9 +223,9 @@ __vc_status ()
 # ? : untracked "
 __vc_ps1 ()
 {
-    d=$1
-    [ -z "$d" ] && d=$(pwd)
-    __vc_status $d
+    d="$1"
+    [ -z "$d" ] && d="$(pwd)"
+    __vc_status "$d"
 }
 
 # Main
@@ -234,7 +234,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
         F="$1"
         [ -z "$F" ] && F=.
         [ -n "$F" ] && [ ! -d "$F" ] && echo "No such directory $F" && exit 3
-        echo -e vc-status[$F]=$(__vc_status $F)
+        echo -e vc-status[$F]=$(__vc_status "$F")
     fi
 fi
 
