@@ -125,13 +125,12 @@ def host_find(args, sa=None):
     except NoResultFound, e:
         return
     return node
-          
 
 
 # TODO; test and remove from taxus.py
 
 @Target.register(NS, 'session', 'cmd:options')
-def txs_session(prog=None, sa=None, opts=None, settings=None):
+def txs_session(prog=None, sa=None, opts=None, conf=None):
     # SA session
     dbref = opts.dbref
     if opts.init:
@@ -172,7 +171,7 @@ def txs_session(prog=None, sa=None, opts=None, settings=None):
 
 
 @Target.register(NS, 'pwd', 'txs:session')
-def txs_pwd(prog=None, sa=None, ur=None, opts=None, settings=None):
+def txs_pwd(prog=None, sa=None, ur=None, opts=None, conf=None):
     """
     Return the current path.
     """
@@ -185,7 +184,7 @@ def txs_pwd(prog=None, sa=None, ur=None, opts=None, settings=None):
 
 
 @Target.register(NS, 'scan', 'txs:session')
-def txs_scan(prog=None, sa=None, ur=None, opts=None, settings=None):
+def txs_scan(prog=None, sa=None, ur=None, opts=None, conf=None):
     log.debug("{bblack}txs{bwhite}:scan{default}")
     offset = len(prog.results.resources)-1
     yield Target('rsr:scan')
@@ -199,13 +198,13 @@ def txs_scan(prog=None, sa=None, ur=None, opts=None, settings=None):
 
 
 @Target.register(NS, 'run', 'txs:session')
-def txs_run(sa=None, ur=None, opts=None, settings=None):
+def txs_run(sa=None, ur=None, opts=None, conf=None):
     log.debug("{bblack}txs{bwhite}:run{default}")
     # XXX: Interactive part, see lind.
     """
     """
     results = []
-    if settings.taxus.walk.yield_directly:
+    if conf.taxus.walk.yield_directly:
         results = None
     classes = {}
     tags = {}

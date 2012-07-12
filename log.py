@@ -99,6 +99,8 @@ def format_line(msg):
         msg = msg.replace('{%s}' % k, palette[k])
     return msg
 
+threshold = 5
+
 def log(level, msg, *args):
     """
     TODO:
@@ -111,6 +113,8 @@ def log(level, msg, *args):
   6. Informational (info).
   7. Debug.
     """
+    if level > threshold:
+        return
     assert isinstance(level, int)
     if not isinstance(msg, (basestring, int, float)):
         msg = str(msg)

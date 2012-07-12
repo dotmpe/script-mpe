@@ -1,7 +1,8 @@
+#!/usr/bin/env python
 """
 See Resourcer.rst
 
-- Builds upon cmdline.
+- Builds upon cmd.
 """
 import os
 import shelve
@@ -20,7 +21,7 @@ from taxus import Node, SHA1Digest, MD5Digest
 
 NS = Namespace.register(
         prefix='rsr',
-        uriref='http://project.dotmpe.com/script/#/cmdline.Resourcer'
+        uriref='http://project.dotmpe.com/script/#/.Resourcer'
     )
 
 Options.register(NS, 
@@ -49,61 +50,7 @@ Options.register(NS,
     )
 
 
-@Target.register(NS, 'userdir', 'cmd:options')
-def rsr_userdir(prog=None, settings=None):
-    userdir = os.path.expanduser(settings.rsr.lib.paths.userdir)
-    yield Keywords(
-        prog=dict(userdir=userdir))
-
-
-@Target.register(NS, 'lib', 'rsr:userdir')
-def rsr_lib(prog=None, settings=None):
-    """
-    Initialize shared object indices. 
-    
-    PersistedMetaObject sessions are kept in three types of directories.
-    These correspond with the keys in rsr.lib.paths.
-    Sessions are initialized from rsr.lib.sessions.
-
-    Also one objects session for user and system.
-    The current user session is also set as default session.
-
-    options:
-        - rsr.lib.paths.systemdir
-        - rsr.lib.paths.userdir
-        - rsr.lib.sessions
-    """
-    # Normally /var/lib/cllct
-    sysdir = settings.rsr.lib.paths.systemdir
-    sysdbpath = os.path.join(sysdir,
-            settings.rsr.lib.name)
-    # Normally ~/.cllct
-    usrdbpath = os.path.join(prog.userdir,
-            settings.rsr.lib.name)
-    # Initialize shelves
-    sysdb = PersistedMetaObject.get_store('system', sysdbpath)
-    usrdb = PersistedMetaObject.get_store('user', usrdbpath)
-    vdb = PersistedMetaObject.get_store('volumes', 
-            os.path.expanduser(settings.rsr.lib.sessions.user_volumes))
-    # XXX: 'default' is set to user-database
-    assert usrdb == PersistedMetaObject.get_store('default', usrdbpath)
-    yield Keywords(
-        volumes=vdb,
-        objects=confparse.Values(dict(
-                system=sysdb,
-                user=usrdb
-            )),
-        )
-
-
-@Target.register(NS, 'pwd', 'cmd:options')
-def rsr_pwd(prog=None, opts=None, settings=None):
-    log.debug("{bblack}rsr{bwhite}:pwd{default}")
-    path = os.getcwd()
-    yield Keywords(prog=dict(pwd=path))
-
-
-@Target.register(NS, 'init-volume', 'rsr:pwd', 'rsr:lib')
+@Target.register(NS, 'init-volume', 'cmd:pwd', 'cmd:lib')
 def rsr_init_volume(prog=None):
     log.debug("{bblack}rsr{bwhite}:init-volume{default}")
     #PersistedMetaObject.get_store('global')
@@ -125,11 +72,15 @@ def rsr_init_volume(prog=None):
 
 
 
-@Target.register(NS, 'volume', 'rsr:pwd', 'rsr:lib')
+@Target.register(NS, 'volume', 'cmd:pwd', 'cmd:lib')
 def rsr_volume(prog=None, opts=None):
     """
     Return the current volume. In --init mode, a volume is created
     in the current directory.
+
+    Arguments
+     - prog.pwd
+     - opts.init
     """
     log.debug("{bblack}rsr{bwhite}:volume{default}")
     Volume.init()
@@ -246,7 +197,7 @@ def rsr_scan(prog=None, volume=None, opts=None):
 #def rsr_count_volume_files(volumedb):
 #    print len(volumedb.keys())
 
-@Target.register(NS, 'repo-update', 'rsr:lib', 'rsr:pwd')
+@Target.register(NS, 'repo-update', 'cmd:lib', 'cmd:pwd')
 def rsr_repo_update(prog=None, objects=None, opts=None):
     i = 0
     for repo in Repo.walk(prog.pwd, max_depth=2):
@@ -287,6 +238,10 @@ def rsr_repo_update(prog=None, objects=None, opts=None):
 #    pass
 #
 
+@Target.register(NS, 'status', 'cmd:lib', 'cmd:pwd')
+def rsr_status(prog=None, objects=None, opts=None, conf=None):
+    yield 0
+
 # XXX: Illustration of the kwd types by rsr
 import zope.interface
 from zope.interface import Attribute, implements
@@ -297,6 +252,12 @@ class IVolume(zope.interface.Interface):
 
 
 if __name__ == '__main__':
+    from libcmd import TargetResolver
+    import cmd
+    import txs
+    import lind
+    #import rsr
+    import volume
 
     TargetResolver().main(['rsr:status'])
 

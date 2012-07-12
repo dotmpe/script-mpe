@@ -98,7 +98,7 @@ def optparse_override_quiet(option, optstr, value, parser):
     "Turn off non-essential output. "
     parser.values.quiet = True
     parser.values.interactive = False
-    parser.values.messages = 4 # skip warning and below
+    parser.values.messages = 4 # skip beyond warn: note, info etc
 
 def optparse_print_help(options, optstr, value, parser):
     parser.print_help()

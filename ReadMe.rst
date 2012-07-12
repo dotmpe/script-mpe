@@ -36,9 +36,9 @@ Main
     Relational database for distributed metadata, distributed addressing of
     data (multi-user/host filespace).
   lind
-    Interactive frontends to rsr and taxus.
+    Interactive per directory metadata. frontends to rsr and taxus.
   workLog
-    Interactive work session manager with timing.
+    Work session manager with time tracking.
   radical  
     - tracking tagged source comments (TODO, FIXME, et al.)
       TODO: Tagged comment and embedded sentinel manager for 
@@ -46,10 +46,18 @@ Main
   gate
     - Resource registration and lookup mechanisms.
     - Content negotiation.
+    
 
 Libraries
+  libname
+  libcmd
   confparse (std python)
     parse settings from yaml
+  res
+    Read/write file formats and various other resources.
+
+    persistence
+    metafile
 
 Unsorted
   cabinet

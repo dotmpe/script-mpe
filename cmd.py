@@ -12,6 +12,9 @@ import log
 from libname import Namespace, Name
 from libcmd import OptionParser, Targets, Arguments, Keywords, Options,\
     Target, optparse_decrement_message, optparse_override_quiet
+from res import PersistedMetaObject
+# XXX
+from taxus import current_hostname
 
 
 # Register this module with libcmd
@@ -48,7 +51,7 @@ Options.register(NS,
 #            'callback': optparse_override_handler }),
 #
 #        (('-U', '--update-config',),{ 'action':'store_true', 'help': "Write back "
-#            "configuration after updating the settings with non-default option "
+#            "configuration after updating the conf with non-default option "
 #            "values.  This will lose any formatting and comments in the "
 #            "serialized configuration. ",
 #            'default': False }),
@@ -141,12 +144,11 @@ def find_config_file():
 # 
 
 @Target.register(NS, 'prog')
-def cmd_prog():
+def cmd_prog(prog=None):
     """
     Command-line program static properties.
     Just assembles a few key values.
     """
-    log.debug("{bblack}cmd{bwhite}:prog{default}")
     prog = confparse.Values(dict(
         name=os.path.splitext(os.path.basename(__file__))[0],
         version="0.1",
@@ -155,28 +157,30 @@ def cmd_prog():
     ))
     yield Keywords(prog=prog)
 
-@Target.register(NS, 'config', 'cmd:prog')
+@Target.register(NS, 'pwd', 'cmd:prog')
+def cmd_pwd():
+    path = os.getcwd()
+    yield Keywords(prog=dict(pwd=path))
+
+@Target.register(NS, 'find-config', 'cmd:prog')
+def cmd_find_config():
+    cf = find_config_file()
+    yield Keywords(prog=dict(config_file=cf))
+
+@Target.register(NS, 'config', 'cmd:find-config')
 def cmd_config(prog=None):
     """
-    Init settings object from persisted config.
+    Init conf object from persisted config.
     """
-    log.debug("{bblack}cmd{bwhite}:config{default}")
-    assert prog, prog
-    config_file = find_config_file()
-    yield Keywords(
-            prog=dict(
-                    config_file=config_file
-                ),
-            settings=confparse.load_path(config_file))
+    yield Keywords(conf=confparse.load_path(prog.config_file))
 
 @Target.register(NS, 'options', 'cmd:config')
-def cmd_options(settings=None, prog=None):
+def cmd_options(conf=None, prog=None):
     """
     Parse arguments
     """
-    log.debug("{bblack}cmd{bwhite}:options{default}")
     assert prog, prog
-    assert settings, settings
+    assert conf, conf
     options = Options.get_options()
     parser, opts, kwds_, args_ = parse_argv(
             options,
@@ -191,6 +195,7 @@ def cmd_options(settings=None, prog=None):
             )),
             opts=opts,
         )
+    log.level = opts.messages
     args = Arguments()
     targs = Targets()
     args_ = list(args_)
@@ -205,18 +210,72 @@ def cmd_options(settings=None, prog=None):
 
 @Target.register(NS, 'help', 'cmd:options')
 def cmd_help(prog=None):
-    log.debug("{bblack}cmd{bwhite}:help{default}")
     assert prog, prog
     prog.optparser.print_help()
 
 @Target.register(NS, 'targets', 'cmd:options')
 def cmd_targets(prog=None):
     """
-    xxx: deprecate? use --help.
+    XXX: deprecate? use --help.
     """
-    log.debug("{bblack}cmd{bwhite}:targets{default}")
     prog.optparser.print_targets()
     yield Keywords(targets=prog.optparser.targets)
+
+@Target.register(NS, 'host', 'cmd:options')
+def cmd_host(prog=None):
+    """
+    """
+    log.debug("{bblack}cmd{bwhite}:host{default}")
+    host = current_hostname()
+    yield Keywords(prog=dict(host=host))
+
+@Target.register(NS, 'userdir', 'cmd:options')
+def cmd_userdir(prog=None, conf=None):
+    userdir = os.path.expanduser(conf.cmd.lib.paths.userdir)
+    yield Keywords(prog=dict(userdir=userdir))
+
+@Target.register(NS, 'lib', 'cmd:userdir')
+def cmd_lib(prog=None, conf=None):
+    """
+    Initialize shared object indices. 
+    
+    PersistedMetaObject sessions are kept in three types of directories.
+    These correspond with the keys in cmd.lib.paths.
+    Sessions are initialized from cmd.lib.sessions.
+
+    Also one objects session for user and system.
+    The current user session is also set as default session.
+
+    options (conf):
+        - cmd.lib.paths.systemdir
+        - cmd.lib.paths.userdir
+        - cmd.lib.sessions
+    other arguments
+        - prog.userdir
+    """
+    # Normally /var/lib/cllct
+    sysdir = conf.cmd.lib.paths.systemdir
+    sysdbpath = os.path.join(sysdir,
+            conf.cmd.lib.name)
+    # Normally ~/.cllct
+    usrdbpath = os.path.join(prog.userdir,
+            conf.cmd.lib.name)
+    # Initialize shelves
+    sysdb = PersistedMetaObject.get_store('system', sysdbpath)
+    usrdb = PersistedMetaObject.get_store('user', usrdbpath)
+    vdb = PersistedMetaObject.get_store('volumes', 
+            os.path.expanduser(conf.cmd.lib.sessions.user_volumes))
+    # XXX: 'default' is set to user-database
+    assert usrdb == PersistedMetaObject.get_store('default', usrdbpath)
+    yield Keywords(
+        volumes=vdb,
+        objects=confparse.Values(dict(
+                system=sysdb,
+                user=usrdb
+            )),
+        )
+
+
 
 
 # XXX: Illustration of the three kwd types by cmdline
@@ -241,6 +300,6 @@ class IOptions(zope.interface.Interface):
     force = Attribute('')
     recurse = Attribute('')
 
-# cmd:settings<ISettings>
+# cmd:conf<ISettings>
 class ISettings(zope.interface.Interface):
     pass

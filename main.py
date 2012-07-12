@@ -11,10 +11,16 @@ Work in progress:
 Issues:
     - Rewrite taxus INode to be polymorphic: Dir, File, Dev..
 
+
+cmd - program options and user settings
+rsr - local resource manager
+txs - distributed relational DB metadata
+lind - readline based interface
+
 """
 import lib
 from libcmd import TargetResolver
-import cmdline
+import cmd
 import txs
 import lind
 import rsr
