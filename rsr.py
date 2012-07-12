@@ -50,6 +50,11 @@ Options.register(NS,
 
 
 
+@Target.register(NS, 'status', 'rsr:userdir')
+def rsr_userdir(prog=None, settings=None):
+    pass
+
+
 @Target.register(NS, 'userdir', 'cmd:options')
 def rsr_userdir(prog=None, settings=None):
     userdir = os.path.expanduser(settings.rsr.lib.paths.userdir)
@@ -275,4 +280,10 @@ from zope.interface import Attribute, implements
 class IVolume(zope.interface.Interface):
     pass
     # rsr:volume
+
+
+if __name__ == '__main__':
+
+    TargetResolver().main(['rsr:status'])
+
 

@@ -279,7 +279,7 @@ class ExecGraph(object):
 #    P_hasResult = Name.fetch('cmd:hasResult')
 #    P_isResultOf = Name.fetch('cmd:isResultOf')
 
-    def __init__(self, root=[]):
+    def __init__(self, root=[], default_namespace=None):
         # P(s,o) lookup map for target and results structure
         self.edges = type('Edges', (object,), dict(
                 s_p={},
@@ -289,6 +289,7 @@ class ExecGraph(object):
         self.commands = {}
         self.execlist = []
         self.pointer = 0
+        self.default_namespace = default_namespace
         if root:
             for node_id in root:
                 self.put(node_id)
@@ -304,8 +305,11 @@ class ExecGraph(object):
         assert False
 
     @staticmethod
-    def load(name):
+    def load(name, default_namespace=None):
         assert isinstance(name, str)
+        if not ':' in name:
+            assert default_namespace
+            name = default_namespace + ':' + name
         target = Target.handlers[name]
         cmdtarget = Command(
                 name=target.name,
@@ -330,7 +334,7 @@ class ExecGraph(object):
                 node = node.qname
             # Initialize the requested key if available
             if node not in self.commands:
-                cmdtarget = ExecGraph.load(node)
+                cmdtarget = ExecGraph.load(node, self.default_namespace)
                 self.commands[cmdtarget.key] = cmdtarget
         else:
             # Use given node as command instance
@@ -665,9 +669,11 @@ class ContextStack(object):
 
 class TargetResolver(object):
 
-    def main(self, handlers):
+    def main(self, handlers, default_namespace=None):
         assert handlers, "Need at least one static target to bootstrap"
-        execution_graph = ExecGraph(handlers)
+        if not default_namespace:
+            default_namespace = Name.fetch(handlers[0]).prefix
+        execution_graph = ExecGraph(handlers, default_namespace)
         stack = ContextStack()
         self.run(execution_graph, stack)
 
