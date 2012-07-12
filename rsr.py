@@ -56,15 +56,8 @@ def rsr_userdir(prog=None, settings=None):
         prog=dict(userdir=userdir))
 
 
-@Target.register(NS, 'pwd', 'cmd:options')
-def rsr_pwd(prog=None, opts=None, settings=None):
-    log.debug("{bblack}rsr{bwhite}:pwd{default}")
-    path = os.getcwd()
-    yield Keywords(prog=dict(pwd=path))
-
-
-@Target.register(NS, 'shared-lib', 'rsr:userdir')
-def rsr_shared_lib(prog=None, settings=None):
+@Target.register(NS, 'lib', 'rsr:userdir')
+def rsr_lib(prog=None, settings=None):
     """
     Initialize shared object indices. 
     
@@ -103,7 +96,36 @@ def rsr_shared_lib(prog=None, settings=None):
         )
 
 
-@Target.register(NS, 'volume', 'rsr:pwd', 'rsr:shared-lib')
+@Target.register(NS, 'pwd', 'cmd:options')
+def rsr_pwd(prog=None, opts=None, settings=None):
+    log.debug("{bblack}rsr{bwhite}:pwd{default}")
+    path = os.getcwd()
+    yield Keywords(prog=dict(pwd=path))
+
+
+@Target.register(NS, 'init-volume', 'rsr:pwd', 'rsr:lib')
+def rsr_init_volume(prog=None):
+    log.debug("{bblack}rsr{bwhite}:init-volume{default}")
+    #PersistedMetaObject.get_store('global')
+    path = prog.pwd
+    #Volume.create(path)
+    cdir = os.path.join(path, '.cllct')
+    if not os.path.exists(cdir):
+        os.mkdir(cdir)
+    dbpath = os.path.join(cdir, 'volume.db')
+    if os.path.exists(dbpath):
+        log.err("DB exists at %s", dbpath)
+    else:
+        db = shelve.open(dbpath)
+        #DB_MODE = 'n'
+        #db = anydbm.open(dbpath, DB_MODE)
+        db['mounts'] = [path]
+        log.note("Created new volume database at %s", dbpath)
+        db.close()
+
+
+
+@Target.register(NS, 'volume', 'rsr:pwd', 'rsr:lib')
 def rsr_volume(prog=None, opts=None):
     """
     Return the current volume. In --init mode, a volume is created
@@ -131,28 +153,6 @@ def rsr_volume(prog=None, opts=None):
         yield Keywords(volumedb=volumedb)
     #Metafile.default_extension = '.meta'
     #Metafile.basedir = 'media/application/metalink/'
-
-
-@Target.register(NS, 'init-volume', 'rsr:pwd', 'rsr:shared-lib')
-def rsr_init_volume(prog=None):
-    log.debug("{bblack}rsr{bwhite}:init-volume{default}")
-    #PersistedMetaObject.get_store('global')
-    path = prog.pwd
-    #Volume.create(path)
-    cdir = os.path.join(path, '.cllct')
-    if not os.path.exists(cdir):
-        os.mkdir(cdir)
-    dbpath = os.path.join(cdir, 'volume.db')
-    if os.path.exists(dbpath):
-        log.err("DB exists at %s", dbpath)
-    else:
-        db = shelve.open(dbpath)
-        #DB_MODE = 'n'
-        #db = anydbm.open(dbpath, DB_MODE)
-        db['mounts'] = [path]
-        log.note("Created new volume database at %s", dbpath)
-        db.close()
-
 
 
 @Target.register(NS, 'ls', 'rsr:volume')
@@ -294,5 +294,10 @@ from zope.interface import Attribute, implements
 class IVolume(zope.interface.Interface):
     pass
     # rsr:volume
+
+
+if __name__ == '__main__':
+
+    TargetResolver().main(['rsr:status'])
 
 
