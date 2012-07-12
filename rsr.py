@@ -68,9 +68,17 @@ def rsr_shared_lib(prog=None, settings=None):
     """
     Initialize shared object indices. 
     
-    This creates PersistedMetaObject sessions
-    for a database in the system directory, and one for the current user.
+    PersistedMetaObject sessions are kept in three types of directories.
+    These correspond with the keys in rsr.lib.paths.
+    Sessions are initialized from rsr.lib.sessions.
+
+    Also one objects session for user and system.
     The current user session is also set as default session.
+
+    options:
+        - rsr.lib.paths.systemdir
+        - rsr.lib.paths.userdir
+        - rsr.lib.sessions
     """
     # Normally /var/lib/cllct
     sysdir = settings.rsr.lib.paths.systemdir
@@ -82,9 +90,12 @@ def rsr_shared_lib(prog=None, settings=None):
     # Initialize shelves
     sysdb = PersistedMetaObject.get_store('system', sysdbpath)
     usrdb = PersistedMetaObject.get_store('user', usrdbpath)
+    vdb = PersistedMetaObject.get_store('volumes', 
+            os.path.expanduser(settings.rsr.lib.sessions.user_volumes))
     # XXX: 'default' is set to user-database
     assert usrdb == PersistedMetaObject.get_store('default', usrdbpath)
     yield Keywords(
+        volumes=vdb,
         objects=confparse.Values(dict(
                 system=sysdb,
                 user=usrdb
@@ -92,7 +103,7 @@ def rsr_shared_lib(prog=None, settings=None):
         )
 
 
-@Target.register(NS, 'volume', 'rsr:shared-lib')
+@Target.register(NS, 'volume', 'rsr:pwd', 'rsr:shared-lib')
 def rsr_volume(prog=None, opts=None):
     """
     Return the current volume. In --init mode, a volume is created
@@ -100,7 +111,10 @@ def rsr_volume(prog=None, opts=None):
     """
     log.debug("{bblack}rsr{bwhite}:volume{default}")
     Volume.init()
-    volume = Volume.find('pwd', prog.pwd)
+    assert prog.pwd, prog.copy().keys()
+    volume = Volume.find(prog.pwd)
+    print 'volume=',volume
+    #volume = Volume.find('volumes', 'pwd', prog.pwd)
     if not volume:
         if opts.init:
             name = Name.fetch('rsr:init-volume')
@@ -117,6 +131,7 @@ def rsr_volume(prog=None, opts=None):
         yield Keywords(volumedb=volumedb)
     #Metafile.default_extension = '.meta'
     #Metafile.basedir = 'media/application/metalink/'
+
 
 @Target.register(NS, 'init-volume', 'rsr:pwd', 'rsr:shared-lib')
 def rsr_init_volume(prog=None):

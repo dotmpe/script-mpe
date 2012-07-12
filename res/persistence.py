@@ -1,6 +1,7 @@
 """
 Object-Storage mapping.
 
+TODO: confine to basedir, prolly sort by type too.
 TODO: dirty state tracking for better sync. impl.
 XXX: What to do about different classes sharing dbsessions.
      
@@ -102,14 +103,18 @@ class PersistedMetaObject(Object):
     @classmethod
     def fetch(Klass, key, session=None):
         """
-        The proper way to initialize a persited object.
+        The proper way to initialize a persisted object.
         """
         if not session:
             session = Klass.default
         return session[key]
 
     @classmethod
-    def find(Klass, session, idxname, value, typ=None):
+    def fetch_key(Klass, idxname, value, session=None, typ=None):
+        return Klass.find(session, idxname, value, typ, True)
+
+    @classmethod
+    def find(Klass, session, idxname, value, typ=None, require=False):
         """
         Search specific index for an object key.
         """
@@ -118,7 +123,10 @@ class PersistedMetaObject(Object):
             typ = Klass
         idx = getattr(typ, idxname)
 
-        assert value in idx, "Index %r does not have %r" %(idxname, value)
+        if not require and value not in idx:
+            return
+        assert not require or value in idx, \
+            "Index %r does not have %r" %(idxname, value)
         objkey = idx[value]
 
         if not session:
@@ -126,7 +134,7 @@ class PersistedMetaObject(Object):
         if isinstance(session, basestring):
             session = PersistedMetaObject.get_store(session)
 
-        assert objkey in Klass.default
+        assert objkey in Klass.default, "?"
         assert objkey in session, "Value %r found for %s in %r not a known object" %(
                 objkey, typ, idxname)
         return session[objkey]

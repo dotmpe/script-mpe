@@ -27,5 +27,5 @@ import volume
 
 if __name__ == '__main__':
 
-    TargetResolver().main(['cmd:options'])
+    TargetResolver().main(['cmd:options'], 'cmd')
 

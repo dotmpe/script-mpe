@@ -2,7 +2,7 @@
 Read metadata from metafiles.
 
 - Persist composite objects
-- Metalink4 <-> HTTPResponseHeaders
+- TODO: Metalink4 <-> HTTPResponseHeaders
 
 - Content-*
 

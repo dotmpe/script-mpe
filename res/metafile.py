@@ -66,15 +66,35 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
         ('X-Content-Description', lib.get_format_description_sub),
         ('Content-Type', lib.get_mediatype_sub),
         ('Content-Length', os.path.getsize),
-        #('Digest', util.md5_content_digest_header),
+        ('Digest', util.md5_content_digest_header),
         ('Digest', util.sha1_content_digest_header),
         # TODO: Link, Location?
 #            'Content-MD5': lib.get_md5sum_sub, 
 # not all instances qualify: the spec only covers the message body, which may be
 # chunked.
     )
-    allow_multiple = ('Link',) #'Digest',)
-    basedir = None
+    allow_multiple = ('Link', 'Digest',)
+
+    extension = default_extension
+        #self.extension = self.default_extension
+    #basedir = None
+
+    metahash_excluded = ('X-Meta-Checksum', 'X-Last-Update', 'Location')
+    "These headers are excluded from the meta checksum"
+
+    cache_validators = (
+            'non_zero',
+            'up_to_date',
+            'basic_meta',
+            'size',
+            'digests_generated',
+        )
+    "Names of validators to run to determine cache freshness. "
+
+    content_validators = (
+            'digests_valid',
+        )
+    "Names of validators to run to determine content integrity. "
 
     # XXX:digests = {}
 
@@ -92,7 +112,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
         self.updated = False
 
     def set_path(self, path):
-        if path.endswith('.meta'):
+        if path.endswith(self.extension):
             path = path[:-5]
         #assert os.path.exists(path), path
         self.path = path
@@ -113,7 +133,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
             return self.data[name]
 
     def set(self, name, value):
-        if name in self.data:
+        if name in self.allow_multiple:
             assert isinstance(self.data[name], list), name
             v = self.data[name]
             v.append(value)
@@ -122,12 +142,15 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
             self.data[name] = value
 
     def get_metafile(self):
+        """
+        Return the pathname for the metafile.
+        """
         if not self.basedir:
-            return self.path + '.meta'
+            return self.path + self.extension
         else:
             assert os.path.isdir('.cllct')
             assert os.path.isdir('media/content')
-            return self.basedir + self.path + '.meta'
+            return self.basedir + self.path + self.extension
 
     def non_zero(self):
         return self.has_metafile() \
@@ -136,7 +159,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
     def get_meta_hash(self):
         keys = self.data.keys()
         keys.sort()
-        for k in ('X-Meta-Checksum', 'X-Last-Update', 'Location'):
+        for k in self.metahash_excluded:
             if k in keys:
                 del keys[keys.index(k)]
         rawdata = ";".join(["%s=%r" % (k, self.data[k]) for k in keys])
@@ -160,23 +183,58 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 
     def needs_update(self):
         """
-        XXX: This mechanism is very rough. The entire file is rewritten, not just
-        updated values.
+        XXX: This mechanism is very rough. The entire file is rewritten, not 
+             just updated values.
         """
-        needs_update = (
-            not self.non_zero(),
-            self.mtime < os.path.getmtime( self.path ),
-            #self.utime < os.path.getmtime(self.get_metafile()),
-            'Digest' not in self.data,
-            'X-First-Seen' not in self.data,
-            'X-Last-Seen' not in self.data,
-            'X-Last-Modified' not in self.data,
-            'Content-Length' not in self.data
-        )
+        needs_update = not self.non_zero()
+        if not needs_update:
+            needs_update = not self.validate('cache', 'content')
+        return needs_update
+
+    def validate(self, *args):
+        valid = True
+        for a in args:
+            validators = getattr(self, a+'_validators')
+            for v in validators:
+                validate = getattr(self, 'validate_'+v)
+                valid = valid and validate()
+        return valid
+
+    def validate_non_zero(self):
+        "File and metafile should exist. "
+        return self.non_zero()
+
+    def validate_size(self):
+        "Cached size should match. "
+        valid = True
         if 'Content-Length' in self.data:
             rs, ms = os.path.getsize(self.path), int(self.data['Content-Length'])
-            needs_update += (rs != ms,)
+            valid = valid and rs != ms
+        return valid
 
+    def validate_up_to_date(self):
+        "Cache must be fresh. "
+        valid = self.mtime < os.path.getmtime( self.path )
+        #self.utime < os.path.getmtime(self.get_metafile()),
+        return valid
+
+    def validate_basic_meta(self):
+        "Must have basic metadata. "
+        return 'X-First-Seen' in self.data and \
+            'X-Last-Seen' in self.data and \
+            'X-Last-Modified' in self.data and \
+            'Content-Length' in self.data
+
+    def validate_digests_generated(self):
+        "Must have digests generated. "
+        # TODO
+        return 'Digest' in self.data
+
+    def validate_digests_digests_valid(self):
+        # TODO
+        return True
+
+    def needs_update_old(self):
         # xxx: chatter
         updates = [i for i in needs_update if i]
         attr = ['digest', 'first-seen', 'last-seen', 'last-modified', 'content-length']
@@ -192,11 +250,6 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
             else:
                 print '\tNew attribute', attr[i1-2]
         # /xxx:chatter 
-
-        needs_update = updates != []
-        if needs_update:
-            print "\t",len(updates), 'updates'
-            return needs_update
 
     #
     @classmethod
@@ -261,17 +314,22 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
     # Mutating methods
 
     def update(self):
+
         now = datetime.datetime.now()
         if 'X-First-Seen' not in self.data:
             self.data['X-First-Seen'] = util.iso8601_datetime_format(now.timetuple())
+
         envelope = (
-                ('X-Meta-Checksum', lambda x: self.get_meta_hash()),
-                ('X-Last-Modified', util.last_modified_header),
+                ('X-Meta-Checksum', 
+                        lambda x: self.get_meta_hash()),
+                ('X-Last-Modified', 
+                        util.last_modified_header),
                 ('X-Last-Update', 
                         lambda x: util.iso8601_datetime_format(now.timetuple())),
                 ('X-Last-Seen', 
                         lambda x: util.iso8601_datetime_format(now.timetuple())),
             )
+
         for handlers in self.handlers, envelope:
             for header, handler in handlers:
                 
@@ -299,9 +357,12 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
         fl = open(self.get_metafile(), 'w+')
         now = datetime.datetime.now() # XXX: ctime?
         envelope = {
-                'X-Meta-Checksum': self.get_meta_hash(),
-                'X-Last-Update': util.iso8601_datetime_format(now.timetuple()),
-                'Location': self.path,
+                'X-Meta-Checksum': 
+                        self.get_meta_hash(),
+                'X-Last-Update': 
+                        util.iso8601_datetime_format(now.timetuple()),
+                'Location': 
+                        self.path,
             }
         for key in envelope.keys():
             if key in self.data:
@@ -328,6 +389,5 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
             #fl.write("%s: %s" % (header, value))
         fl.close()
 
-# TEST
 
 

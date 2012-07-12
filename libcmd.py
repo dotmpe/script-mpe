@@ -665,7 +665,7 @@ class ContextStack(object):
 
 class TargetResolver(object):
 
-    def main(self, handlers):
+    def main(self, handlers, default_namespace):
         assert handlers, "Need at least one static target to bootstrap"
         execution_graph = ExecGraph(handlers)
         stack = ContextStack()
