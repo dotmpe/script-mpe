@@ -11,7 +11,7 @@ import confparse
 import log
 from libname import Namespace, Name
 from libcmd import OptionParser, Targets, Arguments, Keywords, Options,\
-    Target, optparse_decrement_message, optparse_override_quiet
+    Target, optparse_increment_message, optparse_override_quiet
 from res import PersistedMetaObject
 # XXX
 from taxus import current_hostname
@@ -55,20 +55,20 @@ Options.register(NS,
 #            "values.  This will lose any formatting and comments in the "
 #            "serialized configuration. ",
 #            'default': False }),
-#
-#        (('-m', '--message-level',),{ 'metavar':'level',
-#            'help': "Increase chatter by lowering "
-#            "message threshold. Overriden by --quiet or --verbose. "
-#            "Levels are 0--7 (debug--emergency) with default of 2 (notice). "
-#            "Others 1:info, 3:warning, 4:error, 5:alert, and 6:critical.",
-#            'default': 2,
-#            }),
         #/XXX
 
-        (('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
-            "threshold. Overriden by --quiet or --message-level.",
+        (('-m', '--message-level',),{ 'metavar':'level',
+            'help': "Increase chatter by lowering "
+            "message threshold. Overriden by --quiet or --verbose. "
+            "Levels are 0--7 (debug--emergency) with default of 2 (notice). "
+            "Others 1:info, 3:warning, 4:error, 5:alert, and 6:critical.",
+            'default': 2,
+            }),
+
+        (('-v', '--verbose',),{ 'help': "Increase chatter threshold. "
+            "Overriden by --quiet or --message-level.",
             'action': 'callback',
-            'callback': optparse_decrement_message}),
+            'callback': optparse_increment_message}),
 
         (('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
             "and prompts (--interactive). ", 
@@ -165,6 +165,7 @@ def cmd_pwd():
 @Target.register(NS, 'find-config', 'cmd:prog')
 def cmd_find_config():
     cf = find_config_file()
+    print cf
     yield Keywords(prog=dict(config_file=cf))
 
 @Target.register(NS, 'config', 'cmd:find-config')
@@ -195,7 +196,7 @@ def cmd_options(conf=None, prog=None):
             )),
             opts=opts,
         )
-    log.level = opts.messages
+    log.threshold = opts.message_level
     args = Arguments()
     targs = Targets()
     args_ = list(args_)
@@ -274,7 +275,6 @@ def cmd_lib(prog=None, conf=None):
                 user=usrdb
             )),
         )
-
 
 
 

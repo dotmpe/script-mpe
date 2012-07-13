@@ -52,8 +52,6 @@ Options.register(NS,
 
 @Target.register(NS, 'init-volume', 'cmd:pwd', 'cmd:lib')
 def rsr_init_volume(prog=None):
-    log.debug("{bblack}rsr{bwhite}:init-volume{default}")
-    #PersistedMetaObject.get_store('global')
     path = prog.pwd
     #Volume.create(path)
     cdir = os.path.join(path, '.cllct')
@@ -71,7 +69,6 @@ def rsr_init_volume(prog=None):
         db.close()
 
 
-
 @Target.register(NS, 'volume', 'cmd:pwd', 'cmd:lib')
 def rsr_volume(prog=None, opts=None):
     """
@@ -82,7 +79,6 @@ def rsr_volume(prog=None, opts=None):
      - prog.pwd
      - opts.init
     """
-    log.debug("{bblack}rsr{bwhite}:volume{default}")
     Volume.init()
     assert prog.pwd, prog.copy().keys()
     volume = Volume.find(prog.pwd)
