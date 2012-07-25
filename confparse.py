@@ -222,11 +222,16 @@ class Values(dict):
         if '.' in name:
             path = name.split('.')
             while path:
-                mod = mod[path.pop(0)]
+                name2 = path.pop(0)
+                if isinstance(mod, list):
+                    name2 = int(name2)-1
+                mod = mod[name2]
                 if len(path) == 1:
                     name = path.pop(0)
         else:
             return dict.__getitem__(self, name)
+        if isinstance(mod, list):
+            name = int(name)-1
         return mod.__getitem__(name)
 
     def getroot(self):

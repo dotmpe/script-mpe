@@ -17,8 +17,13 @@ class PersistedMetaObject(Object):
     """
     Manage shelves (anydb's with pickled objects).
 
-    This utilizes a secondary class to enable lookup on 
-    various object fields, called PersistedMetaIndex.
+    Typical session:
+        >>> db = PersistedMetaObject.get_store('my', './my.db') 
+        >>> db['key'] = 123
+        >>> PersistedMetaObject.sync()
+        >>> PersistedMetaObject.close()
+        
+    PersistedMetaObject is generic and has no indices.
     """
 
     # XXX: inheritance of UpgradedPickle, Object is symbolic for now
@@ -26,9 +31,9 @@ class PersistedMetaObject(Object):
     # Static
 
     stores = {}
-    "list of loaded stores (static) class scope"
+    "dbref to shelve instance map"
     sessions = {}
-    "list of loaded stores (static) class scope"
+    "name to dbref"
     default_store = 'default'
     "name of default store, to customize per type"
 
@@ -49,25 +54,29 @@ class PersistedMetaObject(Object):
                 PersistedMetaObject.stores[dbref] = store
             else:
                 store = PersistedMetaObject.stores[dbref]
-            PersistedMetaObject.sessions[name] = store
+            PersistedMetaObject.sessions[name] = dbref
         else:
-            store = PersistedMetaObject.sessions[name]
+            storedb = PersistedMetaObject.sessions[name]
+            store = PersistedMetaObject.stores[storedb]
         return store
 
     indices = (
-            'inode',# 'PersistedMetaIndex', 'inode'),
-            'sha1_content_digest',# 'KeyedHeaderIndex', 'Digest:sha1'),
-            'md5_content_digest',# 'KeyedHeaderIndex', 'Digest:md5'),
+            ('volumes', 'global'),
+            ('volume_md5', 'local'),
         )
 
     @classmethod
     def init(Klass):
         """
-        Prepare this class, run for each class that defines an indices
-        array.
+        Prepare indices for this class.
         """
-        default = Klass.get_store('default', '.cllct/objects.db')
         klass = Klass.__name__
+        for idxname, idxtype in Klass.indices:
+            if idxtype == 'PersistedMetaObject':
+                pass
+            store = Klass.get_store
+# old
+        default = Klass.get_store('default', '.cllct/objects.db')
         setattr(Klass, 'default-'+klass, default)
         for idxname in Klass.indices:
             store = Klass.get_store(idxname, 
@@ -167,6 +176,8 @@ class PersistedMetaObject(Object):
 
     def set(self, idxname, value):
         """
+        Get the indexname for the class, and set the value
+        of the current object in that index.
         """
         Klass = self.__class__
         idx = getattr(Klass, idxname)

@@ -14,7 +14,7 @@ import confparse
 from libname import Namespace, Name
 from libcmd import Targets, Arguments, Keywords, Options,\
     Target 
-from res import PersistedMetaObject, Metafile, Volume, Repo
+from res import PersistedMetaObject, Metafile, Volume, Repo, Dir
 
 from taxus import Node, SHA1Digest, MD5Digest
 
@@ -51,22 +51,9 @@ Options.register(NS,
 
 
 @Target.register(NS, 'init-volume', 'cmd:pwd', 'cmd:lib')
-def rsr_init_volume(prog=None):
-    path = prog.pwd
-    #Volume.create(path)
-    cdir = os.path.join(path, '.cllct')
-    if not os.path.exists(cdir):
-        os.mkdir(cdir)
-    dbpath = os.path.join(cdir, 'volume.db')
-    if os.path.exists(dbpath):
-        log.err("DB exists at %s", dbpath)
-    else:
-        db = shelve.open(dbpath)
-        #DB_MODE = 'n'
-        #db = anydbm.open(dbpath, DB_MODE)
-        db['mounts'] = [path]
-        log.note("Created new volume database at %s", dbpath)
-        db.close()
+def rsr_init_volume(prog=None, lib=None, settings=None):
+    assert prog.pwd, prog.copy().keys()
+    Volume.init(prog.pwd, lib, settings)
 
 
 @Target.register(NS, 'volume', 'cmd:pwd', 'cmd:lib')
@@ -79,13 +66,13 @@ def rsr_volume(prog=None, opts=None):
      - prog.pwd
      - opts.init
     """
-    Volume.init()
     assert prog.pwd, prog.copy().keys()
     volume = Volume.find(prog.pwd)
     print 'volume=',volume
     #volume = Volume.find('volumes', 'pwd', prog.pwd)
     if not volume:
         if opts.init:
+            log.info("New volume")
             name = Name.fetch('rsr:init-volume')
             assert name, name
             yield Targets('rsr:init-volume',)
@@ -133,6 +120,7 @@ def rsr_ls(volume=None, volumedb=None):
 def rsr_list_volume(prog=None, volume=None, opts=None):
     for r in sa.query(Node).all():
         print r
+
 
 
 @Target.register(NS, 'scan', 'rsr:volume')
@@ -189,7 +177,8 @@ def rsr_scan(prog=None, volume=None, opts=None):
 #def rsr_update_content(opts=None, sharedlib=None):
 #    sharedlib.contents = PersistedMetaObject.get_store('default', 
 #            opts.contentdbref)
-#
+
+
 #def rsr_count_volume_files(volumedb):
 #    print len(volumedb.keys())
 
@@ -205,6 +194,7 @@ def rsr_repo_update(prog=None, objects=None, opts=None):
             print repo.uri
         else:
             print 
+
 
 #@Target.register(NS, 'list-checksums', 'rsr:volume')
 #def rsr_list_checksums(volume=None, volumedb=None):
@@ -234,8 +224,12 @@ def rsr_repo_update(prog=None, objects=None, opts=None):
 #    pass
 #
 
-@Target.register(NS, 'status', 'cmd:lib', 'cmd:pwd')
+@Target.register(NS, 'status', 'rsr:volume')#'cmd:lib', 'cmd:pwd')
 def rsr_status(prog=None, objects=None, opts=None, conf=None):
+    print PersistedMetaObject.sessions['default']
+    print PersistedMetaObject.sessions['system']
+    print PersistedMetaObject.sessions['user']
+    Dir.find_newer(prog.pwd, )
     yield 0
 
 # XXX: Illustration of the kwd types by rsr

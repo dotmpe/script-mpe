@@ -1,5 +1,13 @@
-"""cmdline
+"""cmd
+- get the config
+- parse arguments
+- some basic sys/os targets
+- some aux. targets
 
+config-init
+config-find
+config-query
+config-set
 """
 import os
 import sys
@@ -34,6 +42,23 @@ Options.register(NS,
             'help': "Run time configuration. This is loaded after parsing command "
             "line options, non-default option values wil override persisted "
             "values (see --update-config) (default: %default). " }),
+
+#        (('--global',),{ 'metavar':'NAME', 
+#            'dest': "config_global",
+#            'help': "Instead of reading the nearest value for setting, "
+#                "read/set it globally. "
+#            "(default: %default). " }),
+
+        (('-K','--config-key',),{ 'metavar':'NAME', 
+            'dest': "config_key",
+            'default': '.',
+            'help': "Get the setting value associated with given key. "
+                "(default: %default). " }),
+
+        (('-V','--config-value',),{ 'metavar':'NAME', 
+            'dest': "config_value",
+            'help': ""
+                "(default: %default). " }),
 
         # XXX: old, salvage?
 #        (('-K', '--config-key',),{ 'metavar':'ID', 
@@ -165,7 +190,7 @@ def cmd_pwd():
 @Target.register(NS, 'find-config', 'cmd:prog')
 def cmd_find_config():
     cf = find_config_file()
-    print cf
+    log.debug("config_file=%s", cf)
     yield Keywords(prog=dict(config_file=cf))
 
 @Target.register(NS, 'config', 'cmd:find-config')
@@ -173,7 +198,8 @@ def cmd_config(prog=None):
     """
     Init conf object from persisted config.
     """
-    yield Keywords(conf=confparse.load_path(prog.config_file))
+    conf = confparse.load_path(prog.config_file)
+    yield Keywords(conf=conf)
 
 @Target.register(NS, 'options', 'cmd:config')
 def cmd_options(conf=None, prog=None):
@@ -208,6 +234,29 @@ def cmd_options(conf=None, prog=None):
             args = Arguments(args+(a,))
     yield targs
     yield args
+
+@Target.register(NS, 'query-config', 'cmd:options')
+def cmd_config_query(prog=None, opts=None, conf=None):
+    k = opts.config_key
+    k_print = k
+    if '.' in k:
+        if k != '.':
+            k_print = ''
+            i = 0
+            for k1 in k.split('.'):
+                k_print += "\n" + (i*'\t') + k1
+                i += 1
+    if k == '.':
+        v = conf
+        k_print = "config"
+    else:
+        v = conf[k]
+        k_print = "config:\n\t" + "\n  ".join(k_print.split('\n'))
+    print "%s: %r" % (k_print, v)
+
+@Target.register(NS, 'set-config', 'cmd:options')
+def cmd_config_set(prog=None, opts=None, conf=None):
+    setattr(conf, opts.config_key, opts.config_value)
 
 @Target.register(NS, 'help', 'cmd:options')
 def cmd_help(prog=None):
@@ -253,14 +302,17 @@ def cmd_lib(prog=None, conf=None):
         - cmd.lib.sessions
     other arguments
         - prog.userdir
+
+    yields 
+        - lib.stores
+        - lib.indices (XXX: these are really at the stores still)
+        - lib.paths
     """
     # Normally /var/lib/cllct
     sysdir = conf.cmd.lib.paths.systemdir
-    sysdbpath = os.path.join(sysdir,
-            conf.cmd.lib.name)
+    sysdbpath = os.path.join(sysdir, conf.cmd.lib.name)
     # Normally ~/.cllct
-    usrdbpath = os.path.join(prog.userdir,
-            conf.cmd.lib.name)
+    usrdbpath = os.path.join(prog.userdir, conf.cmd.lib.name)
     # Initialize shelves
     sysdb = PersistedMetaObject.get_store('system', sysdbpath)
     usrdb = PersistedMetaObject.get_store('user', usrdbpath)
@@ -269,10 +321,14 @@ def cmd_lib(prog=None, conf=None):
     # XXX: 'default' is set to user-database
     assert usrdb == PersistedMetaObject.get_store('default', usrdbpath)
     yield Keywords(
-        volumes=vdb,
-        objects=confparse.Values(dict(
-                system=sysdb,
-                user=usrdb
+            lib=confparse.Values(dict(
+                stores=confparse.Values(dict(
+                    system=sysdb,
+                    user=usrdb,
+                    volumes=vdb
+                )),
+                paths=confparse.Values(dict(
+                )),
             )),
         )
 

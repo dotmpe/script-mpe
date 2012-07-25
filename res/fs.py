@@ -67,7 +67,7 @@ class Dir(object):
         )
 
     @classmethod
-    def sane(klass, path):
+    def sane(Klass, path):
         return PATH_R.match(path)
 
     @classmethod
@@ -95,8 +95,8 @@ class Dir(object):
         recurse=False,
         max_depth=-1,
     ))
-    @staticmethod
-    def walk(path, opts=walk_opts):
+    @classmethod
+    def walk(Klass, path, opts=walk_opts, filters=[]):
         if opts.max_depth > 0:
             assert opts.recurse
         for root, dirs, files in os.walk(path):
@@ -105,12 +105,16 @@ class Dir(object):
                     dirs.remove(node)
                     continue
                 dirpath = os.path.join(root, node)
+                if filters:
+                    for fltr in filters:
+                        if not fltr(dirpath):
+                        	continue
                 if not os.path.exists(dirpath):
                     log.err("Error: reported non existant node %s", dirpath)
                     dirs.remove(node)
                     continue
                 depth = dirpath.replace(path,'').strip('/').count('/')
-                if Dir.ignored(dirpath):
+                if Klass.ignored(dirpath):
                     log.err("Ignored directory %r", dirpath)
                     dirs.remove(node)
                     continue
@@ -119,7 +123,7 @@ class Dir(object):
                     continue
                 elif opts.interactive:
                     log.info("Interactive walk: %s",dirpath)
-                    if not Dir.prompt_recurse(opts):
+                    if not Klass.prompt_recurse(opts):
                         dirs.remove(node)
                 assert isinstance(dirpath, basestring)
                 try:
@@ -136,6 +140,10 @@ class Dir(object):
                 yield dirpath
             for leaf in list(files):
                 filepath = os.path.join(root, leaf)
+                if filters:
+                    for fltr in filters:
+                        if not fltr(filepath):
+                            continue
                 if not os.path.exists(filepath):
                     log.err("Error: non existant leaf %s", filepath)
                     continue
@@ -158,4 +166,13 @@ class Dir(object):
                     log.err("Ignored non-ascii/illegal filename %s", filepath)
                     continue
                 yield filepath
+
+    @classmethod
+    def find_newer(Klass, path, path_or_time):
+        if os.path.exists(path_or_time):
+            path_or_time = os.path.getmtime(path_or_time)
+        def _isupdated(path):
+            return os.path.getmtime(path) > path_or_time
+        for path in clss.walk(path, filters=[_isupdated]):
+            yield path
 
