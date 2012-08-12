@@ -49,9 +49,41 @@ Options.register(NS,
 
     )
 
+@Target.register(NS, 'lib', 'cmd:userdir')
+def rsr_lib_init(prog=None, lib=None, settings=None):
+    """
+    """
+    assert prog.pwd, prog.copy().keys()
+    # Normally /var/lib/cllct
+    sysdir = conf.cmd.lib.paths.systemdir
+    #sysdbpath = os.path.join(sysdir, conf.cmd.lib.name)
+    # Normally ~/.cllct
+    #usrdbpath = os.path.join(prog.userdir, conf.cmd.lib.name)
+    # Initialize shelves
+    #sysdb = PersistedMetaObject.get_store('system', sysdbpath)
+    #usrdb = PersistedMetaObject.get_store('user', usrdbpath)
+    voldbpath = os.path.expanduser(conf.cmd.lib.sessions.user_volumes)
+    voldb = PersistedMetaObject.get_store('volumes', voldbpath)
+    # XXX: 'default' is set to user-database
+    #assert usrdb == PersistedMetaObject.get_store('default', usrdbpath)
+    # XXX: 
+    #    The objects lazy initialize static indices when needed,
+    #    only provide path?
+    yield Keywords(
+            lib=confparse.Values(dict(
+                stores=confparse.Values(dict(
+    #                system=sysdb,
+    #                user=usrdb,
+                    volumes=voldb
+                )),
+                indices=confparse.Values(dict(
+                )),
+            )),
+        )
+
 
 @Target.register(NS, 'init-volume', 'cmd:pwd', 'cmd:lib')
-def rsr_init_volume(prog=None, lib=None, settings=None):
+def rsr_volume_init(prog=None, lib=None, settings=None):
     assert prog.pwd, prog.copy().keys()
     Volume.init(prog.pwd, lib, settings)
 
@@ -120,7 +152,6 @@ def rsr_ls(volume=None, volumedb=None):
 def rsr_list_volume(prog=None, volume=None, opts=None):
     for r in sa.query(Node).all():
         print r
-
 
 
 @Target.register(NS, 'scan', 'rsr:volume')
@@ -222,7 +253,7 @@ def rsr_repo_update(prog=None, objects=None, opts=None):
 #
 #def rsr_dump_bookmarks(self):
 #    pass
-#
+
 
 @Target.register(NS, 'status', 'rsr:volume')#'cmd:lib', 'cmd:pwd')
 def rsr_status(prog=None, objects=None, opts=None, conf=None):
@@ -231,6 +262,7 @@ def rsr_status(prog=None, objects=None, opts=None, conf=None):
     print PersistedMetaObject.sessions['user']
     Dir.find_newer(prog.pwd, )
     yield 0
+
 
 # XXX: Illustration of the kwd types by rsr
 import zope.interface

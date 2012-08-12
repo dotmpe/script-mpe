@@ -2,12 +2,22 @@
 - get the config
 - parse arguments
 - some basic sys/os targets
-- some aux. targets
+- some aux. targets (user help)
 
-config-init
-config-find
-config-query
-config-set
+cmd:
+    pwd
+    prog
+    config
+        -find
+        -init
+        -query
+        -set
+    options
+    help
+    targets
+    host
+    userdir
+    lib
 """
 import os
 import sys
@@ -65,11 +75,6 @@ Options.register(NS,
 #            'default': klass.DEFAULT_CONFIG_KEY, 
 #            'help': "Settings root node for run time configuration. "
 #            " (default: %default). " }),
-#
-#        (('--init-config',),{ 'action': 'callback', 'help': "(Re)initialize "
-#            "runtime-configuration with default values. ",
-#            'dest': 'command', 
-#            'callback': optparse_override_handler }),
 #
 #        (('--print-config',),{ 'action':'callback', 'help': "",
 #            'dest': 'command', 
@@ -188,13 +193,13 @@ def cmd_pwd():
     yield Keywords(prog=dict(pwd=path))
 
 @Target.register(NS, 'find-config', 'cmd:prog')
-def cmd_find_config():
+def cmd_config_find():
     cf = find_config_file()
     log.debug("config_file=%s", cf)
     yield Keywords(prog=dict(config_file=cf))
 
 @Target.register(NS, 'config', 'cmd:find-config')
-def cmd_config(prog=None):
+def cmd_config_init(prog=None):
     """
     Init conf object from persisted config.
     """

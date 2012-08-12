@@ -20,43 +20,44 @@ class Workspace(PersistedMetaObject):
         return self.name
 
 
-class Volumes(PersistedMetaObject):
-
-    """
-    Container for metadata on volumes/workspaces.
-    """
-
-    indices = (
-            'pwd',
-        )
-
-
-class Volume(Workspace):
+class Volume(PersistedMetaObject):
 
     """
     Container for metafiles.
     """
 
     indices = (
-            'inode',
-            'sha1_content_digest',
-            'md5_content_digest',
+#            'inode',
+#            'sha1_content_digest',
+#            'md5_content_digest',
+#            'pwd',
+
+            ('Volume', 'path', 'objects'),
+                ('Volume', 'vtype', 'index'),
+
         )
 
-    def __str__(self):
-        return repr(self)
+    @classmethod
+    def get_indices(Klass, self):
+        return Klass.indices + PersistedMetaObject.get_indices()
 
-    def __repr__(self):
-        return "<Volume 0x%x at %s>" % (hash(self), self.db)
-
-    @property
-    def db(self):
-        return os.path.join(self.full_path, 'volume.db')
+#    def path(self, path):
+#        self.name = os.path.basename(path)
+#        self.path = os.path.dirname(path)
+#    def __str__(self):
+#        return repr(self)
+#    def __repr__(self):
+#        return "<Volume 0x%x at %s>" % (hash(self), self.db)
+#    @property
+#    def db(self):
+#        return os.path.join(self.full_path, 'volume.db')
 
     @classmethod
-    def find(Klass, dirpath):
+    def find(Klass, opts=None, conf=None):
+        """
+        """
         path = None
-        for path in confparse.find_config_path("cllct", dirpath):
+        for path in confparse.find_config_path(conf.cmd.lib.dirname, dirpath):
             vdb = os.path.join(path, 'volume.db')
             if os.path.exists(vdb):
                 break
@@ -67,6 +68,9 @@ class Volume(Workspace):
         
     @classmethod
     def init(Klass, dirpath, lib, settings):
+        """
+        XXX: remove, should be in PersistedMetaObject
+        """
         cdir = os.path.join(dirpath, settings.lib.paths.localdir)
         if not os.path.exists(cdir):
             os.mkdir(cdir)
@@ -83,4 +87,5 @@ class Volume(Workspace):
             lib.store.volumes['mounts'] = volumes
             lib.store.volumes.commit()
         yield Keywords(lib=dict(stores=dict(volume=vdb)))
-        
+       
+

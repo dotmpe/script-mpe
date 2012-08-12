@@ -25,10 +25,21 @@ class PersistedMetaObject(Object):
         
     PersistedMetaObject is generic and has no indices.
     """
-
     # XXX: inheritance of UpgradedPickle, Object is symbolic for now
 
     # Static
+
+    indices = (
+            )
+#    shelves = (
+#            )
+    """
+    Shelves for keys or list of keys.
+    """
+    @classmethod
+    def get_indices(Klass, self):
+        return Klass.indices# + Object.get_indices()
+
 
     stores = {}
     "dbref to shelve instance map"
@@ -41,6 +52,8 @@ class PersistedMetaObject(Object):
     def get_store(Klass, name=None, dbref=None):
         """
         Generic shelve session management.
+        Name + dbref initialize if needed.
+        Always returns instance for Name, which must be initialized.
         """
         if not name:
             name = Klass.default_store
@@ -57,28 +70,97 @@ class PersistedMetaObject(Object):
             PersistedMetaObject.sessions[name] = dbref
         else:
             storedb = PersistedMetaObject.sessions[name]
+            if dbref:
+                assert dbref == storedb
             store = PersistedMetaObject.stores[storedb]
         return store
 
-    indices = (
-            ('volumes', 'global'),
-            ('volume_md5', 'local'),
+    shelves = (
+        # anywhere or Volume.shelves?
+            ('Volume.path', 'objects'),
+                ('Volume.vtype', 'index'),
+
+            ('Metafile.sid', 'objects'),
+                ('Metafile.sha1', 'index'),
+                ('Metafile.tth', 'index'),
+                ('Metafile.crc', 'index'),
+                ('Metafile.first20', 'index'),
+                ('Metafile.size', 'index'),
+                ('Metafile.md5', 'index'),
+        """
+        Turn Klass.name into factory for shelved objects,
+        or for shelved keys or lists of keys.
+       
+        Each object may have its own type of key, but only one key and one
+        objects shelve associtated with its class.
+
+        The object API is:
+            >>> assert Klass.key() == "mykey"
+            >>> myobj = Klass.objects[key] 
+            >>> myobj == Klass.fetch('mykey', key)
+            True
+            >>> myobj.attr = 'update' # XXX detect and commit on close
+            >>> myobj.commit() #or 
+            >>> Klass.store[key] = myobj; Klass.store.sync() #?
+
+        and the index API:                
+            >>> obj2 = Klass.fetch('sha1', 'abcdef') # raise keyerr if not found
+            >>> obj3 = Klass.find('sha1', 'abcdef') # return none if not found
+
+        and the bare shelves:
+            >>> key = Klass.indices.{sha1,tth,..}[value]
+            >>> keys = Klass.indices.{size,crc,type}[value]
+
+        usage:
+            >>> obj = Klass(new_key)
+            >>> obj.sha1 = 'abcdef'
+            >>> obj.commit()
+            >>> obj == obj2 == obj3 
+            True
+
+        Iow. each klass has a distinct list of shelves to which instances of
+        itself are stored, and which contain the indices of specific values to
+        keys. The opened shelves are kept in a pool and the klass attribute
+        should be regarded a (secondary) reference. The primary location of 
+        all shelve sessions is PersistedMetaObject.
+
+        The ID of the shelve is provided by the class declaration, 
+        the filesystem location is given in config or cmdline options and 
+        provided for by cmd:lib.
+
+        The API requires some kind of getter/setter mechanism to hook into:
+
+        >>> PersistedMetaObject.set_index(name, value, key)
+        >>> PersistedMetaObject.update_index(name, value, old, new)
+
+        for each of the registered indices, but the actual structure of the
+        PersistedMetaObject object is not further defined here than
+        that the 'store' and 'indices' attribute names are reserved and
+        'key()' is a required implementation.
+        """ 
         )
 
     @classmethod
     def init(Klass):
         """
-        Prepare indices for this class.
+        Prepare shelves for this class inheritance chain.
+        Shelves are initialized to the 'stores' attribute of the class
+        that contains the 'indices' listing.
         """
-        klass = Klass.__name__
-        for idxname, idxtype in Klass.indices:
-            if idxtype == 'PersistedMetaObject':
-                pass
-            store = Klass.get_store
+        for C in inspect.getmro(Klass):
+            if not hasattr(C, 'indices'):
+                continue
+            klass = Klass.__name__
+            for idxname, idxtype in C.indices:
+                if hasattr(Klass, 'stores') and hasattr(Klass.stores, idxname):
+                    continue
+                dbref = Klass.
+                store = Klass.get_store(klass+'.'+idxname, dbref)
+                setattr(Klass, ''idxname, store)
 # old
         default = Klass.get_store('default', '.cllct/objects.db')
         setattr(Klass, 'default-'+klass, default)
-        for idxname in Klass.indices:
+        for idxname in Klass.shelves:
             store = Klass.get_store(idxname, 
                     '.cllct/index-'+klass+'-'+idxname+'.db')
             setattr(Klass, idxname, store)
