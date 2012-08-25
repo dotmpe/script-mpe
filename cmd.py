@@ -30,7 +30,7 @@ import log
 from libname import Namespace, Name
 from libcmd import OptionParser, Targets, Arguments, Keywords, Options,\
     Target, optparse_increment_message, optparse_override_quiet
-from res import PersistedMetaObject
+from res import PersistedMetaObject, Workspace
 # XXX
 from taxus import current_hostname
 
@@ -292,8 +292,10 @@ def cmd_userdir(prog=None, conf=None):
 @Target.register(NS, 'lib', 'cmd:userdir')
 def cmd_lib(prog=None, conf=None):
     """
-    Initialize shared object indices. 
-    
+    Initialize stores for Workspace.
+
+    ---- old
+
     PersistedMetaObject sessions are kept in three types of directories.
     These correspond with the keys in cmd.lib.paths.
     Sessions are initialized from cmd.lib.sessions.
@@ -313,29 +315,19 @@ def cmd_lib(prog=None, conf=None):
         - lib.indices (XXX: these are really at the stores still)
         - lib.paths
     """
-    # Normally /var/lib/cllct
-    sysdir = conf.cmd.lib.paths.systemdir
-    sysdbpath = os.path.join(sysdir, conf.cmd.lib.name)
-    # Normally ~/.cllct
-    usrdbpath = os.path.join(prog.userdir, conf.cmd.lib.name)
-    # Initialize shelves
-    sysdb = PersistedMetaObject.get_store('system', sysdbpath)
-    usrdb = PersistedMetaObject.get_store('user', usrdbpath)
-    vdb = PersistedMetaObject.get_store('volumes', 
-            os.path.expanduser(conf.cmd.lib.sessions.user_volumes))
-    # XXX: 'default' is set to user-database
-    assert usrdb == PersistedMetaObject.get_store('default', usrdbpath)
-    yield Keywords(
-            lib=confparse.Values(dict(
-                stores=confparse.Values(dict(
-                    system=sysdb,
-                    user=usrdb,
-                    volumes=vdb
-                )),
-                paths=confparse.Values(dict(
-                )),
-            )),
-        )
+    assert conf, conf
+    Workspace.init(conf)
+    #yield Keywords(
+    #        lib=confparse.Values(dict(
+    #            stores=confparse.Values(dict(
+    #                system=sysdb,
+    #                user=usrdb,
+    #                volumes=vdb
+    #            )),
+    #            paths=confparse.Values(dict(
+    #            )),
+    #        )),
+    #    )
 
 
 

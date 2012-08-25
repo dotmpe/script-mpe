@@ -6,9 +6,12 @@ TODO: dirty state tracking for better sync. impl.
 XXX: What to do about different classes sharing dbsessions.
      
 """
-import shelve
+import os
 import bsddb
+import inspect
+import shelve
 
+import confparse
 from rsrlib.store import UpgradedPickle, Object
 
 
@@ -41,12 +44,14 @@ class PersistedMetaObject(Object):
         return Klass.indices# + Object.get_indices()
 
 
-    stores = {}
-    "dbref to shelve instance map"
-    sessions = {}
-    "name to dbref"
-    default_store = 'default'
-    "name of default store, to customize per type"
+    persistence = confparse.Values(dict(
+        stores = {},
+        #"dbref to shelve instance map"
+        sessions = {},
+        #"name to dbref"
+        default_store = 'default',
+        #"name of default store, to customize per type"
+    ))
 
     @classmethod
     def get_store(Klass, name=None, dbref=None):
@@ -56,115 +61,126 @@ class PersistedMetaObject(Object):
         Always returns instance for Name, which must be initialized.
         """
         if not name:
-            name = Klass.default_store
-        if name not in PersistedMetaObject.sessions:
+            name = Klass.persistence.default_store
+        if name not in Klass.persistence.sessions:
             assert dbref, "store does not exists: %s" % name
-            if dbref not in PersistedMetaObject.stores:
+            if dbref not in Klass.persistence.stores:
                 try:
                     store = shelve.open(dbref)#, writeback=True)
                 except bsddb.db.DBNoSuchFileError, e:
                     assert not e, "cannot open store: %s, %s, %s" %(name, dbref, e)
-                PersistedMetaObject.stores[dbref] = store
+                setattr(Klass.persistence.stores, dbref, store)
             else:
-                store = PersistedMetaObject.stores[dbref]
-            PersistedMetaObject.sessions[name] = dbref
+                store = Klass.persistence.stores[dbref]
+            Klass.persistence.sessions[name] = dbref
         else:
-            storedb = PersistedMetaObject.sessions[name]
+            storedb = Klass.persistence.sessions[name]
             if dbref:
                 assert dbref == storedb
-            store = PersistedMetaObject.stores[storedb]
+            store = Klass.persistence.stores[storedb]
         return store
 
     shelves = (
         # anywhere or Volume.shelves?
-            ('Volume.path', 'objects'),
-                ('Volume.vtype', 'index'),
-
-            ('Metafile.sid', 'objects'),
-                ('Metafile.sha1', 'index'),
-                ('Metafile.tth', 'index'),
-                ('Metafile.crc', 'index'),
-                ('Metafile.first20', 'index'),
-                ('Metafile.size', 'index'),
-                ('Metafile.md5', 'index'),
-        """
-        Turn Klass.name into factory for shelved objects,
-        or for shelved keys or lists of keys.
-       
-        Each object may have its own type of key, but only one key and one
-        objects shelve associtated with its class.
-
-        The object API is:
-            >>> assert Klass.key() == "mykey"
-            >>> myobj = Klass.objects[key] 
-            >>> myobj == Klass.fetch('mykey', key)
-            True
-            >>> myobj.attr = 'update' # XXX detect and commit on close
-            >>> myobj.commit() #or 
-            >>> Klass.store[key] = myobj; Klass.store.sync() #?
-
-        and the index API:                
-            >>> obj2 = Klass.fetch('sha1', 'abcdef') # raise keyerr if not found
-            >>> obj3 = Klass.find('sha1', 'abcdef') # return none if not found
-
-        and the bare shelves:
-            >>> key = Klass.indices.{sha1,tth,..}[value]
-            >>> keys = Klass.indices.{size,crc,type}[value]
-
-        usage:
-            >>> obj = Klass(new_key)
-            >>> obj.sha1 = 'abcdef'
-            >>> obj.commit()
-            >>> obj == obj2 == obj3 
-            True
-
-        Iow. each klass has a distinct list of shelves to which instances of
-        itself are stored, and which contain the indices of specific values to
-        keys. The opened shelves are kept in a pool and the klass attribute
-        should be regarded a (secondary) reference. The primary location of 
-        all shelve sessions is PersistedMetaObject.
-
-        The ID of the shelve is provided by the class declaration, 
-        the filesystem location is given in config or cmdline options and 
-        provided for by cmd:lib.
-
-        The API requires some kind of getter/setter mechanism to hook into:
-
-        >>> PersistedMetaObject.set_index(name, value, key)
-        >>> PersistedMetaObject.update_index(name, value, old, new)
-
-        for each of the registered indices, but the actual structure of the
-        PersistedMetaObject object is not further defined here than
-        that the 'store' and 'indices' attribute names are reserved and
-        'key()' is a required implementation.
-        """ 
+#            ('Volume.vpath', 'objects'),
+#                ('Volume.vtype', 'index'),
+#
+#            ('Metafile.sid', 'objects'),
+#                ('Metafile.sha1', 'index'),
+#                ('Metafile.tth', 'index'),
+#                ('Metafile.crc', 'index'),
+#                ('Metafile.first20', 'index'),
+#                ('Metafile.size', 'index'),
+#                ('Metafile.md5', 'index'),
         )
+    """
+    Turn Klass.name into factory for shelved objects,
+    or for shelved keys or lists of keys.
+   
+    Each object may have its own type of key, but only one key and one
+    objects shelve associtated with its class.
+
+    The object API is:
+        >>> assert Klass.key() == "mykey"
+        >>> myobj = Klass.objects[key] 
+        >>> myobj == Klass.fetch('mykey', key)
+        True
+        >>> myobj.attr = 'update' # XXX detect and commit on close
+        >>> myobj.commit() #or 
+        >>> Klass.store[key] = myobj; Klass.store.sync() #?
+
+    and the index API:                
+        >>> obj2 = Klass.fetch('sha1', 'abcdef') # raise keyerr if not found
+        >>> obj3 = Klass.find('sha1', 'abcdef') # return none if not found
+
+    and the bare shelves:
+        >>> key = Klass.indices.{sha1,tth,..}[value]
+        >>> keys = Klass.indices.{size,crc,type}[value]
+
+    usage:
+        >>> obj = Klass(new_key)
+        >>> obj.sha1 = 'abcdef'
+        >>> obj.commit()
+        >>> obj == obj2 == obj3 
+        True
+
+    Iow. each klass has a distinct list of shelves to which instances of
+    itself are stored, and which contain the indices of specific values to
+    keys. The opened shelves are kept in a pool and the klass attribute
+    should be regarded a (secondary) reference. The primary location of 
+    all shelve sessions is PersistedMetaObject.
+
+    The ID of the shelve is provided by the class declaration, 
+    the filesystem location is given in config or cmdline options and 
+    provided for by cmd:lib.
+
+    The API requires some kind of getter/setter mechanism to hook into:
+
+    >>> PersistedMetaObject.set_index(name, value, key)
+    >>> PersistedMetaObject.update_index(name, value, old, new)
+
+    for each of the registered indices, but the actual structure of the
+    PersistedMetaObject object is not further defined here than
+    that the 'store' and 'indices' attribute names are reserved and
+    'key()' is a required implementation.
+    """ 
+
+
+    stores = confparse.Values({})
 
     @classmethod
-    def init(Klass):
+    def init(Klass, conf):
         """
         Prepare shelves for this class inheritance chain.
         Shelves are initialized to the 'stores' attribute of the class
         that contains the 'indices' listing.
         """
         for C in inspect.getmro(Klass):
-            if not hasattr(C, 'indices'):
-                continue
             klass = Klass.__name__
+            klass = C.__name__
+            if not hasattr(C, 'indices'):
+                print 'warn: no indices for %s (%s)'%(klass,C.__module__)
+                continue
             for idxname, idxtype in C.indices:
-                if hasattr(Klass, 'stores') and hasattr(Klass.stores, idxname):
-                    continue
-                dbref = Klass.
-                store = Klass.get_store(klass+'.'+idxname, dbref)
-                setattr(Klass, ''idxname, store)
-# old
-        default = Klass.get_store('default', '.cllct/objects.db')
-        setattr(Klass, 'default-'+klass, default)
-        for idxname in Klass.shelves:
-            store = Klass.get_store(idxname, 
-                    '.cllct/index-'+klass+'-'+idxname+'.db')
-            setattr(Klass, idxname, store)
-       
+                dbdir = os.path.expanduser(conf.cmd.lib.shelves[klass])
+                assert isinstance(dbdir, basestring), dbdir
+                if idxtype == 'index':
+                    dbname = getattr(conf.cmd.lib, idxtype).tpl% {
+                            'klass': klass, 'name': idxname
+                        }
+                else:
+                    dbname = getattr(conf.cmd.lib, idxtype).tpl% {'klass':klass}
+                dbref = os.path.join(dbdir, dbname)
+#                print 'Init:', klass, idxname, idxtype, dbref
+                store = Klass.get_store(idxname, dbref)
+                assert not hasattr(Klass.stores, idxname), idxname
+                setattr(Klass.stores, idxname, store)
+                if idxtype != 'index':
+                    assert not hasattr(Klass, 'key')
+                    assert not hasattr(Klass.stores, 'objects')
+                    setattr(Klass, 'key', idxname)
+                    setattr(Klass.stores, 'objects', store)
+    
     @classmethod
     def sync(Klass):
         """
@@ -200,9 +216,9 @@ class PersistedMetaObject(Object):
             session = Klass.default
         return session[key]
 
-    @classmethod
-    def fetch_key(Klass, idxname, value, session=None, typ=None):
-        return Klass.find(session, idxname, value, typ, True)
+#    @classmethod
+#    def fetch_key(Klass, idxname, value, session=None, typ=None):
+#        return Klass.find(session, idxname, value, typ, True)
 
     @classmethod
     def find(Klass, session, idxname, value, typ=None, require=False):
@@ -212,20 +228,22 @@ class PersistedMetaObject(Object):
         if not typ: 
             # Just inherit PersistedMetaObject, no need to use 'typ'
             typ = Klass
-        idx = getattr(typ, idxname)
+
+        idx = getattr(typ.stores, idxname)
 
         if not require and value not in idx:
             return
         assert not require or value in idx, \
             "Index %r does not have %r" %(idxname, value)
+
+        # retrieve the object key
         objkey = idx[value]
 
         if not session:
             session = 'default'
         if isinstance(session, basestring):
-            session = PersistedMetaObject.get_store(session)
+            session = typ.get_store(session)
 
-        assert objkey in Klass.default, "?"
         assert objkey in session, "Value %r found for %s in %r not a known object" %(
                 objkey, typ, idxname)
         return session[objkey]
@@ -261,8 +279,11 @@ class PersistedMetaObject(Object):
         Get the indexname for the class, and set the value
         of the current object in that index.
         """
+        print 'set', self, idxname, value
         Klass = self.__class__
-        idx = getattr(Klass, idxname)
+        return
+        #if idxname == Klass.stores.key:'objects':
+        idx = getattr(Klass.stores, idxname)
         if value in idx:
             objkey = idx[value]
             assert objkey == self.key(),\

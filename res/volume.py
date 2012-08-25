@@ -31,10 +31,8 @@ class Volume(PersistedMetaObject):
 #            'sha1_content_digest',
 #            'md5_content_digest',
 #            'pwd',
-
-            ('Volume', 'path', 'objects'),
-                ('Volume', 'vtype', 'index'),
-
+            ('vpath', 'objects'),
+            ('vtype', 'index'),
         )
 
     @classmethod
@@ -53,27 +51,33 @@ class Volume(PersistedMetaObject):
 #        return os.path.join(self.full_path, 'volume.db')
 
     @classmethod
-    def find(Klass, opts=None, conf=None):
+    def find_root(Klass, dirpath, opts=None, conf=None):
         """
         """
-        path = None
-        for path in confparse.find_config_path(conf.cmd.lib.dirname, dirpath):
-            vdb = os.path.join(path, 'volume.db')
-            if os.path.exists(vdb):
-                break
-            else:
-                path = None
-        if path:
-            return PersistedMetaObject.find('user-volumes', 'pwd', path, Volume)
+        assert conf, conf
+        paths = list(confparse.find_config_path(conf.cmd.lib.name, 
+                path=dirpath, prefixes=['.']))
+        if not paths:
+            return
+        path = paths[0]
+        print 'found root <%s> for <%s>' %( path, dirpath )
+        return path
         
     @classmethod
-    def init(Klass, dirpath, lib, settings):
+    def new(Klass, dirpath, lib, settings):
         """
         XXX: remove, should be in PersistedMetaObject
         """
-        cdir = os.path.join(dirpath, settings.lib.paths.localdir)
+        cdir = os.path.join(dirpath, settings.cmd.lib.paths.localdir)
         if not os.path.exists(cdir):
             os.mkdir(cdir)
+        volume = Volume()
+        
+        volume.key
+        volume.set('path', dirpath)
+        Volume.sync()
+        return
+
         dbpath = os.path.join(cdir, 'volume.db')
         if os.path.exists(dbpath):
             log.warn("DB exists at %s", dbpath)
@@ -86,6 +90,6 @@ class Volume(PersistedMetaObject):
             volumes.append(dbpath)
             lib.store.volumes['mounts'] = volumes
             lib.store.volumes.commit()
-        yield Keywords(lib=dict(stores=dict(volume=vdb)))
+        #yield Keywords(lib=dict(stores=dict(volume=vdb)))
        
 

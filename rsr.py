@@ -16,7 +16,7 @@ from libcmd import Targets, Arguments, Keywords, Options,\
     Target 
 from res import PersistedMetaObject, Metafile, Volume, Repo, Dir
 
-from taxus import Node, SHA1Digest, MD5Digest
+from taxus import Node
 
 
 NS = Namespace.register(
@@ -52,6 +52,7 @@ Options.register(NS,
 @Target.register(NS, 'lib', 'cmd:userdir')
 def rsr_lib_init(prog=None, lib=None, settings=None):
     """
+    Initialize Workspace, 
     """
     assert prog.pwd, prog.copy().keys()
     # Normally /var/lib/cllct
@@ -83,13 +84,13 @@ def rsr_lib_init(prog=None, lib=None, settings=None):
 
 
 @Target.register(NS, 'init-volume', 'cmd:pwd', 'cmd:lib')
-def rsr_volume_init(prog=None, lib=None, settings=None):
+def rsr_volume_init(prog=None, lib=None, conf=None):
     assert prog.pwd, prog.copy().keys()
-    Volume.init(prog.pwd, lib, settings)
+    Volume.new(prog.pwd, lib, conf)
 
 
 @Target.register(NS, 'volume', 'cmd:pwd', 'cmd:lib')
-def rsr_volume(prog=None, opts=None):
+def rsr_volume(prog=None, opts=None, conf=None):
     """
     Return the current volume. In --init mode, a volume is created
     in the current directory.
@@ -99,7 +100,11 @@ def rsr_volume(prog=None, opts=None):
      - opts.init
     """
     assert prog.pwd, prog.copy().keys()
-    volume = Volume.find(prog.pwd)
+    Volume.init(conf)
+    volumepath = Volume.find_root(prog.pwd, opts, conf)
+    print 'volumepath=',volumepath
+    volume = Volume.find(Volume.stores.objects, 'vpath', volumepath)
+    assert volume, 'XXX'
     print 'volume=',volume
     #volume = Volume.find('volumes', 'pwd', prog.pwd)
     if not volume:
@@ -122,10 +127,11 @@ def rsr_volume(prog=None, opts=None):
 
 
 @Target.register(NS, 'ls', 'rsr:volume')
-def rsr_ls(volume=None, volumedb=None):
+def rsr_ls(volume=None):
     """
 
     """
+    assert volume, volume
     cwd = os.getcwd();
     lnames = os.listdir(cwd)
     for name in lnames:

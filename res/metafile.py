@@ -13,19 +13,19 @@ from persistence import PersistedMetaObject
 import res.fs
 
 
-#class SHA1Sum(object):
-#    checksums = None
-#    def __init__(self):
-#        self.checksums = {}
-#    def parse_data(self, lines):
-#        for line in lines:
-#            p = line.find(' ')
-#            checksum, filepath = line[:p].strip(), line[p+1:].strip()
-#            self.checksums[checksum] = filepath
-#    def __iter__(self):
-#        return iter(self.checksums)
-#    def __getitem__(self, checksum):
-#        return self.checksums[checksum]
+class SHA1Sum(object):
+    checksums = None
+    def __init__(self):
+        self.checksums = {}
+    def parse_data(self, lines):
+        for line in lines:
+            p = line.find(' ')
+            checksum, filepath = line[:p].strip(), line[p+1:].strip()
+            self.checksums[checksum] = filepath
+    def __iter__(self):
+        return iter(self.checksums)
+    def __getitem__(self, checksum):
+        return self.checksums[checksum]
 
 
 class Metafile(PersistedMetaObject): # XXX: Metalink
@@ -99,17 +99,23 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
     # XXX:digests = {}
 
     def __init__(self, path=None, data={}, update=False):
+        self.basedir = None
+        "XXX"
         self.path = None
+        "The volume path to the annotated file. "
         if path:
             self.set_path(path)
         self.data = data
+        "Initialize the local metadata. "
         if self.has_metafile():
             self.read()
+        "Read local metadata from serialized format. "    
         #if self.path:
         #    if self.has_metafile():
         #        if update and self.needs_update():
         #            self.update()
         self.updated = False
+        "Wether local metadata has been updated. "
 
     def set_path(self, path):
         if path.endswith(self.extension):

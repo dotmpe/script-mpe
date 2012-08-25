@@ -25,6 +25,7 @@ from metafile import Metafile
 from volume import Workspace, Volume
 from vc import Repo
 
+from metafile import SHA1Sum
 
 #class HTTPHeader(MIMEHeader):
 #    pass
