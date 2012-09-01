@@ -8,6 +8,17 @@ STRGT               += test_py_$d test_sa_$d
 
 #      ------------ -- 
 
+gitcache: 
+	@bash /srv/project-mpe/script-mpe/vc.sh $(DIR)
+gitcache: DIR=$d
+
+update: gitcache
+
+STRGT               += gitcache
+TRGT               += gitcache
+
+#      ------------ -- 
+
 GIT_$d              := $(shell find "$d" -iname ".git")
 BZR_$d              := $(shell find "$d" -iname ".bzr")
 HG_$d               := $(shell find "$d" -iname ".hg")
