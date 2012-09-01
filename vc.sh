@@ -265,7 +265,7 @@ __vc_status ()
 __vc_ps1 ()
 {
     d="$1"
-    [ -z "$d" ] && d="$(pwd)/"
+    [ -z "$d" ] && d="$(pwd)"
     __vc_status "$d"
 }
 
