@@ -2,6 +2,8 @@
 #
 # SCM util functions and pretty PS1 prompt for git, bzr
 #
+# XXX: need to load status from file and build this,
+# lag on console is far too noticable
 HELP="vc - version-control helper functions "
 
 # Flags legenda:
@@ -142,6 +144,36 @@ __vc_git_ps1 ()
 
 . ~/.conf/bash/git-completion.bash
 
+__git_cache_name='gitstatus'
+__git_cache()
+{
+    gitdir=$1
+    cachedir=~/.gitcache/$gitdir/
+    cache=$cachedir/$__git_cache_name
+    status="$([ -e "$cache" ] && cat $cache \
+        || __git_cache_build $1 $2)"
+    for f in $gitdir/* $gitdir/.git
+    do
+        [ "$f" -nt "$cache" ] && status="$status? " && break;
+    done
+    echo "$status$ood"
+}
+__git_cache_build()
+{
+    gitdir=$1
+    gitstatus="$(__vc_git_ps1 "$2")"
+    cachedir=~/.gitcache/$gitdir/
+#    echo gitdir=$gitdir
+#    echo cachedir=$cachedir
+    cache=$cachedir/$__git_cache_name
+#    echo cachedir=$cachedir
+#    echo cache=$cache
+    [ -d "$cachedir" ] || \
+        mkdir -p "$cachedir"
+    echo "$gitstatus" > $cache
+    cat $cache
+}
+
 __vc_pull ()
 {
     cd "$1"
@@ -170,25 +202,41 @@ __vc_push ()
     fi; fi;
 }
 
+# Prints:
+#   <userpath>[<branchname><branchstate>]<branchpath>
+
+# Version Control part for prompt, state indicators:
+#    + : added files
+#    * : modified "
+#    - : removed "
+#    ? : untracked "
 __vc_status ()
 {
-	local w short repo sub
+	local cwd short repo sub
 
-	w="$1";
-	cd "$w"
+	cwd="$1";
+	build=$2
+	cd "$cwd"
     realcwd="$(pwd -P)"
-	short="${w/#$HOME/~}"
+	short="${cwd/#$HOME/~}"
 
-	local git=$(__vc_gitdir "$w")
-	local bzr=$(__vc_bzrdir "$w")
+    # the real paths to the dotdirs
+	local git=$(__vc_gitdir)
+	local bzr=$(__vc_bzrdir)
+    git=$(cd $git;pwd -P)
+    bzr=$(cd $bzr;pwd -P)
 
 	if [ "$git" ]; then
-        realgit="$(cd "$git"; pwd -P)"
-        realgit="${realgit%/.git}"
-		rev="$(git show $realgit | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-		sub="${realcwd##$realgit}"
+		rgit="${git%/.git}"
+#        echo -e "1=$1\ngit=$git \ncwd=$cwd \nrgit=$rgit\nshort=$short \nrealcwd=$realcwd"
+		sub="${realcwd##$rgit}"
 		short="${short%$sub}"
-		echo $short $(__vc_git_ps1 "[git:%s $rev]")$sub
+		rev="$(git show $rgit | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+		[ -n "$build" ] \
+		    && gitstatus=$(__git_cache_build $rgit "[git:%s $rev]") \
+		    || gitstatus=$(__git_cache $rgit "[git:%s $rev]");
+		echo $short $gitstatus$sub
+
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
         realbzr="$(cd "$bzr"; pwd -P)"
@@ -215,12 +263,6 @@ __vc_status ()
 	fi;fi;
 }
 
-# <userpath>[<branchname><branchstate>]<branchpath>
-# Version Control part for prompt, state indicators:
-# + : added files
-# * : modified "
-# - : removed "
-# ? : untracked "
 __vc_ps1 ()
 {
     d="$1"
@@ -229,11 +271,13 @@ __vc_ps1 ()
 }
 
 # Main
+
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
     if [ "$(basename $0)" = "vc.sh" ]; then
         F="$1"
         [ -z "$F" ] && F=.
         [ -n "$F" ] && [ ! -d "$F" ] && echo "No such directory $F" && exit 3
+        echo -e vc-build[$F]=$(__vc_status "$F" 1)
         echo -e vc-status[$F]=$(__vc_status "$F")
     fi
 fi
