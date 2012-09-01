@@ -44,8 +44,8 @@ __vc_gitdir ()
 	if [ -d "$D/.git" ]; then
 		echo "$D/.git"
     else
-        cd "$D"
-        git rev-parse --git-dir 2>/dev/null
+        #[ "${D/.git/}" != "$D" ] \
+            ( cd "$D"; git rev-parse --git-dir 2> /dev/null )
 	fi
 }
 
@@ -151,7 +151,7 @@ __git_cache()
     cachedir=~/.gitcache/$gitdir/
     cache=$cachedir/$__git_cache_name
     status="$([ -e "$cache" ] && cat $cache \
-        || __git_cache_build $1 $2)"
+        || __git_cache_build "$1" "$2")"
     for f in $gitdir/* $gitdir/.git
     do
         [ "$f" -nt "$cache" ] && status="$status? " && break;
@@ -221,21 +221,20 @@ __vc_status ()
 	short="${cwd/#$HOME/~}"
 
     # the real paths to the dotdirs
-	local git=$(__vc_gitdir)
-	local bzr=$(__vc_bzrdir)
-    git=$(cd $git;pwd -P)
-    bzr=$(cd $bzr;pwd -P)
+	local git=$(__vc_gitdir $realcwd)
+	local bzr=$(__vc_bzrdir $realcwd)
 
 	if [ "$git" ]; then
+        git=$(cd $git;pwd -P)
 		rgit="${git%/.git}"
 #        echo -e "1=$1\ngit=$git \ncwd=$cwd \nrgit=$rgit\nshort=$short \nrealcwd=$realcwd"
 		sub="${realcwd##$rgit}"
 		short="${short%$sub}"
 		rev="$(git show $rgit | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
 		[ -n "$build" ] \
-		    && gitstatus=$(__git_cache_build $rgit "[git:%s $rev]") \
-		    || gitstatus=$(__git_cache $rgit "[git:%s $rev]");
-		echo $short $gitstatus$sub
+		    && gitstatus="$(__git_cache_build "$rgit" "[git:%s $rev]")" \
+		    || gitstatus="$(__git_cache "$rgit" "[git:%s $rev]")";
+		echo "$short $gitstatus$sub"
 
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
@@ -266,7 +265,7 @@ __vc_status ()
 __vc_ps1 ()
 {
     d="$1"
-    [ -z "$d" ] && d="$(pwd)"
+    [ -z "$d" ] && d="$(pwd)/"
     __vc_status "$d"
 }
 
