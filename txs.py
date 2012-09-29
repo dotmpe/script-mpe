@@ -1,4 +1,4 @@
-"""
+"""Taxus- the frontend to the SQLAlchemy model.
 """
 import os, sys
 import re, anydbm
@@ -15,15 +15,14 @@ import res
 from libname import Namespace, Name
 from libcmd import Targets, Arguments, Keywords, Options,\
     Target 
-# XXX
-from taxus import SqlBase, SessionMixin, current_hostname, \
-        Node, INode, CachedContent, \
-        ID, Name, Locator, \
+import taxus
+from taxus import SqlBase, SessionMixin, \
+        Node, \
+        ID, Name, \
         Host, \
-        Locator, Tag, ChecksumDigest, SHA1Digest, \
         LocalPathResolver
-import taxus_out
-
+# XXX
+import taxus.out
 
 
 DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
@@ -32,7 +31,17 @@ DEFAULT_DB = "sqlite:///%s" % DB_PATH
 
 NS = Namespace.register(
         prefix='txs',
-        uriref='http://project.dotmpe.com/script/#/cmdline.Taxus'
+        uriref='http://project.dotmpe.com/script/#/cmdline.Taxus',
+# unused
+#        localNames={
+#            'sa': """The SQLAlchemy session instance. """,
+#            'ur': """A LocalPathResolver instance for URL resolving.
+#Expand this to a full URL resolver (factory) instance later.
+#            """
+#            'pwd': """The SQLAlchemy object that represents the local working
+#directory. """
+#
+#        ]
     )
 
 Options.register(NS, 
@@ -79,7 +88,7 @@ Options.register(NS,
 
 def hostname_find(args, sa=None):
     if not args:
-        hostnamestr = current_hostname()
+        hostnamestr = taxus.util.current_hostname()
     else:
         hostnamestr = args.pop(0)
     if not hostnamestr:
@@ -137,7 +146,7 @@ def txs_session(prog=None, sa=None, opts=None, conf=None):
         log.debug("Initializing SQLAlchemy session for %s", dbref)
     sa = SessionMixin.get_instance('default', opts.dbref, opts.init)
     # Host (Name + Host object)
-    hostnamestr = current_hostname(opts.init, opts.interactive)
+    hostnamestr = taxus.util.current_hostname(opts.init, opts.interactive)
     if opts.init:
         hostname = hostname_find([hostnamestr], sa)
         assert not hostname or not isinstance(hostname, (tuple, list)), hostname
@@ -161,9 +170,13 @@ def txs_session(prog=None, sa=None, opts=None, conf=None):
             log.warn("Host exists: %s", host)
         assert host
     else:
-        host, name = sa.query(Host, Name)\
-            .join('hostname')\
-            .filter(Name.name == hostnamestr).one()
+        try:
+            host, name = sa.query(Host, Name)\
+                .join('hostname')\
+                .filter(Name.name == hostnamestr).one()
+        except Exception, e:
+            host, name = None, None
+            print "TODO: Unexpected: %s, %s" % (e, e.__class__.__name__)
         if not host:
             log.crit("Could not get host")
     urlresolver = LocalPathResolver(host, sa)
@@ -178,7 +191,12 @@ def txs_pwd(prog=None, sa=None, ur=None, opts=None, conf=None):
     log.debug("{bblack}txs{bwhite}:pwd{default}")
     assert ur
     cwd = os.path.abspath(os.getcwd())
-    pwd = ur.getDir(cwd, opts)
+    try:
+        pwd = ur.getDir(cwd, opts)
+    except Exception, e:
+        log.warn("FIXME: Unexpected %s\n[%s] in txs:pdf, perhaps forgot --init?",
+                e, taxus.out.cn(e))
+        pwd = None
     yield pwd
     yield Keywords(pwd=pwd)
 
@@ -226,7 +244,7 @@ def txs_run(sa=None, ur=None, opts=None, conf=None):
             parts = FS_Path_split(pathstr)
             for tagstr in parts:
                 try:
-                    tag = sa.query(Tag).filter(Tag.name == tagstr).one()
+                    tag = sa.query(Node).filter(Node.name == tagstr).one()
                     log.note(tag)
                 except NoResultFound, e:
                     log.note(e)
@@ -235,7 +253,7 @@ def txs_run(sa=None, ur=None, opts=None, conf=None):
                     type = raw_input('%s%s%s:?' % (
                         log.palette['yellow'], tagstr,
                         log.palette['default']) )
-                    if not type: type = 'Tag'
+                    if not type: type = 'Node'
                     tags[tagstr] = type
             log.info(pathstr)
             #log.info(''.join( [ "{bwhite} %s:{green}%s{default}" % (tag, name)

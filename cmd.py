@@ -32,7 +32,7 @@ from libcmd import OptionParser, Targets, Arguments, Keywords, Options,\
     Target, optparse_increment_message, optparse_override_quiet
 from res import PersistedMetaObject, Workspace
 # XXX
-from taxus import current_hostname
+from taxus.util import current_hostname
 
 
 # Register this module with libcmd
@@ -204,6 +204,8 @@ def cmd_config_init(prog=None):
     Init conf object from persisted config.
     """
     conf = confparse.load_path(prog.config_file)
+    assert conf, "missing config"
+    #print prog.config_file, conf
     yield Keywords(conf=conf)
 
 @Target.register(NS, 'options', 'cmd:config')
@@ -227,6 +229,8 @@ def cmd_options(conf=None, prog=None):
             )),
             opts=opts,
         )
+    log.note("Changing message level from %s to %s", 
+            log.threshold, opts.message_level)
     log.threshold = opts.message_level
     args = Arguments()
     targs = Targets()

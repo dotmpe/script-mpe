@@ -36,7 +36,7 @@ Main
     Relational database for distributed metadata, distributed addressing of
     data (multi-user/host filespace).
   lind
-    Interactive per directory metadata. frontends to rsr and taxus.
+    Interactive per directory metadata. frontends to rsr and taxus?
   workLog
     Work session manager with time tracking.
   radical  

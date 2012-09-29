@@ -79,15 +79,39 @@ test_py_$d::
 	    $(ll) Errors "$@" see test.log; \
     fi
 
+# SQLAlchemy [SA] Rules
+
+sa-help::
+	./manage.py --help
+# Run once to create 
+sa-init::
+	./manage.py version_control --repository=$(REPO) \
+			--url=sqlite:///$(DB_SQLITE_DEV) 0
+sa-version::
+	@echo -n "Current version: ";\
+	$(REPO)/manage.py db_version \
+		--url=sqlite:///$(DB_SQLITE_DEV) \
+		--repository=$(REPO) 
+	@echo -n "Latest version: ";\
+	$(REPO)/manage.py version $(REPO)
+sa-upgrade::
+	./manage.py upgrade
+sa-model::
+	./manage.py create_model \
+		--url=sqlite:///$(DB_SQLITE_DEV) \
+		--repository=$(REPO) 
+sa-compare::
+	./manage.py compare_model_to_db \
+		--url=sqlite:///$(DB_SQLITE_DEV) \
+		--repository=$(REPO) \
+		--model=taxus.metadata
+
 test_sa_$d::
 	@$(call log_line,info,$@,Testing SQLAlchemy repository..);
 	@\
 	DBREF=sqlite:///$(DB_SQLITE_TEST);\
 	sqlite3 $(DB_SQLITE_TEST) ".q"; \
 	python $D$(REPO)/manage.py test --repository=$(REPO) --url=$$DBREF
-
-sa-upgrade::
-	./manage.py upgrade
 
 stat::
 	@\
