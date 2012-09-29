@@ -46,9 +46,16 @@ def lnd_layouts(opts=None, sa=None, ur=None):
     pass
 
 @Target.register(NS, 'find', 'txs:session')
-def lnd_find(opts=None, sa=None, ur=None):
-    pass
+def lnd_find(args=None, opts=None, sa=None, ur=None):
+    """
+    """
+    while args:
+        pattern = args.pop(0)
+        print pattern
+    #sa.query(FolderLayout)
+    #    .filter(FolderLayout.label.like())
 
+    yield 0
 
 # X
 
@@ -59,19 +66,12 @@ def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
     Tagging.
     """
     log.debug("{bblack}lnd{bwhite}:tag{default}")
-
-    if not pwd:
-        log.err("Not initialized")
-        yield 1
-
     tags = {}
     if '' not in tags:
         tags[''] = 'Root'
     FS_Path_split = re.compile('[\/\.\+,]+').split
-
     log.info("{bblack}Tagging paths in {green}%s{default}",
             os.path.realpath('.') + os.sep)
-
     try:
         for root, dirs, files in os.walk(pwd.local_path):
             for name in files + dirs:

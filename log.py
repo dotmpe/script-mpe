@@ -99,7 +99,8 @@ def format_line(msg):
         msg = msg.replace('{%s}' % k, palette[k])
     return msg
 
-threshold = 6
+# XXX: development value threshold=7
+threshold = 5
 
 def log(level, msg, *args):
     """

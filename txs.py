@@ -188,7 +188,7 @@ def txs_pwd(prog=None, sa=None, ur=None, opts=None, conf=None):
     """
     Return the current path.
     """
-    log.debug("{bblack}txs{bwhite}:pwd{default}")
+    #log.debug("{bblack}txs{bwhite}:pwd{default}")
     assert ur
     cwd = os.path.abspath(os.getcwd())
     try:
