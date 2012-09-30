@@ -14,13 +14,22 @@ import log
 
 
 
+
+# mapping table for Node *-* Node
+nodes_nodes = Table('nodes_nodes', SqlBase.metadata,
+    Column('nodes_ida', Integer, ForeignKey('nodes.id'), nullable=False),
+    Column('nodes_idb', Integer, ForeignKey('nodes.id'), nullable=False),
+    Column('nodes_idc', Integer, ForeignKey('nodes.id'))
+)
+
 class Node(SqlBase, SessionMixin):
 
     """
-    The basic element in the data structure, a (non unique) label.
+    The basic element in the data structure.
+    Should name be unique? It is now, and title (on subclasses)?
 
     These can be seen as local IDs or names, in contrast with
-    IDs and Names which are global (ie. unique).
+    IDs and Names which are global (and unique...).
     """
 
     zope.interface.implements(iface.INode)
@@ -28,10 +37,10 @@ class Node(SqlBase, SessionMixin):
     __tablename__ = 'nodes'
     node_id = Column('id', Integer, primary_key=True)
 
-    ntype = Column('ntype', String(50))
+    ntype = Column('ntype', String(50), nullable=False)
     __mapper_args__ = {'polymorphic_on': ntype}
     
-    name = Column(String(255), nullable=True)
+    name = Column(String(255), nullable=False, unique=True)
     
     #space_id = Column(Integer, ForeignKey('nodes.id'))
     #space = relationship('Node', backref='children', remote_side='Node.id')
@@ -59,7 +68,6 @@ class AnnotatedNode(Node):
     title = Column(String(255))
     description = Column(Text)
 
-    
 
 class ID(SqlBase, SessionMixin):
 

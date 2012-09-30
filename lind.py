@@ -14,13 +14,15 @@ of these trees. An agnostic view of this is implemented by [Name a class here].
 """
 import os, sys, re, anydbm
 
+import res
 import txs
 import log
 from libname import Namespace, Name
 from libcmd import Targets, Arguments, Keywords, Options,\
     Target 
 
-from taxus import FolderLayout
+from res.fslayout import FS_Path_split, FSFolderLayout
+from taxus.fslayout import Folder, FolderLayout
 
 
 
@@ -37,24 +39,50 @@ Options.register(NS,
 #}
         )
 
-@Target.register(NS, 'layout', 'txs:pwd')
-def lnd_layout(opts=None, sa=None, ur=None, pwd=None):
-    pass
 
-@Target.register(NS, 'layouts', 'txs:sesion')
-def lnd_layouts(opts=None, sa=None, ur=None):
-    pass
+@Target.register(NS, 'layout', 'txs:pwd')
+def lnd_layout(args=[], opts=None, sa=None, ur=None, pwd=None):
+    """
+    Work in progress.
+    Intialize layout on current path. 
+
+    ./main.py lnd:layout Downloads/ --recurse --non-interactive
+    """
+    fl = FSFolderLayout()
+    while args:
+        a = args.pop(0)
+        assert os.path.isdir(a), "Need directories, not %s" % a
+        if opts.recurse:
+            for p in res.Dir.walk(a, opts=opts):
+                if not os.path.isdir(p):
+                    continue
+                fl.add_rule(p)
+        else:
+            fl.add_rule(a)
+    print fl
+    print 'Commit?'
+
+    for f in FolderLayout.from_trees(fl):
+        print repr(f)
+
+
+@Target.register(NS, 'layouts', 'cmd:pwd')
+def lnd_layouts(opts=None, sa=None, ur=None, prog=None):
+    """
+    TODO: Scan for layouts on path.
+    """
+    print prog.pwd
 
 @Target.register(NS, 'find', 'txs:session')
 def lnd_find(args=None, opts=None, sa=None, ur=None):
     """
+    Find layouts for pattern.
     """
     while args:
         pattern = args.pop(0)
-        print pattern
-    #sa.query(FolderLayout)
-    #    .filter(FolderLayout.label.like())
-
+        r = sa.query(FolderLayout)\
+                .filter(FolderLayout.name.like(pattern))
+        print "%s: %s" % (pattern, r.all())
     yield 0
 
 # X
@@ -69,7 +97,6 @@ def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
     tags = {}
     if '' not in tags:
         tags[''] = 'Root'
-    FS_Path_split = re.compile('[\/\.\+,]+').split
     log.info("{bblack}Tagging paths in {green}%s{default}",
             os.path.realpath('.') + os.sep)
     try:
@@ -89,7 +116,6 @@ def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
 # at least a metafile record, or another persisted resource.
 
 # Right now, rsr:scan contains an Metafile initialization and update walk routine.
-
                     # lind should do for folders
                     yield 
                     # Ask about each new tag, TODO: or rename, fuzzy match.      
@@ -99,7 +125,6 @@ def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
                             log.palette['default']) )
                         if not type: type = 'Tag'
                         tags[tag] = type
-
                 log.info(''.join( [ "{bwhite} %s:{green}%s{default}" % (tag, name)
                     for tag in path if tag in tags] ))
 

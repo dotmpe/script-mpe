@@ -163,6 +163,7 @@ def txs_session(prog=None, sa=None, opts=None, conf=None):
         if not host:
             log.note("New Host: %s", hostnamestr)
             host = Host(
+                    name=hostname.name,
                     hostname=hostname,
                     date_added=datetime.now())
             host.commit()

@@ -1,4 +1,5 @@
 import zope.interface
+from datetime import datetime
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 #from sqlalchemy.orm.exc import NoResultFound
@@ -10,7 +11,7 @@ from util import SessionMixin
 from init import SqlBase
 
 """
-Partial tree templates.
+Partial tree templates, see res.fslayout
 """
 
 
@@ -38,6 +39,26 @@ class FolderLayout(core.Node):
     title = Column(String(255))
     description = Column(Text)
 
+    @classmethod
+    def from_trees(Class, fsfolderlayout):
+        if fsfolderlayout.is_root:
+            for sub, subfl in fsfolderlayout:
+                yield Class.from_tree(subfl)
+        else:
+            yield Class.from_tree(subfl)
+
+    @classmethod
+    def from_tree(Class, fsfolderlayout):
+        fl = FolderLayout(
+                    title="%s Directory"%fsfolderlayout.name,
+                    name=fsfolderlayout.name,
+                    date_added=datetime.now()
+                )
+
+        for sub, subfl in fsfolderlayout:
+            fl.subnodes.append(Class.from_tree(subfl))
+        return fl
+
     @staticmethod
     def match(sa, other):
         return False
@@ -55,6 +76,19 @@ class FolderLayout(core.Node):
 
     def to_folder(self, node, recurse=True):
         pass
+
+    def __repr__(self, i=0):
+        pad = '  ' * i
+        subs = ''
+        i+=1
+        for s in self.subnodes:
+            subs += s.__repr__(i=i)
+        if self.name:
+            return "%s%s <%s/>\n  %s" % (pad, self.title, self.name, subs)
+        else:
+            return "%s (root):\n  %s" % (pad, subs)
+
+
 
 
 class Folder(core.Node):
