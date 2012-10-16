@@ -9,10 +9,17 @@ Updates
 -------
 Oktober 2012
 	- using blksize to calculate actual occupied disk space.
+	- adding storage::
+
+	         path@value
+	         path@space
+	         path@size
 """
 import sys
+import os
+import shelve
 from os import listdir, stat, lstat
-from os.path import join, isdir, getsize, basename, dirname
+from os.path import join, exists, isdir, getsize, basename, dirname, expanduser
 try:
 	# @bvb: simplejson thinks it should be different and deprecated read() and write()
 	# not sure why... @xxx: simplejson has UTF-8 default, json uses ASCII I think?
@@ -24,6 +31,30 @@ except:
 		print >>sys.stderr, "No known json library installed. Plain Python printing."
 		jsonwrite = None
 
+
+def find_parent( dirpath, subleaf, realpath=False ):
+	if realpath:
+		dirpath = os.path.realpath( dirpath )
+	dirparts = dirpath.split( '/' )
+	while dirparts:
+		path = join( *dirparts )
+		if isdir( join( *tuple( dirparts )+( subleaf, ) ) ):
+			return path
+		dirparts.pop()
+	
+def find_volume( dirpath ):
+	vol = find_parent( dirpath, '.volume' )
+	if not vol:
+		vol = find_parent( dirpath, '.volume', True )
+	if vol:
+		print "In volume %r" % vol
+		vol = join( vol, '.volume' )
+	else:
+		vol = expanduser( '~/.treemap' )
+		if not exists( vol ):
+			os.makedirs( vol )
+		print "No volumes, storage at %r" % vol
+	return vol
 
 class Node(dict):
 	"""Interface on top of normal dictionary to work easily with tree nodes
@@ -81,7 +112,7 @@ class Node(dict):
 		return "<%s%s%s>" % (self.name, self.attributes, self.value or '')
 
 
-def fs_tree(dir):
+def fs_tree(dirpath, storage):
 	"""Create a tree of the filesystem using dicts and lists.
 
 	All filesystem nodes are dicts so its easy to add attributes.
@@ -94,24 +125,26 @@ def fs_tree(dir):
 				{'filename2':None}
 			]}
 		]}
+
+	The storage is a dictionary shelve that is updated along the way.
 	"""
 	enc = sys.getfilesystemencoding()
-	dirname = basename(dir)
+	dirname = basename(dirpath)
 	tree = Node(dirname)
-	for fn in listdir(dir):
+	for fn in listdir(dirpath):
 		# Be liberal... take a look at non decoded stuff
 		if not isinstance(fn, unicode):
 			# try decode with default codec
 			try:
 				fn = fn.decode(enc)
 			except UnicodeDecodeError:
-				print >>sys.stderr, "corrupt path:", dir, fn
+				print >>sys.stderr, "unable to decode:", dirpath, fn
 				continue
 		# normal ops
-		path = join(dir, fn)
+		path = join(dirpath, fn)
 		if isdir(path):
 			# Recurse
-			tree.append(fs_tree(path))
+			tree.append(fs_tree(path, storage))
 		else:
 			tree.append(Node(fn))
 
@@ -125,46 +158,53 @@ def fs_treesize(root, tree, files_as_nodes=True):
 
 	Tree is a dict representing a node in the filesystem hierarchy.
 
-	Size is cumulative for each folder.
+	Size is cumulative for each folder. The space attribute indicates
+	used disk space, while the size indicates actual bytesize of the contents.
 	"""
 	if not root:
 		root = './'
-	assert root and isinstance(root, basestring), root
-	assert isdir(root), stat(root)
-	assert isinstance(tree, Node)
+	assert root and isinstance( root, basestring ), root
+	assert isdir( root ), stat( root )
+	assert isinstance( tree, Node )
 	# XXX: os.stat().st_blksize contains the OS preferred blocksize, usually 4k, 
 	# st_blocks reports the actual number of 512byte blocks that are used, so on
 	# a system with 4k blocks, it reports a minimum of 8 blocks.
+	cdir = join( root, tree.name )
 
 	if not tree.space:
-		cdir = join(root, tree.name)
 		size = 0
 		space = 0
 		if tree.value:
+			tree.count = len(tree.value)
 			for node in tree.value: # for each node in this dir:
-				path = join(cdir, node.name)
-				if isdir(path):
+				path = join( cdir, node.name )
+				if isdir( path ):
 					# subdir, recurse and add space
-					fs_treesize(cdir, node)
-					space += node.space + (stat(path).st_blocks * 512)
+					fs_treesize( cdir, node )
+					tree.count += node.count
+					space += node.space
+					size += node.size
 				else:
 					# filename, add sizes
 					actual_size = 0
 					used_space = 0
 					try:
-						actual_size = getsize(path)
+						actual_size = getsize( path )
 					except Exception, e:
-						print >>sys.stderr, "could not get size of %s: %s" % (path, e)
+						print >>sys.stderr, "could not get size of %s: %s" % ( path, e )
 					try:
-						used_space = lstat(path).st_blocks * 512
+						used_space = lstat( path ).st_blocks * 512
 					except Exception, e:
-						print >>sys.stderr, "could not stat %s: %s" % (path, e)
+						print >>sys.stderr, "could not stat %s: %s" % ( path, e )
 					node.size = actual_size
 					node.space = used_space
 					size += actual_size
 					space += used_space
+		else:
+			tree.count = 0
 		tree.size = size
 		tree.space = space
+	tree.space += ( stat( cdir ).st_blocks * 512 )
 
 
 def usage(msg=0):
@@ -192,27 +232,35 @@ if __name__ == '__main__':
 	if '-d' in sys.argv or '--debug' in sys.argv:
 		debug = True
 
-	# Walk filesystem
-	tree = fs_tree(path)
+	treemap_dir = find_volume( path )
+	storage = shelve.open( join( treemap_dir, 'treemap.db' ) )
+
+	# Walk filesystem, updating where needed
+	tree = fs_tree( path, storage )
 
 	# Add space attributes
-	fs_treesize(dirname(path), tree)
+	fs_treesize( dirname(path), tree )
 
 	# Set proper root path
 	tree.name = path
 
 	### Output
 	if jsonwrite and not debug:
-		print jsonwrite(tree)
+		print jsonwrite( tree )
 	else:
 		#print tree
-		total = float(tree.space)
-		used = float(tree.space)
+		total = float( tree.size )
+		used = float( tree.space )
+		print 'Tree size:'
+		print tree.size, 'bytes', tree.count, 'items'
 		print 'Used space:'
-		print used, 'B'
+		print tree.space, 'B'
 		print used/1024, 'KB'
 		print used/1024**2, 'MB'
 		print used/1024**3, 'GB'
+
+	# Update storage
+	storage.close()
 
 
 
