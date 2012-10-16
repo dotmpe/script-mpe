@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 """tree - Creates a tree of a filesystem hierarchy.
 
-Calculates cumulative size of each directory. Output in JSON format.
+Calculates cumulative space of each directory. Output in JSON format.
 
 Copyleft, May 2007.  B. van Berkum <berend `at` dotmpe `dot` com>
+
+Updates
+-------
+Oktober 2012
+	- using blksize to calculate actual occupied disk space.
 """
 import sys
-from os import listdir
+from os import listdir, stat, lstat
 from os.path import join, isdir, getsize, basename, dirname
 try:
 	# @bvb: simplejson thinks it should be different and deprecated read() and write()
@@ -75,6 +80,7 @@ class Node(dict):
 	def __repr__(self):
 		return "<%s%s%s>" % (self.name, self.attributes, self.value or '')
 
+
 def fs_tree(dir):
 	"""Create a tree of the filesystem using dicts and lists.
 
@@ -111,36 +117,55 @@ def fs_tree(dir):
 
 	return tree
 
+
 def fs_treesize(root, tree, files_as_nodes=True):
-	"""Add 'size' attributes to all nodes.
+	"""Add 'space' attributes to all nodes.
 
 	Root is the path on which the tree is rooted.
 
 	Tree is a dict representing a node in the filesystem hierarchy.
 
-	Size is cumulative.
+	Size is cumulative for each folder.
 	"""
-	assert isinstance(root, basestring) and isdir(root)
+	if not root:
+		root = './'
+	assert root and isinstance(root, basestring), root
+	assert isdir(root), stat(root)
 	assert isinstance(tree, Node)
+	# XXX: os.stat().st_blksize contains the OS preferred blocksize, usually 4k, 
+	# st_blocks reports the actual number of 512byte blocks that are used, so on
+	# a system with 4k blocks, it reports a minimum of 8 blocks.
 
-	if not tree.size:
-		dir = join(root, tree.name)
+	if not tree.space:
+		cdir = join(root, tree.name)
 		size = 0
-		for node in tree.value: # for each node in this dir:
-			path = join(dir, node.name)
-			if isdir(path):
-				# subdir, recurse and add size
-				fs_treesize(dir, node)
-				size += node.size
-			else:
-				# filename, add size
-				try:
-					csize = getsize(path)
-					node.size = csize
-					size += csize
-				except:
-					print >>sys.stderr, "could not get size of %s" % path
+		space = 0
+		if tree.value:
+			for node in tree.value: # for each node in this dir:
+				path = join(cdir, node.name)
+				if isdir(path):
+					# subdir, recurse and add space
+					fs_treesize(cdir, node)
+					space += node.space + (stat(path).st_blocks * 512)
+				else:
+					# filename, add sizes
+					actual_size = 0
+					used_space = 0
+					try:
+						actual_size = getsize(path)
+					except Exception, e:
+						print >>sys.stderr, "could not get size of %s: %s" % (path, e)
+					try:
+						used_space = lstat(path).st_blocks * 512
+					except Exception, e:
+						print >>sys.stderr, "could not stat %s: %s" % (path, e)
+					node.size = actual_size
+					node.space = used_space
+					size += actual_size
+					space += used_space
 		tree.size = size
+		tree.space = space
+
 
 def usage(msg=0):
 	print """%s
@@ -148,12 +173,13 @@ Usage:
 	%% treemap.py [opts] directory
 
 Opts:
-	-d, --debug		Plain Python printing with total size data.
+	-d, --debug		Plain Python printing with total space data.
 
 	""" % sys.modules[__name__].__doc__
 	if msg:
 		msg = 'error: '+msg
 	sys.exit(msg)
+
 
 if __name__ == '__main__':
 	# Script args
@@ -169,7 +195,7 @@ if __name__ == '__main__':
 	# Walk filesystem
 	tree = fs_tree(path)
 
-	# Add size attributes
+	# Add space attributes
 	fs_treesize(dirname(path), tree)
 
 	# Set proper root path
@@ -178,12 +204,15 @@ if __name__ == '__main__':
 	### Output
 	if jsonwrite and not debug:
 		print jsonwrite(tree)
-
 	else:
-		print tree
-		total = float(tree.size)
-		print 'Tree size:'
-		print total, 'B'
-		print total/1024, 'KB'
-		print total/1024**2, 'MB'
-		print total/1024**3, 'GB'
+		#print tree
+		total = float(tree.space)
+		used = float(tree.space)
+		print 'Used space:'
+		print used, 'B'
+		print used/1024, 'KB'
+		print used/1024**2, 'MB'
+		print used/1024**3, 'GB'
+
+
+
