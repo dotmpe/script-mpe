@@ -13,7 +13,10 @@ import statvfs
 import subprocess
 import datetime
 from pprint import pformat
-import bencode
+try:
+    import bencode
+except:
+    bencode = None
 # use jsonlib or simplejson
 try:
     import simplejson as _json
@@ -27,6 +30,11 @@ storage = {
         'a8c01c01': confparse.Values(dict(
             fs=confparse.Values(dict(
                 inodes=15196160
+            ))
+        )),
+        'Pandora.local': confparse.Values(dict(
+            fs=confparse.Values(dict(
+                inodes=48828123
             ))
         ))
     }
@@ -71,7 +79,8 @@ def main( ):
     print 'INode-Availability:', data.fs.inode_availability, '(%)'
     print '-'*79
     print '='*79
-    print bencode.bencode( data.copy() )
+    if bencode:
+        print bencode.bencode( data.copy() )
 
     print complexity( data )
 #    print pformat( data.copy() )
