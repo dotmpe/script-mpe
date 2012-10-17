@@ -28,13 +28,21 @@ json_write = _json.dumps
 
 storage = {
         'a8c01c01': confparse.Values(dict(
+            name='dandy',
             fs=confparse.Values(dict(
                 inodes=15196160
             ))
         )),
         'Pandora.local': confparse.Values(dict(
+            name='Pandora',
             fs=confparse.Values(dict(
                 inodes=48828123
+            )),
+        )),
+        '007f0101': confparse.Values(dict(
+            name='dm',
+            fs=confparse.Values(dict(
+                inodes=3538944
             ))
         ))
     }
