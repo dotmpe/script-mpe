@@ -1,5 +1,13 @@
 #!/usr/bin/env python
-"""
+"""Resource -  A simple volume manager for media carriers.
+
+Perhaps distributed metadata later.
+
+A Volume is a resource identifying a physical storage medium,
+as discrete media carrier that can be present at different places.
+
+The object is still in taxus.module and need review, integration.
+
 See Resourcer.rst
 
 - Builds upon cmd.
@@ -48,6 +56,7 @@ Options.register(NS,
             })
 
     )
+
 
 @Target.register(NS, 'lib', 'cmd:userdir')
 def rsr_lib_init(prog=None, lib=None, settings=None):

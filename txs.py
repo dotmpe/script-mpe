@@ -40,7 +40,6 @@ NS = Namespace.register(
 #            """
 #            'pwd': """The SQLAlchemy object that represents the local working
 #directory. """
-#
 #        ]
     )
 
