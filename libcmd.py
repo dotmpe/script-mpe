@@ -59,6 +59,7 @@ class OptionParser(optparse.OptionParser):
     def __init__(self, usage, version=None):
         optparse.OptionParser.__init__(self, usage, version=version)
         self._targets = None
+        #log.debug("New OptionParser")
 
     def print_help(self, file=None):
         if file is None:
@@ -108,6 +109,7 @@ def optparse_print_help(options, optstr, value, parser):
 class Handler(object):
 
     def __init__(self, func=None, prerequisites=[], requires=[], results=[]):
+        #log.debug("New Handler %s", func)
         self.func = func
         self.prerequisites = prerequisites
 #        self.requires = requires
@@ -280,6 +282,7 @@ class ExecGraph(object):
 #    P_isResultOf = Name.fetch('cmd:isResultOf')
 
     def __init__(self, root=[], default_namespace=None):
+        #log.debug("New ExecGraph")
         # P(s,o) lookup map for target and results structure
         self.edges = type('Edges', (object,), dict(
                 s_p={},
@@ -365,9 +368,10 @@ class ExecGraph(object):
                 # resolve static dependencies
                 while node.handler.prerequisites:
                     dep = node.handler.prerequisites.pop(0)
+                    #log.debug('ExecGraph: adding prerequisite for %s: %s', node, dep)
                     self.put(dep, self.index(node))
                     self.prerequisite(self.instance(node), dep)
-                    log.debug('added prerequisite: %s %s', node, dep)
+                    #log.debug('ExecGraph: added prerequisite for %s: %s', node, dep)
         assert node.graph == self
         return node
 
@@ -377,6 +381,7 @@ class ExecGraph(object):
         """
         S_target = self.instance(S_target)
         O_target = self.instance(O_target)
+        log.debug("%r has prerequisite %r", S_target.name, O_target.name)
         #print self.execlist
         #print 'prerequisite', S_target, O_target
         S_idx = self.execlist.index(S_target.key)
@@ -409,13 +414,14 @@ class ExecGraph(object):
         """
         S_target = self.instance(S_target)
         O_name = self.name(O_target) 
+        log.debug("%r requires %r", S_target.name, O_target)
         assert S_target.key in self.execlist
         idx = self.index(S_target.key)
         if O_name not in self.execlist:
             #print 'TODO put', O_name, O_target
-            self.put(O_name, idx)
+            self.put(O_name, idx+1)
             O_target = self.instance(O_target)
-            self.pointer -= 1
+            #self.pointer -= 1
         # make the edges 
         #XXX:self._assert(S_target, self.P_requires, O_target)
         #(for antonym we can traverse the reverse mapping)
@@ -471,11 +477,20 @@ class ExecGraph(object):
             idx = len(self.execlist)
         assert idx >= 0, idx
         assert idx <= len(self.execlist), idx
-        assert target in Target.handlers, target
+        assert target in Target.handlers, "Not a handler? Target: %r" % target
+        #log.debug("Put %i %s", idx, target)
         if target in self.execlist:
+            log.warn("Target already in execlist: %r", target)
+            return # XXX:
+            print self.index(target)
+            print self.current, self.pointer
             if self.index(target) > idx:
+                log.debug("Target too late in execlist: %s", target)
                 self.execlist.remove(target)
+#        else:
+#            self.pointer += 1
         if target not in self.execlist:
+            #log.debug("Insert %s %s", idx, target)
             self.execlist.insert(idx, target)
         target = self.instance(target)
 
@@ -508,12 +523,12 @@ class ExecGraph(object):
         assert res.iface.ICommand.providedBy(target), (
                 repr(target),list(zope.interface.providedBy(target).interfaces()))
         assert not target.handler.prerequisites
-        log.debug('nextTarget index=%s target.name=%s execlist=%r'
-                %(
-                    self.pointer,
-                    target.name,
-                    self.execlist
-                ))
+        #log.debug('nextTarget %s target.name=%s execlist=%r'
+        #        %(
+        #            self.pointer,
+        #            target.name,
+        #            self.execlist
+        #        ))
         self.pointer += 1
         return target
 
@@ -683,18 +698,19 @@ class TargetResolver(object):
         if not kwds:
             kwds = Keywords()
         while target:
-            log.note('Run: %s', target.name)
+            log.debug('Run: %r', target.name)
             assert isinstance(kwds, Keywords), lib.cn(kwds)
             context.generator = target.handler.func(
-                            **self.select_kwds(target.handler.func, kwds))
+                            **self.select_kwds(target.handler.func, args, kwds))
             if not context.generator:
-                log.warn("target %s did not return generator", target)
+                log.warn("target %r did not return generator", target.name)
             else:
                 for r in context.generator:
-                    assert not args, "TODO: %s" % args
+#                    assert not args, "TODO: %s" % args
                     if isinstance(r, str):
                         pass
                     if res.iface.ITarget.providedBy(r):
+                        #log.debug("%s provides %s", target.name, r.name)
                         if r.required:
                             execution_graph.require(target, r)
                             self.run(execution_graph, context, args=args, kwds=kwds)
@@ -705,9 +721,11 @@ class TargetResolver(object):
                             assert not execution_graph, '???'
                         sys.exit(r)
                     elif isinstance(r, Arguments):
-                        if r:
-                            log.warn("Ignored %s", r)
-                        #args.extend(r)
+#                        if r:
+#                            log.warn("Ignored %s", r)
+                        args.extend(r)
+                        #log.info("New arguments from %s: %s", 
+                        #        target.name, r)
                     elif isinstance(r, Targets):
                         for t in r:
                             assert isinstance(t, str), t
@@ -719,7 +737,10 @@ class TargetResolver(object):
             del context.generator
             target = execution_graph.nextTarget()
 
-    def select_kwds(self, func, kwds):
+        if args:
+            log.warn("Left over arguments: %s", args)
+
+    def select_kwds(self, func, args, kwds):
         func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
                 inspect.getargspec(func)
 #        assert func_arg_vars.pop(0) == 'self'
@@ -737,6 +758,9 @@ class TargetResolver(object):
         
         if "options" in ret_kwds:
             ret_kwds['options'] = opts
+
+        if "args" in ret_kwds:
+            ret_kwds['args'] = args
 
         return ret_kwds
 

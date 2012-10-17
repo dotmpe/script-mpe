@@ -119,7 +119,7 @@ def find_config_path(markerleaf, path=None, prefixes=config_prefix,
         paths.extend(tree_paths(path))
     while paths:
         cpath = paths.pop(0)
-        print 'find_config_path', cpath
+        #print 'find_config_path', cpath
         for prefix in prefixes:
             for suffix in suffixes:
                 #print (cpath, prefix, suffix,)
