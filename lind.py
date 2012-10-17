@@ -1,4 +1,6 @@
 """
+Work in progress. Finish path storage in rsr first.
+
 Abstract
 --------
 Maintains layouts of particular folders, and creates new ones
@@ -65,7 +67,6 @@ def lnd_layout(args=[], opts=None, sa=None, ur=None, pwd=None):
     for f in FolderLayout.from_trees(fl):
         print repr(f)
 
-
 @Target.register(NS, 'layouts', 'cmd:pwd')
 def lnd_layouts(opts=None, sa=None, ur=None, prog=None):
     """
@@ -131,5 +132,27 @@ def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
     except KeyboardInterrupt, e:
         log.err(e)
         yield 1
+
+
+# X2
+
+@Target.register(NS, 'ls', 'txs:session')
+def lnd_ls(opts=None, sa=None, ur=None, pwd=None):
+    """
+    > lnd:ls .
+    < Listing for ./shared (in /Volumes/archive-7)
+    < <> lnd:supernode FolderLayout('archive', "'Archive' Folder Layout");
+    < FolderLayout('archive')  
+    <               
+    < . lnd:subnode Node('partial')
+    < . lnd:subnode Node('complete')
+    < Found: FolderLayout('shared', "'Shared' Folder Layout"): 3 items.
+    """
+
+@Target.register(NS, 'node', 'txs:session')
+def lnd_node(opts=None, sa=None, ur=None, pwd=None):
+    """
+    """
+         
 
 
