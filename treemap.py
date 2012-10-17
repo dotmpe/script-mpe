@@ -9,17 +9,33 @@ Updates
 -------
 Oktober 2012
 	- using blksize to calculate actual occupied disk space.
-	- adding storage::
+	- a too detailed storage will drag performance. The current operations
+	  per file are constant, so file count is the limiting factor.
 
-	         path@value
-	         path@space
-	         path@size
+TODO: the torage should create a report for some directory, sorry aout
+	threshold later.
+
 """
+"""Create a tree of the filesystem using dicts and lists.
+
+	All filesystem nodes are dicts so its easy to add attributes.
+	One key is the filename, the value of this key is None for files,
+	and a list of other nodes for directories. Eg::
+
+		{'rootdir': [
+			{'filename1':None},
+			{'subdir':[
+				{'filename2':None}
+			]}
+		]}
+	"""
+
 import sys
 import os
 import shelve
+from pprint import pformat
 from os import listdir, stat, lstat
-from os.path import join, exists, isdir, getsize, basename, dirname, expanduser
+from os.path import join, exists, islink, isdir, getsize, basename, dirname, expanduser
 try:
 	# @bvb: simplejson thinks it should be different and deprecated read() and write()
 	# not sure why... @xxx: simplejson has UTF-8 default, json uses ASCII I think?
@@ -41,7 +57,7 @@ def find_parent( dirpath, subleaf, realpath=False ):
 		if isdir( join( *tuple( dirparts )+( subleaf, ) ) ):
 			return path
 		dirparts.pop()
-	
+
 def find_volume( dirpath ):
 	vol = find_parent( dirpath, '.volume' )
 	if not vol:
@@ -55,6 +71,98 @@ def find_volume( dirpath ):
 			os.makedirs( vol )
 		print "No volumes, storage at %r" % vol
 	return vol
+
+
+class FSWrapper:
+	def __init__( self, path ):
+		self.init( path )
+	def init( self, path ):
+		path = path.rstrip( os.sep )
+		self._path = path
+		self.dirname = os.path.dirname( path )
+		self.basename = os.path.basename( path )
+		self.isdir = os.path.isdir( path )
+		self.islink = os.path.islink( path )
+		self.isother = not self.isdir and \
+				not self.islink and not os.path.isfile( path )
+	@property 
+	def path( self ):
+		if self.isdir:
+			return self._path + os.sep
+	@property 
+	def name( self ):
+		n = self.basename
+		if self.isdir:
+			n += os.sep
+		return n
+	def exists( self ):
+		return os.path.exists( self.path )
+	def yield_all( self ):
+		"Yield all nodes on the way to path. "
+		parts = self._path.split( os.sep )
+		while parts:
+			p = join( parts )
+			yield p
+			parts.pop()
+	def find_all( self ):
+		"Yield any nodes on the way to root. "
+		parts = self._path.split( os.sep )
+		while parts:
+			p = join( parts )
+			if p and self.exists( p ):
+				yield p
+			parts.pop()
+
+		
+
+class Treemap:
+
+	@staticmethod
+	def init( treemapdir ):
+		self.storage = shelve.open( join( treemapdir, 'treemap.db' ) )
+
+	def __init__( self, path ):
+		self.load( path )
+	def load( self, path ):
+		self.fs = FSWrapper( path )
+	def __del__( self ):
+		pass
+	def __getstate__( self ):
+		return ( self.fs._path, self.data )
+	def __setstate__( self, *state ):
+		path, self.data = state
+		self.load( path )
+	def walk_path( self, path ):
+		pass	
+	def init_path( self ):
+		for p in self.fs.yield_all():
+			pass
+	def exists( self, path, opts ):
+		"Return data at path. "
+		return path in self.storage
+	def fetch( self, path, opts ):
+		"Return data at path. "
+		return self.storage[ path ]
+	def store( self, opts ):
+		"Store data at path, marking any node up as dirty. "
+		parent_path = self.find( )
+		if not parent_path:
+			self.init_path( )
+		else:
+			for parent in self.find_all( ):
+				self.invalidate( parent )
+		self.storage[ path ] = data
+	def invalidate( self, path ):
+		data = self.fetch( path )
+		#if data
+		self.store( self, path, data )
+	def find( self ):
+		"Return the next node up, if any. "
+		for p in self.find_all( ):
+			return p
+	def find_all( self, path ):
+		for p in self.fs.find_all( ):
+			yield self.fetch( p )
 
 class Node(dict):
 	"""Interface on top of normal dictionary to work easily with tree nodes
@@ -108,47 +216,64 @@ class Node(dict):
 		else:
 			self['@'+name] = value
 
-	def __repr__(self):
-		return "<%s%s%s>" % (self.name, self.attributes, self.value or '')
-
-
-def fs_tree(dirpath, storage):
-	"""Create a tree of the filesystem using dicts and lists.
-
-	All filesystem nodes are dicts so its easy to add attributes.
-	One key is the filename, the value of this key is None for files,
-	and a list of other nodes for directories. Eg::
-
-		{'rootdir': [
-			{'filename1':None},
-			{'subdir':[
-				{'filename2':None}
-			]}
-		]}
-
-	The storage is a dictionary shelve that is updated along the way.
-	"""
-	enc = sys.getfilesystemencoding()
-	dirname = basename(dirpath)
-	tree = Node(dirname)
-	for fn in listdir(dirpath):
-		# Be liberal... take a look at non decoded stuff
-		if not isinstance(fn, unicode):
-			# try decode with default codec
-			try:
-				fn = fn.decode(enc)
-			except UnicodeDecodeError:
-				print >>sys.stderr, "unable to decode:", dirpath, fn
-				continue
-		# normal ops
-		path = join(dirpath, fn)
-		if isdir(path):
-			# Recurse
-			tree.append(fs_tree(path, storage))
+	def space( self, parent_path ):
+		path = join( parent_path, self.name )
+		if self.value:
+			space = 0
+			for node in self.value:
+				space += node.space( path )
+			return space
+		elif islink( path ):
+			return lstat( path ).st_blocks
+		elif exists( path ):
+			return stat( path ).st_blocks
 		else:
-			tree.append(Node(fn))
+			raise Exception( "Path does not exist: %s" % path )
 
-	return tree
+	def size( self, parent_path ):
+		path = join( parent_path, self.name )
+		if self.value:
+			size = 0
+			for node in self.value:
+				size += node.size( path )
+			return size 
+		elif islink( path ):
+			return lstat( path ).st_size
+		elif exists( path ):
+			return stat( path ).st_size
+		else:
+			raise Exception( "Path does not exist: %s" % path )
+
+	@property
+	def isdir( self ):
+		return self.name.endswith( os.sep )
+
+	def files( self, parent_path ):
+		path = join( parent_path, self.name )
+		if self.value:
+			files = 0
+			for node in self.value:
+				files += node.files( path )
+			return files
+		else:
+			return 1
+
+	@classmethod
+	def tree( clss, path, opts ):
+		node = clss( basename( path ) + ( isdir( path ) and os.sep or '' ) )
+		if isdir( path ):
+			for fn in listdir( path ):
+				# Be liberal... take a look at non decoded stuff
+				if not isinstance( fn, unicode ):
+					# try decode with default codec
+					try:
+						fn = fn.decode( opts.fs_encoding )
+					except UnicodeDecodeError:
+						print >>sys.stderr, "unable to decode:", path, fn
+						continue
+				subpath = join( path, fn )
+				node.append( Node.tree( subpath, opts ) )
+		return node
 
 
 def fs_treesize(root, tree, files_as_nodes=True):
@@ -221,22 +346,16 @@ Opts:
 	sys.exit(msg)
 
 
-if __name__ == '__main__':
-	# Script args
-	path = sys.argv.pop()
-	if not basename(path):
-		path = path[:-1]
-	assert basename(path) and isdir(path), usage("Must have dir as last argument")
-
-	debug = None
-	if '-d' in sys.argv or '--debug' in sys.argv:
-		debug = True
-
-	treemap_dir = find_volume( path )
-	storage = shelve.open( join( treemap_dir, 'treemap.db' ) )
+def main():
 
 	# Walk filesystem, updating where needed
-	tree = fs_tree( path, storage )
+	treemap.report( path )
+
+	# Walk filesystem, updating where needed
+	tree = Node.load( path )
+	print tree.size
+
+	treemap.reports.append( )
 
 	# Add space attributes
 	fs_treesize( dirname(path), tree )
@@ -259,8 +378,64 @@ if __name__ == '__main__':
 		print used/1024**2, 'MB'
 		print used/1024**3, 'GB'
 
-	# Update storage
-	storage.close()
+if __name__ == '__main__':
 
+	# Script args
+	import confparse
+	opts = confparse.Values(dict(
+			fs_encoding = sys.getfilesystemencoding(),
+			voldir = None,
+			debug = None,
+		))
+	argv = list(sys.argv)
 
+	opts.path = argv.pop()
+	# strip trailing os.sep
+	if not basename(opts.path): 
+		opts.path = opts.path[:-1]
+	assert basename(os.path) and isdir(os.path), \
+			usage("Must have dir as last argument")
+
+	opts.debug = ( '-d' in argv and argv.remove( '-d' ) ) or (
+			'--debug' in argv and argv.remove( '--debug' ) )
+
+	# Configure
+	if not opts.voldir:
+		opts.voldir = find_volume( path )
+
+	treemap = Treemap( treemap_dir )	
+
+	# Start
+	tree = treemap.find( path, opts )
+	if not tree: 
+		tree = Node.tree( path, opts )
+
+#	treemap.store( path, tree, opts )
+
+#	print pformat( tree )
+	blocks = tree.space( dirname( path ) )
+
+	print '\\','-'*32, path
+	print "%s mtime" % os.path.getmtime( path )
+	print "%s blocks\n%s bytes on disk" % ( blocks, blocks * 512 )
+	print '%s bytes in files\n%s files' % ( 
+			tree.size( dirname( path ) ), 
+			tree.files( dirname( path ) )
+		)
+	print '/','-'*32, path
+
+#	print '-'*79, '/'
+	st = os.statvfs( '/' )
+	free = st.f_bavail * st.f_frsize
+	total = st.f_blocks * st.f_frsize
+	used = (st.f_blocks - st.f_bfree) * st.f_frsize
+#	print 'reported'
+#	print '%s free\n%s total\n%s used' % (free,total,used)
+#	print round( free / 1024.0 ** 3, 1 ), 'GB free'
+#	print round( used / 1024.0 ** 3, 1 ), 'GB used'
+#	print round( total / 1024.0 ** 3, 1 ), 'GB total'
+
+	free_gb_rounded = int( round( free / 1024 ** 3 ) )
+	disk_usage = int( round( ( used * 100.0 ) / total ) )
+	print "%s GB available (%s%% disk usage)" % ( free_gb_rounded, disk_usage )
 
