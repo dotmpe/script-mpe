@@ -1,0 +1,26 @@
+#!/bin/sh
+
+: << =cut
+
+=head1 NAME
+
+sensors - Plugin to monitor current sensor values
+
+=head1 MAGIC MARKERS
+
+ #%# family=auto
+ #%# capabilities=autoconf
+
+=cut
+
+. $MUNIN_LIBDIR/plugins/plugin.sh
+
+if [ "$1" = "autoconf" ]; then
+	echo yes
+	exit 0
+fi
+
+if [ "$1" = "config" ]; then
+	exit 0
+fi
+
