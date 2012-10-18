@@ -4,6 +4,14 @@
 System Complexity
 =================
 
+Naive benchmarker.
+Keeps simple statistics gathered at various systems,
+TODO: combine these with coefficients into various sorts of ratings.
+    Perhaps overall rankings.
+Ratings must be recalculated upon each consolidation.
+
+version 0.1, Oktober 2012
+    - Rating is based on largest INode count ever seen.
 
 
 """
@@ -13,7 +21,10 @@ import statvfs
 import subprocess
 import datetime
 from pprint import pformat
-import bencode
+try:
+    import bencode
+except:
+    bencode = None
 # use jsonlib or simplejson
 try:
     import simplejson as _json
@@ -25,8 +36,21 @@ json_write = _json.dumps
 
 storage = {
         'a8c01c01': confparse.Values(dict(
+            name='dandy',
             fs=confparse.Values(dict(
                 inodes=15196160
+            ))
+        )),
+        'Pandora.local': confparse.Values(dict(
+            name='Pandora',
+            fs=confparse.Values(dict(
+                inodes=48828123
+            )),
+        )),
+        '007f0101': confparse.Values(dict(
+            name='dm',
+            fs=confparse.Values(dict(
+                inodes=3538944
             ))
         ))
     }
@@ -36,7 +60,7 @@ def complexity( data ):
     for key, record in storage.items():
         if record.fs.inodes > max_inodes:
             max_inodes = record.fs.inodes
-    print data.fs.inodes * 100 / max_inodes, 'percent'
+    print 'Complexity:', data.fs.inodes * 100 / max_inodes, '%'
 
 def main( ):
     data = confparse.Values(dict(
@@ -71,9 +95,18 @@ def main( ):
     print 'INode-Availability:', data.fs.inode_availability, '(%)'
     print '-'*79
     print '='*79
-    print bencode.bencode( data.copy() )
+#    if bencode:
+#        print bencode.bencode( data.copy() )
 
-    print complexity( data )
+    # XXX: get a rating based on several 
+    #resource_space
+    #resource_count
+    complexity( data )
+    #resource_memory
+    #resource_calc?
+    #resource_ranking( ) 
+    
+
 #    print pformat( data.copy() )
 #    print json_write( data.copy() )
     
