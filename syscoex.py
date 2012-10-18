@@ -45,14 +45,8 @@ storage = {
             name='Pandora',
             fs=confparse.Values(dict(
                 inodes=48828123
-            )),
-        )),
-#        '': confparse.Values(dict(
-#            name='Pandora'
-#            fs=confparse.Values(dict(
-#                inodes=
-#            ))
-#        )),
+            ))
+       )),
         '007f0101': confparse.Values(dict(
             name='dm',
             fs=confparse.Values(dict(
