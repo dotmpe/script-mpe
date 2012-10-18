@@ -30,6 +30,38 @@ TODO: the torage should create a report for some directory, sorry aout
 		]}
 	"""
 
+"""
+
+Caching structured
+
+Filetree prototype: store paths in balanced, traversable tree structure 
+for easy, fast and space efficient
+index trees of filesystem (and other hierarchical structrures).
+
+Introduction
+______________________________________________________________________________
+Why? Because filepath operations on the OS are generally far more optimized
+than native code: only for extended sets some way of parallel (caching) 
+structure may optimize performance. However since filesystem hierarchies are 
+not balanced we want to avoid copying (parts) of the unbalanced structure to 
+our index.
+
+Operations on each file may be fairly constant when dealing with the descriptor,
+or depend on file size. The calling API will need to determine when to create 
+new nodes.
+
+Treemap accumulates the filecount, disk usage and file sizes onto all directory
+nodes in the tree. Conceptually it may be used as an enfilade with offsets and
+widths?
+
+
+Implementation
+______________________________________________________________________________
+Below is the code where Node implements the interface to the stored data,
+and a separate Key implementation specifies the index properties of it.
+Volume is the general session API which is a bit immature, but does store
+and reload objects. Storage itself is a simple anydb with json encoded data.
+"""
 import sys
 import os
 import shelve
@@ -96,7 +128,7 @@ class FSWrapper:
 			n += os.sep
 		return n
 	def exists( self ):
-		return os.path.exists( self.path )
+		return exists( self.path )
 	def yield_all( self ):
 		"Yield all nodes on the way to path. "
 		parts = self._path.split( os.sep )
@@ -108,14 +140,17 @@ class FSWrapper:
 		"Yield any nodes on the way to root. "
 		parts = self._path.split( os.sep )
 		while parts:
-			p = join( parts )
-			if p and self.exists( p ):
+			p = join( *parts )
+			if p and exists( p ):
 				yield p
 			parts.pop()
 
 		
 
 class Treemap:
+
+	"""
+	"""
 
 	@staticmethod
 	def init( treemapdir ):
@@ -160,7 +195,7 @@ class Treemap:
 		"Return the next node up, if any. "
 		for p in self.find_all( ):
 			return p
-	def find_all( self, path ):
+	def find_all( self ):
 		for p in self.fs.find_all( ):
 			yield self.fetch( p )
 
@@ -276,62 +311,6 @@ class Node(dict):
 		return node
 
 
-def fs_treesize(root, tree, files_as_nodes=True):
-	"""Add 'space' attributes to all nodes.
-
-	Root is the path on which the tree is rooted.
-
-	Tree is a dict representing a node in the filesystem hierarchy.
-
-	Size is cumulative for each folder. The space attribute indicates
-	used disk space, while the size indicates actual bytesize of the contents.
-	"""
-	if not root:
-		root = './'
-	assert root and isinstance( root, basestring ), root
-	assert isdir( root ), stat( root )
-	assert isinstance( tree, Node )
-	# XXX: os.stat().st_blksize contains the OS preferred blocksize, usually 4k, 
-	# st_blocks reports the actual number of 512byte blocks that are used, so on
-	# a system with 4k blocks, it reports a minimum of 8 blocks.
-	cdir = join( root, tree.name )
-
-	if not tree.space:
-		size = 0
-		space = 0
-		if tree.value:
-			tree.count = len(tree.value)
-			for node in tree.value: # for each node in this dir:
-				path = join( cdir, node.name )
-				if isdir( path ):
-					# subdir, recurse and add space
-					fs_treesize( cdir, node )
-					tree.count += node.count
-					space += node.space
-					size += node.size
-				else:
-					# filename, add sizes
-					actual_size = 0
-					used_space = 0
-					try:
-						actual_size = getsize( path )
-					except Exception, e:
-						print >>sys.stderr, "could not get size of %s: %s" % ( path, e )
-					try:
-						used_space = lstat( path ).st_blocks * 512
-					except Exception, e:
-						print >>sys.stderr, "could not stat %s: %s" % ( path, e )
-					node.size = actual_size
-					node.space = used_space
-					size += actual_size
-					space += used_space
-		else:
-			tree.count = 0
-		tree.size = size
-		tree.space = space
-	tree.space += ( stat( cdir ).st_blocks * 512 )
-
-
 def usage(msg=0):
 	print """%s
 Usage:
@@ -346,38 +325,6 @@ Opts:
 	sys.exit(msg)
 
 
-def main():
-
-	# Walk filesystem, updating where needed
-	treemap.report( path )
-
-	# Walk filesystem, updating where needed
-	tree = Node.load( path )
-	print tree.size
-
-	treemap.reports.append( )
-
-	# Add space attributes
-	fs_treesize( dirname(path), tree )
-
-	# Set proper root path
-	tree.name = path
-
-	### Output
-	if jsonwrite and not debug:
-		print jsonwrite( tree )
-	else:
-		#print tree
-		total = float( tree.size )
-		used = float( tree.space )
-		print 'Tree size:'
-		print tree.size, 'bytes', tree.count, 'items'
-		print 'Used space:'
-		print tree.space, 'B'
-		print used/1024, 'KB'
-		print used/1024**2, 'MB'
-		print used/1024**3, 'GB'
-
 if __name__ == '__main__':
 
 	# Script args
@@ -389,12 +336,13 @@ if __name__ == '__main__':
 		))
 	argv = list(sys.argv)
 
-	opts.path = argv.pop()
+	opts.treepath = argv.pop()
 	# strip trailing os.sep
-	if not basename(opts.path): 
-		opts.path = opts.path[:-1]
-	assert basename(os.path) and isdir(os.path), \
+	if not basename(opts.treepath): 
+		opts.treepath = opts.treepath[:-1]
+	assert basename(opts.treepath) and isdir(opts.treepath), \
 			usage("Must have dir as last argument")
+	path = opts.treepath
 
 	opts.debug = ( '-d' in argv and argv.remove( '-d' ) ) or (
 			'--debug' in argv and argv.remove( '--debug' ) )
@@ -403,10 +351,10 @@ if __name__ == '__main__':
 	if not opts.voldir:
 		opts.voldir = find_volume( path )
 
-	treemap = Treemap( treemap_dir )	
+	treemap = Treemap( opts.voldir )	
 
 	# Start
-	tree = treemap.find( path, opts )
+	tree = treemap.find( )
 	if not tree: 
 		tree = Node.tree( path, opts )
 
