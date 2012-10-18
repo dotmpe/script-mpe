@@ -4,6 +4,14 @@
 System Complexity
 =================
 
+Naive benchmarker.
+Keeps simple statistics gathered at various systems,
+TODO: combine these with coefficients into various sorts of ratings.
+    Perhaps overall rankings.
+Ratings must be recalculated upon each consolidation.
+
+version 0.1, Oktober 2012
+    - Rating is based on largest INode count ever seen.
 
 
 """
@@ -52,7 +60,7 @@ def complexity( data ):
     for key, record in storage.items():
         if record.fs.inodes > max_inodes:
             max_inodes = record.fs.inodes
-    print data.fs.inodes * 100 / max_inodes, 'percent'
+    print 'Complexity:', data.fs.inodes * 100 / max_inodes, '%'
 
 def main( ):
     data = confparse.Values(dict(
@@ -87,10 +95,18 @@ def main( ):
     print 'INode-Availability:', data.fs.inode_availability, '(%)'
     print '-'*79
     print '='*79
-    if bencode:
-        print bencode.bencode( data.copy() )
+#    if bencode:
+#        print bencode.bencode( data.copy() )
 
-    print complexity( data )
+    # XXX: get a rating based on several 
+    #resource_space
+    #resource_count
+    complexity( data )
+    #resource_memory
+    #resource_calc?
+    #resource_ranking( ) 
+    
+
 #    print pformat( data.copy() )
 #    print json_write( data.copy() )
     
