@@ -1,41 +1,12 @@
-test_1_ (test_libcmd.CMDTest1) ... ok
-test_0_init (test_confparse.CPTest1) ... ok
-test_1_find_config (test_confparse.CPTest1) ... ok
-test_2_load (test_confparse.CPTest1) ... ok
-test_3_set_string (test_confparse.CPTest1) ... ok
-test_4_lists (test_confparse.CPTest1) ... ok
-test_5_copy (test_confparse.CPTest1) ... ok
-test_6_commit (test_confparse.CPTest1) ... ok
-test_1_ (test_confparse.CPTest2) ... ERROR
-test_2_ (test_confparse.CPTest2) ... ok
-test_1_read_dict (test_confparse2.CP2Test1) ... ok
-test_1_read_dict_int (test_confparse2.CP2Test1) ... ok
-test_1_read_list (test_confparse2.CP2Test1) ... ok
-test_2_read_nested (test_confparse2.CP2Test1) ... ok
-test_write (test_confparse2.CP2Test1) ... ok
-test_1_ (test_taxus.TaxusTest1) ... ok
-unittest.case.FunctionTestCase (_test)
-Res_FormatTest_sha1sum ... ok
-unittest.case.FunctionTestCase (_test)
-Res_FormatTest_sha1sum ... ok
-unittest.case.FunctionTestCase (_test)
-Res_FormatTest_sha1sum ... ok
-unittest.case.FunctionTestCase (_test)
-Res_FormatTest_sha1sum ... ok
-unittest.case.FunctionTestCase (_test)
-Res_FormatTest_sha1sum ... ok
-unittest.case.FunctionTestCase (_test)
-Res_FormatTest_sha1sum ... ok
-
-======================================================================
-ERROR: test_1_ (test_confparse.CPTest2)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/srv/project-mpe/script-mpe/test_confparse.py", line 57, in test_1_
-    conf = expand_config_path(self.NAME).next()
-StopIteration
-
-----------------------------------------------------------------------
-Ran 22 tests in 0.081s
-
-FAILED (errors=1)
+[1;30mDebug[0;0m: added prerequisite: <Command cmd:config> cmd:prog
+[1;30mDebug[0;0m: added prerequisite: <Command cmd:options> cmd:config
+[1;30mDebug[0;0m: Target resolver starting with ['cmd:prog', 'cmd:config', 'cmd:options']
+[1;30mDebug[0;0m: nextTarget index=0 target.name=cmd:prog execlist=['cmd:prog', 'cmd:config', 'cmd:options']
+[0;32mNote[0;0m: Run: cmd:prog
+[1;30mDebug[0;0m: [1;30mcmd[1;37m:prog[0;0m
+[1;30mDebug[0;0m: nextTarget index=1 target.name=cmd:config execlist=['cmd:prog', 'cmd:config', 'cmd:options']
+[0;32mNote[0;0m: Run: cmd:config
+[1;30mDebug[0;0m: [1;30mcmd[1;37m:config[0;0m
+[1;30mDebug[0;0m: nextTarget index=2 target.name=cmd:options execlist=['cmd:prog', 'cmd:config', 'cmd:options']
+[0;32mNote[0;0m: Run: cmd:options
+[1;30mDebug[0;0m: [1;30mcmd[1;37m:options[0;0m

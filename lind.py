@@ -1,81 +1,63 @@
-#!/usr/bin/env python
 """
 """
 import os, sys, re, anydbm
 
 import txs
-
-from cmdline import Command
-import lib
 import log
-from target import Target, AbstractTargetResolver
+from libname import Namespace, Name
+from libcmd import Targets, Arguments, Keywords, Options,\
+    Target 
 
 
-class Lind(Command, AbstractTargetResolver):
 
-    namespace = 'lnd', 'http://project.dotmpe.com/script/#/cmdline.Lind'
+NS = Namespace.register(
+    prefix='lnd',
+    uriref='http://project.dotmpe.com/script/#/cmdline.Lind'
+)
 
-    handlers = [
-            'lnd:tag'
-        ]
-    depends = {
-            'lnd:tag': ['txs:pwd'],
-        }
+Options.register(NS, )
 
-    @classmethod
-    def get_opts(clss):
-        """
-        Return tuples with command-line option specs.
-        """
-        return ()
+@Target.register(NS, 'tag', 'txs:pwd')
+def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
+    """
+    Experiment, interactive interface.
+    Tagging.
+    """
+    log.debug("{bblack}lnd{bwhite}:tag{default}")
 
-    def lnd_tag(self, opts=None, sa=None, ur=None, pwd=None):
-        """
-        Experiment, interactive interface.
-        Tagging.
-        """
-        log.debug("{bblack}lnd{bwhite}:tag{default}")
+    if not pwd:
+        log.err("Not initialized")
+        yield 1
 
-        if not pwd:
-            log.err("Not initialized")
-            yield 1
+    tags = {}
+    if '' not in tags:
+        tags[''] = 'Root'
+    FS_Path_split = re.compile('[\/\.\+,]+').split
 
-        tags = {}
-        if '' not in tags:
-            tags[''] = 'Root'
-        FS_Path_split = re.compile('[\/\.\+,]+').split
+    log.info("{bblack}Tagging paths in {green}%s{default}",
+            os.path.realpath('.') + os.sep)
 
-        log.info("{bblack}Tagging paths in {green}%s{default}",
-                os.path.realpath('.') + os.sep)
+    try:
+        for root, dirs, files in os.walk(pwd.location.path):
+            for name in files + dirs:
+                log.info("{bblack}Typing tags for {green}%s{default}",
+                        name)
+                path = FS_Path_split(os.path.join(root, name))
+                for tag in path:
+                    yield 
+                    # Ask about each new tag, TODO: or rename, fuzzy match.      
+                    if tag not in tags:
+                        type = raw_input('%s%s%s:?' % (
+                            log.palette['yellow'], tag,
+                            log.palette['default']) )
+                        if not type: type = 'Tag'
+                        tags[tag] = type
 
-        try:
-            for root, dirs, files in os.walk(pwd.location.path):
-                for name in files + dirs:
-                    log.info("{bblack}Typing tags for {green}%s{default}",
-                            name)
-                    path = FS_Path_split(os.path.join(root, name))
-                    for tag in path:
-                        yield 
-                        # Ask about each new tag, TODO: or rename, fuzzy match.      
-                        if tag not in tags:
-                            type = raw_input('%s%s%s:?' % (
-                                log.palette['yellow'], tag,
-                                log.palette['default']) )
-                            if not type: type = 'Tag'
-                            tags[tag] = type
+                log.info(''.join( [ "{bwhite} %s:{green}%s{default}" % (tag, name)
+                    for tag in path if tag in tags] ))
 
-                    log.info(''.join( [ "{bwhite} %s:{green}%s{default}" % (tag, name)
-                        for tag in path if tag in tags] ))
+    except KeyboardInterrupt, e:
+        log.err(e)
+        yield 1
 
-        except KeyboardInterrupt, e:
-            log.err(e)
-            yield 1
-
-
-lib.namespaces.update((Lind.namespace,))
-Target.register(Lind)
-
-
-if __name__ == '__main__':
-    Lind().main()
 

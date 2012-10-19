@@ -94,6 +94,11 @@ palette = dict(
     bwhite='\x1b[1;37m', # bright white
 )
 
+def format_line(msg):
+    for k in palette:
+        msg = msg.replace('{%s}' % k, palette[k])
+    return msg
+
 def log(level, msg, *args):
     """
     TODO:
@@ -110,27 +115,29 @@ def log(level, msg, *args):
     if not isinstance(msg, (basestring, int, float)):
         msg = str(msg)
     title = {
-    	    0:'{bred}Emergency{bwhite}',
-    	    1:'{red}Alert{white}',
-    	    2:'{red}Critical{white}',
-    	    3:'{byellow}Error{default}',
-    	    4:'{yellow}warning{default}',
+            0:'{bred}Emergency{bwhite}',
+            1:'{red}Alert{white}',
+            2:'{red}Critical{white}',
+            3:'{byellow}Error{default}',
+            4:'{yellow}warning{default}',
             5:'{green}Note{default}',
             #6:'{bblack}info{default}',
-    	    7:'{bblack}Debug{default}'}
+            7:'{bblack}Debug{default}'
+        }
     if level in title:
         msg = title[level] +': '+ msg
-    for k in palette:
-        msg = msg.replace('{%s}' % k, palette[k])
-   
+    msg = format_line(msg)
     # XXX: nicer to put in __repr/str__
     args = list(args)
     for i, a in enumerate(args):
         interfaces = list(zope.interface.providedBy(a).interfaces())
-        if interfaces == [taxus_out.IPrimitive]:
-            args[i] = taxus_out.IFormatted(a).toString()
-        elif not isinstance(a, (int, float,str,unicode)):
-            args[i] = str(a)
+        if isinstance(a, (int,float,str,unicode)):
+            pass
+        else:
+            if interfaces == [taxus_out.IPrimitive]:
+                args[i] = taxus_out.IFormatted(a).toString()
+            else:
+                args[i] = str(a)
     print >>sys.stderr, msg % tuple(args)
 
 emerg = lambda x,*y: log(EMERG, x, *y)
