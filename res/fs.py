@@ -108,7 +108,7 @@ class Dir(object):
                 if filters:
                     for fltr in filters:
                         if not fltr(dirpath):
-                        	continue
+                            continue
                 if not os.path.exists(dirpath):
                     log.err("Error: reported non existant node %s", dirpath)
                     dirs.remove(node)
