@@ -85,7 +85,7 @@ class Dir(object):
         max_depth=-1,
     ))
     @staticmethod
-    def walk(path, opts=walk_opts):
+	def walk(Klass, path, opts=walk_opts):
         if opts.max_depth > 0:
             assert opts.recurse
         for root, dirs, files in os.walk(path):
@@ -99,7 +99,7 @@ class Dir(object):
                     dirs.remove(node)
                     continue
                 depth = dirpath.replace(path,'').strip('/').count('/')
-                if Dir.ignored(dirpath):
+                if Klass.ignored(dirpath):
                     log.err("Ignored directory %r", dirpath)
                     dirs.remove(node)
                     continue
@@ -108,7 +108,7 @@ class Dir(object):
                     continue
                 elif opts.interactive:
                     log.info("Interactive walk: %s",dirpath)
-                    if not Dir.prompt_recurse(opts):
+                    if not Klass.prompt_recurse(opts):
                         dirs.remove(node)
                 assert isinstance(dirpath, basestring)
                 try:
