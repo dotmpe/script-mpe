@@ -1,5 +1,6 @@
 import hashlib
 import os
+from os.path import join, getsize, isdir
 import shelve
 import sys
 
@@ -8,7 +9,7 @@ from treemap import find_volume
 
 
 def normalize( rootdir, path ):
-	if os.path.isdir( path ):
+	if isdir( path ):
 		if not path.endswith( os.sep ):
 			path += os.sep
 	assert isdir( rootdir )
@@ -41,9 +42,9 @@ if __name__ == '__main__':
 	w_opts = Dir.walk_opts
 	w_opts.recurse = True
 	for f in Dir.walk( path, w_opts ):
-		if os.path.isdir( f ):
+		if isdir( f ):
 			continue
-		if os.path.getsize( f ) > size_threshold:
+		if getsize( f ) > size_threshold:
 			first20 = open( f ).read( 20 )
 			p = normalize( f )
 			if first20 not in store.shelve:
