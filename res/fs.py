@@ -115,28 +115,29 @@ class Dir(object):
 					continue
 				depth = dirpath.replace(path,'').strip('/').count('/')
 				if Klass.ignored(dirpath):
-					log.err("Ignored directory %r", dirpath)
+					log.info("Ignored directory %r", dirpath)
 					dirs.remove(node)
 					continue
 				elif opts.max_depth != -1 and depth >= opts.max_depth:
 					dirs.remove(node)
 					continue
 				elif opts.interactive:
-					log.info("Interactive walk: %s",dirpath)
+					log.note("Interactive walk: %s", dirpath)
 					if not Klass.prompt_recurse(opts):
 						dirs.remove(node)
 				assert isinstance(dirpath, basestring)
 				try:
-					dirpath = unicode(dirpath)
+					dirpath = unicode(dirpath, 'utf-8')#
+#					dirpath = dirpath.decode('utf-8')
 				except UnicodeDecodeError, e:
-					log.err("Ignored non-ascii/illegal filename %s", dirpath)
+					log.warn("Ignored non-unicode path %s", dirpath)
 					continue
 				assert isinstance(dirpath, unicode)
-				try:
-					dirpath.encode('ascii')
-				except UnicodeDecodeError, e:
-					log.err("Ignored non-ascii filename %s", dirpath)
-					continue
+				#try:
+				#	dirpath.encode('ascii')
+				#except UnicodeDecodeError, e:
+				#	log.warn("Ignored non-ascii path %s", dirpath)
+				#	continue
 				yield dirpath
 			for leaf in list(files):
 				filepath = os.path.join(root, leaf)
@@ -145,26 +146,26 @@ class Dir(object):
 						if not fltr(filepath):
 							continue
 				if not os.path.exists(filepath):
-					log.err("Error: non existant leaf %s", filepath)
+					log.warn("Error: non existant leaf %s", filepath)
 					continue
 				if os.path.islink(filepath) or not os.path.isfile(filepath):
-					log.err("Ignored non-regular file %r", filepath)
+					log.note("Ignored non-regular file %r", filepath)
 					continue
 				if File.ignored(filepath):
-					#log.err("Ignored file %r", filepath)
+					log.info("Ignored file %r", filepath)
 					continue
 				assert isinstance(filepath, basestring)
 				try:
-					filepath = unicode(filepath)
+					filepath = unicode(filepath, 'utf-8')
 				except UnicodeDecodeError, e:
-					log.err("Ignored non-ascii/illegal filename %s", filepath)
+					log.warn("Ignored non-unicode filename %s", filepath)
 					continue
 				assert isinstance(filepath, unicode)
-				try:
-					filepath.encode('ascii')
-				except UnicodeEncodeError, e:
-					log.err("Ignored non-ascii/illegal filename %s", filepath)
-					continue
+#				try:
+#					filepath.encode('ascii')
+#				except UnicodeEncodeError, e:
+#					log.warn("Ignored non-ascii/illegal filename %s", filepath)
+#					continue
 				yield filepath
 
 	@classmethod
