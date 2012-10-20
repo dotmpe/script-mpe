@@ -11,22 +11,22 @@ PATH_R = re.compile("[A-Za-z0-9\/\.,\[\]\(\)_-]")
 
 class File(object):
 
-    ignore_names = (
-            '._*',
-            '.crdownload',
-            '.DS_Store',
-            '*.swp',
-            '*.swo',
-            '*.swn',
-            '.git*',
-        )
+	ignore_names = (
+			'._*',
+			'.crdownload',
+			'.DS_Store',
+			'*.swp',
+			'*.swo',
+			'*.swn',
+			'.git*',
+		)
 
-    ignore_paths = (
-            '*.pyc',
-            '*~',
-            '*.part',
-            '*.incomplete',
-        )
+	ignore_paths = (
+			'*.pyc',
+			'*~',
+			'*.part',
+			'*.incomplete',
+		)
 
     @classmethod
     def sane(klass, path):
@@ -45,50 +45,40 @@ class File(object):
 
 class Dir(object):
 
-    ignore_names = (
-            '._*',
-            '.metadata',
-            '.conf',
-            'RECYCLER',
-            '.TemporaryItems',
-            '.Trash*',
-            'cllct',
-            '.cllct',
-            'System Volume Information',
-            'Desktop',
-            'project',
-            'sam*bup*',
-            '*.bup',
-            '.git*',
-        )
+	ignore_names = (
+			'._*',
+			'.metadata',
+			'.conf',
+			'RECYCLER',
+			'.TemporaryItems',
+			'.Trash*',
+			'cllct',
+			'.cllct',
+			'System Volume Information',
+			'Desktop',
+			'project',
+			'sam*bup*',
+			'*.bup',
+			'.git*',
+		)
 
-    ignore_paths = (
-            '*.git',
-        )
+	ignore_paths = (
+			'*.git',
+		)
 
     @classmethod
     def sane(Klass, path):
         return PATH_R.match(path)
 
-    @classmethod
-    def ignored(klass, path):
-        for p in klass.ignore_paths:
-            if fnmatch(path, p):
-                return True
-        name = os.path.basename(path)
-        for p in klass.ignore_names:
-            if fnmatch(name, p):
-                return True
-
-    @classmethod
-    def prompt_recurse(clss, opts):
-        v = Prompt.query("Recurse dir?", ("Yes", "No", "All"))
-        if v is 2:
-            opts.recurse = True
-            return True
-        elif v is 0:
-            return True
-        return False
+	@classmethod
+	def prompt_recurse(clss, opts):
+		v = Prompt.query("Recurse dir?", ("Yes", "No", "All"))
+		if v is 2:
+			opts.recurse = True
+			return True
+		elif v is 0:
+			return True
+		return False
 
     walk_opts = confparse.Values(dict(
         interactive=False,
