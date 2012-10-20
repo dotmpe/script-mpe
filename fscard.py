@@ -30,19 +30,7 @@ def strlen( s, l ):
 		return s[ :h ] + '[...]' + s[ h: ]
 	return s
 
-if __name__ == '__main__':
-
-	argv = list( sys.argv )
-	script_name = argv.pop(0)
-	size_threshold = 14 * ( 1024 ** 2 )
-
-	path = argv.pop()
-	voldir = find_dir( path, '.volume' )
-	print "Volume:", path, voldir
-	assert voldir
-	store = PathStore( voldir )
-	first20 = First20Store( voldir )
-
+def main( size_threshold, path, voldir, store, first20 ):
 	w_opts = Dir.walk_opts
 	w_opts.recurse = True
 	cnt = 0
@@ -56,12 +44,12 @@ if __name__ == '__main__':
 			k = key( p.encode(' utf-8' ) )
 			if k not in store.shelve:
 				store.shelve[ k ] = [ p ]
-				print k, 'NEW'
+				print k, strlen( store.shelve[ k ], 128 ), 'NEW'
 			else:
 				assert p in store.shelve[ k ]
-				print k, strlen( store.shelve[ k ], 128 ), 'OK'
+				print k, 'OK'
 
-			first20bytes = open( f ).read( 20 )
+			first20bytes = open( f.encode( 'utf-8' ) ).read( 20 )
 			if first20bytes not in first20.shelve:
 				first20.shelve[ first20bytes ] = [ p ]
 				print k, '20bytes'
@@ -75,6 +63,26 @@ if __name__ == '__main__':
 		if not cnt % 1000:
 			sys.stdout.write("%s.. "%cnt)
 			sys.stdout.flush()
+
+if __name__ == '__main__':
+
+	argv = list( sys.argv )
+	script_name = argv.pop(0)
+	size_threshold = 14 * ( 1024 ** 2 )
+
+	path = argv.pop()
+	voldir = find_dir( path, '.volume' )
+	print "Volume:", path, voldir
+	assert voldir
+	store = PathStore( voldir )
+	first20 = First20Store( voldir )
+
+	try:
+		main( size_threshold, path, voldir, store, first20 )
+	except KeyboardInterrupt, e:
+		store.shelve.close()
+		first20.shelve.close()
+
 	store.shelve.close()
 
 	print "FSCard %s OK" % voldir
