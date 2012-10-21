@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 import hashlib
 import os
-from os.path import join, isdir, getsize, dirname
+from os.path import join, isdir, getsize, dirname, abspath
 import shelve
 import sys
 import time
@@ -15,7 +16,7 @@ import uuid
 def key( obj ):
 	return hashlib.sha1( obj ).hexdigest()
 
-def normalize( rootdir, path, fnenc ):
+def normalize( rootdir, path, fnenc='ascii' ):
 	if isdir( path.encode( fnenc ) ):
 		if not path.endswith( os.sep ):
 			path += os.sep
@@ -45,7 +46,7 @@ def _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f ):
 		print 'Skipping too large file for now', f.encode( fnenc )
 		return
 	if getsize( f.encode( fnenc ) ) > size_threshold:
-		path = normalize( dirname( voldir ), f, fnenc )
+		path = normalize( voldir, f, fnenc )
 		pathhash = key( path.encode( fnenc ) )
 		guid = None
 
@@ -79,6 +80,8 @@ def _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f ):
 			recordtime = float( Record.indices.time.data[ guid ] )
 			if os.path.getmtime( f.encode( fnenc ) ) < recordtime:
 #				print pathhash, 'OK'
+# XXX: could keep reverse indices for Match on Record, and lookup 
+# wether current Record has the all the Match indices set
 				return
 
 		if guid not in Record.indices.size.data:
@@ -107,8 +110,12 @@ def _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f ):
 			print guid, 'MD5'
 		else:
 			if guid not in Match.indices.md5.data[ md5sum ]:
-				print "%s is md5sum value for %r, new: %r" % (
-						Match.indices.md5.data[ md5sum ], md5sum, guid )
+				print "Possible duplicate", f.encode( fnenc )
+				curguid = Match.indices.md5.data[ md5sum ][0]
+				for x in Record.indices.paths.data[ curguid ]:
+					print Path.indices.path.data[ x ]
+				print guid
+				print md5sum
 				return
 
 		sha1sum = lib.get_checksum_sub( f.encode( fnenc ) )
@@ -139,6 +146,7 @@ def main( path, voldir ):
 	w_opts = Dir.walk_opts
 	w_opts.recurse = True
 	cnt = 0
+	print 'Walking', path
 	for f in Dir.walk( path, w_opts ):
 
 		if isdir( f.encode( fnenc ) ):
@@ -168,10 +176,10 @@ if __name__ == '__main__':
 	argv = list( sys.argv )
 	script_name = argv.pop(0)
 
-	path = argv.pop()
+	path = abspath( argv.pop() )
 	voldir = find_dir( path, '.volume' )
 
-	print "Volume:", path, voldir
+	print "Volume:", voldir
 	assert voldir
 
 	Path.init( voldir )

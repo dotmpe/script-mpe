@@ -1,3 +1,4 @@
+import anydbm
 import datetime
 import getpass
 import optparse
@@ -144,6 +145,22 @@ def timestamp_to_datetime(timestamp, epoch=EPOCH):
 
 def cn(obj):
 	return obj.__class__.__name__
+
+def get_index( path, mode='w' ):
+	print 'get_index', path, mode
+	if not os.path.exists( path ):
+		assert 'w' in mode
+		try:
+			anydbm.open( path, 'n' ).close()
+		except Exception, e:
+			raise Exception( "Unable to create new resource DB at <%s>: %s" %
+					( path, e ) )
+	try:
+		return anydbm.open( path, mode )
+	except anydbm.error, e:
+		raise Exception( 
+				"Unable to access resource DB at <%s>: %s" %
+				( path, e ) )
 
 
 if __name__ == '__main__':

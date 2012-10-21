@@ -1,39 +1,5 @@
 """
 
-	The object API is:
-		>>> assert Klass.key() == "myidx"
-		>>> myobj = Klass.indices.myidx[key] 
-		>>> myobj == Klass.fetch('myidx', key)
-		True
-		>>> myobj.myidx == key
-		True
-		>>> myobj.myidx2 
-		'key2'
-mpo		>>> myobj == Klass.fetch( 'myidx2', 'key2' )
-		>>> Klass.indices
-		Attrs( myidx = Value, myidx2=Value )
-		>>> Klass2.indices
-		Attrs( myrev = OneToMany_TwoWay,  )
-
-		>>> myobj.attr = 'update' # XXX detect and commit on close
-		>>> myobj.commit() #or 
-		>>> Klass.store[key] = myobj; Klass.store.sync() #?
-
-	and the index API:				
-		>>> obj2 = Klass.fetch('sha1', 'abcdef') # raise keyerr if not found
-		>>> obj3 = Klass.find('sha1', 'abcdef') # return none if not found
-
-	and the bare shelves:
-		>>> key = Klass.indices.{sha1,tth,..}[value]
-		>>> keys = Klass.indices.{size,crc,type}[value]
-
-	usage:
-		>>> obj = Klass(new_key)
-		>>> obj.sha1 = 'abcdef'
-		>>> obj.commit()
-		>>> obj == obj2 == obj3 
-		True
-
 """
 import os
 import sys
@@ -42,24 +8,9 @@ import anydbm
 import hashlib
 import shelve
 
+import lib
 import confparse
 
-
-def get_index( path, mode='w' ):
-	print 'get_index', path, mode
-	if not os.path.exists( path ):
-		assert 'w' in mode
-		try:
-			anydbm.open( path, 'n' ).close()
-		except Exception, e:
-			raise Exception( "Unable to create new resource DB at <%s>: %s" %
-					( path, e ) )
-	try:
-		return anydbm.open( path, mode )
-	except anydbm.error, e:
-		raise Exception( 
-				"Unable to access resource DB at <%s>: %s" %
-				( path, e ) )
 
 class Value:
 
@@ -68,7 +19,7 @@ class Value:
 	def __init__( self, klass, attr, path ):
 		self.klass = klass
 		self.attr = attr
-		self.data = get_index( path )
+		self.data = lib.get_index( path )
 
 class ListValue:
 
