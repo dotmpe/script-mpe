@@ -61,19 +61,20 @@ def get_checksum_sub(path, checksum_name='sha1'):
 	"""
 	pathd = path.decode('utf-8')
 	if checksum_name == 'ck':
-		data = cmd("cksum \"%s\"", pathd)
-		p = data.strip().index(' ')
-		hex_checksum, size, filename = data.strip().split(' ')
+		data = cmd("cksum \"%s\"", pathd).strip()
+		p = data.find(' ', 1)
+		p2 = data.find(' ', p+1)
+		checksum, size, filename = data[:p], data[p:p2].strip(), data[p2:].strip()
 
 	else:
 		data = cmd("%ssum \"%s\"", checksum_name, pathd)
 		p = data.index(' ')
-		hex_checksum, filename = data[:p], data[p:].strip()
+		checksum, filename = data[:p], data[p:].strip()
 
 	# XXX: sanity check..
 	assert filename == path, (filename, path)
 
-	return hex_checksum
+	return checksum
 
 def get_sha1sum_sub(path):
 	return get_checksum_sub(path)
