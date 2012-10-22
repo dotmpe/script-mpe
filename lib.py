@@ -60,11 +60,19 @@ def get_checksum_sub(path, checksum_name='sha1'):
 	Returns the hexadecimal encoded digest directly.
 	"""
 	pathd = path.decode('utf-8')
-	data = cmd("%ssum \"%s\"", checksum_name, pathd)
-	p = data.index(' ')
-	hex_checksum, filename = data[:p], data[p:].strip()
+	if checksum_name == 'ck':
+		data = cmd("cksum \"%s\"", pathd)
+		p = data.strip().index(' ')
+		hex_checksum, size, filename = data.strip().split(' ')
+
+	else:
+		data = cmd("%ssum \"%s\"", checksum_name, pathd)
+		p = data.index(' ')
+		hex_checksum, filename = data[:p], data[p:].strip()
+
 	# XXX: sanity check..
 	assert filename == path, (filename, path)
+
 	return hex_checksum
 
 def get_sha1sum_sub(path):
@@ -99,15 +107,15 @@ def remote_proc(host, cmd):
 def human_readable_bytesize(length, suffix=True, suffix_as_separator=False):
 	assert suffix
 	if length > 1024**4:
-		s =  "%sG" % (float(length)/1024**4)
+		s =  "%.2fG" % (float(length)/1024**4)
 	elif length > 1024**3:
-		s =  "%sG" % (float(length)/1024**3)
+		s =  "%.2fG" % (float(length)/1024**3)
 	elif length > 1024**2:
-		s =  "%sM" % (float(length)/1024**2)
+		s =  "%.2fM" % (float(length)/1024**2)
 	elif length > 1024:
-		s =  "%sk" % (float(length)/1024)
+		s =  "%.2fk" % (float(length)/1024)
 	else:
-		s =  "%s" % length
+		s =  "%.2f" % length
 	if suffix_as_separator and not s[-1].isdigit():
 		s = s[:-1].replace('.', s[-1])
 	return s

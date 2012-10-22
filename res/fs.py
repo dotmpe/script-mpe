@@ -18,6 +18,7 @@ class File(object):
 			'*.swp',
 			'*.swo',
 			'*.swn',
+			'*.r[0-9]*[0-9]',
 			'.git*',
 		)
 
@@ -26,11 +27,34 @@ class File(object):
 			'*~',
 			'*.part',
 			'*.incomplete',
+			'*.crdownload',
+		)
+
+	include_paths = (
+			'*.ogg', 
+			'*.mp3', 
+			'*.jpg', 
+			'*.pdf', 
+			'*.mkv', 
+			'*.mp4', 
+			'*.wmv', '*.mpg', '*.avi'
+		)
+	include_names = (
 		)
 
 	@classmethod
 	def sane(klass, path):
 		return PATH_R.match(path)
+
+	@classmethod
+	def include(klass, path):
+		for p in klass.include_paths:
+			if fnmatch(path, p):
+				return True
+		name = os.path.basename(path)
+		for p in klass.include_names:
+			if fnmatch(name, p):
+				return True
 
 	@classmethod
 	def ignored(klass, path):

@@ -9,7 +9,7 @@ import traceback
 
 import lib
 from res.store import IndexedObject, Path, Match, Record
-from res.fs import Dir
+from res.fs import File, Dir
 import uuid
 
 
@@ -42,7 +42,8 @@ def strlen( s, l ):
 	return s
 
 def _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f ):
-	if 'p0rn' not in f and getsize( f.encode( fnenc ) ) > size_threshold2:
+	#if not File.include( f.encode( fnenc ) ):
+	if getsize( f.encode( fnenc ) ) > size_threshold2:
 		print 'Skipping too large file for now', f.encode( fnenc )
 		return
 	if getsize( f.encode( fnenc ) ) > size_threshold:
@@ -61,38 +62,52 @@ def _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f ):
 				Record.indices.paths.data[ guid ] = [ ]
 			Record.indices.paths.data[ guid ] += [ pathhash ]
 			#assert pathhash in Record.indices.paths.data[ guid ]
-			print pathhash, strlen( Path.indices.path.data[ pathhash ], 128 ), 'NEW'
+			print pathhash, 'NEW ', strlen( Path.indices.path.data[ pathhash ], 96 )
 		else:
 			guid = Path.indices.record.data[ pathhash ]
 			#assert path == Path.indices.path.data[ pathhash ].decode( fnenc ), ( pathhash, path )
+		print pathhash, ' -- ', guid
+
 		if not os.path.exists( f.encode( fnenc ) ):
 			del Path.indices.path.data[ pathhash ]
 			del Path.indices.record.data[ pathhash ]
 			paths = Record.indices.paths.data[ guid ]
 			paths.remove( pathhash )
 			Record.indices.paths.data[ guid ] = paths
-			print "Removed deleted from indices", path
+			print pathhash, "DEL ", path
 			return
 
 		if guid not in Record.indices.time.data:
-			Record.indices.time.data[ guid ] = str( time.time() )
+			record_time = str( int( time.time() ) )
+			Record.indices.time.data[ guid ] = record_time
 		else:
-			recordtime = float( Record.indices.time.data[ guid ] )
-			if os.path.getmtime( f.encode( fnenc ) ) < recordtime:
-#				print pathhash, 'OK'
+			record_time = int( round( float( Record.indices.time.data[ guid ] ) ))
+			if os.path.getmtime( f.encode( fnenc ) ) <= record_time:
+				pass # OK
+			else:
+				Record.indices.time.data[ guid ] = \
+						str( round( os.path.getmtime( f.encode( fnenc ) ) ) )
+				print pathhash, ' -- ', record_time
+
 # XXX: could keep reverse indices for Match on Record, and lookup 
 # wether current Record has the all the Match indices set
-				return
 
+		size = None
 		if guid not in Record.indices.size.data:
-			Record.indices.size.data[ guid ] = str( os.path.getsize( f.encode( fnenc ) ) )
+			size = os.path.getsize( f.encode( fnenc ) )
+			Record.indices.size.data[ guid ] = str( size )
 		else:
-			size = float( Record.indices.size.data[ guid ] )
-			if os.path.getsize( f.encode( fnenc ) ) == size:
-				print pathhash, 'OK'
-				os.utime( f.encode( fenc ) )
+			size = int( Record.indices.size.data[ guid ] )
+			cur_size = os.path.getsize( f.encode( fnenc ) ) 
+			if cur_size == size:
+				print pathhash, 'OK  ', lib.human_readable_bytesize( size )
+				#os.utime( f.encode( fnenc ), ( atime, record_time ) )
+				return
+			else:
+				print "Size mismatch: %s vs %s" % ( size, cur_size )
 				return
 
+		print pathhash, lib.human_readable_bytesize( size )
 # XXX: first20bytes is off since it cannot be useful enough
 # should get more data from file, compare at byte intervals
 #		f20b = open( f.encode( fnenc ) ).read( 20 )
@@ -104,29 +119,52 @@ def _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f ):
 #				print "%s is first20bytes value for %r, new: %r" % (
 #						Match.indices.first20.data[ f20b ], f20b, guid )
 
-		md5sum = lib.get_checksum_sub( f, 'md5' )
+		start = time.time()
+		cksum = lib.get_checksum_sub( f.encode( fnenc ), 'ck' )
+		dt = time.time() - start
+		if not Match.find( 'ck', cksum ):
+			Match.indices.ck.data[ cksum ] = [ guid ]
+			print guid, 'CK  ', cksum, '(%.2f sec)' % dt 
+		else:
+			if guid not in Match.indices.ck.data[ cksum ]:
+				print "Possible duplicate", strlen( f.encode( fnenc ), 96 )
+				curguid = Match.indices.ck.data[ cksum ][0]
+				for x in Record.indices.paths.data[ curguid ]:
+					print Path.indices.path.data[ x ]
+				print guid, 'CK  ', cksum, '(%.2f sec)' % dt 
+				return
+
+		start = time.time()
+		sha1sum = lib.get_checksum_sub( f.encode( fnenc ) )
+		dt = time.time() - start
+		if not Match.find( 'sha1', sha1sum ):
+			Match.indices.sha1.data[ sha1sum ] = [ guid ]
+			print guid, 'SHA1', sha1sum, '(%.2f sec)' % dt 
+		else:
+			if guid not in Match.indices.sha1.data[ sha1sum ]:
+				print "Possible duplicate", strlen( f.encode( fnenc ), 96 )
+				curguid = Match.indices.sha1.data[ sha1sum ][0]
+				for x in Record.indices.paths.data[ curguid ]:
+					print Path.indices.path.data[ x ]
+				print guid, 'SHA1', sha1sum, '(%.2f sec)' % dt 
+				return
+
+		start = time.time()
+		md5sum = lib.get_checksum_sub( f.encode( fnenc ), 'md5' )
+		dt = time.time() - start
 		if not Match.find( 'md5', md5sum ):
 			Match.indices.md5.data[ md5sum ] = [ guid ]
-			print guid, 'MD5'
+			print guid, 'MD5 ', md5sum, '(%.2f sec)' % dt 
 		else:
 			if guid not in Match.indices.md5.data[ md5sum ]:
-				print "Possible duplicate", f.encode( fnenc )
+				print "Possible duplicate", strlen( f.encode( fnenc ), 96 )
 				curguid = Match.indices.md5.data[ md5sum ][0]
 				for x in Record.indices.paths.data[ curguid ]:
 					print Path.indices.path.data[ x ]
-				print guid
-				print md5sum
+				print guid, 'MD5 ', md5sum, '(%.2f sec)' % dt 
 				return
 
-		sha1sum = lib.get_checksum_sub( f.encode( fnenc ) )
-		if not Match.find( 'sha1', sha1sum ):
-			Match.indices.sha1.data[ sha1sum ] = [ guid ]
-			print guid, 'SHA1'
-		else:
-			if guid not in Match.indices.sha1.data[ sha1sum ]:
-				print "%s is value for %r, new: %r" % (
-						Match.indices.sha1.data[ sha1sum ], sha1sum, guid )
-				return
+		return True
 
 def _do_cleanup( path, voldir, fnenc, f ):
 	path = normalize( dirname( voldir ), f, fnenc )
@@ -140,8 +178,8 @@ def _do_cleanup( path, voldir, fnenc, f ):
 
 
 def main( path, voldir ):
-	size_threshold = 14 * ( 1024 ** 2 )
-	size_threshold2 = 50 * ( 1024 ** 2 )
+	size_threshold = 14 * ( 1024 ** 2 ) # noise threshold
+	size_threshold2 = 14 * ( 1024 ** 3 ) # extreme high bound for bad ideas
 	fnenc = 'utf-8'
 	w_opts = Dir.walk_opts
 	w_opts.recurse = True
@@ -154,8 +192,12 @@ def main( path, voldir ):
 
 		cnt += 1
 
+		v = False
+
 		try:
-			_do_run( path, voldir, size_threshold, size_threshold2, fnenc, f )
+			v = _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f )
+		except UnicodeDecodeError, e:
+			_do_cleanup( path, voldir, fnenc, f )
 		except KeyboardInterrupt, e:
 			_do_cleanup( path, voldir, fnenc, f )
 			raise
@@ -164,11 +206,16 @@ def main( path, voldir ):
 			traceback.print_exc()
 			raise
 
-		if cnt == 1000:
-			sys.stdout.write( "Files: ")
-		if not cnt % 1000:
-			sys.stdout.write("%s.. "%cnt)
-			sys.stdout.flush()
+		#if cnt == 1000:
+		#	sys.stdout.write( "Files: ")
+		if v:
+			print 'File %i done. ' % cnt
+			print
+			v = False
+		elif not cnt % 1000:
+			print "File %s.. "%cnt
+			#sys.stdout.write("%s.. "%cnt)
+			#sys.stdout.flush()
 
 
 if __name__ == '__main__':

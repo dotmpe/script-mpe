@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Resource -  A simple volume manager for media carriers.
 
+Initialize metadata:
+	- Volume
+
 Perhaps distributed metadata later.
 
 A Volume is a resource identifying a physical storage medium,
@@ -22,8 +25,8 @@ import confparse
 from libname import Namespace, Name
 from libcmd import Targets, Arguments, Keywords, Options,\
 	Target 
-from res import PersistedMetaObject, Metafile, Volume, Repo, Dir
-
+from res import Metafile
+from res.store import Volume, File, Record, Match
 from taxus import Node
 
 
@@ -61,30 +64,49 @@ Options.register(NS,
 @Target.register(NS, 'lib', 'cmd:userdir')
 def rsr_lib_init(prog=None, lib=None, settings=None):
 	"""
-	Initialize Workspace, 
+	Initialize stores for Workspace.
+
+	TODO:
+
+	options (conf):
+		- cmd.lib.paths.systemdir
+		- cmd.lib.paths.userdir
+		- cmd.lib.sessions
+	other arguments
+		- prog.userdir
+
+	yields 
+		- lib.stores
+		- lib.indices (XXX: these are really at the stores still)
+		- lib.paths
 	"""
 	assert prog.pwd, prog.copy().keys()
 	# Normally /var/lib/cllct
 	sysdir = conf.cmd.lib.paths.systemdir
+	
+	from fscard import find_dir
+	voldir = find_dir( prog.pwd, '.volume' )
+	assert voldir, prog
+
+	Volume.init( userdir )
+	vol = Volume.fetch( 'vpath', voldir )
+	File.init( voldir )
+	Record.init( voldir )
+	Match.init( voldir )
+
+# XXX: old
 	#sysdbpath = os.path.join(sysdir, conf.cmd.lib.name)
 	# Normally ~/.cllct
 	#usrdbpath = os.path.join(prog.userdir, conf.cmd.lib.name)
 	# Initialize shelves
 	#sysdb = PersistedMetaObject.get_store('system', sysdbpath)
 	#usrdb = PersistedMetaObject.get_store('user', usrdbpath)
-	voldbpath = os.path.expanduser(conf.cmd.lib.sessions.user_volumes)
-	voldb = PersistedMetaObject.get_store('volumes', voldbpath)
-	# XXX: 'default' is set to user-database
-	#assert usrdb == PersistedMetaObject.get_store('default', usrdbpath)
-	# XXX: 
-	#	The objects lazy initialize static indices when needed,
-	#	only provide path?
+	#voldbpath = os.path.expanduser(conf.cmd.lib.sessions.user_volumes)
+	#voldb = PersistedMetaObject.get_store('volumes', voldbpath)
 	yield Keywords(
 			lib=confparse.Values(dict(
 				stores=confparse.Values(dict(
-	#				system=sysdb,
-	#				user=usrdb,
-					volumes=voldb
+#					volumes=voldb
 				)),
 				indices=confparse.Values(dict(
 				)),
@@ -95,6 +117,7 @@ def rsr_lib_init(prog=None, lib=None, settings=None):
 @Target.register(NS, 'init-volume', 'cmd:pwd', 'cmd:lib')
 def rsr_volume_init(prog=None, lib=None, conf=None):
 	assert prog.pwd, prog.copy().keys()
+	assert not 'XXX: old'
 	Volume.new(prog.pwd, lib, conf)
 
 
@@ -108,6 +131,7 @@ def rsr_volume(prog=None, opts=None, conf=None):
 	 - prog.pwd
 	 - opts.init
 	"""
+	assert not 'XXX: old'
 	assert prog.pwd, prog.copy().keys()
 	Volume.init(conf)
 	volumepath = Volume.find_root(prog.pwd, opts, conf)
@@ -230,6 +254,7 @@ def rsr_scan(prog=None, volume=None, opts=None):
 
 @Target.register(NS, 'repo-update', 'cmd:lib', 'cmd:pwd')
 def rsr_repo_update(prog=None, objects=None, opts=None):
+	assert not 'XXX: old'
 	i = 0
 	for repo in Repo.walk(prog.pwd, max_depth=2):
 		i += 1
@@ -272,6 +297,7 @@ def rsr_repo_update(prog=None, objects=None, opts=None):
 
 @Target.register(NS, 'status', 'rsr:volume')#'cmd:lib', 'cmd:pwd')
 def rsr_status(prog=None, objects=None, opts=None, conf=None):
+	assert not 'XXX: old'
 	print PersistedMetaObject.sessions['default']
 	print PersistedMetaObject.sessions['system']
 	print PersistedMetaObject.sessions['user']

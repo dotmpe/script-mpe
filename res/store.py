@@ -50,10 +50,11 @@ class IndexedObject:
 		vol = join( voldir, ".volume" )
 		for idx in clss.indices_spec:
 			attr_name, idx_class = idx[ : 2 ]
-			index = idx_class( clss, attr_name, join( vol, "%s.db" % attr_name ) )
-			# XXX
 			cn = clss.__name__
-			setattr( IndexedObject.stores, "%s.%s"%( cn, attr_name ), index )
+			store_name = "%s_%s"%( cn, attr_name ) # XXX: this would depend ondirection (if expanding index facade)
+			index = idx_class( clss, attr_name, join( vol, "%s.db" % store_name ) )
+			# XXX
+			setattr( IndexedObject.stores, store_name, index )
 #			if len( idx ) == 4:
 #				rev_class, rev_attr = idx[ 2 : ]
 #				index = idx_class( 
@@ -154,22 +155,6 @@ class Match( IndexedObject ):
 			( 'first20', ListValue, ),
 			( 'sha1', ListValue, ),
 			( 'md5', ListValue, ),
+			( 'ck', ListValue, ),
 	)
-
-def main():
-	args = list( sys.argv )
-	script_name = args.pop(0)
-	path = args.pop()
-	from fscard import find_dir
-	voldir = find_dir( path, '.volume' )
-	assert voldir
-	userdir = expanduser( "~/.cllct/" )
-#	Volume.init( userdir )
-#	vol = Volume.fetch( 'vpath', voldir )
-	File.init( voldir )
-	Record.init( voldir )
-	Match.init( voldir )
-   
-if __name__ == '__main__':
-	main()
 

@@ -300,47 +300,6 @@ def cmd_userdir(prog=None, conf=None):
 	userdir = os.path.expanduser(conf.cmd.lib.paths.userdir)
 	yield Keywords(prog=dict(userdir=userdir))
 
-@Target.register(NS, 'lib', 'cmd:userdir')
-def cmd_lib(prog=None, conf=None):
-	"""
-	Initialize stores for Workspace.
-
-	---- old
-
-	PersistedMetaObject sessions are kept in three types of directories.
-	These correspond with the keys in cmd.lib.paths.
-	Sessions are initialized from cmd.lib.sessions.
-
-	Also one objects session for user and system.
-	The current user session is also set as default session.
-
-	options (conf):
-		- cmd.lib.paths.systemdir
-		- cmd.lib.paths.userdir
-		- cmd.lib.sessions
-	other arguments
-		- prog.userdir
-
-	yields 
-		- lib.stores
-		- lib.indices (XXX: these are really at the stores still)
-		- lib.paths
-	"""
-	assert conf, conf
-	Workspace.init(conf)
-	#yield Keywords(
-	#		lib=confparse.Values(dict(
-	#			stores=confparse.Values(dict(
-	#				system=sysdb,
-	#				user=usrdb,
-	#				volumes=vdb
-	#			)),
-	#			paths=confparse.Values(dict(
-	#			)),
-	#		)),
-	#	)
-
-
 
 # XXX: Illustration of the three kwd types by cmdline
 import zope.interface
