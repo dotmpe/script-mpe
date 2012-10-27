@@ -44,6 +44,9 @@ NS = Namespace.register(
 		uriref='http://project.dotmpe.com/script/#/cmdline'
 	)
 
+def validate_message_level(option, opt, value, parser):
+	assert 0 <= value and value <= 7
+
 Options.register(NS, 
 
 		(('-c', '--config',),{ 'metavar':'NAME', 
@@ -91,12 +94,13 @@ Options.register(NS,
 			'help': "Increase chatter by lowering "
 			"message threshold. Overriden by --quiet or --verbose. "
 			"Levels are 0--7 (emergency--debug) with default of 5 (notice). ",
-			'default': 5,
+			'default': 5, 'type':'string', 'dest': 'message_level',
+			'action': 'callback', 'callback': validate_message_level
 			}),
 
 		(('-v', '--verbose',),{ 'help': "Increase chatter threshold. "
 			"Overriden by --quiet or --message-level.",
-			'action': 'callback',
+			'action': 'callback', 'callback_args': (0,7),
 			'callback': optparse_increment_message}),
 
 		(('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
@@ -190,7 +194,9 @@ def cmd_prog(prog=None):
 @Target.register(NS, 'pwd', 'cmd:prog')
 def cmd_pwd():
 	#log.debug("{bblack}cmd{bwhite}:pwd{default}")
-	path = os.getcwd()
+	path = os.getcwd() 
+	if not path.endswith( os.sep ):
+		path += os.sep
 	yield Keywords(prog=dict(pwd=path))
 
 @Target.register(NS, 'find-config', 'cmd:prog')
@@ -205,7 +211,7 @@ def cmd_config_init(prog=None):
 	"""
 	Init conf object from persisted config.
 	"""
-	#log.debug("{bblack}cmd{bwhite}:config{default}")
+	log.debug("{bblack}cmd{bwhite}:config{default} %r"%prog.config_file)
 	conf = confparse.load_path(prog.config_file)
 	assert conf, "missing config"
 	#print prog.config_file, conf
@@ -298,6 +304,7 @@ def cmd_host(prog=None):
 @Target.register(NS, 'userdir', 'cmd:options')
 def cmd_userdir(prog=None, conf=None):
 	userdir = os.path.expanduser(conf.cmd.lib.paths.userdir)
+	assert os.path.exists( userdir ), userdir
 	yield Keywords(prog=dict(userdir=userdir))
 
 

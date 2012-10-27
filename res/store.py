@@ -3,14 +3,20 @@
 """
 import os
 import sys
-from os.path import join, isdir, expanduser
+from os.path import join, isdir, expanduser, dirname
 import anydbm
 import hashlib
 import shelve
 
 import lib
 import confparse
+from res.fs import Dir
 
+
+def sha1hash( obj ):
+	return hashlib.sha1( obj ).hexdigest()
+
+pathhash = sha1hash
 
 class Value:
 
@@ -42,12 +48,22 @@ class IndexedObject:
 	indices = None
 	stores = None
 
+	def __init__( self, key, value ):
+		pass
+#		clss = self.__class__
+#		clss.default[  ]
+#		IndexedObject.stores
+
 	@classmethod
 	def init( clss, voldir ):
 		clss.indices = confparse.Values({})
 		if not IndexedObject.stores:
 			IndexedObject.stores = confparse.Values({})
-		vol = join( voldir, ".volume" )
+		if not Dir.issysdir( voldir ):
+			vol = join( voldir, ".cllct" )
+		else:
+			vol = voldir
+			voldir = dirname( vol.rstrip( os.sep ) )
 		for idx in clss.indices_spec:
 			attr_name, idx_class = idx[ : 2 ]
 			cn = clss.__name__
@@ -75,6 +91,13 @@ class IndexedObject:
 		return clss.indices[ idx ].data[ key ]
 
 	@classmethod
+	def fetch( clss, idx, key ):
+		v = clss.find( idx, key )
+		if not v:
+			raise KeyError, "No such item %s.%s [ %s ] " % ( clss.__name__, idx, key )
+		return v
+
+	@classmethod
 	def set( clss, idx, key, value ):
 		assert idx in clss.indices
 		clss.indices[ idx ].data[ key ] = value
@@ -96,6 +119,7 @@ class Volume( IndexedObject ):
 	indices_spec = (
 			( 'vpath', Value ),
 		)
+	key = 'vpath'
 
 class Path( IndexedObject ):
 	"""

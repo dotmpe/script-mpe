@@ -8,13 +8,10 @@ import time
 import traceback
 
 import lib
-from res.store import IndexedObject, Path, Match, Record
+from res.store import IndexedObject, Path, Match, Record, pathhash as key
 from res.fs import File, Dir
 import uuid
 
-
-def key( obj ):
-	return hashlib.sha1( obj ).hexdigest()
 
 def normalize( rootdir, path, fnenc='ascii' ):
 	if isdir( path.encode( fnenc ) ):
@@ -28,11 +25,11 @@ def normalize( rootdir, path, fnenc='ascii' ):
 	return path
 
 def find_dir( dirpath, subleaf ):
-	dirparts = dirpath.split( os.sep )
+	dirparts = dirpath.rstrip( os.sep ).split( os.sep )
 	while dirparts:
 		path = os.sep.join( dirparts )
 		if isdir( os.sep.join( tuple( dirparts )+( subleaf, ) ) ):
-			return path
+			return path + os.sep
 		dirparts.pop()
 
 def strlen( s, l ):

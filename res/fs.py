@@ -69,6 +69,14 @@ class File(object):
 
 class Dir(object):
 
+	sysdirs = (
+			'/usr/share/cllct',
+			'/var/lib/cllct',
+			'/etc/cllct',
+			'*/.cllct',
+			'*/.volume',
+		)
+
 	ignore_names = (
 			'._*',
 			'.metadata',
@@ -91,8 +99,15 @@ class Dir(object):
 		)
 
 	@classmethod
-	def sane(Klass, path):
-		return PATH_R.match(path)
+	def issysdir( klass, path ):
+		path = path.rstrip( os.sep )
+		for p in klass.sysdirs:
+			if fnmatch( path, p ):
+				return True
+
+	@classmethod
+	def sane( klass, path ):
+		return PATH_R.match( path )
 
 	@classmethod
 	def ignored(klass, path):

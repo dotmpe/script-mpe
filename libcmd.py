@@ -90,10 +90,13 @@ class OptionParser(optparse.OptionParser):
 
 # Option Callbacks for optparse.OptionParser.
 
-def optparse_increment_message(option, optstr, value, parser):
+def optparse_increment_message(option, optstr, value, parser, start, end):
 	"Lower output-message threshold. "
 	parser.values.quiet = False
 	parser.values.message_level += 1
+	lvl = parser.values.message_level 
+	assert lvl <= end, "Too many %s: %s > %s" % (optstr, lvl, end)
+	assert lvl >= start, "Too low for %s: %s < %s" % (optstr, lvl, start)
 
 def optparse_override_quiet(option, optstr, value, parser):
 	"Turn off non-essential output. "
