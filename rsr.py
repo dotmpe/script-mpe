@@ -27,7 +27,7 @@ from libname import Namespace, Name
 from libcmd import Targets, Arguments, Keywords, Options,\
 	Target 
 from res import Metafile
-from res.store import Volume, Path, Record, Match, pathhash as key
+from res.store import Volume, Paths, Path, Match, pathhash as key
 from taxus import Node
 
 
@@ -133,8 +133,8 @@ def rsr_volume(prog=None, lib=None, opts=None, conf=None):
 		Volume.set( Volume.key, key( lib.voldir ), lib.voldir )
 		vol = join( lib.voldir, '.cllct' )
 
+	Paths.init( lib.voldir )
 	Path.init( lib.voldir )
-	Record.init( lib.voldir )
 	Match.init( lib.voldir )
 
 	lib.volume = Volume( key( lib.voldir ), lib.voldir )
