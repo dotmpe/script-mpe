@@ -27,7 +27,7 @@ from libname import Namespace, Name
 from libcmd import Targets, Arguments, Keywords, Options,\
 	Target 
 from res import Metafile
-from res.store import Volume, Paths, Path, Match, pathhash as key
+from res.store import Volume, Contents, Content, Match, pathhash as key
 from taxus import Node
 
 
@@ -126,16 +126,14 @@ def rsr_volume(prog=None, lib=None, opts=None, conf=None):
 	"""
 	assert lib.voldir, "No voldir for %s" % prog.pwd
 
-	Volume.init( prog.userdir )
+	IndexedObject.init( prog.userdir, Volume )
 	vol = Volume.find( 'vpath', key( lib.voldir ) )
 # auto init
 	if not vol and isdir( lib.voldir ):
 		Volume.set( Volume.key, key( lib.voldir ), lib.voldir )
 		vol = join( lib.voldir, '.cllct' )
 
-	Paths.init( lib.voldir )
-	Path.init( lib.voldir )
-	Match.init( lib.voldir )
+	IndexedObject.init( lib.voldir, Contents, Content, Match )
 
 	lib.volume = Volume( key( lib.voldir ), lib.voldir )
 

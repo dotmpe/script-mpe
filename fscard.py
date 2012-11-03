@@ -9,7 +9,7 @@ import traceback
 
 import lib
 from res.fs import File, Dir, StatCache
-from res.store import IndexedObject, Paths, Match, Path,\
+from res.store import IndexedObject, Contents, Match, Content,\
 		PathNode, sha1hash as key
 import uuid
 
@@ -34,103 +34,105 @@ def find_dir( dirpath, subleaf ):
 			return path + os.sep
 		dirparts.pop()
 
-def strlen( s, l ):
-	if len( s ) > l:
-		h = int( round( l / 2 ) )
-		return s[ :h ] + '[...]' + s[ h: ]
-	return s
-
 def _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f ):
 	#if not File.include( f.encode( fnenc ) ):
-	if StatCache.getsize( f.encode( fnenc ) ) > size_threshold:
+	if StatCache.getsize( f.encode( fnenc ) ) <= size_threshold:
+		print 'skipping', f
+	else:
 		path = normalize( voldir, f, fnenc )
 		assert isinstance( path, unicode )
 		pathhash = key( path )
-		guid = None 
-	
-		if not Paths.find( 'path', pathhash ):
-			Paths.indices.path.data[ pathhash ] = path.encode( fnenc )
-			if pathhash not in Paths.indices.record.data:
-				guid = str( uuid.uuid4() )
-				Paths.indices.record.data[ pathhash ] = guid
-			else:
-				guid = Paths.indices.record.data[ pathhash ]
-			if guid not in Path.indices.paths.data:
-				Path.indices.paths.data[ guid ] = [ ]
-			Path.indices.paths.data[ guid ] += [ pathhash ]
-			#assert pathhash in Path.indices.paths.data[ guid ]
-			print pathhash, 'NEW ', strlen( Paths.indices.path.data[ pathhash ], 96 )
+		assert not isinstance( pathhash, unicode )
+
+		content_guid = Contents.relates.record.left.find( pathhash )
+		if not content_guid:
+			content_guid = Contents.relates.record.new( pathhash, None )
+			Contents.set( 'path', pathhash, path.encode( fnenc ) )
 		else:
-			guid = Paths.indices.record.data[ pathhash ]
-			assert Paths.indices.path.data[ pathhash ] == path
-			assert pathhash in Path.indices.paths.data[ guid ], path
-			#assert path == Paths.indices.path.data[ pathhash ].decode( fnenc ), ( pathhash, path )
-		print pathhash, ' -- ', guid
+			print 'GUID', content_guid, 'exists'
+			if not content_guid in Content.indices.paths.data:
+				Content.indices.paths.data[ content_guid ] = []
+			Content.indices.paths.data[ content_guid ] += [ pathhash ]
+		assert content_guid and content_guid in Content.indices.paths.data
+		assert pathhash in Content.indices.paths.data[ content_guid ]
+		assert Content.indices.paths == Contents.relates.record.right
+		assert Contents.relates.record.left.data[ pathhash ] == content_guid
+		assert Contents.indices.path.data[ pathhash ] == path.encode( fnenc )
+		print pathhash, ' -- ', content_guid
 
 		if not StatCache.exists( f.encode( fnenc ) ):
-			del Paths.indices.path.data[ pathhash ]
-			del Paths.indices.record.data[ pathhash ]
-			paths = Path.indices.paths.data[ guid ]
+			del Contents.indices.path.data[ pathhash ]
+			del Contents.indices.record.data[ pathhash ]
+			paths = Content.indices.paths.data[ content_guid ]
 			paths.remove( pathhash )
-			Path.indices.paths.data[ guid ] = paths
+			Content.indices.paths.data[ content_guid ] = paths
 			print pathhash, "DEL ", path
 			return
 
-		if guid not in Path.indices.time.data:
-			record_time = str( int( time.time() ) )
-			Path.indices.time.data[ guid ] = record_time
-		else:
-			record_time = int( round( float( Path.indices.time.data[ guid ] ) ))
-			if StatCache.getmtime( f.encode( fnenc ) ) <= record_time:
-				pass # ok
-			else:
-				Path.indices.time.data[ guid ] = \
-						str( round( StatCache.getmtime( f.encode( fnenc ) ) ) )
-				print pathhash, ' -- ', record_time
-
-# XXX: could keep reverse indices for Match on Path, and lookup 
-# wether current path has the all the Match indices set
-
-		size = None
-		if guid not in Path.indices.size.data:
-			size = StatCache.getsize( f.encode( fnenc ) )
-			Path.indices.size.data[ guid ] = str( size )
-		else:
-			size = int( Path.indices.size.data[ guid ] )
-			cur_size = StatCache.getsize( f.encode( fnenc ) ) 
-			if cur_size == size:
-				print pathhash, 'OK  ', lib.human_readable_bytesize( size )
-				#StatCache.utime( f.encode( fnenc ), ( atime, record_time ) )
-#				return
-			else:
-				print "size mismatch: %s vs %s" % ( size, cur_size )
-				return
-
-		print pathhash, lib.human_readable_bytesize( size )
-# XXX: first20bytes is off since it cannot be useful enough
-# should get more data from file, compare at byte intervals
-#		f20b = open( f.encode( fnenc ) ).read( 20 )
-#		if not Match.find( 'first20', f20b ):
-#			Match.indices.first20.data[ f20b ] = [ guid ]
-#			# rev map? Path.indices.first20.data[ guid ] = [ f20b ] 
+# FIXME: Content mtime
+#		if content_guid not in Content.indices.time.data:
+#			record_time = str( int( time.time() ) )
+#			Content.indices.time.data[ content_guid ] = record_time
 #		else:
-#			if guid not in Match.indices.first20.data[ f20b ]:
-#				print "%s is first20bytes value for %r, new: %r" % (
-#						Match.indices.first20.data[ f20b ], f20b, guid )
+#			record_time = int( round( float( Content.indices.time.data[ content_guid ] ) ))
+#			if StatCache.getmtime( f.encode( fnenc ) ) <= record_time:
+#				pass # ok
+#			else:
+#				Content.indices.time.data[ content_guid ] = \
+#						str( round( StatCache.getmtime( f.encode( fnenc ) ) ) )
+#				print pathhash, ' -- ', record_time
+
+# FIXME: proper init of size
+		size = StatCache.getsize( f.encode( fnenc ) )
+		if not Match.find( 'sizes', size ):
+			Content.relates.size.new( content_guid, size )
+			print pathhash, 'SIZE', size
+
+		if not Content.find( 'size', content_guid ):
+			Content.relates.size.new( content_guid, size )
+			print pathhash, 'SIZE', size
+
+		assert content_guid in Content.indices.size.data
+		cur_size = Content.indices.size.get( content_guid )
+		assert cur_size == size,\
+				"Error: %s SIZE: %r vs %r" % ( pathhash, size, cur_size )
+		assert size in Match.indices.sizes
+		assert content_guid in Match.indices.sizes.get( size )
+		print pathhash, 'OK  ', lib.human_readable_bytesize( size ), len(
+			Match.indices.sizes.get( size ) )
+
+# FIXME: recognize dupes
+		start = time.time()
+		sparsesum = Match.init_sparsesum( f.encode( fnenc ) )	
+		dt = time.time() - start
+		if not Match.find( 'sparsesums', sparsesum ):
+			Content.relates.sparsesum.new( content_guid, sparsesum )
+			print content_guid, 'SPRS', sparsesum, \
+					'(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2) / dt )
+			return True
+		else:
+			print sparsesum, Match.find( 'sparse', sparsesum )
+			assert sparsesum in Match.indices.sparsesums.data
+			if content_guid not in Match.indices.sparsesums.data[ sparsesum ]:
+				print content_guid, "DUPE", lib.strlen( path, 96 )
+				_dump_paths( sparsesum, 'sparsesums' )
+				print content_guid, 'SPRS', sparsesum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2 ) / dt )
+			else:
+				return
 
 #		start = time.time()
 #		cksum = lib.get_checksum_sub( f.encode( fnenc ), 'ck' )
 #		dt = time.time() - start
 #		if not Match.find( 'ck', cksum ):
-#			Match.indices.ck.data[ cksum ] = [ guid ]
+#			Match.indices.cksums.data[ cksum ] = [ content_guid ]
 ## TODO:			volume.indices.ck_cost.data[  ]
-#			print guid, 'ck  ', cksum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2 ) / dt ) 
+#			print content_guid, 'ck  ', cksum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2 ) / dt ) 
 #		else:
-#			if guid not in Match.indices.ck.data[ cksum ]:
+#			if content_guid not in Match.indices.cksums.data[ cksum ]:
 #				print "possible duplicate", strlen( f.encode( fnenc ), 96 )
-#				curguid = Match.indices.ck.data[ cksum ][0]
-#				_dump_paths( curguid, 'ck' )
-#				print guid, 'CK  ', cksum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size
+#				curguid = Match.indices.cksums.data[ cksum ][0]
+#				_dump_paths( curguid, 'cksums' )
+#				print content_guid, 'CK  ', cksum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size
 #					/ 1024 ** 2 ) / dt )
 #				return
 
@@ -138,43 +140,54 @@ def _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f ):
 		sha1sum = lib.get_checksum_sub( f.encode( fnenc ) )
 		dt = time.time() - start
 		if not Match.find( 'sha1', sha1sum ):
-			Match.indices.sha1.data[ sha1sum ] = [ guid ]
-			print guid, 'sha1', sha1sum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size /
+			Match.indices.sha1sums.data[ sha1sum ] = [ content_guid ]
+			print content_guid, 'sha1', sha1sum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size /
 				1024 ** 2 ) / dt )
+			return True
 		else:
-			if guid not in Match.indices.sha1.data[ sha1sum ]:
-				print guid, "DUPE", strlen( path, 96 )
-				print Match.indices.sha1.data[ sha1sum ]
+			if content_guid not in Match.indices.sha1sums.data[ sha1sum ]:
+				#curguids = Match.indices.sha1sums.data[ sha1sum ]
+				#if curguids:
+				#	assert len( curguids ) == 1
+				#else:
+				#	return
+				#curguid = curguids[0]
+				#print content_guid, "DUPE", curguid, strlen( path, 96 )
+				#pathhash_list = Content.indices.paths.data[ curguid ]
+				#print 'pathhash_list', pathhash_list
+				#if pathhash not in pathhash_list:
+				#	pathhash_list.append( pathhash )
+				#	ml = Match.indices.sha1sums.data[ sha1sum ]
+				#	if content_guid in ml:
+				#		ml.remove( content_guid )
+				#		Match.indices.sha1sums.data[ sha1sum ] = ml
+				#	del Content.indices.paths.data[ content_guid ] 
+				#	if content_guid in Content.indices.descr.data:
+				#		del Content.indices.descr.data[ content_guid ] 
+				#	if content_guid in Content.indices.time.data:
+				#		del Content.indices.time.data[ content_guid ] 
+				#	content_guid = curguid
+				#	Content.indices.paths.data[ content_guid ] = pathhash_list
+				#print Match.indices.sha1sums.data[ sha1sum ]
 				_dump_paths( sha1sum, 'sha1' )
-				print guid, 'SHA1', sha1sum, '(%.2f s, %.4f Mb/s)' % ( dt , (
+				print content_guid, 'SHA1', sha1sum, '(%.2f s, %.4f Mb/s)' % ( dt , (
 					size / 1024 ** 2 ) / dt )
+			else:
 				return
 
-#		start = time.time()
-#		md5sum = lib.get_checksum_sub( f.encode( fnenc ), 'md5' )
-#		dt = time.time() - start
-#		if not Match.find( 'md5', md5sum ):
-#			Match.indices.md5.data[ md5sum ] = [ guid ]
-#			print guid, 'md5 ', md5sum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2) / dt )
-#		else:
-#			if guid not in Match.indices.md5.data[ md5sum ]:
-#				print "possible duplicate", strlen( f.encode( fnenc ), 96 )
-#				_dump_paths( md5sum, 'md5' )
-#				print guid, 'MD5 ', md5sum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2 ) / dt )
-#				return
-
 		start = time.time()
-		sparsesum = hashlib.sha1( lib.get_sparsesum( 128, f.encode( fnenc ))
-				).hexdigest()
+		md5sum = lib.get_checksum_sub( f.encode( fnenc ), 'md5' )
 		dt = time.time() - start
-		if not Match.find( 'sparse', sparsesum ):
-			Match.indices.sparse.data[ sparsesum ] = [ guid ]
-			print guid, 'SPRS', sparsesum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2) / dt )
+		if not Match.find( 'md5', md5sum ):
+			Match.indices.md5sums.data[ md5sum ] = [ content_guid ]
+			print content_guid, 'md5 ', md5sum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2) / dt )
+			return True
 		else:
-			if guid not in Match.indices.sparse.data[ sparsesum ]:
-				print guid, "DUPE", strlen( path, 96 )
-				_dump_paths( sparsesum, 'sparse' )
-				print guid, 'SPRS', sparsesum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2 ) / dt )
+			if content_guid not in Match.indices.md5sums.data[ md5sum ]:
+				print "possible duplicate", lib.strlen( f.encode( fnenc ), 96 )
+				_dump_paths( md5sum, 'md5sums' )
+				print content_guid, 'MD5 ', md5sum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2 ) / dt )
+			else:
 				return
 
 		return True
@@ -183,26 +196,27 @@ def _dump_paths( key, index ):
 	curguids = getattr( Match.indices, index ).data[ key ]
 	updated = False
 	for curguid in curguids:
-		if curguid not in Path.indices.paths.data:
+		if curguid not in Content.indices.paths.data:
 			print "GUID %s from index %s has no known paths" % ( curguid, index )
 			curguids.remove( curguid )
 			updated = True
-	#					assert curguid in Path.indices.record.data
+	#					assert curguid in Content.indices.record.data
 		else:
-			for x in Path.indices.paths.data[ curguid ]:
-				print curguid, 'Path.paths', Paths.indices.path.data[ x ]
+			for x in Content.indices.paths.data[ curguid ]:
+				print curguid, 'Content.paths', Contents.indices.path.data[ x ]
 	if updated:
 		getattr( Match.indices, index ).data[ key ] = curguids
 
 def _do_cleanup( path, voldir, fnenc, f ):
 	path = normalize( dirname( voldir ), f, fnenc )
 	pathhash = key( path )
+	assert not isinstance( pathhash, unicode )
 	guid = None
 
-	if Paths.find( 'path', pathhash ):
-		del Paths.indices.path.data[ pathhash ]
-	if Paths.find( 'record', pathhash ):
-		del Paths.indices.record.data[ pathhash ]
+	if Contents.find( 'path', pathhash ):
+		del Contents.indices.path.data[ pathhash ]
+	if Contents.find( 'record', pathhash ):
+		del Contents.indices.record.data[ pathhash ]
 
 
 class WalkCounter(dict):
@@ -267,8 +281,8 @@ class WalkCounter(dict):
 		self[ self.key ] = 0
 
 def main( path, voldir ):
-	size_threshold = 14 * ( 1024 ** 2 ) # noise threshold
-	size_threshold2 = 14 * ( 1024 ** 3 ) # extreme high bound for bad ideas
+	size_threshold = 14 * ( 1024 ** 2 ) # 14MB: noise threshold
+	size_threshold2 = 14 * ( 1024 ** 3 ) # 14GB: high bound for bad ideas
 	fnenc = 'utf-8'
 	st = time.time()
 	w_opts = Dir.walk_opts
@@ -280,10 +294,13 @@ def main( path, voldir ):
 		if not size: 
 			return
 		if size > size_threshold2:
-			print 'Skipping too large file for now', path 
+			print 'Skipping too large file for now', path, \
+					size/float(size_threshold2), 'k'
 			return
 		if size > size_threshold:
 			return True
+#		else:
+#			print 'Skipping small noise', size/float(size_threshold), 'k'
 	file_filters = [ _size_threshold ]
 	dir_filters = [ PathNode.is_dirty ]
 #	print 'Walking', path
@@ -293,6 +310,9 @@ def main( path, voldir ):
 		fenc = f.encode( fnenc )
 
 		if StatCache.isdir( fenc ):
+			continue
+
+			# FIXME: stat cache
 			if not fenc[ -1 ] == os.sep:
 				f += os.sep
 
@@ -314,29 +334,32 @@ def main( path, voldir ):
 			continue
 
 		counter.count()
-		print "File", f, counter.total
+		print "File", fenc, counter.total
 		
 		try:
 			v = _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f )
 		except UnicodeDecodeError, e:
+			traceback.print_exc()
 			_do_cleanup( path, voldir, fnenc, f )
 		except KeyboardInterrupt, e:
 			_do_cleanup( path, voldir, fnenc, f )
 			raise
 		except Exception, e:
-			_do_cleanup( path, voldir, fnenc, f )
 			traceback.print_exc()
+			_do_cleanup( path, voldir, fnenc, f )
 			raise
 
 		rt = time.time() - st
 		if v:
-			print 'Path %i done (%2.f / %2.f s). ' % ( counter.total, time.time() - ft , rt )
+			print 'Content %i done (%2.f / %2.f s). ' % ( counter.total, time.time() - ft , rt )
 			print
 			v = False
 		elif not counter.total % 1000:
-			print "Path %s.. (%.2f s)" % ( counter.total, rt )
+			print "Content %s.. (%.2f s)" % ( counter.total, rt )
 			#sys.stdout.write("%s.. "%cnt)
 			#sys.stdout.flush()
+
+	return
 
 	counter.pop()
 	#print "left", counter.key
@@ -360,10 +383,7 @@ def main_full():
 	print "Volume:", voldir
 	assert voldir
 
-	PathNode.init( voldir )
-	Paths.init( voldir )
-	Path.init( voldir )
-	Match.init( voldir )
+	IndexedObject.init( voldir, PathNode, Contents, Content, Match )
 
 	try:
 		main( path, voldir )
@@ -390,17 +410,15 @@ def main_update_pathindexes():
 	print "Volume:", voldir
 	assert voldir
 
-	PathNode.init( voldir )
-	Paths.init( voldir )
-	Path.init( voldir )
-	Match.init( voldir )
+	IndexedObject.init( voldir, PathNode, Contents, Content, Match )
 
-	for pathhash in Paths.indices.record.data:
-		print 'Path.record', pathhash
+	for pathhash in Contents.indices.record.data:
+		#print 'Content.record', pathhash
 		try:
-			assert pathhash in Paths.indices.path.data
-			path = Paths.indices.path.data[ pathhash ]
-			assert isinstance( path, unicode ), path
+			assert pathhash in Contents.indices.path.data
+			path = Contents.indices.path.data[ pathhash ]
+			assert isinstance( path, str ), path
+			path = path.decode( 'utf-8' )
 		except KeyboardInterrupt, e:
 			print 'Interrupted'
 			break
@@ -408,21 +426,22 @@ def main_update_pathindexes():
 			print
 			print 'Failure: '
 			traceback.print_exc()
-	for guid in Path.indices.paths.data:
-		print 'Path.paths', guid
+	for guid in Content.indices.paths.data:
+		#print 'Content.paths', guid
 		try:
-			pathhash_list = Path.indices.paths.data[ guid ]
+			pathhash_list = Content.indices.paths.data[ guid ]
 			updated = False
 			for pathhash in pathhash_list:
-				if pathhash not in Paths.indices.path.data:
+				assert not isinstance( pathhash, unicode )
+				if pathhash not in Contents.indices.path.data:
 					pathhash_list.remove( pathhash )
 					updated = True
-				elif pathhash not in Paths.indices.record.data:
-					Paths.indices.record.data[ pathhash ] = guid
+				elif pathhash not in Contents.indices.record.data:
+					Contents.indices.record.data[ pathhash ] = guid
 				else:
-					assert Paths.indices.record.data[ pathhash ] == guid
+					assert Contents.indices.record.data[ pathhash ] == guid
 			if updated:
-				Path.indices.paths.data[ guid ] = pathhash_list
+				Content.indices.paths.data[ guid ] = pathhash_list
 #			assert pathhash_list, guid
 		except KeyboardInterrupt, e:
 			print 'Interrupted'
@@ -432,24 +451,27 @@ def main_update_pathindexes():
 			print 'Failure: '
 			traceback.print_exc()
 	remove = []
-	for pathhash in Paths.indices.path.data:
-		print 'Paths.path', pathhash
+	for pathhash in Contents.indices.path.data:
+#		print 'Contents.path', pathhash
 		try:
-			assert pathhash in Paths.indices.record.data
-			path = Paths.indices.path.data[ pathhash ]
-			if not isinstance( path, unicode ):
+			assert pathhash in Contents.indices.record.data
+			path = Contents.indices.path.data[ pathhash ]
+			if isinstance( path, unicode ):
 				remove.append( pathhash )
 				continue
+			path = path.decode( 'utf-8' )
 			assert isinstance( path, unicode ), path
-			print pathhash, path
-			guid = Paths.indices.record.data[ pathhash ]
-			print guid, pathhash
-			if guid not in Path.indices.paths.data:
-				Path.indices.paths.data[ guid ] = []
-			l = Path.indices.paths.data[ guid ]
-			if path not in l:
-				l.append( path )
-				Path.indices.paths.data[ guid ] = l
+			guid = Contents.indices.record.data[ pathhash ]
+			if guid not in Content.indices.paths.data:
+				print 'New guid for Content.paths', guid
+				Content.indices.paths.data[ guid ] = []
+			l = Content.indices.paths.data[ guid ]
+			assert  isinstance( l, list ), ( guid, l )
+#			if path.encode( 'utf-8' ) not in l:
+#				print 'New path for Content.paths', guid, path
+#				assert isinstance( path, unicode ), path
+#				l.append( path.encode( 'utf-8') )
+#				Content.indices.paths.data[ guid ] = l
 		except KeyboardInterrupt, e:
 			print 'Interrupted'
 			break
@@ -459,16 +481,16 @@ def main_update_pathindexes():
 			traceback.print_exc()
 
 	for pathhash in remove:
-		del Paths.indices.path.data[ pathhash ]
-		if pathhash in Paths.indices.record.data:
-			del Paths.indices.record.data[ pathhash ]
+		del Contents.indices.path.data[ pathhash ]
+		if pathhash in Contents.indices.record.data:
+			del Contents.indices.record.data[ pathhash ]
 
 	IndexedObject.close()
 
 
 if __name__ == '__main__':
 
-	#main_update_pathindexes() # Paths[pathhash]=path where path in Path.paths
+	#main_update_pathindexes() # Contents[pathhash]=path where path in Content.paths
 	main_full()
 
 
