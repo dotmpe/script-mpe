@@ -16,6 +16,7 @@ See Resourcer.rst
 - Builds upon cmd.
 """
 import os
+from os.path import join, isdir
 import shelve
 from pprint import pformat
 
@@ -26,7 +27,7 @@ from libname import Namespace, Name
 from libcmd import Targets, Arguments, Keywords, Options,\
 	Target 
 from res import Metafile
-from res.store import Volume, File, Record, Match
+from res.store import Volume, Paths, Path, Match, pathhash as key
 from taxus import Node
 
 
@@ -62,7 +63,7 @@ Options.register(NS,
 
 
 @Target.register(NS, 'lib', 'cmd:userdir')
-def rsr_lib_init(prog=None, lib=None, settings=None):
+def rsr_lib_init(prog=None, lib=None, conf=None):
 	"""
 	Initialize stores for Workspace.
 
@@ -83,28 +84,22 @@ def rsr_lib_init(prog=None, lib=None, settings=None):
 	assert prog.pwd, prog.copy().keys()
 	# Normally /var/lib/cllct
 	sysdir = conf.cmd.lib.paths.systemdir
-	
 	from fscard import find_dir
-	voldir = find_dir( prog.pwd, '.volume' )
-	assert voldir, prog
-
-	Volume.init( userdir )
-	vol = Volume.fetch( 'vpath', voldir )
-	File.init( voldir )
-	Record.init( voldir )
-	Match.init( voldir )
-
+	voldir = find_dir( prog.pwd, '.cllct' )
+	
 # XXX: old
-	#sysdbpath = os.path.join(sysdir, conf.cmd.lib.name)
+	#sysdbpath = join(sysdir, conf.cmd.lib.name)
 	# Normally ~/.cllct
-	#usrdbpath = os.path.join(prog.userdir, conf.cmd.lib.name)
+	#usrdbpath = join(prog.userdir, conf.cmd.lib.name)
 	# Initialize shelves
 	#sysdb = PersistedMetaObject.get_store('system', sysdbpath)
 	#usrdb = PersistedMetaObject.get_store('user', usrdbpath)
-	#voldbpath = os.path.expanduser(conf.cmd.lib.sessions.user_volumes)
+	#voldbpath = expanduser(conf.cmd.lib.sessions.user_volumes)
 	#voldb = PersistedMetaObject.get_store('volumes', voldbpath)
 	yield Keywords(
 			lib=confparse.Values(dict(
+#				sysdir=sysdir,
+				voldir=voldir,
 				stores=confparse.Values(dict(
 #					volumes=voldb
 				)),
@@ -113,16 +108,14 @@ def rsr_lib_init(prog=None, lib=None, settings=None):
 			)),
 		)
 
-
-@Target.register(NS, 'init-volume', 'cmd:pwd', 'cmd:lib')
+@Target.register(NS, 'init-volume', 'cmd:pwd', 'rsr:lib')
 def rsr_volume_init(prog=None, lib=None, conf=None):
 	assert prog.pwd, prog.copy().keys()
 	assert not 'XXX: old'
 	Volume.new(prog.pwd, lib, conf)
 
-
-@Target.register(NS, 'volume', 'cmd:pwd', 'cmd:lib')
-def rsr_volume(prog=None, opts=None, conf=None):
+@Target.register(NS, 'volume', 'cmd:pwd', 'rsr:lib')
+def rsr_volume(prog=None, lib=None, opts=None, conf=None):
 	"""
 	Return the current volume. In --init mode, a volume is created
 	in the current directory.
@@ -131,44 +124,31 @@ def rsr_volume(prog=None, opts=None, conf=None):
 	 - prog.pwd
 	 - opts.init
 	"""
-	assert not 'XXX: old'
-	assert prog.pwd, prog.copy().keys()
-	Volume.init(conf)
-	volumepath = Volume.find_root(prog.pwd, opts, conf)
-	print 'volumepath=',volumepath
-	volume = Volume.find(Volume.stores.objects, 'vpath', volumepath)
-	assert volume, 'XXX'
-	print 'volume=',volume
-	#volume = Volume.find('volumes', 'pwd', prog.pwd)
-	if not volume:
-		if opts.init:
-			log.info("New volume")
-			name = Name.fetch('rsr:init-volume')
-			assert name, name
-			yield Targets('rsr:init-volume',)
-		else:
-			log.err("Not in a volume")
-			yield 1
-	else:
-		log.note("rsr:volume %r for %s", volume.db, volume.full_path)
-		yield Keywords(volume=volume)
-		volumedb = PersistedMetaObject.get_store('volume', volume.db)
-		log.info("rsr:volume index length: %i", len(volumedb))
-		yield Keywords(volumedb=volumedb)
-	#Metafile.default_extension = '.meta'
-	#Metafile.basedir = 'media/application/metalink/'
+	assert lib.voldir, "No voldir for %s" % prog.pwd
+
+	Volume.init( prog.userdir )
+	vol = Volume.find( 'vpath', key( lib.voldir ) )
+# auto init
+	if not vol and isdir( lib.voldir ):
+		Volume.set( Volume.key, key( lib.voldir ), lib.voldir )
+		vol = join( lib.voldir, '.cllct' )
+
+	Paths.init( lib.voldir )
+	Path.init( lib.voldir )
+	Match.init( lib.voldir )
+
+	lib.volume = Volume( key( lib.voldir ), lib.voldir )
 
 
 @Target.register(NS, 'ls', 'rsr:volume')
-def rsr_ls(volume=None):
+def rsr_ls(lib=None):
 	"""
-
 	"""
-	assert volume, volume
+	assert lib.volume, lib
 	cwd = os.getcwd();
 	lnames = os.listdir(cwd)
 	for name in lnames:
-		path = os.path.join(cwd, name)
+		path = join(cwd, name)
 		metafile = Metafile(path)
 		if not metafile.non_zero():
 			print "------", path.replace(cwd, '.')
@@ -252,7 +232,7 @@ def rsr_scan(prog=None, volume=None, opts=None):
 #def rsr_count_volume_files(volumedb):
 #	print len(volumedb.keys())
 
-@Target.register(NS, 'repo-update', 'cmd:lib', 'cmd:pwd')
+@Target.register(NS, 'repo-update', 'rsr:lib', 'cmd:pwd')
 def rsr_repo_update(prog=None, objects=None, opts=None):
 	assert not 'XXX: old'
 	i = 0
@@ -295,7 +275,7 @@ def rsr_repo_update(prog=None, objects=None, opts=None):
 #	pass
 
 
-@Target.register(NS, 'status', 'rsr:volume')#'cmd:lib', 'cmd:pwd')
+@Target.register(NS, 'status', 'rsr:volume')#'rsr:lib', 'cmd:pwd')
 def rsr_status(prog=None, objects=None, opts=None, conf=None):
 	assert not 'XXX: old'
 	print PersistedMetaObject.sessions['default']

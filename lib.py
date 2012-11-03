@@ -8,6 +8,7 @@ import select
 import socket
 import subprocess
 import sys
+import math
 
 from os.path import basename, join,\
 		isdir
@@ -61,25 +62,38 @@ def get_checksum_sub(path, checksum_name='sha1'):
 	"""
 	pathd = path.decode('utf-8')
 	if checksum_name == 'ck':
-		data = cmd("cksum \"%s\"", pathd)
-		p = data.strip().index(' ')
-		hex_checksum, size, filename = data.strip().split(' ')
+		data = cmd("cksum \"%s\"", pathd).strip()
+		p = data.find(' ', 1)
+		p2 = data.find(' ', p+1)
+		checksum, size, filename = data[:p], data[p:p2].strip(), data[p2:].strip()
 
 	else:
 		data = cmd("%ssum \"%s\"", checksum_name, pathd)
 		p = data.index(' ')
-		hex_checksum, filename = data[:p], data[p:].strip()
+		checksum, filename = data[:p], data[p:].strip()
 
 	# XXX: sanity check..
 	assert filename == path, (filename, path)
 
-	return hex_checksum
+	return checksum
 
 def get_sha1sum_sub(path):
 	return get_checksum_sub(path)
 
 def get_md5sum_sub(path):
 	return get_checksum_sub(path, 'md5')
+
+def get_sparsesum(b, path):
+	r = []
+	fl = open(path)
+	s = os.path.getsize( path )
+	w = int( math.floor( float( s ) / b ) )
+	for i in range( 0, s, w ):
+		fl.seek( i )
+		r.append( fl.read( 1 ) )
+		if len( r ) == b:
+			break
+	return "".join(r)
 
 def get_format_description_sub(path):
 	format_descr = cmd("file -bs %r", path).strip()
@@ -184,6 +198,8 @@ if __name__ == '__main__':
 			print n, timestamp_to_datetime(ts), f
 
 
+	print get_sparsesum( 32, "lib.py" )
+
 
 # http://code.activestate.com/recipes/134892-getch-like-unbuffered-character-reading-from-stdin/
 class _Getch:
@@ -264,6 +280,4 @@ class Prompt(object):
 				choice = opts.upper().index(v.upper())
 				print 'Answer:', options[choice] 
 				return choice
-
-
 

@@ -1,10 +1,12 @@
 from fnmatch import fnmatch
 import os
+from os.path import dirname, join, basename, isdir
+import re
+import stat
 
 import confparse
 import log
 from lib import Prompt
-import re
 
 
 PATH_R = re.compile("[A-Za-z0-9\/\.,\[\]\(\)_-]")
@@ -51,7 +53,7 @@ class File(object):
 		for p in klass.include_paths:
 			if fnmatch(path, p):
 				return True
-		name = os.path.basename(path)
+		name = basename(path)
 		for p in klass.include_names:
 			if fnmatch(name, p):
 				return True
@@ -61,13 +63,21 @@ class File(object):
 		for p in klass.ignore_paths:
 			if fnmatch(path, p):
 				return True
-		name = os.path.basename(path)
+		name = basename(path)
 		for p in klass.ignore_names:
 			if fnmatch(name, p):
 				return True
 
 
 class Dir(object):
+
+	sysdirs = (
+			'/usr/share/cllct',
+			'/var/lib/cllct',
+			'/etc/cllct',
+			'*/.cllct',
+			'*/.volume',
+		)
 
 	ignore_names = (
 			'._*',
@@ -91,15 +101,22 @@ class Dir(object):
 		)
 
 	@classmethod
-	def sane(Klass, path):
-		return PATH_R.match(path)
+	def issysdir( klass, path ):
+		path = path.rstrip( os.sep )
+		for p in klass.sysdirs:
+			if fnmatch( path, p ):
+				return True
+
+	@classmethod
+	def sane( klass, path ):
+		return PATH_R.match( path )
 
 	@classmethod
 	def ignored(klass, path):
 		for p in klass.ignore_paths:
 			if fnmatch(path, p):
 				return True
-		name = os.path.basename(path)
+		name = basename(path)
 		for p in klass.ignore_names:
 			if fnmatch(name, p):
 				return True
@@ -120,20 +137,31 @@ class Dir(object):
 		max_depth=-1,
 	))
 	@classmethod
-	def walk(Klass, path, opts=walk_opts, filters=[]):
+	def walk(Klass, path, opts=walk_opts, filters=(None,None)):
 		if opts.max_depth > 0:
 			assert opts.recurse
-		for root, dirs, files in os.walk(path):
+		dirpath = None
+		left = []
+		file_filters, dir_filters = filters
+		for root, dirs, files in os.walk(path): # XXX; does not use StatCache
+			if root not in left:
+				left.append( root )
+				yield unicode( root, 'utf-8' )
 			for node in list(dirs):
 				if not opts.recurse and not opts.interactive:
 					dirs.remove(node)
 					continue
-				dirpath = os.path.join(root, node)
-				if filters:
-					for fltr in filters:
+				dirpath = join(root, node)
+				if dir_filters:
+					brk = False
+					for fltr in dir_filters:
 						if not fltr(dirpath):
-							continue
-				if not os.path.exists(dirpath):
+							dirs.remove(node)
+							brk = True
+							break
+					if brk:
+						continue
+				if not StatCache.exists(dirpath):
 					log.err("Error: reported non existant node %s", dirpath)
 					dirs.remove(node)
 					continue
@@ -152,7 +180,7 @@ class Dir(object):
 				assert isinstance(dirpath, basestring)
 				try:
 					dirpath = unicode(dirpath, 'utf-8')#
-#					dirpath = dirpath.decode('utf-8')
+#				dirpath = dirpath.decode('utf-8')
 				except UnicodeDecodeError, e:
 					log.warn("Ignored non-unicode path %s", dirpath)
 					continue
@@ -162,17 +190,23 @@ class Dir(object):
 				#except UnicodeDecodeError, e:
 				#	log.warn("Ignored non-ascii path %s", dirpath)
 				#	continue
-				yield dirpath
+			#	yield dirpath
+
 			for leaf in list(files):
-				filepath = os.path.join(root, leaf)
-				if filters:
-					for fltr in filters:
+				filepath = join(root, leaf)
+				if file_filters:
+					brk = False
+					for fltr in file_filters:
 						if not fltr(filepath):
-							continue
-				if not os.path.exists(filepath):
+							files.remove(leaf)
+							brk = True
+							break
+					if brk:
+						continue
+				if not StatCache.exists(filepath):
 					log.warn("Error: non existant leaf %s", filepath)
 					continue
-				if os.path.islink(filepath) or not os.path.isfile(filepath):
+				if StatCache.islink(filepath) or not StatCache.isfile(filepath):
 					log.note("Ignored non-regular file %r", filepath)
 					continue
 				if File.ignored(filepath):
@@ -191,22 +225,76 @@ class Dir(object):
 #					log.warn("Ignored non-ascii/illegal filename %s", filepath)
 #					continue
 				yield filepath
-
+			#yield dirname( dirpath )
 	@classmethod
 	def find_newer(Klass, path, path_or_time):
-		if os.path.exists(path_or_time):
-			path_or_time = os.path.getmtime(path_or_time)
+		if StatCache.exists(path_or_time):
+			path_or_time = StatCache.getmtime(path_or_time)
 		def _isupdated(path):
-			return os.path.getmtime(path) > path_or_time
+			return StatCache.getmtime(path) > path_or_time
 		for path in clss.walk(path, filters=[_isupdated]):
 			yield path
 
 	@classmethod
 	def find_newer(Klass, path, path_or_time):
-		if os.path.exists(path_or_time):
-			path_or_time = os.path.getmtime(path_or_time)
+		if StatCache.exists( path_or_time ):
+			path_or_time = StatCache.getmtime(path_or_time)
 		def _isupdated(path):
-			return os.path.getmtime(path) > path_or_time
+			return StatCache.getmtime(path) > path_or_time
 		for path in clss.walk(path, filters=[_isupdated]):
 			yield path
+
+class StatCache:
+	paths = {}
+	@classmethod
+	def init( clss, path ):
+		if isinstance( path, unicode ):
+			path = path.encode( 'utf-8' )
+		p = path
+		if path in clss.paths:
+			v = clss.paths[ path ]
+			if isinstance( v, str ): # shortcut to dirpath (w/ trailing sep)
+				p = v
+				v = clss.paths[ p ]
+		else:	
+			v = os.lstat( path )
+			if stat.S_ISDIR( v.st_mode ):
+				# store shortcut to normalized path
+				if path[ -1 ] != os.sep:
+					p = path + os.sep
+					clss.paths[ path ] = p
+				else:
+					p = path
+					clss.paths[ path.rstrip( os.sep ) ] = path
+			assert isinstance( path, str )
+			clss.paths[ p ] = v
+		assert isinstance( p, str )
+		return p.decode( 'utf-8' )
+	@classmethod
+	def getsize( clss, path ):
+		p = clss.init( path ).encode( 'utf-8' )
+		return clss.paths[ p ].st_size
+	@classmethod
+	def exists( clss, path ):
+		try:
+			p = clss.init( path )
+		except:
+			return
+		return True
+	@classmethod
+	def getmtime( clss, path ):
+		p = clss.init( path ).encode( 'utf-8' )
+		return clss.paths[ p ].st_mtime
+	@classmethod
+	def isdir( clss, path ):
+		p = clss.init( path ).encode( 'utf-8' )
+		return stat.S_ISDIR( clss.paths[ p ].st_mode )
+	@classmethod
+	def isfile( clss, path ):
+		p = clss.init( path ).encode( 'utf-8' )
+		return stat.S_ISREG( clss.paths[ p ].st_mode )
+	@classmethod
+	def islink( clss, path ):
+		p = clss.init( path ).encode( 'utf-8' )
+		return stat.S_ISLNK( clss.paths[ p ].st_mode )
 
