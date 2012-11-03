@@ -9,11 +9,11 @@ if [ "$2" = "config" ]; then
     echo "graph_args --base 1000 -l 0"
     case $TYPE in
         fan)
-                echo "graph_title $(hostname|tr 'a-z' 'A-Z') Hardware Fan Speed"
+                echo "graph_title $(hostname -s|tr 'a-z' 'A-Z') Hardware Fan Speed"
                 echo "graph_vlabel rpm"
             ;;
         temp)
-                echo "graph_title $(hostname|tr 'a-z' 'A-Z') Hardware Temperature"
+                echo "graph_title $(hostname -s|tr 'a-z' 'A-Z') Hardware Temperature"
                 echo "graph_vlabel temperature celcius"
             ;;
     esac
@@ -44,7 +44,7 @@ do
                         number=${vars[1]}
                         value=${vars[2]}
                         if [ "$2" = "config" ]; then
-                            echo $interface_id"_"$name"_"$number.label $(hostname|tr 'a-z' 'A-Z') $interface_label $name $number
+                            echo $interface_id"_"$name"_"$number.label $(hostname -s|tr 'a-z' 'A-Z') $interface_label $name $number
                         else
                             echo $interface_id"_"$name"_"$number.value $value
                         fi
