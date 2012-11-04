@@ -72,11 +72,13 @@ else:
 	if sunspot_nr:
 		for x in sunspot_nr:
 			t = re.sub('\s+', ' ', x.text)
-#			if t.startswith('Solar wind'):
-#				print t
-#				p = t.index(':')
-#				p2 = t[p+1:].index(' ')
-#				windspeed = t[p+1:p+1+p2]
+			if t.startswith('Solar wind'):
+				windspeed = re.search('windspeed\:([0-9\.]+)', t)
+				density = re.search('density\:([0-9\.]+)', t)
+				if windspeed:
+					data['solarwindspeed'] = windspeed.group(1)
+				if density:
+					data['solarwinddensity'] = density.group(1)
 			if t.startswith('Sunspot number'):
 				data['sunspotnr'] = t[15:].strip()
 #			else:
