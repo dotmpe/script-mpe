@@ -60,40 +60,67 @@ def get_checksum_sub(path, checksum_name='sha1'):
 
 	Returns the hexadecimal encoded digest directly.
 	"""
-	pathd = path.decode('utf-8')
+	pathd = path.decode( 'utf-8' )
 	if checksum_name == 'ck':
-		data = cmd("cksum \"%s\"", pathd).strip()
-		p = data.find(' ', 1)
-		p2 = data.find(' ', p+1)
+		data = cmd( "cksum \"%s\"", pathd ).strip()
+		p = data.find( ' ', 1 )
+		p2 = data.find( ' ', p+1 )
 		checksum, size, filename = data[:p], data[p:p2].strip(), data[p2:].strip()
 
 	else:
-		data = cmd("%ssum \"%s\"", checksum_name, pathd)
-		p = data.index(' ')
+		data = cmd( "%ssum \"%s\"", checksum_name, pathd )
+		p = data.index( ' ' )
 		checksum, filename = data[:p], data[p:].strip()
 
 	# XXX: sanity check..
-	assert filename == path, (filename, path)
+	assert filename == path, ( filename, path )
 
 	return checksum
 
 def get_sha1sum_sub(path):
-	return get_checksum_sub(path)
+	return get_checksum_sub( path )
 
 def get_md5sum_sub(path):
-	return get_checksum_sub(path, 'md5')
+	return get_checksum_sub( path, 'md5' )
 
-def get_sparsesum(b, path):
+def get_sparsesig_v(offset, path):
+	"""
+	Get variable length of bytes from path. Spaced evenly across content.
+	"""
 	r = []
-	fl = open(path)
+	fl = open( path ) 
 	s = os.path.getsize( path )
-	w = int( math.floor( float( s ) / b ) )
+	w = offset
 	for i in range( 0, s, w ):
 		fl.seek( i )
 		r.append( fl.read( 1 ) )
 		if len( r ) == b:
 			break
-	return "".join(r)
+	return "".join( r )
+
+def get_sparsesig_fixed(count, path):
+	"""
+	Get 1 bytes per X bytes from path (var. length key).
+	"""
+	s = os.path.getsize( path )
+	MB = 1024 ** 2
+	GB = 1024 ** 3
+	TB = 1024 ** 4:
+	if s < 1024:
+		return get_sparsesig_v( 1024, path )
+	elif s < MB:
+		return get_sparsesig_v( MB, path )
+	elif s < GB:
+		return get_sparsesig_v( GB, path )
+	elif s < TB:
+		return get_sparsesig_v( TB, path )
+	else:
+		assert not s, s
+
+def get_sparsesig(count, path):
+	s = os.path.getsize( path )
+	w = int( math.floor( float( s ) / count ) )
+	return get_sparsesig_v( w, path )
 
 def get_format_description_sub(path):
 	format_descr = cmd("file -bs %r", path).strip()
@@ -169,11 +196,12 @@ def cn(obj):
 	return obj.__class__.__name__
 
 def get_index( path, mode='w' ):
-	print 'get_index', path, mode
+	#print 'get_index', path, mode
 	if not os.path.exists( path ):
 		assert 'w' in mode
 		try:
 			anydbm.open( path, 'n' ).close()
+			print 'new', path
 		except Exception, e:
 			raise Exception( "Unable to create new resource DB at <%s>: %s" %
 					( path, e ) )
@@ -197,8 +225,7 @@ if __name__ == '__main__':
 				('m',os.path.getmtime(f)),):
 			print n, timestamp_to_datetime(ts), f
 
-
-	print get_sparsesum( 32, "lib.py" )
+	print get_sparsesig( 32, "lib.py" )
 
 
 # http://code.activestate.com/recipes/134892-getch-like-unbuffered-character-reading-from-stdin/
@@ -280,4 +307,11 @@ class Prompt(object):
 				choice = opts.upper().index(v.upper())
 				print 'Answer:', options[choice] 
 				return choice
+
+def strlen( s, l ):
+	if len( s ) > l:
+		h = int( round( l / 2 ) )
+		return s[ :h ] + '[...]' + s[ h: ]
+	return s
+
 
