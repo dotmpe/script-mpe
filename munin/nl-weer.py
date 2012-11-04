@@ -25,9 +25,9 @@ if args:
 
 			print 'windchill.label Windchill'
 			print 'windchill.type GAUGE'
-			print 'temperature.label Temperatuur'
+			print 'temperature.label Temperature'
 			print 'temperature.type GAUGE'
-			print 'heat_index.label Hitte index'
+			print 'heat_index.label Heat index'
 			print 'heat_index.type GAUGE'
 			print 'dew_point.label Dew point'
 			print 'dew_point.type GAUGE'
@@ -53,7 +53,7 @@ if args:
 		elif measure == 'sun':
 			print 'graph_vlabel (W/m2)'
 
-			print 'sunrad.label Sunrad'
+			print 'sunrad.label Sunshine'
 			print 'sunrad.type GAUGE'
 
 		elif measure == 'uv':
@@ -65,8 +65,8 @@ if args:
 		elif measure == 'humidity':
 			print 'graph_vlabel (%)'
 
-			print 'uv_index.label Relative humidity'
-			print 'uv_index.type GAUGE'
+			print 'humidity.label Relative humidity'
+			print 'humidity.type GAUGE'
 
 else:
 	import urllib2
