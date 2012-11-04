@@ -1,4 +1,6 @@
 #!/usr/bin/python
+import os
+import time
 import sys
 
 
@@ -71,10 +73,21 @@ if args:
 else:
 	import urllib2
 	from BeautifulSoup import BeautifulSoup
-	f = urllib2.urlopen('http://www.hetweeractueel.nl/weer/%s/actueel/' % location)
-	s = BeautifulSoup(f.read())
-	f.close()
 
+	tmpf = '/tmp/nl-weer-%s' % ( location )
+	refresh = 5 * 60
+
+	if not os.path.exists(tmpf) or os.path.getmtime(tmpf) + refresh < time.time():
+
+		f = urllib2.urlopen('http://www.hetweeractueel.nl/weer/%s/actueel/' % location)
+		content = f.read()
+		f.close()
+
+		open(tmpf, 'w').write(content)
+	else:
+		content = open(tmpf).read()
+
+	s = BeautifulSoup(content)
 	if measure == 'temp':
 		windchill = s.find(text='Windchill')
 		if windchill:
