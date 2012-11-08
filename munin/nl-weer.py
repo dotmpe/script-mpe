@@ -20,7 +20,7 @@ if args:
 
 		print 'graph_category weather'
 		print 'graph_args --base 1000'
-		print 'graph_title Outdoor weather: %s %s' % (measure, location)
+		print 'graph_title Outdoor weather: %s %s' % (measure, location.title())
 
 		if measure == 'temp':
 			print 'graph_vlabel Temperature (C)'

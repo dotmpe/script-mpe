@@ -79,8 +79,10 @@ else:
 					data['solarwindspeed'] = windspeed.group(1)
 				if density:
 					data['solarwinddensity'] = density.group(1)
-			if t.startswith('Sunspot number'):
+			elif t.startswith('Sunspot number'):
 				data['sunspotnr'] = t[15:].strip()
+			elif t.startswith('The Radio'):
+				data['sunradio'] = t[26:].strip().replace('sfu', '')
 #			else:
 #				print x.text
 #			print '-'*79
