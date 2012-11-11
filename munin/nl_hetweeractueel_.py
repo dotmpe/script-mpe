@@ -39,8 +39,8 @@ if args:
 			print 'windchill.type GAUGE'
 			print 'temperature.label Temperature'
 			print 'temperature.type GAUGE'
-			print 'temperature.line 0:0000bb:Freezing'
-			print 'temperature.line 28:bb0000:Tropical'
+			print 'ice.line 0:0000bb:Freezing'
+			print 'tropics.line 28:bb0000:Tropical'
 			print 'heat_index.label Heat index'
 			print 'heat_index.type GAUGE'
 			print 'dew_point.label Dew point'
@@ -117,11 +117,11 @@ if args:
 
 			print 'uv_index.label UV index'
 			print 'uv_index.type GAUGE'
-			print 'uv_index.line 2:0000b0:Low'
-			print 'uv_index.line 4:0000c3:Moderate'
-			print 'uv_index.line 6:0000d6:High'
-			print 'uv_index.line 8:0000e9:Very High'
-			print 'uv_index.line 11:0000ff:Extreme'
+			print 'uv_index_2.line 2:0000b0:Low'
+			print 'uv_index_4.line 4:0000c3:Moderate'
+			print 'uv_index_6.line 6:0000d6:High'
+			print 'uv_index_8.line 8:0000e9:Very High'
+			print 'uv_index_11.line 11:0000ff:Extreme'
 
 		elif measure == 'humidity':
 			print 'graph_vlabel (%)'
