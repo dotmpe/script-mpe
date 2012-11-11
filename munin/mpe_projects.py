@@ -1,19 +1,13 @@
 #!/usr/bin/python
 
 """
-- total number of project folders
-- total number of GIT projects (with or without errors)
-- total number of GIT checkouts (clean or dirty)
-- total number of GIT branches (locally)
-- stack of project lines for all projects 
-- stack of checked out branch names for all projects
 """
 import os
 import sys
 import re
 import time
 import socket
-
+from pprint import pformat
 
 
 projects = [
@@ -31,22 +25,23 @@ branches = {
 			)
 		}
 
-args = list(sys.argv)
+argv = list(sys.argv)
 host = socket.gethostname()
-script = args.pop(0)
+script = argv.pop(0)
+argstring = script.replace('mpe_project_','')
 measure = 'loc'
 project = None
-if '_' in script:
-	parts = script.split('_')[1]
+if argstring:
+	parts = argstring.split('_')
 	if len(parts) == 1:
-		measure = parts
+		measure, = parts
 	elif len(parts) == 2:
 		measure, project = parts
 
-if args:
-	if args[0] == 'autoconf':
+if argv:
+	if argv[0] == 'autoconf':
 		print 'yes'
-	elif args[0] == 'config':
+	elif argv[0] == 'config':
 
 		print 'graph_category projects'
 		print 'graph_args --base 1000'
@@ -98,14 +93,35 @@ else:
 			pass
 
 	elif measure == 'loc':
-		for p in projects:
-			data = open(os.path.expanduser('~/project/%s/test-results.tab')
-			print data
+		pass
 
 	elif measure == 'loc-detail':
 		assert project
 
 	elif measure == 'tests':
-		assert project
-
+		r = {}
+		p = os.path.expanduser('~/project/%s/test-results.tab' % project)
+		if not os.path.exists(p):
+			sys.exit()
+		data = open(p)
+		lines = data.readlines()
+		lines.reverse()
+		for l in lines:
+			p = l.strip().split(', ')
+			if l.startswith('#'):
+				assert len(p) == 7, len(p)
+				continue
+			assert len(p) == 7, l
+			datetime, host, branch, rev, testtype, passed, errors = p
+			if branch not in r:
+				r[branch] = { testtype : ( (passed, errors), (datetime, host, rev,) ) }
+			elif testtype not in r[branch]:
+				r[branch][testtype] = (passed, errors), (datetime, host, rev)
+		data.close()
+#		print pformat(r)
+		for k in r:
+			for t in 'unit', 'system':
+				if t in r[k]:
+					print "%s_tests_%s_passed.value" % (k, t,), r[k][t][0][1]
+					print "%s_tests_%s_errors.value" % (k, t,), r[k][t][0][0]
 
