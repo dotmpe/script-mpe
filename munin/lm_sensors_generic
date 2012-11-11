@@ -20,8 +20,6 @@ if [ "$1" = "autoconf" ]; then
 	exit 0
 fi
 
-env|grep MUNIN_ENV|sed 's/MUNIN_ENV//'|sed 's/=/ /'
-
 TYPE=$(echo $(basename $0) | sed 's/^lm_sensors_//g')
 bash $MUNIN_LIBDIR/plugins/lm_sensors.sh $TYPE $1
 

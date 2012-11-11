@@ -1,5 +1,8 @@
 #!/bin/bash
-
+#
+# use MUNIN_ENV<fieldname>.cricitical :80
+# etc. from /etc/munin/plugin-conf.d/
+#
 TYPE=$1
 [ -n "$TYPE" ] || { exit 1 ; }
 
@@ -7,6 +10,7 @@ if [ "$2" = "config" ]; then
     echo "graph_info Output of lm-sensors ($TYPE only)"
     echo "graph_category sensors"
     echo "graph_args --base 1000 -l 0"
+
     case $TYPE in
         fan)
                 echo "graph_title $(hostname -s|tr 'a-z' 'A-Z') Hardware Fan Speed"
@@ -17,6 +21,8 @@ if [ "$2" = "config" ]; then
                 echo "graph_vlabel temperature celcius"
             ;;
     esac
+    # Overrides from config
+	env|grep MUNIN_ENV|sed 's/MUNIN_ENV//'|sed 's/=/ /'
 fi
 
 interface_id=
