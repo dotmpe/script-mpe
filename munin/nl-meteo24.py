@@ -14,7 +14,12 @@ else:
 	measure = 'wind'
 
 obsids = {
-		'31X4383': 'Twente, Overijssel (6.9E 52.22N 46m)'
+		'31X4383': 'Twente, Overijssel (6.9E 52.22N 46m)',
+        '31X4825': 'Amsterdam, Noord-Holland (4.89E 52.37N 3m)',
+		'31X7099': 'Eelde, Groningen (6.55E 53.22N)',
+		'31X1276': 'Vlissingen, Zeeland (3.58E 51.45N)',
+		'31X1235': 'Eindhoven, Noord-Brabant (5.47E 51.45N)',
+		'31X155': 'Maastricht, Limburg (5.68E 50.85N)',
 	}
 
 lbl_loc = obsids[ obsid ]

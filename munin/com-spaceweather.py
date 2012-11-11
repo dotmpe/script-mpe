@@ -26,6 +26,7 @@ if args:
 		print 'graph_category space'
 		print 'graph_args --base 1000'
 		print 'graph_title Space weather: %s' % (measure)
+# TODO: print 'host_name spaceweather.com' 
 
 		if measure == 'sunspotnr':
 			print 'graph_vlabel (nr)'
