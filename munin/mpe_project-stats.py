@@ -18,7 +18,7 @@ from pprint import pformat
 
 argv = list(sys.argv)
 host = socket.gethostname()
-script = argv.pop(0)
+script = os.path.basename(argv.pop(0))
 argstring = script.replace('mpe_project_','')
 measure = 'loc'
 if argstring:
@@ -30,18 +30,18 @@ if argv:
 
 	elif argv[0] == 'config':
 
-		print 'graph_title %s: Project %r metrics' % (host, measure)
+		print 'graph_title Project %r metrics' % (measure)
 		print 'graph_category projects'
 		print 'graph_args --base 1000'
 
 		if measure == 'count':
 			print 'graph_vlabel (nr)'
-			print 'project_count.label %s'
+			print 'project_count.label project count at %s' % host
 			print 'project_count.type GAUGE'
 
 else:
 	
 	if measure == 'count':
-		stdin, stdout, stderr = os.popen3('find ~/project/ -iname .git | wc -l')
+		stdin, stdout, stderr = os.popen3('find /home/berend/project/ -iname .git | wc -l')
 		print 'project_count.value', stdout.read().strip()
 
