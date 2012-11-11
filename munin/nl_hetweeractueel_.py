@@ -6,13 +6,18 @@ import sys
 
 args = list(sys.argv)
 script = os.path.basename(args.pop(0))
-if '_' in script:
-	measure = script[8:].split('_')[0]
-	location = script[8:].split('_')[1]
+tld_p = script.find('_')+1
+host_p = script[tld_p:].find('_') + tld_p + 1
+
+if '_' in script[host_p:]:
+	measure = script[host_p:].split('_')[0]
+	location = script[host_p:].split('_')[1]
 else:
 	location = 'amersfoort-nieuwland'
 	measure = None
-assert location, script[8:]
+
+assert location, script[host_p:]
+
 if measure:
 	avg = measure.endswith('avg')
 else:
