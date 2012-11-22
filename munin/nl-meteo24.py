@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 import os
 import time
 import sys
@@ -13,9 +14,11 @@ else:
 	obsid = '31X4383'
 	measure = 'wind'
 
+enc = 'utf-8'
+
 obsids = {
 		'31X4383': 'Twente, Overijssel (6.9E 52.22N 46m)',
-        '31X4825': 'Amsterdam, Noord-Holland (4.89E 52.37N 3m)',
+		'31X4825': 'Amsterdam, Noord-Holland (4.89E 52.37N 3m)',
 		'31X7099': 'Eelde, Groningen (6.55E 53.22N)',
 		'31X1276': 'Vlissingen, Zeeland (3.58E 51.45N)',
 		'31X1235': 'Eindhoven, Noord-Brabant (5.47E 51.45N)',
@@ -30,11 +33,11 @@ if args:
 	elif args[0] == 'config':
 
 		print 'graph_category weather'
-		print 'graph_args --base 1000'
 		print 'graph_title Outdoor weather: %s %s' % (measure, lbl_loc)
 
 		if measure == 'wind':
 			print 'graph_vlabel (kts)'
+			print 'graph_args --base 1000'
 
 			print 'windspeed.label Windspeed'
 			print 'windspeed.type GAUGE'
@@ -43,15 +46,28 @@ if args:
 
 		elif measure == 'humidity':
 			print 'graph_vlabel (%)'
+			print 'graph_args --base 1000'
 
 			print 'humidity.label Relative humidity'
 			print 'humidity.type GAUGE'
 
 		elif measure == 'pressure':
 			print 'graph_vlabel (hPa)'
+			print 'graph_args --base 1000'
 
 			print 'pressure.label Atmospheric pressure'
 			print 'pressure.type GAUGE'
+
+		elif measure == 'temperature':
+			print 'graph_vlabel Celcius'
+			print 'graph_args --base 1000 --lower-limit -4 --upper-limit 30'
+
+			print 'temperature.label Atmospheric temperature'
+			print 'temperature.type GAUGE'
+#			print 'temperature.label Freezing point'
+#			print 'temperature.line 0:0000bb:Freezing'
+			print 'temperature.label Tropical temperatures'
+			print 'temperature.line 28:bb0000:Tropical'
 
 else:
 	import urllib2
@@ -78,18 +94,23 @@ else:
 	if measure == 'wind':
 		windspeed = s.find('b', text='windsnelheid')
 		if windspeed:
-			print 'windspeed.value', windspeed.parent.parent.nextSibling.nextSibling.text.strip()
+			print 'windspeed.value', windspeed.parent.parent.nextSibling.nextSibling.text.strip().encode(enc)
 		windgusts = s.find('b', text='windvlagen')
 		if windgusts:
-			print 'windgusts.value', windgusts.parent.parent.nextSibling.nextSibling.text.strip()
+			print 'windgusts.value', windgusts.parent.parent.nextSibling.nextSibling.text.strip().encode(enc)
 
 	elif measure == 'humidity':
 		humidity = s.find('strong', text='rel. vochtigheid&nbsp;')
 		if humidity:
-			print 'humidity.value', humidity.parent.parent.nextSibling.nextSibling.text.strip()
+			print 'humidity.value', humidity.parent.parent.nextSibling.nextSibling.text.strip().encode(enc)
 
 	elif measure == 'pressure':
 		pressure = s.find(text='(hPa)')
 		if pressure:
-			print 'pressure.value', pressure.parent.nextSibling.nextSibling.nextSibling.nextSibling.text.replace('&nbsp;', '')
+			print 'pressure.value', pressure.parent.nextSibling.nextSibling.nextSibling.nextSibling.text.replace('&nbsp;', '').encode(enc)
+
+	elif measure == 'temperature':
+		temperature = s.find(text=u'&nbsp;(°C)&nbsp;')
+		if temperature:
+			print 'temperature.value', temperature.parent.nextSibling.nextSibling.text.replace('&nbsp;', '').encode(enc)
 
