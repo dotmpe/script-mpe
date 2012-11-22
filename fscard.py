@@ -35,39 +35,42 @@ def find_dir( dirpath, subleaf ):
 		dirparts.pop()
 
 def _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f ):
-	#if not File.include( f.encode( fnenc ) ):
-	if StatCache.getsize( f.encode( fnenc ) ) <= size_threshold:
-		print 'skipping', f
+	assert StatCache.getsize( f.encode( fnenc ) ) > size_threshold
+	assert StatCache.getsize( f.encode( fnenc ) ) <= size_threshold2
+
+	path = normalize( voldir, f, fnenc )
+	assert isinstance( path, unicode )
+	pathhash = key( path )
+	assert not isinstance( pathhash, unicode )
+
+	matches = []
+
+	# Fetch or init a content descriptor
+	content_guid = Contents.relates.record.left.find( pathhash )
+	if not content_guid:
+		content_guid = Contents.relates.record.new( pathhash, None )
+		Contents.set( 'path', pathhash, path.encode( fnenc ) )
 	else:
-		path = normalize( voldir, f, fnenc )
-		assert isinstance( path, unicode )
-		pathhash = key( path )
-		assert not isinstance( pathhash, unicode )
+		print 'GUID', content_guid, 'exists'
+		if not content_guid in Content.indices.paths.data:
+			Content.indices.paths.data[ content_guid ] = []
+		Content.indices.paths.data[ content_guid ] += [ pathhash ]
+	assert content_guid and content_guid in Content.indices.paths.data
+	assert pathhash in Content.indices.paths.data[ content_guid ]
+	assert Content.indices.paths == Contents.relates.record.right
+	assert Contents.relates.record.left.data[ pathhash ] == content_guid
+	assert Contents.indices.path.data[ pathhash ] == path.encode( fnenc )
+	print pathhash, ' -- ', content_guid
 
-		content_guid = Contents.relates.record.left.find( pathhash )
-		if not content_guid:
-			content_guid = Contents.relates.record.new( pathhash, None )
-			Contents.set( 'path', pathhash, path.encode( fnenc ) )
-		else:
-			print 'GUID', content_guid, 'exists'
-			if not content_guid in Content.indices.paths.data:
-				Content.indices.paths.data[ content_guid ] = []
-			Content.indices.paths.data[ content_guid ] += [ pathhash ]
-		assert content_guid and content_guid in Content.indices.paths.data
-		assert pathhash in Content.indices.paths.data[ content_guid ]
-		assert Content.indices.paths == Contents.relates.record.right
-		assert Contents.relates.record.left.data[ pathhash ] == content_guid
-		assert Contents.indices.path.data[ pathhash ] == path.encode( fnenc )
-		print pathhash, ' -- ', content_guid
-
-		if not StatCache.exists( f.encode( fnenc ) ):
-			del Contents.indices.path.data[ pathhash ]
-			del Contents.indices.record.data[ pathhash ]
-			paths = Content.indices.paths.data[ content_guid ]
-			paths.remove( pathhash )
-			Content.indices.paths.data[ content_guid ] = paths
-			print pathhash, "DEL ", path
-			return
+	# Clean up and abort on missing path
+	if not StatCache.exists( f.encode( fnenc ) ):
+		del Contents.indices.path.data[ pathhash ]
+		del Contents.indices.record.data[ pathhash ]
+		paths = Content.indices.paths.data[ content_guid ]
+		paths.remove( pathhash )
+		Content.indices.paths.data[ content_guid ] = paths
+		print pathhash, "DEL ", path
+		return
 
 # FIXME: Content mtime
 #		if content_guid not in Content.indices.time.data:
@@ -83,42 +86,40 @@ def _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f ):
 #				print pathhash, ' -- ', record_time
 
 # FIXME: proper init of size
-		size = StatCache.getsize( f.encode( fnenc ) )
-		if not Match.find( 'sizes', size ):
-			Content.relates.size.new( content_guid, size )
-			print pathhash, 'SIZE', size
-
-		if not Content.find( 'size', content_guid ):
-			Content.relates.size.new( content_guid, size )
-			print pathhash, 'SIZE', size
-
-		assert content_guid in Content.indices.size.data
-		cur_size = Content.indices.size.get( content_guid )
-		assert cur_size == size,\
-				"Error: %s SIZE: %r vs %r" % ( pathhash, size, cur_size )
-		assert size in Match.indices.sizes
-		assert content_guid in Match.indices.sizes.get( size )
-		print pathhash, 'OK  ', lib.human_readable_bytesize( size ), len(
-			Match.indices.sizes.get( size ) )
+	size = StatCache.getsize( f.encode( fnenc ) )
+	if not Match.find( 'sizes', size ):
+		Content.relates.size.new( content_guid, size )
+		print pathhash, 'SIZE', size
+	elif not Content.find( 'size', content_guid ):
+		Content.relates.size.new( content_guid, size )
+		print pathhash, 'SIZE', size
+	assert content_guid in Content.indices.size.data
+	cur_size = Content.indices.size.get( content_guid )
+	assert cur_size == size,\
+			"Error: %s SIZE: %r vs %r" % ( pathhash, size, cur_size )
+	assert size in Match.indices.sizes
+	assert content_guid in Match.indices.sizes.get( size )
+	print pathhash, 'OK  ', lib.human_readable_bytesize( size ), len(
+		Match.indices.sizes.get( size ) )
 
 # FIXME: recognize dupes
-		start = time.time()
-		sparsesum = Match.init_sparsesum( f.encode( fnenc ) )	
-		dt = time.time() - start
-		if not Match.find( 'sparsesums', sparsesum ):
-			Content.relates.sparsesum.new( content_guid, sparsesum )
-			print content_guid, 'SPRS', sparsesum, \
-					'(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2) / dt )
-			return True
+	start = time.time()
+	sparsesum = Match.init_sparsesum( f.encode( fnenc ) )	
+	dt = time.time() - start
+	if not Match.find( 'sparsesums', sparsesum ):
+		Content.relates.sparsesum.new( content_guid, sparsesum )
+		print content_guid, 'SPRS', sparsesum, \
+				'(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2) / dt )
+		return True
+	else:
+		print sparsesum, Match.find( 'sparse', sparsesum )
+		assert sparsesum in Match.indices.sparsesums.data
+		if content_guid not in Match.indices.sparsesums.data[ sparsesum ]:
+			print content_guid, "DUPE", lib.strlen( path, 96 )
+			_dump_paths( sparsesum, 'sparsesums' )
+			print content_guid, 'SPRS', sparsesum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2 ) / dt )
 		else:
-			print sparsesum, Match.find( 'sparse', sparsesum )
-			assert sparsesum in Match.indices.sparsesums.data
-			if content_guid not in Match.indices.sparsesums.data[ sparsesum ]:
-				print content_guid, "DUPE", lib.strlen( path, 96 )
-				_dump_paths( sparsesum, 'sparsesums' )
-				print content_guid, 'SPRS', sparsesum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2 ) / dt )
-			else:
-				return
+			return
 
 #		start = time.time()
 #		cksum = lib.get_checksum_sub( f.encode( fnenc ), 'ck' )
@@ -136,61 +137,61 @@ def _do_run( path, voldir, size_threshold, size_threshold2, fnenc, f ):
 #					/ 1024 ** 2 ) / dt )
 #				return
 
-		start = time.time()
-		sha1sum = lib.get_checksum_sub( f.encode( fnenc ) )
-		dt = time.time() - start
-		if not Match.find( 'sha1', sha1sum ):
-			Match.indices.sha1sums.data[ sha1sum ] = [ content_guid ]
-			print content_guid, 'sha1', sha1sum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size /
-				1024 ** 2 ) / dt )
-			return True
-		else:
-			if content_guid not in Match.indices.sha1sums.data[ sha1sum ]:
-				#curguids = Match.indices.sha1sums.data[ sha1sum ]
-				#if curguids:
-				#	assert len( curguids ) == 1
-				#else:
-				#	return
-				#curguid = curguids[0]
-				#print content_guid, "DUPE", curguid, strlen( path, 96 )
-				#pathhash_list = Content.indices.paths.data[ curguid ]
-				#print 'pathhash_list', pathhash_list
-				#if pathhash not in pathhash_list:
-				#	pathhash_list.append( pathhash )
-				#	ml = Match.indices.sha1sums.data[ sha1sum ]
-				#	if content_guid in ml:
-				#		ml.remove( content_guid )
-				#		Match.indices.sha1sums.data[ sha1sum ] = ml
-				#	del Content.indices.paths.data[ content_guid ] 
-				#	if content_guid in Content.indices.descr.data:
-				#		del Content.indices.descr.data[ content_guid ] 
-				#	if content_guid in Content.indices.time.data:
-				#		del Content.indices.time.data[ content_guid ] 
-				#	content_guid = curguid
-				#	Content.indices.paths.data[ content_guid ] = pathhash_list
-				#print Match.indices.sha1sums.data[ sha1sum ]
-				_dump_paths( sha1sum, 'sha1' )
-				print content_guid, 'SHA1', sha1sum, '(%.2f s, %.4f Mb/s)' % ( dt , (
-					size / 1024 ** 2 ) / dt )
-			else:
-				return
-
-		start = time.time()
-		md5sum = lib.get_checksum_sub( f.encode( fnenc ), 'md5' )
-		dt = time.time() - start
-		if not Match.find( 'md5', md5sum ):
-			Match.indices.md5sums.data[ md5sum ] = [ content_guid ]
-			print content_guid, 'md5 ', md5sum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2) / dt )
-			return True
-		else:
-			if content_guid not in Match.indices.md5sums.data[ md5sum ]:
-				print "possible duplicate", lib.strlen( f.encode( fnenc ), 96 )
-				_dump_paths( md5sum, 'md5sums' )
-				print content_guid, 'MD5 ', md5sum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2 ) / dt )
-			else:
-				return
-
+	start = time.time()
+	sha1sum = lib.get_checksum_sub( f.encode( fnenc ) )
+	dt = time.time() - start
+	if not Match.find( 'sha1', sha1sum ):
+		Match.indices.sha1sums.data[ sha1sum ] = [ content_guid ]
+		print content_guid, 'sha1', sha1sum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size /
+			1024 ** 2 ) / dt )
 		return True
+	else:
+		if content_guid not in Match.indices.sha1sums.data[ sha1sum ]:
+			#curguids = Match.indices.sha1sums.data[ sha1sum ]
+			#if curguids:
+			#	assert len( curguids ) == 1
+			#else:
+			#	return
+			#curguid = curguids[0]
+			#print content_guid, "DUPE", curguid, strlen( path, 96 )
+			#pathhash_list = Content.indices.paths.data[ curguid ]
+			#print 'pathhash_list', pathhash_list
+			#if pathhash not in pathhash_list:
+			#	pathhash_list.append( pathhash )
+			#	ml = Match.indices.sha1sums.data[ sha1sum ]
+			#	if content_guid in ml:
+			#		ml.remove( content_guid )
+			#		Match.indices.sha1sums.data[ sha1sum ] = ml
+			#	del Content.indices.paths.data[ content_guid ] 
+			#	if content_guid in Content.indices.descr.data:
+			#		del Content.indices.descr.data[ content_guid ] 
+			#	if content_guid in Content.indices.time.data:
+			#		del Content.indices.time.data[ content_guid ] 
+			#	content_guid = curguid
+			#	Content.indices.paths.data[ content_guid ] = pathhash_list
+			#print Match.indices.sha1sums.data[ sha1sum ]
+			_dump_paths( sha1sum, 'sha1' )
+			print content_guid, 'SHA1', sha1sum, '(%.2f s, %.4f Mb/s)' % ( dt , (
+				size / 1024 ** 2 ) / dt )
+		else:
+			return
+
+	start = time.time()
+	md5sum = lib.get_checksum_sub( f.encode( fnenc ), 'md5' )
+	dt = time.time() - start
+	if not Match.find( 'md5', md5sum ):
+		Match.indices.md5sums.data[ md5sum ] = [ content_guid ]
+		print content_guid, 'md5 ', md5sum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2) / dt )
+		return True
+	else:
+		if content_guid not in Match.indices.md5sums.data[ md5sum ]:
+			print "possible duplicate", lib.strlen( f.encode( fnenc ), 96 )
+			_dump_paths( md5sum, 'md5sums' )
+			print content_guid, 'MD5 ', md5sum, '(%.2f s, %.4f Mb/s)' % ( dt , ( size / 1024 ** 2 ) / dt )
+		else:
+			return
+
+	return True
 
 def _dump_paths( key, index ):
 	curguids = getattr( Match.indices, index ).data[ key ]
@@ -311,11 +312,9 @@ def main( path, voldir ):
 
 		if StatCache.isdir( fenc ):
 			continue
-
 			# FIXME: stat cache
 			if not fenc[ -1 ] == os.sep:
 				f += os.sep
-
 			#print counter.level * '\t', counter.name, counter.total, counter.cnt
 			if fenc == counter.key:
 				pass
@@ -356,8 +355,6 @@ def main( path, voldir ):
 			v = False
 		elif not counter.total % 1000:
 			print "Content %s.. (%.2f s)" % ( counter.total, rt )
-			#sys.stdout.write("%s.. "%cnt)
-			#sys.stdout.flush()
 
 	return
 
@@ -396,101 +393,9 @@ def main_full():
 
 	IndexedObject.close()
 
-def main_update_pathindexes():
-	argv = list( sys.argv )
-	script_name = argv.pop(0)
-
-	path = abspath( argv.pop() )
-
-	#Volumes.init( userdir )
-	voldir = find_dir( path, '.cllct' )
-	#volguid = Volumes.find( 'record', voldir )
-	#volume = Volume.load( volguid )
-
-	print "Volume:", voldir
-	assert voldir
-
-	IndexedObject.init( voldir, PathNode, Contents, Content, Match )
-
-	for pathhash in Contents.indices.record.data:
-		#print 'Content.record', pathhash
-		try:
-			assert pathhash in Contents.indices.path.data
-			path = Contents.indices.path.data[ pathhash ]
-			assert isinstance( path, str ), path
-			path = path.decode( 'utf-8' )
-		except KeyboardInterrupt, e:
-			print 'Interrupted'
-			break
-		except Exception, e:
-			print
-			print 'Failure: '
-			traceback.print_exc()
-	for guid in Content.indices.paths.data:
-		#print 'Content.paths', guid
-		try:
-			pathhash_list = Content.indices.paths.data[ guid ]
-			updated = False
-			for pathhash in pathhash_list:
-				assert not isinstance( pathhash, unicode )
-				if pathhash not in Contents.indices.path.data:
-					pathhash_list.remove( pathhash )
-					updated = True
-				elif pathhash not in Contents.indices.record.data:
-					Contents.indices.record.data[ pathhash ] = guid
-				else:
-					assert Contents.indices.record.data[ pathhash ] == guid
-			if updated:
-				Content.indices.paths.data[ guid ] = pathhash_list
-#			assert pathhash_list, guid
-		except KeyboardInterrupt, e:
-			print 'Interrupted'
-			break
-		except Exception, e:
-			print
-			print 'Failure: '
-			traceback.print_exc()
-	remove = []
-	for pathhash in Contents.indices.path.data:
-#		print 'Contents.path', pathhash
-		try:
-			assert pathhash in Contents.indices.record.data
-			path = Contents.indices.path.data[ pathhash ]
-			if isinstance( path, unicode ):
-				remove.append( pathhash )
-				continue
-			path = path.decode( 'utf-8' )
-			assert isinstance( path, unicode ), path
-			guid = Contents.indices.record.data[ pathhash ]
-			if guid not in Content.indices.paths.data:
-				print 'New guid for Content.paths', guid
-				Content.indices.paths.data[ guid ] = []
-			l = Content.indices.paths.data[ guid ]
-			assert  isinstance( l, list ), ( guid, l )
-#			if path.encode( 'utf-8' ) not in l:
-#				print 'New path for Content.paths', guid, path
-#				assert isinstance( path, unicode ), path
-#				l.append( path.encode( 'utf-8') )
-#				Content.indices.paths.data[ guid ] = l
-		except KeyboardInterrupt, e:
-			print 'Interrupted'
-			break
-		except Exception, e:
-			print
-			print 'Failure: '
-			traceback.print_exc()
-
-	for pathhash in remove:
-		del Contents.indices.path.data[ pathhash ]
-		if pathhash in Contents.indices.record.data:
-			del Contents.indices.record.data[ pathhash ]
-
-	IndexedObject.close()
-
 
 if __name__ == '__main__':
 
-	#main_update_pathindexes() # Contents[pathhash]=path where path in Content.paths
 	main_full()
 
 
