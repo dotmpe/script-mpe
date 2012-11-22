@@ -29,25 +29,27 @@ if args:
 	elif args[0] == 'config':
 
 		print 'graph_category weather'
-		print 'graph_args --base 1000'
 		print 'graph_title Outdoor weather: %s %s' % (measure, location.title())
 
 		if measure == 'temp':
 			print 'graph_vlabel Temperature (C)'
+			print 'graph_args --base 1000'
 
 			print 'windchill.label Windchill'
 			print 'windchill.type GAUGE'
 			print 'temperature.label Temperature'
 			print 'temperature.type GAUGE'
-			print 'temperature.line 0:0000bb:Freezing'
-			print 'temperature.line 28:bb0000:Tropical'
 			print 'heat_index.label Heat index'
 			print 'heat_index.type GAUGE'
 			print 'dew_point.label Dew point'
 			print 'dew_point.type GAUGE'
 
+			print 'windchill.line 0:0000bb:Freezing'
+			print 'temperature.line 28:bb0000:Tropical (28 C)'
+
 		elif measure == 'tempavg':
 			print 'graph_vlabel Temperature (C)'
+			print 'graph_args --base 1000'
 
 			print 'temperature_weekly.label Weekly temperature trend'
 			print 'temperature_weekly.type GAUGE'
@@ -55,12 +57,14 @@ if args:
 
 		elif measure == 'wind':
 			print 'graph_vlabel (bft)'
+			print 'graph_args --base 1000'
 
 			print 'windspeed.label Windspeed'
 			print 'windspeed.type GAUGE'
 
 		elif measure == 'windavg':
 			print 'graph_vlabel (bft)'
+			print 'graph_args --base 1000'
 
 #			print 'windspeed_weekly.label Windspeed weekly trend'
 #			print 'windspeed_weekly.type GAUGE'
@@ -74,12 +78,14 @@ if args:
 
 		elif measure == 'rain':
 			print 'graph_vlabel (mm)'
+			print 'graph_args --base 1000'
 
 			print 'rain.label Precipation'
 			print 'rain.type GAUGE'
 
 		elif measure == 'rainavg':
 			print 'graph_vlabel (mm)'
+			print 'graph_args --base 1000'
 
 			print 'rain_daily.label Precipation daily trend'
 			print 'rain_daily.type GAUGE'
@@ -88,6 +94,7 @@ if args:
 
 		elif measure == 'rainavg':
 			print 'graph_vlabel (mm)'
+			print 'graph_args --base 1000'
 
 			print 'rain_weekly.label Weekly trend'
 			print 'rain_weekly.cdef smoothed=x,604800,TREND'
@@ -95,18 +102,21 @@ if args:
 
 		elif measure == 'pressure':
 			print 'graph_vlabel (hPa)'
+			print 'graph_args --base 1000'
 
 			print 'pressure.label Air pressure'
 			print 'pressure.type GAUGE'
 
 		elif measure == 'sun':
 			print 'graph_vlabel (W/m2)'
+			print 'graph_args --base 1000'
 
 			print 'sunrad.label Sunshine'
 			print 'sunrad.type GAUGE'
 
 		elif measure == 'sunavg':
 			print 'graph_vlabel (W/m2)'
+			print 'graph_args --base 1000'
 
 			print 'sunrad_hourly.label Hourly trend'
 			print 'sunrad_hourly.cdef smoothed=x,3600,TREND'
@@ -114,23 +124,26 @@ if args:
 
 		elif measure == 'uv':
 			print 'graph_vlabel index'
+			print 'graph_args --base 1000 --upper-limit 10 --lower-limit 0'
 
 			print 'uv_index.label UV index'
 			print 'uv_index.type GAUGE'
-			print 'uv_index.line 2:0000b0:Low'
-			print 'uv_index.line 4:0000c3:Moderate'
+#			print 'uv2.line 2:000000:Low'
+#			print 'uv4.line 4:0000c3:Moderate'
 			print 'uv_index.line 6:0000d6:High'
-			print 'uv_index.line 8:0000e9:Very High'
-			print 'uv_index.line 11:0000ff:Extreme'
+#			print 'uv8.line 8:0000e9:Very High'
+#			print 'uv11.line 11:0000ff:Extreme'
 
 		elif measure == 'humidity':
 			print 'graph_vlabel (%)'
+			print 'graph_args --upper-limit 100 --base 1000'
 
 			print 'humidity.label Relative humidity'
 			print 'humidity.type GAUGE'
 
 		elif measure == 'humidityavg':
 			print 'graph_vlabel (%)'
+			print 'graph_args --upper-limit 100 --base 1000'
 
 			print 'humidity_hourly.label Hourly trend'
 			print 'humidity_hourly.cdef smoothed=x,3600,TREND'
