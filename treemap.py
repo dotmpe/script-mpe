@@ -21,7 +21,8 @@ import shelve
 from types import NoneType
 from pprint import pformat
 from os import listdir, stat, lstat
-from os.path import join, exists, isdir, getsize, basename, dirname, expanduser
+from os.path import join, exists, islink, isdir, getsize, basename, dirname, \
+	expanduser, realpath
 try:
 	# @bvb: simplejson thinks it should be different and deprecated read() and write()
 	# not sure why... @xxx: simplejson has UTF-8 default, json uses ASCII I think?
@@ -36,7 +37,7 @@ except:
 
 def find_parent( dirpath, subleaf, realpath=False ):
 	if realpath:
-		dirpath = os.path.realpath( dirpath )
+		dirpath = realpath( dirpath )
 	dirparts = dirpath.split( os.sep )
 	while dirparts:
 		path = join( *dirparts )
@@ -64,19 +65,19 @@ class Node(dict):
 	Interface on top of normal dictionary to work easily with tree nodes
 	which can have a name, attributes, and a value list.
 	"""
-	def __init__(self, name):
-		self[name] = None
+	def __init__(  self, name ):
+		self[ name ] = None
 
 	def getname(self):
 		for key in self:
 			if not key.startswith('@'):
 				return key
 
-	def setname(self, name):
+	def setname( self, name ):
 		oldname = self.getname()
-		val = self[oldname]
-		del self[oldname]
-		self[name] = val
+		val = self[ oldname ]
+		del self[ oldname ]
+		self[ name ] = val
 
 	name = property( getname, setname )
 
