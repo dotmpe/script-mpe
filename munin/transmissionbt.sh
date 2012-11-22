@@ -23,11 +23,9 @@ function get_file() # field
 	then
 		echo '{"method":"torrent-get","tag":1,"arguments":{"fields":["'$1'"]}}' \
 			| transmission-remote -n mpe:tr4bt0 -l \
-			| grep -v '^ID\>\|Sum' \
 			> $TMPF
 	fi
 
 	cat $TMPF
 }
-
 
