@@ -421,7 +421,7 @@ def backup(file):
 		os.rename(file, bup)
 
 
-class YAMLValues(Values):
+class YAML(Settings):
 
 	"""
 	Loads configuration settings from YAML file.
@@ -467,7 +467,7 @@ class YAMLValues(Values):
 		return load_path(file)
 
 # XXX:
-class FSValues(Values):
+class FSValues(Settings):
 
 	@classmethod
 	def load(cls, path):
@@ -482,7 +482,7 @@ class FSValues(Values):
 
 def yaml(path, *args):
 	assert not args, "Cannot override from multiple files: %s, %s " % (path, args)
-	return load_path(path, type=YAMLValues)
+	return load_path(path, type=YAML)
 
 def init_config(name, paths=config_prefix, default=None):
 
@@ -511,7 +511,7 @@ def init_config(name, paths=config_prefix, default=None):
 
 	return yaml(rcfile)
 
-def load_path(path, type=YAMLValues):
+def load_path(path, type=YAML):
 	global _paths, _
 	return getattr(type, 'load')(path)
 
@@ -529,7 +529,7 @@ def load(name, paths=config_path):
 	if isdir(config):
 		values_type = FSValues 
 	else:
-		values_type = YAMLValues
+		values_type = YAML
 	_paths[config] = name
 	settings = load_path(config, type=values_type)
 	setattr(_, name, settings)
