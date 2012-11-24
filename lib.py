@@ -95,18 +95,30 @@ def remote_proc(host, cmd):
 	else:
 		return proc.stdout.read().strip()
 
-def human_readable_bytesize(length, suffix=True, suffix_as_separator=False):
-	assert suffix
+def human_readable_bytesize(length, suffix=True, suffix_as_separator=False,
+		sub=2):
+	if suffix_as_separator:
+		assert suffix
+	fmt = "%%.%if" % sub
 	if length > 1024**4:
-		s =  "%sG" % (float(length)/1024**4)
+		div = 1024 ** 4
+		if suffix:
+			fmt += 'T'
 	elif length > 1024**3:
-		s =  "%sG" % (float(length)/1024**3)
+		div = 1024 ** 3
+		if suffix:
+			fmt += 'G'
 	elif length > 1024**2:
-		s =  "%sM" % (float(length)/1024**2)
+		div = 1024 ** 2
+		if suffix:
+			fmt += 'M'
 	elif length > 1024:
-		s =  "%sk" % (float(length)/1024)
+		div = 1024
+		if suffix:
+			fmt += 'k'
 	else:
-		s =  "%s" % length
+		div = 1
+	s = fmt % (float(length)/div)
 	if suffix_as_separator and not s[-1].isdigit():
 		s = s[:-1].replace('.', s[-1])
 	return s
