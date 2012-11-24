@@ -15,7 +15,7 @@ esac
 
 . /usr/share/munin/plugins/transmissionbt.sh
 
-get_file rateUpload \
-	| grep Sum \
+get_file torrent-list \
+	| grep '\<Sum\>' \
 	| awk '{print "downrate.value "$(NF)"\nuprate.value "$(NF-1)}'
 

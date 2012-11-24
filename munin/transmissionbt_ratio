@@ -29,7 +29,8 @@ esac
 for T in   uploadRatio
 do
 	echo -n "$T.value " | tr 'A-Z' 'a-z'
-	get_file $T 
+	get_file torrent-list 
+	$T 
 done
 
 

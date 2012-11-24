@@ -8,7 +8,7 @@ function get_file() # method field
 {
 	#TMPF=/tmp/transmissionbt-munin-$1-stats
 	case $1 in
-		torrent-get )
+		torrent-list )
 			transmission-remote -n mpe:tr4bt0 -l 
 			;;
 	esac

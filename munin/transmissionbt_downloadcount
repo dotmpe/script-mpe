@@ -19,13 +19,13 @@ esac
 
 . /usr/share/munin/plugins/transmissionbt.sh
 
-get_file torrent-get rateUpload | wc -l | awk '{print "total.value "$(NF)}'
+get_file torrent-list | wc -l | awk '{print "total.value "$(NF)}'
 
 #          | 
 for T in   Stopped Idle Seeding Up Down Finished
 do
 	echo -n "$T.value " | tr 'A-Z' 'a-z'
-	get_file torrent-get rateUpload \
+	get_file torrent-list \
 		| grep -v '^ID\>\|Sum' \
 		| grep "\<$T\>" | wc -l
 done
