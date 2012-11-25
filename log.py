@@ -4,10 +4,6 @@
 # 
 import sys
 
-import zope.interface
-
-import taxus_out
-
 # $template custom,"TS:%timereported%;PRI:%pri%;PRI-text:%PRI-text%;APP:%app-name%;PID:%procid%;MID:%msgid%;HOSTNAME:%hostname%;msg:%msg%;FROMHOST:%FROMHOST%;STRUCTURED-DATA:%STRUCTURED-DATA%\n"
 #
 c00="\x1b[0;0;30m" # black/grey
@@ -129,6 +125,8 @@ def log(level, msg, *args):
 	msg = format_line(msg)
 	# XXX: nicer to put in __repr/str__
 	args = list(args)
+	import zope.interface
+	import taxus_out
 	for i, a in enumerate(args):
 		interfaces = list(zope.interface.providedBy(a).interfaces())
 		if isinstance(a, (int,float,str,unicode)):

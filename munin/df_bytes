@@ -88,7 +88,7 @@ use Munin::Plugin;
 my %usemntpt = ( tmpfs => 1, none => 1, udev => 1, simfs => 1 );
 
 my $exclude = $ENV{'exclude'} || '';#none unknown rootfs iso9660 squashfs udf romfs ramfs debugfs cgroup_root';
-my $dfopts  = "-P -l ".join(' -x ',('',split('\s+',$exclude)));
+my $dfopts  = "-P -k -l ".join(' -x ',('',split('\s+',$exclude)));
 my $mode = ($ARGV[0] or "print");
 
 # Compile REs from env
