@@ -16,6 +16,7 @@ EOM
 	do
 		Name=$(echo $l | sed 's/^\([^:]*\):.*$/\1/g' )
 		ID=$(echo $Name | sed 's/[^A-Za-z0-9]/_/g' )
+		echo "$ID.draw LINE2"
 		echo "$ID.label $Name"
 	done 
 		

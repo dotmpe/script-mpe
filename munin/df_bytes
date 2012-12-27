@@ -156,7 +156,7 @@ while (<DF>) {
     $name = clean_fieldname($name);
 
     if($mode eq 'config') {
-        print $name,"_bytes_used", ".draw ", "AREASTACK\n";
+        print $name,"_bytes_used", ".draw ", "LINESTACK1\n";
         print $name,"_bytes_avail", ".draw ", "LINESTACK1\n";
         print $name,"_bytes_used", ".label ", $mountpt, " used\n";
         print $name,"_bytes_avail", ".label ", $mountpt, " available\n";
