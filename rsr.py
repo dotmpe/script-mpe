@@ -27,7 +27,7 @@ from libname import Namespace, Name
 from libcmd import Targets, Arguments, Keywords, Options,\
 	Target 
 from res import Metafile
-from res.store import Volume, Contents, Content, Match, pathhash as key
+from res.store import IndexedObject, Volume, Contents, Content, Match, pathhash as key
 from taxus import Node
 
 
@@ -113,6 +113,7 @@ def rsr_volume_init(prog=None, lib=None, conf=None):
 	assert prog.pwd, prog.copy().keys()
 	assert not 'XXX: old'
 	Volume.new(prog.pwd, lib, conf)
+
 
 @Target.register(NS, 'volume', 'cmd:pwd', 'rsr:lib')
 def rsr_volume(prog=None, lib=None, opts=None, conf=None):

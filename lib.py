@@ -105,7 +105,7 @@ def get_sparsesig_fixed(count, path):
 	s = os.path.getsize( path )
 	MB = 1024 ** 2
 	GB = 1024 ** 3
-	TB = 1024 ** 4:
+	TB = 1024 ** 4
 	if s < 1024:
 		return get_sparsesig_v( 1024, path )
 	elif s < MB:

@@ -15,10 +15,10 @@ from res.fs import Dir, StatCache
 
 
 def sha1hash( obj ):
-	assert isinstance( obj, unicode )
+	assert isinstance( obj, basestring ), repr(obj)
 	return hashlib.sha1( obj.encode( 'utf-8' ) ).hexdigest()
 
-#pathhash = sha1hash
+pathhash = sha1hash
 
 
 ### Field types
