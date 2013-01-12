@@ -30,7 +30,6 @@ import log
 from libname import Namespace, Name
 from libcmd import OptionParser, Targets, Arguments, Keywords, Options,\
 	Target, optparse_increment_message, optparse_override_quiet
-from res import PersistedMetaObject, Workspace
 # XXX
 from taxus.util import current_hostname
 
