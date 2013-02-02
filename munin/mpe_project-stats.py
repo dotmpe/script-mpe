@@ -47,13 +47,15 @@ if argv:
 
 	elif argv[0] == 'config':
 
-		print 'graph_title Project %r metrics' % (measure)
+		print 'graph_title Project %r metrics at %s' % (measure, host)
 		print 'graph_category projects'
 
 		if measure == 'count':
 			print 'graph_vlabel GIT projects (nr)'
 			print 'project_count.label GIT project count at %s' % host
 			print 'project_count.type GAUGE'
+			print 'project_src_count.label GIT repository count at %s' % host
+			print 'project_src_count.type GAUGE'
 			print 'graph_args --base 1000'
 
 		elif measure == 'size':
@@ -78,8 +80,10 @@ if argv:
 else:
 	
 	if measure == 'count':
-		stdin, stdout, stderr = os.popen3('find /srv/project-mpe/ -iname .git | wc -l')
+		stdin, stdout, stderr = os.popen3('find /srv/project-mpe/ -iname "*.git" | wc -l')
 		print 'project_count.value', stdout.read().strip()
+		stdin, stdout, stderr = os.popen3('find /src/*/ -iname .git -maxdepth 2 | wc -l')
+		print 'project_src_count.value', stdout.read().strip()
 
 	elif measure == 'size':
 		totalgitsize = total_gitsize('/srv/project-mpe/', True)
