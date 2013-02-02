@@ -16,11 +16,11 @@ from libname import Namespace, Name
 from libcmd import Targets, Arguments, Keywords, Options,\
 	Target 
 # XXX
-from taxus import SqlBase, SessionMixin, current_hostname, \
-		Node, INode, CachedContent, \
+from taxus import SqlBase, SessionMixin, \
+		Node, INode, \
 		ID, Name, Locator, \
 		Host, \
-		Locator, Tag, ChecksumDigest, SHA1Digest
+		Locator, Tag
 import taxus_out
 
 
@@ -138,7 +138,8 @@ Options.register(NS,
 
 def hostname_find(args, sa=None):
 	if not args:
-		hostnamestr = current_hostname()
+		import socket
+		hostnamestr = socket.gethostname()
 	else:
 		hostnamestr = args.pop(0)
 	if not hostnamestr:
