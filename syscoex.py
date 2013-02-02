@@ -24,16 +24,23 @@ try:
     import bencode
 except:
     bencode = None
-# use jsonlib or simplejson
+# use cjson, jsonlib or simplejson
 try:
-    import simplejson as _json
-except:
-    import json as _json
+	import cjson as _json
+	json_read = _json.decode
+	json_write = _json.encode
+	print "Using cjson"
+except ImportError:
+	try:
+		import simplejson as _json
+		print "Using simplejson"
+	except:
+		import json as _json
+		print "Using json"
+	json_read = _json.loads
+	json_write = _json.dumps
 
 from lib import human_readable_bytesize
-
-json_read = _json.loads
-json_write = _json.dumps
 
 storage = {
         'a8c01c01': confparse.Values(dict(
