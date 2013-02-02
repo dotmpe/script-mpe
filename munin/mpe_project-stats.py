@@ -60,7 +60,7 @@ if argv:
 
 		elif measure == 'size':
 			print 'graph_vlabel Project volumes (bytes)'
-			print 'graph_args --base 1024'
+			print 'graph_args --lower-limit 0 --base 1024'
 			print 'project_size_workdir.label GIT working trees at %s' % host
 			print 'project_size_workdir.type GAUGE'
 			print 'project_size_gitwork.label GIT working repos at %s' % host
@@ -70,7 +70,7 @@ if argv:
 
 		elif measure == 'size_detail':
 			print 'graph_vlabel Project volume details (bytes)'
-			print 'graph_args --base 1024'
+			print 'graph_args --lower-limit 0 --base 1024'
 			for size, path in gitsize('/srv/project-mpe/', True):
 				path = os.path.basename(path).replace('.', '-')
 				print 'project_size_gitwork_%s.type GAUGE' % path
