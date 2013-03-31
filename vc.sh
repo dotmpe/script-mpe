@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -x
+#!/usr/bin/env bash
 #
 # SCM util functions and pretty PS1 prompt for git, bzr
 #
@@ -170,6 +170,16 @@ __vc_push ()
     fi; fi;
 }
 
+# Switch the version control system detected for the current directory.
+# (First GIT, then BZR). Then make a pretty info string representing the status
+# of the working tree and repository.
+#
+# <userpath>[<branchname><branchstate>]<branchpath>
+# Version Control part for prompt, state indicators:
+# + : added files
+# * : modified "
+# - : removed "
+# ? : untracked "
 __vc_status ()
 {
 	local w short repo sub
@@ -177,6 +187,7 @@ __vc_status ()
 	w="$1";
 	cd "$w"
     realcwd="$(pwd -P)"
+    echo realcwd=$realcwd
 	short="${w/#$HOME/~}"
 
 	local git=$(__vc_gitdir "$w")
@@ -184,9 +195,9 @@ __vc_status ()
 
 	if [ "$git" ]; then
         realgit="$(cd "$git"; pwd -P)"
-        realgit="${realgit%/.git}"
-		rev="$(git show $realgit | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-		sub="${realcwd##$realgit}"
+		realroot="$(git rev-parse --show-toplevel)"
+		rev="$(git show $realroot | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+		sub="${realcwd##$realroot}"
 		short="${short%$sub}"
 		echo $short $(__vc_git_ps1 "[git:%s $rev]")$sub
 	else if [ "$bzr" ]; then
@@ -215,17 +226,14 @@ __vc_status ()
 	fi;fi;
 }
 
-# <userpath>[<branchname><branchstate>]<branchpath>
-# Version Control part for prompt, state indicators:
-# + : added files
-# * : modified "
-# - : removed "
-# ? : untracked "
+# Determine proper directory and return all info bits from __vc_status()
 __vc_ps1 ()
 {
     d="$1"
     [ -z "$d" ] && d="$(pwd)"
-    __vc_status "$d"
+    echo
+    echo d=$d
+    [ -z "$d" ] || {  __vc_status "$d"; }
 }
 
 # Main
