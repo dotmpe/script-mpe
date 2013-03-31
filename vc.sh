@@ -187,7 +187,6 @@ __vc_status ()
 	w="$1";
 	cd "$w"
     realcwd="$(pwd -P)"
-    echo realcwd=$realcwd
 	short="${w/#$HOME/~}"
 
 	local git=$(__vc_gitdir "$w")
@@ -231,8 +230,6 @@ __vc_ps1 ()
 {
     d="$1"
     [ -z "$d" ] && d="$(pwd)"
-    echo
-    echo d=$d
     [ -z "$d" ] || {  __vc_status "$d"; }
 }
 
