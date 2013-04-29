@@ -502,6 +502,10 @@ class INode(Node):
 	FIFO = 'inode:fifo'
 	Socket = 'inode:socket'
 
+	@property
+	def location(self):
+		return "file:%s" % "/".join((self.host.netpath, self.local_path))
+
 	def __str__(self):
 		return "<%s %s>" % (lib.cn(self), self.location)
 

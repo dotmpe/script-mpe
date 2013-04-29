@@ -38,7 +38,7 @@ def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
 			os.path.realpath('.') + os.sep)
 
 	try:
-		for root, dirs, files in os.walk(pwd.location.path):
+		for root, dirs, files in os.walk(pwd.local_path):
 			for name in files + dirs:
 				log.info("{bblack}Typing tags for {green}%s{default}",
 						name)

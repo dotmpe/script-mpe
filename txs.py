@@ -39,8 +39,8 @@ class LocalPathResolver(object):
 		if exists:
 			assert os.path.isdir(path), "Missing %s"%path
 		node = self.get(path, opts)
-		#if not node:
-		#	node = Dir(local_path=path, host=self.host)
+		if not node:
+			node = Dir(local_path=path, host=self.host)
 		return node
 
 	def get(self, path, opts):
@@ -50,25 +50,19 @@ class LocalPathResolver(object):
 					.filter(INode.local_path == path)\
 					.filter(Node.ntype == INode.Dir)\
 					.one()
-#					.join('location')\
-#					.filter(Locator.ref == ref)\
 		except NoResultFound, e:
 			pass
-		return path
 
+		return INode(local_path=path, host=self.host)
+# XXX: why hijack init which is for session init..
 		assert False
+
 		if not opts.init:
 			log.warn("Not a known path %s", path)
 			return
-		locator = Locator(
-				ref=ref,
-				date_added=datetime.now())
-		#locator.host
-		#		host=self.host,
-		locator.commit()
 		inode = INode(
 				ntype=self.get_type(path),
-				location=locator,
+				local_path=path,
 				date_added=datetime.now())
 		inode.commit()
 		return inode
@@ -251,8 +245,8 @@ def txs_ls(pwd=None, ur=None, opts=None):
 	if isinstance(node, basestring):
 		print "Dir", node
 	else:
-		print node.location.path
-		for rs in res.Dir.walk(node.location.path):
+		print node.local_path
+		for rs in res.Dir.walk(node.local_path):
 			print rs
 
 
