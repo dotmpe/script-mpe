@@ -3,11 +3,16 @@
 # An output colorizer for syslog.
 # 
 import sys
+import os
+
+
+CS = os.getenv('CS', 'dark')
 
 # $template custom,"TS:%timereported%;PRI:%pri%;PRI-text:%PRI-text%;APP:%app-name%;PID:%procid%;MID:%msgid%;HOSTNAME:%hostname%;msg:%msg%;FROMHOST:%FROMHOST%;STRUCTURED-DATA:%STRUCTURED-DATA%\n"
 #
 c00="\x1b[0;0;30m" # black/grey
 c10="\x1b[0;1;30m" #
+
 c01="\x1b[0;0;31m" # red
 c11="\x1b[0;1;31m" #
 c02="\x1b[0;0;32m" # green
@@ -20,8 +25,10 @@ c05="\x1b[0;0;35m" # magenta/purple
 c15="\x1b[0;1;35m" # 
 c06="\x1b[0;0;36m" # cyan/light blue
 c16="\x1b[0;1;36m" # 
+
 c07="\x1b[0;0;37m" # white
 c17="\x1b[0;1;37m" # 
+
 
 palette = {}
 palette.update(locals())
@@ -33,11 +40,11 @@ level_templates = {
 	'emerg':  "c11,TS,c05, ,HOSTNAME, ,FAC,.,c11,LVL, ,c01,msg,c00",
 	'alert':  "c13,TS,c05, ,HOSTNAME, ,FAC,.,c11,LVL, ,c07,msg,c00",
 	'crit':   "c13,TS,c05, ,HOSTNAME, ,FAC,.,c11,LVL, ,c07,msg,c00",
-	'err':	"c03,TS,c05, ,HOSTNAME, ,FAC,.,c01,LVL, ,c07,msg,c00",
+	'err':	  "c03,TS,c05, ,HOSTNAME, ,FAC,.,c01,LVL, ,c07,msg,c00",
 	'warn':   "c03,TS,c05, ,HOSTNAME, ,FAC,.,c03,LVL, ,c07,msg,c00",
 	'notice': "c07,TS,c05, ,HOSTNAME, ,FAC,.,c07,LVL, ,c07,msg,c00",
-	'info':   "c00,TS,c05, ,HOSTNAME, ,FAC,.,c10,LVL, ,c07,msg,c00",
-	'debug':  "c00,TS,c05, ,HOSTNAME, ,FAC,.,c10,LVL, ,c00,msg,c00",
+	'info':   "c07,TS,c05, ,HOSTNAME, ,FAC,.,c10,LVL, ,c07,msg,c00",
+	'debug':  "c08,TS,c05, ,HOSTNAME, ,FAC,.,c10,LVL, ,c10,msg,c00",
 }
 
 def _format(fields):
@@ -45,7 +52,10 @@ def _format(fields):
 	facility, level = fields['PRI-text'].split('<')[0].split('.')
 	fields['FAC'] = facility
 	fields['LVL'] = level
-	template = "".join(map("%%(%s)s".__mod__,level_templates[level].split(",")))
+	template = "".join(map(
+			"%%(%s)s".__mod__, 
+			level_templates[level].split(",")
+		))
 	fields.update(palette)
 	fields[' '] = " "
 	fields['.'] = "."
@@ -118,7 +128,7 @@ def log(level, msg, *args):
 			4:'{yellow}warning{default}',
 			5:'{green}Note{default}',
 			#6:'{bblack}info{default}',
-			7:'{bblack}Debug{default}'
+			7:'{bwhite}Debug{default}'
 		}
 	if level in title:
 		msg = title[level] +': '+ msg
@@ -159,3 +169,5 @@ if __name__ == '__main__':
 	log(NOTE, "Test test {green}test{default}")
 	log(INFO, "Test test {green}test{default}")
 	log(DEBUG, "Test test {green}test{default}")
+
+

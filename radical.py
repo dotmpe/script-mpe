@@ -160,7 +160,7 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 #from cllct.osutil import parse_argv_split
 
 import confparse
-from libcmd import Cmd, err, optparse_override_handler
+from libcmd import Command, optparse_override_handler
 import taxus
 from taxus import Taxus
 
@@ -439,7 +439,7 @@ def find(session, matchbox, source, data, comment_flavours):
 					tag_span[1]-tag_span[0], data,
 					rc.comment_flavours, matchbox)
 			if not comment: 
-				err("Unable to find comment span for '%s' at %s:%s " % (
+				log.err("Unable to find comment span for '%s' at %s:%s " % (
 					data[tag_span[0]:tag_span[1]], source, tag_span))
 				continue
 			comment_flavour, comment_span, lines = comment
@@ -613,7 +613,8 @@ rc = confparse.Values()
 
 # Main
 
-class Radical(taxus.Taxus):
+#class Radical(taxus.Taxus):
+class Radical(Command):
 
 	PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
 
@@ -627,11 +628,11 @@ class Radical(taxus.Taxus):
 
 	#NONTRANSIENT_OPTS = Taxus.NONTRANSIENT_OPTS + [
 	#	'list_flavours', 'list_scans' ]
-	TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + [ 'run_embedded_issue_scan' ]
+	#TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + [ 'run_embedded_issue_scan' ]
 	DEFAULT_ACTION = 'run_embedded_issue_scan'
 
 	def get_opts(self):
-		return Cmd.get_opts(self) + (
+		return Command.get_opts(self) + (
 			(('-d', '--database'),{ 'metavar':'URI', 'dest':'dbref',
 				'help': "A URI formatted relational DB access description, as "
 					"supported by sqlalchemy. Ex:"
@@ -661,7 +662,6 @@ class Radical(taxus.Taxus):
 			#(('-r', '--recurse'),{'action':'store_true', 'default': True,
 			#	'help': 'Recurse into directory paths (default: %default)'}),
 		)
-
 
 	def init_config_defaults(self):
 		self.rc.tags = DEFAULT_TAGS
@@ -752,5 +752,6 @@ class Radical(taxus.Taxus):
 
 if __name__ == '__main__':
 	Radical().main()
+	#TargetResolver().main(['cmd:options'])
 
 # vim:et:

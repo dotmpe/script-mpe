@@ -17,10 +17,10 @@ from libcmd import Targets, Arguments, Keywords, Options,\
 	Target 
 # XXX
 from taxus import SqlBase, SessionMixin, \
-		Node, INode, \
+		Node, INode, Dir, \
 		ID, Name, Locator, \
 		Host, \
-		Locator, Tag
+		Locator, Tag, current_hostname
 import taxus_out
 
 
@@ -35,22 +35,28 @@ class LocalPathResolver(object):
 		"""
 		Return INode object for current directory.
 		"""
+		assert path, path
 		if exists:
 			assert os.path.isdir(path), "Missing %s"%path
 		node = self.get(path, opts)
-		assert node, "Required: %s"%path
+		#if not node:
+		#	node = Dir(local_path=path, host=self.host)
 		return node
 
 	def get(self, path, opts):
 		ref = "file:%s%s" % (self.host.netpath, path)
 		try:
 			return self.sa.query(INode)\
-					.join('location')\
+					.filter(INode.local_path == path)\
 					.filter(Node.ntype == INode.Dir)\
-					.filter(Locator.ref == ref)\
 					.one()
+#					.join('location')\
+#					.filter(Locator.ref == ref)\
 		except NoResultFound, e:
 			pass
+		return path
+
+		assert False
 		if not opts.init:
 			log.warn("Not a known path %s", path)
 			return
@@ -187,7 +193,6 @@ def host_find(args, sa=None):
 	return node
 		  
 
-
 # TODO; test and remove from taxus.py
 
 @Target.register(NS, 'session', 'cmd:options')
@@ -239,6 +244,17 @@ def txs_pwd(prog=None, sa=None, ur=None, opts=None, settings=None):
 	yield pwd
 	yield Keywords(pwd=pwd)
 
+@Target.register(NS, 'ls', 'txs:pwd')
+def txs_ls(pwd=None, ur=None, opts=None):
+	log.debug("{bblack}txs{bwhite}:ls{default}")
+	node = ur.getDir(pwd, opts)
+	if isinstance(node, basestring):
+		print "Dir", node
+	else:
+		print node.location.path
+		for rs in res.Dir.walk(node.location.path):
+			print rs
+
 
 @Target.register(NS, 'run', 'txs:session')
 def txs_run(sa=None, ur=None, opts=None, settings=None):
@@ -257,6 +273,7 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
 	log.info("{bblack}Tagging paths in {green}%s{default}",
 			os.path.realpath('.') + os.sep)
 	cwd = os.getcwd()
+	assert isinstance(cwd, basestring), cwd
 	try:
 		for pathstr in res.Dir.walk(cwd, opts):
 			path = ur.get(pathstr, opts)
@@ -289,13 +306,5 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
 	if results:
 		for path in results:
 			yield path
-
-@Target.register(NS, 'ls', 'txs:pwd')
-def txs_ls(pwd=None, ur=None, opts=None):
-	log.debug("{bblack}txs{bwhite}:ls{default}")
-	node = ur.getDir(pwd, opts)
-	print node.location.path
-	for rs in res.Dir.walk(node.location.path):
-		print rs
 
 

@@ -236,7 +236,7 @@ class Prompt(object):
 		assert options
 		opts = ''.join([o[0] for o in options]).title()
 		while True:
-			print log.format_line('{green}%s {bwhite}[{bblack}%s{bwhite}]{default} or [?help] ') % (question, opts)
+			print log.format_line('{green}%s {bwhite}[{white}%s{bwhite}]{default} or [?help] ') % (question, opts)
 #			v = sys.stdin.read(1)
 			v = getch()
 			#v = raw_input(

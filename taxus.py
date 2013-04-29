@@ -115,6 +115,29 @@ import log
 SqlBase = declarative_base()
 
 
+class DNSLookupException(Exception):
+
+	def __init__( self, addr, exc ):
+		self.addr = addr
+		self.exc = exc
+
+	def __str__( self ):
+		return "DNS lookup error for %s: %s" % ( self.addr, self.exc )
+
+DNSCache = {}
+
+def nameinfo(addr):
+	try:
+		DNSCache[ addr ] = socket.getaddrinfo(
+			addr[ 0 ], addr[ 1 ], socket.AF_INET, socket.SOCK_STREAM )
+	except Exception, e:
+		raise DNSLookupException(addr, e)
+
+	print DNSCache[ addr ][ 0 ]
+
+	family, socktype, proto, canonname, sockaddr = DNSCache[ addr ][ 0 ]
+
+
 # Util classes
 class SessionMixin(object):
 
@@ -425,25 +448,31 @@ def current_hostname(initialize=False, interactive=False):
 
 	elif initialize:
 
-		hostname = socket.gethostname()
-		assert not isinstance(hostname, (tuple, list)), hostname
-		log.debug(hostname)
+		#assert not isinstance(hostname, (tuple, list)), hostname
+		#print 'gethostbyaddr', hostname, '->', hostnames
+		#fqdn = socket.getfqdn(), 
 
+		hostname = socket.gethostname()
 		hostnames = socket.gethostbyaddr(hostname)
-		if socket.getfqdn() != socket.gethostname():
-			hostname = hostnames[0] +"."
-		else:
-			log.err("FQDN is same as hostname")
-			# cannot figure out what host to use
-			while interactive:
-				print hostnames
-				hostname = prompt_choice_with_input("Which? ", hostnames[1])
-				if hostname: break
-			#if not interactive:
-			#	raise ValueError("")
-		if hostname:
-			open(hostname_file, 'w+').write(hostname)
-			print "Stored %s in %s" % (hostname, hostname_file)
+		while True:
+			if socket.getfqdn() != hostname:
+				hostname = hostnames[0] +"."
+			else:
+				log.err("FQDN is same as hostname")
+				# cannot figure out what host to use
+				while interactive:
+					hostname = prompt_choice_with_input("Which? ", hostnames[1])
+					if hostname: break
+				#if not interactive:
+				#	raise ValueError("")
+			if hostname:
+				try:
+					nameinfo((hostname, 80))
+				except Exception, e:
+					print 'Warning: Cannot resolve FQDN', e
+				open(hostname_file, 'w+').write(hostname)
+				print "Stored %s in %s" % (hostname, hostname_file)
+				break
 	return hostname
 
 
@@ -457,13 +486,13 @@ class INode(Node):
 
 	#filesystem_id = Column(Integer, ForeignKey('nodes.id'))
 
-	locator_id = Column(ForeignKey('ids_lctr.id'), index=True)
-	location = relationship(Locator, primaryjoin=locator_id == Locator.id)
+	#locator_id = Column(ForeignKey('ids_lctr.id'), index=True)
+	#location = relationship(Locator, primaryjoin=locator_id == Locator.id)
 
-	#local_path = Column(String(255), index=True, unique=True)
+	local_path = Column(String(255), index=True, unique=True)
 
-	#host_id = Column(Integer, ForeignKey('hosts.id'))
-	#host = relationship(Host, primaryjoin=Host.host_id==host_id)
+	host_id = Column(Integer, ForeignKey('hosts.id'))
+	host = relationship(Host, primaryjoin=Host.host_id==host_id)
 
 	Dir = 'inode:dir'
 	File = 'inode:file'
