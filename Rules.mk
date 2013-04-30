@@ -34,23 +34,32 @@ test:: test_py_$d test_sa_$d
 test_py_$d test_sa_$d :: D := $/
 
 # Generate a coverage report of one or more runs to find stale code
+debug_py_$d:: TESTS := 
 debug_py_$d::
 	@$(call log_line,info,$@,Starting python unittests..)
 	@\
-		PYTHONPATH=$$PYTHONPATH:./;\
-		PATH=$$PATH:~/bin;\
-        TEST_PY="main.py txs:ls cmd:targets cmd:help";\
-		TEST_LIB=cmdline,target,res,txs,taxus,lind,resourcer;\
-		HTML_DIR=debug-coverage;\
-		VERBOSE=2;\
-    $(test-python) 2> debug.log
-	@if [ -n "$$(tail -1 debug.log|grep OK)" ]; then \
-	    $(ll) Success "$@" "see" debug.log; \
-    else \
-	    $(ll) Errors "$@" "$$(tail -1 debug.log)"; \
-	    $(ll) Errors "$@" see debug.log; \
-    fi
+		COVERAGE_PROCESS_START=.coveragerc \
+			$(TEST_DATA) ./system-test $(TESTS) \
+				2>&1 | tee systemtest.log
+	@\
+		PASSED=$$(echo $$(grep PASSED systemtest.log | wc -l));\
+		ERRORS=$$(echo $$(grep ERROR systemtest.log | wc -l));\
+		echo $$PASSED passed checks, $$ERRORS errors, see systemtest.log
+#		PYTHONPATH=$$PYTHONPATH:./;\
+#		PATH=$$PATH:~/bin;\
+#        TEST_PY="main.py txs:ls cmd:targets cmd:help";\
+#		TEST_LIB=cmdline,target,res,txs,taxus,lind,resourcer;\
+#		HTML_DIR=debug-coverage;\
+#		VERBOSE=2;\
+#    $(test-python) 2> debug.log
+#	@if [ -n "$$(tail -1 debug.log|grep OK)" ]; then \
+#	    $(ll) Success "$@" "see" debug.log; \
+#    else \
+#	    $(ll) Errors "$@" "$$(tail -1 debug.log)"; \
+#	    $(ll) Errors "$@" see debug.log; \
+#    fi
 
+# Unit test python code
 test_py_$d::
 	@$(call log_line,info,$@,Starting python unittests..)
 	@\
@@ -68,8 +77,9 @@ test_py_$d::
 	    $(ll) Errors "$@" see test.log; \
     fi
 
+# Make SA do a test on the repo
 test_sa_$d::
-	@$(call log_line,info,$@,Testing SQLAlchemy repository..);
+	@$(call log_line,info,$@,Testing SQLAlchemy repository..)
 	@\
 	DBREF=sqlite:///$(DB_SQLITE_TEST);\
 	sqlite3 $(DB_SQLITE_TEST) ".q"; \
