@@ -12,6 +12,14 @@ Issues:
 	- Rewrite taxus INode to be polymorphic: Dir, File, Dev..
 
 """
+
+# XXX: development tooling:
+try:
+    import coverage
+    coverage.process_startup()
+except ImportError, e:
+    pass
+
 import lib
 from libcmd import TargetResolver
 import cmdline
