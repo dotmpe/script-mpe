@@ -10,74 +10,71 @@ only one type for a node record at any time.
 TODO: redraw this diagram.
 Inheritance hierarchy and relations::
 
-						 Node
-						  * name:String(255)
-						  * type
-						  * date-added
-						  * deleted
-						  * date-deleted
+                         Node
+                          * name:String(255)
+                          * type
+                          * date-added
+                          * deleted
+                          * date-deleted
 
-							  A
-							  |
-		   .-------------- .--^-------. ----------. -----. 
-		   |			   |		  |			|	  |   
-		  INode			|		 Status	   Host	|
-		   * local_path	|		  * nr		 * hostname 
-		   * size		  |		  * http_code		 |
-		   * cum_size	  |							  |
-		   * host		  |		  ^				   |
-						   |		  |				   |
-						   |		  |				   | 
-		A				  |		  |				   | 
-		|				  |		  |				   | 
-	 CachedContent		Resource	|				   |	
-	  * cid				* status --/				   |		
-	  * size			   * location:Location			| 
-	  * charset			* last/a/u-time				|  
-	  * partial			* allowed					  | 
-	  * expires										   |
-	  * etag			   A							  |
-	  * encodings		  |							  |
-						   |							  | 
-	  ^					|						/--< Description
-	  |					|						|	 * namespace:Namespace
-	  |  Invariant --------'-- Variant			  |	  
-	  \-- * content		|	* vary			  |	 A			   
-		  * mediatype	  |	* descriptions >----/	 |		 
-		  * languages	  |							  '-- Comment	   
-						   |	A						 |	* node:Node
-						   |	|						 |	* comment:Text
-						   |	|						 |	 
-			   ChecksumDigest	|   Namespace				  '-- ...
-				* sha1	 |	* prefix:String		   * subject	
-				* md5	  |							  * predicate   
-						   '-- Relocated				  * object	 
-						   |	* redirect:Location 
-						   |	* temporary:Bool
-						   |												
-						   '-- Bookmark				  Formula		 
-															 * statements
+                              A
+                              |
+           .-------------- .--^-------. ----------. -----. 
+           |               |          |            |      |   
+          INode            |         Status       Host    |
+           * local_path    |          * nr         * hostname 
+           * size          |          * http_code         |
+           * cum_size      |                              |
+           * host          |          ^                   |
+                           |          |                   |
+                           |          |                   | 
+        A                  |          |                   | 
+        |                  |          |                   | 
+     CachedContent        Resource    |                   |    
+      * cid                * status --/                   |        
+      * size               * location:Location            | 
+      * charset            * last/a/u-time                |  
+      * partial            * allowed                      | 
+      * expires                                           |
+      * etag               A                              |
+      * encodings          |                              |
+                           |                              | 
+      ^                    |                        /--< Description
+      |                    |                        |     * namespace:Namespace
+      |  Invariant --------'-- Variant              |      
+      \-- * content        |    * vary              |     A               
+          * mediatype      |    * descriptions >----/     |         
+          * languages      |                              '-- Comment       
+                           |    A                         |    * node:Node
+                           |    |                         |    * comment:Text
+                           |    |                         |     
+    ChecksumDigest         |   Namespace                  '-- ...
+     * sha1                |    * prefix:String           * subject    
+     * md5                 |                              * predicate   
+                           '-- Relocated                  * object     
+                           |    * redirect:Location 
+                           |    * temporary:Bool
+                           |                                                
+                           '-- Bookmark                  Formula         
+                                                          * statements
+    ID 
+     * id
+     * date-added
+     * deleted
+     * date-deleted
 
-	ID 
-	 * id
-	 * date-added
-	 * deleted
-	 * date-deleted
-
-		 A
-		 |
-	 .---^------.
-	 |		  |
-	 |		Name
-	 |		 * id
-	 |		 * name
-	 |
+         A
+         |
+     .---^------.
+     |          |
+     |        Name
+     |         * id
+     |         * name
+     |
    Locator   
-	* id
-	* ref
-	* checksums
-
-																				  
+    * id
+    * ref
+    * checksums
 
 
 This schema will make node become large very quickly. Especially as various
