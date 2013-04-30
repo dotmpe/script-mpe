@@ -61,7 +61,6 @@ Options.register(NS,
 
 	)
 
-
 @Target.register(NS, 'lib', 'cmd:userdir')
 def rsr_lib_init(prog=None, lib=None, conf=None):
 	"""
@@ -282,6 +281,8 @@ def rsr_status(prog=None, objects=None, opts=None, conf=None):
 	print PersistedMetaObject.sessions['user']
 	Dir.find_newer(prog.pwd, )
 	yield 0
+
+
 
 
 # XXX: Illustration of the kwd types by rsr
