@@ -1,13 +1,16 @@
+import base64
 import datetime
 import os
 import hashlib
+import time
 import traceback
 
 import calendar
 import lib
 import util
+import log
 from persistence import PersistedMetaObject
-
+from res import fs, util
 
 
 class Metafile(PersistedMetaObject): # XXX: Metalink
@@ -57,6 +60,9 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
         #        if update and self.needs_update():
         #            self.update()
 
+    def __str__(self):
+        return "[Meta:%s %s]" % (self.path, self.non_zero())
+
     def set_path(self, path):
         if path.endswith('.meta'):
             path = path[:-5]
@@ -95,14 +101,14 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
         if 'X-Last-Modified' in self.data:
             datestr = self.data['X-Last-Modified']
             return calendar.timegm( time.strptime(datestr,
-                ISO_8601_DATETIME)[0:6])
+                util.ISO_8601_DATETIME)[0:6])
 
     @property
     def utime(self):
         if 'X-Last-Update' in self.data:
             datestr = self.data['X-Last-Update']
             return calendar.timegm( time.strptime(datestr,
-                ISO_8601_DATETIME)[0:6])
+                util.ISO_8601_DATETIME)[0:6])
 
     def needs_update(self):
         """
@@ -158,7 +164,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 
     @classmethod
     def exists(cls, path):
-        if self.data:
+        if self.data:# and self.non_zero():
             self.data['X-Last-Seen'] = util.iso8601_datetime_format(now.timetuple())
         return os.path.exists(path)
 
@@ -181,7 +187,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
                     nodes.remove(node)
                     continue
                 depth = dirpath.replace(path,'').strip('/').count('/')
-                if Dir.ignored(dirpath):
+                if fs.Dir.ignored(dirpath):
                     log.err("Ignored directory %r", dirpath)
                     nodes.remove(node)
                 elif max_depth != -1:
@@ -195,7 +201,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
                 if not os.path.isfile(cleaf) or os.path.islink(cleaf):
                     #log.err("Ignored non-regular file %r", cleaf)
                     continue
-                if File.ignored(cleaf):
+                if fs.File.ignored(cleaf):
                     #log.err("Ignored file %r", cleaf)
                     continue
                 if Metafile.is_metafile(cleaf, strict=False):

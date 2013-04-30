@@ -1,4 +1,6 @@
 """
+Filesystem metadata & management routines.
+
 See Resourcer.rst
 """
 import os
@@ -8,10 +10,10 @@ from pprint import pformat
 import lib
 import log
 import confparse
+import res
 from libname import Namespace, Name
 from libcmd import Targets, Arguments, Keywords, Options,\
 	Target 
-from res import PersistedMetaObject, Metafile, Volume
 
 
 
@@ -61,49 +63,49 @@ def rsr_shared_lib():
 @Target.register(NS, 'volume', 'rsr:shared-lib')
 def rsr_volume(prog=None, opts=None):
 	log.debug("{bblack}rsr{bwhite}:volume{default}")
-	volume = Volume.find(prog.pwd)
+	volume = res.Volume.find(prog.pwd)
 	if not volume:
 		log.err("Not in a volume")
 		yield 1
 	log.note("rsr:volume %r for %s", volume.db, volume.full_path)
 	yield Keywords(volume=volume)
-	volumedb = PersistedMetaObject.get_store('volume', volume.db)
+	# shelve based storage
+	volumedb = res.PersistedMetaObject.get_store('volume', volume.db)
 	log.info("rsr:volume index length: %i", len(volumedb))
+	for k in volumedb:
+		print k, volumedb[k]
 	yield Keywords(volumedb=volumedb)
-	#Metafile.default_extension = '.meta'
-	#Metafile.basedir = 'media/application/metalink/'
+	#res.Metafile.default_extension = '.meta'
+	#res.Metafile.basedir = 'media/application/metalink/'
 
 @Target.register(NS, 'init-volume', 'rsr:shared-lib')
 def rsr_init_volume():
-	#PersistedMetaObject.get_store('global')
+	#res.PersistedMetaObject.get_store('global')
 	path = os.getcwd()
-	#Volume.create(path)
+	#res.Volume.create(path)
 	cdir = os.path.join(path, '.cllct')
 	if not os.path.exists(cdir):
 		os.mkdir(cdir)
 	vdb = os.path.join(cdir, 'volume.db')
-	if os.path.exists(vdb):
-		err("DB exists")
-		return
+	#if not os.path.exists(vdb):
 	db = shelve.open(vdb)
-	#DB_MODE = 'n'
-	#db = anydbm.open(vdb, DB_MODE)
 	db['mounts'] = [path]
 	db.close()
-
 
 #@Target.register(NS, 'clean', 'cmd:options')
 #def rsr_clean(volumedb=None):
 #	log.debug("{bblack}rsr{bwhite}:clean{default}")
 #	vlen = len(volumedb)
-#	log.err("Rsr: Closing volumedb")
+#	log.note("Rsr: Closing volumedb")
 #	volumedb.close()
-#	log.err("Rsr: Closed, %i keys", vlen)
-
+#	log.info("Rsr: Closed, %i keys", vlen)
 
 @Target.register(NS, 'update-volume', 'rsr:volume')
-def rsr_update_volume(prog=None, volume=None, volumedb=None, opts=None):
+def rsr_update_volume(prog=None, volume=None, volumedb=None, opts=None, *args):
 	"""
+	Walk all files, determine identity. Keep one ID registry per host.
+
+See update_metafiles
 	Walk all files, gather metadata into metafile.
 
 	Create metafile if needed. Fill in 
@@ -119,32 +121,42 @@ def rsr_update_volume(prog=None, volume=None, volumedb=None, opts=None):
 		- If any of above mentioned and at least one Digest field is not present.
 
 	""" 
+	# 
+	i = 0
+	for path in res.Dir.walk(prog.pwd):
+		i += 1
+		metafile = res.Metafile(path)
+		print i, path, metafile
+	print args
+
+@Target.register(NS, 'update-metafiles', 'rsr:volume')
+def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
 	log.debug("{bblack}rsr{bwhite}:update-volume{default}")
 	i = 0
-	for path in Metafile.walk(prog.pwd):
+	for path in res.Metafile.walk(prog.pwd):
 		print path
 		i += 1
 		new, updated = False, False
-		metafile = Metafile(path)
+		metafile = res.Metafile(path)
 		#if options:
 		#metafile.basedir = 'media/application/metalink/'
 		#if metafile.key in volumedb:
 		#	metafile = volumedb[metafile.key]
-		#	#log.err("Found %s in volumedb", metafile.key)
+		#	#log.info("Found %s in volumedb", metafile.key)
 		#else:
 		#	new = True
 		if metafile.needs_update():
-			log.err("Updating metafile for %s", metafile.path)
+			log.note("Updating metafile for %s", metafile.path)
 			metafile.update()
 			updated = True
 		#if updated or metafile.key not in volumedb:
-		#	log.err("Writing %s to volumedb", metafile.key)
+		#	log.note("Writing %s to volumedb", metafile.key)
 		#	volumedb[metafile.key] = metafile
 		#	new = True
 		if new or updated:
 			#if options.persist_meta:
 			#if metafile.non_zero:
-			#	log.err("Overwriting previous metafile at %s", metafile.path)
+			#	log.note("Overwriting previous metafile at %s", metafile.path)
 			metafile.write()
 			for k in metafile.data:
 				print '\t'+k+':', metafile.data[k]

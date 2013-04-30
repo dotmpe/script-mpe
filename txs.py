@@ -1,4 +1,5 @@
 """
+Path annotation, structuring.
 """
 import os, stat, sys
 import re, anydbm
@@ -191,7 +192,7 @@ def host_find(args, sa=None):
 
 @Target.register(NS, 'session', 'cmd:options')
 def txs_session(prog=None, sa=None, opts=None, settings=None):
-	# SA session
+	# default SA session
 	dbref = opts.dbref
 	if opts.init:
 		log.debug("Initializing SQLAlchemy session for %s", dbref)
@@ -248,7 +249,6 @@ def txs_ls(pwd=None, ur=None, opts=None):
 		print node.local_path
 		for rs in res.Dir.walk(node.local_path):
 			print rs
-
 
 @Target.register(NS, 'run', 'txs:session')
 def txs_run(sa=None, ur=None, opts=None, settings=None):
