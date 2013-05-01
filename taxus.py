@@ -19,44 +19,57 @@ Inheritance hierarchy and relations::
 
                               A
                               |
-           .-------------- .--^-------. ----------. -----. 
-           |               |          |            |      |   
-          INode            |         Status       Host    |
-           * local_path    |          * nr         * hostname 
-           * size          |          * http_code         |
-           * cum_size      |                              |
-           * host          |          ^                   |
-                           |          |                   |
+        .---- .----------- .--^-------. ----------. -----. 
+        |     |            |          |            |      |   
+        |    Token         |          |            |      |
+        |     * value      |          |            |      |
+        |     * refs       |          |            |      |
+        |                  |          |            |      |
+       INode               |         Status       Host    |
+        * local_path       |          * nr         * hostname 
+        * size             |          * http_code         |
+        * cum_size         |                              |
+        * host             |          ^                   |
                            |          |                   | 
-        A                  |          |                   | 
-        |                  |          |                   | 
-     CachedContent        Resource    |                   |    
-      * cid                * status --/                   |        
-      * size               * location:Location            | 
-      * charset            * last/a/u-time                |  
-      * partial            * allowed                      | 
-      * expires                                           |
-      * etag               A                              |
-      * encodings          |                              |
+          A                |          |                   | 
+          |                |          |                   | 
+       CachedContent      Resource    |                   |    
+        * cid              * status --/                   |        
+        * size             * location:Location            | 
+        * charset          * last/a/u-time                |  
+        * partial          * allowed                      | 
+        * expires                                         |
+        * etag             A                              |
+        * encodings        |                              |
                            |                              | 
-      ^                    |                        /--< Description
-      |                    |                        |     * namespace:Namespace
-      |  Invariant --------'-- Variant              |      
-      \-- * content        |    * vary              |     A               
-          * mediatype      |    * descriptions >----/     |         
-          * languages      |                              '-- Comment       
+        ^                  |                        /--< Description
+        |                  |                        |     * namespace:Namespace
+        |  Invariant ------'-- Variant              |      
+        \-- * content      |    * vary              |     A               
+            * mediatype    |    * descriptions >----/     |         
+            * languages    |                              '-- Comment       
                            |    A                         |    * node:Node
                            |    |                         |    * comment:Text
                            |    |                         |     
-    ChecksumDigest         |   Namespace                  '-- ...
-     * sha1                |    * prefix:String           * subject    
-     * md5                 |                              * predicate   
+                           |   Namespace                  '-- ...
+                           |    * prefix:String           * subject    
+                           |                              * predicate   
                            '-- Relocated                  * object     
                            |    * redirect:Location 
                            |    * temporary:Bool
                            |                                                
                            '-- Bookmark                  Formula         
                                                           * statements
+          ChecksumDigest   
+           * date_added
+           * date_/deleted
+           A
+           |
+     .-----^------.
+     |            |
+    SHA1Digest   MD5Digest
+     * digest     * digest
+
     ID 
      * id
      * date-added
@@ -177,7 +190,7 @@ class ResultSet(NodeSet):
 
 class Node(SqlBase, SessionMixin):
 
-	zope.interface.implements(taxus_out.INode)
+	zope.interface.implements(taxus_out.INode) # meaning I'face Node, not INode
 
 	__tablename__ = 'nodes'
 	id = Column(Integer, primary_key=True)
