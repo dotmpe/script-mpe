@@ -219,7 +219,8 @@ class Prompt(object):
 
 	@classmethod
 	def ask(clss, question, yes_no='Yn'):
-		yes, no = yes_no.split()
+		assert len(yes_no) == 2, "Need two choices, a logica true and false, but options don't match: %r" % yes_no
+		yes, no = list(yes_no)
 		assert yes.isupper() or no.isupper()
 		v = raw_input('%s [%s] ' % (question, yes_no))
 		if not v:

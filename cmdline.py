@@ -152,7 +152,9 @@ def cmd_prog():
 		name=os.path.splitext(os.path.basename(__file__))[0],
 		version="0.1",
 		pwd=os.getcwd(),
+		home=os.getenv('HOME')
 	))
+	assert prog.home, "What, no homefolder? Are you a user even"
 	yield Keywords(prog=prog)
 
 @Target.register(NS, 'config', 'cmd:prog')

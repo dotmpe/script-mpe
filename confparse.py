@@ -113,7 +113,7 @@ def find_config_path(markerleaf, path=None, prefixes=config_prefix,
 	flexibility which usually equals the abilitiy to match both hidden and
 	non-hidden filenames, and to match any set of giving filename extensions.
 	"""
-
+	assert isinstance(markerleaf, basestring), markerleaf
 	if path:
 		paths.extend(tree_paths(path))
 	while paths:

@@ -35,7 +35,12 @@ Options.register(NS,
 			'action': 'store_true',
 			'help': "For directory listings, do not descend into "
 			"subdirectories by default. "
-			}),
+		}),
+
+		(('-f', '--force' ),{ 
+			'default': False,
+			'action': 'store_true'
+		}),
 
 		(('-L', '--max-depth', '--maxdepth'),{ 
 			'dest': "max_depth",
@@ -48,49 +53,43 @@ Options.register(NS,
 	)
 
 
-
-#def rsr_workspace(opts=None):
-#	pass # determine, init dir
-#
-
 @Target.register(NS, 'shared-lib', 'cmd:options')
-def rsr_shared_lib():
+def rsr_shared_lib(prog=None, opts=None):
+	ws = res.Workspace.find(prog.pwd, prog.home)
+	if not ws and opts.init:
+		ws = res.Workspace(prog.pwd)
+		if opts.force or lib.Prompt.ask("Create workspace %r?" % ws):
+			ws.init(True)
+		else:
+			print "Workspace init cancelled. "
+	if not ws:
+		print "No workspace, make sure you are below one or have one in your homefolder."
+		yield 2
 	libs = confparse.Values(dict(
 			path='/usr/lib/cllct',
+			wsdb=ws.db
 		))
-	yield Keywords(sharedlib=libs)
+	yield Keywords(ws=ws, sharedlib=libs)
 
 @Target.register(NS, 'volume', 'rsr:shared-lib')
 def rsr_volume(prog=None, opts=None):
+	"""
+	Find existing volume from current working dir.
+	"""
 	log.debug("{bblack}rsr{bwhite}:volume{default}")
 	volume = res.Volume.find(prog.pwd)
+	if not volume and opts.init:
+		volume = res.Volume(prog.pwd)
+		if opts.force or lib.Prompt.ask("Create volume %r?" % volume):
+			volume.init(True)
 	if not volume:
 		log.err("Not in a volume")
 		yield 1
 	log.note("rsr:volume %r for %s", volume.db, volume.full_path)
 	yield Keywords(volume=volume)
 	# shelve based storage
-	volumedb = res.PersistedMetaObject.get_store('volume', volume.db)
-	log.info("rsr:volume index length: %i", len(volumedb))
-	for k in volumedb:
-		print k, volumedb[k]
-	yield Keywords(volumedb=volumedb)
 	#res.Metafile.default_extension = '.meta'
 	#res.Metafile.basedir = 'media/application/metalink/'
-
-@Target.register(NS, 'init-volume', 'rsr:shared-lib')
-def rsr_init_volume():
-	#res.PersistedMetaObject.get_store('global')
-	path = os.getcwd()
-	#res.Volume.create(path)
-	cdir = os.path.join(path, '.cllct')
-	if not os.path.exists(cdir):
-		os.mkdir(cdir)
-	vdb = os.path.join(cdir, 'volume.db')
-	#if not os.path.exists(vdb):
-	db = shelve.open(vdb)
-	db['mounts'] = [path]
-	db.close()
 
 #@Target.register(NS, 'clean', 'cmd:options')
 #def rsr_clean(volumedb=None):
@@ -121,13 +120,16 @@ See update_metafiles
 		- If any of above mentioned and at least one Digest field is not present.
 
 	""" 
-	# 
 	i = 0
 	for path in res.Dir.walk(prog.pwd):
+		if not os.path.isfile(path):
+			continue
 		i += 1
 		metafile = res.Metafile(path)
-		print i, path, metafile
-	print args
+		if metafile.non_zero():
+			print i, path, metafile
+		elif not res.File.ignored(path):
+			print '!', i, path, metafile, 'missing'
 
 @Target.register(NS, 'update-metafiles', 'rsr:volume')
 def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):

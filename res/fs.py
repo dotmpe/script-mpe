@@ -16,6 +16,7 @@ class File(object):
 			'*.swo',
 			'*.swn',
 			'.git*',
+#			'.torrent',
 		)
 
 	ignore_paths = (
