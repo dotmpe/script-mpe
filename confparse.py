@@ -104,7 +104,7 @@ def find_config_path(markerleaf, path=None, prefixes=config_prefix,
 		Path: '~/', '/etc/'
 		Suffix: '', '.yaml', '.conf'
 
-	Path, if given, should be a directory.
+	Path, if given, should be a directory. And/or a list of paths may be given.
 
 	Rationale
 	---------
@@ -115,9 +115,14 @@ def find_config_path(markerleaf, path=None, prefixes=config_prefix,
 	"""
 	assert isinstance(markerleaf, basestring), markerleaf
 	if path:
-		paths.extend(tree_paths(path))
-	while paths:
-		cpath = paths.pop(0)
+		paths.append(path)
+	# Get a list of all paths, parents, symlinked locations
+	expanded_paths = []
+	for p in paths:
+		expanded_paths.extend(tree_paths(p))
+	# test for existing markerleaf
+	while expanded_paths:
+		cpath = expanded_paths.pop(0)
 		for prefix in prefixes:
 			for suffix in suffixes:
 				#print (cpath, prefix, suffix,)
