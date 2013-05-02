@@ -170,6 +170,27 @@ def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
 	volumedb.sync()
 
 
+@Target.register(NS, 'meta', 'rsr:volume')
+#def rsr_meta(src, pred, value, volume=None, *args):
+def rsr_meta(volume=None, *args):
+	"""
+		/volume/dir/ # rsr:meta ./file.avi rsr:media video/speech/lecture
+		/volume/dir/ # rsr:meta ./book.pdf rsr:media text/book/technical
+	"""
+	src = args.pop(0)
+	pred = args.pop(0)
+	value = args.pop(0)
+
+	yield Arguments(args)
+
+	vdb = volume.db
+
+	# if exists, read, 
+	# otherwise look in shelve
+	mf = Metafile.fetch(src, vdb)
+	# if in shelve, mf may exist and is given quick sanity check
+
+
 #@Target.register(NS, 'ls', 'rsr:volume')
 #def rsr_ls(volume=None, volumedb=None):
 #	cwd = os.getcwd();

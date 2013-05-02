@@ -91,7 +91,6 @@ class Workspace(object):
 	@property
 	def db(self):
 		dbname = os.path.join(self.full_path, '%s.shelve' % self.dotdir_id)
-		print 'dbname=',dbname
 		return shelve.open(dbname, 'c')
 
 

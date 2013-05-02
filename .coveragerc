@@ -22,7 +22,7 @@ exclude_lines =
     if __name__ == .__main__.:
 ignore_errors = True
 #include = rsr,txs,lind,cmdline,res,libcmd
-omit = /src/google-appengine/*,/usr/*
+#omit = /usr/*,/src/google*,*rsrlib/*,*uriref/*
 
 [html]
 directory = coverage_html_report
