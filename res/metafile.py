@@ -1,6 +1,7 @@
 import base64
 import datetime
 import os
+from os.path import isdir
 import hashlib
 import time
 import traceback
@@ -9,13 +10,128 @@ import calendar
 import lib
 import util
 import log
+import confparse
 from persistence import PersistedMetaObject
 from res import fs, util
 
 
-class Metafile(PersistedMetaObject): # XXX: Metalink
+
+class MetaProperty(object):
+	def __get__(self, obj, type=None):
+		print 'MP get', obj, type
+
+	def __set__(self, obj, value):
+		print 'MP set', obj, value
+
+	def __delete__(self, obj):
+		print 'MP delete', obj
+
+def meta_property(name, klass):
+	pass
+
+class SHA1Sum(object):
+	checksums = None
+	def __init__(self):
+		self.checksums = {}
+	def parse_data(self, lines):
+		for line in lines:
+			p = line.find(' ')
+			checksum, filepath = line[:p].strip(), line[p+1:].strip()
+			self.checksums[checksum] = filepath
+	def __iter__(self):
+		return iter(self.checksums)
+	def __getitem__(self, checksum):
+		return self.checksums[checksum]
+
+
+class Metafile(PersistedMetaObject):
+	
+	"""
+	rsr abstraction of of filebased metadata's?
+
+	FIXME make this as a hub for shelve/file instances. Autodiscover, do a few
+	methods of storage and see what works.
+	"""
+	storage_name = 'metafile'
+
+	sha1sum = meta_property('sha1sum', SHA1Sum)
+
+	def __init__(self, path, storage=None):
+		self.path = path
+		if not storage:
+			storage = self.__class__.storage_name
+		self.store = PersistedMetaObject.get_store(name=storage)
+
+	def tmp_convert(self):
+		for res in self.discover():
+			print res.data
+
+	def process(self, *args):
+		"""
+		Caller of self.discover,
+		results of generator are things we want to consolidate,
+		keep them either by pathref or shelved, harvesting their data
+		into something we can use for Metalink files, to generate
+		card indices for the data or for use in higher structured data (ie. rsr,
+		taxus)
+
+		Trying to create composite Metalink for several loose files.
+		"""
+		for res in self.discover():
+			if isinstance(res, Metalink):
+				pass
+
+	def discover(self):
+		"""
+		Generator to get (meta)data persistences interfaces for current 
+		path.
+		XXX: build something so subclasses can provide additional specs,
+		and so this class may 
+		"""
+		if self.exists():
+			yield self.fetch()
+# FIXME: use MetafileFile, or Metalink, URIRef, Video etc other classes to
+# read metadata for use, consolidation etc. by calling program
+#		for marker in metamarkers:
+#			for fpath in find_meta_file(marker, path)
+		metafile = MetafileFile(self.path)
+		if metafile.non_zero():
+			print self.path, metafile
+			yield metafile
+		elif not fs.File.ignored(self.path):
+			print '!', self.path, metafile, 'missing'
+
+	def metaid(self):
+		"""
+		Id. that changes depending on path location.
+		"""
+		return hashlib.md5(self.path).hexdigest()
+
+	def init(self):
+		pass
+
+	def exists(self):
+		mid = self.metaid()
+		return mid in self.store
+
+	def fetch(self):
+		mid = self.metaid()
+		if mid in self.store:
+			return self.store[mid]
+
+	def store(self):
+		mid = self.metaid()
+		self.store[mid] = self
+		self.store.sync()
+
+
+
+
+class MetafileFile(object): # XXX: Metalink syntax
 
 	"""
+	XXX: rewrite this to metafile wrapper?
+
 	Headers for the resource entity in the file.
 	XXX: May not be entirely MIME compliant yet.
 
@@ -73,13 +189,14 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 	def key(self):
 		return hashlib.md5(self.path).hexdigest()
 
-	def get_metafile(self):
-		if not self.basedir:
-			return self.path + '.meta'
+	@classmethod
+	def get_metafile(Class, path, basedir=None):
+		if not basedir:
+			return path + '.meta'
 		else:
 			assert os.path.isdir('.cllct')
 			assert os.path.isdir('media/content')
-			return self.basedir + self.path + '.meta'
+			return basedir + path + '.meta'
 
 	def non_zero(self):
 		return self.has_metafile() \
@@ -157,6 +274,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 		if strict:
 			return path.endswith(ext)
 		else:
+			# XXX: not implemented
 			exts = [ext] + Metafile.related_extensions
 			for suffix in exts:
 				if path.endswith(suffix):
@@ -164,8 +282,8 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 
 	@classmethod
 	def exists(cls, path):
-		if self.data:# and self.non_zero():
-			self.data['X-Last-Seen'] = util.iso8601_datetime_format(now.timetuple())
+		#if self.data:# and self.non_zero():
+		#	self.data['X-Last-Seen'] = util.iso8601_datetime_format(now.timetuple())
 		return os.path.exists(path)
 
 	#@classmethod
@@ -181,10 +299,10 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 
 	@classmethod
 	def walk(self, path, max_depth=-1):
-		# XXX: may rewrite to Dir.walk
+		# XXX: maybe rewrite to Dir.walk
 		"""
 		Walk all files that may have a metafile, and notice any metafile(-like)
-		neighbors.
+		neighbors?
 		"""
 		for root, nodes, leafs in os.walk(path):
 			for node in list(nodes):
@@ -195,7 +313,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 					continue
 				depth = dirpath.replace(path,'').strip('/').count('/')
 				if fs.Dir.ignored(dirpath):
-					log.err("Ignored directory %r", dirpath)
+					log.warn("Ignored directory %r", dirpath)
 					nodes.remove(node)
 				elif max_depth != -1:
 					if depth >= max_depth:
@@ -206,10 +324,10 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 					log.err("Error: non existant leaf %s", cleaf)
 					continue
 				if not os.path.isfile(cleaf) or os.path.islink(cleaf):
-					#log.err("Ignored non-regular file %r", cleaf)
+					#log.warn("Ignored non-regular file %r", cleaf)
 					continue
 				if fs.File.ignored(cleaf):
-					#log.err("Ignored file %r", cleaf)
+					#log.warn("Ignored file %r", cleaf)
 					continue
 				if Metafile.is_metafile(cleaf, strict=False):
 					if not Metafile(cleaf).path:
@@ -224,7 +342,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 		if 'X-First-Seen' not in self.data:
 			self.data['X-First-Seen'] = util.iso8601_datetime_format(now.timetuple())
 		envelope = (
-				('X-Meta-Checksum', lambda x: self.get_meta_hash()),
+				#('X-Meta-Checksum', lambda x: self.get_meta_hash()),
 				('X-Last-Modified', util.last_modified_header),
 				('X-Last-Update', lambda x: util.iso8601_datetime_format(now.timetuple())),
 				('X-Last-Seen', lambda x: util.iso8601_datetime_format(now.timetuple())),
@@ -276,7 +394,7 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 	def read(self):
 		if not self.has_metafile():
 			raise Exception("No metafile exists")
-		fl = open(self.get_metafile(), 'r')
+		fl = open(self.__class__.get_metafile(self.path, self.basedir), 'r')
 		for line in fl.readlines():
 			p = line.index(':')
 			header = line[:p].strip()
@@ -285,6 +403,76 @@ class Metafile(PersistedMetaObject): # XXX: Metalink
 			#fl.write("%s: %s" % (header, value))
 		fl.close()
 
+
+class Metadir(object):
+
+	"""
+	Find like metafile, this checks if a dotname is a directory,
+	and if there is a file dotdir_id in it.
+	"""
+	dotdir = 'meta'
+	dotdir_id = 'dir'
+
+	def __init__(self, path):
+		self.path = path
+		assert not path.endswith(self.dotdir)
+		assert not path.endswith(self.dotdir+'/')
+
+	@property
+	def full_path(self):
+		return os.path.join(self.path, '.'+self.dotdir)
+
+	@property
+	def id_path(self):
+		return os.path.join(self.full_path, self.dotdir_id)
+
+	def __str__(self):
+		return repr(self)
+
+	def __repr__(self):
+		return "<%s %s at %s>" % (util.cn(self), hex(id(self)), self.id_path)
+
+	@classmethod
+	def find(clss, *paths):
+		"""
+		Find metadir by searching for markerleaf indicated by Class
+		'dotdir' property (see confparse.find_config_path).
+
+		Returning Class instance if path exists.
+		"""
+		path = None
+		for path in confparse.find_config_path(clss.dotdir, paths=list(paths)):
+			vid = os.path.join(path, clss.dotdir_id)
+			if os.path.exists(vid):
+				break
+			else:
+				path = None
+		if path:
+			return clss(os.path.dirname(path))
+
+
+class Meta(object):
+
+	"""
+	Adapter for res.Volume to work on metafile indices.
+	"""
+
+	def __init__(self, volume):
+		self.volume = volume
+		print 'Meta', volume, volume.dbref, volume.idxref(Metafile.storage_name)
+		self.store = PersistedMetaObject.get_store(
+				name=Metafile.storage_name, 
+				dbref=volume.idxref(Metafile.storage_name))
+
+	def exists(self, path):
+		if isdir(path):
+			return False
+		if Metafile(path).exists() or MetafileFile.exists(path):
+			print 'TODO Meta.exists', self.volume, path
+			return True
+
+	def clean(self, path):
+		print 'TODO Meta.clean', self.volume, path
 
 
 if __name__ == '__main__':

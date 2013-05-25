@@ -1,5 +1,7 @@
-"""cmdline
+"""cmdline - basis implementation of libcmd for taxus, rsr and other script
+utils.
 
+See libcmd or other programs for usage overviews.
 """
 import os
 import sys
@@ -52,15 +54,16 @@ Options.register(NS,
 #			"values.  This will lose any formatting and comments in the "
 #			"serialized configuration. ",
 #			'default': False }),
-#
-#		(('-m', '--message-level',),{ 'metavar':'level',
-#			'help': "Increase chatter by lowering "
-#			"message threshold. Overriden by --quiet or --verbose. "
-#			"Levels are 0--7 (debug--emergency) with default of 2 (notice). "
-#			"Others 1:info, 3:warning, 4:error, 5:alert, and 6:critical.",
-#			'default': 2,
-#			}),
 		#/XXX
+
+		(('-m', '--message-level',),{ 'metavar':'level',
+			'type': 'int',
+			'help': "Increase chatter by lowering "
+			"message threshold. Overriden by --quiet or --verbose. "
+			"Levels are 0--7 (debug--emergency) with default of 2 (notice). "
+			"Others 1:info, 3:warning, 4:error, 5:alert, and 6:critical.",
+			'default': 2,
+		}),
 
 		(('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
 			"threshold. Overriden by --quiet or --message-level.",
@@ -186,6 +189,7 @@ def cmd_options(settings=None, prog=None):
 	prog.update(dict(
 		optparser=parser
 	))
+	# Yield parsed invocation back to TargetResolver
 	yield Keywords(**kwds_)
 	yield Keywords(
 		opts=opts,
@@ -201,6 +205,8 @@ def cmd_options(settings=None, prog=None):
 			args = Arguments(args+(a,))
 	yield targs
 	yield args
+	# Do some post initialization (XXX: does this part of a generator always # exec?)
+	log.category = opts.message_level
 
 @Target.register(NS, 'help', 'cmd:options')
 def cmd_help(settings=None, prog=None):

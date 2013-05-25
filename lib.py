@@ -243,7 +243,7 @@ class Prompt(object):
 			#v = raw_input(
 			#		log.format_line('{green}%s {bwhite}[{bblack}%s{bwhite}]{default} or [?help] ') 
 			#		% (question, opts)).strip()
-			if not v:
+			if not v.strip(): # FIXME: have to only strip whitespace, not ctl?
 				v = opts[0]
 			if v == 'help'  or v in '?h':
 				print ("Choose from %s. Default is %r, use --recurse option to "

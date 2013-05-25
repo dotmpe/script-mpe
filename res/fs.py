@@ -10,24 +10,35 @@ class File(object):
 
 	ignore_names = (
 			'._*',
-			'.crdownload',
 			'.DS_Store',
 			'*.swp',
 			'*.swo',
 			'*.swn',
 			'.git*',
-#			'.torrent',
+			'*.pyc',
+			'*~',
+			'*.tmp',
+			'*.part',
+			'*.crdownload',
+			'*.incomplete',
+			'*.torrent',
+			'*.uriref',
+			'*.meta',
+			'.symlinks'
 		)
 
 	ignore_paths = (
-			'*.pyc',
-			'*~',
-			'*.part',
-			'*.incomplete',
+			'.Trashes*',
+			'.TemporaryItems*',
+			'*.git',
+			'.git*',
 		)
 
 	@classmethod
 	def ignored(klass, path):
+		"""
+		File.ignored checks names and paths of files with ignore patterns.
+		"""
 		for p in klass.ignore_paths:
 			if fnmatch(path, p):
 				return True
@@ -39,26 +50,33 @@ class File(object):
 
 class Dir(object):
 
-	ignore_names = (
+	ignore_paths = (
 			'._*',
-			'.metadata',
-			'.conf',
-			'RECYCLER',
-			'.TemporaryItems',
+			'.metadata*',
+			'.conf*',
+			'RECYCLER*',
+			'.TemporaryItems*',
 			'.Trash*',
-			'cllct',
-			'.cllct',
-			'System Volume Information',
-			'Desktop',
-			'project',
+			'*cllct/*',
+			'System Volume Information/',
+			'Desktop*',
+			'project*',
 			'sam*bup*',
-			'*.bup',
+			'*.bup/',
 			'.git*',
+			'*.git*',
 		)
 
-	ignore_paths = (
-			'*.git',
-		)
+	@classmethod
+	def init(klass, ignore_file=None, ignore_defaults=None):
+		"""
+
+		XXX
+		Without calling init, Dir class works with static or run-time data only.
+
+		Upon providing an ignore file name, both %path.paths %ignore_file.dirs
+		"""
+		pass
 
 	@classmethod
 	def ignored(klass, path):
@@ -66,7 +84,7 @@ class Dir(object):
 			if fnmatch(path, p):
 				return True
 		name = os.path.basename(path)
-		for p in klass.ignore_names:
+		for p in klass.ignore_paths:
 			if fnmatch(name, p):
 				return True
 
@@ -80,38 +98,66 @@ class Dir(object):
 			return True
 		return False
 
+	@classmethod
+	def prompt_ignore(clss, opts):
+		v = Prompt.query("Ignore dir?", ("No", "Yes"))
+		return v is 1
+
+	@classmethod
+	def check_ignored(Klass, filepath, opts):
+		#if os.path.islink(filepath) or not os.path.isfile(filepath):
+		if os.path.islink(filepath) or ( not os.path.isfile(filepath) and not os.path.isdir(filepath)) :
+			log.warn("Ignored non-regular path %r", filepath)
+			return True
+		elif Klass.ignored(filepath) or File.ignored(filepath):
+			log.info("Ignored file %r", filepath)
+			return True
+
+	@classmethod
+	def check_recurse(Klass, dirpath, opts):
+		#if not opts.recurse and not opts.interactive:
+		#	return False
+		depth = dirpath.strip('/').count('/')
+		if Klass.ignored(dirpath):
+			log.info("Ignored directory %r", dirpath)
+			return False
+		elif opts.max_depth != -1 and depth+1 >= opts.max_depth:
+			log.info("Ignored directory %r at level %i", dirpath, depth)
+			return False
+		elif opts.recurse:
+			return True
+		elif opts.interactive:
+			log.info("Interactive walk: %s",dirpath)
+			if Klass.prompt_recurse(opts):
+				return True
+			elif Klass.prompt_ignore(opts):
+				assert False, "TODO: write new ignores to file"
+
 	walk_opts = confparse.Values(dict(
 		interactive=False,
 		recurse=False,
 		max_depth=-1,
 	))
+	
 	@classmethod
-	def walk(Klass, path, opts=walk_opts):
+	def walk_tree_interactive(Klass, path, opts=walk_opts):
 		if opts.max_depth > 0:
 			assert opts.recurse
 		assert isinstance(path, basestring), (path, path.__class__)
 		for root, dirs, files in os.walk(path):
 			for node in list(dirs):
-				if not opts.recurse and not opts.interactive:
-					dirs.remove(node)
-					continue
-				dirpath = os.path.join(root, node)
+				dirpath = os.path.join(root, node).replace(path,'').lstrip('/') +'/'
 				if not os.path.exists(dirpath):
 					log.err("Error: reported non existant node %s", dirpath)
 					dirs.remove(node)
 					continue
-				depth = dirpath.replace(path,'').strip('/').count('/')
-				if Klass.ignored(dirpath):
-					log.err("Ignored directory %r", dirpath)
+				elif Klass.check_ignored(dirpath, opts):
 					dirs.remove(node)
 					continue
-				elif opts.max_depth != -1 and depth >= opts.max_depth:
+				elif not Klass.check_recurse(dirpath, opts):
 					dirs.remove(node)
-					continue
-				elif opts.interactive:
-					log.info("Interactive walk: %s",dirpath)
-					if not Klass.prompt_recurse(opts):
-						dirs.remove(node)
+#					continue # exception to rule excluded == no yield
+# caller can sort out wether they want entries to subpaths at this level
 				assert isinstance(dirpath, basestring)
 				try:
 					dirpath = unicode(dirpath)
@@ -126,15 +172,13 @@ class Dir(object):
 					continue
 				yield dirpath
 			for leaf in list(files):
-				filepath = os.path.join(root, leaf)
+				filepath = os.path.join(root, leaf).replace(path,'').lstrip('/')
 				if not os.path.exists(filepath):
 					log.err("Error: non existant leaf %s", filepath)
+					files.remove(leaf)
 					continue
-				if os.path.islink(filepath) or not os.path.isfile(filepath):
-					log.err("Ignored non-regular file %r", filepath)
-					continue
-				if File.ignored(filepath):
-					#log.err("Ignored file %r", filepath)
+				elif Klass.check_ignored(filepath, opts):
+					files.remove(leaf)
 					continue
 				assert isinstance(filepath, basestring)
 				try:
@@ -149,4 +193,5 @@ class Dir(object):
 					log.err("Ignored non-ascii/illegal filename %s", filepath)
 					continue
 				yield filepath
+
 

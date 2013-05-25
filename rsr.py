@@ -41,6 +41,10 @@ Options.register(NS,
 			'default': False,
 			'action': 'store_true'
 		}),
+		(('-r', '--reset' ),{ 
+			'default': False,
+			'action': 'store_true'
+		}),
 
 		(('-L', '--max-depth', '--maxdepth'),{ 
 			'dest': "max_depth",
@@ -53,54 +57,75 @@ Options.register(NS,
 	)
 
 
-@Target.register(NS, 'shared-lib', 'cmd:options')
-def rsr_shared_lib(prog=None, opts=None):
-	ws = res.Workspace.find(prog.pwd, prog.home)
-	if not ws and opts.init:
-		ws = res.Workspace(prog.pwd)
-		if opts.force or lib.Prompt.ask("Create workspace %r?" % ws):
-			ws.init(True)
-		else:
-			print "Workspace init cancelled. "
-	if not ws:
-		print "No workspace, make sure you are below one or have one in your homefolder."
-		yield 2
-	libs = confparse.Values(dict(
-			path='/usr/lib/cllct',
-			wsdb=ws.db
-		))
-	yield Keywords(ws=ws, sharedlib=libs)
+#@Target.register(NS, 'workspace', 'cmd:options')
+#def rsr_workspace(prog=None, opts=None):
+#	"""
+#	FIXME: this should interface with taxus metastore on this host (for this user).
+#	Not in use yet.
+#	"""
+#	ws = res.Workspace.find(prog.pwd, prog.home)
+#	if not ws and opts.init:
+#		ws = res.Workspace(prog.pwd)
+#		if opts.force or lib.Prompt.ask("Create workspace %r?" % ws):
+#			ws.init(True)
+#		else:
+#			print "Workspace init cancelled. "
+#	if not ws:
+#		print "No workspace, make sure you are below one or have one in your homefolder."
+#		yield 2
+#	libs = confparse.Values(dict(
+#			path='/usr/lib/cllct',
+#		))
+#	yield Keywords(ws=ws, libs=libs)
 
-@Target.register(NS, 'volume', 'rsr:shared-lib')
+@Target.register(NS, 'volume', 'cmd:options')
 def rsr_volume(prog=None, opts=None):
 	"""
-	Find existing volume from current working dir.
+	Find existing volume from current working dir, reset it, or create one in the current
+	dir. Yields keyword 'volume'.
+
+	This should interface with an local volume and its dotdir with eg. config and (standalone) indices.
+
+	The Volume.store is a shelve storge for the primary metadata of a file.
+	Besides it has indices for quick-lookup of certain property values.
 	"""
 	log.debug("{bblack}rsr{bwhite}:volume{default}")
 	volume = res.Volume.find(prog.pwd)
-	if not volume and opts.init:
-		volume = res.Volume(prog.pwd)
-		if opts.force or lib.Prompt.ask("Create volume %r?" % volume):
-			volume.init(True)
+	if ( volume and opts.reset ) or ( not volume and opts.init ):
+		if not volume:
+			volume = res.Volume(prog.pwd)
+			userok = opts.force or lib.Prompt.ask("Create volume %r?" % volume)
+		else:
+			userok = opts.force or lib.Prompt.ask("Truncate volume %r? (drops data!)" % volume)
+		if userok:
+			volume.init(True, opts.reset)
 	if not volume:
 		log.err("Not in a volume")
 		yield 1
-	log.note("rsr:volume %r for %s", volume.db, volume.full_path)
+	log.note("rsr:volume %r for %s", volume.store, volume.full_path)
 	yield Keywords(volume=volume)
-	# shelve based storage
-	#res.Metafile.default_extension = '.meta'
-	#res.Metafile.basedir = 'media/application/metalink/'
 
-#@Target.register(NS, 'clean', 'cmd:options')
-#def rsr_clean(volumedb=None):
-#	log.debug("{bblack}rsr{bwhite}:clean{default}")
-#	vlen = len(volumedb)
-#	log.note("Rsr: Closing volumedb")
-#	volumedb.close()
-#	log.info("Rsr: Closed, %i keys", vlen)
+@Target.register(NS, 'status', 'rsr:volume')
+def rsr_status(prog=None, volume=None, opts=None):
+	log.debug("{bblack}rsr{bwhite}:status{default}")
+	# print if superdir is OK
+	#Meta.index.get(dirname(prog.pwd))
+	# start lookign from current dir
+	meta = res.Meta(volume)
+	opts = confparse.Values(res.Dir.walk_opts.copy())
+	opts.interactive = False
+	opts.recurse = True
+	opts.max_depth = 1
+	for path in res.Dir.walk_tree_interactive(prog.pwd, opts=opts):
+		if not os.path.isdir(path):
+			if not meta.exists(path):
+				continue
+		if not meta.clean(path):
+			pass
+	yield 1
 
 @Target.register(NS, 'update-volume', 'rsr:volume')
-def rsr_update_volume(prog=None, volume=None, volumedb=None, opts=None, *args):
+def rsr_update_volume(prog=None, volume=None, opts=None, *args):
 	"""
 	Walk all files, determine identity. Keep one ID registry per host.
 
@@ -120,16 +145,11 @@ See update_metafiles
 		- If any of above mentioned and at least one Digest field is not present.
 
 	""" 
-	i = 0
 	for path in res.Dir.walk(prog.pwd):
 		if not os.path.isfile(path):
 			continue
-		i += 1
-		metafile = res.Metafile(path)
-		if metafile.non_zero():
-			print i, path, metafile
-		elif not res.File.ignored(path):
-			print '!', i, path, metafile, 'missing'
+		mf = res.Metafile(path)
+		mf.tmp_convert()
 
 @Target.register(NS, 'update-metafiles', 'rsr:volume')
 def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
@@ -166,14 +186,15 @@ def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
 				metafile.data['Content-Length'], suffix_as_separator=True)
 		else:
 			print '\tOK'
-
-	volumedb.sync()
+	volume.store.sync()
 
 
 @Target.register(NS, 'meta', 'rsr:volume')
 #def rsr_meta(src, pred, value, volume=None, *args):
 def rsr_meta(volume=None, *args):
 	"""
+	Get or set specific metadata.
+
 		/volume/dir/ # rsr:meta ./file.avi rsr:media video/speech/lecture
 		/volume/dir/ # rsr:meta ./book.pdf rsr:media text/book/technical
 	"""
@@ -206,9 +227,9 @@ def rsr_meta(volume=None, *args):
 #	print os.getcwd(), volume.path, len(lnames)
 #
 #
-#@Target.register(NS, 'volume', 'rsr:shared-lib')
-#def rsr_update_content(opts=None, sharedlib=None):
-#	sharedlib.contents = PersistedMetaObject.get_store('default', 
+#@Target.register(NS, 'volume', 'rsr:workspace')
+#def rsr_update_content(opts=None, libs=None):
+#	lib.contents = PersistedMetaObject.get_store('default', 
 #			opts.contentdbref)
 #
 #def rsr_count_volume_files(volumedb):

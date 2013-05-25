@@ -105,6 +105,9 @@ def format_line(msg):
 		msg = msg.replace('{%s}' % k, palette[k])
 	return msg
 
+category = 7
+strict = False
+
 def log(level, msg, *args):
 	"""
 	TODO:
@@ -118,6 +121,7 @@ def log(level, msg, *args):
   7. Debug.
 	"""
 	assert isinstance(level, int)
+	global category, strict
 	if not isinstance(msg, (basestring, int, float)):
 		msg = str(msg)
 	title = {
@@ -127,9 +131,15 @@ def log(level, msg, *args):
 			3:'{byellow}Error{default}',
 			4:'{yellow}warning{default}',
 			5:'{green}Note{default}',
-			#6:'{bblack}info{default}',
+			6:'{bblack}info{default}',
 			7:'{bwhite}Debug{default}'
 		}
+	if strict:
+		if level != category:
+			return
+	else:
+		if level > category:
+			return
 	if level in title:
 		msg = title[level] +': '+ msg
 	msg = format_line(msg)
