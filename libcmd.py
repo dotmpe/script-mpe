@@ -86,6 +86,7 @@ import inspect
 import optparse
 from UserDict import UserDict
 import sys
+#from inspect import isgeneratorfunction
 
 import zope
 
@@ -93,6 +94,7 @@ import log
 from libname import Name, Namespace
 import res
 from res.iface import IName
+from reporter import Reporter
 
 
 
@@ -715,45 +717,67 @@ class TargetResolver(object):
 		assert handlers, "Need at least one static target to bootstrap"
 		execution_graph = ExecGraph(handlers)
 		stack = ContextStack()
-		self.run(execution_graph, stack)
+		reporter = Reporter()
+		self.run(execution_graph, stack, reporter)
+		reporter.flush()
 
-	def run(self, execution_graph, context, args=[], kwds={}):
+	def run(self, execution_graph, context, reporter, args=[], kwds={}):
+		"""
+		execution_graph:ExecGraph  ties command targets together as nodes in a
+			network, expressing dependencies and other relations as typed edges.
+		context:ContextStack  is an stack for multiple properties, where each
+			property is stacked by attribute assignment and popped using 'del'.
+			Used only for generator right now.
+		args and kwds are argument vectors shared with all commands, updated and
+			overriden from each command if needed
+		"""
 		log.debug('Target resolver starting with %s', execution_graph.execlist)
 		target = execution_graph.nextTarget()
 		while target:
 			log.note('Run: %s', target.name)
 			assert isinstance(kwds, dict)
+			# Execute Target Command routine (returns generator)
 			context.generator = target.handler.func(
 							*self.select_args(target.handler.func, args),
 							**self.select_kwds(target.handler.func, kwds))
 			if not context.generator:
 				log.warn("target %s did not return generator", target)
+				# isgeneratorfunction(context.generator):
 			else:
+				# Handle results from Command
 				for r in context.generator:
-					#assert not args, "TODO: %s" % args
 					if isinstance(r, str):
-						pass
+						pass # resolve something from string notation?
+					# post-exec subcommands..
 					if res.iface.ITarget.providedBy(r):
 						if r.required:
 							execution_graph.require(target, r)
-							self.run(execution_graph, context, args=args, kwds=kwds)
+							self.run(execution_graph, context, reporter, args=args, kwds=kwds)
 						else:
 							execution_graph.append(target, r)
-					elif isinstance(r, int):
-						if r == 0:
-							assert not execution_graph, '???'
-						sys.exit(r)
+					# push post-commands
+					elif isinstance(r, Targets):
+						for t in r:
+							execution_graph.require(target, t)
+					# replace argument vector
 					elif isinstance(r, Arguments):
 						#if r:
 						#	log.warn("Ignored %s", r)
 						args = r#args.extend(r)
-					elif isinstance(r, Targets):
-						for t in r:
-							execution_graph.require(target, t)
+					# update keywords
 					elif isinstance(r, Keywords):
 						kwds.update(r)
-					else:
-						log.warn("Ignored yield %r", r)
+					# stop & set process return status bit
+					elif isinstance(r, int):
+						if r == 0:
+							assert not execution_graph, '???'
+						reporter.flush()
+						sys.exit(r)
+					# aggregate result data for reporting (to screen, log, ...)
+					else:#if res.iface.IResult.providedBy(r):
+						reporter.update(r)
+					#else:
+					#	log.warn("Ignored yield %r", r)
 			del context.generator
 			target = execution_graph.nextTarget()
 

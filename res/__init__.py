@@ -15,6 +15,7 @@ import uuid
 import anydbm
 import shelve
 
+import confparse
 import iface
 #import lib
 #from taxus import get_session
@@ -55,7 +56,7 @@ class Workspace(Metadir):
 	dotdir = 'cllct'
 
 	index_specs = [
-			]
+		]
 
 	def __init__(self, path):
 		super(Workspace, self).__init__(path)
@@ -86,7 +87,6 @@ class Workspace(Metadir):
 
 	def init_store(self, truncate=False): 
 		assert not truncate
-		print Metafile.storage_name, self.dbref
 		return PersistedMetaObject.get_store(name=Metafile.storage_name, dbref=self.dbref)
 		#return PersistedMetaObject.get_store(name=self.dotdir, dbref=self.dbref, ro=rw)
 
@@ -100,7 +100,7 @@ class Workspace(Metadir):
 			ref = self.idxref(name)
 			idx = anydbm.open(ref, flag)
 			idcs[name] = idx
-		return idcs
+		return confparse.Values(idcs)
 
 
 class Volume(Workspace):
@@ -109,7 +109,8 @@ class Volume(Workspace):
 
 	index_specs = [
 				'sparsesum',
-				'sha1sum'
+				'sha1sum',
+				'dirs'
 			]
 
 

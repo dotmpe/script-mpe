@@ -94,16 +94,20 @@ def rsr_volume(prog=None, opts=None):
 	if ( volume and opts.reset ) or ( not volume and opts.init ):
 		if not volume:
 			volume = res.Volume(prog.pwd)
-			userok = opts.force or lib.Prompt.ask("Create volume %r?" % volume)
+			userok = opts.force or \
+					lib.Prompt.ask("Create volume %r?" % volume)
 		else:
-			userok = opts.force or lib.Prompt.ask("Truncate volume %r? (drops data!)" % volume)
+			userok = opts.force or lib.Prompt.ask(
+					"Truncate volume %r? (drops data!)" % volume)
 		if userok:
 			volume.init(True, opts.reset)
+# XXX:
 	if not volume:
 		log.err("Not in a volume")
 		yield 1
 	log.note("rsr:volume %r for %s", volume.store, volume.full_path)
 	yield Keywords(volume=volume)
+
 
 @Target.register(NS, 'status', 'rsr:volume')
 def rsr_status(prog=None, volume=None, opts=None):
@@ -117,12 +121,13 @@ def rsr_status(prog=None, volume=None, opts=None):
 	opts.recurse = True
 	opts.max_depth = 1
 	for path in res.Dir.walk_tree_interactive(prog.pwd, opts=opts):
-		if not os.path.isdir(path):
-			if not meta.exists(path):
-				continue
+		if not meta.exists(path):
+			yield { 'status': { 'unknown': [ path ] } }
+			continue
 		if not meta.clean(path):
-			pass
-	yield 1
+			yield { 'status': { 'updated': [ path ] } }
+	yield 0
+
 
 @Target.register(NS, 'update-volume', 'rsr:volume')
 def rsr_update_volume(prog=None, volume=None, opts=None, *args):

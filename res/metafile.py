@@ -459,14 +459,10 @@ class Meta(object):
 
 	def __init__(self, volume):
 		self.volume = volume
-		print 'Meta', volume, volume.dbref, volume.idxref(Metafile.storage_name)
-		self.store = PersistedMetaObject.get_store(
-				name=Metafile.storage_name, 
-				dbref=volume.idxref(Metafile.storage_name))
 
 	def exists(self, path):
 		if isdir(path):
-			return False
+			return str(path) in self.volume.indices.dirs
 		if Metafile(path).exists() or MetafileFile.exists(path):
 			print 'TODO Meta.exists', self.volume, path
 			return True
