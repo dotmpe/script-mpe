@@ -169,7 +169,7 @@ class MetafileFile(object): # XXX: Metalink syntax
 		if path:
 			self.set_path(path)
 		self.data = data
-		if self.has_metafile():
+		if self.__class__.has_metafile(self.path, self.basedir):
 			self.read()
 		#if self.path:
 		#	if self.has_metafile():
@@ -199,8 +199,8 @@ class MetafileFile(object): # XXX: Metalink syntax
 			return basedir + path + '.meta'
 
 	def non_zero(self):
-		return self.has_metafile() \
-				and os.path.getsize(self.get_metafile()) > 0
+		return self.__class__.has_metafile(self.path, self.basedir) \
+				and os.path.getsize(self.__class__.get_metafile(self.path, self.basedir)) > 0
 
 	def get_meta_hash(self):
 		keys = self.data.keys()
@@ -280,15 +280,14 @@ class MetafileFile(object): # XXX: Metalink syntax
 				if path.endswith(suffix):
 					return True
 
-	@classmethod
-	def exists(cls, path):
+	def exists(self):
 		#if self.data:# and self.non_zero():
 		#	self.data['X-Last-Seen'] = util.iso8601_datetime_format(now.timetuple())
-		return os.path.exists(path)
+		return self.__class__.has_metafile(self.path, self.basedir)
 
-	#@classmethod
-	def has_metafile(self):
-		return os.path.exists(self.get_metafile())
+	@classmethod
+	def has_metafile(Class, path, basedir):
+		return os.path.exists(Class.get_metafile(path, basedir))
 
 	@classmethod
 	def find(clss, path, shelve=None):
@@ -371,7 +370,7 @@ class MetafileFile(object): # XXX: Metalink syntax
 					self.data[header] = value
 
 	def write(self):
-		fl = open(self.get_metafile(), 'w+')
+		fl = open(self.__class__.get_metafile(self.path, self.basedir), 'w+')
 		now = datetime.datetime.now() # XXX: ctime?
 		envelope = {
 				'X-Meta-Checksum': self.get_meta_hash(),
@@ -389,7 +388,7 @@ class MetafileFile(object): # XXX: Metalink syntax
 				fl.write("%s: %s\r\n" % (header, value))
 		fl.close()
 		mtime = calendar.timegm( now.timetuple() )#[:6] )
-		os.utime(self.get_metafile(), (mtime, mtime))
+		os.utime(self.__class_.get_metafile(self.path, self.basedir), (mtime, mtime))
 
 	def read(self):
 		if not self.has_metafile():
@@ -463,8 +462,10 @@ class Meta(object):
 	def exists(self, path):
 		if isdir(path):
 			return str(path) in self.volume.indices.dirs
-		if Metafile(path).exists() or MetafileFile.exists(path):
-			print 'TODO Meta.exists', self.volume, path
+		mf = Metafile(path)
+		mff = MetafileFile(path)
+		if mf.exists() or mff.exists():
+			print 'TODO Meta.exists', mf.exists(), mff.exists()
 			return True
 
 	def clean(self, path):

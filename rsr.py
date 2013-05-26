@@ -124,7 +124,7 @@ def rsr_status(prog=None, volume=None, opts=None):
 		if not meta.exists(path):
 			yield { 'status': { 'unknown': [ path ] } }
 			continue
-		if not meta.clean(path):
+		elif not meta.clean(path):
 			yield { 'status': { 'updated': [ path ] } }
 	yield 0
 
