@@ -656,12 +656,13 @@ class TargetResolver(object):
 			log.note('Run: %s', target.name)
 			assert isinstance(kwds, dict)
 			context.generator = target.handler.func(
+							*self.select_args(target.handler.func, args),
 							**self.select_kwds(target.handler.func, kwds))
 			if not context.generator:
 				log.warn("target %s did not return generator", target)
 			else:
 				for r in context.generator:
-					assert not args, "TODO: %s" % args
+					#assert not args, "TODO: %s" % args
 					if isinstance(r, str):
 						pass
 					if res.iface.ITarget.providedBy(r):
@@ -675,9 +676,9 @@ class TargetResolver(object):
 							assert not execution_graph, '???'
 						sys.exit(r)
 					elif isinstance(r, Arguments):
-						if r:
-							log.warn("Ignored %s", r)
-						#args.extend(r)
+						#if r:
+						#	log.warn("Ignored %s", r)
+						args = r#args.extend(r)
 					elif isinstance(r, Targets):
 						for t in r:
 							execution_graph.require(target, t)
@@ -687,6 +688,17 @@ class TargetResolver(object):
 						log.warn("Ignored yield %r", r)
 			del context.generator
 			target = execution_graph.nextTarget()
+
+	def select_args(self, func, args):
+		func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
+				inspect.getargspec(func)
+		if not (func_arg_vars or func_args_var):
+			return ()
+		normal_args = func_arg_vars[:-len(func_defaults)]
+		assert not normal_args, "Cannot match varnames now?"
+		if func_args_var:
+			return args
+		return ()
 
 	def select_kwds(self, func, kwds):
 		func_arg_vars, func_args_var, func_kwds_var, func_defaults = \

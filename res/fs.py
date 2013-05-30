@@ -84,10 +84,11 @@ class Dir(object):
 		recurse=False,
 		max_depth=-1,
 	))
-	@staticmethod
+	@classmethod
 	def walk(Klass, path, opts=walk_opts):
 		if opts.max_depth > 0:
 			assert opts.recurse
+		assert isinstance(path, basestring), (path, path.__class__)
 		for root, dirs, files in os.walk(path):
 			for node in list(dirs):
 				if not opts.recurse and not opts.interactive:

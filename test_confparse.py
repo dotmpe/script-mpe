@@ -42,7 +42,7 @@ class AbstractConfparseTest(unittest.TestCase, object):
 	def _print_test_files(self):
 		#print os.popen('tree -a %s' % self.testrootdir).read()
 		cwd = getcwd()
-		print popen('tree -a %s' % cwd).read()
+		#print popen('tree -a %s' % cwd).read()
 
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-TODO
-	Find metadata storage on OS X.
+TODO Find metadata storage on OS X.
+TODO integrate with libcmd, taxus
 """
 import os
 import urllib2
