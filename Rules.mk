@@ -6,6 +6,9 @@ MK                  += $/Rules.mk
 
 STRGT               += test_py_$d test_sa_$d
 
+ifneq ($(call contains,$(MAKECMDGOALS),clean),)
+CLN                 += $(shell find ./ -iname '*.pyc')
+endif
 #      ------------ -- 
 
 GIT_$d              := $(shell find "$d" -iname ".git")
