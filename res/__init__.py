@@ -98,7 +98,10 @@ class Workspace(Metadir):
 		idcs = {}
 		for name in self.__class__.index_specs:
 			ref = self.idxref(name)
-			idx = anydbm.open(ref, flag)
+			if ref.endswith('.db'):
+				idx = anydbm.open(ref, flag)
+			elif ref.endswith('.shelve'):
+				idx = shelve.open(ref, flag)
 			idcs[name] = idx
 		return confparse.Values(idcs)
 

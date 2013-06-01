@@ -31,7 +31,8 @@ c17="\x1b[0;1;37m" #
 
 
 palette = {}
-palette.update(locals())
+palette2 = {}
+palette2.update(locals())
 
 format = "c04,TS,c16,PRI,c05,HOSTNAME,c17,msg,c00"
 error1 = "c00,TS,c10,PRI,c05,HOSTNAME,c11,msg,c00"

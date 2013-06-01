@@ -3,6 +3,7 @@ import datetime
 import os
 from os.path import isdir
 import hashlib
+import socket
 import time
 import traceback
 
@@ -17,6 +18,18 @@ from res import fs, util
 
 
 class MetaProperty(object):
+	"""
+	Facade to tie volume/path/prop to its impl.
+	"""
+	cname = ''
+	depends = ()
+	provides = ()
+	def __init__(self, metaresolver):
+		self.resolver = metaresolver
+	def extract(self, props, path, opts):
+		pass
+	def applies(self, props, path, opts):
+		return 0
 	def __get__(self, obj, type=None):
 		print 'MP get', obj, type
 
@@ -25,6 +38,161 @@ class MetaProperty(object):
 
 	def __delete__(self, obj):
 		print 'MP delete', obj
+
+# MP may test for extraction and fail
+# MP may be extractor and/or provide classnames for (possible) extractors
+class MetaContentLocationProperty(MetaProperty):
+	cname = 'rsr:content-location'
+	depends = ()
+	def applies(self, props, path, opts):
+		if os.path.exists(path): # and has read access
+			return 1
+	def extract(self, props, path, opts):
+		# XXX get global id from meta or volume.
+		hostname = socket.gethostname()
+		return "rsr://%s%s#%s" % (hostname, self.resolver.meta.volume.path, path)
+class MetaContentLengthProperty(MetaProperty):
+	cname = 'rsr:content-length'
+	depends = 'rsr:content-location',
+	def extract(self, props, path, opts):
+		if os.path.isfile(path):
+			return os.path.getsize(path)
+class MetaContentSHA1DigestProperty(MetaProperty):
+	cname = 'rsr:content-sha1-digest'
+	depends = 'rsr:content-location',
+	def extract(self, props, path, opts):
+		if os.path.isfile(path):
+			return lib.get_sha1sum_sub(path)
+class MetaContentTypeProperty(MetaProperty):
+	cname = 'rsr:content-type'
+	depends = 'rsr:content-id',
+	provides = 'subclass-exclusive',
+	def extract(self, props, path, opts):
+		return lib.get_mediatype_sub(path)
+class MetaContentSparseChecksumProperty(MetaProperty):
+	cname = 'rsr:content-sparse-checksum'
+	depends = 'rsr:content-location',
+	def extract(self, props, path, opts):
+		if os.path.isfile(path):
+			return
+class MetaContentIDProperty(MetaProperty):
+	cname = 'rsr:content-id'
+	depends = 'rsr:content-sha1-digest',
+
+class MetaContentApplicationTypeProperty(MetaContentTypeProperty):
+	version = 0.1
+	depends = ()
+	provides = 'subclasses'
+
+class MetaContentAudioTypeProperty(MetaContentTypeProperty):
+	version = 0.1
+class MetaContentImageTypeProperty(MetaContentTypeProperty):
+	version = 0.1
+class MetaContentVideoTypeProperty(MetaContentTypeProperty):
+	version = 0.1
+class MetaContentTextTypeProperty(MetaContentTypeProperty):
+	version = 0.1
+
+class VideoDurationMetaProperty(MetaContentVideoTypeProperty):
+	cname = 'rsr:video-duration'
+
+class CharacterCountMetaProperty(MetaContentTextTypeProperty):
+	cname = 'rsr:character-count'
+class WordCountMetaProperty(MetaContentTextTypeProperty):
+	cname = 'rsr:word-count'
+
+_reg = {}
+def mp_dependency(mp_class, mp_class_require):
+	if mp_class.cname not in _reg:
+		_reg[mp_class.cname] = mp_class
+	if mp_class_require.cname not in _reg:
+		_reg[mp_class_require.cname] = mp_class_require
+	if mp_class.cname not in mp_class_require.provides:
+		mp_class_require.provides = mp_class_require.provides + (mp_class.cname,)
+	if mp_class_require.cname not in mp_class.depends:
+		mp_class.depends = mp_class.depends + ( mp_class_require.cname , )
+mp_dependency(MetaContentLengthProperty, MetaContentLocationProperty)
+mp_dependency(MetaContentSHA1DigestProperty, MetaContentLocationProperty)
+mp_dependency(MetaContentIDProperty, MetaContentSHA1DigestProperty)
+mp_dependency(MetaContentTypeProperty, MetaContentLocationProperty)
+mp_dependency(MetaContentSparseChecksumProperty, MetaContentLocationProperty)
+
+# Unit test
+assert MetaContentLocationProperty.depends == (), MetaContentLocationProperty.depends
+assert MetaContentIDProperty.depends == ( MetaContentSHA1DigestProperty.cname, ), MetaContentIDProperty.depends
+assert MetaContentSHA1DigestProperty.depends == ( MetaContentLocationProperty.cname,), MetaContentSHA1DigestProperty.depends
+#
+
+def mpe_prerequisites(mp_class):
+	for cname in mp_class.depends:
+		yield _reg[cname]
+#
+class MetaResolver(object):
+
+	default_props = (
+#				'MetaContentIDProperty',
+				MetaContentTypeProperty,
+	#			'MetaContentMD5DigestProperty',
+	#			'MetaContentSHA1DigestProperty',
+	#			'MetaContentLengthProperty'
+			)
+
+	def __init__(self, meta, data={}):
+		self.meta = meta
+		self.data = data
+		self.extractors = {}
+
+	def load(self):
+		"Read X-Meta-Feature header. "
+		spec = self.data.get('rsr:meta-features', '')
+		if not spec:
+			return
+		specs = [ s.strip().split('=') for s in spec.split(';') if s.trim() ]
+		print 'TODO load MP\'s from spec', specs
+
+	def list(self):
+		"List current meta properties. "
+		print self.data.keys()
+
+	def persist(self):
+		"Write X-Meta-Feature header. "
+		spec = ";".join([ "=".join(k, v) for k, v in self.data.items() ])
+		self.data['rsr:meta-features'] = spec
+
+	def run(self, mp_class, path, opts):
+		mp = mp_class(self)
+#		self.props[mp.cname] = mp.applies(self.data, path, opts)
+#		if self.propstat[mp.cname] == 0:
+#			return
+		try:
+			self.data[mp.cname] = mp.extract(self.data, path, opts)
+		except Exception, e:
+			log.err('Failed getting %s for %s' % (mp.cname, path), e)
+
+	def discover(self, path, opts):
+		"""
+		todo get current MP from XMetaFeatures
+			- fetch metalink or read mff
+		"""
+		props = list(self.default_props)
+		p = 0
+		while len(props) > p:
+			mp_class = props[p]
+			for mp_dep_class in mpe_prerequisites(mp_class):
+				# prepend all prerequisite MP classes before current 
+				if mp_dep_class not in props:
+					props.insert(p, mp_dep_class)
+			if mp_class != props[p]:
+				continue # start over, proc prerequisite MP classes first
+			# fetch value from MP classj
+			self.run(mp_class, path, opts)
+			if 'subclass-exclusive' in mp_class.provides:
+				# append one from subclasses based on value from current MP class
+				pass#print mp_class, mp_class.__subclasses__()
+			if 'subclasses' in mp_class.provides:
+				# append all subclasses as dependencies
+				pass#print mp_class, mp_class.__subclasses__()
+			p += 1
 
 def meta_property(name, klass):
 	pass
@@ -61,45 +229,6 @@ class Metafile(PersistedMetaObject):
 		if not storage:
 			storage = self.__class__.storage_name
 		self.store = PersistedMetaObject.get_store(name=storage)
-
-	def tmp_convert(self):
-		for res in self.discover():
-			print res.data
-
-	def process(self, *args):
-		"""
-		Caller of self.discover,
-		results of generator are things we want to consolidate,
-		keep them either by pathref or shelved, harvesting their data
-		into something we can use for Metalink files, to generate
-		card indices for the data or for use in higher structured data (ie. rsr,
-		taxus)
-
-		Trying to create composite Metalink for several loose files.
-		"""
-		for res in self.discover():
-			if isinstance(res, Metalink):
-				pass
-
-	def discover(self):
-		"""
-		Generator to get (meta)data persistences interfaces for current 
-		path.
-		XXX: build something so subclasses can provide additional specs,
-		and so this class may 
-		"""
-		if self.exists():
-			yield self.fetch()
-# FIXME: use MetafileFile, or Metalink, URIRef, Video etc other classes to
-# read metadata for use, consolidation etc. by calling program
-#		for marker in metamarkers:
-#			for fpath in find_meta_file(marker, path)
-		metafile = MetafileFile(self.path)
-		if metafile.non_zero():
-			print self.path, metafile
-			yield metafile
-		elif not fs.File.ignored(self.path):
-			print '!', self.path, metafile, 'missing'
 
 	def metaid(self):
 		"""
@@ -458,8 +587,18 @@ class Meta(object):
 
 	def __init__(self, volume):
 		self.volume = volume
+		# init STAGE shelve
+		ref = volume.idxref('STAGE')
+		self.stage = PersistedMetaObject.get_store(name='STAGE', dbref=ref)
+
+	def get_property(self, name, index='STAGE'):
+		assert index == 'STAGE'
+		return self.stage[path]
 
 	def exists(self, path):
+		"""
+		Return wether some repository data exists.
+		"""
 		if isdir(path):
 			return str(path) in self.volume.indices.dirs
 		mf = Metafile(path)
@@ -469,8 +608,37 @@ class Meta(object):
 			return True
 
 	def clean(self, path):
+		"""
+		Determine wether there are dirty properties and return False if so.
+		"""
 		print 'TODO Meta.clean', self.volume, path
 
+# XXX: todo operations on stage index
+	def add(self, path, opts):
+		"""
+		Start with MP default(s), continue to discover.
+
+		Put data into STAGE index.
+		"""
+		data = {}
+		if path in self.stage:
+			data = self.stage.get(path)
+		resolver = MetaResolver(self, data)
+		resolver.discover(path, opts)
+		print 'todo add', resolver.data
+
+	def update(self, path, opts):
+		pass
+
+	def drop(self, path, opts):
+		del index[path]
+
+	def commit(self, message=None):
+		"""
+		Write STAGE index to store, update loookup indices.
+		"""
+		volume.store
+		volume.indices
 
 if __name__ == '__main__':
 	import shelve

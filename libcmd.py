@@ -150,17 +150,21 @@ class OptionParser(optparse.OptionParser):
 
 def optparse_decrement_message(option, optstr, value, parser):
 	"Lower output-message threshold. "
+	oldv = parser.values.message_level
 	parser.values.quiet = False
 	#if not hasattr(parser.values, 'message_level'): # XXX: this seems to be a bug elsewhere
 	#	parser.values.message_level = 0 
 	if parser.values.message_level:
 		parser.values.message_level -= 1
+	print "Verbosity changed from", oldv, "to", parser.values.message_level
 
 def optparse_override_quiet(option, optstr, value, parser):
 	"Turn off non-essential output. "
+	oldv = parser.values.message_level
 	parser.values.quiet = True
 	parser.values.interactive = False
 	parser.values.message_level = 4 # skip warning and below
+	print "Verbosity changed from", oldv, "to", parser.values.message_level
 
 def optparse_print_help(options, optstr, value, parser):
 	parser.print_help()
@@ -738,7 +742,7 @@ class TargetResolver(object):
 			assert isinstance(kwds, dict)
 			# Execute Target Command routine (returns generator)
 			context.generator = target.handler.func(
-							*self.select_args(target.handler.func, args),
+#							*self.select_args(target.handler.func, args),
 							**self.select_kwds(target.handler.func, kwds))
 			if not context.generator:
 				log.warn("target %s did not return generator", target)
@@ -781,6 +785,7 @@ class TargetResolver(object):
 			del context.generator
 			target = execution_graph.nextTarget()
 
+# XXX: rethink this (unused)
 	def select_args(self, func, args):
 		func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
 				inspect.getargspec(func)

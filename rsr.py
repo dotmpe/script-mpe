@@ -156,6 +156,7 @@ See update_metafiles
 		mf = res.Metafile(path)
 		mf.tmp_convert()
 
+
 @Target.register(NS, 'update-metafiles', 'rsr:volume')
 def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
 	log.debug("{bblack}rsr{bwhite}:update-volume{default}")
@@ -216,6 +217,16 @@ def rsr_meta(volume=None, *args):
 	mf = Metafile.fetch(src, vdb)
 	# if in shelve, mf may exist and is given quick sanity check
 
+@Target.register(NS, 'add', 'rsr:volume')
+def rsr_add(prog=None, opts=None, volume=None):
+	# XXX: make libcmd.Arguments usable from targets
+	#print prog.argv
+	meta = res.Meta(volume)
+	for name in prog.argv:
+		if not os.path.exists(name):
+			log.err("Ignored %s", name)
+			continue
+		meta.add(name, opts)
 
 #@Target.register(NS, 'ls', 'rsr:volume')
 #def rsr_ls(volume=None, volumedb=None):

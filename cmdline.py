@@ -187,13 +187,14 @@ def cmd_options(settings=None, prog=None):
 			prog['usage'], 
 			prog['version'])
 	prog.update(dict(
-		optparser=parser
+		optparser=parser,
 	))
 	# Yield parsed invocation back to TargetResolver
 	yield Keywords(**kwds_)
 	yield Keywords(
 		opts=opts,
 	)
+	print "Verbosity:", opts.message_level
 	args = Arguments()
 	targs = Targets()
 	args_ = list(args_)
