@@ -158,7 +158,7 @@ while (<DF>) {
     if($mode eq 'config') {
         print $name,"_bytes_used", ".draw ", "LINESTACK1\n";
         print $name,"_bytes_avail", ".draw ", "LINESTACK1\n";
-        print $name,"_bytes_used", ".label ", $mountpt, " used\n";
+        print $name,"_bytes_used", ".label ", $mountpt, " in use\n";
         print $name,"_bytes_avail", ".label ", $mountpt, " available\n";
 #        print $name,"_bytes_total", ".label ", $mountpt, "total", "\n";
 #        print $name, ".label ", $mountpt, "\n";

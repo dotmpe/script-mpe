@@ -162,6 +162,7 @@ else:
 
 	if not os.path.exists(tmpf) or os.path.getmtime(tmpf) + refresh < time.time():
 
+#		print 'http://www.hetweeractueel.nl/weer/%s/actueel/' % location
 		f = urllib2.urlopen('http://www.hetweeractueel.nl/weer/%s/actueel/' % location)
 		content = f.read()
 		f.close()
@@ -186,8 +187,9 @@ else:
 				print 'temperature.value', temperature.parent.nextSibling.text.split(' ')[0]
 		dew_point = s.find(text='Dauwpunt')
 		if not avg and dew_point:
-			print 'dew_point.value', dew_point.parent.nextSibling.text.split(' ')[0]
-
+			v = dew_point.parent.nextSibling.text.split(' ')[0].replace('&#176;C', '').strip()
+			if v:
+				print 'dew_point.value', v
 	elif measure.startswith('wind'):
 		windspeed = s.find(text='Windkracht')
 		if windspeed:
