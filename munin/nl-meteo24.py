@@ -66,8 +66,8 @@ if args:
 			print 'temperature.type GAUGE'
 #			print 'temperature.label Freezing point'
 #			print 'temperature.line 0:0000bb:Freezing'
-			print 'temperature.label Tropical temperatures'
-			print 'temperature.line 28:bb0000:Tropical'
+			print 'temperature.label Atmospheric Temperature %s' % (lbl_loc,)
+			print 'temperature.line 28:bb0000:Tropical '
 
 else:
 	import urllib2
