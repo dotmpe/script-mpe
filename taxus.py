@@ -123,7 +123,7 @@ import log
 
 
 SqlBase = declarative_base()
-
+metadata = SqlBase.metadata
 
 class DNSLookupException(Exception):
 
@@ -277,13 +277,13 @@ class Name(SqlBase, SessionMixin):
 #)
 # mapping table for ChecksumDigest [1-*] Locator
 locators_checksum = Table('locators_checksum', SqlBase.metadata,
-	Column('locators_ida', ForeignKey('ids_lctr.id')),
-	Column('chk_idb', ForeignKey('ids_chk.id'))
+	Column('locators_ida', Integer, ForeignKey('ids_lctr.id')),
+	Column('chk_idb', Integer, ForeignKey('ids_chk.id'))
 )
 # mapping table for Tag [*-*] Locator
 locators_tags = Table('locators_tags', SqlBase.metadata,
-	Column('locator_ida', ForeignKey('ids_lctr.id')),
-	Column('tags_idb', ForeignKey('ids_tag.id'))
+	Column('locator_ida', Integer, ForeignKey('ids_lctr.id')),
+	Column('tags_idb', Integer, ForeignKey('ids_tag.id'))
 )
 
 class Locator(SqlBase, SessionMixin):

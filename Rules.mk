@@ -88,11 +88,26 @@ test_sa_$d::
 	sqlite3 $(DB_SQLITE_TEST) ".q"; \
 	python $D$(REPO)/manage.py test --repository=$(REPO) --url=$$DBREF
 
-manage::
-	./manage.py db_version
+sa-migrate-init::
+	./manage.py version_control
+	@echo Remember to set DB version to schema or schema-1.
+	sqlite3 ~/.cllct/db.sqlite
 
 sa-upgrade::
 	./manage.py upgrade
+
+sa-t::
+	@\
+	DB_VERSION=$$(./manage.py db_version);\
+	SCHEMA_VERSION=$$(./manage.py version);\
+	echo '"""' > oldmodel.py;\
+	./manage.py compare_model_to_db taxus:metadata >> oldmodel.py;\
+	echo '"""' >> oldmodel.py;\
+	./manage.py create_model >> oldmodel.py;\
+	./manage.py make_update_script_for_model \
+		--oldmodel=oldmodel:meta \
+		--model=taxus:metadata \
+			> cllct_automigrate_$$SCHEMA_VERSION.py
 
 stat::
 	@\

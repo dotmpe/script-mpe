@@ -74,7 +74,7 @@ inodes = Table('inodes', meta,
     Column('inode_number', Integer),
     Column('itype', Integer),
     Column('local_path', String),
-    Column('host_id', Integer),
+#    Column('host_id', Integer),
 )
 
 ivres = Table('ivres', meta,
@@ -152,9 +152,13 @@ ws = Table('ws', meta,
 )
 
 tables = [
-        bm, chks, cnt, comments, fragment_variant,
+        bm, 
+#chks,
+        cnt, comments, fragment_variant,
         frags, hosts, ids, ids_lctr, ids_name, inodes,
-        ivres, locator_checksum, nodes, ns, relocated,
+        ivres, 
+#        locator_checksum, 
+        nodes, ns, relocated,
         res, status, stk, token_locator, volumes, vres, 
         workset_locator, ws
     ]
