@@ -230,7 +230,6 @@ def txs_session(prog=None, sa=None, opts=None, settings=None):
 	urlresolver = LocalPathResolver(host, sa)
 	yield Keywords(sa=sa, ur=urlresolver)
 
-
 @Target.register(NS, 'pwd', 'txs:session')
 def txs_pwd(prog=None, sa=None, ur=None, opts=None, settings=None):
 	log.debug("{bblack}txs{bwhite}:pwd{default}")

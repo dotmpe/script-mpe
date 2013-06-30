@@ -21,8 +21,8 @@ Options.register(NS,
 		)
 
 
-@Target.register(NS, 'log', 'txs:session')
-def htdocs_log(sa=None, ur=None, opts=None, settings=None):
+@Target.register(NS, 'update', 'txs:session')
+def htdocs_update(sa=None, ur=None, opts=None, settings=None):
 	comp.get_builder_class('dotmpe.du.builder.htdocs')
 	frontend.cli_process(source, builder_name='htdocs')
 

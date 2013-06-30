@@ -88,6 +88,9 @@ test_sa_$d::
 	sqlite3 $(DB_SQLITE_TEST) ".q"; \
 	python $D$(REPO)/manage.py test --repository=$(REPO) --url=$$DBREF
 
+manage::
+	./manage.py db_version
+
 sa-upgrade::
 	./manage.py upgrade
 
