@@ -80,6 +80,7 @@ def main(logfifo):
 # syslog compat. levels
 EMERG, ALERT, CRIT, ERR, WARN, NOTE, INFO, DEBUG = range(0,8)
 #CHATTER = 1
+NAMES = ( 'EMERG', 'ALERT', 'CRIT', 'ERR', 'WARN', 'NOTE', 'INFO', 'DEBUG' )
 
 palette = dict(
 	default='\x1b[0;0m', # default
@@ -106,7 +107,7 @@ def format_line(msg):
 		msg = msg.replace('{%s}' % k, palette[k])
 	return msg
 
-category = 7
+category = 4
 strict = False
 
 def log(level, msg, *args):

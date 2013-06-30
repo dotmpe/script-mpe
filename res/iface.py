@@ -1,3 +1,8 @@
+"""
+Collection of interfaces.
+
+Another reiteration of a previous unfinished implementation in taxus_out.
+"""
 import zope.interface
 from zope.interface import Interface, Attribute, implements
 
@@ -27,6 +32,25 @@ class ICommand(zope.interface.Interface):
             "IResource. ")
 
     fetch = Attribute("")
+
+class IReportable(zope.interface.Interface):
+	"""
+	Interface for reportable objects, adaptable to report instances.
+	To use with libcmd and reporer.Reporter class.
+	"""
+
+class IReport(zope.interface.Interface):
+	"""
+	Interface for report instances.
+	To use with libcmd and reporer.Reporter class.
+	"""
+	text = Attribute("A text fragment (readonly). ")
+	ansi = Attribute("An ANSI formatted variant of `text` (readonly).")
+	level = Attribute("A level associated with the text fragment (readonly). ")
+
+	formatting = Attribute("Preformatted, monospace text is 'static', or 'normal' for flowed. ")
+	line_width = Attribute("If needed, indicate minimal line-width. ")
+	line_width_preferred = Attribute("Optionally, indicate preferred line-width. ")
 
 def test():
     from zope.interface.verify import verifyObject

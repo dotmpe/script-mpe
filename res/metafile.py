@@ -167,7 +167,7 @@ class MetaResolver(object):
 		try:
 			self.data[mp.cname] = mp.extract(self.data, path, opts)
 		except Exception, e:
-			log.err('Failed getting %s for %s' % (mp.cname, path), e)
+			log.err('Failed getting %s for %s: %s', mp.cname, path, e)
 
 	def discover(self, path, opts):
 		"""
@@ -555,10 +555,13 @@ class Metadir(object):
 		return os.path.join(self.full_path, self.dotdir_id)
 
 	def __str__(self):
-		return repr(self)
+		guid = self.guid
+		return "%s at %s with GUID %s" % (util.cn(self), self.id_path, guid)
 
 	def __repr__(self):
-		return "<%s %s at %s>" % (util.cn(self), hex(id(self)), self.id_path)
+		guid = self.guid
+#		guid = hex(id(self))
+		return "<%s %s at %s>" % (util.cn(self), guid, self.id_path)
 
 	@classmethod
 	def find(clss, *paths):
@@ -614,13 +617,17 @@ class Meta(object):
 		print 'TODO Meta.clean', self.volume, path
 
 # XXX: todo operations on stage index
-	def add(self, path, opts):
+	def add(self, name, prog, opts):
 		"""
 		Start with MP default(s), continue to discover.
 
 		Put data into STAGE index.
 		"""
 		data = {}
+		path = self.volume.pathname(name, prog.pwd)
+		if not os.path.exists(path):
+			log.err("Ignored %s", path)
+			return
 		if path in self.stage:
 			data = self.stage.get(path)
 		resolver = MetaResolver(self, data)

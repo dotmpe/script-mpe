@@ -95,7 +95,8 @@ def rsr_volume(prog=None, opts=None):
 		if not volume:
 			volume = res.Volume(prog.pwd)
 			userok = opts.force or \
-					lib.Prompt.ask("Create volume %r?" % volume)
+					lib.Prompt.ask("Create volume %r[%s]?" % (volume.id_path,
+						volume.guid))
 		else:
 			userok = opts.force or lib.Prompt.ask(
 					"Truncate volume %r? (drops data!)" % volume)
@@ -105,6 +106,8 @@ def rsr_volume(prog=None, opts=None):
 	if not volume:
 		log.err("Not in a volume")
 		yield 1
+	# finally, change PWD
+	os.chdir(volume.path)
 	log.note("rsr:volume %r for %s", volume.store, volume.full_path)
 	yield Keywords(volume=volume)
 
@@ -127,6 +130,19 @@ def rsr_status(prog=None, volume=None, opts=None):
 		elif not meta.clean(path):
 			yield { 'status': { 'updated': [ path ] } }
 	yield 0
+
+@Target.register(NS, 'add', 'rsr:volume')
+def rsr_add(prog=None, opts=None, volume=None, args=None):
+	"""
+	Add files. Put records into stage-shelve.
+	"""
+	meta = res.Meta(volume)
+	for name in args:
+		yield meta.add(name, prog, opts)
+	# print contents and status of stage
+	yield StageReport(meta)
+	# print unknown stuff
+	#yield VolumeReport()
 
 
 @Target.register(NS, 'update-volume', 'rsr:volume')
@@ -155,7 +171,6 @@ See update_metafiles
 			continue
 		mf = res.Metafile(path)
 		mf.tmp_convert()
-
 
 @Target.register(NS, 'update-metafiles', 'rsr:volume')
 def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
@@ -194,7 +209,6 @@ def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
 			print '\tOK'
 	volume.store.sync()
 
-
 @Target.register(NS, 'meta', 'rsr:volume')
 #def rsr_meta(src, pred, value, volume=None, *args):
 def rsr_meta(volume=None, *args):
@@ -203,6 +217,7 @@ def rsr_meta(volume=None, *args):
 
 		/volume/dir/ # rsr:meta ./file.avi rsr:media video/speech/lecture
 		/volume/dir/ # rsr:meta ./book.pdf rsr:media text/book/technical
+
 	"""
 	src = args.pop(0)
 	pred = args.pop(0)
@@ -217,71 +232,4 @@ def rsr_meta(volume=None, *args):
 	mf = Metafile.fetch(src, vdb)
 	# if in shelve, mf may exist and is given quick sanity check
 
-@Target.register(NS, 'add', 'rsr:volume')
-def rsr_add(prog=None, opts=None, volume=None):
-	# XXX: make libcmd.Arguments usable from targets
-	#print prog.argv
-	meta = res.Meta(volume)
-	for name in prog.argv:
-		if not os.path.exists(name):
-			log.err("Ignored %s", name)
-			continue
-		meta.add(name, opts)
 
-#@Target.register(NS, 'ls', 'rsr:volume')
-#def rsr_ls(volume=None, volumedb=None):
-#	cwd = os.getcwd();
-#	lnames = os.listdir(cwd)
-#	for name in lnames:
-#		path = os.path.join(cwd, name)
-#		metafile = Metafile(path)
-#		if not metafile.non_zero():
-#			print "------", path.replace(cwd, '.')
-#			continue
-#		print metafile.data['Digest'], path.replace(cwd, '.')
-#	print
-#	print os.getcwd(), volume.path, len(lnames)
-#
-#
-#@Target.register(NS, 'volume', 'rsr:workspace')
-#def rsr_update_content(opts=None, libs=None):
-#	lib.contents = PersistedMetaObject.get_store('default', 
-#			opts.contentdbref)
-#
-#def rsr_count_volume_files(volumedb):
-#	print len(volumedb.keys())
-#
-#def rsr_repo_update(self, options=None):
-#	pwd = os.getcwd()
-#	i = 0
-#	for path in Repo.walk(pwd, max_depth=2):
-#		i += 1
-#		print i,path
-#
-#@Target.register(NS, 'list-checksums', 'rsr:volume')
-#def rsr_list_checksums(volume=None, volumedb=None):
-#	i = 0
-#	for i, p in enumerate(volumedb):
-#		print p
-#	print i, 'total', volume.path
-#
-#def rsr_content_20(opts=None):
-#	pass # load index
-#
-#def rsr_content_sha1(opts=None):
-#	pass # load index
-#
-#def rsr_list_nodes(self, **kwds):
-#	print self.session.query(Node).all()
-#
-#def rsr_import_bookmarks(self):
-#	"""
-#	Import from
-#	  - HTML
-#	  - Legacy delicious XML
-#	"""
-#	print self.session
-#
-#def rsr_dump_bookmarks(self):
-#	pass
-#

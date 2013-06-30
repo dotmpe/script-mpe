@@ -148,15 +148,18 @@ class OptionParser(optparse.OptionParser):
 
 # Option Callbacks for optparse.OptionParser.
 
-def optparse_decrement_message(option, optstr, value, parser):
-	"Lower output-message threshold. "
+def optparse_increase_verbosity(option, optstr, value, parser):
+	"Lower output-message threshold by increasing message level. "
 	oldv = parser.values.message_level
 	parser.values.quiet = False
+	if parser.values.message_level == 7:
+		log.warn( "Verbosity already at maximum. ")
+		return
 	#if not hasattr(parser.values, 'message_level'): # XXX: this seems to be a bug elsewhere
 	#	parser.values.message_level = 0 
 	if parser.values.message_level:
-		parser.values.message_level -= 1
-	print "Verbosity changed from", oldv, "to", parser.values.message_level
+		parser.values.message_level += 1
+	log.debug( "Verbosity changed from %s to %s", oldv, parser.values.message_level )
 
 def optparse_override_quiet(option, optstr, value, parser):
 	"Turn off non-essential output. "
@@ -164,7 +167,7 @@ def optparse_override_quiet(option, optstr, value, parser):
 	parser.values.quiet = True
 	parser.values.interactive = False
 	parser.values.message_level = 4 # skip warning and below
-	print "Verbosity changed from", oldv, "to", parser.values.message_level
+	log.debug("Verbosity changed from %s to %s", oldv, parser.values.message_level )
 
 def optparse_print_help(options, optstr, value, parser):
 	parser.print_help()
@@ -556,7 +559,7 @@ class ExecGraph(object):
 		assert res.iface.ICommand.providedBy(target), (
 				repr(target),list(zope.interface.providedBy(target).interfaces()))
 		assert not target.handler.prerequisites
-		log.debug('nextTarget index=%s target.name=%s execlist=%r'
+		log.debug('ExecGraph: nextTarget is %i, %r %r'
 				%(
 					self.pointer,
 					target.name,
@@ -742,8 +745,7 @@ class TargetResolver(object):
 			assert isinstance(kwds, dict)
 			# Execute Target Command routine (returns generator)
 			context.generator = target.handler.func(
-#							*self.select_args(target.handler.func, args),
-							**self.select_kwds(target.handler.func, kwds))
+							**self.select_kwds(target.handler.func, kwds, args))
 			if not context.generator:
 				log.warn("target %s did not return generator", target)
 				# isgeneratorfunction(context.generator):
@@ -777,27 +779,17 @@ class TargetResolver(object):
 							assert not execution_graph, '???'
 						reporter.flush()
 						sys.exit(r)
-					# aggregate result data for reporting (to screen, log, ...)
-					else:#if res.iface.IResult.providedBy(r):
-						reporter.update(r)
-					#else:
-					#	log.warn("Ignored yield %r", r)
+					# aggregate var. result data for reporting (to screen, log, ...)
+					elif res.iface.IReport.providedBy(r):
+						reporter.append(r)
+					elif res.iface.IReportable.providedBy(r):
+						reporter.append(r)
+					else:
+						log.warn("Ignored yield from %s: %r", target.name, r)
 			del context.generator
 			target = execution_graph.nextTarget()
 
-# XXX: rethink this (unused)
-	def select_args(self, func, args):
-		func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
-				inspect.getargspec(func)
-		if not (func_arg_vars or func_args_var):
-			return ()
-		normal_args = func_arg_vars[:-len(func_defaults)]
-		assert not normal_args, "Cannot match varnames now?"
-		if func_args_var:
-			return args
-		return ()
-
-	def select_kwds(self, func, kwds):
+	def select_kwds(self, func, kwds, args):
 		func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
 				inspect.getargspec(func)
 #		assert func_arg_vars.pop(0) == 'self'
@@ -815,6 +807,8 @@ class TargetResolver(object):
 		
 		if "options" in ret_kwds:
 			ret_kwds['options'] = opts
+		if "args" in ret_kwds:
+			ret_kwds['args'] = args
 
 		return ret_kwds
 

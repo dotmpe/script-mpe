@@ -63,19 +63,29 @@ class Workspace(Metadir):
 		self.__id = None
 		self.store = None
 		self.indices = {}
-		self.init()
+		if self.exists():
+			self.init()
+
+	@property
+	def guid(self):
+		if self.exists():
+			return open(self.id_path).read().strip()
+		return ''
+
+	def exists(self):
+		return os.path.exists(self.id_path)
 
 	def init(self, create=False, reset=False):
 		"""
 		"""
-		if os.path.exists(self.id_path) and not reset:
+		if self.exists() and not reset:
 			self.__id = open(self.id_path).read().strip()
 		elif reset or create:
-			print reset and 'Resetting' or 'Creating', self
 			self.__id = str(uuid.uuid4())
 			if not os.path.exists(self.full_path):
 				os.mkdir(self.full_path)
 			open(self.id_path, 'w+').write(self.__id)
+			print reset and 'Reset' or 'Created', self
 		else:
 			assert False # XXX: cannot manage dotdir
 		self.store = self.init_store(reset) # store shared with Metafile.
@@ -115,6 +125,13 @@ class Volume(Workspace):
 				'sha1sum',
 				'dirs'
 			]
+
+	def pathname(self, name, basedir=None):
+		if basedir and basedir.startswith(self.path):
+			path = basedir[len(self.path.rstrip('/'))+1:]
+		else:
+			path = ""
+		return os.path.join(path, name)
 
 
 class Repo(object):

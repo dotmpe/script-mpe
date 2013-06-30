@@ -13,7 +13,7 @@ import confparse
 import log
 from libname import Namespace, Name
 from libcmd import OptionParser, Targets, Arguments, Keywords, Options,\
-	Target, optparse_decrement_message, optparse_override_quiet
+	Target, optparse_increase_verbosity, optparse_override_quiet
 
 
 # Register this module with libcmd
@@ -62,13 +62,13 @@ Options.register(NS,
 			"message threshold. Overriden by --quiet or --verbose. "
 			"Levels are 0--7 (debug--emergency) with default of 2 (notice). "
 			"Others 1:info, 3:warning, 4:error, 5:alert, and 6:critical.",
-			'default': 2,
+			'default': log.category,
 		}),
 
 		(('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
 			"threshold. Overriden by --quiet or --message-level.",
 			'action': 'callback',
-			'callback': optparse_decrement_message}),
+			'callback': optparse_increase_verbosity}),
 
 		(('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
 			"and prompts (--interactive). ", 
@@ -194,7 +194,7 @@ def cmd_options(settings=None, prog=None):
 	yield Keywords(
 		opts=opts,
 	)
-	print "Verbosity:", opts.message_level
+	log.info("Verbosity at %s (%s)", opts.message_level, log.NAMES[opts.message_level])
 	args = Arguments()
 	targs = Targets()
 	args_ = list(args_)

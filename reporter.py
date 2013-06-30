@@ -1,11 +1,42 @@
 """
-zope.interfaces based output component model.
-
+zope.interfaces based output components.
+this is for adapting objects to CLI printouts, possibly simple reporting.
 XXX: see log, taxus_out for older model.
 """
 import collections
+import zope.interface
+#from zope.interface.interface import adapter_hooks
+#from zope.interface.adapter import AdapterRegistry
 
+import res.iface
 import log
+
+class AbstractReport(object):
+
+	def __init__(self):
+		self.level = log.INFO
+		self.formatting = 'flowed'
+		self.line_width = 0
+		self.line_width_preferred = 0
+
+	@property
+	def text(self):
+		raise NotImplemented
+
+	@property
+	def ansi(self):
+		return self.text()
+
+class StageReport(AbstractReport):
+
+	zope.interface.implements(res.iface.IReport)
+
+	def __init__(self, meta):
+		self.meta = meta
+
+	@property
+	def text(self):
+		raise NotImplemented
 
 
 class Reporter(object):
@@ -23,6 +54,8 @@ class Reporter(object):
 		Add data, object that implements IResult.
 		"""
 		self.__class__.deepupdate(self.data, data)
+
+	# Utils
 
 	@classmethod
 	def deepupdate(Class, sub, data):
@@ -47,6 +80,8 @@ class Reporter(object):
 	titles = {
 			'unknown': "%(c17)sUnknown%(c07)s" % log.palette2,
 			}
+
+	# Reporter
 
 	def flush(self):
 		for k in self.data:
