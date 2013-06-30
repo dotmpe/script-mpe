@@ -27,6 +27,7 @@ import txs
 import lind
 import rsr
 import volume
+import htdocs
 #from radical import Radical
 #from finfo import FileInfoApp
 
