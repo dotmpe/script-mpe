@@ -23,6 +23,11 @@ Options.register(NS,
 
 @Target.register(NS, 'update', 'txs:session')
 def htdocs_update(sa=None, ur=None, opts=None, settings=None):
+	"""
+	TODO:
+	- store daily items in x-index
+	
+	"""
 	comp.get_builder_class('dotmpe.du.builder.htdocs')
 	frontend.cli_process(source, builder_name='htdocs')
 

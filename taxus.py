@@ -60,6 +60,9 @@ Inheritance hierarchy and relations::
                            |                                                
                            '-- Bookmark                  Formula         
                                                           * statements
+                           '-- Volume
+                           '-- Workset
+
           ChecksumDigest   
            * date_added
            * date_/deleted
@@ -772,8 +775,8 @@ class Variant(Resource):
 	A resource the content of which comes with several variations, such as
 	output format, natural language, quality indicators, and/or other features.
 
-	Suggestions for variation include client-negotiated capabilities such as 
-	ability to render specific media and other services.
+	Mechanisms for variation include client-negotiated capabilities such as 
+	peripheral abilities to render or interact with specific media/services.
 	"""
 
 	__tablename__ = 'vres'
@@ -841,12 +844,13 @@ class Volume(Resource):
 	node_id = Column(Integer, ForeignKey('nodes.id'))
 	root = relationship(Node, backref='volumes',
 			primaryjoin=node_id == Node.id)
-	
+
 
 class Bookmark(Resource):
 
 	"""
-	A simple textual annotation with a sequence of tags,
+	A textual annotation with a short and long descriptive label,
+	a sequence of tags, the regular set of dates, 
 	and is itself a resource.
 	"""
 
