@@ -15,12 +15,12 @@ import uuid
 import anydbm
 import shelve
 
-import confparse
-import iface
-#import lib
-#from taxus import get_session
-import log
+from script_mpe import confparse
+#from script_mpe import lib
+#from script_mpe from taxus import get_session
+from script_mpe import log
 
+import iface
 import util
 from persistence import PersistedMetaObject
 from fs import File, Dir

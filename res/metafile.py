@@ -8,12 +8,13 @@ import time
 import traceback
 
 import calendar
-import lib
+
 import util
-import log
 import confparse
+from script_mpe import lib
+from script_mpe import log
+from script_mpe.res import fs, util
 from persistence import PersistedMetaObject
-from res import fs, util
 
 
 

@@ -1,9 +1,9 @@
 from fnmatch import fnmatch
 import os
 
-import confparse
-import log
-from lib import Prompt
+from script_mpe import confparse
+from script_mpe import log
+from script_mpe.lib import Prompt
 
 
 class File(object):

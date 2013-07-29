@@ -2,7 +2,7 @@ import base64
 import os
 import time
 
-import lib
+from script_mpe import lib
 
 
 ISO_8601_DATETIME = '%Y-%m-%dT%H:%M:%SZ'
