@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+# basename-reg: split filename from known extensions
+# current impl. allows concatenation of var. tags, known and unknown 
+
+reg = {
+		'py': "Python source script",
+		'pyc': "Compiled Python script",
+		'rst': "Restructuredtext document",
+		'sh': "Shell script",
+		'htm': "HTML document",
+		'html': "HTML document",
+		'xm': "eXtended Module Tracker music document",
+		'js': "Javascript script",
+		'exe': "MS executable",
+		'zip': "ZIP compressed file archive",
+		'csv': "Comma-Separated Values",
+		'iso': "CD-ROM Image in ISO 9660 format",
+		'bz2': "Bzip2 compressed file",
+		'it': "Impuse Tracker music document",
+		'tgz': ('tar','gz'),
+		'tar': "Unix file archive",
+		'gz': 'Gzip compressed file',
+		'dmg': 'Mac OS Image',
+		'rc': 'Executable configuration',
+		'ini': 'MS-DOS-style Static configuration',
+		'pdf': 'Portable Document Format',
+		'pde': 'Processing Development Environment source file',
+		'ino': 'Arduino C++ source file',
+		'jar': 'Oracle Sun JAVA archive file',
+		'mod': 'Module Tracker music document',
+		'doc': 'MS Word document',
+		'part': 'Partial download',
+		'hex': 'Binary image file in HEX format',
+		'c': 'C source-code file',
+		'docx': 'ZIP Compressed MS Word XML file archive',
+		'xlsx': 'ZIP Compressed MS Excel XML file archive',
+		'jpg': 'Joint Photographic Expert Group',
+		'nbm': 'Netbeans Plugin',
+		'xml': 'eXtensible Markup Language',
+		'skp': 'Sketchup Drawing',
+		's3m': 'Scream Tracker 2 tracker module music file',
+		'rb': 'Ruby source file',
+		'rar': 'RAR compressed file archive',
+	}
+
+if __name__ == '__main__':
+	import sys
+	for a in sys.argv[1:]:
+		# look for names with '.' separated fields 
+		if '.' not in a:
+			continue
+		# treat each field as potential tag
+		for e in a.lower().split('.'):
+			# lookup tag in registry
+			if e in reg:
+				# FIXME: this does not replace uppercase tags yet
+				es = reg[e]
+				if not isinstance(es, tuple):
+					es = [e]
+				for s in es:
+					# replace last occurence of tag '.e'
+					a = "".join(a.rsplit('.'+s, 1))
+		print a
