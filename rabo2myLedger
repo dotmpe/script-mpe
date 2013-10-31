@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+"""
+This is not a ledger. Just a balance tracker and some averaging.
+
+.. class-uml::
+
+	Account {
+		balance:Integer
+		name:String
+	}
+
+	Mutation {
+		for:Account
+		with:Account
+		action:[Deposit,Withdrawal]
+		amount:Float
+		currency:[EUR]
+		date:Date
+		description:String
+		specification:String
+	}
+
+"""
+import os
+import csv
+
+from sqlalchemy import Column, Integer, String, Boolean, Text, \
+	ForeignKey, Table, Index, DateTime
+from sqlalchemy.orm import relationship
+
+
+SqlBase = declarative_base()
+metadata = SqlBase.metadata
+
+class Account(SqlBase):
+	
+	"""
+	"""
+	__tablename__ = 'mlprojects'
+	__mapper_args__ = {'polymorphic_identity': 'myLedger-account'}
+
+	account_id = Column('id', Integer, primary_key=True)
+	balance = Column(Integer)
+	account_type = Column(String)
+
+
+def main():
+	Reader = csv.reader(open(INFILE), delimiter=',')
+
+# if name == rabo2gnucash-csv
+	for row in Reader:
+		if row == ['\x1a']:
+			break
+		#print "Account Nr, Currency, date,,amount,dest-acc,dest-name,date2,cat,,subdescr,,,
+		#print row
+
+
+if __name__ == '__main__':
+	import sys
+	from getopt import getopt
+	x = getopt(sys.argv[1:], 'hl:', ['--ledger-db'])
+	print x
+	main();
