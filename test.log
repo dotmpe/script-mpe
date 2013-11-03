@@ -25,12 +25,12 @@ Res_FormatTest_sha1sum ... ok
 ERROR: test_1_ (test_confparse.CPTest2)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/srv/project-mpe/script-mpe/test_confparse.py", line 57, in test_1_
+  File "/srv/project-mpe/script-mpe/test_confparse.py", line 56, in test_1_
     conf = expand_config_path(self.NAME).next()
 StopIteration
 
 ----------------------------------------------------------------------
-Ran 22 tests in 0.380s
+Ran 22 tests in 0.076s
 
 FAILED (errors=1)
 Coverage.py warning: Module rsr was never imported.

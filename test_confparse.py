@@ -28,8 +28,7 @@ class AbstractConfparseTest(unittest.TestCase, object):
 
 		self.cwd = getcwd()
 		chdir(self.pwd)
-		open(self.RC, 'w+').write("""\nfoo: \n   bar: {var: v}\n   test4:
-				[{foo: bar}]""")
+		open(self.RC, 'w+').write("""\nfoo: \n   bar: {var: v}\n   test4: [{foo: bar}]""")
 		#self._print_test_files()
 
 	def tearDown(self):
