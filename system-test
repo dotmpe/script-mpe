@@ -163,8 +163,8 @@ case $1 in
     mpe cmd:config
     backup_coverage $1.b
     mpe cmd:options
-    backup_coverage $1.c
-    mpe cmd:help
+#	backup_coverage $1.c
+#	mpe cmd:help
     backup_coverage $1.d
     mpe cmd:targets
     backup_coverage $1.e

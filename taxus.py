@@ -519,6 +519,9 @@ class INode(Node):
 	def location(self):
 		return "file:%s" % "/".join((self.host.netpath, self.local_path))
 
+	def __unicode__(self):
+		return u"<%s %s>" % (lib.cn(self), self.location)
+
 	def __str__(self):
 		return "<%s %s>" % (lib.cn(self), self.location)
 

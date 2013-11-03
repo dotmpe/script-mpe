@@ -89,21 +89,6 @@ def upgrade(migrate_engine):
 	# migrate_engine to your metadata
 	pre_meta.bind = migrate_engine
 	post_meta.bind = migrate_engine
-	pre_meta.tables['anodes'].drop()
-	pre_meta.tables['folders'].drop()
-	pre_meta.tables['fslayouts'].drop()
-	pre_meta.tables['fslayouts_fslayouts'].drop()
-	pre_meta.tables['ids_chks'].drop()
-	pre_meta.tables['ids_chks_md5'].drop()
-	pre_meta.tables['ids_chks_sha1'].drop()
-	pre_meta.tables['nodes_nodes'].drop()
-	post_meta.tables['inodes'].columns['host_id'].create()
-	pre_meta.tables['nodes'].columns['type'].alter(name='ntype')
-
-def downgrade(migrate_engine):
-	# Operations to reverse the above upgrade go here.
-	pre_meta.bind = migrate_engine
-	post_meta.bind = migrate_engine
 	pre_meta.tables['anodes'].create()
 	pre_meta.tables['folders'].create()
 	pre_meta.tables['fslayouts'].create()
@@ -112,6 +97,21 @@ def downgrade(migrate_engine):
 	pre_meta.tables['ids_chks_md5'].create()
 	pre_meta.tables['ids_chks_sha1'].create()
 	pre_meta.tables['nodes_nodes'].create()
+	post_meta.tables['inodes'].columns['host_id'].create()
+	pre_meta.tables['nodes'].columns['type'].alter(name='ntype')
+
+def downgrade(migrate_engine):
+	# Operations to reverse the above upgrade go here.
+	pre_meta.bind = migrate_engine
+	post_meta.bind = migrate_engine
+	pre_meta.tables['anodes'].drop()
+	pre_meta.tables['folders'].drop()
+	pre_meta.tables['fslayouts'].drop()
+	pre_meta.tables['fslayouts_fslayouts'].drop()
+	pre_meta.tables['ids_chks'].drop()
+	pre_meta.tables['ids_chks_md5'].drop()
+	pre_meta.tables['ids_chks_sha1'].drop()
+	pre_meta.tables['nodes_nodes'].drop()
 	post_meta.tables['inodes'].columns['host_id'].drop()
 	post_meta.tables['nodes'].columns['ntype'].alter(name='type')
 

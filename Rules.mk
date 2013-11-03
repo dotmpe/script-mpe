@@ -7,7 +7,10 @@ MK                  += $/Rules.mk
 STRGT               += test_py_$d test_sa_$d
 
 ifneq ($(call contains,$(MAKECMDGOALS),clean),)
+CLN                 += .test
 CLN                 += $(shell find ./ -iname '*.pyc')
+CLN                 += $(shell find ./ -iname '*.log')
+CLN                 += $(shell find ./ -iname '.coverage' -o -iname '.coverage-*')
 endif
 #      ------------ -- 
 
@@ -84,9 +87,20 @@ test_py_$d::
 test_sa_$d::
 	@$(call log_line,info,$@,Testing SQLAlchemy repository..)
 	@\
-	DBREF=sqlite:///$(DB_SQLITE_TEST);\
+	DBREF=sqlite:///$(DB_SQLITE_TEST); \
+	$(ll) attention "$@" "Testing '$(REPO)' SA repo functions.." $$DBREF; \
+	rm -rf $$(dirname $(DB_SQLITE_TEST));\
+	mkdir -p $$(dirname $(DB_SQLITE_TEST));\
 	sqlite3 $(DB_SQLITE_TEST) ".q"; \
+	python $D$(REPO)/manage.py version_control --repository=$(REPO) --url=$$DBREF ;\
+	db_version=$$(python $D$(REPO)/manage.py db_version --repository=$(REPO) --url=$$DBREF) ;\
+	version=$$(python $D$(REPO)/manage.py version --repository=$(REPO) --url=$$DBREF) ;\
+	$(ll) info "$@" "Re-created test DB.." $$DBREF; \
+	python $D$(REPO)/manage.py upgrade $$(( $$version - 1 )) --repository=$(REPO) --url=$$DBREF;\
+	$(ll) info "$@" "Starting at DB version: $$(( $$version - 1 ))"; \
+	$(ll) info "$@" "Testing $(REPO) up/down for version: $$version"; \
 	python $D$(REPO)/manage.py test --repository=$(REPO) --url=$$DBREF
+	@$(ll) Done "$@" 
 
 sa-migrate-init::
 	./manage.py version_control

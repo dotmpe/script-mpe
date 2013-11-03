@@ -37,6 +37,8 @@ class LocalPathResolver(object):
 		Return INode object for current directory.
 		"""
 		assert path, path
+		if isinstance(path, INode):
+			path = path.local_path
 		if exists:
 			assert os.path.isdir(path), "Missing %s"%path
 		node = self.get(path, opts)
@@ -246,7 +248,7 @@ def txs_ls(pwd=None, ur=None, opts=None):
 		print "Dir", node
 	else:
 		print node.local_path
-		for rs in res.Dir.walk(node.local_path):
+		for rs in res.Dir.walk_tree_interactive(node.local_path):
 			print rs
 
 @Target.register(NS, 'run', 'txs:session')
@@ -268,7 +270,7 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
 	cwd = os.getcwd()
 	assert isinstance(cwd, basestring), cwd
 	try:
-		for pathstr in res.Dir.walk(cwd, opts):
+		for pathstr in res.Dir.walk_tree_interactive(cwd, opts):
 			path = ur.get(pathstr, opts)
 			if isinstance(results, list):
 				# XXX: path is not initialized yet

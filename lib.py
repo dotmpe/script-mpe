@@ -264,8 +264,8 @@ class Prompt(object):
 		return opts
 
 	@classmethod
-	def query(clss, question, options=()):
-		assert options
+	def query(clss, question, options=[]):
+		assert options and isinstance(options, list)
 		origopts = list(options)
 		opts = clss.create_choice(options)
 		while True:

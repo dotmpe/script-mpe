@@ -90,7 +90,7 @@ class Dir(object):
 
 	@classmethod
 	def prompt_recurse(clss, opts):
-		v = Prompt.query("Recurse dir?", ("Yes", "No", "All"))
+		v = Prompt.query("Recurse dir?", ["Yes", "No", "All"])
 		if v is 2:
 			opts.recurse = True
 			return True
@@ -100,7 +100,7 @@ class Dir(object):
 
 	@classmethod
 	def prompt_ignore(clss, opts):
-		v = Prompt.query("Ignore dir?", ("No", "Yes"))
+		v = Prompt.query("Ignore dir?", ["No", "Yes"])
 		return v is 1
 
 	@classmethod
