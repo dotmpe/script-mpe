@@ -8,25 +8,25 @@ meta = MetaData()
 
 
 new_tables = [
-        bm, chks, cnt, comments, fragment_variant,
-        frags, hosts, ids, ids_lctr, ids_name, inodes,
-        ivres, locator_checksum, nodes, ns, relocated,
-        res, status, stk, token_locator, volumes, vres, 
-        workset_locator, ws
-    ]
+		bm, chks, cnt, comments, fragment_variant,
+		frags, hosts, ids, ids_lctr, ids_name, inodes,
+		ivres, locator_checksum, nodes, ns, relocated,
+		res, status, stk, token_locator, volumes, vres, 
+		workset_locator, ws
+	]
 
 ## 
 def upgrade(migrate_engine):
-    # Upgrade operations go here. Don't create your own engine; bind
-    # migrate_engine to your metadata
-    meta.bind = migrate_engine
-    for table in new_tables:
-        table.create()
+	# Upgrade operations go here. Don't create your own engine; bind
+	# migrate_engine to your metadata
+	meta.bind = migrate_engine
+	for table in new_tables:
+		table.create()
 
 
 def downgrade(migrate_engine):
-    # Operations to reverse the above upgrade go here.
-    meta.bind = migrate_engine
-    for table in new_tables:
-        table.drop()
+	# Operations to reverse the above upgrade go here.
+	meta.bind = migrate_engine
+	for table in new_tables:
+		table.drop()
 

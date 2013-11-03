@@ -17,16 +17,16 @@ monitors = settings.monitors.getlist([ '~/htdocs/' ])
 usage_descr = """%monitor [options] paths"""
 
 options_spec = (
-    ('--add-monitor', {'default': None, 'help': "." }),
+	('--add-monitor', {'default': None, 'help': "." }),
 )
 
 
 def getpath(name, *dirs):
-    paths = []
-    j = os.path.join
-    [ paths.extend([ j(d, name), j(d, '.' + name) ]) for d in dirs ]
-    for p in paths:
-    	yield p
+	paths = []
+	j = os.path.join
+	[ paths.extend([ j(d, name), j(d, '.' + name) ]) for d in dirs ]
+	for p in paths:
+		yield p
 
 def getconfig(name, all=False, force=False):
 	"""Return path to existing config file.
@@ -50,16 +50,16 @@ def getconfig(name, all=False, force=False):
 
 
 def main():
-    root = os.getcwd()
+	root = os.getcwd()
 
-    prsr = optparse.OptionParser(usage=usage_descr)
-    for a,k in options_spec:
-        prsr.add_option(a, **k)
-    opts, args = prsr.parse_args()
+	prsr = optparse.OptionParser(usage=usage_descr)
+	for a,k in options_spec:
+		prsr.add_option(a, **k)
+	opts, args = prsr.parse_args()
 
-    for path in args:
-        print list(getconfig('monitor'))
+	for path in args:
+		print list(getconfig('monitor'))
 
 
 if __name__ == '__main__':
-    main()
+	main()

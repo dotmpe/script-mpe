@@ -5,12 +5,12 @@ meta = MetaData()
 
 
 def upgrade(migrate_engine):
-    meta.bind = migrate_engine
-    for table in []:
-        table.create()
+	meta.bind = migrate_engine
+	for table in []:
+		table.create()
 
 def downgrade(migrate_engine):
-    meta.bind = migrate_engine
-    for table in []:
-        table.drop()
+	meta.bind = migrate_engine
+	for table in []:
+		table.drop()
 

@@ -28,9 +28,9 @@ from vc import Repo
 from metafile import SHA1Sum
 
 #class HTTPHeader(MIMEHeader):
-#    pass
+#	pass
 #
 #class HTTPResponse(HTTPHeader):
-#    pass
+#	pass
 
 

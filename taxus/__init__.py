@@ -77,7 +77,6 @@ Inheritance hierarchy and relations::
     * ref
     * checksum:ChecksumDigest
 
-                                                                                  
 
 
 This schema will make node become large very quickly. Especially as various
@@ -114,100 +113,100 @@ from fslayout import *
 
 class Taxus(object):
 
-    # Extra commands
-    def init_host(self, options=None):
-        """
-        Tie Host to current system. Initialize Host if needed. 
-        """
-#        assert self.volumedb, "Must have DB first "
-        hostnamestr = util.current_hostname(True, options.interactive)
-        assert hostnamestr
-        hostname = self.hostname_find([hostnamestr], options)
-        if not hostname:
-            hostname = Name(name=hostnamestr,
-                    date_added=datetime.now())
-            hostname.commit()
-        assert hostname
-        host = self.host_find([hostname], options)
-        if not host:
-            host = Host(hostname=hostname,
-                    date_added=datetime.now())
-            host.commit()
-        assert host
-        print "Initialized host:"
-        print iface.IFormatted(host).__str__()
-        return host
+	# Extra commands
+	def init_host(self, options=None):
+		"""
+		Tie Host to current system. Initialize Host if needed. 
+		"""
+#		assert self.volumedb, "Must have DB first "
+		hostnamestr = util.current_hostname(True, options.interactive)
+		assert hostnamestr
+		hostname = self.hostname_find([hostnamestr], options)
+		if not hostname:
+			hostname = Name(name=hostnamestr,
+					date_added=datetime.now())
+			hostname.commit()
+		assert hostname
+		host = self.host_find([hostname], options)
+		if not host:
+			host = Host(hostname=hostname,
+					date_added=datetime.now())
+			host.commit()
+		assert host
+		print "Initialized host:"
+		print iface.IFormatted(host).__str__()
+		return host
 
-    def init_database(self, options=None):
-        dbref = options.dbref
-        print "Applying SQL DDL to DB %s " % dbref
-        self.session = util.get_session(dbref, initialize=True)
-        return self.session
+	def init_database(self, options=None):
+		dbref = options.dbref
+		print "Applying SQL DDL to DB %s " % dbref
+		self.session = util.get_session(dbref, initialize=True)
+		return self.session
 
-    def find_inode(self, path):
-        # FIXME: rwrite to locator?
-        inode = INode(local_path=path)
-        inode.host = self.find_host()
-        return inode
+	def find_inode(self, path):
+		# FIXME: rwrite to locator?
+		inode = INode(local_path=path)
+		inode.host = self.find_host()
+		return inode
 
-    def query(self, *args, **opts):
-        print 'TODO: query:',args
-        q = self.session.query(Node)
-        return ResultSet(q, q.all())
+	def query(self, *args, **opts):
+		print 'TODO: query:',args
+		q = self.session.query(Node)
+		return ResultSet(q, q.all())
 
-    subcmd_aliases = {
-            'rm': 'remove',
-            'upd': 'update',
-        }
+	subcmd_aliases = {
+			'rm': 'remove',
+			'upd': 'update',
+		}
 
-    def node(self, *args, **opts):
-        subcmd = args[0]
-        while subcmd in subcmd_aliases:
-            subcmd = subcmd_aliases[subcmd]
-        assert subcmd in ('add', 'update', 'remove'), subcmd
-        getattr(self, subcmd)(args[1:], **opts)
-       
-    def node_add(self, name, **opts):
-        "Don't call this directly from CL. "
-        s = util.get_session(opts.get('dbref'))
-        node = Node(name=name, 
-                date_added=datetime.now())
-        s.add(node)
-        return node
+	def node(self, *args, **opts):
+		subcmd = args[0]
+		while subcmd in subcmd_aliases:
+			subcmd = subcmd_aliases[subcmd]
+		assert subcmd in ('add', 'update', 'remove'), subcmd
+		getattr(self, subcmd)(args[1:], **opts)
+	   
+	def node_add(self, name, **opts):
+		"Don't call this directly from CL. "
+		s = util.get_session(opts.get('dbref'))
+		node = Node(name=name, 
+				date_added=datetime.now())
+		s.add(node)
+		return node
 
-    def node_remove(self, *args, **opts):
-        s = util.get_session(opts.get('dbref'))
-        pass # TODO: node rm
-        return
-        node = None#s.query(Node).
-        node.deleted = True
-        node.date_deleted = datetime.now()
-        s.add(node)
-        s.commit()
-        return node
+	def node_remove(self, *args, **opts):
+		s = util.get_session(opts.get('dbref'))
+		pass # TODO: node rm
+		return
+		node = None#s.query(Node).
+		node.deleted = True
+		node.date_deleted = datetime.now()
+		s.add(node)
+		s.commit()
+		return node
 
-    def node_update(self, *args, **opts):
-        pass # TODO: node update
+	def node_update(self, *args, **opts):
+		pass # TODO: node update
 
-#    def namespace_add(self, name, prefix, uri, **opts):
-#        uriref = Locator(ref=uri)
-#        node = Namespace(name=name, prefix=prefix, locator=uriref,
-#                date_added=datetime.now())
-#        s.add(node)
-#        s.commit()
-#        return node
+#	def namespace_add(self, name, prefix, uri, **opts):
+#		uriref = Locator(ref=uri)
+#		node = Namespace(name=name, prefix=prefix, locator=uriref,
+#				date_added=datetime.now())
+#		s.add(node)
+#		s.commit()
+#		return node
 
-#    def description_new(self, name, ns_uri):
-#        Description(name=name, 
-#                date_added=datetime.now())
+#	def description_new(self, name, ns_uri):
+#		Description(name=name, 
+#				date_added=datetime.now())
 
-    def comment_new(self, name, comment, ns, node):
-        #NS = self.
-        node = Comment( name=name,
-                #namespace=NS,
-                annotated_node=node,
-                comment=comment,
-                date_added=datetime.now())
-        return node
+	def comment_new(self, name, comment, ns, node):
+		#NS = self.
+		node = Comment( name=name,
+				#namespace=NS,
+				annotated_node=node,
+				comment=comment,
+				date_added=datetime.now())
+		return node
 
 

@@ -11,9 +11,9 @@ Oktober 2012
 	- using blksize to calculate actual occupied disk space.
 	- adding storage::
 
-	         path@value
-	         path@space
-	         path@size
+			 path@value
+			 path@space
+			 path@size
 """
 import sys
 import os
