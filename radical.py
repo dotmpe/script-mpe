@@ -160,7 +160,7 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 #from cllct.osutil import parse_argv_split
 
 import confparse
-from libcmd import Command, optparse_override_handler
+from libcmd import Cmd, Command, optparse_override_handler
 import taxus
 from taxus import Taxus
 
@@ -614,7 +614,9 @@ rc = confparse.Values()
 # Main
 
 #class Radical(taxus.Taxus):
-class Radical(Command):
+class Radical:#(Cmd):#(Command):
+
+	zope.interface.implements(res.iface.ISimpleCommand)
 
 	PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
 
@@ -754,4 +756,3 @@ if __name__ == '__main__':
 	Radical().main()
 	#TargetResolver().main(['cmd:options'])
 
-# vim:et:

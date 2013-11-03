@@ -414,7 +414,10 @@ class YAMLValues(Values):
 
 	@classmethod
 	def load(cls, path):
-		data = yaml_load(open(path).read())
+		try:
+			data = yaml_load(open(path).read())
+		except Exception, e:
+			raise Exception("Parsing %s: %s"%(path, e))
 		settings = cls(data, source_file=path, source_key='config_file')
 		#if path not in _paths:
 		#	_paths[path] = genid

@@ -7,6 +7,10 @@ import zope.interface
 from zope.interface import Interface, Attribute, implements
 
 
+class ISimpleCommand(zope.interface.Interface):
+	"""
+	"""
+
 class IName(zope.interface.Interface):
 	"""
 	"""
@@ -52,6 +56,9 @@ class IReport(zope.interface.Interface):
 	line_width = Attribute("If needed, indicate minimal line-width. ")
 	line_width_preferred = Attribute("Optionally, indicate preferred line-width. ")
 
+
 def test():
 	from zope.interface.verify import verifyObject
 	verifyObject(ITarget, Target())
+
+

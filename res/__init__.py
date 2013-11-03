@@ -25,7 +25,7 @@ import util
 from persistence import PersistedMetaObject
 from fs import File, Dir
 from mime import MIMEHeader
-from metafile import Metafile, Metadir, Meta
+from metafile import Metafile, Metadir, Meta, SHA1Sum
 
 
 

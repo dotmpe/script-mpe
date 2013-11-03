@@ -1,11 +1,11 @@
 test_1_ (test_libcmd.CMDTest1) ... ok
 test_0_init (test_confparse.CPTest1) ... ok
 test_1_find_config (test_confparse.CPTest1) ... ok
-test_2_load (test_confparse.CPTest1) ... ERROR
-test_3_set_string (test_confparse.CPTest1) ... ERROR
+test_2_load (test_confparse.CPTest1) ... ok
+test_3_set_string (test_confparse.CPTest1) ... ok
 test_4_lists (test_confparse.CPTest1) ... ERROR
-test_5_copy (test_confparse.CPTest1) ... ERROR
-test_6_commit (test_confparse.CPTest1) ... ERROR
+test_5_copy (test_confparse.CPTest1) ... FAIL
+test_6_commit (test_confparse.CPTest1) ... FAIL
 test_1_ (test_confparse.CPTest2) ... ERROR
 test_2_ (test_confparse.CPTest2) ... ok
 test_1_read_dict (test_confparse2.CP2Test1) ... ok
@@ -22,239 +22,45 @@ Res_FormatTest_sha1sum ... ok
 Res_FormatTest_sha1sum ... ok
 
 ======================================================================
-ERROR: test_2_load (test_confparse.CPTest1)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/srv/project-mpe/script-mpe/test_confparse.py", line 127, in test_2_load
-    test_settings = load(self.RC)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 487, in load
-    settings = load_path(config, type=values_type)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 469, in load_path
-    return getattr(type, 'load')(path)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 409, in load
-    data = yaml_load(open(path).read())
-  File "/home/berend/lib/py/yaml/__init__.py", line 66, in load
-    return loader.get_data()
-  File "/home/berend/lib/py/yaml/constructor.py", line 38, in get_data
-    return self.construct_document(self.get_node())
-  File "/home/berend/lib/py/yaml/composer.py", line 27, in get_node
-    return self.compose_document()
-  File "/home/berend/lib/py/yaml/composer.py", line 34, in compose_document
-    node = self.compose_node(None, None)
-  File "/home/berend/lib/py/yaml/composer.py", line 63, in compose_node
-    node = self.compose_mapping_node(anchor)
-  File "/home/berend/lib/py/yaml/composer.py", line 112, in compose_mapping_node
-    item_value = self.compose_node(node, item_key)
-  File "/home/berend/lib/py/yaml/composer.py", line 63, in compose_node
-    node = self.compose_mapping_node(anchor)
-  File "/home/berend/lib/py/yaml/composer.py", line 112, in compose_mapping_node
-    item_value = self.compose_node(node, item_key)
-  File "/home/berend/lib/py/yaml/composer.py", line 43, in compose_node
-    if self.check_event(AliasEvent):
-  File "/home/berend/lib/py/yaml/parser.py", line 95, in check_event
-    self.current_event = self.state()
-  File "/home/berend/lib/py/yaml/parser.py", line 446, in parse_block_mapping_value
-    if not self.check_token(KeyToken, ValueToken, BlockEndToken):
-  File "/home/berend/lib/py/yaml/scanner.py", line 116, in check_token
-    self.fetch_more_tokens()
-  File "/home/berend/lib/py/yaml/scanner.py", line 257, in fetch_more_tokens
-    % ch.encode('utf-8'), self.get_mark())
-ScannerError: while scanning for the next token
-found character '\t' that cannot start any token
-  in "<string>", line 5, column 1:
-    				[{foo: bar}]
-    ^
-
-======================================================================
-ERROR: test_3_set_string (test_confparse.CPTest1)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/srv/project-mpe/script-mpe/test_confparse.py", line 152, in test_3_set_string
-    test_settings = load(self.RC)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 487, in load
-    settings = load_path(config, type=values_type)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 469, in load_path
-    return getattr(type, 'load')(path)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 409, in load
-    data = yaml_load(open(path).read())
-  File "/home/berend/lib/py/yaml/__init__.py", line 66, in load
-    return loader.get_data()
-  File "/home/berend/lib/py/yaml/constructor.py", line 38, in get_data
-    return self.construct_document(self.get_node())
-  File "/home/berend/lib/py/yaml/composer.py", line 27, in get_node
-    return self.compose_document()
-  File "/home/berend/lib/py/yaml/composer.py", line 34, in compose_document
-    node = self.compose_node(None, None)
-  File "/home/berend/lib/py/yaml/composer.py", line 63, in compose_node
-    node = self.compose_mapping_node(anchor)
-  File "/home/berend/lib/py/yaml/composer.py", line 112, in compose_mapping_node
-    item_value = self.compose_node(node, item_key)
-  File "/home/berend/lib/py/yaml/composer.py", line 63, in compose_node
-    node = self.compose_mapping_node(anchor)
-  File "/home/berend/lib/py/yaml/composer.py", line 112, in compose_mapping_node
-    item_value = self.compose_node(node, item_key)
-  File "/home/berend/lib/py/yaml/composer.py", line 43, in compose_node
-    if self.check_event(AliasEvent):
-  File "/home/berend/lib/py/yaml/parser.py", line 95, in check_event
-    self.current_event = self.state()
-  File "/home/berend/lib/py/yaml/parser.py", line 446, in parse_block_mapping_value
-    if not self.check_token(KeyToken, ValueToken, BlockEndToken):
-  File "/home/berend/lib/py/yaml/scanner.py", line 116, in check_token
-    self.fetch_more_tokens()
-  File "/home/berend/lib/py/yaml/scanner.py", line 257, in fetch_more_tokens
-    % ch.encode('utf-8'), self.get_mark())
-ScannerError: while scanning for the next token
-found character '\t' that cannot start any token
-  in "<string>", line 5, column 1:
-    				[{foo: bar}]
-    ^
-
-======================================================================
 ERROR: test_4_lists (test_confparse.CPTest1)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/srv/project-mpe/script-mpe/test_confparse.py", line 167, in test_4_lists
-    test_settings = load(self.RC)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 487, in load
-    settings = load_path(config, type=values_type)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 469, in load_path
-    return getattr(type, 'load')(path)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 409, in load
-    data = yaml_load(open(path).read())
-  File "/home/berend/lib/py/yaml/__init__.py", line 66, in load
-    return loader.get_data()
-  File "/home/berend/lib/py/yaml/constructor.py", line 38, in get_data
-    return self.construct_document(self.get_node())
-  File "/home/berend/lib/py/yaml/composer.py", line 27, in get_node
-    return self.compose_document()
-  File "/home/berend/lib/py/yaml/composer.py", line 34, in compose_document
-    node = self.compose_node(None, None)
-  File "/home/berend/lib/py/yaml/composer.py", line 63, in compose_node
-    node = self.compose_mapping_node(anchor)
-  File "/home/berend/lib/py/yaml/composer.py", line 112, in compose_mapping_node
-    item_value = self.compose_node(node, item_key)
-  File "/home/berend/lib/py/yaml/composer.py", line 63, in compose_node
-    node = self.compose_mapping_node(anchor)
-  File "/home/berend/lib/py/yaml/composer.py", line 112, in compose_mapping_node
-    item_value = self.compose_node(node, item_key)
-  File "/home/berend/lib/py/yaml/composer.py", line 43, in compose_node
-    if self.check_event(AliasEvent):
-  File "/home/berend/lib/py/yaml/parser.py", line 95, in check_event
-    self.current_event = self.state()
-  File "/home/berend/lib/py/yaml/parser.py", line 446, in parse_block_mapping_value
-    if not self.check_token(KeyToken, ValueToken, BlockEndToken):
-  File "/home/berend/lib/py/yaml/scanner.py", line 116, in check_token
-    self.fetch_more_tokens()
-  File "/home/berend/lib/py/yaml/scanner.py", line 257, in fetch_more_tokens
-    % ch.encode('utf-8'), self.get_mark())
-ScannerError: while scanning for the next token
-found character '\t' that cannot start any token
-  in "<string>", line 5, column 1:
-    				[{foo: bar}]
-    ^
-
-======================================================================
-ERROR: test_5_copy (test_confparse.CPTest1)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/srv/project-mpe/script-mpe/test_confparse.py", line 174, in test_5_copy
-    test_settings = load(self.RC, paths=confparse.config_path+(pwd,))
-  File "/srv/project-mpe/script-mpe/confparse.py", line 487, in load
-    settings = load_path(config, type=values_type)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 469, in load_path
-    return getattr(type, 'load')(path)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 409, in load
-    data = yaml_load(open(path).read())
-  File "/home/berend/lib/py/yaml/__init__.py", line 66, in load
-    return loader.get_data()
-  File "/home/berend/lib/py/yaml/constructor.py", line 38, in get_data
-    return self.construct_document(self.get_node())
-  File "/home/berend/lib/py/yaml/composer.py", line 27, in get_node
-    return self.compose_document()
-  File "/home/berend/lib/py/yaml/composer.py", line 34, in compose_document
-    node = self.compose_node(None, None)
-  File "/home/berend/lib/py/yaml/composer.py", line 63, in compose_node
-    node = self.compose_mapping_node(anchor)
-  File "/home/berend/lib/py/yaml/composer.py", line 112, in compose_mapping_node
-    item_value = self.compose_node(node, item_key)
-  File "/home/berend/lib/py/yaml/composer.py", line 63, in compose_node
-    node = self.compose_mapping_node(anchor)
-  File "/home/berend/lib/py/yaml/composer.py", line 112, in compose_mapping_node
-    item_value = self.compose_node(node, item_key)
-  File "/home/berend/lib/py/yaml/composer.py", line 43, in compose_node
-    if self.check_event(AliasEvent):
-  File "/home/berend/lib/py/yaml/parser.py", line 95, in check_event
-    self.current_event = self.state()
-  File "/home/berend/lib/py/yaml/parser.py", line 446, in parse_block_mapping_value
-    if not self.check_token(KeyToken, ValueToken, BlockEndToken):
-  File "/home/berend/lib/py/yaml/scanner.py", line 116, in check_token
-    self.fetch_more_tokens()
-  File "/home/berend/lib/py/yaml/scanner.py", line 257, in fetch_more_tokens
-    % ch.encode('utf-8'), self.get_mark())
-ScannerError: while scanning for the next token
-found character '\t' that cannot start any token
-  in "<string>", line 5, column 1:
-    				[{foo: bar}]
-    ^
-
-======================================================================
-ERROR: test_6_commit (test_confparse.CPTest1)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/srv/project-mpe/script-mpe/test_confparse.py", line 200, in test_6_commit
-    test_settings = self.test_5_copy()
-  File "/srv/project-mpe/script-mpe/test_confparse.py", line 174, in test_5_copy
-    test_settings = load(self.RC, paths=confparse.config_path+(pwd,))
-  File "/srv/project-mpe/script-mpe/confparse.py", line 487, in load
-    settings = load_path(config, type=values_type)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 469, in load_path
-    return getattr(type, 'load')(path)
-  File "/srv/project-mpe/script-mpe/confparse.py", line 409, in load
-    data = yaml_load(open(path).read())
-  File "/home/berend/lib/py/yaml/__init__.py", line 66, in load
-    return loader.get_data()
-  File "/home/berend/lib/py/yaml/constructor.py", line 38, in get_data
-    return self.construct_document(self.get_node())
-  File "/home/berend/lib/py/yaml/composer.py", line 27, in get_node
-    return self.compose_document()
-  File "/home/berend/lib/py/yaml/composer.py", line 34, in compose_document
-    node = self.compose_node(None, None)
-  File "/home/berend/lib/py/yaml/composer.py", line 63, in compose_node
-    node = self.compose_mapping_node(anchor)
-  File "/home/berend/lib/py/yaml/composer.py", line 112, in compose_mapping_node
-    item_value = self.compose_node(node, item_key)
-  File "/home/berend/lib/py/yaml/composer.py", line 63, in compose_node
-    node = self.compose_mapping_node(anchor)
-  File "/home/berend/lib/py/yaml/composer.py", line 112, in compose_mapping_node
-    item_value = self.compose_node(node, item_key)
-  File "/home/berend/lib/py/yaml/composer.py", line 43, in compose_node
-    if self.check_event(AliasEvent):
-  File "/home/berend/lib/py/yaml/parser.py", line 95, in check_event
-    self.current_event = self.state()
-  File "/home/berend/lib/py/yaml/parser.py", line 446, in parse_block_mapping_value
-    if not self.check_token(KeyToken, ValueToken, BlockEndToken):
-  File "/home/berend/lib/py/yaml/scanner.py", line 116, in check_token
-    self.fetch_more_tokens()
-  File "/home/berend/lib/py/yaml/scanner.py", line 257, in fetch_more_tokens
-    % ch.encode('utf-8'), self.get_mark())
-ScannerError: while scanning for the next token
-found character '\t' that cannot start any token
-  in "<string>", line 5, column 1:
-    				[{foo: bar}]
-    ^
+  File "/srv/project-mpe/script-mpe/test_confparse.py", line 169, in test_4_lists
+    self.assertEqual(test_settings.foo.test4[0].foo, 'bar')
+  File "/srv/project-mpe/script-mpe/confparse.py", line 293, in __getattr__
+    return dict.__getitem__(self, name)
+KeyError: 'test4'
 
 ======================================================================
 ERROR: test_1_ (test_confparse.CPTest2)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/srv/project-mpe/script-mpe/test_confparse.py", line 57, in test_1_
+  File "/srv/project-mpe/script-mpe/test_confparse.py", line 56, in test_1_
     conf = expand_config_path(self.NAME).next()
 StopIteration
 
+======================================================================
+FAIL: test_5_copy (test_confparse.CPTest1)
 ----------------------------------------------------------------------
-Ran 22 tests in 0.065s
+Traceback (most recent call last):
+  File "/srv/project-mpe/script-mpe/test_confparse.py", line 180, in test_5_copy
+    'config_file': '/tmp/test1/test/sub/dir/testrc',
+AssertionError: {'foo': {'bar': {'var': 'v'}, 'test4:[{foo': 'bar}]'}, 'config_file': '/tmp/test1/test/sub/dir/testrc'} != {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'config_file': '/tmp/test1/test/sub/dir/testrc'}
 
-FAILED (errors=6)
+======================================================================
+FAIL: test_6_commit (test_confparse.CPTest1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/srv/project-mpe/script-mpe/test_confparse.py", line 199, in test_6_commit
+    test_settings = self.test_5_copy()
+  File "/srv/project-mpe/script-mpe/test_confparse.py", line 180, in test_5_copy
+    'config_file': '/tmp/test1/test/sub/dir/testrc',
+AssertionError: {'foo': {'bar': {'var': 'v'}, 'test4:[{foo': 'bar}]'}, 'config_file': '/tmp/test1/test/sub/dir/testrc'} != {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'config_file': '/tmp/test1/test/sub/dir/testrc'}
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.048s
+
+FAILED (failures=2, errors=2)
 Coverage.py warning: Module rsr was never imported.
 Coverage.py warning: Module radical was never imported.
 Coverage.py warning: Module workLog was never imported.
