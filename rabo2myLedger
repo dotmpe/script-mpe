@@ -26,15 +26,18 @@ Done
 Todo
 - Generate montly tables, weekly. Averages.
 - Track each mutation once, index (sqlite) at first read
+  (partially implemented)
 - Autosort mutations, match rules for expense and income accounts
 - Can GNU Cash import anything beyond mutations, 
   and also do autosorting or do I need to rewrite its XML
   document?
 - Perhaps schedule payments
+- Add some saldo checks, e.g. each month or random to assert correctness anytime
 
 """
 import os
 import csv
+import hashlib
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
 	ForeignKey, Table, Index, DateTime
@@ -56,19 +59,25 @@ class Account(SqlBase):
 	balance = Column(Integer)
 	account_type = Column(String)
 
-def print_sum_from_file(csvfile):
+mutations = {}
+
+def print_sum_from_file(csvfile, opts):
+	global mutations
 	reader = csv.reader(open(csvfile), delimiter=',')
-	print csvfile
+	#print csvfile
 	saldo = 0
+	line = 0
+	skipping = 0
 	for row in reader:
+		line += 1
 		if len(row) == 16:
 			accnr,curr,date,DC,amount,destacc,destname,date2,cat,_,descr,descr2,descr3,descr4,_,_ = row
-			accnr = accnr[8:]
 		elif len(row) == 19:
 			accnr, curr, date, DC, amount, \
 					destacc, destname, date2, cat, _,\
 					descr, descr2, descr3, descr4, _, \
 					_, nr1, accnr2, n2 = row
+			accnr = accnr[8:]
 		elif row == ['\x1a']:
 			continue#break
 		else:
@@ -76,16 +85,40 @@ def print_sum_from_file(csvfile):
 		amount = float(amount)
 		if DC.upper() == 'D':
 			amount = 0-amount
-		print accnr, amount, destacc, descr, descr2, descr3, descr4
+
+		key = hashlib.sha1(date)
+		key.update(accnr)
+		if destacc.strip('0'):
+			key.update(destacc)
+		key.update(str(amount))
+		key.update(cat)
+		key.update(descr)
+		key = key.hexdigest()
+		if key in mutations:
+			#print mutations[key]
+			assert mutations[key] == (date, accnr, amount, destacc, descr, descr2)
+			#print 'Skipping', date, accnr, amount, destacc, descr, descr2, descr3, descr4
+			skipping += 1
+			continue
+		elif skipping:
+			print 'Skipped', skipping, 'lines, %s:%s' % ( csvfile, line )
+			skipping = 0
+		mutations[key] = date, accnr, amount, destacc, descr, descr2
+		#print accnr, amount, destacc, descr, descr2, descr3, descr4
 		saldo = saldo + amount
+	print 'Read', csvfile, line, 'lines'
+	return saldo
+
+def print_sum_from_files(opts, *files):
+	saldo = 0
+	for f in files:
+		change = print_sum_from_file(f, opts)
+		print 'Change:', change
+		saldo = saldo + change
+		print 'Subtotal:', saldo
 	print 'Total:', saldo
 
-
-def print_sum_from_files(*files):
-	for f in files:
-		print_sum_from_file(f)
-
-def print_gnu_cash_import_csv(csvfile, description_delimiter='\n'):
+def print_gnu_cash_import_csv(csvfile, description_delimiter='\n', opts=None):
 	reader = csv.reader(open(csvfile), delimiter=',')
 	for row in reader:
 		if len(row) == 16:
@@ -114,14 +147,15 @@ def main():
 	from getopt import getopt
 	opts, args = getopt(sys.argv[1:], 'hl:g', [
 		'ledger-db',
-		'gnu-cash'
+		'gnu-cash-csv',
+		'start:'
 	])
 	for o in opts:
-		if '--gnu-cash' in o:
+		if '--gnu-cash-csv' in o:
 			for a in args:
-				print_gnu_cash_import_csv(a, '\t')
+				print_gnu_cash_import_csv(a, '\t', opts)
 			return
-	print_sum_from_files(*args)
+	print_sum_from_files(opts, *args)
 
 
 if __name__ == '__main__':
