@@ -80,7 +80,7 @@ class workLog(Taxus):
 
 	DEFAULT_CONFIG_KEY = NAME
 
-	TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + ['']
+	#TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + ['']
 	DEFAULT_ACTION = 'tasks'
 
 	def get_opts(self):
