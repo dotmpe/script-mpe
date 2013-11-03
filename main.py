@@ -15,10 +15,10 @@ Issues:
 
 # XXX: development tooling:
 try:
-    import coverage
-    coverage.process_startup()
+	import coverage
+	coverage.process_startup()
 except ImportError, e:
-    pass
+	pass
 
 import lib
 from libcmd import TargetResolver

@@ -89,7 +89,7 @@ class Reporter(object):
 			for k2 in self.data[k]:
 				print "  "+self.titles[k2] 
 				for i in self.data[k][k2]:
-					print "      - " + ( self.tpls[k2] % i )
+					print "	  - " + ( self.tpls[k2] % i )
 
 # XXX: work in progress
 #class TableReporter(object):
