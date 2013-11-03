@@ -10,15 +10,27 @@ This is not a ledger. Just a balance tracker and some averaging.
 	}
 
 	Mutation {
-		for:Account
-		with:Account
-		action:[Deposit,Withdrawal]
+		to:Account
+		from:Account
 		amount:Float
 		currency:[EUR]
 		date:Date
 		description:String
 		specification:String
 	}
+
+Done
+- Read, parse from rabobank csv files
+- Print total
+
+Todo
+- Generate montly tables, weekly. Averages.
+- Track each mutation once, index (sqlite) at first read
+- Autosort mutations, match rules for expense and income accounts
+- Can GNU Cash import anything beyond mutations, 
+  and also do autosorting or do I need to rewrite its XML
+  document?
+- Perhaps schedule payments
 
 """
 import os
@@ -27,6 +39,7 @@ import csv
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
 	ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declarative_base
 
 
 SqlBase = declarative_base()
@@ -43,21 +56,74 @@ class Account(SqlBase):
 	balance = Column(Integer)
 	account_type = Column(String)
 
+def print_sum_from_file(csvfile):
+	reader = csv.reader(open(csvfile), delimiter=',')
+	print csvfile
+	saldo = 0
+	for row in reader:
+		if len(row) == 16:
+			accnr,curr,date,DC,amount,destacc,destname,date2,cat,_,descr,descr2,descr3,descr4,_,_ = row
+			accnr = accnr[8:]
+		elif len(row) == 19:
+			accnr, curr, date, DC, amount, \
+					destacc, destname, date2, cat, _,\
+					descr, descr2, descr3, descr4, _, \
+					_, nr1, accnr2, n2 = row
+		elif row == ['\x1a']:
+			continue#break
+		else:
+			assert False, len(row)
+		amount = float(amount)
+		if DC.upper() == 'D':
+			amount = 0-amount
+		print accnr, amount, destacc, descr, descr2, descr3, descr4
+		saldo = saldo + amount
+	print 'Total:', saldo
+
+
+def print_sum_from_files(*files):
+	for f in files:
+		print_sum_from_file(f)
+
+def print_gnu_cash_import_csv(csvfile, description_delimiter='\n'):
+	reader = csv.reader(open(csvfile), delimiter=',')
+	for row in reader:
+		if len(row) == 16:
+			accnr,curr,date,DC,amount,destacc,destname,date2,cat,_,descr,descr2,descr3,descr4,_,_ = row
+		elif len(row) == 19:
+			accnr, curr, date, DC, amount, \
+					destacc, destname, date2, cat, _,\
+					descr, descr2, descr3, descr4, _, \
+					_, nr1, accnr2, n2 = row
+			accnr = accnr[8:]
+		elif row == ['\x1a']:
+			break
+		else:
+			assert False, len(row)
+
+		dt = date[:4] +'-'+ date[4:6] +'-'+ date[6:8]
+		d = description_delimiter.join([ 
+			d for d in descr, descr2, descr3, descr4 if d.strip()])
+		debet = DC.upper() == 'D'
+		out = dt, debet and amount or "", not debet and amount or "", destacc, destname, d
+		print ",".join( map(lambda x: '"%s"' % x, out) )
+
 
 def main():
-	Reader = csv.reader(open(INFILE), delimiter=',')
-
-# if name == rabo2gnucash-csv
-	for row in Reader:
-		if row == ['\x1a']:
-			break
-		#print "Account Nr, Currency, date,,amount,dest-acc,dest-name,date2,cat,,subdescr,,,
-		#print row
+	import sys
+	from getopt import getopt
+	opts, args = getopt(sys.argv[1:], 'hl:g', [
+		'ledger-db',
+		'gnu-cash'
+	])
+	for o in opts:
+		if '--gnu-cash' in o:
+			for a in args:
+				print_gnu_cash_import_csv(a, '\t')
+			return
+	print_sum_from_files(*args)
 
 
 if __name__ == '__main__':
-	import sys
-	from getopt import getopt
-	x = getopt(sys.argv[1:], 'hl:', ['--ledger-db'])
-	print x
-	main();
+	main()
+
