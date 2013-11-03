@@ -4,6 +4,8 @@ import types
 
 import yaml
 
+import lib
+
 
 yaml_load = yaml.load
 yaml_dump = yaml.dump

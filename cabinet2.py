@@ -4,7 +4,7 @@
 Restricted paths allow for interpretation.
 
 """
-import os, sys, re, datetime, optparse
+import os, re, datetime, optparse
 
 
 
@@ -65,14 +65,14 @@ options_spec = (
 		"=date:asc,update:asc" }),
 )
 
-def main():
+def main(argv=[]):
 	root = os.getcwd()
 	cab = CabinetQuery(root)
 
 	prsr = optparse.OptionParser(usage=usage_descr)
 	for a,k in options_spec:
 		prsr.add_option(*a, **k)
-	opts, args = prsr.parse_args(sys.argv)
+	opts, args = prsr.parse_args(argv)
 
 	args.pop(0)
 
@@ -89,5 +89,6 @@ def main():
 
 
 if __name__ == '__main__':
-	main()
+	import sys
+	main(sys.argv)
 

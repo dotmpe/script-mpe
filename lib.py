@@ -7,7 +7,7 @@ import select
 import socket
 import subprocess
 import sys
-
+import readline
 from os.path import basename, join,\
 		isdir
 
@@ -40,13 +40,14 @@ def is_versioned(dirpath):
 			return True
 
 def cmd(cmd, *args):
-	stdin,stdout,stderr = os.popen3(cmd % args)
-	#TODO:stdin,stdout,stderr = subprocess.popen3('file -s %s' % p)
-	stdin.close()
-	errors = stderr.read()
+	proc = subprocess.Popen( cmd % args,
+			shell=True,
+			stderr=subprocess.PIPE, stdout=subprocess.PIPE,
+			close_fds=True )
+	errors = proc.stderr.read()
 	if errors:
 		raise Exception(errors)
-	value = stdout.read()
+	value = proc.stdout.read()
 	if not value:# and not nullable:
 		raise Exception("OS invocation %r returned nothing" % cmd)
 	return value
@@ -222,7 +223,9 @@ class Prompt(object):
 		assert len(yes_no) == 2, "Need two choices, a logica true and false, but options don't match: %r" % yes_no
 		yes, no = list(yes_no)
 		assert yes.isupper() or no.isupper()
-		v = raw_input('%s [%s] ' % (question, yes_no))
+		#v = raw_input('%s [%s] ' % (question, yes_no))
+		print '%s [%s] ' % (question, yes_no)
+		v = getch()
 		if not v:
 			if yes.isupper():
 				v = yes
@@ -233,11 +236,41 @@ class Prompt(object):
 		return v.upper() == yes.upper()
 
 	@classmethod
+	def raw_input(clss, prompt, default=None):
+		v = raw_input('%s [%s] ' % (prompt, default))
+		if v:
+			return v
+		elif default:
+			return default
+
+	@staticmethod
+	def input(prompt, prefill=''):
+		readline.set_startup_hook(lambda: readline.insert_text(prefill))
+		try:
+			return raw_input(prompt)
+		finally:
+			readline.set_startup_hook()
+
+	@staticmethod
+	def create_choice(options):
+		"Options must be list of strings, one capitalized unique character each"
+		opts = ''
+		for i, o in enumerate(options):
+			for c in o:
+				if c.istitle():
+					assert c not in opts, c
+					opts += c
+					options[i] = o.replace(c, "{white}%s{blue}" % c)
+		return opts
+
+	@classmethod
 	def query(clss, question, options=()):
 		assert options
-		opts = ''.join([o[0] for o in options]).title()
+		origopts = list(options)
+		opts = clss.create_choice(options)
 		while True:
-			print log.format_line('{green}%s {bwhite}[{white}%s{bwhite}]{default} or [?help] ') % (question, opts)
+			print log.format_line('{green}%s {blue}%s {bwhite}[{white}%s{bwhite}]{default} or [?help] ' %
+					(question, ','.join(options), opts))
 #			v = sys.stdin.read(1)
 			v = getch()
 			#v = raw_input(
@@ -250,7 +283,7 @@ class Prompt(object):
 					"override. ") % (', '.join(options), options[0])
 			if v.upper() in opts.upper():
 				choice = opts.upper().index(v.upper())
-				print 'Answer:', options[choice] 
+				print 'Answer:', origopts[choice].title()
 				return choice
 
 

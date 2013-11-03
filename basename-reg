@@ -1,8 +1,45 @@
 #!/usr/bin/env python
-# basename-reg: split filename from known extensions
-# current impl. allows concatenation of var. tags, known and unknown 
+"""
+basename-reg: split filename from known extensions
 
-reg = {
+current impl. allows concatenation of var. tags, known and unknown 
+
+todo should determine which tag identifies current format
+other tags may participate in format, or not
+
+ie. mysql.bz2
+or tar.gz
+
+::
+
+	runtime:
+		file -> basename, *ext
+
+		*ext-type -> enum( archive, compression, format )
+
+	storage:
+		ext-reg: 
+			ext -> mime
+		ext-map: 
+			ext -> ext
+		multi:
+			ext -> *ext
+		xref:
+			mime -> *ext, mtype, descr
+		wild xref:
+			mime -> *ext, descr
+			ext -> *mime
+
+"""
+import os
+import optparse
+
+import yaml
+
+import lib
+
+OUT = None, None
+TODO_REG = {
 		'py': "Python source script",
 		'pyc': "Compiled Python script",
 		'rst': "Restructuredtext document",
@@ -17,7 +54,6 @@ reg = {
 		'iso': "CD-ROM Image in ISO 9660 format",
 		'bz2': "Bzip2 compressed file",
 		'it': "Impuse Tracker music document",
-		'tgz': ('tar','gz'),
 		'tar': "Unix file archive",
 		'gz': 'Gzip compressed file',
 		'dmg': 'Mac OS Image',
@@ -43,21 +79,172 @@ reg = {
 		'rar': 'RAR compressed file archive',
 	}
 
-if __name__ == '__main__':
-	import sys
-	for a in sys.argv[1:]:
+usage_descr = """%prog [options] [[dir] [+tag+tag.. -tag+tag..]].." """ 
+
+options_spec = (
+	(('-O', '--output-format'), {'help':
+		"", 'default': 'tab'}),
+	(('-i', '--interactive'), {'help':
+		"", 'default': False }),
+)
+
+CONFIG = '~/.basename-reg.yaml'
+conf = None
+fullname = None
+
+def get_config():
+	global conf, fullname
+	fullname = os.path.expanduser(CONFIG)
+	conf = yaml.load(open(fullname))
+	if conf == CONFIG:
+		print "Failed loding config. "
+	elif not conf:
+		conf = {}
+
+	if 'file_ext' not in conf:
+		conf['ext_map'] = {}
+		conf['ext_reg'] = {}
+		conf['multi'] = {}
+		conf['xref'] = {}
+		conf['wxref'] = {}
+		conf['ftype'] = []
+		save_config()
+
+def save_config():
+	global conf, fullname
+	fl = open(fullname, 'rw+')
+	yaml.dump(conf, fl)
+	fl.close()
+
+def err(out):
+	print >> OUT[1], out
+
+def out(out):
+	print >> OUT[0], out
+
+def main(argv=[]):
+	global conf
+	root = os.getcwd()
+
+	prsr = optparse.OptionParser(usage=usage_descr)
+	for a,k in options_spec:
+		prsr.add_option(*a, **k)
+	opts, args = prsr.parse_args(argv)
+
+	args.pop(0)
+	get_config()
+
+	ftypes = [ t.title() for t in conf['ftype'] ]
+
+	store_mime = None
+	for a in args:
+		n = a
 		# look for names with '.' separated fields 
 		if '.' not in a:
+			err('Ignored %s' % a)
 			continue
 		# treat each field as potential tag
-		for e in a.lower().split('.'):
-			# lookup tag in registry
-			if e in reg:
-				# FIXME: this does not replace uppercase tags yet
-				es = reg[e]
-				if not isinstance(es, tuple):
-					es = [e]
-				for s in es:
-					# replace last occurence of tag '.e'
-					a = "".join(a.rsplit('.'+s, 1))
-		print a
+		for e in a.lower().split('.')[1:]:
+			if not e.strip():
+				continue
+			# strip file
+			# FIXME: this does not replace uppercase tags yet
+			# translate tag andlookup tag in registry
+			ce = e
+			if ce in conf['ext_map']:
+				while ce in conf['ext_map']:
+					ce = conf['ext_map'][ce]
+			# replace last occurence of tag '.e'
+			n = "".join(n.rsplit('.'+e, 1))
+			if ce != e:
+				err("Error: non-canonical extension, rename required. ")
+				continue
+			if ce in conf['ext_reg']:
+				# found it, print continue
+				mime = conf['ext_reg'][ce]
+				exts, ftype, descr = conf['xref'][mime]
+				print n, exts, mime
+			else:
+				# look for mime
+				print 'arg', n, a
+				mime = lib.cmd("file -bi %r" % a).strip()
+				print "mime", mime
+				if mime in conf['xref']:
+					# ok, have a mime, ask later wether to use it for ext
+					exts, ftype, descr = conf['xref'][mime]
+					print "exts", exts
+					print "ftype", ftype
+					print "descr", descr
+				elif not opts.interactive:
+					continue
+				elif store_mime != 'a':
+					descr = lib.cmd("file -bs %r" % a).strip()
+					exts = [ce]
+					print "exts", exts
+					print "descr", descr
+					opts = list(conf['ftype']) + ['sKip', 'None']
+					store_mime = lib.Prompt.query("New MIME: Give type or skip (all)", opts)
+					if store_mime >= len(ftypes):
+						continue
+					else:
+						mime = lib.Prompt.input("Use MIME? ", mime)
+						descr = lib.Prompt.input("Use description? ", descr)
+						ftype = ftypes[store_mime]
+						conf['xref'][mime] = [exts, ftype, descr]
+						save_config()
+				if e in exts:
+					if exts[0] != e:
+						cext = ext[0]
+					else:
+						cext = e
+				else:
+					assert e == ce, (e, ce)
+					# FIXME
+					cext = lib.Prompt.input("Register which? %s" % mime, ce)
+
+				if cext in conf['ext_reg']:
+					mime2 = conf['ext_reg'][cext]
+					if mime != mime2:
+						err("Error: Conflicting mime %r" % mime)
+				else:
+					v = lib.Prompt.ask("Store new extension? %r: %s [%s]" %
+							(exts, descr, mime), "yN")
+					print v
+					if v:
+						conf['ext_reg'][cext] = mime
+						save_config()
+					else:
+						continue
+
+
+if __name__ == '__main__':
+	import sys
+	OUT = sys.stdout, sys.stderr
+	main(sys.argv)
+
+"""
+
+$ basename-reg -O=rst '/Volume/Disk/Folder/File name.sql.bz2'
+
+:folder: /Volume/Disk/Folder
+:basename: File Name
+:format: BZip2 compressed MySQL script
+:mediatype: mime1, mime2
+
+$ basename-reg '/Volume/Disk/Folder/File name.sql.bz2'
+/Volume/Disk/Folder/File Name
+
+$ basename-reg -be '/Volume/Disk/Folder/File name.sql.bz2'
+sql bz2
+
+$ basename-reg -em '/Volume/Disk/Folder/File name.sql.bz2'
+/Volume/Disk/Folder/File Name\tsql bz2\tmime1, mime2
+
+$ basename-reg -c key value
+$ basename-reg -R reg:ext:mime mime
+$ basename-reg -R reg:ext:type type
+
+$ basename-reg --sync-to-wild
+# Update wild-xref index from local 
+
+"""
