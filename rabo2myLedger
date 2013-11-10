@@ -47,6 +47,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
 import confparse
+from lib import Prompt
 
 
 SqlBase = declarative_base()
@@ -243,34 +244,49 @@ def print_gnu_cash_import_csv(csvfile, description_delimiter='\n', opts=None):
 		print ",".join( map(lambda x: '"%s"' % x, out) )
 
 def list_accounts(opts):
-	sa = get_session(opts.dbref)	
+	opts._sa = sa = get_session(opts.dbref)	
 	accounts = sa.query(Account).all()
 	for account in accounts:
-		print account
+		print account.account_id, account
 
 def set_account_category(opts, account, category=None):
-	sa = get_session(opts.dbref)	
-	account = sa.query(Account).filter(Account.account_number == account).one()
+	#sa = get_session(opts.dbref)	
+	# account must exist
+	if isinstance(account, basestring):
+		account = opts._sa.query(Account).filter(Account.account_number == account).one()
+		print account
 	if not category:
 		if account.account_type == None:
 			account.account_type = ''
 		ok = False
 		while not ok:
-			category = Prompt.input("Please enter the classification: ",
+			category = Prompt.input("Please enter/update the classification: ",
 					account.account_type)
-			acctypes = sa.query(Account).filter(Account.account_type == category).first()
-			if not acctypes:
-				ok = Prompt.query("Is new category %r correct?", 'yN')
+			acctypes = opts._sa.query(Account).filter(Account.account_type == category).first()
+			if acctypes:
+				ok = True
+			elif not acctypes:
+				ok = Prompt.ask("Is new category %r correct?" % category, 'yN')
 				if not ok:
 					if Prompt.query("Cancel?", 'Yn'):
 						break
 	if category:
 		if account.account_type != category:
 			account.account_type = category
-			sa.add(account)
-			sa.commit()
+			opts._sa.add(account)
+			opts._sa.commit()
 			print "Updated", account
 
+def organize(opts, account=None, category=None):
+	opts._sa = sa = get_session(opts.dbref)	
+	if account:
+		set_account_category(opts, account, category)
+	else:
+		accounts = sa.query(Account).all()
+		for account in accounts:
+			print account
+			set_account_category(opts, account)
+	
 def drop_account(opts, account):
 	sa = get_session(opts.dbref)	
 	acc = sa.query(Account).filter(Account.account_number == account).one()
@@ -295,6 +311,7 @@ def main():
 		'reset-db',
 #		'ledger-dbname=',
 #		'ledger-db=',
+		'import',
 		'print-mutations-csv',
 		'import-mutations-csv',
 		'gnu-cash-csv',
@@ -319,6 +336,9 @@ def main():
 		elif '--print-mutations-csv' in o:
 			print_sum_from_files(settings, *args)
 			return
+		elif '--import' in o:
+			import_from_files(settings, *args)
+			return
 		elif '--import-mutations-csv' in o:
 			import_from_files(settings, *args)
 			return
@@ -326,7 +346,7 @@ def main():
 			reset_db(settings)
 			return
 		elif '--organize' in o:
-			set_account_category(settings, *args)
+			organize(settings, *args)
 			return
 		elif '--list-accounts' in o:
 			list_accounts(settings)
