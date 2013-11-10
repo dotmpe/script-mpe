@@ -42,10 +42,11 @@ def is_versioned(dirpath):
 def cmd(cmd, *args):
 	proc = subprocess.Popen( cmd % args,
 			shell=True,
-			stderr=subprocess.PIPE, stdout=subprocess.PIPE,
+			stderr=subprocess.PIPE,
+			stdout=subprocess.PIPE,
 			close_fds=True )
 	errors = proc.stderr.read()
-	if errors:
+	if errors or proc.returncode:
 		raise Exception(errors)
 	value = proc.stdout.read()
 	if not value:# and not nullable:
