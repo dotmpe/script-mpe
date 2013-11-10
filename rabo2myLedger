@@ -40,24 +40,124 @@ import csv
 import hashlib
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
-	ForeignKey, Table, Index, DateTime
+	ForeignKey, Table, Index, DateTime, Date, \
+	create_engine
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, backref, sessionmaker
+
+import confparse
 
 
 SqlBase = declarative_base()
 metadata = SqlBase.metadata
 
+class AccountBalance(SqlBase):
+	"""
+	Checkpoints.
+	"""
+	__tablename__ = 'accbalance'
+	balance_id = Column('id', Integer, primary_key=True)
+	check = Column(Date) # XXX: related ot blaance
+	account_id = Column(Integer, ForeignKey('accs.id'))
+	balance = Column(Integer) # XXX: related ot blaance
+
 class Account(SqlBase):
-	
 	"""
 	"""
-	__tablename__ = 'mlprojects'
-	__mapper_args__ = {'polymorphic_identity': 'myLedger-account'}
+	__tablename__ = 'accs'
 
 	account_id = Column('id', Integer, primary_key=True)
-	balance = Column(Integer)
-	account_type = Column(String)
+	balance = Column(Integer) # XXX: related ot blaance
+	account_name = Column(String)
+	# classifiers? to match transactions	
+	account_number = Column(String, unique=True, nullable=True)
+	account_type = Column(String, nullable=False)
+
+	def __str__(self):
+		return "[Account %r #%s %s]" % ( self.account_name, self.account_number,
+				self.account_type)
+
+
+def get_session(dbref, initialize=False):
+	engine = create_engine(dbref)#, encoding='utf8')
+	#engine.raw_connection().connection.text_factory = unicode
+	if initialize:
+		#log.info("Applying SQL DDL to DB %s ", dbref)
+		SqlBase.metadata.create_all(engine)  # issue DDL create 
+		print 'Updated myLedger schema'
+	session = sessionmaker(bind=engine)()
+	return session
+
+
+def csv_reader(csvfile, fields):
+	reader = csv.reader(open(csvfile), delimiter=',')
+	rs = []
+	line = 0
+	seen = dict(zip( fields, [ [] for n in fields ] ))
+	for row in reader:
+		line += 1
+
+		if len(row) == 16:
+			accnr,curr,date,DC,amount,destacc,destname,date2,cat,_,descr,descr2,descr3,descr4,_,_ = row
+		elif len(row) == 19:
+			accnr, curr, date, DC, amount, \
+					destacc, destname, date2, cat, _,\
+					descr, descr2, descr3, descr4, _, \
+					_, nr1, accnr2, n2 = row
+			accnr = accnr[8:]
+		elif row == ['\x1a']:
+			continue#break
+		else:
+			assert False, len(row)
+		new = False
+		for i, n in enumerate(fields):
+			v = locals()[n]
+			if v:
+				newnew = new or v not in seen[n]
+				if new and not newnew:
+					break
+				new = newnew
+		if new:
+			if destacc == '0000000000':
+				print "Ingored non-account", destname
+				continue
+			vs = [ locals()[n] for n in fields ]
+			for i, v in enumerate(vs):
+				n = fields[i]
+				seen[n].append(v)
+			rs.append( tuple(vs) )
+	return rs
+
+def import_accounts_from_file(sa, csvfile, opts):
+	accounts = csv_reader(csvfile, ['destacc', 'destname'])
+	print "File", csvfile
+	for destacc, destname in accounts:
+		accs = sa.query(Account).filter(Account.account_number == destacc ).all()
+		if accs:
+			continue
+		# TODO: must set account type
+		newAcc = Account(
+				account_number=destacc, 
+				account_name = destname,
+				account_type = 'Expenses')
+		sa.add(newAcc)
+		sa.commit()
+		print destacc, destname
+		print sa.query(Account).filter(Account.account_name == destname ).all()
+	pass
+
+def import_mutations_from_file(sa, csvfile, opts):
+	pass
+
+def import_from_file(sa, csvfile, opts):
+	import_accounts_from_file(sa, csvfile, opts)
+	import_mutations_from_file(sa, csvfile, opts)
+
+def import_from_files(opts, *args):
+	sa = get_session(opts.dbref)
+	for csvfile in args:
+		import_from_file(sa, csvfile, opts)
 
 mutations = {}
 
@@ -65,6 +165,7 @@ def print_sum_from_file(csvfile, opts):
 	global mutations
 	reader = csv.reader(open(csvfile), delimiter=',')
 	#print csvfile
+# XXX: only counting unique transactions and summing
 	saldo = 0
 	line = 0
 	skipping = 0
@@ -141,22 +242,100 @@ def print_gnu_cash_import_csv(csvfile, description_delimiter='\n', opts=None):
 		out = dt, debet and amount or "", not debet and amount or "", destacc, destname, d
 		print ",".join( map(lambda x: '"%s"' % x, out) )
 
+def list_accounts(opts):
+	sa = get_session(opts.dbref)	
+	accounts = sa.query(Account).all()
+	for account in accounts:
+		print account
+
+def set_account_category(opts, account, category=None):
+	sa = get_session(opts.dbref)	
+	account = sa.query(Account).filter(Account.account_number == account).one()
+	if not category:
+		if account.account_type == None:
+			account.account_type = ''
+		ok = False
+		while not ok:
+			category = Prompt.input("Please enter the classification: ",
+					account.account_type)
+			acctypes = sa.query(Account).filter(Account.account_type == category).first()
+			if not acctypes:
+				ok = Prompt.query("Is new category %r correct?", 'yN')
+				if not ok:
+					if Prompt.query("Cancel?", 'Yn'):
+						break
+	if category:
+		if account.account_type != category:
+			account.account_type = category
+			sa.add(account)
+			sa.commit()
+			print "Updated", account
+
+def drop_account(opts, account):
+	sa = get_session(opts.dbref)	
+	acc = sa.query(Account).filter(Account.account_number == account).one()
+	sa.delete(acc)
+	sa.commit()
+	print "Dropped account", account, acc
+
+def reset_db(opts):
+	dbfile = os.path.expanduser(opts.dbrefname)
+	if os.path.exists(dbfile):
+		os.remove(dbfile)
+		print 'Deleted myLedger database'
+	get_session(opts.dbref, True)	
 
 def main():
 	import sys
 	from getopt import getopt
 	opts, args = getopt(sys.argv[1:], 'hl:g', [
-		'ledger-db',
+		'list-accounts',
+		'delete-account',
+		'organize',
+		'reset-db',
+#		'ledger-dbname=',
+#		'ledger-db=',
+		'print-mutations-csv',
+		'import-mutations-csv',
 		'gnu-cash-csv',
-		'start:'
+		'start-date=',
+		'start-balance=',
+		'end-date='
 	])
+	settings = confparse.Values()
+	settings.dbrefname = '~/.myLedger.sqlite'
+	settings.dbref = 'sqlite:///%s' % os.path.expanduser(settings.dbrefname)
 	for o in opts:
 		if '--gnu-cash-csv' in o:
 			for a in args:
-				print_gnu_cash_import_csv(a, '\t', opts)
+				print_gnu_cash_import_csv(a, '\t', settings)
 			return
-	print_sum_from_files(opts, *args)
-
+		elif '--start-balance' in o:
+			print >>sys.stderr, "Warning: start-balance option ignored "
+		elif '--start-date' in o:
+			print >>sys.stderr, "Warning: start-date option ignored "
+		elif '--end-date' in o:
+			print >>sys.stderr, "Warning: end-date option ignored "
+		elif '--print-mutations-csv' in o:
+			print_sum_from_files(settings, *args)
+			return
+		elif '--import-mutations-csv' in o:
+			import_from_files(settings, *args)
+			return
+		elif '--reset-db' in o:
+			reset_db(settings)
+			return
+		elif '--organize' in o:
+			set_account_category(settings, *args)
+			return
+		elif '--list-accounts' in o:
+			list_accounts(settings)
+			return
+		elif '--delete-account' in o:
+			drop_account(settings, *args)
+			return
+	print >>sys.stderr, "Command not found. "
+	return -1
 
 if __name__ == '__main__':
 	main()
