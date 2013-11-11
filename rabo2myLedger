@@ -23,8 +23,10 @@ Done
 - Read, parse from rabobank csv files
 - Print total.
 - Read new accounts numbers from files and store, categorize.
+- Time-window data, balance correction.
 
 Todo
+- Consolidate with DB, currently only reads CSV. categorize mutations first?
 - Generate montly tables, weekly. Averages.
 - Track each mutation once, index (sqlite) at first read
   (partially implemented)
@@ -214,7 +216,16 @@ def print_sum_from_file(csvfile, opts):
 	return saldo
 
 def print_sum_from_files(opts, *files):
+	global mutations
 	saldo = 0
+	if opts.end_balance:
+		for f in files:
+			change = print_sum_from_file(f, opts)
+			saldo = saldo + change
+		correction = opts.end_balance - saldo
+		print 'Correction', correction
+		saldo = correction
+	mutations = {}
 	for f in files:
 		change = print_sum_from_file(f, opts)
 		print 'Change:', change
@@ -317,10 +328,11 @@ def main():
 		'start-date=',
 		'end-date=',
 		'start-balance=',
-		'end-date='
+		'end-balance=',
 	])
 	settings = confparse.Values(dict(
-		start_date=None, end_date=None
+		start_date=None, end_date=None, 
+		start_balance=None, end_balance=None
 	))
 	settings.dbrefname = '~/.myLedger.sqlite'
 	settings.dbref = 'sqlite:///%s' % os.path.expanduser(settings.dbrefname)
@@ -338,6 +350,8 @@ def main():
 			settings.start_date = o[1]
 		elif '--end-date' in o:
 			settings.end_date = o[1]
+		elif '--end-balance' in o:
+			settings.end_balance = float(o[1])
 		elif '--print-mutations-csv' in o:
 			cmd, cargs = 'print_sum_from_files', [settings, ] + args
 		# 
