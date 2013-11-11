@@ -21,7 +21,8 @@ This is not a ledger. Just a balance tracker and some averaging.
 
 Done
 - Read, parse from rabobank csv files
-- Print total
+- Print total.
+- Read new accounts numbers from files and store, categorize.
 
 Todo
 - Generate montly tables, weekly. Averages.
@@ -34,108 +35,127 @@ Todo
 - Perhaps schedule payments
 - Add some saldo checks, e.g. each month or random to assert correctness anytime
 
+Other ToDo
+- Use optparse and proper options, perhaps integrate with framework thingie
+- Clean out output writing and design proper options->formatter handling.
+
 """
 import os
 import csv
 import hashlib
-
-from sqlalchemy import Column, Integer, String, Boolean, Text, \
-	ForeignKey, Table, Index, DateTime, Date, \
-	create_engine
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, backref, sessionmaker
+from datetime import datetime
 
 import confparse
 from lib import Prompt
+from myLedger import get_session, Account, Mutation
 
 
-SqlBase = declarative_base()
-metadata = SqlBase.metadata
+mutations = {}
 
-class AccountBalance(SqlBase):
-	"""
-	Checkpoints.
-	"""
-	__tablename__ = 'accbalance'
-	balance_id = Column('id', Integer, primary_key=True)
-	check = Column(Date) # XXX: related ot blaance
-	account_id = Column(Integer, ForeignKey('accs.id'))
-	balance = Column(Integer) # XXX: related ot blaance
-
-class Account(SqlBase):
-	"""
-	"""
-	__tablename__ = 'accs'
-
-	account_id = Column('id', Integer, primary_key=True)
-	balance = Column(Integer) # XXX: related ot blaance
-	account_name = Column(String)
-	# classifiers? to match transactions	
-	account_number = Column(String, unique=True, nullable=True)
-	account_type = Column(String, nullable=False)
-
-	def __str__(self):
-		return "[Account %r #%s %s]" % ( self.account_name, self.account_number,
-				self.account_type)
-
-
-def get_session(dbref, initialize=False):
-	engine = create_engine(dbref)#, encoding='utf8')
-	#engine.raw_connection().connection.text_factory = unicode
-	if initialize:
-		#log.info("Applying SQL DDL to DB %s ", dbref)
-		SqlBase.metadata.create_all(engine)  # issue DDL create 
-		print 'Updated myLedger schema'
-	session = sessionmaker(bind=engine)()
-	return session
-
-
-def csv_reader(csvfile, fields):
+def csv_reader(csvfile, fields, unique_fields=False, unique_records=True, opts=False):
+	"""Generator"""
+	global mutations
 	reader = csv.reader(open(csvfile), delimiter=',')
-	rs = []
-	line = 0
-	seen = dict(zip( fields, [ [] for n in fields ] ))
+	line = 0 # csv.reader iteration count
+	# prepare for unique_fields
+	seen = {}
+	if unique_fields: 
+		if not isinstance(unique_fields, list):
+			unique_fields = fields
+		seen = dict(zip( unique_fields, [ [] for n in unique_fields ] ))
+	skipping = 0 # track skipping with unique_records
 	for row in reader:
 		line += 1
-
+		# old and new style records
 		if len(row) == 16:
-			accnr,curr,date,DC,amount,destacc,destname,date2,cat,_,descr,descr2,descr3,descr4,_,_ = row
+			accnr,curr,date,DC,amount,destacc,destname,date2,cat,_1,descr,descr2,descr3,descr4,_2,_3 = row
 		elif len(row) == 19:
 			accnr, curr, date, DC, amount, \
-					destacc, destname, date2, cat, _,\
-					descr, descr2, descr3, descr4, _, \
-					_, nr1, accnr2, n2 = row
+					destacc, destname, date2, cat, _1,\
+					descr, descr2, descr3, descr4, _2, \
+					_3, nr1, accnr2, nr2 = row
 			accnr = accnr[8:]
 		elif row == ['\x1a']:
 			continue#break
 		else:
 			assert False, len(row)
-		new = False
-		for i, n in enumerate(fields):
-			v = locals()[n]
-			if v:
-				newnew = new or v not in seen[n]
-				if new and not newnew:
-					break
-				new = newnew
-		if new:
-			if destacc == '0000000000':
-				print "Ingored non-account", destname
+		# track/skip for unique_records
+		if unique_records:
+			key = hashlib.sha1(date)
+			key.update(accnr)
+			key.update(destacc)
+			key.update(amount)
+			key.update(cat)
+			key.update(descr)
+			key.update(descr2)
+			key = key.hexdigest()
+			if key in mutations:
+				skipping += 1
 				continue
+			elif skipping:
+				print 'Skipped', skipping, 'lines, %s' % ( csvfile)
+				skipping = 0
+			mutations[key] = True
+		if opts:
+			# skip for start/end date
+			if opts.start_date:
+				start_date = datetime.strptime(opts.start_date, '%Y-%m-%d')
+				if start_date >= datetime.strptime(date, '%Y%m%d'):
+					#print 'skipped', csvfile, line, date
+					continue
+			if opts.end_date:
+				end_date = datetime.strptime(opts.end_date, '%Y-%m-%d')
+				if end_date < datetime.strptime(date, '%Y%m%d'):
+					#print 'skipped', csvfile, line, date
+					continue
+		# parse some..
+		amount = float(amount)
+		if DC.upper() == 'D':
+			amount = 0-amount
+		# track changed fields
+		new = False
+		if seen:
+			for i, n in enumerate(unique_fields):
+				v = locals()[n]
+				if v:
+					newnew = new or v not in seen[n]
+					if new and not newnew:
+						break
+					new = newnew
+		# yield if new (changed or unique) and everything if not tracking
+		if new or not seen:
+			if destacc == '0000000000':
+				if cat == 'ba':
+					pass# betaalautomaat
+				elif cat == 'ga':
+					pass# geldautomaat
+				elif cat == 'ck':
+					pass# chipknip, opladen?
+				elif cat == 'db':
+					pass# kosten bankzaken
+				elif descr == 'Rente over periode':
+					pass
+				else:
+					assert False, (destacc, destname, cat, row)
+			else:
+				assert cat in ('ma', 'ba', 'ga', 'cb', 'id', 'db', 'bg', 'ac', 'ei'), cat
+
 			vs = [ locals()[n] for n in fields ]
-			for i, v in enumerate(vs):
-				n = fields[i]
-				seen[n].append(v)
-			rs.append( tuple(vs) )
-	return rs
+			if unique_fields and seen:
+				vc = [ locals()[n] for n in unique_fields ]
+				for i, v in enumerate(vc):
+					n = unique_fields[i]
+					seen[n].append(v)
+			yield tuple(vs)
 
 def import_accounts_from_file(sa, csvfile, opts):
-	accounts = csv_reader(csvfile, ['destacc', 'destname'])
-	print "File", csvfile
-	for destacc, destname in accounts:
-		accs = sa.query(Account).filter(Account.account_number == destacc ).all()
-		if accs:
+	reader = csv_reader(csvfile, ['destacc', 'destname'], unique_fields=['destacc'])
+	for destacc, destname in reader :
+		if destacc == '0000000000' or destacc == '':
+			#print "Ignored non account", destacc, destname
+			continue
+		accounts = sa.query(Account).filter(Account.account_number == destacc ).all()
+		if accounts: # got one already
 			continue
 		# TODO: must set account type
 		newAcc = Account(
@@ -148,65 +168,47 @@ def import_accounts_from_file(sa, csvfile, opts):
 		print sa.query(Account).filter(Account.account_name == destname ).all()
 	pass
 
+def detect_source_account(accnr, sa, opts):
+	accounts = sa.query(Account).filter(Account.account_number == accnr ).all()
+	if accounts:
+		return accounts[0]
+
 def import_mutations_from_file(sa, csvfile, opts):
-	pass
+	reader = csv_reader(csvfile, [ 'line', 'date', 'accnr', 'amount', 'destacc', 'cat',
+		'destname', 'descr', 'descr2' ])
+	for line, date, accnr, amount, destacc, cat, destname, descr, descr2 in reader:
+
+		account = detect_source_account(accnr, sa, opts)
+		if not account:
+#			print "'From' account unknown", accnr
+			continue
+
+		accounts = sa.query(Account).filter( Account.account_number == destacc ).all()
+		if not accounts:
+#			print "'To' account unknown", line, destacc, cat, destname, descr, descr2
+			continue
+		destaccount = accounts[0]
+
+		category = ''
+
+		#print csvfile, line, accnr, amount, destacc
+		m = Mutation(from_account=account, to_account=destaccount,
+				amount=amount, category=category)
 
 def import_from_file(sa, csvfile, opts):
-	import_accounts_from_file(sa, csvfile, opts)
+	# XXX: can only do one at a time while global mutations is used
+	#import_accounts_from_file(sa, csvfile, opts)
 	import_mutations_from_file(sa, csvfile, opts)
 
 def import_from_files(opts, *args):
-	sa = get_session(opts.dbref)
 	for csvfile in args:
-		import_from_file(sa, csvfile, opts)
-
-mutations = {}
+		print '# Importing', csvfile
+		import_from_file(opts._sa, csvfile, opts)
 
 def print_sum_from_file(csvfile, opts):
-	global mutations
-	reader = csv.reader(open(csvfile), delimiter=',')
-	#print csvfile
-# XXX: only counting unique transactions and summing
 	saldo = 0
 	line = 0
-	skipping = 0
-	for row in reader:
-		line += 1
-		if len(row) == 16:
-			accnr,curr,date,DC,amount,destacc,destname,date2,cat,_,descr,descr2,descr3,descr4,_,_ = row
-		elif len(row) == 19:
-			accnr, curr, date, DC, amount, \
-					destacc, destname, date2, cat, _,\
-					descr, descr2, descr3, descr4, _, \
-					_, nr1, accnr2, n2 = row
-			accnr = accnr[8:]
-		elif row == ['\x1a']:
-			continue#break
-		else:
-			assert False, len(row)
-		amount = float(amount)
-		if DC.upper() == 'D':
-			amount = 0-amount
-
-		key = hashlib.sha1(date)
-		key.update(accnr)
-		if destacc.strip('0'):
-			key.update(destacc)
-		key.update(str(amount))
-		key.update(cat)
-		key.update(descr)
-		key = key.hexdigest()
-		if key in mutations:
-			#print mutations[key]
-			assert mutations[key] == (date, accnr, amount, destacc, descr, descr2)
-			#print 'Skipping', date, accnr, amount, destacc, descr, descr2, descr3, descr4
-			skipping += 1
-			continue
-		elif skipping:
-			print 'Skipped', skipping, 'lines, %s:%s' % ( csvfile, line )
-			skipping = 0
-		mutations[key] = date, accnr, amount, destacc, descr, descr2
-		#print accnr, amount, destacc, descr, descr2, descr3, descr4
+	for amount, line in csv_reader(csvfile, [ 'amount', 'line'], opts=opts):
 		saldo = saldo + amount
 	print 'Read', csvfile, line, 'lines'
 	return saldo
@@ -244,13 +246,11 @@ def print_gnu_cash_import_csv(csvfile, description_delimiter='\n', opts=None):
 		print ",".join( map(lambda x: '"%s"' % x, out) )
 
 def list_accounts(opts):
-	opts._sa = sa = get_session(opts.dbref)	
-	accounts = sa.query(Account).all()
+	accounts = opts._sa.query(Account).all()
 	for account in accounts:
 		print account.account_id, account
 
 def set_account_category(opts, account, category=None):
-	#sa = get_session(opts.dbref)	
 	# account must exist
 	if isinstance(account, basestring):
 		account = opts._sa.query(Account).filter(Account.account_number == account).one()
@@ -309,19 +309,24 @@ def main():
 		'delete-account',
 		'organize',
 		'reset-db',
-#		'ledger-dbname=',
+#		'ledger-dbname=', 
 #		'ledger-db=',
 		'import',
 		'print-mutations-csv',
-		'import-mutations-csv',
 		'gnu-cash-csv',
 		'start-date=',
+		'end-date=',
 		'start-balance=',
 		'end-date='
 	])
-	settings = confparse.Values()
+	settings = confparse.Values(dict(
+		start_date=None, end_date=None
+	))
 	settings.dbrefname = '~/.myLedger.sqlite'
 	settings.dbref = 'sqlite:///%s' % os.path.expanduser(settings.dbrefname)
+	settings._sa = sa = get_session(settings.dbref)	
+	# options should be in sequence, one command at the end
+	cmd, cargs = None, ()
 	for o in opts:
 		if '--gnu-cash-csv' in o:
 			for a in args:
@@ -330,32 +335,35 @@ def main():
 		elif '--start-balance' in o:
 			print >>sys.stderr, "Warning: start-balance option ignored "
 		elif '--start-date' in o:
-			print >>sys.stderr, "Warning: start-date option ignored "
+			settings.start_date = o[1]
 		elif '--end-date' in o:
-			print >>sys.stderr, "Warning: end-date option ignored "
+			settings.end_date = o[1]
 		elif '--print-mutations-csv' in o:
-			print_sum_from_files(settings, *args)
-			return
+			cmd, cargs = 'print_sum_from_files', [settings, ] + args
+		# 
 		elif '--import' in o:
-			import_from_files(settings, *args)
-			return
-		elif '--import-mutations-csv' in o:
-			import_from_files(settings, *args)
-			return
+			cmd, cargs = 'import_from_files', [settings, ] + args
+		# DB commands
 		elif '--reset-db' in o:
-			reset_db(settings)
+			cmd, cargs = 'reset_db', (settings, ) 
+		# Account commands
+		elif '--import-accounts' in o:
+			sa = get_session(opts.dbref)
+			for a in args:
+				import_accounts_from_file(sa, a, settings)
 			return
 		elif '--organize' in o:
-			organize(settings, *args)
-			return
+			cmd, cargs = 'organize', [settings, ] + args
 		elif '--list-accounts' in o:
-			list_accounts(settings)
-			return
+			cmd, cargs = 'list_accounts', (settings, )
 		elif '--delete-account' in o:
-			drop_account(settings, *args)
-			return
-	print >>sys.stderr, "Command not found. "
-	return -1
+			cmd, cargs = 'drop_account', [settings, ] + args
+
+	if cmd in globals():
+		return globals()[cmd](*cargs)
+	else:
+		print >>sys.stderr, "Command not found. "
+		return -1
 
 if __name__ == '__main__':
 	main()
