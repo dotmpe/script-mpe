@@ -180,10 +180,12 @@ class NodeFormatter(object):
 
 class NodeSetFormatter(object):
 	"""
-	Adapter
+	Adapter.
 	"""
 	zope.interface.implements(IFormatted)
+
 	__used_for__ = INodeSet
+
 	def __init__(self, context):
 		self.context = context
 	def __str__(self, indent=0):
@@ -191,6 +193,7 @@ class NodeSetFormatter(object):
 		for node in self.context.nodes:
 			strbuf += IFormatted(node).__str__(indent+1) + '\n'
 		return strbuf
+
 
 from datetime import datetime
 
@@ -202,11 +205,23 @@ zope.interface.classImplements(list, IPrimitive)
 
 zope.interface.classImplements(datetime, IPrimitive)
 
-registry.register([IID], IFormatted, '', IDFormatter)
-registry.register([IPrimitive], IFormatted, '', PrimitiveFormatter)
+def registerAdapter(adapterClass, sifaces=[], tiface=None):
+	if not sifaces:
+		sifaces = [adapterClass.__used_for__]
+		assert sifaces
+	if not tiface:
+		tiface = zope.interface.implementedBy(adapterClass).interfaces().next()
+	registry.register(sifaces, tiface, '', adapterClass)
 
-registry.register([INodeSet], IFormatted, '', NodeSetFormatter)
-registry.register([INode], IFormatted, '', NodeFormatter)
+registerAdapter(IDFormatter)
+#registry.register([IID], IFormatted, '', IDFormatter)
+registerAdapter(PrimitiveFormatter)
+#registry.register([IPrimitive], IFormatted, '', PrimitiveFormatter)
+
+#registry.register([INodeSet], IFormatted, '', NodeSetFormatter)
+registerAdapter(NodeSetFormatter)
+#registry.register([INode], IFormatted, '', NodeFormatter)
+registerAdapter(NodeFormatter)
 
 def hook(provided, object):
 	if object == None:

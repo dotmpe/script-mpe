@@ -137,6 +137,19 @@ function coveragereport
   coverage report
 }
 
+function test-cmd-out
+{
+	$1 $2
+	out=$($1 $2)
+	[ "$1" = "$2" ] && {
+		echo "OK"
+	} || {
+		echo $1 $2	
+		echo out=$out
+		echo "NOK";
+	}
+}
+
 #################################### MAIN ####################################
 
 NUM="$1"
@@ -192,6 +205,26 @@ case $1 in
     summary "COVERAGE REPORT"
     coveragereport
     ;;
+
+  5)
+    summary "Basename"
+	test-cmd-out \
+		basename-reg "/Volume/Disk/Folder/File-name.tar" \
+		"/Volume/Disk/Folder/File-name.tar\t/Volume/Disk/Folder/File-name\t.tar"
+#	test-cmd-out \
+#		basename-reg "/Volume/Disk/Folder/File-name.sql.bz2" \
+#		"/Volume/Disk/Folder/File-name.sql.bz2\t/Volume/Disk/Folder/File-name\t.sql.bz2"
+
+#	test-cmd-out \
+#		basename-reg "-b '/Volume/Disk/Folder/File name.sql.bz2'" \
+#		"/Volume/Disk/Folder/File Name"
+#	test-cmd-out \
+#		basename-reg "-be '/Volume/Disk/Folder/File name.sql.bz2'" \
+#		"/Volume/Disk/Folder/File Name\tsql bz2"
+#	test-cmd-out \
+#		basename-reg "-bem '/Volume/Disk/Folder/File name.sql.bz2'" \
+#		"/Volume/Disk/Folder/File Name\tsql bz2\tmime1, mime2"
+		;;
 
   *)
     exit 1

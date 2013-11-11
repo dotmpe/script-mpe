@@ -33,12 +33,12 @@ or tar.gz
 """
 import os
 import optparse
+import inspect
 
 import yaml
 
 import lib
 
-OUT = None, None
 TODO_REG = {
 		'py': "Python source script",
 		'pyc': "Compiled Python script",
@@ -79,14 +79,6 @@ TODO_REG = {
 		'rar': 'RAR compressed file archive',
 	}
 
-usage_descr = """%prog [options] [[dir] [+tag+tag.. -tag+tag..]].." """ 
-
-options_spec = (
-	(('-O', '--output-format'), {'help':
-		"", 'default': 'tab'}),
-	(('-i', '--interactive'), {'help':
-		"", 'default': False }),
-)
 
 CONFIG = '~/.basename-reg.yaml'
 conf = None
@@ -116,23 +108,165 @@ def save_config():
 	yaml.dump(conf, fl)
 	fl.close()
 
-def err(out):
-	print >> OUT[1], out
 
-def out(out):
-	print >> OUT[0], out
+class BasenameOut:
+	"""Quick and dirty facade to handle output formatting. """
+	emitters = dict(
+		emit_known_extension = ('argument basename extension mime exts ftype description'.split(' ')),
+		emit_new_extension_known_mime = ('argument basename extension mime exts ftype description'.split(' ')),
+		emit_mime_detect = ('argument basename extension mime description exts'.split(' '))
+	)
+	def __init__(self, opts, stdout, stderr):
+		self.stdout = stdout
+		self.stderr = stderr
+		self.templates = {}
+		self.opts = opts
+		fmt = opts.output_format
+		#self.err("Output format %s" % fmt)
+		if fmt == 'rst':
+			self.init_rst_out()
+		elif fmt == 'tab':
+			self.init_fields_out('\t', opts.quote)
+		elif fmt == 'csv':
+			self.init_fields_out(opts.field_separator, opts.quote)
+		elif fmt == 'brief':
+			self.init_brief_out()
+	def init_brief_out(self):
+		self.templates['emit_mime_detect'] = "%(basename)s"
+	def init_rst_out(self):
+		self.templates['emit_mime_detect'] = ""
+	def init_fields_out(self, sep, quote):
+		opts = self.opts
+		t = quote and '"%%(%s)s"' or "%%(%s)s"
+		# XXX: override emitters from command-line (static), perhaps always send all
+		# fields to emitter and decide wether to print later, on _emit.
+		#if self.opts.output_format == 'tab':
+#		self.emitters['emit_known_extension'] = ["mime", "ext"]#.split(' ')
+		for emitter, fields in self.emitters.items():
+			to_format = fields
+			#if opts.brief and 'basename' in fields:
+			#	to_format = ["basename"]
+#			if opts.mime:
+#				if 'mimes' in fields and 'mimes' not in to_format:
+#					to_format.append('mimes')
+#				if 'mime' in fields and 'mime' not in to_format:
+#					to_format.append('mime')
+#			if opts.extension:
+#				if 'exts' in fields and 'exts' not in to_format:
+#					to_format.append('exts')
+#				if 'ext' in fields and 'ext' not in to_format:
+#					to_format.append('ext')
+			self.templates[emitter] = sep.join([ t % f for f in to_format ])
+			print emitter, self.templates[emitter]
+			setattr(self, emitter, self.emitter(emitter, fields))
+	def err(self, out):
+		if out:
+			print >> self.stderr, out
+	def emitter(self,emitter, fields):
+		def _emit(*values):
+			mapping = dict(zip( fields, values )) 
+			if self.opts.print_header:
+				print "#", ", ".join(fields)
+			if 'exts' in mapping:
+				mapping['exts'] = self.opts.ext_sep.join(mapping['exts'])
+			if 'mimes' in mapping:
+				mapping['mimes'] = self.opts.mime_sep.join(mapping['mimes'])
+			lineout = self.templates[emitter] % mapping
+			if lineout:
+				print >>self.stdout, lineout
+		return _emit
 
-def main(argv=[]):
+
+### Options
+
+usage_descr = """%prog [-bem] [options] [file1...]"""
+
+def optparse_bool(option, optstr, value, parser, new_value):
+	parsed_value = new_value.lower() in "1 y yes true on".split(' ')
+	#new_value.lower() in "0 n no false off".split(' ')
+	setattr(parser.values, option.dest, new_value)
+
+def optparse_output_format(option, optstr, value, parser, new_value):
+#	if new_value == 'tab':
+#		values.
+	setattr(values, dest, value)
+
+
+options_spec = (
+
+	(('-i', '--interactive'), {'help':
+		"", 'default': False, 'action': 'store_true' }),
+
+	(( '--print-header', ), {'help':
+		"", 'default': False, 'action': 'store_true' }),
+
+# TODO: find a sane way to automatically add extensions
+#	(('-a', '--'), {'help':
+#		"Add unknown extension for known MIME. ", 'default': False }),
+#	(('-A', '--'), {'help':
+#		"Add unknown extension and MIME. Warning: this most certainly gives corrupt meta database. "
+#		"Only use this for predictable, controlled data. ",
+#		'default': False }),
+
+	(('-O', '--output-format'), {'help':
+		"Format for ouput, default is with csv"
+		"seperated fields. Others: csv, rst. ",
+#		'action': 'callback',
+#		'callback': optparse_output_format,
+		'default': 'tab'}),
+	(('-F', '--field-separator'), {'help':
+		"For CSV, this can provide an alternate separator to ','. "
+		"Setting this for other formats has not effect",
+		'default': ','}),
+	(('--quote',), {'help':
+		"The default is to quote all fields. ", 
+#		'action': 'callback',
+#		'callback': optparse_bool,
+		'default': False
+	}),
+	(('--mime-sep',), {'help':
+		"Set sub-field separator for multi mime types. ", 
+		'default': ' '}),
+	(('--ext-sep',), {'help':
+		"Set sub-field separator for multi extensions. ", 
+		'default': ','}),
+
+	(('-b', '--brief'), {'help':
+		"Reset field list to basename only. ", 
+		'action': 'store_true',
+		'default': False 
+		}),
+	(('-m', '--mime'), {'help':
+		"List MIME types. ", 
+		'action': 'store_true',
+		'default': False }),
+	(('-e', '--extension'), {'help':
+		"List extensions. ", 
+		'action': 'store_true',
+		'default': False }),
+
+#	(('-B', ), {'help':
+#		"Remove basename from output fields. ", 'default': False }),
+)
+
+
+### Main
+
+def main(argv, stdout, stderr):
 	global conf
 	root = os.getcwd()
+
+	if not argv:
+		argv = ['-h']
 
 	prsr = optparse.OptionParser(usage=usage_descr)
 	for a,k in options_spec:
 		prsr.add_option(*a, **k)
 	opts, args = prsr.parse_args(argv)
 
-	args.pop(0)
 	get_config()
+
+	out = BasenameOut(opts, stdout, stderr)
 
 	ftypes = [ t.title() for t in conf['ftype'] ]
 
@@ -141,10 +275,28 @@ def main(argv=[]):
 		n = a
 		# look for names with '.' separated fields 
 		if '.' not in a:
-			err('Ignored %s' % a)
+			out.err('Ignored %s' % a)
 			continue
-		# treat each field as potential tag
-		for e in a.lower().split('.')[1:]:
+
+		"""
+		name_parts, candidates = scan_fields(a, opts)
+
+		unknown = []
+		for ext in extensions:
+			if known(ext, opts):
+				pass
+			else:
+				unknown.append(ext)
+
+		if unknown:
+			if opts.interactive:
+				try_magic(a, opts)
+			elif not opts.quiet:
+				out.err("Error: unknown extensions: .%s" % '.'.join(exts))
+"""
+		# treat each field after first as potential tag, start with last
+		name_parts = a.lower().split('.')[1:][::-1]
+		for e in name_parts:
 			if not e.strip():
 				continue
 			# strip file
@@ -156,42 +308,47 @@ def main(argv=[]):
 					ce = conf['ext_map'][ce]
 			# replace last occurence of tag '.e'
 			n = "".join(n.rsplit('.'+e, 1))
+
 			if ce != e:
-				err("Error: non-canonical extension, rename required. ")
+				out.err("Error: non-canonical extension, rename required. ")
 				continue
+
 			if ce in conf['ext_reg']:
 				# found it, print continue
 				mime = conf['ext_reg'][ce]
 				exts, ftype, descr = conf['xref'][mime]
-				print n, exts, mime
+				out.emit_known_extension(a, n, ce, mime, exts, ftype, descr)
+
+			elif not os.path.exists(a):
+				out.err("Not a real file, cannot detect MIME: %s" % a)
+				continue
 			else:
 				# look for mime
-				print 'arg', n, a
 				mime = lib.cmd("file -bi %r" % a).strip()
-				print "mime", mime
 				if mime in conf['xref']:
 					# ok, have a mime, ask later wether to use it for ext
 					exts, ftype, descr = conf['xref'][mime]
-					print "exts", exts
-					print "ftype", ftype
-					print "descr", descr
+					out.emit_new_extension_known_mime(a, n, ce, mime, exts, ftype, descr)
 				elif not opts.interactive:
+					out.err("New MIME %r" % mime)
 					continue
 				elif store_mime != 'a':
 					descr = lib.cmd("file -bs %r" % a).strip()
 					exts = [ce]
-					print "exts", exts
-					print "descr", descr
-					opts = list(conf['ftype']) + ['sKip', 'None']
-					store_mime = lib.Prompt.query("New MIME: Give type or skip (all)", opts)
+					out.emit_mime_detect(a, n, ce, mime, descr, exts)
+					qopts = list(conf['ftype']) + ['sKip', 'None']
+					store_mime = lib.Prompt.query("New MIME: Give type or skip (all)", qopts)
 					if store_mime >= len(ftypes):
 						continue
 					else:
+						# XXX: should have loop while fields are updated
 						mime = lib.Prompt.input("Use MIME? ", mime)
 						descr = lib.Prompt.input("Use description? ", descr)
 						ftype = ftypes[store_mime]
 						conf['xref'][mime] = [exts, ftype, descr]
 						save_config()
+				else:
+					assert False
 				if e in exts:
 					if exts[0] != e:
 						cext = ext[0]
@@ -205,7 +362,7 @@ def main(argv=[]):
 				if cext in conf['ext_reg']:
 					mime2 = conf['ext_reg'][cext]
 					if mime != mime2:
-						err("Error: Conflicting mime %r" % mime)
+						out.err("Error: Conflicting mime %r" % mime)
 				else:
 					v = lib.Prompt.ask("Store new extension? %r: %s [%s]" %
 							(exts, descr, mime), "yN")
@@ -219,10 +376,10 @@ def main(argv=[]):
 
 if __name__ == '__main__':
 	import sys
-	OUT = sys.stdout, sys.stderr
-	main(sys.argv)
+	sys.exit(main(sys.argv[1:], sys.stdout, sys.stderr))
 
 """
+TODO: test
 
 $ basename-reg -O=rst '/Volume/Disk/Folder/File name.sql.bz2'
 
@@ -230,15 +387,6 @@ $ basename-reg -O=rst '/Volume/Disk/Folder/File name.sql.bz2'
 :basename: File Name
 :format: BZip2 compressed MySQL script
 :mediatype: mime1, mime2
-
-$ basename-reg '/Volume/Disk/Folder/File name.sql.bz2'
-/Volume/Disk/Folder/File Name
-
-$ basename-reg -be '/Volume/Disk/Folder/File name.sql.bz2'
-sql bz2
-
-$ basename-reg -em '/Volume/Disk/Folder/File name.sql.bz2'
-/Volume/Disk/Folder/File Name\tsql bz2\tmime1, mime2
 
 $ basename-reg -c key value
 $ basename-reg -R reg:ext:mime mime
