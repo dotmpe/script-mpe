@@ -17,9 +17,12 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
 	ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship
 
+import zope
+
 import libcmd
 import taxus
 from taxus import Taxus
+import res
 
 
 # Data model 
@@ -74,7 +77,10 @@ class Entry(taxus.Description):
 
 # Main app
 
-class workLog(Taxus):
+# XXX see radical get that working atain
+class workLog(libcmd.SimpleCommand):
+
+	zope.interface.implements(res.iface.ISimpleCommand)
 
 	NAME = os.path.splitext(os.path.basename(__file__))[0]
 
@@ -129,5 +135,4 @@ class workLog(Taxus):
 		pass
 
 if __name__ == '__main__':
-	app = workLog()
-	app.main()
+	workLog.main()

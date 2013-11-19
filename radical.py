@@ -148,10 +148,10 @@ TODO:
 
 # TODO:3: Scan for other literals, recognize language constructs. 
 
-
 import optparse, os, re, sys
 from pprint import pformat
 
+import zope
 from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
 						ForeignKey, Table, Index
 from sqlalchemy.ext.declarative import declarative_base
@@ -160,9 +160,11 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 #from cllct.osutil import parse_argv_split
 
 import confparse
-from libcmd import Cmd, Command, optparse_override_handler
+import libcmd
+from libcmd import optparse_override_handler
 import taxus
 from taxus import Taxus
+import res
 
 
 # Storage model
@@ -614,7 +616,7 @@ rc = confparse.Values()
 # Main
 
 #class Radical(taxus.Taxus):
-class Radical:#(Cmd):#(Command):
+class Radical(libcmd.SimpleCommand):
 
 	zope.interface.implements(res.iface.ISimpleCommand)
 
@@ -623,8 +625,8 @@ class Radical:#(Cmd):#(Command):
 	VERSION = "0.1"
 	USAGE = """Usage: %prog [options] paths """
 
-	#DEFAULT_DB = "sqlite:///%s" % os.path.join(
-	#									os.path.expanduser('~'), '.radical.sqlite')
+	DEFAULT_DB = "sqlite:///%s" % os.path.join(
+										os.path.expanduser('~'), '.radical.sqlite')
 	#DEFAULT_RC = 'cllct.rc'
 	DEFAULT_CONFIG_KEY = PROG_NAME
 
@@ -633,37 +635,41 @@ class Radical:#(Cmd):#(Command):
 	#TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + [ 'run_embedded_issue_scan' ]
 	DEFAULT_ACTION = 'run_embedded_issue_scan'
 
-	def get_opts(self):
-		return Command.get_opts(self) + (
-			(('-d', '--database'),{ 'metavar':'URI', 'dest':'dbref',
-				'help': "A URI formatted relational DB access description, as "
-					"supported by sqlalchemy. Ex:"
-					" `sqlite:///radical.sqlite`,"
-					" `mysql://radical-user@localhost/radical`. "
-					"The default value (%default) may be overwritten by configuration "
-					"and/or command line option. ",
-				'default': self.DEFAULT_DB }),
+	@classmethod
+	def get_optspec(klass):
+		"""
+		Return tuples with optparse command-line argument specification.
+		"""
+		return (
+				(('-d', '--database'),{ 'metavar':'URI', 'dest':'dbref',
+					'help': "A URI formatted relational DB access description, as "
+						"supported by sqlalchemy. Ex:"
+						" `sqlite:///radical.sqlite`,"
+						" `mysql://radical-user@localhost/radical`. "
+						"The default value (%default) may be overwritten by configuration "
+						"and/or command line option. ",
+					'default': klass.DEFAULT_DB }),
 
-			# -f PATTERN   Include only matching files.
+				# -f PATTERN   Include only matching files.
 
-			(('-F', '--add-flavour'),{ 'action': 'callback', 'callback': append_comment_scan,
-				'help': "Scan for these comment flavours only, by default all known fla." }),
+				(('-F', '--add-flavour'),{ 'action': 'callback', 'callback': append_comment_scan,
+					'help': "Scan for these comment flavours only, by default all known fla." }),
 
-			(('--list-flavours',),{ 
-				'action':'callback', 'dest': 'command',
-				'callback': optparse_override_handler,
-				'callback_args': ('list_flavours',), 
-				'help': "" }),
-			(('--list-scans',),{ 
-				'action':'callback', 'dest': 'command',
-				'callback': optparse_override_handler,
-				'callback_args': ('list_scans',), 
-				'help': "" }),
+				(('--list-flavours',),{ 
+					'action':'callback', 'dest': 'command',
+					'callback': optparse_override_handler,
+					'callback_args': ('list_flavours',), 
+					'help': "" }),
+				(('--list-scans',),{ 
+					'action':'callback', 'dest': 'command',
+					'callback': optparse_override_handler,
+					'callback_args': ('list_scans',), 
+					'help': "" }),
 
-			#(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
-			#(('-r', '--recurse'),{'action':'store_true', 'default': True,
-			#	'help': 'Recurse into directory paths (default: %default)'}),
-		)
+				#(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
+				#(('-r', '--recurse'),{'action':'store_true', 'default': True,
+				#	'help': 'Recurse into directory paths (default: %default)'}),
+			)
 
 	def init_config_defaults(self):
 		self.rc.tags = DEFAULT_TAGS

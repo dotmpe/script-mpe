@@ -813,26 +813,25 @@ class TargetResolver(object):
 		return ret_kwds
 
 
-# old, 
+# old, Cmd, renamed to SimpleCommand
 import os,sys
 
 import confparse
 import lib
 
-class Cmd(object):
 
-	# XXX: old, to be replaced by  cmdline.Command
+class SimpleCommand(object):
 
 	NAME = os.path.splitext(os.path.basename(__file__))[0]
 	VERSION = "0.1"
 	
 	USAGE = """Usage: %prog [options] paths """
 
+# TODO: restore
 	DEFAULT_RC = 'cllct.rc'
 	DEFAULT_CONFIG_KEY = NAME
 
-	NAMESPACE = 'cmd', 'http://project.dotmpe.com/script/#/cmdline.Command'
-
+# TODO: remove
 	HANDLERS = [
 #			'cmd:static', # collect (semi)-static settings
 #			'cmd:config', # load (user) configuration
@@ -841,27 +840,27 @@ class Cmd(object):
 #			'cmd:actions', # run targets
 		]
 
-	DEPENDS = {
-			'cmd:static': [],
-			'cmd:config': ['cmd:static'],
-			'cmd:options': ['cmd:config'],
-		}
+#	DEPENDS = {
+#			'cmd:static': [],
+#			'cmd:config': ['cmd:static'],
+#			'cmd:options': ['cmd:config'],
+#		}
 
 	@classmethod
-	def get_opts(klass):
+	def get_optspec(klass, inherit):
 		"""
-		Return tuples with command-line option specs.
+		Return tuples with optparse command-line argument specification.
 		"""
 		return (
 			(('-c', '--config',),{ 'metavar':'NAME', 
 				'dest': "config_file",
-				'default': klass.DEFAULT_RC, 
+				'default': inherit.DEFAULT_RC, 
 				'help': "Run time configuration. This is loaded after parsing command "
 					"line options, non-default option values wil override persisted "
 					"values (see --update-config) (default: %default). " }),
 
 			(('-K', '--config-key',),{ 'metavar':'ID', 
-				'default': klass.DEFAULT_CONFIG_KEY, 
+				'default': inherit.DEFAULT_CONFIG_KEY, 
 				'help': "Settings root node for run time configuration. "
 					" (default: %default). " }),
 
@@ -873,7 +872,7 @@ class Cmd(object):
 
 			(('-C', '--command'),{ 'metavar':'ID', 
 				'help': "Action (default: %default). ", 
-				'default': klass.DEFAULT_ACTION }),
+				'default': inherit.DEFAULT_ACTION }),
 	
 			(('-m', '--message-level',),{ 'metavar':'level',
 				'help': "Increase chatter by lowering "
@@ -883,17 +882,17 @@ class Cmd(object):
 				'default': 2,
 			}),
 	
-			(('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
-				"threshold. Overriden by --quiet or --message-level.",
-				'action': 'callback',
-				'callback': optparse_decrement_message}),
-	
-			(('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
-				"and prompts (--interactive). ", 
-				'dest': 'quiet', 
-				'default': False,
-				'action': 'callback',
-				'callback': optparse_override_quiet }),
+#			(('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
+#				"threshold. Overriden by --quiet or --message-level.",
+#				'action': 'callback',
+#				'callback': optparse_decrement_message}),
+#	
+#			(('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
+#				"and prompts (--interactive). ", 
+#				'dest': 'quiet', 
+#				'default': False,
+#				'action': 'callback',
+#				'callback': optparse_override_quiet }),
 
 			(('--interactive',),{ 'help': "Prompt user if needed, this is"
 					" the default. ", 
@@ -906,35 +905,27 @@ class Cmd(object):
 				'default': True,
 				'action': 'store_false' }),
 
-			(('--init-config',),{ 'action': 'callback', 'help': "(Re)initialize "
-				"runtime-configuration with default values. ",
-				'dest': 'command', 
-				'callback': optparse_override_handler }),
-
-			(('--print-config',),{ 'action':'callback', 'help': "",
-				'dest': 'command', 
-				'callback': optparse_override_handler }),
+#			(('--init-config',),{ 'action': 'callback', 'help': "(Re)initialize "
+#				"runtime-configuration with default values. ",
+#				'dest': 'command', 
+#				'callback': optparse_override_handler }),
+#
+#			(('--print-config',),{ 'action':'callback', 'help': "",
+#				'dest': 'command', 
+#				'callback': optparse_override_handler }),
 
 		)
 	
-	@staticmethod
-	def get_options():
+	def get_optspecs(self):
 		"""
 		Collect all options for the current class if used as Main command.
 		Should be implemented by subclasses.
 		"""
-		pass
-
-	def get_prerequisites(self, name):
-		"""
-		Return list of dependecies for options or target looking at class 
-		inheritance chain.
-		"""
-		assert ':' in name
-		for klass in self.__class__.mro():
-			if hasattr(klass, 'DEPENDS'):
-				if name in klass.DEPENDS:
-					return klass.DEPENDS[name]
+		# do simple top down traversal of current klass inheritance chaing
+		for k in self.__class__.mro():
+			if hasattr(k, 'get_optspec'):
+				assert 'get_optspec' in k.__dict__, "SimpleCommand subclass must override get_optspec"
+				yield k, k.get_optspec(self.__class__)
 
 	"Options are divided into a couple of classes, unclassified keys are treated "
 	"as rc settings. "
@@ -947,27 +938,16 @@ class Cmd(object):
 	""
 	DEFAULT_ACTION = 'print_config'
 
-	settings = confparse.Values()
-	"Complete Values tree with settings. "
-
-	rc = None
-	"Values subtree for current program. "
 
 	def __init__(self, settings=None, **kwds):
-		if settings:
-			self.settings = settings
+		if not settings:
+			settings = confparse.Values()
+		self.settings = settings
 		"Global settings, set to Values loaded from config_file. "
 		self.rc = None
 		"Runtime settings for this script. "
 
-		assert not kwds
-		#for k in kwds:
-		#	if hasattr(self, k):
-		#		setattr(self, k, kwds[k])
-		#	else:
-		#		assert False, k
-
-		self.actions = {}
+		assert not kwds, (self, kwds)
 
 	def parse_argv(self, options, argv, usage, version):
 		"""
@@ -985,11 +965,16 @@ class Cmd(object):
 
 		optnames = []
 		nullable = []
-		for opt in options:
-			parser.add_option(*opt[0], **opt[1])
+		for klass, optspec in options:
+			for opt in optspec:
+				try:
+					parser.add_option(*opt[0], **opt[1])
+				except Exception, e:
+					print klass, e
 
 		optsv, args = parser.parse_args(argv)
 
+		# superficially move options from their Values object
 		optsd = {}
 		for name in dir(optsv):
 			v = getattr(optsv, name)
@@ -1014,114 +999,30 @@ class Cmd(object):
 		#	else:
 		#		err("Ignored option override for %s: %s", self.settings.config_file, o)
 
-	def load_action(self, name):
-# lazy load; prepare a dictionary with all needed props
-		if ':' in name:
-			nsid = name.split(':')[0]
-			assert nsid in lib.namespaces, "Error: NS-ID %s not registered" % nsid
-			ns = lib.namespaces[nsid]
-		else:
-			ns = self.namespace
-
-		if ':' not in name:
-			name = ns[0] +':'+ name
-
-		if name not in self.actions:
-			sid = name.replace('-', '_').replace(':', '_')
-
-			depends = self.get_prerequisites(name)
-			if depends:
-				for i, dep in enumerate(depends):
-					if ':' not in dep:
-						depends[i] = ns[0]+':'+dep
-
-			self.actions[name] = sid, depends
-
-		return name
-
-	def main(self, argv=None):
+	@classmethod
+	def main(Klass, argv=None):
 		"""
-		Run targets called for by user. Implemented now by CLI parsing.
-		But before even target is known, some elementary handlers need to be
-		invoked to prepare config and options. Each class may compose their own
-		list in HANDLERS.
-
-		Each handler corresponds to a actions, and return either value instances
-		and/or new sets of actions, or an exit code if it is done or requests an 
-		exit. New actions are inserted into the batch list after its generator.
+		TODO: rewrite to one command target.
 		"""
-		# lazy init
-		actions = []
-		for handler in self.HANDLERS:
-			print handler
-			aid = self.load_action(handler)
-			#XXXif aid not in actions:
-			actions.append(aid)
-	  
-		# each handler works from values prepared by previous handlers
-		# the accumulated values are kept in a 'session' list and dictionary
-		arg_list = []
+		self = Klass()
+
+		# parse arguments
+		if not argv:
+			argv = sys.argv[1:]
+
+		self.optparser, opts, kwds_, args = self.parse_argv(
+				self.get_optspecs(), argv, self.USAGE, self.VERSION)
+
+		handler = getattr(self, opts.command)
+		args, kwds = self.main_prepare_kwds(handler, opts, args)
+
 		kwd_dict = {}
-# neatly corresponds to Python function arguments and named parameters
-# further development may employ disk and database caches for object instances,
-# cache validation is not implemented though
+		ret = handler(*args, **kwds)
 
-		act = 0
-		while act < len(actions):
-			aid = actions[act]
-			err("%s: %s", act, aid)
-			action, depends = self.actions[aid]
-			if depends:
-				for depend in depends:
-					did = self.load_action(depend)
-					if did in actions:
-						err("No need for %s", did)
-						continue
-					# requeue this action
-					if aid not in actions:
-						err("Need %s", did)
-						actions.insert(act-1, aid)
-					# start with prerequisite first
-					actions.insert(act-1, did)
-					continue
+		if isinstance(ret, int):
+			pass
 
-			err("Notice: running %s", aid)
-
-			ret = getattr(self, action)(**kwd_dict)
-			if not inspect.isgenerator(ret) and not isinstance(ret, tuple):
-				ret = (ret,)
-
-			next_actions = []
-
-			# action may yield multiple values
-			for r in ret:
-				# use integer to indicate target status, request interupts
-				if isinstance(r, int):
-					pass
-				# strings refer to the id of the action to run next
-				elif isinstance(r, str):
-					a = self.load_action(r)
-					next_actions.append(a)
-				# explicitly update function arguments 
-				elif isinstance(r, list):
-					arg_list = r
-				elif isinstance(r, dict):
-					kwd_dict = r
-
-			if next_actions:
-				next_actions.extend(actions)
-				actions = next_actions
-		   
-			act += 1
-
-		# run
-		#opts, args = self.main_default(argv)
-		#for hname in self.HANDLERS:
-		#	hfunc = getattr(self, hname)
-		#	try:
-		#		hfunc(opts, args)
-		#	except KeyboardInterrupt, e:
-		#		pass
+		return self
 
 	def cmd_static(self, **kwds):
 		config_file = self.get_config_file()
@@ -1141,18 +1042,7 @@ class Cmd(object):
 		self.settings.config_file = config_file
 
 	def cmd_options(self, argv=[], **kwds):
-		"""
-		Prepare `self.settings` by loading nearest configuration file,
-		then parse ARGV
-		"""
-		# parse arguments
-		if not argv:
-			argv = sys.argv[1:]
-
-		parser, opts, kwds_, args = self.parse_argv(
-				self.get_options(), argv, self.USAGE, self.VERSION)
-		yield kwds_
-
+		# XXX: perhaps restore shared config later
 		# Get a reference to the RC; searches config_file for specific section
 		config_key = self.DEFAULT_CONFIG_KEY
 		if hasattr(opts, 'config_key') and opts.config_key:
@@ -1167,15 +1057,6 @@ class Cmd(object):
 				sys.exit(1)
 
 		self.rc = getattr(self.settings, config_key)
-
-		#self.main_option_overrides(parser, opts)
-
-		self.parser = parser
-
-		kwds['opts'] = opts 
-
-		yield kwds
-
 
 	def main_prepare_kwds(self, handler, opts, args):
 		#print handler, opts, args, inspect.getargspec(handler)
@@ -1197,12 +1078,13 @@ class Cmd(object):
 			if hasattr(self.settings, arg_name):
 				value = getattr(self.settings, arg_name)
 			ret_kwds[arg_name] = value
-		
-		if func_args_var:
-			assert len(args) >= len(func_arg_vars), (args, func_arg_vars, handler)
-		else:
+
+		if args and func_args_var:
+			ret_args += tuple(args) # append all regardless of add. func_arg_vars
+		elif args and func_arg_vars:
+			# force func_arg_vars len matches input
 			assert len(args) == len(func_arg_vars), (args, func_arg_vars, handler)
-		args += tuple(args)
+			ret_args += tuple(args)
 
 		if "options" in ret_kwds:
 			ret_kwds['options'] = opts
@@ -1329,7 +1211,8 @@ class Cmd(object):
 		if self.rc:
 			print '# self.rc =',self.rc
 			print '# self.rc.parent =', self.rc.parent
-		print '# self.settings.config_file =', self.settings.config_file
+		if 'config_file' in self.settings:
+			print '# self.settings.config_file =', self.settings.config_file
 		if self.rc:
 			confparse.yaml_dump(self.rc.copy(), sys.stdout)
 		return False
@@ -1356,8 +1239,7 @@ class Cmd(object):
 		libcmd.Cmd.help
 		"""
 
-#lib.namespaces.update((Cmd.NAMESPACE,))
 
 if __name__ == '__main__':
-	Cmd().main()
+	SimpleCommand.main()
 

@@ -88,6 +88,12 @@ class LocalPathResolver(object):
 			return INode.File
 
 
+class TaxusFe(libcmd.SimpleCommand):
+	# XXX: for simplecommand, use superclass and shared config/schema/data or
+	# separate command-line frontends?
+	pass
+
+
 DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
 DEFAULT_DB = "sqlite:///%s" % DB_PATH
 #DEFAULT_OBJECT_DB = os.path.expanduser('~/.cllct/objects.db')
@@ -189,8 +195,6 @@ def host_find(args, sa=None):
 		return
 	return node
 		  
-
-# TODO; test and remove from taxus.py
 
 @Target.register(NS, 'session', 'cmd:options')
 def txs_session(prog=None, sa=None, opts=None, settings=None):

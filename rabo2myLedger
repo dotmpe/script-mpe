@@ -27,7 +27,7 @@ Done
 
 Todo
 - Consolidate with DB, currently only reads CSV. categorize mutations first?
-- Generate montly tables, weekly. Averages.
+- Generate montly tables, weekly. Averages. 
 - Track each mutation once, index (sqlite) at first read
   (partially implemented)
 - Autosort mutations, match rules for expense and income accounts
@@ -208,29 +208,40 @@ def import_from_files(opts, *args):
 		import_from_file(opts._sa, csvfile, opts)
 
 def print_sum_from_file(csvfile, opts):
-	saldo = 0
 	line = 0
-	for amount, line in csv_reader(csvfile, [ 'amount', 'line'], opts=opts):
-		saldo = saldo + amount
-	print 'Read', csvfile, line, 'lines'
-	return saldo
+	debet, credit = 0, 0
+	for date, cat, destacc, amount, line in csv_reader(csvfile, [ 'date', 'cat', 'destacc', 'amount', 'line'], opts=opts):
+		print date, cat, destacc, amount
+		if amount > 0.0:
+			credit += amount
+		elif amount < 0.0:
+			debet += amount
+	print 'Read', csvfile, line, 'lines', debet, credit
+	return debet, credit
 
 def print_sum_from_files(opts, *files):
 	global mutations
 	saldo = 0
 	if opts.end_balance:
 		for f in files:
-			change = print_sum_from_file(f, opts)
-			saldo = saldo + change
+			debet, credit = print_sum_from_file(f, opts)
+			saldo += ( credit + debet )
 		correction = opts.end_balance - saldo
-		print 'Correction', correction
+		print 'Correction:', correction
 		saldo = correction
 	mutations = {}
+	debet, credit = 0, 0
 	for f in files:
-		change = print_sum_from_file(f, opts)
+		debet_, credit_ = print_sum_from_file(f, opts)
+		credit += credit_
+		debet += debet_
+		change = credit_ + debet_
 		print 'Change:', change
-		saldo = saldo + change
+		saldo += change
 		print 'Subtotal:', saldo
+	print '------------'
+	print 'Expenses:', debet
+	print 'Income:', credit
 	print 'Total:', saldo
 
 def print_gnu_cash_import_csv(csvfile, description_delimiter='\n', opts=None):
