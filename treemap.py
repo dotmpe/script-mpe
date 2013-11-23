@@ -14,10 +14,13 @@ try:
 	from simplejson import dumps as jsonwrite
 except:
 	try:
-		from json import write as jsonwrite
+		from ujson import dumps as jsonwrite
 	except:
-		print >>sys.stderr, "No known json library installed. Plain Python printing."
-		jsonwrite = None
+		try:
+			from json import write as jsonwrite
+		except:
+			print >>sys.stderr, "No known json library installed. Plain Python printing."
+			jsonwrite = None
 
 
 class Node(dict):
@@ -126,20 +129,21 @@ def fs_treesize(root, tree, files_as_nodes=True):
 	if not tree.size:
 		dir = join(root, tree.name)
 		size = 0
-		for node in tree.value: # for each node in this dir:
-			path = join(dir, node.name)
-			if isdir(path):
-				# subdir, recurse and add size
-				fs_treesize(dir, node)
-				size += node.size
-			else:
-				# filename, add size
-				try:
-					csize = getsize(path)
-					node.size = csize
-					size += csize
-				except:
-					print >>sys.stderr, "could not get size of %s" % path
+		if tree.value:
+			for node in tree.value: # for each node in this dir:
+				path = join(dir, node.name)
+				if isdir(path):
+					# subdir, recurse and add size
+					fs_treesize(dir, node)
+					size += node.size
+				else:
+					# filename, add size
+					try:
+						csize = getsize(path)
+						node.size = csize
+						size += csize
+					except:
+						print >>sys.stderr, "could not get size of %s" % path
 		tree.size = size
 
 def usage(msg=0):
@@ -164,6 +168,7 @@ if __name__ == '__main__':
 
 	debug = None
 	if '-d' in sys.argv or '--debug' in sys.argv:
+		print >>sys.stderr, "Debugmode"
 		debug = True
 
 	# Walk filesystem
@@ -180,6 +185,7 @@ if __name__ == '__main__':
 		print jsonwrite(tree)
 
 	else:
+		print >>sys.stderr, 'No JSON.'
 		print tree
 		total = float(tree.size)
 		print 'Tree size:'
