@@ -636,7 +636,7 @@ class Radical(libcmd.SimpleCommand):
 	DEFAULT_ACTION = 'run_embedded_issue_scan'
 
 	@classmethod
-	def get_optspec(klass):
+	def get_optspec(klass, inherit):
 		"""
 		Return tuples with optparse command-line argument specification.
 		"""
