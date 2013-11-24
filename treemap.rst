@@ -1,18 +1,28 @@
 Treemap
 =======
-:info: info
+
+The following diagram shows a filetree which squares build from all the files, using colors for different directories.
+It required an XML like structure, and the script was borrowed from http://bl.ocks.org/mbostock/4063582.
+
+There is no interaction.
 
 .. raw:: html
 
         <iframe src="treemap.html" marginwidth="0" marginheight="0" scrolling="no"></iframe>
 
+----
 
-XXX: current CSS does not extend width of document without body text..
+Another treemap-like diagram shows another representation of the filetree in JSON as a navigable, top-down tree structure.
+It does seem to render something, but the JSONs are different: 
+`JSON </project-treemap.json>`_
+http://bl.ocks.org/mbostock/raw/1005873/readme.json 
+Borrowed from <http://bl.ocks.org/mbostock/1005873>.
 
-"Lorem ipsum dolor sit amet, consectetaur adipisicing elit, sed do eiusmod
-tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+.. raw:: html
+
+        <iframe src="treemap2.html" marginwidth="0" marginheight="0" scrolling="no"></iframe>
+
+----
+
+- See also `other D3 scripts <d3.rst>`_
 
