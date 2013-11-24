@@ -21,14 +21,19 @@ Design
   Cmd
     build
       co
+        ..
     clean
+      ..
 
   Cmd (no-op)
     info
       stat [default]
         dmk
+          ..
         dep
+          ..
     test
+      ..
 
 Scripts
   cabinet
@@ -83,7 +88,7 @@ Configuration
     Per volume metadata directory.
 
 
-.. _graphvix: http://www.graphviz.org/
+.. _graphviz: http://www.graphviz.org/
 .. _maildir: http://en.wikipedia.org/wiki/Maildir
 .. _Transliterature Project: translit_
 .. _translit: http://transliterature.org/

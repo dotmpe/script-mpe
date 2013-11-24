@@ -153,11 +153,33 @@ Usage:
 
 Opts:
 	-d, --debug		Plain Python printing with total size data.
+	-json           Write tree as JSON.
+	-jsonxml        Transform tree to more XML like container hierarchy befor writing as JSON.
 
 	""" % sys.modules[__name__].__doc__
 	if msg:
 		msg = 'error: '+msg
 	sys.exit(msg)
+
+def translate_xml_nesting(tree):
+	newtree = {'children':[]}
+	for k in tree:
+		v = tree[k]
+		if k.startswith('@'):
+			if v:
+				assert isinstance(v, (int,float,basestring)), v
+			assert k.startswith('@'), k
+			newtree[k[1:]] = v
+		else:
+			assert not v or isinstance(v, list), v
+			newtree['name'] = k
+			if v:
+				for subnode in v:
+					newtree['children'].append( translate_xml_nesting(subnode) )
+	assert 'name' in newtree and newtree['name'], newtree
+	if not newtree['children']:
+		del newtree['children']
+	return newtree
 
 if __name__ == '__main__':
 	# Script args
@@ -170,6 +192,12 @@ if __name__ == '__main__':
 	if '-d' in sys.argv or '--debug' in sys.argv:
 		print >>sys.stderr, "Debugmode"
 		debug = True
+	json = None
+	if '-j' in sys.argv or '--json' in sys.argv:
+		json = True
+	jsonxml = None
+	if '-J' in sys.argv or '--jsonxml' in sys.argv:
+		jsonxml = True
 
 	# Walk filesystem
 	tree = fs_tree(path)
@@ -181,7 +209,11 @@ if __name__ == '__main__':
 	tree.name = path
 
 	### Output
-	if jsonwrite and not debug:
+	if jsonwrite and ( json and not debug ):
+		print jsonwrite(tree)
+
+	elif jsonwrite and ( jsonxml and not debug ):
+		tree = translate_xml_nesting(tree)
 		print jsonwrite(tree)
 
 	else:
@@ -193,3 +225,4 @@ if __name__ == '__main__':
 		print total/1024, 'KB'
 		print total/1024**2, 'MB'
 		print total/1024**3, 'GB'
+
