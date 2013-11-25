@@ -16,6 +16,9 @@ if '_' in script:
 else:
 	measure = 'density'
 
+#print '# script: ',script
+#print '# measure: ',measure
+
 if args:
 	if args[0] == 'autoconf':
 		print 'yes'

@@ -163,7 +163,12 @@ else:
 	if not os.path.exists(tmpf) or os.path.getmtime(tmpf) + refresh < time.time():
 
 #		print 'http://www.hetweeractueel.nl/weer/%s/actueel/' % location
-		f = urllib2.urlopen('http://www.hetweeractueel.nl/weer/%s/actueel/' % location)
+		try:
+			f = urllib2.urlopen('http://www.hetweeractueel.nl/weer/%s/actueel/' % location)
+		except urllib2.HTTPError, e:
+			print >>sys.stderr, location, e
+			sys.exit(1)
+
 		content = f.read()
 		f.close()
 
