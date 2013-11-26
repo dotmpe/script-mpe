@@ -6,6 +6,9 @@
 TYPE=$1
 [ -n "$TYPE" ] || { exit 1 ; }
 
+sensors=$(which sensors)
+[ $sensors ] || { echo "Missing lm-sensors"; exit 1; }
+
 if [ "$2" = "config" ]; then
     echo "graph_info Output of lm-sensors ($TYPE only)"
     echo "graph_category sensors"
