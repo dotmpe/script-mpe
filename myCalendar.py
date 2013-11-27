@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""mycalendar - 
+"""myCalendar - 
 """
 import os
 import re
