@@ -27,7 +27,7 @@ do_symlink() # $path $srcdir
 	[ "$dir" != "." ] \
 	    && target=$(echo $dir | sed 's/[^/]*/../g')/$2/$1;
 	[ "$dir" == "." ] \
-	    && target=./$2/$1
+	    && target=$2/$1
 	# link exists, continue
 	[ -L "$1" ] && [ "$(readlink $1)" = "$target" ] \
 		&& return 4;
@@ -144,16 +144,15 @@ run()
 	i=0
 	while read line
 	do
-		[ -e "./$SRCDIR/$line" ] || {
-			echo "File does not exist: $SRCDIR/$line. Does it contain spaces?"
+		[ -e "$SRCDIR/$line" ] || {
+			echo "File does not exist: $SRCDIR/$line. Please check it for spaces or broken symlinks, etc. "
 			continue
-		};
-
+		}
 		do_symlink $line $SRCDIR
 		R=$?
 		[ "$R" == 1 ] && i=$(( $i + 1 )) || continue;
 	done < $FILE.expanded
-	rm $FILE.expanded
+	#rm $FILE.expanded
 
 	log "OK, symlinked $i out of $total paths. " 0
 	exit 0
@@ -187,7 +186,7 @@ main()
 							if test ! -e "$SRCDIR/.symlinks"
 							then
 								FILE=/tmp/init-symlinks.tmp
-								echo "\*\*" > $FILE
+								echo "*" > $FILE
 							fi
 							;;
 						*)
