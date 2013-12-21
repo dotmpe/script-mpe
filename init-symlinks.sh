@@ -38,17 +38,16 @@ do_symlink() # source destination host(s)
 	# if link, check target
 	if test -h "$path" -a "`readlink $path`" != "$target"
 	then
-		echo "Removing path"
-		rm "$path"
+		echo "Removing link to $target"
+		rm -v "$path"
 	fi
 
 	if test ! -L "$path"
 	then
 		if test ! -e "$path"
 		then
-			#echo "$path <(symlinking) $target"
-			echo "new link: $path -> $target"
 			ln -s "$target" "$path"
+			echo "New link: $path -> $target"
 		else
 			echo "Not linking to existing non link $path"
 		fi

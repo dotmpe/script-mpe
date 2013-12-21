@@ -138,10 +138,8 @@ stat::
 
 symlinks: $/.symlinks
 	@\
-    $(call log,header1,$@,);\
-    $(call log,header2,$@,);\
-    $(call log,header3,$@,);
-	./init-symlinks.sh .symlinks
+    $(call log,header1,$@,Symlinking from,$^);\
+    SCRIPT_MPE=/srv/project-mpe/script-mpe ./init-symlinks.sh .symlinks
 
 
 INSTALL += symlinks
