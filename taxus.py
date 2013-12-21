@@ -11,8 +11,9 @@ TODO: redraw this diagram.
 Inheritance hierarchy and relations::
 
                          Node
+                          * id:Integer
+                          * ntype:<polymorphic-ID>
                           * name:String(255)
-                          * type
                           * date-added
                           * deleted
                           * date-deleted
@@ -26,10 +27,10 @@ Inheritance hierarchy and relations::
         |     * refs       |          |            |      |
         |                  |          |            |      |
        INode               |         Status       Host    |
-        * local_path       |          * nr         * hostname 
+        * local_path:255   |          * nr         * hostname 
         * size             |          * http_code         |
         * cum_size         |                              |
-        * host             |          ^                   |
+        * host:Host        |          ^                   |
                            |          |                   | 
           A                |          |                   | 
           |                |          |                   | 
@@ -74,7 +75,7 @@ Inheritance hierarchy and relations::
      * digest     * digest
 
     ID 
-     * id
+     * id:Integer
      * date-added
      * deleted
      * date-deleted
@@ -215,6 +216,9 @@ class ResultSet(NodeSet):
 
 
 class Node(SqlBase, SessionMixin):
+	"""
+	Provide lookup on numeric ID, name (non-unique) and standard dates.
+	"""
 
 	zope.interface.implements(taxus_out.INode) # meaning I'face Node, not INode
 
@@ -293,6 +297,26 @@ class Locator(SqlBase, SessionMixin):
 
 	"""
 	A global identifier for retrieval of remote content.
+	
+	Maybe based on DNS and route, script or filename for HTTP etc.
+	For file based descriptors may be registered domain and filename, 
+	but also IP and variants on netpath, even inode number lookups.
+
+	sameAs
+		Incorporates sameAs to indicate references which contain parametrization
+		and are a variant or more specific form of another references,
+		but essentially the same 'resource'. Note that references may point to other
+		'things' than files or HTTP resources.
+
+		A misleading example may be HTTP URLs which are path + query, even more a
+		fragment. This can be misleading as URL routing is part of the web
+		application framework and may serve other requirements than resource
+		parametrization, and further parametrization may occur at other places
+		(Headers, cookies, embedded, etc.). 
+		
+		The Locator sameAs allows comparison on references,
+		comparison of the dereferenced objects belongs on other Taxus objects that
+		refer to the Locator table.
 	"""
 	zope.interface.implements(taxus_out.IID)
 
@@ -304,7 +328,7 @@ class Locator(SqlBase, SessionMixin):
 	date_deleted = Column(DateTime)
 
 	#ref = Column(String(255), index=True, unique=True)
-	# XXX: varchar(255) would be much too small for many URL locators 
+	# XXX: varchar(255) would be much too small for many (web) URL locators 
 	ref = Column(Text(2048), index=True, unique=True)
 
 	@property
@@ -346,9 +370,15 @@ class Locator(SqlBase, SessionMixin):
 		return "<%s %r>" % (lib.cn(self), self.ref)
 
 
-class Tag(SqlBase, SessionMixin):
+tag_namespace_table = Table('tag_namespace', SqlBase.metadata,
+	Column('ids_tag_id', Integer, ForeignKey('ids_tags.id'), primary_key=True),
+	Column('ns_id', Integer, ForeignKey('ns.id'), primary_key=True),
+)
+class Tag(Name):
 
 	"""
+	Tags primarily constitute a name unique within some namespace.
+	They may be used as types or as instance identifiers.
 	"""
 	zope.interface.implements(taxus_out.IID)
 
@@ -361,6 +391,27 @@ class Tag(SqlBase, SessionMixin):
 
 	name = Column(String(255), unique=True, nullable=True)
 	#sid = Column(String(255), nullable=True)
+	# XXX: perhaps add separate table for Tag.namespace attribute
+	namespaces = relationship('Namespace', secondary=tag_namespace_table)
+		backref='tags')
+
+
+class Topic(Tag):
+	"""
+	A topic describes a subject; a theme, issue or matter, regarding something
+	else. 
+	XXX: It is the first of a level abstraction for other elementary types like
+	inodes or document elements.
+	For now, it is a succinct name on the Tag supertype, with an additional
+	Text field for further specification.
+	
+	XXX: a basic type indicator to toggle between a thing or an idea.
+	Names are given in singular form, a text field codes the plural for UI use.
+	"""
+	__tablename__ = 'ids_topic'
+	explanation = Column(Text)
+	thing = Column(Boolean)
+	plural = Column(String)
 
 
 class ChecksumDigest(SqlBase, SessionMixin):
@@ -419,7 +470,7 @@ class Host(Node):
 
 	host_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 	hostname_id = Column(Integer, ForeignKey('ids_name.id'))
-	hostname = relationship(Name, primaryjoin=hostname_id==Name.id)
+	hostname = relationship('Name', primaryjoin=hostname_id==Name.id)
 
 	@classmethod
 	def current(klass, session):
@@ -488,13 +539,59 @@ def current_hostname(initialize=False, interactive=False):
 				break
 	return hostname
 
+"""
+::
+
+       Node
+        * id:Integer
+        * ntype:String(50)
+        * name:String(255)
+        * dates
+        A
+        |
+       INode
+        * host:Host
+        A
+        |
+     .--^--. -----. -------. ------. -----.
+     |     |      |        |       |      |
+    Dir   File   Device   Mount   FIFO   Socket
+
+"""
+
+inode_locator_table = Table('inode_locator', SqlBase.metadata,
+	Column('inode_id', Integer, ForeignKey('inodes.id'), primary_key=True),
+	Column('lctr_id', Integer, ForeignKey('ids_lctr.id'), primary_key=True),
+)
 
 class INode(Node):
+
+	"""
+	Used for temporary things?
+	Provide lookup on file-locator URI or file-inode URI.
+
+	Abstraction of types of local filesystem resources, some of which are
+	files. References to filelikes (file handlers or 'descriptor')  should be 
+	abstracted another way, see Stream.
+
+	It needs either a localname and volume (host+path) as reference,
+	or use a set of bare references. 
+	The latter is current.
+
+	May be need volumes.. should need a way to lookup if a Locator is within
+	some volume.
+	It is convenient in early phase to use a bunch of references. But move to
+	better structure later.
+	
+	TODO: implement __cmp__ for use with sameAs to query the host system
+	TODO: should mirror host system attributes for dates, etc.
+	"""
 
 	__tablename__ = 'inodes'
 	__mapper_args__ = {'polymorphic_identity': 'inode'}
 
 	inode_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+
 	#inode_number = Column(Integer, unique=True)
 
 	#filesystem_id = Column(Integer, ForeignKey('nodes.id'))
@@ -502,10 +599,12 @@ class INode(Node):
 	#locator_id = Column(ForeignKey('ids_lctr.id'), index=True)
 	#location = relationship(Locator, primaryjoin=locator_id == Locator.id)
 
-	local_path = Column(String(255), index=True, unique=True)
+	#local_path = Column(String(255), index=True, unique=True)
 
-	host_id = Column(Integer, ForeignKey('hosts.id'))
-	host = relationship(Host, primaryjoin=Host.host_id==host_id)
+	#host_id = Column(Integer, ForeignKey('hosts.id'))
+	#host = relationship(Host, primaryjoin=Host.host_id==host_id)
+
+	locators = relationship('Locator', secondary=inode_locator_table)
 
 	Dir = 'inode:dir'
 	File = 'inode:file'
@@ -527,6 +626,7 @@ class INode(Node):
 
 	def __repr__(self):
 		return "<%s %s>" % (lib.cn(self), self.location)
+
 
 
 class Dir(INode):
@@ -583,9 +683,9 @@ class CachedContent(INode):
 
 	"""
 	This is a pointer to a local path, that may or may not contain a cached
-	resource. If retrieved, the entities body is located at local_path. The 
-	entity headers can be reconstructed from DB. Complete header information 
-	should be mantained when a CachedContent record is created. 
+	resource. If (fully) retrieved, the entities body is located at local_path. 
+	TODO: The entity headers can be reconstructed from DB and/or metafile or resource is filed as-is.
+	Complete header information should be mantained when a CachedContent record is created. 
 	"""
 
 	__tablename__ = 'cnt'
@@ -604,6 +704,62 @@ class CachedContent(INode):
 	expires = Column(DateTime)
 	encodings = Column(String(255))
 
+
+doc_root_element_table = Table('doc_root_element', SqlBase.metadata,
+	Column('inode_id', Integer, ForeignKey('inodes.id'), primary_key=True),
+	Column('lctr_id', Integer, ForeignKey('ids_lctr.id'), primary_key=True)
+)
+
+class Document(Node):
+	"""
+	After INode and Resource, the most abstract representation of a (file-based) 
+	resource in taxus.
+	A document comprises a set of elements in an unspecified further structure.
+
+	Systems may allow muxing or demuxing a document from or resp. to its
+	elements, Ie. the document object is interchangable by the set of its
+	elements (although Node attributes may not be accounted for).
+
+	sameAs
+		Incorporates sameAs from N3 to indicate references that may have
+		different access protocols but result in the same object
+		(properties/actions)?
+	"""
+	elements = relationship('Element', secondary=doc_root_element_table)
+
+
+class ReCoDoc(Document):
+	"""
+	ree-CO-doc, Recursive Container document describes the way hierarchical
+	container based formats provide a serial view of systems and domain objects.
+
+	Some may be canonical, or ambigious, generic or very specific, etc.
+	It forces serialization and a way to look at the resource as a single
+	stream with discrete, nested elements (iow. XML with either some DOMesque
+	interface or serial access interface). 
+
+	TODO: It implements sameAs to indicate ...
+	"""
+	__tablename__ = 'recodocs'
+	__mapper_args__ = {'polymorphic_identity': 'recodoc'}
+	host_id = Column(Integer, ForeignKey('hosts.id'))
+	host = relationship('Host', primaryjoin="Locator.host_id==Host.host_id",
+		backref='locations')
+
+class Element(Node):
+	"""
+	Part of a Document.
+
+	XXX: I've allowed for re-use by placing a list of element instances on the
+	Document, instead of coding each element with an origin.
+
+	XXX: Subtypes may specificy how Node attributes map to the element objects
+	and/or additional attributes to consitute an element. E.g. an XML Subtype
+	specifies a list with textnodes and/or elements, besides a tag and attributes.
+	XML only has one rootelement per document.
+	"""
+	pass # not much to say yet. there is a numeric ID, (possibly unique) name,
+	# dates and (possible) subtype. Not much else to say.
 
 class Status(Node):
 
@@ -626,12 +782,13 @@ class Status(Node):
 class Resource(Node):
 
 	"""
-	A generic resource description. Normally a subclass should be used for
-	instances, choose between Invariant if the document ought not to change,
+	A generic resource description. A (web) document.
+	Normally a subclass should be used for instances, choose between Invariant 
+	if the document ought not to change,
 	or choose Variant to indicate a more dynamic resource.
-
-	Generally Invariant resources are non-negotiated, but may be retrieved
-	through negotiation on an associated Variant resource.
+	Invariant resources are generally non-negotiated, but sometimes 
+	a specific representation may be retrieved through negotiation on 
+	an associated Variant resource.
 	"""
 
 	__tablename__ = 'res'
@@ -656,8 +813,8 @@ class Resource(Node):
 	# extension_headers  = Column(String())
 
 
-fragment_variant_table = Table('fragment_variant', SqlBase.metadata,
-	Column('frag_ida', Integer, ForeignKey('frags.id'), primary_key=True),
+resource_variant_table = Table('resource_variant', SqlBase.metadata,
+	Column('res_ida', Integer, ForeignKey('res.id'), primary_key=True),
 	Column('vres_idb', Integer, ForeignKey('vres.id'), primary_key=True),
 #	mysql_engine='InnoDB', 
 #	mysql_charset='utf8'
@@ -666,45 +823,7 @@ fragment_variant_table = Table('fragment_variant', SqlBase.metadata,
 class Description(Node):
 
 	"""
-	A.k.a. fragment or hash-URI.
-
-	Denotes the ID of the entity represented by a resources. Not all
-	implementations may provide such but nevertheless, the specific state is
-	there and may be described. Current practice suggest each state is bound
-	to a specific DOM node of the current representation. 
-
-	XXX: Note that the actual string representation is intentionally not persisted.
-		Still do this in Fragment subclass?
-
-	Discussion
-	-----------
-	Ex: ../index.html is the ID and locator to a HTML document representing a
-	directory, which itself might be identified by .../index.html# or even
-	.../#fs:inode:123 if you want to stretch this example.
-   
-	Don't forget the fragment is handled entirely client-side, and in general 
-	interpreted by graphical clients to correspond to an `id` attribute in an 
-	XML'esque document, as per W3C standard. 
-	These clients will never include that part in its request line.
-
-	Using the fragment part, interactive clients may create unqiue URL's for 
-	its various dynamic document states. Meaning each of these states is 
-	treated as variant representations of an original server-rendered resource.
-	Also, the URIs allow the client to record and navigate history and "bookmark
-	pages", ie. annotate resources with card metadata.
-
-	Further implementation
-	-------------------------
-	Fragment parts used like this usually hold one or more parameter to define 
-	the current dynamic representation. This somewhat hurts the good practice of
-	using proper named ID's as XML Schema and RDF N3 encourage. It also
-	duplicates syntax from the query and path parameter parts, which are 
-	readily supported by legions of IETF compliant libraries. 
-	
-	Consolidation 
-	would require transparency of the client-side state on the server-side. 
-	Ie., the server would have been able to render each and every fragment
-	representation that the client can build up asychronously.
+    A scheme+localname.
 	"""
 
 	__tablename__ = 'frags'
@@ -800,6 +919,10 @@ class QName():
 
 class Namespace(Variant):
 	"""
+	XXX: A collection of anything? What.
+	See Tag, a namespace constituting distinct tag types. 
+	But also code, objects.
+	XXX: there is no mux/demux (yet) so subclassing variant does not mean much, but anyway.
 	"""
 	__tablename__ = 'ns'
 	__mapper_args__ = {'polymorphic_identity': 'resource:variant:namespace'}
@@ -901,12 +1024,14 @@ class Workset(Resource):
 token_locator_table = Table('token_locator', SqlBase.metadata,
 	Column('left_id', Integer, ForeignKey('stk.id'), primary_key=True),
 	Column('right_id', Integer, ForeignKey('ids_lctr.id'), primary_key=True),
-#	mysql_engine='InnoDB', 
-#	mysql_charset='utf8'
 )
 
 
 class Token(Node):
+
+	"""
+	A large-value variant on Tag, perhaps should make this a typetree.
+	"""
 
 	__tablename__ = 'stk'
 #	__table_args__ = {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'}

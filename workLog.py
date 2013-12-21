@@ -78,7 +78,7 @@ class Entry(taxus.Description):
 # Main app
 
 # XXX see radical get that working atain
-class workLog(libcmd.SimpleCommand):
+class workLog(TaxusFe):
 
 	zope.interface.implements(res.iface.ISimpleCommand)
 
@@ -90,7 +90,7 @@ class workLog(libcmd.SimpleCommand):
 	DEFAULT_ACTION = 'tasks'
 
 	def get_opts(self):
-		return Taxus.get_opts(self) + ()
+		return TaxusFe.get_opts(self) + ()
 
 	def tasks(self, *args, **opts):
 		dbref = opts.get('dbref')

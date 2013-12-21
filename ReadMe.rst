@@ -13,9 +13,14 @@ GIT Branches
     Main branch, topic branches  eventually reintegrated here
 
     dev
-        ..
+        Focus is on building various command line handling frameworks with
+        increasing level of integration and consequently implementation
+        requirements. 
+
+        Various other secondary projects running, some are documented.
+
     test
-        Writing and running tests. Main devel at dm.
+        Writing and running tests.
 
 Design
   Cmd

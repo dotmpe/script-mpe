@@ -1,7 +1,13 @@
 #!/usr/bin/env python
-"""tree - Creates a tree of a filesystem hierarchy.
+"""treemap - Creates a tree of a filesystem hierarchy.
 
 Calculates cumulative size of each directory. Output in JSON format.
+
+TODO: store local and cumulative values in TreeMap or FileTreeMap document.
+	- build ``hashref(path)`` -> local, cumulative lookup
+	  TODO: this index would be a some URIref map
+	- must store nodes for all paths, can store one or more dates per tree
+XXX: started using Document Node in filetree.py
 
 Copyleft, May 2007.  B. van Berkum <berend `at` dotmpe `dot` com>
 """
