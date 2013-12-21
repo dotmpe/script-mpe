@@ -136,6 +136,16 @@ stat::
     [ -e manage.py ] || migrate manage manage.py --repository=$(REPO) --url=$$DBREF
 
 
+symlinks: $/.symlinks
+	@\
+    $(call log,header1,$@,);\
+    $(call log,header2,$@,);\
+    $(call log,header3,$@,);
+	./init-symlinks.sh .symlinks
+
+
+INSTALL += symlinks
+
 #      ------------ --
 #
 include                $(MK_SHARE)Core/Main.dirstack-pop.mk
