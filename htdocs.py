@@ -1,4 +1,6 @@
 """
+TODO: construct TopicTree from Definition Lists in restructured text. 
+See also filetree.
 """
 
 from libname import Namespace, Name
@@ -22,7 +24,7 @@ Options.register(NS,
 
 
 @Target.register(NS, 'update', 'txs:session')
-def htdocs_update(sa=None, ur=None, opts=None, settings=None):
+def htdocs_update(source, sa=None, ur=None, opts=None, settings=None):
 	"""
 	TODO:
 	- store daily items in x-index
