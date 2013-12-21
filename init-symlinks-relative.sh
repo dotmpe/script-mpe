@@ -27,7 +27,7 @@ do_symlink() # $path $srcdir
 	[ "$dir" != "." ] \
 	    && target=$(echo $dir | sed 's/[^/]*/../g')/$2/$1;
 	[ "$dir" == "." ] \
-	    && target=./$2/$1
+	    && target=$2/$1
 	# link exists, continue
 	[ -L "$1" ] && [ "$(readlink $1)" = "$target" ] \
 		&& return 4;
@@ -45,7 +45,7 @@ do_symlink() # $path $srcdir
 	# paths exists, remove if link
 	[ -e "$1" ] && [ "$FORCE_DELETE" != 0 ] \
 		&& ( rm -rf "$1" && log "Force deleted: $1" 0 ); 
-	if stat -q "$1" > /dev/null
+	if stat "$1" > /dev/null 2> /dev/null
 	then
 		if [ -L "$1" ] && ( rm $1 )
 		then
@@ -61,60 +61,6 @@ do_symlink() # $path $srcdir
 	[ $VERBOSE -gt 1 ] && { FLAGS="$FLAGS -v"; }
 	ln $FLAGS $target "$1";
 	return 1
-}
-
-### Main
-
-main()
-{
-	# Get filename from first arg, which is suppoed to be a dir
-	if test -n "$1"; then
-		F=$1
-		if test $F -eq "-"; then
-		else
-			if test ! -f $F; then
-				if test -d $F -a -f $F/.symlinks
-				then
-					F=$F/.symlinks
-				else
-					log "! Missing symlinks file: $F" 0;
-					exit 2;
-				fi
-			fi
-		fi
-	else
-		log "Usage: $0 [../dir|file]" 0
-		exit 1
-	fi
-
-	SRCDIR=$(dirname $F)
-	if test -z "$SRCDIR"; then SRCDIR=.; fi
-
-	# Read all lines, two-pass
-	# Whitespace determines 'do_symlink' arguments, paths cannot contain any spaces!
-	# Lines with wildcard '*' are expanded first (by echo)
-
-	# Expand wildcards, write to temporary file
-	expand_symlinks $SRCDIR $F 
-
-	total=$(echo $(wc -l < $F.expanded))
-	# Create links and finish
-	i=0
-	while read line
-	do
-		[ -e "./$SRCDIR/$line" ] || {
-			echo "File does not exist: $SRCDIR/$line. Does it contain spaces?"
-			continue
-		};
-
-		do_symlink $line $SRCDIR
-		R=$?
-		[ "$R" == 1 ] && i=$(( $i + 1 )) || continue;
-	done < $F.expanded
-	rm $F.expanded
-
-	log "OK, symlinked $i out of $total paths. " 0
-	exit 0
 }
 
 expand_symlinks() # SRCDIR F
@@ -170,6 +116,108 @@ expand_symlinks() # SRCDIR F
 			fi
 		fi
 	done < $2 
+}
+
+
+### Main
+
+
+# Variables:
+# source of symlinks
+FILE=
+# root to evaluate symlinks from
+SRCDIR=
+# print but no actions
+DRYRUN=
+
+run()
+{
+	# Read all lines, two-pass
+	# Whitespace determines 'do_symlink' arguments, paths cannot contain any spaces!
+	# Lines with wildcard '*' are expanded first (by echo)
+
+	# Expand wildcards, write to temporary file
+	expand_symlinks $SRCDIR $FILE
+
+	total=$(echo $(wc -l < $FILE.expanded))
+	# Create links and finish
+	i=0
+	while read line
+	do
+		[ -e "$SRCDIR/$line" ] || {
+			echo "File does not exist: $SRCDIR/$line. Please check it for spaces or broken symlinks, etc. "
+			continue
+		}
+		do_symlink $line $SRCDIR
+		R=$?
+		[ "$R" == 1 ] && i=$(( $i + 1 )) || continue;
+	done < $FILE.expanded
+	#rm $FILE.expanded
+
+	log "OK, symlinked $i out of $total paths. " 0
+	exit 0
+}
+
+main() 
+{
+	# First script argument:
+	SCRIPT=$0
+	# Gobble up other arguments:
+	while test -n "$*"
+	do
+		case $1 in
+			"-n")
+				DRYRUN=1
+				;;
+			"-")
+				FILE="-"
+				SRCDIR=$(dirname $SCRIPT)
+				;;
+			*)
+				if test -e $1
+				then
+					case $(stat -c %F $1) in
+						"regular file")
+							FILE=$1
+							SRCDIR=$(dirname $FILE)
+							;;
+						"directory")
+							SRCDIR=$1
+							if test ! -e "$SRCDIR/.symlinks"
+							then
+								FILE=/tmp/init-symlinks.tmp
+								echo "*" > $FILE
+							fi
+							;;
+						*)
+							log "Unhandled path: $1" 0
+							exit 2
+					esac
+				else
+					log "Usage: $0 [../dir|file|-]" 0
+					exit 1
+				fi
+				;;
+		esac
+		shift 1
+	done
+
+	# sanity check
+	if test -z "$FILE"
+	then exit 3
+	fi
+
+	echo "Symlinking from $SRCDIR ($FILE)"
+
+	if test "$FILE" != "-"
+	then
+		exec 6<&0 # Link fd#6 with stdin
+		exec < $FILE # Replace stdin with file
+	fi
+	run
+	if test "$FILE" != "-"; then
+		exec 0<&6 6<&- # restore stdin and close fd#6
+	fi
 }
 
 # Run only if scriptname matches (allow other script to include this one)
