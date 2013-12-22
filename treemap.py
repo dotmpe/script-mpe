@@ -15,6 +15,7 @@ import sys
 from os import listdir
 from os.path import join, isdir, getsize, basename, dirname
 from pprint import pformat
+
 import res.js
 import res.primitive    
 
@@ -58,6 +59,7 @@ def fs_tree(dir):
             tree.append(Node(fn))
 
     return tree
+
 
 def fs_treesize(root, tree, files_as_nodes=True):
     """Add 'size' attributes to all nodes.
@@ -139,42 +141,22 @@ def main():
 
     ### Output
     if res.js.dumps and ( opts.json and not opts.debug ):
-        print rs.js.dumps(tree)
+        print res.js.dumps(tree)
 
     elif res.js.dumps and ( opts.jsonxml and not opts.debug ):
-        tree = translate_xml_nesting(tree)
+        tree = res.primitive.translate_xml_nesting(tree)
         print res.js.dumps(tree)
 
     else:
-        print >>sys.stderr, 'No JSON.'
-        print pformat(tree)
+        if not res.js.dumps:
+            print >>sys.stderr, 'Error: No JSON writer.'
+        print pformat(tree.copy())
         total = float(tree.size)
         print 'Tree size:'
         print total, 'B'
         print total/1024, 'KB'
         print total/1024**2, 'MB'
         print total/1024**3, 'GB'
-
-
-def translate_xml_nesting(tree):
-    newtree = {'children':[]}
-    for k in tree:
-        v = tree[k]
-        if k.startswith('@'):
-            if v:
-                assert isinstance(v, (int,float,basestring)), v
-            assert k.startswith('@'), k
-            newtree[k[1:]] = v
-        else:
-            assert not v or isinstance(v, list), v
-            newtree['name'] = k
-            if v:
-                for subnode in v:
-                    newtree['children'].append( translate_xml_nesting(subnode) )
-    assert 'name' in newtree and newtree['name'], newtree
-    if not newtree['children']:
-        del newtree['children']
-    return newtree
 
 
 if __name__ == '__main__':

@@ -79,14 +79,50 @@ class TreeNodeDict(dict):
     def __repr__(self):
         return "<%s%s%s>" % (self.name, self.attributes, self.value or '')
 
-
+    def copy(self):
+        """
+        XXX: Dump to real dict tree which pformat can print.
+        """
+        d = {}
+        for k in self:
+            v = self[k]
+            if isinstance(v, self.__class__):
+                d[k] = self[k].copy()
+            else:
+                d[k] = self[k] # XXX no clone for primitives, since Py doesn't store them.. right?
+        return d
 
 class TreeNodeTriple(tuple):
 
     """
-    XXX: TreeNode build on top of tuple.
+    TreeNode build on top of tuple. XXX: Unused, not implemented. 
     Triple is id, attributes and subnodes.
     """
 
 
+def translate_xml_nesting(tree):
+
+    """
+    Translate TreeNode to a dict/list structure that is more like
+    the nodes of a DOM tree.
+    """
+
+    newtree = {'children':[]}
+    for k in tree:
+        v = tree[k]
+        if k.startswith('@'):
+            if v:
+                assert isinstance(v, (int,float,basestring)), v
+            assert k.startswith('@'), k
+            newtree[k[1:]] = v
+        else:
+            assert not v or isinstance(v, list), v
+            newtree['name'] = k
+            if v:
+                for subnode in v:
+                    newtree['children'].append( translate_xml_nesting(subnode) )
+    assert 'name' in newtree and newtree['name'], newtree
+    if not newtree['children']:
+        del newtree['children']
+    return newtree
 
