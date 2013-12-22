@@ -48,14 +48,14 @@ if __name__ == '__main__':
             headers[1].append(cells[:colrow_offset[1]])
             day = int(cells[0])
             if day == 29:
-            	break
+                break
             cells = cells[colrow_offset[1]:]
             month = 0
             while cells:
                 month += 1
                 values, cells = cells[:column_width], cells[column_width:]
                 if not (values[0] and values[1]):
-                	continue
+                    continue
                 event = Event()
                 event.add('summary','Sunlight hours')
                 for prop, value in zip(cell_values, values):

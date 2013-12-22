@@ -26,27 +26,27 @@ def getpath(name, *dirs):
     j = os.path.join
     [ paths.extend([ j(d, name), j(d, '.' + name) ]) for d in dirs ]
     for p in paths:
-    	yield p
+        yield p
 
 def getconfig(name, all=False, force=False):
-	"""Return path to existing config file.
-	Set all to return every existing path, not just the first.
-	Set force to touch a non-existing path, either the first (all=False) or 
-	the last (all=True).
-	"""
-	for path in itertools.chain(
-			getpath(name +'.conf', '', '~', '/etc/'),
-			getpath('main.conf', '/etc/' + name)):
-		if os.path.exists(path):
-			yield path
-			if not all: break
-		elif force and not all:
-			break
+    """Return path to existing config file.
+    Set all to return every existing path, not just the first.
+    Set force to touch a non-existing path, either the first (all=False) or 
+    the last (all=True).
+    """
+    for path in itertools.chain(
+            getpath(name +'.conf', '', '~', '/etc/'),
+            getpath('main.conf', '/etc/' + name)):
+        if os.path.exists(path):
+            yield path
+            if not all: break
+        elif force and not all:
+            break
 
-	if force:
-		mkdirs(os.path.dirname(path))
-		os.mknod(path)
-		yield path				
+    if force:
+        mkdirs(os.path.dirname(path))
+        os.mknod(path)
+        yield path                
 
 
 def main():

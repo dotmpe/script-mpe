@@ -395,7 +395,7 @@ def sync(map_id, do_sync=True):
 
         for map in mapsync.maps:
             if map.path == sync_from.path or map.host == sync_from.host:
-            	continue
+                continue
             if not map.insync:
                 assert not map.initialized
                 #fatal("cannot sync %s:%s, no up-to-date copy", to_sync.host,

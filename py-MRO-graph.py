@@ -100,24 +100,24 @@ def testHierarchy(**options):
 
 from docutils.nodes import *
 def main():
-	class Node_(Node, object): pass
-	docnodes = (
-			Node_, Text, Element, TextElement, FixedTextElement,
-			# Mixins
-			Resolvable, BackLinkable,
-			# Element categories
-			Root, Titular, PreBibliographic, Invisible, Bibliographic, Structural, Body, 
-			General, Sequential, Admonition, Special,
+    class Node_(Node, object): pass
+    docnodes = (
+            Node_, Text, Element, TextElement, FixedTextElement,
+            # Mixins
+            Resolvable, BackLinkable,
+            # Element categories
+            Root, Titular, PreBibliographic, Invisible, Bibliographic, Structural, Body, 
+            General, Sequential, Admonition, Special,
 
-			document,
-			title, subtitle, rubric,
+            document,
+            title, subtitle, rubric,
 
-			emphasis, strong, literal, reference, footnote_reference, citation_reference, substitution_reference, title_reference, abbreviation, acronym, superscript, subscript,
-			image, 
-			inline, problematic, generated
+            emphasis, strong, literal, reference, footnote_reference, citation_reference, substitution_reference, title_reference, abbreviation, acronym, superscript, subscript,
+            image, 
+            inline, problematic, generated
 
-	)
-	MROgraph(*docnodes)
+    )
+    MROgraph(*docnodes)
 
 if __name__=="__main__": 
     testHierarchy() # generates a postscript diagram of A and M hierarchies

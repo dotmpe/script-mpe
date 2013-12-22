@@ -59,7 +59,7 @@ class Object(Base):
 ##            setattr(self, name, obj_lis(value, name=name, super_=self))
 #        else:
 #            self.__dict__[name] = PropertyValue(name, value, self)
-##        	setattr(self, name, PropertyValue(name, value, self))
+##            setattr(self, name, PropertyValue(name, value, self))
 
     def copy(self):
         keys = [k for k in self.__dict__.keys() if not k.startswith('_')]

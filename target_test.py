@@ -68,11 +68,11 @@ Target.register(App)
 
 if __name__ == '__main__':
 
-	print '-------------- Core'
-	Core().main()
+    print '-------------- Core'
+    Core().main()
 
-	print '--------------- App'
-	App().main()
+    print '--------------- App'
+    App().main()
 
 
 

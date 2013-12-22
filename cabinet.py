@@ -76,7 +76,7 @@ class CabinetQuery:
     EGREP_MID = r'[^a-zA-Z0-9](.*?[^a-zA-Z0-9])?'
     EGREP_RBOUND = r'($|([^a-zA-Z0-9].*?))+'
     EGREP_ARCHIVE = r'^%s([0-9]{4})(%s([0-9]{2})){0,2}%s$' % (EGREP_LBOUND, EGREP_MID, EGREP_RBOUND)
-	#EGREP_ARCHIVE = r'^%s([0-9]{4})[^a-zA-Z0-9](([0-9]{2})|([^a-zA-Z0-9].*?)){0,2}%s$' % (EGREP_LBOUND, EGREP_RBOUND)
+    #EGREP_ARCHIVE = r'^%s([0-9]{4})[^a-zA-Z0-9](([0-9]{2})|([^a-zA-Z0-9].*?)){0,2}%s$' % (EGREP_LBOUND, EGREP_RBOUND)
 
     EGREP_ARCHIVE = r'^.*?([0-9]{4}).*?([0-9]{2}).*?([0-9]{2}).*$'
 
@@ -86,7 +86,7 @@ class CabinetQuery:
         Scan current directory.
         """
 
-		# FIXME: this isn't working, replace with native regex?
+        # FIXME: this isn't working, replace with native regex?
         cmd = 'find -L "%s" -regextype posix-egrep ' % self.directory
         for path in self.tags:
             if len(path) > 1:

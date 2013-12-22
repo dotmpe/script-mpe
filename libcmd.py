@@ -130,7 +130,7 @@ class Targets(object):#tuple):
             yield i
 #    def __add__(self, other):
 #        if isinstance(other, (list, tuple, Targets)):
-#        	return self.items + other
+#            return self.items + other
 
 class Keywords(dict): 
     def __init__(self, **kwds):

@@ -20,18 +20,18 @@ TAB = '\t'
 
 
 class Cabinet(object):
-	"""
-	"""
+    """
+    """
 
-	def __init__(self, root):
-		pass
+    def __init__(self, root):
+        pass
 
-	def get_tags(self):
-		pass
+    def get_tags(self):
+        pass
 
 class CabinetQuery(object):
-	def add_include(self, tags): pass
-	def add_exclude(self, tags): pass
+    def add_include(self, tags): pass
+    def add_exclude(self, tags): pass
 
 
 
