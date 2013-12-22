@@ -26,53 +26,53 @@ PROTO_VERSION = 'scrow/0.1'
 
 if __name__ == '__main__':
 
-	pointers = []
+    pointers = []
 
-	for range in sys.argv[1:]:
-		if range.endswith('.snip'):
-			for line in open(range).readlines():
-				line = line.strip()
-				if not line.startswith('#'):
-					pointers.append(line)
-		else:
-			pointers.append(range)
+    for range in sys.argv[1:]:
+        if range.endswith('.snip'):
+            for line in open(range).readlines():
+                line = line.strip()
+                if not line.startswith('#'):
+                    pointers.append(line)
+        else:
+            pointers.append(range)
 
-	ranges = []
-	for range in pointers:
-		s, a, p, p2, q, f = urlparse.urlparse(range)
-		
-		path = p + p2
+    ranges = []
+    for range in pointers:
+        s, a, p, p2, q, f = urlparse.urlparse(range)
+        
+        path = p + p2
 
-		q = q.split('&')
-		if q and q[0]:
-			assert q[0] == PROTO_VERSION
-			m = re.match('^locspec=([a-z]*range):([0-9]*)/([0-9]*)$', q[1])
-			range = [ int(p) for p in m.groups()[1:3] if p.isalnum() ]
-			ranges.append((path, m.group(1)) + tuple(range))
-			
-		f = f.split(',')
-		if f and f[0]:
-			assert f[0] == PROTO_VERSION
-			m = re.match('^([a-z]*range):([0-9]*)/([0-9]*)$', f[1])
-			range = [ int(p) for p in m.groups()[1:3] if p.isalnum() ]
-			ranges.append((path, m.group(1)) + tuple(range))
+        q = q.split('&')
+        if q and q[0]:
+            assert q[0] == PROTO_VERSION
+            m = re.match('^locspec=([a-z]*range):([0-9]*)/([0-9]*)$', q[1])
+            range = [ int(p) for p in m.groups()[1:3] if p.isalnum() ]
+            ranges.append((path, m.group(1)) + tuple(range))
+            
+        f = f.split(',')
+        if f and f[0]:
+            assert f[0] == PROTO_VERSION
+            m = re.match('^([a-z]*range):([0-9]*)/([0-9]*)$', f[1])
+            range = [ int(p) for p in m.groups()[1:3] if p.isalnum() ]
+            ranges.append((path, m.group(1)) + tuple(range))
 
-	fd = {}
-	for path, rtype, offset, length in ranges:
-		if path in fd:
-			fl = fd[path]
-		else:
-			fl = fd[path] = open(path)
+    fd = {}
+    for path, rtype, offset, length in ranges:
+        if path in fd:
+            fl = fd[path]
+        else:
+            fl = fd[path] = open(path)
 
-		assert rtype == 'byterange'
+        assert rtype == 'byterange'
 
-		if not offset:
-			offset = 0
-		if not length:
-			offset = os.path.getsize(path)
+        if not offset:
+            offset = 0
+        if not length:
+            offset = os.path.getsize(path)
 
-		fl.seek(offset)
-		print fl.read(length)
+        fl.seek(offset)
+        print fl.read(length)
 
-	for fn in fd:
-		fd[fn].close()
+    for fn in fd:
+        fd[fn].close()

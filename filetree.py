@@ -9,33 +9,33 @@ from taxus import Node
 
 class FileTreeTopic(Node):
 
-	"""
-	Maintain metadata for TopicTrees from filesystem trees.
-	"""
+    """
+    Maintain metadata for TopicTrees from filesystem trees.
+    """
 
-	__tablename__ = 'filetrees'
-	id = Column(Integer, primary_key=True)
+    __tablename__ = 'filetrees'
+    id = Column(Integer, primary_key=True)
 
-#	nodes = 
-#	subNodes = relationship('', secondary=locators_checksum,
-#		backref='location')
+#    nodes = 
+#    subNodes = relationship('', secondary=locators_checksum,
+#        backref='location')
 
 class FSTopic(Topic):
-	pass
+    pass
 
 class FSTopicTreeFe(libcmd.SimpleCommand):
 
-	"""
-	Construct Topic trees from file system paths.
-	Command line class.
-	"""
+    """
+    Construct Topic trees from file system paths.
+    Command line class.
+    """
 
-	DEFAULT_ACTION = 'run'
+    DEFAULT_ACTION = 'run'
 
-	def get_opts(self):
-		return Taxus.get_opts(self) + ()
+    def get_opts(self):
+        return Taxus.get_opts(self) + ()
 
-	def run(self, *args, **opts):
-		pass
+    def run(self, *args, **opts):
+        pass
 
 
