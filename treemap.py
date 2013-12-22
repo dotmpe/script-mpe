@@ -7,12 +7,12 @@ Copyleft, May 2007.  B. van Berkum <berend `at` dotmpe `dot` com>
 
 Updates
 -------
-Oktober 2012
+October 2012
 	- using blksize to calculate actual occupied disk space.
 	- a too detailed storage will drag performance. The current operations
 	  per file are constant, so file count is the limiting factor.
 
-TODO: the torage should create a report for some directory, sorry aout
+TODO: the storage should create a report for some directory, sorry about
 	threshold later.
 
 """
@@ -70,7 +70,8 @@ import os
 import shelve
 from pprint import pformat
 from os import listdir, stat, lstat
-from os.path import join, exists, islink, isdir, getsize, basename, dirname, expanduser
+from os.path import join, exists, islink, isdir, getsize, basename, dirname, \
+	expanduser, realpath
 try:
 	# @bvb: simplejson thinks it should be different and deprecated read() and write()
 	# not sure why... @xxx: simplejson has UTF-8 default, json uses ASCII I think?
@@ -85,8 +86,8 @@ except:
 
 def find_parent( dirpath, subleaf, realpath=False ):
 	if realpath:
-		dirpath = os.path.realpath( dirpath )
-	dirparts = dirpath.split( '/' )
+		dirpath = realpath( dirpath )
+	dirparts = dirpath.split( os.sep )
 	while dirparts:
 		path = join( *dirparts )
 		if isdir( join( *tuple( dirparts )+( subleaf, ) ) ):
@@ -101,7 +102,7 @@ def find_volume( dirpath ):
 		print "In volume %r" % vol
 		vol = join( vol, '.volume' )
 	else:
-		vol = expanduser( '~/.treemap' )
+		vol = expanduser( '~/.treemap/' ) # XXX: *nix only
 		if not exists( vol ):
 			os.makedirs( vol )
 		print "No volumes, storage at %r" % vol
@@ -114,12 +115,12 @@ class FSWrapper:
 	def init( self, path ):
 		path = path.rstrip( os.sep )
 		self._path = path
-		self.dirname = os.path.dirname( path )
-		self.basename = os.path.basename( path )
-		self.isdir = os.path.isdir( path )
-		self.islink = os.path.islink( path )
+		self.dirname = dirname( path )
+		self.basename = basename( path )
+		self.isdir = isdir( path )
+		self.islink = islink( path )
 		self.isother = not self.isdir and \
-				not self.islink and not os.path.isfile( path )
+				not self.islink and not isfile( path )
 	@property 
 	def path( self ):
 		if self.isdir:
@@ -153,6 +154,8 @@ class FSWrapper:
 class Treemap:
 
 	"""
+	Encapsulates current Treemap implementation. 
+	Works on a volume tree (one with metadir) and populates tree.
 	"""
 
 	@staticmethod
@@ -203,7 +206,8 @@ class Treemap:
 			yield self.fetch( p )
 
 class Node(dict):
-	"""Interface on top of normal dictionary to work easily with tree nodes
+	"""
+	Interface on top of normal dictionary to work easily with tree nodes
 	which can have a name, attributes, and a value list.
 	"""
 	def __init__(self, name):
@@ -223,36 +227,39 @@ class Node(dict):
 	name = property(getname, setname)
 
 	def append(self, val):
-		if not isinstance(self.value, list):
-			self[self.name] = []
-		self.value.append(val)
+		if not isinstance( self.value, list ):
+			self[ self.name ] = []
+		self.value.append( val )
+
+	def remove(self, val):
+		self[ self.name ].remove( val )
 
 	def getvalue(self):
-		return self[self.name]
+		return self[ self.name ]
 
-	value = property(getvalue)
+	value = property( getvalue )
 
 	def getattrs(self):
 		attrs = {}
 		for key in self:
-			if key.startswith('@'):
-				attrs[key[1:]] = self[key]
+			if key.startswith( '@' ):
+				attrs[ key[ 1: ] ] = self[ key ]
 		return attrs
 
-	attributes = property(getattrs)
+	attributes = property( getattrs )
 
-	def __getattr__(self, name):
+	def __getattr__( self, name ):
 		# @xxx: won't properties show up in __dict__?
-		if name in self.__dict__ or name in ('name', 'value', 'attributes'):
-			return super(Node, self).__getattr__(name)
-		elif '@'+name in self:
-			return self['@'+name]
+		if name in self.__dict__ or name in ( 'name', 'value', 'attributes' ):
+			return super( Node, self ).__getattr__( name )
+		elif '@' + name in self:
+			return self[ '@' + name ]
 
 	def __setattr__(self, name, value):
-		if name in self.__dict__ or name in ('name', 'value', 'attributes'):
-			super(Node, self).__setattr__(name, value)
+		if name in self.__dict__ or name in ( 'name', 'value', 'attributes'):
+			super( Node, self ).__setattr__( name, value )
 		else:
-			self['@'+name] = value
+			self[ '@' + name ] = value
 
 	def space( self, parent_path ):
 		path = join( parent_path, self.name )
