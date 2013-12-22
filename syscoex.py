@@ -24,21 +24,7 @@ try:
     import bencode
 except:
     bencode = None
-# use cjson, jsonlib or simplejson
-try:
-    import cjson as _json
-    json_read = _json.decode
-    json_write = _json.encode
-    print "Using cjson"
-except ImportError:
-    try:
-        import simplejson as _json
-        print "Using simplejson"
-    except:
-        import json as _json
-        print "Using json"
-    json_read = _json.loads
-    json_write = _json.dumps
+import res.js
 
 from lib import human_readable_bytesize
 
@@ -139,7 +125,7 @@ def main( ):
     
 
 #    print pformat( data.copy() )
-#    print json_write( data.copy() )
+#    print res.js.dumps( data.copy() )
     
 #    print fssttat.f_ffree * 100 / total_nodes
 
