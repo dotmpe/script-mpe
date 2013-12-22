@@ -7,7 +7,7 @@ Copyleft, May 2007.  B. van Berkum <berend `at` dotmpe `dot` com>
 
 Updates
 -------
-Oktober 2012
+October 2012
     - using blksize to calculate actual occupied disk space.
     - adding storage::
 
@@ -29,14 +29,16 @@ try:
     from simplejson import dumps as jsonwrite
 except:
     try:
-        from json import write as jsonwrite
+        from ujson import dumps as jsonwrite
     except:
-        print >>sys.stderr, "No known json library installed. Plain Python printing."
-        jsonwrite = None
+        try:
+            from json import write as jsonwrite
+        except:
+            print >>sys.stderr, "No known json library installed. Plain Python printing."
+            jsonwrite = None
 
-
-def find_parent( dirpath, subleaf, realpath=False ):
-    if realpath:
+def find_parent( dirpath, subleaf, get_realpath=False ):
+    if get_realpath:
         dirpath = realpath( dirpath )
     dirparts = dirpath.split( os.sep )
     while dirparts:
@@ -44,7 +46,7 @@ def find_parent( dirpath, subleaf, realpath=False ):
         if isdir( join( *tuple( dirparts )+( subleaf, ) ) ):
             return path
         dirparts.pop()
-    
+
 def find_volume( dirpath ):
     vol = find_parent( dirpath, '.volume' )
     if not vol:
@@ -65,7 +67,7 @@ class Node(dict):
     Interface on top of normal dictionary to work easily with tree nodes
     which can have a name, attributes, and a value list.
     """
-    def __init__(  self, name ):
+    def __init__( self, name ):
         self[ name ] = None
 
     def getname(self):
@@ -80,21 +82,24 @@ class Node(dict):
         self[ name ] = val
 
     name = property( getname, setname )
-
-    "Node.value is a list of subnode instances. "
+    "Node.name is a property or '@'-prefix attribute name. "
 
     def append( self, val ):
+        "Node().value append"
         if not isinstance( self.value, list ):
             self[ self.name ] = []
         self.value.append( val )
 
     def remove( self, val ):
+        "self item remove"
         self[ self.name ].remove( val )
 
     def getvalue( self ):
+        "self item return"
         return self[ self.name ]
 
     value = property( getvalue )
+    "Node.value is a list of subnode instances. "
 
     def getattrs( self ):
         attrs = {}
@@ -201,6 +206,7 @@ class Node(dict):
     @classmethod
     def get_stored( clss, path ):
         return clss.storage[ path.encode() ]
+
 
 
 def fs_node_init( path ):
@@ -339,38 +345,32 @@ Opts:
         msg = 'error: '+msg
     sys.exit(msg)
 
-def fs_treemap_write( debug, tree ):
-    if jsonwrite and not debug:
-        print jsonwrite( tree )
-    else:
-        #print tree
-        total = float( tree.size )
-        used = float( tree.space )
-        print 'Tree size:'
-        print tree.size, 'bytes', tree.count, 'items'
-        print 'Used space:'
-        print tree.space, 'B'
-        print used/1024, 'KB'
-        print used/1024**2, 'MB'
-        print used/1024**3, 'GB'
-
-
 def main():
     # Script args
-    path = sys.argv.pop()
-    if not basename(path):
-        path = path[:-1]
-    assert basename(path) and isdir(path), usage("Must have dir as last argument")
+    import confparse
+    opts = confparse.Values(dict(
+            fs_encoding = sys.getfilesystemencoding(),
+            voldir = None,
+            debug = None,
+        ))
+    argv = list(sys.argv)
 
-    debug = None
-    if '-d' in sys.argv or '--debug' in sys.argv:
-        debug = True
+    opts.treepath = argv.pop()
+    # strip trailing os.sep
+    if not basename(opts.treepath): 
+        opts.treepath = opts.treepath[:-1]
+    assert basename(opts.treepath) and isdir(opts.treepath), \
+            usage("Must have dir as last argument")
+    path = opts.treepath
 
-    # Get wrapper facade
-    
+    for shortopt, longopt in ('d','debug'), ('j','json'), ('J','jsonxml'):
+        setattr(opts, longopt, ( '-'+shortopt in argv and argv.remove( '-'+shortopt ) == None ) or (
+                '--'+longopt in argv and argv.remove( '--'+longopt ) == None ))
+
     # Get shelve for storage
-    treemap_dir = find_volume( path )
-    storage = Node.storage = shelve.open( join( treemap_dir, 'treemap.db' ) )
+    if not opts.voldir:
+        opts.voldir = find_volume( path )
+    storage = Node.storage = shelve.open( join( opts.voldir, 'treemap.db' ) )
 
     # Walk filesystem, updating where needed
     tree = fs_node_init( path )
@@ -394,6 +394,22 @@ def main():
 #            sub += os.sep
 #        print storage[ sub ]
     storage.close()
+
+
+def fs_treemap_write( debug, tree ):
+    if jsonwrite and not debug:
+        print jsonwrite( tree )
+    else:
+        #print tree
+        total = float( tree.size )
+        used = float( tree.space )
+        print 'Tree size:'
+        print tree.size, 'bytes', tree.count, 'items'
+        print 'Used space:'
+        print tree.space, 'B'
+        print used/1024, 'KB'
+        print used/1024**2, 'MB'
+        print used/1024**3, 'GB'
 
 if __name__ == '__main__':
 
