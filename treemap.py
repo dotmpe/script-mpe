@@ -30,7 +30,8 @@ except:
 
 
 class Node(dict):
-	"""Interface on top of normal dictionary to work easily with tree nodes
+	"""
+	Interface on top of normal dictionary to work easily with tree nodes
 	which can have a name, attributes, and a value list.
 	"""
 	def __init__(self, name):
@@ -98,7 +99,7 @@ def fs_tree(dir):
 			]}
 		]}
 	"""
-	enc = sys.getfilesystemencoding()
+	fs_encoding = sys.getfilesystemencoding()
 	dirname = basename(dir)
 	tree = Node(dirname)
 	for fn in listdir(dir):
@@ -106,7 +107,7 @@ def fs_tree(dir):
 		if not isinstance(fn, unicode):
 			# try decode with default codec
 			try:
-				fn = fn.decode(enc)
+				fn = fn.decode(fs_encoding)
 			except UnicodeDecodeError:
 				print >>sys.stderr, "corrupt path:", dir, fn
 				continue
@@ -233,7 +234,9 @@ def translate_xml_nesting(tree):
 		del newtree['children']
 	return newtree
 
+
 if __name__ == '__main__':
 
 	main()
+
 
