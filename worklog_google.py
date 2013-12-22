@@ -27,15 +27,15 @@ FLAGS = gflags.FLAGS
 # The client_id and client_secret are copied from the API Access tab on
 # the Google APIs Console
 FLOW = OAuth2WebServerFlow(
-	client_id='1036999515151.apps.googleusercontent.com',
-	client_secret='yISHvY5_cO1OCANzWO-zdckV',
-#	client_secret='NqAGUmPQbOpekA17u90l3Tel',
+    client_id='1036999515151.apps.googleusercontent.com',
+    client_secret='yISHvY5_cO1OCANzWO-zdckV',
+#    client_secret='NqAGUmPQbOpekA17u90l3Tel',
 #client_id='1036999515151-nfai47fvss3u9vt8uq94bt9fl958013i.apps.googleusercontent.com',
 #client_secret='yISHvY5_cO1OCANzWO-zdckV',
 #redirect_uri='urn:ietf:wg:oauth:2.0:oob',
-#	scope='https://www.googleapis.com/auth/tasks',
-	scope='https://www.googleapis.com/auth/urlshortener',
-	user_agent='workLog/0.1')
+#    scope='https://www.googleapis.com/auth/tasks',
+    scope='https://www.googleapis.com/auth/urlshortener',
+    user_agent='workLog/0.1')
 
 
 # To disable the local server feature, uncomment the following line:
@@ -58,14 +58,14 @@ http = credentials.authorize(http)
 # the Google APIs Console
 # to get a developerKey for your own application.
 service = build(serviceName='urlshortener', version='v1', http=http,
-	   developerKey='AIzaSyDCBLX3IjoEdsaHQaBpBk2RAyeOziwVq0g')
+       developerKey='AIzaSyDCBLX3IjoEdsaHQaBpBk2RAyeOziwVq0g')
 
 #service = build(serviceName='calendar', version='v1', http=http,
-#	   developerKey='AIzaSyDCBLX3IjoEdsaHQaBpBk2RAyeOziwVq0g')
+#       developerKey='AIzaSyDCBLX3IjoEdsaHQaBpBk2RAyeOziwVq0g')
 
 
 #service = build(serviceName='tasks', version='v1', http=http,
-#	   developerKey='AIzaSyDCBLX3IjoEdsaHQaBpBk2RAyeOziwVq0g')
+#       developerKey='AIzaSyDCBLX3IjoEdsaHQaBpBk2RAyeOziwVq0g')
 # Tasks: not working, returns 403 Not configured
 #tasklists = service.tasklists().list().execute()
 #
