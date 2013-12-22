@@ -24,6 +24,9 @@ GIT Branches
 
         Various topics branch here into ``dev_*`` prefixed branches.
 
+		dev_taxus
+			Working to reintegrate old ``dev_`` forks into dev.
+
     test
         Writing and running tests.
         Should follow dev before master reintegration.

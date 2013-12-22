@@ -160,8 +160,8 @@ Usage:
 
 Opts:
     -d, --debug        Plain Python printing with total size data.
-    -json           Write tree as JSON.
-    -jsonxml        Transform tree to more XML like container hierarchy befor writing as JSON.
+    -j, -json          Write tree as JSON.
+    -J, -jsonxml       Transform tree to more XML like container hierarchy befor writing as JSON.
 
     """ % sys.modules[__name__].__doc__
     if msg:
@@ -170,21 +170,25 @@ Opts:
 
 def main():
     # Script args
-    path = sys.argv.pop()
-    if not basename(path):
-        path = path[:-1]
-    assert basename(path) and isdir(path), usage("Must have dir as last argument")
+    import confparse
+    opts = confparse.Values(dict(
+            fs_encoding = sys.getfilesystemencoding(),
+            voldir = None,
+            debug = None,
+        ))
+    argv = list(sys.argv)
 
-    debug = None
-    if '-d' in sys.argv or '--debug' in sys.argv:
-        print >>sys.stderr, "Debugmode"
-        debug = True
-    json = None
-    if '-j' in sys.argv or '--json' in sys.argv:
-        json = True
-    jsonxml = None
-    if '-J' in sys.argv or '--jsonxml' in sys.argv:
-        jsonxml = True
+    treepath = argv.pop()
+    # strip trailing os.sep
+    if not basename(treepath): 
+        treepath = treepath[:-1]
+    assert basename(treepath) and isdir(treepath), \
+            usage("Must have dir as last argument")
+    path = opts.treepath = treepath
+
+    for shortopt, longopt in ('d','debug'), ('j','json'), ('J','jsonxml'):
+        setattr(opts, longopt, ( '-'+shortopt in argv and argv.remove( '-'+shortopt ) == None ) or (
+                '--'+longopt in argv and argv.remove( '--'+longopt ) == None ))
 
     # Walk filesystem
     tree = fs_tree(path)
@@ -196,10 +200,10 @@ def main():
     tree.name = path
 
     ### Output
-    if jsonwrite and ( json and not debug ):
+    if jsonwrite and ( opts.json and not opts.debug ):
         print jsonwrite(tree)
 
-    elif jsonwrite and ( jsonxml and not debug ):
+    elif jsonwrite and ( opts.jsonxml and not opts.debug ):
         tree = translate_xml_nesting(tree)
         print jsonwrite(tree)
 
