@@ -385,10 +385,6 @@ class Tag(Name):
 	__tablename__ = 'ids_tag'
 	id = Column(Integer, primary_key=True)
 
-	date_added = Column(DateTime, index=True, nullable=False)
-	deleted = Column(Boolean, index=True, default=False)
-	date_deleted = Column(DateTime)
-
 	name = Column(String(255), unique=True, nullable=True)
 	#sid = Column(String(255), nullable=True)
 	# XXX: perhaps add separate table for Tag.namespace attribute
@@ -919,22 +915,43 @@ class QName():
 
 class Namespace(Variant):
 	"""
+	A set of unique names. 
+
+	The namespace at a minimum has an system identifier,
+	which may refer to one or more global identifiers.
+
 	XXX: A collection of anything? What.
 	See Tag, a namespace constituting distinct tag types. 
 	But also code, objects.
 	XXX: there is no mux/demux (yet) so subclassing variant does not mean much, but anyway.
+	XXX: Being a variant, the canonical URL, may be used as identifier, may be
+	stored at related Invariant record. some consideration needs to go there
 	"""
 	__tablename__ = 'ns'
 	__mapper_args__ = {'polymorphic_identity': 'resource:variant:namespace'}
 
 	namespace_id = Column('id', Integer, ForeignKey('vres.id'), primary_key=True)
 
+	# tags = *Tag; see relationship in tag_namespace_table
+
+	# FIXME: where does the prefix go
 
 #class BoundNamespace(ID):
 #	__tablename__ = 'ns_bid'
 #	__mapper_args__ = {'polymorphic_identity': 'id:namespace'}
 #
 #	prefix = Column(String(255), unique=True)
+
+class Schema(Variant):
+	"""
+	TODO This would define schema information for or one more namespaces.
+	"""
+	__tablename__ = 'schema'
+	__mapper_args__ = {'polymorphic_identity': 'resource:variant:schema'}
+
+	namespaces = []
+
+
 
 
 class Relocated(Resource):

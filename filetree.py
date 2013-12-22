@@ -6,16 +6,28 @@
 from taxus import Node
 
 
+
 class FileTreeTopic(Node):
 
 	"""
+	Maintain metadata for TopicTrees from filesystem trees.
 	"""
 
+	__tablename__ = 'filetrees'
+	id = Column(Integer, primary_key=True)
 
-class TopicTreeFe(libcmd.SimpleCommand):
+#	nodes = 
+#	subNodes = relationship('', secondary=locators_checksum,
+#		backref='location')
+
+class FSTopic(Topic):
+	pass
+
+class FSTopicTreeFe(libcmd.SimpleCommand):
 
 	"""
 	Construct Topic trees from file system paths.
+	Command line class.
 	"""
 
 	DEFAULT_ACTION = 'run'
@@ -25,3 +37,5 @@ class TopicTreeFe(libcmd.SimpleCommand):
 
 	def run(self, *args, **opts):
 		pass
+
+
