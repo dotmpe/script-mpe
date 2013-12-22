@@ -10,17 +10,23 @@ Documentation
 
 GIT Branches
   master
-    Main branch, topic branches  eventually reintegrated here
+    Main branch, all branches should follow.
 
     dev
+        Unstable. 
+
         Focus is on building various command line handling frameworks with
         increasing level of integration and consequently implementation
         requirements. 
 
-        Various other secondary projects running, some are documented.
+        Need work on ways to increase coupling while keeping functionality stable.
+        See test branch.
+
+        Various topics branch here into ``dev_*`` prefixed branches.
 
     test
         Writing and running tests.
+        Should follow dev before master reintegration.
 
 Design
   Cmd
