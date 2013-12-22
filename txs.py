@@ -3,6 +3,7 @@
 import os, sys
 import re, anydbm
 from datetime import datetime
+from os.path import exists
 
 
 from sqlalchemy.orm.exc import NoResultFound

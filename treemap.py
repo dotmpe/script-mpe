@@ -84,8 +84,8 @@ except:
 		jsonwrite = None
 
 
-def find_parent( dirpath, subleaf, realpath=False ):
-	if realpath:
+def find_parent( dirpath, subleaf, get_realpath=False ):
+	if get_realpath:
 		dirpath = realpath( dirpath )
 	dirparts = dirpath.split( os.sep )
 	while dirparts:
@@ -105,7 +105,7 @@ def find_volume( dirpath ):
 		vol = expanduser( '~/.treemap/' ) # XXX: *nix only
 		if not exists( vol ):
 			os.makedirs( vol )
-		print "No volumes, storage at %r" % vol
+		print "No volumes, treemap storage at %r" % vol
 	return vol
 
 
@@ -149,7 +149,6 @@ class FSWrapper:
 				yield p
 			parts.pop()
 
-		
 
 class Treemap:
 
@@ -158,12 +157,17 @@ class Treemap:
 	Works on a volume tree (one with metadir) and populates tree.
 	"""
 
-	@staticmethod
-	def init( treemapdir ):
-		self.storage = shelve.open( join( treemapdir, 'treemap.db' ) )
+	@classmethod
+	def init( Klass, treemapdir ):
+		if exists( treemapdir ):
+			Klass.storage = shelve.open( join( treemapdir, 'treemap.db' ) )
+		else:
+			print >>sys.stderr, "Missing treemapdir %s" % treemapdir
 
 	def __init__( self, path ):
+		self.__class__.init( path )
 		self.load( path )
+
 	def load( self, path ):
 		self.fs = FSWrapper( path )
 	def __del__( self ):
@@ -205,41 +209,44 @@ class Treemap:
 		for p in self.fs.find_all( ):
 			yield self.fetch( p )
 
+
 class Node(dict):
 	"""
 	Interface on top of normal dictionary to work easily with tree nodes
 	which can have a name, attributes, and a value list.
 	"""
-	def __init__(self, name):
-		self[name] = None
+	def __init__( self, name ):
+		self[ name ] = None
 
 	def getname(self):
 		for key in self:
 			if not key.startswith('@'):
 				return key
 
-	def setname(self, name):
+	def setname( self, name ):
 		oldname = self.getname()
-		val = self[oldname]
-		del self[oldname]
-		self[name] = val
-
-	name = property(getname, setname)
-
-	def append(self, val):
+		val = self[ oldname ]
+		del self[ oldname ]
+		self[ name ] = val
+	name = property( getname, setname )
+	"Node.name is a property or '@'-prefix attribute name. "
+	def append( self, val ):
+		"Node().value append"
 		if not isinstance( self.value, list ):
 			self[ self.name ] = []
 		self.value.append( val )
 
-	def remove(self, val):
+	def remove( self, val ):
+		"self item remove"
 		self[ self.name ].remove( val )
 
-	def getvalue(self):
+	def getvalue( self ):
+		"self item return"
 		return self[ self.name ]
-
 	value = property( getvalue )
+	"Node.value is a list of subnode instances. "
 
-	def getattrs(self):
+	def getattrs( self ):
 		attrs = {}
 		for key in self:
 			if key.startswith( '@' ):
@@ -249,19 +256,23 @@ class Node(dict):
 	attributes = property( getattrs )
 
 	def __getattr__( self, name ):
+		#print super( Node, self ).__dict__.keys()
 		# @xxx: won't properties show up in __dict__?
 		if name in self.__dict__ or name in ( 'name', 'value', 'attributes' ):
 			return super( Node, self ).__getattr__( name )
 		elif '@' + name in self:
 			return self[ '@' + name ]
 
-	def __setattr__(self, name, value):
-		if name in self.__dict__ or name in ( 'name', 'value', 'attributes'):
+	def __setattr__( self, name, value ):
+		if name in self.__dict__ or name in ( 'name', 'value', 'attributes' ):
 			super( Node, self ).__setattr__( name, value )
 		else:
 			self[ '@' + name ] = value
 
 	def space( self, parent_path ):
+		"""
+		Return the size in disk blocks taken by the filetree.
+		"""
 		path = join( parent_path, self.name )
 		if self.value:
 			space = 0
@@ -276,6 +287,10 @@ class Node(dict):
 			raise Exception( "Path does not exist: %s" % path )
 
 	def size( self, parent_path ):
+		"""
+		Return the size in bytes taken by the files in the filetree.
+		XXX: does this count dirs?
+		"""
 		path = join( parent_path, self.name )
 		if self.value:
 			size = 0
@@ -291,9 +306,11 @@ class Node(dict):
 
 	@property
 	def isdir( self ):
+		"Check for trailing '/' convention. "
 		return self.name.endswith( os.sep )
 
 	def files( self, parent_path ):
+		"This does a recursive file count. "
 		path = join( parent_path, self.name )
 		if self.value:
 			files = 0
@@ -304,8 +321,11 @@ class Node(dict):
 			return 1
 
 	@classmethod
-	def tree( clss, path, opts ):
-		node = clss( basename( path ) + ( isdir( path ) and os.sep or '' ) )
+	def tree( Klass, path, opts ):
+		"""
+		Return a tree of Klass instances for each subpath.
+		"""
+		node = Klass( basename( path ) + ( isdir( path ) and os.sep or '' ) )
 		if isdir( path ):
 			for fn in listdir( path ):
 				# Be liberal... take a look at non decoded stuff
@@ -320,6 +340,38 @@ class Node(dict):
 				node.append( Node.tree( subpath, opts ) )
 		return node
 
+	# Persistence methods
+	# XXX: unused iface stubs here, see dev_treemap_tmp
+
+	def reload_data( self, parentdir, force_clean=None ):
+		"""
+		Call this after initialization to compare the values to the 
+		DB, and set the 'fresh' attribute.
+		"""
+
+	def commit( self, parentdir ):
+		"""
+		Call this after running?
+		Need to clean up non existant paths
+		"""
+
+	# Static interface to shelved dictionaries
+
+	storage = None
+
+	@classmethod
+	def set_stored( clss, path, node ):
+		clss.storage[ path.encode() ] = node
+
+	@classmethod
+	def is_stored( clss, path ):
+		return path.encode() in clss.storage
+
+	@classmethod
+	def get_stored( clss, path ):
+		return clss.storage[ path.encode() ]
+
+	# /XXX end of dev_treemap_tmp iface
 
 def usage(msg=0):
 	print """%s
@@ -334,9 +386,7 @@ Opts:
 		msg = 'error: '+msg
 	sys.exit(msg)
 
-
-if __name__ == '__main__':
-
+def main():
 	# Script args
 	import confparse
 	opts = confparse.Values(dict(
@@ -363,26 +413,21 @@ if __name__ == '__main__':
 
 	treemap = Treemap( opts.voldir )	
 
-	# Start
+	# Get existing treemap or create new
 	tree = treemap.find( )
+	#print 'Found tree', tree
 	if not tree: 
 		tree = Node.tree( path, opts )
+		#print 'New tree', tree
 
 #	treemap.store( path, tree, opts )
 
-#	print pformat( tree )
 	blocks = tree.space( dirname( path ) )
 
-	print '\\','-'*32, path
-	print "%s mtime" % os.path.getmtime( path )
-	print "%s blocks\n%s bytes on disk" % ( blocks, blocks * 512 )
-	print '%s bytes in files\n%s files' % ( 
-			tree.size( dirname( path ) ), 
-			tree.files( dirname( path ) )
-		)
-	print '/','-'*32, path
+	fstree_root_report()
+	fstree_report( opts.debug, tree, treemap )
 
-#	print '-'*79, '/'
+def fstree_root_report():
 	st = os.statvfs( '/' )
 	free = st.f_bavail * st.f_frsize
 	total = st.f_blocks * st.f_frsize
@@ -396,4 +441,30 @@ if __name__ == '__main__':
 	free_gb_rounded = int( round( free / 1024 ** 3 ) )
 	disk_usage = int( round( ( used * 100.0 ) / total ) )
 	print "%s GB available (%s%% disk usage)" % ( free_gb_rounded, disk_usage )
+
+def fstree_report( debug, tree, treemap ):
+	if jsonwrite and not debug:
+		pass #print jsonwrite( tree )
+	else:
+		#print pformat( tree )
+		print treemap.fs._path
+		total = float( tree.size( dirname( treemap.fs._path ) ) )
+		used = float( tree.space( dirname( treemap.fs._path ) ) )
+		files = float( tree.files( dirname( treemap.fs._path ) ) )
+		print "%s mtime" % os.path.getmtime( treemap.fs._path )
+		print 'Tree size:'
+		print total, 'bytes', files, 'files'
+		print 'Used space:'
+		print used, 'B'
+		print used/1024, 'KB'
+		print used/1024**2, 'MB'
+		print used/1024**3, 'GB'
+		print "%s blocks\n%s bytes on disk" % ( used, used * 512 )
+
+
+
+if __name__ == '__main__':
+
+	main()
+
 
