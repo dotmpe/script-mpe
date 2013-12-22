@@ -167,27 +167,7 @@ Opts:
 		msg = 'error: '+msg
 	sys.exit(msg)
 
-def translate_xml_nesting(tree):
-	newtree = {'children':[]}
-	for k in tree:
-		v = tree[k]
-		if k.startswith('@'):
-			if v:
-				assert isinstance(v, (int,float,basestring)), v
-			assert k.startswith('@'), k
-			newtree[k[1:]] = v
-		else:
-			assert not v or isinstance(v, list), v
-			newtree['name'] = k
-			if v:
-				for subnode in v:
-					newtree['children'].append( translate_xml_nesting(subnode) )
-	assert 'name' in newtree and newtree['name'], newtree
-	if not newtree['children']:
-		del newtree['children']
-	return newtree
-
-if __name__ == '__main__':
+def main():
 	# Script args
 	path = sys.argv.pop()
 	if not basename(path):
@@ -231,4 +211,29 @@ if __name__ == '__main__':
 		print total/1024, 'KB'
 		print total/1024**2, 'MB'
 		print total/1024**3, 'GB'
+
+
+def translate_xml_nesting(tree):
+	newtree = {'children':[]}
+	for k in tree:
+		v = tree[k]
+		if k.startswith('@'):
+			if v:
+				assert isinstance(v, (int,float,basestring)), v
+			assert k.startswith('@'), k
+			newtree[k[1:]] = v
+		else:
+			assert not v or isinstance(v, list), v
+			newtree['name'] = k
+			if v:
+				for subnode in v:
+					newtree['children'].append( translate_xml_nesting(subnode) )
+	assert 'name' in newtree and newtree['name'], newtree
+	if not newtree['children']:
+		del newtree['children']
+	return newtree
+
+if __name__ == '__main__':
+
+	main()
 
