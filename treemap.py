@@ -78,11 +78,13 @@ try:
 	from simplejson import dumps as jsonwrite
 except:
 	try:
-		from json import write as jsonwrite
+		from ujson import dumps as jsonwrite
 	except:
-		print >>sys.stderr, "No known json library installed. Plain Python printing."
-		jsonwrite = None
-
+		try:
+			from json import write as jsonwrite
+		except:
+			print >>sys.stderr, "No known json library installed. Plain Python printing."
+			jsonwrite = None
 
 def find_parent( dirpath, subleaf, get_realpath=False ):
 	if get_realpath:
@@ -165,9 +167,7 @@ class Treemap:
 			print >>sys.stderr, "Missing treemapdir %s" % treemapdir
 
 	def __init__( self, path ):
-		self.__class__.init( path )
 		self.load( path )
-
 	def load( self, path ):
 		self.fs = FSWrapper( path )
 	def __del__( self ):
@@ -202,6 +202,8 @@ class Treemap:
 		#if data
 		self.store( self, path, data )
 	def find( self ):
+		"XXX: return unmarshalled treemap if present"
+		return
 		"Return the next node up, if any. "
 		for p in self.find_all( ):
 			return p
@@ -404,30 +406,50 @@ def main():
 			usage("Must have dir as last argument")
 	path = opts.treepath
 
-	opts.debug = ( '-d' in argv and argv.remove( '-d' ) ) or (
-			'--debug' in argv and argv.remove( '--debug' ) )
+	for shortopt, longopt in ('d','debug'), ('j','json'), ('J','jsonxml'):
+		setattr(opts, longopt, ( '-'+shortopt in argv and argv.remove( '-'+shortopt ) == None ) or (
+				'--'+longopt in argv and argv.remove( '--'+longopt ) == None ))
 
 	# Configure
 	if not opts.voldir:
 		opts.voldir = find_volume( path )
 
-	treemap = Treemap( opts.voldir )	
+	Treemap.init( opts.voldir )
+	treemap = Treemap( path )
 
 	# Get existing treemap or create new
 	tree = treemap.find( )
-	#print 'Found tree', tree
-	if not tree: 
+	if tree:
+		print 'Found tree'
+	else:
 		tree = Node.tree( path, opts )
-		#print 'New tree', tree
+		print 'New tree'
 
 #	treemap.store( path, tree, opts )
 
-	blocks = tree.space( dirname( path ) )
+	### Output
+	if jsonwrite and ( opts.json and not opts.debug ):
+		print jsonwrite(tree)
 
-	fstree_root_report()
-	fstree_report( opts.debug, tree, treemap )
+	elif jsonwrite and ( opts.jsonxml and not opts.debug ):
+		tree = translate_xml_nesting(tree)
+		print jsonwrite(tree)
+
+	else:
+		print >>sys.stderr, 'No JSON.'
+		print tree
+		total = float(tree.size(path))
+		print 'Tree size:'
+		print total, 'B'
+		print total/1024, 'KB'
+		print total/1024**2, 'MB'
+		print total/1024**3, 'GB'
+
+		#fstree_report( opts.debug, tree, treemap )
+		#fstree_root_report()
 
 def fstree_root_report():
+	print  'Root:'
 	st = os.statvfs( '/' )
 	free = st.f_bavail * st.f_frsize
 	total = st.f_blocks * st.f_frsize
@@ -441,13 +463,15 @@ def fstree_root_report():
 	free_gb_rounded = int( round( free / 1024 ** 3 ) )
 	disk_usage = int( round( ( used * 100.0 ) / total ) )
 	print "%s GB available (%s%% disk usage)" % ( free_gb_rounded, disk_usage )
+	print
 
 def fstree_report( debug, tree, treemap ):
+	print 'FSTree:'
 	if jsonwrite and not debug:
-		pass #print jsonwrite( tree )
+		print jsonwrite( tree )
 	else:
 		#print pformat( tree )
-		print treemap.fs._path
+		print tree.name, treemap.fs._path
 		total = float( tree.size( dirname( treemap.fs._path ) ) )
 		used = float( tree.space( dirname( treemap.fs._path ) ) )
 		files = float( tree.files( dirname( treemap.fs._path ) ) )
@@ -455,12 +479,32 @@ def fstree_report( debug, tree, treemap ):
 		print 'Tree size:'
 		print total, 'bytes', files, 'files'
 		print 'Used space:'
-		print used, 'B'
-		print used/1024, 'KB'
-		print used/1024**2, 'MB'
-		print used/1024**3, 'GB'
+		print total, 'B'
+		print total/1024, 'KB'
+		print total/1024**2, 'MB'
+		print total/1024**3, 'GB'
 		print "%s blocks\n%s bytes on disk" % ( used, used * 512 )
+	print
 
+def translate_xml_nesting(tree):
+	newtree = {'children':[]}
+	for k in tree:
+		v = tree[k]
+		if k.startswith('@'):
+			if v:
+				assert isinstance(v, (int,float,basestring)), v
+			assert k.startswith('@'), k
+			newtree[k[1:]] = v
+		else:
+			assert not v or isinstance(v, list), v
+			newtree['name'] = k
+			if v:
+				for subnode in v:
+					newtree['children'].append( translate_xml_nesting(subnode) )
+	assert 'name' in newtree and newtree['name'], newtree
+	if not newtree['children']:
+		del newtree['children']
+	return newtree
 
 
 if __name__ == '__main__':
