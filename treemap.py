@@ -23,19 +23,9 @@ from pprint import pformat
 from os import listdir, stat, lstat
 from os.path import join, exists, islink, isdir, getsize, basename, dirname, \
     expanduser, realpath
-try:
-    # @bvb: simplejson thinks it should be different and deprecated read() and write()
-    # not sure why... @xxx: simplejson has UTF-8 default, json uses ASCII I think?
-    from simplejson import dumps as jsonwrite
-except:
-    try:
-        from ujson import dumps as jsonwrite
-    except:
-        try:
-            from json import write as jsonwrite
-        except:
-            print >>sys.stderr, "No known json library installed. Plain Python printing."
-            jsonwrite = None
+
+import res.js
+
 
 def find_parent( dirpath, subleaf, get_realpath=False ):
     if get_realpath:
@@ -397,8 +387,8 @@ def main():
 
 
 def fs_treemap_write( debug, tree ):
-    if jsonwrite and not debug:
-        print jsonwrite( tree )
+	if res.js.dumps:
+        print res.js.dumps(tree)
     else:
         #print tree
         total = float( tree.size )

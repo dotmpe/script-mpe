@@ -14,14 +14,8 @@ import subprocess
 import datetime
 from pprint import pformat
 import bencode
-# use jsonlib or simplejson
-try:
-    import simplejson as _json
-except:
-    import json as _json
 
-json_read = _json.loads
-json_write = _json.dumps
+import res.js
 
 storage = {
         'a8c01c01': confparse.Values(dict(
@@ -75,7 +69,7 @@ def main( ):
 
     print complexity( data )
 #    print pformat( data.copy() )
-#    print json_write( data.copy() )
+#    print res.js.dumps( data.copy() )
     
 #    print fssttat.f_ffree * 100 / total_nodes
 
