@@ -25,96 +25,10 @@ from os.path import join, exists, islink, isdir, getsize, basename, dirname, \
     expanduser, realpath
 
 import res.js
+import res.primitive    
 
 
-def find_parent( dirpath, subleaf, get_realpath=False ):
-    if get_realpath:
-        dirpath = realpath( dirpath )
-    dirparts = dirpath.split( os.sep )
-    while dirparts:
-        path = join( *dirparts )
-        if isdir( join( *tuple( dirparts )+( subleaf, ) ) ):
-            return path
-        dirparts.pop()
-
-def find_volume( dirpath ):
-    vol = find_parent( dirpath, '.volume' )
-    if not vol:
-        vol = find_parent( dirpath, '.volume', True )
-    if vol:
-        print "In volume %r" % vol
-        vol = join( vol, '.volume' )
-    else:
-        vol = expanduser( '~/.treemap/' ) # XXX: *nix only
-        if not exists( vol ):
-            os.makedirs( vol )
-        print "No volumes, treemap store at %r" % vol
-    return vol
-
-
-class Node(dict):
-    """
-    Interface on top of normal dictionary to work easily with tree nodes
-    which can have a name, attributes, and a value list.
-    """
-    def __init__( self, name ):
-        self[ name ] = None
-
-    def getname(self):
-        for key in self:
-            if not key.startswith('@'):
-                return key
-
-    def setname( self, name ):
-        oldname = self.getname()
-        val = self[ oldname ]
-        del self[ oldname ]
-        self[ name ] = val
-
-    name = property( getname, setname )
-    "Node.name is a property or '@'-prefix attribute name. "
-
-    def append( self, val ):
-        "Node().value append"
-        if not isinstance( self.value, list ):
-            self[ self.name ] = []
-        self.value.append( val )
-
-    def remove( self, val ):
-        "self item remove"
-        self[ self.name ].remove( val )
-
-    def getvalue( self ):
-        "self item return"
-        return self[ self.name ]
-
-    value = property( getvalue )
-    "Node.value is a list of subnode instances. "
-
-    def getattrs( self ):
-        attrs = {}
-        for key in self:
-            if key.startswith( '@' ):
-                attrs[ key[ 1: ] ] = self[ key ]
-        return attrs
-
-    attributes = property( getattrs )
-
-    def __getattr__( self, name ):
-        # @xxx: won't properties show up in __dict__?
-        if name in self.__dict__ or name in ( 'name', 'value', 'attributes' ):
-            return super( Node, self ).__getattr__( name )
-        elif '@' + name in self:
-            return self[ '@' + name ]
-
-    def __setattr__( self, name, value ):
-        if name in self.__dict__ or name in ( 'name', 'value', 'attributes' ):
-            super( Node, self ).__setattr__( name, value )
-        else:
-            self[ '@' + name ] = value
-
-#    def __repr__(self):
-#        return "<%s%s%s>" % ( self.name, self.attributes, self.value or '' )
+class Node(res.primitive.TreeNodeDict):
 
     # Persistence methods
 
@@ -198,6 +112,30 @@ class Node(dict):
         return clss.storage[ path.encode() ]
 
 
+def find_parent( dirpath, subleaf, get_realpath=False ):
+    if get_realpath:
+        dirpath = realpath( dirpath )
+    dirparts = dirpath.split( os.sep )
+    while dirparts:
+        path = join( *dirparts )
+        if isdir( join( *tuple( dirparts )+( subleaf, ) ) ):
+            return path
+        dirparts.pop()
+
+def find_volume( dirpath ):
+    vol = find_parent( dirpath, '.volume' )
+    if not vol:
+        vol = find_parent( dirpath, '.volume', True )
+    if vol:
+        print "In volume %r" % vol
+        vol = join( vol, '.volume' )
+    else:
+        vol = expanduser( '~/.treemap/' ) # XXX: *nix only
+        if not exists( vol ):
+            os.makedirs( vol )
+        print "No volumes, treemap store at %r" % vol
+    return vol
+
 
 def fs_node_init( path ):
 #    print '\fs_node_init', '-'*79, path
@@ -228,7 +166,7 @@ def fs_tree( dirpath, tree ):
             ]}
         ]}
     """
-    enc = sys.getfilesystemencoding()
+    fs_encoding = sys.getfilesystemencoding()
     path = join( dirpath, tree.name )
 #    print '\\fs_tree', '-'*79, dirpath, tree.name
 #    print isdir( path ), tree.fresh
@@ -245,7 +183,7 @@ def fs_tree( dirpath, tree ):
             if not isinstance( fn, unicode ):
                 # try decode with default codec
                 try:
-                    fn = fn.decode( enc )
+                    fn = fn.decode( fs_encoding )
                 except UnicodeDecodeError:
                     print >>sys.stderr, "unable to decode:", path, fn
                     continue
@@ -328,12 +266,15 @@ Usage:
     %% treemap.py [opts] directory
 
 Opts:
-    -d, --debug        Plain Python printing with total space data.
+    -d, --debug        Plain Python printing with total size data.
+    -j, -json          Write tree as JSON.
+    -J, -jsonxml       Transform tree to more XML like container hierarchy befor writing as JSON.
 
     """ % sys.modules[__name__].__doc__
     if msg:
         msg = 'error: '+msg
     sys.exit(msg)
+
 
 def main():
     # Script args
@@ -345,13 +286,13 @@ def main():
         ))
     argv = list(sys.argv)
 
-    opts.treepath = argv.pop()
+    treepath = argv.pop()
     # strip trailing os.sep
-    if not basename(opts.treepath): 
-        opts.treepath = opts.treepath[:-1]
-    assert basename(opts.treepath) and isdir(opts.treepath), \
+    if not basename(treepath): 
+        treepath = treepath[:-1]
+    assert basename(treepath) and isdir(treepath), \
             usage("Must have dir as last argument")
-    path = opts.treepath
+    path = opts.treepath = treepath
 
     for shortopt, longopt in ('d','debug'), ('j','json'), ('J','jsonxml'):
         setattr(opts, longopt, ( '-'+shortopt in argv and argv.remove( '-'+shortopt ) == None ) or (
@@ -365,7 +306,11 @@ def main():
     # Walk filesystem, updating where needed
     tree = fs_node_init( path )
     fs_tree( dirname( path ), tree )
-    print 'fs_tree', pformat(tree)
+#    print 'prefix', tree.prefix
+#    print 'dir', dir(tree)
+#    print 'dict', tree.__dict__
+    print 'fs_tree', pformat(tree.copy())
+    return
 
     # Add space attributes
 #    fs_treesize( dirname( path ), tree )
@@ -386,11 +331,19 @@ def main():
     storage.close()
 
 
-def fs_treemap_write( debug, tree ):
-	if res.js.dumps:
-        print res.js.dumps(tree)
+def fs_treemap_write( opts, tree ):
+    ### Output
+    if res.js.dumps and ( opts.json and not opts.debug ):
+        print res.js.dumps( tree )
+
+    elif res.js.dumps and ( opts.jsonxml and not opts.debug ):
+        tree = res.primitive.translate_xml_nesting(tree)
+        print res.js.dumps( tree )
+
     else:
-        #print tree
+        if not res.js.dumps:
+            print >>sys.stderr, 'Error: No JSON writer.'
+        print pformat(tree.copy())
         total = float( tree.size )
         used = float( tree.space )
         print 'Tree size:'
@@ -401,7 +354,9 @@ def fs_treemap_write( debug, tree ):
         print used/1024**2, 'MB'
         print used/1024**3, 'GB'
 
+
 if __name__ == '__main__':
 
     main()
+
 
