@@ -79,17 +79,26 @@ class TreeNodeDict(dict):
     def __repr__(self):
         return "<%s%s%s>" % (self.name, self.attributes, self.value or '')
 
-    def copy(self):
+    def deepcopy(self):
         """
         XXX: Dump to real dict tree which pformat can print.
         """
         d = {}
+        def _copy(v):
+            if isinstance(v, self.__class__):
+                return v.deepcopy()
+            else:
+                Klass = v.__class__
+                return Klass(self[k]) 
         for k in self:
             v = self[k]
-            if isinstance(v, self.__class__):
-                d[k] = self[k].copy()
+            if v:
+                if k == self.name:
+                    d[k] = [ _copy(sub) for sub in v ]
+                else:
+                    d[k] = _copy(v)
             else:
-                d[k] = self[k] # XXX no clone for primitives, since Py doesn't store them.. right?
+                d[k] = None
         return d
 
 class TreeNodeTriple(tuple):

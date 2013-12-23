@@ -74,14 +74,13 @@ def fs_treesize(root, tree, files_as_nodes=True):
     assert isinstance(tree, Node)
 
     if not tree.size:
-        dir = join(root, tree.name)
         size = 0
         if tree.value:
             for node in tree.value: # for each node in this dir:
-                path = join(dir, node.name)
+                path = join(root, node.name)
                 if isdir(path):
                     # subdir, recurse and add size
-                    fs_treesize(dir, node)
+                    fs_treesize(root, node)
                     size += node.size
                 else:
                     # filename, add size
@@ -89,8 +88,8 @@ def fs_treesize(root, tree, files_as_nodes=True):
                         csize = getsize(path)
                         node.size = csize
                         size += csize
-                    except:
-                        print >>sys.stderr, "could not get size of %s" % path
+                    except Exception, e:
+                        pass#print >>sys.stderr, "could not get size of %s: %r" % (path, e)
         tree.size = size
 
 def usage(msg=0):
@@ -150,7 +149,7 @@ def main():
     else:
         if not res.js.dumps:
             print >>sys.stderr, 'Error: No JSON writer.'
-        print pformat(tree.copy())
+        print pformat(tree.deepcopy())
         total = float(tree.size)
         print 'Tree size:'
         print total, 'B'
