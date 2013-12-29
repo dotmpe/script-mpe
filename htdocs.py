@@ -7,6 +7,10 @@ import os
 
 from dotmpe.du import comp, frontend
 
+#from script_mpe import res
+import log
+import confparse
+import res.fs
 from libname import Namespace, Name
 from libcmd import Targets, Arguments, Keywords, Options,\
     Target 
@@ -75,9 +79,30 @@ class Htdocs(libcmd.SimpleCommand):
             }
         b = B()
         b.prepare_extractors(**store_params)
-        for source in args:
-            document = b.build(open(source).read())
-            print b.process(document)
+        sources = []
+        for arg in args:
+            if os.path.isdir(arg):
+                walk_opts = res.fs.Dir.walk_opts.copy()
+                walk_opts.update(dict(recurse=True, files=True))
+                sources_ = list( res.fs.Dir.walk(arg,
+                    confparse.Values(walk_opts)))
+                [ sources.append(s) for s in sources_ if s.endswith('.rst') ]
+            elif os.path.isfile(arg):
+                if arg.endswith('.rst'):
+                    sources.append(arg)
+
+        for source in sources:
+            document = None
+            try:
+                document = b.build(open(source).read())
+            except:
+                log.err('building %s', source)
+                continue
+            try:
+                b.process(document)
+            except:
+                log.err('processing %s', source)
+                continue
             #print b.process(open(source).read())
         #comp.get_builder_class('dotmpe.du.builder.htdocs')
         #print args, frontend.cli_process(args, builder_name='dotmpe.du.builder.mpe')

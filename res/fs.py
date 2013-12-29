@@ -1,19 +1,54 @@
 from fnmatch import fnmatch
 import os
+import re
 
 from script_mpe import confparse
 from script_mpe import log
 from script_mpe.lib import Prompt
 
 
-class File(object):
+PATH_R = re.compile("[A-Za-z0-9\/\.,\[\]\(\)_-]")
+
+
+class INode(object):
+
+    def __init__(self, path):
+        self.path = path
+
+    @classmethod
+    def getsubclass( Klass, path ):
+        nodetype = StatCache.getnodetype( path )
+        assert nodetype, path
+        for SubClass in Klass.__subclasses__():
+            if SubClass.implements == nodetype:
+                return SubClass
+        assert False, nodetype
+
+    @classmethod
+    def decode_path( Klass, path, opts ):
+        # XXX: decode from opts.fs_enc
+        assert isinstance(path, basestring)
+        try:
+            path = unicode(path, 'utf-8')
+            #path = path.decode('utf-8')
+        except UnicodeDecodeError, e:
+            log.warn("Ignored non-unicode path %s", path)
+        finally:
+            assert isinstance(path, unicode)
+        return path
+
+
+class File(INode):
+    implements = 'file'
 
     ignore_names = (
             '._*',
+            '.crdownload',
             '.DS_Store',
             '*.swp',
             '*.swo',
             '*.swn',
+            '*.r[0-9]*[0-9]',
             '.git*',
             '*.pyc',
             '*~',
@@ -48,23 +83,59 @@ class File(object):
                 return True
 
 
-class Dir(object):
+pathdepth = lambda s: s.strip('/').count('/')
+
+def exclusive ( opts, filters ):
+    """
+    Exclusive boolean list: only one may be true, 
+    any combination of False and None allowed.
+    """
+    # verify: only one may be true
+    x = None
+    while not x:
+        for n in filters.split(' '):
+            if opts[n] == True:
+                x = n
+        break
+    if x:
+        for n in filters.split(' '):
+            if n == x:
+                continue
+            assert not opts[n], ('conflict', n, opts[n], x)
+    # set 
+    if x:
+        for n in filters.split(' '):
+            if n == x:
+                continue
+            assert opts[n] == None, n
+            opts[n] = False
+    else:
+        for n in filters.split(' '):
+            if opts[n] == None:
+                opts[n] = True
+
+
+class Dir(INode):
+    implements = 'dir'
+
+    ignore_names = (
+            '._*',
+            '.metadata',
+            '.conf',
+            'RECYCLER',
+            '.TemporaryItems',
+            '.Trash*',
+            '.cllct',
+            'System Volume Information',
+            'Desktop',
+            'project',
+            'sam*bup*',
+            '*.bup',
+            '.git*',
+        )
 
     ignore_paths = (
-            '._*',
-            '.metadata*',
-            '.conf*',
-            'RECYCLER*',
-            '.TemporaryItems*',
-            '.Trash*',
-            '*cllct/*',
-            'System Volume Information/',
-            'Desktop*',
-            'project*',
-            'sam*bup*',
-            '*.bup/',
-            '.git*',
-            '*.git*',
+            '*.git',
         )
 
     @classmethod
@@ -79,18 +150,22 @@ class Dir(object):
         pass
 
     @classmethod
+    def sane( klass, path ):
+        return PATH_R.match( path )
+
+    @classmethod
     def ignored(klass, path):
         for p in klass.ignore_paths:
             if fnmatch(path, p):
                 return True
         name = os.path.basename(path)
-        for p in klass.ignore_paths:
+        for p in klass.ignore_names:
             if fnmatch(name, p):
                 return True
 
     @classmethod
     def prompt_recurse(clss, opts):
-        v = Prompt.query("Recurse dir?", ["Yes", "No", "All"])
+        v = Prompt.query("Recurse dir?", ("Yes", "No", "All"))
         if v is 2:
             opts.recurse = True
             return True
@@ -137,16 +212,51 @@ class Dir(object):
         interactive=False,
         recurse=False,
         max_depth=-1,
+        include_root=False,
+        # custom filters:
+        exists=None, # True, False for exclusive path-exists, or None for either
+        # None for include, False for exclude, True for exclusive:
+        dirs=None, 
+        files=None, 
+        symlinks=None,
+        links=None,
+        pipes=None,
+        blockdevs=None,
     ))
     
     @classmethod
-    def walk_tree_interactive(Klass, path, opts=walk_opts):
+    def walk(Klass, path, opts=walk_opts, filters=(None,None)):
+        """
+        Build on os.walk, this goes over all directories and other paths
+        non-recursively.
+        It returns all full paths according to walk-opts.
+        XXX: could, but does not, yield INode subtype instances.
+        XXX: filters, see dev_treemap
+        """
+        if not isinstance(opts, confparse.Values):
+            opts_ = confparse.Values(Klass.walk_opts)
+            opts_.update(opts)
+            opts = opts_
+        else:
+            opts = confparse.Values(opts.copy())
+        # FIXME: validate/process opts or put filter somewhere
         if opts.max_depth > 0:
             assert opts.recurse
+        exclusive( opts, 'dirs files symlinks links pipes blockdevs' )
         assert isinstance(path, basestring), (path, path.__class__)
+        dirpath = None
+        assert os.path.isdir( path )
+        if opts.dirs and opts.include_root:
+            yield unicode( path, 'utf-8' )
         for root, dirs, files in os.walk(path):
             for node in list(dirs):
-                dirpath = os.path.join(root, node).replace(path,'').lstrip('/') +'/'
+                if not opts.recurse and not opts.interactive:
+                    dirs.remove(node)
+                if not opts.dirs:
+                    continue
+                dirpath = os.path.join(root, node)
+                #dirpath = os.path.join(root, node).replace(path,'').lstrip('/') +'/'
+                depth = pathdepth(dirpath.replace(path, ''))
                 if not os.path.exists(dirpath):
                     log.err("Error: reported non existant node %s", dirpath)
                     dirs.remove(node)
@@ -170,28 +280,42 @@ class Dir(object):
                 except UnicodeDecodeError, e:
                     log.err("Ignored non-ascii filename %s", dirpath)
                     continue
+                dirpath = Klass.decode_path(dirpath, opts)
                 yield dirpath
             for leaf in list(files):
-                filepath = os.path.join(root, leaf).replace(path,'').lstrip('/')
+                filepath = os.path.join(root, leaf)
                 if not os.path.exists(filepath):
                     log.err("Error: non existant leaf %s", filepath)
-                    files.remove(leaf)
+                    if opts.exists != None and not opts.exists:
+                        if opts.files:
+                            yield filepath
+                    else:
+                        files.remove(leaf)
                     continue
                 elif Klass.check_ignored(filepath, opts):
+                    log.info("Ignored file %r", filepath)
                     files.remove(leaf)
                     continue
-                assert isinstance(filepath, basestring)
-                try:
-                    filepath = unicode(filepath)
-                except UnicodeDecodeError, e:
-                    log.err("Ignored non-ascii/illegal filename %s", filepath)
+                filepath = Klass.decode_path(filepath, opts)
+                if not opts.files: # XXX other types
                     continue
-                assert isinstance(filepath, unicode)
-                try:
-                    filepath.encode('ascii')
-                except UnicodeEncodeError, e:
-                    log.err("Ignored non-ascii/illegal filename %s", filepath)
-                    continue
+                #try:
+                #    filepath.encode('ascii')
+                #except UnicodeEncodeError, e:
+                #    log.err("Ignored non-ascii/illegal filename %s", filepath)
+                #    continue
                 yield filepath
+
+
+class CharacterDevice(INode):
+    implements = 'chardev'
+class BlockDevice(INode):
+    implements = 'blkdev'
+class SymbolicLink(INode):
+    implements = 'symlink'
+class FIFO(INode):
+    implements = 'fifo'
+class Socket(INode):
+    implements = 'socket'
 
 

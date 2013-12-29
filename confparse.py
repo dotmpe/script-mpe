@@ -259,9 +259,10 @@ class Values(dict):
         if key == '.source_key' or key == '.'+self.source_key:
             return
         src = self.getsource()
-        cl = src.__dict__['changelog']
-        if key not in cl:
-            cl.append(key)
+        if src:
+            cl = src.__dict__['changelog']
+            if key not in cl:
+                cl.append(key)
 
     def __setitem__(self, name, v):
         mod = self
