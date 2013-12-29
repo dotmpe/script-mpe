@@ -21,8 +21,8 @@ from taxus import SqlBase, SessionMixin, \
         Node, INode, Dir, \
         ID, Name, Locator, \
         Host, \
-        Locator, Tag, current_hostname
-import taxus_out
+        Locator, Tag
+from taxus.util import current_hostname
 
 
 

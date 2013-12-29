@@ -106,8 +106,8 @@ class Tag(Name):
     name = Column(String(255), unique=True, nullable=True)
     #sid = Column(String(255), nullable=True)
     # XXX: perhaps add separate table for Tag.namespace attribute
-    namespaces = relationship('Namespace', secondary=tag_namespace_table)
-        backref='tags')
+#    namespaces = relationship('Namespace', secondary=tag_namespace_table,
+#        backref='tags')
 
 
 
