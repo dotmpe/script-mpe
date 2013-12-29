@@ -59,6 +59,7 @@ class Dir(INode):
 
     dir_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
 
+
 class File(INode):
 
     __tablename__ = 'files'

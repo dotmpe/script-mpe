@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-import sys, pprint, json
+import sys, pprint
+
+import res.js
 
 
-data = json.loads(open(sys.argv[1]).read())
+data = res.js.loads(open(sys.argv[1]).read())
 
 pprint.pprint(data)

@@ -178,6 +178,10 @@ class Values(dict):
         else:
             self[key] = value
 
+    # TODO: Vakues deepcopy
+    def deepcopy(self):
+        pass
+
 
 class Settings( Values ):
 
