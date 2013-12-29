@@ -621,7 +621,6 @@ class Radical(libcmd.SimpleCommand):
     zope.interface.implements(res.iface.ISimpleCommand)
 
     PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
-
     VERSION = "0.1"
     USAGE = """Usage: %prog [options] paths """
 

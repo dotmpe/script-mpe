@@ -1,0 +1,109 @@
+#!/usr/bin/env python
+"""
+mimereg - a configuration based extension-mediatype mapper
+
+
+TODO: handle language tags
+TODO: handle encoding tags
+TODO: rename basename-reg
+"""
+import os
+import optparse
+from pprint import pformat
+
+import confparse
+import libcmd
+from libcmd import optparse_override_handler
+
+
+usage_descr = ""
+
+CONFIG = '~/.mpe-mimereg.yaml'
+CONFIG = os.path.expanduser('~/.basename-reg.yaml')
+CONFIG_DEFAULT = dict(
+        fer = dict( # this program
+            ext_map = dict( # multi-format tags
+                tgz = ['tar','gz']
+            ),
+            mime_ext_reg = dict( # the local extension-mime mapping
+            ),
+            lang_xref = dict(), # generate map for locale TODO load from ISO lists
+            charset_xref = dict(), # TODO: load/generate also
+            mime_xref = { # map mime to a list with all known extensions, a category and description
+                    "application/yaml": (['yaml'], 'Script', "Yet Another Markup Language")
+                }
+            )
+        )
+
+conf = None
+fullname = None
+
+def save_config():
+    global conf, fullname
+    fl = open(fullname, 'rw+')
+    yaml.dump(conf, fl)
+    fl.close()
+
+#
+
+def _cmddict(**override):
+    d = dict(
+            action='callback',
+            dest='command',
+            callback=optparse_override_handler,
+            callback_args=(None,) # default value is option name with '-' to '_'
+        )
+    d.update(override)
+    return d
+
+class FileExtensionRegistry(libcmd.SimpleCommand):
+   
+    PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
+    VERSION = "0.1"
+    USAGE = """Usage: %prog [options] paths """
+    DEFAULT_ACTION = 'run_filetype_scan'
+    DEFAULT_CONFIG_KEY = 'fer'
+        
+    def __init__(self):
+        super(FileExtensionRegistry, self).__init__()
+        self.load(CONFIG)
+
+    def load(self, yamlpath):
+        self.settings = confparse.load_path(yamlpath)
+
+    def run_filetype_scan(self, tag):
+        """
+        """
+        tags = [tag]
+        for t in tags:
+            while t in conf.ext_map:
+                i = tags.index(t)
+                tags.remove(t)
+                tags = tags[:i] + conf.ext_map[t] + tags[i+1:]
+
+    def list_extensions(self):
+        "List all (registered) extensions"
+        for x in self.settings.mime_ext_reg:
+            print x
+
+    def list_mediatypes(self):
+        "List all (global) mediatypes"
+        for x in self.settings.mime_xref:
+            print x
+
+    @classmethod
+    def get_optspec(klass, inherit):
+        """
+        Return tuples with optparse command-line argument specification.
+        """
+        return (
+                (('--list-extensions',), _cmddict()),
+                (('--list-mediatypes',), _cmddict()),
+            )
+
+
+
+if __name__ == '__main__':
+    FileExtensionRegistry.main()
+
+

@@ -3,6 +3,7 @@ import os
 import time
 
 from script_mpe import lib
+from confparse import yaml_load, yaml_dump
 
 
 ISO_8601_DATETIME = '%Y-%m-%dT%H:%M:%SZ'

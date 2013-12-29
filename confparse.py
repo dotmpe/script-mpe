@@ -30,7 +30,6 @@ from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
 
-
 try:
     import syck
     yaml_load = syck.load
@@ -42,6 +41,7 @@ except ImportError, e:
         yaml_dump = yaml.dump
     except ImportError, e:
         print >>sys.stderr, "confparse.py: no YAML parser"
+
 
 _ = None
 "In-mem. settings. "
@@ -92,6 +92,7 @@ def expand_config_path(name, paths=config_path):
 
     return find_config_path(name, path=getcwd(), paths=list(paths))
 
+
 def find_config_path(markerleaf, path=None, prefixes=config_prefix,
         suffixes=config_suffix, paths=[], exists=os.path.exists):
 
@@ -134,6 +135,7 @@ def find_config_path(markerleaf, path=None, prefixes=config_prefix,
                 cleaf = os.path.expanduser(os.path.join(cpath, cleaf))
                 if not exists or exists(cleaf):
                     yield cleaf
+
 
 class Values(dict):
 
@@ -491,8 +493,10 @@ def load(name, paths=config_path):
         #sys.exit(1)
     ext = splitext(config)[1]
     if isdir(config):
+        assert not ext
         values_type = FSValues 
     else:
+        assert not ext or ext == 'yaml', ext
         values_type = YAMLValues
     _paths[config] = name
     settings = load_path(config, type=values_type)

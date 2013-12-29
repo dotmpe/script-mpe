@@ -805,8 +805,8 @@ class TargetResolver(object):
                 value = kwds[arg_name]
             ret_kwds[arg_name] = value
         
-        if "options" in ret_kwds:
-            ret_kwds['options'] = opts
+        if "opts" in ret_kwds:
+            ret_kwds['opts'] = opts
         if "args" in ret_kwds:
             ret_kwds['args'] = args
 
@@ -1067,7 +1067,7 @@ class SimpleCommand(object):
         ret_args, ret_kwds = (), {}
 
         if func_kwds_var:
-            ret_kwds = {'options':None,'args':None}
+            ret_kwds = {'opts':None,'args':None}
 
         if func_defaults:
             func_defaults = list(func_defaults) 
@@ -1086,8 +1086,8 @@ class SimpleCommand(object):
             assert len(args) == len(func_arg_vars), (args, func_arg_vars, handler)
             ret_args += tuple(args)
 
-        if "options" in ret_kwds:
-            ret_kwds['options'] = opts
+        if "opts" in ret_kwds:
+            ret_kwds['opts'] = opts
         if "arguments" in ret_kwds:
             ret_kwds['arguments'] = args
 
@@ -1221,7 +1221,7 @@ class SimpleCommand(object):
         rcfile = list(confparse.expand_config_path(name))
         print name, rcfile
 
-    def stat(self, options=None, arguments=None):
+    def stat(self, opts=None, args=None):
         if not self.rc:
             err("Missing run-com for %s", self.NAME)
         elif not self.rc.version:
@@ -1232,7 +1232,8 @@ class SimpleCommand(object):
             else:
                 err("Run com version mismatch: %s vs %s", self.rc.version,
                         self.VERSION)
-        print arguments, options
+        print args, opts
+        ions
 
     def help(self, parser, opts, args):
         print """

@@ -4,7 +4,7 @@ basename-reg: split filename from known extensions
 
 current impl. allows concatenation of var. tags, known and unknown 
 
-todo should determine which tag identifies current format
+TODO: should determine which tag identifies current format
 other tags may participate in format, or not
 
 ie. mysql.bz2
@@ -18,17 +18,19 @@ or tar.gz
 		*ext-type -> enum( archive, compression, format )
 
 	storage:
-		ext-reg: 
+		mime-ext-reg: 
 			ext -> mime
 		ext-map: 
 			ext -> ext
 		multi:
 			ext -> *ext
-		xref:
+		mime-xref:
 			mime -> *ext, mtype, descr
 		wild xref:
 			mime -> *ext, descr
 			ext -> *mime
+
+
 
 """
 import os
@@ -84,7 +86,7 @@ CONFIG = '~/.basename-reg.yaml'
 conf = None
 fullname = None
 
-def get_config():
+def load_config():
 	global conf, fullname
 	fullname = os.path.expanduser(CONFIG)
 	conf = yaml.load(open(fullname))
@@ -92,14 +94,15 @@ def get_config():
 		print "Failed loding config. "
 	elif not conf:
 		conf = {}
-
-	if 'file_ext' not in conf:
+    #if not conf:
+	if 'ext_map' not in conf:
 		conf['ext_map'] = {}
-		conf['ext_reg'] = {}
+		conf['mime_ext_reg'] = {}
 		conf['multi'] = {}
-		conf['xref'] = {}
+		conf['mime_xref'] = {}
 		conf['wxref'] = {}
 		conf['ftype'] = []
+        #conf = CONFIG_DEFAULT.copy()
 		save_config()
 
 def save_config():
@@ -264,7 +267,7 @@ def main(argv, stdout, stderr):
 		prsr.add_option(*a, **k)
 	opts, args = prsr.parse_args(argv)
 
-	get_config()
+	load_config()
 
 	out = BasenameOut(opts, stdout, stderr)
 
@@ -313,10 +316,10 @@ def main(argv, stdout, stderr):
 				out.err("Error: non-canonical extension, rename required. ")
 				continue
 
-			if ce in conf['ext_reg']:
+			if ce in conf['mime_ext_reg']:
 				# found it, print continue
-				mime = conf['ext_reg'][ce]
-				exts, ftype, descr = conf['xref'][mime]
+				mime = conf['mime_ext_reg'][ce]
+				exts, ftype, descr = conf['mime_xref'][mime]
 				out.emit_known_extension(a, n, ce, mime, exts, ftype, descr)
 
 			elif not os.path.exists(a):
@@ -325,12 +328,12 @@ def main(argv, stdout, stderr):
 			else:
 				# look for mime
 				mime = lib.cmd("file -bi %r" % a).strip()
-				if mime in conf['xref']:
+				if mime in conf['mime_xref']:
 					# ok, have a mime, ask later wether to use it for ext
-					exts, ftype, descr = conf['xref'][mime]
+					exts, ftype, descr = conf['mime_xref'][mime]
 					out.emit_new_extension_known_mime(a, n, ce, mime, exts, ftype, descr)
 				elif not opts.interactive:
-					out.err("New MIME %r" % mime)
+					out.err("Need to select ext for MIME %r" % mime)
 					continue
 				elif store_mime != 'a':
 					descr = lib.cmd("file -bs %r" % a).strip()
@@ -345,7 +348,7 @@ def main(argv, stdout, stderr):
 						mime = lib.Prompt.input("Use MIME? ", mime)
 						descr = lib.Prompt.input("Use description? ", descr)
 						ftype = ftypes[store_mime]
-						conf['xref'][mime] = [exts, ftype, descr]
+						conf['mime_xref'][mime] = [exts, ftype, descr]
 						save_config()
 				else:
 					assert False
@@ -359,8 +362,8 @@ def main(argv, stdout, stderr):
 					# FIXME
 					cext = lib.Prompt.input("Register which? %s" % mime, ce)
 
-				if cext in conf['ext_reg']:
-					mime2 = conf['ext_reg'][cext]
+				if cext in conf['mime_ext_reg']:
+					mime2 = conf['mime_ext_reg'][cext]
 					if mime != mime2:
 						out.err("Error: Conflicting mime %r" % mime)
 				else:
@@ -368,7 +371,7 @@ def main(argv, stdout, stderr):
 							(exts, descr, mime), "yN")
 					print v
 					if v:
-						conf['ext_reg'][cext] = mime
+						conf['mime_ext_reg'][cext] = mime
 						save_config()
 					else:
 						continue
