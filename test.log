@@ -84,25 +84,3 @@ FAILED (failures=2, errors=2)
 Coverage.py warning: Module rsr was never imported.
 Coverage.py warning: Module radical was never imported.
 Coverage.py warning: Module workLog was never imported.
-Traceback (most recent call last):
-  File "/usr/local/bin/coverage", line 9, in <module>
-    load_entry_point('coverage==3.7', 'console_scripts', 'coverage')()
-  File "/usr/local/lib/python2.7/dist-packages/coverage/cmdline.py", line 720, in main
-    status = CoverageScript().command_line(argv)
-  File "/usr/local/lib/python2.7/dist-packages/coverage/cmdline.py", line 438, in command_line
-    self.do_execute(options, args)
-  File "/usr/local/lib/python2.7/dist-packages/coverage/cmdline.py", line 582, in do_execute
-    self.coverage.save()
-  File "/usr/local/lib/python2.7/dist-packages/coverage/control.py", line 492, in save
-    self._harvest_data()
-  File "/usr/local/lib/python2.7/dist-packages/coverage/control.py", line 539, in _harvest_data
-    py_file = self.file_locator.canonical_filename(py_file)
-  File "/usr/local/lib/python2.7/dist-packages/coverage/files.py", line 46, in canonical_filename
-    cf = abs_file(filename)
-  File "/usr/local/lib/python2.7/dist-packages/coverage/files.py", line 118, in abs_file
-    path = os.path.abspath(os.path.realpath(path))
-  File "/usr/lib/python2.7/posixpath.py", line 373, in realpath
-    component = join(*bits[0:i])
-  File "/usr/lib/python2.7/posixpath.py", line 80, in join
-    path += '/' + b
-KeyboardInterrupt

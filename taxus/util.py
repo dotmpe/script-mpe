@@ -59,6 +59,21 @@ class SessionMixin(object):
         return self.fetch() != None 
 
 
+    def taxus_id(self):
+        """
+        Return taxus record ID.. for nodes.. ?
+        """
+        return hex(id(self))
+# XXX: is it possible to get the values in the primary key..
+        #for colname in self.metadata.tables[self.__tablename__].primary_key.columns:
+        print dir(self.metadata.tables[self.__tablename__].primary_key.columns)
+        print self.metadata.tables[self.__tablename__].primary_key
+        print self.metadata.tables[self.__tablename__].c
+
+        print dir(self)
+        return self.columns['id']
+
+
 class NodeSet(object):
     zope.interface.implements(iface.INodeSet)
     def __init__(self, iterable):

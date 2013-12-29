@@ -14,6 +14,7 @@ import zope.interface
 from zope.interface.interface import adapter_hooks
 from zope.interface.adapter import AdapterRegistry
 
+from script_mpe.lib import cn
 #import taxus
 #import libcmd
 
@@ -110,8 +111,6 @@ class IPersisted(IResource):
 
 # /xxx
 
-def cn(obj):
-    return obj.__class__.__name__
 
 
 class PrimitiveFormatter(object):

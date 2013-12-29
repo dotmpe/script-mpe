@@ -234,6 +234,7 @@ def txs_session(prog=None, sa=None, opts=None, settings=None):
         if not host:
             log.crit("Could not get host")
     urlresolver = LocalPathResolver(host, sa)
+    log.info("On %s", host)
     yield Keywords(sa=sa, ur=urlresolver)
 
 @Target.register(NS, 'pwd', 'txs:session')

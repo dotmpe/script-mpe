@@ -29,7 +29,3 @@ def last_modified_header(filepath):
     ltime_tuple = time.gmtime(os.path.getmtime(filepath))
     return iso8601_datetime_format(ltime_tuple)
 
-def class_name(o):
-    return o.__class__.__name__
-
-cn = class_name

@@ -806,7 +806,7 @@ class TargetResolver(object):
             ret_kwds[arg_name] = value
         
         if "opts" in ret_kwds:
-            ret_kwds['opts'] = opts
+            ret_kwds['opts'] = confparse.Values(kwds)
         if "args" in ret_kwds:
             ret_kwds['args'] = args
 
@@ -819,6 +819,16 @@ import os,sys
 import confparse
 import lib
 
+
+def cmddict(**override):
+    d = dict(
+            action='callback',
+            dest='command',
+            callback=optparse_override_handler,
+            callback_args=(None,) # default value is option name with '-' to '_'
+        )
+    d.update(override)
+    return d
 
 class SimpleCommand(object):
 
@@ -905,8 +915,7 @@ class SimpleCommand(object):
                 'default': True,
                 'action': 'store_false' }),
 
-#            (('--init-config',),{ 'action': 'callback', 'help': "(Re)initialize "
-#                "runtime-configuration with default values. ",
+#            (('--init-config',),cmddict(help="runtime-configuration with default values. "
 #                'dest': 'command', 
 #                'callback': optparse_override_handler }),
 #
@@ -1088,8 +1097,8 @@ class SimpleCommand(object):
 
         if "opts" in ret_kwds:
             ret_kwds['opts'] = opts
-        if "arguments" in ret_kwds:
-            ret_kwds['arguments'] = args
+        if "args" in ret_kwds:
+            ret_kwds['args'] = args
 
 # FIXME: merge opts with rc before running command, (see init/update-config)
         return ret_args, ret_kwds

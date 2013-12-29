@@ -1,16 +1,21 @@
 """
-Classes using primitive values and dict and lists.
+Classes using primitive values and native structures.
 
 TreeNode
     key
         Unique name or ID
-    value 
+    subnodes
         List of TreeNode instances; subnodes
 
-    Besides key and value, TreeNode supports others attributes.
+    Besides key and subnodes, TreeNode supports others attributes.
     As long as these don't collide with TreeNodeDict (and Python dict).
 
 """
+import zope
+
+from script_mpe.res import iface
+
+
 
 class TreeNodeDict(dict):
 
@@ -25,37 +30,48 @@ class TreeNodeDict(dict):
     for multiple branchings?
     """
 
+    zope.interface.implements(iface.ITreeNode)
+
     prefix = '@'
     "static config for attribute prefix"
     
-    def __init__(self, name):
+    def __init__(self, nodeid):
         dict.__init__(self)
-        self[name] = None
+        self[nodeid] = None
 
-    def getname(self):
+    def getid(self):
         for key in self:
             if not key.startswith(self.prefix):
                 return key
 
-    def setname(self, name):
-        oldname = self.getname()
-        val = self[oldname]
-        del self[oldname]
+    def setid(self, name):
+        oldkey = self.getid()
+        val = self[oldkey]
+        del self[oldkey]
         self[name] = val
 
-    name = property(getname, setname)
+    nodeid = property(getid, setid)
+    "Node.nodid is a property or '@'-prefix attribute key. "
 
     def append(self, val):
-        if not isinstance(self.value, list):
-            self[self.name] = []
-        self.value.append(val)
+        "Node().subnodes append"
+        if not isinstance(self.subnodes, list):
+            self[self.nodeid] = []
+        self.subnodes.append(val)
 
-    def getvalue(self):
-        return self[self.name]
+    def remove( self, val ):
+        "self item remove"
+        self[ self.nodeid ].remove( val )
 
-    value = property(getvalue)
+    def getsubnodes(self):
+        "self item return"
+        return self[self.nodeid]
+
+    subnodes = property(getsubnodes)
+    "Node.subnodes is a list of subnode instances. "
 
     def getattrs(self):
+        "Return keys filtered by prefix. "
         attrs = {}
         for key in self:
             if key.startswith(self.prefix):
@@ -63,21 +79,24 @@ class TreeNodeDict(dict):
         return attrs
 
     attributes = property(getattrs)
+    "Node.attributes is a list of attributes with prefix stripped from keys. "
 
     def __getattr__(self, name):
-        if name in self.__dict__ or name in ('name', 'value', 'attributes'):
-            return super(TreeNodeDict, self).__getattr__(name)
-        elif '@'+name in self:
+        # @xxx: won't properties show up in __dict__?
+        #print self, '__getattr__', name
+#        if name in self.__dict__ or name in ('name', 'subnodes', 'attributes'):
+#            return super(TreeNodeDict, self).__getattr__(name)
+        if self.prefix+name in self:
             return self[self.prefix+name]
 
-    def __setattr__(self, name, value):
-        if name in self.__dict__ or name in ('name', 'value', 'attributes'):
-            super(TreeNodeDict, self).__setattr__(name, value)
-        else:
-            self[self.prefix+name] = value
+    def __setattr__(self, name, subnodes):
+#        if name in self.__dict__ or name in ('name', 'subnodes', 'attributes'):
+#            super(TreeNodeDict, self).__setattr__(name, subnodes)
+        self[self.prefix+name] = subnodes
 
     def __repr__(self):
-        return "<%s%s%s>" % (self.name, self.attributes, self.value or '')
+        return "<%s%s%s>" % (self.name, self.attributes, self.subnodes or '')
+
 
     def deepcopy(self):
         """
@@ -93,7 +112,7 @@ class TreeNodeDict(dict):
         for k in self:
             v = self[k]
             if v:
-                if k == self.name:
+                if k == self.nodeid:
                     d[k] = [ _copy(sub) for sub in v ]
                 else:
                     d[k] = _copy(v)
@@ -103,8 +122,10 @@ class TreeNodeDict(dict):
 
 class TreeNodeTriple(tuple):
 
+    zope.interface.implements(iface.ITreeNode)
+
     """
-    TreeNode build on top of tuple. XXX: Unused, not implemented. 
+    TreeNode build on top of tuple. XXX: Unused.
     Triple is id, attributes and subnodes.
     """
 

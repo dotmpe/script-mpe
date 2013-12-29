@@ -46,16 +46,6 @@ def save_config():
 
 #
 
-def _cmddict(**override):
-    d = dict(
-            action='callback',
-            dest='command',
-            callback=optparse_override_handler,
-            callback_args=(None,) # default value is option name with '-' to '_'
-        )
-    d.update(override)
-    return d
-
 class FileExtensionRegistry(libcmd.SimpleCommand):
    
     PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
@@ -97,8 +87,8 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
         Return tuples with optparse command-line argument specification.
         """
         return (
-                (('--list-extensions',), _cmddict()),
-                (('--list-mediatypes',), _cmddict()),
+                (('--list-extensions',), libcmd.cmddict()),
+                (('--list-mediatypes',), libcmd.cmddict()),
             )
 
 

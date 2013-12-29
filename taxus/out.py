@@ -1,3 +1,4 @@
+from script_mpe.lib import cn
 
 
 ### User view/Debug serializers
@@ -11,8 +12,6 @@ class Formatters(object):
     types = {}
 
 
-def cn(obj):
-    return obj.__class__.__name__
 
 
 class PrintedRecordMixin(object):

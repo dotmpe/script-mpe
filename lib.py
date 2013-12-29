@@ -11,7 +11,7 @@ import readline
 from os.path import basename, join,\
         isdir
 
-import log
+from script_mpe import log
 #import confparse
 #
 #
@@ -156,8 +156,10 @@ def timestamp_to_datetime(timestamp, epoch=EPOCH):
 
     return date
 
-def cn(obj):
-    return obj.__class__.__name__
+def class_name(o):
+    return o.__class__.__name__
+
+cn = class_name
 
 
 if __name__ == '__main__':

@@ -33,7 +33,7 @@ class Host(core.Node):
         return "//%s" % self.hostname.name
 
     def __str__(self):
-        return "<Host %s>" % self.hostname
+        return "Host at %s with hostname %s" % ( hex(id(self)), self.hostname )
 
     def __repr__(self):
         return "<Host %r>" % self.hostname

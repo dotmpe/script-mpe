@@ -557,12 +557,12 @@ class Metadir(object):
 
     def __str__(self):
         guid = self.guid
-        return "%s at %s with GUID %s" % (util.cn(self), self.id_path, guid)
+        return "%s at %s with GUID %s" % (lib.cn(self), self.id_path, guid)
 
     def __repr__(self):
         guid = self.guid
 #        guid = hex(id(self))
-        return "<%s %s at %s>" % (util.cn(self), guid, self.id_path)
+        return "<%s %s at %s>" % (lib.cn(self), guid, self.id_path)
 
     @classmethod
     def find(clss, *paths):
