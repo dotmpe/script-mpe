@@ -1,8 +1,6 @@
 import sys
 import os
-from datetime import datetime
 import re
-import socket
 
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
@@ -22,28 +20,6 @@ import log
 
 SqlBase = declarative_base()
 metadata = SqlBase.metadata
-
-class DNSLookupException(Exception):
-
-    def __init__( self, addr, exc ):
-        self.addr = addr
-        self.exc = exc
-
-    def __str__( self ):
-        return "DNS lookup error for %s: %s" % ( self.addr, self.exc )
-
-DNSCache = {}
-
-def nameinfo(addr):
-    try:
-        DNSCache[ addr ] = socket.getaddrinfo(
-            addr[ 0 ], addr[ 1 ], socket.AF_INET, socket.SOCK_STREAM )
-    except Exception, e:
-        raise DNSLookupException(addr, e)
-
-    print DNSCache[ addr ][ 0 ]
-
-    family, socktype, proto, canonname, sockaddr = DNSCache[ addr ][ 0 ]
 
 
 class Topic(Tag):
