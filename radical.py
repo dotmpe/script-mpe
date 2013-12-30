@@ -758,6 +758,6 @@ class Radical(libcmd.SimpleCommand):
             #embedded.store(dbsession)
 
 if __name__ == '__main__':
-    Radical().main()
+    Radical.main()
     #TargetResolver().main(['cmd:options'])
 

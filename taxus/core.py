@@ -1,3 +1,6 @@
+"""
+Docs are in __init__
+"""
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
@@ -36,7 +39,7 @@ class Node(SqlBase, SessionMixin):
     __tablename__ = 'nodes'
     node_id = Column('id', Integer, primary_key=True)
 
-    ntype = Column('ntype', String(50), nullable=False)
+    ntype = Column(String(50), nullable=False)
     __mapper_args__ = {'polymorphic_on': ntype}
     
     name = Column(String(255), nullable=True)
@@ -53,13 +56,22 @@ class Node(SqlBase, SessionMixin):
 class ID(SqlBase, SessionMixin):
 
     """
-    A global identifier.
+    A global system identifier.
     """
 
     zope.interface.implements(iface.IID)
 
     __tablename__ = 'ids'
     id_id = Column('id', Integer, primary_key=True)
+
+    idtype = Column(String(50), nullable=False)
+    __mapper_args__ = {'polymorphic_on': idtype}
+
+    global_id = Column(String(255), index=True, unique=True, nullable=False)
+    """
+    With regard to x-db deployment, not using string ID as or in primary key 
+    for table, even while that makes sense to me.
+    """
 
     date_added = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
@@ -69,19 +81,22 @@ class ID(SqlBase, SessionMixin):
 class Name(SqlBase, SessionMixin):
 
     """
-    A global identifier name.
+    A local unique identifier.
     """
 
     zope.interface.implements(iface.IID)
 
-    __tablename__ = 'ids_name'
+    __tablename__ = 'names'
     name_id = Column('id', Integer, primary_key=True)
+
+    nametype = Column(String(50), nullable=False)
+    __mapper_args__ = {'polymorphic_on': nametype}
+
+    name = Column(String(255), index=True, unique=True)
 
     date_added = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
-
-    name = Column(String(255), index=True, unique=True)
 
     def __str__(self):
         return "%s at %s having %r" % (lib.cn(self), self.taxus_id(), self.name)
@@ -98,10 +113,10 @@ class Tag(Name):
     """
     zope.interface.implements(iface.IID)
 
-    __tablename__ = 'ids_tag'
+    __tablename__ = 'names_tag'
     __mapper_args__ = {'polymorphic_identity': 'tag'}
 
-    tag_id = Column('id', Integer, ForeignKey('ids_name.id'), primary_key=True)
+    tag_id = Column('id', Integer, ForeignKey('name_tag.id'), primary_key=True)
 
     #name = Column(String(255), unique=True, nullable=True)
     #sid = Column(String(255), nullable=True)
@@ -122,9 +137,10 @@ class Topic(Tag):
     XXX: a basic type indicator to toggle between a thing or an idea.
     Names are given in singular form, a text field codes the plural for UI use.
     """
-    __tablename__ = 'ids_topic'
+    __tablename__ = 'names_topic'
     __mapper_args__ = {'polymorphic_identity': 'topic'}
-    topic_id = Column('id', Integer, ForeignKey('ids_tag.id'))
+
+    topic_id = Column('id', Integer, ForeignKey('names_tag.id'), primary_key=True)
 
     about_id = Column(Integer, ForeignKey('nodes.id'))
 
@@ -132,6 +148,8 @@ class Topic(Tag):
     thing = Column(Boolean)
     plural = Column(String)
 
+    # TODO backref from locators of this topic
+    # TODO hierarchical relation
 
 
 doc_root_element_table = Table('doc_root_element', SqlBase.metadata,
