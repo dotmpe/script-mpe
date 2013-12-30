@@ -5,7 +5,6 @@ import os, stat, sys
 import re, anydbm
 from datetime import datetime
 
-
 from sqlalchemy.orm.exc import NoResultFound
 
 import confparse
@@ -98,6 +97,19 @@ class TaxusFe(libcmd.SimpleCommand):
         Return tuples with optparse command-line argument specification.
         """
         return (
+                # XXX: duplicates Options
+                (('--init',), {
+                    'action': 'store_true',
+                    'help': "Initialize target" }),
+                (('-d', '--dbref'), { 'metavar':'URI', 
+                    'default': DEFAULT_DB, 
+                    'dest': 'dbref',
+                    'help': "A URI formatted relational DB access description "
+                        "(SQLAlchemy implementation). Ex: "
+                        " `sqlite:///taxus.sqlite`,"
+                        " `mysql://taxus-user@localhost/taxus`. "
+                        "The default value (%default) may be overwritten by configuration "
+                        "and/or command line option. " }),
             )
 
 

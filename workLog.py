@@ -32,6 +32,8 @@ from taxus import Taxus
 import taxus.semweb
 import taxus.generic
 
+from taxus import SessionMixin
+
 
 # Data model 
 
@@ -106,8 +108,13 @@ class workLog(txs.TaxusFe):
             )
 
     def tasks(self, opts=None):
-        print self.session.query(Ticket)\
+        sa = SessionMixin.get_instance('default', opts.dbref, opts.init)
+        print 'All tickets', sa.query(Ticket).all()
+        print 'Active tickets', sa.query(Ticket)\
                 .filter(Ticket.active == True).all()
+
+    # TODO: perhaps implement export and update from import while I'm to lazy to
+    # implement all of the UI.. maybe. requires demux + 
 
     # Manage project nodes
 
