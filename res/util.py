@@ -3,6 +3,7 @@ import os
 import time
 
 import lib
+from confparse import yaml_load, yaml_dump
 
 
 ISO_8601_DATETIME = '%Y-%m-%dT%H:%M:%SZ'
@@ -27,6 +28,4 @@ def iso8601_datetime_format(time_tuple):
 def last_modified_header(filepath):
     ltime_tuple = time.gmtime(os.path.getmtime(filepath))
     return iso8601_datetime_format(ltime_tuple)
-
-
 

@@ -4,7 +4,6 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
 #from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship, backref
 
-
 import iface
 from init import SqlBase
 from util import SessionMixin
@@ -21,6 +20,9 @@ nodes_nodes = Table('nodes_nodes', SqlBase.metadata,
     Column('nodes_idb', Integer, ForeignKey('nodes.id'), nullable=False),
     Column('nodes_idc', Integer, ForeignKey('nodes.id'))
 )
+
+
+
 
 class Node(SqlBase, SessionMixin):
 
@@ -40,7 +42,7 @@ class Node(SqlBase, SessionMixin):
     ntype = Column('ntype', String(50), nullable=False)
     __mapper_args__ = {'polymorphic_on': ntype}
     
-    name = Column(String(255), nullable=False, unique=True)
+    name = Column(String(255), nullable=True, unique=False)
     
     #space_id = Column(Integer, ForeignKey('nodes.id'))
     #space = relationship('Node', backref='children', remote_side='Node.id')
@@ -106,10 +108,10 @@ class Name(SqlBase, SessionMixin):
     name = Column(String(255), index=True, unique=True)
 
     def __str__(self):
-        return "<%s %r>" % (lib.cn(self), self.name)
+        return "%s at %s having %r" % (lib.cn(self), self.taxus_id(), self.name)
 
     def __repr__(self):
-        return "<Name %r>" % self.name
+        return "<%s %s %r>" % (lib.cn(self), hex(id(self)), self.name)
 
 
 class Tag(Node):
@@ -131,8 +133,4 @@ class Tag(Node):
     name = Column(String(255), unique=True, nullable=True)
     #sid = Column(String(255), nullable=True)
 
-
-
-if __name__ == '__main__':
-	pass
 

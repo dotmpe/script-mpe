@@ -1,6 +1,6 @@
 from fnmatch import fnmatch
 import os
-from os.path import dirname, join, basename, isdir
+from os.path import join 
 import re
 import stat
 
@@ -99,7 +99,7 @@ class File(INode):
         for p in klass.ignore_paths:
             if fnmatch(path, p):
                 return True
-        name = basename(path)
+        name = os.path.basename(path)
         for p in klass.ignore_names:
             if fnmatch(name, p):
                 return True
@@ -135,6 +135,7 @@ def exclusive ( opts, filters ):
         for n in filters.split(' '):
             if opts[n] == None:
                 opts[n] = True
+
 
 class Dir(INode):
     implements = 'dir'
@@ -184,7 +185,7 @@ class Dir(INode):
         for p in klass.ignore_paths:
             if fnmatch(path, p):
                 return True
-        name = basename(path)
+        name = os.path.basename(path)
         for p in klass.ignore_names:
             if fnmatch(name, p):
                 return True
@@ -235,7 +236,7 @@ class Dir(INode):
         exclusive( opts, 'dirs files symlinks links pipes blockdevs' )
         dirpath = None
         file_filters, dir_filters = filters
-        assert isdir( path )
+        assert os.path.isdir( path )
         if opts.dirs and opts.include_root:
             yield unicode( path, 'utf-8' )
         for root, dirs, files in os.walk(path): # XXX; does not use StatCache
@@ -315,7 +316,7 @@ class Dir(INode):
 
         TODO return ITreeNode impl, can do lazy walk--but walk will not return INode=types
         """
-        p = basename( path ) + ( isdir( path ) and os.sep or '' ) 
+        p = os.path.basename( path ) + ( os.path.isdir( path ) and os.sep or '' ) 
         INodeType = INode.getsubclass( path )
         node = INodeType( p )
         print path, INodeType, node
