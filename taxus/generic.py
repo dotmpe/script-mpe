@@ -1,3 +1,7 @@
+from sqlalchemy import Column, Integer, String, Boolean, Text, \
+    ForeignKey, Table, Index, DateTime
+from sqlalchemy.orm import relationship, backref
+
 import core
 import semweb
 

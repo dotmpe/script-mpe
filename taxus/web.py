@@ -80,13 +80,6 @@ class Resource(core.Node):
     # extension_headers  = Column(String())
 
 
-#resource_variant_table = Table('resource_variant', SqlBase.metadata,
-#    Column('res_ida', Integer, ForeignKey('res.id'), primary_key=True),
-#    Column('vres_idb', Integer, ForeignKey('vres.id'), primary_key=True),
-##    mysql_engine='InnoDB', 
-##    mysql_charset='utf8'
-#)
-
 
 class Invariant(Resource):
 

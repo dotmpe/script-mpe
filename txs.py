@@ -91,7 +91,14 @@ class LocalPathResolver(object):
 class TaxusFe(libcmd.SimpleCommand):
     # XXX: for simplecommand, use superclass and shared config/schema/data or
     # separate command-line frontends?
-    pass
+
+    @classmethod
+    def get_optspec(klass, inherit):
+        """
+        Return tuples with optparse command-line argument specification.
+        """
+        return (
+            )
 
 
 DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')

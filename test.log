@@ -1,3 +1,7 @@
+/usr/lib/python2.7/dist-packages/sqlalchemy/orm/mapper.py:203: SAWarning: Could not assemble any primary keys for locally mapped table 'ids_topic' - no rows will be persisted in this Table.
+  self._configure_pks()
+/usr/lib/python2.7/dist-packages/sqlalchemy/orm/mapper.py:203: SAWarning: Could not assemble any primary keys for locally mapped table 'docs' - no rows will be persisted in this Table.
+  self._configure_pks()
 test_1_ (test_libcmd.CMDTest1) ... ok
 test_0_init (test_confparse.CPTest1) ... ok
 test_1_find_config (test_confparse.CPTest1) ... ok
@@ -33,7 +37,7 @@ ERROR: test_4_lists (test_confparse.CPTest1)
 Traceback (most recent call last):
   File "/srv/project-mpe/script-mpe/test_confparse.py", line 169, in test_4_lists
     self.assertEqual(test_settings.foo.test4[0].foo, 'bar')
-  File "/srv/project-mpe/script-mpe/confparse.py", line 295, in __getattr__
+  File "/srv/project-mpe/script-mpe/confparse.py", line 296, in __getattr__
     return dict.__getitem__(self, name)
 KeyError: 'test4'
 

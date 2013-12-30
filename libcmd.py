@@ -891,12 +891,12 @@ class SimpleCommand(object):
                     "Others 1:info, 3:warning, 4:error, 5:alert, and 6:critical.",
                 'default': 2,
             }),
+   
+            (('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
+                "threshold. Overriden by --quiet or --message-level.",
+                'action': 'callback',
+                'callback': optparse_increase_verbosity}),
     
-#            (('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
-#                "threshold. Overriden by --quiet or --message-level.",
-#                'action': 'callback',
-#                'callback': optparse_decrement_message}),
-#    
 #            (('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
 #                "and prompts (--interactive). ", 
 #                'dest': 'quiet', 
@@ -1022,6 +1022,8 @@ class SimpleCommand(object):
         self.optparser, opts, kwds_, args = self.parse_argv(
                 self.get_optspecs(), argv, self.USAGE, self.VERSION)
 
+        log.category = opts.message_level
+
         handler = getattr(self, opts.command)
         args, kwds = self.main_prepare_kwds(handler, opts, args)
 
@@ -1050,7 +1052,7 @@ class SimpleCommand(object):
         "Static, persisted self.settings. "
         self.settings.config_file = config_file
 
-    def cmd_options(self, argv=[], **kwds):
+    def cmd_options(self, argv=[], opts=None, **kwds):
         # XXX: perhaps restore shared config later
         # Get a reference to the RC; searches config_file for specific section
         config_key = self.DEFAULT_CONFIG_KEY
@@ -1061,7 +1063,7 @@ class SimpleCommand(object):
             if opts.command == 'init_config':
                 self.init_config_submod()
             else:
-                err("Config key must exist in %s ('%s'), use --init-config. " % (
+                log.err("Config key must exist in %s ('%s'), use --init-config. " % (
                     opts.config_file, opts.config_key))
                 sys.exit(1)
 

@@ -5,7 +5,6 @@ mimereg - a configuration based extension-mediatype mapper
 
 TODO: handle language tags
 TODO: handle encoding tags
-TODO: rename basename-reg
 """
 import os
 import optparse

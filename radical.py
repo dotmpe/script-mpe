@@ -121,8 +121,7 @@ Issues
 - In extension of issue 2, also literals, as embedded in various document
   languages might be used in the same way as comments are. E.g. Python.
 
-TODO:
-::
+TODO: domain structure::
 
                                                       INode
                                                         - type
@@ -159,12 +158,15 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 
 #from cllct.osutil import parse_argv_split
 
+import log
 import confparse
 import libcmd
 from libcmd import optparse_override_handler
 import taxus
 from taxus import Taxus
+from taxus.init import get_session
 import res
+import res.fs
 
 
 # Storage model
@@ -411,7 +413,8 @@ def clean_comment(scan, data):
 
     return data
 
-def find(session, matchbox, source, data, comment_flavours):
+
+def find_tagged_comments(session, matchbox, source, data, comment_flavours):
     """
     Look for tags in data, using the compiled tag regexes
     in matchbox, and post processing each found flavour of comment block to the
@@ -423,8 +426,8 @@ def find(session, matchbox, source, data, comment_flavours):
     the comment block. This makes a distinction between tagged comment lines and
     blocks.
     
-    TODO: The `find` implementation needs optimization, need to index comments
-    first, then scan for tags.
+    TODO: The `find` implementation needs optimization, more efficient to index comments
+    first, then scan for tags. 
 
     Recognized
     are:
@@ -497,7 +500,7 @@ def find(session, matchbox, source, data, comment_flavours):
             continue
 
             # FIXME:
-            # Get and further clean the issue text from the source data
+            #  Get and further clean the issue text from the source data
             tag_data = clean_comment(rc.comment_scan[comment_flavour],
                     data[match.end():description_end].lstrip())
             if inline:
@@ -529,45 +532,35 @@ def find(session, matchbox, source, data, comment_flavours):
 def detect_flavour(pathname, data):
     pass
 
-def find_files(session, matchbox, paths):
+def find_files_with_tag(session, matchbox, paths):
+
     """
     Look for tags in the data at each file path.
     """
+        
     for p in paths:
-        if not os.path.exists(p):
-            err("Path does not exist: %s", p)
-        elif os.path.isdir(p):
-            subs = [ os.path.join(p, d) for d in os.listdir(p) ]
-            # recurse
-            for tag in find_files(session, matchbox, subs):
-                yield tag
-        elif not os.path.isfile(p):
-            err("Ignored non-file path: %s", p)
+        sources = []
+        if not os.path.isdir(p):
+            sources.append(p)
         else:
-            data = open(p).read()
-            comment_flavours = detect_flavour(p, data)
-
+            for p2 in res.fs.Dir.walk(p, opts=dict(recurse=True, files=True)):
+                sources.append(p2)
+    for source in sources:
+        data = open(source).read()
+        comment_flavours = detect_flavour(source, data)
+        try:
+            tag_generator = find_tagged_comments(session, matchbox, source, data, comment_flavours)
+        except Exception, e:
+            log.err("Find: %s", e)
+            tag_generator = None
+        while tag_generator:
             try:
-                tag_generator = find(session, matchbox, p, data, comment_flavours)
-            except Exception, e:
-                err("Find: %s", e)
+                tag = tag_generator.next()
+                yield tag
+            except StopIteration, e:
                 tag_generator = None
-
-            while tag_generator:
-                try:
-                    tag = tag_generator.next()
-                    yield tag
-                except StopIteration, e:
-                    tag_generator = None
-                except Exception, e:
-                    err("Find: %s", e)
-
-
-def get_session(dbref):
-    engine = create_engine(dbref)
-    Base.metadata.create_all(engine)
-    session = sessionmaker(bind=engine)()
-    return session
+            except Exception, e:
+                log.err("Find: %s", e)
 
 def get_service(t):
     return __import__('radical_'+t)
@@ -654,16 +647,8 @@ class Radical(libcmd.SimpleCommand):
                 (('-F', '--add-flavour'),{ 'action': 'callback', 'callback': append_comment_scan,
                     'help': "Scan for these comment flavours only, by default all known fla." }),
 
-                (('--list-flavours',),{ 
-                    'action':'callback', 'dest': 'command',
-                    'callback': optparse_override_handler,
-                    'callback_args': ('list_flavours',), 
-                    'help': "" }),
-                (('--list-scans',),{ 
-                    'action':'callback', 'dest': 'command',
-                    'callback': optparse_override_handler,
-                    'callback_args': ('list_scans',), 
-                    'help': "" }),
+                (('--list-flavours',), libcmd.cmddict()),
+                (('--list-scans',), libcmd.cmddict()),
 
                 #(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
                 #(('-r', '--recurse'),{'action':'store_true', 'default': True,
@@ -676,7 +661,7 @@ class Radical(libcmd.SimpleCommand):
         self.rc.comment_flavours = self.rc.comment_scan.keys()
         self.rc.dbref = self.DEFAULT_DB
 
-    def list_flavours(self, args, opts):
+    def list_flavours(self, args=None, opts=None):
         for flavour in self.rc.comment_scan:
             print "%s:\n\tstart:\t%s" % ((flavour,)+
                     tuple(self.rc.comment_scan[flavour][:1]))
@@ -700,7 +685,12 @@ class Radical(libcmd.SimpleCommand):
             print
         return
 
-    def run_embedded_issue_scan(self, paths, opts):
+    def run_embedded_issue_scan(self, path, opts=None):
+        paths = [path]
+        rcfile = list(confparse.expand_config_path(self.DEFAULT_RC))[0]
+        setattr(self.settings, 'config_file', rcfile)
+        self.cmd_config()
+        self.cmd_options(opts=opts)
         # pre-compile patterns
         matchbox = {}
         for tagname in self.rc.tags:
@@ -723,32 +713,32 @@ class Radical(libcmd.SimpleCommand):
 
         if not paths:
             paths = ['.']
-            # XXX:
+            # XXX debugging
             paths = ['radical_xmldoctext.xml', 'radical.py']
 
         # get backend service
         service = None
         if self.rc.tags[tagname] and len(self.rc.tags[tagname]) > 2:
             service = get_service(self.rc.tags[tagname][2])
+            log.info("Using backend %s", service)
 
         # iterate paths
         global rc
         rc = self.rc
-        for embedded in find_files(dbsession, matchbox,
-                paths):
+        for embedded in find_files_with_tag(dbsession, matchbox, paths):
             if embedded.tag_id:
                 if embedded.tag_id == -1:
-                    print 'New', embedded.file_name, \
+                    log.note('New %r', (embedded.file_name, \
                             embedded.tag_name, embedded.tag_id, \
                             embedded.comment_span, embedded.comment_lines, \
-                            embedded.description
+                            embedded.description))
                     #new_id = service.new_issue(embedded.tag_name, embedded.description)
                     #embedded.set_new_id(new_id)
                 else:
-                    print 'Updated', embedded.file_name, \
+                    log.note('Updated %s', ( embedded.file_name, \
                             embedded.tag_name, embedded.tag_id, \
                             embedded.comment_span, embedded.comment_lines, \
-                            embedded.description
+                            embedded.description))
                     #service.update_issue(embedded.tag_name, embedded.tag_id,
                     #        embedded.description)
             else:
@@ -758,6 +748,6 @@ class Radical(libcmd.SimpleCommand):
             #embedded.store(dbsession)
 
 if __name__ == '__main__':
-    Radical().main()
+    Radical.main()
     #TargetResolver().main(['cmd:options'])
 

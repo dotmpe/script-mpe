@@ -4,7 +4,6 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
 #from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship, backref
 
-
 import iface
 from init import SqlBase
 from util import SessionMixin
@@ -124,7 +123,8 @@ class Topic(Tag):
     """
     __tablename__ = 'ids_topic'
     __mapper_args__ = {'polymorphic_identity': 'topic'}
-    topic_id = Column('id', Integer, ForeignKey('ids_tag.id'))
+
+    topic_id = Column('id', Integer, ForeignKey('ids_tag.id'), primary_key=True)
 
     about_id = Column(Integer, ForeignKey('nodes.id'))
 
@@ -156,7 +156,7 @@ class Document(Node):
     """
     __tablename__ = 'docs'
     __mapper_args__ = {'polymorphic_identity': 'doc'}
-    doc_id = Column('id', Integer, ForeignKey('nodes.id'))
+    doc_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 #    elements = relationship('Element', secondary=doc_root_element_table)
 
 

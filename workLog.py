@@ -25,14 +25,17 @@ from sqlalchemy.orm import relationship
 import zope
 
 import libcmd
+import txs
+import res
 import taxus
 from taxus import Taxus
-import res
+import taxus.semweb
+import taxus.generic
 
 
 # Data model 
 
-class Project(taxus.Description):
+class Project(taxus.semweb.Description):
     """
     """
     __tablename__ = 'wlprojects'
@@ -41,7 +44,7 @@ class Project(taxus.Description):
     project_id = Column('id', Integer, ForeignKey('frags.id'), primary_key=True)
 
 
-class Ticket(taxus.Description):
+class Ticket(taxus.semweb.Description):
     """
     Represent a task with associated effort.
     """
@@ -56,13 +59,13 @@ class Ticket(taxus.Description):
     time_spent = Column(Integer)
     #worklog = relationship('Entry', 
     #        primaryjoin='wltickets.id == wlrecords.ticket_id')
-    comments = relationship(taxus.Comment, 
-            primaryjoin= taxus.Node.id == taxus.Comment.annotated_node )
+    comments = relationship(taxus.generic.Comment, 
+            primaryjoin= taxus.Node.node_id == taxus.generic.Comment.annotated_node )
     #status = Column(Enum ...
     active = Column(Boolean)
 
 
-class Entry(taxus.Description):
+class Entry(taxus.semweb.Description):
     """
     Represent an expenditure of effort.
     """
@@ -82,8 +85,8 @@ class Entry(taxus.Description):
 
 # Main app
 
-# XXX see radical get that working atain
-class workLog(TaxusFe):
+# XXX see radical get that working atain, or mime-reg
+class workLog(txs.TaxusFe):
 
     zope.interface.implements(res.iface.ISimpleCommand)
 
@@ -94,11 +97,15 @@ class workLog(TaxusFe):
     #TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + ['']
     DEFAULT_ACTION = 'tasks'
 
-    def get_opts(self):
-        return TaxusFe.get_opts(self) + ()
+    @classmethod
+    def get_optspec(klass, inherit):
+        """
+        Return tuples with optparse command-line argument specification.
+        """
+        return (
+            )
 
-    def tasks(self, *args, **opts):
-        dbref = opts.get('dbref')
+    def tasks(self, opts=None):
         print self.session.query(Ticket)\
                 .filter(Ticket.active == True).all()
 

@@ -1,5 +1,6 @@
 from fnmatch import fnmatch
 import os
+from os.path import join 
 import re
 
 from script_mpe import confparse
@@ -254,7 +255,7 @@ class Dir(INode):
                     dirs.remove(node)
                 if not opts.dirs:
                     continue
-                dirpath = os.path.join(root, node)
+                dirpath = join(root, node)
                 #dirpath = os.path.join(root, node).replace(path,'').lstrip('/') +'/'
                 depth = pathdepth(dirpath.replace(path, ''))
                 if not os.path.exists(dirpath):
@@ -283,7 +284,7 @@ class Dir(INode):
                 dirpath = Klass.decode_path(dirpath, opts)
                 yield dirpath
             for leaf in list(files):
-                filepath = os.path.join(root, leaf)
+                filepath = join(root, leaf)
                 if not os.path.exists(filepath):
                     log.err("Error: non existant leaf %s", filepath)
                     if opts.exists != None and not opts.exists:
