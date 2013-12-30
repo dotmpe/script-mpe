@@ -46,10 +46,10 @@ class INode(core.Node):
             return "file:%s" % (lp)
 
     def __str__(self):
-        return "<%s %s>" % (out.cn(self), self.location)
+        return "<%s %s>" % (lib.cn(self), self.location)
 
     def __repr__(self):
-        return "<%s %s>" % (out.cn(self), self.location)
+        return "<%s %s>" % (lib.cn(self), self.location)
 
 
 class Dir(INode):
@@ -145,7 +145,7 @@ class LocalPathResolver(object):
 #                location=locator,
                 date_added=datetime.now())
         inode.commit()
-        log.note("New local path %s node for %s: %s", out.cn(inode), path, inode)
+        log.note("New local path %s node for %s: %s", lib.cn(inode), path, inode)
         return inode
 
     def get_type(self, path):

@@ -1,3 +1,7 @@
+from sqlalchemy import Column, Integer, String, Boolean, Text, \
+    ForeignKey, Table, Index, DateTime
+from sqlalchemy.orm import relationship, backref
+
 import core
 import semweb
 
@@ -19,7 +23,6 @@ class Comment(semweb.Description):
     node = relationship(core.Node, 
             primaryjoin=annotated_node==core.Node.node_id)
     comment = Column(Text)
-
 
 
 

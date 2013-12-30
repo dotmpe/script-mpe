@@ -15,11 +15,11 @@ from sqlalchemy.orm import relationship, backref
 
 #from debug import PrintedRecordMixin 
 
+import lib
 import iface
 from util import SessionMixin
-
-import lib
 import log
+import web
 
 
 class LocalResource(Node):
@@ -42,13 +42,11 @@ class LocalResource(Node):
     inode = relationship('INode', primaryjoin='inodes.id == id')
 
 
-
 class QName():
     pass#ns = ...
 
 
-
-class Namespace(Variant):
+class Namespace(web.Variant):
     """
     """
     __tablename__ = 'ns'
@@ -56,6 +54,9 @@ class Namespace(Variant):
 
     namespace_id = Column('id', Integer, ForeignKey('vres.id'), primary_key=True)
 
+    # tags = *Tag; see relationship in tag_namespace_table
+
+    # FIXME: where does the prefix go
 
 #class BoundNamespace(ID):
 #    __tablename__ = 'ns_bid'
@@ -64,7 +65,7 @@ class Namespace(Variant):
 #    prefix = Column(String(255), unique=True)
 
 
-class Relocated(Resource):
+class Relocated(web.Resource):
 
     __tablename__ = 'relocated'
     __mapper_args__ = {'polymorphic_identity': 'resource:relocated'}
@@ -77,7 +78,7 @@ class Relocated(Resource):
     temporary = Column(Boolean)
 
 
-class Volume(Resource):
+class Volume(web.Resource):
 
     # XXX: merge with res.Volume
 
@@ -97,12 +98,13 @@ class Volume(Resource):
     node_id = Column(Integer, ForeignKey('nodes.id'))
     root = relationship(Node, backref='volumes',
             primaryjoin=node_id == Node.node_id)
-    
 
-class Bookmark(Resource):
+
+class Bookmark(web.Resource):
 
     """
-    A simple textual annotation with a sequence of tags,
+    A textual annotation with a short and long descriptive label,
+    a sequence of tags, the regular set of dates, 
     and is itself a resource.
     """
 
@@ -131,7 +133,7 @@ workset_locator_table = Table('workset_locator', SqlBase.metadata,
 )
 
 
-class Workset(Resource):
+class Workset(web.Resource):
 
     """
     One or more locators together form a new resource that should represent
@@ -150,21 +152,21 @@ class Workset(Resource):
 token_locator_table = Table('token_locator', SqlBase.metadata,
     Column('left_id', Integer, ForeignKey('stk.id'), primary_key=True),
     Column('right_id', Integer, ForeignKey('ids_lctr.id'), primary_key=True),
-#    mysql_engine='InnoDB', 
-#    mysql_charset='utf8'
 )
 
 
 class Token(SqlBase, SessionMixin):
 
+    """
+    A large-value variant on Tag, perhaps should make this a typetree.
+    """
+
     __tablename__ = 'stk'
-#    __table_args__ = {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'}
-#    __mapper_args__ = {'polymorphic_identity': 'meta:security-token'}
+    __mapper_args__ = {'polymorphic_identity': 'meta:security-token'}
 
     token_id = Column('id', Integer, primary_key=True)
-    #token_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
-    value = Column(Text(65535))#, index=True, nullable=True)
+    value = Column(Text(65535), index=True, nullable=True)
     refs = relationship(Locator, secondary=token_locator_table)
 
 

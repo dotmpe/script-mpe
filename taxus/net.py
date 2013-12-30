@@ -33,7 +33,7 @@ class Host(core.Node):
         return "//%s" % self.hostname.name
 
     def __str__(self):
-        return "<Host %s>" % self.hostname
+        return "Host at %s with hostname %s" % ( hex(id(self)), self.hostname )
 
     def __repr__(self):
         return "<Host %r>" % self.hostname
@@ -69,7 +69,7 @@ class Locator(SqlBase, SessionMixin):
     date_deleted = Column(DateTime)
 
     #ref = Column(String(255), index=True, unique=True)
-    # XXX: varchar(255) would be much too small for many URL locators 
+    # XXX: varchar(255) would be much too small for many (web) URL locators 
     ref = Column(Text(2048), index=True, unique=True)
 
     @property
