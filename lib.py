@@ -1,3 +1,4 @@
+import anydbm
 import datetime
 import getpass
 import optparse
@@ -7,6 +8,7 @@ import select
 import socket
 import subprocess
 import sys
+import math
 
 from os.path import basename, join,\
         isdir
@@ -58,19 +60,67 @@ def get_checksum_sub(path, checksum_name='sha1'):
 
     Returns the hexadecimal encoded digest directly.
     """
-    pathd = path.decode('utf-8')
-    data = cmd("%ssum \"%s\"", checksum_name, pathd)
-    p = data.index(' ')
-    hex_checksum, filename = data[:p], data[p:].strip()
+    pathd = path.decode( 'utf-8' )
+    if checksum_name == 'ck':
+        data = cmd( "cksum \"%s\"", pathd ).strip()
+        p = data.find( ' ', 1 )
+        p2 = data.find( ' ', p+1 )
+        checksum, size, filename = data[:p], data[p:p2].strip(), data[p2:].strip()
+
+    else:
+        data = cmd( "%ssum \"%s\"", checksum_name, pathd )
+        p = data.index( ' ' )
+        checksum, filename = data[:p], data[p:].strip()
+
     # XXX: sanity check..
-    assert filename == path, (filename, path)
-    return hex_checksum
+    assert filename == path, ( filename, path )
+
+    return checksum
 
 def get_sha1sum_sub(path):
-    return get_checksum_sub(path)
+    return get_checksum_sub( path )
 
 def get_md5sum_sub(path):
-    return get_checksum_sub(path, 'md5')
+    return get_checksum_sub( path, 'md5' )
+
+def get_sparsesig_v(offset, path):
+    """
+    Get variable length of bytes from path. Spaced evenly across content.
+    """
+    r = []
+    fl = open( path ) 
+    s = os.path.getsize( path )
+    w = offset
+    for i in range( 0, s, w ):
+        fl.seek( i )
+        r.append( fl.read( 1 ) )
+        if len( r ) == b:
+            break
+    return "".join( r )
+
+def get_sparsesig_fixed(count, path):
+    """
+    Get 1 bytes per X bytes from path (var. length key).
+    """
+    s = os.path.getsize( path )
+    MB = 1024 ** 2
+    GB = 1024 ** 3
+    TB = 1024 ** 4
+    if s < 1024:
+        return get_sparsesig_v( 1024, path )
+    elif s < MB:
+        return get_sparsesig_v( MB, path )
+    elif s < GB:
+        return get_sparsesig_v( GB, path )
+    elif s < TB:
+        return get_sparsesig_v( TB, path )
+    else:
+        assert not s, s
+
+def get_sparsesig(count, path):
+    s = os.path.getsize( path )
+    w = int( math.floor( float( s ) / count ) )
+    return get_sparsesig_v( w, path )
 
 def get_format_description_sub(path):
     format_descr = cmd("file -bs %r", path).strip()
@@ -98,15 +148,15 @@ def remote_proc(host, cmd):
 def human_readable_bytesize(length, suffix=True, suffix_as_separator=False):
     assert suffix
     if length > 1024**4:
-        s =  "%sG" % (float(length)/1024**4)
+        s =  "%.2fG" % (float(length)/1024**4)
     elif length > 1024**3:
-        s =  "%sG" % (float(length)/1024**3)
+        s =  "%.2fG" % (float(length)/1024**3)
     elif length > 1024**2:
-        s =  "%sM" % (float(length)/1024**2)
+        s =  "%.2fM" % (float(length)/1024**2)
     elif length > 1024:
-        s =  "%sk" % (float(length)/1024)
+        s =  "%.2fk" % (float(length)/1024)
     else:
-        s =  "%s" % length
+        s =  "%.2f" % length
     if suffix_as_separator and not s[-1].isdigit():
         s = s[:-1].replace('.', s[-1])
     return s
@@ -145,6 +195,23 @@ def timestamp_to_datetime(timestamp, epoch=EPOCH):
 def cn(obj):
     return obj.__class__.__name__
 
+def get_index( path, mode='w' ):
+    #print 'get_index', path, mode
+    if not os.path.exists( path ):
+        assert 'w' in mode
+        try:
+            anydbm.open( path, 'n' ).close()
+            print 'new', path
+        except Exception, e:
+            raise Exception( "Unable to create new resource DB at <%s>: %s" %
+                    ( path, e ) )
+    try:
+        return anydbm.open( path, mode )
+    except anydbm.error, e:
+        raise Exception( 
+                "Unable to access resource DB at <%s>: %s" %
+                ( path, e ) )
+
 
 if __name__ == '__main__':
     print get_sha1sum_sub("volume.py");
@@ -158,6 +225,7 @@ if __name__ == '__main__':
                 ('m',os.path.getmtime(f)),):
             print n, timestamp_to_datetime(ts), f
 
+    print get_sparsesig( 32, "lib.py" )
 
 
 # http://code.activestate.com/recipes/134892-getch-like-unbuffered-character-reading-from-stdin/
@@ -240,5 +308,10 @@ class Prompt(object):
                 print 'Answer:', options[choice] 
                 return choice
 
+def strlen( s, l ):
+    if len( s ) > l:
+        h = int( round( l / 2 ) )
+        return s[ :h ] + '[...]' + s[ h: ]
+    return s
 
 

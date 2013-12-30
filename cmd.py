@@ -30,9 +30,8 @@ import log
 from libname import Namespace, Name
 from libcmd import OptionParser, Targets, Arguments, Keywords, Options,\
     Target, optparse_increment_message, optparse_override_quiet
-from res import PersistedMetaObject, Workspace
 # XXX
-from taxus import current_hostname
+from taxus.util import current_hostname
 
 
 # Register this module with libcmd
@@ -43,6 +42,9 @@ NS = Namespace.register(
         prefix='cmd',
         uriref='http://project.dotmpe.com/script/#/cmdline'
     )
+
+def validate_message_level(option, opt, value, parser):
+    assert 0 <= value and value <= 7
 
 Options.register(NS, 
 
@@ -90,14 +92,14 @@ Options.register(NS,
         (('-m', '--message-level',),{ 'metavar':'level',
             'help': "Increase chatter by lowering "
             "message threshold. Overriden by --quiet or --verbose. "
-            "Levels are 0--7 (debug--emergency) with default of 2 (notice). "
-            "Others 1:info, 3:warning, 4:error, 5:alert, and 6:critical.",
-            'default': 2,
+            "Levels are 0--7 (emergency--debug) with default of 5 (notice). ",
+            'default': 5, 'type':'string', 'dest': 'message_level',
+            'action': 'callback', 'callback': validate_message_level
             }),
 
         (('-v', '--verbose',),{ 'help': "Increase chatter threshold. "
             "Overriden by --quiet or --message-level.",
-            'action': 'callback',
+            'action': 'callback', 'callback_args': (0,7),
             'callback': optparse_increment_message}),
 
         (('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
@@ -179,6 +181,7 @@ def cmd_prog(prog=None):
     Command-line program static properties.
     Just assembles a few key values.
     """
+    #log.debug("{bblack}cmd{bwhite}:prog{default}")
     prog = confparse.Values(dict(
         name=os.path.splitext(os.path.basename(__file__))[0],
         version="0.1",
@@ -189,13 +192,17 @@ def cmd_prog(prog=None):
 
 @Target.register(NS, 'pwd', 'cmd:prog')
 def cmd_pwd():
-    path = os.getcwd()
+    #log.debug("{bblack}cmd{bwhite}:pwd{default}")
+    path = os.getcwd() 
+    if not path.endswith( os.sep ):
+        path += os.sep
     yield Keywords(prog=dict(pwd=path))
 
 @Target.register(NS, 'find-config', 'cmd:prog')
 def cmd_config_find():
+    #log.debug("{bblack}cmd{bwhite}:find-config{default}")
     cf = find_config_file()
-    log.debug("config_file=%s", cf)
+    #log.debug("config_file=%s", cf)
     yield Keywords(prog=dict(config_file=cf))
 
 @Target.register(NS, 'config', 'cmd:find-config')
@@ -203,7 +210,10 @@ def cmd_config_init(prog=None):
     """
     Init conf object from persisted config.
     """
+    log.debug("{bblack}cmd{bwhite}:config{default} %r"%prog.config_file)
     conf = confparse.load_path(prog.config_file)
+    assert conf, "missing config"
+    #print prog.config_file, conf
     yield Keywords(conf=conf)
 
 @Target.register(NS, 'options', 'cmd:config')
@@ -211,6 +221,7 @@ def cmd_options(conf=None, prog=None):
     """
     Parse arguments
     """
+    #log.debug("{bblack}cmd{bwhite}:options{default}")
     assert prog, prog
     assert conf, conf
     options = Options.get_options()
@@ -227,6 +238,9 @@ def cmd_options(conf=None, prog=None):
             )),
             opts=opts,
         )
+    if log.threshold != opts.message_level:
+        log.note("Changing message level from %s to %s", 
+                log.threshold, opts.message_level)
     log.threshold = opts.message_level
     args = Arguments()
     targs = Targets()
@@ -242,6 +256,7 @@ def cmd_options(conf=None, prog=None):
 
 @Target.register(NS, 'query-config', 'cmd:options')
 def cmd_config_query(prog=None, opts=None, conf=None):
+    #log.debug("{bblack}cmd{bwhite}:query-config{default}")
     k = opts.config_key
     k_print = k
     if '.' in k:
@@ -273,6 +288,7 @@ def cmd_targets(prog=None):
     """
     XXX: deprecate? use --help.
     """
+    #log.debug("{bblack}cmd{bwhite}:targets{default}")
     prog.optparser.print_targets()
     yield Keywords(targets=prog.optparser.targets)
 
@@ -280,55 +296,15 @@ def cmd_targets(prog=None):
 def cmd_host(prog=None):
     """
     """
-    log.debug("{bblack}cmd{bwhite}:host{default}")
+    #log.debug("{bblack}cmd{bwhite}:host{default}")
     host = current_hostname()
     yield Keywords(prog=dict(host=host))
 
 @Target.register(NS, 'userdir', 'cmd:options')
 def cmd_userdir(prog=None, conf=None):
     userdir = os.path.expanduser(conf.cmd.lib.paths.userdir)
+    assert os.path.exists( userdir ), userdir
     yield Keywords(prog=dict(userdir=userdir))
-
-@Target.register(NS, 'lib', 'cmd:userdir')
-def cmd_lib(prog=None, conf=None):
-    """
-    Initialize stores for Workspace.
-
-    ---- old
-
-    PersistedMetaObject sessions are kept in three types of directories.
-    These correspond with the keys in cmd.lib.paths.
-    Sessions are initialized from cmd.lib.sessions.
-
-    Also one objects session for user and system.
-    The current user session is also set as default session.
-
-    options (conf):
-        - cmd.lib.paths.systemdir
-        - cmd.lib.paths.userdir
-        - cmd.lib.sessions
-    other arguments
-        - prog.userdir
-
-    yields 
-        - lib.stores
-        - lib.indices (XXX: these are really at the stores still)
-        - lib.paths
-    """
-    assert conf, conf
-    Workspace.init(conf)
-    #yield Keywords(
-    #        lib=confparse.Values(dict(
-    #            stores=confparse.Values(dict(
-    #                system=sysdb,
-    #                user=usrdb,
-    #                volumes=vdb
-    #            )),
-    #            paths=confparse.Values(dict(
-    #            )),
-    #        )),
-    #    )
-
 
 
 # XXX: Illustration of the three kwd types by cmdline

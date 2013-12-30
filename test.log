@@ -14,11 +14,19 @@ test_1_read_list (test_confparse2.CP2Test1) ... ok
 test_2_read_nested (test_confparse2.CP2Test1) ... ok
 test_write (test_confparse2.CP2Test1) ... ok
 test_1_ (test_taxus.TaxusTest1) ... ok
+test_1_exclusive (test_res_fs.ResFsTest) ... ok
+test_2_dir_walk (test_res_fs.ResFsTest) ... ok
+unittest.case.FunctionTestCase (_test)
 Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (_test)
 Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (_test)
 Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (_test)
 Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (_test)
 Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (_test)
 Res_FormatTest_sha1sum ... ok
 
 ======================================================================
@@ -30,7 +38,7 @@ Traceback (most recent call last):
 StopIteration
 
 ----------------------------------------------------------------------
-Ran 22 tests in 0.380s
+Ran 24 tests in 0.130s
 
 FAILED (errors=1)
 Coverage.py warning: Module rsr was never imported.

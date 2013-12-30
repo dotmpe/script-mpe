@@ -21,12 +21,19 @@ import statvfs
 import subprocess
 import datetime
 from pprint import pformat
+<<<<<<< HEAD
 try:
     import bencode
 except:
     bencode = None
 # use jsonlib or simplejson
+try:
+    import simplejson as _json
+except:
+    import json as _json
+=======
 import bencode
+>>>>>>> dev_treemap_tmp
 
 import res.js
 

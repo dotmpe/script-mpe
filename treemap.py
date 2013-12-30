@@ -9,26 +9,86 @@ Updates
 -------
 October 2012
     - using blksize to calculate actual occupied disk space.
-    - adding storage::
+    - a too detailed storage will drag performance. The current operations
+      per file are constant, so file count is the limiting factor.
 
-             path@value
-             path@space
-             path@size
+TODO: the storage should create a report for some directory, sorry about
+    threshold later.
+
+"""
+"""Create a tree of the filesystem using dicts and lists.
+
+    All filesystem nodes are dicts so its easy to add attributes.
+    One key is the filename, the value of this key is None for files,
+    and a list of other nodes for directories. Eg::
+
+        {'rootdir': [
+            {'filename1':None},
+            {'subdir':[
+                {'filename2':None}
+            ]}
+        ]}
+    """
+
+"""
+
+Caching structured
+
+Filetree prototype: store paths in balanced, traversable tree structure 
+for easy, fast and space efficient
+index trees of filesystem (and other hierarchical structrures).
+
+Introduction
+______________________________________________________________________________
+Why? Because filepath operations on the OS are generally far more optimized
+than native code: only for extended sets some way of parallel (caching) 
+structure may optimize performance. However since filesystem hierarchies are 
+not balanced we want to avoid copying (parts) of the unbalanced structure to 
+our index.
+
+Operations on each file may be fairly constant when dealing with the descriptor,
+or depend on file size. The calling API will need to determine when to create 
+new nodes.
+
+Treemap accumulates the filecount, disk usage and file sizes onto all directory
+nodes in the tree. Conceptually it may be used as an enfilade with offsets and
+widths?
+
+
+Implementation
+______________________________________________________________________________
+Below is the code where Node implements the interface to the stored data,
+and a separate Key implementation specifies the index properties of it.
+Volume is the general session API which is a bit immature, but does store
+and reload objects. Storage itself is a simple anydb with json encoded data.
+
+
+
 """
 import sys
 import os
 import shelve
-from types import NoneType
 from pprint import pformat
 from os import listdir, stat, lstat
 from os.path import join, exists, islink, isdir, getsize, basename, dirname, \
     expanduser, realpath
 
+import zope
+from zope.component.factory import IFactory, Factory
+from zope.component import \
+        getGlobalSiteManager, \
+        getUtility, queryUtility, createObject
+
+import res.iface
+import res.fs
 import res.js
 import res.primitive    
 
 
-class Node(res.primitive.TreeNodeDict):
+gsm = getGlobalSiteManager()
+
+
+class TreeMapNode(res.primitive.TreeNodeDict):
 
     # Persistence methods
 
@@ -111,6 +171,74 @@ class Node(res.primitive.TreeNodeDict):
     def get_stored( clss, path ):
         return clss.storage[ path.encode() ]
 
+    def space( self, parent_path ):
+        """
+        Return the size in disk blocks taken by the filetree.
+        """
+        path = join( parent_path, self.name )
+        if self.value:
+            space = 0
+            for node in self.value:
+                space += node.space( path )
+            return space
+        elif islink( path ):
+            return lstat( path ).st_blocks
+        elif exists( path ):
+            return stat( path ).st_blocks
+        else:
+            raise Exception( "Path does not exist: %s" % path )
+
+    def size( self, parent_path ):
+        """
+        Return the size in bytes taken by the files in the filetree.
+        XXX: does this count dirs?
+        """
+        path = join( parent_path, self.name )
+        if self.value:
+            size = 0
+            for node in self.value:
+                size += node.size( path )
+            return size 
+        elif islink( path ):
+            return lstat( path ).st_size
+        elif exists( path ):
+            return stat( path ).st_size
+        else:
+            raise Exception( "Path does not exist: %s" % path )
+
+    @property
+    def isdir( self ):
+        "Check for trailing '/' convention. "
+        return self.name.endswith( os.sep )
+
+    def files( self, parent_path ):
+        "This does a recursive file count. "
+        path = join( parent_path, self.name )
+        if self.value:
+            files = 0
+            for node in self.value:
+                files += node.files( path )
+            return files
+        else:
+            return 1
+
+
+    # Persistence methods
+    # XXX: unused iface stubs here, see dev_treemap_tmp
+
+    def reload_data( self, parentdir, force_clean=None ):
+        """
+        Call this after initialization to compare the values to the 
+        DB, and set the 'fresh' attribute.
+        """
+
+    def commit( self, parentdir ):
+        """
+        Call this after running?
+        Need to clean up non existant paths
+        """
+
+
 
 def find_parent( dirpath, subleaf, get_realpath=False ):
     if get_realpath:
@@ -137,18 +265,19 @@ def find_volume( dirpath ):
     return vol
 
 
+# old, figure out storage
 def fs_node_init( path ):
 #    print '\fs_node_init', '-'*79, path
     path = path.rstrip( os.sep )
     path2 = path
     if isdir( path ) and path[ -1 ] != os.sep:
         path2 += os.sep
-    node = Node( basename( path ) + ( isdir( path ) and os.sep or '' ) )
-    if Node.is_stored( path2 ):
+    node = TreeMapNode( basename( path ) + ( isdir( path ) and os.sep or '' ) )
+    if TreeMapNode.is_stored( path2 ):
         node.reload_data( dirname( path ) )
         return node
     else:
-        return Node( basename( path ) + ( isdir( path ) and os.sep or '' ) )
+        return TreeMapNode( basename( path ) + ( isdir( path ) and os.sep or '' ) )
 #    print '/fs_node_init', '-'*79, path
 
 
@@ -166,6 +295,8 @@ def fs_tree( dirpath, tree ):
             ]}
         ]}
     """
+    assert dirpath
+    assert tree.name
     fs_encoding = sys.getfilesystemencoding()
     path = join( dirpath, tree.name )
 #    print '\\fs_tree', '-'*79, dirpath, tree.name
@@ -260,6 +391,79 @@ def fs_treesize( root, tree, files_as_nodes=True ):
     tree.space += ( stat( cdir ).st_blocks * 512 )
 
 
+class TreeNodeHelper(object):
+    def append(self, o):
+        self.subnodes.append(o)
+    def remove(self, o):
+        self.subnodes.remove(o)
+    # XXX may want to namepsace, specifiy attribute names and values too for easy handling
+
+class TreeMap(TreeNodeHelper):
+    """
+    TODO: load from JSON, ie. load from something loaded into primitive ITreeNode impl.
+    TODO: update length, space attributes based on OS.
+    """
+
+    zope.interface.implements(res.iface.ITreeNode)
+
+    def __init__(self):
+        pass
+
+    def init(self, tree, opts):
+        # XXX dust-off and subclass MetaDir and load last report on init?
+        if tree:
+            self.tree = tree
+        else:
+            self.tree = NullTree()
+        # TODO tree is fresh while self.dirpath 'has not been updated'
+    
+    def attributes(self):
+        # FIXME: if self.tree is fresh, return attr from dict
+        return self.tree.attributes()
+
+    def subnodes(self):
+        # FIXME: if self.tree is fresh, return attr from dict
+        return self.tree.subnodes()
+
+    def update(self):
+        """
+        """
+# FIXME: just implement the ITreeNode stuff for INode and let a visitor handle
+# getting the data
+        # move tree to in-memory TreeNodeDict, get space and size attrs too
+        #tv = TreeVisitor( )
+        # TODO visitor-type Clone: create tree from ITreeFactory and ITreeNode
+        self.tree = res.primitive.TreeNodeDict()
+
+        tv = res.helper.TreeCloner( res.helper.tree_factory( res.primitive.TreeNodeDict ) )
+        tv.visit( self.tree )
+
+# TODO visitor to set name/subnodes to TreeNodeDict, or to get them from INode tree
+# same for space, size, time attr etc
+# XXX other (dual-tree or parallel-tree) visitors to update one tree from another,
+# or to trigger node methods
+# XXX: how does a parallel-tree-visitor work
+
+    def report(self, *mapfields):
+        """
+        IFile has length and space, 
+        IDir has space and IHier rel. to other Node, and so also accumulated length and space.
+        """
+        # XXX
+        #vstr = IVisitor(.. mapfields ..)
+        #v = ITreeVisitor( self.tree, vstr )
+        #v.visit( self.inode )
+
+
+treemap_factory = Factory(TreeMap, 'TreeMap')
+
+gsm.registerUtility(treemap_factory, IFactory, 'treemap')
+
+#queryUtility(IFactory, 'treemap')()
+#createObject('treemap')
+
+
+
 def usage(msg=0):
     print """%s
 Usage:
@@ -287,8 +491,8 @@ def main():
     argv = list(sys.argv)
 
     treepath = argv.pop()
-    # strip trailing os.sep
     if not basename(treepath): 
+        # strip trailing os.sep
         treepath = treepath[:-1]
     assert basename(treepath) and isdir(treepath), \
             usage("Must have dir as last argument")
@@ -301,10 +505,28 @@ def main():
     # Get shelve for storage
     if not opts.voldir:
         opts.voldir = find_volume( path )
-    storage = Node.storage = shelve.open( join( opts.voldir, 'treemap.db' ) )
+    storage = TreeMapNode.storage = shelve.open( join( opts.voldir, 'treemap.db' ) )
+
+    ### Init FileTree and TreeMap
+
+    # zac
+#    nodetree = getUtility(res.iface.IDir).tree( path, opts )
+#    #nodetree = INode( path )
+#    treemap = createObject('treemap')
+#    treemap.init( nodetree, opts )
+#    treemap.report(':count', 'length', 'space')
+#
+#    return
+#
+#    # wrong, passing-down-arguments approach ("facade")
+#    treemap = TreeMap(path)
+#    treemap.tree( opts )
+#
+#    return
 
     # Walk filesystem, updating where needed
     tree = fs_node_init( path )
+    print tree
     fs_tree( dirname( path ), tree )
 #    print 'prefix', tree.prefix
 #    print 'dir', dir(tree)
@@ -315,12 +537,13 @@ def main():
     # Add space attributes
 #    fs_treesize( dirname( path ), tree )
 
+
+    ### Update storage
+
     # Set proper root path, and output
     tree.name = path + os.sep
 #    fs_treemap_write( debug, tree )
     #print 'fs_treemap_write', pformat(tree)
-
-    # Update storage
     tree.commit( dirname( path ) )
 #    print storage[ path + os.sep ]
 #    for fn in listdir( path ):

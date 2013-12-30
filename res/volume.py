@@ -2,6 +2,8 @@ import os
 import confparse
 from persistence import PersistedMetaObject
 
+import log
+
 
 class Workspace(PersistedMetaObject):
 
@@ -31,8 +33,8 @@ class Volume(PersistedMetaObject):
 #            'sha1_content_digest',
 #            'md5_content_digest',
 #            'pwd',
-            ('vpath', 'objects'),
-            ('vtype', 'index'),
+            ( 'vpath', 'objects' ),
+            ( 'vtype', 'index' ),
         )
 
     @classmethod
@@ -60,7 +62,7 @@ class Volume(PersistedMetaObject):
         if not paths:
             return
         path = paths[0]
-        print 'found root <%s> for <%s>' %( path, dirpath )
+        log.note( 'Found volumedir <%s> for dirpath <%s>' %( path, dirpath ) )
         return path
         
     @classmethod
@@ -68,13 +70,13 @@ class Volume(PersistedMetaObject):
         """
         XXX: remove, should be in PersistedMetaObject
         """
-        cdir = os.path.join(dirpath, settings.cmd.lib.paths.localdir)
-        if not os.path.exists(cdir):
-            os.mkdir(cdir)
+        cdir = os.path.join( dirpath, settings.cmd.lib.paths.localdir )
+        if not os.path.exists( cdir ):
+            os.mkdir( cdir )
         volume = Volume()
         
         volume.key
-        volume.set('path', dirpath)
+        volume.set( 'path', dirpath )
         Volume.sync()
         return
 

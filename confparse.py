@@ -119,7 +119,7 @@ def find_config_path(markerleaf, path=None, prefixes=config_prefix,
         paths.extend(tree_paths(path))
     while paths:
         cpath = paths.pop(0)
-        print 'find_config_path', cpath
+        #print 'find_config_path', cpath
         for prefix in prefixes:
             for suffix in suffixes:
                 #print (cpath, prefix, suffix,)
@@ -134,45 +134,23 @@ def find_config_path(markerleaf, path=None, prefixes=config_prefix,
 
 class Values(dict):
 
-    """
-    Holds configuration settings once loaded.
-    """
-
-    default_source_key = 'config_file'
-    default_config_key = 'default'
-#
-#    def keys(self):
-#        return [x for x in self.__dict__ if not x.startswith('_')]
-
-    def __len__(self):
-        return len(self.keys())
-
-    def __str__(self):
-        return '<Values:%s(#%s)>' % (self.path(), len(self))
-
-    def __repr__(self):
-        return 'Values(%s)'%self.keys()#+str(dict(values))+')'
-
-    def __init__(self, defaults=None, source_file=None, root=None, source_key=None):
+    def __init__(self, defaults=None, root=None):
         self.__dict__['parent'] = root
-        self.__dict__['initialized'] = False
-
-        if not source_key:
-            source_key = self.default_source_key
-        self.__dict__['source_key'] = source_key
-        if source_file:
-            self[source_key] = source_file
-            #self.__dict__[self.source_key] = source_file
-
-        self.__dict__['changelog'] = []
-        #self.__dict__.update(dict(
-        #    parent=root, updated=False, source_file=source_file))
-        #print '1', self.__dict__
         if defaults:
             for key in defaults:
                 self.initialize(key, defaults[key])
-        self.__dict__['initialized'] = True
-        #TODO:self.updated = False
+
+    def __setattr__(self, name, v):
+        if name in self.__dict__:
+            self.__dict__[name] = v
+        else:
+            return dict.__setitem__(self, name, v)
+
+    def __getattr__(self, name):
+        if name in self.__dict__:
+            return self.__dict__[name]
+        else:
+            return dict.__getitem__(self, name)
 
     def initialize(self, key, value):
         if isinstance(value, dict):
@@ -200,6 +178,49 @@ class Values(dict):
         else:
             self[key] = value
 
+    # TODO: Vakues deepcopy
+    def deepcopy(self):
+        pass
+
+
+class Settings( Values ):
+
+    """
+    Holds configuration settings once loaded.
+    """
+
+    default_source_key = 'config_file'
+    default_config_key = 'default'
+#
+#    def keys(self):
+#        return [x for x in self.__dict__ if not x.startswith('_')]
+
+    def __len__(self):
+        return len(self.keys())
+
+    def __str__(self):
+        return '<Values:%s(#%s)>' % (self.path(), len(self))
+
+    def __repr__(self):
+        return 'Values(%s)'%self.keys()#+str(dict(values))+')'
+
+    def __init__(self, defaults=None, source_file=None, root=None, source_key=None):
+        self.__dict__['initialized'] = False
+        super( Settings, self ).__init__( defaults, root )
+
+        if not source_key:
+            source_key = self.default_source_key
+        self.__dict__['source_key'] = source_key
+        if source_file:
+            self[source_key] = source_file
+            #self.__dict__[self.source_key] = source_file
+
+        self.__dict__['changelog'] = []
+        #self.__dict__.update(dict(
+        #    parent=root, updated=False, source_file=source_file))
+        #print '1', self.__dict__
+        self.__dict__['initialized'] = True
+        #TODO:self.updated = False
 
     def set_source_key(self, key):
         ckey = self.source_key
@@ -279,18 +300,6 @@ class Values(dict):
         k = self.path()+'.'+name
         self.append_changelog(k)
         return mod.__setitem__(name, v)
-
-    def __setattr__(self, name, v):
-        if name in self.__dict__:
-            self.__dict__[name] = v
-        else:
-            return dict.__setitem__(self, name, v)
-
-    def __getattr__(self, name):
-        if name in self.__dict__:
-            return self.__dict__[name]
-        else:
-            return dict.__getitem__(self, name)
 
     def path(self):
         """
@@ -416,7 +425,7 @@ def backup(file):
         os.rename(file, bup)
 
 
-class YAMLValues(Values):
+class YAML(Settings):
 
     """
     Loads configuration settings from YAML file.
@@ -462,7 +471,7 @@ class YAMLValues(Values):
         return load_path(file)
 
 # XXX:
-class FSValues(Values):
+class FSValues(Settings):
 
     @classmethod
     def load(cls, path):
@@ -477,7 +486,7 @@ class FSValues(Values):
 
 def yaml(path, *args):
     assert not args, "Cannot override from multiple files: %s, %s " % (path, args)
-    return load_path(path, type=YAMLValues)
+    return load_path(path, type=YAML)
 
 def init_config(name, paths=config_prefix, default=None):
 
@@ -506,7 +515,7 @@ def init_config(name, paths=config_prefix, default=None):
 
     return yaml(rcfile)
 
-def load_path(path, type=YAMLValues):
+def load_path(path, type=YAML):
     global _paths, _
     return getattr(type, 'load')(path)
 
@@ -524,7 +533,7 @@ def load(name, paths=config_path):
     if isdir(config):
         values_type = FSValues 
     else:
-        values_type = YAMLValues
+        values_type = YAML
     _paths[config] = name
     settings = load_path(config, type=values_type)
     setattr(_, name, settings)

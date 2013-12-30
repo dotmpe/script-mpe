@@ -192,13 +192,13 @@ class NodeSetFormatter(object):
             strbuf += IFormatted(node).__str__(indent+1) + '\n'
         return strbuf
 
-from datetime import datetime
-
 zope.interface.classImplements(str, IPrimitive)
 zope.interface.classImplements(unicode, IPrimitive)
 zope.interface.classImplements(int, IPrimitive)
 #zope.interface.classImplements(dict, IPrimitive)
 zope.interface.classImplements(list, IPrimitive)
+
+from datetime import datetime
 
 zope.interface.classImplements(datetime, IPrimitive)
 

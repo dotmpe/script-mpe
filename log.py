@@ -6,7 +6,7 @@ import sys
 
 import zope.interface
 
-import taxus_out
+from taxus.iface import IFormatted, IPrimitive
 
 # $template custom,"TS:%timereported%;PRI:%pri%;PRI-text:%PRI-text%;APP:%app-name%;PID:%procid%;MID:%msgid%;HOSTNAME:%hostname%;msg:%msg%;FROMHOST:%FROMHOST%;STRUCTURED-DATA:%STRUCTURED-DATA%\n"
 #
@@ -99,6 +99,7 @@ def format_line(msg):
         msg = msg.replace('{%s}' % k, palette[k])
     return msg
 
+# XXX: development value threshold=7
 threshold = 5
 
 def log(level, msg, *args):
@@ -138,8 +139,8 @@ def log(level, msg, *args):
         if isinstance(a, (int,float,str,unicode)):
             pass
         else:
-            if interfaces == [taxus_out.IPrimitive]:
-                args[i] = taxus_out.IFormatted(a).toString()
+            if interfaces == [IPrimitive]:
+                args[i] = IFormatted(a).toString()
             else:
                 args[i] = str(a)
     print >>sys.stderr, msg % tuple(args)
