@@ -47,9 +47,9 @@ class ICommand(Interface):
 
 # treemap, res/primitive additions
 # XXX: should this perhaps inherit IPrimitive
-class IPyDict(zope.interface.Interface): pass
-class IPyList(zope.interface.Interface): pass
-class IPyTuple(zope.interface.Interface): pass
+class IPyDict(Interface): pass
+class IPyList(Interface): pass
+class IPyTuple(Interface): pass
 
 zope.interface.classImplements(list, IPyList)
 zope.interface.classImplements(dict, IPyDict)
@@ -75,7 +75,7 @@ class IReport(Interface):
     line_width = Attribute("If needed, indicate minimal line-width. ")
     line_width_preferred = Attribute("Optionally, indicate preferred line-width. ")
 
-class Node(zope.interface.Interface):
+class Node(Interface):
     """
     XXX emphasize Node is an abtract concept, not either concrete object or class type?
     Node, not INode to not confuse with res.fs.INode, but still an interface not a normal class.
