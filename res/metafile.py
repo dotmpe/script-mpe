@@ -130,6 +130,10 @@ def mpe_prerequisites(mp_class):
 #
 class MetaResolver(object):
 
+    """
+    Adapt metafile content
+    """
+
     default_props = (
 #                'MetaContentIDProperty',
                 MetaContentTypeProperty,

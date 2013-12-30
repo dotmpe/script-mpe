@@ -54,7 +54,7 @@ locators_tags = Table('locators_tags', SqlBase.metadata,
     Column('tags_idb', ForeignKey('ids_tag.id'))
 )
 
-class Locator(SqlBase, SessionMixin):
+class Locator(ID):
 
     """
     A global identifier for retrieval of remote content.
@@ -62,6 +62,16 @@ class Locator(SqlBase, SessionMixin):
     Maybe based on DNS and route, script or filename for HTTP etc.
     For file based descriptors may be registered domain and filename, 
     but also IP and variants on netpath, even inode number lookups.
+
+    Not just variant notations but "seeping through" of the filesystem
+    organization used in locators is what introduces difficult forms of
+    ambiguity. Possibly too in this index, not sure, practice would need to
+    prove.
+
+    The reference should follow URL syntax, not URN or otherwise.
+    FIXME: There is some issue as to lctr-ref length. Would 255 be enough? 
+    Perhaps if rogue web-content where entered into the
+    system is properly contained.
 
     sameAs
         Incorporates sameAs to indicate references which contain parametrization
@@ -82,7 +92,9 @@ class Locator(SqlBase, SessionMixin):
     zope.interface.implements(iface.IID)
 
     __tablename__ = 'ids_lctr'
-    lctr_id = Column('id', Integer, primary_key=True)
+    __mapper_args__ = {'polymorphic_identity': 'id_lctr'}
+
+    lctr_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
 
     date_added = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)

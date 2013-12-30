@@ -8,9 +8,66 @@ foreign-keys). The `nodes` table stores the objects type, meaning there can be
 only one type for a node record at any time.
 
 TODO: redraw this diagram.
+::
+
+    Node<INode>
+     * id_id:Integer<PrimaryKey>
+     * ntype:String<50,NotNull,Polymorphic>
+     * name:String<255,Null>
+     * date_added:DateTime<Index,NotNull>
+     * deleted:Bool<Index,DefaultOff>
+     * date_deleted:DateTime<Null>
+
+    ID<IID>
+     " A global system identifier.
+     * id_id:Integer<PrimaryKey>
+     * global_id:String<255,Index,Unique,NotNull>
+     * date_added:
+     * deleted:
+     * date_deleted:
+     A
+     |
+    Locator<IID>
+     " A global identifier for retrieval of remote content.
+     * ref:String<2048,Index,Unique>
+     - scheme:String
+     - path:String
+
+to cut down on sparseness, perhaps move ref column to
+other dedicated big-string index type like Token.. meh
+::
+
+    Name<IID>
+     " A local unique identifier.
+     * name:String<index,unique>
+     A
+     |
+    Tag<IID>
+     " a localName, in at least one namespace
+     * namespaces:*Namespace
+     A
+     |
+    Topic<IID>
+     * topic_id:Integer<PrimaryKey>
+     * about_id:Integer<ForeignKey(tag_id)>
+     * thing:Bool
+     * explanation:Text
+     * plural:String
+
+Names may turn out to be different, or the same.
+Different names may be noted as such, ie. given a sense-number using some notation.
+Otherwise; names that are the same, can be aggregated into the same node where possible.
+Ie. in this case Tags that are the same are merged by combining their lists of namespaces
+onto one node record. 
+That may not always be feasible.
+Their sense should be the same too.
+Lets hope it finds clarity and not raise semantics.
+
+Older diagram follows.
+
 Inheritance hierarchy and relations::
 
-                         Node
+                         Node:Node
                           * id:Integer
                           * ntype:<polymorphic-ID>
                           * name:String(255)
@@ -26,7 +83,7 @@ Inheritance hierarchy and relations::
         |     * value      |          |            |      |
         |     * refs       |          |            |      |
         |                  |          |            |      |
-       INode               |         Status       Host    |
+       INode:Node          |         Status       Host    |
         * local_path:255   |          * nr         * hostname 
         * size             |          * http_code         |
         * cum_size         |                              |
