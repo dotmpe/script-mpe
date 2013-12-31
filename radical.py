@@ -608,7 +608,7 @@ rc = confparse.Values()
 
 # Main
 
-#class Radical(taxus.Taxus):
+# TODO see bookmarks, basename-reg, mimereg, flesh out TaxusFe
 class Radical(libcmd.SimpleCommand):
 
     zope.interface.implements(res.iface.ISimpleCommand)

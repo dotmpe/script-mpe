@@ -1,7 +1,3 @@
-/usr/lib/python2.7/dist-packages/sqlalchemy/orm/mapper.py:203: SAWarning: Could not assemble any primary keys for locally mapped table 'ids_topic' - no rows will be persisted in this Table.
-  self._configure_pks()
-/usr/lib/python2.7/dist-packages/sqlalchemy/orm/mapper.py:203: SAWarning: Could not assemble any primary keys for locally mapped table 'docs' - no rows will be persisted in this Table.
-  self._configure_pks()
 test_1_ (test_libcmd.CMDTest1) ... ok
 test_0_init (test_confparse.CPTest1) ... ok
 test_1_find_config (test_confparse.CPTest1) ... ok
@@ -82,7 +78,7 @@ AssertionError: {'foo': {'bar': {'var': 'v'}, 'test4:[{foo': 'bar}]'}, 'config_f
 
 
 ----------------------------------------------------------------------
-Ran 22 tests in 0.045s
+Ran 22 tests in 0.046s
 
 FAILED (failures=2, errors=2)
 Coverage.py warning: Module rsr was never imported.

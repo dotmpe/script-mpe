@@ -4,6 +4,8 @@
 """
 import os
 
+import zope
+
 import res
 from txs import TaxusFe
 
@@ -15,17 +17,27 @@ class bookmarks(TaxusFe):
 
     NAME = os.path.splitext(os.path.basename(__file__))[0]
 
-    DEFAULT_CONFIG_KEY = NAME
+    DEFAULT_CONFIG_KEY = 'bm'
 
     #TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + ['']
-    DEFAULT_ACTION = 'tasks'
+    DEFAULT_ACTION = 'stats'
 
-    def get_optspec(klass, inherit):
+    DEPENDS = {
+            'stats': ['txs-session']
+        }
+
+    @classmethod
+    def get_optspec(Klass, inherit):
         """
         Return tuples with optparse command-line argument specification.
         """
         return (
                 )
+
+    def stats(self, opts=None):
+        ""
+        # get store with metadir and show stats
+
 
 
 if __name__ == '__main__':

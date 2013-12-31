@@ -18,7 +18,7 @@ class Host(core.Node):
     __mapper_args__ = {'polymorphic_identity': 'host'}
 
     host_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-    hostname_id = Column(Integer, ForeignKey('ids_name.id'))
+    hostname_id = Column(Integer, ForeignKey('names.id'))
     hostname = relationship(core.Name, primaryjoin='Host.hostname_id==Name.name_id')
 
     @classmethod
@@ -51,10 +51,10 @@ locators_checksum = Table('locators_checksum', SqlBase.metadata,
 # mapping table for Tag [*-*] Locator
 locators_tags = Table('locators_tags', SqlBase.metadata,
     Column('locator_ida', ForeignKey('ids_lctr.id')),
-    Column('tags_idb', ForeignKey('ids_tag.id'))
+    Column('tags_idb', ForeignKey('names_tag.id'))
 )
 
-class Locator(ID):
+class Locator(core.ID):
 
     """
     A global identifier for retrieval of remote content.

@@ -12,15 +12,16 @@ import lib
 import libcmd
 import log
 import res
-from libname import Namespace, Name
-from libcmd import Targets, Arguments, Keywords, Options,\
+from libname import Namespace#, Name
+from libcmdng import Targets, Arguments, Keywords, Options,\
     Target 
 # XXX
-from taxus import SqlBase, SessionMixin, \
+import taxus
+from taxus import SessionMixin, \
         Node, INode, Dir, \
-        ID, Name, Locator, \
+        Name, \
         Host, \
-        Locator, Tag
+        Tag
 from taxus.util import current_hostname
 
 
@@ -87,20 +88,17 @@ class LocalPathResolver(object):
             return INode.File
 
 
-class TaxusFe(libcmd.SimpleCommand):
+class TaxusFe(libcmd.StackedCommand):
     # XXX: for simplecommand, use superclass and shared config/schema/data or
     # separate command-line frontends?
 
     @classmethod
-    def get_optspec(klass, inherit):
+    def get_optspec(Klass, inherit):
         """
         Return tuples with optparse command-line argument specification.
         """
         return (
                 # XXX: duplicates Options
-                (('--init',), {
-                    'action': 'store_true',
-                    'help': "Initialize target" }),
                 (('-d', '--dbref'), { 'metavar':'URI', 
                     'default': DEFAULT_DB, 
                     'dest': 'dbref',
@@ -110,7 +108,41 @@ class TaxusFe(libcmd.SimpleCommand):
                         " `mysql://taxus-user@localhost/taxus`. "
                         "The default value (%default) may be overwritten by configuration "
                         "and/or command line option. " }),
+                (('--init',), {
+                    'action': 'store_true',
+                    'help': "Initialize target" }),
+                (('-q', '--query'), {'action':'callback', 
+                    'callback_args': ('query',),
+                    'callback': libcmd.optparse_override_handler,
+                    'dest': 'command',
+                    'help': "TODO" }),
+                (('--txs-info',), libcmd.cmddict())
             )
+
+    DEPENDS = {
+            'txs_session': ['cmd_options'],
+            'txs_info': ['txs_session'],
+        }
+
+    def txs_session(self, opts=None):
+        dbref = opts.dbref
+        if opts.init:
+            log.debug("Initializing SQLAlchemy session for %s", dbref)
+        sa = SessionMixin.get_instance('default', opts.dbref, opts.init)
+        yield dict(sa=sa)
+
+    def txs_info(self, opts=None, sa=None):
+        log.info("DBRef: %s", opts.dbref)
+        log.note("SQLAlchemy session: %s", sa)
+
+        nodes = sa.query(taxus.core.Node).count()
+        log.note("Number of nodes: %s", nodes)
+
+        names = sa.query(taxus.core.Name).count()
+        log.note("Number of names: %s", names)
+
+        ids = sa.query(taxus.core.ID).count()
+        log.note("Number of ids: %s", ids)
 
 
 DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
@@ -123,31 +155,13 @@ NS = Namespace.register(
     )
 
 Options.register(NS, 
+        
+        *TaxusFe.get_optspec(None)
 
 #            (('-g', '--global-objects'), { 'metavar':'URI', 
 #                'default': DEFAULT_OBJECT_DB, 
 #                'dest': 'objectdbref',
 #                }),
-
-            (('-d', '--dbref'), { 'metavar':'URI', 
-                'default': DEFAULT_DB, 
-                'dest': 'dbref',
-                'help': "A URI formatted relational DB access description "
-                    "(SQLAlchemy implementation). Ex: "
-                    " `sqlite:///taxus.sqlite`,"
-                    " `mysql://taxus-user@localhost/taxus`. "
-                    "The default value (%default) may be overwritten by configuration "
-                    "and/or command line option. " }),
-
-            (('-q', '--query'), {'action':'callback', 
-                'callback_args': ('query',),
-                'callback': libcmd.optparse_override_handler,
-                'dest': 'command',
-                'help': "TODO" }),
-#'-X', 
-            (('--init',), {
-                'action': 'store_true',
-                'help': "Initialize target" }),
 
 #                (('--init-database',), {
 #                    'action': 'callback', 

@@ -97,6 +97,8 @@ class TreeNodeDict(dict):
     def __repr__(self):
         return "<%s%s%s>" % (self.name, self.attributes, self.subnodes or '')
 
+    def copy(self):
+        return self.deepcopy()
 
     def deepcopy(self):
         """
@@ -119,6 +121,7 @@ class TreeNodeDict(dict):
             else:
                 d[k] = None
         return d
+
 
 class TreeNodeTriple(tuple):
 
