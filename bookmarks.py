@@ -46,48 +46,12 @@ import log
 import libcmd
 import res.iface
 import res.js
+import res.bm
 import taxus.model
 import taxus.net
 from txs import TaxusFe
 
 
-
-def recursive_read(json, lvl=0):
-
-    if 'id' in json and json['id']:
-        if json['id'] == 1912:
-            import sys
-            sys.exit()
-
-    #    print
-    #    print ( '\t'*lvl ) + str(json['id'])
-    #if 'title' in json and json['title']:
-    #    print ( '\t'*lvl ) + json['title']
-    if 'uri' in json and json['uri']:
-        yield json['uri']
-        #print ( '\t'*lvl ) + json['uri']
-
-    if 'children' in json:
-        for x in json['children']:
-            for ref in recursive_read(x, lvl+1):
-                yield ref
-
-
-def read_bm(path):
-    log.info("reading %s", path)
-    data = open(path).read()
-    json = res.js.loads(data)
-        
-    for ref in recursive_read(json):
-        if ref.startswith('place:'): # mozilla things
-            continue
-        elif ref.startswith('chrome:') or ref.startswith('about:') \
-            or ref.startswith('file:') \
-            or ref.startswith('javascript:') \
-            or ref.startswith('http:') or ref.startswith('https:'):
-            yield ref
-        else:
-            assert False, ref
 
 
 class bookmarks(TaxusFe):
@@ -134,8 +98,10 @@ class bookmarks(TaxusFe):
 
         ""
 
+        mozbm = res.bm.MozJSONExport()
+
         for a in args:
-            for r in read_bm(a):
+            for r in mozbm.read_bm(a):
                 
                 if len(r) > 255:
                     log.err("Reference too long: %s", r)
@@ -153,8 +119,9 @@ class bookmarks(TaxusFe):
                         date_added=datetime.now() )
 
                 print 'New', lctr 
-                continue
+#                continue
                 print '+'
+                # TODO: next store all groups, clean up MozJSONExport a bit maybe
 
                 sa.add( lctr )
                 sa.commit()
