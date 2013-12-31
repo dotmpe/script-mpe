@@ -23,6 +23,7 @@ class FileTreeTopic(Node):
 class FSTopic(Topic):
     pass
 
+
 class FSTopicTreeFe(libcmd.SimpleCommand):
 
     """

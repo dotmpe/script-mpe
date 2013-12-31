@@ -107,8 +107,12 @@ class workLog(txs.TaxusFe):
         return (
             )
 
-    def tasks(self, opts=None):
-        sa = SessionMixin.get_instance('default', opts.dbref, opts.init)
+    DEPENDS = {
+            'tasks': ['txs_session'],
+        }
+
+    def tasks(self, opts=None, sa=None):
+        #sa = SessionMixin.get_instance('default', opts.dbref, opts.init)
         print 'All tickets', sa.query(Ticket).all()
         print 'Active tickets', sa.query(Ticket)\
                 .filter(Ticket.active == True).all()

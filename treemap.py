@@ -12,19 +12,26 @@ XXX: started using Document Node in filetree.py
 Copyleft, May 2007.  B. van Berkum <berend `at` dotmpe `dot` com>
 """
 import sys
-from os import listdir
+from os import listdir, sep
 from os.path import join, isdir, getsize, basename, dirname
 from pprint import pformat
 
+from zope.component import \
+        getGlobalSiteManager, \
+        getUtility, queryUtility, createObject
+
 import res.js
 import res.primitive    
+
+
+gsm = getGlobalSiteManager()
 
 
 class Node(res.primitive.TreeNodeDict):
     pass
 
 
-def fs_tree(dir):
+def fs_tree( path ):
     """Create a tree of the filesystem using dicts and lists.
 
     All filesystem nodes are dicts so its easy to add attributes.
@@ -39,29 +46,30 @@ def fs_tree(dir):
         ]}
     """
     fs_encoding = sys.getfilesystemencoding()
-    dirname = basename(dir)
-    tree = Node(dirname)
-    for fn in listdir(dir):
-        # Be liberal... take a look at non decoded stuff
-        if not isinstance(fn, unicode):
-            # try decode with default codec
-            try:
-                fn = fn.decode(fs_encoding)
-            except UnicodeDecodeError:
-                print >>sys.stderr, "corrupt path:", dir, fn
-                continue
-        # normal ops
-        path = join(dir, fn)
-        if isdir(path):
-            # Recurse
-            tree.append(fs_tree(path))
-        else:
-            tree.append(Node(fn))
+    dirname = basename( path )
+    tree = Node( dirname )
+    if isdir( path ):
+        for fn in listdir( path ):
+            # Be liberal... take a look at non decoded stuff
+            if not isinstance(fn, unicode):
+                # try decode with default codec
+                try:
+                    fn = fn.decode(fs_encoding)
+                except UnicodeDecodeError:
+                    print >>sys.stderr, "corrupt path:", path, fn
+                    continue
+            # normal ops
+            path = join( path, fn )
+            if isdir(path):
+                # Recurse
+                tree.append(fs_tree(path))
+            else:
+                tree.append(Node(fn))
 
     return tree
 
 
-def fs_treesize(root, tree, files_as_nodes=True):
+def fs_treesize( root, tree, files_as_nodes=True ):
     """Add 'size' attributes to all nodes.
 
     Root is the path on which the tree is rooted.
@@ -92,6 +100,7 @@ def fs_treesize(root, tree, files_as_nodes=True):
                         pass#print >>sys.stderr, "could not get size of %s: %r" % (path, e)
         tree.size = size
 
+
 def usage(msg=0):
     print """%s
 Usage:
@@ -107,6 +116,7 @@ Opts:
         msg = 'error: '+msg
     sys.exit(msg)
 
+
 def main():
     # Script args
     import confparse
@@ -118,8 +128,8 @@ def main():
     argv = list(sys.argv)
 
     treepath = argv.pop()
-    # strip trailing os.sep
     if not basename(treepath): 
+        # strip trailing os.sep
         treepath = treepath[:-1]
     assert basename(treepath) and isdir(treepath), \
             usage("Must have dir as last argument")
@@ -129,14 +139,41 @@ def main():
         setattr(opts, longopt, ( '-'+shortopt in argv and argv.remove( '-'+shortopt ) == None ) or (
                 '--'+longopt in argv and argv.remove( '--'+longopt ) == None ))
 
-    # Walk filesystem
+    # XXX get treemap from shelve in metadir? volumedir?
+    #if not opts.voldir:
+    #    opts.voldir = find_volume( path )
+    #storage = TreeMapNode.storage = shelve.open( join( opts.voldir, 'treemap.db' ) )
+
+
+    ### Init FileTree and TreeMap
+
     tree = fs_tree(path)
+    
+    # zac
+#    nodetree = getUtility(res.iface.IDir).tree( path, opts )
+#    #nodetree = INode( path )
+#    treemap = createObject('treemap')
+#    treemap.init( nodetree, opts )
+#    treemap.report(':count', 'length', 'space')
+#
+#    return
+#
+#    # wrong, passing-down-arguments approach ("facade")
+#    treemap = TreeMap(path)
+#    treemap.tree( opts )
+#
+#    return
+
 
     # Add size attributes
     fs_treesize(path, tree)
 
+    ### Update storage
+
     # Set proper root path
-    tree.name = path
+    tree.name = path + sep
+    #fs_treemap_write( debug, tree )
+    #tree.commit( dirname( path ) )
 
     ### Output
     if res.js.dumps and ( opts.json and not opts.debug ):

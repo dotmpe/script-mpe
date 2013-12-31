@@ -1,8 +1,15 @@
+import zope.interface
+from sqlalchemy import Column, Integer, String, Boolean, Text, \
+    ForeignKey, Table, Index, DateTime
+from sqlalchemy.orm import relationship, backref
+
 import core
 import web
+import net
+import fs
 
 
-class CachedContent(core.INode):
+class CachedContent(fs.INode):
 
     """
     This is a pointer to a local path, that may or may not contain a cached
@@ -67,7 +74,7 @@ class Resource(core.Node):
     status = relationship(Status, primaryjoin=status_id == Status.http_code)
 
     locator_id = Column(ForeignKey('ids_lctr.id'), index=True)
-    location = relationship(web.Locator, primaryjoin=locator_id == Locator.lctr_id)
+    location = relationship(net.Locator, primaryjoin=locator_id == net.Locator.lctr_id)
     "Content-Location. , size=0"
 
     last_access = Column(DateTime)

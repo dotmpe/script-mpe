@@ -1,3 +1,12 @@
+import zope.interface
+from sqlalchemy import Column, Integer, String, Boolean, Text, \
+    ForeignKey, Table, Index, DateTime
+from sqlalchemy.orm import relationship, backref
+
+from init import SqlBase
+from util import SessionMixin
+import core
+import net
 import web
 
 
@@ -43,7 +52,7 @@ class Relocated(web.Resource):
     relocated_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
 
     refnew_id = Column(ForeignKey('ids_lctr.id'), index=True)
-    redirect = relationship(Locator, primaryjoin=refnew_id == Locator.lctr_id)
+    redirect = relationship(net.Locator, primaryjoin=refnew_id == net.Locator.lctr_id)
 
     temporary = Column(Boolean)
 
@@ -66,8 +75,8 @@ class Volume(web.Resource):
     #store = relation(StorageClass, primaryjoin=type_id==StorageClass.id)
 
     node_id = Column(Integer, ForeignKey('nodes.id'))
-    root = relationship(Node, backref='volumes',
-            primaryjoin=node_id == Node.node_id)
+    root = relationship(core.Node, backref='volumes',
+            primaryjoin=node_id == core.Node.node_id)
 
 
 class Bookmark(web.Resource):
@@ -85,7 +94,7 @@ class Bookmark(web.Resource):
     bookmark_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
 
     ref_id = Column(Integer, ForeignKey('ids_lctr.id'))
-    ref = relationship(Locator, primaryjoin=Locator.lctr_id==ref_id)
+    ref = relationship(net.Locator, primaryjoin=net.Locator.lctr_id==ref_id)
 
     extended = Column(Text(65535))#, index=True)
     "Textual annotation of the referenced resource. "
@@ -116,7 +125,7 @@ class Workset(web.Resource):
 
     ws_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
 
-    refs = relationship(Locator, secondary=workset_locator_table)
+    refs = relationship(net.Locator, secondary=workset_locator_table)
 
 
 token_locator_table = Table('token_locator', SqlBase.metadata,
@@ -138,5 +147,5 @@ class Token(SqlBase, SessionMixin):
     token_id = Column('id', Integer, primary_key=True)
 
     value = Column(Text(65535), index=True, nullable=True, unique=True)
-    refs = relationship(Locator, secondary=token_locator_table)
+    refs = relationship(net.Locator, secondary=token_locator_table)
 

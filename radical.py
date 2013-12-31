@@ -609,7 +609,9 @@ rc = confparse.Values()
 # Main
 
 # TODO see bookmarks, basename-reg, mimereg, flesh out TaxusFe
-class Radical(libcmd.SimpleCommand):
+import txs
+
+class Radical(txs.TaxusFe):
 
     zope.interface.implements(res.iface.ISimpleCommand)
 
@@ -633,14 +635,14 @@ class Radical(libcmd.SimpleCommand):
         Return tuples with optparse command-line argument specification.
         """
         return (
-                (('-d', '--database'),{ 'metavar':'URI', 'dest':'dbref',
-                    'help': "A URI formatted relational DB access description, as "
-                        "supported by sqlalchemy. Ex:"
-                        " `sqlite:///radical.sqlite`,"
-                        " `mysql://radical-user@localhost/radical`. "
-                        "The default value (%default) may be overwritten by configuration "
-                        "and/or command line option. ",
-                    'default': klass.DEFAULT_DB }),
+#                (('-d', '--database'),{ 'metavar':'URI', 'dest':'dbref',
+#                    'help': "A URI formatted relational DB access description, as "
+#                        "supported by sqlalchemy. Ex:"
+#                        " `sqlite:///radical.sqlite`,"
+#                        " `mysql://radical-user@localhost/radical`. "
+#                        "The default value (%default) may be overwritten by configuration "
+#                        "and/or command line option. ",
+#                    'default': klass.DEFAULT_DB }),
 
                 # -f PATTERN   Include only matching files.
 
@@ -685,12 +687,13 @@ class Radical(libcmd.SimpleCommand):
             print
         return
 
-    def run_embedded_issue_scan(self, path, opts=None):
-        paths = [path]
-        rcfile = list(confparse.expand_config_path(self.DEFAULT_RC))[0]
-        setattr(self.settings, 'config_file', rcfile)
-        self.cmd_config()
-        self.cmd_options(opts=opts)
+    DEPENDS = {
+            #'run_embedded_issue_scan': ['txs_session'],
+            'run_embedded_issue_scan': ['cmd_options'],
+        }
+
+    def run_embedded_issue_scan(self, args=None, opts=None, sa=None):
+        paths = args
         # pre-compile patterns
         matchbox = {}
         for tagname in self.rc.tags:
@@ -714,7 +717,7 @@ class Radical(libcmd.SimpleCommand):
         if not paths:
             paths = ['.']
             # XXX debugging
-            paths = ['radical_xmldoctext.xml', 'radical.py']
+            #paths = ['radical_xmldoctext.xml', 'radical.py']
 
         # get backend service
         service = None
