@@ -167,7 +167,7 @@ class FileInfoApp(TaxusFe):
         Add one or more new mediaformats.
         """
         for fmt in formats:
-            mf = Mediaformat.fetch((
+            mf = Mediaformat.find((
                     Mediaformat.name == fmt,
                 ), sa=sa)
             if mf:

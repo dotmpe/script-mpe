@@ -131,7 +131,7 @@ def optparse_override_handler(option, optstr, value, parser, new_value):
     if new_value:
         value = new_value
     else:
-        value = optstr.strip('-').replace('-','_')
+        value = option.get_opt_string().strip('-').replace('-','_')
     values = parser.values
     dest = option.dest
     setattr(values, dest, value)

@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship, backref
 from init import SqlBase
 from util import SessionMixin
 
+import lib
 import core
 import fs
 
@@ -26,6 +27,11 @@ class ChecksumDigest(SqlBase, SessionMixin):
     digest_type = Column('digest_type', String(50))
     __mapper_args__ = {'polymorphic_on': digest_type}
 
+    def __str__(self):
+        return "%s:%s" % (self.digest_type.lower(), self.digest)
+
+    def __repr__(self):
+        return "<%s for %s>" % (lib.cn(self), self.digest)
 
 class SHA1Digest(ChecksumDigest):
     """

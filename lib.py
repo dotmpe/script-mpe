@@ -157,6 +157,8 @@ def timestamp_to_datetime(timestamp, epoch=EPOCH):
     return date
 
 def class_name(o):
+#    if hasattr(o, __class__):
+#        o = o.__class__
     return o.__class__.__name__
 
 cn = class_name

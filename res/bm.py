@@ -18,38 +18,45 @@ class MozJSONExport(object):
         data = open(path).read()
         self.json = res.js.loads(data)
 
-    def read_bm(self, path):
+    def read_lctr(self, path):
+        for node in self.read(path):
+            yield node['uri']
+
+    def read(self, path):
         self.init(path)
 
         def recurse(js, lvl=0):
-            if 'id' in js and js['id']:
-                if js['id'] == 1912:
-                    import sys
-                    sys.exit()
+            #if 'id' in js and js['id']:
+            #    if js['id'] == 1912:
+            #        import sys
+            #        sys.exit()
             #    print
             #    print ( '\t'*lvl ) + str(json['id'])
             #if 'title' in json and json['title']:
             #    print ( '\t'*lvl ) + json['title']
             if 'uri' in js and js['uri']:
+                assert 'children' not in js, "what to do %s" % js
                 yield js#['uri']
                 #print ( '\t'*lvl ) + json['uri']
-            if 'children' in js:
+            elif 'children' in js:
                 for x in js['children']:
                     for y in recurse(x, lvl+1):
                         yield y
+            else:
+                log.warn("Ignored node %s", js)
 
         for node in recurse(self.json):
-
             if 'uri' in node:
                 ref = node['uri']
+
             if ref.startswith('place:'): # mozilla things
                 continue
             elif ref.startswith('chrome:') or ref.startswith('about:') \
                 or ref.startswith('file:') \
                 or ref.startswith('javascript:') \
                 or ref.startswith('http:') or ref.startswith('https:'):
-                yield ref
+                yield node
             else:
-                assert False, ref
+                assert False, node
 
 

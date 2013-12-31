@@ -57,15 +57,21 @@ class SessionMixin(object):
             if exists:
                 log.err("No results for %s.fetch(%s)", Klass.__name__, filters)
                 raise e
-        finally:
-            return rs
+        return rs
 
     @classmethod
-    def find(self, keydict=None, sa=None, session='default'):
+    def find(self, filters=None, sa=None, session='default'):
         """
         Return one or none.
         """
-        return self.fetch(keydict, sa=sa, session=session, exists=False)
+        return self.fetch(filters, sa=sa, session=session, exists=False)
+
+    @classmethod
+    def byName(self, name=None, sa=None, session='default'):
+        """
+        Return one or none.
+        """
+        return self.fetch((Klass.name == name,), sa=sa, session=session, exists=False)
 
     @classmethod
     def exists(Klass, keydict):

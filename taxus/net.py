@@ -101,6 +101,10 @@ class Locator(core.ID):
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
 
+    ref_md5_id = Column(Integer, ForeignKey('chks_md5.id'))
+    ref_md5 = relationship(checksum.MD5Digest, primaryjoin=ref_md5_id==checksum.MD5Digest.md5_id)
+    "A checksum for the complete reference, XXX to use while shortref missing? "
+
     #ref = Column(String(255), index=True, unique=True)
     # XXX: varchar(255) would be much too small for many (web) URL locators 
     ref = Column(Text(2048), index=True, unique=True)

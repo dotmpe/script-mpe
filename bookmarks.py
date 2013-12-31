@@ -35,6 +35,7 @@
 """
 from datetime import datetime
 import os
+import hashlib
 
 import zope.interface
 import zope.component
@@ -49,6 +50,9 @@ import res.js
 import res.bm
 import taxus.model
 import taxus.net
+from taxus.checksum import MD5Digest
+from taxus.net import Locator
+from taxus.model import Bookmark
 from txs import TaxusFe
 
 
@@ -67,8 +71,16 @@ class bookmarks(TaxusFe):
 
     DEPENDS = {
             'stats': ['txs_session'],
-            'bm_import': ['txs_session'],
-            'bm_export': ['txs_session']
+            'list': ['txs_session'],
+            'add': ['txs_session'],
+            'add_lctr': ['txs_session'],
+            'list_lctr': ['txs_session'],
+            'add_lctr_ref_md5': ['txs_session'],
+            'add_ref_md5': ['txs_session'],
+            'moz_js_import': ['txs_session'],
+            'moz_ht_import': ['txs_session'],
+            'dlcs_post_import': ['txs_session'],
+            'export': ['txs_session']
         }
 
     @classmethod
@@ -79,55 +91,184 @@ class bookmarks(TaxusFe):
         """
 
         return (
-                (('--bm-import',), libcmd.cmddict()),
-                (('--bm-export',), libcmd.cmddict()),
+            # actions
+                (('-s', '--stats',), libcmd.cmddict()),
+                (('-l', '--list',), libcmd.cmddict()),
+                (('-a', '--add',), libcmd.cmddict()),
+                (('--list-lctr',), libcmd.cmddict()),
+
+                (('--moz-js-import',), libcmd.cmddict()),
+                (('--dlcs-post-import',), libcmd.cmddict()),
+
+                (('--export',), libcmd.cmddict(help="TODO: bm export")),
+
+                (('--add-lctrs',), libcmd.cmddict(
+                    help="Add locator records for given URL's.")),
+                (('--add-ref-md5',), libcmd.cmddict(
+                    help="Add MD5-refs missing (on all locators). ")),
+
+            # params
+                (('--public',), dict( action='store_true', default=False )),
+                (('--name',), dict( default=None, type="str" )),
+                (('--href',), dict( default=None, type="str" )),
+                (('--ext',), dict( default=None, type="str" )),
+                (('--tags',), dict( default=None, type="str" )),
+                (('--ref-md5',), dict( action='store_true',
+                    default=False, help="Calculate MD5 for new locators. " )),
+
             )
 
     def stats(self, opts=None, sa=None):
 
-        ""
-        # TODO: get store with metadir and show stats
-
         assert sa, (opts, sa)
-        urls = sa.query(taxus.net.Locator).count()
+        urls = sa.query(Locator).count()
         log.note("Number of URLs: %s", urls)
-        bms = sa.query(taxus.model.Bookmark).count()
+        bms = sa.query(Bookmark).count()
         log.note("Number of bookmarks: %s", bms)
 
-    def bm_import(self, args=None, opts=None, sa=None):
+        for lctr in sa.query(Locator).filter(Locator.global_id==None).all():
+            lctr.delete()
+            log.note("Deleted Locator without global_id %s", lctr)
+        for bm in sa.query(Bookmark).filter(Bookmark.ref_id==None).all():
+            bm.delete()
+            log.note("Deleted bookmark without ref %s", bm)
+        
 
-        ""
+    def list(self, sa=None):
+        bms = sa.query(Bookmark).all()
+        fields = 'bm_id', 'name', 'public', 'date_added', 'deleted', 'ref', 'tags', 'extended'
+        print '#', ', '.join(fields)
+        for bm in bms:
+            for f in fields:
+                print getattr(bm, f),
+            print
 
-        mozbm = res.bm.MozJSONExport()
+    def assert_locator(self, sa=None, href=None, opts=None):
+        lctr = Locator.find((Locator.global_id==href,), sa=sa)
+        if not lctr:
+            if len(href) > 255:
+                log.err("Reference too long: %s", href)
+                return
+            lctr = Locator( 
+                    global_id=href, 
+                    date_added=datetime.now() )
+            sa.add( lctr )
+            sa.commit()
+            if opts.ref_md5:
+                self.add_lctr_ref_md5(opts, sa, href)
+        yield dict(lctr=lctr)
 
-        for a in args:
-            for r in mozbm.read_bm(a):
-                
-                if len(r) > 255:
-                    log.err("Reference too long: %s", r)
-                    continue
+    def add_lctrs(self, sa=None, opts=None, *refs):
+        if refs:
+            for ref in refs:
+                for ret in self.assert_locator( sa=sa, href=ref, opts=opts ):
+                    yield ret['lctr']
 
-                lctrs = sa.query(taxus.net.Locator)\
-                        .filter(taxus.net.Locator.global_id == r)\
-                        .all()
-                if lctrs:
-                    #print '.',
-                    print r, lctrs
-                    continue
+    def add(self, sa=None, href=None, name=None, ext=None, public=False,
+            tags=None, opts=None):
+        "Create or update. alias --update?"
+        lctr = [ r['lctr'] for r in self.assert_locator(sa=sa, href=href, opts=opts) ]
+        if not lctr:
+            yield dict( err="XXX Missed ref" ) 
+        else:
+            lctr = lctr.pop()
+            assert lctr
+            bm = Bookmark.find((Bookmark.ref==lctr,), sa=sa)
+            if bm:
+                # XXX: start local to bean dict
+                if name != bm.name:
+                    bm.name = name
+                if lctr != bm.ref:
+                    bm.ref = lctr
+                if ext != bm.extended:
+                    bm.extended = ext
+                if public != bm.public:
+                    bm.public = public
+                if tags != bm.tags:
+                    bm.tags = tags
+                bm.last_update = datetime.now()
+            else:
+                bm = Bookmark(
+                        name=name,
+                        ref=lctr,
+                        extended=ext,
+                        public=public,
+                        tags=tags,
+                        date_added=datetime.now()
+                    )
+            assert bm.ref
+            yield dict( bm=bm )
+            sa.add(bm)
+            sa.commit()
 
-                lctr = taxus.net.Locator( global_id=r,
-                        date_added=datetime.now() )
+    def list_lctr(self, sa=None):
+        lctrs = sa.query(Locator).all()
+        fields = 'lctr_id', 'global_id', 'ref_md5', 'date_added', 'deleted', 'ref'
+        print '#', ', '.join(fields)
+        for lctr in lctrs:
+            for f in fields:
+                print getattr(lctr, f),
+            print
 
-                print 'New', lctr 
-#                continue
-                print '+'
-                # TODO: next store all groups, clean up MozJSONExport a bit maybe
+    def add_lctr_ref_md5(self, opts=None, sa=None, *refs):
+        "Add locator and ref_md5 attr for URLs"
+        if refs:
+            if isinstance( refs[0], basestring ):
+                opts.ref_md5 = True
+                lctrs = [ ret['lctr'] for ret in self.add_lctrs(sa, opts, *refs) ]
+                return
+            else:
+                assert isinstance( refs[0], Locator), refs
+                lctrs = refs
 
+            for lctr in lctrs:
+                ref = lctr.ref or lctr.global_id
+                ref_md5 = hashlib.md5( ref ).hexdigest()
+                md5 = MD5Digest.find(( MD5Digest.digest == ref_md5, ))
+                if not md5:
+                    md5 = MD5Digest( digest=ref_md5,
+                            date_added=datetime.now() )
+                    sa.add( md5 )
+                    log.info("New %s", md5)
+                lctr.ref_md5 = md5
                 sa.add( lctr )
                 sa.commit()
+                log.note("Updated ref_md5 for %s to %s", lctr, md5)
 
-        #nodetree = zope.component.getUtility(res.iface.IDir).tree( path, opts )
-        #print nodetree
+    def add_ref_md5(self, opts=None, sa=None):
+        "Add missing ref_md5 attrs. "
+        lctrs = sa.query(Locator).filter(Locator.ref_md5_id==None).all()
+        self.add_lctr_ref_md5( opts, sa, *lctrs )
+
+    def moz_js_import(self, opts=None, sa=None, *paths):
+        mozbm = res.bm.MozJSONExport()
+        for path in paths:
+            #for ref in mozbm.read_lctr(path):
+            #    list(self.assert_locator(sa=sa, href=ref, opts=opts))
+            for node in mozbm.read(path):
+                descr = [ a['value'] for a in node.get('annos', [] ) 
+                        if a['name'] == 'bookmarkProperties/description' ]
+                print list(self.add(sa=sa, 
+                    href=node['uri'], 
+                    name=node['title'], 
+                    ext=descr and descr.pop() or None,
+                    opts=opts)).pop()
+
+    def dlcs_post_import(self, opts=None, sa=None, *paths):
+        from pydelicious import dlcs_parse_xml
+        for p in paths:
+            data = dlcs_parse_xml(open(p).read())
+            for post in data['posts']:
+                #list(self.assert_locator(sa=sa, href=post['href'], opts=opts))
+                print list(self.add( sa=sa, 
+                    href=node['href'], 
+                    name=node['description'], 
+                    ext=node['extended'], 
+                    tags=node['tag'], 
+                    opts=opts)).pop()
+
+    def export(self, opts=None, sa=None, *paths):
+        pass
 
 
 if __name__ == '__main__':

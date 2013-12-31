@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+FIXME: sync taxus to (or from?) local indices,
+    and/or maintain simple local indices without taxus.
+"""
 import hashlib
 import os
 import shelve

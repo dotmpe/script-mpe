@@ -16,6 +16,15 @@ import res
 from libname import Namespace#, Name
 from libcmdng import Targets, Arguments, Keywords, Options,\
     Target 
+import taxus.checksum
+import taxus.core
+import taxus.fs
+import taxus.generic
+import taxus.media
+import taxus.model
+import taxus.net
+import taxus.semweb
+import taxus.web
 # XXX
 import taxus
 from taxus import SessionMixin, \
@@ -93,6 +102,13 @@ class TaxusFe(libcmd.StackedCommand):
     # XXX: for simplecommand, use superclass and shared config/schema/data or
     # separate command-line frontends?
 
+    DEFAULT_ACTION = 'txs_info'
+
+    DEPENDS = {
+            'txs_session': ['cmd_options'],
+            'txs_info': ['txs_session'],
+        }
+
     @classmethod
     def get_optspec(Klass, inherit):
         """
@@ -120,11 +136,6 @@ class TaxusFe(libcmd.StackedCommand):
                 (('--txs-info',), libcmd.cmddict())
             )
 
-    DEPENDS = {
-            'txs_session': ['cmd_options'],
-            'txs_info': ['txs_session'],
-        }
-
     def txs_session(self, opts=None):
         dbref = opts.dbref
         if opts.init:
@@ -136,15 +147,16 @@ class TaxusFe(libcmd.StackedCommand):
         log.info("DBRef: %s", opts.dbref)
         log.note("SQLAlchemy session: %s", sa)
 
-        nodes = sa.query(taxus.core.Node).count()
-        log.note("Number of nodes: %s", nodes)
-
-        names = sa.query(taxus.core.Name).count()
-        log.note("Number of names: %s", names)
-
-        ids = sa.query(taxus.core.ID).count()
-        log.note("Number of ids: %s", ids)
-
+        models = taxus.core.ID, Node, INode, Name, Tag, taxus.net.Locator
+        cnt = {}
+        for m in models:
+            cnt[m] = sa.query(m).count()
+            log.note("Number of %s: %s", m.__name__, cnt[m])
+            
+#        names = sa.query(taxus.core.Name).count()
+#
+#        ids = sa.query(taxus.core.ID).count()
+#        log.note("Number of ids: %s", ids)
 
 DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
 DEFAULT_DB = "sqlite:///%s" % DB_PATH

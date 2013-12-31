@@ -102,9 +102,8 @@ class Bookmark(core.Node):
     tags = Column(Text(10240))
     "Comma-separated list of all tags. "
 
-    sup_id = Column(Integer, ForeignKey('bm.id'))
-
-Bookmark.sup = relationship(Bookmark, primaryjoin=Bookmark.bm_id == Bookmark.sup_id)
+    #sup_id = Column(Integer, ForeignKey('bm.id'))
+#Bookmark.sup = relationship(Bookmark, primaryjoin=Bookmark.bm_id == Bookmark.sup_id)
 
 
 workset_locator_table = Table('workset_locator', SqlBase.metadata,
