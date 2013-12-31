@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship, backref
 
+import lib
 from init import SqlBase
 from util import SessionMixin
 import core
@@ -140,7 +141,7 @@ class Locator(core.ID):
         backref='locations')
 
     def __str__(self):
-        return "<%s %r>" % (lib.cn(self), self.ref)
+        return "%s %r" % (lib.cn(self), self.ref or self.global_id)
 
 
 

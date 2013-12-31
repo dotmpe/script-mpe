@@ -79,19 +79,18 @@ class Volume(web.Resource):
             primaryjoin=node_id == core.Node.node_id)
 
 
-class Bookmark(web.Resource):
+class Bookmark(core.Node):
 
     """
     A textual annotation with a short and long descriptive label,
     a sequence of tags, the regular set of dates, 
-    and is itself a resource.
     """
 
     __tablename__ = 'bm'
 #    __table_args__ = {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'}
-    __mapper_args__ = {'polymorphic_identity': 'resource:bookmark'}
+    __mapper_args__ = {'polymorphic_identity': 'bookmark'}
 
-    bookmark_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
+    bm_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
     ref_id = Column(Integer, ForeignKey('ids_lctr.id'))
     ref = relationship(net.Locator, primaryjoin=net.Locator.lctr_id==ref_id)
@@ -100,8 +99,12 @@ class Bookmark(web.Resource):
     "Textual annotation of the referenced resource. "
     public = Column(Boolean(), index=True)
     "Private or public. "
-    tags = Column(String(255))
-    "Comma-separated list of tags. "
+    tags = Column(Text(10240))
+    "Comma-separated list of all tags. "
+
+    sup_id = Column(Integer, ForeignKey('bm.id'))
+
+Bookmark.sup = relationship(Bookmark, primaryjoin=Bookmark.bm_id == Bookmark.sup_id)
 
 
 workset_locator_table = Table('workset_locator', SqlBase.metadata,

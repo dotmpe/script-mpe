@@ -172,7 +172,32 @@ class SimpleCommand(object):
         """
         Return tuples with optparse command-line argument specification.
         """
-        return ()
+        return (
+            (('-C', '--command'),{ 'metavar':'ID', 
+                'help': "Action (default: %default). ", 
+                'default': inherit.DEFAULT_ACTION }),
+    
+            (('-m', '--message-level',),{ 'metavar':'level',
+                'help': "Increase chatter by lowering "
+                    "message threshold. Overriden by --quiet or --verbose. "
+                    "Levels are 0--7 (debug--emergency) with default of 2 (notice). "
+                    "Others 1:info, 3:warning, 4:error, 5:alert, and 6:critical.",
+                'default': 2,
+            }),
+   
+            (('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
+                "threshold. Overriden by --quiet or --message-level.",
+                'action': 'callback',
+                'callback': optparse_increase_verbosity}),
+    
+#            (('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
+#                "and prompts (--interactive). ", 
+#                'dest': 'quiet', 
+#                'default': False,
+#                'action': 'callback',
+#                'callback': optparse_override_quiet }),
+
+                )
     
     def get_optspecs(self):
         """
@@ -283,8 +308,8 @@ class SimpleCommand(object):
         assert func_arg_vars.pop(0) == 'self'
         ret_args, ret_kwds = (), {}
 
-        if func_kwds_var:
-            ret_kwds = {'opts':None,'args':None}
+        assert not func_kwds_var, handler
+        #ret_kwds = {'opts':None,'args':None}
 
         if func_defaults:
             func_defaults = list(func_defaults) 
@@ -292,8 +317,10 @@ class SimpleCommand(object):
         while func_defaults:
             arg_name = func_arg_vars.pop()
             value = func_defaults.pop()
-            if hasattr(self.settings, arg_name):
-                value = getattr(self.settings, arg_name)
+            if hasattr(opts, arg_name):
+                value = getattr(opts, arg_name)
+            #if hasattr(self.settings, arg_name):
+            #    value = getattr(self.settings, arg_name)
             elif arg_name in globaldict:
                 value = globaldict[arg_name]
             ret_kwds[arg_name] = value
@@ -489,30 +516,6 @@ class StackedCommand(SimpleCommand):
                 "serialized configuration. ",
                 'default': False }),
 
-            (('-C', '--command'),{ 'metavar':'ID', 
-                'help': "Action (default: %default). ", 
-                'default': inherit.DEFAULT_ACTION }),
-    
-            (('-m', '--message-level',),{ 'metavar':'level',
-                'help': "Increase chatter by lowering "
-                    "message threshold. Overriden by --quiet or --verbose. "
-                    "Levels are 0--7 (debug--emergency) with default of 2 (notice). "
-                    "Others 1:info, 3:warning, 4:error, 5:alert, and 6:critical.",
-                'default': 2,
-            }),
-   
-            (('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
-                "threshold. Overriden by --quiet or --message-level.",
-                'action': 'callback',
-                'callback': optparse_increase_verbosity}),
-    
-#            (('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
-#                "and prompts (--interactive). ", 
-#                'dest': 'quiet', 
-#                'default': False,
-#                'action': 'callback',
-#                'callback': optparse_override_quiet }),
-
             (('--interactive',),{ 'help': "Prompt user if needed, this is"
                     " the default. ", 
                 'default': True,
@@ -569,11 +572,10 @@ class StackedCommand(SimpleCommand):
         self.rc = None
         "Runtime settings for this script. "
 
-    def cmd_static(self, **kwds):
+    def cmd_static(self):# XXX , **kwds):
         config_file = self.get_config_file()
         self.settings.config_file = config_file
-        kwds['config_file'] = config_file
-        yield kwds
+        yield dict(config_file=config_file)#, settings=self.settings)
 
     def cmd_config(self):
         #    self.init_config() # case 1: 
@@ -585,8 +587,9 @@ class StackedCommand(SimpleCommand):
         self.settings = confparse.load_path(config_file)
         "Static, persisted self.settings. "
         self.settings.config_file = config_file
+        yield dict(settings=self.settings)
 
-    def cmd_options(self, argv=[], opts=None, **kwds):
+    def cmd_options(self, argv=[], opts=None):#, **kwds):
         # XXX: perhaps restore shared config later
         # Get a reference to the RC; searches config_file for specific section
         config_key = self.DEFAULT_CONFIG_KEY
@@ -604,6 +607,7 @@ class StackedCommand(SimpleCommand):
                 sys.exit(1)
 
         self.rc = getattr(self.settings, config_key)
+        yield dict(rc=self.rc)
 
     def resolve_depends(self, name):
         if 'DEPS' not in self.__dict__:
@@ -640,23 +644,24 @@ class StackedCommand(SimpleCommand):
 
         log.category = opts.message_level
             
-        globaldict = {}
+        globaldict = dict(args=args, opts=opts)
         handler_depends = self.resolve_depends(opts.command)
         log.debug("Command %s resolved to handler list %r", opts.command,
                 handler_depends)
         for handler_name in handler_depends:
             log.info("StackedCommand.main: deferring to %s", handler_name)
             handler = getattr(self, handler_name)
-            args, kwds = self.select_kwds(handler, opts, args, globaldict)
-            ret = handler(*args, **kwds)
+            hargs, hkwds = self.select_kwds(handler, opts, args, globaldict)
+            ret = handler(*hargs, **hkwds)
             if isinstance(ret, int):
                 if ret > 0:
+                    #log.warn(ret)
                     sys.exit(ret)
             elif ret:
                 for r in ret:
                     if isinstance(r, dict):
+                        log.debug("Updating globaldict %r", r)
                         globaldict.update(r)
-
         return self
 
 

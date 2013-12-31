@@ -52,6 +52,27 @@ class Node(SqlBase, SessionMixin):
     date_deleted = Column(DateTime)
 
 
+groupnode_node_table = Table('groupnode_node', SqlBase.metadata,
+    Column('groupnode_id', Integer, ForeignKey('groupnodes.id'), primary_key=True),
+    Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True)
+)
+
+class GroupNode(Node):
+
+    """
+    A bit of a stop-gap mechanisms by lack of better containers
+    in the short run.
+    Like the group nodes in outlines and bookmark files.
+    """
+
+    __tablename__ = 'groupnodes'
+    __mapper_args__ = {'polymorphic_identity': 'groupnode'}
+    groupnode_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+
+    subnodes = relationship(Node, secondary=groupnode_node_table)
+    #backref='root')
+
+
 class ID(SqlBase, SessionMixin):
 
     """
@@ -75,6 +96,9 @@ class ID(SqlBase, SessionMixin):
     date_added = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
+
+    def __repr__(self):
+        return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.global_id)
 
 
 class Name(SqlBase, SessionMixin):
@@ -101,7 +125,7 @@ class Name(SqlBase, SessionMixin):
         return "%s at %s having %r" % (lib.cn(self), self.taxus_id(), self.name)
 
     def __repr__(self):
-        return "<%s %s %r>" % (lib.cn(self), hex(id(self)), self.name)
+        return "<%s at %s with %r>" % (lib.cn(self), hex(id(self)), self.name)
 
 
 class Tag(Name):

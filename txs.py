@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Path annotation, structuring.
 """
@@ -340,4 +341,7 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
         for path in results:
             yield path
 
+
+if __name__ == '__main__':
+    TaxusFe.main()
 

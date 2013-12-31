@@ -1,42 +1,51 @@
+#!/usr/bin/env python
 """
 - Store path to topic mappings locally, JSON.
 - Perhaps temporary name FileMap, FileTopicMap.. etc. See treemap. fstreemap?
   treemap -fs blah..
 """
-from taxus import Node
+import libcmd
 
 
-
-class FileTreeTopic(Node):
-
-    """
-    Maintain metadata for TopicTrees from filesystem trees.
-    """
-
-    __tablename__ = 'filetrees'
-    id = Column(Integer, primary_key=True)
+#class FileTreeTopic(Node):
+#
+#    """
+#    Maintain metadata for TopicTrees from filesystem trees.
+#    """
+#
+#    __tablename__ = 'filetrees'
+#    id = Column(Integer, primary_key=True)
 
 #    nodes = 
 #    subNodes = relationship('', secondary=locators_checksum,
 #        backref='location')
+#
+#class FSTopic(Topic):
+#    pass
 
-class FSTopic(Topic):
-    pass
 
-
-class FSTopicTreeFe(libcmd.SimpleCommand):
+class FSTopicTreeFe(libcmd.SimpleCommand):#libcmd.StackedCommand):
 
     """
     Construct Topic trees from file system paths.
     Command line class.
     """
 
-    DEFAULT_ACTION = 'run'
+    DEFAULT_ACTION = 'run_fstree'
 
-    def get_opts(self):
-        return Taxus.get_opts(self) + ()
+    @classmethod
+    def get_optspec(Klass, inherit):
+        return (
+                (('--run-fstree',), libcmd.cmddict()),
+            )
 
-    def run(self, *args, **opts):
-        pass
+    def run_fstree(self, opts=None):
+        print opts
+
+
+if __name__ == '__main__':
+
+    FSTopicTreeFe.main()
+
 
 
