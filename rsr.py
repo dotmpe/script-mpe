@@ -131,6 +131,7 @@ def rsr_status(prog=None, volume=None, opts=None):
             yield { 'status': { 'updated': [ path ] } }
     yield 0
 
+
 @Target.register(NS, 'add', 'rsr:volume')
 def rsr_add(prog=None, opts=None, volume=None, args=None):
     """

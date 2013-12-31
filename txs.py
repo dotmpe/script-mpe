@@ -129,7 +129,7 @@ class TaxusFe(libcmd.StackedCommand):
         dbref = opts.dbref
         if opts.init:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
-        sa = SessionMixin.get_instance('default', opts.dbref, opts.init)
+        sa = SessionMixin.get_session('default', opts.dbref, opts.init)
         yield dict(sa=sa)
 
     def txs_info(self, opts=None, sa=None):
@@ -236,7 +236,7 @@ def txs_session(prog=None, sa=None, opts=None, settings=None):
     dbref = opts.dbref
     if opts.init:
         log.debug("Initializing SQLAlchemy session for %s", dbref)
-    sa = SessionMixin.get_instance('default', opts.dbref, opts.init)
+    sa = SessionMixin.get_session('default', opts.dbref, opts.init)
     # Host
     hostnamestr = current_hostname(opts.init, opts.interactive)
     if opts.init:

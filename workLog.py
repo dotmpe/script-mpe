@@ -157,5 +157,6 @@ class workLog(txs.TaxusFe):
     def project_update(self, args, opts):
         pass
 
+
 if __name__ == '__main__':
     workLog.main()

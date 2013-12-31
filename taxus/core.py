@@ -51,6 +51,12 @@ class Node(SqlBase, SessionMixin):
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
 
+    def __repr__(self):
+        return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.name)
+
+    def __str__(self):
+        return "%s for %r" % (lib.cn(self), self.name)
+
 
 groupnode_node_table = Table('groupnode_node', SqlBase.metadata,
     Column('groupnode_id', Integer, ForeignKey('groupnodes.id'), primary_key=True),
@@ -113,7 +119,8 @@ class Name(SqlBase, SessionMixin):
     name_id = Column('id', Integer, primary_key=True)
 
     nametype = Column(String(50), nullable=False)
-    __mapper_args__ = {'polymorphic_on': nametype}
+    __mapper_args__ = {'polymorphic_on': nametype, 
+            'polymorphic_identity': 'name'}
 
     name = Column(String(255), index=True, unique=True)
 

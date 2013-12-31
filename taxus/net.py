@@ -44,10 +44,10 @@ class Host(core.Node):
 #    Column('locator_ida', ForeignKey('ids_lctr.id')),
 #    Column('host_idb', ForeignKey('hosts.id'))
 #)
-# mapping table for ChecksumDigest [1-*] Locator
+# mapping table for ChecksumDigest Locator
 locators_checksum = Table('locators_checksum', SqlBase.metadata,
     Column('locators_ida', ForeignKey('ids_lctr.id')),
-    Column('chk_idb', ForeignKey('ids_chks.id'))
+    Column('chk_idb', ForeignKey('chks.id'))
 )
 # mapping table for Tag [*-*] Locator
 locators_tags = Table('locators_tags', SqlBase.metadata,
@@ -132,10 +132,10 @@ class Locator(core.ID):
             else:
                 assert not "No path", ref
 
-    checksum = relationship('ChecksumDigest', secondary=locators_checksum,
-        backref='locations')
-    tags = relationship('Tag', secondary=locators_tags,
-        backref='locations')
+#    checksum = relationship('ChecksumDigest', secondary=locators_checksum,
+#        backref='locations')
+#    tags = relationship('Tag', secondary=locators_tags,
+#        backref='locations')
     host_id = Column(Integer, ForeignKey('hosts.id'))
     host = relationship('Host', primaryjoin="Locator.host_id==Host.host_id",
         backref='locations')

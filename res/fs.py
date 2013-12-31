@@ -231,7 +231,7 @@ class Dir(INode):
         Build on os.walk, this goes over all directories and other paths
         non-recursively.
         It returns all full paths according to walk-opts.
-        XXX: could, but does not, yield INode subtype instances.
+        FIXME: could, but does not, yield INode subtype instances.
         XXX: filters, see dev_treemap
         """
         if not isinstance(opts, confparse.Values):
@@ -246,66 +246,71 @@ class Dir(INode):
         exclusive( opts, 'dirs files symlinks links pipes blockdevs' )
         assert isinstance(path, basestring), (path, path.__class__)
         dirpath = None
-        assert os.path.isdir( path )
-        if opts.dirs and opts.include_root:
-            yield unicode( path, 'utf-8' )
-        for root, dirs, files in os.walk(path):
-            for node in list(dirs):
-                if not opts.recurse and not opts.interactive:
-                    dirs.remove(node)
-                if not opts.dirs:
-                    continue
-                dirpath = join(root, node)
-                #dirpath = os.path.join(root, node).replace(path,'').lstrip('/') +'/'
-                depth = pathdepth(dirpath.replace(path, ''))
-                if not os.path.exists(dirpath):
-                    log.err("Error: reported non existant node %s", dirpath)
-                    dirs.remove(node)
-                    continue
-                elif Klass.check_ignored(dirpath, opts):
-                    dirs.remove(node)
-                    continue
-                elif not Klass.check_recurse(dirpath, opts):
-                    dirs.remove(node)
+        if not os.path.isdir( path ):
+            if not opts.exists:
+                log.error("Cannot walk non-dir path. ")
+            else:
+                yield path
+        else:
+            if opts.dirs and opts.include_root:
+                yield unicode( path, 'utf-8' )
+            for root, dirs, files in os.walk(path):
+                for node in list(dirs):
+                    if not opts.recurse and not opts.interactive:
+                        dirs.remove(node)
+                    if not opts.dirs:
+                        continue
+                    dirpath = join(root, node)
+                    #dirpath = os.path.join(root, node).replace(path,'').lstrip('/') +'/'
+                    depth = pathdepth(dirpath.replace(path, ''))
+                    if not os.path.exists(dirpath):
+                        log.err("Error: reported non existant node %s", dirpath)
+                        dirs.remove(node)
+                        continue
+                    elif Klass.check_ignored(dirpath, opts):
+                        dirs.remove(node)
+                        continue
+                    elif not Klass.check_recurse(dirpath, opts):
+                        dirs.remove(node)
 #                    continue # exception to rule excluded == no yield
 # caller can sort out wether they want entries to subpaths at this level
-                assert isinstance(dirpath, basestring)
-                try:
-                    dirpath = unicode(dirpath)
-                except UnicodeDecodeError, e:
-                    log.err("Ignored non-ascii/illegal filename %s", dirpath)
-                    continue
-                assert isinstance(dirpath, unicode)
-                try:
-                    dirpath.encode('ascii')
-                except UnicodeDecodeError, e:
-                    log.err("Ignored non-ascii filename %s", dirpath)
-                    continue
-                dirpath = Klass.decode_path(dirpath, opts)
-                yield dirpath
-            for leaf in list(files):
-                filepath = join(root, leaf)
-                if not os.path.exists(filepath):
-                    log.err("Error: non existant leaf %s", filepath)
-                    if opts.exists != None and not opts.exists:
-                        if opts.files:
-                            yield filepath
-                    else:
+                    assert isinstance(dirpath, basestring)
+                    try:
+                        dirpath = unicode(dirpath)
+                    except UnicodeDecodeError, e:
+                        log.err("Ignored non-ascii/illegal filename %s", dirpath)
+                        continue
+                    assert isinstance(dirpath, unicode)
+                    try:
+                        dirpath.encode('ascii')
+                    except UnicodeDecodeError, e:
+                        log.err("Ignored non-ascii filename %s", dirpath)
+                        continue
+                    dirpath = Klass.decode_path(dirpath, opts)
+                    yield dirpath
+                for leaf in list(files):
+                    filepath = join(root, leaf)
+                    if not os.path.exists(filepath):
+                        log.err("Error: non existant leaf %s", filepath)
+                        if opts.exists != None and not opts.exists:
+                            if opts.files:
+                                yield filepath
+                        else:
+                            files.remove(leaf)
+                        continue
+                    elif Klass.check_ignored(filepath, opts):
+                        log.info("Ignored file %r", filepath)
                         files.remove(leaf)
-                    continue
-                elif Klass.check_ignored(filepath, opts):
-                    log.info("Ignored file %r", filepath)
-                    files.remove(leaf)
-                    continue
-                filepath = Klass.decode_path(filepath, opts)
-                if not opts.files: # XXX other types
-                    continue
-                #try:
-                #    filepath.encode('ascii')
-                #except UnicodeEncodeError, e:
-                #    log.err("Ignored non-ascii/illegal filename %s", filepath)
-                #    continue
-                yield filepath
+                        continue
+                    filepath = Klass.decode_path(filepath, opts)
+                    if not opts.files: # XXX other types
+                        continue
+                    #try:
+                    #    filepath.encode('ascii')
+                    #except UnicodeEncodeError, e:
+                    #    log.err("Ignored non-ascii/illegal filename %s", filepath)
+                    #    continue
+                    yield filepath
 
 
 class CharacterDevice(INode):

@@ -1,10 +1,12 @@
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
+from sqlalchemy.orm import relationship, backref
 
 from init import SqlBase
 from util import SessionMixin
 
 import core
+import fs
 
 
 class ChecksumDigest(SqlBase, SessionMixin):
@@ -13,9 +15,9 @@ class ChecksumDigest(SqlBase, SessionMixin):
     Superclass for fixed length content checksums
     and other lossy content digests.
     """
-    __tablename__ = 'ids_chks'
+    __tablename__ = 'chks'
 
-    chks_id = Column('id', Integer, primary_key=True)
+    chk_id = Column('id', Integer, primary_key=True)
 
     date_added = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
@@ -29,8 +31,8 @@ class SHA1Digest(ChecksumDigest):
     """
     A 160bit digest.
     """
-    __tablename__ = 'ids_chks_sha1'
-    sha1_id = Column('id', Integer, ForeignKey('ids_chks.id'), primary_key=True)
+    __tablename__ = 'chks_sha1'
+    sha1_id = Column('id', Integer, ForeignKey('chks.id'), primary_key=True)
     __mapper_args__ = {'polymorphic_identity': 'SHA1'}
     digest = Column(String(40), index=True, unique=True, nullable=False)
 
@@ -39,8 +41,8 @@ class MD5Digest(ChecksumDigest):
     """
     A 128 bit digest.
     """
-    __tablename__ = 'ids_chks_md5'
-    md5_id = Column('id', Integer, ForeignKey('ids_chks.id'), primary_key=True)
+    __tablename__ = 'chks_md5'
+    md5_id = Column('id', Integer, ForeignKey('chks.id'), primary_key=True)
     __mapper_args__ = {'polymorphic_identity': 'MD5'}
     digest = Column(String(32), index=True, unique=True, nullable=False)
 
@@ -54,5 +56,10 @@ class MD5Digest(ChecksumDigest):
 #    block_size = Column(Integer, default=1024)
 #    digest = Column(String(32), index=True, unique=True, nullable=False)
 
-
+#inode_checksum_table = Table('inode_checksum', SqlBase.metadata,
+#    Column('inode_id', Integer, ForeignKey('inodes.id'), primary_key=True),
+#    Column('chk_id', Integer, ForeignKey('chks.id'), primary_key=True),
+#)
+#
+#fs.INode.checksums = relationship(ChecksumDigest, secondary=inode_checksum_table)
 

@@ -9,13 +9,14 @@ from init import get_session
 import iface
 
 
+
 # Util classes
 class SessionMixin(object):
 
     sessions = {}
 
     @staticmethod
-    def get_instance(name='default', dbref=None, init=False):
+    def get_session(name='default', dbref=None, init=False):
         if name not in SessionMixin.sessions:
             assert dbref, "session does not exists: %s" % name
             session = get_session(dbref, init)
@@ -26,7 +27,8 @@ class SessionMixin(object):
             #assert session.engine, "existing session does not have engine"
         return session
 
-    # 
+    # XXX: this does not work anymore after ids got unique values
+    # not sure if this can be inferred, explicit is a bit crufty
     key_names = ['id']
 
     def key(self):
@@ -35,29 +37,50 @@ class SessionMixin(object):
             key[a] = getattr(self, a)
         return key
 
-    def commit(self):
-        session = SessionMixin.get_instance()
+    def commit(self, name='default'):
+        session = SessionMixin.get_session(name=name)
         session.add(self)
         session.commit()
 
-    def find(self, keydict=None):
+    @classmethod
+    def fetch(Klass, filters=(), sa=None, session='default', exists=True):
+        """
+        Return exactly one.
+        """
+        if not sa:
+            sa = Klass.get_session(session)
+        rs = None
         try:
-            return self.fetch(keydict=keydict)
+            rs = sa.query(Klass)\
+                .filter(*filters).one()
         except NoResultFound, e:
-            log.err("No results for %s.find(%s)", cn(self), keydict)
+            if exists:
+                log.err("No results for %s.fetch(%s)", Klass.__name__, filters)
+                raise e
+        finally:
+            return rs
 
-    def fetch(self, keydict=None):
+    @classmethod
+    def find(self, keydict=None, sa=None, session='default'):
         """
-        Keydict must be filter parameters that return exactly one record.
+        Return one or none.
         """
-        session = SessionMixin.get_instance()
-        if not keydict:
-            keydict = self.key()
-        return session.query(self.__class__).filter(**keydict).one()
-        
-    def exists(self):
-        return self.fetch() != None 
+        return self.fetch(keydict, sa=sa, session=session, exists=False)
 
+    @classmethod
+    def exists(Klass, keydict):
+        return Klass.fetch(keydict, sa=sa, session=session) != None
+
+    def recorded(self):
+        return self.exists(self.key())
+
+    @classmethod
+    def search(Klass, name=None):
+        if name:
+            rs = sa.query(Klass)\
+                    .filter(Klass.name.like("%%%s%%" % name))\
+                    .all()
+            return rs
 
     def taxus_id(self):
         """

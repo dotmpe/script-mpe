@@ -85,6 +85,7 @@ Class overview:
 import inspect
 import optparse
 import os
+from pprint import pformat
 import sys
 #from inspect import isgeneratorfunction
 
@@ -208,8 +209,11 @@ class SimpleCommand(object):
         options before returning them, but nothing much is passed along right
         now.
         """
-        # do simple top down traversal of current klass inheritance chaing
-        for k in self.__class__.mro():
+        # get bottom up inheritance list
+        mro = list(self.__class__.mro())
+        # reorder to yield options top-down
+        mro.reverse()
+        for k in mro:
             if hasattr(k, 'get_optspec'):
                 # that MRO Class actually defines get_optspec without inheriting it
                 assert 'get_optspec' in k.__dict__, \
@@ -301,43 +305,71 @@ class SimpleCommand(object):
         return self
 
     def select_kwds(self, handler, opts, args, globaldict={}):
-        #print handler, opts, args, inspect.getargspec(handler)
+        """
+        select values to feed a handler from the opts and args passed from the
+        command line, and given a global dictionary to look up names from.
+
+        see pyfuncsig.py for some practical info.
+        """
         func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
                 inspect.getargspec(handler)
-            
-        assert func_arg_vars.pop(0) == 'self'
-        ret_args, ret_kwds = (), {}
-
-        assert not func_kwds_var, handler
-        #ret_kwds = {'opts':None,'args':None}
-
+        assert func_arg_vars.pop(0) == 'self', "Expected a method %s" % handler
+        #  initialize the two return values
+        ret_args, ret_kwds = [], {}
+        if not ( func_arg_vars or func_args_var or func_kwds_var or func_defaults):
+            return ret_args, ret_kwds
         if func_defaults:
             func_defaults = list(func_defaults) 
-
+        # remember which args we have in ret_args
+        pos_args = []
+        #log.debug(pformat(dict(handler=handler, inspect=dict(
+        #    func_arg_vars = func_arg_vars,
+        #    func_args_var = func_args_var,
+        #    func_kwds_var = func_kwds_var,
+        #    func_defaults = func_defaults
+        #))))
+        # gobble first positions if present from args
+        while len(func_arg_vars) > len(func_defaults):
+            arg_name = func_arg_vars.pop(0)
+            if args:
+                value = args.pop(0)
+            elif arg_name in globaldict:
+                value = globaldict[arg_name]
+            else:
+                value = None
+            pos_args.append(arg_name)
+            ret_args.append(value)
+        # add all positions with a default
         while func_defaults:
-            arg_name = func_arg_vars.pop()
-            value = func_defaults.pop()
+            arg_name = func_arg_vars.pop(0)
+            value = func_defaults.pop(0)
             if hasattr(opts, arg_name):
                 value = getattr(opts, arg_name)
             #if hasattr(self.settings, arg_name):
             #    value = getattr(self.settings, arg_name)
             elif arg_name in globaldict:
                 value = globaldict[arg_name]
-            ret_kwds[arg_name] = value
-
+            #ret_kwds[arg_name] = value
+            #print 'default to position', arg_name, value
+            pos_args.append(arg_name)
+            ret_args.append(value)
+        # feed rest of args to arg pass-through if present
         if args and func_args_var:
-            ret_args += tuple(args) # append all regardless of add. func_arg_vars
-        elif args and func_arg_vars:
-            # force func_arg_vars len matches input
-            assert len(args) == len(func_arg_vars), (args, func_arg_vars, handler)
-            ret_args += tuple(args)
-
+            ret_args.extend(args) 
+            pos_args.extend('*'+func_args_var)
+#        else:
+#            print 'hiding args from %s' % handler, args
+        # ret_kwds gets argnames missed, if there is kwds pass-through
+        if func_kwds_var:
+            for kwd, val in globaldict.items():
+                if kwd in pos_args:
+                    continue
+                ret_kwds[kwd] = value
+        # XXX: internals to kwds
         if "opts" in ret_kwds:
             ret_kwds['opts'] = opts
         if "args" in ret_kwds:
             ret_kwds['args'] = args
-
-# FIXME: merge opts with rc before running command, (see init/update-config)
         return ret_args, ret_kwds
 
 # XXX cmd_actions?
@@ -467,14 +499,14 @@ class SimpleCommand(object):
 
     def stat(self, opts=None, args=None):
         if not self.rc:
-            err("Missing run-com for %s", self.NAME)
+            log.err("Missing run-com for %s", self.NAME)
         elif not self.rc.version:
-            err("Missing version for run-com")
+            log.err("Missing version for run-com")
         elif self.VERSION != self.rc.version:
             if self.VERSION > self.rc.version:
-                err("Run com requires upgrade")
+                log.err("Run com requires upgrade")
             else:
-                err("Run com version mismatch: %s vs %s", self.rc.version,
+                log.err("Run com version mismatch: %s vs %s", self.rc.version,
                         self.VERSION)
         print args, opts
 
@@ -516,15 +548,17 @@ class StackedCommand(SimpleCommand):
                 "serialized configuration. ",
                 'default': False }),
 
-            (('--interactive',),{ 'help': "Prompt user if needed, this is"
-                    " the default. ", 
-                'default': True,
+            (('--interactive',),{ 'help': "Allows commands to run extra heuristics, e.g. for "
+                "selection and entry that needs user supervision. Normally all options should "
+                "be explicitly given or the command fails. This allows instead to use a readline"
+                "UI during execution. ",
+                'default': False,
                 'action': 'store_true' }),
 
             (('--non-interactive',),{ 
                 'help': "Never prompt, solve or raise error. ", 
                 'dest': 'interactive', 
-                'default': True,
+                'default': False,
                 'action': 'store_false' }),
 
 #            (('--init-config',),cmddict(help="runtime-configuration with default values. "
