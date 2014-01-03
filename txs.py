@@ -113,7 +113,7 @@ class TaxusFe(libcmd.StackedCommand):
             'txs_assert': ['txs_session'],
             'txs_assert_group': ['txs_session'],
             'txs_assert_path': ['txs_session'],
-            'txs_commit': ['txs_assert'],
+            'txs_commit': ['txs_session'],
             'list': ['txs_session'],
             'list_groups': ['txs_session'],
         }
@@ -177,7 +177,9 @@ class TaxusFe(libcmd.StackedCommand):
         for m in models:
             cnt[m] = sa.query(m).count()
             log.note("Number of %s: %s", m.__name__, cnt[m])
-        log.info("Auto commit: %s", opts.auto_commit) 
+        if self.globaldict.node:
+            log.info("Auto commit: %s", opts.auto_commit) 
+            log.info("%s", self.globaldict.node)
 
     def deref(self, ref, sa):
         assert ref
@@ -201,43 +203,44 @@ class TaxusFe(libcmd.StackedCommand):
         <group root=true>/<group>/<node>
         """
         nodetype, localpart = self.deref( ref, sa )
-        NodeType = getUtility(INameRegistry).lookup(nodetype)
-        subh = getattr( self, 'txs_assert_%s' % nodetype )
-        updatedict = dict( name=localpart )
+        #NodeType = getUtility(INameRegistry).lookup(nodetype)
+        subh = 'txs_assert_%s' % nodetype
+        updatedict = dict( name=localpart, path=None )
         if sep in ref:
-            elems = path.split(sep)
+            elems = ref.split(sep)
             name = elems.pop()
-            updatedict.update(dict( path=elems, name=name ))
+            updatedict.update(dict( path=sep.join(elems), name=name ))
         self.execute( subh, updatedict )
-        print 'asserted', getattr( self.globaldict, nodetype ) # XXX
-
+    
     def _assert_node(self, Klass, name, sa, opts):
         """
+        Helper for node creation.
         """
+        assert name
         node = Klass.find(( Klass.name==name, ), sa=sa)
         if node:
             if name != node.name:
                 node.name = name
         else:
             node = Klass(name=name, date_added=datetime.now())
+            sa.add(node)
             if opts.auto_commit:
-                sa.add(node)
                 sa.commit()
         yield dict( node = node )
+        log.note('Asserted %s', node)
 
-    def txs_assert(self, path, name, sa=None, opts=None):
-        """
-        Assure Node with `name` exists (it can be any subtype).
-        """
-        for x in self._assert_node(Node, name, sa, opts):
-            yield x
+    def txs_assert_node( self, path, name ):
+        self.execute( '_assert_node', dict( Klass=Node, name=name ) )
         if path:
-            self.execute( 'txs_assert_group', dict( path=sep.join(path ) ) )
+            self.execute( 'txs_assert_group', dict( path=path ))
+            path = sep.join(( path, name ))
+            self.execute( 'txs_assert_path', dict( path=path ))
 
     def txs_assert_group(self, path, sa=None, opts=None):
         """
         Assure Group with `name` exists (or any subtype).
         """
+        assert path and isinstance( path, basestring )
         if sep in path:
             elems = path.split(sep)
             while elems:
@@ -257,13 +260,14 @@ class TaxusFe(libcmd.StackedCommand):
             <group>/<group>/<node>
 
         """
+        assert path
         if sep in path:
             nodes = []
             elems = path.split(sep)
             # resolve elements to nodes
             while elems:
                 elem = elems.pop(0)
-                node = Node.fetch(( Node.name == elem, ))
+                node = Node.fetch(( Node.name == elem, ), sa=sa)
                 nodes += [ node ]
                 # XXX assert GroupNode?
             # assert path
@@ -272,10 +276,13 @@ class TaxusFe(libcmd.StackedCommand):
             while nodes:
                 node = nodes.pop(0)
                 root.subnodes.append( node )
-                sa.append(root)
+                sa.add(root)
                 root = node
         if opts.auto_commit:
             opts.commit()
+
+    def txs_commit(self, sa):
+        sa.commit()
 
     def set_root_bool(self, sa=None):
         """

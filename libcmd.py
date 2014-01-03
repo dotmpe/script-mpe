@@ -327,12 +327,17 @@ class SimpleCommand(object):
         correctly wrap keyword-selection and retun-generator handling.
         XXX: perhaps yield or something for use by handlers..
         """
+        log.debug("SimpleCommand.execute %s %s", handler_name, update)
         if update:
             self.globaldict.update(update)
         handler = getattr( self, handler_name )
         args, kwds = self.select_kwds(handler, self.globaldict)
-        log.debug("%s, %r, %r", handler.__name__, args, kwds)
-        ret = handler(*args, **kwds)
+        log.debug("StackedCommand.execute %s, %r, %r", handler.__name__, args, kwds)
+        try:
+            ret = handler(*args, **kwds)
+        except Exception, e:
+            log.crit("Exception in handler %s: %s", handler_name, e)
+            raise e
         # XXX:
         result_adapter = HandlerReturnAdapter( self.globaldict )
         #if isinstance( result_adapter, basestring ):
@@ -717,6 +722,8 @@ class StackedCommand(SimpleCommand):
         executed = []
         while self.globaldict.opts.commands:
             name = self.globaldict.opts.commands.pop(0)
+            if name not in self.DEPS:
+                continue
             depnames = self.DEPS[name]
             for dep in depnames:
                 if dep not in executed:
