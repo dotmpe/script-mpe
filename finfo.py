@@ -87,8 +87,9 @@ class FileInfoApp(TaxusFe):
             'mm_stats': ['txs_session'],
             'list_mtype': ['txs_session'],
             'list_mformat': ['txs_session'],
+            'add_genre': ['txs_session'],
             'add_mtype': ['txs_session'],
-            'add_mformat': ['txs_session']
+            'add_mformats': ['txs_session']
         }
 
     @classmethod
@@ -103,7 +104,7 @@ class FileInfoApp(TaxusFe):
                 (('--list-mtype',), libcmd.cmddict(help="List all mediatypes. ")),
                 (('--list-mformat',), libcmd.cmddict(help="List all media formats. ")),
                 (('--add-mtype',), libcmd.cmddict(help="Add a new mediatype. ")),
-                (('--add-mformat',), libcmd.cmddict(help="Add a new media format. ")),
+                (('--add-mformats',), libcmd.cmddict(help="Add a new media format(s). ")),
                 (('--add-genre',), libcmd.cmddict(help="Add a new media genre. ")),
 
                 (('--name',), dict(
@@ -141,6 +142,9 @@ class FileInfoApp(TaxusFe):
         mms = sa.query(Mediameta).count()
         log.note("Number of mediameta's: %s", mms)
 
+    def add_genre(self, genre, supergenre, opts=None, sa=None):
+        log.crit("TODO add genre %s %s", genre, supergenre)
+
     def add_mtype(self, mtype, label, opts=None, sa=None):
         """
         Add one or more new mediatypes.
@@ -161,8 +165,10 @@ class FileInfoApp(TaxusFe):
         log.info('New type %s', mt)
         sa.add(mt)
         sa.commit()
+        yield dict(mtn=mtn)
+        yield dict(mt=mt)
 
-    def add_mformat(self, opts=None, sa=None, *formats):
+    def add_mformats(self, opts=None, sa=None, *formats):
         """
         Add one or more new mediaformats.
         """
@@ -173,28 +179,41 @@ class FileInfoApp(TaxusFe):
             if mf:
                 log.warn('Existing mformat %s', mf)
                 continue
-            if opts.interactive: # XXX: add_mformat interactive
+            if opts.interactive: # XXX: add_mformats interactive
                 mfs = Mediaformat.search(name=fmt)
                 print 'TODO', mfs
             mf = Mediaformat( name=fmt, date_added=datetime.now() )
             log.info('New format %s', mf)
             sa.add(mf)
+            yield dict(mf=mf)
         sa.commit()
 
 # TODO: adding Mediameta for files
-    def name_and_categorize(self, args=None, opts=None, sa=None, 
-            name=None, mtype=None, mformat=None, genres=None):
-        assert args, args
-        path = args[0]
-        assert os.path.exists(path), path
-        assert sa, sa
-        assert name, name
-        mm = Mediameta(name=name)
-#        if mtype:
-#            mt = sa.query(Mediatype)\
-#                    .filter(Mediatype.name == mediatype)\
-#                    .all()
-#            print 'mediatype', mt
+    def name_and_categorize(self, opts=None, sa=None, 
+            name=None, mtype=None, mformat=None, genres=None, *paths):
+        if len(paths) > 1:
+            assert opts.interactive
+            for path in paths:
+                for subpath in res.fs.Dir.walk(paths, opts):#dict(recurse=True)):
+                    print subpath
+        elif not opts.interactive:
+            path = paths[0]
+            mm = Mediameta(name=name)
+            if mtype:
+                mt = [ ret['mt'] for ret in self.add_mtype( mtype, None, opts=opts, sa=sa )
+                        if 'mt' in ret ].pop()
+                mm.mediatype = mt
+            if mformat:
+                mf = [ ret['mf'] for ret in self.add_mformats( opts, sa, mformat )
+                        if 'mf' in ret ].pop()
+                mm.mediaformat = mf
+            if genres:
+                mm.genres = [ ret['genre'] 
+                        for ret in self.add_genre( genre, None, opts=opts, sa=sa )
+                        if 'genre' in ret ]
+            sa.add(mm)
+            sa.commit()
+            log.note("Created media %s", mm)
 
     def file_info(self, args=None, sa=None):
         for p in args:

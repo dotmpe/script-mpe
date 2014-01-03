@@ -1,5 +1,86 @@
 """
-Moved from libcmd, see docs overthere.
+libcmd is a library to handle command line invocations; parse them to flags,
+options and commands, and validate, resolve prerequisites and execute.
+
+Within this little framework, a command target is akin to a build-target in ant
+or make alike buildsystems. In libcmd it is namespaced, and is more complex, but is 
+has prerequisites and other dependencies and yields certain results.
+
+Example::
+
+    $ cmd ns:target --option ns2:target argument
+
+Mode of interpretation is (POSIX?) that there is a list of targets, one for arguments,
+and a set of options, no order or context is imposed here on these different
+elements. Iow. it is just interpreted as one set, not as an line of ordered
+arguments. I'm playing the idea to create a more structured approach
+
+    $ cmd --flag 123 :target --flag 321 :target2 :target3 --flag 456
+
+Such that target2 gets flag=123 but target gets flag=321 and target1 flag=456.
+Idk, I'll think about that.
+
+XXX: Current implementation is very naive, just to get it working but when it
+proves workable, better design and testing time is wanted.
+
+Right now three main constructs are used to create custom command line programs
+from a few routines. Routines are decorated Python functions, used as generator
+ie. someting like coroutines perhaps idk but I love to use them.
+
+Namespace.register
+    - defines and returns a new namespace instance
+
+Options.register
+    - defined a set of options for a namespace.
+
+Target.register
+    - registers a routine as a new command target, with a namespace and local
+      name, and arguments and a generator that correspond to certain specs.
+
+Other types are Targets, Keywords and Arguments. These are yielded from the
+custom command routines for var. purposes:
+
+Targets
+    Indicate dynamic prequisites. Static prequisites can be found at startup
+    from the explicit declarations using Target.register, but dynamic
+    dependencies cannot. XXX: this functionality probably needs review.
+Keywords
+    Provide a new keyword to the TargetResolver, to be passed to targets that
+    require this property (ie. those commands depend on the command yielding this
+    type). The function argument names of the routine declaration is used to
+    match with these properties. XXX: namespaces are not used yet.
+Arguments
+    The same as Keywords but for positional, non-default argument names which
+    are required for invocation.
+
+Class overview:
+    Target:ITarget
+     - &name:Name
+     - &handler (callable)
+     - depends
+
+    Handler
+     - &func (callable that returns generator)
+     - prerequisites (static)
+     - requires (dynamic)
+     
+    Command:ICommand
+     - @key (name.qname)
+     - &name:Name
+     - &handler:Handler
+     - graph:Graph
+    
+    ExecGraph
+     - from/to/three:<Target,Target,Target>
+     - execlist (minimally cmd:options, from there on: anything from cmdline)
+
+    ContextStack
+        ..
+    TargetResolver
+        ..
+    OptionParser
+        ..
+
 """
 import sys
 import inspect

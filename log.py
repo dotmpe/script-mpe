@@ -155,7 +155,7 @@ def log(level, msg, *args):
             pass
         else:
             if interfaces == [taxus.iface.IPrimitive]:
-                args[i] = taxus.IFormatted(a).toString()
+                args[i] = taxus.iface.IFormatted(a).toString()
             else:
                 args[i] = str(a)
     print >>sys.stderr, msg % tuple(args)

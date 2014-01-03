@@ -25,6 +25,7 @@ Consider:
 
 TODO: segment configuration into multiple files.
 """
+import collections
 import os, re, sys, types
 from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath, splitext
@@ -135,6 +136,25 @@ def find_config_path(markerleaf, path=None, prefixes=config_prefix,
                 cleaf = os.path.expanduser(os.path.join(cpath, cleaf))
                 if not exists or exists(cleaf):
                     yield cleaf
+
+
+class DictDeepUpdate:
+
+    @classmethod
+    def update(Klass, sub, data):
+        for k, v in data.iteritems():
+            if isinstance(v, collections.Mapping):
+                r = Klass.update(sub.get(k, {}), v)
+                sub[k] = r
+            elif isinstance(v, list):
+                if k in sub:
+                    assert isinstance(sub[k], list)
+                else:
+                    sub[k] = []
+                sub[k].extend(v)
+            else:
+                sub[k] = data[k]
+        return sub
 
 
 class Values(dict):

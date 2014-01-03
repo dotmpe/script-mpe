@@ -33,16 +33,17 @@ class Node(SqlBase, SessionMixin):
     Provide lookup on numeric ID, name (non-unique) and standard dates.
     """
 
-    zope.interface.implements(iface.INode)
+    zope.interface.implements(iface.Node)
 
     __tablename__ = 'nodes'
     node_id = Column('id', Integer, primary_key=True)
 
     ntype = Column(String(50), nullable=False)
-    __mapper_args__ = {'polymorphic_on': ntype}
+    __mapper_args__ = {'polymorphic_on': ntype,
+            'polymorphic_identity': 'node'}
     
-    name = Column(String(255), nullable=True)
-    #name = Column(String(255), nullable=False, unique=True)
+    #name = Column(String(255), nullable=True)
+    name = Column(String(255), nullable=False, index=True, unique=True)
     
     #space_id = Column(Integer, ForeignKey('nodes.id'))
     #space = relationship('Node', backref='children', remote_side='Node.id')
@@ -73,10 +74,10 @@ class GroupNode(Node):
 
     __tablename__ = 'groupnodes'
     __mapper_args__ = {'polymorphic_identity': 'groupnode'}
-    groupnode_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    group_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
     subnodes = relationship(Node, secondary=groupnode_node_table)
-    #backref='root')
+    root = Column(Boolean)
 
 
 class ID(SqlBase, SessionMixin):
@@ -107,32 +108,33 @@ class ID(SqlBase, SessionMixin):
         return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.global_id)
 
 
-class Name(SqlBase, SessionMixin):
+class Name(Node):
 
     """
     A local unique identifier.
     """
 
-    zope.interface.implements(iface.IID)
-
     __tablename__ = 'names'
-    name_id = Column('id', Integer, primary_key=True)
+    __mapper_args__ = {'polymorphic_identity': 'name'}
+    name_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
-    nametype = Column(String(50), nullable=False)
-    __mapper_args__ = {'polymorphic_on': nametype, 
-            'polymorphic_identity': 'name'}
+#    name_id = Column('id', Integer, primary_key=True)
 
-    name = Column(String(255), index=True, unique=True)
-
-    date_added = Column(DateTime, index=True, nullable=False)
-    deleted = Column(Boolean, index=True, default=False)
-    date_deleted = Column(DateTime)
-
-    def __str__(self):
-        return "%s at %s having %r" % (lib.cn(self), self.taxus_id(), self.name)
-
-    def __repr__(self):
-        return "<%s at %s with %r>" % (lib.cn(self), hex(id(self)), self.name)
+#    nametype = Column(String(50), nullable=False)
+#    __mapper_args__ = {'polymorphic_on': nametype, 
+#            'polymorphic_identity': 'name'}
+#
+#    name = Column(String(255), index=True, unique=True)
+#
+#    date_added = Column(DateTime, index=True, nullable=False)
+#    deleted = Column(Boolean, index=True, default=False)
+#    date_deleted = Column(DateTime)
+#
+#    def __str__(self):
+#        return "%s at %s having %r" % (lib.cn(self), self.taxus_id(), self.name)
+#
+#    def __repr__(self):
+#        return "<%s at %s with %r>" % (lib.cn(self), hex(id(self)), self.name)
 
 
 class Tag(Name):

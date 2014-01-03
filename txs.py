@@ -3,6 +3,7 @@
 Path annotation, structuring.
 """
 import os, stat, sys
+from os import sep
 import re, anydbm
 from datetime import datetime
 
@@ -28,10 +29,10 @@ import taxus.web
 # XXX
 import taxus
 from taxus import SessionMixin, \
-        Node, INode, Dir, \
-        Name, \
-        Host, \
-        Tag
+        Node, GroupNode, \
+        INode, Dir, \
+        Name, Tag, \
+        Host, Locator
 from taxus.util import current_hostname
 
 
@@ -107,6 +108,10 @@ class TaxusFe(libcmd.StackedCommand):
     DEPENDS = {
             'txs_session': ['cmd_options'],
             'txs_info': ['txs_session'],
+            'txs_assert': ['txs_session'],
+            'txs_assert_group': ['txs_session'],
+            'list_nodes': ['txs_session'],
+            'list_groups': ['txs_session'],
         }
 
     @classmethod
@@ -128,12 +133,25 @@ class TaxusFe(libcmd.StackedCommand):
                 (('--init',), {
                     'action': 'store_true',
                     'help': "Initialize target" }),
+                (('--auto-commit',), {
+#                    "default": False,
+                    'action': 'store_true',
+                    'help': "target" }),
                 (('-q', '--query'), {'action':'callback', 
                     'callback_args': ('query',),
                     'callback': libcmd.optparse_override_handler,
                     'dest': 'command',
                     'help': "TODO" }),
-                (('--txs-info',), libcmd.cmddict())
+
+                # commands
+                (('--txs-info',), libcmd.cmddict()),
+                (('--txs-assert',), libcmd.cmddict(help="Add Node.")),
+                (('--txs-assert-group',), libcmd.cmddict(help="Add Group-node.")),
+                #listtree?
+                #(('-l', '--list',), libcmd.cmddict()),
+                (('-t', '--tree',), libcmd.cmddict()),
+                (('-l','--list-nodes',), libcmd.cmddict()),
+                (('--list-groups',), libcmd.cmddict()),
             )
 
     def txs_session(self, opts=None):
@@ -147,7 +165,7 @@ class TaxusFe(libcmd.StackedCommand):
         log.info("DBRef: %s", opts.dbref)
         log.note("SQLAlchemy session: %s", sa)
 
-        models = taxus.core.ID, Node, INode, Name, Tag, taxus.net.Locator
+        models = taxus.core.ID, Node, Name, Tag, GroupNode, INode, Locator
         cnt = {}
         for m in models:
             cnt[m] = sa.query(m).count()
@@ -157,6 +175,140 @@ class TaxusFe(libcmd.StackedCommand):
 #
 #        ids = sa.query(taxus.core.ID).count()
 #        log.note("Number of ids: %s", ids)
+
+    def assert_node(self, name, sa=None, opts=None):
+        assert sep not in name
+        node = Node.find(( Node.name==node, ), sa=sa)
+        if node:
+            if name != node.name:
+                node.name = name
+        else:
+            node = Node(name=name, date_added=datetime.now())
+            if opts.auto_commit:
+                sa.add(node)
+                sa.commit()
+        return node
+
+    def assert_nodes(self, sa=None, opts=None, *names):
+        for name in names:
+            assert sep not in name
+            rt = self.assert_node(node, sa, opts)
+            yield dict(node=rt)
+    
+    def assert_super(self, sa=None):
+        pass
+
+    def assert_path(self, path, sa=None, opts=None):
+        elems = path.split(os.sep)
+        while elems:
+            elem = elems.pop(0)
+            #    gp = gp.group_id
+            #gp = self.txs_assert_group( g, gp, sa=sa )
+
+    def txs_add_node(self, name, sa=None, opts=None):
+        """
+        <node>
+        <group>/<node>
+        <group root=true>/<group>/<node>
+        """
+        assert isinstance(name, basestring), name
+        path = name.split(os.sep)
+        node = path.pop() 
+        branch = []
+        gp = None
+        print 'prepare node', node
+        while path:
+            g = path.pop(0)
+            print 'path', g, gp
+            if gp:
+                gp = gp.group_id
+            gp = self.txs_assert_group( g, gp, sa=sa )
+        print 'find', Node.find(( Node.name == node, ))
+        if not Node.find(( Node.name == node, ), sa=sa):
+            n = Node( name=node, date_added=datetime.now() )
+            print 'new', n
+            if gp:
+                gp.subnodes.append(n)
+                sa.add(gp)
+            sa.add(n)
+            sa.commit()
+            log.info('Assert %s', gp)
+
+    def txs_assert_group(self, group, parent, sa=None, opts=None):
+        assert group, group
+        gn = GroupNode.find(( GroupNode.name == group, ), sa=sa)
+
+        if not gn:
+            gn = Name.find(( Name.name == group, ), sa=sa)
+            if gn:
+                gn.ntype = 'groupnode'
+                sa.commit()
+        if not gn:
+            gn = GroupNode( name=group, date_added=datetime.now() )
+            sa.add( gn )
+            sa.commit()
+            log.info('Created group %s', gn)
+            if parent:
+                if not isinstance(parent, int) and parent.isdigit():
+                    parent = int(parent)
+                if isinstance(parent, int):
+                    pgn = GroupNode.find((GroupNode.group_id==parent,), sa=sa)
+                else:
+                    pgn = GroupNode.find((GroupNode.name==parent,), sa=sa)
+                if not pgn:
+                    log.err("missing parent group %s", parent)
+                else:
+                    pgn.last_update = datetime.now()
+                    pgn.subnodes.append( gn )
+                    log.info('Updated subnodes for %s', pgn)
+                    sa.add(pgn)
+                    sa.commit()
+            yield dict(gn=gn)
+
+    def set_root_bool(self, sa=None):
+        """
+        set bool = true
+        where 
+            count(jt.node_id) == 0
+            jt.group_id
+        core.groupnode_node_table\
+            update().values(
+                )
+        """
+
+    def list_nodes(self, node, sa=None):
+        if node:
+            group = GroupNode.find(( Node.name == node, ))
+            if not group:
+                log.err("No node for %s", node)
+            else:
+                print group
+                for subnode in group.subnodes:
+                    print '\t', subnode
+        else:
+            ns = sa.query(Node).all()
+            # XXX idem as erlier, some mappings in adapter
+            fields = 'node_id', 'ntype', 'name',
+            # XXX should need a table formatter here
+            print '#', ', '.join(fields)
+            for n in ns:
+                for f in fields:
+                    print getattr(n, f),
+                print
+
+    def list_groups(self, sa=None):
+        gns = sa.query(GroupNode).all()
+        fields = 'node_id', 'name',
+        print '#', ', '.join(fields)
+        for n in gns:
+            for f in fields:
+                print getattr(n, f),
+            print
+
+    def tree(self, sa=None):
+        trees = sa.query(GroupNode)\
+                .filter(( GroupNode.root, )).all()
+       
 
 DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
 DEFAULT_DB = "sqlite:///%s" % DB_PATH

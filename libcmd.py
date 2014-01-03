@@ -1,86 +1,6 @@
 """
-libcmd is a library to handle command line invocations; parse them to flags,
-options and commands, and validate, resolve prerequisites and execute.
-
-Within this little framework, a command target is akin to a build-target in ant
-or make alike buildsystems. In libcmd it is namespaced, and is more complex, but is 
-has prerequisites and other dependencies and yields certain results.
-
-Example::
-
-    $ cmd ns:target --option ns2:target argument
-
-Mode of interpretation is (POSIX?) that there is a list of targets, one for arguments,
-and a set of options, no order or context is imposed here on these different
-elements. Iow. it is just interpreted as one set, not as an line of ordered
-arguments. I'm playing the idea to create a more structured approach
-
-    $ cmd --flag 123 :target --flag 321 :target2 :target3 --flag 456
-
-Such that target2 gets flag=123 but target gets flag=321 and target1 flag=456.
-Idk, I'll think about that.
-
-XXX: Current implementation is very naive, just to get it working but when it
-proves workable, better design and testing time is wanted.
-
-Right now three main constructs are used to create custom command line programs
-from a few routines. Routines are decorated Python functions, used as generator
-ie. someting like coroutines perhaps idk but I love to use them.
-
-Namespace.register
-    - defines and returns a new namespace instance
-
-Options.register
-    - defined a set of options for a namespace.
-
-Target.register
-    - registers a routine as a new command target, with a namespace and local
-      name, and arguments and a generator that correspond to certain specs.
-
-Other types are Targets, Keywords and Arguments. These are yielded from the
-custom command routines for var. purposes:
-
-Targets
-    Indicate dynamic prequisites. Static prequisites can be found at startup
-    from the explicit declarations using Target.register, but dynamic
-    dependencies cannot. XXX: this functionality probably needs review.
-Keywords
-    Provide a new keyword to the TargetResolver, to be passed to targets that
-    require this property (ie. those commands depend on the command yielding this
-    type). The function argument names of the routine declaration is used to
-    match with these properties. XXX: namespaces are not used yet.
-Arguments
-    The same as Keywords but for positional, non-default argument names which
-    are required for invocation.
-
-Class overview:
-    Target:ITarget
-     - &name:Name
-     - &handler (callable)
-     - depends
-
-    Handler
-     - &func (callable that returns generator)
-     - prerequisites (static)
-     - requires (dynamic)
-     
-    Command:ICommand
-     - @key (name.qname)
-     - &name:Name
-     - &handler:Handler
-     - graph:Graph
-    
-    ExecGraph
-     - from/to/three:<Target,Target,Target>
-     - execlist (minimally cmd:options, from there on: anything from cmdline)
-
-    ContextStack
-        ..
-    TargetResolver
-        ..
-    OptionParser
-        ..
-
+While too ambitious version is moved to libcmdng the simple command base-class
+version is reestablished here. 
 """
 import inspect
 import optparse
@@ -89,11 +9,44 @@ from pprint import pformat
 import sys
 #from inspect import isgeneratorfunction
 
-import zope
+import zope.interface
 
+from taxus import iface, init
 import log
 import confparse
+from confparse import Values
 
+
+class HandlerReturnAdapter(object):
+    #zope.interface.implements(iface.IResultAdapter)
+
+    def __init__(self, globaldict):
+        self.globaldict = globaldict
+    def run( self, ret):
+        if isinstance(ret, int):
+            if ret > 0:
+                #log.warn(ret)
+                sys.exit(ret)
+        elif ret:
+            for r in ret:
+                if isinstance(r, dict) or isinstance(r, confparse.Values):
+                    log.debug("Updating globaldict %r", r)
+                    confparse.DictDeepUpdate.update( self.globaldict, r )
+                else:
+                    yield r
+
+class ResultFormatter(object):
+    zope.interface.implements(iface.IReporter)
+    __used_for__ = iface.IReportable
+
+    #zope.interface.implements(iface.IFormatted)
+    #__used_for__ = iface.IReportable, iface.
+
+    def append(self, res):
+        pass
+
+    def flush(self):
+        pass
 
 
 # Option Callbacks for optparse.OptionParser.
@@ -273,34 +226,79 @@ class SimpleCommand(object):
         #    else:
         #        err("Ignored option override for %s: %s", self.settings.config_file, o)
 
+    def prepare_program( self, globaldict, argv, optionparser ):
+        if not argv:
+            argv = sys.argv
+        globaldict.prog.name = argv.pop(0)
+        globaldict.prog.argv = argv
+
+        if isinstance( optionparser, basestring ):
+            parser = getUtility(IOptionParser, name=optionparser)
+        elif optionparser:
+        # XXX
+            #assert provides IOptionParser
+            parser = optionparser
+        else:
+            parser = self
+
+        #parser.set_defaults( values )
+
+        globaldict.prog.optparser, globaldict.opts, kwds_, globaldict.args = \
+                parser.parse_argv( self.get_optspecs(), argv, self.USAGE, self.VERSION )
+
+        # XXX iface.gsm.registerUtility(iface.IResultAdapter, HandlerReturnAdapter, 'default')
+        iface.registerAdapter(ResultFormatter)
+
+    def prepare_output( self, globaldict, default_reporter ):
+# XXX
+        default_reporter = ResultFormatter()
+
+        #if isinstance( default_reporter, basestring ):
+        #    globaldict.prog.default_reporter_name = default_reporter
+        #    default_reporter = getUtility(IReporter)
+        #elif not default_reporter:
+        #    default_reporter = self
+
+        globaldict.prog.output = [ default_reporter ]
+        log.category = globaldict.opts.message_level
+
+    def run_program( self, globaldict, result_adapter ):
+        handler = getattr(self, globaldict.opts.command)
+        args, kwds = self.select_kwds(handler, opts, args, globaldict)
+        ret = handler(*args, **kwds)
+        # XXX
+        result_adapter = HandlerReturnAdapter( globaldict )
+        #if isinstance( result_adapter, basestring ):
+        #    result_adapter = getUtility(IResultAdapter, name=result_adapter)
+        for res in result_adapter.run( ret ):
+            for reporter in globaldict.prog.output:
+                reporter.append(res)
+        for reporter in globaldict.prog.output:
+            reporter.flush()
+        if isinstance(ret, int):
+            pass
+
     @classmethod
-    def main(Klass, argv=None):
+    def main(Klass, argv=None, optionparser=None, result_adapter=None, default_reporter=None):
         """
+        Run cmmdline parser and end one handler.
         TODO: rewrite to one command target, see main.py and TargetResolver.
         But work out concrete subcommands first. Pragmatic approach to
         understand requirements better before jumping in, and time to write
         auxiliary stuff. 
         """
+
+        init.configure_components()
+
         self = Klass()
 
-        # parse arguments
-        if not argv:
-            argv = sys.argv[1:]
+        globaldict = Values(dict( prog=Values(), ))
 
-        self.optparser, opts, kwds_, args = self.parse_argv(
-                self.get_optspecs(), argv, self.USAGE, self.VERSION)
+        self.prepare_program( globaldict, argv, optionparser )
 
-        log.category = opts.message_level
+        self.prepare_output( globaldict, default_reporter )
 
-        handler = getattr(self, opts.command)
-
-        args, kwds = self.select_kwds(handler, opts, args)
-
-        kwd_dict = {}
-        ret = handler(*args, **kwds)
-
-        if isinstance(ret, int):
-            pass
+        self.run_program( globaldict, result_adapter )
 
         return self
 
@@ -329,7 +327,8 @@ class SimpleCommand(object):
         #    func_defaults = func_defaults
         #))))
         # gobble first positions if present from args
-        while len(func_arg_vars) > len(func_defaults):
+        while func_arg_vars \
+                and len(func_arg_vars) > ( func_defaults and len(func_defaults) or 0 ):
             arg_name = func_arg_vars.pop(0)
             if args:
                 value = args.pop(0)
@@ -451,10 +450,10 @@ class SimpleCommand(object):
 
         # Reset sub-Values of settings, or use settings itself
         if config_key:
-            setattr(settings, config_key, confparse.Values())
+            setattr(settings, config_key, Values())
             rc = getattr(settings, config_key)
         assert config_key
-        assert isinstance(rc, confparse.Values)
+        assert isinstance(rc, Values)
         #else:
         #    rc = settings
 
@@ -600,31 +599,34 @@ class StackedCommand(SimpleCommand):
     def __init__(self):
         super(StackedCommand, self).__init__()
     
-        self.settings = confparse.Values()
+        self.settings = Values()
         "Global settings, set to Values loaded from config_file. "
 
         self.rc = None
         "Runtime settings for this script. "
 
-    def cmd_static(self):# XXX , **kwds):
+    def cmd_static(self):
         config_file = self.get_config_file()
-        self.settings.config_file = config_file
-        yield dict(config_file=config_file)#, settings=self.settings)
-
-    def cmd_config(self):
+        #self.settings.config_file = config_file
+        yield dict(
+                prog=dict( 
+                    #name=self.NAME,
+                    #cwd=os.getcwd(),
+                    config_file=config_file))
+        
+    def cmd_config(self, prog):
         #    self.init_config() # case 1: 
         #        # file does not exist at all, init is automatic
-        assert self.settings.config_file, \
-            "No existing configuration found, please rerun/repair installation. "
-        #self.main_user_defaults()
-        config_file = self.settings.config_file
-        self.settings = confparse.load_path(config_file)
-        "Static, persisted self.settings. "
-        self.settings.config_file = config_file
-        yield dict(settings=self.settings)
+        if not prog.config_file:
+            log.err( "Nothing to load configuration from")
+        else:
+            #self.main_user_defaults()
+            self.settings = confparse.load_path( prog.config_file )
+            yield dict(settings=self.settings)
 
-    def cmd_options(self, argv=[], opts=None):#, **kwds):
+    def cmd_options(self, prog, opts):
         # XXX: perhaps restore shared config later
+# XXX: options are alreay parsed. parse them here? like libcmdng
         # Get a reference to the RC; searches config_file for specific section
         config_key = self.DEFAULT_CONFIG_KEY
         if hasattr(opts, 'config_key') and opts.config_key:
@@ -659,43 +661,24 @@ class StackedCommand(SimpleCommand):
             deps.insert(0, name)
         return deps 
 
-    @classmethod
-    def main(Klass, argv=None):
-        """
-        TODO: rewrite to one command target, see main.py and TargetResolver.
-        But work out concrete subcommands first. Pragmatic approach to
-        understand requirements better before jumping in, and time to write
-        auxiliary stuff. 
-        """
-        self = Klass( )
-
-        # parse arguments
-        if not argv:
-            argv = sys.argv[1:]
-
-        self.optparser, opts, kwds_, args = self.parse_argv(
-                self.get_optspecs(), argv, self.USAGE, self.VERSION)
-
-        log.category = opts.message_level
-            
-        globaldict = dict(args=args, opts=opts)
-        handler_depends = self.resolve_depends(opts.command)
-        log.debug("Command %s resolved to handler list %r", opts.command,
+    def run_program( self, globaldict, result_adapter ):
+        handler_depends = self.resolve_depends(globaldict.opts.command)
+        log.debug("Command %s resolved to handler list %r", globaldict.opts.command,
                 handler_depends)
         for handler_name in handler_depends:
             log.info("StackedCommand.main: deferring to %s", handler_name)
             handler = getattr(self, handler_name)
-            hargs, hkwds = self.select_kwds(handler, opts, args, globaldict)
+            hargs, hkwds = self.select_kwds(handler, 
+                    globaldict.opts,
+                    globaldict.args, globaldict)
             ret = handler(*hargs, **hkwds)
-            if isinstance(ret, int):
-                if ret > 0:
-                    #log.warn(ret)
-                    sys.exit(ret)
-            elif ret:
-                for r in ret:
-                    if isinstance(r, dict):
-                        log.debug("Updating globaldict %r", r)
-                        globaldict.update(r)
+            # XXX
+            result_adapter = HandlerReturnAdapter( globaldict )
+            for res in result_adapter.run( ret ):
+                for reporter in globaldict.prog.output:
+                    reporter.append(res)
+        for reporter in globaldict.prog.output:
+            reporter.flush()
         return self
 
 

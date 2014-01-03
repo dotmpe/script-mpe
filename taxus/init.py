@@ -2,7 +2,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+import zope.interface
+
 import log
+import iface
+import out
 
 
 SqlBase = declarative_base()
@@ -24,5 +28,24 @@ def get_session(dbref, initialize=False):
     #dbref = 'mysql://robin/taxus'
     #dbref = 'mysql://robin/taxus_o'
 
+def configure_components():
+    zope.interface.classImplements(str, iface.IPrimitive)
+    zope.interface.classImplements(unicode, iface.IPrimitive)
+    zope.interface.classImplements(int, iface.IPrimitive)
+    #zope.interface.classImplements(dict, IPrimitive)
+    zope.interface.classImplements(list, iface.IPrimitive)
+    #zope.interface.classImplements(tuple, IPyTuple)
 
+    from datetime import datetime
+    zope.interface.classImplements(datetime, iface.IPrimitive)
+
+    # register IFormatted adapters
+    iface.registerAdapter(out.IDFormatter)
+    #idem as registry.register([IID], IFormatted, '', IDFormatter), etc
+    iface.registerAdapter(out.PrimitiveFormatter)
+
+    iface.registerAdapter(out.NodeSetFormatter)
+    iface.registerAdapter(out.NodeFormatter)
+    
+    iface.registry.register([iface.IPrimitive], iface.IFormatted, '', out.PrimitiveFormatter)
 

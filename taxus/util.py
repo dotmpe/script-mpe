@@ -116,6 +116,7 @@ class ResultSet(NodeSet):
         self.query = query
 
 
+# TODO: move to lib.Prompt
 def prompt_choice_with_input(promptstr, choices):
     assert isinstance(choices, list)
     i = 0

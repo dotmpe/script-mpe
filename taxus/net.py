@@ -19,25 +19,22 @@ class Host(core.Node):
     __mapper_args__ = {'polymorphic_identity': 'host'}
 
     host_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-    hostname_id = Column(Integer, ForeignKey('names.id'))
-    hostname = relationship(core.Name, primaryjoin='Host.hostname_id==Name.name_id')
 
     @classmethod
-    def current(klass, session):
+    def current(Klass, session):
         hostname_ = current_hostname()
-        hostname = session.query(Name)\
-            .filter(Name.name == hostname_).one()
-        return session.query(klass).filter(Host.hostname == hostname).one()
+        return Klass.find((Klass.name == hostname_,))
 
     @property
     def netpath(self):
-        return "//%s" % self.hostname.name
+        return "//%s" % self.name
 
     def __str__(self):
-        return "Host at %s with hostname %s" % ( hex(id(self)), self.hostname )
+        return "Host %s" % ( self.hostname )
 
     def __repr__(self):
-        return "<Host %r>" % self.hostname
+        return "<Host at % with %r>" % ( hex(id(self)), self.hostname )
+
 
 # mapping table for Host [1-1] Locator
 #locator_host = Table('locator_host', SqlBase.metadata,

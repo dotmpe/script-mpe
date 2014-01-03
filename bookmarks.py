@@ -50,6 +50,7 @@ import res.js
 import res.bm
 import taxus.model
 import taxus.net
+from taxus.core import GroupNode
 from taxus.checksum import MD5Digest
 from taxus.net import Locator
 from taxus.model import Bookmark
@@ -78,6 +79,7 @@ class bookmarks(TaxusFe):
             'add_lctr_ref_md5': ['txs_session'],
             'add_ref_md5': ['txs_session'],
             'moz_js_import': ['txs_session'],
+            'moz_js_group_import': ['txs_session'],
             'moz_ht_import': ['txs_session'],
             'dlcs_post_import': ['txs_session'],
             'export': ['txs_session']
@@ -101,6 +103,8 @@ class bookmarks(TaxusFe):
                 (('--dlcs-post-import',), libcmd.cmddict()),
 
                 (('--export',), libcmd.cmddict(help="TODO: bm export")),
+
+                (('--moz-js-group-import',), libcmd.cmddict()),
 
                 (('--add-lctrs',), libcmd.cmddict(
                     help="Add locator records for given URL's.")),
@@ -188,14 +192,19 @@ class bookmarks(TaxusFe):
                     bm.tags = tags
                 bm.last_update = datetime.now()
             else:
-                bm = Bookmark(
-                        name=name,
-                        ref=lctr,
-                        extended=ext,
-                        public=public,
-                        tags=tags,
-                        date_added=datetime.now()
-                    )
+                bm = Bookmark.find((Bookmark.name==name,), sa=sa)
+                if bm:
+                    log.err("Duplicate name %s", bm)
+                    bm.name = "%s (copy)" % name
+                else:
+                    bm = Bookmark(
+                            name=name,
+                            ref=lctr,
+                            extended=ext,
+                            public=public,
+                            tags=tags,
+                            date_added=datetime.now()
+                        )
             assert bm.ref
             yield dict( bm=bm )
             sa.add(bm)
@@ -203,7 +212,9 @@ class bookmarks(TaxusFe):
 
     def list_lctr(self, sa=None):
         lctrs = sa.query(Locator).all()
+        # XXX idem as erlier, some mappings in adapter
         fields = 'lctr_id', 'global_id', 'ref_md5', 'date_added', 'deleted', 'ref'
+        # XXX should need a table formatter here
         print '#', ', '.join(fields)
         for lctr in lctrs:
             for f in fields:
@@ -245,7 +256,7 @@ class bookmarks(TaxusFe):
         for path in paths:
             #for ref in mozbm.read_lctr(path):
             #    list(self.assert_locator(sa=sa, href=ref, opts=opts))
-            for node in mozbm.read(path):
+            for node in mozbm.read_bm(path):
                 descr = [ a['value'] for a in node.get('annos', [] ) 
                         if a['name'] == 'bookmarkProperties/description' ]
                 print list(self.add(sa=sa, 
@@ -254,22 +265,59 @@ class bookmarks(TaxusFe):
                     ext=descr and descr.pop() or None,
                     opts=opts)).pop()
 
+    def moz_js_group_import(self, opts=None, sa=None, *paths):
+        "Import groupnodes only. "
+        mozbm = res.bm.MozJSONExport()
+        for path in paths:
+            nodes = {}
+            roots = []
+            #for ref in mozbm.read_lctr(path):
+            #    list(self.assert_locator(sa=sa, href=ref, opts=opts))
+            for node in mozbm.read(path):
+                if 'title' in node and node['title'] and 'children' in node:
+                    nodes[node['id']] = node
+                  
+                    if 'root' in node:
+                        roots.append(node)
+
+            # TODO: store groups, but need to start at the root, sort out struct
+            # XXX should need a tree formatter here
+            print 'Groups' 
+            for nid, node in nodes.items():
+                #print repr(node['title']),
+                if 'parent' in node:
+                    parent = nodes[node['parent']]
+                    self.txs_add_group( node['title'], parent['title'],
+                            sa=sa, opts=opts )
+                else:
+                    self.txs_add_group( node['title'], None, 
+                            sa=sa, opts=opts )
+
+            print 'Roots' 
+            for root in roots:
+                print root['id'], root['title']
+
     def dlcs_post_import(self, opts=None, sa=None, *paths):
         from pydelicious import dlcs_parse_xml
         for p in paths:
             data = dlcs_parse_xml(open(p).read())
             for post in data['posts']:
                 #list(self.assert_locator(sa=sa, href=post['href'], opts=opts))
-                print list(self.add( sa=sa, 
-                    href=node['href'], 
-                    name=node['description'], 
-                    ext=node['extended'], 
-                    tags=node['tag'], 
+                bm = list(self.add( sa=sa, 
+                    href=post['href'], 
+                    name=post['description'], 
+                    ext=post['extended'], 
+                    tags=post['tag'],
                     opts=opts)).pop()
+                tags = [ GroupNode.find(( GroupNode.name == t, )) 
+                        for t in post['tag'].split(' ') ]
+                for tag in tags:
+                    if not tag:
+                        continue
+                    tag.subnodes.append( bm )
 
     def export(self, opts=None, sa=None, *paths):
         pass
-
 
 if __name__ == '__main__':
     bookmarks.main()

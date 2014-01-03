@@ -1,7 +1,6 @@
 """
+Interfaces 
 Output handling using Zope adapters.
-
-TODO: create various output adapters for various formats 
 """
 #import sys, codecs, locale
 #print locale.getpreferredencoding()
@@ -11,24 +10,29 @@ TODO: create various output adapters for various formats
 #print str(sys.stdout.encoding)
 
 import zope.interface
+from zope.interface import Interface, Attribute, implements, \
+        implementedBy, providedBy
 from zope.interface.interface import adapter_hooks
 from zope.interface.adapter import AdapterRegistry
+from zope.component import \
+        getGlobalSiteManager
 
 from script_mpe.lib import cn
 #import taxus
 #import libcmd
 
-registry = AdapterRegistry()
+gsm = getGlobalSiteManager()
+
 
 # generic types for stored object
-class IID(zope.interface.Interface): pass
-class IPrimitive(zope.interface.Interface): pass
-class INode(zope.interface.Interface): pass
-class INodeSet(zope.interface.Interface):
-    nodes = zope.interface.Attribute("The list of nodes. ")
+class IID(Interface): pass
+class IPrimitive(Interface): pass
+class Node(Interface): pass
+class INodeSet(Interface):
+    nodes = Attribute("The list of nodes. ")
 
 # output media types
-class IFormatted(zope.interface.Interface):
+class IFormatted(Interface):
     """
     The serialized representation of another object.
     """
@@ -55,7 +59,7 @@ class IFormatted(zope.interface.Interface):
 #    """
 
 # on line (retrievable) and cachable types
-class IResource(zope.interface.Interface):
+class IResource(Interface):
     """
     Something that is identified by a Universal Resource Indicator.
 
@@ -112,127 +116,55 @@ class IPersisted(IResource):
 # /xxx
 
 
-
-class PrimitiveFormatter(object):
+class IReportable(Interface):
     """
-    Adapter
+    Interface for reportable objects, adaptable to report instances.
+    To use with libcmd and reporer.Reporter class.
     """
-    zope.interface.implements(IFormatted)
-    __used_for__ = INode
 
-    def __init__(self, context):
-        self.context = context
-
-    def toString(self):
-        if isinstance(self.context, unicode) or isinstance(self.context, str):
-            return self.context
-        else:
-            return str(self.context)
-
-    def __str__(self, indent=0):
-        return str(self.context)
-
-    def __unicode__(self, indent=0):
-        return unicode(self.context)
-
-class IDFormatter(object):
+class IReport(Interface):
     """
-    Adapter
+    Interface for report instances.
+    To use with libcmd and reporer.Reporter class.
     """
-    zope.interface.implements(IFormatted)
-    __used_for__ = IID
+    text = Attribute("A text fragment (readonly). ")
+    ansi = Attribute("An ANSI formatted variant of `text` (readonly).")
+    level = Attribute("A level associated with the text fragment (readonly). ")
 
-    def __init__(self, context):
-        self.context = context
+    formatting = Attribute("Preformatted, monospace text is 'static', or 'normal' for flowed. ")
+    line_width = Attribute("If needed, indicate minimal line-width. ")
+    line_width_preferred = Attribute("Optionally, indicate preferred line-width. ")
 
-    def __str__(self, indent=0):
-        ctx = self.context
-        import taxus
-        if hasattr(ctx, 'name'):
-            return "<urn:com.dotmpe:%s>"%str(ctx.name)
-        elif isinstance(ctx, taxus.Locator):
-            return "<%s>"%(ctx.ref)
+class IReporter(Interface):
+    ""
+    append = Attribute("method for adding subsequent IReportables to report")
 
-class NodeFormatter(object):
-    """
-    Adapter
-    """
-    zope.interface.implements(IFormatted)
-    __used_for__ = INode
-
-    def __init__(self, context):
-        self.context = context
-
-    def __str__(self, indent=0):
-        ctx = self.context
-        indentstr = "".join('  ' * indent)
-        fields = [
-            indentstr+"%s: %s" % (k.key, IFormatted(getattr(ctx,
-                k.key)).__str__(indent+1)) 
-            #"%s: %s" % (k.key, getattr(ctx, k.key)) 
-            for k in ctx.__mapper__.iterate_properties
-            if not k.key.endswith('id')]
-        #header = "%s <%s>" % ( cn(ctx), ctx.id )
-        header = "Node <%s>" % ( ctx.id ,)
-        return "[%s\n\t%s]" % (header, '\n\t'.join(fields))
+class IResultAdapter(Interface): pass
 
 
-class NodeSetFormatter(object):
-    """
-    Adapter.
-    """
-    zope.interface.implements(IFormatted)
-
-    __used_for__ = INodeSet
-
-    def __init__(self, context):
-        self.context = context
-    def __str__(self, indent=0):
-        strbuf = ""
-        for node in self.context.nodes:
-            strbuf += IFormatted(node).__str__(indent+1) + '\n'
-        return strbuf
-
-zope.interface.classImplements(str, IPrimitive)
-zope.interface.classImplements(unicode, IPrimitive)
-zope.interface.classImplements(int, IPrimitive)
-#zope.interface.classImplements(dict, IPrimitive)
-zope.interface.classImplements(list, IPrimitive)
-
-from datetime import datetime
-
-zope.interface.classImplements(datetime, IPrimitive)
+registry = AdapterRegistry()
 
 def registerAdapter(adapterClass, sifaces=[], tiface=None):
     if not sifaces:
         sifaces = [adapterClass.__used_for__]
         assert sifaces
     if not tiface:
-        tiface = zope.interface.implementedBy(adapterClass).interfaces().next()
+        tiface = implementedBy(adapterClass).interfaces().next()
     registry.register(sifaces, tiface, '', adapterClass)
 
-registerAdapter(IDFormatter)
-#registry.register([IID], IFormatted, '', IDFormatter)
-registerAdapter(PrimitiveFormatter)
-#registry.register([IPrimitive], IFormatted, '', PrimitiveFormatter)
-
-#registry.register([INodeSet], IFormatted, '', NodeSetFormatter)
-registerAdapter(NodeSetFormatter)
-#registry.register([INode], IFormatted, '', NodeFormatter)
-registerAdapter(NodeFormatter)
-
-def hook(provided, object):
-    if object == None:
+def hook( provided, o ):
+    if  o  == None:
         return PrimitiveFormatter(None)
-    adapted = zope.interface.providedBy(object)
-    #libcmd.err("Adapting %s:%s", object, adapted)
+    adapted = providedBy( o )
+    #libcmd.err("Adapting %s:%s",  o , adapted)
     adapter = registry.lookup1(
             adapted, provided, '')
     if not adapter:
         import sys
-        #libcmd.err("Could not adapt %s:%s > %s", object, adapted, provided)
-        print >>sys.stderr, "Could not adapt %s:%s > %s" %(object, adapted, provided)
-    return adapter(object)
+        #libcmd.err("Could not adapt %s:%s > %s",  o , adapted, provided)
+        print >>sys.stderr, "Could not adapt %s:%s > %s" %( o , adapted, provided)
+    assert adapter, (provided, o)
+    return adapter( o )
 
 adapter_hooks.append(hook)
 

@@ -292,4 +292,3 @@ class Prompt(object):
                 return choice
 
 
-

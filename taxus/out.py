@@ -1,4 +1,13 @@
+"""
+TODO: cleanup
+"""
 from script_mpe.lib import cn
+
+from zope.interface import implements
+
+import res.iface
+import taxus.iface
+from taxus.iface import IFormatted
 
 
 ### User view/Debug serializers
@@ -91,4 +100,87 @@ class RecordFields(Formatter):
 Formatters.names['identity'] = RecordFields
 
 
+
+# XXX moved from taxus.iface
+class PrimitiveFormatter(object):
+    """
+    Adapter
+    """
+    implements(IFormatted)
+    __used_for__ = taxus.iface.Node
+
+    def __init__(self, context):
+        self.context = context
+
+    def toString(self):
+        if isinstance(self.context, unicode) or isinstance(self.context, str):
+            return self.context
+        else:
+            return str(self.context)
+
+    def __str__(self, indent=0):
+        return str(self.context)
+
+    def __unicode__(self, indent=0):
+        return unicode(self.context)
+
+
+class IDFormatter(object):
+    """
+    Adapter
+    """
+    implements(IFormatted)
+    __used_for__ = taxus.iface.IID
+
+    def __init__(self, context):
+        self.context = context
+
+    def __str__(self, indent=0):
+        ctx = self.context
+        import taxus
+        if hasattr(ctx, 'name'):
+            return "<urn:com.dotmpe:%s>"%str(ctx.name)
+        elif isinstance(ctx, taxus.Locator):
+            return "<%s>"%(ctx.ref)
+
+
+class NodeFormatter(object):
+    """
+    Adapter
+    """
+    implements(IFormatted)
+    __used_for__ = taxus.iface.Node
+
+    def __init__(self, context):
+        self.context = context
+
+    def __str__(self, indent=0):
+        ctx = self.context
+        indentstr = "".join('  ' * indent)
+        fields = [
+            indentstr+"%s: %s" % (k.key, IFormatted(getattr(ctx,
+                k.key)).__str__(indent+1)) 
+            #"%s: %s" % (k.key, getattr(ctx, k.key)) 
+            for k in ctx.__mapper__.iterate_properties
+            if not k.key.endswith('id')]
+        #header = "%s <%s>" % ( cn(ctx), ctx.id )
+        header = "Node <%s>" % ( ctx.id ,)
+        return "[%s\n\t%s]" % (header, '\n\t'.join(fields))
+
+
+class NodeSetFormatter(object):
+    """
+    Adapter.
+    """
+    implements(IFormatted)
+
+    __used_for__ = taxus.iface.INodeSet
+
+    def __init__(self, context):
+        self.context = context
+    def __str__(self, indent=0):
+        strbuf = ""
+        for node in self.context.nodes:
+            strbuf += IFormatted(node).__str__(indent+1) + '\n'
+        return strbuf
 
