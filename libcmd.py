@@ -24,9 +24,8 @@ class HandlerReturnAdapter(object):
         self.globaldict = globaldict
     def run( self, ret):
         if isinstance(ret, int):
-            if ret > 0:
-                #log.warn(ret)
-                sys.exit(ret)
+            #log.warn(ret)
+            sys.exit(ret)
         elif ret:
             for r in ret:
                 if isinstance(r, dict) or isinstance(r, confparse.Values):
