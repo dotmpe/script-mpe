@@ -1,0 +1,6 @@
+/**
+ * XXX Comment
+ */
+def func();
+
+# TEST: $ radical.py -vvv test.txt

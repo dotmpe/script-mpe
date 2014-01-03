@@ -27,6 +27,7 @@ class INode(object):
 
     @classmethod
     def decode_path( Klass, path, opts ):
+        return path
         # XXX: decode from opts.fs_enc
         assert isinstance(path, basestring)
         try:
@@ -248,7 +249,7 @@ class Dir(INode):
         dirpath = None
         if not os.path.isdir( path ):
             if not opts.exists:
-                log.error("Cannot walk non-dir path. ")
+                log.err("Cannot walk non-dir path while os.stat is off. ")
             else:
                 yield path
         else:
@@ -265,13 +266,14 @@ class Dir(INode):
                     depth = pathdepth(dirpath.replace(path, ''))
                     if not os.path.exists(dirpath):
                         log.err("Error: reported non existant node %s", dirpath)
-                        dirs.remove(node)
+                        if node in dirs: dirs.remove(node)
                         continue
                     elif Klass.check_ignored(dirpath, opts):
-                        dirs.remove(node)
+                        if node in dirs: dirs.remove(node)
                         continue
                     elif not Klass.check_recurse(dirpath, opts):
-                        dirs.remove(node)
+                        if node in dirs:
+                            dirs.remove(node)
 #                    continue # exception to rule excluded == no yield
 # caller can sort out wether they want entries to subpaths at this level
                     assert isinstance(dirpath, basestring)

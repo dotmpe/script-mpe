@@ -24,7 +24,7 @@ import libcmd
 #    pass
 
 
-class FSTopicTreeFe(libcmd.SimpleCommand):#libcmd.StackedCommand):
+class FSTopicTreeFe(libcmd.StackedCommand):
 
     """
     Construct Topic trees from file system paths.
@@ -38,6 +38,10 @@ class FSTopicTreeFe(libcmd.SimpleCommand):#libcmd.StackedCommand):
         return (
                 (('--run-fstree',), libcmd.cmddict()),
             )
+
+    DEPENDS = dict(
+        run_fstree = ['cmd_options']
+        )
 
     def run_fstree(self, opts=None):
         print opts

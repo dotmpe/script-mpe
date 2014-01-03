@@ -2,6 +2,8 @@
 """
 :created: 2013-12-30
 
+- Import old bookmarks from JSON, XML.
+
 ::
 
    Node<INode>

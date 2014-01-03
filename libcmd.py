@@ -227,6 +227,9 @@ class SimpleCommand(object):
         #        err("Ignored option override for %s: %s", self.settings.config_file, o)
 
     def prepare_program( self, globaldict, argv, optionparser ):
+        """
+        Program.main step 1.
+        """
         if not argv:
             argv = sys.argv
         globaldict.prog.name = argv.pop(0)
@@ -250,9 +253,11 @@ class SimpleCommand(object):
         iface.registerAdapter(ResultFormatter)
 
     def prepare_output( self, globaldict, default_reporter ):
+        """
+        Program.main step 2.
+        """
 # XXX
         default_reporter = ResultFormatter()
-
         #if isinstance( default_reporter, basestring ):
         #    globaldict.prog.default_reporter_name = default_reporter
         #    default_reporter = getUtility(IReporter)
@@ -263,6 +268,9 @@ class SimpleCommand(object):
         log.category = globaldict.opts.message_level
 
     def run_program( self, globaldict, result_adapter ):
+        """
+        Program.main step 3.
+        """
         handler = getattr(self, globaldict.opts.command)
         args, kwds = self.select_kwds(handler, opts, args, globaldict)
         ret = handler(*args, **kwds)
@@ -330,10 +338,10 @@ class SimpleCommand(object):
         while func_arg_vars \
                 and len(func_arg_vars) > ( func_defaults and len(func_defaults) or 0 ):
             arg_name = func_arg_vars.pop(0)
-            if args:
-                value = args.pop(0)
-            elif arg_name in globaldict:
+            if arg_name in globaldict:
                 value = globaldict[arg_name]
+            elif args:
+                value = args.pop(0)
             else:
                 value = None
             pos_args.append(arg_name)
@@ -646,6 +654,10 @@ class StackedCommand(SimpleCommand):
         yield dict(rc=self.rc)
 
     def resolve_depends(self, name):
+        """
+        Create (and cache) one dict for dependencies.
+        Return chain for given name.
+        """
         if 'DEPS' not in self.__dict__:
             self.DEPS = {}
             for k in self.__class__.mro():
@@ -662,6 +674,9 @@ class StackedCommand(SimpleCommand):
         return deps 
 
     def run_program( self, globaldict, result_adapter ):
+        """
+        Override for Program.run_program to run multiple dependent commands.
+        """
         handler_depends = self.resolve_depends(globaldict.opts.command)
         log.debug("Command %s resolved to handler list %r", globaldict.opts.command,
                 handler_depends)

@@ -1,6 +1,7 @@
 """cmdline - basis implementation of libcmd for taxus, rsr and other script
 utils.
 
+XXX: pre-libng stuff, maybe subsumed
 See libcmd or other programs for usage overviews.
 """
 import os
@@ -12,7 +13,7 @@ import zope.interface
 import confparse
 import log
 from libname import Namespace, Name
-from libcmd import OptionParser, Targets, Arguments, Keywords, Options,\
+from libcmdng import OptionParser, Targets, Arguments, Keywords, Options,\
     Target, optparse_increase_verbosity, optparse_override_quiet
 
 

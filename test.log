@@ -33,7 +33,7 @@ ERROR: test_4_lists (test_confparse.CPTest1)
 Traceback (most recent call last):
   File "/srv/project-mpe/script-mpe/test_confparse.py", line 169, in test_4_lists
     self.assertEqual(test_settings.foo.test4[0].foo, 'bar')
-  File "/srv/project-mpe/script-mpe/confparse.py", line 296, in __getattr__
+  File "/srv/project-mpe/script-mpe/confparse.py", line 316, in __getattr__
     return dict.__getitem__(self, name)
 KeyError: 'test4'
 
@@ -78,7 +78,7 @@ AssertionError: {'foo': {'bar': {'var': 'v'}, 'test4:[{foo': 'bar}]'}, 'config_f
 
 
 ----------------------------------------------------------------------
-Ran 22 tests in 0.046s
+Ran 22 tests in 0.047s
 
 FAILED (failures=2, errors=2)
 Coverage.py warning: Module rsr was never imported.

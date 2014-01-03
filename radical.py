@@ -15,7 +15,7 @@ to defer newly encountered (sub)problems to a later time.
 
 This program allows to track comments TODO, FIXME, XXX or even ISSUE:MyId 
 kind of tags in source code. This local database could be kept in sync with
-centralized issue and worklog trackers.
+centralized issue and worklog trackers. [rad-ignore]
 
 For example, a new issue may simply be created by a text embedded in a
 *comment*, such as::
@@ -64,13 +64,15 @@ Overview
 Standard tags
 -------------
 TODO
-    Incomplete implementation, stuff is missing.
+    Incomplete implementation, stuff is missing. [rad-ignore]
 FIXME
     Known bug or limitation, missing option or degraded user experience. 
+    [rad-ignore]
 XXX
-    Remark on hacks and other ugliness. (See Jargon File)
+    Remark on hacks and other ugliness. (See Jargon File) [rad-ignore]
 WIP
     (Work in progress) Partial implementation, stuff is missing or broken.
+    [rad-ignore]
 
 Configuration
 -------------
@@ -99,6 +101,9 @@ Changelog
 2012-02-04
     Lost some recent development.
     Exploration of interface in libtaxus/linetags.py
+2014-01-03
+    During rewrite of libcmd keeping this up to date,
+    perhaps looking to store files/comments/tags in SQL with taxus.
 
 Issues
 ------
@@ -106,20 +111,23 @@ Issues
   If a comment block starts with a tag, but contains other tags, it is parsed as
   a line comment. (Normally a comment starting with a tag covers all the
   lines in the block)
-- If this'd use a extended context on the document IO stream, it could handle
-  different line-endines. Currently UNIX-only.
-- There are only two styles of comment markup implemented, which captures a
-  decent set of document formants, but excludes numerous others. 
-  
-  Notable other styles:
-  
+- Implementation is still based on first iteration, 
+  somewhat spotty and quite suboptimal.
+- Python allows various form of strings while this only parses block types.
+
+Further comments
+----------------
+- Handles only Unix likebreaks. Could do a lot better con literal parsing,
+  perhaps something enfiladic or based on parallel streams.. for now it should
+  help this results in some content ranges.
+- There are two styles of comments recognized, line and block.
+  Some other styles not implemented:
+
   - SQL '-- ' prefixed line comments.
   - Vim '"' prefixed line comments.
   - INI ';' prefixed line comments.
   - SGML or XML style embedded comments.
 
-- In extension of issue 2, also literals, as embedded in various document
-  languages might be used in the same way as comments are. E.g. Python.
 
 TODO: domain structure::
 
@@ -147,6 +155,7 @@ TODO: domain structure::
 
 # TODO:3: Scan for other literals, recognize language constructs. 
 
+import traceback
 import optparse, os, re, sys
 from pprint import pformat
 
@@ -200,6 +209,10 @@ class TrackedIssue(Base):
     # XXX: unique on filename/linenumber?
     filename = Column(String(255), index=True)
     last_seen_startline = Column(Integer)
+
+# tag ids:
+NO_ID = 0
+NEED_ID = -1
 
 
 class EmbeddedIssue:
@@ -303,11 +316,19 @@ def at_line(offset, width, data):
 collapse_ws_sub = re.compile(r'[\ \n]+').sub
 collapse_ws = lambda s: collapse_ws_sub(' ', s)
 
+
+_parsed_file_comments = {}
+
 def get_tagged_comment(offset, width, data, language_keys, matchbox):
     """
     Return the comment span that has a tag embedded at offset/width.
+
     This scans for continues sequences of comment lines, and may return spans
-    for comment blocks that contain other tags. Also, this span may include 
+    for comment blocks that contain other tags. 
+    Given a found tag it looks at the like of the match using a 
+    comment start/end exrepssion.
+    
+        Also, this span may include 
     metacharacters used to markup comments. Further parsing of the comment
     block is left to the caller.
     """
@@ -318,34 +339,54 @@ def get_tagged_comment(offset, width, data, language_keys, matchbox):
     for language_key in language_keys:
 
         comment_scan = matchbox[language_key]
-        match_start = comment_scan[0].match
-        match_end = None
-        if len(comment_scan)>1:
-            match_end = comment_scan[1].match
+        # line based or start/end
+        match_line, match_start, match_end = None, None, None
+        if len(comment_scan) == 1:
+            match_line = comment_scan[0].match
+        elif len(comment_scan) == 2:
+            match_start, match_end = comment_scan[1].match, comment_scan[1].match
+        elif len(comment_scan) == 3:
+            match_start, match_end = comment_scan[1].match, comment_scan[2].match
 
-        if not match_start(lines[tag_line]):
-            continue
-        
         data = lines[tag_line]
         start_line = tag_line 
-        comment_start = line_offset
-        while match_start(data):
-            data = lines[start_line-1]
-            if match_start(data):
-                start_line -= 1
-                comment_start -= len(data) + 1
-       
-        if not match_end:
-            match_end = match_start
 
-        data = lines[tag_line]
-        end_line = tag_line
-        comment_end = line_offset + len(data)
-        while match_end(data):
-            data = lines[end_line+1]
-            if match_end(data):
-                end_line += 1
-                comment_end += len(data) + 1
+        if match_line:
+            # scan multiline for line-style comment
+            if match_line(data):
+                data = lines[tag_line]
+                end_line = tag_line
+                comment_end = line_offset + len(data)
+                while match_end(data):
+                    data = lines[end_line+1]
+                    if match_line(data):
+                        end_line += 1
+                        comment_end += len(data) + 1
+            else:
+                print "No match at", language_key, tag_line, lines[tag_line]
+                continue
+
+        else: # seek multiline block comment
+
+            comment_start = line_offset
+            while match_start(data):
+                data = lines[start_line-1]
+                # adjust start-line and start-char
+                if match_start(data):
+                    start_line -= 1
+                    comment_start -= len(data) + 1
+           
+            if not match_end:
+                match_end = match_start
+
+            data = lines[tag_line]
+            end_line = tag_line
+            comment_end = line_offset + len(data)
+            while match_end(data):
+                data = lines[end_line+1]
+                if match_end(data):
+                    end_line += 1
+                    comment_end += len(data) + 1
         
         return language_key, (comment_start, comment_end), (start_line, end_line)
 
@@ -366,6 +407,10 @@ def trim_comment(match, data, (start, end)):
     # strip heading and trailing comment markup metachars
     m = match[0].match(comment_data)
     if not m:
+        #  FIXME: c-style comments have embedded junk
+        if comment_data != comment_data.strip():
+            pass # TODO: block trim_comment
+        return data[start:end], (start, end)
         raise Exception(m, comment_data)
 
     _1 = comment_data[m.end(1):]
@@ -436,8 +481,8 @@ def find_tagged_comments(session, matchbox, source, data, comment_flavours):
     - FIXME: C-style line and block comments.
     """
     for tagname in rc.tags:
-        for match in matchbox[tagname].finditer(data):
-            tag_span = match.start(), match.end()
+        for tag_match in matchbox[tagname].finditer(data):
+            tag_span = tag_match.start(), tag_match.end()
 
             # Get entire comment
             comment = get_tagged_comment(tag_span[0],
@@ -459,24 +504,24 @@ def find_tagged_comments(session, matchbox, source, data, comment_flavours):
             inline = False
 
             next_tag = scan_for_tag(rc.tags, matchbox,
-                    data[match.end():comment_end])
+                    data[tag_match.end():comment_end])
             if next_tag:
-                next_tag = next_tag + match.end()
+                next_tag = next_tag + tag_match.end()
 
-            if not next_tag and comment_start == match.start():
+            if not next_tag and comment_start == tag_match.start():
                 # Comment starts with Tag, Tag spans entire comment block
                 description_end = comment_end
             else:
                 inline = True
                 # Scan for end of Issue description
-                find_description_end = end_of_description(data[match.end():comment_end])
+                find_description_end = end_of_description(data[tag_match.end():comment_end])
                 if find_description_end:
-                    description_end = match.end() + find_description_end.end()
+                    description_end = tag_match.end() + find_description_end.end()
                 else: # Line comment
-                    end_offset = end_of_line(data[match.end():comment_end])#.end()
+                    end_offset = end_of_line(data[tag_match.end():comment_end])#.end()
                     if end_offset:
                         # TODO: stop at end of line
-                        description_end = match.end() + end_offset
+                        description_end = tag_match.end() + end_offset
                     else:
                         description_end = comment_end
 
@@ -486,23 +531,23 @@ def find_tagged_comments(session, matchbox, source, data, comment_flavours):
 
             current_id = None
             if rc.tags[tagname]:
-                if match.group(2):
+                if tag_match.group(2):
                     assert tagname in rc.tags, "Need index type for tracked tag at %s" % (tag_span,)
-                    current_id = match.group(2)
+                    current_id = tag_match.group(2)
                 else:
-                    current_id = -1
+                    current_id = NEED_ID
 
             yield EmbeddedIssue(source, (comment_start, comment_end), tagname,
                     current_id, 
-                    (match.start(), match.end()), 
-                    (match.end(), description_end), 
+                    (tag_match.start(), tag_match.end()), 
+                    (tag_match.end(), description_end), 
                     inline, comment_flavour, lines)
             continue
 
             # FIXME:
             #  Get and further clean the issue text from the source data
             tag_data = clean_comment(rc.comment_scan[comment_flavour],
-                    data[match.end():description_end].lstrip())
+                    data[tag_match.end():description_end].lstrip())
             if inline:
                 tag_data = collapse_ws(tag_data)
                 if not tag_data.endswith(' '):
@@ -511,9 +556,9 @@ def find_tagged_comments(session, matchbox, source, data, comment_flavours):
             # Use tracker service, or anonymous tags
             if rc.tags[tagname]:
                 current_id = None
-                if match.group(2):
+                if tag_match.group(2):
                     assert tagname in rc.tags, "Need index type for tracked tag at %s" % (tag_span,)
-                    current_id = match.group(2)
+                    current_id = tag_match.group(2)
 
                 if current_id:
                     #print 'Existing:', tagname, current_id, source, tag_span, repr(data[slice(*tag_span)])
@@ -538,8 +583,8 @@ def find_files_with_tag(session, matchbox, paths):
     Look for tags in the data at each file path.
     """
         
+    sources = []
     for p in paths:
-        sources = []
         if not os.path.isdir(p):
             sources.append(p)
         else:
@@ -552,6 +597,7 @@ def find_files_with_tag(session, matchbox, paths):
             tag_generator = find_tagged_comments(session, matchbox, source, data, comment_flavours)
         except Exception, e:
             log.err("Find: %s", e)
+            traceback.print_exc()
             tag_generator = None
         while tag_generator:
             try:
@@ -561,18 +607,25 @@ def find_files_with_tag(session, matchbox, paths):
                 tag_generator = None
             except Exception, e:
                 log.err("Find: %s", e)
+                traceback.print_exc()
 
 def get_service(t):
     return __import__('radical_'+t)
 
 # Optparse callbacks
 def append_comment_scan(option, value, parser):
-    print 'TODO comment_scan', (option, value, parser)
+    print "TODO comment_scan", (option, value, parser)
     pass
 
 
 # Static metadata
 
+"""
+scan
+    a dict with start,[end] expressions for each comment flavour
+tags
+    a format and item index service name
+"""
 # TODO: groups of filetype tags for each flavour scanned comment
 
 # XXX: probably use gate to map between content-type and format tag
@@ -592,15 +645,30 @@ def append_comment_scan(option, value, parser):
 
 # Start/end regex patterns per comment flavour
 STD_COMMENT_SCAN = {
-        'unix_generic': ['^(\s*\#).*$',],
-        'c': ['^(\s*\/\*).*$','^.*(\*\/\s*)$'],
-        'c_line': ['^(\s*\/\/).*$',],
+        'unix_generic': [ '^(\s*\#).*$', ],
+        'c': [ 
+            None,
+            r'^(\s*\/\*).*$', 
+            r'^.*(\*\/\s*)$' 
+        ],
+        'c_line': [ '^(\s*\/\/).*$', ],
+        'py_doc': [ 
+            None,
+            r'^\s*(\"\"\")\s*.*$', 
+            r'^.*(\"\"\")\s*$' ]
     }
+"""
+c
+    start: any-space + '/*' + anything
+    end: anything + '*/' + any-space
+py:
+
+"""
 # Tag pattern, format and index type
 DEFAULT_TAGS = {
-        'TODO': ['(%s)[:_\s-](?:([0-9]+)[\s:])?', '%s:%i:', 'numeric_index'],
+        'TODO': ['(%s)[:_\s-](?:([0-9]+)[\s:])?', '%s:%i:', 'numeric_index'], # rad-ignore
 #        'FIXME': ('%(tagname)s:%(id)s', 'tiny_ticket'),
-    'XXX': ['(%s)[:_\s-](?:([0-9]+)[\s:])?',],
+    'XXX': ['(%s)[:_\s-](?:([0-9]+)[\s:])?',], # rad-ignore
 #        'FACIOCRM': ('%(tagname)s-%(id)i', 'atlassian_jira'),
 }
 
@@ -628,6 +696,13 @@ class Radical(txs.TaxusFe):
     #    'list_flavours', 'list_scans' ]
     #TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + [ 'run_embedded_issue_scan' ]
     DEFAULT_ACTION = 'run_embedded_issue_scan'
+
+    DEPENDS = dict(
+            init = [ 'cmd_options' ],
+            run_embedded_issue_scan = [ 'init' ],
+            list_flavours = [ 'cmd_options' ],
+            list_scans = [ 'cmd_options' ]
+        )
 
     @classmethod
     def get_optspec(klass, inherit):
@@ -687,13 +762,28 @@ class Radical(txs.TaxusFe):
             print
         return
 
-    DEPENDS = {
-            #'run_embedded_issue_scan': ['txs_session'],
-            'run_embedded_issue_scan': ['cmd_options'],
-        }
+    def init(self, prog=None):
+        # start db session
+        dbsession = get_session(self.rc.dbref)
+        yield dict( dbsession=dbsession )
 
-    def run_embedded_issue_scan(self, args=None, opts=None, sa=None):
-        paths = args
+        # get backend service
+        services = confparse.Values({})
+        for tagname in self.rc.tags:
+            if self.rc.tags[tagname] and len(self.rc.tags[tagname]) > 2:
+                services[tagname] = get_service(self.rc.tags[tagname][2])
+                log.info("Using backend %s for %s", services[tagname], tagname)
+
+        yield dict( services=services )
+
+    def run_embedded_issue_scan(self, dbsession, *paths):
+        """
+        """
+        if not paths:
+            paths = ['.']
+            # XXX debugging
+            #paths = ['radical_xmldoctext.xml', 'radical.py']
+
         # pre-compile patterns
         matchbox = {}
         for tagname in self.rc.tags:
@@ -711,44 +801,25 @@ class Radical(txs.TaxusFe):
             else:
                 matchbox[flavour] = (match_start, )
 
-        # start db session
-        dbsession = get_session(self.rc.dbref)
-
-        if not paths:
-            paths = ['.']
-            # XXX debugging
-            #paths = ['radical_xmldoctext.xml', 'radical.py']
-
-        # get backend service
-        service = None
-        if self.rc.tags[tagname] and len(self.rc.tags[tagname]) > 2:
-            service = get_service(self.rc.tags[tagname][2])
-            log.info("Using backend %s", service)
-
         # iterate paths
         global rc
         rc = self.rc
         for embedded in find_files_with_tag(dbsession, matchbox, paths):
             if embedded.tag_id:
-                if embedded.tag_id == -1:
-                    log.note('New %r', (embedded.file_name, \
+                #if embedded.tag_id == NEED_ID:
+                    log.note('Embedded Issue %r', (embedded.file_name, \
                             embedded.tag_name, embedded.tag_id, \
                             embedded.comment_span, embedded.comment_lines, \
                             embedded.description))
                     #new_id = service.new_issue(embedded.tag_name, embedded.description)
                     #embedded.set_new_id(new_id)
-                else:
-                    log.note('Updated %s', ( embedded.file_name, \
-                            embedded.tag_name, embedded.tag_id, \
-                            embedded.comment_span, embedded.comment_lines, \
-                            embedded.description))
                     #service.update_issue(embedded.tag_name, embedded.tag_id,
                     #        embedded.description)
             else:
                 assert False
                 pass
-
             #embedded.store(dbsession)
+
 
 if __name__ == '__main__':
     Radical.main()
