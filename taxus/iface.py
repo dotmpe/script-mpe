@@ -21,8 +21,11 @@ from script_mpe.lib import cn
 #import taxus
 #import libcmd
 
+
 gsm = getGlobalSiteManager()
 
+#print 'gsm', hex(id(gsm)), gsm, dir(gsm)
+#print gsm.utilities
 
 # generic types for stored object
 class IID(Interface): pass
@@ -141,6 +144,14 @@ class IReporter(Interface):
 
 class IResultAdapter(Interface): pass
 
+class IScraperRegistry(Interface):
+    """
+    A collection or url, function pairs for processing web content to data
+    """
+    register = Attribute("method(url) return decorator for url")
+    scrapers = Attribute("""not sure if public, 
+        dict struct containing named func,url pairs
+    """)
 
 registry = AdapterRegistry()
 
