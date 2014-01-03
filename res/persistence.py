@@ -6,7 +6,6 @@ Started first use in Metafile. Later solution for Volume, other files may be
 looked for.
 """
 import shelve
-import bsddb
 import hashlib
 
 from rsrlib.store import UpgradedPickle, Object
@@ -31,6 +30,7 @@ class PersistedMetaObject(Object):
         if name not in PersistedMetaObject.stores:
             print PersistedMetaObject.stores
             assert dbref, "store does not exists: %s" % name
+            import bsddb3 as bsddb
             try:
                 store = shelve.open(dbref, 
                 # read-only, or create if not exist and open read/write
