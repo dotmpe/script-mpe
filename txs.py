@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Path annotation, structuring.
+libcmd+taxus (SQLAlchemy) session
 """
 import os, stat, sys
 from os import sep
@@ -34,6 +34,7 @@ from taxus import SessionMixin, \
         Name, Tag, \
         Host, Locator
 from taxus.util import current_hostname
+#from taxus.iface import gsm, IReferenceResolver
 
 
 
@@ -170,13 +171,21 @@ class TaxusFe(libcmd.StackedCommand):
         for m in models:
             cnt[m] = sa.query(m).count()
             log.note("Number of %s: %s", m.__name__, cnt[m])
-            
-#        names = sa.query(taxus.core.Name).count()
-#
-#        ids = sa.query(taxus.core.ID).count()
-#        log.note("Number of ids: %s", ids)
 
-    def assert_node(self, name, sa=None, opts=None):
+    def deref(self, ref, sa):
+        assert ref
+        m = re.match(r'^([a-zA-Z_][a-zA-Z0-9_-]*):', ref)
+        if m:
+            nodetype = m.groups()[0]
+            return nodetype, ref[ m.end(): ]
+        return '', ref
+
+    def txs_assert(self, ref, sa, opts):
+        nodetype, localpart = self.deref(ref, sa)
+        subh = getattr( self, 'txs_assert_%s' % nodetype)
+        self.execute(subh, dict( name=localpart )):
+
+    def txs_assert_node(self, name, sa=None, opts=None):
         assert sep not in name
         node = Node.find(( Node.name==node, ), sa=sa)
         if node:
@@ -189,28 +198,19 @@ class TaxusFe(libcmd.StackedCommand):
                 sa.commit()
         return node
 
-    def assert_nodes(self, sa=None, opts=None, *names):
-        for name in names:
-            assert sep not in name
-            rt = self.assert_node(node, sa, opts)
-            yield dict(node=rt)
-    
-    def assert_super(self, sa=None):
-        pass
-
     def assert_path(self, path, sa=None, opts=None):
+#    def txs_assert_node(self, name, sa=None, opts=None):
+        """
+        <node>
+        <group>/<node>
+        <group root=true>/<group>/<node>
+        """
         elems = path.split(os.sep)
         while elems:
             elem = elems.pop(0)
             #    gp = gp.group_id
             #gp = self.txs_assert_group( g, gp, sa=sa )
 
-    def txs_add_node(self, name, sa=None, opts=None):
-        """
-        <node>
-        <group>/<node>
-        <group root=true>/<group>/<node>
-        """
         assert isinstance(name, basestring), name
         path = name.split(os.sep)
         node = path.pop() 

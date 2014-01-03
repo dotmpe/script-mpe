@@ -49,3 +49,4 @@ def configure_components():
     
     iface.registry.register([iface.IPrimitive], iface.IFormatted, '', out.PrimitiveFormatter)
 
+    # TODO iface.gsm.registerUtility( obj, iface.IReferenceResolver ) 

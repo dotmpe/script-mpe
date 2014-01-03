@@ -1,6 +1,27 @@
 """
-While too ambitious version is moved to libcmdng the simple command base-class
+While too-ambitious-version is moved to libcmdng the simple command base-class
 version is reestablished here. 
+
+The goal is to easily bootstrap simple or complex command-line programs,
+allowing custom code to run and extend the base program.
+
+The SimpleCommand approach uses --command to set te 'handler' to run,
+multiple handlers run in sequence and behave as generators.
+
+New keyword selection is more simple.
+Everything libcmd does is kept on `prog`,
+and there are `args` and `opts`.
+XXX and later `settings` or `config`.
+
+The lookup is entirely based on matching names,
+starting with `globaldict` iow. the root, and then from `opts` and `args`.
+
+Wether any var in the function signature has a default does not matter,
+XXX currently missing vars are padded with None values, perhaps a warning 
+
+The handlers themselves yield a dict to update the global dict
+`prog` and add new names.
+FIXME Yielding a list would indicate arguments that are handled and can be removed.
 """
 import inspect
 import optparse
@@ -174,6 +195,7 @@ class SimpleCommand(object):
 
     def __init__(self):
         super(SimpleCommand, self).__init__()
+        self.globaldict = Values(dict( prog=Values(), ))
 
     def parse_argv(self, options, argv, usage, version):
         """
@@ -225,10 +247,12 @@ class SimpleCommand(object):
         #    else:
         #        err("Ignored option override for %s: %s", self.settings.config_file, o)
 
-    def prepare_program( self, globaldict, argv, optionparser ):
+    def prepare_program( self, argv, optionparser ):
         """
         Program.main step 1.
         """
+        globaldict = self.globaldict
+
         if not argv:
             argv = sys.argv
         globaldict.prog.name = argv.pop(0)
@@ -251,39 +275,47 @@ class SimpleCommand(object):
         # XXX iface.gsm.registerUtility(iface.IResultAdapter, HandlerReturnAdapter, 'default')
         iface.registerAdapter(ResultFormatter)
 
-    def prepare_output( self, globaldict, default_reporter ):
+    def prepare_output( self, default_reporter ):
         """
         Program.main step 2.
         """
 # XXX
         default_reporter = ResultFormatter()
         #if isinstance( default_reporter, basestring ):
-        #    globaldict.prog.default_reporter_name = default_reporter
+        #    self.globaldict.prog.default_reporter_name = default_reporter
         #    default_reporter = getUtility(IReporter)
         #elif not default_reporter:
         #    default_reporter = self
 
-        globaldict.prog.output = [ default_reporter ]
-        log.category = globaldict.opts.message_level
+        self.globaldict.prog.output = [ default_reporter ]
+        log.category = self.globaldict.opts.message_level
 
-    def run_program( self, globaldict, result_adapter ):
+    def execute_program( self, result_adapter ):
         """
         Program.main step 3.
         """
-        handler = getattr(self, globaldict.opts.command)
-        args, kwds = self.select_kwds(handler, opts, args, globaldict)
+        handler = getattr(self, self.globaldict.opts.command)
+        self.execute( handler )
+        for reporter in self.globaldict.prog.output:
+            reporter.flush()
+
+    def execute( self, handler, update={} ):
+        """
+        Called from execute program. Handlers can themselves call execute to
+        correctly wrap keyword-selection and retun-generator handling.
+        XXX: perhaps yield or something for use by handlers..
+        """
+        if update:
+            self.globaldict.update(update)
+        args, kwds = self.select_kwds(handler, self.globaldict)
         ret = handler(*args, **kwds)
-        # XXX
-        result_adapter = HandlerReturnAdapter( globaldict )
+        # XXX:
+        result_adapter = HandlerReturnAdapter( self.globaldict )
         #if isinstance( result_adapter, basestring ):
         #    result_adapter = getUtility(IResultAdapter, name=result_adapter)
         for res in result_adapter.run( ret ):
-            for reporter in globaldict.prog.output:
+            for reporter in self.globaldict.prog.output:
                 reporter.append(res)
-        for reporter in globaldict.prog.output:
-            reporter.flush()
-        if isinstance(ret, int):
-            pass
 
     @classmethod
     def main(Klass, argv=None, optionparser=None, result_adapter=None, default_reporter=None):
@@ -298,18 +330,13 @@ class SimpleCommand(object):
         init.configure_components()
 
         self = Klass()
-
-        globaldict = Values(dict( prog=Values(), ))
-
-        self.prepare_program( globaldict, argv, optionparser )
-
-        self.prepare_output( globaldict, default_reporter )
-
-        self.run_program( globaldict, result_adapter )
+        self.prepare_program( argv, optionparser )
+        self.prepare_output( default_reporter )
+        self.execute_program( result_adapter )
 
         return self
 
-    def select_kwds(self, handler, opts, args, globaldict={}):
+    def select_kwds(self, handler, globaldict):
         """
         select values to feed a handler from the opts and args passed from the
         command line, and given a global dictionary to look up names from.
@@ -339,8 +366,8 @@ class SimpleCommand(object):
             arg_name = func_arg_vars.pop(0)
             if arg_name in globaldict:
                 value = globaldict[arg_name]
-            elif args:
-                value = args.pop(0)
+            elif globaldict.args:
+                value = globaldict.args.pop(0)
             else:
                 value = None
             pos_args.append(arg_name)
@@ -349,8 +376,8 @@ class SimpleCommand(object):
         while func_defaults:
             arg_name = func_arg_vars.pop(0)
             value = func_defaults.pop(0)
-            if hasattr(opts, arg_name):
-                value = getattr(opts, arg_name)
+            if hasattr(globaldict.opts, arg_name):
+                value = getattr(globaldict.opts, arg_name)
             #if hasattr(self.settings, arg_name):
             #    value = getattr(self.settings, arg_name)
             elif arg_name in globaldict:
@@ -360,8 +387,8 @@ class SimpleCommand(object):
             pos_args.append(arg_name)
             ret_args.append(value)
         # feed rest of args to arg pass-through if present
-        if args and func_args_var:
-            ret_args.extend(args) 
+        if globaldict.args and func_args_var:
+            ret_args.extend(globaldict.args) 
             pos_args.extend('*'+func_args_var)
 #        else:
 #            print 'hiding args from %s' % handler, args
@@ -372,10 +399,10 @@ class SimpleCommand(object):
                     continue
                 ret_kwds[kwd] = value
         # XXX: internals to kwds
-        if "opts" in ret_kwds:
-            ret_kwds['opts'] = opts
-        if "args" in ret_kwds:
-            ret_kwds['args'] = args
+        #if "opts" in ret_kwds:
+        #    ret_kwds['opts'] = globaldict.opts
+        #if "args" in ret_kwds:
+        #    ret_kwds['args'] = globaldict.args
         return ret_args, ret_kwds
 
 # XXX cmd_actions?
@@ -388,7 +415,7 @@ class SimpleCommand(object):
             assert callable(action), (action, actionId)
             err("Notice: running %s", actionId)
             #arg_list, kwd_dict = self.main_prepare_kwds(action, opts, [])#args)
-            arg_list, kwd_dict = self.select_kwds(action, opts, [])#args)
+            arg_list, kwd_dict = self.select_kwds(action, globaldict)
             ret = action(**kwd_dict)
             #print actionId, adaptable.IFormatted(ret)
             if isinstance(ret, tuple):
@@ -672,29 +699,18 @@ class StackedCommand(SimpleCommand):
             deps.insert(0, name)
         return deps 
 
-    def run_program( self, globaldict, result_adapter ):
+    def execute_program( self, result_adapter ):
         """
         Override for Program.run_program to run multiple dependent commands.
         """
+        globaldict = self.globaldict
         handler_depends = self.resolve_depends(globaldict.opts.command)
         log.debug("Command %s resolved to handler list %r", globaldict.opts.command,
                 handler_depends)
         for handler_name in handler_depends:
             log.info("StackedCommand.main: deferring to %s", handler_name)
             handler = getattr(self, handler_name)
-            hargs, hkwds = self.select_kwds(handler, 
-                    globaldict.opts,
-                    globaldict.args, globaldict)
-            ret = handler(*hargs, **hkwds)
-            # XXX
-            result_adapter = HandlerReturnAdapter( globaldict )
-            for res in result_adapter.run( ret ):
-                for reporter in globaldict.prog.output:
-                    reporter.append(res)
-        for reporter in globaldict.prog.output:
-            reporter.flush()
-        return self
-
+            self.execute( handler )
 
 
 
