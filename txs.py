@@ -114,6 +114,7 @@ class TaxusFe(libcmd.StackedCommand):
             'txs_assert_group': ['txs_session'],
             'txs_assert_path': ['txs_session'],
             'txs_commit': ['txs_session'],
+            'txs_remove': ['txs_session'],
             'list': ['txs_session'],
             'list_groups': ['txs_session'],
         }
@@ -152,12 +153,13 @@ class TaxusFe(libcmd.StackedCommand):
                     libcmd.cmddict(callback=libcmd.optparse_append_handler)),
                 (('--txs-assert',), libcmd.cmddict(help="Add Node.")),
                 (('--txs-assert-group',), libcmd.cmddict(help="Add Group-node.")),
+                (('--txs-remove',), libcmd.cmddict(help="Drop Node.")),
                 (('--txs-commit',),
                     libcmd.cmddict(callback=libcmd.optparse_append_handler)),
                 #listtree?
                 #(('-l', '--list',), libcmd.cmddict()),
                 (('-t', '--tree',), libcmd.cmddict()),
-                (('-l','--list-nodes',), libcmd.cmddict()),
+                (('-l','--list',), libcmd.cmddict()),
                 (('--list-groups',), libcmd.cmddict()),
                 (('--txs-show',), libcmd.cmddict(help="Print Node.")),
             )
@@ -192,7 +194,7 @@ class TaxusFe(libcmd.StackedCommand):
             if not ref.endswith(sep):
                 nodetype = 'node'# XXX not using path elems of node-'path'
             return nodetype, ref
-        return '', ref
+        return 'node', ref
 
     def txs_assert(self, ref, sa, opts):
         """
@@ -247,8 +249,7 @@ class TaxusFe(libcmd.StackedCommand):
                 elem = elems.pop(0)
                 for x in self.txs_assert_group( elem, sa, opts ):
                     yield x
-            #    self.execute( 'txs_assert_group', dict( path=elem ))
-            #self.execute( 'txs_assert_path', dict( path=path ) )
+            self.execute( 'txs_assert_path', dict( path=path ) )
         else:
             for x in self._assert_node(GroupNode, path, sa, opts):
                 yield x
@@ -280,6 +281,12 @@ class TaxusFe(libcmd.StackedCommand):
                 root = node
         if opts.auto_commit:
             opts.commit()
+
+    def txs_remove(self, ref, sa, opts):
+        node = Node.find(( Node.name == ref, ))
+        sa.delete( node )
+        if opts.auto_commit:
+            sa.commit()
 
     def txs_commit(self, sa):
         sa.commit()
@@ -318,12 +325,15 @@ class TaxusFe(libcmd.StackedCommand):
             print '#', ', '.join(fields)
             for n in ns:
                 for f in fields:
-                    print getattr(n, f),
+                    v = getattr(n, f)
+                    if isinstance( v, unicode ):
+                        v = v.encode('utf-8')
+                    print v,
                 print
 
     def list_groups(self, sa=None):
         gns = sa.query(GroupNode).all()
-        fields = 'node_id', 'name',
+        fields = 'node_id', 'name', 'subnodes'
         print '#', ', '.join(fields)
         for n in gns:
             for f in fields:
@@ -333,7 +343,7 @@ class TaxusFe(libcmd.StackedCommand):
     def tree(self, sa=None):
         trees = sa.query(GroupNode)\
                 .filter(( GroupNode.root, )).all()
-       
+         
 
 DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
 DEFAULT_DB = "sqlite:///%s" % DB_PATH

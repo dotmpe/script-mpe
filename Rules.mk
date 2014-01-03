@@ -35,7 +35,7 @@ $(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 #
 #      ------------ -- 
 
-test:: test_py_$d test_sa_$d
+test:: test_py_$d test_sa_$d test_libcmd_$d test_txs_$d
 
 test_py_$d test_sa_$d :: D := $/
 
@@ -82,6 +82,29 @@ test_py_$d::
 	    $(ll) Errors "$@" "$$(tail -1 test.log)"; \
 	    $(ll) Errors "$@" see test.log; \
     fi
+
+# some system tests
+test_libcmd_$d::
+	@\
+    T=libcmd_test_help.txt; \
+	python libcmd.py -h > /tmp/$$T; \
+    diff -bqr $$T /tmp/$$T
+	@$(ll) OK "$@" 
+
+test_txs_$d::
+	@\
+    T=txs_test_help.txt; \
+	txs.py -h > /tmp/$$T; \
+    diff -bqr $$T /tmp/$$T
+	txs.py --list > /tmp/txs-all-nodes.txt
+	txs.py --txs-assert group/test-node --txs-commit
+	txs.py --txs-assert group/group2/ --txs-commit
+	txs.py --txs-remove group --txs-commit
+	txs.py --txs-remove group2 --txs-commit
+	txs.py --txs-remove test-node --txs-commit
+	txs.py --list > /tmp/txs-all-nodes.2.txt
+	diff -bqr /tmp/txs-all-nodes.txt /tmp/txs-all-nodes.2.txt
+	@$(ll) OK "$@" 
 
 # Make SA do a test on the repo
 test_sa_$d::

@@ -28,6 +28,7 @@ import optparse
 import os
 from pprint import pformat
 import sys
+import traceback
 import types
 #from inspect import isgeneratorfunction
 
@@ -149,6 +150,7 @@ class SimpleCommand(object):
     
     USAGE = """Usage: %prog [options] paths """
 
+    DEFAULT = []
 # TODO: restore here
     DEFAULT_RC = 'cllct.rc'
     DEFAULT_CONFIG_KEY = NAME
@@ -159,6 +161,7 @@ class SimpleCommand(object):
         Return tuples with optparse command-line argument specification.
         """
         return (
+
             (('-C', '--command'),{ 'metavar':'ID', 
                 'help': "Action (default: %default). ", 
                 'dest': 'commands',
@@ -309,7 +312,7 @@ class SimpleCommand(object):
         """
         Return handlernames from commands list.
         """
-        return globaldict.opts.commands
+        return self.globaldict.opts.commands
 
     def execute_program( self, result_adapter ):
         """
@@ -337,6 +340,7 @@ class SimpleCommand(object):
             ret = handler(*args, **kwds)
         except Exception, e:
             log.crit("Exception in handler %s: %s", handler_name, e)
+            traceback.print_exc()
             raise e
         # XXX:
         result_adapter = HandlerReturnAdapter( self.globaldict )
