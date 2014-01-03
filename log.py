@@ -108,6 +108,7 @@ def format_line(msg):
     return msg
 
 category = 4
+#category = 7
 strict = False
 
 def log(level, msg, *args):

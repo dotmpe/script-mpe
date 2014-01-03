@@ -104,14 +104,17 @@ class TaxusFe(libcmd.StackedCommand):
     # XXX: for simplecommand, use superclass and shared config/schema/data or
     # separate command-line frontends?
 
-    DEFAULT_ACTION = 'txs_info'
+    DEFAULT = [ 'txs_info' ]
 
     DEPENDS = {
             'txs_session': ['cmd_options'],
             'txs_info': ['txs_session'],
+            'txs_show': ['txs_session'],
             'txs_assert': ['txs_session'],
             'txs_assert_group': ['txs_session'],
-            'list_nodes': ['txs_session'],
+            'txs_assert_path': ['txs_session'],
+            'txs_commit': ['txs_assert'],
+            'list': ['txs_session'],
             'list_groups': ['txs_session'],
         }
 
@@ -145,14 +148,18 @@ class TaxusFe(libcmd.StackedCommand):
                     'help': "TODO" }),
 
                 # commands
-                (('--txs-info',), libcmd.cmddict()),
+                (('--txs-info',),
+                    libcmd.cmddict(callback=libcmd.optparse_append_handler)),
                 (('--txs-assert',), libcmd.cmddict(help="Add Node.")),
                 (('--txs-assert-group',), libcmd.cmddict(help="Add Group-node.")),
+                (('--txs-commit',),
+                    libcmd.cmddict(callback=libcmd.optparse_append_handler)),
                 #listtree?
                 #(('-l', '--list',), libcmd.cmddict()),
                 (('-t', '--tree',), libcmd.cmddict()),
                 (('-l','--list-nodes',), libcmd.cmddict()),
                 (('--list-groups',), libcmd.cmddict()),
+                (('--txs-show',), libcmd.cmddict(help="Print Node.")),
             )
 
     def txs_session(self, opts=None):
@@ -165,12 +172,12 @@ class TaxusFe(libcmd.StackedCommand):
     def txs_info(self, opts=None, sa=None):
         log.info("DBRef: %s", opts.dbref)
         log.note("SQLAlchemy session: %s", sa)
-
         models = taxus.core.ID, Node, Name, Tag, GroupNode, INode, Locator
         cnt = {}
         for m in models:
             cnt[m] = sa.query(m).count()
             log.note("Number of %s: %s", m.__name__, cnt[m])
+        log.info("Auto commit: %s", opts.auto_commit) 
 
     def deref(self, ref, sa):
         assert ref
@@ -178,92 +185,97 @@ class TaxusFe(libcmd.StackedCommand):
         if m:
             nodetype = m.groups()[0]
             return nodetype, ref[ m.end(): ]
+        if sep in ref:
+            nodetype = 'group'
+            if not ref.endswith(sep):
+                nodetype = 'node'# XXX not using path elems of node-'path'
+            return nodetype, ref
         return '', ref
 
     def txs_assert(self, ref, sa, opts):
-        nodetype, localpart = self.deref(ref, sa)
-        subh = getattr( self, 'txs_assert_%s' % nodetype)
-        self.execute(subh, dict( name=localpart )):
+        """
+        <node>
+        <group>/<node> (node+path)
+        <group>/<group> (group+path)
 
-    def txs_assert_node(self, name, sa=None, opts=None):
-        assert sep not in name
-        node = Node.find(( Node.name==node, ), sa=sa)
+        <group root=true>/<group>/<node>
+        """
+        nodetype, localpart = self.deref( ref, sa )
+        NodeType = getUtility(INameRegistry).lookup(nodetype)
+        subh = getattr( self, 'txs_assert_%s' % nodetype )
+        updatedict = dict( name=localpart )
+        if sep in ref:
+            elems = path.split(sep)
+            name = elems.pop()
+            updatedict.update(dict( path=elems, name=name ))
+        self.execute( subh, updatedict )
+        print 'asserted', getattr( self.globaldict, nodetype ) # XXX
+
+    def _assert_node(self, Klass, name, sa, opts):
+        """
+        """
+        node = Klass.find(( Klass.name==name, ), sa=sa)
         if node:
             if name != node.name:
                 node.name = name
         else:
-            node = Node(name=name, date_added=datetime.now())
+            node = Klass(name=name, date_added=datetime.now())
             if opts.auto_commit:
                 sa.add(node)
                 sa.commit()
-        return node
+        yield dict( node = node )
 
-    def assert_path(self, path, sa=None, opts=None):
-#    def txs_assert_node(self, name, sa=None, opts=None):
+    def txs_assert(self, path, name, sa=None, opts=None):
         """
-        <node>
-        <group>/<node>
-        <group root=true>/<group>/<node>
+        Assure Node with `name` exists (it can be any subtype).
         """
-        elems = path.split(os.sep)
-        while elems:
-            elem = elems.pop(0)
-            #    gp = gp.group_id
-            #gp = self.txs_assert_group( g, gp, sa=sa )
+        for x in self._assert_node(Node, name, sa, opts):
+            yield x
+        if path:
+            self.execute( 'txs_assert_group', dict( path=sep.join(path ) ) )
 
-        assert isinstance(name, basestring), name
-        path = name.split(os.sep)
-        node = path.pop() 
-        branch = []
-        gp = None
-        print 'prepare node', node
-        while path:
-            g = path.pop(0)
-            print 'path', g, gp
-            if gp:
-                gp = gp.group_id
-            gp = self.txs_assert_group( g, gp, sa=sa )
-        print 'find', Node.find(( Node.name == node, ))
-        if not Node.find(( Node.name == node, ), sa=sa):
-            n = Node( name=node, date_added=datetime.now() )
-            print 'new', n
-            if gp:
-                gp.subnodes.append(n)
-                sa.add(gp)
-            sa.add(n)
-            sa.commit()
-            log.info('Assert %s', gp)
+    def txs_assert_group(self, path, sa=None, opts=None):
+        """
+        Assure Group with `name` exists (or any subtype).
+        """
+        if sep in path:
+            elems = path.split(sep)
+            while elems:
+                elem = elems.pop(0)
+                for x in self.txs_assert_group( elem, sa, opts ):
+                    yield x
+            #    self.execute( 'txs_assert_group', dict( path=elem ))
+            #self.execute( 'txs_assert_path', dict( path=path ) )
+        else:
+            for x in self._assert_node(GroupNode, path, sa, opts):
+                yield x
+            
+    def txs_assert_path(self, path, sa, opts):
+        """
+        Put each subnode in a container::
 
-    def txs_assert_group(self, group, parent, sa=None, opts=None):
-        assert group, group
-        gn = GroupNode.find(( GroupNode.name == group, ), sa=sa)
+            <group>/<group>/<node>
 
-        if not gn:
-            gn = Name.find(( Name.name == group, ), sa=sa)
-            if gn:
-                gn.ntype = 'groupnode'
-                sa.commit()
-        if not gn:
-            gn = GroupNode( name=group, date_added=datetime.now() )
-            sa.add( gn )
-            sa.commit()
-            log.info('Created group %s', gn)
-            if parent:
-                if not isinstance(parent, int) and parent.isdigit():
-                    parent = int(parent)
-                if isinstance(parent, int):
-                    pgn = GroupNode.find((GroupNode.group_id==parent,), sa=sa)
-                else:
-                    pgn = GroupNode.find((GroupNode.name==parent,), sa=sa)
-                if not pgn:
-                    log.err("missing parent group %s", parent)
-                else:
-                    pgn.last_update = datetime.now()
-                    pgn.subnodes.append( gn )
-                    log.info('Updated subnodes for %s', pgn)
-                    sa.add(pgn)
-                    sa.commit()
-            yield dict(gn=gn)
+        """
+        if sep in path:
+            nodes = []
+            elems = path.split(sep)
+            # resolve elements to nodes
+            while elems:
+                elem = elems.pop(0)
+                node = Node.fetch(( Node.name == elem, ))
+                nodes += [ node ]
+                # XXX assert GroupNode?
+            # assert path
+            yield dict(path_nodes = nodes)
+            root = nodes.pop(0)
+            while nodes:
+                node = nodes.pop(0)
+                root.subnodes.append( node )
+                sa.append(root)
+                root = node
+        if opts.auto_commit:
+            opts.commit()
 
     def set_root_bool(self, sa=None):
         """
@@ -276,7 +288,13 @@ class TaxusFe(libcmd.StackedCommand):
                 )
         """
 
-    def list_nodes(self, node, sa=None):
+    def txs_show(self, ref_or_node, sa ):
+        if isinstance( ref_or_node, basestring ):
+            nodetype, localpart = self.deref(ref_or_node, sa)
+            node = Node.find(( Node.name == localpart, ))
+            print node
+        
+    def list(self, node, sa=None):
         if node:
             group = GroupNode.find(( Node.name == node, ))
             if not group:
@@ -469,7 +487,7 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
         tags[''] = 'Root'
     FS_Path_split = re.compile('[\/\.\+,]+').split
     log.info("{bblack}Tagging paths in {green}%s{default}",
-            os.path.realpath('.') + os.sep)
+            os.path.realpath('.') + sep)
     cwd = os.getcwd()
     assert isinstance(cwd, basestring), cwd
     try:

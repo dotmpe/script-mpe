@@ -28,6 +28,7 @@ import optparse
 import os
 from pprint import pformat
 import sys
+import types
 #from inspect import isgeneratorfunction
 
 import zope.interface
@@ -48,6 +49,7 @@ class HandlerReturnAdapter(object):
             #log.warn(ret)
             sys.exit(ret)
         elif ret:
+            assert isinstance(ret, types.GeneratorType)
             for r in ret:
                 if isinstance(r, dict) or isinstance(r, confparse.Values):
                     log.debug("Updating globaldict %r", r)
@@ -97,24 +99,34 @@ def optparse_increase_verbosity(option, optstr, value, parser):
 
 def optparse_override_handler(option, optstr, value, parser, new_value):
     """
-    Override value of `option.dest`.
-    If no new_value given, the option string is converted and used.
+    Override command lists to single new comment, see cmddict.
     """
     assert not value
     if new_value:
         value = new_value
     else:
         value = option.get_opt_string().strip('-').replace('-','_')
-    values = parser.values
-    dest = option.dest
-    setattr(values, dest, value)
+    log.debug('optparse %s now %s', option.dest, [ value ])
+    setattr(parser.values, option.dest, [ value ])
 
+def optparse_append_handler(option, optstr, value, parser, new_value):
+    """
+    Append value to command list.
+    """
+    values = getattr( parser.values, option.dest )
+    if new_value:
+        value = new_value
+    else:
+        value = option.get_opt_string().strip('-').replace('-','_')
+    values.append(value)
+    log.debug('optparse %s now %s', option.dest, values)
+    setattr( parser.values, option.dest, values )
 
 # shortcut for setting command from 'handler flags'
 def cmddict(**override):
     d = dict(
             action='callback',
-            dest='command',
+            dest='commands',
             callback=optparse_override_handler,
             callback_args=(None,) # default value is option name with '-' to '_'
         )
@@ -142,14 +154,17 @@ class SimpleCommand(object):
     DEFAULT_CONFIG_KEY = NAME
 
     @classmethod
-    def get_optspec(klass, inherit):
+    def get_optspec(klass, inheritor):
         """
         Return tuples with optparse command-line argument specification.
         """
         return (
             (('-C', '--command'),{ 'metavar':'ID', 
                 'help': "Action (default: %default). ", 
-                'default': inherit.DEFAULT_ACTION }),
+                'dest': 'commands',
+                'action': 'callback', 'callback': optparse_override_handler,
+                'default': inheritor.DEFAULT
+            }),
     
             (('-m', '--message-level',),{ 'metavar':'level',
                 'help': "Increase chatter by lowering "
@@ -290,16 +305,23 @@ class SimpleCommand(object):
         self.globaldict.prog.output = [ default_reporter ]
         log.category = self.globaldict.opts.message_level
 
+    def resolve_depends( self ):
+        """
+        Return handlernames from commands list.
+        """
+        return globaldict.opts.commands
+
     def execute_program( self, result_adapter ):
         """
         Program.main step 3.
         """
-        handler = getattr(self, self.globaldict.opts.command)
-        self.execute( handler )
+        for handler_name in self.resolve_depends():
+            log.info("StackedCommand.main: deferring to %s", handler_name)
+            self.execute( handler_name )
         for reporter in self.globaldict.prog.output:
             reporter.flush()
 
-    def execute( self, handler, update={} ):
+    def execute( self, handler_name, update={} ):
         """
         Called from execute program. Handlers can themselves call execute to
         correctly wrap keyword-selection and retun-generator handling.
@@ -307,7 +329,9 @@ class SimpleCommand(object):
         """
         if update:
             self.globaldict.update(update)
+        handler = getattr( self, handler_name )
         args, kwds = self.select_kwds(handler, self.globaldict)
+        log.debug("%s, %r, %r", handler.__name__, args, kwds)
         ret = handler(*args, **kwds)
         # XXX:
         result_adapter = HandlerReturnAdapter( self.globaldict )
@@ -557,7 +581,7 @@ class StackedCommand(SimpleCommand):
     """
 
     @classmethod
-    def get_optspec(klass, inherit):
+    def get_optspec(klass, inheritor):
         """
         Return tuples with optparse command-line argument specification.
         """
@@ -565,13 +589,13 @@ class StackedCommand(SimpleCommand):
         return (
             (('-c', '--config',),{ 'metavar':'NAME', 
                 'dest': "config_file",
-                'default': inherit.DEFAULT_RC, 
+                'default': inheritor.DEFAULT_RC, 
                 'help': "Run time configuration. This is loaded after parsing command "
                     "line options, non-default option values wil override persisted "
                     "values (see --update-config) (default: %default). " }),
 
             (('-K', '--config-key',),{ 'metavar':'ID', 
-                'default': inherit.DEFAULT_CONFIG_KEY, 
+                'default': inheritor.DEFAULT_CONFIG_KEY, 
                 'help': "Settings root node for run time configuration. "
                     " (default: %default). " }),
 
@@ -628,7 +652,7 @@ class StackedCommand(SimpleCommand):
             'interactive'
         ]
     ""
-    DEFAULT_ACTION = 'print_config'
+    DEFAULT = [ 'print_config' ]
 
     def __init__(self):
         super(StackedCommand, self).__init__()
@@ -679,7 +703,7 @@ class StackedCommand(SimpleCommand):
         self.rc = getattr(self.settings, config_key)
         yield dict(rc=self.rc)
 
-    def resolve_depends(self, name):
+    def resolve_depends(self):
         """
         Create (and cache) one dict for dependencies.
         Return chain for given name.
@@ -690,27 +714,16 @@ class StackedCommand(SimpleCommand):
                 if 'DEPENDS' not in k.__dict__:
                     continue
                 self.DEPS.update(k.DEPENDS)
-        names = [name]
-        deps = []
-        while names:
-            name = names.pop()
+        executed = []
+        while self.globaldict.opts.commands:
+            name = self.globaldict.opts.commands.pop(0)
             depnames = self.DEPS[name]
-            [ names.append(dep) for dep in depnames if dep not in names ]
-            deps.insert(0, name)
-        return deps 
-
-    def execute_program( self, result_adapter ):
-        """
-        Override for Program.run_program to run multiple dependent commands.
-        """
-        globaldict = self.globaldict
-        handler_depends = self.resolve_depends(globaldict.opts.command)
-        log.debug("Command %s resolved to handler list %r", globaldict.opts.command,
-                handler_depends)
-        for handler_name in handler_depends:
-            log.info("StackedCommand.main: deferring to %s", handler_name)
-            handler = getattr(self, handler_name)
-            self.execute( handler )
+            for dep in depnames:
+                if dep not in executed:
+                    yield dep
+                    executed.append( dep )
+            yield name
+            #deps.insert(0, name)
 
 
 
