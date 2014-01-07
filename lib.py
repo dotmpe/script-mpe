@@ -250,6 +250,9 @@ class Prompt(object):
 
     @staticmethod
     def input(prompt, prefill=''):
+        """
+        FIXME: this does not work on Darwin, even with brew readline-6.2.4?
+        """
         readline.set_startup_hook(lambda: readline.insert_text(prefill))
         try:
             return raw_input(prompt)
