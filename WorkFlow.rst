@@ -22,7 +22,7 @@ Working on projects
    
       yz or iSea is just an idea right now.. :)
 
-4. Also, for example each week, a report of all work hours can be generated.
+4. Reports... for example each week, a report of all work hours should be generated.
 
 .. _timeEdition: http://www.timeedition.com/en/
 .. _workLog: workLog.py

@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """
 libcmd+taxus (SQLAlchemy) session
+
+XXX:
+    taxus should do basic storage model
+    rsr ("resourcer") builds on taxus to explore res.meta further
 """
 import os, stat, sys
 from os import sep
@@ -72,7 +76,7 @@ class LocalPathResolver(object):
 # XXX: why hijack init which is for session init..
         assert False
 
-        if not opts.init:
+        if not opts.txs_init:
             log.warn("Not a known path %s", path)
             return
         inode = INode(
@@ -101,13 +105,13 @@ class LocalPathResolver(object):
 
 
 class TaxusFe(libcmd.StackedCommand):
-    # XXX: for simplecommand, use superclass and shared config/schema/data or
-    # separate command-line frontends?
+
+    NAME = os.path.splitext(os.path.basename(__file__))[0]
 
     DEFAULT = [ 'txs_info' ]
 
     DEPENDS = {
-            'txs_session': ['cmd_options'],
+            'txs_session': ['cmd_config'],
             'txs_info': ['txs_session'],
             'txs_show': ['txs_session'],
             'txs_assert': ['txs_session'],
@@ -115,18 +119,19 @@ class TaxusFe(libcmd.StackedCommand):
             'txs_assert_path': ['txs_session'],
             'txs_commit': ['txs_session'],
             'txs_remove': ['txs_session'],
-            'list': ['txs_session'],
-            'list_groups': ['txs_session'],
+            'txs_list': ['txs_session'],
+            'txs_list_groups': ['txs_session'],
         }
 
     @classmethod
-    def get_optspec(Klass, inherit):
+    def get_optspec(Klass, inheritor):
         """
         Return tuples with optparse command-line argument specification.
         """
+        p = Klass.get_prefixer(inheritor)
         return (
                 # XXX: duplicates Options
-                (('-d', '--dbref'), { 'metavar':'URI', 
+                (p('-d', '--dbref'), { 'metavar':'URI', 
                     'default': DEFAULT_DB, 
                     'dest': 'dbref',
                     'help': "A URI formatted relational DB access description "
@@ -135,40 +140,37 @@ class TaxusFe(libcmd.StackedCommand):
                         " `mysql://taxus-user@localhost/taxus`. "
                         "The default value (%default) may be overwritten by configuration "
                         "and/or command line option. " }),
-                (('--init',), {
+                (p('--init',), {
                     'action': 'store_true',
                     'help': "Initialize target" }),
-                (('--auto-commit',), {
+                (p('--auto-commit',), {
 #                    "default": False,
                     'action': 'store_true',
                     'help': "target" }),
-                (('-q', '--query'), {'action':'callback', 
+                (p('-q', '--query'), {'action':'callback', 
                     'callback_args': ('query',),
-                    'callback': libcmd.optparse_override_handler,
+                    'callback': libcmd.optparse_set_handler_list,
                     'dest': 'command',
                     'help': "TODO" }),
 
                 # commands
-                (('--txs-info',),
-                    libcmd.cmddict(callback=libcmd.optparse_append_handler)),
-                (('--txs-assert',), libcmd.cmddict(help="Add Node.")),
-                (('--txs-assert-group',), libcmd.cmddict(help="Add Group-node.")),
-                (('--txs-remove',), libcmd.cmddict(help="Drop Node.")),
-                (('--txs-commit',),
-                    libcmd.cmddict(callback=libcmd.optparse_append_handler)),
+                (p('--info',), libcmd.cmddict(callback_args=(True,))),
+                (p('--assert',), libcmd.cmddict(help="Add Node.")),
+                (p('--assert-group',), libcmd.cmddict(help="Add Group-node.")),
+                (p('--remove',), libcmd.cmddict(help="Drop Node.")),
+                (p('--commit',), libcmd.cmddict(callback_args=(True,))),
                 #listtree?
-                #(('-l', '--list',), libcmd.cmddict()),
-                (('-t', '--tree',), libcmd.cmddict()),
-                (('-l','--list',), libcmd.cmddict()),
-                (('--list-groups',), libcmd.cmddict()),
-                (('--txs-show',), libcmd.cmddict(help="Print Node.")),
+                (p('-l', '--list',), libcmd.cmddict()),
+                (p('-t', '--tree',), libcmd.cmddict()),
+                (p('--list-groups',), libcmd.cmddict()),
+                (p('--show',), libcmd.cmddict(help="Print Node.")),
             )
 
     def txs_session(self, opts=None):
         dbref = opts.dbref
-        if opts.init:
+        if opts.txs_init:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
-        sa = SessionMixin.get_session('default', opts.dbref, opts.init)
+        sa = SessionMixin.get_session('default', opts.dbref, opts.txs_init)
         yield dict(sa=sa)
 
     def txs_info(self, opts=None, sa=None):
@@ -179,8 +181,8 @@ class TaxusFe(libcmd.StackedCommand):
         for m in models:
             cnt[m] = sa.query(m).count()
             log.note("Number of %s: %s", m.__name__, cnt[m])
-        if self.globaldict.node:
-            log.info("Auto commit: %s", opts.auto_commit) 
+        if 'node' in self.globaldict and self.globaldict.node:
+            log.info("Auto commit: %s", opts.txs_auto_commit) 
             log.info("%s", self.globaldict.node)
 
     def deref(self, ref, sa):
@@ -226,7 +228,7 @@ class TaxusFe(libcmd.StackedCommand):
         else:
             node = Klass(name=name, date_added=datetime.now())
             sa.add(node)
-            if opts.auto_commit:
+            if opts.txs_auto_commit:
                 sa.commit()
         yield dict( node = node )
         log.note('Asserted %s', node)
@@ -279,13 +281,13 @@ class TaxusFe(libcmd.StackedCommand):
                 root.subnodes.append( node )
                 sa.add(root)
                 root = node
-        if opts.auto_commit:
+        if opts.txs_auto_commit:
             opts.commit()
 
     def txs_remove(self, ref, sa, opts):
         node = Node.find(( Node.name == ref, ))
         sa.delete( node )
-        if opts.auto_commit:
+        if opts.txs_auto_commit:
             sa.commit()
 
     def txs_commit(self, sa):
@@ -308,16 +310,16 @@ class TaxusFe(libcmd.StackedCommand):
             node = Node.find(( Node.name == localpart, ))
             print node
         
-    def list(self, node, sa=None):
-        if node:
-            group = GroupNode.find(( Node.name == node, ))
-            if not group:
-                log.err("No node for %s", node)
-            else:
-                print group
-                for subnode in group.subnodes:
-                    print '\t', subnode
-        else:
+    def txs_list(self, node, sa=None):
+        #if node:
+        #    group = GroupNode.find(( Node.name == node, ))
+        #    if not group:
+        #        log.err("No node for %s", node)
+        #    else:
+        #        print group
+        #        for subnode in group.subnodes:
+        #            print '\t', subnode
+        #else:
             ns = sa.query(Node).all()
             # XXX idem as erlier, some mappings in adapter
             fields = 'node_id', 'ntype', 'name',
@@ -331,7 +333,7 @@ class TaxusFe(libcmd.StackedCommand):
                     print v,
                 print
 
-    def list_groups(self, sa=None):
+    def txs_list_groups(self, sa=None):
         gns = sa.query(GroupNode).all()
         fields = 'node_id', 'name', 'subnodes'
         print '#', ', '.join(fields)
@@ -433,12 +435,12 @@ def host_find(args, sa=None):
 def txs_session(prog=None, sa=None, opts=None, settings=None):
     # default SA session
     dbref = opts.dbref
-    if opts.init:
+    if opts.txs_init:
         log.debug("Initializing SQLAlchemy session for %s", dbref)
-    sa = SessionMixin.get_session('default', opts.dbref, opts.init)
+    sa = SessionMixin.get_session('default', opts.dbref, opts.txs_init)
     # Host
-    hostnamestr = current_hostname(opts.init, opts.interactive)
-    if opts.init:
+    hostnamestr = current_hostname(opts.txs_init, opts.interactive)
+    if opts.txs_init:
         hostname = hostname_find([hostnamestr], sa)
         assert not hostname or not isinstance(hostname, (tuple, list)), hostname
         if not hostname:

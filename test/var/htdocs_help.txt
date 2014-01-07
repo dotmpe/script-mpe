@@ -1,0 +1,15 @@
+Usage: -h [options] paths 
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -C, --command         Action (default: ['status']).
+  -m level, --message-level=level
+                        Increase chatter by lowering message threshold.
+                        Overriden by --quiet or --verbose. Levels are 0--7
+                        (debug--emergency) with default of 2 (notice). Others
+                        1:info, 3:warning, 4:error, 5:alert, and 6:critical.
+  -v, --verbose         Increase chatter by lowering message threshold.
+                        Overriden by --quiet or --message-level.
+  --status              
+  --update              

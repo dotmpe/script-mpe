@@ -100,7 +100,8 @@ class calendarCLI(libcmd.SimpleCommand):
         """
         return ()
 
-    DEFAULT_ACTION = 'run_'
+    BOOTSTRAP = [ 'static_args', 'path_args', 'run_commands' ]
+    DEFAULT = [ 'run_' ]
 
     def run_(self, *args):
         cft = CalendarFileTree()
@@ -110,6 +111,7 @@ class calendarCLI(libcmd.SimpleCommand):
             else: # must be leaf
                 cft.scan(p)
         print pformat(cft.tree)
+
 
 if __name__ == '__main__':
     calendarCLI.main()

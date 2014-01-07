@@ -14,7 +14,8 @@ import confparse
 import log
 from libname import Namespace, Name
 from libcmdng import OptionParser, Targets, Arguments, Keywords, Options,\
-    Target, optparse_increase_verbosity, optparse_override_quiet
+    Target
+from libcmd import optparse_increase_verbosity, optparse_override_quiet
 
 
 # Register this module with libcmd

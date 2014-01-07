@@ -12,7 +12,6 @@ from pprint import pformat
 
 import confparse
 import libcmd
-from libcmd import optparse_override_handler
 
 
 usage_descr = ""
@@ -50,8 +49,10 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
     PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
     VERSION = "0.1"
     USAGE = """Usage: %prog [options] paths """
-    DEFAULT_ACTION = 'run_filetype_scan'
-    DEFAULT_CONFIG_KEY = 'fer'
+
+    BOOTSTRAP =  [ 'static_args','parse_options','run_commands' ]
+    DEFAULT = [ 'run_filetype_scan' ]
+    # XXX restore DEFAULT_CONFIG_KEY = 'fer'
         
     def __init__(self):
         super(FileExtensionRegistry, self).__init__()
@@ -87,12 +88,11 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
         """
         return (
                 (('--list-extensions',), libcmd.cmddict()),
-                (('--list-mediatypes',), libcmd.cmddict()),
+                (('-l', '--list-mediatypes',), libcmd.cmddict()),
             )
 
 
 
 if __name__ == '__main__':
     FileExtensionRegistry.main()
-
 

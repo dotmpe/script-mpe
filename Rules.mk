@@ -4,16 +4,9 @@ MK                  += $/Rules.mk
 #
 #      ------------ -- 
 
-STRGT               += test_py_$d test_sa_$d
+$(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 
-ifneq ($(call contains,$(MAKECMDGOALS),clean),)
-CLN                 += .test
-CLN                 += $(shell find ./ -iname '*.pyc')
-CLN                 += $(shell find ./ -iname '*.log')
-CLN                 += $(shell find ./ -iname '.coverage' -o -iname '.coverage-*')
-endif
 #      ------------ -- 
-
 GIT_$d              := $(shell find "$d" -iname ".git")
 BZR_$d              := $(shell find "$d" -iname ".bzr")
 HG_$d               := $(shell find "$d" -iname ".hg")
@@ -22,22 +15,136 @@ co::
 	@$(clean-checkout)
 co:: DIR := $d
 
-#      ------------ -- 
-
-REPO=cllct
-DB_SQLITE_TEST=.test/db.sqlite
-DB_SQLITE_DEV=/home/berend/.$(REPO)/db.sqlite
-
-$(eval $(shell [ -d $/.build ] || mkdir $/.build ))
+# XXX Keep long list of clean targets out of normal stat messages
+ifneq ($(call contains,$(MAKECMDGOALS),clean),)
+CLN                 += .test
+CLN                 += $(shell find ./ -iname '*.pyc')
+CLN                 += $(shell find ./ -iname '*.log')
+CLN                 += $(shell find ./ -iname '.coverage' -o -iname '.coverage-*')
+endif
 
 
 ###    Test targets
 #
 #      ------------ -- 
 
-test:: test_py_$d test_sa_$d test_libcmd_$d test_txs_$d
+TEST_$d             := test_py_$d  test_sa_$d  test_sys_$d 
+
+STRGT               += $(TEST_$d)
+
+test:: $(TEST_$d)
 
 test_py_$d test_sa_$d :: D := $/
+
+# Unit test python code
+test_py_$d::
+	@$(call log_line,info,$@,Starting python unittests..)
+	@\
+		PYTHONPATH=$$PYTHONPATH:./;\
+		PATH=$$PATH:~/bin;\
+		TEST_PY=test.py;\
+		TEST_LIB=confparse,confparse2,taxus,rsr,radical,workLog;\
+		HTML_DIR=test-coverage;\
+		VERBOSE=2;\
+    $(test-python) 2> test-py.log
+	@if [ -n "$$(tail -1 test-py.log|grep OK)" ]; then \
+	    $(ll) Success "$@" "see" test-py.log; \
+    else \
+	    $(ll) Errors "$@" "$$(tail -1 test-py.log)"; \
+	    $(ll) Errors "$@" see test-py.log; \
+    fi
+
+# some system tests
+test_sys_$d::
+	@$(ll) info $@ "Starting system tests.."
+	@\
+	    LOG=test-system.log;\
+        test/system.sh 2> $$LOG; \
+    \
+        PASSED=$$(grep PASSED $$LOG | wc -l); \
+        FAILED=$$(grep FAILED $$LOG | wc -l); \
+        [ $$FAILED -gt 0 ] && { \
+            $(ll) error "$@" "$$FAILED failures, see" $$LOG; \
+        } || { \
+            $(ll) Ok "$@" "$$PASSED passed" $$LOG; \
+        }
+
+# Make SA do a test on the repo
+DB_SQLITE_TEST=.test/db.sqlite
+DB_SQLITE_DEV=/home/berend/.$(REPO)/db.sqlite
+test_sa_$d::
+	@$(call log_line,info,$@,Testing SQLAlchemy repository..)
+	@\
+	DBREF=sqlite:///$(DB_SQLITE_TEST); \
+	$(ll) attention "$@" "Testing '$(REPO)' SA repo functions.." $$DBREF; \
+	rm -rf $$(dirname $(DB_SQLITE_TEST));\
+	mkdir -p $$(dirname $(DB_SQLITE_TEST));\
+	sqlite3 $(DB_SQLITE_TEST) ".q"; \
+	python $D$(REPO)/manage.py version_control --repository=$(REPO) --url=$$DBREF ;\
+	db_version=$$(python $D$(REPO)/manage.py db_version --repository=$(REPO) --url=$$DBREF) ;\
+	version=$$(python $D$(REPO)/manage.py version --repository=$(REPO) --url=$$DBREF) ;\
+	$(ll) info "$@" "Re-created test DB.." $$DBREF; \
+	python $D$(REPO)/manage.py upgrade $$(( $$version - 1 )) --repository=$(REPO) --url=$$DBREF;\
+	$(ll) info "$@" "Starting at DB version: $$(( $$version - 1 ))"; \
+	$(ll) info "$@" "Testing $(REPO) up/down for version: $$version"; \
+	python $D$(REPO)/manage.py test --repository=$(REPO) --url=$$DBREF
+	@$(ll) Done "$@" 
+
+
+###    SQL Alchemy repository schema control
+#
+#      ------------ -- 
+
+REPO=cllct
+ALL_REPOS=cllct test
+SA_DB_$d=db.sqlite
+
+sa-reset: REPO := $(REPO)
+sa-reset: 
+	rm -f .$(REPO)/$(SA_DB_$d)
+	make sa-migrate-init REPO=$(REPO)
+	make sa-upgrade REPO=$(REPO)
+
+sa-migrate-init:: REPO := cllct
+sa-migrate-init::
+	mkdir -p .$(REPO);\
+	./sa_migrate/$(REPO)/manage.py version_control
+	@echo Remember to set DB version to schema or schema-1.
+	echo "" | sqlite3 -batch .$(REPO)/$(SA_DB_$d)
+	
+sa-init: sa-migrate-init
+
+sa-upgrade::
+	./sa_migrate/$(REPO)/manage.py upgrade
+
+sa-t::
+	@\
+	DB_VERSION=$$(./sa_migrate/$(REPO)/manage.py db_version);\
+	SCHEMA_VERSION=$$(./sa_migrate/$(REPO)/manage.py version);\
+	\
+	echo '"""' > oldmodel.py;\
+	./sa_migrate/$(REPO)/manage.py compare_model_to_db taxus:SqlBase.metadata >> oldmodel.py;\
+	echo '"""' >> oldmodel.py;\
+	./sa_migrate/$(REPO)/manage.py create_model >> oldmodel.py;\
+	./sa_migrate/$(REPO)/manage.py make_update_script_for_model \
+		--oldmodel=oldmodel:meta \
+		--model=taxus:SqlBase.metadata \
+			> sa_migrate_$(REPO)_autoscript_$$SCHEMA_VERSION.py
+
+stat:: sa-stat
+sa-stat::
+	@\
+    $(call log,header2,Repository,$(REPO));\
+    SCHEMA_VERSION=$$(python ./sa_migrate/$(REPO)/manage.py version );\
+    $(call log,header2,Repository version,$$SCHEMA_VERSION);\
+    DB_FORMAT=$$(file -bs $(DB_SQLITE_DEV));\
+    $(call log,header2,DB format,$$DB_FORMAT);\
+	DBREF=sqlite:///$(DB_SQLITE_DEV);\
+    DB_VERSION=$$(python ./sa_migrate/$(REPO)/manage.py db_version );\
+    $(call log,header2,DB schema version,$$DB_VERSION);
+
+#    [ -e manage.py ] || migrate manage manage.py --repository=$(REPO) --url=$$DBREF
+
 
 # Generate a coverage report of one or more runs to find stale code
 debug_py_$d:: TESTS := 
@@ -58,106 +165,6 @@ debug_py_$d::
 #		HTML_DIR=debug-coverage;\
 #		VERBOSE=2;\
 #    $(test-python) 2> debug.log
-#	@if [ -n "$$(tail -1 debug.log|grep OK)" ]; then \
-#	    $(ll) Success "$@" "see" debug.log; \
-#    else \
-#	    $(ll) Errors "$@" "$$(tail -1 debug.log)"; \
-#	    $(ll) Errors "$@" see debug.log; \
-#    fi
-
-# Unit test python code
-test_py_$d::
-	@$(call log_line,info,$@,Starting python unittests..)
-	@\
-		PYTHONPATH=$$PYTHONPATH:./;\
-		PATH=$$PATH:~/bin;\
-		TEST_PY=test.py;\
-		TEST_LIB=confparse,confparse2,taxus,rsr,radical,workLog;\
-		HTML_DIR=test-coverage;\
-		VERBOSE=2;\
-    $(test-python) 2> test.log
-	@if [ -n "$$(tail -1 test.log|grep OK)" ]; then \
-	    $(ll) Success "$@" "see" test.log; \
-    else \
-	    $(ll) Errors "$@" "$$(tail -1 test.log)"; \
-	    $(ll) Errors "$@" see test.log; \
-    fi
-
-# some system tests
-test_libcmd_$d::
-	@\
-    T=libcmd_test_help.txt; \
-	python libcmd.py -h > /tmp/$$T; \
-    diff -bqr $$T /tmp/$$T
-	@$(ll) OK "$@" 
-
-test_txs_$d::
-	@\
-    T=txs_test_help.txt; \
-	txs.py -h > /tmp/$$T; \
-    diff -bqr $$T /tmp/$$T
-	txs.py --list > /tmp/txs-all-nodes.txt
-	txs.py --txs-assert group/test-node --txs-commit
-	txs.py --txs-assert group/group2/ --txs-commit
-	txs.py --txs-remove group --txs-commit
-	txs.py --txs-remove group2 --txs-commit
-	txs.py --txs-remove test-node --txs-commit
-	txs.py --list > /tmp/txs-all-nodes.2.txt
-	diff -bqr /tmp/txs-all-nodes.txt /tmp/txs-all-nodes.2.txt
-	@$(ll) OK "$@" 
-
-# Make SA do a test on the repo
-test_sa_$d::
-	@$(call log_line,info,$@,Testing SQLAlchemy repository..)
-	@\
-	DBREF=sqlite:///$(DB_SQLITE_TEST); \
-	$(ll) attention "$@" "Testing '$(REPO)' SA repo functions.." $$DBREF; \
-	rm -rf $$(dirname $(DB_SQLITE_TEST));\
-	mkdir -p $$(dirname $(DB_SQLITE_TEST));\
-	sqlite3 $(DB_SQLITE_TEST) ".q"; \
-	python $D$(REPO)/manage.py version_control --repository=$(REPO) --url=$$DBREF ;\
-	db_version=$$(python $D$(REPO)/manage.py db_version --repository=$(REPO) --url=$$DBREF) ;\
-	version=$$(python $D$(REPO)/manage.py version --repository=$(REPO) --url=$$DBREF) ;\
-	$(ll) info "$@" "Re-created test DB.." $$DBREF; \
-	python $D$(REPO)/manage.py upgrade $$(( $$version - 1 )) --repository=$(REPO) --url=$$DBREF;\
-	$(ll) info "$@" "Starting at DB version: $$(( $$version - 1 ))"; \
-	$(ll) info "$@" "Testing $(REPO) up/down for version: $$version"; \
-	python $D$(REPO)/manage.py test --repository=$(REPO) --url=$$DBREF
-	@$(ll) Done "$@" 
-
-sa-migrate-init::
-	./manage.py version_control
-	@echo Remember to set DB version to schema or schema-1.
-	sqlite3 ~/.cllct/db.sqlite
-
-sa-upgrade::
-	./manage.py upgrade
-
-sa-t::
-	@\
-	DB_VERSION=$$(./manage.py db_version);\
-	SCHEMA_VERSION=$$(./manage.py version);\
-	echo '"""' > oldmodel.py;\
-	./manage.py compare_model_to_db taxus:metadata >> oldmodel.py;\
-	echo '"""' >> oldmodel.py;\
-	./manage.py create_model >> oldmodel.py;\
-	./manage.py make_update_script_for_model \
-		--oldmodel=oldmodel:meta \
-		--model=taxus:metadata \
-			> cllct_automigrate_$$SCHEMA_VERSION.py
-
-stat::
-	@\
-    $(call log,header2,Repository,$(REPO) [$(DB_SQLITE_DEV)]);\
-    SCHEMA_VERSION=$$(python $(REPO)/manage.py version $(REPO));\
-    $(call log,header2,Repository version,$$SCHEMA_VERSION);\
-    DB_FORMAT=$$(file -bs $(DB_SQLITE_DEV));\
-    $(call log,header2,DB format,$$DB_FORMAT);\
-	DBREF=sqlite:///$(DB_SQLITE_DEV);\
-    DB_VERSION=$$(python $(REPO)/manage.py db_version $$DBREF $(REPO));\
-    $(call log,header2,DB schema version,$$DB_VERSION);\
-    [ -e manage.py ] || migrate manage manage.py --repository=$(REPO) --url=$$DBREF
-
 
 symlinks: $/.symlinks
 	@\

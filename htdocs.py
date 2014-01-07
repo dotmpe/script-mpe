@@ -60,8 +60,9 @@ class Htdocs(libcmd.SimpleCommand):
     PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
     VERSION = "0.1"
     USAGE = """Usage: %prog [options] paths """
-    DEFAULT_CONFIG_KEY = 'htdocs'
-    DEFAULT_ACTION = 'status'
+
+    DEFAULT = [ 'status' ]
+    #DEFAULT_CONFIG_KEY = 'htdocs'
         
     def __init__(self):
         super(Htdocs, self).__init__()

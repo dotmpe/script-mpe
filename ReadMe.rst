@@ -3,10 +3,9 @@ script.mpe
 Various tools and ongoing experiments that have not yet deserved their own
 project.
 
-See 'main.py' for an integrated approach to the tooling.
-
 Documentation
-  - `Working on projects`__
+  - `Working on projects`__, a 2011 sketch not-a-manual-yet of working on projects
+    privately or professionally, ideas on tooling support.
 
 GIT Branches
   master
@@ -25,29 +24,12 @@ GIT Branches
         Various topics branch here into ``dev_*`` prefixed branches.
 
 		dev_taxus
-			Working to reintegrate old ``dev_`` forks into dev.
+			Working to reintegrate ideas from old ``dev_`` forks into dev,
+			currently concerning libcmd functionality and txs.TaxusFe with subclasses.
 
     test
         Writing and running tests.
         Should follow dev before master reintegration.
-
-Design
-  Cmd
-    build
-      co
-        ..
-    clean
-      ..
-
-  Cmd (no-op)
-    info
-      stat [default]
-        dmk
-          ..
-        dep
-          ..
-    test
-      ..
 
 Scripts
   cabinet
@@ -97,9 +79,28 @@ Configuration
     projects. Default: ~/.cllctrc. This file is rewritten so it may be
     convienient to a separate copy for manual editing.
 
-
   cllct
     Per volume metadata directory.
+
+Change Log
+    2008
+        Seperate project created for all scripts on my $PATH, 
+        previously in my private dotfile repository.
+    2012
+        Have had various mostly imcomplete projects involving 
+        Python command-line tools. Focus moves to this project
+        to build sharable code for the problems of interest,
+        most specifically file and resource metadata management.
+    2013 
+        Various scripts are still unused in daily sysops.
+        Moved to create a single frontend which is too ambitious while other
+        shared code is still immature.
+
+        Started using testing and looking at Zope Component Architecture to improve 
+        program stability during project development.
+    2014
+        Planning to continue to improve confparse and libcmd, split those off,
+        see how that works for other projects. 
 
 
 .. _graphviz: http://www.graphviz.org/

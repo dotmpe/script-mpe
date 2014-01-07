@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import zope
 
-import dotmpe
+import dotmpe.du.comp
 
 import libcmd
 import res
@@ -13,7 +13,8 @@ class mkDoc(libcmd.SimpleCommand):
     """
     zope.interface.implements(res.iface.ISimpleCommand)
 
-    DEFAULT_ACTION = 'run_file'
+    BOOTSTRAP =  ['static_args','path_args','run_commands']
+    DEFAULT = ['run_files']
 
     @classmethod
     def get_optspec(klass, inherit):
@@ -23,8 +24,8 @@ class mkDoc(libcmd.SimpleCommand):
         return (
             )
 
-    def run_files(self, *args):
-        build = dotmpe.comp.get_builder_class('mkdoc')
+    def run_files(self, prog, *args):
+        build = dotmpe.du.comp.get_builder_class('mkdoc')
         builder = build()
         for a in args:
             # XXX: replace once possible

@@ -84,27 +84,32 @@ class bookmarks(TaxusFe):
             'moz_js_group_import': ['txs_session'],
             'moz_ht_import': ['txs_session'],
             'dlcs_post_import': ['txs_session'],
+            'dlcs_post_read': ['txs_session'],
+            'dlcs_post_test': ['txs_session'],
+            'dlcs_post_test2': ['txs_session'],
             'export': ['txs_session']
         }
 
     @classmethod
-    def get_optspec(Klass, inherit):
+    def get_optspec(Klass, inheritor):
 
         """
         Return tuples with optparse command-line argument specification.
         """
 
+        p = Klass.get_prefixer(inheritor)
         return (
             # actions
-                (('-s', '--stats',), libcmd.cmddict()),
-                (('-l', '--list',), libcmd.cmddict()),
-                (('-a', '--add',), libcmd.cmddict()),
-                (('--list-lctr',), libcmd.cmddict()),
+                (p('-s', '--stats',), libcmd.cmddict()),
+                (p('-l', '--list',), libcmd.cmddict()),
+                (p('-a', '--add',), libcmd.cmddict()),
+                (p('--list-lctr',), libcmd.cmddict()),
 
                 (('--moz-js-import',), libcmd.cmddict()),
                 (('--dlcs-post-import',), libcmd.cmddict()),
+                (('--dlcs-post-test',), libcmd.cmddict()),
 
-                (('--export',), libcmd.cmddict(help="TODO: bm export")),
+                (p('--export',), libcmd.cmddict(help="TODO: bm export")),
 
                 (('--moz-js-group-import',), libcmd.cmddict()),
 
@@ -114,12 +119,12 @@ class bookmarks(TaxusFe):
                     help="Add MD5-refs missing (on all locators). ")),
 
             # params
-                (('--public',), dict( action='store_true', default=False )),
-                (('--name',), dict( default=None, type="str" )),
-                (('--href',), dict( default=None, type="str" )),
-                (('--ext',), dict( default=None, type="str" )),
-                (('--tags',), dict( default=None, type="str" )),
-                (('--ref-md5',), dict( action='store_true',
+                (p('--public',), dict( action='store_true', default=False )),
+                (p('--name',), dict( default=None, type="str" )),
+                (p('--href',), dict( default=None, type="str" )),
+                (p('--ext',), dict( default=None, type="str" )),
+                (p('--tags',), dict( default=None, type="str" )),
+                (p('--ref-md5',), dict( action='store_true',
                     default=False, help="Calculate MD5 for new locators. " )),
 
             )
@@ -159,7 +164,8 @@ class bookmarks(TaxusFe):
                     global_id=href, 
                     date_added=datetime.now() )
             sa.add( lctr )
-            sa.commit()
+            if opts.txs_auto_commit:
+                sa.commit()
             if opts.ref_md5:
                 self.add_lctr_ref_md5(opts, sa, href)
         yield dict(lctr=lctr)
@@ -182,10 +188,11 @@ class bookmarks(TaxusFe):
             bm = Bookmark.find((Bookmark.ref==lctr,), sa=sa)
             if bm:
                 # XXX: start local to bean dict
-                if name != bm.name:
-                    bm.name = name
-                if lctr != bm.ref:
-                    bm.ref = lctr
+# XXXL name must be unique, must catch problems
+                #if name != bm.name:
+                #    bm.name = name
+                #if lctr != bm.ref:
+                #    bm.ref = lctr
                 if ext != bm.extended:
                     bm.extended = ext
                 if public != bm.public:
@@ -197,7 +204,8 @@ class bookmarks(TaxusFe):
                 bm = Bookmark.find((Bookmark.name==name,), sa=sa)
                 if bm:
                     log.err("Duplicate name %s", bm)
-                    bm.name = "%s (copy)" % name
+                    #bm.name = "%s (copy)" % name
+                    bm = None
                 else:
                     bm = Bookmark(
                             name=name,
@@ -207,10 +215,12 @@ class bookmarks(TaxusFe):
                             tags=tags,
                             date_added=datetime.now()
                         )
-            assert bm.ref
-            yield dict( bm=bm )
-            sa.add(bm)
-            sa.commit()
+            if bm:
+                assert bm.ref
+                yield dict( bm=bm )
+                sa.add(bm)
+            if opts.txs_auto_commit:
+                sa.commit()
 
     def list_lctr(self, sa=None):
         lctrs = sa.query(Locator).all()
@@ -245,7 +255,8 @@ class bookmarks(TaxusFe):
                     log.info("New %s", md5)
                 lctr.ref_md5 = md5
                 sa.add( lctr )
-                sa.commit()
+                if opts.txs_auto_commit:
+                    sa.commit()
                 log.note("Updated ref_md5 for %s to %s", lctr, md5)
 
     def add_ref_md5(self, opts=None, sa=None):
@@ -278,10 +289,8 @@ class bookmarks(TaxusFe):
             for node in mozbm.read(path):
                 if 'title' in node and node['title'] and 'children' in node:
                     nodes[node['id']] = node
-                  
                     if 'root' in node:
                         roots.append(node)
-
             # TODO: store groups, but need to start at the root, sort out struct
             # XXX should need a tree formatter here
             print 'Groups' 
@@ -294,32 +303,73 @@ class bookmarks(TaxusFe):
                 else:
                     self.txs_add_group( node['title'], None, 
                             sa=sa, opts=opts )
-
             print 'Roots' 
             for root in roots:
                 print root['id'], root['title']
 
+    def dlcs_post_read(self, p):
+        from pydelicious import dlcs_parse_xml
+        data = dlcs_parse_xml(open(p).read())
+        for post in data['posts']:
+            yield post
+    
+    def dlcs_post_test(self, p):
+        bm = self.execute( 'dlcs_post_read', dict( p=p) , 'all-key:href' )
+        print p, len(bm)
+
+    def dlcs_post_test2(self, p):
+        pass
+
     def dlcs_post_import(self, opts=None, sa=None, *paths):
         from pydelicious import dlcs_parse_xml
+        # print list of existing later
+        grouptags = [] 
         for p in paths:
+            for post in self.execute( 'dlcs_post_read', dict( p=p), 'gen-all-key:href' ):
+                pass
+
             data = dlcs_parse_xml(open(p).read())
             for post in data['posts']:
-                #list(self.assert_locator(sa=sa, href=post['href'], opts=opts))
-                bm = list(self.add( sa=sa, 
+                lctrs = [ d['lctr'] for d in self.assert_locator(
+                            sa=sa, href=post['href'], opts=opts) ]
+                self.execute( 'assert_locator', dict(href=post['href']) )
+                if not lctrs:
+                    continue
+                bm = self.execute( 'assert_locator', bm_dict, 'first-key:bm' )
+
+                lctr = lctrs.pop()
+                bms = [ d['bm'] for d in self.add( sa=sa, 
                     href=post['href'], 
                     name=post['description'], 
                     ext=post['extended'], 
                     tags=post['tag'],
-                    opts=opts)).pop()
-                tags = [ GroupNode.find(( GroupNode.name == t, )) 
+                    opts=opts) ]
+                if not bms:
+                    continue
+                bm = bms.pop()
+                tags = [ GroupNode.find(( GroupNode.name == t, ), sa=sa ) 
                         for t in post['tag'].split(' ') ]
+                [ grouptags.append(t) for t in tags if t ]
                 for tag in tags:
                     if not tag:
                         continue
                     tag.subnodes.append( bm )
+                    sa.add( tag )
+        for tag in grouptags:
+            print 'Tag', tag.name
+            for node in tag.subnodes:
+                print node.node_id, node.name,
+                if hasattr(node, 'ref'):
+                    print node.ref
+                else:
+                    print
+        
+        if opts.txs_auto_commit:
+            sa.commit()
 
     def export(self, opts=None, sa=None, *paths):
         pass
+
 
 if __name__ == '__main__':
     bookmarks.main()

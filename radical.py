@@ -170,7 +170,6 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 import log
 import confparse
 import libcmd
-from libcmd import optparse_override_handler
 import taxus
 from taxus import Taxus
 from taxus.init import get_session
@@ -695,13 +694,13 @@ class Radical(txs.TaxusFe):
     #NONTRANSIENT_OPTS = Taxus.NONTRANSIENT_OPTS + [
     #    'list_flavours', 'list_scans' ]
     #TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + [ 'run_embedded_issue_scan' ]
-    DEFAULT_ACTION = 'run_embedded_issue_scan'
+    DEFAULT = [ 'run_embedded_issue_scan' ]
 
     DEPENDS = dict(
-            init = [ 'cmd_options' ],
-            run_embedded_issue_scan = [ 'init' ],
-            list_flavours = [ 'cmd_options' ],
-            list_scans = [ 'cmd_options' ]
+            init = [ 'load_config' ],
+            run_embedded_issue_scan = [ 'init', 'txs_session' ],
+            list_flavours = [ 'load_config' ],
+            list_scans = [ 'load_config' ]
         )
 
     @classmethod
@@ -762,10 +761,11 @@ class Radical(txs.TaxusFe):
             print
         return
 
-    def init(self, prog=None):
+    def init(self, rc, prog=None):
+        assert rc
         # start db session
-        dbsession = get_session(self.rc.dbref)
-        yield dict( dbsession=dbsession )
+        #dbsession = get_session(self.rc.dbref)
+        #yield dict( dbsession=dbsession )
 
         # get backend service
         services = confparse.Values({})
@@ -776,9 +776,10 @@ class Radical(txs.TaxusFe):
 
         yield dict( services=services )
 
-    def run_embedded_issue_scan(self, dbsession, *paths):
+    def run_embedded_issue_scan(self, sa, *paths):
         """
         """
+        assert paths
         if not paths:
             paths = ['.']
             # XXX debugging
@@ -804,7 +805,7 @@ class Radical(txs.TaxusFe):
         # iterate paths
         global rc
         rc = self.rc
-        for embedded in find_files_with_tag(dbsession, matchbox, paths):
+        for embedded in find_files_with_tag(sa, matchbox, paths):
             if embedded.tag_id:
                 #if embedded.tag_id == NEED_ID:
                     log.note('Embedded Issue %r', (embedded.file_name, \
