@@ -344,14 +344,25 @@ class Values(dict):
     def changelog(self):
         return self.__dict__['changelog']
 
-    def copy(self):
+    def todict(self, deep=True):
+        if deep:
+            return self.copy(True)
+        else:
+            c = dict()
+            assert False
+
+    def copy(self, plain=False):
         """
-        Return flat dicts 'n lists copy.
+        Return deep copy dicts 'n lists copy.
         """
-        c = dict()
+        if plain:
+            c = dict()
+        else:
+            c = self.__class__()
         for k in self:
-            if hasattr(self[k], 'copy'):
-                #print type(self[k])
+            if plain and hasattr(self[k], 'todict'):
+                c[k] = self[k].todict(True)
+            elif hasattr(self[k], 'copy'):
                 c[k] = self[k].copy()
             elif hasattr(self[k], 'keys') and not self[k].keys():
                 c[k] = dict()
@@ -359,19 +370,23 @@ class Values(dict):
                 # XXX: hardcoded list nesting depth (at 2)
                 c[k] = []
                 for c1 in self[k]:
-                    if hasattr(c1, 'copy'):
+                    if plain and hasattr(c1, 'todict'):
+                        i = c1.todict(True)
+                    elif hasattr(c1, 'copy'):
                         i = c1.copy()
                     elif hasattr(c1, 'keys') and not c1.keys():
                         i = dict()
                     elif isinstance(c1, list):
                         i = []
                         for c2 in c1:
+                            if plain and hasattr(c2, 'todict'):
+                                i2 = c2.todict(True)
                             if hasattr(c2, 'copy'):
                                 i2 = c2.copy()
                             elif hasattr(c2, 'keys') and not c2.keys():
                                 i2 = dict()
                             elif isinstance(c2, list):
-                                raise Exception("list recursion")
+                                raise Exception("list recursion, only two levels")
                             else:
                                 i2 = c2
                             i.append(i2)

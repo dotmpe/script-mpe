@@ -507,6 +507,10 @@ class SimpleCommand(object):
         log.category = opts.message_level
 
     def path_args(self, prog, opts):
+        """
+        XXX this yields an args=[path] for each path arg,
+        can this filter combined with parse_options..
+        """
         for a in prog.argv[1:]:
             if os.path.exists(a):
                 yield dict( args = [ a ] )

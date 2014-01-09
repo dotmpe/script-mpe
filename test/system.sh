@@ -149,6 +149,13 @@ case $1 in
     test_end
     ;;
 
+  8)
+    test_start myCalendar
+    check_run "myCalendar.py ." 
+    check_out "myCalendar.py -h" myCalendar_help
+    test_end
+    ;;
+
 #  )
 #    coveragereport
 #    ;;
