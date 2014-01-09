@@ -354,6 +354,8 @@ class Values(dict):
     def copy(self, plain=False):
         """
         Return deep copy dicts 'n lists copy.
+        XXX: lists can only nest twice
+        TODO: reimplement this as tree visitor
         """
         if plain:
             c = dict()
