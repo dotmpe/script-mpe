@@ -6,12 +6,15 @@ from test_confparse2 import CP2Test1
 from test_taxus import TaxusTest1
 from test_radical import RadicalTestCase
 import test_res
+from test_res_fs import TestResFs
+from test_res_primitive import TestResPrimitive
+
 
 
 def gather_tests():
     tests = []
     for testcase in (CMDTest1, CPTest1, CPTest2, CP2Test1, TaxusTest1,
-            RadicalTestCase):
+            RadicalTestCase, TestResFs, TestResPrimitive):
         tests.append(unittest.TestLoader().loadTestsFromTestCase(testcase))
     tests += test_res.wrap_functions(test_res.tests)
     return tests

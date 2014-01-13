@@ -3,8 +3,9 @@ Collection of interfaces.
 
 Another reiteration of a previous unfinished implementation in taxus_out.
 """
-from zope.interface import Interface, Attribute, implements
+from zope.interface import Interface, Attribute, implements, classImplements
 
+import taxus.iface
 
 
 class ISimpleCommand(Interface):
@@ -37,34 +38,71 @@ class ICommand(Interface):
 
     fetch = Attribute("")
 
-
 class Node(Interface):
     """
     XXX emphasize Node is an abtract concept, not either concrete object or class type?
     Node, not INode to not confuse with res.fs.INode, but still an interface not a normal class.
     """
-    name = Attribute("")
+    nodeid = Attribute("")
 
 class IHier(Node):
     """
     Composite of Node's. No form of semantics expressed (aggregation,
     composition, containment, generalization, etc).
-    """
-    supernode = Attribute("Another Node that lists this node as one of its subnodes. ")
-    subnodes = Attribute("Object reference to IList of other Node objects. ")
 
-class ITreeNode(Node):
+    - could contain nodes or refs
     """
-    Adding attributes to IHiertree structure
-    """
+    #supernode = Attribute("Another Node that lists this node as one of its subnodes. ")
+    subnodes = Attribute("Object reference to IList of other Node objects. ")
     # subnode methods
     append = Attribute("subnodes IList.append")
     remove = Attribute("subnodes IList.remove")
+
+class ITree(IHier):
+    """
+    """
     # added attributes data
     attributes = Attribute("Object reference to the attributes as IDict")
     get_attr = Attribute("Wrap IDict.__getitem__. ")
     set_attr = Attribute("Wrap IDict.__setitem__, and IDict.__delitem__ for None values. ")
 
+class ILeaf(Node):
+    pass
+
+
+class IVisitorAcceptor(Interface):
+    """
+    Generic interface for leafs/nodes in structurs to accept
+    visistors, and to defer them to substructeres if applicable.
+    """
+    accept = Attribute("XXX boolean indicating wether visitor was succesfully applied?")
+
+
+class IHierarchicalVisitor(Interface):
+    """
+    Interface for ITree visitors. 
+
+    http://c2.com/cgi/wiki?HierarchicalVisitorPattern
+    """
+    visitEnter = Attribute("visitEnter(self, node): return true when IVisitorAcceptor should try to recurse")
+    visitLeave = Attribute("visitLeave(self, node)")
+    visit = Attribute("visit(self, leaf)")
+   
+    traverse = Attribute("Not part of the API, b/c parametrized?")
+
+class ITraveler(Interface):
+    travel = Attribute("travel( root, visitor )")
+
+class ILocalNodeService(Interface):
+    """
+    # Let ILocalNodeService produce something Node-like for local
+    # system paths/names/ids.
+    """
+
+class IPyDict(taxus.iface.IPrimitive):
+    pass
+
+classImplements(dict, IPyDict)
 
 # See taxus.iface for adapters
 #registry = AdapterRegistry()

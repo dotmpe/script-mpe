@@ -12,9 +12,11 @@ TreeNode
 
 """
 import zope
+from zope.component import queryAdapter, getGlobalSiteManager
 
-from script_mpe.res import iface
-
+import log
+import lib
+import iface, fs
 
 
 class TreeNodeDict(dict):
@@ -27,22 +29,46 @@ class TreeNodeDict(dict):
     name.
 
     XXX: Normally TreeNodeDict contains one TreeNode, but the dict would allow
-    for multiple branchings?
+        for multiple branchings?
+    XXX: would be nice to manage type for leafs somehow, perhaps using visitor
     """
 
-    zope.interface.implements(iface.ITreeNode)
+    zope.interface.implements(iface.ITree)
 
     prefix = '@'
     "static config for attribute prefix"
     
-    def __init__(self, nodeid):
-        dict.__init__(self)
-        self[nodeid] = None
+    def __init__(self, context):
+        if iface.IPyDict.providedBy(context):
+            dict.__init__(self, context)
+            self[None] = None
+        else:
+            dict.__init__(self)
+            self[context] = None
+
+    def getkeys(self):
+        """
+        Besides attributes, there may be other items.
+        Return those.
+        """
+        for key in self:
+            # XXX: perhaps re-use QNames objects for regular attribute names
+            #if not IAttribute.providedBy( key ):
+            #    yield key
+            if isinstance( key, basestring ):
+                if not key.startswith(self.prefix):
+                    yield key
+            else:
+                yield key.nodeid
 
     def getid(self):
-        for key in self:
-            if not key.startswith(self.prefix):
-                return key
+        # FIXME: return first 'key'
+        for key in self.getkeys():
+            return key
+    def getnodetype(self):
+        # FIXME: return first 'key'
+        for key in self.getkeys():
+            return key.__class__
 
     def setid(self, name):
         oldkey = self.getid()
@@ -95,7 +121,8 @@ class TreeNodeDict(dict):
         self[self.prefix+name] = subnodes
 
     def __repr__(self):
-        return "<%s%s%s>" % (self.name, self.attributes, self.subnodes or '')
+        return "<%s%s%s>" % (self.name or lib.cn(self), 
+                self.attributes or hex(id(self)), self.subnodes or '')
 
     def copy(self):
         return self.deepcopy()
@@ -122,10 +149,27 @@ class TreeNodeDict(dict):
                 d[k] = None
         return d
 
+    def travel(self, root, visitor):
+        """
+        Start a tree traversal, using the current nodeid as root point
+        and retrieving ITree interfaces for each key?
+        """
+        _x_sanity_iface_node(root)
+        # XXX
+        for x in visitor.traverse(root):
+            pass
+
+gsm = getGlobalSiteManager()
+gsm.registerAdapter(TreeNodeDict, [iface.IPyDict], iface.ITree)
+
+from zope.interface.verify import verifyObject
+def _x_sanity_iface_node(obj): # TEST
+    assert iface.Node.providedBy(obj), obj
+    verifyObject( iface.Node, obj )
 
 class TreeNodeTriple(tuple):
 
-    zope.interface.implements(iface.ITreeNode)
+    zope.interface.implements(iface.ITree)
 
     """
     TreeNode build on top of tuple. XXX: Unused.
@@ -158,4 +202,135 @@ def translate_xml_nesting(tree):
     if not newtree['children']:
         del newtree['children']
     return newtree
+
+
+class AbstractHierarchicalVisitor(object):
+
+    """
+    IHierarchicalVisitor implementation implements tree traversal using
+    IVisitorAcceptor. 
+
+    http://c2.com/cgi/wiki?HierarchicalVisitorPattern
+    """
+
+    zope.interface.implements(iface.IHierarchicalVisitor)
+
+    def traverse(self, root, acceptorname='', acceptor=None):
+        """
+        Query tree object for IVisitorAcceptor interface,
+        invoke ``accept`` and return result.
+        
+        Returning does allow ``accept`` to return a depth-first generator
+        of ``visit*`` results.
+        """
+        log.debug('traverser : acceptor', root, acceptor, acceptorname)
+        assert iface.Node.providedBy(root), root
+        tree = iface.ITree(root)
+        if not acceptor:
+            acceptor = iface.IVisitorAcceptor(tree, acceptorname)
+        log.debug('traverser -> acceptor.accept', tree, acceptor, acceptorname)
+        return acceptor.accept(self)
+
+    def visitEnter(self, node):
+        """
+        Start visit to IHier, return boolean to signal IVisitorAcceptor to recurse
+        """
+        raise NotImplementedError
+
+    def visitLeave(self, node):
+        """
+        Complete visit to IHier, return result.
+        """
+        raise NotImplementedError
+
+    def visit(self, leaf):
+        """
+        Do visit to non-IHier, return result.
+        """
+        raise NotImplementedError
+
+from zope.component import \
+        getGlobalSiteManager
+
+
+gsm = getGlobalSiteManager()
+
+class NodeIDExtractor(AbstractHierarchicalVisitor):
+
+    zope.interface.implements(iface.IHierarchicalVisitor)
+
+    def visitEnter(self, o):
+        node = iface.Node(o)
+        return True
+
+    def visitLeave(self, o):
+        node = iface.Node(o)
+        if node:
+            return node.nodeid
+
+    def visit(self, o):
+        node = iface.Node(o)
+        if node:
+            return node.nodeid
+
+#gsm.registerAdapter(iface.IHierarchicalVisitor, , '', NodeIDExtractor)
+
+
+class AbstractAdapter(object):
+    def __init__(self, context):
+        self.context = context
+
+class TreeNodeAcceptorAdapter(AbstractAdapter):
+    def accept(self, visitor):
+        """
+        Called by visitor.traverse. Descends tree, queries for IVisitorAcceptor
+        and starts nested ``.accept()`` call.
+
+        XXX Anything not providing IVisitorAcceptor in the tree is treated as
+        leaf.
+        """
+        # let visitor decide, then look for subnodes
+        if visitor.visitEnter(self.context) and self.context.subnodes:
+            for node in self.context.subnodes:
+                # recurse ``accept`` to sub-acceptor
+                acceptor = iface.IVisitorAcceptor(node)
+                if acceptor:
+                    # relay depth-first generator
+                    sub = acceptor.accept(visitor)
+                    for generated in sub:
+                        yield generated
+                else:
+                    # ... or do leaf visit
+                    yield visitor.visit(node)
+        # visit and yield result at the end of the node visit
+        yield visitor.visitLeave(self.context)
+
+gsm.registerAdapter(TreeNodeAcceptorAdapter, [iface.ITree], iface.IVisitorAcceptor, '')
+gsm.registerAdapter(TreeNodeAcceptorAdapter, [iface.ITree], iface.IVisitorAcceptor, 'generator')
+
+class TreeLeafAcceptorAdapter(AbstractAdapter):
+    def accept(self, visitor):
+        yield visitor.visit( self.context ) 
+gsm.registerAdapter(TreeLeafAcceptorAdapter, [iface.ILeaf], iface.IVisitorAcceptor, '')
+gsm.registerAdapter(TreeLeafAcceptorAdapter, [iface.ILeaf], iface.IVisitorAcceptor, 'generator')
+
+
+class DictNodeUpdater(AbstractHierarchicalVisitor, AbstractAdapter):
+    zope.interface.implements(iface.IHierarchicalVisitor)
+    def visitEnter(self, node):
+        print node.nodeid, node.name
+        #print self, 'DictNodeUpdater.visitEnter', node
+        return True
+    def visitLeave(self, node):
+        #print self, 'DictNodeUpdater.visitLeave', node
+        return node
+    def visit(self, node):
+        print node.nodeid, node.name
+        #print self, 'DictNodeUpdater.visit', node
+        return node
+
+if __name__ == '__main__':
+    from test_res_primitive import *
+    test_tree_traverse()
+    test_dictnode_fs_populate()
 

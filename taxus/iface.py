@@ -21,7 +21,9 @@ from script_mpe.lib import cn
 #import taxus
 #import libcmd
 
+
 gsm = getGlobalSiteManager()
+registry = AdapterRegistry()
 
 
 # generic types for stored object
@@ -142,9 +144,9 @@ class IReporter(Interface):
 class IResultAdapter(Interface): pass
 
 
-registry = AdapterRegistry()
 
 def registerAdapter(adapterClass, sifaces=[], tiface=None):
+    global registry
     if not sifaces:
         sifaces = [adapterClass.__used_for__]
         assert sifaces
@@ -153,6 +155,7 @@ def registerAdapter(adapterClass, sifaces=[], tiface=None):
     registry.register(sifaces, tiface, '', adapterClass)
 
 def hook( provided, o ):
+    global registry
     if  o  == None:
         return PrimitiveFormatter(None)
     adapted = providedBy( o )
