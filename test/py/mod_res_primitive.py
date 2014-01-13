@@ -34,12 +34,9 @@ def test_dictnode_fs_populate(): # TEST creating a dicttree from fs
     res.fs.Dir.tree( root, opts, tree_init )
 
 
-class TestResPrimitive(unittest.TestCase):
-    def test_1_tree_traverse(self):
-        test_tree_traverse()
-    def test_2_dictnote_fs_populate(self):
-        test_dictnode_fs_populate()
+def get_cases():
+    return [
+            unittest.FunctionTestCase( test_tree_traverse ),
+            unittest.FunctionTestCase( test_dictnode_fs_populate )
+        ]
 
-
-if __name__ == '__main__':
-    unittest.main()

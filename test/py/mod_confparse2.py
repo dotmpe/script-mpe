@@ -51,6 +51,12 @@ class CP2Test1(unittest.TestCase):
         #self.assertEquals(type(d.test2.foo), confparse2.PropertyValue)        
 
 
+def get_cases():
+    return [
+            CP2Test1, 
+        ]
+
 
 if __name__ == '__main__':
     unittest.main()
+

@@ -28,4 +28,13 @@ class RadicalTestCase(unittest.TestCase):
     #    radical.find(self.session, )
 
 
+def get_cases():
+    return [
+            RadicalTestCase
+        ]
+
+
+if __name__ == '__main__':
+    unittest.main()
+
 

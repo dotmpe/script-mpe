@@ -17,5 +17,11 @@ class TestResFs(unittest.TestCase):
         assert res.iface.ITree.providedBy(tree), tree
         verifyObject( res.iface.ITree, tree )
 
+
+def get_cases():
+    return [
+            TestResFs
+        ]
+
 if __name__ == '__main__':
     unittest.main()

@@ -42,7 +42,7 @@ test_py_$d::
 	@\
 		PYTHONPATH=$$PYTHONPATH:./;\
 		PATH=$$PATH:~/bin;\
-		TEST_PY=test.py;\
+		TEST_PY=test/main.py;\
 		TEST_LIB=confparse,confparse2,taxus,rsr,radical,workLog;\
 		HTML_DIR=test-coverage;\
 		VERBOSE=2;\

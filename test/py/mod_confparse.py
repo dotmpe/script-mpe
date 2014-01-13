@@ -51,7 +51,7 @@ class CPTest2(AbstractConfparseTest):
     RC = 'testrc'
     PWD = 'test/sub/dir/'
 
-    def test_1_(self):
+    def confparse_test_func1_(self):
         self._print_test_files()
         conf = expand_config_path(self.NAME).next() 
         #self.assertEqual(conf, self.name)
@@ -116,7 +116,7 @@ class CPTest1(AbstractConfparseTest):
         self.assert_(exists(self.RC))
         #self._print_test_files()
 
-    def test_1_find_config(self):
+    def confparse_test_func1_find_config(self):
         rcs = list(expand_config_path('testrc'))
         self.assertEqual(rcs, [join(getcwd(), self.RC)])
         test_runcom = expand_config_path('testrc').next()
@@ -219,7 +219,7 @@ class CPTest1(AbstractConfparseTest):
 
 # Testing
 
-def test1():
+def confparse_test_func1():
     #cllct_settings = ini(cllct_runcom) # old ConfigParser based, see confparse experiments.
     test_settings = yaml(test_runcom)
 
@@ -240,6 +240,15 @@ def test1():
     test_settings.commit()
 
     print 'test_settings', pformat(test_settings)
+
+
+def get_cases():
+    return [
+            CPTest2, 
+            CPTest1, 
+            unittest.FunctionTestCase( confparse_test_func1 )
+        ]
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -30,6 +30,7 @@ def FormatTestGenerator(name, formatter, source, expected):
             obj.parse_data(source)
             assert name in obj, "Missing key %s" % name
             assert obj[name] == expected[name], "Values do not match for %s" % name
+        _test.__name__ = 'test_res_format_'+name
         yield _test
 
 def wrap_functions(format_tests):
@@ -38,5 +39,16 @@ def wrap_functions(format_tests):
             yield unittest.FunctionTestCase( 
                     func, 
                     description='Res_FormatTest_'+name)
+
+def get_cases():
+    return list( wrap_functions(tests) )
+
+
+if __name__ == '__main__':
+    import sys
+    for klass in get_cases():
+        setattr( sys.modules['__main__'], klass._description, klass )
+# XXX hot to get cases into unittest.main
+    unittest.main()
 
 
