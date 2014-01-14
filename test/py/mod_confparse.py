@@ -28,7 +28,8 @@ class AbstractConfparseTest(unittest.TestCase, object):
 
         self.cwd = getcwd()
         chdir(self.pwd)
-        open(self.RC, 'w+').write("""\nfoo: \n   bar: {var: v}\n   test4:[{foo: bar}]""")
+        open(self.RC, 'w+').write(
+                """\nfoo: \n   bar: {var: v}\n   test4: [{foo: bar}]""")
         #self._print_test_files()
 
     def tearDown(self):
@@ -87,10 +88,16 @@ class CPTest2(AbstractConfparseTest):
         makedirs('.cllct/')
         self.realname = realpath('.'+self.name)
         open(self.realname, 'w+').write("id: 1\n")
-    def test_2_(self):
+
+    def test_1(self):
         self.assert_(exists(self.realname))
         rcfile = list(confparse.expand_config_path(self.name))
         self.assertEqual(rcfile, [self.realname])
+
+    def test_2(self):
+        settings = load(self.name)
+        self.assert_('id' in settings)
+
     def tearDown(self):
         unlink('.cllct/project')
         rmdir('.cllct/')
@@ -121,6 +128,27 @@ class CPTest1(AbstractConfparseTest):
         self.assertEqual(rcs, [join(getcwd(), self.RC)])
         test_runcom = expand_config_path('testrc').next()
         return test_runcom
+
+    def test_1_exports(self):
+        expected_exports = [
+                'name_prefixes',
+                'path_prefixes',
+                'name_suffixes',
+                'tree_paths',
+                'expand_config_path',
+                'find_config_path',
+                'DictDeepUpdate',
+                'Values',
+                'backup',
+                'YAMLValues',
+                'FSValues',
+                'yaml',
+                'init_config',
+                'load_path',
+                'load',
+            ]
+        for export in expected_exports:
+            self.assert_(lambda x: getattr(confparse, export))
 
     def test_2_load(self):
         test_settings = load(self.RC)
@@ -170,8 +198,8 @@ class CPTest1(AbstractConfparseTest):
 
     def test_5_copy(self):
         pwd = getcwd()
-        test_settings = load(self.RC, paths=confparse.config_path+(pwd,))
-        self.assertEqual(test_settings.copy(), {
+        test_settings = load(self.RC, paths=confparse.path_prefixes+(pwd,))
+        self.assertEqual(test_settings.copy(True), {
             'foo': {
                 'bar': {'var': 'v'},
                 'test4': [{'foo': 'bar'}], 
@@ -220,10 +248,13 @@ class CPTest1(AbstractConfparseTest):
 # Testing
 
 def confparse_test_func1():
+    from confparse import yaml
+    from pprint import pformat
+
     #cllct_settings = ini(cllct_runcom) # old ConfigParser based, see confparse experiments.
     test_settings = yaml(test_runcom)
 
-    print 'test_settings', pformat(test_settings)
+    #print 'test_settings', pformat(test_settings)
 
     if 'foo' in test_settings and test_settings.foo == 'bar':
         test_settings.foo = 'baz'
@@ -246,7 +277,7 @@ def get_cases():
     return [
             CPTest2, 
             CPTest1, 
-            unittest.FunctionTestCase( confparse_test_func1 )
+#            unittest.FunctionTestCase( confparse_test_func1 )
         ]
 
 
