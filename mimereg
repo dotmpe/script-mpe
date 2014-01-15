@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-mimereg - a configuration based extension-mediatype mapper
+mimereg - a settingsiguration based extension-mediatype mapper
 
 
 TODO: handle language tags
@@ -16,8 +16,6 @@ import libcmd
 
 usage_descr = ""
 
-CONFIG = '~/.mpe-mimereg.yaml'
-CONFIG = os.path.expanduser('~/.basename-reg.yaml')
 CONFIG_DEFAULT = dict(
         fer = dict( # this program
             ext_map = dict( # multi-format tags
@@ -33,53 +31,52 @@ CONFIG_DEFAULT = dict(
             )
         )
 
-conf = None
+settings = None
 fullname = None
 
-def save_config():
-    global conf, fullname
+def save_settingsig():
+    global settings, fullname
     fl = open(fullname, 'rw+')
-    yaml.dump(conf, fl)
+    yaml.dump(settings, fl)
     fl.close()
 
 #
 
 class FileExtensionRegistry(libcmd.SimpleCommand):
-   
+  
     PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
+    NAME = PROG_NAME
     VERSION = "0.1"
     USAGE = """Usage: %prog [options] paths """
 
-    BOOTSTRAP =  [ 'static_args','parse_options','set_commands' ]
+    DEFAULT_CONFIG_KEY = NAME
+    BOOTSTRAP =  [ 'static_args','parse_options','load_config','set_commands' ]
     DEFAULT = [ 'run_filetype_scan' ]
+    DEFAULT_RC = os.path.expanduser('~/.basename-reg.yaml')
     # XXX restore DEFAULT_CONFIG_KEY = 'fer'
-        
-    def __init__(self):
-        super(FileExtensionRegistry, self).__init__()
-        self.load(CONFIG)
 
-    def load(self, yamlpath):
-        self.settings = confparse.load_path(yamlpath)
-
-    def run_filetype_scan(self, tag):
+    def run_filetype_scan(self, tag, settings=None):
         """
         """
-        global conf
+        print tag
+        settings = confparse.Values(settings)
         tags = [tag]
         for t in tags:
-            while t in conf.ext_map:
+            while t in settings.ext_map:
                 i = tags.index(t)
                 tags.remove(t)
-                tags = tags[:i] + conf.ext_map[t] + tags[i+1:]
+                tags = tags[:i] + settings.ext_map[t] + tags[i+1:]
 
-    def list_extensions(self):
+    def list_extensions(self, prog, settings):
         "List all (registered) extensions"
-        for x in self.settings.mime_ext_reg:
+        settings = confparse.Values(settings)
+        for x in settings.mime_ext_reg:
             print x
 
-    def list_mediatypes(self):
+    def list_mediatypes(self, settings):
         "List all (global) mediatypes"
-        for x in self.settings.mime_xref:
+        settings = confparse.Values(settings)
+        for x in settings.mime_xref:
             print x
 
     @classmethod

@@ -458,7 +458,7 @@ def clean_comment(scan, data):
     return data
 
 
-def find_tagged_comments(session, matchbox, source, data, comment_flavours):
+def find_tagged_comments(session, matchbox, source, data):
     """
     Look for tags in data, using the compiled tag regexes
     in matchbox, and post processing each found flavour of comment block to the
@@ -591,9 +591,9 @@ def find_files_with_tag(session, matchbox, paths):
                 sources.append(p2)
     for source in sources:
         data = open(source).read()
-        comment_flavours = detect_flavour(source, data)
+        # XXX comment_flavours = detect_flavour(source, data)
         try:
-            tag_generator = find_tagged_comments(session, matchbox, source, data, comment_flavours)
+            tag_generator = find_tagged_comments(session, matchbox, source, data)
         except Exception, e:
             log.err("Find: %s", e)
             traceback.print_exc()
@@ -697,9 +697,9 @@ class Radical(txs.Txs):
 
     DEPENDS = dict(
             init = [ 'load_config' ],
-            run_embedded_issue_scan = [ 'init', 'txs_session' ],
-            list_flavours = [ 'load_config' ],
-            list_scans = [ 'load_config' ]
+            run_embedded_issue_scan = [ 'init', 'txs_session', 'prepare_output' ],
+            list_flavours = [ 'load_config', 'prepare_output' ],
+            list_scans = [ 'load_config', 'prepare_output' ]
         )
 
     @classmethod
@@ -762,6 +762,8 @@ class Radical(txs.Txs):
         return
 
     def init(self, prog=None):
+        global rc
+        rc = self.rc
         # start db session
         #dbsession = get_session(self.rc.dbref)
         #yield dict( dbsession=dbsession )
@@ -802,8 +804,6 @@ class Radical(txs.Txs):
                 matchbox[flavour] = (match_start, )
 
         # iterate paths
-        global rc
-        rc = self.rc
         for embedded in find_files_with_tag(sa, matchbox, paths):
             if embedded.tag_id:
                 #if embedded.tag_id == NEED_ID:
@@ -823,5 +823,4 @@ class Radical(txs.Txs):
 
 if __name__ == '__main__':
     Radical.main()
-    #TargetResolver().main(['cmd:options'])
 

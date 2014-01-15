@@ -320,7 +320,7 @@ class SimpleCommand(object):
                 'action': 'store_false' }),
 
             # FIXME see what happes with this later
-            p(('-m', '--message-level',),{ 'metavar':'level',
+            p(('-L', '--message-level',),{ 'metavar':'level',
                 'dest': 'message_level',
                 'help': "Increase chatter by lowering "
                     "message threshold. Overriden by --quiet or --verbose. "
@@ -415,6 +415,7 @@ class SimpleCommand(object):
             args=[] ))
 
         for handler_name in self.resolve_handlers():
+            #print handler_name
             log.debug("%s.main: deferring to %s", lib.cn(self), handler_name)
             self.execute( handler_name )
 
@@ -547,14 +548,13 @@ class SimpleCommand(object):
 
     def static_args( self ):
         argv = list(sys.argv)
-        yield dict( prog = dict( argv = argv ) )
-        yield dict( prog = dict( name = argv.pop(0) ) )
-        home=os.getenv('HOME')
-        yield dict( prog = dict( home = home ) )
-# TODO: get default config file here, s
+        yield dict( prog = dict(
+            pwd = os.getcwd(),
+            home = os.getenv('HOME'),
+            name = argv.pop(0),
+            argv = argv ) )
         #name=os.path.splitext(os.path.basename(__file__))[0],
         #version="0.1",
-        #pwd=os.getcwd(),
         init.configure_components()
 
     def parse_options( self, prog ):
@@ -587,7 +587,7 @@ class SimpleCommand(object):
             prog.config_file = self.find_config_file(opts.config_file)
             #self.main_user_defaults()
             self.load_config_( prog.config_file, opts )
-            yield dict(settings=self.settings)
+            yield dict(settings=confparse.Values(self.settings))
 
     def find_config_file(self, rc):
         rcfile = list(confparse.expand_config_path(rc))
@@ -606,6 +606,10 @@ class SimpleCommand(object):
         settings.set_source_key('config_file')
         settings.config_file = config_file
         config_key = opts.config_key
+        if not config_key:
+            self.rc = settings
+            self.settings = settings
+            return
         if hasattr(settings, config_key):
             self.rc = getattr(settings, config_key)
         else:
@@ -820,6 +824,9 @@ class StackedCommand(SimpleCommand):
 # XXX: options are alreay parsed. parse them here? like libcmdng
         # Get a reference to the RC; searches config_file for specific section
         config_key = self.DEFAULT_CONFIG_KEY
+        if not config_key:
+            self.rc = self.settings
+            return
         if hasattr(opts, 'config_key') and opts.config_key:
             config_key = opts.config_key
 
