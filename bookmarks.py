@@ -56,12 +56,12 @@ from taxus.core import GroupNode
 from taxus.checksum import MD5Digest
 from taxus.net import Locator
 from taxus.model import Bookmark
-from txs import TaxusFe
+from txs import Txs
 
 
 
 
-class bookmarks(TaxusFe):
+class bookmarks(Txs):
 
     #zope.interface.implements(res.iface.ISimpleCommand)
 
@@ -96,22 +96,19 @@ class bookmarks(TaxusFe):
         """
         Return tuples with optparse command-line argument specification.
         """
-        if Klass == inheritor:
-            p = libcmd.SimpleCommand.get_prefixer()
-        else:
-            p = inheritor.get_prefixer()
+        p = inheritor.get_prefixer(Klass)
         return (
             # actions
-                (p('-s', '--stats',), libcmd.cmddict()),
-                (p('-l', '--list',), libcmd.cmddict()),
-                (p('-a', '--add',), libcmd.cmddict()),
-                (p('--list-lctr',), libcmd.cmddict()),
+                p(('-s', '--stats',), libcmd.cmddict()),
+                p(('-l', '--list',), libcmd.cmddict()),
+                p(('-a', '--add',), libcmd.cmddict()),
+                p(('--list-lctr',), libcmd.cmddict()),
 
                 (('--moz-js-import',), libcmd.cmddict()),
                 (('--dlcs-post-import',), libcmd.cmddict()),
                 (('--dlcs-post-test',), libcmd.cmddict()),
 
-                (p('--export',), libcmd.cmddict(help="TODO: bm export")),
+                p(('--export',), libcmd.cmddict(help="TODO: bm export")),
 
                 (('--moz-js-group-import',), libcmd.cmddict()),
 
@@ -121,12 +118,12 @@ class bookmarks(TaxusFe):
                     help="Add MD5-refs missing (on all locators). ")),
 
             # params
-                (p('--public',), dict( action='store_true', default=False )),
-                (p('--name',), dict( default=None, type="str" )),
-                (p('--href',), dict( default=None, type="str" )),
-                (p('--ext',), dict( default=None, type="str" )),
-                (p('--tags',), dict( default=None, type="str" )),
-                (p('--ref-md5',), dict( action='store_true',
+                p(('--public',), dict( action='store_true', default=False )),
+                p(('--name',), dict( default=None, type="str" )),
+                p(('--href',), dict( default=None, type="str" )),
+                p(('--ext',), dict( default=None, type="str" )),
+                p(('--tags',), dict( default=None, type="str" )),
+                p(('--ref-md5',), dict( action='store_true',
                     default=False, help="Calculate MD5 for new locators. " )),
 
             )

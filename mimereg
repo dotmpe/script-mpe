@@ -50,7 +50,7 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
     VERSION = "0.1"
     USAGE = """Usage: %prog [options] paths """
 
-    BOOTSTRAP =  [ 'static_args','parse_options','run_commands' ]
+    BOOTSTRAP =  [ 'static_args','parse_options','set_commands' ]
     DEFAULT = [ 'run_filetype_scan' ]
     # XXX restore DEFAULT_CONFIG_KEY = 'fer'
         
@@ -64,6 +64,7 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
     def run_filetype_scan(self, tag):
         """
         """
+        global conf
         tags = [tag]
         for t in tags:
             while t in conf.ext_map:

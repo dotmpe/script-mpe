@@ -25,7 +25,7 @@ GIT Branches
 
 		dev_taxus
 			Working to reintegrate ideas from old ``dev_`` forks into dev,
-			currently concerning libcmd functionality and txs.TaxusFe with subclasses.
+			currently concerning libcmd functionality and txs.Txs with subclasses.
 
     test
         Writing and running tests.

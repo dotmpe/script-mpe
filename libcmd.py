@@ -55,6 +55,7 @@ class HandlerReturnAdapter(object):
             gen-{first,last,all}-key{,s}
         returns generated
             {first,last,all}-key{,s}
+    
     """
     #zope.interface.implements(iface.IProgramHandlerResultProcessor)
     def __init__(self, globaldict):
@@ -220,7 +221,7 @@ class SimpleCommand(object):
     """
     """
     currently
-        static_init: prog.name => prog.{pwdspec, configspec, optspec}
+        static_args: prog.name => prog.{pwdspec, configspec, optspec}
         load_config:  prog.{pwdspec, configspec} => settings, rc, prog.{config}
         cmd_options:  prog.optspec => args, opts + globaldict
                    
@@ -229,15 +230,18 @@ class SimpleCommand(object):
 
     # optparse vars: prog name, version and short usage descr.
     NAME = 'libcmd'
+    PROG_NAME = os.path.splitext(os.path.basename(sys.modules['__main__'].__file__))[0]
     VERSION = "0.1"
     USAGE = """Usage: %prog [options] paths """
 
-    BOOTSTRAP = [ 'static_args', 'parse_options', 'load_config', 'prepare_output', 'run_commands' ]
+    OPTS_INHERIT = ()
+    COMMAND_FLAG = ('-C', '--command')
+
+    BOOTSTRAP = [ 'static_args', 'parse_options', 'load_config', 'prepare_output', 'set_commands' ]
     DEFAULT = [ 'stat', ]
 
     DEFAULT_RC = 'libcmdrc'
-
-    COMMAND_FLAG = ('-C', '--command')
+    DEFAULT_CONFIG_KEY = NAME
 
     @classmethod
     def get_optspec(Klass, inheritor):
@@ -264,46 +268,59 @@ class SimpleCommand(object):
         should be used to get it. And so it goes with all static properties to
         allow for overrides. There is no option to leave out an option.
         """
-        if Klass == inheritor: # mostly so, but SimpleCommand can be invoked by itself
-            p = SimpleCommand.get_prefixer()
-        else:
-            p = inheritor.get_prefixer()
+        p = inheritor.get_prefixer(Klass)
         return (
-            (p(*inheritor.COMMAND_FLAG), { 'metavar':'ID', 
+            p(inheritor.COMMAND_FLAG, { 'metavar':'ID', 
                 'help': "Action (default: %default). ", 
                 'dest': 'commands',
                 'action': 'callback', 
                 'callback': optparse_set_handler_list,
                 'default': inheritor.DEFAULT
             }),
-            (p('-c', '--config',),{ 'metavar':'NAME', 
+            # XXX: is this reserved for names to be used with confparse path
+            # scan, or can it have full paths too.. currently it is just a name
+            p(('-c', '--config',),{ 'metavar':'NAME', 
                 'dest': "config_file",
                 'default': inheritor.DEFAULT_RC, 
                 'help': "Run time configuration. This is loaded after parsing command "
                     "line options, non-default option values wil override persisted "
                     "values (see --update-config) (default: %default). " }),
    
-            (p('-U', '--update-config',),{ 'action':'store_true', 'help': "Write back "
+            p(('-U', '--update-config',),{ 'action':'store_true', 'help': "Write back "
                 "configuration after updating the settings with non-default option "
                 "values.  This will lose any formatting and comments in the "
                 "serialized configuration. ",
                 'default': False }),
+             
+            p(('-K', '--config-key',),{ 'metavar':'ID', 
+                'dest': 'config_key',
+                'default': inheritor.DEFAULT_CONFIG_KEY, 
+                'help': "Settings root node for run time configuration. "
+                    " (default: %default). " }),
 
-            (p('--interactive',),{ 'help': "Allows commands to run extra heuristics, e.g. for "
+#            p(('--init-config',),cmddict(help="runtime-configuration with default values. "
+#                'dest': 'command', 
+#                'callback': optparse_override_handler }),
+#
+#            p(('--print-config',),{ 'action':'callback', 'help': "",
+#                'dest': 'command', 
+#                'callback': optparse_override_handler }),
+
+            p(('-i', '--interactive',),{ 'help': "Allows commands to run extra heuristics, e.g. for "
                 "selection and entry that needs user supervision. Normally all options should "
                 "be explicitly given or the command fails. This allows instead to use a readline"
                 "UI during execution. ",
                 'default': False,
                 'action': 'store_true' }),
-
-            (p('--non-interactive',),{ 
-                'help': "Never prompt, solve or raise error. ", 
+             
+            p(('--continue','--non-interactive',),{ 
+                'help': "Never prompt user, solve and continue or raise error. ", 
                 'dest': 'interactive', 
                 'default': False,
                 'action': 'store_false' }),
 
             # FIXME see what happes with this later
-            (p('-m', '--message-level',),{ 'metavar':'level',
+            p(('-m', '--message-level',),{ 'metavar':'level',
                 'dest': 'message_level',
                 'help': "Increase chatter by lowering "
                     "message threshold. Overriden by --quiet or --verbose. "
@@ -312,12 +329,12 @@ class SimpleCommand(object):
                 'default': 2,
             }),
    
-            (p('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
+            p(('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
                 "threshold. Overriden by --quiet or --message-level.",
                 'action': 'callback',
                 'callback': optparse_increase_verbosity}),
     
-            (p('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
+            p(('-q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
                 "and prompts (--interactive). ", 
                 'dest': 'quiet', 
                 'default': False,
@@ -327,10 +344,10 @@ class SimpleCommand(object):
                 )
 
     @classmethod
-    def get_prefixer(Klass):
+    def get_prefixer(Klass, context):
         "Return dummy optparse flag prefixer. "
-        def add_option_prefix(*optnames):
-            return optnames
+        def add_option_prefix(optnames, attrs):
+            return optnames, attrs
         return add_option_prefix
     
     def get_optspecs(self):
@@ -398,7 +415,6 @@ class SimpleCommand(object):
             args=[] ))
 
         for handler_name in self.resolve_handlers():
-            #print lib.cn(self), handler_name
             log.debug("%s.main: deferring to %s", lib.cn(self), handler_name)
             self.execute( handler_name )
 
@@ -406,10 +422,10 @@ class SimpleCommand(object):
 
     def resolve_handlers( self ):
         """
-        handlernames from commands list.
+        XXX
         """
         self.globaldict.prog.handlers = self.BOOTSTRAP
-        while self.globaldict.prog.handlers:#opts.commands:
+        while self.globaldict.prog.handlers:
             o = self.globaldict.prog.handlers.pop(0)
             p = '%s_' % self.NAME
             yield o.startswith(p) and o.replace( p, '' ) or o
@@ -533,6 +549,12 @@ class SimpleCommand(object):
         argv = list(sys.argv)
         yield dict( prog = dict( argv = argv ) )
         yield dict( prog = dict( name = argv.pop(0) ) )
+        home=os.getenv('HOME')
+        yield dict( prog = dict( home = home ) )
+# TODO: get default config file here, s
+        #name=os.path.splitext(os.path.basename(__file__))[0],
+        #version="0.1",
+        #pwd=os.getcwd(),
         init.configure_components()
 
     def parse_options( self, prog ):
@@ -562,12 +584,12 @@ class SimpleCommand(object):
         if 'config_file' not in opts or not opts.config_file:
             log.err( "Nothing to load configuration from")
         else:
-            prog.config_file = self.get_config_file(opts.config_file)
+            prog.config_file = self.find_config_file(opts.config_file)
             #self.main_user_defaults()
             self.load_config_( prog.config_file, opts )
             yield dict(settings=self.settings)
 
-    def get_config_file(self, rc):
+    def find_config_file(self, rc):
         rcfile = list(confparse.expand_config_path(rc))
         if rcfile:
             config_file = rcfile.pop()
@@ -615,11 +637,12 @@ class SimpleCommand(object):
             else:
                 log.warn("Ignored non-path argument %s", a)
 
-    def run_commands(self, prog, opts):
+    def set_commands(self, prog, opts):
+        " Copy opts.commands to prog.handlers. "
         if opts and opts.commands:
-            prog.handlers = opts.commands
+            prog.handlers += opts.commands
         else:
-            prog.handlers = self.DEFAULT
+            prog.handlers += self.DEFAULT
 
 # TODO: post-deps
     def flush_reporters(self):
@@ -663,45 +686,7 @@ class StackedCommand(SimpleCommand):
 
     NAME = os.path.splitext(os.path.basename(__file__))[0]
     DEFAULT_RC = NAME+'rc'
-    DEFAULT_CONFIG_KEY = NAME
-
-    @classmethod
-    def get_optspec(Klass, inheritor):
-        """
-        Return tuples with optparse command-line argument specification.
-        """
-        if Klass == inheritor:
-            p = SimpleCommand.get_prefixer()
-        else:
-            p = inheritor.get_prefixer()
-        return (
-
-            (p('-K', '--config-key',),{ 'metavar':'ID', 
-                'dest': 'config_key',
-                'default': inheritor.DEFAULT_CONFIG_KEY, 
-                'help': "Settings root node for run time configuration. "
-                    " (default: %default). " }),
-
-#            (p('--init-config',),cmddict(help="runtime-configuration with default values. "
-#                'dest': 'command', 
-#                'callback': optparse_override_handler }),
-#
-#            (p('--print-config',),{ 'action':'callback', 'help': "",
-#                'dest': 'command', 
-#                'callback': optparse_override_handler }),
-
-        )
-
-    @classmethod
-    def get_prefixer(Klass):
-        def add_option_prefix(*optnames):
-            if len(optnames[0]) == 2:
-                longopt = optnames[1]
-            else:
-                longopt = optnames[0]
-            return '--' + SimpleCommand.NAME + longopt[1:],
-        return add_option_prefix
-
+    OPTS_INHERIT = '-v', '-q', '-i', '--message-level', '--continue', '--config'
     HANDLERS = [
 #            'cmd:static', # collect (semi)-static settings
 #            'cmd:config', # load (user) configuration
@@ -712,20 +697,52 @@ class StackedCommand(SimpleCommand):
 
     DEPENDS = {
             'static_args': [],
-            'parse_options': [],
-            'prepare_output': [],
-            'static_init': ['static_args'],
-            'load_config': ['static_init'],
+            'parse_options': ['static_args'],
+            'load_config': ['parse_options'],
+            'prepare_output': ['parse_options'],
+            'set_commands': ['parse_options'],
+
+#            'static_init': ['static_args'],
+#            'load_config': ['static_init'],
             'print_config': ['load_config'],
-            'run_commands': ['parse_options'],
         }
 
     ""
     # StackedCommand default bootstrap handlers
     # XXX because StackedCommand has dependency resolving it only lists the last
-    BOOTSTRAP = [ 'static_args', 'static_init', 'parse_options', 'load_config',
-        'prepare_output', 'run_commands' ] 
+#    BOOTSTRAP = [ 'static_args', 'static_init', 'parse_options', 'load_config',
+#        'prepare_output', 'set_commands' ] 
+    BOOTSTRAP = [ 'set_commands' ]
     DEFAULT = [ 'print_config' ]
+
+
+    @classmethod
+    def get_optspec(Klass, inheritor):
+        """
+        Return tuples with optparse command-line argument specification.
+        """
+        p = inheritor.get_prefixer(Klass)
+        return (
+
+        )
+
+    @classmethod
+    def get_prefixer(Klass, context):
+        if Klass == context:
+            return SimpleCommand.get_prefixer(context)
+        def add_option_prefix(optnames, attr):
+            for opt in optnames:
+                if opt in Klass.OPTS_INHERIT:
+                    return optnames, attr
+            if len(optnames[0]) == 2:
+                longopt = optnames[1]
+            else:
+                longopt = optnames[0]
+            newlongopt = context.NAME + longopt[1:]
+            if 'dest' not in attr:
+                attr['dest'] = newlongopt.replace('-', '_')
+            return ('--' + newlongopt,), attr
+        return add_option_prefix
 
     def __init__(self):
         super(StackedCommand, self).__init__()
@@ -735,12 +752,6 @@ class StackedCommand(SimpleCommand):
 
         self.rc = None
         "Runtime settings for this script. "
-    
-    def static_args( self ):
-        "Override. "
-        argv = list(sys.argv)
-        yield dict( prog = dict( argv = argv ) )
-        yield dict( prog = dict( name = argv.pop(0) ) )
     
     def static_init(self):
         """
@@ -783,14 +794,17 @@ class StackedCommand(SimpleCommand):
                         for x in recurse(dep):
                             yield x
                     else:
-                        yield dep
-                        executed.append( dep )
+                        if name not in executed:
+                            yield dep
+                            executed.append( dep )
                         log.debug("Executed dependency %s", dep)
-            yield name
+            if name not in executed:
+                yield name
+                executed.append( name )
             log.debug("Executed handler %s", name)
 
         self.globaldict.prog.handlers = self.BOOTSTRAP
-        while self.globaldict.prog.handlers:#opts.commands:
+        while self.globaldict.prog.handlers:
             name = self.globaldict.prog.handlers.pop(0)
             p = '%s_' % self.NAME
             name.startswith(p)
@@ -800,24 +814,6 @@ class StackedCommand(SimpleCommand):
             for x in recurse(name):
                 yield x
 
-
-    def main_option_overrides(self, parser, opts):
-        """
-        Update settings from values from parsed options. Use --update-config to 
-        write them to disk.
-        """
-# XXX:
-        #for o in opts.keys():
-        #    if o in self.TRANSIENT_OPTS: # opt-key does not indicate setting
-        #        continue
-        #    elif hasattr(self.settings, o):
-        #        setattr(self.settings, o, opts[o])
-        #    elif hasattr(self.rc, o):
-        #        setattr(self.rc, o, opts[o])
-        #    else:
-        #        err("Ignored option override for %s: %s", self.settings.config_file, o)
-
-    # ISimpleRuntimeConfig
 
     def load_config__(self, prog, opts):
         # XXX: perhaps restore shared config later
@@ -841,6 +837,7 @@ class StackedCommand(SimpleCommand):
         self.rc = getattr(self.settings, config_key)
         yield dict(rc=self.rc)
 
+# XXX
     def init_config_file(self):
         pass
     def init_config_submod(self):
@@ -892,6 +889,8 @@ class StackedCommand(SimpleCommand):
         self.rc.commit()
 
     def print_config(self, config_file=None, **opts):
+        #rcfile = list(confparse.expand_config_path(name))
+        #print name, rcfile
         print ">>> libcmd.Cmd.print_config(config_file=%r, **%r)" % (config_file,
                 opts)
         print '# self.settings =', self.settings
@@ -904,9 +903,6 @@ class StackedCommand(SimpleCommand):
             confparse.yaml_dump(self.rc.copy(), sys.stdout)
         return False
 
-    def get_config(self, name):
-        rcfile = list(confparse.expand_config_path(name))
-        print name, rcfile
 
 
 

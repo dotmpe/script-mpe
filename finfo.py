@@ -20,6 +20,7 @@ TODO: map manualy added paths elements to GroupNode, relative paths? entered pat
   important, watch out for bash globbing.
 TODO: some checksums for my precious media. Could use sums somehow to tie..
 TODO: tagging? or not. 
+
 """
 import os
 from datetime import datetime
@@ -44,7 +45,7 @@ import taxus.checksum
 import taxus.fs
 from taxus.core import Node, Name
 from taxus.media import Mediatype, Mediaformat, Genre, Mediameta
-from txs import TaxusFe
+from txs import Txs
 
 
 """
@@ -68,9 +69,10 @@ ass FileInfo(Node):
             primaryjoin=description_id == FileDescription.filedescription_id)
 """
 
-class FileInfoApp(TaxusFe):
+class FileInfoApp(Txs):
 
-    NAME = os.path.splitext(os.path.basename(__file__))[0]
+    NAME = 'mm'
+    PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
 
 #    DB_PATH = os.path.expanduser('~/.fileinfo.db')
 #    DEFAULT_DB = "sqlite:///%s" % DB_PATH
@@ -79,7 +81,7 @@ class FileInfoApp(TaxusFe):
 
 #    TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['file_info']
     #NONTRANSIENT_OPTS = Cmd.NONTRANSIENT_OPTS 
-    DEFAULT_ACTION = 'file_info'
+    DEFAULT = ['file_info']
 
     DEPENDS = {
             'file_info': ['txs_session'],
@@ -94,33 +96,30 @@ class FileInfoApp(TaxusFe):
 
     @classmethod
     def get_optspec(Klass, inheritor):
-        if Klass == inheritor:
-            p = libcmd.SimpleCommand.get_prefixer()
-        else:
-            p = inheritor.get_prefixer()
+        p = inheritor.get_prefixer(Klass)
         return (
-                (p('--file-info',), libcmd.cmddict(help="Default command. ")),
-                (p('--name-and-categorize',), libcmd.cmddict(
+                p(('--file-info',), libcmd.cmddict(help="Default command. ")),
+                p(('--name-and-categorize',), libcmd.cmddict(
                     help="Need either --interactive, or --name, --mediatype and "
                         " --mediaformat. Optionally provide one or more --genre's. "
                 )),
-                (p('--mm-stats',), libcmd.cmddict(help="Print media stats. ")),
-                (p('--list-mtype',), libcmd.cmddict(help="List all mediatypes. ")),
-                (p('--list-mformat',), libcmd.cmddict(help="List all media formats. ")),
-                (p('--add-mtype',), libcmd.cmddict(help="Add a new mediatype. ")),
-                (p('--add-mformats',), libcmd.cmddict(help="Add a new media format(s). ")),
-                (p('--add-genre',), libcmd.cmddict(help="Add a new media genre. ")),
+                p(('--stats',), libcmd.cmddict(help="Print media stats. ")),
+                p(('--list-mtype',), libcmd.cmddict(help="List all mediatypes. ")),
+                p(('--list-mformat',), libcmd.cmddict(help="List all media formats. ")),
+                p(('--add-mtype',), libcmd.cmddict(help="Add a new mediatype. ")),
+                p(('--add-mformats',), libcmd.cmddict(help="Add a new media format(s). ")),
+                p(('--add-genre',), libcmd.cmddict(help="Add a new media genre. ")),
 
-                (p('--name',), dict(
+                p(('--name',), dict(
                     type='str'
                 )),
-                (p('--mtype',), dict(
+                p(('--mtype',), dict(
                     type='str'
                 )),
-                (p('--mformat',), dict(
+                p(('--mformat',), dict(
                     type='str'
                 )),
-                (p('--genres',), dict(
+                p(('--genres',), dict(
                     action='append',
                     default=[],
                     type='str'
@@ -154,8 +153,8 @@ class FileInfoApp(TaxusFe):
         Add one or more new mediatypes.
         """
         assert mtype, "First argument 'mtype' required. "
-        mt = sa.query( Mediatype, Name )\
-                .filter( Name.name == mtype )\
+        mt = sa.query( Mediatype )\
+                .filter( Mediatype.name == mtype )\
                 .all()
         if mt:
             mt = mt[0]

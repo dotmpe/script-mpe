@@ -104,9 +104,11 @@ class LocalPathResolver(object):
             return INode.File
 
 
-class TaxusFe(libcmd.StackedCommand):
+class Txs(libcmd.StackedCommand):
 
+    
     NAME = os.path.splitext(os.path.basename(__file__))[0]
+    assert NAME == 'txs'
     
     DEFAULT_RC = 'cllct.rc'
 
@@ -117,7 +119,7 @@ class TaxusFe(libcmd.StackedCommand):
     DEFAULT = [ 'txs_info' ]
 
     DEPENDS = {
-            'txs_session': ['load_config'],
+            'txs_session': ['parse_options'],
             'txs_info': ['txs_session'],
             'txs_show': ['txs_session'],
             'txs_assert': ['txs_session'],
@@ -134,13 +136,10 @@ class TaxusFe(libcmd.StackedCommand):
         """
         Return tuples with optparse command-line argument specification.
         """
-        if Klass == inheritor:
-            p = libcmd.SimpleCommand.get_prefixer()
-        else:
-            p = inheritor.get_prefixer()
+        p = inheritor.get_prefixer(Klass)
         return (
                 # XXX: duplicates Options
-                (p('-d', '--dbref'), { 'metavar':'URI', 
+                p(('-d', '--dbref'), { 'metavar':'URI', 
                     'default': inheritor.DEFAULT_DB, 
                     'dest': 'dbref',
                     'help': "A URI formatted relational DB access description "
@@ -149,31 +148,31 @@ class TaxusFe(libcmd.StackedCommand):
                         " `mysql://taxus-user@localhost/taxus`. "
                         "The default value (%default) may be overwritten by configuration "
                         "and/or command line option. " }),
-                (p('--init',), {
+                p(('--init',), {
                     'dest': 'init',
                     'action': 'store_true',
                     'help': "Initialize target" }),
-                (p('--auto-commit',), {
+                p(('--auto-commit',), {
 #                    "default": False,
                     'action': 'store_true',
                     'help': "target" }),
-                (p('-q', '--query'), {'action':'callback', 
+                p(('-Q', '--query'), {'action':'callback', 
                     'callback_args': ('query',),
                     'callback': libcmd.optparse_set_handler_list,
                     'dest': 'command',
                     'help': "TODO" }),
 
                 # commands
-                (p('--info',), libcmd.cmddict(callback_args=(True,))),
-                (p('--assert',), libcmd.cmddict(help="Add Node.")),
-                (p('--assert-group',), libcmd.cmddict(help="Add Group-node.")),
-                (p('--remove',), libcmd.cmddict(help="Drop Node.")),
-                (p('--commit',), libcmd.cmddict(callback_args=(True,))),
+                p(('--info',), libcmd.cmddict(callback_args=(True,))),
+                p(('--assert',), libcmd.cmddict(help="Add Node.")),
+                p(('--assert-group',), libcmd.cmddict(help="Add Group-node.")),
+                p(('--remove',), libcmd.cmddict(help="Drop Node.")),
+                p(('--commit',), libcmd.cmddict(callback_args=(True,))),
                 #listtree?
-                (p('-l', '--list',), libcmd.cmddict()),
-                (p('-t', '--tree',), libcmd.cmddict()),
-                (p('--list-groups',), libcmd.cmddict()),
-                (p('--show',), libcmd.cmddict(help="Print Node.")),
+                p(('-l', '--list',), libcmd.cmddict()),
+                p(('-t', '--tree',), libcmd.cmddict()),
+                p(('--list-groups',), libcmd.cmddict()),
+                p(('--show',), libcmd.cmddict(help="Print Node.")),
             )
 
     def txs_session(self, opts=None):
@@ -366,7 +365,7 @@ NS = Namespace.register(
 
 Options.register(NS, 
         
-#        *TaxusFe.get_optspec(None)
+#        *Txs.get_optspec(None)
 
 #            (('-g', '--global-objects'), { 'metavar':'URI', 
 #                'default': DEFAULT_OBJECT_DB, 
@@ -552,5 +551,5 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
 
 
 if __name__ == '__main__':
-    TaxusFe.main()
+    Txs.main()
 

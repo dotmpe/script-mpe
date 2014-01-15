@@ -88,7 +88,7 @@ class Entry(taxus.semweb.Description):
 # Main app
 
 # XXX see radical get that working atain, or mime-reg
-class workLog(txs.TaxusFe):
+class workLog(txs.Txs):
 
     zope.interface.implements(res.iface.ISimpleCommand)
 
@@ -104,10 +104,7 @@ class workLog(txs.TaxusFe):
         """
         Return tuples with optparse command-line argument specification.
         """
-        if Klass == inheritor:
-            p = libcmd.SimpleCommand.get_prefixer()
-        else:
-            p = inheritor.get_prefixer()
+        p = inheritor.get_prefixer(Klass)
         return (
             )
 

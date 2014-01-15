@@ -166,7 +166,7 @@ class calendarCLI(libcmd.SimpleCommand):
             }),
         )
 
-    BOOTSTRAP = [ 'static_args', 'parse_options', 'run_commands' ]
+    BOOTSTRAP = [ 'static_args', 'parse_options', 'set_commands' ]
     DEFAULT = [ 'run' ]
 
     def run(self, opts, *args):

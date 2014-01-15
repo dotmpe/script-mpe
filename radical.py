@@ -675,10 +675,10 @@ rc = confparse.Values()
 
 # Main
 
-# TODO see bookmarks, basename-reg, mimereg, flesh out TaxusFe
+# TODO see bookmarks, basename-reg, mimereg, flesh out Txs
 import txs
 
-class Radical(txs.TaxusFe):
+class Radical(txs.Txs):
 
     zope.interface.implements(res.iface.ISimpleCommand)
 
@@ -707,10 +707,7 @@ class Radical(txs.TaxusFe):
         """
         Return tuples with optparse command-line argument specification.
         """
-        if Klass == inheritor:
-            p = libcmd.SimpleCommand.get_prefixer()
-        else:
-            p = inheritor.get_prefixer()
+        p = inheritor.get_prefixer(Klass)
         return (
 #                (('-d', '--database'),{ 'metavar':'URI', 'dest':'dbref',
 #                    'help': "A URI formatted relational DB access description, as "
@@ -723,11 +720,11 @@ class Radical(txs.TaxusFe):
 
                 # -f PATTERN   Include only matching files.
 
-                (p('-F', '--add-flavour'),{ 'action': 'callback', 'callback': append_comment_scan,
+                p(('-F', '--add-flavour'),{ 'action': 'callback', 'callback': append_comment_scan,
                     'help': "Scan for these comment flavours only, by default all known fla." }),
 
-                (p('--list-flavours',), libcmd.cmddict()),
-                (p('--list-scans',), libcmd.cmddict()),
+                p(('--list-flavours',), libcmd.cmddict()),
+                p(('--list-scans',), libcmd.cmddict()),
 
                 #(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
                 #(('-r', '--recurse'),{'action':'store_true', 'default': True,
@@ -764,8 +761,7 @@ class Radical(txs.TaxusFe):
             print
         return
 
-    def init(self, rc, prog=None):
-        assert rc
+    def init(self, prog=None):
         # start db session
         #dbsession = get_session(self.rc.dbref)
         #yield dict( dbsession=dbsession )

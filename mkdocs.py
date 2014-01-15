@@ -13,7 +13,7 @@ class mkDoc(libcmd.SimpleCommand):
     """
     zope.interface.implements(res.iface.ISimpleCommand)
 
-    BOOTSTRAP =  ['static_args','path_args','run_commands']
+    BOOTSTRAP = ['static_args','path_args','set_commands']
     DEFAULT = ['run_files']
 
     @classmethod
