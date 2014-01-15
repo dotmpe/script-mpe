@@ -96,8 +96,10 @@ class bookmarks(TaxusFe):
         """
         Return tuples with optparse command-line argument specification.
         """
-
-        p = Klass.get_prefixer(inheritor)
+        if Klass == inheritor:
+            p = libcmd.SimpleCommand.get_prefixer()
+        else:
+            p = inheritor.get_prefixer()
         return (
             # actions
                 (p('-s', '--stats',), libcmd.cmddict()),

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Filesystem metadata & management routines.
 

@@ -191,6 +191,7 @@ class calendarCLI(libcmd.SimpleCommand):
         else:
             print pformat(tree)
 
+
 if __name__ == '__main__':
     calendarCLI.main()
 

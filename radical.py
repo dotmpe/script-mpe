@@ -688,7 +688,6 @@ class Radical(txs.TaxusFe):
 
     DEFAULT_DB = "sqlite:///%s" % os.path.join(
                                         os.path.expanduser('~'), '.radical.sqlite')
-    #DEFAULT_RC = 'cllct.rc'
     DEFAULT_CONFIG_KEY = PROG_NAME
 
     #NONTRANSIENT_OPTS = Taxus.NONTRANSIENT_OPTS + [
@@ -704,10 +703,14 @@ class Radical(txs.TaxusFe):
         )
 
     @classmethod
-    def get_optspec(klass, inherit):
+    def get_optspec(Klass, inheritor):
         """
         Return tuples with optparse command-line argument specification.
         """
+        if Klass == inheritor:
+            p = libcmd.SimpleCommand.get_prefixer()
+        else:
+            p = inheritor.get_prefixer()
         return (
 #                (('-d', '--database'),{ 'metavar':'URI', 'dest':'dbref',
 #                    'help': "A URI formatted relational DB access description, as "
@@ -720,11 +723,11 @@ class Radical(txs.TaxusFe):
 
                 # -f PATTERN   Include only matching files.
 
-                (('-F', '--add-flavour'),{ 'action': 'callback', 'callback': append_comment_scan,
+                (p('-F', '--add-flavour'),{ 'action': 'callback', 'callback': append_comment_scan,
                     'help': "Scan for these comment flavours only, by default all known fla." }),
 
-                (('--list-flavours',), libcmd.cmddict()),
-                (('--list-scans',), libcmd.cmddict()),
+                (p('--list-flavours',), libcmd.cmddict()),
+                (p('--list-scans',), libcmd.cmddict()),
 
                 #(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
                 #(('-r', '--recurse'),{'action':'store_true', 'default': True,

@@ -93,8 +93,11 @@ class FileInfoApp(TaxusFe):
         }
 
     @classmethod
-    def get_optspec(Klass, inherit):
-        p = Klass.get_prefixer(inherit)
+    def get_optspec(Klass, inheritor):
+        if Klass == inheritor:
+            p = libcmd.SimpleCommand.get_prefixer()
+        else:
+            p = inheritor.get_prefixer()
         return (
                 (p('--file-info',), libcmd.cmddict(help="Default command. ")),
                 (p('--name-and-categorize',), libcmd.cmddict(

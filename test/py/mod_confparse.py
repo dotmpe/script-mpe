@@ -13,6 +13,8 @@ from confparse import expand_config_path, load
 
 class AbstractConfparseTest(unittest.TestCase, object):
 
+    RC_DATA = """\nfoo: \n   bar: {var: v}\n   test4: [{foo: bar}]"""
+
     def setUp(self):
         if sys.platform == 'Darwin':
             self.tmpdir = '/private/var/tmp/'
@@ -28,8 +30,7 @@ class AbstractConfparseTest(unittest.TestCase, object):
 
         self.cwd = getcwd()
         chdir(self.pwd)
-        open(self.RC, 'w+').write(
-                """\nfoo: \n   bar: {var: v}\n   test4: [{foo: bar}]""")
+        open(self.RC, 'w+').write(self.RC_DATA)
         #self._print_test_files()
 
     def tearDown(self):

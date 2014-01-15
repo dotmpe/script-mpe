@@ -9,7 +9,9 @@ from confparse2 import obj_dic, obj_lis
 
 
 class CP2Test1(unittest.TestCase):
-
+    """
+    Simple access tests, structs are not nested
+    """
     def test_1_read_dict(self):
         d = obj_dic({'test':'foo'})
         self.assertEquals(str(d.test), 'foo')
@@ -27,6 +29,9 @@ class CP2Test1(unittest.TestCase):
         self.assertEquals(d[0], d._0)
         self.assertEquals(str(d[0]), str(d._0))
 
+    """
+    Go one level deep with a dict.
+    """
     def test_2_read_nested(self):
         d = obj_dic({'test':{'foo':'bar'}})
         self.assertEquals(d.test.foo, "bar")
@@ -39,6 +44,10 @@ class CP2Test1(unittest.TestCase):
         self.assertEquals(d[0], d._0)
         #self.assertEquals(d[0].value, d._0.value)
 
+    """
+    Test a copy.
+    TODO: test committing
+    """
     def test_write(self):
 
         d = obj_dic({})

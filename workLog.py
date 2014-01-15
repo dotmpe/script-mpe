@@ -94,16 +94,20 @@ class workLog(txs.TaxusFe):
 
     NAME = os.path.splitext(os.path.basename(__file__))[0]
 
+    DEFAULT_RC = 'cllct.rc'
     DEFAULT_CONFIG_KEY = NAME
 
-    #TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + ['']
     DEFAULT = [ 'tasks' ]
 
     @classmethod
-    def get_optspec(klass, inherit):
+    def get_optspec(Klass, inheritor):
         """
         Return tuples with optparse command-line argument specification.
         """
+        if Klass == inheritor:
+            p = libcmd.SimpleCommand.get_prefixer()
+        else:
+            p = inheritor.get_prefixer()
         return (
             )
 

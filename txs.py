@@ -107,11 +107,17 @@ class LocalPathResolver(object):
 class TaxusFe(libcmd.StackedCommand):
 
     NAME = os.path.splitext(os.path.basename(__file__))[0]
+    
+    DEFAULT_RC = 'cllct.rc'
+
+    # XXX
+    DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
+    DEFAULT_DB = "sqlite:///%s" % DB_PATH
 
     DEFAULT = [ 'txs_info' ]
 
     DEPENDS = {
-            'txs_session': ['cmd_config'],
+            'txs_session': ['load_config'],
             'txs_info': ['txs_session'],
             'txs_show': ['txs_session'],
             'txs_assert': ['txs_session'],
@@ -128,11 +134,14 @@ class TaxusFe(libcmd.StackedCommand):
         """
         Return tuples with optparse command-line argument specification.
         """
-        p = Klass.get_prefixer(inheritor)
+        if Klass == inheritor:
+            p = libcmd.SimpleCommand.get_prefixer()
+        else:
+            p = inheritor.get_prefixer()
         return (
                 # XXX: duplicates Options
                 (p('-d', '--dbref'), { 'metavar':'URI', 
-                    'default': DEFAULT_DB, 
+                    'default': inheritor.DEFAULT_DB, 
                     'dest': 'dbref',
                     'help': "A URI formatted relational DB access description "
                         "(SQLAlchemy implementation). Ex: "
@@ -141,6 +150,7 @@ class TaxusFe(libcmd.StackedCommand):
                         "The default value (%default) may be overwritten by configuration "
                         "and/or command line option. " }),
                 (p('--init',), {
+                    'dest': 'init',
                     'action': 'store_true',
                     'help': "Initialize target" }),
                 (p('--auto-commit',), {
@@ -168,9 +178,9 @@ class TaxusFe(libcmd.StackedCommand):
 
     def txs_session(self, opts=None):
         dbref = opts.dbref
-        if opts.txs_init:
+        if opts.init:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
-        sa = SessionMixin.get_session('default', opts.dbref, opts.txs_init)
+        sa = SessionMixin.get_session('default', opts.dbref, opts.init)
         yield dict(sa=sa)
 
     def txs_info(self, opts=None, sa=None):
@@ -347,8 +357,6 @@ class TaxusFe(libcmd.StackedCommand):
                 .filter(( GroupNode.root, )).all()
          
 
-DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
-DEFAULT_DB = "sqlite:///%s" % DB_PATH
 #DEFAULT_OBJECT_DB = os.path.expanduser('~/.cllct/objects.db')
 
 NS = Namespace.register(
@@ -358,7 +366,7 @@ NS = Namespace.register(
 
 Options.register(NS, 
         
-        *TaxusFe.get_optspec(None)
+#        *TaxusFe.get_optspec(None)
 
 #            (('-g', '--global-objects'), { 'metavar':'URI', 
 #                'default': DEFAULT_OBJECT_DB, 

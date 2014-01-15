@@ -228,32 +228,83 @@ class SimpleCommand(object):
     """
 
     # optparse vars: prog name, version and short usage descr.
-    NAME = os.path.splitext(os.path.basename(__file__))[0]
+    NAME = 'libcmd'
     VERSION = "0.1"
     USAGE = """Usage: %prog [options] paths """
 
-    BOOTSTRAP = [ 'static_args', 'parse_options', 'prepare_output', 'run_commands' ]
+    BOOTSTRAP = [ 'static_args', 'parse_options', 'load_config', 'prepare_output', 'run_commands' ]
     DEFAULT = [ 'stat', ]
+
+    DEFAULT_RC = 'libcmdrc'
 
     COMMAND_FLAG = ('-C', '--command')
 
     @classmethod
-    def get_optspec(klass, inheritor):
+    def get_optspec(Klass, inheritor):
         """
         Return tuples with optparse command-line argument specification.
-        """
-        return (
 
-            ( inheritor.COMMAND_FLAG, { 'metavar':'ID', 
+        XXX: cannot stuff away options at StackedCommand, need to solve some
+          issues at SimpleCommand.
+        StackedCommand will prefix flags from the higher classes, keeping the
+        entire name-space free for the subclass to fill. --cmd-list vs. --list
+        FIXME: what todo upon conflicts. better solve this explicitly i think?
+            so the inheritor needs to override local behaviour 
+            perhaps inheritor.get_optspec_override can return its options
+            and locally these are prefixed
+
+        StackedCommand defines a flag-prefixer that should be used in get_optspec
+        implementations when the current Klass is not the same as the inheritor.
+        The SimpleCommand.get_optspec does the same and it ensures the entire
+        flag namespace is free for the subclass to use.
+
+        SimpleCommand defines a dummy flag-prefixer.
+
+        The inheritor can redefine or inherit get_prefixer, inheritor.get_prefixer 
+        should be used to get it. And so it goes with all static properties to
+        allow for overrides. There is no option to leave out an option.
+        """
+        if Klass == inheritor: # mostly so, but SimpleCommand can be invoked by itself
+            p = SimpleCommand.get_prefixer()
+        else:
+            p = inheritor.get_prefixer()
+        return (
+            (p(*inheritor.COMMAND_FLAG), { 'metavar':'ID', 
                 'help': "Action (default: %default). ", 
                 'dest': 'commands',
                 'action': 'callback', 
                 'callback': optparse_set_handler_list,
                 'default': inheritor.DEFAULT
             }),
+            (p('-c', '--config',),{ 'metavar':'NAME', 
+                'dest': "config_file",
+                'default': inheritor.DEFAULT_RC, 
+                'help': "Run time configuration. This is loaded after parsing command "
+                    "line options, non-default option values wil override persisted "
+                    "values (see --update-config) (default: %default). " }),
    
+            (p('-U', '--update-config',),{ 'action':'store_true', 'help': "Write back "
+                "configuration after updating the settings with non-default option "
+                "values.  This will lose any formatting and comments in the "
+                "serialized configuration. ",
+                'default': False }),
+
+            (p('--interactive',),{ 'help': "Allows commands to run extra heuristics, e.g. for "
+                "selection and entry that needs user supervision. Normally all options should "
+                "be explicitly given or the command fails. This allows instead to use a readline"
+                "UI during execution. ",
+                'default': False,
+                'action': 'store_true' }),
+
+            (p('--non-interactive',),{ 
+                'help': "Never prompt, solve or raise error. ", 
+                'dest': 'interactive', 
+                'default': False,
+                'action': 'store_false' }),
+
             # FIXME see what happes with this later
-            (('-m', '--message-level',),{ 'metavar':'level',
+            (p('-m', '--message-level',),{ 'metavar':'level',
+                'dest': 'message_level',
                 'help': "Increase chatter by lowering "
                     "message threshold. Overriden by --quiet or --verbose. "
                     "Levels are 0--7 (debug--emergency) with default of 2 (notice). "
@@ -261,19 +312,26 @@ class SimpleCommand(object):
                 'default': 2,
             }),
    
-            (('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
+            (p('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
                 "threshold. Overriden by --quiet or --message-level.",
                 'action': 'callback',
                 'callback': optparse_increase_verbosity}),
     
-#            (('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
-#                "and prompts (--interactive). ", 
-#                'dest': 'quiet', 
-#                'default': False,
-#                'action': 'callback',
-#                'callback': optparse_override_quiet }),
+            (p('-Q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
+                "and prompts (--interactive). ", 
+                'dest': 'quiet', 
+                'default': False,
+                'action': 'callback',
+                'callback': optparse_override_quiet }),
 
                 )
+
+    @classmethod
+    def get_prefixer(Klass):
+        "Return dummy optparse flag prefixer. "
+        def add_option_prefix(*optnames):
+            return optnames
+        return add_option_prefix
     
     def get_optspecs(self):
         """
@@ -313,19 +371,22 @@ class SimpleCommand(object):
                 try:
                     parser.add_option(*opt[0], **opt[1])
                 except Exception, e:
-                    print klass, e
+                    print "Error adding optspec %r to parser from %r: %s" % (
+                            opt, klass, e)
+                    traceback.print_exc()
 
         optsv, args = parser.parse_args(argv)
+        
+        #return parser, optsv, args
 
-        return parser, optsv, args
-        # superficially move options from their Values object
+        # superficially move options from their confparse.Values object
         optsd = {}
         for name in dir(optsv):
             v = getattr(optsv, name)
             if not name.startswith('_') and not callable(v):
                 optsd[name] = v
 
-        return parser, optsv, optsd, args
+        return parser, optsd, args
                     
     @classmethod
     def main(Klass, argv=None, optionparser=None, result_adapter=None, default_reporter=None):
@@ -486,13 +547,50 @@ class SimpleCommand(object):
 
         #parser.set_defaults( values )
 
+        optspecs = self.get_optspecs()
         prog.optparser, opts, args = \
-                parser.parse_argv( self.get_optspecs(), prog.argv[1:], self.USAGE, self.VERSION )
+                parser.parse_argv( optspecs, prog.argv[1:], self.USAGE, self.VERSION )
 
         yield dict( opts=opts, args=args )
 
         # XXX iface.gsm.registerUtility(iface.IResultAdapter, HandlerReturnAdapter, 'default')
         iface.registerAdapter(ResultFormatter)
+
+    def load_config(self, prog, opts):
+        #    self.init_config() # case 1: 
+        #        # file does not exist at all, init is automatic
+        if 'config_file' not in opts or not opts.config_file:
+            log.err( "Nothing to load configuration from")
+        else:
+            prog.config_file = self.get_config_file(opts.config_file)
+            #self.main_user_defaults()
+            self.load_config_( prog.config_file, opts )
+            yield dict(settings=self.settings)
+
+    def get_config_file(self, rc):
+        rcfile = list(confparse.expand_config_path(rc))
+        if rcfile:
+            config_file = rcfile.pop()
+        assert config_file
+        "Configuration filename."
+
+        if not os.path.exists(config_file):
+            assert False, "Missing %s, perhaps use init_config_file"%config_file
+        
+        return config_file
+
+    def load_config_(self, config_file, opts=None ):
+        settings = confparse.load_path(config_file)
+        settings.set_source_key('config_file')
+        settings.config_file = config_file
+        config_key = opts.config_key
+        if hasattr(settings, config_key):
+            self.rc = getattr(settings, config_key)
+        else:
+            log.warn("Config key %s does not exist in %s" % (config_key,
+                config_file))
+        self.config_key = config_key
+        self.settings = settings
 
     def prepare_output( self, prog, opts ):
 # XXX
@@ -528,8 +626,6 @@ class SimpleCommand(object):
         for reporter in self.globaldict.prog.output:
             reporter.flush()
 
-    # XXX Old commands
-
     def help(self, parser, opts, args):
         print """
         libcmd.Cmd.help
@@ -546,7 +642,8 @@ class SimpleCommand(object):
             else:
                 log.err("Run com version mismatch: %s vs %s", self.rc.version,
                         self.VERSION)
-        print args, opts
+        print 'args:', args
+        print 'opts:', pformat(opts.todict())
 
 
 class StackedCommand(SimpleCommand):
@@ -564,48 +661,26 @@ class StackedCommand(SimpleCommand):
     just convenient throught the development process.
     """
 
-# TODO: restore here
-    DEFAULT_RC = 'cllct.rc'
-    DEFAULT_CONFIG_KEY = 'cllct'#NAME
+    NAME = os.path.splitext(os.path.basename(__file__))[0]
+    DEFAULT_RC = NAME+'rc'
+    DEFAULT_CONFIG_KEY = NAME
 
     @classmethod
     def get_optspec(Klass, inheritor):
         """
         Return tuples with optparse command-line argument specification.
         """
-        p = Klass.get_prefixer(inheritor)
+        if Klass == inheritor:
+            p = SimpleCommand.get_prefixer()
+        else:
+            p = inheritor.get_prefixer()
         return (
 
-            (p('-c', '--config',),{ 'metavar':'NAME', 
-                'dest': "config_file",
-                'default': inheritor.DEFAULT_RC, 
-                'help': "Run time configuration. This is loaded after parsing command "
-                    "line options, non-default option values wil override persisted "
-                    "values (see --update-config) (default: %default). " }),
-
             (p('-K', '--config-key',),{ 'metavar':'ID', 
+                'dest': 'config_key',
                 'default': inheritor.DEFAULT_CONFIG_KEY, 
                 'help': "Settings root node for run time configuration. "
                     " (default: %default). " }),
-
-            (p('-U', '--update-config',),{ 'action':'store_true', 'help': "Write back "
-                "configuration after updating the settings with non-default option "
-                "values.  This will lose any formatting and comments in the "
-                "serialized configuration. ",
-                'default': False }),
-
-            (p('--interactive',),{ 'help': "Allows commands to run extra heuristics, e.g. for "
-                "selection and entry that needs user supervision. Normally all options should "
-                "be explicitly given or the command fails. This allows instead to use a readline"
-                "UI during execution. ",
-                'default': False,
-                'action': 'store_true' }),
-
-            (p('--non-interactive',),{ 
-                'help': "Never prompt, solve or raise error. ", 
-                'dest': 'interactive', 
-                'default': False,
-                'action': 'store_false' }),
 
 #            (p('--init-config',),cmddict(help="runtime-configuration with default values. "
 #                'dest': 'command', 
@@ -618,16 +693,13 @@ class StackedCommand(SimpleCommand):
         )
 
     @classmethod
-    def get_prefixer(Klass, inheritor):
+    def get_prefixer(Klass):
         def add_option_prefix(*optnames):
-            if Klass != inheritor: # strip shortopt and prefix longopt
-                if len(optnames[0]) == 2:
-                    longopt = optnames[1]
-                else:
-                    longopt = optnames[0]
-                return '--' + Klass.NAME + longopt[1:],
+            if len(optnames[0]) == 2:
+                longopt = optnames[1]
             else:
-                return optnames
+                longopt = optnames[0]
+            return '--' + SimpleCommand.NAME + longopt[1:],
         return add_option_prefix
 
     HANDLERS = [
@@ -690,38 +762,6 @@ class StackedCommand(SimpleCommand):
         # Lastly also aggragate all options defined on the inheritance chain
         optspec = SimpleCommand.get_optspec( inheritor )
         yield dict( prog=dict( optspec = optspec ) )
-        
-    def load_config(self, prog):
-        #    self.init_config() # case 1: 
-        #        # file does not exist at all, init is automatic
-        if 'config_file' not in prog or not prog.config_file:
-            log.err( "Nothing to load configuration from")
-        else:
-            #self.main_user_defaults()
-            self.load_config_( prog.config_file )
-            yield dict(settings=self.settings)
-
-    def load_config_(self, prog, opts):
-        # XXX: perhaps restore shared config later
-# XXX: options are alreay parsed. parse them here? like libcmdng
-        # Get a reference to the RC; searches config_file for specific section
-        config_key = self.DEFAULT_CONFIG_KEY
-        if hasattr(opts, 'config_key') and opts.config_key:
-            config_key = opts.config_key
-
-        if not hasattr(self.settings, config_key):
-            if 'config_file' not in self.settings:
-                log.warn("Config file %s is missing config key for %s. ",
-                        self.settings.config_file, config_key)
-            if opts.command == 'init_config':
-                self.init_config_submod()
-            else:
-                log.err("Config key must exist in %s ('%s'), use --init-config. ",
-                    opts.config_file, opts.config_key)
-                sys.exit(1)
-
-        self.rc = getattr(self.settings, config_key)
-        yield dict(rc=self.rc)
 
     def resolve_handlers(self):
         """
@@ -779,32 +819,27 @@ class StackedCommand(SimpleCommand):
 
     # ISimpleRuntimeConfig
 
-    def get_config_file(self):
-        rcfile = list(confparse.expand_config_path(self.DEFAULT_RC))
-        if rcfile:
-            config_file = rcfile.pop()
-        else:
-            config_file = self.DEFAULT_RC
-        "Configuration filename."
+    def load_config__(self, prog, opts):
+        # XXX: perhaps restore shared config later
+# XXX: options are alreay parsed. parse them here? like libcmdng
+        # Get a reference to the RC; searches config_file for specific section
+        config_key = self.DEFAULT_CONFIG_KEY
+        if hasattr(opts, 'config_key') and opts.config_key:
+            config_key = opts.config_key
 
-        if not os.path.exists(config_file):
-            assert False, "Missing %s, perhaps use init_config_file"%config_file
-        
-        return config_file
+        if not hasattr(self.settings, config_key):
+            if 'config_file' not in self.settings:
+                log.warn("Config file %s is missing config key for %s. ",
+                        self.settings.config_file, config_key)
+            if opts.command == 'init_config':
+                self.init_config_submod()
+            else:
+                log.err("Config key must exist in %s ('%s'), use --init-config. ",
+                    opts.config_file, opts.config_key)
+                sys.exit(1)
 
-    def load_config_(self, config_file, config_key=None):
-        settings = confparse.load_path(config_file)
-        settings.set_source_key('config_file')
-        settings.config_file = config_file
-        if not config_key:
-            config_key = self.NAME
-        if hasattr(settings, config_key):
-            self.rc = getattr(settings, config_key)
-        else:
-            log.warn("Config key %s does not exist in %s" % (config_key,
-                config_file))
-        self.config_key = config_key
-        self.settings = settings
+        self.rc = getattr(self.settings, config_key)
+        yield dict(rc=self.rc)
 
     def init_config_file(self):
         pass
@@ -876,7 +911,7 @@ class StackedCommand(SimpleCommand):
 
 
 if __name__ == '__main__':
-    if SimpleCommand.NAME == 'libcmd_stacked':
+    if StackedCommand.NAME == 'libcmd_stacked':
         StackedCommand.main()
     else:
         SimpleCommand.main()
