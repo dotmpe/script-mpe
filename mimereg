@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """
-mimereg - a settingsiguration based extension-mediatype mapper
+mimereg - a config based extension-mediatype mapper
 
+See basename-reg which has some stuf growing out of it that does not really
+belong there anymore.
 
 TODO: handle language tags
 TODO: handle encoding tags
@@ -94,3 +96,7 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
 if __name__ == '__main__':
     FileExtensionRegistry.main()
 
+"""
+
+
+"""

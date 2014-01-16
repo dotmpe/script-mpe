@@ -31,7 +31,6 @@ or tar.gz
 			ext -> *mime
 
 
-
 """
 import os
 import optparse
@@ -395,4 +394,37 @@ $ basename-reg -R reg:ext:type type
 $ basename-reg --sync-to-wild
 # Update wild-xref index from local 
 
+"""
+"""
+XXX output::
+
+    <filename> <basename> <ext>
+
+current emitter construct allows showing various fields.
+but next::
+
+    some_document.en_US.utf_8.txt.gz
+
+this is awkward to express in one line, but possible with `exts` vs. `ext` fields
+
+but that does not really seem to express whats in there
+looking at it from the other way around, it would be nice to have such
+structured names but it requires the data. hence mimereg to continue along this line
+
+what this should looks like is::
+
+    some-document
+        0. text/plain; charset=utf-8; lang=en-US
+        1. application/gzip
+
+XXX some normalization on the tags is shown too
+
+
+emitter { name => format, subs }
+emitter <- ( name, *fields )
+
+
+emitter['layer'] = "%(layer.i)i. %(layer.mime_header)s)"
+emitter['file'] = "%(basename)s $(layer)s", dict( layer = 'reduce:layers' )
+emitter.emit('file', basename=..., layers=[ ... ])
 """

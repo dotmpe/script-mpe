@@ -15,6 +15,20 @@ Schema
    FileDescription
     * description:String(255)
 
+   Mediameta:Node
+    * checksums:List<ChecksumDigest>
+    * mediatype:Mediatype
+    * mediaformat:Mediaformat
+    * genres:List<Genre>
+
+   Mediatype:Node
+    * mime:Name
+
+   Genre:Node
+    ..
+   Mediaformat:Name
+    ..
+
 TODO: add files to global index manually.
 TODO: map manualy added paths elements to GroupNode, relative paths? entered paths are
   important, watch out for bash globbing.
