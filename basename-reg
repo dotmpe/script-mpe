@@ -110,7 +110,7 @@ def load_config():
 def save_config():
 	global conf, fullname
 	fl = open(fullname, 'rw+')
-	yaml.dump(conf, fl)
+	yaml.dump(conf.todict(), fl)
 	fl.close()
 
 
@@ -210,6 +210,7 @@ class Basename(libcmd.SimpleCommand):
     @classmethod
     def get_optspec(Klass, inheritor):
         return (
+
 	(( '--print-header', ), {'help':
 		"", 'default': False, 'action': 'store_true' }),
 
@@ -265,6 +266,10 @@ class Basename(libcmd.SimpleCommand):
 
     def run(self, prog, opts, *args):
         root = prog.pwd
+        # XXX
+        global conf, fullname
+        conf = self.rc
+        fullname = prog.config_file
 
         import sys
         out = BasenameOut(opts, sys.stdout, sys.stderr)
@@ -276,7 +281,8 @@ class Basename(libcmd.SimpleCommand):
             n = a
             # look for names with '.' separated fields 
             if '.' not in a:
-                out.err('Ignored %s' % a)
+                log.warn('Ignored %s' % a)
+                #out.err('Ignored %s' % a)
                 continue
 
             """
@@ -331,7 +337,8 @@ class Basename(libcmd.SimpleCommand):
                         exts, ftype, descr = self.rc['mime_xref'][mime]
                         out.emit_new_extension_known_mime(a, n, ce, mime, exts, ftype, descr)
                     elif not opts.interactive:
-                        out.err("Need to select ext for MIME %r" % mime)
+                        log.note("Need to select ext for MIME %r, found for %s" %
+                                ( mime, a))
                         continue
                     elif store_mime != 'a':
                         descr = lib.cmd("file -bs %r" % a).strip()
@@ -367,12 +374,10 @@ class Basename(libcmd.SimpleCommand):
                     else:
                         v = lib.Prompt.ask("Store new extension? %r: %s [%s]" %
                                 (exts, descr, mime), "yN")
-                        print v
                         if v:
                             self.rc['mime_ext_reg'][cext] = mime
                             save_config()
-                        else:
-                            continue
+                        print v and 'OK' or 'Cancel'
 
 if __name__ == '__main__':
     Basename.main()
@@ -396,16 +401,21 @@ $ basename-reg --sync-to-wild
 
 """
 """
-XXX output::
+::
 
-    <filename> <basename> <ext>
+    test.py.bz2 test.py bz2 application/x-bzip2 bz2 Compressed  bzip2 compressed data
+    test.py.bz2 test    py  text/x-python   py  Script  a python script text executable
 
-current emitter construct allows showing various fields.
+not really optimal output
+
 but next::
 
     some_document.en_US.utf_8.txt.gz
 
-this is awkward to express in one line, but possible with `exts` vs. `ext` fields
+this is awkward to express in one line, but possible with another `exts` field
+but `exts` is now used to list all tags registered as extensions for a certain
+mime
+so this needs multiple outputs for each ext
 
 but that does not really seem to express whats in there
 looking at it from the other way around, it would be nice to have such

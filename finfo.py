@@ -74,7 +74,7 @@ class FileDescription(Node):
     filedescription_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
     description = Column(String(255), unique=True)
 
-ass FileInfo(Node):
+class FileInfo(Node):
     __tablename__ = 'fileinfo'
     __mapper_args__ = {'polymorphic_identity': 'filedescription'}
     fileinfo_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)

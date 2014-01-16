@@ -571,7 +571,7 @@ class SimpleCommand(object):
 
         optspecs = self.get_optspecs()
         prog.optparser, opts, args = \
-                parser.parse_argv( optspecs, prog.argv[1:], self.USAGE, self.VERSION )
+                parser.parse_argv( optspecs, prog.argv, self.USAGE, self.VERSION )
 
         yield dict( opts=opts, args=args )
 
@@ -629,6 +629,7 @@ class SimpleCommand(object):
 
         prog.output = [ default_reporter ]
         log.category = opts.message_level
+        #print 'log level', log.category
 
     def path_args(self, prog, opts):
         """

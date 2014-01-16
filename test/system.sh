@@ -156,6 +156,21 @@ case $1 in
     test_end
     ;;
 
+  9)
+    test_start cmdline
+    check_run "cmdline.py" 
+    SRC1=$PREFIX.source1
+    mkdir -p $SRC1/foo/bar
+    touch $SRC1/foo/bar/baz-1
+    SRC2=$PREFIX.source2
+    mkdir -p $SRC2/foo/bar
+    touch $SRC2/foo/bar/baz-2
+    cmdline.py --symlink-tree $PREFIX.target/ $SRC1 $SRC2
+    #mkdir -p $PREFIX.source3/
+    #touch $PREFIX.source3/foo
+    test_end
+    ;;
+
 #  )
 #    coveragereport
 #    ;;
