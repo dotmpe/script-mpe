@@ -24,6 +24,10 @@ Schema
    Mediatype:Node
     * mime:Name
 
+   MediatypeParameter:None
+    * localName:Str
+    * default:
+
    Genre:Node
     ..
    Mediaformat:Name
