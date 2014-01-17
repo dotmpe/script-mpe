@@ -50,17 +50,18 @@ _ = None
 _paths = {}
 "Source-paths for settings. "
 
-config_prefix = (
+name_prefixes = (
     '',  # local (cwd) name
     '.', # local hidden name
 )
 
-config_path = (
+path_prefixes = (
     '~/', # hidden name in $HOME
     '/etc/' # name in /etc/
+    '/etc/default/' # name in /etc/
 )
 
-config_suffix = (
+name_suffixes = (
     '',
     '.yaml',
     '.conf',
@@ -83,30 +84,32 @@ def tree_paths(path):
         parts.pop()
 
 
-def expand_config_path(name, paths=config_path):
+def expand_config_path(name, paths=path_prefixes):
 
     """
-    Yield all existing config paths. See config_prefix for search path.
-
-    Expands '~/' and '~`username`/' sequences.
+    Yield all existing file paths. See `confparse.path_prefixes` for search path.
+    Defers to find_config_path.
     """
 
     return find_config_path(name, path=getcwd(), paths=list(paths))
 
 
-def find_config_path(markerleaf, path=None, prefixes=config_prefix,
-        suffixes=config_suffix, paths=[], exists=os.path.exists):
+def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
+        suffixes=name_suffixes, paths=[], exists=os.path.exists):
 
     """
     Search paths for markerleaf with prefixes/suffixes. Yields only existing
     paths. The sequence is depth-first.
+    Expands '~/' and '~`username`/' sequences.
 
     Defaults:
         Prefix: '', '.'
         Path: '~/', '/etc/'
         Suffix: '', '.yaml', '.conf'
 
-    Path, if given, should be a directory. And/or a list of paths may be given.
+    Path, if given, should be a directory. And/or a list of paths may be given
+    if that is more convenient. The result is that the search runs in sequence
+    from one or more directories.
 
     Rationale
     ---------
@@ -471,13 +474,13 @@ def yaml(path, *args):
     assert not args, "Cannot override from multiple files: %s, %s " % (path, args)
     return load_path(path, type=YAMLValues)
 
-def init_config(name, paths=config_prefix, default=None):
+def init_config(name, paths=name_prefixes, default=None):
 
     """
     Expect one existing config for name, otherwise initialize.
 
     Note that default must be a complete path that is matched by
-    confparse.config_prefix.
+    confparse.name_prefixes.
     """
 
     rcfile = expand_config_path(name, paths=paths)
@@ -502,7 +505,7 @@ def load_path(path, type=YAMLValues):
     global _paths, _
     return getattr(type, 'load')(path)
 
-def load(name, paths=config_path):
+def load(name, paths=path_prefixes):
     global _paths, _
     configs = expand_config_path(name, paths=paths)
     try:

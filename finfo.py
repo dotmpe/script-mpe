@@ -94,29 +94,30 @@ class FileInfoApp(TaxusFe):
 
     @classmethod
     def get_optspec(Klass, inherit):
+        p = Klass.get_prefixer(inherit)
         return (
-                (('--file-info',), libcmd.cmddict(help="Default command. ")),
-                (('--name-and-categorize',), libcmd.cmddict(
+                (p('--file-info',), libcmd.cmddict(help="Default command. ")),
+                (p('--name-and-categorize',), libcmd.cmddict(
                     help="Need either --interactive, or --name, --mediatype and "
                         " --mediaformat. Optionally provide one or more --genre's. "
                 )),
-                (('--mm-stats',), libcmd.cmddict(help="Print media stats. ")),
-                (('--list-mtype',), libcmd.cmddict(help="List all mediatypes. ")),
-                (('--list-mformat',), libcmd.cmddict(help="List all media formats. ")),
-                (('--add-mtype',), libcmd.cmddict(help="Add a new mediatype. ")),
-                (('--add-mformats',), libcmd.cmddict(help="Add a new media format(s). ")),
-                (('--add-genre',), libcmd.cmddict(help="Add a new media genre. ")),
+                (p('--mm-stats',), libcmd.cmddict(help="Print media stats. ")),
+                (p('--list-mtype',), libcmd.cmddict(help="List all mediatypes. ")),
+                (p('--list-mformat',), libcmd.cmddict(help="List all media formats. ")),
+                (p('--add-mtype',), libcmd.cmddict(help="Add a new mediatype. ")),
+                (p('--add-mformats',), libcmd.cmddict(help="Add a new media format(s). ")),
+                (p('--add-genre',), libcmd.cmddict(help="Add a new media genre. ")),
 
-                (('--name',), dict(
+                (p('--name',), dict(
                     type='str'
                 )),
-                (('--mtype',), dict(
+                (p('--mtype',), dict(
                     type='str'
                 )),
-                (('--mformat',), dict(
+                (p('--mformat',), dict(
                     type='str'
                 )),
-                (('--genres',), dict(
+                (p('--genres',), dict(
                     action='append',
                     default=[],
                     type='str'
@@ -124,7 +125,7 @@ class FileInfoApp(TaxusFe):
                # (('-d', '--dbref'), {'default':self.DEFAULT_DB, 'metavar':'DB'}),
             )
 
-    def list_mformat(self, sa=None):
+    def list_mformat(self, sa):
         mfs = sa.query(Mediaformat).all()
         for mf in mfs:
             print mf

@@ -97,7 +97,7 @@ class workLog(txs.TaxusFe):
     DEFAULT_CONFIG_KEY = NAME
 
     #TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + ['']
-    DEFAULT_ACTION = 'tasks'
+    DEFAULT = [ 'tasks' ]
 
     @classmethod
     def get_optspec(klass, inherit):

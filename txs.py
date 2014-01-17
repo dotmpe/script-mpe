@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """
 libcmd+taxus (SQLAlchemy) session
+
+XXX:
+    taxus should do basic storage model
+    rsr ("resourcer") builds on taxus to explore res.meta further
 """
 import os, stat, sys
 from os import sep
@@ -101,28 +105,33 @@ class LocalPathResolver(object):
 
 
 class TaxusFe(libcmd.StackedCommand):
-    # XXX: for simplecommand, use superclass and shared config/schema/data or
-    # separate command-line frontends?
 
-    DEFAULT_ACTION = 'txs_info'
+    NAME = os.path.splitext(os.path.basename(__file__))[0]
+
+    DEFAULT = [ 'txs_info' ]
 
     DEPENDS = {
-            'txs_session': ['cmd_options'],
+            'txs_session': ['cmd_config'],
             'txs_info': ['txs_session'],
+            'txs_show': ['txs_session'],
             'txs_assert': ['txs_session'],
             'txs_assert_group': ['txs_session'],
-            'list_nodes': ['txs_session'],
-            'list_groups': ['txs_session'],
+            'txs_assert_path': ['txs_session'],
+            'txs_commit': ['txs_session'],
+            'txs_remove': ['txs_session'],
+            'txs_list': ['txs_session'],
+            'txs_list_groups': ['txs_session'],
         }
 
     @classmethod
-    def get_optspec(Klass, inherit):
+    def get_optspec(Klass, inheritor):
         """
         Return tuples with optparse command-line argument specification.
         """
+        p = Klass.get_prefixer(inheritor)
         return (
                 # XXX: duplicates Options
-                (('-d', '--dbref'), { 'metavar':'URI', 
+                p(('-d', '--dbref'), { 'metavar':'URI', 
                     'default': DEFAULT_DB, 
                     'dest': 'dbref',
                     'help': "A URI formatted relational DB access description "
@@ -131,31 +140,33 @@ class TaxusFe(libcmd.StackedCommand):
                         " `mysql://taxus-user@localhost/taxus`. "
                         "The default value (%default) may be overwritten by configuration "
                         "and/or command line option. " }),
-                (('--init',), {
+                p(('--init',), {
                     'action': 'store_true',
                     'help': "Initialize target" }),
-                (('--auto-commit',), {
+                p(('--auto-commit',), {
 #                    "default": False,
                     'action': 'store_true',
                     'help': "target" }),
-                (('-q', '--query'), {'action':'callback', 
+                p(('-q', '--query'), {'action':'callback', 
                     'callback_args': ('query',),
-                    'callback': libcmd.optparse_override_handler,
+                    'callback': libcmd.optparse_set_handler_list,
                     'dest': 'command',
                     'help': "TODO" }),
 
                 # commands
-                (('--txs-info',), libcmd.cmddict()),
-                (('--txs-assert',), libcmd.cmddict(help="Add Node.")),
-                (('--txs-assert-group',), libcmd.cmddict(help="Add Group-node.")),
+                p(('--info',), libcmd.cmddict(callback_args=(True,))),
+                p(('--assert',), libcmd.cmddict(help="Add Node.")),
+                p(('--assert-group',), libcmd.cmddict(help="Add Group-node.")),
+                p(('--remove',), libcmd.cmddict(help="Drop Node.")),
+                p(('--commit',), libcmd.cmddict(callback_args=(True,))),
                 #listtree?
-                #(('-l', '--list',), libcmd.cmddict()),
-                (('-t', '--tree',), libcmd.cmddict()),
-                (('-l','--list-nodes',), libcmd.cmddict()),
-                (('--list-groups',), libcmd.cmddict()),
+                p(('-l', '--list',), libcmd.cmddict()),
+                p(('-t', '--tree',), libcmd.cmddict()),
+                p(('--list-groups',), libcmd.cmddict()),
+                p(('--show',), libcmd.cmddict(help="Print Node.")),
             )
 
-    def txs_session(self, opts=None):
+    def session(self, opts=None):
         dbref = opts.dbref
         if opts.init:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
@@ -165,12 +176,14 @@ class TaxusFe(libcmd.StackedCommand):
     def txs_info(self, opts=None, sa=None):
         log.info("DBRef: %s", opts.dbref)
         log.note("SQLAlchemy session: %s", sa)
-
         models = taxus.core.ID, Node, Name, Tag, GroupNode, INode, Locator
         cnt = {}
         for m in models:
             cnt[m] = sa.query(m).count()
             log.note("Number of %s: %s", m.__name__, cnt[m])
+        if 'node' in self.globaldict and self.globaldict.node:
+            log.info("Auto commit: %s", opts.txs_auto_commit) 
+            log.info("%s", self.globaldict.node)
 
     def deref(self, ref, sa):
         assert ref
@@ -178,92 +191,107 @@ class TaxusFe(libcmd.StackedCommand):
         if m:
             nodetype = m.groups()[0]
             return nodetype, ref[ m.end(): ]
-        return '', ref
+        if sep in ref:
+            nodetype = 'group'
+            if not ref.endswith(sep):
+                nodetype = 'node'# XXX not using path elems of node-'path'
+            return nodetype, ref
+        return 'node', ref
 
     def txs_assert(self, ref, sa, opts):
-        nodetype, localpart = self.deref(ref, sa)
-        subh = getattr( self, 'txs_assert_%s' % nodetype)
-        self.execute(subh, dict( name=localpart ))
+        """
+        <node>
+        <group>/<node> (node+path)
+        <group>/<group> (group+path)
 
-    def txs_assert_node(self, name, sa=None, opts=None):
-        assert sep not in name
-        node = Node.find(( Node.name==node, ), sa=sa)
+        <group root=true>/<group>/<node>
+        """
+        nodetype, localpart = self.deref( ref, sa )
+        #NodeType = getUtility(INameRegistry).lookup(nodetype)
+        subh = 'txs_assert_%s' % nodetype
+        updatedict = dict( name=localpart, path=None )
+        if sep in ref:
+            elems = ref.split(sep)
+            name = elems.pop()
+            updatedict.update(dict( path=sep.join(elems), name=name ))
+        self.execute( subh, updatedict )
+    
+    def _assert_node(self, Klass, name, sa, opts):
+        """
+        Helper for node creation.
+        """
+        assert name
+        node = Klass.find(( Klass.name==name, ), sa=sa)
         if node:
             if name != node.name:
                 node.name = name
         else:
-            node = Node(name=name, date_added=datetime.now())
-            if opts.auto_commit:
-                sa.add(node)
+            node = Klass(name=name, date_added=datetime.now())
+            sa.add(node)
+            if opts.txs_auto_commit:
                 sa.commit()
-        return node
+        yield dict( node = node )
+        log.note('Asserted %s', node)
 
-    def assert_path(self, path, sa=None, opts=None):
-#    def txs_assert_node(self, name, sa=None, opts=None):
+    def txs_assert_node( self, path, name ):
+        self.execute( '_assert_node', dict( Klass=Node, name=name ) )
+        if path:
+            self.execute( 'txs_assert_group', dict( path=path ))
+            path = sep.join(( path, name ))
+            self.execute( 'txs_assert_path', dict( path=path ))
+
+    def txs_assert_group(self, path, sa=None, opts=None):
         """
-        <node>
-        <group>/<node>
-        <group root=true>/<group>/<node>
+        Assure Group with `name` exists (or any subtype).
         """
-        elems = path.split(os.sep)
-        while elems:
-            elem = elems.pop(0)
-            #    gp = gp.group_id
-            #gp = self.txs_assert_group( g, gp, sa=sa )
+        assert path and isinstance( path, basestring )
+        if sep in path:
+            elems = path.split(sep)
+            while elems:
+                elem = elems.pop(0)
+                for x in self.txs_assert_group( elem, sa, opts ):
+                    yield x
+            self.execute( 'txs_assert_path', dict( path=path ) )
+        else:
+            for x in self._assert_node(GroupNode, path, sa, opts):
+                yield x
+            
+    def txs_assert_path(self, path, sa, opts):
+        """
+        Put each subnode in a container::
 
-        assert isinstance(name, basestring), name
-        path = name.split(os.sep)
-        node = path.pop() 
-        branch = []
-        gp = None
-        print 'prepare node', node
-        while path:
-            g = path.pop(0)
-            print 'path', g, gp
-            if gp:
-                gp = gp.group_id
-            gp = self.txs_assert_group( g, gp, sa=sa )
-        print 'find', Node.find(( Node.name == node, ))
-        if not Node.find(( Node.name == node, ), sa=sa):
-            n = Node( name=node, date_added=datetime.now() )
-            print 'new', n
-            if gp:
-                gp.subnodes.append(n)
-                sa.add(gp)
-            sa.add(n)
+            <group>/<group>/<node>
+
+        """
+        assert path
+        if sep in path:
+            nodes = []
+            elems = path.split(sep)
+            # resolve elements to nodes
+            while elems:
+                elem = elems.pop(0)
+                node = Node.fetch(( Node.name == elem, ), sa=sa)
+                nodes += [ node ]
+                # XXX assert GroupNode?
+            # assert path
+            yield dict(path_nodes = nodes)
+            root = nodes.pop(0)
+            while nodes:
+                node = nodes.pop(0)
+                root.subnodes.append( node )
+                sa.add(root)
+                root = node
+        if opts.txs_auto_commit:
+            opts.commit()
+
+    def txs_remove(self, ref, sa, opts):
+        node = Node.find(( Node.name == ref, ))
+        sa.delete( node )
+        if opts.txs_auto_commit:
             sa.commit()
-            log.info('Assert %s', gp)
 
-    def txs_assert_group(self, group, parent, sa=None, opts=None):
-        assert group, group
-        gn = GroupNode.find(( GroupNode.name == group, ), sa=sa)
-
-        if not gn:
-            gn = Name.find(( Name.name == group, ), sa=sa)
-            if gn:
-                gn.ntype = 'groupnode'
-                sa.commit()
-        if not gn:
-            gn = GroupNode( name=group, date_added=datetime.now() )
-            sa.add( gn )
-            sa.commit()
-            log.info('Created group %s', gn)
-            if parent:
-                if not isinstance(parent, int) and parent.isdigit():
-                    parent = int(parent)
-                if isinstance(parent, int):
-                    pgn = GroupNode.find((GroupNode.group_id==parent,), sa=sa)
-                else:
-                    pgn = GroupNode.find((GroupNode.name==parent,), sa=sa)
-                if not pgn:
-                    log.err("missing parent group %s", parent)
-                else:
-                    pgn.last_update = datetime.now()
-                    pgn.subnodes.append( gn )
-                    log.info('Updated subnodes for %s', pgn)
-                    sa.add(pgn)
-                    sa.commit()
-            yield dict(gn=gn)
+    def txs_commit(self, sa):
+        sa.commit()
 
     def set_root_bool(self, sa=None):
         """
@@ -276,16 +304,22 @@ class TaxusFe(libcmd.StackedCommand):
                 )
         """
 
-    def list_nodes(self, node, sa=None):
-        if node:
-            group = GroupNode.find(( Node.name == node, ))
-            if not group:
-                log.err("No node for %s", node)
-            else:
-                print group
-                for subnode in group.subnodes:
-                    print '\t', subnode
-        else:
+    def txs_show(self, ref_or_node, sa ):
+        if isinstance( ref_or_node, basestring ):
+            nodetype, localpart = self.deref(ref_or_node, sa)
+            node = Node.find(( Node.name == localpart, ))
+            print node
+        
+    def txs_list(self, node, sa=None):
+        #if node:
+        #    group = GroupNode.find(( Node.name == node, ))
+        #    if not group:
+        #        log.err("No node for %s", node)
+        #    else:
+        #        print group
+        #        for subnode in group.subnodes:
+        #            print '\t', subnode
+        #else:
             ns = sa.query(Node).all()
             # XXX idem as erlier, some mappings in adapter
             fields = 'node_id', 'ntype', 'name',
@@ -293,12 +327,15 @@ class TaxusFe(libcmd.StackedCommand):
             print '#', ', '.join(fields)
             for n in ns:
                 for f in fields:
-                    print getattr(n, f),
+                    v = getattr(n, f)
+                    if isinstance( v, unicode ):
+                        v = v.encode('utf-8')
+                    print v,
                 print
 
     def list_groups(self, sa=None):
         gns = sa.query(GroupNode).all()
-        fields = 'node_id', 'name',
+        fields = 'node_id', 'name', 'subnodes'
         print '#', ', '.join(fields)
         for n in gns:
             for f in fields:
@@ -308,7 +345,7 @@ class TaxusFe(libcmd.StackedCommand):
     def tree(self, sa=None):
         trees = sa.query(GroupNode)\
                 .filter(( GroupNode.root, )).all()
-       
+
 
 DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
 DEFAULT_DB = "sqlite:///%s" % DB_PATH
@@ -469,7 +506,7 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
         tags[''] = 'Root'
     FS_Path_split = re.compile('[\/\.\+,]+').split
     log.info("{bblack}Tagging paths in {green}%s{default}",
-            os.path.realpath('.') + os.sep)
+            os.path.realpath('.') + sep)
     cwd = os.getcwd()
     assert isinstance(cwd, basestring), cwd
     try:

@@ -112,6 +112,9 @@ class Name(Node):
 
     """
     A local unique identifier.
+
+    XXX: this is a vestige of having non-unique node names,
+      currently node names are unique so Name need not be used.. much.
     """
 
     __tablename__ = 'names'

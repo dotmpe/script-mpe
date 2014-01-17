@@ -55,7 +55,7 @@ class SessionMixin(object):
                 .filter(*filters).one()
         except NoResultFound, e:
             if exists:
-                log.err("No results for %s.fetch(%s)", Klass.__name__, filters)
+                log.err("No results for %s.fetch(%r)", Klass.__name__, filters)
                 raise e
         return rs
 

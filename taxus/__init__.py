@@ -165,18 +165,22 @@ import os
 
 from sqlalchemy.orm.exc import NoResultFound
 
+# Local
 import iface
+import init
 import util
+# Local: model
+import checksum
+import core
+import fs
+import fslayout
+import generic
+import net
+import web
+import semweb
 
 from init import SqlBase
 from util import SessionMixin
-
-import core
-import fs
-import checksum
-import net
-import fslayout
-
 from core import *
 from net import *
 from fs import *

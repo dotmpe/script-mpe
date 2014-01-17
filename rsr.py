@@ -173,6 +173,7 @@ See update_metafiles
         mf = res.Metafile(path)
         mf.tmp_convert()
 
+
 @Target.register(NS, 'update-metafiles', 'rsr:volume')
 def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
     log.debug("{bblack}rsr{bwhite}:update-volume{default}")
