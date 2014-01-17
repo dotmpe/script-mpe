@@ -76,7 +76,7 @@ class LocalPathResolver(object):
 # XXX: why hijack init which is for session init..
         assert False
 
-        if not opts.txs_init:
+        if not opts.init:
             log.warn("Not a known path %s", path)
             return
         inode = INode(
@@ -149,7 +149,6 @@ class Txs(libcmd.StackedCommand):
                         "The default value (%default) may be overwritten by configuration "
                         "and/or command line option. " }),
                 p(('--init',), {
-                    'dest': 'init',
                     'action': 'store_true',
                     'help': "Initialize target" }),
                 p(('--auto-commit',), {
@@ -175,7 +174,7 @@ class Txs(libcmd.StackedCommand):
                 p(('--show',), libcmd.cmddict(help="Print Node.")),
             )
 
-    def txs_session(self, opts=None):
+    def session(self, opts=None):
         dbref = opts.dbref
         if opts.init:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
@@ -342,7 +341,7 @@ class Txs(libcmd.StackedCommand):
                     print v,
                 print
 
-    def txs_list_groups(self, sa=None):
+    def list_groups(self, sa=None):
         gns = sa.query(GroupNode).all()
         fields = 'node_id', 'name', 'subnodes'
         print '#', ', '.join(fields)
@@ -354,7 +353,7 @@ class Txs(libcmd.StackedCommand):
     def tree(self, sa=None):
         trees = sa.query(GroupNode)\
                 .filter(( GroupNode.root, )).all()
-         
+
 
 #DEFAULT_OBJECT_DB = os.path.expanduser('~/.cllct/objects.db')
 
@@ -442,12 +441,12 @@ def host_find(args, sa=None):
 def txs_session(prog=None, sa=None, opts=None, settings=None):
     # default SA session
     dbref = opts.dbref
-    if opts.txs_init:
+    if opts.init:
         log.debug("Initializing SQLAlchemy session for %s", dbref)
-    sa = SessionMixin.get_session('default', opts.dbref, opts.txs_init)
+    sa = SessionMixin.get_session('default', opts.dbref, opts.init)
     # Host
-    hostnamestr = current_hostname(opts.txs_init, opts.interactive)
-    if opts.txs_init:
+    hostnamestr = current_hostname(opts.init, opts.interactive)
+    if opts.init:
         hostname = hostname_find([hostnamestr], sa)
         assert not hostname or not isinstance(hostname, (tuple, list)), hostname
         if not hostname:
