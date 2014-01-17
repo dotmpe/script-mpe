@@ -183,7 +183,7 @@ class TaxusFe(libcmd.StackedCommand):
     def txs_assert(self, ref, sa, opts):
         nodetype, localpart = self.deref(ref, sa)
         subh = getattr( self, 'txs_assert_%s' % nodetype)
-        self.execute(subh, dict( name=localpart )):
+        self.execute(subh, dict( name=localpart ))
 
     def txs_assert_node(self, name, sa=None, opts=None):
         assert sep not in name
