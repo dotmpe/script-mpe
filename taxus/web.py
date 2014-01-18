@@ -6,9 +6,9 @@ class CachedContent(core.INode):
 
     """
     This is a pointer to a local path, that may or may not contain a cached
-    resource. If retrieved, the entities body is located at local_path. The 
-    entity headers can be reconstructed from DB. Complete header information 
-    should be mantained when a CachedContent record is created. 
+    resource. If (fully) retrieved, the entities body is located at local_path. 
+    TODO: The entity headers can be reconstructed from DB and/or metafile or resource is filed as-is.
+    Complete header information should be mantained when a CachedContent record is created. 
     """
 
     __tablename__ = 'cnt'
@@ -49,12 +49,13 @@ class Status(core.Node):
 class Resource(core.Node):
 
     """
-    A generic resource description. Normally a subclass should be used for
-    instances, choose between Invariant if the document ought not to change,
+    A generic resource description. A (web) document.
+    Normally a subclass should be used for instances, choose between Invariant 
+    if the document ought not to change,
     or choose Variant to indicate a more dynamic resource.
-
-    Generally Invariant resources are non-negotiated, but may be retrieved
-    through negotiation on an associated Variant resource.
+    Invariant resources are generally non-negotiated, but sometimes 
+    a specific representation may be retrieved through negotiation on 
+    an associated Variant resource.
     """
 
     __tablename__ = 'res'
@@ -118,8 +119,8 @@ class Variant(Resource):
     A resource the content of which comes with several variations, such as
     output format, natural language, quality indicators, and/or other features.
 
-    Suggestions for variation include client-negotiated capabilities such as 
-    ability to render specific media and other services.
+    Mechanisms for variation include client-negotiated capabilities such as 
+    peripheral abilities to render or interact with specific media/services.
     """
 
     __tablename__ = 'vres'
