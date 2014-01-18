@@ -65,13 +65,12 @@ and reload objects. Storage itself is a simple anydb with json encoded data.
 
 
 """
-import sys
-import os
-import shelve
-from pprint import pformat
-from os import listdir, stat, lstat
+from os import sep, listdir, stat, lstat, makedirs
 from os.path import join, exists, islink, isdir, getsize, basename, dirname, \
-    expanduser, realpath
+        getmtime, expanduser, realpath
+from pprint import pformat
+import shelve
+import sys
 
 import zope
 from zope.component.factory import IFactory, Factory
@@ -103,7 +102,7 @@ class TreeMapNode(res.primitive.TreeNodeDict):
         if clss.is_stored( path ):
             data = clss.get_stored( path )
             # XXX: this is only needed for the rootnode which has a pull path
-            assert os.sep not in self.__dict__, self.__dict__
+            assert sep not in self.__dict__, self.__dict__
             if path in data:
                 data[ self.name ] = data[ path ]
                 del data[ path ]
@@ -113,23 +112,23 @@ class TreeMapNode(res.primitive.TreeNodeDict):
 #            print self.name, self.value
             if force_clean != None:
                 self.fresh = force_clean
-            elif os.path.exists( path ):
-                cur_mtime = os.path.getmtime( path )
+            elif exists( path ):
+                cur_mtime = getmtime( path )
                 self.fresh = self.mtime == cur_mtime
                 if not self.fresh:
                     self.mtime = cur_mtime
             if self.value:
-                assert os.sep not in self.value
+                assert sep not in self.value
                 newvalue = []
                 for subnode_name in self.value:
                     node_path = join( path, subnode_name )
                     # FIXME: should fs_node_init here
                     subnode = fs_node_init( node_path )
-                    assert os.sep != subnode.name, subnode.name
+                    assert sep != subnode.name, subnode.name
                     if force_clean != None or self.fresh:
-                        # assert os.path.exists
+                        # assert exists
                         subnode.reload_data( path, self.fresh )
-                    elif os.path.exists( node_path ):
+                    elif exists( node_path ):
                         subnode.reload_data( path )
                     newvalue.append( subnode ) # XXX: where to handle deletion
                 self[ self.name ] = newvalue
@@ -148,11 +147,11 @@ class TreeMapNode(res.primitive.TreeNodeDict):
         if '@fresh' in data:
             del data['@fresh']
         #or raise Exception( "Missing attr for %s" % path )
-        assert os.sep not in data, data
+        assert sep not in data, data
         if data[ self.name ]:
             data[ self.name ] = [ subnode.name for subnode in self.value ]
             [ subnode.commit( path ) for subnode in self.value ]
-        assert os.sep not in data, data
+        assert sep not in data, data
         clss.set_stored( path, data )
 
     # Static interface to shelved dictionaries
@@ -209,7 +208,7 @@ class TreeMapNode(res.primitive.TreeNodeDict):
     @property
     def isdir( self ):
         "Check for trailing '/' convention. "
-        return self.name.endswith( os.sep )
+        return self.name.endswith( sep )
 
     def files( self, parent_path ):
         "This does a recursive file count. "
@@ -243,7 +242,7 @@ class TreeMapNode(res.primitive.TreeNodeDict):
 def find_parent( dirpath, subleaf, get_realpath=False ):
     if get_realpath:
         dirpath = realpath( dirpath )
-    dirparts = dirpath.split( os.sep )
+    dirparts = dirpath.split( sep )
     while dirparts:
         path = join( *dirparts )
         if isdir( join( *tuple( dirparts )+( subleaf, ) ) ):
@@ -260,7 +259,7 @@ def find_volume( dirpath ):
     else:
         vol = expanduser( '~/.treemap/' ) # XXX: *nix only
         if not exists( vol ):
-            os.makedirs( vol )
+            makedirs( vol )
         print "No volumes, treemap store at %r" % vol
     return vol
 
@@ -268,16 +267,16 @@ def find_volume( dirpath ):
 # old, figure out storage
 def fs_node_init( path ):
 #    print '\fs_node_init', '-'*79, path
-    path = path.rstrip( os.sep )
+    path = path.rstrip( sep )
     path2 = path
-    if isdir( path ) and path[ -1 ] != os.sep:
-        path2 += os.sep
-    node = TreeMapNode( basename( path ) + ( isdir( path ) and os.sep or '' ) )
+    if isdir( path ) and path[ -1 ] != sep:
+        path2 += sep
+    node = TreeMapNode( basename( path ) + ( isdir( path ) and sep or '' ) )
     if TreeMapNode.is_stored( path2 ):
         node.reload_data( dirname( path ) )
         return node
     else:
-        return TreeMapNode( basename( path ) + ( isdir( path ) and os.sep or '' ) )
+        return TreeMapNode( basename( path ) + ( isdir( path ) and sep or '' ) )
 #    print '/fs_node_init', '-'*79, path
 
 
@@ -320,7 +319,7 @@ def fs_tree( dirpath, tree ):
                     continue
             subpath = join( path, fn )
             if isdir( subpath ):
-                fn += os.sep
+                fn += sep
 #                print '\============',path, fn
             if fn in update:
                 subnode = update[ fn ]
@@ -344,7 +343,7 @@ def fs_treesize( root, tree, files_as_nodes=True ):
     used disk space, while the size indicates actual bytesize of the contents.
     """
     if not root:
-        root = '.' + os.sep
+        root = '.' + sep
     assert root and isinstance( root, basestring ), root
     assert isdir( root ), stat( root )
     assert isinstance( tree, Node )
@@ -507,6 +506,7 @@ def main():
         opts.voldir = find_volume( path )
     storage = TreeMapNode.storage = shelve.open( join( opts.voldir, 'treemap.db' ) )
 
+
     ### Init FileTree and TreeMap
 
     # zac
@@ -541,15 +541,15 @@ def main():
     ### Update storage
 
     # Set proper root path, and output
-    tree.name = path + os.sep
+    tree.name = path + sep
 #    fs_treemap_write( debug, tree )
     #print 'fs_treemap_write', pformat(tree)
     tree.commit( dirname( path ) )
-#    print storage[ path + os.sep ]
+#    print storage[ path + sep ]
 #    for fn in listdir( path ):
 #        sub = join( path, fn )
 #        if isdir( sub ):
-#            sub += os.sep
+#            sub += sep
 #        print storage[ sub ]
     storage.close()
 
