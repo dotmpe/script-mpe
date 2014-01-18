@@ -743,9 +743,10 @@ class StackedCommand(SimpleCommand):
                 longopt = optnames[1]
             else:
                 longopt = optnames[0]
+            assert longopt.startswith('--')
             newlongopt = context.NAME + longopt[1:]
             if 'dest' not in attr:
-                attr['dest'] = newlongopt.replace('-', '_')
+                attr['dest'] = newlongopt[2:].replace('-', '_')
             return ('--' + newlongopt,), attr
         return add_option_prefix
 

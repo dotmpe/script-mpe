@@ -149,6 +149,7 @@ class Txs(libcmd.StackedCommand):
                         "The default value (%default) may be overwritten by configuration "
                         "and/or command line option. " }),
                 p(('--init',), {
+                    'dest': 'init',
                     'action': 'store_true',
                     'help': "Initialize target" }),
                 p(('--auto-commit',), {
@@ -174,7 +175,7 @@ class Txs(libcmd.StackedCommand):
                 p(('--show',), libcmd.cmddict(help="Print Node.")),
             )
 
-    def session(self, opts=None):
+    def txs_session(self, opts=None):
         dbref = opts.dbref
         if opts.init:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
