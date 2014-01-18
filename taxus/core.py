@@ -42,7 +42,7 @@ class Node(SqlBase, SessionMixin):
     ntype = Column('ntype', String(50), nullable=False)
     __mapper_args__ = {'polymorphic_on': ntype}
     
-    name = Column(String(255), nullable=True)
+    name = Column(String(255), nullable=True, unique=True)
     
     #space_id = Column(Integer, ForeignKey('nodes.id'))
     #space = relationship('Node', backref='children', remote_side='Node.id')
@@ -132,7 +132,5 @@ class Tag(Node):
 
     name = Column(String(255), unique=True, nullable=True)
     #sid = Column(String(255), nullable=True)
-
-
 
 

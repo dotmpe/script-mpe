@@ -16,13 +16,14 @@ from sqlalchemy.orm import relationship, backref
 #from debug import PrintedRecordMixin 
 
 import lib
+import log
+import core
 import iface
 from util import SessionMixin
-import log
 import web
 
 
-class LocalResource(Node):
+class LocalResource(core.Node):
 
     """
     Like cached content, identifies a locally served resource.
@@ -47,6 +48,7 @@ class QName():
 
 
 class Namespace(web.Variant):
+
     """
     """
     __tablename__ = 'ns'
@@ -166,7 +168,7 @@ class Token(SqlBase, SessionMixin):
 
     token_id = Column('id', Integer, primary_key=True)
 
-    value = Column(Text(65535), index=True, nullable=True)
+    value = Column(Text(65535))#, index=True, nullable=True)
     refs = relationship(Locator, secondary=token_locator_table)
 
 

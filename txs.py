@@ -196,7 +196,7 @@ def txs_pwd(prog=None, sa=None, ur=None, opts=None, conf=None):
         pwd = ur.getDir(cwd, opts)
     except Exception, e:
         log.warn("FIXME: Unexpected %s\n[%s] in txs:pdf, perhaps forgot --init?",
-                e, lib.cn(e))
+                e, taxus.out.cn(e))
         pwd = None
     yield pwd
     yield Keywords(pwd=pwd)

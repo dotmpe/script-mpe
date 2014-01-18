@@ -8,6 +8,8 @@ import log
 SqlBase = declarative_base()
 
 
+
+
 def get_session(dbref, initialize=False):
     engine = create_engine(dbref)#, encoding='utf8')
     #engine.raw_connection().connection.text_factory = unicode

@@ -65,12 +65,12 @@ and reload objects. Storage itself is a simple anydb with json encoded data.
 
 
 """
-import sys
-from pprint import pformat
-from os import listdir, stat, lstat, makedirs
+from os import sep, listdir, stat, lstat, makedirs
 from os.path import join, exists, islink, isdir, getsize, basename, dirname, \
         getmtime, expanduser, realpath
+from pprint import pformat
 import shelve
+import sys
 
 import zope
 from zope.component.factory import IFactory, Factory
@@ -532,6 +532,7 @@ def main():
 #    print 'dir', dir(tree)
 #    print 'dict', tree.__dict__
     print 'fs_tree', pformat(tree.copy())
+    return
 
     # Add space attributes
 #    fs_treesize( dirname( path ), tree )

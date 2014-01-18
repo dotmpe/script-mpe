@@ -12,7 +12,6 @@ class Formatters(object):
 
 
 
-
 class PrintedRecordMixin(object):
 
     _formatter = None

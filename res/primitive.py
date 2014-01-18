@@ -167,28 +167,6 @@ class TreeNodeTriple(tuple):
         return tree_
 
 
-class BrancheNodeDict(TreeNodeDict):
-    """
-    XXX: Doubly-linked tree?
-    """
-
-
-class TreeNodeDOM(TreeNodeTriple):
-
-    """
-    """
-
-    @property 
-    def tagname(self):
-        return self[0]
-    @property 
-    def attributes(self):
-        return self[1]
-    @property 
-    def children(self):
-        return self[2]
-
-
 def translate_xml_nesting(tree):
 
     """

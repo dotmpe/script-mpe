@@ -80,6 +80,12 @@ class Resource(core.Node):
     # extension_headers  = Column(String())
 
 
+fragment_variant_table = Table('fragment_variant', SqlBase.metadata,
+    Column('frag_ida', Integer, ForeignKey('frags.id'), primary_key=True),
+    Column('vres_idb', Integer, ForeignKey('vres.id'), primary_key=True),
+#    mysql_engine='InnoDB', 
+#    mysql_charset='utf8'
+)
 
 class Invariant(Resource):
 
