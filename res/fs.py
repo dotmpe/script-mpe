@@ -96,6 +96,9 @@ class File(INode):
 
     @classmethod
     def ignored(klass, path):
+        """
+        File.ignored checks names and paths of files with ignore patterns.
+        """
         for p in klass.ignore_paths:
             if fnmatch(path, p):
                 return True
@@ -138,6 +141,7 @@ def exclusive ( opts, filters ):
 
 
 class Dir(INode):
+    zope.interface.implements(iface.Node, iface.ITree)
     implements = 'dir'
 
     sysdirs = (
@@ -224,8 +228,8 @@ class Dir(INode):
         It returns all full paths according to walk-opts.
         XXX: could, but does not, yield INode subtype instances.
         """
-        if not isinstance(opts, Values):
-            opts_ = Values(Klass.walk_opts)
+        if not isinstance(opts, confparse.Values):
+            opts_ = confparse.Values(Klass.walk_opts)
             opts_.update(opts)
             opts = opts_
         else:
@@ -234,6 +238,7 @@ class Dir(INode):
         if opts.max_depth > 0:
             assert opts.recurse
         exclusive( opts, 'dirs files symlinks links pipes blockdevs' )
+        assert isinstance(path, basestring), (path, path.__class__)
         dirpath = None
         file_filters, dir_filters = filters
         assert os.path.isdir( path )
@@ -375,8 +380,8 @@ class StatCache:
                 p = v
                 v = clss.path_stats[ p ]
         else:    
-            v = os.lstat( path )
-            if stat.S_ISDIR( v.st_mode ):
+            statv = os.lstat( path )
+            if stat.S_ISDIR( statv.st_mode ):
                 # store shortcut to normalized path
                 if path[ -1 ] != os.sep:
                     p = path + os.sep
@@ -384,8 +389,8 @@ class StatCache:
                 else:
                     p = path
                     clss.path_stats[ path.rstrip( os.sep ) ] = path
-            assert isinstance( path, str )
-            clss.path_stats[ p ] = v
+            assert isinstance( p, str )
+            clss.path_stats[ p ] = statv
         assert isinstance( p, str )
         return p.decode( 'utf-8' )
     @classmethod
@@ -443,6 +448,7 @@ class StatCache:
         for x in Klass.modes:
             modefunc = getattr(stat, Klass.modes[ x ] )
             if modefunc( Klass.path_stats[ p ].st_mode ):
+                # return mode name
                 return x[2:]
 
     @classmethod
