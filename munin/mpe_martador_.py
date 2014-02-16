@@ -34,5 +34,10 @@ if argv:
         print '%s_%s.type GAUGE' % ( node, measure )
 
 else:
+    v = ''
     dp = os.path.join('/tmp/martador/', node, measure)
-    print '%s_%s.value' % ( node, measure ), open(dp).read()
+    try:
+        v = open(dp).read()
+    except:
+        pass
+    print '%s_%s.value' % ( node, measure ), v
