@@ -224,6 +224,13 @@ class Metafile(PersistedMetaObject):
 
     FIXME make this as a hub for shelve/file instances. Autodiscover, do a few
     methods of storage and see what works.
+
+    Metafile exists as a file <file>.extension along a regular file.
+    Some dotnames could be considered directory metafiles.
+
+    TODO the metafile data is stored alternatively in the shelve from a metadir.
+        this implements a (database0 PersistedMetaObject, see MetafileFile for
+        th other..
     """
     storage_name = 'metafile'
 
@@ -540,8 +547,8 @@ class MetafileFile(object): # XXX: Metalink syntax
 class Metadir(object):
 
     """
-    Find like metafile, this checks if a dotname is a directory,
-    and if there is a file dotdir_id in it.
+    Find like metafile, except this checks if a dotname is a directory,
+    and wether a file exists there.
     """
     dotdir = 'meta'
     dotdir_id = 'dir'

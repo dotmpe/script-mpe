@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import os
 from os import unlink, removedirs, makedirs, tmpnam, chdir, \
         getcwd, popen, rmdir
 from os.path import join, dirname, exists, isdir, realpath
@@ -16,10 +17,12 @@ class AbstractConfparseTest(unittest.TestCase, object):
     RC_DATA = """\nfoo: \n   bar: {var: v}\n   test4: [{foo: bar}]"""
 
     def setUp(self):
-        if sys.platform == 'Darwin':
+        if sys.platform.lower() == 'darwin':
             self.tmpdir = '/private/var/tmp/'
-        elif sys.platform == 'linux2':
+        elif sys.platform.lower() == 'linux2':
             self.tmpdir = '/tmp/'
+        else:
+            raise Exception ("Uknown platform: %s" % sys.platform)
 
         self.testrootdir = join(self.tmpdir, self.NAME)
         #self.testrootdir = join(dirname(tmpnam()), self.NAME)
@@ -274,14 +277,104 @@ def confparse_test_func1():
     print 'test_settings', pformat(test_settings)
 
 
+def test_new():
+    # FIXME restructure confparse tests
+    """
+        testroot/.cllct/myConfig.ext
+        testroot/sub/.cllct/myConfig.ext
+        testroot/sub/sub2/.myConfig.ext
+        testroot/sub/sub2/.myConfigLocal.ext
+
+        root: Values
+            parent_key: root
+            source_key: myConfig(1)
+
+            myValue: 1
+
+            sub: Values
+                parent_key: sub
+                source_key: myConfig(2)
+
+                mySubValue: 1
+
+            sub: Values
+                overlay: sub
+                source_key: myConfig(3)
+
+                mySubValue: 2
+
+        root: Values
+            parent_key: root
+            source_key: myConfigLocal
+
+            myValue: 2
+
+        source:
+            myConfig(1): testroot/.cllct/myConfig.ext
+            myConfig(2): testroot/sub/.cllct/myConfig.ext
+            myConfig(3): testroot/sub/sub2/.myConfig.ext
+            myConfigLocal: testroot/sub/sub2/.myConfigLocal.ext
+
+    This enables the two main scenario, I want to override any value in the tree,
+    or I wish to amend the configuration with a sub-section. Which can also be
+    overriden, from other directories.
+
+    The current directory determines the view of the configuration tree.
+    There is two trees. One from the directories, and one of the key-values
+    (keys can have subsections as value).
+
+    Only a few source keys would be loaded at once for a specific app,
+    Multiple may exist without being loaded all at once.
+    Source-keys are numbered automatically.
+
+    Each file lists its parent-key. The source-key is automatic after the filename.
+
+    Each key, value has its canonical file, which is the last file to appear in
+    the tree, ordered by its source-key (filename length.. and alphanum? but no
+    exception should happen?).
+
+    Iow. when updated, the change will be committed to this file.
+    The value may behave as a stack, where we can delete an override.
+    """
+    
+
+class Values2Test(unittest.TestCase):
+	def makeFiles(self, *resources):
+		testroot = '/tmp/values2'
+		for name, contents in resources:
+			path = os.path.join( testroot, name )
+			dirs = os.path.dirname(path)
+			if not os.path.exists(dirs):
+				os.makedirs(dirs)
+			open( path, 'w+' ).write(contents)
+		return testroot
+	def setUp(self):
+		self.testDir = self.makeFiles(
+				('.cllct/myConfig.yaml', "parent_key: default\nmyValue: 1"),
+				('sub/.cllct/myConfig.yaml', "parent_key: sub\nmySubValue: 1"),
+				('sub/sub2/.myConfig.yaml', "parent_key: sub\nmySubValue: 2"),
+				('sub/sub2/.myConfigLocal.yaml', "parent_key: default\nmyValue: 2"),
+			)
+	#def test_(self):
+	#	from subprocess import Popen
+	#	p = Popen("tree" + " -aifgup %s" % self.testDir, shell=True)
+	#	pid, sts = os.waitpid(p.pid, 0)
+	def test_1(self):
+		chdir(join(self.testDir, 'sub/sub2'))
+		config = confparse.load_all(['myConfig', 'myConfigLocal'], alt_paths=['~/', './'],
+				prefixes=['', '.', '.cllct/'], exts=['.yaml'])
+		self.assertEqual( config.myValue, 2 )
+		self.assertEqual( config.sub.mySubValue, 2 )
+		self.assertEqual( config.source.myConfig_1, 'testroot/.cllct/myConfig.ext' )
+# TODO: test values
 def get_cases():
-    return [
-            CPTest2, 
-            CPTest1, 
-#            unittest.FunctionTestCase( confparse_test_func1 )
-        ]
+	return [
+			CPTest2, 
+			CPTest1, 
+			#            unittest.FunctionTestCase( confparse_test_func1 )
+		]
 
 
 if __name__ == '__main__':
-    unittest.main()
+	unittest.main()
 

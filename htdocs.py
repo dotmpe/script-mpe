@@ -2,6 +2,9 @@
 """
 TODO: construct TopicTree from Definition Lists in restructured text. 
 See also filetree.
+
+FIXME: move something like a definition parser to elsewhere? something simple
+    and lightweight perhaps to fit rsrlib.res,
 """
 import os
 
@@ -78,6 +81,7 @@ class Htdocs(libcmd.SimpleCommand):
             )
 
     def status(self, sa=None, *paths):
+        pass
         # XXX print frontend.cli_process(source, builder_name='htdocs')
         B = comp.get_builder_class('dotmpe.du.builder.htdocs')
         #B = comp.get_builder_class('dotmpe.du.builder.dotmpe_v5')
