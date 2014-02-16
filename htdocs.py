@@ -2,6 +2,9 @@
 """
 TODO: construct TopicTree from Definition Lists in restructured text. 
 See also filetree.
+
+FIXME: move something like a definition parser to elsewhere? something simple
+    and lightweight perhaps to fit rsrlib.res,
 """
 import os
 

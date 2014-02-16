@@ -53,6 +53,7 @@ _paths = {}
 name_prefixes = (
     '',  # local (cwd) name
     '.', # local hidden name
+    '.cllct/', # local hidden dir
 )
 
 path_prefixes = (
@@ -543,6 +544,46 @@ def load(name, paths=path_prefixes):
     settings = load_path(config, type=values_type)
     setattr(_, name, settings)
     return settings
+
+
+class ValuesFacade(Values):
+
+    default_source_key = 'config_file'
+    default_config_key = 'default'
+
+    def __init__(self, *args, **kwds):
+        super(ValuesFacade, self).__init__(*args, **kwds)
+        self.overrides = []
+
+    @classmethod
+    def load(Klass, path, source_key=default_source_key,
+            config_key=default_config_key):
+        try:
+            data = yaml_load(open(path).read())
+        except Exception, e:
+            raise Exception("Parsing %s: %s"%(path, e))
+        config = Klass(data, source_file=path,
+                source_key=source_key)
+        if 'parent_key' not in config:
+            config.parent_key = config_key
+        return config
+
+    def add_override(self, other):
+        self.overrides.append(other)
+
+
+def load_all(names, alt_paths=path_prefixes, prefixes=name_prefixes,
+        exts=name_suffixes, configtype=YAMLValues):
+    "New-style loader. "
+    root = ValuesFacade(dict())
+    root.parent_key = configtype.default_config_key
+    for name in names:
+        for path in find_config_path(name, path=getcwd(), paths=alt_paths,
+                prefixes=name_prefixes, suffixes=exts):
+            loaded = load_path(path, configtype)
+            if loaded.parent_key:
+                root.add_override(loaded)
+    return root
 
 _ = Values()
 

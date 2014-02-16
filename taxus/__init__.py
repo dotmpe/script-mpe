@@ -5,7 +5,13 @@ Taxus ORM (SQL) model.
 All objects inherit from Node. Each object type is has its own table. Stored
 objects have records in `nodes` and all other 'parent' tables (references via
 foreign-keys). The `nodes` table stores the objects type, meaning there can be 
-only one type for a node record at any time.
+only one (sub)type for a node record at any time.
+
+Futher the main value of Node is a string, 'name' of at most 255 characters ie. 
+easy to fit in common databases string columns.
+This value must be unique.
+
+
 
 TODO: redraw this diagram.
 ::
