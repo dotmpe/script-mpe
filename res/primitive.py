@@ -22,12 +22,6 @@ import iface, fs
 class TreeNodeDict(dict):
 
     """
-    TreeNode build on top of dict, and with attributes.
-    Dict contains an name to subnodes mapping, and attribute values.
-
-    Each attribute is stored with prefixed key, to make it distinct from the 
-    name.
-
     XXX: Normally TreeNodeDict contains one TreeNode, but the dict would allow
         for multiple branchings?
     XXX: would be nice to manage type for leafs somehow, perhaps using visitor
@@ -35,16 +29,23 @@ class TreeNodeDict(dict):
 
     zope.interface.implements(iface.ITree)
 
-    prefix = '@'
+    ATTR_PREFIX = '@'
     "static config for attribute prefix"
     
-    def __init__(self, context):
-        if iface.IPyDict.providedBy(context):
-            dict.__init__(self, context)
-            self[None] = None
+    def __init__(self, nameOrObject=None, parent=None, subnodes=[],
+            attributes={}, attr_prefix=ATTR_PREFIX):
+        dict.__init__(self)
+        if not isinstance(nameOrObject, unicode):
+            assert not isinstance(nameOrObject, str)
+            self.__name__ = IName(nameOrObject)
         else:
-            dict.__init__(self)
-            self[context] = None
+            self.__name__ = nameOrObject
+        self[self.__name__] = subnodes
+        if parent:
+            self.__parent__ = parent
+        self.__prefix__ = attr_prefix
+        for name, value in attributes.items():
+            setattr(self, name, value)
 
     def getkeys(self):
         """
@@ -56,7 +57,7 @@ class TreeNodeDict(dict):
             #if not IAttribute.providedBy( key ):
             #    yield key
             if isinstance( key, basestring ):
-                if not key.startswith(self.prefix):
+                if not key.startswith(self.__prefix__):
                     yield key
             else:
                 yield key.nodeid
@@ -65,6 +66,7 @@ class TreeNodeDict(dict):
         # FIXME: return first 'key'
         for key in self.getkeys():
             return key
+
     def getnodetype(self):
         # FIXME: return first 'key'
         for key in self.getkeys():
@@ -100,7 +102,7 @@ class TreeNodeDict(dict):
         "Return keys filtered by prefix. "
         attrs = {}
         for key in self:
-            if key.startswith(self.prefix):
+            if key.startswith(self.__prefix__):
                 attrs[key[1:]] = self[key]
         return attrs
 
@@ -111,14 +113,17 @@ class TreeNodeDict(dict):
         # @xxx: won't properties show up in __dict__?
         #print self, '__getattr__', name
 #        if name in self.__dict__ or name in ('name', 'subnodes', 'attributes'):
-#            return super(TreeNodeDict, self).__getattr__(name)
-        if self.prefix+name in self:
-            return self[self.prefix+name]
+        if len(name) > 4 and name[:2] + name[-2:] == '__'+'__':
+            return super(TreeNodeDict, self).__getattribute__(name)
+        if self.__prefix__+name in self:
+            return self[self.__prefix__+name]
 
     def __setattr__(self, name, subnodes):
-#        if name in self.__dict__ or name in ('name', 'subnodes', 'attributes'):
-#            super(TreeNodeDict, self).__setattr__(name, subnodes)
-        self[self.prefix+name] = subnodes
+        if len(name) > 4 and name[:2] + name[-2:] == '__'+'__':
+#            return super(TreeNodeDict, self).__getattribute__(name)
+            super(TreeNodeDict, self).__setattr__(name, subnodes)
+        else:
+            self[self.__prefix__+name] = subnodes
 
     def __repr__(self):
         return "<%s%s%s>" % (self.name or lib.cn(self), 
@@ -149,18 +154,25 @@ class TreeNodeDict(dict):
                 d[k] = None
         return d
 
+class TreeTraveler(object):
+    zope.interface.implements(iface.ITraveler)
     def travel(self, root, visitor):
         """
         Start a tree traversal, using the current nodeid as root point
         and retrieving ITree interfaces for each key?
         """
         _x_sanity_iface_node(root)
+        assert visitor.context == self
         # XXX
         for x in visitor.traverse(root):
+            #print 'travel', x
             pass
+
+
 
 gsm = getGlobalSiteManager()
 gsm.registerAdapter(TreeNodeDict, [iface.IPyDict], iface.ITree)
+gsm.registerAdapter(TreeTraveler, [iface.ITree], iface.ITraveler)
 
 from zope.interface.verify import verifyObject
 def _x_sanity_iface_node(obj): # TEST
@@ -318,19 +330,15 @@ gsm.registerAdapter(TreeLeafAcceptorAdapter, [iface.ILeaf], iface.IVisitorAccept
 class DictNodeUpdater(AbstractHierarchicalVisitor, AbstractAdapter):
     zope.interface.implements(iface.IHierarchicalVisitor)
     def visitEnter(self, node):
-        print node.nodeid, node.name
+        print 'visitEnter update %s < %s' %( self.context, node), node.nodeid, node.name
         #print self, 'DictNodeUpdater.visitEnter', node
         return True
     def visitLeave(self, node):
         #print self, 'DictNodeUpdater.visitLeave', node
         return node
     def visit(self, node):
-        print node.nodeid, node.name
+        print 'visit update %s < %s' %( self.context, node), node.nodeid, node.name
         #print self, 'DictNodeUpdater.visit', node
         return node
 
-if __name__ == '__main__':
-    from test_res_primitive import *
-    test_tree_traverse()
-    test_dictnode_fs_populate()
 

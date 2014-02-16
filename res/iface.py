@@ -40,7 +40,10 @@ class ICommand(Interface):
 
 class Node(Interface):
     """
-    XXX emphasize Node is an abtract concept, not either concrete object or class type?
+    Someting with an ID.
+    Something with a name?
+    Something with stat info?
+    XXX Node is an abtract concept, not either concrete object or class type?
     Node, not INode to not confuse with res.fs.INode, but still an interface not a normal class.
     """
     nodeid = Attribute("")

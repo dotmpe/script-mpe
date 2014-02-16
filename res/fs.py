@@ -1,8 +1,8 @@
 from fnmatch import fnmatch
 import os
 from os.path import join 
-import stat
 import re
+import stat
 
 import zope.interface
 from zope.component import getGlobalSiteManager
@@ -193,6 +193,7 @@ class Dir(INode):
             'RECYCLER',
             '.TemporaryItems',
             '.Trash*',
+            'cllct',
             '.cllct',
             'System Volume Information',
             'Desktop',

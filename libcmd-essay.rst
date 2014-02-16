@@ -22,6 +22,7 @@ SimpleCommand config-path = find-config( DEFAULT_RC )
     .<name>/<name>.yaml
 
     IOptions
+        ..
     IConfig
         defaults(klass)
         override(opts) <- (env, arg))

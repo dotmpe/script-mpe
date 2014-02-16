@@ -19,7 +19,15 @@ if argv:
         print 'yes'
     elif argv[0] == 'config':
         print 'graph_category sensors'
-        print 'graph_args --base 1000'
+        print 'graph_scale no' # don't compress notation to nearest power
+        if measure == 'usew':
+            print 'graph_args --base 1000 --lower-limit 0'
+        elif measure in ( 'use2', ):
+            print 'graph_args --base 1000 --lower-limit 950 --upper-limit 1000'
+        elif measure in ( 'use1', ):
+            print 'graph_args --base 1000 --lower-limit 1050 --upper-limit 1100'
+        else:
+            print 'graph_args --base 1000'
         print 'graph_title %s metrics from %s' % ( measure, node )
         print '%s_%s.label %s metrics from %s' % ( node, measure, measure, node )
         #print 'graph_vlabel (nr)'

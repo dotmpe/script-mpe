@@ -15,6 +15,7 @@ from libname import Namespace
 import libcmd
 from libcmdng import Targets, Arguments, Keywords, Options,\
     Target 
+import traceback
 
 
 
@@ -78,10 +79,16 @@ class Htdocs(libcmd.SimpleCommand):
             )
 
     def status(self, sa=None, *paths):
+        """
+        Work in progress: run over documents and store extractor results.
+        """
         # XXX print frontend.cli_process(source, builder_name='htdocs')
         B = comp.get_builder_class('dotmpe.du.builder.htdocs')
         #B = comp.get_builder_class('dotmpe.du.builder.dotmpe_v5')
         B.extractor_spec = [ (
+            'dotmpe.du.ext.extractor.reference.Extractor',
+                    'dotmpe.du.ext.extractor.TransientStorage'
+        ), (
             'dotmpe.du.ext.extractor.htdocs.HtdocsExtractor',
                     'dotmpe.du.ext.extractor.TransientStorage'
         ) ]
@@ -91,7 +98,9 @@ class Htdocs(libcmd.SimpleCommand):
         }
         b = B()
         b.prepare_extractors(**store_params)
+
         sources = []
+
         for path in paths:
             if os.path.isdir(path):
                 walk_opts = res.fs.Dir.walk_opts.copy()
@@ -105,18 +114,23 @@ class Htdocs(libcmd.SimpleCommand):
 
         for source in sources:
             document = None
+            print 'source', source
             try:
-                document = b.build(open(source).read())
+                document = b.build(source=open(source).read(), source_id=source)
             except:
+                #print 'error building %s' % source
+                traceback.print_exc()
                 log.err('building %s', source)
                 continue
             try:
                 b.process(document)
             except:
+                #print 'error processing', source
+                traceback.print_exc()
                 log.err('processing %s', source)
                 continue
         ts = b.extractors[0][1]
-        print ts.results
+        print 'ts.results', ts.results, self
             #print b.process(open(source).read())
         #comp.get_builder_class('dotmpe.du.builder.htdocs')
         #print args, frontend.cli_process(args, builder_name='dotmpe.du.builder.mpe')
