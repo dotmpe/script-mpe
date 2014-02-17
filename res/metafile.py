@@ -550,30 +550,41 @@ class Metadir(object):
     Find like metafile, except this checks if a dotname is a directory,
     and wether a file exists there.
     """
-    dotdir = 'meta'
-    dotdir_id = 'dir'
+    DOTDIR = 'meta'
+    DOTID = 'dir'
 
     def __init__(self, path):
-        self.path = path
-        assert not path.endswith(self.dotdir)
-        assert not path.endswith(self.dotdir+'/')
+        self.name_suffix = ''
+        dotext = os.path.splitext( os.path.basename( path ))
+        if dotext[0] == self.DOTID:
+            self.name_suffix = dotext[1]
+            self.path = os.path.dirname( path )
+# now, how to know we havea prefix?
+        else:
+            self.path = path
+        if self.path.endswith(self.DOTDIR) or self.path.endswith(self.DOTDIR+'/'):
+            self.path = os.path.dirname( self.path )
+            self.prefix = '.'+self.DOTDIR+'/'
+        assert self.DOTDIR not in self.path, self.path
 
     @property
     def full_path(self):
-        return os.path.join(self.path, '.'+self.dotdir)
+        return os.path.join(self.path, '.'+self.DOTDIR)
 
     @property
     def id_path(self):
-        return os.path.join(self.full_path, self.dotdir_id)
+        return os.path.join(self.path, '.'+self.DOTDIR, self.DOTID +
+                self.name_suffix)
 
     def __str__(self):
         guid = self.guid
-        return "%s at %s with GUID %s" % (lib.cn(self), self.id_path, guid)
+        if guid:
+            return "<Metadir:%s at %s, Id %r>" % ( lib.cn(self), self.id_path, guid )
+        else:
+            return "<Metadir:%s at %s, unregistered>" % ( lib.cn(self), self.id_path )
 
     def __repr__(self):
-        guid = self.guid
-#        guid = hex(id(self))
-        return "<%s %s at %s>" % (lib.cn(self), guid, self.id_path)
+        return self.__str__()
 
     @classmethod
     def find(clss, *paths):
@@ -583,9 +594,23 @@ class Metadir(object):
 
         Returning Class instance if path exists.
         """
+        prefixes = confparse.name_prefixes + ( '.'+clss.DOTDIR+'/', )
+        configs = list(confparse.find_config_path(clss.DOTID, 
+            paths=list(paths),
+            prefixes=prefixes, 
+            suffixes=['.id']
+        ))
+        if configs:
+            if len(configs) > 1:
+                log.warn('Using first config file %s for %s', clss.DOTID, configs)
+            return clss(configs[0])
+
         path = None
-        for path in confparse.find_config_path(clss.dotdir, paths=list(paths)):
-            vid = os.path.join(path, clss.dotdir_id)
+        # XXX: Older method does not scan .exts
+        return path
+        for path in confparse.find_config_path(clss.DOTDIR, paths=list(paths)):
+            vid = os.path.join(path, clss.DOTID)
+            print path, vid
             if os.path.exists(vid):
                 break
             else:
@@ -659,10 +684,13 @@ class Meta(object):
         volume.store
         volume.indices
 
-if __name__ == '__main__':
-    import shelve
-    path = '/Volumes/archive-7/media/text/US-patent/US2482773.pdf'
-    vdb = PersistedMetaObject.get_store(name='tmp')
 
-    mf = Metafile.find(path, vdb)
+if __name__ == '__main__':
+    import os
+    print Metadir.find(os.getcwd())
+
+    #import shelve
+    #path = '/Volumes/archive-7/media/text/US-patent/US2482773.pdf'
+    #vdb = PersistedMetaObject.get_store(name='tmp')
+    #mf = Metafile.find(path, vdb)
 

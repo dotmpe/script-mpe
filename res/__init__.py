@@ -26,7 +26,7 @@ from persistence import PersistedMetaObject
 from fs import File, Dir
 from mime import MIMEHeader
 from metafile import Metafile, Metadir, Meta, SHA1Sum
-
+from jrnl import Journal
 
 
 """
@@ -53,7 +53,9 @@ class Workspace(Metadir):
     A workspace offers and interface to several indices located in the dotdir.
     """
 
-    dotdir = 'cllct'
+    DOTDIR = 'cllct'
+    DOTID = 'ws'
+
 
     index_specs = [
         ]
@@ -85,19 +87,21 @@ class Workspace(Metadir):
             if not os.path.exists(self.full_path):
                 os.mkdir(self.full_path)
             open(self.id_path, 'w+').write(self.__id)
-            print reset and 'Reset' or 'Created', self
+            log.note( "Workspace.init %s %s" % (
+                reset and 'Reset' or 'Created', self.full_path ))
         else:
             assert False # XXX: cannot manage dotdir
-        self.store = self.init_store(reset) # store shared with Metafile.
-        self.indices = self.init_indices(reset)
+        #self.store = self.init_store(reset) # store shared with Metafile.
+        #self.indices = self.init_indices(reset)
 
     @property
     def dbref(self):
-        return self.idxref(self.dotdir_id, 'shelve')
+        return self.idxref(self.DOTID, 'shelve')
 
     def init_store(self, truncate=False): 
         assert not truncate
-        return PersistedMetaObject.get_store(name=Metafile.storage_name, dbref=self.dbref)
+        return PersistedMetaObject.get_store(
+                name=Metafile.storage_name, dbref=self.dbref)
         #return PersistedMetaObject.get_store(name=self.dotdir, dbref=self.dbref, ro=rw)
 
     def idxref(self, name, type='db'):
@@ -118,7 +122,7 @@ class Workspace(Metadir):
 
 class Volume(Workspace):
 
-    dotdir_id = 'volume'
+    DOTID = 'vol'
 
     index_specs = [
                 'sparsesum',

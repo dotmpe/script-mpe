@@ -28,4 +28,20 @@ TODO: URN ID's to use in htdocs, taxus and tree-mpe.
    urn:dotmpe:disk:%(hex_disk_id)s:%(hostname)s:%(device_name)s[%(disk_numbers)]
 
 
+   
+Attributes for Metadir.find and subclasses:
+
+========= ========= ===========
+class     dotdir    dotdir_id 
+========= ========= ===========
+Metadir   meta      dir
+Workspace cllct     ws
+Volume    (id.)     vol
+========= ========= ===========
+
+This leads to metafiles using confparse's find_config_path heuristics.
+
+XXX: These are not used by libcmd.load_config yet, subcommands can used them
+
+
 

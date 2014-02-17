@@ -129,7 +129,8 @@ def optparse_increase_verbosity(option, optstr, value, parser):
         parser.values.message_level += 1
     log.debug( "Verbosity changed from %s to %s", oldv, parser.values.message_level )
 
-def optparse_set_handler_list(option, flagstr, value, parser, append=False, default=None):
+def optparse_set_handler_list(option, flagstr, value, parser, append=False,
+        default=None, prefix=None):
     """
     Replace value at dest with list parsed from next argument
     if no default is given.
@@ -147,7 +148,8 @@ def optparse_set_handler_list(option, flagstr, value, parser, append=False, defa
         new_values = default
         assert isinstance( new_values, list ), new_values
     else: # convert long-opt flag to value
-        new_values = [ option.get_opt_string().strip('-').replace('-','_') ]
+        p = prefix and prefix + '_' or ''
+        new_values = [ p + option.get_opt_string().strip('-').replace('-','_') ]
     old_values = getattr( parser.values, option.dest )
     if append:
         values = old_values
@@ -159,12 +161,13 @@ def optparse_set_handler_list(option, flagstr, value, parser, append=False, defa
             flagstr, option.dest, old_values, values)
 
 # shortcut for setting command from 'handler flags'
-def cmddict(**override):
+def cmddict(prefix=None, append=None, default=None, **override):
     d = dict(
             action='callback',
             dest='commands',
             callback=optparse_set_handler_list,
-            callback_args=(None,) # default value is option name with '-' to '_'
+            # append, default, prefix:
+            callback_args=(append, default, prefix)
         )
     d.update(override)
     return d
@@ -415,7 +418,6 @@ class SimpleCommand(object):
             args=[] ))
 
         for handler_name in self.resolve_handlers():
-            #print handler_name
             log.debug("%s.main: deferring to %s", lib.cn(self), handler_name)
             self.execute( handler_name )
 
@@ -704,8 +706,8 @@ class StackedCommand(SimpleCommand):
             'static_args': [],
             'parse_options': ['static_args'],
             'load_config': ['parse_options'],
-            'prepare_output': ['parse_options'],
-            'set_commands': ['parse_options'],
+            'prepare_output': ['load_config'],
+            'set_commands': ['prepare_output'],
 
 #            'static_init': ['static_args'],
 #            'load_config': ['static_init'],
@@ -733,21 +735,24 @@ class StackedCommand(SimpleCommand):
 
     @classmethod
     def get_prefixer(Klass, context):
-        if Klass == context:
-            return SimpleCommand.get_prefixer(context)
         def add_option_prefix(optnames, attr):
+            # excempt some options from prefixing filter
             for opt in optnames:
                 if opt in Klass.OPTS_INHERIT:
                     return optnames, attr
+            # prepare prefixed option and dest
             if len(optnames[0]) == 2:
                 longopt = optnames[1]
             else:
                 longopt = optnames[0]
             assert longopt.startswith('--')
-            newlongopt = context.NAME + longopt[1:]
+            newlongopt = '--' + context.NAME + longopt[1:]
             if 'dest' not in attr:
                 attr['dest'] = newlongopt[2:].replace('-', '_')
-            return ('--' + newlongopt,), attr
+            if Klass == context:
+                return optnames, attr
+            else:
+                return ( newlongopt, ), attr
         return add_option_prefix
 
     def __init__(self):
@@ -820,31 +825,6 @@ class StackedCommand(SimpleCommand):
             for x in recurse(name):
                 yield x
 
-
-    def load_config__(self, prog, opts):
-        # XXX: perhaps restore shared config later
-# XXX: options are alreay parsed. parse them here? like libcmdng
-        # Get a reference to the RC; searches config_file for specific section
-        config_key = self.DEFAULT_CONFIG_KEY
-        if not config_key:
-            self.rc = self.settings
-            return
-        if hasattr(opts, 'config_key') and opts.config_key:
-            config_key = opts.config_key
-
-        if not hasattr(self.settings, config_key):
-            if 'config_file' not in self.settings:
-                log.warn("Config file %s is missing config key for %s. ",
-                        self.settings.config_file, config_key)
-            if opts.command == 'init_config':
-                self.init_config_submod()
-            else:
-                log.err("Config key must exist in %s ('%s'), use --init-config. ",
-                    opts.config_file, opts.config_key)
-                sys.exit(1)
-
-        self.rc = getattr(self.settings, config_key)
-        yield dict(rc=self.rc)
 
 # XXX
     def init_config_file(self):

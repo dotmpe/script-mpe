@@ -31,9 +31,12 @@ class SessionMixin(object):
     # not sure if this can be inferred, explicit is a bit crufty
     key_names = ['id']
 
-    def key(self):
+    @classmethod
+    def key(Klass, self, key_names=None):
         key = {}
-        for a in self.key_names:
+        if not key_names:
+            key_names = self.key_names
+        for a in key_names:
             key[a] = getattr(self, a)
         return key
 
@@ -67,11 +70,20 @@ class SessionMixin(object):
         return self.fetch(filters, sa=sa, session=session, exists=False)
 
     @classmethod
-    def byName(self, name=None, sa=None, session='default'):
+    def byKey(Klass, key, sa=None, session='default', exists=False):
+        filters = tuple( [
+                getattr( Klass, a ) == key[a]
+                for a in key
+            ] )
+        return self.fetch(filters, sa=sa, session=session, exists=exists)
+
+    @classmethod
+    def byName(Klass, name=None, sa=None, session='default', exists=False):
         """
         Return one or none.
         """
-        return self.fetch((Klass.name == name,), sa=sa, session=session, exists=False)
+        return self.fetch((Klass.name == name,), sa=sa, session=session,
+                exists=exists)
 
     @classmethod
     def exists(Klass, keydict):

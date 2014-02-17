@@ -10,7 +10,7 @@ from zope.component import getGlobalSiteManager
 from script_mpe import confparse
 from script_mpe import log
 from script_mpe.lib import Prompt
-import iface
+from script_mpe.res import iface
 
 
 PATH_R = re.compile("[A-Za-z0-9\/\.,\[\]\(\)_-]")

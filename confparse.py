@@ -53,7 +53,7 @@ _paths = {}
 name_prefixes = (
     '',  # local (cwd) name
     '.', # local hidden name
-    '.cllct/', # local hidden dir
+#    '.cllct/', # local hidden dir
 )
 
 path_prefixes = (

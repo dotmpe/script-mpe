@@ -5,7 +5,7 @@ from script_mpe.lib import cn
 
 from zope.interface import implements
 
-import res.iface
+#import res.iface
 import taxus.iface
 from taxus.iface import IFormatted
 

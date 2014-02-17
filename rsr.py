@@ -4,7 +4,10 @@ Filesystem metadata & management routines.
 
 See Resourcer.rst
 """
+from datetime import datetime
 import os
+from os.path import sep
+import re
 import shelve
 from pprint import pformat
 
@@ -13,9 +16,14 @@ import log
 import confparse
 import res
 from libname import Namespace, Name
-from libcmd import Targets, Arguments, Keywords, Options,\
+from libcmdng import Targets, Arguments, Keywords, Options,\
     Target 
-
+import taxus
+from taxus import SessionMixin, \
+        Node, GroupNode, \
+        INode, Dir, \
+        Name, Tag, \
+        Host, Locator
 
 
 NS = Namespace.register(
@@ -235,4 +243,309 @@ def rsr_meta(volume=None, *args):
     mf = Metafile.fetch(src, vdb)
     # if in shelve, mf may exist and is given quick sanity check
 
+
+
+import os
+import libcmd
+
+
+class Rsr(libcmd.StackedCommand):
+
+    NAME = os.path.splitext(os.path.basename(__file__))[0]
+    assert NAME == 'rsr'
+    DEFAULT_RC = 'cllct.rc'
+    DEFAULT_CONFIG_KEY = NAME
+    DEPENDS = { 
+            'rsr_volume': [ 'set_commands' ],
+            'rsr_workspace': [ 'rsr_volume' ],
+            'rsr_session': [ 'rsr_workspace' ],
+            'rsr_info': [ 'rsr_session' ],
+            'rsr_show': ['rsr_session'],
+            'rsr_assert': ['rsr_session'],
+            'rsr_assert_group': ['rsr_session'],
+            'rsr_assert_path': ['rsr_session'],
+            'rsr_commit': ['rsr_session'],
+            'rsr_remove': ['rsr_session'],
+            'rsr_list': ['rsr_session'],
+            'rsr_list_groups': ['rsr_session'],
+        }
+    
+    DEFAULT_DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
+    DEFAULT_DB = "sqlite:///%s" % DEFAULT_DB_PATH
+    DEFAULT_DB_SESSION = 'default'
+
+    DEFAULT = [ 'rsr_info' ]
+
+    @classmethod
+    def get_optspec(Klass, inheritor):
+        """
+        Return tuples with optparse command-line argument specification.
+        """
+        p = inheritor.get_prefixer(Klass)
+        return (
+                # XXX: duplicates Options
+                p(('-d', '--dbref'), { 'metavar':'URI', 
+                    'default': inheritor.DEFAULT_DB, 
+                    'dest': 'dbref',
+                    'help': "A URI formatted relational DB access description "
+                        "(SQLAlchemy implementation). Ex: "
+                        " `sqlite:///taxus.sqlite`,"
+                        " `mysql://taxus-user@localhost/taxus`. "
+                        "The default value (%default) may be overwritten by configuration "
+                        "and/or command line option. " }),
+                p(('--dbsession',), { 
+                    'metavar':'NAME', 
+                    'default': inheritor.DEFAULT_DB_SESSION, 
+                    'action': 'store',
+                    'dest': 'dbsession',
+                    'help': "" }),
+                p(('--auto-commit',), {
+#                    "default": False,
+                    'action': 'store_true',
+                    'help': "target" }),
+                p(('-Q', '--query'), {'action':'callback', 
+                    'callback_args': ('query',),
+                    'callback': libcmd.optparse_set_handler_list,
+                    'dest': 'command',
+                    'help': "TODO" }),
+                p(('--init-db',), {
+                    'dest': 'init_db',
+                    'action': 'store_true',
+                    'help': "Create database" }),
+
+                p(('--init-volume',), {
+                    'dest': 'init_volume',
+                    'action': 'store_true',
+                    'help': "(Re)set volume Id" }),
+                p(('--init-workspace',), {
+                    'dest': 'init_workspace',
+                    'action': 'store_true',
+                    'help': "(Re)set workspace Id" }),
+                # commands
+                p(('--info',), libcmd.cmddict(inheritor.NAME, append=True)),
+                p(('--volume',), libcmd.cmddict(inheritor.NAME, append=True)),
+                p(('--assert',), libcmd.cmddict(inheritor.NAME, help="Add Node.")),
+                p(('--assert-group',), libcmd.cmddict(inheritor.NAME, help="Add Group-node.")),
+                p(('--remove',), libcmd.cmddict(inheritor.NAME, help="Drop Node.")),
+                p(('--commit',), libcmd.cmddict(inheritor.NAME, append=True)),
+                #listtree?
+                p(('-l', '--list',), libcmd.cmddict(inheritor.NAME)),
+                p(('-t', '--tree',), libcmd.cmddict(inheritor.NAME)),
+                p(('--list-groups',), libcmd.cmddict(inheritor.NAME)),
+                p(('--show',), libcmd.cmddict(inheritor.NAME, help="Print Node.")),
+            )
+
+    def rsr_volume(self, prog, opts):
+        "Load volume configuration and return instance. "
+        volume = res.Volume.find(prog.pwd)
+        taxus.Volume.byKey()
+        assert volume, prog.pwd
+        yield dict(volume=volume)
+        if opts.init_volume:
+            volume.init(create=opts.init_volume)
+
+    def rsr_workspace(self, prog, opts):
+        "Load workspace configuration and return instance. "
+        workspace = res.Workspace.find(prog.pwd)
+        assert workspace
+        yield dict(workspace=workspace)
+        #if opts.init_workspace:
+        #    workspace.init(create=opts.init_workspace)
+
+    def rsr_session(self, volume, opts):
+        dbref = opts.dbref
+        if opts.init_db:
+            log.debug("Initializing SQLAlchemy session for %s", dbref)
+        sa = SessionMixin.get_session(opts.dbsession, opts.dbref, opts.init_db)
+        yield dict(sa=sa)
+
+    def rsr_info(self, prog, workspace, volume, opts=None, sa=None):
+        print 'Prog:', prog
+        print 'Workspace:', workspace
+        print 'Volume:', volume
+        log.info("DBRef: %s", opts.dbref)
+        log.note("SQLAlchemy session: %s", sa)
+        models = taxus.core.ID, Node, Name, Tag, GroupNode, INode, Locator
+        cnt = {}
+        for m in models:
+            cnt[m] = sa.query(m).count()
+            log.note("Number of %s: %s", m.__name__, cnt[m])
+        if 'node' in self.globaldict and self.globaldict.node:
+            log.info("Auto commit: %s", opts.rsr_auto_commit) 
+            log.info("%s", self.globaldict.node)
+
+    def deref(self, ref, sa):
+        assert ref
+        m = re.match(r'^([a-zA-Z_][a-zA-Z0-9_-]*):', ref)
+        if m:
+            nodetype = m.groups()[0]
+            return nodetype, ref[ m.end(): ]
+        if sep in ref:
+            nodetype = 'group'
+            if not ref.endswith(sep):
+                nodetype = 'node'# XXX not using path elems of node-'path'
+            return nodetype, ref
+        return 'node', ref
+
+    def rsr_assert(self, ref, sa, opts):
+        """
+        <node>
+        <group>/<node> (node+path)
+        <group>/<group> (group+path)
+
+        <group root=true>/<group>/<node>
+        """
+        nodetype, localpart = self.deref( ref, sa )
+        #NodeType = getUtility(INameRegistry).lookup(nodetype)
+        subh = 'rsr_assert_%s' % nodetype
+        updatedict = dict( name=localpart, path=None )
+        if sep in ref:
+            elems = ref.split(sep)
+            name = elems.pop()
+            updatedict.update(dict( path=sep.join(elems), name=name ))
+        self.execute( subh, updatedict )
+    
+    def _assert_node(self, Klass, name, sa, opts):
+        """
+        Helper for node creation.
+        """
+        assert name
+        node = Klass.find(( Klass.name==name, ), sa=sa)
+        if node:
+            if name != node.name:
+                node.name = name
+        else:
+            node = Klass(name=name, date_added=datetime.now())
+            sa.add(node)
+            print opts.todict()
+            if opts.rsr_auto_commit:
+                sa.commit()
+        yield dict( node = node )
+        log.note('Asserted %s', node)
+
+    def rsr_assert_node( self, path, name ):
+        self.execute( '_assert_node', dict( Klass=Node, name=name ) )
+        if path:
+            self.execute( 'rsr_assert_group', dict( path=path ))
+            path = sep.join(( path, name ))
+            self.execute( 'rsr_assert_path', dict( path=path ))
+
+    def rsr_assert_group(self, path, sa=None, opts=None):
+        """
+        Assure Group with `name` exists (or any subtype).
+        """
+        assert path and isinstance( path, basestring )
+        if sep in path:
+            elems = path.split(sep)
+            while elems:
+                elem = elems.pop(0)
+                for x in self.rsr_assert_group( elem, sa, opts ):
+                    yield x
+            self.execute( 'rsr_assert_path', dict( path=path ) )
+        else:
+            for x in self._assert_node(GroupNode, path, sa, opts):
+                yield x
+            
+    def rsr_assert_path(self, path, sa, opts):
+        """
+        Put each subnode in a container::
+
+            <group>/<group>/<node>
+
+        """
+        assert path
+        if sep in path:
+            nodes = []
+            elems = path.split(sep)
+            # resolve elements to nodes
+            while elems:
+                elem = elems.pop(0)
+                node = Node.fetch(( Node.name == elem, ), sa=sa)
+                nodes += [ node ]
+                # XXX assert GroupNode?
+            # assert path
+            yield dict(path_nodes = nodes)
+            root = nodes.pop(0)
+            while nodes:
+                node = nodes.pop(0)
+                root.subnodes.append( node )
+                sa.add(root)
+                root = node
+        if opts.rsr_auto_commit:
+            opts.commit()
+
+    def rsr_remove(self, ref, sa, opts):
+        node = Node.find(( Node.name == ref, ))
+        sa.delete( node )
+        if opts.rsr_auto_commit:
+            sa.commit()
+
+    def rsr_commit(self, sa):
+        sa.commit()
+
+    def set_root_bool(self, sa=None):
+        """
+        set bool = true
+        where 
+            count(jt.node_id) == 0
+            jt.group_id
+        core.groupnode_node_table\
+            update().values(
+                )
+        """
+
+    def rsr_show(self, ref_or_node, sa ):
+        if isinstance( ref_or_node, basestring ):
+            nodetype, localpart = self.deref(ref_or_node, sa)
+            node = Node.find(( Node.name == localpart, ))
+            print node
+        
+    def rsr_list(self, node, volume=None, sa=None):
+        "List all nodes or grouped lists"
+        # XXX: how to match cmdline arg to nodes, alt notations for paths? 
+        #   filter on attr sytnax? @name= @parent.name=? see also deref.
+        if node:
+            realnode = node
+            if os.path.exists( node ):
+                realnode = os.path.realpath( node )
+            node = os.path.basename( realnode )
+            group = GroupNode.find(( Node.name == node, ))
+            print 'Node:', node, realnode, group
+            if not group:
+                log.err("No node for %s", node)
+            else:
+                print group, ':GroupNode'
+                for subnode in group.subnodes:
+                    print '\t', subnode
+        else:
+            ns = sa.query(Node).all()
+            # XXX idem as erlier, some mappings in adapter
+            fields = 'node_id', 'ntype', 'name',
+            # XXX should need a table formatter here
+            print '#', ', '.join(fields)
+            for n in ns:
+                for f in fields:
+                    v = getattr(n, f)
+                    if isinstance( v, unicode ):
+                        v = v.encode('utf-8')
+                    print v,
+                print
+
+    def rsr_list_groups(self, sa=None):
+        "List all group nodes"
+        gns = sa.query(GroupNode).all()
+        fields = 'node_id', 'name', 'subnodes'
+        print '#', ', '.join(fields)
+        for n in gns:
+            for f in fields:
+                print getattr(n, f),
+            print
+
+    def tree(self, sa=None):
+        trees = sa.query(GroupNode)\
+                .filter(( GroupNode.root, )).all()
+
+
+if __name__ == '__main__':
+    Rsr.main()
 

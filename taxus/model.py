@@ -63,7 +63,7 @@ class Volume(web.Resource):
 
     """
     A particular storage of serialized entities, 
-    as in a local filesystem tree or a blob store.
+    as in a local filesystem or a blob store.
     """
 
     __tablename__ = 'volumes'
