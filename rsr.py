@@ -5,6 +5,7 @@ Filesystem metadata & management routines.
 See Resourcer.rst
 """
 from datetime import datetime
+from glob import glob
 import os
 from os.path import sep
 import re
@@ -258,7 +259,8 @@ class Rsr(libcmd.StackedCommand):
     DEPENDS = { 
             'rsr_volume': [ 'set_commands' ],
             'rsr_workspace': [ 'rsr_volume' ],
-            'rsr_session': [ 'rsr_workspace' ],
+            'rsr_homedir': [ 'rsr_workspace' ],
+            'rsr_session': [ 'rsr_homedir' ],
             'rsr_info': [ 'rsr_session' ],
             'rsr_show': ['rsr_session'],
             'rsr_assert': ['rsr_session'],
@@ -293,11 +295,11 @@ class Rsr(libcmd.StackedCommand):
                         " `mysql://taxus-user@localhost/taxus`. "
                         "The default value (%default) may be overwritten by configuration "
                         "and/or command line option. " }),
-                p(('--dbsession',), { 
+                p(('--session',), { 
                     'metavar':'NAME', 
                     'default': inheritor.DEFAULT_DB_SESSION, 
                     'action': 'store',
-                    'dest': 'dbsession',
+                    'dest': 'session',
                     'help': "" }),
                 p(('--auto-commit',), {
 #                    "default": False,
@@ -337,33 +339,61 @@ class Rsr(libcmd.StackedCommand):
 
     def rsr_volume(self, prog, opts):
         "Load volume configuration and return instance. "
-        volume = res.Volume.find(prog.pwd)
-        taxus.Volume.byKey()
-        assert volume, prog.pwd
+        volume = res.Volume.fetch(prog.pwd)
         yield dict(volume=volume)
+        #taxus.Volume.byKey()
         if opts.init_volume:
             volume.init(create=opts.init_volume)
 
     def rsr_workspace(self, prog, opts):
         "Load workspace configuration and return instance. "
-        workspace = res.Workspace.find(prog.pwd)
-        assert workspace
+        # pre-db session fetch retrieves directory
+        workspace = res.Workspace.fetch(prog.pwd)
         yield dict(workspace=workspace)
-        #if opts.init_workspace:
-        #    workspace.init(create=opts.init_workspace)
 
-    def rsr_session(self, volume, opts):
-        dbref = opts.dbref
+    def rsr_homedir(self, prog, opts):
+        "Load homedir configuration and return instance. "
+        homedir = res.Homedir.fetch(prog.pwd)
+        yield dict(homedir=homedir)
+        #if opts.init_homedir:
+        #    homedir.init(create=opts.init_homedir)
+
+    def rsr_session(self, volume, workspace, homedir, opts):
+        """
+        Determine context, and from there get the session/dbref to initialize an
+        SQLAlchemy session.
+        The context depends on the current working directory, and defaults to
+        the nearest workspace; perhaps a volume or the homedir.
+        """
+        if opts.session == 'workspace':
+            context = workspace
+        elif opts.session == 'volume':
+            context = volume
+        elif opts.session == 'homedir':
+            context = homedir
+        else:
+            context = workspace or volume or homedir
+        if 'dbref' in context.settings:
+            dbref = context.settings.dbref
+        else:
+            dbref = opts.dbref
+        assert context
+        log.note('Context: %s', context)
+        yield dict(context=context)
+        log.note('DBRef: %s', dbref)
         if opts.init_db:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
-        sa = SessionMixin.get_session(opts.dbsession, opts.dbref, opts.init_db)
+        sa = SessionMixin.get_session(opts.session, dbref, opts.init_db)
         yield dict(sa=sa)
 
-    def rsr_info(self, prog, workspace, volume, opts=None, sa=None):
-        print 'Prog:', prog
-        print 'Workspace:', workspace
-        print 'Volume:', volume
-        log.info("DBRef: %s", opts.dbref)
+    def rsr_nodes(self, sa, *args):
+        nodes = []
+        for arg in args:
+            nodetype, nodeid = self.deref(arg, sa)
+            nodes.append()
+        yield dict(nodes=nodes)
+
+    def rsr_info(self, prog, context, opts, sa, nodes):
         log.note("SQLAlchemy session: %s", sa)
         models = taxus.core.ID, Node, Name, Tag, GroupNode, INode, Locator
         cnt = {}
@@ -375,6 +405,9 @@ class Rsr(libcmd.StackedCommand):
             log.info("%s", self.globaldict.node)
 
     def deref(self, ref, sa):
+        """
+        <nodetype>:<nodeid>
+        """
         assert ref
         m = re.match(r'^([a-zA-Z_][a-zA-Z0-9_-]*):', ref)
         if m:

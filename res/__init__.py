@@ -50,62 +50,37 @@ Registry
 class Workspace(Metadir):
 
     """
-    A workspace offers and interface to several indices located in the dotdir.
+    Workspaces are metadirs with settings, loaded from DOTID '.yaml',
+    and a PersistedMetaObject stored in DOTID '.shelve'.
+
+    It also facilitates
     """
 
     DOTDIR = 'cllct'
     DOTID = 'ws'
-
 
     index_specs = [
         ]
 
     def __init__(self, path):
         super(Workspace, self).__init__(path)
-        self.__id = None
         self.store = None
         self.indices = {}
-        if self.exists():
-            self.init()
-
-    @property
-    def guid(self):
-        if self.exists():
-            return open(self.id_path).read().strip()
-        return ''
-
-    def exists(self):
-        return os.path.exists(self.id_path)
-
-    def init(self, create=False, reset=False):
-        """
-        """
-        if self.exists() and not reset:
-            self.__id = open(self.id_path).read().strip()
-        elif reset or create:
-            self.__id = str(uuid.uuid4())
-            if not os.path.exists(self.full_path):
-                os.mkdir(self.full_path)
-            open(self.id_path, 'w+').write(self.__id)
-            log.note( "Workspace.init %s %s" % (
-                reset and 'Reset' or 'Created', self.full_path ))
+        conf = self.metadirref('yaml')
+        if os.path.exists(conf):
+            self.settings = confparse.YAMLValues.load(conf)
         else:
-            assert False # XXX: cannot manage dotdir
-        #self.store = self.init_store(reset) # store shared with Metafile.
-        #self.indices = self.init_indices(reset)
+            self.settings = {}
 
     @property
     def dbref(self):
-        return self.idxref(self.DOTID, 'shelve')
+        return self.metadirref( 'shelve' )
 
     def init_store(self, truncate=False): 
         assert not truncate
         return PersistedMetaObject.get_store(
                 name=Metafile.storage_name, dbref=self.dbref)
         #return PersistedMetaObject.get_store(name=self.dotdir, dbref=self.dbref, ro=rw)
-
-    def idxref(self, name, type='db'):
-        return os.path.join(self.full_path, '%s.%s' % (name, type))
         
     def init_indices(self, truncate=False):
         flag = truncate and 'n' or 'c'
@@ -120,7 +95,31 @@ class Workspace(Metadir):
         return confparse.Values(idcs)
 
 
+class Homedir(Workspace):
+
+    """
+    A workspace that is not a swappable, movable volume, but one that is 
+    fixed to a host and exists as long as the host system does. 
+    """
+
+    DOTID = 'homedir'
+
+    # XXX:
+    htdocs = None # contains much of the rest of the personal workspace stuff
+    projects = None # specialized workspace for projects..
+
+
+class Project(Workspace):
+
+    DOTID = 'project'
+
+
 class Volume(Workspace):
+
+    """
+    A specific workspace used to distinguish media volumes (disk partitions,
+    network drives, etc).
+    """
 
     DOTID = 'vol'
 

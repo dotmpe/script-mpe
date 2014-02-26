@@ -19,12 +19,15 @@ from persistence import PersistedMetaObject
 
 
 class MetaProperty(object):
+
     """
     Facade to tie volume/path/prop to its impl.
     """
+
     cname = ''
     depends = ()
     provides = ()
+
     def __init__(self, metaresolver):
         self.resolver = metaresolver
     def extract(self, props, path, opts):
@@ -33,18 +36,18 @@ class MetaProperty(object):
         return 0
     def __get__(self, obj, type=None):
         print 'MP get', obj, type
-
     def __set__(self, obj, value):
         print 'MP set', obj, value
-
     def __delete__(self, obj):
         print 'MP delete', obj
 
 # MP may test for extraction and fail
 # MP may be extractor and/or provide classnames for (possible) extractors
 class MetaContentLocationProperty(MetaProperty):
+
     cname = 'rsr:content-location'
     depends = ()
+
     def applies(self, props, path, opts):
         if os.path.exists(path): # and has read access
             return 1
@@ -547,39 +550,76 @@ class MetafileFile(object): # XXX: Metalink syntax
 class Metadir(object):
 
     """
-    Find like metafile, except this checks if a dotname is a directory,
-    and wether a file exists there.
+    Find like metafile, except this checks if a dotname is a dotted directory,
+    and wether some ID file exists in there.
     """
+
+    # XXX used as class variuables..
     DOTDIR = 'meta'
     DOTID = 'dir'
 
     def __init__(self, path):
-        self.name_suffix = ''
+        """
+        Like metafile, the path here will be the directory itself,
+        if it ends with the metadir and id file it, that is stripped.
+        """
         dotext = os.path.splitext( os.path.basename( path ))
         if dotext[0] == self.DOTID:
-            self.name_suffix = dotext[1]
+            assert dotext[1] == '.id'
             self.path = os.path.dirname( path )
-# now, how to know we havea prefix?
         else:
             self.path = path
         if self.path.endswith(self.DOTDIR) or self.path.endswith(self.DOTDIR+'/'):
             self.path = os.path.dirname( self.path )
             self.prefix = '.'+self.DOTDIR+'/'
         assert self.DOTDIR not in self.path, self.path
+        self.init()
 
     @property
     def full_path(self):
+        """Return %s metadir path. """ % lib.cn(self)
         return os.path.join(self.path, '.'+self.DOTDIR)
+
+    def metadirref(self, ext='db', name=None):
+        if not name:
+            name = self.DOTID
+        return os.path.join(self.full_path, '%s.%s' % (name, ext))
 
     @property
     def id_path(self):
-        return os.path.join(self.path, '.'+self.DOTDIR, self.DOTID +
-                self.name_suffix)
+        """Return %s metadir id-file path. """ % lib.cn(self)
+        # XXX: perhaps rename DOTID just markerleaf to reflect find_config_path 
+        return self.metadirref( 'id' ) 
+
+    @property
+    def metadir_id(self):
+        #if self.exists():
+        #    return open(self.id_path).read().strip()
+        return self.__id
+
+    def exists(self):
+        return os.path.exists(self.id_path)
+
+    def init(self, create=False, reset=False, metadir_id=None):
+        if self.exists() and not reset:
+            assert not metadir_id
+            self.__id = open(self.id_path).read().strip()
+        elif reset or create:
+            if not metadir_id:
+                metadir_id = str(uuid.uuid4())
+            assert isinstance(metadir_id, str)
+            self.__id = metadir_id
+            if not os.path.exists(self.full_path):
+                os.mkdir(self.full_path)
+            open(self.id_path, 'w+').write(self.__id)
+            log.note( "%s Metadir.init %s %s" % (
+                lib.cn(self), reset and 'Reset' or 'Created', self.full_path  ))
+        else:
+            self.__id = metadir_id
 
     def __str__(self):
-        guid = self.guid
-        if guid:
-            return "<Metadir:%s at %s, Id %r>" % ( lib.cn(self), self.id_path, guid )
+        if self.__id:
+            return "<Metadir:%s at %s, Id %r>" % ( lib.cn(self), self.id_path, self.__id )
         else:
             return "<Metadir:%s at %s, unregistered>" % ( lib.cn(self), self.id_path )
 
@@ -588,36 +628,29 @@ class Metadir(object):
 
     @classmethod
     def find(clss, *paths):
-        """
-        Find metadir by searching for markerleaf indicated by Class
-        'dotdir' property (see confparse.find_config_path).
-
-        Returning Class instance if path exists.
-        """
         prefixes = confparse.name_prefixes + ( '.'+clss.DOTDIR+'/', )
-        configs = list(confparse.find_config_path(clss.DOTID, 
+        return list(confparse.find_config_path(clss.DOTID, 
             paths=list(paths),
             prefixes=prefixes, 
             suffixes=['.id']
         ))
-        if configs:
-            if len(configs) > 1:
-                log.warn('Using first config file %s for %s', clss.DOTID, configs)
-            return clss(configs[0])
 
-        path = None
-        # XXX: Older method does not scan .exts
-        return path
-        for path in confparse.find_config_path(clss.DOTDIR, paths=list(paths)):
-            vid = os.path.join(path, clss.DOTID)
-            print path, vid
-            if os.path.exists(vid):
-                break
-            else:
-                path = None
-        if path:
-            return clss(os.path.dirname(path))
+    @classmethod
+    def fetch(clss, *paths):
+        """
+        Find metadir by searching for markerleaf indicated by Class'
+        DOTID property, using '.' DOTDIR '/' as one of the name prefixes.
+       
+        See confparse.find_config_path. This will be searching for the .id
+        extensions.
 
+        Returning Class instance for first path, if any.
+        """
+        configpaths = clss.find(*paths)
+        if configpaths:
+            if len(configpaths) > 1:
+                log.warn('Using first config file %s for %s', clss.DOTID, configpaths)
+            return clss(configpaths[0])
 
 class Meta(object):
 

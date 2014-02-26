@@ -72,7 +72,7 @@ def test_treenodedict():
 
 def get_cases():
     return [
-            unittest.FunctionTestCase( test_tree_traverse ),
+            TreeNodeDictTest,
             unittest.FunctionTestCase( test_dictnode_fs_populate )
         ]
 

@@ -28,8 +28,10 @@ from res import Journal
 
 class Day(Node):
     gregorian = ''
+
 class RstDoc(Node):
     build = 'standalone'
+
 
 class Jrnl(rsr.Rsr):
 
