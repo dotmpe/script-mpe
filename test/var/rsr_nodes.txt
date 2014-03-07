@@ -1,0 +1,3 @@
+groupnode group
+node test-node
+groupnode group2

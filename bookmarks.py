@@ -47,6 +47,7 @@ import zope.component
 
 import log
 import libcmd
+import rsr
 import res.iface
 import res.js
 import res.bm
@@ -56,12 +57,10 @@ from taxus.core import GroupNode
 from taxus.checksum import MD5Digest
 from taxus.net import Locator
 from taxus.model import Bookmark
-from txs import Txs
 
 
 
-
-class bookmarks(Txs):
+class bookmarks(rsr.Rsr):
 
     #zope.interface.implements(res.iface.ISimpleCommand)
 
@@ -73,21 +72,21 @@ class bookmarks(Txs):
     DEFAULT_ACTION = 'stats'
 
     DEPENDS = {
-            'stats': ['txs_session'],
-            'list': ['txs_session'],
-            'add': ['txs_session'],
-            'add_lctr': ['txs_session'],
-            'list_lctr': ['txs_session'],
-            'add_lctr_ref_md5': ['txs_session'],
-            'add_ref_md5': ['txs_session'],
-            'moz_js_import': ['txs_session'],
-            'moz_js_group_import': ['txs_session'],
-            'moz_ht_import': ['txs_session'],
-            'dlcs_post_import': ['txs_session'],
-            'dlcs_post_read': ['txs_session'],
-            'dlcs_post_test': ['txs_session'],
-            'dlcs_post_test2': ['txs_session'],
-            'export': ['txs_session']
+            'stats': ['rsr_session'],
+            'list': ['rsr_session'],
+            'add': ['rsr_session'],
+            'add_lctr': ['rsr_session'],
+            'list_lctr': ['rsr_session'],
+            'add_lctr_ref_md5': ['rsr_session'],
+            'add_ref_md5': ['rsr_session'],
+            'moz_js_import': ['rsr_session'],
+            'moz_js_group_import': ['rsr_session'],
+            'moz_ht_import': ['rsr_session'],
+            'dlcs_post_import': ['rsr_session'],
+            'dlcs_post_read': ['rsr_session'],
+            'dlcs_post_test': ['rsr_session'],
+            'dlcs_post_test2': ['rsr_session'],
+            'export': ['rsr_session']
         }
 
     @classmethod
@@ -147,11 +146,14 @@ class bookmarks(Txs):
     def list(self, sa=None):
         bms = sa.query(Bookmark).all()
         fields = 'bm_id', 'name', 'public', 'date_added', 'deleted', 'ref', 'tags', 'extended'
-        print '#', ', '.join(fields)
-        for bm in bms:
-            for f in fields:
-                print getattr(bm, f),
-            print
+        if not bms:
+            log.warn("No entries")
+        else:
+            print '#', ', '.join(fields)
+            for bm in bms:
+                for f in fields:
+                    print getattr(bm, f),
+                print
 
     def assert_locator(self, sa=None, href=None, opts=None):
         lctr = Locator.find((Locator.global_id==href,), sa=sa)
@@ -163,7 +165,7 @@ class bookmarks(Txs):
                     global_id=href, 
                     date_added=datetime.now() )
             sa.add( lctr )
-            if opts.txs_auto_commit:
+            if opts.rsr_auto_commit:
                 sa.commit()
             if opts.ref_md5:
                 self.add_lctr_ref_md5(opts, sa, href)
@@ -218,7 +220,7 @@ class bookmarks(Txs):
                 assert bm.ref
                 yield dict( bm=bm )
                 sa.add(bm)
-            if opts.txs_auto_commit:
+            if opts.rsr_auto_commit:
                 sa.commit()
 
     def list_lctr(self, sa=None):
@@ -254,7 +256,7 @@ class bookmarks(Txs):
                     log.info("New %s", md5)
                 lctr.ref_md5 = md5
                 sa.add( lctr )
-                if opts.txs_auto_commit:
+                if opts.rsr_auto_commit:
                     sa.commit()
                 log.note("Updated ref_md5 for %s to %s", lctr, md5)
 
@@ -297,10 +299,10 @@ class bookmarks(Txs):
                 #print repr(node['title']),
                 if 'parent' in node:
                     parent = nodes[node['parent']]
-                    self.txs_add_group( node['title'], parent['title'],
+                    self.rsr_add_group( node['title'], parent['title'],
                             sa=sa, opts=opts )
                 else:
-                    self.txs_add_group( node['title'], None, 
+                    self.rsr_add_group( node['title'], None, 
                             sa=sa, opts=opts )
             print 'Roots' 
             for root in roots:
@@ -363,7 +365,7 @@ class bookmarks(Txs):
                 else:
                     print
         
-        if opts.txs_auto_commit:
+        if opts.rsr_auto_commit:
             sa.commit()
 
     def export(self, opts=None, sa=None, *paths):

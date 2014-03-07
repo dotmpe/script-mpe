@@ -76,7 +76,7 @@ class GroupNode(Node):
     __mapper_args__ = {'polymorphic_identity': 'groupnode'}
     group_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
-    subnodes = relationship(Node, secondary=groupnode_node_table)
+    subnodes = relationship(Node, secondary=groupnode_node_table, backref='supernode')
     root = Column(Boolean)
 
 

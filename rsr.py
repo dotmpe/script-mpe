@@ -270,6 +270,9 @@ class Rsr(libcmd.StackedCommand):
             'rsr_remove': ['rsr_session'],
             'rsr_list': ['rsr_session'],
             'rsr_list_groups': ['rsr_session'],
+            'rsr_nodes': ['rsr_session'],
+            'rsr_tree': ['rsr_session'],
+            'rsr_set_root_bool': ['rsr_session'],
         }
     
     DEFAULT_DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
@@ -330,6 +333,8 @@ class Rsr(libcmd.StackedCommand):
                 p(('--assert-group',), libcmd.cmddict(inheritor.NAME, help="Add Group-node.")),
                 p(('--remove',), libcmd.cmddict(inheritor.NAME, help="Drop Node.")),
                 p(('--commit',), libcmd.cmddict(inheritor.NAME, append=True)),
+                p(('--nodes',), libcmd.cmddict(inheritor.NAME)),
+                p(('--set-root-bool',), libcmd.cmddict(inheritor.NAME)),
                 p(('--update-repos',), libcmd.cmddict(inheritor.NAME)),
                 #listtree?
                 p(('-l', '--list',), libcmd.cmddict(inheritor.NAME)),
@@ -388,13 +393,21 @@ class Rsr(libcmd.StackedCommand):
         yield dict(sa=sa)
 
     def rsr_nodes(self, sa, *args):
+        "Print existing nodes. "
         nodes = []
         for arg in args:
-            nodetype, nodeid = self.deref(arg, sa)
-            nodes.append()
+            typehint, nodeid = self.deref(arg, sa)
+            # do something with typehint?
+            node = Node.find(( Node.name == nodeid, ))
+            if not node:
+                log.warn("No entry for %s:%s", typehint, nodeid)
+                continue
+            print node.ntype, node.name
+            nodes.append(node)
         yield dict(nodes=nodes)
 
     def rsr_info(self, prog, context, opts, sa, nodes):
+        "Log some session statistics and info"
         log.note("SQLAlchemy session: %s", sa)
         models = taxus.core.ID, Node, Name, Tag, GroupNode, INode, Locator
         cnt = {}
@@ -451,7 +464,7 @@ class Rsr(libcmd.StackedCommand):
         else:
             node = Klass(name=name, date_added=datetime.now())
             sa.add(node)
-            print opts.todict()
+            log.info("Added new node to session: %s", node)
             if opts.rsr_auto_commit:
                 sa.commit()
         yield dict( node = node )
@@ -509,48 +522,39 @@ class Rsr(libcmd.StackedCommand):
             opts.commit()
 
     def rsr_remove(self, ref, sa, opts):
+        "Remove a node"
         node = Node.find(( Node.name == ref, ))
         sa.delete( node )
         if opts.rsr_auto_commit:
             sa.commit()
 
     def rsr_commit(self, sa):
+        "Commit changes to SQL"
+        log.note("Committing SQL changes");
         sa.commit()
-
-    def set_root_bool(self, sa=None):
-        """
-        set bool = true
-        where 
-            count(jt.node_id) == 0
-            jt.group_id
-        core.groupnode_node_table\
-            update().values(
-                )
-        """
+        log.debug("Commit finished");
 
     def rsr_show(self, ref_or_node, sa ):
+        "Print a single node from name or path reference. "
         if isinstance( ref_or_node, basestring ):
             nodetype, localpart = self.deref(ref_or_node, sa)
             node = Node.find(( Node.name == localpart, ))
             print node
         
-    def rsr_list(self, node, volume=None, sa=None):
-        "List all nodes or grouped lists"
+    def rsr_list(self, groupnode, volume=None, sa=None):
+        "List all nodes, or nodes listed in group node"
         # XXX: how to match cmdline arg to nodes, alt notations for paths? 
         #   filter on attr sytnax? @name= @parent.name=? see also deref.
-        if node:
-            realnode = node
-            if os.path.exists( node ):
-                realnode = os.path.realpath( node )
-            node = os.path.basename( realnode )
-            group = GroupNode.find(( Node.name == node, ))
-            print 'Node:', node, realnode, group
-            if not group:
-                log.err("No node for %s", node)
-            else:
-                print group, ':GroupNode'
-                for subnode in group.subnodes:
-                    print '\t', subnode
+        if groupnode:
+            realnode = groupnode
+            if os.path.exists( groupnode ):
+                realnode = os.path.realpath( groupnode )
+            groupnode = os.path.basename( realnode )
+            group = GroupNode.find(( Node.name == groupnode, ))
+            assert group
+            print group.name
+            for subnode in group.subnodes:
+                print '\t', subnode.name
         else:
             ns = sa.query(Node).all()
             # XXX idem as erlier, some mappings in adapter
@@ -569,17 +573,62 @@ class Rsr(libcmd.StackedCommand):
         "List all group nodes"
         gns = sa.query(GroupNode).all()
         fields = 'node_id', 'name', 'subnodes'
-        print '#', ', '.join(fields)
-        for n in gns:
-            for f in fields:
-                print getattr(n, f),
-            print
+        if gns:
+            print '#', ', '.join(fields)
+            for n in gns:
+                for f in fields:
+                    print getattr(n, f),
+                print
+        else:
+            log.warn("No entries")
 
-    def tree(self, sa=None):
-        trees = sa.query(GroupNode)\
-                .filter(( GroupNode.root, )).all()
+    def rsr_set_root_bool(self, sa=None, opts=None):
+        """
+        set bool = true
+        where 
+            count(jt.node_id) == 0
+            jt.group_id
+
+        core.groupnode_node_table\
+            update().values(
+                )
+        """
+        gns = sa.query(GroupNode).all()
+        if gns:
+            for n in gns:
+                if not n.supernode:
+                    n.root = True
+                    sa.add(n)
+            if opts.rsr_auto_commit:
+                sa.commit()
+        else:
+            log.warn("No entries")
+        
+    def rsr_tree(self, sa=None, *nodes):
+        "Print a tree of nodes as nested lists"
+        if not nodes:
+            roots = sa.query(GroupNode)\
+                    .filter( GroupNode.root == True, ).all()
+            if not roots:
+                log.err("No roots")
+        else:
+            roots = []
+            for node in nodes:
+                group = GroupNode.find(( Node.name == node, ))
+                if not group:
+                    log.warn(group)
+                    continue
+                roots.append(group)
+        for group in roots:
+            self.execute( 'rsr_node_recurse', dict( group=group  ) )
+    
+    def rsr_node_recurse(self, sa, group, lvl=0):
+        print lvl * '  ', group.name
+        for sub in group.subnodes:
+            self.rsr_node_recurse(sa, sub, lvl=lvl+1)
 
     def rsr_repo_update(prog=None, objects=None, opts=None):
+        "TODO: move to vc, for walk see dev_treemap or re-think-use Dir.walk"
         i = 0
         for repo in res.Repo.walk(prog.pwd, max_depth=2):
             i += 1
@@ -590,7 +639,6 @@ class Rsr(libcmd.StackedCommand):
                 print repo.uri
             else:
                 print 
-
 
 
 if __name__ == '__main__':

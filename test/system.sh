@@ -120,6 +120,7 @@ case $1 in
     check_run "rsr.py --assert group/test-node --commit"
     check_run "rsr.py --assert group/group2/ --commit"
     check_run "rsr.py --list" .all-nodes.new
+    check_out "rsr.py --nodes group test-node group2" rsr_nodes
     check_run "rsr.py --remove group --commit"
     check_run "rsr.py --remove group2 --commit"
     check_run "rsr.py --remove test-node --commit"

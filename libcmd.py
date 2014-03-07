@@ -347,9 +347,22 @@ class SimpleCommand(object):
                 )
 
     @classmethod
+    def check_helpstring(Klass, longopt, attrs):
+        if not 'help' in attrs or not attrs['help']:
+            cmd = longopt[2:].replace('-', '_')
+            if hasattr( Klass, cmd ):
+                attrs['help'] = getattr( Klass, cmd ).__doc__
+
+    @classmethod
     def get_prefixer(Klass, context):
         "Return dummy optparse flag prefixer. "
         def add_option_prefix(optnames, attrs):
+            if 'dest' in attrs and attrs['dest'] == 'commands':
+                if len(optnames[0]) == 2:
+                    longopt = optnames[1]
+                else:
+                    longopt = optnames[0]
+                Klass.check_helpstring(longopt, attrs)
             return optnames, attrs
         return add_option_prefix
     
@@ -735,11 +748,11 @@ class StackedCommand(SimpleCommand):
 
     @classmethod
     def get_prefixer(Klass, context):
-        def add_option_prefix(optnames, attr):
+        def add_option_prefix(optnames, attrs):
             # excempt some options from prefixing filter
             for opt in optnames:
                 if opt in Klass.OPTS_INHERIT:
-                    return optnames, attr
+                    return optnames, attrs
             # prepare prefixed option and dest
             if len(optnames[0]) == 2:
                 longopt = optnames[1]
@@ -747,12 +760,14 @@ class StackedCommand(SimpleCommand):
                 longopt = optnames[0]
             assert longopt.startswith('--')
             newlongopt = '--' + context.NAME + longopt[1:]
-            if 'dest' not in attr:
-                attr['dest'] = newlongopt[2:].replace('-', '_')
+            if 'dest' not in attrs:
+                attrs['dest'] = newlongopt[2:].replace('-', '_')
+            if attrs['dest'] == 'commands':
+                Klass.check_helpstring(newlongopt, attrs)
             if Klass == context:
-                return optnames, attr
+                return optnames, attrs
             else:
-                return ( newlongopt, ), attr
+                return ( newlongopt, ), attrs
         return add_option_prefix
 
     def __init__(self):
