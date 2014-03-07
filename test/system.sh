@@ -44,10 +44,12 @@ function check_run # cmd outname
         then
           if test -z "$3"
           then
-              check "Program exists correctly" PASSED
+              check "\$ $1" PASSED
           else
               check "$3" PASSED
           fi
+        else
+            check "Created $PREFIX$2{-error.log,.txt}"
         fi
         return
     else
@@ -112,15 +114,16 @@ case $1 in
     ;;
 
   3)
-    test_start txs
-    check_out "txs.py -h" txs_help
-    check_run "txs.py --list" all-nodes
-    check_run "txs.py --txs-assert group/test-node --txs-commit"
-    check_run "txs.py --txs-assert group/group2/ --txs-commit"
-    check_run "txs.py --txs-remove group --txs-commit"
-    check_run "txs.py --txs-remove group2 --txs-commit"
-    check_run "txs.py --txs-remove test-node --txs-commit"
-    check_run "txs.py --list" all-nodes.2
+    test_start rsr
+    check_out "rsr.py -h" rsr_help
+    check_run "rsr.py --list" .all-nodes
+    check_run "rsr.py --assert group/test-node --commit"
+    check_run "rsr.py --assert group/group2/ --commit"
+    check_run "rsr.py --list" .all-nodes.new
+    check_run "rsr.py --remove group --commit"
+    check_run "rsr.py --remove group2 --commit"
+    check_run "rsr.py --remove test-node --commit"
+    check_run "rsr.py --list" .all-nodes.2
     check_compare $PREFIX.all-nodes.txt $PREFIX.all-nodes.2.txt "Node list is as expected"
     test_end
     ;;

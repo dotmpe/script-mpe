@@ -156,7 +156,7 @@ def host_find(args, sa=None):
     return node
           
 
-@Target.register(NS, 'session', 'cmd:options')
+#@Target.register(NS, 'session', 'cmd:options')
 def txs_session(prog=None, sa=None, opts=None, settings=None):
     # default SA session
     dbref = opts.dbref
@@ -197,7 +197,7 @@ def txs_session(prog=None, sa=None, opts=None, settings=None):
     log.info("On %s", host)
     yield Keywords(sa=sa, ur=urlresolver)
 
-@Target.register(NS, 'pwd', 'txs:session')
+#@Target.register(NS, 'pwd', 'txs:session')
 def txs_pwd(prog=None, sa=None, ur=None, opts=None, settings=None):
     log.debug("{bblack}txs{bwhite}:pwd{default}")
     cwd = os.path.abspath(os.getcwd())
@@ -205,7 +205,7 @@ def txs_pwd(prog=None, sa=None, ur=None, opts=None, settings=None):
     yield pwd
     yield Keywords(pwd=pwd)
 
-@Target.register(NS, 'ls', 'txs:pwd')
+#@Target.register(NS, 'ls', 'txs:pwd')
 def txs_ls(pwd=None, ur=None, opts=None):
     log.debug("{bblack}txs{bwhite}:ls{default}")
     node = ur.getDir(pwd, opts)
@@ -216,7 +216,7 @@ def txs_ls(pwd=None, ur=None, opts=None):
         for rs in res.Dir.walk_tree_interactive(node.local_path):
             print rs
 
-@Target.register(NS, 'run', 'txs:session')
+#@Target.register(NS, 'run', 'txs:session')
 def txs_run(sa=None, ur=None, opts=None, settings=None):
     log.debug("{bblack}txs{bwhite}:run{default}")
     # XXX: Interactive part, see lind.
