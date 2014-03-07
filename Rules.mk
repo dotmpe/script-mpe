@@ -55,11 +55,12 @@ test_py_$d::
     fi
 
 # some system tests
+test_sys_$d:: TESTS:= 
 test_sys_$d::
 	@$(ll) info $@ "Starting system tests.."
 	@\
 	    LOG=test-system.log;\
-        test/system.sh 2> $$LOG; \
+        test/system.sh $(TESTS) 2> $$LOG; \
     \
         PASSED=$$(grep PASSED $$LOG | wc -l); \
         FAILED=$$(grep FAILED $$LOG | wc -l); \

@@ -330,6 +330,7 @@ class Rsr(libcmd.StackedCommand):
                 p(('--assert-group',), libcmd.cmddict(inheritor.NAME, help="Add Group-node.")),
                 p(('--remove',), libcmd.cmddict(inheritor.NAME, help="Drop Node.")),
                 p(('--commit',), libcmd.cmddict(inheritor.NAME, append=True)),
+                p(('--update-repos',), libcmd.cmddict(inheritor.NAME)),
                 #listtree?
                 p(('-l', '--list',), libcmd.cmddict(inheritor.NAME)),
                 p(('-t', '--tree',), libcmd.cmddict(inheritor.NAME)),
@@ -437,7 +438,7 @@ class Rsr(libcmd.StackedCommand):
             name = elems.pop()
             updatedict.update(dict( path=sep.join(elems), name=name ))
         self.execute( subh, updatedict )
-    
+
     def _assert_node(self, Klass, name, sa, opts):
         """
         Helper for node creation.
@@ -577,6 +578,19 @@ class Rsr(libcmd.StackedCommand):
     def tree(self, sa=None):
         trees = sa.query(GroupNode)\
                 .filter(( GroupNode.root, )).all()
+
+    def rsr_repo_update(prog=None, objects=None, opts=None):
+        i = 0
+        for repo in res.Repo.walk(prog.pwd, max_depth=2):
+            i += 1
+            assert repo.rtype
+            assert repo.path
+            print repo.rtype, repo.path, 
+            if repo.uri:
+                print repo.uri
+            else:
+                print 
+
 
 
 if __name__ == '__main__':
