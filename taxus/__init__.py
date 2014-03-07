@@ -191,6 +191,7 @@ from core import *
 from net import *
 from fs import *
 from fslayout import *
+from model import Namespace, Relocated, Volume, Bookmark
 
 
 class Taxus(object):

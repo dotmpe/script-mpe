@@ -237,7 +237,7 @@ class SimpleCommand(object):
     VERSION = "0.1"
     USAGE = """Usage: %prog [options] paths """
 
-    OPTS_INHERIT = ()
+    OPTS_INHERIT = ( '-v', )
     COMMAND_FLAG = ('-C', '--command')
 
     BOOTSTRAP = [ 'static_args', 'parse_options', 'load_config', 'prepare_output', 'set_commands' ]
@@ -747,6 +747,12 @@ class StackedCommand(SimpleCommand):
         )
 
     @classmethod
+    def get_opt_prefix(Klass, context):
+        if hasattr( context, 'OPT_PREFIX' ):
+            return context.OPT_PREFIX
+        return context.NAME
+
+    @classmethod
     def get_prefixer(Klass, context):
         def add_option_prefix(optnames, attrs):
             # excempt some options from prefixing filter
@@ -759,7 +765,7 @@ class StackedCommand(SimpleCommand):
             else:
                 longopt = optnames[0]
             assert longopt.startswith('--')
-            newlongopt = '--' + context.NAME + longopt[1:]
+            newlongopt = '--' + Klass.get_opt_prefix(context) + longopt[1:]
             if 'dest' not in attrs:
                 attrs['dest'] = newlongopt[2:].replace('-', '_')
             if attrs['dest'] == 'commands':
@@ -832,8 +838,8 @@ class StackedCommand(SimpleCommand):
         self.globaldict.prog.handlers = self.BOOTSTRAP
         while self.globaldict.prog.handlers:
             name = self.globaldict.prog.handlers.pop(0)
-            p = '%s_' % self.NAME
-            name.startswith(p)
+            if name not in self.DEPS:
+                p = '%s_' % self.get_opt_prefix(self)
             if name not in self.DEPS:
                 log.warn("No dependencies declared for %s", name)
                 continue

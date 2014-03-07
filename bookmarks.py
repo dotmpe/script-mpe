@@ -65,6 +65,8 @@ class bookmarks(rsr.Rsr):
     #zope.interface.implements(res.iface.ISimpleCommand)
 
     NAME = os.path.splitext(os.path.basename(__file__))[0]
+    OPT_PREFIX = 'bm'
+    OPTS_INHERIT = ('-v', '-q', '-i', '--commit',)
 
     DEFAULT_CONFIG_KEY = 'bm'
 
@@ -128,7 +130,6 @@ class bookmarks(rsr.Rsr):
             )
 
     def stats(self, opts=None, sa=None):
-
         assert sa, (opts, sa)
         urls = sa.query(Locator).count()
         log.note("Number of URLs: %s", urls)
@@ -167,7 +168,7 @@ class bookmarks(rsr.Rsr):
             sa.add( lctr )
             if opts.rsr_auto_commit:
                 sa.commit()
-            if opts.ref_md5:
+            if opts.bm_ref_md5:
                 self.add_lctr_ref_md5(opts, sa, href)
         yield dict(lctr=lctr)
 
@@ -273,11 +274,14 @@ class bookmarks(rsr.Rsr):
             for node in mozbm.read_bm(path):
                 descr = [ a['value'] for a in node.get('annos', [] ) 
                         if a['name'] == 'bookmarkProperties/description' ]
-                print list(self.add(sa=sa, 
-                    href=node['uri'], 
-                    name=node['title'], 
-                    ext=descr and descr.pop() or None,
-                    opts=opts)).pop()
+                if 'uri' not in node or 'title' not in node or not node['title']:
+                    log.warn("Illegal %s", node)
+                else:
+                    list(self.add(sa=sa, 
+                        href=node['uri'], 
+                        name=node['title'], 
+                        ext=descr and descr.pop() or None,
+                        opts=opts))
 
     def moz_js_group_import(self, opts=None, sa=None, *paths):
         "Import groupnodes only. "

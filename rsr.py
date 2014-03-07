@@ -20,52 +20,48 @@ from libname import Namespace, Name
 from libcmdng import Targets, Arguments, Keywords, Options,\
     Target 
 import taxus
-from taxus import SessionMixin, \
-        Node, GroupNode, \
-        INode, Dir, \
-        Name, Tag, \
-        Host, Locator
+from taxus import *
 
 
-NS = Namespace.register(
-        prefix='rsr',
-        uriref='http://project.dotmpe.com/script/#/cmdline.Resourcer'
-    )
-
-Options.register(NS, 
-
-        (('-F', '--output-file'), { 'metavar':'NAME', 
-            'default': None, 
-            'dest': 'outputfile',
-            }),
-
-        (('-R', '--recurse', '--recursive'),{ 
-            'dest': "recurse",
-            'default': False,
-            'action': 'store_true',
-            'help': "For directory listings, do not descend into "
-            "subdirectories by default. "
-        }),
-
-        (('-f', '--force' ),{ 
-            'default': False,
-            'action': 'store_true'
-        }),
-        (('-r', '--reset' ),{ 
-            'default': False,
-            'action': 'store_true'
-        }),
-
-        (('-L', '--max-depth', '--maxdepth'),{ 
-            'dest': "max_depth",
-            'default': -1,
-            'help': "Recurse in as many sublevels as given. This may be "
-            " set in addition to 'recurse'. 0 is not recursing and -1 "
-            "means no maximum level. "
-            })
-
-    )
-
+#NS = Namespace.register(
+#        prefix='rsr',
+#        uriref='http://project.dotmpe.com/script/#/cmdline.Resourcer'
+#    )
+#
+#Options.register(NS, 
+#
+#        (('-F', '--output-file'), { 'metavar':'NAME', 
+#            'default': None, 
+#            'dest': 'outputfile',
+#            }),
+#
+#        (('-R', '--recurse', '--recursive'),{ 
+#            'dest': "recurse",
+#            'default': False,
+#            'action': 'store_true',
+#            'help': "For directory listings, do not descend into "
+#            "subdirectories by default. "
+#        }),
+#
+#        (('-f', '--force' ),{ 
+#            'default': False,
+#            'action': 'store_true'
+#        }),
+#        (('-r', '--reset' ),{ 
+#            'default': False,
+#            'action': 'store_true'
+#        }),
+#
+#        (('-L', '--max-depth', '--maxdepth'),{ 
+#            'dest': "max_depth",
+#            'default': -1,
+#            'help': "Recurse in as many sublevels as given. This may be "
+#            " set in addition to 'recurse'. 0 is not recursing and -1 "
+#            "means no maximum level. "
+#            })
+#
+#    )
+#
 
 #@Target.register(NS, 'workspace', 'cmd:options')
 #def rsr_workspace(prog=None, opts=None):
@@ -88,7 +84,7 @@ Options.register(NS,
 #        ))
 #    yield Keywords(ws=ws, libs=libs)
 
-@Target.register(NS, 'volume', 'cmd:options')
+#@Target.register(NS, 'volume', 'cmd:options')
 def rsr_volume(prog=None, opts=None):
     """
     Find existing volume from current working dir, reset it, or create one in the current
@@ -122,7 +118,7 @@ def rsr_volume(prog=None, opts=None):
     yield Keywords(volume=volume)
 
 
-@Target.register(NS, 'status', 'rsr:volume')
+#@Target.register(NS, 'status', 'rsr:volume')
 def rsr_status(prog=None, volume=None, opts=None):
     log.debug("{bblack}rsr{bwhite}:status{default}")
     # print if superdir is OK
@@ -142,7 +138,7 @@ def rsr_status(prog=None, volume=None, opts=None):
     yield 0
 
 
-@Target.register(NS, 'add', 'rsr:volume')
+#@Target.register(NS, 'add', 'rsr:volume')
 def rsr_add(prog=None, opts=None, volume=None, args=None):
     """
     Add files. Put records into stage-shelve.
@@ -156,7 +152,7 @@ def rsr_add(prog=None, opts=None, volume=None, args=None):
     #yield VolumeReport()
 
 
-@Target.register(NS, 'update-volume', 'rsr:volume')
+#@Target.register(NS, 'update-volume', 'rsr:volume')
 def rsr_update_volume(prog=None, volume=None, opts=None, *args):
     """
     Walk all files, determine identity. Keep one ID registry per host.
@@ -184,7 +180,7 @@ See update_metafiles
         mf.tmp_convert()
 
 
-@Target.register(NS, 'update-metafiles', 'rsr:volume')
+#@Target.register(NS, 'update-metafiles', 'rsr:volume')
 def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
     log.debug("{bblack}rsr{bwhite}:update-volume{default}")
     i = 0
@@ -221,7 +217,7 @@ def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
             print '\tOK'
     volume.store.sync()
 
-@Target.register(NS, 'meta', 'rsr:volume')
+#@Target.register(NS, 'meta', 'rsr:volume')
 #def rsr_meta(src, pred, value, volume=None, *args):
 def rsr_meta(volume=None, *args):
     """
@@ -272,7 +268,8 @@ class Rsr(libcmd.StackedCommand):
             'rsr_list_groups': ['rsr_session'],
             'rsr_nodes': ['rsr_session'],
             'rsr_tree': ['rsr_session'],
-            'rsr_set_root_bool': ['rsr_session'],
+            'rsr_update': ['rsr_session'],
+            'rsr_repo_update': ['rsr_session'],
         }
     
     DEFAULT_DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
@@ -335,7 +332,8 @@ class Rsr(libcmd.StackedCommand):
                 p(('--commit',), libcmd.cmddict(inheritor.NAME, append=True)),
                 p(('--nodes',), libcmd.cmddict(inheritor.NAME)),
                 p(('--set-root-bool',), libcmd.cmddict(inheritor.NAME)),
-                p(('--update-repos',), libcmd.cmddict(inheritor.NAME)),
+                p(('--update',), libcmd.cmddict(inheritor.NAME)),
+                p(('--repo-update',), libcmd.cmddict(inheritor.NAME)),
                 #listtree?
                 p(('-l', '--list',), libcmd.cmddict(inheritor.NAME)),
                 p(('-t', '--tree',), libcmd.cmddict(inheritor.NAME)),
@@ -434,7 +432,7 @@ class Rsr(libcmd.StackedCommand):
             return nodetype, ref
         return 'node', ref
 
-    def rsr_assert(self, ref, sa, opts):
+    def rsr_assert(self, sa=None, opts=None, *refs):
         """
         <node>
         <group>/<node> (node+path)
@@ -442,15 +440,16 @@ class Rsr(libcmd.StackedCommand):
 
         <group root=true>/<group>/<node>
         """
-        nodetype, localpart = self.deref( ref, sa )
-        #NodeType = getUtility(INameRegistry).lookup(nodetype)
-        subh = 'rsr_assert_%s' % nodetype
-        updatedict = dict( name=localpart, path=None )
-        if sep in ref:
-            elems = ref.split(sep)
-            name = elems.pop()
-            updatedict.update(dict( path=sep.join(elems), name=name ))
-        self.execute( subh, updatedict )
+        for ref in refs:
+            nodetype, localpart = self.deref( ref, sa )
+            #NodeType = getUtility(INameRegistry).lookup(nodetype)
+            subh = 'rsr_assert_%s' % nodetype
+            updatedict = dict( name=localpart, path=None )
+            if sep in ref:
+                elems = ref.split(sep)
+                name = elems.pop()
+                updatedict.update(dict( path=sep.join(elems), name=name ))
+            self.execute( subh, updatedict )
 
     def _assert_node(self, Klass, name, sa, opts):
         """
@@ -598,12 +597,16 @@ class Rsr(libcmd.StackedCommand):
             for n in gns:
                 if not n.supernode:
                     n.root = True
+                    log.info("Root %s", n)
                     sa.add(n)
             if opts.rsr_auto_commit:
                 sa.commit()
         else:
             log.warn("No entries")
-        
+
+    def rsr_update(self, sa, opts):
+        self.execute('rsr_set_root_bool')
+
     def rsr_tree(self, sa=None, *nodes):
         "Print a tree of nodes as nested lists"
         if not nodes:
