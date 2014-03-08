@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 #
-# SCM util functions and pretty PS1 prompt for git, bzr
+# SCM util functions and pretty prompt printer for Bash, GIT
+# TODO: other SCMs, BZR, HG, SVN
 #
 HELP="vc - version-control helper functions "
+
+source ~/bin/statusdir.sh
+statusdir_assert vc_status > /dev/null
 
 # Flags legenda:
 #
@@ -75,9 +79,9 @@ __vc_git_ps1 ()
 			elif [ -f "$g/BISECT_LOG" ]; then
 				r="|BISECTING"
 			fi
-
+			
 			b="$(git symbolic-ref HEAD 2>/dev/null)" || {
-
+				
 				b="$(
 				case "${GIT_PS1_DESCRIBE_STYLE-}" in
 				(contains)
@@ -89,19 +93,19 @@ __vc_git_ps1 ()
 				(* | default)
 					git describe --exact-match HEAD ;;
 				esac 2>/dev/null)" ||
-
+				
 				b="$(cut -c1-7 "$g/HEAD" 2>/dev/null)..." ||
 				b="unknown"
 				b="($b)"
 			}
 		fi
-
+		
 		local w
 		local i
 		local s
 		local u
 		local c
-
+		
 		if [ "true" = "$(git rev-parse --is-inside-git-dir 2>/dev/null)" ]; then
 			if [ "true" = "$(git rev-parse --is-bare-repository 2>/dev/null)" ]; then
 				c="BARE:"
@@ -124,14 +128,14 @@ __vc_git_ps1 ()
 			if [ -n "${GIT_PS1_SHOWSTASHSTATE-}" ]; then
 			        git rev-parse --verify refs/stash >/dev/null 2>&1 && s="$"
 			fi
-
+			
 			if [ -n "${GIT_PS1_SHOWUNTRACKEDFILES-}" ]; then
 			   if [ -n "$(git ls-files --others --exclude-standard)" ]; then
 			      u="%"
 			   fi
 			fi
 		fi
-
+		
 		if [ -n "${1-}" ]; then
 			printf "$1" "$c${b##refs/heads/}$w$i$s$u$r"
 		else
@@ -144,30 +148,30 @@ __vc_git_ps1 ()
 
 __vc_pull ()
 {
-    cd "$1"
+	cd "$1"
 	local git=$(__vc_gitdir)
-    local bzr=$(__vc_bzrdir)
+	local bzr=$(__vc_bzrdir)
 	if [ "$git" ]; then
 	    git pull;
 	else if [ "$bzr" ]; then
 	    bzr pull;
 	else if [ -d ".svn" ]; then
 	    svn update
-    fi; fi; fi;
+	fi; fi; fi;
 }
 
 __vc_push ()
 {
-    cd "$1"
+	cd "$1"
 	local git=$(__vc_gitdir)
-    local bzr=$(__vc_bzrdir)
+	local bzr=$(__vc_bzrdir)
 	if [ "$git" ]; then
 	    git push origin master;
 	else if [ "$bzr" ]; then
 	    bzr push;
 #	else if [ -d ".svn" ]; then
 #	    svn 
-    fi; fi;
+	fi; fi;
 }
 
 # Switch the version control system detected for the current directory.
@@ -183,17 +187,17 @@ __vc_push ()
 __vc_status ()
 {
 	local w short repo sub
-
+	
 	w="$1";
 	cd "$w"
-    realcwd="$(pwd -P)"
+	realcwd="$(pwd -P)"
 	short="${w/#$HOME/~}"
-
+	
 	local git=$(__vc_gitdir "$w")
 	local bzr=$(__vc_bzrdir "$w")
-
+	
 	if [ "$git" ]; then
-        realgit="$(cd "$git"; pwd -P)"
+		realgit="$(cd "$git"; pwd -P)"
 		realroot="$(git rev-parse --show-toplevel)"
 		rev="$(git show $realroot | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
 		sub="${realcwd##$realroot}"
@@ -201,8 +205,8 @@ __vc_status ()
 		echo $short $(__vc_git_ps1 "[git:%s $rev]")$sub
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
-        realbzr="$(cd "$bzr"; pwd -P)"
-        realbzr=${realbzr%/.bzr}
+		realbzr="$(cd "$bzr"; pwd -P)"
+		realbzr=${realbzr%/.bzr}
 		sub=${realcwd##$realbzr}
 		short=${short%$sub/}
 		local revno=$(bzr revno)
@@ -225,21 +229,67 @@ __vc_status ()
 	fi;fi;
 }
 
-# Determine proper directory and return all info bits from __vc_status()
+# Helper for just path reference notation, no SCM bits
+__pwd_ps1 ()
+{
+	local w short
+	
+	d="$1";
+	[ -z "$d" ] && d="$(pwd)"
+	[ ! -d "$d" ] && echo "No such directory $d" && exit 3
+	cd "$d"
+	w="$d"
+	realcwd="$(pwd -P)"
+	short="${w/#$HOME/~}"
+	echo $short
+}
+
+
+# Wrapper for __vc_status stat sets argument default to current dirctory
+# Return all info bits from __vc_status()
 __vc_ps1 ()
 {
-    d="$1"
-    [ -z "$d" ] && d="$(pwd)"
-    [ -z "$d" ] || {  __vc_status "$d"; }
+	d="$1"
+	[ -z "$d" ] && d="$(pwd)"
+	[ ! -d "$d" ] && echo "No such directory $d" && exit 3
+	__vc_status "$d"
+}
+
+# print all fuctions/results for paths in arguments
+vc_print_all ()
+{
+	for path in $@
+	do
+		[ ! -e "$path" ] && continue
+		echo -e vc-status[$path]=\"$(__vc_status "$path")\"
+		echo -e pwd-ps1[$path]=\"$(__pwd_ps1 "$path")\"
+		echo -e vc-ps1[$path]=\"$(__vc_ps1 "$path")\"
+	done
+}
+
+# special updater (for Bash PROMPT_COMMAND)
+vc_prompt_command ()
+{
+	d="$1"
+	[ -z "$d" ] && d="$(pwd)"
+	[ ! -d "$d" ] && echo "No such directory $d" && exit 3
+	#statusdir_update vc_status $@
+	__vc_status $@
 }
 
 # Main
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
-    if [ "$(basename $0)" = "vc.sh" ]; then
-        F="$1"
-        [ -z "$F" ] && F=.
-        [ -n "$F" ] && [ ! -d "$F" ] && echo "No such directory $F" && exit 3
-        echo -e vc-status[$F]=$(__vc_status "$F")
-    fi
+	# Do something if script invoked as 'vc.sh'
+	if [ "$(basename $0)" = "vc.sh" ]; then
+		# invoke with function name first argument,
+		func=$1
+		type "vc_$func" &>/dev/null && { func="vc_$func"; }
+		type $func &>/dev/null && {
+			shift 1
+			$func $@
+		} || { 
+			vc_print_all $@
+		}
+	fi
 fi
 

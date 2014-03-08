@@ -66,7 +66,7 @@ class bookmarks(rsr.Rsr):
 
     NAME = os.path.splitext(os.path.basename(__file__))[0]
     OPT_PREFIX = 'bm'
-    OPTS_INHERIT = ('-v', '-q', '-i', '--commit',)
+    OPTS_INHERIT = ('-v',)# '-q', '-i', '-c')
 
     DEFAULT_CONFIG_KEY = 'bm'
 

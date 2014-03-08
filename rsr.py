@@ -271,7 +271,7 @@ class Rsr(libcmd.StackedCommand):
             'rsr_update': ['rsr_session'],
             'rsr_repo_update': ['rsr_session'],
         }
-    
+
     DEFAULT_DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
     DEFAULT_DB = "sqlite:///%s" % DEFAULT_DB_PATH
     DEFAULT_DB_SESSION = 'default'

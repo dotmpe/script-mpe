@@ -365,7 +365,7 @@ class SimpleCommand(object):
                 Klass.check_helpstring(longopt, attrs)
             return optnames, attrs
         return add_option_prefix
-    
+
     def get_optspecs(self):
         """
         Collect all options for the current class if used as Main command.
@@ -399,17 +399,19 @@ class SimpleCommand(object):
 
         optnames = []
         nullable = []
+        classdict = {}
         for klass, optspec in options:
-            for opt in optspec:
+            classdict[ klass.get_opt_prefix() ] = klass, optspec
+            for optnames, optattr in optspec:
                 try:
-                    parser.add_option(*opt[0], **opt[1])
+                    opt = parser.add_option(*optnames, **optattr)
                 except Exception, e:
                     print "Error adding optspec %r to parser from %r: %s" % (
-                            opt, klass, e)
+                            (optnames,optattr), klass, e)
                     traceback.print_exc()
 
         optsv, args = parser.parse_args(argv)
-        
+
         #return parser, optsv, args
 
         # superficially move options from their confparse.Values object
@@ -418,9 +420,9 @@ class SimpleCommand(object):
             v = getattr(optsv, name)
             if not name.startswith('_') and not callable(v):
                 optsd[name] = v
-
+        
         return parser, optsd, args
-                    
+
     @classmethod
     def main(Klass, argv=None, optionparser=None, result_adapter=None, default_reporter=None):
 
@@ -430,6 +432,7 @@ class SimpleCommand(object):
             opts=Values(), 
             args=[] ))
 
+        self.globaldict.prog.handlers = self.BOOTSTRAP
         for handler_name in self.resolve_handlers():
             log.debug("%s.main: deferring to %s", lib.cn(self), handler_name)
             self.execute( handler_name )
@@ -440,10 +443,9 @@ class SimpleCommand(object):
         """
         XXX
         """
-        self.globaldict.prog.handlers = self.BOOTSTRAP
         while self.globaldict.prog.handlers:
             o = self.globaldict.prog.handlers.pop(0)
-            p = '%s_' % self.NAME
+            p = '%s_' % self.get_opt_prefix(self)
             yield o.startswith(p) and o.replace( p, '' ) or o
 
     def execute( self, handler_name, update={}, return_mode=None ):
@@ -573,20 +575,18 @@ class SimpleCommand(object):
         init.configure_components()
 
     def parse_options( self, prog ):
+        # XXX
         #if optionparser and isinstance( optionparser, basestring ):
         #    parser = getUtility(IOptionParser, name=optionparser)
         #elif optionparser:
-        ## XXX
         #    #assert provides IOptionParser
         #    parser = optionparser
         #else:
-        parser = self
-
-        #parser.set_defaults( values )
+        #   parser.set_defaults( values )
 
         optspecs = self.get_optspecs()
         prog.optparser, opts, args = \
-                parser.parse_argv( optspecs, prog.argv, self.USAGE, self.VERSION )
+                self.parse_argv( optspecs, prog.argv, self.USAGE, self.VERSION )
 
         yield dict( opts=opts, args=args )
 
@@ -747,10 +747,10 @@ class StackedCommand(SimpleCommand):
         )
 
     @classmethod
-    def get_opt_prefix(Klass, context):
-        if hasattr( context, 'OPT_PREFIX' ):
-            return context.OPT_PREFIX
-        return context.NAME
+    def get_opt_prefix(Klass):
+        if hasattr( Klass, 'OPT_PREFIX' ):
+            return Klass.OPT_PREFIX
+        return Klass.NAME
 
     @classmethod
     def get_prefixer(Klass, context):
@@ -765,7 +765,7 @@ class StackedCommand(SimpleCommand):
             else:
                 longopt = optnames[0]
             assert longopt.startswith('--')
-            newlongopt = '--' + Klass.get_opt_prefix(context) + longopt[1:]
+            newlongopt = '--' + Klass.get_opt_prefix() + longopt[1:]
             if 'dest' not in attrs:
                 attrs['dest'] = newlongopt[2:].replace('-', '_')
             if attrs['dest'] == 'commands':
@@ -835,11 +835,9 @@ class StackedCommand(SimpleCommand):
                 executed.append( name )
             log.debug("Executed handler %s", name)
 
-        self.globaldict.prog.handlers = self.BOOTSTRAP
         while self.globaldict.prog.handlers:
             name = self.globaldict.prog.handlers.pop(0)
-            if name not in self.DEPS:
-                p = '%s_' % self.get_opt_prefix(self)
+            #p = '%s_' % self.get_opt_prefix(self)
             if name not in self.DEPS:
                 log.warn("No dependencies declared for %s", name)
                 continue
