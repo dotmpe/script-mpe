@@ -21,7 +21,7 @@ statusdir_assert vc_status > /dev/null
 
 __vc_bzrdir ()
 {
-    cd "$1";
+	cd "$1";
 	root=$(bzr info 2> /dev/null | grep 'branch root')
 	if [ -n "$root" ]; then
 		echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
@@ -45,9 +45,9 @@ __vc_gitdir ()
 	[ -n "$D" ] || D=.
 	if [ -d "$D/.git" ]; then
 		echo "$D/.git"
-    else
-        cd "$D"
-        git rev-parse --git-dir 2>/dev/null
+	else
+		cd "$D"
+		git rev-parse --git-dir 2>/dev/null
 	fi
 }
 
@@ -152,11 +152,11 @@ __vc_pull ()
 	local git=$(__vc_gitdir)
 	local bzr=$(__vc_bzrdir)
 	if [ "$git" ]; then
-	    git pull;
+		git pull;
 	else if [ "$bzr" ]; then
-	    bzr pull;
+		bzr pull;
 	else if [ -d ".svn" ]; then
-	    svn update
+		svn update
 	fi; fi; fi;
 }
 
@@ -166,9 +166,9 @@ __vc_push ()
 	local git=$(__vc_gitdir)
 	local bzr=$(__vc_bzrdir)
 	if [ "$git" ]; then
-	    git push origin master;
+		git push origin master;
 	else if [ "$bzr" ]; then
-	    bzr push;
+		bzr push;
 #	else if [ -d ".svn" ]; then
 #	    svn 
 	fi; fi;
