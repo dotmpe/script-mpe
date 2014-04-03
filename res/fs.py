@@ -73,6 +73,15 @@ class INode(object):
             assert isinstance(path, unicode)
         return path
 
+    @classmethod
+    def filter(self, path, *filters):
+        "Return true if all filters match, or false if one or more fails. "
+        for fltr in filters:
+            if not fltr(path):
+                return False
+        return True
+
+
 gsm = getGlobalSiteManager()
 gsm.registerUtility(INode.factory, iface.ILocalNodeService, 'fs') 
 
@@ -283,7 +292,7 @@ class Dir(INode):
         max_depth=-1,
         include_root=False,
         # custom filters:
-        exists=None, # True, False for exclusive path-exists, or None for either
+        exists=None, # 1 , -1 for exclusive exists; or 0 for either
         # None for include, False for exclude, True for exclusive:
         dirs=None, 
         files=None, 
@@ -314,9 +323,10 @@ class Dir(INode):
         exclusive( opts, 'dirs files symlinks links pipes blockdevs' )
         assert isinstance(path, basestring), (path, path.__class__)
         dirpath = None
+        file_filters, dir_filters = filters
         if not os.path.isdir( path ):
-            if not opts.exists:
-                log.err("Cannot walk non-dir path while os.stat is off. ")
+            if opts.exists > -1:
+                log.err("Cannot walk non-dir path with opt.exists. ")
             else:
                 yield path
         else:
@@ -329,6 +339,10 @@ class Dir(INode):
                     if not opts.dirs:
                         continue
                     dirpath = join(root, node)
+                    if dir_filters:
+                        if not Dir.filter(dirpath, *dir_filters):
+                            dirs.remove(node)
+                            continue
                     #dirpath = os.path.join(root, node).replace(path,'').lstrip('/') +'/'
                     depth = pathdepth(dirpath.replace(path, ''))
                     if not os.path.exists(dirpath):
@@ -359,6 +373,10 @@ class Dir(INode):
                     yield dirpath
                 for leaf in list(files):
                     filepath = join(root, leaf)
+                    if file_filters:
+                        if not File.filter(filepath, *file_filters):
+                            files.remove(leaf)
+                            continue
                     if not os.path.exists(filepath):
                         log.err("Error: non existant leaf %s", filepath)
                         if opts.exists != None and not opts.exists:
