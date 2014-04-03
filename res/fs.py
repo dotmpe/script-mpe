@@ -4,9 +4,9 @@ from os.path import join
 import re
 import stat
 
-from confparse import Values
 import log
 from lib import Prompt
+from script_mpe import confparse
 
 
 PATH_R = re.compile("[A-Za-z0-9\/\.,\[\]\(\)_-]")
@@ -44,6 +44,14 @@ class INode(object):
         #log.warn("Ignored non-ascii/illegal filename %s", filepath)
         #    continue
         return path
+
+    @classmethod
+    def filter(self, path, *filters):
+        "Return true if all filters match, or false if one or more fails. "
+        for fltr in filters:
+            if not fltr(path):
+                return False
+        return True
 
 
 class File(INode):
@@ -200,7 +208,7 @@ class Dir(INode):
             return True
         return False
 
-    walk_opts = Values(dict(
+    walk_opts = confparse.Values(dict(
         interactive=False,
         recurse=False,
         max_depth=-1,
@@ -224,87 +232,82 @@ class Dir(INode):
         It returns all full paths according to walk-opts.
         XXX: could, but does not, yield INode subtype instances.
         """
-        if not isinstance(opts, Values):
-            opts_ = Values(Klass.walk_opts)
+        if not isinstance(opts, confparse.Values):
+            opts_ = confparse.Values(Klass.walk_opts)
             opts_.update(opts)
             opts = opts_
         else:
-            opts = Values(opts.copy())
+            opts = confparse.Values(opts.copy())
         # FIXME: validate/process opts or put filter somewhere
         if opts.max_depth > 0:
             assert opts.recurse
         exclusive( opts, 'dirs files symlinks links pipes blockdevs' )
         dirpath = None
         file_filters, dir_filters = filters
-        assert os.path.isdir( path )
-        if opts.dirs and opts.include_root:
-            yield unicode( path, 'utf-8' )
-        for root, dirs, files in os.walk(path): # XXX; does not use StatCache
-            for node in list(dirs):
-                if not opts.recurse and not opts.interactive:
-                    dirs.remove(node)
-                if not opts.dirs:
-                    continue
-                dirpath = join(root, node)
-# FIXME: like ignored, find better filter?
-                if dir_filters:
-                    brk = False
-                    for fltr in dir_filters:
-                        if not fltr(dirpath):
-                            dirs.remove(node)
-                            brk = True
-                            break
-                    if brk:
-                        continue
-                depth = pathdepth(dirpath.replace(path, ''))
-                if not StatCache.exists(dirpath):
-                #if not os.path.exists(dirpath):
-                    log.err("Error: reported non existant node %s", dirpath)
-                    if opts.exists != None and opts.exists:
-                        if node in dirs:
-                            dirs.remove(node)
-                        continue 
-                elif Klass.ignored(dirpath):
-                    log.info("Ignored directory %r", dirpath)
-                    dirs.remove(node)
-                    continue
-                elif opts.max_depth != -1 and depth >= opts.max_depth:
-                    dirs.remove(node)
-                    continue
-                elif opts.interactive:
-                    log.note("Interactive walk: %s", dirpath)
-                    if not Klass.prompt_recurse(opts):
+        if not os.path.isdir( path ):
+            if opts.exists > -1:
+                log.err("Cannot walk non-dir path with opt.exists. ")
+            else:
+                yield path
+        else:
+            if opts.dirs and opts.include_root:
+                yield unicode( path, 'utf-8' )
+            for root, dirs, files in os.walk(path): # XXX; does not use StatCache
+                for node in list(dirs):
+                    if not opts.recurse and not opts.interactive:
                         dirs.remove(node)
-                dirpath = Klass.decode_path(dirpath, opts)
-                yield dirpath
-            for leaf in list(files):
-                filepath = join(root, leaf)
-                if file_filters:
-                    brk = False
-                    for fltr in file_filters:
-                        if not fltr(filepath):
-                            files.remove(leaf)
-                            brk = True
-                            break
-                    if brk:
+                    if not opts.dirs:
                         continue
-                if not StatCache.exists(filepath):
-                    log.warn("Error: non existant leaf %s", filepath)
-                    if opts.exists != None and not opts.exists:
-                        if opts.files:
-                            yield filepath
-                    continue
-                if StatCache.issymlink(filepath) and not opts.symlink:#or not StatCache.isfile(filepath):
-                    log.note("Ignored non-regular file %r", filepath)
-                    continue
-                if File.ignored(filepath):
-                    log.info("Ignored file %r", filepath)
-                    continue
-                if not opts.files: # XXX other types
-                    continue
-                filepath = Klass.decode_path(filepath, opts)
-                yield filepath
-       
+                    dirpath = join(root, node)
+# FIXME: like ignored, find better filter?
+                    if dir_filters:
+                        if not Dir.filter(dirpath, *dir_filters):
+                            dirs.remove(node)
+                            continue
+                    depth = pathdepth(dirpath.replace(path, ''))
+                    if not StatCache.exists(dirpath):
+                    #if not os.path.exists(dirpath):
+                        log.err("Error: reported non existant node %s", dirpath)
+                        if opts.exists != None and opts.exists:
+                            if node in dirs:
+                                dirs.remove(node)
+                            continue 
+                    elif Klass.ignored(dirpath):
+                        log.info("Ignored directory %r", dirpath)
+                        dirs.remove(node)
+                        continue
+                    elif opts.max_depth != -1 and depth >= opts.max_depth:
+                        dirs.remove(node)
+                        continue
+                    elif opts.interactive:
+                        log.note("Interactive walk: %s", dirpath)
+                        if not Klass.prompt_recurse(opts):
+                            dirs.remove(node)
+                    dirpath = Klass.decode_path(dirpath, opts)
+                    yield dirpath
+                for leaf in list(files):
+                    filepath = join(root, leaf)
+                    if file_filters:
+                        if not File.filter(filepath, *file_filters):
+                            files.remove(leaf)
+                            continue
+                    if not StatCache.exists(filepath):
+                        log.warn("Error: non existant leaf %s", filepath)
+                        if opts.exists != None and not opts.exists:
+                            if opts.files:
+                                yield filepath
+                        continue
+                    if StatCache.issymlink(filepath) and not opts.symlink:#or not StatCache.isfile(filepath):
+                        log.note("Ignored non-regular file %r", filepath)
+                        continue
+                    if File.ignored(filepath):
+                        log.info("Ignored file %r", filepath)
+                        continue
+                    if not opts.files: # XXX other types
+                        continue
+                    filepath = Klass.decode_path(filepath, opts)
+                    yield filepath
+
     @classmethod
     def tree( Klass, path, opts ):
 # XXX: what to do with complete attribute list etc? 
