@@ -300,7 +300,8 @@ class Rsr(libcmd.StackedCommand):
                     'default': inheritor.DEFAULT_DB_SESSION, 
                     'action': 'store',
                     'dest': 'session',
-                    'help': "" }),
+                    'help': "Session for now determines DB. Should determine
+                    " }),
                 p(('--auto-commit',), {
 #                    "default": False,
                     'action': 'store_true',
@@ -341,6 +342,31 @@ class Rsr(libcmd.StackedCommand):
                 p(('--show',), libcmd.cmddict(inheritor.NAME, help="Print Node.")),
             )
 
+    def rsr_sessiondir(self, prog, opts):
+        """
+        Find the nearest session dir, and mark its use centrally.
+        TODO: Session dirs are subclasses of metadirs. The resource module
+        `res.session` helps to manage several kinds of them.
+        """
+        # Get the sessiondir, by default or specific kind
+        sessiondir = None
+        if opts.session == 'default':
+            sessiondir = SessionDir.fetch(prog.pwd)
+        else:
+            sessiondirs = SessionDir.findAll(prog.pwd)
+            for sdir in sessiondirs:
+                if sdir.kind == opts.session:
+                    sessiondir = sdir
+        # Now update central
+        # XXX: perhaps user metadir should be inited already,
+        # the session will be inited later in rsr_session.. merge?
+        userdir = UserDir.find(prog.pwd)
+        c_store_ref = userdir.settings.dbref
+        #SessionMixin.get_session('user', c_store_ref, doInit)
+# XXX perhaps not open SA here, but dbm
+		c_db = userdir.init_indices...
+# There is no tool for that. res.session.UserDir?   
+
     def rsr_volume(self, prog, opts):
         "Load volume configuration and return instance. "
         volume = res.Volume.fetch(prog.pwd)
@@ -377,11 +403,11 @@ class Rsr(libcmd.StackedCommand):
             context = homedir
         else:
             context = workspace or volume or homedir
+        assert context, opts.session
         if 'dbref' in context.settings:
             dbref = context.settings.dbref
         else:
             dbref = opts.dbref
-        assert context
         log.note('Context: %s', context)
         yield dict(context=context)
         log.note('DBRef: %s', dbref)

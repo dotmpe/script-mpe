@@ -23,15 +23,17 @@ GIT Branches
 
         Various topics branch here into ``dev_*`` prefixed branches.
 
-		dev_taxus
-			Working to reintegrate ideas from old ``dev_`` forks into dev,
-			currently concerning libcmd functionality and txs.Txs with subclasses.
+        dev_taxus
+            Working to reintegrate ideas from old ``dev_`` forks into dev,
+            currently concerning libcmd functionality and txs.Txs with subclasses.
 
     test
         Writing and running tests.
         Should follow dev before master reintegration.
 
 Scripts
+  radical
+    Scan for tags in comments of source-code and \*NIX-style text-files.
   cabinet
     WIP: archive files and query
   domain
@@ -49,7 +51,7 @@ Scripts
   msglink
     find and symlink to message file in Maildir_
   nix-rename
-    try to rename files to not contain metacharacters (ie ``[^a-z][^a-z0-9]*``)
+    try to rename files to not contain metacharacters (ie. ``[^a-z][^a-z0-9]*``)
   py-MRO-graph
     generate inheritance hierarchies for Python (broken)
   pathlist2dot

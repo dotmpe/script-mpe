@@ -82,7 +82,7 @@ class Workspace(Metadir):
         return PersistedMetaObject.get_store(
                 name=Metafile.storage_name, dbref=self.dbref)
         #return PersistedMetaObject.get_store(name=self.dotdir, dbref=self.dbref, ro=rw)
-        
+    # TODO: move this, res.dbm.MetaDirIndex
     def init_indices(self, truncate=False):
         flag = truncate and 'n' or 'c'
         idcs = {}

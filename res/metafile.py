@@ -259,6 +259,7 @@ class Metafile(PersistedMetaObject):
         return mid in self.store
 
     def fetch(self):
+        "Return metafile-object from local PMO-store"
         mid = self.metaid()
         if mid in self.store:
             return self.store[mid]

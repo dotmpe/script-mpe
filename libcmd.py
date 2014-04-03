@@ -401,7 +401,11 @@ class SimpleCommand(object):
         nullable = []
         classdict = {}
         for klass, optspec in options:
-            classdict[ klass.get_opt_prefix() ] = klass, optspec
+            if hasattr(klass, 'get_opt_prefix'):
+            	prefix = klass.get_opt_prefix()
+            else:
+            	prefix = 'cmd'
+            classdict[ prefix ] = klass, optspec
             for optnames, optattr in optspec:
                 try:
                     opt = parser.add_option(*optnames, **optattr)

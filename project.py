@@ -18,7 +18,6 @@ class Prjct(rsr.Rsr):
     DEPENDS = { 
             'project_session': [ 'rsr_session' ],
             'project_info': [ 'project_session' ] 
-
         }
     DEFAULT = [ 'project_info' ]
 
