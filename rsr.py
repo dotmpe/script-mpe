@@ -16,6 +16,7 @@ import lib
 import log
 import confparse
 import res
+from res.session import Session
 from libname import Namespace, Name
 from libcmdng import Targets, Arguments, Keywords, Options,\
     Target 
@@ -300,8 +301,7 @@ class Rsr(libcmd.StackedCommand):
                     'default': inheritor.DEFAULT_DB_SESSION, 
                     'action': 'store',
                     'dest': 'session',
-                    'help': "Session for now determines DB. Should determine
-                    " }),
+                    'help': "Session for now determines DB. Should determine XXX" }),
                 p(('--auto-commit',), {
 #                    "default": False,
                     'action': 'store_true',
@@ -364,7 +364,7 @@ class Rsr(libcmd.StackedCommand):
         c_store_ref = userdir.settings.dbref
         #SessionMixin.get_session('user', c_store_ref, doInit)
 # XXX perhaps not open SA here, but dbm
-		c_db = userdir.init_indices...
+#c_db = userdir.init_indices...
 # There is no tool for that. res.session.UserDir?   
 
     def rsr_volume(self, prog, opts):
@@ -388,28 +388,22 @@ class Rsr(libcmd.StackedCommand):
         #if opts.init_homedir:
         #    homedir.init(create=opts.init_homedir)
 
-    def rsr_session(self, volume, workspace, homedir, opts):
+    def rsr_session(self, prog, volume, workspace, homedir, opts):
         """
         Determine context, and from there get the session/dbref to initialize an
         SQLAlchemy session.
         The context depends on the current working directory, and defaults to
         the nearest workspace; perhaps a volume or the homedir.
         """
-        if opts.session == 'workspace':
-            context = workspace
-        elif opts.session == 'volume':
-            context = volume
-        elif opts.session == 'homedir':
-            context = homedir
-        else:
-            context = workspace or volume or homedir
-        assert context, opts.session
-        if 'dbref' in context.settings:
-            dbref = context.settings.dbref
+        session = Session.init(prog.pwd, opts.session)
+        assert session.context, opts.session
+        print session
+        if 'dbref' in session.context.settings:
+            dbref = session.context.settings.dbref
         else:
             dbref = opts.dbref
-        log.note('Context: %s', context)
-        yield dict(context=context)
+        log.note('Context: %s', session.context)
+        yield dict(context=session.context)
         log.note('DBRef: %s', dbref)
         if opts.init_db:
             log.debug("Initializing SQLAlchemy session for %s", dbref)

@@ -77,7 +77,9 @@ class INode(object):
     def filter(self, path, *filters):
         "Return true if all filters match, or false if one or more fails. "
         for fltr in filters:
-            if not fltr(path):
+            # TODO ifgenerator
+            rs = list(fltr(path))
+            if not rs:
                 return False
         return True
 
@@ -287,6 +289,7 @@ class Dir(INode):
                 assert False, "TODO: write new ignores to file"
 
     walk_opts = confparse.Values(dict(
+        descend=True, # reverse direction
         interactive=False,
         recurse=False,
         max_depth=-1,
@@ -311,6 +314,8 @@ class Dir(INode):
         FIXME: could, but does not, yield INode subtype instances.
         XXX: filters, see dev_treemap
         """
+#        if not opts.descend:
+#            return self.walkRoot( path, opts=opts, filters=filters )
         if not isinstance(opts, confparse.Values):
             opts_ = confparse.Values(Klass.walk_opts)
             opts_.update(opts)
@@ -398,6 +403,28 @@ class Dir(INode):
                     #    log.err("Ignored non-ascii/illegal filename %s", filepath)
                     #    continue
                     yield filepath
+
+    @classmethod
+    def walkRoot(Klass, path, opts=walk_opts, filters=(None, None)):
+        "Walks rootward; ie. dirs only. "
+        "Yields dirs rootward along a single path, unless resolve links"
+        paths = [path]
+        while paths:
+            path = paths.pop()
+            elements = path.split(os.path.sep)
+            isroot = path.startswith(os.path.sep)
+            while elements:
+                path = os.path.join(*elements)
+                if isroot:
+                    path = os.sep + path
+                if os.path.islink(path):
+                    target = os.readlink(path)
+                    if not target.startswith(os.sep):
+                        target = os.path.join(dirname(path), target)
+                    paths.append(target)
+                if Dir.filter(path, *filters[0]):
+                    yield path
+                elements.pop()
 
     @classmethod
     def tree( Klass, path, opts, tree=None ):

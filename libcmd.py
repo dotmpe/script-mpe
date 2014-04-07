@@ -69,9 +69,9 @@ class HandlerReturnAdapter(object):
         self.returns = self.retpref.split('-')[0] in [ 'first', 'last', 'all' ]
     def start( self, ret ):
         if isinstance(ret, int):
-            sys.exit(ret)
+            sys.exit(ret) # XXX
         elif ret:
-            assert isinstance(ret, types.GeneratorType)
+            assert isinstance(ret, types.GeneratorType), ret
             for r in ret:
                 if isinstance(r, dict) or isinstance(r, confparse.Values):
                     self.update( r )
@@ -495,7 +495,7 @@ class SimpleCommand(object):
         if result_adapter.generates:
             return g
         for res in g:
-            extracted.append(res)
+            # XXX extracted.append(res)
             for reporter in self.globaldict.prog.output:
                 reporter.append(res)
         if result_adapter.returns:
@@ -570,7 +570,7 @@ class SimpleCommand(object):
     def static_args( self ):
         argv = list(sys.argv)
         yield dict( prog = dict(
-            pwd = os.getcwd(),
+            pwd = lib.cmd('pwd').strip(), # because os.getcwd resolves links
             home = os.getenv('HOME'),
             name = argv.pop(0),
             argv = argv ) )
@@ -841,7 +841,6 @@ class StackedCommand(SimpleCommand):
 
         while self.globaldict.prog.handlers:
             name = self.globaldict.prog.handlers.pop(0)
-            #p = '%s_' % self.get_opt_prefix(self)
             if name not in self.DEPS:
                 log.warn("No dependencies declared for %s", name)
                 continue

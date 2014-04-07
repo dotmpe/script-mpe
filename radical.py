@@ -33,9 +33,41 @@ a reference to some kind of ticket in a remote tracker with an variety
 of attributes. To keep it simple, `radical` recognizes an ordering for
 certain tags.
 
+Storage
+--------
+Tagged comments are stored at keys generated from hashsums.
+To retrieve these while the contents may have changed,
+indices for the line and character range are also kept.
+
+An additional auto-incremented numeric indexed is kept for selected 
+indices. 
+
+The following entities need to be kept:
+
+- file
+- comment
+- tag
+
+
+Configuration
+-------------
+To scan for comments in various syntax-flavours, different regexes are
+kept that match start and end-lines or just comment-lines. The provisions are
+relatively naive, and won't for example deal with stray '*' in C-style block
+comments.
+
+The other main part is the format for the tags. These are used to parse and
+print tag instances. These are three parts:
+
+- Regex to parse an existing tag,
+- format to serialize a tag,
+- the kind of index to use.
+
+
+
 TODO: doc review:
 
-VIt might be an option to remove all these artefacts from source again
+It might be an option to remove all these artefacts from source again
 before commit, though realisticly these would linger until the
 issue gets closed, or remain as comments.
 
@@ -147,7 +179,7 @@ TODO: domain structure::
       ^
       |
    TrackedIssue
-    * description:Text                         
+    * description:Text
 
 """
 # TODO:1: Integrate gate content stream
@@ -590,7 +622,10 @@ def find_files_with_tag(session, matchbox, paths):
             for p2 in res.fs.Dir.walk(p, opts=dict(recurse=True, files=True)):
                 sources.append(p2)
     for source in sources:
-        data = open(source).read()
+        try:
+            data = open(source).read()
+        except Exception, e:
+            log.err("Find: %s", e)
         # XXX comment_flavours = detect_flavour(source, data)
         try:
             tag_generator = find_tagged_comments(session, matchbox, source, data)
@@ -676,13 +711,17 @@ rc = confparse.Values()
 # Main
 
 # TODO see bookmarks, basename-reg, mimereg, flesh out Txs
-import txs
+import rsr
 
-class Radical(txs.Txs):
+
+class Radical(rsr.Rsr):
 
     zope.interface.implements(res.iface.ISimpleCommand)
 
+    NAME = 'rdc'#radical'
     PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
+    OPT_PREFIX = 'rdc'
+
     VERSION = "0.1"
     USAGE = """Usage: %prog [options] paths """
 
@@ -693,13 +732,15 @@ class Radical(txs.Txs):
     #NONTRANSIENT_OPTS = Taxus.NONTRANSIENT_OPTS + [
     #    'list_flavours', 'list_scans' ]
     #TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + [ 'run_embedded_issue_scan' ]
-    DEFAULT = [ 'run_embedded_issue_scan' ]
+    DEFAULT = [ 'rdc_run_embedded_issue_scan' ]
 
     DEPENDS = dict(
-            init = [ 'load_config' ],
-            run_embedded_issue_scan = [ 'init', 'txs_session', 'prepare_output' ],
-            list_flavours = [ 'load_config', 'prepare_output' ],
-            list_scans = [ 'load_config', 'prepare_output' ]
+            rdc_init = [ 'rsr_session' ],
+            rdc_run_embedded_issue_scan = [ 
+                'rdc_init', 'rsr_session', 'prepare_output' ],
+            rdc_list_flavours = [ 'rdc_init', 'load_config', 'prepare_output' ],
+            rdc_list_scans = [ 'load_config', 'prepare_output' ],
+            rdc_info = [ 'rdc_init' ]
         )
 
     @classmethod
@@ -723,8 +764,9 @@ class Radical(txs.Txs):
                 p(('-F', '--add-flavour'),{ 'action': 'callback', 'callback': append_comment_scan,
                     'help': "Scan for these comment flavours only, by default all known fla." }),
 
-                p(('--list-flavours',), libcmd.cmddict()),
-                p(('--list-scans',), libcmd.cmddict()),
+                p(('--list-flavours',), libcmd.cmddict(inheritor.NAME)),
+                p(('--list-scans',), libcmd.cmddict(inheritor.NAME)),
+                p(('--info',), libcmd.cmddict(inheritor.NAME)),
 
                 #(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
                 #(('-r', '--recurse'),{'action':'store_true', 'default': True,
@@ -737,7 +779,7 @@ class Radical(txs.Txs):
         self.rc.comment_flavours = self.rc.comment_scan.keys()
         self.rc.dbref = self.DEFAULT_DB
 
-    def list_flavours(self, args=None, opts=None):
+    def rdc_list_flavours(self, args=None, opts=None):
         for flavour in self.rc.comment_scan:
             print "%s:\n\tstart:\t%s" % ((flavour,)+
                     tuple(self.rc.comment_scan[flavour][:1]))
@@ -746,7 +788,7 @@ class Radical(txs.Txs):
             print
         return
 
-    def list_scans(self, args, opts):
+    def rdc_list_scans(self, args, opts):
         for tag in self.rc.tags:
             print "%s:" % (tag)
             if self.rc.tags[tag]:
@@ -761,7 +803,7 @@ class Radical(txs.Txs):
             print
         return
 
-    def init(self, prog=None):
+    def rdc_init(self, prog=None):
         global rc
         rc = self.rc
         # start db session
@@ -777,10 +819,10 @@ class Radical(txs.Txs):
 
         yield dict( services=services )
 
-    def run_embedded_issue_scan(self, sa, *paths):
+    def rdc_run_embedded_issue_scan(self, sa, *paths):
         """
         """
-        assert paths
+        assert paths, (self, sa)
         if not paths:
             paths = ['.']
             # XXX debugging
@@ -807,10 +849,14 @@ class Radical(txs.Txs):
         for embedded in find_files_with_tag(sa, matchbox, paths):
             if embedded.tag_id:
                 #if embedded.tag_id == NEED_ID:
-                    log.note('Embedded Issue %r', (embedded.file_name, \
-                            embedded.tag_name, embedded.tag_id, \
-                            embedded.comment_span, embedded.comment_lines, \
-                            embedded.description))
+                    yield dict(issues=[ embedded ])
+                    try:
+                        log.note('Embedded Issue %r', (embedded.file_name, \
+                                embedded.tag_name, embedded.tag_id, \
+                                embedded.comment_span, embedded.comment_lines, \
+                                embedded.description))
+                    except Exception, e:
+                        log.err(e)
                     #new_id = service.new_issue(embedded.tag_name, embedded.description)
                     #embedded.set_new_id(new_id)
                     #service.update_issue(embedded.tag_name, embedded.tag_id,
@@ -819,6 +865,11 @@ class Radical(txs.Txs):
                 assert False
                 pass
             #embedded.store(dbsession)
+
+    def rdc_info(self, prog, sa):
+        print 'Radical info', prog, sa
+        r = self.execute('rdc_run_embedded_issue_scan')
+        print r
 
 
 if __name__ == '__main__':
