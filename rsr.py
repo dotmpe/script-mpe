@@ -300,8 +300,7 @@ class Rsr(libcmd.StackedCommand):
                     'default': inheritor.DEFAULT_DB_SESSION, 
                     'action': 'store',
                     'dest': 'session',
-                    'help': "Session for now determines DB. Should determine
-                    " }),
+                    'help': "Session for now determines DB. Should determine " }),
                 p(('--auto-commit',), {
 #                    "default": False,
                     'action': 'store_true',
@@ -364,7 +363,7 @@ class Rsr(libcmd.StackedCommand):
         c_store_ref = userdir.settings.dbref
         #SessionMixin.get_session('user', c_store_ref, doInit)
 # XXX perhaps not open SA here, but dbm
-		c_db = userdir.init_indices...
+#c_db = userdir.init_indices...
 # There is no tool for that. res.session.UserDir?   
 
     def rsr_volume(self, prog, opts):
