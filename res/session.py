@@ -18,7 +18,12 @@ def dirscan(globp):
 
 class Session(object):
 
-    ""
+    """
+
+    Knows three kinds of context, each a Workspace which is a specification of
+    Metadir. Two of them are special, the Homedir and Volume are two specific
+    Workspaces.
+    """
 
     def __init__(self, path):
         self.path = path
@@ -29,11 +34,11 @@ class Session(object):
         self.user = res.Homedir.fetch(path)
         self.volume = res.Volume.fetch(path)
         self.workspace = res.Workspace.fetch(path)
-        print self.user, self.volume, self.workspace
         if kind == 'default':
             self.context = self.workspace or self.volume or self.user
         else:
             self.context = getattr(self, kind)
+        self.kind = kind
         return self
 
 

@@ -438,8 +438,10 @@ class SimpleCommand(object):
 
         self.globaldict.prog.handlers = self.BOOTSTRAP
         for handler_name in self.resolve_handlers():
-            log.debug("%s.main: deferring to %s", lib.cn(self), handler_name)
+            target = handler_name.replace('_', ':', 1)
+#            log.debug("%s.main deferring to %s", lib.cn(self), target)
             self.execute( handler_name )
+            log.info("%s.main returned from %s", lib.cn(self), target)
 
         return self
 
@@ -473,7 +475,7 @@ class SimpleCommand(object):
         methods of filter and either generate, return or be silent.
 
         """
-        log.debug("SimpleCommand.execute %s %s", handler_name, update)
+        #log.debug("SimpleCommand.execute %s %s", handler_name, update)
         if update:
             self.globaldict.update(update)
         handler = getattr( self, handler_name )
@@ -801,14 +803,17 @@ class StackedCommand(SimpleCommand):
         inheritor = self.__class__ 
         static = StaticContext( inheritor )# XXX IStaticContext()
         yield dict( prog=dict( name = static ) )
+        log.note('prog.name: %s', static)
    
         # Prepare a specification of the paths and types of configuration files
         configspec = ConfigSpec( static )# XXX ISimpleConfigSpec(config_file)
         yield dict( prog=dict( configspec = configspec ) )
+        log.note('prog.configspec: %s', configspec)
 
         # Lastly also aggragate all options defined on the inheritance chain
         optspec = SimpleCommand.get_optspec( inheritor )
         yield dict( prog=dict( optspec = optspec ) )
+        log.note('prog.optspec: %s', optspec)
 
     def resolve_handlers(self):
         """

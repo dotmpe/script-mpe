@@ -396,14 +396,15 @@ class Rsr(libcmd.StackedCommand):
         the nearest workspace; perhaps a volume or the homedir.
         """
         session = Session.init(prog.pwd, opts.session)
+        log.note('Session: %s', session)
         assert session.context, opts.session
-        print session
+        prog.session = session
+        yield dict(context=session.context)
+        log.note('Context: %s', session.context)
         if 'dbref' in session.context.settings:
             dbref = session.context.settings.dbref
         else:
             dbref = opts.dbref
-        log.note('Context: %s', session.context)
-        yield dict(context=session.context)
         log.note('DBRef: %s', dbref)
         if opts.init_db:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
