@@ -6,33 +6,10 @@
 
 ::
 
-   Node<INode>
-    * id_id:Integer<PrimaryKey>
-    * ntype:String<50,NotNull,Polymorphic>
-    * name:String<255,Null>
-    * date_added:DateTime<Index,NotNull>
-     A
-     |
-     .__,
-     |   |
-     |  Resource
-     |   * status:Status
-     |   * location:Locator
-     |   * last_access:DateTime
-     |   * allow:String
-     |    
-     .__, 
-         |
-        Bookmark
-         * ref:Locator
-         * extended:Text<64k>
-         * public:Boolean
-         * tags:Text<10k>
+    <tag>:GroupNode
+        *<bm>:Bookmark
 
-         * group:Bookmark<ForeignKey,Null> Grouped Mixin?
-     |
-    GroupNode
-     * nodes:relationship
+    Bookmark
 
 """
 from datetime import datetime
@@ -48,15 +25,25 @@ import zope.component
 import log
 import libcmd
 import rsr
+import taxus.iface
 import res.iface
 import res.js
 import res.bm
-import taxus.model
-import taxus.net
-from taxus.core import GroupNode
-from taxus.checksum import MD5Digest
-from taxus.net import Locator
-from taxus.model import Bookmark
+
+from bookmarks_model import Host, Locator, Bookmark
+
+
+class sa_exc:#(object):
+    def __new__(self, *args, **kwds):
+        """Decorate the given func. Remember its signature.
+        """
+        super(sa_exc, self).__new__(self, *args, **kwds)
+    def __init__(self, func):
+        """Decorate the given func. Remember its signature.
+        """
+        self.function = func
+    def __call__(self, *args):
+        print 'call', self, args
 
 
 
@@ -129,20 +116,18 @@ class bookmarks(rsr.Rsr):
 
             )
 
-    def stats(self, opts=None, sa=None):
+    def stats(self, prog=None, opts=None, sa=None):
         assert sa, (opts, sa)
         urls = sa.query(Locator).count()
         log.note("Number of URLs: %s", urls)
         bms = sa.query(Bookmark).count()
         log.note("Number of bookmarks: %s", bms)
-
         for lctr in sa.query(Locator).filter(Locator.global_id==None).all():
             lctr.delete()
             log.note("Deleted Locator without global_id %s", lctr)
         for bm in sa.query(Bookmark).filter(Bookmark.ref_id==None).all():
             bm.delete()
             log.note("Deleted bookmark without ref %s", bm)
-        
 
     def list(self, sa=None):
         bms = sa.query(Bookmark).all()
@@ -325,10 +310,11 @@ class bookmarks(rsr.Rsr):
     def dlcs_post_test2(self, p):
         pass
 
-    def dlcs_post_import(self, opts=None, sa=None, *paths):
+    def dlcs_post_import(self, prog=None, opts=None, sa=None, *paths):
         from pydelicious import dlcs_parse_xml
+        GroupNode = res.iface.IGroupNode(prog)
         # print list of existing later
-        grouptags = [] 
+        grouptags = []
         for p in paths:
             for post in self.execute( 'dlcs_post_read', dict( p=p), 'gen-all-key:href' ):
                 pass
@@ -374,6 +360,7 @@ class bookmarks(rsr.Rsr):
 
     def export(self, opts=None, sa=None, *paths):
         pass
+
 
 
 if __name__ == '__main__':

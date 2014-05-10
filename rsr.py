@@ -325,21 +325,21 @@ class Rsr(libcmd.StackedCommand):
                     'action': 'store_true',
                     'help': "(Re)set workspace Id" }),
                 # commands
-                p(('--info',), libcmd.cmddict(inheritor.NAME, append=True)),
-                p(('--volume',), libcmd.cmddict(inheritor.NAME, append=True)),
-                p(('--assert',), libcmd.cmddict(inheritor.NAME, help="Add Node.")),
-                p(('--assert-group',), libcmd.cmddict(inheritor.NAME, help="Add Group-node.")),
-                p(('--remove',), libcmd.cmddict(inheritor.NAME, help="Drop Node.")),
-                p(('--commit',), libcmd.cmddict(inheritor.NAME, append=True)),
-                p(('--nodes',), libcmd.cmddict(inheritor.NAME)),
-                p(('--set-root-bool',), libcmd.cmddict(inheritor.NAME)),
-                p(('--update',), libcmd.cmddict(inheritor.NAME)),
-                p(('--repo-update',), libcmd.cmddict(inheritor.NAME)),
+                p(('--info',), libcmd.cmddict(Klass.NAME, append=True)),
+                p(('--volume',), libcmd.cmddict(Klass.NAME, append=True)),
+                p(('--assert',), libcmd.cmddict(Klass.NAME, help="Add Node.")),
+                p(('--assert-group',), libcmd.cmddict(Klass.NAME, help="Add Group-node.")),
+                p(('--remove',), libcmd.cmddict(Klass.NAME, help="Drop Node.")),
+                p(('--commit',), libcmd.cmddict(Klass.NAME, append=True)),
+                p(('--nodes',), libcmd.cmddict(Klass.NAME)),
+                p(('--set-root-bool',), libcmd.cmddict(Klass.NAME)),
+                p(('--update',), libcmd.cmddict(Klass.NAME)),
+                p(('--repo-update',), libcmd.cmddict(Klass.NAME)),
                 #listtree?
-                p(('-l', '--list',), libcmd.cmddict(inheritor.NAME)),
-                p(('-t', '--tree',), libcmd.cmddict(inheritor.NAME)),
-                p(('--list-groups',), libcmd.cmddict(inheritor.NAME)),
-                p(('--show',), libcmd.cmddict(inheritor.NAME, help="Print Node.")),
+                p(('-l', '--list',), libcmd.cmddict(Klass.NAME)),
+                p(('-t', '--tree',), libcmd.cmddict(Klass.NAME)),
+                p(('--list-groups',), libcmd.cmddict(Klass.NAME)),
+                p(('--show',), libcmd.cmddict(Klass.NAME, help="Print Node.")),
             )
 
     def rsr_sessiondir(self, prog, opts):
@@ -365,7 +365,7 @@ class Rsr(libcmd.StackedCommand):
         #SessionMixin.get_session('user', c_store_ref, doInit)
 # XXX perhaps not open SA here, but dbm
 #c_db = userdir.init_indices...
-# There is no tool for that. res.session.UserDir?   
+# There is no tool for that. res.session.UserDir?
 
     def rsr_volume(self, prog, opts):
         "Load volume configuration and return instance. "
@@ -512,7 +512,7 @@ class Rsr(libcmd.StackedCommand):
         else:
             for x in self._assert_node(GroupNode, path, sa, opts):
                 yield x
-            
+
     def rsr_assert_path(self, path, sa, opts):
         """
         Put each subnode in a container::
@@ -560,7 +560,7 @@ class Rsr(libcmd.StackedCommand):
             nodetype, localpart = self.deref(ref_or_node, sa)
             node = Node.find(( Node.name == localpart, ))
             print node
-        
+
     def rsr_list(self, groupnode, volume=None, sa=None):
         "List all nodes, or nodes listed in group node"
         # XXX: how to match cmdline arg to nodes, alt notations for paths? 

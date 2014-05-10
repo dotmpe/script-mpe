@@ -143,6 +143,21 @@ class IReporter(Interface):
 
 class IResultAdapter(Interface): pass
 
+class IRelationalModel(Interface): pass
+
+class INode(IRelationalModel): pass
+class IGroupNode(IRelationalModel): pass
+class IMD5Digest(IRelationalModel): pass
+class ILocator(IRelationalModel): pass
+class IBookmark(IRelationalModel): pass
+
+class IProgram(Interface): pass
+
+def programModelResolver(*args):
+    print 'programModelResolver', args
+
+gsm.registerAdapter(
+    programModelResolver, [IProgram], IRelationalModel, '')
 
 
 def registerAdapter(adapterClass, sifaces=[], tiface=None):

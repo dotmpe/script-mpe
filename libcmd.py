@@ -149,7 +149,11 @@ def optparse_set_handler_list(option, flagstr, value, parser, append=False,
         assert isinstance( new_values, list ), new_values
     else: # convert long-opt flag to value
         p = prefix and prefix + '_' or ''
-        new_values = [ p + option.get_opt_string().strip('-').replace('-','_') ]
+        longopt = option.get_opt_string().strip('-').replace('-','_')
+        if not longopt.startswith(p):
+            new_values = [ p + longopt ]
+        else:
+            new_values = [ longopt ]
     old_values = getattr( parser.values, option.dest )
     if append:
         values = old_values
@@ -652,6 +656,17 @@ class SimpleCommand(object):
         log.category = opts.message_level
         #print 'log level', log.category
 
+        import taxus.core
+        import taxus.net
+        import taxus.model
+        prog.module = (
+                ( iface.INode, taxus.core.Node ),
+                ( iface.IGroupNode, taxus.core.GroupNode ),
+                ( iface.ILocator, taxus.net.Locator ),
+                ( iface.IBookmark, taxus.model.Bookmark ),
+            )
+        #zope.interface.classImplements(prog, iface.IProgram)
+
     def path_args(self, prog, opts):
         """
         XXX this yields an args=[path] for each path arg,
@@ -771,7 +786,11 @@ class StackedCommand(SimpleCommand):
             else:
                 longopt = optnames[0]
             assert longopt.startswith('--')
-            newlongopt = '--' + Klass.get_opt_prefix() + longopt[1:]
+            if hasattr(context, 'get_opt_prefix'): # ignore SimpleCommand
+                newlongopt = '--' + context.get_opt_prefix() + longopt[1:]
+            else:
+                # no prefix
+                return optnames, attrs
             if 'dest' not in attrs:
                 attrs['dest'] = newlongopt[2:].replace('-', '_')
             if attrs['dest'] == 'commands':

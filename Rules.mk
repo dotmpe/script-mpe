@@ -96,27 +96,35 @@ test_sa_$d::
 #
 #      ------------ -- 
 
-REPO=cllct
-ALL_REPOS=cllct test
-SA_DB_$d=db.sqlite
+R ?= cllct
+REPO = $(R)
+#ALL_REPOS=cllct test
 
-sa-reset: REPO := $(REPO)
-sa-reset: 
-	rm -f .$(REPO)/$(SA_DB_$d)
-	make sa-migrate-init REPO=$(REPO)
-	make sa-upgrade REPO=$(REPO)
+sa-create::
+	@\
+	migrate create ./sa_migrate/$(REPO) $(REPO);\
+	tree ./sa_migrate/$(REPO)/;
 
-sa-migrate-init:: REPO := cllct
-sa-migrate-init::
-	mkdir -p .$(REPO);\
-	./sa_migrate/$(REPO)/manage.py version_control
-	@echo Remember to set DB version to schema or schema-1.
-	echo "" | sqlite3 -batch .$(REPO)/$(SA_DB_$d)
-	
-sa-init: sa-migrate-init
+sa-touch::
+	@\
+	dbpath=$$( ./sa_migrate/$(REPO)/manage.py dbpath );\
+	mkdir -p $$(dirname $$dbpath);\
+	echo "" | sqlite3 -batch $$dbpath
 
-sa-upgrade::
-	./sa_migrate/$(REPO)/manage.py upgrade
+sa:: T := help
+sa::
+	@\
+	./sa_migrate/$(REPO)/manage.py $(T)
+
+session::
+	@\
+	dbpath=$$( ./sa_migrate/$(REPO)/manage.py dbpath );\
+	sqlite3 $$dbpath
+
+
+sa-reset:: T := reset
+sa-reset:: sa
+	@ls -la $$(./sa_migrate/$(REPO)/manage.py dbpath)
 
 sa-t::
 	@\
