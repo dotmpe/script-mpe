@@ -116,6 +116,7 @@ class bookmarks(rsr.Rsr):
 
             )
 
+    @sa_exc
     def stats(self, prog=None, opts=None, sa=None):
         assert sa, (opts, sa)
         urls = sa.query(Locator).count()
