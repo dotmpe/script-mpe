@@ -32,6 +32,14 @@ TEST_$d             := test_py_$d  test_sa_$d  test_sys_$d
 
 STRGT               += $(TEST_$d)
 
+TRGT += libcmdng.html
+
+libcmdng.html: libcmdng.py
+	@$(ll) file_target "$@" "Generating docs for" "$<"
+	@\
+	pydoc -w ./$^
+	@$(ll) file_ok "$@"
+
 test:: $(TEST_$d)
 
 test_py_$d test_sa_$d :: D := $/
@@ -101,11 +109,14 @@ REPO = $(R)
 #ALL_REPOS=cllct test
 
 sa-create::
+	@$(ll) attention $@ Starting...
 	@\
 	migrate create ./sa_migrate/$(REPO) $(REPO);\
 	tree ./sa_migrate/$(REPO)/;
+	@$(ll) info $@ Done
 
 sa-touch::
+	@$(ll) attention $@ Starting...
 	@\
 	dbpath=$$( ./sa_migrate/$(REPO)/manage.py dbpath );\
 	mkdir -p $$(dirname $$dbpath);\
