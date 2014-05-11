@@ -2,10 +2,13 @@ from sqlalchemy import *
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
 
+from taxus.util import SessionMixin
+
 
 SqlBase = declarative_base()
 
-class Host(SqlBase):
+
+class Host(SqlBase, SessionMixin):
 	__tablename__ = 'hosts'
 
 	host_id = Column('id', Integer, primary_key=True)
@@ -16,7 +19,7 @@ class Host(SqlBase):
 	deleted = Column(Boolean, index=True, default=False)
 	date_deleted = Column(DateTime)
 
-class Locator(SqlBase):
+class Locator(SqlBase, SessionMixin):
 	__tablename__ = 'ids_lctr'
 
 	lctr_id = Column('id', Integer, primary_key=True)
@@ -35,7 +38,7 @@ class Locator(SqlBase):
 	host = relationship('Host', primaryjoin="Locator.host_id==Host.host_id",
 		backref='locations')
 
-class Bookmark(SqlBase):
+class Bookmark(SqlBase, SessionMixin):
 
 	"""
 	A textual annotation with a short and long descriptive label,
@@ -48,6 +51,10 @@ class Bookmark(SqlBase):
 
 	name = Column(String(255), nullable=False, index=True, unique=True)
 
+	date_added = Column(DateTime, index=True, nullable=False)
+	deleted = Column(Boolean, index=True, default=False)
+	date_deleted = Column(DateTime)
+
 	ref_id = Column(Integer, ForeignKey('ids_lctr.id'))
 	ref = relationship(Locator, primaryjoin=Locator.lctr_id==ref_id)
 
@@ -57,6 +64,5 @@ class Bookmark(SqlBase):
 	"Private or public. "
 	tags = Column(Text(10240))
 	"Comma-separated list of all tags. "
-
 
 

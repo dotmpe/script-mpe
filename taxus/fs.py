@@ -9,7 +9,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship, backref
 
 # script Namespace
-import log
+from script_mpe import log
 # script.res Namespace
 import core
 import out

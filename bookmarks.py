@@ -33,18 +33,6 @@ import res.bm
 from bookmarks_model import Host, Locator, Bookmark
 
 
-class sa_exc:#(object):
-    def __new__(self, *args, **kwds):
-        """Decorate the given func. Remember its signature.
-        """
-        super(sa_exc, self).__new__(self, *args, **kwds)
-    def __init__(self, func):
-        """Decorate the given func. Remember its signature.
-        """
-        self.function = func
-    def __call__(self, *args):
-        print 'call', self, args
-
 
 
 class bookmarks(rsr.Rsr):
@@ -116,7 +104,6 @@ class bookmarks(rsr.Rsr):
 
             )
 
-    @sa_exc
     def stats(self, prog=None, opts=None, sa=None):
         assert sa, (opts, sa)
         urls = sa.query(Locator).count()
@@ -191,7 +178,7 @@ class bookmarks(rsr.Rsr):
             else:
                 bm = Bookmark.find((Bookmark.name==name,), sa=sa)
                 if bm:
-                    log.err("Duplicate name %s", bm)
+                    log.err("Duplicate name %s", bm.name)
                     #bm.name = "%s (copy)" % name
                     bm = None
                 else:

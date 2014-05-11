@@ -2,8 +2,8 @@
 :created: 2014-05-10
 
 """
-#from sqlalchemy import *
-#from migrate import *
+from sqlalchemy import *
+from migrate import *
 from bookmarks_model import SqlBase
 
 

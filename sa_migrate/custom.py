@@ -4,28 +4,33 @@ from ConfigParser import ConfigParser
 from migrate.versioning.shell import main
 
 
-def read(env):
+def read(repopath):
+    path = os.path.join(repopath, "migrate.cfg")
     prsr = ConfigParser()
-    path = os.path.join("sa_migrate", env, "migrate.cfg")
-    assert prsr.read(path) == [path]
+    assert prsr.read(path) == [path], path
     return prsr
 
-def migrate_opts(env, config):
-    if env == 'cllct':
-        path = os.path.join( os.getcwd(), '.cllct', 'db.sqlite' ), 
-    elif env == 'bms':
-        path = os.path.join( os.getcwd(), '.cllct', 'bms.sqlite' ), 
+def migrate_opts(repopath, config):
+    if not config.has_option('mpe', 'path'):
+        name = config.get('db_settings', 'repository_id')
+        path = os.path.join( os.getcwd(), '.cllct', name+'.sqlite' )
+        config.add_section('mpe')
+        config.set('mpe', 'path', path)
+        cfgpath = os.path.join(repopath, "migrate.cfg")
+        config.write(open(cfgpath, 'w+'))
     else:
-        assert False, env
+        path = config.get('mpe', 'path')
     return dict(
             url='sqlite:///%s' % path,
             debug='False', 
-            repository='sa_migrate/'+env
+            repository=repopath
         )
 
-def main(env):
-    config = read(env)
-    opts = migrate_opts(env, config)
+def main(env, path=None):
+    if not path:
+        path = os.path.join("sa_migrate", env)
+    config = read(path)
+    opts = migrate_opts(path, config)
     dbpath = opts['url'][10:]
     dbdir = os.path.dirname(dbpath)
 

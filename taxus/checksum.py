@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship, backref
 from init import SqlBase
 from util import SessionMixin
 
-import lib
+from script_mpe import lib
 import core
 import fs
 

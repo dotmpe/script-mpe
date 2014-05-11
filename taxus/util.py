@@ -4,7 +4,7 @@ import socket
 import zope.interface
 from sqlalchemy.orm.exc import NoResultFound
 
-import log
+from script_mpe import log
 from init import get_session
 import iface
 

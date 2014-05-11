@@ -296,12 +296,18 @@ class Rsr(libcmd.StackedCommand):
                         " `mysql://taxus-user@localhost/taxus`. "
                         "The default value (%default) may be overwritten by configuration "
                         "and/or command line option. " }),
+                p(('--repo',), { 
+                    'metavar':'NAME', 
+                    'default': "cllct",
+                    'action': 'store',
+                    'dest': 'repo',
+                    'help': "Set data repository" }),
                 p(('--session',), { 
                     'metavar':'NAME', 
-                    'default': inheritor.DEFAULT_DB_SESSION, 
+                    'default': "default",
                     'action': 'store',
                     'dest': 'session',
-                    'help': "Session for now determines DB. Should determine XXX" }),
+                    'help': "Session determines working tree root" }),
                 p(('--auto-commit',), {
 #                    "default": False,
                     'action': 'store_true',
@@ -401,10 +407,15 @@ class Rsr(libcmd.StackedCommand):
         prog.session = session
         yield dict(context=session.context)
         log.note('Context: %s', session.context)
-        if 'dbref' in session.context.settings:
-            dbref = session.context.settings.dbref
-        else:
-            dbref = opts.dbref
+        # SA session
+        #dbref = session.context.settings.dbref
+        #dbref = opts.dbref
+        from sa_migrate import custom
+        repo_root = session.context.settings.data.repository.get('path')
+        repo_path = os.path.join(repo_root, opts.repo)
+        config = custom.read(repo_path)
+        repo_opts = custom.migrate_opts(repo_path, config)
+        dbref = repo_opts['url']
         log.note('DBRef: %s', dbref)
         if opts.init_db:
             log.debug("Initializing SQLAlchemy session for %s", dbref)

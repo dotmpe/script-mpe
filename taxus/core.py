@@ -11,8 +11,7 @@ import iface
 from init import SqlBase
 from util import SessionMixin
 
-import lib
-import log
+from script_mpe import lib, log
 
 
 

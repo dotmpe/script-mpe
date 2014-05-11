@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 
 import zope.interface
 
-import log
+from script_mpe import log
 import iface
 import out
 

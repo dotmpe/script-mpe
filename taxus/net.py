@@ -3,7 +3,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship, backref
 
-import lib
+from script_mpe import lib
 from init import SqlBase
 from util import SessionMixin
 import core

@@ -6,8 +6,9 @@ from script_mpe.lib import cn
 from zope.interface import implements
 
 #import res.iface
-import taxus.iface
-from taxus.iface import IFormatted
+#from taxus import iface
+import iface
+from iface import IFormatted
 
 
 ### User view/Debug serializers
@@ -107,7 +108,7 @@ class PrimitiveFormatter(object):
     Adapter
     """
     implements(IFormatted)
-    __used_for__ = taxus.iface.Node
+    __used_for__ = iface.Node
 
     def __init__(self, context):
         self.context = context
@@ -130,7 +131,7 @@ class IDFormatter(object):
     Adapter
     """
     implements(IFormatted)
-    __used_for__ = taxus.iface.IID
+    __used_for__ = iface.IID
 
     def __init__(self, context):
         self.context = context
@@ -149,7 +150,7 @@ class NodeFormatter(object):
     Adapter
     """
     implements(IFormatted)
-    __used_for__ = taxus.iface.Node
+    __used_for__ = iface.Node
 
     def __init__(self, context):
         self.context = context
@@ -174,7 +175,7 @@ class NodeSetFormatter(object):
     """
     implements(IFormatted)
 
-    __used_for__ = taxus.iface.INodeSet
+    __used_for__ = iface.INodeSet
 
     def __init__(self, context):
         self.context = context
