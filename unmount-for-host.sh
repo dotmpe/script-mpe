@@ -11,20 +11,26 @@ hostname=$1; shift
     exit 1
 }
 
-[ "$(uname -s)" = "Darwin" ] && {
-
 scan_mounts()
 {
     mount | grep $1 | cut -d' ' -f3
 }
+
+[ "$(uname -s)" = "Darwin" ] && {
 
 disk_unmount()
 {
     diskutil umount $1
 }
 
-} || {
+} || [ "$(uname -s)" = "Linux" ] && {
 
+disk_unmount()
+{
+    sudo umount $1
+}
+
+} || {
     echo Unknown OS $(uname -s)
     exit 1
 }
