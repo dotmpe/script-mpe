@@ -7,7 +7,8 @@ from migrate.versioning.shell import main
 def read(repopath):
     path = os.path.join(repopath, "migrate.cfg")
     prsr = ConfigParser()
-    assert prsr.read(path) == [path], path
+    x = prsr.read(path)
+    assert x == [path], ( x, path )
     return prsr
 
 def migrate_opts(repopath, config):

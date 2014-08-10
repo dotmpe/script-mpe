@@ -276,6 +276,18 @@ class EmbeddedIssue:
         else:
             return p % self.tag_name
 
+    formats = dict(
+        short = lambda embedded:
+            embedded.format() +' '+ embedded.description.strip(),
+        complete = lambda embedded:
+            ' '.join([ 
+                "%s:%s:%s" % ( ( embedded.file_name, ) + embedded.comment_lines ),
+                "%i:%i" % embedded.comment_span, 
+                embedded.format(), 
+                embedded.description.strip() 
+            ])
+    )
+
     def set_new_id(self, id):
         global rc
         data = open(self.file_name).read()
@@ -769,6 +781,11 @@ class Radical(rsr.Rsr):
                 p(('--list-scans',), libcmd.cmddict(inheritor.NAME)),
                 p(('--info',), libcmd.cmddict(inheritor.NAME)),
 
+                p(('--issue-format',), {
+                    'dest': 'issue_format',
+                    'action': 'store',
+                    'help': "" }),
+
                 #(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
                 #(('-r', '--recurse'),{'action':'store_true', 'default': True,
                 #    'help': 'Recurse into directory paths (default: %default)'}),
@@ -820,7 +837,8 @@ class Radical(rsr.Rsr):
 
         yield dict( services=services )
 
-    def rdc_run_embedded_issue_scan(self, sa, *paths):
+    def rdc_run_embedded_issue_scan(self, sa, issue_format=None, *paths):
+
         """
         Main function.
         FIXME: simply log.note's on new issues, need to store, index this stuff
@@ -855,6 +873,8 @@ class Radical(rsr.Rsr):
                 #if embedded.tag_id == NEED_ID:
                     yield dict(issues=[ embedded ])
                     try:
+                        if issue_format:
+                            print EmbeddedIssue.formats[issue_format](embedded)
                         log.note('Embedded Issue %r', (embedded.file_name, \
                                 embedded.tag_name, embedded.tag_id, \
                                 embedded.comment_span, embedded.comment_lines, \
