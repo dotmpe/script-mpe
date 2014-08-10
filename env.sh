@@ -1,6 +1,13 @@
 #/!usr/bin/bash
 
+# Use statusdir to store keys
 source ~/bin/statusdir.sh
+
+#
+# env_start and env_initialized used in .bashrc
+#
+#
+
 
 env_props()
 {
@@ -32,6 +39,8 @@ env_filter()
 	done
 }
 
+# Report a unique key for current CLI session
+# for bash, made up of either SSH_TTY or else TERM value
 env_session()
 {
 	[ -n "$SSH_TTY" ] && { 
@@ -44,14 +53,18 @@ env_session()
 	}
 }
 
+# Prepare statusdir for root env
 env_root()
 {
 	statusdir_assert env_$(whoami) $(env_session)
 }
 
+# Prepare new index for root env; store in statusdir 'system' index
 env_start()
 {
+	# init statusdir for env_$(whoami) $(env_session)
 	env_root > /dev/null
+	# fill the index file with env keys
 	index_file=$(statusdir_index env_$(whoami) $(env_session) "system")
 	env_props | env_keys \
 		> $index_file
@@ -59,6 +72,7 @@ env_start()
 		>> $(statusdir_assert env_$(whoami) $(env_session))"/stats.sh"
 }
 
+# Find difference current env with root; store in statusdir 'user' index
 env_initialized()
 {
 	index_file=$(statusdir_index env_$(whoami) $(env_session) "user") 
@@ -70,14 +84,22 @@ env_initialized()
 	#diff -y $(statusdir_index env_$(whoami) $(env_session) "system") $index_file 
 }
 
+# print whats in statusdir 
 env_tree()
 {
+	sr_root=$(statusdir_root)
 	root=$(env_root)
 	index_root=$(statusdir_dir env_$(whoami) $(env_session)) 
-	echo root=$root
-	echo index_root=$index_root
-	tree $root $index_root
+
+	_root=${root##$sr_root}
+	_index_root=${index_root##$sr_root}
+
+	echo statusdir_root=$sr_root
+	cd $STATUSDIR_ROOT;
+	tree $_root $_index_root
 }
+
+# read whats in statusdir indices
 env_list()
 {
 	index="$1"
@@ -85,9 +107,11 @@ env_list()
 		index="user"
 	}
 	index_file=$(statusdir_index env_$(whoami) $(env_session) $index)
+	echo env_session=$(env_session)
 	echo index_file=$index_file
-	echo $(cat $index_file)
+	echo env_vars=$(cat $index_file)
 }
+
 # Main
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
 	# Do something if script invoked as 'vc.sh'

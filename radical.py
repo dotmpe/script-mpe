@@ -369,15 +369,8 @@ def get_tagged_comment(offset, width, data, language_keys, matchbox):
 
     for language_key in language_keys:
 
-        comment_scan = matchbox[language_key]
-        # line based or start/end
-        match_line, match_start, match_end = None, None, None
-        if len(comment_scan) == 1:
-            match_line = comment_scan[0].match
-        elif len(comment_scan) == 2:
-            match_start, match_end = comment_scan[1].match, comment_scan[1].match
-        elif len(comment_scan) == 3:
-            match_start, match_end = comment_scan[1].match, comment_scan[2].match
+        scan_spec = matchbox[language_key]
+        match_line, match_start, match_end = scan_spec
 
         data = lines[tag_line]
         start_line = tag_line 
@@ -435,8 +428,9 @@ def scan_for_tag(tags, matchbox, data):
 def trim_comment(match, data, (start, end)):
     comment_data = data[start:end]
 
+    match_start = match[0] or match[1]
     # strip heading and trailing comment markup metachars
-    m = match[0].match(comment_data)
+    m = match_start(comment_data)
     if not m:
         #  FIXME: c-style comments have embedded junk
         if comment_data != comment_data.strip():
@@ -448,8 +442,8 @@ def trim_comment(match, data, (start, end)):
     start += m.end(1)
 
     # and trailing markup if non-line comments
-    if len(match)>1:
-        m = match[1].match(_1)
+    if match[1]:
+        m = match[2](_1)
         if m:
             _2 = _1[:m.start(1)]
             end = start + m.start(1)
@@ -493,7 +487,8 @@ def clean_comment(scan, data):
 def find_tagged_comments(session, matchbox, source, data):
     """
     Look for tags in data, using the compiled tag regexes
-    in matchbox, and post processing each found flavour of comment block to the
+    in matchbox, and 
+    post processing each found flavour of comment block to the
     distinct tagged comments.
 
     The tagged comment body text runs from the end of the tag, to the next '.' 
@@ -502,15 +497,21 @@ def find_tagged_comments(session, matchbox, source, data):
     the comment block. This makes a distinction between tagged comment lines and
     blocks.
     
-    TODO: The `find` implementation needs optimization, more efficient to index comments
-    first, then scan for tags. 
+    TODO: Needs rewrite, to index comments first, then scan for tags in result
+    structure.
+    This works inefficent, looking for tags and then finding the comment for it.
+    Also, this scans for every language.
 
-    Recognized
-    are:
-
-    - Unix line comments (starting with '#', optionally whitespace prefixed).
-    - FIXME: C-style line and block comments.
+    FIXME: C-style line and block comments.
     """
+
+    lines = data.split('\n')
+
+    for flavour in rc.comment_flavours:
+        scan_spec = matchbox[flavour]
+        match_line, match_start, match_end = scan_spec
+        # TODO index comments, line and offset/width
+
     for tagname in rc.tags:
         for tag_match in matchbox[tagname].finditer(data):
             tag_span = tag_match.start(), tag_match.end()
@@ -821,6 +822,8 @@ class Radical(rsr.Rsr):
 
     def rdc_run_embedded_issue_scan(self, sa, *paths):
         """
+        Main function.
+        FIXME: simply log.note's on new issues, need to store, index this stuff
         """
         assert paths, (self, sa)
         if not paths:
@@ -830,6 +833,7 @@ class Radical(rsr.Rsr):
 
         # pre-compile patterns
         matchbox = {}
+
         for tagname in self.rc.tags:
             pattern = r"(%s)" % tagname
             if self.rc.tags[tagname]:
@@ -841,9 +845,9 @@ class Radical(rsr.Rsr):
             match_start = re.compile(scan[0], re.M)
             if len(scan) > 1:
                 match_end = re.compile(scan[1], re.M)
-                matchbox[flavour] = (match_start, match_end)
+                matchbox[flavour] = (None, match_start.match, match_end.match)
             else:
-                matchbox[flavour] = (match_start, )
+                matchbox[flavour] = (match_start.match, None, None)
 
         # iterate paths
         for embedded in find_files_with_tag(sa, matchbox, paths):
