@@ -54,6 +54,23 @@ ids_chks_sha1 = Table('ids_chks_sha1', pre_meta,
 	Column('digest', String, nullable=False),
 )
 
+ids_old = Table('ids', pre_meta,
+	Column('id', Integer, primary_key=True, nullable=False),
+	Column('type', String, nullable=False),
+	Column('date_added', DateTime, nullable=False),
+	Column('deleted', Boolean),
+	Column('date_deleted', DateTime),
+)
+
+ids_new = Table('ids', post_meta,
+	Column('id', Integer, primary_key=True, nullable=False),
+	Column('idtype', String, nullable=False),
+	Column('global_id', String),#, nullable=False, default="new-id"),
+	Column('date_added', DateTime, nullable=False),
+	Column('deleted', Boolean),
+	Column('date_deleted', DateTime),
+)
+
 nodes_nodes = Table('nodes_nodes', pre_meta,
 	Column('nodes_ida', Integer, nullable=False),
 	Column('nodes_idb', Integer, nullable=False),
@@ -83,6 +100,16 @@ nodes_new = Table('nodes', post_meta,
 	Column('date_deleted', DateTime),
 )
 
+groupnode_node_table = Table('groupnode_node', post_meta,
+	Column('groupnode_id', Integer, ForeignKey('groupnodes.id'), primary_key=True),
+	Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True)
+)
+
+groupnodes = Table('groupnodes', post_meta,
+	Column('id', Integer, primary_key=True, nullable=False),
+	Column('root', Boolean),
+)
+
 
 def upgrade(migrate_engine):
 	# Upgrade operations go here. Don't create your own engine; bind
@@ -99,6 +126,11 @@ def upgrade(migrate_engine):
 	pre_meta.tables['nodes_nodes'].create()
 	post_meta.tables['inodes'].columns['host_id'].create()
 	pre_meta.tables['nodes'].columns['type'].alter(name='ntype')
+	pre_meta.tables['ids'].columns['type'].alter(name='idtype', nullable=False)
+	post_meta.tables['ids'].columns['global_id'].create()
+	post_meta.tables['groupnodes'].create()
+	post_meta.tables['groupnode_node'].create()
+	post_meta.tables['names'].create()
 
 def downgrade(migrate_engine):
 	# Operations to reverse the above upgrade go here.
@@ -114,4 +146,8 @@ def downgrade(migrate_engine):
 	pre_meta.tables['nodes_nodes'].drop()
 	post_meta.tables['inodes'].columns['host_id'].drop()
 	post_meta.tables['nodes'].columns['ntype'].alter(name='type')
+	post_meta.tables['ids'].columns['idtype'].alter(name='type', nullable=True)
+	post_meta.tables['ids'].columns['global_id'].drop()
+	post_meta.tables['groupnodes'].drop()
+	post_meta.tables['groupnode_node'].drop()
 

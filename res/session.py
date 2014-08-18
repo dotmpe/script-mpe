@@ -1,6 +1,7 @@
 from glob import glob
 import os
 
+import log
 import res
 import metafile 
 import fs
@@ -36,8 +37,13 @@ class Session(object):
         self.workspace = res.Workspace.fetch(path)
         if kind == 'default':
             self.context = self.workspace or self.volume or self.user
+            if self.workspace: kind = 'workspace'
+            elif self.volume: kind = 'volume'
+            elif self.user: kind = 'user'
         else:
             self.context = getattr(self, kind)
+        log.info("Session context type is %r" % (kind,))
+        log.debug("Session.init: using context %r" % (self.context,))
         self.kind = kind
         return self
 

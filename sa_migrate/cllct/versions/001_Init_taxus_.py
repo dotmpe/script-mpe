@@ -53,7 +53,7 @@ hosts = Table('hosts', meta,
 	Column('hostname_id', Integer),
 )
 
-ids = Table('ids', meta,
+ids_new = Table('ids', meta,
 	Column('id', Integer, primary_key=True, nullable=False),
 	Column('type', String),
 	Column('date_added', DateTime, nullable=False),
@@ -157,7 +157,7 @@ tables = [
 		bm, 
 #chks,
 		cnt, comments, fragment_variant,
-		frags, hosts, ids, ids_lctr, ids_name, inodes,
+		frags, hosts, ids_new, ids_lctr, ids_name, inodes,
 		ivres, 
 #		locator_checksum, 
 		nodes, ns, relocated,

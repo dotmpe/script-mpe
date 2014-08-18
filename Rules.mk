@@ -122,7 +122,7 @@ sa-touch::
 	mkdir -p $$(dirname $$dbpath);\
 	echo "" | sqlite3 -batch $$dbpath
 
-sa:: T := help
+#sa:: T :=
 sa::
 	@\
 	./sa_migrate/$(REPO)/manage.py $(T)
@@ -132,6 +132,14 @@ session::
 	dbpath=$$( ./sa_migrate/$(REPO)/manage.py dbpath );\
 	sqlite3 $$dbpath
 
+sa-vc:: T := version_control
+sa-vc:: sa
+
+sa-latest:: T := upgrade
+sa-latest:: sa
+
+sa-compare:: T := compare_model_to_db taxus.core:SqlBase.metadata
+sa-compare:: sa
 
 sa-reset:: T := reset
 sa-reset:: sa

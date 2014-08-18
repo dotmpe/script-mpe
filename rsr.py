@@ -515,10 +515,12 @@ class Rsr(libcmd.StackedCommand):
         assert path and isinstance( path, basestring )
         if sep in path:
             elems = path.split(sep)
+            # Yield element strings
             while elems:
                 elem = elems.pop(0)
                 for x in self.rsr_assert_group( elem, sa, opts ):
                     yield x
+            # Defer
             self.execute( 'rsr_assert_path', dict( path=path ) )
         else:
             for x in self._assert_node(GroupNode, path, sa, opts):
