@@ -96,6 +96,7 @@ def cmd_mutation_import(opts, settings):
 			'destname', 'descr', 'descr2' ])
 		for line, date, accnr, amount, destacc, cat, destname, descr, descr2 in reader:
 			if not destacc:
+				print line, date, accnr, amount, destacc, cat, destname, descr, descr2
 				continue
 			if destacc not in accounts:
 				acc = Account.find_for_nr(sa, destacc)
