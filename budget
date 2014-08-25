@@ -4,9 +4,10 @@ budget - simple balance tracking accounting software.
 
 Usage:
   budget [options] balance [commit|rollback]
-  budget [options] account ( list | add (<account>) | rm (<account>) )
   budget [options] mutation ( list [<filter>] | import [-f <format>] <file>... )
-  budget [options] db [init|reset]
+  budget [options] account ( list | add (<account>) | update (<account>) )
+  budget [options] db (init|reset|stats)
+  budget [options] change (list|update)
   budget -h|--help
   budget --version
 
@@ -16,7 +17,7 @@ Options:
                   SQLAlchemy DB URL [default: ~/.budget.sqlite].
     -f --input-format=FORMAT
                   Input format [default: csv].
-
+    -y --yes
     --end-balance INT
     --end-date DATE
     --start-balance INT
@@ -29,9 +30,11 @@ Other flags:
 """
 import os
 import re
+from datetime import datetime
 from pprint import pformat
 import inspect
 
+from sqlalchemy import func
 from docopt import docopt
 
 import confparse
@@ -50,17 +53,142 @@ from rabo2myLedger import \
 __version__ = '0.0.0'
 
 
-def cmd_db_init(settings):
-	get_session(settings.dbref, True)
+ACCOUNT_ACCOUNTING = "Bankzaken"
 
-def cmd_db_reset(opts):
-	print 'db-reset'
+
+def cmd_db_init(settings):
+	"""
+	Initialize if the database file doest not exists,
+	and update schema.
+	"""
+	get_session(settings.dbref)
+	# XXX: update schema..
+	metadata.create_all()
+
+def cmd_db_stats(settings):
+	"""
+	Print table record stats.
+	"""
+	sa = get_session(settings.dbref)
+	print "Accounts:", sa.query(Account).count()
+	print "AccountBalances:", sa.query(AccountBalance).count()
+	print "Mutations:", sa.query(Mutation).count()
+	print "Years:", sa.query(Year).count()
+	print "Months:", sa.query(Month).count()
+
+def cmd_db_reset(settings):
+	"""
+	Drop all tables and recreate schema.
+	"""
+	get_session(settings.dbref)
+	if not settings.yes:
+		x = raw_input("This will destroy all data? [yN] ")
+		if not x or x not in 'Yy':
+			return 1
+	metadata.drop_all()
+	metadata.create_all()
+
+def cmd_account_list(settings):
+	sa = get_session(settings.dbref)
+	for acc in sa.query(Account).all():
+		print "\t".join(map(str,(acc.account_id, acc.name)))
+
+def cmd_account_add(opts):
+	print 'account-add'
+
+def cmd_account_update(opts):
+	print 'account-update'
+
+def cmd_change_list(settings):
+	"""
+	"""
+	sa = get_session(settings.dbref)
+	#for month in sa.query(Month).all():
+	#	print m.year, m.mon
+	
+def cmd_change_update(settings):
+	"""
+	Tmp. function to record change / month.
+	"""
+	sa = get_session(settings.dbref)
+	for year in range(2011, 2015):
+		for month in range(1, 13):
+			amount, = sa.query(func.sum(Mutation.amount))\
+					.filter( Mutation.year == year, Mutation.month == month ).one()
+			if amount:
+				print year, month, amount
 
 def cmd_balance_verify(opts):
 	print 'balance-verify'
 	"""
 	Print or verify balance since last check.
 	"""
+
+def cmd_mutation_import(opts, settings):
+	"""
+	Import mutations from CSV, create accounts as needed.
+	"""
+	sa = get_session(settings.dbref)
+	assert settings.input_format == 'csv', settings.input_format
+	cache = confparse.Values(dict(accounts={}))
+	accounts = []
+	for csvfile in opts['<file>']:
+		reader = csv_reader(csvfile, [
+			'line', 'date', 'accnr', 'amount', 'destacc', 'cat',
+			'destname', 'descr', 'descr2' ])
+		for line, date, accnr, amount, destacc, cat, destname, descr, descr2 in reader:
+			from_account, to_account = None, None
+			assert accnr, (line, date, amount, cat)
+			if accnr not in accounts:
+				from_account = Account.for_nr(sa, accnr)
+				if not from_account:
+					from_account = Account(name=destname)
+				from_account.set_nr(accnr)
+				sa.add(from_account)
+				sa.commit()
+				accounts.append(accnr)
+				cache.accounts[accnr] = from_account
+			else:
+				from_account = cache.accounts[accnr]
+			assert from_account.account_id, (str(from_account), line, accnr, date, amount, cat)
+
+			# credit account 
+			if not destacc:
+				if cat == 'ba':
+					# payment card checkout
+					to_account = Account.for_checkout(sa, descr)
+				elif cat == 'ga':
+					# atm withdrawal
+					to_account = Account.for_withdrawal(sa, descr)
+				elif cat == 'db':
+					# debet interest
+					to_account = Account.for_name_type(sa, ACCOUNT_ACCOUNTING)
+				else:
+					print line, date, accnr, amount, cat, descr, descr2
+					assert not destname, (cat, destname, cat)
+					continue
+			# billing account 
+			elif destacc not in accounts:
+				to_account = Account.for_nr(sa, destacc)
+				if not to_account:
+					to_account = Account(name=destname)
+				to_account.set_nr(destacc)
+				sa.add(to_account)
+				sa.commit()
+				cache.accounts[destacc] = to_account
+				accounts.append(destacc)
+			else:
+				to_account = cache.accounts[destacc]
+			y, m, d = map(int, ( date[:4], date[4:6], date[6:]))
+			mut = Mutation(
+					from_account=from_account.account_id,
+					to_account=to_account.account_id,
+					year=y, month=m, day=d,
+					amount=amount, description=descr+'\t'+descr2,
+					category=cat)
+			sa.add(mut)
+			sa.commit()
+
 
 def cmd_balance_commit(opts):
 	print 'balance-commit'
@@ -71,46 +199,8 @@ def cmd_balance_commit(opts):
 def cmd_balance_rollback(opts):
 	print 'balance-rollback'
 
-def cmd_account_list(opts):
-	print 'account-list'
-
-def cmd_account_add(opts):
-	print 'account-add'
-
-def cmd_account_list(opts):
-	print 'account-list'
-
 def cmd_mutation_list(opts):
 	print 'mutation-list', opts
-
-def cmd_mutation_import(opts, settings):
-	sa = get_session(settings.dbref)
-	#print_gnu_cash_import_csv(opts['file'], '\t', settings)
-	#print_sum_from_files(settings, *opts['<file>'])
-	assert settings.input_format == 'csv', settings.input_format
-	cache = confparse.Values(dict(accounts={}))
-	accounts = []
-	for csvfile in opts['<file>']:
-		reader = csv_reader(csvfile, [
-			'line', 'date', 'accnr', 'amount', 'destacc', 'cat',
-			'destname', 'descr', 'descr2' ])
-		for line, date, accnr, amount, destacc, cat, destname, descr, descr2 in reader:
-			if not destacc:
-				print line, date, accnr, amount, destacc, cat, destname, descr, descr2
-				continue
-			if destacc not in accounts:
-				acc = Account.find_for_nr(sa, destacc)
-				if not acc:
-					acc = Account(name=destname)
-					acc.set_nr(destacc)
-				else:
-					acc.set_nr(destacc)
-				sa.add(acc)
-				sa.commit()
-				cache.accounts[destacc] = acc
-				accounts.append(destacc)
-			else:
-				acc = cache.accounts[destacc]
 
 
 ### Transform cmd_ function names to nested dict

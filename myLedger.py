@@ -1,4 +1,7 @@
 """
+
+TODO: categorize accounts.
+
 """
 import os
 import re
@@ -14,11 +17,12 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 SqlBase = declarative_base()
 metadata = SqlBase.metadata
 
+
 class AccountBalance(SqlBase):
     """
     Checkpoints.
     """
-    __tablename__ = 'accbalance'
+    __tablename__ = 'accbalances'
     balance_id = Column('id', Integer, primary_key=True)
     date = Column(Date) # XXX: related ot blaance
     account_id = Column(Integer, ForeignKey('accs.id'))
@@ -33,7 +37,7 @@ class Account(SqlBase):
     account_id = Column('id', Integer, primary_key=True)
     balance = Column(Integer) # XXX: related ot blaance
     name = Column(String)
-    # classifiers? to match transactions    
+    # classifiers? to match transactions
     nl_p_number = Column(Integer, unique=True, nullable=True)
     nl_number = Column(Integer, unique=True, nullable=True)
     iban = Column(String, unique=True, nullable=True)
@@ -41,7 +45,7 @@ class Account(SqlBase):
     account_type = Column('type', String)
 
     def __str__(self):
-        return "[Account %r #%s %s]" % ( self.account_name, 
+        return "[Account %r #%s %s]" % ( self.name, 
                 self.iban or self.nl_number or self.nl_p_number,
                 self.account_type)
 
@@ -60,7 +64,31 @@ class Account(SqlBase):
             return False
 
     @classmethod
-    def find_for_nr(klass, session, account_number):
+    def for_name_type(klass, session, name, account_type=None):
+        """
+        Return existing or create.
+        """
+        acc_rs = session.query(Account).filter(
+                Account.account_type == account_type).filter(
+                Account.name == name).all()
+        if acc_rs:
+            acc = acc_rs[0]
+        else:
+            acc = Account(name=name, account_type=account_type)
+            session.add(acc)
+            session.commit()
+        return acc
+
+    @classmethod
+    def for_checkout(klass, session, descr):
+        return klass.for_name_type(session, descr, "checkout")
+
+    @classmethod
+    def for_withdrawal(klass, session, descr):
+        return klass.for_name_type(session, descr, "atm")
+
+    @classmethod
+    def for_nr(klass, session, account_number):
         """
         XXX only valid for dutch acc nrs.
         """
@@ -88,7 +116,9 @@ class Account(SqlBase):
                         .filter( Account.nl_p_number ==
                                 int(account_number[-9:]) ).all()
         else:
+            assert account_number
             print 'Unknown account number:', account_number
+            return
 
         if len(acc_rs) == 1:
             return acc_rs[0]
@@ -115,6 +145,7 @@ class Month(SqlBase):
     month = Column('id', Integer, primary_key=True)
     account_id = Column(Integer, ForeignKey('accs.id'), nullable=False)
     date = Column(Date)
+    change = Column(Float)
     end_balance = Column(Float)
     prev_month = Column(Integer, ForeignKey('months.id'), nullable=True)
     next_month = Column(Integer, ForeignKey('months.id'), nullable=True)
@@ -125,18 +156,22 @@ class Mutation(SqlBase):
     """
     __tablename__ = 'muts'
     mut = Column('id', Integer, primary_key=True)
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)
+    day = Column(Integer, nullable=False)
     from_account = Column(Integer, ForeignKey('accs.id'), nullable=False)
     to_account = Column(Integer, ForeignKey('accs.id'), nullable=False)
     category = Column(String, nullable=False)
-    srcid = Column(String)
+    description = Column(Text)
     amount = Column(Float)
 
 def get_session(dbref, initialize=False):
     engine = create_engine(dbref)#, encoding='utf8')
     #engine.raw_connection().connection.text_factory = unicode
+    SqlBase.metadata.bind = engine
     if initialize:
         #log.info("Applying SQL DDL to DB %s ", dbref)
-        SqlBase.metadata.create_all(engine)  # issue DDL create 
+        SqlBase.metadata.create_all()  # issue DDL create 
         print 'Updated myLedger schema'
     session = sessionmaker(bind=engine)()
     return session

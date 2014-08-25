@@ -15,11 +15,11 @@ SqlBase = declarative_base()
 def get_session(dbref, initialize=False):
     engine = create_engine(dbref)#, encoding='utf8')
     #engine.raw_connection().connection.text_factory = unicode
+    SqlBase.metadata.bind = engine
     if initialize:
         log.info("Applying SQL DDL to DB %s..", dbref)
-        SqlBase.metadata.create_all(engine)  # issue DDL create 
+        SqlBase.metadata.create_all()  # issue DDL create 
         log.note('Updated schema for %s to %s', dbref, 'X')
-    SqlBase.metadata.bind = engine
     session = sessionmaker(bind=engine)()
     return session
 #   dbref='mysql://scrow-user:p98wa7txp9zx@sam/scrow'
