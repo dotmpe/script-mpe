@@ -5,7 +5,7 @@ budget - simple balance tracking accounting software.
 Usage:
   budget [options] balance [commit|rollback]
   budget [options] account ( list | add (<account>) | rm (<account>) )
-  budget [options] mutation ( list [<filter>] | import [-f] <file>... )
+  budget [options] mutation ( list [<filter>] | import [-f <format>] <file>... )
   budget [options] db [init|reset]
   budget -h|--help
   budget --version
@@ -13,7 +13,10 @@ Usage:
 Options:
     -v            Increase verbosity.
     -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: sqlite:///~/.budget.sqlite].
+                  SQLAlchemy DB URL [default: ~/.budget.sqlite].
+    -f --input-format=FORMAT
+                  Input format [default: csv].
+
     --end-balance INT
     --end-date DATE
     --start-balance INT
@@ -24,6 +27,8 @@ Other flags:
     --version     Show version.
 
 """
+import os
+import re
 from pprint import pformat
 import inspect
 
@@ -33,26 +38,35 @@ import confparse
 from myLedger import SqlBase, metadata, get_session, \
         AccountBalance, \
         Account, \
-        Year, \
-        Month, \
-        Mutation
+        Year, Month, \
+        Mutation, \
+        valid_iban, valid_nl_number, valid_nl_p_number
 from rabo2myLedger import \
         print_gnu_cash_import_csv, \
-        print_sum_from_files
+        print_sum_from_files, \
+        csv_reader
 
 
 __version__ = '0.0.0'
 
 
-def cmd_db_init(opts):
-	dbref = opts['--dbref']
-	get_session(dbref, True)
+def cmd_db_init(settings):
+	get_session(settings.dbref, True)
 
 def cmd_db_reset(opts):
 	print 'db-reset'
 
+def cmd_balance_verify(opts):
+	print 'balance-verify'
+	"""
+	Print or verify balance since last check.
+	"""
+
 def cmd_balance_commit(opts):
 	print 'balance-commit'
+	"""
+	Commit current balance or insert a book check.
+	"""
 
 def cmd_balance_rollback(opts):
 	print 'balance-rollback'
@@ -67,14 +81,35 @@ def cmd_account_list(opts):
 	print 'account-list'
 
 def cmd_mutation_list(opts):
-	print 'mutation-list'
+	print 'mutation-list', opts
 
 def cmd_mutation_import(opts, settings):
-	print 'mutation-import', opts
-	#sa = get_session(settings.dbref)
+	sa = get_session(settings.dbref)
 	#print_gnu_cash_import_csv(opts['file'], '\t', settings)
-	print_sum_from_files(settings, *opts['<file>'])
-
+	#print_sum_from_files(settings, *opts['<file>'])
+	assert settings.input_format == 'csv', settings.input_format
+	cache = confparse.Values(dict(accounts={}))
+	accounts = []
+	for csvfile in opts['<file>']:
+		reader = csv_reader(csvfile, [
+			'line', 'date', 'accnr', 'amount', 'destacc', 'cat',
+			'destname', 'descr', 'descr2' ])
+		for line, date, accnr, amount, destacc, cat, destname, descr, descr2 in reader:
+			if not destacc:
+				continue
+			if destacc not in accounts:
+				acc = Account.find_for_nr(sa, destacc)
+				if not acc:
+					acc = Account(name=destname)
+					acc.set_nr(destacc)
+				else:
+					acc.set_nr(destacc)
+				sa.add(acc)
+				sa.commit()
+				cache.accounts[destacc] = acc
+				accounts.append(destacc)
+			else:
+				acc = cache.accounts[destacc]
 
 
 ### Transform cmd_ function names to nested dict
@@ -110,7 +145,7 @@ def get_opt(opts):
 		r[k] = v
 	return confparse.Values(r)
 
-def select_kwds(handler, settings, **override):
+def select_kwdargs(handler, settings, **override):
 
 	"""
 	Given a function and a dictionary, return arguments and keywords 
@@ -156,6 +191,10 @@ def main(opts):
 		return
 
 	settings = get_opt(opts)
+
+	if not re.match(r'^[a-z][a-z]*://', settings.dbref):
+		settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
+
 	for cmdid in commands.keys():
 		if not opts[cmdid]:
 			continue
@@ -165,11 +204,11 @@ def main(opts):
 				if not opts[subcmdid]:
 					continue
 				f = cmd[subcmdid]
-				args, kwds = select_kwds(f, settings, opts=opts)
+				args, kwds = select_kwdargs(f, settings, opts=opts)
 				ret = f(*args, **kwds)
 				if ret: return ret # non-zero exit
 		else:
-			args, kwds = select_kwds(cmd, settings, opts=opts)
+			args, kwds = select_kwdargs(cmd, settings, opts=opts)
 			ret = cmd(*args, **kwds)
 			if ret: return ret # non-zero exit
 

@@ -1,6 +1,7 @@
 """
 """
 import os
+import re
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime, Date, Float, \
@@ -23,6 +24,7 @@ class AccountBalance(SqlBase):
     account_id = Column(Integer, ForeignKey('accs.id'))
     balance = Column(Integer) # XXX: related ot blaance
 
+
 class Account(SqlBase):
     """
     """
@@ -30,14 +32,68 @@ class Account(SqlBase):
 
     account_id = Column('id', Integer, primary_key=True)
     balance = Column(Integer) # XXX: related ot blaance
-    account_name = Column(String)
+    name = Column(String)
     # classifiers? to match transactions    
-    account_number = Column(String, unique=True, nullable=True)
-    account_type = Column(String, nullable=False)
+    nl_p_number = Column(Integer, unique=True, nullable=True)
+    nl_number = Column(Integer, unique=True, nullable=True)
+    iban = Column(String, unique=True, nullable=True)
+
+    account_type = Column('type', String)
 
     def __str__(self):
-        return "[Account %r #%s %s]" % ( self.account_name, self.account_number,
+        return "[Account %r #%s %s]" % ( self.account_name, 
+                self.iban or self.nl_number or self.nl_p_number,
                 self.account_type)
+
+    def set_nr(self, account_number):
+        """
+        XXX only valid for dutch acc nrs.
+        """
+        if valid_nl_p_number(account_number):
+            self.nl_p_number = int(account_number[1:])
+        elif valid_nl_number(account_number):
+            self.nl_number = int(account_number)
+        elif valid_iban(account_number):
+            self.iban = account_number
+        else:
+            print 'Unknown account number:', account_number
+            return False
+
+    @classmethod
+    def find_for_nr(klass, session, account_number):
+        """
+        XXX only valid for dutch acc nrs.
+        """
+        if valid_nl_p_number(account_number):
+            acc_rs = session.query(Account)\
+                    .filter( Account.nl_p_number == int(account_number[1:]) ).all()
+            if not acc_rs:
+                acc_rs = session.query(Account)\
+                        .filter( Account.iban.like('%'+account_number[1:])).all()
+        elif valid_nl_number(account_number):
+            acc_rs = session.query(Account)\
+                .filter( Account.nl_number == int(account_number) ).all()
+            if not acc_rs:
+                acc_rs = session.query(Account)\
+                        .filter( Account.iban.like('%'+account_number) ).all()
+        elif valid_iban(account_number):
+            acc_rs = session.query(Account)\
+                .filter( Account.iban == account_number ).all()
+            if not acc_rs:
+                acc_rs = session.query(Account)\
+                        .filter( Account.nl_number ==
+                                int(account_number[-10:]) ).all()
+            if not acc_rs:
+                acc_rs = session.query(Account)\
+                        .filter( Account.nl_p_number ==
+                                int(account_number[-9:]) ).all()
+        else:
+            print 'Unknown account number:', account_number
+
+        if len(acc_rs) == 1:
+            return acc_rs[0]
+        else:
+            assert not acc_rs or len(acc_rs) == 0
 
 class Year(SqlBase):
     """
@@ -84,6 +140,17 @@ def get_session(dbref, initialize=False):
         print 'Updated myLedger schema'
     session = sessionmaker(bind=engine)()
     return session
+
+
+# TODO: lookup checksum methods for acc nrs
+def valid_iban(acc):
+    return re.match('^[A-Z]{2}[0-9]{2}[A-Z]{4}[0-9]{10}$', acc)
+
+def valid_nl_number(acc):
+    return re.match('^[0-9]{9,10}$', acc)
+
+def valid_nl_p_number(acc):
+    return re.match('^P[0-9]{7,9}$', acc)
 
 
 

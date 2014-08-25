@@ -126,6 +126,7 @@ def csv_reader(csvfile, fields, unique_fields=False, unique_records=True, opts=F
 					new = newnew
 		# yield if new (changed or unique) and everything if not tracking
 		if new or not seen:
+			# one last check to see wether we understood the input data
 			if destacc == '0000000000':
 				if cat == 'ba':
 					pass# betaalautomaat
@@ -141,7 +142,6 @@ def csv_reader(csvfile, fields, unique_fields=False, unique_records=True, opts=F
 					assert False, (destacc, destname, cat, row)
 			else:
 				assert cat in ('ma', 'ba', 'ga', 'cb', 'id', 'db', 'bg', 'ac', 'ei'), cat
-
 			vs = [ locals()[n] for n in fields ]
 			if unique_fields and seen:
 				vc = [ locals()[n] for n in unique_fields ]
