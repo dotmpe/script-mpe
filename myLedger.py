@@ -1,7 +1,6 @@
 """
 """
 import os
-import optparse
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime, Date, Float, \
@@ -87,35 +86,4 @@ def get_session(dbref, initialize=False):
     return session
 
 
-
-options_spec = (
-
-    (('-i', '--interactive'), {'help':
-        "", 'default': False, 'action': 'store_true' }),
-
-    (('-I', '--import'), {'help':
-        "", 'default': False, 'action': 'store_true' }),
-
-)
-
-def main(argv, stdout, stderr):
-    global conf
-    root = os.getcwd()
-
-    if not argv:
-        argv = ['-h']
-
-    prsr = optparse.OptionParser(usage=usage_descr)
-    for a,k in options_spec:
-        prsr.add_option(*a, **k)
-    opts, args = prsr.parse_args(argv)
-
-    #get_config()
-
-    
-
-
-if __name__ == '__main__':
-    import sys
-    sys.exit(main(sys.argv[1:], sys.stdout, sys.stderr))
 

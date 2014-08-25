@@ -1,0 +1,181 @@
+#!/usr/bin/env python
+"""
+budget - simple balance tracking accounting software.
+
+Usage:
+  budget [options] balance [commit|rollback]
+  budget [options] account ( list | add (<account>) | rm (<account>) )
+  budget [options] mutation ( list [<filter>] | import [-f] <file>... )
+  budget [options] db [init|reset]
+  budget -h|--help
+  budget --version
+
+Options:
+    -v            Increase verbosity.
+    -d REF --dbref=REF
+                  SQLAlchemy DB URL [default: sqlite:///~/.budget.sqlite].
+    --end-balance INT
+    --end-date DATE
+    --start-balance INT
+    --start-date DATE
+
+Other flags:
+    -h --help     Show this screen.
+    --version     Show version.
+
+"""
+from pprint import pformat
+import inspect
+
+from docopt import docopt
+
+import confparse
+from myLedger import SqlBase, metadata, get_session, \
+        AccountBalance, \
+        Account, \
+        Year, \
+        Month, \
+        Mutation
+from rabo2myLedger import \
+        print_gnu_cash_import_csv, \
+        print_sum_from_files
+
+
+__version__ = '0.0.0'
+
+
+def cmd_db_init(opts):
+	dbref = opts['--dbref']
+	get_session(dbref, True)
+
+def cmd_db_reset(opts):
+	print 'db-reset'
+
+def cmd_balance_commit(opts):
+	print 'balance-commit'
+
+def cmd_balance_rollback(opts):
+	print 'balance-rollback'
+
+def cmd_account_list(opts):
+	print 'account-list'
+
+def cmd_account_add(opts):
+	print 'account-add'
+
+def cmd_account_list(opts):
+	print 'account-list'
+
+def cmd_mutation_list(opts):
+	print 'mutation-list'
+
+def cmd_mutation_import(opts, settings):
+	print 'mutation-import', opts
+	#sa = get_session(settings.dbref)
+	#print_gnu_cash_import_csv(opts['file'], '\t', settings)
+	print_sum_from_files(settings, *opts['<file>'])
+
+
+
+### Transform cmd_ function names to nested dict
+
+n = None
+cmdids = [ ( n[4:].split('_'), globals()[n] )
+		for n in globals()
+		if n.startswith('cmd_') ]
+commands = {}
+for path, handler in cmdids:
+	_commands = commands
+	while path:
+		p = path.pop(0)
+		if path:
+			if p not in _commands:
+				_commands[p] = {}
+			_commands = _commands[p]
+	_commands[p] = handler
+del cmdids
+
+
+### Util functions to run above functions from cmdline
+
+def get_opt(opts):
+	"""
+	Given docopt dict, return optparse-like values object.
+	"""
+	r = {}
+	for k, v in opts.items():
+		if not k.startswith('-'):
+			continue
+		k = k.strip('-').replace('-', '_')
+		r[k] = v
+	return confparse.Values(r)
+
+def select_kwds(handler, settings, **override):
+
+	"""
+	Given a function and a dictionary, return arguments and keywords 
+	for function with values from dictionary.
+	"""
+
+	# get func signature
+	func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
+			inspect.getargspec(handler)
+	assert not func_args_var, "Arg. passthrough not supported"
+	assert not func_kwds_var, "Kwds. passthrough not supported"
+	# Make 'settings' accessible as a whole
+	override['settings'] = settings
+	# Set values for positional arguments
+	if not func_arg_vars:
+		func_arg_vars = []
+	for i, a in enumerate(func_arg_vars):
+		if a in override:
+			func_arg_vars[i] = override[a]
+		elif a in settings:
+			func_arg_vars[i] = settings[a]
+		else:
+			func_arg_vars[i] = None
+	# Set values for keywords arguments
+	if not func_defaults:
+		func_defaults = {}
+	for k, v in func_defaults.items():
+		if k in override:
+			func_defaults[k] = override[k]
+		elif k in settings:
+			func_defaults[k] = settings[k]
+
+	return func_arg_vars, func_defaults
+
+def main(opts):
+
+	"""
+	Execute command.
+	"""
+
+	if opts['--version']:
+		print 'budget/%s' % __version__
+		return
+
+	settings = get_opt(opts)
+	for cmdid in commands.keys():
+		if not opts[cmdid]:
+			continue
+		cmd = commands[cmdid]
+		if isinstance(cmd, dict):
+			for subcmdid in cmd.keys():
+				if not opts[subcmdid]:
+					continue
+				f = cmd[subcmdid]
+				args, kwds = select_kwds(f, settings, opts=opts)
+				ret = f(*args, **kwds)
+				if ret: return ret # non-zero exit
+		else:
+			args, kwds = select_kwds(cmd, settings, opts=opts)
+			ret = cmd(*args, **kwds)
+			if ret: return ret # non-zero exit
+
+
+if __name__ == '__main__':
+	import sys
+	opts = docopt(__doc__)
+	sys.exit(main(opts))
+
