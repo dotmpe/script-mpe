@@ -12,6 +12,7 @@ class Repo:
         if not uri:
             uri = self.__class__.get_reporef(path)
         self.uri = uri
+
     # Static
 
     repo_match = (
@@ -67,4 +68,34 @@ class Repo:
     @classmethod
     def get_reporef_Mercurial(klass, path): 
         pass
+
+    @classmethod
+    def walk(klass, path, bare=False, max_depth=-1):
+        # XXX: may rewrite to Dir.walk
+        """
+        Walk all files that may have a metafile, and notice any metafile(-like)
+        neighbors.
+        """
+        assert not bare, 'TODO'
+        for root, nodes, leafs in os.walk(path):
+            for node in list(nodes):
+                dirpath = os.path.join(root, node)
+                if not os.path.exists(dirpath):
+                    log.err("Error: reported non existant node %s", dirpath)
+                    nodes.remove(node)
+                    continue
+                depth = dirpath.replace(path,'').strip('/').count('/')
+                if Dir.ignored(dirpath):
+                    log.err("Ignored directory %r", dirpath)
+                    nodes.remove(node)
+                    continue
+                elif max_depth != -1:
+                    if depth >= max_depth:
+                        nodes.remove(node)
+                        continue
+                if klass.is_repo(dirpath):
+                    nodes.remove(node)
+                    yield dirpath
+
+
 

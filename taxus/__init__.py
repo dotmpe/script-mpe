@@ -189,6 +189,7 @@ from init import SqlBase
 from util import SessionMixin
 from core import *
 from net import *
+from code import *
 from fs import *
 from fslayout import *
 from model import Namespace, Relocated, Volume, Bookmark

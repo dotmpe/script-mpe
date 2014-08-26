@@ -4,10 +4,11 @@ budget - simple balance tracking accounting software.
 
 Usage:
   budget [options] balance [commit|rollback]
-  budget [options] mutation ( list [<filter>] | import [-f <format>] <file>... )
-  budget [options] account ( list | add (<account>) | update (<account>) )
+  budget [options] mutation ( list [ <id> | <filter> ] | import [-f <format>] <file>... )
+  budget [options] account ( list | [ ( add | show | update | rm ) <name> ] )
   budget [options] db (init|reset|stats)
   budget [options] change (list|update)
+  budget [account add] ( -p PROPERTY=VALUE )...
   budget -h|--help
   budget --version
 
@@ -18,10 +19,28 @@ Options:
     -f --input-format=FORMAT
                   Input format [default: csv].
     -y --yes
+
+Ranges/offsets:
     --end-balance INT
     --end-date DATE
     --start-balance INT
     --start-date DATE
+
+Properties:
+    -A --account=NAME-OR-ID
+    -M --mutation=NAME-OR-ID
+    -P --period=NAME-OR-ID
+
+    -p --props=NAME=VALUE
+    -n --name=NAME
+    -c --category=CAT
+    -a --amount=AMOUNT [default: 0.0]
+    -i --from-account=NAME-OR-ID
+    -o --to-account=NAME-OR-ID
+    -t --description=DESCRIPTION
+    -d --day=DAY-OF-MONTH
+    -m --month=MONTH-OF-YEAR
+    -y --year=YEAR
 
 Other flags:
     -h --help     Show this screen.
@@ -32,11 +51,11 @@ import os
 import re
 from datetime import datetime
 from pprint import pformat
-import inspect
 
 from sqlalchemy import func
 from docopt import docopt
 
+import util
 import confparse
 from myLedger import SqlBase, metadata, get_session, \
         AccountBalance, \
@@ -88,16 +107,33 @@ def cmd_db_reset(settings):
 	metadata.drop_all()
 	metadata.create_all()
 
+def cmd_account_show(settings):
+	sa = get_session(settings.dbref)
+	accid = int(opts['<name>'])
+	for acc in sa.query(Account).filter(Account.account_id==accid).all():
+		print "\t".join(map(str,(acc.account_id, acc.name, acc.iban)))
+
 def cmd_account_list(settings):
 	sa = get_session(settings.dbref)
 	for acc in sa.query(Account).all():
 		print "\t".join(map(str,(acc.account_id, acc.name)))
 
-def cmd_account_add(opts):
-	print 'account-add'
+def cmd_account_add(props, settings, name):
+	sa = get_session(settings.dbref)
+	acc = Account(name=name)
+	sa.add(acc)
+	sa.commit()
+	print "Added account", name
 
-def cmd_account_update(opts):
+def cmd_account_update(settings):
 	print 'account-update'
+
+def cmd_account_rm(settings, name):
+	sa = get_session(settings.dbref)
+	acc = sa.query(Account).filter(Account.name == name).one()
+	sa.delete(acc)
+	sa.commit()
+	print "Dropped account", name
 
 def cmd_change_list(settings):
 	"""
@@ -189,6 +225,18 @@ def cmd_mutation_import(opts, settings):
 			sa.add(mut)
 			sa.commit()
 
+def cmd_mutation_list(settings, opts):
+	sa = get_session(settings.dbref)
+	if opts['<id>']:
+		accid = int(opts['<id>'])
+		for m in sa.query(Mutation).filter(
+					Mutation.from_account == accid or
+					Mutation.to_account == accid
+				).all():
+			print m.mut_id, m.year, m.from_account, m.to_account, m.amount
+	else:
+		for m in sa.query(Mutation).all():
+			print m.mut_id, m.year, m.from_account, m.to_account, m.amount
 
 def cmd_balance_commit(opts):
 	print 'balance-commit'
@@ -199,77 +247,13 @@ def cmd_balance_commit(opts):
 def cmd_balance_rollback(opts):
 	print 'balance-rollback'
 
-def cmd_mutation_list(opts):
-	print 'mutation-list', opts
-
 
 ### Transform cmd_ function names to nested dict
 
-n = None
-cmdids = [ ( n[4:].split('_'), globals()[n] )
-		for n in globals()
-		if n.startswith('cmd_') ]
-commands = {}
-for path, handler in cmdids:
-	_commands = commands
-	while path:
-		p = path.pop(0)
-		if path:
-			if p not in _commands:
-				_commands[p] = {}
-			_commands = _commands[p]
-	_commands[p] = handler
-del cmdids
+commands = util.get_cmd_handlers(globals(), 'cmd_')
 
 
 ### Util functions to run above functions from cmdline
-
-def get_opt(opts):
-	"""
-	Given docopt dict, return optparse-like values object.
-	"""
-	r = {}
-	for k, v in opts.items():
-		if not k.startswith('-'):
-			continue
-		k = k.strip('-').replace('-', '_')
-		r[k] = v
-	return confparse.Values(r)
-
-def select_kwdargs(handler, settings, **override):
-
-	"""
-	Given a function and a dictionary, return arguments and keywords 
-	for function with values from dictionary.
-	"""
-
-	# get func signature
-	func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
-			inspect.getargspec(handler)
-	assert not func_args_var, "Arg. passthrough not supported"
-	assert not func_kwds_var, "Kwds. passthrough not supported"
-	# Make 'settings' accessible as a whole
-	override['settings'] = settings
-	# Set values for positional arguments
-	if not func_arg_vars:
-		func_arg_vars = []
-	for i, a in enumerate(func_arg_vars):
-		if a in override:
-			func_arg_vars[i] = override[a]
-		elif a in settings:
-			func_arg_vars[i] = settings[a]
-		else:
-			func_arg_vars[i] = None
-	# Set values for keywords arguments
-	if not func_defaults:
-		func_defaults = {}
-	for k, v in func_defaults.items():
-		if k in override:
-			func_defaults[k] = override[k]
-		elif k in settings:
-			func_defaults[k] = settings[k]
-
-	return func_arg_vars, func_defaults
 
 def main(opts):
 
@@ -281,27 +265,12 @@ def main(opts):
 		print 'budget/%s' % __version__
 		return
 
-	settings = get_opt(opts)
+	settings = util.get_opt(opts)
 
 	if not re.match(r'^[a-z][a-z]*://', settings.dbref):
 		settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
 
-	for cmdid in commands.keys():
-		if not opts[cmdid]:
-			continue
-		cmd = commands[cmdid]
-		if isinstance(cmd, dict):
-			for subcmdid in cmd.keys():
-				if not opts[subcmdid]:
-					continue
-				f = cmd[subcmdid]
-				args, kwds = select_kwdargs(f, settings, opts=opts)
-				ret = f(*args, **kwds)
-				if ret: return ret # non-zero exit
-		else:
-			args, kwds = select_kwdargs(cmd, settings, opts=opts)
-			ret = cmd(*args, **kwds)
-			if ret: return ret # non-zero exit
+	return util.run_commands(commands, settings, opts)
 
 
 if __name__ == '__main__':

@@ -11,18 +11,35 @@
 
     Bookmark
 
+:updated: 2014-08-26
+
+Usage:
+  bookmarks.py [options] db (init|reset|stats)
+  bookmarks.py [options] dlcs (parse|import|export)
+  bookmarks.py -h|--help
+  bookmarks.py --version
+
+Options:
+    -v            Increase verbosity.
+    -d REF --dbref=REF
+                  SQLAlchemy DB URL [default: ~/.bookmarks.sqlite].
+Other flags:
+    -h --help     Show this screen.
+    --version     Show version.
+
+
 """
 from datetime import datetime
 import os
+import re
 import hashlib
 
+from docopt import docopt
 import zope.interface
 import zope.component
-#from zope.component import \
-#        getGlobalSiteManager, \
-#        getUtility, queryUtility, createObject
 
 import log
+import util
 import libcmd
 import rsr
 import taxus.iface
@@ -30,9 +47,14 @@ import res.iface
 import res.js
 import res.bm
 
-from bookmarks_model import Host, Locator, Bookmark
+import bookmarks_model as model
+from bookmarks_model import Locator, Bookmark
 
 
+
+__version__ = '0.0.0'
+
+metadata = model.SqlBase.metadata
 
 
 class bookmarks(rsr.Rsr):
@@ -351,6 +373,58 @@ class bookmarks(rsr.Rsr):
 
 
 
+
+def cmd_db_init(settings):
+    """
+    Initialize if the database file doest not exists,
+    and update schema.
+    """
+    model.get_session(settings.dbref)
+    # XXX: update schema..
+    metadata.create_all()
+
+def cmd_db_stats(settings):
+    """
+    Print table record stats.
+    """
+    sa = model.get_session(settings.dbref)
+    for m in model.models:
+        print m.__name__, sa.query(m).count()
+
+def cmd_dlcs_import(opts, settings):
+    """
+    """
+
+
+### Transform cmd_ function names to nested dict
+
+commands = util.get_cmd_handlers(globals(), 'cmd_')
+
+
+### Util functions to run above functions from cmdline
+
+def main(opts):
+
+    """
+    Execute command.
+    """
+
+    if opts['--version']:
+        print 'bookmark/%s' % __version__
+        return
+
+    settings = util.get_opt(opts)
+
+    if not re.match(r'^[a-z][a-z]*://', settings.dbref):
+        settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
+
+    return util.run_commands(commands, settings, opts)
+
+
 if __name__ == '__main__':
-    bookmarks.main()
+    #bookmarks.main()
+    import sys
+    opts = docopt(__doc__)
+    sys.exit(main(opts))
+
 

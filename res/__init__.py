@@ -110,12 +110,12 @@ class Homedir(Workspace):
     projects = None # specialized workspace for projects..
 
 
-class Project(Workspace):
+class Projectdir(Workspace):
 
     DOTID = 'project'
 
 
-class Volume(Workspace):
+class Volumedir(Workspace):
 
     """
     A specific workspace used to distinguish media volumes (disk partitions,
@@ -136,47 +136,5 @@ class Volume(Workspace):
         else:
             path = ""
         return os.path.join(path, name)
-
-
-class Repo(object):
-
-    repo_match = (
-            ".git",
-            ".svn"
-        )
-
-    @classmethod
-    def is_repo(klass, path):
-        for n in klass.repo_match:
-            if os.path.exists(os.path.join(path, n)):
-                return True
-
-    @classmethod
-    def walk(klass, path, bare=False, max_depth=-1):
-        # XXX: may rewrite to Dir.walk
-        """
-        Walk all files that may have a metafile, and notice any metafile(-like)
-        neighbors.
-        """
-        assert not bare, 'TODO'
-        for root, nodes, leafs in os.walk(path):
-            for node in list(nodes):
-                dirpath = os.path.join(root, node)
-                if not os.path.exists(dirpath):
-                    log.err("Error: reported non existant node %s", dirpath)
-                    nodes.remove(node)
-                    continue
-                depth = dirpath.replace(path,'').strip('/').count('/')
-                if Dir.ignored(dirpath):
-                    log.err("Ignored directory %r", dirpath)
-                    nodes.remove(node)
-                    continue
-                elif max_depth != -1:
-                    if depth >= max_depth:
-                        nodes.remove(node)
-                        continue
-                if klass.is_repo(dirpath):
-                    nodes.remove(node)
-                    yield dirpath
 
 

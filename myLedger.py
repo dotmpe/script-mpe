@@ -1,7 +1,7 @@
 """
 
 TODO: categorize accounts.
-
+XXX: prolly rewrite year/month to generic period, perhaps scrap accbalances
 """
 import os
 import re
@@ -70,11 +70,11 @@ class Account(SqlBase):
         """
         acc_rs = session.query(Account).filter(
                 Account.account_type == account_type).filter(
-                Account.name == name).all()
+                Account.name == name.strip()).all()
         if acc_rs:
             acc = acc_rs[0]
         else:
-            acc = Account(name=name, account_type=account_type)
+            acc = Account(name=name.strip(), account_type=account_type)
             session.add(acc)
             session.commit()
         return acc
@@ -146,6 +146,7 @@ class Month(SqlBase):
     account_id = Column(Integer, ForeignKey('accs.id'), nullable=False)
     date = Column(Date)
     change = Column(Float)
+    transactions = Column(Integer)
     end_balance = Column(Float)
     prev_month = Column(Integer, ForeignKey('months.id'), nullable=True)
     next_month = Column(Integer, ForeignKey('months.id'), nullable=True)
@@ -155,7 +156,7 @@ class Mutation(SqlBase):
     Temporary? table to hold mutations.
     """
     __tablename__ = 'muts'
-    mut = Column('id', Integer, primary_key=True)
+    mut_id = Column('id', Integer, primary_key=True)
     year = Column(Integer, nullable=False)
     month = Column(Integer, nullable=False)
     day = Column(Integer, nullable=False)
@@ -165,12 +166,11 @@ class Mutation(SqlBase):
     description = Column(Text)
     amount = Column(Float)
 
+
 def get_session(dbref, initialize=False):
-    engine = create_engine(dbref)#, encoding='utf8')
-    #engine.raw_connection().connection.text_factory = unicode
+    engine = create_engine(dbref)
     SqlBase.metadata.bind = engine
     if initialize:
-        #log.info("Applying SQL DDL to DB %s ", dbref)
         SqlBase.metadata.create_all()  # issue DDL create 
         print 'Updated myLedger schema'
     session = sessionmaker(bind=engine)()
