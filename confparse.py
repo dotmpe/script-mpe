@@ -206,6 +206,20 @@ class Values(dict):
         self.__dict__['initialized'] = True
         #TODO:self.updated = False
 
+    def append(self, k, **default):
+        """
+        Set new subvalue property.
+        """
+        p = Values(default, root=self)
+        setattr(self, k, p)
+
+    def get(self, k, default={}):
+        if k not in self:
+            # FIXME: need a list values type?
+            if isinstance(default, dict):
+                self.append(k, **default)
+        return getattr(self, k)
+
     def initialize(self, key, value):
         if isinstance(value, dict):
             self[key] = self.__class__(value, root=self)
@@ -347,22 +361,30 @@ class Values(dict):
 
     def todict(self, deep=True):
         if deep:
-            return self.copy(True)
+            return self.copy(plain=True)
         else:
             c = dict()
             assert False
 
-    def copy(self, plain=False):
+    def copy(self, plain=False, prune=['volatile']):
         """
         Return deep copy dicts 'n lists copy.
-        XXX: lists can only nest twice
+        XXX: lists can only nest twice, has not needed recursion
         TODO: reimplement this as tree visitor
         """
         if plain:
             c = dict()
         else:
             c = self.__class__()
+        def _prune(k):
+            if k in prune:
+                return True
+            for p in prune:
+                if p in self:
+                    return k in getattr(self, p)
         for k in self:
+            if _prune(k):
+                continue
             if plain and hasattr(self[k], 'todict'):
                 c[k] = self[k].todict(True)
             elif hasattr(self[k], 'copy'):
@@ -431,30 +453,27 @@ class YAMLValues(Values):
     """
     Loads configuration settings from YAML file.
     """
-#    def __init__(self, path):
-#        ValueStorage.__init__(self, path)
 
     def commit(self, do_backup=True):
+
         """
         Save settings in nearest config module.
         """
-        print '!!! NO-op: commit', self
 
+        assert not self.__dict__['parent'], "TODO"
+        #self.root().commit()
+        print 'saving settings to',self.source
         mod = self.getsource()
-        #mod.copy(prune_mod=True)
-        #mod.commit()
-
-        ##if self.__dict__['parent']:
-        #    self.root().commit()
-        #else:
-        #    print 'saving to',self.source
-        #    #assert 'source_key' in self
-        #    #file = self[self['source_key']]
-        #    file = self.source;#__dict__[self.__dict__['source_key']]
-        #    if do_backup:
-        #        backup(file)
-        #    data = self.copy()
-        #    yaml_dump(data, open(file, 'a+'))
+        data = mod.copy(plain=True)
+        assert 'volatile' in self
+        assert 'volatile' not in data
+        assert 'config_file' not in data
+        #assert 'source_key' in self
+        #file = self[self['source_key']]
+        path = self.source;#__dict__[self.__dict__['source_key']]
+        if do_backup:
+            backup(path)
+        yaml_dump(data, open(path, 'a+'))
 
     @classmethod
     def load(cls, path):

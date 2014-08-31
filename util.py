@@ -39,7 +39,7 @@ def get_optvalues(opts):
             d = flags
         else:
             continue
-        if isinstance(v, basestring) and '=' in v[0]:
+        if isinstance(v, basestring) and v and '=' in v[0]:
             d[k] = confparse.Values({ })
             for a in v:
                 p, d = a.split('=')
@@ -138,13 +138,14 @@ def run_commands(commands, settings, opts):
         if isinstance(cmd, dict):
             subcmdid = cmds.pop(0)
             assert subcmdid in opts, \
-                    "Invalid docopts: subcommand %r not described (for command %r)" % (subcmdid, cmdid)
+                    "Invalid docopts: subcommand %r not described (for command %r)" % (
+                            subcmdid, cmdid)
             f = cmd[subcmdid]
-            args, kwds = select_kwdargs(f, settings, opts=opts)
+            args, kwds = select_kwdargs(f, settings, opts=opts, **opts.args)
             ret = f(*args, **kwds)
             if ret: return ret # non-zero exit
         else:
-            args, kwds = select_kwdargs(cmd, settings, opts=opts)
+            args, kwds = select_kwdargs(cmd, settings, opts=opts, **opts.args)
             ret = cmd(*args, **kwds)
             if ret: return ret # non-zero exit
 
@@ -165,6 +166,29 @@ def cmd_help():
                     cmd.__doc__.split('\n'))) or '..'
             print log.format_line("    {bwhite}%s{default}" % doc)
 
+def init_config(path, defaults={}, overrides={}, persist=[]):
 
+    """
+    Get settings from path. Use defaults to seed non-existant keys.
+    Overwrite using overrides. Persists allows to indicate which settings
+    are persisted. 
+    Any override key not in this list will be listed as volatile.
+    Normally persist equals defaults.keys.
+    """
+
+    settings = confparse.load_path(path)
+    if not persist:
+        persist = defaults.keys()
+    # FIXME: volatile/config_file handling should be in confparse
+    if 'volatile' not in settings:
+        defaults['volatile'] = ['config_file']
+    for k, v in defaults.items():
+        if k not in settings:
+            setattr(settings, k, v)
+    for k, v in overrides.items():
+        if k not in persist:
+            settings.volatile.append(k)
+        setattr(settings, k, v)
+    return settings
 
 

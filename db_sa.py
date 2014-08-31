@@ -4,14 +4,14 @@
 Use to intialize SQlite schema.
 
 Usage:
-  db.py [options] <schema> (show|init|reset|stats)
-  db.py help
+  db.py [options] (show|init|reset|stats) <schema>
   db.py info
+  db.py help
   db.py -h|--help
   db.py --version
 
 Options:
-    -v            Increase verbosity.
+    -y --yes
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: ~/.bookmarks.sqlite].
 Other flags:
@@ -33,7 +33,6 @@ import util
 
 
 
-
 __version__ = '0.0.0'
 
 # set in main
@@ -48,6 +47,18 @@ def cmd_init(settings):
     """
     schema.get_session(settings.dbref, metadata=metadata)
     # XXX: update schema..
+    metadata.create_all()
+
+def cmd_reset(settings):
+    """
+    Drop all tables and recreate schema.
+    """
+    schema.get_session(settings.dbref, metadata=metadata)
+    if not settings.yes:
+        x = raw_input("This will destroy all data? [yN] ")
+        if not x or x not in 'Yy':
+            return 1
+    metadata.drop_all()
     metadata.create_all()
 
 def cmd_stats(settings):
@@ -94,7 +105,7 @@ def main(opts):
     return util.run_commands(commands, settings, opts)
 
 def get_version():
-    return 'budget.mpe/%s' % __version__
+    return 'db_sa.mpe/%s' % __version__
 
 if __name__ == '__main__':
     #bookmarks.main()

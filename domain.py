@@ -76,15 +76,8 @@ node:
   pandora:
     - name: en0
       ether: 10:9a:dd:4c:d5:a8 
-    - name: en1
-      ether: c8:bc:c8:ed:be:c1 
   midway:
   brixmaster:
-  dotmpe: 109.72.86.5
-  brixcrm.com: 212.79.236.226
-  brixcrm.nl: 89.105.210.233
-  brixnet.nl: 89.105.204.141
-  oostereind: 83.119.152.57
 
 domain:
   brix:
@@ -133,7 +126,7 @@ import yaml
 import confparse
 
 
-config = confparse.expand_config_path('cllct.rc')
+config = confparse.expand_config_path('domain.rc')
 "Configuration filename."
 
 settings = confparse.load_path(*config)
@@ -468,6 +461,7 @@ def network_name(network_id):
         return "`%s <%s%s>`" % (network['name'], NS_NET, network_id)
     else:
         return "<%s%s>" % (NS_NET, network_id)
+
 
 def main():
     """
