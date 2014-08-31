@@ -167,6 +167,15 @@ class Mutation(SqlBase):
     amount = Column(Float)
 
 
+models = [
+        AccountBalance,
+        Account,
+        Year,
+        Month,
+        Mutation
+    ]
+
+
 def get_session(dbref, initialize=False):
     engine = create_engine(dbref)
     SqlBase.metadata.bind = engine

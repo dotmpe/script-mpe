@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
@@ -5,7 +7,7 @@ from sqlalchemy.orm import relationship, backref
 
 from script_mpe import lib
 from init import SqlBase
-from util import SessionMixin
+from util import current_hostname, SessionMixin
 import core
 import util
 import iface
@@ -21,9 +23,22 @@ class Host(core.Node):
     host_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
     @classmethod
-    def current(Klass, session):
+    def current(Klass, sa=None, session='default'):
         hostname_ = current_hostname()
-        return Klass.find((Klass.name == hostname_,))
+        return Klass.find((Klass.name == hostname_,), sa=sa, session=session)
+
+    @classmethod
+    def init(Klass, sa=None, session='default'):
+        host = Klass.current(sa=sa, session=session)
+        if host:
+            return host
+        if not sa:
+            sa = Klass.get_session(session=session)
+        hostname = current_hostname(initialize=True)
+        host = Klass(name = hostname, date_added=datetime.now())
+        sa.add(host)
+        sa.commit()
+        return host
 
     @property
     def netpath(self):

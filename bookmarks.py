@@ -14,7 +14,6 @@
 :updated: 2014-08-26
 
 Usage:
-  bookmarks.py [options] db (init|reset|stats)
   bookmarks.py [options] dlcs (parse|import|export)
   bookmarks.py -h|--help
   bookmarks.py --version
@@ -373,24 +372,6 @@ class bookmarks(rsr.Rsr):
 
 
 
-
-def cmd_db_init(settings):
-    """
-    Initialize if the database file doest not exists,
-    and update schema.
-    """
-    model.get_session(settings.dbref)
-    # XXX: update schema..
-    metadata.create_all()
-
-def cmd_db_stats(settings):
-    """
-    Print table record stats.
-    """
-    sa = model.get_session(settings.dbref)
-    for m in model.models:
-        print m.__name__, sa.query(m).count()
-
 def cmd_dlcs_import(opts, settings):
     """
     """
@@ -399,6 +380,7 @@ def cmd_dlcs_import(opts, settings):
 ### Transform cmd_ function names to nested dict
 
 commands = util.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = util.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -409,22 +391,21 @@ def main(opts):
     Execute command.
     """
 
-    if opts['--version']:
-        print 'bookmark/%s' % __version__
-        return
+    settings = opts.flags
 
-    settings = util.get_opt(opts)
-
+    # FIXME: share default dbref uri and path, also with other modules
     if not re.match(r'^[a-z][a-z]*://', settings.dbref):
         settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
 
     return util.run_commands(commands, settings, opts)
 
+def get_version():
+    return 'budget.mpe/%s' % __version__
 
 if __name__ == '__main__':
     #bookmarks.main()
     import sys
-    opts = docopt(__doc__)
+    opts = util.get_opts(__doc__, version=get_version())
     sys.exit(main(opts))
 
 

@@ -1,5 +1,7 @@
 import os
 
+from script_mpe import lib
+
 
 class Repo:
   

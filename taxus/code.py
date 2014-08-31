@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship, backref
 import core
 import net
 from init import SqlBase
+from util import SessionMixin
 
 
 
@@ -22,12 +23,12 @@ projects_vcs_table = Table('projects_vcs', SqlBase.metadata,
 )
 
 
-class VersionControl(SqlBase):#core.Node):
+class VersionControl(SqlBase, SessionMixin):#core.Node):
 
     __tablename__ = 'vcs'
     #__mapper_args__ = {'polymorphic_identity': 'vc'}
 
-    vc_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    vc_id = Column('id', Integer, primary_key=True)
 
     #vc_type_id = Column(Integer, ForeignKey('nodes.id'), nullable=False)
     #vc_type = relationship( core.Node, primaryjoin= vc_type_id==core.Node.node_id )

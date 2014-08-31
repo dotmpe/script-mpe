@@ -1,29 +1,52 @@
+import sys
 import inspect
 
+from docopt import docopt
+
 import confparse
+import log
 
 
 
-def get_opt(opts):
+def get_opts(docstr, version=None, argv=None):
+    """
+    Get docopt dict, and set argv and flags from get_optvalues.
+    """
+    if not argv:
+        argv = sys.argv[1:]
+    opts = docopt(docstr, argv, version=version)
+    assert not ( 'argv' in opts or 'flags' in opts or 'args' in opts),\
+            "Dont use 'argv', 'flags' or 'args'. "
+    opts.argv = argv
+    opts.flags, opts.args = get_optvalues(opts)
+    return opts
+
+def get_optvalues(opts):
 
     """
-    Given docopt dict, return optparse-like values object.
+    Given docopt dict, return 1). an optparse-like values object 
+    and (iow. with all short -o and long --opt) 
+    2). something similar for all <arguments>.
     """
 
-    r = {}
+    flags, args = {}, {}
     for k, v in opts.items():
-        if not k.startswith('-'):
+        if k[0]+k[-1] == '<>':
+            k = k.strip('<>').replace('-', '_')
+            d = args
+        elif k.startswith('-'):
+            k = k.lstrip('-').replace('-', '_')
+            d = flags
+        else:
             continue
-        k = k.strip('-').replace('-', '_')
-        # special case for properties
         if isinstance(v, basestring) and '=' in v[0]:
-            r[k] = confparse.Values({ })
+            d[k] = confparse.Values({ })
             for a in v:
                 p, d = a.split('=')
-                r[k][p] = d
+                flags[k][p] = d
         else:
-            r[k] = v
-    return confparse.Values(r)
+            d[k] = v
+    return confparse.Values(flags), confparse.Values(args)
 
 
 def select_kwdargs(handler, settings, **override):
@@ -90,33 +113,58 @@ def get_cmd_handlers(scope, prefix='cmd_'):
 def run_commands(commands, settings, opts):
 
     """
-    Run commands given at opts.
+    Take a nested dictionary with command names/handlers.
+    Run the first and most specific one that matches names in opts.
 
-    FIXME: the depth or level of commands in docopt is lost, 
-        therefore all commands including subcommands need unique names..
+    Uses select_kwdargs to determine function arguments from settings and opts.
     """
 
-    cmds = commands.keys()
+    cmds = {}
+    # get arg sequence from docopt dict
+    for opt in opts:
+        if opt.startswith('-') or opt[0]+opt[-1] == '<>':
+            continue
+        if opts[opt]:
+            i = opts.argv.index(opt)
+            cmds[i] = opt
+
+    cmds = cmds.values()
+
     while cmds:
-        cmdid = cmds.pop()
+        cmdid = cmds.pop(0)
         assert cmdid in opts, \
                 "Invalid docopts: command %r not described" % (cmdid)
-        if not opts[cmdid]:
-            continue
         cmd = commands[cmdid]
         if isinstance(cmd, dict):
-            for subcmdid in cmd.keys():
-                assert subcmdid in opts, \
-                        "Invalid docopts: subcommand %r not described (for command %r)" % (subcmdid, cmdid)
-                if not opts[subcmdid]:
-                    continue
-                f = cmd[subcmdid]
-                args, kwds = select_kwdargs(f, settings, opts=opts)
-                ret = f(*args, **kwds)
-                if ret: return ret # non-zero exit
+            subcmdid = cmds.pop(0)
+            assert subcmdid in opts, \
+                    "Invalid docopts: subcommand %r not described (for command %r)" % (subcmdid, cmdid)
+            f = cmd[subcmdid]
+            args, kwds = select_kwdargs(f, settings, opts=opts)
+            ret = f(*args, **kwds)
+            if ret: return ret # non-zero exit
         else:
             args, kwds = select_kwdargs(cmd, settings, opts=opts)
             ret = cmd(*args, **kwds)
             if ret: return ret # non-zero exit
-            print 'No result', cmds
+
+
+def cmd_help():
+    cmds = sys.modules['__main__'].commands
+    for c, cmd in cmds.items():
+        if isinstance(cmd, dict):
+            print log.format_line("{blue}%s{default}" % c)
+            for sc, scmd in cmd.items():
+                print log.format_line("  {bblue}%s{default}" % (sc))
+                doc = scmd.__doc__ and ' '.join(map(str.strip,
+                        scmd.__doc__.split('\n'))) or '..'
+                print log.format_line("    {bwhite}%s{default}" % doc)
+        else:
+            print log.format_line("{bblue}%s{default}" % c)
+            doc = cmd.__doc__ and ' '.join(map(str.strip,
+                    cmd.__doc__.split('\n'))) or '..'
+            print log.format_line("    {bwhite}%s{default}" % doc)
+
+
+
 

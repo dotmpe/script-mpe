@@ -108,6 +108,9 @@ def format_line(msg):
         msg = msg.replace('{%s}' % k, palette[k])
     return msg
 
+def std(msg, *args):
+    print format_line(msg % args)
+
 category = 4
 #category = 7
 strict = False

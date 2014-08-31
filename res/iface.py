@@ -5,7 +5,6 @@ Another reiteration of a previous unfinished implementation in taxus_out.
 """
 from zope.interface import Interface, Attribute, implements, classImplements
 
-import taxus.iface
 
 
 class ISimpleCommand(Interface):
@@ -102,10 +101,10 @@ class ILocalNodeService(Interface):
     # system paths/names/ids.
     """
 
-class IPyDict(taxus.iface.IPrimitive):
-    pass
+#class IPyDict(IPrimitive):
+#    pass
 
-classImplements(dict, IPyDict)
+#classImplements(dict, IPyDict)
 
 # See taxus.iface for adapters
 #registry = AdapterRegistry()

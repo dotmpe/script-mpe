@@ -1,7 +1,7 @@
 # XXX: Dont use cjson, its buggy, see comments at
 # http://pypi.python.org/pypi/python-cjson
 # use jsonlib or simplejson
-import log
+from script_mpe import log
 
 loads = None
 dumps = None

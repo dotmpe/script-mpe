@@ -63,11 +63,11 @@ class SessionMixin(object):
         return rs
 
     @classmethod
-    def find(self, filters=None, sa=None, session='default'):
+    def find(Klass, filters=None, sa=None, session='default'):
         """
         Return one or none.
         """
-        return self.fetch(filters, sa=sa, session=session, exists=False)
+        return Klass.fetch(filters, sa=sa, session=session, exists=False)
 
     @classmethod
     def byKey(Klass, key, sa=None, session='default', exists=False):

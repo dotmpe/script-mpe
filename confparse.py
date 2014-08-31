@@ -26,7 +26,7 @@ Consider:
 TODO: segment configuration into multiple files.
 """
 import collections
-import os, re, sys, types
+import os, re, sys, types, inspect
 from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
@@ -519,9 +519,10 @@ def init_config(name, paths=name_prefixes, default=None):
 
     return yaml(rcfile)
 
-def load_path(path, type=YAMLValues):
+def load_path(path, values_type=YAMLValues):
     global _paths, _
-    return getattr(type, 'load')(path)
+    assert inspect.isclass(values_type), values_type
+    return getattr(values_type, 'load')(path)
 
 def load(name, paths=path_prefixes):
     global _paths, _

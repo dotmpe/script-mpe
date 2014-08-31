@@ -5,7 +5,7 @@
 Usage:
   vc.py [options] db (init|reset|stats)
   vc.py [options] vc (find|info)
-  vc.py -h|--help
+  vc.py help|-h|--help
   vc.py --version
 
 Options:
@@ -90,27 +90,9 @@ class VC(rsr.Rsr):
         log.info('vc:repos done')
 
 
-
 ###
 
-
-
-def cmd_db_init(settings):
-    """
-    Initialize if the database file doest not exists,
-    and update schema.
-    """
-    model.get_session(settings.dbref)
-    # XXX: update schema..
-    metadata.create_all()
-
-def cmd_db_stats(settings):
-    """
-    Print table record stats.
-    """
-    sa = get_session(settings.dbref)
-    for m in [ Node, Topic ]:
-        print m.__name__, sa.query(m).count()
+models = [ Node, Topic ]
 
 def cmd_project_find(settings):
     sa = get_session(settings.dbref)
@@ -123,6 +105,7 @@ def cmd_project_info():
 ### Transform cmd_ function names to nested dict
 
 commands = util.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = util.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -133,23 +116,21 @@ def main(opts):
     Execute command.
     """
 
-    if opts['--version']:
-        print 'bookmark/%s' % __version__
-        return
+    settings = opts.flags
 
-    settings = util.get_opt(opts)
-
+    # FIXME: share default dbref uri and path, also with other modules
     if not re.match(r'^[a-z][a-z]*://', settings.dbref):
         settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
 
     return util.run_commands(commands, settings, opts)
 
+def get_version():
+    return 'vc.mpe/%s' % __version__
 
 if __name__ == '__main__':
     #VC.main()
-
     import sys
-    opts = docopt(__doc__)
+    opts = util.get_opts(__doc__, version=get_version())
     sys.exit(main(opts))
 
 
