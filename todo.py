@@ -6,6 +6,8 @@ Usage:
   todo.py [options] list
   todo.py [options] find <title>
   todo.py [options] (new|update <ID>) <title> [<description> <group>]
+  todo.py [options] done <ID>...
+  todo.py [options] reopened <ID>...
   todo.py [options] <ID> depends <ID2>
   todo.py [options] <ID> prerequisite <ID2>
   todo.py help
@@ -57,14 +59,14 @@ __version__ = '0.0.0'
 SqlBase = declarative_base()
 
 
-class Task(SqlBase, SessionMixin):
+class Task(core.Node):
 
     """
     """
 
     __tablename__ = 'tasks'
 
-    task_id = Column('id', Integer, primary_key=True)
+    task_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
     title = Column(String(255), unique=True)
     description = Column(Text, nullable=True)
@@ -145,6 +147,11 @@ def cmd_update(ID, title, description, group, opts, settings):
     # subtasks...
     pass
 
+def cmd_done(ID, settings):
+    print 'done', ID
+
+def cmd_reopened(ID, settings):
+    print 'reopen', ID
 
 ### Transform cmd_ function names to nested dict
 

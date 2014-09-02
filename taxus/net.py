@@ -14,13 +14,26 @@ import iface
 import checksum
 
 
-class Host(core.Node):
+class Domain(core.Node):
+
     """
     """
+
+    __tablename__ = 'domains'
+    __mapper_args__ = {'polymorphic_identity': 'domain'}
+
+    domain_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+
+
+class Host(Domain):
+
+    """
+    """
+
     __tablename__ = 'hosts'
     __mapper_args__ = {'polymorphic_identity': 'host'}
 
-    host_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    host_id = Column('id', Integer, ForeignKey('domains.id'), primary_key=True)
 
     @classmethod
     def current(Klass, sa=None, session='default'):
@@ -108,10 +121,6 @@ class Locator(core.ID):
     __mapper_args__ = {'polymorphic_identity': 'id_lctr'}
 
     lctr_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
-
-    date_added = Column(DateTime, index=True, nullable=False)
-    deleted = Column(Boolean, index=True, default=False)
-    date_deleted = Column(DateTime)
 
     ref_md5_id = Column(Integer, ForeignKey('chks_md5.id'))
     ref_md5 = relationship(checksum.MD5Digest, primaryjoin=ref_md5_id==checksum.MD5Digest.md5_id)

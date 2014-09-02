@@ -126,10 +126,12 @@ import yaml
 import confparse
 
 
-config = confparse.expand_config_path('domain.rc')
+config = list(confparse.expand_config_path('domain.rc'))
 "Configuration filename."
-
-settings = confparse.load_path(*config)
+assert config, "Missing domain.rc"
+if len(config)> 1:
+	print "XXX multiple rc", config
+settings = confparse.load_path(config[0])
 "Static, persisted settings."
 
 def reload():
@@ -234,6 +236,15 @@ def parse_ifconfig(ifconfig='/sbin/ifconfig'):
         return parse_ifconfig_linux(data)
     else:
         raise Exception
+
+def inet_ifaces():
+    """
+    Return network interfaces with inet specs.
+    """
+    for iface, spec in parse_ifconfig():
+        if 'inet' in spec:
+            mac = spec['mac']
+            yield iface, mac, spec
 
 def get_dest_info(addr):
     if sys.platform == 'darwin':

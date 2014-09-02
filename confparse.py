@@ -26,7 +26,7 @@ Consider:
 TODO: segment configuration into multiple files.
 """
 import collections
-import os, re, sys, types, inspect
+import os, inspect, re, shutil, sys, types
 from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
@@ -214,6 +214,10 @@ class Values(dict):
         setattr(self, k, p)
 
     def get(self, k, default={}):
+        """
+        Helper for getattr calls. 
+        XXX initializes defaults for dict only
+        """
         if k not in self:
             # FIXME: need a list values type?
             if isinstance(default, dict):
@@ -443,9 +447,9 @@ def backup(file):
     # Copy or move currentfile to suffixed
     #if not re.match('~[0-9]*', file):
     if os.path.islink(file):
-        os.rename(os.path.realpath(file), bup)
+        shutil.copy(os.path.realpath(file), bup)
     else:
-        os.rename(file, bup)
+        shutil.copy(file, bup)
 
 
 class YAMLValues(Values):
@@ -473,7 +477,7 @@ class YAMLValues(Values):
         path = self.source;#__dict__[self.__dict__['source_key']]
         if do_backup:
             backup(path)
-        yaml_dump(data, open(path, 'a+'))
+        yaml_dump(data, open(path, 'w+'))
 
     @classmethod
     def load(cls, path):
