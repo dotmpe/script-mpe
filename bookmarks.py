@@ -14,14 +14,28 @@
 :updated: 2014-08-26
 
 Usage:
-  bookmarks.py [options] dlcs (parse|import|export)
+  bookmarks.py [options] dlcs (parse|import FILE|export)
+  bookmarks.py [options] stats
+  bookmarks.py [options] (tag|href|domain) [NAME]
   bookmarks.py -h|--help
   bookmarks.py --version
 
 Options:
-    -v            Increase verbosity.
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: ~/.bookmarks.sqlite].
+    --tag-offset INT
+                  Set import frequency-offset to exclude certain one-to-many
+                  relations if the usage is below given value.
+                  This entirely depends on usage.
+                  0 means to import everything [default: -1]
+                  Defaults to hiFreq * 0.1. 
+    --domain-offset INT
+                  Typical --*-offset, see before.
+                  Defaults to avgFreq. [default: -1]
+    -s SESSION --session-name SESSION
+                  should be bookmarks [default: default].
+    -v            Increase verbosity.
+
 Other flags:
     -h --help     Show this screen.
     --version     Show version.
@@ -32,10 +46,11 @@ from datetime import datetime
 import os
 import re
 import hashlib
+from urlparse import urlparse
 
-from docopt import docopt
-import zope.interface
-import zope.component
+#import zope.interface
+#import zope.component
+from pydelicious import dlcs_parse_xml
 
 import log
 import util
@@ -45,15 +60,22 @@ import taxus.iface
 import res.iface
 import res.js
 import res.bm
+from taxus import init as model
+from taxus.init import SqlBase, get_session
+from taxus.core import Node, Name, Tag
+from taxus.net import Locator, Domain
 
-import bookmarks_model as model
-from bookmarks_model import Locator, Bookmark
+models = [Locator, Tag, Domain ]
+
+#import bookmarks_model as model
+#from bookmarks_model import Locator, Bookmark
 
 
 
 __version__ = '0.0.0'
 
-metadata = model.SqlBase.metadata
+# were all SQL schema is kept. bound to engine on get_session
+SqlBase = model.SqlBase
 
 
 class bookmarks(rsr.Rsr):
@@ -209,8 +231,8 @@ class bookmarks(rsr.Rsr):
                             extended=ext,
                             public=public,
                             tags=tags,
-                            date_added=datetime.now()
                         )
+                    bm.init_defaults()
             if bm:
                 assert bm.ref
                 yield dict( bm=bm )
@@ -374,8 +396,153 @@ class bookmarks(rsr.Rsr):
 
 def cmd_dlcs_import(opts, settings):
     """
+    TODO: built into generic import/export (ie. complete set)  so heuristics can
+        update all stats each import.. or find some way to fragment dataset.
     """
+    importFile = opts.args.FILE
+    data = dlcs_parse_xml(open(importFile).read())
+    sa = Locator.get_session('default', opts.flags.dbref)
+    #sa = model.get_session(opts.flags.dbref, metadata=SqlBase.metadata)
+    tags_stat = {}
+    domains_stat = {}
+    # first pass: validate, track stats and create Locator records where missing
+    for post in data['posts']:
+        href = post['href']
+        lctr = Locator.find((Locator.ref == href,))
+# validate URL
+        url = urlparse(href)
+        domain = url[1]
+        if not domain:
+            log.std("Ignored non-net URIRef: %s", href)
+            continue
+        assert re.match('[a-z0-9]+(\.[a-z0-9]+)*', domain), domain
+# get/init Locator
+        if not lctr:
+            lctr = Locator(
+                    global_id=href,
+                    ref=href)
+            lctr.init_defaults()
+            log.std("new: %s", lctr)
+            sa.add(lctr)
+# track domain frequency
+        if domain in domains_stat:
+            domains_stat[domain] += 1
+        else:
+            domains_stat[domain] = 1
+# track tag frequency
+        for tag in post['tag'].split(' '):
+            if tag in tags_stat:
+                tags_stat[tag] += 1
+            else:
+                tags_stat[tag] = 1
+    log.std("Checked %i locator references", len(data['posts']))
+    sa.commit()
+# Prepare domain stats
+    avgDomainFreq = sum(domains_stat.values())/(len(domains_stat)*1.0)
+    hiDomainFreq = max(domains_stat.values())
+    log.std("Found domain usage (max/avg): %i/%i", hiDomainFreq, avgDomainFreq)
+    domains = 0
+    domainOffset = int(opts.flags.domain_offset)
+    if domainOffset == 0:
+        domainOffset = hiFreq
+    elif domainOffset == -1:
+        domainOffset = round(hiDomainFreq * 0.2)
+    log.std("Setting domain-offset: %i", domainOffset)
+# get/init Domains
+    for domain in domains_stat:
+        freq = domains_stat[domain]
+        if freq >= domainOffset:
+            domains += 1
+            domain_record = Domain.find((Domain.name == domain,))
+            if not domain_record:
+                domain_record = Domain(name=domain)
+                domain_record.init_defaults()
+                sa.add(domain_record)
+    sa.commit()
+    log.std("Checked %i domains", len(domains_stat))
+    log.std("Tracking %i domains", domains)
+# Prepare tag stats
+    avgFreq = sum(tags_stat.values())/(len(tags_stat)*1.0)
+    hiFreq = max(tags_stat.values())
+    log.std("Found tag usage (max/avg): %i/%i", hiFreq, avgFreq)
+    tagOffset = int(opts.flags.tag_offset)
+    if tagOffset == 0:
+        tagOffset = hiFreq
+    elif tagOffset == -1:
+        tagOffset = round(hiFreq * 0.1)
+    log.std("Setting tag-offset: %i", tagOffset)
+# get/init Tags
+    tags = 0
+    for tag in tags_stat:
+        freq = tags_stat[tag]
+        if not re.match('[A-Za-z0-9-]+', tag):
+            log.std("Non ascii tag %s", tag)
+        if freq >= tagOffset:
+            tags += 1
+            t = Tag.find((Tag.name == tag,))
+            if not t:
+                t = Tag(name=tag)
+                t.init_defaults()
+                log.std("new: %s", t)
+                sa.add(t)
+            # store frequencies
+            # TODO tags_freq
+    log.std("Checked %i tags", len(tags_stat))
+    log.std("Tracking %i tags", tags)
+    sa.commit()
+    return
+    for post in data['posts']:
+        lctr = Locator.find((Locator.ref == post['href'],))
+        for tag in post['tag'].split(' '):
+            if tags_stat[tag] > x:
+                x = tags_stat[x]
+            if tag in tags_stat:
+                tags_stat[tag] += 1
+            else:
+                tags_stat[tag] = 1
 
+def cmd_stats(settings):
+    sa = get_session(settings.dbref)
+    for stat, label in (
+                (sa.query(Locator).count(), "Number of URLs: %s"),
+                #(sa.query(Bookmark).count(), "Number of bookmarks: %s"),
+                (sa.query(Domain).count(), "Number of domains: %s"),
+                (sa.query(Tag).count(), "Number of tags: %s"),
+            ):
+        log.std(label, stat)
+
+def cmd_href(NAME, settings):
+    sa = Locator.get_session(settings.session_name, settings.dbref)
+    if NAME:
+        rs = Locator.search(ref=NAME)
+    else:
+        rs = Locator.all()
+    if not rs:
+        log.std("Nothing")
+    for r in rs:
+        print r.ref
+
+def cmd_tag(NAME, settings):
+    sa = Tag.get_session(settings.session_name, settings.dbref)
+    if NAME:
+        rs = Tag.search(name=NAME)
+    else:
+        rs = Tag.all()
+    if not rs:
+        log.std("Nothing")
+    for r in rs:
+        print r.name
+
+def cmd_domain(NAME, settings):
+    sa = Domain.get_session(settings.session_name, settings.dbref)
+    if NAME:
+        rs = Domain.search(name=NAME)
+    else:
+        rs = Domain.all()
+    if not rs:
+        log.std("Nothing")
+    for r in rs:
+        print r.name
 
 ### Transform cmd_ function names to nested dict
 
@@ -400,7 +567,7 @@ def main(opts):
     return util.run_commands(commands, settings, opts)
 
 def get_version():
-    return 'budget.mpe/%s' % __version__
+    return 'bookmarks.mpe/%s' % __version__
 
 if __name__ == '__main__':
     #bookmarks.main()

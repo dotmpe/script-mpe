@@ -1,6 +1,8 @@
 """
 Docs are in __init__
 """
+from datetime import datetime
+
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
@@ -37,7 +39,7 @@ class Node(SqlBase, SessionMixin):
     __tablename__ = 'nodes'
     node_id = Column('id', Integer, primary_key=True)
 
-    ntype = Column(String(50), nullable=False)
+    ntype = Column(String(36), nullable=False)
     __mapper_args__ = {'polymorphic_on': ntype,
             'polymorphic_identity': 'node'}
     
@@ -48,8 +50,15 @@ class Node(SqlBase, SessionMixin):
     #space = relationship('Node', backref='children', remote_side='Node.id')
     
     date_added = Column(DateTime, index=True, nullable=False)
+    last_updated = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
+
+    def init_defaults(self):
+        if not self.date_added:
+            self.last_updated = self.date_added = datetime.now()
+        elif not self.last_updated:
+            self.last_updated = datetime.now()
 
     def __repr__(self):
         return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.name)
@@ -151,13 +160,17 @@ class Tag(Name):
     __mapper_args__ = {'polymorphic_identity': 'tag'}
 
     tag_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
-
     #name = Column(String(255), unique=True, nullable=True)
     #sid = Column(String(255), nullable=True)
     # XXX: perhaps add separate table for Tag.namespace attribute
 #    namespaces = relationship('Namespace', secondary=tag_namespace_table,
 #        backref='tags')
 
+tags_freq = Table('names_tags_stat', SqlBase.metadata,
+        Column('tag_id', ForeignKey('names_tag.id'), primary_key=True),
+        Column('node_type', String(36), primary_key=True),
+        Column('frequency', Integer)
+)
 
 class Topic(Tag):
     """

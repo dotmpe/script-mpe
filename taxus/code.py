@@ -44,7 +44,7 @@ class VersionControl(SqlBase, SessionMixin):#core.Node):
     path = Column(String(255), nullable=False)
 
 
-class Project(SqlBase):
+class Project(SqlBase, SessionMixin):
 
     __tablename__ = 'projects'
 

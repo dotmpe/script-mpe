@@ -4,8 +4,7 @@
 Use to intialize SQlite schema.
 
 Usage:
-  db.py [options] (show|init|reset|stats) <schema>
-  db.py info
+  db.py [options] (info|show|init|reset|stats) <schema>
   db.py help
   db.py -h|--help
   db.py --version
@@ -14,6 +13,9 @@ Options:
     -y --yes
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: ~/.bookmarks.sqlite].
+    --all-tables  For stats, show record count for all tables in metadata,
+                  not just current models.
+
 Other flags:
     -h --help     Show this screen.
     --version     Show version.
@@ -24,7 +26,6 @@ import os
 import re
 import hashlib
 
-from docopt import docopt
 import zope.interface
 import zope.component
 
@@ -54,6 +55,7 @@ def cmd_reset(settings):
     Drop all tables and recreate schema.
     """
     schema.get_session(settings.dbref, metadata=metadata)
+    print "Tables in schema:", ", ".join(metadata.tables.keys())
     if not settings.yes:
         x = raw_input("This will destroy all data? [yN] ")
         if not x or x not in 'Yy':
@@ -61,18 +63,30 @@ def cmd_reset(settings):
     metadata.drop_all()
     metadata.create_all()
 
-def cmd_stats(settings):
+def cmd_stats(settings, opts):
     """
     Print table record stats.
     """
     sa = schema.get_session(settings.dbref, metadata=metadata)
-    for m in schema.models:
-        log.std("{blue}%s{default}: {bwhite}%s{default}", 
-                m.__name__, sa.query(m).count())
+    if opts.flags.all_tables:
+        for t in metadata.tables:
+            try:
+                log.std("{blue}%s{default}: {bwhite}%s{default}", 
+                        t, sa.query(metadata.tables[t].count()).all()[0][0])
+            except Exception, e:
+                log.err("Count failed for %s: %s", t, e)
+    else:
+        for m in schema.models:
+            try:
+                log.std("{blue}%s{default}: {bwhite}%s{default}", 
+                        m.__name__, sa.query(m).count())
+            except Exception, e:
+                log.err("Count failed for %s: %s", t, e)
 
 def cmd_info(settings):
     for l, v in (
-            ( 'DBRef', settings.dbref),
+            ( 'DBRef', settings.dbref ),
+            ( "Tables in schema", ", ".join(metadata.tables.keys()) ),
     ):
         log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
 

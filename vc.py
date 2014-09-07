@@ -3,13 +3,14 @@
 :updated: 2014-08-26
 
 Usage:
-  vc.py [options] db (init|reset|stats)
-  vc.py [options] vc (find|info)
+  vc.py [options] (find|info)
   vc.py help|-h|--help
   vc.py --version
 
 Options:
     -v            Increase verbosity.
+    -c RC --config=RC
+                  Use config file to load settings [default: ~/.vc.rc]
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: ~/.vc.sqlite].
     -p --props=NAME=VALUE
@@ -94,12 +95,12 @@ class VC(rsr.Rsr):
 
 models = [ Node, Topic ]
 
-def cmd_project_find(settings):
+def cmd_find(settings):
     sa = get_session(settings.dbref)
-    #project = Project.find()
+    #= Project.find()
 
-def cmd_project_info():
-    print 'project-info'
+def cmd_info():
+    print 'info'
 
 
 ### Transform cmd_ function names to nested dict
@@ -116,7 +117,10 @@ def main(opts):
     Execute command.
     """
 
-    settings = opts.flags
+    opts.flags.configPath = os.path.expanduser(opts.flags.config)
+    settings = util.init_config(opts.flags.configPath, dict(
+            nodes = {}, interfaces = {}, domain = {}
+        ), opts.flags)
 
     # FIXME: share default dbref uri and path, also with other modules
     if not re.match(r'^[a-z][a-z]*://', settings.dbref):
@@ -132,7 +136,6 @@ if __name__ == '__main__':
     import sys
     opts = util.get_opts(__doc__, version=get_version())
     sys.exit(main(opts))
-
 
 
 

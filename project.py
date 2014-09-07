@@ -34,6 +34,7 @@ from datetime import datetime
 
 import rsr
 import util
+import log
 from util import cmd_help
 from taxus import Node, Topic, Host, Project, VersionControl
 from taxus.init import SqlBase, get_session
@@ -82,29 +83,40 @@ def cmd_find(settings):
     print project
 
 def cmd_info(settings):
-    sa = get_session(settings.dbref)
+    sa = Project.get_session('default', settings.dbref)
+    #sa = get_session(settings.dbref)
     pwd = os.getcwd()
     name = os.path.basename(pwd)
     projdir = Projectdir.find(pwd)
     if not projdir:
         print "Not in a projectdir!"
-    rs = sa.query(Project).filter(Project.name == name).all()
+    rs = Project.search(_sa=sa, name=name)
     if not rs:
         print "No project found for %r" % name
         return 1
     proj=rs[0]
-    print proj.name, proj.hosts, proj.repositories[0].vc_type, proj.date_added
+    try:
+        hosts = proj.hosts
+    except Exception, e:
+        print settings.dbref, Project.metadata.bind
+        log.std("Error proj.hosts %s", e)
+        hosts = []
+    print proj.name, hosts, proj.repositories[0].vc_type, proj.date_added
 
 def cmd_init(settings):
-    sa = get_session(settings.dbref)
+    Project.get_session('default', settings.dbref)
+    #sa = get_session(settings.dbref)
+
     pwd = os.getcwd()
     name = os.path.basename(pwd)
     projdir = Projectdir.find(pwd)
+    rs = Project.search(name=name)
     if projdir:
+        if not rs:
+        	pass
         print "Already in existing project!"
         print projdir[0]
         return 1
-    rs = sa.query(Project).filter(Project.name == name).all()
     if rs:
         print "Project with this name already exists"
         return 1
@@ -150,6 +162,8 @@ def main(opts):
     # FIXME: share default dbref uri and path, also with other modules
     if not re.match(r'^[a-z][a-z]*://', settings.dbref):
         settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
+
+    opts.default = 'info'
 
     return util.run_commands(commands, settings, opts)
 

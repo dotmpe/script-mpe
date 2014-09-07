@@ -4,15 +4,20 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 
 from taxus.util import SessionMixin
 
+#from taxus import core
+#from taxus.init import SqlBase
+#from taxus.core import Node, Name, Tag
 
-SqlBase = declarative_base()
+#SqlBase = declarative_base()
 
-def get_session(dbref, initialize=False):
+def get_session(dbref, initialize=False, metadata=None):
     engine = create_engine(dbref)
-    SqlBase.metadata.bind = engine
+    if not metadata:
+        metadata = SqlBase.metadata
+    metadata.bind = engine
     if initialize:
         log.info("Applying SQL DDL to DB %s..", dbref)
-        SqlBase.metadata.create_all()  # issue DDL create 
+        metadata.create_all()  # issue DDL create 
         log.note('Updated schema for %s to %s', dbref, 'X')
     session = sessionmaker(bind=engine)()
     return session
@@ -21,7 +26,7 @@ def get_session(dbref, initialize=False):
 class Domain(SqlBase, SessionMixin):
     __tablename__ = 'domains'
 
-    host_id = Column('id', Integer, primary_key=True)
+    domain_id = Column('id', Integer, primary_key=True)
 
     name = Column(String(255), nullable=False, index=True, unique=True)
 
@@ -76,6 +81,7 @@ class Bookmark(SqlBase, SessionMixin):
     "Private or public. "
     tags = Column(Text(10240))
     "Comma-separated list of all tags. "
+
 
 
 models = [ 

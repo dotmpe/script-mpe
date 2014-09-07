@@ -3,14 +3,24 @@
 
 Establish host ID, and track network interfaces, hostnames and last IP address.
 
-There is a settings schema established to record the data on-disk. 
+There is a schema to record the data on-disk. 
+The specs below [help settings] explain what entities are kept.
 
+The main current functions of domain.py are:
+
+1. initializing and detecting the local host ID
+   and its properties (interfaces, last IP, full hostname etc)
+2. configuring for the current network, based on the gateway ID. 
+   Ie. set an SSH key, or other config file, update hosts entries.
+
+TODO: fully initialize settings for host without editing config by hand
 TODO: should record network domain names, use this with ifaces.
 FQDN are not used really, except to put the last known network/IP.
 """
 __usage__ = """
 Usage:
-  domain.py [options] info
+  domain.py [options] info [<domain>]
+  domain.py [options] update [<domain>]
   domain.py ipforhost <host>
   domain.py net ([info]|set <name>)
   domain.py detect
@@ -61,6 +71,7 @@ import log
 import util
 import res
 import domain
+import domain as domainmod
 
 from taxus.init import SqlBase, get_session
 from taxus.net import Host
@@ -104,7 +115,6 @@ def get_network(settings, net, init=False):
     n = settings.networks
     while dparts:
         p = dparts.pop(0)
-        print p, n
         n = n[p]
         #XXX n = n.get(p, init)
     return n
@@ -139,7 +149,7 @@ def init_host(settings):
         host = get_current_host(settings)
         log.std("{bwhite}Found host, {green}%s {default}<{bblack}%s{default}>",
             host['name'], host['unid'])
-    #return host
+    return host
 
 def init_domain(settings):
     """
@@ -159,11 +169,25 @@ def init_domain(settings):
     d = get_domain(settings, domain, True)
     return user, d
 
-def cmd_info(domain, settings):
+
+### Commands
+
+def cmd_info(settings):
 
     """
-    Print IP's for interfaces on domain.
-    Initialize current host, creating host ID if not present yet and record
+    """
+
+    host = init_host(settings)
+    print host.net.name
+
+    print 'Domain', domain
+
+
+def cmd_update(settings):
+
+    """
+    Initialize current host, creating host ID 
+    if not present yet and record
     hosts interfaces.
     Then determine the current domain, and record current iface IP's.
     Commit data if needed.
@@ -171,22 +195,37 @@ def cmd_info(domain, settings):
 
     # read host ID file or record node/ifaces
     host = init_host(settings)
+    print 'host', host.path()
+
+    gateway, mac, gateway_addr = get_gateway(settings)
+
+    net = get_network(settings, gateway.domain)
 
     # read SSH pubkey user domain
-    user, domain = init_domain(settings)
+    #user, domain = init_domain(settings)
+    print 'domain', net.path()
 
-    print domain.path()
-
+    # update host IP's, and update network
     updated = False
-    for iface, mac, spec in inet_ifaces():
+    for iface, mac, spec in domainmod.inet_ifaces():
         ip = spec['inet']['ip']
         iface_type = settings.interfaces[mac].type
-        if iface not in domain:
-            domain.get(iface_type, dict(ip=None))
-        if domain[iface_type].ip != ip:
-            domain[iface_type].ip = ip
+        print '\t', iface_type, ip
+        # Keep IP on host
+        net_host = host.get('net')
+        if iface_type not in net_host:
+            net_host.get(iface_type, dict(ip=None))
+        if net_host[iface_type].ip != ip:
+            net_host[iface_type].ip = ip
             updated = True
-        print '\t', iface, ip
+        # Track the current network
+        fulldomain = net.get(host.name)
+        if iface_type not in fulldomain:
+            fulldomain.get(iface_type, dict(ip=None))
+        if fulldomain[iface_type].ip != ip:
+            fulldomain[iface_type].ip = ip
+            updated = True
+
     if updated:
         settings.commit()
 
@@ -207,19 +246,12 @@ def cmd_net_info(name, settings):
     for host in sa.query(Host).all():
         print host
 
-def cmd_net_set(name, settings):
-    """
-    """
-    h = socket.gethostname()
-    print h
-    d = get_domain(settings, h)
-    print d, d.keys()
-    n = get_network(settings, 'net.wylnd.tp-1')
-    print n, n.keys(), n.links.wifi, n.links.ethernet
-    print get_current_host(settings)
-    print get_default_route()
-
 def cmd_detect(settings):
+    """
+    """
+    host = get_current_host(settings)
+
+def cmd_olddetect(settings):
     """
     Set host net domain name.
     Detect network using link
@@ -228,8 +260,12 @@ def cmd_detect(settings):
     """
     gateway, mac, gateway_addr = get_gateway(settings)
     host = get_current_host(settings)
+
     for iface in host.interfaces:
         iface_type = settings.interfaces[iface].type
+        if iface_type not in gateway.suffix:
+            raise Exception("Node %s interface for gateway %s" % (
+                iface_type, gateway))
         net = gateway.suffix[iface_type]
         s = net.split('.')
         s.reverse()

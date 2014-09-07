@@ -55,7 +55,8 @@ class SessionMixin(object):
         rs = None
         try:
             rs = sa.query(Klass)\
-                .filter(*filters).one()
+                .filter(*filters)\
+                .one()
         except NoResultFound, e:
             if exists:
                 log.err("No results for %s.fetch(%r)", Klass.__name__, filters)
@@ -75,14 +76,14 @@ class SessionMixin(object):
                 getattr( Klass, a ) == key[a]
                 for a in key
             ] )
-        return self.fetch(filters, sa=sa, session=session, exists=exists)
+        return Klass.fetch(filters, sa=sa, session=session, exists=exists)
 
     @classmethod
     def byName(Klass, name=None, sa=None, session='default', exists=False):
         """
         Return one or none.
         """
-        return self.fetch((Klass.name == name,), sa=sa, session=session,
+        return Klass.fetch((Klass.name == name,), sa=sa, session=session,
                 exists=exists)
 
     @classmethod
@@ -93,12 +94,21 @@ class SessionMixin(object):
         return self.exists(self.key())
 
     @classmethod
-    def search(Klass, name=None):
-        if name:
-            rs = sa.query(Klass)\
-                    .filter(Klass.name.like("%%%s%%" % name))\
-                    .all()
-            return rs
+    def all(Klass, filters=None, sa=None, session='default'):
+        if not sa:
+            sa = Klass.get_session(session)
+        q = sa.query(Klass)
+        if filters:
+            for f in filters:
+                q = q.filter(f)
+        return q.all()
+
+    @classmethod
+    def search(Klass, _sa=None, _session='default', **keys):
+        filters = []
+        for k in keys:
+            filters.append(getattr(Klass, k).like("%%%s%%" % keys[k]))
+        return Klass.all(filters=tuple(filters), sa=_sa, session=_session)
 
     def taxus_id(self):
         """

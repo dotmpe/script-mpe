@@ -37,6 +37,8 @@ def get_optvalues(opts):
         elif k.startswith('-'):
             k = k.lstrip('-').replace('-', '_')
             d = flags
+        elif k.isupper():
+            d = args
         else:
             continue
         if isinstance(v, basestring) and v and '=' in v[0]:
@@ -122,7 +124,8 @@ def run_commands(commands, settings, opts):
     cmds = {}
     # get arg sequence from docopt dict
     for opt in opts:
-        if opt.startswith('-') or opt[0]+opt[-1] == '<>':
+        # skip options and 'named' arguments
+        if opt.startswith('-') or opt[0]+opt[-1] == '<>' or opt.isupper():
             continue
         if opts[opt]:
             i = opts.argv.index(opt)

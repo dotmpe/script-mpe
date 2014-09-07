@@ -44,6 +44,7 @@ import hashlib
 
 import log
 import util
+from taxus import Node
 from taxus.util import SessionMixin, get_session
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, create_engine
@@ -59,7 +60,7 @@ __version__ = '0.0.0'
 SqlBase = declarative_base()
 
 
-class Task(core.Node):
+class Task(SqlBase, Session):#Node):
 
     """
     """
