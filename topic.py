@@ -51,7 +51,7 @@ def cmd_info(settings):
 def cmd_list(settings):
     sa = Topic.get_session('default', settings.dbref)
     for t in Topic.all():
-        print t
+        print t, t.date_added, t.last_updated
 
 def cmd_new(NAME, REF, settings):
     sa = Topic.get_session('default', settings.dbref)

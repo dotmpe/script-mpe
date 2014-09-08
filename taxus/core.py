@@ -60,6 +60,12 @@ class Node(SqlBase, SessionMixin):
         elif not self.last_updated:
             self.last_updated = datetime.now()
 
+    @classmethod
+    def default_filters(Klass):
+        return (
+            ( Klass.deleted == False ),
+        )
+
     def __repr__(self):
         return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.name)
 

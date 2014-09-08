@@ -1,5 +1,6 @@
 import os
 import socket
+import types
 
 import zope.interface
 from sqlalchemy.orm.exc import NoResultFound
@@ -105,6 +106,9 @@ class SessionMixin(object):
         if not sa:
             sa = Klass.get_session(session)
         q = sa.query(Klass)
+        if not filters and isinstance(filters, types.NoneType):
+            if hasattr(Klass, 'default_filters'):
+                filters = Klass.default_filters()
         if filters:
             for f in filters:
                 q = q.filter(f)
