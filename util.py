@@ -132,7 +132,7 @@ def run_commands(commands, settings, opts):
             cmds[i] = opt
 
     cmds = cmds.values()
-    
+
     if not cmds:
         cmds = [opts.default]
 

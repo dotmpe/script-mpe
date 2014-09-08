@@ -1,6 +1,10 @@
 #!/usr/bin/env python
-"""
+"""project - 
 :updated: 2014-08-26
+"""
+__version__ = '0.0.0'
+__db__ = '~/.taxus-code.sqlite'
+__usage__ = """
 
 Usage:
   project.py [options] ( find <ref>... 
@@ -18,16 +22,16 @@ TODO: <ref> would be an ID, name or path of a project
 Options:
     -v            Increase verbosity.
     -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: ~/.taxus-code.sqlite].
+                  SQLAlchemy DB URL [default: %s]
     -p --props=NAME=VALUE
                   Give additional properties for new records or record updates.
     -y --yes      Force questions asked to yes.
 
 Other flags:
     -h --help     Show this screen.
-    --version     Show version.
+    --version     Show version (%s).
 
-"""
+""" % ( __db__, __version__ )
 import os
 import re
 from datetime import datetime
@@ -40,9 +44,6 @@ from taxus import Node, Topic, Host, Project, VersionControl
 from taxus.init import SqlBase, get_session
 from res import Projectdir, Repo
 
-
-
-__version__ = '0.0.0'
 
 
 def cmd_db_init(settings):

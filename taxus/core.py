@@ -109,8 +109,15 @@ class ID(SqlBase, SessionMixin):
     """
 
     date_added = Column(DateTime, index=True, nullable=False)
+    last_updated = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
+
+    def init_defaults(self):
+        if not self.date_added:
+            self.last_updated = self.date_added = datetime.now()
+        elif not self.last_updated:
+            self.last_updated = datetime.now()
 
     def __repr__(self):
         return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.global_id)

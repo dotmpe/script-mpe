@@ -476,7 +476,7 @@ def cmd_dlcs_import(opts, settings):
     for tag in tags_stat:
         freq = tags_stat[tag]
         if not re.match('[A-Za-z0-9-]+', tag):
-            log.std("Non ascii tag %s", tag)
+            log.std("Non-std tag %s", tag)
         if freq >= tagOffset:
             tags += 1
             t = Tag.find((Tag.name == tag,))

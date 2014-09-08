@@ -166,8 +166,7 @@ class Values(dict):
     """
     Holds configuration settings once loaded.
 
-    FIXME: this is used a lot as a simple attribute-access dict, 
-    asbtract this for that use too.
+    This is used a lot as a simple attribute-access dict.
     """
 
     default_source_key = 'config_file'

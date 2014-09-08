@@ -1,11 +1,17 @@
 #!/usr/bin/env python
+""":created: 2014-09-07
+
+TODO: create all topics; name, description, hierarchy and dump/load json/xml
+    most dirs in tree ~/htdocs/
+    headings in ~/htdocs/personal/journal/*.rst
+    files in ~/htdocs/note/*.rst
 """
-:created: 2014-11-07
-
-TODO: create a topic for all my notes in ~/htdocs/note/*.rst
-
+__description__ = "topic - "
+__version__ = '0.0.0'
+__db__ = '~/.topic.sqlite'
+__usage__ = """
 Usage:
-  topic.py [options] [info]
+  topic.py [options] [info|list]
   topic.py [options] (name|tag|topic|host|domain) [NAME]
   topic.py [options] new NAME [REF]
   topic.py [options] get REF
@@ -14,8 +20,12 @@ Usage:
 
 Options:
     -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: ~/.bookmarks.sqlite].
-"""
+                  SQLAlchemy DB URL [default: %s]
+
+Other flags:
+    -h --help     Show this screen.
+    --version     Show version (%s).
+""" % ( __db__, __version__ )
 
 from datetime import datetime
 import os
@@ -28,7 +38,6 @@ from taxus import \
     Node, Name, Tag, Topic
 
 
-__version__ = '0.0.0'
 metadata = SqlBase.metadata
 
 
@@ -38,6 +47,11 @@ def cmd_info(settings):
             ( "Tables in schema", ", ".join(metadata.tables.keys()) ),
     ):
         log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
+
+def cmd_list(settings):
+    sa = Topic.get_session('default', settings.dbref)
+    for t in Topic.all():
+        print t
 
 def cmd_new(NAME, REF, settings):
     sa = Topic.get_session('default', settings.dbref)
@@ -88,7 +102,7 @@ def get_version():
 if __name__ == '__main__':
     #bookmarks.main()
     import sys
-    opts = util.get_opts(__doc__, version=get_version())
+    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit(main(opts))
 
 

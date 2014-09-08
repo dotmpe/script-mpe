@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""db_sa - SQLAlchemy DB init
+__version__ = '0.0.0'
+__db__ = '~/.db.sqlite'
+__usage__ = """
+db_sa - SQLAlchemy DB init
 
 Use to intialize SQlite schema.
 
@@ -12,15 +15,18 @@ Usage:
 Options:
     -y --yes
     -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: ~/.bookmarks.sqlite].
+                  SQLAlchemy DB URL [default: %s].
     --all-tables  For stats, show record count for all tables in metadata,
                   not just current models.
+    --database-tables
+                  Implies --all-tables, but reload metadata from database
+                  Iow. this shows the actual schema in case of mismatch.
 
 Other flags:
     -h --help     Show this screen.
-    --version     Show version.
+    --version     Show version (%s).
 
-"""
+""" % ( __db__, __version__ )
 from datetime import datetime
 import os
 import re
@@ -28,18 +34,25 @@ import hashlib
 
 import zope.interface
 import zope.component
+from sqlalchemy import MetaData
 
 import log
 import util
 
 
 
-__version__ = '0.0.0'
 
 # set in main
 metadata = None
 schema = None
 
+
+def reload_metadata(settings):
+    global metadata
+# Reset metadata from database
+    metadata = MetaData()
+    schema.get_session(settings.dbref, metadata=metadata)
+    metadata.reflect()
 
 def cmd_init(settings):
     """
@@ -67,23 +80,32 @@ def cmd_stats(settings, opts):
     """
     Print table record stats.
     """
+    global metadata
     sa = schema.get_session(settings.dbref, metadata=metadata)
-    if opts.flags.all_tables:
+    if opts.flags.all_tables or opts.flags.database_tables:
+        if opts.flags.database_tables:
+            reload_metadata(settings)
+            log.std("{yellow}Loaded tables from DB{default}")
         for t in metadata.tables:
             try:
                 log.std("{blue}%s{default}: {bwhite}%s{default}", 
                         t, sa.query(metadata.tables[t].count()).all()[0][0])
             except Exception, e:
                 log.err("Count failed for %s: %s", t, e)
+        log.std("%i tables, done.", len(metadata.tables))
     else:
         for m in schema.models:
             try:
                 log.std("{blue}%s{default}: {bwhite}%s{default}", 
                         m.__name__, sa.query(m).count())
             except Exception, e:
-                log.err("Count failed for %s: %s", t, e)
+                log.err("Count failed for %s: %s", m, e)
+        log.std("%i models, done.", len(schema.models))
 
 def cmd_info(settings):
+    if opts.flags.database_tables:
+        reload_metadata(settings)
+        log.std("{yellow}Loaded tables from DB{default}")
     for l, v in (
             ( 'DBRef', settings.dbref ),
             ( "Tables in schema", ", ".join(metadata.tables.keys()) ),
@@ -125,10 +147,12 @@ if __name__ == '__main__':
     #bookmarks.main()
     import sys
     from pprint import pformat
-    opts = util.get_opts(__doc__, version=get_version())
+    opts = util.get_opts(__usage__, version=get_version())
     if opts.args.schema:
         schema = __import__(opts.args.schema)
         metadata = schema.SqlBase.metadata
+        if hasattr(schema, '__db__'):
+            opts.flags.dbref = schema.__db__
     sys.exit(main(opts))
 
 

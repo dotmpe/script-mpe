@@ -364,7 +364,7 @@ class Basename(libcmd.SimpleCommand):
                             cext = e
                     else:
                         assert e == ce, (e, ce)
-                        # FIXME
+                        # XXX
                         cext = lib.Prompt.input("Register which? %s" % mime, ce)
 
                     if cext in self.rc['mime_ext_reg']:

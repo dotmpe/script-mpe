@@ -48,7 +48,7 @@ class SessionMixin(object):
     @classmethod
     def fetch(Klass, filters=(), sa=None, session='default', exists=True):
         """
-        Return exactly one.
+        Return exactly one or none for filtered query.
         """
         if not sa:
             sa = Klass.get_session(session)
@@ -64,11 +64,15 @@ class SessionMixin(object):
         return rs
 
     @classmethod
-    def find(Klass, filters=None, sa=None, session='default'):
+    def find(Klass, _sa=None, _session='default', _exists=False, **keys):
         """
-        Return one or none.
+        Return one (or none), with python keywords-to-like filters.
         """
-        return Klass.fetch(filters, sa=sa, session=session, exists=False)
+        filters = []
+        for k in keys:
+            filters.append(getattr(Klass, k).like("%%%s%%" % keys[k]))
+        return Klass.fetch(filters=tuple(filters), sa=_sa, session=_session,
+                exists=_exists)
 
     @classmethod
     def byKey(Klass, key, sa=None, session='default', exists=False):
@@ -95,6 +99,9 @@ class SessionMixin(object):
 
     @classmethod
     def all(Klass, filters=None, sa=None, session='default'):
+        """
+        Return all for filtered query.
+        """
         if not sa:
             sa = Klass.get_session(session)
         q = sa.query(Klass)
@@ -105,6 +112,9 @@ class SessionMixin(object):
 
     @classmethod
     def search(Klass, _sa=None, _session='default', **keys):
+        """
+        Return all, with python keywords-to-filters.
+        """
         filters = []
         for k in keys:
             filters.append(getattr(Klass, k).like("%%%s%%" % keys[k]))

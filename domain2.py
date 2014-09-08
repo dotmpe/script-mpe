@@ -17,12 +17,15 @@ TODO: fully initialize settings for host without editing config by hand
 TODO: should record network domain names, use this with ifaces.
 FQDN are not used really, except to put the last known network/IP.
 """
+__version__ = '0.0.0'
+__db__ = '~/.domain.sqlite'
+__rc__ = '~/.domain.rc'
 __usage__ = """
 Usage:
-  domain.py [options] info [<domain>]
-  domain.py [options] update [<domain>]
-  domain.py ipforhost <host>
-  domain.py net ([info]|set <name>)
+  domain.py [options] [info|stats] 
+  domain.py [options] update [NAME]
+  domain.py ipforhost HOST
+  domain.py net ([info]|set NAME)
   domain.py detect
   domain.py help
   domain.py -h|--help
@@ -32,16 +35,16 @@ Options:
 
 Other flags:
     -c RC --config=RC
-                  Use config file to load settings [default: ~/.domain.rc]
+                  Use config file to load settings [default: %s]
     -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: ~/.domain.sqlite].
+                  SQLAlchemy DB URL [default: %s].
     -h --help     Show this screen.
-    --version     Show version.
+    --version     Show version (%s).
     -i --interactive
                   Enable interactive mode, for getting input or resolving
                   choices.
 
-"""
+""" % ( __rc__, __db__, __version__ )
 __settings__ = """
 interfaces
     A registry for all known network interfaces (WIFI and Ethernet types)
@@ -73,15 +76,14 @@ import res
 import domain
 import domain as domainmod
 
+from taxus import Node, Host, Locator
 from taxus.init import SqlBase, get_session
-from taxus.net import Host
 
 
 
-models = [ Host ]
+models = [ Node, Host, Locator ]
 
 
-__version__ = '0.0.0'
 hostIdFile = os.path.expanduser('~/.cllct/host.id')
 
 def get_current_host(settings):
@@ -175,12 +177,46 @@ def init_domain(settings):
 def cmd_info(settings):
 
     """
+    Print info.
     """
 
     host = init_host(settings)
-    print host.net.name
 
-    print 'Domain', domain
+    for l, v in (
+        ( 'Host', host ),
+        ( 'Net', host.net.name ),
+        #( 'Domain', domain),
+        ( 'DBRef', settings.dbref ),
+    ):
+        log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
+
+
+def cmd_stats(NAME, settings):
+
+    """
+    """
+
+    host = init_host(settings)
+
+    if not SqlBase.metadata.bind:
+        sa = Locator.get_session('default', settings.dbref)
+        #sa = get_session(settings.dbref)
+    assert sa, "XXX"
+
+    dbRef = Locator.find(ref=settings.dbref)
+    if not dbRef:
+        dbRef = Locator(global_id=settings.dbref)
+        dbRef.init_defaults()
+        dbRef.commit()
+
+    for l, v in (
+        ( 'Host', host ),
+        ( 'Net', host.net.name ),
+        #( 'Domain', domain),
+        ( 'DBRef', settings.dbref ),
+        #( "Number of nodes", sa.query(Node).count())
+    ):
+        log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
 
 
 def cmd_update(settings):
@@ -229,22 +265,22 @@ def cmd_update(settings):
     if updated:
         settings.commit()
 
-def cmd_ipforhost(host, settings):
+def cmd_ipforhost(NAME, settings):
     """
     XXX Given hostname, want IP for local connected interfaces.
         But there is no network topology yet?
     """
-    if host:
-        d = get_domain(host, settings)
+    if NAME:
+        d = get_domain(NAME, settings)
         print d.path()
         for iface, spec in d.copy(True).items():
             print '\t', iface, spec['ip']
 
-def cmd_net_info(name, settings):
+def cmd_net_info(NAME, settings):
     sa = get_session(settings.dbref)
-    print name
+    print 'net', NAME
     for host in sa.query(Host).all():
-        print host
+        print 'host', host
 
 def cmd_detect(settings):
     """

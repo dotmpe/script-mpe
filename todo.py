@@ -1,6 +1,10 @@
 #!/usr/bin/env python
-"""todo - time ordered, grouped tasks
-
+""":created: 2014-08-31
+"""
+__description__ = "todo - time ordered, grouped tasks"
+__version__ = '0.0.0'
+__db__ = '~/.todo.sqlite'
+__usage__ = """
 Usage:
   todo.py [options] info
   todo.py [options] list
@@ -16,11 +20,11 @@ Usage:
 
 Options:
     -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: ~/.todo.sqlite]
+                  SQLAlchemy DB URL [default: %s]
 
 Other flags:
     -h --help     Show this screen.
-    --version     Show version.
+    --version     Show version (%s).
 
 Model::
     
@@ -36,7 +40,7 @@ Model::
 
 - Links only along same level.
 
-"""
+""" % ( __db__, __version__ )
 from datetime import datetime
 import os
 import re
@@ -55,7 +59,6 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 
 
 
-__version__ = '0.0.0'
 
 SqlBase = declarative_base()
 
@@ -182,7 +185,7 @@ def get_version():
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__doc__, version=get_version())
+    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit(main(opts))
 
 

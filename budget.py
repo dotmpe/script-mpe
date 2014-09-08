@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-"""
+__version__ = '0.0.0'
+__db__ = '~/.domain.sqlite'
+__usage__ = """
 budget - simple balance tracking accounting software.
 
 Usage:
@@ -16,7 +18,7 @@ Usage:
 Options:
     -v            Increase verbosity.
     -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: ~/.budget.sqlite].
+                  SQLAlchemy DB URL [default: %s].
     -f --input-format=FORMAT
                   Input format [default: csv].
     -y --yes
@@ -45,9 +47,9 @@ Properties:
 
 Other flags:
     -h --help     Show this screen.
-    --version     Show version.
+    --version     Show version (%s).
 
-"""
+""" % ( __db__, __version__ )
 import os
 import re
 from datetime import datetime
@@ -71,7 +73,6 @@ from rabo2myLedger import \
         csv_reader
 
 
-__version__ = '0.0.0'
 
 
 ACCOUNT_ACCOUNTING = "Bankzaken"
@@ -276,6 +277,6 @@ def get_version():
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__doc__, version=get_version())
+    opts = util.get_opts(__usage__, version=get_version())
     sys.exit(main(opts))
 

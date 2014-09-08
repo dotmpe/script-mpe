@@ -95,7 +95,6 @@ class Locator(core.ID):
     prove.
 
     The reference should follow URL syntax, not URN or otherwise.
-    FIXME: There is some issue as to lctr-ref length. Would 255 be enough? 
     Perhaps if rogue web-content where entered into the
     system is properly contained.
 
@@ -143,10 +142,11 @@ class Locator(core.ID):
         if scheme: # remove scheme
             assert ref.startswith(scheme+':'), ref
             ref = ref[len(scheme)+1:]
-        # FIXME:
+        # FIXME: return bare path of Locator?
         if self.host:
             if ref.startswith("//"): # remove netpath 
-                ref = ref[2+len(self.host):]
+                assert ref.startswith('//'+self.host.name)
+                ref = ref[2+len(self.host.name):]
             return ref
         else:
             assert ref.startswith('//'), ref

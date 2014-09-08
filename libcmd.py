@@ -455,7 +455,10 @@ class SimpleCommand(object):
         """
         while self.globaldict.prog.handlers:
             o = self.globaldict.prog.handlers.pop(0)
-            p = '%s_' % self.get_opt_prefix(self)
+            if hasattr(self, 'get_opt_prefix'):
+                p = '%s_' % self.get_opt_prefix(self)
+            else:
+                p = self.DEFAULT_CONFIG_KEY or self.NAME
             yield o.startswith(p) and o.replace( p, '' ) or o
 
     def execute( self, handler_name, update={}, return_mode=None ):
