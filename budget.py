@@ -9,7 +9,7 @@ Usage:
   budget [options] mutation ( list [ <id> | <filter> ] | import [-f <format>] <file>... )
   budget [options] account ( list | [ ( add | show | update | rm ) <name> ] )
   budget [options] db (init|reset|stats)
-  budget [options] change (list|update)
+  budget [options] month
   budget [account add] ( -p PROPERTY=VALUE )...
   budget help
   budget -h|--help
@@ -24,9 +24,10 @@ Options:
     -y --yes
 
     --end-balance INT
-    --end-date DATE
     --start-balance INT
-    --start-date DATE
+
+    --first-month YEAR-MONTH
+    --last-month YEAR-MONTH
     -x <xyz>
 
     -A --account=NAME-OR-ID
@@ -146,20 +147,34 @@ def cmd_change_list(settings):
     for month in sa.query(Month).all():
         print m.year, m.mon
 
-def cmd_change_update(settings):
+def cmd_month(settings):
 
     """
-    Tmp. function to record change / month.
+    Print balance change per month. 
+    --month-start --month-end
+    Default to 
     """
 
     sa = get_session(settings.dbref)
 
-    print settings.start_date 
-    print settings.start_date.year
+    start = settings.first_month \
+            if 'first_month' in settings and settings.first_month else datetime.now()
+    end = settings.last_month \
+            if 'last_month' in settings and settings.last_month else datetime.now()
+    print '# Range: ', start.year, start.month, '--', end.year, end.month
     
     last5 = []
-    for year in range(2011, 2015):
-        for month in range(1, 13):
+    print '# year, month, amount, 5avg'
+    for year in range(start.year, end.year+1):
+        if year == start.year and year == end.year:
+            months = range(start.month, end.month+1)
+        elif year == start.year:
+            months = range(start.month, 13)
+        elif year == end.year:
+            months = range(1, end.month+1)
+        else:
+            months = range(1, 13)
+        for month in months:
             amount, = sa.query(func.sum(Mutation.amount))\
                     .filter( Mutation.year == year, Mutation.month == month ).one()
             if amount:
@@ -319,7 +334,8 @@ def get_version():
 
 argument_handlers = {
         '<xyz>': lambda v: int(v)+5,
-        'DATE': lambda v: datetime.strptime(v, '%Y-%m')
+        'DATE': lambda v: datetime.strptime(v, '%Y-%m-%d'),
+        'YEAR-MONTH': lambda v: datetime.strptime(v, '%Y-%m')
 }
 
 if __name__ == '__main__':
