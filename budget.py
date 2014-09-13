@@ -151,8 +151,7 @@ def cmd_month(settings):
 
     """
     Print balance change per month. 
-    --month-start --month-end
-    Default to 
+    --first-month --last-month
     """
 
     sa = get_session(settings.dbref)
