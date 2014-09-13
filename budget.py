@@ -153,6 +153,9 @@ def cmd_change_update(settings):
     """
 
     sa = get_session(settings.dbref)
+
+    print settings.start_date 
+    print settings.start_date.year
     
     last5 = []
     for year in range(2011, 2015):
