@@ -139,16 +139,22 @@ def run_commands(commands, settings, opts):
     """
 
     cmds = opts.cmds
-    if not cmds and 'default' in opts:
-        cmds = [opts.default]
+    if 'default' in opts:
+        if cmds:
+            opts.default = [] if opts.default[0] != cmds[0] else opts.default[1:]
+        else:
+            if isinstance(opts.default, (list, tuple)):
+                cmds = list(opts.default)
+            else:
+                cmds = [opts.default]
 
-    while cmds:
+    while cmds or opts.default:
         cmdid = cmds.pop(0)
         #assert cmdid in opts, \
         #        "Invalid docopts: command %r not described" % (cmdid)
         cmd = commands[cmdid]
         if isinstance(cmd, dict):
-            subcmdid = cmds.pop(0)
+            subcmdid = cmdid = cmds.pop(0) if cmds else opts.default.pop(0)
             #assert subcmdid in opts, \
             #        "Invalid docopts: subcommand %r not described (for command %r)" % (
             #                subcmdid, cmdid)

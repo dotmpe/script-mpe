@@ -5,7 +5,7 @@ __usage__ = """
 budget - simple balance tracking accounting software.
 
 Usage:
-  budget [options] balance [commit|rollback]
+  budget [options] balance [verify|commit|rollback]
   budget [options] mutation ( list [ <id> | <filter> ] | import [-f <format>] <file>... )
   budget [options] account ( list | [ ( add | show | update | rm ) <name> ] )
   budget [options] db (init|reset|stats)
@@ -28,7 +28,6 @@ Options:
 
     --first-month YEAR-MONTH
     --last-month YEAR-MONTH
-    -x <xyz>
 
     -A --account=NAME-OR-ID
     -M --mutation=NAME-OR-ID
@@ -58,12 +57,12 @@ from pprint import pformat
 from sqlalchemy import func
 from docopt import docopt
 
+import lib
+import log
 import util
 import confparse
 from myLedger import SqlBase, metadata, get_session, \
-        AccountBalance, \
         Account, \
-        Year, Month, \
         Mutation, \
         models,\
         valid_iban, valid_nl_number, valid_nl_p_number
@@ -73,9 +72,9 @@ from rabo2myLedger import \
         csv_reader
 
 
-
-
-ACCOUNT_ACCOUNTING = "Bankzaken"
+ACCOUNT_CREDIT = "Account:Credit"
+ACCOUNT_EXPENSES = "Expenses"
+ACCOUNT_ACCOUNTING = "Expenses:Account"
 
 
 def cmd_db_init(settings):
@@ -83,9 +82,19 @@ def cmd_db_init(settings):
     Initialize if the database file doest not exists,
     and update schema.
     """
-    get_session(settings.dbref)
+    sa = get_session(settings.dbref)
     # XXX: update schema..
     metadata.create_all()
+    accounting_acc = Account(name=ACCOUNT_ACCOUNTING)
+    accounting_acc.init_defaults()
+    expenses_acc = Account(name=ACCOUNT_EXPENSES)
+    expenses_acc.init_defaults()
+    credit_acc = Account(name=ACCOUNT_CREDIT)
+    credit_acc.init_defaults()
+    sa.add(accounting_acc)
+    sa.add(expenses_acc)
+    sa.add(credit_acc)
+    sa.commit()
 
 def cmd_db_stats(settings):
     """
@@ -93,10 +102,7 @@ def cmd_db_stats(settings):
     """
     sa = get_session(settings.dbref)
     print "Accounts:", sa.query(Account).count()
-    print "AccountBalances:", sa.query(AccountBalance).count()
     print "Mutations:", sa.query(Mutation).count()
-    print "Years:", sa.query(Year).count()
-    print "Months:", sa.query(Month).count()
 
 def cmd_db_reset(settings):
     """
@@ -183,13 +189,6 @@ def cmd_month(settings):
                 avg = sum(last5) / len(last5)
                 print year, month, amount, avg
 
-
-def cmd_balance_verify(opts):
-
-    """
-    TODO: Print or verify balance since last check.
-    """
-
 def cmd_mutation_import(opts, settings):
 
     """
@@ -209,7 +208,7 @@ def cmd_mutation_import(opts, settings):
     cache = confparse.Values(dict(
         accounts={}, years={}, months={}
     ))
-    for csvfile in opts['<file>']:
+    for csvfile in opts.args.file:
         reader = csv_reader(csvfile, [
             'line', 'date', 'accnr', 'amount', 'destacc', 'cat',
             'destname', 'descr', 'descr2' ])
@@ -220,7 +219,8 @@ def cmd_mutation_import(opts, settings):
             if accnr not in cache.accounts:
                 from_account = Account.for_nr(sa, accnr)
                 if not from_account:
-                    from_account = Account(name=destname)
+                    from_account = Account(name=ACCOUNT_CREDIT+':'+destname)
+                    from_account.init_defaults()
                 from_account.set_nr(accnr)
                 sa.add(from_account)
                 sa.commit()
@@ -233,10 +233,12 @@ def cmd_mutation_import(opts, settings):
             if not destacc:
                 if cat == 'ba':
                     # payment card checkout
-                    to_account = Account.for_checkout(sa, descr)
+                    to_account = Account.for_checkout(sa, 
+                            ACCOUNT_EXPENSES+':ba:'+descr)
                 elif cat == 'ga':
                     # atm withdrawal
-                    to_account = Account.for_withdrawal(sa, descr)
+                    to_account = Account.for_withdrawal(sa,
+                            ACCOUNT_EXPENSES+':ga:'+descr)
                 elif cat == 'db':
                     # debet interest
                     to_account = Account.for_name_type(sa, ACCOUNT_ACCOUNTING)
@@ -248,7 +250,8 @@ def cmd_mutation_import(opts, settings):
             elif destacc not in cache.accounts:
                 to_account = Account.for_nr(sa, destacc)
                 if not to_account:
-                    to_account = Account(name=destname)
+                    to_account = Account(name=ACCOUNT_EXPENSES+':'+destname)
+                    to_account.init_defaults()
                 to_account.set_nr(destacc)
                 sa.add(to_account)
                 sa.commit()
@@ -268,7 +271,7 @@ def cmd_mutation_import(opts, settings):
             sa.add(mut)
             sa.commit()
 
-        log.std("Auto-adjusting period to import date range")
+    #log.std("Auto-adjusting period to import date range")
 
 
 def cmd_mutation_list(settings, opts):
@@ -288,6 +291,26 @@ def cmd_mutation_list(settings, opts):
     else:
         for m in sa.query(Mutation).all():
             print m.mut_id, m.year, m.from_account, m.to_account, m.amount
+
+def cmd_balance_verify(settings):
+
+    """
+    TODO: Print or verify balance since last check.
+    """
+
+    sa = get_session(settings.dbref)
+
+    expenses_acc = Account.all((Account.name.like(ACCOUNT_CREDIT+'%'),), sa=sa)
+
+    for acc in expenses_acc:
+        print acc.name
+
+    balance, = sa.query(func.sum(Mutation.amount))\
+            .filter( Mutation.from_account.in_([ 
+                acc.account_id for acc in expenses_acc ]) ).one()
+
+    print 'Cumulative balance:', balance
+
 
 def cmd_balance_commit(opts):
 
@@ -326,13 +349,14 @@ def main(opts):
     if not re.match(r'^[a-z][a-z]*://', settings.dbref):
         settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
 
+    opts.default = ['balance', 'verify']
+
     return util.run_commands(commands, settings, opts)
 
 def get_version():
     return 'budget.mpe/%s' % __version__
 
 argument_handlers = {
-        '<xyz>': lambda v: int(v)+5,
         'DATE': lambda v: datetime.strptime(v, '%Y-%m-%d'),
         'YEAR-MONTH': lambda v: datetime.strptime(v, '%Y-%m')
 }

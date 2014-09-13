@@ -230,7 +230,7 @@ class Prompt(object):
         assert yes.isupper() or no.isupper()
         #v = raw_input('%s [%s] ' % (question, yes_no))
         print '%s [%s] ' % (question, yes_no)
-        v = getch()
+        v = getch().strip()
         if not v:
             if yes.isupper():
                 v = yes

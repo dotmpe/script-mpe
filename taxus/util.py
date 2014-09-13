@@ -47,17 +47,21 @@ class SessionMixin(object):
         session.commit()
 
     @classmethod
-    def fetch(Klass, filters=(), sa=None, session='default', exists=True):
+    def fetch(Klass, filters=(), query=(), sa=None, session='default', exists=True):
         """
         Return exactly one or none for filtered query.
         """
         if not sa:
             sa = Klass.get_session(session)
         rs = None
+        if query:
+            q = sa.query(*query)
+        else:
+            q = sa.query(Klass)
+        if filters:
+            q = q.filter(*filters)
         try:
-            rs = sa.query(Klass)\
-                .filter(*filters)\
-                .one()
+            rs = q.one()
         except NoResultFound, e:
             if exists:
                 log.err("No results for %s.fetch(%r)", Klass.__name__, filters)

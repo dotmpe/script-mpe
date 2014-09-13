@@ -4,10 +4,11 @@ XXX: prolly rewrite year/month to generic period, perhaps scrap accbalances
 """
 import os
 import re
+from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime, Date, Float, \
-    create_engine
+    create_engine, func
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
@@ -19,44 +20,8 @@ SqlBase = declarative_base()
 metadata = SqlBase.metadata
 
 
-class AccountBalance(SqlBase, SessionMixin):
 
-    """
-    Checkpoints.
-    """
-
-    __tablename__ = 'accbalances'
-
-    balance_id = Column('id', Integer, primary_key=True)
-    date = Column(Date) # XXX: related ot blaance
-    account_id = Column(Integer, ForeignKey('accs.id'))
-    balance = Column(Integer) # XXX: related ot blaance
-
-
-#class Period(SqlBase, SessionMixin):
-#
-#    """
-#    """
-#
-#    __tablename__ = 'periods'
-#
-#    period_id = Column('id', Integer, primary_key=True)
-#    start_date = Column(Date)
-#    end_date = Column(Date)
-#    open = Column(Boolean)
-#
-#    def init_defaults(self):
-#        pass
-#
-#    @classmethod
-#    def get_current_or_new(Klass, settings):
-#        return Klass.all([
-#        #        (Klass.open == True),
-#        #        (Klass.== True),
-#            ])
-
-
-class Account(SqlBase):
+class Account(SqlBase, SessionMixin):
 
     """
     """
@@ -72,6 +37,17 @@ class Account(SqlBase):
     iban = Column(String, unique=True, nullable=True)
 
     account_type = Column('type', String)
+
+    date_added = Column(DateTime, index=True, nullable=False)
+    last_updated = Column(DateTime, index=True, nullable=False)
+    deleted = Column(Boolean, index=True, default=False)
+    date_deleted = Column(DateTime)
+
+    def init_defaults(self):
+        if not self.date_added:
+            self.last_updated = self.date_added = datetime.now()
+        elif not self.last_updated:
+            self.last_updated = datetime.now()
 
     def __str__(self):
         return "[Account %r #%s %s]" % ( self.name, 
@@ -104,6 +80,7 @@ class Account(SqlBase):
             acc = acc_rs[0]
         else:
             acc = Account(name=name.strip(), account_type=account_type)
+            acc.init_defaults()
             session.add(acc)
             session.commit()
         return acc
@@ -154,31 +131,6 @@ class Account(SqlBase):
         else:
             assert not acc_rs or len(acc_rs) == 0
 
-class Year(SqlBase):
-    """
-    """
-    __tablename__ = 'years'
-
-    year_id = Column('id', Integer, primary_key=True)
-    account_id = Column(Integer, ForeignKey('accs.id'), nullable=False)
-    date = Column(Date)
-    end_balance = Column(Float)
-    prev_year = Column(Integer, ForeignKey('years.id'), nullable=True)
-    next_year = Column(Integer, ForeignKey('years.id'), nullable=True)
-
-class Month(SqlBase):
-    """
-    """
-    __tablename__ = 'months'
-
-    month = Column('id', Integer, primary_key=True)
-    account_id = Column(Integer, ForeignKey('accs.id'), nullable=False)
-    date = Column(Date)
-    change = Column(Float)
-    transactions = Column(Integer)
-    end_balance = Column(Float)
-    prev_month = Column(Integer, ForeignKey('months.id'), nullable=True)
-    next_month = Column(Integer, ForeignKey('months.id'), nullable=True)
 
 class Mutation(SqlBase):
     """
@@ -197,10 +149,7 @@ class Mutation(SqlBase):
 
 
 models = [
-        AccountBalance,
         Account,
-        Year,
-        Month,
         Mutation
     ]
 
