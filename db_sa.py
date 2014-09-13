@@ -149,7 +149,7 @@ if __name__ == '__main__':
     from pprint import pformat
     opts = util.get_opts(__usage__, version=get_version())
     if opts.args.schema:
-        schema = __import__(opts.args.schema)
+        schema = __import__(os.path.splitext(opts.args.schema)[0])
         metadata = schema.SqlBase.metadata
         if hasattr(schema, '__db__'):
             opts.flags.dbref = schema.__db__

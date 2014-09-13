@@ -12,7 +12,11 @@
     Bookmark
 
 :updated: 2014-08-26
-
+"""
+__description__ = "bookmarks - "
+__version__ = '0.0.0'
+__db__ = '~/.bookmarks.sqlite'
+__usage__ = """
 Usage:
   bookmarks.py [options] dlcs (parse|import FILE|export)
   bookmarks.py [options] stats
@@ -22,7 +26,7 @@ Usage:
 
 Options:
     -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: ~/.bookmarks.sqlite].
+                  SQLAlchemy DB URL [default: %s]
     --tag-offset INT
                   Set import frequency-offset to exclude certain one-to-many
                   relations if the usage is below given value.
@@ -38,10 +42,10 @@ Options:
 
 Other flags:
     -h --help     Show this screen.
-    --version     Show version.
+    --version     Show version (%s).
 
 
-"""
+""" % ( __db__, __version__ )
 from datetime import datetime
 import os
 import re
@@ -72,7 +76,6 @@ models = [Locator, Tag, Domain ]
 
 
 
-__version__ = '0.0.0'
 
 # were all SQL schema is kept. bound to engine on get_session
 SqlBase = model.SqlBase

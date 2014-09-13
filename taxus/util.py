@@ -112,7 +112,11 @@ class SessionMixin(object):
         if filters:
             for f in filters:
                 q = q.filter(f)
-        return q.all()
+        try:
+            return q.all()
+        except Exception, e:
+            log.err("Error executing SessionMixin.all: %s", e)
+            return []
 
     @classmethod
     def search(Klass, _sa=None, _session='default', **keys):
