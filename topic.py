@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 """:created: 2014-09-07
+
+TODO: create all nodes; name, description, hierarchy and dump/load json/xml
+    most dirs in tree ~/htdocs/
+    headings in ~/htdocs/personal/journal/*.rst
+    files in ~/htdocs/note/*.rst
 """
 __description__ = "topic - "
 __version__ = '0.0.0'
@@ -18,7 +23,8 @@ Options:
                   SQLAlchemy DB URL [default: %s]
 
 Other flags:
-    -h --help     Show this screen.
+    -h --help     Show this usage description. 
+                  For a command and argument description use the command 'help'.
     --version     Show version (%s).
 """ % ( __db__, __version__ )
 

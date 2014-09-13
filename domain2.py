@@ -38,7 +38,8 @@ Other flags:
                   Use config file to load settings [default: %s]
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s].
-    -h --help     Show this screen.
+    -h --help     Show this usage description. 
+                  For a command and argument description use the command 'help'.
     --version     Show version (%s).
     -i --interactive
                   Enable interactive mode, for getting input or resolving

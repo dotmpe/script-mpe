@@ -23,7 +23,8 @@ Options:
                   Iow. this shows the actual schema in case of mismatch.
 
 Other flags:
-    -h --help     Show this screen.
+    -h --help     Show this usage description. 
+                  For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
 """ % ( __db__, __version__ )

@@ -1,5 +1,4 @@
 """
-
 TODO: categorize accounts.
 XXX: prolly rewrite year/month to generic period, perhaps scrap accbalances
 """
@@ -13,25 +12,55 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
+from taxus.util import SessionMixin
+
 
 SqlBase = declarative_base()
 metadata = SqlBase.metadata
 
 
-class AccountBalance(SqlBase):
+class AccountBalance(SqlBase, SessionMixin):
+
     """
     Checkpoints.
     """
+
     __tablename__ = 'accbalances'
+
     balance_id = Column('id', Integer, primary_key=True)
     date = Column(Date) # XXX: related ot blaance
     account_id = Column(Integer, ForeignKey('accs.id'))
     balance = Column(Integer) # XXX: related ot blaance
 
 
+#class Period(SqlBase, SessionMixin):
+#
+#    """
+#    """
+#
+#    __tablename__ = 'periods'
+#
+#    period_id = Column('id', Integer, primary_key=True)
+#    start_date = Column(Date)
+#    end_date = Column(Date)
+#    open = Column(Boolean)
+#
+#    def init_defaults(self):
+#        pass
+#
+#    @classmethod
+#    def get_current_or_new(Klass, settings):
+#        return Klass.all([
+#        #        (Klass.open == True),
+#        #        (Klass.== True),
+#            ])
+
+
 class Account(SqlBase):
+
     """
     """
+
     __tablename__ = 'accs'
 
     account_id = Column('id', Integer, primary_key=True)
@@ -176,11 +205,11 @@ models = [
     ]
 
 
-def get_session(dbref, initialize=False):
+def get_session(dbref, initialize=False, metadata=SqlBase.metadata):
     engine = create_engine(dbref)
-    SqlBase.metadata.bind = engine
+    metadata.bind = engine
     if initialize:
-        SqlBase.metadata.create_all()  # issue DDL create 
+        metadata.create_all()  # issue DDL create 
         print 'Updated myLedger schema'
     session = sessionmaker(bind=engine)()
     return session

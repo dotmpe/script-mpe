@@ -28,7 +28,8 @@ Options:
     -y --yes      Force questions asked to yes.
 
 Other flags:
-    -h --help     Show this screen.
+    -h --help     Show this usage description. 
+                  For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
 """ % ( __db__, __version__ )

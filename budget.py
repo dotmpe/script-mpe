@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 __version__ = '0.0.0'
-__db__ = '~/.domain.sqlite'
+__db__ = '~/.budget.sqlite'
 __usage__ = """
 budget - simple balance tracking accounting software.
 
@@ -23,13 +23,12 @@ Options:
                   Input format [default: csv].
     -y --yes
 
-Ranges/offsets:
     --end-balance INT
     --end-date DATE
     --start-balance INT
     --start-date DATE
+    -x <xyz>
 
-Properties:
     -A --account=NAME-OR-ID
     -M --mutation=NAME-OR-ID
     -P --period=NAME-OR-ID
@@ -45,8 +44,8 @@ Properties:
     -m --month=MONTH-OF-YEAR
     -y --year=YEAR
 
-Other flags:
-    -h --help     Show this screen.
+    -h --help     Show this usage description. 
+                  For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
 """ % ( __db__, __version__ )
@@ -139,38 +138,60 @@ def cmd_account_rm(settings, name):
     print "Dropped account", name
 
 def cmd_change_list(settings):
+
     """
     """
+
     sa = get_session(settings.dbref)
-    #for month in sa.query(Month).all():
-    #	print m.year, m.mon
+    for month in sa.query(Month).all():
+        print m.year, m.mon
 
 def cmd_change_update(settings):
+
     """
     Tmp. function to record change / month.
     """
+
     sa = get_session(settings.dbref)
+    
+    last5 = []
     for year in range(2011, 2015):
         for month in range(1, 13):
             amount, = sa.query(func.sum(Mutation.amount))\
                     .filter( Mutation.year == year, Mutation.month == month ).one()
             if amount:
-                print year, month, amount
+                last5.append(amount)
+                if len(last5) > 5:
+                    last5.pop(0)
+                avg = sum(last5) / len(last5)
+                print year, month, amount, avg
+
 
 def cmd_balance_verify(opts):
-    print 'balance-verify'
+
     """
-    Print or verify balance since last check.
+    TODO: Print or verify balance since last check.
     """
 
 def cmd_mutation_import(opts, settings):
+
     """
     Import mutations from CSV, create accounts as needed.
+    Indx with Year, Month.
     """
+
     sa = get_session(settings.dbref)
+
+    #period = Period.get_current_or_new(settings)
+    #if period.isNew:
+    #    log.std("Started new period")
+    #else:
+    #    log.std("Using existing open period %s", period)
+
     assert settings.input_format == 'csv', settings.input_format
-    cache = confparse.Values(dict(accounts={}))
-    accounts = []
+    cache = confparse.Values(dict(
+        accounts={}, years={}, months={}
+    ))
     for csvfile in opts['<file>']:
         reader = csv_reader(csvfile, [
             'line', 'date', 'accnr', 'amount', 'destacc', 'cat',
@@ -178,14 +199,14 @@ def cmd_mutation_import(opts, settings):
         for line, date, accnr, amount, destacc, cat, destname, descr, descr2 in reader:
             from_account, to_account = None, None
             assert accnr, (line, date, amount, cat)
-            if accnr not in accounts:
+            # from_account
+            if accnr not in cache.accounts:
                 from_account = Account.for_nr(sa, accnr)
                 if not from_account:
                     from_account = Account(name=destname)
                 from_account.set_nr(accnr)
                 sa.add(from_account)
                 sa.commit()
-                accounts.append(accnr)
                 cache.accounts[accnr] = from_account
             else:
                 from_account = cache.accounts[accnr]
@@ -207,7 +228,7 @@ def cmd_mutation_import(opts, settings):
                     assert not destname, (cat, destname, cat)
                     continue
             # billing account 
-            elif destacc not in accounts:
+            elif destacc not in cache.accounts:
                 to_account = Account.for_nr(sa, destacc)
                 if not to_account:
                     to_account = Account(name=destname)
@@ -215,10 +236,12 @@ def cmd_mutation_import(opts, settings):
                 sa.add(to_account)
                 sa.commit()
                 cache.accounts[destacc] = to_account
-                accounts.append(destacc)
             else:
                 to_account = cache.accounts[destacc]
+            # get Year/Month
             y, m, d = map(int, ( date[:4], date[4:6], date[6:]))
+            if y not in cache.years:
+                pass
             mut = Mutation(
                     from_account=from_account.account_id,
                     to_account=to_account.account_id,
@@ -228,7 +251,15 @@ def cmd_mutation_import(opts, settings):
             sa.add(mut)
             sa.commit()
 
+        log.std("Auto-adjusting period to import date range")
+
+
 def cmd_mutation_list(settings, opts):
+
+    """
+    List mutation ID, year, from-/to-account and amount.
+    """
+
     sa = get_session(settings.dbref)
     if opts['<id>']:
         accid = int(opts['<id>'])
@@ -242,13 +273,22 @@ def cmd_mutation_list(settings, opts):
             print m.mut_id, m.year, m.from_account, m.to_account, m.amount
 
 def cmd_balance_commit(opts):
-    print 'balance-commit'
+
     """
-    Commit current balance or insert a book check.
+    TODO: Commit current balance or insert a book check.
     """
 
+    period = Period.get_current_or_new()
+    # TODO close period
+
 def cmd_balance_rollback(opts):
-    print 'balance-rollback'
+
+    """
+    TODO: Reverse last commit.
+    """
+
+    # check for open period
+    period = Period.get_current()
 
 
 ### Transform cmd_ function names to nested dict
@@ -266,7 +306,6 @@ def main(opts):
 
     settings = opts.flags
 
-    # FIXME: share default dbref uri and path, also with other modules
     if not re.match(r'^[a-z][a-z]*://', settings.dbref):
         settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
 
@@ -275,8 +314,13 @@ def main(opts):
 def get_version():
     return 'budget.mpe/%s' % __version__
 
+argument_handlers = {
+        '<xyz>': lambda v: int(v)+5,
+        'DATE': lambda v: datetime.strptime(v, '%Y-%m')
+}
+
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__usage__, version=get_version())
+    opts = util.get_opts(__usage__, meta=argument_handlers, version=get_version())
     sys.exit(main(opts))
 

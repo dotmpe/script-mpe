@@ -1,27 +1,34 @@
 import sys
 import inspect
+from pprint import pformat
 
-from docopt import docopt
+from docopt import docopt, \
+        AnyOptions, Option, Dict, \
+        parse_defaults, parse_pattern, \
+        printable_usage, formal_usage
 
 import confparse
 import log
 
 
 
-def get_opts(docstr, version=None, argv=None):
+def get_opts(docstr, meta={}, version=None, argv=None):
     """
     Get docopt dict, and set argv and flags from get_optvalues.
     """
     if not argv:
         argv = sys.argv[1:]
-    opts = docopt(docstr, argv, version=version)
-    assert not ( 'argv' in opts or 'flags' in opts or 'args' in opts),\
-            "Dont use 'argv', 'flags' or 'args'. "
+    pattern, collected = docopt(docstr, argv, version=version,
+            return_spec=True)
+    opts = confparse.Values()
     opts.argv = argv
-    opts.flags, opts.args = get_optvalues(opts)
+    parsed = pattern.flat() + collected
+    #assert not ( 'argv' in opts or 'flags' in opts or 'args' in opts),\
+    #        "Dont use 'argv', 'flags' or 'args'. "
+    opts.cmds, opts.flags, opts.args = get_optvalues(parsed, meta)
     return opts
 
-def get_optvalues(opts):
+def get_optvalues(opts, handlers={}):
 
     """
     Given docopt dict, return 1). an optparse-like values object 
@@ -29,8 +36,12 @@ def get_optvalues(opts):
     2). something similar for all <arguments>.
     """
 
+    cmds = []
     flags, args = {}, {}
-    for k, v in opts.items():
+    for opt in opts:
+        k = opt.name
+        v = opt.value
+        h = opt.meta if hasattr(opt, 'meta') and opt.meta else None
         if k[0]+k[-1] == '<>':
             k = k.strip('<>').replace('-', '_')
             d = args
@@ -40,15 +51,21 @@ def get_optvalues(opts):
         elif k.isupper():
             d = args
         else:
+            if v:
+                cmds.append(k) 
             continue
         if isinstance(v, basestring) and v and '=' in v[0]:
+            # allo access to subkey, value container for certain key
             d[k] = confparse.Values({ })
             for a in v:
                 p, d = a.split('=')
                 flags[k][p] = d
         else:
+            if v:
+                if h and h in handlers:
+                    v = handlers[h](v)
             d[k] = v
-    return confparse.Values(flags), confparse.Values(args)
+    return cmds, confparse.Values(flags), confparse.Values(args)
 
 
 def select_kwdargs(handler, settings, **override):
@@ -121,31 +138,20 @@ def run_commands(commands, settings, opts):
     Uses select_kwdargs to determine function arguments from settings and opts.
     """
 
-    cmds = {}
-    # get arg sequence from docopt dict
-    for opt in opts:
-        # skip options and 'named' arguments
-        if opt.startswith('-') or opt[0]+opt[-1] == '<>' or opt.isupper():
-            continue
-        if opts[opt]:
-            i = opts.argv.index(opt)
-            cmds[i] = opt
-
-    cmds = cmds.values()
-
-    if not cmds:
+    cmds = opts.cmds
+    if not cmds and 'default' in opts:
         cmds = [opts.default]
 
     while cmds:
         cmdid = cmds.pop(0)
-        assert cmdid in opts, \
-                "Invalid docopts: command %r not described" % (cmdid)
+        #assert cmdid in opts, \
+        #        "Invalid docopts: command %r not described" % (cmdid)
         cmd = commands[cmdid]
         if isinstance(cmd, dict):
             subcmdid = cmds.pop(0)
-            assert subcmdid in opts, \
-                    "Invalid docopts: subcommand %r not described (for command %r)" % (
-                            subcmdid, cmdid)
+            #assert subcmdid in opts, \
+            #        "Invalid docopts: subcommand %r not described (for command %r)" % (
+            #                subcmdid, cmdid)
             f = cmd[subcmdid]
             args, kwds = select_kwdargs(f, settings, opts=opts, **opts.args)
             ret = f(*args, **kwds)

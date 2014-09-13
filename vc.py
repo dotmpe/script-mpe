@@ -16,7 +16,8 @@ Options:
     -p --props=NAME=VALUE
 
 Other flags:
-    -h --help     Show this screen.
+    -h --help     Show this usage description. 
+                  For a command and argument description use the command 'help'.
     --version     Show version.
 
 """
