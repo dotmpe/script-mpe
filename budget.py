@@ -10,6 +10,7 @@ Usage:
   budget [options] account ( list | [ ( add | show | update | rm ) <name> ] )
   budget [options] db (init|reset|stats)
   budget [options] month
+  budget [options] corrections
   budget [account add] ( -p PROPERTY=VALUE )...
   budget help
   budget -h|--help
@@ -57,7 +58,6 @@ from datetime import datetime
 from pprint import pformat
 
 from sqlalchemy import func
-from docopt import docopt
 
 import lib
 import log
@@ -69,6 +69,7 @@ from myLedger import SqlBase, metadata, get_session, \
         models,\
         valid_iban, valid_nl_number, valid_nl_p_number, \
         fetch_expense_balance, \
+        Simplemovingaverage,\
         ACCOUNT_CREDIT, ACCOUNT_EXPENSES, ACCOUNT_ACCOUNTING
 from rabo2myLedger import \
         print_gnu_cash_import_csv, \
@@ -168,9 +169,14 @@ def cmd_month(settings):
     end = settings.last_month \
             if 'last_month' in settings and settings.last_month else datetime.now()
     print '# Range: ', start.year, start.month, '--', end.year, end.month
-    
-    last5 = []
-    print '# year, month, amount, 5avg'
+
+    balance = 0
+    last3 = Simplemovingaverage(3)
+    last6 = Simplemovingaverage(6)
+    last12 = Simplemovingaverage(12)
+    last24 = Simplemovingaverage(24)
+
+    print '# year, change, amount, balance, avg6, avg12'
     for year in range(start.year, end.year+1):
         if year == start.year and year == end.year:
             months = range(start.month, end.month+1)
@@ -184,11 +190,17 @@ def cmd_month(settings):
             amount, = sa.query(func.sum(Mutation.amount))\
                     .filter( Mutation.year == year, Mutation.month == month ).one()
             if amount:
-                last5.append(amount)
-                if len(last5) > 5:
-                    last5.pop(0)
-                avg = sum(last5) / len(last5)
-                print year, month, amount, avg
+                balance += amount
+                avg3 = last3(amount)
+                avg6 = last6(amount)
+                avg12 = last12(amount)
+                avg24 = last24(amount)
+                print ("%(year)04i-%(month)02i "\
+                    "%(balance)9.2f EUR "\
+                    "%(amount)9.2f "\
+                    "%(avg3)9.2f "\
+                    "%(avg6)9.2f %(avg12)9.2f %(avg24)9.2f" ) % locals()
+                #print year, month, amount, avg6, avg12, balance
 
 
 def cmd_mutation_import(opts, settings):
@@ -315,6 +327,10 @@ def cmd_balance_verify(settings, sa=None):
 
     return 0
 
+def cmd_corrections(settings):
+    sa = get_session(settings.dbref)
+    for rs in sa.query( Mutation ).filter( Mutation.category == 'sb' ).all():
+        print rs
 
 def cmd_balance_commit(settings):
 
