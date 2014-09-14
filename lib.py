@@ -273,7 +273,8 @@ class Prompt(object):
 
     @classmethod
     def query(clss, question, options=[]):
-        assert options and isinstance(options, list)
+        assert options 
+        options = list(options)
         origopts = list(options)
         opts = clss.create_choice(options)
         while True:
@@ -293,5 +294,4 @@ class Prompt(object):
                 choice = opts.upper().index(v.upper())
                 print 'Answer:', origopts[choice].title()
                 return choice
-
 

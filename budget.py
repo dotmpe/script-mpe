@@ -5,7 +5,7 @@ __usage__ = """
 budget - simple balance tracking accounting software.
 
 Usage:
-  budget [options] balance [verify|commit|rollback]
+  budget [options] balance [verify|commit]
   budget [options] mutation ( list [ <id> | <filter> ] | import [-f <format>] <file>... )
   budget [options] account ( list | [ ( add | show | update | rm ) <name> ] )
   budget [options] db (init|reset|stats)
@@ -22,6 +22,8 @@ Options:
     -f --input-format=FORMAT
                   Input format [default: csv].
     -y --yes
+
+    --reset       Truncate mutation table upon import. Does not clear anything else.
 
     --end-balance INT
     --start-balance INT
@@ -65,23 +67,23 @@ from myLedger import SqlBase, metadata, get_session, \
         Account, \
         Mutation, \
         models,\
-        valid_iban, valid_nl_number, valid_nl_p_number
+        valid_iban, valid_nl_number, valid_nl_p_number, \
+        fetch_expense_balance, \
+        ACCOUNT_CREDIT, ACCOUNT_EXPENSES, ACCOUNT_ACCOUNTING
 from rabo2myLedger import \
         print_gnu_cash_import_csv, \
         print_sum_from_files, \
         csv_reader
 
 
-ACCOUNT_CREDIT = "Account:Credit"
-ACCOUNT_EXPENSES = "Expenses"
-ACCOUNT_ACCOUNTING = "Expenses:Account"
-
 
 def cmd_db_init(settings):
+
     """
     Initialize if the database file doest not exists,
     and update schema.
     """
+
     sa = get_session(settings.dbref)
     # XXX: update schema..
     metadata.create_all()
@@ -96,25 +98,32 @@ def cmd_db_init(settings):
     sa.add(credit_acc)
     sa.commit()
 
+
 def cmd_db_stats(settings):
+
     """
     Print table record stats.
     """
+
     sa = get_session(settings.dbref)
     print "Accounts:", sa.query(Account).count()
     print "Mutations:", sa.query(Mutation).count()
 
+
 def cmd_db_reset(settings):
+
     """
     Drop all tables and recreate schema.
     """
+
     get_session(settings.dbref)
     if not settings.yes:
         x = raw_input("This will destroy all data? [yN] ")
         if not x or x not in 'Yy':
             return 1
     metadata.drop_all()
-    metadata.create_all()
+    cmd_db_init(settings)
+
 
 def cmd_account_show(settings):
     sa = get_session(settings.dbref)
@@ -132,26 +141,18 @@ def cmd_account_add(props, settings, name):
     acc = Account(name=name)
     sa.add(acc)
     sa.commit()
-    print "Added account", name
+    log.std("Added account %s", name)
 
 def cmd_account_update(settings):
-    print 'account-update'
+    print 'TODO account-update'
 
 def cmd_account_rm(settings, name):
     sa = get_session(settings.dbref)
     acc = sa.query(Account).filter(Account.name == name).one()
     sa.delete(acc)
     sa.commit()
-    print "Dropped account", name
+    log.std("Dropped account %s", name)
 
-def cmd_change_list(settings):
-
-    """
-    """
-
-    sa = get_session(settings.dbref)
-    for month in sa.query(Month).all():
-        print m.year, m.mon
 
 def cmd_month(settings):
 
@@ -189,6 +190,7 @@ def cmd_month(settings):
                 avg = sum(last5) / len(last5)
                 print year, month, amount, avg
 
+
 def cmd_mutation_import(opts, settings):
 
     """
@@ -197,12 +199,9 @@ def cmd_mutation_import(opts, settings):
     """
 
     sa = get_session(settings.dbref)
-
-    #period = Period.get_current_or_new(settings)
-    #if period.isNew:
-    #    log.std("Started new period")
-    #else:
-    #    log.std("Using existing open period %s", period)
+    if settings.reset or lib.Prompt.ask("Purge mutations?"):
+        sa.query(Mutation).delete()
+        log.std("Purged all previous mutations")
 
     assert settings.input_format == 'csv', settings.input_format
     cache = confparse.Values(dict(
@@ -219,7 +218,7 @@ def cmd_mutation_import(opts, settings):
             if accnr not in cache.accounts:
                 from_account = Account.for_nr(sa, accnr)
                 if not from_account:
-                    from_account = Account(name=ACCOUNT_CREDIT+':'+destname)
+                    from_account = Account(name=ACCOUNT_CREDIT+':'+accnr)
                     from_account.init_defaults()
                 from_account.set_nr(accnr)
                 sa.add(from_account)
@@ -271,7 +270,9 @@ def cmd_mutation_import(opts, settings):
             sa.add(mut)
             sa.commit()
 
-    #log.std("Auto-adjusting period to import date range")
+    log.std("Import ready")
+
+    cmd_balance_commit(settings)
 
 
 def cmd_mutation_list(settings, opts):
@@ -292,43 +293,76 @@ def cmd_mutation_list(settings, opts):
         for m in sa.query(Mutation).all():
             print m.mut_id, m.year, m.from_account, m.to_account, m.amount
 
-def cmd_balance_verify(settings):
+    return 0
+
+
+def cmd_balance_verify(settings, sa=None):
 
     """
-    TODO: Print or verify balance since last check.
+    Print balance for expence accounts.
+    """
+
+    if not sa:
+        sa = get_session(settings.dbref)
+
+    expenses_acc = Account.all((Account.name.like(ACCOUNT_CREDIT+'%'),), sa=sa)
+    balances = [ sa.query(func.sum(Mutation.amount))\
+            .filter( Mutation.from_account == acc.account_id )
+            .one() for acc in expenses_acc ]
+
+    for i, (sub, (sub_balance,)) in enumerate(zip(expenses_acc, balances)):
+        print i, sub.name, sub.iban or sub.nl_number or sub.nl_p_number, sub_balance 
+
+    return 0
+
+
+def cmd_balance_commit(settings):
+
+    """
+    TODO: Commit current balance, insert corrections where needed.
     """
 
     sa = get_session(settings.dbref)
+    cmd_balance_verify(settings, sa=sa)
+    accounts, balance = fetch_expense_balance(settings, sa=sa)
 
-    expenses_acc = Account.all((Account.name.like(ACCOUNT_CREDIT+'%'),), sa=sa)
+    if lib.Prompt.ask("End balance %s, correct?" % balance):
+        return 0
 
-    for acc in expenses_acc:
-        print acc.name
+    ia = int(lib.Prompt.raw_input("Which account [0-%i]" % (len(accounts)-1)))
+    account = accounts[ia]
+    print ia, account
+    
+    v = float(lib.Prompt.raw_input("Enter the actual balance"))
+    correction = v - balance
+    print 'Correction: ', balance, correction, balance+correction
 
-    balance, = sa.query(func.sum(Mutation.amount))\
-            .filter( Mutation.from_account.in_([ 
-                acc.account_id for acc in expenses_acc ]) ).one()
+    d = None
+    while not d: 
+        sd = lib.Prompt.raw_input("Enter a year, month, or full day to enter",
+                datetime.now().strftime('%Y-%m-%d'))
+        for fmt in '%Y-%m-%d', '%Y-%m', '%Y':
+            try:
+                d = datetime.strptime(sd, fmt)
+            except:
+                pass
 
-    print 'Cumulative balance:', balance
+    c = Mutation(
+            amount=correction,
+# XXX circular ledger, isnt really valid..
+            from_account=account.account_id,
+            to_account=account.account_id,
+            category='sb',
+            day=d.day, month=d.month, year=d.year,
+            description="Correction/starting balance"
+    )
+    print c
+    if lib.Prompt.ask("Commit?"):
+        sa.add(c)
+        sa.commit()
+        return 0
 
-
-def cmd_balance_commit(opts):
-
-    """
-    TODO: Commit current balance or insert a book check.
-    """
-
-    period = Period.get_current_or_new()
-    # TODO close period
-
-def cmd_balance_rollback(opts):
-
-    """
-    TODO: Reverse last commit.
-    """
-
-    # check for open period
-    period = Period.get_current()
+    return 1
 
 
 ### Transform cmd_ function names to nested dict

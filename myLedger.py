@@ -21,6 +21,10 @@ metadata = SqlBase.metadata
 
 
 
+ACCOUNT_CREDIT = "Account:Credit"
+ACCOUNT_EXPENSES = "Expenses"
+ACCOUNT_ACCOUNTING = "Expenses:Account"
+
 class Account(SqlBase, SessionMixin):
 
     """
@@ -147,6 +151,11 @@ class Mutation(SqlBase):
     description = Column(Text)
     amount = Column(Float)
 
+    def __str__(self):
+        x = []
+        for p in "mut_id year month day amount from_account to_account category description".split(' '):
+            x.append(getattr(self, p))
+        return " ".join(map(str,x))
 
 models = [
         Account,
@@ -174,5 +183,13 @@ def valid_nl_number(acc):
 def valid_nl_p_number(acc):
     return re.match('^P[0-9]{7,9}$', acc)
 
-
+def fetch_expense_balance(settings, sa=None):
+    "Return expence accounts and cumulative balance. "
+    if not sa:
+        sa = get_session(settings.dbref)
+    expenses_acc = Account.all((Account.name.like(ACCOUNT_CREDIT+'%'),), sa=sa)
+    balance, = sa.query(func.sum(Mutation.amount))\
+            .filter( Mutation.from_account.in_([ 
+                acc.account_id for acc in expenses_acc ]) ).one()
+    return expenses_acc, balance
 

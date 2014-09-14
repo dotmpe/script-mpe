@@ -2,10 +2,7 @@ import sys
 import inspect
 from pprint import pformat
 
-from docopt import docopt, \
-        AnyOptions, Option, Dict, \
-        parse_defaults, parse_pattern, \
-        printable_usage, formal_usage
+from docopt import docopt
 
 import confparse
 import log
@@ -141,14 +138,17 @@ def run_commands(commands, settings, opts):
     cmds = opts.cmds
     if 'default' in opts:
         if cmds:
-            opts.default = [] if opts.default[0] != cmds[0] else opts.default[1:]
+            d = len(cmds)
+            default = [] if opts.default[:d] != cmds[:d] else opts.default[d:]
+            if default:
+                cmds.extend(default)
         else:
             if isinstance(opts.default, (list, tuple)):
                 cmds = list(opts.default)
             else:
                 cmds = [opts.default]
 
-    while cmds or opts.default:
+    while cmds:
         cmdid = cmds.pop(0)
         #assert cmdid in opts, \
         #        "Invalid docopts: command %r not described" % (cmdid)
