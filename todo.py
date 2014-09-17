@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """:created: 2014-08-31
+
+TODO: interface this with Google tasks
 """
 __description__ = "todo - time ordered, grouped tasks"
 __version__ = '0.0.0'
@@ -28,7 +30,7 @@ Other flags:
     --version     Show version (%s).
 
 Model::
-    
+
     (dia. 1)      0..1
                    |  partOf
                    |

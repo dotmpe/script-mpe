@@ -3,10 +3,14 @@ import socket
 import types
 
 import zope.interface
+
+from sqlalchemy.ext import declarative
+from sqlalchemy.ext.declarative import api
 from sqlalchemy.orm.exc import NoResultFound
 
+import taxus
 from script_mpe import log
-from init import get_session
+from init import SqlBase, get_session
 import iface
 
 
@@ -145,6 +149,57 @@ class SessionMixin(object):
 
         print dir(self)
         return self.columns['id']
+
+    registry = {}
+
+    @classmethod
+    def root_type(Klass):
+        root = Klass
+        def test_base(mro):
+            assert len(mro) > 2, mro
+            return (
+                    mro[2].__name__ == 'SessionMixin' and mro[1].__name__ == 'Base'
+                ) or (
+                    mro[1].__name__ == 'SessionMixin' and mro[2].__name__ == 'Base'
+                )
+        while not test_base(root.__mro__):
+            root = root.__mro__[1]
+        return root
+
+    @classmethod
+    def init_ref(Klass, ref):
+        """
+        Return proper type and ID for ref::
+
+            <polymorphic-identity>:<id>
+            db:<tablename>:<id>
+
+        """
+        Root = Klass.root_type()
+        if not Root.registry:
+            for key, model in SqlBase._decl_class_registry.items():
+                if not hasattr(model, '__mapper_args__'):
+                    continue
+                if 'polymorphic_identity' not in model.__mapper_args__:
+                    poly_id = model.__tablename__
+                else:
+                    poly_id = model.__mapper_args__['polymorphic_identity']
+                assert poly_id not in Root.registry
+                Root.registry[poly_id] = model
+        poly_id, node_id = ref.rsplit(':',1)
+        Type = Root.registry[poly_id]
+        return Type, node_id
+
+    @classmethod
+    def get_instance(Klass, nid, session='default', sa=None):
+
+        """
+        """
+
+        if not sa:
+            sa = get_session(session)
+        q = sa.query(Klass).filter(Klass.__tablename__ + '.id == ' + nid)
+        return q.one()
 
 
 class NodeSet(object):

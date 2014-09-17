@@ -32,7 +32,7 @@ import log
 import util
 from taxus.init import SqlBase, get_session
 from taxus import \
-    Node, Name, Tag, Node
+    Node, Name, Tag, Topic
 
 
 metadata = SqlBase.metadata
@@ -52,8 +52,10 @@ def cmd_list(settings):
 
 def cmd_get(REF, settings):
     sa = Node.get_session('default', settings.dbref)
-    print Node.byKey(dict(node_id=REF))
-    print Node.byName(REF)
+    #print Node.byKey(dict(node_id=REF))
+    #print Node.byName(REF)
+    Root, nid = Node.init_ref(REF)
+    print Root.get_instance(nid, sa=sa)
 
 
 ### Transform cmd_ function names to nested dict

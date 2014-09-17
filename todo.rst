@@ -77,7 +77,7 @@ ____________________
 This simplification brings its own emphasis and obscurities we may want to
 consider before committing to a scheme of storage/navigation structure.
 For example, cycles in given two types of connections as dimensions make no
-sense for one-time tasks, or places or conceptual groups or to they?
+sense for one-time tasks, or places or conceptual groups or do they?
 
 Ranked structure
 _________________
@@ -170,10 +170,6 @@ In cllct there is simple Python ncurses Mantra/Diablo client called 'cursor'.
 That worked very well for reading. It would need to be extended to have
 multiple cursors. Also, only I and H view work for cell based screens.
 Focussing on our 'hierarchy' we may enjoy a HTML5 based solution more.
-
-Yet a dual cursor zz client is on the wishlist.
-Also currently it just shows H/I views, a compass. 
-No creating, linking or special dimensions. Just static data from JSON.
 
 Not sure how far x-zz-explorer (HaXe/Flash) went.
 
