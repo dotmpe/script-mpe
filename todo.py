@@ -12,6 +12,7 @@ Usage:
   todo.py [options] list
   todo.py [options] find <title>
   todo.py [options] (new|update <ID>) <title> [<description> <group>]
+  todo.py [options] import|export
   todo.py [options] done <ID>...
   todo.py [options] reopened <ID>...
   todo.py [options] <ID> depends <ID2>
@@ -107,19 +108,39 @@ models = [ Task ]
 
 
 def print_Task(task):
-    print "\t".join(map(str,(task.task_id, repr(task.title),
-        #task.partOf and "%i:%r" %(task.partOf.task_id, task.partOf.title) or ''
-        task.partOf and "partOf:%i" %(task.partOf.task_id, ) or ''
-    )))
+    log.std(
+            "{blue}%s{bblack}. {bwhite}%s  {bblack}[{green}%s{bblack}]{default}" % (
+                task.task_id,
+                task.title, 
+                task.partOf and task.partOf.task_id or ''
+            )
+        )
+#    print "\t".join(map(str,(task.task_id, str(task.title),
+#        #task.partOf and "%i:%r" %(task.partOf.task_id, task.partOf.title) or ''
+#        task.partOf and "partOf:%i" %(task.partOf.task_id, ) or ''
+#    )))
+
+
+def indented_tasks(indent, sa, settings, roots):
+    for task in roots:
+        print indent,
+        print_Task(task)
+        indented_tasks(indent+'  ', sa, settings, 
+            sa.query(Task).filter(Task.partOf_id == task.task_id).all())
+
+
+### Commands
 
 def cmd_info(settings):
+    """
+    """
     from pprint import pformat
     print pformat(settings.todict())
 
 def cmd_list(settings):
     sa = get_session(settings.dbref)
-    for task in sa.query(Task).all():
-        print_Task(task)
+    roots = sa.query(Task).filter(Task.partOf_id == None).all()
+    indented_tasks('', sa, settings, roots)
 
 def cmd_find(title, settings):
     sa = get_session(settings.dbref)
