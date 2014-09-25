@@ -11,8 +11,9 @@ Usage:
   todo.py [options] info
   todo.py [options] list
   todo.py [options] find <title>
+  todo.py [options] rm <ID>
   todo.py [options] (new|update <ID>) <title> [<description> <group>]
-  todo.py [options] import|export
+  todo.py [options] (import <input>|export)
   todo.py [options] done <ID>...
   todo.py [options] reopened <ID>...
   todo.py [options] <ID> depends <ID2>
@@ -24,6 +25,8 @@ Usage:
 Options:
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
+    -i FILE --input=FILE
+    -o FILE --output=FILE
 
 Other flags:
     -h --help     Show this usage description. 
@@ -49,11 +52,13 @@ from datetime import datetime
 import os
 import re
 import hashlib
+from pprint import pformat
 
 import log
 import util
 from taxus import Node
 from taxus.util import SessionMixin, get_session
+from res import js
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, create_engine
 from sqlalchemy.orm import Session, relationship, backref,\
@@ -67,14 +72,15 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 SqlBase = declarative_base()
 
 
-class Task(SqlBase, Session):#Node):
+class Task(SessionMixin, SqlBase):
 
     """
     """
 
     __tablename__ = 'tasks'
 
-    task_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    task_id = Column('id', Integer, primary_key=True)
+    #task_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
     title = Column(String(255), unique=True)
     description = Column(Text, nullable=True)
@@ -90,6 +96,20 @@ class Task(SqlBase, Session):#Node):
 
     prerequisite_id = Column(Integer, ForeignKey(task_id))
     requiredFor_id = Column(Integer, ForeignKey(task_id))
+
+    def copy(self, plain=False):
+        if plain:
+            r = {}
+            for k, v in self.__dict__.items():
+                if k.startswith('_'): 
+                    continue
+                r[k] = v
+            return r
+        else:
+            return Task(
+                    title=self.title, 
+                    description=self.description, 
+                    partOf_id=self.partOf_id)
 
     def __repr__(self):
         return "Task(title=%r, id=%r, partOf=%r)" % (
@@ -134,7 +154,6 @@ def indented_tasks(indent, sa, settings, roots):
 def cmd_info(settings):
     """
     """
-    from pprint import pformat
     print pformat(settings.todict())
 
 def cmd_list(settings):
@@ -163,7 +182,7 @@ def cmd_new(title, description, group, opts, settings):
     print_Task(task)
 
 def cmd_update(ID, title, description, group, opts, settings):
-    sa = get_session(settings.dbref, metadata=metadata)
+    sa = get_session(settings.dbref, metadata=SqlBase.metadata)
     task = Task.find(( Task.title == title, ), sa=sa)
     if group:
         group = Task.find(( Task.title == group, ), sa=sa)
@@ -174,6 +193,33 @@ def cmd_update(ID, title, description, group, opts, settings):
     # partOf
     # subtasks...
     pass
+
+def cmd_rm(ID, settings):
+    sa = get_session(settings.dbref, metadata=SqlBase.metadata)
+    task = Task.fetch(((Task.task_id == ID[0]),), sa=sa)
+    print_Task(task)
+
+def cmd_export(output, settings):
+    output = output or settings.output
+    assert settings.output, "Missing output file."
+    sa = get_session(settings.dbref, metadata=SqlBase.metadata)
+    tasks = sa.query(Task).all()
+    data = {
+        'version': __version__,
+        'tasks': [ t.copy(True) for t in tasks ]
+    }
+    js.dump(data, open(settings.output, 'w+'))
+
+def cmd_import(input, settings):
+    input = input or settings.input
+    assert input, "Missing input file."
+    sa = get_session(settings.dbref, metadata=SqlBase.metadata)
+    json = js.load(open(input, 'r'))
+    assert json['version'] == __version__, json['version']
+    for t in json['tasks']:
+        task = Task(**t)
+        sa.add(task)
+    sa.commit()
 
 def cmd_done(ID, settings):
     print 'done', ID
