@@ -11,13 +11,13 @@ Usage:
   todo.py [options] info
   todo.py [options] list
   todo.py [options] find <title>
-  todo.py [options] rm <ID>
+  todo.py [options] rm ID...
+  todo.py [options] insert <title> <before-ID>
   todo.py [options] (new|update <ID>) <title> [<description> <group>]
   todo.py [options] (import <input>|export)
-  todo.py [options] done <ID>...
-  todo.py [options] reopened <ID>...
-  todo.py [options] <ID> depends <ID2>
-  todo.py [options] <ID> prerequisite <ID2>
+  todo.py [options] (start|stop|finish|reopen) <ID>...
+  todo.py [options] ID prerequisite PREREQUISITES...
+  todo.py [options] ID depends DEPENDENCIES...
   todo.py help
   todo.py -h|--help
   todo.py --version
@@ -81,6 +81,7 @@ class Task(SessionMixin, SqlBase):
 
     task_id = Column('id', Integer, primary_key=True)
     #task_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    key_names = ['task_id']
 
     title = Column(String(255), unique=True)
     description = Column(Text, nullable=True)
@@ -94,14 +95,22 @@ class Task(SessionMixin, SqlBase):
             #collection_class=attribute_mapped_collection('title')
         )
 
-    prerequisite_id = Column(Integer, ForeignKey(task_id))
+    #prerequisite_id = Column(Integer, ForeignKey(task_id))
     requiredFor_id = Column(Integer, ForeignKey(task_id))
+    "Indicate another tasks depends on completion of this task. "
+    "This is the prerequisite side. "
+
+    requiredFor = relationship('Task',
+            backref=backref('prerequisite', remote_side=task_id),
+            foreign_keys=[requiredFor_id])
 
     def copy(self, plain=False):
         if plain:
             r = {}
             for k, v in self.__dict__.items():
                 if k.startswith('_'): 
+                    continue
+                if k+'_id' in self.__dict__:
                     continue
                 r[k] = v
             return r
@@ -129,16 +138,13 @@ models = [ Task ]
 
 def print_Task(task):
     log.std(
-            "{blue}%s{bblack}. {bwhite}%s  {bblack}[{green}%s{bblack}]{default}" % (
+"{blue}%s{bblack}. {bwhite}%s {bblack}[{magenta}%s {green}%s{bblack}]{default}" % (
                 task.task_id,
                 task.title, 
-                task.partOf and task.partOf.task_id or ''
+                task.requiredFor_id and task.requiredFor_id or '',
+                task.partOf_id and task.partOf_id or ''
             )
         )
-#    print "\t".join(map(str,(task.task_id, str(task.title),
-#        #task.partOf and "%i:%r" %(task.partOf.task_id, task.partOf.title) or ''
-#        task.partOf and "partOf:%i" %(task.partOf.task_id, ) or ''
-#    )))
 
 
 def indented_tasks(indent, sa, settings, roots):
@@ -164,10 +170,12 @@ def cmd_list(settings):
 def cmd_find(title, settings):
     sa = get_session(settings.dbref)
     task = Task.find(( Task.title == title, ), sa=sa)
-    print task
     print_Task(task)
 
 def cmd_new(title, description, group, opts, settings):
+    """
+        todo [options] new <title> <description> <group>
+    """
     sa = get_session(settings.dbref)
     if group:
         group = Task.find(( Task.title == group, ), sa=sa)
@@ -180,6 +188,16 @@ def cmd_new(title, description, group, opts, settings):
     sa.add(task)
     sa.commit()
     print_Task(task)
+
+def cmd_insert(title, before_ID):
+    """
+        todo [options] insert <title-or-ID> 
+    """
+    sa = get_session(settings.dbref, metadata=SqlBase.metadata)
+    before = Task.fetch(((Task.task_id == before_ID[0]),), sa=sa)
+    task = Task(title=title, prerequisite_id=before.task_id)
+    sa.add(task)
+    sa.commit()
 
 def cmd_update(ID, title, description, group, opts, settings):
     sa = get_session(settings.dbref, metadata=SqlBase.metadata)
@@ -195,11 +213,22 @@ def cmd_update(ID, title, description, group, opts, settings):
     pass
 
 def cmd_rm(ID, settings):
+    """
+        todo rm ID...
+
+    Delete tasks.
+    """
     sa = get_session(settings.dbref, metadata=SqlBase.metadata)
-    task = Task.fetch(((Task.task_id == ID[0]),), sa=sa)
-    print_Task(task)
+    for id_ in ID:
+        task = Task.fetch(((Task.task_id == id_),), sa=sa)
+        sa.delete(task)
+        sa.commit()
+        print_Task(task)
 
 def cmd_export(output, settings):
+    """
+        todo export -o FILE
+    """
     output = output or settings.output
     assert settings.output, "Missing output file."
     sa = get_session(settings.dbref, metadata=SqlBase.metadata)
@@ -211,6 +240,9 @@ def cmd_export(output, settings):
     js.dump(data, open(settings.output, 'w+'))
 
 def cmd_import(input, settings):
+    """
+        todo import -i FILE
+    """
     input = input or settings.input
     assert input, "Missing input file."
     sa = get_session(settings.dbref, metadata=SqlBase.metadata)
@@ -221,11 +253,65 @@ def cmd_import(input, settings):
         sa.add(task)
     sa.commit()
 
-def cmd_done(ID, settings):
-    print 'done', ID
+def cmd_start(ID, settings):
+    """
+        todo start ID...
+    """
 
-def cmd_reopened(ID, settings):
-    print 'reopen', ID
+def cmd_stop(ID, settings):
+    """
+        todo stop ID...
+    """
+
+def cmd_finish(ID, settings):
+    """
+        todo finish ID...
+    """
+
+def cmd_reopen(ID, settings):
+    """
+        todo reopen ID...
+    """
+
+def cmd_prerequisite(ID, PREREQUISITES, settings):
+    """
+        todo ID depends PREREQUISITES...
+
+    (Re)Set ID to depend on first prerequisite ID. If more prerequisites are
+    given, apply the same to every following ID in sequence.
+
+    This sets an unqualified dependency.
+    TODO: check level 
+    """
+    sa = get_session(settings.dbref, metadata=SqlBase.metadata)
+    node = Task.byKey(dict(task_id=ID), sa=sa)
+    for prereq_ID in PREREQUISITES:
+        node.requiredFor_id = prereq_ID
+        sa.add(node)
+        node = Task.byKey(dict(task_id=prereq_ID), sa=sa)
+    else:
+        node.requiredFor_id = None
+        sa.add(node)
+    sa.commit()
+
+def cmd_depends(ID, DEPENDENCIES, settings):
+    """
+        todo ID requires DEPENDENCIES...
+
+    """
+    sa = get_session(settings.dbref, metadata=SqlBase.metadata)
+    node = Task.byKey(dict(task_id=ID), sa=sa)
+    for dep_ID in DEPENDENCIES:
+        dep = Task.byKey(dict(task_id=dep_ID), sa=sa)
+        dep.requiredFor_id = ID
+        sa.add(dep)
+        ID = dep_ID
+    else:
+        dep = Task.byKey(dict(requiredFor_id=ID), sa=sa)
+        dep.requiredFor_id = None
+        sa.add(dep)
+    sa.commit()
+
 
 ### Transform cmd_ function names to nested dict
 
