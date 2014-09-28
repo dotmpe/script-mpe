@@ -16,6 +16,7 @@ Usage:
   todo.py [options] (new|update <ID>) <title> [<description> <group>]
   todo.py [options] (import <input>|export)
   todo.py [options] (start|stop|finish|reopen) <ID>...
+  todo.py [options] (ungroup) <ID>...
   todo.py [options] ID prerequisite PREREQUISITES...
   todo.py [options] ID depends DEPENDENCIES...
   todo.py help
@@ -134,7 +135,6 @@ class Task(SessionMixin, SqlBase):
 
 # used by db_sa
 models = [ Task ]
-
 
 def print_Task(task):
     log.std(
@@ -310,6 +310,17 @@ def cmd_depends(ID, DEPENDENCIES, settings):
         dep = Task.byKey(dict(requiredFor_id=ID), sa=sa)
         dep.requiredFor_id = None
         sa.add(dep)
+    sa.commit()
+
+def cmd_ungroup(ID, settings):
+    """
+        todo ungroup ID
+    """
+    sa = get_session(settings.dbref, metadata=SqlBase.metadata)
+    for id_ in ID:
+        node = Task.byKey(dict(task_id=id_), sa=sa)
+        node.partOf_id = None
+        sa.add(node)
     sa.commit()
 
 
