@@ -75,9 +75,8 @@ class Project(SqlBase, SessionMixin):
         return "%s for %r" % (lib.cn(self), self.name)
 
 
-
-
-
-
+models = [
+        VersionControl, Project
+    ]
 
 

@@ -151,3 +151,7 @@ class Token(SqlBase, SessionMixin):
     value = Column(Text(65535), index=True, nullable=True, unique=True)
     refs = relationship(net.Locator, secondary=token_locator_table)
 
+
+models = [ Namespace, Relocated, Volume, Bookmark, Workset, Token ]
+
+

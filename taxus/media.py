@@ -86,3 +86,5 @@ class Mediameta(core.Node):
     genres = relationship(Genre, secondary=mediameta_genre_table)
 
 
+
+models = [ Mediaformat, Mediatype, Genre, Mediameta ]

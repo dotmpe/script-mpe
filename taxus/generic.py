@@ -19,4 +19,5 @@ class Comment(semweb.Description):
     comment = Column(Text)
 
 
+models = [ Comment ]
 

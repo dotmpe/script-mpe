@@ -1,5 +1,5 @@
 """
-Docs are in __init__
+Docs are in taxus/__init__
 """
 from datetime import datetime
 
@@ -19,14 +19,11 @@ from script_mpe import lib, log
 
 
 # mapping table for Node *-* Node
-nodes_nodes = Table('nodes_nodes', SqlBase.metadata,
-    Column('nodes_ida', Integer, ForeignKey('nodes.id'), nullable=False),
-    Column('nodes_idb', Integer, ForeignKey('nodes.id'), nullable=False),
-    Column('nodes_idc', Integer, ForeignKey('nodes.id'))
-)
-
-
-
+#nodes_nodes = Table('nodes_nodes', SqlBase.metadata,
+#    Column('nodes_ida', Integer, ForeignKey('nodes.id'), nullable=False),
+#    Column('nodes_idb', Integer, ForeignKey('nodes.id'), nullable=False),
+#    Column('nodes_idc', Integer, ForeignKey('nodes.id'))
+#)
 
 class Node(SqlBase, SessionMixin):
 
@@ -37,18 +34,21 @@ class Node(SqlBase, SessionMixin):
     zope.interface.implements(iface.Node)
 
     __tablename__ = 'nodes'
+
+    # Numeric ID
     node_id = Column('id', Integer, primary_key=True)
 
+    # Node type
     ntype = Column(String(36), nullable=False)
     __mapper_args__ = {'polymorphic_on': ntype,
             'polymorphic_identity': 'node'}
-    
-    #name = Column(String(255), nullable=True)
+
+    # Unique node Name (String ID)
     name = Column(String(255), nullable=False, index=True, unique=True)
-    
+
     #space_id = Column(Integer, ForeignKey('nodes.id'))
     #space = relationship('Node', backref='children', remote_side='Node.id')
-    
+
     date_added = Column(DateTime, index=True, nullable=False)
     last_updated = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
@@ -73,6 +73,23 @@ class Node(SqlBase, SessionMixin):
         return "%s for %r" % (lib.cn(self), self.name)
 
 
+class Space(Node):
+
+    """
+    Spaces segment the Nodeverse. 
+    
+    An abstraction to deal with segmented storage (ie. different databases,
+    hosts).
+    """
+
+    __tablename__ = 'spaces'
+    __mapper_args__ = {'polymorphic_identity': 'space'}
+    space_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+
+    # canonical locator? How to deal with non-canonical nodes. 
+
+
+
 groupnode_node_table = Table('groupnode_node', SqlBase.metadata,
     Column('groupnode_id', Integer, ForeignKey('groupnodes.id'), primary_key=True),
     Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True)
@@ -92,6 +109,14 @@ class GroupNode(Node):
 
     subnodes = relationship(Node, secondary=groupnode_node_table, backref='supernode')
     root = Column(Boolean)
+
+
+#class Folder(GroupNode):
+#
+#    __tablename__ = 'folders'
+#
+#    __mapper_args__ = {'polymorphic_identity': 'foldernode'}
+#    folder_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
 
 class ID(SqlBase, SessionMixin):
@@ -201,6 +226,7 @@ class Topic(Tag):
     __mapper_args__ = {'polymorphic_identity': 'topic'}
 
     topic_id = Column('id', Integer, ForeignKey('names_tag.id'), primary_key=True)
+    #key_names = ['topic_id']
 
     about_id = Column(Integer, ForeignKey('nodes.id'))
 
@@ -287,4 +313,15 @@ class Document(Node):
 
 
 
+models = [
+
+        Node, Space,
+
+        GroupNode,
+
+        Document,
+        ID,
+        Name, Tag, Topic
+
+    ]
 

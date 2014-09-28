@@ -7,7 +7,7 @@ db_sa - SQLAlchemy DB init
 Use to intialize SQlite schema.
 
 Usage:
-  db.py [options] (info|show|init|reset|stats) <schema>
+  db.py [options] (info|show|init|reset|stats) [<schema>]
   db.py help
   db.py -h|--help
   db.py --version
@@ -39,18 +39,18 @@ from sqlalchemy import MetaData
 
 import log
 import util
+import taxus
 
 
 
-
-# set in main
-metadata = None
+# globals set in main
 schema = None
+metadata = None
 
 
 def reload_metadata(settings):
     global metadata
-# Reset metadata from database
+# Reset metadata from database, overrides SqlBase loaded..
     metadata = MetaData()
     schema.get_session(settings.dbref, metadata=metadata)
     metadata.reflect()
@@ -145,15 +145,23 @@ def get_version():
     return 'db_sa.mpe/%s' % __version__
 
 if __name__ == '__main__':
-    #bookmarks.main()
     import sys
     from pprint import pformat
+
     opts = util.get_opts(__usage__, version=get_version())
+
+    # schema corresponds to module name
     if opts.args.schema:
         schema = __import__(os.path.splitext(opts.args.schema)[0])
-        metadata = schema.SqlBase.metadata
-        if hasattr(schema, '__db__'):
-            opts.flags.dbref = schema.__db__
+    else:
+        schema = taxus
+
+    metadata = schema.SqlBase.metadata
+
+    # Override dbref setting from schema
+    if hasattr(schema, '__db__'):
+        opts.flags.dbref = schema.__db__
+
     sys.exit(main(opts))
 
 

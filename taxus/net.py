@@ -169,4 +169,6 @@ class Locator(core.ID):
         return "%s %r" % (lib.cn(self), self.ref or self.global_id)
 
 
-
+models = [
+        Domain, Host, Locator
+    ]

@@ -69,3 +69,5 @@ class MD5Digest(ChecksumDigest):
 #
 #fs.INode.checksums = relationship(ChecksumDigest, secondary=inode_checksum_table)
 
+
+models = [ ChecksumDigest, SHA1Digest, MD5Digest ]

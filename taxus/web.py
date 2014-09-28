@@ -135,4 +135,4 @@ class Variant(Resource):
     # descriptions - many-to-may to Description.variants
 
 
-
+models = [ CachedContent, Status, Resource, Variant, Invariant ]

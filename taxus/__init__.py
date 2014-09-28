@@ -164,8 +164,6 @@ Resource nodes, adding another layer of similar but distinct nodes.
 
 The Description column in the diagram is there to get an idea, while most such
 data should be stored a suitable triple store.
-
-TODO: move all models to _model module.
 """
 import os
 
@@ -186,13 +184,26 @@ import web
 import semweb
 
 from init import SqlBase
-from util import SessionMixin
+from util import SessionMixin, get_session
 from core import *
 from net import *
 from code import *
 from fs import *
 from fslayout import *
 from model import Namespace, Relocated, Volume, Bookmark
+
+
+
+models = \
+        checksum.models + \
+        core.models + \
+        fs.models + \
+        model.models + \
+        net.models + \
+        web.models + \
+        generic.models + \
+        semweb.models + \
+        code.models
 
 
 class Taxus(object):

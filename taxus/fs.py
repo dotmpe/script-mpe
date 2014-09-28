@@ -158,3 +158,5 @@ class Socket(INode):
     socket_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
 
 
+
+models = [ INode, Dir, File, Symlink, Device, Mount, FIFO, Socket ]
