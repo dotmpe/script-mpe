@@ -213,3 +213,11 @@ Adjusted entity relation diagram given in main program.
 Post script
 -----------
 Normally notes like these go into journal or notes. Keeping it here for now.
+
+Update
+------
+It appears the use of part-of and required-for for Tasks still leads back to
+an ambiguity.
+A more natural way of organisation would be into folders, see topic.py
+
+

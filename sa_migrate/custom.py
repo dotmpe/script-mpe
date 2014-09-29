@@ -8,7 +8,7 @@ def read(repopath):
     path = os.path.join(repopath, "migrate.cfg")
     prsr = ConfigParser()
     x = prsr.read(path)
-    assert x == [path], ( x, path )
+    assert x == [path], ( "Repo config load failed", x, path )
     return prsr
 
 def migrate_opts(repopath, config):
@@ -60,6 +60,8 @@ def main(env, path=None):
         sys.argv[1] = 'version_control'
         main(**opts)
         return
-
+    
+    print 'opts', opts
+    #sys.argv.append('--url='+opts['url'])
     main(**opts)
 

@@ -1,23 +1,17 @@
 #!/usr/bin/env python
-""":created: 2014-09-07
+""":created: 2014-09-28
 
-TODO figure out model. look at folder.py first.
-TODO: create all nodes; name, description, hierarchy and dump/load json/xml
-    most dirs in tree ~/htdocs/
-    headings in ~/htdocs/personal/journal/*.rst
-    files in ~/htdocs/note/*.rst
+TODO: keep open (active) vs. closed (inactive) indictors
+    for ... nodes? groups? 
+TODO: group other nodes. See GroupNode 1--* Node
+TODO: find prelimanary way to represent nodes from other stores
 """
-__description__ = "topic - "
+__description__ = "folder - "
 __version__ = '0.0.0'
-__db__ = '~/.topic.sqlite'
+__db__ = '~/.folder.sqlite'
 __usage__ = """
 Usage:
-  topic.py [options] [info|list]
-  topic.py [options] (name|tag|topic|host|domain) [NAME]
-  topic.py [options] new NAME [REF]
-  topic.py [options] get REF
-  topic.py -h|--help
-  topic.py --version
+  folder.py [options] [info|list]
 
 Options:
     -d REF --dbref=REF
@@ -37,25 +31,25 @@ import log
 import util
 from taxus.init import SqlBase, get_session
 from taxus import \
-    Node, Name, Tag, Topic, Folder
+    Node, Name, Tag, Folder
 
 
 metadata = SqlBase.metadata
 
 
 # used by db_sa
-models = [ Name, Tag, Topic, Folder ]
+models = [ Name, Tag, Folder ]
 
-def print_Topic(topic):
+def print_Folder(folder):
     log.std(
 "{blue}%s{bblack}. {bwhite}%s {bblack}[ about:{magenta}%s {bblack}] %s %s %s{default}" % (
-                topic.topic_id,
-                topic.name,
-                topic.about_id,
+                folder.folder_id,
+                folder.name,
+                folder.about_id,
 
-                str(topic.date_added).replace(' ', 'T'),
-                str(topic.last_updated).replace(' ', 'T'),
-                str(topic.date_deleted).replace(' ', 'T')
+                str(folder.date_added).replace(' ', 'T'),
+                str(folder.last_updated).replace(' ', 'T'),
+                str(folder.date_deleted).replace(' ', 'T')
             )
         )
 
@@ -70,30 +64,23 @@ def cmd_info(settings):
         log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
 
 def cmd_list(settings):
-    sa = Topic.get_session('default', settings.dbref)
-    for t in Topic.all():
-        print_Topic(t)
+    sa = Folder.get_session('default', settings.dbref)
+    for t in Folder.all():
+        print_Folder(t)
 
 def cmd_new(NAME, REF, settings):
-    sa = Topic.get_session('default', settings.dbref)
-    topic = Topic.byName(NAME)
-    if topic:
-        log.std("Found existing topic %s, created %s", topic.name,
-                topic.date_added)
+    sa = Folder.get_session('default', settings.dbref)
+    folder = Folder.byName(NAME)
+    if folder:
+        log.std("Found existing folder %s, created %s", folder.name,
+                folder.date_added)
     else:
-        topic = Topic(name=NAME)
-        topic.init_defaults()
-        sa.add(topic)
+        folder = Folder(name=NAME)
+        folder.init_defaults()
+        sa.add(folder)
         sa.commit()
-        log.std("Added new topic %s", topic.name)
-    print_Topic(topic)
-
-def cmd_get(REF, settings):
-    sa = Topic.get_session('default', settings.dbref)
-    topic = Topic.byKey(dict(topic_id=REF))
-    print_Topic(topic)
-    topic = Topic.byName(REF)
-    print_Topic(topic)
+        log.std("Added new folder %s", folder.name)
+    print_Folder(folder)
 
 
 ### Transform cmd_ function names to nested dict
@@ -121,11 +108,12 @@ def main(opts):
     return util.run_commands(commands, settings, opts)
 
 def get_version():
-    return 'topic.mpe/%s' % __version__
+    return 'folder.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
     opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit(main(opts))
+
 
 

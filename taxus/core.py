@@ -39,15 +39,21 @@ class Node(SqlBase, SessionMixin):
     node_id = Column('id', Integer, primary_key=True)
 
     # Node type
-    ntype = Column(String(36), nullable=False)
+    ntype = Column(String(36), nullable=False, default="node")
     __mapper_args__ = {'polymorphic_on': ntype,
             'polymorphic_identity': 'node'}
 
     # Unique node Name (String ID)
     name = Column(String(255), nullable=False, index=True, unique=True)
 
-    #space_id = Column(Integer, ForeignKey('nodes.id'))
-    #space = relationship('Node', backref='children', remote_side='Node.id')
+    space_id = Column(Integer, ForeignKey('spaces.id'))
+    space = relationship(
+            'Space', 
+            #primaryjoin='Node.space_id == Space.space_id'
+            backref='children', 
+#            remote_side='spaces.id',
+#            foreign_keys=[space_id]
+        )
 
     date_added = Column(DateTime, index=True, nullable=False)
     last_updated = Column(DateTime, index=True, nullable=False)
@@ -73,23 +79,6 @@ class Node(SqlBase, SessionMixin):
         return "%s for %r" % (lib.cn(self), self.name)
 
 
-class Space(Node):
-
-    """
-    Spaces segment the Nodeverse. 
-    
-    An abstraction to deal with segmented storage (ie. different databases,
-    hosts).
-    """
-
-    __tablename__ = 'spaces'
-    __mapper_args__ = {'polymorphic_identity': 'space'}
-    space_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-
-    # canonical locator? How to deal with non-canonical nodes. 
-
-
-
 groupnode_node_table = Table('groupnode_node', SqlBase.metadata,
     Column('groupnode_id', Integer, ForeignKey('groupnodes.id'), primary_key=True),
     Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True)
@@ -104,19 +93,19 @@ class GroupNode(Node):
     """
 
     __tablename__ = 'groupnodes'
-    __mapper_args__ = {'polymorphic_identity': 'groupnode'}
+    __mapper_args__ = {'polymorphic_identity': 'group'}
     group_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
     subnodes = relationship(Node, secondary=groupnode_node_table, backref='supernode')
     root = Column(Boolean)
 
 
-#class Folder(GroupNode):
-#
-#    __tablename__ = 'folders'
-#
-#    __mapper_args__ = {'polymorphic_identity': 'foldernode'}
-#    folder_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+class Folder(GroupNode):
+
+    __tablename__ = 'folders'
+
+    __mapper_args__ = {'polymorphic_identity': 'folder'}
+    folder_id = Column('id', Integer, ForeignKey('groupnodes.id'), primary_key=True)
 
 
 class ID(SqlBase, SessionMixin):
@@ -152,6 +141,27 @@ class ID(SqlBase, SessionMixin):
 
     def __repr__(self):
         return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.global_id)
+
+
+class Space(ID):
+
+    """
+    Spaces segment the Nodeverse. 
+    
+    An abstraction to deal with segmented storage (ie. different databases,
+    hosts).
+    """
+
+    __tablename__ = 'spaces'
+
+    __mapper_args__ = {'polymorphic_identity': 'space'}
+
+    space_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
+
+    # canonical locator? How to deal with non-canonical nodes. 
+
+
+
 
 
 class Name(Node):

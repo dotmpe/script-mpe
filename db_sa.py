@@ -40,6 +40,12 @@ from sqlalchemy import MetaData
 import log
 import util
 import taxus
+from taxus.init import SqlBase
+from taxus.util import get_session
+
+
+
+models = [ taxus.Space, ]
 
 
 
@@ -154,7 +160,7 @@ if __name__ == '__main__':
     if opts.args.schema:
         schema = __import__(os.path.splitext(opts.args.schema)[0])
     else:
-        schema = taxus
+        schema = sys.modules[__name__]
 
     metadata = schema.SqlBase.metadata
 
