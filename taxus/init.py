@@ -1,6 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import Engine
 
 import zope.interface
 
@@ -11,6 +12,16 @@ import out
 
 SqlBase = declarative_base()
 
+
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    """
+    XXX on connect, assume is SQLite and > 3.6.19 
+    """
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 def get_session(dbref, initialize=False, metadata=SqlBase.metadata):
     engine = create_engine(dbref)#, encoding='utf8')

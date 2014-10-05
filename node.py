@@ -9,6 +9,7 @@ __usage__ = """
 Usage:
   node.py [options] [info|list]
   node.py [options] get REF
+  node.py [options] new NAME
   node.py -h|--help
   node.py --version
 
@@ -30,6 +31,7 @@ import re
 
 import log
 import util
+import reporter
 from taxus.init import SqlBase, get_session
 from taxus import \
     Node, Name, Tag, Topic
@@ -44,6 +46,12 @@ def cmd_info(settings):
             ( "Tables in schema", ", ".join(metadata.tables.keys()) ),
     ):
         log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
+    # try to connect
+    try:
+        sa = Node.get_session('default', settings.dbref)
+        log.std('{magenta} * {bwhite}DB Connection {default}[{green}OK{default}]')
+    except Exception, e:
+        log.std('{magenta} * {bwhite}DB Connection {default}[{red}Error{default}]: %s', e)
 
 def cmd_list(settings):
     sa = Node.get_session('default', settings.dbref)
@@ -56,6 +64,13 @@ def cmd_get(REF, settings):
     #print Node.byName(REF)
     Root, nid = Node.init_ref(REF)
     print Root.get_instance(nid, sa=sa)
+
+def cmd_new(NAME, settings):
+    sa = Node.get_session('default', settings.dbref)
+    node = Node(name=NAME)
+    sa.add(node)
+    sa.commit()
+    reporter.stdout.Node(node)
 
 
 ### Transform cmd_ function names to nested dict
@@ -74,7 +89,6 @@ def main(opts):
 
     settings = opts.flags
 
-    # FIXME: share default dbref uri and path, also with other modules
     if not re.match(r'^[a-z][a-z]*://', settings.dbref):
         settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
 

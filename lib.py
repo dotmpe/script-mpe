@@ -278,12 +278,12 @@ class Prompt(object):
         origopts = list(options)
         opts = clss.create_choice(options)
         while True:
-            print log.format_line('{green}%s {blue}%s {bwhite}[{white}%s{bwhite}]{default} or [?help] ' %
+            print log.format_str('{green}%s {blue}%s {bwhite}[{white}%s{bwhite}]{default} or [?help] ' %
                     (question, ','.join(options), opts))
 #            v = sys.stdin.read(1)
             v = getch()
             #v = raw_input(
-            #        log.format_line('{green}%s {bwhite}[{bblack}%s{bwhite}]{default} or [?help] ') 
+            #        log.format_str('{green}%s {bwhite}[{bblack}%s{bwhite}]{default} or [?help] ') 
             #        % (question, opts)).strip()
             if not v.strip(): # FIXME: have to only strip whitespace, not ctl?
                 v = opts[0]

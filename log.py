@@ -103,13 +103,13 @@ palette = dict(
     bwhite='\x1b[1;37m', # bright white
 )
 
-def format_line(msg):
+def format_str(msg):
     for k in palette:
         msg = msg.replace('{%s}' % k, palette[k])
     return msg
 
 def std(msg, *args):
-    print format_line(msg % args)
+    print format_str(msg % args)
 
 category = 4
 #category = 7
@@ -149,7 +149,7 @@ def log(level, msg, *args):
             return
     if level in title:
         msg = title[level] +': '+ msg
-    msg = format_line(msg + '{default}')
+    msg = format_str(msg + '{default}')
     # XXX: nicer to put in __repr/str__
     args = list(args)
     import zope.interface
