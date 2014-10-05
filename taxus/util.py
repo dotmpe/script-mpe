@@ -230,6 +230,19 @@ class ModelMixin(RecordMixin):
     def recorded(self):
         return self.exists(self.key())
 
+    @classmethod
+    def className(Klass):
+        return Klass.classPathname().split('.')[-1]
+
+    @classmethod
+    def classPathname(Klass):
+
+        """
+        Hack to get the Klass' name from its repr-string.
+        """
+
+        return repr(Klass)[1:-1].split(' ')[1][1:-1]
+
 
 class ORMMixin(SessionMixin, InstanceMixin, ModelMixin):
     pass

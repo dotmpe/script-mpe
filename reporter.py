@@ -246,7 +246,7 @@ class stdout(object):
         def __init__(self, *args, **kwds):
             #assert Klass.__name___ not in formatters
             self.Klasses = args
-            self.key = str(args[0].name).split('.')[0]
+            self.key = args[0].className()
             self.handler = None
             setattr(stdout, self.key, self)
 

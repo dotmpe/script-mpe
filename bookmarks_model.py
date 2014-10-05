@@ -2,7 +2,7 @@ from sqlalchemy import *
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
-from taxus.util import ORMMixin
+from taxus.util import SqlBase, ORMMixin
 
 #from taxus import core
 #from taxus.init import SqlBase

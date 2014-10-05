@@ -158,8 +158,8 @@ class Space(ID):
 
     space_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
 
-    host = Column(String)
-    storage_path = Column(String)
+    #host = Column(String)
+    #storage_uri = Column(String)
     classes = Column(String)
 
 

@@ -136,7 +136,7 @@ class Account(SqlBase, ORMMixin):
             assert not acc_rs or len(acc_rs) == 0
 
 
-class Mutation(SqlBase):
+class Mutation(SqlBase, ORMMixin):
     """
     Temporary? table to hold mutations.
     """

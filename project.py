@@ -46,6 +46,8 @@ from taxus.init import SqlBase, get_session
 from res import Projectdir, Repo
 
 
+models = [ Project, VersionControl ]
+
 
 def cmd_db_init(settings):
     """
