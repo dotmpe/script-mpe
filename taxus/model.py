@@ -4,7 +4,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
 from sqlalchemy.orm import relationship, backref
 
 from init import SqlBase
-from util import SessionMixin
+from util import ORMMixin
 import core
 import net
 import web
@@ -137,7 +137,7 @@ token_locator_table = Table('token_locator', SqlBase.metadata,
 
 
 
-class Token(SqlBase, SessionMixin):
+class Token(SqlBase, ORMMixin):
 
     """
     A large-value variant on Tag, perhaps should make this a typetree.

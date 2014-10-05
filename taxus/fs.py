@@ -13,7 +13,6 @@ from script_mpe import log
 # script.res Namespace
 import core
 import out
-from util import SessionMixin
 from init import SqlBase
 
 

@@ -7,7 +7,7 @@ from sqlalchemy.orm import relationship, backref
 
 from script_mpe import lib
 from init import SqlBase
-from util import current_hostname, SessionMixin
+from util import current_hostname 
 import core
 import util
 import iface

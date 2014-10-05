@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship, backref
 import core
 import net
 from init import SqlBase
-from util import SessionMixin
+from util import ORMMixin
 
 
 
@@ -23,7 +23,7 @@ projects_vcs_table = Table('projects_vcs', SqlBase.metadata,
 )
 
 
-class VersionControl(SqlBase, SessionMixin):#core.Node):
+class VersionControl(SqlBase, ORMMixin):#core.Node):
 
     __tablename__ = 'vcs'
     #__mapper_args__ = {'polymorphic_identity': 'vc'}
@@ -44,7 +44,7 @@ class VersionControl(SqlBase, SessionMixin):#core.Node):
     path = Column(String(255), nullable=False)
 
 
-class Project(SqlBase, SessionMixin):
+class Project(SqlBase, ORMMixin):
 
     __tablename__ = 'projects'
 

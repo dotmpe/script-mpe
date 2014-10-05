@@ -13,7 +13,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
-from taxus.util import SessionMixin
+from taxus.util import ORMMixin
 
 
 SqlBase = declarative_base()
@@ -25,7 +25,7 @@ ACCOUNT_CREDIT = "Account:Credit"
 ACCOUNT_EXPENSES = "Expenses"
 ACCOUNT_ACCOUNTING = "Expenses:Account"
 
-class Account(SqlBase, SessionMixin):
+class Account(SqlBase, ORMMixin):
 
     """
     """

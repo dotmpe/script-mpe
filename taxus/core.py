@@ -11,7 +11,7 @@ from sqlalchemy.orm import relationship, backref
 
 import iface
 from init import SqlBase
-from util import SessionMixin
+from util import ORMMixin
 
 from script_mpe import lib, log
 
@@ -25,7 +25,7 @@ from script_mpe import lib, log
 #    Column('nodes_idc', Integer, ForeignKey('nodes.id'))
 #)
 
-class Node(SqlBase, SessionMixin):
+class Node(SqlBase, ORMMixin):
 
     """
     Provide lookup on numeric ID, name (non-unique) and standard dates.
@@ -108,7 +108,7 @@ class Folder(GroupNode):
     folder_id = Column('id', Integer, ForeignKey('groupnodes.id'), primary_key=True)
 
 
-class ID(SqlBase, SessionMixin):
+class ID(SqlBase, ORMMixin):
 
     """
     A global system identifier.
@@ -158,7 +158,11 @@ class Space(ID):
 
     space_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
 
-    # canonical locator? How to deal with non-canonical nodes. 
+    host = Column(String)
+    storage_path = Column(String)
+    classes = Column(String)
+
+
 
 
 

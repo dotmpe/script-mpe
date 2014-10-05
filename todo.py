@@ -58,7 +58,7 @@ from pprint import pformat
 import log
 import util
 from taxus import Node
-from taxus.util import SessionMixin, get_session
+from taxus.util import ORMMixin, get_session
 from res import js
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, create_engine
@@ -73,7 +73,7 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 SqlBase = declarative_base()
 
 
-class Task(SessionMixin, SqlBase):
+class Task(ORMMixin, SqlBase):
 
     """
     """

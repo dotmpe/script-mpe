@@ -2,7 +2,7 @@ from sqlalchemy import *
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
-from taxus.util import SessionMixin
+from taxus.util import ORMMixin
 
 #from taxus import core
 #from taxus.init import SqlBase
@@ -23,7 +23,7 @@ def get_session(dbref, initialize=False, metadata=None):
     return session
 
 
-class Domain(SqlBase, SessionMixin):
+class Domain(SqlBase, ORMMixin):
     __tablename__ = 'domains'
 
     domain_id = Column('id', Integer, primary_key=True)
@@ -35,7 +35,7 @@ class Domain(SqlBase, SessionMixin):
     date_deleted = Column(DateTime)
 
 
-class Locator(SqlBase, SessionMixin):
+class Locator(SqlBase, ORMMixin):
     __tablename__ = 'ids_lctr'
 
     lctr_id = Column('id', Integer, primary_key=True)
@@ -55,7 +55,7 @@ class Locator(SqlBase, SessionMixin):
             backref='locations')
 
 
-class Bookmark(SqlBase, SessionMixin):
+class Bookmark(SqlBase, ORMMixin):
 
     """
     A textual annotation with a short and long descriptive label,

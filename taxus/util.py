@@ -32,51 +32,56 @@ class SessionMixin(object):
             #assert session.engine, "existing session does not have engine"
         return session
 
-    # XXX: this does not work anymore after ids got unique values
-    # not sure if this can be inferred, explicit is a bit crufty
-    key_names = ['id']
+
+class RecordMixin(object):
 
     @classmethod
-    def key(Klass, self, key_names=None):
-        key = {}
-        if not key_names:
-            key_names = self.key_names
-        for a in key_names:
-            key[a] = getattr(self, a)
-        return key
+    def get_instance(Klass, nid, session='default', sa=None):
 
-    def commit(self, name='default'):
-        session = SessionMixin.get_session(name=name)
-        session.add(self)
-        session.commit()
+        """
+        """
+
+        if not sa:
+            sa = get_session(session)
+        q = sa.query(Klass).filter(Klass.__tablename__ + '.id == ' + nid)
+        return q.one()
 
     @classmethod
     def fetch(Klass, filters=(), query=(), sa=None, session='default', exists=True):
+
         """
         Return exactly one or none for filtered query.
         """
+
         if not sa:
             sa = Klass.get_session(session)
+
         rs = None
+
         if query:
             q = sa.query(*query)
         else:
             q = sa.query(Klass)
+
         if filters:
             q = q.filter(*filters)
+
         try:
             rs = q.one()
         except NoResultFound, e:
             if exists:
                 log.err("No results for %s.fetch(%r)", Klass.__name__, filters)
                 raise e
+
         return rs
 
     @classmethod
     def find(Klass, _sa=None, _session='default', _exists=False, **keys):
+
         """
         Return one (or none), with python keywords-to-like filters.
         """
+
         filters = []
         for k in keys:
             filters.append(getattr(Klass, k).like("%%%s%%" % keys[k]))
@@ -103,9 +108,6 @@ class SessionMixin(object):
     def exists(Klass, keydict):
         return Klass.fetch(keydict, sa=sa, session=session) != None
 
-    def recorded(self):
-        return self.exists(self.key())
-
     @classmethod
     def all(Klass, filters=None, sa=None, session='default'):
         """
@@ -123,7 +125,7 @@ class SessionMixin(object):
         try:
             return q.all()
         except Exception, e:
-            log.err("Error executing SessionMixin.all: %s", e)
+            log.err("Error executing .all: %s", e)
             return []
 
     @classmethod
@@ -154,13 +156,24 @@ class SessionMixin(object):
 
     @classmethod
     def root_type(Klass):
+
+        """
+        Return the most basic ORM model type for Klass.
+
+        Traverse its MRO, stop before Base or any *Mixin root and return
+        the last class which is the same as or a supertype of given Klass.
+        """
+
         root = Klass
         def test_base(mro):
-            assert len(mro) > 2, mro
+            "Return true when front of list has basetype"
+            assert len(mro) > 2, \
+                    "Baseclass heuristic failed: MRO grew too small, %r" % mro
+            # FIXME only detects 2-class inheritance and must list permutations
             return (
-                    mro[2].__name__ == 'SessionMixin' and mro[1].__name__ == 'Base'
+                    mro[2].__name__.endswidth('Mixin') and mro[1].__name__ == 'Base'
                 ) or (
-                    mro[1].__name__ == 'SessionMixin' and mro[2].__name__ == 'Base'
+                    mro[1].__name__.endswidth('Mixin') and mro[2].__name__ == 'Base'
                 )
         while not test_base(root.__mro__):
             root = root.__mro__[1]
@@ -190,16 +203,39 @@ class SessionMixin(object):
         Type = Root.registry[poly_id]
         return Type, node_id
 
+
+class InstanceMixin(object):
+
+    def commit(self, name='default'):
+        session = SessionMixin.get_session(name=name)
+        session.add(self)
+        session.commit()
+
+
+class ModelMixin(RecordMixin):
+
+    # XXX: this does not work anymore after ids got unique values
+    # not sure if this can be inferred, explicit is a bit crufty
+    key_names = ['id']
+
     @classmethod
-    def get_instance(Klass, nid, session='default', sa=None):
+    def key(Klass, self, key_names=None):
+        key = {}
+        if not key_names:
+            key_names = self.key_names
+        for a in key_names:
+            key[a] = getattr(self, a)
+        return key
 
-        """
-        """
+    def recorded(self):
+        return self.exists(self.key())
 
-        if not sa:
-            sa = get_session(session)
-        q = sa.query(Klass).filter(Klass.__tablename__ + '.id == ' + nid)
-        return q.one()
+
+class ORMMixin(SessionMixin, InstanceMixin, ModelMixin):
+    pass
+
+
+
 
 
 class NodeSet(object):

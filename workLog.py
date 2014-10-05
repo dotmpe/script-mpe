@@ -32,7 +32,6 @@ from taxus import Taxus
 import taxus.semweb
 import taxus.generic
 
-from taxus import SessionMixin
 
 
 # Data model 
@@ -113,7 +112,6 @@ class workLog(txs.Txs):
         }
 
     def tasks(self, opts=None, sa=None):
-        #sa = SessionMixin.get_instance('default', opts.dbref, opts.init)
         print 'All tickets', sa.query(Ticket).all()
         print 'Active tickets', sa.query(Ticket)\
                 .filter(Ticket.active == True).all()

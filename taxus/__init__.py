@@ -184,7 +184,7 @@ import web
 import semweb
 
 from init import SqlBase
-from util import SessionMixin, get_session
+from util import SessionMixin, ORMMixin, get_session
 from core import *
 from net import *
 from code import *
