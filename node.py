@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """:created: 2014-09-08
+:updated: 2014-10-12
 
 """
 __description__ = "node - "
@@ -32,13 +33,30 @@ import re
 import log
 import util
 import reporter
+import taxus
 from taxus.init import SqlBase, get_session
 from taxus import \
-    Node, Name, Tag, Topic
+    Node, GroupNode, Name, Tag, Topic
 
 
 metadata = SqlBase.metadata
 
+
+# used by db_sa
+models = [ Node, GroupNode ]#Name, Tag, Topic ]
+
+@reporter.stdout.register(Node, [])
+def format_Node_item(node):
+    log.std(
+"{blue}%s{bblack}. {bwhite}%s {bblack}[ {bblack}] {default}" % (
+                node.node_id,
+                node.name,
+            )
+        )
+
+
+
+### Commands
 
 def cmd_info(settings):
     for l, v in (
@@ -60,14 +78,14 @@ def cmd_list(settings):
 
 def cmd_get(REF, settings):
     sa = Node.get_session('default', settings.dbref)
-    #print Node.byKey(dict(node_id=REF))
-    #print Node.byName(REF)
     Root, nid = Node.init_ref(REF)
-    print Root.get_instance(nid, sa=sa)
+    node = Root.get_instance(nid, sa=sa)
+    reporter.stdout.Node(node)
 
 def cmd_new(NAME, settings):
     sa = Node.get_session('default', settings.dbref)
     node = Node(name=NAME)
+    node.init_defaults()
     sa.add(node)
     sa.commit()
     reporter.stdout.Node(node)
@@ -88,10 +106,6 @@ def main(opts):
     """
 
     settings = opts.flags
-
-    if not re.match(r'^[a-z][a-z]*://', settings.dbref):
-        settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
-
     opts.default = 'info'
 
     return util.run_commands(commands, settings, opts)
@@ -106,9 +120,11 @@ if __name__ == '__main__':
         schema = __import__(os.path.splitext(opts.flags.schema)[0])
         metadata = schema.SqlBase.metadata
         if hasattr(schema, '__db__'):
-            opts.flags.dbref = schema.__db__
+            opts.flags.dbref = taxus.ScriptMixin.assert_dbref(schema.__db__)
         else:
             log.warn("{yellow}Warning: {default}no DB found and none provided.");
+    else:
+        opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
 
 

@@ -86,7 +86,8 @@ def cmd_init(settings):
     metadata.create_all()
 
     # enter cllct, should be using it as default session
-    #hostname = current_hostname()
+
+    hostname = current_hostname()
     class_str = "Node, Name, ID, Tag, Topic"
     default = Space( global_id=settings.dbref, classes=class_str )
     default.init_defaults()
@@ -98,7 +99,6 @@ def cmd_init(settings):
         mod = __import__(modname)
         assert hasattr(mod, 'models') and hasattr(mod, '__db__'), mod
         dbref = 'sqlite:///' + os.path.expanduser(mod.__db__)
-        #mod_str = ', '.join([ str(m.name)[:-5] for m in mod.models ])
         mod_str = ', '.join([ m.className() for m in mod.models ])
 
         subspace = Space( global_id=dbref, classes=mod_str )

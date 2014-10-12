@@ -19,6 +19,7 @@ __db__ = '~/.bookmarks.sqlite'
 __usage__ = """
 Usage:
   bookmarks.py [options] dlcs (parse|import FILE|export)
+  bookmarks.py [options] chrome (all|groups)
   bookmarks.py [options] stats
   bookmarks.py [options] (tag|href|domain) [NAME]
   bookmarks.py -h|--help
@@ -58,6 +59,7 @@ from urlparse import urlparse
 from pydelicious import dlcs_parse_xml
 
 import log
+import confparse
 import util
 import libcmd
 import rsr
@@ -505,6 +507,51 @@ def cmd_dlcs_import(opts, settings):
             else:
                 tags_stat[tag] = 1
 
+def cmd_chrome_all(settings):
+    """
+    Bookmarks and groups from Chrome JSON.
+    """
+    fn = os.path.expanduser(
+            '~/Library/Application Support/Google/Chrome/Default/Bookmarks')
+    bms = confparse.Values(res.js.load(open(fn)))
+    print 'checksum', bms.checksum
+    print 'version', bms.version
+    bookmark_bar = confparse.Values(bms.roots['bookmark_bar'])
+    def p(bm, i=1):
+        print i*'  ', '-', '`'+bm.name, 'url' in bm and '<'+bm.url+'>`_' or '`'
+        if 'children' in bm and bm.children:
+            for sb in bm.children:
+                p(confparse.Values(sb), i+1)
+    p(bookmark_bar)
+    other = confparse.Values(bms.roots['other'])
+    p(other)
+
+g_cnt = 0
+def cmd_chrome_groups(settings):
+    """
+    Groups from Chrome bookmarks
+    """
+    fn = os.path.expanduser(
+            '~/Library/Application Support/Google/Chrome/Default/Bookmarks')
+    bms = confparse.Values(res.js.load(open(fn)))
+    bookmark_bar = confparse.Values(bms.roots['bookmark_bar'])
+
+    def p(bm, i=1):
+        global g_cnt
+        if 'url' in bm:
+            return
+        g_cnt += 1
+        print i*'  ', '-', '`'+bm.name
+        if 'children' in bm and bm.children:
+            for sb in bm.children:
+                p(confparse.Values(sb), i+1)
+    p(bookmark_bar)
+    print 'Subtotal', g_cnt
+
+    other = confparse.Values(bms.roots['other'])
+    p(other)
+    print 'Total', g_cnt
+
 def cmd_stats(settings):
     sa = get_session(settings.dbref)
     for stat, label in (
@@ -563,11 +610,6 @@ def main(opts):
     """
 
     settings = opts.flags
-
-    # FIXME: share default dbref uri and path, also with other modules
-    if not re.match(r'^[a-z][a-z]*://', settings.dbref):
-        settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
-
     return util.run_commands(commands, settings, opts)
 
 def get_version():
@@ -576,7 +618,8 @@ def get_version():
 if __name__ == '__main__':
     #bookmarks.main()
     import sys
-    opts = util.get_opts(__doc__, version=get_version())
+    opts = util.get_opts(__doc__ + __usage__, version=get_version())
+    opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
 
 

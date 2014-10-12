@@ -1,6 +1,7 @@
 import os
 import socket
 import types
+import re
 
 import zope.interface
 
@@ -31,6 +32,35 @@ class SessionMixin(object):
             session = SessionMixin.sessions[name]
             #assert session.engine, "existing session does not have engine"
         return session
+
+
+class ScriptModelFacade(object):
+
+    """
+    On initialize, populate attr dict with each model class bound to its own
+    canonical database. 
+
+
+    """
+
+    def __init__(self, masterdb):
+        self.masterdb = masterdb
+
+
+class ScriptMixin(SessionMixin):
+
+    @classmethod
+    def start_master_session(Klass):
+        import cllct
+        dbref = Klass.assert_dbref(cllct.__db__)
+        session = Klass.get_session('master', dbref)
+        return ScriptModelFacade(session)
+
+    @staticmethod
+    def assert_dbref(ref):
+        if not re.match(r'^[a-z][a-z]*://', ref):
+            ref = 'sqlite:///' + os.path.expanduser(ref)
+        return ref
 
 
 class RecordMixin(object):
@@ -171,9 +201,9 @@ class RecordMixin(object):
                     "Baseclass heuristic failed: MRO grew too small, %r" % mro
             # FIXME only detects 2-class inheritance and must list permutations
             return (
-                    mro[2].__name__.endswidth('Mixin') and mro[1].__name__ == 'Base'
+                    mro[2].__name__.endswith('Mixin') and mro[1].__name__ == 'Base'
                 ) or (
-                    mro[1].__name__.endswidth('Mixin') and mro[2].__name__ == 'Base'
+                    mro[1].__name__.endswith('Mixin') and mro[2].__name__ == 'Base'
                 )
         while not test_base(root.__mro__):
             root = root.__mro__[1]
@@ -199,7 +229,10 @@ class RecordMixin(object):
                     poly_id = model.__mapper_args__['polymorphic_identity']
                 assert poly_id not in Root.registry
                 Root.registry[poly_id] = model
-        poly_id, node_id = ref.rsplit(':',1)
+        if ':' not in ref:
+            poly_id, node_id = 'node', ref
+        else:
+            poly_id, node_id = ref.rsplit(':',1)
         Type = Root.registry[poly_id]
         return Type, node_id
 
@@ -244,7 +277,7 @@ class ModelMixin(RecordMixin):
         return repr(Klass)[1:-1].split(' ')[1][1:-1]
 
 
-class ORMMixin(SessionMixin, InstanceMixin, ModelMixin):
+class ORMMixin(ScriptMixin, InstanceMixin, ModelMixin):
     pass
 
 

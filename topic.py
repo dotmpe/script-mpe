@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """:created: 2014-09-07
+:updated: 2014-10-12
 
 TODO figure out model. look at folder.py first.
 TODO: create all nodes; name, description, hierarchy and dump/load json/xml
@@ -38,7 +39,8 @@ import util
 import reporter
 from taxus.init import SqlBase, get_session
 from taxus import \
-    Node, Name, Tag, Topic, Folder
+    Node, Name, Tag, Topic, Folder, \
+    ScriptMixin
 
 
 metadata = SqlBase.metadata
@@ -83,6 +85,18 @@ def cmd_list(settings):
     out.finish()
 
 def cmd_new(NAME, REF, settings):
+    store = Topic.start_master_session()
+
+    print store
+    topic = store.Topic.byName(NAME)
+    if topic:
+        pass
+    else:
+        topic = store.Topic.forge(name=NAME)
+        store.commit()
+    reporter.stdout.Topic(topic)
+
+    # XXX: old 
     sa = Topic.get_session('default', settings.dbref)
     topic = Topic.byName(NAME)
     if topic:
@@ -119,13 +133,7 @@ def main(opts):
     """
 
     settings = opts.flags
-
-    # FIXME: share default dbref uri and path, also with other modules
-    if not re.match(r'^[a-z][a-z]*://', settings.dbref):
-        settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
-
     opts.default = 'info'
-
     return util.run_commands(commands, settings, opts)
 
 def get_version():
@@ -134,6 +142,7 @@ def get_version():
 if __name__ == '__main__':
     import sys
     opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
 
 

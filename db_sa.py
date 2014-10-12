@@ -56,7 +56,7 @@ metadata = None
 
 def reload_metadata(settings):
     global metadata
-# Reset metadata from database, overrides SqlBase loaded..
+    # Reset metadata from database, overrides SqlBase loaded..
     metadata = MetaData()
     schema.get_session(settings.dbref, metadata=metadata)
     metadata.reflect()
@@ -140,11 +140,6 @@ def main(opts):
     """
 
     settings = opts.flags
-
-    # FIXME: share default dbref uri and path, also with other modules
-    if not re.match(r'^[a-z][a-z]*://', settings.dbref):
-        settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
-
     return util.run_commands(commands, settings, opts)
 
 def get_version():
@@ -167,6 +162,7 @@ if __name__ == '__main__':
     # Override dbref setting from schema
     if hasattr(schema, '__db__'):
         opts.flags.dbref = schema.__db__
+    opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
 
     sys.exit(main(opts))
 

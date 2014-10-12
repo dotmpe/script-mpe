@@ -162,13 +162,7 @@ def main(opts):
     """
 
     settings = opts.flags
-
-    # FIXME: share default dbref uri and path, also with other modules
-    if not re.match(r'^[a-z][a-z]*://', settings.dbref):
-        settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
-
     opts.default = 'info'
-
     return util.run_commands(commands, settings, opts)
 
 def get_version():
@@ -177,5 +171,6 @@ def get_version():
 if __name__ == '__main__':
     import sys
     opts = util.get_opts(__doc__, version=get_version())
+    opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
 

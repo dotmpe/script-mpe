@@ -395,12 +395,7 @@ def main(opts):
     """
 
     settings = opts.flags
-
-    if not re.match(r'^[a-z][a-z]*://', settings.dbref):
-        settings.dbref = 'sqlite:///' + os.path.expanduser(settings.dbref)
-
     opts.default = ['balance', 'verify']
-
     return util.run_commands(commands, settings, opts)
 
 def get_version():
@@ -414,5 +409,6 @@ argument_handlers = {
 if __name__ == '__main__':
     import sys
     opts = util.get_opts(__usage__, meta=argument_handlers, version=get_version())
+    opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
 
