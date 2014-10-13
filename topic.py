@@ -86,7 +86,6 @@ def cmd_list(settings):
 
 def cmd_new(NAME, REF, settings):
     store = Topic.start_master_session()
-
     print store
     topic = store.Topic.byName(NAME)
     if topic:

@@ -63,6 +63,7 @@ import lib
 import log
 import util
 import confparse
+import taxus
 from myLedger import SqlBase, metadata, get_session, \
         Account, \
         Mutation, \
@@ -409,6 +410,6 @@ argument_handlers = {
 if __name__ == '__main__':
     import sys
     opts = util.get_opts(__usage__, meta=argument_handlers, version=get_version())
-    opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
+    opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
 

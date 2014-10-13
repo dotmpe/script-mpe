@@ -5,13 +5,14 @@ import re
 
 import zope.interface
 
+from sqlalchemy import func
 from sqlalchemy.ext import declarative
 from sqlalchemy.ext.declarative import api
 from sqlalchemy.orm.exc import NoResultFound
 
 import taxus
 from script_mpe import log
-from init import SqlBase, get_session
+from init import class_registry, SqlBase, get_session
 import iface
 
 
@@ -37,24 +38,67 @@ class SessionMixin(object):
 class ScriptModelFacade(object):
 
     """
+    TODO: Using schemas from script.mpe, populate facade. Manage masterdb.
+    XXX: probably move this to some kind of session 
+
     On initialize, populate attr dict with each model class bound to its own
-    canonical database. 
-
-
+    canonical database.
     """
 
-    def __init__(self, masterdb):
+    def __init__(self, Root, masterdb):
+        #version_tables = [ 'migrate_version', 'sa_migrate_version', ]
+        #for k in version_tables:
+        Space = Root._decl_class_registry.get('Space')
+        self.spaces = Space.all(sa=masterdb)
+        self.Root = Root
         self.masterdb = masterdb
 
+    def init(self):
+        """
+        """
+        subs = [ 
+                'bookmarks', 
+        #        'budget', 
+        #        'db_sa', 
+                'domain2', 
+                'folder', 
+                'project', 
+                'todo', 
+                'topic' 
+            ]
+        for modname in subs:
+            self.init_sub(modname)
+
+    def init_sub(self, name):
+        ScriptMixin.start_session(name)
+
+    def subs(self):
+        for space in self.spaces:
+            space
+
+    def set_master(self):
+        # TODO see if tis works for sqlite
+        "ALTER TABLE %(table)s AUTO_INCREMENT = 1001;"
 
 class ScriptMixin(SessionMixin):
 
     @classmethod
-    def start_master_session(Klass):
-        import cllct
-        dbref = Klass.assert_dbref(cllct.__db__)
-        session = Klass.get_session('master', dbref)
-        return ScriptModelFacade(session)
+    def start_master_session(Klass, name='cllct'):
+        if name not in Klass.sessions:
+            session = Klass.start_session(name)
+        else:
+            session = Klass.sessions[name]
+
+        master = ScriptModelFacade(Klass, session)
+        return master
+
+    @classmethod
+    def start_session(Klass, name, dbref=None):
+        if not dbref:
+            schema = __import__(name)
+            dbref = Klass.assert_dbref(schema.__db__)
+        session = Klass.get_session(name, dbref)
+        return session
 
     @staticmethod
     def assert_dbref(ref):
@@ -72,12 +116,12 @@ class RecordMixin(object):
         """
 
         if not sa:
-            sa = get_session(session)
+            sa = Klass.get_session(session)
         q = sa.query(Klass).filter(Klass.__tablename__ + '.id == ' + nid)
         return q.one()
 
     @classmethod
-    def fetch(Klass, filters=(), query=(), sa=None, session='default', exists=True):
+    def fetch(Klass, filters=(), query=(), session='default', sa=None, exists=True):
 
         """
         Return exactly one or none for filtered query.
@@ -119,7 +163,7 @@ class RecordMixin(object):
                 exists=_exists)
 
     @classmethod
-    def byKey(Klass, key, sa=None, session='default', exists=False):
+    def byKey(Klass, key, session='default', sa=None, exists=False):
         filters = tuple( [
                 getattr( Klass, a ) == key[a]
                 for a in key
@@ -127,7 +171,7 @@ class RecordMixin(object):
         return Klass.fetch(filters, sa=sa, session=session, exists=exists)
 
     @classmethod
-    def byName(Klass, name=None, sa=None, session='default', exists=False):
+    def byName(Klass, name=None, session='default', sa=None, exists=False):
         """
         Return one or none.
         """
@@ -139,7 +183,18 @@ class RecordMixin(object):
         return Klass.fetch(keydict, sa=sa, session=session) != None
 
     @classmethod
-    def all(Klass, filters=None, sa=None, session='default'):
+    def last_id(Klass, filters=None, session='default', sa=None):
+        """
+        Return last ID or zero.
+        """
+        if not sa:
+            sa = Klass.get_session(session)
+        q = sa.query(func.max(Klass.node_id))
+        one = q.one()
+        return one and one[0] or 0
+
+    @classmethod
+    def all(Klass, filters=None, session='default', sa=None):
         """
         Return all for filtered query.
         """

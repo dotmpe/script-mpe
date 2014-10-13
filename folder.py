@@ -16,7 +16,7 @@ Usage:
   folder.py [options] [info|list]
   folder.py [options] new NAME [REF]
   folder.py [options] group ID SUB...
-  folder.py [options] ungroup ID...
+  folder.py [options] ungroup SUB...
 
 Options:
     -d REF --dbref=REF
@@ -78,7 +78,7 @@ def cmd_list(settings):
         print_Folder(t)
 
 def cmd_new(NAME, REF, settings):
-    sa = Folder.get_session('default', settings.dbref)
+    sa = Folder.start_session('folder', settings.dbref)
     folder = Folder.byName(NAME)
     if folder:
         log.std("Found existing folder %s, created %s", folder.name,
@@ -91,24 +91,36 @@ def cmd_new(NAME, REF, settings):
         log.std("Added new folder %s", folder.name)
     print_Folder(folder)
 
+
 # GroupNode operations
 
 def cmd_group(ID, SUB, settings):
+
     """
         folder group ID SUB...
     """
-    print ID, SUB
 
-def cmd_ungroup(ID, settings):
+    taxus.ORMMixin.init('folder', settings.dbref)
+    sa = Folder.start_session('folder', settings.dbref)
+    root = Folder.get_instance(ID, 'folder')
+    for subid in SUB:
+        sub = Folder.get_instance(subid, 'folder')
+        sub.partOf_id = ID
+        # XXX abstract using some kind of master store iface
+        sa.add(node)
+    sa.commit()
+
+def cmd_ungroup(SUB, settings):
     """
         folder ungroup ID
     """
-    sa = get_session(settings.dbref, metadata=SqlBase.metadata)
-    for id_ in ID:
-        node = Folder.byKey(dict(task_id=id_), sa=sa)
+    sa = Folder.start_session('folder', settings.dbref)
+    for subid in SUB:
+        sub = Folder.get_instance(subid, 'folder')
         node.partOf_id = None
         sa.add(node)
     sa.commit()
+
 
 # Folder operations
 

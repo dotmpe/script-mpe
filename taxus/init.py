@@ -10,8 +10,10 @@ import iface
 import out
 
 
-SqlBase = declarative_base()
-
+# class-registry maps model name to type.
+# Also accesible with Model._decl_class_registry
+class_registry = {}
+SqlBase = declarative_base(class_registry=class_registry)
 
 
 @event.listens_for(Engine, "connect")

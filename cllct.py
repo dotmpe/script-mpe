@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """:created: 2014-10-5
 
+script_mpe + taxus 
+
 TODO: manage schemas and datastores.
 
 Work with models across databases, synchronize base types through master
@@ -12,6 +14,7 @@ __db__ = '~/.cllct.sqlite'
 __usage__ = """
 Usage:
   cllct.py [options] [info|list|init]
+  cllct.py [options] [status|sync] SCHEMA
   cllct.py [options] get REF
   cllct.py [options] new NAME
   cllct.py -h|--help
@@ -46,7 +49,7 @@ from taxus import \
 
 
 metadata = SqlBase.metadata
-models = [ Space ]
+models = [ Node, ID, Space ]
 
 
 @reporter.stdout.register(Space, [])
@@ -87,24 +90,24 @@ def cmd_init(settings):
 
     # enter cllct, should be using it as default session
 
-    hostname = current_hostname()
-    class_str = "Node, Name, ID, Tag, Topic"
-    default = Space( global_id=settings.dbref, classes=class_str )
-    default.init_defaults()
+    store = Space.start_master_session()
+    store.init()
+  
+    # modeltype, dbref
+    canonical = {}
 
-    sa.add(default)
-    for modname in [ 'bookmarks', 'budget', 'db_sa', 'domain2', 'folder',
-#'node',
-            'project', 'todo', 'topic', ]:
-        mod = __import__(modname)
-        assert hasattr(mod, 'models') and hasattr(mod, '__db__'), mod
-        dbref = 'sqlite:///' + os.path.expanduser(mod.__db__)
-        mod_str = ', '.join([ m.className() for m in mod.models ])
+    for session in store.sessions:
+        schema = __import__(name)
+        dbref = Klass.assert_dbref(schema.__db__)
+        class_str = ", ".join(map(lambda x:x.className(), schema.models))
+        space = Space(global_id=dbref, classes=class_str)
+        space.init_defaults()
+        for x in schema.models:
+            assert x.className() not in models, x
+            assert x not in canonical, (sessions, x)
+            canonical[x] = dbref
 
-        subspace = Space( global_id=dbref, classes=mod_str )
-        subspace.init_defaults()
-        sa.add(subspace)
-
+        sa.add(space)
     sa.commit()
 
 
@@ -133,6 +136,37 @@ def cmd_new(NAME, settings):
     sa.add(cllct)
     sa.commit()
     reporter.stdout.Node(cllct)
+
+def cmd_status(SCHEMA, settings):
+
+    """
+    Get new nodes from databases,
+    and update subdatabase increment.
+    Possibly this should be in db_sa and work for any master database.
+    Work on Node-subtrees first.
+    """
+
+    store = Node.start_master_session()
+
+    if SCHEMA.endswith('.py'):
+        SCHEMA = SCHEMA[:-3]
+    schema = __import__(SCHEMA)
+
+    store.init()
+
+    for session in Node.sessions:
+        print session
+        for model in schema.models:
+            try:
+                print model, model.last_id(None, session)
+            except Exception, e:
+                print e
+
+
+def cmd_sync(SCHEMA, settings):
+    """
+    """
+
 
 
 ### Transform cmd_ function names to nested dict

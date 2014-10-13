@@ -2,6 +2,7 @@
 """:created: 2014-09-08
 :updated: 2014-10-12
 
+TODO: experiment with nodes from other DBs. Sync to and from master.
 """
 __description__ = "node - "
 __version__ = '0.0.0'
@@ -77,19 +78,28 @@ def cmd_list(settings):
         print t, t.date_added, t.last_updated
 
 def cmd_get(REF, settings):
+
+    """
+    Retrieve and format node. 
+    TODO: full type-specific representation may depend on sub-database.
+    """
+
     sa = Node.get_session('default', settings.dbref)
     Root, nid = Node.init_ref(REF)
     node = Root.get_instance(nid, sa=sa)
     reporter.stdout.Node(node)
 
 def cmd_new(NAME, settings):
+
+    """
+    """
+
     sa = Node.get_session('default', settings.dbref)
     node = Node(name=NAME)
     node.init_defaults()
     sa.add(node)
     sa.commit()
     reporter.stdout.Node(node)
-
 
 ### Transform cmd_ function names to nested dict
 
