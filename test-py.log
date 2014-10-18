@@ -32,8 +32,10 @@ test_nodeid (mod_res_primitive.TreeNodeDictTest) ... ok
 test_tree_append (mod_res_primitive.TreeNodeDictTest) ... ok
 test_tree_traverse (mod_res_primitive.TreeNodeDictTest) ... ok
 unittest.case.FunctionTestCase (test_dictnode_fs_populate) ... ok
-test_taxus_schema_basic_commit (mode_taxus_init.TestTaxusInit) ... ok
-test_taxus_schema_basic_load (mode_taxus_init.TestTaxusInit) ... ok
+test_taxus_schema_basic_commit (mod_taxus_init.TestTaxusInit) ... ok
+test_taxus_schema_basic_load (mod_taxus_init.TestTaxusInit) ... /Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sqlalchemy/ext/declarative/clsregistry.py:160: SAWarning: This declarative base already contains a class with the same class name and module name as taxus.init.Basic, and will be replaced in the string-lookup table.
+  existing.add_item(cls)
+ok
 
 ======================================================================
 FAIL: test_5_copy (mod_confparse.CPTest1)
@@ -64,7 +66,7 @@ AssertionError: {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'confi
    'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}}
 
 ----------------------------------------------------------------------
-Ran 30 tests in 0.194s
+Ran 30 tests in 0.401s
 
 FAILED (failures=2)
 Coverage.py warning: Module rsr was never imported.

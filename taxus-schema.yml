@@ -1,0 +1,113 @@
+# Using JSON schema to specify Taxus schema format 
+properties:
+
+  $schema:
+    name: $schema
+    type: string
+
+  schema:
+    name: schema
+    type: object
+    properties:
+      name:
+        $ref: "#/def/name"
+      models:
+        $ref: "#/def/schema/models"
+
+def:
+
+  name:
+    name: name
+    type: string
+    required: true
+    minLength: 1
+    maxLength: 36
+
+  relation_type:
+    type: string
+    enum: [ one-to-one, one-to-many, many-to-many ]
+
+  column_types:
+    type: string
+    required: true
+    enum:
+      - Integer
+      - DateTime
+      - Boolean
+      - String
+      - Text
+
+  model_types:
+    type: string
+    enum:
+      - Mixin
+      - Abstract
+
+  field:
+    type: object
+    properties:
+      name:
+        $ref: '#/def/name'
+      required:
+        name: required
+        type: boolean
+      type:
+        name: type
+        $ref: '#/def/column_types'
+
+  index:
+    type: object
+    properties:
+      name:
+        $ref: '#/def/name'
+
+  relation:
+    type: object
+    properties:
+      name:
+        $ref: '#/def/name'
+      from:
+        name: from
+        type: string
+      to:
+        name: to
+        type: string
+      type:
+        name: type
+        $ref: "#/def/relation_type"
+
+  model:
+    type: object
+    properties:
+      name:
+        $ref: "#/def/name"
+      type: 
+        name: type
+        $ref: "#/def/model_types"
+      fields:
+        name: fields
+        type: array
+        items:
+          type: object
+          $ref: '#/def/field'
+      indices:
+        name: indices
+        type: array
+        items:
+          type: object
+          $ref: '#/def/index'
+      relations:
+        name: relations
+        type: array
+        items:
+          type: object
+          $ref: '#/def/relation'
+
+  schema:
+    models:
+      name: models
+      type: array
+      items:
+        $ref: '#/def/model'
+
+

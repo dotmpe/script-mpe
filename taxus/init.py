@@ -1,3 +1,5 @@
+from pprint import pformat
+
 from sqlalchemy.sql import sqltypes
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, event, Column
@@ -83,6 +85,24 @@ def default(key, d, default=None):
     d[key] = v
     return v
 
+def deep_update(obj, *sources):
+    for source in sources:
+        for attr in source.keys():
+            v = source[attr]
+            if isinstance(v, dict):
+                dest = obj[attr]
+                deep_update(dest, v)
+            elif isinstance(v, list):
+                if attr not in obj:
+                    obj[attr] = []
+                assert isinstance(obj[attr], list), obj[attr]
+                obj[attr] += v
+            elif attr not in obj or not obj[attr]:
+                obj[attr] = v
+            elif v:
+                raise Exception("Cannot mixin %s = %s. Object already has value %s" % (
+                    attr, v, obj[attr] ))
+
 ### metadata to SA model unmarshalling
 
 def extract_schema(meta):
@@ -92,48 +112,62 @@ def extract_schema(meta):
     #assert meta['schema']['version']  ==  0.1
 
 def extract_orm(meta, sql_base=None):
+
     """
     Run over all models. TODO Extract metadata to construct SA ORM types.
     """
+
     #assert meta['schema']['version']  ==  0.1
     if not sql_base:
-        class_registry = {}
         sql_base = declarative_base(class_registry=class_registry)
-        assert not hasattr(sql_base, 'registry'), sql_base.registry
-        sql_base.registry = class_registry
+        sql_base.registry = {}
         yield sql_base
+    else:
+        assert sql_base.registry
     for model_meta in extract_listed_named(meta['schema']['models']):
         model = extract_model(model_meta, sql_base=sql_base)
-        if hasattr(model, 'type') and model.type == 'abstract':
+        sql_base.registry[model.name] = model
+    for model_meta in extract_listed_named(meta['schema']['models']):
+        model = extract_model(model_meta, sql_base=sql_base)
+        if model.mixins:
+            model_mixins = list(extract_listed_names(model.mixins))
+            for named in model_mixins:
+                assert named['name'] in sql_base.registry, (
+                        "No mixin named %s" % named, sql_base.registry.keys())
+                mixin = sql_base.registry[named['name']].copy(True)
+                for k in ("name", "type"):
+                    del mixin[k]
+                deep_update(model, mixin)
+        model_extends = default('extends', model_meta)
+        if model_extends:
+            # one of the model relations will need to express a one-to-one
+            # relation to express which instance of extends to inherit from.
+            print 'TODO extends', model.name, model_extends
+        type_dict = dict(
+                __tablename__ = model.table
+            )
+        if model.type in ('Mixin',):
             pass
-        yield model
+        else:
+            print 'new ORM', model.name, model.type
+            print pformat(model.indices)
+            indices = extract_indices(model)
+            print 'indices', pformat(indices)
+            print
+            assert indices.primary, indices.copy(True)
+            for field in extract_listed_named(model.fields):
+                type_dict[field['name']] = extract_field(indices, field)
+            print pformat(type_dict)
+            yield type(model_meta['name'], (sql_base,), type_dict)
 
 def extract_model(model_meta, sql_base):
     model_type = default('type', model_meta)
     model_extends = default('extends', model_meta)
     model_table = default('table', model_meta)
-    type_dict = dict(
-            __tablename__ = model_table
-        )
-
+    model_name = default('name', model_meta)
     model_mixins = default('mixins', model_meta, [])
-    if model_mixins:
-        model_mixins = extract_listed_names(model_mixins)
-        print 'TODO mixins', model_mixins, sql_base.registry
+    return Values(model_meta)
 
-    model_extends = default('extends', model_meta, [])
-    if model_extends:
-        # one of the model relations will need to express a one-to-one
-        # relation to express which instance of extends to inherit from.
-        print 'TODO extends', model_extends, sql_base.registry
-
-    indices = extract_indices(model_meta)
-    for field in extract_listed_named(model_meta['fields']):
-        type_dict[field['name']] = extract_field(indices, field)
-    if model_type != 'Abstract':
-        return type(model_meta['name'], (sql_base,), type_dict)
-    else:
-        return Values(model_meta)
 
 def extract_indices(model_meta):
     indices = Values(dict(
@@ -141,9 +175,7 @@ def extract_indices(model_meta):
         unique= {},
         primary= None,
     ))
-
     model_indices = default('indices', model_meta, [])
-
     named_indices = extract_listed_named(model_indices, force=False)
     for index in named_indices:
         index_fields = list(extract_listed_names(index['fields']))
@@ -160,7 +192,7 @@ def extract_indices(model_meta):
                     normal = '_idx'
                 )[index_type])
         if index_type == 'primary':
-            assert not indices.primary, indices.primary
+            assert not indices.primary, (index, indices.primary)
             indices.primary = list(pluck('name', index_fields))
         elif index_type == 'unique':
             for named in index_fields:
@@ -213,6 +245,11 @@ def extract_listed_named(meta_list, force=True):
     be given. 
     """
     isList = isinstance( meta_list, list )
+    if isList:
+        pass#k = list(pluck('name', meta_list))
+    else:
+        k = meta_list.keys()
+        #k.reverse() # XXX test, dict traverse reverse source-order
     for named in meta_list:
         if not isList:
             name = named
@@ -233,11 +270,10 @@ def extract_listed_names(meta_list, sep=' ,', force=True):
     """
     if isinstance(meta_list, basestring):
         raw = meta_list
-        meta_list = []
         seps = list(sep) 
         while seps[:-1]:
-            meta_list = meta_list.replace(seps.pop(0), seps[-1])
-        for name in meta_list.split(seps[-1]):
+            raw = raw.replace(seps.pop(0), seps[-1])
+        for name in raw.split(seps[-1]):
             yield dict(name=name)
     elif isinstance(meta_list[0], basestring): 
         for name in meta_list:

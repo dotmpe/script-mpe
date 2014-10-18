@@ -38,7 +38,7 @@ class TestTaxusSchema(unittest.TestCase):
         assert str(Base)[8:-2] == "sqlalchemy.ext.declarative.api.Base", str(Base)
         for idx, Model in enumerate(models):
             modname = self.models[idx]
-            assert str(Model)[8:-2] == modname
+            assert str(Model)[8:-2] == modname, Model
             for name in self.fields[modname]:
                 assert hasattr(Model, name)
 
@@ -63,6 +63,7 @@ class TestTaxusInit(TestTaxusSchema):
         Base = models[0]
         sa = get_session(dbref, True, metadata=Base.metadata)
         Basic = models[1]
+
         basic = Basic(
                 name="Fist Basic record",
                 label="basic 1",
