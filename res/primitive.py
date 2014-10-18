@@ -37,7 +37,7 @@ class TreeNodeDict(dict):
         dict.__init__(self)
         if not isinstance(nameOrObject, unicode):
             assert not isinstance(nameOrObject, str)
-            self.__name__ = IName(nameOrObject)
+            self.__name__ = iface.IName(nameOrObject)
         else:
             self.__name__ = nameOrObject
         self[self.__name__] = subnodes

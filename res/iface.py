@@ -101,10 +101,13 @@ class ILocalNodeService(Interface):
     # system paths/names/ids.
     """
 
-#class IPyDict(IPrimitive):
-#    pass
 
-#classImplements(dict, IPyDict)
+from taxus.iface import IPrimitive
+
+class IPyDict(IPrimitive):
+    pass
+
+classImplements(dict, IPyDict)
 
 # See taxus.iface for adapters
 #registry = AdapterRegistry()

@@ -564,7 +564,7 @@ def load(name, paths=path_prefixes):
         assert not ext or ext == 'yaml', ext
         values_type = YAMLValues
     _paths[config] = name
-    settings = load_path(config, type=values_type)
+    settings = load_path(config, values_type=values_type)
     setattr(_, name, settings)
     return settings
 

@@ -13,6 +13,7 @@ def gather_test_modules(path):
     sys.path.append(pwd)
     os.chdir(path)
     mods = [ importlib.import_module(name[:-3]) for name in glob.glob( '*.py' ) ]
+    os.chdir(pwd)
     return mods
 
 def gather_tests(modules):

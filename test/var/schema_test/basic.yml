@@ -1,0 +1,43 @@
+schema:
+    name: "taxus.test.basic"
+    schema-version: 0.1
+    models:
+        Basic:
+            version: 0.1
+            table: 'basics'
+            fields:
+                id:
+                    name: id
+                    type: Integer
+                    required: true
+                date_added:
+                    name: date_added
+                    type: DateTime
+                    required: true
+                date_updated:
+                    name: date_updated
+                    type: DateTime
+                deleted:
+                    name: deleted
+                    type: Boolean
+                date_deleted:
+                    name: date_deleted
+                    type: DateTime
+                name:
+                    type: String
+                    len: 255
+                    required: true
+                label:
+                    type: String
+                    len: 36
+            indices:
+                - name: basics_pk
+                  type: primary
+                  fields:
+                    - id
+                - type: unique
+                  fields:
+                    - name
+                - fields:
+                    - label
+

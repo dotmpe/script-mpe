@@ -1,3 +1,4 @@
+import zope.component
 import unittest
 
 import res
@@ -48,7 +49,7 @@ if __name__ == '__main__':
     import sys
     for klass in get_cases():
         setattr( sys.modules['__main__'], klass._description, klass )
-# XXX hot to get cases into unittest.main
+    # FIXME: how to get cases into unittest.main
     unittest.main()
 
 

@@ -1,6 +1,7 @@
 """
 """
 import unittest
+import os
 
 
 import confparse2
@@ -12,6 +13,9 @@ class CP2Test1(unittest.TestCase):
     """
     Simple access tests, structs are not nested
     """
+    def setUp(self):
+        self.pwd = os.getcwd()
+
     def test_1_read_dict(self):
         d = obj_dic({'test':'foo'})
         self.assertEquals(str(d.test), 'foo')
@@ -60,6 +64,9 @@ class CP2Test1(unittest.TestCase):
         #self.assertEquals(type(d.test2), d.__class__)
         #self.assertEquals(type(d.test2), confparse2.PropertyValue)        
         #self.assertEquals(type(d.test2.foo), confparse2.PropertyValue)        
+
+    def tearDown(self):
+        assert self.pwd == os.getcwd(), (self.pwd, os.getcwd())
 
 
 def get_cases():

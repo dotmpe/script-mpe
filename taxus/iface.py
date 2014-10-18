@@ -18,7 +18,7 @@ from zope.component import \
         getGlobalSiteManager
 
 from script_mpe.lib import cn
-#import taxus
+import taxus
 #import libcmd
 
 
@@ -169,10 +169,11 @@ def registerAdapter(adapterClass, sifaces=[], tiface=None):
         tiface = implementedBy(adapterClass).interfaces().next()
     registry.register(sifaces, tiface, '', adapterClass)
 
+import taxus.out
 def hook( provided, o ):
     global registry
     if  o  == None:
-        return PrimitiveFormatter(None)
+        return taxus.out.PrimitiveFormatter(None)
     adapted = providedBy( o )
     #libcmd.err("Adapting %s:%s",  o , adapted)
     adapter = registry.lookup1(

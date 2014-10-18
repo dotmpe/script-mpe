@@ -355,6 +355,9 @@ class Values2Test(unittest.TestCase):
 				('sub/sub2/.myConfig.yaml', "parent_key: sub\nmySubValue: 2"),
 				('sub/sub2/.myConfigLocal.yaml', "parent_key: default\nmyValue: 2"),
 			)
+		self.pwd = os.getcwd()
+	def tearDown(self):
+		assert self.pwd == os.getcwd(), (self.pwd, os.getcwd())
 	#def test_(self):
 	#	from subprocess import Popen
 	#	p = Popen("tree" + " -aifgup %s" % self.testDir, shell=True)

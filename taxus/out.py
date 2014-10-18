@@ -8,7 +8,6 @@ from zope.interface import implements
 #import res.iface
 #from taxus import iface
 import iface
-from iface import IFormatted
 
 
 ### User view/Debug serializers
@@ -107,7 +106,7 @@ class PrimitiveFormatter(object):
     """
     Adapter
     """
-    implements(IFormatted)
+    implements(iface.IFormatted)
     __used_for__ = iface.Node
 
     def __init__(self, context):
@@ -130,7 +129,7 @@ class IDFormatter(object):
     """
     Adapter
     """
-    implements(IFormatted)
+    implements(iface.IFormatted)
     __used_for__ = iface.IID
 
     def __init__(self, context):
@@ -149,7 +148,7 @@ class NodeFormatter(object):
     """
     Adapter
     """
-    implements(IFormatted)
+    implements(iface.IFormatted)
     __used_for__ = iface.Node
 
     def __init__(self, context):
@@ -159,7 +158,7 @@ class NodeFormatter(object):
         ctx = self.context
         indentstr = "".join('  ' * indent)
         fields = [
-            indentstr+"%s: %s" % (k.key, IFormatted(getattr(ctx,
+            indentstr+"%s: %s" % (k.key, iface.IFormatted(getattr(ctx,
                 k.key)).__str__(indent+1)) 
             #"%s: %s" % (k.key, getattr(ctx, k.key)) 
             for k in ctx.__mapper__.iterate_properties
@@ -173,7 +172,7 @@ class NodeSetFormatter(object):
     """
     Adapter.
     """
-    implements(IFormatted)
+    implements(iface.IFormatted)
 
     __used_for__ = iface.INodeSet
 
@@ -182,6 +181,6 @@ class NodeSetFormatter(object):
     def __str__(self, indent=0):
         strbuf = ""
         for node in self.context.nodes:
-            strbuf += IFormatted(node).__str__(indent+1) + '\n'
+            strbuf += iface.IFormatted(node).__str__(indent+1) + '\n'
         return strbuf
 
