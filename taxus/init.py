@@ -2,7 +2,7 @@ from pprint import pformat
 
 from sqlalchemy.sql import sqltypes
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import create_engine, event, Column
+from sqlalchemy import create_engine, event, Column, ForeignKey
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import Engine
 
@@ -119,15 +119,17 @@ def extract_orm(meta, sql_base=None):
 
     #assert meta['schema']['version']  ==  0.1
     if not sql_base:
-        sql_base = declarative_base(class_registry=class_registry)
+        sql_base = declarative_base()
         sql_base.registry = {}
         yield sql_base
     else:
         assert sql_base.registry
-    for model_meta in extract_listed_named(meta['schema']['models']):
+    models = list(extract_listed_named(meta['schema']['models']))
+    for model_meta in models:
         model = extract_model(model_meta, sql_base=sql_base)
         sql_base.registry[model.name] = model
-    for model_meta in extract_listed_named(meta['schema']['models']):
+    while models:
+        model_meta = models.pop(0)
         model = extract_model(model_meta, sql_base=sql_base)
         if model.mixins:
             model_mixins = list(extract_listed_names(model.mixins))
@@ -140,25 +142,28 @@ def extract_orm(meta, sql_base=None):
                 deep_update(model, mixin)
         model_extends = default('extends', model_meta)
         if model_extends:
-            # one of the model relations will need to express a one-to-one
-            # relation to express which instance of extends to inherit from.
-            print 'TODO extends', model.name, model_extends
+            if model_extends not in sql_base._decl_class_registry:
+                models.append(model)
+                continue
+            extends = (sql_base._decl_class_registry[model_extends],)
+        else:
+            extends = (sql_base,)
         type_dict = dict(
                 __tablename__ = model.table
             )
         if model.type in ('Mixin',):
             pass
         else:
-            print 'new ORM', model.name, model.type
-            print pformat(model.indices)
             indices = extract_indices(model)
-            print 'indices', pformat(indices)
-            print
             assert indices.primary, indices.copy(True)
+            relations = extract_relations(model)
             for field in extract_listed_named(model.fields):
-                type_dict[field['name']] = extract_field(indices, field)
-            print pformat(type_dict)
-            yield type(model_meta['name'], (sql_base,), type_dict)
+                type_dict[field['name']] = extract_field(model, indices, relations, field)
+            yield type(model_meta['name'], extends, type_dict)
+
+            assert model.name in sql_base._decl_class_registry, (model.name,
+                    sql_base._decl_class_registry.keys())
+
 
 def extract_model(model_meta, sql_base):
     model_type = default('type', model_meta)
@@ -206,33 +211,62 @@ def extract_indices(model_meta):
                 indices.normal[name] = index_name
     return indices
 
+def extract_relations(model_meta):
+    default('relations', model_meta, [])
+    defs = {}
+    relations = {'defs': defs, 'to': {}, 'from': {}}
+    named_relations = extract_listed_named(model_meta.relations, force=False)
+    for relation in named_relations:
+        if relation.type == 'one-to-one':
+            pass
+        else:
+            assert False, relation.type
+        model_to, field_to = relation['to'].rsplit('.', 1)
+        model_from, field_from = relation['from'].rsplit('.', 1)
+        default('name', relation, relation['from']+'_'+relation['to'])
+        relations['defs'][relation.name] = relation.copy(True)
+        for k, field, model in (('to', field_to, model_to), ('from', field_from, model_from)):
+            if model not in relations[k]:
+                relations[k][model] = {}
+            if field in relations[k][model]:
+                assert relations[model][field] == relation.name, \
+                    (relations[k][model][field], relation.name)
+            else:
+                relations[k][model][field] = relation.name
+    return relations
 
-def extract_field(indices, field_meta):
+def extract_field(model, indices, relations, field_meta):
     field_type = default('type', field_meta, 'String')
     field_extends = default('extends', field_meta)
     field_name = default('name', field_meta)
     field_len = get_default('len', field_meta)
-    db_field = field_name
+    db_field = get_default('db_name', field_meta, field_name)
     assert field_type, field_name
     if field_type == 'relate':
         return Values(field_meta)
     else:
         col_type = getattr(sqltypes, field_type)
         kwds = {}
+        args = []
         if indices.primary == field_name or field_name in indices.primary:
             kwds['primary_key'] = True
         elif field_name in indices.unique:
             kwds['unique'] = True
         elif field_name in indices.normal:
             kwds['index'] = True
-        if db_field == 'label':
-            assert kwds['index']
+        # XXX if model.name in relations['from'] and field_name in relations['from'][model.name]:
+        if model.table in relations['from'] and db_field in relations['from'][model.table]:
+            relname = relations['from'][model.table][db_field]
+            target = relations['defs'][relname]['to']
+            #model, field = target.rsplit('.', 1)
+            args.append(ForeignKey(target))
         if field_len:
             try:
                 col_type = col_type(field_len)
             except:
                 raise Exception("%s does not accept length" % col_type)
-        return Column(db_field, col_type, **kwds)
+        #print 'Column', model.name, field_name, db_field, col_type, args, kwds
+        return Column(db_field, col_type, *args, **kwds)
 
 
 def extract_listed_named(meta_list, force=True):

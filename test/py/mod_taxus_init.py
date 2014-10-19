@@ -40,13 +40,14 @@ class TestTaxusSchema(unittest.TestCase):
             modname = self.models[idx]
             assert str(Model)[8:-2] == modname, Model
             for name in self.fields[modname]:
-                assert hasattr(Model, name)
+                table = Model.metadata.tables[Model.__tablename__]
+                assert hasattr(Model, name) or name in table.c, (Model, name)
 
     def tearDown(self):
         assert self.pwd == os.getcwd(), (self.pwd, os.getcwd())
 
 
-class TestTaxusInit(TestTaxusSchema):
+class TestTaxusInitBasic(TestTaxusSchema):
 
     schema = 'test.var.schema_test.basic'
     models = [ 'taxus.init.Basic' ]
@@ -85,9 +86,42 @@ class TestTaxusInit(TestTaxusSchema):
 
         os.unlink(os.path.expanduser(self.prefix+'taxus-schema-test.sqlite'))
 
+
+class TestTaxusInitExtends(TestTaxusSchema):
+
+    schema = 'test.var.schema_test.extends'
+    models = [ 'taxus.init.MyRecord', 'taxus.init.Extended' ]
+    fields = {
+        'taxus.init.MyRecord': [
+            'r_id', 'name', 'label', 'date_added', 'deleted', 'date_deleted'
+        ],
+        'taxus.init.Extended': [
+            'r_id', 'ext_id', 'name', 'description', 'label', 'date_added', 'deleted', 'date_deleted'
+        ]
+    }
+
+    def test_taxus_schema_ext_commit(self):
+        dbref = ORMMixin.assert_dbref(self.prefix+'taxus-schema-test.sqlite')
+
+        models = load_schema(self.schema)
+        Base, MyRecord, Extended = models
+
+        sa = get_session(dbref, True, metadata=Base.metadata)
+
+        basic = MyRecord(
+                name="Fist Basic record",
+                label="basic 1",
+                date_added=datetime.now()
+            )
+        sa.add(basic)
+        sa.commit()
+
+        os.unlink(os.path.expanduser(self.prefix+'taxus-schema-test.sqlite'))
+
 def get_cases():
     return [
-        TestTaxusInit
+        TestTaxusInitBasic,
+        TestTaxusInitExtends
     ]
 
 if __name__ == '__main__':

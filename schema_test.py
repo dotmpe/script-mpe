@@ -1,3 +1,9 @@
+"""
+:created: 2014-10-19
+
+Schema to ORM.
+Somewhat JSON schema compatible.
+"""
 import os
 import sys
 
@@ -22,11 +28,14 @@ def load_schema(path):
 
 #models = load_schema('taxus.core')
 #models2 = load_schema('bookmarks')
-models = load_schema('schema_test')
 
-Base = models[0]
+models = load_schema('schema_test')
+Base, MyRecord, Extended = models
+
 dbref = ORMMixin.assert_dbref('~/.schema-test.sqlite')
 sa = get_session(dbref, True, metadata=Base.metadata)
+
+print models
 
 #sa2 = get_session(dbref, metadata=Base.metadata)
 #sa = ORMMixin.get_session('schema_test', dbref)

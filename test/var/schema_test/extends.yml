@@ -1,23 +1,13 @@
 $schema: ./taxus-schema.yml
 $ref: https://raw.githubusercontent.com/dotmpe/script.mpe/dev_taxus/taxus-schema.yml#
 schema:
-    name: "schema_test"
+    name: "taxus.test.extends"
     models:
 
         -   name: Assignable
             type: Mixin
             fields:
                 -   name: assigned_user
-
-        -   name: NumericPrimary
-            type: Mixin
-            fields:
-              - name: id
-                type: Integer
-                required: true
-            indices:
-              - fields: id
-                type: primary
 
         -   name: Basic
             type: Mixin
@@ -39,7 +29,6 @@ schema:
         -   name: MyRecord
             table: 'records'
             mixins:
-              #- NumericPrimary
               - Basic
               - Assignable
             fields:
@@ -62,8 +51,6 @@ schema:
         -   name: Extended
             table: 'exts'
             extends: MyRecord
-            mixins:
-              #- NumericPrimary
             fields:
               - name: ext_id
                 type: Integer
