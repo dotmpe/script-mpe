@@ -70,6 +70,8 @@ env_start()
 		> $index_file
 	echo "system="$(cat $index_file | wc -l) \
 		>> $(statusdir_assert env_$(whoami) $(env_session))"/stats.sh"
+	#echo SSH_TTY=$SSH_TTY
+	#echo STY=$STY
 }
 
 # Find difference current env with root; store in statusdir 'user' index

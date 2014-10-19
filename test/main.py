@@ -32,11 +32,10 @@ def gather_tests(modules):
 
 if __name__ == '__main__':
     testmodules = gather_test_modules('test/py')
-    print 'Test modules:', testmodules
+    print 'Test modules:', len(testmodules)
     testclasses = gather_tests(testmodules)
-    print 'Test cases:', testclasses
+    print 'Test cases:', len(testclasses)
     testsuite = unittest.TestSuite(testclasses)
-    print 'Test cases:', testclasses
     unittest.TextTestRunner(verbosity=2).run(testsuite)
 
 
