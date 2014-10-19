@@ -137,6 +137,7 @@ class Volumedir(Workspace):
             path = ""
         return os.path.join(path, name)
 
+
 def read_unix(path):
     """
     Return true lines, dropping comments and whitespace lines.

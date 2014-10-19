@@ -537,7 +537,7 @@ class MetafileFile(object): # XXX: Metalink syntax
         os.utime(self.__class_.get_metafile(self.path, self.basedir), (mtime, mtime))
 
     def read(self):
-        if not self.has_metafile():
+        if not self.__class__.has_metafile(self.path, self.basedir):
             raise Exception("No metafile exists")
         fl = open(self.__class__.get_metafile(self.path, self.basedir), 'r')
         for line in fl.readlines():
@@ -663,8 +663,8 @@ class Meta(object):
     def __init__(self, volume):
         self.volume = volume
         # init STAGE shelve
-        ref = volume.idxref('STAGE')
-        self.stage = PersistedMetaObject.get_store(name='STAGE', dbref=ref)
+        #ref = volume.idxref('STAGE')
+        #self.stage = PersistedMetaObject.get_store(name='STAGE', dbref=ref)
 
     def get_property(self, name, index='STAGE'):
         assert index == 'STAGE'

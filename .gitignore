@@ -7,3 +7,4 @@
 .cllct
 *.meta
 debug*
+.DS_Store

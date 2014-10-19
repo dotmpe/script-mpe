@@ -47,7 +47,7 @@ Other flags:
     --version     Show version (%s).
 
 
-""" % ( __db__, __version__ )
+"""
 from datetime import datetime
 import os
 import re
@@ -67,6 +67,7 @@ import taxus.iface
 import res.iface
 import res.js
 import res.bm
+from res import Volumedir
 from taxus import init as model
 from taxus.init import SqlBase, get_session
 from taxus.core import Node, Name, Tag
@@ -618,8 +619,11 @@ def get_version():
 if __name__ == '__main__':
     #bookmarks.main()
     import sys
-    opts = util.get_opts(__doc__ + __usage__, version=get_version())
+    db = os.getenv( 'BOOKMARKS_DB', __db__ )
+    vdir = Volumedir.find()
+    print 'vdir', vdir
+    usage = __usage__ % ( db, __version__ )
+    opts = util.get_opts(__doc__ + usage, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
 

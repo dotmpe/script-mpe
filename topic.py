@@ -85,15 +85,15 @@ def cmd_list(settings):
     out.finish()
 
 def cmd_new(NAME, REF, settings):
-    store = Topic.start_master_session()
-    print store
-    topic = store.Topic.byName(NAME)
-    if topic:
-        pass
-    else:
-        topic = store.Topic.forge(name=NAME)
-        store.commit()
-    reporter.stdout.Topic(topic)
+    #store = Topic.start_master_session()
+    #print store
+    #topic = store.Topic.byName(NAME)
+    #if topic:
+    #    pass
+    #else:
+    #    topic = store.Topic.forge(name=NAME)
+    #    store.commit()
+    #reporter.stdout.Topic(topic)
 
     # XXX: old 
     sa = Topic.get_session('default', settings.dbref)

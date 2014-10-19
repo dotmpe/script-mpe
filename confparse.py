@@ -122,6 +122,8 @@ def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
     assert isinstance(markerleaf, basestring), markerleaf
     if path:
         paths.append(path)
+    elif not paths:
+        paths = [os.getcwd()]
     # Get a list of all paths, parents, symlinked locations
     expanded_paths = []
     for p in paths:
