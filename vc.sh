@@ -255,6 +255,27 @@ __vc_ps1 ()
 	__vc_status "$d"
 }
 
+__vc_screen ()
+{
+	local w short repo sub
+	
+	w="$1";
+	cd "$w"
+	realcwd="$(pwd -P)"
+	short="${w/#$HOME/~}"
+	
+	local git=$(__vc_gitdir "$w")
+	if [ "$git" ]; then
+		realgit="$(cd "$git"; pwd -P)"
+		realroot="$(git rev-parse --show-toplevel)"
+		rev="$(git show $realroot | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+		echo $(basename $realcwd) $(__vc_git_ps1 "[git:%s $rev]")
+	else
+		echo "$short"
+	fi
+}
+
+
 # print all fuctions/results for paths in arguments
 vc_print_all ()
 {
