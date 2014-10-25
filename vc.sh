@@ -8,6 +8,18 @@ HELP="vc - version-control helper functions "
 source ~/bin/statusdir.sh
 statusdir_assert vc_status > /dev/null
 
+darwin=$(uname -a | grep Darwin)
+
+homepath ()
+{
+	w="$1"
+	if [ -n "$darwin" ]; then
+		echo "${w/#$HOME/~}"
+	else
+		echo "${w/#$HOME/\~}"
+	fi
+}
+
 # Flags legenda:
 #
 # __vc_git_ps1 : cbwisur
@@ -191,7 +203,7 @@ __vc_status ()
 	w="$1";
 	cd "$w"
 	realcwd="$(pwd -P)"
-	short="${w/#$HOME/\~}"
+	short=$(homepath $w)
 	
 	local git=$(__vc_gitdir "$w")
 	local bzr=$(__vc_bzrdir "$w")
@@ -240,7 +252,7 @@ __pwd_ps1 ()
 	cd "$d"
 	w="$d"
 	realcwd="$(pwd -P)"
-	short="${w/#$HOME/\~}"
+	short=$(homepath $w)
 	echo $short
 }
 
@@ -263,7 +275,7 @@ __vc_screen ()
 	[ -z "$w" ] && w="$(pwd)"
 
 	realcwd="$(pwd -P)"
-	short="${w/#$HOME/~}"
+	short=$(homepath $w)
 	
 	local git=$(__vc_gitdir "$w")
 	if [ "$git" ]; then
