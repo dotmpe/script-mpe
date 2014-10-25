@@ -191,7 +191,7 @@ __vc_status ()
 	w="$1";
 	cd "$w"
 	realcwd="$(pwd -P)"
-	short="${w/#$HOME/~}"
+	short="${w/#$HOME/\~}"
 	
 	local git=$(__vc_gitdir "$w")
 	local bzr=$(__vc_bzrdir "$w")
@@ -240,7 +240,7 @@ __pwd_ps1 ()
 	cd "$d"
 	w="$d"
 	realcwd="$(pwd -P)"
-	short="${w/#$HOME/~}"
+	short="${w/#$HOME/\~}"
 	echo $short
 }
 
@@ -260,7 +260,8 @@ __vc_screen ()
 	local w short repo sub
 	
 	w="$1";
-	cd "$w"
+	[ -z "$w" ] && w="$(pwd)"
+
 	realcwd="$(pwd -P)"
 	short="${w/#$HOME/~}"
 	
