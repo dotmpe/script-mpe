@@ -1,5 +1,16 @@
 # Using JSON schema to specify Taxus schema format 
+
+type: object
+additionalProperties: false
+$schema: http://json-schema.org/draft-04/schema#
+allOf:
+- $ref: 'http://json-schema.org/draft-04/schema#'
+required: [ $schema, ]
 properties:
+
+  $ref:
+    name: $ref
+    type: string
 
   $schema:
     name: $schema
@@ -8,13 +19,15 @@ properties:
   schema:
     name: schema
     type: object
+    additionalProperties: false
+    required: [ name, models ]
     properties:
       name:
-        $ref: "#/def/name"
+        $ref: "#/_/name"
       models:
-        $ref: "#/def/schema/models"
+        $ref: "#/_/schema/models"
 
-def:
+_:
 
   name:
     name: name
@@ -45,27 +58,40 @@ def:
 
   field:
     type: object
+    additionalProperties: false
     properties:
       name:
-        $ref: '#/def/name'
+        $ref: '#/_/name'
       required:
         name: required
         type: boolean
       type:
         name: type
-        $ref: '#/def/column_types'
+        $ref: '#/_/column_types'
 
   index:
     type: object
+    additionalProperties: false
     properties:
       name:
-        $ref: '#/def/name'
+        $ref: '#/_/name'
+      fields:
+        name: fields
+        type: string
+      type:
+        name: type
+        type: string
+        enum: 
+          - normal
+          - unique
+          - primary
 
   relation:
     type: object
+    additionalProperties: false
     properties:
       name:
-        $ref: '#/def/name'
+        $ref: '#/_/name'
       from:
         name: from
         type: string
@@ -74,40 +100,49 @@ def:
         type: string
       type:
         name: type
-        $ref: "#/def/relation_type"
+        $ref: "#/_/relation_type"
 
   model:
     type: object
+    additionalProperties: false
     properties:
       name:
-        $ref: "#/def/name"
+        $ref: "#/_/name"
       type: 
         name: type
-        $ref: "#/def/model_types"
+        $ref: "#/_/model_types"
+      table:
+        name: table
+        type: string
+      extends:
+        name: extends
+        type: string
+      mixins:
+        name: mixins
+        type: array
+        items:
+          - type: string
       fields:
         name: fields
         type: array
         items:
-          type: object
-          $ref: '#/def/field'
+          - $ref: '#/_/field'
       indices:
         name: indices
         type: array
         items:
-          type: object
-          $ref: '#/def/index'
+          - $ref: '#/_/index'
       relations:
         name: relations
         type: array
         items:
-          type: object
-          $ref: '#/def/relation'
+          - $ref: '#/_/relation'
 
   schema:
     models:
       name: models
       type: array
       items:
-        $ref: '#/def/model'
+        - $ref: '#/_/model'
 
 

@@ -158,7 +158,8 @@ def extract_orm(meta, sql_base=None):
             assert indices.primary, indices.copy(True)
             relations = extract_relations(model)
             for field in extract_listed_named(model.fields):
-                type_dict[field['name']] = extract_field(model, indices, relations, field)
+                type_dict[field['name']] = extract_field(
+                        model, indices, relations, field)
             yield type(model_meta['name'], extends, type_dict)
 
             assert model.name in sql_base._decl_class_registry, (model.name,

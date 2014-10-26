@@ -28,7 +28,7 @@ endif
 #
 #      ------------ -- 
 
-TEST_$d             := test_py_$d  test_sa_$d  test_sys_$d 
+TEST_$d             := test_py_$d  test_sa_$d  test_sys_$d test_schema_$d
 
 STRGT               += $(TEST_$d)
 
@@ -99,6 +99,21 @@ test_sa_$d::
 	python $D$(REPO)/manage.py test --repository=$(REPO) --url=$$DBREF
 	@$(ll) Done "$@" 
 
+
+test_schema_$d:
+	@echo Testing validator with jsonschema, hyper-schema and links schemas...
+	@jsonschema -i schema/hyper-schema.json schema/jsonschema.json
+	@jsonschema -i schema/hyper-schema.json schema/hyper-schema.json
+	@jsonschema -i schema/links.json schema/hyper-schema.json
+	@echo OK, now validating Taxus...
+	@yaml2json taxus-schema.yml > taxus-schema.json
+	@jsonschema -i taxus-schema.json schema/jsonschema.json
+	@echo OK, now validating schema_test...
+	@yaml2json schema_test.yml > schema_test.json
+	@jsonschema -i schema_test.json taxus-schema.json
+	@echo OK, now validating schema/base...
+	@yaml2json schema/base.yml > schema/base.json
+	@jsonschema schema/base.json
 
 ###    SQL Alchemy repository schema control
 #

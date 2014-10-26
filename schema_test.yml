@@ -1,83 +1,83 @@
 $schema: ./taxus-schema.yml
-$ref: https://raw.githubusercontent.com/dotmpe/script.mpe/dev_taxus/taxus-schema.yml#
 schema:
-    name: "schema_test"
-    models:
 
-        -   name: Assignable
-            type: Mixin
-            fields:
-                -   name: assigned_user
+  name: "schema_test"
+  models:
 
-        -   name: NumericPrimary
-            type: Mixin
-            fields:
-              - name: id
-                type: Integer
-                required: true
-            indices:
-              - fields: id
-                type: primary
+  - name: Assignable
+    type: Mixin
+    fields:
+    - name: assigned_user
 
-        -   name: Basic
-            type: Mixin
-            fields:
-                -   name: date_added
-                    type: DateTime
-                    required: true
-                -   name: date_updated
-                    type: DateTime
-                -   name: deleted
-                    type: Boolean
-                -   name: date_deleted
-                    type: DateTime
-                -   name: name
-                    type: String
-                    len: 255
-                    required: true
+  - name: NumericPrimary
+    type: Mixin
+    fields:
+    - name: id
+      type: Integer
+      required: true
+    indices:
+    - fields: id
+      type: primary
 
-        -   name: MyRecord
-            table: 'records'
-            mixins:
-              #- NumericPrimary
-              - Basic
-              - Assignable
-            fields:
-              - name: r_id
-                type: Integer
-                required: true
-                db_name: id
-              - name: label
-                type: String
-                len: 36
-            indices:
-              - fields: r_id
-                type: primary
-              - type: unique
-                fields:
-                  - name
-              - fields:
-                  - label
+  - name: Basic
+    type: Mixin
+    fields:
+    - name: date_added
+      type: DateTime
+      required: true
+    - name: date_updated
+      type: DateTime
+    - name: deleted
+      type: Boolean
+    - name: date_deleted
+      type: DateTime
+    - name: name
+      type: String
+      len: 255
+      required: true
 
-        -   name: Extended
-            table: 'exts'
-            extends: MyRecord
-            mixins:
-              #- NumericPrimary
-            fields:
-              - name: ext_id
-                type: Integer
-                required: true
-                db_name: id
-              - name: description
-                type: Text
-            indices:
-              - fields: ext_id
-                type: primary
-            relations:
-              - from: exts.id
-                to: records.id
-                type: one-to-one
+  - name: MyRecord
+    table: 'records'
+    mixins:
+    #- NumericPrimary
+    - Basic
+    - Assignable
+    fields:
+    - name: r_id
+      type: Integer
+      required: true
+      db_name: id
+    - name: label
+      type: String
+      len: 36
+    indices:
+    - fields: r_id
+      type: primary
+    - type: unique
+      fields:
+      - name
+    - fields:
+      - label
+
+  - name: Extended
+    table: 'exts'
+    extends: MyRecord
+    #mixins:
+    #- NumericPrimary
+    fields:
+    - name: ext_id
+      type: Integer
+      required: true
+      db_name: id
+    - name: description
+      type: Text
+    indices:
+    - fields: ext_id
+      type: primary
+    relations:
+    - from: exts.id
+      to: records.id
+      type: one-to-one
 
 
 

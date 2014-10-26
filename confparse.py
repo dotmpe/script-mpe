@@ -40,6 +40,7 @@ except ImportError, e:
         import yaml
         yaml_load = yaml.load
         yaml_dump = yaml.dump
+        yaml_safe_dump = yaml.safe_dump
     except ImportError, e:
         print >>sys.stderr, "confparse.py: no YAML parser"
 
@@ -147,18 +148,27 @@ def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
 class DictDeepUpdate:
 
     @classmethod
-    def update(Klass, sub, data):
+    def update_list(Klass, sub, k, v, key_h=None):
+        if k in sub:
+            assert isinstance(sub[k], list)
+        else:
+            sub[k] = []
+        #for x in v:
+        #	Klass.update_value()
+        sub[k].extend(v)
+
+    @classmethod
+    def update(Klass, sub, data, key_h=None):
         for k, v in data.iteritems():
+            if key_h:
+                k = key_h(k)
             if isinstance(v, collections.Mapping):
-                r = Klass.update(sub.get(k, {}), v)
+                r = Klass.update(sub.get(k, {}), v, key_h=key_h)
                 sub[k] = r
             elif isinstance(v, list):
-                if k in sub:
-                    assert isinstance(sub[k], list)
-                else:
-                    sub[k] = []
-                sub[k].extend(v)
+                Klass.update_list(sub, k, v, key_h=key_h)
             else:
+                #Klass.update_value(sub, k, v, key_h=key_h)
                 sub[k] = data[k]
         return sub
 
