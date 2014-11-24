@@ -1,11 +1,14 @@
 # Using JSON schema to specify Taxus schema format 
 
+$schema: http://json-schema.org/draft-04/schema#
+id: http://wtwta.org/taxus/root.json#
+
 type: object
 additionalProperties: false
-$schema: http://json-schema.org/draft-04/schema#
+required: [ $schema, ]
 allOf:
 - $ref: 'http://json-schema.org/draft-04/schema#'
-required: [ $schema, ]
+
 properties:
 
   $ref:
@@ -44,17 +47,17 @@ _:
     type: string
     required: true
     enum:
-      - Integer
-      - DateTime
-      - Boolean
-      - String
-      - Text
+    - Integer
+    - DateTime
+    - Boolean
+    - String
+    - Text
 
   model_types:
     type: string
     enum:
-      - Mixin
-      - Abstract
+    - Mixin
+    - Abstract
 
   field:
     type: object
@@ -82,9 +85,9 @@ _:
         name: type
         type: string
         enum: 
-          - normal
-          - unique
-          - primary
+        - normal
+        - unique
+        - primary
 
   relation:
     type: object
@@ -121,28 +124,28 @@ _:
         name: mixins
         type: array
         items:
-          - type: string
+        - type: string
       fields:
         name: fields
         type: array
         items:
-          - $ref: '#/_/field'
+        - $ref: '#/_/field'
       indices:
         name: indices
         type: array
         items:
-          - $ref: '#/_/index'
+        - $ref: '#/_/index'
       relations:
         name: relations
         type: array
         items:
-          - $ref: '#/_/relation'
+        - $ref: '#/_/relation'
 
   schema:
     models:
       name: models
       type: array
       items:
-        - $ref: '#/_/model'
+      - $ref: '#/_/model'
 
 

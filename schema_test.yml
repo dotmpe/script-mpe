@@ -1,4 +1,6 @@
 $schema: ./taxus-schema.yml
+#allOf:
+#- base/schema.yml
 schema:
 
   name: "schema_test"
