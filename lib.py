@@ -78,9 +78,16 @@ def get_format_description_sub(path):
     format_descr = cmd("file -bs %r", path).strip()
     return format_descr
 
+uname = cmd("uname -s").strip()
 def get_mediatype_sub(path):
-    mediatypespec = cmd("xdg-mime query filetype %r", path).strip()
-    #mediatypespec = cmd("file -bsi %r", path).strip()
+    if uname == 'Linux':
+        mediatypespec = cmd("xdg-mime query filetype %r", path).strip()
+    elif uname == 'Darwin':
+        mediatypespec = cmd("file -bsI %r", path).strip()
+    else:
+        mediatypespec = cmd("file -bsi %r", path).strip()
+        assert not True, uname
+
     return mediatypespec
 
 def remote_proc(host, cmd):

@@ -7,6 +7,8 @@ current impl. allows concatenation of var. tags, known and unknown
 TODO: should determine which tag identifies current format
 other tags may participate in format, or not
 
+config: ~/.basename-reg.yml
+
 ie. mysql.bz2
 or tar.gz
 
@@ -323,6 +325,7 @@ class Basename(libcmd.SimpleCommand):
                 if ce in self.rc['mime_ext_reg']:
                     # found it, print continue
                     mime = self.rc['mime_ext_reg'][ce]
+                    print 'XXX', ce, mime
                     exts, ftype, descr = self.rc['mime_xref'][mime]
                     out.emit_known_extension(a, n, ce, mime, exts, ftype, descr)
 

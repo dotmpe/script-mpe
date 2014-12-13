@@ -9,14 +9,16 @@ TODO: handle language tags
 TODO: handle encoding tags
 """
 import os
+import sys
 import optparse
 from pprint import pformat
 
 import confparse
 import libcmd
+import lib
 
 
-usage_descr = ""
+usage_descr = "XXX see basename-reg to register ext/mimes. this only lists stuff"
 
 CONFIG_DEFAULT = dict(
         fer = dict( # this program
@@ -57,9 +59,65 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
     DEFAULT_RC = os.path.expanduser('~/.basename-reg.yaml')
     # XXX restore DEFAULT_CONFIG_KEY = 'fer'
 
-    def run_filetype_scan(self, tag, settings=None):
+    def run_filetype_scan(self, opts, prog, settings, *paths):
+
         """
+        Use mime-data from host systems ``file`` or alt,
+        optionally override/supplement from registry 
+
+        Usagage: [paths..] 
+            Use mime magic to retrieve mime spec for files.
+        Usagage: --override-magic <ext> 
+            Print mimetypes for extensions from registry.
+
+        For other outputs, see -qEDm and --media-type, --content-type.
         """
+
+        for path in paths:
+            if '.' in os.path.basename(path):
+                fext = os.path.splitext(path)[1][1:]
+            else:
+                fext = path
+
+            # get data from `file -s` or equiv.
+            if opts.override_magic:
+                assert fext, "--override-magic needs extension"
+                mime = settings.mime_ext_reg[ fext ]
+                content_type = mime
+                mimespec = settings.mime_xref[ mime ]
+                descr = mimespec[2]
+                ext = mimespec[0][0]
+
+            else:
+                content_type = mime = lib.get_mediatype_sub(path)
+                if ';' in content_type:
+                    mime = content_type.split(';')[0].strip()
+                if mime in settings.mime_ext_reg:
+                    ext = settings.mime_ext_reg[ mime ]
+                else:
+                    ext = 'bin'
+                if opts.media_type or opts.print_descr:
+                    descr = lib.get_format_description_sub(path)
+
+            if fext != ext:
+                print >>sys.stderr, "Warning filename-extension %r does not match registered %r" % ( fext, ext)
+
+            # format and output
+            if opts.content_type:
+                line = content_type
+            if opts.mime_type:
+                line = mime
+            if opts.media_type:
+                line = ext +' '+ mime +' '+ descr
+            elif opts.print_descr:
+                line = descr
+            elif opts.print_ext:
+                line = ext
+            if not opts.quiet and opts.print_path:
+                print path+':', 
+            print line
+
+    def _old_scan(self, tag, settings=None):
         print tag
         settings = confparse.Values(settings)
         tags = [tag]
@@ -68,6 +126,7 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
                 i = tags.index(t)
                 tags.remove(t)
                 tags = tags[:i] + settings.ext_map[t] + tags[i+1:]
+        print tags
 
     def list_extensions(self, prog, settings):
         "List all (registered) extensions"
@@ -87,8 +146,49 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
         Return tuples with optparse command-line argument specification.
         """
         return (
-                (('--list-extensions',), libcmd.cmddict()),
-                (('-l', '--list-mediatypes',), libcmd.cmddict()),
+                (('--print-path',), dict(
+                    #type=bool,
+                    default=True,
+                    help="Print path and semicolon before each resul. ",
+                )),
+                #(('--json',), dict(
+                #    type="bool",
+                #    default=False,
+                #    help="Decode content-type spec to json. ",
+                #)),
+                (('-E', '--ext', '--extension'), dict(
+                    dest="print_ext",
+                    default=False,
+                    help="Print extension only.",
+                )),
+                (('-D', '--descr', '--description'), dict(
+                    dest="print_descr",
+                    default=False,
+                    help="Print description only.",
+                )),
+                (('-m', '--mime-type',), dict(
+                    dest="mime_type",
+                    default=True,
+                    help="Print mime-type major/minor only.",
+                )),
+                (('--media-type',), dict(
+                    dest="media_type",
+                    default=False,
+                    help="Print extension, mimetype and description.",
+                )),
+                (('--content-type',), dict(
+                    dest="content_type",
+                    default=False,
+                    help="Print content-type header alike value: includes mime-type and parameters.",
+                )),
+                (('--override-magic',), dict(
+                    dest="override_magic",
+                    action="store_true",
+                    default=False,
+                    help="Use file extension instead of hosts mime-magic.",
+                )),
+                (('-l', '--list-extensions',), libcmd.cmddict()),
+                (('-t', '--list-mediatypes',), libcmd.cmddict()),
             )
 
 
