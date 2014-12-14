@@ -92,8 +92,9 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
                 content_type = mime = lib.get_mediatype_sub(path)
                 if ';' in content_type:
                     mime = content_type.split(';')[0].strip()
-                if mime in settings.mime_ext_reg:
-                    ext = settings.mime_ext_reg[ mime ]
+                if mime in settings.mime_xref:
+                    mimespec = settings.mime_xref[ mime ]
+                    ext = mimespec[0][0]
                 else:
                     ext = 'bin'
                 if opts.media_type or opts.print_descr:
@@ -147,7 +148,7 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
         """
         return (
                 (('--print-path',), dict(
-                    #type=bool,
+                    action="store_true",
                     default=True,
                     help="Print path and semicolon before each resul. ",
                 )),
@@ -158,26 +159,31 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
                 #)),
                 (('-E', '--ext', '--extension'), dict(
                     dest="print_ext",
+                    action="store_true",
                     default=False,
                     help="Print extension only.",
                 )),
                 (('-D', '--descr', '--description'), dict(
                     dest="print_descr",
+                    action="store_true",
                     default=False,
                     help="Print description only.",
                 )),
                 (('-m', '--mime-type',), dict(
                     dest="mime_type",
+                    action="store_true",
                     default=True,
                     help="Print mime-type major/minor only.",
                 )),
                 (('--media-type',), dict(
                     dest="media_type",
+                    action="store_true",
                     default=False,
                     help="Print extension, mimetype and description.",
                 )),
                 (('--content-type',), dict(
                     dest="content_type",
+                    action="store_true",
                     default=False,
                     help="Print content-type header alike value: includes mime-type and parameters.",
                 )),
