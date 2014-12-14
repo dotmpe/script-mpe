@@ -96,12 +96,17 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
                     mimespec = settings.mime_xref[ mime ]
                     ext = mimespec[0][0]
                 else:
-                    ext = 'bin'
+                    print >>sys.stderr, "No x-ref for MIME", mime
+                    ext = None
                 if opts.media_type or opts.print_descr:
                     descr = lib.get_format_description_sub(path)
 
-            if fext != ext:
-                print >>sys.stderr, "Warning filename-extension %r does not match registered %r" % ( fext, ext)
+            if ext:
+                if fext != ext:
+                    print >>sys.stderr, "Warning filename-extension %r does not match registered %r" % ( fext, ext)
+            else:
+                print >>sys.stderr, "Default extension!", path
+                ext = 'bin'
 
             # format and output
             if opts.content_type:
