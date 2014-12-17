@@ -1,0 +1,25 @@
+#!/bin/bash
+
+function htd()
+{
+    cd ~/htdocs
+    for x in $*
+    do
+        make system-$x
+    done
+}
+
+htd $*
+
+# Main
+if [ -n "$0" ] && [ $0 != "-bash" ]; then
+	# Do something if script invoked as 'htd'
+	if [ "$(basename $0)" = "htd" ]; then
+		func="$1"
+		type $func &> /dev/null && {
+			shift 1
+			$func $@
+		}
+	fi
+fi
+
