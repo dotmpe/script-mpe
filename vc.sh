@@ -307,8 +307,16 @@ vc_prompt_command ()
 	d="$1"
 	[ -z "$d" ] && d="$(pwd)"
 	[ ! -d "$d" ] && echo "No such directory $d" && exit 3
-	#statusdir_update vc_status $@
-	__vc_status $@
+	statsdir=$(statusdir_assert vc_status)
+	#index=$(statusdir_index vc_status)
+	pwdref=$(echo $d|md5sum -|cut -f1 -d' ')
+	#line=$(cat $index | grep $pwdref)
+	if [ ! -e "$statsdir/$pwdref" -o "$d/.git" -nt "$statsdir/$pwdref" ]
+	then
+		#echo -e "$pwdref\t$d" > $index
+		__vc_status $@ > $statsdir/$pwdref
+	fi
+	cat $statsdir/$pwdref
 }
 
 # Main
