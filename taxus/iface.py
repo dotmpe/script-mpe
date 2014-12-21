@@ -17,8 +17,9 @@ from zope.interface.adapter import AdapterRegistry
 from zope.component import \
         getGlobalSiteManager
 
-from script_mpe.lib import cn
 import taxus
+#from script_mpe import taxus
+from script_mpe.lib import cn
 #import libcmd
 
 
