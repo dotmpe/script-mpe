@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""cmdline - 
+"""cmdline -
 """
 import os
 import sys
@@ -34,6 +34,7 @@ class Cmd(libcmd.StackedCommand):
             )
 
     def stat(self, prog, settings):
+        print self.__class__.__name__, 'stat'
         print prog, settings
 
     def symlink_tree(self, target_path, opts=None, *source_paths):
@@ -57,11 +58,11 @@ class Cmd(libcmd.StackedCommand):
         The order of the source paths given is always important, for multiple
         paths only the first source path gets linked.
 
-        For existing target paths that are in the way these be updated only 
-        if they are a symlink and broken. It is an error to be resolved 
-        manually when existing files in target-path are in the way. 
-        
-        For symlinks, some further options are given to remove/update existing 
+        For existing target paths that are in the way these be updated only
+        if they are a symlink and broken. It is an error to be resolved
+        manually when existing files in target-path are in the way.
+
+        For symlinks, some further options are given to remove/update existing
         paths in target-path. The first three of these are exclusive.
         The following two can be used with any of the above.
         The last is the only one to accept arguments and is designed to work together
@@ -72,33 +73,33 @@ class Cmd(libcmd.StackedCommand):
             This can not be combined with --force-targets, which is more
             agressive to existing symlinks in target. While this will leave
             other symlinks that are in the way alone, it undoes the default
-            behaviour of keeping existing links to source paths--perhaps 
-            resulting of other source orders. 
+            behaviour of keeping existing links to source paths--perhaps
+            resulting of other source orders.
 
         --clean-symlinks
         --force-targets does update any existing symlink that is in the way,
-            even if not broken, regardless wether it points to something within 
-            source paths. This ensures every first path found in source exists 
+            even if not broken, regardless wether it points to something within
+            source paths. This ensures every first path found in source exists
             as target. This is more agressive than --force-sources, but does leave
             other symlinks alone.
 
-        --keep-targets does not update existing link in target even if broken, but 
+        --keep-targets does not update existing link in target even if broken, but
             simply warns about their existence. This is not overridden by --clean-all-symlinks
             or --force-clean-symlinks which now give warnings about these paths.
-            This overrides other flags and gives an non-critical error when given with 
+            This overrides other flags and gives an non-critical error when given with
             any of the above: --clean-symlinks, --force-targets and --force-sources.
 
-        --clean-all-symlinks removes every broken symlink in target-path, regardless 
+        --clean-all-symlinks removes every broken symlink in target-path, regardless
             where or what destination. This can be overriden for some paths by
             --keep-targets.
 
         --force-clean-symlinks removes every symlink in target-path, regardless
-            where or what destination. This overrides --clean-all-symlinks. This is 
+            where or what destination. This overrides --clean-all-symlinks. This is
             overriden for some paths by --keep-targets.
 
-        --keep-source=PATH 
+        --keep-source=PATH
             Accept extra paths to regard as source in judging link cleanup. Adding paths
-            will make --force-source consider more targets as valid and refrain from 
+            will make --force-source consider more targets as valid and refrain from
             replacing them. It is an error to have this flag without --force-source.
 
         :system-test: 9

@@ -7,7 +7,7 @@ libcmd is a library to handle command line invocations; parse them to flags,
 options and commands, and validate, resolve prerequisites and execute.
 
 Within this little framework, a command target is akin to a build-target in ant
-or make alike buildsystems. In libcmd it is namespaced, and is more complex, but is 
+or make alike buildsystems. In libcmd it is namespaced, and is more complex, but is
 has prerequisites and other dependencies and yields certain results.
 
 Example::
@@ -67,13 +67,13 @@ Class overview:
      - &func (callable that returns generator)
      - prerequisites (static)
      - requires (dynamic)
-     
+
     Command:ICommand
      - @key (name.qname)
      - &name:Name
      - &handler:Handler
      - graph:Graph
-    
+
     ExecGraph
      - from/to/three:<Target,Target,Target>
      - execlist (minimally cmd:options, from there on: anything from cmdline)
@@ -110,7 +110,7 @@ class OptionParser(optparse.OptionParser):
     """
     Customized OptionParser prints all targets too on 'help'.
     """
-    
+
     def __init__(self, usage, version=None):
         optparse.OptionParser.__init__(self, usage, version=version)
         self._targets = None
@@ -133,7 +133,7 @@ class OptionParser(optparse.OptionParser):
             self._targets = Target.instances.keys()
             self._targets.sort()
         return self._targets
-    
+
     def print_targets(self, fl=None):
         targets = self.targets
         print >>fl, "Targets: "
@@ -164,7 +164,7 @@ class Targets(tuple):
         return 'targets'+tuple.__str__(self)
 
 
-class Keywords(UserDict): 
+class Keywords(UserDict):
     def __init__(self, **kwds):
         UserDict.__init__(self)
         self.update(kwds)
@@ -172,7 +172,7 @@ class Keywords(UserDict):
         return 'keywords %r' % self
 
 
-class Arguments(tuple): 
+class Arguments(tuple):
     def __str__(self):
         return 'arguments'+tuple.__str__(self)
 
@@ -210,7 +210,7 @@ class Options(UserDict):
         for opts, attrdict in options:
 
             clss.opts.append(opts)
-   
+
             idx = len(clss.attributes)
             clss.attributes.append(attrdict)
 
@@ -244,8 +244,8 @@ class ExecGraph(object):
 
     It consists basically a graph of targets, dependencies and results broken down to
     triples, and an execution list.
-    Upon construction, a set of root handlers is seeded into the execution list. 
-    
+    Upon construction, a set of root handlers is seeded into the execution list.
+
     Targets should be represented by nodes, interdependencies are structured by
     directed links between nodes. Links may be references to the following
     predicate names:
@@ -253,33 +253,33 @@ class ExecGraph(object):
     - cmd:prerequisite
     - cmd:request
     - cmd:result
-  
+
     Connected as in this schema::
 
           Tprerequisite  <--- Tcurrent ---> Trequest
                                  |
                                  V
-                         Tresult or Rresult  
-                               
+                         Tresult or Rresult
+
     T represents an ITarget, R for IResource. Only ITarget can be executed,
-    though a target may be a factory (one-to-one instance cardinality) for a 
+    though a target may be a factory (one-to-one instance cardinality) for a
     certain resource.
 
     Targets are parametrized by a shared, global context expressed in a
     dictionary, 'kwds'. These parameters do not normally affect their identity.
-    Targets gain access to results of other targets through this too, as it is 
+    Targets gain access to results of other targets through this too, as it is
     updated in place.
 
     TODO: arguments list?
     XXX: schema for all this?
 
     Targets depend on their prerequisites, and on their generated requirements.
-    Required targets cannot depend on their generator. 
+    Required targets cannot depend on their generator.
     Result targets may, but need not to depend on their generator.
 
-    If a 'cmd:result' points to a target, it is executed sometime after 
+    If a 'cmd:result' points to a target, it is executed sometime after
     the generator target. The object of this predicate may also be a
-    non-target node, representing an calculated or retrieve object that 
+    non-target node, representing an calculated or retrieve object that
     implements IFormatted, and may implement IResource or IPersisted.
 
     All links branch out from the current node (the execution target),
@@ -292,13 +292,13 @@ class ExecGraph(object):
 
     Through these links an additional structure is build up, the dynamic
     execution tree. ExecGraph is non-zero until all nodes in this tree are
-    executed.  Because the nodes of this tree are not unique, a global 
+    executed.  Because the nodes of this tree are not unique, a global
     pointer is kept to the current node of this tree. Execution resolution
     progresses depth-first ofcourse since nested targets are requirements.
     Result targets are executed at the first lowest depth they occur.
     ie. the same level of- but after their generator.
     The structure is asimple nested list with node keys.
-    The final structure may be processed for use in audit trails and other 
+    The final structure may be processed for use in audit trails and other
     types of session- and change logs.
     """
 
@@ -324,7 +324,7 @@ class ExecGraph(object):
         if root:
             for node_id in root:
                 self.put(node_id)
-    
+
     def __contains__(self, other):
         other = self.instance(other)
         for i in self.execlist:
@@ -338,7 +338,7 @@ class ExecGraph(object):
     @staticmethod
     def load(name):
         """
-        Get the Target for name and create a Command and Handler instance 
+        Get the Target for name and create a Command and Handler instance
         for it.
         """
         assert isinstance(name, str)
@@ -357,8 +357,8 @@ class ExecGraph(object):
         """
         When node is a string, or an object that implements ITarget,
         the matching ICommand is instantiated if needed and returned.
-        If node implements ICommand, it is returned after being set 
-        if null or overrided if forced. KeyError is raised for 
+        If node implements ICommand, it is returned after being set
+        if null or overrided if forced. KeyError is raised for
         duplicates.
         """
         if not res.iface.ICommand.providedBy(node):
@@ -415,7 +415,7 @@ class ExecGraph(object):
         assert S_idx >= 0, S_idx
         O_idx = self.execlist.index(O_target.key)
         assert O_idx >= 0, O_idx
-        # make the edges 
+        # make the edges
         #XXX:self._assert(S_target, self.P_hasPrerequisite, O_target)
         #(for antonym P_isPrerequisiteOf we can traverse the reverse mapping)
 
@@ -440,13 +440,13 @@ class ExecGraph(object):
         assert O is required for S
         """
         S_target = self.instance(S_target)
-        O_name = self.name(O_target) 
+        O_name = self.name(O_target)
         assert S_target.key in self.execlist
         idx = self.index(S_target)
         if O_name not in self.execlist:
             self.put(O_target, idx)
             O_target = self.instance(O_target)
-        # make the edges 
+        # make the edges
         #XXX:self._assert(S_target, self.P_requires, O_target)
         #(for antonym we can traverse the reverse mapping)
 
@@ -457,7 +457,7 @@ class ExecGraph(object):
         """
         assert S is Result of O
         """
-        # make the edges 
+        # make the edges
         #XXX:self._assert(S_target, self.P_isResultOf, O_target)
         #(for antonym we can traverse the reverse mapping)
 
@@ -521,7 +521,7 @@ class ExecGraph(object):
         "Return target at pointer, or none if execution list is exhausted. "
         if self.pointer >= 0 and self.pointer < len(self.execlist):
             return self.execlist[self.pointer]
-        
+
     def __nonzero__(self):
         return not self.finished()
 
@@ -575,7 +575,7 @@ class Target(object):
 
     def __str__(self):
         return "Target[%s]" % self.name
-    
+
     @property
     def name_id(self):
         return self.name.qname.replace('-', '_').replace(':', '_')
@@ -621,7 +621,7 @@ class Command(object):
 
     """
     Composite of a Handler and ExecGraph, along with a name.
-    Used by ExecGraph.load(target-name) 
+    Used by ExecGraph.load(target-name)
     """
 
     zope.interface.implements(res.iface.ICommand)
@@ -694,7 +694,7 @@ class ContextStack(object):
         del self._stack[name][-1]
         if not self._stack[name]:
             del self._stack[name]
-   
+
     def depth(self, name):
         l = len(self._stack[name])
         if l:
@@ -712,7 +712,7 @@ class ContextStack(object):
 class TargetResolver(object):
 
     """
-    Primitive frontend for libcmdng.
+    Simple abstract frontend for libcmdng.
     """
 
     def main(self, handlers):
@@ -732,7 +732,7 @@ class TargetResolver(object):
 
     def run(self, execution_graph, context, reporter, args=[], kwds={}):
         """
-        execution_graph:ExecGraph  
+        execution_graph:ExecGraph
             ties command targets together as nodes in a
             network, expressing dependencies and other relations as typed edges.
         context:ContextStack  is an stack for multiple properties, where each
@@ -799,7 +799,7 @@ class TargetResolver(object):
         ret_kwds = {}
 
         if func_defaults:
-            func_defaults = list(func_defaults) 
+            func_defaults = list(func_defaults)
 
         while func_defaults:
             arg_name = func_arg_vars.pop()
@@ -807,7 +807,7 @@ class TargetResolver(object):
             if arg_name in kwds:
                 value = kwds[arg_name]
             ret_kwds[arg_name] = value
-        
+
         if "opts" in ret_kwds:
             ret_kwds['opts'] = confparse.Values(kwds)
         if "args" in ret_kwds:

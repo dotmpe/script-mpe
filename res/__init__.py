@@ -137,6 +137,11 @@ class Volumedir(Workspace):
             path = ""
         return os.path.join(path, name)
 
+    @classmethod
+    def find(self, *paths):
+        for idfile in Metadir.find(*paths):
+            print idfile
+            yield os.path.dirname( os.path.dirname( idfile ))
 
 def read_unix(path):
     """

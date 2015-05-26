@@ -207,9 +207,6 @@ class Dir(INode):
             'cllct',
             '.cllct',
             'System Volume Information',
-            'Desktop',
-            'project',
-            'sam*bup*',
             '*.bup',
             '.git*',
         )

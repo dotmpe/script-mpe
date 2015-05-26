@@ -8,16 +8,11 @@ HELP="vc - version-control helper functions "
 source ~/bin/statusdir.sh
 statusdir_assert vc_status > /dev/null
 
-darwin=$(uname -a | grep Darwin)
 
 homepath ()
 {
 	w="$1"
-	if [ -n "$darwin" ]; then
-		echo "${w/#$HOME/~}"
-	else
-		echo "${w/#$HOME/\~}"
-	fi
+	echo "${w/#$HOME/~}"
 }
 
 # Flags legenda:

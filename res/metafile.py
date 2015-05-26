@@ -432,7 +432,7 @@ class MetafileFile(object): # XXX: Metalink syntax
         return self.__class__.has_metafile(self.path, self.basedir)
 
     @classmethod
-    def has_metafile(Class, path, basedir):
+    def has_metafile(Class, path, basedir=None):
         return os.path.exists(Class.get_metafile(path, basedir))
 
     @classmethod

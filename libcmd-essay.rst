@@ -1,4 +1,20 @@
 :created: 2014-01-16
+:updated: 2015-05-26
+
+
+libcmd.SimpleCommand
+libcmd.StackedCommand
+
+- No shared session/runtime; either run as rsr, or taxus, or cmdline. 
+  Ie. only access to inherited namespaces.
+
+libcmdng
+
+- registries for names (commands, options), specifications 
+  etc. 
+
+
+---
 
 SimpleCommand
     NAME = 'libcmd'

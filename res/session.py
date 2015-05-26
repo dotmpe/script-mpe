@@ -33,7 +33,7 @@ class Session(object):
     def init(Class, path, kind):
         self = Class(path)
         self.user = res.Homedir.fetch(path)
-        self.volume = res.Volume.fetch(path)
+        self.volume = res.Volumedir.fetch(path)
         self.workspace = res.Workspace.fetch(path)
         if kind == 'default':
             self.context = self.workspace or self.volume or self.user

@@ -19,73 +19,74 @@ import res
 from res.session import Session
 from libname import Namespace, Name
 from libcmdng import Targets, Arguments, Keywords, Options,\
-    Target 
+    Target, TargetResolver
 import taxus
-from taxus import *
+#from taxus import *
 
 
-#NS = Namespace.register(
-#        prefix='rsr',
-#        uriref='http://project.dotmpe.com/script/#/cmdline.Resourcer'
-#    )
-#
-#Options.register(NS, 
-#
-#        (('-F', '--output-file'), { 'metavar':'NAME', 
-#            'default': None, 
-#            'dest': 'outputfile',
-#            }),
-#
-#        (('-R', '--recurse', '--recursive'),{ 
-#            'dest': "recurse",
-#            'default': False,
-#            'action': 'store_true',
-#            'help': "For directory listings, do not descend into "
-#            "subdirectories by default. "
-#        }),
-#
-#        (('-f', '--force' ),{ 
-#            'default': False,
-#            'action': 'store_true'
-#        }),
-#        (('-r', '--reset' ),{ 
-#            'default': False,
-#            'action': 'store_true'
-#        }),
-#
-#        (('-L', '--max-depth', '--maxdepth'),{ 
-#            'dest': "max_depth",
-#            'default': -1,
-#            'help': "Recurse in as many sublevels as given. This may be "
-#            " set in addition to 'recurse'. 0 is not recursing and -1 "
-#            "means no maximum level. "
-#            })
-#
-#    )
-#
+NS = Namespace.register(
+        prefix='rsr',
+        uriref='http://project.dotmpe.com/script/#/cmdline.Resourcer'
+    )
 
-#@Target.register(NS, 'workspace', 'cmd:options')
-#def rsr_workspace(prog=None, opts=None):
-#    """
-#    FIXME: this should interface with taxus metastore on this host (for this user).
-#    Not in use yet.
-#    """
-#    ws = res.Workspace.find(prog.pwd, prog.home)
-#    if not ws and opts.init:
-#        ws = res.Workspace(prog.pwd)
-#        if opts.force or lib.Prompt.ask("Create workspace %r?" % ws):
-#            ws.init(True)
-#        else:
-#            print "Workspace init cancelled. "
-#    if not ws:
-#        print "No workspace, make sure you are below one or have one in your homefolder."
-#        yield 2
-#    libs = confparse.Values(dict(
-#            path='/usr/lib/cllct',
-#        ))
-#    yield Keywords(ws=ws, libs=libs)
+Options.register(NS, 
 
-#@Target.register(NS, 'volume', 'cmd:options')
+        (('-F', '--output-file'), { 'metavar':'NAME', 
+            'default': None, 
+            'dest': 'outputfile',
+            }),
+
+        (('-R', '--recurse', '--recursive'),{ 
+            'dest': "recurse",
+            'default': False,
+            'action': 'store_true',
+            'help': "For directory listings, do not descend into "
+            "subdirectories by default. "
+        }),
+
+        (('-f', '--force' ),{ 
+            'default': False,
+            'action': 'store_true'
+        }),
+        (('-r', '--reset' ),{ 
+            'default': False,
+            'action': 'store_true'
+        }),
+
+        (('-L', '--max-depth', '--maxdepth'),{ 
+            'dest': "max_depth",
+            'default': -1,
+            'help': "Recurse in as many sublevels as given. This may be "
+            " set in addition to 'recurse'. 0 is not recursing and -1 "
+            "means no maximum level. "
+            })
+
+    )
+
+
+@Target.register(NS, 'workspace', 'cmd:options')
+def rsr_workspace(prog=None, opts=None):
+    """
+    FIXME: this should interface with taxus metastore on this host (for this user).
+    Not in use yet.
+    """
+    ws = res.Workspace.find(prog.pwd, prog.home)
+    if not ws and opts.init:
+        ws = res.Workspace(prog.pwd)
+        if opts.force or lib.Prompt.ask("Create workspace %r?" % ws):
+            ws.init(True)
+        else:
+            print "Workspace init cancelled. "
+    if not ws:
+        print "No workspace, make sure you are below one or have one in your homefolder."
+        yield 2
+    libs = confparse.Values(dict(
+            path='/usr/lib/cllct',
+        ))
+    yield Keywords(ws=ws, libs=libs)
+
+
+@Target.register(NS, 'volume', 'cmd:options')
 def rsr_volume(prog=None, opts=None):
     """
     Find existing volume from current working dir, reset it, or create one in the current
@@ -97,10 +98,10 @@ def rsr_volume(prog=None, opts=None):
     Besides it has indices for quick-lookup of certain property values.
     """
     log.debug("{bblack}rsr{bwhite}:volume{default}")
-    volume = res.Volume.find(prog.pwd)
+    volume = res.Volumedir.find(prog.pwd)
     if ( volume and opts.reset ) or ( not volume and opts.init ):
         if not volume:
-            volume = res.Volume(prog.pwd)
+            volume = res.Volumedir(prog.pwd)
             userok = opts.force or \
                     lib.Prompt.ask("Create volume %r[%s]?" % (volume.id_path,
                         volume.guid))
@@ -375,7 +376,7 @@ class Rsr(libcmd.StackedCommand):
 
     def rsr_volume(self, prog, opts):
         "Load volume configuration and return instance. "
-        volume = res.Volume.fetch(prog.pwd)
+        volume = res.Volumedir.fetch(prog.pwd)
         yield dict(volume=volume)
         #taxus.Volume.byKey()
         if opts.init_volume:
@@ -407,12 +408,14 @@ class Rsr(libcmd.StackedCommand):
         prog.session = session
         yield dict(context=session.context)
         log.note('Context: %s', session.context)
+
         # SA session
         #dbref = session.context.settings.dbref
         #dbref = opts.dbref
-        from sa_migrate import custom
-        repo_root = session.context.settings.data.repository.get('path')
+        repo_root = session.context.settings.data.repository.root_dir
         repo_path = os.path.join(repo_root, opts.repo)
+
+        from sa_migrate import custom
         config = custom.read(repo_path)
         repo_opts = custom.migrate_opts(repo_path, config)
         dbref = repo_opts['url']
@@ -679,5 +682,7 @@ class Rsr(libcmd.StackedCommand):
 
 
 if __name__ == '__main__':
-    Rsr.main()
+    #Rsr.main()
+    TargetResolver().main(['cmd:options'])
+
 

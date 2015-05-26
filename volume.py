@@ -5,8 +5,8 @@ import os
 import lib
 import confparse
 from libname import Namespace, Name
-from libcmd import Targets, Arguments, Keywords, Options,\
-    Target 
+from libcmdng import Targets, Arguments, Keywords, Options,\
+    Target, TargetResolver
 
 
 
@@ -35,4 +35,12 @@ def find_volume(opts=None, pwd=None):
     yield vdb
 
 
+if __name__ == '__main__':
+
+    print Target.instances.keys()
+    import txs, cmdline
+    print Target.instances.keys()
+
+    TargetResolver().main(['vol:find-volume'])
+    #TargetResolver().main(['cmd:options'])
 
