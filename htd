@@ -1,24 +1,171 @@
 #!/bin/bash
 
-function htd()
+scriptname=htd
+VERBOSITY=0
+
+load()
 {
-    cd ~/htdocs
-    for x in $*
-    do
-        make system-$x
-    done
+    [ -n "$EDITOR" ] || EDITOR=vim
+    [ -n "$HTDIR" ] || HTDIR=~/htd
 }
 
-htd $*
+c_usage()
+{
+	echo "$scriptname.sh Bash/Shell script helper"
+	echo 'Usage: '
+	echo "  $scriptname <cmd> [<args>..]"
+}
+
+c_help()
+{
+  c_usage
+  echo 'Functions: '
+  echo '  home                             Print htd dir.'
+  echo '  mk|make                          Run make.'
+  echo '  st|stat                          Run make stat.'
+  echo '  sys                              Run make sys.'
+  echo '  vt|vtoday                        Run make vtoday.'
+  echo '  -e                               Edit this script.'
+  echo '  alias                            Show bash aliases.'
+  echo '  wol <host>                       Send wol.'
+  echo '  usage                            print just the usage description.'
+  echo '  help                             print this help listing.'
+}
+
+c_home()
+{
+    echo $HTDIR
+}
+
+c_edit()
+{
+    [ -n "$1" ] && fn=$1 || fn=$(which htd)
+    $EDITOR $fn
+}
+c__e()
+{
+    c_edit
+}
+
+c_make()
+{
+	cd $HTDIR && make $*
+}
+c_mk()
+{
+	c_make $*
+}
+
+c_make_sys()
+{
+	cd $HTDIR
+	for x in $*
+	do
+		make system-$x
+	done
+}
+
+c_stat()
+{
+	c_make stat
+}
+c_st()
+{
+	c_stat $*
+}
+
+c_build()
+{
+	c_make build
+}
+
+c_alias()
+{
+	grep '\<htd\>' ~/.alias | grep -v '^#' | while read _a A
+	do
+		a_id=$(echo $A | awk -F '=' '{print $1}')
+		a_shell=$(echo $A | awk -F '=' '{print $2}')
+		echo -e "   $a_id     \t$a_shell"
+	done
+}
+
+c_vtoday()
+{
+	c_make vtoday
+}
+c_vt()
+{
+	c_vtoday $*
+}
+
+wol_hwaddr=~/.conf/wol/hosts-hwaddr.sh
+c_wol_list_hosts()
+{
+	cat $wol_hwaddr
+	err "Expected hostname argument" 2
+}
+c_wol()
+{
+	host=$1
+	[ -z "$host" ] && {
+		c_wol_list_hosts
+	} || {
+		declare $(echo $(cat $wol_hwaddr))
+		hwaddr=$(eval echo \$$host)
+		[ -n "$hwaddr" ] || exit 4
+		echo ":WOL Host: \`$host <$hwaddr>\`_"
+		wakeonlan $hwaddr
+	}
+}
+log()
+{
+	[ -n "$(echo $*)" ] || return 1;
+	echo "[$scriptname.sh:$cmd] $1"
+}
+err()
+{
+	[ -n "$(echo $*)" ] || return 1;
+	[ "$VERBOSITY" -ge "1" ] && echo "Error: $1 [$scriptname.sh:$cmd]" 1>&2
+	echo "$1 [$scriptname.sh:$cmd]" 1>&2
+	[ -n "$2" ] && exit $2
+}
+
+c_errnow()
+{
+	return 3
+}
+
+#def_func=c_make_stat
+
 
 # Main
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
 	# Do something if script invoked as 'htd'
 	if [ "$(basename $0)" = "htd" ]; then
-		func="$1"
+		cmd=$1
+		[ -n "$def_func" -a -z "$func" ] \
+			&& func=$def_func \
+			|| func=$(echo "c_$cmd" | tr '-' '_')
 		type $func &> /dev/null && {
+			func_exists=1
 			shift 1
+			load
 			$func $@
+		} || {
+			e=$?
+			[ -z "$cmd" ] && {
+				load
+				c_usage
+				err 'No command given, see "help"' 1
+			} || {
+				[ "$e" = "1" -a -z "$func_exists" ] && {
+					load
+					c_usage
+					err "No such command: $cmd" 1
+				} || {
+					err "Command $cmd returned $e" $e
+				}
+			}
 		}
 	fi
 fi
