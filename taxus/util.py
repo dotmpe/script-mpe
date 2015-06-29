@@ -39,7 +39,7 @@ class ScriptModelFacade(object):
 
     """
     TODO: Using schemas from script.mpe, populate facade. Manage masterdb.
-    XXX: probably move this to some kind of session 
+    XXX: probably move this to some kind of session
 
     On initialize, populate attr dict with each model class bound to its own
     canonical database.
@@ -56,15 +56,15 @@ class ScriptModelFacade(object):
     def init(self):
         """
         """
-        subs = [ 
-                'bookmarks', 
-        #        'budget', 
-        #        'db_sa', 
-                'domain2', 
-                'folder', 
-                'project', 
-                'todo', 
-                'topic' 
+        subs = [
+                'bookmarks',
+        #        'budget',
+        #        'db_sa',
+                'domain2',
+                'folder',
+                'project',
+                'todo',
+                'topic'
             ]
         for modname in subs:
             self.init_sub(modname)
@@ -365,9 +365,24 @@ def prompt_choice_with_input(promptstr, choices):
     elif x:
         return x
 
+# from rsrlib plug net
+def get_hostname():
+    host = socket.gethostname().split('.').pop(0)
+    getfqdn = socket.getfqdn()
+    if getfqdn.split('.').pop(0) != host:
+        print "Hostname does not match (sub)domain: %s (%s)"%(host, getfqdn)
+        #err("Hostname does not match (sub)domain: %s (%s)", host, getfqdn)
+    return host
+
 def current_hostname(initialize=False, interactive=False):
     """
     """
+
+    host = dict( name = get_hostname() )
+    hostnameId = host['name'].lower()
+    return hostnameId;
+
+    # FIXME: current_hostname
     hostname = None
 
     hostname_file = os.path.expanduser('~/.cllct/host')

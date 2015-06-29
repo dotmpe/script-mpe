@@ -14,6 +14,7 @@ Usage:
                        | list
                        | new -p...
                        | update -p... <ref> )
+  host.py [options] test init
 
 Options:
     -c RC --config=RC
@@ -43,7 +44,6 @@ from domain2 import init_host
 def cmd_init(settings):
     sa = Host.get_session('default', settings.dbref)
     host_dict = init_host(settings)
-    print 'host', host_dict.path()
     name = host_dict['name']
     record = Host.fetch(filters=(Host.name == name,), sa=sa, exists=False)
     if not record:
@@ -52,11 +52,22 @@ def cmd_init(settings):
         sa.add(host)
         sa.commit()
         log.std('{bwhite}Added host %s record{default}', name)
+    else:
+        host = record
+    print 'host at', host_dict.path(), ':', host
 
 def cmd_list(settings):
     sa = Host.get_session('default', settings.dbref)
     for h in sa.query(Host).all():
         print h
+
+def cmd_test_init(settings):
+    sa = Host.get_session('default', settings.dbref)
+    host_dict = init_host(settings)
+    name = host_dict['name']
+    print Host.fetch(filters=(Host.name == name,), sa=sa, exists=False)
+    #print Host.init(sa=sa)
+
 
 ### Transform cmd_ function names to nested dict
 

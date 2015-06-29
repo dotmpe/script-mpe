@@ -131,11 +131,10 @@ def cmd_init(settings):
             name=name,
             date_added=datetime.now(),
         )
-    curhost = init_host(settings)
-    #curhost = Host.init(sa=sa) # FIXME returns localhost.
+    curhost = Host.init(sa=sa) # FIXME returns localhost.
     # TODO project.hosts.append(curhost)
     repo = Repo(pwd)
-    checkout = VersionControl(vc_type=repo.rtype, path=pwd)#, host=curhost)
+    checkout = VersionControl(vc_type=repo.rtype, path=pwd, host=curhost)
     sa.add(checkout)
     project.repositories.append( checkout )# TODO: and remotes
     sa.add(project)
