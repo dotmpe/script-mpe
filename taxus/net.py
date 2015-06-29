@@ -7,7 +7,7 @@ from sqlalchemy.orm import relationship, backref
 
 from script_mpe import lib
 from init import SqlBase
-from util import current_hostname 
+from util import current_hostname
 import core
 import util
 import iface
@@ -38,7 +38,7 @@ class Host(Domain):
     @classmethod
     def current(Klass, sa=None, session='default'):
         hostname_ = current_hostname()
-        return Klass.find((Klass.name == hostname_,), sa=sa, session=session)
+        return Klass.fetch(filters=(Klass.name == hostname_,), sa=sa, session=session)
 
     @classmethod
     def init(Klass, sa=None, session='default'):
@@ -58,7 +58,7 @@ class Host(Domain):
         return "//%s" % self.name
 
     def __str__(self):
-        return "Host %s" % ( self.hostname )
+        return "Host %s" % ( self.name )
 
     def __repr__(self):
         return "<Host at % with %r>" % ( hex(id(self)), self.hostname )
@@ -84,9 +84,9 @@ class Locator(core.ID):
 
     """
     A global identifier for retrieval of remote content.
-    
+
     Maybe based on DNS and route, script or filename for HTTP etc.
-    For file based descriptors may be registered domain and filename, 
+    For file based descriptors may be registered domain and filename,
     but also IP and variants on netpath, even inode number lookups.
 
     Not just variant notations but "seeping through" of the filesystem
@@ -108,8 +108,8 @@ class Locator(core.ID):
         fragment. This can be misleading as URL routing is part of the web
         application framework and may serve other requirements than resource
         parametrization, and further parametrization may occur at other places
-        (Headers, cookies, embedded, etc.). 
-        
+        (Headers, cookies, embedded, etc.).
+
         The Locator sameAs allows comparison on references,
         comparison of the dereferenced objects belongs on other Taxus objects that
         refer to the Locator table.
@@ -126,7 +126,7 @@ class Locator(core.ID):
     "A checksum for the complete reference, XXX to use while shortref missing? "
 
     #ref = Column(String(255), index=True, unique=True)
-    # XXX: varchar(255) would be much too small for many (web) URL locators 
+    # XXX: varchar(255) would be much too small for many (web) URL locators
     ref = Column(Text(2048), index=True, unique=True)
 
     @property
@@ -144,7 +144,7 @@ class Locator(core.ID):
             ref = ref[len(scheme)+1:]
         # FIXME: return bare path of Locator?
         if self.host:
-            if ref.startswith("//"): # remove netpath 
+            if ref.startswith("//"): # remove netpath
                 assert ref.startswith('//'+self.host.name)
                 ref = ref[2+len(self.host.name):]
             return ref

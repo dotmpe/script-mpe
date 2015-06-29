@@ -4,7 +4,7 @@
 Identify local and remote boxes and current network.
 
 - Every box is considered a network node with one or more NIC.
-- All boxes use a hostname as primary identifier. 
+- All boxes use a hostname as primary identifier.
 - Every network is a set of permanent and 'roaming' NIC.
 
 Future
@@ -13,11 +13,11 @@ Future
 - Nodes may be identified by SSH key (or PGP?).
 - All local network addresses are mapped.
 - Then a ip-hostname lookup table is build.
-- http://muthanna.com/quickswitch/ would be a nice tool to do the actual 
+- http://muthanna.com/quickswitch/ would be a nice tool to do the actual
   host/interfaces/... config switching.
 - Global online status is by PING to some known server. Perhaps Google, perhaps
   some DNS or even a more appropiate server?
-  
+
 Settings
 ---------
 - YAML, rewritten on update.
@@ -28,21 +28,21 @@ Settings
     ``node`` a Map<Str,Node>
         `host-id`
             ``host``: `HostName`
-            ``interface``: 
+            ``interface``:
                 - `HardwareAddress`
     ``network`` a Map<Str,Network>
         `net-id`
             ``name``: `NetworkName`
-            ``nodes``: 
+            ``nodes``:
                 - `HardwareAddress` a Node
-            ``routes``: 
+            ``routes``:
                 - `HardwareAddress` a Gateway
     ``domain`` a Tree<Str,Domain>
         - `tld`
             - `name`
                 - ``net``: `net-id`
                   ``ipv4``: `ip`
-                
+
                 - `sub`
                     ``net``: `net-id`
                     ``ipv4``: `ip`
@@ -57,9 +57,9 @@ Settings
             ``fqdn``: `domain`
             ``aliases``:
                 - `host-id`
-            
 
-# TODO: build gateway from 
+
+# TODO: build gateway from
     ``gateways``
         `HardwareAddress`
             ``internal``: `net-id`
@@ -75,7 +75,7 @@ node:
   sam:
   pandora:
     - name: en0
-      ether: 10:9a:dd:4c:d5:a8 
+      ether: 10:9a:dd:4c:d5:a8
   midway:
   brixmaster:
 
@@ -302,7 +302,7 @@ Enter an ID for this network. If the network ID alreay
 exists, the interface will be listed in the nodes for this network. Otherwise a
 new network is created.
 """
-        
+
         network_id = raw_input("Network ID? [a-z][a-z0-9]*")
         if network_id not in settings.network:
             v = raw_input("Insert new network? [Y|n] ")
@@ -354,7 +354,7 @@ def info():
     print 'Internet gateway: '
     default_routes = get_default_route()
     for gateway in default_routes:
-        print '\t-', gateway, 
+        print '\t-', gateway,
         m = get_mac(gateway)
         if not m:
             print '(invalid)'
@@ -385,7 +385,7 @@ def info():
                 v = raw_input('Insert node? [n] ')
                 if 'y' in v:
                     gw_domain = None
-                    prompt = 'Domain? '    
+                    prompt = 'Domain? '
                     if '.' in gateway_node:
                         p = gateway_node.find('.')
                         gw_domain = gateway_node[p+1:]

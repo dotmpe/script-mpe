@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""project - 
+"""project -
 :updated: 2014-08-26
 """
 __version__ = '0.0.0'
@@ -7,10 +7,11 @@ __db__ = '~/.taxus-code.sqlite'
 __usage__ = """
 
 Usage:
-  project.py [options] ( find <ref>... 
+  project.py [options] ( find <ref>...
                        | info [ <ref>... ]
                        | init [ -p... ]
-                       | new -p... 
+                       | list
+                       | new -p...
                        | update -p... <ref> )
   project.py [options] db (init|reset|stats) [-y]
   project.py [options] [command]
@@ -28,11 +29,13 @@ Options:
     -y --yes      Force questions asked to yes.
 
 Other flags:
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
 """ % ( __db__, __version__ )
+__doc__ += __usage__
+
 import os
 import re
 from datetime import datetime
@@ -41,7 +44,7 @@ import rsr
 import util
 import log
 from util import cmd_help
-from taxus import Node, Topic, Host, Project, VersionControl
+from taxus import Node, Topic, Host, Project, VersionControl, ScriptMixin
 from taxus.init import SqlBase, get_session
 from res import Projectdir, Repo
 
@@ -55,7 +58,6 @@ def cmd_db_init(settings):
     and update schema.
     """
     get_session(settings.dbref)
-    # XXX: update schema..
     SqlBase.metadata.create_all()
     print "Updated schema", settings.dbref
 
@@ -108,7 +110,7 @@ def cmd_info(settings):
     print proj.name, hosts, proj.repositories[0].vc_type, proj.date_added
 
 def cmd_init(settings):
-    Project.get_session('default', settings.dbref)
+    sa = Project.get_session('default', settings.dbref)
     #sa = get_session(settings.dbref)
 
     pwd = os.getcwd()
@@ -125,19 +127,20 @@ def cmd_init(settings):
         print "Project with this name already exists"
         return 1
     projdir = Projectdir(pwd)
-    projdir.init(create=True)
     project = Project(
             name=name,
             date_added=datetime.now(),
         )
-    curhost = Host.init(sa=sa) # FIXME returns localhost.
+    curhost = init_host(settings)
+    #curhost = Host.init(sa=sa) # FIXME returns localhost.
     # TODO project.hosts.append(curhost)
     repo = Repo(pwd)
-    checkout = VersionControl(vc_type=repo.rtype, path=pwd, host=curhost)
+    checkout = VersionControl(vc_type=repo.rtype, path=pwd)#, host=curhost)
     sa.add(checkout)
-    project.repositories.append( checkout )# TODO: and remotes 
+    project.repositories.append( checkout )# TODO: and remotes
     sa.add(project)
     sa.commit()
+    projdir.init(create=True)
     print "Created project", name, projdir.metadir_id
 
 def cmd_new():
@@ -145,6 +148,12 @@ def cmd_new():
 
 def cmd_update():
     print 'project-update'
+
+def cmd_list(settings):
+    sa = Project.get_session('default', settings.dbref)
+    for p in sa.query(Project).all():
+        print p
+
 
 
 ### Transform cmd_ function names to nested dict
@@ -167,6 +176,7 @@ def main(opts):
 
 def get_version():
     return 'project.mpe/%s' % __version__
+
 
 if __name__ == '__main__':
     import sys

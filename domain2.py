@@ -3,14 +3,14 @@
 
 Establish host ID, and track network interfaces, hostnames and last IP address.
 
-There is a schema to record the data on-disk. 
+There is a schema to record the data on-disk.
 The specs below [help settings] explain what entities are kept.
 
 The main current functions of domain.py are:
 
 1. initializing and detecting the local host ID
    and its properties (interfaces, last IP, full hostname etc)
-2. configuring for the current network, based on the gateway ID. 
+2. configuring for the current network, based on the gateway ID.
    Ie. set an SSH key, or other config file, update hosts entries.
 
 TODO: fully initialize settings for host without editing config by hand
@@ -22,7 +22,7 @@ __db__ = '~/.domain.sqlite'
 __rc__ = '~/.domain.rc'
 __usage__ = """
 Usage:
-  domain.py [options] [info|stats] 
+  domain.py [options] [info|stats]
   domain.py [options] update [NAME]
   domain.py ipforhost HOST
   domain.py net ([info]|set NAME)
@@ -38,7 +38,7 @@ Other flags:
                   Use config file to load settings [default: %s]
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s].
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
     -i --interactive
@@ -77,7 +77,7 @@ import res
 import domain
 import domain as domainmod
 
-from taxus import Node, Host, Locator
+from taxus import Node, Host, Locator, ScriptMixin
 from taxus.init import SqlBase, get_session
 
 
@@ -223,7 +223,7 @@ def cmd_stats(NAME, settings):
 def cmd_update(settings):
 
     """
-    Initialize current host, creating host ID 
+    Initialize current host, creating host ID
     if not present yet and record
     hosts interfaces.
     Then determine the current domain, and record current iface IP's.
@@ -246,6 +246,9 @@ def cmd_update(settings):
     updated = False
     for iface, mac, spec in domainmod.inet_ifaces():
         ip = spec['inet']['ip']
+        if mac not in settings.interfaces:
+            log.err("Missing iface type for HW-addr '%s'" % mac)
+            continue
         iface_type = settings.interfaces[mac].type
         print '\t', iface_type, ip
         # Keep IP on host
