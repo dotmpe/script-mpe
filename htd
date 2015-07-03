@@ -5,8 +5,8 @@ VERBOSITY=0
 
 load()
 {
-    [ -n "$EDITOR" ] || EDITOR=vim
-    [ -n "$HTDIR" ] || HTDIR=~/htd
+	[ -n "$EDITOR" ] || EDITOR=vim
+	[ -n "$HTDIR" ] || HTDIR=~/htd
 }
 
 c_usage()
@@ -18,33 +18,33 @@ c_usage()
 
 c_help()
 {
-  c_usage
-  echo 'Functions: '
-  echo '  home                             Print htd dir.'
-  echo '  mk|make                          Run make.'
-  echo '  st|stat                          Run make stat.'
-  echo '  sys                              Run make sys.'
-  echo '  vt|vtoday                        Run make vtoday.'
-  echo '  -e                               Edit this script.'
-  echo '  alias                            Show bash aliases.'
-  echo '  wol <host>                       Send wol.'
-  echo '  usage                            print just the usage description.'
-  echo '  help                             print this help listing.'
+	c_usage
+	echo 'Functions: '
+	echo '  home                             Print htd dir.'
+	echo '  mk|make                          Run make.'
+	echo '  st|stat                          Run make stat.'
+	echo '  sys                              Run make sys.'
+	echo '  vt|vtoday                        Run make vtoday.'
+	echo '  -e                               Edit this script.'
+	echo '  alias                            Show bash aliases.'
+	echo '  wol <host>                       Send wol.'
+	echo '  usage                            print just the usage description.'
+	echo '  help                             print this help listing.'
 }
 
 c_home()
 {
-    echo $HTDIR
+	echo $HTDIR
 }
 
 c_edit()
 {
-    [ -n "$1" ] && fn=$1 || fn=$(which htd)
-    $EDITOR $fn
+	[ -n "$1" ] && fn=$1 || fn=$(which htd)
+	$EDITOR $fn
 }
 c__e()
 {
-    c_edit
+	c_edit
 }
 
 c_make()
@@ -117,6 +117,18 @@ c_wol()
 		wakeonlan $hwaddr
 	}
 }
+
+c_todo()
+{
+	echo
+	echo "..Htdocs ToDo.."
+	gtasks -L -dsc -dse -sn
+	echo "Due:"
+	gtasks -L -sdo -dse -sn
+#	echo ""
+#	gtasks -L -sb tomorrow -sa today -dse
+}
+
 log()
 {
 	[ -n "$(echo $*)" ] || return 1;
