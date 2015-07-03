@@ -276,8 +276,8 @@ __vc_screen ()
 	if [ "$git" ]; then
 		realgit="$(cd "$git"; pwd -P)"
 		realroot="$(git rev-parse --show-toplevel)"
-		rev="$(git show $realroot | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-		echo $(basename $realcwd) $(__vc_git_ps1 "[git:%s $rev]")
+		rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+		echo $(basename "$realcwd") $(__vc_git_ps1 "[git:%s $rev]")
 	else
 		echo "$short"
 	fi
@@ -309,15 +309,15 @@ vc_prompt_command ()
 	if [ ! -e "$statsdir/$pwdref" -o "$d/.git" -nt "$statsdir/$pwdref" ]
 	then
 		#echo -e "$pwdref\t$d" > $index
-		__vc_status $@ > $statsdir/$pwdref
+		__vc_status $@ > "$statsdir/$pwdref"
 	fi
-	cat $statsdir/$pwdref
+	cat "$statsdir/$pwdref"
 }
 
 # Main
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
 	# Do something if script invoked as 'vc.sh'
-	if [ "$(basename $0)" = "vc.sh" ]; then
+	if [ "$(basename "$0")" = "vc.sh" ]; then
 		# invoke with function name first argument,
 		func=$1
 		type "vc_$func" &>/dev/null && { func="vc_$func"; }
