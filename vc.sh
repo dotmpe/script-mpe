@@ -9,6 +9,7 @@ source ~/bin/statusdir.sh
 statusdir_assert vc_status > /dev/null
 
 
+
 homepath ()
 {
 	w="$1"
@@ -198,24 +199,30 @@ __vc_status ()
 	w="$1";
 	cd "$w"
 	realcwd="$(pwd -P)"
-	short=$(homepath $w)
+	short="$(homepath "$w")"
 	
-	local git=$(__vc_gitdir "$w")
+	local git="$(__vc_gitdir "$w")"
 	local bzr=$(__vc_bzrdir "$w")
 	
 	if [ "$git" ]; then
-		realgit="$(cd "$git"; pwd -P)"
 		realroot="$(git rev-parse --show-toplevel)"
-		rev="$(git show $realroot | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-		sub="${realcwd##$realroot}"
+		[ -n "$realroot" ] && { 
+			rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+			sub="${realcwd##$realroot}"
+		} || {
+			realgitdir="$(cd "$git"; pwd -P)"
+			rev="$(git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+			realgit="$(basename $realgitdir)"
+			sub="${realcwd##$realgit}"
+		}
 		short="${short%$sub}"
-		echo $short $(__vc_git_ps1 "[git:%s $rev]")$sub
+		echo "$short" $(__vc_git_ps1 "[git:%s $rev]")$sub
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
 		realbzr="$(cd "$bzr"; pwd -P)"
-		realbzr=${realbzr%/.bzr}
-		sub=${realcwd##$realbzr}
-		short=${short%$sub/}
+		realbzr="${realbzr%/.bzr}"
+		sub="${realcwd##$realbzr}"
+		short="${short%$sub/}"
 		local revno=$(bzr revno)
 		local s=''
 		if [ "$(bzr status|grep added)" ]; then s="${s}+"; fi
@@ -274,9 +281,16 @@ __vc_screen ()
 	
 	local git=$(__vc_gitdir "$w")
 	if [ "$git" ]; then
-		realgit="$(cd "$git"; pwd -P)"
 		realroot="$(git rev-parse --show-toplevel)"
-		rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+		[ -n "$realroot" ] && { 
+			rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+			sub="${realcwd##$realroot}"
+		} || {
+			realgitdir="$(cd "$git"; pwd -P)"
+			rev="$(git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+			realgit="$(basename $realgitdir)"
+			sub="${realcwd##$realgit}"
+		}
 		echo $(basename "$realcwd") $(__vc_git_ps1 "[git:%s $rev]")
 	else
 		echo "$short"
