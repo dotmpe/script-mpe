@@ -9,6 +9,8 @@ source ~/bin/statusdir.sh
 statusdir_assert vc_status > /dev/null
 
 
+scriptname=vc
+
 
 homepath ()
 {
@@ -18,7 +20,7 @@ homepath ()
 
 # Flags legenda:
 #
-# __vc_git_ps1 : cbwisur
+# __vc_git_flags : cbwisur
 # c: ''|'BARE:'
 # b: branchname
 # w: '*'
@@ -29,11 +31,12 @@ homepath ()
 
 __vc_bzrdir ()
 {
-	cd "$1";
+	pushd "$1" >> /dev/null
 	root=$(bzr info 2> /dev/null | grep 'branch root')
 	if [ -n "$root" ]; then
 		echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
 	fi
+	popd >> /dev/null
 }
 
 # __vc_gitdir accepts 0 or 1 arguments (i.e., location)
@@ -54,17 +57,21 @@ __vc_gitdir ()
 	if [ -d "$D/.git" ]; then
 		echo "$D/.git"
 	else
-		cd "$D"
+		pushd "$D" >> /dev/null
 		git rev-parse --git-dir 2>/dev/null
+		popd >> /dev/null
 	fi
 }
 
-# __vc_git_ps1 accepts 0 or 1 arguments (i.e., format string)
+# __vc_git_flags accepts 0 or 1 arguments (i.e., format string)
 # returns text to add to bash PS1 prompt (includes branch name)
-__vc_git_ps1 ()
+__vc_git_flags ()
 {
-	local g="$(__vc_gitdir)"
-	if [ -n "$g" ]; then
+	local g="$1"
+	[ -n "$g" ] || g="$(__vc_gitdir)"
+	if [ -e "$g" ]
+	then
+		pushd $(dirname $g) >> /dev/null
 		local r
 		local b
 		if [ -f "$g/rebase-merge/interactive" ]; then
@@ -134,21 +141,31 @@ __vc_git_ps1 ()
 				fi
 			fi
 			if [ -n "${GIT_PS1_SHOWSTASHSTATE-}" ]; then
-			        git rev-parse --verify refs/stash >/dev/null 2>&1 && s="$"
+				git rev-parse --verify refs/stash >/dev/null 2>&1 && s="$"
 			fi
 			
 			if [ -n "${GIT_PS1_SHOWUNTRACKEDFILES-}" ]; then
-			   if [ -n "$(git ls-files --others --exclude-standard)" ]; then
-			      u="%"
-			   fi
+				if [ -n "$(git ls-files --others --exclude-standard)" ]; then
+					u="%"
+				fi
 			fi
 		fi
-		
-		if [ -n "${1-}" ]; then
-			printf "$1" "$c${b##refs/heads/}$w$i$s$u$r"
+
+		repotype="$c"
+		branch="${b##refs/heads/}"
+		modified="$w"
+		staged="$i"
+		stashed="$s"
+		untracked="$u"
+		state="$r"
+
+		if [ -n "${2-}" ]; then
+			printf "$2" "$c${b##refs/heads/}$w$i$s$u$r"
 		else
 			printf " (%s)" "$c${b##refs/heads/}$w$i$s$u$r"
 		fi
+
+		popd >> /dev/null
 	fi
 }
 
@@ -197,18 +214,19 @@ __vc_status ()
 	local w short repo sub
 	
 	w="$1";
-	cd "$w"
+	pushd "$w" >> /dev/null
 	realcwd="$(pwd -P)"
 	short="$(homepath "$w")"
+
+	local git="$(__vc_gitdir "$realcwd")"
+	local bzr=$(__vc_bzrdir "$realcwd")
 	
-	local git="$(__vc_gitdir "$w")"
-	local bzr=$(__vc_bzrdir "$w")
-	
-	if [ "$git" ]; then
+	if [ -n "$git" ]; then
 		realroot="$(git rev-parse --show-toplevel)"
 		[ -n "$realroot" ] && { 
 			rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
 			sub="${realcwd##$realroot}"
+			realgitdir=$realroot/.git
 		} || {
 			realgitdir="$(cd "$git"; pwd -P)"
 			rev="$(git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
@@ -216,7 +234,7 @@ __vc_status ()
 			sub="${realcwd##$realgit}"
 		}
 		short="${short%$sub}"
-		echo "$short" $(__vc_git_ps1 "[git:%s $rev]")$sub
+		echo "$short" $(__vc_git_flags $realgitdir "[git:%s $rev]")$sub
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
 		realbzr="$(cd "$bzr"; pwd -P)"
@@ -241,6 +259,7 @@ __vc_status ()
 	else
 		echo $short
 	fi;fi;
+	popd >> /dev/null
 }
 
 # Helper for just path reference notation, no SCM bits
@@ -251,10 +270,8 @@ __pwd_ps1 ()
 	d="$1";
 	[ -z "$d" ] && d="$(pwd)"
 	[ ! -d "$d" ] && echo "No such directory $d" && exit 3
-	cd "$d"
-	w="$d"
-	realcwd="$(pwd -P)"
-	short=$(homepath $w)
+	realcwd="$(cd $d && pwd -P)"
+	short=$(homepath $d)
 	echo $short
 }
 
@@ -291,12 +308,54 @@ __vc_screen ()
 			realgit="$(basename $realgitdir)"
 			sub="${realcwd##$realgit}"
 		}
-		echo $(basename "$realcwd") $(__vc_git_ps1 "[git:%s $rev]")
+		echo $(basename "$realcwd") $(__vc_git_flags $realgitdir "[git:%s $rev]")
 	else
 		echo "$short"
 	fi
 }
 
+__vc_git_ps1()
+{
+    __vc_git_flags $@
+}
+
+list_gitpaths()
+{
+	d=$1
+	[ -n "$d" ] || d=.
+	note "Starting find in '$d', this may take a bit initially.."
+	find $d -iname .git -not -ipath '*.git/*' | while read gitpath mode
+	do
+		test -n "$gitpath" -a "$gitpath" != ./.git \
+			&& echo $gitpath
+	done
+}
+
+list_git_checkouts()
+{
+	list_gitpaths $1 | while read gitpath
+	do dirname $gitpath
+	done
+}
+
+list_errors()
+{
+	list_gitpaths $1 | while read gitpath
+	do
+		[ -d "$gitpath" ] && {
+			git_info $gitpath > /dev/null || {
+				err "in info from $gitpath, see previous."
+			}
+		} || {
+			gitdir=$(__vc_gitdir $(dirname $gitpath))
+			echo $gitdir | grep -v '.git\/modules' > /dev/null && {
+				# files should be gitlinks for submodules
+				err "for  $gitpath, see previous. Broken gitlink?"
+				continue
+			}
+		}
+	done
+}
 
 # print all fuctions/results for paths in arguments
 vc_print_all ()
@@ -310,12 +369,19 @@ vc_print_all ()
 	done
 }
 
+vc_ps1()
+{
+	__vc_ps1 $@
+}
+
 # special updater (for Bash PROMPT_COMMAND)
 vc_prompt_command ()
 {
 	d="$1"
 	[ -z "$d" ] && d="$(pwd)"
 	[ ! -d "$d" ] && echo "No such directory $d" && exit 3
+
+	# cache response in file
 	statsdir=$(statusdir_assert vc_status)
 	#index=$(statusdir_index vc_status)
 	pwdref=$(echo $d|md5sum -|cut -f1 -d' ')
@@ -323,10 +389,30 @@ vc_prompt_command ()
 	if [ ! -e "$statsdir/$pwdref" -o "$d/.git" -nt "$statsdir/$pwdref" ]
 	then
 		#echo -e "$pwdref\t$d" > $index
-		__vc_status $@ > "$statsdir/$pwdref"
+		__vc_status $d > "$statsdir/$pwdref"
 	fi
+
 	cat "$statsdir/$pwdref"
 }
+
+
+log()
+{
+	[ -n "$(echo $*)" ] || return 1;
+	echo "[$scriptname.sh:$cmd] $1"
+}
+err()
+{
+	[ -n "$(echo $*)" ] || return 1;
+	echo "Error: $1 [$scriptname.sh:$cmd]" 1>&2
+	[ -n "$2" ] && exit $2
+}
+note()
+{
+	[ -n "$(echo $*)" ] || return 1;
+	echo "Notice: $1 [$scriptname.sh:$cmd]" 1>&2
+}
+
 
 # Main
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
@@ -335,6 +421,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 		# invoke with function name first argument,
 		func=$1
 		type "vc_$func" &>/dev/null && { func="vc_$func"; }
+		cmd=$func
 		type $func &>/dev/null && {
 			shift 1
 			$func $@
