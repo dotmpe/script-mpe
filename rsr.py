@@ -21,7 +21,7 @@ from libname import Namespace, Name
 from libcmdng import Targets, Arguments, Keywords, Options,\
     Target, TargetResolver
 import taxus
-#from taxus import *
+from taxus import SessionMixin
 
 
 NS = Namespace.register(
@@ -29,14 +29,14 @@ NS = Namespace.register(
         uriref='http://project.dotmpe.com/script/#/cmdline.Resourcer'
     )
 
-Options.register(NS, 
+Options.register(NS,
 
-        (('-F', '--output-file'), { 'metavar':'NAME', 
-            'default': None, 
+        (('-F', '--output-file'), { 'metavar':'NAME',
+            'default': None,
             'dest': 'outputfile',
             }),
 
-        (('-R', '--recurse', '--recursive'),{ 
+        (('-R', '--recurse', '--recursive'),{
             'dest': "recurse",
             'default': False,
             'action': 'store_true',
@@ -44,16 +44,16 @@ Options.register(NS,
             "subdirectories by default. "
         }),
 
-        (('-f', '--force' ),{ 
+        (('-f', '--force' ),{
             'default': False,
             'action': 'store_true'
         }),
-        (('-r', '--reset' ),{ 
+        (('-r', '--reset' ),{
             'default': False,
             'action': 'store_true'
         }),
 
-        (('-L', '--max-depth', '--maxdepth'),{ 
+        (('-L', '--max-depth', '--maxdepth'),{
             'dest': "max_depth",
             'default': -1,
             'help': "Recurse in as many sublevels as given. This may be "
@@ -162,7 +162,7 @@ def rsr_update_volume(prog=None, volume=None, opts=None, *args):
 See update_metafiles
     Walk all files, gather metadata into metafile.
 
-    Create metafile if needed. Fill in 
+    Create metafile if needed. Fill in
         - X-First-Seen
     This and every following update also write:
         - X-Last-Update
@@ -174,7 +174,7 @@ See update_metafiles
         - File size does not match Length
         - If any of above mentioned and at least one Digest field is not present.
 
-    """ 
+    """
     for path in res.Dir.walk(prog.pwd):
         if not os.path.isfile(path):
             continue
@@ -237,7 +237,7 @@ def rsr_meta(volume=None, *args):
 
     vdb = volume.db
 
-    # if exists, read, 
+    # if exists, read,
     # otherwise look in shelve
     mf = Metafile.fetch(src, vdb)
     # if in shelve, mf may exist and is given quick sanity check
@@ -254,7 +254,7 @@ class Rsr(libcmd.StackedCommand):
     assert NAME == 'rsr'
     DEFAULT_RC = 'cllct.rc'
     DEFAULT_CONFIG_KEY = NAME
-    DEPENDS = { 
+    DEPENDS = {
             'rsr_volume': [ 'set_commands' ],
             'rsr_workspace': [ 'rsr_volume' ],
             'rsr_homedir': [ 'rsr_workspace' ],
@@ -288,8 +288,8 @@ class Rsr(libcmd.StackedCommand):
         p = inheritor.get_prefixer(Klass)
         return (
                 # XXX: duplicates Options
-                p(('-d', '--dbref'), { 'metavar':'URI', 
-                    'default': inheritor.DEFAULT_DB, 
+                p(('-d', '--dbref'), { 'metavar':'URI',
+                    'default': inheritor.DEFAULT_DB,
                     'dest': 'dbref',
                     'help': "A URI formatted relational DB access description "
                         "(SQLAlchemy implementation). Ex: "
@@ -297,14 +297,14 @@ class Rsr(libcmd.StackedCommand):
                         " `mysql://taxus-user@localhost/taxus`. "
                         "The default value (%default) may be overwritten by configuration "
                         "and/or command line option. " }),
-                p(('--repo',), { 
-                    'metavar':'NAME', 
+                p(('--repo',), {
+                    'metavar':'NAME',
                     'default': "cllct",
                     'action': 'store',
                     'dest': 'repo',
                     'help': "Set data repository" }),
-                p(('--session',), { 
-                    'metavar':'NAME', 
+                p(('--session',), {
+                    'metavar':'NAME',
                     'default': "default",
                     'action': 'store',
                     'dest': 'session',
@@ -313,7 +313,7 @@ class Rsr(libcmd.StackedCommand):
 #                    "default": False,
                     'action': 'store_true',
                     'help': "target" }),
-                p(('-Q', '--query'), {'action':'callback', 
+                p(('-Q', '--query'), {'action':'callback',
                     'callback_args': ('query',),
                     'callback': libcmd.optparse_set_handler_list,
                     'dest': 'command',
@@ -448,7 +448,7 @@ class Rsr(libcmd.StackedCommand):
             cnt[m] = sa.query(m).count()
             log.note("Number of %s: %s", m.__name__, cnt[m])
         if 'node' in self.globaldict and self.globaldict.node:
-            log.info("Auto commit: %s", opts.rsr_auto_commit) 
+            log.info("Auto commit: %s", opts.rsr_auto_commit)
             log.info("%s", self.globaldict.node)
 
     def deref(self, ref, sa):
@@ -579,7 +579,7 @@ class Rsr(libcmd.StackedCommand):
 
     def rsr_list(self, groupnode, volume=None, sa=None):
         "List all nodes, or nodes listed in group node"
-        # XXX: how to match cmdline arg to nodes, alt notations for paths? 
+        # XXX: how to match cmdline arg to nodes, alt notations for paths?
         #   filter on attr sytnax? @name= @parent.name=? see also deref.
         if groupnode:
             realnode = groupnode
@@ -621,7 +621,7 @@ class Rsr(libcmd.StackedCommand):
     def rsr_set_root_bool(self, sa=None, opts=None):
         """
         set bool = true
-        where 
+        where
             count(jt.node_id) == 0
             jt.group_id
 
@@ -661,7 +661,7 @@ class Rsr(libcmd.StackedCommand):
                 roots.append(group)
         for group in roots:
             self.execute( 'rsr_node_recurse', dict( group=group  ) )
-    
+
     def rsr_node_recurse(self, sa, group, lvl=0):
         print lvl * '  ', group.name
         for sub in group.subnodes:
@@ -674,11 +674,11 @@ class Rsr(libcmd.StackedCommand):
             i += 1
             assert repo.rtype
             assert repo.path
-            print repo.rtype, repo.path, 
+            print repo.rtype, repo.path,
             if repo.uri:
                 print repo.uri
             else:
-                print 
+                print
 
 
 if __name__ == '__main__':

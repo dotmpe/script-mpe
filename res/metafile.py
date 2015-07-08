@@ -188,7 +188,7 @@ class MetaResolver(object):
         while len(props) > p:
             mp_class = props[p]
             for mp_dep_class in mpe_prerequisites(mp_class):
-                # prepend all prerequisite MP classes before current 
+                # prepend all prerequisite MP classes before current
                 if mp_dep_class not in props:
                     props.insert(p, mp_dep_class)
             if mp_class != props[p]:
@@ -222,7 +222,7 @@ class SHA1Sum(object):
 
 
 class Metafile(PersistedMetaObject):
-    
+
     """
     rsr abstraction of of filebased metadata's?
 
@@ -303,7 +303,7 @@ class MetafileFile(object): # XXX: Metalink syntax
         #('Digest', util.md5_content_digest_header),
         ('Digest', util.sha1_content_digest_header),
         # TODO: Link, Location?
-#            'Content-MD5': lib.get_md5sum_sub, 
+#            'Content-MD5': lib.get_md5sum_sub,
 # not all instances qualify: the spec only covers the message body, which may be
 # chunked.
     )
@@ -406,7 +406,7 @@ class MetafileFile(object): # XXX: Metalink syntax
                 print '\tFile changed size'
             else:
                 print '\tNew attribute', attr[i1-2]
-        # /xxx:chatter 
+        # /xxx:chatter
 
         needs_update = updates != []
         if needs_update:
@@ -494,7 +494,7 @@ class MetafileFile(object): # XXX: Metalink syntax
             )
         for handlers in self.handlers, envelope:
             for header, handler in handlers:
-                
+
                 value = None
 
                 try:
@@ -590,8 +590,8 @@ class Metadir(object):
     @property
     def id_path(self):
         """Return %s metadir id-file path. """ % lib.cn(self)
-        # XXX: perhaps rename DOTID just markerleaf to reflect find_config_path 
-        return self.metadirref( 'id' ) 
+        # XXX: perhaps rename DOTID just markerleaf to reflect find_config_path
+        return self.metadirref( 'id' )
 
     @property
     def metadir_id(self):
@@ -631,9 +631,9 @@ class Metadir(object):
     @classmethod
     def find(clss, *paths):
         prefixes = confparse.name_prefixes + ( '.'+clss.DOTDIR+'/', )
-        return list(confparse.find_config_path(clss.DOTID, 
+        return list(confparse.find_config_path(clss.DOTID,
             paths=list(paths),
-            prefixes=prefixes, 
+            prefixes=prefixes,
             suffixes=['.id']
         ))
 
@@ -642,13 +642,13 @@ class Metadir(object):
         """
         Find metadir by searching for markerleaf indicated by Class'
         DOTID property, using '.' DOTDIR '/' as one of the name prefixes.
-       
+
         See confparse.find_config_path. This will be searching for the .id
         extensions.
 
         Returning Class instance for first path, if any.
         """
-        configpaths = clss.find(*paths)
+        configpaths = list(clss.find(*paths))
         if configpaths:
             if len(configpaths) > 1:
                 log.warn('Using first config file %s for %s', clss.DOTID, configpaths)
