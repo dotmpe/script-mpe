@@ -7,6 +7,9 @@ load()
 {
 	[ -n "$EDITOR" ] || EDITOR=vim
 	[ -n "$HTDIR" ] || HTDIR=~/htd
+
+	rows=$(stty size|awk '{print $1}')
+	cols=$(stty size|awk '{print $2}')
 }
 
 c_usage()
@@ -74,11 +77,44 @@ c_st()
 	c_stat $*
 }
 
+clear_lines()
+{
+	count=$1
+	[ -n "$count" ] || count=0
+
+	while [ "$count" -gt -1 ]
+	do
+		# move forward to end, then erase one line
+		echo -ne "\033[200C"
+		echo -ne "\033[1K"
+		# move up 
+		echo -ne "\033[1A"
+		count=$(( $count - 1 ))
+	done
+
+	# somehow col is one off, ie. the next regular echo has the first character
+	# eaten by the previous line. clean one line here
+	echo
+}
+capture_and_clear()
+{
+	tee /tmp/htd-out
+	mv /tmp/htd-out /tmp/htd-out.tmp
+	fold -s -w $cols /tmp/htd-out.tmp > /tmp/htd-out
+	lines=$(wc -l /tmp/htd-out|awk '{print $1}')
+	clear_lines $lines
+	echo Captured $lines lines
+}
 c_build()
 {
-	c_make build
+	rm -f /tmp/htd-out
+	c_make build 2>1 | capture_and_clear
+	echo Mixed output::
+	echo
+	cat /tmp/htd-out | sed  's/^/    /'
 }
 
+# show htd shell aliases
 c_alias()
 {
 	grep '\<htd\>' ~/.alias | grep -v '^#' | while read _a A
@@ -114,7 +150,10 @@ c_wol()
 		hwaddr=$(eval echo \$$host)
 		[ -n "$hwaddr" ] || exit 4
 		echo ":WOL Host: \`$host <$hwaddr>\`_"
-		wakeonlan $hwaddr
+
+		wakeonlan $hwaddr | tee /tmp/htd-out
+		lines=$(count -l /tmp/htd-out)
+		clear_lines $lines
 	}
 }
 
