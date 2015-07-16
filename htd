@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -e
 
 scriptname=htd
 VERBOSITY=0
@@ -6,7 +8,9 @@ VERBOSITY=0
 load()
 {
 	[ -n "$EDITOR" ] || EDITOR=vim
+	[ -n "$HTD_GIT_REMOTE" ] || HTD_GIT_REMOTE=default
 	[ -n "$HTDIR" ] || HTDIR=~/htd
+    [ -n "$PROJECT" ] || PROJECT="$(basename $(pwd))"
 
 	rows=$(stty size|awk '{print $1}')
 	cols=$(stty size|awk '{print $2}')
@@ -22,15 +26,22 @@ c_usage()
 c_help()
 {
 	c_usage
-	echo 'Functions: '
+	echo 'Commands: '
 	echo '  home                             Print htd dir.'
-	echo '  mk|make                          Run make.'
+    echo '  mk|make                          Run make (in htd dir).'
 	echo '  st|stat                          Run make stat.'
 	echo '  sys                              Run make sys.'
 	echo '  vt|vtoday                        Run make vtoday.'
-	echo '  -e                               Edit this script.'
-	echo '  alias                            Show bash aliases.'
+	echo ''
 	echo '  wol <host>                       Send wol.'
+	echo '  mac                              List ARP table: hwaddr for clients (once) connector to LAN. '
+	echo '  todo'
+	echo '  git-remote [repo]                List all names remotely, or give the SSH url for given repo. '
+	echo '  git-init-remote [repo]           Initialze remote bare repo if local path is GIT project'
+	echo ''
+	echo 'Other commands: '
+	echo '  -e                               Edit this script.'
+	echo '  alias                            Show bash aliases for this script.'
 	echo '  usage                            print just the usage description.'
 	echo '  help                             print this help listing.'
 }
@@ -59,6 +70,7 @@ c_mk()
 	c_make $*
 }
 
+# Run a sys-* target in the htdocs dir.
 c_make_sys()
 {
 	cd $HTDIR
@@ -77,6 +89,7 @@ c_st()
 	c_stat $*
 }
 
+# experiment rewriting console output
 clear_lines()
 {
 	count=$1
@@ -125,6 +138,7 @@ c_alias()
 	done
 }
 
+# Open an editor to edit todays log
 c_vtoday()
 {
 	c_make vtoday
@@ -134,6 +148,7 @@ c_vt()
 	c_vtoday $*
 }
 
+# Wake a remote host using its ethernet address
 wol_hwaddr=~/.conf/wol/hosts-hwaddr.sh
 c_wol_list_hosts()
 {
@@ -150,13 +165,17 @@ c_wol()
 		hwaddr=$(eval echo \$$host)
 		[ -n "$hwaddr" ] || exit 4
 		echo ":WOL Host: \`$host <$hwaddr>\`_"
-
-		wakeonlan $hwaddr | tee /tmp/htd-out
-		lines=$(count -l /tmp/htd-out)
-		clear_lines $lines
 	}
 }
 
+# Simply list ARP-table, may want something better like arp-scan or an nmap
+# script
+c_mac()
+{
+	arp -a
+}
+
+# Experimenting with gtasks.. looking at todo targets
 c_todo()
 {
 	echo
@@ -168,6 +187,61 @@ c_todo()
 #	gtasks -L -sb tomorrow -sa today -dse
 }
 
+# init or list SSH based remote 
+
+c_git_remote()
+{
+    source ~/.conf/git-remotes/$HTD_GIT_REMOTE.sh
+    [ -z "$1" ] && {
+        ssh_cmd="cd $remote_dir; ls | grep '.*.git$' | sed 's/\.git$//g' "
+        ssh $remote_user@$remote_host "$ssh_cmd"
+    } || {
+        repo=$1
+        git_url="ssh://$remote_host/~$remote_user/$remote_dir/$repo.git"
+        scp_url="$remote_user@$remote_host:$remote_dir/$repo.git"
+        echo $git_url
+    }
+}
+
+c_git_init_remote()
+{
+    source ~/.conf/git-remotes/$HTD_GIT_REMOTE.sh
+    [ -n "$1" ] && repo="$1" || repo="$PROJECT"
+
+    ssh_cmd="mkdir -v $remote_dir/$repo.git"
+    ssh $remote_user@$remote_host "$ssh_cmd"
+
+    [ -d .git ] || return
+
+    c_git_remote $repo >> /dev/null
+
+    BARE=../$repo.git
+    TMP_BARE=1
+    [ -d $BARE ] && TMP_BARE= || {
+        [ -d /src/$repo.git ] && {
+            TMP_BARE=
+            BARE=/src/$repo.git
+        } || {
+            log "Creating temp. bare clone"
+            echo git clone --bare . $BARE
+        }
+    }
+
+    [ -n "$TMP_BARE" ] || {
+        log "Using existing bare repository to init remote: $BARE"
+    }
+
+    log "Syning to $scp_url"
+    rsync -azu $BARE/ $scp_url
+
+    git remote add $HTD_GIT_REMOTE $git_url
+
+    git fetch $HTD_GIT_REMOTE
+
+    log "Added remote $HTD_GIT_REMOTE $scp_url"
+}
+
+# stdio/stderr/exit util
 log()
 {
 	[ -n "$(echo $*)" ] || return 1;
@@ -186,38 +260,53 @@ c_errnow()
 	return 3
 }
 
-#def_func=c_make_stat
-
-
 # Main
+
+#def_func=c_make_stat 
+
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
-	# Do something if script invoked as 'htd'
-	if [ "$(basename $0)" = "htd" ]; then
-		cmd=$1
-		[ -n "$def_func" -a -z "$func" ] \
-			&& func=$def_func \
-			|| func=$(echo "c_$cmd" | tr '-' '_')
-		type $func &> /dev/null && {
-			func_exists=1
-			shift 1
-			load
-			$func $@
-		} || {
-			e=$?
-			[ -z "$cmd" ] && {
+
+	# Do something (only) if script invoked as 'htd'
+	base=$(basename $0 .sh)
+	case "$base" in
+
+		$scriptname )
+
+			# function name first as argument,
+			cmd=$1
+			[ -n "$def_func" -a -z "$cmd" ] \
+				&& func=$def_func \
+				|| func=$(echo c_$cmd | tr '-' '_')
+
+			# load/exec if func exists
+			type $func &> /dev/null && {
+				func_exists=1
 				load
-				c_usage
-				err 'No command given, see "help"' 1
+				shift 1
+				$func $@
 			} || {
-				[ "$e" = "1" -a -z "$func_exists" ] && {
+				# handle non-zero return or print usage for non-existant func
+				e=$?
+				[ -z "$cmd" ] && {
 					load
 					c_usage
-					err "No such command: $cmd" 1
+					err 'No command given, see "help"' 1
 				} || {
-					err "Command $cmd returned $e" $e
+					[ "$e" = "1" -a -z "$func_exists" ] && {
+						load
+						c_usage
+						err "No such command: $cmd" 1
+					} || {
+						err "Command $cmd returned $e" $e
+					}
 				}
 			}
-		}
-	fi
+
+			;;
+
+		* )
+			echo No frontend for $base
+
+	esac
 fi
 
