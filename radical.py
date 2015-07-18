@@ -7,13 +7,13 @@ Index and identify tagged comments in documents and source code.
 Introduction
 -------------
 The motivation for this program is that working on a software project is an
-ongoing effort to identify and locate existing problems, and room for 
+ongoing effort to identify and locate existing problems, and room for
 enhancements.
 
 However, only one problem can be solved at a time. It will be required
 to defer newly encountered (sub)problems to a later time.
 
-This program allows to track comments TODO, FIXME, XXX or even ISSUE:MyId 
+This program allows to track comments TODO, FIXME, XXX or even ISSUE:MyId
 kind of tags in source code. This local database could be kept in sync with
 centralized issue and worklog trackers. [rad-ignore]
 
@@ -22,9 +22,9 @@ For example, a new issue may simply be created by a text embedded in a
 
     MYPROJECT: Must support X here.
 
-and then run `radical`. The 'MYPROJECT:' in the source would be rewritten to 
+and then run `radical`. The 'MYPROJECT:' in the source would be rewritten to
 e.g. 'MYPROJECT:109:', while the text is entered as a title into the
-remote issue tracker for the new ticket MYPROJECT-109. 
+remote issue tracker for the new ticket MYPROJECT-109.
 
 This tag may remain in the source code as long as needed, either until
 the issue gets closed, or even remain indefinitely to mark exceptions.
@@ -39,8 +39,8 @@ Tagged comments are stored at keys generated from hashsums.
 To retrieve these while the contents may have changed,
 indices for the line and character range are also kept.
 
-An additional auto-incremented numeric indexed is kept for selected 
-indices. 
+An additional auto-incremented numeric indexed is kept for selected
+indices.
 
 The following entities need to be kept:
 
@@ -73,13 +73,13 @@ issue gets closed, or remain as comments.
 
 This afford to track existing issues and to create new ones
 , or to simply
-list all tagged comments for a certain code-base. 
+list all tagged comments for a certain code-base.
 
 Overview
 --------
-- Comments run from the end of the tag to either the next '.\s' sequence or 
-  the end of the line, or a new tag. 
-- Comment whitespace is collapsed and trimmed. 
+- Comments run from the end of the tag to either the next '.\s' sequence or
+  the end of the line, or a new tag.
+- Comment whitespace is collapsed and trimmed.
 
 - Comments starting with a tag are continued to the end of the comment line or
   block. Only indentation- and heading/trailing-whitespace is trimmed, meaning
@@ -98,7 +98,7 @@ Standard tags
 TODO
     Incomplete implementation, stuff is missing. [rad-ignore]
 FIXME
-    Known bug or limitation, missing option or degraded user experience. 
+    Known bug or limitation, missing option or degraded user experience.
     [rad-ignore]
 XXX
     Remark on hacks and other ugliness. (See Jargon File) [rad-ignore]
@@ -126,7 +126,7 @@ Changelog
     Improved parser.
 2011-05-04
     Improved parser.
-2011-05-22 
+2011-05-22
     Updating documentation.
 2011-12-18
     Partial documentation, implementation review. Refactored to use libcmd.
@@ -143,9 +143,9 @@ Issues
   If a comment block starts with a tag, but contains other tags, it is parsed as
   a line comment. (Normally a comment starting with a tag covers all the
   lines in the block)
-- Implementation is still based on first iteration, 
-  somewhat spotty and quite suboptimal.
-- Python allows various form of strings while this only parses block types.
+- Implementation is still based on first development iteration,
+  somewhat spotty and seems suboptimal.
+- Python syntax allows various form of strings while this only parses block types.
 
 Further comments
 ----------------
@@ -185,7 +185,7 @@ TODO: domain structure::
 # TODO:1: Integrate gate content stream
 # TODO:2: Extend supported comment styles
 
-# TODO:3: Scan for other literals, recognize language constructs. 
+# TODO:3: Scan for other literals, recognize language constructs.
 
 import traceback
 import optparse, os, re, sys
@@ -280,11 +280,11 @@ class EmbeddedIssue:
         short = lambda embedded:
             embedded.format() +' '+ embedded.description.strip(),
         complete = lambda embedded:
-            ' '.join([ 
+            ' '.join([
                 "%s:%s:%s" % ( ( embedded.file_name, ) + embedded.comment_lines ),
-                "%i:%i" % embedded.comment_span, 
-                embedded.format(), 
-                embedded.description.strip() 
+                "%i:%i" % embedded.comment_span,
+                embedded.format(),
+                embedded.description.strip()
             ])
     )
 
@@ -298,22 +298,25 @@ class EmbeddedIssue:
     def store(self, session):
         if self.tag_id:
             pass
-        
+
     def __str__(self):
         # FIXME: cache source file reads
         data = open(self.file_name).read()
         return "<%s> %s %s %s\n\t%s\n\t" % (
-                self.file_name, self.tag_name, self.inline, data[slice(*self.tag_span)],
+                self.file_name, self.tag_name, self.inline,
+                data[slice(*self.tag_span)],
                 self.description
             )
-        
+
     @property
     def description(self):
         global rc
         data = open(self.file_name).read()
+        span = tuple(self.description_span)
+        #span = self.description_span[0], self.description_span[1]+1
         description = clean_comment(
                 rc.comment_scan[self.comment_flavour],
-                data[slice(*self.description_span)].lstrip())
+                data[slice(*span)].lstrip())
         if self.inline:
             description = collapse_ws(description)
             if not description.endswith(' '):
@@ -326,7 +329,7 @@ def store_comments(session, data, comment_span, flavour_spec, tagname, matchbox)
     """
     """
     comment_data = data[slice(*comment_span)]
-    
+
     pass
 
 
@@ -340,11 +343,11 @@ def end_of_line(data):
         if c == '\n':
             return pos
         pos += 1
-    
+
 
 def at_line(offset, width, data):
     #data = data.decode('utf-8')
-    lines = data.split('\n') 
+    lines = data.split('\n')
     chars = 0
     for line, line_data in enumerate(lines):
         #print line, chars
@@ -367,11 +370,11 @@ def get_tagged_comment(offset, width, data, language_keys, matchbox):
     Return the comment span that has a tag embedded at offset/width.
 
     This scans for continues sequences of comment lines, and may return spans
-    for comment blocks that contain other tags. 
-    Given a found tag it looks at the like of the match using a 
+    for comment blocks that contain other tags.
+    Given a found tag it looks at the like of the match using a
     comment start/end exrepssion.
-    
-        Also, this span may include 
+
+        Also, this span may include
     metacharacters used to markup comments. Further parsing of the comment
     block is left to the caller.
     """
@@ -379,52 +382,68 @@ def get_tagged_comment(offset, width, data, language_keys, matchbox):
 
     lines = data.split('\n')
 
+    comment_offset, comment_end = -1, -1
+    start_line, last_line = -1, -1
     for language_key in language_keys:
 
         scan_spec = matchbox[language_key]
         match_line, match_start, match_end = scan_spec
 
         data = lines[tag_line]
-        start_line = tag_line 
+        start_line = tag_line
 
         if match_line:
             # scan multiline for line-style comment
             if match_line(data):
+                comment_offset = line_offset # FIXME scan to tagname
                 data = lines[tag_line]
-                end_line = tag_line
+                last_line = tag_line
                 comment_end = line_offset + len(data)
-                while match_end(data):
-                    data = lines[end_line+1]
+                while match_line(data):
+                    data = lines[last_line+1]
                     if match_line(data):
-                        end_line += 1
-                        comment_end += len(data) + 1
+                        last_line += 1
+                        comment_end += len(data) + 1 # FIXME: CRLF size
+
+                break
+
             else:
                 print "No match at", language_key, tag_line, lines[tag_line]
                 continue
 
         else: # seek multiline block comment
 
-            comment_start = line_offset
+            if not match_start(data):
+                print "No match at", language_key, tag_line, lines[tag_line]
+                continue
+
+            comment_offset = line_offset
             while match_start(data):
                 data = lines[start_line-1]
                 # adjust start-line and start-char
                 if match_start(data):
                     start_line -= 1
-                    comment_start -= len(data) + 1
-           
+                    comment_offset -= len(data) + 1
+
             if not match_end:
                 match_end = match_start
 
             data = lines[tag_line]
-            end_line = tag_line
+            last_line = tag_line
             comment_end = line_offset + len(data)
             while match_end(data):
-                data = lines[end_line+1]
+                data = lines[last_line+1]
                 if match_end(data):
-                    end_line += 1
+                    last_line += 1
                     comment_end += len(data) + 1
-        
-        return language_key, (comment_start, comment_end), (start_line, end_line)
+
+            break
+
+    if comment_end > -1:
+        #print language_key, 'found comment', start_line, comment_offset, \
+        #            last_line, comment_end,\
+        #            lines[start_line:last_line+1]
+        return language_key, (comment_offset, comment_end), (start_line, last_line)
 
 def scan_for_tag(tags, matchbox, data):
     pos = len(data)
@@ -479,7 +498,7 @@ def trim_comment(match, data, (start, end)):
     return data[start:end], (start, end)
 
 def clean_comment(scan, data):
-  
+
     d = 0
     if len(scan) == 1:
         for m in re.finditer(scan[0], data, re.M):
@@ -499,16 +518,16 @@ def clean_comment(scan, data):
 def find_tagged_comments(session, matchbox, source, data):
     """
     Look for tags in data, using the compiled tag regexes
-    in matchbox, and 
+    in matchbox, and
     post processing each found flavour of comment block to the
     distinct tagged comments.
 
-    The tagged comment body text runs from the end of the tag, to the next '.' 
+    The tagged comment body text runs from the end of the tag, to the next '.'
     followed by whitespace, or the end of the line.
     *Comment blocks* **starting with a tag** include the body text up to the end of
     the comment block. This makes a distinction between tagged comment lines and
     blocks.
-    
+
     TODO: Needs rewrite, to index comments first, then scan for tags in result
     structure.
     This works inefficent, looking for tags and then finding the comment for it.
@@ -524,6 +543,9 @@ def find_tagged_comments(session, matchbox, source, data):
         match_line, match_start, match_end = scan_spec
         # TODO index comments, line and offset/width
 
+    print 'Comment flavors:', rc.comment_flavours
+
+    # pass data along each tag-name and regexes from matchbox
     for tagname in rc.tags:
         for tag_match in matchbox[tagname].finditer(data):
             tag_span = tag_match.start(), tag_match.end()
@@ -532,7 +554,7 @@ def find_tagged_comments(session, matchbox, source, data):
             comment = get_tagged_comment(tag_span[0],
                     tag_span[1]-tag_span[0], data,
                     rc.comment_flavours, matchbox)
-            if not comment: 
+            if not comment:
                 log.err("Unable to find comment span for '%s' at %s:%s " % (
                     data[tag_span[0]:tag_span[1]], source, tag_span))
                 continue
@@ -540,7 +562,7 @@ def find_tagged_comments(session, matchbox, source, data):
 
             # Clean comment from markup and adjust source span
             comment_data, comment_span = \
-                    trim_comment(matchbox[comment_flavour], data, 
+                    trim_comment(matchbox[comment_flavour], data,
                                                                 comment_span)
             (comment_start, comment_end) = comment_span
 
@@ -582,9 +604,9 @@ def find_tagged_comments(session, matchbox, source, data):
                     current_id = NEED_ID
 
             yield EmbeddedIssue(source, (comment_start, comment_end), tagname,
-                    current_id, 
-                    (tag_match.start(), tag_match.end()), 
-                    (tag_match.end(), description_end), 
+                    current_id,
+                    (tag_match.start(), tag_match.end()),
+                    (tag_match.end(), description_end),
                     inline, comment_flavour, lines)
             continue
 
@@ -626,7 +648,7 @@ def find_files_with_tag(session, matchbox, paths):
     """
     Look for tags in the data at each file path.
     """
-        
+
     sources = []
     for p in paths:
         if not os.path.isdir(p):
@@ -693,15 +715,15 @@ tags
 # Start/end regex patterns per comment flavour
 STD_COMMENT_SCAN = {
         'unix_generic': [ '^(\s*\#).*$', ],
-        'c': [ 
+        'c': [
             None,
-            r'^(\s*\/\*).*$', 
-            r'^.*(\*\/\s*)$' 
+            r'^(\s*\/\*).*$',
+            r'^.*(\*\/\s*)$'
         ],
         'c_line': [ '^(\s*\/\/).*$', ],
-        'py_doc': [ 
+        'py_doc': [
             None,
-            r'^\s*(\"\"\")\s*.*$', 
+            r'^\s*(\"\"\")\s*.*$',
             r'^.*(\"\"\")\s*$' ]
     }
 """
@@ -749,7 +771,7 @@ class Radical(rsr.Rsr):
 
     DEPENDS = dict(
             rdc_init = [ 'rsr_session' ],
-            rdc_run_embedded_issue_scan = [ 
+            rdc_run_embedded_issue_scan = [
                 'rdc_init', 'rsr_session', 'prepare_output' ],
             rdc_list_flavours = [ 'rdc_init', 'load_config', 'prepare_output' ],
             rdc_list_scans = [ 'load_config', 'prepare_output' ],
