@@ -38,6 +38,7 @@ c_help()
 	echo '  todo'
 	echo '  git-remote [repo]                List all names remotely, or give the SSH url for given repo. '
 	echo '  git-init-remote [repo]           Initialze remote bare repo if local path is GIT project'
+	echo '  git-remote-info                  Show vars'
 	echo ''
 	echo 'Other commands: '
 	echo '  -e                               Edit this script.'
@@ -189,9 +190,21 @@ c_todo()
 
 # init or list SSH based remote 
 
+source_git_remote()
+{
+    source ~/.conf/git-remotes/$HTD_GIT_REMOTE.sh || err "Missing HTD_GIT_REMOTE=$HTD_GIT_REMOTE script" 1
+}
+
+c_git_remote_info()
+{
+    source_git_remote
+    echo remote.$HTD_GIT_REMOTE.dir=$remote_dir
+    echo remote.$HTD_GIT_REMOTE.host=$remote_host
+    echo remote.$HTD_GIT_REMOTE.user=$remote_user
+}
 c_git_remote()
 {
-    source ~/.conf/git-remotes/$HTD_GIT_REMOTE.sh
+    source_git_remote
     [ -z "$1" ] && {
         ssh_cmd="cd $remote_dir; ls | grep '.*.git$' | sed 's/\.git$//g' "
         ssh $remote_user@$remote_host "$ssh_cmd"
@@ -205,7 +218,7 @@ c_git_remote()
 
 c_git_init_remote()
 {
-    source ~/.conf/git-remotes/$HTD_GIT_REMOTE.sh
+    source_git_remote
     [ -n "$1" ] && repo="$1" || repo="$PROJECT"
 
     ssh_cmd="mkdir -v $remote_dir/$repo.git"
@@ -223,7 +236,7 @@ c_git_init_remote()
             BARE=/src/$repo.git
         } || {
             log "Creating temp. bare clone"
-            echo git clone --bare . $BARE
+            git clone --bare . $BARE
         }
     }
 
