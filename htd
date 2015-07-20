@@ -22,6 +22,7 @@ load()
 
 	find_ignores="-not -path \"*.git*\" "$(echo $(cat .gitignore | \
 		grep -Ev '^(#.*|\s*)$' | \
+		sed -E 's/^\//\.\//' | \
 		sed -E 's/(.*)/ -not -path "\1"/g'))
 }
 
@@ -70,10 +71,20 @@ c_home()
 c_info()
 {
 	log "HtDir: $HTDIR"
+	log "Script: $(pwd)/$scriptname"
 	log "Project ID: $PROJECT"
 	log "Minimum filesize: $(( $MIN_SIZE / 1024 ))"
 	log "Editor: $EDITOR"
 	log "Default GIT remote: $HTD_GIT_REMOTE"
+}
+
+c_expand()
+{
+	test -n "$1" || return 1
+	for x in $1
+	do
+		test -e "$x" && echo $x
+	done
 }
 
 c_edit()
@@ -88,7 +99,7 @@ c__e()
 
 c_fsck()
 {
-	c_sha1_validate
+	c_ck_validate sha1
 }
 
 c_make()
@@ -288,7 +299,7 @@ c_git_init_remote()
 
 c_test_name()
 {
-	echo "$@" | grep -E '^[]\[{}\(\)A-Za-z0-9\.,!@\ \/_-]*$' || return 1
+	echo "$@" | grep -E '^[]\[{}\(\)A-Za-z0-9\.,!@#&%*?:'\''\+\ \/_-]*$' || return 1
 }
 
 c_find_empty()
@@ -296,34 +307,128 @@ c_find_empty()
 	eval find . -size 0 $find_ignores
 }
 
+# TODO interactive file process
+c_check()
+{
+	log "Looking for unknown files.."
+	eval find . $find_ignores \
+		| while read p
+		do
+			c_test_name "$p" >> /dev/null || {
+				err "Unhandled characters: $p"
+				continue
+			}
+			[ -L "$p" ] && {
+				BE="$(dirname "$p")/$(readlink "$p")"
+				[ -e "$BE" ] || {
+					#err "Skip dead symlink"
+					continue
+				}
+				SZ="$(stat -f '%z' "$BE")"
+			} || {
+				SZ="$(stat -f '%z' "$p")"
+			}
+			if test -d "$p" -a -n "$(c_expand $p.{zip,tar{.gz,.bz2}})"
+			then
+				log "Skipping unpacked dir $p"
+				for ck in ck sha1 md5
+				do
+					c_ck_table_subtree $ck "$p" | while read p2
+					do
+						c_ck_table $ck "" "$p2" >> /dev/null && {
+							#c_ck_drop $ck "$p"
+							echo "Dropped $ck key for $p"
+						}
+					done
+				done
+				continue
+			fi
+			test "$SZ" -ge "$MIN_SIZE" || {
+				#err "File too small: $p"
+				continue
+			}
+		done
+}
+
 c_rename()
 {
-	c_update_ck_table
+	c_ck_update
 }
 
 c_update()
 {
-	c_update_ck_table sha1
+	for CK in ck sha1 md5
+	do
+		c_ck_prune $CK
+		c_ck_clean $CK
+		c_ck_update $CK
+	done
 }
+
+
+# Checksums
 
 c_ck_table()
 {
 	test -n "$1"  && CK=$1  || CK=ck
 	shift 1
+	test -n "$1"  && S=$1  || S=
+	shift 1
+	[ -z "$@" ] && {
+		cat table.$CK$S | grep -v '^#|\s*$' | while read -a ckline
+		do
+			test "$CK" = "ck" && {
+				cks=${ckline[@]::1}
+				sz=${ckline[@]::1}
+				p="${ckline[@]:2}"
+			} || {
+				cks=${ckline[@]::1}
+				p="${ckline[@]:1}"
+			}
+			echo "$cks  $p"
+		done
+	} || {
+		# look for single path
+		p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@_])/\\\1/g')"
+		echo "$@" | grep "^$p_$" >> /dev/null || {
+			err "cannot build regex for '$p': $p_"
+			return
+		}
+		grep ".*\ $p_$" table.$CK$S >> /dev/null && {
+			echo ok
+		} || {
+			echo unknown
+			return 1
+		}
+	}
+}
+
+c_ck_table_subtree()
+{
+	test -n "$1"  && CK=$1  || CK=ck
+	shift 1
+	test -n "$1" || return 1
 	p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@_])/\\\1/g')"
 	echo "$@" | grep "^$p_$" >> /dev/null || {
 		err "cannot build regex for '$p': $p_"
 		return
 	}
-	grep ".*$p_$" table.$CK >> /dev/null && {
-		echo ok
-	} || {
-		echo unknown
-		return 1
-	}
+	grep ".*\ $p_.*$" table.$CK | grep -v '^#|\s*$' | while read -a ckline
+		do
+			test "$CK" = "ck" && {
+				cks=${ckline[@]::1}
+				sz=${ckline[@]::1}
+				p="${ckline[@]:2}"
+			} || {
+				cks=${ckline[@]::1}
+				p="${ckline[@]:1}"
+			}
+			echo "$cks  $p"
+		done
 }
 
-c_update_ck_table()
+# find all files, check their name
+c_ck_update()
 {
 	test -n "$1"  && CK=$1  || CK=ck
 	T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
@@ -338,7 +443,7 @@ c_update_ck_table()
 			[ -L "$p" ] && {
 				BE="$(dirname "$p")/$(readlink "$p")"
 				[ -e "$BE" ] || {
-					err "Skip dead symlink"
+					#err "Skip dead symlink"
 					continue
 				}
 				SZ="$(stat -f '%z' "$BE")"
@@ -346,7 +451,7 @@ c_update_ck_table()
 				SZ="$(stat -f '%z' "$p")"
 			}
 			test "$SZ" -ge "$MIN_SIZE" || {
-				err "File too small: $SZ"
+				#err "File too small: $SZ"
 				continue
 			}
 			BN="$(basename "$p")"
@@ -358,12 +463,29 @@ c_update_ck_table()
 				echo $SZ $CKS $BN $BE >> /dev/null
 			} || {
 				# prepare to rename, keep SHA1 hashtable
-				c_ck_table $CK "$p" || {
+				c_ck_table "$CK" '' "$p" || {
 					${CK}sum "$p" >> table.$CK
 				}
 			}
 			continue
 		done
+}
+
+c_ck_drop()
+{
+	test -n "$1"  && CK=$1  || CK=ck
+	shift 1
+	test -n "$1" || return 1
+	p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@_])/\\\1/g')"
+	echo "$@" | grep "^$p_$" >> /dev/null || {
+		err "cannot build regex for '$p': $p_"
+		return
+	}
+	cp table.$CK table.$CK.tmp
+	#echo "$ck  $p" >> table.$CK.missing
+	cat table.$CK.tmp | grep "^.*$p_$" >> table.$CK.missing
+	cat table.$CK.tmp | grep -v "^.*$p_$" > table.$CK
+	rm table.$CK.tmp
 }
 
 c_ck_validate()
@@ -382,7 +504,7 @@ c_ck_validate()
 # check file size and cksum
 checksums()
 {
-	test -n "$1" && T=$1 T=table.ck
+	test -n "$1"  && T=$1  || T=table.ck
 	cat $T | while read cks sz p
 	do
 		SZ="$(stat -f '%z' "$p")"
@@ -392,6 +514,46 @@ checksums()
 		echo "$cks ok"
 	done
 }
+
+# drop non-existant paths from table, copy to .missing
+c_ck_prune()
+{
+	test -n "$1"  && CK=$1  || CK=ck
+	T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
+	test -s "table.$CK" || {
+		err "$T_CK table does not exists"
+		return
+	}
+	log "Pruning missing files from $CK table"
+	c_ck_table $CK "" | while read cks p
+	do
+		test -e "$p" || {
+			c_ck_drop $CK "$p"
+			echo "Dropped $CK key $cks for '$p'"
+		}
+	done
+}
+
+# try to find files from .missing, or put them in .gone
+c_ck_clean()
+{
+	test -n "$1"  && CK=$1  || CK=ck
+	shift 1
+	T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
+	test -s "table.$CK.missing" || {
+		err "$T_CK.missing table does not exists"
+		return
+	}
+	log "Looking for missing files from $CK table"
+	c_ck_table $CK .missing | while read cks p
+	do
+		BN="$(basename "$p")"
+		NW=$(eval find ./ -iname '$BN' $find_ignores)
+		test -n "$NW" && echo "$BN -> $NW"
+	done
+	echo 'TODO rewrite ck table path'
+}
+
 
 # stdio/stderr/exit util
 log()
@@ -411,6 +573,7 @@ c_errnow()
 {
 	return 3
 }
+
 
 # Main
 
