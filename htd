@@ -168,6 +168,16 @@ c_build()
 	cat /tmp/htd-out | sed  's/^/    /'
 }
 
+uname=$(uname)
+filesize()
+{
+	test "$uname" = "Darwin" && {
+		stat -f '%z' "$@"
+	} || test "$uname" = "Linux" && {
+		stat -c '%s' "$@"
+	}
+}
+
 # show htd shell aliases
 c_alias()
 {
@@ -324,9 +334,9 @@ c_check()
 					#err "Skip dead symlink"
 					continue
 				}
-				SZ="$(stat -f '%z' "$BE")"
+				SZ="$(filesize "$BE")"
 			} || {
-				SZ="$(stat -f '%z' "$p")"
+				SZ="$(filesize "$p")"
 			}
 			if test -d "$p" -a -n "$(c_expand $p.{zip,tar{.gz,.bz2}})"
 			then
@@ -389,7 +399,7 @@ c_ck_table()
 		done
 	} || {
 		# look for single path
-		p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@_])/\\\1/g')"
+		p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@+_])/\\\1/g')"
 		echo "$@" | grep "^$p_$" >> /dev/null || {
 			err "cannot build regex for '$p': $p_"
 			return
@@ -446,9 +456,9 @@ c_ck_update()
 					#err "Skip dead symlink"
 					continue
 				}
-				SZ="$(stat -f '%z' "$BE")"
+				SZ="$(filesize "$BE")"
 			} || {
-				SZ="$(stat -f '%z' "$p")"
+				SZ="$(filesize "$p")"
 			}
 			test "$SZ" -ge "$MIN_SIZE" || {
 				#err "File too small: $SZ"
@@ -507,7 +517,7 @@ checksums()
 	test -n "$1"  && T=$1  || T=table.ck
 	cat $T | while read cks sz p
 	do
-		SZ="$(stat -f '%z' "$p")"
+		SZ="$(filesize "$p")"
 		test "$SZ" = "$sz" || { err "File-size mismatch on '$p'"; continue; }
 		CKS="$(cksum "$p" | awk '{print $1}')"
 		test "$CKS" = "$cks" || { err "Checksum mismatch on '$p'"; continue; }
@@ -534,6 +544,15 @@ c_ck_prune()
 	done
 }
 
+# Read checksums from *.{sha1,md5,ck}{,sum}
+c_ck_consolidate()
+{
+	eval "find . -name '*.{sha1,md5,ck}{,sum}' -a \( -type f -o -type l \) $find_ignores" | while read p
+	do
+		echo "$p"
+	done
+}
+
 # try to find files from .missing, or put them in .gone
 c_ck_clean()
 {
@@ -554,6 +573,19 @@ c_ck_clean()
 	echo 'TODO rewrite ck table path'
 }
 
+
+c_mp3_validate()
+{
+	eval "find . -name "*.mp3" -a \( -type f -o -type l \) $find_ignores" | while read p
+	do
+		SZ=$(filesize "$p")
+		test -s "$p" || {
+			err "Empty file $p"
+			continue
+		}
+		mp3val "$p"
+	done
+}
 
 # stdio/stderr/exit util
 log()
