@@ -10,10 +10,19 @@ load()
 	[ -n "$EDITOR" ] || EDITOR=vim
 	[ -n "$HTD_GIT_REMOTE" ] || HTD_GIT_REMOTE=default
 	[ -n "$HTDIR" ] || HTDIR=~/htd
-    [ -n "$PROJECT" ] || PROJECT="$(basename $(pwd))"
+	[ -n "$PROJECT" ] || PROJECT="$(basename $(pwd))"
+	_14MB=14680064
+	_6MB=7397376
+	[ -n "$MIN_SIZE" ] || MIN_SIZE=$_6MB
+
+	test -e table.sha1 && R_C_SHA3="$(cat table.sha1|wc -l)"
 
 	rows=$(stty size|awk '{print $1}')
 	cols=$(stty size|awk '{print $2}')
+
+	find_ignores="-not -path \"*.git*\" "$(echo $(cat .gitignore | \
+		grep -Ev '^(#.*|\s*)$' | \
+		sed -E 's/(.*)/ -not -path "\1"/g'))
 }
 
 c_usage()
@@ -28,7 +37,8 @@ c_help()
 	c_usage
 	echo 'Commands: '
 	echo '  home                             Print htd dir.'
-    echo '  mk|make                          Run make (in htd dir).'
+	echo '  info                             Print vars.'
+	echo '  mk|make                          Run make (in htd dir).'
 	echo '  st|stat                          Run make stat.'
 	echo '  sys                              Run make sys.'
 	echo '  vt|vtoday                        Run make vtoday.'
@@ -39,6 +49,11 @@ c_help()
 	echo '  git-remote [repo]                List all names remotely, or give the SSH url for given repo. '
 	echo '  git-init-remote [repo]           Initialze remote bare repo if local path is GIT project'
 	echo '  git-remote-info                  Show vars'
+	echo ''
+	echo '  test-name <path>                 Test filename for unhandled characters. '
+	echo '  update-ck-table [ck|md5|sha1]    Checkums all files. '
+	echo "  ck-table [ck|md5|sha1] <path>    Check if checksum exists for file, don\'t validate or update. "
+	echo '  ck-validate [ck|md5|sha1]        Verify each file by generating and comparing its checksum'
 	echo ''
 	echo 'Other commands: '
 	echo '  -e                               Edit this script.'
@@ -52,6 +67,15 @@ c_home()
 	echo $HTDIR
 }
 
+c_info()
+{
+	log "HtDir: $HTDIR"
+	log "Project ID: $PROJECT"
+	log "Minimum filesize: $(( $MIN_SIZE / 1024 ))"
+	log "Editor: $EDITOR"
+	log "Default GIT remote: $HTD_GIT_REMOTE"
+}
+
 c_edit()
 {
 	[ -n "$1" ] && fn=$1 || fn=$(which htd)
@@ -60,6 +84,11 @@ c_edit()
 c__e()
 {
 	c_edit
+}
+
+c_fsck()
+{
+	c_sha1_validate
 }
 
 c_make()
@@ -165,6 +194,7 @@ c_wol()
 		declare $(echo $(cat $wol_hwaddr))
 		hwaddr=$(eval echo \$$host)
 		[ -n "$hwaddr" ] || exit 4
+		wakeonlan $hwaddr
 		echo ":WOL Host: \`$host <$hwaddr>\`_"
 	}
 }
@@ -254,6 +284,115 @@ c_git_init_remote()
     log "Added remote $HTD_GIT_REMOTE $scp_url"
 }
 
+# indexing, cleaning
+
+c_test_name()
+{
+	echo "$@" | grep -E '^[]\[{}\(\)A-Za-z0-9\.,!@\ \/_-]*$' || return 1
+}
+
+c_find_empty()
+{
+	eval find . -size 0 $find_ignores
+}
+
+c_rename()
+{
+	c_update_ck_table
+}
+
+c_update()
+{
+	c_update_ck_table sha1
+}
+
+c_ck_table()
+{
+	test -n "$1"  && CK=$1  || CK=ck
+	shift 1
+	p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@_])/\\\1/g')"
+	echo "$@" | grep "^$p_$" >> /dev/null || {
+		err "cannot build regex for '$p': $p_"
+		return
+	}
+	grep ".*$p_$" table.$CK >> /dev/null && {
+		echo ok
+	} || {
+		echo unknown
+		return 1
+	}
+}
+
+c_update_ck_table()
+{
+	test -n "$1"  && CK=$1  || CK=ck
+	T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
+	log "Reading $T_CK for objects"
+	eval find . $find_ignores \
+		| while read p
+		do
+			c_test_name "$p" >> /dev/null || {
+				err "Skip path with unhandled characters"
+				continue
+			}
+			[ -L "$p" ] && {
+				BE="$(dirname "$p")/$(readlink "$p")"
+				[ -e "$BE" ] || {
+					err "Skip dead symlink"
+					continue
+				}
+				SZ="$(stat -f '%z' "$BE")"
+			} || {
+				SZ="$(stat -f '%z' "$p")"
+			}
+			test "$SZ" -ge "$MIN_SIZE" || {
+				err "File too small: $SZ"
+				continue
+			}
+			BN="$(basename "$p")"
+			HAS_CKS="$(echo $BN | grep '\.[0-9a-f]\{40\}\.')"
+			CKS="$(echo $BN | grep '\.[0-9a-f]\{40\}\.' |
+				sed 's/^.*\([0-9a-f]\{40\}\)\.[1-9a-z]\{3,4\}$/\1/g')"
+			#EXT="$(echo $BE)"
+			[ -n "$HAS_CKS" ] && {
+				echo $SZ $CKS $BN $BE >> /dev/null
+			} || {
+				# prepare to rename, keep SHA1 hashtable
+				c_ck_table $CK "$p" || {
+					${CK}sum "$p" >> table.$CK
+				}
+			}
+			continue
+		done
+}
+
+c_ck_validate()
+{
+	test -n "$1"  && CK=$1  || CK=ck
+	shift 1
+	T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
+	test -s "table.$CK" || err "$T_CK table does not exists" 1
+	test "$CK" = "ck" && {
+		checksums table.$CK
+	} || {
+		${CK}sum -c table.$CK
+	}
+}
+
+# check file size and cksum
+checksums()
+{
+	test -n "$1" && T=$1 T=table.ck
+	cat $T | while read cks sz p
+	do
+		SZ="$(stat -f '%z' "$p")"
+		test "$SZ" = "$sz" || { err "File-size mismatch on '$p'"; continue; }
+		CKS="$(cksum "$p" | awk '{print $1}')"
+		test "$CKS" = "$cks" || { err "Checksum mismatch on '$p'"; continue; }
+		echo "$cks ok"
+	done
+}
+
 # stdio/stderr/exit util
 log()
 {
@@ -323,3 +462,4 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 	esac
 fi
 
+# vim:noet:
