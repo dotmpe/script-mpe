@@ -20,7 +20,8 @@ load()
 	rows=$(stty size|awk '{print $1}')
 	cols=$(stty size|awk '{print $2}')
 
-	find_ignores="-not -path \"*.git*\" "$(echo $(cat .gitignore | \
+	find_ignores=" -not -path \"*.git*\""
+	[ -e '.gitignores' ] && find_ignores="$find_ignores "$(echo $(cat .gitignore | \
 		grep -Ev '^(#.*|\s*)$' | \
 		sed -E 's/^\//\.\//' | \
 		sed -E 's/(.*)/ -not -path "\1"/g'))
