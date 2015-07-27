@@ -11,7 +11,8 @@ import readline
 from os.path import basename, join,\
         isdir
 
-from script_mpe import log
+import log
+#from script_mpe import log
 #import confparse
 #
 #

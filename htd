@@ -445,7 +445,7 @@ c_ck_update()
 	T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
 	log "Reading $T_CK for objects"
 	eval find . $find_ignores \
-		| while read p
+	| while read p
 		do
 			c_test_name "$p" >> /dev/null || {
 				err "Skip path with unhandled characters"
@@ -574,10 +574,33 @@ c_ck_clean()
 	echo 'TODO rewrite ck table path'
 }
 
+# TODO consolidate meta
+c_ck_metafile()
+{
+	CK=sha1
+	eval find . -iname '*.meta' $find_ignores \
+	| while read p
+	do
+		cks=$(rsr.py --show-metafile "$p" 2> /dev/null)
+		CKS=$(${CK}sum "$p" | cut -d' ' -f1)
+		#echo CKS=$CKS cks=$cks
+		test "$cks" = "$CKS" && {
+			log "$CKS ok $p"
+		} || {
+			err "Corrupt file: $p"
+			continue
+		}
+		c_ck_table "$CK" '' "$p" || {
+			echo "$CKS  $p" >> table.$CK
+		}
+		
+	done
+}
 
 c_mp3_validate()
 {
-	eval "find . -name "*.mp3" -a \( -type f -o -type l \) $find_ignores" | while read p
+	eval "find . -name "*.mp3" -a \( -type f -o -type l \) $find_ignores" \
+	| while read p
 	do
 		SZ=$(filesize "$p")
 		test -s "$p" || {

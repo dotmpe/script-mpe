@@ -586,11 +586,12 @@ class Rsr(libcmd.StackedCommand):
                 print
 
     def rsr_show_metafile(self, path):
-        print 'rsr_show_metafile'
         #metafile = res.Metafile(path)
         import res.metafile
         metafile = res.metafile.MetafileFile(path)
-        print metafile
+	#from pprint import pformat
+	#print pformat(metafile.data)
+	print metafile.get_sha1sum()
 
 
 if __name__ == '__main__':

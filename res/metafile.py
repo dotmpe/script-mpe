@@ -548,6 +548,13 @@ class MetafileFile(object): # XXX: Metalink syntax
             #fl.write("%s: %s" % (header, value))
         fl.close()
 
+    def get_sha1sum(self):
+	if 'Digest' in self.data:
+	    data = self.data['Digest']
+	    if data.startswith('SHA1'):
+	        b64_sha1 = data[5:]
+                return base64.b64decode(b64_sha1).encode('hex')
+
 
 class Metadir(object):
 
