@@ -3,7 +3,7 @@
 .. note::
 
     While too-ambitious-version is moved to libcmdng the simple command base-class
-    version is reestablished here. 
+    version is reestablished here.
 
 The goal is to easily bootstrap simple or complex command-line programs,
 allowing custom code to run and to further extend the base program.
@@ -14,7 +14,7 @@ or subclass.
 Multiple handlers may run in sequence, take any selection of parameters,
 can behave as generators or not, and can return something or not.
 
-StackedCommand subclasses and adds a prefix to enable namespace sharing 
+StackedCommand subclasses and adds a prefix to enable namespace sharing
 to enable (multi?) inheritance of several different SimpleCommand subclasses
 working together in one ore more static program frontend.
 This has a second configuration source too do enable the sub-programs to have
@@ -23,7 +23,7 @@ local configuration, separated from other programs.
 XXX: while under development, further explanation is given inline.
 
 Wether any var in the function signature has a default does not matter,
-XXX currently missing vars are padded with None values, perhaps a warning 
+XXX currently missing vars are padded with None values, perhaps a warning
 """
 import inspect
 import optparse
@@ -49,13 +49,13 @@ class HandlerReturnAdapter(object):
 
     This serves mostly to update globaldict,
     and if needed abstract the method of data return as used by SimpleCommand().execute()
-    
+
     return_mode
         generates
             gen-{first,last,all}-key{,s}
         returns generated
             {first,last,all}-key{,s}
-    
+
     """
     #zope.interface.implements(iface.IProgramHandlerResultProcessor)
     def __init__(self, globaldict):
@@ -124,7 +124,7 @@ def optparse_increase_verbosity(option, optstr, value, parser):
         log.warn( "Verbosity already at maximum. ")
         return
     #if not hasattr(parser.values, 'message_level'): # XXX: this seems to be a bug elsewhere
-    #    parser.values.message_level = 0 
+    #    parser.values.message_level = 0
     if parser.values.message_level:
         parser.values.message_level += 1
     log.debug( "Verbosity changed from %s to %s", oldv, parser.values.message_level )
@@ -161,7 +161,7 @@ def optparse_set_handler_list(option, flagstr, value, parser, append=False,
     else:
         values = new_values
     setattr( parser.values, option.dest, values )
-    log.debug('optparse: %s changed %s from %s to %s', 
+    log.debug('optparse: %s changed %s from %s to %s',
             flagstr, option.dest, old_values, values)
 
 # shortcut for setting command from 'handler flags'
@@ -178,7 +178,7 @@ def cmddict(prefix=None, append=None, default=None, **override):
 
 
 class StaticContext(object):
-   
+
     """
     IStaticContext - specify some of the static environment for the program to
     initialize from
@@ -186,7 +186,7 @@ class StaticContext(object):
 
     def __init__(self, inheritor ):
         """
-        Given a Class XXX implementing ISimpleCommand 
+        Given a Class XXX implementing ISimpleCommand
         and a working directory.
         """
         self.inheritor = inheritor
@@ -210,11 +210,11 @@ class StaticContext(object):
 class ConfigSpec(object):
     "Helper for XXX recursive system- and user-config file locations and formats. "
     def __init__( self, staticcontext ):
-        pathiter = confparse.find_config_path( 
+        pathiter = confparse.find_config_path(
                 staticcontext.name, staticcontext.pwd )
-        
+
     """
-    TODO: combine  find_config_path  
+    TODO: combine  find_config_path
     """
 
 class SimpleCommand(object):
@@ -231,7 +231,7 @@ class SimpleCommand(object):
         static_args: prog.name => prog.{pwdspec, configspec, optspec}
         load_config:  prog.{pwdspec, configspec} => settings, rc, prog.{config}
         cmd_options:  prog.optspec => args, opts + globaldict
-                   
+
         --save-user-config
     """
 
@@ -260,7 +260,7 @@ class SimpleCommand(object):
         StackedCommand will prefix flags from the higher classes, keeping the
         entire name-space free for the subclass to fill. --cmd-list vs. --list
         FIXME: what todo upon conflicts. better solve this explicitly i think?
-            so the inheritor needs to override local behaviour 
+            so the inheritor needs to override local behaviour
             perhaps inheritor.get_optspec_override can return its options
             and locally these are prefixed
 
@@ -271,46 +271,46 @@ class SimpleCommand(object):
 
         SimpleCommand defines a dummy flag-prefixer.
 
-        The inheritor can redefine or inherit get_prefixer, inheritor.get_prefixer 
+        The inheritor can redefine or inherit get_prefixer, inheritor.get_prefixer
         should be used to get it. And so it goes with all static properties to
         allow for overrides. There is no option to leave out an option.
         """
         p = inheritor.get_prefixer(Klass)
         return (
-            p(inheritor.COMMAND_FLAG, { 'metavar':'ID', 
-                'help': "Action (default: %default). ", 
+            p(inheritor.COMMAND_FLAG, { 'metavar':'ID',
+                'help': "Action (default: %default). ",
                 'dest': 'commands',
-                'action': 'callback', 
+                'action': 'callback',
                 'callback': optparse_set_handler_list,
                 'default': inheritor.DEFAULT
             }),
             # XXX: is this reserved for names to be used with confparse path
             # scan, or can it have full paths too.. currently it is just a name
-            p(('-c', '--config',),{ 'metavar':'NAME', 
+            p(('-c', '--config',),{ 'metavar':'NAME',
                 'dest': "config_file",
-                'default': inheritor.DEFAULT_RC, 
+                'default': inheritor.DEFAULT_RC,
                 'help': "Run time configuration. This is loaded after parsing command "
                     "line options, non-default option values wil override persisted "
                     "values (see --update-config) (default: %default). " }),
-   
+
             p(('-U', '--update-config',),{ 'action':'store_true', 'help': "Write back "
                 "configuration after updating the settings with non-default option "
                 "values.  This will lose any formatting and comments in the "
                 "serialized configuration. ",
                 'default': False }),
-             
-            p(('-K', '--config-key',),{ 'metavar':'ID', 
+
+            p(('-K', '--config-key',),{ 'metavar':'ID',
                 'dest': 'config_key',
-                'default': inheritor.DEFAULT_CONFIG_KEY, 
+                'default': inheritor.DEFAULT_CONFIG_KEY,
                 'help': "Settings root node for run time configuration. "
                     " (default: %default). " }),
 
 #            p(('--init-config',),cmddict(help="runtime-configuration with default values. "
-#                'dest': 'command', 
+#                'dest': 'command',
 #                'callback': optparse_override_handler }),
 #
 #            p(('--print-config',),{ 'action':'callback', 'help': "",
-#                'dest': 'command', 
+#                'dest': 'command',
 #                'callback': optparse_override_handler }),
 
             p(('-i', '--interactive',),{ 'help': "Allows commands to run extra heuristics, e.g. for "
@@ -319,10 +319,10 @@ class SimpleCommand(object):
                 "UI during execution. ",
                 'default': False,
                 'action': 'store_true' }),
-             
-            p(('--continue','--non-interactive',),{ 
-                'help': "Never prompt user, solve and continue or raise error. ", 
-                'dest': 'interactive', 
+
+            p(('--continue','--non-interactive',),{
+                'help': "Never prompt user, solve and continue or raise error. ",
+                'dest': 'interactive',
                 'default': False,
                 'action': 'store_false' }),
 
@@ -335,15 +335,15 @@ class SimpleCommand(object):
                     "Others 1:info, 3:warning, 4:error, 5:alert, and 6:critical.",
                 'default': 2,
             }),
-   
+
             p(('-v', '--verbose',),{ 'help': "Increase chatter by lowering message "
                 "threshold. Overriden by --quiet or --message-level.",
                 'action': 'callback',
                 'callback': optparse_increase_verbosity}),
-    
+
             p(('-q', '--quiet',),{ 'help': "Turn off informal message (level<4) "
-                "and prompts (--interactive). ", 
-                'dest': 'quiet', 
+                "and prompts (--interactive). ",
+                'dest': 'quiet',
                 'default': False,
                 'action': 'callback',
                 'callback': optparse_override_quiet }),
@@ -428,16 +428,16 @@ class SimpleCommand(object):
             v = getattr(optsv, name)
             if not name.startswith('_') and not callable(v):
                 optsd[name] = v
-        
+
         return parser, optsd, args
 
     @classmethod
     def main(Klass, argv=None, optionparser=None, result_adapter=None, default_reporter=None):
 
         self = Klass()
-        self.globaldict = Values(dict( 
-            prog=Values(), 
-            opts=Values(), 
+        self.globaldict = Values(dict(
+            prog=Values(),
+            opts=Values(),
             args=[] ))
 
         self.globaldict.prog.handlers = self.BOOTSTRAP
@@ -468,8 +468,8 @@ class SimpleCommand(object):
         and can be called by handlers themselves.
 
         For each handler, the implements resolving variable names from the
-        function signature to runtime values XXX IProgramHandler, 
-        and processing of the returned 
+        function signature to runtime values XXX IProgramHandler,
+        and processing of the returned
         arguments with the help of IProgramHandlerResultProc.
 
         The return is always integreated with the current XXX IProgram
@@ -477,8 +477,8 @@ class SimpleCommand(object):
         return_mode specifies how the handler return value is processed
         by the result adapter.
 
-        Currently the 'first:' prefix determines that the first named 
-        keywords is to be `return`\ 'ed. XXX It should offer various 
+        Currently the 'first:' prefix determines that the first named
+        keywords is to be `return`\ 'ed. XXX It should offer various
         methods of filter and either generate, return or be silent.
 
         """
@@ -519,13 +519,16 @@ class SimpleCommand(object):
         """
         func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
                 inspect.getargspec(handler)
-        assert func_arg_vars.pop(0) == 'self', "Expected a method %s" % handler
+        assert func_arg_vars, \
+                "Command handler %s is missing 'self' argument. " % handler
+        assert func_arg_vars.pop(0) == 'self', \
+                "Expected a method %s" % handler
         #  initialize the two return values
         ret_args, ret_kwds = [], {}
         if not ( func_arg_vars or func_args_var or func_kwds_var or func_defaults):
             return ret_args, ret_kwds
         if func_defaults:
-            func_defaults = list(func_defaults) 
+            func_defaults = list(func_defaults)
         # remember which args we have in ret_args
         pos_args = []
         #log.debug(pformat(dict(handler=handler, inspect=dict(
@@ -562,7 +565,7 @@ class SimpleCommand(object):
             ret_args.append(value)
         # feed rest of args to arg pass-through if present
         if globaldict.args and func_args_var:
-            ret_args.extend(globaldict.args) 
+            ret_args.extend(globaldict.args)
             pos_args.extend('*'+func_args_var)
 #        else:
 #            print 'hiding args from %s' % handler, args
@@ -607,7 +610,7 @@ class SimpleCommand(object):
         iface.registerAdapter(ResultFormatter)
 
     def load_config(self, prog, opts):
-        #    self.init_config() # case 1: 
+        #    self.init_config() # case 1:
         #        # file does not exist at all, init is automatic
         if 'config_file' not in opts or not opts.config_file:
             log.err( "Nothing to load configuration from")
@@ -619,14 +622,15 @@ class SimpleCommand(object):
 
     def find_config_file(self, rc):
         rcfile = list(confparse.expand_config_path(rc))
+        config_file = None
         if rcfile:
             config_file = rcfile.pop()
-        assert config_file
+        assert config_file, ("Expected some config files", rc, rcfile)
         "Configuration filename."
 
         if not os.path.exists(config_file):
             assert False, "Missing %s, perhaps use init_config_file"%config_file
-        
+
         return config_file
 
     def load_config_(self, config_file, opts=None ):
@@ -721,10 +725,10 @@ class StackedCommand(SimpleCommand):
 
     The point is that while SimpleCommand is meant to build ones own
     --command based program, StackedCommand recognizes that several such
-    program classes should have a way to share the command-line options 
-    namespace. With the further addition of dependency resolving 
+    program classes should have a way to share the command-line options
+    namespace. With the further addition of dependency resolving
     a stacked program structure can be build with increasing complexity,
-    sharing code and/or having seperate frontends where appropiate or 
+    sharing code and/or having seperate frontends where appropiate or
     just convenient throught the development process.
     """
 
@@ -755,7 +759,7 @@ class StackedCommand(SimpleCommand):
     # StackedCommand default bootstrap handlers
     # XXX because StackedCommand has dependency resolving it only lists the last
 #    BOOTSTRAP = [ 'static_args', 'static_init', 'parse_options', 'load_config',
-#        'prepare_output', 'set_commands' ] 
+#        'prepare_output', 'set_commands' ]
     BOOTSTRAP = [ 'set_commands' ]
     DEFAULT = [ 'print_config' ]
 
@@ -806,13 +810,13 @@ class StackedCommand(SimpleCommand):
 
     def __init__(self):
         super(StackedCommand, self).__init__()
-    
+
         self.settings = Values()
         "Global settings, set to Values loaded from config_file. "
 
         self.rc = None
         "Runtime settings for this script. "
-    
+
     def static_init(self):
         """
         Initializes the `prog` variable, determines its name and working
@@ -821,12 +825,12 @@ class StackedCommand(SimpleCommand):
         Using the name it then sets up all command-line options.
         """
 
-        # Set up a static name context 
-        inheritor = self.__class__ 
+        # Set up a static name context
+        inheritor = self.__class__
         static = StaticContext( inheritor )# XXX IStaticContext()
         yield dict( prog=dict( name = static ) )
         log.note('prog.name: %s', static)
-   
+
         # Prepare a specification of the paths and types of configuration files
         configspec = ConfigSpec( static )# XXX ISimpleConfigSpec(config_file)
         yield dict( prog=dict( configspec = configspec ) )
@@ -946,6 +950,8 @@ class StackedCommand(SimpleCommand):
 
 if __name__ == '__main__':
     if StackedCommand.NAME == 'libcmd_stacked':
+        StackedCommand.NAME = 'libcmd'
+        StackedCommand.DEFAULT_RC = 'libcmdrc'
         StackedCommand.main()
     else:
         SimpleCommand.main()

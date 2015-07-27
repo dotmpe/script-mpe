@@ -19,6 +19,7 @@ from res.session import Session
 import taxus
 from taxus import SessionMixin, Node, Name, Tag
 
+import sys
 import os
 import libcmd
 
@@ -160,6 +161,7 @@ class Rsr(libcmd.StackedCommand):
             'rsr_workspace': [ 'rsr_volume' ],
             'rsr_homedir': [ 'rsr_workspace' ],
             'rsr_session': [ 'rsr_homedir' ],
+            'rsr_show_metafile': [ 'set_commands' ],
             'rsr_info': [ 'rsr_session' ],
             'rsr_show': ['rsr_session'],
             'rsr_assert': ['rsr_session'],
@@ -234,6 +236,7 @@ class Rsr(libcmd.StackedCommand):
                     'help': "(Re)set workspace Id" }),
                 # commands
                 p(('--info',), libcmd.cmddict(Klass.NAME, append=True)),
+                p(('--show-metafile',), libcmd.cmddict(Klass.NAME)),
                 p(('--volume',), libcmd.cmddict(Klass.NAME, append=True)),
                 p(('--assert',), libcmd.cmddict(Klass.NAME, help="Add Node.")),
                 p(('--assert-group',), libcmd.cmddict(Klass.NAME, help="Add Group-node.")),
@@ -351,6 +354,7 @@ class Rsr(libcmd.StackedCommand):
         if 'node' in self.globaldict and self.globaldict.node:
             log.info("Auto commit: %s", opts.rsr_auto_commit)
             log.info("%s", self.globaldict.node)
+        print >>sys.stderr, 'rsr-info: see notice log (-vvv) '
 
     def deref(self, ref, sa):
         """
@@ -580,6 +584,13 @@ class Rsr(libcmd.StackedCommand):
                 print repo.uri
             else:
                 print
+
+    def rsr_show_metafile(self, path):
+        print 'rsr_show_metafile'
+        #metafile = res.Metafile(path)
+        import res.metafile
+        metafile = res.metafile.MetafileFile(path)
+        print metafile
 
 
 if __name__ == '__main__':
