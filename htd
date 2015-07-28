@@ -45,17 +45,50 @@ c_help()
 	echo '  sys                              Run make sys.'
 	echo '  vt|vtoday                        Run make vtoday.'
 	echo ''
-	echo '  wol <host>                       Send wol.'
+	echo '  vbox-start <name>                Start headless VBoxVM for VM UUID with name in VBoxVM table. '
+	echo '  vbox-suspend <name>              Suspend VBoxVM. '
+	echo '  vbox-reset <name>                Reboot VBoxVM. '
+	echo '  vbox-stop <name>                 Stop VBoxVM. '
+	echo ''
+	echo '  wol <host>                       Send wol to mac for host from WOL table.'
 	echo '  mac                              List ARP table: hwaddr for clients (once) connector to LAN. '
 	echo '  todo'
 	echo '  git-remote [repo]                List all names remotely, or give the SSH url for given repo. '
 	echo '  git-init-remote [repo]           Initialze remote bare repo if local path is GIT project'
 	echo '  git-remote-info                  Show vars'
 	echo ''
+	echo 'Working tree utils'
 	echo '  test-name <path>                 Test filename for unhandled characters. '
-	echo '  update-ck-table [ck|md5|sha1]    Checkums all files. '
-	echo "  ck-table [ck|md5|sha1] <path>    Check if checksum exists for file, don\'t validate or update. "
-	echo '  ck-validate [ck|md5|sha1]        Verify each file by generating and comparing its checksum'
+	echo '  find-name <path|localname>       TODO: Given (partial) path, try to find the file using find.  '
+	echo '  update                           Fill checksums tables for all local files. TODO: find out what there is to know about file using settings, other commands, ext. tooling & services. And trigger resolve'
+	echo '  resolve                          XXX based on data and settings, pre-process and mark all files ready for commit, and bail on any irregularities. '
+	echo '  commit                           XXX record metadata according to htd settings/commands. Commit is only a success, if the entire tree is either clean or ignored. '
+	echo '  '
+	echo 'Rules'
+	echo '  show-rules [<path>]              tabulate all rules that would apply to path'
+    echo '  run-rules [<path>]               (re-)run rules on path'
+	echo '  add-rule <pattern> <functions>|<script> '
+	echo '                                   Add either function and inline script to run for every path matching pattern. '
+	echo ''
+	echo 'Working tree metadata'
+	echo '  ck-consolidate [.|<path>]        TODO: integrate metadata from all metafiles (see ck-metafile)'
+	echo '  ck-metafile <path>               TODO: integrate metadata from .meta/.rst/.sha1sum/etc. '
+	echo ''
+	echo 'Working tree checksum metadata'
+	echo '  ck-update [ck|md5|sha1]          Iterate all files, and create checksum table records for unknown files. '
+	echo "  ck-table [ck|md5|sha1] <path>    Tell if checksum exists for file, don\'t validate or update. "
+	echo '  ck-table-subtree [ck|md5|sha1] <path> '
+	echo '                                   Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. '
+	echo '  ck-drop [ck|mk5|sha1] <path>     Remove row for given path from checksum table. '
+	echo '  ck-validate [ck|md5|sha1]        Verify each file by generating and comparing its checksum. '
+	echo '  ck-check [ck|md5|sha1]           Iterate table, move lines with non-existant paths to .missing table'
+	echo '  ck-fix [.|<path>]                If path exists, look for duplicates using ck-find-content and move this path to .duplicates marking it to be resolved interactively. '
+	echo '                                   Or if path is missing, try find-name to find new location. If still missing, look for any copy using ck-find-content and move current entry to table .duplicate on success, or .gone on failure. '
+	echo '  ck-check-missing [ck|md5|sha1]   TODO: iterate .missing table, and call ck-fix. Move checksum to .gone if file stays missing. '
+	echo '  ck-clean [ck|md5|sha1]           TODO: iterate .gone table, and call ck-fix. Move gone checksum if file stays missing. '
+	echo '  ck-purge [|missing|duplicate|gone] TODO: drop missing-paths from indicate tables. '
+	echo '  ck-dedup <path>                  With no path given, iterate the duplicate table. Otherwise deduplicate content, using given path as preferred location. '
+	echo '  ck-find-content <path>           Given path, try find-name or checksum tables and annex-backend to find copies and give all alternate locations. '
 	echo ''
 	echo 'Other commands: '
 	echo '  -e                               Edit this script.'
@@ -200,6 +233,60 @@ c_vt()
 	c_vtoday $*
 }
 
+
+# VirtualBox
+
+vbox_names=~/.conf/vbox/vms.sh
+c_vbox()
+{
+	name=$1
+	[ -z "$name" ] && {
+		c_vbox_list
+	} || {
+		declare $(echo $(cat $vbox_names))
+		uuid=$(eval echo \$$name)
+		test -n "$uuid" || err "No such vbox VM '$name'" 1
+	}
+}
+
+c_vbox_start()
+{
+	c_vbox $1
+	VBoxManage startvm ${uuid} --type headless \
+	    && log "Headless-start of VM $name completed successfully"
+}
+
+c_vbox_reset()
+{
+	c_vbox $1
+	VBoxManage controlvm ${uuid} reset \
+	    && log "Reset of VM $name completed successfully"
+}
+
+c_vbox_stop()
+{
+	c_vbox $1
+	VBoxManage controlvm ${uuid} poweroff \
+	    && log "Power-off of VM $name completed successfully"
+}
+
+c_vbox_suspend()
+{
+	c_vbox $1
+	VBoxManage controlvm ${uuid} savestate \
+	    && log "Save-state of VM $name completed successfully"
+}
+
+c_vbox_list()
+{
+	VBoxManage list vms | \
+		sed 's/^"\(.*\)"\ {\(.*\)}$/\2 \1/' | while read uuid name
+	do
+		grep $uuid $vbox_names >> /dev/null || echo unknown $name =$uuid
+	done
+	cat $vbox_names | grep -v '^\s*$' | grep -v '^\s*#'
+}
+
 # Wake a remote host using its ethernet address
 wol_hwaddr=~/.conf/wol/hosts-hwaddr.sh
 c_wol_list_hosts()
@@ -240,6 +327,20 @@ c_todo()
 #	gtasks -L -sb tomorrow -sa today -dse
 }
 
+c_tasks()
+{
+    gtasks -L -b
+}
+
+c_lists()
+{
+    gtasks -ll -b
+}
+
+c_new_task()
+{
+    gtasks -l Standaardlijst -a - -t "$@"
+}
 # init or list SSH based remote 
 
 source_git_remote()
@@ -484,16 +585,16 @@ c_ck_update()
 
 c_ck_drop()
 {
-	test -n "$1"  && CK=$1  || CK=ck
+	req_arg "$1" 'ck-drop' 1 "Checksum" || return 1
+	CK=$1
 	shift 1
-	test -n "$1" || return 1
+	req_arg "$1" 'ck-drop' 2 "Path" || return 1
 	p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@_])/\\\1/g')"
 	echo "$@" | grep "^$p_$" >> /dev/null || {
 		err "cannot build regex for '$p': $p_"
 		return
 	}
 	cp table.$CK table.$CK.tmp
-	#echo "$ck  $p" >> table.$CK.missing
 	cat table.$CK.tmp | grep "^.*$p_$" >> table.$CK.missing
 	cat table.$CK.tmp | grep -v "^.*$p_$" > table.$CK
 	rm table.$CK.tmp
@@ -628,6 +729,14 @@ err()
 c_errnow()
 {
 	return 3
+}
+
+req_arg()
+{
+	test -n "$1" || {
+		err "$2 requires argument at $3 '$4'"
+		return 1
+	}
 }
 
 
