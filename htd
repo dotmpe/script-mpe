@@ -698,12 +698,20 @@ c_ck_clean()
 c_ck_metafile()
 {
 	CK=sha1
-	eval find . -iname '*.meta' $find_ignores \
-	| while read p
+	eval find . -iname \'*.meta\' $find_ignores \
+	| while read metafile
 	do
+		p=$(basename "$metafile" .meta)
+		[ -e "$p" ] || {
+			echo missed source file $metafile
+			continue
+		}
 		cks=$(rsr.py --show-metafile "$p" 2> /dev/null)
 		CKS=$(${CK}sum "$p" | cut -d' ' -f1)
-		#echo CKS=$CKS cks=$cks
+		echo CKS=$CKS cks=$cks
+		#echo
+		#echo "$p"
+		#cat "$metafile"
 		test "$cks" = "$CKS" && {
 			log "$CKS ok $p"
 		} || {
