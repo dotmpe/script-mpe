@@ -64,6 +64,8 @@ c_usage()
 	echo '  vbox-suspend <name>              Suspend VBoxVM. '
 	echo '  vbox-reset <name>                Reboot VBoxVM. '
 	echo '  vbox-stop <name>                 Stop VBoxVM. '
+	echo '  vbox-list                        List known and unknown VMs. '
+	echo '  vbox-running                     List running VMs. '
 	echo ''
 	echo '  wol <host>                       Send wol to mac for host from WOL table.'
 	echo '  mac                              List ARP table: hwaddr for clients (once) connector to LAN. '
@@ -286,6 +288,13 @@ c_vbox_start()
 	    && log "Headless-start of VM $name completed successfully"
 }
 
+c_vbox_start_console()
+{
+	c_vbox $1
+	VBoxManage startvm ${uuid} \
+	    && log "Headless-start of VM $name completed successfully"
+}
+
 c_vbox_reset()
 {
 	c_vbox $1
@@ -315,6 +324,11 @@ c_vbox_list()
 		grep $uuid $vbox_names >> /dev/null || echo unknown $name =$uuid
 	done
 	cat $vbox_names | grep -v '^\s*$' | grep -v '^\s*#'
+}
+
+c_vbox_running()
+{
+	VBoxManage list runningvms
 }
 
 # Wake a remote host using its ethernet address
@@ -357,6 +371,9 @@ c_todo()
 #	gtasks -L -sb tomorrow -sa today -dse
 }
 
+
+# Lists and tasks
+
 c_tasks()
 {
     gtasks -L -b
@@ -371,6 +388,8 @@ c_new_task()
 {
     gtasks -l Standaardlijst -a - -t "$@"
 }
+
+
 # init or list SSH based remote 
 
 source_git_remote()
