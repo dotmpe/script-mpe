@@ -294,7 +294,7 @@ __vc_screen ()
 	[ -z "$w" ] && w="$(pwd)"
 
 	realcwd="$(pwd -P)"
-	short=$(homepath $w)
+	short=$(homepath "$w")
 	
 	local git=$(__vc_gitdir "$w")
 	if [ "$git" ]; then
@@ -358,7 +358,7 @@ list_errors()
 }
 
 # print all fuctions/results for paths in arguments
-vc_print_all ()
+vc_print_all()
 {
 	for path in $@
 	do
@@ -375,7 +375,7 @@ vc_ps1()
 }
 
 # special updater (for Bash PROMPT_COMMAND)
-vc_prompt_command ()
+vc_prompt_command()
 {
 	d="$1"
 	[ -z "$d" ] && d="$(pwd)"
@@ -409,18 +409,18 @@ vc_help()
 
 log()
 {
-	[ -n "$(echo $*)" ] || return 1;
+	[ -n "$(echo "$*")" ] || return 1;
 	echo "[$scriptname.sh:$cmd] $1"
 }
 err()
 {
-	[ -n "$(echo $*)" ] || return 1;
+	[ -n "$(echo "$*")" ] || return 1;
 	echo "Error: $1 [$scriptname.sh:$cmd]" 1>&2
 	[ -n "$2" ] && exit $2
 }
 note()
 {
-	[ -n "$(echo $*)" ] || return 1;
+	[ -n "$(echo "$*")" ] || return 1;
 	echo "Notice: $1 [$scriptname.sh:$cmd]" 1>&2
 }
 

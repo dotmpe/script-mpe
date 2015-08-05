@@ -7,9 +7,11 @@ VERBOSITY=0
 
 load()
 {
+	[ -n "$HTDIR" ] || HTDIR=~/htd
+	[ -n "$CWDIR" ] || CWDIR=
 	[ -n "$EDITOR" ] || EDITOR=vim
 	[ -n "$HTD_GIT_REMOTE" ] || HTD_GIT_REMOTE=default
-	[ -n "$HTDIR" ] || HTDIR=~/htd
+	# TODO look in registry for PROJECT
 	[ -n "$PROJECT" ] || PROJECT="$(basename $(pwd))"
 	_14MB=14680064
 	_6MB=7397376
@@ -20,11 +22,28 @@ load()
 	rows=$(stty size|awk '{print $1}')
 	cols=$(stty size|awk '{print $2}')
 
+	HTD_IGNORE=.gitignore
 	find_ignores=" -not -path \"*.git*\""
-	[ -e '.gitignores' ] && find_ignores="$find_ignores "$(echo $(cat .gitignore | \
+	[ -e $HTD_IGNORE ] && find_ignores="$find_ignores "$(echo $(cat $HTD_IGNORE | \
 		grep -Ev '^(#.*|\s*)$' | \
 		sed -E 's/^\//\.\//' | \
 		sed -E 's/(.*)/ -not -path "\1"/g'))
+}
+
+pushd_cwdir()
+{
+	test -n "$CWDIR" -a "$CWDIR" != "$(pwd)" && {
+		echo "pushd $CWDIR" "$(pwd)"
+		pushd $WDIR
+	} || echo -n
+}
+
+popd_cwdir()
+{
+	test -n "$CWDIR" -a "$CWDIR" = "$(pwd)" && {
+		echo "popd $CWDIR" "$(pwd)"
+		test "$(popd)" = "$CWDIR"
+	} || echo -n
 }
 
 c_usage()
@@ -32,11 +51,7 @@ c_usage()
 	echo "$scriptname.sh Bash/Shell script helper"
 	echo 'Usage: '
 	echo "  $scriptname <cmd> [<args>..]"
-}
-
-c_help()
-{
-	c_usage
+	echo ""
 	echo 'Commands: '
 	echo '  home                             Print htd dir.'
 	echo '  info                             Print vars.'
@@ -76,7 +91,7 @@ c_help()
 	echo '  ck-consolidate [.|<path>]        TODO: integrate metadata from all metafiles (see ck-metafile)'
 	echo '  ck-metafile <path>               TODO: integrate metadata from .meta/.rst/.sha1sum/etc. '
 	echo ''
-	echo 'Working tree checksum metadata'
+	echo 'Working tree checksum metadata [CK_TABLE=./]'
 	echo '  ck-update [ck|md5|sha1]          Iterate all files, and create checksum table records for unknown files. '
 	echo "  ck-table [ck|md5|sha1] <path>    Tell if checksum exists for file, don\'t validate or update. "
 	echo '  ck-table-subtree [ck|md5|sha1] <path> '
@@ -95,8 +110,21 @@ c_help()
 	echo 'Other commands: '
 	echo '  -e                               Edit this script.'
 	echo '  alias                            Show bash aliases for this script.'
-	echo '  usage                            print just the usage description.'
-	echo '  help                             print this help listing.'
+	echo '  usage                            print this comand usage listing.'
+	echo '  help                             print a help description'
+}
+
+c_help()
+{
+	echo "$scriptname.sh Bash/Shell script helper"
+	echo 'Help'
+	echo "  See usage for all commands. Htd does not parse options but does use "
+	echo "  environment variables. See 'info' for more env variables. "
+	echo ""
+	echo "env"
+	echo "  CWDIR"
+	echo "    If set, use instead of the current directory for working dir. "
+	echo ""
 }
 
 c_home()
@@ -106,12 +134,14 @@ c_home()
 
 c_info()
 {
-	log "HtDir: $HTDIR"
-	log "Script: $(pwd)/$scriptname"
-	log "Project ID: $PROJECT"
-	log "Minimum filesize: $(( $MIN_SIZE / 1024 ))"
-	log "Editor: $EDITOR"
-	log "Default GIT remote: $HTD_GIT_REMOTE"
+	log "Script:              '$(pwd)/$scriptname'"
+	log "HtDir:               '$HTDIR' [HTDIR]"
+	log "Current workingdir:  '$CWDIR' [CWDIR]"
+	log "Project ID:          '$PROJECT' [PROJECT]"
+	log "Minimum filesize:    '$(( $MIN_SIZE / 1024 ))'"
+	log "Editor:              '$EDITOR' [EDITOR]"
+	log "Default GIT remote:  '$HTD_GIT_REMOTE' [HTD_GIT_REMOTE]"
+	log "Ignored paths:       '$HTD_IGNORE' [HTD_IGNORE]"
 }
 
 c_expand()
@@ -147,7 +177,7 @@ c_mk()
 	c_make $*
 }
 
-# Run a sys-* target in the htdocs dir.
+# Run a sys-* target in the main htdocs dir.
 c_make_sys()
 {
 	cd $HTDIR
@@ -701,21 +731,19 @@ c_ck_clean()
 # TODO consolidate meta
 c_ck_metafile()
 {
+	[ -n "$1" ] && d=$1 || d=.
 	CK=sha1
-	eval find . -iname \'*.meta\' $find_ignores \
+	eval find $d -iname \'*.meta\' $find_ignores \
 	| while read metafile
 	do
-		p=$(basename "$metafile" .meta)
+		p="$(dirname "$metafile")/$(basename "$metafile" .meta)"
 		[ -e "$p" ] || {
-			echo missed source file $metafile
+			echo "missing source file $metafile: $p"
 			continue
 		}
-		cks=$(rsr.py --show-metafile "$p" 2> /dev/null)
+		cks=$(rsr.py --show-sha1sum-hexdigest "$p" 2> /dev/null)
 		CKS=$(${CK}sum "$p" | cut -d' ' -f1)
-		echo CKS=$CKS cks=$cks
-		#echo
-		#echo "$p"
-		#cat "$metafile"
+		#echo CKS=$CKS cks=$cks
 		test "$cks" = "$CKS" && {
 			log "$CKS ok $p"
 		} || {
@@ -794,7 +822,9 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 				func_exists=1
 				load
 				shift 1
+				pushd_cwdir
 				$func $@
+				popd_cwdir
 			} || {
 				# handle non-zero return or print usage for non-existant func
 				e=$?
@@ -809,6 +839,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 						err "No such command: $cmd" 1
 					} || {
 						err "Command $cmd returned $e" $e
+						popd_cwdir
 					}
 				}
 			}
