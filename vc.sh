@@ -395,6 +395,17 @@ vc_prompt_command ()
 	cat "$statsdir/$pwdref"
 }
 
+vc_usage()
+{
+	echo 'Usage: '
+	echo "  vc.sh <cmd> [<args>..]"
+}
+
+vc_help()
+{
+	c_usage
+}
+
 
 log()
 {
