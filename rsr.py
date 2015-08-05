@@ -162,6 +162,7 @@ class Rsr(libcmd.StackedCommand):
             'rsr_homedir': [ 'rsr_workspace' ],
             'rsr_session': [ 'rsr_homedir' ],
             'rsr_show_metafile': [ 'set_commands' ],
+            'rsr_show_sha1sum_hexdigest': [ 'set_commands' ],
             'rsr_info': [ 'rsr_session' ],
             'rsr_show': ['rsr_session'],
             'rsr_assert': ['rsr_session'],
@@ -237,6 +238,7 @@ class Rsr(libcmd.StackedCommand):
                 # commands
                 p(('--info',), libcmd.cmddict(Klass.NAME, append=True)),
                 p(('--show-metafile',), libcmd.cmddict(Klass.NAME)),
+                p(('--show-sha1sum-hexdigest',), libcmd.cmddict(Klass.NAME)),
                 p(('--volume',), libcmd.cmddict(Klass.NAME, append=True)),
                 p(('--assert',), libcmd.cmddict(Klass.NAME, help="Add Node.")),
                 p(('--assert-group',), libcmd.cmddict(Klass.NAME, help="Add Group-node.")),
@@ -590,7 +592,11 @@ class Rsr(libcmd.StackedCommand):
         import res.metafile
         metafile = res.metafile.MetafileFile(path)
 	#from pprint import pformat
-	#print pformat(metafile.data)
+	print pformat(metafile.data)
+
+    def rsr_show_sha1sum_hexdigest(self, path):
+        import res.metafile
+        metafile = res.metafile.MetafileFile(path)
 	print metafile.get_sha1sum()
 
 
