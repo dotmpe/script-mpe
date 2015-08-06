@@ -55,7 +55,18 @@ c_alias()
 
 dckr_argv()
 {
-	test -z "$1" -a "${1:0:2}" = "-t" || dckr_f="$1"
+	while test -n "$1"
+	do
+		test -z "$1" || {
+			test "${1:0:1}" = "-" && {
+				dckr_f="$dckr_f $1"
+			} || {
+				dckr_cmd="$@"
+				return
+			}
+		}
+		shift 1
+	done
 }
 
 dckr_build()
@@ -78,6 +89,44 @@ dckr_run()
 
 	return $?
 }
+
+# find container for image-name
+dckr_c()
+{
+	container=$(sudo docker ps $@ | grep '\<'$image_name'\>' | cut -f1 -d' ')
+}
+
+dckr_stop()
+{
+	test -z "$dckr_name" && {
+		test -z "$image_name" || {
+			dckr_c
+			sudo docker stop $container
+		}
+	} || {
+		# check for container with name and remove
+		sudo docker ps | grep '\<'$dckr_name'\>' && {
+			sudo docker stop $dckr_name
+		} || echo -n
+	}
+}
+
+# remove container (with name or for image-name)
+dckr_rm()
+{
+	test -z "$dckr_name" && {
+		test -z "$image_name" || {
+			dckr_c -a
+			sudo docker rm $container
+		}
+	} || {
+		# check for container with name and remove
+		sudo docker ps -a | grep '\<'$dckr_name'\>' && {
+			sudo docker rm $dckr_name
+		} || echo -n
+	}
+}
+
 
 # FIXME: abstract below cmds so things can move to config files
 
@@ -133,14 +182,23 @@ c_init_sandbox()
 		-v /etc/localtime:/etc/localtime:ro
 }
 
+c_reset_jenkins()
+{
+	dckr_argv $@
+	image_name=jenkins
+	dckr_name=vs1_jenkins
+	dckr_stop && dckr_rm
+}
+
 c_init_jenkins()
 {
 	dckr_argv $@
 	image_name=jenkins
 	dckr_name=vs1_jenkins
+	dckr_rm && \
 	dckr_run \
 		-p 8007:8080 \
-		-v $DCKR_VOL/docker/jenkins:/var/jenkins_home:rw \
+		-v /var/jenkins_home \
 		-v /etc/localtime:/etc/localtime:ro
 }
 
@@ -151,6 +209,7 @@ c_init_graphite()
 	dckr_name=vs1_x_graphite
 	cd ~/project/docker-graphite
 	dckr_build && \
+	dckr_rm && \
 	dckr_run \
 		-p 2206:22 \
 		-p 8006:8080 \
