@@ -83,7 +83,11 @@ dckr_run()
 	test ! -e "$dckr_env" || dckr_f="$dckr_f --env-file $dckr_env"
 
 	sudo docker run $@ $dckr_f \
+		--log-driver json-file \
 		--name $dckr_name \
+		--hostname $dckr_name \
+		--env DCKR_NAME=$dckr_name \
+		--env DCKR_IMAGE=$image_name \
 		$image_name \
 		$dckr_cmd
 
@@ -163,22 +167,40 @@ c_init_munin()
 	dckr_build && \
 	dckr_run \
 		-p 8003:8080 \
-		-v $DCKR_VOL/docker/munin/logs:/var/log/munin:rw \
-		-v $DCKR_VOL/docker/munin/db:/var/lib/munin:rw \
-		-v $DCKR_VOL/docker/munin/run:/var/run/munin:rw \
-		-v $DCKR_VOL/docker/munin/munin:/var/cache/munin:rw \
+		-v $DCKR_VOL/munin/logs:/var/log/munin:rw \
+		-v $DCKR_VOL/munin/db:/var/lib/munin:rw \
+		-v $DCKR_VOL/munin/run:/var/run/munin:rw \
+		-v $DCKR_VOL/munin/munin:/var/cache/munin:rw \
 		-v /etc/localtime:/etc/localtime:ro
 }
 
 c_init_sandbox()
 {
 	dckr_argv $@
-	image_name=sandbox-mpe
+	image_name=sandbox-mpe:latest
 	dckr_name=vs1_sandbox
 	cd ~/project/docker-sandbox
+	git co master
 	dckr_build && \
+	dckr_rm && \
 	dckr_run \
 		-p 8004:8080 \
+		-v $DCKR_VOL/ssh:/docker-ssh:ro \
+		-v /etc/localtime:/etc/localtime:ro
+}
+
+c_init_weather()
+{
+	dckr_argv $@
+	image_name=weather-mpe
+	dckr_name=vs1_weather
+	cd ~/project/docker-sandbox
+	git co docker-weather
+	dckr_build && \
+	dckr_rm && \
+	dckr_run \
+		-p 8004:8080 \
+		-v $DCKR_VOL/ssh:/docker-ssh:ro \
 		-v /etc/localtime:/etc/localtime:ro
 }
 
@@ -195,10 +217,28 @@ c_init_jenkins()
 	dckr_argv $@
 	image_name=jenkins
 	dckr_name=vs1_jenkins
+	cd ~/project/docker-jenkinsci
+	dckr_build && \
 	dckr_rm && \
 	dckr_run \
 		-p 8007:8080 \
-		-v /var/jenkins_home \
+		-v $DCKR_VOL/ssh:/docker-ssh:ro \
+		-v $DCKR_VOL/jenkins:/var/jenkins_home:rw \
+		-v /etc/localtime:/etc/localtime:ro
+}
+
+c_init_sickbeard()
+{
+	dckr_argv $@
+	image_name=sickbeard
+	dckr_name=vs1_sickbeard
+	cd ~/project/docker-sickbeard
+	dckr_build && \
+	dckr_rm && \
+	dckr_run \
+		-p 8008:8081 \
+		-v $DCKR_VOL/sickbeard/data:/data:rw \
+		-v $DCKR_VOL/sickbeard/config:/config:rw \
 		-v /etc/localtime:/etc/localtime:ro
 }
 
