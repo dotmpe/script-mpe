@@ -409,7 +409,7 @@ c_git_remote()
     source_git_remote
     [ -z "$1" ] && {
         ssh_cmd="cd $remote_dir; ls | grep '.*.git$' | sed 's/\.git$//g' "
-        ssh $remote_user@$remote_host "$ssh_cmd"
+        ssh $ssh_opts $remote_user@$remote_host "$ssh_cmd"
     } || {
         repo=$1
         git_url="ssh://$remote_host/~$remote_user/$remote_dir/$repo.git"
@@ -458,6 +458,21 @@ c_git_init_remote()
     git fetch $HTD_GIT_REMOTE
 
     log "Added remote $HTD_GIT_REMOTE $scp_url"
+}
+
+c_git_drop_remote()
+{
+    [ -n "$1" ] && repo="$1" || repo="$PROJECT"
+    log "Checking if repo exists.."
+    ssh_opts=-q
+    c_git_remote | grep $repo || {
+      err "No such remote repo $repo" 1
+    }
+    source_git_remote
+    log "Deleting remote repo $remote_user@$remote_host:$remote_dir/$repo"
+    ssh_cmd="rm -rf $remote_dir/$repo.git"
+    ssh -q $remote_user@$remote_host "$ssh_cmd"
+    log "OK, $repo no longer exists"
 }
 
 # indexing, cleaning
@@ -742,15 +757,17 @@ c_ck_metafile()
 			continue
 		}
 		cks=$(rsr.py --show-sha1sum-hexdigest "$p" 2> /dev/null)
-		CKS=$(${CK}sum "$p" | cut -d' ' -f1)
-		#echo CKS=$CKS cks=$cks
-		test "$cks" = "$CKS" && {
-			log "$CKS ok $p"
+		c_ck_table "$CK" '' "$p" && {
+			log "$cks found"
 		} || {
-			err "Corrupt file: $p"
-			continue
-		}
-		c_ck_table "$CK" '' "$p" || {
+			CKS=$(${CK}sum "$p" | cut -d' ' -f1)
+			#echo CKS=$CKS cks=$cks
+			test "$cks" = "$CKS" && {
+				log "$CKS ok $p"
+			} || {
+				err "Corrupt file: $p"
+				continue
+			}
 			echo "$CKS  $p" >> table.$CK
 		}
 		
