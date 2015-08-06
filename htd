@@ -449,7 +449,7 @@ c_git_init_remote()
     log "Syning new bare repo to $scp_url"
     rsync -azu $BARE/ $scp_url
     [ -n "$TMP_BARE" ] && {
-        log "Deleting temp. bare clone ($TMP_BARE)"
+        log "Deleting temp. bare clone ($BARE)"
         rm -rf $TMP_BARE
     }
 
