@@ -159,9 +159,16 @@ c_ip()
 # FIXME: something to persist here?
 c_init_shipyard()
 {
-	#sudo docker run --rm -v /var/run/docker.sock:/var/run/docker.sock shipyard/deploy start
+	dckr_name=shipyard; dckr_stop; dckr_rm
+	dckr_name=shipyard-rethinkdb; dckr_stop; dckr_rm
+	dckr_name=shipyard-rethinkdb-data; dckr_stop; dckr_rm
+
 	sudo docker run -it -d --name shipyard-rethinkdb-data --entrypoint /bin/bash shipyard/rethinkdb -l
+	sleep 1
+
 	sudo docker run -it -d --name shipyard-rethinkdb --volumes-from shipyard-rethinkdb-data shipyard/rethinkdb
+	sleep 5
+
 	sudo docker run -it -p 8001:8080 -d --name shipyard --link shipyard-rethinkdb:rethinkdb shipyard/shipyard
 }
 
