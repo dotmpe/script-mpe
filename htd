@@ -822,7 +822,7 @@ req_arg()
 
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
-	# Do something (only) if script invoked as 'htd'
+	# Do something (only) if script invoked as '$scriptname'
 	base=$(basename $0 .sh)
 	case "$base" in
 

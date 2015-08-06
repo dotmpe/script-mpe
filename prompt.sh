@@ -1,8 +1,12 @@
 #/!usr/bin/bash
 # Prompt helpers for persisted session info
 
+set -e
+
 source ~/bin/statusdir.sh
 source ~/bin/vc.sh
+
+scriptname=prompt
 
 
 prompt_command()
@@ -22,18 +26,45 @@ prompt_command()
 
 # Main
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
-	# Do something if script invoked as 'prompt.sh'
-	if [ "$(basename $0)" = "prompt.sh" ]; then
-		# invoke with function name first argument,
-		func="$1"
-		type "prompt_$func" &>/dev/null && { func="prompt_$func"; }
-		type $func &>/dev/null && {
-			shift 1
-			$func $@
-		# or run default
-		} || { 
-			exit
-		}
-	fi
+
+	# Do something (only) if script invoked as '$scriptname'
+	base=$(basename $0 .sh)
+	case "$base" in
+
+		$scriptname )
+
+			# function name first as argument,
+			cmd=$1
+			[ -n "$def_func" -a -z "$cmd" ] \
+				&& func=$def_func \
+				|| func=$(echo prompt_$cmd | tr '-' '_')
+
+			# load/exec if func exists
+			type $func &> /dev/null && {
+				func_exists=1
+				shift 1
+				$func $@
+			} || {
+				# handle non-zero return or print usage for non-existant func
+				e=$?
+				[ -z "$cmd" ] && {
+					err 'No command given, see "help"' 1
+				} || {
+					[ "$e" = "1" -a -z "$func_exists" ] && {
+						err "No such command: $cmd" 1
+					} || {
+						err "Command $cmd returned $e" $e
+					}
+				}
+			}
+
+			;;
+
+		* )
+			echo No frontend for $base
+
+	esac
 fi
+
+# vim:noet:
 
