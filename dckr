@@ -52,6 +52,7 @@ c_alias()
 	done
 }
 
+# Docker
 
 dckr_argv()
 {
@@ -131,6 +132,27 @@ dckr_rm()
 	}
 }
 
+dckr_names()
+{
+	sudo docker inspect --format='{{.Name}}' $(sudo docker ps -aq --no-trunc)
+}
+
+dckr_ip()
+{
+	sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' $1
+}
+
+c_ip()
+{
+	test -n "$1" && {
+		dckr_ip $1
+	} || {
+		dckr_names | while read dckr_name
+		do
+			echo $(dckr_ip $dckr_name) "$dckr_name "
+		done
+	}
+}
 
 # FIXME: abstract below cmds so things can move to config files
 
@@ -165,6 +187,7 @@ c_init_munin()
 	dckr_name=scalingo_munin
 	cd ~/project/docker-munin-server
 	dckr_build && \
+	dckr_rm && \
 	dckr_run \
 		-p 8003:8080 \
 		-v $DCKR_VOL/munin/logs:/var/log/munin:rw \
@@ -200,6 +223,7 @@ c_init_weather()
 	dckr_rm && \
 	dckr_run \
 		-p 8004:8080 \
+		--link vs1_weather:vs1_weather \
 		-v $DCKR_VOL/ssh:/docker-ssh:ro \
 		-v /etc/localtime:/etc/localtime:ro
 }
@@ -253,6 +277,19 @@ c_init_graphite()
 	dckr_run \
 		-p 2206:22 \
 		-p 8006:8080 \
+		-v /etc/localtime:/etc/localtime:ro
+}
+
+c_init_haproxy()
+{
+	dckr_argv $@
+	image_name=haproxy:1.5
+	dckr_name=vs1_x_haproxy
+	dckr_rm && \
+	dckr_run \
+		-v $DCKR_VOL/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro \
+		-p 8009:80 \
+		-p 43309:443 \
 		-v /etc/localtime:/etc/localtime:ro
 }
 
