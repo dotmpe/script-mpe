@@ -407,6 +407,7 @@ vc_help()
 }
 
 
+# stdio/stderr/exit util
 log()
 {
 	[ -n "$(echo "$*")" ] || return 1;

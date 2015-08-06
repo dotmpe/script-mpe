@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 
-
 set -e
 
 scriptname=dckr
-VERBOSITY=0
 
 load()
 {
@@ -42,6 +40,17 @@ c_edit()
 c__e()
 {
 	c_edit
+}
+
+# show htd shell aliases
+c_alias()
+{
+	grep '\<htd\>' ~/.alias | grep -v '^#' | while read _a A
+	do
+		a_id=$(echo $A | awk -F '=' '{print $1}')
+		a_shell=$(echo $A | awk -F '=' '{print $2}')
+		echo -e "   $a_id     \t$a_shell"
+	done
 }
 
 dckr_argv()
@@ -157,16 +166,20 @@ test ! -e ~/.conf/dckr/local.sh || {
 # stdio/stderr/exit util
 log()
 {
-	[ -n "$(echo $*)" ] || return 1;
+	[ -n "$(echo "$*")" ] || return 1;
 	echo "[$scriptname.sh:$cmd] $1"
 }
 err()
 {
-	[ -n "$(echo $*)" ] || return 1;
-	[ "$VERBOSITY" -ge "1" ] && echo "Error: $1 [$scriptname.sh:$cmd]" 1>&2
-	echo "$1 [$scriptname.sh:$cmd]" 1>&2
+	[ -n "$(echo "$*")" ] || return 1;
+	echo "Error: $1 [$scriptname.sh:$cmd]" 1>&2
 	[ -n "$2" ] && exit $2
 }
+
+
+# Main
+
+#def_func=c_default
 
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
 

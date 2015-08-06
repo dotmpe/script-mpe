@@ -155,7 +155,7 @@ c_expand()
 
 c_edit()
 {
-	[ -n "$1" ] && fn=$1 || fn=$(which htd)
+	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
 	$EDITOR $fn
 }
 c__e()
@@ -791,12 +791,12 @@ c_mp3_validate()
 # stdio/stderr/exit util
 log()
 {
-	[ -n "$(echo $*)" ] || return 1;
+	[ -n "$(echo "$*")" ] || return 1;
 	echo "[$scriptname.sh:$cmd] $1"
 }
 err()
 {
-	[ -n "$(echo $*)" ] || return 1;
+	[ -n "$(echo "$*")" ] || return 1;
 	[ "$VERBOSITY" -ge "1" ] && echo "Error: $1 [$scriptname.sh:$cmd]" 1>&2
 	echo "$1 [$scriptname.sh:$cmd]" 1>&2
 	[ -n "$2" ] && exit $2
@@ -818,7 +818,7 @@ req_arg()
 
 # Main
 
-#def_func=c_make_stat 
+#def_func=c_default
 
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
