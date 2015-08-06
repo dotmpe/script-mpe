@@ -26,7 +26,7 @@ c_help()
 {
 	c_usage
 	echo 'Commands: '
-	echo '  -e                               Edit this script.'
+	echo '  -e|edit                          Edit this script.'
 	echo '  alias                            Show bash aliases for this script.'
 	echo '  usage                            print just the usage description.'
 	echo '  help                             print this help listing.'
@@ -42,16 +42,16 @@ c__e()
 	c_edit
 }
 
-# show htd shell aliases
 c_alias()
 {
-	grep '\<htd\>' ~/.alias | grep -v '^#' | while read _a A
+	grep '\<'$scriptname'\>' ~/.alias | grep -v '^#' | while read _a A
 	do
 		a_id=$(echo $A | awk -F '=' '{print $1}')
 		a_shell=$(echo $A | awk -F '=' '{print $2}')
 		echo -e "   $a_id     \t$a_shell"
 	done
 }
+
 
 dckr_argv()
 {
