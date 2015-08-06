@@ -1,0 +1,218 @@
+#!/usr/bin/env bash
+
+
+set -e
+
+scriptname=dckr
+VERBOSITY=0
+
+load()
+{
+	test -n "$DCKR_CONF" || DCKR_CONF=~/.conf/dckr/
+	test -e "$DCKR_CONF" || err "Missing docker config dir $DCKR_CONF" 1
+	test -n "$DCKR_VOL" || DCKR_VOL=/Volumes/dckr
+	test -e "$DCKR_VOL" || err "Missing docker volumes dir $DCKR_VOL" 1
+
+	rows=$(stty size|awk '{print $1}')
+	cols=$(stty size|awk '{print $2}')
+}
+
+c_usage()
+{
+	echo "$scriptname.sh Bash/Shell script helper"
+	echo 'Usage: '
+	echo "  $scriptname <cmd> [<args>..]"
+}
+
+c_help()
+{
+	c_usage
+	echo 'Commands: '
+	echo '  -e                               Edit this script.'
+	echo '  alias                            Show bash aliases for this script.'
+	echo '  usage                            print just the usage description.'
+	echo '  help                             print this help listing.'
+}
+
+c_edit()
+{
+	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
+	$EDITOR $fn
+}
+c__e()
+{
+	c_edit
+}
+
+dckr_argv()
+{
+	test -z "$1" -a "${1:0:2}" = "-t" || dckr_f="$1"
+}
+
+dckr_build()
+{
+	sudo docker build -t $image_name .
+	return $?
+}
+
+dckr_run()
+{
+	test -n "$dckr_f" || dckr_f=-d
+
+	dckr_env=~/.conf/dckr/$dckr_name-env.sh
+	test ! -e "$dckr_env" || dckr_f="$dckr_f --env-file $dckr_env"
+
+	sudo docker run $@ $dckr_f \
+		--name $dckr_name \
+		$image_name \
+		$dckr_cmd
+
+	return $?
+}
+
+# FIXME: abstract below cmds so things can move to config files
+
+# FIXME: something to persist here?
+c_init_shipyard()
+{
+	#sudo docker run --rm -v /var/run/docker.sock:/var/run/docker.sock shipyard/deploy start
+	sudo docker run -it -d --name shipyard-rethinkdb-data --entrypoint /bin/bash shipyard/rethinkdb -l
+	sudo docker run -it -d --name shipyard-rethinkdb --volumes-from shipyard-rethinkdb-data shipyard/rethinkdb
+	sudo docker run -it -p 8001:8080 -d --name shipyard --link shipyard-rethinkdb:rethinkdb shipyard/shipyard
+}
+
+c_init_cadvisor()
+{
+	sudo docker run \
+		--volume=/:/rootfs:ro \
+		--volume=/var/run:/var/run:rw \
+		--volume=/sys:/sys:ro \
+		--volume=/var/lib/docker/:/var/lib/docker:ro \
+		--publish=8002:8080 \
+		--detach=true \
+		--name=cadvisor \
+		google/cadvisor:latest
+
+#-storage_driver=influxdb
+}
+
+c_init_munin()
+{
+	dckr_argv $@
+	image_name=scalingo-munin-server
+	dckr_name=scalingo_munin
+	cd ~/project/docker-munin-server
+	dckr_build && \
+	dckr_run \
+		-p 8003:8080 \
+		-v $DCKR_VOL/docker/munin/logs:/var/log/munin:rw \
+		-v $DCKR_VOL/docker/munin/db:/var/lib/munin:rw \
+		-v $DCKR_VOL/docker/munin/run:/var/run/munin:rw \
+		-v $DCKR_VOL/docker/munin/munin:/var/cache/munin:rw \
+		-v /etc/localtime:/etc/localtime:ro
+}
+
+c_init_sandbox()
+{
+	dckr_argv $@
+	image_name=sandbox-mpe
+	dckr_name=vs1_sandbox
+	cd ~/project/docker-sandbox
+	dckr_build && \
+	dckr_run \
+		-p 8004:8080 \
+		-v /etc/localtime:/etc/localtime:ro
+}
+
+c_init_jenkins()
+{
+	dckr_argv $@
+	image_name=jenkins
+	dckr_name=vs1_jenkins
+	dckr_run \
+		-p 8007:8080 \
+		-v $DCKR_VOL/docker/jenkins:/var/jenkins_home:rw \
+		-v /etc/localtime:/etc/localtime:ro
+}
+
+c_init_graphite()
+{
+	dckr_argv $@
+	image_name=dotmpe/collectd-graphite
+	dckr_name=vs1_x_graphite
+	cd ~/project/docker-graphite
+	dckr_build && \
+	dckr_run \
+		-p 2206:22 \
+		-p 8006:8080 \
+		-v /etc/localtime:/etc/localtime:ro
+}
+
+# include private projects
+test ! -e ~/.conf/dckr/local.sh || {
+	source ~/.conf/dckr/local.sh
+}
+
+
+# stdio/stderr/exit util
+log()
+{
+	[ -n "$(echo $*)" ] || return 1;
+	echo "[$scriptname.sh:$cmd] $1"
+}
+err()
+{
+	[ -n "$(echo $*)" ] || return 1;
+	[ "$VERBOSITY" -ge "1" ] && echo "Error: $1 [$scriptname.sh:$cmd]" 1>&2
+	echo "$1 [$scriptname.sh:$cmd]" 1>&2
+	[ -n "$2" ] && exit $2
+}
+
+if [ -n "$0" ] && [ $0 != "-bash" ]; then
+
+	# Do something (only) if script invoked as 'htd'
+	base=$(basename $0 .sh)
+	case "$base" in
+
+		$scriptname )
+
+			# function name first as argument,
+			cmd=$1
+			[ -n "$def_func" -a -z "$cmd" ] \
+				&& func=$def_func \
+				|| func=$(echo c_$cmd | tr '-' '_')
+
+			# load/exec if func exists
+			type $func &> /dev/null && {
+				func_exists=1
+				load
+				shift 1
+				$func $@
+			} || {
+				# handle non-zero return or print usage for non-existant func
+				e=$?
+				[ -z "$cmd" ] && {
+					load
+					c_usage
+					err 'No command given, see "help"' 1
+				} || {
+					[ "$e" = "1" -a -z "$func_exists" ] && {
+						load
+						c_usage
+						err "No such command: $cmd" 1
+					} || {
+						err "Command $cmd returned $e" $e
+					}
+				}
+			}
+
+			;;
+
+		* )
+			echo No frontend for $base
+
+	esac
+fi
+
+# vim:noet:
+
