@@ -1,0 +1,3 @@
+# XXX named file patterns for htd+matchbox?
+* @NAMEPARTS.@EXT filenames-ext
+* @NAMEPARTS.@SZ.@EXT media-archive

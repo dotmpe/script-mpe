@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-
 set -e
+
+source ~/bin/match.sh
 
 scriptname=htd
 VERBOSITY=0
@@ -15,43 +16,33 @@ load()
 	[ -n "$PROJECT" ] || PROJECT="$(basename $(pwd))"
 	_14MB=14680064
 	_6MB=7397376
-	[ -n "$MIN_SIZE" ] || MIN_SIZE=$_6MB
+	test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
 
 	test -e table.sha1 && R_C_SHA3="$(cat table.sha1|wc -l)"
 
 	rows=$(stty size|awk '{print $1}')
 	cols=$(stty size|awk '{print $2}')
 
-	HTD_IGNORE=.gitignore
-	find_ignores=" -not -path \"*.git*\""
-	[ -e $HTD_IGNORE ] && find_ignores="$find_ignores "$(echo $(cat $HTD_IGNORE | \
+	HTD_IGNORE=.htdignore
+	htd_init_ignores
+	find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
 		grep -Ev '^(#.*|\s*)$' | \
 		sed -E 's/^\//\.\//' | \
-		sed -E 's/(.*)/ -not -path "\1"/g'))
+		sed -E 's/(.*)/ -o -name "\1" -prune /g'))
+	find_ignores="-path \"*/.git\" -prune $find_ignores "
+
+	#match_load_table vars
 }
 
-pushd_cwdir()
-{
-	test -n "$CWDIR" -a "$CWDIR" != "$(pwd)" && {
-		echo "pushd $CWDIR" "$(pwd)"
-		pushd $WDIR
-	} || echo -n
-}
-
-popd_cwdir()
-{
-	test -n "$CWDIR" -a "$CWDIR" = "$(pwd)" && {
-		echo "popd $CWDIR" "$(pwd)"
-		test "$(popd)" = "$CWDIR"
-	} || echo -n
-}
-
-c_usage()
+htd_usage()
 {
 	echo "$scriptname.sh Bash/Shell script helper"
 	echo 'Usage: '
 	echo "  $scriptname <cmd> [<args>..]"
-	echo ""
+}
+
+htd_commands()
+{
 	echo 'Commands: '
 	echo '  home                             Print htd dir.'
 	echo '  info                             Print vars.'
@@ -73,11 +64,19 @@ c_usage()
 	echo '  git-remote [repo]                List all names remotely, or give the SSH url for given repo. '
 	echo '  git-init-remote [repo]           Initialze remote bare repo if local path is GIT project'
 	echo '  git-remote-info                  Show vars'
+	echo '  git-largest-objects (10)         List the SHA1 sums of the largest objects.'
+	echo '  git-path-for-object <sha1>       Given SHA1 object, find its current path.'
+	echo '  git-annex-unused                 Show keys of stored objects without path using them. '
+	echo '  git-annex-show-unused            Show commit logs for unused keys. '
+	echo '  git-annex-clear-unused [<to>]    Drop the unused keys, or move to remote. '
 	echo ''
 	echo 'Working tree utils'
+	echo '  check-names [. [<tags>]]         Check names in path, according to tags.'
+	echo '  list-paths [.|<dirpath]          List all paths below, including dirs. '
 	echo '  test-name <path>                 Test filename for unhandled characters. '
 	echo '  find-name <path|localname>       TODO: Given (partial) path, try to find the file using find.  '
 	echo '  update                           Fill checksums tables for all local files. TODO: find out what there is to know about file using settings, other commands, ext. tooling & services. And trigger resolve'
+	echo '  fix-names [.|<dirpath]           XXX '
 	echo '  resolve                          XXX based on data and settings, pre-process and mark all files ready for commit, and bail on any irregularities. '
 	echo '  commit                           XXX record metadata according to htd settings/commands. Commit is only a success, if the entire tree is either clean or ignored. '
 	echo '  '
@@ -92,7 +91,7 @@ c_usage()
 	echo '  ck-metafile <path>               TODO: integrate metadata from .meta/.rst/.sha1sum/etc. '
 	echo ''
 	echo 'Working tree checksum metadata [CK_TABLE=./]'
-	echo '  ck-update [ck|md5|sha1]          Iterate all files, and create checksum table records for unknown files. '
+	echo '  ck-update [ck|md5|sha1] (<path>)  Iterate all files, and create checksum table records for unknown files. '
 	echo "  ck-table [ck|md5|sha1] <path>    Tell if checksum exists for file, don\'t validate or update. "
 	echo '  ck-table-subtree [ck|md5|sha1] <path> '
 	echo '                                   Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. '
@@ -114,9 +113,20 @@ c_usage()
 	echo '  help                             print a help description'
 }
 
+c_usage()
+{
+	htd_usage
+	echo ''
+	echo "See 'help'."
+
+}
+
 c_help()
 {
-	echo "$scriptname.sh Bash/Shell script helper"
+	htd_usage
+	echo ""
+	htd_commands
+	echo ''
 	echo 'Help'
 	echo "  See usage for all commands. Htd does not parse options but does use "
 	echo "  environment variables. See 'info' for more env variables. "
@@ -163,6 +173,61 @@ c__e()
 	c_edit
 }
 
+htd_init_ignores()
+{
+	test -n "$HTD_IGNORE" || exit 1
+	rm -f $HTD_IGNORE.merged
+	for x in .git/info/exclude .gitignore $HTD_IGNORE
+	do 
+		test -s $x && {
+			cat $x | grep -Ev '^(#.*|\s*)$' >> $HTD_IGNORE.merged
+		}
+	done
+	echo $HTD_IGNORE.merged >> $HTD_IGNORE.merged
+}
+
+c_init_ignores()
+{
+	htd_init_ignores
+}
+
+req_path_arg()
+{
+	test -n "$1"  && path="$@"  || path=.
+	test -d "$path" || {
+		err "Must pass directory" 1
+	}
+}
+
+# return paths for names that exist along given path
+htd_find_path_locals()
+{
+    local name path stop_at
+    name=$1
+    path="$(cd $2;pwd)"
+    test -z "$3" && stop_at= || stop_at="$(cd $3;pwd)"
+    path_locals=
+    while test -n "$path" -a "$path" != "/"
+    do
+        test -e "$path/$name" && {
+            path_locals="$path_locals $path/$name"
+        }
+        test "$path" = "$stop_at" && {
+            break
+        }
+        path=$(dirname $path)
+    done
+}
+
+c_test_find_path_locals()
+{
+    htd_find_path_locals table.names $1
+    echo path_locals=$path_locals
+
+    htd_find_path_locals table.names $1 $(pwd)
+    echo path_locals=$path_locals
+}
+# 
 c_fsck()
 {
 	c_ck_validate sha1
@@ -237,11 +302,14 @@ c_build()
 uname=$(uname)
 filesize()
 {
-	test "$uname" = "Darwin" && {
-		stat -f '%z' "$@"
-	} || test "$uname" = "Linux" && {
-		stat -c '%s' "$@"
-	}
+	case "$uname" in
+		Darwin )
+			stat -f '%z' "$@" || return 1
+			;;
+		Linux )
+			stat -c '%s' "$@" || return 1
+			;;
+	esac
 }
 
 # show htd shell aliases
@@ -323,7 +391,8 @@ c_vbox_list()
 	do
 		grep $uuid $vbox_names >> /dev/null || echo unknown $name =$uuid
 	done
-	cat $vbox_names | grep -v '^\s*$' | grep -v '^\s*#'
+	cat $vbox_names | \
+		grep -Ev '^\s*(#.*|\s*)$'
 }
 
 c_vbox_running()
@@ -475,23 +544,100 @@ c_git_drop_remote()
     log "OK, $repo no longer exists"
 }
 
+c_git_largest_objects()
+{
+	~/bin/git-largest-objects.sh 10
+}
+
+# list commits for object sha1
+c_git_path_for_object()
+{
+	blob=$1
+	git rev-list --all |
+	while read commit; do
+		if git ls-tree -r $commit | grep -q $blob; then
+			echo $commit
+		fi
+	done
+}
+
+# print tree, blob, commit, etc. objs
+c_git_list_objects()
+{
+	git verify-pack -v .git/objects/pack/pack-*.idx
+}
+
+c_git_object_contents()
+{
+	git cat-file -p $1
+}
+
+c_git_annex_unused()
+{
+	git annex unused | \
+		grep '\s\s*[0-8]\+\ \ *.*$' | \
+	while read line;
+	do
+		echo $line
+	done
+}
+
+c_git_annex_show_unused()
+{
+	c_git_annex_unused | while read num key
+	do
+		echo "GIT log for '$key'"
+		git log --stat -S"$key"
+	done
+}
+c_git_annex_clear_unused()
+{
+	test -z "$1" && {
+		local cnt
+		cnt="$(c_git_annex_unused | tail -n 1 | cut -f 1 -d ' ')"
+		c_git_annex_unused | while read num key
+		do
+			echo $num $key
+		done
+		echo cnt=$cnt
+		read -p 'Delete all? [yN] ' -n 1 user
+		echo
+		test "$user" = 'y' && {
+			while test "$cnt" -gt 0
+			do
+				git annex dropunused --force $cnt
+				cnt=$(( $cnt -1 ))
+			done
+		} || {
+			err 'Cancelled' 1
+		}
+	} || {
+		git annex move --unused --to $1
+	}
+}
+
 # indexing, cleaning
+
+htd_name_precaution() {
+	echo "$@" | grep -E '^[]\[{}\(\)A-Za-z0-9\.,!@#&%*?:'\''\+\ \/_-]*$' > /dev/null || return 1
+}
 
 c_test_name()
 {
-	echo "$@" | grep -E '^[]\[{}\(\)A-Za-z0-9\.,!@#&%*?:'\''\+\ \/_-]*$' || return 1
+	match_grep_pattern_test "$@"
+	htd_name_precaution "$@"
 }
 
 c_find_empty()
 {
-	eval find . -size 0 $find_ignores
+	eval find . $find_ignores -o -size 0 -a -print
 }
 
 # TODO interactive file process
 c_check()
 {
 	log "Looking for unknown files.."
-	eval find . $find_ignores \
+	eval find . $find_ignores -o -print \
 		| while read p
 		do
 			c_test_name "$p" >> /dev/null || {
@@ -515,7 +661,7 @@ c_check()
 				do
 					c_ck_table_subtree $ck "$p" | while read p2
 					do
-						c_ck_table $ck "" "$p2" >> /dev/null && {
+						c_ck_table $ck "$p2" >> /dev/null && {
 							#c_ck_drop $ck "$p"
 							echo "Dropped $ck key for $p"
 						}
@@ -530,9 +676,135 @@ c_check()
 		done
 }
 
+htd_git_rename()
+{
+	~/bin/matchbox.py rename "$1" "$2" |
+	grep -Ev '^\s*(#.*|\s*)$' |
+	while read file_old file_new
+	do
+		$cmd_pref git mv "$file_old" "$file_new"
+	done
+}
+
+c_rename_test()
+{
+	cmd_pref="echo"
+	c_rename $@
+}
+
 c_rename()
 {
-	c_ck_update
+	from_pattern="$1"
+	to_pattern="$2"
+	#$(echo $2 | sed 's/@\([A-Z0-9_]*\)/${\1}/g')
+	shift 2
+	test -z "$1" && {
+		htd_git_rename "$from_pattern" "$to_pattern"
+	} || {
+		{ for p in $@; do echo $p; done ; echo -e "\l"; } |
+		htd_git_rename "$from_pattern" "$to_pattern"
+	}
+}
+
+# List all paths including dirs
+c_list_paths()
+{
+	req_path_arg "$@"
+	eval find $path $find_ignores -o -print
+}
+
+c_check_names()
+{
+	test -z "$1" && d="." || { d="$1"; shift 1; }
+	test -z "$1" && valid_tags="" || valid_tags="$@"
+	test "${d: -1:1}" = "/" && d="${d:0: -1}"
+
+	test -z "$valid_tags" &&
+	log "Looking for unmatched paths in $d" ||
+	log "Validating $d, using valid patterns $valid_tags"
+
+	{
+		eval find $d "$find_ignores -o \( -type l -o -type f \) -a -print "
+		echo "\l"
+	} | matchbox.py check-names $valid_tags
+}
+
+c_fix_names()
+{
+	local path_regex names_tables names_table
+	req_path_arg "$@"
+	match_grep_pattern_test "$path"
+	path_regex="$p_"
+	match_name_tables "$path"
+	htd_find_path_locals table.names $(pwd)
+	names_tables=$path_locals
+	for names_table in $names_tables
+	do
+		cat $names_table | grep -Ev '^(#.*|\s*)$' | while read match pattern tag
+		do
+			echo "$match" | grep '^'$path_regex > /dev/null || continue
+			match_name_pattern "$pattern"
+			for p in $match
+			do
+				echo "$p" | grep '^'"$grep_pattern"'$' >> /dev/null && {
+					test -n "$tag" && {
+						echo matched $tag $p
+					} || {
+						echo ok $p
+					}
+				} || test -n "$tag" || {
+					echo mismatch $p
+				}
+			done
+		done
+	done
+}
+
+# parse path and annex metadata using given path
+
+req_arg_pattern="Pattern format"
+req_arg_path="Path"
+
+c_name_tags_test()
+{
+	match_name_vars $@
+}
+
+c_name_tags()
+{
+	local pattern
+	req_arg "$1" 'name-tags' 1 pattern && shift 1|| return 1
+	req_arg "$1" 'name-tags' 2 path && path="$@" || return 1
+	c=0
+	test "${path: -1:1}" = "/" && path="${path:0: -1}"
+	test -d "$path" && {
+		eval find "$path $find_ignores -o \( -type f -o -type l \) -a -print" \
+		| while read p
+		do
+			echo $p
+			match_name_vars "$pattern" "$p" 2> /dev/null
+			#c=$(( $c + 1 ))
+			#echo $c
+			#echo
+		done
+	} || {
+		err "Req dir arg" 1
+	}
+}
+
+c_name_tags_all()
+{
+	req_arg "$1" 'name-tags-all' 1 path && path="$@" || return 1
+	test "${path: -1:1}" = "/" && path="${path:0: -1}"
+	test -d "$path" && {
+		eval find "$path $find_ignores -o \( -type f -o -type l \) -a -print" \
+		| while read p
+		do
+			match_names "$p"
+		done
+	} || {
+		err "Req dir arg" 1
+	}
 }
 
 c_update()
@@ -548,14 +820,39 @@ c_update()
 
 # Checksums
 
-c_ck_table()
+ck_arg()
 {
 	test -n "$1"  && CK=$1  || CK=ck
+	test -e table.$CK || {
+		err "First argument must be CK table extension, no such table: table.$CK" 1
+	}
+	test -r table.$CK || {
+		err "Not readable: table.$CK" 1
+	}
+	T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
+}
+ck_write()
+{
+	ck_arg "$1"
+	test -w table.$CK || {
+		err "Not writable: table.$CK" 1
+	}
+}
+
+# Check for path in table
+c_ck_table()
+{
+	# table ext
+	ck_arg "$1"
 	shift 1
-	test -n "$1"  && S=$1  || S=
-	shift 1
-	[ -z "$@" ] && {
-		cat table.$CK$S | grep -v '^#|\s*$' | while read -a ckline
+	# second table ext
+	test -n "$1" -a -e "table.$CK.$1" && {
+		S=$1; shift 1
+	} || S=
+	# path
+	[ -z "$1" ] && {
+		cat table.$CK$S | grep -Ev '^\s*(#.*|\s*)$' | \
+		while read -a ckline
 		do
 			test "$CK" = "ck" && {
 				cks=${ckline[@]::1}
@@ -569,12 +866,9 @@ c_ck_table()
 		done
 	} || {
 		# look for single path
-		p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@+_])/\\\1/g')"
-		echo "$@" | grep "^$p_$" >> /dev/null || {
-			err "cannot build regex for '$p': $p_"
-			return
-		}
-		grep ".*\ $p_$" table.$CK$S >> /dev/null && {
+		htd_relative_path "$@"
+		match_grep_pattern_test "$relpath"
+		grep ".*\ \(\.\/\)\?$p_$" table.$CK$S >> /dev/null && {
 			echo ok
 		} || {
 			echo unknown
@@ -585,14 +879,10 @@ c_ck_table()
 
 c_ck_table_subtree()
 {
-	test -n "$1"  && CK=$1  || CK=ck
+	ck_arg "$1"
 	shift 1
 	test -n "$1" || return 1
-	p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@_])/\\\1/g')"
-	echo "$@" | grep "^$p_$" >> /dev/null || {
-		err "cannot build regex for '$p': $p_"
-		return
-	}
+	match_grep_pattern_test "$@"
 	grep ".*\ $p_.*$" table.$CK | grep -v '^#|\s*$' | while read -a ckline
 		do
 			test "$CK" = "ck" && {
@@ -607,61 +897,114 @@ c_ck_table_subtree()
 		done
 }
 
-# find all files, check their name
-c_ck_update()
+ck_update_file()
 {
-	test -n "$1"  && CK=$1  || CK=ck
-	T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
-	log "Reading $T_CK for objects"
-	eval find . $find_ignores \
+	ck_write "$CK"
+	update_file="$@"
+	c_test_name "$update_file" >> /dev/null || {
+		err "Skip path with unhandled characters"
+		return
+	}
+	test -r "$update_file" || {
+		err "Skip path not readable by user"
+		return
+	}
+	test -d "$update_file" && {
+		err "Skipped directory path"
+		return
+	}
+	test -L "$update_file" && {
+		BE="$(dirname "$update_file")/$(readlink "$update_file")"
+		test -e "$BE" || {
+			err "Skip dead symlink"
+			return
+		}
+		SZ="$(filesize "$BE")"
+	} || {
+		SZ="$(filesize "$update_file")"
+	}
+	test "$SZ" -ge "$MIN_SIZE" || {
+		err "File too small: $SZ"
+		return
+	}
+	BN="$(basename "$update_file")"
+	# XXX hardcoded to 40-char hexsums ie. sha1
+	HAS_CKS="$(echo "$BN" | grep '\b[0-9a-f]\{40\}\b')"
+	cks="$(echo "$BN" | grep '\b[0-9a-f]\{40\}\b' |
+		sed 's/^.*\([0-9a-f]\{40\}\).*$/\1/g')"
+	#EXT="$(echo $BE)"
+	test -n "$HAS_CKS" && {
+		c_ck_table "$CK" "$update_file" > /dev/null && {
+			echo "path found"
+		} || {
+			grep "$cks" table.$CK > /dev/null && {
+				echo "$CK duplicate found or cannot grep path"
+				return
+			}
+			CKS=$(${CK}sum "$update_file" | cut -d' ' -f1)
+			test "$cks" = "$CKS" || {
+				err "${CK}sum $CKS does not match name $cks from $update_file"
+				return
+			}
+			echo "$cks  $update_file" >> table.$CK
+			echo "$cks added"
+			return
+		}
+		return
+	} || {
+		# TODO prepare to rename, keep SHA1 hashtable
+		c_ck_table "$CK" "$update_file" || {
+			${CK}sum "$update_file" >> table.$CK
+		}
+	}
+}
+
+ck_update_find()
+{
+	log "Reading $T_CK, looking for paths '$@'"
+	find_p="$@"
+	test "${find_p: -1:1}" = "/" && find_p="${find_p:0: -1}"
+	eval find "$find_p" $find_ignores -o -print \
 	| while read p
 		do
-			c_test_name "$p" >> /dev/null || {
-				err "Skip path with unhandled characters"
-				continue
-			}
-			[ -L "$p" ] && {
-				BE="$(dirname "$p")/$(readlink "$p")"
-				[ -e "$BE" ] || {
-					#err "Skip dead symlink"
-					continue
-				}
-				SZ="$(filesize "$BE")"
-			} || {
-				SZ="$(filesize "$p")"
-			}
-			test "$SZ" -ge "$MIN_SIZE" || {
-				#err "File too small: $SZ"
-				continue
-			}
-			BN="$(basename "$p")"
-			HAS_CKS="$(echo $BN | grep '\.[0-9a-f]\{40\}\.')"
-			CKS="$(echo $BN | grep '\.[0-9a-f]\{40\}\.' |
-				sed 's/^.*\([0-9a-f]\{40\}\)\.[1-9a-z]\{3,4\}$/\1/g')"
-			#EXT="$(echo $BE)"
-			[ -n "$HAS_CKS" ] && {
-				echo $SZ $CKS $BN $BE >> /dev/null
-			} || {
-				# prepare to rename, keep SHA1 hashtable
-				c_ck_table "$CK" '' "$p" || {
-					${CK}sum "$p" >> table.$CK
-				}
-			}
-			continue
+			ck_update_file "$p"
 		done
 }
 
-c_ck_drop()
+# find all files, check their names, size and checksum
+c_ck_update()
 {
-	req_arg "$1" 'ck-drop' 1 "Checksum" || return 1
-	CK=$1
+	ck_write "$1"
 	shift 1
-	req_arg "$1" 'ck-drop' 2 "Path" || return 1
-	p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@_])/\\\1/g')"
-	echo "$@" | grep "^$p_$" >> /dev/null || {
-		err "cannot build regex for '$p': $p_"
+	update_p="$@"
+	log "Checking '$update_p'"
+	test -z "$update_p"  && {
+		ck_update_find . || return 1
 		return
 	}
+	test -d "$update_p"  && {
+		ck_update_find "$update_p" || return 2
+		return
+	}
+	test -f "$update_p"  && {
+		ck_update_file "$@" || return 3
+		return
+	}
+	test -L "$update_p"  &&  {
+		ck_update_file "$@" || return 4
+		return
+	}
+	err "Unknown path '$update_p'" 1
+}
+
+
+c_ck_drop()
+{
+	ck_write "$1"
+	shift 1
+	ck_drop "$@"
+	req_arg "$1" 'ck-drop' 2 path || return 1
+	match_grep_pattern_test "$@"
 	cp table.$CK table.$CK.tmp
 	cat table.$CK.tmp | grep "^.*$p_$" >> table.$CK.missing
 	cat table.$CK.tmp | grep -v "^.*$p_$" > table.$CK
@@ -670,10 +1013,8 @@ c_ck_drop()
 
 c_ck_validate()
 {
-	test -n "$1"  && CK=$1  || CK=ck
+	ck_arg "$1"
 	shift 1
-	T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
-	test -s "table.$CK" || err "$T_CK table does not exists" 1
 	test "$CK" = "ck" && {
 		checksums table.$CK
 	} || {
@@ -698,14 +1039,10 @@ checksums()
 # drop non-existant paths from table, copy to .missing
 c_ck_prune()
 {
-	test -n "$1"  && CK=$1  || CK=ck
-	T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
-	test -s "table.$CK" || {
-		err "$T_CK table does not exists"
-		return
-	}
+	ck_write "$1"
+	shift 1
 	log "Pruning missing files from $CK table"
-	c_ck_table $CK "" | while read cks p
+	c_ck_table $CK | while read cks p
 	do
 		test -e "$p" || {
 			c_ck_drop $CK "$p"
@@ -717,7 +1054,7 @@ c_ck_prune()
 # Read checksums from *.{sha1,md5,ck}{,sum}
 c_ck_consolidate()
 {
-	eval "find . -name '*.{sha1,md5,ck}{,sum}' -a \( -type f -o -type l \) $find_ignores" | while read p
+	eval "find . $find_ignores -o -name '*.{sha1,md5,ck}{,sum}' -a \( -type f -o -type l \) " -print | while read p
 	do
 		echo "$p"
 	done
@@ -726,18 +1063,17 @@ c_ck_consolidate()
 # try to find files from .missing, or put them in .gone
 c_ck_clean()
 {
-	test -n "$1"  && CK=$1  || CK=ck
+	ck_write "$1"
 	shift 1
-	T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
 	test -s "table.$CK.missing" || {
 		err "$T_CK.missing table does not exists"
 		return
 	}
-	log "Looking for missing files from $CK table"
+	log "Looking for missing files from $CK table"/
 	c_ck_table $CK .missing | while read cks p
 	do
 		BN="$(basename "$p")"
-		NW=$(eval find ./ -iname '$BN' $find_ignores)
+		NW=$(eval find ./ $find_ignores -o -iname '$BN' -print)
 		test -n "$NW" && echo "$BN -> $NW"
 	done
 	echo 'TODO rewrite ck table path'
@@ -748,27 +1084,27 @@ c_ck_metafile()
 {
 	[ -n "$1" ] && d=$1 || d=.
 	CK=sha1
-	eval find $d -iname \'*.meta\' $find_ignores \
+	eval find $d $find_ignores -o -iname \'*.meta\' -print \
 	| while read metafile
 	do
-		p="$(dirname "$metafile")/$(basename "$metafile" .meta)"
-		[ -e "$p" ] || {
-			echo "missing source file $metafile: $p"
+		ck_mf_p="$(dirname "$metafile")/$(basename "$metafile" .meta)"
+		[ -e "$ck_mf_p" ] || {
+			echo "missing source file $metafile: $ck_mf_p"
 			continue
 		}
-		cks=$(rsr.py --show-sha1sum-hexdigest "$p" 2> /dev/null)
-		c_ck_table "$CK" '' "$p" && {
+		cks=$(rsr.py --show-sha1sum-hexdigest "$ck_mf_p" 2> /dev/null)
+		c_ck_table "$CK" "$ck_mf_p" && {
 			log "$cks found"
 		} || {
-			CKS=$(${CK}sum "$p" | cut -d' ' -f1)
+			CKS=$(${CK}sum "$ck_mf_p" | cut -d' ' -f1)
 			#echo CKS=$CKS cks=$cks
 			test "$cks" = "$CKS" && {
-				log "$CKS ok $p"
+				log "$CKS ok $ck_mf_p"
 			} || {
-				err "Corrupt file: $p"
+				err "Corrupt file: $ck_mf_p"
 				continue
 			}
-			echo "$CKS  $p" >> table.$CK
+			echo "$CKS  $ck_mf_p" >> table.$CK
 		}
 		
 	done
@@ -776,7 +1112,7 @@ c_ck_metafile()
 
 c_mp3_validate()
 {
-	eval "find . -name "*.mp3" -a \( -type f -o -type l \) $find_ignores" \
+	eval "find . $find_ignores -o -name "*.mp3" -a \( -type f -o -type l \) -print" \
 	| while read p
 	do
 		SZ=$(filesize "$p")
@@ -787,6 +1123,11 @@ c_mp3_validate()
 		mp3val "$p"
 	done
 }
+
+
+# Utils
+
+source ~/bin/util.sh
 
 # stdio/stderr/exit util
 log()
@@ -802,18 +1143,6 @@ err()
 	[ -n "$2" ] && exit $2
 }
 
-c_errnow()
-{
-	return 3
-}
-
-req_arg()
-{
-	test -n "$1" || {
-		err "$2 requires argument at $3 '$4'"
-		return 1
-	}
-}
 
 
 # Main
