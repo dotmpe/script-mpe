@@ -187,6 +187,14 @@ c_init_cadvisor()
 #-storage_driver=influxdb
 }
 
+c_reset_munin()
+{
+	dckr_argv $@
+	image_name=munin
+	dckr_name=vs1_munin
+	dckr_stop && dckr_rm
+}
+
 c_init_munin()
 {
 	dckr_argv $@
@@ -202,6 +210,14 @@ c_init_munin()
 		-v $DCKR_VOL/munin/run:/var/run/munin:rw \
 		-v $DCKR_VOL/munin/munin:/var/cache/munin:rw \
 		-v /etc/localtime:/etc/localtime:ro
+}
+
+c_reset_sandbox()
+{
+	dckr_argv $@
+	image_name=sandbox
+	dckr_name=vs1_sandbox
+	dckr_stop && dckr_rm
 }
 
 c_init_sandbox()
@@ -298,6 +314,14 @@ c_init_haproxy()
 		-p 8009:80 \
 		-p 43309:443 \
 		-v /etc/localtime:/etc/localtime:ro
+}
+
+c_init_bind()
+{
+	sudo docker run --name bind -d --restart=always \
+			--publish 53:53/udp --publish 10000:10000 \
+				--volume $DCKR_VOL/bind:/data \
+					sameersbn/bind:latest
 }
 
 # include private projects
