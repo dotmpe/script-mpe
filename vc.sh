@@ -8,6 +8,7 @@ HELP="vc - version-control helper functions "
 source ~/bin/statusdir.sh
 statusdir_assert vc_status > /dev/null
 
+set -e
 
 scriptname=vc
 

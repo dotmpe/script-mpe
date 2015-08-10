@@ -5,6 +5,8 @@
 # Does not store actual properties yet, and the tree files are not actually used.
 # The files in the index are used to store lists of keys, see env.sh
 
+set -e
+
 [ -z "$STATUSDIR_ROOT" ] && {
     STATUSDIR_ROOT="$(echo ~/.statusdir/)"
     #export STATUSDIR_ROOT

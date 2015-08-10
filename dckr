@@ -26,7 +26,18 @@ c_usage()
 c_help()
 {
 	c_usage
-	echo 'Commands: '
+	echo ""
+	echo 'Docker: '
+	echo "  names                            List images"
+	echo "  c <image-name>                   Get container ID"
+	echo "  stop                             Stop container for image"
+	echo "  rm                               Remove image"
+	echo "  ip [<image-name>]                List IP for one or all running containers."
+	echo ""
+	echo "Generate:"
+	echo "  dnsmasq-conf                     print dnsmasq static address config using image-name as hostname"
+	echo ""
+	echo 'Misc: '
 	echo '  -e|edit                          Edit this script.'
 	echo '  alias                            Show bash aliases for this script.'
 	echo '  usage                            print just the usage description.'
@@ -84,10 +95,10 @@ dckr_run()
 	dckr_env=~/.conf/dckr/$dckr_name-env.sh
 	test ! -e "$dckr_env" || dckr_f="$dckr_f --env-file $dckr_env"
 
+#		--hostname $dckr_name \
 	sudo docker run $@ $dckr_f \
 		--log-driver json-file \
 		--name $dckr_name \
-		--hostname $dckr_name \
 		--env DCKR_NAME=$dckr_name \
 		--env DCKR_IMAGE=$image_name \
 		$image_name \
@@ -145,6 +156,29 @@ dckr_ip()
 	sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' $1
 }
 
+c_stop()
+{
+	image_name=$1
+	dckr_stop
+}
+
+c_rm()
+{
+	image_name=$1
+	dckr_rm
+}
+
+c_names()
+{
+	dckr_names
+}
+
+c_c()
+{
+	image_name=$1
+	dckr_c
+}
+
 c_ip()
 {
 	test -n "$1" && {
@@ -152,9 +186,31 @@ c_ip()
 	} || {
 		dckr_names | while read dckr_name
 		do
-			echo $(dckr_ip $dckr_name) "$dckr_name "
+			ip=$(dckr_ip $dckr_name)
+			test -z "$ip" || echo "$ip  $dckr_name "
 		done
 	}
+}
+
+c_dnsmasq_conf()
+{
+	#prefix=
+	#suffix=
+	c_ip | while read ip name
+	do
+		name=${name:1}
+		echo "address=/$prefix$name$suffix/$ip"
+	done
+}
+
+# XXX reload is not working
+c_dnsmasq_update()
+{
+	cp $DCKR_VOL/dnsmasq/dnsmasq.conf.default $DCKR_VOL/dnsmasq/dnsmasq.conf
+	c_dnsmasq_conf >> $DCKR_VOL/dnsmasq/dnsmasq.conf
+	image_name=vs1_dns
+	dckr_c
+	sudo docker exec -i $container /opt/reload
 }
 
 # FIXME: abstract below cmds so things can move to config files
@@ -162,9 +218,16 @@ c_ip()
 # FIXME: something to persist here?
 c_init_shipyard()
 {
-	#sudo docker run --rm -v /var/run/docker.sock:/var/run/docker.sock shipyard/deploy start
+	dckr_name=shipyard; dckr_stop; dckr_rm
+	dckr_name=shipyard-rethinkdb; dckr_stop; dckr_rm
+	dckr_name=shipyard-rethinkdb-data; dckr_stop; dckr_rm
+
 	sudo docker run -it -d --name shipyard-rethinkdb-data --entrypoint /bin/bash shipyard/rethinkdb -l
+	sleep 2
+
 	sudo docker run -it -d --name shipyard-rethinkdb --volumes-from shipyard-rethinkdb-data shipyard/rethinkdb
+	sleep 4
+
 	sudo docker run -it -p 8001:8080 -d --name shipyard --link shipyard-rethinkdb:rethinkdb shipyard/shipyard
 }
 
@@ -183,6 +246,14 @@ c_init_cadvisor()
 #-storage_driver=influxdb
 }
 
+c_reset_munin()
+{
+	dckr_argv $@
+	image_name=munin
+	dckr_name=vs1_munin
+	dckr_stop && dckr_rm
+}
+
 c_init_munin()
 {
 	dckr_argv $@
@@ -198,6 +269,14 @@ c_init_munin()
 		-v $DCKR_VOL/munin/run:/var/run/munin:rw \
 		-v $DCKR_VOL/munin/munin:/var/cache/munin:rw \
 		-v /etc/localtime:/etc/localtime:ro
+}
+
+c_reset_sandbox()
+{
+	dckr_argv $@
+	image_name=sandbox
+	dckr_name=vs1_sandbox
+	dckr_stop && dckr_rm
 }
 
 c_init_sandbox()
@@ -296,6 +375,46 @@ c_init_haproxy()
 		-v /etc/localtime:/etc/localtime:ro
 }
 
+c_init_bind()
+{
+	sudo docker run --name vs1_bind -d --restart=always \
+			--publish 53:53/udp --publish 10000:10000 \
+				--volume $DCKR_VOL/bind:/data \
+					sameersbn/bind:latest
+}
+
+c_init_dns()
+{
+	dckr_argv $@
+	image_name=quay.io/jpillora/dnsmasq-gui:latest
+	dckr_name=vs1_dns
+	cd ~/project/docker-dnsmasq
+	dckr_build && \
+	dckr_rm && \
+	dckr_run \
+		-p 53:53/udp \
+		-p 8010:8080 \
+		-v $DCKR_VOL/dnsmasq/dnsmasq.conf:/etc/dnsmasq.conf
+}
+
+c_init_jessie()
+{
+	dckr_argv $@
+	image_name=debian:jessie
+	dckr_name=vs1_jessie
+	dckr_rm && \
+	dckr_run
+}
+
+c_init_ubuntu()
+{
+	dckr_argv $@
+	image_name=ubuntu:14.04
+	dckr_name=vs1_ubuntu
+	dckr_rm && \
+	dckr_run
+}
+
 # include private projects
 test ! -e $DCKR_CONF/local.sh || {
 	source $DCKR_CONF/local.sh
@@ -361,7 +480,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 			;;
 
 		* )
-			echo No frontend for $base
+			err "No frontend for $base"
 
 	esac
 fi

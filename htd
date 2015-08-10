@@ -864,7 +864,8 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 			;;
 
 		* )
-			echo No frontend for $base
+			log "No frontend for $base"
+			;;
 
 	esac
 fi

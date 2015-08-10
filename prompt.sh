@@ -25,10 +25,11 @@ prompt_command()
 }
 
 # Main
+echo 0=$0
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
 	# Do something (only) if script invoked as '$scriptname'
-	base=$(basename $0 .sh)
+	base="$(basename $0 .sh)"
 	case "$base" in
 
 		$scriptname )
@@ -61,7 +62,8 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 			;;
 
 		* )
-			echo No frontend for $base
+			log "No frontend for $base"
+			;;
 
 	esac
 fi
