@@ -6,6 +6,7 @@ scriptname=dckr
 
 load()
 {
+	test -n "$EDITOR" || EDITOR=vim
 	test -n "$DCKR_CONF" || DCKR_CONF=~/.conf/dckr/
 	test -e "$DCKR_CONF" || err "Missing docker config dir $DCKR_CONF" 1
 	test -n "$DCKR_VOL" || DCKR_VOL=/Volumes/dckr
@@ -78,7 +79,7 @@ dckr_build()
 
 dckr_run()
 {
-	test -n "$dckr_f" || dckr_f=-d
+	test -n "$dckr_f" || dckr_f=-dt
 
 	dckr_env=~/.conf/dckr/$dckr_name-env.sh
 	test ! -e "$dckr_env" || dckr_f="$dckr_f --env-file $dckr_env"
@@ -121,12 +122,14 @@ dckr_rm()
 {
 	test -z "$dckr_name" && {
 		test -z "$image_name" || {
+			log "Removing container by image-name $image_name"
 			dckr_c -a
 			sudo docker rm $container
 		}
 	} || {
 		# check for container with name and remove
 		sudo docker ps -a | grep '\<'$dckr_name'\>' && {
+			log "Removing container by container-name $dckr_name"
 			sudo docker rm $dckr_name
 		} || echo -n
 	}
@@ -294,8 +297,8 @@ c_init_haproxy()
 }
 
 # include private projects
-test ! -e ~/.conf/dckr/local.sh || {
-	source ~/.conf/dckr/local.sh
+test ! -e $DCKR_CONF/local.sh || {
+	source $DCKR_CONF/local.sh
 }
 
 
