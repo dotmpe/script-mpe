@@ -230,7 +230,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
 			;;
 
-		bats-exec-test )
+		htd | bats-exec-test )
 			;;
 
 		* )

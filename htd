@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-set -e
 
 source ~/bin/match.sh
+set -e
 
 scriptname=htd
 VERBOSITY=0
@@ -50,6 +50,7 @@ htd_commands()
 	echo '  st|stat                          Run make stat.'
 	echo '  sys                              Run make sys.'
 	echo '  vt|vtoday                        Run make vtoday.'
+	echo '  today [<prefix> [<ext>]]         Create symlinks of the format $PREFIX/{today,tomorrow,yesterday}.rst -> %Y-%m-%d.rst'
 	echo ''
 	echo '  vbox-start <name>                Start headless VBoxVM for VM UUID with name in VBoxVM table. '
 	echo '  vbox-suspend <name>              Suspend VBoxVM. '
@@ -333,6 +334,41 @@ c_vt()
 	c_vtoday $*
 }
 
+# update yesterday, today and tomorrow links
+c_today()
+{
+    test -z "$1" && P=journal || P=$1
+    YSEP=/
+    Y=%Y
+    MSEP=-
+    M=%m
+    DSEP=-
+    D=%d
+    EXT=.rst
+    r=$P$YSEP
+    p=$P$YSEP$Y$MSEP$M$DSEP$D$EXT
+    today=$(date +$p)
+    tomorrow=$(date -v +1d +$p)
+    yesterday=$(date -v -1d +$p)
+    for tag in today tomorrow yesterday
+    do
+        tp=${r}$tag$EXT
+        test -L $tp && {
+            echo -n "Deleting "
+            rm -v $tp
+        }
+        # FIXME:mkrlink
+        mkrlink $(eval echo \$$tag) $tp
+    done
+        
+}
+
+mkrlink()
+{
+    # TODO: find shortest relative path
+    echo -n "Linking "
+    ln -vs $(basename $1) $2
+}
 
 # VirtualBox
 
@@ -495,7 +531,7 @@ c_git_init_remote()
     ssh_cmd="mkdir -v $remote_dir/$repo.git"
     ssh $remote_user@$remote_host "$ssh_cmd"
 
-    [ -d .git ] || return
+    [ -e .git ] || err "No .git directory, stopping remote init" 0
 
     c_git_remote $repo >> /dev/null
 
@@ -519,7 +555,7 @@ c_git_init_remote()
     rsync -azu $BARE/ $scp_url
     [ -n "$TMP_BARE" ] && {
         log "Deleting temp. bare clone ($BARE)"
-        rm -rf $TMP_BARE
+        rm -rf $BARE
     }
 
     log "Adding new remote, and fetching remote refs"
@@ -1127,7 +1163,7 @@ c_mp3_validate()
 
 # Utils
 
-source ~/bin/util.sh
+. ~/bin/util.sh
 
 # stdio/stderr/exit util
 log()
