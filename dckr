@@ -412,6 +412,17 @@ c_init_ubuntu()
 	dckr_run
 }
 
+c_init_dev()
+{
+	dckr_argv $@
+	image_name=docker-dev
+	dckr_name=vs1_dev
+	cd ~/project/docker-dev
+	dckr_build && \
+	dckr_rm && \
+	dckr_run
+}
+
 # include private projects
 test ! -e ~/.conf/dckr/local.sh || {
 	source ~/.conf/dckr/local.sh
