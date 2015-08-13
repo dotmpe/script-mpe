@@ -156,6 +156,11 @@ dckr_ip()
 	sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' $1
 }
 
+c_ps()
+{
+	sudo docker ps
+}
+
 c_stop()
 {
 	image_name=$1
