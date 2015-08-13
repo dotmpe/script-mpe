@@ -25,7 +25,7 @@ prompt_command()
 }
 
 # Main
-echo 0=$0
+# Use dash to ignore exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
 	# Do something (only) if script invoked as '$scriptname'
