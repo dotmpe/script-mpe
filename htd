@@ -335,6 +335,7 @@ c_vt()
 }
 
 # update yesterday, today and tomorrow links
+# FIXME: these use BSD date -v, see GNU date -d
 c_today()
 {
     test -z "$1" && P=journal || P=$1
@@ -347,20 +348,26 @@ c_today()
     EXT=.rst
     r=$P$YSEP
     p=$P$YSEP$Y$MSEP$M$DSEP$D$EXT
-    today=$(date +$p)
-    tomorrow=$(date -v +1d +$p)
-    yesterday=$(date -v -1d +$p)
-    for tag in today tomorrow yesterday
+    datelink -1d "$p" ${r}yesterday$EXT
+    datelink "" "$p" ${r}today$EXT
+    datelink +1d "$p" ${r}tomorrow$EXT
+    for tag in sunday monday tuesday wednesday thursday friday saturday
     do
-        tp=${r}$tag$EXT
-        test -L $tp && {
-            echo -n "Deleting "
-            rm -v $tp
-        }
-        # FIXME:mkrlink
-        mkrlink $(eval echo \$$tag) $tp
+        datelink "$tag -v -7d" "$p" "${r}last-$tag$EXT"
+        datelink "$tag -v +7d" "$p" "${r}next-$tag$EXT"
+        datelink "$tag" "$p" "${r}$tag$EXT"
     done
-        
+}
+
+datelink()
+{
+    test -z "$1" && datep=$(date +$2) || datep=$(date -v $1 +$2)
+    target_path=$3
+    test -L $target_path && {
+        echo -n "Deleting "
+        rm -v $target_path
+    }
+    mkrlink $datep $target_path
 }
 
 mkrlink()
@@ -479,6 +486,11 @@ c_todo()
 
 # Lists and tasks
 
+gtasks_list_arg()
+{
+    test -z "$1" && list=Standaardlijst || list="$1"
+}
+
 c_tasks()
 {
     gtasks -L -b
@@ -491,9 +503,24 @@ c_lists()
 
 c_new_task()
 {
-    gtasks -l Standaardlijst -a - -t "$@"
+	gtasks_list_arg $@ && shift 1
+	gtasks -l "$list" -a - -t "$@"
 }
 
+c_task()
+{
+	gtasks_list_arg $@ && shift 1
+	gtasks -l "$list" -e $num \
+		$@
+	# -t ""
+	# -n ""
+}
+
+c_tasks_test()
+{
+	gtasks -l "test" -a - -t task-title -n task-note
+	#c_task "test" -t task-title -n task-note
+}
 
 # init or list SSH based remote 
 
@@ -1185,6 +1212,7 @@ err()
 
 #def_func=c_default
 
+# Use dash to ignore exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
 	# Do something (only) if script invoked as '$scriptname'

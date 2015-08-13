@@ -447,6 +447,7 @@ err()
 
 #def_func=c_default
 
+# Use dash to ignore exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
 	# Do something (only) if script invoked as 'htd'
