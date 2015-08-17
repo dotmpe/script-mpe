@@ -52,6 +52,7 @@ htd_commands()
 	echo '  vt|vtoday                        Run make vtoday.'
 	echo '  today [<prefix> [<ext>]]         Create symlinks of the format $PREFIX/{today,tomorrow,yesterday}.rst -> %Y-%m-%d.rst'
 	echo ''
+	echo 'Virtuals: '
 	echo '  vbox-start <name>                Start headless VBoxVM for VM UUID with name in VBoxVM table. '
 	echo '  vbox-suspend <name>              Suspend VBoxVM. '
 	echo '  vbox-reset <name>                Reboot VBoxVM. '
@@ -61,13 +62,21 @@ htd_commands()
 	echo ''
 	echo '  lists [opts]                     List all lists. '
 	echo '  tasks [<list>..]                 List tasks in lists'
+	echo '  new-task <list> <title>          Add task to list with title'
+	echo '  task-note <list> <num>           Edit notes of task in the $EDITOR'
+	echo '  task-title <list> <num> [<title>]'
+	echo '                                   Get or update title of task'
+	echo '  done <list> <num>                Toggle task completed status'
+	echo '  todo                             '
 	echo ''
+	echo 'Networking'
 	echo '  wol <host>                       Send wol to mac for host from WOL table.'
 	echo '  mac                              List ARP table: hwaddr for clients (once) connector to LAN. '
-	echo '  todo'
+	echo ''
+	echo 'File Versioning'
 	echo '  git-remote [repo]                List all names remotely, or give the SSH url for given repo. '
 	echo '  git-init-remote [repo]           Initialze remote bare repo if local path is GIT project'
-	echo '  git-remote-info                  Show vars'
+	echo '  git-remote-info                  Show vars.'
 	echo '  git-largest-objects (10)         List the SHA1 sums of the largest objects.'
 	echo '  git-path-for-object <sha1>       Given SHA1 object, find its current path.'
 	echo '  git-annex-unused                 Show keys of stored objects without path using them. '
@@ -80,11 +89,11 @@ htd_commands()
 	echo '  test-name <path>                 Test filename for unhandled characters. '
 	echo '  find-name <path|localname>       TODO: Given (partial) path, try to find the file using find.  '
 	echo '  update                           Fill checksums tables for all local files. TODO: find out what there is to know about file using settings, other commands, ext. tooling & services. And trigger resolve'
-	echo '  fix-names [.|<dirpath]           XXX '
-	echo '  resolve                          XXX based on data and settings, pre-process and mark all files ready for commit, and bail on any irregularities. '
-	echo '  commit                           XXX record metadata according to htd settings/commands. Commit is only a success, if the entire tree is either clean or ignored. '
+	echo '  fix-names [.|<dirpath]           checks files against name patterns'
 	echo '  '
 	echo 'Rules'
+	echo '  resolve                          XXX based on data and settings, pre-process and mark all files ready for commit, and bail on any irregularities. '
+	echo '  commit                           XXX record metadata according to htd settings/commands. Commit is only a success, if the entire tree is either clean or ignored. '
 	echo '  show-rules [<path>]              tabulate all rules that would apply to path'
     echo '  run-rules [<path>]               (re-)run rules on path'
 	echo '  add-rule <pattern> <functions>|<script> '
@@ -111,7 +120,7 @@ htd_commands()
 	echo '  ck-find-content <path>           Given path, try find-name or checksum tables and annex-backend to find copies and give all alternate locations. '
 	echo ''
 	echo 'Other commands: '
-	echo '  -e                               Edit this script.'
+	echo '  -e|edit                          Edit this script.'
 	echo '  alias                            Show bash aliases for this script.'
 	echo '  usage                            print this comand usage listing.'
 	echo '  help                             print a help description'
@@ -121,16 +130,12 @@ c_usage()
 {
 	htd_usage
 	echo ''
-	echo "See 'help'."
+	echo "See 'help' for all commands and docs."
 
 }
 
-c_help()
+c_docs()
 {
-	htd_usage
-	echo ""
-	htd_commands
-	echo ''
 	echo 'Help'
 	echo "  See usage for all commands. Htd does not parse options but does use "
 	echo "  environment variables. See 'info' for more env variables. "
@@ -138,7 +143,17 @@ c_help()
 	echo "env"
 	echo "  CWDIR"
 	echo "    If set, use instead of the current directory for working dir. "
-	echo ""
+	echo ''
+	echo 'See dckr for container commands. '
+}
+
+c_help()
+{
+	htd_usage
+	echo ''
+	htd_commands
+	echo ''
+	c_docs
 }
 
 c_home()
@@ -348,7 +363,7 @@ c_today()
     M=%m
     DSEP=-
     D=%d
-    EXT=.rst
+    test -z "$EXT" && EXT=.rst || EXT=$EXT
     r=$P$YSEP
     p=$P$YSEP$Y$MSEP$M$DSEP$D$EXT
     datelink -1d "$p" ${r}yesterday$EXT
@@ -366,7 +381,11 @@ datelink()
 {
     test -z "$1" && datep=$(date +$2) || datep=$(date -v $1 +$2)
     target_path=$3
+    test -d "$(dirname $3)" || err "Dir $(dirname $3) must exist" 1
     test -L $target_path && {
+        test "$(readlink $target_path)" = "$(basename $datep)" && {
+            return
+        }
         echo -n "Deleting "
         rm -v $target_path
     }
@@ -523,6 +542,22 @@ gtasks_opts()
 	return $cnt
 }
 
+htd_file_arg()
+{
+    test -n "$1" && {
+        file=$1
+        shift 1
+    } || return 1
+}
+
+# List all lists
+c_lists()
+{
+	test -n "$gtasks_opts" || gtasks_opts="-dsc"
+	gtasks -ll $gtasks_opts
+}
+
+# List tasks in lists
 c_tasks()
 {
 	gtasks_opts $@
@@ -539,18 +574,14 @@ c_tasks()
 	done
 }
 
-c_lists()
-{
-	test -n "$gtasks_opts" || gtasks_opts="-dsc"
-	gtasks -ll $gtasks_opts
-}
-
+# Add task to list with title
 c_new_task()
 {
 	gtasks_list_arg $@ && shift 1
 	gtasks -l "$list" -a - -t "$@"
 }
 
+# Edit notes of a task in the $EDITOR
 c_task_note()
 {
 	gtasks_list_arg $@ && shift 1
@@ -580,6 +611,7 @@ c_task_note()
 	}
 }
 
+# Get or updte title of task
 c_task_title()
 {
 	gtasks_list_arg $@ && shift 1
@@ -591,6 +623,7 @@ c_task_title()
 	}
 }
 
+# Toggle task completed status
 c_done()
 {
 	test -n "$2" && {
@@ -606,6 +639,30 @@ c_done()
 		}
 	}
 	gtasks -dsc -l "$list" -c $num
+}
+
+# TODO: get references from file
+c_urls()
+{
+    htd_file_arg $@ || exit 1
+    shift 1
+    grep '\([a-z]\+\):\/\/.*' $file | while read url
+    do
+        sha1=$(echo -n $url | sha1sum - | cut -d ' ' -f 1)
+        md5=$(echo -n $url | md5sum - | cut -d ' ' -f 1)
+        echo $sha1 $md5 $url
+    done
+}
+
+c_project()
+{
+    echo
+}
+c_project_todo()
+{
+    title=
+    descr=
+    refs=
 }
 
 # init or list SSH based remote 
@@ -907,6 +964,39 @@ c_fix_names()
 			done
 		done
 	done
+}
+
+htd_host_arg()
+{
+	test -z "$1" && host=$1 || host=$(hostname -s)
+}
+
+# TODO: pre-process file/metadata
+c_resolve()
+{
+	echo -n
+}
+
+c_commit()
+{
+	echo -e
+}
+
+c_show_rules()
+{
+	htd_host_arg $@
+	cat ~/.conf/rules/$host/$project.sh
+	echo -n
+}
+
+c_run_rules()
+{
+	echo -n
+}
+
+c_add_rule()
+{
+	echo -n
 }
 
 # parse path and annex metadata using given path
