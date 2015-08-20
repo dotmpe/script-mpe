@@ -24,6 +24,11 @@ load()
 	cols=$(stty size|awk '{print $2}')
 
 	HTD_IGNORE=.htdignore
+	test -e .git && {
+		grep $HTD_IGNORE .gitignore > /dev/null || {
+			echo $HTD_IGNORE >> .gitignore
+		}
+	}
 	htd_init_ignores
 	find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
 		grep -Ev '^(#.*|\s*)$' | \
@@ -76,7 +81,7 @@ htd_commands()
 	echo 'File Versioning'
 	echo '  git-remote [repo]                List all names remotely, or give the SSH url for given repo. '
 	echo '  git-init-remote [repo]           Initialze remote bare repo if local path is GIT project'
-	echo '  git-remote-info                  Show vars.'
+	echo '  git-remote-info                  Show current ~/.conf/git-remotes/* vars.'
 	echo '  git-largest-objects (10)         List the SHA1 sums of the largest objects.'
 	echo '  git-path-for-object <sha1>       Given SHA1 object, find its current path.'
 	echo '  git-annex-unused                 Show keys of stored objects without path using them. '
@@ -122,16 +127,9 @@ htd_commands()
 	echo 'Other commands: '
 	echo '  -e|edit                          Edit this script.'
 	echo '  alias                            Show bash aliases for this script.'
-	echo '  usage                            print this comand usage listing.'
-	echo '  help                             print a help description'
-}
-
-c_usage()
-{
-	htd_usage
-	echo ''
-	echo "See 'help' for all commands and docs."
-
+	echo '  help                             Give a combined usage, command and docs. '
+	echo '  docs                             Echo manual page. '
+	echo '  commands                         Echo this comand description listing.'
 }
 
 c_docs()
@@ -144,7 +142,7 @@ c_docs()
 	echo "  CWDIR"
 	echo "    If set, use instead of the current directory for working dir. "
 	echo ''
-	echo 'See dckr for container commands. '
+	echo 'See dckr for container commands and vc for GIT related. '
 }
 
 c_help()
@@ -185,6 +183,8 @@ c_expand()
 c_edit()
 {
 	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
+	[ -n "$fn" ] || fn=$(which $scriptname.sh)
+	[ -n "$fn" ] || err "Nothing to edit" 1
 	$EDITOR $fn
 }
 c__e()
@@ -1386,7 +1386,7 @@ err()
 
 # Main
 
-#def_func=c_default
+def_func=c_default
 
 # Use dash to ignore exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
@@ -1416,12 +1416,12 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 				e=$?
 				[ -z "$cmd" ] && {
 					load
-					c_usage
+					htd_usage
 					err 'No command given, see "help"' 1
 				} || {
 					[ "$e" = "1" -a -z "$func_exists" ] && {
 						load
-						c_usage
+						htd_usage
 						err "No such command: $cmd" 1
 					} || {
 						err "Command $cmd returned $e" $e
