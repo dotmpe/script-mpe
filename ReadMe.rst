@@ -114,5 +114,5 @@ Change Log
 .. _maildir: http://en.wikipedia.org/wiki/Maildir
 .. _Transliterature Project: translit_
 .. _translit: http://transliterature.org/
-.. __: https://github.com/dotmpe/script.mpe/blob/master/Workflow.rst
+.. __: https://github.com/dotmpe/script.mpe/blob/master/WorkFlow.rst
 
