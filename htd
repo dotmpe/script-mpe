@@ -334,7 +334,7 @@ filesize()
 # show htd shell aliases
 c_alias()
 {
-	grep '\<'$scriptname'\>' ~/.alias | grep -v '^#' | while read _a A
+	grep '\<'$scriptname'\>' ~/.alias | grep -Ev '^(#.*|\s*)$' | while read _a A
 	do
 		a_id=$(echo $A | awk -F '=' '{print $1}')
 		a_shell=$(echo $A | awk -F '=' '{print $2}')
@@ -493,18 +493,74 @@ c_mac()
 	arp -a
 }
 
+# 
+
+c_project()
+{
+    echo -n
+}
+
+c_project_todo()
+{
+    title=
+    descr=
+    refs=
+}
+
 # Experimenting with gtasks.. looking at todo targets
 c_todo()
 {
-	echo
-	echo "..Htdocs ToDo.."
-	gtasks -L -dsc -dse -sn
-	echo "Due:"
-	gtasks -L -sdo -dse -sn
+	test -e TODO.list && {
+		cat TODO.list | \
+			grep -Ev '^(#.*|\s*)$' | \
+			while read line
+			do
+				todo_read_line "$line"
+				todo_clean_descr "$comment"
+				echo "$fn $ln  $tag  $descr"
+				# (.,.)p
+			done
+	} || {
+		echo
+		echo "..Htdocs ToDo.."
+		gtasks -L -dsc -dse -sn
+		echo "Due:"
+		gtasks -L -sdo -dse -sn
 #	echo ""
 #	gtasks -L -sb tomorrow -sa today -dse
+	}
 }
 
+todo_clean_descr()
+{
+	echo "$@" | \
+	grep -E '^.*(TODO|XXX|FIXME)[\ \:]*(.*)((\?\ )|(\.\ )|(\.\s*$)).*$' \
+	> /dev/null && {
+		clean=$( echo "$@" | \
+			sed -E 's/^.*(TODO|XXX|FIXME)[\ \:]*(.*)((\?\ )|(\.\ )|(\.\s*$)).*$/\1 \2\3/' )
+	} || {
+		clean=$( echo "$@" | \
+			sed -E 's/^.*(TODO|XXX|FIXME)[\ \:]*(.*)$/\1 \2/' )
+	}
+	tag=$(echo $clean|cut -f 1 -d ' ')
+	descr="$(echo ${clean:$(( ${#tag} + 1 ))})"
+	test -n "$descr" -a "$descr" != " " && {
+		echo $descr | grep -E '(\.|\?)$' > /dev/null || {
+			echo -n
+			# TODO: scan lines for end...
+		}
+	}
+}
+
+todo_read_line()
+{
+	line="$1"
+	fn=$(echo $line | cut -f 1 -d ':')
+	ln=$(echo $line | cut -f 2 -d ':')
+	test "$ln" -eq "$ln" 2> /dev/null \
+		|| err "Please include numbers in the TODO.list" 1
+	comment=${line:$((  ${#fn} + ${#ln} + 2  ))}
+}
 
 # Lists and tasks
 
@@ -652,17 +708,6 @@ c_urls()
         md5=$(echo -n $url | md5sum - | cut -d ' ' -f 1)
         echo $sha1 $md5 $url
     done
-}
-
-c_project()
-{
-    echo
-}
-c_project_todo()
-{
-    title=
-    descr=
-    refs=
 }
 
 # init or list SSH based remote 
