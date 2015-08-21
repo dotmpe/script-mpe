@@ -34,6 +34,7 @@ match_load_defs()
 	source $1
 }
 
+# To escape filenames and perhaps other values for use as grep literals
 match_grep_pattern_test()
 {
 	p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@+_])/\\\1/g')"
@@ -230,7 +231,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
 			;;
 
-		htd | bats-exec-test )
+		htd | work | bats-exec-test )
 			;;
 
 		* )

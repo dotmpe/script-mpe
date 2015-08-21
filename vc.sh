@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # SCM util functions and pretty prompt printer for Bash, GIT
-# TODO: other SCMs, BZR, HG, SVN
+# TODO: other SCMs, BZR, HG, SVN (but never need them so..)
+# XXX: more in projectdir.sh in private repo
 #
 HELP="vc - version-control helper functions "
 
@@ -12,6 +13,61 @@ set -e
 
 scriptname=vc
 
+load()
+{
+	echo -n # no-op
+}
+
+vc_usage()
+{
+	echo 'Usage: '
+	echo "  $scriptname <cmd> [<args>..]"
+}
+
+vc_commands()
+{
+	c_usage
+	echo 'Commands: '
+	echo '  print-all <path>                 Dump some debug info on given (versioned) paths'
+	echo '  ps1                              Print PS1'
+	echo '  prompt-command                   ...'
+	echo ''
+	echo 'Other commands: '
+	echo '  -e|edit                          Edit this script.'
+	echo '  help                             Give a combined usage, command and docs. '
+	echo '  docs                             Echo manual page. '
+	echo '  commands                         Echo this comand description listing.'
+}
+
+vc_help()
+{
+	vc_usage
+	echo ''
+	vc_commands
+	echo ''
+	vc_docs
+}
+
+vc_docs()
+{
+	echo "See htd and dckr for other scripts"
+}
+
+
+vc_edit()
+{
+	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
+	[ -n "$fn" ] || fn=$(which $scriptname.sh)
+	[ -n "$fn" ] || err "Nothing to edit" 1
+	$EDITOR $fn
+}
+vc__e()
+{
+	vc_edit
+}
+
+
+### Internal functions
 
 homepath ()
 {
@@ -358,6 +414,8 @@ list_errors()
 	done
 }
 
+### Command Line handlers
+
 # print all fuctions/results for paths in arguments
 vc_print_all()
 {
@@ -396,17 +454,6 @@ vc_prompt_command()
 	cat "$statsdir/$pwdref"
 }
 
-vc_usage()
-{
-	echo 'Usage: '
-	echo "  vc.sh <cmd> [<args>..]"
-}
-
-vc_help()
-{
-	c_usage
-}
-
 
 # stdio/stderr/exit util
 log()
@@ -437,8 +484,10 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 		cmd=$func
 		type $func &>/dev/null && {
 			shift 1
+			load
 			$func $@
 		} || { 
+			load
 			vc_print_all $@
 		}
 	fi
