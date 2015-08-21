@@ -4,7 +4,7 @@ Various tools and ongoing experiments that have not yet deserved their own
 project.
 
 Documentation
-  - `Working on projects`__, a 2011 sketch not-a-manual-yet of working on projects
+  - `Working on projects`__, a 2011 sketch about working on projects
     privately or professionally, ideas on tooling support.
 
 GIT Branches
@@ -105,10 +105,14 @@ Change Log
         Planning to continue to improve confparse and libcmd, split those off,
         see how that works for other projects. 
 
+    2015
+        Now using htd, vc, dckr and other scripts only mostly.
+        Stopped dev on most python scripts, but for now and then.
+
 
 .. _graphviz: http://www.graphviz.org/
 .. _maildir: http://en.wikipedia.org/wiki/Maildir
 .. _Transliterature Project: translit_
 .. _translit: http://transliterature.org/
-.. __: https://github.com/dotmpe/script.mpe/blob/master/workflow.rst
+.. __: https://github.com/dotmpe/script.mpe/blob/master/WorkFlow.rst
 
