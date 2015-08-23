@@ -246,6 +246,47 @@ req_path_arg()
 	}
 }
 
+# x-platform regex match since Bash/BSD test wont chooche on older osx
+x_re()
+{
+	echo $1 | grep -E "^$2$" > /dev/null && return || return 1
+}
+
+htd_relative_path()
+{
+	cwd=$(pwd)
+	test -e "$1" && {
+		x_re "${1}" '\/.*' && {
+			err "TODO make rel"
+		}
+		x_re "${1}" '[^\/].*' && {
+			x_re "${1}" '((\.\/)|(\.\.)).*' && {
+				relpath="${1: 2}"
+			} || {
+				relpath="$1"
+			}
+			return 0
+		}
+	}
+	return 1
+}
+man_1_relative_path="Test for relative path"
+c_relative_path()
+{
+	# TODO: maybe build relative path from 1 arg and cwd, or two args
+	# see also mkrlink. Also clean up.
+	#x_re "${1:0:2}" '[\.\/]*' && echo ok || echo nok
+	htd_relative_path $1
+	r=$?
+	echo relpath=$relpath
+	exit $r
+}
+man_1_relpath="Alias for 'relative-path'"
+c_relpath()
+{
+	c_relative_path $1
+}
+
 # return paths for names that exist along given path
 htd_find_path_locals()
 {
@@ -903,7 +944,7 @@ htd_name_precaution() {
 
 c_test_name()
 {
-	match_grep_pattern_test "$@"
+	match_grep_pattern_test "$@" || return 1
 	htd_name_precaution "$@"
 }
 
@@ -940,9 +981,9 @@ c_check()
 				do
 					c_ck_table_subtree $ck "$p" | while read p2
 					do
-						c_ck_table $ck "$p2" >> /dev/null && {
+						c_ck_table $ck "$p2" > /dev/null && {
 							#c_ck_drop $ck "$p"
-							echo "Dropped $ck key for $p"
+							echo "FIXME: Dropped $ck key for $p"
 						}
 					done
 				done
@@ -1012,7 +1053,7 @@ c_fix_names()
 {
 	local path_regex names_tables names_table
 	req_path_arg "$@"
-	match_grep_pattern_test "$path"
+	match_grep_pattern_test "$path" || return 1
 	path_regex="$p_"
 	match_name_tables "$path"
 	htd_find_path_locals table.names $(pwd)
@@ -1151,7 +1192,10 @@ ck_write()
 	}
 }
 
-# Check for path in table
+man_5_table_ck="Table of CK checksum, filesize and path"
+man_5_table_sha1="Table of SHA1 checksum and path"
+man_5_table_md5="Table of MD5 checksum and path"
+# Either check table for path, or iterate all entries. Echoes checksum, two spaces and a path
 c_ck_table()
 {
 	# table ext
@@ -1161,8 +1205,8 @@ c_ck_table()
 	test -n "$1" -a -e "table.$CK.$1" && {
 		S=$1; shift 1
 	} || S=
-	# path
-	[ -z "$1" ] && {
+	test -z "$1" && {
+		# run all entries
 		cat table.$CK$S | grep -Ev '^\s*(#.*|\s*)$' | \
 		while read -a ckline
 		do
@@ -1179,9 +1223,9 @@ c_ck_table()
 	} || {
 		# look for single path
 		htd_relative_path "$@"
-		match_grep_pattern_test "$relpath"
+		match_grep_pattern_test "$relpath" || return 1
 		grep ".*\ \(\.\/\)\?$p_$" table.$CK$S >> /dev/null && {
-			echo ok
+			grep ".*\ \(\.\/\)\?$p_$" table.$CK$S | cut -f 1 -d ' '
 		} || {
 			echo unknown
 			return 1
@@ -1189,40 +1233,14 @@ c_ck_table()
 	}
 }
 
-# x-platform regex match since Bash/BSD test wont chooche on older osx
-x_re()
-{
-	echo $1 | grep -E "^$2$" > /dev/null && return || return 1
-}
-
-htd_relative_path()
-{
-	cwd=$(pwd)
-	{ test -e "$1" && x_re "${1:0:2}" '[\.\/]*'; } && {
-		return 0
-	} || {
-		return 1
-	}
-}
-man_1_relative_path="Test for relative path"
-c_relative_path()
-{
-	#x_re "${1:0:2}" '[\.\/]*' && echo ok || echo nok
-	htd_relative_path $1
-	exit $?
-}
-man_1_relpath="Alias for 'relative-path'"
-c_relpath()
-{
-	c_relative_path $1
-}
-
+man_1_ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
+man_1_ck_table_subtree_spec="$ck_arg_spec <path>"
 c_ck_table_subtree()
 {
 	ck_arg "$1"
 	shift 1
 	test -n "$1" || return 1
-	match_grep_pattern_test "$@"
+	match_grep_pattern_test "$@" || return 1
 	grep ".*\ $p_.*$" table.$CK | grep -v '^#|\s*$' | while read -a ckline
 		do
 			test "$CK" = "ck" && {
@@ -1337,20 +1355,34 @@ c_ck_update()
 	err "Unknown path '$update_p'" 1
 }
 
-
 c_ck_drop()
 {
 	ck_write "$1"
 	shift 1
 	ck_drop "$@"
 	req_arg "$1" 'ck-drop' 2 path || return 1
-	match_grep_pattern_test "$@"
+	match_grep_pattern_test "$@" || return 1
 	cp table.$CK table.$CK.tmp
 	cat table.$CK.tmp | grep "^.*$p_$" >> table.$CK.missing
 	cat table.$CK.tmp | grep -v "^.*$p_$" > table.$CK
 	rm table.$CK.tmp
 }
 
+ck_arg_spec="[ck|sha1|md5]"
+man1_ck_clean_spec="$ck_arg_spec"
+man1_ck_clean="Iterate checksum table, check for duplicates, normalize paths"
+c_ck_clean()
+{
+	ck_arg "$1"
+	shift 1
+	test "$CK" = "ck" && {
+		echo -n
+	} || {
+		echo -n
+	}
+}
+
+man_1_ck_validate_spec="$ck_arg_spec"
 c_ck_validate()
 {
 	ck_arg "$1"
@@ -1363,6 +1395,7 @@ c_ck_validate()
 }
 
 # check file size and cksum
+man_3_checksums_spec="[<table-file>]"
 checksums()
 {
 	test -n "$1"  && T=$1  || T=table.ck
@@ -1433,7 +1466,7 @@ c_ck_metafile()
 			continue
 		}
 		cks=$(rsr.py --show-sha1sum-hexdigest "$ck_mf_p" 2> /dev/null)
-		c_ck_table "$CK" "$ck_mf_p" && {
+		c_ck_table "$CK" "$ck_mf_p" > /dev/null && {
 			log "$cks found"
 		} || {
 			CKS=$(${CK}sum "$ck_mf_p" | cut -d' ' -f1)
