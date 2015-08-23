@@ -71,6 +71,8 @@ test "$1" = "run" && {
   install_pylib
   install_script
 
+} || {
+  echo -n
 }
 
 # Id: script-mpe/0 install-dependencies.sh
