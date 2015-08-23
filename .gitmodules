@@ -1,3 +1,5 @@
 [submodule "munin/rsyslog"]
 	path = munin/rsyslog
-	url = git@github.com:jonschipp/munin-plugins.git
+	url = git@github.com:dotmpe/munin-plugins.git
+
+#	url = git@github.com:jonschipp/munin-plugins.git
