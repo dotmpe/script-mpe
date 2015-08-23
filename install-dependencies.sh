@@ -60,5 +60,12 @@ install_mkdoc
 
 install_pylib
 
+cwd=$(pwd)
+pushd ~/
+ln -c $cwd bin
+popd
+echo "pwd=$cwd"
+echo "bats=$(which bats)"
+
 # Id: script-mpe/0 install-dependencies.sh
 
