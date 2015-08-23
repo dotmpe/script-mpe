@@ -3,6 +3,8 @@ sudo: false
 install: ./install-dependencies.sh
 
 before_script:
+- 'pip install --user zope.interface'
+- 'pip install --user zope.component'
 - 'pip install --user jsonschema'
 - 'pip install --user sqlalchemy'
 - 'export PATH=$PATH:./'
