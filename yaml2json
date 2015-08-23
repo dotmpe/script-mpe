@@ -8,5 +8,12 @@ from script_mpe.confparse import yaml_load, yaml_dump
 
 
 for f in sys.argv[1:]:
-	data = yaml_load(open(f))
-	print js.dumps(data)
+	try:
+		data = yaml_load(open(f))
+		print js.dumps(data)
+	except:
+		print "Error in", f
+		import traceback
+		traceback.print_exc()
+
+

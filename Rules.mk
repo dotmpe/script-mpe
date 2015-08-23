@@ -106,18 +106,21 @@ test_sa_$d::
 
 
 test_schema_$d:
-	@echo Testing validator with jsonschema, hyper-schema and links schemas...
+	@$(ll) attentino $@ "Testing validator with jsonschema, hyper-schema and links schemas..."
 	@jsonschema -i schema/hyper-schema.json schema/jsonschema.json
 	@jsonschema -i schema/hyper-schema.json schema/hyper-schema.json
 	@jsonschema -i schema/links.json schema/hyper-schema.json
-	@echo OK, now validating Taxus...
+	@$(ll) file_warning taxus.schema.json "now writing JSON schema for" taxus-schema.yml
 	@yaml2json taxus-schema.yml > taxus-schema.json
+	@$(ll) OK $@ "now validating Taxus schema..."
 	@jsonschema -i taxus-schema.json schema/jsonschema.json
-	@echo OK, now validating schema_test...
+	@$(ll) file_warning schema_test.json "now writing JSON schema for" schema_test.yml
 	@yaml2json schema_test.yml > schema_test.json
+	@$(ll) OK $@ "now validating schema_test..."
 	@jsonschema -i schema_test.json taxus-schema.json
-	@echo OK, now validating schema/base...
+	@$(ll) file_warning schema/base.json "now writing JSON schema for" schema/base.yml
 	@yaml2json schema/base.yml > schema/base.json
+	@$(ll) OK $@ "now validating schema/base..."
 	@jsonschema schema/base.json
 
 ###    SQL Alchemy repository schema control
