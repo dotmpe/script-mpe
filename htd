@@ -1541,6 +1541,18 @@ c_ck_metafile()
 	done
 }
 
+# validate torrent
+c_ck_torrent()
+{
+	htwd=$(pwd)
+	test -f "$2" || return 1
+	test -z "$2" -o -d "$2" || return 1
+	#test "$1" != "." && pushd $1
+	./torrent-verify.py $1
+	#test "$1" != "." && popd
+}
+
+# xxx find corrupt files: .mp3
 c_mp3_validate()
 {
 	eval "find . $find_ignores -o -name "*.mp3" -a \( -type f -o -type l \) -print" \

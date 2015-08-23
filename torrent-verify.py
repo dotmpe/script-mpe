@@ -38,24 +38,28 @@ def corruption_failure():
     print("download corrupted")
     exit(1)
 
-def main():
+def main(torrentfile_path):
     # Open torrent file
-    torrent_file = open(sys.argv[1], "rb")
+    torrent_file = open(torrentfile_path, "rb")
     metainfo = bencode.bdecode(torrent_file.read())
     info = metainfo['info']
+    btih = hashlib.sha1(info).hexdigest()
+    print "magnet:?xt=urn:btih:%s" % btih
     pieces = StringIO.StringIO(info['pieces'])
-    print metainfo
+    #print metainfo
     print len(info['pieces'])/20, "pieces, piece length:",info['piece length']
-    return
     # Iterate through pieces
     for piece in pieces_generator(info):
         # Compare piece hash with expected hash
         piece_hash = hashlib.sha1(piece).digest()
         if (piece_hash != pieces.read(20)):
             corruption_failure()
-    # ensure we've read all pieces 
+    # ensure we've read all pieces
     if pieces.read():
         corruption_failure()
 
 if __name__ == "__main__":
-    main()
+    argv = list(sys.argv)
+    scriptname = argv.pop(0)
+    main(argv.pop(0))
+
