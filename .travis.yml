@@ -1,7 +1,10 @@
+sudo: false
 
 install: ./install-dependencies.sh
 
-sudo: false
+before_script:
+- 'export PATH=$PATH:./'
+
 script: make -k test
 
 branches:
