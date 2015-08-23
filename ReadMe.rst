@@ -5,6 +5,8 @@ script.mpe
 Various tools and ongoing experiments that have not yet deserved their own
 project.
 
+This is now build on travis so see `.travis.yml` on how to install various bits.
+
 Documentation
   - `Working on projects`__, a 2011 sketch about working on projects
     privately or professionally, ideas on tooling support.
