@@ -48,7 +48,7 @@ install_pylib()
   # hack py lib here
   mkdir -vp ~/lib/py
   cwd=$(pwd)
-  pushd lib/py
+  pushd ~/lib/py
   ln -s $cwd script_mpe
   popd
   export PYTHON_PATH=$PYTHON_PATH:~/lib/py
