@@ -12,6 +12,11 @@ def pieces_generator(info):
         for file_info in info['files']:
             path = os.sep.join([info['name']] + file_info['path'])
             print path
+            # XXX: all files must exist, with missing files pieces overlapping
+            #    fileboundaries cannot be validated.
+            # It would be nice to validate specific files only, or tolerate
+            # missing files. This routine would need to skip certain byte spans
+            # and signal main()
             sfile = open(path.decode('UTF-8'), "rb")
             while True:
                 piece += sfile.read(piece_length-len(piece))
@@ -43,10 +48,13 @@ def main(torrentfile_path):
     torrent_file = open(torrentfile_path, "rb")
     metainfo = bencode.bdecode(torrent_file.read())
     info = metainfo['info']
-    btih = hashlib.sha1(info).hexdigest()
-    print "magnet:?xt=urn:btih:%s" % btih
+    if 'files' in info:
+        print 'info/files', info['files']
+    print 'info/piece length', info['piece length']
+    print 'info/name', info['name']
+    #btih = hashlib.sha1(info).hexdigest()
+    #print "magnet:?xt=urn:btih:%s" % btih
     pieces = StringIO.StringIO(info['pieces'])
-    #print metainfo
     print len(info['pieces'])/20, "pieces, piece length:",info['piece length']
     # Iterate through pieces
     for piece in pieces_generator(info):

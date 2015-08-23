@@ -1544,13 +1544,24 @@ c_ck_metafile()
 # validate torrent
 c_ck_torrent()
 {
+	test -s "$1" || err "Not existent torrent arg 1: $1" 1
+	test -f "$1" || err "Not a torrent file arg 1: $1" 1
+	test -z "$2" -o -d "$2" || err "Missing dir arg" 1
 	htwd=$(pwd)
-	test -f "$2" || return 1
-	test -z "$2" -o -d "$2" || return 1
-	#test "$1" != "." && pushd $1
-	./torrent-verify.py $1
-	#test "$1" != "." && popd
+	dir=$2
+	test "$dir" != "." && pushd $2 > /dev/null
+	test "${dir: -1:1}" = "/" && dir="${dir:0: -1}"
+	log "In $dir, verify $1"
+	torrent-verify.py "$1" | while read line
+	do
+		test -e "${line}" && {
+			echo $htwd/$dir/${line} ok
+		}
+	done
+	test "$dir" != "." && popd > /dev/null
 }
+
+
 
 # xxx find corrupt files: .mp3
 c_mp3_validate()
@@ -1613,7 +1624,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 				load
 				shift 1
 				pushd_cwdir
-				$func $@
+				$func "$@"
 				popd_cwdir
 			} || {
 				# handle non-zero return or print usage for non-existant func
