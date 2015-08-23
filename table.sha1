@@ -53,3 +53,9 @@ ba5fb1857c888c662715ccdf6ee52c9dfed0be31  txs.py
 a677be2ec6b792bbfe195de0adfd1d1ef37d2efc  vc.sh
 03d093883fb557e4e2272600167c02a07f5768ce  wakeonlan
 5ba91e314dbe89f73ab58f8521b510983c393527  workLog_timeEdition.py
+105f75c4b5d47e8eaa573e4a526d5166ca5aeba4  cmdline.py
+f3d61660a3fb26bad32eb2e2f7debd9adda0cdb0  db_sa.py
+4d6a5a3c213db9db31de4356672b151f658bff7e  folder.py
+2ed199dc9b88af20e988d81ed86ba226f4768b87  project.py
+cc15d7b686bd11756b2ffb5113f3a4eff0d1ee1c  py-MRO-graph.py
+65eb9a337c3687f3dc9cd5d003943fca01103239  rhythmbox-ratings-export.py
