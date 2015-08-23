@@ -33,7 +33,8 @@ endif
 #
 #      ------------ -- 
 
-TEST_$d             := test_py_$d test_sa_$d test_match_$d test_usr_$d test_schema_$d
+TEST_$d             := test_py_$d test_sa_$d test_match_$d test_htd_$d \
+	test_usr_$d test_schema_$d
 
 STRGT               += $(TEST_$d)
 
@@ -87,6 +88,11 @@ test_match_$d::
 test_match_$d::
 	-./match.sh || echo "Status 1=$$? OK"
 	bats ./test/match-spec.bats
+
+test_htd_$d::
+test_htd_$d::
+	-./htd || echo "Status 1=$$? OK"
+	bats ./test/htd-spec.bats
 
 
 # Make SA do a test on the repo
