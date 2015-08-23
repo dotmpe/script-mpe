@@ -1,1 +1,1 @@
-../mkdoc/Makefile
+/usr/local/share/mkdoc/Mkdocs-full.mk
