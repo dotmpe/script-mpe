@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+
+# not commit-msg yet cat .git/COMMIT_EDITMSG
+
