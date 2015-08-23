@@ -1,189 +1,202 @@
 #!/usr/bin/env python
-"""tree - Creates a tree of a filesystem hierarchy.
+"""treemap - Creates a tree of a filesystem hierarchy.
 
 Calculates cumulative size of each directory. Output in JSON format.
+
+TODO: store local and cumulative values in TreeMap or FileTreeMap document.
+    - build ``hashref(path)`` -> local, cumulative lookup
+      TODO: this index would be a some URIref map
+    - must store nodes for all paths, can store one or more dates per tree
+XXX: started using Document Node in filetree.py
 
 Copyleft, May 2007.  B. van Berkum <berend `at` dotmpe `dot` com>
 """
 import sys
-from os import listdir
+from os import listdir, sep
 from os.path import join, isdir, getsize, basename, dirname
-try:
-	# @bvb: simplejson thinks it should be different and deprecated read() and write()
-	# not sure why... @xxx: simplejson has UTF-8 default, json uses ASCII I think?
-	from simplejson import dumps as jsonwrite
-except:
-	try:
-		from json import write as jsonwrite
-	except:
-		print >>sys.stderr, "No known json library installed. Plain Python printing."
-		jsonwrite = None
+from pprint import pformat
+
+from zope.component import \
+        getGlobalSiteManager, \
+        getUtility, queryUtility, createObject
+
+import res.js
+import res.primitive    
 
 
-class Node(dict):
-	"""Interface on top of normal dictionary to work easily with tree nodes
-	which can have a name, attributes, and a value list.
-	"""
-	def __init__(self, name):
-		self[name] = None
+gsm = getGlobalSiteManager()
 
-	def getname(self):
-		for key in self:
-			if not key.startswith('@'):
-				return key
 
-	def setname(self, name):
-		oldname = self.getname()
-		val = self[oldname]
-		del self[oldname]
-		self[name] = val
+class Node(res.primitive.TreeNodeDict):
+    pass
 
-	name = property(getname, setname)
 
-	def append(self, val):
-		if not isinstance(self.value, list):
-			self[self.name] = []
-		self.value.append(val)
+def fs_tree( path ):
+    """Create a tree of the filesystem using dicts and lists.
 
-	def getvalue(self):
-		return self[self.name]
+    All filesystem nodes are dicts so its easy to add attributes.
+    One key is the filename, the value of this key is None for files,
+    and a list of other nodes for directories. Eg::
 
-	value = property(getvalue)
+        {'rootdir': [
+            {'filename1':None},
+            {'subdir':[
+                {'filename2':None}
+            ]}
+        ]}
+    """
+    fs_encoding = sys.getfilesystemencoding()
+    dirname = basename( path )
+    tree = Node( dirname )
+    if isdir( path ):
+        for fn in listdir( path ):
+            # Be liberal... take a look at non decoded stuff
+            if not isinstance(fn, unicode):
+                # try decode with default codec
+                try:
+                    fn = fn.decode(fs_encoding)
+                except UnicodeDecodeError:
+                    print >>sys.stderr, "corrupt path:", path, fn
+                    continue
+            # normal ops
+            path = join( path, fn )
+            if isdir(path):
+                # Recurse
+                tree.append(fs_tree(path))
+            else:
+                tree.append(Node(fn))
 
-	def getattrs(self):
-		attrs = {}
-		for key in self:
-			if key.startswith('@'):
-				attrs[key[1:]] = self[key]
-		return attrs
+    return tree
 
-	attributes = property(getattrs)
 
-	def __getattr__(self, name):
-		# @xxx: won't properties show up in __dict__?
-		if name in self.__dict__ or name in ('name', 'value', 'attributes'):
-			return super(Node, self).__getattr__(name)
-		elif '@'+name in self:
-			return self['@'+name]
+def fs_treesize( root, tree, files_as_nodes=True ):
+    """Add 'size' attributes to all nodes.
 
-	def __setattr__(self, name, value):
-		if name in self.__dict__ or name in ('name', 'value', 'attributes'):
-			super(Node, self).__setattr__(name, value)
-		else:
-			self['@'+name] = value
+    Root is the path on which the tree is rooted.
 
-	def __repr__(self):
-		return "<%s%s%s>" % (self.name, self.attributes, self.value or '')
+    Tree is a dict representing a node in the filesystem hierarchy.
 
-def fs_tree(dir):
-	"""Create a tree of the filesystem using dicts and lists.
+    Size is cumulative.
+    """
+    assert isinstance(root, basestring) and isdir(root), repr(root)
+    assert isinstance(tree, Node)
 
-	All filesystem nodes are dicts so its easy to add attributes.
-	One key is the filename, the value of this key is None for files,
-	and a list of other nodes for directories. Eg::
+    if not tree.size:
+        size = 0
+        if tree.value:
+            for node in tree.value: # for each node in this dir:
+                path = join(root, node.name)
+                if isdir(path):
+                    # subdir, recurse and add size
+                    fs_treesize(root, node)
+                    size += node.size
+                else:
+                    # filename, add size
+                    try:
+                        csize = getsize(path)
+                        node.size = csize
+                        size += csize
+                    except Exception, e:
+                        pass#print >>sys.stderr, "could not get size of %s: %r" % (path, e)
+        tree.size = size
 
-		{'rootdir': [
-			{'filename1':None},
-			{'subdir':[
-				{'filename2':None}
-			]}
-		]}
-	"""
-	enc = sys.getfilesystemencoding()
-	dirname = basename(dir)
-	tree = Node(dirname)
-	for fn in listdir(dir):
-		# Be liberal... take a look at non decoded stuff
-		if not isinstance(fn, unicode):
-			# try decode with default codec
-			try:
-				fn = fn.decode(enc)
-			except UnicodeDecodeError:
-				print >>sys.stderr, "corrupt path:", dir, fn
-				continue
-		# normal ops
-		path = join(dir, fn)
-		if isdir(path):
-			# Recurse
-			tree.append(fs_tree(path))
-		else:
-			tree.append(Node(fn))
-
-	return tree
-
-def fs_treesize(root, tree, files_as_nodes=True):
-	"""Add 'size' attributes to all nodes.
-
-	Root is the path on which the tree is rooted.
-
-	Tree is a dict representing a node in the filesystem hierarchy.
-
-	Size is cumulative.
-	"""
-	assert isinstance(root, basestring) and isdir(root)
-	assert isinstance(tree, Node)
-
-	if not tree.size:
-		dir = join(root, tree.name)
-		size = 0
-		for node in tree.value: # for each node in this dir:
-			path = join(dir, node.name)
-			if isdir(path):
-				# subdir, recurse and add size
-				fs_treesize(dir, node)
-				size += node.size
-			else:
-				# filename, add size
-				try:
-					csize = getsize(path)
-					node.size = csize
-					size += csize
-				except:
-					print >>sys.stderr, "could not get size of %s" % path
-		tree.size = size
 
 def usage(msg=0):
-	print """%s
+    print """%s
 Usage:
-	%% treemap.py [opts] directory
+    %% treemap.py [opts] directory
 
 Opts:
-	-d, --debug		Plain Python printing with total size data.
+    -d, --debug        Plain Python printing with total size data.
+    -j, -json          Write tree as JSON.
+    -J, -jsonxml       Transform tree to more XML like container hierarchy befor writing as JSON.
 
-	""" % sys.modules[__name__].__doc__
-	if msg:
-		msg = 'error: '+msg
-	sys.exit(msg)
+    """ % sys.modules[__name__].__doc__
+    if msg:
+        msg = 'error: '+msg
+    sys.exit(msg)
+
+
+def main():
+    # Script args
+    import confparse
+    opts = confparse.Values(dict(
+            fs_encoding = sys.getfilesystemencoding(),
+            voldir = None,
+            debug = None,
+        ))
+    argv = list(sys.argv)
+
+    treepath = argv.pop()
+    if not basename(treepath): 
+        # strip trailing os.sep
+        treepath = treepath[:-1]
+    assert basename(treepath) and isdir(treepath), \
+            usage("Must have dir as last argument")
+    path = opts.treepath = treepath
+
+    for shortopt, longopt in ('d','debug'), ('j','json'), ('J','jsonxml'):
+        setattr(opts, longopt, ( '-'+shortopt in argv and argv.remove( '-'+shortopt ) == None ) or (
+                '--'+longopt in argv and argv.remove( '--'+longopt ) == None ))
+
+    # XXX get treemap from shelve in metadir? volumedir?
+    #if not opts.voldir:
+    #    opts.voldir = find_volume( path )
+    #storage = TreeMapNode.storage = shelve.open( join( opts.voldir, 'treemap.db' ) )
+
+
+    ### Init FileTree and TreeMap
+
+    tree = fs_tree(path)
+    
+    # zac
+#    nodetree = getUtility(res.iface.IDir).tree( path, opts )
+#    #nodetree = INode( path )
+#    treemap = createObject('treemap')
+#    treemap.init( nodetree, opts )
+#    treemap.report(':count', 'length', 'space')
+#
+#    return
+#
+#    # wrong, passing-down-arguments approach ("facade")
+#    treemap = TreeMap(path)
+#    treemap.tree( opts )
+#
+#    return
+
+
+    # Add size attributes
+    fs_treesize(path, tree)
+
+    ### Update storage
+
+    # Set proper root path
+    tree.name = path + sep
+    #fs_treemap_write( debug, tree )
+    #tree.commit( dirname( path ) )
+
+    ### Output
+    if res.js.dumps and ( opts.json and not opts.debug ):
+        print res.js.dumps(tree)
+
+    elif res.js.dumps and ( opts.jsonxml and not opts.debug ):
+        tree = res.primitive.translate_xml_nesting(tree)
+        print res.js.dumps(tree)
+
+    else:
+        if not res.js.dumps:
+            print >>sys.stderr, 'Error: No JSON writer.'
+        print pformat(tree.deepcopy())
+        total = float(tree.size)
+        print 'Tree size:'
+        print total, 'B'
+        print total/1024, 'KB'
+        print total/1024**2, 'MB'
+        print total/1024**3, 'GB'
+
 
 if __name__ == '__main__':
-	# Script args
-	path = sys.argv.pop()
-	if not basename(path):
-		path = path[:-1]
-	assert basename(path) and isdir(path), usage("Must have dir as last argument")
 
-	debug = None
-	if '-d' in sys.argv or '--debug' in sys.argv:
-		debug = True
+    main()
 
-	# Walk filesystem
-	tree = fs_tree(path)
 
-	# Add size attributes
-	fs_treesize(dirname(path), tree)
-
-	# Set proper root path
-	tree.name = path
-
-	### Output
-	if jsonwrite and not debug:
-		print jsonwrite(tree)
-
-	else:
-		print tree
-		total = float(tree.size)
-		print 'Tree size:'
-		print total, 'B'
-		print total/1024, 'KB'
-		print total/1024**2, 'MB'
-		print total/1024**3, 'GB'

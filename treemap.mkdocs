@@ -1,0 +1,18 @@
+# TODO: DU_GEN and DU_HTML are not used, also better have Make pick this up for
+# more flexibility in make, instead of in-recipe bash sourcing.
+DU_GEN="--no-toc-backlinks --no-footnote-backlinks --date --language=en"
+DU_HTML="--footnote-references=superscript \
+					  --field-name-limit=22 \
+					  --link-stylesheet \
+					  --leave-comments"
+#	//ajax.googleapis.com/ajax/libs/jqueryui/1.8.3/themes/base/jquery-ui.css \
+#	//static.jquery.com/ui/css/demo-docs-theme/ui.theme.css 
+XHT_CSS="\
+	/media/style/dotmpe-com/style.css \
+	/media/style/dotmpe-com/docutils-layout.css \
+	/media/style/dotmpe-com/dotmpe.css "
+XHT_JS="\
+	//ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js \
+	//ajax.googleapis.com/ajax/libs/jqueryui/1.8.3/jquery-ui.min.js \
+	//cdnjs.cloudflare.com/ajax/libs/d3/3.3.10/d3.min.js
+	treemap.js"

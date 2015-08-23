@@ -3,8 +3,6 @@ script.mpe
 Various tools and ongoing experiments that have not yet deserved their own
 project.
 
-See 'main.py' for an integrated approach to the tooling.
-
 Documentation
   - `Working on projects`__, a 2011 sketch about working on projects
     privately or professionally, ideas on tooling support.
@@ -25,24 +23,18 @@ GIT Branches
 
         Various topics branch here into ``dev_*`` prefixed branches.
 
+        dev_taxus
+            Working to reintegrate ideas from old ``dev_`` forks into dev,
+            currently concerning libcmd functionality and txs.Txs with subclasses.
+
     test
         Writing and running tests.
         Should follow dev before master reintegration.
 
-Design
-  Cmd
-    build
-      co
-    clean
-
-  Cmd (no-op)
-    info
-      stat [default]
-        dmk
-        dep
-    test
-
 Scripts
+
+  radical
+    Scan for tags in comments of source-code and \*NIX-style text-files.
   cabinet
     WIP: archive files and query
   domain
@@ -60,7 +52,7 @@ Scripts
   msglink
     find and symlink to message file in Maildir_
   nix-rename
-    try to rename files to not contain metacharacters (ie ``[^a-z][^a-z0-9]*``)
+    try to rename files to not contain metacharacters (ie. ``[^a-z][^a-z0-9]*``)
   py-MRO-graph
     generate inheritance hierarchies for Python (broken)
   pathlist2dot
@@ -89,7 +81,6 @@ Configuration
     Global metadata file with settings shared by scripts and experimental
     projects. Default: ~/.cllctrc. This file is rewritten so it may be
     convienient to a separate copy for manual editing.
-
 
   cllct
     Per volume metadata directory.

@@ -1,0 +1,13 @@
+#
+# Symlinks for scripts project
+#
+
+$SCRIPT_MPE	$HOME/bin
+$SCRIPT_MPE	$HOME/lib/py/script_mpe
+
+# External projects
+/src/macos-wherefrom	$SCRIPT_MPE/thirdparty/macos-wherefrom
+
+# Internal shortcuts
+$SCRIPT_MPE/thirdparty/macos-wherefrom/wherefrom	$SCRIPT_MPE/wherefrom
+

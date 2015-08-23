@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 
 System Complexity
@@ -25,14 +24,9 @@ try:
     import bencode
 except:
     bencode = None
-# use jsonlib or simplejson
-try:
-    import simplejson as _json
-except:
-    import json as _json
+import res.js
 
-json_read = _json.loads
-json_write = _json.dumps
+from lib import human_readable_bytesize
 
 storage = {
         'a8c01c01': confparse.Values(dict(
@@ -77,10 +71,33 @@ def main( ):
     data.fs = confparse.Values(dict(
         ))
     # finding total inode stats is more involved, block is more simple
-#    print fssttat.f_bsize, "preferred blocksize"
-#    print fssttat.f_frsize, "fundamental filesystem block"
-#    print fssttat.f_blocks, 'blocks (total, in units of f_frsize)'
-#    print fssttat.f_bfree, 'free blocks'
+    print fssttat.f_bsize, "preferred blocksize"
+    print fssttat.f_frsize, "fundamental filesystem block"
+    print fssttat.f_blocks, 'blocks (total, in units of f_frsize)'
+    print fssttat.f_bavail, 'available blocks'
+    print
+
+    fact = fssttat.f_frsize / 1024
+    print '1k blocks'
+    print 'factor', fact
+    _1kblocks = fssttat.f_blocks*fact
+    _1kblocks_free = fssttat.f_bfree*fact
+    _1kblocks_avail = fssttat.f_bavail*fact
+    _1kblocks_used = ( fssttat.f_blocks - fssttat.f_bavail )*fact
+    _1kblocks_used2 = ( fssttat.f_blocks - fssttat.f_bfree )*fact
+    print _1kblocks
+    print _1kblocks_avail, 'available'
+    print _1kblocks_free, 'free?'
+    #print _1kblocks_used, 'used'
+    print _1kblocks_used2, 'used2'
+    print fssttat.f_bfree*fact, 'free?'
+    print
+    print human_readable_bytesize(_1kblocks*1024, True, False, 0), 'in blocks'
+    print human_readable_bytesize(_1kblocks_avail*1024, True, False, 0), 'in available blocks'
+    #print human_readable_bytesize(_1kblocks_used*1024, True, False, 0), 'in used blocks'
+    print human_readable_bytesize(_1kblocks_used2*1024, True, False, 0), 'in used2 blocks'
+    print
+
     data.fs.inodes = fssttat.f_files
     print 'INodes', data.fs.inodes
 #    print fssttat.f_favail, 'inodes free' available to non-super user, same as ffree
@@ -108,11 +125,10 @@ def main( ):
     
 
 #    print pformat( data.copy() )
-#    print json_write( data.copy() )
+#    print res.js.dumps( data.copy() )
     
 #    print fssttat.f_ffree * 100 / total_nodes
 
 if __name__ == '__main__':
     main()
-
 

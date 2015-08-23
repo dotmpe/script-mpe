@@ -1,0 +1,14 @@
+/**
+ * XXX Comment
+ *   Runs two lines
+ */
+def func();
+
+# TEST: $ radical.py -vvv test.txt
+
+# XXX another comment
+#     runs two lines
+
+// FIXME: a line comment
+//    runs two lines
+

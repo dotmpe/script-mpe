@@ -1,0 +1,6 @@
+Various D3 Javascript experiments found their way here.
+
+- `Treemaps <treemap.rst>`_
+- `Tree <d3-tree.html>`_
+- `Calendar <calendar.rst>`_
+

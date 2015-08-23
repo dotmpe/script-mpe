@@ -7,3 +7,5 @@
 .cllct
 *.meta
 debug*
+.DS_Store
+.htdignore.merged

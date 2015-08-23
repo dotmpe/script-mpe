@@ -4,10 +4,9 @@ MK                  += $/Rules.mk
 #
 #      ------------ -- 
 
-STRGT               += test_py_$d test_sa_$d
+$(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 
 #      ------------ -- 
-
 GIT_$d              := $(shell find "$d" -iname ".git")
 BZR_$d              := $(shell find "$d" -iname ".bzr")
 HG_$d               := $(shell find "$d" -iname ".hg")
@@ -16,80 +15,221 @@ co::
 	@$(clean-checkout)
 co:: DIR := $d
 
-#      ------------ -- 
-
-REPO=cllct
-DB_SQLITE_TEST=.test/db.sqlite
-DB_SQLITE_DEV=/home/berend/.$(REPO)/db.sqlite
-
-$(eval $(shell [ -d $/.build ] || mkdir $/.build ))
+# XXX Keep long list of clean targets out of normal stat messages
+ifneq ($(call contains,$(MAKECMDGOALS),clean),)
+CLN                 += .test
+CLN                 += $(shell find ./ -iname '*.pyc')
+CLN                 += $(shell find ./ -iname '*.log')
+CLN                 += $(shell find ./ -iname '.coverage' -o -iname '.coverage-*')
+endif
 
 
 ###    Test targets
 #
 #      ------------ -- 
 
-test:: test_py_$d test_sa_$d
+TEST_$d             := test_py_$d  test_sa_$d  test_sys_$d test_schema_$d
+
+STRGT               += $(TEST_$d)
+
+TRGT += libcmdng.html
+
+libcmdng.html: libcmdng.py
+	@$(ll) file_target "$@" "Generating docs for" "$<"
+	@\
+	pydoc -w ./$^
+	@$(ll) file_ok "$@"
+
+test:: $(TEST_$d)
 
 test_py_$d test_sa_$d :: D := $/
 
-# Generate a coverage report of one or more runs to find stale code
-debug_py_$d::
-	@$(call log_line,info,$@,Starting python unittests..)
-	@\
-		PYTHONPATH=$$PYTHONPATH:./;\
-		PATH=$$PATH:~/bin;\
-        TEST_PY="main.py txs:ls cmd:targets cmd:help";\
-		TEST_LIB=cmdline,target,res,txs,taxus,lind,resourcer;\
-		HTML_DIR=debug-coverage;\
-		VERBOSE=2;\
-    $(test-python) 2> debug.log
-	@if [ -n "$$(tail -1 debug.log|grep OK)" ]; then \
-	    $(ll) Success "$@" "see" debug.log; \
-    else \
-	    $(ll) Errors "$@" "$$(tail -1 debug.log)"; \
-	    $(ll) Errors "$@" see debug.log; \
-    fi
-
+# Unit test python code
 test_py_$d::
 	@$(call log_line,info,$@,Starting python unittests..)
 	@\
 		PYTHONPATH=$$PYTHONPATH:./;\
 		PATH=$$PATH:~/bin;\
-		TEST_PY=test.py;\
+		TEST_PY=test/main.py;\
 		TEST_LIB=confparse,confparse2,taxus,rsr,radical,workLog;\
 		HTML_DIR=test-coverage;\
 		VERBOSE=2;\
-    $(test-python) 2> test.log
-	@if [ -n "$$(tail -1 test.log|grep OK)" ]; then \
-	    $(ll) Success "$@" "see" test.log; \
+    $(test-python) 2> test-py.log
+	@if [ -n "$$(tail -1 test-py.log|grep OK)" ]; then \
+	    $(ll) Success "$@" "see" test-py.log; \
     else \
-	    $(ll) Errors "$@" "$$(tail -1 test.log)"; \
-	    $(ll) Errors "$@" see test.log; \
+	    $(ll) Errors "$@" "$$(tail -1 test-py.log)"; \
+	    $(ll) Errors "$@" see test-py.log; \
     fi
 
+# some system tests
+test_sys_$d:: TESTS:= 
+test_sys_$d::
+	@$(ll) info $@ "Starting system tests.."
+	@\
+	    LOG=test-system.log;\
+        test/system.sh $(TESTS) 2> $$LOG; \
+    \
+        PASSED=$$(grep PASSED $$LOG | wc -l); \
+        FAILED=$$(grep FAILED $$LOG | wc -l); \
+        [ $$FAILED -gt 0 ] && { \
+            $(ll) error "$@" "$$FAILED failures, see" $$LOG; \
+        } || { \
+            $(ll) Ok "$@" "$$PASSED passed" $$LOG; \
+        }
+
+# Make SA do a test on the repo
+DB_SQLITE_TEST=.test/db.sqlite
+DB_SQLITE_DEV=/home/berend/.$(REPO)/db.sqlite
 test_sa_$d::
-	@$(call log_line,info,$@,Testing SQLAlchemy repository..);
+	@$(call log_line,info,$@,Testing SQLAlchemy repository..)
 	@\
-	DBREF=sqlite:///$(DB_SQLITE_TEST);\
+	DBREF=sqlite:///$(DB_SQLITE_TEST); \
+	$(ll) attention "$@" "Testing '$(REPO)' SA repo functions.." $$DBREF; \
+	rm -rf $$(dirname $(DB_SQLITE_TEST));\
+	mkdir -p $$(dirname $(DB_SQLITE_TEST));\
 	sqlite3 $(DB_SQLITE_TEST) ".q"; \
+	python $D$(REPO)/manage.py version_control --repository=$(REPO) --url=$$DBREF ;\
+	db_version=$$(python $D$(REPO)/manage.py db_version --repository=$(REPO) --url=$$DBREF) ;\
+	version=$$(python $D$(REPO)/manage.py version --repository=$(REPO) --url=$$DBREF) ;\
+	$(ll) info "$@" "Re-created test DB.." $$DBREF; \
+	python $D$(REPO)/manage.py upgrade $$(( $$version - 1 )) --repository=$(REPO) --url=$$DBREF;\
+	$(ll) info "$@" "Starting at DB version: $$(( $$version - 1 ))"; \
+	$(ll) info "$@" "Testing $(REPO) up/down for version: $$version"; \
 	python $D$(REPO)/manage.py test --repository=$(REPO) --url=$$DBREF
+	@$(ll) Done "$@" 
 
-sa-upgrade::
-	./manage.py upgrade
 
-stat::
+test_schema_$d:
+	@echo Testing validator with jsonschema, hyper-schema and links schemas...
+	@jsonschema -i schema/hyper-schema.json schema/jsonschema.json
+	@jsonschema -i schema/hyper-schema.json schema/hyper-schema.json
+	@jsonschema -i schema/links.json schema/hyper-schema.json
+	@echo OK, now validating Taxus...
+	@yaml2json taxus-schema.yml > taxus-schema.json
+	@jsonschema -i taxus-schema.json schema/jsonschema.json
+	@echo OK, now validating schema_test...
+	@yaml2json schema_test.yml > schema_test.json
+	@jsonschema -i schema_test.json taxus-schema.json
+	@echo OK, now validating schema/base...
+	@yaml2json schema/base.yml > schema/base.json
+	@jsonschema schema/base.json
+
+###    SQL Alchemy repository schema control
+#
+#      ------------ -- 
+
+R ?= cllct
+REPO = $(R)
+#ALL_REPOS=cllct test
+
+sa-create::
+	@$(ll) attention $@ Starting...
 	@\
-    $(call log,header2,Repository,$(REPO) [$(DB_SQLITE_DEV)]);\
-    SCHEMA_VERSION=$$(python $(REPO)/manage.py version $(REPO));\
+	migrate create ./sa_migrate/$(REPO) $(REPO);\
+	tree ./sa_migrate/$(REPO)/;
+	@$(ll) info $@ Done
+
+sa-touch::
+	@$(ll) attention $@ Starting...
+	@\
+	dbpath=$$( ./sa_migrate/$(REPO)/manage.py dbpath );\
+	mkdir -p $$(dirname $$dbpath);\
+	echo "" | sqlite3 -batch $$dbpath
+
+#sa:: T :=
+sa::
+	@\
+	./sa_migrate/$(REPO)/manage.py $(T)
+
+session::
+	@\
+	dbpath=$$( ./sa_migrate/$(REPO)/manage.py dbpath );\
+	sqlite3 $$dbpath
+
+sa-vc:: T := version_control
+sa-vc:: sa
+
+sa-latest:: T := upgrade
+sa-latest:: sa
+
+sa-compare:: T := compare_model_to_db taxus.core:SqlBase.metadata
+sa-compare:: sa
+
+sa-reset:: T := reset
+sa-reset:: sa
+	@ls -la $$(./sa_migrate/$(REPO)/manage.py dbpath)
+
+sa-t::
+	@\
+	DB_VERSION=$$(./sa_migrate/$(REPO)/manage.py db_version);\
+	SCHEMA_VERSION=$$(./sa_migrate/$(REPO)/manage.py version);\
+	\
+	echo '"""' > oldmodel.py;\
+	./sa_migrate/$(REPO)/manage.py compare_model_to_db taxus:SqlBase.metadata >> oldmodel.py;\
+	echo '"""' >> oldmodel.py;\
+	./sa_migrate/$(REPO)/manage.py create_model >> oldmodel.py;\
+	./sa_migrate/$(REPO)/manage.py make_update_script_for_model \
+		--oldmodel=oldmodel:meta \
+		--model=taxus:SqlBase.metadata \
+			> sa_migrate_$(REPO)_autoscript_$$SCHEMA_VERSION.py
+
+stat:: sa-stat
+sa-stat::
+	@\
+    $(call log,header2,Repository,$(REPO));\
+    SCHEMA_VERSION=$$(python ./sa_migrate/$(REPO)/manage.py version );\
     $(call log,header2,Repository version,$$SCHEMA_VERSION);\
     DB_FORMAT=$$(file -bs $(DB_SQLITE_DEV));\
     $(call log,header2,DB format,$$DB_FORMAT);\
 	DBREF=sqlite:///$(DB_SQLITE_DEV);\
-    DB_VERSION=$$(python $(REPO)/manage.py db_version $$DBREF $(REPO));\
-    $(call log,header2,DB schema version,$$DB_VERSION);\
-    [ -e manage.py ] || migrate manage manage.py --repository=$(REPO) --url=$$DBREF
+    DB_VERSION=$$(python ./sa_migrate/$(REPO)/manage.py db_version );\
+    $(call log,header2,DB schema version,$$DB_VERSION);
 
+#    [ -e manage.py ] || migrate manage manage.py --repository=$(REPO) --url=$$DBREF
+
+
+# Generate a coverage report of one or more runs to find stale code
+debug_py_$d:: TESTS := 
+debug_py_$d::
+	@$(call log_line,info,$@,Starting python unittests..)
+	@\
+		COVERAGE_PROCESS_START=.coveragerc \
+			$(TEST_DATA) ./system-test $(TESTS) \
+				2>&1 | tee systemtest.log
+	@\
+		PASSED=$$(echo $$(grep PASSED systemtest.log | wc -l));\
+		ERRORS=$$(echo $$(grep ERROR systemtest.log | wc -l));\
+		echo $$PASSED passed checks, $$ERRORS errors, see systemtest.log
+#		PYTHONPATH=$$PYTHONPATH:./;\
+#		PATH=$$PATH:~/bin;\
+#        TEST_PY="main.py txs:ls cmd:targets cmd:help";\
+#		TEST_LIB=cmdline,target,res,txs,taxus,lind,resourcer;\
+#		HTML_DIR=debug-coverage;\
+#		VERBOSE=2;\
+#    $(test-python) 2> debug.log
+
+symlinks: $/.symlinks
+	@\
+    $(call log,header1,$@,Symlinking from,$^);\
+    SCRIPT_MPE=/srv/project-mpe/script-mpe ./init-symlinks.sh .symlinks
+
+IGNORE := coverage_html_report ReadMe.rst Rules.mk '*.html' '*.xml' TODO.list
+IGNORE_F := $(addprefix --exclude ,$(IGNORE))
+todo: TODO.list
+TODO.list: $/
+	@\
+		$(ll) file_target $@ "Grepping for" $<;\
+		grep -srI $(IGNORE_F) 'FIXME' $< > $@;\
+		echo >> $@;\
+		grep -srI $(IGNORE_F) 'TODO' $< >> $@;\
+		echo >> $@;\
+		grep -srI $(IGNORE_F) 'XXX' $< >> $@
+	@#radical.py -vvvvv > $@
+	@$(ll) file_ok $@ 
+
+
+INSTALL += symlinks
 
 #      ------------ --
 #

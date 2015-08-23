@@ -6,6 +6,9 @@
 TYPE=$1
 [ -n "$TYPE" ] || { exit 1 ; }
 
+sensors=$(which sensors)
+[ $sensors ] || { echo "Missing lm-sensors"; exit 1; }
+
 if [ "$2" = "config" ]; then
     echo "graph_info Output of lm-sensors ($TYPE only)"
     echo "graph_category sensors"
@@ -50,6 +53,7 @@ do
                         number=${vars[1]}
                         value=${vars[2]}
                         if [ "$2" = "config" ]; then
+                            echo $interface_id"_"$name"_"$number.draw LINE2
                             echo $interface_id"_"$name"_"$number.label $(hostname -s|tr 'a-z' 'A-Z') $interface_label $name $number
                         else
                             echo $interface_id"_"$name"_"$number.value $value

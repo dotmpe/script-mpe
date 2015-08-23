@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+#
+source ~/bin/match.sh
+set -e
+
+scriptname=work
+
+work_load()
+{
+	test -n "$mpe_workdir" || mpe_workdir=~/work
+	TODAY=$(date +%Y-%m-%d)
+	test -e .client && CLIENT=$(cat $client)
+	script_clienttable=~/.conf/work/clients.sh
+}
+
+work_usage()
+{
+	echo 'Usage: '
+	echo "  $scriptname <cmd> [<args>..]"
+}
+
+work_c_commands()
+{
+	echo 'Commands: '
+	echo '  docs                             Edit docs for client'
+	echo '  todo                             Show todo for project'
+	echo '  client                           Echo client table row'
+	echo ''
+	echo 'Other commands: '
+	echo '  -e|edit                          Edit this script.'
+	echo '  help                             Give a combined usage and command. '
+	echo '  commands                         Echo this comand description listing.'
+}
+
+work_c_help()
+{
+	work_usage
+	echo ''
+	work_c_commands
+	echo ''
+	echo 'Docs:'
+	work_c_doclist | tr ' ' '\n' | while read f
+	do
+		echo -e "  - $f"
+	done
+}
+
+work_c_edit()
+{
+	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
+	[ -n "$fn" ] || fn=$(which $scriptname.sh)
+	[ -n "$fn" ] || err "Nothing to edit" 1
+	$EDITOR $fn
+}
+work_c__e()
+{
+	work_c_edit
+}
+
+
+### Internal functions
+
+# stdio/stderr/exit util
+log()
+{
+	[ -n "$(echo "$*")" ] || return 1;
+	echo "[$scriptname.sh:$cmd] $1"
+}
+err()
+{
+	[ -n "$(echo "$*")" ] || return 1;
+	echo "Error: $1 [$scriptname.sh:$cmd]" 1>&2
+	[ -n "$2" ] && exit $2
+}
+note()
+{
+	[ -n "$(echo "$*")" ] || return 1;
+	echo "Notice: $1 [$scriptname.sh:$cmd]" 1>&2
+}
+
+work_req_client()
+{
+	cwd=$(pwd)
+	test -n "$script_clienttable" || err "Client table setting is empty" 1
+	test -e "$script_clienttable" || err "Client table does not exist: $script_clienttable" 1
+	match_grep_pattern_test "$cwd"
+	grep $p_ $script_clienttable > /dev/null && {
+		CLIENT=$(cat $script_clienttable | grep -Ev '^(#.*|\s*)$' |
+			grep $p_ | cut -d ' ' -f 2)
+	} || {
+		return 1
+	}
+}
+
+### Command Line handlers
+
+work_c_todo()
+{
+    grep -srI 'TODO\|XXX\|FIXME' sugarcrm/custom/
+}
+
+work_c_doclist()
+{
+	work_req_client || err "No client for $cwd" 1
+	client=$mpe_workdir/$CLIENT/main.rst
+
+	other="$(echo *.rst)"
+	test "$other" = "*.rst" && other=
+
+	docs="$(echo docs/*.rst)"
+	test "$docs" = "docs/*.rst" && docs=
+
+	log=$mpe_workdir/log/$TODAY.rst
+
+	echo $client $other $docs $log
+}
+
+work_c_docs()
+{
+    work_c_doclist > /dev/null
+	$EDITOR $client $other $docs $log
+}
+
+work_c_init()
+{
+	work_req_client  && err "Client exists" 1  || log "New client for $cwd"
+	test -z "$CLIENT" && {
+		test -n "$1"  && CLIENT="$@"  || CLIENT="$(basename $cwd)"
+	}
+	test -n "$CLIENT"  || err "No client" 1
+	echo $cwd $CLIENT >> $script_clienttable
+	grep $CLIENT $script_clienttable
+}
+
+work_c_client()
+{
+	work_req_client || err "No client for $cwd" 1
+	grep $CLIENT $script_clienttable
+}
+
+
+# Main
+
+#def_func=work_c_usage
+
+# Use dash to ignore exec in login shell
+if [ -n "$0" ] && [ $0 != "-bash" ]; then
+
+	# Do something (only) if script invoked as '$scriptname'
+	base=$(basename $0 .sh)
+	case "$base" in
+
+		$scriptname )
+
+			# function name first as argument,
+			cmd=$1
+			[ -n "$def_func" -a -z "$cmd" ] \
+				&& func=$def_func \
+				|| func=$(echo work_c_$cmd | tr '-' '_')
+
+			# load/exec if func exists
+			type $func &> /dev/null && {
+				func_exists=1
+				work_load
+				shift 1
+				$func $@
+			} || {
+				# handle non-zero return or print usage for non-existant func
+				e=$?
+				[ -z "$cmd" ] && {
+					work_load
+					work_usage
+					err 'No command given, see "help"' 1
+				} || {
+					[ "$e" = "1" -a -z "$func_exists" ] && {
+						work_load
+						work_usage
+						err "No such command: $cmd" 1
+					} || {
+						err "Command $cmd returned $e" $e
+					}
+				}
+			}
+
+			;;
+
+		* )
+			log "No frontend for $base"
+			;;
+
+	esac
+fi
+
+
+

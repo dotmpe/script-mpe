@@ -1,0 +1,74 @@
+test_1 (mod_confparse.CPTest2) ... ok
+test_2 (mod_confparse.CPTest2) ... ok
+test_0_init (mod_confparse.CPTest1) ... ok
+test_1_exports (mod_confparse.CPTest1) ... ok
+test_2_load (mod_confparse.CPTest1) ... ok
+test_3_set_string (mod_confparse.CPTest1) ... ok
+test_4_lists (mod_confparse.CPTest1) ... ok
+test_5_copy (mod_confparse.CPTest1) ... FAIL
+test_6_commit (mod_confparse.CPTest1) ... FAIL
+test_1_read_dict (mod_confparse2.CP2Test1) ... ok
+test_1_read_dict_int (mod_confparse2.CP2Test1) ... ok
+test_1_read_list (mod_confparse2.CP2Test1) ... ok
+test_2_read_nested (mod_confparse2.CP2Test1) ... ok
+test_write (mod_confparse2.CP2Test1) ... ok
+unittest.case.FunctionTestCase (test_res_format_0aa970d96eb971303c45b39c0f5ceb7d49383d6b)
+Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (test_res_format_9c288c453bebe44d67224b1ffaf650bb7adf4960)
+Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (test_res_format_a14aa8d3379d07bc09283cf62cae432cc0309a05)
+Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (test_res_format_810b7cbf9d05fd56227ef859f7b715f806d8564c)
+Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (test_res_format_3306a06a042d5e8361288dfa7aca93630d5370e5)
+Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (test_res_format_5bf5eae6238afaff0a142da7b6df9a2030ae25d0)
+Res_FormatTest_sha1sum ... ok
+test_fs_iface (mod_res_fs.TestResFs) ... ok
+test_conform (mod_res_primitive.TreeNodeDictTest) ... ok
+test_ifaces (mod_res_primitive.TreeNodeDictTest) ... ok
+test_name (mod_res_primitive.TreeNodeDictTest) ... ok
+test_nodeid (mod_res_primitive.TreeNodeDictTest) ... ok
+test_tree_append (mod_res_primitive.TreeNodeDictTest) ... ok
+test_tree_traverse (mod_res_primitive.TreeNodeDictTest) ... ok
+unittest.case.FunctionTestCase (test_dictnode_fs_populate) ... ok
+test_taxus_schema_basic_commit (mod_taxus_init.TestTaxusInitBasic) ... ok
+test_taxus_schema_basic_load (mod_taxus_init.TestTaxusInitBasic) ... ok
+test_taxus_schema_basic_load (mod_taxus_init.TestTaxusInitExtends) ... ok
+test_taxus_schema_ext_commit (mod_taxus_init.TestTaxusInitExtends) ... ok
+
+======================================================================
+FAIL: test_5_copy (mod_confparse.CPTest1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Simza/project/script-mpe/test/py/mod_confparse.py", line 212, in test_5_copy
+    'config_file': '/tmp/test1/test/sub/dir/testrc',
+AssertionError: {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'config_file': '/priva [truncated]... != {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'config_file': '/tmp/t [truncated]...
+- {'config_file': '/private/var/tmp/test1/test/sub/dir/testrc',
+?                  ------------
+
++ {'config_file': '/tmp/test1/test/sub/dir/testrc',
+   'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}}
+
+======================================================================
+FAIL: test_6_commit (mod_confparse.CPTest1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Simza/project/script-mpe/test/py/mod_confparse.py", line 231, in test_6_commit
+    test_settings = self.test_5_copy()
+  File "/Volumes/Simza/project/script-mpe/test/py/mod_confparse.py", line 212, in test_5_copy
+    'config_file': '/tmp/test1/test/sub/dir/testrc',
+AssertionError: {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'config_file': '/priva [truncated]... != {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'config_file': '/tmp/t [truncated]...
+- {'config_file': '/private/var/tmp/test1/test/sub/dir/testrc',
+?                  ------------
+
++ {'config_file': '/tmp/test1/test/sub/dir/testrc',
+   'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}}
+
+----------------------------------------------------------------------
+Ran 32 tests in 0.441s
+
+FAILED (failures=2)
+Coverage.py warning: Module rsr was never imported.
+Coverage.py warning: Module radical was never imported.
+Coverage.py warning: Module workLog was never imported.

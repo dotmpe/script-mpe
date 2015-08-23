@@ -1,0 +1,3 @@
+sudo /etc/init.d/nfs-common restart
+sudo /etc/init.d/nfs-kernel-server restart
+sudo exportfs -a
