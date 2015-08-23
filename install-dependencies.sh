@@ -47,5 +47,13 @@ bats --version
 
 install_mkdoc
 
+# hack py lib here
+mkdir -vp ~/lib
+cwd=$(pwd)
+pushd lib/py
+ln -s $cwd script_mpe
+popd
+export PYTHON_PATH=$PYTHON_PATH:~/lib/py
+
 # Id: script-mpe/0 install-dependencies.sh
 

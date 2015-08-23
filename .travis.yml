@@ -5,6 +5,8 @@ install: ./install-dependencies.sh
 before_script:
 - 'pip install --user jsonschema'
 - 'export PATH=$PATH:./'
+- 'export PYTHON_PATH=$PYTHON_PATH:~/lib/py'
+- 'pwd'
 
 script: make -k test
 
