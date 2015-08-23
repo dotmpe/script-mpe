@@ -21,7 +21,7 @@ install_mkdoc()
   pushd $SRC_PREFIX
   git clone https://github.com/dotmpe/mkdoc.git
   cd mkdoc
-  git co devel
+  git checkout devel
   PREFIX=~/usr/ ./configure && ./install.sh
   popd
   rm Makefile
