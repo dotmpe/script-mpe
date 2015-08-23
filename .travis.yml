@@ -3,6 +3,7 @@ sudo: false
 install: ./install-dependencies.sh
 
 before_script:
+- 'pip install --user PyYAML'
 - 'pip install --user zope.interface'
 - 'pip install --user zope.component'
 - 'pip install --user jsonschema'
