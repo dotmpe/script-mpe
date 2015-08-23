@@ -58,7 +58,7 @@ install_script()
 {
   cwd=$(pwd)
   pushd ~/
-  ln -c $cwd bin
+  ln -s $cwd bin
   popd
   echo "pwd=$cwd"
   echo "bats=$(which bats)"
