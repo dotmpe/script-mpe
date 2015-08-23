@@ -6,6 +6,11 @@ install:
 - "source ./install-dependencies.sh && install_pylib"
 - "source ./install-dependencies.sh && install_script"
 
+addon:
+  apt:
+    packages:
+    - tree
+
 before_script:
 - 'pip install --user PyYAML'
 - 'pip install --user zope.interface'
