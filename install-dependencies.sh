@@ -40,7 +40,7 @@ install_mkdoc()
 install_pylib()
 {
   # hack py lib here
-  mkdir -vp ~/lib
+  mkdir -vp ~/lib/py
   cwd=$(pwd)
   pushd lib/py
   ln -s $cwd script_mpe
