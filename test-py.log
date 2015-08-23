@@ -66,7 +66,7 @@ AssertionError: {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'confi
    'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}}
 
 ----------------------------------------------------------------------
-Ran 32 tests in 0.354s
+Ran 32 tests in 0.359s
 
 FAILED (failures=2)
 Coverage.py warning: Module rsr was never imported.
