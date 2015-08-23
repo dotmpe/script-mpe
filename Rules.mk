@@ -86,7 +86,7 @@ test_usr_$d::
 
 test_usr_bats_$d::
 test_usr_bats_$d::
-	./test/match-spec.bats
+	bats ./test/match-spec.bats
 
 # Make SA do a test on the repo
 DB_SQLITE_TEST=.test/db.sqlite
