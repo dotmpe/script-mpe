@@ -127,7 +127,7 @@ htd_commands()
 	echo 'Other commands: '
 	echo '  -e|edit                          Edit this script.'
 	echo '  alias                            Show bash aliases for this script.'
-	echo '  help                             Give a combined usage, command and docs. '
+	echo '  -h|help                          Give a combined usage, command and docs. '
 	echo '  docs                             Echo manual page. '
 	echo '  commands                         Echo this comand description listing.'
 }
@@ -138,6 +138,20 @@ c_docs()
 	echo "  See usage for all commands. Htd does not parse options but does use "
 	echo "  environment variables. See 'info' for more env variables. "
 	echo ""
+	echo "Manual"
+	echo "  On Linux, manual pages are divided into sections:"
+	echo "  "
+	echo "    1. User Commands"
+	echo "    2. System Calls"
+	echo "    3. Library Calls"
+	echo "    4. Special Files (devices)"
+	echo "    5. File Formats and configuration files"
+	echo "    6. Games"
+	echo "    7. Overview, conventions and miscelleneous"
+	echo "    8. System management commands"
+	echo "  "
+	echo "  From: Linux Programmer's Manual; man7.org"
+	echo ""
 	echo "env"
 	echo "  CWDIR"
 	echo "    If set, use instead of the current directory for working dir. "
@@ -145,13 +159,25 @@ c_docs()
 	echo 'See dckr for container commands and vc for GIT related. '
 }
 
+man_1_help="Echo a combined usage, command and docs"
 c_help()
 {
-	htd_usage
-	echo ''
-	htd_commands
-	echo ''
-	c_docs
+	test -z "$1" && {
+		htd_usage
+		echo ''
+		htd_commands
+		echo ''
+		c_docs
+	} || {
+		c=$(echo "_$1" | tr '-' '_')
+		user_cmd_help=$(eval echo "\$man_1$(echo $c)")
+		echo $user_cmd_help
+	}
+}
+man_1__h="Alias for 'help'"
+c__h()
+{
+	c_help $@
 }
 
 c_home()
@@ -180,6 +206,7 @@ c_expand()
 	done
 }
 
+man_1_edit="Edit the main script file"
 c_edit()
 {
 	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
@@ -187,6 +214,7 @@ c_edit()
 	[ -n "$fn" ] || err "Nothing to edit" 1
 	$EDITOR $fn
 }
+man_1__e="Alias for 'edit'"
 c__e()
 {
 	c_edit
