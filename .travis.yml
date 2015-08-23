@@ -2,7 +2,7 @@
 install: ./install-dependencies.sh
 
 sudo: false
-script: make test
+script: make -k test
 
 branches:
   only:
