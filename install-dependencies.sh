@@ -15,12 +15,18 @@ test -d $PREFIX || mkdir -vp $PREFIX
 
 install_bats()
 {
-  echo "Installing bats"
-  pushd $SRC_PREFIX
-  git clone https://github.com/sstephenson/bats.git
-  cd bats
-  ./install.sh $PREFIX
-  popd
+  # Check for BATS shell test runner or install
+  test -x "$(which bats)" || {
+    echo "Installing bats"
+    pushd $SRC_PREFIX
+    git clone https://github.com/sstephenson/bats.git
+    cd bats
+    ./install.sh $PREFIX
+    popd
+    export PATH=$PATH:$PREFIX/bin
+  }
+
+  bats --version
 }
 
 install_mkdoc()
@@ -48,24 +54,24 @@ install_pylib()
   export PYTHON_PATH=$PYTHON_PATH:~/lib/py
 }
 
-# Check for BATS shell test runner or install
-test -x "$(which bats)" || {
-  install_bats
-  export PATH=$PATH:$PREFIX/bin
+install_script()
+{
+  cwd=$(pwd)
+  pushd ~/
+  ln -c $cwd bin
+  popd
+  echo "pwd=$cwd"
+  echo "bats=$(which bats)"
 }
 
-bats --version
+test "$1" = "run" && {
 
-install_mkdoc
+  install_bats
+  install_mkdoc
+  install_pylib
+  install_script
 
-install_pylib
-
-cwd=$(pwd)
-pushd ~/
-ln -c $cwd bin
-popd
-echo "pwd=$cwd"
-echo "bats=$(which bats)"
+}
 
 # Id: script-mpe/0 install-dependencies.sh
 

@@ -1,6 +1,10 @@
 sudo: false
 
-install: ./install-dependencies.sh
+install:
+- "source ./install-dependencies.sh && install_bats"
+- "source ./install-dependencies.sh && install_mkdoc"
+- "source ./install-dependencies.sh && install_pylib"
+- "source ./install-dependencies.sh && install_script"
 
 before_script:
 - 'pip install --user PyYAML'
