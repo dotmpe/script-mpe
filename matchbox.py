@@ -83,7 +83,7 @@ def load_names_from(filepath):
             parts += ['',]
         glob, pattern, tags = parts
         if tags in templates:
-            print >>sys.stderr, "Duplicate template %s" % tags
+            print >>sys.stderr, "# Duplicate template %s" % tags
         #tags = tags.split(',')
         #assert tags not in templates, "Duplicate template %s" % tags
         templates[tags] = pattern
