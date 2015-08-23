@@ -37,6 +37,17 @@ install_mkdoc()
   make
 }
 
+install_pylib()
+{
+  # hack py lib here
+  mkdir -vp ~/lib
+  cwd=$(pwd)
+  pushd lib/py
+  ln -s $cwd script_mpe
+  popd
+  export PYTHON_PATH=$PYTHON_PATH:~/lib/py
+}
+
 # Check for BATS shell test runner or install
 test -x "$(which bats)" || {
   install_bats
@@ -47,13 +58,7 @@ bats --version
 
 install_mkdoc
 
-# hack py lib here
-mkdir -vp ~/lib
-cwd=$(pwd)
-pushd lib/py
-ln -s $cwd script_mpe
-popd
-export PYTHON_PATH=$PYTHON_PATH:~/lib/py
+install_pylib
 
 # Id: script-mpe/0 install-dependencies.sh
 

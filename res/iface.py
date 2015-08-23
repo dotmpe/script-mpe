@@ -82,14 +82,14 @@ class IVisitorAcceptor(Interface):
 
 class IHierarchicalVisitor(Interface):
     """
-    Interface for ITree visitors. 
+    Interface for ITree visitors.
 
     http://c2.com/cgi/wiki?HierarchicalVisitorPattern
     """
     visitEnter = Attribute("visitEnter(self, node): return true when IVisitorAcceptor should try to recurse")
     visitLeave = Attribute("visitLeave(self, node)")
     visit = Attribute("visit(self, leaf)")
-   
+
     traverse = Attribute("Not part of the API, b/c parametrized?")
 
 class ITraveler(Interface):
@@ -102,7 +102,7 @@ class ILocalNodeService(Interface):
     """
 
 
-from taxus.iface import IPrimitive
+from script_mpe.taxus.iface import IPrimitive
 
 class IPyDict(IPrimitive):
     pass
