@@ -1,5 +1,7 @@
 script.mpe
 ==========
+:version: 0.0.0+20150823-1856
+
 Various tools and ongoing experiments that have not yet deserved their own
 project.
 
