@@ -33,7 +33,7 @@ endif
 #
 #      ------------ -- 
 
-TEST_$d             := test_py_$d  test_sa_$d  test_sys_$d test_schema_$d
+TEST_$d             := test_py_$d  test_sa_$d  test_usr_$d test_schema_$d
 
 STRGT               += $(TEST_$d)
 
@@ -68,15 +68,15 @@ test_py_$d::
     fi
 
 # some system tests
-test_sys_$d:: TESTS:= 
-test_sys_$d::
+test_usr_$d:: TESTS:= 
+test_usr_$d::
 	@$(ll) info $@ "Starting system tests.."
 	@\
 	    LOG=test-system.log;\
-        test/system.sh $(TESTS) 2> $$LOG; \
+        test/system.sh $(TESTS) | tee $$LOG 2>&1 | tee test-system.out ; \
     \
-        PASSED=$$(grep PASSED $$LOG | wc -l); \
-        FAILED=$$(grep FAILED $$LOG | wc -l); \
+        PASSED=$$(echo $$(grep PASSED $$LOG | wc -l)); \
+        FAILED=$$(echo $$(grep FAILED $$LOG | wc -l)); \
         [ $$FAILED -gt 0 ] && { \
             $(ll) error "$@" "$$FAILED failures, see" $$LOG; \
         } || { \

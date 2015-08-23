@@ -8,7 +8,7 @@ Options:
                         Run time configuration. This is loaded after parsing
                         command line options, non-default option values wil
                         override persisted values (see --update-config)
-                        (default: /home/berend/.basename-reg.yaml).
+                        (default: $HOME/.basename-reg.yaml).
   -U, --update-config   Write back configuration after updating the settings
                         with non-default option values.  This will lose any
                         formatting and comments in the serialized
@@ -32,5 +32,15 @@ Options:
                         Overriden by --quiet or --message-level.
   -q, --quiet           Turn off informal message (level<4) and prompts
                         (--interactive).
-  --list-extensions     
-  -l, --list-mediatypes
+  --print-path          Print path and semicolon before each resul.
+  -E, --ext, --extension
+                        Print extension only.
+  -D, --descr, --description
+                        Print description only.
+  -m, --mime-type       Print mime-type major/minor only.
+  --media-type          Print extension, mimetype and description.
+  --content-type        Print content-type header alike value: includes mime-
+                        type and parameters.
+  --override-magic      Use file extension instead of hosts mime-magic.
+  -l, --list-extensions
+  -t, --list-mediatypes

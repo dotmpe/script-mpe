@@ -138,6 +138,8 @@ case $1 in
   5)
     test_start myCalendar
     check_run "python myCalendar.py"
+    check_run "myCalendar.py ." 
+    check_out "myCalendar.py -h" myCalendar_help
     test_end
     ;;
 
@@ -149,18 +151,11 @@ case $1 in
 
   7)
     test_start Radical
-    check_run "radical.py"
+    check_run "radical.py ."
     test_end
     ;;
 
   8)
-    test_start myCalendar
-    check_run "myCalendar.py ." 
-    check_out "myCalendar.py -h" myCalendar_help
-    test_end
-    ;;
-
-  9)
     test_start cmdline
     check_run "cmdline.py" 
     SRC1=$PREFIX.source1
