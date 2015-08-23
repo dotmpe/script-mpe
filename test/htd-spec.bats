@@ -22,4 +22,21 @@ load helper
   test "${lines[0]}" = "$HTDIR"
 }
 
+@test "info" {
+  run ${bin} info
+  test $status -eq 0
+  test "${#lines[@]}" = "8"
+}
+
+@test "test-name" {
+  run ${bin} test-name ./linux-network-interface-cards.py
+  test $status -eq 0
+  run ${bin} test-name "./Foo Bar Baz/"
+  test $status -eq 0
+  run ${bin} test-name "./Foo + Bar & Baz/"
+  test $status -eq 0
+  run ${bin} test-name "./(Foo) Bar [Baz]/"
+  test $status -eq 0
+}
+
 

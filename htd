@@ -16,6 +16,7 @@ load()
 	[ -n "$PROJECT" ] || PROJECT="$(basename $(pwd))"
 	_14MB=14680064
 	_6MB=7397376
+	_5k=5120
 	test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
 
 	test -e table.sha1 && R_C_SHA3="$(cat table.sha1|wc -l)"
@@ -428,10 +429,10 @@ filesize()
 {
 	case "$uname" in
 		Darwin )
-			stat -f '%z' "$1" || return 1
+			stat -L -f '%z' "$1" || return 1
 			;;
 		Linux )
-			stat -c '%s' "$1" || return 1
+			stat -L -c '%s' "$1" || return 1
 			;;
 	esac
 }

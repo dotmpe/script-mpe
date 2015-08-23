@@ -92,6 +92,8 @@ test_match_$d::
 test_htd_$d::
 test_htd_$d::
 	-./htd || echo "Status 1=$$? OK"
+	htd ck-validate
+	htd ck-validate sha1
 	bats ./test/htd-spec.bats
 
 
