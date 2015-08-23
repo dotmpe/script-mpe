@@ -33,8 +33,9 @@ endif
 #
 #      ------------ -- 
 
-TEST_$d             := test_py_$d test_sa_$d test_match_$d test_htd_$d \
-	test_usr_$d test_schema_$d
+#test_sa_$d test_schema_$d
+TEST_$d             := test_py_$d test_match_$d test_htd_$d \
+	test_usr_$d 
 
 STRGT               += $(TEST_$d)
 
@@ -91,7 +92,8 @@ test_match_$d::
 
 test_htd_$d::
 test_htd_$d::
-	-./htd || echo "Status 1=$$? OK"
+	-./myCalendar.py || echo "Status 1=$$? OK"
+	-./myCalendar.py -h || echo "Status 1=$$? OK"
 	MIN_SIZE=5120 htd ck-update ck *.py > /dev/null 2> /dev/null
 	MIN_SIZE=4096 htd ck-update sha1 *.py > /dev/null 2> /dev/null
 	htd ck-validate > /dev/null 2> /dev/null
