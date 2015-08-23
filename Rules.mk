@@ -33,7 +33,8 @@ endif
 #
 #      ------------ -- 
 
-TEST_$d             := test_py_$d  test_sa_$d  test_usr_$d test_schema_$d
+TEST_$d             := test_py_$d test_usr_bats_. \
+	test_sa_$d  test_usr_$d test_schema_$d
 
 STRGT               += $(TEST_$d)
 
@@ -82,6 +83,10 @@ test_usr_$d::
         } || { \
             $(ll) Ok "$@" "$$PASSED passed" $$LOG; \
         }
+
+test_usr_bats_$d::
+test_usr_bats_$d::
+	./test/match-spec.bats
 
 # Make SA do a test on the repo
 DB_SQLITE_TEST=.test/db.sqlite

@@ -31,7 +31,7 @@ load helper
 @test "lists var names" {
   run ${bin} var-names
   test $status -eq 0
-  test "${lines[0]}" = "SZ SHA1_CKS MD5_CKS CK_CKS EXT NAMECHAR NAMEPARTS ALPHA PART OPTPART"
+  test "${lines[0]}" = "SZ SHA1_CKS MD5_CKS CK_CKS EXT NAMECHAR IDCHAR NAMEPART NAMEPARTS ALPHA PART OPTPART"
 }
 
 @test "lists var names in name pattern" {
@@ -48,9 +48,9 @@ load helper
 @test "compile regex for name pattern" {
   source ./match.sh
   match_load
-  match_name_pattern ./@NAMEPARTS.@SHA1_CKS.@EXT
+  match_name_pattern_test ./@NAMEPARTS.@SHA1_CKS.@EXT
   test $? -eq 0
-  test "$grep_pattern" = "\.\/[a-z0-9\._-]\{1,\}\.[a-f0-9]\{40\}\.[a-z0-9]\{3,5\}"
+  test "$grep_pattern" = "\.\/[A-Za-z_][A-Za-z0-9_,-]\{1,\}S\.[a-f0-9]\{40\}\.[a-z0-9]\{2,5\}"
 }
 
 @test "compile regex for name pattern (II)" {
@@ -58,7 +58,7 @@ load helper
   match_load
   match_name_pattern ./@NAMEPARTS.@SHA1_CKS@OPTPART.@EXT
   test $? -eq 0
-  test "$grep_pattern" = "\.\/[a-z0-9\._-]\{1,\}\.[a-f0-9]\{40\}\(\.\(partial\|part\|incomplete\)\)\?\.[a-z0-9]\{3,5\}"
+  test "$grep_pattern" = "\.\/[A-Za-z_][A-Za-z0-9_,-]\{1,\}S\.[a-f0-9]\{40\}\(\.\(partial\|part\|incomplete\)\)\?\.[a-z0-9]\{2,5\}"
 }
 
 @test "compile regex for name pattern (III)" {
@@ -66,10 +66,10 @@ load helper
   match_load
   match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT
   test $? -eq 0
-  test "$grep_pattern" = "\.\/[a-z0-9\._-]\{1,\}\.[a-f0-9]\{40\}\.\(partial\|part\|incomplete\)\.[a-z0-9]\{3,5\}"
+  test "$grep_pattern" = "\.\/[A-Za-z_][A-Za-z0-9_,-]\{1,\}S\.[a-f0-9]\{40\}\.\(partial\|part\|incomplete\)\.[a-z0-9]\{2,5\}"
   match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART
   test $? -eq 0
-  test "$grep_pattern" = "\.\/[a-z0-9\._-]\{1,\}\.[a-f0-9]\{40\}\.\(partial\|part\|incomplete\)\.[a-z0-9]\{3,5\}"
+  test "$grep_pattern" = "\.\/[A-Za-z_][A-Za-z0-9_,-]\{1,\}S\.[a-f0-9]\{40\}\(.\(partial\|part\|incomplete\)\)\.[a-z0-9]\{2,5\}"
 }
 
 @test "compile regex for name pattern with" {

@@ -83,7 +83,8 @@ match_name_pattern()
 match_name_pattern_test()
 {
 	echo MATCH_NAME_VARS=$MATCH_NAME_VARS
-	match_name_pattern "./@NAMEPARTS.@SHA1_CKS.@EXT"
+	match_name_pattern "$1" "$2"
+	#./@NAMEPARTS.@SHA1_CKS.@EXT"
 	echo grep_pattern=$grep_pattern
 }
 
@@ -92,10 +93,11 @@ match_name_pattern_opts()
 	req_arg "$1" "match name-pattern-opts" 1 pattern && shift 1 || return 1
 	for var_match in $MATCH_NAME_VARS
 	do
-		echo "$pattern" | grep '@'$var_match > /dev/null \
+		echo "$pattern" | grep '@\<'$var_match'\>' > /dev/null \
 			&& echo $var_match  || echo -n
 	done
 }
+
 
 # parse named vars from path using pattern
 match_name_vars()
