@@ -43,6 +43,8 @@ install_mkdoc()
   make
 }
 
+# expecting cwd to be ~/build/dotmpe/script.mpe/ but asking anyway
+
 install_pylib()
 {
   # hack py lib here
