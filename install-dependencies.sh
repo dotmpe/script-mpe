@@ -54,7 +54,7 @@ install_pylib()
   ln -s $cwd script_mpe
   popd
   tree -C -ifgup ~/lib
-  export PYTHON_PATH=$PYTHON_PATH:~/lib/py/
+  export PYTHON_PATH=$PYTHON_PATH:.:~/lib/py/
 }
 
 install_script()
