@@ -47,14 +47,19 @@ install_mkdoc()
 
 install_pylib()
 {
+  # for travis container build:
+  pylibdir=$HOME/.local/lib/python2.7/site-packages
+  case "$(hostname -s)" in
+      simza )
+          pylibdir=~/lib/py ;;
+  esac
   # hack py lib here
-  mkdir -vp ~/lib/py
+  mkdir -vp $pylibdir
   cwd=$(pwd)/
-  pushd ~/lib/py
+  pushd $pylibdir
   ln -s $cwd script_mpe
   popd
-  tree -C -ifgup ~/lib
-  export PYTHON_PATH=$PYTHON_PATH:.:~/lib/py/
+  export PYTHON_PATH=$PYTHON_PATH:.:$pylibdir/
 }
 
 install_script()
