@@ -39,4 +39,10 @@ load helper
   test $status -eq 0
 }
 
-
+@test "check-names filenames with table.{vars,names}" {
+  run ${bin} check-names pathlist2dot-default-template.py
+  run ${bin} check-names dataurl.py
+  run ${bin} check-names dataurl.py filenames-ext,python-module,python-script,std-ascii
+  run ${bin} check-names ANSI-shell-coloring.py* filenames-ext,python-script,std-ascii
+  test $status -eq 0
+}
