@@ -37,10 +37,10 @@ match_load_defs()
 # To escape filenames and perhaps other values for use as grep literals
 match_grep_pattern_test()
 {
-	p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@+_])/\\\1/g')"
+	p_="$(echo "$1" | sed -E 's/([^A-Za-z0-9{}(),!@+_])/\\\1/g')"
 	# test regex
-	echo "$@" | grep "^$p_$" >> /dev/null || {
-		err "cannot build regex for '$p': $p_"
+	echo "$1" | grep "^$p_$" >> /dev/null || {
+		err "cannot build regex for $1: $p_"
 		echo "$p" > invalid.paths
 		return 1
 	}

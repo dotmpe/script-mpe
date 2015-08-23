@@ -168,6 +168,7 @@ c_docs()
 	echo "    From CWD:"
 	echo "  ./TODO.list"
 	echo "  ./table.names"
+	echo "  ./invalid.paths"
 	echo "    TODO: uses path .git/.."
 	echo "    TODO: paths used by matchbox"
 	echo ""
@@ -273,7 +274,7 @@ c_init_ignores()
 
 req_path_arg()
 {
-	test -n "$1"  && path="$@"  || path=.
+	test -n "$1"  && path="$1"  || path=.
 	test -d "$path" || {
 		err "Must pass directory" 1
 	}
@@ -427,10 +428,10 @@ filesize()
 {
 	case "$uname" in
 		Darwin )
-			stat -f '%z' "$@" || return 1
+			stat -f '%z' "$1" || return 1
 			;;
 		Linux )
-			stat -c '%s' "$@" || return 1
+			stat -c '%s' "$1" || return 1
 			;;
 	esac
 }
@@ -737,15 +738,15 @@ c_tasks()
 # Add task to list with title
 c_new_task()
 {
-	gtasks_list_arg $@ && shift 1
+	gtasks_list_arg $1 && shift 1
 	gtasks -l "$list" -a - -t "$@"
 }
 
 # Edit notes of a task in the $EDITOR
 c_task_note()
 {
-	gtasks_list_arg $@ && shift 1
-	gtasks_num_arg $@ && shift 1 || exit 1
+	gtasks_list_arg $1 && shift 1
+	gtasks_num_arg $1 && shift 1 || exit 1
 	tmpf=/tmp/gtasks-$list-$num-note
 	title="$(gtasks -dsc -l "$list" -gt $num)"
 	mkdir -p $(dirname $tmpf)
@@ -774,8 +775,8 @@ c_task_note()
 # Get or updte title of task
 c_task_title()
 {
-	gtasks_list_arg $@ && shift 1
-	gtasks_num_arg $@ && shift 1 || exit 1
+	gtasks_list_arg $1 && shift 1
+	gtasks_num_arg $1 && shift 1 || exit 1
 	test -z "$1" && {
 		gtasks -dsc -l "$list" -gt $num
 	} || {
@@ -788,14 +789,14 @@ c_done()
 {
 	test -n "$2" && {
 		test "$2" -gt 0 && {
-			gtasks_list_arg $@ && shift 1
-			gtasks_num_arg $@ && shift 1 || exit 1
+			gtasks_list_arg $1 && shift 1
+			gtasks_num_arg $1 && shift 1 || exit 1
 		}
 	} || {
 		test -n "$1" -a "$1" -gt 0 && {
 			# default list
 			gtasks_list_arg
-			gtasks_num_arg $@ && shift 1 || exit 1
+			gtasks_num_arg $1 && shift 1 || exit 1
 		}
 	}
 	gtasks -dsc -l "$list" -c $num
@@ -804,7 +805,7 @@ c_done()
 # TODO: get references from file
 c_urls()
 {
-    htd_file_arg $@ || exit 1
+    htd_file_arg $1 || exit 1
     shift 1
     grep '\([a-z]\+\):\/\/.*' $file | while read url
     do
@@ -974,13 +975,17 @@ c_git_annex_clear_unused()
 # indexing, cleaning
 
 htd_name_precaution() {
-	echo "$@" | grep -E '^[]\[{}\(\)A-Za-z0-9\.,!@#&%*?:'\''\+\ \/_-]*$' > /dev/null || return 1
+	echo "$1" | grep -E '^[]\[{}\(\)A-Za-z0-9\.,!@#&%*?:'\''\+\ \/_-]*$' > /dev/null || return 1
 }
 
 c_test_name()
 {
-	match_grep_pattern_test "$@" || return 1
-	htd_name_precaution "$@"
+	match_grep_pattern_test "$1" || return 1
+	htd_name_precaution "$1" || return 1
+	test "$cmd" = "test-name" && {
+		echo 'name ok'
+	}
+	return 0
 }
 
 c_find_empty()
@@ -1071,7 +1076,7 @@ c_list_paths()
 c_check_names()
 {
 	test -z "$1" && d="." || { d="$1"; shift 1; }
-	test -z "$1" && valid_tags="" || valid_tags="$@"
+	test -z "$1" && valid_tags="" || valid_tags="$1"
 	test "${d: -1:1}" = "/" && d="${d:0: -1}"
 
 	test -z "$valid_tags" &&
@@ -1087,7 +1092,7 @@ c_check_names()
 c_fix_names()
 {
 	local path_regex names_tables names_table
-	req_path_arg "$@"
+	req_path_arg "$1"
 	match_grep_pattern_test "$path" || return 1
 	path_regex="$p_"
 	match_name_tables "$path"
@@ -1163,7 +1168,7 @@ c_name_tags()
 {
 	local pattern
 	req_arg "$1" 'name-tags' 1 pattern && shift 1|| return 1
-	req_arg "$1" 'name-tags' 2 path && path="$@" || return 1
+	req_arg "$1" 'name-tags' 2 path && path="$1" || return 1
 	c=0
 	test "${path: -1:1}" = "/" && path="${path:0: -1}"
 	test -d "$path" && {
@@ -1183,7 +1188,7 @@ c_name_tags()
 
 c_name_tags_all()
 {
-	req_arg "$1" 'name-tags-all' 1 path && path="$@" || return 1
+	req_arg "$1" 'name-tags-all' 1 path && path="$1" || return 1
 	test "${path: -1:1}" = "/" && path="${path:0: -1}"
 	test -d "$path" && {
 		eval find "$path $find_ignores -o \( -type f -o -type l \) -a -print" \
@@ -1258,7 +1263,7 @@ c_ck_table()
 		done
 	} || {
 		# look for single path
-		htd_relative_path "$@"
+		htd_relative_path "$1"
 		match_grep_pattern_test "$relpath" || return 1
 		grep ".*\ \(\.\/\)\?$p_$" table.$CK$S >> /dev/null && {
 			grep ".*\ \(\.\/\)\?$p_$" table.$CK$S | cut -f 1 -d ' '
@@ -1276,7 +1281,7 @@ c_ck_table_subtree()
 	ck_arg "$1"
 	shift 1
 	test -n "$1" || return 1
-	match_grep_pattern_test "$@" || return 1
+	match_grep_pattern_test "$1" || return 1
 	grep ".*\ $p_.*$" table.$CK | grep -v '^#|\s*$' | while read -a ckline
 		do
 			test "$CK" = "ck" && {
@@ -1294,8 +1299,11 @@ c_ck_table_subtree()
 ck_update_file()
 {
 	ck_write "$CK"
-	update_file="$@"
-	c_test_name "$update_file" >> /dev/null || {
+	update_file="$1"
+	# FIXME use test name again but must have some testcases
+	# to verify because currently htd_name_precaution is a bit too strict
+	# c_test_name
+	match_grep_pattern_test "$update_file" > /dev/null || {
 		err "Skip path with unhandled characters"
 		return
 	}
@@ -1321,11 +1329,14 @@ ck_update_file()
 		err "File too small: $SZ"
 		return
 	}
+	# test localname for SHA1 tag
 	BN="$(basename "$update_file")"
 	# XXX hardcoded to 40-char hexsums ie. sha1
 	HAS_CKS="$(echo "$BN" | grep '\b[0-9a-f]\{40\}\b')"
 	cks="$(echo "$BN" | grep '\b[0-9a-f]\{40\}\b' |
 		sed 's/^.*\([0-9a-f]\{40\}\).*$/\1/g')"
+	# FIXME: normalize relpath
+	test "${update_file:0:2}" = "./" && update_file="${update_file:2}"
 	#EXT="$(echo $BE)"
 	test -n "$HAS_CKS" && {
 		c_ck_table "$CK" "$update_file" > /dev/null && {
@@ -1355,8 +1366,9 @@ ck_update_file()
 
 ck_update_find()
 {
-	log "Reading $T_CK, looking for paths '$@'"
-	find_p="$@"
+	log "Reading $T_CK, looking for paths '$1'"
+	find_p="$1"
+	# strip trailing slash
 	test "${find_p: -1:1}" = "/" && find_p="${find_p:0: -1}"
 	eval find "$find_p" $find_ignores -o -print \
 	| while read p
@@ -1370,7 +1382,7 @@ c_ck_update()
 {
 	ck_write "$1"
 	shift 1
-	update_p="$@"
+	update_p="$1"
 	log "Checking '$update_p'"
 	test -z "$update_p"  && {
 		ck_update_find . || return 1
@@ -1381,11 +1393,11 @@ c_ck_update()
 		return
 	}
 	test -f "$update_p"  && {
-		ck_update_file "$@" || return 3
+		ck_update_file "$update_p" || return 3
 		return
 	}
 	test -L "$update_p"  &&  {
-		ck_update_file "$@" || return 4
+		ck_update_file "$update_p" || return 4
 		return
 	}
 	err "Unknown path '$update_p'" 1
@@ -1395,9 +1407,9 @@ c_ck_drop()
 {
 	ck_write "$1"
 	shift 1
-	ck_drop "$@"
+	ck_drop "$1"
 	req_arg "$1" 'ck-drop' 2 path || return 1
-	match_grep_pattern_test "$@" || return 1
+	match_grep_pattern_test "$1" || return 1
 	cp table.$CK table.$CK.tmp
 	cat table.$CK.tmp | grep "^.*$p_$" >> table.$CK.missing
 	cat table.$CK.tmp | grep -v "^.*$p_$" > table.$CK
