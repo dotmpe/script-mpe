@@ -1189,6 +1189,34 @@ c_ck_table()
 	}
 }
 
+# x-platform regex match since Bash/BSD test wont chooche on older osx
+x_re()
+{
+	echo $1 | grep -E "^$2$" > /dev/null && return || return 1
+}
+
+htd_relative_path()
+{
+	cwd=$(pwd)
+	{ test -e "$1" && x_re "${1:0:2}" '[\.\/]*'; } && {
+		return 0
+	} || {
+		return 1
+	}
+}
+man_1_relative_path="Test for relative path"
+c_relative_path()
+{
+	#x_re "${1:0:2}" '[\.\/]*' && echo ok || echo nok
+	htd_relative_path $1
+	exit $?
+}
+man_1_relpath="Alias for 'relative-path'"
+c_relpath()
+{
+	c_relative_path $1
+}
+
 c_ck_table_subtree()
 {
 	ck_arg "$1"
