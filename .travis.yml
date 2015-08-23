@@ -11,7 +11,7 @@ before_script:
 - 'export PATH=$PATH:./'
 - 'export PATH=$PATH:~/usr/bin'
 - 'export PYTHON_PATH=$PYTHON_PATH:~/lib/py'
-- 'echo "pwd=$(pwd"'
+- 'echo "pwd=$(pwd)"'
 - 'echo "bats=$(which bats)"'
 
 script: make -k test
