@@ -127,7 +127,7 @@ htd_commands()
 	echo 'Other commands: '
 	echo '  -e|edit                          Edit this script.'
 	echo '  alias                            Show bash aliases for this script.'
-	echo '  help                             Give a combined usage, command and docs. '
+	echo '  -h|help                          Give a combined usage, command and docs. '
 	echo '  docs                             Echo manual page. '
 	echo '  commands                         Echo this comand description listing.'
 }
@@ -137,21 +137,80 @@ c_docs()
 	echo 'Help'
 	echo "  See usage for all commands. Htd does not parse options but does use "
 	echo "  environment variables. See 'info' for more env variables. "
+	echo "  This help is being rewritten, divided in manual sections and maybe"
+	echo "  later some generation, auto-formatting, etc. "
+	echo "  For most is hardcoded with some added features."
+	echo ""
+	echo "Manual"
+	echo "  On Linux, manual pages are divided into sections:"
+	echo "  "
+	echo "    1. User Commands"
+	echo "    2. System Calls"
+	echo "    3. Library Calls"
+	echo "    4. Special Files (devices)"
+	echo "    5. File Formats and configuration files"
+	echo "    6. Games"
+	echo "    7. Overview, conventions and miscelleneous"
+	echo "    8. System management commands"
+	echo "  "
+	echo "  From: Linux Programmer's Manual; man7.org"
 	echo ""
 	echo "env"
 	echo "  CWDIR"
 	echo "    If set, use instead of the current directory for working dir. "
+	echo ""
+	echo "Files"
+	echo ""
+	echo "    From config settings:"
+	echo "  $vbox_names (\$vbox_names)"
+	echo "  $wol_hwaddr (\$wol_hwaddr)"
+	echo ""
+	echo "    From CWD:"
+	echo "  ./TODO.list"
+	echo "  ./table.names"
+	echo "    TODO: uses path .git/.."
+	echo "    TODO: paths used by matchbox"
+	echo ""
+	echo "    Temporary left after exec:"
+	echo "  /tmp/gtasks-\$list-\$num-note"
+	echo ""
+	echo "    Config files"
+	echo "  ~/.conf/git-remotes/\$HTD_GIT_REMOTE.sh"
+	echo "  ~/.conf/rules/\$host/\$project.sh"
 	echo ''
 	echo 'See dckr for container commands and vc for GIT related. '
 }
 
+man_1_help="Echo a combined usage, command and docs"
 c_help()
 {
-	htd_usage
-	echo ''
-	htd_commands
-	echo ''
-	c_docs
+	test -z "$1" && {
+		htd_usage
+		echo ''
+		htd_commands
+		echo ''
+		c_docs
+	} || {
+		c=$(echo "_$1" | tr '-.' '__')
+		# commands
+		try_help 1 $c && return
+		# config files
+		try_help 5 $c && return
+		# overview, conventions, misc.
+		try_help 7 $c && return
+	}
+}
+man_1__h="Alias for 'help'"
+c__h()
+{
+	c_help $@
+}
+
+# Get help str if exists for $section $id
+try_help()
+{
+	help_descr=$(eval echo "\$man_$(echo $1)$(echo $2)")
+	echo $help_descr
 }
 
 c_home()
@@ -180,6 +239,7 @@ c_expand()
 	done
 }
 
+man_1_edit="Edit the main script file"
 c_edit()
 {
 	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
@@ -187,6 +247,7 @@ c_edit()
 	[ -n "$fn" ] || err "Nothing to edit" 1
 	$EDITOR $fn
 }
+man_1__e="Alias for 'edit'"
 c__e()
 {
 	c_edit
@@ -218,6 +279,47 @@ req_path_arg()
 	}
 }
 
+# x-platform regex match since Bash/BSD test wont chooche on older osx
+x_re()
+{
+	echo $1 | grep -E "^$2$" > /dev/null && return || return 1
+}
+
+htd_relative_path()
+{
+	cwd=$(pwd)
+	test -e "$1" && {
+		x_re "${1}" '\/.*' && {
+			err "TODO make rel"
+		}
+		x_re "${1}" '[^\/].*' && {
+			x_re "${1}" '((\.\/)|(\.\.)).*' && {
+				relpath="${1: 2}"
+			} || {
+				relpath="$1"
+			}
+			return 0
+		}
+	}
+	return 1
+}
+man_1_relative_path="Test for relative path"
+c_relative_path()
+{
+	# TODO: maybe build relative path from 1 arg and cwd, or two args
+	# see also mkrlink. Also clean up.
+	#x_re "${1:0:2}" '[\.\/]*' && echo ok || echo nok
+	htd_relative_path $1
+	r=$?
+	echo relpath=$relpath
+	exit $r
+}
+man_1_relpath="Alias for 'relative-path'"
+c_relpath()
+{
+	c_relative_path $1
+}
+
 # return paths for names that exist along given path
 htd_find_path_locals()
 {
@@ -237,6 +339,8 @@ htd_find_path_locals()
         path=$(dirname $path)
     done
 }
+
+man_5_table_names=""
 
 c_test_find_path_locals()
 {
@@ -334,7 +438,7 @@ filesize()
 # show htd shell aliases
 c_alias()
 {
-	grep '\<'$scriptname'\>' ~/.alias | grep -v '^#' | while read _a A
+	grep '\<'$scriptname'\>' ~/.alias | grep -Ev '^(#.*|\s*)$' | while read _a A
 	do
 		a_id=$(echo $A | awk -F '=' '{print $1}')
 		a_shell=$(echo $A | awk -F '=' '{print $2}')
@@ -493,18 +597,74 @@ c_mac()
 	arp -a
 }
 
+# 
+
+c_project()
+{
+    echo -n
+}
+
+c_project_todo()
+{
+    title=
+    descr=
+    refs=
+}
+
 # Experimenting with gtasks.. looking at todo targets
 c_todo()
 {
-	echo
-	echo "..Htdocs ToDo.."
-	gtasks -L -dsc -dse -sn
-	echo "Due:"
-	gtasks -L -sdo -dse -sn
+	test -e TODO.list && {
+		cat TODO.list | \
+			grep -Ev '^(#.*|\s*)$' | \
+			while read line
+			do
+				todo_read_line "$line"
+				todo_clean_descr "$comment"
+				echo "$fn $ln  $tag  $descr"
+				# (.,.)p
+			done
+	} || {
+		echo
+		echo "..Htdocs ToDo.."
+		gtasks -L -dsc -dse -sn
+		echo "Due:"
+		gtasks -L -sdo -dse -sn
 #	echo ""
 #	gtasks -L -sb tomorrow -sa today -dse
+	}
 }
 
+todo_clean_descr()
+{
+	echo "$@" | \
+	grep -E '^.*(TODO|XXX|FIXME)[\ \:]*(.*)((\?\ )|(\.\ )|(\.\s*$)).*$' \
+	> /dev/null && {
+		clean=$( echo "$@" | \
+			sed -E 's/^.*(TODO|XXX|FIXME)[\ \:]*(.*)((\?\ )|(\.\ )|(\.\s*$)).*$/\1 \2\3/' )
+	} || {
+		clean=$( echo "$@" | \
+			sed -E 's/^.*(TODO|XXX|FIXME)[\ \:]*(.*)$/\1 \2/' )
+	}
+	tag=$(echo $clean|cut -f 1 -d ' ')
+	descr="$(echo ${clean:$(( ${#tag} + 1 ))})"
+	test -n "$descr" -a "$descr" != " " && {
+		echo $descr | grep -E '(\.|\?)$' > /dev/null || {
+			echo -n
+			# TODO: scan lines for end...
+		}
+	}
+}
+
+todo_read_line()
+{
+	line="$1"
+	fn=$(echo $line | cut -f 1 -d ':')
+	ln=$(echo $line | cut -f 2 -d ':')
+	test "$ln" -eq "$ln" 2> /dev/null \
+		|| err "Please include numbers in the TODO.list" 1
+	comment=${line:$((  ${#fn} + ${#ln} + 2  ))}
+}
 
 # Lists and tasks
 
@@ -652,17 +812,6 @@ c_urls()
         md5=$(echo -n $url | md5sum - | cut -d ' ' -f 1)
         echo $sha1 $md5 $url
     done
-}
-
-c_project()
-{
-    echo
-}
-c_project_todo()
-{
-    title=
-    descr=
-    refs=
 }
 
 # init or list SSH based remote 
@@ -830,7 +979,7 @@ htd_name_precaution() {
 
 c_test_name()
 {
-	match_grep_pattern_test "$@"
+	match_grep_pattern_test "$@" || return 1
 	htd_name_precaution "$@"
 }
 
@@ -867,9 +1016,9 @@ c_check()
 				do
 					c_ck_table_subtree $ck "$p" | while read p2
 					do
-						c_ck_table $ck "$p2" >> /dev/null && {
+						c_ck_table $ck "$p2" > /dev/null && {
 							#c_ck_drop $ck "$p"
-							echo "Dropped $ck key for $p"
+							echo "FIXME: Dropped $ck key for $p"
 						}
 					done
 				done
@@ -939,9 +1088,10 @@ c_fix_names()
 {
 	local path_regex names_tables names_table
 	req_path_arg "$@"
-	match_grep_pattern_test "$path"
+	match_grep_pattern_test "$path" || return 1
 	path_regex="$p_"
 	match_name_tables "$path"
+	# 
 	htd_find_path_locals table.names $(pwd)
 	names_tables=$path_locals
 	for names_table in $names_tables
@@ -1078,7 +1228,10 @@ ck_write()
 	}
 }
 
-# Check for path in table
+man_5_table_ck="Table of CK checksum, filesize and path"
+man_5_table_sha1="Table of SHA1 checksum and path"
+man_5_table_md5="Table of MD5 checksum and path"
+# Either check table for path, or iterate all entries. Echoes checksum, two spaces and a path
 c_ck_table()
 {
 	# table ext
@@ -1088,8 +1241,8 @@ c_ck_table()
 	test -n "$1" -a -e "table.$CK.$1" && {
 		S=$1; shift 1
 	} || S=
-	# path
-	[ -z "$1" ] && {
+	test -z "$1" && {
+		# run all entries
 		cat table.$CK$S | grep -Ev '^\s*(#.*|\s*)$' | \
 		while read -a ckline
 		do
@@ -1106,9 +1259,9 @@ c_ck_table()
 	} || {
 		# look for single path
 		htd_relative_path "$@"
-		match_grep_pattern_test "$relpath"
+		match_grep_pattern_test "$relpath" || return 1
 		grep ".*\ \(\.\/\)\?$p_$" table.$CK$S >> /dev/null && {
-			echo ok
+			grep ".*\ \(\.\/\)\?$p_$" table.$CK$S | cut -f 1 -d ' '
 		} || {
 			echo unknown
 			return 1
@@ -1116,12 +1269,14 @@ c_ck_table()
 	}
 }
 
+man_1_ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
+man_1_ck_table_subtree_spec="$ck_arg_spec <path>"
 c_ck_table_subtree()
 {
 	ck_arg "$1"
 	shift 1
 	test -n "$1" || return 1
-	match_grep_pattern_test "$@"
+	match_grep_pattern_test "$@" || return 1
 	grep ".*\ $p_.*$" table.$CK | grep -v '^#|\s*$' | while read -a ckline
 		do
 			test "$CK" = "ck" && {
@@ -1236,20 +1391,34 @@ c_ck_update()
 	err "Unknown path '$update_p'" 1
 }
 
-
 c_ck_drop()
 {
 	ck_write "$1"
 	shift 1
 	ck_drop "$@"
 	req_arg "$1" 'ck-drop' 2 path || return 1
-	match_grep_pattern_test "$@"
+	match_grep_pattern_test "$@" || return 1
 	cp table.$CK table.$CK.tmp
 	cat table.$CK.tmp | grep "^.*$p_$" >> table.$CK.missing
 	cat table.$CK.tmp | grep -v "^.*$p_$" > table.$CK
 	rm table.$CK.tmp
 }
 
+ck_arg_spec="[ck|sha1|md5]"
+man1_ck_clean_spec="$ck_arg_spec"
+man1_ck_clean="Iterate checksum table, check for duplicates, normalize paths"
+c_ck_clean()
+{
+	ck_arg "$1"
+	shift 1
+	test "$CK" = "ck" && {
+		echo -n
+	} || {
+		echo -n
+	}
+}
+
+man_1_ck_validate_spec="$ck_arg_spec"
 c_ck_validate()
 {
 	ck_arg "$1"
@@ -1262,6 +1431,7 @@ c_ck_validate()
 }
 
 # check file size and cksum
+man_3_checksums_spec="[<table-file>]"
 checksums()
 {
 	test -n "$1"  && T=$1  || T=table.ck
@@ -1332,7 +1502,7 @@ c_ck_metafile()
 			continue
 		}
 		cks=$(rsr.py --show-sha1sum-hexdigest "$ck_mf_p" 2> /dev/null)
-		c_ck_table "$CK" "$ck_mf_p" && {
+		c_ck_table "$CK" "$ck_mf_p" > /dev/null && {
 			log "$cks found"
 		} || {
 			CKS=$(${CK}sum "$ck_mf_p" | cut -d' ' -f1)
