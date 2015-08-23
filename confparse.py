@@ -43,7 +43,7 @@ except ImportError, e:
         yaml_safe_dump = yaml.safe_dump
     except ImportError, e:
         print >>sys.stderr, "confparse.py: no YAML parser"
-
+# XXX: see also res/js.py
 
 _ = None
 "In-mem. settings. "
@@ -81,7 +81,7 @@ def tree_paths(path):
         cpath = join(*parts)
         if path.startswith(os.sep):
             cpath = os.sep+cpath
-        
+
         yield cpath
         parts.pop()
 
@@ -226,7 +226,7 @@ class Values(dict):
 
     def get(self, k, default={}):
         """
-        Helper for getattr calls. 
+        Helper for getattr calls.
         XXX initializes defaults for dict only
         """
         if k not in self:
@@ -353,7 +353,7 @@ class Values(dict):
         Return a module path for this Values instance.
         """
         pp = ''
-        p = self.__dict__['parent'] 
+        p = self.__dict__['parent']
         if p:
             pp = p.path()
             for k in p.keys():
@@ -539,7 +539,7 @@ def init_config(name, paths=name_prefixes, default=None):
 
     if default == '.':
         default += name
-    
+
     if not rcfile:
         assert default, "Not initialized: %s for %s" % (name, paths)
         for path in find_config_path('cllct', paths=paths, suffixes=['','.rc'],
@@ -571,7 +571,7 @@ def load(name, paths=path_prefixes):
     ext = splitext(config)[1]
     if isdir(config):
         assert not ext
-        values_type = FSValues 
+        values_type = FSValues
     else:
         assert not ext or ext == 'yaml', ext
         values_type = YAMLValues
@@ -625,5 +625,5 @@ _ = Values()
 
 # XXX: testing
 if __name__ == '__main__':
-    configs = list(expand_config_path('cllct.rc')) 
+    configs = list(expand_config_path('cllct.rc'))
     assert configs == ['/Users/berend/.cllct.rc'], configs
