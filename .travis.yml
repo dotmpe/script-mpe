@@ -1,6 +1,7 @@
 
 install: ./install-dependencies.sh
 
+sudo: false
 script: make test
 
 branches:
