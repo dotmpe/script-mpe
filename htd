@@ -1359,8 +1359,11 @@ ck_update_file()
 		return
 	} || {
 		# TODO prepare to rename, keep SHA1 hashtable
-		c_ck_table "$CK" "$update_file" || {
+		c_ck_table "$CK" "$update_file" > /dev/null && {
+			echo ok
+		} || {
 			${CK}sum "$update_file" >> table.$CK
+			echo new
 		}
 	}
 }
@@ -1383,25 +1386,31 @@ c_ck_update()
 {
 	ck_write "$1"
 	shift 1
-	update_p="$1"
-	log "Checking '$update_p'"
-	test -z "$update_p"  && {
-		ck_update_find . || return 1
-		return
-	}
-	test -d "$update_p"  && {
-		ck_update_find "$update_p" || return 2
-		return
-	}
-	test -f "$update_p"  && {
-		ck_update_file "$update_p" || return 3
-		return
-	}
-	test -L "$update_p"  &&  {
-		ck_update_file "$update_p" || return 4
-		return
-	}
-	err "Unknown path '$update_p'" 1
+	#args=($@);
+	while test -e "$1"
+	do
+		update_p="$1"
+		shift 1
+		log "Checking '$update_p'"
+		test -z "$update_p"  && {
+			ck_update_find . 
+			continue
+		}
+		test -d "$update_p"  && {
+			ck_update_find "$update_p"
+			continue
+		}
+		test -f "$1" && {
+			ck_update_file "$1"
+			continue
+        }
+		test -L "$1"  &&  {
+			ck_update_file "$1" || return 4
+			continue
+		}
+		shift 1
+	done
+	test -z "$1" || err "Unknown path '$1'" 1
 }
 
 c_ck_drop()

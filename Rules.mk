@@ -92,6 +92,8 @@ test_match_$d::
 test_htd_$d::
 test_htd_$d::
 	-./htd || echo "Status 1=$$? OK"
+	MIN_SIZE=5120 htd ck-update ck *.py
+	MIN_SIZE=4096 htd ck-update sha1 *.py
 	htd ck-validate
 	htd ck-validate sha1
 	bats ./test/htd-spec.bats
