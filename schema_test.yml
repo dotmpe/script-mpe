@@ -1,4 +1,4 @@
-$schema: ./taxus-schema.yml
+"$schema": ./taxus-schema.yml
 #allOf:
 #- base/schema.yml
 schema:

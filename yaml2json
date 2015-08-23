@@ -10,10 +10,15 @@ from script_mpe.confparse import yaml_load, yaml_dump
 for f in sys.argv[1:]:
 	try:
 		data = yaml_load(open(f))
-		print js.dumps(data)
 	except:
-		print "Error in", f
+		print "Error parsing", f
 		import traceback
 		traceback.print_exc()
 
+	try:
+		print js.dumps(data)
+	except:
+		print "Error dumping to JSON", f
+		import traceback
+		traceback.print_exc()
 
