@@ -47,7 +47,5 @@ bats --version
 
 install_mkdoc
 
-pip install jsonschema
-
 # Id: script-mpe/0 install-dependencies.sh
 
