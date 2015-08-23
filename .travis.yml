@@ -3,7 +3,7 @@ sudo: false
 install: ./install-dependencies.sh
 
 before_script:
-- 'pip install jsonschema'
+- 'pip install --user jsonschema'
 - 'export PATH=$PATH:./'
 
 script: make -k test
