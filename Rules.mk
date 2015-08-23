@@ -93,7 +93,7 @@ test_match_$d::
 test_htd_$d::
 test_htd_$d::
 	@echo PYTHON_PATH=$$PYTHON_PATH
-	@-PYTHON_PATH=$$PYTHON_PATH python -c 'import script_mpe;print script_mpe'
+	@-python -c 'import script_mpe;print script_mpe'
 	-./myCalendar.py || echo "Status 1=$$? OK"
 	-./myCalendar.py -h || echo "Status 1=$$? OK"
 	MIN_SIZE=5120 htd ck-update ck *.py > /dev/null 2> /dev/null
