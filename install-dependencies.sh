@@ -3,6 +3,7 @@
 
 test -n "$SRC_PREFIX" || SRC_PREFIX=$HOME
 
+test -d ~/bin || mkdir ~/bin
 
 install_bats()
 {
@@ -10,7 +11,7 @@ install_bats()
   pushd $SRC_PREFIX
   git clone https://github.com/sstephenson/bats.git
   cd bats
-  sudo ./install.sh /usr/local
+  ./install.sh ~/bin/
   popd
 }
 
@@ -20,8 +21,12 @@ install_mkdoc()
   pushd $SRC_PREFIX
   git clone https://github.com/dotmpe/mkdoc.git
   cd mkdoc
-  ./configure && sudo ./install.sh
+  git co devel
+  PREFIX=~/usr/ ./configure && ./install.sh
   popd
+  rm Makefile
+  ln -s ~/usr/share/mkdoc/Mkdoc-full.mk Makefile
+  make
 }
 
 # Check for BATS shell test runner or install
