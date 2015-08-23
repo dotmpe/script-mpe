@@ -41,7 +41,7 @@ test_taxus_schema_ext_commit (mod_taxus_init.TestTaxusInitExtends) ... ok
 FAIL: test_5_copy (mod_confparse.CPTest1)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/Users/berend/bin/test/py/mod_confparse.py", line 212, in test_5_copy
+  File "/Volumes/Simza/project/script-mpe/test/py/mod_confparse.py", line 212, in test_5_copy
     'config_file': '/tmp/test1/test/sub/dir/testrc',
 AssertionError: {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'config_file': '/priva [truncated]... != {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'config_file': '/tmp/t [truncated]...
 - {'config_file': '/private/var/tmp/test1/test/sub/dir/testrc',
@@ -54,9 +54,9 @@ AssertionError: {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'confi
 FAIL: test_6_commit (mod_confparse.CPTest1)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/Users/berend/bin/test/py/mod_confparse.py", line 231, in test_6_commit
+  File "/Volumes/Simza/project/script-mpe/test/py/mod_confparse.py", line 231, in test_6_commit
     test_settings = self.test_5_copy()
-  File "/Users/berend/bin/test/py/mod_confparse.py", line 212, in test_5_copy
+  File "/Volumes/Simza/project/script-mpe/test/py/mod_confparse.py", line 212, in test_5_copy
     'config_file': '/tmp/test1/test/sub/dir/testrc',
 AssertionError: {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'config_file': '/priva [truncated]... != {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'config_file': '/tmp/t [truncated]...
 - {'config_file': '/private/var/tmp/test1/test/sub/dir/testrc',
@@ -66,7 +66,7 @@ AssertionError: {'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}, 'confi
    'foo': {'bar': {'var': 'v'}, 'test4': [{'foo': 'bar'}]}}
 
 ----------------------------------------------------------------------
-Ran 32 tests in 0.548s
+Ran 32 tests in 0.647s
 
 FAILED (failures=2)
 Coverage.py warning: Module rsr was never imported.
