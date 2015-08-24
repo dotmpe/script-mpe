@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-source ~/bin/match.sh
+PREFIX=~
+source $PREFIX/bin/match.sh
 set -e
 
 scriptname=htd
@@ -903,7 +904,7 @@ c_git_drop_remote()
 
 c_git_largest_objects()
 {
-	~/bin/git-largest-objects.sh 10
+	$PREFIX/bin/git-largest-objects.sh 10
 }
 
 # list commits for object sha1
@@ -1039,7 +1040,7 @@ c_check()
 
 htd_git_rename()
 {
-	~/bin/matchbox.py rename "$1" "$2" |
+	$PREFIX/bin/matchbox.py rename "$1" "$2" |
 	grep -Ev '^\s*(#.*|\s*)$' |
 	while read file_old file_new
 	do
@@ -1552,6 +1553,14 @@ c_ck_torrent()
 	test "$dir" != "." && pushd $2 > /dev/null
 	test "${dir: -1:1}" = "/" && dir="${dir:0: -1}"
 	log "In $dir, verify $1"
+
+	#echo testing btshowmetainfo
+	#btshowmetainfo $1
+
+	node $PREFIX/bin/btinfo.js "$1" > /tmp/htd-ck-torrent.sh
+	source /tmp/htd-ck-torrent.sh
+	echo BTIH:$infoHash
+
 	torrent-verify.py "$1" | while read line
 	do
 		test -e "${line}" && {
@@ -1560,7 +1569,6 @@ c_ck_torrent()
 	done
 	test "$dir" != "." && popd > /dev/null
 }
-
 
 
 # xxx find corrupt files: .mp3
@@ -1581,7 +1589,7 @@ c_mp3_validate()
 
 # Utils
 
-. ~/bin/util.sh
+source $PREFIX/bin/util.sh
 
 # stdio/stderr/exit util
 log()

@@ -33,9 +33,13 @@ endif
 #
 #      ------------ -- 
 
-#test_sa_$d test_schema_$d
-TEST_$d             := test_py_$d test_match_$d test_htd_$d \
-	test_usr_$d 
+ifeq ($(shell hostname -s),simza)
+TEST_$d             := test_match_$d test_htd_$d
+#test_usr_$d 
+#test_sa_$d test_schema_$d test_py_$d 
+else
+TEST_$d             := test_match_$d test_htd_$d
+endif
 
 STRGT               += $(TEST_$d)
 

@@ -12,6 +12,7 @@ addons:
     - tree
 
 before_script:
+- 'npm install parse-torrent lodash'
 - 'pip install --user PyYAML'
 - 'pip install --user zope.interface'
 - 'pip install --user zope.component'
