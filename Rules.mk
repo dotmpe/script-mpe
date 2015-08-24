@@ -76,7 +76,11 @@ test_py_$d::
 # some system tests
 test_usr_$d:: TESTS:= 
 test_usr_$d::
-	@$(ll) info $@ "Starting system tests.."
+	@$(ll) info $@ "Starting usr cmd tests.."
+	@#python -c 'import sys;print sys.path'
+	@-python -c 'import script_mpe;print script_mpe'
+	-./myCalendar.py || echo "Status 1=$$? OK"
+	-./myCalendar.py -h || echo "Status 1=$$? OK"
 	@\
 	    LOG=test-system.log;\
         test/system.sh $(TESTS) | tee $$LOG 2>&1 | tee test-system.out ; \
@@ -96,10 +100,6 @@ test_match_$d::
 
 test_htd_$d::
 test_htd_$d::
-	@python -c 'import sys;print sys.path'
-	@-python -c 'import script_mpe;print script_mpe'
-	-./myCalendar.py || echo "Status 1=$$? OK"
-	-./myCalendar.py -h || echo "Status 1=$$? OK"
 	MIN_SIZE=5120 htd ck-update ck *.py > /dev/null 2> /dev/null
 	MIN_SIZE=4096 htd ck-update sha1 *.py > /dev/null 2> /dev/null
 	htd ck-validate > /dev/null 2> /dev/null
