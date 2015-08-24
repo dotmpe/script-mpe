@@ -64,12 +64,12 @@ load helper
 @test "compile regex for name pattern (III)" {
   source ./match.sh
   match_load
-  match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT
+  match_name_pattern ./@NAMEPART.@SHA1_CKS@PART.@EXT
   test $? -eq 0
-  test "$grep_pattern" = "\.\/[A-Za-z_][A-Za-z0-9_,-]\{1,\}S\.[a-f0-9]\{40\}\.\(partial\|part\|incomplete\)\.[a-z0-9]\{2,5\}"
-  match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART
+  test "$grep_pattern" = "\.\/[A-Za-z_][A-Za-z0-9_,-]\{1,\}\.[a-f0-9]\{40\}\.\(partial\|part\|incomplete\)\.[a-z0-9]\{2,5\}"
+  match_name_pattern ./@NAMEPART.@SHA1_CKS@PART.@EXT PART
   test $? -eq 0
-  test "$grep_pattern" = "\.\/[A-Za-z_][A-Za-z0-9_,-]\{1,\}S\.[a-f0-9]\{40\}\(.\(partial\|part\|incomplete\)\)\.[a-z0-9]\{2,5\}"
+  test "$grep_pattern" = "\.\/[A-Za-z_][A-Za-z0-9_,-]\{1,\}\.[a-f0-9]\{40\}\(.\(partial\|part\|incomplete\)\)\.[a-z0-9]\{2,5\}"
 }
 
 @test "compile regex for name pattern with" {
