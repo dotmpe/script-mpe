@@ -9,3 +9,5 @@
 debug*
 .DS_Store
 .htdignore.merged
+node_modules/
+coverage_html_report/
