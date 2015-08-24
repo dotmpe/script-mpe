@@ -10,6 +10,7 @@ addons:
   apt:
     packages:
     - tree
+    - rhash
 
 before_script:
 - 'npm install parse-torrent lodash'
