@@ -124,7 +124,10 @@ work_c_docs()
 work_c_init()
 {
 	work_req_client  && err "Client exists" 1  || log "New client for $cwd"
-	test -n "$1"  && CLIENT="$@"  || CLIENT="$(basename $cwd)"
+	test -z "$CLIENT" && {
+		test -n "$1"  && CLIENT="$@"  || CLIENT="$(basename $cwd)"
+	}
+	test -n "$CLIENT"  || err "No client" 1
 	echo $cwd $CLIENT >> $script_clienttable
 	grep $CLIENT $script_clienttable
 }

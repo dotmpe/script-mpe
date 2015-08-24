@@ -37,11 +37,12 @@ match_load_defs()
 # To escape filenames and perhaps other values for use as grep literals
 match_grep_pattern_test()
 {
-	p_="$(echo "$@" | sed -E 's/([^A-Za-z0-9{}(),!@+_])/\\\1/g')"
+	p_="$(echo "$1" | sed -E 's/([^A-Za-z0-9{}(),!@+_])/\\\1/g')"
 	# test regex
-	echo "$@" | grep "^$p_$" >> /dev/null || {
-		err "cannot build regex for '$p': $p_"
-		return
+	echo "$1" | grep "^$p_$" >> /dev/null || {
+		err "cannot build regex for $1: $p_"
+		echo "$p" > invalid.paths
+		return 1
 	}
 }
 
@@ -50,7 +51,7 @@ match_grep_pattern_test()
 match_name_pattern()
 {
 	local pat var
-	match_grep_pattern_test "$1"
+	match_grep_pattern_test "$1" || return 1
 	grep_pattern="$p_"
 	MATCH_NAME_VAR_matched=
 	for var in $MATCH_NAME_VARS
@@ -131,7 +132,7 @@ match_name_vars()
 # change glob to regex pattern and match against path
 match_glob()
 {
-	match_grep_pattern_test "$1"
+	match_grep_pattern_test "$1" || return 1
 	glob_pat=$(echo "$p_" | sed 's/\\\*/.*/g')
 	shift 1
 	echo "$@" | grep '^'$glob_pat'$' > /dev/null || return 1
@@ -174,7 +175,7 @@ match_compile()
 {
 	req_arg "$1" "match compile" 1 pattern && shift 1 || return 1
 	req_arg "$1" "match compile" 2 pattern_name && shift 1 || return 1
-	match_grep_pattern_test "$pattern"
+	match_grep_pattern_test "$pattern" || return 1
 }
 
 # stdio/stderr/exit util
