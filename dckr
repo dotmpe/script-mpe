@@ -14,6 +14,7 @@ load()
 	test -e "$DCKR_VOL" || err "Missing docker volumes dir $DCKR_VOL" 1
 
 	hostname=$(hostname -s)
+	pref=bb_
 
 	rows=$(stty size|awk '{print $1}')
 	cols=$(stty size|awk '{print $2}')
@@ -42,7 +43,7 @@ c_help()
 	echo ""
 	echo 'Misc: '
 	echo '  -e|edit                          Edit this script.'
-	echo '  edit-conf                        Edit docker container listing. '
+	echo '  edit-local                       Edit local script. '
 	echo '  alias                            Show bash aliases for this script.'
 	echo '  usage                            print just the usage description.'
 	echo '  help                             print this help listing.'
@@ -58,7 +59,7 @@ c__e()
 	c_edit
 }
 
-c_edit_conf()
+c_edit_local()
 {
 	$EDITOR $DCKR_CONF/local.sh
 }
@@ -226,7 +227,7 @@ c_dnsmasq_update()
 {
 	cp $DCKR_VOL/dnsmasq/dnsmasq.conf.default $DCKR_VOL/dnsmasq/dnsmasq.conf
 	c_dnsmasq_conf >> $DCKR_VOL/dnsmasq/dnsmasq.conf
-	image_name=${hostname}_dns
+	image_name=${pref}dns
 	dckr_c
 	sudo docker exec -i $container /opt/reload
 }
@@ -268,7 +269,7 @@ c_reset_munin()
 {
 	dckr_argv $@
 	image_name=munin
-	dckr_name=${hostname}_munin
+	dckr_name=${pref}munin
 	dckr_stop && dckr_rm
 }
 
@@ -293,7 +294,7 @@ c_reset_sandbox()
 {
 	dckr_argv $@
 	image_name=sandbox
-	dckr_name=${hostname}_sandbox
+	dckr_name=${pref}sandbox
 	dckr_stop && dckr_rm
 }
 
@@ -301,7 +302,7 @@ c_init_sandbox()
 {
 	dckr_argv $@
 	image_name=sandbox-mpe:latest
-	dckr_name=${hostname}_sandbox
+	dckr_name=${pref}sandbox
 	cd ~/project/docker-sandbox
 	git co master
 	dckr_build && \
@@ -316,14 +317,14 @@ c_init_weather()
 {
 	dckr_argv $@
 	image_name=weather-mpe
-	dckr_name=${hostname}_weather
+	dckr_name=${pref}weather
 	cd ~/project/docker-sandbox
 	git co docker-weather
 	dckr_build && \
 	dckr_rm && \
 	dckr_run \
 		-p 8004:8080 \
-		--link ${hostname}_weather:${hostname}_weather \
+		--link ${pref}weather:${pref}weather \
 		-v $DCKR_VOL/ssh:/docker-ssh:ro \
 		-v /etc/localtime:/etc/localtime:ro
 }
@@ -332,7 +333,7 @@ c_reset_jenkins()
 {
 	dckr_argv $@
 	image_name=jenkins
-	dckr_name=${hostname}_jenkins
+	dckr_name=${pref}jenkins
 	dckr_stop && dckr_rm
 }
 
@@ -340,7 +341,7 @@ c_init_jenkins()
 {
 	dckr_argv $@
 	image_name=jenkins
-	dckr_name=${hostname}_jenkins
+	dckr_name=${pref}jenkins
 	cd ~/project/docker-jenkinsci
 	dckr_build && \
 	dckr_rm && \
@@ -355,7 +356,7 @@ c_init_sickbeard()
 {
 	dckr_argv $@
 	image_name=sickbeard
-	dckr_name=${hostname}_sickbeard
+	dckr_name=${pref}sickbeard
 	cd ~/project/docker-sickbeard
 	dckr_build && \
 	dckr_rm && \
@@ -370,7 +371,7 @@ c_init_graphite()
 {
 	dckr_argv $@
 	image_name=dotmpe/collectd-graphite
-	dckr_name=${hostname}_x_graphite
+	dckr_name=${pref}x_graphite
 	cd ~/project/docker-graphite
 	dckr_build && \
 	dckr_rm && \
@@ -384,7 +385,7 @@ c_init_haproxy()
 {
 	dckr_argv $@
 	image_name=haproxy:1.5
-	dckr_name=${hostname}_x_haproxy
+	dckr_name=${pref}x_haproxy
 	dckr_rm && \
 	dckr_run \
 		-v $DCKR_VOL/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro \
@@ -395,7 +396,7 @@ c_init_haproxy()
 
 c_init_bind()
 {
-	sudo docker run --name ${hostname}_bind -d --restart=always \
+	sudo docker run --name ${pref}bind -d --restart=always \
 			--publish 53:53/udp --publish 10000:10000 \
 				--volume $DCKR_VOL/bind:/data \
 					sameersbn/bind:latest
@@ -405,7 +406,7 @@ c_init_dns()
 {
 	dckr_argv $@
 	image_name=quay.io/jpillora/dnsmasq-gui:latest
-	dckr_name=${hostname}_dns
+	dckr_name=${pref}dns
 	cd ~/project/docker-dnsmasq
 	dckr_build && \
 	dckr_rm && \
@@ -419,7 +420,7 @@ c_init_jessie()
 {
 	dckr_argv $@
 	image_name=debian:jessie
-	dckr_name=${hostname}_jessie
+	dckr_name=${pref}jessie
 	dckr_rm && \
 	dckr_run
 }
@@ -428,7 +429,7 @@ c_init_ubuntu()
 {
 	dckr_argv $@
 	image_name=ubuntu:14.04
-	dckr_name=${hostname}_ubuntu
+	dckr_name=${pref}ubuntu
 	dckr_rm && \
 	dckr_run
 }
@@ -437,7 +438,7 @@ c_init_dev()
 {
 	dckr_argv $@
 	image_name=docker-dev
-	dckr_name=${hostname}_dev
+	dckr_name=${pref}dev
 	cd ~/project/docker-dev
 	dckr_build && \
 	dckr_rm && \
