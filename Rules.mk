@@ -95,7 +95,7 @@ test_usr_$d::
 
 test_match_$d::
 test_match_$d::
-	source ~/bin/htd && htd match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART
+	source ~/bin/htd && match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART
 	-./match.sh || echo "Status 1=$$? OK"
 	bats ./test/match-spec.bats
 
