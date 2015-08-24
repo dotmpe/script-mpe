@@ -444,6 +444,60 @@ c_init_dev()
 	dckr_run
 }
 
+# OpenWRT
+
+# could import from tar
+c_import_openwrt()
+{
+	sudo docker import \
+		http://downloads.openwrt.org/attitude_adjustment/12.09/x86/generic/openwrt-x86-generic-rootfs.tar.gz \
+		openwrt-x86-generic-rootfs
+}
+
+# OpenWRT toolchain by NOAH MEYERHANS
+
+c_build_jessie_openwrt()
+{
+	image_name=jessie-openwrt
+	dckr_name=${hostname}_openwrt
+	cd ~/project/docker-openwrt
+	dckr_build
+}
+
+c_init_openwrt()
+{
+	dckr_argv $@
+	image_name=jessie-openwrt
+	dckr_name=${hostname}_openwrt
+	dckr_cmd="sh -c 'cd /src/openwrt/openwrt && scripts/feeds update -a'"
+	dckr_f="-ti"
+	dckr_rm && \
+	dckr_run \
+		-v /src/openwrt:/src/openwrt \
+		-u builder
+}
+
+c_config_openwrt()
+{
+	image_name=jessie-openwrt
+	dckr_cmd="make -C /src/openwrt/openwrt menuconfig"
+	dckr_f="-ti"
+	dckr_run \
+		-v /src/openwrt:/src/openwrt \
+		-u builder
+}
+
+c_build_openwrt()
+{
+	image_name=jessie-openwrt
+	dckr_cmd="make -C /src/openwrt/openwrt -j3"
+	dckr_f="-ti"
+	dckr_run \
+		-v /src/openwrt:/src/openwrt \
+		-u builder
+}
+
+
 # include private projects
 test ! -e $DCKR_CONF/local.sh || {
 	source $DCKR_CONF/local.sh
