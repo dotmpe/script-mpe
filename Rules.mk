@@ -100,6 +100,7 @@ test_match_$d::
 
 test_htd_$d::
 test_htd_$d::
+	run ${bin} check-names 256colors2.pl
 	MIN_SIZE=5120 htd ck-update ck *.py > /dev/null 2> /dev/null
 	MIN_SIZE=4096 htd ck-update sha1 *.py > /dev/null 2> /dev/null
 	htd ck-validate > /dev/null 2> /dev/null
