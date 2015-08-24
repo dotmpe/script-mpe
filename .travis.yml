@@ -9,8 +9,8 @@ install:
 addons:
   apt:
     packages:
-    - tree
-    - rhash
+# not needed    - tree
+# not allowed    - rhash
 
 before_script:
 - 'npm install parse-torrent lodash'
