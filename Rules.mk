@@ -95,12 +95,13 @@ test_usr_$d::
 
 test_match_$d::
 test_match_$d::
+	source ~/bin/htd && htd match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART
 	-./match.sh || echo "Status 1=$$? OK"
 	bats ./test/match-spec.bats
 
 test_htd_$d::
 test_htd_$d::
-	run ${bin} check-names 256colors2.pl
+	htd check-names 256colors2.pl
 	MIN_SIZE=5120 htd ck-update ck *.py > /dev/null 2> /dev/null
 	MIN_SIZE=4096 htd ck-update sha1 *.py > /dev/null 2> /dev/null
 	htd ck-validate > /dev/null 2> /dev/null
