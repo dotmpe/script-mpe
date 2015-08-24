@@ -95,8 +95,10 @@ test_usr_$d::
 
 test_match_$d::
 test_match_$d::
-	source ~/bin/htd && match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART && echo $$grep_pattern
-	source ~/bin/htd && match_name_pattern_opts ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART
+	source ~/bin/htd && match_load && \
+	    match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART && echo $$grep_pattern
+	source ~/bin/htd match_load && \
+	    && match_name_pattern_opts ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART
 	-./match.sh || echo "Status 1=$$? OK"
 	bats ./test/match-spec.bats
 
