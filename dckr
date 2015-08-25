@@ -77,7 +77,7 @@ c_alias()
 
 # gobble up flags and set $dckr_f, and/or set and return $dckr_cmd upon first arg.
 # dckr_argc is the amount of arguments consumed
-dckr_argv()
+dckr_f_argv()
 {
 	dckr_argc=0
 	while test -n "$1"
@@ -93,6 +93,13 @@ dckr_argv()
 		dckr_argc=$(( $dckr_argc + 1 ))
 		shift 1
 	done
+}
+
+dckr_argv()
+{
+
+	image_name=${tag}
+	dckr_name=${prefix}${name}
 }
 
 dckr_build()
@@ -231,6 +238,16 @@ c_dnsmasq_update()
 	sudo docker exec -i $container /opt/reload
 }
 
+c_build()
+{
+	test -e "./build.sh" && {
+		source ./build.sh $@
+	} || {
+		dckr_f_argv $@
+		dckr_build
+	}
+}
+
 # FIXME: abstract below cmds so things can move to config files
 
 # FIXME: something to persist here?
@@ -266,7 +283,7 @@ c_init_cadvisor()
 
 c_reset_munin()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=munin
 	dckr_name=${hostname}_munin
 	dckr_stop && dckr_rm
@@ -274,7 +291,7 @@ c_reset_munin()
 
 c_init_munin()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=scalingo-munin-server
 	dckr_name=scalingo_munin
 	cd ~/project/docker-munin-server
@@ -291,7 +308,7 @@ c_init_munin()
 
 c_reset_sandbox()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=sandbox
 	dckr_name=${hostname}_sandbox
 	dckr_stop && dckr_rm
@@ -299,7 +316,7 @@ c_reset_sandbox()
 
 c_init_sandbox()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=sandbox-mpe:latest
 	dckr_name=${hostname}_sandbox
 	cd ~/project/docker-sandbox
@@ -314,7 +331,7 @@ c_init_sandbox()
 
 c_init_weather()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=weather-mpe
 	dckr_name=${hostname}_weather
 	cd ~/project/docker-sandbox
@@ -330,7 +347,7 @@ c_init_weather()
 
 c_reset_jenkins()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=jenkins
 	dckr_name=${hostname}_jenkins
 	dckr_stop && dckr_rm
@@ -338,7 +355,7 @@ c_reset_jenkins()
 
 c_init_jenkins()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=jenkins
 	dckr_name=${hostname}_jenkins
 	cd ~/project/docker-jenkinsci
@@ -353,7 +370,7 @@ c_init_jenkins()
 
 c_init_sickbeard()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=sickbeard
 	dckr_name=${hostname}_sickbeard
 	cd ~/project/docker-sickbeard
@@ -368,7 +385,7 @@ c_init_sickbeard()
 
 c_init_graphite()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=dotmpe/collectd-graphite
 	dckr_name=${hostname}_x_graphite
 	cd ~/project/docker-graphite
@@ -382,7 +399,7 @@ c_init_graphite()
 
 c_init_haproxy()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=haproxy:1.5
 	dckr_name=${hostname}_x_haproxy
 	dckr_rm && \
@@ -403,7 +420,7 @@ c_init_bind()
 
 c_init_dns()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=quay.io/jpillora/dnsmasq-gui:latest
 	dckr_name=${hostname}_dns
 	cd ~/project/docker-dnsmasq
@@ -417,7 +434,7 @@ c_init_dns()
 
 c_init_jessie()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=debian:jessie
 	dckr_name=${hostname}_jessie
 	dckr_rm && \
@@ -426,7 +443,7 @@ c_init_jessie()
 
 c_init_ubuntu()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=ubuntu:14.04
 	dckr_name=${hostname}_ubuntu
 	dckr_rm && \
@@ -435,7 +452,7 @@ c_init_ubuntu()
 
 c_init_dev()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=docker-dev
 	dckr_name=${hostname}_dev
 	cd ~/project/docker-dev
@@ -466,10 +483,10 @@ c_build_jessie_openwrt()
 
 c_init_openwrt()
 {
-	dckr_argv $@
+	dckr_f_argv $@
 	image_name=jessie-openwrt
 	dckr_name=${hostname}_openwrt
-	dckr_cmd="sh -c 'cd /src/openwrt/openwrt && scripts/feeds update -a'"
+	dckr_cmd="/usr/sbin/docker-init-openwrt.sh"
 	dckr_f="-ti"
 	dckr_rm && \
 	dckr_run \
