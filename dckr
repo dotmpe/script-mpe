@@ -34,9 +34,13 @@ c_help()
 	echo 'Docker: '
 	echo "  names                            List images"
 	echo "  c <image-name>                   Get container ID"
-	echo "  stop                             Stop container for image"
+	echo "  stop <image-name>                Stop container for image"
 	echo "  rm                               Remove image"
 	echo "  ip [<image-name>]                List IP for one or all running containers."
+	echo "  build [<image-name>]             Do a simple docker build invocation (in cwd)"
+	echo "  init [<flags> <dckr-cmd> <image-name>] "
+	echo "                                   Do a standard run+init for an image."
+	echo ""
 	echo ""
 	echo "Generate:"
 	echo "  dnsmasq-conf                     print dnsmasq static address config using image-name as hostname"
@@ -77,30 +81,41 @@ c_alias()
 # Docker
 
 # gobble up flags and set $dckr_f, and/or set and return $dckr_cmd upon first arg.
-# dckr_argc is the amount of arguments consumed
+# $c is the amount of arguments consumed
 dckr_f_argv()
 {
-	dckr_argc=0
+	c=0
 	while test -n "$1"
 	do
 		test -z "$1" || {
 			test "${1:0:1}" = "-" && {
 				dckr_f="$dckr_f $1"
 			} || {
-				dckr_cmd="$@"
+				dckr_cmd="$1"
+				c=$(( $c + 1 ))
 				return
 			}
 		}
-		dckr_argc=$(( $dckr_argc + 1 ))
-		shift 1
+		c=$(( $c + 1 )) && shift 1
 	done
 }
 
-dckr_argv()
+dckr_name_argv()
 {
+	test -z "$1" && {
+		# dont override without CLI args, only set
+		test -n "$dckr_name" && return 1;
+	}
+	test -z "$1" && name=$(basename $(pwd)) || name=$1
+	dckr_name=${pref}${name}
+	test -n "$1" || log "Using dir for dckr-name: $dckr_name"
+}
 
+dckr_image_argv()
+{
+	test -z "$1" && err "Must enter image name or tag" 1 || tag=$1
+	c=1
 	image_name=${tag}
-	dckr_name=${prefix}${name}
 }
 
 dckr_build()
@@ -111,17 +126,28 @@ dckr_build()
 
 dckr_run()
 {
+	# default flags: start daemon w/ tty
 	test -n "$dckr_f" || dckr_f=-dt
 
-	dckr_env=~/.conf/dckr/$dckr_name-env.sh
-	test ! -e "$dckr_env" || dckr_f="$dckr_f --env-file $dckr_env"
+	# pass container env script if set, or exists in default location
+	test -z "$dckr_env" -a ! -e "./env.sh" || dckr_env=./env.sh
+	test -n "$dckr_env" || dckr_env=$DCKR_CONF/$dckr_name-env.sh
+	test -n "$dckr_env" -a -e "$dckr_env" && dckr_f="$dckr_f --env-file $dckr_env"
 
-#		--hostname $dckr_name \
+	# pass hostname if set
+	test -z "$dckr_hostname" || dckr_f="$dckr_f --hostname $dckr_hostname"
+
+	#echo dckr_name=$dckr_name
+	#echo dckr_f=$dckr_f
+	#echo dckr_argv=$dckr_argv
+	#echo dckr_cmd=$dckr_cmd
+
 	sudo docker run $@ $dckr_f \
 		--log-driver json-file \
 		--name $dckr_name \
 		--env DCKR_NAME=$dckr_name \
 		--env DCKR_IMAGE=$image_name \
+		$dckr_argv \
 		$image_name \
 		$dckr_cmd
 
@@ -131,19 +157,28 @@ dckr_run()
 # find container for image-name
 dckr_c()
 {
-	container=$(sudo docker ps $@ | grep '\<'$image_name'\>' | cut -f1 -d' ')
+	test -z "$1" && ps_f=-a || ps_f="$1"
+	container=$(sudo docker ps $ps_f | grep '\<'$image_name'\>' | cut -f1 -d' ')
 }
 
 dckr_stop()
 {
+	test -n "$container" && {
+		echo "Stopping container $container:"
+		sudo docker stop $container
+		return
+	}
 	test -z "$dckr_name" && {
 		test -z "$image_name" || {
+			log "Looking for running container by image-name $image_name:"
 			dckr_c
+			log "Stopping container by image-name $image_name:"
 			sudo docker stop $container
 		}
 	} || {
 		# check for container with name and remove
 		sudo docker ps | grep '\<'$dckr_name'\>' && {
+			log "Stopping container by container-name $dckr_name:"
 			sudo docker stop $dckr_name
 		} || echo -n
 	}
@@ -152,19 +187,35 @@ dckr_stop()
 # remove container (with name or for image-name)
 dckr_rm()
 {
+	test -n "$container" && {
+		echo "Removing container $container:"
+		sudo docker rm $container
+		return
+	}
 	test -z "$dckr_name" && {
 		test -z "$image_name" || {
-			log "Removing container by image-name $image_name"
+			log "Looking for container by image-name $image_name:"
 			dckr_c -a
+			log "Removing container $container"
 			sudo docker rm $container
 		}
 	} || {
 		# check for container with name and remove
 		sudo docker ps -a | grep '\<'$dckr_name'\>' && {
-			log "Removing container by container-name $dckr_name"
+			log "Removing container by container-name $dckr_name:"
 			sudo docker rm $dckr_name
 		} || echo -n
 	}
+}
+
+dckr_start()
+{
+	test -n "$container" && {
+		echo "Startng container $container:"
+		sudo docker start $container
+		return
+	}
+	return 1
 }
 
 dckr_names()
@@ -184,14 +235,29 @@ c_ps()
 
 c_stop()
 {
-	image_name=$1
+	test -e './vars.sh' \
+		&& source ./vars.sh stop $@
+
+	echo image_name=$image_name
+	test -z "$image_name" && {
+		dckr_image_argv $1
+		echo image_name=$image_name
+		shift $c
+	}
 	dckr_stop
 }
 
 c_rm()
 {
-	image_name=$1
+	echo "Removing and stopping container.."
+	c_stop
 	dckr_rm
+}
+
+c_start()
+{
+	dckr_c -a
+	dckr_start
 }
 
 c_names()
@@ -239,24 +305,105 @@ c_dnsmasq_update()
 	sudo docker exec -i $container /opt/reload
 }
 
+# get image name from vars or cmdline, and start build (in current dir)
 c_build()
 {
-	test -e "./build.sh" && {
-		source ./build.sh $@
-	} || {
-		dckr_f_argv $@
+	test -z "$1" -a -e './vars.sh' \
+		&& source ./vars.sh \
+		|| dckr_image_argv $@
+
+	test -n "$image_name" && {
 		dckr_build
+	} || { test -e "./build.sh" && {
+		./build.sh $@
+	} }
+}
+
+# start new container for image, and (re)run initialization scripts
+c_init()
+{
+	test -e './vars.sh' \
+		&& source ./vars.sh init $@
+
+	# args: 1-n: dckr flags and cmd
+	dckr_f_argv $@
+	shift $c
+
+	# args: n+1: override dckr (image) name
+	dckr_name_argv $@ && { shift 1; }
+
+	test -n "$dckr_f" || {
+		test -e "./init.sh" && {
+			dckr_f=-td
+		} || {
+			dckr_f=-ti
+		}
+	}
+
+	dckr_c && {
+		echo "Already running $dckr_name: $container"
+	}
+	
+	dckr_c -a && {
+		dckr_start
+	} || {
+		dckr_run $@ $dckr_run_argv
+	}
+
+	test -e "./init.sh" && {
+		source ./init.sh $@
 	}
 }
+
+c_script()
+{
+	test -e './vars.sh' \
+		&& source ./vars.sh script $@
+
+	# args: 1: override dckr (image) name
+	dckr_name_argv 
+
+	test -n "$dckr_f" || dckr_f=-td
+
+	dckr_c && {
+		echo "Already running $dckr_name: $container"
+	}
+	
+	dckr_c -a && {
+		dckr_start
+	} || {
+		dckr_run $dckr_run_argv
+	}
+
+	srcdir=.
+	test -n "$dckr_script" || {
+		test -e "$1" && {
+			dckr_script=$1
+		} || {
+			test -n "$dckr_cmd" && {
+				srcdir=/tmp
+				dckr_script=dckr-script.sh
+				echo "$dckr_cmd" > $srcdir/$dckr_script
+				chmod +x $srcdir/$dckr_script
+			}	|| err "No script or cmd" 1
+		}
+	}
+
+	echo sudo docker cp $srcdir/$dckr_script "$dckr_name":/tmp/$dckr_script
+	sudo docker cp $srcdir/$dckr_script $dckr_name:/tmp/$dckr_script
+	echo sudo docker exec -ti $dckr_name /tmp/$dckr_script
+}
+
 
 # FIXME: abstract below cmds so things can move to config files
 
 # FIXME: something to persist here?
 c_init_shipyard()
 {
-	dckr_name=shipyard; dckr_stop; dckr_rm
-	dckr_name=shipyard-rethinkdb; dckr_stop; dckr_rm
-	dckr_name=shipyard-rethinkdb-data; dckr_stop; dckr_rm
+	for dckr_name in shipyard shipyard-rethinkdb-data shipyard-rethinkdb
+	do
+		dckr_stop && dckr_rm || err "Error destroying $dckr_name" 1
+	done
 
 	sudo docker run -it -d --name shipyard-rethinkdb-data --entrypoint /bin/bash shipyard/rethinkdb -l
 	sleep 2
@@ -357,11 +504,11 @@ c_reset_jenkins()
 c_init_jenkins()
 {
 	dckr_f_argv $@
-	image_name=jenkins
+	image_name=jenkins-mpe
 	dckr_name=${pref}jenkins
-	cd ~/project/docker-jenkinsci
-	dckr_build && \
-	dckr_rm && \
+	#cd ~/project/docker-jenkinsci
+	#dckr_build && \
+	#dckr_rm && \
 	dckr_run \
 		-p 8007:8080 \
 		-v $DCKR_VOL/ssh:/docker-ssh:ro \
@@ -470,29 +617,6 @@ c_import_openwrt()
 	sudo docker import \
 		http://downloads.openwrt.org/attitude_adjustment/12.09/x86/generic/openwrt-x86-generic-rootfs.tar.gz \
 		openwrt-x86-generic-rootfs
-}
-
-# OpenWRT toolchain by NOAH MEYERHANS
-
-c_build_jessie_openwrt()
-{
-	image_name=jessie-openwrt
-	dckr_name=${hostname}_openwrt
-	cd ~/project/docker-openwrt
-	dckr_build
-}
-
-c_init_openwrt()
-{
-	dckr_f_argv $@
-	image_name=jessie-openwrt
-	dckr_name=${hostname}_openwrt
-	dckr_cmd="/usr/sbin/docker-init-openwrt.sh"
-	dckr_f="-ti"
-	dckr_rm && \
-	dckr_run \
-		-v /src/openwrt:/src/openwrt \
-		-u builder
 }
 
 c_config_openwrt()
