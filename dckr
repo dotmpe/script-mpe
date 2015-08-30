@@ -493,29 +493,6 @@ c_init_weather()
 		-v /etc/localtime:/etc/localtime:ro
 }
 
-c_reset_jenkins()
-{
-	dckr_f_argv $@
-	image_name=jenkins
-	dckr_name=${pref}jenkins
-	dckr_stop && dckr_rm
-}
-
-c_init_jenkins()
-{
-	dckr_f_argv $@
-	image_name=jenkins-mpe
-	dckr_name=${pref}jenkins
-	#cd ~/project/docker-jenkinsci
-	#dckr_build && \
-	#dckr_rm && \
-	dckr_run \
-		-p 8007:8080 \
-		-v $DCKR_VOL/ssh:/docker-ssh:ro \
-		-v $DCKR_VOL/jenkins:/var/jenkins_home:rw \
-		-v /etc/localtime:/etc/localtime:ro
-}
-
 c_init_sickbeard()
 {
 	dckr_f_argv $@
@@ -608,6 +585,52 @@ c_init_dev()
 	dckr_rm && \
 	dckr_run
 }
+
+# Jenkins
+
+c_reset_jenkins()
+{
+	cd ~/project/docker-jenkins-mpe
+	./build.sh
+}
+
+c_init_jenkins()
+{
+	cd ~/project/docker-jenkins-mpe
+	image_name=jenkins-mpe:latest
+
+	test -n "$2" && port="$2" || port=8007
+	pref=$(hostname -s)_
+	test -n "$container_name" || container_name=${pref}jenkins
+
+	container=$(sudo docker ps -a | grep '\<'$container_name'\>' | cut -f1 -d' ')
+	test -n "$container" && {
+		log "Forcing remove of (possibly running) container"
+		sudo docker rm -f $container
+	}
+
+	cp executors.groovy $DCKR_VOL/jenkins/init.groovy.d/executors.groovy
+	cp log-parser-rules.txt $DCKR_VOL/jenkins/
+
+	sudo docker run \
+		-p $port:8080 \
+		-v $DCKR_VOL/ssh:/docker-ssh:ro \
+		-v $DCKR_VOL/ssh:/var/jenkins_home/.ssh:rw \
+		-v $HOME/project/job-template-builder:/opt/jjb:rw \
+		-v $DCKR_VOL/jenkins:/var/jenkins_home:rw \
+		-v /etc/localtime:/etc/localtime:ro \
+		-d --name $container_name \
+		$image_name
+}
+
+c_update_jenkins()
+{
+	pref=$(hostname -s)_
+	test -n "$container_name" || container_name=${pref}jenkins
+	sudo docker exec -ti $container_name \
+		jenkins-jobs update /opt/jjb/jtb.yaml:/opt/jjb/tpl/base.yaml
+}
+
 
 # OpenWRT
 
