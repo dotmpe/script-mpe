@@ -594,41 +594,19 @@ c_reset_jenkins()
 	./build.sh
 }
 
+# Start fresh jenkins-mpe with name ${pref}jenkins. Stops/removes running container.
+# $ 1:tag 2:port 3:flags
 c_init_jenkins()
 {
 	cd ~/project/docker-jenkins-mpe
-	image_name=jenkins-mpe:latest
-
-	test -n "$2" && port="$2" || port=8007
-	pref=$(hostname -s)_
-	test -n "$container_name" || container_name=${pref}jenkins
-
-	container=$(sudo docker ps -a | grep '\<'$container_name'\>' | cut -f1 -d' ')
-	test -n "$container" && {
-		log "Forcing remove of (possibly running) container"
-		sudo docker rm -f $container
-	}
-
-	cp executors.groovy $DCKR_VOL/jenkins/init.groovy.d/executors.groovy
-	cp log-parser-rules.txt $DCKR_VOL/jenkins/
-
-	sudo docker run \
-		-p $port:8080 \
-		-v $DCKR_VOL/ssh:/docker-ssh:ro \
-		-v $DCKR_VOL/ssh:/var/jenkins_home/.ssh:rw \
-		-v $HOME/project/job-template-builder:/opt/jjb:rw \
-		-v $DCKR_VOL/jenkins:/var/jenkins_home:rw \
-		-v /etc/localtime:/etc/localtime:ro \
-		-d --name $container_name \
-		$image_name
+	./run.sh
 }
 
+# Initialize running jenkins-mpe, using JJB to setup jobs
 c_update_jenkins()
 {
-	pref=$(hostname -s)_
-	test -n "$container_name" || container_name=${pref}jenkins
-	sudo docker exec -ti $container_name \
-		jenkins-jobs update /opt/jjb/jtb.yaml:/opt/jjb/tpl/base.yaml
+	cd ~/project/docker-jenkins-mpe
+	./config.sh
 }
 
 
