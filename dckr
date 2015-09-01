@@ -4,7 +4,7 @@ set -e
 
 scriptname=dckr
 
-load()
+dckr_load()
 {
 	test -n "$EDITOR" || EDITOR=vim
 	test -n "$DCKR_CONF" || DCKR_CONF=~/.conf/dckr/
@@ -20,16 +20,27 @@ load()
 	cols=$(stty size|awk '{print $2}')
 }
 
-c_usage()
+dckr_usage()
 {
 	echo "$scriptname.sh Bash/Shell script helper"
 	echo 'Usage: '
 	echo "  $scriptname <cmd> [<args>..]"
 }
 
+man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 c_help()
 {
-	c_usage
+	test -z "$1" && {
+		dckr_usage
+		echo ''
+		htd_commands
+	} || {
+		echo_help $1
+	}
+}
+
+htd_commands()
+{
 	echo ""
 	echo 'Docker: '
 	echo "  names                            List images"
@@ -46,26 +57,34 @@ c_help()
 	echo "  dnsmasq-conf                     print dnsmasq static address config using image-name as hostname"
 	echo ""
 	echo 'Misc: '
-	echo '  -e|edit                          Edit this script.'
+	echo '  -E                               Edit this script.'
 	echo '  edit-local                       Edit local script. '
 	echo '  alias                            Show bash aliases for this script.'
 	echo '  usage                            print just the usage description.'
 	echo '  help                             print this help listing.'
 }
 
-c_edit()
+man_1_edit_main="Edit the main script file"
+c_edit_main()
 {
-	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
+	locatename $scriptname
 	$EDITOR $fn
 }
-c__e()
+man_1__E="Alias for 'edit-main'"
+c__E()
 {
-	c_edit
+	c_edit_main
 }
 
+man_1_edit_local="FIXME Edit local docker conf.."
 c_edit_local()
 {
 	$EDITOR $DCKR_CONF/local.sh
+}
+man_1__e="Alias for 'edit-local'"
+c__e()
+{
+	c_edit_local
 }
 
 c_alias()
@@ -680,23 +699,23 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 				&& func=$def_func \
 				|| func=$(echo c_$cmd | tr '-' '_')
 
-			# load/exec if func exists
+			# dckr_load/exec if func exists
 			type $func &> /dev/null && {
 				func_exists=1
-				load
+				dckr_load
 				shift 1
 				$func $@
 			} || {
 				# handle non-zero return or print usage for non-existant func
 				e=$?
 				[ -z "$cmd" ] && {
-					load
-					c_usage
+					dckr_load
+					dckr_usage
 					err 'No command given, see "help"' 1
 				} || {
 					[ "$e" = "1" -a -z "$func_exists" ] && {
-						load
-						c_usage
+						dckr_load
+						dckr_usage
 						err "No such command: $cmd" 1
 					} || {
 						err "Command $cmd returned $e" $e
