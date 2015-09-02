@@ -1,3 +1,9 @@
+#!/bin/sh
+
+. $PREFIX/bin/std.sh
+. $PREFIX/bin/str.sh
+
+# 
 req_arg()
 {
 	label=$(eval echo \${req_arg_$4[0]})
@@ -13,6 +19,7 @@ req_arg()
 	}
 }
 
+# FIXME: testing..
 pushd_cwdir()
 {
 	test -n "$CWDIR" -a "$CWDIR" != "$(pwd)" && {
@@ -28,4 +35,35 @@ popd_cwdir()
 		test "$(popd)" = "$CWDIR"
 	} || echo -n
 }
+
+# Get help str if exists for $section $id
+# 1:section-number 2:help-id
+# :*:help_descr
+try_help()
+{
+	help_descr=$(eval echo "\$man_$(echo $1)$(echo $2)")
+	echo $help_descr
+}
+
+# Run through all help sections for given string
+# 1:str
+# :
+echo_help()
+{
+	mkid _$1
+	try_help 1 $id && return # commands
+	try_help 5 $id && return # config files
+	try_help 7 $id && return # overview, conventions, misc.
+}
+
+# Find shell script location with or without extension
+# 1:basename:scriptname
+# :fn
+locate_name()
+{
+	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
+	[ -n "$fn" ] || fn=$(which $scriptname.sh)
+}
+
+
 

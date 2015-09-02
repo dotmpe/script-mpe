@@ -9,6 +9,9 @@ VERBOSITY=0
 
 load()
 {
+	[ -n "$UCONFDIR" ] || UCONFDIR=~/.conf
+	test -n "$hostname" || hostname=$(hostname -s)
+
 	[ -n "$HTDIR" ] || HTDIR=~/htd
 	[ -n "$CWDIR" ] || CWDIR=
 	[ -n "$EDITOR" ] || EDITOR=vim
@@ -194,26 +197,13 @@ c_help()
 		echo ''
 		c_docs
 	} || {
-		c=$(echo "_$1" | tr '-.' '__')
-		# commands
-		try_help 1 $c && return
-		# config files
-		try_help 5 $c && return
-		# overview, conventions, misc.
-		try_help 7 $c && return
+		echo_help $1
 	}
 }
 man_1__h="Alias for 'help'"
 c__h()
 {
 	c_help $@
-}
-
-# Get help str if exists for $section $id
-try_help()
-{
-	help_descr=$(eval echo "\$man_$(echo $1)$(echo $2)")
-	echo $help_descr
 }
 
 c_home()
@@ -242,18 +232,28 @@ c_expand()
 	done
 }
 
-man_1_edit="Edit the main script file"
-c_edit()
+man_1_edit_main="Edit the main script file"
+c_edit_main()
 {
-	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
-	[ -n "$fn" ] || fn=$(which $scriptname.sh)
+	locate_name
 	[ -n "$fn" ] || err "Nothing to edit" 1
 	$EDITOR $fn
 }
-man_1__e="Alias for 'edit'"
+man_1__E="Alias for 'edit-main'"
+c__E()
+{
+	c_edit_main
+}
+
+man_1_edit_local="TODO Edit reverse, local first"
+c_edit_local()
+{
+	echo Nothing
+}
+man_1__e="Alias for 'edit-local'"
 c__e()
 {
-	c_edit
+	c_edit_local
 }
 
 htd_init_ignores()
@@ -902,6 +902,42 @@ c_git_drop_remote()
     log "OK, $repo no longer exists"
 }
 
+man_1_gh="Clone from Github to subdir, adding as submodule if already in checkout. "
+man_1_gh_spec="<repo> [<prefix>]"
+c_gh() {
+	test -n "$1" || err "Need repo name argument" 1
+	test 0 -lt $(expr index "$1" "/") && {
+		repo=$1; prefix=$(basename $1); } || {
+		repo=dotmpe/$1; prefix=$1; }
+	shift 1
+	test -n "$1" && prefix=$1/$prefix
+	giturl=git@github.com:$repo.git
+	test -n "$debug" && {
+		echo giturl=$giturl
+		echo repo=$repo
+		echo prefix=$prefix
+	}
+	git=git
+	test -n "$dry" && {
+		log "*** DRY-RUN ***"
+		git="echo git"
+	}
+	test -e .git && {
+		test -d .git && {
+			log "Adding submodule $giturl to $(pwd)/$prefix.."
+			${git} submodule add $giturl $prefix
+			log "Added submodule $giturl to $(pwd)/$prefix"
+		} || {
+			# TODO: find/print root. then go there. see vc.sh
+			err "Please recede to root and use prefix to add submodule" 1
+		}
+	} || {
+		log "Cloning $giturl to $(pwd)/$prefix.."
+		${git} clone $giturl $prefix
+		log "Cloned $giturl to $(pwd)/$prefix"
+	}
+}
+
 c_git_largest_objects()
 {
 	$PREFIX/bin/git-largest-objects.sh 10
@@ -1125,7 +1161,7 @@ c_fix_names()
 
 htd_host_arg()
 {
-	test -z "$1" && host=$1 || host=$(hostname -s)
+	test -z "$1" && host=$1 || host=${hostname}
 }
 
 # TODO: pre-process file/metadata
@@ -1587,44 +1623,25 @@ c_mp3_validate()
 }
 
 
+
 # Utils
 
+source $PREFIX/bin/std.sh
 source $PREFIX/bin/util.sh
-
-# stdio/stderr/exit util
-log()
-{
-	[ -n "$(echo "$*")" ] || return 1;
-	echo "[$scriptname.sh:$cmd] $1"
-}
-err()
-{
-	[ -n "$(echo "$*")" ] || return 1;
-	[ "$VERBOSITY" -ge "1" ] && echo "Error: $1 [$scriptname.sh:$cmd]" 1>&2
-	echo "$1 [$scriptname.sh:$cmd]" 1>&2
-	[ -n "$2" ] && exit $2
-}
-
 
 
 # Main
 
-def_func=c_default
-
-# Use dash to ignore exec in login shell
+# Use dash to ignore source exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
 	# Do something (only) if script invoked as '$scriptname'
-	base=$(basename $0 .sh)
 	case "$base" in
-
 		$scriptname )
 
 			# function name first as argument,
 			cmd=$1
-			[ -n "$def_func" -a -z "$cmd" ] \
-				&& func=$def_func \
-				|| func=$(echo c_$cmd | tr '-' '_')
+			func=$(echo c_$cmd | tr '-' '_')
 
 			# load/exec if func exists
 			type $func &> /dev/null && {

@@ -62,23 +62,7 @@ work_c__e()
 
 ### Internal functions
 
-# stdio/stderr/exit util
-log()
-{
-	[ -n "$(echo "$*")" ] || return 1;
-	echo "[$scriptname.sh:$cmd] $1"
-}
-err()
-{
-	[ -n "$(echo "$*")" ] || return 1;
-	echo "Error: $1 [$scriptname.sh:$cmd]" 1>&2
-	[ -n "$2" ] && exit $2
-}
-note()
-{
-	[ -n "$(echo "$*")" ] || return 1;
-	echo "Notice: $1 [$scriptname.sh:$cmd]" 1>&2
-}
+. ~/bin/std.sh
 
 work_req_client()
 {
@@ -103,7 +87,7 @@ work_c_todo()
 
 work_c_doclist()
 {
-	work_req_client || err "No client for $cwd" 1
+	work_req_client || error '' "No client for $cwd" 1
 	client=$mpe_workdir/$CLIENT/main.rst
 
 	other="$(echo *.rst)"
@@ -125,18 +109,18 @@ work_c_docs()
 
 work_c_init()
 {
-	work_req_client  && err "Client exists" 1  || log "New client for $cwd"
+	work_req_client  && error '' "Client exists" 1  || log "New client for $cwd"
 	test -z "$CLIENT" && {
 		test -n "$1"  && CLIENT="$@"  || CLIENT="$(basename $cwd)"
 	}
-	test -n "$CLIENT"  || err "No client" 1
+	test -n "$CLIENT"  || error '' "No client" 1
 	echo $cwd $CLIENT >> $script_clienttable
 	grep $CLIENT $script_clienttable
 }
 
 work_c_client()
 {
-	work_req_client || err "No client for $cwd" 1
+	work_req_client || error '' "No client for $cwd" 1
 	grep $CLIENT $script_clienttable
 }
 

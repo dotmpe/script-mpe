@@ -2,14 +2,7 @@
 
 [ -n "$VERBOSE" ] || VERBOSE=0
 
-log() # 1:message 2:level 
-{
-	echo $1
-return
-	level=$2
-	[ -z "$level" ] && level=0;
-	[ $level -le $VERBOSE ] && echo "$1"
-}
+. ~/bin/std.sh
 
 [ -z "$FORCE_DELETE" ] && FORCE_DELETE=0
 
