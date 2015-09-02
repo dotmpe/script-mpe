@@ -401,13 +401,13 @@ list_errors()
 	do
 		[ -d "$gitpath" ] && {
 			git_info $gitpath > /dev/null || {
-				err "in info from $gitpath, see previous."
+				err Error "in info from $gitpath, see previous."
 			}
 		} || {
 			gitdir=$(__vc_gitdir $(dirname $gitpath))
 			echo $gitdir | grep -v '.git\/modules' > /dev/null && {
 				# files should be gitlinks for submodules
-				err "for  $gitpath, see previous. Broken gitlink?"
+				err Error "for  $gitpath, see previous. Broken gitlink?"
 				continue
 			}
 		}
@@ -438,7 +438,7 @@ vc_prompt_command()
 {
 	d="$1"
 	[ -z "$d" ] && d="$(pwd)"
-	[ ! -d "$d" ] && echo "No such directory $d" && exit 3
+	[ ! -d "$d" ] && err "No such directory $d" 3
 
 	# cache response in file
 	statsdir=$(statusdir_assert vc_status)
@@ -455,23 +455,7 @@ vc_prompt_command()
 }
 
 
-# stdio/stderr/exit util
-log()
-{
-	[ -n "$(echo "$*")" ] || return 1;
-	echo "[$scriptname.sh:$cmd] $1"
-}
-err()
-{
-	[ -n "$(echo "$*")" ] || return 1;
-	echo "Error: $1 [$scriptname.sh:$cmd]" 1>&2
-	[ -n "$2" ] && exit $2
-}
-note()
-{
-	[ -n "$(echo "$*")" ] || return 1;
-	echo "Notice: $1 [$scriptname.sh:$cmd]" 1>&2
-}
+. ~/bin/std.sh
 
 
 # Main

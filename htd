@@ -235,7 +235,7 @@ c_expand()
 man_1_edit_main="Edit the main script file"
 c_edit_main()
 {
-	locatename $scriptname
+	locate_name
 	[ -n "$fn" ] || err "Nothing to edit" 1
 	$EDITOR $fn
 }
@@ -900,6 +900,42 @@ c_git_drop_remote()
     ssh_cmd="rm -rf $remote_dir/$repo.git"
     ssh -q $remote_user@$remote_host "$ssh_cmd"
     log "OK, $repo no longer exists"
+}
+
+man_1_gh="Clone from Github to subdir, adding as submodule if already in checkout. "
+man_1_gh_spec="<repo> [<prefix>]"
+c_gh() {
+	test -n "$1" || err "Need repo name argument" 1
+	test 0 -lt $(expr index "$1" "/") && {
+		repo=$1; prefix=$(basename $1); } || {
+		repo=dotmpe/$1; prefix=$1; }
+	shift 1
+	test -n "$1" && prefix=$1/$prefix
+	giturl=git@github.com:$repo.git
+	test -n "$debug" && {
+		echo giturl=$giturl
+		echo repo=$repo
+		echo prefix=$prefix
+	}
+	git=git
+	test -n "$dry" && {
+		log "*** DRY-RUN ***"
+		git="echo git"
+	}
+	test -e .git && {
+		test -d .git && {
+			log "Adding submodule $giturl to $(pwd)/$prefix.."
+			${git} submodule add $giturl $prefix
+			log "Added submodule $giturl to $(pwd)/$prefix"
+		} || {
+			# TODO: find/print root. then go there. see vc.sh
+			err "Please recede to root and use prefix to add submodule" 1
+		}
+	} || {
+		log "Cloning $giturl to $(pwd)/$prefix.."
+		${git} clone $giturl $prefix
+		log "Cloned $giturl to $(pwd)/$prefix"
+	}
 }
 
 c_git_largest_objects()
