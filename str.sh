@@ -17,3 +17,21 @@ mkcid()
 	cid=$(echo "$1" | sed 's/\([^a-z0-9-]\|\-\)/-/g')
 }
 
+str_match()
+{
+	expr "$1" : "$2" &>/dev/null || return 1
+}
+str_contains()
+{
+	case $(uname) in
+		Linux )
+			test 0 -lt $(expr index "$1" "/") || return 1
+			;;
+		Darwin )
+			err "TODO" 1
+			echo expr "$1" : "$2"
+			expr "$1" : "$2"
+			;;
+	esac
+}
+
