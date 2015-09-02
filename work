@@ -10,6 +10,7 @@ work_load()
 	test -n "$mpe_workdir" || mpe_workdir=~/work
 	TODAY=$(date +%Y-%m-%d)
 	test -e .client && CLIENT=$(cat $client)
+	source $mpe_workdir/config/xdebug.sh
 	script_clienttable=~/.conf/work/clients.sh
 }
 
@@ -25,6 +26,7 @@ work_c_commands()
 	echo '  docs                             Edit docs for client'
 	echo '  todo                             Show todo for project'
 	echo '  client                           Echo client table row'
+	echo '  debug                            Set up personal debug tunnel'
 	echo ''
 	echo 'Other commands: '
 	echo '  -e|edit                          Edit this script.'
@@ -138,6 +140,14 @@ work_c_client()
 	grep $CLIENT $script_clienttable
 }
 
+work_c_debug()
+{
+    echo Opening port $debug_port
+    ssh -t \
+        -L 9001:localhost:9001 \
+        -R $debug_port:localhost:$debug_port \
+        $debug_host "screen -rx Debug"
+}
 
 # Main
 
