@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-bin=box
+bin=${PREFIX}box
 
 load helper
 

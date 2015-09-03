@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-bin=mimereg
+bin=${PREFIX}mimereg
 
 load helper
 

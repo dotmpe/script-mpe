@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-bin=basename-reg
+bin=${PREFIX}basename-reg
 
 load helper
 

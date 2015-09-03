@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-lib=str
+lib=${PREFIX}str
 func=mkvid
 
 source $lib.sh
