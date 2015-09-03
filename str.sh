@@ -10,7 +10,8 @@ mkid()
 # to filter strings to valid id
 mkvid()
 {
-	vid=$(echo "$1" | sed 's/\([^a-z0-9_]\|\_\)/_/g')
+	vid=$(echo "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
+	# Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
 }
 mkcid()
 {
