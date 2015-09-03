@@ -276,6 +276,9 @@ class Basename(libcmd.SimpleCommand):
         import sys
         out = BasenameOut(opts, sys.stdout, sys.stderr)
 
+        if 'ftype' not in self.rc:
+            log.warn('No file types loaded %s' % fullname)
+            return 1
         ftypes = [ t.title() for t in self.rc.ftype ]
 
         store_mime = None
