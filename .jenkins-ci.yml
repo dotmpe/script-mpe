@@ -14,7 +14,8 @@
     # XXX hacky hack hack
     box,str: '{box,str}'
     bats-tests: '{box,str}'
-    #bats-tests: '\{box,str\}'
+    # XXX bats-tests: '{{box,str}}'
+    # XXX bats-tests: '\{box,str\}'
 
     # FIXME: travis build fails on TB config parts
     # XXX: want to use branch checkout? but not working
@@ -54,8 +55,6 @@
         disabled: false
         title: 'script.mpe [gh,local,bats] ({branch})'
         builders:
-#        - shell: |
-#            . ./install-dependencies.sh && install_bats
         - shell: |
 
             export PATH=$PATH:$HOME/usr/bin/
