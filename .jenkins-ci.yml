@@ -1,9 +1,4 @@
 
-- defaults:
-    name: global
-
-    bats-tests: 'box,htd,matchstr'
-
 - project:
     name: script.mpe
 
