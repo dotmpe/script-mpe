@@ -5,7 +5,7 @@ base=htd
 load helper
 
 @test "$bin no arguments no-op" {
-  test -n "$JENKINS_SKIP" || skip "FIXME"
+  test -z "$JENKINS_SKIP" || skip "FIXME"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 1
   test "${#lines[@]}" = "4"
@@ -17,7 +17,7 @@ load helper
 }
 
 @test "$bin home" {
-  test -n "$JENKINS_SKIP" || skip "FIXME"
+  test -z "$JENKINS_SKIP" || skip "FIXME"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test -n "$HTDIR" || HTDIR="$(echo ~/htd)"
@@ -25,7 +25,7 @@ load helper
 }
 
 @test "$bin info" {
-  test -n "$JENKINS_SKIP" || skip "FIXME"
+  test -z "$JENKINS_SKIP" || skip "FIXME"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "${#lines[@]}" = "8"
