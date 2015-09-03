@@ -20,7 +20,6 @@ See also `.travis.yml`.
 
 
 
-
 GIT Branches
   master
     Main branch, all branches should follow.
