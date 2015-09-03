@@ -190,6 +190,15 @@ c_docs()
 	echo 'See dckr for container commands and vc for GIT related. '
 }
 
+match__v()
+{
+	match_version
+}
+match_version()
+{
+	# no version, just checking it goes
+	echo 0.0.0
+}
 man_1_help="Echo a combined usage, command and docs"
 c_help()
 {

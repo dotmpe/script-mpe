@@ -8,6 +8,15 @@ source ~/bin/util.sh
 
 scriptname=match
 
+match__v()
+{
+	match_version
+}
+match_version()
+{
+	# no version, just checking it goes
+	echo 0.0.0
+}
 match_name()
 {
     echo -n name

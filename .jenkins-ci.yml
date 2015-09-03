@@ -1,62 +1,70 @@
 
+- defaults:
+    name: global
+
+    bats-tests: 'box,htd,matchstr'
+
 - project:
     name: script.mpe
 
     branch: test
     vendor-path: dotmpe/script.mpe
+    htmlDescription: ''
+    project-src: '*.sh,*.py'
+    email-to: ''
+    build-summary-image:
+    email-individuals: false
+    credentials-id: 'f3711d97-0c02-4099-b16f-d6d7fe13d168'
+
+    # XXX hacky hack hack
+    box,str: '{box,str}'
+    bats-tests: '{box,str}'
+    #bats-tests: '\{box,str\}'
 
     # FIXME: travis build fails on TB config parts
     # XXX: want to use branch checkout? but not working
     jobs:
     - '{name}-gh-travis':
-        disabled: false
+        disabled: true
         title: 'script.mpe [gh,public,travis] ({branch})'
-        htmlDescription: ''
-        project-src: '*.sh,*.py'
-        email-to: ''
-        build-summary-image:
-        email-individuals: false
 
     - '{name}-local-gh-travis':
         disabled: true
         title: 'script.mpe [gh,travis] ({branch})'
-        htmlDescription: ''
-        project-src: '*.sh,*.py'
-        email-to: ''
-        build-summary-image:
-        email-individuals: false
-        credentials-id: 'f3711d97-0c02-4099-b16f-d6d7fe13d168'
 
     - '{name}-local-gh':
         disabled: false
         title: 'script.mpe [gh,local,no-test] ({branch})'
-        htmlDescription: ''
-        project-src: '*.sh,*.py'
-        email-to: ''
-        build-summary-image:
-        email-individuals: false
-        credentials-id: 'f3711d97-0c02-4099-b16f-d6d7fe13d168'
+        htmlDescription: 'Running some bats test to see if they go, without parsing results'
         builders:
-        - shell: echo No-op
+        - shell: |
+            mkdir -vp ./build
+            export PATH=$PATH:$HOME/usr/bin/
+            bats --version
+            export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
+            export JTB_HOME=$HOME/build/jtb
+            export PATH=$PATH:$HOME/bin/
+            box -v
+            htd -v
+            match.sh -v
+            bash -c './test/{bats-tests}-spec.bats'
 
     - '{name}-local-gh-bats':
         disabled: false
         title: 'script.mpe [gh,local,bats] ({branch})'
-        htmlDescription: ''
-        project-src: '*.sh,*.py'
-        email-to: ''
-        build-summary-image:
-        email-individuals: false
-        credentials-id: 'f3711d97-0c02-4099-b16f-d6d7fe13d168'
         builders:
 #        - shell: |
 #            . ./install-dependencies.sh && install_bats
         - shell: |
             mkdir -vp ./build
-            export PATH=$PATH:$HOME/bin/
-            export PATH=$PATH:$HOME/usr/bin
+            export PATH=$PATH:$HOME/usr/bin/
             bats --version
             export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
-            bash -c './test/*-spec.bats > ./build/test-results.tap'
+            export JTB_HOME=$HOME/build/jtb
+            export PATH=$PATH:$HOME/bin/
+            box -v
+            htd -v
+            match.sh -v
+            bash -c './test/{bats-tests}-spec.bats > ./build/test-results.tap'
 
 
