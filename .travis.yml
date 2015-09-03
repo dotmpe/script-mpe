@@ -23,7 +23,8 @@ before_script:
 - 'export PATH=$PATH:$HOME/usr/bin'
 - 'export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py'
 
-script: make -k test
+#script: make -k test
+script: './test/*-spec.bats'
 
 branches:
   only:
