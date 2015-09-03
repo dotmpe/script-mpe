@@ -20,6 +20,7 @@ before_script:
 - 'pip install --user jsonschema'
 - 'pip install --user sqlalchemy'
 - 'cd && ln -s /home/travis/build/dotmpe/script.mpe bin'
+- 'cd /home/travis/build/dotmpe/script.mpe'
 - 'export PATH=$PATH:$HOME/bin/'
 - 'export PATH=$PATH:$HOME/usr/bin'
 - 'export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py'

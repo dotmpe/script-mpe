@@ -35,21 +35,20 @@
         - shell: |
             mkdir -vp ./build
             echo pwd=$pwd
-            cd && ln -s /home/travis/build/dotmpe/script.mpe bin
-            echo pwd=$pwd
             export PATH=$PATH:$HOME/usr/bin/
             bats --version
             export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
             export JTB_HOME=$HOME/build/jtb
+            echo WORKSPACE=$WORKSPACE
+            rm -rf $HOME/bin
+            ln -s $WORKSPACE $HOME/bin
             export PATH=$PATH:$HOME/bin/
-            export PREFIX=~/
-        - shell: |
-            cd
-            echo pwd=$pwd
+            export PREFIX=$HOME/
+            echo pwd=$(pwd)
+            ls $WORKSPACE/
             box -v
             htd -v
             match.sh -v
-            cd $WORKSPACE
             bash -c './test/{bats-tests}-spec.bats'
 
     - '{name}-local-gh-bats':
@@ -64,11 +63,16 @@
             bats --version
             export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
             export JTB_HOME=$HOME/build/jtb
+            echo WORKSPACE=$WORKSPACE
+            rm -rf $HOME/bin
+            ln -s $WORKSPACE $HOME/bin
             export PATH=$PATH:$HOME/bin/
-            export PREFIX=~/
-            ./box -v
-            ./htd -v
-            ./match.sh -v
+            export PREFIX=$HOME/
+            echo pwd=$(pwd)
+            ls $WORKSPACE/
+            box -v
+            htd -v
+            match.sh -v
             bash -c './test/{bats-tests}-spec.bats > ./build/test-results.tap'
 
 

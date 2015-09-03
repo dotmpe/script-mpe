@@ -1,7 +1,6 @@
 #!/usr/bin/env bats
 
-test -n "$PREFIX" && lib=str.sh || lib=$PREFIX/bin/str.sh
-lib=${PREFIX}str
+test -n "$PREFIX" && lib=./str.sh || lib=$PREFIX/bin/str.sh
 func=mkvid
 
 source $lib.sh
