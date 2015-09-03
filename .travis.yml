@@ -24,7 +24,7 @@ before_script:
 - 'export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py'
 
 #script: make -k test
-script: './test/*-spec.bats'
+script: './test/*-spec.bats && ./mimereg ffnec.py'
 
 branches:
   only:
@@ -33,7 +33,7 @@ branches:
 #  - '/^[0-9]*\.[0-9]*\.[0-9]*/'
 
 env:
-- ENV= CS=dark
+- ENV= CS=dark TRAVIS_SKIP=1
 #- ENV=testing
 #- ENV=production
 
