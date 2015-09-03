@@ -24,7 +24,7 @@ load()
 	test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
 
 	cwd=$(pwd)
-	test "$cwd" = "$(pwd -P)" || err "Warning: current path seems to be aliased"
+	test "$cwd" = "$(pwd -P)" || warn "current path seems to be aliased"
 
 	test -e table.sha1 && R_C_SHA3="$(cat table.sha1|wc -l)"
 
@@ -239,7 +239,7 @@ man_1_edit_main="Edit the main script file"
 c_edit_main()
 {
 	locate_name
-	[ -n "$fn" ] || err "Nothing to edit" 1
+	[ -n "$fn" ] || error "Nothing to edit" 1
 	$EDITOR $fn
 }
 man_1__E="Alias for 'edit-main'"
@@ -281,7 +281,7 @@ req_path_arg()
 {
 	test -n "$1"  && path="$1"  || path=.
 	test -d "$path" || {
-		err "Must pass directory" 1
+		error "Must pass directory" 1
 	}
 }
 
@@ -296,7 +296,7 @@ htd_relative_path()
 	cwd=$(pwd)
 	test -e "$1" && {
 		x_re "${1}" '\/.*' && {
-			err "TODO make rel"
+			error "TODO make rel"
 		}
 		x_re "${1}" '[^\/].*' && {
 			x_re "${1}" '((\.\/)|(\.\.)).*' && {
@@ -491,7 +491,7 @@ datelink()
 {
     test -z "$1" && datep=$(date +$2) || datep=$(date -v $1 +$2)
     target_path=$3
-    test -d "$(dirname $3)" || err "Dir $(dirname $3) must exist" 1
+    test -d "$(dirname $3)" || error "Dir $(dirname $3) must exist" 1
     test -L $target_path && {
         test "$(readlink $target_path)" = "$(basename $datep)" && {
             return
@@ -520,7 +520,7 @@ c_vbox()
 	} || {
 		declare $(echo $(cat $vbox_names))
 		uuid=$(eval echo \$$name)
-		test -n "$uuid" || err "No such vbox VM '$name'" 1
+		test -n "$uuid" || error "No such vbox VM '$name'" 1
 	}
 }
 
@@ -580,7 +580,7 @@ wol_hwaddr=~/.conf/wol/hosts-hwaddr.sh
 c_wol_list_hosts()
 {
 	cat $wol_hwaddr
-	err "Expected hostname argument" 2
+	error "Expected hostname argument" 2
 }
 c_wol()
 {
@@ -668,7 +668,7 @@ todo_read_line()
 	fn=$(echo $line | cut -f 1 -d ':')
 	ln=$(echo $line | cut -f 2 -d ':')
 	test "$ln" -eq "$ln" 2> /dev/null \
-		|| err "Please include numbers in the TODO.list" 1
+		|| error "Please include numbers in the TODO.list" 1
 	comment=${line:$((  ${#fn} + ${#ln} + 2  ))}
 }
 
@@ -824,7 +824,7 @@ c_urls()
 
 source_git_remote()
 {
-    source ~/.conf/git-remotes/$HTD_GIT_REMOTE.sh || err "Missing HTD_GIT_REMOTE=$HTD_GIT_REMOTE script" 1
+    source ~/.conf/git-remotes/$HTD_GIT_REMOTE.sh || error "Missing HTD_GIT_REMOTE=$HTD_GIT_REMOTE script" 1
 }
 
 c_git_remote_info()
@@ -856,7 +856,7 @@ c_git_init_remote()
     ssh_cmd="mkdir -v $remote_dir/$repo.git"
     ssh $remote_user@$remote_host "$ssh_cmd"
 
-    [ -e .git ] || err "No .git directory, stopping remote init" 0
+    [ -e .git ] || error "No .git directory, stopping remote init" 0
 
     c_git_remote $repo >> /dev/null
 
@@ -896,7 +896,7 @@ c_git_drop_remote()
     log "Checking if repo exists.."
     ssh_opts=-q
     c_git_remote | grep $repo || {
-      err "No such remote repo $repo" 1
+      error "No such remote repo $repo" 1
     }
     source_git_remote
     log "Deleting remote repo $remote_user@$remote_host:$remote_dir/$repo"
@@ -908,7 +908,7 @@ c_git_drop_remote()
 man_1_gh="Clone from Github to subdir, adding as submodule if already in checkout. "
 man_1_gh_spec="<repo> [<prefix>]"
 c_gh() {
-	test -n "$1" || err "Need repo name argument" 1
+	test -n "$1" || error "Need repo name argument" 1
 	str_match "$1" "[^/]*" && {
 		repo=dotmpe/$1; prefix=$1; } || {
 		repo=$1; prefix=$(basename $1); }
@@ -932,7 +932,7 @@ c_gh() {
 			log "Added submodule $giturl to $(pwd)/$prefix"
 		} || {
 			# TODO: find/print root. then go there. see vc.sh
-			err "Please recede to root and use prefix to add submodule" 1
+			error "Please recede to root and use prefix to add submodule" 1
 		}
 	} || {
 		log "Cloning $giturl to $(pwd)/$prefix.."
@@ -1006,7 +1006,7 @@ c_git_annex_clear_unused()
 				cnt=$(( $cnt -1 ))
 			done
 		} || {
-			err 'Cancelled' 1
+			error 'Cancelled' 1
 		}
 	} || {
 		git annex move --unused --to $1
@@ -1042,13 +1042,13 @@ c_check()
 		| while read p
 		do
 			c_test_name "$p" >> /dev/null || {
-				err "Unhandled characters: $p"
+				#warn "Unhandled characters: $p"
 				continue
 			}
 			[ -L "$p" ] && {
 				BE="$(dirname "$p")/$(readlink "$p")"
 				[ -e "$BE" ] || {
-					#err "Skip dead symlink"
+					#warn "Skip dead symlink"
 					continue
 				}
 				SZ="$(filesize "$BE")"
@@ -1057,21 +1057,21 @@ c_check()
 			}
 			if test -d "$p" -a -n "$(c_expand $p.{zip,tar{.gz,.bz2}})"
 			then
-				log "Skipping unpacked dir $p"
+				info "Skipping unpacked dir $p"
 				for ck in ck sha1 md5
 				do
 					c_ck_table_subtree $ck "$p" | while read p2
 					do
 						c_ck_table $ck "$p2" > /dev/null && {
 							#c_ck_drop $ck "$p"
-							echo "FIXME: Dropped $ck key for $p"
+							warn "FIXME: Dropped $ck key for $p"
 						}
 					done
 				done
 				continue
 			fi
 			test "$SZ" -ge "$MIN_SIZE" || {
-				#err "File too small: $p"
+				#warn "File too small: $p"
 				continue
 			}
 		done
@@ -1223,7 +1223,7 @@ c_name_tags()
 			#echo
 		done
 	} || {
-		err "Req dir arg" 1
+		error "Req dir arg" 1
 	}
 }
 
@@ -1238,7 +1238,7 @@ c_name_tags_all()
 			match_names "$p"
 		done
 	} || {
-		err "Req dir arg" 1
+		error "Req dir arg" 1
 	}
 }
 
@@ -1259,10 +1259,10 @@ ck_arg()
 {
 	test -n "$1"  && CK=$1  || CK=ck
 	test -e table.$CK || {
-		err "First argument must be CK table extension, no such table: table.$CK" 1
+		error "First argument must be CK table extension, no such table: table.$CK" 1
 	}
 	test -r table.$CK || {
-		err "Not readable: table.$CK" 1
+		error "Not readable: table.$CK" 1
 	}
 	T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
 }
@@ -1270,7 +1270,7 @@ ck_write()
 {
 	ck_arg "$1"
 	test -w table.$CK || {
-		err "Not writable: table.$CK" 1
+		error "Not writable: table.$CK" 1
 	}
 }
 
@@ -1345,21 +1345,21 @@ ck_update_file()
 	# to verify because currently htd_name_precaution is a bit too strict
 	# c_test_name
 	match_grep_pattern_test "$update_file" > /dev/null || {
-		err "Skip path with unhandled characters"
+		error "Skip path with unhandled characters"
 		return
 	}
 	test -r "$update_file" || {
-		err "Skip path not readable by user"
+		error "Skip path not readable by user"
 		return
 	}
 	test -d "$update_file" && {
-		err "Skipped directory path"
+		error "Skipped directory path"
 		return
 	}
 	test -L "$update_file" && {
 		BE="$(dirname "$update_file")/$(readlink "$update_file")"
 		test -e "$BE" || {
-			err "Skip dead symlink"
+			error "Skip dead symlink"
 			return
 		}
 		SZ="$(filesize "$BE")"
@@ -1367,7 +1367,7 @@ ck_update_file()
 		SZ="$(filesize "$update_file")"
 	}
 	test "$SZ" -ge "$MIN_SIZE" || {
-		err "File too small: $SZ"
+		error "File too small: $SZ"
 		return
 	}
 	# test localname for SHA1 tag
@@ -1389,7 +1389,7 @@ ck_update_file()
 			}
 			CKS=$(${CK}sum "$update_file" | cut -d' ' -f1)
 			test "$cks" = "$CKS" || {
-				err "${CK}sum $CKS does not match name $cks from $update_file"
+				error "${CK}sum $CKS does not match name $cks from $update_file"
 				return
 			}
 			echo "$cks  $update_file" >> table.$CK
@@ -1450,7 +1450,7 @@ c_ck_update()
 		}
 		shift 1
 	done
-	test -z "$1" || err "Unknown path '$1'" 1
+	test -z "$1" || error "Unknown path '$1'" 1
 }
 
 c_ck_drop()
@@ -1500,9 +1500,9 @@ checksums()
 	cat $T | while read cks sz p
 	do
 		SZ="$(filesize "$p")"
-		test "$SZ" = "$sz" || { err "File-size mismatch on '$p'"; continue; }
+		test "$SZ" = "$sz" || { error "File-size mismatch on '$p'"; continue; }
 		CKS="$(cksum "$p" | awk '{print $1}')"
-		test "$CKS" = "$cks" || { err "Checksum mismatch on '$p'"; continue; }
+		test "$CKS" = "$cks" || { error "Checksum mismatch on '$p'"; continue; }
 		echo "$cks ok"
 	done
 }
@@ -1537,7 +1537,7 @@ c_ck_clean()
 	ck_write "$1"
 	shift 1
 	test -s "table.$CK.missing" || {
-		err "$T_CK.missing table does not exists"
+		error "$T_CK.missing table does not exists"
 		return
 	}
 	log "Looking for missing files from $CK table"/
@@ -1572,7 +1572,7 @@ c_ck_metafile()
 			test "$cks" = "$CKS" && {
 				log "$CKS ok $ck_mf_p"
 			} || {
-				err "Corrupt file: $ck_mf_p"
+				error "Corrupt file: $ck_mf_p"
 				continue
 			}
 			echo "$CKS  $ck_mf_p" >> table.$CK
@@ -1584,9 +1584,9 @@ c_ck_metafile()
 # validate torrent
 c_ck_torrent()
 {
-	test -s "$1" || err "Not existent torrent arg 1: $1" 1
-	test -f "$1" || err "Not a torrent file arg 1: $1" 1
-	test -z "$2" -o -d "$2" || err "Missing dir arg" 1
+	test -s "$1" || error "Not existent torrent arg 1: $1" 1
+	test -f "$1" || error "Not a torrent file arg 1: $1" 1
+	test -z "$2" -o -d "$2" || error "Missing dir arg" 1
 	htwd=$(pwd)
 	dir=$2
 	test "$dir" != "." && pushd $2 > /dev/null
@@ -1618,7 +1618,7 @@ c_mp3_validate()
 	do
 		SZ=$(filesize "$p")
 		test -s "$p" || {
-			err "Empty file $p"
+			error "Empty file $p"
 			continue
 		}
 		mp3val "$p"
@@ -1660,14 +1660,14 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 				[ -z "$cmd" ] && {
 					load
 					htd_usage
-					err 'No command given, see "help"' 1
+					error 'No command given, see "help"' 1
 				} || {
 					[ "$e" = "1" -a -z "$func_exists" ] && {
 						load
 						htd_usage
-						err "No such command: $cmd" 1
+						error "No such command: $cmd" 1
 					} || {
-						err "Command $cmd returned $e" $e
+						error "Command $cmd returned $e" $e
 						popd_cwdir
 					}
 				}
