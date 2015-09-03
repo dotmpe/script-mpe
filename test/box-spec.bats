@@ -6,7 +6,7 @@ load helper
 
 uname=$(uname)
 
-usage_line_1="${bin}.sh Bash/Shell script helper"
+usage_line_1="${base}.sh Bash/Shell script helper"
 usage_line_2="Usage:"
 usage_line_3="  ${bin} <cmd> [<args>..]"
 

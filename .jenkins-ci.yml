@@ -2,7 +2,7 @@
 - project:
     name: script.mpe
 
-    branch: test
+    branch: dev
     vendor-path: dotmpe/script.mpe
     htmlDescription: ''
     project-src: '*.sh,*.py'
@@ -43,11 +43,8 @@
             export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
             export JTB_HOME=$HOME/build/jtb
 
-            box -v
-            htd -v
-            match.sh -v
-
-            export PREFIX=$WORKSPACE/
+            export PREFIX=$WORKSPACE
+            ./box help
             bash -c './test/{bats-tests}-spec.bats'
 
 
@@ -72,7 +69,7 @@
             htd -v
             match.sh -v
 
-            export PREFIX=$WORKSPACE/
+            export PREFIX=$WORKSPACE
             mkdir -vp ./build
             bash -c './test/{bats-tests}-spec.bats > ./build/test-results.tap'
 
