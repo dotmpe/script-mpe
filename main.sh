@@ -1,3 +1,4 @@
+#!/bin/sh
 
 # Use dash to ignore source exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
@@ -15,7 +16,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
       type $func 1> /dev/null 2> /dev/null && {
         func_exists=y
         load
-        test -n $1 && shift 1
+        test -n "$1" && shift 1
         $func $@
         e=0
       } || {

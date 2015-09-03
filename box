@@ -21,13 +21,14 @@ load()
 usage()
 {
   echo "$scriptname.sh Bash/Shell script helper"
-  echo 'Usage: '
+  echo 'Usage:'
   echo "  $scriptname <cmd> [<args>..]"
 }
 
 commands()
 {
   echo 'Commands:'
+  echo '    -h|help                     '
   echo '    -e|edit                     Edit local script or abort. '
   echo '    -E|edit-main                Edit main script. '
   echo '    -i|init                     Init local script with name. '
@@ -86,7 +87,7 @@ c_edit()
 man_1__e="Shortcut to 'edit'"
 c__e()
 {
-  c_edit $@
+  cmd=edit c_edit $@
 }
 man_1_edit_main="Edit box script and local scripts. "
 c_edit_main()
@@ -98,7 +99,7 @@ c_edit_main()
 man_1_E="Shortcut to 'edit-main'"
 c__E()
 {
-  c_edit_main $@
+  cmd=edit-main c_edit_main $@
 }
 
 main_1_init="Initialize local script. "
@@ -114,13 +115,13 @@ c_init()
 }
 c__i()
 {
-  c_init $@
+  cmd=init c_init $@
 }
 man_1_="Default: require localscript. "
 c_()
 {
   box_req_script $@ || exit 1
-  test -z "$c" || shift $c
+  test -z "$c" || shift $c; c=
   #$UCONFDIR/box/${hostname}/index.sh list $(pwd)
   type box 1> /dev/null 2> /dev/null && {
     box $@
@@ -131,7 +132,7 @@ man_1_run="Require localscript and exec. given function. "
 c_run()
 {
   box_req_script $@
-  test -z "$c" || shift $c
+  test -z "$c" || shift $c; c=0
   test -n "$1" || err '' "Function name required" 1
   mkvid box_$1
   type $vid 1> /dev/null 2> /dev/null && {
