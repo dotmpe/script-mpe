@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-bin=${PREFIX}match.sh
+base=match.sh
 
 load helper
 

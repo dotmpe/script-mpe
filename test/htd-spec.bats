@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-bin=${PREFIX}htd
+base=htd
 
 load helper
 
