@@ -1,8 +1,4 @@
 
-- defaults:
-    name: global
-
-
 - project:
     name: script.mpe
 
@@ -33,7 +29,7 @@
 
     - '{name}-local-gh':
         disabled: false
-        title: 'script.mpe [gh,local] ({branch})'
+        title: 'script.mpe [gh,local,no-test] ({branch})'
         htmlDescription: ''
         project-src: '*.sh,*.py'
         email-to: ''
@@ -41,5 +37,23 @@
         email-individuals: false
         credentials-id: 'f3711d97-0c02-4099-b16f-d6d7fe13d168'
         builders:
-        - shell: './test/*-spec.bats'
+        - shell: echo No-op
+
+    - '{name}-local-gh-bats':
+        disabled: false
+        title: 'script.mpe [gh,local,bats] ({branch})'
+        htmlDescription: ''
+        project-src: '*.sh,*.py'
+        email-to: ''
+        build-summary-image:
+        email-individuals: false
+        credentials-id: 'f3711d97-0c02-4099-b16f-d6d7fe13d168'
+        builders:
+        - shell: |
+            export PATH=$PATH:$HOME/bin/
+            export PATH=$PATH:$HOME/usr/bin
+            export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
+            mkdir -vp build
+            ./test/*-spec.bats > build/tests-results.tap
+
 
