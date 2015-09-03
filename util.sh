@@ -1,5 +1,7 @@
 #!/bin/sh
 
+test -n "$PREFIX" || PREFIX=$HOME
+
 . $PREFIX/bin/std.sh
 . $PREFIX/bin/str.sh
 

@@ -7,7 +7,7 @@ load helper
 @test "no arguments no-op" {
   run ${bin}
   test $status -eq 1
-  test "${lines[0]}" = "No command given, see \"help\" [match.sh:]"
+  test "${lines[0]}" = "[match.sh:] Error: No command given, see \"help\""
 }
 
 @test "glob matches path" {
