@@ -4,13 +4,13 @@ bin=match.sh
 
 load helper
 
-@test "no arguments no-op" {
+@test "$bin no arguments no-op" {
   run ${bin}
   test $status -eq 1
   test "${lines[0]}" = "[match.sh:] Error: No command given, see \"help\""
 }
 
-@test "glob matches path" {
+@test "$bin glob matches path" {
   run ${bin} glob 'test.*' test.name
   test $status -eq 0
   test -z "${lines[@]}"
@@ -28,13 +28,13 @@ load helper
   test -z "${lines[@]}"
 }
 
-@test "lists var names" {
+@test "$bin lists var names" {
   run ${bin} var-names
   test $status -eq 0
   test "${lines[0]}" = "SZ SHA1_CKS MD5_CKS CK_CKS EXT NAMECHAR IDCHAR NAMEPART NAMEPARTS ALPHA PART OPTPART"
 }
 
-@test "lists var names in name pattern" {
+@test "$bin lists var names in name pattern" {
   source ./match.sh
   match_load
   run match_name_pattern_opts ./@NAMEPARTS.@SHA1_CKS.@EXT
@@ -45,7 +45,7 @@ load helper
   test "$(echo ${lines[@]})" = "SHA1_CKS EXT NAMEPARTS"
 }
 
-@test "compile regex for name pattern" {
+@test "$bin compile regex for name pattern" {
   source ./match.sh
   match_load
   match_name_pattern_test ./@NAMEPARTS.@SHA1_CKS.@EXT
@@ -53,7 +53,7 @@ load helper
   test "$grep_pattern" = "\.\/[A-Za-z_][A-Za-z0-9_,-]\{1,\}S\.[a-f0-9]\{40\}\.[a-z0-9]\{2,5\}"
 }
 
-@test "compile regex for name pattern (II)" {
+@test "$bin compile regex for name pattern (II)" {
   source ./match.sh
   match_load
   match_name_pattern ./@NAMEPARTS.@SHA1_CKS@OPTPART.@EXT
@@ -61,7 +61,7 @@ load helper
   test "$grep_pattern" = "\.\/[A-Za-z_][A-Za-z0-9_,-]\{1,\}S\.[a-f0-9]\{40\}\(\.\(partial\|part\|incomplete\)\)\?\.[a-z0-9]\{2,5\}"
 }
 
-@test "compile regex for name pattern (III)" {
+@test "$bin compile regex for name pattern (III)" {
   source ./match.sh
   match_load
   match_name_pattern ./@NAMEPART.@SHA1_CKS@PART.@EXT
@@ -72,6 +72,7 @@ load helper
   test "$grep_pattern" = "\.\/[A-Za-z_][A-Za-z0-9_,-]\{1,\}\.[a-f0-9]\{40\}\(.\(partial\|part\|incomplete\)\)\.[a-z0-9]\{2,5\}"
 }
 
-@test "compile regex for name pattern with" {
+@test "$bin compile regex for name pattern with" {
+    skip "TODO"
 }
 

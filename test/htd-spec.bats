@@ -4,31 +4,31 @@ bin=htd
 
 load helper
 
-@test "no arguments no-op" {
-  run ${bin}
+@test "$bin no arguments no-op" {
+  run $BATS_TEST_DESCRIPTION
   test $status -eq 1
   test "${#lines[@]}" = "4"
 }
 
-@test "help" {
-  run ${bin} help
+@test "$bin help" {
+  run $BATS_TEST_DESCRIPTION
   test $status -eq 0
 }
 
-@test "home" {
-  run ${bin} home
+@test "$bin home" {
+  run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test -n "$HTDIR" || HTDIR="$(echo ~/htd)"
   test "${lines[0]}" = "$HTDIR"
 }
 
-@test "info" {
-  run ${bin} info
+@test "$bin info" {
+  run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "${#lines[@]}" = "8"
 }
 
-@test "test-name" {
+@test "$bin test-name" {
   run ${bin} test-name ./linux-network-interface-cards.py
   test $status -eq 0
   run ${bin} test-name "./Foo Bar Baz/"
@@ -39,7 +39,7 @@ load helper
   test $status -eq 0
 }
 
-@test "check-names filenames with table.{vars,names}" {
+@test "$bin check-names filenames with table.{vars,names}" {
   run ${bin} check-names 256colors2.pl
   #test "${lines[1]}" = "# Loaded $HOME/bin/table.vars"
   #test "${lines[2]}" = "No match for 256colors2.pl"

@@ -11,7 +11,7 @@ usage_line_2="Usage:"
 usage_line_3="  ${bin} <cmd> [<args>..]"
 
 
-@test "no arguments no-op" {
+@test "$bin no arguments no-op" {
   cd /tmp/
   run ${bin}
   test $status -eq 1
