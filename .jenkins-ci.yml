@@ -1,0 +1,32 @@
+
+- defaults:
+    name: global
+
+
+- project:
+    name: script.mpe
+
+    branch: test
+    vendor-path: dotmpe/script.mpe
+
+    jobs:
+    - '{name}-gh-travis':
+        disabled: false
+        title: 'script.mpe [public,travis] ({branch})'
+        htmlDescription: ''
+        project-src: '*.sh,*.py'
+        email-to: ''
+        build-summary-image:
+        email-individuals: false
+        credentials-id: 'f3711d97-0c02-4099-b16f-d6d7fe13d168'
+
+    - '{name}-local-gh-travis':
+        disabled: false
+        title: 'script.mpe [travis] ({branch})'
+        htmlDescription: ''
+        project-src: '*.sh,*.py'
+        email-to: ''
+        build-summary-image:
+        email-individuals: false
+        credentials-id: 'f3711d97-0c02-4099-b16f-d6d7fe13d168'
+

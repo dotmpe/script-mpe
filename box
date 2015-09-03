@@ -122,11 +122,18 @@ c_init()
     echo "{" >> $named_script
     echo "}" >> $named_script
     echo >> $named_script
+
+    test -e $std_script || {
+        mkdir -vp $(dirname $std_script)
+        touch $std_script
+        echo "#!/bin/sh" > $std_script
+    }
     echo ". $named_script" >> $std_script
     #echo "# $script " >> $std_script
 
   } || {
     test -e $std_script || {
+        mkdir -vp $(dirname $std_script)
         touch $std_script
         echo "#!/bin/sh" > $std_script
     }
@@ -135,6 +142,11 @@ c_init()
     echo "}" >> $std_script
     echo >> $std_script
 
+    test -e $script || {
+        mkdir -vp $(dirname $script)
+        touch $script
+        echo "#!/bin/sh" > $script
+    }
     echo "# $std_script " >> $script
   }
 
