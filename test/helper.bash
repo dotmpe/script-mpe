@@ -1,2 +1,3 @@
-test -n "$PREFIX" && bin=$base || bin=$PREFIX/bin/$base
+
+test -z "$PREFIX" && bin=$base || bin=$PREFIX/bin/$base
 
