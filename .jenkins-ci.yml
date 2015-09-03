@@ -9,6 +9,8 @@
     branch: test
     vendor-path: dotmpe/script.mpe
 
+    # FIXME: travis build fails on TB config parts
+    # XXX: want to use branch checkout? but not working
     jobs:
     - '{name}-gh-travis':
         disabled: false
@@ -20,7 +22,7 @@
         email-individuals: false
 
     - '{name}-local-gh-travis':
-        disabled: false
+        disabled: true
         title: 'script.mpe [gh,travis] ({branch})'
         htmlDescription: ''
         project-src: '*.sh,*.py'
@@ -28,7 +30,6 @@
         build-summary-image:
         email-individuals: false
         credentials-id: 'f3711d97-0c02-4099-b16f-d6d7fe13d168'
-
 
     - '{name}-local-gh':
         disabled: false
@@ -40,5 +41,5 @@
         email-individuals: false
         credentials-id: 'f3711d97-0c02-4099-b16f-d6d7fe13d168'
         builders:
-        - shell: echo OK
+        - shell: './test/*-spec.bats'
 
