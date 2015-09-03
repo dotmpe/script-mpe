@@ -16,6 +16,8 @@ load()
   namespace=$vid
 
   script=$UCONFDIR/box/${hostname}/${namespace}.sh
+
+  std_script=$UCONFDIR/box/${hostname}-localscripts.sh
 }
 
 usage()
@@ -102,13 +104,37 @@ c__E()
   cmd=edit-main c_edit_main $@
 }
 
-main_1_init="Initialize local script. "
+main_1_init="Initialize local script for current location. "
 c_init()
 {
   box_name="${hostname}:${namespace}"
-  test -n "$1" && name=$1 || warn "No name alias given for box $box_name"
-  mkdir -vp $(dirname $script)
-  touch $script
+  test -n "$1" && name="$1" || \
+      warn "No name alias given for box $box_name, storing in ${hostname}-scripts"
+  mkdir -vp $UCONFDIR/box/
+
+  test -n "$name" && {
+    named_script="$UCONFDIR/box/$name-localscripts.sh"
+    test -e "$named_script" || {
+      touch $named_script
+      echo "#!/bin/sh" > $named_script
+    }
+    echo "${namespace}_$name()" >> $named_script
+    echo "{" >> $named_script
+    echo "}" >> $named_script
+    echo >> $named_script
+    echo ". $named_script" >> $std_script
+
+  } || {
+    test -e $std_script || {
+        touch $std_script
+        echo "#!/bin/sh" > $std_script
+    }
+    echo "${namespace}_Box()" >> $std_script
+    echo "{" >> $std_script
+    echo "}" >> $std_script
+    echo >> $std_script
+  }
+
   test -n "$name" \
       && log "Extended $name with script $box_name" \
       || log "Created local script $box_name"
@@ -145,9 +171,6 @@ c_run()
 # Main
 
 test -n "$PREFIX" || PREFIX=$HOME
-
-#. $PREFIX/bin/std.sh
-#. $PREFIX/bin/str.sh
 . $PREFIX/bin/util.sh
 
 # Execute
