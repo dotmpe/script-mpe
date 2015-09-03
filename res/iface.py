@@ -102,13 +102,6 @@ class ILocalNodeService(Interface):
     """
 
 
-from script_mpe.taxus.iface import IPrimitive
-
-class IPyDict(IPrimitive):
-    pass
-
-classImplements(dict, IPyDict)
-
 # See taxus.iface for adapters
 #registry = AdapterRegistry()
 # Adapt [1] to 2 using 4, give tag/name 3

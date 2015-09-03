@@ -6,7 +6,7 @@ from script_mpe.lib import cn
 from zope.interface import implements
 
 #import res.iface
-#from taxus import iface
+from script_mpe.taxus import iface
 import iface
 
 
@@ -159,8 +159,8 @@ class NodeFormatter(object):
         indentstr = "".join('  ' * indent)
         fields = [
             indentstr+"%s: %s" % (k.key, iface.IFormatted(getattr(ctx,
-                k.key)).__str__(indent+1)) 
-            #"%s: %s" % (k.key, getattr(ctx, k.key)) 
+                k.key)).__str__(indent+1))
+            #"%s: %s" % (k.key, getattr(ctx, k.key))
             for k in ctx.__mapper__.iterate_properties
             if not k.key.endswith('id')]
         #header = "%s <%s>" % ( cn(ctx), ctx.id )
