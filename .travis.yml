@@ -19,15 +19,14 @@ before_script:
 - 'pip install --user zope.component'
 - 'pip install --user jsonschema'
 - 'pip install --user sqlalchemy'
-- 'cd && ln -s /home/travis/build/dotmpe/script.mpe bin'
-- 'cd /home/travis/build/dotmpe/script.mpe'
+- 'rm $HOME/bin && ln -s /home/travis/build/dotmpe/script.mpe $HOME/bin'
 - 'export PATH=$PATH:$HOME/bin/'
 - 'export PATH=$PATH:$HOME/usr/bin'
 - 'export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py'
 - 'touch /home/travis/.basename-reg.yaml'
 
 script:
-- ./test/*-spec.bats
+- './test/*-spec.bats'
 #- ./basename-reg ffnnec.py
 #- ./mimereg ffnenc.py
 # FIXME make -k test
