@@ -1,25 +1,24 @@
 script.mpe
 ==========
+:Version: 0.0.0+20150823-1856
+
+Build-status
+    .. image:: https://secure.travis-ci.org/dotmpe/git-versioning.png?branch=test
+      :target: https://travis-ci.org/dotmpe/git-versioning
+      :alt: Build
+
 
 Various tools and ongoing experiments that have not yet deserved their own
 project.
 
 Test
-----
-::
+    ::
 
-   ./test/*-spec.bats
+       ./test/*-spec.bats
 
 See also `.travis.yml`.
 
 
-================== ====================================================================
-Version            0.0.0+20150823-1856
------------------- --------------------------------------------------------------------
-Build-status       .. image:: https://secure.travis-ci.org/dotmpe/git-versioning.png
-                     :target: https://travis-ci.org/dotmpe/git-versioning
-                     :alt: Build
-================== ====================================================================
 
 
 GIT Branches
@@ -48,49 +47,47 @@ GIT Branches
 
 
 Documentation
---------------
   - `Working on projects`__, a 2011 sketch about working on projects
     privately or professionally, ideas on tooling support.
 
 
 Scripts
--------
-radical
-  Scan for tags in comments of source-code and \*NIX-style text-files.
-cabinet
-  WIP: archive files and query
-domain
-  WIP: host/nfs/nslookup switching based on current network
-dtd2dot 
-  WIP: preliminary DTD tree to GraphViz_ DOT graph generator
-fchardet
-  detect file encoding 
-ffnenc
-  recode a file from one encoding to another
-fsgraph
-  filesystreem tree to GraphViz_ DOT graph
-mapsync
-  rsync wrapper
-msglink
-  find and symlink to message file in Maildir_
-nix-rename
-  try to rename files to not contain metacharacters (ie. ``[^a-z][^a-z0-9]*``)
-py-MRO-graph
-  generate inheritance hierarchies for Python (broken)
-pathlist2dot
-  generic path to GraphViz_ DOT graph generator
-radical
-  tracking tagged source comments (TODO, FIXME, et al.)
-relink
-  rewrite symbolic link targets using regular expression
-snip
-  extract spans from files based on translit identifiers (see `Transliterature
-  Project`_)
-transquote
-  print N3 for translit_ data (using transquoter)
-update
-  update any GIT, Bazaar, Subversion or Mercurial working trees beneath the
-  current directory
+  radical
+    Scan for tags in comments of source-code and \*NIX-style text-files.
+  cabinet
+    WIP: archive files and query
+  domain
+    WIP: host/nfs/nslookup switching based on current network
+  dtd2dot 
+    WIP: preliminary DTD tree to GraphViz_ DOT graph generator
+  fchardet
+    detect file encoding 
+  ffnenc
+    recode a file from one encoding to another
+  fsgraph
+    filesystreem tree to GraphViz_ DOT graph
+  mapsync
+    rsync wrapper
+  msglink
+    find and symlink to message file in Maildir_
+  nix-rename
+    try to rename files to not contain metacharacters (ie. ``[^a-z][^a-z0-9]*``)
+  py-MRO-graph
+    generate inheritance hierarchies for Python (broken)
+  pathlist2dot
+    generic path to GraphViz_ DOT graph generator
+  radical
+    tracking tagged source comments (TODO, FIXME, et al.)
+  relink
+    rewrite symbolic link targets using regular expression
+  snip
+    extract spans from files based on translit identifiers (see `Transliterature
+    Project`_)
+  transquote
+    print N3 for translit_ data (using transquoter)
+  update
+    update any GIT, Bazaar, Subversion or Mercurial working trees beneath the
+    current directory
 
 Libraries
   The following modules have no executable interface.
