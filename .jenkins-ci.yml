@@ -44,6 +44,8 @@
             export JTB_HOME=$HOME/build/jtb
 
             export PREFIX=$WORKSPACE
+            export TRAVIS_SKIP=1
+            export JENKINS_SKIP=1
             ./box help
             bash -c './test/{bats-tests}-spec.bats'
 
