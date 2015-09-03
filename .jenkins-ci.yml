@@ -44,6 +44,7 @@
             export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
             export JTB_HOME=$HOME/build/jtb
             export PATH=$PATH:$HOME/bin/
+            ./box -v
             box -v
             htd -v
             match.sh -v
