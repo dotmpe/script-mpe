@@ -23,6 +23,9 @@ load()
 	_5k=5120
 	test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
 
+	cwd=$(pwd)
+	test "$cwd" = "$(pwd -P)" || err "Warning: current path seems to be aliased"
+
 	test -e table.sha1 && R_C_SHA3="$(cat table.sha1|wc -l)"
 
 	rows=$(stty size|awk '{print $1}')
@@ -906,9 +909,9 @@ man_1_gh="Clone from Github to subdir, adding as submodule if already in checkou
 man_1_gh_spec="<repo> [<prefix>]"
 c_gh() {
 	test -n "$1" || err "Need repo name argument" 1
-	test 0 -lt $(expr index "$1" "/") && {
-		repo=$1; prefix=$(basename $1); } || {
-		repo=dotmpe/$1; prefix=$1; }
+	str_match "$1" "[^/]*" && {
+		repo=dotmpe/$1; prefix=$1; } || {
+		repo=$1; prefix=$(basename $1); }
 	shift 1
 	test -n "$1" && prefix=$1/$prefix
 	giturl=git@github.com:$repo.git
