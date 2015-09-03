@@ -24,7 +24,7 @@ before_script:
 - 'export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py'
 
 #script: make -k test
-script: './test/*-spec.bats && ./mimereg ffnec.py'
+script: './test/*-spec.bats && ./basename-reg ffnec.py && ./mimereg ffnec.py'
 
 branches:
   only:
