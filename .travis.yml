@@ -24,8 +24,11 @@ before_script:
 - 'export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py'
 - 'touch /home/travis/.basename-reg.yaml'
 
-#script: make -k test
-script: './test/*-spec.bats && ./basename-reg ffnec.py && ./mimereg ffnec.py'
+script:
+- ./test/*-spec.bats
+- ./basename-reg ffnec.py
+- ./mimereg ffnec.py
+# FIXME make -k test
 
 branches:
   only:
