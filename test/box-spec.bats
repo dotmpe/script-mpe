@@ -8,7 +8,7 @@ uname=$(uname)
 
 usage_line_1="${base}.sh Bash/Shell script helper"
 usage_line_2="Usage:"
-usage_line_3="  ${bin} <cmd> [<args>..]"
+usage_line_3="  ${base} <cmd> [<args>..]"
 
 
 @test "$bin no arguments no-op" {

@@ -9,7 +9,7 @@ set -e
 
 load()
 {
-  [ -n "$UCONFDIR" ] || UCONFDIR=~/.conf
+  [ -n "$UCONFDIR" ] || UCONFDIR=$HOME/.conf
   test -n "$hostname" || hostname=$(hostname -s)
   test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliases"
   mkvid $(pwd)
