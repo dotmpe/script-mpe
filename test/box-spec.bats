@@ -4,6 +4,8 @@ bin=box
 
 load helper
 
+uname=$(uname)
+
 usage_line_1="${bin}.sh Bash/Shell script helper"
 usage_line_2="Usage:"
 usage_line_3="  ${bin} <cmd> [<args>..]"
@@ -13,9 +15,14 @@ usage_line_3="  ${bin} <cmd> [<args>..]"
   cd /tmp/
   run ${bin}
   test $status -eq 1
-  # FIXME: Meh.. test [[ "${lines[0]}" =~ "No.script.for" ]]
-  echo ${lines[0]} | grep No.script.for || test
-  test "${#lines[@]}" = "1"
+  # TODO: Meh.. test [[ "${lines[0]}" =~ "No.script.for" ]]
+  # XXX: Also buggy on OSX 10.8.5:
+  case "$uname" in
+      Linux ) idx=0 num=1 ;;
+      Darwin ) idx=1 num=2 ;;
+  esac
+  echo ${lines[$idx]} | grep No.script.for || test
+  test "${#lines[@]}" = "$num"
 }
 
 @test "${bin} help" {
@@ -26,7 +33,6 @@ usage_line_3="  ${bin} <cmd> [<args>..]"
   test "${lines[2]}" = "$usage_line_3"
   test "${#lines[@]}" = "9"
 }
-
 
 @test "${bin} -i" {
   target=/tmp/foo/bar/3/baz_4

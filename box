@@ -123,8 +123,8 @@ c_()
   box_req_script $@ || exit 1
   test -z "$c" || shift $c; c=
   #$UCONFDIR/box/${hostname}/index.sh list $(pwd)
-  type box 1> /dev/null 2> /dev/null && {
-    box $@
+  type run_box 1> /dev/null 2> /dev/null && {
+    run_box $@
   }
 }
 
