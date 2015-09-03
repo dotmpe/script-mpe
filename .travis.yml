@@ -26,8 +26,8 @@ before_script:
 
 script:
 - ./test/*-spec.bats
-- ./basename-reg ffnnec.py
-- ./mimereg ffnenc.py
+#- ./basename-reg ffnnec.py
+#- ./mimereg ffnenc.py
 # FIXME make -k test
 
 branches:
