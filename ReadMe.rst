@@ -1,5 +1,13 @@
 script.mpe
 ==========
+Version
+    0.0.0+20150823-1856
+
+Build-status
+    .. image:: https://secure.travis-ci.org/dotmpe/git-versioning.png?branch=master
+      :target: https://travis-ci.org/dotmpe/git-versioning
+      :alt: Build
+
 
 Various tools and ongoing experiments that have not yet deserved their own
 project.
@@ -12,14 +20,6 @@ Test
 
 See also `.travis.yml`.
 
-
-================== ====================================================================
-Version            0.0.0+20150823-1856
------------------- --------------------------------------------------------------------
-Build-status       .. image:: https://secure.travis-ci.org/dotmpe/git-versioning.png
-                     :target: https://travis-ci.org/dotmpe/git-versioning
-                     :alt: Build
-================== ====================================================================
 
 
 GIT Branches
