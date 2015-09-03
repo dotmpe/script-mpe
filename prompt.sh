@@ -49,12 +49,12 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 				# handle non-zero return or print usage for non-existant func
 				e=$?
 				[ -z "$cmd" ] && {
-					err 'No command given, see "help"' 1
+					error 'No command given, see "help"' 1
 				} || {
 					[ "$e" = "1" -a -z "$func_exists" ] && {
-						err "No such command: $cmd" 1
+						error "No such command: $cmd" 1
 					} || {
-						err "Command $cmd returned $e" $e
+						error "Command $cmd returned $e" $e
 					}
 				}
 			}

@@ -51,7 +51,7 @@ work_c_edit()
 {
 	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
 	[ -n "$fn" ] || fn=$(which $scriptname.sh)
-	[ -n "$fn" ] || err "Nothing to edit" 1
+	[ -n "$fn" ] || error "Nothing to edit" 1
 	$EDITOR $fn
 }
 work_c__e()
@@ -67,8 +67,8 @@ work_c__e()
 work_req_client()
 {
 	cwd=$(pwd)
-	test -n "$script_clienttable" || err "Client table setting is empty" 1
-	test -e "$script_clienttable" || err "Client table does not exist: $script_clienttable" 1
+	test -n "$script_clienttable" || error "Client table setting is empty" 1
+	test -e "$script_clienttable" || error "Client table does not exist: $script_clienttable" 1
 	match_grep_pattern_test "$cwd"
 	grep $p_ $script_clienttable > /dev/null && {
 		CLIENT=$(cat $script_clienttable | grep -Ev '^(#.*|\s*)$' |
@@ -164,14 +164,14 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 				[ -z "$cmd" ] && {
 					work_load
 					work_usage
-					err 'No command given, see "help"' 1
+					error 'No command given, see "help"' 1
 				} || {
 					[ "$e" = "1" -a -z "$func_exists" ] && {
 						work_load
 						work_usage
-						err "No such command: $cmd" 1
+						error "No such command: $cmd" 1
 					} || {
-						err "Command $cmd returned $e" $e
+						warn "Command $cmd returned $e" $e
 					}
 				}
 			}

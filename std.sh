@@ -9,25 +9,24 @@ log()
 }
 err()
 {
-	log "$1" 1>&2
-	[ -n $2 ] && exit $2
+	test -n "$1" || 1=Error
+	case "$(echo $1 | tr 'A-Z' 'a-z')" in
+		warn*|err*|notice ) log "$1: $2" 1>&2 ;;
+		* ) log "$2" 1>&2 ;;
+	esac
+	[ -z $3 ] || exit $3
 }
-
 error()
 {
-	test -n "$1" && label=$1 || label=Error
-	shift 1
-	err "$label: $1"
+	err "Error" "$1" "$2"
 }
-
 warn()
 {
-	error "Warning" $1
+	err "Warning" "$1" "$2"
 }
-
 note()
 {
-	error "Notice" $1
+	err "Notice" "$1" "$2"
 }
 
 

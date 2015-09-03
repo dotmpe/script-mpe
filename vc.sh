@@ -58,7 +58,7 @@ vc_edit()
 {
 	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
 	[ -n "$fn" ] || fn=$(which $scriptname.sh)
-	[ -n "$fn" ] || err "Nothing to edit" 1
+	[ -n "$fn" ] || error "Nothing to edit" 1
 	$EDITOR $fn
 }
 vc__e()
@@ -401,13 +401,13 @@ list_errors()
 	do
 		[ -d "$gitpath" ] && {
 			git_info $gitpath > /dev/null || {
-				err Error "in info from $gitpath, see previous."
+				error "in info from $gitpath, see previous."
 			}
 		} || {
 			gitdir=$(__vc_gitdir $(dirname $gitpath))
 			echo $gitdir | grep -v '.git\/modules' > /dev/null && {
 				# files should be gitlinks for submodules
-				err Error "for  $gitpath, see previous. Broken gitlink?"
+				warn "for  $gitpath, see previous. Broken gitlink?"
 				continue
 			}
 		}
@@ -438,7 +438,7 @@ vc_prompt_command()
 {
 	d="$1"
 	[ -z "$d" ] && d="$(pwd)"
-	[ ! -d "$d" ] && err "No such directory $d" 3
+	[ ! -d "$d" ] && error "No such directory $d" 3
 
 	# cache response in file
 	statsdir=$(statusdir_assert vc_status)

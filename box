@@ -3,50 +3,55 @@
 # Box: create namespaced script commands 
 
 set -e
-test -n "$PREFIX" || PREFIX=$HOME
 
-base=$(basename $0 .sh)
-scriptname=box
 
 # Id: script-mpe
 
 load()
 {
-	[ -n "$UCONFDIR" ] || UCONFDIR=~/.conf
-	test -n "$hostname" || hostname=$(hostname -s)
-	test "$(pwd)" = "$(pwd -P)" || err "Warning: current dir seems to be aliases"
-	mkvid $(pwd)
-	namespace=$vid
+  [ -n "$UCONFDIR" ] || UCONFDIR=~/.conf
+  test -n "$hostname" || hostname=$(hostname -s)
+  test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliases"
+  mkvid $(pwd)
+  namespace=$vid
+
+  script=$UCONFDIR/box/${hostname}/${namespace}.sh
 }
 
 usage()
 {
-	echo "$scriptname.sh Bash/Shell script helper"
-	echo 'Usage: '
-	echo "  $scriptname <cmd> [<args>..]"
+  echo "$scriptname.sh Bash/Shell script helper"
+  echo 'Usage: '
+  echo "  $scriptname <cmd> [<args>..]"
 }
 
 commands()
 {
-  echo
+  echo 'Commands:'
+  echo '    -e|edit                     Edit local script or abort. '
+  echo '    -E|edit-main                Edit main script. '
+  echo '    -i|init                     Init local script with name. '
 }
 
 docs()
 {
-  echo
+  echo 'Docs:'
 }
 
 
 box_find_localscript()
 {
-	script=$UCONFDIR/box/${hostname}/${namespace}.sh
-	test -e "$script" || err "No script for $hostname:$(pwd)"
+  test -e "$script" && return || {
+    warn "No script for $hostname:$(pwd)"
+    return 1
+  }
 }
 
 box_req_script()
 {
-	box_find_localscript
-	. $script $@
+  box_find_localscript && {
+    test -e $script && . $script $@ || return 1
+  } || return 1
 }
 
 
@@ -55,106 +60,99 @@ box_req_script()
 man_1_help="Echo a combined usage, command and docs"
 c_help()
 {
-	test -z "$1" && {
-		usage
-		echo ''
-		commands
-		echo ''
-		docs
-	} || {
-		echo_help $1
-	}
+  test -z "$1" && {
+    usage
+    echo ''
+    commands
+    echo ''
+    docs
+  } || {
+    echo_help $1
+  }
 }
 man_1__h="Alias for 'help'"
 c__h()
 {
-	c_help $@
+  c_help $@
 }
 
-man_1_edit="Edit localscript and box script. "
+man_1_edit="Edit localscript and box script or abort. "
 c_edit()
 {
-	box_find_localscript $@
-	locate_name
-	$EDITOR $script $fn
+  box_find_localscript $@ || exit 1
+  locate_name
+  $EDITOR $script $fn
 }
 man_1__e="Shortcut to 'edit'"
 c__e()
 {
-	c_edit $@
+  c_edit $@
+}
+man_1_edit_main="Edit box script and local scripts. "
+c_edit_main()
+{
+  locate_name
+  box_find_localscript $@
+  $EDITOR $fn $script
+}
+man_1_E="Shortcut to 'edit-main'"
+c__E()
+{
+  c_edit_main $@
 }
 
+main_1_init="Initialize local script. "
+c_init()
+{
+  box_name="${hostname}:${namespace}"
+  test -n "$1" && name=$1 || warn "No name alias given for box $box_name"
+  mkdir -vp $(dirname $script)
+  touch $script
+  test -n "$name" \
+      && log "Extended $name with script $box_name" \
+      || log "Created local script $box_name"
+}
+c__i()
+{
+  c_init $@
+}
 man_1_="Default: require localscript. "
 c_()
 {
-	box_req_script $@
-	test -z "$c" || shift $c
-	#$UCONFDIR/box/${hostname}/index.sh list $(pwd)
-	type box 1> /dev/null 2> /dev/null && {
-		box $@
-	}
+  box_req_script $@ || exit 1
+  test -z "$c" || shift $c
+  #$UCONFDIR/box/${hostname}/index.sh list $(pwd)
+  type box 1> /dev/null 2> /dev/null && {
+    box $@
+  }
 }
 
 man_1_run="Require localscript and exec. given function. "
 c_run()
 {
-	box_req_script $@
-	test -z "$c" || shift $c
-	test -n "$1" || err "Function name required" 1
-	mkvid box_$1
-	type $vid 1> /dev/null 2> /dev/null && {
-		test -n "$1" && shift 1
-		$vid $@
-	}
+  box_req_script $@
+  test -z "$c" || shift $c
+  test -n "$1" || err '' "Function name required" 1
+  mkvid box_$1
+  type $vid 1> /dev/null 2> /dev/null && {
+    test -n "$1" && shift 1
+    $vid $@
+  }
 }
 
 
 # Main
 
+test -n "$PREFIX" || PREFIX=$HOME
+
 #. $PREFIX/bin/std.sh
 #. $PREFIX/bin/str.sh
 . $PREFIX/bin/util.sh
 
+# Execute
 
-# Use dash to ignore source exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
+base=$(basename $0 .sh)
+scriptname=box
 
-	# Do something (only) if script invoked as '$scriptname'
-	case "$base" in
-		$scriptname )
-
-			# function name first as argument,
-			cmd=$1
-			func=$(echo c_$cmd | tr '-' '_')
-			func_exists=""
-
-			# load/exec if func exists
-			type $func 1> /dev/null 2> /dev/null && {
-				func_exists=y
-				load
-				test -n $1 && shift 1
-				$func $@
-				e=0
-			} || {
-				# handle non-zero return or print usage for non-existant func
-				e="$?"
-				test -z "$cmd" && {
-					load
-					usage
-					err 'No command given, see "help"' 1
-				} || {
-					test -n "$func_exists" \
-						&& err "Command $cmd returned $e" $e \
-						|| err "No such command: $cmd" 1
-				}
-			}
-
-			;;
-
-		* )
-			log "No frontend for $base"
-			;;
-
-	esac
-fi
+. $PREFIX/bin/main.sh $@
 

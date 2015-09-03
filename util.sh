@@ -9,7 +9,7 @@ req_arg()
 	label=$(eval echo \${req_arg_$4[0]})
 	varname=$(eval echo \${req_arg_$4[1]})
 	test -n "$1" || {
-		err "$2 requires argument at $3 '$label'"
+		warn "$2 requires argument at $3 '$label'"
 		return 1
 	}
 	test -n "$varname" && {
@@ -63,6 +63,7 @@ locate_name()
 {
 	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
 	[ -n "$fn" ] || fn=$(which $scriptname.sh)
+	[ -n "$fn" ] || return 1
 }
 
 

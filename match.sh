@@ -40,7 +40,7 @@ match_grep_pattern_test()
 	p_="$(echo "$1" | sed -E 's/([^A-Za-z0-9{}(),!@+_])/\\\1/g')"
 	# test regex
 	echo "$1" | grep "^$p_$" >> /dev/null || {
-		err "cannot build regex for $1: $p_"
+		error "cannot build regex for $1: $p_"
 		echo "$p" > invalid.paths
 		return 1
 	}
@@ -117,7 +117,7 @@ match_name_vars()
 		do
 			match_name_pattern "$pattern" $var2
 			echo "$path" | grep '^'$grep_pattern'$' > /dev/null || {
-				err "Could not retrieve part $var2"
+				error "Could not retrieve part $var2"
 				continue
 			}
 			echo grep_pattern=$grep_pattern
@@ -126,7 +126,7 @@ match_name_vars()
 		done
 		echo -n
 	} || {
-		err "mismatch '$path'"
+		error "mismatch '$path'"
 		return 1
 	}
 }
@@ -167,7 +167,7 @@ match_load_table()
 	test -s "$(pwd)/table.$book" && {
 			test "$(pwd)" != "$(echo ~/bin)" &&
 			match_load_defs "$(pwd)/table.$book" || echo -n
-		} || err "No local table.$book"
+		} || error "No local table.$book"
 }
 
 # Compile new table 
@@ -180,18 +180,8 @@ match_compile()
 	match_grep_pattern_test "$pattern" || return 1
 }
 
-# stdio/stderr/exit util
-log()
-{
-	[ -n "$(echo "$*")" ] || return 1;
-	echo "[$scriptname.sh:$cmd] $1"
-}
-err()
-{
-	[ -n "$(echo "$*")" ] || return 1;
-	echo "$1 [$scriptname.sh:$cmd]" 1>&2
-	[ -n "$2" ] && exit $2
-}
+
+. ~/bin/std.sh
 
 
 # Main
@@ -222,12 +212,12 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 				# handle non-zero return or print usage for non-existant func
 				e=$?
 				[ -z "$cmd" ] && {
-					err 'No command given, see "help"' 1
+					error 'No command given, see "help"' 1
 				} || {
 					[ "$e" = "1" -a -z "$func_exists" ] && {
-						err "No such command: $cmd" 1
+						error "No such command: $cmd" 1
 					} || {
-						err "Command $cmd returned $e" $e
+						error "Command $cmd returned $e" $e
 					}
 				}
 			}
