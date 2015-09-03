@@ -25,11 +25,11 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
         test -z "$cmd" && {
           load
           usage
-          err '' 'No command given, see "help"' 1
+          error 'No command given, see "help"' 1
         } || {
           test -n "$func_exists" \
-            && err '' "Command $cmd returned $e" $e \
-            || err '' "No such command: $cmd" 1
+            && error "Command $cmd returned $e" $e \
+            || error "No such command: $cmd" 1
         }
       }
 

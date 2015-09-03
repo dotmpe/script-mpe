@@ -9,7 +9,6 @@ log()
 }
 err()
 {
-	test -n "$1" || 1=Error
 	case "$(echo $1 | tr 'A-Z' 'a-z')" in
 		warn*|err*|notice ) log "$1: $2" 1>&2 ;;
 		* ) log "$2" 1>&2 ;;
