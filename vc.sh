@@ -54,6 +54,16 @@ vc_docs()
 }
 
 
+vc__v()
+{
+	c_version
+}
+vc_version()
+{
+	# no version, just checking it goes
+	echo 0.0.0
+}
+
 vc_edit()
 {
 	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)

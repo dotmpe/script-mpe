@@ -190,11 +190,11 @@ c_docs()
 	echo 'See dckr for container commands and vc for GIT related. '
 }
 
-match__v()
+c__v()
 {
-	match_version
+	c_version
 }
-match_version()
+c_version()
 {
 	# no version, just checking it goes
 	echo 0.0.0

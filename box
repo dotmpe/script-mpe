@@ -60,11 +60,11 @@ box_req_script()
 
 # User commands
 
-match__v()
+c__v()
 {
-	match_version
+	c_version
 }
-match_version()
+c_version()
 {
 	# no version, just checking it goes
 	echo 0.0.0
