@@ -7,7 +7,8 @@ load helper
 @test "$bin no arguments no-op" {
   run ${bin}
   test $status -eq 1
-  test "${lines[0]}" = "[match.sh:] Error: No command given, see \"help\""
+  skip "TODO should some colorless terminal?"
+  test "${lines[0]}" = "[match.sh] Error: No command given, see \"help\""
 }
 
 @test "$bin glob matches path" {
