@@ -11,7 +11,7 @@ load()
 {
   [ -n "$UCONFDIR" ] || UCONFDIR=$HOME/.conf
   test -n "$hostname" || hostname=$(hostname -s)
-  test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliases"
+  test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
   mkvid $(pwd)
   namespace=$vid
 
@@ -53,7 +53,10 @@ box_find_localscript()
 box_req_script()
 {
   box_find_localscript && {
-    test -e $script && . $script $@ || return 1
+    test -e $script && {
+        log "# Including $script"
+        . $script $@
+    } || return 1
   } || return 1
 }
 
@@ -62,12 +65,12 @@ box_req_script()
 
 c__v()
 {
-	c_version
+  c_version
 }
 c_version()
 {
-	# no version, just checking it goes
-	echo 0.0.0
+  # no version, just checking it goes
+  echo 0.0.0
 }
 man_1_help="Echo a combined usage, command and docs"
 c_help()
@@ -185,9 +188,13 @@ c_run()
   test -z "$c" || shift $c; c=0
   test -n "$1" || err '' "Function name required" 1
   mkvid box_$1
-  type $vid 1> /dev/null 2> /dev/null && {
+  { type $vid &> /dev/null; } && {
     test -n "$1" && shift 1
-    $vid $@
+    $vid $@ || {
+      error "running command $vid" 2
+    }
+  } || {
+    error "No command $vid" 1
   }
 }
 
