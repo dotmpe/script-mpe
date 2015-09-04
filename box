@@ -186,7 +186,7 @@ c_run()
 {
   box_req_script $@
   test -z "$c" || shift $c; c=0
-  test -n "$1" || err '' "Function name required" 1
+  test -n "$1" || error "Function name required" 1
   mkvid box_$1
   { type $vid &> /dev/null; } && {
     test -n "$1" && shift 1
