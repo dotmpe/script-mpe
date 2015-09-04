@@ -133,7 +133,8 @@ htd_commands()
   echo '  ck-find-content <path>           Given path, try find-name or checksum tables and annex-backend to find copies and give all alternate locations. '
   echo ''
   echo 'Other commands: '
-  echo '  -e|edit                          Edit this script.'
+  echo '  -E|edit-main                     Edit this script.'
+  echo '  -e|edit                          Edit a local document or script.'
   echo '  alias                            Show bash aliases for this script.'
   echo '  -h|help                          Give a combined usage, command and docs. '
   echo '  docs                             Echo manual page. '
@@ -192,7 +193,7 @@ c_docs()
 
 c__v()
 {
-  c_version
+  cmd=version c_version
 }
 c_version()
 {
@@ -248,24 +249,27 @@ man_1_edit_main="Edit the main script file"
 c_edit_main()
 {
   locate_name
-  [ -n "$fn" ] || error "Nothing to edit" 1
+  [ -n "$fn" ] || error "expected $scriptname?" 1
   $EDITOR $fn
 }
 man_1__E="Alias for 'edit-main'"
 c__E()
 {
-  c_edit_main
+  cmd=edit-main c_edit_main
 }
 
-man_1_edit_local="TODO Edit reverse, local first"
-c_edit_local()
+man_1_edit="Edit a local file, or abort"
+c_edit()
 {
-  echo Nothing
+  test -n "$1" || error "TODO nothing to look for" 1
+  doc_name_arg $1 $2
+  doc_find
+  $EDITOR $file
 }
-man_1__e="Alias for 'edit-local'"
+man_1__e="Alias for 'edit'"
 c__e()
 {
-  c_edit_local
+  cmd=edit c_edit $@
 }
 
 htd_init_ignores()

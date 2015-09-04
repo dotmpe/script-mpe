@@ -5,6 +5,7 @@ test -n "$PREFIX" || PREFIX=$HOME
 TERM=xterm
 . $PREFIX/bin/std.sh
 . $PREFIX/bin/str.sh
+. $PREFIX/bin/doc.sh
 
 # 
 req_arg()
