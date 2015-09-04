@@ -262,15 +262,8 @@ man_1_edit="Edit a local file, or abort"
 c_edit()
 {
   test -n "$1" || error "TODO nothing to look for" 1
-  c_find_doc $1 $2
-
-  # XXX: write a routine to detect dt, or emph tags
-  files=$(grep -li '^'$name'$' $HOME/htdocs/${dir}/*.rst)
-
-  info "Found $(echo $(echo $files | wc -w)) documents"
-  file=$(echo $files | sed 's/^\([^\ ]*\).*$/\1/')
-
-  test -e "$file" || warn "no doc for ${blue}$name${white}/${green}$dir" 1
+  doc_name_arg $1 $2
+  doc_find
   $EDITOR $file
 }
 man_1__e="Alias for 'edit'"

@@ -21,13 +21,9 @@ if [ -t 1 ]; then
 
     test -z "$debug" || echo "ncolors=$ncolors"
 
-    if test $ncolors -ge 256; then
-      grey="\e[0;37m"
-      black="\e[0;30m"
-      blackb="\e[0;90m"
-    fi
+    black="\e[0;30m"
 
-    bold="$(tput bold)"
+    bld="$(tput bold)"
     underline="$(tput smul)"
     standout="$(tput smso)"
     norm="$(tput sgr0)"
@@ -39,6 +35,14 @@ if [ -t 1 ]; then
     prpl="$(tput setaf 5)" # magenta
     cyan="$(tput setaf 6)"
     white="$(tput setaf 7)"
+    bwhite=${bld}${white}
+
+    if test $ncolors -ge 256; then
+      blackb="\e[0;90m"
+      grey="\e[0;37m"
+    else
+      grey=${white}
+    fi
   fi
 fi
 
@@ -47,15 +51,23 @@ fi
 log()
 {
   [ -n "$(echo "$*")" ] || return 1;
-  ${echo} "${blackb}[${grey}$scriptname.sh${blackb}] $1"
+  ${echo} "${bb}[${grey}$scriptname.sh${bb}] ${norm}$1"
 }
 err()
 {
   case "$(echo $1 | tr 'A-Z' 'a-z')" in
-    err*) log "${bold}${red}$1${blackb}: ${whte}$2${norm}" 1>&2 ;;
-    warn*) log "${ylw}$1${grey}: ${grey}$2${norm}" 1>&2 ;;
-    notice ) log "${prpl}$1${grey}: ${grey}$2${norm}" 1>&2 ;;
-    * ) log "${norm}$2" 1>&2 ;;
+    err*)
+        bb=${red}
+        log "${bld}${red}$1${blackb}: ${bwhite}$2${norm}" 1>&2 ;;
+    warn*)
+        bb=${ylw}
+        log "${ylw}$1${grey}: ${grey}$2${norm}" 1>&2 ;;
+    notice )
+        bb=${prpl}
+        log "${prpl}$1${grey}: ${grey}$2${norm}" 1>&2 ;;
+    * )
+        bb=${blackb}
+        log "${norm}$2" 1>&2 ;;
   esac
   [ -z $3 ] || exit $3
 }
