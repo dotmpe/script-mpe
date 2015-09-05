@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 # Box: create namespaced script commands 
 
@@ -63,16 +63,20 @@ box_req_script()
 
 # User commands
 
+als__v=version
 c__v()
 {
   c_version
 }
+spc_version="-v|version"
 c_version()
 {
   # no version, just checking it goes
   echo 0.0.0
 }
+
 man_1_help="Echo a combined usage, command and docs"
+spc_help="-h|help"
 c_help()
 {
   test -z "$1" && {
@@ -85,38 +89,42 @@ c_help()
     echo_help $1
   }
 }
-man_1__h="Alias for 'help'"
+als__h="help"
 c__h()
 {
   c_help $@
 }
 
 man_1_edit="Edit localscript and box script or abort. "
+spc_edit="-e|edit [<name>:]<script>"
 c_edit()
 {
   box_find_localscript $@ || exit 1
   locate_name
   $EDITOR $script $fn
 }
-man_1__e="Shortcut to 'edit'"
+als__e="edit"
 c__e()
 {
   cmd=edit c_edit $@
 }
+
 man_1_edit_main="Edit box script and local scripts. "
+spc_edit_main="-E|edit-main"
 c_edit_main()
 {
   locate_name
   box_find_localscript $@
   $EDITOR $fn $script
 }
-man_1_E="Shortcut to 'edit-main'"
+als__E=edit-main
 c__E()
 {
   cmd=edit-main c_edit_main $@
 }
 
 main_1_init="Initialize local script for current location. "
+spc_init="-i|init [<name>]"
 c_init()
 {
   box_name="${hostname}:${namespace}"
@@ -166,10 +174,12 @@ c_init()
       && log "Extended $name with script $box_name" \
       || log "Created local script $box_name"
 }
+als__i=init
 c__i()
 {
   cmd=init c_init $@
 }
+
 man_1_="Default: require localscript. "
 c_()
 {
@@ -182,32 +192,47 @@ c_()
 }
 
 man_1_run="Require localscript and exec. given function. "
+spc_run="run [<name>:]<cmd-path>"
 c_run()
 {
   box_req_script $@
   test -z "$c" || shift $c; c=0
   test -n "$1" || error "Function name required" 1
   mkvid box_$1
+  test -n "$1" && shift 1
   { type $vid &> /dev/null; } && {
-    test -n "$1" && shift 1
-    $vid $@ || {
+    $vid $@ && {
+      info "command $vid completed"
+    } || {
       error "running command $vid" 2
     }
   } || {
-    error "No command $vid" 1
+    error "no command $vid" 1
   }
+}
+
+man_1_complete="Testing bach complete with sh compatible script"
+spc_complete=complete
+c_comple()
+{
+  cmds=""
 }
 
 
 # Main
 
-test -n "$PREFIX" || PREFIX=$HOME
-. $PREFIX/bin/util.sh
+# Use dash to ignore source exec in login shell
+if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
-# Execute
+  test -n "$PREFIX" || PREFIX=$HOME
+  . $PREFIX/bin/util.sh
 
-base=$(basename $0 .sh)
-scriptname=box
+  # Execute
 
-. $PREFIX/bin/main.sh $@
+  base=$(basename $0 .sh)
+  abspath=$(cd $(dirname $0);pwd -P)
+  scriptname=box
 
+  . $PREFIX/bin/main.sh $@
+
+fi
