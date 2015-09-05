@@ -131,6 +131,7 @@ c_init()
     box_name="${name}:${cmd}"
   box_name_args $@ && shift $c ; c=0
   local script=$BOX_BIN_DIR/$name
+
   grep -s $namespace $script > /dev/null && {
     error "function already exists: $namespace" 1
   } || {
@@ -240,11 +241,11 @@ c_check_install()
   {
     test -d "$BOX_DIR/" || error "not a dir" 1
     test -w "$BOX_DIR/" || error "not writable" 1
-    box init BoxTest || error "unable to init BoxTest"
+    box new BoxTest || error "unable to init BoxTest"
     info "initialized BoxTest"
     test "$(which BoxTest)" = "$BOX_BIN_DIR/BoxTest" \
       || error "expected BoxTest on PATH"
-    BoxTest -v || error "unable to run BoxTest -v" 1
+    BoxTest || error "unable to run BoxTest -v" 1
     rm $BOX_BIN_DIR/BoxTest
 
   } && {
