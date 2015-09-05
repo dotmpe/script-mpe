@@ -22,8 +22,8 @@ func_exists=""
 try_load()
 {
   load_func=${1}_load
-  { type load && load; } 1> /dev/null
-  { type $load_func && $load_func; } 1> /dev/null
+  { type load &> /dev/null && load; } 1> /dev/null
+  { type $load_func &> /dev/null && $load_func; } 1> /dev/null
 }
 
 try_usage()
