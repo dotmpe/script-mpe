@@ -6,7 +6,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
   # Do something (only) if script invoked as '$scriptname'
   case "$base" in
     $scriptname )
-      . $HOME/main.inc.sh
+      . $HOME/bin/main.inc.sh
       ;;
 
     * )
