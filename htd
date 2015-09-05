@@ -264,12 +264,27 @@ c_edit()
   test -n "$1" || error "TODO nothing to look for" 1
   doc_name_arg $1 $2
   doc_find
+  test -e "$file" || error "Shoulf have catched that" 1
   $EDITOR $file
 }
 man_1__e="Alias for 'edit'"
 c__e()
 {
   cmd=edit c_edit $@
+}
+
+man_1_find="Look for doc"
+spc_find="-f|find"
+c_find()
+{
+  test -n "$1" || error "TODO nothing to look for" 1
+  doc_name_arg $1 $2
+  doc_list_all
+}
+als__f=find
+c__f()
+{
+    cmd=find c_find $@
 }
 
 htd_init_ignores()
