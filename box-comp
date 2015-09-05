@@ -71,15 +71,6 @@ __box_bash_auto_complete()
           echo -e "  $spc\t\t$man"
       fi
   done
-  # FIXME: is there an escape sequence or something to signal bash-completion
-  # or readline about various events? Currently the script seems to take over,
-  # ie exit the terminal etc.
-  # But it also changes behaviour to the key/tab actions. Two tabs may in most
-  # cases print the help listings twice (two invocations of this function), completing
-  # the input to the nearest completion after the first tab.
-  # And finally listing all COMPREPLY again, once, before it resets the prompt.
-  # Subsequent tabs invoke the function just once, and reset the prompt.
-  # Whats going on. May need cleaner init for BOX_CMDS, iso sourcing script.
   echo -en "\n$COMP_LINE"
   return 1
 }

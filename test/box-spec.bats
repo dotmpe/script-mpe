@@ -34,6 +34,11 @@ usage_line_3="  ${base} <cmd> [<args>..]"
   test "${#lines[@]}" = "9"
 }
 
+@test "${bin} check-install" {
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+}
+
 @test "${bin} -i" {
   target=/tmp/foo/bar/3/baz_4
   mkdir -vp $target

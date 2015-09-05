@@ -6,10 +6,11 @@ if [ -t 1 ]; then
 
   # see if it supports colors...
   ncolors=$(tput colors)
+
   echo="echo"
   case $TERM in 
     xterm-256color )
-      # FIXME echo -e
+      # FIXME echo -e something going on with BSD sh?
       echo="echo -e"
       ;;
     xterm* )
@@ -51,7 +52,9 @@ fi
 log()
 {
   [ -n "$(echo "$*")" ] || return 1;
-  ${echo} "${bb}[${grey}$scriptname.sh${bb}] ${norm}$1"
+  key=${grey}$scriptname.sh
+  test -n "$cmd" && key=${key}${bb}:${grey}${cmd}
+  ${echo} "${pref}${bb}[${key}${bb}] ${norm}$1"
 }
 err()
 {
@@ -71,7 +74,6 @@ err()
   esac
   [ -z $3 ] || exit $3
 }
-
 
 error()
 {
@@ -99,4 +101,46 @@ std_demo()
   note "Foo bar"
   info "Foo bar"
 }
+
+# experiment rewriting console output
+clear_lines()
+{
+  count=$1
+  [ -n "$count" ] || count=0
+
+  while [ "$count" -gt -1 ]
+  do
+    # move forward to end, then erase one line
+    echo -ne "\033[200C"
+    echo -ne "\033[1K"
+    # move up 
+    echo -ne "\033[1A"
+    count=$(( $count - 1 ))
+  done
+
+  # somehow col is one off, ie. the next regular echo has the first character
+  # eaten by the previous line. clean one line here
+  echo
+}
+
+# read std. Once done use clear_lines to reset stdout
+# could use this to post-process, reformat results of input.
+# XXX using fold to determine the real amount of lines a given stream would have
+# taken given terminal width ${cols}.
+capture_and_clear()
+{
+  tee /tmp/htd-out
+  mv /tmp/htd-out /tmp/htd-out.tmp
+  fold -s -w $cols /tmp/htd-out.tmp > /tmp/htd-out
+  lines=$(wc -l /tmp/htd-out|awk '{print $1}')
+  clear_lines $lines
+  echo Captured $lines lines
+}
+
+# x-platform regex match since Bash/BSD test wont chooche on older osx
+x_re()
+{
+  echo $1 | grep -E "^$2$" > /dev/null && return || return 1
+}
+
 
