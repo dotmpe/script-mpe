@@ -37,7 +37,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 }
 
 @test "${bin} check-install" {
-  #test -z "$TRAVIS_SKIP" || skip "FIXME not running on travis"
+  test -z "$TRAVIS_SKIP" || skip "FIXME not running on travis"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
 }
