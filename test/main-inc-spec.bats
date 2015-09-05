@@ -11,11 +11,11 @@ load main.inc
 
   run mytest_function
   test $status -eq 0
-  test ${lines[0]} = "mytest"
+  test "${lines[0]}" = "mytest"
 
   run mytest_load
   test $status -eq 0
-  test ${lines[0]} = "mytest_load"
+  test "${lines[0]}" = "mytest_load"
 }
 
 @test "$lib test run non-existing function to verify" {
@@ -87,20 +87,20 @@ load main.inc
 
   run bash -c 'source '$lib'.sh && source ./test/main.inc.bash && try_usage mytest'
   test $status -eq 0
-  test ${lines[0]} = "mytest_usage"
+  test "${lines[0]}" = "mytest_usage"
 }
 
 @test "$lib try_usage (sh)" {
 
   run sh -c '. '$lib'.sh && . ./test/main.inc.bash && try_usage mytest'
   test $status -eq 0
-  test ${lines[0]} = "mytest_usage"
+  test "${lines[0]}" = "mytest_usage"
 }
 
 
 @test "$lib try_load" {
 
-  skip TODO: how not to get caught up with Bats 'load' function
+  skip "TODO: how not to get caught up with Bats 'load' function"
 
   run sh -c '. '$lib'.sh && . ./test/main.inc.sh && try_load mytest'
   test $status -eq 0
