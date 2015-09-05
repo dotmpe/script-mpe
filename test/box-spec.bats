@@ -43,10 +43,10 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 }
 
 @test "${bin} -i" {
-  target=/tmp/foo/bar/3/baz_4
+  target=/tmp/test-spec-foo/bar/3/baz_4
   mkdir -vp $target
   pushd $target
-  expect=_tmp_foo_bar_3_baz_4
+  expect=_tmp_test_spec_foo_bar_3_baz_4
 #  run $BATS_TEST_DESCRIPTION
   popd
 #  test $status -eq 0

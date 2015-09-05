@@ -71,5 +71,22 @@ locate_name()
 	[ -n "$fn" ] || return 1
 }
 
+try_exec_func()
+{
+  type $1 2>&1 1> /dev/null || return 1
+  $1 || return $?
+}
+
+try_load()
+{
+  try_exec_func load || return $?
+  try_exec_func ${1}_load || return $?
+}
+
+try_usage()
+{
+  try_exec_func && return
+  try_exec_func ${1}_usage || return $?
+}
 
 

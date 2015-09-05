@@ -19,21 +19,6 @@ test -n "$func" || {
 func_exists=""
 
 
-try_load()
-{
-  load_func=${1}_load
-  { type load &> /dev/null && load; } 1> /dev/null
-  { type $load_func &> /dev/null && $load_func; } 1> /dev/null
-}
-
-try_usage()
-{
-  usage_func=${base}_usage
-  { type $usage_func 1> /dev/null && $usage_func; } && return
-  type usage 1> /dev/null && usage
-}
-
-
 # load/exec if func exists
 type $func > /dev/null && {
   func_exists=y
