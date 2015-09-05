@@ -17,7 +17,7 @@ load helper
 }
 
 @test "$bin home" {
-  check_skipped_envs jenkins || skip "TODO $BATS_TEST_DESCRIPTION"
+  check_skipped_envs travis jenkins || skip "TODO $BATS_TEST_DESCRIPTION"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test -n "$HTDIR" || HTDIR="$(echo ~/htd)"
@@ -25,7 +25,7 @@ load helper
 }
 
 @test "$bin info" {
-  check_skipped_envs jenkins || skip "TODO $BATS_TEST_DESCRIPTION"
+  check_skipped_envs travis jenkins || skip "TODO $BATS_TEST_DESCRIPTION"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "${#lines[@]}" = "8"
