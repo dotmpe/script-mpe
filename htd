@@ -11,6 +11,7 @@ load()
 {
   [ -n "$UCONFDIR" ] || UCONFDIR=~/.conf
   test -n "$hostname" || hostname=$(hostname -s)
+  test -n "$uname" || uname=$(uname -s)
 
   [ -n "$HTDIR" ] || HTDIR=~/htd
   [ -n "$CWDIR" ] || CWDIR=
@@ -191,16 +192,19 @@ c_docs()
   echo 'See dckr for container commands and vc for GIT related. '
 }
 
+man_1_version="no version, just checking it goes"
+c_version()
+{
+  echo 0.0.0
+}
+als__c=version
 c__v()
 {
   cmd=version c_version
 }
-c_version()
-{
-  # no version, just checking it goes
-  echo 0.0.0
-}
+
 man_1_help="Echo a combined usage, command and docs"
+spc_help="[<id>]"
 c_help()
 {
   test -z "$1" && {
@@ -213,10 +217,10 @@ c_help()
     echo_help $1
   }
 }
-man_1__h="Alias for 'help'"
+als__h=help
 c__h()
 {
-  c_help $@
+  cmd=help c_help $@
 }
 
 c_home()
@@ -296,12 +300,6 @@ req_path_arg()
   test -d "$path" || {
     error "Must pass directory" 1
   }
-}
-
-# x-platform regex match since Bash/BSD test wont chooche on older osx
-x_re()
-{
-  echo $1 | grep -E "^$2$" > /dev/null && return || return 1
 }
 
 htd_relative_path()
@@ -398,40 +396,13 @@ c_stat()
 {
   c_make stat
 }
+
+als_st=stat
 c_st()
 {
-  c_stat $*
+  cmd=stat c_stat $*
 }
 
-# experiment rewriting console output
-clear_lines()
-{
-  count=$1
-  [ -n "$count" ] || count=0
-
-  while [ "$count" -gt -1 ]
-  do
-    # move forward to end, then erase one line
-    echo -ne "\033[200C"
-    echo -ne "\033[1K"
-    # move up 
-    echo -ne "\033[1A"
-    count=$(( $count - 1 ))
-  done
-
-  # somehow col is one off, ie. the next regular echo has the first character
-  # eaten by the previous line. clean one line here
-  echo
-}
-capture_and_clear()
-{
-  tee /tmp/htd-out
-  mv /tmp/htd-out /tmp/htd-out.tmp
-  fold -s -w $cols /tmp/htd-out.tmp > /tmp/htd-out
-  lines=$(wc -l /tmp/htd-out|awk '{print $1}')
-  clear_lines $lines
-  echo Captured $lines lines
-}
 c_build()
 {
   rm -f /tmp/htd-out
@@ -439,19 +410,6 @@ c_build()
   echo Mixed output::
   echo
   cat /tmp/htd-out | sed  's/^/    /'
-}
-
-uname=$(uname)
-filesize()
-{
-  case "$uname" in
-    Darwin )
-      stat -L -f '%z' "$1" || return 1
-      ;;
-    Linux )
-      stat -L -c '%s' "$1" || return 1
-      ;;
-  esac
 }
 
 # show htd shell aliases
@@ -505,50 +463,51 @@ c_vt()
 # FIXME: these use BSD date -v, see GNU date -d
 c_today()
 {
-    test -z "$1" && P=journal || P=$1
-    YSEP=/
-    Y=%Y
-    MSEP=-
-    M=%m
-    DSEP=-
-    D=%d
-    test -z "$EXT" && EXT=.rst || EXT=$EXT
-    r=$P$YSEP
-    p=$P$YSEP$Y$MSEP$M$DSEP$D$EXT
-    datelink -1d "$p" ${r}yesterday$EXT
-    datelink "" "$p" ${r}today$EXT
-    datelink +1d "$p" ${r}tomorrow$EXT
-    for tag in sunday monday tuesday wednesday thursday friday saturday
-    do
-        datelink "$tag -v -7d" "$p" "${r}last-$tag$EXT"
-        datelink "$tag -v +7d" "$p" "${r}next-$tag$EXT"
-        datelink "$tag" "$p" "${r}$tag$EXT"
-    done
+  test -z "$1" && P=journal || P=$1
+  YSEP=/
+  Y=%Y
+  MSEP=-
+  M=%m
+  DSEP=-
+  D=%d
+  test -z "$EXT" && EXT=.rst || EXT=$EXT
+  r=$P$YSEP
+  p=$P$YSEP$Y$MSEP$M$DSEP$D$EXT
+  datelink -1d "$p" ${r}yesterday$EXT
+  datelink "" "$p" ${r}today$EXT
+  datelink +1d "$p" ${r}tomorrow$EXT
+  for tag in sunday monday tuesday wednesday thursday friday saturday
+  do
+    datelink "$tag -v -7d" "$p" "${r}last-$tag$EXT"
+    datelink "$tag -v +7d" "$p" "${r}next-$tag$EXT"
+    datelink "$tag" "$p" "${r}$tag$EXT"
+  done
 }
 
 datelink()
 {
-    test -z "$1" && datep=$(date +$2) || datep=$(date -v $1 +$2)
-    target_path=$3
-    test -d "$(dirname $3)" || error "Dir $(dirname $3) must exist" 1
-    test -L $target_path && {
-        test "$(readlink $target_path)" = "$(basename $datep)" && {
-            return
-        }
-        echo -n "Deleting "
-        rm -v $target_path
+  test -z "$1" && datep=$(date +$2) || datep=$(date -v $1 +$2)
+  target_path=$3
+  test -d "$(dirname $3)" || error "Dir $(dirname $3) must exist" 1
+  test -L $target_path && {
+    test "$(readlink $target_path)" = "$(basename $datep)" && {
+        return
     }
-    mkrlink $datep $target_path
+    echo -n "Deleting "
+    rm -v $target_path
+  }
+  mkrlink $datep $target_path
 }
 
 mkrlink()
 {
-    # TODO: find shortest relative path
-    echo -n "Linking "
-    ln -vs $(basename $1) $2
+  # TODO: find shortest relative path
+  echo -n "Linking "
+  ln -vs $(basename $1) $2
 }
 
-# VirtualBox
+
+### VirtualBox
 
 vbox_names=~/.conf/vbox/vms.sh
 c_vbox()
@@ -945,7 +904,7 @@ c_git_drop_remote()
 }
 
 man_1_gh="Clone from Github to subdir, adding as submodule if already in checkout. "
-man_1_gh_spec="<repo> [<prefix>]"
+spc_gh="<repo> [<prefix>]"
 c_gh() {
   test -n "$1" || error "Need repo name argument" 1
   str_match "$1" "[^/]*" && {
@@ -1294,6 +1253,7 @@ c_update()
 
 # Checksums
 
+ck_arg_spec="[ck|sha1|md5]"
 ck_arg()
 {
   test -n "$1"  && CK=$1  || CK=ck
@@ -1305,6 +1265,7 @@ ck_arg()
   }
   T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
 }
+
 ck_write()
 {
   ck_arg "$1"
@@ -1355,7 +1316,7 @@ c_ck_table()
 }
 
 man_1_ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
-man_1_ck_table_subtree_spec="$ck_arg_spec <path>"
+spc_ck_table_subtree="$ck_arg_spec <path>"
 c_ck_table_subtree()
 {
   ck_arg "$1"
@@ -1505,9 +1466,8 @@ c_ck_drop()
   rm table.$CK.tmp
 }
 
-ck_arg_spec="[ck|sha1|md5]"
-man1_ck_clean_spec="$ck_arg_spec"
-man1_ck_clean="Iterate checksum table, check for duplicates, normalize paths"
+man_1_ck_clean="Iterate checksum table, check for duplicates, normalize paths"
+spc_ck_clean="$ck_arg_spec"
 c_ck_clean()
 {
   ck_arg "$1"
@@ -1519,7 +1479,7 @@ c_ck_clean()
   }
 }
 
-man_1_ck_validate_spec="$ck_arg_spec"
+spc_ck_validate="$ck_arg_spec"
 c_ck_validate()
 {
   ck_arg "$1"
@@ -1532,7 +1492,7 @@ c_ck_validate()
 }
 
 # check file size and cksum
-man_3_checksums_spec="[<table-file>]"
+spc_checksums="[<table-file>]"
 checksums()
 {
   test -n "$1"  && T=$1  || T=table.ck
@@ -1668,8 +1628,7 @@ c_mp3_validate()
 
 # Utils
 
-source $PREFIX/bin/std.sh
-source $PREFIX/bin/util.sh
+. $PREFIX/bin/util.sh
 
 
 # Main

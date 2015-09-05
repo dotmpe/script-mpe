@@ -9,15 +9,14 @@ set -e
 
 load()
 {
-  [ -n "$UCONFDIR" ] || UCONFDIR=$HOME/.conf
+  test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
   test -n "$hostname" || hostname=$(hostname -s)
   test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
   mkvid $(pwd)
   namespace=$vid
-
-  script=$UCONFDIR/box/${hostname}/${namespace}.sh
-
-  std_script=$UCONFDIR/box/${hostname}-localscripts.sh
+  unset vid
+  script=$BOX_DIR/${hostname}/${namespace}.sh
+  std_script=$BOX_DIR/${hostname}-localscripts.sh
 }
 
 usage()
@@ -54,7 +53,7 @@ box_req_script()
 {
   box_find_localscript && {
     test -e $script && {
-        log "# Including $script"
+        log "Including $script"
         . $script $@
     } || return 1
   } || return 1
@@ -123,52 +122,23 @@ c__E()
   cmd=edit-main c_edit_main $@
 }
 
-main_1_init="Initialize local script for current location. "
-spc_init="-i|init [<name>]"
+main_1_init="Add local script function"
+spc_init="-i|init [[<name>=$hostname] <cmd>=run]"
 c_init()
 {
-  box_name="${hostname}:${namespace}"
+  local name= cmd=run c=0 script= \
+    named_script="$UCONFDIR/box/$name-localscripts.sh"
+    box_name="${name}:${cmd}"
+  box_name_args $@ && shift $c ; c=0
+  local script=$BOX_BIN_DIR/$name
+  grep -s $namespace $script > /dev/null && {
+    error "function already exists: $namespace" 1
+  } || {
+    echo TODO init
+  }
+
   test -n "$1" && name="$1" || \
       warn "No name alias given for box $box_name, storing in ${hostname}-scripts"
-  mkdir -vp $UCONFDIR/box/
-
-  test -n "$name" && {
-    named_script="$UCONFDIR/box/$name-localscripts.sh"
-    test -e "$named_script" || {
-      touch $named_script
-      echo "#!/bin/sh" > $named_script
-    }
-    echo "${namespace}_$name()" >> $named_script
-    echo "{" >> $named_script
-    echo "}" >> $named_script
-    echo >> $named_script
-
-    test -e $std_script || {
-        mkdir -vp $(dirname $std_script)
-        touch $std_script
-        echo "#!/bin/sh" > $std_script
-    }
-    echo ". $named_script" >> $std_script
-    #echo "# $script " >> $std_script
-
-  } || {
-    test -e $std_script || {
-        mkdir -vp $(dirname $std_script)
-        touch $std_script
-        echo "#!/bin/sh" > $std_script
-    }
-    echo "${namespace}_Box()" >> $std_script
-    echo "{" >> $std_script
-    echo "}" >> $std_script
-    echo >> $std_script
-
-    test -e $script || {
-        mkdir -vp $(dirname $script)
-        touch $script
-        echo "#!/bin/sh" > $script
-    }
-    echo "# $std_script " >> $script
-  }
 
   test -n "$name" \
       && log "Extended $name with script $box_name" \
@@ -178,6 +148,43 @@ als__i=init
 c__i()
 {
   cmd=init c_init $@
+}
+
+main_1_new="Initialize new script"
+spc_new="-n|new [<name>=$hostname]"
+c_new()
+{
+  local name= cmd=run c=0 script=
+  box_name_args $@ && shift $c ; c=0
+  local script=$BOX_BIN_DIR/$name
+  test -e $script || box_init_script $script
+  local func="${namespace}_${name}_${cmd}"
+  echo TODO check for existing function
+  box_add_function $func $script
+  mkvid c_${name}_${cmd}
+  echo TODO add invocation to script function
+  #box_add_idx $vid $script $func
+
+}
+als__n=new
+c__n()
+{
+  cmd=new c_new $@
+}
+
+main_1_function="Initialize function for current location"
+spc_function="-n|function [[<name>=$hostname] <cmd>=run]"
+c_function()
+{
+  local name= cmd=run c=0
+  box_name_args $@
+  test -e $script || error "script $name does not exist" 1
+  echo TODO add function to script
+}
+als__f=function
+c__f()
+{
+  cmd=function c_function $@
 }
 
 man_1_="Default: require localscript. "
@@ -195,37 +202,115 @@ man_1_run="Require localscript and exec. given function. "
 spc_run="run [<name>:]<cmd-path>"
 c_run()
 {
-  box_req_script $@
-  test -z "$c" || shift $c; c=0
-  test -n "$1" || error "Function name required" 1
-  mkvid box_$1
-  test -n "$1" && shift 1
+  test -n "$1" && name="$1" || error "name required" 1 ; shift 1
+  local cmd=run
+  test -n "$1" && { cmd="$1"; shift 1; } || note "using name='run'? "
+  local script=$BOX_BIN_DIR/$name
+  . $script
+  local box_name="${name}:${cmd}"
+  mkvid c_${namespace}_$name_$cmd
+
+  #box_req_script $@
+  #test -z "$c" || shift $c; c=0
+  #test -n "$1" || error "Function name required" 1
+  #mkvid box_$1
+  #test -n "$1" && shift 1
   { type $vid &> /dev/null; } && {
     $vid $@ && {
-      info "command $vid completed"
+      info "command $box_name in $(pwd) completed"
     } || {
-      error "running command $vid" 2
+      error "running command $box_name" 2
     }
   } || {
-    error "no command $vid" 1
+    error "no command $box_name" 1
   }
 }
 
-man_1_complete="Testing bach complete with sh compatible script"
+man_1_complete="Testing bash complete with sh compatible script."
 spc_complete=complete
-c_comple()
+c_complete()
 {
   cmds=""
 }
 
+man_1_check_install="Run internal tests."
+spc_check_install=check-install
+c_check_install()
+{
+  {
+    test -d "$BOX_DIR/" || error "not a dir" 1
+    test -w "$BOX_DIR/" || error "not writable" 1
+    box init BoxTest || error "unable to init BoxTest"
+    info "initialized BoxTest"
+    test "$(which BoxTest)" = "$BOX_BIN_DIR/BoxTest" \
+      || error "expected BoxTest on PATH"
+    BoxTest -v || error "unable to run BoxTest -v" 1
+    rm $BOX_BIN_DIR/BoxTest
 
-# Main
+  } && {
+    info "install checks OK"
 
-# Use dash to ignore source exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
+  } || {
+    rm -f $BOX_BIN_DIR/BoxTest
+    return 1
+  }
+}
 
+man_1_list="."
+spc_list="list <Name>"
+c_list()
+{
+  grep -srI ${namespace} $BOX_BIN_DIR/*
+}
+
+box_init_script()
+{
+  touch $1
+  chmod +x $1
+  echo "#!/bin/sh" > $1
+  echo >> $1
+}
+
+box_add_function()
+{
+  echo "$1()" >> $2
+  echo "{" >> $2
+  echo "  echo This is $1 in $2" >> $2
+  echo "  set -- # no-op" >> $2
+  echo "}" >> $2
+  echo >> $2
+}
+
+box_add_idx()
+{
+  echo "$1()" >> $2
+  echo "{" >> $2
+  echo "  $func" >> $2
+  echo "}" >> $2
+  echo >> $2
+}
+
+box_name_args()
+{
+  test -n "$1" && name="$1" || name="${hostname}"
+  shift 1 ; c=$(( $c + 1 ))
+  test -n "$1" \
+    && { cmd="$1"; shift 1; c=$(( $c + 1 )); } \
+    || note "using name='run'? "
+}
+
+box_main()
+{
   test -n "$PREFIX" || PREFIX=$HOME
   . $PREFIX/bin/util.sh
+
+  test -n "$BOX_DIR" || {
+    test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf
+    BOX_DIR=$UCONFDIR/box
+    #BOX_BIN_DIR=$UCONFDIR/path
+    #BOX_BIN_DIR=$HOME/bin
+    BOX_BIN_DIR=$UCONFDIR/path/Generic
+  }
 
   # Execute
 
@@ -233,6 +318,18 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
   abspath=$(cd $(dirname $0);pwd -P)
   scriptname=box
 
-  . $PREFIX/bin/main.sh $@
+  if test "$0" = "$BOX_BIN_DIR/$base"; then
+    # run as other script
+    echo box run $base $@
+  else
+    # execute std frontend
+    . $PREFIX/bin/main.sh $@
+  fi
+}
+
+# Use dash to ignore source exec in login shell
+if [ -n "$0" ] && [ $0 != "-bash" ]; then
+
+  box_main $@
 
 fi
