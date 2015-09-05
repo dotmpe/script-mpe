@@ -72,10 +72,9 @@ load main.inc
 
 @test "$lib try_exec_func (sh) on non-existing function" {
 
-skip FIXME try_exec_func sh
   run sh -c '. '$lib'.sh && try_exec_func no_such_function'
   # FIXME test "${lines[0]}" = "./util.sh: line *: type: no_such_function: not found"
-  test $status -eq 1
+  test $status -eq 127
 }
 
 
