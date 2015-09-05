@@ -65,7 +65,6 @@ load main.inc
   run sh -c '. '$lib'.sh \
     && . ./test/helper.bash \
     && try_exec_func mytest_function'
-  echo "${lines[0]}" > $BATS_TMPDIR/foo
   test "${lines[0]}" = "mytest"
   test $status -eq 0
 }
@@ -99,45 +98,16 @@ load main.inc
 }
 
 
-@test "$lib try_load " {
+@test "$lib try_load" {
 
-  skip FIXME try_load
-  source $lib'.sh'
-  echo > /tmp/test-x
-  try_load mytest >> /tmp/test-x
-  echo $? >> /tmp/test-x
-  exit
-  #run try_load mytest
-  #echo $status > /tmp/test-x
-  #echo "${lines[0]}" >> /tmp/test-x
-  #echo "${lines[1]}" >> /tmp/test-x
-  #test $status -eq 0
-  #lines_to_file
-}
+  skip TODO: how not to get caught up with Bats 'load' function
 
-@test "$lib sh try_load " {
-
-  skip TODO fix
-  run sh -c '. '$lib'.sh && try_load mytest'
+  run sh -c '. '$lib'.sh && . ./test/main.inc.sh && try_load mytest'
   test $status -eq 0
-  #lines_to_file
+  test ${lines[0]} = "mytest_load"
+
+  run bash -c 'source '$lib'.sh && source ./test/main.inc.bash && try_load mytest'
+  test $status -eq 0
+  test ${lines[0]} = "mytest_load"
 }
-
-@test "$lib native bats try_load " {
-
-  skip TODO fix
-  run test_mytest_load
-  #lines_to_file
-}
-
-
-test_mytest_load()
-{
-  echo \$0=$0
-  echo \$*=$*
-  echo \$lib=$lib
-  source $lib.sh
-  try_load mytest
-}
-
 

@@ -81,7 +81,10 @@ try_exec_func()
 try_load()
 {
   local r
-  try_exec_func load || { r=$?; test -n "$1" || return $?; }
+  try_exec_func load || {
+    r=$?; test -n "$1" || return $?;
+  }
+  test -n "$1" || return
   try_exec_func ${1}_load || r=$?
   return $r
 }
@@ -89,7 +92,7 @@ try_load()
 try_usage()
 {
   try_exec_func && return
-  test -n "$1" || return
+  test -n "$1" || return 1
   try_exec_func ${1}_usage || return $?
 }
 
