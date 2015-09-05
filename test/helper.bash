@@ -25,4 +25,16 @@ mytest_function()
   echo 'mytest'
 }
 
+tmpf()
+{
+  tmpd || return $?
+  tmpf=$tmpd/$BATS_TEST_NAME-$BATS_TEST_NUMBER
+  test -z "$1" || tmpf="$tmpf-$1"
+}
+
+tmpd()
+{
+  tmpd=$BATS_TMPDIR/bats-tempd
+  mkdir -vp $tmpd
+}
 

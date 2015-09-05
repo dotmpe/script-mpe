@@ -73,19 +73,23 @@ locate_name()
 
 try_exec_func()
 {
-  type $1 2>&1 1> /dev/null || return 1
+  test -n "$1" || return 1
+  type $1 2>&1 1> /dev/null || return $?
   $1 || return $?
 }
 
 try_load()
 {
-  try_exec_func load || return $?
-  try_exec_func ${1}_load || return $?
+  local r
+  try_exec_func load || { r=$?; test -n "$1" || return $?; }
+  try_exec_func ${1}_load || r=$?
+  return $r
 }
 
 try_usage()
 {
   try_exec_func && return
+  test -n "$1" || return
   try_exec_func ${1}_usage || return $?
 }
 
