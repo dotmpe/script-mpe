@@ -8,6 +8,7 @@ next_temp_file()
   local cnt=$(echo $(echo /tmp/${pref}* | wc -l) | cut -d ' ' -f 1)
   next_temp_file=/tmp/$pref$cnt
 }
+
 lines_to_file()
 {
   test -n "$file" || next_temp_file
@@ -18,3 +19,10 @@ lines_to_file()
     echo $line_out >> $next_temp_file
   done
 }
+
+mytest_function()
+{
+  echo 'mytest'
+}
+
+

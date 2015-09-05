@@ -8,7 +8,7 @@ TERM=xterm
 . $PREFIX/bin/str.sh
 . $PREFIX/bin/doc.sh
 
-# 
+#
 req_arg()
 {
 	label=$(eval echo \${req_arg_$4[0]})
