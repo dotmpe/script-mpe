@@ -30,14 +30,14 @@ load helper
 }
 
 @test "$bin lists var names" {
-  test -z "$TRAVIS_SKIP" || skip "FIXME seems requires ~/.conf or something"
+  check_skipped_envs travis || skip "FIXME seems requires ~/.conf or something"
   run ${bin} var-names
   test $status -eq 0
   test "${lines[0]}" = "SZ SHA1_CKS MD5_CKS CK_CKS EXT NAMECHAR IDCHAR NAMEPART NAMEPARTS ALPHA PART OPTPART"
 }
 
 @test "$bin lists var names in name pattern" {
-  test -z "$TRAVIS_SKIP" || skip "FIXME seems requires ~/.conf or something"
+  check_skipped_envs travis || skip "FIXME seems requires ~/.conf or something"
   source ./match.sh
   match_load
   run match_name_pattern_opts ./@NAMEPARTS.@SHA1_CKS.@EXT
@@ -65,7 +65,7 @@ load helper
 }
 
 @test "$bin compile regex for name pattern (III)" {
-  test -z "$TRAVIS_SKIP" || skip "FIXME seems requires ~/.conf or something"
+  check_skipped_envs travis || skip "FIXME seems requires ~/.conf or something"
   source ./match.sh
   match_load
   match_name_pattern ./@NAMEPART.@SHA1_CKS@PART.@EXT

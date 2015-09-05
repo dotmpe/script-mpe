@@ -12,7 +12,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
 
 @test "$bin no arguments no-op" {
-  test -z "$TRAVIS_SKIP" || skip "FIXME not running on travis"
+  check_skipped_envs travis || skip "FIXME not running on travis"
   cd /tmp/
   run ${bin}
   test $status -eq 1
@@ -27,7 +27,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 }
 
 @test "${bin} help" {
-  test -z "$TRAVIS_SKIP" || skip "FIXME not running on travis"
+  check_skipped_envs travis || skip "FIXME not running on travis"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "${lines[0]}" = "$usage_line_1"
@@ -37,7 +37,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 }
 
 @test "${bin} check-install" {
-  test -z "$TRAVIS_SKIP" || skip "FIXME not running on travis"
+  check_skipped_envs travis || skip "FIXME not running on travis"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
 }

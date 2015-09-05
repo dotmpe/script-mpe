@@ -6,7 +6,7 @@ load helper
 
 
 @test "$bin ffnenc.py" {
-  test -z "$TRAVIS_SKIP" || skip "FIXME $BATS_TEST_DESCRIPTION"
+  check_skipped_envs travis || skip "FIXME $BATS_TEST_DESCRIPTION"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "${#lines[@]}" = "1"
@@ -14,7 +14,7 @@ load helper
 }
 
 @test "$bin -q ffnenc.py" {
-  test -z "$TRAVIS_SKIP" || skip "FIXME $BATS_TEST_DESCRIPTION"
+  check_skipped_envs travis || skip "FIXME $BATS_TEST_DESCRIPTION"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "${#lines[@]}" = "1"
@@ -22,7 +22,7 @@ load helper
 }
 
 @test "$bin -qE ffnenc.py" {
-  test -z "$TRAVIS_SKIP" || skip "FIXME $BATS_TEST_DESCRIPTION"
+  check_skipped_envs travis || skip "FIXME $BATS_TEST_DESCRIPTION"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "${#lines[@]}" = "1"
