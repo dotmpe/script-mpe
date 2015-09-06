@@ -32,9 +32,11 @@ script:
 
 branches:
   only:
+  - master
   - test
-#  - dev_taxus
-#  - '/^[0-9]*\.[0-9]*\.[0-9]*/'
+  - dev
+  - dev_taxus
+  - '/^[0-9]*\.[0-9]*\.[0-9]*/'
 
 env:
 - ENV= CS=dark TRAVIS_SKIP=1 \
