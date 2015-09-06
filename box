@@ -415,7 +415,7 @@ box_req_files_localscript()
     script_files="$script_files $std_script"
   } || r=$(( $r + 1 ))
 
-  return $r
+  test $r -lt 3 || return $r
 }
 
 box_init_script()
