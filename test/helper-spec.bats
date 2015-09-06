@@ -34,7 +34,7 @@ load helper
     test "${status}" = 0
 
     key=$(hostname -s | tr 'a-z-' 'A-Z_')
-    run bash -c '. '${bin}' && '$key'_SKIP=1 check_skipped_envs '$(hostname -s)
+    run bash -c '. '${bin}' && '$key'_SKIP=1 check_skipped_envs '$(hostname -s)' '$(whoami)
     test "${status}" = 1 || test -z "Should have failed"
     
     run check_skipped_envs $(hostname -s)
