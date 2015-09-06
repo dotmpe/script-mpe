@@ -67,7 +67,8 @@ htd_commands()
 man_1_edit_main="Edit the main script file"
 c_edit_main()
 {
-	locatename $scriptname
+	locate_name $scriptname || exit "Cannot find $scriptname"
+	note "Invoking $EDITOR $fn"
 	$EDITOR $fn
 }
 man_1__E="Alias for 'edit-main'"
@@ -76,10 +77,13 @@ c__E()
 	c_edit_main
 }
 
-man_1_edit_local="FIXME Edit local docker conf.."
+man_1_edit_local="TODO Edit local docker conf.."
 c_edit_local()
 {
-	$EDITOR $DCKR_CONF/local.sh
+	locate_name $scriptname || exit "Cannot find $scriptname"
+	local dckr_local=$DCKR_CONF/local.sh
+	note "invoking $EDITOR $dckr_local $fn"
+	$EDITOR $dckr_local $fn
 }
 man_1__e="Alias for 'edit-local'"
 c__e()
@@ -681,6 +685,8 @@ error()
 
 
 # Main
+
+. $HOME/bin/util.sh
 
 #def_func=c_default
 

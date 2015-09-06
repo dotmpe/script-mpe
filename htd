@@ -9,11 +9,8 @@ VERBOSITY=0
 
 load()
 {
-  [ -n "$UCONFDIR" ] || UCONFDIR=~/.conf
-  test -n "$hostname" || hostname=$(hostname -s)
-  test -n "$uname" || uname=$(uname -s)
-
-  [ -n "$HTDIR" ] || HTDIR=~/htd
+  [ -n "$UCONFDIR" ] || UCONFDIR=$HOME/etc/
+  [ -n "$HTDIR" ] || HTDIR=$HOME/public_html
   [ -n "$CWDIR" ] || CWDIR=
   [ -n "$EDITOR" ] || EDITOR=vim
   [ -n "$HTD_GIT_REMOTE" ] || HTD_GIT_REMOTE=default
@@ -23,6 +20,9 @@ load()
   _6MB=7397376
   _5k=5120
   test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
+
+  test -n "$hostname" || hostname=$(hostname -s)
+  test -n "$uname" || uname=$(uname -s)
 
   cwd=$(pwd)
   test "$cwd" = "$(pwd -P)" || warn "current path seems to be aliased"
@@ -230,14 +230,15 @@ c_home()
 
 c_info()
 {
-  log "Script:              '$(pwd)/$scriptname'"
-  log "HtDir:               '$HTDIR' [HTDIR]"
-  log "Current workingdir:  '$CWDIR' [CWDIR]"
-  log "Project ID:          '$PROJECT' [PROJECT]"
-  log "Minimum filesize:    '$(( $MIN_SIZE / 1024 ))'"
-  log "Editor:              '$EDITOR' [EDITOR]"
-  log "Default GIT remote:  '$HTD_GIT_REMOTE' [HTD_GIT_REMOTE]"
-  log "Ignored paths:       '$HTD_IGNORE' [HTD_IGNORE]"
+  log "Script:                '$(pwd)/$scriptname'"
+  log "User Config Dir:       '$UCONFDIR' [UCONFDIR]"
+  log "User Public HTML Dir:  '$HTDIR' [HTDIR]"
+  log "Current workingdir:    '$CWDIR' [CWDIR]"
+  log "Project ID:            '$PROJECT' [PROJECT]"
+  log "Minimum filesize:      '$(( $MIN_SIZE / 1024 ))'"
+  log "Editor:                '$EDITOR' [EDITOR]"
+  log "Default GIT remote:    '$HTD_GIT_REMOTE' [HTD_GIT_REMOTE]"
+  log "Ignored paths:         '$HTD_IGNORE' [HTD_IGNORE]"
 }
 
 c_expand()
@@ -268,7 +269,7 @@ c_edit()
   test -n "$1" || error "TODO nothing to look for" 1
   doc_name_arg $1 $2
   doc_find
-  test -e "$file" || error "Shoulf have catched that" 1
+  test -e "$file" || error "Should have catched that" 1
   $EDITOR $file
 }
 man_1__e="Alias for 'edit'"

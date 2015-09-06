@@ -67,8 +67,10 @@ echo_help()
 # :fn
 locate_name()
 {
-  [ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
-  [ -n "$fn" ] || fn=$(which $scriptname.sh)
+  [ -n "$1" ] && local name=$scriptname || local name=$1
+  [ -n "$name" ] || error "script name required" 1
+  fn=$(which $name)
+  [ -n "$fn" ] || fn=$(which $name.sh)
   [ -n "$fn" ] || return 1
 }
 

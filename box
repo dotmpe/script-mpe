@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# Box: create namespaced script commands 
+# Box: create nid_cwdd script commands 
 
 set -e
 
@@ -13,9 +13,9 @@ load()
   test -n "$hostname" || hostname=$(hostname -s)
   test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
   mkvid $(pwd)
-  namespace=$vid
+  nid_cwd=$vid
   unset vid
-  script=$BOX_DIR/${hostname}/${namespace}.sh
+  script=$BOX_DIR/${hostname}/${nid_cwd}.sh
   std_script=$BOX_DIR/${hostname}-localscripts.sh
 }
 
@@ -131,13 +131,15 @@ c_init()
   local name= cmd=run c=0 script= \
     named_script="$UCONFDIR/box/$name-localscripts.sh"
     box_name="${name}:${cmd}"
-  box_name_args $@ && shift $c ; c=0
+  box_name_args $@
+  test "$c" || shift $c ; c=0
   local script=$BOX_BIN_DIR/$name
 
-  grep -s $namespace $script > /dev/null && {
-    error "function already exists: $namespace" 1
+  grep -s $nid_cwd $script > /dev/null && {
+    error "function already exists: $nid_cwd" 1
   } || {
-    note "TODO init"
+    note "TODO init of $nid_cwd"
+    echo c_${hostname}__local__${nid_cwd}__run
   }
 
   test -n "$1" && name="$1" || \
@@ -161,7 +163,7 @@ c_new()
   box_name_args $@ && shift $c ; c=0
   local script=$BOX_BIN_DIR/$name
   test -e $script || box_init_script $script
-  local func="${namespace}_${name}_${cmd}"
+  local func="${nid_cwd}_${name}_${cmd}"
   note "TODO check for existing function"
   box_add_function $func $script
   mkvid c_${name}_${cmd}
@@ -211,7 +213,7 @@ c_run()
   local script=$BOX_BIN_DIR/$name
   . $script
   local box_name="${name}:${cmd}"
-  mkvid c_${namespace}_$name_$cmd
+  mkvid c_${nid_cwd}_$name_$cmd
 
   #box_req_script $@
   #test -z "$c" || shift $c; c=0
@@ -263,7 +265,7 @@ man_1_list="."
 spc_list="list <Name>"
 c_list()
 {
-  grep -srI ${namespace} $BOX_BIN_DIR/*
+  grep -srI ${nid_cwd} $BOX_BIN_DIR/*
 }
 
 box_init_script()
@@ -295,8 +297,11 @@ box_add_idx()
 
 box_name_args()
 {
-  test -n "$1" && name="$1" || name="${hostname}"
-  shift 1 ; c=$(( $c + 1 ))
+  test -n "$1" && {
+    name="$1" ; shift 1 ; c=$(( $c + 1 ))
+  } || name="${hostname}"
+
+
   test -n "$1" \
     && { cmd="$1"; shift 1; c=$(( $c + 1 )); } \
     || note "using name='run'? "
