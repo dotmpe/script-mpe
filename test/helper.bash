@@ -30,8 +30,6 @@ check_skipped_envs()
     is_skipped $env && {
         test "$cur_env" = "$env" && {
             skipped=1
-        } || {
-            "env $env would skip this test"
         }
     } || continue
   done
