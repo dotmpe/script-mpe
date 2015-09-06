@@ -95,7 +95,9 @@ c_edit()
   locate_name
   local files="$script_files $fn"
   note "starting '$EDITOR' for $files"
-  $EDITOR $files
+  local evoke="$EDITOR -O2 +/${nid_cwd} $files"
+  note "invoking '$evoke'"
+  $evoke
 }
 als__e="edit"
 c__e()
@@ -115,7 +117,9 @@ c_edit_main()
   locate_name
   local files="$fn $script_files"
   note "starting '$EDITOR' for $files"
-  $EDITOR $files
+  local evoke="$EDITOR -O2 +/${nid_cwd} $files"
+  note "invoking '$evoke'"
+  $evoke
 }
 als__E=edit-main
 c__E()
@@ -470,21 +474,23 @@ box_name_args()
     || note "using default cmd='run'"
 }
 
+box_run_cwd()
+{
+  local func=$1__$2
+  local tcwd=$(echo $1 | tr '_' '/')
+  test -d $tcwd || error "no dir $tcwd" 1
+  shift 2
+  cd $tcwd
+  $func "$*"
+}
 
 ### Main
 
 box_main()
 {
   test -n "$PREFIX" || PREFIX=$HOME
+  . $PREFIX/bin/box-init.sh
   . $PREFIX/bin/util.sh
-
-  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf
-  test -n "$BOX_DIR" || {
-    BOX_DIR=$UCONFDIR/box
-  }
-  test -n "$BOX_BIN_DIR" || {
-    BOX_BIN_DIR=$UCONFDIR/path/Generic
-  }
 
   # Execute
 
@@ -494,7 +500,8 @@ box_main()
 
   if test "$0" = "$BOX_BIN_DIR/$base"; then
     # TODO run as other script?
-    echo XXX box run $base $@
+    set -- # just include
+    #$echo XXX box run $base $@
   else
     # execute std frontend
     . $PREFIX/bin/main.sh $@
