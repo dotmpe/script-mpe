@@ -19,8 +19,11 @@ load helper
 @test "$bin home" {
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test -n "$HTDIR" || HTDIR="$(echo ~/htd)"
+  test -n "$HTDIR" || HTDIR="$(echo ~/public_html)"
   test "${lines[0]}" = "$HTDIR"
+
+  run bash -c "HTDIR= $BATS_TEST_DESCRIPTION"
+  test "${lines[0]}" = "$(echo ~/public_html)"
 }
 
 @test "$bin info" {
