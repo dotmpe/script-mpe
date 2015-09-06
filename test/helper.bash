@@ -6,35 +6,39 @@ test -z "$PREFIX" && bin=$base || bin=$PREFIX/bin/$base
 is_skipped()
 {
   local key=$(echo $1 | tr 'a-z' 'A-Z')
-  local skipped=$(eval echo \$${key}_SKIP)
+  local skipped=$(echo $(eval echo \$${key}_SKIP))
   test -n "$skipped" && return
   return 1
 }
 
 current_test_env()
 {
-  case $(hostname) in
-    simza | vs1 ) hostname ;;
+  case $(hostname -s) in
+    simza | vs1 ) hostname -s;;
     * ) whoami ;;
   esac
 }
 
 check_skipped_envs()
 {
-  local skipped= envs=
   # XXX hardcoded envs
+  local skipped=0
   test -n "$1" && envs="$*" || envs="travis jenkins vs1 simza"
+  cur_env=$(current_test_env)
   for env in $envs
   do
     is_skipped $env && {
-      test "$(current_test_env)" = "$env" && skipped=1
-      test "env $env would skip this test"
+        test "$cur_env" = "$env" && {
+            skipped=1
+        } || {
+            "env $env would skip this test"
+        }
     } || continue
-    
   done
   return $skipped
 }
 
+# TODO fix tests to use util.sh or something
 fnmatch () { case "$2" in $1) return 0 ;; *) return 1 ;; esac ; }
 
 next_temp_file()

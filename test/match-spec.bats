@@ -13,7 +13,7 @@ load helper
 @test "$bin no arguments no-op (plain)" {
   run ${bin}
   test $status -eq 1
-  echo "${lines[0]}" > /tmp/1
+  #echo "${lines[0]}" > /tmp/1
   #simza: /Users/berend/bin/std.sh: line 90: [match.sh] Error: No command given, see "help": command not found
   test "${lines[0]}" = "[match.sh] Error: No command given, see \"help\"" || skip "TODO should some colorless terminal?"
 }
