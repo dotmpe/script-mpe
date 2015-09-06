@@ -22,7 +22,8 @@ load main.inc
 
   run sh -c 'no_such_function'
   test $status -eq 127
-  test "${lines[0]}" = "sh: 1: no_such_function: not found"
+  test "sh: no_such_function: command not found" = "${lines[0]}"
+  #test "${lines[0]}" = "sh: 1: no_such_function: not found"
 
   run bash -c 'no_such_function'
   test $status -eq 127
@@ -77,11 +78,15 @@ load main.inc
 
   run sh -c '. '$lib'.sh && try_exec_func no_such_function'
   test "" = "${lines[*]}"
-  test $status -eq 127
+  test $status -eq 1
+  #test $status -eq 127
 
   run sh -c 'type no_such_function'
-  test "no_such_function: not found" = "${lines[0]}"
-  test $status -eq 127
+  echo "${lines[0]}" > /tmp/1
+  #test "no_such_function: not found" = "${lines[0]}"
+  test "sh: line 0: type: no_such_function: not found" = "${lines[0]}"
+  #test $status -eq 127
+  test $status -eq 1
 }
 
 
