@@ -39,7 +39,7 @@ branches:
 env:
 - ENV= CS=dark TRAVIS_SKIP=1 \
   UCONFDIR=$HOME/etc \
-  PATH=$PATH:$HOME/bin/:$HOME/usr/bin \
+  PATH=$PATH:$HOME/bin:$HOME/usr/bin \
   PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
 
 #- ENV=testing
