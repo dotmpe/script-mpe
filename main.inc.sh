@@ -12,21 +12,21 @@ test -n "$cmd" || {
     fi
   fi
 }
-test -n "$func" || {
+test -n "$cmd_func" || {
     test -n "$func_pref" || func_pref=c_
-    func=$(echo ${func_pref}$cmd${func_suf} | tr '-' '_')
+    cmd_func=$(echo ${func_pref}$cmd${func_suf} | tr '-' '_')
 }
 func_exists=""
 
 
-# load/exec if func exists
-type $func > /dev/null && {
+# load/exec if cmd-func exists
+type $cmd_func > /dev/null && {
   func_exists=y
   try_load $base
-  $func $@
+  $cmd_func $@
   e=0
 } || {
-  # handle non-zero return or print usage for non-existant func
+  # handle non-zero return or print usage for non-existant cmd-func
   e=$?
   test -n "$func_exists" \
     && error "Command $cmd returned $e" $e

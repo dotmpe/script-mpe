@@ -1,6 +1,7 @@
 
 test -z "$PREFIX" && bin=$base || bin=$PREFIX/bin/$base
 
+test -n "$uname" || uname=$(uname)
 
 
 is_skipped()
@@ -48,12 +49,15 @@ next_temp_file()
 
 lines_to_file()
 {
-  test -n "$file" || next_temp_file
+  echo "lines=${lines[*]}"
+  test -n "$1" && file=$1
+  test -n "$file" || { next_temp_file; file=$next_temp_file; }
+  echo file=$file
   local line_out
-  echo "# test/helper.bash $(date)" > $next_temp_file
+  echo "# test/helper.bash $(date)" > $file
   for line_out in "${lines[@]}"
   do
-    echo $line_out >> $next_temp_file
+    echo $line_out >> $file
   done
 }
 

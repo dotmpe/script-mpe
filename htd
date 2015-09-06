@@ -197,7 +197,7 @@ c_version()
 {
   echo 0.0.0
 }
-als__c=version
+als__v=version
 c__v()
 {
   cmd=version c_version
@@ -1640,6 +1640,29 @@ c_mp3_validate()
   done
 }
 
+
+man_1_test="no test, just checking it goes"
+c_test()
+{
+  ./test/*-spec.bats
+}
+als__t=test
+c__t()
+{
+  cmd=test c_test
+}
+
+
+man_1_edit_test="edit-tests"
+c_edit_test()
+{
+  $EDITOR ./test/*-spec.bats
+}
+als__T=edit-test
+c__T()
+{
+  cmd=edit-test c_edit_test
+}
 
 
 # Utils

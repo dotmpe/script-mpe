@@ -87,7 +87,7 @@ log()
   [ -n "$(echo "$*")" ] || return 1;
   key=${grey}$scriptname.sh
   test -n "$cmd" && key=${key}${bb}:${grey}${cmd}
-  ${echo} "${pref}${bb}[${key}${bb}] ${norm}$1"
+  echo "${pref}${bb}[${key}${bb}] ${norm}$1"
 }
 err()
 {
