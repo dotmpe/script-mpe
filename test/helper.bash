@@ -14,7 +14,7 @@ is_skipped()
 current_test_env()
 {
   case $(hostname) in
-    simza | vs1 ) echo $(hostname)-$(whoami) ;;
+    simza | vs1 ) hostname ;;
     * ) whoami ;;
   esac
 }
@@ -23,7 +23,7 @@ check_skipped_envs()
 {
   local skipped= envs=
   # XXX hardcoded envs
-  test -n "$1" && envs="$1" || envs="travis jenkins vs1-berend simza-berend"
+  test -n "$1" && envs="$*" || envs="travis jenkins vs1 simza"
   for env in $envs
   do
     is_skipped $env && {
