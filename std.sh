@@ -1,5 +1,38 @@
 #!/bin/sh
 
+# http://www.etalabs.net/sh_tricks.html
+#echo()
+#(
+#  fmt=%s end=\\n IFS=" "
+#
+#  while [ $# -gt 1 ] ; do
+#    case "$1" in
+#      [!-]*|-*[!ne]*) break ;;
+#      *ne*|*en*) fmt=%b end= ;;
+#      *n*) end= ;;
+#      *e*) fmt=%b ;;
+#    esac
+#    shift
+#  done
+#  
+#  printf "$fmt$end" "$*"
+#)
+
+#echo()
+#(
+#  while [ $# -gt 1 ] ; do
+#    case "$1" in
+#      '-ne'|'-en') fmt="%b" end= ;;
+#      '-n') end= ;;
+#      '-e') fmt="%b" ;;
+#    esac
+#    shift
+#  done
+#  printf "$fmt$end" "$*"
+#}
+
+fnmatch () { case "$2" in $1) return 0 ;; *) return 1 ;; esac ; }
+
 
 # check if stdout is a terminal...
 if [ -t 1 ]; then

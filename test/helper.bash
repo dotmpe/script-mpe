@@ -27,6 +27,8 @@ check_skipped_envs()
   return $skipped
 }
 
+fnmatch () { case "$2" in $1) return 0 ;; *) return 1 ;; esac ; }
+
 next_temp_file()
 {
   test -n "$pref" || pref=script-mpe-test-

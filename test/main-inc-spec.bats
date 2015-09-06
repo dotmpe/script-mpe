@@ -56,7 +56,11 @@ load main.inc
 @test "$lib try_exec_func (bash) on non-existing function" {
 
   run bash -c 'source '$lib'.sh && try_exec_func no_such_function'
-  # FIXME test "${lines[0]}" = "./util.sh: line *: type: no_such_function: not found"
+  test "" = "${lines[*]}"
+  test $status -eq 1
+
+  run bash -c 'type no_such_function'
+  test "bash: line 0: type: no_such_function: not found" = "${lines[0]}"
   test $status -eq 1
 }
 
@@ -72,7 +76,11 @@ load main.inc
 @test "$lib try_exec_func (sh) on non-existing function" {
 
   run sh -c '. '$lib'.sh && try_exec_func no_such_function'
-  # FIXME test "${lines[0]}" = "./util.sh: line *: type: no_such_function: not found"
+  test "" = "${lines[*]}"
+  test $status -eq 127
+
+  run sh -c 'type no_such_function'
+  test "no_such_function: not found" = "${lines[0]}"
   test $status -eq 127
 }
 
@@ -109,5 +117,21 @@ load main.inc
   run bash -c 'source '$lib'.sh && source ./test/main.inc.bash && try_load mytest'
   test $status -eq 0
   test ${lines[0]} = "mytest_load"
+}
+
+
+@test "$lib fnmatch" {
+  fnmatch "f*o" "foo" || test
+  fnmatch "test" "test" || test
+  fnmatch "*test*" "test" || test
+  fnmatch "*test" "123test" || test
+  fnmatch "test*" "test123" || test
+}
+
+@test "$lib fnmatch (spaces)" {
+  fnmatch "* test" "123 test" || test
+  fnmatch "test *" "test 123" || test
+  fnmatch "*test*" " test " || test
+  fnmatch "./file.sh: line *: test" "./file.sh: line 1234: test" || test
 }
 

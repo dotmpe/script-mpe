@@ -9,23 +9,6 @@ TERM=xterm
 . $PREFIX/bin/doc.sh
 
 
-echo () (
-  fmt=%s end=\\n IFS=" "
-  
-  while [ $# -gt 1 ] ; do
-    case "$1" in
-      [!-]*|-*[!ne]*) break ;;
-      *ne*|*en*) fmt=%b end= ;;
-      *n*) end= ;;
-      *e*) fmt=%b ;;
-    esac
-    shift
-  done
-  
-  printf "$fmt$end" "$*"
-)
-
-
 #
 req_arg()
 {
@@ -92,7 +75,7 @@ locate_name()
 try_exec_func()
 {
   test -n "$1" || return 1
-  type $1 2>&1 1> /dev/null || return $?
+  type $1 2> /dev/null 1> /dev/null || return $?
   $1 || return $?
 }
 
