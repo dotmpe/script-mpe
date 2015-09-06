@@ -21,7 +21,7 @@ import log
 #
 #settings = confparse.load_path(*config)
 #"Static, persisted settings."
-    
+
 hostname = socket.gethostname()
 username = getpass.getuser()
 
@@ -56,7 +56,7 @@ def cmd(cmd, *args):
 
 def get_checksum_sub(path, checksum_name='sha1'):
     """
-    Utitilize OS <checksum_name>sum command which is likely more 
+    Utitilize OS <checksum_name>sum command which is likely more
     efficient than reading in files in native Python.
 
     Returns the hexadecimal encoded digest directly.
@@ -82,7 +82,10 @@ def get_format_description_sub(path):
 uname = cmd("uname -s").strip()
 def get_mediatype_sub(path):
     if uname == 'Linux':
-        mediatypespec = cmd("xdg-mime query filetype %r", path).strip()
+        try:
+            mediatypespec = cmd("xdg-mime query filetype %r", path).strip()
+        except Exception, e:
+            mediatypespec = cmd("file -bsi %r", path).strip()
     elif uname == 'Darwin':
         mediatypespec = cmd("file -bsI %r", path).strip()
     else:
@@ -281,7 +284,7 @@ class Prompt(object):
 
     @classmethod
     def query(clss, question, options=[]):
-        assert options 
+        assert options
         options = list(options)
         origopts = list(options)
         opts = clss.create_choice(options)
@@ -291,7 +294,7 @@ class Prompt(object):
 #            v = sys.stdin.read(1)
             v = getch()
             #v = raw_input(
-            #        log.format_str('{green}%s {bwhite}[{bblack}%s{bwhite}]{default} or [?help] ') 
+            #        log.format_str('{green}%s {bwhite}[{bblack}%s{bwhite}]{default} or [?help] ')
             #        % (question, opts)).strip()
             if not v.strip(): # FIXME: have to only strip whitespace, not ctl?
                 v = opts[0]

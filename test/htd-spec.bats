@@ -26,7 +26,7 @@ load helper
 @test "$bin info" {
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "${#lines[@]}" = "8"
+  test "${#lines[@]}" = "9"
 }
 
 @test "$bin test-name" {
