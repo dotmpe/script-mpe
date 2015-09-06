@@ -738,4 +738,3 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 fi
 
 # vim:noet:
-

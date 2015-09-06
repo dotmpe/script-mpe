@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
 
-# Box: create nid_cwdd script commands 
+# Box: create namespaced script commands 
 
 set -e
 
 
-# Id: script-mpe
+# Id: script.mpe
 
-load()
+box_load()
 {
   test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
   test -n "$hostname" || hostname=$(hostname -s)
@@ -16,62 +16,50 @@ load()
   nid_cwd=$vid
   unset vid
   # FIXME: look for function before determining script
-  script=$BOX_DIR/${hostname}/${nid_cwd}.sh
+  local_script=$BOX_DIR/${hostname}/${nid_cwd}.sh
   std_script=$BOX_DIR/${hostname}-localscripts.sh
 }
 
-usage()
+box_usage()
 {
-  echo "$scriptname.sh Bash/Shell script helper"
-  echo 'Usage:'
-  echo "  $scriptname <cmd> [<args>..]"
+  test -n "$1" && {
+    echo "$scriptname.sh Bash/Shell script helper"
+    echo 'Usage:'
+    echo "  $scriptname <cmd> [<args>..]"
+  } || {
+    echo "FIXME box_usage $1 usage help"
+  }
 }
 
-commands()
+box_commands()
 {
   echo 'Commands:'
+  echo '    -r|run                      '
   echo '    -h|help                     '
   echo '    -e|edit                     Edit local script or abort. '
   echo '    -E|edit-main                Edit main script. '
   echo '    -i|init                     Init local script with name. '
+  echo '    -n|new                      '
+  echo '    -f|function                 '
 }
 
-docs()
+box_docs()
 {
   echo 'Docs:'
 }
 
 
-box_find_localscript()
-{
-  test -e "$script" && return || {
-    warn "No script for $hostname:$(pwd)"
-    return 1
-  }
-}
-
-box_req_script()
-{
-  box_find_localscript && {
-    test -e $script && {
-        log "Including $script"
-        . $script $@
-    } || return 1
-  } || return 1
-}
-
-
-# User commands
+### User commands
 
 als__v=version
 c__v()
 {
   c_version
 }
+man_1_version="no version yet, just checking it goes"
 spc_version="-v|version"
 c_version()
 {
-  # no version, just checking it goes
   echo 0.0.0
 }
 
@@ -80,13 +68,13 @@ spc_help="-h|help"
 c_help()
 {
   test -z "$1" && {
-    usage
+    box_usage
     echo ''
-    commands
+    box_commands
     echo ''
-    docs
+    box_docs
   } || {
-    echo_help $1
+    box_usage $1
   }
 }
 als__h="help"
@@ -99,10 +87,15 @@ man_1_edit="Edit localscript and box script or abort. "
 spc_edit="-e|edit [<name>:]<script>"
 c_edit()
 {
-  box_find_localscript $@ || exit 1
+  local c=0 script_name= cmd_name= script_files=
+  box_init_args $@
+  test "$c" && shift $c ; c=0
+  local named_script=$BOX_BIN_DIR/$script_name
+  box_req_files_localscript || exit 1
   locate_name
-  note "starting $EDITOR for $fn $script"
-  $EDITOR $script $fn
+  local files="$script_files $fn"
+  note "starting '$EDITOR' for $files"
+  $EDITOR $files
 }
 als__e="edit"
 c__e()
@@ -114,10 +107,15 @@ man_1_edit_main="Edit box script and local scripts. "
 spc_edit_main="-E|edit-main"
 c_edit_main()
 {
+  local c=0 script_name= cmd_name= script_files=
+  box_init_args $@
+  test "$c" && shift $c ; c=0
+  local named_script=$BOX_BIN_DIR/$script_name
+  box_req_files_localscript
   locate_name
-  box_find_localscript $@
-  note "starting $EDITOR for $fn $script"
-  $EDITOR $fn $script
+  local files="$fn $script_files"
+  note "starting '$EDITOR' for $files"
+  $EDITOR $files
 }
 als__E=edit-main
 c__E()
@@ -125,34 +123,77 @@ c__E()
   cmd=edit-main c_edit_main $@
 }
 
-main_1_init="Add local script function"
-spc_init="-i|init [[<name>=$hostname] <cmd>=run]"
+# XXX: seriously get something more readable to parse args
+box_init_args()
+{
+  # cmd-name
+  test -n "$1" && { cmd_name="$1" ; c=$(( $c + 1 ))
+    } || cmd_name=run
+  # script-name
+  test -n "$2" && { script_name="$2" ; c=$(( $c + 1 ))
+    } || script_name="${hostname}"
+}
+
+main_1_init="Add script function, optionally providing command and script name"
+spc_init="-i|init [<cmd>=run [<name>=$hostname]]"
 c_init()
 {
-  local name= cmd=run c=0 script= \
-    named_script="$UCONFDIR/box/$name-localscripts.sh"
-    box_name="${name}:${cmd}"
-  box_name_args $@
-  test "$c" || shift $c ; c=0
+  local c=0 script_name= cmd_name=
+  box_init_args $@
+  test "$c" && shift $c ; c=0
 
-  local script=$BOX_BIN_DIR/$name
+  local \
+    global_func_name=c_${script_name}__${cmd_name} \
+    local_func_name=c_${script_name}__local__${nid_cwd}__${cmd_name} \
+    \
+    named_script=$BOX_BIN_DIR/$script_name \
+    uconf_script="$UCONFDIR/box/$script_name-localscripts.sh"
 
-  grep -s $nid_cwd $script > /dev/null && {
-    error "function already exists: $nid_cwd" 1
+  test -e $uconf_script && warn "TODO clean $uconf_script"
+
+  ## Init global function if needed
+  grep -s '^'$global_func_name'()$' $named_script > /dev/null && {
+
+    error "TODO add new local function to existing $global_func_name in $named_script" 1
   } || {
-    main_line=$(grep -n '^'${hostname}'_main()$' $script)
-    line_number=$(( $(echo $main_line | sed 's/^\([0-9]\+\):\(.*\)$/\1/') - 1 ))
-    test -n "$main_line" && {
-      func_name=c_${hostname}__local__${nid_cwd}__run
-      box_add_function $func_name $script:$line_number
-    } || {
-      error "invalid ${hostname}_main ($script)" 1
-    }
+
+    box_script_insert_point $named_script || return $?
+    box_add_function $global_func_name $named_script:$line_number "$(cat <<-EOF
+  $local_func_name
+EOF
+)"
+    note "Initialized function $global_func_name $named_script"
   }
 
-  test -n "$name" \
-      && log "Extended $name with script $box_name" \
-      || log "Created local script $box_name"
+  ## Init local function if needed
+  # dont add it if exists in local script
+  grep -s $nid_cwd'__'$cmd'()$' $named_script > /dev/null && {
+
+    error "local function $cmd already exists in named_script $named_script" 1
+  }
+
+  # and dont add if exists in script
+  { test -e "$local_script" &&
+    grep -s $nid_cwd'__'$cmd'()$' $local_script > /dev/null; } && {
+
+    error "function already exists in $local_script: $nid_cwd" 1
+  }
+
+  # add new to named script, ie dont create all loos scripts
+  box_script_insert_point $named_script || return $?
+  box_add_function $local_func_name $named_script:$line_number "$(cat <<-EOF
+set -- # no-op
+EOF
+)"
+
+  test -n "$script_name" \
+      && log "Extended $script_name with script $nid_cwd $cmd_name" \
+      || log "Created local script $nid_cwd $cmd_name"
+
+  # XXX: vim only stuff
+  local evoke="$EDITOR -O2 +/${nid_cwd} $named_script $local_script $uconf_script"
+  note "invoking '$evoke'"
+  $evoke
 }
 als__i=init
 c__i()
@@ -170,7 +211,11 @@ c_new()
   test -e $script || box_init_script $script
   local func="${nid_cwd}_${name}_${cmd}"
   note "TODO check for existing function"
-  box_add_function $func $script
+  box_add_function $func $script "$(cat <<-EOF
+  set -- # no-op
+  #echo This is $func in $script
+EOF
+)"
   mkvid c_${name}_${cmd}
   note "TODO add invocation to script function"
   #box_add_idx $vid $script $func
@@ -200,7 +245,7 @@ c__f()
 man_1_="Default: require localscript. "
 c_()
 {
-  box_req_script $@ || exit 1
+  box_req_files_localscript || exit 1
   test -z "$c" || shift $c; c=
   # XXX list cmds? $UCONFDIR/box/${hostname}/index.sh list $(pwd)
   type run_box 1> /dev/null 2> /dev/null && {
@@ -208,31 +253,67 @@ c_()
   }
 }
 
+man_1_run_global="Require localscript and exec. given function. "
+spc_run_global="-rg|run-global [<cmd>=run [<name>=$hostname]]"
+c_run_global()
+{
+  local c=0 script_name= cmd_name=
+  box_init_args $@
+  test "$c" && shift $c ; c=0
+
+  local \
+    global_func_name=c_${script_name}__${cmd_name} \
+    local_func_name=c_${script_name}__local__${nid_cwd}__${cmd_name} \
+    \
+    named_script=$BOX_BIN_DIR/$script_name \
+    box_name="${script_name}:${cmd_name}"
+
+  . $named_script
+
+  type $global_func_name 2> /dev/null 1> /dev/null || {
+    r=$?
+    error "no command $box_name"
+    return $r
+  }
+
+  $global_func_name $@ && {
+    info "command $box_name completed"
+  } || {
+    r=$?
+    error "running command $box_name"
+    return $r
+  }
+}
+
 man_1_run="Require localscript and exec. given function. "
-spc_run="run [<name>:]<cmd-path>"
+spc_run="-r|run [<cmd>=run [<name>=$hostname]]"
 c_run()
 {
-  test -n "$1" && name="$1" || error "name required" 1 ; shift 1
-  local cmd=run
-  test -n "$1" && { cmd="$1"; shift 1; } || note "using name='run'? "
-  local script=$BOX_BIN_DIR/$name
-  . $script
-  local box_name="${name}:${cmd}"
-  mkvid c_${nid_cwd}_$name_$cmd
+  local c=0 script_name= cmd_name=
+  box_init_args $@
+  test "$c" && shift $c ; c=0
 
-  #box_req_script $@
-  #test -z "$c" || shift $c; c=0
-  #test -n "$1" || error "Function name required" 1
-  #mkvid box_$1
-  #test -n "$1" && shift 1
-  { type $vid &> /dev/null; } && {
-    $vid $@ && {
-      info "command $box_name in $(pwd) completed"
-    } || {
-      error "running command $box_name" 2
-    }
+  local \
+    global_func_name=c_${script_name}__${cmd_name} \
+    local_func_name=c_${script_name}__local__${nid_cwd}__${cmd_name} \
+    \
+    named_script=$BOX_BIN_DIR/$script_name \
+    box_name="${script_name}:${cmd_name}"
+
+  . $named_script
+
+  type $local_func_name 2> /dev/null 1> /dev/null || {
+    r=$?
+    error "no local command $box_name"
+    return $r
+  }
+
+  $local_func_name $@ && {
+    info "command $box_name in $(pwd) completed"
   } || {
-    error "no command $box_name" 1
+    r=$?
+    error "running command $box_name"
+    return $r
   }
 }
 
@@ -250,6 +331,8 @@ c_check_install()
   {
     test -d "$BOX_DIR/" || error "not a dir" 1
     test -w "$BOX_DIR/" || error "not writable" 1
+    test -d "$BOX_BIN_DIR/" || error "not a dir" 1
+    test -x "$BOX_BIN_DIR/" || error "not accessible" 1
     box new BoxTest || error "unable to init BoxTest"
     info "initialized BoxTest"
     test "$(which BoxTest)" = "$BOX_BIN_DIR/BoxTest" \
@@ -273,6 +356,50 @@ c_list()
   grep -srI ${nid_cwd} $BOX_BIN_DIR/*
 }
 
+
+### Util functions
+
+box_find_localscript()
+{
+  test -e "$local_script" && return || {
+    warn "No local_script for $hostname:$(pwd)"
+    return 1
+  }
+}
+
+box_find_namedscript()
+{
+  test -e "$named_script" && return || {
+    warn "No named_script for $script_name"
+    return 1
+  }
+}
+
+box_req_files_localscript()
+{
+  local r=0 scriptname= base= cmd_def=run
+
+  box_find_localscript && {
+    log "Including local-script $local_script"
+    . $local_script
+    script_files="$script_files $local_script"
+  } || r=1
+
+  box_find_namedscript && {
+    log "Including named-script $named_script"
+    . $named_script
+    script_files="$script_files $named_script"
+  } || r=$(( $r + 1 ))
+
+  test -e "$std_script" && {
+    log "Including std-script $std_script"
+    . $std_script
+    script_files="$script_files $std_script"
+  } || r=$(( $r + 1 ))
+
+  return $r
+}
+
 box_init_script()
 {
   touch $1
@@ -284,6 +411,10 @@ box_init_script()
 # 1:func-name 2:file-name[:line-number] 3:script
 box_add_function()
 {
+  test -n "$1" || err "function name arg required" 1
+  test -n "$2" || err "file name arg required" 1
+  test -n "$3" || err "function body arg required" 1
+
   fnmatch "*:[0-9]*" $2 && {
 
     info "Inserting funtion $1"
@@ -291,9 +422,9 @@ box_add_function()
     file_insert $2 "$(cat <<-EOF
 $1()
 {
-  echo This is $1 in $2
-  set -- # no-op
+  $3
 }
+
 EOF
 )
 "
@@ -303,8 +434,7 @@ EOF
     info "Appending funtion $1"
     echo "$1()" >> $2
     echo "{" >> $2
-    echo "  echo This is $1 in $2" >> $2
-    echo "  set -- # no-op" >> $2
+    echo "  $3" >> $2
     echo "}" >> $2
     echo >> $2
   }
@@ -319,6 +449,15 @@ box_add_idx()
   echo >> $2
 }
 
+box_script_insert_point()
+{
+  main_line=$(grep -n '^'${hostname}'__main()$' $1)
+  line_number=$(( $(echo $main_line | sed 's/^\([0-9]\+\):\(.*\)$/\1/') - 1 ))
+  test -n "$main_line"  || {
+    error "invalid ${script_name}__main ($script)" 1
+  }
+}
+
 box_name_args()
 {
   test -n "$1" && {
@@ -328,19 +467,22 @@ box_name_args()
 
   test -n "$1" \
     && { cmd="$1"; shift 1; c=$(( $c + 1 )); } \
-    || note "using name='run'? "
+    || note "using default cmd='run'"
 }
+
+
+### Main
 
 box_main()
 {
   test -n "$PREFIX" || PREFIX=$HOME
   . $PREFIX/bin/util.sh
 
+  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf
   test -n "$BOX_DIR" || {
-    test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf
     BOX_DIR=$UCONFDIR/box
-    #BOX_BIN_DIR=$UCONFDIR/path
-    #BOX_BIN_DIR=$HOME/bin
+  }
+  test -n "$BOX_BIN_DIR" || {
     BOX_BIN_DIR=$UCONFDIR/path/Generic
   }
 
@@ -351,15 +493,15 @@ box_main()
   scriptname=box
 
   if test "$0" = "$BOX_BIN_DIR/$base"; then
-    # run as other script
-    echo box run $base $@
+    # TODO run as other script?
+    echo XXX box run $base $@
   else
     # execute std frontend
     . $PREFIX/bin/main.sh $@
   fi
 }
 
-# Use dash to ignore source exec in login shell
+# Use hyphen to ignore source exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
   box_main $@
