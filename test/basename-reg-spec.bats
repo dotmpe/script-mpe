@@ -8,7 +8,7 @@ load helper
 
 @test "$bin ffnenc.py" {
 
-  check_skipped_envs travis || skip "TODO $env env $BATS_TEST_DESCRIPTION"
+  check_skipped_envs travis vs1 || skip "TODO $env env $BATS_TEST_DESCRIPTION"
 
   run $BATS_TEST_DESCRIPTION
   #out="ffnenc.py       ffnenc  py      text/x-python   py      Script  Python script text"

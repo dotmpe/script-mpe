@@ -22,8 +22,15 @@ load main.inc
 
   run sh -c 'no_such_function'
   test $status -eq 127
-  test "sh: no_such_function: command not found" = "${lines[0]}"
-  #test "${lines[0]}" = "sh: 1: no_such_function: not found"
+
+  case "$(uname)" in
+    Darwin )
+      test "sh: no_such_function: command not found" = "${lines[0]}"
+      ;;
+    Linux )
+      test "${lines[0]}" = "sh: 1: no_such_function: not found"
+      ;;
+  esac
 
   run bash -c 'no_such_function'
   test $status -eq 127
@@ -78,15 +85,27 @@ load main.inc
 
   run sh -c '. '$lib'.sh && try_exec_func no_such_function'
   test "" = "${lines[*]}"
-  test $status -eq 1
-  #test $status -eq 127
+
+  case "$(uname)" in
+    Darwin )
+      test $status -eq 1
+      ;;
+    Linux )
+      test $status -eq 127
+      ;;
+  esac
 
   run sh -c 'type no_such_function'
-  echo "${lines[0]}" > /tmp/1
-  #test "no_such_function: not found" = "${lines[0]}"
-  test "sh: line 0: type: no_such_function: not found" = "${lines[0]}"
-  #test $status -eq 127
-  test $status -eq 1
+  case "$(uname)" in
+    Darwin )
+      test "sh: line 0: type: no_such_function: not found" = "${lines[0]}"
+      test $status -eq 1
+      ;;
+    Linux )
+      test "no_such_function: not found" = "${lines[0]}"
+      test $status -eq 127
+      ;;
+  esac
 }
 
 
