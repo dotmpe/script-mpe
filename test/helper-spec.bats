@@ -30,7 +30,7 @@ load helper
 
 @test "${bin} check_skipped_envs" {
 
-    run check_skipped_envs travis jenkins
+    run check_skipped_envs foo bar baz
     test "${status}" = 0
 
     key=$(hostname -s | tr 'a-z-' 'A-Z_')
