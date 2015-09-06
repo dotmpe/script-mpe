@@ -100,6 +100,7 @@ c_edit()
 {
   box_find_localscript $@ || exit 1
   locate_name
+  note "starting $EDITOR for $fn $script"
   $EDITOR $script $fn
 }
 als__e="edit"
@@ -114,6 +115,7 @@ c_edit_main()
 {
   locate_name
   box_find_localscript $@
+  note "starting $EDITOR for $fn $script"
   $EDITOR $fn $script
 }
 als__E=edit-main
@@ -135,7 +137,7 @@ c_init()
   grep -s $namespace $script > /dev/null && {
     error "function already exists: $namespace" 1
   } || {
-    echo TODO init
+    note "TODO init"
   }
 
   test -n "$1" && name="$1" || \
@@ -160,10 +162,10 @@ c_new()
   local script=$BOX_BIN_DIR/$name
   test -e $script || box_init_script $script
   local func="${namespace}_${name}_${cmd}"
-  echo TODO check for existing function
+  note "TODO check for existing function"
   box_add_function $func $script
   mkvid c_${name}_${cmd}
-  echo TODO add invocation to script function
+  note "TODO add invocation to script function"
   #box_add_idx $vid $script $func
 
 }
@@ -245,7 +247,7 @@ c_check_install()
     info "initialized BoxTest"
     test "$(which BoxTest)" = "$BOX_BIN_DIR/BoxTest" \
       || error "expected BoxTest on PATH"
-    BoxTest || error "unable to run BoxTest -v" 1
+    BoxTest || error "unable to run BoxTest" 1
     rm $BOX_BIN_DIR/BoxTest
 
   } && {
