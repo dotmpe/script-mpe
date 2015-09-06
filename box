@@ -117,7 +117,7 @@ c_edit_main()
   locate_name
   local files="$fn $script_files"
   note "starting '$EDITOR' for $files"
-  local evoke="$EDITOR -O2 +/${nid_cwd} $files"
+  local evoke="$EDITOR -O2 $files"
   note "invoking '$evoke'"
   $evoke
 }
@@ -143,8 +143,8 @@ spc_init="-i|init [<cmd>=run [<name>=$hostname]]"
 c_init()
 {
   local c=0 script_name= cmd_name=
-  box_init_args $@
-  test "$c" && shift $c ; c=0
+  box_init_args $*
+  test "$c" -gt 0 && shift $c ; c=0
 
   local \
     global_func_name=c_${script_name}__${cmd_name} \
@@ -152,20 +152,29 @@ c_init()
     \
     named_script=$BOX_BIN_DIR/$script_name \
     uconf_script="$UCONFDIR/box/$script_name-localscripts.sh"
-
   test -e $uconf_script && warn "TODO clean $uconf_script"
 
   ## Init global function if needed
   grep -s '^'$global_func_name'()$' $named_script > /dev/null && {
 
-    error "TODO add new local function to existing $global_func_name in $named_script" 1
-  } || {
-
-    box_script_insert_point $named_script || return $?
-    box_add_function $global_func_name $named_script:$line_number "$(cat <<-EOF
-  $local_func_name
+    where_grep='.*#.--.'${hostname}'.box.'${cmd_name}'.insert.*--'
+    #box_sentinel_indent $where_grep $named_script
+    file_insert_where_before $where_grep $named_script "$(cat <<-EOF
+  . $local_script
+  # $local_func_name
 EOF
 )"
+
+  } || {
+
+    line_number=$(box_script_insert_point $named_script)
+    box_add_function $global_func_name $named_script:$line_number "$(cat <<-EOF
+  set -- # no-op
+  # $local_func_name
+  # -- ${script_name} box ${cmd_name} insert sentinel --
+EOF
+)
+"
     note "Initialized function $global_func_name $named_script"
   }
 
@@ -184,9 +193,9 @@ EOF
   }
 
   # add new to named script, ie dont create all loos scripts
-  box_script_insert_point $named_script || return $?
+  line_number=$(box_script_insert_point $named_script)
   box_add_function $local_func_name $named_script:$line_number "$(cat <<-EOF
-set -- # no-op
+  set -- # no-op
 EOF
 )"
 
@@ -205,12 +214,15 @@ c__i()
   cmd=init c_init $@
 }
 
+# FIXME new
+
 main_1_new="Initialize new script"
 spc_new="-n|new [<name>=$hostname]"
 c_new()
 {
   local name= cmd=run c=0 script=
-  box_name_args $@ && shift $c ; c=0
+  box_name_args $@
+  test "$c" -gt 0 && shift $c ; c=0
   local script=$BOX_BIN_DIR/$name
   test -e $script || box_init_script $script
   local func="${nid_cwd}_${name}_${cmd}"
@@ -250,7 +262,7 @@ man_1_="Default: require localscript. "
 c_()
 {
   box_req_files_localscript || exit 1
-  test -z "$c" || shift $c; c=
+  test "$c" -gt 0 && shift $c ; c=0
   # XXX list cmds? $UCONFDIR/box/${hostname}/index.sh list $(pwd)
   type run_box 1> /dev/null 2> /dev/null && {
     run_box $@
@@ -263,7 +275,7 @@ c_run_global()
 {
   local c=0 script_name= cmd_name=
   box_init_args $@
-  test "$c" && shift $c ; c=0
+  test "$c" -gt 0 && shift $c ; c=0
 
   local \
     global_func_name=c_${script_name}__${cmd_name} \
@@ -272,7 +284,7 @@ c_run_global()
     named_script=$BOX_BIN_DIR/$script_name \
     box_name="${script_name}:${cmd_name}"
 
-  . $named_script
+  box_req_files_localscript || exit 1
 
   type $global_func_name 2> /dev/null 1> /dev/null || {
     r=$?
@@ -295,7 +307,7 @@ c_run()
 {
   local c=0 script_name= cmd_name=
   box_init_args $@
-  test "$c" && shift $c ; c=0
+  test "$c" -gt 0 && shift $c ; c=0
 
   local \
     global_func_name=c_${script_name}__${cmd_name} \
@@ -304,7 +316,9 @@ c_run()
     named_script=$BOX_BIN_DIR/$script_name \
     box_name="${script_name}:${cmd_name}"
 
+  . $uconf_script
   . $named_script
+  . $local_script
 
   type $local_func_name 2> /dev/null 1> /dev/null || {
     r=$?
@@ -423,10 +437,10 @@ box_add_function()
 
     info "Inserting funtion $1"
 
-    file_insert $2 "$(cat <<-EOF
+    file_insert_at $2 "$(cat <<-EOF
 $1()
 {
-  $3
+$3
 }
 
 EOF
@@ -435,10 +449,11 @@ EOF
 
   } || {
 
-    info "Appending funtion $1"
+    info "Appending funtion $1 for $2"
+
     echo "$1()" >> $2
     echo "{" >> $2
-    echo "  $3" >> $2
+    echo "$3" >> $2
     echo "}" >> $2
     echo >> $2
   }
@@ -453,13 +468,29 @@ box_add_idx()
   echo >> $2
 }
 
+box_grep()
+{
+  file_where_before $1 $2
+  test -n "$where_line" || return 1
+}
+
 box_script_insert_point()
 {
-  main_line=$(grep -n '^'${hostname}'__main()$' $1)
-  line_number=$(( $(echo $main_line | sed 's/^\([0-9]\+\):\(.*\)$/\1/') - 1 ))
-  test -n "$main_line"  || {
-    error "invalid ${script_name}__main ($script)" 1
+  local where_line= line_number=
+  local p='^'${script_name}'__main()$'
+  box_grep $p $1 || {
+    error "invalid ${script_name}__main ($1)" 1
   }
+  echo $line_number
+}
+
+box_sentinel_indent()
+{
+  local where_line= line_number=
+  box_grep $1 $2 || {
+    error "invalid sentinel $1 ($2)" 1
+  }
+  echo "$where_line"
 }
 
 box_name_args()
@@ -468,7 +499,6 @@ box_name_args()
     name="$1" ; shift 1 ; c=$(( $c + 1 ))
   } || name="${hostname}"
 
-
   test -n "$1" \
     && { cmd="$1"; shift 1; c=$(( $c + 1 )); } \
     || note "using default cmd='run'"
@@ -476,6 +506,8 @@ box_name_args()
 
 box_run_cwd()
 {
+  test -n "$1" || error "req name" 1
+  test -n "$2" || error "req cmd" 1
   local func=$1__$2
   local tcwd=$(echo $1 | tr '_' '/')
   test -d $tcwd || error "no dir $tcwd" 1
@@ -483,6 +515,7 @@ box_run_cwd()
   cd $tcwd
   $func "$*"
 }
+
 
 ### Main
 

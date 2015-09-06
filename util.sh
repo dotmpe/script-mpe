@@ -100,10 +100,12 @@ try_usage()
   try_exec_func ${1}_usage || return $?
 }
 
-# 1:file-name[:line-number]
-file_insert()
+# 1:file-name[:line-number] 2:content
+file_insert_at()
 {
-  test -x "$(which ed)" || error "ed required" 1
+  test -x "$(which ed)" || error "'ed' required" 1
+
+  test -n "$*" || error "arguments required" 1
 
   local file_name= line_number=
   fnmatch "*:[0-9]*" $1 && {
@@ -115,12 +117,38 @@ file_insert()
     line_number=$1; shift 1
   }
 
+  test -n "$*" || error "nothing to insert" 1
+  test -e "$file_name" || error "no file $file_name" 1
+
   # use ed-script to insert second file into first at line
   note "Inserting at $file_name:$line_number"
   echo "${line_number}a
 $1
 .
 w" | ed $file_name $tmpf
+}
+
+# 
+# 1:where-grep 2:file-path
+file_where_before()
+{
+  test -n "$1" || error "where-grep required" 1
+  test -n "$2" || error "file-path required" 1
+  where_line=$(grep -n $1 $2)
+  line_number=$(( $(echo $where_line | sed 's/^\([0-9]\+\):\(.*\)$/\1/') - 1 ))
+}
+
+# 1:where-grep 2:file-path 3:content
+file_insert_where_before()
+{
+  local where_line= line_number=
+  test -e "$2" || error "no file $2" 1
+  test -n "$3" || error "contents required" 1
+  file_where_before "$1" "$2"
+  test -n "$where_line" || {
+    error "missing or invalid file-insert sentinell for where-grep:$1 (in $2)" 1
+  }
+  file_insert_at $2:$line_number "$3"
 }
 
 get_uuid()
