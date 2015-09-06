@@ -8,7 +8,7 @@ load helper
 
 @test "$bin ffnenc.py" {
 
-  check_skipped_envs travis vs1 || skip "TODO $env env $BATS_TEST_DESCRIPTION"
+  check_skipped_envs travis vs1 || skip "TODO $envs: $BATS_TEST_DESCRIPTION"
 
   run $BATS_TEST_DESCRIPTION
   #out="ffnenc.py       ffnenc  py      text/x-python   py      Script  Python script text"
@@ -17,7 +17,7 @@ load helper
 
 @test "$bin ffnenc.py -O csv" {
 
-  check_skipped_envs travis vs1 || skip "TODO $envs: $env env: $BATS_TEST_DESCRIPTION"
+  check_skipped_envs travis vs1 || skip "TODO $envs: $BATS_TEST_DESCRIPTION"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "${lines[0]}" = "ffnenc.py,ffnenc,py,text/x-python,py,Script,Python script text"
