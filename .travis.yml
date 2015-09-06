@@ -32,8 +32,8 @@ script:
 
 branches:
   only:
-  - test
-  - dev
+  - '/^test.*$/'
+  - '/^dev.*$/'
   - '/^[0-9]*\.[0-9]*\.[0-9]*/'
 
 env:
