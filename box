@@ -15,6 +15,7 @@ load()
   mkvid $(pwd)
   nid_cwd=$vid
   unset vid
+  # FIXME: look for function before determining script
   script=$BOX_DIR/${hostname}/${nid_cwd}.sh
   std_script=$BOX_DIR/${hostname}-localscripts.sh
 }
@@ -133,17 +134,21 @@ c_init()
     box_name="${name}:${cmd}"
   box_name_args $@
   test "$c" || shift $c ; c=0
+
   local script=$BOX_BIN_DIR/$name
 
   grep -s $nid_cwd $script > /dev/null && {
     error "function already exists: $nid_cwd" 1
   } || {
-    note "TODO init of $nid_cwd"
-    echo c_${hostname}__local__${nid_cwd}__run
+    main_line=$(grep -n '^'${hostname}'_main()$' $script)
+    line_number=$(( $(echo $main_line | sed 's/^\([0-9]\+\):\(.*\)$/\1/') - 1 ))
+    test -n "$main_line" && {
+      func_name=c_${hostname}__local__${nid_cwd}__run
+      box_add_function $func_name $script:$line_number
+    } || {
+      error "invalid ${hostname}_main ($script)" 1
+    }
   }
-
-  test -n "$1" && name="$1" || \
-      warn "No name alias given for box $box_name, storing in ${hostname}-scripts"
 
   test -n "$name" \
       && log "Extended $name with script $box_name" \
@@ -276,14 +281,33 @@ box_init_script()
   echo >> $1
 }
 
+# 1:func-name 2:file-name[:line-number] 3:script
 box_add_function()
 {
-  echo "$1()" >> $2
-  echo "{" >> $2
-  echo "  echo This is $1 in $2" >> $2
-  echo "  set -- # no-op" >> $2
-  echo "}" >> $2
-  echo >> $2
+  fnmatch "*:[0-9]*" $2 && {
+
+    info "Inserting funtion $1"
+
+    file_insert $2 "$(cat <<-EOF
+$1()
+{
+  echo This is $1 in $2
+  set -- # no-op
+}
+EOF
+)
+"
+
+  } || {
+
+    info "Appending funtion $1"
+    echo "$1()" >> $2
+    echo "{" >> $2
+    echo "  echo This is $1 in $2" >> $2
+    echo "  set -- # no-op" >> $2
+    echo "}" >> $2
+    echo >> $2
+  }
 }
 
 box_add_idx()

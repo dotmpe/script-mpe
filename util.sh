@@ -67,7 +67,8 @@ echo_help()
 # :fn
 locate_name()
 {
-  [ -n "$1" ] && local name=$scriptname || local name=$1
+  local name=
+  [ -n "$1" ] && name=$1 || name=$scriptname
   [ -n "$name" ] || error "script name required" 1
   fn=$(which $name)
   [ -n "$fn" ] || fn=$(which $name.sh)
@@ -99,4 +100,40 @@ try_usage()
   try_exec_func ${1}_usage || return $?
 }
 
+# 1:file-name[:line-number]
+file_insert()
+{
+  test -x "$(which ed)" || error "ed required" 1
+
+  local file_name= line_number=
+  fnmatch "*:[0-9]*" $1 && {
+    file_name=$(echo $1 | sed 's/:\([0-9]\+\)$//')
+    line_number=$(echo $1 | sed 's/^\(.*\):\([0-9]\+\)$/\2/')
+    shift 1
+  } || {
+    file_name=$1; shift 1
+    line_number=$1; shift 1
+  }
+
+  # use ed-script to insert second file into first at line
+  note "Inserting at $file_name:$line_number"
+  echo "${line_number}a
+$1
+.
+w" | ed $file_name $tmpf
+}
+
+get_uuid()
+{
+  test -e /proc/sys/kernel/random/uuid && {
+    cat /proc/sys/kernel/random/uuid
+    return
+  }
+  test -x $(which uuidgen) && {
+    uuidgen
+    return
+  }
+  error "FIXME uuid required" 1
+  return 1
+}
 
