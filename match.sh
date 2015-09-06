@@ -4,7 +4,7 @@ set -e
 MATCH_NAME_VARS=
 #MATCH_NAME_VARS="SZ SHA1_CKS MD5_CKS CK_CKS EXT NAMECHAR NAMEPARTS ALPHA ANY PART OPTPART"
 
-source ~/bin/util.sh
+test -z "$PREFIX" && source ./util.sh || source $PREFIX/bin/util.sh
 
 scriptname=match
 
