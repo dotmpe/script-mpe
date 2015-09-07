@@ -1,9 +1,8 @@
 #!/usr/bin/env bats
 
 base=test/helper.bash
-
 load helper
-
+init_bin
 
 @test "${bin} is_skipped returns 0 if ENV_SKIP=1 or 1, no output" {
 

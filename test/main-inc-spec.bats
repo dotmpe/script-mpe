@@ -1,10 +1,15 @@
 #!/usr/bin/env bats
 
-test -z "$PREFIX" && lib=./util || lib=$PREFIX/bin/util
-source $lib.sh
-
 load helper
 load main.inc
+
+init_lib
+source $lib/util.sh
+source $lib/main.sh
+
+test_inc="$lib/util.sh $lib/main.sh $lib/test/helper.bash $lib/test/main.inc.bash"
+test_inc_bash="source $(echo $test_inc | sed 's/\ / \&\& source /g')"
+test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
 
 @test "$lib test run test functions to verify" {
@@ -39,7 +44,6 @@ load main.inc
 
 @test "$lib try_exec_func on existing function" {
 
-  source $lib.sh
   run try_exec_func mytest_function
   test "${lines[0]}" = "mytest"
   test $status -eq 0
@@ -47,23 +51,21 @@ load main.inc
 
 @test "$lib try_exec_func on non-existing function" {
 
-  source $lib'.sh'
   run try_exec_func no_such_function
   test $status -eq 1
 }
 
 @test "$lib try_exec_func (bash) on existing function" {
 
-  run bash -c 'source '$lib'.sh \
-    && source test/helper.bash \
-    && try_exec_func mytest_function'
+  run bash -c 'source '$lib'/util.sh && \
+    source '$lib'/test/main.inc.bash && try_exec_func mytest_function'
   test "${lines[0]}" = "mytest"
   test $status -eq 0
 }
 
 @test "$lib try_exec_func (bash) on non-existing function" {
 
-  run bash -c 'source '$lib'.sh && try_exec_func no_such_function'
+  run bash -c 'source '$lib'/util.sh && try_exec_func no_such_function'
   test "" = "${lines[*]}"
   test $status -eq 1
 
@@ -74,16 +76,15 @@ load main.inc
 
 @test "$lib try_exec_func (sh) on existing function" {
 
-  run sh -c '. '$lib'.sh \
-    && . ./test/helper.bash \
-    && try_exec_func mytest_function'
+  run sh -c '. '$lib'/util.sh && \
+    . '$lib'/test/main.inc.bash && try_exec_func mytest_function'
   test "${lines[0]}" = "mytest"
   test $status -eq 0
 }
 
 @test "$lib try_exec_func (sh) on non-existing function" {
 
-  run sh -c '. '$lib'.sh && try_exec_func no_such_function'
+  run sh -c '. '$lib'/util.sh && try_exec_func no_such_function'
   test "" = "${lines[*]}"
 
   case "$(uname)" in
@@ -106,41 +107,6 @@ load main.inc
       test $status -eq 127
       ;;
   esac
-}
-
-
-@test "$lib try_usage (bash)" {
-
-  tmpf bare
-  source $lib'.sh'
-  try_usage mytest > $tmpf; local r=$?
-  test "$(cat $tmpf)" = "mytest_usage"
-  test $r -eq 0
-
-  run bash -c 'source '$lib'.sh && source ./test/main.inc.bash && try_usage mytest'
-  test $status -eq 0
-  test "${lines[0]}" = "mytest_usage"
-}
-
-@test "$lib try_usage (sh)" {
-
-  run sh -c '. '$lib'.sh && . ./test/main.inc.bash && try_usage mytest'
-  test $status -eq 0
-  test "${lines[0]}" = "mytest_usage"
-}
-
-
-@test "$lib try_load" {
-
-  skip "TODO: how not to get caught up with Bats 'load' function"
-
-  run sh -c '. '$lib'.sh && . ./test/main.inc.sh && try_load mytest'
-  test $status -eq 0
-  test ${lines[0]} = "mytest_load"
-
-  run bash -c 'source '$lib'.sh && source ./test/main.inc.bash && try_load mytest'
-  test $status -eq 0
-  test ${lines[0]} = "mytest_load"
 }
 
 

@@ -9,3 +9,9 @@ mytest_usage()
   echo mytest_usage
 }
 
+mytest_function()
+{
+  echo 'mytest'
+}
+
+

@@ -1,8 +1,21 @@
 
-test -z "$PREFIX" && bin=$base || bin=$PREFIX/bin/$base
+test_init()
+{
+  test -n "$uname" || uname=$(uname)
+}
 
-test -n "$uname" || uname=$(uname)
+init_bin()
+{
+  test_init
+  test -z "$PREFIX" && bin=$base || bin=$PREFIX/bin/$base
+}
 
+init_lib()
+{
+  test_init
+  # XXX path to shared files
+  test -z "$PREFIX" && lib=. || lib=$PREFIX/bin
+}
 
 is_skipped()
 {
@@ -59,11 +72,6 @@ lines_to_file()
   do
     echo $line_out >> $file
   done
-}
-
-mytest_function()
-{
-  echo 'mytest'
 }
 
 tmpf()

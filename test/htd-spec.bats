@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
 base=htd
-
 load helper
+init_bin
 
 @test "$bin no arguments no-op" {
   check_skipped_envs jenkins || skip "TODO $BATS_TEST_DESCRIPTION"

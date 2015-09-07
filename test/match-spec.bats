@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
 base=match.sh
-
 load helper
+init_bin
 
 
 @test "$bin no arguments no-op" {
@@ -10,6 +10,7 @@ load helper
   test $status -eq 1
   fnmatch "*match.sh*Error: No command given*" "${lines[0]}"
 }
+
 @test "$bin no arguments no-op (plain)" {
   run ${bin}
   test $status -eq 1

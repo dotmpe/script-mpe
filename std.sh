@@ -31,8 +31,6 @@
 #  printf "$fmt$end" "$*"
 #}
 
-fnmatch () { case "$2" in $1) return 0 ;; *) return 1 ;; esac ; }
-
 
 # check if stdout is a terminal...
 if [ -t 1 ]; then
@@ -86,7 +84,7 @@ log()
 {
   [ -n "$(echo "$*")" ] || return 1;
   key=${grey}$scriptname.sh
-  test -n "$cmd" && key=${key}${bb}:${grey}${cmd}
+  test -n "$subcmd_name" && key=${key}${bb}:${grey}${subcmd_name}
   echo "${pref}${bb}[${key}${bb}] ${norm}$1"
 }
 err()
@@ -101,6 +99,12 @@ err()
     notice )
         bb=${prpl}
         log "${prpl}$1${grey}: ${grey}$2${norm}" 1>&2 ;;
+    info )
+        bb=${blue}
+        log "${grey}$2${norm}" 1>&2 ;;
+    ok )
+        bb=${grn}
+        log "${grey}$2${norm}" 1>&2 ;;
     * )
         bb=${blackb}
         log "${norm}$2" 1>&2 ;;
@@ -122,7 +126,11 @@ note()
 }
 info()
 {
-  err " " "$1" "$2"
+  err "Info" "$1" "$2"
+}
+debug()
+{
+  err "Debug" "$1" "$2"
 }
 
 std_demo()
@@ -133,6 +141,12 @@ std_demo()
   warn "Foo bar"
   note "Foo bar"
   info "Foo bar"
+  debug "Foo bar"
+
+  for x in error warn note info debug
+    do
+      $x "testing $x out"
+    done
 }
 
 # experiment rewriting console output
