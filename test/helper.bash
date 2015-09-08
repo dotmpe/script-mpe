@@ -59,6 +59,8 @@ next_temp_file()
 
 lines_to_file()
 {
+  echo "status=${status}"
+  echo "#lines=${#lines[@]}"
   echo "lines=${lines[*]}"
   test -n "$1" && file=$1
   test -n "$file" || { next_temp_file; file=$next_temp_file; }
