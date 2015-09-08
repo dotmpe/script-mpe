@@ -26,10 +26,7 @@ before_script:
 - 'touch /home/travis/.basename-reg.yaml'
 
 script:
-- './test/*-spec.bats'
-#- ./basename-reg ffnnec.py
-#- ./mimereg ffnenc.py
-# FIXME make -k test
+- 'make -k test'
 
 branches:
   only:
