@@ -152,10 +152,11 @@ box_grep()
 
 box_script_insert_point()
 {
-  local where_line= line_number=
-  local p='^'${script_name}'__main()$'
+  local what=main where_line= line_number=
+  test -z "$2" || what=$2
+  local p='^'${script_name}'__'${what}'()$'
   box_grep $p $1 || {
-    error "invalid ${script_name}__main ($1)" 1
+    error "invalid ${script_name}__'${what}' ($1)" 1
   }
   echo $line_number
 }

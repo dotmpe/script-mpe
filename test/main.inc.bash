@@ -14,4 +14,20 @@ mytest_function()
   echo 'mytest'
 }
 
+c_mytest__run()
+{
+  # -- mytest box run insert sentinel --
+  set --
+}
+
+mytest__main()
+{
+  set --
+}
+
+mytest__load()
+{
+  # -- mytest box include main sentinel --
+  set --
+}
 

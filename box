@@ -212,12 +212,35 @@ c_list()
     debug "'$BOX_BIN_DIR/*'"
     info "** DRY RUN ends **" 0
   }
+  info "TODO box list: work in progress"
   grep -srI ${nid_cwd} $BOX_BIN_DIR/*
 }
 als__l=list
 
 
-# FIXME run-global
+man_1_list_lib="List includes for script."
+spc_list_lib="list-lib"
+c_list_lib()
+{
+  local c=0 script_files= \
+    local_script= named_script= uconf_script=
+  box_init_args $@
+  test $c -eq 0 || shift $c ; c=0
+  box_init_local || { r=$?
+    test $r -eq 0 || error "$r error during box-init-local" $r
+  }
+  local files="$script_files $fn"
+  test -z "$dry_run" || {
+    debug "files='$files'"
+    debug "nid_cwd='$nid_cwd'"
+    debug "'$BOX_BIN_DIR/*'"
+    info "** DRY RUN ends **" 0
+  }
+  line_number=$(box_script_insert_point $named_script load)
+
+}
+
+
 man_1_run_global="Require localscript and exec. given function. "
 spc_run_global="-rg|run-global [<cmd>=run [<name>=$hostname]]"
 c_run_global()
@@ -234,6 +257,7 @@ c_run_global()
   test -z "$dry_run" || {
     info "** DRY RUN ends **" 0
   }
+  note "FIXME run-global"
 
   type $global_func_name 2> /dev/null 1> /dev/null || {
     r=$?
