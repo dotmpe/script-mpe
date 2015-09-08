@@ -70,6 +70,15 @@ version=0.0.0
   test "${lines[0]}" = "$version"
 }
 
+@test "$bin today" 8 {
+  pushd /tmp/
+  run $BATS_TEST_DESCRIPTION log/
+  popd
+  test $status -eq 0
+  test "${#lines[@]}" = "9"
+  test -z "${lines[*]}" # empty output
+}
+
 @test "$bin rewrite and test to new main.sh" {
   check_skipped_envs || \
     skip "TODO envs $envs: implement bin for env"

@@ -148,7 +148,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
       ;;
     * )
       test $status -eq 3
-      echo "${#lines[@]}"
+      test "${#lines[@]}"
       skip "FIX testing at travis"
       test "${#lines[@]}" = "2" # lines of output (stderr+stderr)
       ;;
