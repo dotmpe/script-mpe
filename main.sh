@@ -316,7 +316,7 @@ main()
     info "$subcmd_name:-$subcmd_def  completed normally" 0
   } || {
     e=$?
-    error "Command $subcmd_name returned $e" $e
+    error "Command $subcmd_name returned $e" 3
   }
 }
 

@@ -10,23 +10,22 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
 
 @test "$bin no arguments no-op" {
-  check_skipped_envs travis || skip "FIXME $envs: not running on $env"
 
   run bash -c 'cd /tmp/ && '${bin}
   lines_to_file /tmp/1
-  echo $status >> /tmp/1
-
-  test $status -eq 1
+  echo "status $status" >> /tmp/1
+  echo "lines ${#lines[@]}" >> /tmp/1
+  test $status -eq 3
 
   # XXX: Also buggy on OSX 10.8.5: removed idx for now
   case "$uname" in
-      Linux ) idx=0 num=3 ;;
+      Linux ) idx=0 num=4 ;;
       Darwin ) idx=1 num=4 ;;
   esac
 
   # TODO: Meh.. test [[ "${lines[0]}" =~ "No.script.for" ]]
   #fnmatch "*No local script for*" "${lines[$idx]}" || test
-  skip "FIXME ${bin} should default to run, currently it doesnt"
+  #skip "FIXME ${bin} should default to run, currently it doesnt"
   echo "${lines[$idx]}" | grep No.local.script.for || test
   test "${#lines[@]}" = "$num"
 }
