@@ -198,11 +198,8 @@ c_version()
 {
   echo 0.0.0
 }
-als__v=version
-c__v()
-{
-  cmd=version c_version
-}
+# FIXME als__V=version
+
 
 man_1_help="Echo a combined usage, command and docs"
 spc_help="[<id>]"
