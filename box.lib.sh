@@ -75,17 +75,19 @@ box_req_files_localscript()
 
 box_init_local()
 {
-  echo named_script=$BOX_BIN_DIR/$script_name
   box_name="${script_name}:${script_subcmd_name}"
   local_script=$BOX_DIR/${script_name}/${nid_cwd}.sh
   uconf_script=$BOX_DIR/$script_name-localscripts.sh
-  #test -e $uconf_script && warn "TODO clean $uconf_script"
+  test -e $uconf_script && warn "TODO clean $uconf_script"
   case "$1" in 1 )
       test -e "$named_script" || touch $named_script
       box_req_files_localscript
       ;;
     2 )
       box_req_files_localscript || return 1
+      ;;
+    * )
+      box_req_files_localscript || noop
       ;;
   esac
   locate_name
