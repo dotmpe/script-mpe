@@ -50,8 +50,6 @@ source $lib/main.sh
 @test "$lib/main should source (functions) without polluting environment (with vars)" {
 
   # check for vars we use
-  var_isset cmd && test -z "Unexpected cmd= var in env" || noop
-  var_isset cmd_name && test -z "Unexpected cmd_name= var in env" || noop
   var_isset subcmd && test -z "Unexpected subcmd= var in env" || noop
   var_isset subcmd_name && test -z "Unexpected subcmd_name= var in env" || noop
   var_isset subcmd_pref && test -z "Unexpected subcmd_pref= var in env" || noop

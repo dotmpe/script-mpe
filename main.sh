@@ -232,7 +232,7 @@ get_cmd_alias()
 
 get_cmd_func()
 {
-    local func_pref= cmd_name= func_suf= tag=
+    local func_pref= func_suf= tag=
 
     # get extra function name parts
     for tag in pref suf; do
@@ -248,7 +248,7 @@ get_cmd_func()
     test -n "$(eval echo \$${1}_name)" || local ${1}_name=$(eval echo \$${1}_def)
 
     get_cmd_func_name $1
-    unset func_pref
+    unset func_pref func_suf tag
 }
 
 main_load()
@@ -259,13 +259,6 @@ main_load()
   }
   test -n "$1" || return
   try_exec_func ${1}__load || error "${1} load failed" $?
-}
-
-main_usage()
-{
-  try_exec_func usage && return
-  test -n "$1" || return 1
-  try_exec_func ${1}__usage || return $?
 }
 
 main_debug()
@@ -303,7 +296,7 @@ main()
   local silence= choice_force= choice_all= choice_local= choice_global=
 
   get_subcmd_args $*
-  test $c -gt 0 && shift $c ; info "parsed $c"; c=0
+  test $c -gt 0 && shift $c ; c=0
   get_cmd_func subcmd
   main_debug $*
 
@@ -312,7 +305,7 @@ main()
 
   func_exists $subcmd_func || {
     debug "no such subcmd-func $subcmd_func"
-    main_usage $base
+    try_exec_func ${base}__usage || std_usage
     test -z "$subcmd_name" && {
       error 'No command given' 1
     } || {
