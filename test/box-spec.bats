@@ -147,7 +147,9 @@ usage_line_3="  ${base} <cmd> [<args>..]"
       test "${#lines[@]}" = "5" # lines of output (stderr+stderr)
       ;;
     * )
-      test $status -eq 1
+      echo $status
+      echo $status && test $status
+      #test $status -eq 1
       test "${#lines[@]}" = "3" # lines of output (stderr+stderr)
       ;;
   esac
