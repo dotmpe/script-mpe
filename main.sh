@@ -19,18 +19,52 @@ incr()
 try_help()
 {
   help_descr=$(eval echo "\$man_$(echo $1)$(echo $2)")
-  echo $help_descr
+  test -n "$help_descr" && echo "$help_descr" || return 1
 }
 
-# Run through all help sections for given string
+# Run through all help sections for given string, echo and return on first
 # 1:str
 # :
 echo_help()
 {
   mkid _$1
-  try_help 1 $id && return 0 || \ # commands
-  try_help 5 $id && return 0 || \ # config files
-  try_help 7 $id && return 0  # overview, conventions, misc.
+  #try_exec_func ${help_base}__usage $1 || std_usage $1
+  # 1: commands
+  # 5: config files
+  # 7: overview, conventions, misc.
+  try_help 1 $id && return 0 || \
+  try_help 5 $id && return 0 || \
+  try_help 7 $id && return 0
+  return 1
+}
+
+std_help()
+{
+  local help_base=$1
+  shift 1
+
+  test -z "$1" && {
+
+    try_exec_func ${help_base}__usage $1 || std_usage $1
+    # FIXME _commands and _docs std sub-commands
+    try_exec_func ${help_base}_commands || noop
+    try_exec_func ${help_base}_docs || noop
+
+  } || {
+
+    echo_help $1 || error "no help '$1'"
+  }
+}
+
+std_usage()
+{
+  test -z "$1" && {
+    echo "$scriptname.sh Bash/Shell script helper"
+    echo 'Usage:'
+    echo "  $scriptname <cmd> [<args>..]"
+  } || {
+    echo -n "$scriptname $1: "
+  }
 }
 
 # Find shell script location with or without extension
@@ -145,19 +179,18 @@ get_subcmd_args()
 
       } || {
 
-        # FIXME: parse subcmd args
-        test -z "$script_name" && {
+        try_exec_func ${script_name}__init_args $* && {
 
-            script_name=$1
+          test $c -gt 0 && {
+            sc=$(( $c + $sc )); shift $c ; c=0;
+            continue
+          }
 
         } || {
-          test -z "$script_subcmd_name" && {
 
-              script_subcmd_name=$1
-          } || {
-
-            warn "surplus argument $1"
-          }
+          # XXX 
+          note "subcmd should parse $*"
+          break
         }
       }
       ;;
@@ -206,7 +239,7 @@ get_cmd_func()
       # allow empty setting
       var_isset ${1}_func_${tag} && {
         export func_${tag}=$(eval echo \$${1}_func_${tag})
-        info "loaded func_${tag} from ${1}: $(eval echo \$func_${tag})"
+        debug "set func_${tag} for ${1} to $(eval echo \$func_${tag})"
       }
     done
     var_isset func_pref || local func_pref=c_
@@ -237,8 +270,8 @@ main_usage()
 
 main_debug()
 {
-  test $verbosity -ge 7 || return 0
-  echo "
+  debug "vars: 
+    args=$*
     cmd=$base
     subcmd_name=$subcmd_name
     script_name=$script_name
@@ -270,9 +303,9 @@ main()
   local silence= choice_force= choice_all= choice_local= choice_global=
 
   get_subcmd_args $*
-  test $c -gt 0 && shift $c ; c=0
+  test $c -gt 0 && shift $c ; info "parsed $c"; c=0
   get_cmd_func subcmd
-  main_debug
+  main_debug $*
 
   main_load $base
   debug "$base loaded"

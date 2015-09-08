@@ -17,17 +17,6 @@ box__load()
   unset vid
 }
 
-box__usage()
-{
-  test -z "$1" && {
-    echo "$scriptname.sh Bash/Shell script helper"
-    echo 'Usage:'
-    echo "  $scriptname <cmd> [<args>..]"
-  } || {
-    echo "FIXME box_usage '$1' usage help"
-  }
-}
-
 box_commands()
 {
   echo 'Commands:'
@@ -38,6 +27,7 @@ box_commands()
   echo '    -i|init                     Init local script with name. '
   echo '    -n|new                      '
   echo '    -f|function                 '
+  echo ''
 }
 
 box_docs()
@@ -60,15 +50,7 @@ man_1_help="Echo a combined usage, command and docs"
 spc_help="-h|help"
 c_help()
 {
-  test -z "$1" && {
-    box__usage
-    echo ''
-    box_commands
-    echo ''
-    box_docs
-  } || {
-    box__usage $1
-  }
+  std_help box $*
 }
 als__h="help"
 
@@ -78,9 +60,9 @@ c_edit()
 {
   local c=0 script_files= \
     local_script= named_script= uconf_script=
-  test -z "$*" || box_init_args $@
+  box_init_args $@
   test $c -eq 0 || shift $c ; c=0
-  box_req_files_localscript || exit 1
+  box_req_files_localscript || error "local-script required" 1
   locate_name
   local files="$script_files $fn"
   note "starting '$EDITOR' for $files"
@@ -97,7 +79,7 @@ c_edit_main()
 {
   local c=0 script_files= \
     local_script= named_script= uconf_script=
-  test -z "$*" || box_init_args $@
+  box_init_args $@
   test $c -eq 0 || shift $c ; c=0
   box_req_files_localscript
   locate_name
@@ -111,15 +93,18 @@ als__E=edit-main
 
 
 
-# FIXME: probaby deprecate
 box_init_args()
 {
   # cmd-name
-  test -n "$1" && { cmd_name="$1" ; c=$(( $c + 1 ))
-    } || cmd_name=run
+  test -n "$1" && {
+    cmd_name="$1" ; c=$(( $c + 1 ))
+  } || cmd_name=run
   # script-name
-  test -n "$2" && { script_name="$2" ; c=$(( $c + 1 ))
-    } || script_name="${hostname}"
+  test -n "$2" && {
+    script_name="$2" ; c=$(( $c + 1 ))
+  } || {
+    script_name="${hostname}"
+  }
 }
 
 als__i=init
@@ -131,9 +116,7 @@ c_init()
     global_func_name= local_func_name= \
     local_script= named_script= uconf_script=
 
-  test -z "$*" || box_init_args $*
-  test $c -eq 0 || shift $c ; c=0
-  box_init_local 1 || error "init" $?
+  box_init_local 1 || error "error during box-init-local" $?
 
   ## Init global function if needed
   grep -s '^'$global_func_name'()$' $named_script > /dev/null && {
@@ -243,7 +226,7 @@ c_()
     global_func_name= local_func_name= \
     local_script= named_script= uconf_script=
 
-  test -z "$*" || box_init_args $@
+  box_init_args $@
   test $c -eq 0 || shift $c ; c=0
   box_init_local || exit 1
 
@@ -274,7 +257,7 @@ c_run_global()
     global_func_name= local_func_name= \
     local_script= named_script= uconf_script=
 
-  test -z "$*" || box_init_args $@
+  box_init_args $@
   test $c -eq 0 || shift $c ; c=0
   box_init_local || exit 1
 
@@ -302,7 +285,7 @@ c_run()
     global_func_name= local_func_name= \
     local_script= named_script= uconf_script=
 
-  test -z "$*" || box_init_args $@
+  box_init_args $@
   test $c -eq 0 || shift $c ; c=0
   box_init_local 1 || exit 1
 
