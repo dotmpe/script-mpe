@@ -185,8 +185,8 @@ box_run_cwd()
 {
   test -n "$1" || error "req name" 1
   test -n "$2" || error "req cmd" 1
-  local func=$1__$2
-  local tcwd=$(echo $1 | tr '_' '/')
+  local func=$(echo $3$1__$2 | tr '/-' '__')
+  local tcwd=$1
   test -d $tcwd || error "no dir $tcwd" 1
   shift 2
   cd $tcwd

@@ -12,9 +12,9 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 @test "$bin no arguments no-op" {
 
   run bash -c 'cd /tmp/ && '${bin}
-  lines_to_file /tmp/1
-  echo "status $status" >> /tmp/1
-  echo "lines ${#lines[@]}" >> /tmp/1
+  #lines_to_file /tmp/1
+  #echo "status $status" >> /tmp/1
+  #echo "lines ${#lines[@]}" >> /tmp/1
   test $status -eq 3
 
   # XXX: Also buggy on OSX 10.8.5: removed idx for now
@@ -144,7 +144,8 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
   case "$(current_test_env)" in simza | vs1 )
       test $status -eq 0
-      test "${#lines[@]}" = "5" # lines of output (stderr+stderr)
+      #echo "lines ${#lines[@]}" > /tmp/1
+      test "${#lines[@]}" = "7" # lines of output (stderr+stderr)
       ;;
     * )
       test $status -eq 3

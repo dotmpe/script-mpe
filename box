@@ -91,10 +91,13 @@ c_init()
   box_init_args $@
   test $c -eq 0 || shift $c ; c=0
   box_init_local 2 || error "error during box-init-local" $?
-  global_func_name=c_${script_name}__${script_subcmd_name}
-  local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_name}
+
+  script_subcmd_func=$(echo $(script_subcmd_name) | tr '/-' '__')
+  global_func_name=c_${script_name}__${script_subcmd_func}
+  local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_func}
 
   test -z "$dry_run" || {
+    debug "script_subcmd_func=$script_subcmd_func"
     debug "global_func_name='$global_func_name'"
     debug "local_func_name='$local_func_name'"
     info "** DRY RUN ends **" 0
@@ -105,15 +108,15 @@ c_init()
 
     where_grep='.*#.--.'${script_name}'.box.include.main*--'
     file_insert_where_before $where_grep $named_script "$(cat <<-EOF
-  . \$HOME/${script_name}/local_script
+  . \$BOX_BIN_DIR/${script_name}/${nid_cwd}.sh
 EOF
 )"
 
     where_grep='.*#.--.'${script_name}'.box.'${subcmd_name}'.insert.*--'
     #box_sentinel_indent $where_grep $named_script
     file_insert_where_before $where_grep $named_script "$(cat <<-EOF
-  . $local_script
-  # $local_func_name
+  # insert $script_name $subcmd_name by $base: $(datetime)
+  box_run_cwd $(cwd) ${script_subcmd_func} ${subcmd_func_pref}${script_name}__local__
 EOF
 )"
 
@@ -236,40 +239,6 @@ c_list_lib()
 }
 
 
-man_1_run_global="Require localscript and exec. given function. "
-spc_run_global="-rg|run-global [<cmd>=run [<name>=$hostname]]"
-c_run_global()
-{
-  local c=0 \
-    global_func_name= local_func_name= \
-    local_script= named_script= uconf_script=
-
-  box_init_args $@
-  test $c -eq 0 || shift $c ; c=0
-  box_init_local || { r=$?
-    test $r -eq 0 || error "$r error during box-init-local" $r
-  }
-  test -z "$dry_run" || {
-    info "** DRY RUN ends **" 0
-  }
-  note "FIXME run-global"
-
-  type $global_func_name 2> /dev/null 1> /dev/null || {
-    r=$?
-    error "no command $box_name"
-    return $r
-  }
-
-  $global_func_name $@ && {
-    info "command $box_name completed ($subbox_name)"
-  } || {
-    r=$?
-    error "running command $box_name"
-    return $r
-  }
-}
-
-
 man_1_run="Require localscript and exec. given function. "
 spc_run="-r|run [<cmd>=run [<name>=$hostname]]"
 c_run()
@@ -284,24 +253,43 @@ c_run()
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
-  local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_name}
+  script_subcmd_func=$(echo $script_subcmd_name | tr '/-' '__')
+  global_func_name=c_${script_name}__${script_subcmd_func}
+  local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_func}
+
+  dry_run= box_list_libs $named_script $script_name | while read src_line
+  do eval $src_line ; debug "loaded $src_line" ; done
+
+  test -n "$choice_global" && {
+    func_name=$global_func_name scope=global
+    note "Using **global** scope"
+  } || {
+    func_name=$local_func_name scope=local
+  }
+
   test -z "$dry_run" || {
-    debug "script_subcmd_name=$script_subcmd_name"
-    debug "local_func_name=$local_func_name"
+    debug "box_name=$box_name"
+    debug "subbox_name=$subbox_name"
+    debug "func_name=$func_name"
+    debug "scope=$scope"
     info "** DRY RUN ends **" 0
   }
 
-  type $local_func_name 2> /dev/null 1> /dev/null || {
+  type $func_name 2> /dev/null 1> /dev/null || {
     r=$?
-    error "no local command $subbox_name"
+    error "no $scope command $subbox_name"
     return $r
   }
 
-  $local_func_name $@ && {
-    info "command $box_name in $(pwd) completed"
+  $func_name $@ && {
+    test -n "$choice_global" && {
+      info "command $subbox_name completed"
+    } || {
+      info "command $subbox_name in $(pwd) completed"
+    }
   } || {
     r=$?
-    error "running command $box_name"
+    error "running $scope command $box_name"
     return $r
   }
 }
