@@ -319,7 +319,7 @@ main()
     || info "** starting DRY RUN $scriptname $subcmd_name **"
 
   $subcmd_func $* && {
-    info "$subcmd_name:-$subcmd_def  completed"
+    info "$subcmd_name:-$subcmd_def  completed normally" 0
   } || {
     e=$?
     error "Command $subcmd_name returned $e" $e

@@ -61,10 +61,46 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 #test -e ""
 }
 
-# TODO delete
-#@test "${bin} -d" {
-#  run $BATS_TEST_DESCRIPTION
-#  test $status -eq 0
-#}
+@test "${bin} -rg" {
+  skip "$BATS_TEST_DESCRIPTION TODO: test and code run-global"
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+}
+
+@test "${bin} -n run" {
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+}
+
+@test "${bin} -n -r" {
+  skip "TODO no opts for subcmds yet"
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+}
+
+@test "${bin} -r" {
+  skip "$BATS_TEST_DESCRIPTION TODO: test and code run (local)"
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+}
+
+@test "${bin} -n" {
+  skip "$BATS_TEST_DESCRIPTION TODO: test and code new"
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+}
+
+@test "${bin} -c" {
+  skip "$BATS_TEST_DESCRIPTION TODO: test and code create"
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+}
+
+@test "${bin} -d" {
+  skip "$BATS_TEST_DESCRIPTION TODO: test and code deinit"
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+}
+
 
 # vim:ft=sh:
