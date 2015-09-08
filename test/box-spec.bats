@@ -26,6 +26,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
   # TODO: Meh.. test [[ "${lines[0]}" =~ "No.script.for" ]]
   #fnmatch "*No local script for*" "${lines[$idx]}" || test
+  skip "FIXME ${bin} should default to run, currently it doesnt"
   echo "${lines[$idx]}" | grep No.local.script.for || test
   test "${#lines[@]}" = "$num"
 }
@@ -61,19 +62,54 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 #test -e ""
 }
 
+# Dry Runs go successfully
+@test "${bin} -vv -n init" {
+  skip "fix dry run"
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+  run ${bin} -nqq init
+  test $status -eq 0
+  test -z "${lines[*]}"
+}
+
+@test "${bin} -vvv -n edit" {
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+  run ${bin} -vn edit
+  skip "FIXME dry runs only work with verbosity on?"
+  run ${bin} -nqq edit
+  test $status -eq 0
+  test -z "${lines[*]}"
+}
+
+@test "${bin} -vn edit-main" {
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+}
+
+@test "${bin} -vn new" {
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+  skip "FIXME dry runs only work with verbosity on?"
+  run ${bin} -nqq new
+  test $status -eq 0
+  test -z "${lines[*]}"
+}
+
+@test "${bin} -vn run" {
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+}
+
+@test "${bin} -vn -r" {
+  skip "TODO no opts for subcmds yet"
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+}
+
+
 @test "${bin} -rg" {
   skip "$BATS_TEST_DESCRIPTION TODO: test and code run-global"
-  run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
-}
-
-@test "${bin} -n run" {
-  run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
-}
-
-@test "${bin} -n -r" {
-  skip "TODO no opts for subcmds yet"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
 }

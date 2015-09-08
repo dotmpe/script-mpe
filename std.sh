@@ -114,7 +114,7 @@ err()
 
 test_v()
 {
-  test -z "$verbosity" -o $verbosity -ge $1 || return 1
+  test -z "$verbosity" -o $verbosity -ge $1 && return || return 1
 }
 
 #emerg() 1

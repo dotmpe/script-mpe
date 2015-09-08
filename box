@@ -86,6 +86,8 @@ c_init()
     global_func_name= local_func_name= \
     local_script= named_script= uconf_script=
 
+  box_init_args $@
+  test $c -eq 0 || shift $c ; c=0
   box_init_local 2 || error "error during box-init-local" $?
   global_func_name=c_${script_name}__${script_subcmd_name}
   local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_name}
