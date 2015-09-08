@@ -38,8 +38,10 @@ c_edit()
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
-  local files="$script_files $fn"
+  local files="$script_files $fn $(eval echo $(dry_run= box_list_libs \
+      $named_script $script_name | cut -d ' ' -f 4))"
   local evoke="$EDITOR -O2 +/${nid_cwd}"
+
   test -z "$dry_run" || {
     debug "files='$files'"
     debug "evoke='$evoke'"
