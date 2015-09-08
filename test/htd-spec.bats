@@ -76,9 +76,6 @@ version=0.0.0
   mkdir bats-test-log
   run $BATS_TEST_DESCRIPTION bats-test-log/
   popd
-  echo ${status} > /tmp/1
-  echo "${lines[*]}" >> /tmp/1
-  echo "${#lines[@]}" >> /tmp/1
   test $status -eq 0
   test "${#lines[@]}" = "26"
   for x in today tomorrow yesterday \
@@ -86,6 +83,8 @@ version=0.0.0
   do
     test -h /tmp/bats-test-log/${x}.rst
   done
+  # XXX may also want to check last-saturday, next-* etc.
+  #   also, may want to have larger offsets and wider time-windows: months, years
 }
 
 @test "$bin rewrite and test to new main.sh" {
