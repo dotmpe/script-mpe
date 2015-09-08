@@ -20,7 +20,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
   test $status -eq 3
 
   case "$(current_test_env)" in
-      vs1 ) idx=0 num=5 ;;
+      vs1 ) idx=0 num=4 ;;
       simza ) idx=1 num=8 ;;
       travis ) idx=0 num=8 ;;
       * ) idx=0 num=8 ;;
