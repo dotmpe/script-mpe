@@ -25,7 +25,6 @@ box__usage()
     echo "  $scriptname <cmd> [<args>..]"
   } || {
     echo "FIXME box_usage '$1' usage help"
-    verbosity=7 main_debug
   }
 }
 

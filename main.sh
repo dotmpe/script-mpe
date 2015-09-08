@@ -111,7 +111,7 @@ parse_subcmd_opts()
 
 get_subcmd_args()
 {
-  local sc=0 tc=$c c=0
+  local sc=0 tc=$c
 
   while [ $# -gt 0 ]
   do  case "$1" in
@@ -144,6 +144,8 @@ get_subcmd_args()
         subcmd_name=$1
 
       } || {
+
+        # FIXME: parse subcmd args
         test -z "$script_name" && {
 
             script_name=$1
@@ -162,7 +164,6 @@ get_subcmd_args()
 
     esac
 
-    echo sc=$sc \#=$# @=$@
     incr sc
     shift
 
