@@ -21,7 +21,6 @@ before_script:
 - 'pip install --user jsonschema'
 - 'pip install --user sqlalchemy'
 - 'rm $HOME/bin && ln -s /home/travis/build/dotmpe/script.mpe $HOME/bin'
-- 'htd version'
 - 'box version && box -V'
 - 'touch /home/travis/.basename-reg.yaml'
 
