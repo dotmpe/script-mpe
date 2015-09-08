@@ -143,6 +143,8 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
 @test "${bin} list-lib" "lists the includes of a named file" {
 
+  check_skipped_envs simza travis || skip "FIXME $envs: not running on $env"
+
   run $BATS_TEST_DESCRIPTION
 
   case "$(current_test_env)" in simza | vs1 )
