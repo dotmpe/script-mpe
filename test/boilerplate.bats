@@ -10,7 +10,7 @@ init_bin
 @test "${bin} -vv -n help" {
   skip "envs: envs=$envs FIXME is hardcoded in test/helper.bash current_test_env"
   check_skipped_envs || \
-    skip "TODO $envs: implement for env $env: $BATS_TEST_DESCRIPTION"
+    skip "TODO envs $envs: implement bin for env: $BATS_TEST_DESCRIPTION"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   test -z "${lines[*]}" # empty output
@@ -19,7 +19,7 @@ init_bin
 
 @test "${lib}/main function should ..." {
   check_skipped_envs || \
-    skip "TODO $envs: implement for env $env: $BATS_TEST_DESCRIPTION"
+    skip "TODO envs $envs: implement lib for env: $BATS_TEST_DESCRIPTION"
 }
 
 # vim:et:ft=sh:
