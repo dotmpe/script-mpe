@@ -72,11 +72,20 @@ version=0.0.0
 
 @test "$bin today" 8 {
   pushd /tmp/
-  run $BATS_TEST_DESCRIPTION log/
+  test ! -d bats-test-log || rm -rf bats-test-log
+  mkdir bats-test-log
+  run $BATS_TEST_DESCRIPTION bats-test-log/
   popd
+  echo ${status} > /tmp/1
+  echo "${lines[*]}" >> /tmp/1
+  echo "${#lines[@]}" >> /tmp/1
   test $status -eq 0
-  test "${#lines[@]}" = "9"
-  test -z "${lines[*]}" # empty output
+  test "${#lines[@]}" = "26"
+  for x in today tomorrow yesterday \
+    monday tuesday wednesday thursday friday saturday sunday
+  do
+    test -h /tmp/bats-test-log/${x}.rst
+  done
 }
 
 @test "$bin rewrite and test to new main.sh" {

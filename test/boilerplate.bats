@@ -23,6 +23,7 @@ init_bin
   run function args
   #echo ${status} > /tmp/1
   #echo "${lines[*]}" >> /tmp/1
+  #echo "${#lines[@]}" >> /tmp/1
   test ${status} -eq 0
 }
 

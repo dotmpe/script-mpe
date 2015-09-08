@@ -481,7 +481,6 @@ c_vt()
 }
 
 # update yesterday, today and tomorrow links
-# FIXME: these use BSD date -v, see GNU date -d
 c_today()
 {
   test -z "$1" && P=journal || P=$1
@@ -499,15 +498,34 @@ c_today()
   datelink +1d "$p" ${r}tomorrow$EXT
   for tag in sunday monday tuesday wednesday thursday friday saturday
   do
-    datelink "$tag -v -7d" "$p" "${r}last-$tag$EXT"
-    datelink "$tag -v +7d" "$p" "${r}next-$tag$EXT"
+    datelink "$tag -7d" "$p" "${r}last-$tag$EXT"
+    datelink "$tag +7d" "$p" "${r}next-$tag$EXT"
     datelink "$tag" "$p" "${r}$tag$EXT"
   done
 }
 
+# TODO: move date routines to lib
+# NOTE: these use BSD date -v, see GNU date -d
+case "$(uname)" in Darwin )
+    date_fmt() {
+      tags=$(for tag in $1; do echo "-v $tag"; done)
+      date $tags +$2
+    }
+    ;;
+  Linux )
+    date_fmt() {
+      # NOTE patching for GNU date
+      tags=$(for tag in $1; do echo "-d $tag" \
+          | sed 's/1d/day/g' \
+          | sed 's/7d/week/g'; done)
+      date $tags +$2
+    }
+    ;;
+esac
+
 datelink()
 {
-  test -z "$1" && datep=$(date +$2) || datep=$(date -v $1 +$2)
+  test -z "$1" && datep=$(date "+$2") || datep=$(date_fmt "$1" "$2")
   target_path=$3
   test -d "$(dirname $3)" || error "Dir $(dirname $3) must exist" 1
   test -L $target_path && {
