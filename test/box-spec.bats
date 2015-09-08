@@ -14,13 +14,15 @@ usage_line_3="  ${base} <cmd> [<args>..]"
   run bash -c 'cd /tmp/ && '${bin}
   #lines_to_file /tmp/1
   #echo "status $status" >> /tmp/1
-  #echo "lines ${#lines[@]}" >> /tmp/1
+  echo "lines ${#lines[@]}" >> /tmp/1
   test $status -eq 3
 
   # XXX: Also buggy on OSX 10.8.5: removed idx for now
-  case "$uname" in
-      Linux ) idx=0 num=4 ;;
-      Darwin ) idx=1 num=4 ;;
+  case "$(current_test_env)" in
+      #simza ) idx=1 num=4 ;;
+      travis ) idx=0 num=2 ;;
+      vs1 ) idx=0 num=4 ;;
+      * ) idx=0 num=4 ;;
   esac
 
   # TODO: Meh.. test [[ "${lines[0]}" =~ "No.script.for" ]]
