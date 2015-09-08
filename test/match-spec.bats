@@ -4,6 +4,9 @@ base=match.sh
 load helper
 init_bin
 
+test -z "$PREFIX" && lib=./str || lib=$PREFIX/bin/str
+source $lib.sh
+
 
 @test "$bin no arguments no-op" {
   run ${bin}
@@ -88,3 +91,4 @@ init_bin
     skip "TODO"
 }
 
+# vim:ft=sh:

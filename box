@@ -280,7 +280,7 @@ c_list()
 {
   grep -srI ${nid_cwd} $BOX_BIN_DIR/*
 }
-
+als__l=list
 
 man_1_run_global="Require localscript and exec. given function. "
 spc_run_global="-rg|run-global [<cmd>=run [<name>=$hostname]]"

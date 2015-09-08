@@ -59,3 +59,5 @@ init_bin
   run ${bin} check-names ANSI-shell-coloring.py* filenames-ext,python-script,std-ascii
   test $status -eq 0
 }
+
+# vim:ft=sh:

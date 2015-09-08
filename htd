@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-PREFIX=~
+test -n "$PREFIX" || PREFIX=$HOME
+verbosity=6
 source $PREFIX/bin/match.sh
 set -e
 

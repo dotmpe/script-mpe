@@ -50,8 +50,11 @@ check_skipped_envs()
   return $skipped
 }
 
-# TODO fix tests to use util.sh or something
-fnmatch () { case "$2" in $1) return 0 ;; *) return 1 ;; esac ; }
+# test / helper No-Op(eration)
+noop()
+{
+    set --
+}
 
 next_temp_file()
 {

@@ -112,25 +112,32 @@ err()
   [ -z $3 ] || exit $3
 }
 
+#emerg() 1
+#crit() 2
 error()
 {
-  err "Error" "$1" "$2"
+  test $verbosity -ge 3 || return 0
+  err "Error" "$1" $2
 }
 warn()
 {
-  err "Warning" "$1" "$2"
+  test $verbosity -ge 4 || return 0
+  err "Warning" "$1" $2
 }
 note()
 {
-  err "Notice" "$1" "$2"
+  test $verbosity -ge 5 || return 0
+  err "Notice" "$1" $2
 }
 info()
 {
-  err "Info" "$1" "$2"
+  test $verbosity -ge 6 || return 0
+  err "Info" "$1" $2
 }
 debug()
 {
-  err "Debug" "$1" "$2"
+  test $verbosity -ge 7 || return 0
+  err "Debug" "$1" $2
 }
 
 std_demo()
@@ -183,11 +190,4 @@ capture_and_clear()
   clear_lines $lines
   echo Captured $lines lines
 }
-
-# x-platform regex match since Bash/BSD test wont chooche on older osx
-x_re()
-{
-  echo $1 | grep -E "^$2$" > /dev/null && return || return 1
-}
-
 

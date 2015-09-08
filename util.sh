@@ -2,12 +2,21 @@
 
 test -n "$PREFIX" || PREFIX=$HOME
 
-TERM=xterm
+#TERM=xterm
 . $PREFIX/bin/std.sh
 . $PREFIX/bin/os.sh
 . $PREFIX/bin/str.sh
 . $PREFIX/bin/doc.sh
 
+
+# test for var decl, io. to no override empty
+var_isset()
+{
+  # XXX 'set' may be safe for sh, not bash
+  #set | grep '\<'$1'=' >/dev/null 2>/dev/null && return
+  env | grep '\<'$1'=' >/dev/null 2>/dev/null && return
+  return 1
+}
 
 #
 req_arg()
@@ -42,43 +51,17 @@ popd_cwdir()
   } || set --
 }
 
-# Get help str if exists for $section $id
-# 1:section-number 2:help-id
-# :*:help_descr
-try_help()
+func_exists()
 {
-  help_descr=$(eval echo "\$man_$(echo $1)$(echo $2)")
-  echo $help_descr
-}
-
-# Run through all help sections for given string
-# 1:str
-# :
-echo_help()
-{
-  mkid _$1
-  try_help 1 $id && return || \ # commands
-  try_help 5 $id && return || \ # config files
-  try_help 7 $id && return  # overview, conventions, misc.
-}
-
-# Find shell script location with or without extension
-# 1:basename:scriptname
-# :fn
-locate_name()
-{
-  local name=
-  [ -n "$1" ] && name=$1 || name=$scriptname
-  [ -n "$name" ] || error "script name required" 1
-  fn=$(which $name)
-  [ -n "$fn" ] || fn=$(which $name.sh)
-  [ -n "$fn" ] || return 1
+  type $1 2> /dev/null 1> /dev/null || return $?
+  # XXX bash/bsd-darwin: test "$(type -t $1)" = "function" && return
+  return 0
 }
 
 try_exec_func()
 {
   test -n "$1" || return 1
-  type $1 2> /dev/null 1> /dev/null || return $?
+  func_exists $1 || return $?
   $1 || return $?
 }
 
@@ -137,11 +120,11 @@ get_uuid()
 {
   test -e /proc/sys/kernel/random/uuid && {
     cat /proc/sys/kernel/random/uuid
-    return
+    return 0
   }
   test -x $(which uuidgen) && {
     uuidgen
-    return
+    return 0
   }
   error "FIXME uuid required" 1
   return 1

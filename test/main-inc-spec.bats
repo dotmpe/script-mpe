@@ -7,121 +7,74 @@ init_lib
 source $lib/util.sh
 source $lib/main.sh
 
-test_inc="$lib/util.sh $lib/main.sh $lib/test/helper.bash $lib/test/main.inc.bash"
-test_inc_bash="source $(echo $test_inc | sed 's/\ / \&\& source /g')"
-test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
+# main / Incr-C
 
-@test "$lib test run test functions to verify" {
+@test "$lib/main incr-c increments var c, output is clean" {
 
-  run mytest_function
-  test $status -eq 0
-  test "${lines[0]}" = "mytest"
+  var_isset c && test -z "Unexpected c= var in env" || noop
 
-  run mytest_load
-  test $status -eq 0
-  test "${lines[0]}" = "mytest_load"
+  incr_c
+  test $? -eq 0
+  test -z "${lines[*]}"
+  test -n "$c"
+  test $c -eq 1
+  unset c
+
+  incr_c && incr_c && incr_c
+  test -z "${lines[*]}"
+  test $? -eq 0
+  test $c -eq 3
+  unset c
 }
 
-@test "$lib test run non-existing function to verify" {
+# main / Clean Env
 
-  run sh -c 'no_such_function'
-  test $status -eq 127
+@test "$lib/main should source (functions) without polluting environment (with vars)" {
 
-  case "$(uname)" in
-    Darwin )
-      test "sh: no_such_function: command not found" = "${lines[0]}"
-      ;;
-    Linux )
-      test "${lines[0]}" = "sh: 1: no_such_function: not found"
-      ;;
-  esac
+  # check for vars we use
+  var_isset cmd && test -z "Unexpected cmd= var in env" || noop
+  var_isset cmd_name && test -z "Unexpected cmd_name= var in env" || noop
+  var_isset subcmd && test -z "Unexpected subcmd= var in env" || noop
+  var_isset subcmd_name && test -z "Unexpected subcmd_name= var in env" || noop
+  var_isset subcmd_pref && test -z "Unexpected subcmd_pref= var in env" || noop
+  var_isset subcmd_suf && test -z "Unexpected subcmd_suf= var in env" || noop
+  var_isset func && test -z "Unexpected func= var in env" || noop
+  var_isset func_name && test -z "Unexpected func_name= var in env" || noop
+  var_isset func_pref && test -z "Unexpected func_pref= var in env" || noop
+  var_isset func_suf && test -z "Unexpected func_suf= var in env" || noop
+  var_isset base && test -z "Unexpected base= var in env" || noop
+  var_isset scriptname && test -z "Unexpected scriptname= var in env" || noop
+  var_isset script_name && test -z "Unexpected script_name= var in env" || noop
 
-  run bash -c 'no_such_function'
-  test $status -eq 127
-  test "${lines[0]}" = "bash: no_such_function: command not found"
+  var_isset PREFIX && test -z "Unexpected PREFIX= var in env" || noop
+  var_isset SRC_PREFIX && test -z "Unexpected SRC_PREFIX= var in env" || noop
+
+  var_isset fn && test -z "Unexpected fn= var in env" || noop
+  var_isset name && test -z "Unexpected name= var in env" || noop
+  var_isset flags && test -z "Unexpected flags= var in env" || noop
+  var_isset pref && test -z "Unexpected pref= var in env" || noop
+  var_isset suf && test -z "Unexpected suf= var in env" || noop
+  var_isset verbosity && test -z "Unexpected verbosity= var in env" || noop
+  var_isset silence && test -z "Unexpected silence= var in env" || noop
+  var_isset tag && test -z "Unexpected tag= var in env" || noop
 }
 
-@test "$lib try_exec_func on existing function" {
+@test "$lib/main expect some *nix env" {
 
-  run try_exec_func mytest_function
-  test "${lines[0]}" = "mytest"
-  test $status -eq 0
+  var_isset HOME || test -z "Expected HOME= var in env"
 }
 
-@test "$lib try_exec_func on non-existing function" {
+@test "$lib/main expect the env for Box" {
 
-  run try_exec_func no_such_function
-  test $status -eq 1
+  skip "not requiring exports for now.. but should test PREFIX, UCONFDIR handling. ."
+  var_isset BOX_DIR || test -z "Expected BOX_DIR= var in env"
 }
 
-@test "$lib try_exec_func (bash) on existing function" {
+@test "$lib/main get-cmd-func-name sets local ${1}_func from internal vars" {
 
-  run bash -c 'source '$lib'/util.sh && \
-    source '$lib'/test/main.inc.bash && try_exec_func mytest_function'
-  test "${lines[0]}" = "mytest"
-  test $status -eq 0
+  var_isset test_name && test -z "Unexpected test_name= var in env" || noop
+
 }
 
-@test "$lib try_exec_func (bash) on non-existing function" {
-
-  run bash -c 'source '$lib'/util.sh && try_exec_func no_such_function'
-  test "" = "${lines[*]}"
-  test $status -eq 1
-
-  run bash -c 'type no_such_function'
-  test "bash: line 0: type: no_such_function: not found" = "${lines[0]}"
-  test $status -eq 1
-}
-
-@test "$lib try_exec_func (sh) on existing function" {
-
-  run sh -c '. '$lib'/util.sh && \
-    . '$lib'/test/main.inc.bash && try_exec_func mytest_function'
-  test "${lines[0]}" = "mytest"
-  test $status -eq 0
-}
-
-@test "$lib try_exec_func (sh) on non-existing function" {
-
-  run sh -c '. '$lib'/util.sh && try_exec_func no_such_function'
-  test "" = "${lines[*]}"
-
-  case "$(uname)" in
-    Darwin )
-      test $status -eq 1
-      ;;
-    Linux )
-      test $status -eq 127
-      ;;
-  esac
-
-  run sh -c 'type no_such_function'
-  case "$(uname)" in
-    Darwin )
-      test "sh: line 0: type: no_such_function: not found" = "${lines[0]}"
-      test $status -eq 1
-      ;;
-    Linux )
-      test "no_such_function: not found" = "${lines[0]}"
-      test $status -eq 127
-      ;;
-  esac
-}
-
-
-@test "$lib fnmatch" {
-  fnmatch "f*o" "foo" || test
-  fnmatch "test" "test" || test
-  fnmatch "*test*" "test" || test
-  fnmatch "*test" "123test" || test
-  fnmatch "test*" "test123" || test
-}
-
-@test "$lib fnmatch (spaces)" {
-  fnmatch "* test" "123 test" || test
-  fnmatch "test *" "test 123" || test
-  fnmatch "*test*" " test " || test
-  fnmatch "./file.sh: line *: test" "./file.sh: line 1234: test" || test
-}
-
+# vim:ft=sh:
