@@ -31,16 +31,22 @@ init_bin
 
     run check_skipped_envs foo bar baz
     test "${status}" = 0
-    test "${lines[*]}" = ""
+    test "${lines[*]}" = "" # No output
+    test "${#lines[@]}" = "0" # No output
 
     key=$(hostname -s | tr 'a-z-' 'A-Z_')
     run bash -c '. '${bin}' && '$key'_SKIP=1 check_skipped_envs '$(hostname -s)' '$(whoami)
-    test "${status}" = 1 || test -z "Should have failed"
+    test "${status}" = 1 || test -z "Should have failed: envs (hostname -s) and (whoami) should cover all envs"
+    test "${lines[*]}" = ""
+
+    run bash -c '. '${bin}' && '$key'_SKIP=1 check_skipped_envs'
+    test "${status}" = 1 || test -z "Should have failed: default envs is all envs"
     test "${lines[*]}" = ""
 }
 
 @test "${bin} check_skipped_envs check current env" {
-    run check_skipped_envs $(hostname -s) $(whoami)
-    test "${status}" = 1 || test -z "Should have set {ENV}_SKIP=1 for proper test"
+    run check_skipped_envs
+    test "${status}" = 1 || test -z "Should have set {ENV}_SKIP=1 for proper test! do it now. "
 }
 
+# vim:et:ft=sh:
