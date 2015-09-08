@@ -20,11 +20,10 @@ usage_line_3="  ${base} <cmd> [<args>..]"
   test $status -eq 3
 
   case "$(current_test_env)" in
-      #travis ) idx=1 num=4 ;;
       vs1 ) idx=0 num=5 ;;
       simza ) idx=1 num=8 ;;
-      travis ) idx=0 num=5 ;;
-      * ) idx=0 num=4 ;;
+      travis ) idx=0 num=8 ;;
+      * ) idx=0 num=8 ;;
   esac
 
   # TODO: Meh.. test [[ "${lines[0]}" =~ "No.script.for" ]]
