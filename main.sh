@@ -80,7 +80,7 @@ locate_name()
   [ -n "$fn" ] || return 1
 }
 
-get_subcmd_valid_flags()
+parse_subcmd_valid_flags()
 {
   local flag=$1
   shift 1
@@ -118,14 +118,14 @@ parse_subcmd_opts()
 
     #r ) subcmd=run;;
     #n ) subcmd=new;;
-    i ) get_subcmd_valid_flags $o init create; subcmd=init;;
-    c ) get_subcmd_valid_flags $o init create; subcmd=create;;
+    i ) parse_subcmd_valid_flags $o init create; subcmd=init;;
+    c ) parse_subcmd_valid_flags $o init create; subcmd=create;;
     #d ) subcmd=deinit;;
 
-    f ) get_subcmd_valid_flags $o new; choice_force=true;;
-    a ) get_subcmd_valid_flags $o list; choice_all=true;;
-    g ) get_subcmd_valid_flags $o run init; choice_global=true;;
-    l ) get_subcmd_valid_flags $o; choice_local=true;;
+    f ) parse_subcmd_valid_flags $o new; choice_force=true;;
+    a ) parse_subcmd_valid_flags $o list; choice_all=true;;
+    g ) parse_subcmd_valid_flags $o run init; choice_global=true;;
+    l ) parse_subcmd_valid_flags $o; choice_local=true;;
 
     n ) dry_run=true ;;
     s ) silence=true; verbosity=0;;
@@ -256,10 +256,17 @@ main_load()
 {
   local r=
   try_exec_func load || {
-    r=$?; test -n "$1" || error "std load failed" $r
+    # f
+    r=$?; test -n "$1" || {
+      test $1 -eq 0 || error "std load failed" $r
+    }
   }
   test -n "$1" || return
-  try_exec_func ${1}__load || error "${1} load failed" $?
+  try_exec_func ${1}__load || {
+    test -n "$r"|| {
+      test $r -eq 0 || error "${1} load failed" $?
+    }
+  }
 }
 
 main_debug()

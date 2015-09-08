@@ -26,3 +26,5 @@ test -e "$HOME/.basename-reg.yaml" || touch "$HOME/.basename-reg.yaml"
   test $status -eq 0
   test "${lines[0]}" = "ffnenc.py,ffnenc,py,text/x-python,py,Script,Python script text"
 }
+
+# vim:ft=sh:

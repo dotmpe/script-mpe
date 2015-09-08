@@ -16,7 +16,7 @@ source $lib/main.sh
 
   incr x 3
   test $? -eq 0
-  test -z "${lines[*]}"
+  #test -z "${lines[*]}"
 
   test -n "$x"
   test $x -eq 3
@@ -86,10 +86,52 @@ source $lib/main.sh
   var_isset BOX_DIR || test -z "Expected BOX_DIR= var in env"
 }
 
+@test "$lib/main std-help" {
+  check_skipped_envs $(hostname) || \
+    skip "TODO $envs: implement for env $env: $BATS_TEST_DESCRIPTION"
+}
+
+@test "$lib/main std-usage" {
+  check_skipped_envs $(hostname) || \
+    skip "TODO $envs: implement for env $env: $BATS_TEST_DESCRIPTION"
+}
+
+@test "$lib/main locate-name" {
+  check_skipped_envs $(hostname) || \
+    skip "TODO $envs: implement for env $env: $BATS_TEST_DESCRIPTION"
+}
+
+@test "$lib/main get-cmd-{alias,func,func-name}" {
+  check_skipped_envs $(hostname) || \
+    skip "TODO $envs: implement for env $env: $BATS_TEST_DESCRIPTION"
+}
+
 @test "$lib/main get-cmd-func-name sets local ${1}_func from internal vars" {
 
   var_isset test_name && test -z "Unexpected test_name= var in env" || noop
-
+  check_skipped_envs $(hostname) || \
+    skip "TODO $envs: implement for env $env: $BATS_TEST_DESCRIPTION"
 }
+
+@test "$lib/main get-subcmd-args,parse-subcmd-{valid-args,alias,opts}" {
+  check_skipped_envs $(hostname) || \
+    skip "TODO $envs: implement for env $env: $BATS_TEST_DESCRIPTION"
+}
+
+@test "$lib/main main-load" {
+  check_skipped_envs $(hostname) || \
+    skip "TODO $envs: implement for env $env: $BATS_TEST_DESCRIPTION"
+}
+
+@test "$lib/main main-debug" {
+  check_skipped_envs $(hostname) || \
+    skip "TODO $envs: implement for env $env: $BATS_TEST_DESCRIPTION"
+}
+
+@test "$lib/main main" {
+  check_skipped_envs $(hostname) || \
+    skip "TODO $envs: implement for env $env: $BATS_TEST_DESCRIPTION"
+}
+
 
 # vim:ft=sh:

@@ -44,13 +44,16 @@ load()
     }
   }
   htd_init_ignores
+	{
   find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
     grep -Ev '^(#.*|\s*)$' | \
     sed -E 's/^\//\.\//' | \
     sed -E 's/(.*)/ -o -name "\1" -prune /g'))
   find_ignores="-path \"*/.git\" -prune $find_ignores "
+} || error "foo bar" 1
 
   #match_load_table vars
+  info "htd load done"
 }
 
 htd_usage()
@@ -1667,58 +1670,44 @@ c__T()
 }
 
 
-# Utils
-
-. $PREFIX/bin/util.sh
+### Main
 
 
-# Main
+htd__main()
+{
+  local scriptname=htd base=$(basename $0 .sh)
 
-# Use dash to ignore source exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
+  htd__init
 
-  # Do something (only) if script invoked as '$scriptname'
-  case "$base" in
-    $scriptname )
+  var_isset verbosity || export verbosity=5
 
-      # function name first as argument,
-      cmd=$1
-      func=$(echo c_$cmd | tr '-' '_')
+  case "$base" in $scriptname )
 
-      # load/exec if func exists
-      type $func &> /dev/null && {
-        func_exists=1
-        load
-        shift 1
-        pushd_cwdir
-        $func "$@"
-        popd_cwdir
-      } || {
-        # handle non-zero return or print usage for non-existant func
-        e=$?
-        [ -z "$cmd" ] && {
-          load
-          htd_usage
-          error 'No command given, see "help"' 1
-        } || {
-          [ "$e" = "1" -a -z "$func_exists" ] && {
-            load
-            htd_usage
-            error "No such command: $cmd" 1
-          } || {
-            error "Command $cmd returned $e" $e
-            popd_cwdir
-          }
-        }
-      }
+      subcmd_def=run
+      subcmd_pref= subcmd_suf=
+      subcmd_func_pref=c_ subcmd_func_suf=
 
+      # Execute
+      main $*
       ;;
 
     * )
-      log "No frontend for $base"
+      error "not a frontend for $base"
       ;;
-
   esac
-fi
+}
 
+htd__init()
+{
+  test -n "$PREFIX" || PREFIX=$HOME
+  . $PREFIX/bin/box.init.sh
+  . $PREFIX/bin/util.sh
+  . $PREFIX/bin/main.sh
+  . $PREFIX/bin/box.lib.sh
+}
+
+# Use hyphen to ignore source exec in login shell
+if [ -n "$0" ] && [ $0 != "-bash" ]; then
+  htd__main $@
+fi
 # vim:noet:
