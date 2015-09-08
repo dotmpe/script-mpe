@@ -23,6 +23,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
       #travis ) idx=1 num=4 ;;
       vs1 ) idx=0 num=5 ;;
       simza ) idx=1 num=8 ;;
+      travis ) idx=0 num=5 ;;
       * ) idx=0 num=4 ;;
   esac
 
