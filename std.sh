@@ -109,34 +109,39 @@ err()
         bb=${blackb}
         log "${norm}$2" 1>&2 ;;
   esac
-  [ -z $3 ] || exit $3
+  [ -z "$3" ] || exit $3
+}
+
+test_v()
+{
+  test -z "$verbosity" -o $verbosity -ge $1 || return 1
 }
 
 #emerg() 1
 #crit() 2
 error()
 {
-  test $verbosity -ge 3 || return 0
+  test_v 3 || return 0
   err "Error" "$1" $2
 }
 warn()
 {
-  test $verbosity -ge 4 || return 0
+  test_v 4 || return 0
   err "Warning" "$1" $2
 }
 note()
 {
-  test $verbosity -ge 5 || return 0
+  test_v 5 || return 0
   err "Notice" "$1" $2
 }
 info()
 {
-  test $verbosity -ge 6 || return 0
+  test_v 6 || return 0
   err "Info" "$1" $2
 }
 debug()
 {
-  test $verbosity -ge 7 || return 0
+  test_v 7 || return 0
   err "Debug" "$1" $2
 }
 

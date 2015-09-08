@@ -112,7 +112,7 @@ parse_subcmd_alias()
 parse_subcmd_opts()
 {
   local o=
-  while getopts faglicvqs o
+  while getopts faglicvqsn o
   do
     case "$o" in
 
@@ -127,6 +127,7 @@ parse_subcmd_opts()
     g ) get_subcmd_valid_flags $o run init; choice_global=true;;
     l ) get_subcmd_valid_flags $o; choice_local=true;;
 
+    n ) dry_run=true ;;
     s ) silence=true; verbosity=0;;
     #S ) silence=$OPTARG;;
     v ) test $silent || verbosity=$(( $verbosity + 1 ));;
@@ -291,7 +292,7 @@ main_debug()
 
 main()
 {
-  local subcmd_name= subcmd_alias= subcmd_func= e= c=0
+  local subcmd_name= subcmd_alias= subcmd_func= e= c=0 dry_run=
 
   local silence= choice_force= choice_all= choice_local= choice_global=
 
@@ -313,7 +314,9 @@ main()
     }
   }
 
-  debug "starting $scriptname $subcmd_name"
+  test -z "$dry_run" \
+    && debug "starting $scriptname $subcmd_name" \
+    || info "** starting DRY RUN $scriptname $subcmd_name **"
 
   $subcmd_func $* && {
     info "$subcmd_name:-$subcmd_def  completed"

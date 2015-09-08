@@ -75,14 +75,20 @@ box_req_files_localscript()
 
 box_init_local()
 {
+  echo named_script=$BOX_BIN_DIR/$script_name
   box_name="${script_name}:${script_subcmd_name}"
   local_script=$BOX_DIR/${script_name}/${nid_cwd}.sh
   uconf_script=$BOX_DIR/$script_name-localscripts.sh
   #test -e $uconf_script && warn "TODO clean $uconf_script"
-  box_req_files_localscript
-  test -z "$1" -o $? -gt 0 || return 1
-  global_func_name=c_${script_name}__${script_subcmd_name}
-  local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_name}
+  case "$1" in 1 )
+      test -e "$named_script" || touch $named_script
+      box_req_files_localscript
+      ;;
+    2 )
+      box_req_files_localscript || return 1
+      ;;
+  esac
+  locate_name
 }
 
 box_init_script()
@@ -183,5 +189,18 @@ box_run_cwd()
   $func "$*"
 }
 
+box_init_args()
+{
+  # subcmd-name
+  test -n "$1" && {
+    subcmd_name="$1" ; c=$(( $c + 1 ))
+  } || subcmd_name=run
+  # script-name
+  test -n "$2" && {
+    script_name="$2" ; c=$(( $c + 1 ))
+  } || {
+    script_name="${hostname}"
+  }
+}
 
 

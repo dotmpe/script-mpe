@@ -9,6 +9,15 @@ set -e
 
 ### User commands
 
+man_1_help="Echo a combined usage, command and docs"
+spc_help="-h|help"
+c_help()
+{
+  std_help box $*
+}
+als__h="help"
+
+
 als__V=version
 man_1_version="no version yet, just checking it goes"
 spc_version="-v|version"
@@ -17,13 +26,6 @@ c_version()
   echo 0.0.0
 }
 
-man_1_help="Echo a combined usage, command and docs"
-spc_help="-h|help"
-c_help()
-{
-  std_help box $*
-}
-als__h="help"
 
 man_1_edit="Edit localscript and box script or abort. "
 spc_edit="-e|edit [<name>:]<script>"
@@ -33,11 +35,17 @@ c_edit()
     local_script= named_script= uconf_script=
   box_init_args $@
   test $c -eq 0 || shift $c ; c=0
-  box_req_files_localscript || error "local-script required" 1
-  locate_name
+  box_init_local || { r=$?
+    test $r -eq 0 || error "$r error during box-init-local" $r
+  }
   local files="$script_files $fn"
-  note "starting '$EDITOR' for $files"
   local evoke="$EDITOR -O2 +/${nid_cwd}"
+  test -z "$dry_run" || {
+    debug "files='$files'"
+    debug "evoke='$evoke'"
+    info "** DRY RUN ends **" 0
+  }
+  note "starting '$EDITOR' for $files"
   note "invoking '$evoke'"
   $evoke $files
 }
@@ -52,31 +60,22 @@ c_edit_main()
     local_script= named_script= uconf_script=
   box_init_args $@
   test $c -eq 0 || shift $c ; c=0
-  box_req_files_localscript
-  locate_name
+  box_init_local || { r=$?
+    test $r -eq 0 || error "$r error during box-init-local" $r
+  }
   local files="$fn $script_files"
-  note "starting '$EDITOR' for $files"
   local evoke="$EDITOR -O2"
+  test -z "$dry_run" || {
+    debug "files='$files'"
+    debug "evoke='$evoke'"
+    info "** DRY RUN ends **" 0
+  }
+  note "starting '$EDITOR' for $files"
   note "invoking '$evoke'"
   $evoke $files
 }
 als__E=edit-main
 
-
-
-box_init_args()
-{
-  # subcmd-name
-  test -n "$1" && {
-    subcmd_name="$1" ; c=$(( $c + 1 ))
-  } || subcmd_name=run
-  # script-name
-  test -n "$2" && {
-    script_name="$2" ; c=$(( $c + 1 ))
-  } || {
-    script_name="${hostname}"
-  }
-}
 
 als__i=init
 main_1_init="Add script function, optionally providing command and script name"
@@ -87,7 +86,15 @@ c_init()
     global_func_name= local_func_name= \
     local_script= named_script= uconf_script=
 
-  box_init_local 1 || error "error during box-init-local" $?
+  box_init_local 2 || error "error during box-init-local" $?
+  global_func_name=c_${script_name}__${script_subcmd_name}
+  local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_name}
+
+  test -z "$dry_run" || {
+    debug "global_func_name='$global_func_name'"
+    debug "local_func_name='$local_func_name'"
+    info "** DRY RUN ends **" 0
+  }
 
   ## Init global function if needed
   grep -s '^'$global_func_name'()$' $named_script > /dev/null && {
@@ -156,6 +163,7 @@ EOF
 
 main_1_new="Initialize new script"
 spc_new="-n|new [<name>=$hostname]"
+als__n=new
 c_new()
 {
   local name= cmd=run c=0 script=
@@ -164,6 +172,11 @@ c_new()
   local script=$BOX_BIN_DIR/$name
   test -e $script || box_init_script $script
   local func="${nid_cwd}_${name}_${cmd}"
+  test -z "$dry_run" || {
+    debug "script='$script'"
+    debug "func='$func'"
+    info "** DRY RUN ends **" 0
+  }
   note "TODO check for existing function"
   box_add_function $func $script "$(cat <<-EOF
   set -- # no-op
@@ -173,9 +186,7 @@ EOF
   mkvid c_${name}_${cmd}
   note "TODO add invocation to script function"
   #box_add_idx $vid $script $func
-
 }
-als__n=new
 
 
 main_1_function="Initialize function for current location"
@@ -188,28 +199,6 @@ c_function()
   echo TODO add function to script
 }
 als__f=function
-
-
-man_1_="Default: require localscript. "
-c_()
-{
-  local c=0 script_name= subcmd_name= \
-    global_func_name= local_func_name= \
-    local_script= named_script= uconf_script=
-
-  box_init_args $@
-  test $c -eq 0 || shift $c ; c=0
-  box_init_local || { r=$?
-    test $r -eq 0 || error "$r error during box-init-local" $r
-  }
-
-  # XXX list cmds? $UCONFDIR/box/${hostname}/index.sh list $(pwd)
-  type run_box 1> /dev/null 2> /dev/null && {
-    run_box $@
-  } || {
-    error "no default cmd" 1
-  }
-}
 
 
 man_1_list="."
@@ -234,6 +223,9 @@ c_run_global()
   test $c -eq 0 || shift $c ; c=0
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
+  }
+  test -z "$dry_run" || {
+    info "** DRY RUN ends **" 0
   }
 
   type $global_func_name 2> /dev/null 1> /dev/null || {
@@ -265,6 +257,9 @@ c_run()
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
+  test -z "$dry_run" || {
+    info "** DRY RUN ends **" 0
+  }
 
   type $local_func_name 2> /dev/null 1> /dev/null || {
     r=$?
@@ -281,12 +276,18 @@ c_run()
   }
 }
 
+
+man_1_="Default: (local) run"
+als__c=run
+
+
 man_1_complete="Testing bash complete with sh compatible script."
 spc_complete=complete
 c_complete()
 {
   cmds=""
 }
+
 
 man_1_check_install="Run internal tests."
 spc_check_install=check-install
@@ -321,14 +322,14 @@ c_check_install()
 
 box__main()
 {
-  local scriptname=box base=$(basename $0 .sh) verbosity=5
+  local scriptname=box base=$(basename $0 .sh)
 
-  test -n "$PREFIX" || PREFIX=$HOME
-  . $PREFIX/bin/box.init.sh
+  box__init
+
+  var_isset verbosity || verbosity=5
 
   case "$base" in $scriptname )
 
-      box__init
       subcmd_def=
       subcmd_pref= subcmd_suf=
       export subcmd_func_pref=c_ subcmd_func_suf=
@@ -345,6 +346,8 @@ box__main()
 
 box__init()
 {
+  test -n "$PREFIX" || PREFIX=$HOME
+  . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
   . $PREFIX/bin/main.sh
   . $PREFIX/bin/box.lib.sh
