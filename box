@@ -207,6 +207,11 @@ man_1_list="."
 spc_list="list <Name>"
 c_list()
 {
+  test -z "$dry_run" || {
+    debug "nid_cwd='$nid_cwd'"
+    debug "'$BOX_BIN_DIR/*'"
+    info "** DRY RUN ends **" 0
+  }
   grep -srI ${nid_cwd} $BOX_BIN_DIR/*
 }
 als__l=list
@@ -237,7 +242,7 @@ c_run_global()
   }
 
   $global_func_name $@ && {
-    info "command $box_name completed"
+    info "command $box_name completed ($subbox_name)"
   } || {
     r=$?
     error "running command $box_name"
@@ -256,16 +261,20 @@ c_run()
 
   box_init_args $@
   test $c -eq 0 || shift $c ; c=0
+  test -n "$script_subcmd_name" || script_subcmd_name=$subcmd_name
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
+  local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_name}
   test -z "$dry_run" || {
+    debug "script_subcmd_name=$script_subcmd_name"
+    debug "local_func_name=$local_func_name"
     info "** DRY RUN ends **" 0
   }
 
   type $local_func_name 2> /dev/null 1> /dev/null || {
     r=$?
-    error "no local command $box_name"
+    error "no local command $subbox_name"
     return $r
   }
 
@@ -328,13 +337,13 @@ box__main()
 
   box__init
 
-  var_isset verbosity || verbosity=5
+  var_isset verbosity || export verbosity=5
 
   case "$base" in $scriptname )
 
-      subcmd_def=
+      subcmd_def=run
       subcmd_pref= subcmd_suf=
-      export subcmd_func_pref=c_ subcmd_func_suf=
+      subcmd_func_pref=c_ subcmd_func_suf=
 
       # Execute
       main $*

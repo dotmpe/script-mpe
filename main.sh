@@ -264,22 +264,14 @@ main_load()
 
 main_debug()
 {
-  debug "vars: 
-    args=$*
-    cmd=$base
-    subcmd_name=$subcmd_name
-    script_name=$script_name
-    script_subcmd=$script_subcmd
+  debug "vars:
+    cmd=$base args=$*
+    subcmd_name=$subcmd_name subcmd_alias=$subcmd_alias
 
-    silent=$silent
-    silence=$silence
-    verbosity=$verbosity
+    silent=$silent silence=$silence verbosity=$verbosity
 
-    subcmd_alias=$subcmd_alias
-    subcmd_func=$subcmd_func
-    subcmd_func_pref=$subcmd_func_pref
-    subcmd_func_suf=$subcmd_func_suf
-    subcmd_name=$subcmd_name
+    script_name=$script_name script_subcmd_name=$script_subcmd_name
+    subcmd_func=$subcmd_func subcmd_func_pref=$subcmd_func_pref subcmd_func_suf=$subcmd_func_suf
   "
 }
 
@@ -295,6 +287,8 @@ main()
   local subcmd_name= subcmd_alias= subcmd_func= e= c=0 dry_run=
 
   local silence= choice_force= choice_all= choice_local= choice_global=
+
+  var_isset verbosity || verbosity=6
 
   get_subcmd_args $*
   test $c -gt 0 && shift $c ; c=0

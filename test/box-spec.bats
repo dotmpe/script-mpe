@@ -64,9 +64,9 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
 # Dry Runs go successfully
 @test "${bin} -vv -n init" {
-  skip "fix dry run"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
+  skip "fix options"
   run ${bin} -nqq init
   test $status -eq 0
   test -z "${lines[*]}"
@@ -82,16 +82,16 @@ usage_line_3="  ${base} <cmd> [<args>..]"
   test -z "${lines[*]}"
 }
 
-@test "${bin} -vn edit-main" {
+@test "${bin} -v -n edit-main" {
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
 }
 
-@test "${bin} -vn new" {
+@test "${bin} -v -n new" {
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   skip "FIXME dry runs only work with verbosity on?"
-  run ${bin} -nqq new
+  run ${bin} -n -qq new
   test $status -eq 0
   test -z "${lines[*]}"
 }

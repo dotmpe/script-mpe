@@ -117,31 +117,36 @@ test_v()
   test -z "$verbosity" -o $verbosity -ge $1 && return || return 1
 }
 
+test_exit()
+{
+  test -z "$1" && return 1 || test $1 -eq 0 || exit $1
+}
+
 #emerg() 1
 #crit() 2
 error()
 {
-  test_v 3 || return 0
+  test_v 3 || test_exit $2 || return 0
   err "Error" "$1" $2
 }
 warn()
 {
-  test_v 4 || return 0
+  test_v 4 || test_exit $2 || return 0
   err "Warning" "$1" $2
 }
 note()
 {
-  test_v 5 || return 0
+  test_v 5 || test_exit $2 || return 0
   err "Notice" "$1" $2
 }
 info()
 {
-  test_v 6 || return 0
+  test_v 6 || test_exit $2 || return 0
   err "Info" "$1" $2
 }
 debug()
 {
-  test_v 7 || return 0
+  test_v 7 || test_exit $2 || return 0
   err "Debug" "$1" $2
 }
 
