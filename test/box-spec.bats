@@ -141,7 +141,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
   test $status -eq 0
 }
 
-@test "${bin} list-lib" "lists the includes of a named file" {
+@test "${bin} list-libs" "lists the includes of a named file" {
 
   check_skipped_envs simza travis || skip "FIXME $envs: not running on $env"
 

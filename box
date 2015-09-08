@@ -9,6 +9,7 @@ set -e
 
 ### User commands
 
+
 man_1_help="Echo a combined usage, command and docs"
 spc_help="-h|help"
 c_help()
@@ -38,7 +39,8 @@ c_edit()
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
-  local files="$script_files $fn $(eval echo $(dry_run= box_list_libs \
+  local files="$script_files $fn $BOX_DIR/${script_name}"
+  local lib_files="$(eval echo $(dry_run= box_list_libs \
       $named_script $script_name | cut -d ' ' -f 4))"
   local evoke="$EDITOR -O2 +/${nid_cwd}"
 
@@ -49,7 +51,7 @@ c_edit()
   }
   note "starting '$EDITOR' for $files"
   note "invoking '$evoke'"
-  $evoke $files
+  $evoke $files $lib_files
 }
 als__e="edit"
 
@@ -223,9 +225,9 @@ c_list()
 als__l=list
 
 
-man_1_list_lib="List includes for script."
-spc_list_lib="list-lib"
-c_list_lib()
+man_1_list_libs="List includes for script."
+spc_list_libs="list-libs"
+c_list_libs()
 {
   local c=0 script_files= \
     local_script= named_script= uconf_script=
@@ -335,8 +337,8 @@ c_check_install()
 }
 
 
-
 ### Main
+
 
 box__main()
 {
