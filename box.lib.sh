@@ -226,5 +226,8 @@ box_list_libs()
     info "** DRY RUN ends **" 0
   }
 
+  test -n "$line_offset" || error "line_offset empty" 1
+  test -n "$line_diff" || error "line_diff empty" 1
+
   { tail -n +4 | tail -n +$line_offset | head -n $line_diff; } < $1
 }
