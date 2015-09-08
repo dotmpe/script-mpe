@@ -7,7 +7,6 @@ init_bin
 version=0.0.0
 
 @test "$bin no arguments no-op" {
-  #check_skipped_envs jenkins || skip "TODO $BATS_TEST_DESCRIPTION"
   run $bin
   test $status -eq 1
   echo "${#lines[@]}" > /tmp/1
@@ -73,7 +72,7 @@ version=0.0.0
 
 @test "$bin rewrite and test to new main.sh" {
   check_skipped_envs || \
-    skip "TODO envs $envs: implement bin for env: $BATS_TEST_DESCRIPTION"
+    skip "TODO envs $envs: implement bin for env"
   #run $BATS_TEST_DESCRIPTION
   #test $status -eq 0
   #test "${#lines[@]}" = "9"

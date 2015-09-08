@@ -10,6 +10,7 @@ source $lib/main.sh
 
 # main / Incr-C
 
+
 @test "$lib/main incr x (amount): increments var x, output is clean" {
 
   var_isset x && test -z "Unexpected x= var in env" || noop
@@ -26,6 +27,7 @@ source $lib/main.sh
 
   unset x
 }
+
 
 @test "$lib/main incr-c: increments var c, output is clean" {
 
@@ -45,7 +47,9 @@ source $lib/main.sh
   unset c
 }
 
+
 # main / Clean Env
+
 
 @test "$lib/main should source (functions) without polluting environment (with vars)" {
 
@@ -75,10 +79,12 @@ source $lib/main.sh
   var_isset tag && test -z "Unexpected tag= var in env" || noop
 }
 
+
 @test "$lib/main expect some *nix env" {
 
   var_isset HOME || test -z "Expected HOME= var in env"
 }
+
 
 @test "$lib/main expect the env for Box" {
 
@@ -86,51 +92,53 @@ source $lib/main.sh
   var_isset BOX_DIR || test -z "Expected BOX_DIR= var in env"
 }
 
+
 @test "$lib/main std-help" {
-  check_skipped_envs || \
-    skip "TODO envs $envs: implement for env: $BATS_TEST_DESCRIPTION"
+
+  check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
 
 @test "$lib/main std-usage" {
-  check_skipped_envs || \
-    skip "TODO envs $envs: implement for env: $BATS_TEST_DESCRIPTION"
+
+  check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
 
 @test "$lib/main locate-name" {
-  check_skipped_envs || \
-    skip "TODO envs $envs: implement for env: $BATS_TEST_DESCRIPTION"
+
+  check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
 
 @test "$lib/main get-cmd-{alias,func,func-name}" {
-  check_skipped_envs || \
-    skip "TODO envs $envs: implement for env: $BATS_TEST_DESCRIPTION"
+
+  check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
+
 
 @test "$lib/main get-cmd-func-name sets local ${1}_func from internal vars" {
 
   var_isset test_name && test -z "Unexpected test_name= var in env" || noop
-  check_skipped_envs || \
-    skip "TODO envs $envs: implement for env: $BATS_TEST_DESCRIPTION"
+  check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
 
+
 @test "$lib/main get-subcmd-args,parse-subcmd-{valid-args,alias,opts}" {
-  check_skipped_envs || \
-    skip "TODO envs $envs: implement for env: $BATS_TEST_DESCRIPTION"
+
+  check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
 
 @test "$lib/main main-load" {
-  check_skipped_envs || \
-    skip "TODO envs $envs: implement for env: $BATS_TEST_DESCRIPTION"
+
+  check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
 
 @test "$lib/main main-debug" {
-  check_skipped_envs || \
-    skip "TODO envs $envs: implement for env: $BATS_TEST_DESCRIPTION"
+
+  check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
 
 @test "$lib/main main" {
-  check_skipped_envs || \
-    skip "TODO envs $envs: implement for env: $BATS_TEST_DESCRIPTION"
+
+  check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
 
 

@@ -88,7 +88,9 @@ source $lib.sh
 }
 
 @test "$bin compile regex for name pattern with" {
-    skip "TODO"
+
+  check_skipped_envs || \
+    skip "TODO envs $envs: implement test for env"
 }
 
 # vim:ft=sh:

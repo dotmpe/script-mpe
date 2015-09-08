@@ -6,7 +6,8 @@ load helper
 
 
 @test "$bin ffnenc.py" {
-  check_skipped_envs travis vs1 simza || skip "TODO $envs: env $env: $BATS_TEST_DESCRIPTION"
+  check_skipped_envs travis vs1 simza || \
+    skip "TODO envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "${#lines[@]}" = "1"
@@ -14,7 +15,8 @@ load helper
 }
 
 @test "$bin -q ffnenc.py" {
-  check_skipped_envs travis vs1 simza || skip "TODO $envs: env $env: $BATS_TEST_DESCRIPTION"
+  check_skipped_envs travis vs1 simza || \
+    skip "TODO envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "${#lines[@]}" = "1"
@@ -22,7 +24,8 @@ load helper
 }
 
 @test "$bin -qE ffnenc.py" {
-  check_skipped_envs travis vs1 simza || skip "TODO $envs: env $env: $BATS_TEST_DESCRIPTION"
+  check_skipped_envs travis vs1 simza || \
+    skip "TODO envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "${#lines[@]}" = "1"
