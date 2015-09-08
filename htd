@@ -2,7 +2,7 @@
 
 # Htdocs: work in progress 'daily' shell scripts
 
-# Id: script.mpe/0.0.0+20150908-1647 htd
+# Id: script.mpe/0.0.0+20150908-1716 htd
 
 test -n "$PREFIX" || PREFIX=$HOME
 verbosity=6
