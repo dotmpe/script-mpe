@@ -138,5 +138,22 @@ usage_line_3="  ${base} <cmd> [<args>..]"
   test $status -eq 0
 }
 
+@test "${bin} list-lib" "lists the includes of a named file" {
+
+  run $BATS_TEST_DESCRIPTION
+  echo ${status} > /tmp/1
+  echo "${lines[*]}" >> /tmp/1
+  echo "${#lines[@]}" >> /tmp/1
+  test $status -eq 0
+
+  case "$(current_test_env)" in simza | vs1 )
+      test "${#lines[@]}" = "5" # lines of output (stderr+stderr)
+      ;;
+    * )
+      test "${#lines[@]}" = "3" # lines of output (stderr+stderr)
+      ;;
+  esac
+}
+
 
 # vim:ft=sh:

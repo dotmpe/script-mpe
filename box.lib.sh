@@ -214,7 +214,7 @@ box_list_libs()
     sentinel_grep='.*#.--.'${2}'.box.include.main.sentinel.--'
 
   box_grep $sentinel_grep $1
-  local line_diff=$(( $line_number - $line_offset - 1 ))
+  local line_diff=$(( $line_number - $line_offset - 2 ))
 
   test -z "$dry_run" || {
     debug "named_script='$1'"
