@@ -18,6 +18,12 @@ var_isset()
   return 1
 }
 
+# No-Op(eration)
+noop()
+{
+    set --
+}
+
 #
 req_arg()
 {

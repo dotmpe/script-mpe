@@ -2,7 +2,15 @@
 
 incr_c()
 {
-  c=$(( $c + 1 ))
+  incr c $1
+}
+
+incr()
+{
+  local incr_amount
+  test -n "$2" && incr_amount=$2 || incr_amount=1
+  v=$(eval echo \$$1)
+  export $1=$(( $v + $incr_amount ))
 }
 
 # Get help str if exists for $section $id
@@ -60,17 +68,19 @@ get_subcmd_valid_flags()
 parse_subcmd_alias()
 {
   c=0
-  get_cmd_alias subcmd $1 && {
+  get_cmd_alias subcmd $1
+  test -n "$subcmd_alias" && {
     c=1
     subcmd_name=$subcmd_alias
-    #unset subcmd_alias
   } || return 1
 }
 
 parse_subcmd_opts()
 {
+  local o=
   while getopts faglicvqs o
-  do  case "$o" in
+  do
+    case "$o" in
 
     #r ) subcmd=run;;
     #n ) subcmd=new;;
@@ -101,29 +111,31 @@ parse_subcmd_opts()
 
 get_subcmd_args()
 {
-  local c=0
+  local sc=0 tc=$c c=0
 
   while [ $# -gt 0 ]
   do  case "$1" in
 
-    -* )
-      parse_subcmd_alias $* && {
-        echo "parse_subcmd_alias c=$c subcmd_name=$subcmd_name"
-        test $c -gt 0 && shift $c ; c=0
-      } || {
-        echo continue
-        set --
-      }
-      parse_subcmd_opts $* && {
-        test $c -gt 0 && shift $c ; c=0
-        continue
-      } || {
-        error "foo $?"
-      }
-      ;;
-
     -- )
       break
+      ;;
+
+    -* )
+      parse_subcmd_alias $* && {
+          test $c -gt 0 && {
+            sc=$(( $c + $sc )); shift $c ; c=0;
+            continue
+          }
+      } || noop
+      parse_subcmd_opts $* && {
+        test $c -gt 0 && {
+          sc=$(( $c + $sc )); shift $c ; c=0;
+          continue
+        }
+      } || { r=$?
+        test $r -eq 1 && continue
+        error "unparsable opt? $1 from '$*' returns '$r'"
+      }
       ;;
 
     * )
@@ -150,10 +162,23 @@ get_subcmd_args()
 
     esac
 
-    incr_c
+    echo sc=$sc \#=$# @=$@
+    incr sc
     shift
 
   done
+
+  c=$tc
+  test $sc -gt 0 && {
+    c=$(( $c + $sc ))
+  }
+
+  # XXX swap script-name with script-subcmd-name arg if latter is empty.. # always?
+  if test -n "$script_name" -a -z "$script_subcmd_name"
+  then
+    script_subcmd_name=$script_name
+    script_name=
+  fi
 }
 
 get_cmd_func_name()
@@ -179,8 +204,8 @@ get_cmd_func()
     for tag in pref suf; do
       # allow empty setting
       var_isset ${1}_func_${tag} && {
-        local func_${tag}=$(eval echo \$${1}_func_${tag})
-        info "loaded func_${tag} from ${1}: $(eval echo $func_${tag})"
+        export func_${tag}=$(eval echo \$${1}_func_${tag})
+        info "loaded func_${tag} from ${1}: $(eval echo \$func_${tag})"
       }
     done
     var_isset func_pref || local func_pref=c_
@@ -189,6 +214,7 @@ get_cmd_func()
     test -n "$(eval echo \$${1}_name)" || local ${1}_name=$(eval echo \$${1}_def)
 
     get_cmd_func_name $1
+    unset func_pref
 }
 
 main_load()
@@ -198,18 +224,19 @@ main_load()
     r=$?; test -n "$1" || error "std load failed" $r
   }
   test -n "$1" || return
-  try_exec_func ${1}_load || error "${1} load failed" $?
+  try_exec_func ${1}__load || error "${1} load failed" $?
 }
 
 main_usage()
 {
   try_exec_func usage && return
   test -n "$1" || return 1
-  try_exec_func ${1}_usage || return $?
+  try_exec_func ${1}__usage || return $?
 }
 
 main_debug()
 {
+  test $verbosity -ge 7 || return 0
   echo "
     cmd=$base
     subcmd_name=$subcmd_name
@@ -222,6 +249,8 @@ main_debug()
 
     subcmd_alias=$subcmd_alias
     subcmd_func=$subcmd_func
+    subcmd_func_pref=$subcmd_func_pref
+    subcmd_func_suf=$subcmd_func_suf
     subcmd_name=$subcmd_name
   "
 }
@@ -235,22 +264,21 @@ main_debug()
 
 main()
 {
-  local subcmd_name= subcmd_func= e= c=0 verbosity=6
+  local subcmd_name= subcmd_alias= subcmd_func= e= c=0
 
   local silence= choice_force= choice_all= choice_local= choice_global=
 
   get_subcmd_args $*
-  #subcmd_name=$subcmd
+  test $c -gt 0 && shift $c ; c=0
   get_cmd_func subcmd
-  #main_debug; exit
+  main_debug
 
   main_load $base
   debug "$base loaded"
 
   func_exists $subcmd_func || {
-
+    debug "no such subcmd-func $subcmd_func"
     main_usage $base
-
     test -z "$subcmd_name" && {
       error 'No command given' 1
     } || {

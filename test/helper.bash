@@ -50,12 +50,6 @@ check_skipped_envs()
   return $skipped
 }
 
-# test / helper No-Op(eration)
-noop()
-{
-    set --
-}
-
 next_temp_file()
 {
   test -n "$pref" || pref=script-mpe-test-

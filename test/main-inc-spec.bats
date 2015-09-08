@@ -10,7 +10,24 @@ source $lib/main.sh
 
 # main / Incr-C
 
-@test "$lib/main incr-c increments var c, output is clean" {
+@test "$lib/main incr x (amount): increments var x, output is clean" {
+
+  var_isset x && test -z "Unexpected x= var in env" || noop
+
+  incr x 3
+  test $? -eq 0
+  test -z "${lines[*]}"
+
+  test -n "$x"
+  test $x -eq 3
+
+  incr x 1
+  test $x -eq 4
+
+  unset x
+}
+
+@test "$lib/main incr-c: increments var c, output is clean" {
 
   var_isset c && test -z "Unexpected c= var in env" || noop
 
