@@ -114,7 +114,7 @@ test_htd_$d::
 	bats ./test/htd-spec.bats
 
 test_other_bats_$d::
-	bats ./test/box-spec.bats
+	bats ./test/{basename-reg,box,helper,main-inc,mimereg,str,util-lib}-spec.bats
 
 # Make SA do a test on the repo
 DB_SQLITE_TEST=.test/db.sqlite
