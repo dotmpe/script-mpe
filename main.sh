@@ -263,7 +263,7 @@ main_load()
   }
   test -n "$1" || return
   try_exec_func ${1}__load || {
-    test -n "$r"|| {
+    test -z "$r" || {
       test $r -eq 0 || error "${1} load failed" $?
     }
   }

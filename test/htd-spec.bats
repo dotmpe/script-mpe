@@ -4,10 +4,13 @@ base=htd
 load helper
 init_bin
 
+version=0.0.0
+
 @test "$bin no arguments no-op" {
-  check_skipped_envs jenkins || skip "TODO $BATS_TEST_DESCRIPTION"
-  run $BATS_TEST_DESCRIPTION
-  test $status -eq 2
+  #check_skipped_envs jenkins || skip "TODO $BATS_TEST_DESCRIPTION"
+  run $bin
+  test $status -eq 1
+  echo "${#lines[@]}" > /tmp/1
   test "${#lines[@]}" = "4"
 }
 
@@ -26,10 +29,12 @@ init_bin
   test "${lines[0]}" = "$(echo ~/public_html)"
 }
 
-@test "$bin info" {
+@test "$bin  info" {
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "${#lines[@]}" = "9"
+  #echo "${lines[@]}" > /tmp/1
+  #echo "${#lines[@]}" >> /tmp/1
+  test "${#lines[@]}" = "10"
 }
 
 @test "$bin test-name" {
@@ -60,11 +65,19 @@ init_bin
   test $status -eq 0
 }
 
-@test "$bin test-name" {
+@test "$bin version" {
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "${#lines[@]}" = "9"
-  test -z "${lines[*]}" # empty output
+  test "${lines[0]}" = "$version"
+}
+
+@test "$bin rewrite and test to new main.sh" {
+  check_skipped_envs $(hostname) || \
+    skip "TODO $envs: implement for env $env: $BATS_TEST_DESCRIPTION"
+  #run $BATS_TEST_DESCRIPTION
+  #test $status -eq 0
+  #test "${#lines[@]}" = "9"
+  #test -z "${lines[*]}" # empty output
 }
 
 # vim:ft=sh:

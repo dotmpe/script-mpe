@@ -1683,9 +1683,9 @@ htd__main()
 
   case "$base" in $scriptname )
 
-      subcmd_def=run
+      subcmd_def=
       subcmd_pref= subcmd_suf=
-      subcmd_func_pref=c_ subcmd_func_suf=
+      export subcmd_func_pref=c_ subcmd_func_suf=
 
       # Execute
       main $*
