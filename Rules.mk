@@ -1,4 +1,4 @@
-# Id: script-mpe/0.0.0+20150906-0455 Rules.mk
+# Id: script.mpe/0.0.0+20150908-1647 Rules.mk
 #
 # Non recursive make, partial rule file. See github mkdocs.
 include                $(MK_SHARE)Core/Main.dirstack.mk
@@ -7,7 +7,7 @@ MK                  += $/Rules.mk
 #      ------------ -- 
 
 
-VERSION= 0.0.0+20150906-0455# script-mpe
+VERSION= 0.0.0+20150908-1647# script.mpe
 
 $(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 

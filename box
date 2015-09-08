@@ -2,7 +2,7 @@
 
 # Box: create namespaced script commands 
 
-# Id: script.mpe
+# Id: script.mpe/0.0.0+20150908-1647t box
 
 set -e
 
