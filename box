@@ -229,15 +229,8 @@ c_list_lib()
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
-  local files="$script_files $fn"
-  test -z "$dry_run" || {
-    debug "files='$files'"
-    debug "nid_cwd='$nid_cwd'"
-    debug "'$BOX_BIN_DIR/*'"
-    info "** DRY RUN ends **" 0
-  }
-  line_number=$(box_script_insert_point $named_script load)
 
+  box_list_libs $named_script $script_name
 }
 
 

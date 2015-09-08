@@ -207,4 +207,24 @@ box_init_args()
   }
 }
 
+box_list_libs()
+{
+  local \
+    line_offset=$(box_script_insert_point $1 load) \
+    sentinel_grep='.*#.--.'${2}'.box.include.main.sentinel.--'
 
+  box_grep $sentinel_grep $1
+  local line_diff=$(( $line_number - $line_offset - 1 ))
+
+  test -z "$dry_run" || {
+    debug "named_script='$1'"
+    debug "scan after line $line_offset"
+    debug "scan up to line $line_number"
+    debug "scan total lines $line_diff"
+    debug "nid_cwd='$nid_cwd'"
+    debug "'$BOX_BIN_DIR/*'"
+    info "** DRY RUN ends **" 0
+  }
+
+  { tail -n +4 | tail -n +$line_offset | head -n $line_diff; } < $1
+}
