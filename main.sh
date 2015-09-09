@@ -124,7 +124,7 @@ parse_subcmd_opts()
 
     f ) parse_subcmd_valid_flags $o new; choice_force=true;;
     a ) parse_subcmd_valid_flags $o list; choice_all=true;;
-    g ) parse_subcmd_valid_flags $o run init; choice_global=true;;
+    g ) parse_subcmd_valid_flags $o run init edit; choice_global=true;;
     l ) parse_subcmd_valid_flags $o; choice_local=true;;
 
     n ) dry_run=true ;;

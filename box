@@ -39,19 +39,31 @@ c_edit()
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
-  local files="$script_files $fn $BOX_DIR/${script_name}"
+  test -n "$choice_global" && {
+    func_name=$global_func_name scope=global
+    files="$fn $BOX_DIR/${script_name} $script_files"
+    note "Using **global** scope"
+  } || {
+    func_name=$local_func_name scope=local
+    files="$script_files $BOX_DIR/${script_name} $fn"
+  }
   local lib_files="$(eval echo $(dry_run= box_list_libs \
       $named_script $script_name | cut -d ' ' -f 4))"
-  local evoke="$EDITOR -O2 +/${nid_cwd}"
+  local evoke="$EDITOR -O2 +/${nid_cwd} \
+    -c "'":wincmd l"'" \
+    -c :sp +/${nid_cwd} \
+    -c "'"wincmd j"'" \
+    -c :bn \
+    -c "'"wincmd h"'
 
   test -z "$dry_run" || {
     debug "files='$files'"
     debug "evoke='$evoke'"
     info "** DRY RUN ends **" 0
   }
-  note "starting '$EDITOR' for $files"
+  note "starting '$EDITOR' for $scope files of $box_name/$subbox_name"
   note "invoking '$evoke'"
-  $evoke $files $lib_files
+  eval $evoke $files $lib_files
 }
 als__e="edit"
 

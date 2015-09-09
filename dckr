@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+#set -e
 
 scriptname=dckr
 
@@ -466,8 +466,21 @@ c_init_munin()
   image_name=scalingo-munin-server
   dckr_name=scalingo_munin
   cd ~/project/docker-munin-server
-  dckr_build && \
-  dckr_rm && \
+  dckr_build && dckr_stop && \
+    dckr_rm && c_run_munin
+}
+
+c_stop_munin()
+{
+  image_name=scalingo-munin-server
+  dckr_name=scalingo_munin
+  dckr_stop
+}
+
+c_run_munin()
+{
+  image_name=scalingo-munin-server
+  dckr_name=scalingo_munin
   dckr_run \
     -p 8003:8080 \
     -v $DCKR_VOL/munin/logs:/var/log/munin:rw \
@@ -562,8 +575,8 @@ c_init_bind()
 {
   sudo docker run --name ${pref}bind -d --restart=always \
       --publish 53:53/udp --publish 10000:10000 \
-        --volume $DCKR_VOL/bind:/data \
-          sameersbn/bind:latest
+      --volume $DCKR_VOL/bind:/data \
+      sameersbn/bind:latest
 }
 
 c_init_dns()
@@ -683,7 +696,7 @@ error()
 }
 
 
-# Main
+### Main
 
 . $HOME/bin/util.sh
 
