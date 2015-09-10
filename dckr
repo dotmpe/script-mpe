@@ -7,7 +7,7 @@ set -e
 dckr__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 dckr__help()
 {
-  std_help dckr $*
+  std_help dckr "$@"
 }
 dckr__als__h=help
 
