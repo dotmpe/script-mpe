@@ -1,4 +1,5 @@
 #!/bin/sh
+dckr_source=$_
 
 set -e
 
@@ -661,18 +662,7 @@ error()
 
 dckr__main()
 {
-  local scriptname=dckr base=$(basename $0 .sh)
-
-  test -n "$PREFIX" || PREFIX=$HOME
-  test -n "$BOX_INIT" && {
-    return
-  } || {
-    . $PREFIX/bin/box.init.sh
-  }
-
-  dckr_init
-
-  var_isset verbosity || export verbosity=5
+  local scriptname=dckr base=$(basename $0 .sh) verbosity=5
 
   case "$base" in $scriptname )
 
@@ -680,12 +670,10 @@ dckr__main()
         subcmd_pref= subcmd_suf= \
         subcmd_func_pref=${base}__ subcmd_func_suf=
 
-      # Execute
-      main $*
-      ;;
+      dckr_init
 
-    * )
-      error "not a frontend for $base"
+      # Execute
+      main "$@"
       ;;
   esac
 }
@@ -695,9 +683,9 @@ dckr_init()
   test -n "$PREFIX" || PREFIX=$HOME
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
+  box_run_sh_test
   . $PREFIX/bin/main.sh
   . $PREFIX/bin/box.lib.sh
-  box_run_sh_test
 }
 
 dckr_load()
@@ -713,10 +701,11 @@ dckr_load()
   dckr_c_pref="${hostname}-"
 
   test -n "$EDITOR" || EDITOR=vim
+  # -- dckr box main include sentinel --
+  set --
 }
 
 # Use hyphen to ignore source exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
-  dckr__main $@
+  dckr__main "$@"
 fi
-# vim:noet:

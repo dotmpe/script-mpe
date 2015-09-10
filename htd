@@ -41,7 +41,7 @@ htd_load()
     }
   }
   htd_init_ignores
-	{
+  {
   find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
     grep -Ev '^(#.*|\s*)$' | \
     sed -E 's/^\//\.\//' | \
@@ -1701,7 +1701,7 @@ htd__main()
 
       htd__lib
       # Execute
-      main $*
+      main "$@"
       ;;
 
     #* )
@@ -1713,16 +1713,16 @@ htd__main()
 htd__init()
 {
   test -n "$PREFIX" || PREFIX=$HOME
-  #test -z "$BOX_INIT" || return 1
+  test -z "$BOX_INIT" || return 1
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
+  box_run_sh_test
   . $PREFIX/bin/main.sh
   . $PREFIX/bin/box.lib.sh
 }
 
 htd__lib()
 {
-  box_run_sh_test
   . $PREFIX/bin/match.sh
   # -- htd box main include sentinel --
   set --
@@ -1730,5 +1730,5 @@ htd__lib()
 
 # Use hyphen to ignore source exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
-  htd__main $@
+  htd__main "$@"
 fi

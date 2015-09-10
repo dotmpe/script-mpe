@@ -15,7 +15,7 @@ match_als__V=version
 
 match_name()
 {
-    echo -n name
+  echo -n name
 }
 
 
@@ -202,22 +202,18 @@ match__main()
         subcmd_pref= subcmd_suf= \
         subcmd_func_pref=${base}_ subcmd_func_suf=
 
-      match_init || return 0
+      match_init
 
       # Execute
       main "$@"
       ;;
 
-    #* )
-    #  error "not a frontend for $base"
-    #  ;;
   esac
 }
 
 match_init()
 {
   test -n "$PREFIX" || PREFIX=$HOME
-  #test -z "$BOX_INIT" || return 1
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
   box_run_sh_test
