@@ -1,37 +1,35 @@
-#!/usr/bin/env bash
+#!/bin/sh
+match_source=$_
+
 set -e
 
-MATCH_NAME_VARS=
-#MATCH_NAME_VARS="SZ SHA1_CKS MD5_CKS CK_CKS EXT NAMECHAR NAMEPARTS ALPHA ANY PART OPTPART"
 
-verbosity=6
-test -z "$PREFIX" && source ./util.sh || source $PREFIX/bin/util.sh
-
-scriptname=match
-
-match__v()
-{
-	match_version
-}
+match_man_1_version="no version yet, just checking it goes"
+match_spc_version="-v|version"
 match_version()
 {
-	# no version, just checking it goes
-	echo 0.0.0
+  echo 0.0.0
 }
+match_als__V=version
+
+
 match_name()
 {
     echo -n name
 }
+
 
 match_load()
 {
 	match_load_table vars
 }
 
+
 match_var_names()
 {
 	echo $MATCH_NAME_VARS
 }
+
 
 match_load_defs()
 {
@@ -41,7 +39,7 @@ match_load_defs()
 	#echo MATCH_NAME_VARS_new=$MATCH_NAME_VARS_new
 	#read -ra MATCH_NAME_VARS<<<$(printf '%s\n' "$MATCH_NAME_VARS_new" |
 	#	awk -v RS='[[:space:]]+' '!a[$0]++{printf "%s%s", $0, RT}')
-	source $1
+	. $1
 }
 
 # To escape filenames and perhaps other values for use as grep literals
@@ -168,7 +166,7 @@ match_names()
 }
 
 # Load part names and patterns
-req_arg_match_book=("Table name" book)
+#req_arg_match_book=( "Table name" book )
 match_load_table()
 {
 	local cmd="match load-table"
@@ -181,8 +179,8 @@ match_load_table()
 }
 
 # Compile new table 
-req_arg_pattern=("Name pattern" pattern)
-req_arg_pattern_name=("Pattern name" name)
+# FIXME req_arg_pattern=("Name pattern" pattern)
+# FIXME req_arg_pattern_name=("Pattern name" name)
 match_compile()
 {
 	req_arg "$1" "match compile" 1 pattern && shift 1 || return 1
@@ -191,57 +189,52 @@ match_compile()
 }
 
 
-. ~/bin/std.sh
+### Main
 
 
-# Main
+match__main()
+{
+  local scriptname=match base=$(basename $0 .sh) verbosity=5
 
-#def_func=match_default
+  case "$base" in $scriptname )
 
+      local subcmd_def=stat \
+        subcmd_pref= subcmd_suf= \
+        subcmd_func_pref=${base}_ subcmd_func_suf=
+
+      match_init || return 0
+
+      # Execute
+      main "$@"
+      ;;
+
+    #* )
+    #  error "not a frontend for $base"
+    #  ;;
+  esac
+}
+
+match_init()
+{
+  test -n "$PREFIX" || PREFIX=$HOME
+  #test -z "$BOX_INIT" || return 1
+  . $PREFIX/bin/box.init.sh
+  . $PREFIX/bin/util.sh
+  box_run_sh_test
+  . $PREFIX/bin/main.sh
+  . $PREFIX/bin/box.lib.sh
+}
+
+match_load()
+{
+  MATCH_NAME_VARS=
+  #MATCH_NAME_VARS="SZ SHA1_CKS MD5_CKS CK_CKS EXT NAMECHAR NAMEPARTS ALPHA ANY PART OPTPART"
+
+  # -- match box main include sentinel --
+  set --
+}
+
+# Use hyphen to ignore source exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
-
-	# Do something (only) if script invoked as '$scriptname'
-	base=$(basename $0 .sh)
-	case "$base" in
-
-		$scriptname )
-
-			# function name first as argument,
-			cmd=$1
-			[ -n "$def_func" -a -z "$cmd" ] \
-				&& func=$def_func \
-				|| func=$(echo match_$cmd | tr '-' '_')
-
-			# load/exec if func exists
-			type $func &> /dev/null && {
-				func_exists=1
-				match_load
-				shift 1
-				$func "$@"
-			} || {
-				# handle non-zero return or print usage for non-existant func
-				e=$?
-				[ -z "$cmd" ] && {
-					error 'No command given, see "help"' 1
-				} || {
-					[ "$e" = "1" -a -z "$func_exists" ] && {
-						error "No such command: $cmd" 1
-					} || {
-						error "Command $cmd returned $e" $e
-					}
-				}
-			}
-
-			;;
-
-		htd | work | bats-exec-test )
-			;;
-
-		* )
-			log "No frontend for $base"
-			;;
-
-	esac
+  match__main "$@"
 fi
-
-# vim:noet:

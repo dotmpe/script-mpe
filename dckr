@@ -1,97 +1,41 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-#set -e
+set -e
 
-scriptname=dckr
 
-dckr_load()
+dckr__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+dckr__help()
 {
-  test -n "$EDITOR" || EDITOR=vim
-  test -n "$DCKR_CONF" || DCKR_CONF=~/.conf/dckr/
-  test -n "$DCKR_VOL" || DCKR_VOL=/Volumes/dckr
-
-  test -e "$DCKR_CONF" || error "Missing docker config dir $DCKR_CONF" 1
-  test -e "$DCKR_VOL" || error "Missing docker volumes dir $DCKR_VOL" 1
-
-  hostname=$(hostname -s)
-  pref=bb_
-
-  rows=$(stty size|awk '{print $1}')
-  cols=$(stty size|awk '{print $2}')
+  std_help dckr $*
 }
+dckr__als__h=help
 
-dckr_usage()
-{
-  echo "$scriptname.sh Bash/Shell script helper"
-  echo 'Usage: '
-  echo "  $scriptname <cmd> [<args>..]"
-}
 
-man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-c_help()
-{
-  test -z "$1" && {
-    dckr_usage
-    echo ''
-    htd_commands
-  } || {
-    echo_help $1
-  }
-}
-
-htd_commands()
-{
-  echo ""
-  echo 'Docker: '
-  echo "  names                            List images"
-  echo "  c <image-name>                   Get container ID"
-  echo "  stop <image-name>                Stop container for image"
-  echo "  rm                               Remove image"
-  echo "  ip [<image-name>]                List IP for one or all running containers."
-  echo "  build [<image-name>]             Do a simple docker build invocation (in cwd)"
-  echo "  init [<flags> <dckr-cmd> <image-name>] "
-  echo "                                   Do a standard run+init for an image."
-  echo ""
-  echo ""
-  echo "Generate:"
-  echo "  dnsmasq-conf                     print dnsmasq static address config using image-name as hostname"
-  echo ""
-  echo 'Misc: '
-  echo '  -E                               Edit this script.'
-  echo '  edit-local                       Edit local script. '
-  echo '  alias                            Show bash aliases for this script.'
-  echo '  usage                            print just the usage description.'
-  echo '  help                             print this help listing.'
-}
-
-man_1_edit_main="Edit the main script file"
-c_edit_main()
+dckr__man_1_edit_main="Edit the main script file"
+dckr__spc_edit_main="-E|edit-main"
+dckr__edit_main()
 {
   locate_name $scriptname || exit "Cannot find $scriptname"
   note "Invoking $EDITOR $fn"
   $EDITOR $fn
 }
-man_1__E="Alias for 'edit-main'"
-c__E()
-{
-  c_edit_main
-}
+dckr__als__E=edit-main
 
-man_1_edit_local="TODO Edit local docker conf.."
-c_edit_local()
+
+dckr__man_1_edit_local="Edit local script TODO docker conf.."
+dckr__spc_edit_main="-e|edit-local"
+dckr__edit_local()
 {
   locate_name $scriptname || exit "Cannot find $scriptname"
   local dckr_local=$DCKR_CONF/local.sh
   note "invoking $EDITOR $dckr_local $fn"
   $EDITOR $dckr_local $fn
 }
-man_1__e="Alias for 'edit-local'"
-c__e()
-{
-  c_edit_local
-}
+dckr__als__e=edit-local
 
-c_alias()
+
+dckr__man_1_alias="Show bash aliases for this script."
+dckr__alias()
 {
   grep '\<'$scriptname'\>' ~/.alias | grep -v '^#' | while read _a A
   do
@@ -101,11 +45,12 @@ c_alias()
   done
 }
 
+
 # Docker
 
 # gobble up flags and set $dckr_f, and/or set and return $dckr_cmd upon first arg.
 # $c is the amount of arguments consumed
-dckr_f_argv()
+dckr__f_argv()
 {
   c=0
   while test -n "$1"
@@ -251,50 +196,59 @@ dckr_ip()
   sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' $1
 }
 
-c_ps()
+dckr__man_1_ps="Docker ps"
+dckr__ps()
 {
   sudo docker ps
 }
 
-c_stop()
+dckr__man_1_stop="Stop container for image. "
+dckr__spc_stop="stop <image-name>"
+dckr__stop()
 {
   test -e './vars.sh' \
     && source ./vars.sh stop $@
-
-  echo image_name=$image_name
+  debug "image_name=$image_name"
   test -z "$image_name" && {
     dckr_image_argv $1
-    echo image_name=$image_name
+    debug "image_name=$image_name"
     shift $c
   }
   dckr_stop
 }
 
-c_rm()
+dckr__man_1_rm="Remove image. "
+dckr__rm()
 {
-  echo "Removing and stopping container.."
-  c_stop
+  note "Removing and stopping container.."
+  dckr__stop
   dckr_rm
 }
 
-c_start()
+dckr__man_1_start="Start image"
+dckr__start()
 {
   dckr_c -a
   dckr_start
 }
 
-c_names()
+dckr__man_1_names="List images"
+dckr__names()
 {
   dckr_names
 }
 
-c_c()
+dckr__man_1_c="Get container ID"
+dckr__spc_c="c <image-name>"
+dckr__c()
 {
   image_name=$1
   dckr_c
 }
 
-c_ip()
+dckr__man_1_ip="List IP for one or all running containers."
+dckr__spc_ip="ip [<image-name>]"
+dckr__ip()
 {
   test -n "$1" && {
     dckr_ip $1
@@ -307,11 +261,12 @@ c_ip()
   }
 }
 
-c_dnsmasq_conf()
+dckr__man_1_dnsmasq_conf="dnsmasq static address config using image-name as hostname"
+dckr__dnsmasq_conf()
 {
   #prefix=
   #suffix=
-  c_ip | while read ip name
+  dckr__ip | while read ip name
   do
     name=${name:1}
     echo "address=/$prefix$name$suffix/$ip"
@@ -319,17 +274,20 @@ c_dnsmasq_conf()
 }
 
 # XXX reload is not working
-c_dnsmasq_update()
+dckr__dnsmasq_update()
 {
   cp $DCKR_VOL/dnsmasq/dnsmasq.conf.default $DCKR_VOL/dnsmasq/dnsmasq.conf
-  c_dnsmasq_conf >> $DCKR_VOL/dnsmasq/dnsmasq.conf
+  dckr__dnsmasq_conf >> $DCKR_VOL/dnsmasq/dnsmasq.conf
   image_name=${pref}dns
   dckr_c
   sudo docker exec -i $container /opt/reload
 }
 
+
 # get image name from vars or cmdline, and start build (in current dir)
-c_build()
+dckr__man_1_build="Do a simple docker build invocation (in cwd)"
+dckr__spc_build="build [<image-name>]"
+dckr__build()
 {
   test -z "$1" -a -e './vars.sh' \
     && source ./vars.sh \
@@ -343,7 +301,9 @@ c_build()
 }
 
 # start new container for image, and (re)run initialization scripts
-c_init()
+dckr__man_1_init="Do a standard run+init for an image. "
+dckr__spc_init="init [<flags> <dckr-cmd> <image-name>]"
+dckr__init()
 {
   test -e './vars.sh' \
     && source ./vars.sh init $@
@@ -378,7 +338,7 @@ c_init()
   }
 }
 
-c_script()
+dckr__script()
 {
   test -e './vars.sh' \
     && source ./vars.sh script $@
@@ -421,7 +381,7 @@ c_script()
 # FIXME: abstract below cmds so things can move to config files
 
 # FIXME: something to persist here?
-c_init_shipyard()
+dckr__init_shipyard()
 {
   for dckr_name in shipyard shipyard-rethinkdb-data shipyard-rethinkdb
   do
@@ -437,7 +397,7 @@ c_init_shipyard()
   sudo docker run -it -p 8001:8080 -d --name shipyard --link shipyard-rethinkdb:rethinkdb shipyard/shipyard
 }
 
-c_init_cadvisor()
+dckr__init_cadvisor()
 {
   sudo docker run \
     --volume=/:/rootfs:ro \
@@ -452,7 +412,7 @@ c_init_cadvisor()
 #-storage_driver=influxdb
 }
 
-c_reset_munin()
+dckr__reset_munin()
 {
   dckr_f_argv $@
   image_name=munin
@@ -460,24 +420,24 @@ c_reset_munin()
   dckr_stop && dckr_rm
 }
 
-c_init_munin()
+dckr__init_munin()
 {
   dckr_f_argv $@
   image_name=scalingo-munin-server
   dckr_name=scalingo_munin
   cd ~/project/docker-munin-server
   dckr_build && dckr_stop && \
-    dckr_rm && c_run_munin
+    dckr_rm && dckr__run_munin
 }
 
-c_stop_munin()
+dckr__stop_munin()
 {
   image_name=scalingo-munin-server
   dckr_name=scalingo_munin
   dckr_stop
 }
 
-c_run_munin()
+dckr__run_munin()
 {
   image_name=scalingo-munin-server
   dckr_name=scalingo_munin
@@ -490,7 +450,7 @@ c_run_munin()
     -v /etc/localtime:/etc/localtime:ro
 }
 
-c_reset_sandbox()
+dckr__reset_sandbox()
 {
   dckr_f_argv $@
   image_name=sandbox
@@ -498,7 +458,7 @@ c_reset_sandbox()
   dckr_stop && dckr_rm
 }
 
-c_init_sandbox()
+dckr__init_sandbox()
 {
   dckr_f_argv $@
   image_name=sandbox-mpe:latest
@@ -513,7 +473,7 @@ c_init_sandbox()
     -v /etc/localtime:/etc/localtime:ro
 }
 
-c_init_weather()
+dckr__init_weather()
 {
   dckr_f_argv $@
   image_name=weather-mpe
@@ -529,7 +489,7 @@ c_init_weather()
     -v /etc/localtime:/etc/localtime:ro
 }
 
-c_init_sickbeard()
+dckr__init_sickbeard()
 {
   dckr_f_argv $@
   image_name=sickbeard
@@ -544,7 +504,7 @@ c_init_sickbeard()
     -v /etc/localtime:/etc/localtime:ro
 }
 
-c_init_graphite()
+dckr__init_graphite()
 {
   dckr_f_argv $@
   image_name=dotmpe/collectd-graphite
@@ -558,7 +518,7 @@ c_init_graphite()
     -v /etc/localtime:/etc/localtime:ro
 }
 
-c_init_haproxy()
+dckr__init_haproxy()
 {
   dckr_f_argv $@
   image_name=haproxy:1.5
@@ -571,7 +531,7 @@ c_init_haproxy()
     -v /etc/localtime:/etc/localtime:ro
 }
 
-c_init_bind()
+dckr__init_bind()
 {
   sudo docker run --name ${pref}bind -d --restart=always \
       --publish 53:53/udp --publish 10000:10000 \
@@ -579,7 +539,7 @@ c_init_bind()
       sameersbn/bind:latest
 }
 
-c_init_dns()
+dckr__init_dns()
 {
   dckr_f_argv $@
   image_name=quay.io/jpillora/dnsmasq-gui:latest
@@ -593,7 +553,7 @@ c_init_dns()
     -v $DCKR_VOL/dnsmasq/dnsmasq.conf:/etc/dnsmasq.conf
 }
 
-c_init_jessie()
+dckr__init_jessie()
 {
   dckr_f_argv $@
   image_name=debian:jessie
@@ -602,7 +562,7 @@ c_init_jessie()
   dckr_run
 }
 
-c_init_ubuntu()
+dckr__init_ubuntu()
 {
   dckr_f_argv $@
   image_name=ubuntu:14.04
@@ -611,7 +571,7 @@ c_init_ubuntu()
   dckr_run
 }
 
-c_init_dev()
+dckr__init_dev()
 {
   dckr_f_argv $@
   image_name=docker-dev
@@ -624,7 +584,7 @@ c_init_dev()
 
 # Jenkins
 
-c_reset_jenkins()
+dckr__reset_jenkins()
 {
   cd ~/project/docker-jenkins-mpe
   ./build.sh
@@ -632,13 +592,13 @@ c_reset_jenkins()
 
 # Start fresh jenkins-mpe with name ${pref}jenkins. Stops/removes running container.
 # $ 1:tag 2:port 3:flags
-c_init_jenkins()
+dckr__init_jenkins()
 {
   cd ~/project/docker-jenkins-mpe
 }
 
 # Initialize running jenkins-mpe, using JJB to setup jobs
-c_update_jenkins()
+dckr__update_jenkins()
 {
   cd ~/project/docker-jenkins-mpe
   ./config.sh
@@ -648,14 +608,14 @@ c_update_jenkins()
 # OpenWRT
 
 # could import from tar
-c_import_openwrt()
+dckr__import_openwrt()
 {
   sudo docker import \
     http://downloads.openwrt.org/attitude_adjustment/12.09/x86/generic/openwrt-x86-generic-rootfs.tar.gz \
     openwrt-x86-generic-rootfs
 }
 
-c_config_openwrt()
+dckr__config_openwrt()
 {
   image_name=jessie-openwrt
   dckr_cmd="make -C /src/openwrt/openwrt menuconfig"
@@ -665,7 +625,7 @@ c_config_openwrt()
     -u builder
 }
 
-c_build_openwrt()
+dckr__build_openwrt()
 {
   image_name=jessie-openwrt
   dckr_cmd="make -C /src/openwrt/openwrt -j3"
@@ -698,55 +658,65 @@ error()
 
 ### Main
 
-. $HOME/bin/util.sh
 
-#def_func=c_default
+dckr__main()
+{
+  local scriptname=dckr base=$(basename $0 .sh)
 
-# Use dash to ignore exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
+  test -n "$PREFIX" || PREFIX=$HOME
+  test -n "$BOX_INIT" && {
+    return
+  } || {
+    . $PREFIX/bin/box.init.sh
+  }
 
-  # Do something (only) if script invoked as 'dckr'
-  base=$(basename $0 .sh)
-  case "$base" in
+  dckr_init
 
-    $scriptname )
+  var_isset verbosity || export verbosity=5
 
-      # function name first as argument,
-      cmd=$1
-      [ -n "$def_func" -a -z "$cmd" ] \
-        && func=$def_func \
-        || func=$(echo c_$cmd | tr '-' '_')
+  case "$base" in $scriptname )
 
-      # dckr_load/exec if func exists
-      type $func &> /dev/null && {
-        func_exists=1
-        dckr_load
-        shift 1
-        $func $@
-      } || {
-        # handle non-zero return or print usage for non-existant func
-        e=$?
-        [ -z "$cmd" ] && {
-          dckr_load
-          dckr_usage
-          error 'No command given, see "help"' 1
-        } || {
-          [ "$e" = "1" -a -z "$func_exists" ] && {
-            dckr_load
-            dckr_usage
-            error "No such command: $cmd" 1
-          } || {
-            error "Command $cmd returned $e" $e
-          }
-        }
-      }
+      local subcmd_def=stat \
+        subcmd_pref= subcmd_suf= \
+        subcmd_func_pref=${base}__ subcmd_func_suf=
 
+      # Execute
+      main $*
       ;;
 
     * )
-      error "No frontend for $base"
-
+      error "not a frontend for $base"
+      ;;
   esac
-fi
+}
 
+dckr_init()
+{
+  test -n "$PREFIX" || PREFIX=$HOME
+  . $PREFIX/bin/box.init.sh
+  . $PREFIX/bin/util.sh
+  . $PREFIX/bin/main.sh
+  . $PREFIX/bin/box.lib.sh
+  box_run_sh_test
+}
+
+dckr_load()
+{
+  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
+  test -n "$DCKR_CONF" || DCKR_CONF=$UCONFDIR/dckr
+  test -n "$DCKR_VOL" || DCKR_VOL=/Volumes/dckr
+
+  test -e "$DCKR_CONF" || error "Missing docker config dir $DCKR_CONF" 1
+  test -e "$DCKR_VOL" || error "Missing docker volumes dir $DCKR_VOL" 1
+
+  hostname=$(hostname -s)
+  dckr_c_pref="${hostname}-"
+
+  test -n "$EDITOR" || EDITOR=vim
+}
+
+# Use hyphen to ignore source exec in login shell
+if [ -n "$0" ] && [ $0 != "-bash" ]; then
+  dckr__main $@
+fi
 # vim:noet:

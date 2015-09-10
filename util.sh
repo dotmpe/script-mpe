@@ -1,6 +1,9 @@
 #!/bin/sh
 
+set -e
+
 test -n "$PREFIX" || PREFIX=$HOME
+
 
 #TERM=xterm
 . $PREFIX/bin/std.sh
@@ -12,16 +15,43 @@ test -n "$PREFIX" || PREFIX=$HOME
 # test for var decl, io. to no override empty
 var_isset()
 {
-  # XXX 'set' may be safe for sh, not bash
-  #set | grep '\<'$1'=' >/dev/null 2>/dev/null && return
-  env | grep '\<'$1'=' >/dev/null 2>/dev/null && return
+  set | grep '\<'$1'=' >/dev/null 2>/dev/null && return
   return 1
 }
 
-# No-Op(eration)
+# No-Op(eration): clear arguments
 noop()
 {
     set --
+}
+
+short()
+{
+  echo $0
+  return # XXX short 
+  test "${0:0:${#HOME}}" = "$HOME" && {
+    echo "${0:${#HOME}}"
+  } || {
+    echo "$0"
+  }
+}
+
+test_out()
+{
+  test -n "$1" || error test_out 1
+  local val="$(eval echo "\$$1")"
+  test -z "$val" || echo "$(eval echo "$val")"
+}
+
+list_functions()
+{
+  test -n "$1" || set -- $0
+  for file in $*
+  do
+    test_out list_functions_head
+    grep '^[A-Za-z0-9_\/-]*()$' $file
+    test_out list_functions_tail
+  done
 }
 
 #

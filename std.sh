@@ -1,5 +1,21 @@
 #!/bin/sh
 
+
+# Linux stdio type detect
+stdio_type()
+{
+  test -n "$1" && io=$1 || io=1
+  test -n "$2" && pid=$2 || pid=$$
+  if readlink /proc/$pid/fd/$io | grep -q "^pipe:"; then
+    export stdio_${io}_type=p
+  elif file $( readlink /proc/$pid/fd/$io ) | grep -q "character special"; then
+    export stdio_${io}_type=t
+  else
+    export stdio_${io}_type=f
+  fi
+}
+
+
 # http://www.etalabs.net/sh_tricks.html
 #echo()
 #(
@@ -83,12 +99,24 @@ fi
 log()
 {
   [ -n "$(echo "$*")" ] || return 1;
-  key=${grey}$scriptname.sh
-  test -n "$subcmd_name" && key=${key}${bb}:${grey}${subcmd_name}
-  echo "${pref}${bb}[${key}${bb}] ${norm}$1"
+  [ -n "$stdout_type" ] || stdout_type=$stdio_1_type
+  [ -n "$stdout_type" ] || stdout_type=t
+  case $stdout_type in t )
+        key=${grey}$scriptname.sh
+        test -n "$subcmd_name" && key=${key}${bb}:${grey}${subcmd_name}
+        echo "${pref}${bb}[${key}${bb}] ${norm}$1"
+        ;;
+      p|f )
+        key=${grey}$scriptname.sh
+        test -n "$subcmd_name" && key=${key}:${subcmd_name}
+        echo "# [${key}] $1"
+        ;;
+  esac
 }
 err()
 {
+  # XXX seems ie grep strips colors anyway?
+  [ -n "$stdout_type" ] || stdout_type=$stdio_2_type
   case "$(echo $1 | tr 'A-Z' 'a-z')" in
     err*)
         bb=${red}
@@ -114,12 +142,14 @@ err()
 
 test_v()
 {
-  test -z "$verbosity" -o $verbosity -ge $1 && return || return 1
+  test -z "$verbosity" && return || {
+    test $verbosity -ge $1 && return || return 1
+  }
 }
 
 test_exit()
 {
-  test -z "$1" && return 1 || test $1 -eq 0 || exit $1
+  test "$1" != "0" -a -z "$1" && return 1 || exit $1
 }
 
 #emerg() 1

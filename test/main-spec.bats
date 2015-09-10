@@ -7,6 +7,8 @@ init_lib
 source $lib/util.sh
 source $lib/main.sh
 
+BOX_INIT=1
+
 
 # main / Incr-C
 

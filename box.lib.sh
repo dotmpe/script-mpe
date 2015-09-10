@@ -1,6 +1,9 @@
-#!/usr/bin/env sh
+#!/bin/sh
 
-box__load()
+set -e
+
+
+box_load()
 {
   test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
   test -n "$hostname" || hostname=$(hostname -s)
@@ -152,11 +155,12 @@ box_grep()
 
 box_script_insert_point()
 {
-  local what=main where_line= line_number=
-  test -z "$2" || what=$2
-  local p='^'${script_name}'__'${what}'()$'
+  test -n "$2" || set -- $1 main $3
+  test -n "$3" || set -- $1 $2 $base
+  debug "box_script_insert_point $1 $2 $3"
+  local where_line= line_number= p='^'${3}'_'${2}'()$'
   box_grep $p $1 || {
-    error "invalid ${script_name}__'${what}' ($1)" 1
+    error "invalid ${3}_${2} ($1)" 1
   }
   echo $line_number
 }
@@ -185,7 +189,7 @@ box_run_cwd()
 {
   test -n "$1" || error "req name" 1
   test -n "$2" || error "req cmd" 1
-  local func=$(echo $3$1__$2 | tr '/-' '__')
+  local func=$(echo $func_pref$1__$2 | tr '/-' '__')
   local tcwd=$1
   test -d $tcwd || error "no dir $tcwd" 1
   shift 2
@@ -209,6 +213,10 @@ box_init_args()
 
 box_list_libs()
 {
+  test -n "$1" || set -- $0 $(basename $0)
+  test -n "$2" || set -- $1 $(basename $1)
+  debug "box_list_libs $1 $2"
+
   local \
     line_offset=$(box_script_insert_point $1 load) \
     sentinel_grep='.*#.--.'${2}'.box.include.main.sentinel.--'

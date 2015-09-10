@@ -129,7 +129,7 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
     run var_isset foo_bar_baz && test || { r=$?; noop; }
     test $r -eq 1
     # .. && test || .. should be equiv. but.. sanity checking once in a while..
-    test $status -eq 1
+    #test $status -eq 1
 
     unset foo_bar
     export foo_bar=

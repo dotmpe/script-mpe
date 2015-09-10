@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/sh
 
 # Box: create namespaced script commands 
 
@@ -27,6 +27,12 @@ c_version()
   echo 0.0.0
 }
 
+man_1_stat="Stat"
+spc_stat="-s|stat"
+c_stat()
+{
+  echo -n
+}
 
 man_1_edit="Edit localscript and box script or abort. "
 spc_edit="-e|edit [<name>:]<script>"
@@ -271,9 +277,6 @@ c_run()
   global_func_name=c_${script_name}__${script_subcmd_func}
   local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_func}
 
-  dry_run= box_list_libs $named_script $script_name | while read src_line
-  do eval $src_line ; debug "loaded $src_line" ; done
-
   test -n "$choice_global" && {
     func_name=$global_func_name scope=global
     note "Using **global** scope"
@@ -354,35 +357,41 @@ c_check_install()
 
 box__main()
 {
-  local scriptname=box base=$(basename $0 .sh)
-
-  box__init
-
-  var_isset verbosity || export verbosity=5
+  local scriptname=box base=$(basename $0 .sh) verbosity=5
 
   case "$base" in $scriptname )
 
-      subcmd_def=run
-      subcmd_pref= subcmd_suf=
-      subcmd_func_pref=c_ subcmd_func_suf=
+      local subcmd_def=stat \
+        subcmd_pref= subcmd_suf= \
+        subcmd_func_pref=c_ subcmd_func_suf=
+
+      box_init || return
 
       # Execute
       main $*
       ;;
 
-    * )
-      error "not a frontend for $base"
-      ;;
+    #* )
+    #  error "not a frontend for $base"
+    #  ;;
   esac
 }
 
-box__init()
+box_init()
 {
   test -n "$PREFIX" || PREFIX=$HOME
+  #test -z "$BOX_INIT" || return 1
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
+  box_run_sh_test
   . $PREFIX/bin/main.sh
   . $PREFIX/bin/box.lib.sh
+}
+
+box_load()
+{
+  # -- box box include sentinel --
+  set --
 }
 
 # Use hyphen to ignore source exec in login shell

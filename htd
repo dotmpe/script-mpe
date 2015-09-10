@@ -1,20 +1,17 @@
-#!/usr/bin/env bash
+#!/bin/sh
+htd_source=$_
 
 # Htdocs: work in progress 'daily' shell scripts
 
 # Id: script.mpe/0.0.0+20150908-1716 htd
 
-test -n "$PREFIX" || PREFIX=$HOME
-verbosity=6
-source $PREFIX/bin/match.sh
 set -e
 
-scriptname=htd
-VERBOSITY=0
 
-load()
+htd_load()
 {
-  [ -n "$UCONFDIR" ] || UCONFDIR=$HOME/etc/
+  # -- htd box load insert sentinel --
+  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
   [ -n "$HTDIR" ] || HTDIR=$HOME/public_html
   [ -n "$CWDIR" ] || CWDIR=
   [ -n "$EDITOR" ] || EDITOR=vim
@@ -53,7 +50,6 @@ load()
 } || error "foo bar" 1
 
   #match_load_table vars
-  info "htd load done"
 }
 
 htd_usage()
@@ -861,7 +857,7 @@ c_urls()
 
 source_git_remote()
 {
-    source ~/.conf/git-remotes/$HTD_GIT_REMOTE.sh || error "Missing HTD_GIT_REMOTE=$HTD_GIT_REMOTE script" 1
+    . ~/.conf/git-remotes/$HTD_GIT_REMOTE.sh || error "Missing HTD_GIT_REMOTE=$HTD_GIT_REMOTE script" 1
 }
 
 c_git_remote_info()
@@ -1635,7 +1631,7 @@ c_ck_torrent()
   #btshowmetainfo $1
 
   node $PREFIX/bin/btinfo.js "$1" > /tmp/htd-ck-torrent.sh
-  source /tmp/htd-ck-torrent.sh
+  . /tmp/htd-ck-torrent.sh
   echo BTIH:$infoHash
 
   torrent-verify.py "$1" | while read line
@@ -1693,39 +1689,46 @@ c__T()
 
 htd__main()
 {
-  local scriptname=htd base=$(basename $0 .sh)
-
-  htd__init
-
-  var_isset verbosity || export verbosity=5
+  local scriptname=htd base=$(basename $0 .sh) verbosity=5
 
   case "$base" in $scriptname )
 
-      subcmd_def=
-      subcmd_pref= subcmd_suf=
-      export subcmd_func_pref=c_ subcmd_func_suf=
+      local subcmd_def= \
+        subcmd_pref= subcmd_suf= \
+        subcmd_func_pref=c_ subcmd_func_suf=
 
+      htd__init || return 0
+
+      htd__lib
       # Execute
       main $*
       ;;
 
-    * )
-      error "not a frontend for $base"
-      ;;
+    #* )
+    #  error "not a frontend for $base"
+    #  ;;
   esac
 }
 
 htd__init()
 {
   test -n "$PREFIX" || PREFIX=$HOME
+  #test -z "$BOX_INIT" || return 1
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
   . $PREFIX/bin/main.sh
   . $PREFIX/bin/box.lib.sh
 }
 
+htd__lib()
+{
+  box_run_sh_test
+  . $PREFIX/bin/match.sh
+  # -- htd box main include sentinel --
+  set --
+}
+
 # Use hyphen to ignore source exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
   htd__main $@
 fi
-# vim:noet:
