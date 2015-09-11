@@ -178,7 +178,13 @@ get_subcmd_args()
         subcmd_name=$subcmd_alias
         flag="$1"
         shift 1
-        set --  "-$(expr substr "$flag" 3 ${#flag})" "${1+$@}"
+        flags="-$(expr substr "$flag" 3 ${#flag})"
+        test "$flags" = "-" && {
+          incr sc
+          continue
+        } || {
+          set --  "-$(expr substr "$flag" 3 ${#flag})" "${1+$@}"
+        }
       } || noop
       parse_box_subcmd_opts $* && {
         test $c -gt 0 && {
