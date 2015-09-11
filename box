@@ -16,7 +16,7 @@ c_commands()
 {
   choice_global=1 std_commands
 }
-# FIXME: non-flag subcmd shortcuts
+# FIXME: non-flag subcmd aliases
 c_als_c=commands
 
 
@@ -44,12 +44,25 @@ c_version()
   echo "$(cat $PREFIX/bin/.app-id)/$version"
 }
 
-c_man_1_stat="Stat"
-c_spc_stat="-s|stat"
+
+c_man_1_stat="Stat local host script file"
+c_spc_stat="-S|stat"
+c_als__S=stat
 c_stat()
 {
-  echo -n
+  test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  note "FIXME this is more like a info list. need something more actual for stat. think about keeping state in files.."
+
+  local_file=$BOX_DIR/$(hostname -s)/${nid_cwd}.sh
+
+  test -n "$local_file" && {
+    subcmd_func_pref=c_$(hostname -s)__ choice_all=1 \
+      std_commands $local_file
+  } || {
+    error "No local file" 1
+  }
 }
+
 
 c_man_1_edit="Edit localscript and box script or abort. "
 c_spc_edit="-e|edit [<name>:]<script>"
