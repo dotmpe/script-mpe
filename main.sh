@@ -115,25 +115,22 @@ parse_subcmd_valid_flags()
   return 1
 }
 
-parse_cmd_alias()
+get_cmd_alias()
 {
-  c=0
-  get_cmd_alias $1 $2
-  test -n "$subcmd_alias" && {
-    c=1
-    subcmd_name=$subcmd_alias
-  } || return 1
+  local func_pref="$(eval echo \$${1}_func_pref)"
+  export ${1}_alias=$(eval echo \$${func_pref}als$(echo "_$2" | tr '-' '_'))
 }
 
-parse_subcmd_opts()
+parse_box_subcmd_opts()
 {
   local o=
-  while getopts faglicvqsn o
+  while getopts fagvqsn o
   do
     case "$o" in
 
     #r ) subcmd=run;;
     #n ) subcmd=new;;
+    #h ) subcmd_name=help;;
     i ) parse_subcmd_valid_flags $o init create; subcmd=init;;
     c ) parse_subcmd_valid_flags $o init create; subcmd=create;;
     #d ) subcmd=deinit;;
@@ -150,8 +147,8 @@ parse_subcmd_opts()
     q ) test $verbosity -ne 0 || silence=7; verbosity=0;;
 
     [?] )
-      echo "Error $o"
-      print >&2 "Usage: $0 [-s] [-d seplist] file ..."
+      #echo "Error $o"
+      #print >&2 "Usage: $0 [-s] [-d seplist] file ..."
       return 2
       ;;
 
@@ -167,18 +164,23 @@ get_subcmd_args()
   while [ $# -gt 0 ]
   do  case "$1" in
 
-    -- )
+    -|-- )
       break
       ;;
 
+    --* )
+      error "no long options $1" 1
+      ;;
+
     -* )
-      parse_cmd_alias subcmd $* && {
-          test $c -gt 0 && {
-            sc=$(( $c + $sc )); shift $c ; c=0;
-            continue
-          }
+      get_cmd_alias subcmd "$(expr substr "$1" 1 2 )"
+      test -n "$subcmd_alias" && {
+        subcmd_name=$subcmd_alias
+        flag="$1"
+        shift 1
+        set --  "-$(expr substr "$flag" 3 ${#flag})" "${1+$@}"
       } || noop
-      parse_subcmd_opts $* && {
+      parse_box_subcmd_opts $* && {
         test $c -gt 0 && {
           sc=$(( $c + $sc )); shift $c ; c=0;
           continue
@@ -219,16 +221,9 @@ get_subcmd_args()
   done
 
   c=$tc
-  test $sc -gt 0 && {
+  test $sc -eq 0 || {
     c=$(( $c + $sc ))
   }
-
-  # XXX swap script-name with script-subcmd-name arg if latter is empty.. # always?
-  if test -n "$script_name" -a -z "$script_subcmd_name"
-  then
-    script_subcmd_name=$script_name
-    script_name=
-  fi
 }
 
 get_cmd_func_name()
@@ -239,12 +234,6 @@ get_cmd_func_name()
   #echo ${1}_func=$(eval echo "${func_pref}\${${1}_name}${func_suf}" | tr '-' '_')
   # FIXME: test this.
   export ${1}_func=$(eval echo "${func_pref}\${${1}_name}${func_suf}" | tr '-' '_')
-}
-
-
-get_cmd_alias()
-{
-  export ${1}_alias=$(eval echo \$${base}_als_$(echo $2 | tr '-' '_'))
 }
 
 # set ${1}_name to cmd-function
@@ -265,9 +254,38 @@ get_cmd_func()
   test -n "$(eval echo \$${1}_name)" || local ${1}_name=$(eval echo \$${1}_def)
 
   get_cmd_func_name $1
+
   unset func_pref func_suf tag
 }
 
+
+# Setup some initial vars and load lib files for main script
+main_init()
+{
+  stdio_type 0 $$
+  stdio_type 1 $$
+  stdio_type 2 $$
+
+  var_isset verbosity || verbosity=6
+
+  box_lib="$(dry_run= box_list_libs $0 | while read src path; \
+    do eval echo $path; done)"
+}
+
+# Parse command line arguments and set subcmd vars
+main_parse_subcmd()
+{
+  c=0
+  #func_exists ${base}_parse_subcmd_args 
+  get_subcmd_args "$@"
+  # XXX swap script-name with script-subcmd-name arg if latter is empty.. # always?
+  if test -n "$script_name" -a -z "$script_subcmd_name"
+  then
+    script_subcmd_name=$script_name
+    script_name=
+  fi
+  get_cmd_func subcmd
+}
 
 # Run any load routines
 main_load()
@@ -318,18 +336,10 @@ main()
     choice_all= choice_local= choice_global= \
     stdio_0_type= stdio_1_type= stdio_2_type=
 
-  stdio_type 0 $$
-  stdio_type 1 $$
-  stdio_type 2 $$
+  main_init
 
-  var_isset verbosity || verbosity=6
-
-  box_lib="$(dry_run= box_list_libs $0 | while read src path; \
-    do eval echo $path; done)"
-
-  get_subcmd_args $*
+  main_parse_subcmd "$@"
   test $c -gt 0 && shift $c ; c=0
-  get_cmd_func subcmd
   main_debug $*
 
   main_load $base

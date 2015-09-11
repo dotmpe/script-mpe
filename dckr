@@ -5,6 +5,7 @@ set -e
 
 
 dckr__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+dckr__spc_help='-h|help'
 dckr__help()
 {
   std_help dckr "$@"
@@ -653,7 +654,7 @@ dckr__main()
 
   case "$base" in $scriptname )
 
-      local subcmd_def=stat \
+      local subcmd_def= \
         subcmd_pref= subcmd_suf= \
         subcmd_func_pref=${base}__ subcmd_func_suf=
 
