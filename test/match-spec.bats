@@ -24,6 +24,14 @@ source $lib.sh
   test "${lines[0]}" = "[match.sh] Error: No command given, see \"help\"" || skip "TODO should some colorless terminal?"
 }
 
+@test "${bin} help" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  fnmatch "*Usage:*" "${lines[*]}" # usage info on out
+  fnmatch "*Commands:*" "${lines[*]}" # detailed usage on out
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+}
+
 @test "$bin glob matches path" {
   run ${bin} glob 'test.*' test.name
   test $status -eq 0

@@ -639,22 +639,9 @@ dckr__build_openwrt()
 
 # include private projects
 test ! -e $DCKR_CONF/local.sh || {
-  source $DCKR_CONF/local.sh
+  . $DCKR_CONF/local.sh
 }
 
-
-# stdio/stderr/exit util
-log()
-{
-  [ -n "$(echo "$*")" ] || return 1;
-  echo "[$scriptname.sh:$cmd] $1"
-}
-error()
-{
-  [ -n "$(echo "$*")" ] || return 1;
-  echo "Error: $1 [$scriptname.sh:$cmd]" 1>&2
-  [ -n "$2" ] && exit $2
-}
 
 
 ### Main

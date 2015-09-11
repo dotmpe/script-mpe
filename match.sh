@@ -4,6 +4,18 @@ match_source=$_
 set -e
 
 
+### User commands
+
+
+match_man_1_help="Echo a combined usage, command and docs"
+match_spc_help="-h|help"
+match_help()
+{
+  std_help match $*
+}
+match_als__h="help"
+
+
 match_man_1_version="no version yet, just checking it goes"
 match_spc_version="-v|version"
 match_version()

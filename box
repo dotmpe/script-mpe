@@ -10,32 +10,32 @@ set -e
 ### User commands
 
 
-man_1_help="Echo a combined usage, command and docs"
-spc_help="-h|help"
+c_man_1_help="Echo a combined usage, command and docs"
+c_spc_help="-h|help"
 c_help()
 {
   std_help box $*
 }
-als__h="help"
+c_als__h="help"
 
 
-als__V=version
-man_1_version="no version yet, just checking it goes"
-spc_version="-v|version"
+c_als__V=version
+c_man_1_version="no version yet, just checking it goes"
+c_spc_version="-v|version"
 c_version()
 {
   echo 0.0.0
 }
 
-man_1_stat="Stat"
-spc_stat="-s|stat"
+c_man_1_stat="Stat"
+c_spc_stat="-s|stat"
 c_stat()
 {
   echo -n
 }
 
-man_1_edit="Edit localscript and box script or abort. "
-spc_edit="-e|edit [<name>:]<script>"
+c_man_1_edit="Edit localscript and box script or abort. "
+c_spc_edit="-e|edit [<name>:]<script>"
 c_edit()
 {
   local c=0 script_files= \
@@ -71,11 +71,11 @@ c_edit()
   note "invoking '$evoke'"
   eval $evoke $files $lib_files
 }
-als__e="edit"
+c_als__e="edit"
 
 
-man_1_edit_main="Edit box script and local scripts. "
-spc_edit_main="-E|edit-main"
+c_man_1_edit_main="Edit box script and local scripts. "
+c_spc_edit_main="-E|edit-main"
 c_edit_main()
 {
   local c=0 script_files= \
@@ -96,12 +96,12 @@ c_edit_main()
   note "invoking '$evoke'"
   $evoke $files
 }
-als__E=edit-main
+c_als__E=edit-main
 
 
-als__i=init
-main_1_init="Add script function, optionally providing command and script name"
-spc_init="-i|init [<cmd>=run [<name>=$hostname]]"
+c_als__i=init
+c_main_1_init="Add script function, optionally providing command and script name"
+c_spc_init="-i|init [<cmd>=run [<name>=$hostname]]"
 c_init()
 {
   local c=0 script_name= subcmd_name= \
@@ -188,9 +188,9 @@ EOF
 
 # FIXME new
 
-main_1_new="Initialize new script"
-spc_new="-n|new [<name>=$hostname]"
-als__n=new
+c_main_1_new="Initialize new script"
+c_spc_new="-n|new [<name>=$hostname]"
+c_als__n=new
 c_new()
 {
   local name= cmd=run c=0 script=
@@ -216,8 +216,8 @@ EOF
 }
 
 
-main_1_function="Initialize function for current location"
-spc_function="-n|function [[<name>=$hostname] <cmd>=run]"
+c_main_1_function="Initialize function for current location"
+c_spc_function="-n|function [[<name>=$hostname] <cmd>=run]"
 c_function()
 {
   local name= cmd=run c=0
@@ -225,11 +225,11 @@ c_function()
   test -e $script || error "script $name does not exist" 1
   echo TODO add function to script
 }
-als__f=function
+c_als__f=function
 
 
-man_1_list="."
-spc_list="list <Name>"
+c_man_1_list="."
+c_spc_list="list <Name>"
 c_list()
 {
   test -z "$dry_run" || {
@@ -240,11 +240,11 @@ c_list()
   info "TODO box list: work in progress"
   grep -srI ${nid_cwd} $BOX_BIN_DIR/*
 }
-als__l=list
+c_als__l=list
 
 
-man_1_list_libs="List includes for script."
-spc_list_libs="list-libs"
+c_man_1_list_libs="List includes for script."
+c_spc_list_libs="list-libs"
 c_list_libs()
 {
   local c=0 script_files= \
@@ -259,8 +259,8 @@ c_list_libs()
 }
 
 
-man_1_run="Require localscript and exec. given function. "
-spc_run="-r|run [<cmd>=run [<name>=$hostname]]"
+c_man_1_run="Require localscript and exec. given function. "
+c_spc_run="-r|run [<cmd>=run [<name>=$hostname]]"
 c_run()
 {
   local c=0 \
@@ -312,20 +312,20 @@ c_run()
 }
 
 
-man_1_="Default: (local) run"
-als__c=run
+c_man_1_="Default: (local) run"
+c_als__c=run
 
 
-man_1_complete="Testing bash complete with sh compatible script."
-spc_complete=complete
+c_man_1_complete="Testing bash complete with sh compatible script."
+c_spc_complete=complete
 c_complete()
 {
   cmds=""
 }
 
 
-man_1_check_install="Run internal tests."
-spc_check_install=check-install
+c_man_1_check_install="Run internal tests."
+c_spc_check_install=check-install
 c_check_install()
 {
   {

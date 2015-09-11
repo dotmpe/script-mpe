@@ -13,22 +13,9 @@ box_load()
   unset vid
 }
 
-box_commands()
-{
-  echo 'Commands:'
-  echo '    -r|run                      '
-  echo '    -h|help                     '
-  echo '    -e|edit                     Edit local script or abort. '
-  echo '    -E|edit-main                Edit main script. '
-  echo '    -i|init                     Init local script with name. '
-  echo '    -n|new                      '
-  echo '    -f|function                 '
-  echo ''
-}
-
 box_docs()
 {
-  echo 'Docs:'
+  echo -n #echo 'Docs:'
 }
 
 ### Util functions
