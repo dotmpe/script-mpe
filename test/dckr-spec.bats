@@ -9,7 +9,7 @@ init_lib
 
 
 @test "${bin}" {
-  check_skipped_envs travis || skip "not running at Travis CI"
+  check_skipped_envs travis || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 1
   fnmatch "*Usage:*" "${lines[*]}" # usage info on out
@@ -18,7 +18,7 @@ init_lib
 }
 
 @test "${bin} -h" {
-  check_skipped_envs travis || skip "not running at Travis CI"
+  check_skipped_envs travis || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Usage:*" "${lines[*]}" # usage info on out
@@ -27,7 +27,7 @@ init_lib
 }
 
 @test "${bin} help" {
-  check_skipped_envs travis || skip "not running at Travis CI"
+  check_skipped_envs travis || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Usage:*" "${lines[*]}" # usage info on out
@@ -40,6 +40,7 @@ init_lib
 }
 
 @test "${bin} -h help" {
+  check_skipped_envs travis || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
@@ -48,6 +49,7 @@ init_lib
 }
 
 @test "${bin} help help" {
+  check_skipped_envs travis || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Help 'help':*" "${lines[*]}" # manual on out

@@ -1,4 +1,5 @@
 ReadMe.rst
 Rules.mk
-box
+test/htd-spec.bats
 htd
+box

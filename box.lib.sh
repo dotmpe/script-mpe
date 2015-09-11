@@ -136,7 +136,7 @@ box_add_idx()
 
 box_grep()
 {
-  file_where_before $1 $2
+  file_where_before "$@"
   test -n "$where_line" || return 1
 }
 
@@ -144,7 +144,6 @@ box_script_insert_point()
 {
   test -n "$2" || set -- $1 main $3
   test -n "$3" || set -- $1 $2 $base
-  debug "box_script_insert_point $1 $2 $3"
   local where_line= line_number= p='^'${3}'_'${2}'()$'
   box_grep $p $1 || {
     error "invalid ${3}_${2} ($1)" 1
@@ -205,8 +204,8 @@ box_list_libs()
   debug "box_list_libs $1 $2"
 
   local \
-    line_offset=$(box_script_insert_point $1 lib) \
-    sentinel_grep='.*#.--.'${2}'.box.lib.sentinel.--'
+    line_offset="$(box_script_insert_point $1 lib)" \
+    sentinel_grep=".*#.--.${2}.box.lib.sentinel.--"
 
   box_grep $sentinel_grep $1
   local line_diff=$(( $line_number - $line_offset - 2 ))

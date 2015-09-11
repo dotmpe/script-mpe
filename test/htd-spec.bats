@@ -4,7 +4,7 @@ base=htd
 load helper
 init_bin
 
-version=0.0.0
+version=0.0.0+20150908-1716 # script.mpe
 
 @test "$bin no arguments no-op" {
   run $bin

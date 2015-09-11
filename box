@@ -1,5 +1,5 @@
 #!/bin/sh
-
+c_source=$_
 # Box: create namespaced script commands 
 
 # Id: script.mpe/0.0.0+20150908-1716 box
@@ -362,6 +362,8 @@ c_check_install()
 
 box__main()
 {
+  box_init || return 0
+
   local scriptname=box base=$(basename $0 .sh) verbosity=5
 
   case "$base" in $scriptname )
@@ -370,7 +372,6 @@ box__main()
         subcmd_pref= subcmd_suf= \
         subcmd_func_pref=c_ subcmd_func_suf=
 
-      box_init || return
       box_lib
 
       # Execute
@@ -386,17 +387,17 @@ box__main()
 box_init()
 {
   test -n "$PREFIX" || PREFIX=$HOME
-  #test -z "$BOX_INIT" || return 1
+  test -z "$BOX_INIT" || return 1
   . $PREFIX/bin/box.init.sh
+  . $PREFIX/bin/box.lib.sh "$@"
   . $PREFIX/bin/util.sh
   box_run_sh_test
+  . $PREFIX/bin/main.sh
   # -- box box init sentinel --
 }
 
 box_lib()
 {
-  . $PREFIX/bin/main.sh "$@"
-  . $PREFIX/bin/box.lib.sh "$@"
   # -- box box lib sentinel --
   set --
 }

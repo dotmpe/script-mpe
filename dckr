@@ -1,5 +1,5 @@
 #!/bin/sh
-dckr_source=$_
+dckr__source=$_
 
 set -e
 
@@ -650,6 +650,8 @@ test ! -e $DCKR_CONF/local.sh || {
 
 dckr__main()
 {
+  dckr_init || return 0
+
   local scriptname=dckr base=$(basename $0 .sh) verbosity=5
 
   case "$base" in $scriptname )
@@ -658,27 +660,28 @@ dckr__main()
         subcmd_pref= subcmd_suf= \
         subcmd_func_pref=${base}__ subcmd_func_suf=
 
-      dckr_init
       dckr_lib
 
       # Execute
       main "$@"
       ;;
+
   esac
 }
 
 dckr_init()
 {
   test -n "$PREFIX" || PREFIX=$HOME
+  test -z "$BOX_INIT" || return 1
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
   box_run_sh_test
+  . $PREFIX/bin/main.sh
+  . $PREFIX/bin/box.lib.sh
 }
 
 dckr_lib()
 {
-  . $PREFIX/bin/main.sh
-  . $PREFIX/bin/box.lib.sh
   # -- dckr box lib sentinel --
   set --
 }

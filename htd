@@ -1,5 +1,5 @@
 #!/bin/sh
-htd_source=$_
+c_source=$_
 
 # Htdocs: work in progress 'daily' shell scripts
 
@@ -44,12 +44,12 @@ htd_load()
   }
   htd_init_ignores
   {
-  find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
-    grep -Ev '^(#.*|\s*)$' | \
-    sed -E 's/^\//\.\//' | \
-    sed -E 's/(.*)/ -o -name "\1" -prune /g'))
-  find_ignores="-path \"*/.git\" -prune $find_ignores "
-} || error "foo bar" 1
+    find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
+      grep -Ev '^(#.*|\s*)$' | \
+      sed -E 's/^\//\.\//' | \
+      sed -E 's/(.*)/ -o -name "\1" -prune /g'))
+    find_ignores="-path \"*/.git\" -prune $find_ignores "
+  } || error "foo bar" 1
 
   #match_load_table vars
 }
@@ -198,12 +198,10 @@ c_docs()
   echo 'See dckr for container commands and vc for GIT related. '
 }
 
-c_man_1_version="Version info"
-c_version()
+c_commands()
 {
-  echo "$(cat .app-id)/$version"
+  std_commands
 }
-c_als__V=version
 
 
 c_man_1_help="Echo a combined usage, command and docs"
@@ -220,11 +218,20 @@ c_help()
     echo_help $1
   }
 }
-als__h=help
+c_als__h=help
 c__h()
 {
   cmd=help c_help $@
 }
+
+
+c_man_1_version="Version info"
+c_version()
+{
+  echo "$(cat $PREFIX/bin/.app-id)/$version"
+}
+c_als__V=version
+
 
 c_home()
 {
@@ -253,20 +260,20 @@ c_expand()
   done
 }
 
-man_1_edit_main="Edit the main script file"
+
+c_man_1_edit_main="Edit the main script file"
+c_spc_edit_main="-E|edit-main"
 c_edit_main()
 {
   locate_name
   [ -n "$fn" ] || error "expected $scriptname?" 1
   $EDITOR $fn
 }
-man_1__E="Alias for 'edit-main'"
-c__E()
-{
-  cmd=edit-main c_edit_main
-}
+c_als__E=edit-main
 
-man_1_edit="Edit a local file, or abort"
+
+c_man_1_edit="Edit a local file, or abort"
+c_spc_edit="-e|edit <id>"
 c_edit()
 {
   test -n "$1" || error "TODO nothing to look for" 1
@@ -275,25 +282,19 @@ c_edit()
   test -e "$file" || error "Should have catched that" 1
   $EDITOR $file
 }
-man_1__e="Alias for 'edit'"
-c__e()
-{
-  cmd=edit c_edit $@
-}
+c_als__e=edit
 
-man_1_find="Look for doc"
-spc_find="-f|find"
+
+c_man_1_find="Look for doc"
+c_spc_find="-f|find"
 c_find()
 {
   test -n "$1" || error "TODO nothing to look for" 1
   doc_name_arg $1 $2
   doc_list_all
 }
-als__f=find
-c__f()
-{
-    cmd=find c_find $@
-}
+c_als__f=find
+
 
 htd_init_ignores()
 {
@@ -312,6 +313,7 @@ c_init_ignores()
 {
   htd_init_ignores
 }
+
 
 req_path_arg()
 {
@@ -339,7 +341,8 @@ htd_relative_path()
   }
   return 1
 }
-man_1_relative_path="Test for relative path"
+
+c_man_1_relative_path="Test for relative path"
 c_relative_path()
 {
   # TODO: maybe build relative path from 1 arg and cwd, or two args
@@ -350,7 +353,7 @@ c_relative_path()
   echo relpath=$relpath
   exit $r
 }
-man_1_relpath="Alias for 'relative-path'"
+c_man_1_relpath="Alias for 'relative-path'"
 c_relpath()
 {
   c_relative_path $1
@@ -376,7 +379,7 @@ htd_find_path_locals()
     done
 }
 
-man_5_table_names=""
+c_man_5_table_names=""
 
 c_test_find_path_locals()
 {
@@ -416,7 +419,7 @@ c_stat()
   c_make stat
 }
 
-als_st=stat
+c_als_st=stat
 c_st()
 {
   cmd=stat c_stat $*
@@ -442,27 +445,27 @@ c_alias()
   done
 }
 
-man_1_bash_commands="Show all Bash commands"
+c_man_1_bash_commands="Show all Bash commands"
 c_bash_commands()
 {
 	compgen -c
 }
-man_1_bash_aliases="Show all Bash aliases"
+c_man_1_bash_aliases="Show all Bash aliases"
 c_bash_aliases()
 {
 	compgen -a
 }
-man_1_bash_keywords="Show all Bash keywords"
+c_man_1_bash_keywords="Show all Bash keywords"
 c_bash_keywords()
 {
 	compgen -k
 }
-man_1_bash_functions="Show all Bash functions"
+c_man_1_bash_functions="Show all Bash functions"
 c_bash_functions()
 {
 	compgen -A function
 }
-man_1_bash_builtins="Show all Bash built-ins"
+c_man_1_bash_builtins="Show all Bash built-ins"
 c_bash_builtins()
 {
 	compgen -b
@@ -940,8 +943,8 @@ c_git_drop_remote()
     log "OK, $repo no longer exists"
 }
 
-man_1_gh="Clone from Github to subdir, adding as submodule if already in checkout. "
-spc_gh="<repo> [<prefix>]"
+c_man_1_gh="Clone from Github to subdir, adding as submodule if already in checkout. "
+c_spc_gh="<repo> [<prefix>]"
 c_gh() {
   test -n "$1" || error "Need repo name argument" 1
   str_match "$1" "[^/]*" && {
@@ -1311,9 +1314,9 @@ ck_write()
   }
 }
 
-man_5_table_ck="Table of CK checksum, filesize and path"
-man_5_table_sha1="Table of SHA1 checksum and path"
-man_5_table_md5="Table of MD5 checksum and path"
+c_man_5_table_ck="Table of CK checksum, filesize and path"
+c_man_5_table_sha1="Table of SHA1 checksum and path"
+c_man_5_table_md5="Table of MD5 checksum and path"
 # Either check table for path, or iterate all entries. Echoes checksum, two spaces and a path
 c_ck_table()
 {
@@ -1352,8 +1355,8 @@ c_ck_table()
   }
 }
 
-man_1_ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
-spc_ck_table_subtree="$ck_arg_spec <path>"
+c_man_1_ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
+c_spc_ck_table_subtree="$ck_arg_spec <path>"
 c_ck_table_subtree()
 {
   ck_arg "$1"
@@ -1503,8 +1506,8 @@ c_ck_drop()
   rm table.$CK.tmp
 }
 
-man_1_ck_clean="Iterate checksum table, check for duplicates, normalize paths"
-spc_ck_clean="$ck_arg_spec"
+c_man_1_ck_clean="Iterate checksum table, check for duplicates, normalize paths"
+c_spc_ck_clean="$ck_arg_spec"
 c_ck_clean()
 {
   ck_arg "$1"
@@ -1516,21 +1519,21 @@ c_ck_clean()
   }
 }
 
-spc_ck_validate="$ck_arg_spec"
+c_spc_ck_validate="$ck_arg_spec"
 c_ck_validate()
 {
   ck_arg "$1"
   shift 1
   test "$CK" = "ck" && {
-    checksums table.$CK
+    c_checksums table.$CK
   } || {
     ${CK}sum -c table.$CK
   }
 }
 
 # check file size and cksum
-spc_checksums="[<table-file>]"
-checksums()
+c_spc_checksums="[<table-file>]"
+c_checksums()
 {
   test -n "$1"  && T=$1  || T=table.ck
   cat $T | while read cks sz p
@@ -1662,28 +1665,20 @@ c_mp3_validate()
 }
 
 
-man_1_test="no test, just checking it goes"
+c_man_1_test="no test, just checking it goes"
 c_test()
 {
   ./test/*-spec.bats
 }
-als__t=test
-c__t()
-{
-  cmd=test c_test
-}
+c_als__t=test
 
 
-man_1_edit_test="edit-tests"
+c_man_1_edit_test="edit-tests"
 c_edit_test()
 {
   $EDITOR ./test/*-spec.bats
 }
-als__T=edit-test
-c__T()
-{
-  cmd=edit-test c_edit_test
-}
+c_als__T=edit-test
 
 
 ### Main
@@ -1691,6 +1686,8 @@ c__T()
 
 htd__main()
 {
+  htd_init || return 0
+
   local scriptname=htd base=$(basename $0 .sh) verbosity=5
 
   case "$base" in $scriptname )
@@ -1699,9 +1696,8 @@ htd__main()
         subcmd_pref= subcmd_suf= \
         subcmd_func_pref=c_ subcmd_func_suf=
 
-      htd_init || return 0
-
       htd_lib
+
       # Execute
       main "$@"
       ;;
@@ -1721,6 +1717,7 @@ htd_init()
   box_run_sh_test
   . $PREFIX/bin/main.sh
   . $PREFIX/bin/box.lib.sh
+  # -- htd box init sentinel --
 }
 
 htd_lib()
