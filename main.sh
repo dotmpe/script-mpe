@@ -79,14 +79,26 @@ std_usage()
 
 std_commands()
 {
-  echo Commands:
+  test -n "$1" || set -- "$0" "$box_lib"
+
+  # TODO: std_commands: group commands per file
+  echo "Commands: "
   local list_functions_head="Commands: \(\$(short \$file)\)"
-  list_functions $* | grep '^'${subcmd_func_pref} | sed 's/()//' \
+  list_functions "$@" | grep '^'${subcmd_func_pref} | sed 's/()//' \
     | while read func
   do
-    func_name=$(echo $func | sed 's/'${subcmd_func_pref}'//')
-    spc=$(eval echo "\$${subcmd_func_pref}spc_$func_name")
-    descr=$(eval echo "\$${subcmd_func_pref}man_1_$func_name")
+    func_name="$(echo "$func"| sed 's/'${subcmd_func_pref}'//')"
+    if test "$(expr substr "$func_name" 1 7)" = "local__"
+    then
+      lcwd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\1/' | tr '_' '-')"
+      lcmd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\2/' | tr '_' '-')"
+      test -n "$lcmd" || lcmd="-"
+      spc="* $lcmd ($lcwd)"
+      descr="$(eval echo "\$${subcmd_func_pref}man_1_$func_name")"
+    else
+      spc="$(eval echo "\$${subcmd_func_pref}spc_$func_name")"
+      descr="$(eval echo "\$${subcmd_func_pref}man_1_$func_name")"
+    fi
     test -n "$spc" || spc=$(echo $func_name | tr '_' '-' )
     printf "  %-25s  %-50s\n" "$spc" "$descr"
   done
@@ -268,7 +280,7 @@ get_cmd_func()
   done
 
   # get cmd_name
-  test -n "$(eval echo \$${1}_name)" || local ${1}_name=$(eval echo \$${1}_def)
+  test -n "$(eval echo \$${1}_name)" || export ${1}_name=$(eval echo \$${1}_def)
 
   get_cmd_func_name $1
 
@@ -279,14 +291,17 @@ get_cmd_func()
 # Setup some initial vars and load lib files for main script
 main_init()
 {
+  test -n "$1" || set -- "$base"
+
   stdio_type 0 $$
   stdio_type 1 $$
   stdio_type 2 $$
 
   var_isset verbosity || verbosity=6
 
-  box_lib="$(dry_run= box_list_libs $0 | while read src path; \
+  box_src="$(dry_run= box_list_libs $0 $1 | while read src path args; \
     do eval echo $path; done)"
+  box_lib="$box_src"
 }
 
 # Parse command line arguments and set subcmd vars
@@ -327,14 +342,14 @@ main_debug()
   test -z "$dry_run" || echo "verbosity=$verbosity dry_run=$dry_run"
   debug "vars:
     cmd=$base args=$*
-    subcmd_name=$subcmd_name subcmd_alias=$subcmd_alias
+    subcmd_name=$subcmd_name subcmd_alias=$subcmd_alias subcmd_def=$subcmd_def
 
     silent=$silent silence=$silence verbosity=$verbosity
 
     script_name=$script_name script_subcmd_name=$script_subcmd_name
     subcmd_func=$subcmd_func subcmd_func_pref=$subcmd_func_pref subcmd_func_suf=$subcmd_func_suf
 
-    box_lib=$box_lib
+    box_src=$box_src
   "
 }
 

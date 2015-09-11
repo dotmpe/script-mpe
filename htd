@@ -198,6 +198,7 @@ c_docs()
   echo 'See dckr for container commands and vc for GIT related. '
 }
 
+c_man_1_commands="List all commands"
 c_commands()
 {
   std_commands

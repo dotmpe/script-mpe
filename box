@@ -11,8 +11,16 @@ version=0.0.0+20150911-0659 # script.mpe
 
 ### User commands
 
+c_man_1_commands="List all commands"
+c_commands()
+{
+  std_commands
+}
+# FIXME: non-flag subcmd shortcuts
+c_als_c=commands
 
-c_man_1_help="Echo a combined usage, command and docs"
+
+c_man_1_help="Echo a combined usage, commands and docs"
 c_spc_help="-h|help [<id>]"
 c_help()
 {
@@ -269,7 +277,7 @@ c_run()
     global_func_name= local_func_name= \
     local_script= named_script= uconf_script=
 
-  box_init_args $@
+  #box_init_args $@
   test $c -eq 0 || shift $c ; c=0
   test -n "$script_subcmd_name" || script_subcmd_name=$subcmd_name
   box_init_local || { r=$?

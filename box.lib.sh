@@ -199,12 +199,11 @@ box_init_args()
 
 box_list_libs()
 {
-  test -n "$1" || set -- $0 $(basename $0)
-  test -n "$2" || set -- $1 $(basename $1)
-  debug "box_list_libs $1 $2"
+  test -n "$1" || set -- "$0" "$(basename $0)"
+  test -n "$2" || set -- "$1" "$(basename $1)"
 
   local \
-    line_offset="$(box_script_insert_point $1 lib)" \
+    line_offset="$(box_script_insert_point $1 lib $2)" \
     sentinel_grep=".*#.--.${2}.box.lib.sentinel.--"
 
   box_grep $sentinel_grep $1
