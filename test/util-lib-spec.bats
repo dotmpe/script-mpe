@@ -140,4 +140,52 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 }
 
 
+@test "$lib noop" {
+
+  func_exists noop
+  run noop
+  test $status -eq 0
+  test -z "${lines[*]}"
+}
+
+
+@test "$lib short" {
+
+  func_exists short
+  run short
+  test $status -eq 0
+  test "${lines[*]}" = "~/bin"
+}
+
+
+@test "$lib file_insert_where_before" {
+  skip "TODO"
+}
+
+@test "$lib file_insert_at" {
+  skip "TODO"
+}
+
+@test "$lib file_where_before" {
+
+  func_exists file_where_before
+  run file_where_before
+  test $status -eq 1
+  fnmatch "*where-grep required*" "${lines[*]}"
+
+  run file_where_before where
+  test $status -eq 1
+  fnmatch "*file-path required*" "${lines[*]}"
+}
+
+
+@test "$lib get_uuid" {
+
+  func_exists get_uuid
+  run get_uuid
+  test $status -eq 0
+  test -n "${lines[*]}"
+}
+
+
 # vim:ft=sh:
