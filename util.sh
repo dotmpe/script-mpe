@@ -15,32 +15,31 @@ test -n "$PREFIX" || PREFIX=$HOME
 # test for var decl, io. to no override empty
 var_isset()
 {
+  # Aside from declare or typeset in newer reincarnations, 
+  # in posix or modern Bourne mode this seems to work best:
   set | grep '\<'$1'=' >/dev/null 2>/dev/null && return
   return 1
 }
 
-# No-Op(eration): clear arguments
+# No-Op(eration)
 noop()
 {
-    set --
+  . /dev/null # source empty file
+  #echo -n # echo nothing
+  #set -- # clear arguments (XXX set nothing?)
 }
 
 short()
 {
-  echo $0
-  return # XXX short 
-  test "${0:0:${#HOME}}" = "$HOME" && {
-    echo "${0:${#HOME}}"
-  } || {
-    echo "$0"
-  }
+  # FIXME: replace python script
+  $(dirname $0)/short-pwd.py -1 "$1"
 }
 
 test_out()
 {
   test -n "$1" || error test_out 1
-  local val="$(eval echo "\$$1")"
-  test -z "$val" || echo "$(eval echo "$val")"
+  local val="$(echo $(eval echo "\$$1"))"
+  test -z "$val" || eval echo "\\$val"
 }
 
 list_functions()
@@ -52,22 +51,6 @@ list_functions()
     grep '^[A-Za-z0-9_\/-]*()$' $file
     test_out list_functions_tail
   done
-}
-
-#
-req_arg()
-{
-  label=$(eval echo \${req_arg_$4[0]})
-  varname=$(eval echo \${req_arg_$4[1]})
-  test -n "$1" || {
-    warn "$2 requires argument at $3 '$label'"
-    return 1
-  }
-  test -n "$varname" && {
-    export $varname="$1"
-  } || {
-    export $4="$1"
-  }
 }
 
 # FIXME: testing..

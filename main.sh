@@ -81,12 +81,24 @@ std_commands()
 {
   test -n "$1" || set -- "$0" "$box_lib"
 
-  # TODO: std_commands: group commands per file
-  echo "Commands: "
-  local list_functions_head="Commands: \(\$(short \$file)\)"
-  list_functions "$@" | grep '^'${subcmd_func_pref} | sed 's/()//' \
-    | while read func
+  # XXX: std_commands: group commands per file
+  #local list_functions_head="# file=\$(short \$file)"
+  local list_functions_head="Commands: \$(short \$file):"
+
+  echo
+  list_functions "$@" | while read line
   do
+    test "$(expr substr "$line" 1 8)" = "Commands" && {
+        echo "$line"
+    }
+    #test "$(expr substr "$line" 1 1)" = "#" && {
+    #    test "$(expr substr "$line" 1 7)" = "# file=" && {
+    #    } || continue
+    #}
+
+    func=$(echo $line | grep '^'${subcmd_func_pref} | sed 's/()//')
+    test -n "$func" || continue
+
     func_name="$(echo "$func"| sed 's/'${subcmd_func_pref}'//')"
     if test "$(expr substr "$func_name" 1 7)" = "local__"
     then
