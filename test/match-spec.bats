@@ -3,11 +3,10 @@
 base=match.sh
 load helper
 init_bin
+init_lib
 
-BOX_INIT=1
+source $lib/util.sh
 
-test -z "$PREFIX" && lib=./str || lib=$PREFIX/bin/str
-source $lib.sh
 
 
 @test "$bin no arguments no-op" {
