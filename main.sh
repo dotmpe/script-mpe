@@ -260,7 +260,8 @@ get_subcmd_args()
 
       } || {
 
-        try_exec_func ${script_name}__init_args $* && {
+        # XXX
+        try_exec_func ${base}_init_args_$subcmd_name $* && {
 
           test $c -gt 0 && {
             sc=$(( $c + $sc )); shift $c ; c=0;
@@ -343,12 +344,6 @@ main_parse_subcmd()
   c=0
   #func_exists ${base}_parse_subcmd_args 
   get_subcmd_args "$@"
-  # XXX swap script-name with script-subcmd-name arg if latter is empty.. # always?
-  if test -n "$script_name" -a -z "$script_subcmd_name"
-  then
-    script_subcmd_name=$script_name
-    script_name=
-  fi
   get_cmd_func subcmd
 }
 
@@ -372,7 +367,6 @@ main_load()
 
 main_debug()
 {
-  test -z "$dry_run" || echo "verbosity=$verbosity dry_run=$dry_run"
   debug "vars:
     cmd=$base args=$*
     subcmd_name=$subcmd_name subcmd_alias=$subcmd_alias subcmd_def=$subcmd_def

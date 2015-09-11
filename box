@@ -24,15 +24,17 @@ c_als_c=commands
 c_help="Box: Generic: Help
 
   -h|help [<id>]      Print usage info, abbreviated command list and documentation
-                      reference. Use 'help help', 'docs' or 'help docs' for 
+                      reference. Use 'help help', 'docs' or 'help docs' for
                       extended output. "
-
-c_man_1_help="Echo a combined usage, commands and docs"
-c_spc_help="-h|help [<id>]"
 c_help()
 {
   choice_global=1 std_help box $*
 }
+# XXX compile these from human readable cl-option docstring, provide bash
+#   auto-completion. Need to work out man5 and man7 stuff still. Save lot of
+#   clutter.
+c_man_1_help="Echo a combined usage, commands and docs"
+c_spc_help="-h|help [<id>]"
 c_als__h="help"
 
 
@@ -129,6 +131,7 @@ c_edit_main()
 c_als__E=edit-main
 
 
+# FIXME: expect this is broken
 c_als__i=init
 c_main_1_init="Add script function, optionally providing command and script name"
 c_spc_init="-i|init [<cmd>=run [<name>=$hostname]]"
@@ -152,6 +155,8 @@ c_init()
     debug "local_func_name='$local_func_name'"
     info "** DRY RUN ends **" 0
   }
+
+  error "FIXME" 1
 
   ## Init global function if needed
   grep -s '^'$global_func_name'()$' $named_script > /dev/null && {
@@ -216,7 +221,7 @@ EOF
 }
 
 
-# FIXME new
+# FIXME new script
 
 c_main_1_new="Initialize new script"
 c_spc_new="-n|new [<name>=$hostname]"
@@ -288,6 +293,19 @@ c_list_libs()
   box_list_libs $named_script $script_name
 }
 
+vs1_init_args_run()
+{
+  # XXX swap script-name with script-subcmd-name arg if latter is empty.. # always?
+  if test -n "$script_name" -a -z "$script_subcmd_name"
+  then
+    script_subcmd_name=$script_name
+    script_name=
+  fi
+  if test -z "$script_name"
+  then
+    script_name=$base
+  fi
+}
 
 c_man_1_run="Require localscript and exec. given function. "
 c_spc_run="-r|run [<cmd>=run [<name>=$hostname]]"
@@ -296,6 +314,10 @@ c_run()
   local c=0 \
     global_func_name= local_func_name= \
     local_script= named_script= uconf_script=
+
+  test -n "$script_name" || script_name=${base}
+  named_script=$PREFIX/bin/box
+  local_script=$BOX_DIR/$(hostname -s)/${nid_cwd}.sh
 
   #box_init_args $@
   test $c -eq 0 || shift $c ; c=0
@@ -432,6 +454,10 @@ box_lib()
 
 box_load()
 {
+  test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
+  mkvid $(pwd)
+  nid_cwd=$vid
+  unset vid
   box_name="${base}:${subcmd_name}"
   # -- box box load sentinel --
   set --
