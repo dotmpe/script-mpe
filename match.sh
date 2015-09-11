@@ -14,7 +14,7 @@ match_man_1_help="Echo a combined usage, command and docs"
 match_spc_help="-h|help [<id>]"
 match_help()
 {
-  std_help match "$@"
+  choice_global=1 std_help match "$@"
 }
 match_als__h="help"
 
@@ -184,10 +184,10 @@ match_load_table()
 {
   test -n "$1" || set -- book
   match_load_defs ~/bin/table.$1
-  test -s "$(pwd)/table.$book" && {
+  test -s "$(pwd)/table.$1" && {
       test "$(pwd)" != "$(echo ~/bin)" &&
-      match_load_defs "$(pwd)/table.$book" || noop
-    } || error "No local table.$book" 1
+      match_load_defs "$(pwd)/table.$1" || noop
+    } || error "No local table.$1" 1
 }
 
 # Compile new table 

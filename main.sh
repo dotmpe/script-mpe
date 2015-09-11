@@ -82,19 +82,39 @@ std_commands()
   test -n "$1" || set -- "$0" "$box_lib"
 
   # XXX: std_commands: group commands per file
-  #local list_functions_head="# file=\$(short \$file)"
-  local list_functions_head="Commands: \$(short \$file):"
+  local list_functions_head="# file=\$file"
+  #local list_functions_head="Commands: \$(short \$file):"
 
-  echo
+  test -z "$choice_global" && {
+    test -z "$choice_all" && {
+      local_id=$(pwd | tr '/-' '__')
+      echo 'Local commands: '$(short)': '
+    }
+  } || {
+    noop
+  }
+  local cont=
   list_functions "$@" | while read line
   do
-    test "$(expr substr "$line" 1 8)" = "Commands" && {
-        echo "$line"
+    test "$(expr substr "$line" 1 1)" = "#" && {
+        test "$(expr substr "$line" 1 7)" = "# file=" && {
+          eval $(expr substr "$line" 2 $(( ${#line} - 1 )))
+          X=${BOX_DIR}/${base}/
+          local_file=$(expr substr "$file" $(( 1 + ${#X} )) $(( ${#file} - ${#X} )))
+          test -z "$local_id" && {
+            # Global mode: list all commands
+            test "$BOX_DIR/$base/$local_file" = "$file" && {
+              echo "Commands: ($local_file) "
+            } || {
+              echo "Commands: ($file) "
+            }
+          } || {
+            # Local mode: list local commands onlye
+            test "$local_file" = "${local_id}.sh" && cont= || cont=true
+          }
+        } || continue
     }
-    #test "$(expr substr "$line" 1 1)" = "#" && {
-    #    test "$(expr substr "$line" 1 7)" = "# file=" && {
-    #    } || continue
-    #}
+    if test -n "$cont"; then continue; fi
 
     func=$(echo $line | grep '^'${subcmd_func_pref} | sed 's/()//')
     test -n "$func" || continue
@@ -105,7 +125,8 @@ std_commands()
       lcwd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\1/' | tr '_' '-')"
       lcmd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\2/' | tr '_' '-')"
       test -n "$lcmd" || lcmd="-"
-      spc="* $lcmd ($lcwd)"
+      #spc="* $lcmd ($lcwd)"
+      spc="* $lcmd "
       descr="$(eval echo "\$${subcmd_func_pref}man_1_$func_name")"
     else
       spc="$(eval echo "\$${subcmd_func_pref}spc_$func_name")"
@@ -361,7 +382,8 @@ main_debug()
     script_name=$script_name script_subcmd_name=$script_subcmd_name
     subcmd_func=$subcmd_func subcmd_func_pref=$subcmd_func_pref subcmd_func_suf=$subcmd_func_suf
 
-    box_src=$box_src
+    choice_local=$choice_local choice_global=$choice_global choice_all=$choice_all 
+    box_src=$box_src 
   "
 }
 

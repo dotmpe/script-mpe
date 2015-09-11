@@ -14,7 +14,7 @@ version=0.0.0+20150911-0659 # script.mpe
 c_man_1_commands="List all commands"
 c_commands()
 {
-  std_commands
+  choice_global=1 std_commands
 }
 # FIXME: non-flag subcmd shortcuts
 c_als_c=commands
@@ -31,7 +31,7 @@ c_man_1_help="Echo a combined usage, commands and docs"
 c_spc_help="-h|help [<id>]"
 c_help()
 {
-  std_help box $*
+  choice_global=1 std_help box $*
 }
 c_als__h="help"
 

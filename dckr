@@ -11,7 +11,7 @@ dckr__man_1_help="Echo a combined usage and command list. With argument, seek al
 dckr__spc_help='-h|help [ID]'
 dckr__help()
 {
-  std_help dckr "$@"
+  choice_global=1 std_help dckr "$@"
 }
 dckr__als__h=help
 

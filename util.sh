@@ -31,8 +31,9 @@ noop()
 
 short()
 {
-  # FIXME: replace python script
-  $(dirname $0)/short-pwd.py -1 "$1"
+  test -n "$1" || set -- "$(pwd)"
+  # XXX maybe replace python script sometime
+  $PREFIX/bin/short-pwd.py -1 "$1"
 }
 
 test_out()
