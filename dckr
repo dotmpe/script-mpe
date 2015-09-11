@@ -3,6 +3,9 @@ dckr__source=$_
 
 set -e
 
+version=0.0.0+20150911-0659 # script.mpe
+
+
 
 dckr__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 dckr__spc_help='-h|help [ID]'
@@ -12,6 +15,14 @@ dckr__help()
 }
 dckr__als__h=help
 
+
+dckr__als__V=version
+dckr__man_1_version="Version info"
+dckr__spc_version="-V|version"
+dckr__version()
+{
+  echo "$(cat $PREFIX/bin/.app-id)/$version"
+}
 
 dckr__man_1_edit_main="Edit the main script file"
 dckr__spc_edit_main="-E|edit-main"
@@ -699,7 +710,7 @@ dckr_load()
   dckr_c_pref="${hostname}-"
 
   test -n "$EDITOR" || EDITOR=vim
-  # -- dckr box main include sentinel --
+  # -- dckr box load sentinel --
   set --
 }
 

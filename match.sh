@@ -3,6 +3,9 @@ match_source=$_
 
 set -e
 
+version=0.0.0+20150911-0659 # script.mpe
+
+
 
 ### User commands
 
@@ -16,13 +19,13 @@ match_help()
 match_als__h="help"
 
 
-match_man_1_version="no version yet, just checking it goes"
-match_spc_version="-v|version"
+match_als__V=version
+match_man_1_version="Version info"
+match_spc_version="-V|version"
 match_version()
 {
-  echo 0.0.0
+  echo "$(cat $PREFIX/bin/.app-id)/$version"
 }
-match_als__V=version
 
 
 match_name()
@@ -230,14 +233,14 @@ match_init()
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
   box_run_sh_test
-  # -- vs1 box init sentinel --
+  . $PREFIX/bin/main.sh "$@"
+  . $PREFIX/bin/box.lib.sh "$@"
+  # -- match box init sentinel --
 }
 
 match_lib()
 {
-  . $PREFIX/bin/main.sh "$@"
-  . $PREFIX/bin/box.lib.sh "$@"
-  # -- vs1 box lib sentinel --
+  # -- match box lib sentinel --
   set --
 }
 
@@ -247,7 +250,7 @@ match_load()
   MATCH_NAME_VARS=
   #MATCH_NAME_VARS="SZ SHA1_CKS MD5_CKS CK_CKS EXT NAMECHAR NAMEPARTS ALPHA ANY PART OPTPART"
 
-  # -- match box main include sentinel --
+  # -- match box load sentinel --
   set --
 }
 

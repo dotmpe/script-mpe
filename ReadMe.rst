@@ -1,6 +1,6 @@
 script.mpe
 ==========
-:Version: 0.0.0+20150908-1716
+:Version: 0.0.0+20150911-0659
 
 Build-status
     .. image:: https://secure.travis-ci.org/dotmpe/git-versioning.png?branch=test

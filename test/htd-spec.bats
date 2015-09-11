@@ -4,7 +4,7 @@ base=htd
 load helper
 init_bin
 
-version=0.0.0+20150908-1716 # script.mpe
+version=0.0.0+20150911-0659 # script.mpe
 
 @test "$bin no arguments no-op" {
   run $bin
@@ -69,7 +69,7 @@ version=0.0.0+20150908-1716 # script.mpe
   check_skipped_envs travis || skip "$BATS_TEST_DESCRIPTION not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "${lines[0]}" = "$version"
+  test "${lines[0]}" = "script.mpe/$version"
 }
 
 @test "$bin today" 8 {

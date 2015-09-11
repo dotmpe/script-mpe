@@ -2,11 +2,11 @@
 c_source=$_
 # Box: create namespaced script commands 
 
-# Id: script.mpe/0.0.0+20150908-1716 box
+# Id: script.mpe/0.0.0+20150911-0659 box
 
 set -e
 
-version=0.0.0+20150908-1716 # script.mpe
+version=0.0.0+20150911-0659 # script.mpe
 
 
 ### User commands
@@ -22,7 +22,7 @@ c_als__h="help"
 
 
 c_als__V=version
-c_man_1_version="no version yet, just checking it goes"
+c_man_1_version="Version info"
 c_spc_version="-V|version"
 c_version()
 {
