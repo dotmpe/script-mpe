@@ -7,6 +7,8 @@ htd_source=$_
 
 set -e
 
+version=0.0.0+20150908-1716 # script.mpe
+
 
 htd_load()
 {
@@ -196,12 +198,12 @@ c_docs()
   echo 'See dckr for container commands and vc for GIT related. '
 }
 
-man_1_version="no version, just checking it goes"
+c_man_1_version="Version info"
 c_version()
 {
-  echo 0.0.0
+  echo "$(cat .app-id)/$version"
 }
-# FIXME als__V=version
+c_als__V=version
 
 
 c_man_1_help="Echo a combined usage, command and docs"

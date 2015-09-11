@@ -6,6 +6,8 @@
 
 set -e
 
+version=0.0.0+20150908-1716 # script.mpe
+
 
 ### User commands
 
@@ -21,10 +23,10 @@ c_als__h="help"
 
 c_als__V=version
 c_man_1_version="no version yet, just checking it goes"
-c_spc_version="-v|version"
+c_spc_version="-V|version"
 c_version()
 {
-  echo 0.0.0
+  echo "$(cat $PREFIX/bin/.app-id)/$version"
 }
 
 c_man_1_stat="Stat"
