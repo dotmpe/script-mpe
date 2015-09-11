@@ -5,7 +5,7 @@ set -e
 
 
 dckr__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-dckr__spc_help='-h|help'
+dckr__spc_help='-h|help [ID]'
 dckr__help()
 {
   std_help dckr "$@"
@@ -659,6 +659,7 @@ dckr__main()
         subcmd_func_pref=${base}__ subcmd_func_suf=
 
       dckr_init
+      dckr_lib
 
       # Execute
       main "$@"
@@ -672,8 +673,14 @@ dckr_init()
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
   box_run_sh_test
+}
+
+dckr_lib()
+{
   . $PREFIX/bin/main.sh
   . $PREFIX/bin/box.lib.sh
+  # -- dckr box lib sentinel --
+  set --
 }
 
 dckr_load()

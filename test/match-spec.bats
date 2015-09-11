@@ -31,6 +31,31 @@ source $lib/util.sh
   fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
 }
 
+@test "${bin} -h" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  fnmatch "*Usage:*" "${lines[*]}" # usage info on out
+  fnmatch "*Commands:*" "${lines[*]}" # detailed usage on out
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+}
+
+@test "${bin} -h help" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
+  fnmatch "Usage: * match -h|help \[<id>]*" "${lines[*]}" # usage info on out
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+}
+
+@test "${bin} help help" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
+  fnmatch "*Usage: * match -h|help \[<id>]*" "${lines[*]}" # usage info on out
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+}
+
+
 @test "$bin glob matches path" {
   run ${bin} glob 'test.*' test.name
   test $status -eq 0

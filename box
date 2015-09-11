@@ -11,7 +11,7 @@ set -e
 
 
 c_man_1_help="Echo a combined usage, command and docs"
-c_spc_help="-h|help"
+c_spc_help="-h|help [<id>]"
 c_help()
 {
   std_help box $*
@@ -369,6 +369,7 @@ box__main()
         subcmd_func_pref=c_ subcmd_func_suf=
 
       box_init || return
+      box_lib
 
       # Execute
       main $*
@@ -387,13 +388,20 @@ box_init()
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
   box_run_sh_test
-  . $PREFIX/bin/main.sh
-  . $PREFIX/bin/box.lib.sh
+  # -- box box init sentinel --
+}
+
+box_lib()
+{
+  . $PREFIX/bin/main.sh "$@"
+  . $PREFIX/bin/box.lib.sh "$@"
+  # -- box box lib sentinel --
+  set --
 }
 
 box_load()
 {
-  # -- box box include sentinel --
+  # -- box box load sentinel --
   set --
 }
 

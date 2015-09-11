@@ -205,8 +205,8 @@ box_list_libs()
   debug "box_list_libs $1 $2"
 
   local \
-    line_offset=$(box_script_insert_point $1 load) \
-    sentinel_grep='.*#.--.'${2}'.box.include.main.sentinel.--'
+    line_offset=$(box_script_insert_point $1 lib) \
+    sentinel_grep='.*#.--.'${2}'.box.lib.sentinel.--'
 
   box_grep $sentinel_grep $1
   local line_diff=$(( $line_number - $line_offset - 2 ))

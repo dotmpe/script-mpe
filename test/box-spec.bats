@@ -3,6 +3,10 @@
 base=box
 load helper
 init_bin
+init_lib
+
+source $lib/util.sh
+
 
 usage_line_1="${base}.sh Bash/Shell script helper"
 usage_line_2="Usage:"
@@ -37,14 +41,27 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 }
 
 @test "${bin} help" {
-  skip "while rewriting main routines"
-  check_skipped_envs travis || skip "FIXME $envs: not running on $env"
   run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
-  test "${lines[0]}" = "$usage_line_1"
-  test "${lines[1]}" = "$usage_line_2"
-  test "${lines[2]}" = "$usage_line_3"
-  test "${#lines[@]}" = "13"
+  test ${status} -eq 0
+  fnmatch "*Usage:*" "${lines[*]}" # usage info on out
+  fnmatch "*Commands:*" "${lines[*]}" # detailed usage on out
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+}
+
+@test "${bin} -h" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  fnmatch "*Usage:*" "${lines[*]}" # usage info on out
+  fnmatch "*Commands:*" "${lines[*]}" # detailed usage on out
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+}
+
+@test "${bin} -h help" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
+  fnmatch "*Usage: * box -h|help \[<id>]*" "${lines[*]}" # usage info on out
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
 }
 
 @test "${bin} check-install" {

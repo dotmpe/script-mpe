@@ -21,7 +21,8 @@ incr()
 # :*:help_descr
 try_help()
 {
-  help_descr=$(eval echo "\$man_$(echo $1)$(echo $2)")
+  local func_pref="$subcmd_func_pref"
+  help_descr="$(eval echo "\$${func_pref}man_$(echo $1)$(echo $2)")"
   test -n "$help_descr" && echo "$help_descr" || return 1
 }
 
@@ -41,6 +42,11 @@ echo_help()
   return 1
 }
 
+try_spec()
+{
+  echo "$(eval echo "\$${subcmd_func_pref}spc_$1")"
+}
+
 std_help()
 {
   local help_base=$1 ; shift 1
@@ -53,7 +59,10 @@ std_help()
 
   } || {
 
-    echo_help $1 || error "no help '$1'"
+    echo "Usage: "
+    echo "  $base $(try_spec $1) "
+    echo -n "Help '$1': "
+    echo_help "$1" || error "no help '$1'"
   }
 }
 
@@ -157,6 +166,7 @@ parse_box_subcmd_opts()
   c=$(( $OPTIND -1 ))
 }
 
+# FIXME: this is getting a bit long. Split off box flags. Add subcmd opt parsing.
 get_subcmd_args()
 {
   local sc=0 tc=$c
@@ -173,6 +183,7 @@ get_subcmd_args()
       ;;
 
     -* )
+      # BUG: -ne wont work, -en will. Should always split flags here.
       get_cmd_alias subcmd "$(expr substr "$1" 1 2 )"
       test -n "$subcmd_alias" && {
         subcmd_name=$subcmd_alias

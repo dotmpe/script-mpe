@@ -8,7 +8,7 @@ set -e
 
 
 match_man_1_help="Echo a combined usage, command and docs"
-match_spc_help="-h|help"
+match_spc_help="-h|help [<id>]"
 match_help()
 {
   std_help match $*
@@ -215,6 +215,7 @@ match__main()
         subcmd_func_pref=${base}_ subcmd_func_suf=
 
       match_init
+      match_lib
 
       # Execute
       main "$@"
@@ -229,9 +230,17 @@ match_init()
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
   box_run_sh_test
-  . $PREFIX/bin/main.sh
-  . $PREFIX/bin/box.lib.sh
+  # -- vs1 box init sentinel --
 }
+
+match_lib()
+{
+  . $PREFIX/bin/main.sh "$@"
+  . $PREFIX/bin/box.lib.sh "$@"
+  # -- vs1 box lib sentinel --
+  set --
+}
+
 
 match_load()
 {

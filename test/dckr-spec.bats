@@ -39,6 +39,23 @@ init_lib
 #  echo "${#lines[@]}" >> /tmp/1
 }
 
+@test "${bin} -h help" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
+  fnmatch "*Usage: * dckr -h|help \[ID]*" "${lines[*]}" # usage info on out
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+}
+
+@test "${bin} help help" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
+  fnmatch "*Usage: * dckr -h|help \[ID]*" "${lines[*]}" # usage info on out
+  echo "${lines[*]}" |grep 'Error:' && test -z "errors in output" || noop
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+}
+
 @test "${bin} -vv -n help" {
   check_skipped_envs || \
     skip "TODO envs $envs: implement bin (test) for env"

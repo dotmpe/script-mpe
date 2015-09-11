@@ -204,8 +204,8 @@ c_version()
 # FIXME als__V=version
 
 
-man_1_help="Echo a combined usage, command and docs"
-spc_help="[<id>]"
+c_man_1_help="Echo a combined usage, command and docs"
+c_spc_help="-h|help [<id>]"
 c_help()
 {
   test -z "$1" && {
@@ -1697,9 +1697,9 @@ htd__main()
         subcmd_pref= subcmd_suf= \
         subcmd_func_pref=c_ subcmd_func_suf=
 
-      htd__init || return 0
+      htd_init || return 0
 
-      htd__lib
+      htd_lib
       # Execute
       main "$@"
       ;;
@@ -1710,7 +1710,7 @@ htd__main()
   esac
 }
 
-htd__init()
+htd_init()
 {
   test -n "$PREFIX" || PREFIX=$HOME
   test -z "$BOX_INIT" || return 1
@@ -1721,10 +1721,10 @@ htd__init()
   . $PREFIX/bin/box.lib.sh
 }
 
-htd__lib()
+htd_lib()
 {
-  . $PREFIX/bin/match.sh
-  # -- htd box main include sentinel --
+  . $PREFIX/bin/match.sh "$@"
+  # -- htd box lib sentinel --
   set --
 }
 
