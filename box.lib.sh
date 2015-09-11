@@ -65,7 +65,6 @@ box_req_files_localscript()
 
 box_init_local()
 {
-  box_name="${base}:${subcmd_name}"
   subbox_name="${script_name}:${script_subcmd_name}"
   local_script=$BOX_DIR/${script_name}/${nid_cwd}.sh
   uconf_script=$BOX_DIR/$script_name-localscripts.sh

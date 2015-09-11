@@ -20,6 +20,13 @@ c_commands()
 c_als_c=commands
 
 
+# TODO: get a proper opt parser and do something like this:
+c_help="Box: Generic: Help
+
+  -h|help [<id>]      Print usage info, abbreviated command list and documentation
+                      reference. Use 'help help', 'docs' or 'help docs' for 
+                      extended output. "
+
 c_man_1_help="Echo a combined usage, commands and docs"
 c_spc_help="-h|help [<id>]"
 c_help()
@@ -412,6 +419,7 @@ box_lib()
 
 box_load()
 {
+  box_name="${base}:${subcmd_name}"
   # -- box box load sentinel --
   set --
 }
