@@ -350,7 +350,7 @@ dckr__init()
   }
 
   dckr_c && {
-    echo "Already running $dckr_name: $container"
+    note "Already running $dckr_name: $container"
   }
   
   dckr_c -a && {
@@ -375,7 +375,7 @@ dckr__script()
   test -n "$dckr_f" || dckr_f=-td
 
   dckr_c && {
-    echo "Already running $dckr_name: $container"
+    note "Already running $dckr_name: $container"
   }
   
   dckr_c -a && {
