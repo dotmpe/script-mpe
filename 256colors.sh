@@ -7,6 +7,8 @@
 # Works with Bash, not sh. On a Linux.
 # Somehow OSX (10.8.5) uses bash too and works except for dysfunctional echo..
 
+set -o posix
+
 printf "\n   +  "
 for i in {0..35}; do
   printf "%2b " $i

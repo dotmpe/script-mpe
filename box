@@ -414,7 +414,8 @@ box__main()
 {
   box_init || return 0
 
-  local scriptname=box base=$(basename $0 .sh) verbosity=5
+  local scriptname=box base=$(basename $0 .sh) 
+  var_isset verbosity || verbosity=5
 
   case "$base" in $scriptname )
 
@@ -449,6 +450,7 @@ box_init()
 box_lib()
 {
   # -- box box lib sentinel --
+  debug "Using $LOG_TERM log output"
   set --
 }
 
