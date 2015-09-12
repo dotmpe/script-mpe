@@ -4,6 +4,8 @@
 # reference purposes, using the \033[48;5;${val}m
 # ANSI CSI+SGR (see "ANSI Code" on Wikipedia)
 #
+# Works with Bash, not sh. On a Linux.
+# Somehow OSX (10.8.5) uses bash too and works except for dysfunctional echo..
 
 printf "\n   +  "
 for i in {0..35}; do
