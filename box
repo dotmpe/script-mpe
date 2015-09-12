@@ -403,6 +403,20 @@ c_check_install()
   }
 }
 
+
+c_log_demo()
+{
+  debug "Debug msg"
+  info "Info msg"
+  note "Notice msg"
+  warn "Warning msg"
+  error "Error msg"
+  #emerg "Emergency msg"
+  crit "Critical msg"
+}
+
+
+
 ### main.sh / Box
 
 #box_parse_args() { }

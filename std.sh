@@ -82,17 +82,28 @@ if [ -t 1 ]; then
 
     test -z "$debug" || echo "ncolors=$ncolors"
 
+    bld="$(tput bold)"
+    underline="$(tput smul)"
+    standout="$(tput smso)"
+    norm="$(tput sgr0)"
+
     if test $ncolors -ge 256; then
       #blackb="\e[0;90m"
       #grey="\e[0;37m"
-      grey=${norm}
+      prpl="\033[38;5;135m"
+      blue="\033[38;5;27m"
+      red="\033[38;5;196m"
+      dylw="\033[38;5;214m"
+      ylw="\033[38;5;220m"
+      #norm="\033[0m"
+      grey="\033[38;5;244m"
+      dgrey="\033[38;5;238m"
+      drgrey="\033[38;5;232m"
+      white="\033[38;5;254m"
+      bwhite="\033[38;5;231m"
     else
       grey=${white}
 
-      bld="$(tput bold)"
-      underline="$(tput smul)"
-      standout="$(tput smso)"
-      norm="$(tput sgr0)"
       black="$(tput setaf 0)"
       red="$(tput setaf 1)"
       grn="$(tput setaf 2)"
@@ -133,8 +144,8 @@ log()
 
   case $stdout_type in t )
 
-        key=${grey}$scriptname.sh
-        test -n "$subcmd_name" && key=${key}${bb}:${grey}${subcmd_name}
+        key=${bk}$scriptname.sh
+        test -n "$subcmd_name" && key=${key}${bb}:${bk}${subcmd_name}
 
         log_$LOG_TERM "${pref}${bb}[${key}${bb}] ${norm}$1"
         ;;
@@ -151,24 +162,27 @@ err()
   # XXX seems ie grep strips colors anyway?
   [ -n "$stdout_type" ] || stdout_type=$stdio_2_type
   case "$(echo $1 | tr 'A-Z' 'a-z')" in
+    crit*)
+        bb=${ylw}; bk=$white
+        log "${bld}${ylw}$1${blackb}: ${bwhite}$2${norm}" 1>&2 ;;
     err*)
-        bb=${red}
-        log "${bld}${red}$1${blackb}: ${bwhite}$2${norm}" 1>&2 ;;
+        bb=${red}; bk=$grey
+        log "${bld}${red}$1${blackb}: ${norm}${bwhite}$2${norm}" 1>&2 ;;
     warn*)
-        bb=${ylw}
-        log "${ylw}$1${grey}: ${grey}$2${norm}" 1>&2 ;;
+        bb=${red}; bk=$grey
+        log "${dylw}$1${grey}: ${white}$2${norm}" 1>&2 ;;
     notice )
-        bb=${prpl}
-        log "${prpl}$1${grey}: ${grey}$2${norm}" 1>&2 ;;
+        bb=${prpl}; bk=$grey
+        log "${grey}${white}$2${norm}" 1>&2 ;;
     info )
-        bb=${blue}
-        log "${grey}$2${norm}" 1>&2 ;;
+        bb=${blue}; bk=$grey
+        log "${white}$2${norm}" 1>&2 ;;
     ok )
-        bb=${grn}
-        log "${grey}$2${norm}" 1>&2 ;;
+        bb=${grn}; bk=$grey
+        log "${white}$2${norm}" 1>&2 ;;
     * )
-        bb=${blackb}
-        log "${norm}$2" 1>&2 ;;
+        bb=${drgrey} ; bk=$dgrey
+        log "${grey}$2" 1>&2 ;;
   esac
   [ -z "$3" ] || exit $3
 }
@@ -187,6 +201,11 @@ test_exit()
 
 #emerg() 1
 #crit() 2
+crit()
+{
+  test_v 3 || test_exit $2 || return 0
+  err "Crit" "$1" $2
+}
 error()
 {
   test_v 3 || test_exit $2 || return 0

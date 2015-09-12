@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # generates an 8 bit color table (256 colors) for
 # reference purposes, using the \033[48;5;${val}m
@@ -6,8 +6,6 @@
 #
 # Works with Bash, not sh. On a Linux.
 # Somehow OSX (10.8.5) uses bash too and works except for dysfunctional echo..
-
-set -o posix
 
 printf "\n   +  "
 for i in {0..35}; do
