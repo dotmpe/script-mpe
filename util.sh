@@ -120,7 +120,7 @@ file_where_before()
   test -n "$1" || error "where-grep required" 1
   test -n "$2" || error "file-path required" 1
   where_line=$(grep -n "$@")
-  line_number=$(( $(echo "$where_line" | sed 's/^\([0-9]\+\):\(.*\)$/\1/') - 1 ))
+  line_number=$(( $(echo "$where_line" | sed 's/^\([0-9]*\):\(.*\)$/\1/') - 1 ))
 }
 
 # 1:where-grep 2:file-path 3:content
