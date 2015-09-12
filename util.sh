@@ -150,3 +150,8 @@ get_uuid()
   return 1
 }
 
+pushd()
+{
+  error "pushd not implemented" 1
+}
+

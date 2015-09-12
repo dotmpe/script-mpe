@@ -48,28 +48,42 @@ stdio_type()
 #}
 
 
+
+
+
+
 # check if stdout is a terminal...
 if [ -t 1 ]; then
 
   # see if it supports colors...
-  ncolors=$(tput colors)
-
   echo="echo"
-  case $TERM in 
+  case $TERM in
+
     xterm-256color )
+      LOG_TERM=256
+      ncolors=$(tput colors)
       # FIXME echo -e something going on with BSD sh?
       echo="echo -e"
       ;;
+
     xterm* )
+      LOG_TERM=16
       ncolors=$(tput -T xterm colors)
       ;;
+
+    * )
+      LOG_TERM=bw
+      echo "Other term $TERM"
+      ;;
+
   esac
 
   if test -n "$ncolors" && test $ncolors -ge 8; then
 
     test -z "$debug" || echo "ncolors=$ncolors"
 
-    black="\e[0;30m"
+    #black="\e[0;30m"
+    black=
 
     bld="$(tput bold)"
     underline="$(tput smul)"
@@ -86,30 +100,52 @@ if [ -t 1 ]; then
     bwhite=${bld}${white}
 
     if test $ncolors -ge 256; then
-      blackb="\e[0;90m"
-      grey="\e[0;37m"
+      #blackb="\e[0;90m"
+      #grey="\e[0;37m"
+      grey=
     else
       grey=${white}
     fi
   fi
 fi
 
+log_bw()
+{
+  echo "$1"
+}
 
-# stdio/stderr/exit util
+log_16()
+{
+  echo "$1"
+}
+
+log_256()
+{
+  echo "$1"
+}
+
+# Normal log uses log_$TERM
+# 1:fd 2:str 3:exit
 log()
 {
-  [ -n "$(echo "$*")" ] || return 1;
-  [ -n "$stdout_type" ] || stdout_type=$stdio_1_type
-  [ -n "$stdout_type" ] || stdout_type=t
+  test -n "$1" || return
+  #test -n "$2" || return 1
+  #test -n "$1" || set -- 1 "$@"
+  test -n "$stdout_type" || stdout_type=$(eval echo \$stdio_${1}_type)
+  test -n "$stdout_type" || stdout_type=t
+
   case $stdout_type in t )
+
         key=${grey}$scriptname.sh
         test -n "$subcmd_name" && key=${key}${bb}:${grey}${subcmd_name}
-        echo "${pref}${bb}[${key}${bb}] ${norm}$1"
+
+        log_$LOG_TERM "${pref}${bb}[${key}${bb}] ${norm}$1"
         ;;
+
       p|f )
         key=${grey}$scriptname.sh
         test -n "$subcmd_name" && key=${key}:${subcmd_name}
-        echo "# [${key}] $1"
+        log_$LOG_TERM "# [${key}] $1"
         ;;
   esac
 }
