@@ -53,13 +53,13 @@ stdio_type()
 
 
 # check if stdout is a terminal...
-if [ -t 1 ]; then
+#if [ -t 1 ]; then
 
   # see if it supports colors...
   echo="echo"
   case $TERM in
 
-    xterm-256color )
+    *256color )
       LOG_TERM=256
       ncolors=$(tput colors)
       # FIXME echo -e something going on with BSD sh?
@@ -115,7 +115,7 @@ if [ -t 1 ]; then
       bwhite=${bld}${white}
     fi
   fi
-fi
+#fi
 
 log_bw()
 {
@@ -143,17 +143,15 @@ log()
   test -n "$stdout_type" || stdout_type=t
 
   case $stdout_type in t )
-
-        key=${bk}$scriptname.sh
+        key=$scriptname.sh
         test -n "$subcmd_name" && key=${key}${bb}:${bk}${subcmd_name}
-
-        log_$LOG_TERM "${pref}${bb}[${key}${bb}] ${norm}$1"
+        log_$LOG_TERM "${bb}[${bk}${key}${bb}] ${norm}$1"
         ;;
 
       p|f )
-        key=${grey}$scriptname.sh
-        test -n "$subcmd_name" && key=${key}:${subcmd_name}
-        log_$LOG_TERM "# [${key}] $1"
+        key=$scriptname.sh
+        test -n "$subcmd_name" && key=${key}${bb}:${bk}${subcmd_name}
+        log_$LOG_TERM "${bb}# [${bk}${key}${bb}] ${norm}$1"
         ;;
   esac
 }
@@ -169,7 +167,7 @@ err()
         bb=${red}; bk=$grey
         log "${bld}${red}$1${blackb}: ${norm}${bwhite}$2${norm}" 1>&2 ;;
     warn*)
-        bb=${red}; bk=$grey
+        bb=${dylw}; bk=$grey
         log "${dylw}$1${grey}: ${white}$2${norm}" 1>&2 ;;
     notice )
         bb=${prpl}; bk=$grey
