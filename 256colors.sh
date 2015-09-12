@@ -5,6 +5,8 @@
 # ANSI CSI+SGR (see "ANSI Code" on Wikipedia)
 #
 
+set -o posix
+
 printf "\n   +  "
 for i in {0..35}; do
   printf "%2b " $i

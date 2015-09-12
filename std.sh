@@ -82,29 +82,26 @@ if [ -t 1 ]; then
 
     test -z "$debug" || echo "ncolors=$ncolors"
 
-    #black="\e[0;30m"
-    black=
-
-    bld="$(tput bold)"
-    underline="$(tput smul)"
-    standout="$(tput smso)"
-    norm="$(tput sgr0)"
-    black="$(tput setaf 0)"
-    red="$(tput setaf 1)"
-    grn="$(tput setaf 2)"
-    ylw="$(tput setaf 3)"
-    blue="$(tput setaf 4)"
-    prpl="$(tput setaf 5)" # magenta
-    cyan="$(tput setaf 6)"
-    white="$(tput setaf 7)"
-    bwhite=${bld}${white}
-
     if test $ncolors -ge 256; then
       #blackb="\e[0;90m"
       #grey="\e[0;37m"
-      grey=
+      grey=${norm}
     else
       grey=${white}
+
+      bld="$(tput bold)"
+      underline="$(tput smul)"
+      standout="$(tput smso)"
+      norm="$(tput sgr0)"
+      black="$(tput setaf 0)"
+      red="$(tput setaf 1)"
+      grn="$(tput setaf 2)"
+      ylw="$(tput setaf 3)"
+      blue="$(tput setaf 4)"
+      prpl="$(tput setaf 5)" # magenta
+      cyan="$(tput setaf 6)"
+      white="$(tput setaf 7)"
+      bwhite=${bld}${white}
     fi
   fi
 fi
@@ -131,7 +128,7 @@ log()
   test -n "$1" || return
   #test -n "$2" || return 1
   #test -n "$1" || set -- 1 "$@"
-  test -n "$stdout_type" || stdout_type=$(eval echo \$stdio_${1}_type)
+  test -n "$stdout_type" || stdout_type="$stdio_1_type"
   test -n "$stdout_type" || stdout_type=t
 
   case $stdout_type in t )
