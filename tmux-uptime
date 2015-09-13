@@ -1,2 +1,11 @@
 #!/bin/sh
-echo $(uptime | sed 's/^[0-9\:]*\ \(.*\)\ [0-9]*\ users..load.averages\:\(.*\)$/\1\2/')
+
+#echo $(uptime | \
+#  sed 's/^[0-9\:]*\ \(.*\)\ [0-9]*\ users..load.averages\:\(.*\)$/\1\2/')
+
+
+#echo $(uptime | sed 's/^\([^,]*\),\ \([^,]*\),\ load[^0-9]*\(.*\)$/\1-\2-\1/')
+
+echo $(uptime | sed 's/^\([^,]*\),\ \([^,]*\).*load[^0-9]*\(.*\)$/\'$1'/')
+
+
