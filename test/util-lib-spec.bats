@@ -149,6 +149,7 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
 
 @test "$lib short" {
+  check_skipped_envs travis || skip "Nothing much to test anyway"
 
   func_exists short
   run short
