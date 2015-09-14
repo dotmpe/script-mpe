@@ -17,9 +17,15 @@
     # XXX bats-tests: '{{box,str}}'
     # XXX bats-tests: '\{box,str\}'
 
+
+    jobs:
+
+    #
+    # Two partially pre-scripted jobs Using the .travis.yml 
+    # build config.
+    #
     # FIXME: travis build fails on TB config parts
     # XXX: want to use branch checkout? but not working
-    jobs:
     - '{name}-gh-travis':
         disabled: true
         title: 'script.mpe [gh,public,travis] ({branch})'
@@ -27,6 +33,11 @@
     - '{name}-local-gh-travis':
         disabled: true
         title: 'script.mpe [gh,travis] ({branch})'
+
+    #
+    # Two custom script Github checkouts for testing.
+    # One without and one with TAP test result publishing.
+    #
 
     - '{name}-local-gh':
         disabled: false
@@ -75,5 +86,10 @@
             export JENKINS_SKIP=1
             mkdir -vp ./build
             bash -c './test/*-spec.bats > ./build/test-results.tap'
+
+    #
+    # A job to test/update this build config file, if either JJB, JTB or
+    # this repo changes.
+    #
 
 

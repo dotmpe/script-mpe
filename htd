@@ -711,6 +711,22 @@ todo_read_line()
   comment=${line:$((  ${#fn} + ${#ln} + 2  ))}
 }
 
+
+c_man_1_build_todo_list="Build indented file of path/line/tag from FIXME: etc tagged
+src files"
+c_build_todo_list()
+{
+  test -n "$1" || set -- TODO.list
+  grep -nsrI '\(\<FIXME\|TODO\|NOTE\|XXX\>\):' . \
+      | grep -v '^#|\s*$' \
+      | grep -v '.*#\ htd:ignore\s*' \
+      | sort \
+      | sed 's/\:\([0-9]*\)\:[\s\#]*/:\
+\ \ \1\
+\ \ \ \ /g' > $1
+}
+
+
 # Lists and tasks
 
 gtasks_list_arg()
@@ -1717,6 +1733,7 @@ htd_init()
   . $PREFIX/bin/util.sh
   box_run_sh_test
   . $PREFIX/bin/main.sh
+  . $PREFIX/bin/main.init.sh
   . $PREFIX/bin/box.lib.sh
   # -- htd box init sentinel --
 }

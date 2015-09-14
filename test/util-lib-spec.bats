@@ -7,6 +7,7 @@ init_lib
 source $lib/util.sh
 source $lib/main.sh
 
+{ . $lib/main.init.sh && load; }
 
 # XXX: clean me up to a test-helper func
 test_inc="$lib/util.sh $lib/main.sh $lib/test/helper.bash $lib/test/main.inc.bash"
@@ -16,7 +17,7 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
 # util / Try-Exec
 
-@test "$lib test run test functions to verify" {
+@test "$lib test run test functions to verify" "" "" {
 
   run mytest_function
   test $status -eq 0
@@ -188,4 +189,15 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 }
 
 
-# vim:ft=sh:
+@test "$lib expr_substr " {
+
+  func_exists expr_substr
+  test "$(expr_substr "testFOObar" 1 4)" = "test"
+  test "$(expr_substr "testFOObar" 5 3)" = "FOO"
+  test "$(expr_substr "testFOObar" 8 3)" = "bar"
+  test "$(expr_substr "testFOObar" 1 10)" = "testFOObar"
+}
+
+
+
+

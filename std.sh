@@ -66,7 +66,7 @@ stdio_type()
       echo="echo -e"
       ;;
 
-    xterm* )
+    xterm* | ansi )
       LOG_TERM=16
       ncolors=$(tput -T xterm colors)
       ;;

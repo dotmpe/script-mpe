@@ -247,6 +247,7 @@ match_init()
   . $PREFIX/bin/util.sh
   box_run_sh_test
   . $PREFIX/bin/main.sh "$@"
+  . $PREFIX/bin/main.init.sh
   . $PREFIX/bin/box.lib.sh "$@"
   # -- match box init sentinel --
 }

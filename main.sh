@@ -96,11 +96,11 @@ std_commands()
   local cont=
   list_functions "$@" | while read line
   do
-    test "$(expr substr "$line" 1 1)" = "#" && {
-        test "$(expr substr "$line" 1 7)" = "# file=" && {
-          eval $(expr substr "$line" 2 $(( ${#line} - 1 )))
+    test "$(expr_substr "$line" 1 1)" = "#" && {
+        test "$(expr_substr "$line" 1 7)" = "# file=" && {
+          eval $(expr_substr "$line" 2 $(( ${#line} - 1 )))
           X=${BOX_DIR}/${base}/
-          local_file=$(expr substr "$file" $(( 1 + ${#X} )) $(( ${#file} - ${#X} )))
+          local_file=$(expr_substr "$file" $(( 1 + ${#X} )) $(( ${#file} - ${#X} )))
           test -z "$local_id" && {
             # Global mode: list all commands
             test "$BOX_DIR/$base/$local_file" = "$file" && {
@@ -120,7 +120,7 @@ std_commands()
     test -n "$func" || continue
 
     func_name="$(echo "$func"| sed 's/'${subcmd_func_pref}'//')"
-    if test "$(expr substr "$func_name" 1 7)" = "local__"
+    if test "$(expr_substr "$func_name" 1 7)" = "local__"
     then
       lcwd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\1/' | tr '_' '-')"
       lcmd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\2/' | tr '_' '-')"
@@ -229,17 +229,17 @@ get_subcmd_args()
 
     -* )
       # BUG: -ne wont work, -en will. Should always split flags here.
-      get_cmd_alias subcmd "$(expr substr "$1" 1 2 )"
+      get_cmd_alias subcmd "$(expr_substr "$1" 1 2 )"
       test -n "$subcmd_alias" && {
         subcmd_name=$subcmd_alias
         flag="$1"
         shift 1
-        flags="-$(expr substr "$flag" 3 ${#flag})"
+        flags="-$(expr_substr "$flag" 3 ${#flag})"
         test "$flags" = "-" && {
           incr sc
           continue
         } || {
-          set --  "-$(expr substr "$flag" 3 ${#flag})" "${1+$@}"
+          set --  "-$(expr_substr "$flag" 3 ${#flag})" "${1+$@}"
         }
       } || noop
       parse_box_subcmd_opts $* && {
