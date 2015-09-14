@@ -17,6 +17,17 @@ init_lib()
   test -z "$PREFIX" && lib=. || lib=$PREFIX/bin
 }
 
+init()
+{
+  test -x $base && {
+    init_bin
+  }
+  init_lib
+
+  # XXX does this overwrite bats load?
+  . main.init.sh
+}
+
 is_skipped()
 {
   local key=$(echo $1 | tr 'a-z' 'A-Z')

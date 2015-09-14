@@ -3,6 +3,7 @@
 base=basename-reg
 
 load helper
+init
 
 # TODO configure which fields it outputs
 
@@ -29,4 +30,3 @@ test -e "$HOME/.basename-reg.yaml" || touch "$HOME/.basename-reg.yaml"
   test "${lines[0]}" = "ffnenc.py,ffnenc,py,text/x-python,py,Script,Python script text"
 }
 
-# vim:ft=sh:

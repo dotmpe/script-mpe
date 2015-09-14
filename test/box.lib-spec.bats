@@ -3,7 +3,7 @@
 load helper
 base=box.lib
 
-init_lib
+init
 source $lib/util.sh
 source $lib/$base.sh
 test_lib=$lib/test/main.inc
@@ -13,7 +13,7 @@ test_lib=$lib/test/main.inc
 
   check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
   script_name=mytest
-  run box_script_insert_point $test_lib.bash
+  run box_script_insert_point $test_lib.bash main myscript
 
   test ${status} -eq 0
   test "${lines[*]}" = "22"
@@ -74,4 +74,3 @@ test_lib=$lib/test/main.inc
   test "${#lines[@]}" = "0" # lines of output (stderr+stderr)
 }
 
-# vim:et:ft=sh:

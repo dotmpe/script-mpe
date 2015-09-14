@@ -39,4 +39,3 @@ source $lib.sh
   fnmatch "./file.sh: line *: test" "./file.sh: line 1234: test" || test
 }
 
-# vim:ft=sh:

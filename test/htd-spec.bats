@@ -2,7 +2,7 @@
 
 base=htd
 load helper
-init_bin
+init
 
 version=0.0.0+20150911-0659 # script.mpe
 
@@ -100,4 +100,3 @@ version=0.0.0+20150911-0659 # script.mpe
   #test -z "${lines[*]}" # empty output
 }
 
-# vim:ft=sh:

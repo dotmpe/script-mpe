@@ -3,8 +3,7 @@
 load helper
 base=dckr
 
-init_bin
-init_lib
+init
 . $lib/util.sh
 
 
@@ -67,4 +66,3 @@ init_lib
   test "${#lines[@]}" = "0" # lines of output (stderr+stderr)
 }
 
-# vim:et:ft=sh:

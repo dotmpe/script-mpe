@@ -3,7 +3,7 @@
 load helper
 base=std
 
-init_lib
+init
 . $lib/std.sh
 . $lib/str.sh
 
@@ -73,7 +73,7 @@ init_lib
   verbosity=4
   run error "error"
   test ${status} -eq 0
-  fnmatch "*error" "${lines[*]}"
+  fnmatch "*error*" "${lines[*]}"
 
   verbosity=2
   run error "test" 1
@@ -101,12 +101,12 @@ init_lib
   verbosity=6
   run info "test info exit" 3
   test ${status} -eq 3
-  fnmatch "*test info exit" "${lines[*]}"
+  fnmatch "*test info exit*" "${lines[*]}"
 
   verbosity=6
   run info "test info exit" 0
   test ${status} -eq 0
-  fnmatch "*test info exit" "${lines[*]}"
+  fnmatch "*test info exit*" "${lines[*]}"
 
   verbosity=5
   run info "test" 0
@@ -116,8 +116,10 @@ init_lib
   exit(){ echo 'exit '$1' call'; command exit $1; }
   verbosity=6
   run info "test" 0
+#  echo ${status} > /tmp/1
+#  echo "${lines[*]}" >> /tmp/1
   test ${status} -eq 0
-  fnmatch "*test exit 0 call" "${lines[*]}"
+  fnmatch "*exit 0 call" "${lines[*]}"
 }
 
 
@@ -131,4 +133,3 @@ init_lib
   #test ${status} -eq 0
 }
 
-# vim:et:ft=sh:

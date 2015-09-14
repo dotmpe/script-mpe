@@ -2,8 +2,7 @@
 
 base=match.sh
 load helper
-init_bin
-init_lib
+init
 
 source $lib/util.sh
 
@@ -12,7 +11,7 @@ source $lib/util.sh
 @test "$bin no arguments no-op" {
   run ${bin}
   test $status -eq 1
-  fnmatch "*match.sh*Error: No command given*" "${lines[3]}"
+  fnmatch "*match.sh*Error*No command given*" "${lines[3]}"
 }
 
 @test "$bin no arguments no-op (plain)" {
@@ -130,4 +129,3 @@ source $lib/util.sh
     skip "TODO envs $envs: implement test for env"
 }
 
-# vim:ft=sh:

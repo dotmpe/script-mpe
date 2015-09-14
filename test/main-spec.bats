@@ -3,7 +3,7 @@
 load helper
 load main.inc
 
-init_lib
+init
 source $lib/util.sh
 source $lib/main.sh
 
@@ -143,5 +143,3 @@ BOX_INIT=1
   check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
 
-
-# vim:ft=sh:

@@ -2,6 +2,7 @@
 
 base=test/helper.bash
 load helper
+init
 init_bin
 
 @test "${bin} is_skipped returns 0 if ENV_SKIP=1 or 1, no output" {
@@ -49,4 +50,3 @@ init_bin
     test "${status}" = 1 || test -z "Should have set {ENV}_SKIP=1 for proper test! do it now. "
 }
 
-# vim:et:ft=sh:

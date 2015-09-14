@@ -433,7 +433,7 @@ box__main()
 
   case "$base" in $scriptname )
 
-      local subcmd_def=stat \
+      local subcmd_def= \
         subcmd_pref= subcmd_suf= \
         subcmd_func_pref=c_ subcmd_func_suf=
 

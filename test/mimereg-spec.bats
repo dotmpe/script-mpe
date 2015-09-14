@@ -3,6 +3,7 @@
 base=mimereg
 
 load helper
+init
 
 
 @test "$bin ffnenc.py" {

@@ -20,7 +20,7 @@ c_mytest__run()
   set --
 }
 
-mytest__main()
+mytest_main()
 {
   set --
 }

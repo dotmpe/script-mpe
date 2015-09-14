@@ -3,11 +3,9 @@
 load helper
 load main.inc
 
-init_lib
+init
 source $lib/util.sh
 source $lib/main.sh
-
-{ . $lib/main.init.sh && load; }
 
 # XXX: clean me up to a test-helper func
 test_inc="$lib/util.sh $lib/main.sh $lib/test/helper.bash $lib/test/main.inc.bash"
@@ -197,7 +195,5 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
   test "$(expr_substr "testFOObar" 8 3)" = "bar"
   test "$(expr_substr "testFOObar" 1 10)" = "testFOObar"
 }
-
-
 
 

@@ -144,7 +144,7 @@ box_script_insert_point()
   test -n "$2" || set -- $1 main $3
   test -n "$3" || set -- $1 $2 $base
   local where_line= line_number= p='^'${3}'_'${2}'()$'
-  box_grep $p $1 || {
+  box_grep "$p" "$1" || {
     error "invalid ${3}_${2} ($1)" 1
   }
   echo $line_number
