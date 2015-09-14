@@ -161,7 +161,7 @@ expr_substr()
     case "$expr" in sh-substr )
             expr substr "$1" "$2" "$3" ;;
         bash-substr )
-            bash -c 'MYVAR="'$1'"; echo "${MYVAR:'$(( $2 - 1 ))':'$3'}"' ;;
+            bash -c 'MYVAR="'"$1"'"; echo "${MYVAR:'$(( $2 - 1 ))':'$3'}"' ;;
         * ) error "$expr" 1
     esac
 }
