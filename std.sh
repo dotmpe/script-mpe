@@ -147,12 +147,12 @@ log_bw()
 
 log_16()
 {
-  echo "$1"
+  printf "$1\n"
 }
 
 log_256()
 {
-  echo "$1"
+  printf "$1\n"
 }
 
 # Normal log uses log_$TERM

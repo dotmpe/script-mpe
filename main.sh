@@ -416,11 +416,13 @@ main()
   }
 
   test -z "$dry_run" \
-    && debug "starting $scriptname $subcmd_name" \
+    && debug "executing $scriptname $subcmd_name" \
     || info "** starting DRY RUN $scriptname $subcmd_name **"
 
   $subcmd_func "$@" && {
-    info "$subcmd_name completed normally" 0
+      test -z "$dry_run" \
+        && info "$subcmd_name completed normally" 0 \
+        || info "$subcmd_name dry-drun completed" 0
   } || {
     e=$?
     error "Command $subcmd_name returned $e" 3

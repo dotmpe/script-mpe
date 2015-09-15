@@ -446,32 +446,6 @@ c_alias()
   done
 }
 
-c_man_1_bash_commands="Show all Bash commands"
-c_bash_commands()
-{
-	compgen -c
-}
-c_man_1_bash_aliases="Show all Bash aliases"
-c_bash_aliases()
-{
-	compgen -a
-}
-c_man_1_bash_keywords="Show all Bash keywords"
-c_bash_keywords()
-{
-	compgen -k
-}
-c_man_1_bash_functions="Show all Bash functions"
-c_bash_functions()
-{
-	compgen -A function
-}
-c_man_1_bash_builtins="Show all Bash built-ins"
-c_bash_builtins()
-{
-	compgen -b
-}
-
 # Open an editor to edit todays log
 c_vtoday()
 {
