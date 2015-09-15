@@ -8,7 +8,7 @@ init
 
 
 @test "${bin}" {
-  check_skipped_envs travis || skip "dckr not running at Travis CI"
+  check_skipped_envs travis simza || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 1
   fnmatch "*Usage:*" "${lines[*]}" # usage info on out
@@ -17,7 +17,7 @@ init
 }
 
 @test "${bin} -h" {
-  check_skipped_envs travis || skip "dckr not running at Travis CI"
+  check_skipped_envs travis simza || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Usage:*" "${lines[*]}" # usage info on out
@@ -26,7 +26,7 @@ init
 }
 
 @test "${bin} help" {
-  check_skipped_envs travis || skip "dckr not running at Travis CI"
+  check_skipped_envs travis simza || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Usage:*" "${lines[*]}" # usage info on out
@@ -39,7 +39,7 @@ init
 }
 
 @test "${bin} -h help" {
-  check_skipped_envs travis || skip "dckr not running at Travis CI"
+  check_skipped_envs travis simza || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
@@ -48,7 +48,7 @@ init
 }
 
 @test "${bin} help help" {
-  check_skipped_envs travis || skip "dckr not running at Travis CI"
+  check_skipped_envs travis simza || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
@@ -58,7 +58,7 @@ init
 }
 
 @test "${bin} -vv -n help" {
-  check_skipped_envs || \
+  check_skipped_envs simza || \
     skip "TODO envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0

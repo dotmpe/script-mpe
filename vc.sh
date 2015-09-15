@@ -15,7 +15,7 @@ scriptname=vc
 
 load()
 {
-	echo -n # no-op
+	noop
 }
 
 vc_usage()

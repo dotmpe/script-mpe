@@ -49,7 +49,8 @@ install_pylib()
 {
   # for travis container build:
   pylibdir=$HOME/.local/lib/python2.7/site-packages
-  case "$(hostname -s)" in
+  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  case "$hostname" in
       simza )
           pylibdir=~/lib/py ;;
   esac
@@ -80,7 +81,7 @@ test "$1" = "run" && {
   install_script
 
 } || {
-  echo -n
+  set --
 }
 
 # Id: script-mpe/0 install-dependencies.sh

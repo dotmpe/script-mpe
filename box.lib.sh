@@ -6,7 +6,7 @@ set -e
 box_load()
 {
   test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
-  test -n "$hostname" || hostname=$(hostname -s)
+  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
   mkvid $(pwd)
   nid_cwd=$vid
@@ -15,7 +15,8 @@ box_load()
 
 box_docs()
 {
-  echo -n #echo 'Docs:'
+  noop
+  #echo 'Docs:'
 }
 
 ### Util functions
@@ -221,5 +222,7 @@ box_list_libs()
   test -n "$line_offset" || error "line_offset empty" 1
   test -n "$line_diff" || error "line_diff empty" 1
 
-  { tail -n +4 | tail -n +$line_offset | head -n $line_diff; } < $1
+  test $line_diff -eq 0 || {
+    tail -n +4 | tail -n +$line_offset | head -n $line_diff;
+  } < $1
 }

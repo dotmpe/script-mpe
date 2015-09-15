@@ -26,9 +26,9 @@ stdio_type()
 
     Darwin )
         test -e /dev/fd/${io} || error "No FD $io"
-        if file /dev/fd/$io 2>&1 | grep -q 'named.pipe'; then
+        if file /dev/fd/$io | grep -q 'named.pipe'; then
           export stdio_${io}_type=p
-        elif file /dev/fd/$io 2>&1 | grep -q 'character.special'; then
+        elif file /dev/fd/$io | grep -q 'character.special'; then
           export stdio_${io}_type=t
         else
           export stdio_${io}_type=f

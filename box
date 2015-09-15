@@ -55,10 +55,10 @@ c_stat()
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
   note "FIXME this is more like a info list. need something more actual for stat. think about keeping state in files.."
 
-  local_file=$BOX_DIR/$(hostname -s)/${nid_cwd}.sh
+  local_file=$BOX_DIR/$(hostname -s | tr 'A-Z' 'a-z')/${nid_cwd}.sh
 
   test -n "$local_file" && {
-    subcmd_func_pref=c_$(hostname -s)__ choice_all=1 \
+    subcmd_func_pref=c_$(hostname -s | tr 'A-Z' 'a-z')__ choice_all=1 \
       std_commands $local_file
   } || {
     error "No local file" 1
@@ -317,7 +317,7 @@ c_run()
 
   test -n "$script_name" || script_name=${base}
   named_script=$PREFIX/bin/box
-  local_script=$BOX_DIR/$(hostname -s)/${nid_cwd}.sh
+  local_script=$BOX_DIR/$(hostname -s | tr 'A-Z' 'a-z')/${nid_cwd}.sh
 
   #box_init_args $@
   test $c -eq 0 || shift $c ; c=0

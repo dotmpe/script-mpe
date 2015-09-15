@@ -116,7 +116,7 @@ match_name_pattern_opts()
   for var_match in $MATCH_NAME_VARS
   do
     echo "$pattern" | grep '@\<'$var_match'\>' > /dev/null \
-      && echo $var_match  || echo -n
+      && echo $var_match  || noop
   done
 }
 
@@ -143,10 +143,10 @@ match_name_vars()
         continue
       }
       echo grep_pattern=$grep_pattern
-      echo -n "$var2="
+      printf "$var2="
       echo "$path" | sed -Po 's/^'$grep_pattern'$/\var/'
     done
-    echo -n
+
   } || {
     error "mismatch '$path'"
     return 1

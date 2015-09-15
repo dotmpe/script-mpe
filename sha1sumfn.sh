@@ -73,9 +73,9 @@ function do_check()
 			check=$(echo $base | sed -rn 's/.*([a-f0-9]{40})/\1/p')
 			[ -n "$check" ] && {
 				expect=$(sha1sum $f|cut -f1 -d' ')
-				[ "$expect" = "$check" ] && { echo -n .; continue; }
-				echo -n 'F'
-			} || { echo -n '?'; }
+				[ "$expect" = "$check" ] && { printf .; continue; }
+				printf 'F'
+			} || { printf '?'; }
 		done
 	done
 }

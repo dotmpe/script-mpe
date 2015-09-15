@@ -161,7 +161,7 @@ dckr_stop()
     sudo docker ps | grep -q '\<'$dckr_name'\>' && {
       info "Stopping container by container-name $dckr_name:"
       sudo docker stop $dckr_name
-    } || echo -n
+    } || noop
   }
 }
 
@@ -185,7 +185,7 @@ dckr_rm()
     sudo docker ps -a | grep -q '\<'$dckr_name'\>' && {
       info "Removing container by container-name $dckr_name:"
       sudo docker rm $dckr_name
-    } || echo -n
+    } || noop
   }
 }
 
@@ -430,7 +430,7 @@ dckr__shipyard_init()
   note "Initializing VS1 Shipyard"
   local dckr_name=shipyard-rethinkdb
   dckr_p && {
-    echo -n "Shipyard at vs1:8080 running from IP "
+    printf "Shipyard at vs1:8080 running from IP "
     dckr_ip
   } || {
     sudo bash -c ' curl -s https://shipyard-project.com/deploy | bash -s '
@@ -822,7 +822,7 @@ dckr_load()
   test -e "$DCKR_CONF" || error "Missing docker config dir $DCKR_CONF" 1
   test -e "$DCKR_VOL" || error "Missing docker volumes dir $DCKR_VOL" 1
 
-  hostname=$(hostname -s)
+  hostname=$(hostname -s | tr 'A-Z' 'a-z')
   dckr_c_pref="${hostname}-"
 
   test -n "$EDITOR" || EDITOR=vim

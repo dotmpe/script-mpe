@@ -25,7 +25,7 @@ init_bin
 
     run current_test_env
     test "${status}" = 0
-    test "${lines[0]}" = "$(hostname -s)" || test "${lines[0]}" = "$(whoami)"
+    test "${lines[0]}" = "$(hostname -s | tr 'A-Z' 'a-z')" || test "${lines[0]}" = "$(whoami)"
 }
 
 @test "${bin} check_skipped_envs returns 0 or 1, no output" {
@@ -36,8 +36,8 @@ init_bin
     test "${#lines[@]}" = "0" # No output
 
     key=$(hostname -s | tr 'a-z-' 'A-Z_')
-    run bash -c '. '${bin}' && '$key'_SKIP=1 check_skipped_envs '$(hostname -s)' '$(whoami)
-    test "${status}" = 1 || test -z "Should have failed: envs (hostname -s) and (whoami) should cover all envs"
+    run bash -c '. '${bin}' && '$key'_SKIP=1 check_skipped_envs '$(hostname -s | tr 'A-Z' 'a-z')' '$(whoami)
+    test "${status}" = 1 || test -z "Should have failed: envs (hostname -s | tr 'A-Z' 'a-z') and (whoami) should cover all envs"
     test "${lines[*]}" = ""
 
     run bash -c '. '${bin}' && '$key'_SKIP=1 check_skipped_envs'

@@ -25,8 +25,8 @@ htd_load()
   _5k=5120
   test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
 
-  test -n "$hostname" || hostname=$(hostname -s)
-  test -n "$uname" || uname=$(uname -s)
+  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  test -n "$uname" || uname="$(uname -s)"
 
   cwd=$(pwd)
   test "$cwd" = "$(pwd -P)" || warn "current path seems to be aliased"
@@ -534,7 +534,7 @@ datelink()
     test "$(readlink $target_path)" = "$(basename $datep)" && {
         return
     }
-    echo -n "Deleting "
+    printf "Deleting "
     rm -v $target_path
   }
   mkrlink $datep $target_path
@@ -543,7 +543,7 @@ datelink()
 mkrlink()
 {
   # TODO: find shortest relative path
-  echo -n "Linking "
+  printf "Linking "
   ln -vs $(basename $1) $2
 }
 
@@ -646,7 +646,7 @@ c_mac()
 
 c_project()
 {
-    echo -n
+    printf ""
 }
 
 c_project_todo()
@@ -695,7 +695,7 @@ todo_clean_descr()
   descr="$(echo ${clean:$(( ${#tag} + 1 ))})"
   test -n "$descr" -a "$descr" != " " && {
     echo $descr | grep -E '(\.|\?)$' > /dev/null || {
-      echo -n
+      set --
       # TODO: scan lines for end...
     }
   }
@@ -819,13 +819,13 @@ c_task_note()
   tail -n +3 $tmpf.txt > $tmpf.new
   check=$(md5sum $tmpf.new | cut -f 1 -d ' ')
   test "$title" != "$new_title" && {
-    echo -n "Updating title ... "
+    printf "Updating title ... "
     gtasks -l "$list" -e $num -t "$new_title" -dsl
   } || {
     echo "No changes to title. "
   }
   test "$check_pre" != "$check" && {
-    echo -n "Updating notes ... "
+    printf "Updating notes ... "
     gtasks -l "$list" -e $num -n "$(cat $tmpf.new)" -dsl
   } || {
     echo "No changes to notes. "
@@ -869,8 +869,8 @@ c_urls()
     shift 1
     grep '\([a-z]\+\):\/\/.*' $file | while read url
     do
-        sha1=$(echo -n $url | sha1sum - | cut -d ' ' -f 1)
-        md5=$(echo -n $url | md5sum - | cut -d ' ' -f 1)
+        sha1=$(printf $url | sha1sum - | cut -d ' ' -f 1)
+        md5=$(printf $url | md5sum - | cut -d ' ' -f 1)
         echo $sha1 $md5 $url
     done
 }
@@ -1225,7 +1225,7 @@ htd_host_arg()
 # TODO: pre-process file/metadata
 c_resolve()
 {
-  echo -n
+  set --
 }
 
 c_commit()
@@ -1237,17 +1237,16 @@ c_show_rules()
 {
   htd_host_arg $@
   cat ~/.conf/rules/$host/$project.sh
-  echo -n
 }
 
 c_run_rules()
 {
-  echo -n
+  set --
 }
 
 c_add_rule()
 {
-  echo -n
+  set --
 }
 
 # parse path and annex metadata using given path
@@ -1530,9 +1529,9 @@ c_ck_clean()
   ck_arg "$1"
   shift 1
   test "$CK" = "ck" && {
-    echo -n
+    set --
   } || {
-    echo -n
+    set --
   }
 }
 

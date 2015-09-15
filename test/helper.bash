@@ -38,8 +38,8 @@ is_skipped()
 
 current_test_env()
 {
-  case $(hostname -s) in
-    simza | vs1 ) hostname -s;;
+  case $(hostname -s | tr 'A-Z' 'a-z') in
+    simza | vs1 ) hostname -s | tr 'A-Z' 'a-z';;
     * ) whoami ;;
   esac
 }
@@ -48,7 +48,7 @@ check_skipped_envs()
 {
   # XXX hardcoded envs
   local skipped=0
-  test -n "$1" && envs="$*" || envs="$(hostname -s) $(whoami)"
+  test -n "$1" && envs="$*" || envs="$(hostname -s | tr 'A-Z' 'a-z') $(whoami)"
   cur_env=$(current_test_env)
   for env in $envs
   do

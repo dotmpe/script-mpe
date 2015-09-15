@@ -168,17 +168,27 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
   run $BATS_TEST_DESCRIPTION
 
-  case "$(current_test_env)" in simza | vs1 )
+  case "$(current_test_env)" in
+
+    simza )
+      test $status -eq 0
+      #echo "lines ${#lines[@]}" > /tmp/1
+      test "${#lines[@]}" = "5" # lines of output (stderr+stderr)
+      ;;
+
+    vs1 )
       test $status -eq 0
       #echo "lines ${#lines[@]}" > /tmp/1
       test "${#lines[@]}" = "7" # lines of output (stderr+stderr)
       ;;
+
     * )
       test $status -eq 3
       test "${#lines[@]}"
       skip "FIX testing at travis"
       test "${#lines[@]}" = "2" # lines of output (stderr+stderr)
       ;;
+
   esac
 }
 
