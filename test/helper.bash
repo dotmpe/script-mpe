@@ -94,6 +94,7 @@ tmpf()
 tmpd()
 {
   tmpd=$BATS_TMPDIR/bats-tempd
+  test -d "$tmpd" && rm -rf $tmpd
   mkdir -vp $tmpd
 }
 

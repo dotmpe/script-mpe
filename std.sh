@@ -1,18 +1,41 @@
 #!/bin/sh
 
 
-# Linux stdio type detect
+# stdio type detect - return char t(erminal) f(ile) p(ipe; or named-pipe, ie. FIFO)
+# On Linux, uses /proc/PID/fd/NR: Usage: stdio_type NR PID
+# On OSX/Darwin uses /dev/fd/NR: Usage: stdio_type NR
+# IO: 0:stdin 1:stdout 2:stderr
+#  
 stdio_type()
 {
+  local io= pid=
   test -n "$1" && io=$1 || io=1
-  test -n "$2" && pid=$2 || pid=$$
-  if readlink /proc/$pid/fd/$io | grep -q "^pipe:"; then
-    export stdio_${io}_type=p
-  elif file $( readlink /proc/$pid/fd/$io ) | grep -q "character special"; then
-    export stdio_${io}_type=t
-  else
-    export stdio_${io}_type=f
-  fi
+  case "$(uname)" in
+
+    Linux )
+        test -e /proc/$pid/fd/${io} || error "No FD $io"
+        test -n "$2" && pid=$2 || pid=$$
+        if readlink /proc/$pid/fd/$io | grep -q "^pipe:"; then
+          export stdio_${io}_type=p
+        elif file $( readlink /proc/$pid/fd/$io ) | grep -q 'character.special'; then
+          export stdio_${io}_type=t
+        else
+          export stdio_${io}_type=f
+        fi
+      ;;
+
+    Darwin )
+        test -e /dev/fd/${io} || error "No FD $io"
+        if file /dev/fd/$io 2>&1 | grep -q 'named.pipe'; then
+          export stdio_${io}_type=p
+        elif file /dev/fd/$io 2>&1 | grep -q 'character.special'; then
+          export stdio_${io}_type=t
+        else
+          export stdio_${io}_type=f
+        fi
+      ;;
+
+  esac
 }
 
 

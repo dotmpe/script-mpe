@@ -122,6 +122,52 @@ init
   fnmatch "*exit 0 call" "${lines[*]}"
 }
 
+@test "${lib}/${base} - stdio_type" {
+
+  run stdio_type
+  test ${status} -eq 0
+  test "${lines[*]}" = ""
+  run stdio_type 0
+  test ${status} -eq 0
+  test "${lines[*]}" = ""
+  run stdio_type 1
+  test ${status} -eq 0
+  test "${lines[*]}" = ""
+  run stdio_type 2
+  test ${status} -eq 0
+  test "${lines[*]}" = ""
+
+  # std bats IO...
+  stdio_type 0
+  test "$?" = "0"
+  test "$stdio_0_type" = "t"
+  stdio_type 1
+  test "$?" = "0"
+  test "$stdio_1_type" = "p"
+  stdio_type 2
+  test "$?" = "0"
+  test "$stdio_2_type" = "p"
+  stdio_type 3
+  test "$?" = "0"
+  test "$stdio_3_type" = "p"
+
+  { echo foo | file /dev/fd/{0,1,2,3} > /tmp/1; }
+  echo >>/tmp/1
+#  { echo foo | file /dev/fd/0 >> /tmp/1; }
+#  { echo foo | stdio_type 0; echo "$stdio_0_type" > /tmp/1; test "$stdio_0_type" = "p"; }
+  { echo foo | stdio_type 1; echo "$stdio_1_type" > /tmp/1; test "$stdio_1_type" = "p"; }
+  { echo foo | stdio_type 2; echo "$stdio_2_type" > /tmp/1; test "$stdio_2_type" = "p"; }
+#  test "$stdio_0_type" = "p"
+
+  tmpf
+  echo > $tmpf
+  stdio_type 0 < $tmpf
+  test "$stdio_0_type" = "f"
+
+# FIXME: test on Linux
+#  bash -c 'echo foo | stdio_type 0; echo x0=$stdio_0_type > /tmp/1'
+#  test "$stdio_0_type" = "p"
+}
 
 @test "${lib}/${base} - function should ..." {
   check_skipped_envs || \
