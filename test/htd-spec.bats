@@ -3,6 +3,9 @@
 base=htd
 load helper
 init
+source $lib/util.sh
+source $lib/str.sh
+
 
 version=0.0.0+20150911-0659 # script.mpe
 
@@ -73,22 +76,31 @@ version=0.0.0+20150911-0659 # script.mpe
 }
 
 @test "$bin today" 8 {
-  pushd /tmp/
+
+  tmp="$(cd /tmp/; pwd -P)"
+  cd "$tmp"
   test ! -d bats-test-log || rm -rf bats-test-log
+
   mkdir bats-test-log
   run $BATS_TEST_DESCRIPTION bats-test-log/
-  popd
   test $status -eq 0
   #echo "${lines[*]}" > /tmp/1
   #echo "${#lines[@]}" >> /tmp/1
   test "${#lines[@]}" = "24"
+
   for x in today tomorrow yesterday \
     monday tuesday wednesday thursday friday saturday sunday
   do
-    test -h /tmp/bats-test-log/${x}.rst
+    test -h $tmp/bats-test-log/${x}.rst
   done
   # XXX may also want to check last-saturday, next-* etc.
   #   also, may want to have larger offsets and wider time-windows: months, years
+
+  rm -rf bats-test-log
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 1
+  fnmatch "*Error*Dir journal must exist*" "${lines[*]}"
+  test "${#lines[@]}" = "1"
 }
 
 @test "$bin rewrite and test to new main.sh" {
