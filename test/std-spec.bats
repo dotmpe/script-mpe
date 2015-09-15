@@ -143,10 +143,10 @@ init
   test "$stdio_0_type" = "t"
   stdio_type 1
   test "$?" = "0"
-  test "$stdio_1_type" = "p"
+  test "$stdio_1_type" = "f"
   stdio_type 2
   test "$?" = "0"
-  test "$stdio_2_type" = "p"
+  test "$stdio_2_type" = "f"
   stdio_type 3
   test "$?" = "0"
   test "$stdio_3_type" = "p"
@@ -155,8 +155,8 @@ init
   echo >>/tmp/1
 #  { echo foo | file /dev/fd/0 >> /tmp/1; }
 #  { echo foo | stdio_type 0; echo "$stdio_0_type" > /tmp/1; test "$stdio_0_type" = "p"; }
-  { echo foo | stdio_type 1; echo "$stdio_1_type" > /tmp/1; test "$stdio_1_type" = "p"; }
-  { echo foo | stdio_type 2; echo "$stdio_2_type" > /tmp/1; test "$stdio_2_type" = "p"; }
+  { echo foo | stdio_type 1; echo "$stdio_1_type" > /tmp/1; test "$stdio_1_type" = "f"; }
+  { echo foo | stdio_type 2; echo "$stdio_2_type" > /tmp/1; test "$stdio_2_type" = "f"; }
 #  test "$stdio_0_type" = "p"
 
   tmpf
