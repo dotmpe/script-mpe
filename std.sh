@@ -113,6 +113,10 @@ stdio_type()
     standout="$(tput smso)"
     norm="$(tput sgr0)"
 
+    test -n "$verbosity" && {
+      $verbosity -ge 7 && echo "${drgrey}colors: ${grey}$ncolors${norm}"
+    }
+
     if test $ncolors -ge 256; then
       #blackb="\e[0;90m"
       #grey="\e[0;37m"
@@ -122,13 +126,23 @@ stdio_type()
       dylw="\033[38;5;214m"
       ylw="\033[38;5;220m"
       #norm="\033[0m"
-      grey="\033[38;5;244m"
-      dgrey="\033[38;5;238m"
-      drgrey="\033[38;5;232m"
-      white="\033[38;5;254m"
-      bwhite="\033[38;5;231m"
+      test "$CS" = 'dark' && {
+        nrml="\033[38;5;254m"
+        bnrml="\033[38;5;231m"
+        grey="\033[38;5;244m"
+        dgrey="\033[38;5;238m"
+        drgrey="\033[38;5;232m"
+      }
+      test "$CS" = 'light' && {
+        nrml="\033[38;5;240m"
+        bnrml="\033[38;5;232m"
+        grey="\033[38;5;245m"
+        dgrey="\033[38;5;250m"
+        drgrey="\033[38;5;255m"
+      }
+
     else
-      grey=${white}
+      grey=${nrml}
 
       black="$(tput setaf 0)"
       red="$(tput setaf 1)"
@@ -137,8 +151,8 @@ stdio_type()
       blue="$(tput setaf 4)"
       prpl="$(tput setaf 5)" # magenta
       cyan="$(tput setaf 6)"
-      white="$(tput setaf 7)"
-      bwhite=${bld}${white}
+      nrml="$(tput setaf 7)"
+      bnrml=${bld}${nrml}
     fi
   fi
 #fi
@@ -187,23 +201,23 @@ err()
   [ -n "$stdout_type" ] || stdout_type=$stdio_2_type
   case "$(echo $1 | tr 'A-Z' 'a-z')" in
     crit*)
-        bb=${ylw}; bk=$white
-        log "${bld}${ylw}$1${blackb}: ${bwhite}$2${norm}" 1>&2 ;;
+        bb=${ylw}; bk=$nrml
+        log "${bld}${ylw}$1${blackb}: ${bnrml}$2${norm}" 1>&2 ;;
     err*)
         bb=${red}; bk=$grey
-        log "${bld}${red}$1${blackb}: ${norm}${bwhite}$2${norm}" 1>&2 ;;
+        log "${bld}${red}$1${blackb}: ${norm}${bnrml}$2${norm}" 1>&2 ;;
     warn*)
         bb=${dylw}; bk=$grey
-        log "${dylw}$1${grey}: ${white}$2${norm}" 1>&2 ;;
+        log "${dylw}$1${grey}: ${nrml}$2${norm}" 1>&2 ;;
     notice )
         bb=${prpl}; bk=$grey
-        log "${grey}${white}$2${norm}" 1>&2 ;;
+        log "${grey}${nrml}$2${norm}" 1>&2 ;;
     info )
         bb=${blue}; bk=$grey
-        log "${white}$2${norm}" 1>&2 ;;
+        log "${nrml}$2${norm}" 1>&2 ;;
     ok )
         bb=${grn}; bk=$grey
-        log "${white}$2${norm}" 1>&2 ;;
+        log "${nrml}$2${norm}" 1>&2 ;;
     * )
         bb=${drgrey} ; bk=$dgrey
         log "${grey}$2" 1>&2 ;;
