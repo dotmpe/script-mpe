@@ -200,27 +200,36 @@ err()
   # XXX seems ie grep strips colors anyway?
   [ -n "$stdout_type" ] || stdout_type=$stdio_2_type
   case "$(echo $1 | tr 'A-Z' 'a-z')" in
+
     crit*)
         bb=${ylw}; bk=$nrml
-        log "${bld}${ylw}$1${blackb}: ${bnrml}$2${norm}" 1>&2 ;;
+        test "$CS" = "light" \
+          && crit_label_c="\033[38;5;226;48;5;249m" \
+          || crit_label_c="\033[48;5;0m${ylw}"
+
+        log "${bld}${crit_label_c}$1${norm}${blackb}: ${bnrml}$2${norm}" 1>&2 ;;
     err*)
         bb=${red}; bk=$grey
         log "${bld}${red}$1${blackb}: ${norm}${bnrml}$2${norm}" 1>&2 ;;
     warn*)
         bb=${dylw}; bk=$grey
-        log "${dylw}$1${grey}: ${nrml}$2${norm}" 1>&2 ;;
-    notice )
+        test "$CS" = "light" \
+            && warning_label_c="\033[38;5;255;48;5;220m"\
+            || warning_label_c="\033[38;5;214;48;5;255m";
+        log "${bld}${warning_label_c}$1${norm}${grey}${bld}: ${nrml}$2${norm}" 1>&2 ;; notice )
         bb=${prpl}; bk=$grey
         log "${grey}${nrml}$2${norm}" 1>&2 ;;
     info )
         bb=${blue}; bk=$grey
         log "${nrml}$2${norm}" 1>&2 ;;
+
     ok )
         bb=${grn}; bk=$grey
         log "${nrml}$2${norm}" 1>&2 ;;
     * )
         bb=${drgrey} ; bk=$dgrey
         log "${grey}$2" 1>&2 ;;
+
   esac
   [ -z "$3" ] || exit $3
 }
