@@ -123,9 +123,10 @@ stdio_type()
       prpl="\033[38;5;135m"
       blue="\033[38;5;27m"
       red="\033[38;5;196m"
-      dylw="\033[38;5;214m"
+      dylw="\033[38;5;208m"
       ylw="\033[38;5;220m"
       #norm="\033[0m"
+
       test "$CS" = 'dark' && {
         nrml="\033[38;5;254m"
         bnrml="\033[38;5;231m"
@@ -142,6 +143,7 @@ stdio_type()
       }
 
     else
+
       grey=${nrml}
 
       black="$(tput setaf 0)"
@@ -205,7 +207,7 @@ err()
         bb=${ylw}; bk=$nrml
         test "$CS" = "light" \
           && crit_label_c="\033[38;5;226;48;5;249m" \
-          || crit_label_c="\033[48;5;0m${ylw}"
+          || crit_label_c="${ylw}"
 
         log "${bld}${crit_label_c}$1${norm}${blackb}: ${bnrml}$2${norm}" 1>&2 ;;
     err*)
@@ -215,13 +217,13 @@ err()
         bb=${dylw}; bk=$grey
         test "$CS" = "light" \
             && warning_label_c="\033[38;5;255;48;5;220m"\
-            || warning_label_c="\033[38;5;214;48;5;255m";
+            || warning_label_c="${dylw}";
         log "${bld}${warning_label_c}$1${norm}${grey}${bld}: ${nrml}$2${norm}" 1>&2 ;; notice )
         bb=${prpl}; bk=$grey
         log "${grey}${nrml}$2${norm}" 1>&2 ;;
     info )
         bb=${blue}; bk=$grey
-        log "${nrml}$2${norm}" 1>&2 ;;
+        log "${grey}$2${norm}" 1>&2 ;;
 
     ok )
         bb=${grn}; bk=$grey
