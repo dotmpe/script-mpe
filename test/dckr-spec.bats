@@ -58,7 +58,7 @@ init
 }
 
 @test "${bin} -vv -n help" {
-  check_skipped_envs simza || \
+  check_skipped_envs travis simza || \
     skip "TODO envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0

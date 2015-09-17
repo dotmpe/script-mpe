@@ -151,7 +151,7 @@ init
   esac
   stdio_type 1
   test "$?" = "0"
-  case $(current_test_env) in jenkins )
+  case $(current_test_env) in travis|jenkins )
       test "$stdio_1_type" = "f" ;;
     * )
       test "$stdio_1_type" = "p" ;;

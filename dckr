@@ -822,7 +822,7 @@ dckr_load()
   test -e "$DCKR_CONF" || error "Missing docker config dir $DCKR_CONF" 1
   test -e "$DCKR_VOL" || error "Missing docker volumes dir $DCKR_VOL" 1
 
-  hostname=$(hostname -s | tr 'A-Z' 'a-z')
+  hostname="$(hostname -s | tr 'A-Z.-' 'a-z__')"
   dckr_c_pref="${hostname}-"
 
   test -n "$EDITOR" || EDITOR=vim
