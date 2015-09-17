@@ -228,6 +228,7 @@ get_subcmd_args()
       ;;
 
     -* )
+
       # BUG: -ne wont work, -en will. Should always split flags here.
       get_cmd_alias subcmd "$(expr_substr "$1" 1 2 )"
       test -n "$subcmd_alias" && {
@@ -242,6 +243,7 @@ get_subcmd_args()
           set --  "-$(expr_substr "$flag" 3 ${#flag})" "${1+$@}"
         }
       } || noop
+
       parse_box_subcmd_opts $* && {
         test $c -gt 0 && {
           sc=$(( $c + $sc )); shift $c ; c=0;

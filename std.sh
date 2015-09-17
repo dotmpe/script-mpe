@@ -114,7 +114,7 @@ stdio_type()
     norm="$(tput sgr0)"
 
     test -n "$verbosity" && {
-      $verbosity -ge 7 && echo "${drgrey}colors: ${grey}$ncolors${norm}"
+      test $verbosity -ge 7 && echo "${drgrey}colors: ${grey}$ncolors${norm}"
     }
 
     if test $ncolors -ge 256; then

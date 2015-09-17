@@ -188,13 +188,23 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 }
 
 
-@test "$lib expr_substr " {
+@test "$lib expr_substr: should slice simple string " {
 
   func_exists expr_substr
   test "$(expr_substr "testFOObar" 1 4)" = "test"
   test "$(expr_substr "testFOObar" 5 3)" = "FOO"
   test "$(expr_substr "testFOObar" 8 3)" = "bar"
   test "$(expr_substr "testFOObar" 1 10)" = "testFOObar"
+}
+
+
+@test "$lib expr_substr: should slice with leading hyphen" {
+
+  func_exists expr_substr
+  test "$(expr_substr "-E" 1 2)" = "-E"
+  test "$(expr_substr "---" 1 1)" = "-"
+  test "$(expr_substr "---" 1 2)" = "--"
+  test "$(expr_substr "---" 1 3)" = "---"
 }
 
 
