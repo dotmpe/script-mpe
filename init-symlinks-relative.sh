@@ -2,7 +2,8 @@
 
 [ -n "$VERBOSE" ] || VERBOSE=0
 
-. ~/bin/std.sh
+[ -n "$BOX_MPE_LIB" ] || exit 5
+. $BOX_MPE_LIB/std.inc.sh
 
 [ -z "$FORCE_DELETE" ] && FORCE_DELETE=0
 
