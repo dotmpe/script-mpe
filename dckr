@@ -63,7 +63,7 @@ dckr__alias()
 
 # gobble up flags and set $dckr_f, and/or set and return $dckr_cmd upon first arg.
 # $c is the amount of arguments consumed
-dckr__f_argv()
+dckr_f_argv()
 {
   c=0
   while test -n "$1"
