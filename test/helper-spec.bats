@@ -34,16 +34,18 @@ init
     test "${status}" = 0
     test "${lines[*]}" = "" # No output
     test "${#lines[@]}" = "0" # No output
-
+    
     key=$(hostname -s | tr 'a-z.-' 'A-Z__')
-    envs=$(hostname -s | tr 'A-Z' 'a-z')' '$(whoami)
-    run bash -c '. '${lib}/${base}' && '$(whoami | tr 'a-z' 'A-Z')'_SKIP=1 '$key'_SKIP=1 check_skipped_envs '$envs
-    test "${status}" = 1 || \
-      test -z "Should have failed: envs (hostname) and (whoami) should cover all envs"
+    keys="${key}_SKIP=1 $(whoami | tr 'a-z' 'A-Z')_SKIP=1"
+
+    run bash -c '. '${lib}/${base}' && '$keys' check_skipped_envs'
+    test "${status}" = 1 || test -z "Should have failed: default envs is all envs"
     test "${lines[*]}" = ""
 
-    run bash -c '. '${lib}/${base}' && '$key'_SKIP=1 check_skipped_envs'
-    test "${status}" = 1 || test -z "Should have failed: default envs is all envs"
+    envs=$(hostname -s | tr 'A-Z' 'a-z')' '$(whoami)
+    run bash -c '. '${lib}/${base}' && '$keys' check_skipped_envs '$envs
+    test "${status}" = 1 || \
+      test -z "Should have failed: envs (hostname) and (whoami) should cover all envs"
     test "${lines[*]}" = ""
 }
 
