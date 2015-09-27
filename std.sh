@@ -236,14 +236,14 @@ err()
   [ -z "$3" ] || exit $3
 }
 
-test_v()
+std_v()
 {
   test -z "$verbosity" && return || {
     test $verbosity -ge $1 && return || return 1
   }
 }
 
-test_exit()
+std_exit()
 {
   test "$1" != "0" -a -z "$1" && return 1 || exit $1
 }
@@ -252,32 +252,32 @@ test_exit()
 #crit() 2
 crit()
 {
-  test_v 3 || test_exit $2 || return 0
+  std_v 3 || std_exit $2 || return 0
   err "Crit" "$1" $2
 }
 error()
 {
-  test_v 3 || test_exit $2 || return 0
+  std_v 3 || std_exit $2 || return 0
   err "Error" "$1" $2
 }
 warn()
 {
-  test_v 4 || test_exit $2 || return 0
+  std_v 4 || std_exit $2 || return 0
   err "Warning" "$1" $2
 }
 note()
 {
-  test_v 5 || test_exit $2 || return 0
+  std_v 5 || std_exit $2 || return 0
   err "Notice" "$1" $2
 }
 info()
 {
-  test_v 6 || test_exit $2 || return 0
+  std_v 6 || std_exit $2 || return 0
   err "Info" "$1" $2
 }
 debug()
 {
-  test_v 7 || test_exit $2 || return 0
+  std_v 7 || std_exit $2 || return 0
   err "Debug" "$1" $2
 }
 
