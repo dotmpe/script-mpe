@@ -19,12 +19,16 @@ init_bin
 }
 
 @test "${bin} -q radical-test1.txt" {
+  check_skipped_envs travis || \
+    skip "TODO envs $envs: implement for env"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   test -z "${lines[*]}" # empty output
 }
 
 @test "${bin} radical-test1.txt" {
+  check_skipped_envs travis || \
+    skip "TODO envs $envs: implement for env"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   test -n "${lines[*]}" # non-empty output

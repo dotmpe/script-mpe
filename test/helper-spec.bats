@@ -37,7 +37,7 @@ init
 
     key=$(hostname -s | tr 'a-z.-' 'A-Z__')
     envs=$(hostname -s | tr 'A-Z' 'a-z')' '$(whoami)
-    run bash -c '. '${lib}/${base}' && '$key'_SKIP=1 check_skipped_envs '$envs
+    run bash -c '. '${lib}/${base}' && '$(whoami | tr 'a-z' 'A-Z')'_SKIP=1 '$key'_SKIP=1 check_skipped_envs '$envs
     test "${status}" = 1 || \
       test -z "Should have failed: envs (hostname) and (whoami) should cover all envs"
     test "${lines[*]}" = ""
