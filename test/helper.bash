@@ -48,7 +48,7 @@ check_skipped_envs()
 {
   # XXX hardcoded envs
   local skipped=0
-  test -n "$1" && envs="$*" || envs="$(hostname -s | tr 'A-Z' 'a-z') $(whoami)"
+  test -n "$1" && envs="$*" || envs="$(hostname -s | tr -s 'A-Z_.-' 'a-z___') $(whoami)"
   cur_env=$(current_test_env)
   for env in $envs
   do
