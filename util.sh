@@ -166,3 +166,28 @@ expr_substr()
         * ) error "unable to substr $expr" 1
     esac
 }
+
+epoch_microtime()
+{
+    case "$uname" in
+        Darwin ) gdate +%s%N ;;
+        Linux ) date +%s%N ;;
+    esac
+}
+
+date_microtime()
+{
+    case "$uname" in
+        Darwin ) gdate +"%Y-%m-%d %H:%M:%S.%N" ;;
+        Linux ) gdate +"%Y-%m-%d %H:%M:%S.%N" ;;
+    esac
+}
+
+xsed_rewrite()
+{
+    case "$uname" in
+        Darwin ) sed -i.applyBack "$@";;
+        Linux ) sed "$@";;
+    esac
+}
+

@@ -8,53 +8,53 @@ init
 . $lib/str.sh
 
 
-@test "${lib}/${base} - test_v <n> should return 1 if <n> <= <verbosity>. No output." {
+@test "${lib}/${base} - std_v <n> should return 1 if <n> <= <verbosity>. No output." {
 
   verbosity=1
-  run test_v 1
+  run std_v 1
   test ${status} -eq 0
   test -z "${lines[*]}"
-  run test_v 2
+  run std_v 2
   test ${status} -eq 1
   test -z "${lines[*]}"
-  run test_v 0
+  run std_v 0
   test ${status} -eq 0
   test -z "${lines[*]}"
 
   verbosity=6
-  run test_v 7
+  run std_v 7
   test ${status} -eq 1
   test -z "${lines[*]}"
-  run test_v 1
+  run std_v 1
   test ${status} -eq 0
   test -z "${lines[*]}"
-  run test_v 0
+  run std_v 0
   test ${status} -eq 0
   test -z "${lines[*]}"
 
   verbosity=0
-  run test_v 0
+  run std_v 0
   test ${status} -eq 0
   test -z "${lines[*]}"
-  run test_v 1
+  run std_v 1
   test ${status} -eq 1
   test -z "${lines[*]}"
 }
 
 
-@test "${lib}/${base} - test_exit <n> should call exit <n> if <n> is an integer number or return 1. No output. " {
+@test "${lib}/${base} - std_exit <n> should call exit <n> if <n> is an integer number or return 1. No output. " {
 
   exit(){ echo 'exit '$1' ok'; }
 
-  run test_exit
+  run std_exit
   test ${status} -eq 1
   test -z "${lines[*]}"
 
-  run test_exit 1
+  run std_exit 1
   test ${status} -eq 0
   test "exit 1 ok" = "${lines[*]}"
 
-  run test_exit 0
+  run std_exit 0
   test ${status} -eq 0
   test "exit 0 ok" = "${lines[*]}"
 }
@@ -161,7 +161,9 @@ init
   case $(current_test_env) in * )
       test "$stdio_2_type" = "f" ;;
   esac
+}
 
+@test "${lib}/${base} - stdio_type detects interactive (terminal) I/O and other, sets stdio_{0,1,2}_type (cont'd)" {
   #stdio_type 3
   #test "$?" = "0"
   #test "$stdio_3_type" = "p"
