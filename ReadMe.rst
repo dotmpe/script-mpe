@@ -7,6 +7,11 @@ Build-status
       :target: https://travis-ci.org/dotmpe/git-versioning
       :alt: Build
 
+Stats
+    .. image:: http://img.shields.io/badge/github-stats-ff5500.svg
+      :target: http://githubstats.com/dotmpe/script.mpe
+      :alt: GitHub Stats
+
 
 Various tools and ongoing experiments that have not yet deserved their own
 project.
