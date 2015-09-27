@@ -23,6 +23,8 @@ before_script:
 - 'rm $HOME/bin && ln -s /home/travis/build/dotmpe/script.mpe $HOME/bin'
 - 'box version && box -V'
 - 'touch /home/travis/.basename-reg.yaml'
+- whoami
+- hostname
 
 script:
 - './test/*-spec.bats'
