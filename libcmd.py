@@ -119,15 +119,19 @@ def optparse_print_help(options, optstr, value, parser):
 def optparse_increase_verbosity(option, optstr, value, parser):
     "Lower output-message threshold by increasing message level. "
     oldv = parser.values.message_level
-    parser.values.quiet = False
-    if parser.values.message_level == 7:
+
+    if parser.values.message_level == 0:
         log.warn( "Verbosity already at maximum. ")
         return
     #if not hasattr(parser.values, 'message_level'): # XXX: this seems to be a bug elsewhere
     #    parser.values.message_level = 0
+
     if parser.values.message_level:
-        parser.values.message_level += 1
+        parser.values.message_level -= 1
+
+    parser.values.quiet = False
     log.debug( "Verbosity changed from %s to %s", oldv, parser.values.message_level )
+
 
 def optparse_set_handler_list(option, flagstr, value, parser, append=False,
         default=None, prefix=None):
@@ -249,6 +253,7 @@ class SimpleCommand(object):
 
     DEFAULT_RC = 'libcmdrc'
     DEFAULT_CONFIG_KEY = NAME
+    INIT_RC = None
 
     @classmethod
     def get_optspec(Klass, inheritor):
@@ -610,8 +615,11 @@ class SimpleCommand(object):
         iface.registerAdapter(ResultFormatter)
 
     def load_config(self, prog, opts):
-        #    self.init_config() # case 1:
-        #        # file does not exist at all, init is automatic
+        """
+        Optionally find prog.config_file from opts.config_file,
+        and load returning its dict.
+        If set but path is non-existant, call self.INIT_RC if exists.
+        """
         if 'config_file' not in opts or not opts.config_file:
             log.err( "Nothing to load configuration from")
         else:
@@ -637,16 +645,21 @@ class SimpleCommand(object):
         settings = confparse.load_path(config_file)
         settings.set_source_key('config_file')
         settings.config_file = config_file
+
         config_key = opts.config_key
         if not config_key:
-            self.rc = settings
+            self.rc = 'global'
             self.settings = settings
             return
-        if hasattr(settings, config_key):
-            self.rc = getattr(settings, config_key)
+
+        if not hasattr(settings, config_key):
+            if self.INIT_RC and hasattr(self, self.INIT_RC):
+                self.rc = getattr(self, self.INIT_RC)()
+            else:
+                log.warn("Config key %s does not exist in %s" % (config_key,
+                    config_file))
         else:
-            log.warn("Config key %s does not exist in %s" % (config_key,
-                config_file))
+            self.rc = getattr(settings, config_key)
         self.config_key = config_key
         self.settings = settings
 
@@ -660,7 +673,7 @@ class SimpleCommand(object):
         #    default_reporter = self
 
         prog.output = [ default_reporter ]
-        log.category = opts.message_level
+        log.category = 7-opts.message_level
         #print 'log level', log.category
 
         import taxus.core

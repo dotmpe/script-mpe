@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 load helper
-base=radical.py
+base=./radical.py
 
 init_lib
 init_bin
@@ -16,19 +16,20 @@ init_bin
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   test -n "${lines[*]}" # non-empty output
-#  test "${#lines[@]}" = "0" # lines of output (stderr+stderr)
+}
+
+@test "${bin} -q radical-test1.txt" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  test -z "${lines[*]}" # empty output
 }
 
 @test "${bin} radical-test1.txt" {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
-  test -n "${lines[*]}" # empty output
-}
-
-@test "${bin} -vvv radical-test1.txt" {
-  run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
   test -n "${lines[*]}" # non-empty output
+  # 6 'note'-level log lines, three for issues: TODO: fix multiline scanning
+  test "${#lines[@]}" = "6" # lines of output (stderr+stderr)
 }
 
 @test "${lib}/${base} - function should ..." {

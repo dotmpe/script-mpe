@@ -27,4 +27,3 @@ init_bin
   test ${status} -eq 0
 }
 
-# vim:et:ft=sh:

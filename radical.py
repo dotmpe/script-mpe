@@ -191,7 +191,7 @@ import traceback
 import optparse, os, re, sys
 from pprint import pformat
 
-import zope
+import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
                         ForeignKey, Table, Index
 from sqlalchemy.ext.declarative import declarative_base
@@ -363,6 +363,28 @@ collapse_ws_sub = re.compile(r'[\ \n]+').sub
 collapse_ws = lambda s: collapse_ws_sub(' ', s)
 
 
+def compile_rdc_matchbox(rc):
+    """Pre-compile patterns"""
+    matchbox = {}
+
+    for tagname in rc.tags:
+        pattern = r"(%s)" % tagname
+        if rc.tags[tagname]:
+            pattern = rc.tags[tagname][0] % tagname
+        matchbox[tagname] = re.compile(pattern)
+
+    for flavour in rc.comment_scan:
+        scan = rc.comment_scan[flavour]
+        match_start = re.compile(scan[0], re.M)
+        if len(scan) > 1:
+            match_end = re.compile(scan[1], re.M)
+            matchbox[flavour] = (None, match_start.match, match_end.match)
+        else:
+            matchbox[flavour] = (match_start.match, None, None)
+
+    return matchbox
+
+
 _parsed_file_comments = {}
 
 def get_tagged_comment(offset, width, data, language_keys, matchbox):
@@ -408,13 +430,13 @@ def get_tagged_comment(offset, width, data, language_keys, matchbox):
                 break
 
             else:
-                print "No match at", language_key, tag_line, lines[tag_line]
+                #print "No line-match at", language_key, tag_line, lines[tag_line]
                 continue
 
         else: # seek multiline block comment
 
             if not match_start(data):
-                print "No match at", language_key, tag_line, lines[tag_line]
+                #print "No start-match at", language_key, tag_line, lines[tag_line], data
                 continue
 
             comment_offset = line_offset
@@ -517,7 +539,10 @@ def clean_comment(scan, data):
 
 def find_tagged_comments(session, matchbox, source, data):
     """
-    Look for tags in data, using the compiled tag regexes
+    Scan a single source for embedded-issues/tagged-comments.
+
+    Use tag regexes from matchbox to scan data from source,
+    Use tag reLook for tags in data, using the compiled tag regexes
     in matchbox, and
     post processing each found flavour of comment block to the
     distinct tagged comments.
@@ -543,11 +568,13 @@ def find_tagged_comments(session, matchbox, source, data):
         match_line, match_start, match_end = scan_spec
         # TODO index comments, line and offset/width
 
-    print 'Comment flavors:', rc.comment_flavours
-
     # pass data along each tag-name and regexes from matchbox
     for tagname in rc.tags:
         for tag_match in matchbox[tagname].finditer(data):
+            #print
+            #print 'Tag match', tag_match.start(), tag_match.end(), \
+            #        tag_match.group().strip(), tag_match.span()
+
             tag_span = tag_match.start(), tag_match.end()
 
             # Get entire comment
@@ -555,7 +582,7 @@ def find_tagged_comments(session, matchbox, source, data):
                     tag_span[1]-tag_span[0], data,
                     rc.comment_flavours, matchbox)
             if not comment:
-                log.err("Unable to find comment span for '%s' at %s:%s " % (
+                log.err("Unable to find comment span for tag '%s' at %s:%s " % (
                     data[tag_span[0]:tag_span[1]], source, tag_span))
                 continue
             comment_flavour, comment_span, lines = comment
@@ -638,7 +665,23 @@ def find_tagged_comments(session, matchbox, source, data):
 
 
 
-# Utils
+
+def plain_text_flavor(peek, source):
+    try:
+        peek.decode('ascii')
+        return True
+    except UnicodeDecodeError, e:
+        print e
+
+def get_peek(source):
+    try:
+        filesize = os.path.getsize(source)
+        bytes = 1024
+        if filesize < 1024:
+            bytes = filesize
+        return open(source).read(bytes)
+    except Exception, e:
+        log.debug("get-peek: %s", e)
 
 def detect_flavour(pathname, data):
     pass
@@ -647,6 +690,12 @@ def find_files_with_tag(session, matchbox, paths):
 
     """
     Look for tags in the data at each file path.
+
+    This is the main routine for scanning multiple sources
+    for embedded issues.
+    It scans all the paths and resolves any directory to source files.
+    Then each source is read, and another routine called to scan for and
+    process tagged comments.
     """
 
     sources = []
@@ -657,11 +706,19 @@ def find_files_with_tag(session, matchbox, paths):
             for p2 in res.fs.Dir.walk(p, opts=dict(recurse=True, files=True)):
                 sources.append(p2)
     for source in sources:
-        try:
-            data = open(source).read()
-        except Exception, e:
-            log.err("Find: %s", e)
-        # XXX comment_flavours = detect_flavour(source, data)
+
+        peek = get_peek(source)
+        if not peek:
+            log.err("Error reading %s" % source)
+            continue
+
+        if not plain_text_flavor(peek, source):
+            continue
+
+        # XXX
+        #comment_flavours = detect_flavour(source, data)
+        data = open(source).read()
+
         try:
             tag_generator = find_tagged_comments(session, matchbox, source, data)
         except Exception, e:
@@ -677,6 +734,7 @@ def find_files_with_tag(session, matchbox, paths):
             except Exception, e:
                 log.err("Find: %s", e)
                 traceback.print_exc()
+
 
 def get_service(t):
     return __import__('radical_'+t)
@@ -763,6 +821,7 @@ class Radical(rsr.Rsr):
     DEFAULT_DB = "sqlite:///%s" % os.path.join(
                                         os.path.expanduser('~'), '.radical.sqlite')
     DEFAULT_CONFIG_KEY = PROG_NAME
+    INIT_RC = 'init_config_defaults'
 
     #NONTRANSIENT_OPTS = Taxus.NONTRANSIENT_OPTS + [
     #    'list_flavours', 'list_scans' ]
@@ -862,32 +921,13 @@ class Radical(rsr.Rsr):
     def rdc_run_embedded_issue_scan(self, sa, issue_format=None, *paths):
 
         """
-        Main function.
-        FIXME: simply log.note's on new issues, need to store, index this stuff
+        Main function: scan multiple sources and print/log embedded issues
+        found.
         """
-        assert paths, (self, sa)
-        if not paths:
-            paths = ['.']
-            # XXX debugging
-            #paths = ['radical_xmldoctext.xml', 'radical.py']
+        if not paths: paths=['.']
 
         # pre-compile patterns
-        matchbox = {}
-
-        for tagname in self.rc.tags:
-            pattern = r"(%s)" % tagname
-            if self.rc.tags[tagname]:
-                pattern = self.rc.tags[tagname][0] % tagname
-            matchbox[tagname] = re.compile(pattern)
-
-        for flavour in self.rc.comment_scan:
-            scan = self.rc.comment_scan[flavour]
-            match_start = re.compile(scan[0], re.M)
-            if len(scan) > 1:
-                match_end = re.compile(scan[1], re.M)
-                matchbox[flavour] = (None, match_start.match, match_end.match)
-            else:
-                matchbox[flavour] = (match_start.match, None, None)
+        matchbox = compile_rdc_matchbox(rc)
 
         # iterate paths
         for embedded in find_files_with_tag(sa, matchbox, paths):

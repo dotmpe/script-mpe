@@ -54,7 +54,7 @@ def rsr_add(prog=None, opts=None, volume=None, args=None):
     for name in args:
         yield meta.add(name, prog, opts)
     # print contents and status of stage
-    yield StageReport(meta)
+    #yield StageReport(meta)
     # print unknown stuff
     #yield VolumeReport()
 
@@ -84,7 +84,7 @@ See update_metafiles
         if not os.path.isfile(path):
             continue
         mf = res.Metafile(path)
-        mf.tmp_convert()
+        # XXX mf.tmp_convert()
 
 
 #@Target.register(NS, 'update-metafiles', 'rsr:volume')
