@@ -873,10 +873,12 @@ class Radical(rsr.Rsr):
             )
 
     def init_config_defaults(self):
-        self.rc.tags = DEFAULT_TAGS
-        self.rc.comment_scan = STD_COMMENT_SCAN
-        self.rc.comment_flavours = self.rc.comment_scan.keys()
-        self.rc.dbref = self.DEFAULT_DB
+        self.rc = confparse.Values(dicT(
+            tags = DEFAULT_TAGS,
+            comment_scan = STD_COMMENT_SCAN,
+            comment_flavours = self.rc.comment_scan.keys(),
+            dbref = self.DEFAULT_DB
+        ))
 
     def rdc_list_flavours(self, args=None, opts=None):
         for flavour in self.rc.comment_scan:

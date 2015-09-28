@@ -492,7 +492,8 @@ class SimpleCommand(object):
             self.globaldict.update(update)
         handler = getattr( self, handler_name )
         args, kwds = self.select_kwds(handler, self.globaldict)
-        log.debug("SimpleCommand.execute %s, %r, %r", handler.__name__, args, kwds)
+        log.debug("SimpleCommand.execute %s, %r, %r", handler.__name__,
+                repr(args), repr(kwds))
         try:
             ret = handler(*args, **kwds)
         except Exception, e:
@@ -704,6 +705,7 @@ class SimpleCommand(object):
             prog.handlers += opts.commands
         else:
             prog.handlers += self.DEFAULT
+        log.debug("Initial commands are %s", repr(prog.handlers))
 
 # TODO: post-deps
     def flush_reporters(self):

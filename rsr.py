@@ -310,15 +310,19 @@ class Rsr(libcmd.StackedCommand):
         """
         session = Session.init(prog.pwd, opts.session)
         log.note('Session: %s', session)
-        assert session.context, opts.session
-        prog.session = session
-        yield dict(context=session.context)
-        log.note('Context: %s', session.context)
+
+        if session.context:
+            prog.session = session
+            yield dict(context=session.context)
+            log.note('Context: %s', session.context)
+            repo_root = session.context.settings.data.repository.root_dir
+
+        else:
+            repo_root = 'sa_migrate'
 
         # SA session
         #dbref = session.context.settings.dbref
         #dbref = opts.dbref
-        repo_root = session.context.settings.data.repository.root_dir
         repo_path = os.path.join(repo_root, opts.repo)
 
         from sa_migrate import custom

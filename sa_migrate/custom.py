@@ -8,7 +8,7 @@ def read(repopath):
     path = os.path.join(repopath, "migrate.cfg")
     prsr = ConfigParser()
     x = prsr.read(path)
-    assert x == [path], ( "Repo config load failed", x, path )
+    assert x == [path], ( "Repo config load failed", repopath, x, path )
     return prsr
 
 def migrate_opts(repopath, config):
@@ -23,7 +23,7 @@ def migrate_opts(repopath, config):
         path = config.get('mpe', 'path')
     return dict(
             url='sqlite:///%s' % path,
-            debug='False', 
+            debug='False',
             repository=repopath
         )
 
@@ -60,7 +60,7 @@ def main(env, path=None):
         sys.argv[1] = 'version_control'
         main(**opts)
         return
-    
+
     print 'opts', opts
     #sys.argv.append('--url='+opts['url'])
     main(**opts)
