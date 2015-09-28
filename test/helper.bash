@@ -30,8 +30,8 @@ init()
 
 is_skipped()
 {
-  local key=$(echo $1 | tr 'a-z' 'A-Z')
-  local skipped=$(echo $(eval echo \$${key}_SKIP))
+  local key="$(echo "$1" | tr 'a-z._-' 'A-Z___')"
+  local skipped="$(echo $(eval echo \$${key}_SKIP))"
   test -n "$skipped" && return
   return 1
 }
@@ -48,9 +48,9 @@ check_skipped_envs()
 {
   # XXX hardcoded envs
   local skipped=0
-  test -n "$1" && envs="$*" || envs="$(hostname -s | tr 'A-Z' 'a-z') $(whoami)"
+  test -n "$1" || set -- "$(hostname -s | tr 'A-Z_.-' 'a-z___')" "$(whoami)"
   cur_env=$(current_test_env)
-  for env in $envs
+  for env in $@
   do
     is_skipped $env && {
         test "$cur_env" = "$env" && {
