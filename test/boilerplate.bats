@@ -14,7 +14,7 @@ init_bin
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   test -z "${lines[*]}" # empty output
-  test "${#lines[@]}" = "0" # lines of output (stderr+stderr)
+  test "${#lines[@]}" = "0" # lines of output (stdout+stderr)
 }
 
 @test "${lib}/${base} - function should ..." {

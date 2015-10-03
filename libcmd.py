@@ -492,7 +492,8 @@ class SimpleCommand(object):
             self.globaldict.update(update)
         handler = getattr( self, handler_name )
         args, kwds = self.select_kwds(handler, self.globaldict)
-        log.debug("SimpleCommand.execute %s, %r, %r", handler.__name__, args, kwds)
+        log.debug("SimpleCommand.execute %s, %r, %r", handler.__name__,
+                repr(args), repr(kwds))
         try:
             ret = handler(*args, **kwds)
         except Exception, e:
@@ -633,8 +634,6 @@ class SimpleCommand(object):
         config_file = None
         if rcfile:
             config_file = rcfile.pop()
-        assert config_file, ("Expected some config files", rc, rcfile)
-        "Configuration filename."
 
         if not os.path.exists(config_file):
             assert False, "Missing %s, perhaps use init_config_file"%config_file
@@ -643,8 +642,6 @@ class SimpleCommand(object):
 
     def load_config_(self, config_file, opts=None ):
         settings = confparse.load_path(config_file)
-        settings.set_source_key('config_file')
-        settings.config_file = config_file
 
         config_key = opts.config_key
         if not config_key:
@@ -654,12 +651,15 @@ class SimpleCommand(object):
 
         if not hasattr(settings, config_key):
             if self.INIT_RC and hasattr(self, self.INIT_RC):
-                self.rc = getattr(self, self.INIT_RC)()
+                self.rc = getattr(self, self.INIT_RC)(opts)
             else:
                 log.warn("Config key %s does not exist in %s" % (config_key,
                     config_file))
         else:
             self.rc = getattr(settings, config_key)
+
+        settings.set_source_key('config_file')
+        settings.config_file = config_file
         self.config_key = config_key
         self.settings = settings
 
@@ -704,6 +704,7 @@ class SimpleCommand(object):
             prog.handlers += opts.commands
         else:
             prog.handlers += self.DEFAULT
+        log.debug("Initial commands are %s", repr(prog.handlers))
 
 # TODO: post-deps
     def flush_reporters(self):

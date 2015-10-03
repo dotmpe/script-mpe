@@ -57,12 +57,3 @@ init
   fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
 }
 
-@test "${bin} -vv -n help" {
-  check_skipped_envs travis simza || \
-    skip "TODO envs $envs: implement bin (test) for env"
-  run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
-  test "${#lines[@]}" = "0" # lines of output (stderr+stderr)
-}
-

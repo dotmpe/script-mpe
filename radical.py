@@ -772,31 +772,15 @@ tags
 
 # Start/end regex patterns per comment flavour
 STD_COMMENT_SCAN = {
-        'unix_generic': [ '^(\s*\#).*$', ],
-        'c': [
-            None,
-            r'^(\s*\/\*).*$',
-            r'^.*(\*\/\s*)$'
-        ],
-        'c_line': [ '^(\s*\/\/).*$', ],
-        'py_doc': [
-            None,
-            r'^\s*(\"\"\")\s*.*$',
-            r'^.*(\"\"\")\s*$' ]
+        'unix_generic': [ '^(\s*\#\s).*$' ],
+        'c_line': [ '^(\s*\/\/).*$' ]
     }
-"""
-c
-    start: any-space + '/*' + anything
-    end: anything + '*/' + any-space
-py:
-
-"""
 # Tag pattern, format and index type
 DEFAULT_TAGS = {
-        'TODO': ['(%s)[:_\s-](?:([0-9]+)[\s:])?', '%s:%i:', 'numeric_index'], # rad-ignore
-#        'FIXME': ('%(tagname)s:%(id)s', 'tiny_ticket'),
-    'XXX': ['(%s)[:_\s-](?:([0-9]+)[\s:])?',], # rad-ignore
-#        'FACIOCRM': ('%(tagname)s-%(id)i', 'atlassian_jira'),
+    'FIXME': [ '(%s)[:_\s-](?:([0-9]+)[\s:])?' ],
+    'TEST': ['(%s)[:_\s-](?:([0-9]+)[\s:])?', '%s:%i:', 'numeric_index' ],
+    'TODO': ['(%s)[:_\s-](?:([0-9]+)[\s:])?', '%s:%i:', 'numeric_index' ],
+    'XXX': [ '(%s)[:_-](?:([0-9]+)[:])?\s' ]
 }
 
 rc = confparse.Values()
@@ -872,11 +856,15 @@ class Radical(rsr.Rsr):
                 #    'help': 'Recurse into directory paths (default: %default)'}),
             )
 
-    def init_config_defaults(self):
-        self.rc.tags = DEFAULT_TAGS
-        self.rc.comment_scan = STD_COMMENT_SCAN
-        self.rc.comment_flavours = self.rc.comment_scan.keys()
-        self.rc.dbref = self.DEFAULT_DB
+    def init_config_defaults(self, opts):
+        self.rc = confparse.Values(dict(
+            tags = DEFAULT_TAGS,
+            comment_scan = STD_COMMENT_SCAN,
+            comment_flavours = STD_COMMENT_SCAN.keys(),
+            dbref = self.DEFAULT_DB
+        ))
+        self.settings[opts.config_key] = self.rc
+        return self.rc
 
     def rdc_list_flavours(self, args=None, opts=None):
         for flavour in self.rc.comment_scan:
