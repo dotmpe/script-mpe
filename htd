@@ -1655,6 +1655,18 @@ c_mp3_validate()
 }
 
 
+c_tmux_tw()
+{
+  tmux has-session -t Tw
+  if [ $? != 0 ]
+  then
+    tmux new-session -s Tw -d 'cd ~/project/x-tiddlywiki; tiddlywiki x-tiddlywiki --server'
+    log "started new session"
+  fi
+  #lxterminal --command="tmux attach -t Tw"
+}
+
+
 c_man_1_test="no test, just checking it goes"
 c_test()
 {
