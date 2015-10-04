@@ -191,3 +191,57 @@ xsed_rewrite()
     esac
 }
 
+on_host()
+{
+  test "$hostname" = "$1" || return 1
+}
+
+req_host()
+{
+  on_host "$1" || error "$subcmd_name runs on simza only" 1
+}
+
+run_cmd()
+{
+  test -n "$1" || set -- "$hostname" "$2"
+  test -n "$2" || set -- "$1" "whoami"
+  test -n "$host_addr_info" || host_addr_info=$hostname
+
+  test -z "$dry_run" && {
+    on_host $1 && {
+      $2 \
+        && debug "Executed locally: '$2'" \
+        || err "Error executing local command: '$2'" 1
+    } || {
+      ssh $host_addr_info "$2" \
+        && debug "Executed at $host_addr_info: '$2'" \
+        || err "Error executing command at $host_addr_info: '$2'" 1
+    }
+    return $?
+  } || {
+    echo "on_host $1 && { '$2'..} || { ssh $host_addr_info '$2'.. }"
+  }
+}
+
+ssh_req()
+{
+  test -n "$host_addr_info" || {
+    test -n "$1" || set -- "$hostname" "$2"
+    test -n "$2" || set -- "$1" "$(whoami)"
+    host_addr_info="$1"
+    test -z "$2" || host_addr_info="$2"'@'$host_addr_info
+    note "Connecting to $host_addr_info"
+  }
+}
+
+wait_for()
+{
+  while [ 1 ]
+  do
+    ping -c 1 $1 >/dev/null 2>/dev/null && break
+    note "Waiting for $1.."
+    sleep 7
+  done
+}
+
+
