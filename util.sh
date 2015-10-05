@@ -236,6 +236,7 @@ ssh_req()
 
 wait_for()
 {
+  test -n "$1" || set -- "$hostname"
   while [ 1 ]
   do
     ping -c 1 $1 >/dev/null 2>/dev/null && break
