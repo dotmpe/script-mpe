@@ -1657,7 +1657,7 @@ c_mp3_validate()
 
 c_tmux_tw()
 {
-  tmux has-session -t Tw
+  tmux has-session -t Tw && log "Session Tw exists" 0
   if [ $? != 0 ]
   then
     tmux new-session -s Tw -d 'cd ~/project/x-tiddlywiki; tiddlywiki x-tiddlywiki --server'
