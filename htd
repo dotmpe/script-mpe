@@ -1669,31 +1669,24 @@ c_tmux_tw()
 
 c_reader_update()
 {
-  {
-    cd /Volumes/READER
+  cd /Volumes/READER
 
-    for remote in .git/refs/remotes/*
-    do
-      name="$(basename "$remote")"
-      younger_than "$remote" _1HOUR && {
-        info "Remote $name is up-to-date"
-      } || {
-        note "Remote $name is too old, syncing"
-        git annex sync $name
-      }
-    done
+  for remote in .git/refs/remotes/*
+  do
+    name="$(basename "$remote")"
+    younger_than "$remote" _1HOUR && {
+      info "Remote $name is up-to-date"
+    } || {
+      note "Remote $name is too old, syncing"
+      git annex sync $name && continue || error "sync failed"
+    }
+  done
 
-    info "Removing dead symlinks (annex content elsewhere), for PRS software"
-    find ./ -type l | while read l
-    do
-        test -e "$l" || rm "$l"
-    done
-
-  } && {
-    note "Reader is up to date"
-  } || {
-    warn "Error(s) updating reader"
-  }
+  note "Removing dead symlinks (annex content elsewhere), for PRS software"
+  find ./ -type l | while read l
+  do
+      test -e "$l" || rm "$l"
+  done
 }
 
 c_man_1_test="no test, just checking it goes"
