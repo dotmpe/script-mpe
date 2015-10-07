@@ -998,6 +998,46 @@ c_git_object_contents()
   git cat-file -p $1
 }
 
+c_man_1_git_committed_excludes="List tracked files that match with exclude"
+c_git_committed_excludes()
+{
+  git ls-files --ignored --exclude-standard
+}
+
+c_man_1_git_untracked="List untracked files (that would be added with add .)"
+c_git_untracked()
+{
+  git ls-files --other --exclude-standard
+}
+
+c_man_1_git_ignored="List excluded files"
+c_git_ignored()
+{
+  git ls-files --other --ignored --exclude-standard
+}
+
+c_man_1_git_excludes="List exclude patterns"
+c_git_excludes()
+{
+  # (global) core.excludesfile setting
+  global_excludes=$(echo $(git config --get core.excludesfile))
+  test ! -e "$global_excludes" || {
+    note "Global excludes:"
+    cat $global_excludes
+  }
+
+  note "Local excludes (repository):"
+  cat .git/info/exclude | grep -v '^\s*\(#\|$\)'
+
+  test -s ".gitignore" && {
+    note "Local excludes"
+    cat .gitignore
+  } || {
+    note "No local excludes"
+  }
+}
+
+
 c_git_annex_unused()
 {
   git annex unused | \
