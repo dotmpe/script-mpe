@@ -15,3 +15,15 @@ filesize()
   esac
 }
 
+filemtime()
+{
+  case "$uname" in
+    Darwin )
+      stat -L -f '%m' "$1" || return 1
+      ;;
+    Linux )
+      stat -L -c '%Y' "$1" || return 1
+      ;;
+  esac
+}
+

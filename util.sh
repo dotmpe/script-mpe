@@ -7,7 +7,7 @@ test -n "$PREFIX" || PREFIX=$HOME
 
 #TERM=xterm
 . $PREFIX/bin/std.sh
-. $PREFIX/bin/os.sh
+. $PREFIX/bin/os.lib.sh
 . $PREFIX/bin/str.sh
 . $PREFIX/bin/doc.sh
 
