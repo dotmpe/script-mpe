@@ -1679,15 +1679,24 @@ c_mp3_validate()
 
 c_tmux_tw()
 {
-  tmux has-session -t Tw && log "Session Tw exists" 0
-  if [ $? != 0 ]
-  then
-    tmux new-session -s Tw -d 'cd ~/project/x-tiddlywiki; tiddlywiki x-tiddlywiki --server'
-    log "started new session"
-  fi
+  c_tmux_init Tw 'cd ~/project/x-tiddlywiki; tiddlywiki x-tiddlywiki --server'
   #lxterminal --command="tmux attach -t Tw"
 }
 
+c_tmux_init()
+{
+  test -n "$1" || error "session name required" 1
+  test -n "$2" || set -- "$1" "bash"
+  test -z "$3" || error "surplus arguments: '$3'" 1
+
+  if tmux has-session -t $1 >/dev/null
+  then
+    note "Session $1 exists" 0
+  else
+    tmux new-session -s $1 -d "$2"
+    note "started new session '$1'"
+  fi
+}
 
 c_reader_update()
 {
