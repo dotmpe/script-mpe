@@ -1862,6 +1862,54 @@ c_getx()
 }
 
 
+list_host_disks()
+{
+  htd getx sysadmin/$hostname.rst \
+    "//*/term[text()='Disk']/ancestor::definition_list_item/definition/definition_list" \
+    > /tmp/$hostname-disks.xml
+  {
+    xsltproc - /tmp/$hostname-disks.xml <<EOM
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:template match="definition_list_item">
+<xsl:value-of select="term"/> .
+</xsl:template>
+</xsl:stylesheet>
+EOM
+  # remove XML prolog:
+  } | tail -n +2 | grep -Ev '^(#.*|\s*)$'
+}
+c_check_disks()
+{
+  cd $HTDIR
+  list_host_disks | while read label path id eol
+  do
+    test -e "$path" && {
+      echo "Path for $label OK"
+      xmllint --xpath \
+          "//definition_list/definition_list_item/definition/bullet_list/list_item[contains(paragraph,'"$path"')]/ancestor::bullet_list" \
+          /tmp/$hostname-disks.xml > /tmp/$hostname-disk.xml;
+      {
+    xsltproc - /tmp/$hostname-disk.xml <<EOM
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:template match="//bullet_list/list_item">
+<xsl:value-of select="paragraph/text()"/> .
+</xsl:template>
+</xsl:stylesheet>
+EOM
+  # remove XML prolog:
+  } | tail -n +2 | grep -Ev '^(#.*|\s*)$' \
+      && {
+        echo
+      } || {
+        warn "failed $?"
+      }
+
+    } || {
+      error "Missing $label $id <$path>" 1
+    }
+  done
+}
+
 ### Main
 
 
