@@ -31,7 +31,9 @@ try_help()
 # :
 echo_help()
 {
+    echo "args $@"
   mkid _$1
+  echo mkid=$id
   #try_exec_func ${help_base}__usage $1 || std_usage $1
   # 1: commands
   # 5: config files
@@ -53,12 +55,17 @@ std_help()
 
   test -z "$1" && {
 
+    # Generic help (no args)
+    echo ${help_base}_usage $1 or std_usage
     try_exec_func ${help_base}_usage $1 || std_usage $1
+    echo ${help_base}_commands $1 or std_commands
     try_exec_func ${help_base}_commands || std_commands
+    echo ${help_base}_docs $1 or std_docs
     try_exec_func ${help_base}_docs || noop
 
   } || {
 
+    # Specific help (subcmd, maybe file-format other doc, or a TODO: group arg)
     echo "Usage: "
     echo "  $base $(try_spec $1) "
     echo -n "Help '$1': "
@@ -81,10 +88,10 @@ std_commands()
 {
   test -n "$1" || set -- "$0" "$box_lib"
 
-  # XXX: std_commands: group commands per file
+  # group commands per file, using sentinal line to mark next file
   local list_functions_head="# file=\$file"
-  #local list_functions_head="Commands: \$(short \$file):"
 
+  # 
   test -z "$choice_global" && {
     test -z "$choice_all" && {
       local_id=$(pwd | tr '/-' '__')
@@ -93,28 +100,33 @@ std_commands()
   } || {
     noop
   }
+
+  echo "local_id=$local_id"
+
   local cont=
   list_functions "$@" | while read line
   do
     test "$(expr_substr "$line" 1 1)" = "#" && {
-        test "$(expr_substr "$line" 1 7)" = "# file=" && {
-          eval $(expr_substr "$line" 2 $(( ${#line} - 1 )))
-          X=${BOX_DIR}/${base}/
-          local_file=$(expr_substr "$file" $(( 1 + ${#X} )) $(( ${#file} - ${#X} )))
-          test -z "$local_id" && {
-            # Global mode: list all commands
+      test "$(expr_substr "$line" 1 7)" = "# file=" && {
+        eval $(expr_substr "$line" 2 $(( ${#line} - 1 )))
+        X=${BOX_DIR}/${base}/
+        local_file=$(expr_substr "$file" $(( 1 + ${#X} )) $(( ${#file} - ${#X} )))
+        test -z "$local_id" && {
+          # Global mode: list all commands
             test "$BOX_DIR/$base/$local_file" = "$file" && {
-              echo "Commands: ($local_file) "
-            } || {
-              echo "Commands: ($file) "
-            }
+            echo "Commands: ($local_file) "
           } || {
-            # Local mode: list local commands onlye
-            test "$local_file" = "${local_id}.sh" && cont= || cont=true
+            echo "Commands: ($file) "
           }
-        } || continue
+        } || {
+          # Local mode: list local commands only
+          test "$local_file" = "${local_id}.sh" && cont= || cont=true
+        }
+      } || continue
     }
+    echo "line=$line subcmd_func_pref=$subcmd_func_pref cont=$cont"
     if test -n "$cont"; then continue; fi
+
 
     func=$(echo $line | grep '^'${subcmd_func_pref} | sed 's/()//')
     test -n "$func" || continue
@@ -430,4 +442,11 @@ main()
     error "Command $subcmd_name returned $e" 3
   }
 }
+
+
+req_htdir()
+{
+  test -n "$HTDIR" -a -d "$HTDIR" || return 1
+}
+
 

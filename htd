@@ -449,12 +449,12 @@ c_alias()
 # Open an editor to edit todays log
 c_vtoday()
 {
-  c_make vtoday
+  c_today personal/journal
+  $EDITOR $personal/journal/{today,tomorrow,yesterday}.rst
+  git add personal/journal/
 }
-c_vt()
-{
-  c_vtoday $*
-}
+c_als_vt=vtoday
+
 
 # update yesterday, today and tomorrow links
 c_today()
@@ -479,6 +479,19 @@ c_today()
     datelink "$tag" "$p" "${r}$tag$EXT"
   done
 }
+
+# auto new-day (for cron)
+c_day()
+{
+  test -n "$1" || set -- "Cron says, high-time to file $(date -v -1d +"%b %d. %Y")"
+  req_htdir || error "Missing HTDIR" 1
+  cd $HTDIR
+  c_today personal/journal
+  git add note/*.rst sysadmin/*.rst personal/*.rst personal/journal/*.rst
+  git add -u note sysadmin personal/journal
+}
+
+
 
 # TODO: move date routines to lib
 # NOTE: these use BSD date -v, see GNU date -d
@@ -620,14 +633,14 @@ c_mac()
 
 c_project()
 {
-    printf ""
+  printf ""
 }
 
 c_project_todo()
 {
-    title=
-    descr=
-    refs=
+  title=
+  descr=
+  refs=
 }
 
 # Experimenting with gtasks.. looking at todo targets
@@ -739,10 +752,10 @@ gtasks_opts()
 
 htd_file_arg()
 {
-    test -n "$1" && {
-        file=$1
-        shift 1
-    } || return 1
+  test -n "$1" && {
+    file=$1
+    shift 1
+  } || return 1
 }
 
 # List all lists
@@ -839,99 +852,105 @@ c_done()
 # TODO: get references from file
 c_urls()
 {
-    htd_file_arg $1 || exit 1
-    shift 1
-    grep '\([a-z]\+\):\/\/.*' $file | while read url
-    do
-        sha1=$(printf $url | sha1sum - | cut -d ' ' -f 1)
-        md5=$(printf $url | md5sum - | cut -d ' ' -f 1)
-        echo $sha1 $md5 $url
-    done
+  htd_file_arg $1 || exit 1
+  shift 1
+  grep '\([a-z]\+\):\/\/.*' $file | while read url
+  do
+    sha1=$(printf $url | sha1sum - | cut -d ' ' -f 1)
+    md5=$(printf $url | md5sum - | cut -d ' ' -f 1)
+    echo $sha1 $md5 $url
+  done
 }
 
 # init or list SSH based remote 
 
 source_git_remote()
 {
-    . ~/.conf/git-remotes/$HTD_GIT_REMOTE.sh || error "Missing HTD_GIT_REMOTE=$HTD_GIT_REMOTE script" 1
+  test -n "$1" || set -- "$HTD_GIT_REMOTE"
+  . ~/.conf/git-remotes/$1.sh \
+      || error "Missing 1=$1 script" 1
 }
 
 c_git_remote_info()
 {
-    source_git_remote
-    echo remote.$HTD_GIT_REMOTE.dir=$remote_dir
-    echo remote.$HTD_GIT_REMOTE.host=$remote_host
-    echo remote.$HTD_GIT_REMOTE.user=$remote_user
+  test -n "$1" || set -- "$HTD_GIT_REMOTE"
+  source_git_remote "$1"
+  echo remote.$1.dir=$remote_dir
+  echo remote.$1.host=$remote_host
+  echo remote.$1.user=$remote_user
 }
 c_git_remote()
 {
-    source_git_remote
-    [ -z "$1" ] && {
-        ssh_cmd="cd $remote_dir; ls | grep '.*.git$' | sed 's/\.git$//g' "
-        ssh $ssh_opts $remote_user@$remote_host "$ssh_cmd"
-    } || {
-        repo=$1
-        git_url="ssh://$remote_host/~$remote_user/$remote_dir/$repo.git"
-        scp_url="$remote_user@$remote_host:$remote_dir/$repo.git"
-        echo $git_url
-    }
+  test -n "$2" && {
+    source_git_remote $1; shift 1
+  } || source_git_remote
+
+  [ -z "$1" ] && {
+    ssh_cmd="cd $remote_dir; ls | grep '.*.git$' | sed 's/\.git$//g' "
+    ssh $ssh_opts $remote_user@$remote_host "$ssh_cmd"
+  } || {
+    repo=$1
+    #git_url="ssh://$remote_host/~$remote_user/$remote_dir/$repo.git"
+    scp_url="$remote_user@$remote_host:$remote_dir/$repo.git"
+    echo $scp_url
+  }
 }
 
 c_git_init_remote()
 {
-    source_git_remote
-    [ -n "$1" ] && repo="$1" || repo="$PROJECT"
+  source_git_remote
+  [ -n "$1" ] && repo="$1" || repo="$PROJECT"
 
-    ssh_cmd="mkdir -v $remote_dir/$repo.git"
-    ssh $remote_user@$remote_host "$ssh_cmd"
+  ssh_cmd="mkdir -v $remote_dir/$repo.git"
+  ssh $remote_user@$remote_host "$ssh_cmd"
 
-    [ -e .git ] || error "No .git directory, stopping remote init" 0
+  [ -e .git ] || error "No .git directory, stopping remote init" 0
 
-    c_git_remote $repo >> /dev/null
+  c_git_remote $repo >> /dev/null
 
-    BARE=../$repo.git
-    TMP_BARE=1
-    [ -d $BARE ] && TMP_BARE= || {
-        [ -d /src/$repo.git ] && {
-            TMP_BARE=
-            BARE=/src/$repo.git
-        } || {
-            log "Creating temp. bare clone"
-            git clone --bare . $BARE
-        }
+  BARE=../$repo.git
+  TMP_BARE=1
+  [ -d $BARE ] && TMP_BARE= || {
+    [ -d /src/$repo.git ] && {
+      TMP_BARE=
+      BARE=/src/$repo.git
+    } || {
+      log "Creating temp. bare clone"
+      git clone --bare . $BARE
     }
+  }
 
-    [ -n "$TMP_BARE" ] || {
-        log "Using existing bare repository to init remote: $BARE"
-    }
+  [ -n "$TMP_BARE" ] || {
+    log "Using existing bare repository to init remote: $BARE"
+  }
 
-    log "Syning new bare repo to $scp_url"
-    rsync -azu $BARE/ $scp_url
-    [ -n "$TMP_BARE" ] && {
-        log "Deleting temp. bare clone ($BARE)"
-        rm -rf $BARE
-    }
+  log "Syning new bare repo to $scp_url"
+  rsync -azu $BARE/ $scp_url
+  [ -n "$TMP_BARE" ] && {
+    log "Deleting temp. bare clone ($BARE)"
+    rm -rf $BARE
+  }
 
-    log "Adding new remote, and fetching remote refs"
-    git remote add $HTD_GIT_REMOTE $git_url
-    git fetch $HTD_GIT_REMOTE
+  log "Adding new remote, and fetching remote refs"
+  git remote add $HTD_GIT_REMOTE $git_url
+  git fetch $HTD_GIT_REMOTE
 
-    log "Added remote $HTD_GIT_REMOTE $scp_url"
+  log "Added remote $HTD_GIT_REMOTE $scp_url"
 }
 
 c_git_drop_remote()
 {
-    [ -n "$1" ] && repo="$1" || repo="$PROJECT"
-    log "Checking if repo exists.."
-    ssh_opts=-q
-    c_git_remote | grep $repo || {
-      error "No such remote repo $repo" 1
-    }
-    source_git_remote
-    log "Deleting remote repo $remote_user@$remote_host:$remote_dir/$repo"
-    ssh_cmd="rm -rf $remote_dir/$repo.git"
-    ssh -q $remote_user@$remote_host "$ssh_cmd"
-    log "OK, $repo no longer exists"
+  [ -n "$1" ] && repo="$1" || repo="$PROJECT"
+  log "Checking if repo exists.."
+  ssh_opts=-q
+  c_git_remote | grep $repo || {
+    error "No such remote repo $repo" 1
+  }
+  source_git_remote
+  log "Deleting remote repo $remote_user@$remote_host:$remote_dir/$repo"
+  ssh_cmd="rm -rf $remote_dir/$repo.git"
+  ssh -q $remote_user@$remote_host "$ssh_cmd"
+  log "OK, $repo no longer exists"
 }
 
 c_man_1_gh="Clone from Github to subdir, adding as submodule if already in checkout. "
@@ -972,18 +991,23 @@ c_gh() {
 
 c_git_largest_objects()
 {
-  $PREFIX/bin/git-largest-objects.sh 10
+  test -n "$1" || set -- 10
+  $PREFIX/bin/git-largest-objects.sh $1
 }
 
 # list commits for object sha1
 c_git_path_for_object()
 {
-  blob=$1
-  git rev-list --all |
-  while read commit; do
-    if git ls-tree -r $commit | grep -q $blob; then
-      echo $commit
-    fi
+  test -n "$1" || err "provide object hash" 1
+  while test -n "$1"
+  do
+    git rev-list --all |
+    while read commit; do
+      if git ls-tree -r $commit | grep -q $1; then
+        echo $commit
+      fi
+    done
+    shift 1
   done
 }
 
@@ -1735,6 +1759,20 @@ c_edit_test()
 }
 c_als__T=edit-test
 
+
+c_man_1_inventory="All inventories"
+c_inventory()
+{
+  $EDITOR personal/inventory/{main,*}.rst
+  git add personal/inventory/{main,*}.rst
+}
+
+c_man_1_inv_elec="Electrics inventory"
+c_inv_elec()
+{
+  $EDITOR personal/inventory/{components,modules,hardware}.rst
+  git add personal/inventory/{components,modules,hardware}.rst
+}
 
 ### Main
 
