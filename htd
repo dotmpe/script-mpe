@@ -1765,6 +1765,142 @@ c_inv_elec()
   git add personal/inventory/{components,modules,hardware}.rst
 }
 
+c_disk_id()
+{
+  test -n "$1" || error "Disk expected" 1
+  test -e "$1" || error "Disk path expected '$1'" 1
+
+  diskid="$(sudo fdisk -l $1 | grep Disk.identifier\
+      | sed 's/^Disk.identifier: //')"
+  echo $diskid
+}
+
+c_disk_model()
+{
+  test -n "$1" || error "Disk expected" 1
+  test -e "$1" || error "Disk path expected '$1'" 1
+
+  diskmodel="$(sudo parted -s $1 print | grep Model: \
+      | sed 's/^Model: //')"
+  echo $diskmodel
+}
+
+c_disk_size()
+{
+  test -n "$1" || error "Disk expected" 1
+  test -e "$1" || error "Disk path expected '$1'" 1
+
+  disksize="$(sudo parted -s $1 print | grep Disk.*: \
+      | sed 's/^Disk[^:]*: //')"
+  echo $disksize
+}
+
+c_disk_tabletype()
+{
+  test -n "$1" || error "Disk expected" 1
+  test -e "$1" || error "Disk path expected '$1'" 1
+
+  disktabletype="$(sudo parted -s $1 print | grep Partition.Table: \
+      | sed 's/^Partition.Table: //')"
+  echo $disktabletype
+}
+
+find_partition_ids()
+{
+  find /dev/disk/by-uuid -type l | while read path
+  do
+    test "$(basename $(readlink $path))" != "$(basename $1)" || {
+      echo UUID:$(basename $path)
+    }
+  done
+
+  find /dev/disk/by-partuuid -type l | while read path
+  do
+    test "$(basename $(readlink $path))" != "$(basename $1)" || {
+      echo PART-UUID:$(basename $path)
+    }
+  done
+}
+
+c_disks()
+{
+  DISKS=/dev/sd[a-e]
+  for disk in $DISKS
+  do
+    echo "$disk $(htd disk-id $disk)"
+    echo "  :table-type: $(htd disk-tabletype $disk)"
+    echo "  :size: $(htd disk-size $disk)"
+    echo "  :model: $(htd disk-model $disk)"
+    echo ""
+    for dp in $disk[0-9]*
+    do
+        echo "  - $dp $(echo $(find_partition_ids $dp))"
+    done
+    echo
+  done
+  echo
+}
+
+
+c_getx()
+{
+  test -n "$1" || error "Document expected" 1
+  test -e "$1" || error "Document expected: <$1>" 1
+  test -n "$2" || error "XPath expr expected" 1
+  test -n "$3" || set -- "$1" "$2" /tmp/tmp.xml
+  rst2xml $1 > "$3"
+  xmllint --xpath "$2" "$3"
+}
+
+
+list_host_disks()
+{
+  htd getx sysadmin/$hostname.rst \
+    "//*/term[text()='Disk']/ancestor::definition_list_item/definition/definition_list" \
+    > /tmp/$hostname-disks.xml
+  {
+    xsltproc - /tmp/$hostname-disks.xml <<EOM
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:template match="definition_list_item">
+<xsl:value-of select="term"/> .
+</xsl:template>
+</xsl:stylesheet>
+EOM
+  # remove XML prolog:
+  } | tail -n +2 | grep -Ev '^(#.*|\s*)$'
+}
+c_check_disks()
+{
+  cd $HTDIR
+  list_host_disks | while read label path id eol
+  do
+    test -e "$path" && {
+      echo "Path for $label OK"
+      xmllint --xpath \
+          "//definition_list/definition_list_item/definition/bullet_list/list_item[contains(paragraph,'"$path"')]/ancestor::bullet_list" \
+          /tmp/$hostname-disks.xml > /tmp/$hostname-disk.xml;
+      {
+    xsltproc - /tmp/$hostname-disk.xml <<EOM
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:template match="//bullet_list/list_item">
+<xsl:value-of select="paragraph/text()"/> .
+</xsl:template>
+</xsl:stylesheet>
+EOM
+  # remove XML prolog:
+  } | tail -n +2 | grep -Ev '^(#.*|\s*)$' \
+      && {
+        echo
+      } || {
+        warn "failed $?"
+      }
+
+    } || {
+      error "Missing $label $id <$path>" 1
+    }
+  done
+}
+
 ### Main
 
 
