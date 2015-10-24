@@ -33,7 +33,6 @@ echo_help()
 {
     echo "args $@"
   mkid _$1
-  echo mkid=$id
   #try_exec_func ${help_base}__usage $1 || std_usage $1
   # 1: commands
   # 5: config files
@@ -56,11 +55,8 @@ std_help()
   test -z "$1" && {
 
     # Generic help (no args)
-    echo ${help_base}_usage $1 or std_usage
     try_exec_func ${help_base}_usage $1 || std_usage $1
-    echo ${help_base}_commands $1 or std_commands
     try_exec_func ${help_base}_commands || std_commands
-    echo ${help_base}_docs $1 or std_docs
     try_exec_func ${help_base}_docs || noop
 
   } || {
@@ -124,14 +120,15 @@ std_commands()
         }
       } || continue
     }
-    echo "line=$line subcmd_func_pref=$subcmd_func_pref cont=$cont"
+    #echo "line=$line subcmd_func_pref=$subcmd_func_pref cont=$cont" 
+    #echo "file=$file local-file=$local-file 0=$0"
     if test -n "$cont"; then continue; fi
-
 
     func=$(echo $line | grep '^'${subcmd_func_pref} | sed 's/()//')
     test -n "$func" || continue
 
     func_name="$(echo "$func"| sed 's/'${subcmd_func_pref}'//')"
+    spc=
     if test "$(expr_substr "$func_name" 1 7)" = "local__"
     then
       lcwd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\1/' | tr '_' '-')"
@@ -145,8 +142,23 @@ std_commands()
       descr="$(eval echo "\$${subcmd_func_pref}man_1_$func_name")"
     fi
     test -n "$spc" || spc=$(echo $func_name | tr '_' '-' )
+    test -n "$descr" || {
+      grep -q "^${subcmd_func_pref}${func_name}()" $file && {
+        descr="$(func_comment $subcmd_func_pref$func_name $file)"
+      } || noop
+    }
     printf "  %-25s  %-50s\n" "$spc" "$descr"
   done
+}
+
+func_comment()
+{
+  grep_line="$(grep -n "^$1()" "$2" | cut -d ':' -f 1)"
+  case "$grep_line" in [0-9]* ) ;; * ) return 0;; esac
+  func_leading_line="$(head -n +$(( $grep_line - 1 )) "$2" | tail -n 1)"
+  echo "$func_leading_line" | grep -q '^\s*#\ ' && {
+    echo "$func_leading_line" | sed 's/^\s*#\ //'
+  } || noop
 }
 
 # Find shell script location with or without extension
