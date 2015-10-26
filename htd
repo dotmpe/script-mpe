@@ -153,6 +153,8 @@ other_cmds()
   echo "  usage                            List all commands. "
   echo "  info                             List env info. "
   echo "  files                            List file used by htd. "
+  echo '  mk|make                          Run make (in htd dir).'
+  echo '  vt|vtoday                        Run make vtoday.'
 }
 
 c_docs()
