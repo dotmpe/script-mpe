@@ -35,9 +35,17 @@ if argv:
 
 else:
     v = ''
+    vs = []
     dp = os.path.join('/tmp/martador/', node, measure)
     try:
-        v = open(dp).read()
+        vs = open(dp).readlines()
+        open(dp, 'w+').close()
     except:
         pass
+    if len(vs) > 1:
+        v = vs[0]
+    elif len(vs) > 1:
+        v = sum(vs)/len(vs)
+    else:
+        v = ''
     print '%s_%s.value' % ( node, measure ), v
