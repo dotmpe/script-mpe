@@ -601,7 +601,7 @@ c_wol_list_hosts()
   cat $wol_hwaddr
   error "Expected hostname argument" 2
 }
-c_wol()
+c_wake()
 {
   host=$1
   [ -z "$host" ] && {
@@ -1849,11 +1849,25 @@ c_getx()
   test -n "$1" || error "Document expected" 1
   test -e "$1" || error "Document expected: <$1>" 1
   test -n "$2" || error "XPath expr expected" 1
-  test -n "$3" || set -- "$1" "$2" /tmp/tmp.xml
+  test -n "$3" || set -- "$1" "$2" "/tmp/$(basename $1 .rst).xml"
   rst2xml $1 > "$3"
   xmllint --xpath "$2" "$3"
 }
 
+# Append definition term to doc
+c_dl_init()
+{
+  test -n "$1" || error "Document expected" 1
+  test -e "$1" || error "Document expected: <$1>" 1
+  test -n "$2" || error "Term expected" 1
+  htd getx '//*/term[text()="'$2'"]' "$1"
+}
+
+# Add list item beneath definition term
+c_dl_append()
+{
+  echo
+}
 
 list_host_disks()
 {
