@@ -47,7 +47,8 @@ else:
     if len(vs) == 1:
         v = vs[0]
     elif len(vs) > 1:
-        v = round( float(sum(vs)) / len(vs), 1 )
+    	lv = len(vs)
+        v = round( float(sum(vs)) / lv, len(str(round(lv))) )
     else:
         v = ''
     print '%s_%s.value' % ( node, measure ), v
