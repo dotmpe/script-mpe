@@ -6,7 +6,7 @@ import os, sys
 
 argv = list(sys.argv)
 script = argv.pop(0).split('/').pop()
-argstring = script.replace('mpe_martador_','')
+argstring = script.replace('mpe_matador_','')
 node = ''
 measure = ''
 
@@ -36,16 +36,18 @@ if argv:
 else:
     v = ''
     vs = []
-    dp = os.path.join('/tmp/martador/', node, measure)
+    dp = os.path.join('/tmp/matador/', node, measure)
     try:
-        vs = open(dp).readlines()
-        open(dp, 'w+').close()
+        vs = [ int(v) for v in open(dp).readlines() if v.strip() ]
+        fh = open(dp, 'w+')
+	fh.truncate()
+	fh.close()
     except:
         pass
-    if len(vs) > 1:
+    if len(vs) == 1:
         v = vs[0]
     elif len(vs) > 1:
-        v = sum(vs)/len(vs)
+        v = round( float(sum(vs)) / len(vs), 1 )
     else:
         v = ''
     print '%s_%s.value' % ( node, measure ), v
