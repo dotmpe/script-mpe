@@ -9,30 +9,30 @@ graph_category sensors
 graph_args --base 1000 -l 0
 EOM
 
-/Applications/HardwareMonitor.app/Contents/MacOS/hwmonitor |  \
+/Applications/HardwareMonitor.app/Contents/MacOS/hwmonitor 2>/dev/null |  \
 	grep ':' | \
-	sed 's/HTS545032B9SA02\ .101113PBS3004TG2MN9S.//g' | 
+	sed 's/HTS545032B9SA02\ .101113PBS3004TG2MN9S.//g' |
 	while read l
 	do
 		Name=$(echo $l | sed 's/^\([^:]*\):.*$/\1/g' )
 		ID=$(echo $Name | sed 's/[^A-Za-z0-9]/_/g' )
 		echo "$ID.draw LINE2"
 		echo "$ID.label $Name"
-	done 
-		
+	done
+
         exit 0;;
 esac
 
 
-/Applications/HardwareMonitor.app/Contents/MacOS/hwmonitor |  \
+/Applications/HardwareMonitor.app/Contents/MacOS/hwmonitor 2>/dev/null |  \
 	grep ':' | \
-	sed 's/HTS545032B9SA02\ .101113PBS3004TG2MN9S.//g' | 
+	sed 's/HTS545032B9SA02\ .101113PBS3004TG2MN9S.//g' |
 	while read l
 	do
 		Name=$(echo $l | sed 's/^\([^:]*\):.*$/\1/g' )
 		ID=$(echo $Name | sed 's/[^A-Za-z0-9]/_/g' )
 		Value=$(echo $l | sed 's/^[^:]*:\(.*\)$/\1/g' |sed 's/[C ]//g' )
 		echo "$ID.value $Value"
-	done 
+	done
 
 
