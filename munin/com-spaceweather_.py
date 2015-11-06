@@ -59,7 +59,11 @@ else:
     tmpf = '/tmp/spaceweather-com'
     refresh = 5 * 60
 
-    if not os.path.exists(tmpf) or os.path.getmtime(tmpf) + refresh < time.time():
+    if not os.path.exists(tmpf):
+        open(tmpf, 'w').close() 
+        os.chmod(tmpf, 0666)
+
+    if os.path.getmtime(tmpf) + refresh < time.time():
         f = urllib2.urlopen('http://www.spaceweather.com/')
         content = f.read()
         f.close()
