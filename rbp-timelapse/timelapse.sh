@@ -1,3 +1,5 @@
+#!/bin/bash
+
 period=30
 [ -n "$1" ] && period=$1
 R6=128x96 
