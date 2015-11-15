@@ -13,6 +13,11 @@ statusdir_assert vc_status > /dev/null
 
 scriptname=vc
 
+noop()
+{
+  printf ""
+}
+
 load()
 {
 	noop
@@ -94,7 +99,7 @@ homepath ()
 # i: '+'|'#'
 # s: '$'
 # u: '%'
-# 
+#
 
 __vc_bzrdir ()
 {
@@ -161,9 +166,9 @@ __vc_git_flags ()
 			elif [ -f "$g/BISECT_LOG" ]; then
 				r="|BISECTING"
 			fi
-			
+
 			b="$(git symbolic-ref HEAD 2>/dev/null)" || {
-				
+
 				b="$(
 				case "${GIT_PS1_DESCRIBE_STYLE-}" in
 				(contains)
@@ -175,19 +180,19 @@ __vc_git_flags ()
 				(* | default)
 					git describe --exact-match HEAD ;;
 				esac 2>/dev/null)" ||
-				
+
 				b="$(cut -c1-7 "$g/HEAD" 2>/dev/null)..." ||
 				b="unknown"
 				b="($b)"
 			}
 		fi
-		
+
 		local w
 		local i
 		local s
 		local u
 		local c
-		
+
 		if [ "true" = "$(git rev-parse --is-inside-git-dir 2>/dev/null)" ]; then
 			if [ "true" = "$(git rev-parse --is-bare-repository 2>/dev/null)" ]; then
 				c="BARE:"
@@ -210,7 +215,7 @@ __vc_git_flags ()
 			if [ -n "${GIT_PS1_SHOWSTASHSTATE-}" ]; then
 				git rev-parse --verify refs/stash >/dev/null 2>&1 && s="$"
 			fi
-			
+
 			if [ -n "${GIT_PS1_SHOWUNTRACKEDFILES-}" ]; then
 				if [ -n "$(git ls-files --others --exclude-standard)" ]; then
 					u="%"
@@ -262,7 +267,7 @@ __vc_push ()
 	else if [ "$bzr" ]; then
 		bzr push;
 #	else if [ -d ".svn" ]; then
-#	    svn 
+#	    svn
 	fi; fi;
 }
 
@@ -279,7 +284,7 @@ __vc_push ()
 __vc_status ()
 {
 	local w short repo sub
-	
+
 	w="$1";
 	pushd "$w" >> /dev/null
 	realcwd="$(pwd -P)"
@@ -287,10 +292,10 @@ __vc_status ()
 
 	local git="$(__vc_gitdir "$realcwd")"
 	local bzr=$(__vc_bzrdir "$realcwd")
-	
+
 	if [ -n "$git" ]; then
 		realroot="$(git rev-parse --show-toplevel)"
-		[ -n "$realroot" ] && { 
+		[ -n "$realroot" ] && {
 			rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
 			sub="${realcwd##$realroot}"
 			realgitdir=$realroot/.git
@@ -333,7 +338,7 @@ __vc_status ()
 __pwd_ps1 ()
 {
 	local w short
-	
+
 	d="$1";
 	[ -z "$d" ] && d="$(pwd)"
 	[ ! -d "$d" ] && echo "No such directory $d" && exit 3
@@ -356,17 +361,17 @@ __vc_ps1 ()
 __vc_screen ()
 {
 	local w short repo sub
-	
+
 	w="$1";
 	[ -z "$w" ] && w="$(pwd)"
 
 	realcwd="$(pwd -P)"
 	short=$(homepath "$w")
-	
+
 	local git=$(__vc_gitdir "$w")
 	if [ "$git" ]; then
 		realroot="$(git rev-parse --show-toplevel)"
-		[ -n "$realroot" ] && { 
+		[ -n "$realroot" ] && {
 			rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
 			sub="${realcwd##$realroot}"
 		} || {
@@ -443,6 +448,12 @@ vc_ps1()
 	__vc_ps1 $@
 }
 
+vc_gitflags()
+{
+  __vc_git_flags "$@"
+}
+
+
 # special updater (for Bash PROMPT_COMMAND)
 vc_prompt_command()
 {
@@ -480,7 +491,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 			shift 1
 			load
 			$func $@
-		} || { 
+		} || {
 			load
 			vc_print_all $@
 		}
