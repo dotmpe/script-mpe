@@ -36,7 +36,7 @@ version=0.0.0+20150911-0659 # script.mpe
   test $status -eq 0
   #echo "${lines[@]}" > /tmp/1
   #echo "${#lines[@]}" >> /tmp/1
-  test "${#lines[@]}" = "9"
+  test "${#lines[@]}" = "12"
 }
 
 @test "$bin test-name" {

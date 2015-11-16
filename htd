@@ -1950,7 +1950,7 @@ EOM
 
 c_pc()
 {
-  git add -u;git ci -m "$1";git push
+  git add -u;git ci -m "$1";git push --all
 }
 
 
