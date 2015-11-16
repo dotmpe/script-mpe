@@ -1947,6 +1947,14 @@ EOM
   done
 }
 
+
+c_pc()
+{
+  git add -u;git ci -m "$1";git push
+}
+
+
+
 ### Main
 
 

@@ -29,6 +29,7 @@ before_script:
 
 script:
 - './test/*-spec.bats'
+- htd version
 #- ./basename-reg ffnnec.py
 #- ./mimereg ffnenc.py
 # FIXME make -k test
