@@ -1811,6 +1811,10 @@ c_tmux_srv()
     tmux new-window -t Srv -n X-Tw
     tmux send-keys -t Srv:X-Tw "cd ~/project/x-tiddlywiki; tiddlywiki x-tiddlywiki --server" enter
   }
+  tmux list-windows -t Srv | grep -q Loci || {
+    tmux new-window -t Srv -n Loci
+    tmux send-keys -t Srv:Loci "cd ~/project/node-loci; npm start" enter
+  }
 }
 
 
