@@ -1736,13 +1736,25 @@ c_tmux_prive()
     tmux send-keys -t Prive:HtD "reset;cd ~/htdocs/; htd today personal/journal;git st" enter
     tmux send-keys -t Prive:HtD "git add -u;git add dev/ personal/*.rst personal/journal/2*.rst sysadmin/*.rst *.rst;git st" enter
   }
-  tmux list-windows -t Prive | grep -q '\.conf' || {
-    tmux new-window -t Prive -n .conf
-    tmux send-keys -t Prive:.conf "reset;cd ~/.conf;git st" enter
+  tmux list-windows -t Prive | grep -q '\ conf' || {
+    tmux new-window -t Prive -n conf
+    tmux send-keys -t Prive:conf "reset;cd ~/.conf;git st" enter
   }
   tmux list-windows -t Prive | grep -q Bin || {
     tmux new-window -t Prive -n Bin
     tmux send-keys -t Prive:Bin "reset;cd ~/bin;git st" enter
+  }
+  tmux list-windows -t Prive | grep -q Ino || {
+    tmux new-window -t Prive -n Ino
+    tmux send-keys -t Prive:Ino "reset;cd ~/project/arduino-docs;git st" enter
+  }
+  tmux list-windows -t Prive | grep -q Avr || {
+    tmux new-window -t Prive -n Avr
+    tmux send-keys -t Prive:Avr "reset;cd ~/project/arduino-docs;git st" enter
+  }
+  tmux list-windows -t Prive | grep -q Loci || {
+    tmux new-window -t Prive -n Loci
+    tmux send-keys -t Prive:Loci "reset;cd ~/project/node-loci;git st" enter
   }
 }
 
@@ -1799,7 +1811,7 @@ c_tmux_work()
 
 c_tmux_srv()
 {
-  cd srv
+  cd /srv
   tmux has-session -t Srv >/dev/null || {
     c_tmux_init Srv
     tmux send-keys -t Srv:bash "reset; cd ~/.conf; ./script/update.sh" enter
