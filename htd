@@ -262,7 +262,7 @@ c_edit_main()
 {
   locate_name
   [ -n "$fn" ] || error "expected $scriptname?" 1
-  $EDITOR $fn
+  $EDITOR $fn "$@"
 }
 c_als__E=edit-main
 
@@ -1064,7 +1064,7 @@ c_git_excludes()
 
 c_git_excluded()
 {
-    git ls-files --others
+    git ls-files --others --exclude-standard
 }
 
 c_git_annex_unused()
@@ -1724,25 +1724,126 @@ c_mp3_validate()
 }
 
 
-c_tmux_tw()
+c_tmux_prive()
 {
-  c_tmux_init Tw 'cd ~/project/x-tiddlywiki; tiddlywiki x-tiddlywiki --server'
-  #lxterminal --command="tmux attach -t Tw"
+  tmux has-session -t Prive >/dev/null || {
+    c_tmux_init Prive
+  }
+  tmux list-windows -t Prive | grep -q HtD || {
+    tmux new-window -t Prive -n HtD
+    tmux send-keys -t Prive:HtD "cd ~/htdocs/; journal;git st" enter
+  }
+  tmux list-windows -t Prive | grep -q '\.conf' || {
+    tmux new-window -t Prive -n .conf
+    tmux send-keys -t Prive:.conf "cd ~/.conf;git st" enter
+  }
+  tmux list-windows -t Prive | grep -q Bin || {
+    tmux new-window -t Prive -n Bin
+    tmux send-keys -t Prive:Bin "cd ~/bin;git st" enter
+  }
 }
+
+c_tmux_work()
+{
+  cd ~/work/brix
+
+  # Make sure Work session is registered with tmux server
+
+  tmux has-session -t Work >/dev/null || {
+      c_tmux_init Work bash
+  }
+
+  # Make sure Log window is on and first window (swapping some windows if
+  # needed, maybe better way it to start server by hand instead of usign new-session?)
+
+  tmux list-windows -t Work | grep -q Log || {
+    # No log, new session, need to clean up first window, add one first to keep session
+    tmux new-window -t Work -n temporary
+    tmux kill-window -t Work:1
+  }
+
+  tmux list-windows -t Work | grep -q '1:\ Log' || {
+    tmux new-window -t Work -n Log
+    tmux send-keys -t Work:Log "cd ~/work/brix/" enter "htd today log" enter
+  }
+
+  tmux list-windows -t Work | grep -q temporary && {
+    tmux kill-window -t Work:temporary
+  } || noop
+
+  # Add other windows
+
+  tmux list-windows -t Work | grep -q Jenkins || {
+    tmux new-window -t Work -n Jenkins
+    tmux send-keys -t Work:Jenkins "cd ~/work/brix/Jenkins;ls -la" enter
+  }
+
+  tmux list-windows -t Work | grep -q DevDoc || {
+    tmux new-window -t Work -n DevDoc
+    tmux send-keys -t Work:DevDoc "cd ~/work/brix/tree/dev-doc;git fetch --all;git st" enter
+  }
+  tmux list-windows -t Work | grep -q Mango || {
+    tmux new-window -t Work -n Mango
+    tmux send-keys -t Work:Mango "cd ~/work/brix/tree/mango-builds" enter "git st" enter
+  }
+  tmux list-windows -t Work | grep -q Dckr || {
+    tmux new-window -t Work -n Dckr
+    tmux send-keys -t Work:Dckr "cd ~/work/brix/tree/docker-build" enter "git st" enter
+  }
+
+}
+
+c_tmux_srv()
+{
+  tmux has-session -t Srv >/dev/null || {
+    c_tmux_init Srv
+    tmux send-keys -t Srv:bash "cd ; cr ; cd .conf; ./script/update.sh" enter
+  }
+  tmux list-windows -t Srv | grep -q HtD-Sf || {
+    tmux new-window -t Srv -n HtD-Sf
+    tmux send-keys -t Srv:HtD-Sf "cd ~/htdocs/; sitefile" enter
+  }
+  tmux list-windows -t Srv | grep -q BrX-Sf || {
+    tmux new-window -t Srv -n BrX-Sf
+    tmux send-keys -t Srv:BrX-Sf "cd ~/work/brix/; sitefile" enter
+  }
+  tmux list-windows -t Srv | grep -q X-Tw || {
+    tmux new-window -t Srv -n X-Tw
+    tmux send-keys -t Srv:X-Tw "cd ~/project/x-tiddlywiki; tiddlywiki x-tiddlywiki --server" enter
+  }
+}
+
 
 c_tmux_init()
 {
   test -n "$1" || error "session name required" 1
   test -n "$2" || set -- "$1" "bash"
+  #'reattach-to-user-namespace -l /bin/bash'"
   test -z "$3" || error "surplus arguments: '$3'" 1
 
-  if tmux has-session -t $1 >/dev/null
-  then
+  socket=/tmp/tmux-htd-socket
+  out=/tmp/htd-tmux-init-$$
+
+  test -n "$TMUX_TMPDIR" || TMUX_TMPDIR=/opt/tmux-socket
+
+  tmux has-session -t $1 >/dev/null && {
+    logger "Session $1 exists" 0
     note "Session $1 exists" 0
-  else
-    tmux new-session -s $1 -d "$2"
-    note "started new session '$1'"
-  fi
+  } || {
+
+    tmux new-session -P -s "$1" -d "$2" 2>&1 1> $out
+
+    tmux has-session -t $1 >/dev/null && {
+      note "started new session '$1'"
+      logger "started new session '$1'"
+    } || {
+      logger "Failed starting session ($?) ($out): $(echo $(cat $out))"
+    }
+    printf "Cat ($out) "
+    cat $out
+    rm $out
+
+  }
 }
 
 c_reader_update()
