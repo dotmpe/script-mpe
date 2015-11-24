@@ -1726,21 +1726,23 @@ c_mp3_validate()
 
 c_tmux_prive()
 {
+  cd
   tmux has-session -t Prive >/dev/null || {
     c_tmux_init Prive
-    tmux send-keys -t Prive:1 "cd;cr;git st" enter
+    tmux send-keys -t Prive:1 "reset;cd;git st" enter
   }
   tmux list-windows -t Prive | grep -q HtD || {
     tmux new-window -t Prive -n HtD
-    tmux send-keys -t Prive:HtD "cd ~/htdocs/; htd today personal/journal;git st" enter
+    tmux send-keys -t Prive:HtD "reset;cd ~/htdocs/; htd today personal/journal;git st" enter
+    tmux send-keys -t Prive:HtD "git add -u;git add dev/ personal/*.rst personal/journal/2*.rst sysadmin/*.rst *.rst;git st" enter
   }
   tmux list-windows -t Prive | grep -q '\.conf' || {
     tmux new-window -t Prive -n .conf
-    tmux send-keys -t Prive:.conf "cd ~/.conf;git st" enter
+    tmux send-keys -t Prive:.conf "reset;cd ~/.conf;git st" enter
   }
   tmux list-windows -t Prive | grep -q Bin || {
     tmux new-window -t Prive -n Bin
-    tmux send-keys -t Prive:Bin "cd ~/bin;git st" enter
+    tmux send-keys -t Prive:Bin "reset;cd ~/bin;git st" enter
   }
 }
 
@@ -1765,7 +1767,8 @@ c_tmux_work()
 
   tmux list-windows -t Work | grep -q '1:\ Log' || {
     tmux new-window -t Work -n Log
-    tmux send-keys -t Work:Log "cd ~/work/brix/" enter "htd today log" enter
+    tmux send-keys -t Work:Log "reset;cd ~/work/brix/;htd today log" enter
+    tmux send-keys -t Work:Log "(cd log;git add -u;git add 20*.rst; git st)" enter
   }
 
   tmux list-windows -t Work | grep -q temporary && {
@@ -1776,45 +1779,46 @@ c_tmux_work()
 
   tmux list-windows -t Work | grep -q Jenkins || {
     tmux new-window -t Work -n Jenkins
-    tmux send-keys -t Work:Jenkins "cd ~/work/brix/Jenkins;ls -la" enter
+    tmux send-keys -t Work:Jenkins "reset;cd ~/work/brix/Jenkins;ls -la" enter
   }
 
   tmux list-windows -t Work | grep -q DevDoc || {
     tmux new-window -t Work -n DevDoc
-    tmux send-keys -t Work:DevDoc "cd ~/work/brix/tree/dev-doc;git fetch --all;git st" enter
+    tmux send-keys -t Work:DevDoc "reset;cd ~/work/brix/tree/dev-doc;git fetch --all;git st" enter
   }
   tmux list-windows -t Work | grep -q Mango || {
     tmux new-window -t Work -n Mango
-    tmux send-keys -t Work:Mango "cd ~/work/brix/tree/mango-builds" enter "git st" enter
+    tmux send-keys -t Work:Mango "reset;cd ~/work/brix/tree/mango-builds" enter "git st" enter
   }
   tmux list-windows -t Work | grep -q Dckr || {
     tmux new-window -t Work -n Dckr
-    tmux send-keys -t Work:Dckr "cd ~/work/brix/tree/docker-build" enter "git st" enter
+    tmux send-keys -t Work:Dckr "reset;cd ~/work/brix/tree/docker-build" enter "git st" enter
   }
 
 }
 
 c_tmux_srv()
 {
+  cd srv
   tmux has-session -t Srv >/dev/null || {
     c_tmux_init Srv
-    tmux send-keys -t Srv:bash "cd ; cr ; cd .conf; ./script/update.sh" enter
+    tmux send-keys -t Srv:bash "reset; cd ~/.conf; ./script/update.sh" enter
   }
   tmux list-windows -t Srv | grep -q HtD-Sf || {
     tmux new-window -t Srv -n HtD-Sf
-    tmux send-keys -t Srv:HtD-Sf "cd ~/htdocs/; sitefile" enter
+    tmux send-keys -t Srv:HtD-Sf "reset; cd ~/htdocs/; sitefile" enter
   }
   tmux list-windows -t Srv | grep -q BrX-Sf || {
     tmux new-window -t Srv -n BrX-Sf
-    tmux send-keys -t Srv:BrX-Sf "cd ~/work/brix/; sitefile" enter
+    tmux send-keys -t Srv:BrX-Sf "reset; cd ~/work/brix/; sitefile" enter
   }
   tmux list-windows -t Srv | grep -q X-Tw || {
     tmux new-window -t Srv -n X-Tw
-    tmux send-keys -t Srv:X-Tw "cd ~/project/x-tiddlywiki; tiddlywiki x-tiddlywiki --server" enter
+    tmux send-keys -t Srv:X-Tw "reset; cd ~/project/x-tiddlywiki; tiddlywiki x-tiddlywiki --server" enter
   }
   tmux list-windows -t Srv | grep -q Loci || {
     tmux new-window -t Srv -n Loci
-    tmux send-keys -t Srv:Loci "cd ~/project/node-loci; npm start" enter
+    tmux send-keys -t Srv:Loci "reset; cd ~/project/node-loci; npm start" enter
   }
 }
 
