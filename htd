@@ -1728,10 +1728,11 @@ c_tmux_prive()
 {
   tmux has-session -t Prive >/dev/null || {
     c_tmux_init Prive
+    tmux send-keys -t Prive:1 "cd;cr;git st" enter
   }
   tmux list-windows -t Prive | grep -q HtD || {
     tmux new-window -t Prive -n HtD
-    tmux send-keys -t Prive:HtD "cd ~/htdocs/; journal;git st" enter
+    tmux send-keys -t Prive:HtD "cd ~/htdocs/; htd today personal/journal;git st" enter
   }
   tmux list-windows -t Prive | grep -q '\.conf' || {
     tmux new-window -t Prive -n .conf
@@ -1750,7 +1751,7 @@ c_tmux_work()
   # Make sure Work session is registered with tmux server
 
   tmux has-session -t Work >/dev/null || {
-      c_tmux_init Work bash
+    c_tmux_init Work bash
   }
 
   # Make sure Log window is on and first window (swapping some windows if
