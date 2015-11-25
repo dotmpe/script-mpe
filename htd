@@ -1806,7 +1806,14 @@ c_tmux_work()
     tmux new-window -t Work -n Dckr
     tmux send-keys -t Work:Dckr "reset;cd ~/work/brix/tree/docker-build" enter "git st" enter
   }
-
+  tmux list-windows -t Work | grep -q Skltn || {
+    tmux new-window -t Work -n Skltn
+    tmux send-keys -t Work:Skltn "reset;cd ~/work/brix/tree/project-skeleton-ng" enter "git st" enter
+  }
+  tmux list-windows -t Work | grep -q Ba || {
+    tmux new-window -t Work -n Ba
+    tmux send-keys -t Work:Ba "reset;cd ~/work/brix/tree/brixadmin" enter "git st" enter
+  }
 }
 
 c_tmux_srv()
