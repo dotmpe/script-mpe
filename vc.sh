@@ -20,7 +20,8 @@ noop()
 
 load()
 {
-	noop
+  . ~/bin/std.sh
+  . ~/bin/match.sh "$@"
 }
 
 vc_usage()
@@ -476,25 +477,251 @@ vc_prompt_command()
 }
 
 
-. ~/bin/std.sh
+vc_list_submodules()
+{
+  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
+}
+
+vc_man_1_gh="Clone from Github to subdir, adding as submodule if already in checkout. "
+vc_spc_gh="gh <repo> [<prefix>]"
+vc_gh() {
+  test -n "$1" || error "Need repo name argument" 1
+  str_match "$1" "[^/]*" && {
+    repo=dotmpe/$1; prefix=$1; } || {
+    repo=$1; prefix=$(basename $1); }
+  shift 1
+  test -n "$1" && prefix=$1/$prefix
+  giturl=git@github.com:$repo.git
+  test -n "$debug" && {
+    echo giturl=$giturl
+    echo repo=$repo
+    echo prefix=$prefix
+  }
+  git=git
+  test -n "$dry" && {
+    log "*** DRY-RUN ***"
+    git="echo git"
+  }
+  test -e .git && {
+    test -d .git && {
+      log "Adding submodule $giturl to $(pwd)/$prefix.."
+      ${git} submodule add $giturl $prefix
+      log "Added submodule $giturl to $(pwd)/$prefix"
+    } || {
+      # TODO: find/print root. then go there. see vc.sh
+      error "Please recede to root and use prefix to add submodule" 1
+    }
+  } || {
+    log "Cloning $giturl to $(pwd)/$prefix.."
+    ${git} clone $giturl $prefix
+    log "Cloned $giturl to $(pwd)/$prefix"
+  }
+}
+
+vc_largest_objects()
+{
+  test -n "$1" || set -- 10
+  $PREFIX/bin/git-largest-objects.sh $1
+}
+
+# list commits for object sha1
+vc_path_for_object()
+{
+  test -n "$1" || err "provide object hash" 1
+  while test -n "$1"
+  do
+    git rev-list --all |
+    while read commit; do
+      if git ls-tree -r $commit | grep -q $1; then
+        echo $commit
+      fi
+    done
+    shift 1
+  done
+}
+
+# print tree, blob, commit, etc. objs
+vc_list_objects()
+{
+  git verify-pack -v .git/objects/pack/pack-*.idx
+}
+
+vc_object_contents()
+{
+  git cat-file -p $1
+}
+
+vc_man_1_excludes="List exclude patterns"
+vc_excludes()
+{
+  # (global) core.excludesfile setting
+  global_excludes=$(echo $(git config --get core.excludesfile))
+  test ! -e "$global_excludes" || {
+    note "Global excludes:"
+    cat $global_excludes
+  }
+
+  note "Local excludes (repository):"
+  cat .git/info/exclude | grep -v '^\s*\(#\|$\)'
+
+  test -s ".gitignore" && {
+    note "Local excludes"
+    cat .gitignore
+  } || {
+    note "No local excludes"
+  }
+}
+
+vc_excluded()
+{
+    git ls-files --others --exclude-standard
+}
+
+vc_annex_unused()
+{
+  git annex unused | \
+    grep '\s\s*[0-8]\+\ \ *.*$' | \
+  while read line;
+  do
+    echo $line
+  done
+}
+
+vc_annex_show_unused()
+{
+  c_annex_unused | while read num key
+  do
+    echo "GIT log for '$key'"
+    git log --stat -S"$key"
+  done
+}
+
+vc_annex_clear_unused()
+{
+  test -z "$1" && {
+    local cnt
+    cnt="$(c_annex_unused | tail -n 1 | cut -f 1 -d ' ')"
+    c_annex_unused | while read num key
+    do
+      echo $num $key
+    done
+    echo cnt=$cnt
+    read -p 'Delete all? [yN] ' -n 1 user
+    echo
+    test "$user" = 'y' && {
+      while test "$cnt" -gt 0
+      do
+        git annex dropunused --force $cnt
+        cnt=$(( $cnt -1 ))
+      done
+    } || {
+      error 'Cancelled' 1
+    }
+  } || {
+    git annex move --unused --to $1
+  }
+}
+
+vc_contains()
+{
+  test -n "$1" || error "expected file path argument" 1
+  test -f "$1" || error "not a file path argument '$1'" 1
+  test -n "$2" || set -- "$1" "."
+  test -z "$3" || error ""
+
+  sha1="$(git hash-object "$1")"
+  info "SHA1: $sha1"
+
+  { ( cd "$2" ; git rev-list --objects --all | grep "$sha1" ); } && {
+    note "Found regular GIT object"
+  } || c_annex_contains "$1" "$2" || {
+    warn "Unable to find path in GIT at @$2: '$1'"
+  }
+}
+
+vc_annex_contains()
+{
+  test -n "$1" || error "expected file path argument" 1
+  test -f "$1" || error "not a file path argument '$1'" 1
+  test -n "$2" || set -- "$1" "."
+  test -z "$3" || error ""
+
+  size="$(stat -Lf '%z' "$1")"
+  sha256="$(shasum -a 256 "$1" | cut -f 1 -d ' ')"
+  keyglob='*s'$size'--'$sha256'.*'
+  info "SHA256E key glob: $keyglob"
+  { find $2 -ilname $keyglob | while read path; do echo $path;ls -la $path; done;
+  } || warn "Found nothing for '$keyglob'"
+}
+
+# List submodule prefixes
+vc_list_prefixes()
+{
+  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
+}
+
+# List all nested repositories, excluding submodules
+# XXX this does not work properly, best use it from root of repo
+# XXX: takes subdir, and should in case of being in a subdir act the same
+vc_list_subrepos()
+{
+  basedir="$(dirname "$(__vc_gitdir "$1")")"
+  test -n "$1" || set -- "."
+
+  pushd $basedir >>/dev/null
+  vc_list_prefixes > /tmp/vc-list-prefixes
+  popd >>/dev/null
+
+  find $1 -iname .git | while read path
+  do
+    # skip root
+    #test -n "$(realpath "$1/.git")" != "$(realpath "$path")" || continue
+
+    # skip proper submodules
+    match_grep_pattern_test "$(dirname "$path")" || continue
+    grep_pattern="$p_"
+    grep -q "$grep_pattern" /tmp/vc-list-prefixes && {
+      continue
+    } || {
+    echo "$(dirname $path)"
+    }
+  done
+#    git submodule foreach 'for remote in "$(git remote)"; do echo $remote; git
+#    config remote.$remote.url  ; done'
+}
+
+# ----
 
 
 # Main
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
-	# Do something if script invoked as 'vc.sh'
-	if [ "$(basename "$0")" = "vc.sh" ]; then
-		# invoke with function name first argument,
-		func=$1
-		type "vc_$func" &>/dev/null && { func="vc_$func"; }
-		cmd=$func
-		type $func &>/dev/null && {
-			shift 1
-			load
-			$func $@
-		} || {
-			load
-			vc_print_all $@
-		}
-	fi
+
+  # Do something if script invoked as 'vc.sh'
+  base=$(basename $0 .sh)
+  case "$base" in
+
+    $scriptname )
+
+        # invoke with function name first argument,
+        cmd=$1
+        [ -n "$def_func" -a -z "$cmd" ] \
+          && func=$def_func \
+          || func=$(echo vc_$cmd | tr '-' '_')
+
+        type $func &>/dev/null && {
+          shift 1
+          load
+          $func $@
+        } || {
+          load
+          vc_print_all $@
+        }
+
+      ;;
+
+    * )
+      echo No frontend for $base
+
+  esac
 fi
 
