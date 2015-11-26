@@ -15,7 +15,7 @@ test -n "$PREFIX" || PREFIX=$HOME
 # test for var decl, io. to no override empty
 var_isset()
 {
-  # Aside from declare or typeset in newer reincarnations, 
+  # Aside from declare or typeset in newer reincarnations,
   # in posix or modern Bourne mode this seems to work best:
   set | grep '\<'$1'=' >/dev/null 2>/dev/null && return
   return 1
@@ -113,7 +113,7 @@ $1
 w" | ed $file_name $tmpf
 }
 
-# 
+#
 # 1:where-grep 2:file-path
 file_where_before()
 {
@@ -243,6 +243,14 @@ wait_for()
     note "Waiting for $1.."
     sleep 7
   done
+}
+
+incr()
+{
+  local incr_amount
+  test -n "$2" && incr_amount=$2 || incr_amount=1
+  v=$(eval echo \$$1)
+  export $1=$(( $v + $incr_amount ))
 }
 
 

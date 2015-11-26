@@ -8,14 +8,6 @@ incr_c()
   incr c $1
 }
 
-incr()
-{
-  local incr_amount
-  test -n "$2" && incr_amount=$2 || incr_amount=1
-  v=$(eval echo \$$1)
-  export $1=$(( $v + $incr_amount ))
-}
-
 # Get help str if exists for $section $id
 # 1:section-number 2:help-id
 # :*:help_descr
@@ -24,6 +16,17 @@ try_help()
   local func_pref="$subcmd_func_pref"
   help_descr="$(eval echo "\$${func_pref}man_$(echo $1)$(echo $2)")"
   test -n "$help_descr" && echo "$help_descr" || return 1
+}
+
+# Extract text from comment leading onto function definition
+func_comment()
+{
+  grep_line="$(grep -n "^$1()" "$2" | cut -d ':' -f 1)"
+  case "$grep_line" in [0-9]* ) ;; * ) return 0;; esac
+  func_leading_line="$(head -n +$(( $grep_line - 1 )) "$2" | tail -n 1)"
+  echo "$func_leading_line" | grep -q '^\s*#\ ' && {
+    echo "$func_leading_line" | sed 's/^\s*#\ //'
+  } || noop
 }
 
 # Run through all help sections for given string, echo and return on first
@@ -87,7 +90,7 @@ std_commands()
   # group commands per file, using sentinal line to mark next file
   local list_functions_head="# file=\$file"
 
-  # 
+  #
   test -z "$choice_global" && {
     test -z "$choice_all" && {
       local_id=$(pwd | tr '/-' '__')
@@ -120,7 +123,7 @@ std_commands()
         }
       } || continue
     }
-    #echo "line=$line subcmd_func_pref=$subcmd_func_pref cont=$cont" 
+    #echo "line=$line subcmd_func_pref=$subcmd_func_pref cont=$cont"
     #echo "file=$file local-file=$local-file 0=$0"
     if test -n "$cont"; then continue; fi
 
@@ -151,16 +154,6 @@ std_commands()
   done
 }
 
-func_comment()
-{
-  grep_line="$(grep -n "^$1()" "$2" | cut -d ':' -f 1)"
-  case "$grep_line" in [0-9]* ) ;; * ) return 0;; esac
-  func_leading_line="$(head -n +$(( $grep_line - 1 )) "$2" | tail -n 1)"
-  echo "$func_leading_line" | grep -q '^\s*#\ ' && {
-    echo "$func_leading_line" | sed 's/^\s*#\ //'
-  } || noop
-}
-
 # Find shell script location with or without extension
 # 1:basename:scriptname
 # :fn
@@ -173,6 +166,70 @@ locate_name()
   [ -n "$fn" ] || fn=$(which $name.sh)
   [ -n "$fn" ] || return 1
 }
+
+# Setup some initial vars and load lib files for main script
+main_init()
+{
+  test -n "$1" || set -- "$base"
+
+  stdio_type 0 $$
+  stdio_type 1 $$
+  stdio_type 2 $$
+
+  var_isset verbosity || verbosity=6
+
+  box_src="$(dry_run= box_list_libs $0 $1 | while read src path args; \
+    do eval echo $path; done)"
+  box_lib="$box_src"
+}
+
+
+# TODO: New spec:
+#   prog [progopts] [subcmd] [subopts,args]
+# all are short opts only.
+# subcmd can be alias of one or more characters too.
+main_parse_opts()
+{
+  local sc=0 tc=$c
+
+  while [ $# -gt 0 ]
+  do  case "$1" in
+
+    -- )
+      break
+      ;;
+
+    --* )
+      error "no long options $1" 1
+      ;;
+
+    -* )
+      main_parse_shortopts $1 && break || continue
+      ;;
+
+    * )
+      main_parse_subcmd $1 && break || continue
+      ;;
+
+    esac
+
+    incr sc
+    shift
+
+  done
+
+  test $sc -eq 0 || {
+    c=$(( $c + $sc ))
+  }
+}
+
+
+# TODO: new Parse command line arguments and set subcmd vars
+main_parse_argv()
+{
+    echo
+}
+
 
 parse_subcmd_valid_flags()
 {
@@ -193,11 +250,13 @@ parse_subcmd_valid_flags()
   return 1
 }
 
+
 get_cmd_alias()
 {
   local func_pref="$(eval echo \$${1}_func_pref)"
   export ${1}_alias=$(eval echo \$${func_pref}als$(echo "_$2" | tr '-' '_'))
 }
+
 
 parse_box_subcmd_opts()
 {
@@ -234,6 +293,7 @@ parse_box_subcmd_opts()
   done
   c=$(( $OPTIND -1 ))
 }
+
 
 # FIXME: this is getting a bit long. Split off box flags. Add subcmd opt parsing.
 get_subcmd_args()
@@ -348,27 +408,12 @@ get_cmd_func()
 }
 
 
-# Setup some initial vars and load lib files for main script
-main_init()
-{
-  test -n "$1" || set -- "$base"
-
-  stdio_type 0 $$
-  stdio_type 1 $$
-  stdio_type 2 $$
-
-  var_isset verbosity || verbosity=6
-
-  box_src="$(dry_run= box_list_libs $0 $1 | while read src path args; \
-    do eval echo $path; done)"
-  box_lib="$box_src"
-}
-
-# Parse command line arguments and set subcmd vars
-main_parse_subcmd()
+# XXX: old parse-argv, replace optparse routines
+main_parse_argv_old()
 {
   c=0
-  #func_exists ${base}_parse_subcmd_args 
+
+  #func_exists ${base}_parse_subcmd_args
   get_subcmd_args "$@"
   get_cmd_func subcmd
 }
@@ -391,6 +436,7 @@ main_load()
   }
 }
 
+
 main_debug()
 {
   debug "vars:
@@ -402,8 +448,8 @@ main_debug()
     script_name=$script_name script_subcmd_name=$script_subcmd_name
     subcmd_func=$subcmd_func subcmd_func_pref=$subcmd_func_pref subcmd_func_suf=$subcmd_func_suf
 
-    choice_local=$choice_local choice_global=$choice_global choice_all=$choice_all 
-    box_src=$box_src 
+    choice_local=$choice_local choice_global=$choice_global choice_all=$choice_all
+    box_src=$box_src
   "
 }
 
@@ -424,7 +470,7 @@ main()
 
   main_init
 
-  main_parse_subcmd "$@"
+  main_parse_argv_old "$@"
   test $c -gt 0 && shift $c ; c=0
   main_debug $*
 
