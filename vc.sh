@@ -527,7 +527,7 @@ vc_largest_objects()
 # list commits for object sha1
 vc_path_for_object()
 {
-  test -n "$1" || err "provide object hash" 1
+  test -n "$1" || error "provide object hash" 1
   while test -n "$1"
   do
     git rev-list --all |
@@ -683,11 +683,52 @@ vc_list_subrepos()
     grep -q "$grep_pattern" /tmp/vc-list-prefixes && {
       continue
     } || {
-    echo "$(dirname $path)"
+      echo "$(dirname $path)"
     }
   done
 #    git submodule foreach 'for remote in "$(git remote)"; do echo $remote; git
 #    config remote.$remote.url  ; done'
+}
+
+vc_status()
+{
+  printf "" > /tmp/vc-status
+  for gitdir in */.git
+  do
+    dir="$(dirname "$gitdir")"
+    pushd "$dir" >>/dev/null
+    git diff --quiet && {
+      info "$dir OK"
+    } || {
+      echo "$dir" >> /tmp/vc-status
+    }
+    popd >>/dev/null
+  done
+  cat /tmp/vc-status | while read path
+  do
+    warn "Modified: $path"
+  done
+}
+
+vc_projects()
+{
+  test -f projects.sh || touch projects.sh
+
+  pwd=$(pwd -P)
+
+  for gitdir in */.git
+  do
+    dir="$(dirname "$gitdir")"
+    pushd "$dir" >>/dev/null
+    git remote | while read remote
+    do
+      url=$(git config remote.$remote.url)
+      grep -q ${dir}_${remote} $pwd/projects.sh || {
+        echo "${dir}_${remote}=$url" >> $pwd/projects.sh
+      }
+    done
+    popd >>/dev/null
+  done
 }
 
 # ----

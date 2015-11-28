@@ -1652,26 +1652,26 @@ c_tmux_work()
 
   # Add other windows
 
-  tmux list-windows -t Work | grep -q Jenkins || {
-    tmux new-window -t Work -n Jenkins
-    tmux send-keys -t Work:Jenkins "reset;cd ~/work/brix/Jenkins;ls -la" enter
+  tmux list-windows -t Work | grep -q Jnk || {
+    tmux new-window -t Work -n Jnk
+    tmux send-keys -t Work:Jnk "reset;cd ~/work/brix/Jenkins;ls -la" enter
   }
 
-  tmux list-windows -t Work | grep -q DevDoc || {
-    tmux new-window -t Work -n DevDoc
-    tmux send-keys -t Work:DevDoc "reset;cd ~/work/brix/tree/dev-doc;git fetch --all;git st" enter
+  tmux list-windows -t Work | grep -q DvD || {
+    tmux new-window -t Work -n DvD
+    tmux send-keys -t Work:DvD "reset;cd ~/work/brix/tree/dev-doc;git fetch --all;git st" enter
   }
-  tmux list-windows -t Work | grep -q Mango || {
-    tmux new-window -t Work -n Mango
-    tmux send-keys -t Work:Mango "reset;cd ~/work/brix/tree/mango-builds" enter "git st" enter
+  tmux list-windows -t Work | grep -q Mng || {
+    tmux new-window -t Work -n Mng
+    tmux send-keys -t Work:Mng "reset;cd ~/work/brix/tree/mango-builds" enter "git st" enter
   }
-  tmux list-windows -t Work | grep -q Dckr || {
-    tmux new-window -t Work -n Dckr
-    tmux send-keys -t Work:Dckr "reset;cd ~/work/brix/tree/docker-build" enter "git st" enter
+  tmux list-windows -t Work | grep -q Dkr || {
+    tmux new-window -t Work -n Dkr
+    tmux send-keys -t Work:Dkr "reset;cd ~/work/brix/tree/docker-build" enter "git st" enter
   }
-  tmux list-windows -t Work | grep -q Skltn || {
-    tmux new-window -t Work -n Skltn
-    tmux send-keys -t Work:Skltn "reset;cd ~/work/brix/tree/project-skeleton-ng" enter "git st" enter
+  tmux list-windows -t Work | grep -q Skl || {
+    tmux new-window -t Work -n Skl
+    tmux send-keys -t Work:Skl "reset;cd ~/work/brix/tree/project-skeleton-ng" enter "git st" enter
   }
   tmux list-windows -t Work | grep -q Ba || {
     tmux new-window -t Work -n Ba
