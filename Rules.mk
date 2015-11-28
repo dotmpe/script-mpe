@@ -259,18 +259,19 @@ IGNORE := coverage_html_report ReadMe.rst Rules.mk '*.html' '*.xml' TODO.list
 IGNORE_F := $(addprefix --exclude ,$(IGNORE))
 todo: TODO.list
 TODO.list: $/
-	@\
+	@-\
 		$(ll) file_target $@ "Grepping for" $<;\
-		grep -srI $(IGNORE_F) 'FIXME' $< > $@;\
+		grep -rI $(IGNORE_F) 'FIXME' $< > $@;\
 		echo >> $@;\
-		grep -srI $(IGNORE_F) 'TODO' $< >> $@;\
+		grep -rI $(IGNORE_F) 'TODO' $< >> $@;\
 		echo >> $@;\
-		grep -srI $(IGNORE_F) 'XXX' $< >> $@
+		grep -rI $(IGNORE_F) 'XXX' $< >> $@
 	@#radical.py -vvvvv > $@
 	@$(ll) file_ok $@ 
 
 
 INSTALL += symlinks
+
 
 #      ------------ --
 #

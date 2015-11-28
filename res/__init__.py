@@ -5,6 +5,9 @@ Classes to represent a file or cluster of files from which specific metadata
 may be derived. The objective is using this as a toolkit, to integrate into
 programs that work on metadata and/or (media) files.
 
+:XXX: three locations of metadir to bootstrap metadata framework: localdir,
+    volumedir, or homedir.
+
 TODO:
 - Persist composite objects:
 - Metalink reader/adapter. Metalink4 <-> HTTPResponseHeaders
@@ -34,8 +37,8 @@ from vc import Repo
 
 Registry
     handler class
-        handler name -> 
-    
+        handler name ->
+
     Volume
         rsr:sha1sum
         rsr:sprssum
@@ -51,10 +54,12 @@ Registry
 class Workspace(Metadir):
 
     """
+    Workspaces are containers for specifically structured and tagged
+    subtrees. Several subtypes are defined to deal with various types of working
+    directories.
+
     Workspaces are metadirs with settings, loaded from DOTID '.yaml',
     and a PersistedMetaObject stored in DOTID '.shelve'.
-
-    It also facilitates
     """
 
     DOTDIR = 'cllct'
@@ -73,11 +78,19 @@ class Workspace(Metadir):
         else:
             self.settings = {}
 
+    @classmethod
+    def get_session(klass, scriptname, scriptversion):
+        """
+        :FIXME:91: setup SA session:
+            - load modules needed for script, possibly interdepent modules
+            - assert data is at the required schema version using migrate
+        """
+
     @property
     def dbref(self):
         return self.metadirref( 'shelve' )
 
-    def init_store(self, truncate=False): 
+    def init_store(self, truncate=False):
         assert not truncate
         return PersistedMetaObject.get_store(
                 name=Metafile.storage_name, dbref=self.dbref)
@@ -99,8 +112,12 @@ class Workspace(Metadir):
 class Homedir(Workspace):
 
     """
-    A workspace that is not a swappable, movable volume, but one that is 
-    fixed to a host and exists as long as the host system does. 
+    The default workspace for a user. If no other workspace type applies, the
+    Homedir workspace has a user-configured, generic resource collection type.
+
+    XXX: It is a workspace that is not a swappable, movable volume, but one that is
+    fixed to a host and exists as long as the host system does.
+    TODO: it shoud be aware of other host having a Homedir for current user.
     """
 
     DOTID = 'homedir'
@@ -110,9 +127,13 @@ class Homedir(Workspace):
     projects = None # specialized workspace for projects..
 
 
-class Projectdir(Workspace):
+class Workdir(Workspace):
 
-    DOTID = 'project'
+    """
+    A generic basedir ... ?
+    """
+
+    DOTID = 'local'
 
 
 class Volumedir(Workspace):
@@ -142,6 +163,8 @@ class Volumedir(Workspace):
         for idfile in Metadir.find(*paths):
             print idfile
             yield os.path.dirname( os.path.dirname( idfile ))
+
+
 
 def read_unix(path):
     """
