@@ -713,7 +713,7 @@ todo_read_line()
   fn=$(echo $line | cut -f 1 -d ':')
   ln=$(echo $line | cut -f 2 -d ':')
   test "$ln" -eq "$ln" 2> /dev/null \
-    || error "Please include numbers in the TODO.list" 1
+    || error "Please include line-numbers in the TODO.list" 1
   comment=${line:$((  ${#fn} + ${#ln} + 2  ))}
 }
 
@@ -724,12 +724,14 @@ c_build_todo_list()
 {
   test -n "$1" || set -- TODO.list
   grep -nsrI '\(\<FIXME\|TODO\|NOTE\|XXX\>\):' . \
-      | grep -v '^#|\s*$' \
-      | grep -v '.*#\ htd:ignore\s*' \
-      | sort \
-      | sed 's/\:\([0-9]*\)\:[\s\#]*/:\
-\ \ \1\
-\ \ \ \ /g' > $1
+      | grep -v '.*#\ htd:ignore\s*'
+#  grep -nsrI '\(\<FIXME\|TODO\|NOTE\|XXX\>\):' . \
+#      | grep -v '^#|\s*$' \
+#      | grep -v '.*#\ htd:ignore\s*' \
+#      | sort \
+#      | sed 's/\:\([0-9]*\)\:[\s\#]*/:\
+#\ \ \1\
+#\ \ \ \ /g' > $1
 }
 
 

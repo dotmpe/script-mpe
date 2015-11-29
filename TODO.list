@@ -1,625 +1,1211 @@
-.//.jenkins-ci.yml:    # FIXME: travis build fails on TB config parts
-.//.travis.yml:# FIXME make -k test
-.//basename-reg:                # FIXME: this does not replace uppercase tags yet
-.//bookmarks.rst:FIXME: sync only supports local and remote
-.//box:# FIXME: non-flag subcmd aliases
-.//box:  note "FIXME this is more like a info list. need something more actual for stat. think about keeping state in files.."
-.//box:# FIXME: expect this is broken
-.//box:  error "FIXME" 1
-.//box:# FIXME new script
-.//cabinet.py:        # FIXME: this isn't working, replace with native regex?
-.//calendartable.py:FIXME: splitting columns does not work like this, fixed with cell implementaiton
-.//confparse.py:            # FIXME: need a list values type?
-.//domain.py:- FIXME: Contains generated nodes.
-.//fscard.py:FIXME: sync taxus to (or from?) local indices,
-.//htd:c_man_1_build_todo_list="Build indented file of path/line/tag from FIXME: etc tagged
-.//htd:              warn "FIXME: Dropped $ck key for $p"
-.//htd:  # FIXME use test name again but must have some testcases
-.//htd:  # FIXME: normalize relpath
-.//htdocs.py:FIXME: move something like a definition parser to elsewhere? something simple
-.//lib.py:        FIXME: this does not work on Darwin, even with brew readline-6.2.4?
-.//lib.py:            if not v.strip(): # FIXME: have to only strip whitespace, not ctl?
-.//libcmd.py:        FIXME: what todo upon conflicts. better solve this explicitly i think?
-.//libcmd.py:            # FIXME see what happes with this later
-.//libcmd_stacked.py:        FIXME: what todo upon conflicts. better solve this explicitly i think?
-.//libcmd_stacked.py:            # FIXME see what happes with this later
-.//libcmdng.py:# FIXME: isPrerequisite
-.//libcmdng.py:    # FIXME: add parameters
-.//main.sh:# FIXME: this is getting a bit long. Split off box flags. Add subcmd opt parsing.
-.//main.sh:  # FIXME: test this.
-.//match.sh:# FIXME req_arg_pattern=("Name pattern" pattern)
-.//match.sh:# FIXME req_arg_pattern_name=("Pattern name" name)
-.//myCalendar.py:        # FIXME: confparse keys are always string...
-.//myCalendar.py:        FIXME implements numeric scans only
-.//myCalendar.py:            # FIXME: caltree to xmlnesting?
-.//node-essay.rst:FIXME but there is not ILocalNodeService for taxus yet
-.//node-essay.rst:FIXME and nodeid and name is confused in interfaces
-.//project.py:    curhost = Host.init(sa=sa) # FIXME returns localhost.
-.//radical-test1.txt:// FIXME: a c-style line comment
-.//radical.py:This program allows to track comments TODO, FIXME, XXX or even ISSUE:MyId
-.//radical.py:FIXME
-.//radical.py:        # FIXME: cache source file reads
-.//radical.py:                comment_offset = line_offset # FIXME scan to tagname
-.//radical.py:                        comment_end += len(data) + 1 # FIXME: CRLF size
-.//radical.py:        #  FIXME: c-style comments have embedded junk
-.//radical.py:    FIXME: C-style line and block comments.
-.//radical.py:            # FIXME:
-.//radical.py:    'FIXME': [ '(%s)[:_\s-](?:([0-9]+)[\s:])?' ],
-.//radical_numeric_index.py:FIXME:
-.//res/__init__.py:        :FIXME:91: setup SA session:
-.//res/fs.py:        FIXME: could, but does not, yield INode subtype instances.
-.//res/fs.py:        # FIXME: validate/process opts or put filter somewhere
-.//res/metafile.py:    FIXME make this as a hub for shelve/file instances. Autodiscover, do a few
-.//res/primitive.py:        # FIXME: return first 'key'
-.//res/primitive.py:        # FIXME: return first 'key'
-.//rsr2.py:    FIXME: this should interface with taxus metastore on this host (for this user).
-.//std.sh:      # FIXME echo -e something going on with BSD sh?
-.//taxus/__init__.py:        # FIXME: rwrite to locator?
-.//taxus/model.py:    # FIXME: where does the prefix go
-.//taxus/net.py:        # FIXME: return bare path of Locator?
-.//taxus/util.py:            # FIXME only detects 2-class inheritance and must list permutations
-.//taxus/util.py:    # FIXME: current_hostname
-.//taxus/web.py:    # FIXME: vary information not stored
-.//test/boilerplate.bats:  skip "envs: envs=$envs FIXME is hardcoded in test/helper.bash current_test_env"
-.//test/box-spec.bats:  check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
-.//test/box-spec.bats:  #skip "FIXME ${bin} should default to run, currently it doesnt"
-.//test/box-spec.bats:  check_skipped_envs travis || skip "FIXME $envs: not running on $env"
-.//test/box-spec.bats:  skip "FIXME"
-.//test/box-spec.bats:  check_skipped_envs travis || skip "FIXME: $envs: not running on $env"
-.//test/box-spec.bats:  skip "FIXME dry runs only work with verbosity on?"
-.//test/box-spec.bats:  skip "FIXME dry runs only work with verbosity on?"
-.//test/box-spec.bats:  check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
-.//test/box-spec.bats:  check_skipped_envs simza travis || skip "FIXME $envs: not running on $env"
-.//test/box.lib-spec.bats:  check_skipped_envs simza vs1 travis || skip "FIXME broken after main.sh rewrite"
-.//test/htd-spec.bats:  skip "FIXME htd check-names"
-.//test/libcmd_stacked-spec.bats:#FIXME: SA warning on Linux
-.//test/match-spec.bats:  check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
-.//test/match-spec.bats:  check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
-.//test/match-spec.bats:  check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
-.//test/match-spec.bats:  check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
-.//test/match-spec.bats:  check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
-.//test/match-spec.bats:  check_skipped_envs travis || skip "FIXME seems requires ~/.conf or something"
-.//test/py/mod_confparse.py:        # FIXME: confparse.commit is not really tested
-.//test/py/mod_confparse.py:    # FIXME restructure confparse tests
-.//test/py/mod_res.py:    # FIXME: how to get cases into unittest.main
-.//test/py/mod_res_fs.py:        return # FIXME: test_fs_iface
-.//test/py/mod_res_primitive.py:        return # FIXME recursing in test_tree_traverse
-.//test/py/mod_res_primitive.py:    return # FIXME test_dictnode_fs_populate
-.//test/std-spec.bats:# FIXME: test on Linux
-.//util.py:    # FIXME: volatile/config_file handling should be in confparse
-.//util.sh:# FIXME: testing..
-.//util.sh:  error "FIXME uuid required" 1
-
-.//archive.py:# TODO: override from sys.argv
-.//basename-reg:TODO: should determine which tag identifies current format
-.//basename-reg:TODO_REG = {
-.//basename-reg:# TODO: find a sane way to automatically add extensions
-.//basename-reg:TODO: test
-.//bookmarks.py:                p(('--export',), libcmd.cmddict(help="TODO: bm export")),
-.//bookmarks.py:            # TODO: store groups, but need to start at the root, sort out struct
-.//bookmarks.py:    TODO: built into generic import/export (ie. complete set)  so heuristics can
-.//bookmarks.py:            # TODO tags_freq
-.//box:# TODO: get a proper opt parser and do something like this:
-.//box:  note "TODO check for existing function"
-.//box:  note "TODO add invocation to script function"
-.//box:  echo TODO add function to script
-.//box:  info "TODO box list: work in progress"
-.//box-comp:    # cancel on other positions TODO: context compgen
-.//box.lib.sh:  test -e $uconf_script && warn "TODO clean $uconf_script"
-.//budget.py:    print 'TODO account-update'
-.//budget.py:    TODO: Commit current balance, insert corrections where needed.
-.//calendartable.py:TODO: instead write USN-AAD/USNO RS-table to Google Calendar compatible CSV?
-.//cllct.py:TODO: manage schemas and datastores.
-.//cllct.py:    TODO: list all nodes from all databases, 
-.//confparse.py:TODO: segment configuration into multiple files.
-.//confparse.py:        #TODO:self.updated = False
-.//confparse.py:        TODO: reimplement this as tree visitor
-.//confparse.py:        assert not self.__dict__['parent'], "TODO"
-.//confparse.py:            print "TODO:", path
-.//coverage_html_report/jquery.hotkeys.js:			// TODO: Need to make sure this works consistently across platforms
-.//dckr:dckr__man_1_edit_local="Edit local script TODO docker conf.."
-.//domain.py:# TODO: build gateway from
-.//domain.py:                        pass # TODO
-.//domain2.py:TODO: fully initialize settings for host without editing config by hand
-.//domain2.py:TODO: should record network domain names, use this with ifaces.
-.//dtdparse.py:# TODO: dtd parser
-.//dwnld.py:TODO Find metadata storage on OS X.
-.//dwnld.py:TODO integrate with libcmd, taxus
-.//dwnld.py:            pass # TODO
-.//dwnld.py:    print 'TODO: filter'
-.//dwnld.py:    print 'TODO: recurse'
-.//dwnld.py:    # TODO
-.//edit.sh:# TODO: use externals
-.//enf.py:TODO Need to revisit older enfiladics, scrow and udanax projects first.
-.//finfo.py:TODO: Keep catalog of file format descriptions for local paths
-.//finfo.py:TODO: add files to global index manually.
-.//finfo.py:TODO: map manualy added paths elements to GroupNode, relative paths? entered paths are
-.//finfo.py:TODO: some checksums for my precious media. Could use sums somehow to tie..
-.//finfo.py:TODO: tagging? or not. 
-.//finfo.py:        log.crit("TODO add genre %s %s", genre, supergenre)
-.//finfo.py:                print 'TODO', mfs
-.//finfo.py:# TODO: adding Mediameta for files
-.//folder.py:TODO: keep open (active) vs. closed (inactive) indicators for groups
-.//folder.py:TODO: group other nodes. See GroupNode 1--* Node from taxus.Core.
-.//folder.py:TODO: find prelimanary way to represent nodes from other stores
-.//folder.py:TODO: print path relative to current dir
-.//htcache-maint.py:htcache-maint [TODO]
-.//htcache-maint.py:    - Sort: to rewrite between URI namespaces [TODO]
-.//htcache-maint.py:    - Prune metadata for non-existent files [TODO]
-.//htd:  # TODO look in registry for PROJECT
-.//htd:  echo '  find-name <path|localname>       TODO: Given (partial) path, try to find the file using find.  '
-.//htd:  echo '  update                           Fill checksums tables for all local files. TODO: find out what there is to know about file using settings, other commands, ext. tooling & services. And trigger resolve'
-.//htd:  echo '  ck-consolidate [.|<path>]        TODO: integrate metadata from all metafiles (see ck-metafile)'
-.//htd:  echo '  ck-metafile <path>               TODO: integrate metadata from .meta/.rst/.sha1sum/etc. '
-.//htd:  echo '  ck-check-missing [ck|md5|sha1]   TODO: iterate .missing table, and call ck-fix. Move checksum to .gone if file stays missing. '
-.//htd:  echo '  ck-clean [ck|md5|sha1]           TODO: iterate .gone table, and call ck-fix. Move gone checksum if file stays missing. '
-.//htd:  echo '  ck-purge [|missing|duplicate|gone] TODO: drop missing-paths from indicate tables. '
-.//htd:  echo "  ./TODO.list"
-.//htd:  echo "    TODO: uses path .git/.."
-.//htd:  echo "    TODO: paths used by matchbox"
-.//htd:  test -n "$1" || error "TODO nothing to look for" 1
-.//htd:  test -n "$1" || error "TODO nothing to look for" 1
-.//htd:      error "TODO make rel"
-.//htd:  # TODO: maybe build relative path from 1 arg and cwd, or two args
-.//htd:# TODO: move date routines to lib
-.//htd:  # TODO: find shortest relative path
-.//htd:  test -e TODO.list && {
-.//htd:    cat TODO.list | \
-.//htd:  grep -E '^.*(TODO|XXX|FIXME)[\ \:]*(.*)((\?\ )|(\.\ )|(\.\s*$)).*$' \
-.//htd:      sed -E 's/^.*(TODO|XXX|FIXME)[\ \:]*(.*)((\?\ )|(\.\ )|(\.\s*$)).*$/\1 \2\3/' )
-.//htd:      sed -E 's/^.*(TODO|XXX|FIXME)[\ \:]*(.*)$/\1 \2/' )
-.//htd:      # TODO: scan lines for end...
-.//htd:    || error "Please include numbers in the TODO.list" 1
-.//htd:  test -n "$1" || set -- TODO.list
-.//htd:  grep -nsrI '\(\<FIXME\|TODO\|NOTE\|XXX\>\):' . \
-.//htd:# TODO: get references from file
-.//htd:# TODO interactive file process
-.//htd:# TODO: pre-process file/metadata
-.//htd:    # TODO prepare to rename, keep SHA1 hashtable
-.//htd:  echo 'TODO rewrite ck table path'
-.//htd:# TODO consolidate meta
-.//htdocs.py:TODO: construct TopicTree from Definition Lists in restructured text. 
-.//libcmd.py:    TODO: combine  find_config_path
-.//libcmd.py:        # TODO: rewrite to cllct.osutil once that is packaged
-.//libcmd.py:# TODO: post-deps
-.//libcmd_stacked.py:    TODO: combine  find_config_path
-.//libcmd_stacked.py:        # TODO: rewrite to cllct.osutil once that is packaged
-.//libcmd_stacked.py:# TODO: post-deps
-.//libcmdng.py:    TODO: arguments list?
-.//lind.py:                    # Ask about each new tag, TODO: or rename, fuzzy match.      
-.//log.py:    TODO:
-.//main.sh:    # Specific help (subcmd, maybe file-format other doc, or a TODO: group arg)
-.//mapsync.py:TODO: Besides multiple synchronized working copies, it is possible to make backups
-.//mapsync.py:TODO: By default, no revision h directory is included in the sync.
-.//matchbox.py:                # TODO implement other resolvers than local fs
-.//mimereg:TODO: handle language tags
-.//mimereg:TODO: handle encoding tags
-.//mimereg:            lang_xref = dict(), # generate map for locale TODO load from ISO lists
-.//mimereg:            charset_xref = dict(), # TODO: load/generate also
-.//munin/com-spaceweather_.py:# TODO: print 'host_name spaceweather.com' 
-.//munin/com-spaceweather_solarwinddensity:# TODO: print 'host_name spaceweather.com' 
-.//munin/com-spaceweather_solarwindspeed:# TODO: print 'host_name spaceweather.com' 
-.//munin/com-spaceweather_sunradio:# TODO: print 'host_name spaceweather.com' 
-.//munin/com-spaceweather_sunspotnr:# TODO: print 'host_name spaceweather.com' 
-.//myCalendar.py:TODO: scan for other formats, timestamps or YYYYddmm, perhaps (short)names.
-.//myCalendar.py:        TODO: report format.
-.//myLedger.py:TODO: categorize accounts.
-.//myLedger.py:# TODO: lookup checksum methods for acc nrs
-.//node.py:TODO: experiment with nodes from other DBs. Sync to and from master.
-.//node.py:    TODO: full type-specific representation may depend on sub-database.
-.//node_modules/parse-torrent/node_modules/parse-torrent-file/node_modules/bencode/Makefile:# TODO: thats not how it should behave!
-.//proc-mpe:    # TODO: use source_format
-.//project.py:TODO: <ref> would be an ID, name or path of a project
-.//project.py:    # TODO project.hosts.append(curhost)
-.//project.py:    project.repositories.append( checkout )# TODO: and remotes
-.//radical.py:This program allows to track comments TODO, FIXME, XXX or even ISSUE:MyId
-.//radical.py:TODO: doc review:
-.//radical.py:TODO
-.//radical.py:TODO: domain structure::
-.//radical.py:# TODO:1: Integrate gate content stream
-.//radical.py:# TODO:2: Extend supported comment styles
-.//radical.py:# TODO:3: Scan for other literals, recognize language constructs.
-.//radical.py:            pass # TODO: block trim_comment
-.//radical.py:    TODO: Needs rewrite, to index comments first, then scan for tags in result
-.//radical.py:        # TODO index comments, line and offset/width
-.//radical.py:                        # TODO: stop at end of line
-.//radical.py:    print "TODO comment_scan", (option, value, parser)
-.//radical.py:# TODO: groups of filetype tags for each flavour scanned comment
-.//radical.py:    'TODO': ['(%s)[:_\s-](?:([0-9]+)[\s:])?', '%s:%i:', 'numeric_index' ],
-.//radical.py:# TODO see bookmarks, basename-reg, mimereg, flesh out Txs
-.//radical_numeric_index.py:# TODO:1:
-.//radical_numeric_index.py:# TODO
-.//radical_numeric_index.py:# TODO
-.//reporter.py:    TODO: write directly to an output adapter (for log, console, etc.)
-.//reporter.py:    TODO: turn context into state. Allow to extend and update.
-.//reporter.py:    TODO: some level of reference modelling is needed, ie. accumulate footnotes,
-.//reporter.py:    TODO:
-.//res/__init__.py:TODO:
-.//res/__init__.py:    # TODO: move this, res.dbm.MetaDirIndex
-.//res/__init__.py:    TODO: it shoud be aware of other host having a Homedir for current user.
-.//res/fs.py:            # TODO ifgenerator
-.//res/fs.py:# TODO move to res.iface or res
-.//res/fs.py:                assert False, "TODO: write new ignores to file"
-.//res/iface.py:            "TODO: or IResource")
-.//res/iface.py:            "TODO: or IResource")
-.//res/metafile.py:        print 'TODO load MP\'s from spec', specs
-.//res/metafile.py:    TODO the metafile data is stored alternatively in the shelve from a metadir.
-.//res/metafile.py:        # TODO: Link, Location?
-.//res/metafile.py:        assert shelve, 'TODO'
-.//res/metafile.py:            print 'TODO Meta.exists', mf.exists(), mff.exists()
-.//res/metafile.py:        print 'TODO Meta.clean', self.volume, path
-.//res/vc.py:        assert not bare, 'TODO'
-.//Resourcer.rst:TODO: reinvent rsr using script libs
-.//Resourcer.rst:TODO: where to store settings, data; need split-settings/composite-db
-.//Resourcer.rst:TODO: URN ID's to use in htdocs, taxus and tree-mpe.
-.//rsr.py:                    'help': "TODO" }),
-.//rsr.py:        TODO: Session dirs are subclasses of metadirs. The resource module
-.//rsr.py:        "TODO: move to vc, for walk see dev_treemap or re-think-use Dir.walk"
-.//rst:  note "TODO box_run_cwd /home/.../bin Bats_test $@"
-.//sqlassist.py:    TODO
-.//str.sh:			err "TODO" 1
-.//syscoex.py:TODO: combine these with coefficients into various sorts of ratings.
-.//taxus/__init__.py:TODO: redraw this diagram.
-.//taxus/__init__.py:        print 'TODO: query:',args
-.//taxus/__init__.py:        pass # TODO: node rm
-.//taxus/__init__.py:        pass # TODO: node update
-.//taxus/core.py:    # TODO backref from locators of this topic
-.//taxus/core.py:    # TODO hierarchical relation
-.//taxus/core.py:#    TODO: It implements sameAs to indicate ...
-.//taxus/core.py:#    TODO This would define schema information for or one more namespaces.
-.//taxus/fs.py:    TODO: implement __cmp__ for use with sameAs to query the host system
-.//taxus/fs.py:    TODO: should mirror host system attributes for dates, etc.
-.//taxus/fslayout.py:TODO: merge from dev_treemap
-.//taxus/init.py:    # TODO iface.gsm.registerUtility( obj, iface.IReferenceResolver )
-.//taxus/init.py:        TODO Simplify models subtree to JSON schema..
-.//taxus/init.py:    Run over all models. TODO Extract metadata to construct SA ORM types.
-.//taxus/out.py:TODO: cleanup
-.//taxus/util.py:    TODO: Using schemas from script.mpe, populate facade. Manage masterdb.
-.//taxus/util.py:        # TODO see if tis works for sqlite
-.//taxus/util.py:# TODO: move to lib.Prompt
-.//taxus/web.py:    TODO: The entity headers can be reconstructed from DB and/or metafile or resource is filed as-is.
-.//test/basename-reg-spec.bats:# TODO configure which fields it outputs
-.//test/basename-reg-spec.bats:    skip "TODO envs $envs: implement bin (test) for env"
-.//test/basename-reg-spec.bats:    skip "TODO envs $envs: implement bin (test) for env"
-.//test/boilerplate.bats:    skip "TODO envs $envs: implement bin (test) for env"
-.//test/boilerplate.bats:    skip "TODO envs $envs: implement lib (test) for env"
-.//test/box-spec.bats:  # TODO: Meh.. test [[ "${lines[0]}" =~ "No.script.for" ]]
-.//test/box-spec.bats:  skip "TODO no opts for subcmds yet"
-.//test/box-spec.bats:  skip "$BATS_TEST_DESCRIPTION TODO: test and code run-global"
-.//test/box-spec.bats:  skip "$BATS_TEST_DESCRIPTION TODO: test and code run (local)"
-.//test/box-spec.bats:  skip "$BATS_TEST_DESCRIPTION TODO: test and code new"
-.//test/box-spec.bats:  skip "$BATS_TEST_DESCRIPTION TODO: test and code create"
-.//test/box-spec.bats:  skip "$BATS_TEST_DESCRIPTION TODO: test and code deinit"
-.//test/box.lib-spec.bats:    skip "TODO envs $envs: implement lib (test) for env"
-.//test/htd-spec.bats:    skip "TODO envs $envs: implement bin for env"
-.//test/main-spec.bats:  check_skipped_envs || skip "TODO envs $envs: implement for env"
-.//test/main-spec.bats:  check_skipped_envs || skip "TODO envs $envs: implement for env"
-.//test/main-spec.bats:  check_skipped_envs || skip "TODO envs $envs: implement for env"
-.//test/main-spec.bats:  check_skipped_envs || skip "TODO envs $envs: implement for env"
-.//test/main-spec.bats:  check_skipped_envs || skip "TODO envs $envs: implement for env"
-.//test/main-spec.bats:  check_skipped_envs || skip "TODO envs $envs: implement for env"
-.//test/main-spec.bats:  check_skipped_envs || skip "TODO envs $envs: implement for env"
-.//test/main-spec.bats:  check_skipped_envs || skip "TODO envs $envs: implement for env"
-.//test/main-spec.bats:  check_skipped_envs || skip "TODO envs $envs: implement for env"
-.//test/match-spec.bats:  test "${lines[0]}" = "[match.sh] Error: No command given, see \"help\"" || skip "TODO should some colorless terminal?"
-.//test/match-spec.bats:    skip "TODO envs $envs: implement test for env"
-.//test/mimereg-spec.bats:    skip "TODO envs $envs: implement bin (test) for env"
-.//test/mimereg-spec.bats:    skip "TODO envs $envs: implement bin (test) for env"
-.//test/mimereg-spec.bats:    skip "TODO envs $envs: implement bin (test) for env"
-.//test/py/mod_confparse.py:# TODO: test values
-.//test/py/mod_confparse2.py:    TODO: test committing
-.//test/py/mod_radical.py:    pass # TODO: Radical unittests
-.//test/radical-spec.bats:    skip "TODO envs $envs: implement for env"
-.//test/radical-spec.bats:    skip "TODO envs $envs: implement for env"
-.//test/radical-spec.bats:  # 6 'note'-level log lines, three for issues: TODO: fix multiline scanning
-.//test/radical-spec.bats:    skip "TODO envs $envs: implement lib (test) for env"
-.//test/std-spec.bats:      skip "TODO a bit more testing with stdio type detection at $(current_test_env)" ;;
-.//test/std-spec.bats:    skip "TODO envs $envs: implement lib (test) for env"
-.//test/str-spec.bats:    skip "TODO implement/test with dir/./.. etc"
-.//test/util-lib-spec.bats:  skip "TODO"
-.//test/util-lib-spec.bats:  skip "TODO"
-.//test/var/rsr_help.txt:  -Q, --query           TODO
-.//test/var/rsr_help.txt:  --repo-update         TODO: move to vc, for walk see dev_treemap or re-
-.//test/var/txs_help.txt:  -q, --query           TODO
-.//tm:TODO: store local and cumulative values in TreeMap or FileTreeMap document.
-.//tm:      TODO: this index would be a some URIref map
-.//tmux-session:# TODO: persist and restore the state & position of panes.
-.//todo.py:TODO: interface this with Google tasks
-.//todo.py:    # TODO: title, description
-.//todo.py:    # TODO: prerequisites...
-.//todo.py:    TODO: check level 
-.//todo.rst:I think this is a good basis for a first jab at a TODO database.
-.//tools/git-hooks/commit-msg:# TODO: get names of updated scripts, run specs
-.//topic.py:TODO figure out model. look at folder.py first.
-.//topic.py:TODO: create all nodes; name, description, hierarchy and dump/load json/xml
-.//transquote.py:            pass # TODO
-.//treemap.mkdocs:# TODO: DU_GEN and DU_HTML are not used, also better have Make pick this up for
-.//treemap.py:TODO: store local and cumulative values in TreeMap or FileTreeMap document.
-.//treemap.py:      TODO: this index would be a some URIref map
-.//txs.py:                # Ask about each new tag, TODO: or rename, fuzzy match.      
-.//vc:# TODO: other SCMs, BZR, HG, SVN (but never need them so..)
-.//vc:      # TODO: find/print root. then go there. see vc.sh
-.//vc.py:        TODO: Yield VC manager for current checkout dir
-.//vc.py:        # TODO: should be VC checkout dir
-.//vc.py:        TODO: Report status bits, dirty lists and summaries
-.//vc.py:        TODO: Yield all repositories in workspace.
-.//vc.py:        # TODO: should be some workspace
-.//vc.sh:# TODO: other SCMs, BZR, HG, SVN (but never need them so..)
-.//vc.sh:      # TODO: find/print root. then go there. see vc.sh
-.//WorkFlow.rst:      radical_ TODO: has a backend to jira and redmine.
-.//workLog.py:    # TODO: perhaps implement export and update from import while I'm to lazy to
-.//workLog_timeEdition.py:        assert False, "TODO: implementing default values for existing settings "
-
-.//.jenkins-ci.yml:    # XXX hacky hack hack
-.//.jenkins-ci.yml:    # XXX bats-tests: '{{box,str}}'
-.//.jenkins-ci.yml:    # XXX bats-tests: '\{box,str\}'
-.//.jenkins-ci.yml:    # XXX: want to use branch checkout? but not working
-.//basename-reg:		# XXX: override emitters from command-line (static), perhaps always send all
-.//basename-reg:        # XXX
-.//basename-reg:                    #print '# XXX', ce, mime
-.//basename-reg:                            # XXX: should have loop while fields are updated
-.//basename-reg:                        # XXX
-.//basename-reg:XXX some normalization on the tags is shown too
-.//bookmarks.py:            yield dict( err="XXX Missed ref" ) 
-.//bookmarks.py:                # XXX: start local to bean dict
-.//bookmarks.py:# XXXL name must be unique, must catch problems
-.//bookmarks.py:        # XXX idem as erlier, some mappings in adapter
-.//bookmarks.py:        # XXX should need a table formatter here
-.//bookmarks.py:            # XXX should need a tree formatter here
-.//bookmarks_model.py:# XXX: varchar(255) would be much too small for many (web) URL locators 
-.//box:# XXX compile these from human readable cl-option docstring, provide bash
-.//box:  # XXX: vim only stuff
-.//box:  # XXX swap script-name with script-subcmd-name arg if latter is empty.. # always?
-.//box.lib.sh:  # XXX: or scan for function before determining script
-.//box.rst:      XXX: Subcommands can be aliased .. but should not be to short-opts. fix that.
-.//budget.py:    # XXX: update schema..
-.//budget.py:# XXX circular ledger, isnt really valid..
-.//cabinet.py:"""XXX: alt argv: [[dir] [+tag+tag.. -tag+tag..]].." """
-.//calendartable.py:XXX: CSV convertors/tools?
-.//calendartable.py:XXX: ~dotmpe/archive/3/cabinet/2010/09/sunset-sundown.txt
-.//calendartable.py:    # XXX: prolly dont do this but add conversion to CSV
-.//calendartable.py:        # XXX: stripping for convenience!
-.//calendartable.py:            headers[0].append(line) # XXX: unparsed column header
-.//confparse.py:# XXX: see also res/js.py
-.//confparse.py:        XXX initializes defaults for dict only
-.//confparse.py:                    # XXX: hardcoded recursion depth (at 2)
-.//confparse.py:        XXX: lists can only nest twice, has not needed recursion
-.//confparse.py:                # XXX: hardcoded list nesting depth (at 2)
-.//confparse.py:# XXX:
-.//confparse.py:    # XXX: redundant op, check paths constraint setting
-.//confparse.py:# XXX: testing
-.//confparse2.py:# XXX
-.//db_sa.py:    # XXX: update schema..
-.//dckr:# XXX reload is not working
-.//dckr:# XXX -storage_driver=influxdb
-.//domain.py:	print "XXX multiple rc", config
-.//domain.py:    #if not mac: # XXX:?
-.//domain2.py:    # XXX to use an UNID, or SID.. Rather have ser. nrs anyway.
-.//domain2.py:        #XXX n = n.get(p, init)
-.//domain2.py:    assert sa, "XXX"
-.//domain2.py:    XXX Given hostname, want IP for local connected interfaces.
-.//dtdparse.py:# XXX figure out how to get schema for given documen
-.//enf.py:XXX Perhaps if I looked for some other keywords.
-.//enf.py:XXX
-.//findlatest.py:        #elif arg == '--ignore-rcs': # XXX: default only, no settings for ignore-rcs
-.//finfo.py:XXX: Verify valid extensions for format. 
-.//finfo.py:XXX: Keep complete resource description
-.//finfo.py:            if opts.interactive: # XXX: add_mformats interactive
-.//folder.py:        # XXX abstract using some kind of master store iface
-.//fsgraph.py:    ## XXX: more default excludes
-.//fsgraph.py:    # XXX: ugh!
-.//htcache-maint.py:    - Static r/o mode while importing checksums? [XXX]
-.//htd:  echo '  resolve                          XXX based on data and settings, pre-process and mark all files ready for commit, and bail on any irregularities. '
-.//htd:  echo '  commit                           XXX record metadata according to htd settings/commands. Commit is only a success, if the entire tree is either clean or ignored. '
-.//htd:  grep -E '^.*(TODO|XXX|FIXME)[\ \:]*(.*)((\?\ )|(\.\ )|(\.\s*$)).*$' \
-.//htd:      sed -E 's/^.*(TODO|XXX|FIXME)[\ \:]*(.*)((\?\ )|(\.\ )|(\.\s*$)).*$/\1 \2\3/' )
-.//htd:      sed -E 's/^.*(TODO|XXX|FIXME)[\ \:]*(.*)$/\1 \2/' )
-.//htd:  grep -nsrI '\(\<FIXME\|TODO\|NOTE\|XXX\>\):' . \
-.//htd:  # XXX hardcoded to 40-char hexsums ie. sha1
-.//jrnl.py:XXX: can I improve htdocs.py, or should that finish first
-.//lib.py:    # XXX: sanity check..
-.//libcmd.py:"""libcmd - a command-line program toolkit based on optparse (XXX: and yaml, zope?)
-.//libcmd.py:XXX: while under development, further explanation is given inline.
-.//libcmd.py:XXX currently missing vars are padded with None values, perhaps a warning
-.//libcmd.py:            sys.exit(ret) # XXX
-.//libcmd.py:    #if not hasattr(parser.values, 'message_level'): # XXX: this seems to be a bug elsewhere
-.//libcmd.py:        Given a Class XXX implementing ISimpleCommand
-.//libcmd.py:    "Helper for XXX recursive system- and user-config file locations and formats. "
-.//libcmd.py:    XXX Perhaps generalize to use optionspecs without command-line-style
-.//libcmd.py:    XXX also, looking for more generic way to invoke subcommands, without
-.//libcmd.py:        XXX: cannot stuff away options at StackedCommand, need to solve some
-.//libcmd.py:            # XXX: is this reserved for names to be used with confparse path
-.//libcmd.py:        XXX: doing this at instance time allows it to further pre-configure the
-.//libcmd.py:        XXX
-.//libcmd.py:        function signature to runtime values XXX IProgramHandler,
-.//libcmd.py:        The return is always integreated with the current XXX IProgram
-.//libcmd.py:        keywords is to be `return`\ 'ed. XXX It should offer various
-.//libcmd.py:        # XXX:
-.//libcmd.py:            # XXX extracted.append(res)
-.//libcmd.py:        # XXX
-.//libcmd.py:        # XXX iface.gsm.registerUtility(iface.IResultAdapter, HandlerReturnAdapter, 'default')
-.//libcmd.py:# XXX
-.//libcmd.py:        XXX this yields an args=[path] for each path arg,
-.//libcmd.py:    # XXX because StackedCommand has dependency resolving it only lists the last
-.//libcmd.py:        static = StaticContext( inheritor )# XXX IStaticContext()
-.//libcmd.py:        configspec = ConfigSpec( static )# XXX ISimpleConfigSpec(config_file)
-.//libcmd.py:# XXX
-.//libcmd_stacked.py:"""libcmd - a command-line program toolkit based on optparse (XXX: and yaml, zope?)
-.//libcmd_stacked.py:XXX: while under development, further explanation is given inline.
-.//libcmd_stacked.py:XXX currently missing vars are padded with None values, perhaps a warning
-.//libcmd_stacked.py:            sys.exit(ret) # XXX
-.//libcmd_stacked.py:    #if not hasattr(parser.values, 'message_level'): # XXX: this seems to be a bug elsewhere
-.//libcmd_stacked.py:        Given a Class XXX implementing ISimpleCommand
-.//libcmd_stacked.py:    "Helper for XXX recursive system- and user-config file locations and formats. "
-.//libcmd_stacked.py:    XXX Perhaps generalize to use optionspecs without command-line-style
-.//libcmd_stacked.py:    XXX also, looking for more generic way to invoke subcommands, without
-.//libcmd_stacked.py:        XXX: cannot stuff away options at StackedCommand, need to solve some
-.//libcmd_stacked.py:            # XXX: is this reserved for names to be used with confparse path
-.//libcmd_stacked.py:        XXX: doing this at instance time allows it to further pre-configure the
-.//libcmd_stacked.py:        XXX
-.//libcmd_stacked.py:        function signature to runtime values XXX IProgramHandler,
-.//libcmd_stacked.py:        The return is always integreated with the current XXX IProgram
-.//libcmd_stacked.py:        keywords is to be `return`\ 'ed. XXX It should offer various
-.//libcmd_stacked.py:        # XXX:
-.//libcmd_stacked.py:            # XXX extracted.append(res)
-.//libcmd_stacked.py:        # XXX
-.//libcmd_stacked.py:        # XXX iface.gsm.registerUtility(iface.IResultAdapter, HandlerReturnAdapter, 'default')
-.//libcmd_stacked.py:# XXX
-.//libcmd_stacked.py:        XXX this yields an args=[path] for each path arg,
-.//libcmd_stacked.py:    # XXX because StackedCommand has dependency resolving it only lists the last
-.//libcmd_stacked.py:        static = StaticContext( inheritor )# XXX IStaticContext()
-.//libcmd_stacked.py:        configspec = ConfigSpec( static )# XXX ISimpleConfigSpec(config_file)
-.//libcmd_stacked.py:# XXX
-.//libcmdng.py:XXX: Current implementation is very naive, just to get it working but when it
-.//libcmdng.py:    dependencies cannot. XXX: this functionality probably needs review.
-.//libcmdng.py:    match with these properties. XXX: namespaces are not used yet.
-.//libcmdng.py:    XXX: schema for all this?
-.//libcmdng.py:        #XXX:self._assert(S_target, self.P_hasPrerequisite, O_target)
-.//libcmdng.py:        #XXX:self._assert(S_target, self.P_requires, O_target)
-.//libcmdng.py:        #XXX:self._assert(S_target, self.P_isResultOf, O_target)
-.//libcmdng.py:# XXX:
-.//log.py:    # XXX: nicer to put in __repr/str__
-.//main.py:# XXX: development tooling:
-.//main.sh:        # XXX
-.//main.sh:          # XXX note "subcmd should parse $*"
-.//main.sh:  # XXX 'local' seems better than 'eval'
-.//mapsync.py:XXX: Merge not simply means selecting the most recent file ofcourse. 
-.//mapsync.py:            # XXX: further optimization through detecting physical disks..
-.//matchbox.py:        optional = name[:3] == 'OPT' # XXX hacky name convention
-.//matchbox.py:        # XXX if bre: raise Exception("No named capture groups in BRE")
-.//matchbox.py:        optional = name[:3] == 'OPT' # XXX hacky name convention
-.//meta:# XXX mediainfo for OSX brew
-.//mimereg:usage_descr = "XXX see basename-reg to register ext/mimes. this only lists stuff"
-.//mimereg:    # XXX restore DEFAULT_CONFIG_KEY = 'fer'
-.//mkdocs.py:            # XXX: replace once possible
-.//mkdocs.py:        # XXX print frontend.cli_process(source, builder_name='htdocs')
-.//monitor.py:XXX: integrate with cllct
-.//munin/transmissionbt_peers:# XXX this is a work in progress, this munin version does
-.//munin/transmissionbt_ratio:# XXX this is a work in progress, this munin version does
-.//myCalendar.py:    - XXX: the singlemindedness of this implementation prevents other uses for 
-.//myLedger.py:XXX: prolly rewrite year/month to generic period, perhaps scrap accbalances
-.//myLedger.py:    balance = Column(Integer) # XXX: related ot blaance
-.//myLedger.py:        XXX only valid for dutch acc nrs.
-.//myLedger.py:        XXX only valid for dutch acc nrs.
-.//proc-mpe:.. XXX: should fix this, for now working with 
-.//proc-mpe:XXX: not all parser/reader pairs will work. Likewise not all documents with every writer.
-.//radical-test1.txt: * XXX Comment
-.//radical-test1.txt:# XXX:2: another unix-style comment
-.//radical.py:XXX
-.//radical.py:    # XXX: unique on filename/linenumber?
-.//radical.py:        # XXX
-.//radical.py:# XXX: probably use gate to map between content-type and format tag
-.//radical.py:# XXX: collapse htm and html
-.//radical.py:    'XXX': [ '(%s)[:_-](?:([0-9]+)[:])?\s' ]
-.//reporter.py:XXX: see log, taxus_out for older model.
-.//reporter.py:    # XXX: cli output, ansi colours
-.//reporter.py:# XXX: work in progress
-.//res/__init__.py::XXX: three locations of metadir to bootstrap metadata framework: localdir,
-.//res/__init__.py:    XXX: It is a workspace that is not a swappable, movable volume, but one that is
-.//res/__init__.py:    # XXX:
-.//res/fs.py:        # XXX: decode from opts.fs_enc
-.//res/fs.py:            # XXX yields relative path INode
-.//res/fs.py:        XXX
-.//res/fs.py:        XXX: filters, see dev_treemap
-.//res/fs.py:                    if not opts.files: # XXX other types
-.//res/fs.py:# XXX: what to do with complete attribute list etc? 
-.//res/fs.py:        XXX a tree can be given by loading everything into objetcts and linking this
-.//res/fs.py:    XXX: It is up to caller to maintain cache.
-.//res/fs.py:    XXX: should fully canonize paths for each INode, ie. clean notation, resolve
-.//res/iface.py:    XXX Node is an abtract concept, not either concrete object or class type?
-.//res/iface.py:    accept = Attribute("XXX boolean indicating wether visitor was succesfully applied?")
-.//res/js.py:# XXX: Dont use cjson, its buggy, see comments at
-.//res/metafile.py:        # XXX get global id from meta or volume.
-.//res/metafile.py:class MetafileFile(object): # XXX: Metalink syntax
-.//res/metafile.py:    XXX: rewrite this to metafile wrapper?
-.//res/metafile.py:    XXX: May not be entirely MIME compliant yet.
-.//res/metafile.py:    XXX: This is obviously the same as metalink format, and should learn from
-.//res/metafile.py:        # XXX: using tuple UTC -> epoc seconds, OK? or is getmtime local.. depends on host
-.//res/metafile.py:        XXX: This mechanism is very rough. The entire file is rewritten, not just
-.//res/metafile.py:            # XXX: not implemented
-.//res/metafile.py:        # XXX: maybe rewrite to Dir.walk
-.//res/metafile.py:        now = datetime.datetime.now() # XXX: ctime?
-.//res/metafile.py:    # XXX used as class variuables..
-.//res/metafile.py:        # XXX: perhaps rename DOTID just markerleaf to reflect find_config_path
-.//res/metafile.py:# XXX: todo operations on stage index
-.//res/mime.py:        # XXX: writes string only. cannot break maxlength without have knowledge of header
-.//res/primitive.py:    XXX: Normally TreeNodeDict contains one TreeNode, but the dict would allow
-.//res/primitive.py:    XXX: would be nice to manage type for leafs somehow, perhaps using visitor
-.//res/primitive.py:            # XXX: perhaps re-use QNames objects for regular attribute names
-.//res/primitive.py:        XXX: Dump to real dict tree which pformat can print.
-.//res/primitive.py:        # XXX
-.//res/primitive.py:    TreeNode build on top of tuple. XXX: Unused.
-.//res/primitive.py:        XXX Anything not providing IVisitorAcceptor in the tree is treated as
-.//res/vc.py:        # XXX: may rewrite to Dir.walk
-.//Resourcer.rst:XXX: These are not used by libcmd.load_config yet, subcommands can used them
-.//rsr.py:        # XXX mf.tmp_convert()
-.//rsr.py:                # XXX: duplicates Options
-.//rsr.py:        # XXX: perhaps user metadir should be inited already,
-.//rsr.py:# XXX perhaps not open SA here, but dbm
-.//rsr.py:                nodetype = 'node'# XXX not using path elems of node-'path'
-.//rsr.py:                # XXX assert GroupNode?
-.//rsr.py:        # XXX: how to match cmdline arg to nodes, alt notations for paths?
-.//rsr.py:            # XXX idem as erlier, some mappings in adapter
-.//rsr.py:            # XXX should need a table formatter here
-.//rsr2.py:# XXX:
-.//std.sh:  # XXX seems ie grep strips colors anyway?
-.//std.sh:# XXX using fold to determine the real amount of lines a given stream would have
-.//string.sh:# XXX: function scope is local, but still overriden by any like-named symlinks
-.//syscoex.py:    # XXX: get a rating based on several 
-.//table.names:# XXX named file patterns for htd+matchbox?
-.//taxus/core.py:    XXX: this is a vestige of having non-unique node names,
-.//taxus/core.py:    # XXX: perhaps add separate table for Tag.namespace attribute
-.//taxus/core.py:    XXX: It is the first of a level abstraction for other elementary types like
-.//taxus/core.py:    XXX: a basic type indicator to toggle between a thing or an idea.
-.//taxus/core.py:#    XXX: I've allowed for re-use by placing a list of element instances on the
-.//taxus/core.py:#    XXX: Subtypes may specificy how Node attributes map to the element objects
-.//taxus/iface.py:# XXX: unused
-.//taxus/iface.py:    XXX: figure out interface methods/properties or related interfaces.
-.//taxus/init.py:    XXX on connect, assume is SQLite and > 3.6.19
-.//taxus/init.py:        normal= {}, # XXX normal index?
-.//taxus/init.py:        # XXX if model.name in relations['from'] and field_name in relations['from'][model.name]:
-.//taxus/init.py:        #k.reverse() # XXX test, dict traverse reverse source-order
-.//taxus/model.py:    XXX: A collection of anything? What.
-.//taxus/model.py:    XXX: there is no mux/demux (yet) so subclassing variant does not mean much, but anyway.
-.//taxus/model.py:    XXX: Being a variant, the canonical URL, may be used as identifier, may be
-.//taxus/model.py:    # XXX: merge with res.Volume
-.//taxus/net.py:    "A checksum for the complete reference, XXX to use while shortref missing? "
-.//taxus/net.py:    # XXX: varchar(255) would be much too small for many (web) URL locators
-.//taxus/out.py:# XXX moved from taxus.iface
-.//taxus/semweb.py:# XXX to clean
-.//taxus/semweb.py:# XXX unused cwm-like stuff
-.//taxus/util.py:    XXX: probably move this to some kind of session
-.//taxus/util.py:# XXX: is it possible to get the values in the primary key..
-.//taxus/util.py:    # XXX: this does not work anymore after ids got unique values
-.//test/box.lib-spec.bats:  # XXX test does not include setting prefix, this'll work though
-.//test/helper.bash:  # XXX path to shared files
-.//test/helper.bash:  # XXX does this overwrite bats load?
-.//test/helper.bash:  # XXX hardcoded envs
-.//test/htd-spec.bats:  # XXX may also want to check last-saturday, next-* etc.
-.//test/py/mod_confparse.py:        # XXX: merge configs? self.assertEqual(tmpdir+'test1/.testrc', getattr(test_settings, source_key))
-.//test/py/mod_res_primitive.py:# XXX ITraveler + Updater
-.//test/util-lib-spec.bats:# XXX: clean me up to a test-helper func
-.//tm:XXX: started using Document Node in filetree.py
-.//tm:    # XXX get treemap from shelve in metadir? volumedir?
-.//topic.py:    # XXX: old 
-.//torrent-verify.py:            # XXX: all files must exist, with missing files pieces overlapping
-.//treemap.py:XXX: started using Document Node in filetree.py
-.//treemap.py:    # XXX get treemap from shelve in metadir? volumedir?
-.//txs.py:XXX:
-.//txs.py:# XXX
-.//txs.py:# XXX: why hijack init which is for session init..
-.//txs.py:    # XXX: Interactive part, see lind.
-.//txs.py:                # XXX: path is not initialized yet
-.//util.sh:  #set -- # clear arguments (XXX set nothing?)
-.//util.sh:  # XXX maybe replace python script sometime
-.//util.sh:  # XXX bash/bsd-darwin: test "$(type -t $1)" = "function" && return
-.//vc:# XXX: more in projectdir.sh in private repo
-.//vc:# XXX this does not work properly, best use it from root of repo
-.//vc:# XXX: takes subdir, and should in case of being in a subdir act the same
-.//vc.sh:# XXX: more in projectdir.sh in private repo
-.//vc.sh:# XXX this does not work properly, best use it from root of repo
-.//vc.sh:# XXX: takes subdir, and should in case of being in a subdir act the same
-.//workLog.py:# XXX see radical get that working atain, or mime-reg
-.//workLog.py:# XXX: rethink what to store..
-.//workLog_timeEdition.py:# XXX: Cannot figure out table recordStateTable. Got one record saying which:
-.//workLog_timeEdition.py:#    which = Column(String(255)) # XXX: was 10?
+./.jenkins-ci.yml:
+  27
+        # FIXME: travis build fails on TB config parts
+./.jenkins-ci.yml:
+  28
+        # XXX: want to use branch checkout? but not working
+./Resourcer.rst:
+  25
+    TODO: where to store settings, data; need split-settings/composite-db
+./Resourcer.rst:
+  27
+    TODO: URN ID's to use in htdocs, taxus and tree-mpe.
+./Resourcer.rst:
+  44
+    XXX: These are not used by libcmd.load_config yet, subcommands can used them
+./Resourcer.rst:
+  5
+    TODO: reinvent rsr using script libs
+./WorkFlow.rst:
+  16
+          radical_ TODO: has a backend to jira and redmine.
+./archive.py:
+  102
+     TODO: override from sys.argv
+./basename-reg:
+  148
+    		# XXX: override emitters from command-line (static), perhaps always send all
+./basename-reg:
+  219
+     TODO: find a sane way to automatically add extensions
+./basename-reg:
+  315
+                    # FIXME: this does not replace uppercase tags yet
+./basename-reg:
+  358
+                                # XXX: should have loop while fields are updated
+./basename-reg:
+  392
+    TODO: test
+./basename-reg:
+  7
+    TODO: should determine which tag identifies current format
+./bookmarks.py:
+  137
+                    p(('--export',), libcmd.cmddict(help="TODO: bm export")),
+./bookmarks.py:
+  215
+                    # XXX: start local to bean dict
+./bookmarks.py:
+  322
+                # TODO: store groups, but need to start at the root, sort out struct
+./bookmarks.py:
+  406
+        TODO: built into generic import/export (ie. complete set)  so heuristics can
+./bookmarks.rst:
+  8
+    FIXME: sync only supports local and remote
+./bookmarks_model.py:
+  50
+     XXX: varchar(255) would be much too small for many (web) URL locators 
+./box-comp:
+  35
+        # cancel on other positions TODO: context compgen
+./box.lib.sh:
+  26
+      # XXX: or scan for function before determining script
+./box.rst:
+  9
+          XXX: Subcommands can be aliased .. but should not be to short-opts. fix that.
+./box:
+  134
+     FIXME: expect this is broken
+./box:
+  19
+     FIXME: non-flag subcmd aliases
+./box:
+  217
+      # XXX: vim only stuff
+./box:
+  23
+     TODO: get a proper opt parser and do something like this:
+./budget.py:
+  339
+        TODO: Commit current balance, insert corrections where needed.
+./budget.py:
+  90
+        # XXX: update schema..
+./cabinet.py:
+  156
+    """XXX: alt argv: [[dir] [+tag+tag.. -tag+tag..]].." """
+./cabinet.py:
+  89
+            # FIXME: this isn't working, replace with native regex?
+./calendartable.py:
+  10
+    TODO: instead write USN-AAD/USNO RS-table to Google Calendar compatible CSV?
+./calendartable.py:
+  11
+    XXX: CSV convertors/tools?
+./calendartable.py:
+  12
+    XXX: ~dotmpe/archive/3/cabinet/2010/09/sunset-sundown.txt
+./calendartable.py:
+  24
+        # XXX: prolly dont do this but add conversion to CSV
+./calendartable.py:
+  43
+            # XXX: stripping for convenience!
+./calendartable.py:
+  46
+                headers[0].append(line) # XXX: unparsed column header
+./calendartable.py:
+  8
+    FIXME: splitting columns does not work like this, fixed with cell implementaiton
+./cllct.py:
+  117
+        TODO: list all nodes from all databases, 
+./cllct.py:
+  6
+    TODO: manage schemas and datastores.
+./confparse.py:
+  218
+            #TODO:self.updated = False
+./confparse.py:
+  233
+                # FIXME: need a list values type?
+./confparse.py:
+  248
+                        # XXX: hardcoded recursion depth (at 2)
+./confparse.py:
+  26
+    TODO: segment configuration into multiple files.
+./confparse.py:
+  387
+            XXX: lists can only nest twice, has not needed recursion
+./confparse.py:
+  388
+            TODO: reimplement this as tree visitor
+./confparse.py:
+  410
+                    # XXX: hardcoded list nesting depth (at 2)
+./confparse.py:
+  46
+     XXX: see also res/js.py
+./confparse.py:
+  511
+     XXX:
+./confparse.py:
+  547
+                print "TODO:", path
+./confparse.py:
+  551
+        # XXX: redundant op, check paths constraint setting
+./confparse.py:
+  626
+     XXX: testing
+./coverage_html_report/confparse.html:
+  1084
+    <p id='t387' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; XXX: lists can only nest twice, has not needed recursion</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/confparse.html:
+  1085
+    <p id='t388' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; TODO: reimplement this as tree visitor</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/confparse.html:
+  1107
+    <p id='t410' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='com'># XXX: hardcoded list nesting depth (at 2)</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/confparse.html:
+  1208
+    <p id='t511' class='pln'><span class='com'># XXX:</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/confparse.html:
+  1244
+    <p id='t547' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>print</span> <span class='str'>&quot;TODO:&quot;</span><span class='op'>,</span> <span class='nam'>path</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/confparse.html:
+  1248
+    <p id='t551' class='pln'>&nbsp; &nbsp; <span class='com'># XXX: redundant op, check paths constraint setting</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/confparse.html:
+  1323
+    <p id='t626' class='pln'><span class='com'># XXX: testing</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/confparse.html:
+  723
+    <p id='t26' class='pln'><span class='str'>TODO: segment configuration into multiple files.</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/confparse.html:
+  743
+    <p id='t46' class='pln'><span class='com'># XXX: see also res/js.py</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/confparse.html:
+  915
+    <p id='t218' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='com'>#TODO:self.updated = False</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/confparse.html:
+  930
+    <p id='t233' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='com'># FIXME: need a list values type?</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/confparse.html:
+  945
+    <p id='t248' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='com'># XXX: hardcoded recursion depth (at 2)</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/jquery.hotkeys.js:
+  65
+    			// TODO: Need to make sure this works consistently across platforms
+./coverage_html_report/taxus___init__.html:
+  391
+    <p id='t16' class='pln'><span class='str'>TODO: redraw this diagram.</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus___init__.html:
+  617
+    <p id='t242' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='com'># FIXME: rwrite to locator?</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus___init__.html:
+  623
+    <p id='t248' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>print</span> <span class='str'>&#39;TODO: query:&#39;</span><span class='op'>,</span><span class='nam'>args</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus___init__.html:
+  649
+    <p id='t274' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>pass</span> <span class='com'># TODO: node rm</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus___init__.html:
+  659
+    <p id='t284' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>pass</span> <span class='com'># TODO: node update</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_core.html:
+  577
+    <p id='t172' class='pln'><span class='str'>&nbsp; &nbsp; XXX: this is a vestige of having non-unique node names,</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_core.html:
+  618
+    <p id='t213' class='pln'>&nbsp; &nbsp; <span class='com'># XXX: perhaps add separate table for Tag.namespace attribute</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_core.html:
+  632
+    <p id='t227' class='pln'><span class='str'>&nbsp; &nbsp; XXX: It is the first of a level abstraction for other elementary types like</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_core.html:
+  637
+    <p id='t232' class='pln'><span class='str'>&nbsp; &nbsp; XXX: a basic type indicator to toggle between a thing or an idea.</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_core.html:
+  692
+    <p id='t287' class='pln'><span class='com'>#&nbsp; &nbsp; TODO: It implements sameAs to indicate ...</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_core.html:
+  705
+    <p id='t300' class='pln'><span class='com'>#&nbsp; &nbsp; XXX: I&#39;ve allowed for re-use by placing a list of element instances on the</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_core.html:
+  708
+    <p id='t303' class='pln'><span class='com'>#&nbsp; &nbsp; XXX: Subtypes may specificy how Node attributes map to the element objects</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_fs.html:
+  292
+    <p id='t63' class='pln'><span class='str'>&nbsp; &nbsp; TODO: implement __cmp__ for use with sameAs to query the host system</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_fs.html:
+  293
+    <p id='t64' class='pln'><span class='str'>&nbsp; &nbsp; TODO: should mirror host system attributes for dates, etc.</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_fslayout.html:
+  74
+    <p id='t2' class='pln'><span class='str'>TODO: merge from dev_treemap</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_iface.html:
+  305
+    <p id='t47' class='pln'><span class='com'># XXX: unused</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_iface.html:
+  362
+    <p id='t104' class='pln'><span class='str'>&nbsp; &nbsp; XXX: figure out interface methods/properties or related interfaces.</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_model.html:
+  249
+    <p id='t24' class='pln'><span class='str'>&nbsp; &nbsp; XXX: A collection of anything? What.</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_model.html:
+  252
+    <p id='t27' class='pln'><span class='str'>&nbsp; &nbsp; XXX: there is no mux/demux (yet) so subclassing variant does not mean much, but anyway.</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_model.html:
+  253
+    <p id='t28' class='pln'><span class='str'>&nbsp; &nbsp; XXX: Being a variant, the canonical URL, may be used as identifier, may be</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_model.html:
+  263
+    <p id='t38' class='pln'>&nbsp; &nbsp; <span class='com'># FIXME: where does the prefix go</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_model.html:
+  287
+    <p id='t62' class='pln'>&nbsp; &nbsp; <span class='com'># XXX: merge with res.Volume</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_net.html:
+  371
+    <p id='t129' class='pln'>&nbsp; &nbsp; <span class='com'># XXX: varchar(255) would be much too small for many (web) URL locators</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_net.html:
+  387
+    <p id='t145' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='com'># FIXME: return bare path of Locator?</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_out.html:
+  256
+    <p id='t2' class='pln'><span class='str'>TODO: cleanup</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_util.html:
+  552
+    <p id='t41' class='pln'><span class='str'>&nbsp; &nbsp; TODO: Using schemas from script.mpe, populate facade. Manage masterdb.</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_util.html:
+  553
+    <p id='t42' class='pln'><span class='str'>&nbsp; &nbsp; XXX: probably move this to some kind of session</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_util.html:
+  742
+    <p id='t231' class='pln'><span class='com'># XXX: is it possible to get the values in the primary key..</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_util.html:
+  816
+    <p id='t305' class='pln'>&nbsp; &nbsp; <span class='com'># XXX: this does not work anymore after ids got unique values</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_util.html:
+  866
+    <p id='t355' class='pln'><span class='com'># TODO: move to lib.Prompt</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_util.html:
+  896
+    <p id='t385' class='pln'>&nbsp; &nbsp; <span class='com'># FIXME: current_hostname</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_web.html:
+  223
+    <p id='t17' class='pln'><span class='str'>&nbsp; &nbsp; TODO: The entity headers can be reconstructed from DB and/or metafile or resource is filed as-is.</span><span class='strut'>&nbsp;</span></p>
+./coverage_html_report/taxus_web.html:
+  338
+    <p id='t132' class='pln'>&nbsp; &nbsp; <span class='com'># FIXME: vary information not stored</span><span class='strut'>&nbsp;</span></p>
+./db_sa.py:
+  70
+        # XXX: update schema..
+./domain.py:
+  24
+    - FIXME: Contains generated nodes.
+./domain.py:
+  454
+        #if not mac: # XXX:?
+./domain.py:
+  62
+     TODO: build gateway from
+./domain2.py:
+  16
+    TODO: fully initialize settings for host without editing config by hand
+./domain2.py:
+  17
+    TODO: should record network domain names, use this with ifaces.
+./dtdparse.py:
+  3
+     TODO: dtd parser
+./dwnld.py:
+  112
+        print 'TODO: filter'
+./dwnld.py:
+  117
+        print 'TODO: recurse'
+./edit.sh:
+  77
+     TODO: use externals
+./findlatest.py:
+  23
+            #elif arg == '--ignore-rcs': # XXX: default only, no settings for ignore-rcs
+./finfo.py:
+  203
+                if opts.interactive: # XXX: add_mformats interactive
+./finfo.py:
+  212
+     TODO: adding Mediameta for files
+./finfo.py:
+  36
+    TODO: add files to global index manually.
+./finfo.py:
+  37
+    TODO: map manualy added paths elements to GroupNode, relative paths? entered paths are
+./finfo.py:
+  39
+    TODO: some checksums for my precious media. Could use sums somehow to tie..
+./finfo.py:
+  3
+    TODO: Keep catalog of file format descriptions for local paths
+./finfo.py:
+  40
+    TODO: tagging? or not. 
+./finfo.py:
+  4
+    XXX: Verify valid extensions for format. 
+./finfo.py:
+  5
+    XXX: Keep complete resource description
+./folder.py:
+  5
+    TODO: keep open (active) vs. closed (inactive) indicators for groups
+./folder.py:
+  6
+    TODO: group other nodes. See GroupNode 1--* Node from taxus.Core.
+./folder.py:
+  7
+    TODO: find prelimanary way to represent nodes from other stores
+./folder.py:
+  8
+    TODO: print path relative to current dir
+./fscard.py:
+  3
+    FIXME: sync taxus to (or from?) local indices,
+./fsgraph.py:
+  141
+        ## XXX: more default excludes
+./fsgraph.py:
+  148
+        # XXX: ugh!
+./htd:
+  1028
+                  warn "FIXME: Dropped $ck key for $p"
+./htd:
+  111
+      echo '  find-name <path|localname>       TODO: Given (partial) path, try to find the file using find.  '
+./htd:
+  112
+      echo '  update                           Fill checksums tables for all local files. TODO: find out what there is to know about file using settings, other commands, ext. tooling & services. And trigger resolve'
+./htd:
+  1131
+     TODO: pre-process file/metadata
+./htd:
+  124
+      echo '  ck-consolidate [.|<path>]        TODO: integrate metadata from all metafiles (see ck-metafile)'
+./htd:
+  125
+      echo '  ck-metafile <path>               TODO: integrate metadata from .meta/.rst/.sha1sum/etc. '
+./htd:
+  1341
+      # FIXME: normalize relpath
+./htd:
+  137
+      echo '  ck-check-missing [ck|md5|sha1]   TODO: iterate .missing table, and call ck-fix. Move checksum to .gone if file stays missing. '
+./htd:
+  138
+      echo '  ck-clean [ck|md5|sha1]           TODO: iterate .gone table, and call ck-fix. Move gone checksum if file stays missing. '
+./htd:
+  139
+      echo '  ck-purge [|missing|duplicate|gone] TODO: drop missing-paths from indicate tables. '
+./htd:
+  179
+      echo "    TODO: uses path .git/.."
+./htd:
+  180
+      echo "    TODO: paths used by matchbox"
+./htd:
+  343
+      # TODO: maybe build relative path from 1 arg and cwd, or two args
+./htd:
+  490
+     TODO: move date routines to lib
+./htd:
+  491
+     NOTE: these use BSD date -v, see GNU date -d
+./htd:
+  526
+      # TODO: find shortest relative path
+./htd:
+  705
+          # TODO: scan lines for end...
+./htd:
+  721
+    c_man_1_build_todo_list="Build indented file of path/line/tag from FIXME: etc tagged
+./htd:
+  871
+     TODO: get references from file
+./htdocs.py:
+  3
+    TODO: construct TopicTree from Definition Lists in restructured text. 
+./htdocs.py:
+  6
+    FIXME: move something like a definition parser to elsewhere? something simple
+./jrnl.py:
+  3
+    XXX: can I improve htdocs.py, or should that finish first
+./lib.py:
+  265
+            FIXME: this does not work on Darwin, even with brew readline-6.2.4?
+./lib.py:
+  299
+                if not v.strip(): # FIXME: have to only strip whitespace, not ctl?
+./lib.py:
+  68
+        # XXX: sanity check..
+./libcmd.py:
+  126
+        #if not hasattr(parser.values, 'message_level'): # XXX: this seems to be a bug elsewhere
+./libcmd.py:
+  1
+    """libcmd - a command-line program toolkit based on optparse (XXX: and yaml, zope?)
+./libcmd.py:
+  221
+        TODO: combine  find_config_path
+./libcmd.py:
+  23
+    XXX: while under development, further explanation is given inline.
+./libcmd.py:
+  263
+            XXX: cannot stuff away options at StackedCommand, need to solve some
+./libcmd.py:
+  267
+            FIXME: what todo upon conflicts. better solve this explicitly i think?
+./libcmd.py:
+  292
+                # XXX: is this reserved for names to be used with confparse path
+./libcmd.py:
+  383
+            XXX: doing this at instance time allows it to further pre-configure the
+./libcmd.py:
+  406
+            # TODO: rewrite to cllct.osutil once that is packaged
+./libcmd.py:
+  503
+            # XXX:
+./libcmd.py:
+  709
+     TODO: post-deps
+./libcmd_stacked.py:
+  126
+        #if not hasattr(parser.values, 'message_level'): # XXX: this seems to be a bug elsewhere
+./libcmd_stacked.py:
+  1
+    """libcmd - a command-line program toolkit based on optparse (XXX: and yaml, zope?)
+./libcmd_stacked.py:
+  221
+        TODO: combine  find_config_path
+./libcmd_stacked.py:
+  23
+    XXX: while under development, further explanation is given inline.
+./libcmd_stacked.py:
+  263
+            XXX: cannot stuff away options at StackedCommand, need to solve some
+./libcmd_stacked.py:
+  267
+            FIXME: what todo upon conflicts. better solve this explicitly i think?
+./libcmd_stacked.py:
+  292
+                # XXX: is this reserved for names to be used with confparse path
+./libcmd_stacked.py:
+  383
+            XXX: doing this at instance time allows it to further pre-configure the
+./libcmd_stacked.py:
+  406
+            # TODO: rewrite to cllct.osutil once that is packaged
+./libcmd_stacked.py:
+  503
+            # XXX:
+./libcmd_stacked.py:
+  709
+     TODO: post-deps
+./libcmdng.html:
+  338
+    TODO:&nbsp;arguments&nbsp;list?<br>
+./libcmdng.html:
+  339
+    XXX:&nbsp;schema&nbsp;for&nbsp;all&nbsp;this?<br>
+./libcmdng.html:
+  37
+    XXX:&nbsp;Current&nbsp;implementation&nbsp;is&nbsp;very&nbsp;naive,&nbsp;just&nbsp;to&nbsp;get&nbsp;it&nbsp;working&nbsp;but&nbsp;when&nbsp;it<br>
+./libcmdng.html:
+  60
+    &nbsp;&nbsp;&nbsp;&nbsp;dependencies&nbsp;cannot.&nbsp;XXX:&nbsp;this&nbsp;functionality&nbsp;probably&nbsp;needs&nbsp;review.<br>
+./libcmdng.html:
+  65
+    &nbsp;&nbsp;&nbsp;&nbsp;match&nbsp;with&nbsp;these&nbsp;properties.&nbsp;XXX:&nbsp;namespaces&nbsp;are&nbsp;not&nbsp;used&nbsp;yet.<br>
+./libcmdng.html:
+  744
+    <dl><dt><a name="Target-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><tt>#&nbsp;FIXME:&nbsp;add&nbsp;parameters</tt></dd></dl>
+./libcmdng.py:
+  273
+        TODO: arguments list?
+./libcmdng.py:
+  274
+        XXX: schema for all this?
+./libcmdng.py:
+  27
+    XXX: Current implementation is very naive, just to get it working but when it
+./libcmdng.py:
+  419
+            #XXX:self._assert(S_target, self.P_hasPrerequisite, O_target)
+./libcmdng.py:
+  424
+     FIXME: isPrerequisite
+./libcmdng.py:
+  450
+            #XXX:self._assert(S_target, self.P_requires, O_target)
+./libcmdng.py:
+  461
+            #XXX:self._assert(S_target, self.P_isResultOf, O_target)
+./libcmdng.py:
+  50
+        dependencies cannot. XXX: this functionality probably needs review.
+./libcmdng.py:
+  55
+        match with these properties. XXX: namespaces are not used yet.
+./libcmdng.py:
+  572
+        # FIXME: add parameters
+./libcmdng.py:
+  609
+     XXX:
+./lind.py:
+  48
+                        # Ask about each new tag, TODO: or rename, fuzzy match.      
+./log.py:
+  120
+        TODO:
+./log.py:
+  153
+        # XXX: nicer to put in __repr/str__
+./main.py:
+  16
+     XXX: development tooling:
+./main.sh:
+  238
+     FIXME: this is getting a bit long. Split off box flags. Add subcmd opt parsing.
+./main.sh:
+  324
+      # FIXME: test this.
+./main.sh:
+  64
+        # Specific help (subcmd, maybe file-format other doc, or a TODO: group arg)
+./mapsync.py:
+  13
+    TODO: Besides multiple synchronized working copies, it is possible to make backups
+./mapsync.py:
+  307
+                # XXX: further optimization through detecting physical disks..
+./mapsync.py:
+  48
+    XXX: Merge not simply means selecting the most recent file ofcourse. 
+./mapsync.py:
+  51
+    TODO: By default, no revision h directory is included in the sync.
+./mimereg:
+  31
+                charset_xref = dict(), # TODO: load/generate also
+./mimereg:
+  8
+    TODO: handle language tags
+./mimereg:
+  9
+    TODO: handle encoding tags
+./mkdocs.py:
+  42
+                # XXX: replace once possible
+./monitor.py:
+  5
+    XXX: integrate with cllct
+./munin/com-spaceweather_.py:
+  29
+     TODO: print 'host_name spaceweather.com' 
+./munin/com-spaceweather_solarwinddensity:
+  29
+     TODO: print 'host_name spaceweather.com' 
+./munin/com-spaceweather_solarwindspeed:
+  29
+     TODO: print 'host_name spaceweather.com' 
+./munin/com-spaceweather_sunradio:
+  29
+     TODO: print 'host_name spaceweather.com' 
+./munin/com-spaceweather_sunspotnr:
+  29
+     TODO: print 'host_name spaceweather.com' 
+./myCalendar.py:
+  175
+            TODO: report format.
+./myCalendar.py:
+  188
+                # FIXME: caltree to xmlnesting?
+./myCalendar.py:
+  31
+        - XXX: the singlemindedness of this implementation prevents other uses for 
+./myCalendar.py:
+  45
+            # FIXME: confparse keys are always string...
+./myCalendar.py:
+  4
+    TODO: scan for other formats, timestamps or YYYYddmm, perhaps (short)names.
+./myLedger.py:
+  176
+     TODO: lookup checksum methods for acc nrs
+./myLedger.py:
+  2
+    TODO: categorize accounts.
+./myLedger.py:
+  36
+        balance = Column(Integer) # XXX: related ot blaance
+./myLedger.py:
+  3
+    XXX: prolly rewrite year/month to generic period, perhaps scrap accbalances
+./node.py:
+  5
+    TODO: experiment with nodes from other DBs. Sync to and from master.
+./node.py:
+  84
+        TODO: full type-specific representation may depend on sub-database.
+./node_modules/parse-torrent/node_modules/parse-torrent-file/node_modules/bencode/Makefile:
+  8
+     TODO: thats not how it should behave!
+./proc-mpe:
+  150
+        # TODO: use source_format
+./proc-mpe:
+  33
+    .. XXX: should fix this, for now working with 
+./proc-mpe:
+  64
+    XXX: not all parser/reader pairs will work. Likewise not all documents with every writer.
+./project.py:
+  141
+        project.repositories.append( checkout )# TODO: and remotes
+./project.py:
+  22
+    TODO: <ref> would be an ID, name or path of a project
+./radical-test1.txt:
+  12
+     XXX:
+  2
+     another unix-style comment
+./radical-test1.txt:
+  15
+    the unix-style discerns c-style directives, NOTE: this is not a comment.
+./radical-test1.txt:
+  9
+    // FIXME: a c-style line comment
+./radical.py:
+  164
+    TODO: domain structure:
+  
+    
+./radical.py:
+  185
+     TODO:
+  1
+     Integrate gate content stream
+./radical.py:
+  186
+     TODO:
+  2
+     Extend supported comment styles
+./radical.py:
+  188
+     TODO:
+  3
+     Scan for other literals, recognize language constructs.
+./radical.py:
+  240
+        # XXX: unique on filename/linenumber?
+./radical.py:
+  303
+            # FIXME: cache source file reads
+./radical.py:
+  428
+                            comment_end += len(data) + 1 # FIXME: CRLF size
+./radical.py:
+  488
+            #  FIXME: c-style comments have embedded junk
+./radical.py:
+  490
+                pass # TODO: block trim_comment
+./radical.py:
+  556
+        TODO: Needs rewrite, to index comments first, then scan for tags in result
+./radical.py:
+  561
+        FIXME: C-style line and block comments.
+./radical.py:
+  616
+                            # TODO: stop at end of line
+./radical.py:
+  640
+                # FIXME:
+./radical.py:
+  68
+    TODO: doc review:
+./radical.py:
+  756
+     TODO: groups of filetype tags for each flavour scanned comment
+./radical.py:
+  758
+     XXX: probably use gate to map between content-type and format tag
+./radical.py:
+  768
+     XXX: collapse htm and html
+./radical_numeric_index.py:
+  18
+    FIXME:
+./radical_numeric_index.py:
+  46
+     TODO:
+  1
+    
+./radical_xmldoctest.xml:
+  2
+        <t><!-- FIXME: comment
+./reporter.py:
+  101
+        # XXX: cli output, ansi colours
+./reporter.py:
+  139
+     XXX: work in progress
+./reporter.py:
+  4
+    XXX: see log, taxus_out for older model.
+./reporter.py:
+  54
+        TODO: write directly to an output adapter (for log, console, etc.)
+./reporter.py:
+  55
+        TODO: turn context into state. Allow to extend and update.
+./reporter.py:
+  56
+        TODO: some level of reference modelling is needed, ie. accumulate footnotes,
+./reporter.py:
+  59
+        TODO:
+./res/__init__.py:
+  118
+        XXX: It is a workspace that is not a swappable, movable volume, but one that is
+./res/__init__.py:
+  11
+    TODO:
+./res/__init__.py:
+  120
+        TODO: it shoud be aware of other host having a Homedir for current user.
+./res/__init__.py:
+  125
+        # XXX:
+./res/__init__.py:
+  84
+            :FIXME:
+  91
+     setup SA session:
+./res/__init__.py:
+  8
+    :XXX: three locations of metadir to bootstrap metadata framework: localdir,
+./res/__init__.py:
+  98
+        # TODO: move this, res.dbm.MetaDirIndex
+./res/fs.py:
+  286
+                    assert False, "TODO: write new ignores to file"
+./res/fs.py:
+  311
+            FIXME: could, but does not, yield INode subtype instances.
+./res/fs.py:
+  312
+            XXX: filters, see dev_treemap
+./res/fs.py:
+  322
+            # FIXME: validate/process opts or put filter somewhere
+./res/fs.py:
+  428
+     XXX: what to do with complete attribute list etc? 
+./res/fs.py:
+  486
+        XXX: It is up to caller to maintain cache.
+./res/fs.py:
+  487
+        XXX: should fully canonize paths for each INode, ie. clean notation, resolve
+./res/fs.py:
+  65
+            # XXX: decode from opts.fs_enc
+./res/iface.py:
+  32
+                "TODO: or IResource")
+./res/iface.py:
+  34
+                "TODO: or IResource")
+./res/js.py:
+  1
+     XXX: Dont use cjson, its buggy, see comments at
+./res/metafile.py:
+  276
+    class MetafileFile(object): # XXX: Metalink syntax
+./res/metafile.py:
+  279
+        XXX: rewrite this to metafile wrapper?
+./res/metafile.py:
+  282
+        XXX: May not be entirely MIME compliant yet.
+./res/metafile.py:
+  284
+        XXX: This is obviously the same as metalink format, and should learn from
+./res/metafile.py:
+  305
+            # TODO: Link, Location?
+./res/metafile.py:
+  363
+            # XXX: using tuple UTC -> epoc seconds, OK? or is getmtime local.. depends on host
+./res/metafile.py:
+  378
+            XXX: This mechanism is very rough. The entire file is rewritten, not just
+./res/metafile.py:
+  423
+                # XXX: not implemented
+./res/metafile.py:
+  447
+            # XXX: maybe rewrite to Dir.walk
+./res/metafile.py:
+  520
+            now = datetime.datetime.now() # XXX: ctime?
+./res/metafile.py:
+  600
+            # XXX: perhaps rename DOTID just markerleaf to reflect find_config_path
+./res/metafile.py:
+  698
+     XXX: todo operations on stage index
+./res/mime.py:
+  33
+            # XXX: writes string only. cannot break maxlength without have knowledge of header
+./res/primitive.py:
+  137
+            XXX: Dump to real dict tree which pformat can print.
+./res/primitive.py:
+  187
+        TreeNode build on top of tuple. XXX: Unused.
+./res/primitive.py:
+  25
+        XXX: Normally TreeNodeDict contains one TreeNode, but the dict would allow
+./res/primitive.py:
+  27
+        XXX: would be nice to manage type for leafs somehow, perhaps using visitor
+./res/primitive.py:
+  56
+                # XXX: perhaps re-use QNames objects for regular attribute names
+./res/primitive.py:
+  66
+            # FIXME: return first 'key'
+./res/primitive.py:
+  71
+            # FIXME: return first 'key'
+./res/vc.py:
+  76
+            # XXX: may rewrite to Dir.walk
+./rsr.py:
+  194
+                    # XXX: duplicates Options
+./rsr.py:
+  261
+            TODO: Session dirs are subclasses of metadirs. The resource module
+./rsr.py:
+  274
+            # XXX: perhaps user metadir should be inited already,
+./rsr.py:
+  493
+            # XXX: how to match cmdline arg to nodes, alt notations for paths?
+./rsr.py:
+  582
+            "TODO: move to vc, for walk see dev_treemap or re-think-use Dir.walk"
+./rsr2.py:
+  54
+        FIXME: this should interface with taxus metastore on this host (for this user).
+./rsr2.py:
+  97
+     XXX:
+./string.sh:
+  95
+     XXX: function scope is local, but still overriden by any like-named symlinks
+./syscoex.py:
+  118
+        # XXX: get a rating based on several 
+./syscoex.py:
+  8
+    TODO: combine these with coefficients into various sorts of ratings.
+./taxus/__init__.py:
+  16
+    TODO: redraw this diagram.
+./taxus/__init__.py:
+  242
+            # FIXME: rwrite to locator?
+./taxus/__init__.py:
+  248
+            print 'TODO: query:',args
+./taxus/__init__.py:
+  274
+            pass # TODO: node rm
+./taxus/__init__.py:
+  284
+            pass # TODO: node update
+./taxus/core.py:
+  172
+        XXX: this is a vestige of having non-unique node names,
+./taxus/core.py:
+  213
+        # XXX: perhaps add separate table for Tag.namespace attribute
+./taxus/core.py:
+  227
+        XXX: It is the first of a level abstraction for other elementary types like
+./taxus/core.py:
+  232
+        XXX: a basic type indicator to toggle between a thing or an idea.
+./taxus/core.py:
+  287
+        TODO: It implements sameAs to indicate ...
+./taxus/core.py:
+  300
+        XXX: I've allowed for re-use by placing a list of element instances on the
+./taxus/core.py:
+  303
+        XXX: Subtypes may specificy how Node attributes map to the element objects
+./taxus/fs.py:
+  63
+        TODO: implement __cmp__ for use with sameAs to query the host system
+./taxus/fs.py:
+  64
+        TODO: should mirror host system attributes for dates, etc.
+./taxus/fslayout.py:
+  2
+    TODO: merge from dev_treemap
+./taxus/iface.py:
+  109
+        XXX: figure out interface methods/properties or related interfaces.
+./taxus/iface.py:
+  52
+     XXX: unused
+./taxus/model.py:
+  24
+        XXX: A collection of anything? What.
+./taxus/model.py:
+  27
+        XXX: there is no mux/demux (yet) so subclassing variant does not mean much, but anyway.
+./taxus/model.py:
+  28
+        XXX: Being a variant, the canonical URL, may be used as identifier, may be
+./taxus/model.py:
+  38
+        # FIXME: where does the prefix go
+./taxus/model.py:
+  62
+        # XXX: merge with res.Volume
+./taxus/net.py:
+  129
+        # XXX: varchar(255) would be much too small for many (web) URL locators
+./taxus/net.py:
+  145
+            # FIXME: return bare path of Locator?
+./taxus/out.py:
+  2
+    TODO: cleanup
+./taxus/util.py:
+  231
+     XXX: is it possible to get the values in the primary key..
+./taxus/util.py:
+  305
+        # XXX: this does not work anymore after ids got unique values
+./taxus/util.py:
+  355
+     TODO: move to lib.Prompt
+./taxus/util.py:
+  385
+        # FIXME: current_hostname
+./taxus/util.py:
+  41
+        TODO: Using schemas from script.mpe, populate facade. Manage masterdb.
+./taxus/util.py:
+  42
+        XXX: probably move this to some kind of session
+./taxus/web.py:
+  132
+        # FIXME: vary information not stored
+./taxus/web.py:
+  17
+        TODO: The entity headers can be reconstructed from DB and/or metafile or resource is filed as-is.
+./test/box-spec.bats:
+  135
+      skip "$BATS_TEST_DESCRIPTION TODO: test and code run-global"
+./test/box-spec.bats:
+  141
+      skip "$BATS_TEST_DESCRIPTION TODO: test and code run (local)"
+./test/box-spec.bats:
+  147
+      skip "$BATS_TEST_DESCRIPTION TODO: test and code new"
+./test/box-spec.bats:
+  153
+      skip "$BATS_TEST_DESCRIPTION TODO: test and code create"
+./test/box-spec.bats:
+  159
+      skip "$BATS_TEST_DESCRIPTION TODO: test and code deinit"
+./test/box-spec.bats:
+  35
+      # TODO: Meh.. test [[ "${lines[0]}" =~ "No.script.for" ]]
+./test/box-spec.bats:
+  89
+      check_skipped_envs travis || skip "FIXME: $envs: not running on $env"
+./test/libcmd_stacked-spec.bats:
+  21
+    FIXME: SA warning on Linux
+./test/py/mod_confparse.py:
+  175
+            # XXX: merge configs? self.assertEqual(tmpdir+'test1/.testrc', getattr(test_settings, source_key))
+./test/py/mod_confparse.py:
+  236
+            # FIXME: confparse.commit is not really tested
+./test/py/mod_confparse.py:
+  372
+     TODO: test values
+./test/py/mod_confparse2.py:
+  53
+        TODO: test committing
+./test/py/mod_radical.py:
+  7
+        pass # TODO: Radical unittests
+./test/py/mod_res.py:
+  52
+        # FIXME: how to get cases into unittest.main
+./test/py/mod_res_fs.py:
+  17
+            return # FIXME: test_fs_iface
+./test/radical-spec.bats:
+  35
+      # 6 'note'-level log lines, three for issues: TODO: fix multiline scanning
+./test/std-spec.bats:
+  189
+     FIXME: test on Linux
+./test/util-lib-spec.bats:
+  10
+     XXX: clean me up to a test-helper func
+./test/var/rsr_help.txt:
+  63
+      --repo-update         TODO: move to vc, for walk see dev_treemap or re-
+./tm:
+  10
+    XXX: started using Document Node in filetree.py
+./tm:
+  6
+    TODO: store local and cumulative values in TreeMap or FileTreeMap document.
+./tm:
+  8
+          TODO: this index would be a some URIref map
+./tmux-session:
+  6
+     TODO: persist and restore the state & position of panes.
+./todo.py:
+  208
+        # TODO: title, description
+./todo.py:
+  209
+        # TODO: prerequisites...
+./todo.py:
+  284
+        TODO: check level 
+./todo.py:
+  4
+    TODO: interface this with Google tasks
+./tools/git-hooks/commit-msg:
+  7
+     TODO: get names of updated scripts, run specs
+./topic.py:
+  6
+    TODO: create all nodes; name, description, hierarchy and dump/load json/xml
+./topic.py:
+  98
+        # XXX: old 
+./torrent-verify.py:
+  15
+                # XXX: all files must exist, with missing files pieces overlapping
+./treemap.mkdocs:
+  1
+     TODO: DU_GEN and DU_HTML are not used, also better have Make pick this up for
+./treemap.py:
+  10
+    XXX: started using Document Node in filetree.py
+./treemap.py:
+  6
+    TODO: store local and cumulative values in TreeMap or FileTreeMap document.
+./treemap.py:
+  8
+          TODO: this index would be a some URIref map
+./txs.py:
+  222
+        # XXX: Interactive part, see lind.
+./txs.py:
+  241
+                    # XXX: path is not initialized yet
+./txs.py:
+  253
+                    # Ask about each new tag, TODO: or rename, fuzzy match.      
+./txs.py:
+  5
+    XXX:
+./txs.py:
+  75
+     XXX: why hijack init which is for session init..
+./util.py:
+  200
+        # FIXME: volatile/config_file handling should be in confparse
+./util.sh:
+  57
+     FIXME: testing..
+./vc.py:
+  74
+            TODO: Yield VC manager for current checkout dir
+./vc.py:
+  76
+            # TODO: should be VC checkout dir
+./vc.py:
+  81
+            TODO: Report status bits, dirty lists and summaries
+./vc.py:
+  87
+            TODO: Yield all repositories in workspace.
+./vc.py:
+  91
+            # TODO: should be some workspace
+./vc.sh:
+  4
+     TODO: other SCMs, BZR, HG, SVN (but never need them so..)
+./vc.sh:
+  511
+          # TODO: find/print root. then go there. see vc.sh
+./vc.sh:
+  5
+     XXX: more in projectdir.sh in private repo
+./vc.sh:
+  665
+     XXX: takes subdir, and should in case of being in a subdir act the same
+./vc:
+  4
+     TODO: other SCMs, BZR, HG, SVN (but never need them so..)
+./vc:
+  511
+          # TODO: find/print root. then go there. see vc.sh
+./vc:
+  5
+     XXX: more in projectdir.sh in private repo
+./vc:
+  665
+     XXX: takes subdir, and should in case of being in a subdir act the same
+./workLog.py:
+  120
+        # TODO: perhaps implement export and update from import while I'm to lazy to
+./workLog.py:
+  143
+     XXX: rethink what to store..
+./workLog_timeEdition.py:
+  104
+     XXX: Cannot figure out table recordStateTable. Got one record saying which:
+./workLog_timeEdition.py:
+  110
+        which = Column(String(255)) # XXX: was 10?
+./workLog_timeEdition.py:
+  177
+            assert False, "TODO: implementing default values for existing settings "
