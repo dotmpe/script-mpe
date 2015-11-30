@@ -1,10 +1,9 @@
 #/!usr/bin/bash
 # Prompt helpers for persisted session info
 
-set -e
+. ~/bin/std.sh
 
-source ~/bin/statusdir.sh
-source ~/bin/vc.sh
+set -e
 
 scriptname=prompt
 
@@ -44,7 +43,11 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 			type $func &> /dev/null && {
 				func_exists=1
 				shift 1
+
+				. ~/bin/statusdir.sh
+				. ~/bin/vc.sh
 				$func $@
+
 			} || {
 				# handle non-zero return or print usage for non-existant func
 				e=$?
