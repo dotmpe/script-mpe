@@ -232,10 +232,16 @@ __vc_git_flags ()
 		untracked="$u"
 		state="$r"
 
+		x=
+		if [ -d $g/annex ]; then
+			#x="(annex:$(echo $(du -hs $g/annex/objects|cut -f1)))$c"
+			x="(annex)$c"
+		fi
+
 		if [ -n "${2-}" ]; then
-			printf "$2" "$c${b##refs/heads/}$w$i$s$u$r"
+			printf "$2" "$c$x${b##refs/heads/}$w$i$s$u$r"
 		else
-			printf " (%s)" "$c${b##refs/heads/}$w$i$s$u$r"
+			printf " (%s)" "$c$x${b##refs/heads/}$w$i$s$u$r"
 		fi
 
 		popd >> /dev/null
@@ -761,7 +767,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
       ;;
 
     * )
-      echo No frontend for $base
+      echo "Not a frontend for $base ($scriptname)"
 
   esac
 fi

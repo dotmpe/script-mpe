@@ -30,11 +30,18 @@ Options:
     -o FILE --output=FILE
 
 Other flags:
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
 Model::
+
+    (dia. 1a)
+          Task
+            - id Int
+            - title String(255)
+            - description Text
+            - refs List<URL>
 
     (dia. 1)      0..1
                    |  partOf
@@ -44,9 +51,17 @@ Model::
                +---------+
     pre-           |          required
     requisites     | subTasks      for
-                  0..n 
+                  0..n
 
 - Links only along same level.
+
+- XXX: Refs allows for extensions; and link to embedded tagged comments:
+    file:///<filepath>;line=<line>
+    file:///<filepath>;line=<line>#TODO:<n>
+    file:///<dirpath>;project=<label>/<filename>;...#TODO:<n>
+
+- XXX: The above allows to refer to tags: TODO, etc. Nothing implied here.
+  Would like to create function for local (project specific) todo management.
 
 """ % ( __db__, __version__ )
 from datetime import datetime
@@ -58,7 +73,7 @@ from pprint import pformat
 import log
 import util
 from taxus import Node
-from taxus.util import ORMMixin, get_session
+from taxus.util import ORMMixin, ScriptMixin, get_session
 from res import js
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, create_engine
@@ -109,7 +124,7 @@ class Task(ORMMixin, SqlBase):
         if plain:
             r = {}
             for k, v in self.__dict__.items():
-                if k.startswith('_'): 
+                if k.startswith('_'):
                     continue
                 if k+'_id' in self.__dict__:
                     continue
@@ -117,8 +132,8 @@ class Task(ORMMixin, SqlBase):
             return r
         else:
             return Task(
-                    title=self.title, 
-                    description=self.description, 
+                    title=self.title,
+                    description=self.description,
                     partOf_id=self.partOf_id)
 
     def __repr__(self):
@@ -140,7 +155,7 @@ def print_Task(task):
     log.std(
 "{blue}%s{bblack}. {bwhite}%s {bblack}[{magenta}%s {green}%s{bblack}]{default}" % (
                 task.task_id,
-                task.title, 
+                task.title,
                 task.requiredFor_id and task.requiredFor_id or '',
                 task.partOf_id and task.partOf_id or ''
             )
@@ -151,7 +166,7 @@ def indented_tasks(indent, sa, settings, roots):
     for task in roots:
         print indent,
         print_Task(task)
-        indented_tasks(indent+'  ', sa, settings, 
+        indented_tasks(indent+'  ', sa, settings,
             sa.query(Task).filter(Task.partOf_id == task.task_id).all())
 
 
@@ -191,7 +206,7 @@ def cmd_new(title, description, group, opts, settings):
 
 def cmd_insert(title, before_ID):
     """
-        todo [options] insert <title-or-ID> 
+        todo [options] insert <title-or-ID>
     """
     sa = get_session(settings.dbref, metadata=SqlBase.metadata)
     before = Task.fetch(((Task.task_id == before_ID[0]),), sa=sa)
@@ -281,7 +296,7 @@ def cmd_prerequisite(ID, PREREQUISITES, settings):
     given, apply the same to every following ID in sequence.
 
     This sets an unqualified dependency.
-    TODO: check level 
+    TODO: check level
     """
     sa = get_session(settings.dbref, metadata=SqlBase.metadata)
     node = Task.byKey(dict(task_id=ID), sa=sa)

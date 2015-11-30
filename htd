@@ -718,13 +718,44 @@ todo_read_line()
 }
 
 
+htd_grep_line_exclude()
+{
+  grep -v '.*\ htd:ignore\s*'
+  # TODO: build lookup util for ignored file line ranges
+  #| while read line
+  #do
+  #    file=$()
+  #    linenr=$()
+  #    c_htd_excluded_line $file $linenr
+  #done
+}
+
 c_man_1_build_todo_list="Build indented file of path/line/tag from FIXME: etc tagged
 src files"
 c_build_todo_list()
 {
-  test -n "$1" || set -- TODO.list
-  grep -nsrI '\(\<FIXME\|TODO\|NOTE\|XXX\>\):' . \
-      | grep -v '.*#\ htd:ignore\s*'
+  test -n "$1" || set -- TODO.list "$2"
+  test -n "$2" || {
+    test -s .app-id \
+        && set -- "$1" "$(cat .app-id)" \
+        || set -- "$2" "$(basename $(pwd))"
+  }
+
+  { for tag in FIXME TODO NOTE XXX
+  do
+    grep -nsrI $tag':' . \
+        | grep -v $1':' \
+        | htd_grep_line_exclude \
+        | while read line;
+      do
+        tid="$(echo $line | sed -n 's/.*'$tag':\([a-z0-9\.\+_-]*\):.*/\1/p')"
+        test -z "$tid" \
+            && echo "$(pwd);$2#$tag;$line" \
+            || echo "$(pwd);$2#$tag:$tid;$line";
+
+      done
+  done; } | todo-meta.py import -
+
 #  grep -nsrI '\(\<FIXME\|TODO\|NOTE\|XXX\>\):' . \
 #      | grep -v '^#|\s*$' \
 #      | grep -v '.*#\ htd:ignore\s*' \
