@@ -233,6 +233,10 @@ __vc_git_flags ()
 		state="$r"
 
 		x=
+		rg=$g
+		test -f "$g" && {
+			g=$(dirname $g)/$(cat .git | cut -d ' ' -f 2)
+		}
 		if [ -d $g/annex ]; then
 			#x="(annex:$(echo $(du -hs $g/annex/objects|cut -f1)))$c"
 			x="(annex)$c"
