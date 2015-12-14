@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+"""
+:created: 2015-11-30
+
+Read from human-maintained document into processable structure.
+
+Usage:
+    projectdir-meta [options] list-prefixes [<root>]
+    projectdir-meta [options] (enabled|disabled) <prefix>
+    projectdir-meta (-h | --help)
+
+Options:
+  -q, --quiet   Quiet operations
+  -s, --strict  Strict operations
+  -f PD, --file PD
+                Give custom path to projectdir document file [default: ./projects.yaml]
+"""
+from docopt import docopt
+import uuid
+
+from script_mpe import util
+
+from script_mpe.res import js
+from script_mpe.confparse import yaml_load, yaml_safe_dump
+
+
+def meta_from_projectdir_doc(data):
+    newdata = {}
+
+    for prefix in data['repositories'].keys():
+
+        remotes = []
+        for rname, rurl in data['repositories'][prefix].items():
+            remotes.append(dict(
+                name=rname, url=rurl
+            ))
+        repoid = "repo:_:%s" % uuid.uuid4()
+        newdata[repoid] = dict(
+            prefix=prefix,
+            remotes=remotes
+        )
+    return newdata
+
+
+toggle_states = 'disabled', 'enabled'
+
+def toggle(state):
+    if state == toggle_states[0]:
+        return toggle_states[1]
+    else:
+        return toggle_states[0]
+
+def get_toggle_state(data):
+    for state in toggle_states:
+        if state in data:
+            if data[state]:
+                return state
+            else:
+                return toggle(state)
+
+
+def main(pd_doc, func=None, opts=None):
+    pdhdata = yaml_load(open(pd_doc))
+
+    # Project repo Enabled/Disabled function
+    if func in ('enabled', 'disabled'):
+        prefix = opts.args.prefix
+        state = get_toggle_state(pdhdata['repositories'][prefix])
+        if not opts.flags.quiet:
+            print "%s\t%s" % ( prefix, state )
+        if opts.flags.strict and not state:
+            return
+        if func != state:
+            return 1
+
+    # List all project repo prefixes
+    elif func == 'list-prefixes':
+        for x in pdhdata['repositories'].keys():
+            if opts.args.root and not x.startswith(opts.args.root):
+                continue
+            print x
+
+    else:
+        meta = meta_from_projectdir_doc(pdhdata)
+        print yaml_safe_dump(meta)
+
+
+
+if __name__ == '__main__':
+    import sys
+    opts = util.get_opts(__doc__)
+    #print opts.todict()
+    sys.exit( main( opts.flags.file, opts.cmds[0], opts ) )
+
