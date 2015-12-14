@@ -5,7 +5,7 @@
 # On Linux, uses /proc/PID/fd/NR: Usage: stdio_type NR PID
 # On OSX/Darwin uses /dev/fd/NR: Usage: stdio_type NR
 # IO: 0:stdin 1:stdout 2:stderr
-#  
+#
 stdio_type()
 {
   local io= pid=
@@ -56,7 +56,7 @@ stdio_type()
 #    esac
 #    shift
 #  done
-#  
+#
 #  printf "$fmt$end" "$*"
 #)
 
@@ -99,7 +99,7 @@ stdio_type()
 
     * )
       LOG_TERM=bw
-      echo "Other term $TERM"
+      echo "[std.sh] Other term: '$TERM'"
       ;;
 
   esac
@@ -308,7 +308,7 @@ clear_lines()
     # move forward to end, then erase one line
     echo -ne "\033[200C"
     echo -ne "\033[1K"
-    # move up 
+    # move up
     echo -ne "\033[1A"
     count=$(( $count - 1 ))
   done

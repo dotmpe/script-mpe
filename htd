@@ -12,6 +12,9 @@ version=0.0.0+20150911-0659 # script.mpe
 
 htd_load()
 {
+  which tmux 1>/dev/null || {
+    export PATH=/usr/local/bin:$PATH
+  }
   # -- htd box load insert sentinel --
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
   [ -n "$HTDIR" ] || HTDIR=$HOME/public_html
@@ -1978,6 +1981,11 @@ c_pc()
   git add -u;git ci -m "$1";git push --all
 }
 
+# Setup X tcp socket for VS1 containers
+c_xtcp()
+{
+  socat TCP-LISTEN:6000,reuseaddr,fork UNIX-CLIENT:\"$DISPLAY\"
+}
 
 
 ### Main

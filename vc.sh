@@ -459,6 +459,11 @@ vc_ps1()
 	__vc_ps1 $@
 }
 
+vc_screen()
+{
+	__vc_screen $@
+}
+
 vc_gitflags()
 {
   __vc_git_flags "$@"
