@@ -566,7 +566,7 @@ vc_object_contents()
   git cat-file -p $1
 }
 
-vc_man_1_excludes="List exclude patterns"
+vc_man_1_excludes="List path ignore patterns"
 vc_excludes()
 {
   # (global) core.excludesfile setting
@@ -587,11 +587,29 @@ vc_excludes()
   }
 }
 
+# List unversioned including ignored
+vc_ufx()
+{
+    vc_excluded
+}
 vc_excluded()
 {
+    # list paths not in git (including ignores)
+    git ls-files --others --dir
+}
+
+# List all unversioned excluding ignored
+vc_uf()
+{
+  vc_unversioned_files
+}
+vc_unversioned_files()
+{
+    # list cruft (not versioned and not ignored)
     git ls-files --others --exclude-standard
 }
 
+# Annex diag.
 vc_annex_unused()
 {
   git annex unused | \

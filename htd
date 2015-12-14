@@ -41,9 +41,11 @@ htd_load()
 
   HTD_IGNORE=.htdignore
   test -e .git && {
-    grep $HTD_IGNORE .gitignore > /dev/null || {
-      echo $HTD_IGNORE >> .gitignore
-    }
+    printf ""
+    # FIXME: .htdignore ignore..
+    #grep $HTD_IGNORE .gitignore > /dev/null || {
+    #  echo $HTD_IGNORE >> .gitignore
+    #}
   }
   htd_init_ignores
   {
