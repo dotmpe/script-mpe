@@ -987,7 +987,7 @@ c_git_init_remote()
   }
 
   log "Adding new remote, and fetching remote refs"
-  git remote add $HTD_GIT_REMOTE $git_url
+  git remote add $HTD_GIT_REMOTE $scp_url
   git fetch $HTD_GIT_REMOTE
 
   log "Added remote $HTD_GIT_REMOTE $scp_url"

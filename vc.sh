@@ -99,7 +99,7 @@ homepath ()
 # w: '*'
 # i: '+'|'#'
 # s: '$'
-# u: '%'
+# u: '~'
 #
 
 __vc_bzrdir ()
@@ -219,7 +219,7 @@ __vc_git_flags ()
 
 			if [ -n "${GIT_PS1_SHOWUNTRACKEDFILES-}" ]; then
 				if [ -n "$(git ls-files --others --exclude-standard)" ]; then
-					u="%"
+					u="~"
 				fi
 			fi
 		fi
@@ -329,7 +329,7 @@ __vc_status ()
 		if [ "$(bzr status|grep added)" ]; then s="${s}+"; fi
 		if [ "$(bzr status|grep modified)" ]; then s="${s}*"; fi
 		if [ "$(bzr status|grep removed)" ]; then s="${s}-"; fi
-		if [ "$(bzr status|grep unknown)" ]; then s="${s}%"; fi
+		if [ "$(bzr status|grep unknown)" ]; then s="${s}~"; fi
 		[ -n "$s" ] && s="$s "
 		echo "$short$PSEP [bzr:$s$revno]$sub"
 	#else if [ -d ".svn" ]; then
