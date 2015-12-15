@@ -1690,31 +1690,36 @@ c_tmux_work()
 
   # Add other windows
 
-  tmux list-windows -t Work | grep -q Jnk || {
-    tmux new-window -t Work -n Jnk
-    tmux send-keys -t Work:Jnk "reset;cd ~/work/brix/Jenkins;ls -la" enter
+  tmux list-windows -t Work | grep -q Tree || {
+    tmux new-window -t Work -n Tree
+    tmux send-keys -t Work:Ba "reset;cd ~/work/brix/tree/" enter "make status" enter
+  }
+  tmux list-windows -t Work | grep -q Cleaning || {
+    tmux new-window -t Work -n Tree
+    tmux send-keys -t Work:Ba "reset;cd /Volumes/Simza/WorkCleaning/brix" enter "make status" enter
   }
 
-  tmux list-windows -t Work | grep -q DvD || {
-    tmux new-window -t Work -n DvD
-    tmux send-keys -t Work:DvD "reset;cd ~/work/brix/tree/dev-doc;git fetch --all;git st" enter
-  }
+  #tmux list-windows -t Work | grep -q Jnk || {
+  #  tmux new-window -t Work -n Jnk
+  #  tmux send-keys -t Work:Jnk "reset;cd ~/work/brix/Jenkins;ls -la" enter
+  #}
+
+  #tmux list-windows -t Work | grep -q DvD || {
+  #  tmux new-window -t Work -n DvD
+  #  tmux send-keys -t Work:DvD "reset;cd ~/work/brix/tree/dev-doc;git fetch --all;git st" enter
+  #}
   tmux list-windows -t Work | grep -q Mng || {
     tmux new-window -t Work -n Mng
-    tmux send-keys -t Work:Mng "reset;cd ~/work/brix/tree/mango-builds" enter "git st" enter
+    tmux send-keys -t Work:Mng "reset;cd /Volumes/Simza/WorkCleaning/brix/tree/mango-builds" enter "git st" enter
   }
-  tmux list-windows -t Work | grep -q Dkr || {
-    tmux new-window -t Work -n Dkr
-    tmux send-keys -t Work:Dkr "reset;cd ~/work/brix/tree/docker-build" enter "git st" enter
+  tmux list-windows -t Work | grep -q BrxStd || {
+    tmux new-window -t Work -n BrxStd
+    tmux send-keys -t Work:BrxStd "reset;cd /Volumes/Simza/WorkCleaning/brix/tree/brixcloud-studio-testing" enter "git st" enter
   }
-  tmux list-windows -t Work | grep -q Skl || {
-    tmux new-window -t Work -n Skl
-    tmux send-keys -t Work:Skl "reset;cd ~/work/brix/tree/project-skeleton-ng" enter "git st" enter
-  }
-  tmux list-windows -t Work | grep -q Ba || {
-    tmux new-window -t Work -n Ba
-    tmux send-keys -t Work:Ba "reset;cd ~/work/brix/tree/brixadmin" enter "git st" enter
-  }
+  #tmux list-windows -t Work | grep -q Skl || {
+  #  tmux new-window -t Work -n Skl
+  #  tmux send-keys -t Work:Skl "reset;cd ~/work/brix/tree/project-skeleton-ng" enter "git st" enter
+  #}
 }
 
 c_tmux_srv()

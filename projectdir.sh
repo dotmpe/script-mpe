@@ -11,7 +11,7 @@ scriptname=projectdir
 # ----
 
 
-#choice_strict=true
+choice_strict=true
 
 
 pd__status()
