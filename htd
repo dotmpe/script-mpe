@@ -1904,7 +1904,11 @@ c_disks()
     echo ""
     for dp in $disk[0-9]*
     do
-        echo "  - $dp $(echo $(find_partition_ids $dp))"
+        pn=$(echo $dp | sed 's/^.*\([0-9]*\)/\1/')
+        ps=$(parted $disk -s print | grep '^\ '$pn | awk '{print $4}')
+        pt=$(parted $disk -s print | grep '^\ '$pn | awk '{print $5}')
+        fs=$(parted $disk -s print | grep '^\ '$pn | awk '{print $6}')
+        echo "  - $dp $pt $(echo $(find_partition_ids $dp)) $ps $fs"
     done
     echo
   done
