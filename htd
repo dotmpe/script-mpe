@@ -1033,6 +1033,11 @@ c_find_empty()
   eval find . $find_ignores -o -size 0 -a -print
 }
 
+c_filesize()
+{
+  filesize "$1"
+}
+
 # TODO interactive file process
 c_check()
 {
