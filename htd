@@ -1038,27 +1038,36 @@ c_filesize()
   filesize "$1"
 }
 
-# TODO interactive file process
+# XXX: a function to clean directories
+# TODO: hark back to statusdir?
+# TODO: notice deprecation marks
 c_check()
 {
   log "Looking for unknown files.."
+
+  pwd=$(pwd)
+  cruft=/tmp/htd-$(echo $pwd|tr '/' '-')-cruft.list
+  test ! -e "$cruft" || rm $cruft
   eval find . $find_ignores -o -print \
     | while read p
     do
+
       c_test_name "$p" >> /dev/null || {
-        #warn "Unhandled characters: $p"
+        warn "Unhandled characters: $p"
         continue
       }
+
       [ -L "$p" ] && {
         BE="$(dirname "$p")/$(readlink "$p")"
         [ -e "$BE" ] || {
-          #warn "Skip dead symlink"
+          warn "Skip dead symlink"
           continue
         }
         SZ="$(filesize "$BE")"
       } || {
         SZ="$(filesize "$p")"
       }
+
       if test -d "$p" -a -n "$(c_expand $p.{zip,tar{.gz,.bz2}})"
       then
         info "Skipping unpacked dir $p"
@@ -1074,11 +1083,19 @@ c_check()
         done
         continue
       fi
+
       test "$SZ" -ge "$MIN_SIZE" || {
-        #warn "File too small: $p"
+        info "File too small: $p"
+        echo $p >>$cruft
         continue
       }
+
     done
+
+  test -s "$cruft" && {
+    note "Cruft in $pwd: $(line_count $cruft) files"
+  } || noop
+
 }
 
 htd_git_rename()

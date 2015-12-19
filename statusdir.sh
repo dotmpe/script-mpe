@@ -58,10 +58,10 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 		type "statusdir_$func" &>/dev/null && { func="statusdir_$1"; }
 		type $func &>/dev/null && {
 			shift 1
-			$func $@
+			$func "$@"
 		# or run default
-		} || { 
-			exit
+		} || {
+			exit 1
 		}
 	fi
 fi

@@ -40,8 +40,6 @@ else:
     try:
         vs = [ int(v) for v in open(dp).readlines() if v.strip() ]
         fh = open(dp, 'w+')
-	fh.truncate()
-	fh.close()
     except:
         pass
     if len(vs) == 1:

@@ -174,6 +174,12 @@ log_256()
   printf "$1\n"
 }
 
+err()
+{
+  log "$1" 1>&2
+  test -z "$2" || exit $2
+}
+
 # Normal log uses log_$TERM
 # 1:fd 2:str 3:exit
 log()
@@ -197,7 +203,7 @@ log()
         ;;
   esac
 }
-err()
+stderr()
 {
   # XXX seems ie grep strips colors anyway?
   [ -n "$stdout_type" ] || stdout_type=$stdio_2_type
@@ -210,7 +216,7 @@ err()
           || crit_label_c="${ylw}"
 
         log "${bld}${crit_label_c}$1${norm}${blackb}: ${bnrml}$2${norm}" 1>&2 ;;
-    err*)
+    stderr*)
         bb=${red}; bk=$grey
         log "${bld}${red}$1${blackb}: ${norm}${bnrml}$2${norm}" 1>&2 ;;
     warn*)
@@ -236,6 +242,8 @@ err()
   [ -z "$3" ] || exit $3
 }
 
+# std-v <level>
+# if verbosity is defined, return non-zero if <level> is below verbosity treshold
 std_v()
 {
   test -z "$verbosity" && return || {
@@ -253,32 +261,32 @@ std_exit()
 crit()
 {
   std_v 3 || std_exit $2 || return 0
-  err "Crit" "$1" $2
+  stderr "Crit" "$1" $2
 }
 error()
 {
   std_v 3 || std_exit $2 || return 0
-  err "Error" "$1" $2
+  stderr "Error" "$1" $2
 }
 warn()
 {
   std_v 4 || std_exit $2 || return 0
-  err "Warning" "$1" $2
+  stderr "Warning" "$1" $2
 }
 note()
 {
   std_v 5 || std_exit $2 || return 0
-  err "Notice" "$1" $2
+  stderr "Notice" "$1" $2
 }
 info()
 {
   std_v 6 || std_exit $2 || return 0
-  err "Info" "$1" $2
+  stderr "Info" "$1" $2
 }
 debug()
 {
   std_v 7 || std_exit $2 || return 0
-  err "Debug" "$1" $2
+  stderr "Debug" "$1" $2
 }
 
 std_demo()
