@@ -80,9 +80,11 @@ func_exists()
 
 try_exec_func()
 {
-  test -n "$1" || return 1
+  test -n "$1" || return 97
   func_exists $1 || return $?
-  $1 || return $?
+  local func=$1
+  shift 1
+  $func "$@" || return $?
 }
 
 # 1:file-name[:line-number] 2:content
