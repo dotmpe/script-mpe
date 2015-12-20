@@ -490,15 +490,13 @@ c_day()
   c_today personal/journal
   git add note/*.rst sysadmin/*.rst personal/*.rst personal/journal/*.rst
   git add -u note sysadmin personal/journal
+  brew update
 }
 
 c_hour()
 {
   cd ~/.conf
   ./script/stat.sh
-  req_htdir || error "Missing HTDIR" 1
-  cd $HTDIR
-  c_today personal/journal
 }
 
 
