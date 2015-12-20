@@ -488,9 +488,8 @@ c_day()
   ./script/stat.sh
   cd $HTDIR
   c_today personal/journal
-  git add note/*.rst sysadmin/*.rst personal/*.rst personal/journal/*.rst
+  git add note/*.rst sysadmin/*.rst personal/*.rst personal/journal/20*.rst
   git add -u note sysadmin personal/journal
-  brew update
 }
 
 c_hour()
