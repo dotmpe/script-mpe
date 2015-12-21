@@ -36,8 +36,14 @@ htd_load()
 
   test -e table.sha1 && R_C_SHA3="$(cat table.sha1|wc -l)"
 
-  rows=$(stty size|awk '{print $1}')
-  cols=$(stty size|awk '{print $2}')
+  stdio_type 0
+  test "$stdio_0_type" = "t" && {
+    rows=$(stty size|awk '{print $1}')
+    cols=$(stty size|awk '{print $2}')
+  } || {
+    rows=32
+    cols=79
+  }
 
   HTD_IGNORE=.htdignore
   test -e .git && {

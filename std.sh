@@ -97,6 +97,10 @@ stdio_type()
       ncolors=$(tput -T xterm colors)
       ;;
 
+    dumb )
+      LOG_TERM=bw
+      ;;
+
     * )
       LOG_TERM=bw
       echo "[std.sh] Other term: '$TERM'"
