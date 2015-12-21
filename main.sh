@@ -87,7 +87,7 @@ std_commands()
   # group commands per file, using sentinal line to mark next file
   local list_functions_head="# file=\$file"
 
-  # 
+  #
   test -z "$choice_global" && {
     test -z "$choice_all" && {
       local_id=$(pwd | tr '/-' '__')
@@ -97,7 +97,7 @@ std_commands()
     noop
   }
 
-  echo "local_id=$local_id"
+  test -z "$choice_debug" || echo "local_id=$local_id"
 
   local cont=
   list_functions "$@" | while read line
@@ -120,7 +120,7 @@ std_commands()
         }
       } || continue
     }
-    #echo "line=$line subcmd_func_pref=$subcmd_func_pref cont=$cont" 
+    #echo "line=$line subcmd_func_pref=$subcmd_func_pref cont=$cont"
     #echo "file=$file local-file=$local-file 0=$0"
     if test -n "$cont"; then continue; fi
 
@@ -368,7 +368,7 @@ main_init()
 main_parse_subcmd()
 {
   c=0
-  #func_exists ${base}_parse_subcmd_args 
+  #func_exists ${base}_parse_subcmd_args
   get_subcmd_args "$@"
   get_cmd_func subcmd
 }
@@ -402,8 +402,8 @@ main_debug()
     script_name=$script_name script_subcmd_name=$script_subcmd_name
     subcmd_func=$subcmd_func subcmd_func_pref=$subcmd_func_pref subcmd_func_suf=$subcmd_func_suf
 
-    choice_local=$choice_local choice_global=$choice_global choice_all=$choice_all 
-    box_src=$box_src 
+    choice_local=$choice_local choice_global=$choice_global choice_all=$choice_all
+    box_src=$box_src
   "
 }
 

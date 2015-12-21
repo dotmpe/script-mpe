@@ -479,25 +479,6 @@ c_today()
   done
 }
 
-# auto new-day (for cron)
-c_day()
-{
-  test -n "$1" || set -- "Cron says, high-time to file $(date -v -1d +"%b %d. %Y")"
-  req_htdir || error "Missing HTDIR" 1
-  cd ~/.conf
-  ./script/stat.sh
-  cd $HTDIR
-  c_today personal/journal
-  git add note/*.rst sysadmin/*.rst personal/*.rst personal/journal/20*.rst
-  git add -u note sysadmin personal/journal
-}
-
-c_hour()
-{
-  cd ~/.conf
-  ./script/stat.sh
-}
-
 
 # TODO: move date routines to lib
 # NOTE: these use BSD date -v, see GNU date -d
