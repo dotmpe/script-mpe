@@ -207,6 +207,7 @@ log()
         ;;
   esac
 }
+
 stderr()
 {
   # XXX seems ie grep strips colors anyway?
@@ -260,11 +261,14 @@ std_exit()
   test "$1" != "0" -a -z "$1" && return 1 || exit $1
 }
 
-#emerg() 1
-#crit() 2
+emerg()
+{
+  std_v 1 || std_exit $2 || return 0
+  stderr "Emerg" "$1" $2
+}
 crit()
 {
-  std_v 3 || std_exit $2 || return 0
+  std_v 2 || std_exit $2 || return 0
   stderr "Crit" "$1" $2
 }
 error()
@@ -293,6 +297,7 @@ debug()
   stderr "Debug" "$1" $2
 }
 
+# demonstrate log levels
 std_demo()
 {
   scriptname=std cmd=demo
@@ -330,7 +335,7 @@ clear_lines()
   echo
 }
 
-# read std. Once done use clear_lines to reset stdout
+# read stdin. Once done use clear_lines to reset stdout
 # could use this to post-process, reformat results of input.
 # XXX using fold to determine the real amount of lines a given stream would have
 # taken given terminal width ${cols}.

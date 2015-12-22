@@ -307,7 +307,10 @@ vs1_init_args_run()
   fi
 }
 
-c_man_1_run="Require localscript and exec. given function. "
+c_man_1_run="Run local or global function.
+
+For local, require localscript and exec. given function.
+"
 c_spc_run="-r|run [<cmd>=run [<name>=$hostname]]"
 c_run()
 {
@@ -341,15 +344,18 @@ c_run()
     debug "subbox_name=$subbox_name"
     debug "func_name=$func_name"
     debug "scope=$scope"
+    debug "box_src=$box_src box_lib=$box_lib"
     info "** DRY RUN ends **" 0
   }
 
+  # test for function
   type $func_name 2> /dev/null 1> /dev/null || {
     r=$?
     error "no $scope command $subbox_name"
     return $r
   }
 
+  # run function
   $func_name $@ && {
     test -n "$choice_global" && {
       info "command $subbox_name completed"

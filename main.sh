@@ -217,6 +217,7 @@ parse_box_subcmd_opts()
     a ) parse_subcmd_valid_flags $o list; choice_all=true;;
     g ) parse_subcmd_valid_flags $o run init edit; choice_global=true;;
     l ) parse_subcmd_valid_flags $o; choice_local=true;;
+    d ) parse_subcmd_valid_flags $o; choice_debug=true;;
 
     n ) dry_run=true ;;
     s ) silence=true; verbosity=0;;
@@ -396,14 +397,13 @@ main_debug()
   debug "vars:
     cmd=$base args=$*
     subcmd_name=$subcmd_name subcmd_alias=$subcmd_alias subcmd_def=$subcmd_def
-
-    silent=$silent silence=$silence verbosity=$verbosity
-
     script_name=$script_name script_subcmd_name=$script_subcmd_name
     subcmd_func=$subcmd_func subcmd_func_pref=$subcmd_func_pref subcmd_func_suf=$subcmd_func_suf
 
-    choice_local=$choice_local choice_global=$choice_global choice_all=$choice_all
-    box_src=$box_src
+    silent=$silent silence=$silence verbosity=$verbosity
+    choice_local=$choice_local choice_global=$choice_global
+    choice_all=$choice_all
+    choice_force=$choice_force
   "
 }
 
