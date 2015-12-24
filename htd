@@ -2020,6 +2020,26 @@ c_xtcp()
   socat TCP-LISTEN:6000,reuseaddr,fork UNIX-CLIENT:\"$DISPLAY\"
 }
 
+c_save()
+{
+  c_save_url "$@"
+}
+
+c_save_url()
+{
+  annex=/Volumes/Simza/Downloads
+  test "$(pwd -P)" = $annex || cd $annex
+
+  test -n "$1" || error 'URL expected' 1
+  test -n "$2" || {
+    parseuri.py "$1"
+    error "TODO: get filename"
+  }
+  test ! -e "$2" || error "File already exists: $2" 1
+  git annex addurl "$1" --file "$2"
+}
+
+
 
 ### Main
 

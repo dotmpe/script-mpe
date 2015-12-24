@@ -55,20 +55,42 @@ list_functions()
 }
 
 # FIXME: testing..
-pushd_cwdir()
-{
-  test -n "$CWDIR" -a "$CWDIR" != "$(pwd)" && {
-    echo "pushd $CWDIR" "$(pwd)"
-    pushd $WDIR
-  } || set --
-}
+#cmd_exists pushd || {
+#pushd()
+#{
+#  tmp=/tmp/pushd-$$
+#  echo "pushd \$\$=$$ $@"
+#  echo "$1" >>$tmp
+#  cd $1
+#}
+#popd()
+#{
+#  tmp=/tmp/pushd-$$
+#  echo "popd \$\$=$$ $@"
+#  tail -n 1 $tmp
+#  cd $(truncate_trailing_lines $tmp 1)
+#}
+#}
+#
+#pushd_cwdir()
+#{
+#  test -n "$CWDIR" -a "$CWDIR" != "$(pwd)" && {
+#    echo "pushd $CWDIR" "$(pwd)"
+#    pushd $WDIR
+#  } || set --
+#}
+#
+#popd_cwdir()
+#{
+#  test -n "$CWDIR" -a "$CWDIR" = "$(pwd)" && {
+#    echo "popd $CWDIR" "$(pwd)"
+#    test "$(popd)" = "$CWDIR"
+#  } || set --
+#}
 
-popd_cwdir()
+cmd_exists()
 {
-  test -n "$CWDIR" -a "$CWDIR" = "$(pwd)" && {
-    echo "popd $CWDIR" "$(pwd)"
-    test "$(popd)" = "$CWDIR"
-  } || set --
+  test -x $(which $1) || return $?
 }
 
 func_exists()
@@ -150,11 +172,6 @@ get_uuid()
   }
   error "FIXME uuid required" 1
   return 1
-}
-
-pushd()
-{
-  error "pushd not implemented" 1
 }
 
 expr_substr()
@@ -247,7 +264,28 @@ wait_for()
   done
 }
 
+# Wrap wc but handle with or w.o. trailing posix line-end
 line_count()
 {
-  wc -l $1 | awk '{print $1}'
+  lc="$(echo $(od -An -tc -j $(( $(filesize $1) - 1 )) $1))"
+  case "$lc" in "\n" ) ;;
+    "\r" ) error "POSIX line-end required" 1 ;;
+    * ) printf "\n" >>$1 ;;
+  esac
+  local lc=$(wc -l $1 | awk '{print $1}')
+  echo $lc
 }
+
+truncate_trailing_lines()
+{
+  test -n "$1" || error "FILE expected" 1
+  test -n "$2" || error "LINES expected" 1
+  test $2 -gt 0 || error "LINES > 0 expected" 1
+  local lines=$(line_count "$1")
+  cp $1 $1.tmp
+  tail -n $2 $1.tmp
+  head -n +$(( $lines - $2 )) $1.tmp > $1
+  rm $1.tmp
+}
+
+

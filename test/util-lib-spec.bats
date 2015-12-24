@@ -208,3 +208,31 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 }
 
 
+@test "$lib line_count: " {
+
+  out=/tmp/line_count
+
+  printf "1\n2\n3\n4" >$out
+  test "$(wc -l $out|awk '{print $1}')" = "3"
+  test "$(line_count $out)" = "4"
+
+  printf "1\n2\n3\n4\n" >$out
+  test "$(wc -l $out|awk '{print $1}')" = "4"
+  test "$(line_count $out)" = "4"
+
+  #uname=$(uname -s)
+  #printf "1\r" >$out
+  #test -n "$(line_count $out)"
+}
+
+@test "$lib truncate_trailing_lines: " {
+
+  out=/tmp/truncate_trailing_lines
+  printf "1\n2\n3\n4" >$out
+  test -s "$out"
+  ll="$(truncate_trailing_lines $out 1)"
+  test -n "$ll"
+  test "$ll" = "4"
+}
+
+
