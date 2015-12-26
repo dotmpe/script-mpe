@@ -66,12 +66,52 @@ pd__status()
   done
 }
 
+# TODO: more terse status overview
 pd__check()
 {
   test -n "$1" || set -- "projects.yaml" "$2"
   test -e "$1" || error "No projects file $1" 1
   test -z "$3" || error "Surplus arguments" 1
 
+}
+
+pd__dirty()
+{
+  test -n "$1" || set -- "projects.yaml" "$2"
+  test -e "$1" || error "No projects file $1" 1
+  test -z "$3" || error "Surplus arguments" 1
+
+  pwd=$(pwd)
+  projectdir-meta -f $1 list-prefixes "$2" | while read prefix
+  do
+    test ! -d $prefix || {
+      cd $pwd/$prefix
+      test -z "$(vc ufx)" || {
+        warn "Dirty: $prefix"
+      }
+      cd $pwd
+    }
+  done
+}
+
+# drop clean checkouts and disable repository
+pd__disable_clean()
+{
+  test -n "$1" || set -- "projects.yaml" "$2"
+  test -e "$1" || error "No projects file $1" 1
+  test -z "$3" || error "Surplus arguments" 1
+
+  pwd=$(pwd)
+  projectdir-meta -f $1 list-prefixes "$2" | while read prefix
+  do
+    test ! -d $prefix || {
+      cd $pwd/$prefix
+      test -z "$(vc ufx)" && {
+        warn "TODO remove $prefix if synced"
+      }
+      cd $pwd
+    }
+  done
 }
 
 # add/remove repos, update remotes at first level. git only.
@@ -143,12 +183,6 @@ pd__list_prefixes()
   done
 }
 
-
-# drop clean checkouts and disable repository
-pd__disable_clean()
-{
-  note "TODO"
-}
 
 
 backup_if_comments()
