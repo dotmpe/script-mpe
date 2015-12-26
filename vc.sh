@@ -764,6 +764,21 @@ vc_projects()
   done
 }
 
+vc_remotes()
+{
+  git remote | while read remote
+  do
+    case "$1" in
+      '')
+        echo $remote $(git config remote.$remote.url);;
+      sh|var)
+        echo $remote=$(git config remote.$remote.url);;
+      *)
+        error "illegal $1" 1;;
+    esac
+  done
+}
+
 # ----
 
 

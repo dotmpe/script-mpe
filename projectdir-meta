@@ -5,6 +5,9 @@
 Read from human-maintained document into processable structure.
 
 Usage:
+    projectdir-meta [options] add-repo <prefix> [<kwdargs>...]
+    projectdir-meta [options] update-repo <prefix> [<kwdargs>...]
+    projectdir-meta [options] drop-repo <prefix>
     projectdir-meta [options] list-prefixes [<root>]
     projectdir-meta [options] (enabled|disabled) <prefix>
     projectdir-meta [options] clean-mode <prefix> [<mode>]
@@ -16,8 +19,12 @@ Options:
   -f PD, --file PD
                 Give custom path to projectdir document file [default: ./projects.yaml]
 """
+import os
+
 from docopt import docopt
 import uuid
+
+from deep_eq import deep_eq
 
 from script_mpe import util
 
@@ -119,6 +126,42 @@ def main(pd_doc, func=None, opts=None):
                 else:
                     if repo_modes.index(repo_mode) < repo_modes.index(mode):
                         return 1
+
+    # add/update/drop repo metadata
+    elif func == 'add-repo':
+        p = opts.args.prefix
+        pdhdata['repositories'][p] =\
+            dict([ k.split('=') for k in opts.args.kwdargs ])
+        yaml_safe_dump(pdhdata, open(pd_doc, 'a+'), default_flow_style=False)
+
+    elif func == 'update-repo':
+        p = opts.args.prefix
+        if p not in pdhdata['repositories'] and not p.endswith(os.sep):
+            p += os.sep
+        if p not in pdhdata['repositories'] and not p.startswith('.'+os.sep):
+            p = '.'+os.sep+p
+        if p not in pdhdata['repositories']:
+            print "No such repo prefix", p
+            return 2
+        new = dict([ k.split('=') for k in opts.args.kwdargs ])
+        for k,v in new.items():
+            if v == 'true':
+                new[k] = True
+            elif v == 'false':
+                new[k] = False
+            elif v.isdigit():
+                new[k] = int(v)
+        updated = dict(pdhdata['repositories'][p])
+        updated.update(new)
+        if deep_eq( pdhdata['repositories'][p], updated ):
+            return 42
+        pdhdata['repositories'][p] = updated
+        yaml_safe_dump(pdhdata, open(pd_doc, 'w+'), default_flow_style=False)
+
+    elif func == 'drop-repo':
+        p = opts.args.prefix
+        del pdhdata['repositories'][p]
+        yaml_safe_dump(pdhdata, open(pd_doc, 'w+'), default_flow_style=False)
 
     # List all project repo prefixes
     elif func == 'list-prefixes':

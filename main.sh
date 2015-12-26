@@ -151,16 +151,6 @@ std_commands()
   done
 }
 
-func_comment()
-{
-  grep_line="$(grep -n "^$1()" "$2" | cut -d ':' -f 1)"
-  case "$grep_line" in [0-9]* ) ;; * ) return 0;; esac
-  func_leading_line="$(head -n +$(( $grep_line - 1 )) "$2" | tail -n 1)"
-  echo "$func_leading_line" | grep -q '^\s*#\ ' && {
-    echo "$func_leading_line" | sed 's/^\s*#\ //'
-  } || noop
-}
-
 # Find shell script location with or without extension
 # 1:basename:scriptname
 # :fn

@@ -37,7 +37,10 @@ pd__status()
       }
 
       dirty="$(cd $prefix; git diff --quiet || echo 1)"
-      test -z "$dirty" && {
+      test -n "$dirty" && {
+        warn "Dirty: $(__vc_status "$prefix")"
+
+      } || {
 
         test -n "$choice_strict" \
           && cruft="$(cd $prefix; vc excluded)" \
@@ -59,9 +62,67 @@ pd__status()
           note "Crufty: $(__vc_status "$prefix")"
           printf "$cruft\n" 1>&2
         }
-      } || {
-        warn "Dirty: $(__vc_status "$prefix")"
       }
+  done
+}
+
+pd__check()
+{
+  test -n "$1" || set -- "projects.yaml" "$2"
+  test -e "$1" || error "No projects file $1" 1
+  test -z "$3" || error "Surplus arguments" 1
+
+}
+
+# add/remove repos, update remotes at first level. git only.
+pd__update()
+{
+  test -n "$1" || set -- "projects.yaml" "$2"
+  test -e "$1" || error "No projects file $1" 1
+  test -z "$3" || error "Surplus arguments" 1
+
+  backup_if_comments "$1"
+
+
+  projectdir-meta -f $1 list-prefixes "$2" | while read prefix
+  do
+    #match_grep_pattern_test "$prefix"
+    test -d $prefix || {
+      projectdir-meta -f $1 update-repo $prefix disable=true \
+        && note "Disabled $prefix"\
+        || {
+          r=$?; test $r -eq 42 && info "Checkout at $prefix already disabled" \
+          || warn "Error disabling $prefix"
+        }
+    }
+  done
+
+
+  for git in */.git
+  do
+    prefix=$(dirname $git)
+    props="$(verbosity=0;cd $prefix;echo "$(vc remotes sh)")"
+
+    match_grep_pattern_test "$prefix"
+
+    grep -q '\<'$p_'\>\/\?\:' $1 && {
+
+      info "Testing update $prefix props='$props'"
+      projectdir-meta -f $1 update-repo $prefix \
+        $props \
+          && note "Updated metadata for $prefix" \
+          || { r=$?; test $r -eq 42 && info "Metadata up-to-date for $prefix" \
+            || warn "Error updating $prefix with '$props'"
+          }
+
+    } || {
+
+      info "Testing add $prefix props='$props'"
+      projectdir-meta -f $1 add-repo $prefix \
+        $props \
+          && note "Added metadata for $prefix" \
+          || error "Unexpected error adding repo $?" $?
+    }
   done
 }
 
@@ -82,9 +143,22 @@ pd__list_prefixes()
   done
 }
 
-pd__check()
+
+# drop clean checkouts and disable repository
+pd__disable_clean()
 {
-  echo TODO find new repos
+  note "TODO"
+}
+
+
+backup_if_comments()
+{
+  test -f "$1" || error "file expected: '$1'" 1
+  grep -q '^\s*#' $1 && {
+    test ! -e $1.comments || error "backup exists: '$1.comments'" 1
+    cp $1 $1.comments
+  } || noop
+
 }
 
 
@@ -93,6 +167,11 @@ pd__check()
 
 def_func=pd__status
 
+
+pd__load()
+{
+  printf ""
+}
 
 pd__usage()
 {
@@ -123,6 +202,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 		type $func &> /dev/null && {
 			func_exists=1
 			shift 1
+			pd__load
 			$func "$@"
 		} || {
 			e=$?

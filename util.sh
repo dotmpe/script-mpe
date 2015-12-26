@@ -316,4 +316,18 @@ truncate_trailing_lines()
   rm $1.tmp
 }
 
+# find '<func>()' line and see if its preceeded by a comment. Return comment text.
+func_comment()
+{
+  test -n "$1" || error "function name expected" 1
+  test -e "$2" || error "file expected: '$2'" 1
+  test -z "$3" || error "surplus arguments: '$3'" 1
+  grep_line="$(grep -n "^$1()" "$2" | cut -d ':' -f 1)"
+  case "$grep_line" in [0-9]* ) ;; * ) return 0;; esac
+  func_leading_line="$(head -n +$(( $grep_line - 1 )) "$2" | tail -n 1)"
+  echo "$func_leading_line" | grep -q '^\s*#\ ' && {
+    echo "$func_leading_line" | sed 's/^\s*#\ //'
+  } || noop
+}
+
 
