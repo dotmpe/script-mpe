@@ -38,8 +38,8 @@ function add_check()
 		do
 			base1=$(basename $f .$ext)
 			base=$(basename $base1 .incomplete)
-			[ "$base" != "$base1" ] && { 
-				echo "Incomplete $base"; continue; 
+			[ "$base" != "$base1" ] && {
+				echo "Incomplete $base"; continue;
 			}
 			check=$(echo $base | sed -rn 's/.*([a-f0-9]{40})/\1/p')
 
@@ -89,7 +89,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 		func="$1"
 		type $func &>/dev/null && {
 			shift 1
-			$func $@
+			$func "$@"
 			echo $func "$@" done
 		}
 	fi

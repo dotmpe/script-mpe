@@ -465,6 +465,7 @@ c_als_vt=vtoday
 c_today()
 {
   test -z "$1" && P=journal || P=$1
+  test -d "$P" || error "Dir $(pwd)/$P must exist" 1
   YSEP=/
   Y=%Y
   MSEP=-
@@ -1931,6 +1932,7 @@ c_disks()
   echo
 }
 
+
 # Get from rST file using xpath
 c_getx()
 {
@@ -2008,9 +2010,10 @@ EOM
 }
 
 
-c_pc()
+# GIT commits and push
+c_pci()
 {
-  git add -u;git ci -m "$1";git push --all
+  git add -u;git commit -m "$1";git push --all
 }
 
 
@@ -2020,6 +2023,7 @@ c_xtcp()
   socat TCP-LISTEN:6000,reuseaddr,fork UNIX-CLIENT:\"$DISPLAY\"
 }
 
+# Annex
 c_save()
 {
   c_save_url "$@"

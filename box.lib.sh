@@ -34,6 +34,7 @@ box_find_namedscript()
 {
   test -n "$named_script" || named_script=$BOX_BIN_DIR/$script_name
   test -e "$named_script" && return || {
+  echo BOX_BIN_DIR=$BOX_BIN_DIR
     warn "No named_script for $script_name"
     return 1
   }
@@ -202,9 +203,16 @@ box_list_libs()
   test -n "$1" || set -- "$0" "$(basename $0)"
   test -n "$2" || set -- "$1" "$(basename $1)"
 
+  test -e "$1" || {
+    error "no script $1"
+    return 1
+  }
+
   local \
     line_offset="$(box_script_insert_point $1 lib $2)" \
     sentinel_grep=".*#.--.${2}.box.lib.sentinel.--"
+
+  test -n "$line_offset" || error "line_offset empty for $1 lib $2" 1
 
   box_grep $sentinel_grep $1
   local line_diff=$(( $line_number - $line_offset - 2 ))
@@ -219,7 +227,6 @@ box_list_libs()
     info "** DRY RUN ends **" 0
   }
 
-  test -n "$line_offset" || error "line_offset empty" 1
   test -n "$line_diff" || error "line_diff empty" 1
 
   test $line_diff -eq 0 || {

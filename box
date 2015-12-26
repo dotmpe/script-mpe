@@ -446,7 +446,7 @@ box__main()
       box_lib
 
       # Execute
-      main $*
+      main "$@"
       ;;
 
     #* )
@@ -488,5 +488,5 @@ box_load()
 
 # Use hyphen to ignore source exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
-  box__main $@
+  box__main "$@"
 fi

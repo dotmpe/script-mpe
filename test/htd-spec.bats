@@ -97,9 +97,13 @@ version=0.0.0+20150911-0659 # script.mpe
   #   also, may want to have larger offsets and wider time-windows: months, years
 
   rm -rf bats-test-log
+
+  rm -rf /tmp/journal
+
   run $BATS_TEST_DESCRIPTION
+  #echo "${lines[*]}" >/tmp/out222
   test $status -eq 1
-  fnmatch "*Error*Dir journal must exist*" "${lines[*]}"
+  fnmatch "*Error*Dir *tmp/journal must exist*" "${lines[*]}"
   test "${#lines[@]}" = "1"
 }
 

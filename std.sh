@@ -221,7 +221,7 @@ stderr()
           || crit_label_c="${ylw}"
 
         log "${bld}${crit_label_c}$1${norm}${blackb}: ${bnrml}$2${norm}" 1>&2 ;;
-    stderr*)
+    err*)
         bb=${red}; bk=$grey
         log "${bld}${red}$1${blackb}: ${norm}${bnrml}$2${norm}" 1>&2 ;;
     warn*)

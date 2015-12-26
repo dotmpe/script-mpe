@@ -172,8 +172,8 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
     simza )
       test $status -eq 0
-      #echo "lines ${#lines[@]}" > /tmp/1
-      test "${#lines[@]}" = "5" # lines of output (stderr+stderr)
+      echo "lines ${#lines[@]}" > /tmp/1
+      test "${#lines[@]}" = "8" # lines of output (stderr+stderr)
       ;;
 
     vs1 )

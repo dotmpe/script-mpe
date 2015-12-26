@@ -111,7 +111,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 		type $func &> /dev/null && {
 			func_exists=1
 			shift 1
-			$func $@
+			$func "$@"
 		} || {
 			e=$?
 			[ -z "$cmd" ] && {

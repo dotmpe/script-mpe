@@ -37,5 +37,7 @@ source $lib.sh
   fnmatch "test *" "test 123" || test
   fnmatch "*test*" " test " || test
   fnmatch "./file.sh: line *: test" "./file.sh: line 1234: test" || test
+  errmsg="[htd.sh:today] Error: Dir /tmp/journal must exist"
+  fnmatch "*Error*Dir /tmp/journal must exist*" "$errmsg"
 }
 

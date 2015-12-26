@@ -117,17 +117,18 @@ file_insert_at()
   test -n "$*" || error "arguments required" 1
 
   local file_name= line_number=
-  fnmatch "*:[0-9]*" $1 && {
-    file_name=$(echo $1 | sed 's/:\([0-9]\+\)$//')
-    line_number=$(echo $1 | sed 's/^\(.*\):\([0-9]\+\)$/\2/')
+  fnmatch *:[0-9]* "$1" && {
+    file_name=$(echo $1 | cut -f 1 -d :)
+    line_number=$(echo $1 | cut -f 2 -d :)
     shift 1
   } || {
     file_name=$1; shift 1
     line_number=$1; shift 1
   }
 
-  test -n "$*" || error "nothing to insert" 1
   test -e "$file_name" || error "no file $file_name" 1
+  test -n "$1" || error "content expected" 1
+  test -n "$*" || error "nothing to insert" 1
 
   # use ed-script to insert second file into first at line
   note "Inserting at $file_name:$line_number"
@@ -135,6 +136,28 @@ file_insert_at()
 $1
 .
 w" | ed $file_name $tmpf
+}
+
+file_replace_at()
+{
+  test -n "$*" || error "arguments required" 1
+
+  local file_name= line_number=
+
+  fnmatch *:[0-9]* "$1" && {
+    file_name=$(echo $1 | cut -f 1 -d :)
+    line_number=$(echo $1 | cut -f 2 -d :)
+    shift 1
+  } || {
+    file_name=$1; shift 1
+    line_number=$1; shift 1
+  }
+
+  test -e "$file_name" || error "no file $file_name" 1
+  test -n "$line_number" || error "no line_number" 1
+  test -n "$1" || error "nothing to insert" 1
+
+  sed $line_number's/.*/'$1'/' $file_name
 }
 
 #
@@ -218,6 +241,11 @@ on_host()
 req_host()
 {
   on_host "$1" || error "$subcmd_name runs on $1 only" 1
+}
+
+on_system()
+{
+  test "$uname" = "$1" || return 1
 }
 
 run_cmd()

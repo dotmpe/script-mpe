@@ -154,7 +154,8 @@ init
   case $(current_test_env) in travis|jenkins )
       test "$stdio_1_type" = "f" ;;
     * )
-      test "$stdio_1_type" = "f" ;;
+      #echo "$stdio_1_type" >>/tmp/stdio_1_type
+      test "$stdio_1_type" = "p" ;;
   esac
   stdio_type 2
   test "$?" = "0"

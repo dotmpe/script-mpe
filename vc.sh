@@ -768,7 +768,7 @@ vc_projects()
 
 
 # Main
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
+case "$0" in "" ) ;; "-*" ) ;; * )
 
   # Do something if script invoked as 'vc.sh'
   base=$(basename $0 .sh)
@@ -785,10 +785,10 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
         type $func &>/dev/null && {
           shift 1
           load
-          $func $@
+          $func "$@"
         } || {
           load
-          vc_print_all $@
+          vc_print_all "$@"
         }
 
       ;;
@@ -797,5 +797,6 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
       echo "Not a frontend for $base ($scriptname)"
 
   esac
-fi
+
+esac
 

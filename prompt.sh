@@ -46,7 +46,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
 				. ~/bin/statusdir.sh
 				. ~/bin/vc.sh
-				$func $@
+				$func "$@"
 
 			} || {
 				# handle non-zero return or print usage for non-existant func

@@ -42,6 +42,9 @@ x_re()
   echo $1 | grep -E "^$2$" > /dev/null && return 0 || return 1
 }
 
-fnmatch () { case "$2" in $1) return 0 ;; *) return 1 ;; esac ; }
+fnmatch()
+{
+  case "$2" in $1 ) return 0 ;; *) return 1 ;; esac
+}
 
 

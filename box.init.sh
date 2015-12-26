@@ -4,10 +4,12 @@ set -e
 
 test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf
 test -n "$BOX_DIR" || {
-    BOX_DIR=$UCONFDIR/box
+  BOX_DIR=$UCONFDIR/box
 }
 test -n "$BOX_BIN_DIR" || {
-    BOX_BIN_DIR=$UCONFDIR/path/Generic
+  test -n "$uname" || uname=$(uname -s)
+  BOX_BIN_DIR=$UCONFDIR/script/$uname
+  test -d $BOX_BIN_DIR || mkdir -vp $BOX_BIN_DIR
 }
 
 . $HOME/bin/std.sh
