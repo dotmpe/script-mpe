@@ -11,7 +11,6 @@ scriptname=projectdir
 # ----
 
 
-choice_strict=true
 
 
 pd__edit()
@@ -45,6 +44,7 @@ pd__status()
           || {
 
             projectdir-meta -q clean-mode $prefix tracked || {
+
               projectdir-meta -q clean-mode $prefix excluded \
                 && cruft="$(cd $prefix; vc excluded)" \
                 || cruft="$(cd $prefix; vc unversioned-files)"

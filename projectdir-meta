@@ -101,8 +101,6 @@ def main(pd_doc, func=None, opts=None):
             if opts.flags.strict:
                 return repo_mode == mode
             else:
-                print opts.args.prefix, 'repo-mode:'+repo_mode, 'wanted-mode:'+mode
-                print opts.args.prefix, repo_modes.index(repo_mode), repo_modes.index(mode)
                 if opts.flags.strict:
                     if repo_mode != mode:
                         return 1
