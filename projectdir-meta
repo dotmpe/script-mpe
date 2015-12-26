@@ -10,6 +10,7 @@ Usage:
     projectdir-meta [options] drop-repo <prefix>
     projectdir-meta [options] list-prefixes [<root>]
     projectdir-meta [options] (enabled|disabled) <prefix>
+    projectdir-meta [options] (enable|disable) <prefix>
     projectdir-meta [options] clean-mode <prefix> [<mode>]
     projectdir-meta (-h | --help)
 
@@ -66,6 +67,17 @@ def get_toggle_state(data):
             else:
                 return toggle(state)
 
+def set_toggle_state(data, state):
+    assert state in toggle_states
+
+    if toggle(state) in data:
+        del data[toggle(state)]
+
+    enabled = state == toggle_states[1]
+
+    data[state] = True
+
+
 repo_modes = ['tracked', 'untracked', 'excluded']
 
 def get_clean_mode(repo):
@@ -98,6 +110,13 @@ def main(pd_doc, func=None, opts=None):
             return
         if func != state:
             return 1
+
+    elif func in ('enable', 'disable'):
+        prefix = opts.args.prefix
+        state = get_toggle_state(pdhdata['repositories'][prefix])
+        if func+'d' != state:
+            set_toggle_state( pdhdata['repositories'][prefix], func+'d' )
+            yaml_safe_dump(pdhdata, open(pd_doc, 'w+'), default_flow_style=False)
 
     # Return or check for clean-mode
     elif func == 'clean-mode':
@@ -132,7 +151,7 @@ def main(pd_doc, func=None, opts=None):
         p = opts.args.prefix
         pdhdata['repositories'][p] =\
             dict([ k.split('=') for k in opts.args.kwdargs ])
-        yaml_safe_dump(pdhdata, open(pd_doc, 'a+'), default_flow_style=False)
+        yaml_safe_dump(pdhdata, open(pd_doc, 'w+'), default_flow_style=False)
 
     elif func == 'update-repo':
         p = opts.args.prefix

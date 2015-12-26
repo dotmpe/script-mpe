@@ -108,6 +108,11 @@ pd__disable_clean()
       cd $pwd/$prefix
       test -z "$(vc ufx)" && {
         warn "TODO remove $prefix if synced"
+        # XXX need to fetch remotes, compare local branches
+        #projectdir-meta -f $1 list-push-remotes $prefix | while read remote
+        #do
+        #  git push $remote --all
+        #done
       }
       cd $pwd
     }

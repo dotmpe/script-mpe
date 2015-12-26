@@ -1189,10 +1189,37 @@ c_resolve()
   set --
 }
 
+# GIT commits and push
+c_pci()
+{
+  git add -u;git commit -m "$1";git push --all
+}
+
+# Annex
+c_save()
+{
+  c_save_url "$@"
+}
+
+c_save_url()
+{
+  annex=/Volumes/Simza/Downloads
+  test "$(pwd -P)" = $annex || cd $annex
+
+  test -n "$1" || error 'URL expected' 1
+  test -n "$2" || {
+    parseuri.py "$1"
+    error "TODO: get filename"
+  }
+  test ! -e "$2" || error "File already exists: $2" 1
+  git annex addurl "$1" --file "$2"
+}
+
 c_commit()
 {
   echo -e
 }
+
 
 c_show_rules()
 {
@@ -2010,37 +2037,10 @@ EOM
 }
 
 
-# GIT commits and push
-c_pci()
-{
-  git add -u;git commit -m "$1";git push --all
-}
-
-
 # Setup X tcp socket for VS1 containers
 c_xtcp()
 {
   socat TCP-LISTEN:6000,reuseaddr,fork UNIX-CLIENT:\"$DISPLAY\"
-}
-
-# Annex
-c_save()
-{
-  c_save_url "$@"
-}
-
-c_save_url()
-{
-  annex=/Volumes/Simza/Downloads
-  test "$(pwd -P)" = $annex || cd $annex
-
-  test -n "$1" || error 'URL expected' 1
-  test -n "$2" || {
-    parseuri.py "$1"
-    error "TODO: get filename"
-  }
-  test ! -e "$2" || error "File already exists: $2" 1
-  git annex addurl "$1" --file "$2"
 }
 
 
