@@ -14,6 +14,11 @@ scriptname=projectdir
 choice_strict=true
 
 
+pd__edit()
+{
+  $EDITOR $0 "$@"
+}
+
 pd__status()
 {
   note "Checking prefixes"
@@ -35,10 +40,17 @@ pd__status()
       dirty="$(cd $prefix; git diff --quiet || echo 1)"
       test -z "$dirty" && {
 
-        # XXX: split this to clean routine: strict implies no unversioned files at all:
         test -n "$choice_strict" \
           && cruft="$(cd $prefix; vc excluded)" \
-          || cruft="$(cd $prefix; vc unversioned-files)"
+          || {
+
+            projectdir-meta -q clean-mode $prefix tracked || {
+              projectdir-meta -q clean-mode $prefix excluded \
+                && cruft="$(cd $prefix; vc excluded)" \
+                || cruft="$(cd $prefix; vc unversioned-files)"
+            }
+
+          }
 
         test -z "$cruft" && {
           info "OK $(__vc_status "$prefix")"

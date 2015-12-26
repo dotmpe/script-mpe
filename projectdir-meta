@@ -7,6 +7,7 @@ Read from human-maintained document into processable structure.
 Usage:
     projectdir-meta [options] list-prefixes [<root>]
     projectdir-meta [options] (enabled|disabled) <prefix>
+    projectdir-meta [options] clean-mode <prefix> [<mode>]
     projectdir-meta (-h | --help)
 
 Options:
@@ -58,6 +59,24 @@ def get_toggle_state(data):
             else:
                 return toggle(state)
 
+repo_modes = ['tracked', 'untracked', 'excluded']
+
+def get_clean_mode(repo):
+    """Clean mode is 'tracked' to only consider changes to tracked files,
+    untracked to include those as well, or excluded to consider all files in
+    the checkout directory including GIT ignored files.
+    """
+    if 'clean' in repo:
+        repo_mode = repo['clean']
+    else:
+        repo_mode = True
+    if isinstance(repo_mode, bool):
+        if repo_mode == True:
+            repo_mode = 'untracked'
+        else:
+            repo_mode = 'tracked'
+    return repo_mode
+
 
 def main(pd_doc, func=None, opts=None):
     pdhdata = yaml_load(open(pd_doc))
@@ -72,6 +91,36 @@ def main(pd_doc, func=None, opts=None):
             return
         if func != state:
             return 1
+
+    # Return or check for clean-mode
+    elif func == 'clean-mode':
+        mode = opts.args.mode or 'untracked'
+        if opts.args.prefix in pdhdata['repositories']:
+            repo = pdhdata['repositories'][opts.args.prefix]
+            repo_mode = get_clean_mode(repo)
+            if opts.flags.strict:
+                return repo_mode == mode
+            else:
+                print opts.args.prefix, 'repo-mode:'+repo_mode, 'wanted-mode:'+mode
+                print opts.args.prefix, repo_modes.index(repo_mode), repo_modes.index(mode)
+                if opts.flags.strict:
+                    if repo_mode != mode:
+                        return 1
+                else:
+                    if repo_modes.index(repo_mode) < repo_modes.index(mode):
+                        return 1
+        else:
+            for x in pdhdata['repositories'].keys():
+                if not x.startswith(opts.args.prefix):
+                    continue
+                repo = pdhdata['repositories'][x]
+                repo_mode = get_clean_mode(repo)
+                if opts.flags.strict:
+                    if repo_mode != mode:
+                        return 1
+                else:
+                    if repo_modes.index(repo_mode) < repo_modes.index(mode):
+                        return 1
 
     # List all project repo prefixes
     elif func == 'list-prefixes':
