@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-:created: 2015-11-30
+:created: 2015-12-27
 
 
 Usage:
@@ -42,7 +42,8 @@ import confparse
 #import argparse
 #flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
 flags = confparse.Values(dict(
-        logging_level= 'INFO'
+        logging_level= 'INFO',
+        noauth_local_webserver= False
     ))
 
 
@@ -182,9 +183,6 @@ for k, h in locals().items():
 
 def main(func=None, opts=None):
     """Shows basic usage of the Google Calendar API.
-
-    Creates a Google Calendar API service object and outputs a list of the next
-    10 events on the user's calendar.
     """
     credentials = get_credentials(APPLICATION_NAME, opts.flags.secret,
             CRED_FILE, SCOPES)
