@@ -1195,6 +1195,14 @@ c_pci()
   git add -u;git commit -m "$1";git push --all
 }
 
+# Move path to archive path in htdocs cabinet
+# archive [<prefix>]/[<datepath>]/[<id>] <refs>...
+
+c_archive()
+{
+  test -n "$1" || error "ID expected"
+}
+
 # Annex
 c_save()
 {

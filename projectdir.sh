@@ -7,10 +7,9 @@
 
 
 scriptname=projectdir
+test -n "$scriptalias" || scriptalias=pd
 
 # ----
-
-
 
 
 pd__edit()
@@ -18,6 +17,13 @@ pd__edit()
   $EDITOR $0 "$@"
 }
 
+# defer to python script for YAML parsing
+pd__meta()
+{
+  projectdir-meta "$@"
+}
+
+# Run over known prefixes and present status indicators
 pd__status()
 {
   note "Checking prefixes"
@@ -73,6 +79,10 @@ pd__check()
   test -e "$1" || error "No projects file $1" 1
   test -z "$3" || error "Surplus arguments" 1
 
+  projectdir-meta -f $1 list-prefixes "$2" | while read prefix
+  do
+    test -d $prefix || warn "Missing checkout $prefix"
+  done
 }
 
 pd__dirty()
@@ -165,7 +175,7 @@ pd__update()
     } || {
 
       info "Testing add $prefix props='$props'"
-      projectdir-meta -f $1 add-repo $prefix \
+      projectdir-meta -f $1 put-repo $prefix \
         $props \
           && note "Added metadata for $prefix" \
           || error "Unexpected error adding repo $?" $?
@@ -216,49 +226,63 @@ pd__load()
 
 pd__usage()
 {
-	echo 'Usage: '
-	echo "  $scriptname.sh <cmd> [<args>..]"
+  echo 'Usage: '
+  echo "  $scriptname.sh <cmd> [<args>..]"
 }
 
 pd__help()
 {
-	pd__usage
-	echo 'Functions: '
-	echo '  status                           List abbreviated status strings for all repos'
-	echo ''
-	echo '  help                             print this help listing.'
+  pd__usage
+  echo 'Functions: '
+  echo '  status                           List abbreviated status strings for all repos'
+  echo ''
+  echo '  help                             print this help listing.'
 }
+
+# ----
 
 
 # Main
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
-	# Do something if script invoked as 'project'
-	if [ "$(basename $0 .sh)" = "projectdir" ]; then
+case "$0" in "" ) ;; "-*" ) ;; * )
 
-		cmd=$1
-		func=$cmd
-		[ -n "$def_func" -a -z "$func" ] \
-			&& func=$def_func \
-			|| func=$(echo "pd__$cmd" | tr '-' '_')
-		type $func &> /dev/null && {
-			func_exists=1
-			shift 1
-			pd__load
-			$func "$@"
-		} || {
-			e=$?
-			[ -z "$cmd" ] && {
-				pd__usage
-				error 'No command given, see "help"' 1
-			} || {
-				[ "$e" = "1" -a -z "$func_exists" ] && {
-					pd__usage
-					error "No such command: $cmd" 1
-				} || {
-					error "Command $cmd returned $e" $e
-				}
-			}
-		}
-	fi
-fi
+  base=$(basename $0 .sh)
+  case "$base" in
+
+    $scriptname | $scriptalias )
+
+        # invoke with function name first argument,
+        cmd=$1
+        [ -n "$def_func" -a -z "$cmd" ] \
+          && func=$def_func \
+          || func=$(echo pd__$cmd | tr '-' '_')
+
+        type $func &>/dev/null && {
+          func_exists=1
+          shift 1
+          pd__load
+          $func "$@"
+        } || {
+          e=$?
+          [ -z "$cmd" ] && {
+            pd__usage
+            error 'No command given, see "help"' 1
+          } || {
+            [ "$e" = "1" -a -z "$func_exists" ] && {
+              pd__usage
+              error "No such command: $cmd" 1
+            } || {
+              error "Command $cmd returned $e" $e
+            }
+          }
+        }
+
+      ;;
+
+#    * )
+#      echo "Not a frontend for $base ($scriptname)"
+#      ;;
+
+  esac
+
+esac
 

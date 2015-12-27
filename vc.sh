@@ -808,8 +808,9 @@ case "$0" in "" ) ;; "-*" ) ;; * )
 
       ;;
 
-    * )
-      echo "Not a frontend for $base ($scriptname)"
+#    * )
+#      echo "Not a frontend for $base ($scriptname)"
+#      ;;
 
   esac
 

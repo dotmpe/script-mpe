@@ -5,13 +5,17 @@
 Read from human-maintained document into processable structure.
 
 Usage:
-    projectdir-meta [options] add-repo <prefix> [<kwdargs>...]
+    projectdir-meta [options] put-repo <prefix> [<kwdargs>...]
     projectdir-meta [options] update-repo <prefix> [<kwdargs>...]
     projectdir-meta [options] drop-repo <prefix>
-    projectdir-meta [options] list-prefixes [<root>]
     projectdir-meta [options] (enabled|disabled) <prefix>
     projectdir-meta [options] (enable|disable) <prefix>
     projectdir-meta [options] clean-mode <prefix> [<mode>]
+    projectdir-meta [options] list-prefixes [<root>]
+    projectdir-meta [options] list-enabled [<root>]
+    projectdir-meta [options] list-disabled [<root>]
+    projectdir-meta [options] [(dump|x-dump)]
+    projectdir-meta [options] conv
     projectdir-meta (-h | --help)
 
 Options:
@@ -38,11 +42,7 @@ def meta_from_projectdir_doc(data):
 
     for prefix in data['repositories'].keys():
 
-        remotes = []
-        for rname, rurl in data['repositories'][prefix].items():
-            remotes.append(dict(
-                name=rname, url=rurl
-            ))
+        remotes = dict( data['repositories'][prefix]['remotes'] )
         repoid = "repo:_:%s" % uuid.uuid4()
         newdata[repoid] = dict(
             prefix=prefix,
@@ -58,6 +58,12 @@ def toggle(state):
         return toggle_states[1]
     else:
         return toggle_states[0]
+
+def toggle_active(state):
+    return state == toggle_states[1]
+
+def toggle_inactive(state):
+    return state == toggle_states[0]
 
 def get_toggle_state(data):
     for state in toggle_states:
@@ -147,21 +153,8 @@ def main(pd_doc, func=None, opts=None):
                         return 1
 
     # add/update/drop repo metadata
-    elif func == 'add-repo':
-        p = opts.args.prefix
-        pdhdata['repositories'][p] =\
-            dict([ k.split('=') for k in opts.args.kwdargs ])
-        yaml_safe_dump(pdhdata, open(pd_doc, 'w+'), default_flow_style=False)
+    elif func in ('put-repo', 'update-repo'):
 
-    elif func == 'update-repo':
-        p = opts.args.prefix
-        if p not in pdhdata['repositories'] and not p.endswith(os.sep):
-            p += os.sep
-        if p not in pdhdata['repositories'] and not p.startswith('.'+os.sep):
-            p = '.'+os.sep+p
-        if p not in pdhdata['repositories']:
-            print "No such repo prefix", p
-            return 2
         new = dict([ k.split('=') for k in opts.args.kwdargs ])
         for k,v in new.items():
             if v == 'true':
@@ -170,11 +163,23 @@ def main(pd_doc, func=None, opts=None):
                 new[k] = False
             elif v.isdigit():
                 new[k] = int(v)
-        updated = dict(pdhdata['repositories'][p])
-        updated.update(new)
-        if deep_eq( pdhdata['repositories'][p], updated ):
-            return 42
-        pdhdata['repositories'][p] = updated
+
+        p = opts.args.prefix
+        if func == 'update-repo':
+            if p not in pdhdata['repositories']:
+                print "No such repo prefix", p
+                return 2
+            updated = dict(pdhdata['repositories'][p])
+            updated.update(new)
+            if deep_eq( pdhdata['repositories'][p], updated ):
+                return 42
+            pdhdata['repositories'][p] = updated
+        else:
+            if p in pdhdata['repositories']:
+                print "Pepo prefix exists", p
+                return 3
+            pdhdata['repositories'][p] = new
+
         yaml_safe_dump(pdhdata, open(pd_doc, 'w+'), default_flow_style=False)
 
     elif func == 'drop-repo':
@@ -189,15 +194,48 @@ def main(pd_doc, func=None, opts=None):
                 continue
             print x
 
-    else:
+    elif func in ( 'list-enabled', 'list-disabled' ):
+        for x in pdhdata['repositories'].keys():
+            if opts.args.root and not x.startswith(opts.args.root):
+                continue
+            state = get_toggle_state(pdhdata['repositories'][x])
+            if state is None:
+                continue
+            bstate = toggle_active(state)
+            if bstate:
+                if func == 'list-enabled':
+                    print x
+            elif func == 'list-disabled':
+                print x
+
+    elif func == 'conv':
+        newd = dict(repositories={})
+        for k, v in pdhdata['repositories'].items():
+            sd = {}
+            r = {}
+            for sk, sv in pdhdata['repositories'][k].items():
+                if sk in ('enabled', 'disabled', 'title', 'description', 'clean'):
+                    sd[sk] = sv
+                else:
+                    r[sk] = sv
+                #if sk in ('origin', 'original', 'brix', 'dotmpe')
+            sd['remotes'] = r
+            newd['repositories'][k] = sd
+
+        yaml_safe_dump(newd, open(pd_doc, 'w+'), default_flow_style=False)
+
+    elif func == 'dump':
+        print yaml_safe_dump(pdhdata, default_flow_style=False)
+
+    elif func == 'x-dump':
         meta = meta_from_projectdir_doc(pdhdata)
-        print yaml_safe_dump(meta)
+        print yaml_safe_dump(meta, default_flow_style=False)
 
 
 
 if __name__ == '__main__':
     import sys
     opts = util.get_opts(__doc__)
-    #print opts.todict()
+    if not opts.cmds: opts.cmds = ['dump']
     sys.exit( main( opts.flags.file, opts.cmds[0], opts ) )
 
