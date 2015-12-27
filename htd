@@ -2052,6 +2052,55 @@ c_xtcp()
 }
 
 
+gcal_tab=~/.conf/google/cals.tab
+
+gcal_tab_ids()
+{
+  if test -n "$1"
+  then
+    cat $gcal_tab
+  else
+    grep '\<'$1 $gcal_tab
+  fi
+}
+
+# List current and upcoming events
+c_events()
+{
+  test -n "$2" || set -- "$1" "days=3"
+
+  cat ~/.conf/google/cals.tab | while read calId summary
+  do
+    note "Upcoming events for '$summary'"
+    gcal.py list-upcoming 7 $calId "$2" 2>/dev/null
+  done
+}
+
+# List upcoming events at any date
+c_upcoming_events()
+{
+  gcal_tab_ids "$1" | while read calId summary
+  do
+    note "Upcoming events for '$summary'"
+    gcal.py list-upcoming 7 $calId 2>/dev/null
+  done
+}
+
+# List events of +/- 1day
+c_current_events()
+{
+  test -n "$2" || set -- "$1" "days=1" "$3" "$4"
+  test -n "$3" || set -- "$1" "$2" "days=1" "$4"
+  test -n "$4" || set -- "$1" "$2" "$3" "7"
+
+  gcal_tab_ids "$1" | while read calId summary
+    do
+      note "Current events ($2/$3) for '$summary' ($calId)"
+      gcal.py happening-now $7 $calId "$1" "$2" 2>/dev/null
+    done
+}
+
+
 
 ### Main
 
