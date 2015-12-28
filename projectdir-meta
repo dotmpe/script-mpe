@@ -131,7 +131,7 @@ def main(pd_doc, func=None, opts=None):
         state = get_toggle_state(pdhdata['repositories'][prefix])
         if not opts.flags.quiet:
             print "%s\t%s" % ( prefix, state )
-        if opts.flags.strict and not state:
+        if opts.flags.strict and state is None:
             return
         if func != state:
             return 1

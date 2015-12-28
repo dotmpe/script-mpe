@@ -78,66 +78,21 @@ pd__status()
   done
 }
 
-# TODO: more terse status overview
+# Check with remote refs
 pd__check()
 {
   test -n "$1" || set -- "projects.yaml" "$2"
   test -e "$1" || error "No projects file $1" 1
   test -z "$3" || error "Surplus arguments" 1
 
-  pwd=$(pwd)
-
+  failed=
   note "Checking prefixes"
   projectdir-meta -f $1 list-prefixes "$2" | while read prefix
   do
     vc_check $prefix || continue
-
-    (
-      pd__meta -s list-upstream "$prefix" $(vc_list_local_branches $prefix) \
-        || {
-          warn "No sync setting for $prefix"
-          continue
-        }
-    ) | while read remote branch
-    do
-
-      cd $pwd/$prefix
-
-      test -d .git || error "Not a standalone .git: $prefix" 1
-
-      test -e .git/FETCH_HEAD && younger_than .git/FETCH_HEAD $GIT_AGE || git fetch --quiet $remote
-
-      local remoteref=$remote/$branch
-
-      git show-ref --quiet $remoteref || {
-        test -n "$choice_push" && {
-          git push $remote +$branch
-        } || {
-          error "Remote branch does not exist $prefix $remoteref"
-          continue
-        }
-      }
-
-      git diff --quiet ${branch}..${remoteref} \
-        || ahead=$(git rev-list ${branch}..${remoteref} --count)
-
-      git diff --quiet ${remoteref}..${branch} \
-        || behind=$(git rev-list ${remoteref}..${branch} --count) \
-
-      test -z "$ahead" -a -z "$behind" && {
-        info "In sync: $prefix $remoteref"
-        continue
-      }
-
-      test -z "$behind" -o $behind -eq 0 || note "$prefix behind of $remoteref "$behind
-      test -z "$ahead" -o $ahead -eq 0 || note "$prefix ahead of $remoteref "$ahead
-
-
-    done
-
-    # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
-
+    pd__sync $prefix || failed=1
   done
+  return $failed
 }
 
 pd__dirty()
@@ -283,22 +238,70 @@ vc_list_local_branches()
 pd__sync()
 {
   test -n "$1" || error "prefix argument expected" 1
-  test -z "$3" || error "surplus arguments" 1
-  pd=projects.yaml
-  test -e "$pd"
   prefix=$1
   shift 1
-  ( cd $prefix; git remote update )
-  test -n "$2" || set -- $(vc_list_local_branches $prefix)
-  pd__meta list-upstream "$prefix" "$@" | while read remote branch
+
+  pd=projects.yaml
+  test -e "$pd"
+
+  pwd=$(pwd)
+
+  test -n "$1" || set -- $(vc_list_local_branches $prefix)
+
+  (
+    pd__meta -s list-upstream "$prefix" "$@" \
+      || {
+        warn "No sync setting for $prefix"
+        return 1
+      }
+  ) | while read remote branch
   do
-    (
-      cd $prefix
-      git diff --quiet $remote/$branch..$branch \
-        || error "Branch $branch ahead of $remote in $prefix" 1
-    )
-    echo "$remote $branch OK"
+
+    cd $pwd/$prefix
+
+    test -d .git || error "Not a standalone .git: $prefix" 1
+
+    test -e .git/FETCH_HEAD \
+      && younger_than .git/FETCH_HEAD $GIT_AGE \
+      || git fetch --quiet $remote
+
+    local remoteref=$remote/$branch
+
+    git show-ref --quiet $remoteref || {
+      test -n "$choice_sync_push" && {
+        git push $remote +$branch
+      } || {
+        error "Remote branch does not exist $prefix $remoteref"
+        return 2
+      }
+    }
+
+    git diff --quiet ${remoteref}..${branch} \
+      || ahead=$(git rev-list ${remoteref}..${branch} --count) \
+    git diff --quiet ${branch}..${remoteref} \
+      || behind=$(git rev-list ${branch}..${remoteref} --count)
+
+    test -z "$ahead" -a -z "$behind" && {
+      info "In sync: $prefix $remoteref"
+      return
+    }
+
+    test -z "$ahead" || {
+      note "$prefix ahead of $remoteref by $ahead commits"
+    }
+
+    test -z "$behind" || {
+      # ignore upstream commits?
+      test -n "$choice_sync_dismiss" \
+        && return \
+        || note "$prefix behind of $remoteref by $behind commits"
+    }
+
+    return 1
   done
+
+  # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
+
 }
 
 pd__enable()
@@ -319,35 +322,37 @@ pd__enable()
 pd__disable()
 {
   test -n "$1" || error "prefix argument expected" 1
+
   pd=projects.yaml
   test -e "$pd"
-  note "Disabling"
-  pd__meta -sq disabled $1 || pd__meta disable $1
-  test ! -d $1 || {
+
+  pd__meta -q disabled $1 && {
+    info "Already disabled: $1"
+
+  } || {
+
+    pd__meta disable $1 \
+      && note "Disabled $1"
+  }
+
+  test ! -d $1 && {
+    info "No checkout, nothing to do"
+  } || {
     note "Found checkout, getting status.."
-    choice_strict=1 vc_clean $1
-    case "$?" in
-      0|"" )
-        info "Clean: $(__vc_status "$1")"
-      ;;
-      * )
-        note "Dirty or untracked files $1"
-        printf "$cruft\n" 1>&2
-        return 1
-      ;;
-    esac
-    pd__sync $1
-    case "$?" in
-      0|"" )
-        info "In sync: $remote $branch"
-      ;;
-      * )
-        note "Dirty or untracked files $1"
-        printf "$cruft\n" 1>&2
-        return 1
-      ;;
-    esac
-    rm -rf $1
+
+    choice_strict=1 \
+      vc_clean $1 \
+      || case "$?" in
+          1 ) warn "Dirty: $(__vc_status "$1")" 1 ;;
+          2 ) note "Crufty: $(__vc_status "$1")" 1 ;;
+        esac
+
+    choice_sync_dismiss=1 \
+    pd__sync $1 \
+      || error "Not in sync: $1" 1
+
+    rm -rf $1 \
+      && note "Removed checkout $1"
   }
 }
 
