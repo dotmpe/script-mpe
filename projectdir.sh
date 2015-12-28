@@ -276,21 +276,23 @@ pd__sync()
       }
     }
 
+    local ahead=0 behind=0
+
     git diff --quiet ${remoteref}..${branch} \
       || ahead=$(git rev-list ${remoteref}..${branch} --count) \
     git diff --quiet ${branch}..${remoteref} \
       || behind=$(git rev-list ${branch}..${remoteref} --count)
 
-    test -z "$ahead" -a -z "$behind" && {
+    test $ahead -eq 0 -a $behind -eq 0 && {
       info "In sync: $prefix $remoteref"
       return
     }
 
-    test -z "$ahead" || {
+    test $ahead -eq 0 || {
       note "$prefix ahead of $remoteref by $ahead commits"
     }
 
-    test -z "$behind" || {
+    test $behind -eq 0 || {
       # ignore upstream commits?
       test -n "$choice_sync_dismiss" \
         && return \
