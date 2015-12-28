@@ -2,7 +2,7 @@
 """
 :created: 2015-11-30
 
-Read from human-maintained document into processable structure.
+Python helper to query/update projects.yaml
 
 Usage:
     projectdir-meta [options] put-repo <prefix> [<kwdargs>...]
@@ -14,17 +14,22 @@ Usage:
     projectdir-meta [options] list-prefixes [<root>]
     projectdir-meta [options] list-enabled [<root>]
     projectdir-meta [options] list-disabled [<root>]
-    projectdir-meta [options] [(dump|x-dump)]
+    projectdir-meta [options] [(dump|x-dump) [<prefix>]]
+    projectdir-meta [options] get-uri <prefix> [<remote>]
+    projectdir-meta [options] list-remotes <prefix>
+    projectdir-meta [options] list-upstream <prefix> [<branches>...]
     projectdir-meta [options] conv
     projectdir-meta (-h | --help)
 
 Options:
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
+  -g, --glob    Change from root prefix matching to glob matching.
   -f PD, --file PD
                 Give custom path to projectdir document file [default: ./projects.yaml]
 """
 import os
+from fnmatch import fnmatch
 
 from docopt import docopt
 import uuid
@@ -103,6 +108,20 @@ def get_clean_mode(repo):
     return repo_mode
 
 
+def prefix_match(prefix, match, opts):
+    """Match path <prefix> with root-path or pattern <match> """
+    if match:
+        if opts.flags.glob:
+            return fnmatch( prefix, match )
+        else:
+            return prefix.startswith( match )
+
+        return False
+    else:
+        return True
+
+
+
 def main(pd_doc, func=None, opts=None):
     pdhdata = yaml_load(open(pd_doc))
 
@@ -140,10 +159,10 @@ def main(pd_doc, func=None, opts=None):
                     if repo_modes.index(repo_mode) < repo_modes.index(mode):
                         return 1
         else:
-            for x in pdhdata['repositories'].keys():
-                if not x.startswith(opts.args.prefix):
+            for k in pdhdata['repositories'].keys():
+                if not prefix_match( k, opts.args.prefix, opts ):
                     continue
-                repo = pdhdata['repositories'][x]
+                repo = pdhdata['repositories'][k]
                 repo_mode = get_clean_mode(repo)
                 if opts.flags.strict:
                     if repo_mode != mode:
@@ -189,24 +208,23 @@ def main(pd_doc, func=None, opts=None):
 
     # List all project repo prefixes
     elif func == 'list-prefixes':
-        for x in pdhdata['repositories'].keys():
-            if opts.args.root and not x.startswith(opts.args.root):
-                continue
-            print x
+        for k in pdhdata['repositories'].keys():
+            if prefix_match( k, opts.args.root, opts ):
+                print k
 
     elif func in ( 'list-enabled', 'list-disabled' ):
-        for x in pdhdata['repositories'].keys():
-            if opts.args.root and not x.startswith(opts.args.root):
+        for k in pdhdata['repositories'].keys():
+            if not prefix_match( k, opts.args.root, opts ):
                 continue
-            state = get_toggle_state(pdhdata['repositories'][x])
+            state = get_toggle_state(pdhdata['repositories'][k])
             if state is None:
                 continue
             bstate = toggle_active(state)
             if bstate:
                 if func == 'list-enabled':
-                    print x
+                    print k
             elif func == 'list-disabled':
-                print x
+                print k
 
     elif func == 'conv':
         newd = dict(repositories={})
@@ -224,8 +242,58 @@ def main(pd_doc, func=None, opts=None):
 
         yaml_safe_dump(newd, open(pd_doc, 'w+'), default_flow_style=False)
 
+    elif func == 'list-upstream':
+        repos = pdhdata['repositories']
+        assert opts.args.prefix in repos, "No key %s" %opts.args.prefix
+
+        branches = 'branches' in opts.args and opts.args.branches
+        if not branches: branches = '*'
+        sync = None
+        if 'sync' in repos[opts.args.prefix]:
+            sync = repos[opts.args.prefix]['sync']
+
+        if not sync:
+            if sync == None and opts.flags.strict:
+                return 1
+            return
+
+        if isinstance(sync, list):
+            for remote in sync:
+                for branch in branches:
+                    print remote, branch
+        elif isinstance(sync, bool):
+            for remote in repos[opts.args.prefix]['remotes']:
+                for branch in branches:
+                    print remote, branch
+
+    elif func == 'list-remotes':
+        repos = pdhdata['repositories']
+        assert opts.args.prefix in repos, "No key %s" %opts.args.prefix
+        for remote in repos[opts.args.prefix]['remotes']:
+            print remote
+
+    elif func == 'get-uri':
+        repos = pdhdata['repositories']
+        assert opts.args.prefix in repos, "No key %s" %opts.args.prefix
+        remote = 'origin'
+        if 'remote' in opts.args:
+            remote = opts.args.remote or 'origin'
+        remotes = repos[opts.args.prefix]['remotes']
+        assert remote in remotes
+        print remotes[remote]
+
     elif func == 'dump':
-        print yaml_safe_dump(pdhdata, default_flow_style=False)
+        if 'prefix' not in opts.args:
+            print yaml_safe_dump(pdhdata, default_flow_style=False)
+        else:
+            print "repositories:"
+            for k in pdhdata['repositories'].keys():
+                if not prefix_match( k, opts.args.prefix, opts ):
+                    continue
+                print "  %s:" % k
+                v = pdhdata['repositories'][k]
+                print "   ", yaml_safe_dump(v, default_flow_style=False).replace(
+                        '\n', '\n    ')
 
     elif func == 'x-dump':
         meta = meta_from_projectdir_doc(pdhdata)

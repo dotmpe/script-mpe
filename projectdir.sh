@@ -1,10 +1,8 @@
 #!/bin/bash
 
 . ~/bin/std.sh
-. ~/bin/match.sh "$@"
-. ~/bin/vc.sh "$@"
 . ~/bin/projectdir.inc.sh "$@"
-
+. ~/bin/vc.sh "$@"
 
 scriptname=projectdir
 test -n "$scriptalias" || scriptalias=pd
@@ -12,9 +10,12 @@ test -n "$scriptalias" || scriptalias=pd
 # ----
 
 
+
 pd__edit()
 {
-  $EDITOR $0 "$@"
+  $EDITOR \
+    $0 $(which projectdir-meta) \
+    "$@"
 }
 
 # defer to python script for YAML parsing
@@ -23,52 +24,57 @@ pd__meta()
   projectdir-meta "$@"
 }
 
+vc_clean()
+{
+  dirty="$(cd $1; git diff --quiet || echo 1)"
+  test -n "$dirty" && {
+    return 1
+
+  } || {
+
+    test -n "$choice_strict" \
+      && cruft="$(cd $1; vc excluded)" \
+      || {
+
+        projectdir-meta -q clean-mode $1 tracked || {
+
+          projectdir-meta -q clean-mode $1 excluded \
+            && cruft="$(cd $1; vc excluded)" \
+            || cruft="$(cd $1; vc unversioned-files)"
+        }
+
+      }
+
+    test -z "$cruft" || {
+      return 2
+    }
+  }
+}
+
+vc_check()
+{
+  test -d "$1" && {
+    projectdir-meta -sq enabled $1 || {
+      note "To be disabled: $1"
+    }
+  } || {
+    # skip check on missing dirs, note
+    projectdir-meta -sq enabled $1 || return
+    test -e $1 \
+      && note "Not a checkout: $1" \
+      || note "Missing checkout: $1"
+    return 1
+  }
+}
+
 # Run over known prefixes and present status indicators
 pd__status()
 {
-  note "Checking prefixes"
+  note "Getting status for checkouts"
   pd__list_prefixes | while read prefix
   do
-      test -d "$prefix" && {
-          projectdir-meta -sq enabled $prefix || {
-            note "To be disabled: $prefix"
-          }
-      } || {
-          # skip check on missing dirs, note
-          projectdir-meta -sq enabled $prefix || continue
-          test -e $prefix \
-              && note "Not a checkout: $prefix" \
-              || note "Missing checkout: $prefix"
-          continue
-      }
-
-      dirty="$(cd $prefix; git diff --quiet || echo 1)"
-      test -n "$dirty" && {
-        warn "Dirty: $(__vc_status "$prefix")"
-
-      } || {
-
-        test -n "$choice_strict" \
-          && cruft="$(cd $prefix; vc excluded)" \
-          || {
-
-            projectdir-meta -q clean-mode $prefix tracked || {
-
-              projectdir-meta -q clean-mode $prefix excluded \
-                && cruft="$(cd $prefix; vc excluded)" \
-                || cruft="$(cd $prefix; vc unversioned-files)"
-            }
-
-          }
-
-        test -z "$cruft" && {
-          info "OK $(__vc_status "$prefix")"
-
-        } || {
-          note "Crufty: $(__vc_status "$prefix")"
-          printf "$cruft\n" 1>&2
-        }
-      }
+    vc_check $prefix || continue
+    pd__clean $prefix
   done
 }
 
@@ -79,9 +85,58 @@ pd__check()
   test -e "$1" || error "No projects file $1" 1
   test -z "$3" || error "Surplus arguments" 1
 
+  pwd=$(pwd)
+
+  note "Checking prefixes"
   projectdir-meta -f $1 list-prefixes "$2" | while read prefix
   do
-    test -d $prefix || warn "Missing checkout $prefix"
+    vc_check $prefix || continue
+
+    (
+      pd__meta -s list-upstream "$prefix" $(vc_list_local_branches $prefix) \
+        || {
+          warn "No sync setting for $prefix"
+          continue
+        }
+    ) | while read remote branch
+    do
+
+      cd $pwd/$prefix
+
+      test -d .git || error "Not a standalone .git: $prefix" 1
+
+      test -e .git/FETCH_HEAD && younger_than .git/FETCH_HEAD $GIT_AGE || git fetch --quiet $remote
+
+      local remoteref=$remote/$branch
+
+      git show-ref --quiet $remoteref || {
+        test -n "$choice_push" && {
+          git push $remote +$branch
+        } || {
+          error "Remote branch does not exist $prefix $remoteref"
+          continue
+        }
+      }
+
+      git diff --quiet ${branch}..${remoteref} \
+        || ahead=$(git rev-list ${branch}..${remoteref} --count)
+
+      git diff --quiet ${remoteref}..${branch} \
+        || behind=$(git rev-list ${remoteref}..${branch} --count) \
+
+      test -z "$ahead" -a -z "$behind" && {
+        info "In sync: $prefix $remoteref"
+        continue
+      }
+
+      test -z "$behind" -o $behind -eq 0 || note "$prefix behind of $remoteref "$behind
+      test -z "$ahead" -o $ahead -eq 0 || note "$prefix ahead of $remoteref "$ahead
+
+
+    done
+
+    # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
+
   done
 }
 
@@ -102,6 +157,23 @@ pd__dirty()
       cd $pwd
     }
   done
+}
+
+pd__clean()
+{
+  vc_clean "$1"
+  case "$?" in
+    0|"" )
+      info "OK $(__vc_status "$1")"
+    ;;
+    1 )
+      warn "Dirty: $(__vc_status "$1")"
+    ;;
+    2 )
+      note "Crufty: $(__vc_status "$1")"
+      printf "$cruft\n" 1>&2
+    ;;
+  esac
 }
 
 # drop clean checkouts and disable repository
@@ -188,7 +260,7 @@ pd__list_prefixes()
   test -n "$1" || set -- "projects.yaml" "$2"
   test -e "$1" || error "No projects file $1" 1
   #test -z "$2" || { test -d "$2" || error "Argument must be root-dir" 1; }
-  test -z "$3" || error "Surplus arguments" 1
+  test -z "$3" || error "surplus arguments" 1
 
   projectdir-meta -f $1 list-prefixes "$2" | while read prefix
   do
@@ -198,6 +270,85 @@ pd__list_prefixes()
     }
     echo $prefix
   done
+}
+
+vc_list_local_branches()
+{
+  local pwd=$(pwd)
+  test -z "$1" || cd $1
+  git branch -l | sed -E 's/\*|[[:space:]]//g'
+  test -z "$1" || cd $pwd
+}
+
+pd__sync()
+{
+  test -n "$1" || error "prefix argument expected" 1
+  test -z "$3" || error "surplus arguments" 1
+  pd=projects.yaml
+  test -e "$pd"
+  prefix=$1
+  shift 1
+  ( cd $prefix; git remote update )
+  test -n "$2" || set -- $(vc_list_local_branches $prefix)
+  pd__meta list-upstream "$prefix" "$@" | while read remote branch
+  do
+    (
+      cd $prefix
+      git diff --quiet $remote/$branch..$branch \
+        || error "Branch $branch ahead of $remote in $prefix" 1
+    )
+    echo "$remote $branch OK"
+  done
+}
+
+pd__enable()
+{
+  test -n "$1" || error "prefix argument expected" 1
+  test -z "$2" || error "surplus arguments" 1
+  pd=projects.yaml
+  test -e "$pd"
+  pd__meta -sq enabled $1 || pd__meta enable $1
+  test -d $1 || {
+    # TODO: get upstream and checkout to branch, iso. origin/master?
+    uri=$(pd__meta get-uri $1 origin)
+    test -n "$uri" || error "No uri for $1 origin" 1
+    git clone $uri $1
+  }
+}
+
+pd__disable()
+{
+  test -n "$1" || error "prefix argument expected" 1
+  pd=projects.yaml
+  test -e "$pd"
+  note "Disabling"
+  pd__meta -sq disabled $1 || pd__meta disable $1
+  test ! -d $1 || {
+    note "Found checkout, getting status.."
+    choice_strict=1 vc_clean $1
+    case "$?" in
+      0|"" )
+        info "Clean: $(__vc_status "$1")"
+      ;;
+      * )
+        note "Dirty or untracked files $1"
+        printf "$cruft\n" 1>&2
+        return 1
+      ;;
+    esac
+    pd__sync $1
+    case "$?" in
+      0|"" )
+        info "In sync: $remote $branch"
+      ;;
+      * )
+        note "Dirty or untracked files $1"
+        printf "$cruft\n" 1>&2
+        return 1
+      ;;
+    esac
+    rm -rf $1
+  }
 }
 
 
@@ -221,6 +372,11 @@ def_func=pd__status
 
 pd__load()
 {
+  . ~/bin/os.lib.sh
+  . ~/bin/date.lib.sh
+  . ~/bin/match.sh "$@"
+  export GIT_AGE=$_1HOUR
+  uname=$(uname)
   printf ""
 }
 
