@@ -1223,6 +1223,11 @@ c_save_url()
   git annex addurl "$1" --file "$2"
 }
 
+c_save_ref()
+{
+printf ""
+}
+
 c_commit()
 {
   echo -e
