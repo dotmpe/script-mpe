@@ -6,6 +6,7 @@ Usage:
     tags [options] insert <tag> [<label>]
     tags [options] drop <tag>
     tags [options] find <glob>
+    tags [options] get <tag>
     tags [options] [dump]
 
 Options:
@@ -90,6 +91,13 @@ def H_drop(db, opts):
     del db[tk]
     print "Dropped %s: '%s'" % kv
     db.close()
+
+def H_get(db, opts):
+    k = opts.args.tag
+    if k in db:
+        print k, db[k]
+    else:
+        return 1
 
 def H_find(db, opts):
     for k, v in db.items():

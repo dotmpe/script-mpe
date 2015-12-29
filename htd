@@ -1206,7 +1206,18 @@ c_archive()
 # Annex
 c_save()
 {
+  c_save_tags "$1"
   c_save_url "$@"
+}
+
+c_save_tags()
+{
+  set -- $@
+  while test -n "$1"
+  do
+    tags.py get "$1" || tags.py insert "$1"
+    shift 1
+  done
 }
 
 c_save_url()
@@ -1225,14 +1236,20 @@ c_save_url()
 
 c_save_ref()
 {
-printf ""
+  test -n "$1" || error "tags expected" 1
+  tags="$1"
+  
+  shift 1
+  for ref in "$@"
+  do
+    echo $ref
+  done
 }
 
 c_commit()
 {
   echo -e
 }
-
 
 c_show_rules()
 {

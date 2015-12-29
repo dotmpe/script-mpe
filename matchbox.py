@@ -1,4 +1,43 @@
 #!/usr/bin/env python
+"""
+matchbox - a (file)naming utility based on regular expressions.
+
+A filename cleaning and reformatting utility.
+
+Version 0.1 flow:
+- Read input strings (filenames or any text lines) from standard-input.
+- Loads BRE name/pattern pair definitions and  from .vars files. For example::
+
+    match_EXT='[a-z0-9]\{2,5\}'
+    match_NAMEPART='[A-Za-z_][A-Za-z0-9_,-]\{1,\}'
+
+  These are Bourne Shell compatible script for interoperability.
+- Match and parse using regular expressions build from named
+  Basic Regular Expressions parts, arranged into a `name-template`,
+  and compiled into a Py re::
+
+    $ matchbox show_name_regex @NAMEPART.@EXT
+    ^(?P<NAMEPART>[A-Za-z_][A-Za-z0-9_,-]{1,})\.(?P<EXT>[a-z0-9]{2,5})$
+
+- Supplement parsed data (to add defaults, env values, etc.) for certain
+  'special' tags (ie. filesize, encoding, format or content-type).
+
+- Simply reorder 'tags' (the BRE match-group name) to rewrite names,
+  adding, merging or removing tags. E.g.::
+
+    $ matchbox rename @NAMEPART.@EXT @NAMEPART.old.@EXT < echo my-file.txt
+    my-file.txt -> my-file.old.txt
+
+    $ matchbox rename @NAMEPART.@EXT @SHA1_CKS-@NAMEPART-@SZ.@EXT < echo my-file.txt
+    my-file.txt -> a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0-my-file-3.txt
+
+Dev
+- TODO: manage named BRE through subcmds, add some layer to deal with inherited
+  and/or set-based name tags.
+
+- TODO: add shell-program resolver, and subcmd to rm/add resolved tags+cmds.
+
+"""
 import sys
 import os
 import re
@@ -245,6 +284,7 @@ def c_check_names(*tags):
                     print 'OK', ','.join(passed), line
             else:
                 print 'INVALID', ','.join(invalid), ','.join(passed), line
+
 
 if __name__ == '__main__':
     argv = sys.argv
