@@ -32,15 +32,44 @@ Version 0.1 flow:
     my-file.txt -> a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0-my-file-3.txt
 
 Dev
-- TODO: manage named BRE through subcmds, add some layer to deal with inherited
-  and/or set-based name tags.
+
+- TODO: inherit tables, extend each table with rules found along path to allow
+  for global and local rules.
+
+  - TODO: manage named BRE through subcmds, add some layer to deal with inherited
+    and/or set-based name tags.
 
 - TODO: add shell-program resolver, and subcmd to rm/add resolved tags+cmds.
+
+- XXX: tables provide indices and maps for path instances,
+  should integrate with metadata efforts. Iow. start to record some kind of
+  class or mode statements.
+
+- XXX: table.* allows for interop with native Sh, perhaps other interpreters.
+  vars holds match_<group>, BRE patterns. Table names holds globs and tag
+  templates, possibly more tags.
+
+- XXX: files in dir should match at least one pattern from table.names.
+  Such rules are always subject to a sequence. tags may be used to differentiate
+  results.
+
+- FIXME: want to use docopt(-mpe) but need to fork confparse code into proper project
+  also. Same for output writing: want to reduce deps, not increase AND also KISS.
+
+- Only basenames are dealt with yet. But the same mechanisms apply for deeper
+  file sets. Need to deal with prefixes.
 
 """
 import sys
 import os
 import re
+from pprint import pformat
+#from optparse import Values
+
+from script_mpe.res import js
+from script_mpe.confparse import Values
+from script_mpe.confparse import yaml_load, yaml_safe_dump
+
 
 
 escape_meta_re = re.compile(r'(?!\\)([^\\A-Za-z0-9{}(),!@+_])')
@@ -173,9 +202,36 @@ def resolve_seed(path, seed, names):
             seed[name] = str(resolvers[name](path))
 
 
-# Main entry handlers
+### Main entry handlers
+
 def c_show():
+    "Print name and internal var/name table data"
     print 'matchbox.py'
+    print 'Var-table:'
+    print pformat(vartable)
+    print 'Templates:'
+    print pformat(templates)
+    print 'Paths:'
+    print pformat(paths)
+
+def c_dump():
+    """
+    Dump internal table data to output using a writer.
+    """
+    data = Values(dict(
+        vars=Values(vartable),
+        templates=Values(templates),
+        names=Values()
+      ))
+    #for key in templates:
+    outf = sys.stdout
+    opts = Values(dict(
+        flags = Values(dict(
+            pretty=True,
+            output_format='json',
+        ))
+      ))
+    writers[opts.flags.output_format](data.todict(), outf, opts)
 
 def c_name_regex(name_template):
     "Print regex pattern for given name template. "
@@ -286,7 +342,37 @@ def c_check_names(*tags):
                 print 'INVALID', ','.join(invalid), ','.join(passed), line
 
 
+### Readers/Writers
+
+readers = dict(
+        json=js.load,
+        yaml=yaml_load
+    )
+
+
+def json_writer(data, file, opts):
+    # XXX: SHOULD filter comments for proper JSON output, this program doesn't care
+    kwds = {}
+    if opts.flags.pretty:
+        kwds.update(dict(indent=2))
+    file.write(js.dumps(data, **kwds))
+
+def yaml_writer(data, file, opts):
+    kwds = {}
+    if opts.flags.pretty:
+        kwds.update(dict(default_flow_style=False))
+    yaml_safe_dump(data, file, **kwds)
+
+writers = dict(
+        json=json_writer,
+        yaml=yaml_writer
+    )
+
+
+### Main
+
 if __name__ == '__main__':
+    # XXX: use docopt for arg parsing maybe later, keep simple for now.
     argv = sys.argv
     scriptname = argv.pop(0)
     if not len(argv):

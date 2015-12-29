@@ -1196,14 +1196,21 @@ c_pci()
 }
 
 # Move path to archive path in htdocs cabinet
-# archive [<prefix>]/[<datepath>]/[<id>] <refs>...
-
+# $ archive [<prefix>]/[<datepath>]/[<id>] <refs>...
 c_archive()
 {
   test -n "$1" || error "ID expected"
 }
 
-# Annex
+## Annex:
+
+# Save refs (download locators if not present) to prefix,
+# building a full path for each ref from the prefix+ids+filetags.
+# $ save "[<prefix>/]<id>" <refs>...
+# TODO: define global <prefix> and <id> to correspond with (sets of) path instances
+# ie. lookup given prefix and id first, see if it exists.
+# XXX: may have lookup lookup. Use -g to override.
+# <prefix> 
 c_save()
 {
   c_save_tags "$1"
@@ -1219,6 +1226,13 @@ c_save_tags()
     shift 1
   done
 }
+
+c_tags()
+{
+  test -n "$1" || set -- "*"
+  tags.py find "$1"
+}
+
 
 c_save_url()
 {
