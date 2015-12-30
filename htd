@@ -5,16 +5,15 @@ c_source=$_
 
 # Id: script.mpe/0.0.0+20150911-0659 htd
 
+
 set -e
 
 version=0.0.0+20150911-0659 # script.mpe
+scriptdir=$(realpath $(dirname $0))
 
 
 htd_load()
 {
-  which tmux 1>/dev/null || {
-    export PATH=/usr/local/bin:$PATH
-  }
   # -- htd box load insert sentinel --
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
   [ -n "$HTDIR" ] || HTDIR=$HOME/public_html
@@ -61,8 +60,15 @@ htd_load()
       sed -E 's/(.*)/ -o -name "\1" -prune /g'))
     find_ignores="-path \"*/.git\" -prune $find_ignores "
   } || error "foo bar" 1
-
   #match_load_table vars
+
+  which -s tmux || {
+    export PATH=/usr/local/bin:$PATH
+  }
+
+  which -s rst2xml && rst2xml=$(which rst2xml) \
+    || which -s rst2xml.py && rst2xml=$(which rst2xml.py) \
+    || error "No rst2xml"
 }
 
 htd_usage()
@@ -2004,18 +2010,77 @@ c_disks()
 }
 
 
-# Get from rST file using xpath
+# Get document part using xpath
+# XXX: relies on rST/XML.
 c_getx()
 {
   test -n "$1" || error "Document expected" 1
-  test -e "$1" || error "Document expected: <$1>" 1
+  test -e "$1" || error "No such document <$1>" 1
   test -n "$2" || error "XPath expr expected" 1
-  test -n "$3" || set -- "$1" "$2" "/tmp/$(basename $1 .rst).xml"
-  rst2xml $1 > "$3"
+
+  test -n "$3" || set "$1" "$2" "$(c_getxl $1)"
+
   xmllint --xpath "$2" "$3"
 }
 
-# Append definition term to doc
+# Get x-lang file for arg1
+c_getxl()
+{
+  fnmatch '*.xml' $1 && set -- "$1" "$1"
+  fnmatch '*.rst' $1 && {
+    test -n "$2" || set -- "$1" "/tmp/$(basename $1 .rst).xml"
+    $rst2xml $1 > "$2"
+    echo $2
+  }
+  test -e "$2" || error "Need XML repr of doc $1" 1
+}
+
+# TODO: List topic paths (nested dl terms) in document paths
+c_tpaths()
+{
+  test -n "$1" || error "At least one document expected" 1
+  while test -n "$1"
+  do
+    test -e "$1" || {
+      warn "No file <$1>, skipped"
+      shift 1
+      continue
+    }
+    # Read multi-leaf paths, and split it up into relative leafs
+    c_xproc "$(c_getxl $1)" $scriptdir/rst-terms2path.xsl \
+      | grep -Ev '^(#.*|\s*)$' \
+      | sed 's/\([^\.]\)\/\.\./\1\
+../g' | grep -v '^\.[\.\/]*$' \
+      | while read rel_leaf
+    do
+      # Assemble each leaf path onto its root, and normalize
+      echo $rel_leaf | grep -q '^\.\.\/' && {
+        normalize_relative $root/$rel_leaf/
+      } || {
+        normalize_relative $rel_leaf/
+        root=$rel_leaf
+      }
+    done
+    shift 1
+  done
+}
+
+c_xproc()
+{
+  {
+  fnmatch '<* *>' "$2" && {
+
+      xsltproc - $1 <<EOM
+$2
+EOM
+    } || {
+      xsltproc $2 $1
+    }
+  # remove XML prolog:
+  } | tail -n +2 | grep -Ev '^(#.*|\s*)$'
+}
+
+# TODO: Append definition term to doc
 c_dl_init()
 {
   test -n "$1" || error "Document expected" 1
@@ -2024,12 +2089,13 @@ c_dl_init()
   htd getx '//*/term[text()="'$2'"]' "$1"
 }
 
-# Add list item beneath definition term
+# TODO: Add list item beneath definition term
 c_dl_append()
 {
   echo
 }
 
+# XXX: hacky hacking one day, see wishlist above
 list_host_disks()
 {
   htd getx sysadmin/$hostname.rst \
