@@ -176,8 +176,7 @@ EOM
     Linux ) cd /tmp ;;
   esac
 
-  test "${lines[1]}" = \
-        "/Dev/Software/../Hardware/../../Personal/../Public/Note/../.."
+  test "${lines[1]}" = "/Dev/Software/../Hardware/../../Personal/../Public/Note/../.."
 }
 
 @test "$bin tpath-raw" "prints paths to definition-list terms with spaces and other chars" {
@@ -206,7 +205,6 @@ EOM
     Linux ) cd /tmp ;;
   esac
 
-  test "${lines[1]}" = \
-        "/Soft Dev/../Home/Shop/Electric Tools/../../Living Room/../../Public/Topic Note/../.."
+  test "${lines[1]}" = "/Soft Dev/../Home/Shop/Electric Tools/../../Living Room/../../Public/Topic Note/../.."
 }
 
