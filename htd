@@ -62,12 +62,12 @@ htd_load()
   } || error "foo bar" 1
   #match_load_table vars
 
-  which -s tmux || {
+  which tmux 2>/dev/null || {
     export PATH=/usr/local/bin:$PATH
   }
 
-  which -s rst2xml && rst2xml=$(which rst2xml) \
-    || which -s rst2xml.py && rst2xml=$(which rst2xml.py) \
+  which rst2xml 2>/dev/null && rst2xml=$(which rst2xml) \
+    || which rst2xml.py 2>/dev/null && rst2xml=$(which rst2xml.py) \
     || error "No rst2xml"
 }
 
