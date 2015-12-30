@@ -14,6 +14,7 @@ addons:
 
 before_script:
 - 'echo HOME=$HOME PREFIX=$PREFIX pwd=$(pwd)'
+
 - 'npm install parse-torrent lodash'
 - 'pip install --user docutils'
 - 'pip install --user PyYAML'
@@ -44,7 +45,7 @@ branches:
 env:
 - ENV= CS=dark TRAVIS_SKIP=1 \
   UCONFDIR=$HOME/etc \
-  PATH=$PATH:$HOME/bin:$HOME/usr/bin \
+  PATH=$PATH:$HOME/bin:$HOME/usr/bin:$HOME/.local/bin/ \
   PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
 
 #- ENV=testing
