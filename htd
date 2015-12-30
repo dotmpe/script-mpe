@@ -2032,7 +2032,7 @@ c_normalize_symbolic()
 
 c_normalize_relative()
 {
-  normalize_relative "$@"
+  normalize_relative "$1"
 }
 
 # Get document part using xpath
@@ -2060,48 +2060,46 @@ c_getxl()
   test -e "$2" || error "Need XML repr of doc $1" 1
 }
 
-# List topic paths (nested dl terms) in document paths, unique results only
+# List topic paths (nested dl terms) in document paths
 c_tpaths()
 {
   test -n "$1" || error "At least one document expected" 1
   test -n "$print_src" || local print_src=
 
-  {
-    while test -n "$1"
-    do
-      test -e "$1" || {
-        warn "No file <$1>, skipped"
-        shift 1
-        continue
-      }
-      local path= rel_leaf= root=
-      # Read multi-leaf paths, and split it up into relative leafs
-      c_xproc "$(c_getxl $1)" $scriptdir/rst-terms2path.xsl \
-        | grep -Ev '^(#.*|\s*)$' \
-        | sed 's/\([^\.]\)\/\.\./\1\
-../g' \
-        | grep -v '^\.[\.\/]*$' \
-        | while read rel_leaf
-      do
-
-        # Assemble each leaf path onto its root, and normalize
-        echo "$rel_leaf" | grep -q '^\.\.\/' && {
-          path="$(normalize_relative "$root/$rel_leaf/")"
-        } || {
-          path="$(normalize_relative "$rel_leaf/")"
-          root=$rel_leaf
-        }
-
-        #test -n "$path" \
-        #  || continue
-        test -n "$print_src" \
-          && echo "$1 $path" \
-          || echo "$path"
-
-      done
+  while test -n "$1"
+  do
+    test -e "$1" || {
+      warn "No file <$1>, skipped"
       shift 1
+      continue
+    }
+    path= rel_leaf= root=
+
+    # Read multi-leaf paths, and split it up into relative leafs
+    c_xproc "$(c_getxl $1)" $scriptdir/rst-terms2path.xsl \
+      | grep -Ev '^(#.*|\s*)$' \
+      | sed 's/\([^\.]\)\/\.\./\1\
+../g' \
+      | grep -v '^\.[\.\/]*$' \
+      | while read rel_leaf
+    do
+
+      # Assemble each leaf path onto its root, and normalize
+      echo "$rel_leaf" | grep -q '^\.\.\/' && {
+        path="$(normalize_relative "$path/$rel_leaf")"
+      } || {
+        path="$(normalize_relative "$rel_leaf")"
+      }
+
+      test -n "$print_src" \
+        && echo "$1 $path" \
+        || echo "$path"
+
     done
-  } | grep -Ev '^(#.*|\s*)$' | sort -u
+
+    unset path rel_leaf root
+    shift 1
+  done
 }
 
 c_tpath_raw()
@@ -2117,11 +2115,11 @@ c_xproc()
   {
     fnmatch '<* *>' "$2" && {
 
-      xsltproc - $1 <<EOM
+      xsltproc --novalid - $1 <<EOM
 $2
 EOM
     } || {
-      xsltproc $2 $1
+      xsltproc --novalid $2 $1
     }
   # remove XML prolog:
   } | tail -n +2 | grep -Ev '^(#.*|\s*)$'

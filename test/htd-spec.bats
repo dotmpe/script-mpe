@@ -12,7 +12,6 @@ version=0.0.0+20150911-0659 # script.mpe
 @test "$bin no arguments no-op" {
   run $bin
   test $status -eq 1
-  echo "${#lines[@]}" > /tmp/1
   test "${#lines[@]}" = "4"
 }
 
@@ -31,7 +30,7 @@ version=0.0.0+20150911-0659 # script.mpe
   test "${lines[0]}" = "$(echo ~/public_html)"
 }
 
-@test "$bin  info" {
+@test "$bin info" {
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   #echo "${lines[@]}" > /tmp/1
@@ -118,7 +117,11 @@ version=0.0.0+20150911-0659 # script.mpe
 
 @test "$bin tpaths" "prints paths to definition-list terms" {
 
-  cd /tmp/
+  case "$uname" in
+    Darwin ) cd /private/tmp;;
+    Linux ) cd /tmp ;;
+  esac
+
   {
     cat - <<EOM
 Dev
@@ -133,25 +136,16 @@ Public
     ..
 EOM
 } > test.rst
+
   run $BATS_TEST_DESCRIPTION test.rst
-
-  echo "${lines[1]}" > /tmp/1
-  echo "${lines[2]}" >> /tmp/1
-
-  case "$uname" in
-    Darwin ) cd /private/tmp;;
-    Linux ) cd /tmp ;;
-  esac
 
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
 
-  test "${lines[1]}" = "/Dev"
-  test "${lines[2]}" = "/Dev/Software"
-  test "${lines[3]}" = "/Dev/Hardware"
-  test "${lines[4]}" = "/Personal"
-  test "${lines[5]}" = "/Public"
-  test "${lines[6]}" = "/Public/Note"
+  test "${lines[0]}" = "/Dev/Software"
+  test "${lines[1]}" = "/Dev/Hardware"
+  test "${lines[2]}" = "/Personal"
+  test "${lines[3]}" = "/Public/Note"
 }
 
 @test "$bin tpath-raw" "prints paths to definition-list terms" {

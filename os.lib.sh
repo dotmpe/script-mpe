@@ -43,43 +43,31 @@ normalize_relative()
 
     elif [ "$I" = ".." ]
       then
-#        echo "a I='$I' NORMALIZED='$NORMALIZED'"
-        test "${NORMALIZED%%/${NORMALIZED##*/}}" != "$NORMALIZED" \
-          && NORMALIZED="${NORMALIZED%%/${NORMALIZED##*/}}" \
-          || NORMALIZED=
-#        echo "b I='$I' NORMALIZED='$NORMALIZED'"
+        NORMALIZED="${NORMALIZED%%/${NORMALIZED##*/}}"
         continue
       else
-#        echo "c I='$I' NORMALIZED='$NORMALIZED'"
-        test -n "$NORMALIZED" \
-          && NORMALIZED="${NORMALIZED}/${I}" \
-          || NORMALIZED="${I}"
-#        echo "d I='$I' NORMALIZED='$NORMALIZED'"
+        NORMALIZED="${NORMALIZED}/${I}"
     fi
-
-#    echo "end I=$I NORMALIZED='$NORMALIZED'"
 
     # Dereference symbolic links.
-    if [ -h "$NORMALIZED" ] && [ -x "/bin/ls" ]
-      then IFS=$OIFS
-           set `/bin/ls -l "$NORMALIZED"`
-           echo "@=$@"
-           while shift ;
-           do
-             if [ "$1" = "->" ]
-               then NORMALIZED="$2"
-                    shift $#
-                    break
-             fi
-           done
-    fi
+    #if [ -h "$NORMALIZED" ] && [ -x "/bin/ls" ]
+    #  then IFS=$OIFS
+    #       set `/bin/ls -l "$NORMALIZED"`
+    #       while shift ;
+    #       do
+    #         if [ "$1" = "->" ]
+    #           then NORMALIZED="$2"
+    #                shift $#
+    #                break
+    #         fi
+    #       done
+    #fi
 
   done
   IFS=$OIFS
-  test "${1#/}" = "$1" \
+  test "${1#/}" != "$1" \
     && echo "$NORMALIZED" \
-    || echo "/$NORMALIZED"
-  unset NORMALIZED
+    || echo "${NORMALIZED#/}"
 }
 
 
