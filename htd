@@ -2035,34 +2035,36 @@ c_getxl()
   test -e "$2" || error "Need XML repr of doc $1" 1
 }
 
-# TODO: List topic paths (nested dl terms) in document paths
+# List topic paths (nested dl terms) in document paths, unique results only
 c_tpaths()
 {
   test -n "$1" || error "At least one document expected" 1
-  while test -n "$1"
-  do
-    test -e "$1" || {
-      warn "No file <$1>, skipped"
-      shift 1
-      continue
-    }
-    # Read multi-leaf paths, and split it up into relative leafs
-    c_xproc "$(c_getxl $1)" $scriptdir/rst-terms2path.xsl \
-      | grep -Ev '^(#.*|\s*)$' \
-      | sed 's/\([^\.]\)\/\.\./\1\
-../g' | grep -v '^\.[\.\/]*$' \
-      | while read rel_leaf
+  {
+    while test -n "$1"
     do
-      # Assemble each leaf path onto its root, and normalize
-      echo $rel_leaf | grep -q '^\.\.\/' && {
-        normalize_relative $root/$rel_leaf/
-      } || {
-        normalize_relative $rel_leaf/
-        root=$rel_leaf
+      test -e "$1" || {
+        warn "No file <$1>, skipped"
+        shift 1
+        continue
       }
+      # Read multi-leaf paths, and split it up into relative leafs
+      c_xproc "$(c_getxl $1)" $scriptdir/rst-terms2path.xsl \
+        | grep -Ev '^(#.*|\s*)$' \
+        | sed 's/\([^\.]\)\/\.\./\1\
+  ../g' | grep -v '^\.[\.\/]*$' \
+        | while read rel_leaf
+      do
+        # Assemble each leaf path onto its root, and normalize
+        echo $rel_leaf | grep -q '^\.\.\/' && {
+          normalize_relative $root/$rel_leaf/
+        } || {
+          normalize_relative $rel_leaf/
+          root=$rel_leaf
+        }
+      done
+      shift 1
     done
-    shift 1
-  done
+  } | grep -Ev '^(#.*|\s*)$' | sort -u
 }
 
 c_xproc()
