@@ -5,6 +5,7 @@ c_source=$_
 
 # Id: script.mpe/0.0.0+20150911-0659 htd
 
+scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
 
 set -e
 
@@ -2300,7 +2301,5 @@ htd_lib()
 
 # Use hyphen to ignore source exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
-
-  scriptdir=$(htd realpath $(dirname $0))
   htd__main "$@"
 fi
