@@ -143,6 +143,9 @@ EOM
     Linux ) cd /tmp ;;
   esac
 
+  check_skipped_envs linux || \
+    skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
+
   test "${lines[1]}" = "/Dev"
   test "${lines[2]}" = "/Dev/Software"
   test "${lines[3]}" = "/Dev/Hardware"
@@ -176,6 +179,9 @@ EOM
     Linux ) cd /tmp ;;
   esac
 
+  check_skipped_envs linux || \
+    skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
+
   test "${lines[1]}" = "/Dev/Software/../Hardware/../../Personal/../Public/Note/../.."
 }
 
@@ -204,6 +210,9 @@ EOM
     Darwin ) cd /private/tmp;;
     Linux ) cd /tmp ;;
   esac
+
+  check_skipped_envs linux || \
+    skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
 
   test "${lines[1]}" = "/Soft Dev/../Home/Shop/Electric Tools/../../Living Room/../../Public/Topic Note/../.."
 }
