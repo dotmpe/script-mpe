@@ -15,6 +15,7 @@ addons:
 before_script:
 - 'echo HOME=$HOME PREFIX=$PREFIX pwd=$(pwd)'
 - 'npm install parse-torrent lodash'
+- 'pip install --user docutils'
 - 'pip install --user PyYAML'
 - 'pip install --user zope.interface'
 - 'pip install --user zope.component'

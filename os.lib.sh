@@ -36,31 +36,49 @@ normalize_relative()
   local NORMALIZED
   for I in $1
   do
+
     # Resolve relative path punctuation.
     if [ "$I" = "." ] || [ -z "$I" ]
       then continue
+
     elif [ "$I" = ".." ]
-      then NORMALIZED="${NORMALIZED%%/${NORMALIZED##*/}}"
-           continue
-      else NORMALIZED="${NORMALIZED}/${I}"
+      then
+#        echo "a I='$I' NORMALIZED='$NORMALIZED'"
+        test "${NORMALIZED%%/${NORMALIZED##*/}}" != "$NORMALIZED" \
+          && NORMALIZED="${NORMALIZED%%/${NORMALIZED##*/}}" \
+          || NORMALIZED=
+#        echo "b I='$I' NORMALIZED='$NORMALIZED'"
+        continue
+      else
+#        echo "c I='$I' NORMALIZED='$NORMALIZED'"
+        test -n "$NORMALIZED" \
+          && NORMALIZED="${NORMALIZED}/${I}" \
+          || NORMALIZED="${I}"
+#        echo "d I='$I' NORMALIZED='$NORMALIZED'"
     fi
+
+#    echo "end I=$I NORMALIZED='$NORMALIZED'"
 
     # Dereference symbolic links.
     if [ -h "$NORMALIZED" ] && [ -x "/bin/ls" ]
       then IFS=$OIFS
            set `/bin/ls -l "$NORMALIZED"`
+           echo "@=$@"
            while shift ;
            do
              if [ "$1" = "->" ]
-               then NORMALIZED=$2
+               then NORMALIZED="$2"
                     shift $#
                     break
              fi
            done
     fi
+
   done
   IFS=$OIFS
-  echo "$NORMALIZED"
+  test "${1#/}" = "$1" \
+    && echo "$NORMALIZED" \
+    || echo "/$NORMALIZED"
   unset NORMALIZED
 }
 

@@ -116,3 +116,97 @@ version=0.0.0+20150911-0659 # script.mpe
   #test -z "${lines[*]}" # empty output
 }
 
+@test "$bin tpaths" "prints paths to definition-list terms" {
+
+  cd /tmp/
+  {
+    cat - <<EOM
+Dev
+  Software
+    ..
+  Hardware
+    ..
+Personal
+  ..
+Public
+  Note
+    ..
+EOM
+} > test.rst
+  run $BATS_TEST_DESCRIPTION test.rst
+
+  echo "${lines[1]}" > /tmp/1
+  echo "${lines[2]}" >> /tmp/1
+
+  case "$uname" in
+    Darwin ) cd /private/tmp;;
+    Linux ) cd /tmp ;;
+  esac
+
+  test "${lines[1]}" = "/Dev"
+  test "${lines[2]}" = "/Dev/Software"
+  test "${lines[3]}" = "/Dev/Hardware"
+  test "${lines[4]}" = "/Personal"
+  test "${lines[5]}" = "/Public"
+  test "${lines[6]}" = "/Public/Note"
+}
+
+@test "$bin tpath-raw" "prints paths to definition-list terms" {
+
+  cd /tmp/
+  {
+    cat - <<EOM
+Dev
+  Software
+    ..
+  Hardware
+    ..
+Personal
+  ..
+Public
+  Note
+    ..
+EOM
+} > test.rst
+
+  run $BATS_TEST_DESCRIPTION test.rst
+
+  case "$uname" in
+    Darwin ) cd /private/tmp;;
+    Linux ) cd /tmp ;;
+  esac
+
+  test "${lines[1]}" = \
+        "/Dev/Software/../Hardware/../../Personal/../Public/Note/../.."
+}
+
+@test "$bin tpath-raw" "prints paths to definition-list terms with spaces and other chars" {
+
+  cd /tmp/
+  {
+    cat - <<EOM
+Soft Dev
+  ..
+Home
+  Shop
+    Electric Tools
+      ..
+  Living Room
+    ..
+Public
+  Topic Note
+    ..
+EOM
+} > test.rst
+
+  run $BATS_TEST_DESCRIPTION test.rst
+
+  case "$uname" in
+    Darwin ) cd /private/tmp;;
+    Linux ) cd /tmp ;;
+  esac
+
+  test "${lines[1]}" = \
+        "/Soft Dev/../Home/Shop/Electric Tools/../../Living Room/../../Public/Topic Note/../.."
+}
+

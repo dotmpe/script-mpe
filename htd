@@ -1239,6 +1239,16 @@ c_tags()
   tags.py find "$1"
 }
 
+c_save_topics()
+{
+  test -n "$1" || error "Document expected" 1
+  test -e "$1" || error "No such document $1" 1
+  c_tpaths "$1" | while read path
+  do
+    echo
+  done
+}
+
 
 c_save_url()
 {
@@ -2010,6 +2020,16 @@ c_disks()
 }
 
 
+c_normalize_symbolic()
+{
+  normalize_symbolic "$@"
+}
+
+c_normalize_relative()
+{
+  normalize_relative "$@"
+}
+
 # Get document part using xpath
 # XXX: relies on rST/XML.
 c_getx()
@@ -2039,6 +2059,8 @@ c_getxl()
 c_tpaths()
 {
   test -n "$1" || error "At least one document expected" 1
+  test -n "$print_src" || local print_src=
+
   {
     while test -n "$1"
     do
@@ -2047,30 +2069,48 @@ c_tpaths()
         shift 1
         continue
       }
+      local path= rel_leaf= root=
       # Read multi-leaf paths, and split it up into relative leafs
       c_xproc "$(c_getxl $1)" $scriptdir/rst-terms2path.xsl \
         | grep -Ev '^(#.*|\s*)$' \
         | sed 's/\([^\.]\)\/\.\./\1\
-  ../g' | grep -v '^\.[\.\/]*$' \
+../g' \
+        | grep -v '^\.[\.\/]*$' \
         | while read rel_leaf
       do
+
         # Assemble each leaf path onto its root, and normalize
-        echo $rel_leaf | grep -q '^\.\.\/' && {
-          normalize_relative $root/$rel_leaf/
+        echo "$rel_leaf" | grep -q '^\.\.\/' && {
+          path="$(normalize_relative "$root/$rel_leaf/")"
         } || {
-          normalize_relative $rel_leaf/
+          path="$(normalize_relative "$rel_leaf/")"
           root=$rel_leaf
         }
+
+        #test -n "$path" \
+        #  || continue
+        test -n "$print_src" \
+          && echo "$1 $path" \
+          || echo "$path"
+
       done
       shift 1
     done
   } | grep -Ev '^(#.*|\s*)$' | sort -u
 }
 
+c_tpath_raw()
+{
+  test -n "$1" || error "document expected" 1
+  test -e "$1" || error "no such document '$1'" 1
+  c_xproc "$(c_getxl "$1")" $scriptdir/rst-terms2path.xsl
+}
+
+# Process XML using XSLT
 c_xproc()
 {
   {
-  fnmatch '<* *>' "$2" && {
+    fnmatch '<* *>' "$2" && {
 
       xsltproc - $1 <<EOM
 $2
