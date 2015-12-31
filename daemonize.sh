@@ -79,16 +79,14 @@ daemonize__exec()
   note "Exec '$@'"
   ps aux | grep '\<nc\>' | grep -v grep
 
-  #echo -e "GET / HTTP/1.0\r\n\r\n"
-
   #fifo_client=/tmp/client
   #test ! -e $fifo_client || rm $fifo_client
   #mkfifo $fifo_client
   #cat "$fifo_client" | nc -U $sock &
 
-  printf "$@ \n\n" >/tmp/client.in
+  #echo "$@" | nc -U $sock -
 
-  echo "$@" | nc -U $sock -
+  echo "$@" | nc -i 1 -w 15 -U $sock -
 
   #| while read out
   #do
@@ -132,18 +130,34 @@ daemonize__spawn()
   #exec 0</dev/null
   r=
 
+  #fifo3=/tmp/fifo3
+  #fifo4=/tmp/fifo4
+  #rm -rf $fifo3 $fifo4
+  #mkfifo $fifo3 $fifo4
+  ##exec 3> $fifo3
+  ##4< $fifo4
+  #nc -k -l -U $sock - < $fifo3 > $fifo4 &
+  #cat $fifo4 | while read subcmd args
+  #do
+  #  daemonize__${subcmd}
+  #  daemonize__${subcmd} "$args" 2>&1 > $fifo3
+  #done
+  #<&4
+
   mkfifo $fifo
 
-  cat $fifo | nc -l -k -U $sock | while read subcmd args
+  #buffer -i $fifo &
+
+  cat $fifo | nc -k -l -U $sock - | while read subcmd args
   do
-
-    type daemonize__${subcmd} >/dev/null 2>/dev/null
+    #type daemonize__${subcmd} >/dev/null 2>/dev/null
     daemonize__${subcmd} "$args"
-    echo "OK $?" > $fifo
+    #2>&1 > $fifo
+    strace echo "OK $?" > $fifo &
     break
-
   done
 
+  note "Cleaning after spawn"
   daemonize__clean
 
   return $r
