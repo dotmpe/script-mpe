@@ -446,7 +446,7 @@ box__main()
       box_lib
 
       # Execute
-      main "$@"
+      run_subcmd "$@"
       ;;
 
     #* )

@@ -2267,7 +2267,7 @@ htd__main()
       htd_lib
 
       # Execute
-      main "$@"
+      run_subcmd "$@"
       ;;
 
     #* )
@@ -2298,6 +2298,7 @@ htd_lib()
 }
 
 # Use hyphen to ignore source exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
+case "$0" in "" ) ;; "-*" ) ;; * )
   htd__main "$@"
-fi
+  ;;
+esac

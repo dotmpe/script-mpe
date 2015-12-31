@@ -1,0 +1,217 @@
+#!/bin/sh
+
+. ~/bin/std.sh
+
+# Testing daemonization of shell script, for no particular reason.
+# Using netcat at Darwin works somewhat:
+
+# $ daemonize.sh run
+# $ daemonize.sh exec info
+
+# But response is not written back (consistently),
+# but sometimes the next run. Maybe experiment with multiple invocations,
+# for simple 1-on-1 talk.
+
+# setsid myscript.sh >/dev/null 2>&1 < /dev/null &
+
+# ----
+
+
+daemonize__info()
+{
+  note "Running at $$"
+}
+
+daemonize__edit()
+{
+  $EDITOR \
+    $0 \
+    "$@"
+}
+
+daemonize__clean()
+{
+  rm -f $sock
+  rm -f $fifo
+}
+
+daemonize__exit()
+{
+  exit
+}
+
+
+daemonize__fork()
+{
+  trap process_USR1 SIGUSR1
+  note "Fork $$: 0=$0 @$@"
+  exec $0 child "$@" &
+  return 0
+}
+
+daemonize__child()
+{
+  note "Child $$: 0=$0 @$@"
+  case "$uname" in
+    Darwin )
+      setup_launchd_service
+      start_launchd_service
+      ;;
+    Linux )
+      umask 0
+      exec setsid $0 spawn "$@" &
+      #</dev/null >/dev/null 2>/dev/null &
+      ;;
+  esac
+  return 0
+}
+
+
+process_USR1() {
+  echo 'Got signal USR1'
+  exit 0
+}
+
+
+# Exec cmd over websocket (server must be running)
+daemonize__exec()
+{
+  note "Exec '$@'"
+  ps aux | grep '\<nc\>' | grep -v grep
+
+  #echo -e "GET / HTTP/1.0\r\n\r\n"
+
+  #fifo_client=/tmp/client
+  #test ! -e $fifo_client || rm $fifo_client
+  #mkfifo $fifo_client
+  #cat "$fifo_client" | nc -U $sock &
+
+  printf "$@ \n\n" >/tmp/client.in
+
+  echo "$@" | nc -U $sock -
+
+  #| while read out
+  #do
+  #  note "Exec out='$out'"
+  #done
+  #echo "$@" >> $fifo_client
+}
+
+# Run without detaching, accept subcmd through domain socket
+daemonize__run()
+{
+  daemonize__clean
+
+  while true; do
+
+    daemonize__spawn
+
+  done
+}
+
+# XXX: trying nohup. Darwin. Redirects something so no output on fifo.
+daemonize__nohup()
+{
+  #nohup daemonize__run &
+  nohup daemonize.sh run &
+}
+
+daemonize__serve()
+{
+  echo
+}
+
+# Wait for and exec. one subcmd through websocket, using fifo to return output
+daemonize__spawn()
+{
+  note "Spawn $$: 0=$0 @=$@"
+  ps aux | grep $$ | grep -v grep
+
+  #exec >/tmp/outfile
+  #exec 2>/tmp/errfile
+  #exec 0</dev/null
+  r=
+
+  mkfifo $fifo
+
+  cat $fifo | nc -l -k -U $sock | while read subcmd args
+  do
+
+    type daemonize__${subcmd} >/dev/null 2>/dev/null
+    daemonize__${subcmd} "$args"
+    echo "OK $?" > $fifo
+    break
+
+  done
+
+  daemonize__clean
+
+  return $r
+}
+
+
+# ----
+
+
+# Main
+
+daemonize__init()
+{
+  daemonize_init || return 0
+
+  local scriptname=daemonize base=$(basename $0 .sh) verbosity=5
+
+  case "$base" in $scriptname )
+
+    local subcmd_def= \
+      subcmd_pref= subcmd_suf= \
+      subcmd_func_pref=daemonize__ subcmd_func_suf=
+
+      daemonize_lib
+
+      # Execute
+      run_subcmd "$@"
+      ;;
+
+    #* )
+    #  error "not a frontend for $base"
+    #  ;;
+  esac
+}
+
+daemonize_init()
+{
+  test -n "$PREFIX" || PREFIX=$HOME
+  test -z "$BOX_INIT" || return 1
+  . $PREFIX/bin/box.init.sh
+  . $PREFIX/bin/util.sh
+  box_run_sh_test
+  . $PREFIX/bin/main.sh
+  . $PREFIX/bin/main.init.sh
+  . $PREFIX/bin/box.lib.sh
+  . $PREFIX/bin/date.lib.sh
+  . $PREFIX/bin/darwin.lib.sh
+  # -- daemonize box init sentinel --
+}
+
+daemonize_lib()
+{
+  . $PREFIX/bin/match.sh "$@"
+  # -- daemonize box lib sentinel --
+  set --
+}
+
+daemonize_load()
+{
+  sock=/tmp/daemonize.sock
+  fifo=/tmp/f
+
+  # -- daemonize box load sentinel --
+  set --
+}
+
+case "$0" in "" ) ;; "-*" ) ;; * )
+  daemonize__init "$@"
+      ;;
+esac
+

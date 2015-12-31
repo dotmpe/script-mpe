@@ -67,7 +67,7 @@ ino__main()
       ino_lib
 
       # Execute
-      main "$@"
+      run_subcmd "$@"
       ;;
 
   esac

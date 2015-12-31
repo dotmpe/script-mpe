@@ -398,13 +398,14 @@ main_debug()
 }
 
 
+
 #  local scriptname= base=
 
 #  local subcmd_def=
 #  local subcmd_pref= subcmd_suf=
 #  local subcmd_func_pref= subcmd_func_suf=
 
-main()
+run_subcmd()
 {
   local e= c=0 box_lib= \
     subcmd_name= subcmd_alias= subcmd_func= \
@@ -445,10 +446,22 @@ main()
   }
 }
 
-
 req_htdir()
 {
   test -n "$HTDIR" -a -d "$HTDIR" || return 1
+}
+
+
+daemon()
+{
+  note "Running at $$"
+
+  while read argline
+  do
+    run_subcmd "$argline" || {
+      echo "?=$?"
+    }
+  done
 }
 
 

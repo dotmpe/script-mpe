@@ -789,7 +789,7 @@ dckr__main()
       dckr_lib
 
       # Execute
-      main "$@"
+      run_subcmd "$@"
       ;;
 
   esac

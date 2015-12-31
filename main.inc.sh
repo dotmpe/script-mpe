@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Use hyphen to ignore source exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
+case "$0" in "" ) ;; "-*" ) ;; * )
 
   # Do something (only) if script invoked as '$scriptname'
   case "$base" in
@@ -14,5 +14,6 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
       ;;
 
   esac
-fi
+
+esac
 

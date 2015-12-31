@@ -119,7 +119,7 @@ meta__main()
       meta_lib
 
       # Execute
-      main "$@"
+      run_subcmd "$@"
       ;;
 
   esac

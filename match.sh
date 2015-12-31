@@ -47,7 +47,7 @@ match_var_names()
 
 match_load_defs()
 {
-  MATCH_NAME_VARS="$MATCH_NAME_VARS $(echo $(grep '^match_[A-Z_][A-Z0-9_]*=.*' $1 | 
+  MATCH_NAME_VARS="$MATCH_NAME_VARS $(echo $(grep '^match_[A-Z_][A-Z0-9_]*=.*' $1 |
     sed 's/^match_\([^=]*\)=.*$/\1/g'))"
   # read in as array? try to clean dupes? overrides?
   #echo MATCH_NAME_VARS_new=$MATCH_NAME_VARS_new
@@ -68,7 +68,7 @@ match_grep_pattern_test()
   }
 }
 
-# sed/grep tricks to get name parts, find mismatches, matches, 
+# sed/grep tricks to get name parts, find mismatches, matches,
 # parse metadata or reformat paths, etc
 match_name_pattern()
 {
@@ -190,7 +190,7 @@ match_load_table()
     } || error "No local table.$1" 1
 }
 
-# Compile new table 
+# Compile new table
 # FIXME req_arg_pattern=("Name pattern" pattern)
 # FIXME req_arg_pattern_name=("Pattern name" name)
 match_compile()
@@ -234,7 +234,7 @@ match__main()
       match_lib
 
       # Execute
-      main "$@"
+      run_subcmd "$@"
       ;;
 
   esac
