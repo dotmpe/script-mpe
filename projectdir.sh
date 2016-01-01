@@ -85,6 +85,8 @@ pd__check()
   test -e "$1" || error "No projects file $1" 1
   test -z "$3" || error "Surplus arguments" 1
 
+  test ! -e "/srv/pd-serv.sock" || error "pd meta bg already running" 1
+  projectdir-meta --background &
   failed=
   note "Checking prefixes"
   projectdir-meta -f $1 list-prefixes "$2" | while read prefix
@@ -92,6 +94,7 @@ pd__check()
     vc_check $prefix || continue
     pd__sync $prefix || failed=1
   done
+  projectdir-meta exit
   return $failed
 }
 
@@ -167,6 +170,8 @@ pd__update()
 
   backup_if_comments "$1"
 
+  test ! -e "/srv/pd-serv.sock" || error "pd meta bg already running" 1
+  projectdir-meta --background &
 
   projectdir-meta -f $1 list-prefixes "$2" | while read prefix
   do
@@ -208,6 +213,7 @@ pd__update()
           || error "Unexpected error adding repo $?" $?
     }
   done
+  projectdir-meta exit
 }
 
 pd__list_prefixes()

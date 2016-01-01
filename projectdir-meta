@@ -14,14 +14,19 @@ Usage:
     projectdir-meta [options] list-prefixes [<root>]
     projectdir-meta [options] list-enabled [<root>]
     projectdir-meta [options] list-disabled [<root>]
-    projectdir-meta [options] [(dump|x-dump) [<prefix>]]
     projectdir-meta [options] get-uri <prefix> [<remote>]
     projectdir-meta [options] list-remotes <prefix>
     projectdir-meta [options] list-upstream <prefix> [<branches>...]
-    projectdir-meta [options] conv
+    projectdir-meta [options] exit
+    projectdir-meta [options] x-conv
+    projectdir-meta [options] x-check
+    projectdir-meta [options] [(dump|x-dump) [<prefix>]]
     projectdir-meta (-h | --help)
 
 Options:
+  --background
+  --address ADDRESS
+                [default: /tmp/pd-serv.sock]
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -g, --glob    Change from root prefix matching to glob matching.
@@ -33,11 +38,9 @@ from fnmatch import fnmatch
 
 from docopt import docopt
 import uuid
-
 from deep_eq import deep_eq
 
-from script_mpe import util
-
+from script_mpe import util, confparse
 from script_mpe.res import js
 from script_mpe.confparse import yaml_load, yaml_safe_dump
 
@@ -121,189 +124,249 @@ def prefix_match(prefix, match, opts):
         return True
 
 
+def check_state(target, pdhdata, ctx):
+    "Project repo Enabled/Disabled function"
+    prefix = ctx.opts.args.prefix
+    state = get_toggle_state(pdhdata['repositories'][prefix])
+    if not ctx.opts.flags.quiet:
+        print >>ctx.out, "%s\t%s" % ( prefix, state )
+    if ctx.opts.flags.strict and state is None:
+        return
+    if target != state:
+        return 1
 
-def main(pd_doc, func=None, opts=None):
-    pdhdata = yaml_load(open(pd_doc))
+def toggle_state(newstate, pdhdata, ctx):
+    prefix = ctx.opts.args.prefix
+    state = get_toggle_state(pdhdata['repositories'][prefix])
+    if newstate+'d' != state:
+        set_toggle_state( pdhdata['repositories'][prefix], newstate+'d' )
+        yaml_safe_dump(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
 
-    # Project repo Enabled/Disabled function
-    if func in ('enabled', 'disabled'):
-        prefix = opts.args.prefix
-        state = get_toggle_state(pdhdata['repositories'][prefix])
-        if not opts.flags.quiet:
-            print "%s\t%s" % ( prefix, state )
-        if opts.flags.strict and state is None:
-            return
-        if func != state:
-            return 1
+def yaml_commit(pdhdata, ctx):
+    yaml_safe_dump(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
 
-    elif func in ('enable', 'disable'):
-        prefix = opts.args.prefix
-        state = get_toggle_state(pdhdata['repositories'][prefix])
-        if func+'d' != state:
-            set_toggle_state( pdhdata['repositories'][prefix], func+'d' )
-            yaml_safe_dump(pdhdata, open(pd_doc, 'w+'), default_flow_style=False)
-
-    # Return or check for clean-mode
-    elif func == 'clean-mode':
-        mode = opts.args.mode or 'untracked'
-        if opts.args.prefix in pdhdata['repositories']:
-            repo = pdhdata['repositories'][opts.args.prefix]
-            repo_mode = get_clean_mode(repo)
-            if opts.flags.strict:
-                return repo_mode == mode
-            else:
-                if opts.flags.strict:
-                    if repo_mode != mode:
-                        return 1
-                else:
-                    if repo_modes.index(repo_mode) < repo_modes.index(mode):
-                        return 1
-        else:
-            for k in pdhdata['repositories'].keys():
-                if not prefix_match( k, opts.args.prefix, opts ):
-                    continue
-                repo = pdhdata['repositories'][k]
-                repo_mode = get_clean_mode(repo)
-                if opts.flags.strict:
-                    if repo_mode != mode:
-                        return 1
-                else:
-                    if repo_modes.index(repo_mode) < repo_modes.index(mode):
-                        return 1
-
+def update_repo(pdhdata, ctx):
     # add/update/drop repo metadata
-    elif func in ('put-repo', 'update-repo'):
+    new = dict([ k.split('=') for k in ctx.opts.args.kwdargs ])
+    for k,v in new.items():
+        if v == 'true':
+            new[k] = True
+        elif v == 'false':
+            new[k] = False
+        elif v.isdigit():
+            new[k] = int(v)
 
-        new = dict([ k.split('=') for k in opts.args.kwdargs ])
-        for k,v in new.items():
-            if v == 'true':
-                new[k] = True
-            elif v == 'false':
-                new[k] = False
-            elif v.isdigit():
-                new[k] = int(v)
+    p = ctx.opts.args.prefix
+    if ctx.opts.cmds[0] == 'update-repo':
+        if p not in pdhdata['repositories']:
+            print >>ctx.out, "No such repo prefix", p
+            return 2
+        updated = dict(pdhdata['repositories'][p])
+        updated.update(new)
+        if deep_eq( pdhdata['repositories'][p], updated ):
+            return 42
+        pdhdata['repositories'][p] = updated
+    else:
+        if p in pdhdata['repositories']:
+            print >>ctx.out, "Pepo prefix exists", p
+            return 3
+        pdhdata['repositories'][p] = new
 
-        p = opts.args.prefix
-        if func == 'update-repo':
-            if p not in pdhdata['repositories']:
-                print "No such repo prefix", p
-                return 2
-            updated = dict(pdhdata['repositories'][p])
-            updated.update(new)
-            if deep_eq( pdhdata['repositories'][p], updated ):
-                return 42
-            pdhdata['repositories'][p] = updated
+    yaml_commit(pdhdata, ctx)
+
+def list_state(target, pdhdata, ctx):
+    for k in pdhdata['repositories'].keys():
+        if not prefix_match( k, ctx.opts.args.root, ctx.opts ):
+            continue
+        state = get_toggle_state(pdhdata['repositories'][k])
+        if state is None:
+            continue
+        bstate = toggle_active(state)
+        if bstate:
+            if target == 'list-enabled':
+                print >>ctx.out, k
+        elif target == 'list-disabled':
+            print >>ctx.out, k
+
+
+
+#
+
+def H_list_upstream(pdhdata, ctx):
+    repos = pdhdata['repositories']
+    assert ctx.opts.args.prefix in repos, "No key %s" %ctx.opts.args.prefix
+
+    branches = 'branches' in ctx.opts.args and ctx.opts.args.branches
+    if not branches: branches = '*'
+    sync = None
+    if 'sync' in repos[ctx.opts.args.prefix]:
+        sync = repos[ctx.opts.args.prefix]['sync']
+
+    if not sync:
+        if sync == None and ctx.opts.flags.strict:
+            return 1
+        return
+
+    if isinstance(sync, list):
+        for remote in sync:
+            for branch in branches:
+                print >>ctx.out, remote, branch
+    elif isinstance(sync, bool):
+        for remote in repos[ctx.opts.args.prefix]['remotes']:
+            for branch in branches:
+                print >>ctx.out, remote, branch
+
+def H_list_remotes(pdhdata, ctx):
+    repos = pdhdata['repositories']
+    assert ctx.opts.args.prefix in repos, "No key %s" %ctx.opts.args.prefix
+    for remote in repos[ctx.opts.args.prefix]['remotes']:
+        print >>ctx.out, remote
+
+def H_get_uri(pdhdata, ctx):
+    repos = pdhdata['repositories']
+    assert ctx.opts.args.prefix in repos, "No key %s" %ctx.opts.args.prefix
+    remote = 'origin'
+    if 'remote' in ctx.opts.args:
+        remote = ctx.opts.args.remote or 'origin'
+    remotes = repos[ctx.opts.args.prefix]['remotes']
+    assert remote in remotes
+    print >>ctx.out, remotes[remote]
+
+def H_disabled(pdhdata, ctx):
+    check_state(ctx.opts.cmds[0], pdhdata, ctx)
+def H_enabled(pdhdata, ctx):
+    check_state(ctx.opts.cmds[0], pdhdata, ctx)
+
+def H_enable(pdhdata, ctx):
+    toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+def H_disable(pdhdata, ctx):
+    toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+
+# Return or check for clean-mode
+def H_clean_mode(pdhdata, ctx):
+
+    mode = ctx.opts.args.mode or 'untracked'
+    if ctx.opts.args.prefix in pdhdata['repositories']:
+        repo = pdhdata['repositories'][ctx.opts.args.prefix]
+        repo_mode = get_clean_mode(repo)
+        if ctx.opts.flags.strict:
+            return repo_mode == mode
         else:
-            if p in pdhdata['repositories']:
-                print "Pepo prefix exists", p
-                return 3
-            pdhdata['repositories'][p] = new
+            if ctx.opts.flags.strict:
+                if repo_mode != mode:
+                    return 1
+            else:
+                if repo_modes.index(repo_mode) < repo_modes.index(mode):
+                    return 1
+    else:
+        for k in pdhdata['repositories'].keys():
+            if not prefix_match( k, ctx.opts.args.prefix, ctx.opts ):
+                continue
+            repo = pdhdata['repositories'][k]
+            repo_mode = get_clean_mode(repo)
+            if ctx.opts.flags.strict:
+                if repo_mode != mode:
+                    return 1
+            else:
+                if repo_modes.index(repo_mode) < repo_modes.index(mode):
+                    return 1
 
-        yaml_safe_dump(pdhdata, open(pd_doc, 'w+'), default_flow_style=False)
+def H_put_repo(pdhdata, ctx):
+    update_repo(pdhdata, ctx)
+def H_update_repo(pdhdata, ctx):
+    update_repo(pdhdata, ctx)
 
-    elif func == 'drop-repo':
-        p = opts.args.prefix
-        del pdhdata['repositories'][p]
-        yaml_safe_dump(pdhdata, open(pd_doc, 'w+'), default_flow_style=False)
+def H_drop_repo(pdhdata, ctx):
+    p = ctx.opts.args.prefix
+    del pdhdata['repositories'][p]
+    yaml_commit(pdhdata, ctx)
 
+def H_list_prefixes(pdhdata, ctx):
     # List all project repo prefixes
-    elif func == 'list-prefixes':
+    for k in pdhdata['repositories'].keys():
+        if prefix_match( k, ctx.opts.args.root, ctx.opts ):
+            print >>ctx.out, k
+
+def H_list_enabled(pdhdata, ctx):
+    list_state(ctx.opts.cmds[0], pdhdata, ctx)
+
+def H_list_disabled(pdhdata, ctx):
+    list_state(ctx.opts.cmds[0], pdhdata, ctx)
+
+def H_dump(pdhdata, ctx):
+    if 'prefix' not in ctx.opts.args:
+        print >>ctx.out, yaml_safe_dump(pdhdata, default_flow_style=False)
+    else:
+        print >>ctx.out, "repositories:"
         for k in pdhdata['repositories'].keys():
-            if prefix_match( k, opts.args.root, opts ):
-                print k
-
-    elif func in ( 'list-enabled', 'list-disabled' ):
-        for k in pdhdata['repositories'].keys():
-            if not prefix_match( k, opts.args.root, opts ):
+            if not prefix_match( k, ctx.opts.args.prefix, ctx.opts ):
                 continue
-            state = get_toggle_state(pdhdata['repositories'][k])
-            if state is None:
-                continue
-            bstate = toggle_active(state)
-            if bstate:
-                if func == 'list-enabled':
-                    print k
-            elif func == 'list-disabled':
-                print k
+            print >>ctx.out, "  %s:" % k
+            v = pdhdata['repositories'][k]
+            print >>ctx.out, "   ", yaml_safe_dump(v, default_flow_style=False).replace(
+                    '\n', '\n    ')
 
-    elif func == 'conv':
-        newd = dict(repositories={})
-        for k, v in pdhdata['repositories'].items():
-            sd = {}
-            r = {}
-            for sk, sv in pdhdata['repositories'][k].items():
-                if sk in ('enabled', 'disabled', 'title', 'description', 'clean'):
-                    sd[sk] = sv
-                else:
-                    r[sk] = sv
-                #if sk in ('origin', 'original', 'brix', 'dotmpe')
-            sd['remotes'] = r
-            newd['repositories'][k] = sd
+def H_x_dump(pdhdata, ctx):
+    meta = meta_from_projectdir_doc(pdhdata)
+    print >>ctx.out, yaml_safe_dump(meta, default_flow_style=False)
 
-        yaml_safe_dump(newd, open(pd_doc, 'w+'), default_flow_style=False)
+def H_x_check(pdhdata, ctx):
+    for h in handlers:
+        if h not in ctx.usage:
+            print >>ctx.err, "Missing %s docs" % h
+    print ctx.usage
 
-    elif func == 'list-upstream':
-        repos = pdhdata['repositories']
-        assert opts.args.prefix in repos, "No key %s" %opts.args.prefix
+def H_x_conv(pdhdata, ctx):
+    """
+    Convert old yaml format 
+    """
+    newd = dict(repositories={})
+    for k, v in pdhdata['repositories'].items():
+        sd = {}
+        r = {}
+        for sk, sv in pdhdata['repositories'][k].items():
+            if sk in ('enabled', 'disabled', 'title', 'description', 'clean'):
+                sd[sk] = sv
+            else:
+                assert sk != 'enable', 'FIXME'
+                assert sk != 'disable', 'FIXME'
+                r[sk] = sv
+            #if sk in ('origin', 'original', 'brix', 'dotmpe')
+        sd['remotes'] = r
+        newd['repositories'][k] = sd
+    yaml_commit(pdhdata, ctx)
 
-        branches = 'branches' in opts.args and opts.args.branches
-        if not branches: branches = '*'
-        sync = None
-        if 'sync' in repos[opts.args.prefix]:
-            sync = repos[opts.args.prefix]['sync']
 
-        if not sync:
-            if sync == None and opts.flags.strict:
-                return 1
-            return
 
-        if isinstance(sync, list):
-            for remote in sync:
-                for branch in branches:
-                    print remote, branch
-        elif isinstance(sync, bool):
-            for remote in repos[opts.args.prefix]['remotes']:
-                for branch in branches:
-                    print remote, branch
+handlers = {}
+for k, h in locals().items():
+    if not k.startswith('H_'):
+        continue
+    handlers[k[2:].replace('_', '-')] = h
 
-    elif func == 'list-remotes':
-        repos = pdhdata['repositories']
-        assert opts.args.prefix in repos, "No key %s" %opts.args.prefix
-        for remote in repos[opts.args.prefix]['remotes']:
-            print remote
 
-    elif func == 'get-uri':
-        repos = pdhdata['repositories']
-        assert opts.args.prefix in repos, "No key %s" %opts.args.prefix
-        remote = 'origin'
-        if 'remote' in opts.args:
-            remote = opts.args.remote or 'origin'
-        remotes = repos[opts.args.prefix]['remotes']
-        assert remote in remotes
-        print remotes[remote]
-
-    elif func == 'dump':
-        if 'prefix' not in opts.args:
-            print yaml_safe_dump(pdhdata, default_flow_style=False)
-        else:
-            print "repositories:"
-            for k in pdhdata['repositories'].keys():
-                if not prefix_match( k, opts.args.prefix, opts ):
-                    continue
-                print "  %s:" % k
-                v = pdhdata['repositories'][k]
-                print "   ", yaml_safe_dump(v, default_flow_style=False).replace(
-                        '\n', '\n    ')
-
-    elif func == 'x-dump':
-        meta = meta_from_projectdir_doc(pdhdata)
-        print yaml_safe_dump(meta, default_flow_style=False)
-
+def main(ctx):
+    if ctx.opts.flags.background:
+        pdtwisted = __import__('projectdir-twisted')
+        return pdtwisted.serve(ctx, handlers)
+    elif os.path.exists(ctx.opts.flags.address):
+        pdtwisted = __import__('projectdir-twisted')
+        return pdtwisted.query(ctx)
+    else:
+        pdhdata = yaml_load(open(ctx.opts.flags.file))
+        func = ctx.opts.cmds[0]
+        assert func in handlers
+        return handlers[func](pdhdata, ctx)
 
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__doc__)
-    if not opts.cmds: opts.cmds = ['dump']
-    sys.exit( main( opts.flags.file, opts.cmds[0], opts ) )
+    ctx = confparse.Values(dict(
+        usage=__doc__,
+        out=sys.stdout,
+        err=sys.stderr,
+        inp=sys.stdin,
+        opts=util.get_opts(__doc__)
+    ))
+    sys.exit( main( ctx ) )
 
