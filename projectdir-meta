@@ -20,11 +20,11 @@ Usage:
     projectdir-meta [options] exit
     projectdir-meta [options] x-conv
     projectdir-meta [options] x-check
-    projectdir-meta [options] [(dump|x-dump) [<prefix>]]
+    projectdir-meta [options] (dump|x-dump) [<prefix>]
+    projectdir-meta --background [options]
     projectdir-meta (-h | --help)
 
 Options:
-  --background
   --address ADDRESS
                 [default: /tmp/pd-serv.sock]
   -q, --quiet   Quiet operations
@@ -233,14 +233,14 @@ def H_get_uri(pdhdata, ctx):
     print >>ctx.out, remotes[remote]
 
 def H_disabled(pdhdata, ctx):
-    check_state(ctx.opts.cmds[0], pdhdata, ctx)
+    return check_state(ctx.opts.cmds[0], pdhdata, ctx)
 def H_enabled(pdhdata, ctx):
-    check_state(ctx.opts.cmds[0], pdhdata, ctx)
+    return check_state(ctx.opts.cmds[0], pdhdata, ctx)
 
 def H_enable(pdhdata, ctx):
-    toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+    return toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
 def H_disable(pdhdata, ctx):
-    toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+    return toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
 
 # Return or check for clean-mode
 def H_clean_mode(pdhdata, ctx):
@@ -352,6 +352,9 @@ def main(ctx):
     elif os.path.exists(ctx.opts.flags.address):
         pdtwisted = __import__('projectdir-twisted')
         return pdtwisted.query(ctx)
+    elif 'exit' == ctx.opts.cmds[0]:
+        print >>ctx.err, "No background process at %s" % ctx.opts.flags.address
+        return 1
     else:
         pdhdata = yaml_load(open(ctx.opts.flags.file))
         func = ctx.opts.cmds[0]

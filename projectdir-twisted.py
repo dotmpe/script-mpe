@@ -36,7 +36,9 @@ class QueryProtocol(LineOnlyReceiver):
             print >>err, "Command not recognized:", self.cmd
             self.factory.ctx.rs = 2
         elif line == ("! %s" % self.cmd):
-            print >>err, "Error running command:", self.cmd
+            self.factory.ctx.rs = 3
+        elif line == ("!! %s" % self.cmd):
+            print >>err, "Exception running command:", self.cmd
             self.factory.ctx.rs = 1
         else:
             print line
@@ -107,10 +109,13 @@ class ServerProtocol(LineOnlyReceiver):
             func = ctx.opts.cmds[0]
             assert func in self.factory.handlers
             try:
-                self.factory.handlers[func](self.factory.pdhdata, ctx)
-                self.sendLine("%s OK" % line)
+                r = self.factory.handlers[func](self.factory.pdhdata, ctx)
+                if r:
+                    self.sendLine("! %s" % line)
+                else:
+                    self.sendLine("%s OK" % line)
             except Exception, e:
-                self.sendLine("! %s" % e)
+                self.sendLine("!! %s" % e)
 
         self.transport.loseConnection()
 

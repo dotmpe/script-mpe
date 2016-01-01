@@ -21,7 +21,28 @@ pd__edit()
 # defer to python script for YAML parsing
 pd__meta()
 {
-  projectdir-meta "$@"
+  projectdir-meta "$@" || return $?
+}
+
+pd_meta_bg_setup()
+{
+  test -n "$no_background" && {
+    note "Forcing foreground/cleaning up background"
+    test ! -e "/tmp/pd-serv.sock" || projectdir-meta exit \
+      || error "Exiting old" $?
+  } || {
+    test ! -e "/tmp/pd-serv.sock" || error "pd meta bg already running" 1
+    projectdir-meta --background &
+    while test ! -e /tmp/pd-serv.sock
+    do note "Waiting for server.." ; sleep 1 ; done
+    info "Backgrounded pd-meta for $(pwd)/projects.yaml (PID $!)"
+  }
+}
+pd_meta_bg_teardown()
+{
+  test -n "$no_background" || {
+    projectdir-meta exit
+  }
 }
 
 vc_clean()
@@ -71,11 +92,13 @@ vc_check()
 pd__status()
 {
   note "Getting status for checkouts"
+  pd_meta_bg_setup
   pd__list_prefixes | while read prefix
   do
     vc_check $prefix || continue
     pd__clean $prefix
   done
+  pd_meta_bg_teardown
 }
 
 # Check with remote refs
@@ -85,40 +108,25 @@ pd__check()
   test -e "$1" || error "No projects file $1" 1
   test -z "$3" || error "Surplus arguments" 1
 
-  test ! -e "/srv/pd-serv.sock" || error "pd meta bg already running" 1
-  projectdir-meta --background &
-  failed=
+  pd_meta_bg_setup
+  failed=$(statusdir.sh file pd-check.failed)
+  test ! -e  $failed || rm $failed
+
   note "Checking prefixes"
   projectdir-meta -f $1 list-prefixes "$2" | while read prefix
   do
     vc_check $prefix || continue
-    pd__sync $prefix || failed=1
+    pd__sync $prefix || touch $failed
   done
-  projectdir-meta exit
-  return $failed
-}
 
-pd__dirty()
-{
-  test -n "$1" || set -- "projects.yaml" "$2"
-  test -e "$1" || error "No projects file $1" 1
-  test -z "$3" || error "Surplus arguments" 1
-
-  pwd=$(pwd)
-  projectdir-meta -f $1 list-prefixes "$2" | while read prefix
-  do
-    test ! -d $prefix || {
-      cd $pwd/$prefix
-      test -z "$(vc ufx)" || {
-        warn "Dirty: $prefix"
-      }
-      cd $pwd
-    }
-  done
+  pd_meta_bg_teardown
+  test -e $failed \
+    && return 1
 }
 
 pd__clean()
 {
+  test -e "$1/.git" || error "checkout dir expected" 1
   vc_clean "$1"
   case "$?" in
     0|"" )
@@ -170,8 +178,7 @@ pd__update()
 
   backup_if_comments "$1"
 
-  test ! -e "/srv/pd-serv.sock" || error "pd meta bg already running" 1
-  projectdir-meta --background &
+  pd_meta_bg_setup
 
   projectdir-meta -f $1 list-prefixes "$2" | while read prefix
   do
@@ -213,7 +220,8 @@ pd__update()
           || error "Unexpected error adding repo $?" $?
     }
   done
-  projectdir-meta exit
+
+  pd_meta_bg_teardown
 }
 
 pd__list_prefixes()
@@ -257,7 +265,7 @@ pd__sync()
   (
     pd__meta -s list-upstream "$prefix" "$@" \
       || {
-        warn "No sync setting for $prefix"
+        warn "No sync setting, skipping $prefix"
         return 1
       }
   ) | while read remote branch
@@ -277,7 +285,7 @@ pd__sync()
       test -n "$choice_sync_push" && {
         git push $remote +$branch
       } || {
-        error "Remote branch does not exist $prefix $remoteref"
+        error "Missing remote branch in $prefix: $remoteref"
         return 2
       }
     }

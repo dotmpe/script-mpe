@@ -2248,6 +2248,39 @@ c_current_events()
 }
 
 
+c_active()
+{
+  note "Listing files active today '$@'"
+  tdate=$(date +%y%m%d0000)
+  test -n "$tdate" || error "formatting date" 1
+  touch -t $tdate $(statusdir.sh file recent-paths)
+  c_recent_paths "$@"
+}
+
+# dump lsof without cmd, pid etc.
+c_lsof()
+{
+  c_current_paths "$@"
+}
+#c_als_lsof=current-paths
+
+c_current_paths()
+{
+  test -n "$1" || set -- "$(pwd -P)"
+  note "Listing open paths under $1"
+  # print only pid and path name, keep name
+  lsof -Fn +D $1 | tail -n +2 | grep -v '^p' | cut -c2- | sort -u
+}
+
+c_recent_paths()
+{
+  test -n "$1" || set -- "$(pwd -P)"
+  note "Listing active paths under $1"
+  dateref=$(statusdir.sh file recent-paths)
+  find $1 -newer $dateref
+}
+
+
 
 ### Main
 

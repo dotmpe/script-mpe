@@ -23,7 +23,7 @@ statusdir_root()
 # echos path
 statusdir_assert()
 {
-	tree=$(echo $@ | tr ' ' '/')
+	tree="$(echo "$@" | tr ' ' '/')"
 	path=$STATUSDIR_ROOT"tree/"$tree
 	mkdir -p $path
 	echo $path
@@ -32,9 +32,9 @@ statusdir_assert()
 
 # As statusdir_assert, but last arg is filename
 # (does not touch file, but echos it)
-statusdir_dir()
+statusdir_assert_dir()
 {
-	tree=$(echo $@ | tr ' ' '/')
+	tree="$(echo "$@" | tr ' ' '/')"
 	path=$STATUSDIR_ROOT"index/"$tree
 	mkdir -p $(dirname $path)
 	echo $path
@@ -43,11 +43,20 @@ statusdir_dir()
 # Specific statusdir_dir assert for .list file
 statusdir_index()
 {
-	tree=$(echo $@ | tr ' ' '/')
+	tree="$(echo "$@" | tr ' ' '/')"
 	path=$STATUSDIR_ROOT"index/"$tree".list"
 	mkdir -p $(dirname $path)
 	echo $path
 }
+
+statusdir_file()
+{
+	tree="$(echo "$@" | tr ' ' '/')"
+	path=$STATUSDIR_ROOT"index/"$tree
+	statusdir_assert_dir "$path" >/dev/null
+	echo $path
+}
+
 
 # Main
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
