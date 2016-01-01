@@ -3,3 +3,6 @@
 #	url = git@github.com:dotmpe/munin-plugins.git
 
 #	url = git@github.com:jonschipp/munin-plugins.git
+[submodule "thirdparty/macos-wherefrom"]
+	path = thirdparty/macos-wherefrom
+	url = git@github.com:jakepetroules/wherefrom.git
