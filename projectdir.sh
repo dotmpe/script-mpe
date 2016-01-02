@@ -120,8 +120,7 @@ pd__check()
   done
 
   pd_meta_bg_teardown
-  test -e $failed \
-    && return 1
+  test ! -e $failed || return 1
 }
 
 pd__clean()
