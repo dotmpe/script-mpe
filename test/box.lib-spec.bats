@@ -38,9 +38,9 @@ test_lib=$lib/test/main.inc
 @test "${lib}/${base} - box-grep should detect sentinel lines, and set env or return 1. No output. " {
 
   script_name=mytest
-  subcmd_name=main
+  subcmd=main
   where_line=
-  where_grep='.*#.--.'${script_name}'.box.*'${subcmd_name}'.sentinel.--'
+  where_grep='.*#.--.'${script_name}'.box.*'${subcmd}'.sentinel.--'
   box_grep $where_grep $test_lib.bash
   r=$?
   test "${where_line}" = "30:  # -- mytest box include main sentinel --"
@@ -53,8 +53,8 @@ test_lib=$lib/test/main.inc
   test ${status} -eq 0
 
   script_name=mytest
-  subcmd_name=no-such-id
-  where_grep='.*#.--.'${script_name}'.box.'${subcmd_name}'.sentinel.--'
+  subcmd=no-such-id
+  where_grep='.*#.--.'${script_name}'.box.'${subcmd}'.sentinel.--'
   run box_grep $where_grep $test_lib.bash
   test ${status} -eq 1
   test -z "${lines[*]}" # empty output

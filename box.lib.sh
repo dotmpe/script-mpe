@@ -188,8 +188,8 @@ box_init_args()
 {
   # subcmd-name
   test -n "$1" && {
-    subcmd_name="$1" ; c=$(( $c + 1 ))
-  } || subcmd_name=run
+    subcmd="$1" ; c=$(( $c + 1 ))
+  } || subcmd=run
   # script-name
   test -n "$2" && {
     script_name="$2" ; c=$(( $c + 1 ))

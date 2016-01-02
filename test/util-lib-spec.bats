@@ -12,6 +12,9 @@ test_inc="$lib/util.sh $lib/main.sh $lib/test/helper.bash $lib/test/main.inc.bas
 test_inc_bash="source $(echo $test_inc | sed 's/\ / \&\& source /g')"
 test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
+tmd=/tmp/bats-$$/
+mkdir -vp $tmd
+
 
 # util / Try-Exec
 
@@ -210,7 +213,7 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
 @test "$lib line_count: " {
 
-  out=/tmp/line_count
+  out=$tmd/line_count
 
   printf "1\n2\n3\n4" >$out
   test "$(wc -l $out|awk '{print $1}')" = "3"
@@ -227,7 +230,7 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
 @test "$lib truncate_trailing_lines: " {
 
-  out=/tmp/truncate_trailing_lines
+  out=$tmd/truncate_trailing_lines
   printf "1\n2\n3\n4" >$out
   test -s "$out"
   ll="$(truncate_trailing_lines $out 1)"

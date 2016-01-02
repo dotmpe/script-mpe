@@ -227,7 +227,7 @@ match__main()
   case "$base" in $scriptname )
 
       local subcmd_def= \
-        subcmd_pref= subcmd_suf= \
+        subcmd_pref=${base} subcmd_suf= \
         subcmd_func_pref=${base}_ subcmd_func_suf=
 
       match_init

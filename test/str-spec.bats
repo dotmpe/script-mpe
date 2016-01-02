@@ -5,6 +5,8 @@ func=mkvid
 
 source $lib.sh
 
+tmd=/tmp/bats-$$/
+mkdir -vp $tmd
 
 @test "$lib $func can make ID from path" {
     mkvid "/var/lib"
@@ -37,7 +39,7 @@ source $lib.sh
   fnmatch "test *" "test 123" || test
   fnmatch "*test*" " test " || test
   fnmatch "./file.sh: line *: test" "./file.sh: line 1234: test" || test
-  errmsg="[htd.sh:today] Error: Dir /tmp/journal must exist"
-  fnmatch "*Error*Dir /tmp/journal must exist*" "$errmsg"
+  errmsg="[htd.sh:today] Error: Dir $tmd/journal must exist"
+  fnmatch "*Error*Dir $tmd/journal must exist*" "$errmsg"
 }
 

@@ -240,7 +240,7 @@ on_host()
 
 req_host()
 {
-  on_host "$1" || error "$subcmd_name runs on $1 only" 1
+  on_host "$1" || error "$0 runs on $1 only" 1
 }
 
 on_system()

@@ -31,7 +31,6 @@ try_help()
 # :
 echo_help()
 {
-    echo "args $@"
   mkid _$1
   #try_exec_func ${help_base}__usage $1 || std_usage $1
   # 1: commands
@@ -43,9 +42,64 @@ echo_help()
   return 1
 }
 
+try_local()
+{
+  test -n "$1" || set -- "__$2"
+  echo "${subcmd_pref}$1" | tr '-' '_'
+}
+
+try_value()
+{
+  eval echo "\$$(try_local "$1" "$2")"
+}
+
+try_var()
+{
+  test -n "$1" || error "var" 1
+  value="$(try_value "$2" "$3")"
+  export $1="$value"
+  test -n "$value" || return 1
+}
+
 try_spec()
 {
-  echo "$(eval echo "\$${subcmd_func_pref}spc_$1")"
+  try_var spc _spc_$1
+  echo $spc
+  unset spc
+}
+
+try_func()
+{
+  type $1 &>/dev/null && {
+    func_exists=1
+  } || return 1
+}
+
+try_subcmd_func()
+{
+  test -n "$subcmd" || subcmd=$def_subcmd
+  test -n "$subcmd" || error "no cmd or default" 1
+  func="$(try_local "" "$subcmd")"
+  try_func $func || return $?
+}
+
+# Set and see if $func exists
+try_subcmd()
+{
+  try_subcmd_func || {
+    e=$?
+    test -z "$subcmd" && {
+      pd__usage
+      error 'No command given, see "help"' 1
+    } || {
+      test "$e" = "1" -a -z "$func_exists" && {
+        pd__usage
+        error "No such command: $subcmd" 1
+      } || {
+        error "Command $subcmd returned $e" $e
+      }
+    }
+  }
 }
 
 std_help()
@@ -64,7 +118,7 @@ std_help()
     # Specific help (subcmd, maybe file-format other doc, or a TODO: group arg)
     echo "Usage: "
     echo "  $base $(try_spec $1) "
-    echo -n "Help '$1': "
+    printf "Help '$1': "
     echo_help "$1" || error "no help '$1'"
   }
 }
@@ -76,7 +130,7 @@ std_usage()
     echo 'Usage:'
     echo "  $scriptname <cmd> [<args>..]"
   } || {
-    echo -n "$scriptname $1: "
+    printf "$scriptname $1: "
   }
 }
 
@@ -169,14 +223,14 @@ parse_subcmd_valid_flags()
   local flag=$1
   shift 1
   test -z "$*" && {
-    test -z "$subcmd_name" || {
-      error "'$subcmd_name' does not accept -$flag" 1
+    test -z "$subcmd" || {
+      error "'$subcmd' does not accept -$flag" 1
     }
   }
-  fnmatch "*$subcmd_name*" "$*" || {
-    error "'$subcmd_name' does not accept -$flag" 1
+  fnmatch "*$subcmd*" "$*" || {
+    error "'$subcmd' does not accept -$flag" 1
   }
-  case $subcmd_name in
+  case $subcmd in
       init ) case $flag in c ) return;; esac ;;
       create ) case $flag in i ) return;; esac ;;
   esac
@@ -198,7 +252,7 @@ parse_box_subcmd_opts()
 
     #r ) subcmd=run;;
     #n ) subcmd=new;;
-    #h ) subcmd_name=help;;
+    #h ) subcmd=help;;
     i ) parse_subcmd_valid_flags $o init create; subcmd=init;;
     c ) parse_subcmd_valid_flags $o init create; subcmd=create;;
     #d ) subcmd=deinit;;
@@ -247,7 +301,7 @@ get_subcmd_args()
       # BUG: -ne wont work, -en will. Should always split flags here.
       get_cmd_alias subcmd "$(expr_substr "$1" 1 2 )"
       test -n "$subcmd_alias" && {
-        subcmd_name=$subcmd_alias
+        subcmd=$subcmd_alias
         flag="$1"
         shift 1
         flags="-$(expr_substr "$flag" 3 ${#flag})"
@@ -271,14 +325,14 @@ get_subcmd_args()
       ;;
 
     * )
-      test -z "$subcmd_name" && {
+      test -z "$subcmd" && {
 
-        subcmd_name=$1
+        subcmd=$1
 
       } || {
 
         # XXX
-        try_exec_func ${base}_init_args_$subcmd_name $* && {
+        try_exec_func ${base}_init_args_$subcmd $* && {
 
           test $c -gt 0 && {
             sc=$(( $c + $sc )); shift $c ; c=0;
@@ -313,7 +367,7 @@ get_cmd_func_name()
   #echo ${func_pref} $(eval echo \${${1}_name}) ${func_suf}
   #echo ${1}_func=$(eval echo "${func_pref}\${${1}_name}${func_suf}" | tr '-' '_')
   # FIXME: test this.
-  export ${1}_func=$(eval echo "${func_pref}\${${1}_name}${func_suf}" | tr '-' '_')
+  export ${1}_func=$(eval echo "${func_pref}\${${1}}${func_suf}" | tr '-' '_')
 }
 
 # set ${1}_name to cmd-function
@@ -331,7 +385,7 @@ get_cmd_func()
   done
 
   # get cmd_name
-  test -n "$(eval echo \$${1}_name)" || export ${1}_name=$(eval echo \$${1}_def)
+  test -n "$(eval echo \$${1})" || export ${1}=$(eval echo \$${1}_def)
 
   get_cmd_func_name $1
 
@@ -386,8 +440,8 @@ main_debug()
 {
   debug "vars:
     cmd=$base args=$*
-    subcmd_name=$subcmd_name subcmd_alias=$subcmd_alias subcmd_def=$subcmd_def
-    script_name=$script_name script_subcmd_name=$script_subcmd_name
+    subcmd=$subcmd subcmd_alias=$subcmd_alias subcmd_def=$subcmd_def
+    script_name=$script_name script_subcmd=$script_subcmd
     subcmd_func=$subcmd_func subcmd_func_pref=$subcmd_func_pref subcmd_func_suf=$subcmd_func_suf
 
     silent=$silent silence=$silence verbosity=$verbosity
@@ -408,7 +462,7 @@ main_debug()
 run_subcmd()
 {
   local e= c=0 box_lib= \
-    subcmd_name= subcmd_alias= subcmd_func= \
+    subcmd= subcmd_alias= subcmd_func= \
     dry_run= silence= choice_force= \
     choice_all= choice_local= choice_global= \
     stdio_0_type= stdio_1_type= stdio_2_type=
@@ -425,24 +479,24 @@ run_subcmd()
   func_exists $subcmd_func || {
     debug "no such subcmd-func $subcmd_func"
     try_exec_func ${base}_usage || std_usage
-    test -z "$subcmd_name" && {
+    test -z "$subcmd" && {
       error 'No command given' 1
     } || {
-      error "No such command: $subcmd_name" 2
+      error "No such command: $subcmd" 2
     }
   }
 
   test -z "$dry_run" \
-    && debug "executing $scriptname $subcmd_name" \
-    || info "** starting DRY RUN $scriptname $subcmd_name **"
+    && debug "executing $scriptname $subcmd" \
+    || info "** starting DRY RUN $scriptname $subcmd **"
 
   $subcmd_func "$@" && {
       test -z "$dry_run" \
-        && info "$subcmd_name completed normally" 0 \
-        || info "$subcmd_name dry-drun completed" 0
+        && info "$subcmd completed normally" 0 \
+        || info "$subcmd dry-drun completed" 0
   } || {
     e=$?
-    error "Command $subcmd_name returned $e" 3
+    error "Command $subcmd returned $e" 3
   }
 }
 
@@ -463,5 +517,4 @@ daemon()
     }
   done
 }
-
 

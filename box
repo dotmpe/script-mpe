@@ -137,7 +137,7 @@ c_main_1_init="Add script function, optionally providing command and script name
 c_spc_init="-i|init [<cmd>=run [<name>=$hostname]]"
 c_init()
 {
-  local c=0 script_name= subcmd_name= \
+  local c=0 script_name= subcmd= \
     global_func_name= local_func_name= \
     local_script= named_script= uconf_script=
 
@@ -167,10 +167,10 @@ c_init()
 EOF
 )"
 
-    where_grep='.*#.--.'${script_name}'.box.'${subcmd_name}'.insert.*--'
+    where_grep='.*#.--.'${script_name}'.box.'${subcmd}'.insert.*--'
     #box_sentinel_indent $where_grep $named_script
     file_insert_where_before $where_grep $named_script "$(cat <<-EOF
-  # insert $script_name $subcmd_name by $base: $(datetime)
+  # insert $script_name $subcmd by $base: $(datetime)
   box_run_cwd $(cwd) ${script_subcmd_func} ${subcmd_func_pref}${script_name}__local__
 EOF
 )"
@@ -181,7 +181,7 @@ EOF
     box_add_function $global_func_name $named_script:$line_number "$(cat <<-EOF
   set -- # no-op
   # $local_func_name
-  # -- ${script_name} box ${subcmd_name} insert sentinel --
+  # -- ${script_name} box ${subcmd} insert sentinel --
 EOF
 )
 "
@@ -210,8 +210,8 @@ EOF
 )"
 
   test -n "$script_name" \
-      && log "Extended $script_name with script $nid_cwd $subcmd_name" \
-      || log "Created local script $nid_cwd $subcmd_name"
+      && log "Extended $script_name with script $nid_cwd $subcmd" \
+      || log "Created local script $nid_cwd $subcmd"
 
   local files="$named_script $local_script $uconf_script"
   # XXX: vim only stuff
@@ -324,7 +324,7 @@ c_run()
 
   #box_init_args $@
   test $c -eq 0 || shift $c ; c=0
-  test -n "$script_subcmd_name" || script_subcmd_name=$subcmd_name
+  test -n "$script_subcmd_name" || script_subcmd_name=$subcmd
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
@@ -440,7 +440,7 @@ box__main()
   case "$base" in $scriptname )
 
       local subcmd_def= \
-        subcmd_pref= subcmd_suf= \
+        subcmd_pref=c \
         subcmd_func_pref=c_ subcmd_func_suf=
 
       box_lib
@@ -481,7 +481,7 @@ box_load()
   mkvid $(pwd)
   nid_cwd=$vid
   unset vid
-  box_name="${base}:${subcmd_name}"
+  box_name="${base}:${subcmd}"
   # -- box box load sentinel --
   set --
 }

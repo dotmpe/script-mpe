@@ -1,15 +1,5 @@
 #!/bin/bash
 
-. ~/bin/std.sh
-. ~/bin/projectdir.inc.sh "$@"
-. ~/bin/vc.sh "$@"
-
-scriptname=projectdir
-test -n "$scriptalias" || scriptalias=pd
-
-# ----
-
-
 
 pd__edit()
 {
@@ -19,112 +9,37 @@ pd__edit()
 }
 
 # defer to python script for YAML parsing
+pd_yml__meta=1
 pd__meta()
 {
   projectdir-meta "$@" || return $?
 }
 
-pd_meta_bg_setup()
-{
-  test -n "$no_background" && {
-    note "Forcing foreground/cleaning up background"
-    test ! -e "/tmp/pd-serv.sock" || projectdir-meta exit \
-      || error "Exiting old" $?
-  } || {
-    test ! -e "/tmp/pd-serv.sock" || error "pd meta bg already running" 1
-    projectdir-meta --background &
-    while test ! -e /tmp/pd-serv.sock
-    do note "Waiting for server.." ; sleep 1 ; done
-    info "Backgrounded pd-meta for $(pwd)/projects.yaml (PID $!)"
-  }
-}
-pd_meta_bg_teardown()
-{
-  test -n "$no_background" || {
-    projectdir-meta exit
-    info "Closed background metadata server"
-  }
-}
-
-vc_clean()
-{
-  dirty="$(cd $1; git diff --quiet || echo 1)"
-  test -n "$dirty" && {
-    return 1
-
-  } || {
-
-    test -n "$choice_strict" \
-      && cruft="$(cd $1; vc excluded)" \
-      || {
-
-        projectdir-meta -q clean-mode $1 tracked || {
-
-          projectdir-meta -q clean-mode $1 excluded \
-            && cruft="$(cd $1; vc excluded)" \
-            || cruft="$(cd $1; vc unversioned-files)"
-        }
-
-      }
-
-    test -z "$cruft" || {
-      return 2
-    }
-  }
-}
-
-vc_check()
-{
-  test -d "$1" && {
-    projectdir-meta -sq enabled $1 || {
-      note "To be disabled: $1"
-    }
-  } || {
-    # skip check on missing dirs, note
-    projectdir-meta -sq enabled $1 || return
-    test -e $1 \
-      && note "Not a checkout: $1" \
-      || note "Missing checkout: $1"
-    return 1
-  }
-}
-
+pd_yml__status=1
+pd_bg__status=pd-clean.failed
 # Run over known prefixes and present status indicators
 pd__status()
 {
-  pd_meta_bg_setup
-  failed=$(statusdir.sh file pd-check.failed)
-  test ! -e  $failed || rm $failed
   note "Getting status for checkouts"
-  pd__list_prefixes | while read prefix
+  pd__list_prefixes "$1" | while read prefix
   do
     vc_check $prefix || continue
     pd__clean $prefix || touch $failed
   done
-  pd_meta_bg_teardown
-  test ! -e $failed || return 1
 }
 
+pd_yml__check=1
+pd_bg__check=pd-check.failed
 # Check with remote refs
 pd__check()
 {
-  test -n "$1" || set -- "projects.yaml" "$2"
-  test -e "$1" || error "No projects file $1" 1
-  test -z "$3" || error "Surplus arguments" 1
-
-  pd_meta_bg_setup
-  failed=$(statusdir.sh file pd-check.failed)
-  test ! -e  $failed || rm $failed
-
+  test -z "$2" || error "Surplus arguments" 1
   note "Checking prefixes"
-  projectdir-meta -f $1 list-prefixes "$2" | while read prefix
+  projectdir-meta -f $pd list-prefixes "$1" | while read prefix
   do
     vc_check $prefix || continue
     pd__sync $prefix || touch $failed
   done
-
-  pd_meta_bg_teardown
-  test ! -e $failed || return 1
 }
 
 pd__clean()
@@ -150,12 +65,10 @@ pd__clean()
 # drop clean checkouts and disable repository
 pd__disable_clean()
 {
-  test -n "$1" || set -- "projects.yaml" "$2"
-  test -e "$1" || error "No projects file $1" 1
-  test -z "$3" || error "Surplus arguments" 1
+  test -z "$2" || error "Surplus arguments" 1
 
   pwd=$(pwd)
-  projectdir-meta -f $1 list-prefixes "$2" | while read prefix
+  projectdir-meta -f $pd list-prefixes "$1" | while read prefix
   do
     test ! -d $prefix || {
       cd $pwd/$prefix
@@ -163,7 +76,7 @@ pd__disable_clean()
         test -z "$(vc ufx)" && {
           warn "TODO remove $prefix if synced"
           # XXX need to fetch remotes, compare local branches
-          #projectdir-meta -f $1 list-push-remotes $prefix | while read remote
+          #projectdir-meta -f $pd list-push-remotes $prefix | while read remote
           #do
           #  git push $remote --all
           #done
@@ -175,21 +88,19 @@ pd__disable_clean()
 }
 
 # add/remove repos, update remotes at first level. git only.
+pd_yml__update=1
+pd_bg__update='pd-.failed'
 pd__update()
 {
-  test -n "$1" || set -- "projects.yaml" "$2"
-  test -e "$1" || error "No projects file $1" 1
-  test -z "$3" || error "Surplus arguments" 1
+  test -z "$2" || error "Surplus arguments" 1
 
-  backup_if_comments "$1"
+  backup_if_comments "$pd"
 
-  pd_meta_bg_setup
-
-  projectdir-meta -f $1 list-prefixes "$2" | while read prefix
+  projectdir-meta -f $pd list-prefixes "$1" | while read prefix
   do
     #match_grep_pattern_test "$prefix"
     test -d $prefix || {
-      projectdir-meta -f $1 update-repo $prefix disable=true \
+      projectdir-meta -f $pd update-repo $prefix disable=true \
         && note "Disabled $prefix"\
         || {
           r=$?; test $r -eq 42 && info "Checkout at $prefix already disabled" \
@@ -198,7 +109,6 @@ pd__update()
     }
   done
 
-
   for git in */.git
   do
     prefix=$(dirname $git)
@@ -206,10 +116,10 @@ pd__update()
 
     match_grep_pattern_test "$prefix"
 
-    grep -q '\<'$p_'\>\/\?\:' $1 && {
+    grep -q '\<'$p_'\>\/\?\:' $pd && {
 
       info "Testing update $prefix props='$props'"
-      projectdir-meta -f $1 update-repo $prefix \
+      projectdir-meta -f $pd update-repo $prefix \
         $props \
           && note "Updated metadata for $prefix" \
           || { r=$?; test $r -eq 42 && info "Metadata up-to-date for $prefix" \
@@ -219,24 +129,20 @@ pd__update()
     } || {
 
       info "Testing add $prefix props='$props'"
-      projectdir-meta -f $1 put-repo $prefix \
+      projectdir-meta -f $pd put-repo $prefix \
         $props \
           && note "Added metadata for $prefix" \
           || error "Unexpected error adding repo $?" $?
     }
   done
-
-  pd_meta_bg_teardown
 }
 
+pd_yml__list_prefixes=1
 pd__list_prefixes()
 {
-  test -n "$1" || set -- "projects.yaml" "$2"
-  test -e "$1" || error "No projects file $1" 1
-  #test -z "$2" || { test -d "$2" || error "Argument must be root-dir" 1; }
-  test -z "$3" || error "surplus arguments" 1
+  test -z "$2" || error "surplus arguments" 1
 
-  projectdir-meta -f $1 list-prefixes "$2" | while read prefix
+  projectdir-meta -f $pd list-prefixes "$1" | while read prefix
   do
     match_grep_pattern_test "$prefix"
     grep -q "$p_" .gitignore || {
@@ -246,26 +152,15 @@ pd__list_prefixes()
   done
 }
 
-vc_list_local_branches()
-{
-  local pwd=$(pwd)
-  test -z "$1" || cd $1
-  git branch -l | sed -E 's/\*|[[:space:]]//g'
-  test -z "$1" || cd $pwd
-}
-
+# Update remotes and check refs
+pd_yml__sync=1
 pd__sync()
 {
   test -n "$1" || error "prefix argument expected" 1
   prefix=$1
   shift 1
-
-  pd=projects.yaml
-  test -e "$pd"
-
-  pwd=$(pwd)
-
   test -n "$1" || set -- $(vc_list_local_branches $prefix)
+  pwd=$(pwd -P)
 
   (
     pd__meta -s list-upstream "$prefix" "$@" \
@@ -340,12 +235,11 @@ pd__enable()
   }
 }
 
+pd_yml__disable=1
 pd__disable()
 {
   test -n "$1" || error "prefix argument expected" 1
-
-  pd=projects.yaml
-  test -e "$pd"
+  test -n "$pd" || error "pd=$pd" 1
 
   pd__meta -q disabled $1 && {
     info "Already disabled: $1"
@@ -379,6 +273,79 @@ pd__disable()
 
 
 
+pd_meta_bg_setup()
+{
+  test -n "$no_background" && {
+    note "Forcing foreground/cleaning up background"
+    test ! -e "/tmp/pd-serv.sock" || projectdir-meta exit \
+      || error "Exiting old" $?
+  } || {
+    test ! -e "/tmp/pd-serv.sock" || error "pd meta bg already running" 1
+    projectdir-meta --background &
+    while test ! -e /tmp/pd-serv.sock
+    do note "Waiting for server.." ; sleep 1 ; done
+    info "Backgrounded pd-meta for $(pwd)/projects.yaml (PID $!)"
+  }
+}
+pd_meta_bg_teardown()
+{
+  test -n "$no_background" || {
+    projectdir-meta exit
+    info "Closed background metadata server"
+  }
+}
+
+vc_clean()
+{
+  dirty="$(cd $1; git diff --quiet || echo 1)"
+  test -n "$dirty" && {
+    return 1
+
+  } || {
+
+    test -n "$choice_strict" \
+      && cruft="$(cd $1; vc excluded)" \
+      || {
+
+        projectdir-meta -q clean-mode $1 tracked || {
+
+          projectdir-meta -q clean-mode $1 excluded \
+            && cruft="$(cd $1; vc excluded)" \
+            || cruft="$(cd $1; vc unversioned-files)"
+        }
+
+      }
+
+    test -z "$cruft" || {
+      return 2
+    }
+  }
+}
+
+vc_check()
+{
+  test -d "$1" && {
+    projectdir-meta -sq enabled $1 || {
+      note "To be disabled: $1"
+    }
+  } || {
+    # skip check on missing dirs, note
+    projectdir-meta -sq enabled $1 || return
+    test -e $1 \
+      && note "Not a checkout: $1" \
+      || note "Missing checkout: $1"
+    return 1
+  }
+}
+
+vc_list_local_branches()
+{
+  local pwd=$(pwd)
+  test -z "$1" || cd $1
+  git branch -l | sed -E 's/\*|[[:space:]]//g'
+  test -z "$1" || cd $pwd
+}
+
 backup_if_comments()
 {
   test -f "$1" || error "file expected: '$1'" 1
@@ -393,17 +360,43 @@ backup_if_comments()
 # ----
 
 
-def_func=pd__status
-
 
 pd__load()
 {
   . ~/bin/os.lib.sh
   . ~/bin/date.lib.sh
   . ~/bin/match.sh "$@"
+  . ~/bin/vc.sh "$@"
+
+  test -z "$(try_value _yml__${subcmd})" || {
+    pd=projects.yaml
+    test -e "$pd" || error "No projects file $pd" 1
+  }
+
+  bg="$(try_value _bg__${subcmd})"
+  test -z "$bg" || {
+    pd_meta_bg_setup
+    failed=$(statusdir.sh file $bg)
+    test ! -e  $failed || rm $failed
+  }
+
+  case "$1" in
+    * )
+      ;;
+  esac
+
   export GIT_AGE=$_1HOUR
   uname=$(uname)
-  printf ""
+}
+
+pd__unload()
+{
+  test -n "$bg" && {
+    pd_meta_bg_teardown
+    test ! -e $failed || return 1
+  }
+  unset subcmd subcmd_pref \
+          def_subcmd func_exists func
 }
 
 pd__usage()
@@ -425,7 +418,11 @@ pd__help()
 
 
 # Main
+
 case "$0" in "" ) ;; "-*" ) ;; * )
+
+  scriptname=projectdir
+  test -n "$scriptalias" || scriptalias=pd
 
   base=$(basename $0 .sh)
   case "$base" in
@@ -433,36 +430,25 @@ case "$0" in "" ) ;; "-*" ) ;; * )
     $scriptname | $scriptalias )
 
         # invoke with function name first argument,
-        cmd=$1
-        [ -n "$def_func" -a -z "$cmd" ] \
-          && func=$def_func \
-          || func=$(echo pd__$cmd | tr '-' '_')
+        subcmd=$1 \
+          subcmd_pref=${scriptalias} \
+          def_subcmd=status \
+          func_exists= \
+          func=
 
-        type $func &>/dev/null && {
-          func_exists=1
+        . ~/bin/main.sh
+        . ~/bin/std.sh
+        . ~/bin/projectdir.inc.sh "$@"
+
+        try_subcmd && {
           shift 1
-          pd__load
-          $func "$@"
-        } || {
-          e=$?
-          [ -z "$cmd" ] && {
-            pd__usage
-            error 'No command given, see "help"' 1
-          } || {
-            [ "$e" = "1" -a -z "$func_exists" ] && {
-              pd__usage
-              error "No such command: $cmd" 1
-            } || {
-              error "Command $cmd returned $e" $e
-            }
-          }
+          pd__load $subcmd "$@" \
+            && $func "$@" \
+            && pd__unload \
+            || exit $?
         }
 
       ;;
-
-#    * )
-#      echo "Not a frontend for $base ($scriptname)"
-#      ;;
 
   esac
 

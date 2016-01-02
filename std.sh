@@ -196,13 +196,13 @@ log()
 
   case $stdout_type in t )
         key=$scriptname.sh
-        test -n "$subcmd_name" && key=${key}${bb}:${bk}${subcmd_name}
+        test -n "$subcmd" && key=${key}${bb}:${bk}${subcmd}
         log_$LOG_TERM "${bb}[${bk}${key}${bb}] ${norm}$1"
         ;;
 
       p|f )
         key=$scriptname.sh
-        test -n "$subcmd_name" && key=${key}${bb}:${bk}${subcmd_name}
+        test -n "$subcmd" && key=${key}${bb}:${bk}${subcmd}
         log_$LOG_TERM "${bb}# [${bk}${key}${bb}] ${norm}$1"
         ;;
   esac
