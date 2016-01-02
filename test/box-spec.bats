@@ -5,9 +5,6 @@ load helper
 init
 source $lib/util.sh
 
-tmd=/tmp/bats-$$/
-mkdir -vp $tmd
-
 
 usage_line_1="${base}.sh Bash/Shell script helper"
 usage_line_2="Usage:"
@@ -19,12 +16,13 @@ usage_line_3="  ${base} <cmd> [<args>..]"
   check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
   #echo "${lines[*]}" > /tmp/1
   #echo "${#lines[@]}" >> /tmp/1
-  tmp=$(cd $tmd/;pwd -P)
+  tmpd
+  tmp=$(cd $tmpd/;pwd -P)
   run bash -c 'cd '$tmp'/ && '${bin}
-  lines_to_file $tmd/1
-  echo "env $(current_test_env)" >> $tmd/1
-  echo "status $status" >> $tmd/1
-  echo "lines ${#lines[@]}" >> $tmd/1
+  lines_to_file $tmpd/1
+  echo "env $(current_test_env)" >> $tmpd/1
+  echo "status $status" >> $tmpd/1
+  echo "lines ${#lines[@]}" >> $tmpd/1
   test $status -eq 1
   return
 
@@ -75,7 +73,8 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
 @test "${bin} -i" {
   skip "FIXME"
-  tmpf=$tmd/bats-test-spec-foo/bar/3/baz_4
+  tmpd
+  tmpf=$tmpd/bats-test-spec-foo/bar/3/baz_4
   #tmpf
   mkdir -vp $tmpf
   pushd $tmpf
@@ -171,17 +170,18 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
   run $BATS_TEST_DESCRIPTION
 
+  tmpd
   case "$(current_test_env)" in
 
     simza )
       test $status -eq 0
-      echo "lines ${#lines[@]}" > $tmd/1
+      echo "lines ${#lines[@]}" > $tmpd/1
       test "${#lines[@]}" = "8" # lines of output (stderr+stderr)
       ;;
 
     vs1 )
       test $status -eq 0
-      #echo "lines ${#lines[@]}" > $tmd/1
+      #echo "lines ${#lines[@]}" > $tmpd/1
       test "${#lines[@]}" = "7" # lines of output (stderr+stderr)
       ;;
 

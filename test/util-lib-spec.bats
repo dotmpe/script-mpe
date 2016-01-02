@@ -12,8 +12,6 @@ test_inc="$lib/util.sh $lib/main.sh $lib/test/helper.bash $lib/test/main.inc.bas
 test_inc_bash="source $(echo $test_inc | sed 's/\ / \&\& source /g')"
 test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
-tmd=/tmp/bats-$$/
-mkdir -vp $tmd
 
 
 # util / Try-Exec
@@ -213,7 +211,8 @@ mkdir -vp $tmd
 
 @test "$lib line_count: " {
 
-  out=$tmd/line_count
+  tmpd
+  out=$tmpd/line_count
 
   printf "1\n2\n3\n4" >$out
   test "$(wc -l $out|awk '{print $1}')" = "3"
@@ -230,7 +229,8 @@ mkdir -vp $tmd
 
 @test "$lib truncate_trailing_lines: " {
 
-  out=$tmd/truncate_trailing_lines
+  tmpd
+  out=$tmpd/truncate_trailing_lines
   printf "1\n2\n3\n4" >$out
   test -s "$out"
   ll="$(truncate_trailing_lines $out 1)"

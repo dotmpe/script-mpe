@@ -1,12 +1,12 @@
 #!/usr/bin/env bats
 
+load helper
+
 test -z "$PREFIX" && lib=./str || lib=$PREFIX/bin/str
 func=mkvid
 
 source $lib.sh
 
-tmd=/tmp/bats-$$/
-mkdir -vp $tmd
 
 @test "$lib $func can make ID from path" {
     mkvid "/var/lib"
@@ -39,7 +39,8 @@ mkdir -vp $tmd
   fnmatch "test *" "test 123" || test
   fnmatch "*test*" " test " || test
   fnmatch "./file.sh: line *: test" "./file.sh: line 1234: test" || test
-  errmsg="[htd.sh:today] Error: Dir $tmd/journal must exist"
-  fnmatch "*Error*Dir $tmd/journal must exist*" "$errmsg"
+  tmpd
+  errmsg="[htd.sh:today] Error: Dir $tmpd/journal must exist"
+  fnmatch "*Error*Dir $tmpd/journal must exist*" "$errmsg"
 }
 

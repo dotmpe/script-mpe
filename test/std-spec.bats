@@ -7,8 +7,6 @@ init
 . $lib/std.sh
 . $lib/str.sh
 
-tmd=/tmp/bats-$$/
-mkdir -vp $tmd
 
 
 @test "${lib}/${base} - std_v <n> should return 1 if <n> <= <verbosity>. No output." {
@@ -157,7 +155,8 @@ mkdir -vp $tmd
   case $(current_test_env) in travis|jenkins )
       test "$stdio_1_type" = "f" ;;
     * )
-      #echo "$stdio_1_type" >>$tmd/stdio_1_type
+      #tmpd
+      #echo "$stdio_1_type" >>$tmpd/stdio_1_type
       test "$stdio_1_type" = "p" ;;
   esac
   stdio_type 2
@@ -172,11 +171,12 @@ mkdir -vp $tmd
   #test "$?" = "0"
   #test "$stdio_3_type" = "p"
 
+  tmpd
   case $(current_test_env) in jenkins )
       skip "TODO a bit more testing with stdio type detection at $(current_test_env)" ;;
     * )
-      { echo foo | file /dev/fd/{0,1,2,3} > $tmd/1; }
-      echo >>$tmd/1
+      { echo foo | file /dev/fd/{0,1,2,3} > $tmpd/1; }
+      echo >>$tmpd/1
 #  { echo foo | file /dev/fd/0 >> /tmp/1; }
 #  { echo foo | stdio_type 0; echo "$stdio_0_type" > /tmp/1; test "$stdio_0_type" = "f"; }
 #  { echo foo | stdio_type 1; echo "$stdio_1_type" > /tmp/1; test "$stdio_1_type" = "t"; }
