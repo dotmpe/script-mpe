@@ -30,6 +30,7 @@ pd__status()
 
 pd_yml__check=1
 pd_bg__check=pd-check.failed
+pd_today__check=pd-check.date
 # Check with remote refs
 pd__check()
 {
@@ -380,12 +381,22 @@ pd__load()
     test ! -e  $failed || rm $failed
   }
 
+  export GIT_AGE=$_1HOUR
+
+  today="$(try_value _today__${subcmd})"
+  test -z "$today" || {
+    today=$(statusdir.sh file $today)
+    tdate=$(date +%y%m%d0000)
+    test -n "$tdate" || error "formatting date" 1
+    touch -t $tdate $today
+    c_recent_paths "$@"
+  }
+
   case "$1" in
     * )
       ;;
   esac
 
-  export GIT_AGE=$_1HOUR
   uname=$(uname)
 }
 
@@ -448,7 +459,7 @@ case "$0" in "" ) ;; "-*" ) ;; * )
             || exit $?
         }
 
-      ;;
+     ;;
 
   esac
 
