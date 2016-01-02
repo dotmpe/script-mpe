@@ -42,6 +42,7 @@ pd_meta_bg_teardown()
 {
   test -n "$no_background" || {
     projectdir-meta exit
+    info "Closed background metadata server"
   }
 }
 
@@ -91,14 +92,17 @@ vc_check()
 # Run over known prefixes and present status indicators
 pd__status()
 {
-  note "Getting status for checkouts"
   pd_meta_bg_setup
+  failed=$(statusdir.sh file pd-check.failed)
+  test ! -e  $failed || rm $failed
+  note "Getting status for checkouts"
   pd__list_prefixes | while read prefix
   do
     vc_check $prefix || continue
-    pd__clean $prefix
+    pd__clean $prefix || touch $failed
   done
   pd_meta_bg_teardown
+  test ! -e $failed || return 1
 }
 
 # Check with remote refs
@@ -133,10 +137,12 @@ pd__clean()
     ;;
     1 )
       warn "Dirty: $(__vc_status "$1")"
+      return 1
     ;;
     2 )
       note "Crufty: $(__vc_status "$1")"
       printf "$cruft\n" 1>&2
+      return 2
     ;;
   esac
 }
