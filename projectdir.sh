@@ -153,8 +153,11 @@ pd__list_prefixes()
   done
 }
 
-# Update remotes and check refs
+# prepare Pd var
 pd_yml__sync=1
+# Want to track last (direct) run
+pd_last__sync=1
+# Update remotes and check refs
 pd__sync()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -389,7 +392,6 @@ pd__load()
     tdate=$(date +%y%m%d0000)
     test -n "$tdate" || error "formatting date" 1
     touch -t $tdate $today
-    c_recent_paths "$@"
   }
 
   case "$1" in

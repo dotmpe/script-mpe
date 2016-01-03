@@ -24,6 +24,10 @@ init()
   }
   init_lib
 
+  . $lib/util.sh
+  . $lib/main.sh
+  main_init
+
   # XXX does this overwrite bats load?
   . main.init.sh
 }

@@ -4,8 +4,6 @@ load helper
 load main.inc
 
 init
-source $lib/util.sh
-source $lib/main.sh
 
 BOX_INIT=1
 
@@ -49,58 +47,58 @@ BOX_INIT=1
   unset c
 }
 
-
-# main / Clean Env
-
-
-@test "$lib/main should source (functions) without polluting environment (with vars)" {
-
-  # check for vars we use
-  var_isset subcmd && test -z "Unexpected subcmd= var in env" || noop
-  var_isset subcmd_name && test -z "Unexpected subcmd_name= var in env" || noop
-  var_isset subcmd_pref && test -z "Unexpected subcmd_pref= var in env" || noop
-  var_isset subcmd_suf && test -z "Unexpected subcmd_suf= var in env" || noop
-  var_isset func && test -z "Unexpected func= var in env" || noop
-  var_isset func_name && test -z "Unexpected func_name= var in env" || noop
-  var_isset func_pref && test -z "Unexpected func_pref= var in env" || noop
-  var_isset func_suf && test -z "Unexpected func_suf= var in env" || noop
-  var_isset base && test -z "Unexpected base= var in env" || noop
-  var_isset scriptname && test -z "Unexpected scriptname= var in env" || noop
-  var_isset script_name && test -z "Unexpected script_name= var in env" || noop
-
-  var_isset PREFIX && test -z "Unexpected PREFIX= var in env" || noop
-  var_isset SRC_PREFIX && test -z "Unexpected SRC_PREFIX= var in env" || noop
-
-  var_isset fn && test -z "Unexpected fn= var in env" || noop
-  var_isset name && test -z "Unexpected name= var in env" || noop
-  var_isset flags && test -z "Unexpected flags= var in env" || noop
-  var_isset pref && test -z "Unexpected pref= var in env" || noop
-  var_isset suf && test -z "Unexpected suf= var in env" || noop
-  var_isset verbosity && test -z "Unexpected verbosity= var in env" || noop
-  var_isset silence && test -z "Unexpected silence= var in env" || noop
-  var_isset tag && test -z "Unexpected tag= var in env" || noop
+@test "$lib/main try_help" {
 }
 
+#@test "$lib/main echo_help" {
 
-@test "$lib/main expect some *nix env" {
-
-  var_isset HOME || test -z "Expected HOME= var in env"
+@test "$lib/main try_local" {
+  subcmd_pref=
+  test "$(try_local "abc123")" = "__abc123"
+  test "$(try_local "abc123" "_")" = "_abc123"
+  test "$(try_local "abc123" "" xxx)" = "_xxx__abc123"
+  test "$(try_local abc123 _ xxx)" = "_xxx_abc123"
 }
 
-
-@test "$lib/main expect the env for Box" {
-
-  skip "not requiring exports for now.. but should test PREFIX, UCONFDIR handling. ."
-  var_isset BOX_DIR || test -z "Expected BOX_DIR= var in env"
+@test "$lib/main try_value" {
+  subcmd_pref=cmd
+  cmd__var=var1
+  test "$(try_value var)" = "var1"
+  cmd_x__var=var2
+  test "$(try_value var "" x)" = "var2"
+  cmd_var=var3
+  test "$(try_value var _)" = "var3"
 }
 
+@test "$lib/main try_var" {
+  var_isset myvar1 && test -z 'unexpected myvar1' || noop
+  _x__b=123
+  try_var myvar1 b "" x
+  test "$myvar1" = "123"
+  var_isset myvar1 || test -z 'expected myvar1'
+  unset myvar1
+}
 
-@test "$lib/main std-help" {
+@test "$lib/main try_spec" {
+  cmd_spc__sub=spec1
+  cmd2_spc__sub=spec2
+  subcmd_pref=cmd
+  test "$(try_spec sub)" = spec1
+  test "$(try_spec sub cmd2)" = spec2
+  test "$(try_spec sub cmd)" = spec1
+}
+
+#@test "$lib/main try_func" {
+#@test "$lib/main try_subcmd_func" {
+#@test "$lib/main try_subcmd" {
+#@test "$lib/main std-help" {
+
+@test "$lib/main std-usage" {
 
   check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
 
-@test "$lib/main std-usage" {
+@test "$lib/main std-commands" {
 
   check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
@@ -142,4 +140,50 @@ BOX_INIT=1
 
   check_skipped_envs || skip "TODO envs $envs: implement for env"
 }
+
+
+# main / Clean Env
+
+
+@test "$lib/main should source (functions) without polluting environment (with vars)" {
+
+  # check for vars we use
+  var_isset subcmd && test -z "Unexpected subcmd= var in env" || noop
+  var_isset subcmd_name && test -z "Unexpected subcmd_name= var in env" || noop
+  var_isset subcmd_pref && test -z "Unexpected subcmd_pref= var in env" || noop
+  var_isset subcmd_suf && test -z "Unexpected subcmd_suf= var in env" || noop
+  var_isset func && test -z "Unexpected func= var in env" || noop
+  var_isset func_name && test -z "Unexpected func_name= var in env" || noop
+  var_isset func_pref && test -z "Unexpected func_pref= var in env" || noop
+  var_isset func_suf && test -z "Unexpected func_suf= var in env" || noop
+  var_isset base && test -z "Unexpected base= var in env" || noop
+  var_isset scriptname && test -z "Unexpected scriptname= var in env" || noop
+  var_isset script_name && test -z "Unexpected script_name= var in env" || noop
+
+  var_isset PREFIX && test -z "Unexpected PREFIX= var in env" || noop
+  var_isset SRC_PREFIX && test -z "Unexpected SRC_PREFIX= var in env" || noop
+
+  var_isset fn && test -z "Unexpected fn= var in env" || noop
+  var_isset name && test -z "Unexpected name= var in env" || noop
+  var_isset flags && test -z "Unexpected flags= var in env" || noop
+  var_isset pref && test -z "Unexpected pref= var in env" || noop
+  var_isset suf && test -z "Unexpected suf= var in env" || noop
+  var_isset verbosity && test -z "Unexpected verbosity= var in env" || noop
+  var_isset silence && test -z "Unexpected silence= var in env" || noop
+  var_isset tag && test -z "Unexpected tag= var in env" || noop
+}
+
+
+@test "$lib/main expect some *nix env" {
+
+  var_isset HOME || test -z "Expected HOME= var in env"
+}
+
+@test "$lib/main expect the env for Box" {
+
+  skip "not requiring exports for now.. but should test PREFIX, UCONFDIR handling. ."
+  var_isset BOX_DIR || test -z "Expected BOX_DIR= var in env"
+}
+
+
 

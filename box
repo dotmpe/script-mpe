@@ -440,10 +440,11 @@ box__main()
   case "$base" in $scriptname )
 
       local subcmd_def= \
-        subcmd_pref=c \
+        subcmd_pref=c scsep=_ \
         subcmd_func_pref=c_ subcmd_func_suf=
 
       box_lib
+      box_init
 
       # Execute
       run_subcmd "$@"

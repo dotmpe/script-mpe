@@ -44,28 +44,37 @@ echo_help()
 
 try_local()
 {
-  test -n "$1" || set -- "__$2"
-  echo "${subcmd_pref}$1" | tr '-' '_'
+  test -n "$1" || error "try_local:1" 1
+  test -n "$2" && {
+    test -z "$3" || set -- "$1" "$2${3}_"
+  } || {
+    test -n "$3" \
+      && set -- "$1" "_${3}$scsep" \
+      || set -- "$1" "$scsep"
+  }
+  echo "${subcmd_pref}$2$1" | tr '-' '_'
 }
 
 try_value()
 {
-  eval echo "\$$(try_local "$1" "$2")"
+  local value="$(eval echo "\$$(try_local "$@")")"
+  test -n "$value" || return 1
+  echo $value
 }
 
 try_var()
 {
   test -n "$1" || error "var" 1
-  value="$(try_value "$2" "$3")"
-  export $1="$value"
-  test -n "$value" || return 1
+  local value="$(eval echo "\$$(try_local "$2" "$3" "$4")")"
+  test -n "$value" && {
+    export $1="$value"
+  } || return $?
 }
 
 try_spec()
 {
-  try_var spc _spc_$1
-  echo $spc
-  unset spc
+  test -z "$2" || local subcmd_pref=$2
+  try_value $1 "" spc
 }
 
 try_func()
@@ -79,7 +88,7 @@ try_subcmd_func()
 {
   test -n "$subcmd" || subcmd=$def_subcmd
   test -n "$subcmd" || error "no cmd or default" 1
-  func="$(try_local "" "$subcmd")"
+  func="$(try_local "$subcmd")"
   try_func $func || return $?
 }
 
@@ -404,10 +413,16 @@ main_init()
 
   var_isset verbosity || verbosity=6
 
+  test -n "$scsep" || scsep=__
+}
+
+box_init()
+{
   box_src="$(dry_run= box_list_libs $0 $1 | while read src path args; \
     do eval echo $path; done)"
   box_lib="$box_src"
 }
+
 
 # Parse command line arguments and set subcmd vars
 main_parse_subcmd()
@@ -417,6 +432,7 @@ main_parse_subcmd()
   get_subcmd_args "$@"
   get_cmd_func subcmd
 }
+
 
 # Run any load routines
 main_load()

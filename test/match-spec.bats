@@ -4,8 +4,6 @@ base=match.sh
 load helper
 init
 
-source $lib/util.sh
-
 
 
 @test "$bin no arguments no-op" {
