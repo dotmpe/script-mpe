@@ -1,4 +1,5 @@
 #!/bin/sh
+echo "pd source @=$@ 1=$1 _=$_"
 
 
 pd__edit()
