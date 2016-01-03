@@ -656,6 +656,11 @@ c_mac()
 
 # 
 
+c_cron()
+{
+  printf ""
+}
+
 c_project()
 {
   printf ""

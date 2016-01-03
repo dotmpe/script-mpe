@@ -30,6 +30,8 @@ before_script:
 - hostname
 
 script:
+- './projectdir.sh help'
+- 'projectdir.sh help'
 - './test/*-spec.bats'
 - htd version
 #- ./basename-reg ffnnec.py
