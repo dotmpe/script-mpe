@@ -810,8 +810,8 @@ vc__main()
 # Ignore login console interpreter
 case "$0" in "" ) ;; "-*" ) ;; * )
 
-  test -x
-  pstree-color.sh -p $$
+  pstree-color.sh -sp $$
+  set -x
 
   # Ignore 'load-ext' sub-command
   case "$1" in load-ext ) ;; * )
