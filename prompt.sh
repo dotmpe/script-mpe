@@ -44,7 +44,7 @@ case "$0" in "" ) ;; "-*" ) ;; * )
               || func=$(echo prompt_$cmd | tr '-' '_')
 
             # load/exec if func exists
-            type $func &> /dev/null && {
+            type $func >/dev/null 2>&1 && {
               func_exists=1
               shift 1
 

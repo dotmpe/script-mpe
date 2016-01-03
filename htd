@@ -2286,6 +2286,22 @@ c_recent_paths()
 }
 
 
+c_bashisms()
+{
+  test -n "$1" || set -- "."
+  f=-srI
+
+  # Scan for bash redirect
+  grep $f '\&>' "$@" && {
+    note "Bash extension found: '&>...' is a shortcut for '>... 2>&1'"
+  }
+
+  # Scan for bash, ksh etc. keyword
+  grep $f '\<source\|declare\|typeset\>' "$@" && {
+    note "Bash extension found"
+  }
+}
+
 
 ### Main
 

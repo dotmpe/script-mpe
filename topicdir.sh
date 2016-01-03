@@ -91,7 +91,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 		[ -n "$def_func" -a -z "$func" ] \
 			&& func=$def_func \
 			|| func=$(echo "td__$cmd" | tr '-' '_')
-		type $func &> /dev/null && {
+		type $func >/dev/null 2>&1 && {
 			func_exists=1
 			shift 1
 			$func "$@"

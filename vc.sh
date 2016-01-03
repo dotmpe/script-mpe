@@ -787,7 +787,7 @@ vc__main()
 
         local func=$(echo vc_$subcmd | tr '-' '_')
 
-        type $func &>/dev/null && {
+        type $func >/dev/null 2>&1 && {
           shift 1
           vc_load
           $func "$@"

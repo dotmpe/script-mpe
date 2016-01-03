@@ -24,7 +24,7 @@ doc_list_all()
 
 doc_try_fs()
 {
-  ls $dir/$name.* &> /dev/null || return
+  ls $dir/$name.* >/dev/null 2>&1 || return
   files=$(echo $dir/$name.*)
   file_cnt="$(echo $(echo $files | wc -w))"
 }

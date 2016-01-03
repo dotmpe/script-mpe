@@ -86,8 +86,8 @@ case "$0" in "" ) ;; "-*" ) ;; * )
 
             # invoke with function name first argument,
             func="$1"
-            type "statusdir_$func" &>/dev/null && { func="statusdir_$1"; }
-            type $func &>/dev/null && {
+            type "statusdir_$func" >/dev/null 2>&1 && { func="statusdir_$1"; }
+            type $func >/dev/null 2>&1 && {
               shift 1
               $func "$@"
             } || exit 1

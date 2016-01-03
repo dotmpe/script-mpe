@@ -20,7 +20,7 @@ mkcid()
 
 str_match()
 {
-	expr "$1" : "$2" &>/dev/null || return 1
+	expr "$1" : "$2" >/dev/null 2>&1 || return 1
 }
 str_contains()
 {

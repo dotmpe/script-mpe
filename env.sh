@@ -12,6 +12,7 @@ test -z "$__load_lib" || set -- "load-ext"
 
 env_props()
 {
+  # XXX bash keywords: declare
 	comm -3 <(declare | sort) <(declare -f | sort)
 }
 
@@ -157,8 +158,8 @@ case "$0" in "" ) ;; "-*" ) ;; * )
 
             # invoke with function name first argument,
             func="$1"
-            type "env_$func" &>/dev/null && { func="env_$func"; }
-            type $func &>/dev/null && {
+            type "env_$func" >/dev/null 2>&1 && { func="env_$func"; }
+            type $func >/dev/null 2>&1  && {
               shift 1
 
               # Use statusdir to store keys

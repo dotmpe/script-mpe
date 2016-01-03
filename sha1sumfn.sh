@@ -87,7 +87,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 	if [ "$(basename $0)" = "sha1sumfn.sh" ]; then
 		# invoke with function name first argument,
 		func="$1"
-		type $func &>/dev/null && {
+		type $func >/dev/null 2>&1 && {
 			shift 1
 			$func "$@"
 			echo $func "$@" done

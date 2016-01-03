@@ -79,7 +79,7 @@ try_spec()
 
 try_func()
 {
-  type $1 &>/dev/null && {
+  type $1 >/dev/null 2>&1 && {
     func_exists=1
   } || return 1
 }
