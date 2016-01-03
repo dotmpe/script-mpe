@@ -2325,13 +2325,16 @@ htd_init()
 
 htd_lib()
 {
-  . $PREFIX/bin/match.sh "$@"
+  . $PREFIX/bin/match.sh load-ext
   # -- htd box lib sentinel --
   set --
 }
 
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-*" ) ;; * )
-  htd__main "$@"
+  # Ignore 'load-ext' sub-command
+  case "$1" in load-ext ) ;; * )
+    htd__main "$@"
+  esac
   ;;
 esac

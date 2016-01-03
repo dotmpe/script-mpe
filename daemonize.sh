@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. ~/bin/std.sh
+. ~/bin/std.sh load-ext
 
 # Testing daemonization of shell script, for no particular reason.
 # Using netcat at Darwin works somewhat:
@@ -210,7 +210,7 @@ daemonize_init()
 
 daemonize_lib()
 {
-  . $PREFIX/bin/match.sh "$@"
+  . $PREFIX/bin/match.sh load-ext
   # -- daemonize box lib sentinel --
   set --
 }

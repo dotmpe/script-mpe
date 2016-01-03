@@ -178,7 +178,7 @@ file_insert_where_before()
   test -n "$3" || error "contents required" 1
   file_where_before "$1" "$2"
   test -n "$where_line" || {
-    error "missing or invalid file-insert sentinell for where-grep:$1 (in $2)" 1
+    error "missing or invalid file-insert sentinel for where-grep:$1 (in $2)" 1
   }
   file_insert_at $2:$line_number "$3"
 }

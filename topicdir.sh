@@ -1,8 +1,8 @@
 #!/bin/bash
 
 . ~/bin/std.sh
-. ~/bin/match.sh "$@"
-. ~/bin/vc.sh "$@"
+. ~/bin/match.sh load-ext
+. ~/bin/vc.sh load-ext
 
 
 scriptname=topicdir

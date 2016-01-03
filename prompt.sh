@@ -1,11 +1,5 @@
-#/!usr/bin/bash
+#!/bin/sh
 # Prompt helpers for persisted session info
-
-. ~/bin/std.sh
-
-set -e
-
-scriptname=prompt
 
 
 prompt_command()
@@ -23,53 +17,66 @@ prompt_command()
 	#declare -p > /tmp/env.3
 }
 
-# Main
-# Use dash to ignore exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
 
-	# Do something (only) if script invoked as '$scriptname'
-	base="$(basename $0 .sh)"
-	case "$base" in
+### Main
 
-		$scriptname )
+# Ignore login console interpreter
+case "$0" in "" ) ;; "-*" ) ;; * )
 
-			# function name first as argument,
-			cmd=$1
-			[ -n "$def_func" -a -z "$cmd" ] \
-				&& func=$def_func \
-				|| func=$(echo prompt_$cmd | tr '-' '_')
+  # Ignore 'load-ext' sub-command
+  case "$1" in load-ext ) ;; * )
 
-			# load/exec if func exists
-			type $func &> /dev/null && {
-				func_exists=1
-				shift 1
+      set -e
 
-				. ~/bin/statusdir.sh
-				. ~/bin/vc.sh
-				$func "$@"
+      . ~/bin/std.sh
 
-			} || {
-				# handle non-zero return or print usage for non-existant func
-				e=$?
-				[ -z "$cmd" ] && {
-					error 'No command given, see "help"' 1
-				} || {
-					[ "$e" = "1" -a -z "$func_exists" ] && {
-						error "No such command: $cmd" 1
-					} || {
-						error "Command $cmd returned $e" $e
-					}
-				}
-			}
+      scriptname=prompt
+      # Do something if script invoked as '$scriptname.sh'
+      base=$(basename $0 .sh)
+      case "$base" in
 
-			;;
+        $scriptname )
 
-		* )
-			log "No frontend for $base"
-			;;
+            # function name first as argument,
+            cmd=$1
+            [ -n "$def_func" -a -z "$cmd" ] \
+              && func=$def_func \
+              || func=$(echo prompt_$cmd | tr '-' '_')
 
-	esac
-fi
+            # load/exec if func exists
+            type $func &> /dev/null && {
+              func_exists=1
+              shift 1
 
-# vim:noet:
+              . ~/bin/statusdir.sh
+              . ~/bin/vc.sh load-ext
+              $func "$@"
+
+            } || {
+              # handle non-zero return or print usage for non-existant func
+              e=$?
+              [ -z "$cmd" ] && {
+                error 'No command given, see "help"' 1
+              } || {
+                [ "$e" = "1" -a -z "$func_exists" ] && {
+                  error "No such command: $cmd" 1
+                } || {
+                  error "Command $cmd returned $e" $e
+                }
+              }
+            }
+
+          ;;
+
+        * )
+            log "No frontend for $base"
+
+          ;;
+
+
+      esac ;;
+
+  esac ;;
+
+esac
 

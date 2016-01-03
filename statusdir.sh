@@ -7,9 +7,12 @@
 
 set -e
 
-[ -z "$STATUSDIR_ROOT" ] && {
-    STATUSDIR_ROOT="$(echo ~/.statusdir/)"
-    #export STATUSDIR_ROOT
+statusdir_load()
+{
+  [ -z "$STATUSDIR_ROOT" ] && {
+      STATUSDIR_ROOT="$(echo ~/.statusdir/)"
+      #export STATUSDIR_ROOT
+  }
 }
 
 statusdir_root()
@@ -58,19 +61,37 @@ statusdir_file()
 }
 
 
-# Main
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
-	# Do something if script invoked as 'statusdir.sh'
-	if [ "$(basename $0)" = "statusdir.sh" ]; then
-		# invoke with function name first argument,
-		func="$1"
-		type "statusdir_$func" &>/dev/null && { func="statusdir_$1"; }
-		type $func &>/dev/null && {
-			shift 1
-			$func "$@"
-		# or run default
-		} || {
-			exit 1
-		}
-	fi
-fi
+### Main
+
+# Ignore login console interpreter
+case "$0" in "" ) ;; "-*" ) ;; * )
+
+  # Ignore 'load-ext' sub-command
+  case "$1" in load-ext ) ;; * )
+
+      scriptname=statusdir
+      # Do something if script invoked as '$scriptname.sh'
+      base=$(basename $0 .sh)
+      case "$base" in
+
+        $scriptname )
+
+            statusdir_load
+
+            # invoke with function name first argument,
+            func="$1"
+            type "statusdir_$func" &>/dev/null && { func="statusdir_$1"; }
+            type $func &>/dev/null && {
+              shift 1
+              $func "$@"
+            } || exit 1
+
+          ;;
+
+
+      esac ;;
+
+  esac ;;
+
+esac
+

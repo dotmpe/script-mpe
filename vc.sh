@@ -1,27 +1,22 @@
-#!/usr/bin/env bash
+#!/bin/sh
 #
 # SCM util functions and pretty prompt printer for Bash, GIT
 # TODO: other SCMs, BZR, HG, SVN (but never need them so..)
 # XXX: more in projectdir.sh in private repo
 #
-HELP="vc - version-control helper functions "
+#HELP="vc - version-control helper functions "
 
-source ~/bin/statusdir.sh
-statusdir_assert vc_status > /dev/null
 
-#set -e
-
-scriptname=vc
-
-noop()
+vc_load()
 {
   printf ""
-}
+#. ~/.conf/bash/git-completion.bash
 
-load()
-{
   . ~/bin/std.sh
-  . ~/bin/match.sh "$@"
+  . ~/bin/match.sh load-ext
+  . ~/bin/statusdir.sh load-ext
+  statusdir_assert vc_status > /dev/null || error vc_status 1
+
 }
 
 vc_usage()
@@ -64,6 +59,7 @@ vc__v()
 {
 	c_version
 }
+
 vc_version()
 {
 	# no version, just checking it goes
@@ -85,7 +81,7 @@ vc__e()
 
 ### Internal functions
 
-homepath ()
+homepath()
 {
 	w="$1"
 	echo "${w/#$HOME/~}"
@@ -251,8 +247,6 @@ __vc_git_flags ()
 		popd >> /dev/null
 	fi
 }
-
-. ~/.conf/bash/git-completion.bash
 
 __vc_pull ()
 {
@@ -612,9 +606,8 @@ vc_unversioned_files()
 # Annex diag.
 vc_annex_unused()
 {
-  git annex unused | \
-    grep '\s\s*[0-8]\+\ \ *.*$' | \
-  while read line;
+  git annex unused | grep '\s\s*[0-8]\+\ \ *.*$' | \
+  while read line
   do
     echo $line
   done
@@ -782,37 +775,47 @@ vc_remotes()
 # ----
 
 
-# Main
-case "$0" in "" ) ;; "-*" ) ;; * )
+### Main
 
+vc__main()
+{
   # Do something if script invoked as 'vc.sh'
-  base=$(basename $0 .sh)
-  case "$base" in
+  local base=$(basename $0 .sh) scriptname=vc subcmd=$1
 
-    $scriptname )
+  case "$base" in $scriptname )
 
-        # invoke with function name first argument,
-        cmd=$1
-        [ -n "$def_func" -a -z "$cmd" ] \
-          && func=$def_func \
-          || func=$(echo vc_$cmd | tr '-' '_')
+        local func=$(echo vc_$subcmd | tr '-' '_')
 
         type $func &>/dev/null && {
           shift 1
-          load
+          vc_load
           $func "$@"
         } || {
-          load
+          vc_load
           vc_print_all "$@"
         }
 
       ;;
 
-#    * )
-#      echo "Not a frontend for $base ($scriptname)"
-#      ;;
+    * )
+      echo "Not a frontend for $base ($scriptname)"
+      exit 1
+      ;;
 
   esac
+}
+
+
+# Ignore login console interpreter
+case "$0" in "" ) ;; "-*" ) ;; * )
+
+  # Ignore 'load-ext' sub-command
+  case "$1" in load-ext ) ;; * )
+
+      vc__main "$@"
+      ;;
+
+  esac ;;
 
 esac
 

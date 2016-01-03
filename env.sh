@@ -138,24 +138,40 @@ env_tty()
 }
 
 
-# Main
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
-	# Do something if script invoked as 'env.sh'
-	if [ "$(basename $0)" = "env.sh" ]; then
-		# invoke with function name first argument,
-		func="$1"
-		type "env_$func" &>/dev/null && { func="env_$func"; }
-		type $func &>/dev/null && {
-			shift 1
+### Main
 
-			# Use statusdir to store keys
-			source ~/bin/statusdir.sh
+# Ignore login console interpreter
+case "$0" in "" ) ;; "-*" ) ;; * )
 
-			$func "$@"
+  # Ignore 'load-ext' sub-command
+  case "$1" in load-ext ) ;; * )
 
-		# or run default
-		} || {
-			exit 1
-		}
-	fi
-fi
+      scriptname=env
+      # Do something if script invoked as '$scriptname.sh'
+      base=$(basename $0 .sh)
+      case "$base" in
+
+        $scriptname )
+
+            # invoke with function name first argument,
+            func="$1"
+            type "env_$func" &>/dev/null && { func="env_$func"; }
+            type $func &>/dev/null && {
+              shift 1
+
+              # Use statusdir to store keys
+              . ~/bin/statusdir.sh load-ext
+
+              $func "$@"
+
+            } || exit 1
+
+          ;;
+
+      esac ;;
+
+  esac ;;
+
+esac
+
+

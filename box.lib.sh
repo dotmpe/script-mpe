@@ -137,17 +137,22 @@ box_add_idx()
 
 box_grep()
 {
-  file_where_before "$@"
+  file_where_before "$@" || return $?
   test -n "$where_line" || return 1
 }
 
 box_script_insert_point()
 {
   test -n "$2" || set -- $1 main $3
-  test -n "$3" || set -- $1 $2 $base
-  local where_line= line_number= p='^'${3}'_'${2}'()$'
+  test -n "$3" || {
+    test -n "$scriptalias" \
+      && set -- $1 $2 $scriptalias \
+      || set -- $1 $2 $base
+  }
+  test -n "$scsep" || scsep=_
+  local where_line= line_number= p='^'${3}${scsep}${2}'()$'
   box_grep "$p" "$1" || {
-    error "invalid ${3}_${2} ($1)" 1
+    error "invalid ${3}${scsep}${2} ($1)" 1
   }
   echo $line_number
 }
@@ -217,6 +222,9 @@ box_list_libs()
   box_grep $sentinel_grep $1
   local line_diff=$(( $line_number - $line_offset - 2 ))
 
+  test -n "$line_diff" || error "line_diff empty" 1
+  fnmatch "-*" "$line_diff" && error "negative line_diff: $line_diff" 1 || noop
+
   test -z "$dry_run" || {
     debug "named_script='$1'"
     debug "scan after line $line_offset"
@@ -226,8 +234,6 @@ box_list_libs()
     debug "'$BOX_BIN_DIR/*'"
     info "** DRY RUN ends **" 0
   }
-
-  test -n "$line_diff" || error "line_diff empty" 1
 
   test $line_diff -eq 0 || {
     tail -n +4 | tail -n +$line_offset | head -n $line_diff;

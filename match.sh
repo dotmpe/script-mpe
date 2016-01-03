@@ -3,7 +3,7 @@ match_source=$_
 
 set -e
 
-version=0.0.0+20150911-0659 # script.mpe
+match_version=0.0.0+20150911-0659 # script.mpe
 
 
 
@@ -258,7 +258,15 @@ match_lib()
   set --
 }
 
-# Use hyphen to ignore source exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
-  match__main "$@"
-fi
+# Ignore login shell
+case "$0" in "" ) ;; "-*" ) ;; * )
+
+  # Ignore 'load-ext' sub-command
+  case "$1" in load-ext ) ;; * )
+
+    match__main "$@"
+
+  esac
+  ;;
+
+esac
