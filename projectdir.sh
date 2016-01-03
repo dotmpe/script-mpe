@@ -1,5 +1,5 @@
 #!/bin/sh
-echo "pd source @=$@ 1=$1 _=$_"
+pd__source=$_
 
 
 pd__edit()
@@ -366,14 +366,15 @@ pd__lib()
 
 pd__main()
 {
-  local scriptname=projectdir scriptalias=pd base=$(basename $0 .sh)
+  local scriptname=projectdir scriptalias=pd base=$(basename $pd__source .sh) \
+    subcmd=$1
 
   case "$base" in
 
     $scriptname | $scriptalias )
 
         # invoke with function name first argument,
-        subcmd=$1 scsep=__ \
+        local scsep=__ \
           subcmd_pref=${scriptalias} \
           def_subcmd=status \
           func_exists= \
@@ -402,6 +403,7 @@ pd__main()
 
 case "$0" in "" ) ;; "-*" ) ;; * )
 
+  # XXX working on Darwin 10.8.5, not Linux..
   case "$1" in load-ext ) ;; * )
 
       pd__main "$@"

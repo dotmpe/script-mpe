@@ -5,7 +5,7 @@
 # XXX: more in projectdir.sh in private repo
 #
 #HELP="vc - version-control helper functions "
-echo "vc source @=$@ 1=$1 _=$_"
+vc_source=$_
 
 
 vc_load()
@@ -28,7 +28,7 @@ vc_usage()
 
 vc_commands()
 {
-	c_usage
+	vc_usage
 	echo 'Commands: '
 	echo '  print-all <path>                 Dump some debug info on given (versioned) paths'
 	echo '  ps1                              Print PS1'
@@ -781,7 +781,8 @@ vc_remotes()
 vc__main()
 {
   # Do something if script invoked as 'vc.sh'
-  local base=$(basename $0 .sh) scriptname=vc subcmd=$1
+  local scriptname=vc base=$(basename $vc_source .sh) \
+    subcmd=$1
 
   case "$base" in $scriptname )
 
@@ -810,9 +811,8 @@ vc__main()
 # Ignore login console interpreter
 case "$0" in "" ) ;; "-*" ) ;; * )
 
-  pstree-color.sh -sp $$
-
   # Ignore 'load-ext' sub-command
+  # XXX working on Darwin 10.8.5, not Linux..
   case "$1" in load-ext ) ;; * )
 
       vc__main "$@"

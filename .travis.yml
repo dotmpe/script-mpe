@@ -15,6 +15,9 @@ addons:
 before_script:
 - 'echo HOME=$HOME PREFIX=$PREFIX pwd=$(pwd)'
 
+- 'projectdir.sh help'
+- 'vc.sh help'
+
 - 'npm install parse-torrent lodash'
 - 'pip install --user docutils'
 - 'pip install --user PyYAML'
@@ -30,9 +33,6 @@ before_script:
 - hostname
 
 script:
-- pstree
-- './projectdir.sh help'
-- 'projectdir.sh help'
 - './test/*-spec.bats'
 - htd version
 #- ./basename-reg ffnnec.py
