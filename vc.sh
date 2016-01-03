@@ -5,6 +5,7 @@
 # XXX: more in projectdir.sh in private repo
 #
 #HELP="vc - version-control helper functions "
+echo "vc load @=$@"
 
 
 vc_load()
