@@ -5,6 +5,7 @@
 Python helper to query/update projects.yaml
 
 Usage:
+    projectdir-meta [options] get-repo <prefix>
     projectdir-meta [options] put-repo <prefix> [<kwdargs>...]
     projectdir-meta [options] update-repo <prefix> [<kwdargs>...]
     projectdir-meta [options] drop-repo <prefix>
@@ -35,6 +36,7 @@ Options:
 """
 import os
 from fnmatch import fnmatch
+from pprint import pformat
 
 from docopt import docopt
 import uuid
@@ -145,16 +147,24 @@ def toggle_state(newstate, pdhdata, ctx):
 def yaml_commit(pdhdata, ctx):
     yaml_safe_dump(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
 
-def update_repo(pdhdata, ctx):
-    # add/update/drop repo metadata
-    new = dict([ k.split('=') for k in ctx.opts.args.kwdargs ])
+def repo_kv_to_dict( kwdargs ):
+    new = dict(remotes={})
+    new.update(dict([ k.split('=') for k in kwdargs ]))
     for k,v in new.items():
-        if v == 'true':
+        if k not in "disabled enabled clean sync remotes":
+            new['remotes'][k] = v
+            del new[k]
+        elif v == 'true':
             new[k] = True
         elif v == 'false':
             new[k] = False
-        elif v.isdigit():
-            new[k] = int(v)
+        #elif v.isdigit():
+        #    new[k] = int(v)
+    return new
+
+def update_repo(pdhdata, ctx):
+    # add/update/drop repo metadata
+    new = repo_kv_to_dict( ctx.opts.args.kwdargs )
 
     p = ctx.opts.args.prefix
     if ctx.opts.cmds[0] == 'update-repo':
@@ -271,10 +281,19 @@ def H_clean_mode(pdhdata, ctx):
                 if repo_modes.index(repo_mode) < repo_modes.index(mode):
                     return 1
 
+def H_get_repo(pdhdata, ctx):
+    p = ctx.opts.args.prefix
+    repos = pdhdata['repositories']
+    if not ctx.opts.flags.quiet:
+        if p in repos:
+            print pformat(repos[p])
+    if p not in repos:
+        return 1
+
 def H_put_repo(pdhdata, ctx):
-    update_repo(pdhdata, ctx)
+    return update_repo(pdhdata, ctx)
 def H_update_repo(pdhdata, ctx):
-    update_repo(pdhdata, ctx)
+    return update_repo(pdhdata, ctx)
 
 def H_drop_repo(pdhdata, ctx):
     p = ctx.opts.args.prefix
@@ -288,10 +307,10 @@ def H_list_prefixes(pdhdata, ctx):
             print >>ctx.out, k
 
 def H_list_enabled(pdhdata, ctx):
-    list_state(ctx.opts.cmds[0], pdhdata, ctx)
+    return list_state(ctx.opts.cmds[0], pdhdata, ctx)
 
 def H_list_disabled(pdhdata, ctx):
-    list_state(ctx.opts.cmds[0], pdhdata, ctx)
+    return list_state(ctx.opts.cmds[0], pdhdata, ctx)
 
 def H_dump(pdhdata, ctx):
     if 'prefix' not in ctx.opts.args:

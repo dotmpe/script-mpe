@@ -12,7 +12,7 @@ pd_run__meta=y
 # Defer to python script for YAML parsing
 pd__meta()
 {
-  projectdir-meta "$@" || return $?
+  projectdir-meta -f $pd "$@" || return $?
 }
 
 pd_run__status=ybf
@@ -34,7 +34,7 @@ pd__check()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
   note "Checking prefixes"
-  projectdir-meta -f $pd list-prefixes "$1" | while read prefix
+  pd__meta list-prefixes "$1" | while read prefix
   do
     vc_check $prefix || continue
     pd__sync $prefix || touch $failed
@@ -66,7 +66,7 @@ pd__disable_clean()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
   pwd=$(pwd)
-  projectdir-meta -f $pd list-prefixes "$1" | while read prefix
+  pd__meta list-prefixes "$1" | while read prefix
   do
     test ! -d $prefix || {
       cd $pwd/$prefix
@@ -74,7 +74,7 @@ pd__disable_clean()
         test -z "$(vc ufx)" && {
           warn "TODO remove $prefix if synced"
           # XXX need to fetch remotes, compare local branches
-          #projectdir-meta -f $pd list-push-remotes $prefix | while read remote
+          #pd__meta list-push-remotes $prefix | while read remote
           #do
           #  git push $remote --all
           #done
@@ -86,50 +86,51 @@ pd__disable_clean()
 }
 
 # Add/remove repos, update remotes at first level. git only.
-pd_run__update=ybf
+pd_run__update=yfb
 pd__update()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
 
   backup_if_comments "$pd"
 
-  projectdir-meta -f $pd list-prefixes "$1" | while read prefix
+  pd__meta list-enabled "$1" | while read prefix
   do
-    #match_grep_pattern_test "$prefix"
     test -d $prefix || {
-      projectdir-meta -f $pd update-repo $prefix disable=true \
-        && note "Disabled $prefix"\
-        || {
-          r=$?; test $r -eq 42 && info "Checkout at $prefix already disabled" \
-          || warn "Error disabling $prefix"
-        }
+      pd__meta update-repo $prefix disabled=true \
+        && note "Disabled $prefix" \
+        || touch $failed
     }
   done
 
   for git in */.git
   do
     prefix=$(dirname $git)
-    props="$(verbosity=0;cd $prefix;echo "$(vc remotes sh)")"
-
     match_grep_pattern_test "$prefix"
 
-    grep -q '\<'$p_'\>\/\?\:' $pd && {
+    #{ cd $prefix; git remotes; } | while read remote
+    #do
+    #  echo
+    #done
 
-      info "Testing update $prefix props='$props'"
-      projectdir-meta -f $pd update-repo $prefix \
-        $props \
-          && note "Updated metadata for $prefix" \
-          || { r=$?; test $r -eq 42 && info "Metadata up-to-date for $prefix" \
-            || warn "Error updating $prefix with '$props'"
-          }
+    props="$(verbosity=0;cd $prefix;echo "$(vc remotes sh)")"
+    test -n "$props" || {
+      error "No remotes for $prefix"
+      touch $failed
+    }
 
+    pd__meta -q get-repo $prefix && {
+      pd__meta update-repo $prefix $props \
+        && note "Updated metadata for $prefix" \
+        || { r=$?; test $r -eq 42 && info "Metadata up-to-date for $prefix" \
+          || { warn "Error updating $prefix with '$props'"
+            touch $failed
+          } }
     } || {
 
       info "Testing add $prefix props='$props'"
-      projectdir-meta -f $pd put-repo $prefix \
-        $props \
-          && note "Added metadata for $prefix" \
-          || error "Unexpected error adding repo $?" $?
+      pd__meta put-repo $prefix $props \
+        && note "Added metadata for $prefix" \
+        || error "Unexpected error adding repo $?" $?
     }
   done
 }
@@ -138,7 +139,7 @@ pd_run__list_prefixes=y
 pd__list_prefixes()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
-  projectdir-meta -f $pd list-prefixes "$1" | while read prefix
+  pd__meta list-prefixes "$1" | while read prefix
   do
     match_grep_pattern_test "$prefix"
     grep -q "$p_" .gitignore || {
@@ -173,7 +174,7 @@ pd__sync()
     test -d .git || error "Not a standalone .git: $prefix" 1
 
     test -e .git/FETCH_HEAD \
-      && younger_than .git/FETCH_HEAD $GIT_AGE \
+      && younger_than .git/FETCH_HEAD $PD_SYNC_AGE \
       || git fetch --quiet $remote
 
     local remoteref=$remote/$branch
@@ -311,7 +312,7 @@ pd__load()
     esac
   done
 
-  export GIT_AGE=$_1HOUR
+  export PD_SYNC_AGE=$_3HOUR
 
   local tdy="$(try_value "${subcmd}" "" today)"
   test -z "$tdy" || {
@@ -326,13 +327,17 @@ pd__load()
 
 pd__unload()
 {
-  test -n "$bg" && {
-    pd_meta_bg_teardown
-  }
-  test ! -e $failed || return 1
-
   unset subcmd subcmd_pref \
           def_subcmd func_exists func
+  test ! -e "/tmp/pd-serv.sock" || {
+    pd_meta_bg_teardown
+    unset bgd
+  }
+  test -z "$failed" -o ! -e "$failed" || {
+    rm $failed
+    unset failed
+    return 1
+  }
 }
 
 pd__init()

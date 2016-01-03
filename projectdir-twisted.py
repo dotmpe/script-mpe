@@ -32,14 +32,18 @@ class QueryProtocol(LineOnlyReceiver):
         err = self.factory.ctx.err
         if line == ("%s OK" % self.cmd):
             self.transport.loseConnection()
+
         elif line == ("? %s" % self.cmd):
             print >>err, "Command not recognized:", self.cmd
             self.factory.ctx.rs = 2
-        elif line == ("! %s" % self.cmd):
-            self.factory.ctx.rs = 3
-        elif line == ("!! %s" % self.cmd):
+
+        elif line.startswith('! '):
+            self.factory.ctx.rs = int(line.split(' ')[2])
+
+        elif line.startswith('!! '):
             print >>err, "Exception running command:", self.cmd
             self.factory.ctx.rs = 1
+
         else:
             print line
 
@@ -111,11 +115,11 @@ class ServerProtocol(LineOnlyReceiver):
             try:
                 r = self.factory.handlers[func](self.factory.pdhdata, ctx)
                 if r:
-                    self.sendLine("! %s" % line)
+                    self.sendLine("! %s: %i" % (func, r))
                 else:
                     self.sendLine("%s OK" % line)
             except Exception, e:
-                self.sendLine("!! %s" % e)
+                self.sendLine("!! %r" % e)
 
         self.transport.loseConnection()
 
