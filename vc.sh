@@ -10,14 +10,13 @@ vc_source=$_
 
 vc_load()
 {
-  printf ""
+  local __load_lib=1
 #. ~/.conf/bash/git-completion.bash
 
   . ~/bin/std.sh
   . ~/bin/match.sh load-ext
   . ~/bin/statusdir.sh load-ext
   statusdir_assert vc_status > /dev/null || error vc_status 1
-
 }
 
 vc_usage()
@@ -812,10 +811,12 @@ vc__main()
 case "$0" in "" ) ;; "-*" ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  # XXX working on Darwin 10.8.5, not Linux..
-  case "$1" in load-ext ) ;; * )
 
-    echo __load_lib=$__load_lib
+  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
+  # fix using another mechanism:
+  test -z "$__load_lib" || set -- "load-ext"
+
+  case "$1" in load-ext ) ;; * )
 
       vc__main "$@"
       ;;

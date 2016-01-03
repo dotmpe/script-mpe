@@ -403,7 +403,10 @@ pd__main()
 
 case "$0" in "" ) ;; "-*" ) ;; * )
 
-  # XXX working on Darwin 10.8.5, not Linux..
+  # Ignore 'load-ext' sub-command
+  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
+  # fix using another mechanism:
+  test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
 
       pd__main "$@"

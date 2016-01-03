@@ -1,4 +1,6 @@
 #/!usr/bin/bash
+env_source=$_
+test -z "$__load_lib" || set -- "load-ext"
 
 #
 # env_start and env_initialized used in .bashrc

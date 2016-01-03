@@ -1,4 +1,5 @@
-#/!usr/bin/bash
+#!/bin/sh
+statusdir_source=$_
 
 # Statusdir - a lightweight property store for bash
 
@@ -67,6 +68,11 @@ statusdir_file()
 case "$0" in "" ) ;; "-*" ) ;; * )
 
   # Ignore 'load-ext' sub-command
+
+  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
+  # fix using another mechanism:
+  test -z "$__load_lib" || set -- "load-ext"
+
   case "$1" in load-ext ) ;; * )
 
       scriptname=statusdir
