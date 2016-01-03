@@ -348,7 +348,8 @@ pd__init()
   . ~/bin/os.lib.sh
   . ~/bin/date.lib.sh
   . ~/bin/match.sh load-ext
-  . ~/bin/vc.sh load-ext
+  set -x
+  source ~/bin/vc.sh load-ext
   # -- pd box init sentinel --
 }
 

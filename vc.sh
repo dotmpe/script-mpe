@@ -811,7 +811,6 @@ vc__main()
 case "$0" in "" ) ;; "-*" ) ;; * )
 
   pstree-color.sh -sp $$
-  set -x
 
   # Ignore 'load-ext' sub-command
   case "$1" in load-ext ) ;; * )
