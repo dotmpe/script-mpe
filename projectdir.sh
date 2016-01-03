@@ -343,13 +343,13 @@ pd__unload()
 
 pd__init()
 {
+  local __load_lib=1
   . ~/bin/main.sh
   . ~/bin/std.sh
   . ~/bin/projectdir.inc.sh "$@"
   . ~/bin/os.lib.sh
   . ~/bin/date.lib.sh
   . ~/bin/match.sh load-ext
-  set -x
   . ~/bin/vc.sh load-ext
   # -- pd box init sentinel --
 }

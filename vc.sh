@@ -815,6 +815,8 @@ case "$0" in "" ) ;; "-*" ) ;; * )
   # XXX working on Darwin 10.8.5, not Linux..
   case "$1" in load-ext ) ;; * )
 
+    echo __load_lib=$__load_lib
+
       vc__main "$@"
       ;;
 
