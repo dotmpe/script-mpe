@@ -211,3 +211,24 @@ EOM
   test "${lines[1]}" = "/Soft Dev/../Home/Shop/Electric Tools/../../Living Room/../../Public/Topic Note/../.."
 }
 
+
+@test "$bin - fixed_table_hd_offset " {
+
+  . $lib/htd load-ext
+  htd_rules=/tmp/htd-rules.tab
+  echo "#CMD FOO BAR BAZ BAM" >$htd_rules
+
+  run fixed_table_hd_offset CMD
+  test $status -eq 0
+  test "${lines[@]}" = "0"
+
+  run fixed_table_hd_offset FOO
+  test $status -eq 0
+  test "${lines[@]}" = "5"
+
+  run fixed_table_hd_offset BAR
+  test $status -eq 0
+  test "${lines[@]}" = "9"
+}
+
+

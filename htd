@@ -1,5 +1,6 @@
 #!/bin/sh
-c_source=$_
+htd_source=$_
+test -z "$__load_lib" || set -- "load-ext"
 
 # Htdocs: work in progress 'daily' shell scripts
 
@@ -43,6 +44,8 @@ htd_load()
     rows=32
     cols=79
   }
+
+  htd_rules=~/.conf/rules/$hostname.tab
 
   HTD_IGNORE=.htdignore
   test -e .git && {
@@ -201,7 +204,7 @@ c_files()
   echo ""
   echo "    Config files"
   echo "  ~/.conf/git-remotes/\$HTD_GIT_REMOTE.sh"
-  echo "  ~/.conf/rules/\$host/\$project.sh"
+  echo "  ~/.conf/rules/\$host.sh"
   echo ''
   echo 'See dckr for container commands and vc for GIT related. '
 }
@@ -1288,13 +1291,45 @@ c_commit()
 
 c_show_rules()
 {
-  htd_host_arg $@
-  cat ~/.conf/rules/$host/$project.sh
+  htd_host_arg
+  cat $htd_rules
+}
+
+# header char offset
+fixed_table_hd_offset()
+{
+  test -n "$1" || set -- CMD "$2"
+  test -n "$2" || set -- "$1" CMD
+
+  # correct for first col, or for line-end
+  test "$1" = "$2" \
+    && echo 0 \
+    || echo $(( $(grep '^#' $htd_rules |
+  sed 's/^\(.*\)'$1'.*/\1/g' | wc -c) - 1 ))
+}
+
+read_fixed_table()
+{
+  fixed_table_hd_offset 
 }
 
 c_run_rules()
 {
-  set --
+  fixed_table_hd_offset CMD
+  fixed_table_hd_offset RT
+  fixed_table_hd_offset TARGETS
+  htd_rules=/tmp/htd-rules.tab
+  echo "#CMD FOO BAR BAZ BAM" >$htd_rules
+  fixed_table_hd_offset CMD
+  fixed_table_hd_offset FOO
+#  read_fixed_table $htd_rules CMD RT TARGETS
+
+  cat $htd_rules \
+    | grep -v '^\(\s*\|#.*\)$' | \
+  while read line
+  do
+    echo line=$line
+  done
 }
 
 c_add_rule()
@@ -1432,7 +1467,8 @@ c_ck_table_subtree()
   shift 1
   test -n "$1" || return 1
   match_grep_pattern_test "$1" || return 1
-  grep ".*\ $p_.*$" table.$CK | grep -v '^#|\s*$' | while read -a ckline
+  grep ".*\ $p_.*$" table.$CK | grep -v '^\(\s*\|#.*\)$' | \
+  while read -a ckline
     do
       test "$CK" = "ck" && {
         cks=${ckline[@]::1}
@@ -2310,7 +2346,7 @@ htd__main()
 {
   htd_init || return 0
 
-  local scriptname=htd base=$(basename $0 .sh) verbosity=5
+  local scriptname=htd base=$(basename $htd_source .sh) verbosity=5
 
   case "$base" in $scriptname )
 
@@ -2346,6 +2382,7 @@ htd_init()
 
 htd_lib()
 {
+  local __load_lib=1
   . $PREFIX/bin/match.sh load-ext
   # -- htd box lib sentinel --
   set --
@@ -2357,5 +2394,4 @@ case "$0" in "" ) ;; "-*" ) ;; * )
   case "$1" in load-ext ) ;; * )
     htd__main "$@"
   esac
-  ;;
 esac

@@ -356,6 +356,7 @@ pd__init()
 
 pd__lib()
 {
+  local __load_lib=1
   . ~/bin/util.sh
   . ~/bin/box.lib.sh
   # -- pd box lib sentinel --

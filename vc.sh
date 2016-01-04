@@ -27,7 +27,6 @@ vc_usage()
 
 vc_commands()
 {
-	vc_usage
 	echo 'Commands: '
 	echo '  print-all <path>                 Dump some debug info on given (versioned) paths'
 	echo '  ps1                              Print PS1'

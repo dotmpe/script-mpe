@@ -1,16 +1,11 @@
-#!/bin/bash
+#!/bin/sh
+td__source=$_
+test -z "$__load_lib" || set -- "load-ext"
 
-. ~/bin/std.sh
-. ~/bin/match.sh load-ext
-. ~/bin/vc.sh load-ext
-
-
-scriptname=topicdir
 
 # ----
 
-
-choice_strict=true
+#choice_strict=true
 
 
 
@@ -80,17 +75,29 @@ td__help()
 	echo '  help                             print this help listing.'
 }
 
+td__lib()
+{
+  local __load_lib=1
+  . ~/bin/std.sh
+  . ~/bin/match.sh load-ext
+  . ~/bin/vc.sh load-ext
+}
+
 
 # Main
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
-	# Do something if script invoked as 'project'
-	if [ "$(basename $0 .sh)" = "$scriptname" ]; then
 
+# Use hyphen to ignore source exec in login shell
+case "$0" in "" ) ;; "-*" ) ;; * )
+  # Ignore 'load-ext' sub-command
+  case "$1" in load-ext ) ;; * )
+
+    scriptname=topicdir
 		cmd=$1
 		func=$cmd
 		[ -n "$def_func" -a -z "$func" ] \
 			&& func=$def_func \
 			|| func=$(echo "td__$cmd" | tr '-' '_')
+		td__lib
 		type $func >/dev/null 2>&1 && {
 			func_exists=1
 			shift 1
@@ -109,7 +116,7 @@ if [ -n "$0" ] && [ $0 != "-bash" ]; then
 				}
 			}
 		}
-	fi
-fi
 
+  esac
+esac
 

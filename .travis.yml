@@ -15,8 +15,11 @@ addons:
 before_script:
 - 'echo HOME=$HOME PREFIX=$PREFIX pwd=$(pwd)'
 
+# XXX: run these to notice generic problems early. Or maybe should deconstruct
+# parts into matrix build
 - 'projectdir.sh help'
 - 'vc.sh help'
+- htd help
 
 - 'npm install parse-torrent lodash'
 - 'pip install --user docutils'
