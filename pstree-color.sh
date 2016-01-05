@@ -17,8 +17,14 @@ case "$(uname -s)" in
                 ;;
         esac
 
+# tree: blue (34)
+# pid: yellow (33)
+# punctuation: grey
+# -options: purple
+# =values: green (32)
+
 echo -e "$(cat /tmp/pstree | sed -E '
-   s/^([\ [:punct:]]+)\ ([0-9]+)\ ([A-Za-z0-9_]+)/\\033[34m\1\ \\033[33m\2\ \\033[32m\3\ \\033[0m/g
+    s/^([\ [:punct:]]+)\ ([0-9]+)\ ([A-Za-z0-9_]+)/\\033[34m\1\ \\033[33m\2\ \\033[32m\3\ \\033[0m/g
     s/=([[:graph:]]+)/=\\033[0;32m\1\\033[0m/g
     s/\ -[^=\ ]+=?/\\033[0;35m&\\033[0m/g
     s/\.|\//\\033[1;30m&\\033[0m/g
