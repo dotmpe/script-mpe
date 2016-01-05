@@ -2473,23 +2473,33 @@ c_clean_unpacked()
   # scenario 1: look for archive-basename as dir (ie. unzip, some friendlier unpackers--Darwin, Gnome maybe)
   local dir="$(archive_basename "$1")"
   test -d "$dir" && {
-      note "Possibly unpacked basedir '$dir' (from $1)"
-      # TODO: check for changes
-      touch $dirty
-  } || noop
 
-  # scenario 2: look root dirs from archive
-  archive_list "$1" | sed 's/^\([^\/]*\).*$/\1/' | sort -u | while read path
-  do
-    test -e "$path" && {
-      note "Possibly unpacked path '$path' (from $1)"
-      # TODO: check for changes
-      touch $dirty
+    archive_update "$1" && {
+      test -z "$dry_run" && {
+        error "rm -rf $dir"
+      } || {
+        note "looking clean $1 (** DRY-RUN **) "
+      }
     } || {
-      debug "No dir $(pwd)/$path"
-      continue
+      note "Possibly unpacked basedir '$dir' (from $1)"
+      touch $dirty
     }
-  done
+
+  } || {
+
+    # scenario 2: look root dirs from archive
+    archive_list "$1" crc32 name | sed 's/^\([^\/]*\).*$/\1/' | sort -u | while read path
+    do
+      test -e "$path" && {
+        note "Possibly unpacked path '$path' (from $1)"
+        touch $dirty
+      } || {
+        debug "No dir $(pwd)/$path"
+        continue
+      }
+    done
+
+  }
 
   cd "$oldwd"
 
@@ -2537,6 +2547,38 @@ c_note_unpacked()
   test ! -e "$dirty" && info "OK $1" || warn "Crufty $1" 1
 }
 
+# given archive, note files out of sync
+c_test_unpacked()
+{
+  test -n "$1" || error "archive" 1
+  test -n "$2" || set -- "$1" "$(dirname "$1")"
+
+  test -e "$1" && {
+    test -f "$1" || error "not a file: '$1'" 1
+  } || {
+    test -h "$1" && {
+      warn "skipped broken symlink '$1'"
+      return 1
+    } || error "No archive '$1'" 2
+  }
+
+  local  archive="$(basename "$1")"
+
+  set -- "$(cd "$(dirname "$1")"; pwd -P)/$archive" "$2"
+
+  local oldwd="$(pwd)" dirty=
+  #"$(statusdir.sh file htd test-unpacked)"
+  #test ! -e "$dirty" || rm "$dirty"
+
+  cd "$2"
+
+  archive_update "$1" || dirty=1
+
+  cd $oldwd
+
+  test -z "$dirty" && info "OK $1" || warn "Crufty $1" 1
+}
+
 archive_basename()
 {
   test -n "$1" || error "archive-basename:1" 1
@@ -2575,8 +2617,103 @@ read_unzip_list()
   do
     case $line in " "*---- | " "*[0-9]*" files" ) continue ;; esac
     #printf "line='$line'\n"
-    printf -- "$line" | cut -c$offset-
+    printf -- "%s" "$line" | cut -c$offset-
   done
+  IFS=$oldIFS
+}
+
+# TODO: update/list files out of sync
+# XXX: best way seems to use CRC (from -lv output at Darwin)
+archive_update()
+{
+  test -n "$1" || error "archive-update:1" 1
+  local dirty="$(statusdir.sh file htd archive-update dirty)" \
+    cnt="$(statusdir.sh file htd archive-update count)"
+  test ! -e "$dirty" || rm "$dirty"
+  printf 0 >$cnt
+  case "$1" in
+    *.zip )
+      unzip -lv "$1" | read_unzip_verbose_list | while read line
+      do
+        length="$(echo $line | cut -d\  -f 1)"
+        crc32="$(echo  $line | cut -d\  -f 7)"
+        name="$(echo   $line | cut -d\  -f 8)"
+        debug "$name ($crc32, $length)"
+        printf $(( $(cat "$cnt") + 1 )) > $cnt
+        test -e "$name" && {
+          test "$(filesize "$name")" = "$length" && {
+            test "$(crc32 "$name")" = "$crc32" && {
+              #stderr ok "$name ($1)"
+              continue
+            } || {
+              warn "CRC-error $name ($1)" 1
+              touch $dirty
+            }
+          } || {
+            warn "Size mismatch $name ($1)" 1
+            touch $dirty
+          }
+        }
+      done
+      ;;
+    * )
+      error "archive-list ect: '$1'" 1
+  esac
+  c=$(cat $cnt)
+  test ! -e "$dirty" && stderr ok "$1 ($c files)" || warn "Dirty $1" 1
+}
+
+c_archive_list()
+{
+  archive_verbose_list "$@"
+}
+
+# echo request fields
+archive_verbose_list()
+{
+  test -n "$1" || error "archive-verbose-list:1" 1
+  local f=$1
+  shift 1
+  test -n "$1" || error "archive-verbose-list:fields" 1
+  fields="$(for x in "$@"; do printf "\$$x "; done)"
+  case "$f" in
+
+    *.zip )
+        unzip -lv "$f" | read_unzip_verbose_list | while read line
+        do
+          length="$(echo $line | cut -d\  -f 1)"
+          method="$(echo $line | cut -d\  -f 2)"
+          size="$(echo $line   | cut -d\  -f 3)"
+          ratio="$(echo $line  | cut -d\  -f 4)"
+          date="$(echo  $line  | cut -d\  -f 5)"
+          time="$(echo  $line  | cut -d\  -f 6)"
+          crc32="$(echo  $line | cut -d\  -f 7)"
+          name="$(echo   $line | cut -d\  -f 8)"
+          eval echo $fields
+        done
+      ;;
+
+    * )
+      error "archive-list ect: '$1'" 1
+
+  esac
+}
+
+read_unzip_verbose_list()
+{
+  oldIFS=$IFS
+  IFS=\n
+  read # 'Archive:'
+  read hds # headers
+  read cols # separator
+  # Lines
+  while read line
+  do
+    fnmatch *----* "$line" && break || noop
+    printf -- "%s\n" "$line"
+  done
+  read cols # separator
+  read # totals
   IFS=$oldIFS
 }
 
