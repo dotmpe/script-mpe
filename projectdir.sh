@@ -44,7 +44,6 @@ pd__check()
 
 pd__clean()
 {
-  test -e "$1/.git" || error "checkout dir expected" 1
   vc_clean "$1"
   case "$?" in
     0|"" )
@@ -94,16 +93,18 @@ pd__update()
 
   backup_if_comments "$pd"
 
-  pd__meta list-enabled "$1" | while read prefix
-  do
-    test -d $prefix || {
-      pd__meta update-repo $prefix disabled=true \
-        && note "Disabled $prefix" \
-        || touch $failed
-    }
-  done
+  #pd__meta list-enabled "$1" | while read prefix
+  #do
+  #  test -d $prefix || {
+  #    pd__meta update-repo $prefix disabled=true \
+  #      && note "Disabled $prefix" \
+  #      || touch $failed
+  #  }
+  #done
 
-  for git in */.git
+  test -n "$1" || set -- "*"
+
+  for git in $1/.git
   do
     prefix=$(dirname $git)
     match_grep_pattern_test "$prefix"

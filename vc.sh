@@ -15,8 +15,7 @@ vc_load()
 
   . ~/bin/std.sh
   . ~/bin/match.sh load-ext
-  . ~/bin/statusdir.sh load-ext
-  statusdir_assert vc_status > /dev/null || error vc_status 1
+  statusdir.sh assert vc_status > /dev/null || error vc_status 1
 }
 
 vc_usage()
@@ -471,8 +470,8 @@ vc_prompt_command()
 	[ ! -d "$d" ] && error "No such directory $d" 3
 
 	# cache response in file
-	statsdir=$(statusdir_assert vc_status)
-	#index=$(statusdir_index vc_status)
+	statsdir=$(statusdir.sh assert vc_status)
+	#index=$(statusdir.sh _index vc_status)
 	pwdref=$(echo $d|md5sum -|cut -f1 -d' ')
 	#line=$(cat $index | grep $pwdref)
 	if [ ! -e "$statsdir/$pwdref" -o "$d/.git" -nt "$statsdir/$pwdref" ]

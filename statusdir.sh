@@ -55,10 +55,11 @@ statusdir_index()
 
 statusdir_file()
 {
-	tree="$(echo "$@" | tr ' ' '/')"
-	path=$STATUSDIR_ROOT"index/"$tree
-	statusdir_assert_dir "$path" >/dev/null
-	echo $path
+  tree="$(echo "$@" | tr ' ' '/')"
+  case "$tree" in *\* ) ;; * )
+    statusdir_assert_dir "$@" >/dev/null
+  esac
+  echo $STATUSDIR_ROOT"index/$tree"
 }
 
 

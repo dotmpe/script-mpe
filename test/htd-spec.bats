@@ -218,15 +218,15 @@ EOM
   htd_rules=/tmp/htd-rules.tab
   echo "#CMD FOO BAR BAZ BAM" >$htd_rules
 
-  run fixed_table_hd_offset CMD
+  run fixed_table_hd_offset CMD CMD $htd_rules
   test $status -eq 0
   test "${lines[@]}" = "0"
 
-  run fixed_table_hd_offset FOO
+  run fixed_table_hd_offset FOO CMD $htd_rules
   test $status -eq 0
   test "${lines[@]}" = "5"
 
-  run fixed_table_hd_offset BAR
+  run fixed_table_hd_offset BAR CMD $htd_rules
   test $status -eq 0
   test "${lines[@]}" = "9"
 }

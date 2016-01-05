@@ -353,7 +353,7 @@ def H_x_conv(pdhdata, ctx):
             #if sk in ('origin', 'original', 'brix', 'dotmpe')
         sd['remotes'] = r
         newd['repositories'][k] = sd
-    yaml_commit(pdhdata, ctx)
+    yaml_commit(newd, ctx)
 
 
 

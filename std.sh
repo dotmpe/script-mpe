@@ -146,6 +146,8 @@ stdio_type()
         drgrey="\033[38;5;255m"
       }
 
+      grn="$(tput setaf 2)"
+
     else
 
       grey=${nrml}

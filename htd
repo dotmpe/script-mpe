@@ -329,6 +329,14 @@ c_init_ignores()
   htd_init_ignores
 }
 
+c_uf()
+{
+  test -n "$1" || set -- "."
+  for x in $1/*
+  do
+    echo $x
+  done
+}
 
 req_path_arg()
 {
@@ -377,21 +385,21 @@ c_relpath()
 # return paths for names that exist along given path
 htd_find_path_locals()
 {
-    local name path stop_at
-    name=$1
-    path="$(cd $2;pwd)"
-    test -z "$3" && stop_at= || stop_at="$(cd $3;pwd)"
-    path_locals=
-    while test -n "$path" -a "$path" != "/"
-    do
-        test -e "$path/$name" && {
-            path_locals="$path_locals $path/$name"
-        }
-        test "$path" = "$stop_at" && {
-            break
-        }
-        path=$(dirname $path)
-    done
+  local name path stop_at
+  name=$1
+  path="$(cd $2;pwd)"
+  test -z "$3" && stop_at= || stop_at="$(cd $3;pwd)"
+  path_locals=
+  while test -n "$path" -a "$path" != "/"
+  do
+    test -e "$path/$name" && {
+        path_locals="$path_locals $path/$name"
+    }
+    test "$path" = "$stop_at" && {
+        break
+    }
+    path=$(dirname $path)
+  done
 }
 
 c_man_5_table_names=""
@@ -1298,38 +1306,136 @@ c_show_rules()
 # header char offset
 fixed_table_hd_offset()
 {
-  test -n "$1" || set -- CMD "$2"
-  test -n "$2" || set -- "$1" CMD
-
+  test -n "$1" || set -- HD "$2" "$3"
+  test -n "$2" || set -- "$1" FIRSTHD "$3"
+  test -n "$3" || error "table expected" 1
+  test -e "$3" || error "table expected: $3" 1
   # correct for first col, or for line-end
   test "$1" = "$2" \
     && echo 0 \
-    || echo $(( $(grep '^#' $htd_rules |
+    || echo $(( $(grep '^#' $3 | head -n 1 |
   sed 's/^\(.*\)'$1'.*/\1/g' | wc -c) - 1 ))
 }
 
-read_fixed_table()
+fixed_table_hd_offsets()
 {
-  fixed_table_hd_offset 
+  local tab=$1 fc=$2
+  shift
+  while test ${#@} -gt 0
+    do
+      fixed_table_hd_offset $1 $fc $tab
+      shift
+    done
+}
+
+fixed_table_hd_cuts()
+{
+  local tab=$1 fc=$2 offset= lc= old_offset=
+  shift
+  while test ${#@} -gt 0
+    do
+      offset=$(fixed_table_hd_offset $1 $fc $tab)
+      test -n "$old_offset" && {
+        echo "$lc -c$(( $old_offset + 1 ))-$offset"
+      }
+      lc=$1
+      old_offset=$offset
+      shift
+    done
+    echo "$lc -c$(( $old_offset + 1 ))-"
+}
+
+# print single line of var declarations for each record in table file
+fixed_table_hd()
+{
+  local tab=$1 cutf=$(dirname $1)/$(basename $1 .tab).cuthd
+  #fixed_table_hd_offsets "$@"
+  test $cutf -nt $1 || fixed_table_hd_cuts "$@" >$cutf
+  cat $tab | grep -v '^\s*\(#.*\)\?$' | while read line
+  do
+    cat $cutf | grep -v '^\s*\(#.*\)\?$' | while read col args
+      do
+        printf " $col=\"$(echo "$line" | cut $args)\" "
+      done
+      printf " line=\"$line\" "
+      echo
+  done
+}
+
+c_period_status_files()
+{
+  touch -t $(date +%y%m%d%H%M) $(statusdir.sh file period 1min)
+  M=$(date +%M)
+  _5M=$(( $(( $M / 5 )) * 5 ))
+  touch -t $(date +%y%m%d%H${_5M}) $(statusdir.sh file period 5min)
+  touch -t $(date +%y%m%d%H00) $(statusdir.sh file period hourly)
+  H=$(date +%H)
+  _3H=$(printf "%02d" $(( $(( $H / 3 )) * 3 )))
+  touch -t $(date +%y%m%d${_3H}00) $(statusdir.sh file period 3hr)
+  touch -t $(date +%y%m%d0000) $(statusdir.sh file period daily)
+  ls -la $(statusdir.sh file period 3hr)
+  ls -la $(statusdir.sh file period 5min)
+  ls -la $(statusdir.sh file period hourly)
 }
 
 c_run_rules()
 {
-  fixed_table_hd_offset CMD
-  fixed_table_hd_offset RT
-  fixed_table_hd_offset TARGETS
-  htd_rules=/tmp/htd-rules.tab
-  echo "#CMD FOO BAR BAZ BAM" >$htd_rules
-  fixed_table_hd_offset CMD
-  fixed_table_hd_offset FOO
-#  read_fixed_table $htd_rules CMD RT TARGETS
-
-  cat $htd_rules \
-    | grep -v '^\(\s*\|#.*\)$' | \
-  while read line
+  c_period_status_files
+  test -z "$DEBUG" \
+    || fixed_table_hd_offsets $htd_rules CMD RT TARGETS CWD
+  fixed_table_hd $htd_rules CMD RT TARGETS CWD | while read vars
   do
-    echo line=$line
+    eval local "$vars"
+    #echo "CMD=$CMD RT=$RT TARGETS=$TARGETS"
+    for target in $TARGETS
+    do
+      case "$target" in
+        p:* )
+            test -e "$(statusdir.sh file period ${target#*:})" && {
+              echo "TODO 'cd $CWD;"$CMD"' for $target"
+            } || error "Missing period for $target"
+          ;;
+        @* ) continue ;;
+      esac
+      # XXX: figuring out what/how rules to run
+      c_rule_target $target || note "TODO run '$CMD' for $target ($CWD)"
+    done
   done
+}
+
+c_edit_rules()
+{
+  $EDITOR $htd_rules $0
+}
+
+# 2: has run but failed or incomplete, 1: not run
+c_rule_target()
+{
+  case "$1" in
+
+    # Period: assure exec once each period
+    p:* )
+      case "$1" in
+        [smhdMY]* ) ;;
+        [0-9]* )
+          tdate=$(date +%y%m%d0000)
+          ;;
+      esac
+      ;;
+
+    # Domain
+    d:* )
+      sf=$(statusdir.sh file domain-network)
+      test -e "$sf" || return 0
+      test "d:$(cat $sf)" = "$1" || return 1
+      ;;
+
+    @* )
+      sf=$(statusdir.sh file htd-rules-$1)
+      test -s $sf && return 2 || test -e $sf || return 1
+      ;;
+
+  esac
 }
 
 c_add_rule()
@@ -2336,6 +2442,142 @@ c_bashisms()
   grep $f '\<source\|declare\|typeset\>' "$@" && {
     note "Bash extension found"
   }
+}
+
+
+# given archive, look for existing, possibly unpacked (direct) neighbour dirs
+# interactively delete, compare, or skip
+c_clean_unpacked()
+{
+  test -n "$1" || error "archive" 1
+  test -n "$2" || set -- "$1" "$(dirname "$1")"
+
+  test -e "$1" && {
+    test -f "$1" || error "not a file: '$1'" 1
+  } || {
+    test -h "$1" && {
+      warn "skipped broken symlink '$1'"
+      return 1
+    } || error "No archive '$1'" 2
+  }
+
+  local  archive="$(basename "$1")"
+
+  set -- "$(cd "$(dirname "$1")"; pwd -P)/$archive" "$2"
+
+  local oldwd="$(pwd)" dirty="$(statusdir.sh file htd clean-unpacked)"
+  test ! -e "$dirty" || rm "$dirty"
+
+  cd "$2"
+
+  # scenario 1: look for archive-basename as dir (ie. unzip, some friendlier unpackers--Darwin, Gnome maybe)
+  local dir="$(archive_basename "$1")"
+  test -d "$dir" && {
+      note "Possibly unpacked basedir '$dir' (from $1)"
+      # TODO: check for changes
+      touch $dirty
+  } || noop
+
+  # scenario 2: look root dirs from archive
+  archive_list "$1" | sed 's/^\([^\/]*\).*$/\1/' | sort -u | while read path
+  do
+    test -e "$path" && {
+      note "Possibly unpacked path '$path' (from $1)"
+      # TODO: check for changes
+      touch $dirty
+    } || {
+      debug "No dir $(pwd)/$path"
+      continue
+    }
+  done
+
+  cd "$oldwd"
+
+  test ! -e "$dirty" && stderr ok "$1" || warn "Crufty $1" 1
+}
+
+# given archive, note unpacked files
+c_note_unpacked()
+{
+  test -n "$1" || error "archive" 1
+  test -n "$2" || set -- "$1" "$(dirname "$1")"
+
+  test -e "$1" && {
+    test -f "$1" || error "not a file: '$1'" 1
+  } || {
+    test -h "$1" && {
+      warn "skipped broken symlink '$1'"
+      return 1
+    } || error "No archive '$1'" 2
+  }
+
+  local  archive="$(basename "$1")"
+
+  set -- "$(cd "$(dirname "$1")"; pwd -P)/$archive" "$2"
+
+  local oldwd="$(pwd)" dirty="$(statusdir.sh file htd note-unpacked)"
+  test ! -e "$dirty" || rm "$dirty"
+
+  cd "$2"
+
+  archive_list "$1" | while read file
+  do
+    test -e "$file" && {
+      note "Found unpacked $file (from $archive)"
+      touch $dirty
+      # check for changes?
+    } || {
+      debug "No file $(pwd)/$file"
+      continue
+    }
+  done
+
+  cd "$oldwd"
+
+  test ! -e "$dirty" && info "OK $1" || warn "Crufty $1" 1
+}
+
+archive_basename()
+{
+  test -n "$1" || error "archive-basename:1" 1
+  case "$1" in
+    *.zip )
+      basename "$1" .zip
+      ;;
+    * )
+      error "archive-basename ext: '$1'" 1
+  esac
+}
+
+archive_list()
+{
+  test -n "$1" || error "archive-list:1" 1
+  case "$1" in
+    *.zip )
+      unzip -l "$1" | read_unzip_list
+      ;;
+    * )
+      error "archive-list ext: '$1'" 1
+  esac
+}
+
+read_unzip_list()
+{
+  oldIFS=$IFS
+  IFS=\n
+  read
+  read headers
+  # see fixed_table_hd_offset; dont bother with 0-index correction here
+  # XXX: expr still helps to strip ws even with IFS off..? [Darwin]
+  offset=$(( $(printf "$headers" | sed 's/^\(.*\)'Name'.*/\1/g' | wc -c) - 0 ))
+  read
+  while read line
+  do
+    case $line in " "*---- | " "*[0-9]*" files" ) continue ;; esac
+    #printf "line='$line'\n"
+    printf -- "$line" | cut -c$offset-
+  done
+  IFS=$oldIFS
 }
 
 
