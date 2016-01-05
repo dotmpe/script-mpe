@@ -93,14 +93,19 @@ pd__update()
 
   backup_if_comments "$pd"
 
-  #pd__meta list-enabled "$1" | while read prefix
-  #do
-  #  test -d $prefix || {
-  #    pd__meta update-repo $prefix disabled=true \
-  #      && note "Disabled $prefix" \
-  #      || touch $failed
-  #  }
-  #done
+  pd__meta list-enabled "$1" | while read prefix
+  do
+    test -d $prefix || {
+      pd__meta -s enabled $prefix \
+        && continue \
+        || {
+
+        pd__meta update-repo $prefix disabled=true \
+          && note "Disabled $prefix" \
+          || touch $failed
+      }
+    }
+  done
 
   test -n "$1" || set -- "*"
 
@@ -229,11 +234,47 @@ pd__enable()
   pd__meta -sq enabled $1 || pd__meta enable $1
   test -d $1 || {
     # TODO: get upstream and checkout to branch, iso. origin/master?
-    uri=$(pd__meta get-uri $1 origin)
-    test -n "$uri" || error "No uri for $1 origin" 1
-    git clone $uri $1
+    upstream=origin
+    uri=$(pd__meta get-uri $1 $upstream)
+    test -n "$uri" || error "No uri for $1 $upstream" 1
+    git clone $uri --origin $upstream $1
+    pd__init $1
   }
 }
+
+pd_run__init=y
+pd__init()
+{
+  test -n "$1" || error "prefix argument expected" 1
+  test -z "$2" || error "Surplus arguments: $2" 1
+
+  cwd=$(pwd)
+  pd__meta list-remotes "$1" | while read remote
+  do
+    cd "$cwd"
+    url=$(pd__meta get-uri "$1" $remote)
+    cd "$cwd/$1"
+    git config remote.$remote.url >/dev/null && {
+      test "$(git config remote.$remote.url)" = "$url" || {
+        no_act \
+          && echo "git remote add $remote $url ( ** DRY RUN ** )" \
+          || git remote set-url $remote $url
+      }
+    } || {
+      no_act \
+        && echo "git remote add $remote $url ( ** DRY RUN ** )" \
+        || git remote add $remote $url
+    }
+  done
+
+  cd $cwd
+}
+
+no_act()
+{
+  test -n "$dry_run"
+}
+
 
 pd_run__disable=y
 pd__disable()
@@ -342,7 +383,7 @@ pd__unload()
   }
 }
 
-pd__init()
+pd_init()
 {
   local __load_lib=1
   . ~/bin/main.sh
@@ -382,7 +423,7 @@ pd__main()
           func_exists= \
           func=
 
-        pd__init
+        pd_init
         try_subcmd && {
           pd__lib
           box_init pd
