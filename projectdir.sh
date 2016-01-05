@@ -25,6 +25,7 @@ pd__status()
   pd__list_prefixes "$1" | while read prefix
   do
     vc_check $prefix || continue
+    test -d "$prefix" || continue
     pd__clean $prefix || touch $failed
   done
 }
@@ -38,6 +39,7 @@ pd__check()
   pd__meta list-prefixes "$1" | while read prefix
   do
     vc_check $prefix || continue
+    test -d "$prefix" || continue
     pd__sync $prefix || touch $failed
   done
 }
@@ -54,8 +56,9 @@ pd__clean()
       return 1
     ;;
     2 )
-      note "Crufty: $(__vc_status "$1")"
-      printf "$cruft\n" 1>&2
+      warn "Crufty: $(__vc_status "$1")"
+      test $verbosity -gt 6 &&
+        printf "$cruft\n" 1>&2 || noop
       return 2
     ;;
   esac
@@ -230,12 +233,13 @@ pd__enable()
 {
   test -n "$1" || error "prefix argument expected" 1
   test -z "$2" || error "Surplus arguments: $2" 1
-
+  pd__meta get-repo $1 || error "No repo for $1" 1
   pd__meta -sq enabled $1 || pd__meta enable $1
   test -d $1 || {
     # TODO: get upstream and checkout to branch, iso. origin/master?
-    upstream=origin
-    uri=$(pd__meta get-uri $1 $upstream)
+    upstream="$(pd__meta list-upstream "$1" | sed 's/^\([\ ]*\).*$/\1/')"
+    test -n "$upstream" || upstream=origin
+    uri="$(pd__meta get-uri "$1" $upstream)"
     test -n "$uri" || error "No uri for $1 $upstream" 1
     git clone $uri --origin $upstream $1
     pd__init $1
@@ -393,6 +397,7 @@ pd_init()
   . ~/bin/date.lib.sh
   . ~/bin/match.sh load-ext
   . ~/bin/vc.sh load-ext
+  test -n "$verbosity" || verbosity=6
   # -- pd box init sentinel --
 }
 

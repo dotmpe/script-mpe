@@ -51,16 +51,20 @@ vc_clean()
   }
 }
 
+# dir exist and is enabled checkout, or is not enabled
 vc_check()
 {
   test -d "$1" && {
+    test -e "$1/.git" || {
+      note "Not a checkout: $1"
+      return 1
+    }
     projectdir-meta -sq enabled $1 || {
       note "To be disabled: $1"
     }
   } || {
-    # skip check on missing dirs, note
     projectdir-meta -sq enabled $1 || return
-    test -e "$1/.git" && return || note "Not a checkout: $1"
+    note "Missing checkout: $1"
     return 1
   }
 }

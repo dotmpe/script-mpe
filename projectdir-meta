@@ -129,6 +129,9 @@ def prefix_match(prefix, match, opts):
 def check_state(target, pdhdata, ctx):
     "Project repo Enabled/Disabled function"
     prefix = ctx.opts.args.prefix
+    if prefix not in pdhdata['repositories']:
+        print >>ctx.out, "No such repo prefix", prefix
+        return 3
     state = get_toggle_state(pdhdata['repositories'][prefix])
     if not ctx.opts.flags.quiet:
         print >>ctx.out, "%s\t%s" % ( prefix, state )
@@ -139,6 +142,9 @@ def check_state(target, pdhdata, ctx):
 
 def toggle_state(newstate, pdhdata, ctx):
     prefix = ctx.opts.args.prefix
+    if prefix not in pdhdata['repositories']:
+        print >>ctx.out, "No such repo prefix", prefix
+        return 3
     state = get_toggle_state(pdhdata['repositories'][prefix])
     if newstate+'d' != state:
         set_toggle_state( pdhdata['repositories'][prefix], newstate+'d' )
