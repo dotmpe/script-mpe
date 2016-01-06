@@ -40,7 +40,7 @@ pd__check()
   do
     vc_check $prefix || continue
     test -d "$prefix" || continue
-    pd__sync $prefix || touch $failed
+    pd sync $prefix || touch $failed
   done
 }
 
@@ -92,56 +92,71 @@ pd__disable_clean()
 pd_run__update=yfb
 pd__update()
 {
-  test -z "$2" || error "Surplus arguments: $2" 1
+  test -n "$1" || set -- "*"
 
   backup_if_comments "$pd"
 
-  pd__meta list-enabled "$1" | while read prefix
+  while test ${#@} -gt 0
   do
-    test -d $prefix || {
-      pd__meta -s enabled $prefix \
-        && continue \
-        || {
 
-        pd__meta update-repo $prefix disabled=true \
-          && note "Disabled $prefix" \
-          || touch $failed
+    test -d "$1" -a -e "$1/.git" || {
+      info "Skipped non-checkout path $1"
+      shift
+      continue
+    }
+
+    pd__meta list-enabled "$1" | while read prefix
+    do
+      test -d $prefix || {
+        pd__meta -s enabled $prefix \
+          && continue \
+          || {
+
+          pd__meta update-repo $prefix disabled=true \
+            && note "Disabled $prefix" \
+            || touch $failed
+        }
       }
-    }
-  done
+    done
 
-  test -n "$1" || set -- "*"
+    for git in $1/.git
+    do
+      prefix=$(dirname $git)
+      match_grep_pattern_test "$prefix"
 
-  for git in $1/.git
-  do
-    prefix=$(dirname $git)
-    match_grep_pattern_test "$prefix"
+      #{ cd $prefix; git remotes; } | while read remote
+      #do
+      #  echo
+      #done
 
-    #{ cd $prefix; git remotes; } | while read remote
-    #do
-    #  echo
-    #done
+      props=
+      test -d $prefix/.git/annex && {
+        props="annex=true"
+      }
 
-    props="$(verbosity=0;cd $prefix;echo "$(vc remotes sh)")"
-    test -n "$props" || {
-      error "No remotes for $prefix"
-      touch $failed
-    }
+      props="$props $(verbosity=0;cd $prefix;echo "$(vc remotes sh)")"
+      test -n "$props" || {
+        error "No remotes for $prefix"
+        touch $failed
+      }
 
-    pd__meta -q get-repo $prefix && {
-      pd__meta update-repo $prefix $props \
-        && note "Updated metadata for $prefix" \
-        || { r=$?; test $r -eq 42 && info "Metadata up-to-date for $prefix" \
-          || { warn "Error updating $prefix with '$props'"
-            touch $failed
-          } }
-    } || {
+      pd__meta -q get-repo $prefix && {
+        pd__meta update-repo $prefix $props \
+          && note "Updated metadata for $prefix" \
+          || { r=$?; test $r -eq 42 && info "Metadata up-to-date for $prefix" \
+            || { warn "Error updating $prefix with '$props'"
+              touch $failed
+            } }
+      } || {
 
-      info "Testing add $prefix props='$props'"
-      pd__meta put-repo $prefix $props \
-        && note "Added metadata for $prefix" \
-        || error "Unexpected error adding repo $?" $?
-    }
+        info "Testing add $prefix props='$props'"
+        pd__meta put-repo $prefix $props \
+          && note "Added metadata for $prefix" \
+          || error "Unexpected error adding repo $?" $?
+      }
+    done
+
+    shift
   done
 }
 
@@ -160,15 +175,31 @@ pd__list_prefixes()
 }
 
 # prepare Pd var
-pd_run__sync=y
+pd_run__sync=yf
 # Update remotes and check refs
 pd__sync()
 {
   test -n "$1" || error "prefix argument expected" 1
   prefix=$1
+
   shift 1
   test -n "$1" || set -- $(vc_list_local_branches $prefix)
   pwd=$(pwd -P)
+
+  cd $pwd/$prefix
+
+  test -d .git || error "Not a standalone .git: $prefix" 1
+
+  test -e .git/FETCH_HEAD && younger_than .git/FETCH_HEAD $PD_SYNC_AGE && {
+    return
+  }
+
+  test ! -d .git/annex || {
+    git annex sync
+    return $?
+  }
+
+  cd $pwd
 
   (
     pd__meta -s list-upstream "$prefix" "$@" \
@@ -178,14 +209,15 @@ pd__sync()
       }
   ) | while read remote branch
   do
+    fnmatch "*annex*" $branch && continue || noop
 
     cd $pwd/$prefix
 
-    test -d .git || error "Not a standalone .git: $prefix" 1
-
-    test -e .git/FETCH_HEAD \
-      && younger_than .git/FETCH_HEAD $PD_SYNC_AGE \
-      || git fetch --quiet $remote
+    git fetch --quiet $remote || {
+      error "fetching $remote"
+      touch $failed
+      continue
+    }
 
     local remoteref=$remote/$branch
 
@@ -194,7 +226,8 @@ pd__sync()
         git push $remote +$branch
       } || {
         error "Missing remote branch in $prefix: $remoteref"
-        return 2
+        touch $failed
+        continue
       }
     }
 
@@ -202,30 +235,34 @@ pd__sync()
 
     git diff --quiet ${remoteref}..${branch} \
       || ahead=$(git rev-list ${remoteref}..${branch} --count) \
+
     git diff --quiet ${branch}..${remoteref} \
       || behind=$(git rev-list ${branch}..${remoteref} --count)
 
     test $ahead -eq 0 -a $behind -eq 0 && {
       info "In sync: $prefix $remoteref"
-      return
+      continue
     }
 
     test $ahead -eq 0 || {
-      note "$prefix ahead of $remoteref by $ahead commits"
+      note "$prefix ahead of $remote#$branch by $ahead commits"
+      test -n "$dry_run" \
+        || git push $remote $branch \
+        || touch $failed
     }
 
     test $behind -eq 0 || {
       # ignore upstream commits?
       test -n "$choice_sync_dismiss" \
-        && return \
-        || note "$prefix behind of $remoteref by $behind commits"
+        || {
+          note "$prefix behind of $remote#$branch by $behind commits"
+          test -n "$dry_run" || touch $failed
+        }
     }
 
-    return 1
   done
 
   # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
-
 }
 
 pd_run__enable=y
@@ -233,11 +270,10 @@ pd__enable()
 {
   test -n "$1" || error "prefix argument expected" 1
   test -z "$2" || error "Surplus arguments: $2" 1
-  pd__meta get-repo $1 || error "No repo for $1" 1
+  pd__meta -q get-repo $1 || error "No repo for $1" 1
   pd__meta -sq enabled $1 || pd__meta enable $1
   test -d $1 || {
-    # TODO: get upstream and checkout to branch, iso. origin/master?
-    upstream="$(pd__meta list-upstream "$1" | sed 's/^\([\ ]*\).*$/\1/')"
+    upstream="$(pd__meta list-upstream "$1" | sed 's/^\([^\ ]*\).*$/\1/g' | head -n 1)"
     test -n "$upstream" || upstream=origin
     uri="$(pd__meta get-uri "$1" $upstream)"
     test -n "$uri" || error "No uri for $1 $upstream" 1
@@ -308,7 +344,7 @@ pd__disable()
         esac
 
     choice_sync_dismiss=1 \
-    pd__sync $1 \
+    pd sync $1 \
       || error "Not in sync: $1" 1
 
     rm -rf $1 \
@@ -348,7 +384,7 @@ pd__load()
         ;;
 
       f )
-        failed=${base}-$subcmd.failed
+        failed=/tmp/${base}-$subcmd.failed
         ;;
 
       b )

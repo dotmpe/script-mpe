@@ -155,17 +155,20 @@ def yaml_commit(pdhdata, ctx):
 
 def repo_kv_to_dict( kwdargs ):
     new = dict(remotes={})
-    new.update(dict([ k.split('=') for k in kwdargs ]))
+    new.update(dict([ k.split('=') for k in kwdargs if k ]))
     for k,v in new.items():
-        if k not in "disabled enabled clean sync remotes":
-            new['remotes'][k] = v
+        if isinstance(v, str):
+            if v.lower() == 'true':
+                v = True
+            elif v.lower() == 'false':
+                v = False
+            #elif v.isdigit():
+            #    v = int(v)
+        if k in "disabled enabled clean sync remotes annex description todo":
+            new[k] = v
+        else:
             del new[k]
-        elif v == 'true':
-            new[k] = True
-        elif v == 'false':
-            new[k] = False
-        #elif v.isdigit():
-        #    new[k] = int(v)
+            new['remotes'][k] = v
     return new
 
 def update_repo(pdhdata, ctx):
@@ -205,7 +208,6 @@ def list_state(target, pdhdata, ctx):
             print >>ctx.out, k
 
 
-
 #
 
 def H_list_upstream(pdhdata, ctx):
@@ -223,12 +225,17 @@ def H_list_upstream(pdhdata, ctx):
             return 1
         return
 
+    p=ctx.opts.args.prefix
     if isinstance(sync, list):
         for remote in sync:
             for branch in branches:
                 print >>ctx.out, remote, branch
+    elif isinstance(sync, str):
+        assert sync in repos[p]['remotes'], sync
+        for branch in branches:
+            print >>ctx.out, sync, branch
     elif isinstance(sync, bool):
-        for remote in repos[ctx.opts.args.prefix]['remotes']:
+        for remote in repos[p]['remotes']:
             for branch in branches:
                 print >>ctx.out, remote, branch
 
@@ -245,7 +252,7 @@ def H_get_uri(pdhdata, ctx):
     if 'remote' in ctx.opts.args:
         remote = ctx.opts.args.remote or 'origin'
     remotes = repos[ctx.opts.args.prefix]['remotes']
-    assert remote in remotes
+    assert remote in remotes, remote
     print >>ctx.out, remotes[remote]
 
 def H_disabled(pdhdata, ctx):

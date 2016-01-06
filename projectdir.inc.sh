@@ -63,7 +63,7 @@ vc_check()
       note "To be disabled: $1"
     }
   } || {
-    projectdir-meta -sq enabled $1 || return
+    projectdir-meta -sq enabled $1 || return 0
     note "Missing checkout: $1"
     return 1
   }
