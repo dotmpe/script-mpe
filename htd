@@ -1,10 +1,11 @@
 #!/bin/sh
+#
+# Htdocs: work in progress 'daily' shell scripts
+#
+# Id: script.mpe/0.0.0+20150911-0659 htd
+
 htd_source=$_
 test -z "$__load_lib" || set -- "load-ext"
-
-# Htdocs: work in progress 'daily' shell scripts
-
-# Id: script.mpe/0.0.0+20150911-0659 htd
 
 scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
 
@@ -280,7 +281,7 @@ c_edit()
   doc_path_args
   find_paths="$(doc_find_name "$1")"
   grep_paths="$(doc_grep_content "$1")"
-  test -z "$find_paths" -a -z "$grep_paths" \
+  test -n "$find_paths" -o -n "$grep_paths" \
     || error "Nothing found to edit" 1
   $EDITOR $find_paths $grep_paths
 }
@@ -309,86 +310,20 @@ c_find()
 
   note "Searching files with matching name '$1' ($paths)"
   doc_find_name "$1"
-  return
 
   note "Searching matched content '$1' ($paths)"
   doc_grep_content "$1"
 }
 c_als__f=find
 
+c_man_5__htdignore_merged='Exclude rules used by `htd find|edit|count`, compiled from other sources using ``htd init-ignores``. '
 
-htd_init_ignores()
-{
-  test -n "$HTD_IGNORE" || exit 1
-  rm -f $HTD_IGNORE.merged
-  for x in .git/info/exclude .gitignore $HTD_IGNORE
-  do 
-    test -s $x && {
-      cat $x | grep -Ev '^(#.*|\s*)$' >> $HTD_IGNORE.merged
-    }
-  done
-  echo $HTD_IGNORE.merged >> $HTD_IGNORE.merged
-}
-
-htd_find_ignores()
-{
-  find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
-    grep -Ev '^(#.*|\s*)$' | \
-    sed -E 's/^\//\.\//' | \
-    grep -v '\/' | \
-    sed -E 's/(.*)/ -o -name "\1" -prune /g'))"\
-  "$(echo $(cat $HTD_IGNORE.merged | \
-    grep -Ev '^(#.*|\s*)$' | \
-    sed -E 's/^\//\.\//' | \
-    grep '\/' | \
-    sed -E 's/(.*)/ -o -path "*\1*" -prune /g'))
-  find_ignores="-path \"*/.git\" -prune $find_ignores "
-  find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
-  find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
-}
-
-htd_grep_excludes()
-{
-  grep_excludes=""$(echo $(cat $HTD_IGNORE.merged | \
-    grep -Ev '^\s*(#.*|\s*)$' | \
-    sed -E 's/^\//\.\//' | \
-    sed -E 's/(.*)/ --exclude "*\1*" --exclude-dir "\1" /g'))
-  grep_excludes="--exclude-dir \"*/.git\" $grep_excludes"
-  grep_excludes="--exclude-dir \"*/.bzr\" $grep_excludes"
-  grep_excludes="--exclude-dir \"*/.svn\" $grep_excludes"
-}
-
+c_man_1_init_ignores="Write all exclude rules to .htdignores.merged"
 c_init_ignores()
 {
   htd_init_ignores
 }
 
-req_path_arg()
-{
-  test -n "$1"  && path="$1"  || path=.
-  test -d "$path" || {
-    error "Must pass directory" 1
-  }
-}
-
-htd_relative_path()
-{
-  cwd=$(pwd)
-  test -e "$1" && {
-    x_re "${1}" '\/.*' && {
-      error "TODO make rel"
-    }
-    x_re "${1}" '[^\/].*' && {
-      x_re "${1}" '((\.\/)|(\.\.)).*' && {
-        relpath="${1: 2}"
-      } || {
-        relpath="$1"
-      }
-      return 0
-    }
-  }
-  return 1
-}
 
 c_man_1_relative_path="Test for relative path"
 c_relative_path()
@@ -402,31 +337,10 @@ c_relative_path()
   exit $r
 }
 c_man_1_relpath="Alias for 'relative-path'"
-c_relpath()
-{
-  c_relative_path $1
-}
+c_als_relpath='relative-path'
 
-# return paths for names that exist along given path
-htd_find_path_locals()
-{
-  local name path stop_at
-  name=$1
-  path="$(cd $2;pwd)"
-  test -z "$3" && stop_at= || stop_at="$(cd $3;pwd)"
-  path_locals=
-  while test -n "$path" -a "$path" != "/"
-  do
-    test -e "$path/$name" && {
-        path_locals="$path_locals $path/$name"
-    }
-    test "$path" = "$stop_at" && {
-        break
-    }
-    path=$(dirname $path)
-  done
-}
 
+# XXX: add config files
 c_man_5_table_names=""
 
 c_test_find_path_locals()
@@ -437,7 +351,7 @@ c_test_find_path_locals()
     htd_find_path_locals table.names $1 $(pwd)
     echo path_locals=$path_locals
 }
-# 
+
 c_fsck()
 {
   c_ck_validate sha1
@@ -526,48 +440,6 @@ c_today()
     datelink "$tag +7d" "$p" "${r}next-$tag$EXT"
     datelink "$tag" "$p" "${r}$tag$EXT"
   done
-}
-
-
-# TODO: move date routines to lib
-# NOTE: these use BSD date -v, see GNU date -d
-case "$(uname)" in Darwin )
-    date_fmt() {
-      tags=$(for tag in $1; do echo "-v $tag"; done)
-      date $tags +$2
-    }
-    ;;
-  Linux )
-    date_fmt() {
-      # NOTE patching for GNU date
-      tags=$(for tag in $1; do echo "-d $tag" \
-          | sed 's/1d/day/g' \
-          | sed 's/7d/week/g'; done)
-      date $tags +$2
-    }
-    ;;
-esac
-
-datelink()
-{
-  test -z "$1" && datep=$(date "+$2") || datep=$(date_fmt "$1" "$2")
-  target_path=$3
-  test -d "$(dirname $3)" || error "Dir $(dirname $3) must exist" 1
-  test -L $target_path && {
-    test "$(readlink $target_path)" = "$(basename $datep)" && {
-        return
-    }
-    printf "Deleting "
-    rm -v $target_path
-  }
-  mkrlink $datep $target_path
-}
-
-mkrlink()
-{
-  # TODO: find shortest relative path
-  printf "Linking "
-  ln -vs $(basename $1) $2
 }
 
 
@@ -2780,6 +2652,7 @@ htd_init()
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
   box_run_sh_test
+  . $PREFIX/bin/htd.lib.sh
   . $PREFIX/bin/main.sh
   . $PREFIX/bin/main.init.sh
   . $PREFIX/bin/box.lib.sh

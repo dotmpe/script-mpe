@@ -33,9 +33,15 @@ echo_help()
 {
   mkid _$1
   #try_exec_func ${help_base}__usage $1 || std_usage $1
-  # 1: commands
-  # 5: config files
-  # 7: overview, conventions, misc.
+  # Man sections:
+  # 1. (user) commands
+  # (2. System calls)
+  # (3. C Library Fuctions)
+  # 4. Devices and special files
+  # 5. File formats and conventions
+  # 6. Games et. Al.
+  # 7. Miscellenea (overview, conventions, misc.)
+  # 8. SysAdmin tools and Daemons
   try_help 1 $id && return 0 || \
   try_help 5 $id && return 0 || \
   try_help 7 $id && return 0
@@ -246,10 +252,13 @@ parse_subcmd_valid_flags()
   return 1
 }
 
+# XXX see get_cmd_func_name
 get_cmd_alias()
 {
   local func_pref="$(eval echo \$${1}_func_pref)"
+  echo func_pref=$func_pref
   export ${1}_alias=$(eval echo \$${func_pref}als$(echo "_$2" | tr '-' '_'))
+  echo subcmd_alias=$subcmd_alias
 }
 
 parse_box_subcmd_opts()
@@ -371,12 +380,16 @@ get_subcmd_args()
 
 get_cmd_func_name()
 {
-  # XXX 'local' seems better than 'eval'
-  # set don't work that good or using it wrong. No declare, typeset.
-  #echo ${func_pref} $(eval echo \${${1}_name}) ${func_suf}
-  #echo ${1}_func=$(eval echo "${func_pref}\${${1}_name}${func_suf}" | tr '-' '_')
-  # FIXME: test this.
-  export ${1}_func=$(eval echo "${func_pref}\${${1}}${func_suf}" | tr '-' '_')
+  test -n "$1" || error "get_cmd_func_name:1:varname expected" 1
+  local cmd_name="$(eval echo "\$${1}")"
+
+  local cmd_alias="$(eval echo \$${func_pref}als$(echo "_${cmd_name}" | tr '-' '_'))"
+  test -z "$cmd_alias" || {
+    cmd_name=$cmd_alias
+    export ${1}_alias=$cmd_alias
+  }
+
+  export ${1}_func=$(echo "${func_pref}${cmd_name}${func_suf}" | tr '-' '_')
 }
 
 # set ${1}_name to cmd-function
@@ -397,6 +410,15 @@ get_cmd_func()
   test -n "$(eval echo \$${1})" || export ${1}=$(eval echo \$${1}_def)
 
   get_cmd_func_name $1
+
+  test -z "$choice_debug" || {
+    eval echo "get_cmd_func @='\$@' "\
+      " ${1}_pref=\$${1}_pref "\
+      " ${1}_suf=\$${1}_suf " \
+      " ${1}_def=\$${1}_def " \
+      " ${1}_alias=\$${1}_alias " \
+      " ${1}=\$${1} "
+  }
 
   unset func_pref func_suf tag
 }
