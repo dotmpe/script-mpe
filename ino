@@ -24,7 +24,11 @@ ino__spc_version="-V|version"
 ino__version()
 {
   echo "$(cat $PREFIX/bin/.app-id)/$version"
+  app_version=$( basename $(readlink $APP_DIR/Arduino.app) | \
+    sed 's/.*Arduino-\([0-9\.]*\).app/\1/' )
+  echo "Arduino/$app_version"
 }
+
 
 ino__man_1_edit_main="Edit the main script file"
 ino__spc_edit_main="-E|edit-main"
@@ -37,6 +41,18 @@ ino__edit_main()
 ino__als__E=edit-main
 
 
+ino__man_1_list_ino="List Arduino versions available in APP_DIR"
+ino__list_ino()
+{
+  for path in $APP_DIR/Arduino-*
+  do
+    basename $path .app \
+      | sed 's/^.*Arduino-\([0-9\.]*\)/\1/'
+  done
+}
+
+
+ino__man_1_switch="Switch to Arduino version"
 ino__switch()
 {
   test -n "$1" || err "expected version arg" 1
@@ -48,11 +64,25 @@ ino__switch()
 }
 
 
+ino__man_1_list="List sketches"
+ino__list()
+{
+  list_mk_targets Rules.old.mk
+}
+
+# list (static) targets in makefile
+list_mk_targets()
+{
+  grep -h '^[a-z0-9]*: [^=]*$' $1 \
+    | sed 's/:.*$//' | sort -u | column
+}
+
+
 
 ### Main
 
 
-ino__main()
+ino_main()
 {
   ino_init || return 0
 
@@ -106,6 +136,6 @@ ino_load()
 
 # Use hyphen to ignore source exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
-  ino__main "$@"
+  ino_main "$@"
 fi
 

@@ -48,21 +48,7 @@ htd_load()
   htd_rules=~/.conf/rules/$hostname.tab
 
   HTD_IGNORE=.htdignore
-  test -e .git && {
-    printf ""
-    # FIXME: .htdignore ignore..
-    #grep $HTD_IGNORE .gitignore > /dev/null || {
-    #  echo $HTD_IGNORE >> .gitignore
-    #}
-  }
   htd_init_ignores
-  {
-    find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
-      grep -Ev '^(#.*|\s*)$' | \
-      sed -E 's/^\//\.\//' | \
-      sed -E 's/(.*)/ -o -name "\1" -prune /g'))
-    find_ignores="-path \"*/.git\" -prune $find_ignores "
-  } || error "foo bar" 1
   #match_load_table vars
 
   which tmux 1>/dev/null || {
@@ -130,7 +116,6 @@ htd_commands()
   echo '  test-name <path>                 Test filename for unhandled characters. '
   echo '  find-name <path|localname>       TODO: Given (partial) path, try to find the file using find.  '
   echo '  update                           Fill checksums tables for all local files. TODO: find out what there is to know about file using settings, other commands, ext. tooling & services. And trigger resolve'
-  echo '  fix-names [.|<dirpath]           checks files against name patterns'
   echo '  '
   echo 'Rules'
   echo '  resolve                          XXX based on data and settings, pre-process and mark all files ready for commit, and bail on any irregularities. '
@@ -291,22 +276,43 @@ c_man_1_edit="Edit a local file, or abort"
 c_spc_edit="-e|edit <id>"
 c_edit()
 {
-  test -n "$1" || error "TODO nothing to look for" 1
-  doc_name_arg $1 $2
-  doc_find
-  test -e "$file" || error "Should have catched that" 1
-  $EDITOR $file
+  test -n "$1" || error "search term expected" 1
+  doc_path_args
+  find_paths="$(doc_find_name "$1")"
+  grep_paths="$(doc_grep_content "$1")"
+  test -z "$find_paths" -a -z "$grep_paths" \
+    || error "Nothing found to edit" 1
+  $EDITOR $find_paths $grep_paths
 }
 c_als__e=edit
+
+
+c_man_1_count="Look for doc"
+c_spc_count="count"
+c_count()
+{
+  doc_path_args
+
+  note "Counting files with matching name '$1' ($paths)"
+  doc_find_name "$1" | wc -l
+
+  note "Counting matched content '$1' ($paths)"
+  doc_grep_content "$1" | wc -l
+}
 
 
 c_man_1_find="Look for doc"
 c_spc_find="-f|find"
 c_find()
 {
-  test -n "$1" || error "TODO nothing to look for" 1
-  doc_name_arg $1 $2
-  doc_list_all
+  doc_path_args
+
+  note "Searching files with matching name '$1' ($paths)"
+  doc_find_name "$1"
+  return
+
+  note "Searching matched content '$1' ($paths)"
+  doc_grep_content "$1"
 }
 c_als__f=find
 
@@ -324,18 +330,37 @@ htd_init_ignores()
   echo $HTD_IGNORE.merged >> $HTD_IGNORE.merged
 }
 
+htd_find_ignores()
+{
+  find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
+    grep -Ev '^(#.*|\s*)$' | \
+    sed -E 's/^\//\.\//' | \
+    grep -v '\/' | \
+    sed -E 's/(.*)/ -o -name "\1" -prune /g'))"\
+  "$(echo $(cat $HTD_IGNORE.merged | \
+    grep -Ev '^(#.*|\s*)$' | \
+    sed -E 's/^\//\.\//' | \
+    grep '\/' | \
+    sed -E 's/(.*)/ -o -path "*\1*" -prune /g'))
+  find_ignores="-path \"*/.git\" -prune $find_ignores "
+  find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
+  find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
+}
+
+htd_grep_excludes()
+{
+  grep_excludes=""$(echo $(cat $HTD_IGNORE.merged | \
+    grep -Ev '^\s*(#.*|\s*)$' | \
+    sed -E 's/^\//\.\//' | \
+    sed -E 's/(.*)/ --exclude "*\1*" --exclude-dir "\1" /g'))
+  grep_excludes="--exclude-dir \"*/.git\" $grep_excludes"
+  grep_excludes="--exclude-dir \"*/.bzr\" $grep_excludes"
+  grep_excludes="--exclude-dir \"*/.svn\" $grep_excludes"
+}
+
 c_init_ignores()
 {
   htd_init_ignores
-}
-
-c_uf()
-{
-  test -n "$1" || set -- "."
-  for x in $1/*
-  do
-    echo $x
-  done
 }
 
 req_path_arg()
@@ -1943,11 +1968,11 @@ c_tmux_work()
 
   tmux list-windows -t Work | grep -q Tree || {
     tmux new-window -t Work -n Tree
-    tmux send-keys -t Work:Ba "reset;cd ~/work/brix/tree/" enter "make status" enter
+    tmux send-keys -t Work:Tree "reset;cd ~/work/brix/tree/" enter "make status" enter
   }
   tmux list-windows -t Work | grep -q Cleaning || {
-    tmux new-window -t Work -n Tree
-    tmux send-keys -t Work:Ba "reset;cd /Volumes/Simza/WorkCleaning/brix" enter "make status" enter
+    tmux new-window -t Work -n TreeCln
+    tmux send-keys -t Work:TreeCln "reset;cd /Volumes/Simza/WorkCleaning/brix" enter "make status" enter
   }
 
   #tmux list-windows -t Work | grep -q Jnk || {
@@ -2716,6 +2741,9 @@ read_unzip_verbose_list()
   read # totals
   IFS=$oldIFS
 }
+
+
+
 
 
 ### Main
