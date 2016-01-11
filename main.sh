@@ -256,9 +256,7 @@ parse_subcmd_valid_flags()
 get_cmd_alias()
 {
   local func_pref="$(eval echo \$${1}_func_pref)"
-  echo func_pref=$func_pref
   export ${1}_alias=$(eval echo \$${func_pref}als$(echo "_$2" | tr '-' '_'))
-  echo subcmd_alias=$subcmd_alias
 }
 
 parse_box_subcmd_opts()

@@ -160,8 +160,31 @@ pd__update()
   done
 }
 
+pd_run__find=y
+pd_spc_find='[<path>|<localname> [<project>]]'
+pd__find()
+{
+  test -z "$3" || error "Surplus arguments: $3" 1
+  test -n "$2" && {
+    fnmatch "*/*" "$1" && {
+      pd__meta list-prefixes "$1"
+    } || {
+      pd__meta list-local -g "$2" "*$1*"
+    }
+  } || {
+    pd__meta list-prefixes -g "*$1*"
+  }
+}
+
 pd_run__list_prefixes=y
 pd__list_prefixes()
+{
+  test -z "$2" || error "Surplus arguments: $2" 1
+  pd__meta list-prefixes "$1"
+}
+
+pd_run__compile_ignores=y
+pd__compile_ignores()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
   pd__meta list-prefixes "$1" | while read prefix

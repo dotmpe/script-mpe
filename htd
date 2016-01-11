@@ -47,6 +47,7 @@ htd_load()
   }
 
   htd_rules=~/.conf/rules/$hostname.tab
+  ns_tab=$HOME/.conf/namespace/$hostname.tab
 
   HTD_IGNORE=.htdignore
   htd_init_ignores
@@ -294,27 +295,28 @@ c_count()
 {
   doc_path_args
 
-  note "Counting files with matching name '$1' ($paths)"
+  info "Counting files with matching name '$1' ($paths)"
   doc_find_name "$1" | wc -l
 
-  note "Counting matched content '$1' ($paths)"
+  info "Counting matched content '$1' ($paths)"
   doc_grep_content "$1" | wc -l
 }
 
-
-c_man_1_find="Look for doc"
-c_spc_find="-f|find"
+c_man_1_find="Look for document. "
+c_spc_find="-f|find (<path>|<localname> [<project>])"
 c_find()
 {
   doc_path_args
 
-  note "Searching files with matching name '$1' ($paths)"
+  info "Searching files with matching name '$1' ($paths)"
   doc_find_name "$1"
 
-  note "Searching matched content '$1' ($paths)"
-  doc_grep_content "$1"
+  info "Searching matched content '$1' ($paths)"
+  doc_grep_content "\<$1\>"
 }
 c_als__f=find
+
+
 
 c_man_5__htdignore_merged='Exclude rules used by `htd find|edit|count`, compiled from other sources using ``htd init-ignores``. '
 
@@ -351,6 +353,42 @@ c_test_find_path_locals()
     htd_find_path_locals table.names $1 $(pwd)
     echo path_locals=$path_locals
 }
+
+# List root IDs
+c_list_local_ns()
+{
+  fixed_table_hd $ns_tab ID PATH CMD | while read vars
+  do
+    eval local "$vars"
+    echo $ID
+  done
+}
+
+# XXX: List matching tags
+c_spc_ns_names='[<path>|<localname> [<ns>]]'
+c_ns_names()
+{
+  test -z "$3" || error "Surplus arguments: $3" 1
+  fixed_table_hd $ns_tab ID CMD_PATH CMD | while read vars
+  do
+    eval local "$vars"
+    test -n "$2" && {
+      echo 2=$2
+      test "$2" = "$ID" || continue
+    }
+    cd $CMD_PATH
+    note "In '$ID' ($CMD_PATH)"
+    eval $CMD "$1"
+    cd $cwd
+  done
+}
+
+# TODO: List resources containing tag
+c_ns_resources()
+{
+  set --
+}
+
 
 c_fsck()
 {
@@ -1252,7 +1290,7 @@ fixed_table_hd()
   do
     cat $cutf | grep -v '^\s*\(#.*\)\?$' | while read col args
       do
-        printf " $col=\"$(echo "$line" | cut $args)\" "
+        printf " $col=\"$(echo $(echo "$line" | cut $args))\" "
       done
       printf " line=\"$line\" "
       echo
@@ -2244,6 +2282,7 @@ c_xtcp()
 
 
 gcal_tab=~/.conf/google/cals.tab
+c_man_5_cals_tab="List of Google calendar IDs"
 
 gcal_tab_ids()
 {
@@ -2291,7 +2330,6 @@ c_current_events()
     done
 }
 
-
 c_active()
 {
   note "Listing files active today '$@'"
@@ -2301,13 +2339,7 @@ c_active()
   c_recent_paths "$@"
 }
 
-# dump lsof without cmd, pid etc.
-c_lsof()
-{
-  c_current_paths "$@"
-}
-#c_als_lsof=current-paths
-
+# List open paths under given or current dir. Dumps lsof without cmd, pid etc.
 c_current_paths()
 {
   test -n "$1" || set -- "$(pwd -P)"
@@ -2315,7 +2347,9 @@ c_current_paths()
   # print only pid and path name, keep name
   lsof -Fn +D $1 | tail -n +2 | grep -v '^p' | cut -c2- | sort -u
 }
+c_als_lsof=current-paths
 
+# List paths newer than recent-paths setting
 c_recent_paths()
 {
   test -n "$1" || set -- "$(pwd -P)"
@@ -2325,6 +2359,7 @@ c_recent_paths()
 }
 
 
+# Scan for bashims in given file or current dir
 c_bashisms()
 {
   test -n "$1" || set -- "."
@@ -2342,8 +2377,8 @@ c_bashisms()
 }
 
 
-# given archive, look for existing, possibly unpacked (direct) neighbour dirs
-# interactively delete, compare, or skip
+c_man_1_clean_unpacked="Given archive, look for existing, possibly unpacked (direct) neighbour dirs
+interactively delete, compare, or skip"
 c_clean_unpacked()
 {
   test -n "$1" || error "archive" 1
