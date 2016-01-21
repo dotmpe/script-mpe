@@ -5,7 +5,9 @@ pd__source=$_
 pd__edit()
 {
   $EDITOR \
-    $0 $(which projectdir-meta) \
+    $0 \
+    ~/bin/projectdir.inc.sh \
+    $(which projectdir-meta) \
     "$@"
 }
 
@@ -449,8 +451,17 @@ pd__unload()
 pd_init()
 {
   local __load_lib=1
-  . ~/bin/main.sh
   . ~/bin/std.sh
+  . ~/bin/main.sh
+  #while test $# -gt 0
+  #do
+  #  case "$1" in
+  #      -v )
+  #        verbosity=$(( $verbosity + 1 ))
+  #        incr_c
+  #        shift;;
+  #  esac
+  #done
   . ~/bin/projectdir.inc.sh "$@"
   . ~/bin/os.lib.sh
   . ~/bin/date.lib.sh
@@ -485,15 +496,18 @@ pd__main()
           subcmd_pref=${scriptalias} \
           def_subcmd=status \
           func_exists= \
-          func=
+          func= \
+          c=0
 
-        pd_init
+        pd_init "$@"
+        shift $c
+
         try_subcmd && {
           pd__lib
           box_init pd
           shift 1
-          pd__load $subcmd "$@" \
-            && $func "$@" \
+          pd__load $subcmd "$@" || return
+          $func "$@" \
             && pd__unload \
             || exit $?
         }
