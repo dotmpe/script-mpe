@@ -97,6 +97,46 @@ ino__build()
 }
 
 
+ino__list_prototype_parts()
+{
+  list_sketches Prototype Mpe | sort -u \
+    | {
+      while read ino
+      do
+        grep '^\/\*\ \*\*\*\ .*\*\*\*\ {{' $ino | \
+          sed 's/[^A-Za-z0-9\ ]//g'
+      done
+    } | sort -u
+}
+
+get_sketch()
+{
+  sketchname=$(basename $1)
+  test ! -e "$1/$sketchname.ino" || {
+    echo $1/$sketchname.ino
+  }
+  test ! -e "$1/$sketchname.pde" || {
+    echo $1/$sketchname.pde
+  }
+}
+
+# XXX: this misses deeper sketchs..
+list_sketches()
+{
+  while test $# -gt 0
+  do
+    for path in $1/*
+    do
+      ino=$(get_sketch $path)
+      test -n "$ino" -a -e "$ino" && {
+        echo $ino
+      } || {
+        warn "No sketch in $path"
+      }
+    done
+    shift
+  done
+}
 
 ### Main
 
