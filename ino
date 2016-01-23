@@ -30,15 +30,15 @@ ino__version()
 }
 
 
-ino__man_1_edit_main="Edit the main script file"
-ino__spc_edit_main="-E|edit-main"
-ino__edit_main()
+ino__man_1_edit="Edit the main script file"
+ino__spc_edit="-E|edit-main"
+ino__edit()
 {
   locate_name $scriptname || exit "Cannot find $scriptname"
   note "Invoking $EDITOR $fn"
-  $EDITOR $fn
+  $EDITOR $fn "$@" nodes.tab
 }
-ino__als__E=edit-main
+ino__als__e=edit
 
 
 ino__man_1_list_ino="List Arduino versions available in APP_DIR"
@@ -77,6 +77,25 @@ list_mk_targets()
     | sed 's/:.*$//' | sort -u | column
 }
 
+node_tab=nodes.tab
+
+get_nodes()
+{
+  fixed_table_hd $node_tab ID PREFIX CORE BOARD DEFINES
+}
+
+# Build/upload image for arg1:nodeid
+ino__build()
+{
+  test -z "$2" || error "surplus args" 1
+  get_nodes | while read vars
+  do
+    eval local "$vars"
+    test "$ID" = "$1" || continue
+    make build INO_PREF=$PREFIX C=$CORE BRD=$BOARD DEFINES="$DEFINES"
+  done
+}
+
 
 
 ### Main
@@ -113,6 +132,7 @@ ino_init()
   . $PREFIX/bin/main.sh
   . $PREFIX/bin/main.init.sh
   . $PREFIX/bin/box.lib.sh
+  . $PREFIX/bin/htd
 }
 
 ino_lib()
