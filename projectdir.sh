@@ -1,4 +1,5 @@
 #!/bin/sh
+# Created: 2015-12-14
 pd__source=$_
 
 
@@ -290,6 +291,7 @@ pd__sync()
   # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
 }
 
+# Assert checkout exists, or reinitialize from Pd document.
 pd_run__enable=y
 pd__enable()
 {

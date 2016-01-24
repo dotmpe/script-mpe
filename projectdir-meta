@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """
 :created: 2015-11-30
+:updated: 2016-01-24
 
-Python helper to query/update projects.yaml
+Python helper to query/update Projectdir metadatadocument 'projects.yaml'
 
 Usage:
     projectdir-meta [options] get-repo <prefix>
@@ -27,12 +28,94 @@ Usage:
 
 Options:
   --address ADDRESS
-                [default: /tmp/pd-serv.sock]
+                The address that the socket server will be listening on. If
+                the socket exists, any command invocation is relayed to the
+                server intance, and the result output and return code 
+                returned to client. [default: /tmp/pd-serv.sock]
+  --background  Turns script into socket server. This does not fork, detach
+                or do anything else but enter an infinite server loop.
+  -f PD, --file PD
+                Give custom path to projectdir document file [default: ./projects.yaml]
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -g, --glob    Change from root prefix matching to glob matching.
-  -f PD, --file PD
-                Give custom path to projectdir document file [default: ./projects.yaml]
+
+Schema:
+    repositories:
+        - Root key, contains a map of all local path prefixes leading to SCM
+          checkouts. Below each prefix key 
+    disabled:
+        - Boolean indicator requests checkout to be available if false, or if
+          available and true, to be cleaned up and removed.
+    enabled:
+        - Vice versa to disabled.
+    remotes:
+        - A map of local names for remote GIT urls, updated from the GIT remotes
+          config, and configured for fresh checkouts upon enabling prefixes.
+
+    clean:
+        - enum: tracked|untracked|excluded
+        - Mode of cleanliness to employ to check for changed or new files in
+          project, before removing the checkout upon disable.
+
+          The modes are in order of strictness: tracked only checks versioned
+          files, untracked also considers the presence of unversioned, unignored
+          files. Excluded also considers files ignored (ie. by .gitignore).
+
+          Verifying wether a checkout has staged or unstaged changes (is dirty)
+          or has cruft is one, preferably the first step in syncing or cleaning.
+          The other is syncing.
+
+    sync:
+        - Complex variant value to indicate up and downstream remote references
+          for local references. Upstream references are synced from, dowstream
+          references are synced to, and full sync is done normally.
+
+          A boolean 'true' value indicates all remotes are synced from and to,
+          ie. no up- or down- but full-sync is assumed if no pull or push
+          qualifiers are given. Alternatively either a single or list of remote
+          names can restrict full-sync with selected remotes.
+
+          TODO: there needs to be a way to deal with specific references (tags/branches)
+          and also push and pull only.
+          XXX: something like this::
+
+            sync:
+            - origin: true
+            - seed:
+                pull:
+                - master
+            - joe:
+                - master
+                - dev
+            - pub:
+                push:
+                - master
+                - v*
+
+          with remotes origin, seed, joe and pub.
+
+          Upon syncing, the .git/FETCH_HEAD has to have a minimum modification
+          age, or the remotes are fetched first. Then the references are
+          compared, using simple name matching, with the local references.
+          Any delta is noted in the number of commits.
+
+          Sync exits with an error code if any remote or local reference is
+          behind.
+
+          XXX: if a project is to be deleted, it may forego the actual pull, if ffwd.
+
+    submodule:
+        - Boolean indicator wether this checkout is not a standalone,
+          but part of a parent project.
+
+          XXX: Pd currently holds no submodule prefixes. But is does need to
+          deal with clean/sync of embedded submodules before rm -rf'ing a prefix!
+
+
+FIXME: test wether staged changes are recognized as dirt. Build some tests.
+FIXME: need to consider submodules dirt/cruft too before disabling parent checkout.
+
 """
 import os
 from fnmatch import fnmatch
@@ -378,6 +461,22 @@ for k, h in locals().items():
 
 
 def main(ctx):
+    """
+    Run command, or start socket server.
+    
+    Normally this returns after running a single subcommand.
+    If backgrounded, There is at most one server per projectdir 
+    document. The server remains in the working directory,
+    and while running is used to resolve any calls. Iow. subsequent executions
+    turn into UNIX domain socket clients in a transparent way, and the user
+    command invocation is relayed via line-based protocol to the background
+    server isntance.
+
+    For projectdir document, which currently is 15-20kb, this setup has a 
+    minimal performance boost, while the Pd does not need
+    to be loaded from and committed back to disk on each execution.
+
+    """
     if ctx.opts.flags.background:
         pdtwisted = __import__('projectdir-twisted')
         return pdtwisted.serve(ctx, handlers)
