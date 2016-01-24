@@ -138,6 +138,7 @@ class ServerProtocol(LineOnlyReceiver):
 
         elif ctx.opts.cmds[0] == 'exit':
             reactor.stop()
+            self.factory.postrun(ctx, 0)
 
         else:
             func = ctx.opts.cmds[0]

@@ -398,6 +398,7 @@ pd__help()
   echo '  status                           List abbreviated status strings for all repos'
   echo ''
   echo '  help                             print this help listing.'
+  #std_help pd "$@"
 }
 
 pd__load()

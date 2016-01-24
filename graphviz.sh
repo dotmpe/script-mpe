@@ -45,9 +45,9 @@ gv__help()
 {
   gv__usage
   echo 'Functions: '
-  echo '  status                           List abbreviated status strings for all repos'
   echo ''
   echo '  help                             print this help listing.'
+  std_help gv "$@"
 }
 
 
