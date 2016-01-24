@@ -444,7 +444,7 @@ box__main()
         subcmd_func_pref=c_ subcmd_func_suf=
 
       box_lib
-      box_init
+      box_src_lib box
 
       # Execute
       run_subcmd "$@"

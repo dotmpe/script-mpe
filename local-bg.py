@@ -1,6 +1,35 @@
 """
-Twisted provides for a quick and easy UNIX domain server
-for projectdir-meta.
+Background script server in Python, Twisted.
+
+API:
+    - serve( context, subcmds, prerun=None, postrun=None )
+    - query( context )
+- Subcommands is a simple name, function mapping.
+  Prerun/postrun are executed before and after.
+  The arguments passed to the subcmd handlers are siple too.
+  The prerun argument may return arguments to prepend.
+
+    1. prerun(context)
+    2. context
+
+- Context schema:
+    'usage'
+        - docopt specification.
+    'opts'
+        'flags'
+            'file'
+                - Path to document file.
+            'address'
+                - Path to unix domain socket.
+        'cmds'
+            - List of commands to execute (normally only one).
+    'out'
+        - Output stream relayed to client.
+    'err'
+        - Stderr stream.
+    'rs'
+        - Use to pass exit code back from client to query method.
+
 """
 import os, sys
 
@@ -13,9 +42,8 @@ from twisted.internet.endpoints import UNIXClientEndpoint
 from twisted.internet import reactor
 
 from script_mpe import util
-from script_mpe.confparse import Values, yaml_load, yaml_safe_dump
+from script_mpe.confparse import Values
 
-from pprint import pformat
 
 
 class QueryProtocol(LineOnlyReceiver):
@@ -88,11 +116,10 @@ def query(ctx):
 
 class ServerProtocol(LineOnlyReceiver):
     def lineReceived(self, line):
-        #print "Query received", line
-
         ctx = self.factory.ctx
-        argv = line.split(' ')
-        ctx.opts = util.get_opts(ctx.usage, argv=argv)
+
+        preload = self.factory.prerun(ctx, line)
+
         # XXX: twisted likes to use native CRLF (seems) but print does
         # write(str+LF). This should be okay as long as no chunking happens.
         def write(str):
@@ -104,16 +131,20 @@ class ServerProtocol(LineOnlyReceiver):
                 self.transport.write(str.strip('\n\r'))
 
         ctx.out = Values(dict( write=write ))
+
         if not ctx.opts.cmds:
             print >>ctx.err, "No subcmd", line
             self.sendLine("? %s" % line)
+
         elif ctx.opts.cmds[0] == 'exit':
             reactor.stop()
+
         else:
             func = ctx.opts.cmds[0]
             assert func in self.factory.handlers
+            args = tuple( preload ) + ( ctx, )
             try:
-                r = self.factory.handlers[func](self.factory.pdhdata, ctx)
+                r = self.factory.handlers[func](*args)
                 if r:
                     self.sendLine("! %s: %i" % (func, r))
                 else:
@@ -123,8 +154,15 @@ class ServerProtocol(LineOnlyReceiver):
 
         self.transport.loseConnection()
 
+def prerun(ctx, cmdline):
+    argv = cmdline.split(' ')
+    ctx.opts = util.get_opts(ctx.usage, argv=argv)
 
-def serve(ctx, handlers):
+def postrun(ctx):
+    pass
+
+
+def serve(ctx, handlers, prerun=prerun, postrun=postrun):
     address = FilePath(ctx.opts.flags.address)
 
     if address.exists():
@@ -135,9 +173,9 @@ def serve(ctx, handlers):
     serverFactory = Factory()
     serverFactory.ctx = ctx
     serverFactory.handlers = handlers
+    serverFactory.prerun = prerun
+    serverFactory.postrun = postrun
     serverFactory.protocol = ServerProtocol
-
-    serverFactory.pdhdata = yaml_load(open(ctx.opts.flags.file))
 
     port = reactor.listenUNIX(address.path, serverFactory)
     reactor.run()

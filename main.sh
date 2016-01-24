@@ -1,4 +1,3 @@
-#!/bin/sh
 
 set -e
 
@@ -436,7 +435,7 @@ main_init()
   test -n "$scsep" || scsep=__
 }
 
-box_init()
+box_src_lib()
 {
   box_src="$(dry_run= box_list_libs $0 $1 | while read src path args; \
     do eval echo $path; done)"
@@ -552,5 +551,16 @@ daemon()
       echo "?=$?"
     }
   done
+}
+
+trueish()
+{
+  test -n "$1" || return 1
+  case "$1" in
+    on|true|yes|1)
+      return 0;;
+    * )
+      return 1;;
+  esac
 }
 

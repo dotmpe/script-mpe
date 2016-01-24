@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-
+# Init Bg service
 pd_meta_bg_setup()
 {
   test -n "$no_background" && {
@@ -16,11 +16,16 @@ pd_meta_bg_setup()
     info "Backgrounded pd-meta for $(pwd)/projects.yaml (PID $!)"
   }
 }
+
+# Close Bg service
 pd_meta_bg_teardown()
 {
-  test -n "$no_background" || {
+  test -e "$sock" || {
     projectdir-meta exit
+    while test -e $sock
+    do note "Waiting for background shutdown.." ; sleep 1 ; done
     info "Closed background metadata server"
+    test -z "$no_background" || warn "no-background on while sock existed"
   }
 }
 

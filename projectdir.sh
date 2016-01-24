@@ -506,7 +506,7 @@ pd__main()
 
         try_subcmd && {
           pd__lib
-          box_init pd
+          box_src_lib pd
           shift 1
           pd__load $subcmd "$@" || return
           $func "$@" \

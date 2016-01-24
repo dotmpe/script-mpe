@@ -21,6 +21,16 @@ var_isset()
   return 1
 }
 
+# require vars to be initialized
+req_vars()
+{
+  while test $# -gt 0
+  do
+    var_isset "$1" || return 1
+    shift
+  done
+}
+
 # No-Op(eration)
 noop()
 {
@@ -329,5 +339,4 @@ func_comment()
     echo "$func_leading_line" | sed 's/^\s*#\ //'
   } || noop
 }
-
 

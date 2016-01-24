@@ -3,7 +3,6 @@
 base=htd
 load helper
 init
-source $lib/util.sh
 source $lib/str.sh
 
 
@@ -23,11 +22,15 @@ version=0.0.0+20150911-0659 # script.mpe
 @test "$bin home" {
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
+
   test -n "$HTDIR" || HTDIR="$(echo ~/public_html)"
   test "${lines[0]}" = "$HTDIR"
 
-  run bash -c "HTDIR= $BATS_TEST_DESCRIPTION"
+  test ! -d ~/public_html
+  mkdir ~/public_html
+  run bash -c "HTDIR='' $BATS_TEST_DESCRIPTION"
   test "${lines[0]}" = "$(echo ~/public_html)"
+  rm -r ~/public_html
 }
 
 @test "$bin info" {

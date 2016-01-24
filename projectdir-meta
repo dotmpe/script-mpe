@@ -459,11 +459,25 @@ for k, h in locals().items():
         continue
     handlers[k[2:].replace('_', '-')] = h
 
+# XXX: no sessions
+pdhdata = None
+def prerun(ctx, cmdline):
+    global pdhdata
+
+    argv = cmdline.split(' ')
+    ctx.opts = util.get_opts(ctx.usage, argv=argv)
+
+    if not pdhdata:
+        pdhdata = yaml_load(open(ctx.opts.flags.file))
+
+    return [ pdhdata ]
+
 
 def main(ctx):
+
     """
     Run command, or start socket server.
-    
+
     Normally this returns after running a single subcommand.
     If backgrounded, There is at most one server per projectdir 
     document. The server remains in the working directory,
@@ -477,12 +491,13 @@ def main(ctx):
     to be loaded from and committed back to disk on each execution.
 
     """
+
     if ctx.opts.flags.background:
-        pdtwisted = __import__('projectdir-twisted')
-        return pdtwisted.serve(ctx, handlers)
+        localbg = __import__('local-bg')
+        return localbg.serve(ctx, handlers, prerun=prerun)
     elif os.path.exists(ctx.opts.flags.address):
-        pdtwisted = __import__('projectdir-twisted')
-        return pdtwisted.query(ctx)
+        localbg = __import__('local-bg')
+        return localbg.query(ctx)
     elif 'exit' == ctx.opts.cmds[0]:
         print >>ctx.err, "No background process at %s" % ctx.opts.flags.address
         return 1
