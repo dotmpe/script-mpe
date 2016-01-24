@@ -16,7 +16,8 @@ pd_run__meta=y
 # Defer to python script for YAML parsing
 pd__meta()
 {
-  projectdir-meta -f $pd "$@" || return $?
+  test -n "$1" || set -- --background
+  projectdir-meta -f $pd --address $sock "$@" || return $?
 }
 
 pd_run__status=ybf
@@ -408,10 +409,18 @@ pd__load()
         # set/check for Pd for subcmd
         pd=projects.yaml
         test -e "$pd" || error "No projects file $pd" 1
+        p="$(realpath $pd | sed 's/[^A-Za-z0-9_-]/-/g' | tr -s '_' '-')"
+        sock=/tmp/pd-$p-serv.sock
         ;;
 
       f )
-        failed=/tmp/${base}-$subcmd.failed
+        req_vars base subcmd
+        test -n "$pd" && {
+          req_vars p
+          failed=/tmp/${base}-$p-$subcmd.failed
+        } || {
+          failed=/tmp/${base}-$subcmd.failed
+        }
         ;;
 
       b )
@@ -499,6 +508,7 @@ pd__main()
           def_subcmd=status \
           func_exists= \
           func= \
+          sock= \
           c=0
 
         pd_init "$@"

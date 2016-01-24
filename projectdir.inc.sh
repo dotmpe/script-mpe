@@ -6,12 +6,12 @@ pd_meta_bg_setup()
 {
   test -n "$no_background" && {
     note "Forcing foreground/cleaning up background"
-    test ! -e "/tmp/pd-serv.sock" || projectdir-meta exit \
+    test ! -e "$sock" || pd__meta exit \
       || error "Exiting old" $?
   } || {
-    test ! -e "/tmp/pd-serv.sock" || error "pd meta bg already running" 1
-    projectdir-meta --background &
-    while test ! -e /tmp/pd-serv.sock
+    test ! -e "$sock" || error "pd meta bg already running" 1
+    pd__meta &
+    while test ! -e $sock
     do note "Waiting for server.." ; sleep 1 ; done
     info "Backgrounded pd-meta for $(pwd)/projects.yaml (PID $!)"
   }
@@ -21,7 +21,7 @@ pd_meta_bg_setup()
 pd_meta_bg_teardown()
 {
   test -e "$sock" || {
-    projectdir-meta exit
+    pd__meta exit
     while test -e $sock
     do note "Waiting for background shutdown.." ; sleep 1 ; done
     info "Closed background metadata server"
@@ -41,9 +41,9 @@ vc_clean()
       && cruft="$(cd $1; vc excluded)" \
       || {
 
-        projectdir-meta -q clean-mode $1 tracked || {
+        pd__meta -q clean-mode $1 tracked || {
 
-          projectdir-meta -q clean-mode $1 excluded \
+          pd__meta -q clean-mode $1 excluded \
             && cruft="$(cd $1; vc excluded)" \
             || cruft="$(cd $1; vc unversioned-files)"
         }
@@ -64,11 +64,11 @@ vc_check()
       note "Not a checkout: $1"
       return 1
     }
-    projectdir-meta -sq enabled $1 || {
+    pd__meta -sq enabled $1 || {
       note "To be disabled: $1"
     }
   } || {
-    projectdir-meta -sq enabled $1 || return 0
+    pd__meta -sq enabled $1 || return 0
     note "Missing checkout: $1"
     return 1
   }
