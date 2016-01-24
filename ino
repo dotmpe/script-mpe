@@ -99,7 +99,7 @@ ino__build()
 
 ino__list_prototype_parts()
 {
-  list_sketches Prototype Mpe | sort -u \
+  ino__list_sketches Prototype Mpe | sort -u \
     | {
       while read ino
       do
@@ -121,18 +121,20 @@ get_sketch()
 }
 
 # XXX: this misses deeper sketchs..
-list_sketches()
+ino__list_sketches()
 {
+  test -n "$1" || set -- Mpe Prototype
   while test $# -gt 0
   do
     for path in $1/*
     do
-      ino=$(get_sketch $path)
-      test -n "$ino" -a -e "$ino" && {
-        echo $ino
-      } || {
-        warn "No sketch in $path"
-      }
+      find $path -iname '*.ino' -o -iname '*.pde'
+      #ino=$(get_sketch $path)
+      #test -n "$ino" -a -e "$ino" && {
+      #  echo $ino
+      #} || {
+      #  warn "No sketch in $path"
+      #}
     done
     shift
   done
