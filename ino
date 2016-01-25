@@ -120,8 +120,17 @@ get_sketch()
   }
 }
 
-# XXX: this misses deeper sketchs..
-ino__list_sketches()
+get_sketchname()
+{
+  case "$(basename $1)" in
+    *.ino )
+      basename $1 .ino;;
+    *.pde )
+      basename $1 .pde;;
+  esac
+}
+
+ino__list_sketch_paths()
 {
   test -n "$1" || set -- Mpe Prototype
   while test $# -gt 0
@@ -129,17 +138,51 @@ ino__list_sketches()
     for path in $1/*
     do
       find $path -iname '*.ino' -o -iname '*.pde'
-      #ino=$(get_sketch $path)
-      #test -n "$ino" -a -e "$ino" && {
-      #  echo $ino
-      #} || {
-      #  warn "No sketch in $path"
-      #}
     done
     shift
   done
 }
 
+ino__list_sketches()
+{
+  { ino__list_sketch_paths | while read path
+  do
+    get_sketchname $path
+  done; } | column
+}
+
+# XXX: WIP. on graph with sketches, prototypes later
+ino__graph()
+{
+  export graph=$(realpath ino.gv)
+  export sock="$(gv meta print-socket-name)"
+  gv bg
+
+  ino__list_sketch_paths | while read path
+  do
+    sketchname=$(get_sketchname $path)
+
+    gv meta -sq get-node $sketchname && {
+
+        label="$(echo $(gv meta -s get-node-attr "$sketchname" label))"
+        echo "Exists $sketchname label=$label"
+
+        fnmatch "*$path*" "$label" \
+          && continue \
+          || gv meta upate-node "$sketchname" label="$label,$path"
+
+    } || {
+
+        gv meta add-node "$sketchname" label="$path"
+
+        note "Added node for $sketchname"
+      }
+
+  done
+
+  info "Closing Bg service"
+  gv meta exit
+}
 
 
 

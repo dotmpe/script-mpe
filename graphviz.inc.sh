@@ -69,9 +69,12 @@ gv__load_subcmd()
 
       G )
         # check for Graph file/init graph= var before subcmd
-        #graph="$(gv__bg print-graph-path)"
-        graph=graphviz.gv
+        # Chicken and the egg: what is the current session? need some token for session, maybe
+        #graph="$(gv__meta print-graph-path)"
+
+        test -n "$graph" || graph=graphviz.gv
         test -e "$graph" || error "No graphviz file $graph" 1
+
         p="$(realpath $graph | sed 's/[^A-Za-z0-9_-]/-/g' | tr -s '_' '-')"
         sock=/tmp/gv-$p-serv.sock
         ;;
@@ -94,16 +97,31 @@ gv__load_subcmd()
 # Post-run: unset, cleanup
 gv__unload()
 {
+  for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
+  do case "$x" in
+
+      b )
+        req_vars sock graph
+        #test ! -e "$sock" || {
+        gv_bg_teardown
+        #}
+        ;;
+
+      f )
+        ;;
+
+    esac
+  done
+
   unset subcmd subcmd_pref \
           def_subcmd func_exists func
-  test ! -e "$sock" || {
-    gv_bg_teardown
-  }
+
   test -z "$failed" -o ! -e "$failed" || {
-    rm $failed
-    unset failed
-    return 1
-  }
+      rm $failed
+      unset failed
+      return 1
+    }
+
 }
 
 
@@ -114,11 +132,11 @@ gv_bg_run()
   test -n "$no_background" && {
     note "Forcing foreground/cleaning up background"
     test ! -e "$sock" \
-      || gv__bg exit \
+      || gv__meta exit \
       || error "Exiting old" $?
   } || {
     test ! -e "$sock" || error "background service already running" 1
-    gv__bg &
+    gv__meta &
     while test ! -e $sock
     do note "Waiting for server.." ; sleep 1 ; done
     info "Backgrounded at $sock for $doc (PID $!)"
@@ -129,7 +147,7 @@ gv_bg_run()
 gv_bg_teardown()
 {
   test ! -e "$sock" || {
-    gv__bg exit
+    gv__meta exit
     while test -e $sock
     do note "Waiting for background shutdown.." ; sleep 1 ; done
     info "Closed background service"

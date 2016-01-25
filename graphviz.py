@@ -6,11 +6,15 @@ Python helper to query/update graphviz graph file.
 
 Usage:
     graphviz.py [options] dump
+    graphviz.py [options] get-node NODE
     graphviz.py [options] add-node NODE [ATTRS...]
+    graphviz.py [options] update-node NODE ATTRS...
+    graphviz.py [options] get-node-attr NODE ATTR
     graphviz.py [options] add-edge NODE_FROM NODE_TO [ATTRS...]
     graphviz.py [options] set-simplify BOOL
     graphviz.py [options] print-info
     graphviz.py [options] print-graph-path
+    graphviz.py [options] print-socket-name
     graphviz.py [options] exit
     graphviz.py (--background|bg|background) [options]
 
@@ -87,6 +91,9 @@ def H_print_info(graph, ctx):
 def H_print_graph_path(graph, ctx):
     print ctx.opts.flags.file
 
+def H_print_socket_name(graph, ctx):
+    print ctx.opts.flags.address
+
 
 def H_add_edge(g, ctx):
     attr = kv_to_dict(*ctx.opts.args.ATTRS)
@@ -96,21 +103,49 @@ def H_add_edge(g, ctx):
             **attr
         )
     g.add_edge(edge)
+    ctx.dirty = True
+
+
+def H_get_node(g, ctx):
+    name = ctx.opts.args.NODE
+    node = graph.get_node(name)
+    if isinstance(node, list) and len(node) == 0:
+        if not ctx.opts.flags.quiet:
+            print >>ctx.err, "No node", name
+        if ctx.opts.flags.strict or not ctx.opts.flags.quiet:
+            return 1
+    print node
 
 def H_add_node(g, ctx):
     attr = kv_to_dict(*ctx.opts.args.ATTRS)
     node = pydot.Node(
-            ctx.opts.args.NAME,
+            ctx.opts.args.NODE,
             **attr
         )
     g.add_node(node)
+    ctx.dirty = True
 
-def H_set_simplify(graph, ctx):
+def H_update_node(g, ctx):
+    attr = kv_to_dict(*ctx.opts.args.ATTRS)
+    name = ctx.opts.args.NODE
+    node = g.get_node(name)
+    for k, v in attr.items():
+        node.set(k, v)
+    ctx.dirty = True
+
+def H_get_node_attr(g, ctx):
+    name = ctx.opts.args.NODE
+    node = g.get_node(name)
+    attr = ctx.opts.args.ATTR
+    print node.get(attr)
+
+
+def H_set_simplify(g, ctx):
     # no double edges
     if ctx.opts.args.bool.lower() in ( "0", "no", "false" ):
-        graph.set_simplify( False )
+        g.set_simplify( False )
     else:
-        graph.set_simplify( True )
+        g.set_simplify( True )
 
 
 handlers = {}
@@ -134,13 +169,20 @@ def prerun(ctx, cmdline):
 
     return [ graph ]
 
+
 def postrun(ctx, ret):
+    global graph
+
     if ctx.opts.flags.dump:
         graphstr = graph.to_string()
         print graphstr
+
     if graph and not ret and not ctx.opts.flags.no_commit:
-        graphstr = graph.to_string()
-        open(ctx.opts.flags.file, 'w+').write( graphstr )
+        if ctx.dirty:
+            graphstr = graph.to_string()
+            open(ctx.opts.flags.file, 'w+').write( graphstr )
+            print >>ctx.err, 'Saved to', ctx.opts.flags.file
+        del graph
 
 
 def main(ctx):
@@ -152,12 +194,12 @@ def main(ctx):
     global graph
 
     if ctx.opts.flags.background:
-        bacground = __import__('local-bg')
-        return bacground.serve(ctx, handlers, prerun=prerun, postrun=postrun)
+        background = __import__('local-bg')
+        return background.serve(ctx, handlers, prerun=prerun, postrun=postrun)
 
     elif os.path.exists(ctx.opts.flags.address):
-        bacground = __import__('local-bg')
-        return bacground.query(ctx)
+        background = __import__('local-bg')
+        return background.query(ctx)
 
     elif 'exit' == ctx.opts.cmds[0]:
         print >>ctx.err, \
@@ -180,7 +222,8 @@ if __name__ == '__main__':
         out=sys.stdout,
         err=sys.stderr,
         inp=sys.stdin,
-        opts=util.get_opts(__doc__)
+        opts=util.get_opts(__doc__),
+        dirty=False
     ))
     if ctx.opts.cmds and ( ctx.opts.cmds[0] in ( 'background', 'bg' )):
         ctx.opts.flags.background = True

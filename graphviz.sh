@@ -15,20 +15,34 @@ gv__edit()
     "$@"
 }
 
-gv_run__bg=G
+gv_run__meta=G
 # Defer to python
-gv__bg()
+gv__meta()
 {
-  test -n "$1" || set -- "bg"
-  graphviz.py -f $graph --address $sock "$@" || return $?
+  test -n "$1" || set -- "--background"
+  graphviz.py --file $graph --address $sock "$@" || return $?
 }
 
+gv_run__bg=G
+# Defer and wait
+gv__bg()
+{
+  note "Starting Bg service"
+  gv__meta "$@" &
+  sock="$(gv__meta print-socket-name)"
+
+  while test ! -e "$sock"
+  do note "Waiting for Bg at $sock"; sleep 2;
+  done
+
+  info "Backgrounded"
+}
 
 gv_run__info=G #b
 # Test argv
 gv__info()
 {
-  gv__bg print-info
+  gv__meta print-info
 }
 
 
@@ -136,14 +150,16 @@ gv__main()
 
         shift $c
 
-        $subcmd_func "$@" || {
-          gv__unload || error "unload on error failed: $?"
-          error "exec error $subcmd_func" $?
-        }
+        $subcmd_func "$@" || r=$?
+          #XXX: choice_quiet?
+          #gv__unload || error "unload on error failed: $?"
+          #error "exec error $subcmd_func: $r" $r
 
         gv__unload || {
-          error "unload error" $?
+          error "unload error"
         }
+
+        exit $r
 
       ;;
 

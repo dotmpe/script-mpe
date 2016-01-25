@@ -1,3 +1,4 @@
 digraph graphviz_gv {
 n3 -> n2  [color=blue];
+n3 -> n2  [color=blue];
 }
