@@ -582,12 +582,23 @@ vc_excludes()
 # List unversioned including ignored
 vc_ufx()
 {
-    vc_excluded
+  vc_excluded
 }
 vc_excluded()
 {
-    # list paths not in git (including ignores)
-    git ls-files --others --dir
+  # list paths not in git (including ignores)
+  git ls-files --others --dir
+  # XXX: need to add prefixes to returned paths:
+  pwd=$(pwd)
+  git submodule | while read hash prefix ref
+  do
+    path=$pwd/$prefix
+    test -e $path/.git || {
+      warn "Not a checkout: ${path}"
+      continue
+    }
+    ( cd $path && vc_excluded )
+  done
 }
 
 # List all unversioned excluding ignored
@@ -597,8 +608,19 @@ vc_uf()
 }
 vc_unversioned_files()
 {
-    # list cruft (not versioned and not ignored)
-    git ls-files --others --exclude-standard
+  # list cruft (not versioned and not ignored)
+  git ls-files --others --exclude-standard
+  # XXX: need to add prefixes to returned paths:
+  pwd=$(pwd)
+  git submodule | while read hash prefix ref
+  do
+    path=$pwd/$prefix
+    test -e $path/.git || {
+      warn "Not a checkout: ${path}"
+      continue
+    }
+    ( cd $path && vc_unversioned_files )
+  done
 }
 
 # Annex diag.
