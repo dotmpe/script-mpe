@@ -185,6 +185,35 @@ ino__graph()
 }
 
 
+ino__esptool_install()
+{
+  pwd=$(pwd)
+  test -x esptool.py || {
+    cd ~/project
+    test -d esptool || git clone https://github.com/themadinventor/esptool.git
+    cd esptool
+    sudo python ./setup.py install
+  }
+  cd $pwd
+}
+
+ino__esp_mcu_init()
+{
+  #/dev/cu.wchusbserial1410
+  test -n "$1" || error "expected firmware" 1
+  test -e "$1" || error "no firmware: '$1'" 1
+  test -n "$2" || error "expected port" 1
+  test -e "$2" || error "no port: '$1'" 1
+  test -z "$3" || error "surpluss arguments" 1
+  esptool.py \
+    --port=$2 \
+    write_flash \
+    -fm=dio -fs=32m \
+    0x00000 \
+    $1
+}
+
+
 
 ### Main
 
