@@ -270,7 +270,7 @@ def update_repo(pdhdata, ctx):
         pdhdata['repositories'][p] = updated
     else:
         if p in pdhdata['repositories']:
-            print >>ctx.out, "Pepo prefix exists", p
+            print >>ctx.out, "Repo prefix exists", p
             return 3
         pdhdata['repositories'][p] = new
 

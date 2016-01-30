@@ -203,7 +203,7 @@ ino__esp_mcu_init()
   test -n "$1" || error "expected firmware" 1
   test -e "$1" || error "no firmware: '$1'" 1
   test -n "$2" || error "expected port" 1
-  test -e "$2" || error "no port: '$1'" 1
+  test -e "$2" || error "no port: '$2'" 1
   test -z "$3" || error "surpluss arguments" 1
   esptool.py \
     --port=$2 \

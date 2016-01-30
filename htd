@@ -449,7 +449,7 @@ c_alias()
 c_vtoday()
 {
   c_today personal/journal
-  $EDITOR $personal/journal/{today,tomorrow,yesterday}.rst
+  $EDITOR personal/journal/{today,tomorrow,yesterday}.rst
   git add personal/journal/
 }
 c_als_vt=vtoday
@@ -498,6 +498,7 @@ c_vbox()
 
 c_vbox_start()
 {
+  test -n "$1" || error "VM name required" 1
   c_vbox $1
   VBoxManage startvm ${uuid} --type headless \
       || error "Headless-start of VM $name" 1 \
@@ -506,6 +507,7 @@ c_vbox_start()
 
 c_vbox_start_console()
 {
+  test -n "$1" || error "VM name required" 1
   c_vbox $1
   VBoxManage startvm ${uuid} \
       || error "Console-start of VM $name" 1 \
@@ -514,6 +516,7 @@ c_vbox_start_console()
 
 c_vbox_reset()
 {
+  test -n "$1" || error "VM name required" 1
   c_vbox $1
   VBoxManage controlvm ${uuid} reset \
       || error "Reset of VM $name" 1 \
@@ -522,6 +525,7 @@ c_vbox_reset()
 
 c_vbox_stop()
 {
+  test -n "$1" || error "VM name required" 1
   c_vbox $1
   VBoxManage controlvm ${uuid} poweroff \
       || error "Power-off of VM $name" 1 \
@@ -530,6 +534,7 @@ c_vbox_stop()
 
 c_vbox_suspend()
 {
+  test -n "$1" || error "VM name required" 1
   c_vbox $1
   VBoxManage controlvm ${uuid} savestate \
       || error "Save-state of VM $name" 1 \
@@ -1238,64 +1243,6 @@ c_show_rules()
   cat $htd_rules
 }
 
-# header char offset
-fixed_table_hd_offset()
-{
-  test -n "$1" || set -- HD "$2" "$3"
-  test -n "$2" || set -- "$1" FIRSTHD "$3"
-  test -n "$3" || error "table expected" 1
-  test -e "$3" || error "table expected: $3" 1
-  # correct for first col, or for line-end
-  test "$1" = "$2" \
-    && echo 0 \
-    || echo $(( $(grep '^#' $3 | head -n 1 |
-  sed 's/^\(.*\)'$1'.*/\1/g' | wc -c) - 1 ))
-}
-
-fixed_table_hd_offsets()
-{
-  local tab=$1 fc=$2
-  shift
-  while test ${#@} -gt 0
-    do
-      fixed_table_hd_offset $1 $fc $tab
-      shift
-    done
-}
-
-fixed_table_hd_cuts()
-{
-  local tab=$1 fc=$2 offset= lc= old_offset=
-  shift
-  while test ${#@} -gt 0
-    do
-      offset=$(fixed_table_hd_offset $1 $fc $tab)
-      test -n "$old_offset" && {
-        echo "$lc -c$(( $old_offset + 1 ))-$offset"
-      }
-      lc=$1
-      old_offset=$offset
-      shift
-    done
-    echo "$lc -c$(( $old_offset + 1 ))-"
-}
-
-# print single line of var declarations for each record in table file
-fixed_table_hd()
-{
-  local tab=$1 cutf=$(dirname $1)/$(basename $1 .tab).cuthd
-  #fixed_table_hd_offsets "$@"
-  test $cutf -nt $1 || fixed_table_hd_cuts "$@" >$cutf
-  cat $tab | grep -v '^\s*\(#.*\)\?$' | while read line
-  do
-    cat $cutf | grep -v '^\s*\(#.*\)\?$' | while read col args
-      do
-        printf " $col=\"$(echo $(echo "$line" | cut $args))\" "
-      done
-      printf " line=\"$line\" "
-      echo
-  done
-}
 
 # htdoc rules development documentation in htdocs:Dev/Shell/Rules.rst
 # pick up with config:rules/comp.json and build `htd comp` aggregate metadata
@@ -2661,6 +2608,23 @@ read_unzip_verbose_list()
   IFS=$oldIFS
 }
 
+
+c_export_docker_env()
+{
+  launchctl setenv DOCKER_HOST $DOCKER_HOST
+  launchctl setenv DOCKER_MACHINE_NAME $DOCKER_MACHINE_NAME
+  launchctl setenv DOCKER_TLS_VERIFY $DOCKER_TLS_VERIFY
+  launchctl setenv DOCKER_CERT_PATH $DOCKER_CERT_PATH
+  note "OK"
+}
+
+c_import_docker_env()
+{
+  echo DOCKER_HOST=$(launchctl getenv DOCKER_HOST)
+  echo DOCKER_MACHINE_NAME=$(launchctl getenv DOCKER_MACHINE_NAME)
+  echo DOCKER_TLS_VERIFY=$(launchctl getenv DOCKER_TLS_VERIFY)
+  echo DOCKER_CERT_PATH=$(launchctl getenv DOCKER_CERT_PATH)
+}
 
 
 

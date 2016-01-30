@@ -305,7 +305,7 @@ pd__enable()
     test -n "$upstream" || upstream=origin
     uri="$(pd__meta get-uri "$1" $upstream)"
     test -n "$uri" || error "No uri for $1 $upstream" 1
-    git clone $uri --origin $upstream $1
+    git clone $uri --origin $upstream $1 || error "Cloning $uri" 1
     pd__init $1
   }
 }
@@ -378,6 +378,17 @@ pd__disable()
     rm -rf $1 \
       && note "Removed checkout $1"
   }
+}
+
+
+pd_run__add=y
+pd__add()
+{
+  test -n "$1" || error "expected GIT URL" 1
+  test -n "$2" || error "expected prefix" 1
+  test -d "$(dirname "$2")" || error "not in a dir: $2" 1
+  pd__meta put-repo $2 origin=$1 enabled=true clean=tracked sync=pull || return $?
+  pd__enable $2
 }
 
 
