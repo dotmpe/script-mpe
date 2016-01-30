@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # SCM util functions and pretty prompt printer for Bash, GIT
 # TODO: other SCMs, BZR, HG, SVN (but never need them so..)
@@ -98,18 +98,20 @@ homepath()
 
 __vc_bzrdir ()
 {
-	pushd "$1" >> /dev/null
+  local cwd="$(pwd)"
+  cd "$1"
 	root=$(bzr info 2> /dev/null | grep 'branch root')
 	if [ -n "$root" ]; then
 		echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
 	fi
-	popd >> /dev/null
+	cd $cwd
 }
 
 # __vc_gitdir accepts 0 or 1 arguments (i.e., location)
 # returns location of .git repo
 __vc_gitdir ()
 {
+  local pwd="$(pwd)"
 	#if [ -z "${1-}" ]; then
 	#	if [ -n "${__vc_git_dir-}" ]; then
 	#		echo "$__vc_git_dir"
@@ -124,9 +126,9 @@ __vc_gitdir ()
 	if [ -d "$D/.git" ]; then
 		echo "$D/.git"
 	else
-		pushd "$D" >> /dev/null
+		cd "$D"
 		git rev-parse --git-dir 2>/dev/null
-		popd >> /dev/null
+		cd "$pwd"
 	fi
 }
 
@@ -134,11 +136,12 @@ __vc_gitdir ()
 # returns text to add to bash PS1 prompt (includes branch name)
 __vc_git_flags ()
 {
+  local pwd="$(pwd)"
 	local g="$1"
 	[ -n "$g" ] || g="$(__vc_gitdir)"
 	if [ -e "$g" ]
 	then
-		pushd $(dirname $g) >> /dev/null
+		cd $(dirname $g)
 		local r
 		local b
 		if [ -f "$g/rebase-merge/interactive" ]; then
@@ -242,7 +245,7 @@ __vc_git_flags ()
 			printf " (%s)" "$c$x${b##refs/heads/}$w$i$s$u$r"
 		fi
 
-		popd >> /dev/null
+		cd $cwd
 	fi
 }
 
@@ -289,7 +292,8 @@ __vc_status ()
 	local w short repo sub
 
 	w="$1";
-	pushd "$w" >> /dev/null
+  local pwd=$(pwd)
+	cd "$w"
 	realcwd="$(pwd -P)"
 	short="$(homepath "$w")"
 
@@ -334,7 +338,7 @@ __vc_status ()
 	else
 		echo $short
 	fi;fi;
-	popd >> /dev/null
+	cd $cwd
 }
 
 # Helper for just path reference notation, no SCM bits
@@ -689,12 +693,13 @@ vc_list_prefixes()
 # XXX: takes subdir, and should in case of being in a subdir act the same
 vc_list_subrepos()
 {
+  local cwd=$(pwd)
   basedir="$(dirname "$(__vc_gitdir "$1")")"
   test -n "$1" || set -- "."
 
-  pushd $basedir >>/dev/null
+  cd $basedir
   vc_list_prefixes > /tmp/vc-list-prefixes
-  popd >>/dev/null
+  cd $cwd
 
   find $1 -iname .git | while read path
   do
@@ -716,17 +721,18 @@ vc_list_subrepos()
 
 vc_status()
 {
+  local cwd=$(pwd)
   printf "" > /tmp/vc-status
   for gitdir in */.git
   do
     dir="$(dirname "$gitdir")"
-    pushd "$dir" >>/dev/null
+    cd "$dir"
     git diff --quiet && {
       info "$dir OK"
     } || {
       echo "$dir" >> /tmp/vc-status
     }
-    popd >>/dev/null
+    cd $cwd
   done
   cat /tmp/vc-status | while read path
   do
@@ -738,12 +744,13 @@ vc_projects()
 {
   test -f projects.sh || touch projects.sh
 
+  cwd=$(pwd)
   pwd=$(pwd -P)
 
   for gitdir in */.git
   do
     dir="$(dirname "$gitdir")"
-    pushd "$dir" >>/dev/null
+    cd "$dir"
     git remote | while read remote
     do
       url=$(git config remote.$remote.url)
@@ -751,7 +758,7 @@ vc_projects()
         echo "${dir}_${remote}=$url" >> $pwd/projects.sh
       }
     done
-    popd >>/dev/null
+    cd $cwd
   done
 }
 
