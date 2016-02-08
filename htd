@@ -1786,14 +1786,14 @@ c_tmux_prive()
     tmux new-window -t Prive -n Ino
     tmux send-keys -t Prive:Ino "reset;cd ~/project/arduino-docs;git st" enter
   }
-  tmux list-windows -t Prive | grep -q Avr || {
-    tmux new-window -t Prive -n Avr
-    tmux send-keys -t Prive:Avr "reset;cd ~/project/arduino-docs;git st" enter
+  tmux list-windows -t Prive | grep -q EAGLE || {
+    tmux new-window -t Prive -n EAGLE
+    tmux send-keys -t Prive:EAGLE "reset;cd ~/project/Eagle-mpe;git st" enter
   }
-  tmux list-windows -t Prive | grep -q Loci || {
-    tmux new-window -t Prive -n Loci
-    tmux send-keys -t Prive:Loci "reset;cd ~/project/node-loci;git st" enter
-  }
+  #tmux list-windows -t Prive | grep -q Loci || {
+  #  tmux new-window -t Prive -n Loci
+  #  tmux send-keys -t Prive:Loci "reset;cd ~/project/node-loci;git st" enter
+  #}
 }
 
 c_tmux_work()

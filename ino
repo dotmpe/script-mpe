@@ -29,6 +29,8 @@ ino__version()
   echo "Arduino/$app_version"
 }
 
+node_tab=ino.tab
+
 
 ino__man_1_edit="Edit the main script file"
 ino__spc_edit="-E|edit-main"
@@ -36,7 +38,7 @@ ino__edit()
 {
   locate_name $scriptname || exit "Cannot find $scriptname"
   note "Invoking $EDITOR $fn"
-  $EDITOR $fn "$@" nodes.tab
+  $EDITOR $fn "$@" $node_tab
 }
 ino__als__e=edit
 
@@ -77,22 +79,26 @@ list_mk_targets()
     | sed 's/:.*$//' | sort -u | column
 }
 
-node_tab=nodes.tab
-
 get_nodes()
 {
   fixed_table_hd $node_tab ID PREFIX CORE BOARD DEFINES
 }
 
-# Build/upload image for arg1:nodeid
+# Build/upload image for arg1:nodeid reading from $node_tab
 ino__build()
 {
   test -z "$2" || error "surplus args" 1
   get_nodes | while read vars
   do
     eval local "$vars"
+    test -n "$ID" || error \$ID 1
     test "$ID" = "$1" || continue
-    make build INO_PREF=$PREFIX C=$CORE BRD=$BOARD DEFINES="$DEFINES"
+    test -n "$PREFIX" || error \$PREFIX 1
+    test -n "$CORE" || error \$CORE 1
+    test -n "$BOARD" || error \$BOARD 1
+    test -d "$PREFIX" || error "no dir $PREFIX" 1
+    make build \
+      INO_PREF=$PREFIX C=$CORE BRD=$BOARD DEFINES="$DEFINES"
   done
 }
 
@@ -182,6 +188,19 @@ ino__graph()
 
   info "Closing Bg service"
   gv meta exit
+}
+
+ino__list_boards()
+{
+  cd ~/project/arduino-docs
+  make boards
+}
+
+ino__read_fuses() # [chip=m328p [method=usbasp]]
+{
+  test -n "$1" || set -- m328p "$2"
+  test -n "$2" || set -- "$1" usbasp
+  make _read_fuses C=$1 M=$2
 }
 
 
