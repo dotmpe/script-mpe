@@ -1802,9 +1802,7 @@ c_tmux_work()
 
   # Make sure Work session is registered with tmux server
 
-  tmux has-session -t Work >/dev/null || {
-    c_tmux_init Work bash
-  }
+  tmux has-session -t Work >/dev/null || c_tmux_init Work bash
 
   # Make sure Log window is on and first window (swapping some windows if
   # needed, maybe better way it to start server by hand instead of usign new-session?)
@@ -1911,6 +1909,11 @@ c_tmux_init()
   } || {
 
     tmux new-session -P -s "$1" -d "$2" 2>&1 1> $out
+
+    tmux has-session -t "$1" >/dev/null || {
+      log "Waiting for tmux session";
+      sleep 5;
+    }
 
     tmux has-session -t $1 >/dev/null && {
       note "started new session '$1'"

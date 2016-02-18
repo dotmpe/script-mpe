@@ -96,6 +96,7 @@ ino__build()
     test -n "$PREFIX" || error \$PREFIX 1
     test -n "$CORE" || error \$CORE 1
     test -n "$BOARD" || error \$BOARD 1
+
     test -d "$PREFIX" || error "no dir $PREFIX" 1
     make build \
       INO_PREF=$PREFIX C=$CORE BRD=$BOARD DEFINES="$DEFINES"
