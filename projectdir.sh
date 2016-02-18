@@ -25,8 +25,8 @@ pd_run__status=ybf
 pd__status()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
-  note "Getting status for checkouts"
-  pd__list_prefixes "$1" | while read prefix
+  note "Getting status for checkouts $prefix"
+  pd__list_prefixes "$prefix" | while read prefix
   do
     vc_check $prefix || continue
     test -d "$prefix" || continue
@@ -109,8 +109,10 @@ pd__update()
       continue
     }
 
+    # Run over implicit enabled prefixes
     pd__meta list-enabled "$1" | while read prefix
     do
+      # If exists save for next step, else disable if explicitly disabled
       test -d $prefix || {
         pd__meta -s enabled $prefix \
           && continue \
@@ -123,6 +125,7 @@ pd__update()
       }
     done
 
+    # Run over all existing single-level prefixes, XXX: should want some depth..
     for git in $1/.git
     do
       prefix=$(dirname $git)
@@ -132,6 +135,8 @@ pd__update()
       #do
       #  echo
       #done
+
+      # Assemble metadata properties
 
       props=
       test -d $prefix/.git/annex && {
@@ -143,6 +148,8 @@ pd__update()
         error "No remotes for $prefix"
         touch $failed
       }
+
+      # Update existing, add newly found repos to metadata
 
       pd__meta -q get-repo $prefix && {
         pd__meta update-repo $prefix $props \
@@ -201,7 +208,7 @@ pd__compile_ignores()
   done
 }
 
-# prepare Pd var
+# prepare Pd var, failedfn
 pd_run__sync=yf
 # Update remotes and check refs
 pd__sync()
@@ -306,12 +313,26 @@ pd__enable()
     uri="$(pd__meta get-uri "$1" $upstream)"
     test -n "$uri" || error "No uri for $1 $upstream" 1
     git clone $uri --origin $upstream $1 || error "Cloning $uri" 1
-    pd__init $1
   }
+  pd__init $1
 }
 
 pd_run__init=y
 pd__init()
+{
+  test -n "$1" || error "prefix argument expected" 1
+  test -z "$2" || error "Surplus arguments: $2" 1
+  pd__meta -q get-repo $1 || error "No repo for $1" 1
+  pd__set_remotes $1
+  cwd=$(pwd)
+  cd $1
+  git submodule update --init --recursive
+  cd $cwd
+}
+
+# Set the remotes from metadata
+pd_run__set_remotes=y
+pd__set_remotes()
 {
   test -n "$1" || error "prefix argument expected" 1
   test -z "$2" || error "Surplus arguments: $2" 1
@@ -344,6 +365,7 @@ no_act()
 }
 
 
+# Disable prefix. Remove checkout if clean.
 pd_run__disable=y
 pd__disable()
 {
@@ -409,7 +431,7 @@ pd__help()
   echo '  status                           List abbreviated status strings for all repos'
   echo ''
   echo '  help                             print this help listing.'
-  #std_help pd "$@"
+  # XXX _init is bodged, std_help pd "$@"
 }
 
 pd__load()
@@ -419,7 +441,21 @@ pd__load()
 
       y )
         # set/check for Pd for subcmd
+
         pd=projects.yaml
+
+        # Find dir with metafile
+        prerun=$(pwd)
+        prefix=$2
+
+        while test ! -e "$pd"
+        do
+          test -n "$prefix" \
+            && prefix="$(basename $(pwd))/$prefix" \
+            || prefix="$(basename $(pwd))"
+          cd ..
+        done
+
         test -e "$pd" || error "No projects file $pd" 1
         p="$(realpath $pd | sed 's/[^A-Za-z0-9_-]/-/g' | tr -s '_' '-')"
         sock=/tmp/pd-$p-serv.sock
@@ -461,7 +497,6 @@ pd__unload()
 {
   unset subcmd subcmd_pref \
           def_subcmd func_exists func
-  note "unload sock=$sock"
   test -z "$sock" || {
     pd_meta_bg_teardown
     unset bgd sock
