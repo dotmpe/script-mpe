@@ -20,7 +20,7 @@ pd_meta_bg_setup()
 # Close Bg service
 pd_meta_bg_teardown()
 {
-  test -e "$sock" || {
+  test ! -e "$sock" || {
     pd__meta exit
     while test -e $sock
     do note "Waiting for background shutdown.." ; sleep 1 ; done

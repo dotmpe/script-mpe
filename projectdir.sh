@@ -426,6 +426,7 @@ pd__load()
         ;;
 
       f )
+        # Preset name to subcmd failed file placeholder
         req_vars base subcmd
         test -n "$pd" && {
           req_vars p
@@ -460,9 +461,10 @@ pd__unload()
 {
   unset subcmd subcmd_pref \
           def_subcmd func_exists func
-  test ! -e "/tmp/pd-serv.sock" || {
+  note "unload sock=$sock"
+  test -z "$sock" || {
     pd_meta_bg_teardown
-    unset bgd
+    unset bgd sock
   }
   test -z "$failed" -o ! -e "$failed" || {
     rm $failed
