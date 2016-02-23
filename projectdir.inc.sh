@@ -31,7 +31,7 @@ pd_meta_bg_teardown()
 
 vc_clean()
 {
-  dirty="$(cd $1; git diff --quiet || echo 1)"
+  dirty="$(cd "$1"; git diff --quiet || echo 1)"
   test -n "$dirty" && {
     return 1
 

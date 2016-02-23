@@ -17,7 +17,36 @@ pd_run__meta=y
 pd__meta()
 {
   test -n "$1" || set -- --background
+
+  # FIXME: remove python client for a real speed improvement
+  fnmatch "$1" "-*" || {
+    test -x $(which socat) -a -e "$sock" && {
+      printf -- "$*\r\n" | socat -d - "UNIX-CONNECT:$sock" \
+        2>&1 | tr "\r" " " | while read line
+      do
+        case "$line" in
+          *" OK " )
+            return
+            ;;
+          "? "* )
+            return 1
+            ;;
+          "! "*": "* )
+            return $(echo $line | sed 's/.*://g')
+            ;;
+        esac
+        echo $line
+      done
+      return
+    }
+  }
   projectdir-meta -f $pd --address $sock "$@" || return $?
+}
+
+# silent/quit
+pd__meta_sq()
+{
+  pd__meta "$@" >/dev/null || return $?
 }
 
 pd_run__status=ybf
@@ -62,7 +91,7 @@ pd__clean()
     2 )
       warn "Crufty: $(__vc_status "$1")"
       test $verbosity -gt 6 &&
-        printf "$cruft\n" 1>&2 || noop
+        printf "$cruft\n" || noop
       return 2
     ;;
   esac
@@ -151,7 +180,7 @@ pd__update()
 
       # Update existing, add newly found repos to metadata
 
-      pd__meta -q get-repo $prefix && {
+      pd__meta_sq get-repo $prefix && {
         pd__meta update-repo $prefix $props \
           && note "Updated metadata for $prefix" \
           || { r=$?; test $r -eq 42 && info "Metadata up-to-date for $prefix" \
@@ -305,7 +334,7 @@ pd__enable()
 {
   test -n "$1" || error "prefix argument expected" 1
   test -z "$2" || error "Surplus arguments: $2" 1
-  pd__meta -q get-repo $1 || error "No repo for $1" 1
+  pd__meta_sq get-repo $1 || error "No repo for $1" 1
   pd__meta -sq enabled $1 || pd__meta enable $1
   test -d $1 || {
     upstream="$(pd__meta list-upstream "$1" | sed 's/^\([^\ ]*\).*$/\1/g' | head -n 1)"
@@ -322,7 +351,7 @@ pd__init()
 {
   test -n "$1" || error "prefix argument expected" 1
   test -z "$2" || error "Surplus arguments: $2" 1
-  pd__meta -q get-repo $1 || error "No repo for $1" 1
+  pd__meta_sq get-repo $1 || error "No repo for $1" 1
   pd__set_remotes $1
   cwd=$(pwd)
   cd $1
@@ -372,7 +401,7 @@ pd__disable()
   test -n "$1" || error "prefix argument expected" 1
   test -z "$2" || error "Surplus arguments: $2" 1
 
-  pd__meta -q disabled $1 && {
+  pd__meta_sq disabled $1 && {
     info "Already disabled: $1"
 
   } || {
@@ -454,6 +483,7 @@ pd__load()
             && prefix="$(basename $(pwd))/$prefix" \
             || prefix="$(basename $(pwd))"
           cd ..
+          test "$(pwd)" = "/" && break
         done
 
         test -e "$pd" || error "No projects file $pd" 1
@@ -495,12 +525,18 @@ pd__load()
 
 pd__unload()
 {
+  for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
+  do case "$x" in
+      y )
+        test -z "$sock" || {
+          pd_meta_bg_teardown
+          unset bgd sock
+        }
+        ;;
+  esac; done
   unset subcmd subcmd_pref \
           def_subcmd func_exists func
-  test -z "$sock" || {
-    pd_meta_bg_teardown
-    unset bgd sock
-  }
+
   test -z "$failed" -o ! -e "$failed" || {
     rm $failed
     unset failed
@@ -552,7 +588,7 @@ pd__main()
     $scriptname | $scriptalias )
 
         # invoke with function name first argument,
-        local scsep=__ \
+        local scsep=__ bgd= \
           subcmd_pref=${scriptalias} \
           def_subcmd=status \
           func_exists= \
@@ -568,9 +604,9 @@ pd__main()
           box_src_lib pd
           shift 1
           pd__load $subcmd "$@" || return
-          $func "$@" \
-            && pd__unload \
-            || exit $?
+          $func "$@" || r=$?
+          pd__unload
+          exit $r
         }
 
       ;;
