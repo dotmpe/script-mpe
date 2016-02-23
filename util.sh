@@ -39,6 +39,17 @@ noop()
   #set -- # clear arguments (XXX set nothing?)
 }
 
+trueish()
+{
+  test -n "$1" || return 1
+  case "$1" in
+    on|true|yes|1)
+      return 0;;
+    * )
+      return 1;;
+  esac
+}
+
 short()
 {
   test -n "$1" || set -- "$(pwd)"
