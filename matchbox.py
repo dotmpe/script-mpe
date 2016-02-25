@@ -237,7 +237,24 @@ def c_name_regex(name_template):
     "Print regex pattern for given name template. "
     print name_regex(name_template)
 
-def c_match_name_vars(name_template):
+def c_match_name_vars(line, name_template):
+    var_names = name_template_opts(name_template)
+    regex = name_regex(name_template, var_names)
+    print "# Fields: '%s'" % ', '.join(var_names)
+    print "# Compiled pattern to '%s'" % regex
+    regex_r = re.compile(regex)
+    if line:
+        match = regex_r.match(line)
+        if not match:
+            print >> sys.stderr, "Mismatched '%s'" % line
+            return 1
+        else:
+            mdict = match.groupdict()
+            print "\t".join([
+                mdict[var] if var in mdict else '' for var in var_names
+            ])
+
+def c_match_names_vars(name_template):
     """Read filenames from lines at std, extract fields by regex
     and output result line by line.
     The regex is build according to the name template,
@@ -306,6 +323,34 @@ def c_rename(from_template, to_template, exists=None, stat=None):
             name_new = name_format(mdict, to_template, names=var_names_to)
             print line, name_new
 
+def c_check_name(line, *tags):
+    load_templates()
+    matchbox = {}
+    for name in templates:
+        regex = name_regex(templates[name])
+        matchbox[name] = re.compile(regex)
+
+    passed = []
+    invalid = []
+    for name in matchbox:
+        match = matchbox[name].match(line)
+        if match:
+            if not tags or name in tags:
+                passed.append(name)
+            else:
+                invalid.append(name)
+
+    if not invalid:
+        if not passed:
+            print "! No match for", line
+            return 2
+        else:
+            print 'OK', ','.join(passed), line
+    else:
+        print 'INVALID', ','.join(invalid), ','.join(passed), line
+        return 1
+
+
 def c_check_names(*tags):
     """Read filenames from stdin, check all name templates to see if at least one
     matches and print their tags. Optionally pass set of valid tags on argv,
@@ -323,6 +368,7 @@ def c_check_names(*tags):
             break
         if not line:
             print '# (blank line) '
+            break
         else:
             passed = []
             invalid = []
