@@ -20,7 +20,7 @@ pd__meta()
 
   # FIXME: remove python client for a real speed improvement
   fnmatch "$1" "-*" || {
-    test -x $(which socat) -a -e "$sock" && {
+    test -x "$(which socat)" -a -e "$sock" && {
       printf -- "$*\r\n" | socat -d - "UNIX-CONNECT:$sock" \
         2>&1 | tr "\r" " " | while read line
       do
