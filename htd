@@ -1794,6 +1794,14 @@ c_tmux_prive()
   #  tmux new-window -t Prive -n Loci
   #  tmux send-keys -t Prive:Loci "reset;cd ~/project/node-loci;git st" enter
   #}
+  tmux list-windows -t Prive | grep -q Sf || {
+    tmux new-window -t Prive -n Sf
+    tmux send-keys -t Prive:Sf "reset;cd ~/project/node-sitefile;git st" enter
+  }
+  tmux list-windows -t Prive | grep -q Docs || {
+    tmux new-window -t Prive -n Docs
+    tmux send-keys -t Prive:Docs "reset;cd ~/Documents/;git st" enter
+  }
 }
 
 c_tmux_work()
