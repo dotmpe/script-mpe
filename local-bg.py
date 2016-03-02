@@ -4,12 +4,16 @@ Background script server in Python, Twisted.
 API:
     - serve( context, subcmds, prerun=None, postrun=None )
     - query( context )
+
 - Subcommands is a simple name, function mapping.
   Prerun/postrun are executed before and after.
-  The arguments passed to the subcmd handlers are siple too.
-  The prerun argument may return arguments to prepend.
+  The arguments passed to the subcmd handlers are simple too,
+  parsing done using docopt.
 
-    1. prerun(context)
+  The prerun argument may return arguments to prepend to the subcmd handler.
+  Normally the following are passed:
+
+    1. prerun(context, cmdline)
     2. context
 
 - Context schema:
@@ -48,6 +52,11 @@ from script_mpe.confparse import Values
 
 class QueryProtocol(LineOnlyReceiver):
 
+    """
+    A simple python UNIX domain socket client, to
+    execute subcommands at the server process.
+    """
+
     def __init__(self):
         self.whenDisconnected = Deferred()
 
@@ -82,6 +91,10 @@ class QueryProtocol(LineOnlyReceiver):
 
 def query(ctx):
 
+    """"
+    Execute subcommand through UNIX domain socket client.
+    """
+
     if not ctx.opts.argv:
         print >>ctx.err, "No command %s" % ctx.opts.argv[0]
         return 1
@@ -115,6 +128,13 @@ def query(ctx):
 
 
 class ServerProtocol(LineOnlyReceiver):
+
+    """
+    Line-based receiver expects to decodes input to context using
+    the prerun callback. The handlers should use ctx.out etc. to interact
+    back with the client.
+    """
+
     def lineReceived(self, line):
         ctx = self.factory.ctx
 
@@ -155,15 +175,36 @@ class ServerProtocol(LineOnlyReceiver):
 
         self.transport.loseConnection()
 
+
 def prerun(ctx, cmdline):
+
+    """
+    Process context before subcommand invocation.
+    This function is part of the ``serve()`` signature
+    to allow a customized prerun.
+    """
+
     argv = cmdline.split(' ')
     ctx.opts = util.get_opts(ctx.usage, argv=argv)
 
 def postrun(ctx):
+
+    """
+    Cleanup after reactor has passed.
+    This function is part of the ``serve()`` signature
+    to allow a customized postrun.
+    """
     pass
 
 
 def serve(ctx, handlers, prerun=prerun, postrun=postrun):
+
+    """
+    Start protocol at socket address path. Handlers is a dict
+    of sub-command names, and corresponding functions.
+    See above for the two callbacks prerun and postrun.
+    """
+
     address = FilePath(ctx.opts.flags.address)
 
     if address.exists():

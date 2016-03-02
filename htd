@@ -58,8 +58,8 @@ htd_load()
   }
 
   which rst2xml 1>/dev/null && rst2xml=$(which rst2xml) \
-    || which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) \
-    || error "No rst2xml"
+    || { which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) \
+    || warn "No rst2xml"; }
 }
 
 htd_usage()
@@ -2050,6 +2050,10 @@ find_partition_ids()
 
 c_disks()
 {
+  test -n "$rst2xml" || error "rst2xml required" 1
+  sudo which parted 1>/dev/null && parted=$(sudo which parted) \
+    || warn "No parted"
+  test -n "$parted" || error "parted required" 1
   DISKS=/dev/sd[a-e]
   for disk in $DISKS
   do
@@ -2061,9 +2065,9 @@ c_disks()
     for dp in $disk[0-9]*
     do
         pn="$(echo $dp | sed 's/^.*\([0-9]*\)/\1/')"
-        ps="$(parted $disk -s print | grep '^\ '$pn | awk '{print $4}')"
-        pt="$(parted $disk -s print | grep '^\ '$pn | awk '{print $5}')"
-        fs="$(parted $disk -s print | grep '^\ '$pn | awk '{print $6}')"
+        ps="$(sudo parted $disk -s print | grep '^\ '$pn | awk '{print $4}')"
+        pt="$(sudo parted $disk -s print | grep '^\ '$pn | awk '{print $5}')"
+        fs="$(sudo parted $disk -s print | grep '^\ '$pn | awk '{print $6}')"
         echo "  - $dp $pt $(echo $(find_partition_ids $dp)) $ps $fs"
     done
     echo
