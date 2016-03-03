@@ -2642,6 +2642,85 @@ c_import_docker_env()
 }
 
 
+# Forced color output commands
+
+c_git_status()
+{
+  git -c color.status=always status
+}
+
+c_ls()
+{
+  case "$uname" in
+    Darwin )
+      CLICOLOR_FORCE=1 ls $1
+    ;;
+    Linux )
+      ls --colors=yes $1
+    ;;
+  esac
+}
+
+
+# XXX: to-html of vim-syntax highlited files. But what about ANSI in and out?
+# Also, this does not seem to take colorscheme values?
+# There is also ANSI HTML Adapter https://github.com/theZiz/aha
+# Below is not ideal, maybe AHA is better.
+#
+# FIXME: pstree-color is perhaps not returning valid escapes, as 2html.vim chokes
+c_colorize()
+{
+  test -n "$1" || set -- "-"
+
+  case "$1" in 
+    
+    - )
+
+      set -- /tmp/htd-vim-colorize.out
+      #{ cat - > $1 ; }
+      #exec 0<&-
+
+      #  -R -E -s  \
+      vim \
+        -c "syntax on" \
+        -c "AnsiEsc" \
+        -c "w! $1" \
+        -c "let g:html_no_progress=1" \
+        -c "let g:html_number_lines = 0" \
+        -c "let g:html_use_css = 1" \
+        -c "let g:use_xhtml = 1" \
+        -c "let g:html_use_encoding = 'utf-8'" \
+        -c "TOhtml" \
+        -c "wqa!" \
+        -
+
+      open $1.xhtml
+
+      rm /tmp/htd-vim-colorize* /tmp/.htd-vim-colorize*
+      ;;
+
+    * )
+      test -e "$1" || error "no file $1" 1
+      #  -E -s \
+      # -R -E -s  \
+      vim \
+        -c "syntax on" \
+        -c "AnsiEsc" \
+        -c "let g:html_no_progress=1" \
+        -c "let g:html_number_lines = 0" \
+        -c "let g:html_use_css = 1" \
+        -c "let g:use_xhtml = 1" \
+        -c "let g:html_use_encoding = 'utf-8'" \
+        -c "TOhtml" \
+        -c "wqa!" \
+        "$1"
+      open $1.xhtml
+      rm $1.xhtml
+      ;;
+
+  esac
+}
+
 
 
 ### Main
