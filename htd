@@ -29,6 +29,11 @@ htd_load()
   _5k=5120
   test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
 
+  TODAY=+%y%m%d0000
+  _1HR_AGO=+%y%m%d0000
+  _15MIN_AGO=+%y%m%d0000
+  _5MIN_AGO=+%y%m%d0000
+
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname="$(uname -s)"
 
@@ -2304,14 +2309,24 @@ c_current_events()
     done
 }
 
+
 c_active()
 {
-  note "Listing files active today '$@'"
-  tdate=$(date +%y%m%d0000)
+  test -n "$tdata_fmt" && {
+    note "Listing files active in '$@'"
+  } || {
+    tdata_fmt=$TODAY
+    note "Listing files active today in '$@'"
+  }
+  tdate=$(date "$1")
+
+  test -n "$2" || set -- "$1" "$(pwd -P)"
+  shift
   test -n "$tdate" || error "formatting date" 1
   touch -t $tdate $(statusdir.sh file recent-paths)
   c_recent_paths "$@"
 }
+
 
 # List open paths under given or current dir. Dumps lsof without cmd, pid etc.
 c_current_paths()
@@ -2642,6 +2657,123 @@ c_import_docker_env()
 }
 
 
+# Forced color output commands
+
+c_git_status()
+{
+  git -c color.status=always status
+}
+
+c_ls()
+{
+  case "$uname" in
+    Darwin )
+      CLICOLOR_FORCE=1 ls $1
+    ;;
+    Linux )
+      ls --colors=yes $1
+    ;;
+  esac
+}
+
+
+# XXX: to-html of vim-syntax highlited files. But what about ANSI in and out?
+# Also, this does not seem to take colorscheme values?
+# There is also ANSI HTML Adapter https://github.com/theZiz/aha
+# Below is not ideal, maybe AHA is better.
+#
+# FIXME: pstree-color is perhaps not returning valid escapes, as 2html.vim chokes
+c_colorize()
+{
+  test -n "$1" || set -- "-"
+
+  case "$1" in 
+    
+    - )
+
+      set -- /tmp/htd-vim-colorize.out
+      #{ cat - > $1 ; }
+      #exec 0<&-
+
+      #  -R -E -s  \
+      vim \
+        -c "syntax on" \
+        -c "AnsiEsc" \
+        -c "w! $1" \
+        -c "let g:html_no_progress=1" \
+        -c "let g:html_number_lines = 0" \
+        -c "let g:html_use_css = 1" \
+        -c "let g:use_xhtml = 1" \
+        -c "let g:html_use_encoding = 'utf-8'" \
+        -c "TOhtml" \
+        -c "wqa!" \
+        -
+
+      open $1.xhtml
+
+      rm /tmp/htd-vim-colorize* /tmp/.htd-vim-colorize*
+      ;;
+
+    * )
+      test -e "$1" || error "no file $1" 1
+      #  -E -s \
+      # -R -E -s  \
+      vim \
+        -c "syntax on" \
+        -c "AnsiEsc" \
+        -c "let g:html_no_progress=1" \
+        -c "let g:html_number_lines = 0" \
+        -c "let g:html_use_css = 1" \
+        -c "let g:use_xhtml = 1" \
+        -c "let g:html_use_encoding = 'utf-8'" \
+        -c "TOhtml" \
+        -c "wqa!" \
+        "$1"
+      open $1.xhtml
+      rm $1.xhtml
+      ;;
+
+  esac
+}
+
+
+
+c_say()
+{
+  lang=$1
+  shift
+  test -n "$s" || s=f
+  case "$lang" in
+    uk )
+      case "$s" in m )
+          say -v Daniel "$@" ;;
+        f ) 
+          say -v Kate "$@" ;;
+      esac;;
+    us )
+      case "$s" in m )
+          say -v Alex "$@" ;;
+        f ) 
+          say -v Samantha "$@" ;;
+      esac;;
+    dutch | nl )
+      case "$s" in m )
+          say -v Xander "$@" ;;
+        f ) 
+          say -v Claire "$@" ;;
+      esac;;
+    japanese | jp )
+      case "$s" in m )
+          say -v Otoya "$@" ;;
+        f )
+          say -v Kyoko "$@" ;;
+      esac;;
+    chinese | cn | sc )
+      say -v Ting-Ting "$@" ;;
+    hong-kong | sar | tc )
+      say -v Sin-ji "$@" ;;
+  esac
+}
 
 
 ### Main
