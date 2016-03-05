@@ -5,7 +5,14 @@
 Python helper to query/update disk metadatadocument 'disks.yaml'
 
 Usage:
-    projectdir-meta [options] list-disks
+    diskdoc.py [options] disks
+    diskdoc.py [options] list-disks
+
+Commands:
+    disks
+        Show local disks.
+    list-disks
+        ..
 
 Options:
   --address ADDRESS
@@ -16,15 +23,23 @@ Options:
   --background  Turns script into socket server. This does not fork, detach
                 or do anything else but enter an infinite server loop.
   -f DOC, --file DOC
-                Give custom path to projectdir document file [default: ./projects.yaml]
+                Give custom path to projectdir document file [default: ~/.conf/disk/mpe.yaml]
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -g, --glob    Change from root prefix matching to glob matching.
+
+  --ignore-fstype TYPES
+                Default behaviour is to ignore given types.
+                [default: proc sysfs rootfs cgroup mqueue tmpfs pstore fusectl devpts devtmpfs autofs hugetlbfs securityfs rpc_pipefs fuseblk debugfs]
+  --include-fstype TYPES
+                Override ignore-fstype, and ignore every filesystem type not in
+                given list. [default: ]
 
 Schema:
 
 """
 import os
+import re
 from fnmatch import fnmatch
 from pprint import pformat
 import subprocess
@@ -38,12 +53,66 @@ from script_mpe.res import js
 from script_mpe.confparse import yaml_load, yaml_safe_dump
 
 
+
 def yaml_commit(diskdata, ctx):
     yaml_safe_dump(diskdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
 
 
-def H_list_disks(diskdata, ctx):
+ws_collapse_re = re.compile('\s+')
+collapse_ws = lambda s:ws_collapse_re.subn(' ', s)[0]
+
+def readtab(tabfile):
+    return map(lambda l:collapse_ws(l).split(' '),
+            [l.strip().replace('\t','    ') for l in open(tabfile).readlines() if
+            l.strip() and not l.strip().startswith('#')])
+
+def readtab_attr(tabfile, attr):
+    mtab_lines_fields = readtab(tabfile)
+    mtab_lines_attr = []
+    for line_fields in mtab_lines_fields:
+        fieldmap = dict(zip(attr.split(' '), line_fields))
+        mtab_lines_attr.append(confparse.Values(fieldmap))
+    return mtab_lines_attr
+
+def mtab_attr():
     """
+    Parse mtab file and return list of ojects with attribute access.
+    """
+    return readtab_attr('/etc/mtab', "device mount fstype mntattr dump fsck")
+
+def mtab_ignored(line, ctx):
+    """
+    """
+    if ctx.opts.flags.include_fstype:
+        include_fstypes = ctx.opts.flags.include_fstype.split(' ')
+        return line.fstype not in include_fstypes
+    else:
+        ignore_fstypes = ctx.opts.flags.ignore_fstype.split(' ')
+        return line.fstype in ignore_fstypes
+
+
+
+def H_disks(diskdata, ctx):
+
+    """
+    TODO: Iterate locally mounted media, get mount entry from catalog by device.
+    Get media entry from catalog.
+    Check catalog entries.
+    """
+
+    for line in mtab_attr():
+        if mtab_ignored(line, ctx):
+            continue
+
+
+        print line.mount, line.device, line.fstype
+
+
+def H_list_disks(diskdata, ctx):
+
+    """
+    XXX: iterate document mounts and media entries and print wether mounted or
+    available at localhost.
     """
 
     mounts = subprocess.check_output('mount')
@@ -58,7 +127,7 @@ def H_list_disks(diskdata, ctx):
         for parts in attr['partitions']:
             for size, part in parts.items():
                 if 'UUID' not in part:
-                    print '  Incomplete data'
+                    print '  Incomplete data for', size
                     continue
                 if part['UUID'] not in devices:
                     continue
@@ -125,7 +194,8 @@ def main(ctx):
         print >>ctx.err, "No background process at %s" % ctx.opts.flags.address
         return 1
     else:
-        diskdata = yaml_load(open(ctx.opts.flags.file))
+        diskdoc = os.path.expanduser(ctx.opts.flags.file)
+        diskdata = yaml_load(open(diskdoc))
         func = ctx.opts.cmds[0]
         assert func in handlers
         return handlers[func](diskdata, ctx)
