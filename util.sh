@@ -6,8 +6,9 @@ test -n "$PREFIX" || PREFIX=$HOME
 
 
 #TERM=xterm
-. $PREFIX/bin/std.sh
 . $PREFIX/bin/os.lib.sh
+. $PREFIX/bin/match.sh
+. $PREFIX/bin/std.sh
 . $PREFIX/bin/str.sh
 . $PREFIX/bin/doc.sh
 
@@ -350,4 +351,17 @@ func_comment()
     echo "$func_leading_line" | sed 's/^\s*#\ //'
   } || noop
 }
+
+
+
+case "$0" in "" ) ;; "-*" ) ;; * )
+
+  test -z "$__load_lib" || set -- "load-ext"
+  case "$1" in load-ext ) ;; * )
+
+        str_load
+    ;;
+
+  esac ;;
+esac
 

@@ -83,6 +83,7 @@ pd__clean()
   case "$?" in
     0|"" )
       info "OK $(__vc_status "$1")"
+      #info "OK $(vc.sh status "$1")"
     ;;
     1 )
       warn "Dirty: $(__vc_status "$1")"
@@ -521,6 +522,8 @@ pd__load()
   }
 
   uname=$(uname)
+
+  str_load
 }
 
 pd__unload()
@@ -546,8 +549,10 @@ pd__unload()
 
 pd_init()
 {
-  local __load_lib=1
-  . ~/bin/std.sh
+  test -z "$__load_lib" || return 1
+
+  . ~/bin/util.sh
+  #. ~/bin/std.sh
   . ~/bin/main.sh
   #while test $# -gt 0
   #do
@@ -559,10 +564,6 @@ pd_init()
   #  esac
   #done
   . ~/bin/projectdir.inc.sh "$@"
-  . ~/bin/os.lib.sh
-  . ~/bin/date.lib.sh
-  . ~/bin/match.sh load-ext
-  . ~/bin/vc.sh load-ext
   test -n "$verbosity" || verbosity=6
   # -- pd box init sentinel --
 }
@@ -570,8 +571,11 @@ pd_init()
 pd__lib()
 {
   local __load_lib=1
-  . ~/bin/util.sh
   . ~/bin/box.lib.sh
+  . ~/bin/os.lib.sh
+  . ~/bin/date.lib.sh
+  . ~/bin/match.sh load-ext
+  . ~/bin/vc.sh load-ext
   # -- pd box lib sentinel --
 }
 
@@ -580,6 +584,8 @@ pd__lib()
 
 pd__main()
 {
+  pd_init "$@" || return 0
+
   local scriptname=projectdir scriptalias=pd base=$(basename $pd__source .sh) \
     subcmd=$1
 
@@ -594,13 +600,14 @@ pd__main()
           func_exists= \
           func= \
           sock= \
-          c=0
+          c=0 \
+          ext_sh_sub=
 
-        pd_init "$@"
         shift $c
 
+        pd__lib
+
         try_subcmd && {
-          pd__lib
           box_src_lib pd
           shift 1
           pd__load $subcmd "$@" || return
@@ -612,7 +619,7 @@ pd__main()
       ;;
 
     * )
-      echo "Not a frontend for $base ($scriptname)"
+      echo "Pd is not a frontend for $base ($scriptname)"
       exit 1
       ;;
 

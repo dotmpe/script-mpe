@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # SCM util functions and pretty prompt printer for Bash, GIT
 # TODO: other SCMs, BZR, HG, SVN (but never need them so..)
@@ -7,15 +7,19 @@
 #HELP="vc - version-control helper functions "
 vc_source=$_
 
+set -e
+
 
 vc_load()
 {
   local __load_lib=1
+
 #. ~/.conf/bash/git-completion.bash
 
-  . ~/bin/std.sh
-  . ~/bin/match.sh load-ext
+  . ~/bin/util.sh load-ext
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
+
+  str_load
 }
 
 vc_usage()
@@ -81,8 +85,10 @@ vc__e()
 
 homepath()
 {
-	w="$1"
-	echo "${w/#$HOME/~}"
+    test -n "$1" || exit 212
+    test -n "$HOME" || exit 213
+	# Bash, BSD Sh?
+    str_replace "$1" "$HOME" "~"
 }
 
 # Flags legenda:
@@ -289,13 +295,18 @@ __vc_push ()
 # ? : untracked "
 __vc_status ()
 {
+    test -n "$1" || set -- "$(pwd)"
+	test -d "$1" || err "No such directory $1" 3
+
 	local w short repo sub
 
-	w="$1";
-  local pwd=$(pwd)
-	cd "$w"
+    local pwd="$(pwd)"
+
+	cd "$1"
 	realcwd="$(pwd -P)"
-	short="$(homepath "$w")"
+
+	short="$(homepath "$1")"
+	test -n "$short" || err "homepath" 1
 
 	local git="$(__vc_gitdir "$realcwd")"
 	local bzr=$(__vc_bzrdir "$realcwd")
@@ -359,23 +370,19 @@ __pwd_ps1 ()
 # Return all info bits from __vc_status()
 __vc_ps1 ()
 {
-	d="$1"
-	[ -z "$d" ] && d="$(pwd)"
-	[ ! -d "$d" ] && echo "No such directory $d" && exit 3
-	__vc_status "$d"
+	__vc_status "$1"
 }
 
 __vc_screen ()
 {
 	local w short repo sub
 
-	w="$1";
-	[ -z "$w" ] && w="$(pwd)"
+    test -n "$1" || set -- "$(pwd)"
 
 	realcwd="$(pwd -P)"
-	short=$(homepath "$w")
+	short=$(homepath "$1")
 
-	local git=$(__vc_gitdir "$w")
+	local git=$(__vc_gitdir "$1")
 	if [ "$git" ]; then
 		realroot="$(git rev-parse --show-toplevel)"
 		[ -n "$realroot" ] && {
@@ -452,17 +459,17 @@ vc_print_all()
 
 vc_ps1()
 {
-	__vc_ps1 $@
+	__vc_ps1 "$1" || return
 }
 
 vc_screen()
 {
-	__vc_screen $@
+	__vc_screen $@ || return
 }
 
 vc_gitflags()
 {
-  __vc_git_flags "$@"
+  __vc_git_flags "$@" || return
 }
 
 
@@ -806,27 +813,33 @@ vc_remotes()
 
 vc__main()
 {
+  test -z "$__load_lib" || return 0
+
   # Do something if script invoked as 'vc.sh'
   local scriptname=vc base=$(basename $vc_source .sh) \
     subcmd=$1
 
   case "$base" in $scriptname )
 
-        local func=$(echo vc_$subcmd | tr '-' '_')
+        local func=$(echo vc_$subcmd | tr '-' '_') \
+            verbosity=5 \
+            ext_sh_sub=
 
         type $func >/dev/null 2>&1 && {
           shift 1
-          vc_load
+          vc_load || return
           $func "$@"
         } || {
-          vc_load
+          R=$?
+          vc_load || return
           vc_print_all "$@"
+          exit $R
         }
 
       ;;
 
     * )
-      echo "Not a frontend for $base ($scriptname)"
+      echo "VC is not a frontend for $base ($scriptname)"
       exit 1
       ;;
 
@@ -842,7 +855,6 @@ case "$0" in "" ) ;; "-*" ) ;; * )
   # XXX arguments to source are working on Darwin 10.8.5, not Linux?
   # fix using another mechanism:
   test -z "$__load_lib" || set -- "load-ext"
-
   case "$1" in load-ext ) ;; * )
 
       vc__main "$@"

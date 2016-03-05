@@ -22,9 +22,14 @@ str_match()
 {
 	expr "$1" : "$2" >/dev/null 2>&1 || return 1
 }
+
 str_contains()
 {
-	case $(uname) in
+	test -n "$uname" || exit 214
+	case "$uname" in
+        "" )
+            err "No uname set" 1
+            ;;
 		Linux )
 			test 0 -lt $(expr index "$1" "/") || return 1
 			;;
@@ -36,6 +41,23 @@ str_contains()
 	esac
 }
 
+str_replace()
+{
+    test -n "$1" || err "replace-subject" 1
+    test -n "$2" || err "replace-find" 2
+    test -n "$3" || err "replace-replace" 2
+    test -n "$ext_sh_sub" || err "ext-sh-sub not set" 1
+
+    test "$ext_sh_sub" -eq 1 && {
+        echo "${1/#$2/$3}"
+    } || {
+        match_grep_pattern_test "$2"
+        find=$p_
+        match_grep_pattern_test "$3"
+        echo "$1" | sed "s/^$find$/$p_/g"
+    }
+}
+
 # x-platform regex match since Bash/BSD test wont chooche on older osx
 x_re()
 {
@@ -45,6 +67,20 @@ x_re()
 fnmatch()
 {
   case "$2" in $1 ) return 0 ;; *) return 1 ;; esac
+}
+
+
+# Set env for str.sh
+str_load()
+{
+    test -n "$ext_sh_sub" && {
+        info "Existing ext_sh_sub=$ext_sh_sub"
+    } || {
+        test "$(echo {foo,bar}-{el,baz})" != "{foo,bar}-{el,baz}" \
+            && ext_sh_sub=1 \
+            || ext_sh_sub=0
+        debug "Initialized ext_sh_sub=$ext_sh_sub"
+    }
 }
 
 
