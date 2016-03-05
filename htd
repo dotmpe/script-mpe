@@ -29,6 +29,11 @@ htd_load()
   _5k=5120
   test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
 
+  TODAY=+%y%m%d0000
+  _1HR_AGO=+%y%m%d0000
+  _15MIN_AGO=+%y%m%d0000
+  _5MIN_AGO=+%y%m%d0000
+
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname="$(uname -s)"
 
@@ -2304,14 +2309,24 @@ c_current_events()
     done
 }
 
+
 c_active()
 {
-  note "Listing files active today '$@'"
-  tdate=$(date +%y%m%d0000)
+  test -n "$tdata_fmt" && {
+    note "Listing files active in '$@'"
+  } || {
+    tdata_fmt=$TODAY
+    note "Listing files active today in '$@'"
+  }
+  tdate=$(date "$1")
+
+  test -n "$2" || set -- "$1" "$(pwd -P)"
+  shift
   test -n "$tdate" || error "formatting date" 1
   touch -t $tdate $(statusdir.sh file recent-paths)
   c_recent_paths "$@"
 }
+
 
 # List open paths under given or current dir. Dumps lsof without cmd, pid etc.
 c_current_paths()
@@ -2721,6 +2736,44 @@ c_colorize()
   esac
 }
 
+
+
+c_say()
+{
+  lang=$1
+  shift
+  test -n "$s" || s=f
+  case "$lang" in
+    uk )
+      case "$s" in m )
+          say -v Daniel "$@" ;;
+        f ) 
+          say -v Kate "$@" ;;
+      esac;;
+    us )
+      case "$s" in m )
+          say -v Alex "$@" ;;
+        f ) 
+          say -v Samantha "$@" ;;
+      esac;;
+    dutch | nl )
+      case "$s" in m )
+          say -v Xander "$@" ;;
+        f ) 
+          say -v Claire "$@" ;;
+      esac;;
+    japanese | jp )
+      case "$s" in m )
+          say -v Otoya "$@" ;;
+        f )
+          say -v Kyoko "$@" ;;
+      esac;;
+    chinese | cn | sc )
+      say -v Ting-Ting "$@" ;;
+    hong-kong | sar | tc )
+      say -v Sin-ji "$@" ;;
+  esac
+}
 
 
 ### Main
