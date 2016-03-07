@@ -88,7 +88,7 @@ homepath()
     test -n "$1" || exit 212
     test -n "$HOME" || exit 213
 	# Bash, BSD Sh?
-    str_replace "$1" "$HOME" "~"
+    str_replace_start "$1" "$HOME" "~"
 }
 
 # Flags legenda:
