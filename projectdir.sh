@@ -439,6 +439,7 @@ pd__disable()
 }
 
 
+# Add repo
 pd_run__add=y
 pd__add()
 {
@@ -450,6 +451,20 @@ pd__add()
 }
 
 
+# Copy prefix from other host
+pd__copy()
+{
+  test -n "$1" || error "expected hostname" 1
+  test -n "$2" || error "expected prefix" 1
+
+  pd=~/.conf/project/$hostname/projects.yaml \
+    pd meta -sq get-repo "$2" && error "Prefix '$2' already exists at $hostname" 1 || noop
+  test "$hostname" != "$1" || error "You ARE at host '$2'" 1
+  pd=~/.conf/project/$1/projects.yaml \
+    pd meta dump $2 \
+    | tail -n +2 - \
+    >> ~/project/projects.yaml
+}
 
 # ----
 
@@ -478,7 +493,7 @@ pd__load()
       y )
         # set/check for Pd for subcmd
 
-        pd=projects.yaml
+        test -n "$pd" || pd=projects.yaml
 
         # Find dir with metafile
         prerun=$(pwd)
@@ -527,6 +542,7 @@ pd__load()
     touch -t $tdate $today
   }
 
+  hostname=$(hostname -s)
   uname=$(uname)
 
   str_load
