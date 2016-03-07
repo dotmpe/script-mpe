@@ -31,6 +31,10 @@ pd__meta()
           "? "* )
             return 1
             ;;
+          "!! "* )
+            error "$line"
+            return 1
+            ;;
           "! "*": "* )
             return $(echo $line | sed 's/.*://g')
             ;;
@@ -55,12 +59,14 @@ pd__status()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
   note "Getting status for checkouts $prefix"
-  pd__list_prefixes "$prefix" | while read prefix
+  {
+    pd__list_prefixes "$prefix" || touch $failed
+  } | while read prefix
   do
     vc_check $prefix || continue
     test -d "$prefix" || continue
     pd__clean $prefix || touch $failed
-  done
+  done || return $?
 }
 
 pd_run__check=ybf
@@ -79,7 +85,7 @@ pd__check()
 
 pd__clean()
 {
-  vc_clean "$1"
+  vc_clean "$1" || return
   case "$?" in
     0|"" )
       info "OK $(__vc_status "$1")"
@@ -221,7 +227,7 @@ pd_run__list_prefixes=y
 pd__list_prefixes()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
-  pd__meta list-prefixes "$1"
+  pd__meta list-prefixes "$1" || return
 }
 
 pd_run__compile_ignores=y
@@ -612,7 +618,7 @@ pd__main()
           shift 1
           pd__load $subcmd "$@" || return
           $func "$@" || r=$?
-          pd__unload
+          pd__unload || exit $?
           exit $r
         }
 
