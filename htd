@@ -2812,7 +2812,7 @@ c_say()
 
 htd__main()
 {
-  htd_init || return $?
+  htd_init || return 0
 
   local scriptname=htd base=$(basename $htd_source .sh) verbosity=5
 

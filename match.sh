@@ -224,7 +224,7 @@ req_arg()
 
 match__main()
 {
-  match_init || return $?
+  match_init || return 0
 
   local scriptname=match base=$(basename $0 .sh) verbosity=5
 
