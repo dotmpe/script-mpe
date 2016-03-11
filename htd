@@ -1769,7 +1769,9 @@ c_mp3_validate()
 
 c_tmux_prive()
 {
+  test -n "$1" || set -- "*"
   cd
+  case "$1" in init|"*" )
   tmux has-session -t Prive >/dev/null || {
     c_tmux_init Prive
     tmux send-keys -t Prive:1 "reset;cd;git st" enter
@@ -1787,35 +1789,49 @@ c_tmux_prive()
     tmux new-window -t Prive -n Bin
     tmux send-keys -t Prive:Bin "reset;cd ~/bin;git st" enter
   }
+  ;; esac
+
+  case "$1" in ino|"*" )
   tmux list-windows -t Prive | grep -q Ino || {
     tmux new-window -t Prive -n Ino
     tmux send-keys -t Prive:Ino "reset;cd ~/project/arduino-docs;git st" enter
   }
+  ;; esac
+  case "$1" in eagle|"*" )
   tmux list-windows -t Prive | grep -q EAGLE || {
     tmux new-window -t Prive -n EAGLE
     tmux send-keys -t Prive:EAGLE "reset;cd ~/project/Eagle-mpe;git st" enter
   }
+  ;; esac
   #tmux list-windows -t Prive | grep -q Loci || {
   #  tmux new-window -t Prive -n Loci
   #  tmux send-keys -t Prive:Loci "reset;cd ~/project/node-loci;git st" enter
   #}
+  case "$1" in sf|"*" )
   tmux list-windows -t Prive | grep -q Sf || {
     tmux new-window -t Prive -n Sf
     tmux send-keys -t Prive:Sf "reset;cd ~/project/node-sitefile;git st" enter
   }
+  ;; esac
+  case "$1" in docs|"*" )
   tmux list-windows -t Prive | grep -q Docs || {
     tmux new-window -t Prive -n Docs
     tmux send-keys -t Prive:Docs "reset;cd ~/Documents/;git st" enter
   }
+  ;; esac
 }
 
 c_tmux_work()
 {
+  test -n "$1" || set -- "*"
   cd ~/work/brix
 
   # Make sure Work session is registered with tmux server
 
+  case "$1" in init|"*" )
+
   tmux has-session -t Work >/dev/null || c_tmux_init Work bash
+  sleep 2
 
   # Make sure Log window is on and first window (swapping some windows if
   # needed, maybe better way it to start server by hand instead of usign new-session?)
@@ -1825,28 +1841,37 @@ c_tmux_work()
     tmux new-window -t Work -n temporary
     tmux kill-window -t Work:1
   }
+  sleep 1
 
   tmux list-windows -t Work | grep -q '1:\ Log' || {
     tmux new-window -t Work -n Log
     tmux send-keys -t Work:Log "reset;cd ~/work/brix/;htd today log" enter
     tmux send-keys -t Work:Log "(cd log;git add -u;git add 20*.rst; git st)" enter
   }
+  sleep 1
 
   tmux list-windows -t Work | grep -q temporary && {
     tmux kill-window -t Work:temporary
   } || noop
 
+  ;; esac
+
   # Add other windows
 
+  case "$1" in tree|"*" )
   tmux list-windows -t Work | grep -q Tree || {
     tmux new-window -t Work -n Tree
     tmux send-keys -t Work:Tree "reset;cd ~/work/brix/" enter "make status" enter
   }
+  ;; esac
+  case "$1" in cln|"*" )
   tmux list-windows -t Work | grep -q Cleaning || {
     tmux new-window -t Work -n TreeCln
     tmux send-keys -t Work:TreeCln "reset;cd /Volumes/Simza/WorkCleaning/brix" enter "make status" enter
   }
+  ;; esac
 
+  case "$1" in jenkins|"*" )
   tmux list-windows -t Work | grep -q Jnk || {
     tmux new-window -t Work -n Jnk
     tmux send-keys -t Work:Jnk "reset;cd ~/work/brix/Jenkins;ls -la" enter
@@ -1859,11 +1884,16 @@ c_tmux_work()
   #  tmux new-window -t Work -n Skl
   #  tmux send-keys -t Work:Skl "reset;cd ~/work/brix/tree/project-skeleton-ng" enter "git st" enter
   #}
+  ;; esac
+
+  case "$1" in mango|"*" )
   tmux list-windows -t Work | grep -q MngB || {
     tmux new-window -t Work -n MngB
     tmux send-keys -t Work:MngB "reset;cd /Volumes/Simza/WorkCleaning/brix/tree/mango-builds" enter "git st" enter
   }
+  ;; esac
 
+  case "$1" in studio|"*" )
   tmux list-windows -t Work | grep -q BrxStd || {
     tmux new-window -t Work -n BrxStd
     tmux send-keys -t Work:BrxStd "reset;cd /Volumes/Simza/WorkCleaning/brix/tree/brixcloud-studio-testing" enter "git st" enter
@@ -1876,6 +1906,7 @@ c_tmux_work()
     tmux new-window -t Work -n BrxStdSkl
     tmux send-keys -t Work:BrxStdSkl "reset;cd ~/work/brix/tree/brixcloud-studio-skeleton" enter "git st" enter
   }
+  ;; esac
 }
 
 c_tmux_srv()
@@ -2781,7 +2812,7 @@ c_say()
 
 htd__main()
 {
-  htd_init || return 0
+  htd_init || return $?
 
   local scriptname=htd base=$(basename $htd_source .sh) verbosity=5
 
@@ -2805,8 +2836,8 @@ htd__main()
 
 htd_init()
 {
+  test -z "$__load_lib" || return 1
   test -n "$PREFIX" || PREFIX=$HOME
-  test -z "$BOX_INIT" || return 1
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
   box_run_sh_test

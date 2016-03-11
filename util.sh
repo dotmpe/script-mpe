@@ -7,10 +7,10 @@ test -n "$PREFIX" || PREFIX=$HOME
 
 #TERM=xterm
 . $PREFIX/bin/os.lib.sh
-. $PREFIX/bin/match.sh
-. $PREFIX/bin/std.sh
-. $PREFIX/bin/str.sh
-. $PREFIX/bin/doc.sh
+. $PREFIX/bin/match.sh load-ext
+. $PREFIX/bin/std.lib.sh
+. $PREFIX/bin/str.lib.sh
+. $PREFIX/bin/doc.lib.sh
 
 
 # test for var decl, io. to no override empty

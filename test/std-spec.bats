@@ -4,8 +4,8 @@ load helper
 base=std
 
 init
-. $lib/std.sh
-. $lib/str.sh
+. $lib/std.lib.sh
+. $lib/str.lib.sh
 
 
 

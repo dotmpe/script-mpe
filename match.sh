@@ -53,6 +53,8 @@ match_load_defs()
   #echo MATCH_NAME_VARS_new=$MATCH_NAME_VARS_new
   #read -ra MATCH_NAME_VARS<<<$(printf '%s\n' "$MATCH_NAME_VARS_new" |
   #  awk -v RS='[[:space:]]+' '!a[$0]++{printf "%s%s", $0, RT}')
+
+  trueish "$silent" || note "Loading $1"
   . $1
 }
 
@@ -156,8 +158,8 @@ match_name_vars()
 # change glob to regex pattern and match against path
 match_glob()
 {
-  match_grep_pattern_test "$1" || return 1
-  glob_pat=$(echo "$p_" | sed 's/\\\*/.*/g')
+  match_grep_pattern_test "$1" || error "build regex failed on '$1'" 2
+  glob_pat="$(echo "$p_" | sed 's/\\\*/.*/g')"
   shift 1
   echo "$@" | grep '^'$glob_pat'$' > /dev/null || return 1
 }
@@ -222,6 +224,8 @@ req_arg()
 
 match__main()
 {
+  match_init || return $?
+
   local scriptname=match base=$(basename $0 .sh) verbosity=5
 
   case "$base" in $scriptname )
@@ -230,7 +234,6 @@ match__main()
         subcmd_pref=${base} subcmd_suf= \
         subcmd_func_pref=${base}_ subcmd_func_suf=
 
-      match_init
       match_lib
 
       # Execute
@@ -242,6 +245,7 @@ match__main()
 
 match_init()
 {
+  test -z "$__load_lib" || return 1
   test -n "$PREFIX" || PREFIX=$HOME
   . $PREFIX/bin/box.init.sh
   . $PREFIX/bin/util.sh
@@ -254,6 +258,7 @@ match_init()
 
 match_lib()
 {
+  local __load_lib=1
   # -- match box lib sentinel --
   set --
 }

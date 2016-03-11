@@ -12,9 +12,9 @@ test -n "$BOX_BIN_DIR" || {
   test -d $BOX_BIN_DIR || mkdir -vp $BOX_BIN_DIR
 }
 
-. $HOME/bin/std.sh
+. $HOME/bin/std.lib.sh
 
-test -z "$BOX_INIT" && BOX_INIT=1 || error "unexpected re-init"
+test -z "$BOX_INIT" && BOX_INIT=1 || error "unexpected re-init" 1
 
 # run-time test since box relies on local vars and bash seems to mess up
 box_run_sh_test()

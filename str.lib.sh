@@ -87,16 +87,16 @@ fnmatch()
 }
 
 
-# Set env for str.sh
+# Set env for str.lib.sh
 str_load()
 {
     test -n "$ext_sh_sub" && {
-        info "Existing ext_sh_sub=$ext_sh_sub"
+        printf "" #info "Existing ext_sh_sub=$ext_sh_sub"
     } || {
         test "$(echo {foo,bar}-{el,baz})" != "{foo,bar}-{el,baz}" \
             && ext_sh_sub=1 \
             || ext_sh_sub=0
-        debug "Initialized ext_sh_sub=$ext_sh_sub"
+        # debug "Initialized ext_sh_sub=$ext_sh_sub"
     }
 }
 

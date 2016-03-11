@@ -2,7 +2,7 @@
 
 load helper
 
-test -z "$PREFIX" && lib=./str || lib=$PREFIX/bin/str
+test -z "$PREFIX" && lib=./str.lib || lib=$PREFIX/bin/str.lib
 func=mkvid
 
 source $lib.sh

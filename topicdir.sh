@@ -78,7 +78,7 @@ td__help()
 td__lib()
 {
   local __load_lib=1
-  . ~/bin/std.sh
+  . ~/bin/std.lib.sh
   . ~/bin/match.sh load-ext
   . ~/bin/vc.sh load-ext
 }

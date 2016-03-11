@@ -4,7 +4,7 @@ base=htd
 load helper
 init
 source $lib/util.sh
-source $lib/str.sh
+source $lib/str.lib.sh
 
 
 version=0.0.0+20150911-0659 # script.mpe
