@@ -220,17 +220,17 @@ req_arg()
 
 match__main()
 {
-  match_init || return 0
-
   local scriptname=match base=$(basename $0 .sh) verbosity=5
 
   case "$base" in $scriptname )
+
+      match_lib || return 0
 
       local subcmd_def= scsep=_ \
         subcmd_pref=${base} subcmd_suf= \
         subcmd_func_pref=${base}_ subcmd_func_suf=
 
-      match_lib
+      match_init
 
       # Execute
       run_subcmd "$@"
@@ -239,7 +239,7 @@ match__main()
   esac
 }
 
-match_init()
+match_lib()
 {
   test -z "$__load_lib" || return 1
   test -n "$PREFIX" || PREFIX=$HOME
@@ -252,7 +252,7 @@ match_init()
   # -- match box init sentinel --
 }
 
-match_lib()
+match_init()
 {
   local __load_lib=1
   . $PREFIX/bin/match.lib.sh "$@"
