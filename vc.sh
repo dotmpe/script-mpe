@@ -806,6 +806,15 @@ vc_remotes()
   done
 }
 
+vc_list_local_branches()
+{
+  local pwd=$(pwd)
+  test -z "$1" || cd $1
+  git branch -l | sed -E 's/\*|[[:space:]]//g'
+  test -z "$1" || cd $pwd
+}
+
+
 # ----
 
 

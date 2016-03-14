@@ -63,7 +63,7 @@ pd__status()
     pd__list_prefixes "$prefix" || touch $failed
   } | while read prefix
   do
-    vc_check $prefix || continue
+    pd_check $prefix || continue
     test -d "$prefix" || continue
     pd__clean $prefix || touch $failed
   done || return $?
@@ -77,7 +77,7 @@ pd__check()
   note "Checking prefixes"
   pd__meta list-prefixes "$1" | while read prefix
   do
-    vc_check $prefix || continue
+    pd_check $prefix || continue
     test -d "$prefix" || continue
     pd sync $prefix || touch $failed
   done
@@ -85,7 +85,7 @@ pd__check()
 
 pd__clean()
 {
-  vc_clean "$1" || return
+  pd_clean "$1" || return
   case "$?" in
     0|"" )
       info "OK $(__vc_status "$1")"
@@ -114,7 +114,7 @@ pd__disable_clean()
     test ! -d $prefix || {
       cd $pwd/$prefix
       git diff --quiet && {
-        test -z "$(vc ufx)" && {
+        test -z "$(vc_ufx)" && {
           warn "TODO remove $prefix if synced"
           # XXX need to fetch remotes, compare local branches
           #pd__meta list-push-remotes $prefix | while read remote
@@ -179,7 +179,7 @@ pd__update()
         props="annex=true"
       }
 
-      props="$props $(verbosity=0;cd $prefix;echo "$(vc remotes sh)")"
+      props="$props $(verbosity=0;cd $prefix;echo "$(vc_remotes sh)")"
       test -n "$props" || {
         error "No remotes for $prefix"
         touch $failed
@@ -335,22 +335,58 @@ pd__sync()
   # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
 }
 
+pd_run__enable_all=ybf
+pd__enable_all()
+{
+  pwd=$(pwd)
+  while test -n "$1"
+  do
+    pd__enable "$1" || touch $failed
+    cd $pwd
+    shift
+  done
+}
+
 # Assert checkout exists, or reinitialize from Pd document.
 pd_run__enable=y
 pd__enable()
 {
-  test -n "$1" || error "prefix argument expected" 1
-  test -z "$2" || error "Surplus arguments: $2" 1
-  pd__meta_sq get-repo $1 || error "No repo for $1" 1
-  pd__meta -sq enabled $1 || pd__meta enable $1
-  test -d $1 || {
-    upstream="$(pd__meta list-upstream "$1" | sed 's/^\([^\ ]*\).*$/\1/g' | head -n 1)"
-    test -n "$upstream" || upstream=origin
-    uri="$(pd__meta get-uri "$1" $upstream)"
-    test -n "$uri" || error "No uri for $1 $upstream" 1
-    git clone $uri --origin $upstream $1 || error "Cloning $uri" 1
+  test -z "$1" && {
+    note "Checking out missing prefixes"
+    pd__meta list-enabled | while read prefix
+    do
+      test -d "$prefix" || {
+        note "Enabling $prefix..."
+        pd__enable "$prefix" \
+          && note "Enabed $prefix" \
+          || error "pd-enable returned '$?'" 1
+      }
+    done
+  } || { 
+    test -z "$2" || error "Surplus arguments: $2" 1
+    pd__meta_sq get-repo $1 || error "No repo for $1" 1
+    pd__meta -sq enabled $1 || pd__meta enable $1 || return
+    test -d $1 || {
+      upstream="$(pd__meta list-upstream "$1" | sed 's/^\([^\ ]*\).*$/\1/g' | head -n 1)"
+      test -n "$upstream" || upstream=origin
+      uri="$(pd__meta get-uri "$1" $upstream)"
+      test -n "$uri" || error "No uri for $1 $upstream" 1
+      git clone $uri --origin $upstream $1 || error "Cloning $uri" 1
+    }
+    pd__init $1 || return
   }
-  pd__init $1
+}
+
+pd_run__init_all=ybf
+pd__init_all()
+{
+  pwd=$(pwd)
+  while test -n "$1"
+  do
+    pd__init "$1" || touch $failed
+    cd $pwd
+    shift
+  done
 }
 
 pd_run__init=y
@@ -383,12 +419,18 @@ pd__set_remotes()
       test "$(git config remote.$remote.url)" = "$url" || {
         no_act \
           && echo "git remote add $remote $url ( ** DRY RUN ** )" \
-          || git remote set-url $remote $url
+          || {
+            git remote set-url $remote $url
+            note "Updated remote $remote"
+          }
       }
     } || {
       no_act \
         && echo "git remote add $remote $url ( ** DRY RUN ** )" \
-        || git remote add $remote $url
+        || {
+          git remote add $remote $url
+          note "Added remote $remote"
+        }
     }
   done
 
@@ -400,6 +442,17 @@ no_act()
   test -n "$dry_run"
 }
 
+pd_run__disable_all=ybf
+pd__disable_all()
+{
+  pwd=$(pwd)
+  while test -n "$1"
+  do
+    pd__disable "$1" || touch $failed
+    cd $pwd
+    shift
+  done
+}
 
 # Disable prefix. Remove checkout if clean.
 pd_run__disable=y
@@ -423,10 +476,11 @@ pd__disable()
     note "Found checkout, getting status.."
 
     choice_strict=1 \
-      vc_clean $1 \
+      pd_clean $1 \
       || case "$?" in
           1 ) warn "Dirty: $(__vc_status "$1")" 1 ;;
           2 ) note "Crufty: $(__vc_status "$1")" 1 ;;
+          * ) error "pd_clean error" ;;
         esac
 
     choice_sync_dismiss=1 \
@@ -581,7 +635,7 @@ pd__lib()
   test -n "$verbosity" || verbosity=6
 }
 
-pd__init()
+pd_init()
 {
   local __load_lib=1
   . ~/bin/box.lib.sh
@@ -618,7 +672,7 @@ pd__main()
 
         shift $c
 
-        pd__init
+        pd_init
 
         try_subcmd && {
           box_src_lib pd

@@ -29,7 +29,7 @@ pd_meta_bg_teardown()
   }
 }
 
-vc_clean()
+pd_clean()
 {
   dirty="$(cd "$1"; git diff --quiet || echo 1)"
   test -n "$dirty" && {
@@ -38,26 +38,29 @@ vc_clean()
   } || {
 
     test -n "$choice_strict" \
-      && cruft="$(cd $1; vc excluded)" \
+      && cruft="$(cd $1; vc_excluded)" \
       || {
 
         pd__meta -q clean-mode $1 tracked || {
 
           pd__meta -q clean-mode $1 excluded \
-            && cruft="$(cd $1; vc excluded)" \
-            || cruft="$(cd $1; vc unversioned-files)"
+            && cruft="$(cd $1; vc_excluded)" \
+            || cruft="$(cd $1; vc_unversioned_files)"
         }
 
       }
 
     test -z "$cruft" || {
-      return 2
+      trueish $choice_force && {
+        ( cd "$1" ; git clean -dfx )
+        warn "Force cleaned everything in $1"
+      } || return 2
     }
   }
 }
 
 # dir exist and is enabled checkout, or is not enabled
-vc_check()
+pd_check()
 {
   test -d "$1" && {
     test -e "$1/.git" || {
@@ -74,14 +77,6 @@ vc_check()
   }
 }
 
-vc_list_local_branches()
-{
-  local pwd=$(pwd)
-  test -z "$1" || cd $1
-  git branch -l | sed -E 's/\*|[[:space:]]//g'
-  test -z "$1" || cd $pwd
-}
-
 backup_if_comments()
 {
   test -f "$1" || error "file expected: '$1'" 1
@@ -89,7 +84,6 @@ backup_if_comments()
     test ! -e $1.comments || error "backup exists: '$1.comments'" 1
     cp $1 $1.comments
   } || noop
-
 }
 
 
