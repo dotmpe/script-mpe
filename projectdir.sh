@@ -2,7 +2,6 @@
 # Created: 2015-12-14
 pd__source="$_"
 
-
 pd__edit()
 {
   $EDITOR \
@@ -362,7 +361,7 @@ pd__enable()
           || error "pd-enable returned '$?'" 1
       }
     done
-  } || { 
+  } || {
     test -z "$2" || error "Surplus arguments: $2" 1
     pd__meta_sq get-repo $1 || error "No repo for $1" 1
     pd__meta -sq enabled $1 || pd__meta enable $1 || return
@@ -651,8 +650,11 @@ pd_init()
 
 pd__main()
 {
-  local scriptname=projectdir scriptalias=pd base=$(basename $pd__source .sh) \
+  local scriptname=projectdir scriptalias=pd base= \
     subcmd=$1
+  test -n "$pd_source" \
+    && base=$(basename $pd__source .sh) \
+    || base=$(basename $0 .sh)
 
   case "$base" in
 
