@@ -269,7 +269,7 @@ ino_init()
   . $PREFIX/bin/main.sh
   . $PREFIX/bin/main.init.sh
   . $PREFIX/bin/box.lib.sh
-  . $PREFIX/bin/htd
+  . $PREFIX/bin/htd load-ext
 }
 
 ino_lib()
