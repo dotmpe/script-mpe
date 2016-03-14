@@ -2,64 +2,9 @@
 """
 matchbox - a (file)naming utility based on regular expressions.
 
-A filename cleaning and reformatting utility.
-
-Version 0.1 flow:
-- Read input strings (filenames or any text lines) from standard-input.
-- Loads BRE name/pattern pair definitions and  from .vars files. For example::
-
-    match_EXT='[a-z0-9]\{2,5\}'
-    match_NAMEPART='[A-Za-z_][A-Za-z0-9_,-]\{1,\}'
-
-  These are Bourne Shell compatible script for interoperability.
-- Match and parse using regular expressions build from named
-  Basic Regular Expressions parts, arranged into a `name-template`,
-  and compiled into a Py re::
-
-    $ matchbox show_name_regex @NAMEPART.@EXT
-    ^(?P<NAMEPART>[A-Za-z_][A-Za-z0-9_,-]{1,})\.(?P<EXT>[a-z0-9]{2,5})$
-
-- Supplement parsed data (to add defaults, env values, etc.) for certain
-  'special' tags (ie. filesize, encoding, format or content-type).
-
-- Simply reorder 'tags' (the BRE match-group name) to rewrite names,
-  adding, merging or removing tags. E.g.::
-
-    $ matchbox rename @NAMEPART.@EXT @NAMEPART.old.@EXT < echo my-file.txt
-    my-file.txt -> my-file.old.txt
-
-    $ matchbox rename @NAMEPART.@EXT @SHA1_CKS-@NAMEPART-@SZ.@EXT < echo my-file.txt
-    my-file.txt -> a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0-my-file-3.txt
-
-Dev
-
-- TODO: inherit tables, extend each table with rules found along path to allow
-  for global and local rules.
-
-  - TODO: manage named BRE through subcmds, add some layer to deal with inherited
-    and/or set-based name tags.
-
-- TODO: add shell-program resolver, and subcmd to rm/add resolved tags+cmds.
-
-- XXX: tables provide indices and maps for path instances,
-  should integrate with metadata efforts. Iow. start to record some kind of
-  class or mode statements.
-
-- XXX: table.* allows for interop with native Sh, perhaps other interpreters.
-  vars holds match_<group>, BRE patterns. Table names holds globs and tag
-  templates, possibly more tags.
-
-- XXX: files in dir should match at least one pattern from table.names.
-  Such rules are always subject to a sequence. tags may be used to differentiate
-  results.
-
-- FIXME: want to use docopt(-mpe) but need to fork confparse code into proper project
-  also. Same for output writing: want to reduce deps, not increase AND also KISS.
-
-- Only basenames are dealt with yet. But the same mechanisms apply for deeper
-  file sets. Need to deal with prefixes.
-
+A filename cleaning and reformatting utility. See matchbox.rst.
 """
+import inspect
 import sys
 import os
 import re
@@ -130,6 +75,11 @@ def load_from_bre(filepath):
     print '# Loaded %s' % filepath
 
 def load_templates(name='table.names'):
+    """
+    Load table `name` (with name templates)
+    from the local dir and/or parents,
+    and from the script dir.
+    """
     homedir=os.path.expanduser('~/bin')
     load_names_from(os.path.join(homedir, name))
     cwd=os.getcwd()
@@ -137,6 +87,14 @@ def load_templates(name='table.names'):
         load_names_from(os.path.join(cwd, name))
 
 def load_names_from(filepath):
+    """
+    Load templates from file, using tags field as ID.
+    Iow. tags must be unique. Put the globs for each
+    template as key in the global `paths`, pointing
+    to a list of tags. Iow. one globs may provide filepaths
+    that match one of multiple tags.
+    """
+    global templates, paths
     if not os.path.exists(filepath):
         return
     fl = open(filepath)
@@ -184,6 +142,9 @@ def name_regex(name_template, var_names=None):
     return '^%s$' % name_regexpat
 
 def name_format(seed, template, names=None):
+    """
+    Helper for rename.
+    """
     if not names:
         names = name_template_opts(template)
     name_new = template
@@ -218,6 +179,7 @@ def c_dump():
     """
     Dump internal table data to output using a writer.
     """
+    load_templates()
     data = Values(dict(
         vars=Values(vartable),
         templates=Values(templates),
@@ -233,32 +195,95 @@ def c_dump():
       ))
     writers[opts.flags.output_format](data.todict(), outf, opts)
 
+def c_help():
+    "Print generic usage help info and docs for each command. "
+    for x in globals():
+        c = globals()[x]
+        if x.startswith('c_') and callable(c):
+            print "matchbox.py", x[2:].replace('_', '-'), format_f_spec(c)
+            print '   ', c.__doc__.strip()
+
+def format_f_spec(func):
+    args, varargs, keywords, defaults = inspect.getargspec(func)
+    argspec = [ arg.upper() for arg in args ]
+    if defaults:
+        dfidx = len( args ) - len( defaults )
+        defaults = list(defaults)
+    while defaults:
+        argspec[dfidx] += '=%s' % defaults.pop()
+        dfidx += 1
+    if varargs:
+        argspec += [ '%s...' % varargs.upper() ]
+    if keywords:
+        argspec += [ '%s=...' % keywords.upper() ]
+
+    return ' '.join(argspec)
+
 def c_name_regex(name_template):
     "Print regex pattern for given name template. "
     print name_regex(name_template)
 
-def c_match_name_vars(line, name_template):
+def c_match_name_vars(name, name_template_or_tag="@NAMEPART.@EXT"):
+    """
+    Given name `name` and template or template tag, parse
+    and print a column formatted table.
+    """
+    load_templates()
+    name_template = name_template_or_tag
+    if name_template in templates:
+        name_template = templates[name_template_or_tag]
     var_names = name_template_opts(name_template)
     regex = name_regex(name_template, var_names)
-    print "# Fields: '%s'" % ', '.join(var_names)
     print "# Compiled pattern to '%s'" % regex
     regex_r = re.compile(regex)
-    if line:
-        match = regex_r.match(line)
+    rows = []
+    if name:
+        match = regex_r.match(name)
         if not match:
-            print >> sys.stderr, "Mismatched '%s'" % line
+            print >> sys.stderr, "Mismatched '%s'" % name
             return 1
         else:
             mdict = match.groupdict()
-            print "\t".join([
-                mdict[var] if var in mdict else '' for var in var_names
-            ])
+            rows += [
+              [ mdict[var] if var in mdict else '' for var in var_names ]
+            ]
 
-def c_match_names_vars(name_template):
+    print_tab_cols(var_names, rows)
+
+
+def print_tab_cols(fields, rows):
+    """
+    Helper to print columnized data, checking with max. datum widths first.
+    """
+    widths = [ 1 ] * len(fields)
+    widths[0] = 2
+
+    for idx, field in enumerate(fields):
+        l = len(field)
+        if widths[idx] < l+1:
+            widths[idx] = l+1
+
+    for row in rows:
+        for idx, field in enumerate(row):
+            l = len(field)
+            if widths[idx] < l+1:
+                widths[idx] = l+1
+
+    widths[0] -= 2
+    print '# '+''.join([field.ljust(widths[i]) for i, field in enumerate(fields)])
+    widths[0] += 2
+    for row in rows:
+        print ''.join([datum.ljust(widths[i]) for i, datum in enumerate(row)])
+
+
+def c_match_names_vars(name_template_or_tag="@NAMEPART.@EXT"):
     """Read filenames from lines at std, extract fields by regex
     and output result line by line.
     The regex is build according to the name template,
     """
+    name_template = name_template_or_tag
+    if name_template in templates:
+        name_template = templates[name_template_or_tag]
     var_names = name_template_opts(name_template)
     regex = name_regex(name_template, var_names)
     print "# Fields: '%s'" % ', '.join(var_names)
@@ -324,6 +349,11 @@ def c_rename(from_template, to_template, exists=None, stat=None):
             print line, name_new
 
 def c_check_name(line, *tags):
+    """
+    Given line with path name, match against entire matchbox.
+    Returns an error if not a single match was found,
+    or if the match does not have a tag field listed in given `tags`.
+    """
     load_templates()
     matchbox = {}
     for name in templates:

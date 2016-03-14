@@ -164,33 +164,29 @@ match_glob()
   echo "$@" | grep '^'$glob_pat'$' > /dev/null || return 1
 }
 
-# check all name patterns
+# check given name with all name patterns
 match_names()
 {
   local glob_match name_pattern tag
-  cat table.names | grep -Ev '^(#.*|\s*)$' | while read glob_match name_pattern tag
+  match_req_names_tab
+  cat $tabs | grep -Ev '^(#.*|\s*)$' | while read glob_match name_pattern tag
   do
-    match_glob "$glob_match" "$@" && {
-      match_name_vars "$name_pattern" "$@" 2> /dev/null > /dev/null && {
-        test -z "$tag" && {
-          echo "$glob_match $name_pattern $@"
-        } || echo "Match for $tag: $glob_match $name_pattern"
+    for name in "$@"
+    do
+      # Only match templates when given name matches the templates glob pattern
+      match_glob "$glob_match" "$name" && {
+        #
+        match_name_vars "$name_pattern" "$name" 2> /dev/null > /dev/null && {
+          test -z "$tag" && {
+            echo "$glob_match $name_pattern $name"
+          } || echo "Match for $tag: $glob_match $name_pattern"
+        }
       }
-    }
+    done
     #match_name_pattern "$pattern" ""
   done
 }
 
-# Load part names and patterns
-match_load_table()
-{
-  test -n "$1" || set -- book
-  match_load_defs ~/bin/table.$1
-  test -s "$(pwd)/table.$1" && {
-      test "$(pwd)" != "$(echo ~/bin)" &&
-      match_load_defs "$(pwd)/table.$1" || noop
-    } || error "No local table.$1" 1
-}
 
 # Compile new table
 # FIXME req_arg_pattern=("Name pattern" pattern)
@@ -259,6 +255,7 @@ match_init()
 match_lib()
 {
   local __load_lib=1
+  . $PREFIX/bin/match.lib.sh "$@"
   # -- match box lib sentinel --
   set --
 }
