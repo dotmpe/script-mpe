@@ -1,6 +1,6 @@
 #!/bin/sh
 # Created: 2015-12-14
-pd__source=$_
+pd__source="$_"
 
 
 pd__edit()
@@ -569,28 +569,19 @@ pd__unload()
   }
 }
 
-pd_init()
+pd__lib()
 {
   test -z "$__load_lib" || return 1
-
   . ~/bin/util.sh
-  #. ~/bin/std.sh
   . ~/bin/main.sh
-  #while test $# -gt 0
-  #do
-  #  case "$1" in
-  #      -v )
-  #        verbosity=$(( $verbosity + 1 ))
-  #        incr_c
-  #        shift;;
-  #  esac
-  #done
   . ~/bin/projectdir.inc.sh "$@"
-  test -n "$verbosity" || verbosity=6
   # -- pd box init sentinel --
+
+  #. ~/bin/std.sh
+  test -n "$verbosity" || verbosity=6
 }
 
-pd__lib()
+pd__init()
 {
   local __load_lib=1
   . ~/bin/box.lib.sh
@@ -606,14 +597,14 @@ pd__lib()
 
 pd__main()
 {
-  pd_init "$@" || return 0
-
   local scriptname=projectdir scriptalias=pd base=$(basename $pd__source .sh) \
     subcmd=$1
 
   case "$base" in
 
     $scriptname | $scriptalias )
+
+        pd__lib "$@" || return 0
 
         # invoke with function name first argument,
         local scsep=__ bgd= \
@@ -627,7 +618,7 @@ pd__main()
 
         shift $c
 
-        pd__lib
+        pd__init
 
         try_subcmd && {
           box_src_lib pd
