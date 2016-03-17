@@ -1780,14 +1780,17 @@ c_tmux_prive()
     tmux new-window -t Prive -n HtD
     tmux send-keys -t Prive:HtD "reset;cd ~/htdocs/; htd today personal/journal;git st" enter
     tmux send-keys -t Prive:HtD "git add -u;git add dev/ personal/*.rst personal/journal/2*.rst sysadmin/*.rst *.rst;git st" enter
+    note "Initialized 'HtD' window"
   }
   tmux list-windows -t Prive | grep -q '\ conf' || {
     tmux new-window -t Prive -n conf
     tmux send-keys -t Prive:conf "reset;cd ~/.conf;git st" enter
+    note "Initialized 'conf' window"
   }
   tmux list-windows -t Prive | grep -q Bin || {
     tmux new-window -t Prive -n Bin
     tmux send-keys -t Prive:Bin "reset;cd ~/bin;git st" enter
+    note "Initialized 'Bin' window"
   }
   ;; esac
 
@@ -1795,12 +1798,14 @@ c_tmux_prive()
   tmux list-windows -t Prive | grep -q Ino || {
     tmux new-window -t Prive -n Ino
     tmux send-keys -t Prive:Ino "reset;cd ~/project/arduino-docs;git st" enter
+    note "Initialized 'Ino' window"
   }
   ;; esac
   case "$1" in eagle|"*" )
   tmux list-windows -t Prive | grep -q EAGLE || {
     tmux new-window -t Prive -n EAGLE
     tmux send-keys -t Prive:EAGLE "reset;cd ~/project/Eagle-mpe;git st" enter
+    note "Initialized 'EAGLE' window"
   }
   ;; esac
   #tmux list-windows -t Prive | grep -q Loci || {
@@ -1811,12 +1816,14 @@ c_tmux_prive()
   tmux list-windows -t Prive | grep -q Sf || {
     tmux new-window -t Prive -n Sf
     tmux send-keys -t Prive:Sf "reset;cd ~/project/node-sitefile;git st" enter
+    note "Initialized SiteFile [Sf] window"
   }
   ;; esac
   case "$1" in docs|"*" )
   tmux list-windows -t Prive | grep -q Docs || {
     tmux new-window -t Prive -n Docs
     tmux send-keys -t Prive:Docs "reset;cd ~/Documents/;git st" enter
+    note "Initialized Documents window"
   }
   ;; esac
 }
@@ -1862,12 +1869,14 @@ c_tmux_work()
   tmux list-windows -t Work | grep -q Tree || {
     tmux new-window -t Work -n Tree
     tmux send-keys -t Work:Tree "reset;cd ~/work/brix/" enter "make status" enter
+    note "Initialized Tree window"
   }
   ;; esac
   case "$1" in cln|"*" )
   tmux list-windows -t Work | grep -q Cleaning || {
     tmux new-window -t Work -n TreeCln
     tmux send-keys -t Work:TreeCln "reset;cd /Volumes/Simza/WorkCleaning/brix" enter "make status" enter
+    note "Initialized TreeCln window"
   }
   ;; esac
 
@@ -1875,6 +1884,7 @@ c_tmux_work()
   tmux list-windows -t Work | grep -q Jnk || {
     tmux new-window -t Work -n Jnk
     tmux send-keys -t Work:Jnk "reset;cd ~/work/brix/Jenkins;ls -la" enter
+    note "Initialized Jnk window"
   }
   #tmux list-windows -t Work | grep -q DvD || {
   #  tmux new-window -t Work -n DvD
@@ -1890,6 +1900,7 @@ c_tmux_work()
   tmux list-windows -t Work | grep -q MngB || {
     tmux new-window -t Work -n MngB
     tmux send-keys -t Work:MngB "reset;cd /Volumes/Simza/WorkCleaning/brix/tree/mango-builds" enter "git st" enter
+    note "Initialized MngB window"
   }
   ;; esac
 
@@ -1897,14 +1908,17 @@ c_tmux_work()
   tmux list-windows -t Work | grep -q BrxStd || {
     tmux new-window -t Work -n BrxStd
     tmux send-keys -t Work:BrxStd "reset;cd /Volumes/Simza/WorkCleaning/brix/tree/brixcloud-studio-testing" enter "git st" enter
+    note "Initialized BrxStd window"
   }
   tmux list-windows -t Work | grep -q BrxStdT || {
-    tmux new-window -t Work -n BrixStdT
-    tmux send-keys -t Work:BrixStdT "reset;cd /Volumes/Simza/WorkCleaning/brix/tree/brixcloud-studio-testing2;ls -la" enter
+    tmux new-window -t Work -n BrxStdT
+    tmux send-keys -t Work:BrxStdT "reset;cd /Volumes/Simza/WorkCleaning/brix/tree/brixcloud-studio-testing2;ls -la" enter
+    note "Initialized BrxStdT window"
   }
   tmux list-windows -t Work | grep -q BrxStdSkl || {
     tmux new-window -t Work -n BrxStdSkl
     tmux send-keys -t Work:BrxStdSkl "reset;cd ~/work/brix/tree/brixcloud-studio-skeleton" enter "git st" enter
+    note "Initialized BrxStdSkl window"
   }
   ;; esac
 }
@@ -1952,7 +1966,7 @@ c_tmux_init()
     note "Session $1 exists" 0
   } || {
 
-    tmux new-session -P -s "$1" -d "$2" 2>&1 1> $out
+    tmux new-session -P -s "$1" -d "$2" 2>$out 1> $out
 
     tmux has-session -t "$1" >/dev/null || {
       log "Waiting for tmux session";
@@ -1963,13 +1977,16 @@ c_tmux_init()
       note "started new session '$1'"
       logger "started new session '$1'"
     } || {
-      logger "Failed starting session ($?) ($out): $(echo $(cat $out))"
+      logger "Failed starting session ($?) ($out):"
+      printf "Cat ($out) "
     }
-    printf "Cat ($out) "
-    cat $out
-    rm $out
 
+    rm $out
   }
+
+  # Look for init subcmd to setup windows
+  try_exec_func "c_tmux_$(echo $1 | tr 'A-Z' 'a-z')" || noop
+  # XXX: or try tmuxinator
 }
 
 c_reader_update()
