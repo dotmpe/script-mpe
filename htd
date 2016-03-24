@@ -1890,7 +1890,7 @@ c_tmux_work()
   }
   ;; esac
   case "$1" in jenkins )
-      htd tmux-winit Work Jnk ~/work/brix/tree/Jenkins \
+      htd tmux-winit Work Jnk ~/work/brix/Jenkins \
         "(cd jenkins-ci-config && git fetch --all && git status); (cd userContent && git fetch --all && git status)"
   ;; esac
   case "$1" in dev-doc )
