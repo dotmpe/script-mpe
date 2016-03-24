@@ -183,7 +183,7 @@ log_256()
 err()
 {
   log "$1" 1>&2
-  test -z "$2" || exit $2
+  [ -z "$2" ] || exit $2
 }
 
 # Normal log uses log_$TERM
@@ -243,7 +243,7 @@ stderr()
         log "${nrml}$2${norm}" 1>&2 ;;
     * )
         bb=${drgrey} ; bk=$dgrey
-        log "${grey}$2" 1>&2 ;;
+        log "${grey}$2" $3 1>&2 ;;
 
   esac
   [ -z "$3" ] || exit $3
@@ -310,7 +310,7 @@ std_demo()
   info "Foo bar"
   debug "Foo bar"
 
-  for x in error warn note info debug
+  for x in emerg crit error warn note info debug
     do
       $x "testing $x out"
     done

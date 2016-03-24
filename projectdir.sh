@@ -398,6 +398,10 @@ pd__init()
   cwd=$(pwd)
   cd $1
   git submodule update --init --recursive
+  test ! -e .versioned-files.list || {
+    echo "git-versioning check" > .git/hooks/pre-commit
+    chmod +x .git/hooks/pre-commit
+  }
   cd $cwd
 }
 

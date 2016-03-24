@@ -1,24 +1,29 @@
 
+# Set env and other per-specfile init
 test_init()
 {
+  test -n "$base" || exit 12
   test -n "$uname" || uname=$(uname)
 }
 
+# Std test_init and setting script exec var `bin` based on PREFIX
 init_bin()
 {
-  test_init
-  test -z "$PREFIX" && bin=$base || bin=$PREFIX/bin/$base
+  # Global test if PREFIX isset
+  test -z "$PREFIX" && bin=./$base || bin=$PREFIX/bin/$base
 }
 
+# Std test_init for script lib var `lib`
 init_lib()
 {
-  test_init
   # XXX path to shared files
   test -z "$PREFIX" && lib=. || lib=$PREFIX/bin
+  #test -z "$PREFIX" && lib=./script || lib=$PREFIX/lib/$base/
 }
 
 init()
 {
+  test_init
   test -x $base && {
     init_bin
   }
@@ -32,14 +37,12 @@ init()
   . main.init.sh
 }
 
-is_skipped()
-{
-  local key="$(echo "$1" | tr 'a-z._-' 'A-Z___')"
-  local skipped="$(echo $(eval echo \$${key}_SKIP))"
-  test -n "$skipped" && return
-  return 1
-}
 
+### Helpers for conditional tests
+# currently usage is to mark test as skipped or 'TODO' per test case, based on
+# host. Written into the specs itself.
+
+# XXX: Hardcorded list of test envs, for use as is-skipped key
 current_test_env()
 {
   case $(hostname -s | tr 'A-Z' 'a-z') in
@@ -48,6 +51,7 @@ current_test_env()
   esac
 }
 
+# Check if test is skipped. Currently works based on hostname and above values.
 check_skipped_envs()
 {
   # XXX hardcoded envs
@@ -64,6 +68,19 @@ check_skipped_envs()
   done
   return $skipped
 }
+
+# Returns successful if given key is not marked as skipped in the env
+# Specifically return 1 for not-skipped, unless $1_SKIP evaluates to non-empty.
+is_skipped()
+{
+  local key="$(echo "$1" | tr 'a-z._-' 'A-Z___')"
+  local skipped="$(echo $(eval echo \$${key}_SKIP))"
+  test -n "$skipped" && return
+  return 1
+}
+
+
+### Misc. helper functions
 
 next_temp_file()
 {

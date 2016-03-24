@@ -804,6 +804,7 @@ dckr__machine_ip_update()
   esac
   grep -q '^'$docker_machine_ip'\ *'$docker_domain'$' /etc/hosts && {
     note "IP for '$1' ($docker_domain) still '$docker_machine_ip'"  
+    return 0
   } || {
     sudo sed -i.bak 's/^[0-9\.]*\ \ *'$docker_domain'$/'$docker_machine_ip'   '$docker_domain'/' /etc/hosts \
       && warn "Updated IP ($docker_machine_ip) for '$1' ($docker_domain)" 2 \
@@ -818,11 +819,12 @@ dckr__machines_nfs()
   local updated=/tmp/dckr-machines-nfs-$(uuidgen)
   while test -n "$1"
   do
-    #test "$(docker-machine status $1)" = "Running" || { shift; continue; }
+    test "$(docker-machine status $1)" = "Running" || { 
+      note "Cannot updated offline box '$1'"; shift; continue; }
     note "Updating NFS for '$1' ..."
-    #docker-machine-nfs "$1" --shared-folder=/Volumes/Simza/docker --nfs-config="-alldirs -mapall=501:1000"
-    #docker-machine-nfs "$1" --shared-folder=/Volumes/Simza/docker --nfs-config="-alldirs -maproot=0"
-    docker-machine-nfs "$1" --shared-folder=/Volumes/Simza/docker --force \
+    docker-machine-nfs "$1" \
+        --shared-folder=$DCKR_VOL \
+        --shared-folder=/Volumes/Simza/project \
       && note "Reinitialized NFS for '$1'" \
       || { note "Error in NFS init for '$1'"; echo $1>$updated; } \
 
@@ -847,7 +849,7 @@ dckr__machines()
     test "$(docker-machine status $1)" = "Running" || { shift; continue; }
     note "Updating '$1' ..."
     dckr machine-ip-update $1 || {
-      case "$?" in 1 ) return 1;; 2 ) echo $1>$updated ;; esac
+      case "$R" in 1 ) return 1;; 2 ) echo $1>$updated ;; esac
     }
     grep -qF $(docker-machine ip $1) /etc/exports || {
       echo "$1">$updated
@@ -855,14 +857,18 @@ dckr__machines()
     shift
   done
   test ! -e "$updated" || {
+    cat $updated
     machines="$(echo "$(cat $updated)")"
     rm $updated
-    warn "Updates found"
+    warn "Updates found: $machines"
     # XXX: maybe better check with u-c before removing, not needed for now
+    # see also sudoers rules 
     test ! -e /etc/exports || sudo rm /etc/exports
-    test -e /etc/exports || sudo touch /etc/exports
+    #test -e /etc/exports || sudo touch /etc/exports
+  }
+  test -e "/etc/exports" || {
     note "Updating NFS for all running machines" #'$machines'"
-    dckr machines-nfs || return 1
+    dckr machines-nfs $machines || return 1
     return 2
   }
 }
