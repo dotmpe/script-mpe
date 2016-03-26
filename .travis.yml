@@ -41,6 +41,7 @@ script:
 
 branches:
   only:
+  - master
   - '/^test.*$/'
   - '/^dev.*$/'
   - '/^[0-9]*\.[0-9]*\.[0-9]*/'
