@@ -21,7 +21,7 @@ case "$ENV" in
    * )
        #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
        htd version
-       pd test
+       projectdir.sh test
        #- ./basename-reg ffnnec.py
        #- ./mimereg ffnenc.py
 
