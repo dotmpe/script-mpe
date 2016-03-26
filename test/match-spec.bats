@@ -73,7 +73,7 @@ init
 }
 
 @test "$bin lists var names" {
-  check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
+  check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
   run ${bin} -s var-names
   test $status -eq 0
   vars="SZ SHA1_CKS MD5_CKS CK_CKS EXT NAMECHARS IDCHAR IDCHARS NAMEPART NAMEDOTPARTS ALPHA NUM PART OPTPART DOMAIN"
@@ -83,7 +83,7 @@ init
 # TODO: test wether named patterns still exists, and notice any out-of-date testcase
 
 @test "$bin lists var names in name pattern" {
-  check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
+  check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
   source ./match.sh load-ext
   silent=true
   match_load
@@ -96,7 +96,7 @@ init
 }
 
 @test "$bin compile regex for name pattern" {
-  check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
+  check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
   source ./match.sh load-ext
   silent=true
   match_load
@@ -106,7 +106,7 @@ init
 }
 
 @test "$bin compile regex for name pattern (II)" {
-  check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
+  check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
   source ./match.sh load-ext
   silent=true
   match_load
@@ -116,7 +116,6 @@ init
 }
 
 @test "$bin compile regex for name pattern (III)" {
-  check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
   check_skipped_envs travis || skip "FIXME seems requires ~/.conf or something"
   source ./match.sh load-ext
   silent=true

@@ -7,7 +7,7 @@ init
 
 
 @test "$bin ffnenc.py" {
-  check_skipped_envs travis vs1 simza || \
+  check_skipped_envs travis || \
     skip "TODO envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
@@ -16,7 +16,7 @@ init
 }
 
 @test "$bin -q ffnenc.py" {
-  check_skipped_envs travis vs1 simza || \
+  check_skipped_envs travis || \
     skip "TODO envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
@@ -25,7 +25,7 @@ init
 }
 
 @test "$bin -qE ffnenc.py" {
-  check_skipped_envs travis vs1 simza || \
+  check_skipped_envs travis || \
     skip "TODO envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0

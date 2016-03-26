@@ -12,7 +12,7 @@ test -e "$HOME/.basename-reg.yaml" || touch "$HOME/.basename-reg.yaml"
 @test "$bin ffnenc.py" {
 
   skip "fix sqlalchemy"
-  check_skipped_envs travis vs1 || \
+  check_skipped_envs travis || \
     skip "TODO envs $envs: implement bin (test) for env"
 
   run $BATS_TEST_DESCRIPTION
@@ -23,7 +23,7 @@ test -e "$HOME/.basename-reg.yaml" || touch "$HOME/.basename-reg.yaml"
 @test "$bin ffnenc.py -O csv" {
 
   skip "fix sqlalchemy"
-  check_skipped_envs travis vs1 || \
+  check_skipped_envs travis || \
     skip "TODO envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
