@@ -523,6 +523,38 @@ pd__copy()
     >> ~/project/projects.yaml
 }
 
+
+pd__test()
+{
+  for pd_test in pd-test{,.sh}
+  do
+    test -e $pd_test && {
+      note "Using $pd_test"
+      ./pd-test
+      return $?
+    }
+  done
+  test "$(echo test/*-spec.bats)" != "test/*-spec.bats" && {
+    note "Using Bats"
+    PATH=$PATH:/usr/local/libexec/
+    count=0
+    for x in ./test/*-spec.bats
+    do
+      bats-exec-test -c "$x" >/dev/null || error "Bats source not ok: cannot load $x" 1
+      incr count
+    done
+    note "$count Specs OK"
+    bats ./test/*-spec.bats | bats-color.sh
+    return $?
+  }
+  test -e Makefile && {
+    note "Using make test"
+    make test
+    return $?
+  }
+}
+
+
 # ----
 
 

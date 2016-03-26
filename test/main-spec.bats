@@ -1,5 +1,6 @@
 #!/usr/bin/env bats
 
+base=main
 load helper
 load main.inc
 

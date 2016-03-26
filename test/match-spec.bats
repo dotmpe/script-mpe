@@ -10,7 +10,7 @@ init
 @test "$bin no arguments no-op" {
   run ${bin}
   test $status -eq 1
-  fnmatch "*match.sh*Error*No command given*" "${lines[4]}"
+  fnmatch "*match.*Error*No command given*" "${lines[4]}"
 }
 
 @test "$bin no arguments no-op (plain)" {

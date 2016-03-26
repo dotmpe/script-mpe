@@ -4,6 +4,7 @@ base=box
 load helper
 init
 source $lib/util.sh
+pwd=$(cd .;pwd -P)
 
 
 usage_line_1="${base}.sh Bash/Shell script helper"
@@ -14,11 +15,13 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 @test "$bin no arguments no-op" {
 
   check_skipped_envs vs1 travis || skip "FIXME broken after main.sh rewrite"
+
   #echo "${lines[*]}" > /tmp/1
   #echo "${#lines[@]}" >> /tmp/1
+
   tmpd
   tmp=$(cd $tmpd/;pwd -P)
-  run bash -c 'cd '$tmp'/ && '${bin}
+  run bash -c 'cd '$tmp'/ && '$pwd/${bin}
   lines_to_file $tmpd/1
   echo "env $(current_test_env)" >> $tmpd/1
   echo "status $status" >> $tmpd/1

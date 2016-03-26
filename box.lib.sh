@@ -143,7 +143,9 @@ box_grep()
 
 box_script_insert_point()
 {
-  test -n "$2" || set -- $1 main $3
+  test -n "$1" || error "expected source file" 2
+  test -e "$1" || error "expected existing source file" 2
+  test -n "$2" || set -- $1 $subcmd $3
   test -n "$3" || {
     test -n "$scriptalias" \
       && set -- $1 $2 $scriptalias \

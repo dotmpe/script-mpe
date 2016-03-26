@@ -220,7 +220,7 @@ req_arg()
 
 match__main()
 {
-  local scriptname=match base=$(basename $0 .sh) verbosity=5
+  local scriptname=match base="$(basename "$0" .sh)" verbosity=5
 
   case "$base" in $scriptname )
 
@@ -261,7 +261,7 @@ match_init()
 }
 
 # Ignore login shell
-case "$0" in "" ) ;; "-*" ) ;; * )
+case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
   case "$1" in load-ext ) ;; * )

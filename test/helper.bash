@@ -54,6 +54,7 @@ current_test_env()
 # Check if test is skipped. Currently works based on hostname and above values.
 check_skipped_envs()
 {
+  test -n "$1" || return 1
   # XXX hardcoded envs
   local skipped=0
   test -n "$1" || set -- "$(hostname -s | tr 'A-Z_.-' 'a-z___')" "$(whoami)"

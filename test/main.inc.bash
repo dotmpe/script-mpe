@@ -27,7 +27,13 @@ mytest_main()
 
 mytest__load()
 {
-  # -- mytest box include main sentinel --
+  # -- mytest box load sentinel --
+  set --
+}
+
+mytest__include()
+{
+  # -- mytest box include sentinel --
   set --
 }
 

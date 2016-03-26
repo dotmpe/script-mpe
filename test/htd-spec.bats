@@ -4,6 +4,7 @@ base=htd
 load helper
 init
 source $lib/str.lib.sh
+pwd=$(realpath .)
 
 
 version=0.0.0+20150911-0659 # script.mpe
@@ -103,7 +104,7 @@ version=0.0.0+20150911-0659 # script.mpe
   test ! -d bats-test-log || rm -rf bats-test-log
 
   mkdir bats-test-log
-  run $BATS_TEST_DESCRIPTION bats-test-log/
+  run $pwd/$BATS_TEST_DESCRIPTION bats-test-log/
   test $status -eq 0
   #echo "${lines[*]}" > /tmp/1
   #echo "${#lines[@]}" >> /tmp/1
@@ -121,11 +122,14 @@ version=0.0.0+20150911-0659 # script.mpe
 
   rm -rf /tmp/journal
 
-  run $BATS_TEST_DESCRIPTION
-  #echo "${lines[*]}" >/tmp/out222
+  run $pwd/$BATS_TEST_DESCRIPTION
   test $status -eq 1
+  #echo "${lines[*]}" >/tmp/out222
   fnmatch "*Error*Dir *tmp/journal must exist*" "${lines[*]}"
   test "${#lines[@]}" = "1"
+
+  run $pwd/$BATS_TEST_DESCRIPTION
+  test $status -eq 1
 }
 
 @test "$bin rewrite and test to new main.sh" {
@@ -159,7 +163,8 @@ Public
 EOM
 } > test.rst
 
-  run $BATS_TEST_DESCRIPTION test.rst
+  run $pwd/$BATS_TEST_DESCRIPTION test.rst
+  #echo "${lines[*]}" > /tmp/1
 
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
@@ -188,15 +193,10 @@ Public
 EOM
 } > test.rst
 
-  run $BATS_TEST_DESCRIPTION test.rst
-
-  case "$uname" in
-    Darwin ) cd /private/tmp;;
-    Linux ) cd /tmp ;;
-  esac
+  run $pwd/$BATS_TEST_DESCRIPTION test.rst
 
   check_skipped_envs travis || \
-    skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
+    skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
 
   test "${lines[1]}" = "/Dev/Software/../Hardware/../../Personal/../Public/Note/../.."
 }
@@ -220,21 +220,18 @@ Public
 EOM
 } > test.rst
 
-  run $BATS_TEST_DESCRIPTION test.rst
-
-  case "$uname" in
-    Darwin ) cd /private/tmp;;
-    Linux ) cd /tmp ;;
-  esac
+  run $pwd/$BATS_TEST_DESCRIPTION test.rst
 
   check_skipped_envs travis || \
-    skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
+    skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
 
   test "${lines[1]}" = "/Soft Dev/../Home/Shop/Electric Tools/../../Living Room/../../Public/Topic Note/../.."
 }
 
 
 @test "$bin - fixed_table_hd_offset " {
+
+  cd $pwd
 
   . $lib/htd load-ext
   htd_rules=/tmp/htd-rules.tab

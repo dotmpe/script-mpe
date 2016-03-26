@@ -95,10 +95,14 @@ test_usr_$d::
 
 test_match_$d::
 test_match_$d::
-	source ~/bin/{htd,match{.lib,}.sh} && match_load \
+	scriptname=make:$@ ; \
+	. ~/bin/{util,{match,{,.lib}}}.sh && . ~/bin/match.lib.sh && match_load
+	scriptname=make:$@ ; \
+	. ~/bin/{util,{match,{,.lib}}}.sh && . ~/bin/match.lib.sh && match_load \
 	    && match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART \
 	    && echo $$grep_pattern
-	source ~/bin/{htd,match{.lib,}.sh} && match_load \
+	scriptname=make:$@ ; \
+	. ~/bin/{util,{match,{,.lib}}}.sh && . ~/bin/match.lib.sh && match_load \
 	    && match_name_pattern_opts ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART
 	bats ./test/match-spec.bats
 
@@ -113,7 +117,14 @@ test_htd_$d::
 	bats ./test/htd-spec.bats
 
 test_other_bats_$d::
-	bats ./test/{basename-reg,box,box.lib,helper,main,mimereg,str,util-lib,dckr}-spec.bats
+	@failed=/tmp/$@.failed; test ! -e $$failed || rm $$failed; \
+	$(shell hostname -s | tr 'a-z' 'A-Z')_SKIP=1; \
+	for x in ./test/{basename-reg,box,box.lib,helper,main,mimereg,str,util-lib,dckr}-spec.bats; \
+	do \
+		echo Running Bats spec: $$x;bats $$x || echo $$x>>$$failed; \
+	done; \
+	test ! -e $$failed || { echo Failed specs in files:; cat $$failed; rm $$failed; exit 1; }
+
 
 # Make SA do a test on the repo
 DB_SQLITE_TEST=.test/db.sqlite

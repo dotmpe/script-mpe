@@ -11,39 +11,39 @@ test_lib=$lib/test/main.inc
 
 @test "${lib}/${base} - box-script-insert-point should return the line before std script functions" {
 
-  check_skipped_envs simza vs1 travis || skip "FIXME broken after main.sh rewrite"
-  script_name=mytest
-  run box_script_insert_point $test_lib.bash main myscript
-
-  test ${status} -eq 0
-  test "${lines[*]}" = "22"
-  test "${#lines[@]}" = "1" # lines of output (stderr+stderr)
-
-  run box_script_insert_point $test_lib.bash load
+# XXX:  check_skipped_envs simza vs1 travis || skip "FIXME broken after main.sh rewrite"
+  run box_script_insert_point $test_lib.bash load mytest
 
   test ${status} -eq 0
   test "${lines[*]}" = "27"
   test "${#lines[@]}" = "1" # lines of output (stderr+stderr)
 
-  # XXX test does not include setting prefix, this'll work though
-  script_name=c_mytest
-  run box_script_insert_point $test_lib.bash run
+  run box_script_insert_point $test_lib.bash run c_mytest
 
   test ${status} -eq 0
+  echo "${lines[*]}" >/tmp/1
   test "${lines[*]}" = "16"
   test "${#lines[@]}" = "1" # lines of output (stderr+stderr)
+
+  # FIXME test does not include setting prefix, this'll work though
+#  script_name=c_mytest
+#  run box_script_insert_point $test_lib.bash 
+#
+#  test ${status} -eq 0
+#  test "${lines[*]}" = "16"
+#  test "${#lines[@]}" = "1" # lines of output (stderr+stderr)
 }
 
 
 @test "${lib}/${base} - box-grep should detect sentinel lines, and set env or return 1. No output. " {
 
-  script_name=mytest
-  subcmd=main
+  base=mytest
+  subcmd=load
   where_line=
-  where_grep='.*#.--.'${script_name}'.box.*'${subcmd}'.sentinel.--'
+  where_grep='.*#.--.'${base}'.box.*'${subcmd}'.sentinel.--'
   box_grep $where_grep $test_lib.bash
   r=$?
-  test "${where_line}" = "30:  # -- mytest box include main sentinel --"
+  test "${where_line}" = "30:  # -- mytest box $subcmd sentinel --"
   test $r -eq 0
 
   # again without where_line export
@@ -66,6 +66,7 @@ test_lib=$lib/test/main.inc
 
   check_skipped_envs || \
     skip "TODO envs $envs: implement lib (test) for env"
+
   #echo ${status} > /tmp/1
   #echo "${lines[*]}" >> /tmp/1
   test -n "${status}" || test -z "run it first!"
