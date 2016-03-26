@@ -37,6 +37,7 @@ before_script:
 - hostname
 
 script:
+- echo $TRAVIS_SKIP
 - './tools/ci/build.sh'
 
 branches:
@@ -47,10 +48,15 @@ branches:
   - '/^[0-9]*\.[0-9]*\.[0-9]*/'
 
 env:
-- ENV= CS=dark TRAVIS_SKIP=1 \
-  UCONFDIR=$HOME/etc \
-  PATH=$PATH:$HOME/bin:$HOME/usr/bin:$HOME/.local/bin/ \
-  PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
+  global:
+    - CS=dark
+    - $(whoami | tr 'a-z' 'A-Z')_SKIP=1
+    - UCONFDIR=$HOME/etc
+    - PATH=$PATH:$HOME/bin:$HOME/usr/bin:$HOME/.local/bin/
+    - PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
+  matrix:
+  - ENV= 
+  
 
 #- ENV=testing
 #- ENV=production

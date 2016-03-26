@@ -708,6 +708,9 @@ pd__load()
     touch -t $tdate $today
   }
 
+  PWD=$(pwd -P)
+  PATH=$PWD:$PATH
+
   hostname=$(hostname -s)
   uname=$(uname)
 
