@@ -131,7 +131,7 @@ std_help()
 
     # Specific help (subcmd, maybe file-format other doc, or a TODO: group arg)
     echo "Usage: "
-    echo "  $base $(try_spec $1) "
+    echo "  $base $(try_spec $1 $base) "
     printf "Help '$1': "
     echo_help "$1" || error "no help '$1'"
   }

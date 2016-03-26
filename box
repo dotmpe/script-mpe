@@ -34,13 +34,13 @@ c_help()
 #   auto-completion. Need to work out man5 and man7 stuff still. Save lot of
 #   clutter.
 c_man_1_help="Echo a combined usage, commands and docs"
-c_spc_help="-h|help [<id>]"
+box_spc_help="-h|help [<id>]"
 c_als__h="help"
 
 
 c_als__V=version
 c_man_1_version="Version info"
-c_spc_version="-V|version"
+box_spc_version="-V|version"
 c_version()
 {
   echo "$(cat $PREFIX/bin/.app-id)/$version"
@@ -48,7 +48,7 @@ c_version()
 
 
 c_man_1_stat="Stat local host script file"
-c_spc_stat="-S|stat"
+box_spc_stat="-S|stat"
 c_als__S=stat
 c_stat()
 {
@@ -67,7 +67,7 @@ c_stat()
 
 
 c_man_1_edit="Edit localscript and box script or abort. "
-c_spc_edit="-e|edit [<name>:]<script>"
+box_spc_edit="-e|edit [<name>:]<script>"
 c_edit()
 {
   local c=0 script_files= \
@@ -107,7 +107,7 @@ c_als__e="edit"
 
 
 c_man_1_edit_main="Edit box script and local scripts. "
-c_spc_edit_main="-E|edit-main"
+box_spc_edit_main="-E|edit-main"
 c_edit_main()
 {
   local c=0 script_files= \
@@ -134,7 +134,7 @@ c_als__E=edit-main
 # FIXME: expect this is broken
 c_als__i=init
 c_main_1_init="Add script function, optionally providing command and script name"
-c_spc_init="-i|init [<cmd>=run [<name>=$hostname]]"
+box_spc_init="-i|init [<cmd>=run [<name>=$hostname]]"
 c_init()
 {
   local c=0 script_name= subcmd= \
@@ -224,7 +224,7 @@ EOF
 # FIXME new script
 
 c_main_1_new="Initialize new script"
-c_spc_new="-n|new [<name>=$hostname]"
+box_spc_new="-n|new [<name>=$hostname]"
 c_als__n=new
 c_new()
 {
@@ -252,7 +252,7 @@ EOF
 
 
 c_main_1_function="Initialize function for current location"
-c_spc_function="-n|function [[<name>=$hostname] <cmd>=run]"
+box_spc_function="-n|function [[<name>=$hostname] <cmd>=run]"
 c_function()
 {
   local name= cmd=run c=0
@@ -264,7 +264,7 @@ c_als__f=function
 
 
 c_man_1_list="."
-c_spc_list="list <Name>"
+box_spc_list="list <Name>"
 c_list()
 {
   test -z "$dry_run" || {
@@ -279,7 +279,7 @@ c_als__l=list
 
 
 c_man_1_list_libs="List includes for script."
-c_spc_list_libs="list-libs"
+box_spc_list_libs="list-libs"
 c_list_libs()
 {
   local c=0 script_files= \
@@ -311,7 +311,7 @@ c_man_1_run="Run local or global function.
 
 For local, require localscript and exec. given function.
 "
-c_spc_run="-r|run [<cmd>=run [<name>=$hostname]]"
+box_spc_run="-r|run [<cmd>=run [<name>=$hostname]]"
 c_run()
 {
   local c=0 \
@@ -375,7 +375,7 @@ c_als__c=run
 
 
 c_man_1_complete="Testing bash complete with sh compatible script."
-c_spc_complete=complete
+box_spc_complete=complete
 c_complete()
 {
   cmds=""
@@ -383,7 +383,7 @@ c_complete()
 
 
 c_man_1_check_install="Run internal tests."
-c_spc_check_install=check-install
+box_spc_check_install=check-install
 c_check_install()
 {
   {

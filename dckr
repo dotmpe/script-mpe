@@ -7,8 +7,8 @@ version=0.0.0+20150911-0659 # script.mpe
 
 
 
-dckr__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-dckr__spc_help='-h|help [ID]'
+dckr_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+dckr_spc__help='-h|help [ID]'
 dckr__help()
 {
   choice_global=1 std_help dckr "$@"
@@ -18,14 +18,14 @@ dckr__als__h=help
 
 dckr__als__V=version
 dckr__man_1_version="Version info"
-dckr__spc_version="-V|version"
+dckr_spc__version="-V|version"
 dckr__version()
 {
   echo "$(cat $PREFIX/bin/.app-id)/$version"
 }
 
 dckr__man_1_edit_main="Edit the main script file"
-dckr__spc_edit_main="-E|edit-main"
+dckr_spc__edit_main="-E|edit-main"
 dckr__edit_main()
 {
   locate_name $scriptname || exit "Cannot find $scriptname"
@@ -36,7 +36,7 @@ dckr__als__E=edit-main
 
 
 dckr__man_1_edit_local="Edit local script TODO docker conf.."
-dckr__spc_edit_main="-e|edit-local"
+dckr_spc__edit_main="-e|edit-local"
 dckr__edit_local()
 {
   locate_name $scriptname || exit "Cannot find $scriptname"
@@ -221,7 +221,7 @@ dckr__ps()
 }
 
 dckr__man_1_stop="Stop container for image. "
-dckr__spc_stop="stop <image-name>"
+dckr_spc__stop="stop <image-name>"
 dckr__stop()
 {
   test -e './vars.sh' \
@@ -256,7 +256,7 @@ dckr__names()
 }
 
 dckr__man_1_c="Get container ID"
-dckr__spc_c="c <image-name>"
+dckr_spc__c="c <image-name>"
 dckr__c()
 {
   image_name=$1
@@ -264,7 +264,7 @@ dckr__c()
 }
 
 dckr__man_1_ip="List IP for one or all running containers."
-dckr__spc_ip="ip [<image-name>]"
+dckr_spc__ip="ip [<image-name>]"
 dckr__ip()
 {
   test -n "$1" && {
@@ -279,7 +279,7 @@ dckr__ip()
 }
 
 dckr__man_1_destroy="Clean given container names. "
-dckr__spc_destroy='[-f] destroy'
+dckr_spc__destroy='[-f] destroy'
 dckr__destroy()
 {
   local f= ; test -n "$choice_force" || f="-f"
@@ -312,7 +312,7 @@ dckr__dnsmasq_update()
 
 # get image name from vars or cmdline, and start build (in current dir)
 dckr__man_1_build="Do a simple docker build invocation (in cwd)"
-dckr__spc_build="build [<image-name>]"
+dckr_spc__build="build [<image-name>]"
 dckr__build()
 {
   test -z "$1" -a -e './vars.sh' \
@@ -328,7 +328,7 @@ dckr__build()
 
 # start new container for image, and (re)run initialization scripts
 dckr__man_1_init="Do a standard run+init for an image. "
-dckr__spc_init="init [<flags> <dckr-cmd> <image-name>]"
+dckr_spc__init="init [<flags> <dckr-cmd> <image-name>]"
 dckr__init()
 {
   test -e './vars.sh' \
