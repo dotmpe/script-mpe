@@ -530,6 +530,7 @@ pd__run()
   case "$1" in
 
     '*' | bats-specs )
+        which bats
         PATH=$PATH:/usr/local/libexec/
         count=0
         for x in ./test/*-spec.bats
