@@ -523,7 +523,41 @@ pd__copy()
     >> ~/project/projects.yaml
 }
 
+pd_run__run=f
+pd__run()
+{
+  test -n "$1" || error "argument expected" 1
+  case "$1" in
 
+    '*' | bats-specs )
+        PATH=$PATH:/usr/local/libexec/
+        count=0
+        for x in ./test/*-spec.bats
+        do
+          bats-exec-test -c "$x" >/dev/null || error "Bats source not ok: cannot load $x" 1
+          incr count
+        done
+        note "$count Specs OK"
+      ;;
+    '*' | bats )
+        { bats ./test/*-spec.bats || echo $1>>$failed; } | bats-color.sh
+      ;;
+
+    '*' | mk-test )
+        make test || echo $1>>$failed
+      ;;
+
+    '*' | git-versioning )
+        git-versioning check || echo $1>>$failed
+      ;;
+
+    * )
+      error "No such test type $1" 1
+      ;;
+  esac
+}
+
+pd_run__test=f
 pd__test()
 {
   for pd_test in pd-test{,.sh}
@@ -534,24 +568,60 @@ pd__test()
       return $?
     }
   done
-  test "$(echo test/*-spec.bats)" != "test/*-spec.bats" && {
-    note "Using Bats"
-    PATH=$PATH:/usr/local/libexec/
-    count=0
-    for x in ./test/*-spec.bats
-    do
-      bats-exec-test -c "$x" >/dev/null || error "Bats source not ok: cannot load $x" 1
-      incr count
-    done
-    note "$count Specs OK"
-    bats ./test/*-spec.bats | bats-color.sh
-    return $?
+
+
+  test -n "$1" || {
+    test -e .pd-test && {
+      set -- $(cat .pd-test)
+    }
   }
-  test -e Makefile && {
-    note "Using make test"
-    make test
-    return $?
+
+  test -n "$1" || {
+    test "$(echo test/*-spec.bats)" != "test/*-spec.bats" && {
+      note "Using Bats"
+      set -- "bats-specs" "bats"
+    }
   }
+  test -n "$1" || {
+    test -e Makefile && {
+      note "Using make test"
+      set -- "mk-test"
+    }
+  }
+
+  while test -n "$1"
+  do
+    pd__run $1 || echo $1>>$failed
+    shift
+  done
+}
+
+pd_run__check=f
+pd__check()
+{
+  for pd_check in pd-check{,.sh}
+  do
+    test -e $pd_check && {
+      note "Using $pd_check"
+      ./pd-check
+      return $?
+    }
+  done
+
+  test -n "$1" || {
+    test -e .pd-check && {
+      set -- $(cat .pd-check)
+    }
+  }
+  test -n "$1" || {
+    test -e .versioned-files && set -- "git-versioning" "$@"
+  }
+
+  while test -n "$1"
+  do
+    pd__run $1 || echo $1>>$failed
+    shift
+  done
 }
 
 
@@ -652,6 +722,9 @@ pd__unload()
           def_subcmd func_exists func
 
   test -z "$failed" -o ! -e "$failed" || {
+    test -s "$failed" && {
+      warn "Failed: "$(cat $failed)
+    }
     rm $failed
     unset failed
     return 1
