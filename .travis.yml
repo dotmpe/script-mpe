@@ -37,11 +37,7 @@ before_script:
 - hostname
 
 script:
-- './test/*-spec.bats'
-- htd version
-#- ./basename-reg ffnnec.py
-#- ./mimereg ffnenc.py
-# FIXME make -k test
+- './tools/ci/build.sh'
 
 branches:
   only:
@@ -58,3 +54,12 @@ env:
 #- ENV=testing
 #- ENV=production
 
+#deploy:
+#  provider: releases
+#  api_key: $GH_ACCESS_TOKEN
+#  file: script-mpe-$TRAVIS_TAG.tar
+#  on:
+#    repo: dotmpe/script.mpe
+#    tags: true
+#    condition: $ENV = production
+#
