@@ -50,7 +50,7 @@ branches:
 env:
   global:
     - CS=dark
-    - $(whoami | tr 'a-z' 'A-Z')_SKIP=1
+    - TRAVIS_SKIP=1
     - UCONFDIR=$HOME/etc
     - PATH=$PATH:$HOME/bin:$HOME/usr/bin:$HOME/.local/bin/
     - PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
