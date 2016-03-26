@@ -530,7 +530,6 @@ pd__run()
   case "$1" in
 
     '*' | bats-specs )
-        which bats
         case "$(whoami)" in
           travis )
             PATH=$PATH:/home/travis/usr/libexec/
