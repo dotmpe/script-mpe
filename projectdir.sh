@@ -531,7 +531,14 @@ pd__run()
 
     '*' | bats-specs )
         which bats
-        PATH=$PATH:/usr/local/libexec/
+        case "$(whoami)" in
+          travis )
+            PATH=$PATH:/home/travis/usr/libexec/
+            ;;
+          * )
+            PATH=$PATH:/usr/local/libexec/
+            ;;
+        esac
         count=0
         for x in ./test/*-spec.bats
         do
