@@ -2917,9 +2917,9 @@ htd_lib()
 }
 
 # Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-*" ) ;; * )
+case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   case "$1" in load-ext ) ;; * )
     htd__main "$@"
-  esac
-esac
+  ;; esac
+;; esac

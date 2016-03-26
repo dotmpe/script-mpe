@@ -266,7 +266,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   case "$1" in load-ext ) ;; * )
 
-    match__main "$@"
+    match__main "$@" ;;
 
   esac
   ;;

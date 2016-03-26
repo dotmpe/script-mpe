@@ -811,7 +811,7 @@ pd__main()
   esac
 }
 
-case "$0" in "" ) ;; "-*" ) ;; * )
+case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
   # XXX arguments to source are working on Darwin 10.8.5, not Linux?

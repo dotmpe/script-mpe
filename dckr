@@ -940,6 +940,6 @@ dckr_load()
 }
 
 # Use hyphen to ignore source exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
+case "$0" in "" ) ;; "-"* ) ;; * )
   dckr__main "$@"
-fi
+;; esac
