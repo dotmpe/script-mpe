@@ -2,15 +2,14 @@
 
 set -e
 
-test -n "$PREFIX" || PREFIX=$HOME
-
+test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
 
 #TERM=xterm
-. $PREFIX/bin/os.lib.sh
-. $PREFIX/bin/match.sh load-ext
-. $PREFIX/bin/std.lib.sh
-. $PREFIX/bin/str.lib.sh
-. $PREFIX/bin/doc.lib.sh
+. $LIB/os.lib.sh
+. $LIB/match.sh load-ext
+. $LIB/std.lib.sh
+. $LIB/str.lib.sh
+. $LIB/doc.lib.sh
 
 
 # test for var decl, io. to no override empty

@@ -88,13 +88,13 @@ rst__main()
 rst_init()
 {
   test -z "$BOX_INIT" || return 1
-  test -n "$PREFIX" || PREFIX=$HOME
-  . $PREFIX/bin/box.init.sh
-  . $PREFIX/bin/box.lib.sh
+  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+  . $LIB/box.init.sh
+  . $LIB/box.lib.sh
   box_run_sh_test
-  . $PREFIX/bin/util.sh
-  . $PREFIX/bin/main.sh
-  . $PREFIX/bin/main.init.sh
+  . $LIB/util.sh
+  . $LIB/main.sh
+  . $LIB/main.init.sh
   # -- rst box init sentinel --
 }
 

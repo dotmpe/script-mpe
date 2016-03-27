@@ -1,0 +1,4 @@
+git-versioning
+bats-specs bats
+sh:./tools/ci/docker.sh:sandbox-bats
+#TODO: sh:./tools/ci/docker.sh:treebox

@@ -2896,15 +2896,15 @@ htd__main()
 htd_init()
 {
   test -z "$__load_lib" || return 1
-  test -n "$PREFIX" || PREFIX=$HOME
-  . $PREFIX/bin/box.init.sh
-  . $PREFIX/bin/util.sh
+  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+  . $LIB/box.init.sh
+  . $LIB/util.sh
   box_run_sh_test
-  . $PREFIX/bin/htd.lib.sh
-  . $PREFIX/bin/main.sh
-  . $PREFIX/bin/main.init.sh
-  . $PREFIX/bin/box.lib.sh
-  . $PREFIX/bin/date.lib.sh
+  . $LIB/htd.lib.sh
+  . $LIB/main.sh
+  . $LIB/main.init.sh
+  . $LIB/box.lib.sh
+  . $LIB/date.lib.sh
   # -- htd box init sentinel --
 }
 

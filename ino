@@ -261,15 +261,15 @@ ino_main()
 
 ino_init()
 {
-  test -n "$PREFIX" || PREFIX=$HOME
   test -z "$BOX_INIT" || return 1
-  . $PREFIX/bin/box.init.sh
-  . $PREFIX/bin/util.sh
+  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+  . $LIB/box.init.sh
+  . $LIB/util.sh
   box_run_sh_test
-  . $PREFIX/bin/main.sh
-  . $PREFIX/bin/main.init.sh
-  . $PREFIX/bin/box.lib.sh
-  . $PREFIX/bin/htd load-ext
+  . $LIB/main.sh
+  . $LIB/main.init.sh
+  . $LIB/box.lib.sh
+  . $LIB/htd load-ext
 }
 
 ino_lib()

@@ -14,9 +14,11 @@ vc_load()
 {
   local __load_lib=1
 
+  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+
 #. ~/.conf/bash/git-completion.bash
 
-  . ~/bin/util.sh load-ext
+  . $LIB/util.sh load-ext
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
   str_load

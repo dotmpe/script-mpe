@@ -210,6 +210,18 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 }
 
 
+@test "$lib truncate_trailing_lines: " {
+
+  echo
+  tmpd
+  out=$tmpd/truncate_trailing_lines
+  printf "1\n2\n3\n4" >$out
+  test -s "$out"
+  ll="$(truncate_trailing_lines $out 1)"
+  test -n "$ll"
+  test "$ll" = "4"
+}
+
 @test "$lib line_count: " {
 
   tmpd
@@ -226,17 +238,6 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
   #uname=$(uname -s)
   #printf "1\r" >$out
   #test -n "$(line_count $out)"
-}
-
-@test "$lib truncate_trailing_lines: " {
-
-  tmpd
-  out=$tmpd/truncate_trailing_lines
-  printf "1\n2\n3\n4" >$out
-  test -s "$out"
-  ll="$(truncate_trailing_lines $out 1)"
-  test -n "$ll"
-  test "$ll" = "4"
 }
 
 

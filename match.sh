@@ -224,13 +224,13 @@ match__main()
 
   case "$base" in $scriptname )
 
-      match_lib || return 0
+      match_lib || return $(( $? - 1 ))
 
       local subcmd_def= scsep=_ \
         subcmd_pref=${base} subcmd_suf= \
         subcmd_func_pref=${base}_ subcmd_func_suf=
 
-      match_init
+      match_init || return $?
 
       # Execute
       run_subcmd "$@"
@@ -242,20 +242,21 @@ match__main()
 match_lib()
 {
   test -z "$__load_lib" || return 1
-  test -n "$PREFIX" || PREFIX=$HOME
-  . $PREFIX/bin/box.init.sh
-  . $PREFIX/bin/util.sh
+  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+  . $LIB/util.sh
+  . $LIB/box.init.sh
   box_run_sh_test
-  . $PREFIX/bin/main.sh "$@"
-  . $PREFIX/bin/main.init.sh
-  . $PREFIX/bin/box.lib.sh "$@"
+  . $LIB/main.sh "$@"
+  . $LIB/main.init.sh
+  . $LIB/box.lib.sh "$@"
   # -- match box init sentinel --
 }
 
 match_init()
 {
   local __load_lib=1
-  . $PREFIX/bin/match.lib.sh "$@"
+  test -n "$LIB" || return 13
+  . $LIB/match.lib.sh "$@"
   # -- match box lib sentinel --
   set --
 }
@@ -266,7 +267,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   case "$1" in load-ext ) ;; * )
 
-    match__main "$@" ;;
+    match__main "$@" || exit $? ;;
 
   esac
   ;;

@@ -109,14 +109,15 @@ gv_init()
 gv_preload()
 {
   local __load_lib=1
-  . ~/bin/std.sh
-  . ~/bin/main.sh
-  . ~/bin/util.sh
-  . ~/bin/graphviz.inc.sh "$@"
-  . ~/bin/os.lib.sh
-  . ~/bin/date.lib.sh
-  . ~/bin/match.sh load-ext
-  . ~/bin/vc.sh load-ext
+  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+  test -n "$BIN" || { test -n "$PREFIX" && { BIN=$PREFIX/lib; } || { BIN=.; } }
+  . $LIB/main.sh
+  . $LIB/util.sh
+  . $LIB/graphviz.inc.sh "$@"
+  . $LIB/os.lib.sh
+  . $LIB/date.lib.sh
+  . $BIN/match.sh load-ext
+  . $BIN/vc.sh load-ext
   test -n "$verbosity" || verbosity=6
   # -- gv box init sentinel --
 }

@@ -10,6 +10,7 @@ pd__edit()
     $(which projectdir-meta) \
     "$@"
 }
+#pd__als__e=edit
 
 pd_run__meta=y
 # Defer to python script for YAML parsing
@@ -547,7 +548,13 @@ pd__run()
         note "$count Specs OK"
       ;;
     '*' | bats )
-        { bats ./test/*-spec.bats || echo $1>>$failed; } | bats-color.sh
+        export $(hostname -s | tr 'A-Z.-' 'a-z__')_SKIP=1
+        { ./test/*-spec.bats || echo $1>>$failed; } | bats-color.sh
+        #for x in ./test/*-spec.bats;
+        #do
+        #  bats $x || echo $x >> $failed
+        #done
+        # ./test/*-spec.bats || { echo $1>>$failed; }
       ;;
 
     '*' | mk-test )
@@ -558,10 +565,18 @@ pd__run()
         git-versioning check || echo $1>>$failed
       ;;
 
+    sh:* )
+        local cmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
+        info "Using Sh '$cmd'"
+        sh -c "$cmd" || echo $1>>$failed
+        info "Returned $?"
+      ;;
+
     * )
-      error "No such test type $1" 1
+        error "No such test type $1" 1
       ;;
   esac
+  test ! -e $failed || return 1
 }
 
 pd_run__test=f
@@ -579,7 +594,7 @@ pd__test()
 
   test -n "$1" || {
     test -e .pd-test && {
-      set -- $(cat .pd-test)
+      set -- $(echo "$(read_nix_style_file .pd-test)")
     }
   }
 
@@ -596,9 +611,15 @@ pd__test()
     }
   }
 
+  r=0
   while test -n "$1"
   do
-    pd__run $1 || echo $1>>$failed
+    info "Test to run: $1"
+    pd__run $1 || { r=$?; echo $1>>$failed; }
+    info "Test returned ($r)"
+    test 0 -eq $r || {
+      trueish $choice_force || return $r
+    }
     shift
   done
 }
@@ -626,7 +647,9 @@ pd__check()
 
   while test -n "$1"
   do
-    pd__run $1 || echo $1>>$failed
+    info "Check to run: $1"
+    pd__run $1 || { r=$?; echo $1>>$failed; }
+    info "Check returned ($r)"
     shift
   done
 }
@@ -733,7 +756,12 @@ pd__unload()
 
   test -z "$failed" -o ! -e "$failed" || {
     test -s "$failed" && {
-      warn "Failed: "$(cat $failed)
+      count="$(sort -u $failed | wc -l | awk '{print $1}')"
+      test "$count" -gt 2 && {
+        warn "Failed: $(echo $(sort -u $failed | head -n 3 )) and $(( $count - 3 )) more"
+      } || {
+        warn "Failed: $(echo $(sort -u $failed))"
+      }
     }
     rm $failed
     unset failed
@@ -744,9 +772,10 @@ pd__unload()
 pd__lib()
 {
   test -z "$__load_lib" || return 1
-  . ~/bin/util.sh
-  . ~/bin/main.sh
-  . ~/bin/projectdir.inc.sh "$@"
+  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+  . $LIB/util.sh
+  . $LIB/main.sh
+  . $LIB/projectdir.inc.sh "$@"
   # -- pd box init sentinel --
 
   #. ~/bin/std.sh
@@ -756,11 +785,11 @@ pd__lib()
 pd_init()
 {
   local __load_lib=1
-  . ~/bin/box.lib.sh
-  . ~/bin/os.lib.sh
-  . ~/bin/date.lib.sh
-  . ~/bin/match.sh load-ext
-  . ~/bin/vc.sh load-ext
+  . $LIB/box.lib.sh
+  . $LIB/os.lib.sh
+  . $LIB/date.lib.sh
+  . $LIB/match.sh load-ext
+  . $LIB/vc.sh load-ext
   # -- pd box lib sentinel --
 }
 
@@ -793,7 +822,7 @@ pd__main()
 
         shift $c
 
-        pd_init
+        pd_init || exit $?
 
         try_subcmd && {
           box_src_lib pd
