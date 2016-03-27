@@ -11,3 +11,19 @@ On Linux, manual pages are divided into sections:
 
 From: Linux Programmer's Manual; man7.org
 
+
+htd rule-target
+  - annotate :case
+
+  p:*
+    - enables PERIOD
+    - provides tdate
+
+    .. scan the source file for the case and its match globs
+      these validate any input choice. provides gives the varname
+
+  d:* )
+    - enabled DOMAIN
+    - provides
+
+

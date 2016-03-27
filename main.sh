@@ -457,14 +457,18 @@ main_parse_subcmd()
 main_load()
 {
   local r=
-  try_exec_func load || {
+  try_exec_func load && {
+    debug "Standard load OK"
+  } || {
     # f
     r=$?; test -n "$1" || {
       test $1 -eq 0 || error "std load failed" $r
     }
   }
   test -n "$1" || return
-  try_exec_func ${1}_load || {
+  try_exec_func ${1}__load && {
+    debug "Load $1 OK"
+  } || {
     test -z "$r" || {
       test $r -eq 0 || error "std and ${1} load failed" 1
     }
@@ -504,6 +508,9 @@ run_subcmd()
 
   main_init
 
+      local scsep=__
+  test -n "$subcmd_func_pref" || subcmd_func_pref=${base}${scsep}
+
   main_parse_subcmd "$@"
   test $c -gt 0 && shift $c ; c=0
   main_debug $*
@@ -511,6 +518,7 @@ run_subcmd()
   main_load $base
   debug "$base loaded"
 
+  #echo subcmd_func=$subcmd_func
   func_exists $subcmd_func || {
     debug "no such subcmd-func $subcmd_func"
     try_exec_func ${base}_usage || std_usage

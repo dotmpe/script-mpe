@@ -222,5 +222,11 @@ Dev
   at the other end, various subcmds in htd, pd and others would be candidate to
   run packaged scripts. and other projects too.
 
+- Should generate script/annotation for specific sh constructs:
+  bats, scripts packaged into case's, boxed user-scripts maybe.
+
+  Making some notes in projectdir.rst and htd.rst.
+  Also maybe some stuff from htd rules/components should be consolidated at some point
+  to clean things up.
 
 
