@@ -21,31 +21,23 @@ before_script:
 - 'projectdir.sh help'
 - 'vc.sh help'
 - htd help
-
 #- 'npm install parse-torrent lodash'
-  #- 'pip install --user docutils'
-  #- 'pip install --user PyYAML'
-  #- 'pip install --user zope.interface'
-  #- 'pip install --user zope.component'
-  #- 'pip install --user jsonschema'
-  #- 'pip install --user sqlalchemy'
-  #- 'pip install --user sqlalchemy-migrate'
-  #- 'rm $HOME/bin && ln -s /home/travis/build/dotmpe/script.mpe $HOME/bin'
-  #- 'box version && box -V'
-  #- 'touch /home/travis/.basename-reg.yaml'
-  #- whoami
-  #- hostname
+#- 'pip install --user docutils'
+#- 'pip install --user PyYAML'
+#- 'pip install --user zope.interface'
+#- 'pip install --user zope.component'
+#- 'pip install --user jsonschema'
+#- 'pip install --user sqlalchemy'
+#- 'pip install --user sqlalchemy-migrate'
+- 'rm $HOME/bin && ln -s /home/travis/build/dotmpe/script.mpe $HOME/bin'
+#- 'box version && box -V'
+#- 'touch /home/travis/.basename-reg.yaml'
+- whoami
+- hostname
 
 script:
 - echo $TRAVIS_SKIP
-- './tools/ci/build.sh'
-
-branches:
-  only:
-  - master
-  - '/^test.*$/'
-  - '/^dev.*$/'
-  - '/^[0-9]*\.[0-9]*\.[0-9]*/'
+- ./tools/ci/build.sh
 
 env:
   global:
@@ -56,10 +48,15 @@ env:
     - PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
   matrix:
   - ENV= 
-  
-
 #- ENV=testing
 #- ENV=production
+
+branches:
+  only:
+  - master
+  - '/^test.*$/'
+  - '/^dev.*$/'
+  - '/^[0-9]*\.[0-9]*\.[0-9]*/'
 
 #deploy:
 #  provider: releases
