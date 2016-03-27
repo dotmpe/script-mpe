@@ -539,13 +539,14 @@ pd__run()
             PATH=$PATH:/usr/local/libexec/
             ;;
         esac
-        count=0
+        count=0; specs=0
         for x in ./test/*-spec.bats
         do
-          bats-exec-test -c "$x" >/dev/null || error "Bats source not ok: cannot load $x" 1
+          local s=$(bats-exec-test -c "$x" || error "Bats source not ok: cannot load $x" 1)
+          incr specs $s
           incr count
         done
-        note "$count Specs OK"
+        note "$specs specs, $count spec-files OK"
       ;;
     '*' | bats )
         export $(hostname -s | tr 'A-Z.-' 'a-z__')_SKIP=1
