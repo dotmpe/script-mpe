@@ -24,7 +24,7 @@ case "$ENV" in
        match.sh help
        match.sh -h
        match.sh -h help
-       projectdir.sh test
+       projectdir.sh test bats-specs bats
        #- ./basename-reg ffnnec.py
        #- ./mimereg ffnenc.py
 
