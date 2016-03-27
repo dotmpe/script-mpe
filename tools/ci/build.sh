@@ -20,12 +20,12 @@ case "$ENV" in
 
    * )
        #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
-       htd version
-       match.sh help
-       match.sh -h
-       match.sh -h help
-       ./projectdir.sh run bats-specs
        #bats
+       #./projectdir.sh run bats-specs
+       ./htd version
+       #match.sh help
+       #match.sh -h
+       #match.sh -h help
        #- ./basename-reg ffnnec.py
        #- ./mimereg ffnenc.py
 
