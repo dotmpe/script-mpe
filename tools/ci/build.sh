@@ -26,6 +26,7 @@ case "$ENV" in
        #bats
        #./projectdir.sh run bats-specs
       . ./util.sh
+      . ./main.sh
       main_debug
        #match.sh help
        #match.sh -h
