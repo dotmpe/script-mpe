@@ -25,7 +25,8 @@ case "$ENV" in
        #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
        #bats
        #./projectdir.sh run bats-specs
-      #./htd version
+      . ./util.sh
+      main_debug
        #match.sh help
        #match.sh -h
        #match.sh -h help
