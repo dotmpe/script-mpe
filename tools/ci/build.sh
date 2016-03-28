@@ -34,14 +34,14 @@ case "$ENV" in
       #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
       #bats
 
-       ./basename-reg --help
-       #- ./basename-reg ffnnec.py
-       #- ./mimereg ffnenc.py
+      ./basename-reg --help
+      #- ./basename-reg ffnnec.py
+      #- ./mimereg ffnenc.py
 
-        ./matchbox.py help
-       ./libcmd_stacked.py -h
-       ./radical.py --help
-       ./radical.py -vv -h
+       ./matchbox.py help
+      ./libcmd_stacked.py -h
+      ./radical.py --help
+      ./radical.py -vv -h
 
 
       #./projectdir.sh test bats-specs bats || exit $?
