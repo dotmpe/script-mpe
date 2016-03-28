@@ -17,7 +17,8 @@ vc_load()
 
 #. ~/.conf/bash/git-completion.bash
 
-  . $LIB/util.sh load-ext
+  . $LIB/util.sh
+  . $LIB/match.lib.sh
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
   str_load

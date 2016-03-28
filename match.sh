@@ -27,66 +27,8 @@ match__var_names()
 }
 
 
-match_load_defs()
-{
-  MATCH_NAME_VARS="$MATCH_NAME_VARS $(echo $(grep '^match_[A-Z_][A-Z0-9_]*=.*' $1 |
-    sed 's/^match_\([^=]*\)=.*$/\1/g'))"
-  # read in as array? try to clean dupes? overrides?
-  #echo MATCH_NAME_VARS_new=$MATCH_NAME_VARS_new
-  #read -ra MATCH_NAME_VARS<<<$(printf '%s\n' "$MATCH_NAME_VARS_new" |
-  #  awk -v RS='[[:space:]]+' '!a[$0]++{printf "%s%s", $0, RT}')
 
-  trueish "$silent" || note "Loading $1"
-  . $1
-}
-
-# To escape filenames and perhaps other values for use as grep literals
-match_grep_pattern_test()
-{
-  p_="$(echo "$1" | sed -E 's/([^A-Za-z0-9{}(),!@+_])/\\\1/g')"
-  # test regex
-  echo "$1" | grep "^$p_$" >> /dev/null || {
-    error "cannot build regex for $1: $p_"
-    echo "$p" > invalid.paths
-    return 1
-  }
-}
-
-# sed/grep tricks to get name parts, find mismatches, matches,
-# parse metadata or reformat paths, etc
-match_name_pattern()
-{
-  local pat var
-  match_grep_pattern_test "$1" || return 1
-  grep_pattern="$p_"
-  MATCH_NAME_VAR_matched=
-  for var in $MATCH_NAME_VARS
-  do
-    pat="$(eval echo "\$match_$var")"
-    echo "$@" | grep '@'$var > /dev/null && {
-      MATCH_NAME_VAR_matched="$(echo $MATCH_NAME_VAR_matched $var)"
-    } || {
-      continue
-    }
-    test -n "$2" -a "$2" = "$var" && {
-      grep_pattern="$(echo "$grep_pattern" |
-        sed 's/@'$var'/\('"$pat"'\)/g' |
-        sed 's/\([^\\]\)\([{}()?|]\)/\1\\\2/g' |
-        sed 's/\([^\\]\)\([{}()?|]\)/\1\\\2/g'
-      )"
-    } || {
-      #echo "pat=$pat"
-      grep_pattern="$(echo "$grep_pattern" |
-        sed 's/@'$var'/'"$pat"'/g' |
-        sed 's/\([^\\]\)\([{}()?.|]\)/\1\\\2/g' |
-        sed 's/\([^\\]\)\([{}()?.|]\)/\1\\\2/g'
-      )"
-    }
-    #echo "grep_pattern='$grep_pattern'"
-  done
-}
-
-match_name_pattern_test()
+match__name_pattern_test()
 {
   echo MATCH_NAME_VARS=$MATCH_NAME_VARS
   match_name_pattern "$1" "$2"
@@ -94,7 +36,7 @@ match_name_pattern_test()
   echo grep_pattern=$grep_pattern
 }
 
-match_name_pattern_opts()
+match__name_pattern_opts()
 {
   req_arg "$1" "match name-pattern-opts" 1 pattern && shift 1 || return 1
   for var_match in $MATCH_NAME_VARS
@@ -112,7 +54,7 @@ match__name_vars()
   req_arg "$1" "match name-vars" 1 pattern && shift 1 || return 1
   req_arg "$1" "match name-vars" 1 path && path="$@" || return 1
   local var2 vars
-  vars=$(match_name_pattern_opts "$pattern")
+  vars=$(match__name_pattern_opts "$pattern")
   match_name_pattern "$pattern"
   #echo grep_pattern=$grep_pattern
   #vars=$MATCH_NAME_VAR_matched
