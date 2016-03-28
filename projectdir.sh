@@ -800,7 +800,7 @@ pd_init()
   . $LIB/date.lib.sh
   . $LIB/doc.lib.sh
   . $LIB/table.lib.sh
-  . $LIB/vc.sh load-ext
+  . $LIB/vc.lib.sh
   # -- pd box lib sentinel --
 }
 
