@@ -9,6 +9,7 @@ install:
 addons:
   apt:
     packages:
+      - realpath
 # not needed    - tree
 # not allowed    - rhash
 
