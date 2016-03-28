@@ -41,7 +41,7 @@ case "$subcmd" in
 
   sandbox-check )
     $0 sandbox-init && {
-      $0 docker-exec "PATH=/opt/sandbox:\$HOME/bin:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; ./projectdir.sh check ; exit \$?" \
+      $0 docker-exec "LIB=/opt/sandbox; PATH=\$LIB:\$HOME/bin:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; ./projectdir.sh check ; exit \$?" \
         || r=$?
     }
     $0 sandbox-clean && info "container removed"  || r=$?
@@ -49,7 +49,7 @@ case "$subcmd" in
 
   sandbox-bats )
     $0 sandbox-init && {
-      $0 docker-exec "PATH=/opt/sandbox:\$HOME/bin:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; echo \$PATH; ( ./test/*-spec.bats | ./bats-color.sh ); exit \$?" \
+      $0 docker-exec "LIB=/opt/sandbox; PATH=\$LIB:\$HOME/bin:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; echo \$PATH; ( ./test/*-spec.bats | ./bats-color.sh ); exit \$?" \
         || r=$?
     }
     $0 sandbox-clean && info "container removed"  || r=$?
@@ -57,7 +57,7 @@ case "$subcmd" in
 
   sandbox-test )
     $0 sandbox-init && {
-      $0 docker-exec "PATH=/opt/sandbox:\$HOME/bin:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; echo \$PATH; ./projectdir.sh test ; exit \$?"
+      $0 docker-exec "LIB=/opt/sandbox; PATH=\$LIB:\$HOME/bin:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; echo \$PATH; ./projectdir.sh test ; exit \$?"
     }
     $0 sandbox-clean && info "container removed" || r=$?
     ;;
