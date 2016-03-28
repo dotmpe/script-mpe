@@ -2887,6 +2887,8 @@ htd_init()
   test -n "$LIB" || LIB=$HOME/bin
   . $LIB/std.lib.sh
   . $LIB/str.lib.sh
+  . $LIB/os.lib.sh
+  . $LIB/match.lib.sh
   . $LIB/util.sh
   . $LIB/box.init.sh
   box_run_sh_test
