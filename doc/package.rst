@@ -82,3 +82,12 @@ Configuration
   cllct
     Per volume metadata directory.
 
+
+
+.. _graphviz: http://www.graphviz.org/
+.. _maildir: http://en.wikipedia.org/wiki/Maildir
+.. _Transliterature Project: translit_
+.. _translit: http://transliterature.org/
+.. __: https://github.com/dotmpe/script.mpe/blob/master/WorkFlow.rst
+
+
