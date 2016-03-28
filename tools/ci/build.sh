@@ -31,12 +31,21 @@ case "$ENV" in
       ./match.sh -h
       ./match.sh -h help
 
+      #./projectdir.sh test bats-specs bats || exit $?
+      ./projectdir.sh test bats-specs bats
+#
+      #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
+      #bats
+
+       ./basename-reg --help
        #- ./basename-reg ffnnec.py
        #- ./mimereg ffnenc.py
 
-      ./projectdir.sh test bats-specs bats || exit $?
-      #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
-      #bats
+        ./matchbox.py help
+       ./libcmd_stacked.py -h
+       ./radical.py --help
+       ./radical.py -vv -h
+
 
 
 
