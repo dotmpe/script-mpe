@@ -30,9 +30,6 @@ case "$ENV" in
       ./match.sh help
       ./match.sh -h
       ./match.sh -h help
-
-      #./projectdir.sh test bats-specs bats || exit $?
-      ./projectdir.sh test bats-specs bats
 #
       #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
       #bats
@@ -46,6 +43,9 @@ case "$ENV" in
        ./radical.py --help
        ./radical.py -vv -h
 
+
+      #./projectdir.sh test bats-specs bats || exit $?
+      ./projectdir.sh test bats-specs bats
 
 
 
