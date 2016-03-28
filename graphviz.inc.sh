@@ -1,6 +1,5 @@
 #!/bin/sh
 # Created: 2016-01-24
-gv_inc__source=$_
 
 
 # Pre-run stage 2: parse argv
@@ -55,6 +54,7 @@ gv__load_subcmd()
 {
   test -n "$subcmd" || subcmd=$def_subcmd
   test -n "$subcmd" || error "no cmd or default" 1
+
   subcmd_func="$(try_local "$subcmd")"
 
   # Look for <base>_run__<subcmd> variable
@@ -95,7 +95,7 @@ gv__load_subcmd()
 }
 
 # Post-run: unset, cleanup
-gv__unload()
+gv_unload()
 {
   for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
   do case "$x" in

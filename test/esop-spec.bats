@@ -5,6 +5,8 @@ base=esop.sh
 
 init
 
+source $lib/util.sh
+source $lib/std.lib.sh
 source $lib/str.lib.sh
 
 #  echo "${lines[*]}" > /tmp/1
@@ -12,8 +14,14 @@ source $lib/str.lib.sh
 
 @test ". ${bin}" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 1
-  fnmatch "*esop.*not a frontend for*" "${lines[*]}"
+  test ${status} -eq 0
+  test -z "${lines[*]}" # empty output
+  run sh -c "$BATS_TEST_DESCRIPTION"
+  test ${status} -eq 0
+  test -z "${lines[*]}" # empty output
+  run bash -c "$BATS_TEST_DESCRIPTION"
+  test ${status} -eq 0
+  test -z "${lines[*]}" # empty output
 }
 
 @test ". ${bin} load-ext" {
@@ -24,8 +32,7 @@ source $lib/str.lib.sh
 
 @test "source ${bin}" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 1
-  fnmatch "*esop.*not a frontend for*" "${lines[*]}"
+  test ${status} -eq 0
 }
 
 @test "source ${bin} load-ext" {

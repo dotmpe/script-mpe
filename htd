@@ -227,7 +227,7 @@ htd_als___h=help
 htd_man_1__version="Version info"
 htd__version()
 {
-  echo "$(cat $PREFIX/bin/.app-id)/$version"
+  echo "$(cat $LIB/.app-id)/$version"
 }
 htd_als___V=version
 
@@ -2889,14 +2889,18 @@ htd_init()
 {
   test -z "$__load_lib" || return 1
   test -n "$LIB" || LIB=$HOME/bin
-  . $LIB/box.init.sh
+  . $LIB/std.lib.sh
+  . $LIB/str.lib.sh
   . $LIB/util.sh
+  . $LIB/box.init.sh
   box_run_sh_test
   . $LIB/htd.lib.sh
   . $LIB/main.sh
   . $LIB/main.init.sh
   . $LIB/box.lib.sh
   . $LIB/date.lib.sh
+  . $LIB/doc.lib.sh
+  . $LIB/table.lib.sh
   # -- htd box init sentinel --
 }
 

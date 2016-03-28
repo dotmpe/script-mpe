@@ -1,6 +1,5 @@
 #!/bin/sh
 # Created: 2015-12-14
-gv__source=$_
 
 
 ### Sub-commands
@@ -109,8 +108,8 @@ gv_init()
 gv_preload()
 {
   local __load_lib=1
-  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
-  test -n "$BIN" || { test -n "$PREFIX" && { BIN=$PREFIX/lib; } || { BIN=.; } }
+  test -n "$LIB" || LIB=$HOME/bin
+  test -n "$BIN" || BIN=$HOME/bin
   . $LIB/main.sh
   . $LIB/util.sh
   . $LIB/graphviz.inc.sh "$@"
@@ -126,16 +125,18 @@ gv_preload()
 gv__lib()
 {
   local __load_lib=1
-  . ~/bin/box.lib.sh
+  . $BIN/box.lib.sh
   # -- gv box lib sentinel --
 }
 
 
 ### Main
 
-gv__main()
+gv_main()
 {
-  local scriptname=graphviz scriptalias=gv base=$(basename $gv__source .sh) \
+  test -z "$__load_lib" || return 1
+
+  local scriptname=graphviz scriptalias=gv base=$(basename $0 .sh) \
     subcmd=$1
 
   case "$base" in
@@ -153,10 +154,10 @@ gv__main()
 
         $subcmd_func "$@" || r=$?
           #XXX: choice_quiet?
-          #gv__unload || error "unload on error failed: $?"
+          #gv_unload || error "unload on error failed: $?"
           #error "exec error $subcmd_func: $r" $r
 
-        gv__unload || {
+        gv_unload || {
           error "unload error"
         }
 
@@ -172,7 +173,7 @@ gv__main()
   esac
 }
 
-case "$0" in "" ) ;; "-*" ) ;; * )
+case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
   # XXX arguments to source are working on Darwin 10.8.5, not Linux?
@@ -180,7 +181,7 @@ case "$0" in "" ) ;; "-*" ) ;; * )
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
 
-      gv__main "$@"
+      gv_main "$@"
     ;;
 
   esac ;;

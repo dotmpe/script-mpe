@@ -2,16 +2,15 @@
 
 set -e
 
-test -n "$LIB" || LIB=$HOME/bin
-#{ test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+test -n "$LIB" || LIB=.
 
 #TERM=xterm
 . $LIB/os.lib.sh
-. $LIB/match.sh load-ext
+#. $LIB/match.sh load-ext
 . $LIB/std.lib.sh
 . $LIB/str.lib.sh
-. $LIB/doc.lib.sh
-. $LIB/table.lib.sh
+#. $LIB/doc.lib.sh
+#. $LIB/table.lib.sh
 
 
 # test for var decl, io. to no override empty
@@ -355,7 +354,7 @@ func_comment()
 
 
 
-case "$0" in "" ) ;; "-*" ) ;; * )
+case "$0" in "" ) ;; "-"* ) ;; * )
 
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )

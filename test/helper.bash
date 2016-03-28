@@ -29,6 +29,9 @@ init()
   }
   init_lib
 
+  . $lib/str.lib.sh
+  . $lib/std.lib.sh
+  . $lib/os.lib.sh
   . $lib/util.sh
   . $lib/main.sh
   main_init

@@ -5,7 +5,7 @@
 # XXX: more in projectdir.sh in private repo
 #
 #HELP="vc - version-control helper functions "
-vc_source=$_
+vc_src="$_"
 
 set -e
 
@@ -822,12 +822,12 @@ vc_list_local_branches()
 
 ### Main
 
-vc__main()
+vc_main()
 {
   test -z "$__load_lib" || return 0
 
   # Do something if script invoked as 'vc.sh'
-  local scriptname=vc base=$(basename $vc_source .sh) \
+  local scriptname=vc base=$(basename $0 .sh) \
     subcmd=$1
 
   case "$base" in $scriptname )
@@ -858,8 +858,16 @@ vc__main()
 }
 
 
+test "$vc_src" != "$0" && {
+  set -- load-ext
+}
+case "$1" in "." | "source" )
+  vc_src=$2
+  set -- load-ext
+;; esac
+
 # Ignore login console interpreter
-case "$0" in "" ) ;; "-*" ) ;; * )
+case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
 
@@ -868,7 +876,7 @@ case "$0" in "" ) ;; "-*" ) ;; * )
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
 
-      vc__main "$@"
+      vc_main "$@"
       ;;
 
   esac ;;

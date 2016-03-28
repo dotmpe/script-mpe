@@ -234,6 +234,8 @@ EOM
   cd $pwd
 
   . $lib/htd load-ext
+  . $lib/table.lib.sh
+
   htd_rules=/tmp/htd-rules.tab
   echo "#CMD FOO BAR BAZ BAM" >$htd_rules
 

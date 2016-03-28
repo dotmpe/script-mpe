@@ -1,5 +1,5 @@
 #!/bin/sh
-match_source=$_
+match_src=$_
 
 set -e
 
@@ -202,13 +202,11 @@ req_arg()
 
 match_main()
 {
+  match_lib || return $(( $? - 1 ))
+
   local scriptname=match base="$(basename "$0" .sh)" verbosity=5
 
   case "$base" in $scriptname )
-
-      match_lib || return $(( $? - 1 ))
-
-      local match_default=
 
       match_init || return $?
 
@@ -222,13 +220,14 @@ match_main()
 match_lib()
 {
   test -z "$__load_lib" || return 1
-  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+  test -n "$LIB" || LIB=$HOME/bin
+  . $LIB/std.lib.sh
+  . $LIB/str.lib.sh
   . $LIB/util.sh
   . $LIB/box.init.sh
   box_run_sh_test
   . $LIB/main.sh "$@"
   . $LIB/main.init.sh
-  . $LIB/box.lib.sh "$@"
   # -- match box init sentinel --
 }
 
@@ -236,10 +235,23 @@ match_init()
 {
   local __load_lib=1
   test -n "$LIB" || return 13
+  . $LIB/box.lib.sh "$@"
   . $LIB/match.lib.sh "$@"
+  . $LIB/os.lib.sh
+  . $LIB/date.lib.sh
+  . $LIB/doc.lib.sh
+  . $LIB/table.lib.sh
   # -- match box lib sentinel --
   set --
 }
+
+test "$match_src" != "$0" && {
+  set -- load-ext
+}
+case "$1" in "." | "source" )
+  match_src=$2
+  set -- load-ext
+;; esac
 
 # Ignore login shell
 case "$0" in "" ) ;; "-"* ) ;; * )

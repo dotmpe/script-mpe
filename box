@@ -448,6 +448,8 @@ box_init()
   test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
   . $LIB/box.init.sh
   . $LIB/box.lib.sh "$@"
+  . $LIB/std.lib.sh
+  . $LIB/str.lib.sh
   . $LIB/util.sh
   box_run_sh_test
   . $LIB/main.sh

@@ -264,7 +264,7 @@ std_man_1__version="Version info"
 std_spc__version="-V|version"
 std__version()
 {
-  echo "$(cat $PREFIX/bin/.app-id)/$version"
+  echo "$(cat $LIB/.app-id)/$version"
 }
 
 
@@ -498,7 +498,7 @@ box_src_lib()
 main_load()
 {
   local r=
-  try_exec_func load && {
+  try_exec_func std_load && {
     debug "Standard load OK"
   } || {
     # f

@@ -596,16 +596,6 @@ pd__run()
 pd_run__test=f
 pd__test()
 {
-  for pd_test in pd-test{,.sh}
-  do
-    test -e $pd_test && {
-      note "Using $pd_test"
-      ./pd-test
-      return $?
-    }
-  done
-
-
   test -n "$1" || {
     test -e .pd-test && {
       set -- $(echo "$(read_nix_style_file .pd-test)")
@@ -618,6 +608,7 @@ pd__test()
       set -- "bats-specs" "bats"
     }
   }
+
   test -n "$1" || {
     test -e Makefile && {
       note "Using make test"
@@ -787,24 +778,28 @@ pd_unload()
 
 pd_lib()
 {
-  test -z "$__load_lib" || return 1
-  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+  test -n "$LIB" || return 13
+  . $LIB/std.lib.sh
+  . $LIB/str.lib.sh
   . $LIB/util.sh
+  . $LIB/box.init.sh
+  box_run_sh_test
   . $LIB/main.sh
   . $LIB/projectdir.inc.sh "$@"
+  . $LIB/main.init.sh
   # -- pd box init sentinel --
-
-  #. ~/bin/std.sh
   test -n "$verbosity" || verbosity=6
 }
 
 pd_init()
 {
-  local __load_lib=1
+  test -n "$LIB" || return 13
   . $LIB/box.lib.sh
+  . $LIB/match.lib.sh
   . $LIB/os.lib.sh
   . $LIB/date.lib.sh
-  . $LIB/match.sh load-ext
+  . $LIB/doc.lib.sh
+  . $LIB/table.lib.sh
   . $LIB/vc.sh load-ext
   # -- pd box lib sentinel --
 }
@@ -815,21 +810,18 @@ pd_init()
 pd_main()
 {
   local scriptname=projectdir scriptalias=pd base= \
-    subcmd=$1
-  test -n "$pd_src" \
-    && base=$(basename $pd_src .sh) \
-    || base=$(basename $0 .sh)
+    subcmd=$1 \
+    base=$(basename $0 .sh) \
+    LIB=$(dirname $(realpath normalize_symbolic $0))
+
+  pd_lib "$@" || return $(( $? - 1 ))
 
   case "$base" in
 
     $scriptname | $scriptalias )
 
-        pd_lib "$@" || return 0
-
         # invoke with function name first argument,
         local bgd= \
-          subcmd_pref=${scriptalias} \
-          def_subcmd=status \
           func_exists= \
           func= \
           sock= \
@@ -860,12 +852,19 @@ pd_main()
   esac
 }
 
+test "$pd_src" != "$0" && {
+  set -- load-ext
+}
+case "$1" in "." | "source" )
+  pd_src=$2
+  set -- load-ext
+;; esac
+
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
   # XXX arguments to source are working on Darwin 10.8.5, not Linux?
   # fix using another mechanism:
-  test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
 
       pd_main "$@"

@@ -23,25 +23,25 @@ note "$@"
 case "$subcmd" in
 
   treebox-test )
-      $0 treebox-pd test || r=$?
+      $0 treebox-pd ./projectdir.sh test || r=$?
       ;;
 
   treebox-check )
-      $0 treebox-pd check || r=$?
+      $0 treebox-pd ./projectdir.sh check || r=$?
       ;;
 
-  treebox-pd )
+  treebox )
       PWD="$(pwd -P)"
       docker run \
         -u $(whoami) \
         -v $PWD:/opt/script-mpe \
         dotmpe/sandbox \
-        bash -c "echo 'Container started..';cd /opt/script-mpe; ./projectdir.sh $@; exit \$?"
+        bash -c "echo 'Container started..'; cd /opt/script-mpe; pwd; $@; exit \$?"
       ;;
 
   sandbox-check )
     $0 sandbox-init && {
-      $0 docker-exec "LIB=/opt/sandbox; PATH=\$LIB:\$HOME/bin:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; ./projectdir.sh check ; exit \$?" \
+      $0 docker-exec "PATH=/opt/sandbox:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; ./projectdir.sh check ; exit \$?" \
         || r=$?
     }
     $0 sandbox-clean && info "container removed"  || r=$?
@@ -49,7 +49,7 @@ case "$subcmd" in
 
   sandbox-bats )
     $0 sandbox-init && {
-      $0 docker-exec "LIB=/opt/sandbox; PATH=\$LIB:\$HOME/bin:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; echo \$PATH; ( ./test/*-spec.bats | ./bats-color.sh ); exit \$?" \
+      $0 docker-exec "PATH=/opt/sandbox:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; ( ./test/*-spec.bats | ./bats-color.sh ); exit \$?" \
         || r=$?
     }
     $0 sandbox-clean && info "container removed"  || r=$?
@@ -57,7 +57,7 @@ case "$subcmd" in
 
   sandbox-test )
     $0 sandbox-init && {
-      $0 docker-exec "LIB=/opt/sandbox; PATH=\$LIB:\$HOME/bin:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; echo \$PATH; ./projectdir.sh test ; exit \$?"
+      $0 docker-exec "PATH=/opt/sandbox:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; echo \$PATH; ./projectdir.sh test ; exit \$?"
     }
     $0 sandbox-clean && info "container removed" || r=$?
     ;;
@@ -68,6 +68,7 @@ case "$subcmd" in
         -u $(whoami) \
         -v $PWD:/opt/sandbox \
         -e PD_SKIP=1 \
+        -e LIB=/opt/sandbox \
         --name $cname \
         dotmpe/sandbox \
         bash \
