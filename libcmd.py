@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """libcmd - a command-line program toolkit based on optparse (XXX: and yaml, zope?)
 
 .. note::
