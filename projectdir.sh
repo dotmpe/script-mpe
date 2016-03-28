@@ -630,7 +630,9 @@ pd__test()
   do
     info "Test to run: $1"
     pd__run $1 || { r=$?; echo $1>>$failed; }
-    info "Test returned ($r)"
+    test $r -eq 0 \
+      && note "Test OK: $1" \
+      || warn "Test returned ($r)"
     test 0 -eq $r || {
       trueish $choice_force || return $r
     }
