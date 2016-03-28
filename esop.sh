@@ -3,7 +3,6 @@ esop_src="$_"
 
 set -e
 
-set -o posix
 
 
 version=0.0.0+20150911-0659 # script.mpe
