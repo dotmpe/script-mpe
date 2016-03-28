@@ -17,15 +17,17 @@ source $lib/str.lib.sh
   test ${status} -eq 1
   fnmatch "esop*No command given*" "${lines[*]}"
   test -n "$SHELL"
+
   run $SHELL "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 1
-  fnmatch "esop*No command given*" "${lines[*]}"
+  test ${status} -eq 5
+  fnmatch "*esop*Error:*please use sh, or bash -o 'posix'*" "${lines[*]}"
+
   run sh "$BATS_TEST_DESCRIPTION"
   test ${status} -eq 1
   fnmatch "esop*No command given*" "${lines[*]}"
+
   run bash "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 1
-  fnmatch "esop*No command given*" "${lines[*]}"
+  test ${status} -eq 5
 }
 
 @test ". ${bin}" {

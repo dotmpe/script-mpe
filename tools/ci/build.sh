@@ -31,6 +31,8 @@ case "$ENV" in
 
       ./esop.sh x
 
+      pd test
+
        #match.sh help
        #match.sh -h
        #match.sh -h help
