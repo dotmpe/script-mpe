@@ -1,6 +1,6 @@
 #!/bin/sh
 
-esop_source="$_"
+esop_src="$_"
 
 set -e
 
@@ -27,7 +27,7 @@ esop__x()
 esop_main()
 {
   esop_init || return $(( $? - 1 ))
-  local scriptname=esop base="$(basename "$esop_source" .sh)"
+  local scriptname=esop base="$(basename "$esop_src" .sh)"
   #\ verbosity=7
   #choice_debug=1
   debug "Init ok"

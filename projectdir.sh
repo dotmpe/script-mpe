@@ -1,6 +1,6 @@
 #!/bin/sh
 # Created: 2015-12-14
-pd__source="$_"
+pd_src="$_"
 
 set -e
 
@@ -814,8 +814,8 @@ pd_main()
 {
   local scriptname=projectdir scriptalias=pd base= \
     subcmd=$1
-  test -n "$pd_source" \
-    && base=$(basename $pd__source .sh) \
+  test -n "$pd_src" \
+    && base=$(basename $pd_src .sh) \
     || base=$(basename $0 .sh)
 
   case "$base" in

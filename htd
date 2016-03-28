@@ -4,7 +4,7 @@
 #
 # Id: script.mpe/0.0.0+20150911-0659 htd
 
-htd_source=$_
+htd_src=$_
 test -z "$__load_lib" || set -- "load-ext"
 
 scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
@@ -2869,7 +2869,7 @@ htd_main()
 {
   htd_init || return 0
 
-  local scriptname=htd base=$(basename $htd_source .sh) verbosity=5
+  local scriptname=htd base=$(basename $htd_src .sh) verbosity=5
 
   case "$base" in $scriptname )
 
