@@ -11,8 +11,8 @@ version=0.0.0+20150911-0659 # script.mpe
 
 @test "$bin no arguments no-op" {
   run $bin
-  test $status -eq 1
-  test "${#lines[@]}" = "4"
+  test ${status} -eq 1
+  fnmatch "*htd*No command given*" "${lines[*]}"
 }
 
 @test "$bin help" {
@@ -21,6 +21,9 @@ version=0.0.0+20150911-0659 # script.mpe
 }
 
 @test "$bin home" {
+  check_skipped_envs travis \
+  || skip "TODO envs $envs: implement $BATS_TEST_DESCRIPTION for env"
+
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
 
@@ -56,9 +59,9 @@ version=0.0.0+20150911-0659 # script.mpe
 @test "$bin info" {
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  #echo "${lines[@]}" > /tmp/1
-  #echo "${#lines[@]}" >> /tmp/1
-  test "${#lines[@]}" = "12"
+  test "${#lines[@]}" -ge 12
+  fnmatch "*Script:*" "${lines[*]}"
+  fnmatch "*Editor:*" "${lines[*]}"
 }
 
 @test "$bin test-name" {
@@ -108,7 +111,7 @@ version=0.0.0+20150911-0659 # script.mpe
   test $status -eq 0
   #echo "${lines[*]}" > /tmp/1
   #echo "${#lines[@]}" >> /tmp/1
-  test "${#lines[@]}" = "24"
+  test "${#lines[@]}" -ge "24"
 
   for x in today tomorrow yesterday \
     monday tuesday wednesday thursday friday saturday sunday

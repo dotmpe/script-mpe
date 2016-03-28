@@ -22,22 +22,32 @@ case "$ENV" in
       echo "ENV=$ENV"
       pwd
 
-       #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
-       #bats
-       #./projectdir.sh run bats-specs
       . ./util.sh
       . ./main.sh
       main_debug
 
       ./esop.sh x
+      ./match.sh help
+      ./match.sh -h
+      ./match.sh -h help
+#
+      #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
+      #bats
 
-      pd test
+      ./basename-reg --help
+      #- ./basename-reg ffnnec.py
+      #- ./mimereg ffnenc.py
 
-       #match.sh help
-       #match.sh -h
-       #match.sh -h help
-       #- ./basename-reg ffnnec.py
-       #- ./mimereg ffnenc.py
+       ./matchbox.py help
+      ./libcmd_stacked.py -h
+      ./radical.py --help
+      ./radical.py -vv -h
+
+
+      #./projectdir.sh test bats-specs bats || exit $?
+      ./projectdir.sh test bats-specs bats
+
+
 
      ;;
 

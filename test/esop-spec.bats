@@ -16,8 +16,8 @@ source $lib/str.lib.sh
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 1
   fnmatch "esop*No command given*" "${lines[*]}"
-  test -n "$SHELL"
 
+  test -n "$SHELL"
   run $SHELL "$BATS_TEST_DESCRIPTION"
   test ${status} -eq 5
   fnmatch "*esop*Error:*please use sh, or bash -o 'posix'*" "${lines[*]}"
