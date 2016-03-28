@@ -8,8 +8,8 @@ init
 @test "$bin no arguments defaults to 'show' command" {
   run ${bin}
   test $status -eq 0
-  fnmatch "*matchbox.py*" "${lines[1]}"
-  fnmatch "*Var-table:*" "${lines[2]}"
+  fnmatch "*matchbox.py*" "${lines[*]}"
+  fnmatch "*Var-table:*" "${lines[*]}"
   fnmatch "*Templates:*" "${lines[*]}"
   fnmatch "*Paths:*" "${lines[*]}"
 }
