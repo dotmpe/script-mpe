@@ -38,7 +38,7 @@ case "$ENV" in
       #- ./basename-reg ffnnec.py
       #- ./mimereg ffnenc.py
 
-       ./matchbox.py help
+      ./matchbox.py help
       ./libcmd_stacked.py -h
       ./radical.py --help
       ./radical.py -vv -h
