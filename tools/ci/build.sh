@@ -27,6 +27,7 @@ case "$ENV" in
       main_debug
 
       ./esop.sh x
+
       ./match.sh help
       ./match.sh -h
       ./match.sh -h help
@@ -34,14 +35,16 @@ case "$ENV" in
       #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
       #bats
 
-      ./basename-reg --help
-      #- ./basename-reg ffnnec.py
-      #- ./mimereg ffnenc.py
+      ./matchbox.py
 
-      ./matchbox.py help
-      ./libcmd_stacked.py -h
-      ./radical.py --help
-      ./radical.py -vv -h
+      ./basename-reg --help
+      ./basename-reg ffnnec.py
+      ./mimereg ffnenc.py
+
+      #./matchbox.py help
+      #./libcmd_stacked.py -h
+      #./radical.py --help
+      #./radical.py -vv -h
 
 
       #./projectdir.sh test bats-specs bats || exit $?
