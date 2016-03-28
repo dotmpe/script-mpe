@@ -22,16 +22,15 @@ case "$ENV" in
       echo "ENV=$ENV"
       pwd
 
-       #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
-       #bats
-       #./projectdir.sh run bats-specs
+      #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
+      #bats
+      ./projectdir.sh run bats-specs bats
+
       . ./util.sh
       . ./main.sh
       main_debug
 
       ./esop.sh x
-
-      pd test
 
        #match.sh help
        #match.sh -h
