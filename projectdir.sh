@@ -793,6 +793,7 @@ pd_lib()
 
 pd_init()
 {
+  local __load_lib=1
   test -n "$LIB" || return 13
   . $LIB/box.lib.sh
   . $LIB/match.lib.sh
@@ -800,7 +801,7 @@ pd_init()
   . $LIB/date.lib.sh
   . $LIB/doc.lib.sh
   . $LIB/table.lib.sh
-  . $LIB/vc.lib.sh
+  . $LIB/vc.sh load-ext
   # -- pd box lib sentinel --
 }
 
@@ -852,19 +853,9 @@ pd_main()
   esac
 }
 
-test "$pd_src" != "$0" && {
-  set -- load-ext
-}
-case "$1" in "." | "source" )
-  pd_src=$2
-  set -- load-ext
-;; esac
-
 case "$0" in "" ) ;; "-"* ) ;; * )
 
-  # Ignore 'load-ext' sub-command
-  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
-  # fix using another mechanism:
+  test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
 
       pd_main "$@"

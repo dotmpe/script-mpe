@@ -27,22 +27,18 @@ esop__x()
 
 esop_main()
 {
-  test -n "$esop_src" || return
-
-  local LIB="$(dirname $esop_src)"
-
-  esop_init || return $?
-  #return $(( $? - 1 ))
-  local scriptname=esop base="$(basename $esop_src ".sh")"
-  #\ verbosity=7
-  #choice_debug=1
-  debug "Init ok"
+  local \
+      scriptname=esop \
+      base="$(basename $0 ".sh")"
   case "$base" in
     $scriptname )
+      local LIB="$(dirname $0)"
+      esop_init || return $?
       run_subcmd "$@" || return $?
       ;;
     * )
-      error "not a frontend for $base" 1
+      echo "$scriptname: not a frontend for $base"
+      exit 1
       ;;
   esac
 }
@@ -66,18 +62,8 @@ esop_load()
 }
 
 
-#echo 0=$0 esop_src=$esop_src 1=$1 2=$2
-test "$esop_src" != "$0" && {
-  set -- load-ext
-}
-case "$1" in "." | "source" )
-  esop_src=$2
-  set -- load-ext
-;; esac
-
-# Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
-  # Ignore 'load-ext' sub-command
+  test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
     esop_main "$@" || exit $?
   ;; esac

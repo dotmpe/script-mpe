@@ -2867,27 +2867,23 @@ htd__say()
 
 htd_main()
 {
-  htd_init || return 0
-
   local scriptname=htd base=$(basename $htd_src .sh) verbosity=5
 
   case "$base" in $scriptname )
 
-      htd_lib
-
-      # Execute
-      run_subcmd "$@"
+      htd_init || exit $?
+      htd_lib || exit $?
+      run_subcmd "$@" || exit $?
       ;;
 
-    #* )
-    #  error "not a frontend for $base"
-    #  ;;
+    * )
+      error "not a frontend for $base"
+      ;;
   esac
 }
 
 htd_init()
 {
-  test -z "$__load_lib" || return 1
   test -n "$LIB" || LIB=$HOME/bin
   . $LIB/std.lib.sh
   . $LIB/str.lib.sh
@@ -2915,6 +2911,7 @@ htd_lib()
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
+  test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
     htd_main "$@"
   ;; esac

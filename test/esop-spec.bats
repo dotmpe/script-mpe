@@ -12,16 +12,30 @@ source $lib/str.lib.sh
 #  echo "${lines[*]}" > /tmp/1
 #  echo "${status}" >> /tmp/1
 
-@test ". ${bin}" {
+@test "${bin}" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
+  test ${status} -eq 1
+  fnmatch "esop*No command given*" "${lines[*]}"
+  test -n "$SHELL"
+  run $SHELL "$BATS_TEST_DESCRIPTION"
+  test ${status} -eq 1
+  fnmatch "esop*No command given*" "${lines[*]}"
+  run sh "$BATS_TEST_DESCRIPTION"
+  test ${status} -eq 1
+  fnmatch "esop*No command given*" "${lines[*]}"
+  run bash "$BATS_TEST_DESCRIPTION"
+  test ${status} -eq 1
+  fnmatch "esop*No command given*" "${lines[*]}"
+}
+
+@test ". ${bin}" {
   run sh -c "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
-  run bash -c "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
+  test ${status} -eq 1
+  fnmatch "esop:*not a frontend for sh" "${lines[*]}"
+
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 1
+  fnmatch "esop:*not a frontend for bats-exec-test" "${lines[*]}"
 }
 
 @test ". ${bin} load-ext" {
@@ -32,7 +46,11 @@ source $lib/str.lib.sh
 
 @test "source ${bin}" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
+  test ${status} -eq 1
+  fnmatch "esop:*not a frontend for bats-exec-test" "${lines[*]}"
+  run bash -c "$BATS_TEST_DESCRIPTION"
+  test ${status} -eq 1
+  fnmatch "esop:*not a frontend for bash" "${lines[*]}"
 }
 
 @test "source ${bin} load-ext" {

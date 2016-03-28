@@ -13,8 +13,7 @@ set -e
 vc_load()
 {
   local __load_lib=1
-
-  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+  local LIB="$(dirname $esop_src)"
 
 #. ~/.conf/bash/git-completion.bash
 
@@ -824,8 +823,6 @@ vc_list_local_branches()
 
 vc_main()
 {
-  test -z "$__load_lib" || return 0
-
   # Do something if script invoked as 'vc.sh'
   local scriptname=vc base=$(basename $0 .sh) \
     subcmd=$1
@@ -857,14 +854,6 @@ vc_main()
   esac
 }
 
-
-test "$vc_src" != "$0" && {
-  set -- load-ext
-}
-case "$1" in "." | "source" )
-  vc_src=$2
-  set -- load-ext
-;; esac
 
 # Ignore login console interpreter
 case "$0" in "" ) ;; "-"* ) ;; * )
