@@ -812,8 +812,8 @@ pd_main()
 {
   local scriptname=projectdir scriptalias=pd base= \
     subcmd=$1 \
-    base=$(basename $0 .sh) \
-    LIB=$(dirname $(realpath $0))
+    base="$(basename "$0" .sh)" \
+    LIB="$(dirname "$(realpath "$0")")"
 
   pd_lib "$@" || return $(( $? - 1 ))
 

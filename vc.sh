@@ -13,7 +13,7 @@ set -e
 vc_load()
 {
   local __load_lib=1
-  local LIB="$(dirname $esop_src)"
+  local LIB="$(dirname "$vc_src")"
 
 #. ~/.conf/bash/git-completion.bash
 
@@ -824,7 +824,7 @@ vc_list_local_branches()
 vc_main()
 {
   # Do something if script invoked as 'vc.sh'
-  local scriptname=vc base=$(basename $0 .sh) \
+  local scriptname=vc base="$(basename "$0" .sh)" \
     subcmd=$1
 
   case "$base" in $scriptname )
