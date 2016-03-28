@@ -463,7 +463,7 @@ diskdoc__help()
   echo '  status                           List abbreviated status strings for all repos'
   echo ''
   echo '  help                             print this help listing.'
-  # XXX _init is bodged, std_help diskdoc "$@"
+  # XXX _init is bodged, std__help diskdoc "$@"
 }
 
 diskdoc__load()

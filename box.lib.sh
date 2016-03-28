@@ -141,20 +141,15 @@ box_grep()
   test -n "$where_line" || return 1
 }
 
+# Return line-nr before function
 box_script_insert_point()
 {
-  test -n "$1" || error "expected source file" 2
-  test -e "$1" || error "expected existing source file" 2
-  test -n "$2" || set -- $1 $subcmd $3
-  test -n "$3" || {
-    test -n "$scriptalias" \
-      && set -- $1 $2 $scriptalias \
-      || set -- $1 $2 $base
-  }
-  test -n "$scsep" || scsep=_
-  local where_line= line_number= p='^'${3}${scsep}${2}'()$'
-  box_grep "$p" "$1" || {
-    error "invalid ${3}${scsep}${2} ($1)" 1
+  local subcmd_func= grep_file=$1
+  shift
+  local subcmd_func=$(try_local "$@")
+  local where_line= line_number= p='^'${subcmd_func}'()$'
+  box_grep "$p" "$grep_file" || {
+    error "invalid $subcmd_func ($grep_file)" 1
   }
   echo $line_number
 }
@@ -216,7 +211,7 @@ box_list_libs()
   }
 
   local \
-    line_offset="$(box_script_insert_point $1 lib $2)" \
+    line_offset="$(box_script_insert_point $1 "" lib $2)" \
     sentinel_grep=".*#.--.${2}.box.lib.sentinel.--"
 
   test -n "$line_offset" || error "line_offset empty for $1 lib $2" 1

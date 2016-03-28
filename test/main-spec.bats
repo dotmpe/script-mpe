@@ -49,32 +49,47 @@ BOX_INIT=1
 }
 
 @test "$lib/main try_help" {
+  base=cmd
+  cmd_man_1__sub="Bar"
+  test "$(try_help 1 sub)" = "Bar"
 }
+
 
 #@test "$lib/main echo_help" {
 
 @test "$lib/main try_local" {
-  subcmd_pref=
-  test "$(try_local "abc123")" = "__abc123"
-  test "$(try_local "abc123" "_")" = "_abc123"
-  test "$(try_local "abc123" "" xxx)" = "_xxx__abc123"
-  test "$(try_local abc123 _ xxx)" = "_xxx_abc123"
+  base=
+  test "$(try_local abc)" = "__abc"
+  test "$(try_local abc 123)" = "_123__abc"
+  test "$(try_local abc 123 xyz)" = "xyz_123__abc"
+
+  test "$(try_local "" 123 xyz)" = "xyz_123"
+  test "$(try_local abc "" xyz)" = "xyz__abc"
+
+  #test "$(try_local "abc123")" = "__abc123"
+  #test "$(try_local "abc123" "_")" = "_abc123"
+  #test "$(try_local "abc123" "" xxx)" = "_xxx__abc123"
+  #test "$(try_local abc123 _ xxx)" = "_xxx_abc123"
+
+  test "$(try_local b x)" = "_x__b"
+
+  base=cmd
+  test "$(try_local var)" = "cmd__var"
 }
 
 @test "$lib/main try_value" {
-  subcmd_pref=cmd
+  base=cmd
   cmd__var=var1
   test "$(try_value var)" = "var1"
   cmd_x__var=var2
-  test "$(try_value var "" x)" = "var2"
-  cmd_var=var3
-  test "$(try_value var _)" = "var3"
+  test "$(try_value var x)" = "var2"
 }
 
 @test "$lib/main try_var" {
   var_isset myvar1 && test -z 'unexpected myvar1' || noop
+  base=
   _x__b=123
-  try_var myvar1 b "" x
+  try_var myvar1 b x
   test "$myvar1" = "123"
   var_isset myvar1 || test -z 'expected myvar1'
   unset myvar1
@@ -84,13 +99,13 @@ BOX_INIT=1
   cmd_spc__sub=spec1
   cmd2_spc__sub=spec2
   subcmd_pref=cmd
+  base=cmd
   test "$(try_spec sub)" = spec1
   test "$(try_spec sub cmd2)" = spec2
   test "$(try_spec sub cmd)" = spec1
 }
 
 #@test "$lib/main try_func" {
-#@test "$lib/main try_subcmd_func" {
 #@test "$lib/main try_subcmd" {
 #@test "$lib/main std-help" {
 

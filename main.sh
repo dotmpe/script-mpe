@@ -20,9 +20,13 @@ incr()
 # :*:help_descr
 try_help()
 {
-  local func_pref="$subcmd_func_pref"
-  help_descr="$(eval echo "\$${func_pref}man_$(echo $1)$(echo $2)")"
-  test -n "$help_descr" && echo "$help_descr" || return 1
+  local b=
+  for b in "" std
+  do
+    try_value $2 man_$1 $b || continue
+    return
+  done
+  return 1
 }
 
 # Run through all help sections for given string, echo and return on first
@@ -30,8 +34,7 @@ try_help()
 # :
 echo_help()
 {
-  mkid _$1
-  #try_exec_func ${help_base}__usage $1 || std_usage $1
+  #try_exec_func ${help_base}__usage $1 || std__usage $1
   # Man sections:
   # 1. (user) commands
   # (2. System calls)
@@ -41,23 +44,22 @@ echo_help()
   # 6. Games et. Al.
   # 7. Miscellenea (overview, conventions, misc.)
   # 8. SysAdmin tools and Daemons
-  try_help 1 $id && return 0 || \
-  try_help 5 $id && return 0 || \
-  try_help 7 $id && return 0
+  try_help 1 $1 && return 0 || \
+  try_help 5 $1 && return 0 || \
+  try_help 7 $1 && return 0
   return 1
 }
 
+# try_local subcmd [property [base]]
+# echos variable or function name
 try_local()
 {
-  test -n "$1" || error "try_local:1" 1
-  test -n "$2" && {
-    test -z "$3" || set -- "$1" "$2${3}_"
-  } || {
-    test -n "$3" \
-      && set -- "$1" "_${3}$scsep" \
-      || set -- "$1" "$scsep"
-  }
-  echo "${subcmd_pref}$2$1" | tr '-' '_'
+  test -n "$2" -o -n "$1" || return
+  test -n "$local_prefix" || local_prefix=$base
+  test -n "$3" || set -- "$1" "$2" "$local_prefix"
+  test -z "$1" || set -- " :$1" "$2" "$3"
+  test -z "$2" || set -- "$1" "$2" "$3:"
+	echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
 }
 
 try_value()
@@ -78,8 +80,13 @@ try_var()
 
 try_spec()
 {
-  test -z "$2" || local subcmd_pref=$2
-  try_value $1 "" spc
+  local b=
+  for b in "$2" "std"
+  do
+    try_value "$1" "spc" "$b" || continue
+    return
+  done
+  return 1
 }
 
 try_func()
@@ -89,18 +96,44 @@ try_func()
   } || return 1
 }
 
-try_subcmd_func()
+try_local_func()
 {
-  test -n "$subcmd" || subcmd=$def_subcmd
-  test -n "$subcmd" || error "no cmd or default" 1
-  func="$(try_local "$subcmd")"
-  try_func $func || return $?
+  try_func $(try_local "$@") || return $?
 }
+
+get_subcmd_func()
+{
+  local local_prefix=$subcmd_func_pref
+
+  test -n "$1" || {
+    test -n "$subcmd" || {
+      try_var subcmd "" default || return 12
+    }
+    set -- "$subcmd"
+  }
+
+  local subcmd_default= b=
+
+  for b in "" std
+  do
+    set -- "$1" "" "$b"
+    try_local_func "$@" && {
+      subcmd_func="$(try_local "$@")"
+      return
+    }
+  done
+}
+
 
 # Set and see if $func exists
 try_subcmd()
 {
-  try_subcmd_func || {
+  test -z "$1" || {
+    get_subcmd_args "$@" || {
+      error "parsing args" $?
+    }
+  }
+  get_subcmd_func || {
     e=$?
     test -z "$subcmd" && {
       pd__usage
@@ -116,28 +149,33 @@ try_subcmd()
   }
 }
 
-std_help()
+
+std_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+std_spc__help='-h|help [ID]'
+std_als___h=help
+std__help()
 {
-  local help_base=$1 ; shift 1
+  #local local_prefix=$subcmd_func_pref
+  test -n "$local_prefix" || local_prefix=$base
 
   test -z "$1" && {
 
     # Generic help (no args)
-    try_exec_func ${help_base}_usage $1 || std_usage $1
-    try_exec_func ${help_base}_commands || std_commands
-    try_exec_func ${help_base}_docs || noop
+    try_exec_func ${local_prefix}__usage $1 || std__usage $1
+    try_exec_func ${local_prefix}__commands || std__commands
+    try_exec_func ${local_prefix}__docs || noop
 
   } || {
 
     # Specific help (subcmd, maybe file-format other doc, or a TODO: group arg)
     echo "Usage: "
-    echo "  $base $(try_spec $1 $base) "
+    echo "  $base $(try_spec $1) "
     printf "Help '$1': "
     echo_help "$1" || error "no help '$1'"
   }
 }
 
-std_usage()
+std__usage()
 {
   test -z "$1" && {
     echo "$scriptname.sh Bash/Shell script helper"
@@ -148,7 +186,7 @@ std_usage()
   }
 }
 
-std_commands()
+std__commands()
 {
   test -n "$1" || set -- "$0" "$box_lib"
 
@@ -219,6 +257,16 @@ std_commands()
   done
 }
 
+
+std_als___V=version
+std_man_1__version="Version info"
+std_spc__version="-V|version"
+std__version()
+{
+  echo "$(cat $PREFIX/bin/.app-id)/$version"
+}
+
+
 # Find shell script location with or without extension
 # 1:basename:scriptname
 # :fn
@@ -251,11 +299,13 @@ parse_subcmd_valid_flags()
   return 1
 }
 
-# XXX see get_cmd_func_name
 get_cmd_alias()
 {
-  local func_pref="$(eval echo \$${1}_func_pref)"
-  export ${1}_alias=$(eval echo \$${func_pref}als$(echo "_$2" | tr '-' '_'))
+  try_var $1_alias $(echo "$2" | tr '-' '_') als \
+    || try_var $1_alias $(echo "$2" | tr '-' '_') als std
+
+#  local func_pref="$(eval echo \$${1}_func_pref)"
+#  export ${1}_alias=$(eval echo \$${func_pref}als
 }
 
 parse_box_subcmd_opts()
@@ -432,7 +482,7 @@ main_init()
 
   var_isset verbosity || verbosity=6
 
-  test -n "$scsep" || scsep=__
+  #test -n "$scsep" || scsep=__
 }
 
 box_src_lib()
@@ -440,16 +490,6 @@ box_src_lib()
   box_src="$(dry_run= box_list_libs $0 $1 | while read src path args; \
     do eval echo $path; done)"
   box_lib="$box_src"
-}
-
-
-# Parse command line arguments and set subcmd vars
-main_parse_subcmd()
-{
-  c=0
-  #func_exists ${base}_parse_subcmd_args
-  get_subcmd_args "$@"
-  get_cmd_func subcmd
 }
 
 
@@ -466,7 +506,7 @@ main_load()
     }
   }
   test -n "$1" || return
-  try_exec_func ${1}__load && {
+  try_exec_func ${1}_load && {
     debug "Load $1 OK"
   } || {
     test -z "$r" || {
@@ -492,12 +532,6 @@ main_debug()
 
 
 
-#  local scriptname= base=
-
-#  local subcmd_def=
-#  local subcmd_pref= subcmd_suf=
-#  local subcmd_func_pref= subcmd_func_suf=
-
 run_subcmd()
 {
   local e= c=0 box_lib= \
@@ -508,20 +542,29 @@ run_subcmd()
 
   main_init
 
-      local scsep=__
-  test -n "$subcmd_func_pref" || subcmd_func_pref=${base}${scsep}
+  #func_exists ${base}_parse_subcmd_args
 
-  main_parse_subcmd "$@"
+  local local_prefix=$subcmd_func_pref
+
+  get_subcmd_args "$@" || {
+    error "parsing args" $?
+  }
+
+  #echo subcmd=$subcmd subcmd_func_pref=$subcmd_func_pref
+  #echo base=$base
+  #echo local_prefix=$local_prefix
+
   test $c -gt 0 && shift $c ; c=0
   main_debug $*
 
   main_load $base
   debug "$base loaded"
 
-  #echo subcmd_func=$subcmd_func
-  func_exists $subcmd_func || {
+  #box_lib="$(box_list_libs "$0")"
+
+  get_subcmd_func || {
     debug "no such subcmd-func $subcmd_func"
-    try_exec_func ${base}_usage || std_usage
+    try_exec_func ${base}_usage || std__usage
     test -z "$subcmd" && {
       error 'No command given' 1
     } || {
@@ -572,63 +615,4 @@ trueish()
   esac
 }
 
-
-# header char offset
-fixed_table_hd_offset()
-{
-  test -n "$1" || set -- HD "$2" "$3"
-  test -n "$2" || set -- "$1" FIRSTHD "$3"
-  test -n "$3" || error "table expected" 1
-  test -e "$3" || error "table expected: $3" 1
-  # correct for first col, or for line-end
-  test "$1" = "$2" \
-    && echo 0 \
-    || echo $(( $(grep '^#' $3 | head -n 1 |
-  sed 's/^\(.*\)'$1'.*/\1/g' | wc -c) - 1 ))
-}
-
-fixed_table_hd_offsets()
-{
-  local tab=$1 fc=$2
-  shift
-  while test ${#@} -gt 0
-    do
-      fixed_table_hd_offset $1 $fc $tab
-      shift
-    done
-}
-
-fixed_table_hd_cuts()
-{
-  local tab=$1 fc=$2 offset= lc= old_offset=
-  shift
-  while test ${#@} -gt 0
-    do
-      offset=$(fixed_table_hd_offset $1 $fc $tab)
-      test -n "$old_offset" && {
-        echo "$lc -c$(( $old_offset + 1 ))-$offset"
-      }
-      lc=$1
-      old_offset=$offset
-      shift
-    done
-    echo "$lc -c$(( $old_offset + 1 ))-"
-}
-
-# print single line of var declarations for each record in table file
-fixed_table_hd()
-{
-  local tab=$1 cutf=$(dirname $1)/$(basename $1 .tab).cuthd
-  #fixed_table_hd_offsets "$@"
-  test $cutf -nt $1 || fixed_table_hd_cuts "$@" >$cutf
-  cat $tab | grep -v '^\s*\(#.*\)\?$' | while read line
-  do
-    cat $cutf | grep -v '^\s*\(#.*\)\?$' | while read col args
-      do
-        printf " $col=\"$(echo $(echo "$line" | cut $args))\" "
-      done
-      printf " line=\"$line\" "
-      echo
-  done
-}
 

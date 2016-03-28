@@ -14,6 +14,7 @@ From: Linux Programmer's Manual; man7.org
 
 htd rule-target
   - annotate :case
+  - extend
 
   p:*
     - enables PERIOD

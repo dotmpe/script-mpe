@@ -7,24 +7,7 @@ version=0.0.0+20150911-0659 # script.mpe
 
 
 
-dckr_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-dckr_spc__help='-h|help [ID]'
-dckr__help()
-{
-  choice_global=1 std_help dckr "$@"
-}
-dckr__als__h=help
-
-
-dckr__als__V=version
-dckr__man_1_version="Version info"
-dckr_spc__version="-V|version"
-dckr__version()
-{
-  echo "$(cat $PREFIX/bin/.app-id)/$version"
-}
-
-dckr__man_1_edit_main="Edit the main script file"
+dckr_man_1__edit_main="Edit the main script file"
 dckr_spc__edit_main="-E|edit-main"
 dckr__edit_main()
 {
@@ -32,10 +15,10 @@ dckr__edit_main()
   note "Invoking $EDITOR $fn"
   $EDITOR $fn
 }
-dckr__als__E=edit-main
+dckr_als___E=edit-main
 
 
-dckr__man_1_edit_local="Edit local script TODO docker conf.."
+dckr_man_1__edit_local="Edit local script TODO docker conf.."
 dckr_spc__edit_main="-e|edit-local"
 dckr__edit_local()
 {
@@ -44,10 +27,10 @@ dckr__edit_local()
   note "invoking $EDITOR $dckr_local $fn"
   $EDITOR $dckr_local $fn
 }
-dckr__als__e=edit-local
+dckr_als___e=edit-local
 
 
-dckr__man_1_alias="Show bash aliases for this script."
+dckr_man_1__alias="Show bash aliases for this script."
 dckr__alias()
 {
   grep '\<'$scriptname'\>' ~/.alias | grep -v '^#' | while read _a A
@@ -214,13 +197,13 @@ dckr_ip()
     || error "docker IP inspect on $1 failed" 1
 }
 
-dckr__man_1_ps="Docker ps"
+dckr_man_1__ps="Docker ps"
 dckr__ps()
 {
   ${sudo}docker ps
 }
 
-dckr__man_1_stop="Stop container for image. "
+dckr_man_1__stop="Stop container for image. "
 dckr_spc__stop="stop <image-name>"
 dckr__stop()
 {
@@ -235,27 +218,27 @@ dckr__stop()
   dckr_stop
 }
 
-dckr__man_1_rm="Remove image. "
+dckr_man_1__rm="Remove image. "
 dckr__rm()
 {
   note "Removing and stopping container.."
   dckr_rm
 }
 
-dckr__man_1_start="Start image"
+dckr_man_1__start="Start image"
 dckr__start()
 {
   dckr_c -a
   dckr_start
 }
 
-dckr__man_1_names="List images"
+dckr_man_1__names="List images"
 dckr__names()
 {
   dckr_names
 }
 
-dckr__man_1_c="Get container ID"
+dckr_man_1__c="Get container ID"
 dckr_spc__c="c <image-name>"
 dckr__c()
 {
@@ -263,7 +246,7 @@ dckr__c()
   dckr_c
 }
 
-dckr__man_1_ip="List IP for one or all running containers."
+dckr_man_1__ip="List IP for one or all running containers."
 dckr_spc__ip="ip [<image-name>]"
 dckr__ip()
 {
@@ -278,7 +261,7 @@ dckr__ip()
   }
 }
 
-dckr__man_1_destroy="Clean given container names. "
+dckr_man_1__destroy="Clean given container names. "
 dckr_spc__destroy='[-f] destroy'
 dckr__destroy()
 {
@@ -287,7 +270,7 @@ dckr__destroy()
   do ${sudo}docker rm $f $1 ; shift ; done
 }
 
-dckr__man_1_dnsmasq_conf="dnsmasq static address config using image-name as hostname"
+dckr_man_1__dnsmasq_conf="dnsmasq static address config using image-name as hostname"
 dckr__dnsmasq_conf()
 {
   #prefix=
@@ -311,7 +294,7 @@ dckr__dnsmasq_update()
 
 
 # get image name from vars or cmdline, and start build (in current dir)
-dckr__man_1_build="Do a simple docker build invocation (in cwd)"
+dckr_man_1__build="Do a simple docker build invocation (in cwd)"
 dckr_spc__build="build [<image-name>]"
 dckr__build()
 {
@@ -327,7 +310,7 @@ dckr__build()
 }
 
 # start new container for image, and (re)run initialization scripts
-dckr__man_1_init="Do a standard run+init for an image. "
+dckr_man_1__init="Do a standard run+init for an image. "
 dckr_spc__init="init [<flags> <dckr-cmd> <image-name>]"
 dckr__init()
 {
@@ -411,7 +394,7 @@ dckr__exec()
 }
 
 
-dckr__man_1_shipyard_options="Show currently available deploy help. "\
+dckr_man_1__shipyard_options="Show currently available deploy help. "\
 '
   ACTION: this is the action to use (deploy, upgrade, remove)
   IMAGE: this overrides the default Shipyard image
@@ -424,7 +407,7 @@ dckr__shipyard_options()
   curl -s https://shipyard-project.com/deploy | bash -s -- -h
 }
 
-dckr__man_1_shipyard_init="Deploy Shipyard at 8080"
+dckr_man_1__shipyard_init="Deploy Shipyard at 8080"
 dckr__shipyard_init()
 {
   note "Initializing VS1 Shipyard"
@@ -437,7 +420,7 @@ dckr__shipyard_init()
   }
 }
 
-dckr__man_1_shipyard_init_old="Shutdown and boot shipard at 8001"
+dckr_man_1__shipyard_init_old="Shutdown and boot shipard at 8001"
 dckr__shipyard_init_old()
 {
   for dckr_name in shipyard shipyard-rethinkdb-data shipyard-rethinkdb
@@ -462,7 +445,7 @@ dckr__shipyard_init_old()
 }
 
 
-dckr__man_1_init_cadvisor="Run cAdvisor at 8002"
+dckr_man_1__init_cadvisor="Run cAdvisor at 8002"
 dckr__init_cadvisor()
 {
   ${sudo}docker run \
@@ -479,7 +462,7 @@ dckr__init_cadvisor()
 }
 
 
-dckr__man_init_sickbeard="Rebuild sickbeard at 8008"
+dckr_man_1__init_sickbeard="Rebuild sickbeard at 8008"
 dckr__init_sickbeard()
 {
   dckr_f_argv $@
@@ -886,17 +869,13 @@ test ! -e $DCKR_CONF/local.sh || {
 ### Main
 
 
-dckr__main()
+dckr_main()
 {
   dckr_init || return 0
 
   local scriptname=dckr base=$(basename $0 .sh) verbosity=5
 
   case "$base" in $scriptname )
-
-      local subcmd_def= \
-        subcmd_pref= subcmd_suf= \
-        subcmd_func_pref=${base}__ subcmd_func_suf=
 
       dckr_lib
 
@@ -944,5 +923,8 @@ dckr_load()
 
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
-  dckr__main "$@"
+  # Ignore 'load-ext' sub-command
+  case "$1" in load-ext ) ;; * )
+    dckr_main "$@"
+  ;; esac
 ;; esac

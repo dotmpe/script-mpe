@@ -9,18 +9,9 @@ version=0.0.0+20150911-0659 # script.mpe
 
 
 
-ino__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-ino__spc_help='-h|help [ID]'
-ino__help()
-{
-  choice_global=1 std_help ino "$@"
-}
-ino__als__h=help
-
-
-ino__als__V=version
-ino__man_1_version="Version info"
-ino__spc_version="-V|version"
+ino_als___V=version
+ino_man_1__version="Version info"
+ino_spc__version="-V|version"
 ino__version()
 {
   echo "$(cat $PREFIX/bin/.app-id)/$version"
@@ -32,18 +23,18 @@ ino__version()
 node_tab=ino.tab
 
 
-ino__man_1_edit="Edit the main script file"
-ino__spc_edit="-E|edit-main"
+ino_man_1__edit="Edit the main script file"
+ino_spc__edit="-E|edit-main"
 ino__edit()
 {
   locate_name $scriptname || exit "Cannot find $scriptname"
   note "Invoking $EDITOR $fn"
   $EDITOR $fn "$@" $node_tab
 }
-ino__als__e=edit
+ino_als___e=edit
 
 
-ino__man_1_list_ino="List Arduino versions available in APP_DIR"
+ino_man_1__list_ino="List Arduino versions available in APP_DIR"
 ino__list_ino()
 {
   for path in $APP_DIR/Arduino-*
@@ -54,7 +45,7 @@ ino__list_ino()
 }
 
 
-ino__man_1_switch="Switch to Arduino version"
+ino_man_1__switch="Switch to Arduino version"
 ino__switch()
 {
   test -n "$1" || err "expected version arg" 1
@@ -66,14 +57,14 @@ ino__switch()
 }
 
 
-ino__man_1_list="List sketches"
+ino_man_1__list="List sketches"
 ino__list()
 {
-  list_mk_targets Rules.old.mk
+  list__mk_targets Rules.old.mk
 }
 
 # list (static) targets in makefile
-list_mk_targets()
+list__mk_targets()
 {
   grep -h '^[a-z0-9]*: [^=]*$' $1 \
     | sed 's/:.*$//' | sort -u | column
@@ -246,10 +237,7 @@ ino_main()
 
   case "$base" in $scriptname )
 
-      local subcmd_def= \
-        subcmd_pref= subcmd_suf= \
-        subcmd_func_pref=${base}__ subcmd_func_suf=
-
+      local ino_default=version
       ino_lib
 
       # Execute

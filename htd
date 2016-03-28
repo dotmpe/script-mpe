@@ -170,13 +170,13 @@ other_cmds()
   echo '  vt|vtoday                        Run make vtoday.'
 }
 
-c_docs()
+htd__docs()
 {
   echo "Docs:" 
   echo ""
 }
 
-c_files()
+htd__files()
 {
   echo "Files"
   echo ""
@@ -201,16 +201,16 @@ c_files()
   echo 'See dckr for container commands and vc for GIT related. '
 }
 
-c_man_1_commands="List all commands"
-c_commands()
+htd_man_1__commands="List all commands"
+htd__commands()
 {
   choice_global= choice_all=true std_commands
 }
 
 
-c_man_1_help="Echo a combined usage, command and docs"
-c_spc_help="-h|help [<id>]"
-c_help()
+htd_man_1__help="Echo a combined usage, command and docs"
+htd__spc_help="-h|help [<id>]"
+htd__help()
 {
   test -z "$1" && {
     htd_usage
@@ -221,27 +221,23 @@ c_help()
     echo_help $1
   }
 }
-c_als__h=help
-c__h()
-{
-  cmd=help c_help $@
-}
+htd_als___h=help
 
 
-c_man_1_version="Version info"
-c_version()
+htd_man_1__version="Version info"
+htd__version()
 {
   echo "$(cat $PREFIX/bin/.app-id)/$version"
 }
-c_als__V=version
+htd_als___V=version
 
 
-c_home()
+htd__home()
 {
   echo $HTDIR
 }
 
-c_info()
+htd__info()
 {
   echo "env"
   echo "  CWDIR"
@@ -258,7 +254,7 @@ c_info()
   log "Ignored paths:         '$HTD_IGNORE' [HTD_IGNORE]"
 }
 
-c_expand()
+htd__expand()
 {
   test -n "$1" || return 1
   for x in $1
@@ -268,20 +264,20 @@ c_expand()
 }
 
 
-c_man_1_edit_main="Edit the main script file"
-c_spc_edit_main="-E|edit-main"
-c_edit_main()
+htd_man_1__edit_main="Edit the main script file"
+htd__spc_edit_main="-E|edit-main"
+htd__edit_main()
 {
   locate_name
   [ -n "$fn" ] || error "expected $scriptname?" 1
   $EDITOR $fn "$@"
 }
-c_als__E=edit-main
+htd_als___E=edit-main
 
 
-c_man_1_edit="Edit a local file, or abort"
-c_spc_edit="-e|edit <id>"
-c_edit()
+htd_man_1__edit="Edit a local file, or abort"
+htd__spc_edit="-e|edit <id>"
+htd__edit()
 {
   test -n "$1" || error "search term expected" 1
   doc_path_args
@@ -291,12 +287,12 @@ c_edit()
     || error "Nothing found to edit" 1
   $EDITOR $find_paths $grep_paths
 }
-c_als__e=edit
+htd_als___e=edit
 
 
-c_man_1_count="Look for doc"
-c_spc_count="count"
-c_count()
+htd_man_1__count="Look for doc"
+htd__spc_count="count"
+htd__count()
 {
   doc_path_args
 
@@ -307,9 +303,9 @@ c_count()
   doc_grep_content "$1" | wc -l
 }
 
-c_man_1_find="Look for document. "
-c_spc_find="-f|find (<path>|<localname> [<project>])"
-c_find()
+htd_man_1__find="Look for document. "
+htd__spc_find="-f|find (<path>|<localname> [<project>])"
+htd__find()
 {
   doc_path_args
 
@@ -319,21 +315,21 @@ c_find()
   info "Searching matched content '$1' ($paths)"
   doc_grep_content "\<$1\>"
 }
-c_als__f=find
+htd_als___f=find
 
 
 
-c_man_5__htdignore_merged='Exclude rules used by `htd find|edit|count`, compiled from other sources using ``htd init-ignores``. '
+htd__man_5__htdignore_merged='Exclude rules used by `htd find|edit|count`, compiled from other sources using ``htd init-ignores``. '
 
-c_man_1_init_ignores="Write all exclude rules to .htdignores.merged"
-c_init_ignores()
+htd_man_1__init_ignores="Write all exclude rules to .htdignores.merged"
+htd__init_ignores()
 {
   htd_init_ignores
 }
 
 
-c_man_1_relative_path="Test for relative path"
-c_relative_path()
+htd_man_1__relative_path="Test for relative path"
+htd__relative_path()
 {
   # TODO: maybe build relative path from 1 arg and cwd, or two args
   # see also mkrlink. Also clean up.
@@ -343,14 +339,14 @@ c_relative_path()
   echo relpath=$relpath
   exit $r
 }
-c_man_1_relpath="Alias for 'relative-path'"
-c_als_relpath='relative-path'
+htd_man_1__relpath="Alias for 'relative-path'"
+htd_als__relpath='relative-path'
 
 
 # XXX: add config files
-c_man_5_table_names=""
+htd__man_5_table_names=""
 
-c_test_find_path_locals()
+htd__test_find_path_locals()
 {
     htd_find_path_locals table.names $1
     echo path_locals=$path_locals
@@ -360,7 +356,7 @@ c_test_find_path_locals()
 }
 
 # List root IDs
-c_list_local_ns()
+htd__list_local_ns()
 {
   fixed_table_hd $ns_tab ID PATH CMD | while read vars
   do
@@ -370,8 +366,8 @@ c_list_local_ns()
 }
 
 # XXX: List matching tags
-c_spc_ns_names='[<path>|<localname> [<ns>]]'
-c_ns_names()
+htd__spc_ns_names='[<path>|<localname> [<ns>]]'
+htd__ns_names()
 {
   test -z "$3" || error "Surplus arguments: $3" 1
   fixed_table_hd $ns_tab ID CMD_PATH CMD | while read vars
@@ -389,28 +385,28 @@ c_ns_names()
 }
 
 # TODO: List resources containing tag
-c_ns_resources()
+htd__ns_resources()
 {
   set --
 }
 
 
-c_fsck()
+htd__fsck()
 {
-  c_ck_validate sha1
+  htd__ck_validate sha1
 }
 
-c_make()
+htd__make()
 {
   cd $HTDIR && make $*
 }
-c_mk()
+htd__mk()
 {
-  c_make $*
+  htd__make $*
 }
 
 # Run a sys-* target in the main htdocs dir.
-c_make_sys()
+htd__make_sys()
 {
   cd $HTDIR
   for x in $*
@@ -419,28 +415,28 @@ c_make_sys()
   done
 }
 
-c_stat()
+htd__stat()
 {
-  c_make stat
+  htd__make stat
 }
 
-c_als_st=stat
-c_st()
+htd_als__st=stat
+htd__st()
 {
-  cmd=stat c_stat $*
+  cmd=stat htd__stat $*
 }
 
-c_build()
+htd__build()
 {
   rm -f /tmp/htd-out
-  c_make build 2>1 | capture_and_clear
+  htd__make build 2>1 | capture_and_clear
   echo Mixed output::
   echo
   cat /tmp/htd-out | sed  's/^/    /'
 }
 
 # show htd shell aliases
-c_alias()
+htd__alias()
 {
   grep '\<'$scriptname'\>' ~/.alias | grep -Ev '^(#.*|\s*)$' | while read _a A
   do
@@ -451,17 +447,17 @@ c_alias()
 }
 
 # Open an editor to edit todays log
-c_vtoday()
+htd__vtoday()
 {
-  c_today personal/journal
+  ht__today personal/journal
   $EDITOR personal/journal/{today,tomorrow,yesterday}.rst
   git add personal/journal/
 }
-c_als_vt=vtoday
+htd_als__vt=vtoday
 
 
 # update yesterday, today and tomorrow links
-c_today()
+htd__today()
 {
   test -z "$1" && P=journal || P=$1
   test -d "$P" || error "Dir $(pwd)/$P must exist" 1
@@ -489,11 +485,11 @@ c_today()
 ### VirtualBox
 
 vbox_names=~/.conf/vbox/vms.sh
-c_vbox()
+htd__vbox()
 {
   name=$1
   [ -z "$name" ] && {
-    c_vbox_list
+    htd__vbox_list
   } || {
     declare $(echo $(cat $vbox_names))
     uuid=$(eval echo \$$name)
@@ -501,52 +497,52 @@ c_vbox()
   }
 }
 
-c_vbox_start()
+htd__vbox_start()
 {
   test -n "$1" || error "VM name required" 1
-  c_vbox $1
+  htd__vbox $1
   VBoxManage startvm ${uuid} --type headless \
       || error "Headless-start of VM $name" 1 \
       && log "Headless-start of VM $name completed successfully"
 }
 
-c_vbox_start_console()
+htd__vbox_start_console()
 {
   test -n "$1" || error "VM name required" 1
-  c_vbox $1
+  htd__vbox $1
   VBoxManage startvm ${uuid} \
       || error "Console-start of VM $name" 1 \
       && log "Console-start of VM $name completed successfully"
 }
 
-c_vbox_reset()
+htd__vbox_reset()
 {
   test -n "$1" || error "VM name required" 1
-  c_vbox $1
+  htd__vbox $1
   VBoxManage controlvm ${uuid} reset \
       || error "Reset of VM $name" 1 \
       && log "Reset of VM $name completed successfully"
 }
 
-c_vbox_stop()
+htd__vbox_stop()
 {
   test -n "$1" || error "VM name required" 1
-  c_vbox $1
+  htd__vbox $1
   VBoxManage controlvm ${uuid} poweroff \
       || error "Power-off of VM $name" 1 \
       && log "Power-off of VM $name completed successfully"
 }
 
-c_vbox_suspend()
+htd__vbox_suspend()
 {
   test -n "$1" || error "VM name required" 1
-  c_vbox $1
+  htd__vbox $1
   VBoxManage controlvm ${uuid} savestate \
       || error "Save-state of VM $name" 1 \
       && log "Save-state of VM $name completed successfully"
 }
 
-c_vbox_list()
+htd__vbox_list()
 {
   VBoxManage list vms | \
     sed 's/^"\(.*\)"\ {\(.*\)}$/\2 \1/' | while read uuid name
@@ -557,15 +553,15 @@ c_vbox_list()
     grep -Ev '^\s*(#.*|\s*)$'
 }
 
-c_vbox_running()
+htd__vbox_running()
 {
   VBoxManage list runningvms
 }
 
-c_vbox_info()
+htd__vbox_info()
 {
   test -n "$1" && {
-    c_vbox $1
+    htd__vbox $1
     #2: --details --machinereadable
     VBoxManage showvminfo ${uuid} $2
   } || {
@@ -574,9 +570,9 @@ c_vbox_info()
   }
 }
 
-c_vbox_gp()
+htd__vbox_gp()
 {
-  c_vbox "$1"
+  htd__vbox "$1"
   VBoxManage guestproperty enumerate ${uuid}
   #VBoxManage guestproperty get ${uuid} "/VirtualBox/GuestInfo/Net/0/V4/IP"
 }
@@ -584,16 +580,16 @@ c_vbox_gp()
 
 # Wake a remote host using its ethernet address
 wol_hwaddr=~/.conf/wol/hosts-hwaddr.sh
-c_wol_list_hosts()
+htd__wol_list_hosts()
 {
   cat $wol_hwaddr
   error "Expected hostname argument" 2
 }
-c_wake()
+htd__wake()
 {
   host=$1
   [ -z "$host" ] && {
-    c_wol_list_hosts
+    htd__wol_list_hosts
   } || {
     declare $(echo $(cat $wol_hwaddr))
     hwaddr=$(eval echo \$$host)
@@ -605,24 +601,24 @@ c_wake()
 
 # Simply list ARP-table, may want something better like arp-scan or an nmap
 # script
-c_mac()
+htd__mac()
 {
   arp -a
 }
 
 # 
 
-c_cron()
+htd__cron()
 {
   printf ""
 }
 
-c_project()
+htd__project()
 {
   printf ""
 }
 
-c_project_todo()
+htd__project_todo()
 {
   title=
   descr=
@@ -630,7 +626,7 @@ c_project_todo()
 }
 
 # Experimenting with gtasks.. looking at todo targets
-c_todo()
+htd__todo()
 {
   test -e TODO.list && {
     cat TODO.list | \
@@ -693,13 +689,13 @@ htd_grep_line_exclude()
   #do
   #    file=$()
   #    linenr=$()
-  #    c_htd_excluded_line $file $linenr
+  #    htd__htd_excluded_line $file $linenr
   #done
 }
 
-c_man_1_build_todo_list="Build indented file of path/line/tag from FIXME: etc tagged
+htd_man_1__build_todo_list="Build indented file of path/line/tag from FIXME: etc tagged
 src files"
-c_build_todo_list()
+htd__build_todo_list()
 {
   test -n "$1" || set -- TODO.list "$2"
   test -n "$2" || {
@@ -778,14 +774,14 @@ htd_file_arg()
 }
 
 # List all lists
-c_lists()
+htd__lists()
 {
   test -n "$gtasks_opts" || gtasks_opts="-dsc"
   gtasks -ll $gtasks_opts
 }
 
 # List tasks in lists
-c_tasks()
+htd__tasks()
 {
   gtasks_opts $@
   shift $?
@@ -802,14 +798,14 @@ c_tasks()
 }
 
 # Add task to list with title
-c_new_task()
+htd__new_task()
 {
   gtasks_list_arg $1 && shift 1
   gtasks -l "$list" -a - -t "$@"
 }
 
 # Edit notes of a task in the $EDITOR
-c_task_note()
+htd__task_note()
 {
   gtasks_list_arg $1 && shift 1
   gtasks_num_arg $1 && shift 1 || exit 1
@@ -839,7 +835,7 @@ c_task_note()
 }
 
 # Get or updte title of task
-c_task_title()
+htd__task_title()
 {
   gtasks_list_arg $1 && shift 1
   gtasks_num_arg $1 && shift 1 || exit 1
@@ -851,7 +847,7 @@ c_task_title()
 }
 
 # Toggle task completed status
-c_done()
+htd__done()
 {
   test -n "$2" && {
     test "$2" -gt 0 && {
@@ -869,7 +865,7 @@ c_done()
 }
 
 # TODO: get references from file
-c_urls()
+htd__urls()
 {
   htd_file_arg $1 || exit 1
   shift 1
@@ -890,7 +886,7 @@ source_git_remote()
       || error "Missing 1=$1 script" 1
 }
 
-c_git_remote_info()
+htd__git_remote_info()
 {
   test -n "$1" || set -- "$HTD_GIT_REMOTE"
   source_git_remote "$1"
@@ -898,7 +894,7 @@ c_git_remote_info()
   echo remote.$1.host=$remote_host
   echo remote.$1.user=$remote_user
 }
-c_git_remote()
+htd__git_remote()
 {
   test -n "$2" && {
     source_git_remote $1; shift 1
@@ -915,7 +911,7 @@ c_git_remote()
   }
 }
 
-c_git_init_remote()
+htd__git_init_remote()
 {
   source_git_remote
   [ -n "$1" ] && repo="$1" || repo="$PROJECT"
@@ -925,7 +921,7 @@ c_git_init_remote()
 
   [ -e .git ] || error "No .git directory, stopping remote init" 0
 
-  c_git_remote $repo >> /dev/null
+  htd__git_remote $repo >> /dev/null
 
   BARE=../$repo.git
   TMP_BARE=1
@@ -957,12 +953,12 @@ c_git_init_remote()
   log "Added remote $HTD_GIT_REMOTE $scp_url"
 }
 
-c_git_drop_remote()
+htd__git_drop_remote()
 {
   [ -n "$1" ] && repo="$1" || repo="$PROJECT"
   log "Checking if repo exists.."
   ssh_opts=-q
-  c_git_remote | grep $repo || {
+  htd__git_remote | grep $repo || {
     error "No such remote repo $repo" 1
   }
   source_git_remote
@@ -980,7 +976,7 @@ htd_name_precaution() {
   echo "$1" | grep -E '^[]\[{}\(\)A-Za-z0-9\.,!@#&%*?:'\''\+\ \/_-]*$' > /dev/null || return 1
 }
 
-c_test_name()
+htd__test_name()
 {
   match_grep_pattern_test "$1" || return 1
   htd_name_precaution "$1" || return 1
@@ -990,12 +986,12 @@ c_test_name()
   return 0
 }
 
-c_find_empty()
+htd__find_empty()
 {
   eval find . $find_ignores -o -size 0 -a -print
 }
 
-c_filesize()
+htd__filesize()
 {
   filesize "$1"
 }
@@ -1003,7 +999,7 @@ c_filesize()
 # XXX: a function to clean directories
 # TODO: hark back to statusdir?
 # TODO: notice deprecation marks
-c_check()
+htd__check()
 {
   log "Looking for unknown files.."
 
@@ -1014,7 +1010,7 @@ c_check()
     | while read p
     do
 
-      c_test_name "$p" >> /dev/null || {
+      htd__test_name "$p" >> /dev/null || {
         warn "Unhandled characters: $p"
         continue
       }
@@ -1030,15 +1026,15 @@ c_check()
         SZ="$(filesize "$p")"
       }
 
-      if test -d "$p" -a -n "$(c_expand $p.{zip,tar{.gz,.bz2}})"
+      if test -d "$p" -a -n "$(htd__expand $p.{zip,tar{.gz,.bz2}})"
       then
         info "Skipping unpacked dir $p"
         for ck in ck sha1 md5
         do
-          c_ck_table_subtree $ck "$p" | while read p2
+          htd__ck_table_subtree $ck "$p" | while read p2
           do
-            c_ck_table $ck "$p2" > /dev/null && {
-              #c_ck_drop $ck "$p"
+            htd__ck_table $ck "$p2" > /dev/null && {
+              #htd__ck_drop $ck "$p"
               warn "FIXME: Dropped $ck key for $p"
             }
           done
@@ -1070,13 +1066,13 @@ htd_git_rename()
   done
 }
 
-c_rename_test()
+htd__rename_test()
 {
   cmd_pref="echo"
-  c_rename $@
+  htd__rename $@
 }
 
-c_rename()
+htd__rename()
 {
   from_pattern="$1"
   to_pattern="$2"
@@ -1091,13 +1087,13 @@ c_rename()
 }
 
 # List all paths including dirs
-c_list_paths()
+htd__list_paths()
 {
   req_path_arg "$@"
   eval find $path $find_ignores -o -print
 }
 
-c_check_names()
+htd__check_names()
 {
   test -z "$1" && d="." || { d="$1"; shift 1; }
   test -z "$1" && valid_tags="" || valid_tags="$1"
@@ -1113,7 +1109,7 @@ c_check_names()
   } | matchbox.py check-names $valid_tags
 }
 
-c_fix_names()
+htd__fix_names()
 {
   local path_regex names_tables names_table
   req_path_arg "$1"
@@ -1151,20 +1147,20 @@ htd_host_arg()
 }
 
 # TODO: pre-process file/metadata
-c_resolve()
+htd__resolve()
 {
   set --
 }
 
 # GIT commits and push
-c_pci()
+htd__pci()
 {
   git add -u;git commit -m "$1";git push --all
 }
 
 # Move path to archive path in htdocs cabinet
 # $ archive [<prefix>]/[<datepath>]/[<id>] <refs>...
-c_archive()
+htd__archive()
 {
   test -n "$1" || error "ID expected"
 }
@@ -1178,13 +1174,13 @@ c_archive()
 # ie. lookup given prefix and id first, see if it exists.
 # XXX: may have lookup lookup. Use -g to override.
 # <prefix> 
-c_save()
+htd__save()
 {
-  c_save_tags "$1"
-  c_save_url "$@"
+  htd__save_tags "$1"
+  htd__save_url "$@"
 }
 
-c_save_tags()
+htd__save_tags()
 {
   set -- $@
   while test -n "$1"
@@ -1194,24 +1190,24 @@ c_save_tags()
   done
 }
 
-c_tags()
+htd__tags()
 {
   test -n "$1" || set -- "*"
   tags.py find "$1"
 }
 
-c_save_topics()
+htd__save_topics()
 {
   test -n "$1" || error "Document expected" 1
   test -e "$1" || error "No such document $1" 1
-  c_tpaths "$1" | while read path
+  htd__tpaths "$1" | while read path
   do
     echo
   done
 }
 
 
-c_save_url()
+htd__save_url()
 {
   annex=/Volumes/Simza/Downloads
   test "$(pwd -P)" = $annex || cd $annex
@@ -1225,7 +1221,7 @@ c_save_url()
   git annex addurl "$1" --file "$2"
 }
 
-c_save_ref()
+htd__save_ref()
 {
   test -n "$1" || error "tags expected" 1
   tags="$1"
@@ -1237,12 +1233,12 @@ c_save_ref()
   done
 }
 
-c_commit()
+htd__commit()
 {
   echo -e
 }
 
-c_show_rules()
+htd__show_rules()
 {
   htd_host_arg
   cat $htd_rules
@@ -1252,7 +1248,7 @@ c_show_rules()
 # htdoc rules development documentation in htdocs:Dev/Shell/Rules.rst
 # pick up with config:rules/comp.json and build `htd comp` aggregate metadata
 # and update statemachines.
-c_period_status_files()
+htd__period_status_files()
 {
   touch -t $(date +%y%m%d%H%M) $(statusdir.sh file period 1min)
   M=$(date +%M)
@@ -1268,9 +1264,9 @@ c_period_status_files()
   ls -la $(statusdir.sh file period hourly)
 }
 
-c_run_rules()
+htd__run_rules()
 {
-  c_period_status_files
+  htd__period_status_files
   test -z "$DEBUG" \
     || fixed_table_hd_offsets $htd_rules CMD RT TARGETS CWD
   fixed_table_hd $htd_rules CMD RT TARGETS CWD | while read vars
@@ -1288,19 +1284,19 @@ c_run_rules()
         @* ) continue ;;
       esac
       # XXX: figuring out what/how rules to run
-      c_rule_target $target || note "TODO run '$CMD' for $target ($CWD)"
+      htd__rule_target $target || note "TODO run '$CMD' for $target ($CWD)"
     done
   done
 }
 
-c_edit_rules()
+htd__edit_rules()
 {
   $EDITOR $htd_rules $0
 }
 
 # arg: 1:target
 # ret: 2: has run but failed or incomplete, 1: not run, 0: run was ok
-c_rule_target()
+htd__rule_target()
 {
   case "$1" in
 
@@ -1329,7 +1325,7 @@ c_rule_target()
   esac
 }
 
-c_add_rule()
+htd__add_rule()
 {
   set --
 }
@@ -1339,12 +1335,12 @@ c_add_rule()
 req_arg_pattern="Pattern format"
 req_arg_path="Path"
 
-c_name_tags_test()
+htd__name_tags_test()
 {
   match_name_vars $@
 }
 
-c_name_tags()
+htd__name_tags()
 {
   local pattern
   req_arg "$1" 'name-tags' 1 pattern && shift 1|| return 1
@@ -1366,7 +1362,7 @@ c_name_tags()
   }
 }
 
-c_name_tags_all()
+htd__name_tags_all()
 {
   req_arg "$1" 'name-tags-all' 1 path && path="$1" || return 1
   test "${path: -1:1}" = "/" && path="${path:0: -1}"
@@ -1381,13 +1377,13 @@ c_name_tags_all()
   }
 }
 
-c_update()
+htd__update()
 {
   for CK in ck sha1 md5
   do
-    c_ck_prune $CK
-    c_ck_clean $CK
-    c_ck_update $CK
+    htd__ck_prune $CK
+    htd__ck_clean $CK
+    htd__ck_update $CK
   done
 }
 
@@ -1415,11 +1411,11 @@ ck_write()
   }
 }
 
-c_man_5_table_ck="Table of CK checksum, filesize and path"
-c_man_5_table_sha1="Table of SHA1 checksum and path"
-c_man_5_table_md5="Table of MD5 checksum and path"
+htd__man_5_table_ck="Table of CK checksum, filesize and path"
+htd__man_5_table_sha1="Table of SHA1 checksum and path"
+htd__man_5_table_md5="Table of MD5 checksum and path"
 # Either check table for path, or iterate all entries. Echoes checksum, two spaces and a path
-c_ck_table()
+htd__ck_table()
 {
   # table ext
   ck_arg "$1"
@@ -1456,9 +1452,9 @@ c_ck_table()
   }
 }
 
-c_man_1_ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
-c_spc_ck_table_subtree="ck-tabke-subtree $ck_arg_spec <path>"
-c_ck_table_subtree()
+htd_man_1__ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
+htd__spc_ck_table_subtree="ck-tabke-subtree $ck_arg_spec <path>"
+htd__ck_table_subtree()
 {
   ck_arg "$1"
   shift 1
@@ -1485,7 +1481,7 @@ ck_update_file()
   update_file="$1"
   # FIXME use test name again but must have some testcases
   # to verify because currently htd_name_precaution is a bit too strict
-  # c_test_name
+  # htd__test_name
   match_grep_pattern_test "$update_file" > /dev/null || {
     error "Skip path with unhandled characters"
     return
@@ -1522,7 +1518,7 @@ ck_update_file()
   test "${update_file:0:2}" = "./" && update_file="${update_file:2}"
   #EXT="$(echo $BE)"
   test -n "$HAS_CKS" && {
-    c_ck_table "$CK" "$update_file" > /dev/null && {
+    htd__ck_table "$CK" "$update_file" > /dev/null && {
       echo "path found"
     } || {
       grep "$cks" table.$CK > /dev/null && {
@@ -1541,7 +1537,7 @@ ck_update_file()
     return
   } || {
     # TODO prepare to rename, keep SHA1 hashtable
-    c_ck_table "$CK" "$update_file" > /dev/null && {
+    htd__ck_table "$CK" "$update_file" > /dev/null && {
       echo ok
     } || {
       ${CK}sum "$update_file" >> table.$CK
@@ -1564,7 +1560,7 @@ ck_update_find()
 }
 
 # find all files, check their names, size and checksum
-c_ck_update()
+htd__ck_update()
 {
   ck_write "$1"
   shift 1
@@ -1595,7 +1591,7 @@ c_ck_update()
   test -z "$1" || error "Unknown path '$1'" 1
 }
 
-c_ck_drop()
+htd__ck_drop()
 {
   ck_write "$1"
   shift 1
@@ -1608,9 +1604,9 @@ c_ck_drop()
   rm table.$CK.tmp
 }
 
-c_man_1_ck_clean="Iterate checksum table, check for duplicates, normalize paths"
-c_spc_ck_clean="clean $ck_arg_spec"
-c_ck_clean()
+htd_man_1__ck_clean="Iterate checksum table, check for duplicates, normalize paths"
+htd__spc_ck_clean="clean $ck_arg_spec"
+htd__ck_clean()
 {
   ck_arg "$1"
   shift 1
@@ -1621,21 +1617,21 @@ c_ck_clean()
   }
 }
 
-c_spc_ck_validate="ck-validate $ck_arg_spec"
-c_ck_validate()
+htd__spc_ck_validate="ck-validate $ck_arg_spec"
+htd__ck_validate()
 {
   ck_arg "$1"
   shift 1
   test "$CK" = "ck" && {
-    c_checksums table.$CK
+    htd__checksums table.$CK
   } || {
     ${CK}sum -c table.$CK
   }
 }
 
 # check file size and cksum
-c_spc_checksums="checksums [<table-file>]"
-c_checksums()
+htd__spc_checksums="checksums [<table-file>]"
+htd__checksums()
 {
   test -n "$1"  && T=$1  || T=table.ck
   cat $T | while read cks sz p
@@ -1649,22 +1645,22 @@ c_checksums()
 }
 
 # Drop non-existant paths from table, copy to .missing
-c_ck_prune()
+htd__ck_prune()
 {
   ck_write "$1"
   shift 1
   log "Pruning missing files from $CK table"
-  c_ck_table $CK | while read cks p
+  htd__ck_table $CK | while read cks p
   do
     test -e "$p" || {
-      c_ck_drop $CK "$p"
+      htd__ck_drop $CK "$p"
       echo "Dropped $CK key $cks for '$p'"
     }
   done
 }
 
 # Read checksums from *.{sha1,md5,ck}{,sum}
-c_ck_consolidate()
+htd__ck_consolidate()
 {
   eval "find . $find_ignores -o -name '*.{sha1,md5,ck}{,sum}' -a \( -type f -o -type l \) " -print | while read p
   do
@@ -1673,7 +1669,7 @@ c_ck_consolidate()
 }
 
 # try to find files from .missing, or put them in .gone
-c_ck_clean()
+htd__ck_clean()
 {
   ck_write "$1"
   shift 1
@@ -1682,7 +1678,7 @@ c_ck_clean()
     return
   }
   log "Looking for missing files from $CK table"/
-  c_ck_table $CK .missing | while read cks p
+  htd__ck_table $CK .missing | while read cks p
   do
     BN="$(basename "$p")"
     NW=$(eval find ./ $find_ignores -o -iname '$BN' -print)
@@ -1692,7 +1688,7 @@ c_ck_clean()
 }
 
 # TODO consolidate meta
-c_ck_metafile()
+htd__ck_metafile()
 {
   [ -n "$1" ] && d=$1 || d=.
   CK=sha1
@@ -1705,7 +1701,7 @@ c_ck_metafile()
       continue
     }
     cks=$(rsr.py --show-sha1sum-hexdigest "$ck_mf_p" 2> /dev/null)
-    c_ck_table "$CK" "$ck_mf_p" > /dev/null && {
+    htd__ck_table "$CK" "$ck_mf_p" > /dev/null && {
       log "$cks found"
     } || {
       CKS=$(${CK}sum "$ck_mf_p" | cut -d' ' -f1)
@@ -1723,7 +1719,7 @@ c_ck_metafile()
 }
 
 # validate torrent
-c_ck_torrent()
+htd__ck_torrent()
 {
   test -s "$1" || error "Not existent torrent arg 1: $1" 1
   test -f "$1" || error "Not a torrent file arg 1: $1" 1
@@ -1752,7 +1748,7 @@ c_ck_torrent()
 
 
 # xxx find corrupt files: .mp3
-c_mp3_validate()
+htd__mp3_validate()
 {
   eval "find . $find_ignores -o -name "*.mp3" -a \( -type f -o -type l \) -print" \
   | while read p
@@ -1766,7 +1762,7 @@ c_mp3_validate()
   done
 }
 
-c_mux()
+htd__mux()
 {
   test -n "$1" || set -- "docker-"
   test -n "$2" || set -- "$1" "dev"
@@ -1776,13 +1772,13 @@ c_mux()
   tmuxinator start $1 $2 $3
 }
 
-c_tmux_prive()
+htd__tmux_prive()
 {
   test -n "$1" || set -- "*"
   cd
   case "$1" in init|"*" )
   tmux has-session -t Prive >/dev/null || {
-    c_tmux_init Prive
+    htd__tmux_init Prive
     tmux send-keys -t Prive:1 "cd;simza test" enter
   }
   tmux list-windows -t Prive | grep -q HtD || {
@@ -1837,7 +1833,7 @@ c_tmux_prive()
   ;; esac
 }
 
-c_tmux_work()
+htd__tmux_work()
 {
   test -n "$1" || set -- "*"
   cd ~/work/brix
@@ -1846,7 +1842,7 @@ c_tmux_work()
 
   case "$1" in init|"*" )
 
-  tmux has-session -t Work >/dev/null || c_tmux_init Work bash
+  tmux has-session -t Work >/dev/null || htd__tmux_init Work bash
   sleep 2
 
   # Make sure Log window is on and first window (swapping some windows if
@@ -1934,11 +1930,11 @@ c_tmux_work()
   ;; esac
 }
 
-c_tmux_srv()
+htd__tmux_srv()
 {
   cd /srv
   tmux has-session -t Srv >/dev/null || {
-    c_tmux_init Srv
+    htd__tmux_init Srv
     tmux send-keys -t Srv:bash "cd ~/.conf; ./script/update.sh" enter
   }
   tmux list-windows -t Srv | grep -q HtD-Sf || {
@@ -1961,7 +1957,7 @@ c_tmux_srv()
 
 
 # htd tmux-winit SESSION WINDOW DIR CMD
-c_tmux_winit()
+htd__tmux_winit()
 {
   ## Parse args
   test -n "$1" || error "Session <arg1> required" 1
@@ -1991,7 +1987,7 @@ c_tmux_winit()
   }
 }
 
-c_tmux_init()
+htd__tmux_init()
 {
   test -n "$1" || error "session name required" 1
   test -n "$2" || set -- "$1" "bash"
@@ -2027,11 +2023,11 @@ c_tmux_init()
   }
 
   # Look for init subcmd to setup windows
-  try_exec_func "c_tmux_$(echo $1 | tr 'A-Z' 'a-z')" || noop
+  try_exec_func "htd__tmux_$(echo $1 | tr 'A-Z' 'a-z')" || noop
   # XXX: or try tmuxinator
 }
 
-c_reader_update()
+htd__reader_update()
 {
   cd /Volumes/READER
 
@@ -2053,37 +2049,37 @@ c_reader_update()
   done
 }
 
-c_man_1_test="no test, just checking it goes"
-c_test()
+htd_man_1__test="no test, just checking it goes"
+htd__test()
 {
   ./test/*-spec.bats
 }
-c_als__t=test
+htd_als___t=test
 
 
-c_man_1_edit_test="edit-tests"
-c_edit_test()
+htd_man_1__edit_test="edit-tests"
+htd__edit_test()
 {
   $EDITOR ./test/*-spec.bats
 }
-c_als__T=edit-test
+htd_als___T=edit-test
 
 
-c_man_1_inventory="All inventories"
-c_inventory()
+htd_man_1__inventory="All inventories"
+htd__inventory()
 {
   $EDITOR personal/inventory/{main,*}.rst
   git add personal/inventory/{main,*}.rst
 }
 
-c_man_1_inv_elec="Electrics inventory"
-c_inv_elec()
+htd_man_1__inv_elec="Electrics inventory"
+htd__inv_elec()
 {
   $EDITOR personal/inventory/{components,modules,hardware}.rst
   git add personal/inventory/{components,modules,hardware}.rst
 }
 
-c_disk_id()
+htd__disk_id()
 {
   test -n "$1" || error "Disk expected" 1
   test -e "$1" || error "Disk path expected '$1'" 1
@@ -2093,7 +2089,7 @@ c_disk_id()
   echo $diskid
 }
 
-c_disk_model()
+htd__disk_model()
 {
   test -n "$1" || error "Disk expected" 1
   test -e "$1" || error "Disk path expected '$1'" 1
@@ -2103,7 +2099,7 @@ c_disk_model()
   echo $diskmodel
 }
 
-c_disk_size()
+htd__disk_size()
 {
   test -n "$1" || error "Disk expected" 1
   test -e "$1" || error "Disk path expected '$1'" 1
@@ -2113,7 +2109,7 @@ c_disk_size()
   echo $disksize
 }
 
-c_disk_tabletype()
+htd__disk_tabletype()
 {
   test -n "$1" || error "Disk expected" 1
   test -e "$1" || error "Disk path expected '$1'" 1
@@ -2143,7 +2139,7 @@ find_partition_ids()
   fi
 }
 
-c_disks()
+htd__disks()
 {
   test -n "$rst2xml" || error "rst2xml required" 1
   sudo which parted 1>/dev/null && parted=$(sudo which parted) \
@@ -2171,36 +2167,36 @@ c_disks()
 }
 
 
-c_realpath()
+htd__realpath()
 {
   realpath "$@"
 }
 
-c_normalize_symbolic()
+htd__normalize_symbolic()
 {
   normalize_symbolic "$@"
 }
 
-c_normalize_relative()
+htd__normalize_relative()
 {
   normalize_relative "$1"
 }
 
 # Get document part using xpath
 # XXX: relies on rST/XML.
-c_getx()
+htd__getx()
 {
   test -n "$1" || error "Document expected" 1
   test -e "$1" || error "No such document <$1>" 1
   test -n "$2" || error "XPath expr expected" 1
 
-  test -n "$3" || set "$1" "$2" "$(c_getxl $1)"
+  test -n "$3" || set "$1" "$2" "$(htd__getxl $1)"
 
   xmllint --xpath "$2" "$3"
 }
 
 # Get x-lang file for arg1
-c_getxl()
+htd__getxl()
 {
   fnmatch '*.xml' $1 && set -- "$1" "$1"
   fnmatch '*.rst' $1 && {
@@ -2212,7 +2208,7 @@ c_getxl()
 }
 
 # List topic paths (nested dl terms) in document paths
-c_tpaths()
+htd__tpaths()
 {
   test -n "$1" || error "At least one document expected" 1
   test -n "$print_src" || local print_src=
@@ -2227,7 +2223,7 @@ c_tpaths()
     path= rel_leaf= root=
 
     # Read multi-leaf paths, and split it up into relative leafs
-    c_xproc "$(c_getxl $1)" $scriptdir/rst-terms2path.xsl \
+    htd__xproc "$(htd__getxl $1)" $scriptdir/rst-terms2path.xsl \
       | grep -Ev '^(#.*|\s*)$' \
       | sed 's/\([^\.]\)\/\.\./\1\
 ../g' \
@@ -2253,15 +2249,15 @@ c_tpaths()
   done
 }
 
-c_tpath_raw()
+htd__tpath_raw()
 {
   test -n "$1" || error "document expected" 1
   test -e "$1" || error "no such document '$1'" 1
-  c_xproc "$(c_getxl "$1")" $scriptdir/rst-terms2path.xsl
+  htd__xproc "$(htd__getxl "$1")" $scriptdir/rst-terms2path.xsl
 }
 
 # Process XML using XSLT
-c_xproc()
+htd__xproc()
 {
   {
     fnmatch '<* *>' "$2" && {
@@ -2277,7 +2273,7 @@ EOM
 }
 
 # TODO: Append definition term to doc
-c_dl_init()
+htd__dl_init()
 {
   test -n "$1" || error "Document expected" 1
   test -e "$1" || error "Document expected: <$1>" 1
@@ -2286,7 +2282,7 @@ c_dl_init()
 }
 
 # TODO: Add list item beneath definition term
-c_dl_append()
+htd__dl_append()
 {
   echo
 }
@@ -2309,7 +2305,7 @@ EOM
   } | tail -n +2 | grep -Ev '^(#.*|\s*)$'
 }
 
-c_check_disks()
+htd__check_disks()
 {
   test -d $HTDIR || error "No HTDIR" 1
   cd $HTDIR
@@ -2344,14 +2340,14 @@ EOM
 
 
 # Setup X tcp socket for VS1 containers
-c_xtcp()
+htd__xtcp()
 {
   socat TCP-LISTEN:6000,reuseaddr,fork UNIX-CLIENT:\"$DISPLAY\"
 }
 
 
 gcal_tab=~/.conf/google/cals.tab
-c_man_5_cals_tab="List of Google calendar IDs"
+htd__man_5_cals_tab="List of Google calendar IDs"
 
 gcal_tab_ids()
 {
@@ -2364,7 +2360,7 @@ gcal_tab_ids()
 }
 
 # List current and upcoming events
-c_events()
+htd__events()
 {
   test -n "$2" || set -- "$1" "days=3"
 
@@ -2376,7 +2372,7 @@ c_events()
 }
 
 # List upcoming events at any date
-c_upcoming_events()
+htd__upcoming_events()
 {
   gcal_tab_ids "$1" | while read calId summary
   do
@@ -2386,7 +2382,7 @@ c_upcoming_events()
 }
 
 # List events of +/- 1day
-c_current_events()
+htd__current_events()
 {
   test -n "$2" || set -- "$1" "days=1" "$3" "$4"
   test -n "$3" || set -- "$1" "$2" "days=1" "$4"
@@ -2400,7 +2396,7 @@ c_current_events()
 }
 
 
-c_active()
+htd__active()
 {
   test -n "$tdata_fmt" && {
     note "Listing files active in '$@'"
@@ -2414,22 +2410,22 @@ c_active()
   shift
   test -n "$tdate" || error "formatting date" 1
   touch -t $tdate $(statusdir.sh file recent-paths)
-  c_recent_paths "$@"
+  htd__recent_paths "$@"
 }
 
 
 # List open paths under given or current dir. Dumps lsof without cmd, pid etc.
-c_current_paths()
+htd__current_paths()
 {
   test -n "$1" || set -- "$(pwd -P)"
   note "Listing open paths under $1"
   # print only pid and path name, keep name
   lsof -Fn +D $1 | tail -n +2 | grep -v '^p' | cut -c2- | sort -u
 }
-c_als_lsof=current-paths
+htd_als__lsof=current-paths
 
 # List paths newer than recent-paths setting
-c_recent_paths()
+htd__recent_paths()
 {
   test -n "$1" || set -- "$(pwd -P)"
   note "Listing active paths under $1"
@@ -2439,7 +2435,7 @@ c_recent_paths()
 
 
 # Scan for bashims in given file or current dir
-c_bashisms()
+htd__bashisms()
 {
   test -n "$1" || set -- "."
   f=-srI
@@ -2456,9 +2452,9 @@ c_bashisms()
 }
 
 
-c_man_1_clean_unpacked="Given archive, look for existing, possibly unpacked (direct) neighbour dirs
+htd_man_1__clean_unpacked="Given archive, look for existing, possibly unpacked (direct) neighbour dirs
 interactively delete, compare, or skip"
-c_clean_unpacked()
+htd__clean_unpacked()
 {
   test -n "$1" || error "archive" 1
   test -n "$2" || set -- "$1" "$(dirname "$1")"
@@ -2518,7 +2514,7 @@ c_clean_unpacked()
 }
 
 # given archive, note unpacked files
-c_note_unpacked()
+htd__note_unpacked()
 {
   test -n "$1" || error "archive" 1
   test -n "$2" || set -- "$1" "$(dirname "$1")"
@@ -2559,7 +2555,7 @@ c_note_unpacked()
 }
 
 # given archive, note files out of sync
-c_test_unpacked()
+htd__test_unpacked()
 {
   test -n "$1" || error "archive" 1
   test -n "$2" || set -- "$1" "$(dirname "$1")"
@@ -2674,7 +2670,7 @@ archive_update()
   test ! -e "$dirty" && stderr ok "$1 ($c files)" || warn "Dirty $1" 1
 }
 
-c_archive_list()
+htd__archive_list()
 {
   archive_verbose_list "$@"
 }
@@ -2729,7 +2725,7 @@ read_unzip_verbose_list()
 }
 
 
-c_export_docker_env()
+htd__export_docker_env()
 {
   launchctl setenv DOCKER_HOST $DOCKER_HOST
   launchctl setenv DOCKER_MACHINE_NAME $DOCKER_MACHINE_NAME
@@ -2738,7 +2734,7 @@ c_export_docker_env()
   note "OK"
 }
 
-c_import_docker_env()
+htd__import_docker_env()
 {
   echo DOCKER_HOST=$(launchctl getenv DOCKER_HOST)
   echo DOCKER_MACHINE_NAME=$(launchctl getenv DOCKER_MACHINE_NAME)
@@ -2749,12 +2745,12 @@ c_import_docker_env()
 
 # Forced color output commands
 
-c_git_status()
+htd__git_status()
 {
   git -c color.status=always status
 }
 
-c_ls()
+htd__ls()
 {
   case "$uname" in
     Darwin )
@@ -2773,7 +2769,7 @@ c_ls()
 # Below is not ideal, maybe AHA is better.
 #
 # FIXME: pstree-color is perhaps not returning valid escapes, as 2html.vim chokes
-c_colorize()
+htd__colorize()
 {
   test -n "$1" || set -- "-"
 
@@ -2828,7 +2824,7 @@ c_colorize()
 
 
 
-c_say()
+htd__say()
 {
   lang=$1
   shift
@@ -2869,17 +2865,13 @@ c_say()
 ### Main
 
 
-htd__main()
+htd_main()
 {
   htd_init || return 0
 
   local scriptname=htd base=$(basename $htd_source .sh) verbosity=5
 
   case "$base" in $scriptname )
-
-      local subcmd_def= \
-        subcmd_pref= subcmd_suf= \
-        subcmd_func_pref=c_ subcmd_func_suf=
 
       htd_lib
 
@@ -2896,7 +2888,7 @@ htd__main()
 htd_init()
 {
   test -z "$__load_lib" || return 1
-  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+  test -n "$LIB" || LIB=$HOME/bin
   . $LIB/box.init.sh
   . $LIB/util.sh
   box_run_sh_test
@@ -2911,7 +2903,7 @@ htd_init()
 htd_lib()
 {
   local __load_lib=1
-  . $PREFIX/bin/match.sh load-ext
+  . $LIB/match.sh load-ext
   # -- htd box lib sentinel --
   set --
 }
@@ -2920,6 +2912,6 @@ htd_lib()
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   case "$1" in load-ext ) ;; * )
-    htd__main "$@"
+    htd_main "$@"
   ;; esac
 ;; esac

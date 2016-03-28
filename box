@@ -1,5 +1,5 @@
 #!/bin/sh
-c_source=$_
+box__source=$_
 # Box: create namespaced script commands 
 
 # Id: script.mpe/0.0.0+20150911-0659 box
@@ -11,46 +11,38 @@ version=0.0.0+20150911-0659 # script.mpe
 
 ### User commands
 
-c_man_1_commands="List all commands"
-c_commands()
+box__man_1_commands="List all commands"
+box__commands()
 {
-  choice_global=1 std_commands
+  choice_global=1 std__commands
 }
 # FIXME: non-flag subcmd aliases
-c_als_c=commands
+box__als_c=commands
 
 
 # TODO: get a proper opt parser and do something like this:
-c_help="Box: Generic: Help
+box_man_1__help="Box: Generic: Help
 
   -h|help [<id>]      Print usage info, abbreviated command list and documentation
                       reference. Use 'help help', 'docs' or 'help docs' for
                       extended output. "
-c_help()
+box__help()
 {
-  choice_global=1 std_help box $*
+  choice_global=1 std__help $*
 }
+
 # XXX compile these from human readable cl-option docstring, provide bash
 #   auto-completion. Need to work out man5 and man7 stuff still. Save lot of
 #   clutter.
-c_man_1_help="Echo a combined usage, commands and docs"
-box_spc_help="-h|help [<id>]"
-c_als__h="help"
+box_man_1__help="Echo a combined usage, commands and docs"
+box_spc__help="-h|help [<id>]"
+box_als___h="help"
 
 
-c_als__V=version
-c_man_1_version="Version info"
-box_spc_version="-V|version"
-c_version()
-{
-  echo "$(cat $PREFIX/bin/.app-id)/$version"
-}
-
-
-c_man_1_stat="Stat local host script file"
+box__man_1_stat="Stat local host script file"
 box_spc_stat="-S|stat"
-c_als__S=stat
-c_stat()
+box__als__S=stat
+box__stat()
 {
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
   note "FIXME this is more like a info list. need something more actual for stat. think about keeping state in files.."
@@ -59,16 +51,16 @@ c_stat()
 
   test -n "$local_file" && {
     subcmd_func_pref=c_$(hostname -s | tr 'A-Z' 'a-z')__ choice_all=1 \
-      std_commands $local_file
+      std__commands $local_file
   } || {
     error "No local file" 1
   }
 }
 
 
-c_man_1_edit="Edit localscript and box script or abort. "
+box__man_1_edit="Edit localscript and box script or abort. "
 box_spc_edit="-e|edit [<name>:]<script>"
-c_edit()
+box__edit()
 {
   local c=0 script_files= \
     local_script= named_script= uconf_script=
@@ -103,12 +95,12 @@ c_edit()
   note "invoking '$evoke'"
   eval $evoke $files $lib_files
 }
-c_als__e="edit"
+box__als__e="edit"
 
 
-c_man_1_edit_main="Edit box script and local scripts. "
+box__man_1_edit_main="Edit box script and local scripts. "
 box_spc_edit_main="-E|edit-main"
-c_edit_main()
+box__edit_main()
 {
   local c=0 script_files= \
     local_script= named_script= uconf_script=
@@ -128,14 +120,14 @@ c_edit_main()
   note "invoking '$evoke'"
   $evoke $files
 }
-c_als__E=edit-main
+box__als__E=edit-main
 
 
 # FIXME: expect this is broken
-c_als__i=init
-c_main_1_init="Add script function, optionally providing command and script name"
+box__als__i=init
+box__main_1_init="Add script function, optionally providing command and script name"
 box_spc_init="-i|init [<cmd>=run [<name>=$hostname]]"
-c_init()
+box__init()
 {
   local c=0 script_name= subcmd= \
     global_func_name= local_func_name= \
@@ -223,10 +215,10 @@ EOF
 
 # FIXME new script
 
-c_main_1_new="Initialize new script"
+box__main_1_new="Initialize new script"
 box_spc_new="-n|new [<name>=$hostname]"
-c_als__n=new
-c_new()
+box__als__n=new
+box__new()
 {
   local name= cmd=run c=0 script=
   box_name_args $@
@@ -251,21 +243,21 @@ EOF
 }
 
 
-c_main_1_function="Initialize function for current location"
+box__main_1_function="Initialize function for current location"
 box_spc_function="-n|function [[<name>=$hostname] <cmd>=run]"
-c_function()
+box__function()
 {
   local name= cmd=run c=0
   box_name_args $@
   test -e $script || error "script $name does not exist" 1
   echo TODO add function to script
 }
-c_als__f=function
+box__als__f=function
 
 
-c_man_1_list="."
+box__man_1_list="."
 box_spc_list="list <Name>"
-c_list()
+box__list()
 {
   test -z "$dry_run" || {
     debug "nid_cwd='$nid_cwd'"
@@ -275,12 +267,12 @@ c_list()
   info "TODO box list: work in progress"
   grep -srI ${nid_cwd} $BOX_BIN_DIR/*
 }
-c_als__l=list
+box__als__l=list
 
 
-c_man_1_list_libs="List includes for script."
+box__man_1_list_libs="List includes for script."
 box_spc_list_libs="list-libs"
-c_list_libs()
+box__list_libs()
 {
   local c=0 script_files= \
     local_script= named_script= uconf_script=
@@ -307,12 +299,12 @@ vs1_init_args_run()
   fi
 }
 
-c_man_1_run="Run local or global function.
+box__man_1_run="Run local or global function.
 
 For local, require localscript and exec. given function.
 "
 box_spc_run="-r|run [<cmd>=run [<name>=$hostname]]"
-c_run()
+box__run()
 {
   local c=0 \
     global_func_name= local_func_name= \
@@ -370,21 +362,21 @@ c_run()
 }
 
 
-c_man_1_="Default: (local) run"
-c_als__c=run
+box__man_1_="Default: (local) run"
+box__als__c=run
 
 
-c_man_1_complete="Testing bash complete with sh compatible script."
+box__man_1_complete="Testing bash complete with sh compatible script."
 box_spc_complete=complete
-c_complete()
+box__complete()
 {
   cmds=""
 }
 
 
-c_man_1_check_install="Run internal tests."
+box__man_1_check_install="Run internal tests."
 box_spc_check_install=check-install
-c_check_install()
+box__check_install()
 {
   {
     test -d "$BOX_DIR/" || error "not a dir" 1
@@ -410,7 +402,7 @@ c_check_install()
 }
 
 
-c_log_demo()
+box__log_demo()
 {
   debug "Debug msg"
   info "Info msg"
@@ -425,12 +417,10 @@ c_log_demo()
 
 ### main.sh / Box
 
-#box_parse_args() { }
 
 ### Main
 
-
-box__main()
+box_main()
 {
   box_init || return 0
 
@@ -439,10 +429,6 @@ box__main()
 
   case "$base" in $scriptname )
 
-      local subcmd_def= \
-        subcmd_pref=c scsep=_ \
-        subcmd_func_pref=c_ subcmd_func_suf=
-
       box_lib
       box_src_lib box
 
@@ -450,9 +436,9 @@ box__main()
       run_subcmd "$@"
       ;;
 
-    #* )
-    #  error "not a frontend for $base"
-    #  ;;
+    * )
+      error "not a frontend for $base"
+      ;;
   esac
 }
 
@@ -488,6 +474,10 @@ box_load()
 }
 
 # Use hyphen to ignore source exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
-  box__main "$@"
-fi
+case "$0" in "" ) ;; "-"* ) ;; * )
+  # Ignore 'load-ext' sub-command
+  case "$1" in load-ext ) ;; * )
+    box_main "$@"
+  ;; esac
+;; esac
+

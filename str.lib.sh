@@ -4,7 +4,7 @@
 # ID for simple strings without special characters
 mkid()
 {
-	id=$(echo "$1" | tr '.-' '__')
+	id=$(echo "$1" | tr '[:blank:][:punct:]' '_')
 }
 
 # to filter strings to valid id

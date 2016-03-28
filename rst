@@ -46,40 +46,40 @@ c_rst__date()
 ### User help functions
 
 
-c_rst__als__h=help
-c_rst__spc_help='-h|help [ID]'
+c_rst_als___h=help
+c_rst_spc__help='-h|help [ID]'
 c_rst__help()
 {
-  std_help rst "$@"
+  std__help rst "$@"
 }
 
 
-c_rst__als__e=edit
-c_rst__spc_edit='-e|edit'
+c_rst_als___e=edit
+c_rst_spc__edit='-e|edit'
 c_rst__edit()
 {
   $EDITOR $0 "$@"
 }
 
 
-c_rst__man_1_version="Version info"
+c_rst_man_1__version="Version info"
 c_rst__version()
 {
   echo "box-rst/$version"
 }
-c_rst__als__V=version
+c_rst_als___V=version
 
 
 
 ### Main
 
 
-rst__main()
+rst_main()
 {
   rst_init || return 0
   local scriptname=rst base=$(basename $0 .sh) dirname=$(dirname $0)
   case "$base" in $scriptname )
-      local subcmd_func_pref=c_${base}__ verbosity=5
+      local subcmd_func_pref=c_${base} verbosity=5 c_rst_default=version
       rst_lib
       run_subcmd "$@" ;;
   esac
@@ -112,6 +112,6 @@ rst_load()
 
 # Use hyphen to ignore source exec in login shell
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
-  rst__main "$@"
+  rst_main "$@"
 fi
 

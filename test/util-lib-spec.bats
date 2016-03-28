@@ -23,9 +23,9 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
   test $status -eq 0
   test "${lines[0]}" = "mytest"
 
-  run mytest_load
+  run mytest_usage
   test $status -eq 0
-  test "${lines[0]}" = "mytest_load"
+  test "${lines[0]}" = "mytest_usage"
 }
 
 @test "$lib test run non-existing function to verify" {

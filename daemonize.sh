@@ -195,22 +195,22 @@ daemonize__init()
 
 daemonize_init()
 {
-  test -n "$PREFIX" || PREFIX=$HOME
   test -z "$BOX_INIT" || return 1
-  . $PREFIX/bin/box.init.sh
-  . $PREFIX/bin/util.sh
+  test -n "$LIB" || LIB=$HOME/bin
+  . $LIB/box.init.sh
+  . $LIB/util.sh
   box_run_sh_test
-  . $PREFIX/bin/main.sh
-  . $PREFIX/bin/main.init.sh
-  . $PREFIX/bin/box.lib.sh
-  . $PREFIX/bin/date.lib.sh
-  . $PREFIX/bin/darwin.lib.sh
+  . $LIB/main.sh
+  . $LIB/main.init.sh
+  . $LIB/box.lib.sh
+  . $LIB/date.lib.sh
+  . $LIB/darwin.lib.sh
   # -- daemonize box init sentinel --
 }
 
 daemonize_lib()
 {
-  . $PREFIX/bin/match.sh load-ext
+  . $LIB/match.sh load-ext
   # -- daemonize box lib sentinel --
   set --
 }

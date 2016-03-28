@@ -61,7 +61,7 @@ gv__help()
   echo 'Functions: '
   echo ''
   echo '  help                             print this help listing.'
-  std_help gv "$@"
+  std__help gv "$@"
 }
 
 

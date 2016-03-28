@@ -2,7 +2,8 @@
 
 set -e
 
-test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+test -n "$LIB" || LIB=$HOME/bin
+#{ test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
 
 #TERM=xterm
 . $LIB/os.lib.sh
@@ -10,6 +11,7 @@ test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
 . $LIB/std.lib.sh
 . $LIB/str.lib.sh
 . $LIB/doc.lib.sh
+. $LIB/table.lib.sh
 
 
 # test for var decl, io. to no override empty

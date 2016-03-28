@@ -2,6 +2,19 @@
 # Created: 2015-12-14
 pd__source="$_"
 
+set -e
+
+version=0.0.0+20150911-0659 # script.mpe
+
+
+pd_man_1__version="Version info"
+pd__version()
+{
+  echo "$(cat $PREFIX/bin/.app-id)/$version"
+}
+pd_als__V=version
+
+
 pd__edit()
 {
   $EDITOR \
@@ -672,12 +685,12 @@ pd__help()
   echo '  status                           List abbreviated status strings for all repos'
   echo ''
   echo '  help                             print this help listing.'
-  # XXX _init is bodged, std_help pd "$@"
+  # XXX _init is bodged, std__help pd "$@"
 }
 
-pd__load()
+pd_load()
 {
-  for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
   do case "$x" in
 
       y )
@@ -724,7 +737,7 @@ pd__load()
 
   export PD_SYNC_AGE=$_3HOUR
 
-  local tdy="$(try_value "${subcmd}" "" today)"
+  local tdy="$(try_value "${subcmd}" today)"
   test -z "$tdy" || {
     today=$(statusdir.sh file $tdy)
     tdate=$(date +%y%m%d0000)
@@ -741,9 +754,9 @@ pd__load()
   str_load
 }
 
-pd__unload()
+pd_unload()
 {
-  for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
   do case "$x" in
       y )
         test -z "$sock" || {
@@ -770,7 +783,7 @@ pd__unload()
   }
 }
 
-pd__lib()
+pd_lib()
 {
   test -z "$__load_lib" || return 1
   test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
@@ -797,7 +810,7 @@ pd_init()
 
 ### Main
 
-pd__main()
+pd_main()
 {
   local scriptname=projectdir scriptalias=pd base= \
     subcmd=$1
@@ -809,28 +822,29 @@ pd__main()
 
     $scriptname | $scriptalias )
 
-        pd__lib "$@" || return 0
+        pd_lib "$@" || return 0
 
         # invoke with function name first argument,
-        local scsep=__ bgd= \
+        local bgd= \
           subcmd_pref=${scriptalias} \
           def_subcmd=status \
           func_exists= \
           func= \
           sock= \
           c=0 \
-          ext_sh_sub=
+          ext_sh_sub= \
+          base=pd
 
         shift $c
 
         pd_init || exit $?
 
-        try_subcmd && {
+        try_subcmd "$@" && {
           box_src_lib pd
           shift 1
-          pd__load $subcmd "$@" || return
-          $func "$@" || r=$?
-          pd__unload || exit $?
+          pd_load $subcmd "$@" || return
+          $subcmd_func "$@" || r=$?
+          pd_unload || exit $?
           exit $r
         }
 
@@ -852,7 +866,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
 
-      pd__main "$@"
+      pd_main "$@"
     ;;
 
   esac ;;

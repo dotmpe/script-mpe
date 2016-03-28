@@ -10,24 +10,6 @@ match_version=0.0.0+20150911-0659 # script.mpe
 ### User commands
 
 
-match_man_1_help="Echo a combined usage, command and docs"
-match_spc_help="-h|help [<id>]"
-match_help()
-{
-  choice_global=1 std_help match "$@"
-}
-match_als__h="help"
-
-
-match_als__V=version
-match_man_1_version="Version info"
-match_spc_version="-V|version"
-match_version()
-{
-  echo "$(cat $PREFIX/bin/.app-id)/$version"
-}
-
-
 match_load()
 {
   MATCH_NAME_VARS=
@@ -39,7 +21,7 @@ match_load()
 }
 
 
-match_var_names()
+match__var_names()
 {
   echo $MATCH_NAME_VARS
 }
@@ -124,7 +106,7 @@ match_name_pattern_opts()
 
 
 # parse named vars from path using pattern
-match_name_vars()
+match__name_vars()
 {
   local pattern path
   req_arg "$1" "match name-vars" 1 pattern && shift 1 || return 1
@@ -156,7 +138,7 @@ match_name_vars()
 }
 
 # change glob to regex pattern and match against path
-match_glob()
+match__glob()
 {
   match_grep_pattern_test "$1" || error "build regex failed on '$1'" 2
   glob_pat="$(echo "$p_" | sed 's/\\\*/.*/g')"
@@ -165,7 +147,7 @@ match_glob()
 }
 
 # check given name with all name patterns
-match_names()
+match__names()
 {
   local glob_match name_pattern tag
   match_req_names_tab
@@ -174,9 +156,9 @@ match_names()
     for name in "$@"
     do
       # Only match templates when given name matches the templates glob pattern
-      match_glob "$glob_match" "$name" && {
+      match__glob "$glob_match" "$name" && {
         #
-        match_name_vars "$name_pattern" "$name" 2> /dev/null > /dev/null && {
+        match__name_vars "$name_pattern" "$name" 2> /dev/null > /dev/null && {
           test -z "$tag" && {
             echo "$glob_match $name_pattern $name"
           } || echo "Match for $tag: $glob_match $name_pattern"
@@ -191,7 +173,7 @@ match_names()
 # Compile new table
 # FIXME req_arg_pattern=("Name pattern" pattern)
 # FIXME req_arg_pattern_name=("Pattern name" name)
-match_compile()
+match__compile()
 {
   req_arg "$1" "match compile" 1 pattern && shift 1 || return 1
   req_arg "$1" "match compile" 2 pattern_name && shift 1 || return 1
@@ -218,7 +200,7 @@ req_arg()
 ### Main
 
 
-match__main()
+match_main()
 {
   local scriptname=match base="$(basename "$0" .sh)" verbosity=5
 
@@ -226,9 +208,7 @@ match__main()
 
       match_lib || return $(( $? - 1 ))
 
-      local subcmd_def= scsep=_ \
-        subcmd_pref=${base} subcmd_suf= \
-        subcmd_func_pref=${base}_ subcmd_func_suf=
+      local match_default=
 
       match_init || return $?
 
@@ -267,7 +247,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   case "$1" in load-ext ) ;; * )
 
-    match__main "$@" || exit $? ;;
+    match_main "$@" || exit $? ;;
 
   esac
   ;;

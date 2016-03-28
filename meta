@@ -13,7 +13,7 @@ meta__man_1_help="Echo a combined usage and command list. With argument, seek al
 meta__spc_help='-h|help [ID]'
 meta__help()
 {
-  choice_global=1 std_help meta "$@"
+  choice_global=1 std__help meta "$@"
 }
 meta__als__h=help
 

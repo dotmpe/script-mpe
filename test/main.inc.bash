@@ -1,9 +1,4 @@
 
-mytest_load()
-{
-  echo mytest_load
-}
-
 mytest_usage()
 {
   echo mytest_usage
@@ -25,13 +20,13 @@ mytest_main()
   set --
 }
 
-mytest__load()
+mytest_load()
 {
   # -- mytest box load sentinel --
   set --
 }
 
-mytest__include()
+mytest_include()
 {
   # -- mytest box include sentinel --
   set --
