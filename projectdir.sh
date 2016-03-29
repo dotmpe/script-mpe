@@ -92,7 +92,7 @@ pd__check()
   do
     pd_check $prefix || continue
     test -d "$prefix" || continue
-    pd sync $prefix || touch $failed
+    $LIB/$scriptname.sh sync $prefix || touch $failed
   done
 }
 
@@ -501,7 +501,7 @@ pd__disable()
         esac
 
     choice_sync_dismiss=1 \
-    pd sync $1 \
+    $LIB/$scriptname.sh sync $1 \
       || error "Not in sync: $1" 1
 
     rm -rf $1 \
@@ -529,10 +529,10 @@ pd__copy()
   test -n "$2" || error "expected prefix" 1
 
   pd=~/.conf/project/$hostname/projects.yaml \
-    pd meta -sq get-repo "$2" && error "Prefix '$2' already exists at $hostname" 1 || noop
+    $LIB/$scriptname.sh meta -sq get-repo "$2" && error "Prefix '$2' already exists at $hostname" 1 || noop
   test "$hostname" != "$1" || error "You ARE at host '$2'" 1
   pd=~/.conf/project/$1/projects.yaml \
-    pd meta dump $2 \
+    $LIB/$scriptname.sh meta dump $2 \
     | tail -n +2 - \
     >> ~/project/projects.yaml
 }
