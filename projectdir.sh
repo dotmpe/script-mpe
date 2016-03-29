@@ -57,7 +57,7 @@ pd__meta()
       return
     }
   }
-  $LIB/projectdir-meta.py -f $pd --address $sock "$@" || return $?
+  $LIB/projectdir-meta -f $pd --address $sock "$@" || return $?
 }
 
 # silent/quit
