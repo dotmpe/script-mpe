@@ -810,6 +810,10 @@ pd_init()
 
 pd_main()
 {
+  test -n "$0" || {
+    echo "No 0?"
+    exit 124
+  }
   local scriptname=projectdir scriptalias=pd base= \
     subcmd=$1 \
     base="$(basename "$0" .sh)" \

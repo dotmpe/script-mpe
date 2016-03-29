@@ -85,9 +85,10 @@ init
 @test "$bin lists var names in name pattern" {
   check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
   source ./match.sh load-ext
+  source ./match.lib.sh
   silent=true
   match_load
-  run match_name_pattern_opts ./@NAMEPART.@SHA1_CKS.@EXT
+  run match__name_pattern_opts ./@NAMEPART.@SHA1_CKS.@EXT
   test $status -eq 0
   test "${lines[0]}" = "SHA1_CKS"
   test "${lines[1]}" = "EXT"
@@ -98,9 +99,10 @@ init
 @test "$bin compile regex for name pattern" {
   check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
   source ./match.sh load-ext
+  source ./match.lib.sh
   silent=true
   match_load
-  match_name_pattern_test ./@NAMEPART.@SHA1_CKS.@EXT
+  match__name_pattern_test ./@NAMEPART.@SHA1_CKS.@EXT
   test $? -eq 0
   test "$grep_pattern" = "\.\/[A-Za-z0-9_,-]\{1,\}\.[a-f0-9]\{40\}\.[a-z0-9]\{2,5\}"
 }
@@ -108,6 +110,7 @@ init
 @test "$bin compile regex for name pattern (II)" {
   check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
   source ./match.sh load-ext
+  source ./match.lib.sh
   silent=true
   match_load
   match_name_pattern ./@NAMEPART.@SHA1_CKS@OPTPART.@EXT
@@ -118,6 +121,7 @@ init
 @test "$bin compile regex for name pattern (III)" {
   check_skipped_envs travis || skip "FIXME seems requires ~/.conf or something"
   source ./match.sh load-ext
+  source ./match.lib.sh
   silent=true
   match_load
   match_name_pattern ./@NAMEPART.@SHA1_CKS@PART.@EXT

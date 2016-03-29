@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 case "$ENV" in
 
    production )
@@ -32,8 +34,9 @@ case "$ENV" in
       ./match.sh -h
       ./match.sh -h help
 #
-      #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
       #bats
+      ./projectdir.sh test bats-specs bats
+      #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
 
       #./matchbox.py help
       #./libcmd_stacked.py -h
@@ -45,10 +48,6 @@ case "$ENV" in
       ./basename-reg --help
       #./basename-reg ffnnec.py
       #./mimereg ffnenc.py
-
-
-      #./projectdir.sh test bats-specs bats || exit $?
-      ./projectdir.sh test bats-specs bats
 
 
 

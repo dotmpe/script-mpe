@@ -93,6 +93,7 @@ try_spec()
 try_func()
 {
   type $1 >/dev/null 2>&1 && {
+    func_name=$1
     func_exists=1
   } || return 1
 }
@@ -137,11 +138,14 @@ try_subcmd()
   get_subcmd_func || {
     e=$?
     test -z "$subcmd" && {
-      pd__usage
+      ( try_local_func usage && $func_name ) \
+        || ( try_local_func usage '' std && $func_name )
       error 'No command given, see "help"' 1
     } || {
       test "$e" = "1" -a -z "$func_exists" && {
-        pd__usage
+        ( try_local_func usage || try_local_func usage '' std ) && {
+          $func_name
+        }
         error "No such command: $subcmd" 1
       } || {
         error "Command $subcmd returned $e" $e

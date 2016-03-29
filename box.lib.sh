@@ -202,8 +202,8 @@ box_init_args()
 
 box_list_libs()
 {
-  test -n "$1" || set -- "$0" "$(basename $0)"
-  test -n "$2" || set -- "$1" "$(basename $1)"
+  test -n "$1" || set -- "$0" "$(basename "$0")"
+  test -n "$2" || set -- "$1" "$(basename "$1")"
 
   test -e "$1" || {
     error "no script $1"

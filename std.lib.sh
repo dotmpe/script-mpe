@@ -182,6 +182,10 @@ log_256()
 
 err()
 {
+  test -z "$3" || {
+    echo "Surplus arguments '$3'"
+    exit 123
+  }
   log "$1" 1>&2
   [ -z "$2" ] || exit $2
 }
@@ -196,15 +200,16 @@ log()
   test -n "$stdout_type" || stdout_type="$stdio_1_type"
   test -n "$stdout_type" || stdout_type=t
 
+  test -n "$SHELL" \
+    && key="$scriptname.$(basename "$SHELL")" \
+    || key="$scriptname.(sh)"
+
   case $stdout_type in t )
-        key=$scriptname.$(basename $SHELL)
         test -n "$subcmd" && key=${key}${bb}:${bk}${subcmd}
         log_$LOG_TERM "${bb}[${bk}${key}${bb}] ${norm}$1"
         ;;
 
       p|f )
-        key=$scriptname.$(basename $SHELL)
-        #key=$scriptname.sh
         test -n "$subcmd" && key=${key}${bb}:${bk}${subcmd}
         log_$LOG_TERM "${bb}# [${bk}${key}${bb}] ${norm}$1"
         ;;
@@ -213,6 +218,10 @@ log()
 
 stderr()
 {
+  test -z "$4" || {
+    echo "Surplus arguments '$4'"
+    exit 123
+  }
   # XXX seems ie grep strips colors anyway?
   [ -n "$stdout_type" ] || stdout_type=$stdio_2_type
   case "$(echo $1 | tr 'A-Z' 'a-z')" in
@@ -261,6 +270,10 @@ std_v()
 
 std_exit()
 {
+  test -z "$2" || {
+    echo "Surplus arguments '$2'"
+    exit 123
+  }
   test "$1" != "0" -a -z "$1" && return 1 || exit $1
 }
 
