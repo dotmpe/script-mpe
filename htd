@@ -2451,6 +2451,12 @@ htd__bashisms()
   }
 }
 
+htd__clean()
+{
+  test -n "$UCONFDIR" || error "No UCONFDIR" 1
+  test -e $UCONFDIR/script/clean.sh || error "No clean script in UCONFDIR" 1
+  $UCONFDIR/script/clean.sh || return $?
+}
 
 htd_man_1__clean_unpacked="Given archive, look for existing, possibly unpacked (direct) neighbour dirs
 interactively delete, compare, or skip"

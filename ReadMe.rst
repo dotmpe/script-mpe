@@ -31,3 +31,10 @@ Other documents
 - `Branche and Directory Docs <doc/package.rst>`_
 
 
+Dev
+---
+
+- XXX: maybe look to replace lots of main.sh with dispatch_
+
+.. _dispatch: https://github.com/Mosai/workshop/blob/master/doc/dispatch.md
+
