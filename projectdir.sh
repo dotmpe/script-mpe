@@ -20,7 +20,7 @@ pd__edit()
   $EDITOR \
     $0 \
     ~/bin/projectdir.inc.sh \
-    $(which projectdir-meta) \
+    $LIB/projectdir-meta \
     "$@"
 }
 #pd__als__e=edit
@@ -57,7 +57,7 @@ pd__meta()
       return
     }
   }
-  projectdir-meta -f $pd --address $sock "$@" || return $?
+  $LIB/projectdir-meta.py -f $pd --address $sock "$@" || return $?
 }
 
 # silent/quit
