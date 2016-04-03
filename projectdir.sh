@@ -77,6 +77,11 @@ pd__status()
   #local prefixes="$(echo $prefix/.git | xargs dirname)"
   local prefixes="$(echo $prefix)"
 
+  test "*" != "$prefixes" || {
+    info "Nothing to check"
+    return
+  }
+
   local union="$(echo "$prefixes $registered" | tr ' ' '\n' | sort -u)"
   for checkout in $union
   do
@@ -569,7 +574,7 @@ pd__copy()
   pd=~/.conf/project/$1/projects.yaml \
     $LIB/$scriptname.sh meta dump $2 \
     | tail -n +2 - \
-    >> ~/project/projects.yaml
+    >> ~/project/.projects.yaml
 }
 
 pd_run__run=f
@@ -748,7 +753,7 @@ pd_load()
       y )
         # set/check for Pd for subcmd
 
-        test -n "$pd" || pd=projects.yaml
+        test -n "$pd" || pd=.projects.yaml
 
         # Find dir with metafile
         prerun=$(pwd)

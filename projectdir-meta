@@ -3,7 +3,7 @@
 :created: 2015-11-30
 :updated: 2016-01-24
 
-Python helper to query/update Projectdir metadatadocument 'projects.yaml'
+Python helper to query/update Projectdir metadatadocument '.projects.yaml'
 
 Usage:
     projectdir-meta [options] get-repo <prefix>
@@ -35,7 +35,7 @@ Options:
   --background  Turns script into socket server. This does not fork, detach
                 or do anything else but enter an infinite server loop.
   -f PD, --file PD
-                Give custom path to projectdir document file [default: ./projects.yaml]
+                Give custom path to projectdir document file [default: ./.projects.yaml]
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -g, --glob    Change from root prefix matching to glob matching.
