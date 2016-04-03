@@ -395,7 +395,12 @@ pd_run__enable=y
 pd__enable()
 {
   test -z "$1" && {
-    note "Checking out missing prefixes"
+    local prefixes="$(pd__meta list-enabled)"
+    test -n "$prefixes" || {
+        note "Nothing to check out"
+        return
+    }
+    info "Checking out missing prefixes"
     pd__meta list-enabled | while read prefix
     do
       test -d "$prefix" || {
