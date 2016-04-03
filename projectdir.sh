@@ -823,7 +823,7 @@ pd_unload()
       } || {
         warn "Failed: $(echo $(sort -u $failed))"
       }
-      rotate-file $failed
+      rotate-file $failed .failed
     } || {
       rm $failed
     }
