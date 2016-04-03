@@ -70,16 +70,44 @@ pd_run__status=ybf
 # Run over known prefixes and present status indicators
 pd__status()
 {
-  test -z "$2" || error "Surplus arguments: $2" 1
-  note "Getting status for checkouts $prefix"
-  {
-    pd__list_prefixes "$prefix" || touch $failed
-  } | while read prefix
+  local registered="$(pd__list_prefixes "$prefix" || touch $failed)"
+  local enabled="$(pd__meta list-enabled "$prefix" || touch $failed)"
+  test -n "$prefix" || prefix='*'
+  note "Getting status for checkouts in '$prefix'"
+  #local prefixes="$(echo $prefix/.git | xargs dirname)"
+  local prefixes="$(echo $prefix)"
+
+  local union="$(echo "$prefixes $registered" | tr ' ' '\n' | sort -u)"
+  for checkout in $union
   do
-    pd_check $prefix || continue
-    test -d "$prefix" || continue
-    pd__clean $prefix || touch $failed
-  done || return $?
+    test -f "$checkout" -o -h "$checkout" && {
+      note "Not a checkout path at $checkout"
+      continue
+    }
+    test -d "$checkout" || {
+      echo "$prefixes" | grep -q $checkout && {
+        warn "Non-existant prefix? '$checkout'"
+      }
+      continue
+    }
+    test -e "$checkout/.git" || {
+      note "Projectdir is not a checkout at $checkout"
+    }
+    pd_check $checkout || echo pd-check:$checkout >$failed
+    pd__clean $checkout || {
+        warn "Checkout $checkout is not clean"
+        echo pd-clean:$checkout >$failed
+    }
+    echo "$prefixes" | grep -q $checkout && {
+      echo "$enabled" | grep -q $checkout && {
+        printf ""
+      } || {
+        note "Checkout to be disabled: $checkout"
+      }
+    } || {
+      warn "Checkout not registered: $checkout"
+    }
+  done
 }
 
 pd_run__check=ybf
@@ -704,6 +732,7 @@ pd__help()
   # XXX _init is bodged, std__help pd "$@"
 }
 
+# subcmd prefix
 pd_load()
 {
   for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
@@ -728,7 +757,7 @@ pd_load()
         done
 
         test -e "$pd" || error "No projects file $pd" 1
-        p="$(realpath $pd | sed 's/[^A-Za-z0-9_-]/-/g' | tr -s '_' '-')"
+        p="$(realpath "$pd" | sed 's/[^A-Za-z0-9_-]/-/g' | tr -s '_' '-')"
         sock=/tmp/pd-$p-serv.sock
         ;;
 
