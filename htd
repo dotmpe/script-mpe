@@ -2049,10 +2049,12 @@ htd__reader_update()
   done
 }
 
-htd_man_1__test="no test, just checking it goes"
+htd_man_1__test="Project test in HTDIR"
 htd__test()
 {
-  ./test/*-spec.bats
+  test -n "$HTDIR" || error HTDIR 1
+  cd $HTDIR || error HTDIR 2
+  projectdir.sh test
 }
 htd_als___t=test
 
@@ -2865,6 +2867,13 @@ htd__say()
     hong-kong | sar | tc )
       say -v Sin-ji "$@" ;;
   esac
+}
+
+
+htd__domain()
+{
+  note "Domain User ID: "$(cat $(statusdir.sh file domain-identity))
+  note "Domain Net ID: "$(cat $(statusdir.sh file domain-network))
 }
 
 

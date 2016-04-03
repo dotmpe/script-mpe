@@ -588,6 +588,24 @@ dckr__init_haproxy()
     -v /etc/localtime:/etc/localtime:ro
 }
 
+dckr__swarm_host()
+{
+  echo SWARM_HOST=$SWARM_HOST
+}
+
+dckr__init_interlock()
+{
+  tmp=/tmp/$(uuidgen)
+  mkdir -vp $tmp
+  cd $tmp
+  wget https://github.com/ehazlett/interlock/raw/master/docs/examples/nginx-swarm-machine/docker-compose.yml || return $?
+  docker-compose up -d interlock || return $?
+  docker-compose up -d nginx || return $?
+  # Example app
+  docker-compose up -d app || return $?
+  docker-compose logs
+}
+
 dckr__init_bind()
 {
   ${sudo}docker run --name ${pref}bind -d --restart=always \
@@ -688,6 +706,31 @@ dckr__init_gitlab()
   docker-compose up
 }
 
+
+dckr__init_redmine()
+{
+  cd $HOME/project/docker-redmine
+
+  #redmine_image="$(jsotk.py yaml2json docker-compose.yml | jsotk.py path - redmine.image)"
+  #test -n "$redmine_image" || redmine_image=sameersbn/redmine:3.2.1-2
+  #docker pull $redmine_image
+
+  #wget https://raw.githubusercontent.com/sameersbn/docker-redmine/master/docker-compose.yml
+  #docker-compose up
+
+  mkdir -vp $DCKR_VOL/redmine{,-postgresql}
+
+  mkdir -vp $DCKR_VOL/redmine/plugins
+
+  test -d $DCKR_VOL/redmine/plugins/recurring_tasks || \
+    git clone https://github.com/nutso/redmine-plugin-recurring-tasks.git $DCKR_VOL/redmine/plugins/recurring_tasks
+
+  mkdir -vp $DCKR_VOL/redmine/themes
+  test -d $DCKR_VOL/redmine/themes/gitmike || \
+    git clone https://github.com/makotokw/redmine-theme-gitmike.git $DCKR_VOL/redmine/themes/gitmike
+
+  docker-compose up
+}
 
 
 # Lib
@@ -810,6 +853,7 @@ dckr__machines_nfs()
         --shared-folder=$HOME \
         --shared-folder=/opt/ \
         --shared-folder=/Volumes/Simza/project \
+         --nfs-config="-alldirs -maproot=0" \
         --force \
       && note "Reinitialized NFS for '$1'" \
       || { note "Error in NFS init for '$1'"; echo $1>$updated; } \
@@ -871,16 +915,17 @@ test ! -e $DCKR_CONF/local.sh || {
 
 dckr_main()
 {
+  test -n "$LIB" || LIB=$HOME/bin
   dckr_init || return 0
 
   local scriptname=dckr base=$(basename $0 .sh) verbosity=5
 
   case "$base" in $scriptname )
 
-      dckr_lib
+      dckr_lib || exit $?
 
       # Execute
-      run_subcmd "$@"
+      run_subcmd "$@" || exit $?
       ;;
 
   esac
@@ -889,7 +934,6 @@ dckr_main()
 dckr_init()
 {
   test -z "$BOX_INIT" || return 1
-  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
   . $LIB/box.init.sh
   . $LIB/util.sh
   box_run_sh_test

@@ -575,6 +575,14 @@ pd__run()
         make test || echo $1>>$failed
       ;;
 
+    '*' | npm-test )
+        npm test || echo $1>>$failed
+      ;;
+
+    '*' | grunt-test )
+        grunt test || echo $1>>$failed
+      ;;
+
     '*' | git-versioning )
         git-versioning check || echo $1>>$failed
       ;;
@@ -596,25 +604,7 @@ pd__run()
 pd_run__test=f
 pd__test()
 {
-  test -n "$1" || {
-    test -e .pd-test && {
-      set -- $(echo "$(read_nix_style_file .pd-test)")
-    }
-  }
-
-  test -n "$1" || {
-    test "$(echo test/*-spec.bats)" != "test/*-spec.bats" && {
-      note "Using Bats"
-      set -- "bats-specs" "bats"
-    }
-  }
-
-  test -n "$1" || {
-    test -e Makefile && {
-      note "Using make test"
-      set -- "mk-test"
-    }
-  }
+  test -n "$1" || set -- $(pd__ls_tests)
 
   r=0
   while test -n "$1"
@@ -629,6 +619,39 @@ pd__test()
     }
     shift
   done
+}
+
+# Echo test targets for current directory
+pd__ls_tests()
+{
+    test -e .pd-test && {
+      echo $(echo "$(read_nix_style_file .pd-test)")
+      return
+    }
+
+    test -e Makefile && {
+      note "Using make test"
+      echo "mk-test"
+      return
+    }
+
+    test -e package.json && {
+      note "Using npm test"
+      echo "npm-test"
+      return
+    }
+
+    test -e $(ls Gruntfile*|head -n 1) && {
+      note "Using grunt"
+      echo "grunt-test"
+      return
+    }
+
+    test "$(echo test/*-spec.bats)" != "test/*-spec.bats" && {
+      note "Using Bats"
+      echo "bats-specs" "bats"
+    }
+
 }
 
 pd_run__check=f
