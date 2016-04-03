@@ -250,7 +250,7 @@ ino_main()
 ino_init()
 {
   test -z "$BOX_INIT" || return 1
-  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
+  test -n "$LIB" || LIB=$HOME/bin
   . $LIB/box.init.sh
   . $LIB/util.sh
   box_run_sh_test
