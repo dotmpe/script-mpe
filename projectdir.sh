@@ -86,12 +86,14 @@ pd__status()
     }
     test -d "$checkout" || {
       echo "$prefixes" | grep -q $checkout && {
+        touch $failed
         warn "Non-existant prefix? '$checkout'"
       }
       continue
     }
     test -e "$checkout/.git" || {
       note "Projectdir is not a checkout at $checkout"
+      continue
     }
     pd_check $checkout || echo pd-check:$checkout >$failed
     pd__clean $checkout || {
