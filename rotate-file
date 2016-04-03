@@ -1,0 +1,23 @@
+#!/bin/sh
+# Created: 2016-04-03
+
+set -e
+
+
+main_entry()
+{
+  test -e  "$1" || return 20
+  local base=$(basename $@) \
+    dir=$(dirname $1) \
+    cnt=1
+  while test -e "$dir/$base-$cnt$2"
+  do
+    cnt=$(( $cnt + 1 ))
+  done
+  mv -v "$1" "$dir/$base-$cnt$2"
+}
+
+test "$(basename $0)" = "rotate-file" && {
+  main_entry $@ || exit $?
+}
+
