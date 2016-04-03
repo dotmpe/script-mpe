@@ -314,13 +314,13 @@ pd__sync()
 
   cd $pwd
 
-  (
+  {
     pd__meta -s list-upstream "$prefix" "$@" \
       || {
         warn "No sync setting, skipping $prefix"
         return 1
-      }
-  ) | while read remote branch
+      };
+  } | while read remote branch
   do
     fnmatch "*annex*" $branch && continue || noop
 
