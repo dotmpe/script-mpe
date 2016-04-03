@@ -14,7 +14,7 @@ abbrev_rename()
             idx=$(( $idx + 1 ))
         done
         local end=$(( $idx - 1 ))
-        echo "$(echo $oldpath | cut -c 1-$end){$(echo $oldpath | cut -c $idx-) => $(echo $newpath | cut -c $idx-)}"
+        echo "Backed up path: $(echo $oldpath | cut -c 1-$end){$(echo $oldpath | cut -c $idx-) => $(echo $newpath | cut -c $idx-)}"
     done
 }
 
