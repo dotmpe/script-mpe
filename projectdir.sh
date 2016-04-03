@@ -95,10 +95,10 @@ pd__status()
       note "Projectdir is not a checkout at $checkout"
       continue
     }
-    pd_check $checkout || echo pd-check:$checkout >$failed
+    pd_check $checkout || echo pd-check:$checkout >>$failed
     pd__clean $checkout || {
         warn "Checkout $checkout is not clean"
-        echo pd-clean:$checkout >$failed
+        echo pd-clean:$checkout >>$failed
     }
     echo "$prefixes" | grep -q $checkout && {
       echo "$enabled" | grep -q $checkout && {
@@ -823,8 +823,10 @@ pd_unload()
       } || {
         warn "Failed: $(echo $(sort -u $failed))"
       }
+      rotate-file $failed
+    } || {
+      rm $failed
     }
-    rm $failed
     unset failed
     return 1
   }
