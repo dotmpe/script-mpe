@@ -820,13 +820,12 @@ pd_unload()
       count="$(sort -u $failed | wc -l | awk '{print $1}')"
       test "$count" -gt 2 && {
         warn "Failed: $(echo $(sort -u $failed | head -n 3 )) and $(( $count - 3 )) more"
+        rotate-file $failed .failed
       } || {
         warn "Failed: $(echo $(sort -u $failed))"
       }
-      rotate-file $failed .failed
-    } || {
-      rm $failed
     }
+    test ! -e "$failed" || rm $failed
     unset failed
     return 1
   }
