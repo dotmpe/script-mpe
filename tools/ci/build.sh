@@ -28,13 +28,13 @@ case "$ENV" in
       . ./main.sh
       main_debug
 
-      ./box-instance x foo bar
-      ./box-instance y
+      #./box-instance x foo bar
+      #./box-instance y
 
-      ./match.sh help
-      ./match.sh -h
-      ./match.sh -h help
-      ./match.sh -s var-names
+      #./match.sh help
+      #./match.sh -h
+      #./match.sh -h help
+      #./match.sh -s var-names
 #
       #bats
       ./projectdir.sh test bats-specs bats
