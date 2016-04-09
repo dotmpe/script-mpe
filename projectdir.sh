@@ -10,7 +10,7 @@ version=0.0.0+20150911-0659 # script.mpe
 pd_man_1__version="Version info"
 pd__version()
 {
-  echo "$(cat $PREFIX/bin/.app-id)/$version"
+  echo "$(cat $LIB/.app-id)/$version"
 }
 pd_als__V=version
 
@@ -599,8 +599,11 @@ pd__run()
           incr specs $s
           incr count
         done
-        note "$specs specs, $count spec-files OK"
+        test $count -gt 0 \
+          && note "$specs specs, $count spec-files OK" \
+          || { warn "No Bats specs found"; echo $1 >>$failed; }
       ;;
+
     '*' | bats )
         export $(hostname -s | tr 'A-Z.-' 'a-z__')_SKIP=1
         { ./test/*-spec.bats || echo $1>>$failed; } | bats-color.sh
@@ -615,15 +618,19 @@ pd__run()
         make test || echo $1>>$failed
       ;;
 
-    '*' | npm-test )
-        npm test || echo $1>>$failed
+    '*' | make:* )
+        make $(echo $1 | cut -c 6-) || echo $1>>$failed
       ;;
 
-    '*' | grunt-test )
-        grunt test || echo $1>>$failed
+    '*' | npm | npm:* | npm-test )
+        npm $(echo $1 | cut -c 5-) || echo $1>>$failed
       ;;
 
-    '*' | git-versioning )
+    '*' | grunt-test | grunt | grunt:* )
+        grunt $(echo $1 | cut -c 7-) || echo $1>>$failed
+      ;;
+
+    '*' | git-versioning | vchk )
         git-versioning check || echo $1>>$failed
       ;;
 
@@ -664,34 +671,39 @@ pd__test()
 # Echo test targets for current directory
 pd__ls_tests()
 {
-    test -e .pd-test && {
-      echo $(echo "$(read_nix_style_file .pd-test)")
-      return
-    }
+  test -e .package.sh && {
+    source .package.sh
+    echo $package_pd_meta_test
+    return
+  }
 
-    test -e Makefile && {
-      note "Using make test"
-      echo "mk-test"
-      return
-    }
+  test -e .pd-test && {
+    echo $(echo "$(read_nix_style_file .pd-test)")
+    return
+  }
 
-    test -e package.json && {
-      note "Using npm test"
-      echo "npm-test"
-      return
-    }
+  test -e Makefile && {
+    note "Using make test"
+    echo "mk-test"
+    return
+  }
 
-    test -e $(ls Gruntfile*|head -n 1) && {
-      note "Using grunt"
-      echo "grunt-test"
-      return
-    }
+  test -e package.json && {
+    note "Using npm test"
+    echo "npm-test"
+    return
+  }
 
-    test "$(echo test/*-spec.bats)" != "test/*-spec.bats" && {
-      note "Using Bats"
-      echo "bats-specs" "bats"
-    }
+  test -e $(ls Gruntfile*|head -n 1) && {
+    note "Using grunt"
+    echo "grunt-test"
+    return
+  }
 
+  test "$(echo test/*-spec.bats)" != "test/*-spec.bats" && {
+    note "Using Bats"
+    echo "bats-specs" "bats"
+  }
 }
 
 pd_run__check=f
@@ -706,14 +718,7 @@ pd__check()
     }
   done
 
-  test -n "$1" || {
-    test -e .pd-check && {
-      set -- $(cat .pd-check)
-    }
-  }
-  test -n "$1" || {
-    test -e .versioned-files && set -- "git-versioning" "$@"
-  }
+  test -n "$1" || set -- $(pd__ls_checks)
 
   while test -n "$1"
   do
@@ -724,6 +729,22 @@ pd__check()
   done
 }
 
+# Echo check targets for current directory
+pd__ls_checks()
+{
+  test -e .pd-check && {
+    echo $(cat .pd-check)
+    return
+  }
+  test -e .package.sh && {
+    source .package.sh
+    echo "$package_pd_meta_check"
+    return
+  }
+  test -n "$1" || {
+    test -e .versioned-files.list && echo "git-versioning"
+  }
+}
 
 # ----
 

@@ -26,21 +26,3 @@ source $lib.sh
     skip "TODO implement/test with dir/./.. etc"
 }
 
-@test "$lib fnmatch" {
-  fnmatch "f*o" "foo" || test
-  fnmatch "test" "test" || test
-  fnmatch "*test*" "test" || test
-  fnmatch "*test" "123test" || test
-  fnmatch "test*" "test123" || test
-}
-
-@test "$lib fnmatch (spaces)" {
-  fnmatch "* test" "123 test" || test
-  fnmatch "test *" "test 123" || test
-  fnmatch "*test*" " test " || test
-  fnmatch "./file.sh: line *: test" "./file.sh: line 1234: test" || test
-  tmpd
-  errmsg="[htd.sh:today] Error: Dir $tmpd/journal must exist"
-  fnmatch "*Error*Dir $tmpd/journal must exist*" "$errmsg"
-}
-

@@ -3,6 +3,7 @@
 Javascript Object toolkit.
 
 Usage:
+    jsotk [options] path <srcfile> <expr>
     jsotk [options] [dump] [<srcfile> [<destfile]]
     jsotk [options] (json2yaml|yaml2json) [<srcfile> [<destfile]]
 
@@ -60,6 +61,38 @@ def H_yaml2json(opts):
 def H_json2yaml(opts):
     opts.flags.output_format = 'yaml'
     H_dump(opts)
+
+def H_path(opts):
+    if opts.args.srcfile:
+        if opts.args.srcfile is '-':
+            infile = sys.stdin
+        else:
+            infile = open(opts.args.srcfile)
+    data = readers[ opts.flags.input_format ]( infile )
+    l = data
+    path_el = opts.args.expr.split('.')
+    while len(path_el):
+        b = path_el.pop(0)
+        if b not in l:
+            raise KeyError, b
+        l = l[b]
+    print l
+
+def H_offsets(opts):
+    """
+    TODO: could print offsets from yaml.tokens.*.start/end_mark
+
+    Print source offsets in line/column and absolute characters
+    for
+        --keys
+        --list-items
+
+    mloatk offsets --key redmine --list-items
+    mloatk offsets --path redmine.image --value
+    mloatk offsets --path redmine.image --value
+
+    """
+
 
 
 ### Readers/Writers
