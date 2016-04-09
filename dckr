@@ -935,11 +935,11 @@ dckr_init()
 {
   test -z "$BOX_INIT" || return 1
   . $LIB/box.init.sh
-  . $LIB/util.sh
+  . $LIB/box.lib.sh
   box_run_sh_test
   . $LIB/main.sh
   . $LIB/main.init.sh
-  . $LIB/box.lib.sh
+  . $LIB/util.sh
 }
 
 dckr_lib()
