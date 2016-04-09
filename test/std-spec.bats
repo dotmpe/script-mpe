@@ -150,15 +150,17 @@ init
     * )
       test "$stdio_0_type" = "t" ;;
   esac
+
   stdio_type 1
   test "$?" = "0"
-  case $(current_test_env) in travis|jenkins )
+  case $(current_test_env) in dandy|travis|jenkins )
       test "$stdio_1_type" = "f" ;;
     * )
       #tmpd
       #echo "$stdio_1_type" >>$tmpd/stdio_1_type
       test "$stdio_1_type" = "p" ;;
   esac
+
   stdio_type 2
   test "$?" = "0"
   case $(current_test_env) in * )
