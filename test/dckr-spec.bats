@@ -9,7 +9,6 @@ init
 
 @test "${bin}" {
   test -n "$DCKR_VOL" || skip "DCKR_VOL not set"
-  # XXX: check_skipped_envs travis simza || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 1
 #  fnmatch "*Usage:*" "${lines[*]}" # usage info on out
@@ -19,7 +18,6 @@ init
 
 @test "${bin} -h" {
   test -n "$DCKR_VOL" || skip "DCKR_VOL not set"
-  # XXX: check_skipped_envs travis simza || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Usage:*" "${lines[*]}" # usage info on out
@@ -29,7 +27,6 @@ init
 
 @test "${bin} help" {
   test -n "$DCKR_VOL" || skip "DCKR_VOL not set"
-  # XXX: check_skipped_envs travis simza || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Usage:*" "${lines[*]}" # usage info on out
@@ -43,7 +40,6 @@ init
 
 @test "${bin} -h help" {
   test -n "$DCKR_VOL" || skip "DCKR_VOL not set"
-  check_skipped_envs travis simza || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
@@ -53,7 +49,6 @@ init
 
 @test "${bin} help help" {
   test -n "$DCKR_VOL" || skip "DCKR_VOL not set"
-  #check_skipped_envs travis simza || skip "dckr not running at Travis CI"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Help 'help':*" "${lines[*]}" # manual on out

@@ -34,6 +34,7 @@ case "$ENV" in
       ./match.sh help
       ./match.sh -h
       ./match.sh -h help
+      ./match.sh -s var-names
 #
       #bats
       ./projectdir.sh test bats-specs bats
