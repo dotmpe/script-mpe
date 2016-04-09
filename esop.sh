@@ -16,13 +16,46 @@ esop__version()
 esop_als__V=version
 
 
-esop_man_1__x=abc
-esop_run__x=abc
-esop_spc__x="x [ARG..]"
-esop__x()
+esop_run__run=f
+esop__run()
 {
-  note "Running x"
+  test -n "$1" || error "argument expected" 1
+  case "$1" in
+
+    '*' | bats-specs )
+        case "$(whoami)" in
+          travis )
+            PATH=$PATH:/home/travis/usr/libexec/
+            ;;
+          * )
+            PATH=$PATH:/usr/local/libexec/
+            ;;
+        esac
+        count=0; specs=0
+        for x in ./test/*-spec.bats
+        do
+          local s=$(bats-exec-test -c "$x" || error "Bats source not ok: cannot load $x" 1)
+          incr specs $s
+          incr count
+        done
+        test $count -gt 0 \
+          && note "$specs specs, $count spec-files OK" \
+          || { warn "No Bats specs found"; echo $1 >>$failed; }
+      ;;
+
+    '*' | bats )
+        export $(hostname -s | tr 'A-Z.-' 'a-z__')_SKIP=1
+        { ./test/*-spec.bats || echo $1>>$failed; } | bats-color.sh
+        #for x in ./test/*-spec.bats;
+        #do
+        #  bats $x || echo $x >> $failed
+        #done
+        # ./test/*-spec.bats || { echo $1>>$failed; }
+      ;;
+  esac
+  test ! -e $failed || return 1
 }
+
 
 esop_main()
 {

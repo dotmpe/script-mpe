@@ -12,7 +12,7 @@ source $lib/str.lib.sh
 #  echo "${lines[*]}" > /tmp/1
 #  echo "${status}" >> /tmp/1
 
-@test "${bin}" {
+@test "${bin}" "No arguments: default action is ..." {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 1
   fnmatch "esop*No command given*" "${lines[*]}"
