@@ -61,35 +61,26 @@ source $lib/str.lib.sh
   test -z "${lines[*]}" # empty output
 }
 
-@test "${bin} x" {
-  run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test ! -z "${lines[*]}" # non-empty output
-  fnmatch "*esop.*:*x*Running x*" "${lines[*]}"
-}
 
-@test "${bin} arg spec" {
+@test "${bin} version" {
   source esop.sh load-ext
   base=esop
 
-  run try_value x spc
+  run try_value version man_1
   test ${status} -eq 0
-  test "${lines[*]}" = "x [ARG..]"
+  test "${lines[*]}" = "Version info"
   test ! -z "${lines[*]}" # non-empty output
 
-  run try_value x man_1
+  run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
-  test "${lines[*]}" = "abc"
 }
 
-#@test "${bin} -vv -n help" {
-#  skip "envs: envs=$envs FIXME is hardcoded in test/helper.bash current_test_env"
-#  check_skipped_envs || skip "TODO envs $envs: implement bin (test) for env"
-#  run $BATS_TEST_DESCRIPTION
-#  test ${status} -eq 0
-#  test -z "${lines[*]}" # empty output
-#  test "${#lines[@]}" = "0" # lines of output (stdout+stderr)
-#}
+@test "${bin} -vv -n help" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  test -n "${lines[*]}" # non-empty output
+  test ${#lines[@]} -gt 4  # lines of output (stdout+stderr)
+}
 
 #@test "${lib}/${base} - function should ..." {
 #  check_skipped_envs || \

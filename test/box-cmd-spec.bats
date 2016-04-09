@@ -117,7 +117,7 @@ source $lib/str.lib.sh
   #check_skipped_envs || skip "TODO envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
-  test ! -z "${lines[*]}" # empty output
+  test -n "${lines[*]}" # non-empty output
   test ${#lines[@]} -gt 4  # lines of output (stdout+stderr)
 }
 
