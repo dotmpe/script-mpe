@@ -57,11 +57,12 @@ diskdoc__status()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
   note "Getting status for checkouts $prefix"
-  diskdoc__list_prefixes "$prefix" | while read prefix
+  diskdoc.py disks | while read mount device type
   do
-    vc_check $prefix || continue
-    test -d "$prefix" || continue
-    diskdoc__clean $prefix || touch $failed
+    note "TODO: check disk $mount"
+    #vc_check $prefix || continue
+    #test -d "$prefix" || continue
+    #diskdoc__clean $prefix || touch $failed
   done
 }
 
