@@ -529,19 +529,6 @@ main_unload()
     } || continue
     return
   done
-  return 1
-
-  local r=
-  try_exec_func std_unload && {
-    debug "Standard unload OK"
-  } || noop # { r=$? error "std unload failed"; return $r; }
-  try_exec_func ${1}_unload && {
-    debug "Load $1 OK"
-  } || {
-    test -z "$r" || {
-      test $r -eq 0 || error "std and ${1} unload failed" 1
-    }
-  }
 }
 
 main_debug()
@@ -616,7 +603,7 @@ run_subcmd()
   }
 
   main_unload || {
-    error "Command $subcmd failed" 4
+    error "Command $subcmd failed (unload: $?)" 4
   }
 
   test -z "$dry_run" \

@@ -73,7 +73,7 @@ init
 }
 
 @test "$bin lists var names" {
-  check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
+  # XXX: check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
   run ${bin} -s var-names
   test $status -eq 0
   vars="SZ SHA1_CKS MD5_CKS CK_CKS EXT NAMECHARS IDCHAR IDCHARS NAMEPART NAMEDOTPARTS ALPHA NUM PART OPTPART DOMAIN"
