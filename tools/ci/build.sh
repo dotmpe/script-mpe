@@ -28,7 +28,8 @@ case "$ENV" in
       . ./main.sh
       main_debug
 
-      ./box-instance x
+      ./box-instance x foo bar
+      ./box-instance y
 
       ./match.sh help
       ./match.sh -h
