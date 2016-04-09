@@ -49,7 +49,7 @@ init()
 current_test_env()
 {
   case $(hostname -s | tr 'A-Z' 'a-z') in
-    simza | vs1 ) hostname -s | tr 'A-Z' 'a-z';;
+    simza | vs1 | dandy ) hostname -s | tr 'A-Z' 'a-z';;
     * ) whoami ;;
   esac
 }
