@@ -71,7 +71,7 @@ diskdoc__check()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
   note "Checking prefixes"
-  diskdoc__meta list-prefixes "$1" | while read prefix
+  diskdoc__meta list-disks "$1" | while read prefix
   do
     vc_check $prefix || continue
     test -d "$prefix" || continue
@@ -104,7 +104,7 @@ diskdoc__disable_clean()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
   pwd=$(pwd)
-  diskdoc__meta list-prefixes "$1" | while read prefix
+  diskdoc__meta list-disks "$1" | while read prefix
   do
     test ! -d $prefix || {
       cd $pwd/$prefix
@@ -209,12 +209,12 @@ diskdoc__find()
   test -z "$3" || error "Surplus arguments: $3" 1
   test -n "$2" && {
     fnmatch "*/*" "$1" && {
-      diskdoc__meta list-prefixes "$1"
+      diskdoc__meta list-disks "$1"
     } || {
       diskdoc__meta list-local -g "$2" "*$1*"
     }
   } || {
-    diskdoc__meta list-prefixes -g "*$1*"
+    diskdoc__meta list-disks -g "*$1*"
   }
 }
 
@@ -222,14 +222,14 @@ diskdoc_run__list_prefixes=y
 diskdoc__list_prefixes()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
-  diskdoc__meta list-prefixes "$1"
+  diskdoc__meta list-disks "$1"
 }
 
 diskdoc_run__compile_ignores=y
 diskdoc__compile_ignores()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
-  diskdoc__meta list-prefixes "$1" | while read prefix
+  diskdoc__meta list-disks "$1" | while read prefix
   do
     match_grep_pattern_test "$prefix"
     grep -q "$p_" .gitignore || {
@@ -604,7 +604,7 @@ diskdoc_main()
         # invoke with function name first argument,
         local scsep=__ bgd= \
           subcmd_pref=${scriptalias} \
-          def_subcmd=status \
+          diskdoc_default=status \
           func_exists= \
           func= \
           sock= \
