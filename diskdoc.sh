@@ -7,7 +7,6 @@ diskdoc__edit()
 {
   $EDITOR \
     $0 \
-    ~/bin/diskdoc.inc.sh \
     $(which diskdoc.py) \
     "$@"
 }
@@ -450,23 +449,32 @@ diskdoc__add()
 # ----
 
 
-diskdoc__usage()
-{
-  echo 'Usage: '
-  echo "  $scriptname.sh <cmd> [<args>..]"
-}
+#diskdoc__usage()
+#{
+#  echo 'Usage: '
+#  echo "  $scriptname.sh <cmd> [<args>..]"
+#}
+#
+#diskdoc__help()
+#{
+#  diskdoc__usage
+#  echo 'Functions: '
+#  echo '  status                           List abbreviated status strings for all repos'
+#  echo ''
+#  echo '  help                             print this help listing.'
+#  # XXX _init is bodged, std__help diskdoc "$@"
+#}
 
+diskdoc_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+diskdoc_spc__help='-h|help [ID]'
 diskdoc__help()
 {
-  diskdoc__usage
-  echo 'Functions: '
-  echo '  status                           List abbreviated status strings for all repos'
-  echo ''
-  echo '  help                             print this help listing.'
-  # XXX _init is bodged, std__help diskdoc "$@"
+  #std__help diskdoc "$@"
+  choice_global=1 std__help "$@"
 }
+diskdoc_als___h=help
 
-diskdoc__load()
+diskdoc_load()
 {
   for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
   do case "$x" in
@@ -526,7 +534,7 @@ diskdoc__load()
   uname=$(uname)
 }
 
-diskdoc__unload()
+diskdoc_unload()
 {
   for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
   do case "$x" in
@@ -550,8 +558,12 @@ diskdoc__unload()
 diskdoc_init()
 {
   local __load_lib=1
-  . ~/bin/std.sh
-  . ~/bin/main.sh
+  . $LIB/box.init.sh
+  . $LIB/box.lib.sh
+  box_run_sh_test
+  . $LIB/main.sh
+  . $LIB/main.init.sh
+  . $LIB/util.sh
   #while test $# -gt 0
   #do
   #  case "$1" in
@@ -561,16 +573,15 @@ diskdoc_init()
   #        shift;;
   #  esac
   #done
-  . ~/bin/diskdoc.inc.sh "$@"
-  . ~/bin/os.lib.sh
-  . ~/bin/date.lib.sh
-  . ~/bin/match.sh load-ext
-  . ~/bin/vc.sh load-ext
+  #. $LIB/diskdoc.inc.sh "$@"
+  . $LIB/date.lib.sh
+  . $LIB/match.lib.sh
+  . $LIB/vc.sh load-ext
   test -n "$verbosity" || verbosity=6
   # -- diskdoc box init sentinel --
 }
 
-diskdoc__lib()
+diskdoc_lib()
 {
   local __load_lib=1
   . ~/bin/util.sh
@@ -581,9 +592,9 @@ diskdoc__lib()
 
 ### Main
 
-diskdoc__main()
+diskdoc_main()
 {
-  local scriptname=diskdoc base=$(basename $diskdoc__source .sh) \
+  local scriptname=diskdoc base=$(basename $0 .sh) \
     subcmd=$1
 
   case "$base" in
@@ -598,19 +609,23 @@ diskdoc__main()
           func= \
           sock= \
           c=0
+        test -n "$LIB" || LIB=$HOME/bin
 
         diskdoc_init "$@"
         shift $c
 
-        try_subcmd && {
-          diskdoc__lib
-          box_src_lib diskdoc
-          shift 1
-          diskdoc__load $subcmd "$@" || return
-          $func "$@" || r=$?
-          diskdoc__unload
-          exit $r
-        }
+        diskdoc_lib || exit $?
+        run_subcmd "$@" || exit $?
+
+        #try_subcmd && {
+        #  diskdoc_lib
+        #  box_src_lib diskdoc
+        #  shift 1
+        #  diskdoc_load $subcmd "$@" || return
+        #  $func "$@" || r=$?
+        #  diskdoc_unload
+        #  exit $r
+        #}
 
       ;;
 
@@ -630,7 +645,7 @@ case "$0" in "" ) ;; "-*" ) ;; * )
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
 
-      diskdoc__main "$@"
+      diskdoc_main "$@"
     ;;
 
   esac ;;

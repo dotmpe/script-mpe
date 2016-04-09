@@ -199,13 +199,11 @@ std__commands()
   local list_functions_head="# file=\$file"
 
   #
-  test -z "$choice_global" && {
-    test -z "$choice_all" && {
+  trueish "$choice_global" || {
+    trueish "$choice_all" || {
       local_id=$(pwd | tr '/-' '__')
       echo 'Local commands: '$(short)': '
     }
-  } || {
-    noop
   }
 
   test -z "$choice_debug" || echo "local_id=$local_id"
@@ -213,6 +211,8 @@ std__commands()
   local cont=
   list_functions "$@" | while read line
   do
+
+    # Check sentinel
     test "$(expr_substr "$line" 1 1)" = "#" && {
       test "$(expr_substr "$line" 1 7)" = "# file=" && {
         eval $(expr_substr "$line" 2 $(( ${#line} - 1 )))
@@ -231,9 +231,11 @@ std__commands()
         }
       } || continue
     }
-    #echo "line=$line subcmd_func_pref=$subcmd_func_pref cont=$cont"
+
+    local subcmd_func_pref=${base}__
     #echo "file=$file local-file=$local-file 0=$0"
-    if test -n "$cont"; then continue; fi
+    if trueish "$cont"; then continue; fi
+    #echo "line=$line subcmd_func_pref=$subcmd_func_pref cont=$cont"
 
     func=$(echo $line | grep '^'${subcmd_func_pref} | sed 's/()//')
     test -n "$func" || continue
@@ -515,6 +517,17 @@ main_load()
   }
 }
 
+# FIXME: two loaders std+base is not used anywhere
+std_load()
+{
+    noop
+}
+
+std_unload()
+{
+    noop
+}
+
 # Run any load routines
 main_unload()
 {
@@ -529,6 +542,26 @@ main_unload()
     } || continue
     return
   done
+  return
+
+  # XXX: cleanup
+  local r=
+  try_exec_func std_unload && {
+    debug "Standard unload OK"
+  } || {
+    # f
+    r=$?; test -n "$1" || {
+      test $1 -eq 0 || error "std unload failed" $r
+    }
+  }
+  test -n "$1" || return
+  try_exec_func ${1}_unload && {
+    debug "Load $1 OK"
+  } || {
+    test -z "$r" || {
+      test $r -eq 0 || error "std and ${1} unload failed" 1
+    }
+  }
 }
 
 main_debug()

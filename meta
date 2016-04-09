@@ -9,37 +9,38 @@ version=0.0.0+20150911-0659 # script.mpe
 
 
 
-meta__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-meta__spc_help='-h|help [ID]'
+meta_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+meta_spc__help='-h|help [ID]'
 meta__help()
 {
-  choice_global=1 std__help meta "$@"
+  #std__help meta "$@"
+  choice_global=1 std__help "$@"
 }
-meta__als__h=help
+meta_als___h=help
 
 
-meta__als__V=version
-meta__man_1_version="Version info"
-meta__spc_version="-V|version"
+meta_als___V=version
+meta_man_1__version="Version info"
+meta_spc__version="-V|version"
 meta__version()
 {
   echo "$(cat $PREFIX/bin/.app-id)/$version"
 }
 
-meta__man_1_edit_main="Edit the main script file"
-meta__spc_edit_main="-E|edit-main"
+meta_man_1__edit_main="Edit the main script file"
+meta_spc__edit_main="-E|edit-main"
 meta__edit_main()
 {
   locate_name $scriptname || exit "Cannot find $scriptname"
   note "Invoking $EDITOR $fn"
   $EDITOR $fn
 }
-meta__als__E=edit-main
+meta_als___E=edit-main
 
 
 # XXX mediainfo for OSX brew
 
-meta__man_1_info="Print metadata (default command)"
+meta_man_1__info="Print metadata (default command)"
 meta__info()
 {
   test -n "$1" || error "Expected path" 1
