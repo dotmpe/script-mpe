@@ -124,22 +124,22 @@ def H_list_disks(diskdata, ctx):
     for id, attr in diskdata['catalog']['media'].items():
         print 'Disk', id
         # TODO: print when mounted
-        for parts in attr['partitions']:
-            for size, part in parts.items():
-                if 'UUID' not in part:
-                    print '  Incomplete data for', size
-                    continue
-                if part['UUID'] not in devices:
-                    continue
-                device = subprocess.check_output(['realpath',
-                    '/dev/disk/by-uuid/'+part['UUID']]).strip()
-                device = subprocess.check_output(['realpath',
-                    '/dev/'+device]).strip()
+        for part in attr['partitions']:
+            size = part['size']
 
-                if device in mounts:
-                    print '  Mounted:', size, device
-                else:
-                    print '  Available:', size, device
+            if 'UUID' not in part:
+                print '  Incomplete data for', size
+                continue
+            if part['UUID'] not in devices:
+                continue
+            device = subprocess.check_output(['realpath',
+                '/dev/disk/by-uuid/'+part['UUID']]).strip()
+            device = subprocess.check_output(['realpath', device]).strip()
+
+            if device in mounts:
+                print '  Mounted:', size, device
+            else:
+                print '  Available:', size, device
 
 
     #yaml_commit(diskdata, ctx)
