@@ -49,12 +49,28 @@ str_replace_start()
     test -n "$ext_sh_sub" || err "ext-sh-sub not set" 1
 
     test "$ext_sh_sub" -eq 1 && {
-        echo "${1/#$2/$3}"
+        echo "${1##$2/$3}"
     } || {
         match_grep_pattern_test "$2"
         local find=$p_
         match_grep_pattern_test "$3"
         echo "$1" | sed "s/^$find/$p_/g"
+    }
+}
+str_replace_back()
+{
+    test -n "$1" || err "replace-subject" 1
+    test -n "$2" || err "replace-find" 2
+    test -n "$3" || err "replace-replace" 2
+    test -n "$ext_sh_sub" || err "ext-sh-sub not set" 1
+
+    test "$ext_sh_sub" -eq 1 && {
+        echo "${1%%$2/$3}"
+    } || {
+        match_grep_pattern_test "$2"
+        local find=$p_
+        match_grep_pattern_test "$3"
+        echo "$1" | sed "s/$find$/$p_/g"
     }
 }
 

@@ -605,7 +605,7 @@ pd__run()
       ;;
 
     '*' | bats )
-        export $(hostname -s | tr 'A-Z.-' 'a-z__')_SKIP=1
+        export $(hostname -s | tr 'a-z.-' 'A-Z__')_SKIP=1
         { ./test/*-spec.bats || echo $1>>$failed; } | bats-color.sh
         #for x in ./test/*-spec.bats;
         #do
