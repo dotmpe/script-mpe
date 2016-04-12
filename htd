@@ -1799,14 +1799,15 @@ htd__tmux_prive()
   }
   ;; esac
 
-  case "$1" in ino|"*" )
+  case "$1" in ino )
   tmux list-windows -t Prive | grep -q Ino || {
     tmux new-window -t Prive -n Ino
     tmux send-keys -t Prive:Ino "cd ~/project/arduino-docs;git st" enter
     note "Initialized 'Ino' window"
   }
   ;; esac
-  case "$1" in eagle|"*" )
+
+  case "$1" in eagle )
   tmux list-windows -t Prive | grep -q EAGLE || {
     tmux new-window -t Prive -n EAGLE
     tmux send-keys -t Prive:EAGLE "cd ~/project/Eagle-mpe;git st" enter
@@ -1817,14 +1818,15 @@ htd__tmux_prive()
   #  tmux new-window -t Prive -n Loci
   #  tmux send-keys -t Prive:Loci "cd ~/project/node-loci;git st" enter
   #}
-  case "$1" in sf|"*" )
+  case "$1" in sf )
   tmux list-windows -t Prive | grep -q Sf || {
     tmux new-window -t Prive -n Sf
     tmux send-keys -t Prive:Sf "cd ~/project/node-sitefile;git st" enter
     note "Initialized SiteFile [Sf] window"
   }
   ;; esac
-  case "$1" in docs|"*" )
+
+  case "$1" in docs )
   tmux list-windows -t Prive | grep -q Docs || {
     tmux new-window -t Prive -n Docs
     tmux send-keys -t Prive:Docs "cd ~/Documents/;git st" enter
