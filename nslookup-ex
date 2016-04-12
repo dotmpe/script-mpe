@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -e
+ 
+# Make sure a paramater was passed
+if [ -n "$1" ]
+then
+    lookup=$1
+else
+    echo Argument expected.
+    exit 1
+fi
+ 
+# Do some regex to see if it's an IP or Hostname
+if [ $(echo $lookup | egrep -o '^[0-9]+.[0-9]+.[0-9]+.[0-9]+') ]
+then
+    # Its an IP, lookup the PTR record
+    records=$(nslookup $lookup | grep 'name = ' | awk -F' = ' '{print $2}' | sed 's/.$//g' | sort)
+else
+    # Its a hostname, lookup the A record
+    records=$(nslookup $lookup | grep -A1 'Name:' | grep Address | awk -F': ' '{print $2}')
+fi
+ 
+# Were there any records returned?
+if [ -z $records ]
+then
+    echo No Records 1>&2
+    exit 1
+else
+    echo "$records"
+fi

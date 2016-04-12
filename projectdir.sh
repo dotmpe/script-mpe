@@ -238,10 +238,16 @@ pd__update()
       pd__meta_sq get-repo $prefix && {
         pd__meta update-repo $prefix $props \
           && note "Updated metadata for $prefix" \
-          || { r=$?; test $r -eq 42 && info "Metadata up-to-date for $prefix" \
-            || { warn "Error updating $prefix with '$props'"
+          || {
+            local r=$?;
+            test $r -eq 42 && {
+              info "Metadata already up-to-date for $prefix"
+            } || {
+              warn "Error updating $prefix with '$props'"
               touch $failed
-            } }
+            }
+            unset r
+          }
       } || {
 
         info "Testing add $prefix props='$props'"
