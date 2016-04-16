@@ -70,17 +70,36 @@ pd_run__status=ybf
 # Run over known prefixes and present status indicators
 pd__status()
 {
-  local registered="$(pd__list_prefixes "$prefix" || touch $failed)"
-  local enabled="$(pd__meta list-enabled "$prefix" || touch $failed)"
-  test -n "$prefix" || prefix='*'
-  note "Getting status for checkouts in '$prefix'"
-  #local prefixes="$(echo $prefix/.git | xargs dirname)"
-  local prefixes="$(echo $prefix)"
+  local \
+    registered="$(pd__list_prefixes "$1" || touch $failed)" \
+    enabled="$(pd__meta list-enabled "$1" || touch $failed)" \
+    prefix_args= prefixes=
 
+  # Remember arguments
+  test -n "$1" && prefix_args="$*" || prefix_args='*'
+
+  # Gobble up arguments as prefixes
+  test -z "$1" || {
+    while test -n "$1"
+    do
+      prefixes="$prefixes $(echo $1)"
+      shift
+      registered="$registered $(pd__list_prefixes "$1" || touch $failed)"
+      enabled="$enabled $(pd__meta list-enabled "$1" || touch $failed)"
+    done
+  }
+
+  note "Getting status for checkouts in '$prefix_args'"
+
+  # XXX
   test "*" != "$prefixes" || {
     info "Nothing to check"
     return
   }
+
+  echo "Prefixes: $(echo "$prefixes" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
+  echo "Registered: $(echo "$registered" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
+  echo
 
   local union="$(echo "$prefixes $registered" | tr ' ' '\n' | sort -u)"
   for checkout in $union
@@ -105,11 +124,13 @@ pd__status()
         warn "Checkout $checkout is not clean"
         echo pd-clean:$checkout >>$failed
     }
-    echo "$prefixes" | grep -q $checkout && {
-      echo "$enabled" | grep -q $checkout && {
-        printf ""
+    echo "$registered" | grep -qF $checkout && {
+      echo "$enabled" | grep -qF $checkout && {
+        test -e "$checkout" || \
+          note "Checkout missing: $checkout"
       } || {
-        note "Checkout to be disabled: $checkout"
+        test ! -e "$checkout" || \
+          note "Checkout to be disabled: $checkout"
       }
     } || {
       warn "Checkout not registered: $checkout"
@@ -779,23 +800,10 @@ pd_load()
 
       y )
         # set/check for Pd for subcmd
-
-        test -n "$pd" || pd=.projects.yaml
-
-        # Find dir with metafile
-        prerun=$(pwd)
-        prefix=$2
-
-        while test ! -e "$pd"
-        do
-          test -n "$prefix" \
-            && prefix="$(basename $(pwd))/$prefix" \
-            || prefix="$(basename $(pwd))"
-          cd ..
-          test "$(pwd)" = "/" && break
-        done
-
+        go_to_directory .projects.yaml
+        pd=$doc
         test -e "$pd" || error "No projects file $pd" 1
+
         p="$(realpath "$pd" | sed 's/[^A-Za-z0-9_-]/-/g' | tr -s '_' '-')"
         sock=/tmp/pd-$p-serv.sock
         ;;

@@ -87,4 +87,20 @@ backup_if_comments()
 }
 
 
+# Traverse to parent dir with file
+go_to_directory()
+{
+  test -n "$doc" || doc=$1
+
+  # Find dir with metafile
+  prerun=$(pwd)
+
+  while test ! -e "$doc"
+  do
+    cd ..
+    test "$(pwd)" = "/" && break
+  done
+
+  test -e "$doc" || return 1
+}
 
