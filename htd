@@ -23,13 +23,13 @@ htd_load()
   [ -n "$EDITOR" ] || EDITOR=vim
   [ -n "$HTD_GIT_REMOTE" ] || HTD_GIT_REMOTE=default
 
-  # TODO look in registry for PROJECT
   test -n "$PROJECT" || {
     PROJECT="$(basename $(pwd))"
   }
   grep -qF $PROJECT':'  ../.projects.yaml || {
-    echo "No such project prefix $PROEJCT"
+    warn "No such project prefix $PROJECT"
   }
+
   _14MB=14680064
   _6MB=7397376
   _5k=5120

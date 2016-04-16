@@ -75,8 +75,8 @@ pd__status()
     enabled="$(pd__meta list-enabled "$1" || touch $failed)" \
     prefix_args= prefixes=
 
-  # Remember arguments
   test -n "$1" && prefix_args="$*" || prefix_args='*'
+  test -n "$1" || set -- "$prefix_args"
 
   # Gobble up arguments as prefixes
   test -z "$1" || {
@@ -98,6 +98,7 @@ pd__status()
   }
 
   echo "Prefixes: $(echo "$prefixes" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
+  echo "Registered: $(echo "$registered" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
   echo "Registered: $(echo "$registered" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
   echo
 
@@ -201,10 +202,9 @@ pd__disable_clean()
 pd_run__update=yfb
 pd__update()
 {
-  test -n "$1" || set -- "*"
+  test -n "$1" && set -- "$go_to_before/$1" || set -- "$go_to_before/*"
 
   backup_if_comments "$pd"
-
   while test ${#@} -gt 0
   do
 
@@ -581,9 +581,22 @@ pd__disable()
 pd_run__add=y
 pd__add()
 {
-  test -n "$1" || error "expected GIT URL" 1
-  test -n "$2" || error "expected prefix" 1
-  test -d "$(dirname "$2")" || error "not in a dir: $2" 1
+  test -n "$1" && {
+    test -d $go_to_before/$1/.git || error "Not in a checkout" 1
+  } || {
+    test -d $go_to_before/.git || error "Not in a checkout" 1
+    set -- "$(cd $go_to_before; git config remote.origin.url)"
+    test -n "$1" \
+        || set -- "$(cd $go_to_before; git config remote.$(git remote |head -n 1).url)"
+  }
+
+  test -n "$2" && {
+    test -d $go_to_before/$2/.git || error "Not in a checkout" 2
+  } || {
+    test -d $go_to_before/.git || error "Not in a checkout" 2
+    set -- "$1" "$go_to_before"
+  }
+
   pd__meta put-repo $2 origin=$1 enabled=true clean=tracked sync=pull || return $?
   pd__enable $2
 }
@@ -595,13 +608,20 @@ pd__copy()
   test -n "$1" || error "expected hostname" 1
   test -n "$2" || error "expected prefix" 1
 
-  pd=~/.conf/project/$hostname/projects.yaml \
-    $LIB/$scriptname.sh meta -sq get-repo "$2" && error "Prefix '$2' already exists at $hostname" 1 || noop
+  test -d ~/.conf/project/$1 || \
+      error "No dir for host $1" 1
+  test -e ~/.conf/project/$1/projects.yaml || \
+      error "No projectdoc for host $1" 1
+
+  test -n "$hostname"
+  $LIB/$scriptname.sh meta -sq get-repo "$2" \
+    && error "Prefix '$2' already exists at $hostname" 1 || noop
+
   test "$hostname" != "$1" || error "You ARE at host '$2'" 1
   pd=~/.conf/project/$1/projects.yaml \
     $LIB/$scriptname.sh meta dump $2 \
     | tail -n +2 - \
-    >> ~/project/.projects.yaml
+    >> ~/.conf/project/$hostname/.projects.yaml
 }
 
 pd_run__run=f
@@ -800,8 +820,8 @@ pd_load()
 
       y )
         # set/check for Pd for subcmd
-        go_to_directory .projects.yaml
-        pd=$doc
+        pd=.projects.yaml
+        go_to_directory $pd
         test -e "$pd" || error "No projects file $pd" 1
 
         p="$(realpath "$pd" | sed 's/[^A-Za-z0-9_-]/-/g' | tr -s '_' '-')"
