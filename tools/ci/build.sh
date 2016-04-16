@@ -26,7 +26,8 @@ case "$ENV" in
       # XXX: Skip build on git-annex branches
       test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
       GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
-      BRANCH_NAMES="$(git ls-remote origin | grep -F $GIT_CHECKOUT | awk '{print $2}' | xargs basename)"
+      BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
+        | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
       echo "Branch Names: $BRANCH_NAMES"
       case "$BRANCH_NAMES" in "*annex*" ) exit 0 ;; esac
 
