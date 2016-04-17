@@ -122,8 +122,8 @@ case "$(uname)" in Darwin )
     date_fmt() {
       # NOTE patching for GNU date
       tags=$(for tag in $1; do echo "-d $tag" \
-          | sed 's/1d/day/g' \
-          | sed 's/7d/week/g'; done)
+          | sed 's/1d/1day/g' \
+          | sed 's/7d/1week/g'; done)
       date $tags +$2
     }
     ;;

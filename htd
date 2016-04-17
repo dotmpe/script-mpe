@@ -180,7 +180,7 @@ other_cmds()
   echo "  info                             List env info. "
   echo "  files                            List file used by htd. "
   echo '  mk|make                          Run make (in htd dir).'
-  echo '  vt|vtoday                        Run make vtoday.'
+  echo '  vt|edit-today                        '
 }
 
 htd__docs()
@@ -459,12 +459,70 @@ htd__alias()
   done
 }
 
+
 # Open an editor to edit todays log
+# For argument accepts ids for journal names other than the default personal/journal
+# TODO: make file entry for directory, deflist for file
+# TODO: accept multiple arguments, and global ID's for certain log dirs/files
+# TODO: maintain symbolic dates in files, absolute and relative (Yesterday, Saturday, 2015-12-11 )
 htd__edit_today()
 {
-  htd__today personal/journal
-  $EDITOR $(realpath personal/journal/{today,tomorrow,yesterday}.rst)
-  git add personal/journal/2*-*-*.rst
+  test -n "$HTDIR" && test -d "$HTDIR"
+  test -n "$EXT" || EXT=.rst
+  local pwd=$(pwd) arg=$1
+
+  cd $HTDIR
+  test -n "$1" || {
+
+    fnmatch "*/" "$1" && {
+
+      test -e "$1" || \
+        set -- "$pwd/$1"
+      test -e "$1" || \
+        error "unknown dir $1" 1
+
+    } || {
+
+      # Look for here and in pwd, or create in pwd; if ext matches filename
+
+      test -e "$1" || \
+        set -- "$pwd/$1"
+
+      test -e "$1" || \
+        fnmatch "*.$EXT" "$1"  && touch $1
+
+      # Test in htdir with ext
+      test -e "$1" || set -- "$arg$EXT"
+
+      # Test in pwd with ext
+      test -e "$1" || set -- "$pwd$1$EXT"
+
+      # Create in pwd (with ext)
+      test -e "$1" || touch $1
+    }
+  }
+
+  test -d "$1" && {
+    pwd
+    htd__today "$1"
+    # XXX: bash...
+    FILES=$(bash -c "echo personal/journal/{today,tomorrow,yesterday}$EXT")
+    $EDITOR \
+      $(realpath $FILES)
+    git add personal/journal/2*-*-*.rst
+  } || {
+    local Y=%Y MSEP=- M=%m DSEP=- D=%d r=
+    local date_fmt="$Y$MSEP$M$DSEP$D"
+    local \
+      today="$(date_fmt "" $date_fmt)"
+
+    grep -qF $today $1 || {
+      printf "$today\n  - \n\n" >> $1
+    }
+
+    $EDITOR $1
+    git add $1
+  }
 }
 htd_als__vt=edit_today
 
@@ -472,25 +530,24 @@ htd_als__vt=edit_today
 # update yesterday, today and tomorrow links
 htd__today()
 {
-  test -z "$1" && P=journal || P=$1
-  test -d "$P" || error "Dir $(pwd)/$P must exist" 1
-  YSEP=/
-  Y=%Y
-  MSEP=-
-  M=%m
-  DSEP=-
-  D=%d
-  test -z "$EXT" && EXT=.rst || EXT=$EXT
-  r=$P$YSEP
-  p=$P$YSEP$Y$MSEP$M$DSEP$D$EXT
-  datelink -1d "$p" ${r}yesterday$EXT
-  datelink "" "$p" ${r}today$EXT
-  datelink +1d "$p" ${r}tomorrow$EXT
+  test -n "$1" || set -- "$(pwd)/journal"
+  test -d "$1" || error "Dir $1 must exist" 1
+  fnmatch "*/" "$1" || set -- "$1/"
+
+  local YSEP=/ Y=%Y MSEP=- M=%m DSEP=- D=%d r=$1$YSEP
+  test -n "$EXT" || EXT=.rst
+
+  set -- "$1$YSEP$Y$MSEP$M$DSEP$D$EXT"
+
+  datelink -1d "$1" ${r}yesterday$EXT
+  datelink "" "$1" ${r}today$EXT
+  datelink +1d "$1" ${r}tomorrow$EXT
+
   for tag in sunday monday tuesday wednesday thursday friday saturday
   do
-    datelink "$tag -7d" "$p" "${r}last-$tag$EXT"
-    datelink "$tag +7d" "$p" "${r}next-$tag$EXT"
-    datelink "$tag" "$p" "${r}$tag$EXT"
+    datelink "$tag -7d" "$1" "${r}last-$tag$EXT"
+    datelink "$tag +7d" "$1" "${r}next-$tag$EXT"
+    datelink "$tag" "$1" "${r}$tag$EXT"
   done
 }
 
