@@ -107,6 +107,7 @@ get_subcmd_func()
 {
   test -n "$local_prefix" || local_prefix=$(mkvid $base; echo $vid)
 
+  # Get default sub for base script
   test -n "$1" || {
     test -n "$subcmd" || {
       try_var subcmd "" default || return 12
@@ -114,11 +115,21 @@ get_subcmd_func()
     set -- "$subcmd"
   }
 
+  # Look in local and std namespace
+
   local subcmd_default= b=
 
   for b in "" std
   do
     set -- "$1" "" "$b"
+
+    try_local_func "$@" || {
+      # Try command alias
+      try_var cmd_als $1 als $b
+      test -z "$cmd_als" || \
+        set -- "$(mkvid "$cmd_als";echo $vid)" "" "$b"
+    }
+
     try_local_func "$@" && {
       subcmd_func="$(try_local "$@")"
       return

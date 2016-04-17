@@ -95,7 +95,7 @@ htd_commands()
   echo '  mk|make                          Run make (in htd dir).'
   echo '  st|stat                          Run make stat.'
   echo '  sys                              Run make sys.'
-  echo '  vt|vtoday                        Run make vtoday.'
+  echo '  edit-today                       Run htd today and start editor.'
   echo '  today [<prefix> [<ext>]]         Create symlinks of the format $PREFIX/{today,tomorrow,yesterday}.rst -> %Y-%m-%d.rst'
   echo ''
   echo 'Virtuals: '
@@ -460,13 +460,13 @@ htd__alias()
 }
 
 # Open an editor to edit todays log
-htd__vtoday()
+htd__edit_today()
 {
-  ht__today personal/journal
-  $EDITOR personal/journal/{today,tomorrow,yesterday}.rst
-  git add personal/journal/
+  htd__today personal/journal
+  $EDITOR $(realpath personal/journal/{today,tomorrow,yesterday}.rst)
+  git add personal/journal/2*-*-*.rst
 }
-htd_als__vt=vtoday
+htd_als__vt=edit_today
 
 
 # update yesterday, today and tomorrow links
