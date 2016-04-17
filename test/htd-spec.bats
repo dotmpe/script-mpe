@@ -200,9 +200,9 @@ EOM
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
 
-#echo "${lines[*]}" > /tmp/1
-
-  test "${lines[0]}" = "/Dev/Software/../Hardware/../../Personal/../Public/Note/../.."
+  l=$(( ${#lines[*]} - 1 ))
+#echo "${lines[$l]}" > /tmp/1
+  test "${lines[$l]}" = "/Dev/Software/../Hardware/../../Personal/../Public/Note/../.."
 }
 
 @test "$bin tpath-raw" "prints paths to definition-list terms with spaces and other chars" {
@@ -229,7 +229,8 @@ EOM
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
 
-  test "${lines[*]}" = "/Soft Dev/../Home/Shop/Electric Tools/../../Living Room/../../Public/Topic Note/../.."
+  l=$(( ${#lines[*]} - 1 ))
+  test "${lines[$l]}" = "/Soft Dev/../Home/Shop/Electric Tools/../../Living Room/../../Public/Topic Note/../.."
 }
 
 
