@@ -99,7 +99,6 @@ pd__status()
 
   echo "Prefixes: $(echo "$prefixes" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
   echo "Registered: $(echo "$registered" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
-  echo "Registered: $(echo "$registered" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
   echo
 
   local union="$(echo "$prefixes $registered" | tr ' ' '\n' | sort -u)"
