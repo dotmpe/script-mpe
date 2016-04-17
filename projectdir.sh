@@ -631,14 +631,16 @@ pd__run()
   case "$1" in
 
     '*' | bats-specs )
+        local PREFIX=$(dirname $(dirname $(which bats)))
         case "$(whoami)" in
           travis )
             PATH=$PATH:/home/travis/usr/libexec/
             ;;
           * )
-            PATH=$PATH:/usr/local/libexec/
+            PATH=$PATH:$PREFIX/libexec/
             ;;
         esac
+        unset PREFIX
         count=0; specs=0
         for x in ./test/*-spec.bats
         do
