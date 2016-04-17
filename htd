@@ -23,12 +23,20 @@ htd_load()
   [ -n "$EDITOR" ] || EDITOR=vim
   [ -n "$HTD_GIT_REMOTE" ] || HTD_GIT_REMOTE=default
 
-  test -n "$PROJECT" || {
-    PROJECT="$(basename $(pwd))"
+  cwd=$(pwd)
+
+  go_to_directory .projects.yaml && {
+    cd $cwd
+    # $go_to_before
+    #PROJECT="$(basename $(pwd))"
+  } || {
+    cd $cwd
   }
-  grep -qF $PROJECT':'  ../.projects.yaml || {
-    warn "No such project prefix $PROJECT"
-  }
+
+  #test -e 
+  #grep -qF $PROJECT':'  ../.projects.yaml || {
+  #  warn "No such project prefix $PROJECT"
+  #}
 
   _14MB=14680064
   _6MB=7397376
@@ -43,7 +51,6 @@ htd_load()
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname="$(uname -s)"
 
-  cwd=$(pwd)
   test "$cwd" = "$(pwd -P)" || warn "current path seems to be aliased"
 
   test -e table.sha1 && R_C_SHA3="$(cat table.sha1|wc -l)"
@@ -2179,7 +2186,7 @@ htd__disks()
 
 htd__realpath()
 {
-  realpath "$@"
+  f_realpath "$@"
 }
 
 htd__normalize_symbolic()
