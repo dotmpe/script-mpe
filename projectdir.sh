@@ -721,7 +721,7 @@ pd__test()
 pd__ls_tests()
 {
   test -e .package.sh && {
-    source .package.sh
+    . .package.sh
     echo $package_pd_meta_test
     return
   }
@@ -786,7 +786,7 @@ pd__ls_checks()
     return
   }
   test -e .package.sh && {
-    source .package.sh
+    . .package.sh
     echo "$package_pd_meta_check"
     return
   }

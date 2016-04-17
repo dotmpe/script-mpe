@@ -39,7 +39,7 @@ htd_init_ignores()
   }
 
   test -n "$pwd" || pwd=$(pwd)
-  {
+  test ! -e $HTDIR || {
     cd $HTDIR
 
     for x in .git/info/exclude .gitignore $HTD_IGNORE

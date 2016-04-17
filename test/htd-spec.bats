@@ -43,8 +43,8 @@ version=0.0.0+20150911-0659 # script.mpe
 
   esac
 
-  run bash -c "HTDIR= $BATS_TEST_DESCRIPTION"
-  test "${lines[0]}" = "$(echo ~/public_html)"
+  run bash -c "HTDIR= && $BATS_TEST_DESCRIPTION"
+  test "${lines[*]}" = "$(echo ~/public_html)"
 
   case "$(current_test_env)" in
 
@@ -167,7 +167,6 @@ EOM
 } > test.rst
 
   run $pwd/$BATS_TEST_DESCRIPTION test.rst
-  #echo "${lines[*]}" > /tmp/1
 
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
@@ -201,7 +200,9 @@ EOM
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
 
-  test "${lines[1]}" = "/Dev/Software/../Hardware/../../Personal/../Public/Note/../.."
+#echo "${lines[*]}" > /tmp/1
+
+  test "${lines[0]}" = "/Dev/Software/../Hardware/../../Personal/../Public/Note/../.."
 }
 
 @test "$bin tpath-raw" "prints paths to definition-list terms with spaces and other chars" {
@@ -228,7 +229,7 @@ EOM
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
 
-  test "${lines[1]}" = "/Soft Dev/../Home/Shop/Electric Tools/../../Living Room/../../Public/Topic Note/../.."
+  test "${lines[*]}" = "/Soft Dev/../Home/Shop/Electric Tools/../../Living Room/../../Public/Topic Note/../.."
 }
 
 
