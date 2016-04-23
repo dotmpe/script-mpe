@@ -446,6 +446,25 @@ diskdoc__add()
 }
 
 
+diskdoc_run__ids=y
+diskdoc__ids()
+{
+  sudo blkid | while read devicer uuidr typer partuuidr
+  do
+    device=$(echo $devicer | cut -c-$(( ${#devicer} - 1 )))
+    uuid=$(echo $uuidr | cut -c7-$(( ${#uuidr} - 8 )))
+    type_=$(echo $typer | cut -c7-$(( ${#typer} - 1 )))
+    partuuid=$(echo $partuuidr | cut -c11-$(( ${#partuuidr} - 1 )))
+
+    grep -Fq $uuid $HOME/.conf/disk/mpe.yaml || {
+      note "Unknown disk: $device $uuid "
+    }
+    grep -Fq $partuuid $HOME/.conf/disk/mpe.yaml || {
+      note "Unknown partition: $device $type_ $partuuid "
+    }
+  done
+}
+
 
 # ----
 
