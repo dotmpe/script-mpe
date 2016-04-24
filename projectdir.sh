@@ -72,6 +72,7 @@ pd__status()
 {
   local \
     registered="$(pd__list_prefixes "$1" || touch $failed)" \
+    disabled="$(pd__meta list-disabled "$1" || touch $failed)" \
     enabled="$(pd__meta list-enabled "$1" || touch $failed)" \
     prefix_args= prefixes=
 
@@ -85,6 +86,7 @@ pd__status()
       prefixes="$prefixes $(echo $1)"
       shift
       registered="$registered $(pd__list_prefixes "$1" || touch $failed)"
+      disabled="$disabled $(pd__meta list-disabled "$1" || touch $failed)"
       enabled="$enabled $(pd__meta list-enabled "$1" || touch $failed)"
     done
   }
@@ -129,8 +131,10 @@ pd__status()
         test -e "$checkout" || \
           note "Checkout missing: $checkout"
       } || {
-        test ! -e "$checkout" || \
-          note "Checkout to be disabled: $checkout"
+        echo "$disabled" | grep -qF $checkout && {
+          test ! -e "$checkout" || \
+            note "Checkout to be disabled: $checkout"
+        } || noop
       }
     } || {
       warn "Checkout not registered: $checkout"
