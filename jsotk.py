@@ -6,6 +6,7 @@ Usage:
     jsotk [options] path <srcfile> <expr>
     jsotk [options] [dump] [<srcfile> [<destfile]]
     jsotk [options] (json2yaml|yaml2json) [<srcfile> [<destfile]]
+    jsotk [options] from-kv <args>...
 
 Options:
   -q, --quiet   Quiet operations
@@ -33,9 +34,8 @@ from docopt import docopt
 
 from script_mpe import util
 
-from script_mpe.res import js
-from script_mpe.confparse import yaml_load, yaml_safe_dump
-
+from jsotk_lib import ArgvKeywordsParser, \
+        load_data, stdout_data, readers
 
 
 ### Sub-command handlers
@@ -50,9 +50,8 @@ def H_dump(opts):
         infile = sys.stdin
     if not outfile:
         outfile = sys.stdout
-
-    data = readers[ opts.flags.input_format ]( infile )
-    writers[ opts.flags.output_format ]( data, outfile, opts )
+    data = load_data( opts.flags.input_format, infile )
+    stdout_data( opts.flags.output_format, data, outfile, opts )
 
 def H_yaml2json(opts):
     opts.flags.input_format = 'yaml'
@@ -93,32 +92,12 @@ def H_offsets(opts):
 
     """
 
+def H_from_kv(opts):
+    args = opts.args.args
+    data_obj = ArgvKeywordsParser(rootkey=args[0])
+    data_obj.scan_kv_args(args)
+    stdout_data( opts.flags.output_format, data_obj.data, sys.stdout, opts )
 
-
-### Readers/Writers
-
-readers = dict(
-        json=js.load,
-        yaml=yaml_load
-    )
-
-
-def json_writer(data, file, opts):
-    kwds = {}
-    if opts.flags.pretty:
-        kwds.update(dict(indent=2))
-    file.write(js.dumps(data, **kwds))
-
-def yaml_writer(data, file, opts):
-    kwds = {}
-    if opts.flags.pretty:
-        kwds.update(dict(default_flow_style=False))
-    yaml_safe_dump(data, file, **kwds)
-
-writers = dict(
-        json=json_writer,
-        yaml=yaml_writer
-    )
 
 
 ### Main
