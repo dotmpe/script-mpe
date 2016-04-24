@@ -101,7 +101,6 @@ pd__status()
 
   info "Prefixes: $(echo "$prefixes" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
   debug "Registered: $(echo "$registered" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
-  echo
 
   local union="$(echo "$prefixes $registered" | tr ' ' '\n' | sort -u)"
   for checkout in $union
