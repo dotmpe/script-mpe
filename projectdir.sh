@@ -99,8 +99,8 @@ pd__status()
     return
   }
 
-  echo "Prefixes: $(echo "$prefixes" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
-  echo "Registered: $(echo "$registered" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
+  info "Prefixes: $(echo "$prefixes" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
+  debug "Registered: $(echo "$registered" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
   echo
 
   local union="$(echo "$prefixes $registered" | tr ' ' '\n' | sort -u)"
@@ -582,26 +582,41 @@ pd__disable()
 
 # Add repo
 pd_run__add=y
+pd_spc__add="add ( PREFIX | REPO PREFIX )"
 pd__add()
 {
+  debug "Add $@"
+  debug "PWD $(pwd)"
+  debug "Before: $go_to_before"
+
+  # Shift first argument to second place if only one given
+  test -z "$1" || {
+    test -n "$2" || set -- "" "$1"
+  }
+
+  # Check prefix arg
+  set -- "$1" "$(normalize_relative $go_to_before/$2)"
+  test -d $2/.git || error "Not a checkout: $2" 1
+
+  # Check URL arg
   test -n "$1" && {
-    test -d $go_to_before/$1/.git || error "Not in a checkout" 1
+    noop # TODO: ping URL? validate URL format?
   } || {
-    test -d $go_to_before/.git || error "Not in a checkout" 1
-    set -- "$(cd $go_to_before; git config remote.origin.url)"
-    test -n "$1" \
-        || set -- "$(cd $go_to_before; git config remote.$(git remote |head -n 1).url)"
+    for remote in origin $(git remote | head -n 1)
+    do
+      set -- "$(cd $2; git config remote.$remote.url)" "$2"
+      test -n "$1" || continue
+      note "Using remote $remote as primary repository: $1"
+      break
+    done
   }
+  test -n "$1" || error "No URL" 1
 
-  test -n "$2" && {
-    test -d $go_to_before/$2/.git || error "Not in a checkout" 2
-  } || {
-    test -d $go_to_before/.git || error "Not in a checkout" 2
-    set -- "$1" "$go_to_before"
-  }
-
+  note "Putting repo in projectdoc.."
   pd__meta put-repo $2 origin=$1 enabled=true clean=tracked sync=pull || return $?
-  pd__enable $2
+
+  note "Enabling pd repo.."
+  pd__enable $2 || return $?
 }
 
 
