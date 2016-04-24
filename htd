@@ -2949,6 +2949,32 @@ htd__domain()
 }
 
 
+htd__init_project()
+{
+  local new= confirm=
+
+  cd ~/project
+
+  # Check for existing git, or commit everything to new repo
+  test -d "$1/.git" || {
+    test -d "$1" && note "Found existing dir" || new=1
+    mkdir -vp $1
+    ( cd $1; git init ; git add -u; git st )
+    test -n "$new" || read -p "Commit everything to git? [yN] " -n 1 confirm
+    test -n "$new" -o "$confirm" = "y" || {
+      warn "Cancelled commit in $1" 1
+    }
+    ( cd $1; git commit "Automatic project commit"; htd git-init-remote $1 )
+  }
+
+  # Let projectdir handle rest
+  test -e "$1" && {
+    pd init "$@"
+  } || {
+    pd add "$@"
+  }
+}
+
 ### Main
 
 
