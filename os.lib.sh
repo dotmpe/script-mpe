@@ -106,7 +106,7 @@ go_to_directory()
   test -n "$doc" || doc=$1
 
   # Find dir with metafile
-  go_to_before=$(basename $(pwd))
+  go_to_before=.
   while test ! -e "$doc"
   do
     cd ..

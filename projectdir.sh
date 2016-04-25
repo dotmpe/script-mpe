@@ -120,7 +120,8 @@ pd__status()
       note "Projectdir is not a checkout at $checkout"
       continue
     }
-    pd_check $checkout || echo pd-check:$checkout >>$failed
+    # FIXME: merge with pd-check? Need fast access to lists..
+    #pd_check $checkout || echo pd-check:$checkout >>$failed
     pd__clean $checkout || {
         warn "Checkout $checkout is not clean"
         echo pd-clean:$checkout >>$failed
@@ -592,8 +593,6 @@ pd__add()
   # Check prefix arg
   set -- "$1" "$(normalize_relative $go_to_before/$2)"
   test -d $2/.git || error "Not a checkout: $2" 1
-
-  echo 1
 
   # Check URL arg
   test -n "$1" && {
