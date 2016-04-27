@@ -101,7 +101,6 @@ pd__status()
 
   info "Prefixes: $(echo "$prefixes" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
   debug "Registered: $(echo "$registered" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
-  echo
 
   local union="$(echo "$prefixes $registered" | tr ' ' '\n' | sort -u)"
   for checkout in $union
@@ -121,7 +120,8 @@ pd__status()
       note "Projectdir is not a checkout at $checkout"
       continue
     }
-    pd_check $checkout || echo pd-check:$checkout >>$failed
+    # FIXME: merge with pd-check? Need fast access to lists..
+    #pd_check $checkout || echo pd-check:$checkout >>$failed
     pd__clean $checkout || {
         warn "Checkout $checkout is not clean"
         echo pd-clean:$checkout >>$failed
@@ -585,10 +585,6 @@ pd_run__add=y
 pd_spc__add="add ( PREFIX | REPO PREFIX )"
 pd__add()
 {
-  debug "Add $@"
-  debug "PWD $(pwd)"
-  debug "Before: $go_to_before"
-
   # Shift first argument to second place if only one given
   test -z "$1" || {
     test -n "$2" || set -- "" "$1"
@@ -602,11 +598,12 @@ pd__add()
   test -n "$1" && {
     noop # TODO: ping URL? validate URL format?
   } || {
-    for remote in origin $(git remote | head -n 1)
+    test -n "$3" && remotes="$3" || remotes="origin $(cd $2; git remote )"
+    for remote in $remotes
     do
-      set -- "$(cd $2; git config remote.$remote.url)" "$2"
+      set -- "$(cd $2; git config remote.$remote.url)" "$2" "$remote"
       test -n "$1" || continue
-      note "Using remote $remote as primary repository: $1"
+      note "Using remote $3 as primary repository: $1"
       break
     done
   }
@@ -843,6 +840,7 @@ pd_load()
         pd=.projects.yaml
         go_to_directory $pd
         test -e "$pd" || error "No projects file $pd" 1
+        debug "PWD $(pwd), Before: $go_to_before"
 
         p="$(realpath "$pd" | sed 's/[^A-Za-z0-9_-]/-/g' | tr -s '_' '-')"
         sock=/tmp/pd-$p-serv.sock

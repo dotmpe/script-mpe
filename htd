@@ -661,7 +661,7 @@ htd__wake()
   [ -z "$host" ] && {
     htd__wol_list_hosts
   } || {
-    declare $(echo $(cat $wol_hwaddr))
+    local $(echo $(cat $wol_hwaddr))
     hwaddr=$(eval echo \$$host)
     [ -n "$hwaddr" ] || exit 4
     wakeonlan $hwaddr
