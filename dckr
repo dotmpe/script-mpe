@@ -926,14 +926,26 @@ dckr__cleanup_all()
 	docker ps -aq | xargs docker inspect \
       | jq -r '.[] | .Mounts | .[] | .Name | select(.)' > $mounts
 
-	volumes=$( test -s "$mount" && \
-    docker-machine ssh dev \
+  test -n "$DOCKER_MACHINE_NAME" && {
+
+    volumes=$( test -s "$mount" && \
+      docker-machine ssh dev \
+        sudo find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d \
+        | grep -vFf $mounts || \
+      docker-machine ssh dev \
+        sudo find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d )
+
+    docker-machine ssh dev sudo rm -rf $volumes
+
+  } || {
+
+    volumes=$( test -s "$mount" && \
       sudo find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d \
-      | grep -vFf $mounts || \
-    docker-machine ssh dev \
+        | grep -vFf $mounts || \
       sudo find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d )
 
-	docker-machine ssh dev sudo rm -rf $volumes
+    sudo rm -rf $volumes
+  }
 }
 
 
