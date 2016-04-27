@@ -910,6 +910,33 @@ test ! -e $DCKR_CONF/local.sh || {
 
 
 
+
+dckr__cleanup_all()
+{
+	# remove exited containers:
+	containers="$( docker ps --filter status=dead --filter status=exited -aq )"
+	test -z "$containers" || docker rm -v $containers
+			
+	# remove unused images:
+	images="$( docker images --no-trunc | grep '<none>' | awk '{ print $3 }' )"
+	test -z "$images" || docker rmi $images
+
+	# find & remove unused volumes:
+	mounts=/tmp/dckr-mounts
+	docker ps -aq | xargs docker inspect \
+      | jq -r '.[] | .Mounts | .[] | .Name | select(.)' > $mounts
+
+	volumes=$( test -s "$mount" && \
+    docker-machine ssh dev \
+      sudo find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d \
+      | grep -vFf $mounts || \
+    docker-machine ssh dev \
+      sudo find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d )
+
+	docker-machine ssh dev sudo rm -rf $volumes
+}
+
+
 ### Main
 
 
