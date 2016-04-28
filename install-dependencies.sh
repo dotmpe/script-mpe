@@ -37,9 +37,9 @@ install_bats()
   cd $pwd
 
   bats --version && {
-    log "BATS install OK"
+    echo "BATS install OK"
   } || {
-    err "BATS installation invalid" 1
+    echo "BATS installation invalid" 1
   }
 }
 
