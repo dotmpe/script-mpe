@@ -105,19 +105,21 @@ main_entry()
   test -n "$1" || set -- '*'
 
   case "$1" in '*'|project|git )
-      git --version >/dev/null || { echo "Sorry, GIT is a pre-requisite"; exit 1; }
+      git --version >/dev/null || {
+        echo "Sorry, GIT is a pre-requisite"; exit 1; }
     ;; esac
 
   case "$1" in '*'|build|test|sh-test|bats )
-      test -x "$(which bats)" || install_bats || return $?
+      test -x "$(which bats)" || { install_bats || return $?; }
     ;; esac
 
   case "$1" in '*'|dev|build|check|test|git-versioning )
-      test -x "$(which git-versioning)" || install_git_versioning || return $?
+      test -x "$(which git-versioning)" || {
+        install_git_versioning || return $?; }
     ;; esac
 
   case "$1" in '*'|python|docopt)
-      python -c 'import docopt' || install_docopt || return $?
+      python -c 'import docopt' || { install_docopt || return $?; }
     ;; esac
 
   case "$1" in '*')
@@ -133,6 +135,6 @@ test "$(basename $0)" = "install-dependencies.sh" && {
   test -z "$1" || {
     main_entry $@ || exit $?
   }
-}
+} || printf ""
 
 # Id: script-mpe/0 install-dependencies.sh
