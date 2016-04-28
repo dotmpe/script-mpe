@@ -35,6 +35,7 @@ before_script:
 - 'touch /home/travis/.basename-reg.yaml'
 - whoami
 - hostname
+- $HOME/bin/jsotk.py -h
 
 script:
 - ./tools/ci/build.sh
