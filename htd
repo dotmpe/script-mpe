@@ -2075,14 +2075,7 @@ htd__tmux_init()
     logger "Session $1 exists" 0
     note "Session $1 exists" 0
   } || {
-
     tmux new-session -P -s "$1" -d "$2" 2>$out 1> $out
-
-    tmux has-session -t "$1" >/dev/null || {
-      log "Waiting for tmux session";
-      sleep 5;
-    }
-
     tmux has-session -t $1 >/dev/null && {
       note "started new session '$1'"
       logger "started new session '$1'"
