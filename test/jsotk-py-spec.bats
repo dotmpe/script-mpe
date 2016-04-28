@@ -6,6 +6,8 @@ base=jsotk.py
 init_lib
 init_bin
 
+export PYTHONPATH=.:$PYTHONPATH
+
 
 @test "${bin} -h" {
   run $BATS_TEST_DESCRIPTION
