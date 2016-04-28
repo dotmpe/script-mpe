@@ -10,8 +10,8 @@ install:
 addons:
   apt:
     packages:
+      - tree
       - realpath
-# not needed    - tree
 # not allowed    - rhash
 
 before_script:
@@ -23,6 +23,7 @@ before_script:
 - 'projectdir.sh help'
 - 'vc.sh help'
 - htd help
+- jsotk.py -h
 - 'npm install parse-torrent lodash'
 - 'pip install --user docutils'
 - 'pip install --user PyYAML'
@@ -36,7 +37,7 @@ before_script:
 - 'touch /home/travis/.basename-reg.yaml'
 - whoami
 - hostname
-- $HOME/bin/jsotk.py -h
+
 
 script:
 - ./tools/ci/build.sh

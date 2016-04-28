@@ -649,10 +649,10 @@ pd__run()
         local PREFIX=$(dirname $(dirname $(which bats)))
         case "$(whoami)" in
           travis )
-            PATH=$PATH:/home/travis/usr/libexec/
+              PATH=$PATH:$HOME/.local/libexec/
             ;;
           * )
-            PATH=$PATH:$PREFIX/libexec/
+              PATH=$PATH:$PREFIX/libexec/
             ;;
         esac
         unset PREFIX
