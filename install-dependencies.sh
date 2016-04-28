@@ -52,7 +52,7 @@ install_git_versioning()
 install_docopt()
 {
   git clone https://github.com/dotmpe/docopt-mpe.git $SRC_PREFIX/docopt-mpe
-  ( cd $SRC_PREFIX/docopt-mpe && git checkout 0.6.x && python /src/docopt-mpe/setup.py install )
+  ( cd $SRC_PREFIX/docopt-mpe && git checkout 0.6.x && python ./setup.py install --user )
 }
 
 install_mkdoc()
