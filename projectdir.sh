@@ -810,6 +810,15 @@ pd__ls_checks()
   }
 }
 
+pd_run__show=y
+pd__show()
+{
+  test -n "$1" || set -- "."
+  set -- "$(normalize_relative $go_to_before/$1)"
+  test -n "$1" || error "Prefix expected" 1
+  pd__meta get-repo $1
+}
+
 # ----
 
 
