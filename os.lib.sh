@@ -107,11 +107,12 @@ go_to_directory()
 
   # Find dir with metafile
   go_to_before=.
-  while test ! -e "$doc"
+  while true
   do
-    cd ..
+    test -e "$doc" && break
+    go_to_before=$(basename $(pwd))/$go_to_before
     test "$(pwd)" = "/" && break
-    test -e "$doc" || go_to_before=$(basename $(pwd))/$go_to_before
+    cd ..
   done
 
   test -e "$doc" || return 1
