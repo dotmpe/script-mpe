@@ -30,5 +30,38 @@ init_bin
   test "${lines[0]}" = '{"a": {"b": {"c": 1}, "d": [2, 3]}}'
 }
 
+@test "${bin} compare src/dest formats for test/var/1.*" {
+
+  testf=test/var/jsotk/1.yaml
+  testkv=test/var/jsotk/1.txt
+  testjs=test/var/jsotk/1.json
+
+  gen_y_js=/tmp/gen-y.json
+  jsotk.py --pretty yaml2json $testf > $gen_y_js
+  diff -q $gen_y_js $testjs
+
+# TODO: format as flat-kv
+#  gen_y_sh=/tmp/gen-y.sh
+#  jsotk.py -I yaml to-flat-kv $testf > $gen_y_sh
+#  diff -q $gen_y_sh $testkv
+
+  gen_sh_js=/tmp/gen-sh.json
+  jsotk.py --pretty from-flat-kv $testkv > $gen_sh_js
+  diff -q $gen_sh_js $testjs
+
+  gen_sh_y=/tmp/gen-sh.yaml
+  jsotk.py -O yaml --pretty from-flat-kv $testkv > $gen_sh_y
+  diff -q $gen_sh_y $testf
+
+# TODO: format as flat-kv
+#  gen_js_sh=/tmp/gen-js.sh
+#  jsotk.py to-flat-kv $testjs > $gen_js_sh
+#  diff -q $gen_js_sh $testkv
+
+  gen_js_y=/tmp/gen-js.yaml
+  jsotk.py --pretty json2yaml $testjs > $gen_js_y
+  diff -q $gen_js_y $testf
+
+}
 
 

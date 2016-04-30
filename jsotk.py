@@ -6,6 +6,8 @@ Usage:
     jsotk [options] path <srcfile> <expr>
     jsotk [options] [dump] [<srcfile> [<destfile]]
     jsotk [options] (json2yaml|yaml2json) [<srcfile> [<destfile]]
+    jsotk [options] to-flat-kv [<srcfile> [<destfile>]]
+    jsotk [options] from-flat-kv [<srcfile> [<destfile>]]
     jsotk [options] from-kv <args>...
 
 Options:
@@ -35,21 +37,16 @@ from docopt import docopt
 from script_mpe import util
 
 from jsotk_lib import ArgvKeywordsParser, \
-        load_data, stdout_data, readers
+        load_data, stdout_data, readers, \
+        get_src_dest_defaults
 
 
 ### Sub-command handlers
 
+# Conversions, json is default format
+
 def H_dump(opts):
-    outfile = None
-    if opts.args.srcfile:
-        infile = open(opts.args.srcfile)
-        if 'destfile' in opts.args and opts.args.destfile:
-            outfile = open(opts.args.srcfile)
-    else:
-        infile = sys.stdin
-    if not outfile:
-        outfile = sys.stdout
+    infile, outfile = get_src_dest_defaults(opts)
     data = load_data( opts.flags.input_format, infile )
     stdout_data( opts.flags.output_format, data, outfile, opts )
 
@@ -60,6 +57,8 @@ def H_yaml2json(opts):
 def H_json2yaml(opts):
     opts.flags.output_format = 'yaml'
     H_dump(opts)
+
+# Ad-hoc designed path query
 
 def H_path(opts):
     if opts.args.srcfile:
@@ -77,6 +76,8 @@ def H_path(opts):
         l = l[b]
     print l
 
+# TODO: helper for plain text (parser-less) updates to YAML/JSON
+
 def H_offsets(opts):
     """
     TODO: could print offsets from yaml.tokens.*.start/end_mark
@@ -92,12 +93,22 @@ def H_offsets(opts):
 
     """
 
+
+# Flat key-value from/to nested list/dicts
+
 def H_from_kv(opts):
     args = opts.args.args
     data_obj = ArgvKeywordsParser(rootkey=args[0])
     data_obj.scan_kv_args(args)
     stdout_data( opts.flags.output_format, data_obj.data, sys.stdout, opts )
 
+def H_from_flat_kv(opts):
+    opts.flags.input_format = 'kv'
+    H_dump(opts)
+
+def H_to_flat_kv(opts):
+    opts.flags.output_format = 'kv'
+    H_dump(opts)
 
 
 ### Main

@@ -1,3 +1,5 @@
+import sys
+
 from fnmatch import fnmatch
 from script_mpe.res import js
 from script_mpe.confparse import yaml_load, yaml_safe_dump
@@ -19,17 +21,52 @@ class ArgvKeywordsParser(object):
             self.scan_root_type(rootkey)
 
     def scan_root_type(self, key):
+        "Initialize root (self.data) to correct data type: dict or list"
         if '/' in key:
             key = key.split('/')[0]
         self.data = ArgvKeywordsParser.get_data_instance(key)
 
+    def scan(self, fh):
+        " Parse from file, listing one kv each line. "
+
+        # XXX: need bufered read..
+        pos = fh.tell()
+        if self.data is None:
+            rootkey = fh.read(1)
+            while rootkey[-1] != '=':
+                rootkey += fh.read(1)
+            self.scan_root_type(rootkey)
+            fh.seek(pos)
+
+        for line in fh.readlines():
+            self.set_kv(line)
+
     def scan_kv_args(self, args):
-        " Main parse function. "
+        " Parse from list of kv's. "
         for arg in args:
-            key, value = arg.split('=')
-            self.set( key, value )
+            self.set_kv(arg)
+
+    def set_kv(self, kv):
+        " Split kv to key and value, the the first '=' occurence. "
+        if '=' not in kv: return
+        pos = kv.index('=')
+        key, value = kv[:pos].strip(), kv[pos+1:].strip()
+        self.set( key, value )
+
 
     def set( self, key, value, d=None, default=None ):
+        """ Parse key to path within dict/list struct and insert value.
+        kv syntax::
+
+            list[] = value
+            key = value
+            key/sub = value
+
+        Append value to a list::
+
+            key/list[5]/subkey/mylist[] = value
+
+        """
         if isinstance(value, basestring) and value.isdigit():
             value = int(value)
         if d is None:
@@ -91,11 +128,20 @@ def stdout_data(outfmt, data, outfile, opts):
 
 ### Readers/Writers
 
+def kv_reader(file):
+    data_obj = ArgvKeywordsParser()
+    data_obj.scan(file)
+    return data_obj.data
+
 readers = dict(
         json=js.load,
-        yaml=yaml_load
+        yaml=yaml_load,
+        kv=kv_reader
     )
 
+
+def kv_writer(data, file, opts):
+    pass
 
 def json_writer(data, file, opts):
     kwds = {}
@@ -111,6 +157,33 @@ def yaml_writer(data, file, opts):
 
 writers = dict(
         json=json_writer,
-        yaml=yaml_writer
+        yaml=yaml_writer,
+        kv=kv_writer
     )
+
+
+### Misc. argument/option handling
+
+def get_src_dest(opts):
+    infile, outfile = None, None
+    if opts.args.srcfile:
+        if opts.args.srcfile == '-':
+            infile = sys.stdin
+        else:
+            infile = open(opts.args.srcfile)
+        if 'destfile' in opts.args and opts.args.destfile:
+            if opts.args.destfile == '-':
+                outfile = sys.stdout
+            else:
+                outfile = open(opts.args.destfile)
+    return infile, outfile
+
+def get_src_dest_defaults(opts):
+    infile, outfile = get_src_dest(opts)
+    if not outfile:
+        outfile = sys.stdout
+        if not infile:
+            infile = sys.stdin
+    return infile, outfile
+
 
