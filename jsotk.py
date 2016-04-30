@@ -4,11 +4,13 @@ Javascript Object toolkit.
 
 Usage:
     jsotk [options] path <srcfile> <expr>
+    jsotk [options] objectpath <srcfile> <expr>
     jsotk [options] [dump] [<srcfile> [<destfile]]
-    jsotk [options] (json2yaml|yaml2json) [<srcfile> [<destfile]]
-    jsotk [options] to-flat-kv [<srcfile> [<destfile>]]
-    jsotk [options] from-flat-kv [<srcfile> [<destfile>]]
-    jsotk [options] from-kv <args>...
+    jsotk [options] (json2yaml|yaml2json) [<srcfile> [<destfile>]]
+    jsotk [options] (from-kv|to-kv) [<srcfile> [<destfile>]]
+    jsotk [options] (from-flat-kv|to-flat-kv) [<srcfile> [<destfile>]]
+    jsotk [options] from-args <args>...
+    jsotk [options] from-flat-args <args>...
 
 Options:
   -q, --quiet   Quiet operations
@@ -22,6 +24,13 @@ Options:
                 Override output format. See Formats_.
                 TODO: default is to autodetect from filename
                 if given, or set to [default: json].
+  --no-indices  [default: false]
+  --detect-format
+  --no-detect-format
+                Auto-detect input/output format based on file-name extension
+                [default: true]
+  --output-prefix PREFIX
+                Path prefix for output [default: ]
 
 Formats
 -------
@@ -31,12 +40,14 @@ yaml
     ..
 """
 import os, sys
+import types
 
 from docopt import docopt
+from objectpath import Tree
 
 from script_mpe import util
 
-from jsotk_lib import ArgvKeywordsParser, \
+from jsotk_lib import PathKVParser, \
         load_data, stdout_data, readers, \
         get_src_dest_defaults
 
@@ -61,13 +72,8 @@ def H_json2yaml(opts):
 # Ad-hoc designed path query
 
 def H_path(opts):
-    if opts.args.srcfile:
-        if opts.args.srcfile is '-':
-            infile = sys.stdin
-        else:
-            infile = open(opts.args.srcfile)
-    data = readers[ opts.flags.input_format ]( infile )
-    l = data
+    infile, outfile = get_src_dest_defaults(opts)
+    l = load_data( opts.flags.input_format, infile )
     path_el = opts.args.expr.split('.')
     while len(path_el):
         b = path_el.pop(0)
@@ -75,6 +81,18 @@ def H_path(opts):
             raise KeyError, b
         l = l[b]
     print l
+
+def H_objectpath(opts):
+    infile, outfile = get_src_dest_defaults(opts)
+    q = Tree(load_data( opts.flags.input_format, infile ))
+    o = q.execute( opts.args.expr )
+    if isinstance(o, types.GeneratorType):
+        for s in o:
+            stdout_data( opts.flags.output_format, s, outfile, opts )
+    else:
+        stdout_data( opts.flags.output_format, o, outfile, opts )
+
+
 
 # TODO: helper for plain text (parser-less) updates to YAML/JSON
 
@@ -96,18 +114,26 @@ def H_offsets(opts):
 
 # Flat key-value from/to nested list/dicts
 
-def H_from_kv(opts):
+def H_from_args(opts):
     args = opts.args.args
-    data_obj = ArgvKeywordsParser(rootkey=args[0])
-    data_obj.scan_kv_args(args)
-    stdout_data( opts.flags.output_format, data_obj.data, sys.stdout, opts )
+    reader = PathKVParser(rootkey=args[0])
+    reader.scan_kv_args(args)
+    stdout_data( opts.flags.output_format, reader.data, sys.stdout, opts )
+
+def H_from_kv(opts):
+    opts.flags.input_format = 'pkv'
+    H_dump(opts)
+
+def H_to_kv(opts):
+    opts.flags.output_format = 'pkv'
+    H_dump(opts)
 
 def H_from_flat_kv(opts):
-    opts.flags.input_format = 'kv'
+    opts.flags.input_format = 'fkv'
     H_dump(opts)
 
 def H_to_flat_kv(opts):
-    opts.flags.output_format = 'kv'
+    opts.flags.output_format = 'fkv'
     H_dump(opts)
 
 
@@ -130,6 +156,10 @@ if __name__ == '__main__':
     opts = util.get_opts(__doc__)
     if not opts.cmds:
         opts.cmds = ['dump']
+    if opts.flags.no_detect_format:
+        opts.flags.detect_format = False
+    else:
+        opts.flags.detect_format = True
     sys.exit( main( opts.cmds[0], opts ) )
 
 

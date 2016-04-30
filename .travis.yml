@@ -28,6 +28,7 @@ before_script:
 - 'pip install --user zope.component'
 - jsotk.py -h
 - 'npm install parse-torrent lodash'
+- 'pip install --user objectpath'
 - 'pip install --user docutils'
 - 'pip install --user jsonschema'
 - 'pip install --user sqlalchemy'

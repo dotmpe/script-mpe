@@ -817,6 +817,21 @@ pd__show()
   set -- "$(normalize_relative $go_to_before/$1)"
   test -n "$1" || error "Prefix expected" 1
   pd__meta get-repo $1
+
+  metaf=$1/package.yaml
+  test -e "$1" || warn "No package def" 0
+
+  metajs=$1/.package.json
+  test $metaf -ot $metajs \
+    || jsotk.py yaml2json $metaf $metajs
+
+  metash=$1/.package.sh
+  test $metaf -ot $metash \
+    || {
+
+    jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
+        | jsotk.py --output-prefix=package to-flat-kv - > $metash
+  }
 }
 
 # ----
