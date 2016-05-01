@@ -74,6 +74,16 @@ init_bin
   diff -q $gen_js_y $testf
 }
 
+@test "${bin} compare src/dest formats for test/var/1.*" {
+  jsotk_from_kv_test()
+  {
+    printf "foo/2[2]=more\nfoo/2[3]=items\n" | jsotk.py from-kv - || return $?
+  }
+  run jsotk_from_kv_test
+  test ${status} -eq 0
+  test "${lines[*]}" = '{"foo": {"2": [null, null, "more", "items"]}}'
+}
+
 @test "${bin} can use objectpath" {
 
   # Select main attribute of all objects under root
@@ -113,7 +123,7 @@ init_bin
   echo '{"list": [1, {"foo": 2}]}' >/tmp/in2.json
   run $bin --list-update merge-one /tmp/in1.json /tmp/in2.json /tmp/out.json
   test ${status} -eq 0
-  test "$(cat /tmp/out.json)" = '{"list": [1, {"foo": 2}]}'
+  TEST "$(cat /tmp/out.json)" = '{"list": [1, {"foo": 2}]}'
 }
 
 @test "${bin} --list-union merge-one ... (default)" {
@@ -122,5 +132,38 @@ init_bin
   run $bin merge-one /tmp/in1.json /tmp/in2.json /tmp/out.json
   test ${status} -eq 0
   test "$(cat /tmp/out.json)" = '{"foo": {"bar": [1, 3, 2]}}'
+}
+
+@test "${bin} update I - simple dict key" {
+  jsotk_merge_test()
+  {
+    echo newkey=value | jsotk.py update test/var/jsotk/1.yaml - || return $?
+  }
+  run jsotk_merge_test
+  test ${status} -eq 0
+  test "${lines[*]}" = '{"newkey": "value", "foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "items"]}}'
+}
+
+@test "${bin} update II - nested dict with list index" {
+
+  jsotk_update_2_test()
+  {
+    printf "foo/2[2]=more\nfoo/2[3]=items\n" \
+      | jsotk.py --list-update update test/var/jsotk/1.yaml - || return $?
+  }
+  run jsotk_update_2_test
+  test ${status} -eq 0
+  test "${lines[*]}" = \
+  '{"foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "more", "items"]}}'
+
+  jsotk_update_2b_test()
+  {
+    printf "foo/2[2]=more\nfoo/2[3]=items\n" \
+    | jsotk.py --list-union update test/var/jsotk/1.yaml - || return $?
+  }
+  run jsotk_update_2b_test
+  test ${status} -eq 0
+  test "${lines[*]}" = \
+  '{"foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "more", "items"]}}'
 }
 
