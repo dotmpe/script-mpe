@@ -26,7 +26,7 @@ statusdir__root()
 {
   test -n "$STATUSDIR_ROOT" || return 12
 	path=$STATUSDIR_ROOT
-	[ -e "$path" ] || mkdir -vp $path
+	[ -e "$path" ] || mkdir -p $path
 	echo $path
 }
 
@@ -34,6 +34,7 @@ statusdir__root()
 # echos path
 statusdir__assert()
 {
+  test -n "$STATUSDIR_ROOT" || return 13
 	tree="$(echo "$@" | tr ' ' '/')"
 	path=$STATUSDIR_ROOT"tree/"$tree
 	mkdir -p $path
@@ -45,6 +46,7 @@ statusdir__assert()
 # (does not touch file, but echos it)
 statusdir__assert_dir()
 {
+  test -n "$STATUSDIR_ROOT" || return 14
 	tree="$(echo "$@" | tr ' ' '/')"
 	path=$STATUSDIR_ROOT"index/"$tree
 	mkdir -p $(dirname $path)
@@ -54,6 +56,7 @@ statusdir__assert_dir()
 # Specific statusdir__dir assert for .list file
 statusdir__index()
 {
+  test -n "$STATUSDIR_ROOT" || return 15
 	tree="$(echo "$@" | tr ' ' '/')"
 	path=$STATUSDIR_ROOT"index/"$tree".list"
 	mkdir -p $(dirname $path)
@@ -62,11 +65,26 @@ statusdir__index()
 
 statusdir__file()
 {
+  test -n "$STATUSDIR_ROOT" || return 16
   tree="$(echo "$@" | tr ' ' '/')"
   case "$tree" in *\* ) ;; * )
     statusdir__assert_dir "$@" >/dev/null
   esac
   echo $STATUSDIR_ROOT"index/$tree"
+}
+
+# Assert given value exists at path in state.json
+# arg: 1:jspath 2:value
+statusdir__assert_json()
+{
+  statusdir__file "state.json" || return $?
+}
+
+# Merge another json into state.json
+# arg: 1:filepath 2:root-jspath
+statusdir__cons_json()
+{
+  echo
 }
 
 
