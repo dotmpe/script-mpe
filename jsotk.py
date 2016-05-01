@@ -59,7 +59,7 @@ from objectpath import Tree
 
 import util
 from jsotk_lib import PathKVParser, FlatKVParser, \
-        load_data, stdout_data, readers, \
+        load_data, stdout_data, readers, open_file, \
         get_src_dest_defaults, set_format, \
         deep_union, deep_update
 
@@ -76,14 +76,15 @@ def H_dump(opts):
 
 
 def H_merge_one(opts):
-
+    "Docopt does not handle args for 'merge', so instead use this. "
     opts.args.srcfiles = [ opts.args.srcfile, opts.args.srcfile2 ]
     H_merge(opts)
 
 
 def H_merge(opts):
-    "Merge srcfiles into last file. All srcfiles must be same format. "
-    "Defaults to src-to-dest noop, stdin/out: - -. "
+    """Merge srcfiles into last file. All srcfiles must be same format.
+    Defaults to src-to-dest noop, iow. '- -' functions identical to
+    'dump'.  """
 
     if not opts.args.srcfiles:
         opts.args.srcfile = '-'
@@ -100,8 +101,17 @@ def H_merge(opts):
 
     data = None
     for srcfile in opts.args.srcfiles:
-        infile = open(srcfile)
-        mdata = load_data( opts.flags.input_format, infile )
+        mdata = None
+        if hasattr(srcfile, 'read'):
+            infile = srcfile
+        elif isinstance(srcfile, (dict, list)):
+            mdata = srcfile
+            srcfile = '<inline>'
+            infile = None
+        else:
+            infile = open_file(srcfile, defio='in')
+        if infile and not mdata:
+            mdata = load_data( opts.flags.input_format, infile )
         if not data:
             data = type(mdata)()
         elif not isinstance(mdata, type(data)):
@@ -115,15 +125,30 @@ def H_merge(opts):
         else:
             raise ValueError, data
 
-    if opts.args.destfile == '-':
-        outfile = sys.stdout
-    else:
-        outfile = open(opts.args.destfile, 'w+')
+    outfile = open_file(opts.args.destfile, mode='w+')
+
     return stdout_data( opts.flags.output_format, data, outfile, opts )
+
 
 def H_update(opts):
     "Update srcfile from stdin. Write to destfile or stdout. "
+    assert opts.args.srcfile and not opts.args.srcfile == '-'
+    infile, outfile = get_src_dest_defaults(opts)
 
+    reader = PathKVParser()
+    reader.data = load_data( opts.flags.input_format, infile )
+    for line in sys.stdin.readlines():
+        reader.set_kv(line)
+        opts.args.srcfiles = [infile, reader.data]
+
+    return stdout_data( opts.flags.output_format, reader.data, outfile, opts )
+
+
+def H_update_from_args(opts):
+    pass
+    # TODO
+    #reader = PathKVParser(rootkey=args[0])
+    #reader.scan_kv_args(opts.args.kv_args)
 
 
 # Ad-hoc designed path query
@@ -138,6 +163,12 @@ def H_path(opts):
             raise KeyError, b
         l = l[b]
     print l
+
+    # FIXME: use parser
+    #reader = PathKVParser(rootkey=args[0])
+    #reader.scan_kv_args(args)
+    #reader.scan(file)
+
 
 def H_objectpath(opts):
     infile, outfile = get_src_dest_defaults(opts)
@@ -239,6 +270,7 @@ if __name__ == '__main__':
         opts.flags.detect_format = False
     else:
         opts.flags.detect_format = True
+    # TODO: opts.flags.no_json_string
     sys.exit( main( opts.cmds[0], opts ) )
 
 

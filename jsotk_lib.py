@@ -33,14 +33,18 @@ class AbstractKVParser(object):
     def scan(self, fh):
         " Parse from file, listing one kv each line. "
 
-        # XXX: need bufered read..
-        pos = fh.tell()
+        # XXX: need bufered read.. See also H_update reader.scan
+        #pos = fh.tell()
+        #if self.data is None:
+        #    rootkey = fh.read(1)
+        #    while rootkey[-1] != '=':
+        #        rootkey += fh.read(1)
+        #    self.scan_root_type(rootkey)
+        #    fh.seek(pos)
         if self.data is None:
-            rootkey = fh.read(1)
-            while rootkey[-1] != '=':
-                rootkey += fh.read(1)
-            self.scan_root_type(rootkey)
-            fh.seek(pos)
+            firstline = sys.stdin.readline()
+            self.scan_root_type(firstline.split('=')[0])
+            self.set_kv(firstline)
 
         for line in fh.readlines():
             self.set_kv(line)
@@ -58,7 +62,7 @@ class AbstractKVParser(object):
         self.set( key, value )
 
 
-    def set( self, key, value, d=None, default=None ):
+    def set( self, key, value, d=None, default=None, values_as_json=True ):
         """ Parse key to path within dict/list struct and insert value.
         kv syntax::
 
@@ -71,8 +75,14 @@ class AbstractKVParser(object):
             key/list[5]/subkey/mylist[] = value
 
         """
-        if isinstance(value, basestring) and value.isdigit():
-            value = int(value)
+
+        # Maybe want to allow other parsers too, ie YAML values
+        if isinstance(value, basestring):
+            if values_as_json:
+                value = parse_json(value)
+            else:
+                value = parse_primitive(value)
+
         if d is None:
             d = self.data
         if '/' in key:
@@ -81,13 +91,21 @@ class AbstractKVParser(object):
             di = self.__class__.get_data_instance(key)
             if isinstance(di, list):
                 pos = key.index('[')
+
                 if key[:pos] not in d:
                     d[key[:pos]] = di
+
                 if len(key) > pos+2:
-                    idx = int(key[pos:-1])
+                    idx = int(key[pos+1:-1])
+
+                    while len(d[key[:pos]]) <= idx:
+                        d[key[:pos]].append(None)
+
                     d[key[:pos]][idx] = value
+
                 else:
                     d[key[:pos]].append( value )
+
                 return key[:pos]
             else:
                 if value is None and default is not None:
@@ -121,7 +139,7 @@ class PathKVParser(AbstractKVParser):
 
     @staticmethod
     def get_data_instance(key):
-        if fnmatch(key, '*\[[0-9]\]') or fnmatch(key, '*[]'):
+        if fnmatch(key, '*[[0-9]]') or fnmatch(key, '*[]'):
             return []
         else:
             return {}
@@ -198,6 +216,25 @@ def stdout_data(outfmt, data, outfile, opts):
     return writers[ outfmt ]( data, outfile, opts )
 
 
+def parse_json(value):
+    if value.strip().startswith('{') or value.strip().startswith('['):
+        return js.loads(value)
+    else:
+        return parse_primitive(value)
+
+
+re_float  = re.compile('\d+.\d+')
+def parse_primitive(value):
+    # TODO: other numbers
+    if value.isdigit():
+        return int(value)
+    elif re_float.match(value):
+        return float(value)
+    elif value.lower() in ["true", "false"]:
+        return value is 'true'
+    else:
+        return value
+
 
 ### Readers/Writers
 
@@ -254,23 +291,27 @@ writers = dict(
 
 ### Misc. argument/option handling
 
+def open_file(fpathname, defio='out', mode='r'):
+    if hasattr(fpathname, 'read'):
+        return fpathname
+    if not fpathname:
+        fpathname = '-'
+    if fpathname == '-':
+        return getattr(sys, 'std%s' % defio)
+    else:
+        return open(fpathname, mode)
+
 def get_src_dest(opts):
     infile, outfile = None, None
     if opts.args.srcfile:
-        if opts.args.srcfile == '-':
-            infile = sys.stdin
-        else:
-            infile = open(opts.args.srcfile)
+        infile = open_file(opts.args.srcfile, defio='in')
         if 'destfile' in opts.args and opts.args.destfile:
-            if opts.args.destfile == '-':
-                outfile = sys.stdout
-            else:
-                outfile = open(opts.args.destfile, 'w+')
+            outfile = open_file(opts.args.destfile, mode='w+')
     return infile, outfile
 
 def set_format(tokey, fromkey, opts):
     file = getattr(opts.args, "%sfile" % fromkey)
-    if file:
+    if file and isinstance(file, basestring):
         fmt = get_format_for_fileext(file)
         if fmt:
             setattr(opts.flags, "%s_format" % tokey, fmt)
@@ -351,14 +392,14 @@ def deep_union(lists, opts):
                     type(data), type(mdata))
         for i, v in enumerate(mdata):
             if opts.flags.list_update:
+                while len(data)-1 < i:
+                    data.append(None)
                 # cmp index-by-index
                 if not opts.flags.list_update_nodict:
                     if isinstance(data[i], dict):
-                        data[i] = deep_update([data[i], v], opts)
-                        continue
+                        v = deep_update([data[i], v], opts)
                 elif isinstance(data[i], list):
-                    data[i] = deep_union([data[i], v], opts)
-                    continue
+                    v = deep_union([data[i], v], opts)
                 data[i] = v
 
             elif opts.flags.list_union:
