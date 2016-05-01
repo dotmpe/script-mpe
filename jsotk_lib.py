@@ -318,10 +318,10 @@ def open_file(fpathname, defio='out', mode='r'):
 
 def get_src_dest(opts):
     infile, outfile = None, None
-    if opts.args.srcfile:
+    if 'srcfile' in opts.args and opts.args.srcfile:
         infile = open_file(opts.args.srcfile, defio='in')
-        if 'destfile' in opts.args and opts.args.destfile:
-            outfile = open_file(opts.args.destfile, mode='w+')
+    if 'destfile' in opts.args and opts.args.destfile:
+        outfile = open_file(opts.args.destfile, mode='w+')
     return infile, outfile
 
 def set_format(tokey, fromkey, opts):

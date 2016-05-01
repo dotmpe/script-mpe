@@ -79,8 +79,8 @@ statusdir__assert_json()
 {
   sf=$(statusdir__file "state.json" || return $?)
   test -s "$sf" || echo '{}' >$sf
-  test -n "$1" || return
-  echo "$@" | tr ' ' '\n' | jsotk.py update $sf $sf.tmp
+  test -n "$1" || { echo $sf; return; }
+  echo "$@" | tr ' ' '\n' | jsotk.py update $sf.tmp $sf
   mv $sf.tmp $sf
 }
 
@@ -89,8 +89,7 @@ statusdir__assert_json()
 statusdir__cons_json()
 {
   status_json="$(statusdir__assert_json)"
-
-  jsotk.py merge-one $status_json $1 - > /tmp/new-status.json
+  jsotk.py merge /tmp/new-status.json $status_json $1
   mv /tmp/new-status.json $status_json
 }
 

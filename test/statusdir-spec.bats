@@ -28,15 +28,15 @@ init
   test "$HOME/.statusdir/" = "${lines[*]}"
 }
 
-@test "${bin} cons-json $HOME/project/git-versioning/package.yaml project/git-versioning" {
-  run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-}
+#@test "${bin} assert-json $HOME/project/git-versioning/package.yaml project/git-versioning {}" {
+#  run $BATS_TEST_DESCRIPTION
+#  test ${status} -eq 0
+#}
 
-@test "${bin} assert-json project/git-versioning[0]/type application/x-project-mpe" {
+@test "${bin} assert-json" {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
-  test "$HOME/.statusdir/" = "${lines[*]}"
+  test "$HOME/.statusdir/index/state.json" = "${lines[*]}"
 }
 
 
