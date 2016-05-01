@@ -120,38 +120,39 @@ pd__status()
       note "Projectdir is not a checkout at $checkout"
       continue
     }
+    statusdir.sh assert-json 'project/'$checkout'/tags'='[]'
+
     # FIXME: merge with pd-check? Need fast access to lists..
     #pd_check $checkout || echo pd-check:$checkout >>$failed
     pd__clean $checkout || {
         warn "Checkout $checkout is not clean"
         echo pd-clean:$checkout >>$failed
-        statusdir assert-json \
-          'project/'$checkout'/clean' \
-          false
-        statusdir assert-json \
-          'project/'$checkout'/tags[]' \
-          to-clean
+        statusdir.sh assert-json \
+          'project/'$checkout'/clean'=false
+        statusdir.sh assert-json \
+          'project/'$checkout'/tags[]'=to-clean
     }
+
     echo "$registered" | grep -qF $checkout && {
       echo "$enabled" | grep -qF $checkout && {
-        test -e "$checkout" || \
+        test -e "$checkout" || {
           note "Checkout missing: $checkout"
-          statusdir assert-json \
-            'project/'$checkout'/tags[]' \
-            to-enable
+          statusdir.sh assert-json \
+            'project/'$checkout'/tags[]'=to-enable
+        }
       } || {
         echo "$disabled" | grep -qF $checkout && {
-          test ! -e "$checkout" || \
+          test ! -e "$checkout" || {
             note "Checkout to be disabled: $checkout"
-            statusdir assert-json \
-              'project/'$checkout'/tags[]' \
-              to-clean
-
+            statusdir.sh assert-json \
+              'project/'$checkout'/tags[]'=to-clean
+          }
         } || noop
       }
     } || {
       warn "Checkout not registered: $checkout"
     }
+
   done
 }
 
@@ -832,8 +833,9 @@ pd__show()
   pd__meta get-repo $1 | \
     jsotk.py -I json -O yaml --pretty --output-prefix repositories update - -
 
+
   metaf=$1/package.yaml
-  test -e "$1" || warn "No package def" 0
+  test -e "$metaf" || warn "No package def" 0
 
   metajs=$1/.package.json
   test $metaf -ot $metajs \

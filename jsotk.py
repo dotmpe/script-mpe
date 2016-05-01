@@ -161,7 +161,7 @@ def H_update_from_args(opts):
 def H_path(opts):
     infile, outfile = get_src_dest_defaults(opts)
     l = load_data( opts.flags.input_format, infile )
-    path_el = opts.args.expr.split('.')
+    path_el = opts.args.expr.split('/')
     while len(path_el):
         b = path_el.pop(0)
         if b not in l:
