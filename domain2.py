@@ -91,7 +91,7 @@ def get_current_host(settings):
     """
     Scan settings.nodes for UNID and return host.
     """
-    unid, name = res.read_idfile(hostIdFile)
+    unid, name = fsutil.read_idfile(hostIdFile)
     # XXX to use an UNID, or SID.. Rather have ser. nrs anyway.
     for sid, host in settings.nodes.items():
         if 'unid' in host and host['unid'] == unid:
@@ -164,7 +164,7 @@ def init_domain(settings):
         keyFile = os.path.expanduser('~/.ssh/id_dsa.pub')
     if not os.path.exists(keyFile):
         raise Exception("No SSH keyfile")
-    pubkeylines = res.read_unix(keyFile)
+    pubkeylines = fsutil.read_unix(keyFile)
     assert len(pubkeylines) == 1, pubkeylines
     keytype, key, localId = pubkeylines.pop().split(' ')
     user, domain = localId.split('@')

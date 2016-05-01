@@ -2,8 +2,8 @@ import os, sys
 import re
 
 from fnmatch import fnmatch
-from script_mpe.res import js
-from script_mpe.confparse import yaml_load, yaml_safe_dump
+from res import js
+from confparse import yaml_load, yaml_safe_dump
 
 
 re_non_escaped = re.compile('[\[\]\$%:<>;|\ ]')

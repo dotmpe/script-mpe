@@ -6,6 +6,8 @@ base=jsotk.py
 init_lib
 init_bin
 
+. $lib/str.lib.sh
+
 
 @test "${bin} -h" {
   run $BATS_TEST_DESCRIPTION
@@ -72,14 +74,14 @@ init_bin
     test/var/jsotk/2.yaml \
     '$.*[@.main]'
   test ${status} -eq 0
-  test "${lines[*]}" = '"third-type"'
+  test '"third-type"' = "${lines[*]}" 
 
   # Select all objects under root with main attribute
   run jsotk.py objectpath \
     test/var/jsotk/2.yaml \
     '$.*[@.main is not None]'
   test ${status} -eq 0
-  test "${lines[*]}" = '{"main": "third-type", "type": "third-type", "manifest": [1, 2, 3]}'
+  test '{"main": "third-type", "type": "third-type", "manifest": [1, 2, 3]}' = "${lines[*]}" 
 
   # Recursively select all manifest attribute list values
   run jsotk.py objectpath \
