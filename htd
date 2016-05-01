@@ -2066,30 +2066,59 @@ htd__tmux_init()
   #'reattach-to-user-namespace -l /bin/bash'"
   test -z "$3" || error "surplus arguments: '$3'" 1
 
-  socket=/tmp/tmux-htd-socket
+  #socket=/tmp/tmux-htd-socket
+  test -n "$TMUX_TMPDIR" || TMUX_TMPDIR=/opt/tmux-socket
   out=/tmp/htd-tmux-init-$$
 
-  test -n "$TMUX_TMPDIR" || TMUX_TMPDIR=/opt/tmux-socket
-
-  tmux has-session -t $1 >/dev/null && {
+  tmux has-session -t $1 >/dev/null 2>&1 && {
     logger "Session $1 exists" 0
     note "Session $1 exists" 0
   } || {
-    tmux new-session -P -s "$1" -d "$2" 2>$out 1> $out
-    tmux has-session -t $1 >/dev/null && {
+    #tmux new-session -P -s "$1" -d "$2" 2>$out 1> $out
+    #tmux has-session -t $1 >/dev/null && {
+
+    tmux new-session -P -s $1 -d "$2" >/dev/null 2>&1 && {
       note "started new session '$1'"
       logger "started new session '$1'"
     } || {
       logger "Failed starting session ($?) ($out):"
       printf "Cat ($out) "
     }
-
-    rm $out
+    #rm $out
   }
+}
 
-  # Look for init subcmd to setup windows
-  try_exec_func "htd__tmux_$(echo $1 | tr 'A-Z' 'a-z')" || noop
-  # XXX: or try tmuxinator
+htd__tmux()
+{
+  while test -n "$1"
+  do
+    func="htd__tmux_$(echo $1 | tr 'A-Z' 'a-z')"
+    fname="$(echo "$1" | tr 'A-Z' 'a-z')"
+
+    tmux has-session -t $1 >/dev/null 2>&1 && {
+      info "Session $1 exists"
+      shift
+      continue
+    }
+
+    func_exists "$func" && {
+
+      # Look for init subcmd to setup windows
+      note "Starting htd TMUX $1 (tmux-$fname) init"
+      try_exec_func "$func" || return $?
+
+    } || {
+      test -e "$HOME/.conf/tmuxinator/$fname.yml" && {
+        note "Starting tmuxinator '$1' config"
+        htd__mux $1 &
+      } || {
+        note "Starting htd-tmux '$1' config"
+        htd__tmux_init $1
+      }
+    }
+    shift
+  done
+  tmux attach
 }
 
 htd__reader_update()
