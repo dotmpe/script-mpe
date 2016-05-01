@@ -382,7 +382,7 @@ def H_get_repo(pdhdata, ctx):
     repos = pdhdata['repositories']
     if not ctx.opts.flags.quiet:
         if p in repos:
-            print pformat(repos[p])
+            print js.dumps(repos[p])
     if p not in repos:
         return 1
 

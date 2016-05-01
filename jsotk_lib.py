@@ -267,7 +267,7 @@ def write(writer, data, file, opts):
 def output_prefix(data, opts):
     if opts.flags.output_prefix:
         path = opts.flags.output_prefix
-        parser = PathKVParser(data, rootkey=path)
+        parser = PathKVParser(rootkey=path)
         parser.set(path, data)
         data = parser.data
     return data
@@ -293,7 +293,7 @@ def yaml_writer(data, file, opts):
     kwds = {}
     if opts.flags.pretty:
         kwds.update(dict(default_flow_style=False))
-    #data = output_prefix(data, opts)
+    data = output_prefix(data, opts)
     yaml_safe_dump(data, file, **kwds)
 
 writers = dict(
