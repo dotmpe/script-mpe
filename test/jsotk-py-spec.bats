@@ -32,6 +32,13 @@ init_bin
   test "${lines[0]}" = '{"a": {"b": {"c": 1}, "d": [2, 3]}}'
 }
 
+@test "${bin} from-args l[]=1 l[]=2 l[2]=3" "update indices" {
+  skip "TODO: update at index with jsotk"
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  test "${lines[*]}" = '{"l": [1, 3]}'
+}
+
 @test "${bin} compare src/dest formats for test/var/1.*" {
 
   testf=test/var/jsotk/1.yaml
@@ -90,5 +97,30 @@ init_bin
   test ${status} -eq 0
   test "${lines[0]}" = "[1]"
   test "${lines[*]}" = "[1] [1, 2, 3] [2, 4, 5] [5]"
+}
+
+# Note: docopts does not support merge arguments, so implemented merge-one
+# as relief
+
+@test "${bin} --list-update merge ..." {
+  skip "TODO: implement list item updates for from-args"
+}
+
+@test "${bin} --list-update merge-one ..." {
+  #jsotk.py from-args 'list[1]=1' 'list[2]/foo=3' > /tmp/in1.json
+  echo '{"list": [1, {"foo": 3}]}' >/tmp/in1.json
+  #jsotk.py from-args 'list[2]/foo=2' > /tmp/in2.json
+  echo '{"list": [1, {"foo": 2}]}' >/tmp/in2.json
+  run $bin --list-update merge-one /tmp/in1.json /tmp/in2.json /tmp/out.json
+  test ${status} -eq 0
+  test "$(cat /tmp/out.json)" = '{"list": [1, {"foo": 2}]}'
+}
+
+@test "${bin} --list-union merge-one ... (default)" {
+  jsotk.py from-args 'foo/bar[]=1' 'foo/bar[]=3' > /tmp/in1.json
+  jsotk.py from-args 'foo/bar[]=2' > /tmp/in2.json
+  run $bin merge-one /tmp/in1.json /tmp/in2.json /tmp/out.json
+  test ${status} -eq 0
+  test "$(cat /tmp/out.json)" = '{"foo": {"bar": [1, 3, 2]}}'
 }
 
