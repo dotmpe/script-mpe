@@ -195,7 +195,7 @@ def load_data(infmt, infile):
     return readers[ infmt ]( infile )
 
 def stdout_data(outfmt, data, outfile, opts):
-    writers[ outfmt ]( data, outfile, opts )
+    return writers[ outfmt ]( data, outfile, opts )
 
 
 
@@ -295,4 +295,76 @@ def get_src_dest_defaults(opts):
             infile = sys.stdin
     return infile, outfile
 
+
+def deep_update(dicts, opts):
+    """Merge dicts by overwriting first given dict, with keys/paths-value
+    mappings found in subsequent dicts. Update embedded lists according to
+    --list-update or --list-union, see deep_union.
+    """
+    assert len(dicts) > 1
+    data = dicts[0]
+    while len(dicts) > 1:
+        mdata = dicts.pop(1)
+        if not isinstance(mdata, dict):
+            raise ValueError, "Expected %s but got %s" % (
+                    type(data), type(mdata))
+        for k, v in mdata.iteritems():
+            if k in data:
+                if isinstance(data[k], dict):
+                    deep_update( [ data[k], v ], opts)
+                elif isinstance(data[k], list):
+                    data[k] = deep_union( [ data[k], v ], opts)
+                else:
+                    data[k] = v
+            else:
+                data[k] = v
+    return data
+
+def deep_union(lists, opts):
+    """List merger with different modes.
+
+    Mode is 'update' to preserve indices (and assume equal length lists),
+    while recursing into objects with deep_update. Mode 'union' does
+    instead what the name implies, and adds unique items only, using
+    deep_cmp on lists and dicts.
+
+    --list-update          Update items at index, merging lists and dicts.
+    --list-union           Gather unique values, ignore indices and never merge
+                           items.
+    --list-update-nodicts  Skip deep object updates, only merge lists.
+
+    FIXME: update jsotk-merge to enable overrides --list-update-on=path/to/list
+    --list-union-on=path/to/list
+
+    Having  an index in any overridden path marks that list container for
+    'update' mode, and raises an error on conflicting rules.
+    More advanced feature not needed now. Also, may want set customized
+    merge routines based on object type match, or value expressions of
+    specific types, or path-expressions.
+    """
+
+    data = lists[0]
+    while len(lists) > 1:
+        mdata = lists.pop(1)
+        if not isinstance(mdata, list):
+            raise ValueError, "Expected %s but got %s" % (
+                    type(data), type(mdata))
+        for i, v in enumerate(mdata):
+            if opts.flags.list_update:
+                # cmp index-by-index
+                if not opts.flags.list_update_nodict:
+                    if isinstance(data[i], dict):
+                        data[i] = deep_update([data[i], v], opts)
+                        continue
+                elif isinstance(data[i], list):
+                    data[i] = deep_union([data[i], v], opts)
+                    continue
+                data[i] = v
+
+            elif opts.flags.list_union:
+                # TODO: deep-compare objects
+                if v not in data:
+                    data.append(v)
+
+    return data
 
