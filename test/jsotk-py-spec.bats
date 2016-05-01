@@ -123,7 +123,7 @@ init_bin
   echo '{"list": [1, {"foo": 2}]}' >/tmp/in2.json
   run $bin --list-update merge-one /tmp/in1.json /tmp/in2.json /tmp/out.json
   test ${status} -eq 0
-  TEST "$(cat /tmp/out.json)" = '{"list": [1, {"foo": 2}]}'
+  test "$(cat /tmp/out.json)" = '{"list": [1, {"foo": 2}]}'
 }
 
 @test "${bin} --list-union merge-one ... (default)" {

@@ -125,15 +125,28 @@ pd__status()
     pd__clean $checkout || {
         warn "Checkout $checkout is not clean"
         echo pd-clean:$checkout >>$failed
+        statusdir assert-json \
+          'project/'$checkout'/clean' \
+          false
+        statusdir assert-json \
+          'project/'$checkout'/tags[]' \
+          to-clean
     }
     echo "$registered" | grep -qF $checkout && {
       echo "$enabled" | grep -qF $checkout && {
         test -e "$checkout" || \
           note "Checkout missing: $checkout"
+          statusdir assert-json \
+            'project/'$checkout'/tags[]' \
+            to-enable
       } || {
         echo "$disabled" | grep -qF $checkout && {
           test ! -e "$checkout" || \
             note "Checkout to be disabled: $checkout"
+            statusdir assert-json \
+              'project/'$checkout'/tags[]' \
+              to-clean
+
         } || noop
       }
     } || {
