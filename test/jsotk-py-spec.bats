@@ -137,31 +137,50 @@ init_bin
 @test "${bin} update I - simple dict key" {
   jsotk_merge_test()
   {
-    echo newkey=value | jsotk.py update test/var/jsotk/1.yaml - || return $?
+    echo newkey=value | jsotk.py update - test/var/jsotk/1.yaml || return $?
   }
   run jsotk_merge_test
   test ${status} -eq 0
+  echo "${lines[*]}" >/tmp/123
   test "${lines[*]}" = '{"newkey": "value", "foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "items"]}}'
+}
+
+@test "${bin} merge/update - output-prefix" {
+  jsotk_output_prefix_test()
+  {
+    jsotk.py --output-prefix pa/th merge - test/var/jsotk/3.yaml || return $?
+  }
+  run jsotk_output_prefix_test
+  test ${status} -eq 0
+  test "${lines[*]}" = '{"pa": {"th": {"foo": [1, 2], "bar": true}}}'
+
+  jsotk_output_prefix_test()
+  {
+    jsotk.py --output-prefix pa/th --no-stdin update - test/var/jsotk/3.yaml || return $?
+  }
+  run jsotk_output_prefix_test
+  test ${status} -eq 0
+  test "${lines[*]}" = '{"pa": {"th": {"foo": [1, 2], "bar": true}}}'
 }
 
 @test "${bin} update II - nested dict with list index" {
 
-  jsotk_update_2_test()
+  jsotk_update_3_test()
   {
     printf "foo/2[2]=more\nfoo/2[3]=items\n" \
-      | jsotk.py --list-update update test/var/jsotk/1.yaml - || return $?
+      | jsotk.py --list-update update - test/var/jsotk/1.yaml || return $?
   }
-  run jsotk_update_2_test
+  run jsotk_update_3_test
   test ${status} -eq 0
   test "${lines[*]}" = \
   '{"foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "more", "items"]}}'
 
-  jsotk_update_2b_test()
+  jsotk_update_3b_test()
   {
     printf "foo/2[2]=more\nfoo/2[3]=items\n" \
-    | jsotk.py --list-union update test/var/jsotk/1.yaml - || return $?
+    | jsotk.py --list-union update - test/var/jsotk/1.yaml || return $?
   }
-  run jsotk_update_2b_test
+  run jsotk_update_3b_test
   test ${status} -eq 0
   test "${lines[*]}" = \
   '{"foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "more", "items"]}}'

@@ -33,6 +33,12 @@ class AbstractKVParser(object):
     def scan(self, fh):
         " Parse from file, listing one kv each line. "
 
+        self.scan_init(fh)
+
+        for line in fh.readlines():
+            self.set_kv(line)
+
+    def scan_init(self, fh):
         # XXX: need bufered read.. See also H_update reader.scan
         #pos = fh.tell()
         #if self.data is None:
@@ -42,12 +48,9 @@ class AbstractKVParser(object):
         #    self.scan_root_type(rootkey)
         #    fh.seek(pos)
         if self.data is None:
-            firstline = sys.stdin.readline()
+            firstline = fh.readline()
             self.scan_root_type(firstline.split('=')[0])
             self.set_kv(firstline)
-
-        for line in fh.readlines():
-            self.set_kv(line)
 
     def scan_kv_args(self, args):
         " Parse from list of kv's. "
@@ -256,22 +259,33 @@ readers = dict(
     )
 
 
-def pkv_writer(data, file, opts):
-    writer = PathKVSerializer()
-    if opts.flags.no_indices:
-        writer.write_indices = False
-    file.write(writer.serialize(data))
-
-def fkv_writer(data, file, opts):
-    writer = FlatKVSerializer()
+def write(writer, data, file, opts):
     if opts.flags.no_indices:
         writer.write_indices = False
     file.write(writer.serialize(data, opts.flags.output_prefix))
+
+def output_prefix(data, opts):
+    if opts.flags.output_prefix:
+        path = opts.flags.output_prefix
+        parser = PathKVParser(data, rootkey=path)
+        parser.set(path, data)
+        data = parser.data
+    return data
+
+
+def pkv_writer(data, file, opts):
+    writer = PathKVSerializer()
+    write(writer, data, file, opts)
+
+def fkv_writer(data, file, opts):
+    writer = FlatKVSerializer()
+    write(writer, data, file, opts)
 
 def json_writer(data, file, opts):
     kwds = {}
     if opts.flags.pretty:
         kwds.update(dict(indent=2))
+    data = output_prefix(data, opts)
     file.write(js.dumps(data, **kwds))
     print >> file
 
@@ -279,6 +293,7 @@ def yaml_writer(data, file, opts):
     kwds = {}
     if opts.flags.pretty:
         kwds.update(dict(default_flow_style=False))
+    #data = output_prefix(data, opts)
     yaml_safe_dump(data, file, **kwds)
 
 writers = dict(
