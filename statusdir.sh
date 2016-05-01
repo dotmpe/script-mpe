@@ -1,5 +1,5 @@
 #!/bin/sh
-statusdir_source=$_
+statusdir__source=$_
 
 # Statusdir - a lightweight property store for bash
 
@@ -16,27 +16,34 @@ statusdir_load()
   }
 }
 
-statusdir_root()
+statusdir_unload()
 {
+  noop
+}
+
+
+statusdir__root()
+{
+  test -n "$STATUSDIR_ROOT" || return 12
 	path=$STATUSDIR_ROOT
-	[ -e "$path" ] || mkdir -p $path
+	[ -e "$path" ] || mkdir -vp $path
 	echo $path
 }
 
 # Make path in statusdir exists, args are pathelems
 # echos path
-statusdir_assert()
+statusdir__assert()
 {
 	tree="$(echo "$@" | tr ' ' '/')"
 	path=$STATUSDIR_ROOT"tree/"$tree
 	mkdir -p $path
 	echo $path
-	#export statusdir_tree=$tree
+	#export statusdir__tree=$tree
 }
 
-# As statusdir_assert, but last arg is filename
+# As statusdir__assert, but last arg is filename
 # (does not touch file, but echos it)
-statusdir_assert_dir()
+statusdir__assert_dir()
 {
 	tree="$(echo "$@" | tr ' ' '/')"
 	path=$STATUSDIR_ROOT"index/"$tree
@@ -44,8 +51,8 @@ statusdir_assert_dir()
 	echo $path
 }
 
-# Specific statusdir_dir assert for .list file
-statusdir_index()
+# Specific statusdir__dir assert for .list file
+statusdir__index()
 {
 	tree="$(echo "$@" | tr ' ' '/')"
 	path=$STATUSDIR_ROOT"index/"$tree".list"
@@ -53,11 +60,11 @@ statusdir_index()
 	echo $path
 }
 
-statusdir_file()
+statusdir__file()
 {
   tree="$(echo "$@" | tr ' ' '/')"
   case "$tree" in *\* ) ;; * )
-    statusdir_assert_dir "$@" >/dev/null
+    statusdir__assert_dir "$@" >/dev/null
   esac
   echo $STATUSDIR_ROOT"index/$tree"
 }
@@ -65,40 +72,54 @@ statusdir_file()
 
 ### Main
 
-# Ignore login console interpreter
-case "$0" in "" ) ;; "-*" ) ;; * )
+statusdir__main()
+{
+  local scriptname=statusdir base=$(basename $0 .sh) verbosity=5
 
+  statusdir__init || exit $?
+
+  case "$base" in $scriptname )
+
+      statusdir__lib || exit $?
+      run_subcmd "$@" || exit $?
+      ;;
+
+    * )
+      error "not a frontend for $base"
+      ;;
+  esac
+}
+
+statusdir__init()
+{
+  test -n "$LIB" || LIB=$HOME/bin
+  . $LIB/std.lib.sh
+  . $LIB/str.lib.sh
+  . $LIB/os.lib.sh
+  . $LIB/util.sh
+  . $LIB/box.init.sh
+  box_run_sh_test
+  . $LIB/htd.lib.sh
+  . $LIB/main.sh
+  . $LIB/main.init.sh
+  . $LIB/box.lib.sh
+  . $LIB/date.lib.sh
+  # -- statusdir box init sentinel --
+}
+
+statusdir__lib()
+{
+  local __load_lib=1
+  # -- statusdir box lib sentinel --
+  set --
+}
+
+# Use hyphen to ignore source exec in login shell
+case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
-
-  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
-  # fix using another mechanism:
   test -z "$__load_lib" || set -- "load-ext"
-
   case "$1" in load-ext ) ;; * )
-
-      scriptname=statusdir
-      # Do something if script invoked as '$scriptname.sh'
-      base=$(basename $0 .sh)
-      case "$base" in
-
-        $scriptname )
-
-            statusdir_load
-
-            # invoke with function name first argument,
-            func="$1"
-            type "statusdir_$func" >/dev/null 2>&1 && { func="statusdir_$1"; }
-            type $func >/dev/null 2>&1 && {
-              shift 1
-              $func "$@"
-            } || exit 1
-
-          ;;
-
-
-      esac ;;
-
-  esac ;;
-
-esac
+    statusdir__main "$@"
+  ;; esac
+;; esac
 
