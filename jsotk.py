@@ -12,8 +12,8 @@ Usage:
     jsotk [options] from-args <kv_args>...
     jsotk [options] from-flat-args <fkv-args>...
     jsotk [options] merge-one <srcfile> <srcfile2> <destfile>
-    jsotk [options] merge [<srcfiles>...] <destfile>
-    jsotk [options] update <srcfile> [<destfile>]
+    jsotk [options] merge <destfile> <srcfiles>...
+    jsotk [options] update <destfile> <srcfiles>...
     jsotk [options] update-from-args <srcfiles> <kv-args> <destfile>
 
 
@@ -41,6 +41,8 @@ Options:
   --list-update-nodict
                 .
   --list-union
+                .
+  --no-stdin
                 .
 
 Formats
@@ -81,7 +83,7 @@ def H_merge_one(opts):
     H_merge(opts)
 
 
-def H_merge(opts):
+def H_merge(opts, write=True):
     """Merge srcfiles into last file. All srcfiles must be same format.
     Defaults to src-to-dest noop, iow. '- -' functions identical to
     'dump'.  """
@@ -125,23 +127,26 @@ def H_merge(opts):
         else:
             raise ValueError, data
 
-    outfile = open_file(opts.args.destfile, mode='w+')
-
-    return stdout_data( opts.flags.output_format, data, outfile, opts )
+    if write:
+        outfile = open_file(opts.args.destfile, mode='w+')
+        return stdout_data( opts.flags.output_format, data, outfile, opts )
+    else:
+        return data
 
 
 def H_update(opts):
     "Update srcfile from stdin. Write to destfile or stdout. "
-    assert opts.args.srcfile and not opts.args.srcfile == '-'
     infile, outfile = get_src_dest_defaults(opts)
+    data = H_merge(opts, write=False)
 
-    reader = PathKVParser()
-    reader.data = load_data( opts.flags.input_format, infile )
-    for line in sys.stdin.readlines():
-        reader.set_kv(line)
-        opts.args.srcfiles = [infile, reader.data]
+    if '-' not in opts.args.srcfiles:
+        if not opts.flags.no_stdin:
+            parser = PathKVParser(data)
+            for line in sys.stdin.readlines():
+                parser.set_kv(line)
+            data = parser.data
 
-    return stdout_data( opts.flags.output_format, reader.data, outfile, opts )
+    return stdout_data( opts.flags.output_format, data, outfile, opts )
 
 
 def H_update_from_args(opts):
