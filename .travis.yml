@@ -44,8 +44,8 @@ before_script:
 - radical.py --help
 - jsotk.py -h
 - jsotk.py from-args foo=bar
-- jsotk.py objectpath \
-      $HOME/bin/test/var/jsotk/2.yaml \
+- jsotk.py objectpath
+      $HOME/bin/test/var/jsotk/2.yaml
       '$.*[@.main is not None]'
 
 
