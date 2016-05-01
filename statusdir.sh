@@ -77,14 +77,21 @@ statusdir__file()
 # arg: 1:jspath 2:value
 statusdir__assert_json()
 {
-  statusdir__file "state.json" || return $?
+  sf=$(statusdir__file "state.json" || return $?)
+  test -s "$sf" || echo '{}' >$sf
+  test -n "$1" || return
+  echo "$@" | tr ' ' '\n' | jsotk.py update $sf $sf.tmp
+  mv $sf.tmp $sf
 }
 
 # Merge another json into state.json
 # arg: 1:filepath 2:root-jspath
 statusdir__cons_json()
 {
-  echo
+  status_json="$(statusdir__assert_json)"
+
+  jsotk.py merge-one $status_json $1 - > /tmp/new-status.json
+  mv /tmp/new-status.json $status_json
 }
 
 
