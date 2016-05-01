@@ -45,8 +45,8 @@ import types
 from docopt import docopt
 from objectpath import Tree
 
-from script_mpe import util
 
+import util
 from jsotk_lib import PathKVParser, \
         load_data, stdout_data, readers, \
         get_src_dest_defaults

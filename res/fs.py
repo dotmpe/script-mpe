@@ -1,11 +1,10 @@
 from fnmatch import fnmatch
 import os
-from os.path import join 
+from os.path import join
 import re
 import stat
 
 import zope.interface
-from zope.component import getGlobalSiteManager
 
 from script_mpe import confparse
 from script_mpe import log
@@ -30,14 +29,14 @@ class INode(object):
 
     def getname(self):
         ""
-        return os.path.basename( self.path ) + ( StatCache.isdir( self.path ) and os.sep or '' ) 
+        return os.path.basename( self.path ) + ( StatCache.isdir( self.path ) and os.sep or '' )
     name = property( getname )
 
     def getid(self):
         ""
         return StatCache.getinode( self.path )
     nodeid = property( getid )
-    
+
     @classmethod
     def factory( Klass, path ):
         """
@@ -84,16 +83,19 @@ class INode(object):
         return True
 
 
-gsm = getGlobalSiteManager()
-gsm.registerUtility(INode.factory, iface.ILocalNodeService, 'fs') 
+def __register__():
+    from zope.component import getGlobalSiteManager
+    gsm = getGlobalSiteManager()
+    gsm.registerUtility(INode.factory, iface.ILocalNodeService, 'fs')
 
-# TODO move to res.iface or res
-def getService(node, *args, **kwds):
-    if isinstance(node, INode):
-        return INode.factory
-    else:
-        assert False, (node, args, kwds)
-gsm.registerAdapter(getService, [iface.Node], iface.ILocalNodeService)
+    # TODO move to res.iface or res
+    def getService(node, *args, **kwds):
+        if isinstance(node, INode):
+            return INode.factory
+        else:
+            assert False, (node, args, kwds)
+    gsm.registerAdapter(getService, [iface.Node], iface.ILocalNodeService)
+
 
 class File(INode):
     zope.interface.implements(iface.Node, iface.ILeaf)
@@ -145,7 +147,7 @@ pathdepth = lambda s: s.strip('/').count('/')
 
 def exclusive ( opts, filters ):
     """
-    Exclusive boolean list: only one may be true, 
+    Exclusive boolean list: only one may be true,
     any combination of False and None allowed.
     """
     # verify: only one may be true
@@ -160,7 +162,7 @@ def exclusive ( opts, filters ):
             if n == x:
                 continue
             assert not opts[n], ('conflict', n, opts[n], x)
-    # set 
+    # set
     if x:
         for n in filters.split(' '):
             if n == x:
@@ -177,7 +179,7 @@ class Dir(INode):
     zope.interface.implements(iface.Node, iface.ITree)
     implements = 'dir'
 
-    # ITree -  
+    # ITree -
     def get_subnodes(self):
         for name in os.listdir(self.path):
             # XXX yields relative path INode
@@ -294,14 +296,14 @@ class Dir(INode):
         # custom filters:
         exists=None, # 1 , -1 for exclusive exists; or 0 for either
         # None for include, False for exclude, True for exclusive:
-        dirs=None, 
-        files=None, 
+        dirs=None,
+        files=None,
         symlinks=None,
         links=None,
         pipes=None,
         blockdevs=None,
     ))
-    
+
     @classmethod
     def walk(Klass, path, opts=walk_opts, filters=(None,None)):
         """
@@ -425,7 +427,7 @@ class Dir(INode):
 
     @classmethod
     def tree( Klass, path, opts, tree=None ):
-# XXX: what to do with complete attribute list etc? 
+# XXX: what to do with complete attribute list etc?
         """
         Given a path name string, uses INode.factory to get an ITree interface to
         the file tree. The tree can be traversed using IHierarchicalVisitor,
@@ -448,7 +450,7 @@ class Dir(INode):
         # and make the traveler walk that ITree, using the IVisitor required.
         visitor = DictNodeUpdater(self)
         traveler.travel( rootnode, visitor )
-        return tree  
+        return tree
 
     @classmethod
     def find_newer(Klass, path, path_or_time):
@@ -482,7 +484,7 @@ class Socket(INode):
 
 class StatCache:
     """
-    Static storage for stat results. 
+    Static storage for stat results.
     XXX: It is up to caller to maintain cache.
     XXX: should fully canonize paths for each INode, ie. clean notation, resolve
         symlinked parent dirs.
@@ -502,7 +504,7 @@ class StatCache:
             if isinstance( v, str ): # shortcut to dirpath (w/ trailing sep)
                 p = v
                 v = clss.path_stats[ p ]
-        else:    
+        else:
             statv = os.lstat( path )
             if stat.S_ISDIR( statv.st_mode ):
                 # store shortcut to normalized path
