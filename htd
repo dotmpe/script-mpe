@@ -971,6 +971,7 @@ htd__git_remote()
   } || source_git_remote
 
   [ -z "$1" ] && {
+    # List values for first arguments
     ssh_cmd="cd $remote_dir; ls | grep '.*.git$' | sed 's/\.git$//g' "
     ssh $ssh_opts $remote_user@$remote_host "$ssh_cmd"
   } || {
@@ -983,8 +984,10 @@ htd__git_remote()
 
 htd__git_init_remote()
 {
+  test -n "$HTD_GIT_REMOTE" || error "No HTD_GIT_REMOTE" 1
   source_git_remote
-  [ -n "$1" ] && repo="$1" || repo="$PROJECT"
+  [ -n "$1" ] && repo="$1" || repo="$(basename $(pwd))"
+  test -n "$repo" || error "Missing project ID" 1
 
   ssh_cmd="mkdir -v $remote_dir/$repo.git"
   ssh $remote_user@$remote_host "$ssh_cmd"
@@ -992,6 +995,7 @@ htd__git_init_remote()
   [ -e .git ] || error "No .git directory, stopping remote init" 0
 
   htd__git_remote $repo >> /dev/null
+  test -n "$scp_url" || error "No scp_url" 1
 
   BARE=../$repo.git
   TMP_BARE=1
