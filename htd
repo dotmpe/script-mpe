@@ -2088,6 +2088,7 @@ htd__tmux_init()
   }
 }
 
+# Start tmux, tmuxinator or htd-tmux with given names
 htd__tmux()
 {
   while test -n "$1"
