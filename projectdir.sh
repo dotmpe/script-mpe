@@ -219,7 +219,10 @@ pd__disable_clean()
 pd_run__update=yfb
 pd__update()
 {
-  test -n "$1" && set -- "$go_to_before/$1" || set -- "$go_to_before/*"
+  test -n "$1" \
+    && set -- "$go_to_before/$1" \
+    || set -- "$go_to_before/*"
+  set -- "$(normalize_relative "$1")"
 
   backup_if_comments "$pd"
   while test ${#@} -gt 0
@@ -605,7 +608,7 @@ pd__add()
   }
 
   # Check prefix arg
-  set -- "$1" "$(normalize_relative $go_to_before/$2)"
+  set -- "$1" "$(normalize_relative "$go_to_before/$2")"
   test -d $2/.git || error "Not a checkout: $2" 1
 
   # Check URL arg

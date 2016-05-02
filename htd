@@ -2269,11 +2269,6 @@ htd__realpath()
   f_realpath "$@"
 }
 
-htd__normalize_symbolic()
-{
-  normalize_symbolic "$@"
-}
-
 htd__normalize_relative()
 {
   normalize_relative "$1"
