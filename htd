@@ -2119,7 +2119,8 @@ htd__tmux()
     }
     shift
   done
-  tmux attach
+
+  test -n "$TMUX" || tmux attach
 }
 
 htd__reader_update()

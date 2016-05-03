@@ -853,10 +853,12 @@ dckr__machines_nfs()
         --shared-folder=$HOME \
         --shared-folder=/opt/ \
         --shared-folder=/Volumes/Simza/project \
-         --nfs-config="-alldirs -maproot=0" \
+        --nfs-config="-alldirs -mapall=501:20" \
         --force \
       && note "Reinitialized NFS for '$1'" \
       || { note "Error in NFS init for '$1'"; echo $1>$updated; } \
+
+        #--nfs-config="-maproot=0 -alldirs -mapall=\$(id -u):\$(id -g)"
 
     shift
   done

@@ -175,7 +175,8 @@ class AbstractKVSerializer(object):
         elif isinstance(data, dict):
             r.extend(self.ser_dict(data, prefix))
         else:
-            if re_non_escaped.search(data):
+            print data, type(data)
+            if isinstance(data, basestring) and re_non_escaped.search(data):
                 r.append( "%s=\"%s\"" % ( prefix, data ))
             else:
                 r.append( "%s=%s" % ( prefix, data ))
