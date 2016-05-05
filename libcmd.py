@@ -638,7 +638,7 @@ class SimpleCommand(object):
         config_file = None
         if rcfile:
             config_file = rcfile.pop()
-        if not config_file:
+        # FIXME :if not config_file:
 
         assert config_file, \
                 "Missing config-file for %s, perhaps use init_config_file" %( rc, )
