@@ -308,7 +308,8 @@ class SimpleCommand(object):
             p(('-K', '--config-key',),{ 'metavar':'ID',
                 'dest': 'config_key',
                 'default': inheritor.DEFAULT_CONFIG_KEY,
-                'help': "Settings root node for run time configuration. "
+                'help': "Key to current program settings in config-file. Set "
+                    "if only part of settings in config file are used. "
                     " (default: %default). " }),
 
 #            p(('--init-config',),cmddict(help="runtime-configuration with default values. "
@@ -412,9 +413,9 @@ class SimpleCommand(object):
         classdict = {}
         for klass, optspec in options:
             if hasattr(klass, 'get_opt_prefix'):
-            	prefix = klass.get_opt_prefix()
+                prefix = klass.get_opt_prefix()
             else:
-            	prefix = 'cmd'
+                prefix = 'cmd'
             classdict[ prefix ] = klass, optspec
             for optnames, optattr in optspec:
                 try:
@@ -449,7 +450,7 @@ class SimpleCommand(object):
         self.globaldict.prog.handlers = self.BOOTSTRAP
         for handler_name in self.resolve_handlers():
             target = handler_name.replace('_', ':', 1)
-#            log.debug("%s.main deferring to %s", lib.cn(self), target)
+            log.debug("%s.main deferring to %s", lib.cn(self), target)
             self.execute( handler_name )
             log.info("%s.main returned from %s", lib.cn(self), target)
 
@@ -625,6 +626,8 @@ class SimpleCommand(object):
         if 'config_file' not in opts or not opts.config_file:
             log.err( "Nothing to load configuration from")
         else:
+            print self.DEFAULT_RC, self.DEFAULT_CONFIG_KEY, self.INIT_RC
+            print opts.config_file, opts.config_key
             prog.config_file = self.find_config_file(opts.config_file)
             #self.main_user_defaults()
             self.load_config_( prog.config_file, opts )
@@ -635,10 +638,13 @@ class SimpleCommand(object):
         config_file = None
         if rcfile:
             config_file = rcfile.pop()
+        if not config_file:
 
-        if not os.path.exists(config_file):
-            assert False, "Missing %s, perhaps use init_config_file"%config_file
-
+        assert config_file, \
+                "Missing config-file for %s, perhaps use init_config_file" %( rc, )
+        assert isinstance(config_file, basestring), config_file
+        assert os.path.exists(config_file), \
+                "Missing %s, perhaps use init_config_file"%config_file
         return config_file
 
     def load_config_(self, config_file, opts=None ):
