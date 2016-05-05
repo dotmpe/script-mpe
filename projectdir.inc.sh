@@ -93,7 +93,7 @@ generate_git_hooks()
 {
   # Create default script from pd-check
   test -n "$package_pd_meta_git_hooks_pre_commit_script" || {
-    package_pd_meta_git_hooks_pre_commit_script="pd check $package_pd_meta_check"
+    package_pd_meta_git_hooks_pre_commit_script="set -e ; pd check $package_pd_meta_check"
   }
 
 	for script in $GIT_HOOK_NAMES
@@ -158,7 +158,7 @@ update_package_sh()
 
 update_package()
 {
-  test -n "$metaf" || metaf=$1/package.yaml
+  test -n "$metaf" || metaf=$(echo $1/package.y*ml | cut -f1 -d' ')
   test -e "$metaf" || warn "No package def" 0
   update_package_json "$1"
   update_package_sh "$1"
