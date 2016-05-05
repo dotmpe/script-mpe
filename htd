@@ -1229,7 +1229,8 @@ htd__resolve()
 # GIT commits and push
 htd__pci()
 {
-  git add -u;git commit -m "$1";git push --all
+  test -n "$2" || set -- "$1" "--all"
+  git add -u;git commit -m "$1";git push $2
 }
 
 # Move path to archive path in htdocs cabinet

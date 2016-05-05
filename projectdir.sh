@@ -215,9 +215,34 @@ pd__disable_clean()
   done
 }
 
-# Add/remove repos, update remotes at first level. git only.
-pd_run__update=yfb
+pd_run__update=yf
 pd__update()
+{
+  test -n "$1" \
+    && set -- "$go_to_before/$1" \
+    || set -- "$go_to_before/*"
+  set -- "$(normalize_relative "$1")"
+
+  # XXX: see init, consolidate maybe
+
+  ( update_package "$1" ) || return
+
+  test -e "$1/.package.sh" && . $1/.package.sh
+
+  echo package=$package_id
+  test -n "$package_id" || return
+
+  env | grep -qv '^package_pd_meta_git_' || return
+  (
+    cd $1
+    generate_git_hooks
+    install_git_hooks
+  )
+}
+
+# Add/remove repos, update remotes at first level. git only.
+pd_run__update_all=yfb
+pd__update_all()
 {
   test -n "$1" \
     && set -- "$go_to_before/$1" \
@@ -495,10 +520,12 @@ pd__init()
   test -n "$1" || error "prefix argument expected" 1
   test -z "$2" || error "Surplus arguments: $2" 1
   pd__meta_sq get-repo $1 || error "No repo for $1" 1
+
   pd__set_remotes $1
   cwd=$(pwd)
   cd $1
   git submodule update --init --recursive
+
   test ! -e .versioned-files.list || {
     echo "git-versioning check" > .git/hooks/pre-commit
     chmod +x .git/hooks/pre-commit
@@ -513,6 +540,7 @@ pd__set_remotes()
   test -n "$1" || error "prefix argument expected" 1
   test -z "$2" || error "Surplus arguments: $2" 1
 
+  log "Syncing local remotes with $pd repository"
   cwd=$(pwd)
   pd__meta list-remotes "$1" | while read remote
   do
@@ -836,22 +864,9 @@ pd__show()
   pd__meta get-repo $1 | \
     jsotk.py -I json -O yaml --pretty --output-prefix repositories update - -
 
-
-  metaf=$1/package.yaml
-  test -e "$metaf" || warn "No package def" 0
-
-  metajs=$1/.package.json
-  test $metaf -ot $metajs \
-    || jsotk.py yaml2json $metaf $metajs
-
-  metash=$1/.package.sh
-  test $metaf -ot $metash \
-    || {
-
-    jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
-        | jsotk.py --output-prefix=package to-flat-kv - > $metash
-  }
   jsotk.py --output-prefix package -I yaml -O yaml --pretty objectpath $metaf '$.*[@.main is not None]'
+
+  update_package "$1"
 }
 
 # ----

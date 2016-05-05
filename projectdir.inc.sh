@@ -87,3 +87,80 @@ backup_if_comments()
 }
 
 
+test -n "$GIT_HOOK_NAMES" || GIT_HOOK_NAMES="apply-patch commit-msg post-update pre-applypatch pre-commit pre-push pre-rebase prepare-commit-msg update"
+
+generate_git_hooks()
+{
+  # Create default script from pd-check
+  test -n "$package_pd_meta_git_hooks_pre_commit_script" || {
+    package_pd_meta_git_hooks_pre_commit_script="pd check $package_pd_meta_check"
+  }
+
+	for script in $GIT_HOOK_NAMES
+	do
+		t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
+		test -n "$t" || continue
+    test -e "$t" || {
+      s=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_')_script)
+      test -n "$s" || {
+        echo "No default git $script script. "
+        return
+      }
+
+      mkdir -vp $(dirname $t)
+      echo "$s" >$t
+      chmod +x $t
+      echo "Generated $script GIT commit hook"
+    }
+  done
+}
+
+install_git_hooks()
+{
+	for script in $GIT_HOOK_NAMES
+	do
+		t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
+		test -n "$t" || continue
+		l=.git/hooks/$script
+		test ! -e "$l" || {
+			test -h $l && {
+				test "$(readlink $l)" = "../../$t" && continue || {
+					rm $l
+				}
+			} ||	{
+				echo "Git hook exists and is not a symlink: $l"
+				continue
+			}
+		}
+		( cd .git/hooks; ln -s ../../$t $script )
+    echo "Installed GIT hook symlink: $script -> $t"
+	done
+}
+
+update_package_json()
+{
+  test -n "$metajs" || metajs=$1/.package.json
+  test $metaf -ot $metajs \
+    || jsotk.py yaml2json $metaf $metajs
+}
+
+update_package_sh()
+{
+  test -n "$metash" || metash=$1/.package.sh
+  test $metaf -ot $metash \
+    || {
+
+    ( jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
+        || rm $metash; exit 31 ) \
+        | jsotk.py --output-prefix=package to-flat-kv - > $metash
+  }
+}
+
+update_package()
+{
+  test -n "$metaf" || metaf=$1/package.yaml
+  test -e "$metaf" || warn "No package def" 0
+  update_package_json "$1"
+  update_package_sh "$1"
+}
+
