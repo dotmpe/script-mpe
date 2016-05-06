@@ -150,9 +150,14 @@ update_package_sh()
   test $metaf -ot $metash \
     || {
 
+    jsotk.py -I yaml -O fkv objectpath $metaf '$.*[@.defaults]' |
+      sed 's/^\([^=]*\)=/test -n "$\1" || \1=/g' > $metash
+
+    echo >> $metash
+
     ( jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
         || rm $metash; exit 31 ) \
-        | jsotk.py --output-prefix=package to-flat-kv - > $metash
+        | jsotk.py --output-prefix=package to-flat-kv - >> $metash
   }
 }
 
