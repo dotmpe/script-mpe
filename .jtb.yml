@@ -78,7 +78,11 @@
         title: 'script.mpe [gh,local,bats] ({branch})'
         credentials-id: 'f1899d66-848f-43e9-83cf-f26f171a1e27'
         restrict-node: ubuntu || treebox
-        parameters: []
+        bats-tap-results: build/test-results.tap
+        parameters:
+        - string:
+            name: SUITE
+            value: main
         properties: []
         metadata: []
         # TODO: fix JJB serialize
@@ -88,53 +92,60 @@
         #    expose-to-env: false
         builders:
         - shell: |
+
             export LIB=$WORKSPACE
             ./htd version
             ./htd help
 
-        #- shell: |
-        #    set +x
-        #    export PATH=$WORKSPACE:$PATH
-        #    export PATH=$HOME/.local/bin:$PATH
-        #    export Build_Deps_Default_Paths=1
-        #    ./install-dependencies.sh
-        #- shell: |
-        #    set +x
+            export PATH=$WORKSPACE:$PATH
+            htd version
+            box version
+            #match.sh -v
+
+        - shell: |
+            set +x
+            export PATH=$WORKSPACE:$PATH
+            export PATH=$HOME/.local/bin:$PATH
+            export Build_Deps_Default_Paths=1
+            ./install-dependencies.sh test
+
+            bats --version
 
         #    #export PATH=$PATH:$HOME/usr/bin/
         #    export PATH=$WORKSPACE:$PATH
         #    export PATH=$HOME/.local/bin:$PATH
 
-        #    bats --version
-
         #    rm -rf $HOME/bin
         #    ln -s $WORKSPACE $HOME/bin
         #    export PATH=$PATH:$HOME/bin/
         #    export JTB_HOME=$HOME/build/jtb
-        #    export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
 
-        #    box version
-        #    htd help
-        #    #match.sh -v
+        - shell: |
+            set +x
 
-        #    export PREFIX=$WORKSPACE
-        #    export TRAVIS_SKIP=1
-        #    export JENKINS_SKIP=1
-        #    mkdir -vp ./build
+            export PATH=$WORKSPACE:$PATH
+            export PATH=$HOME/.local/bin:$PATH
+            export LIB=$WORKSPACE
+            export PREFIX=
+            export TRAVIS_SKIP=1
+            export JENKINS_SKIP=1
+            export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
 
-        #    test -n "$SUITE" && {{
-        #      SPECS=
-        #      for SPEC in $SUITE
-        #      do
-        #        SPECS="$SPECS ./test/$SPEC-spec.bats"
-        #      done
-        #    }} || test -n "$SPEC" && {{
-        #      SPECS="./test/$SPEC-spec.bats"
-        #    }} || {{
-        #      SPECS=./test/*-spec.bats
-        #    }}
+            mkdir -vp ./build
 
-        #    bats $SPECS > ./build/test-results.tap
+            test -n "$SUITE" && {{
+              SPECS=
+              for SPEC in $SUITE
+              do
+                SPECS="$SPECS ./test/$SPEC-spec.bats"
+              done
+            }} || test -n "$SPEC" && {{
+              SPECS="./test/$SPEC-spec.bats"
+            }} || {{
+              SPECS=./test/*-spec.bats
+            }}
+
+            bats $SPECS || exit 0 > ./build/test-results.tap
 
     #
     # A job to test/update this build config file, if either JJB, JTB or
