@@ -3027,6 +3027,7 @@ htd_init()
   . $LIB/os.lib.sh
   . $LIB/match.lib.sh
   . $LIB/util.sh
+  echo 0
   . $LIB/box.init.sh
   echo LIB=$LIB
   echo 1
