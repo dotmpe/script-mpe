@@ -3022,6 +3022,7 @@ htd_main()
 htd_init()
 {
   test -n "$LIB" || LIB=$HOME/bin
+  echo LIB=$LIB
   . $LIB/std.lib.sh
   . $LIB/str.lib.sh
   . $LIB/os.lib.sh
@@ -3036,6 +3037,7 @@ htd_init()
   . $LIB/date.lib.sh
   . $LIB/doc.lib.sh
   . $LIB/table.lib.sh
+  echo LIB=$LIB
   # -- htd box init sentinel --
 }
 
