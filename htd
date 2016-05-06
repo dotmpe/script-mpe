@@ -3004,7 +3004,7 @@ htd__init_project()
 
 htd_main()
 {
-  local scriptname=htd base=$(basename $htd_src .sh) verbosity=5
+  local scriptname=htd base=$(basename $0 .sh) verbosity=5
   htd_init || exit $?
 
   case "$base" in $scriptname )
@@ -3014,7 +3014,7 @@ htd_main()
       ;;
 
     * )
-      error "not a frontend for $base" 1
+        error "not a frontend for $base ($scriptname)" 1
       ;;
   esac
 }
@@ -3028,20 +3028,14 @@ htd_init()
   . $LIB/match.lib.sh
   . $LIB/util.sh
   . $LIB/box.init.sh
-  echo LIB=$LIB
-  echo 1
   box_run_sh_test
   . $LIB/htd.lib.sh
   . $LIB/main.sh
   . $LIB/main.init.sh
   . $LIB/box.lib.sh
-  echo LIB=$LIB
-  echo 2
   . $LIB/date.lib.sh
   . $LIB/doc.lib.sh
   . $LIB/table.lib.sh
-  echo LIB=$LIB
-  echo 3
   # -- htd box init sentinel --
 }
 
