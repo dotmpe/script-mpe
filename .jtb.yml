@@ -89,7 +89,9 @@
         builders:
         - shell: |
             export LIB=$WORKSPACE
-            ./htd
+            ./htd version
+            ./htd help
+
         #- shell: |
         #    set +x
         #    export PATH=$WORKSPACE:$PATH
