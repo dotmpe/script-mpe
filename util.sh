@@ -44,7 +44,7 @@ trueish()
 {
   test -n "$1" || return 1
   case "$1" in
-    on|true|yes|1)
+    on|true|y*|j*|1)
       return 0;;
     * )
       return 1;;
