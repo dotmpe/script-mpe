@@ -12,7 +12,9 @@ test -n "$BOX_BIN_DIR" || {
   test -d $BOX_BIN_DIR || mkdir -vp $BOX_BIN_DIR
 }
 
-. $HOME/bin/std.lib.sh
+test -n "$LIB"
+
+. $LIB/std.lib.sh
 
 test -z "$BOX_INIT" && BOX_INIT=1 || error "unexpected re-init" 1
 
