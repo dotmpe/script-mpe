@@ -3028,19 +3028,19 @@ htd_init()
   . $LIB/str.lib.sh
   . $LIB/os.lib.sh
   echo 2
+  echo LIB=$LIB
   . $LIB/match.lib.sh
+  echo 3
   . $LIB/util.sh
   . $LIB/box.init.sh
   box_run_sh_test
   . $LIB/htd.lib.sh
-  echo 3
   . $LIB/main.sh
   . $LIB/main.init.sh
   . $LIB/box.lib.sh
   . $LIB/date.lib.sh
   . $LIB/doc.lib.sh
   . $LIB/table.lib.sh
-  echo LIB=$LIB
   # -- htd box init sentinel --
 }
 
