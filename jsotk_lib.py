@@ -167,7 +167,7 @@ class AbstractKVSerializer(object):
     def serialize(self, data, prefix=''):
         if prefix is None:
             prefix = ''
-        return os.linesep.join(self.ser(data, prefix))
+        return os.linesep.join(self.ser(data, prefix)) + os.linesep
     def ser(self, data, prefix=''):
         r = []
         if isinstance(data, list):

@@ -7,7 +7,7 @@ version=0.0.0+20150911-0659 # script.mpe
 
 
 
-dckr_man_1__edit_main="Edit the main script file"
+dckr_man_1__edit_main="Edit main scriptfiles. "
 dckr_spc__edit_main="-E|edit-main"
 dckr__edit_main()
 {
@@ -18,7 +18,7 @@ dckr__edit_main()
 dckr_als___E=edit-main
 
 
-dckr_man_1__edit_local="Edit local script TODO docker conf.."
+dckr_man_1__edit_local="Edit project files. "
 dckr_spc__edit_main="-e|edit-local"
 dckr__edit_local()
 {
@@ -42,171 +42,19 @@ dckr__alias()
 }
 
 
-# Docker
-
-# gobble up flags and set $dckr_f, and/or set and return $dckr_cmd upon first arg.
-# $c is the amount of arguments consumed
-dckr_f_argv()
-{
-  c=0
-  while test -n "$1"
-  do
-    test -z "$1" || {
-      test "${1:0:1}" = "-" && {
-        dckr_f="$dckr_f $1"
-      } || {
-        dckr_cmd="$1"
-        c=$(( $c + 1 ))
-        return
-      }
-    }
-    c=$(( $c + 1 )) && shift 1
-  done
-}
-
-dckr_name_argv()
-{
-  test -z "$1" && {
-    # dont override without CLI args, only set
-    test -n "$dckr_name" && return 1;
-  }
-  test -z "$1" && name=$(basename $(pwd)) || name=$1
-  dckr_name=${pref}${name}
-_ test -n "$1" || info "Using dir for dckr-name: $dckr_name"
-}
-
-dckr_image_argv()
-{
-  test -z "$1" && error "Must enter image name or tag" 1 || tag=$1
-  c=1
-  image_name=${tag}
-}
-
-dckr_build()
-{
-  ${sudo}docker build -t $image_name .
-  return $?
-}
-
-dckr_run()
-{
-  # default flags: start daemon w/ tty
-  test -n "$dckr_f" || dckr_f=-dt
-
-  # pass container env script if set, or exists in default location
-  test -z "$dckr_env" -a ! -e "./env.sh" || dckr_env=./env.sh
-  test -n "$dckr_env" || dckr_env=$DCKR_CONF/$dckr_name-env.sh
-  test -n "$dckr_env" -a -e "$dckr_env" && dckr_f="$dckr_f --env-file $dckr_env"
-
-  # pass hostname if set
-  test -z "$dckr_hostname" || dckr_f="$dckr_f --hostname $dckr_hostname"
-
-  ${sudo}docker run $dckr_f $@ \
-    --log-driver json-file \
-    --name $dckr_name \
-    --env DCKR_NAME=$dckr_name \
-    --env DCKR_IMAGE=$image_name \
-    $dckr_argv \
-    $image_name \
-    $dckr_cmd
-
-  return $?
-}
-
-# find container for image-name
-dckr_c()
-{
-  test -z "$1" && ps_f=-a || ps_f="$1"
-  container=$(${sudo}docker ps $ps_f | grep '\<'$image_name'\>' | cut -f1 -d' ')
-}
-
-dckr_p()
-{
-  ${sudo}docker ps | grep -q '\<'$dckr_name'\>' || return 1
-}
-
-dckr_stop()
-{
-  test -n "$container" && {
-    info "Stopping container $container:"
-    ${sudo}docker stop $container
-    return
-  }
-  test -z "$dckr_name" && {
-    test -z "$image_name" || {
-      info "Looking for running container by image-name $image_name:"
-      dckr_c
-      info "Stopping container by image-name $image_name:"
-      ${sudo}docker stop $container
-    }
-  } || {
-    # check for container with name and remove
-    ${sudo}docker ps | grep -q '\<'$dckr_name'\>' && {
-      info "Stopping container by container-name $dckr_name:"
-      ${sudo}docker stop $dckr_name
-    } || noop
-  }
-}
-
-# remove container (with name or for image-name)
-dckr_rm()
-{
-  test -n "$container" && {
-    note "Removing container $container:"
-    ${sudo}docker rm $container
-    return
-  }
-  test -z "$dckr_name" && {
-    test -z "$image_name" || {
-      debug "Looking for container by image-name $image_name:"
-      dckr_c -a
-      info "Removing container $container"
-      ${sudo}docker rm $container
-    }
-  } || {
-    # check for container with name and remove
-    ${sudo}docker ps -a | grep -q '\<'$dckr_name'\>' && {
-      info "Removing container by container-name $dckr_name:"
-      ${sudo}docker rm $dckr_name
-    } || noop
-  }
-}
-
-
-dckr_start()
-{
-  test -n "$container" && {
-    echo "Startng container $container:"
-    ${sudo}docker start $container
-    return
-  }
-  return 1
-}
-
-dckr_names()
-{
-  ${sudo}docker inspect --format='{{.Name}}' $(${sudo}docker ps -aq --no-trunc)
-}
-
-dckr_ip()
-{
-  test -n "$1" || set -- $container
-  test -n "$1" || set -- $dckr_name
-  test -n "$1" || error "dckr-ip: container required" 1
-  ${sudo}docker inspect --format '{{ .NetworkSettings.IPAddress }}' $1 \
-    || error "docker IP inspect on $1 failed" 1
-}
-
-dckr_man_1__ps="Docker ps"
+dckr_man_1__ps="List processes for current project"
 dckr__ps()
 {
+  dckr_p_ctx "$@"
   ${sudo}docker ps
 }
+
 
 dckr_man_1__stop="Stop container for image. "
 dckr_spc__stop="stop <image-name>"
 dckr__stop()
 {
+  dckr_p_ctx "$@"
   test -e './vars.sh' \
     && source ./vars.sh stop $@
   debug "image_name=$image_name"
@@ -218,18 +66,21 @@ dckr__stop()
   dckr_stop
 }
 
-dckr_man_1__rm="Remove image. "
-dckr__rm()
-{
-  note "Removing and stopping container.."
-  dckr_rm
-}
 
 dckr_man_1__start="Start image"
 dckr__start()
 {
-  dckr_c -a
+  dckr_p_ctx "$@"
   dckr_start
+}
+
+dckr_man_1__destroy="Clean given container names. "
+dckr_spc__destroy='[-f] destroy'
+dckr__destroy()
+{
+  local f= ; test -n "$choice_force" || f="-f"
+  while [ $# -gt 0 ]
+  do ${sudo}docker rm $f $1 ; shift ; done
 }
 
 dckr_man_1__names="List images"
@@ -242,8 +93,9 @@ dckr_man_1__c="Get container ID"
 dckr_spc__c="c <image-name>"
 dckr__c()
 {
-  image_name=$1
-  dckr_c
+  dckr_name=dandy-jenkins-server
+  dckr_c "$@" || return $?
+  echo $dckr_c
 }
 
 dckr_man_1__ip="List IP for one or all running containers."
@@ -261,42 +113,10 @@ dckr__ip()
   }
 }
 
-dckr_man_1__destroy="Clean given container names. "
-dckr_spc__destroy='[-f] destroy'
-dckr__destroy()
-{
-  local f= ; test -n "$choice_force" || f="-f"
-  while [ $# -gt 0 ]
-  do ${sudo}docker rm $f $1 ; shift ; done
-}
-
-dckr_man_1__dnsmasq_conf="dnsmasq static address config using image-name as hostname"
-dckr__dnsmasq_conf()
-{
-  #prefix=
-  #suffix=
-  dckr__ip | while read ip name
-  do
-    name=${name:1}
-    echo "address=/$prefix$name$suffix/$ip"
-  done
-}
-
-# XXX reload is not working
-dckr__dnsmasq_update()
-{
-  cp $DCKR_VOL/dnsmasq/dnsmasq.conf.default $DCKR_VOL/dnsmasq/dnsmasq.conf
-  dckr__dnsmasq_conf >> $DCKR_VOL/dnsmasq/dnsmasq.conf
-  image_name=${pref}dns
-  dckr_c
-  ${sudo}docker exec -i $container /opt/reload
-}
-
-
 # get image name from vars or cmdline, and start build (in current dir)
 dckr_man_1__build="Do a simple docker build invocation (in cwd)"
 dckr_spc__build="build [<image-name>]"
-dckr__build()
+dckr__build_classic()
 {
   test -z "$1" -a -e './vars.sh' \
     && source ./vars.sh \
@@ -315,7 +135,7 @@ dckr_spc__init="init [<flags> <dckr-cmd> <image-name>]"
 dckr__init()
 {
   test -e './vars.sh' \
-    && source ./vars.sh init $@
+    && . ./vars.sh init $@
 
   # args: 1-n: dckr flags and cmd
   dckr_f_argv $@
@@ -333,7 +153,7 @@ dckr__init()
   }
 
   dckr_c && {
-    note "Already running $dckr_name: $container"
+    note "Already running $dckr_name: $dckr_c"
   }
   
   dckr_c -a && {
@@ -358,7 +178,7 @@ dckr__script()
   test -n "$dckr_f" || dckr_f=-td
 
   dckr_c && {
-    note "Already running $dckr_name: $container"
+    note "Already running $dckr_name: $dckr_c"
   }
   
   dckr_c -a && {
@@ -392,6 +212,50 @@ dckr__exec()
   test -z "$2" || dckr_cmd="$@"
   ${sudo}docker exec -ti "$image_name" "$dckr_cmd"
 }
+
+dckr_man_1__register="Register a project with dckr build package metadata. "
+dckr_spc__register="register <project-name>"
+dckr__register()
+{
+  test -n "$UCONFDIR" || error "UCONFDIR" 1
+
+  test -n "$proj_dir" || proj_dir="$HOME/project/$1" 
+  test -d "$proj_dir" || error "no checkout $1" 1
+
+  req_prog_meta "$1"
+  dckr_arg_psh $1 defaults
+  jsotk_package_sh_defaults $1 > $psh
+
+  for cmd in build run  up down  stop start
+  do
+    dckr_script_from $1 $cmd
+  done
+}
+
+dckr_load__build=p
+dckr__build()
+{
+  dckr_load_psh "$1" build || error "Loading dckr build script" 1
+  dckr_build || return $?
+  note "Build done for $image_name"
+}
+
+dckr__run()
+{
+  local dckr_f=-dt
+  dckr_load_psh "$1" run || error "Loading dckr run script" 1
+  dckr_run || return $?
+  note "New container for $image_name running ($dckr_name, $dckr_c)"
+}
+
+dckr__reset()
+{
+  dckr_load_psh "$1" reset || error "Loading dckr reset script" 1
+  echo TODO dckr reset $dckr_reset_f || return $?
+}
+
+
+
 
 
 dckr_man_1__shipyard_options="Show currently available deploy help. "\
@@ -478,7 +342,6 @@ dckr__init_sickbeard()
     -v /etc/localtime:/etc/localtime:ro
 }
 
-
 dckr__reset_munin()
 {
   dckr_f_argv $@
@@ -511,15 +374,8 @@ dckr__run_munin()
 {
   image_name=scalingo-munin-server
   dckr_name=scalingo_munin
-  dckr_run \
-    -p 8003:8080 \
-    -v $DCKR_VOL/munin/logs:/var/info/munin:rw \
-    -v $DCKR_VOL/munin/db:/var/lib/munin:rw \
-    -v $DCKR_VOL/munin/run:/var/run/munin:rw \
-    -v $DCKR_VOL/munin/munin:/var/cache/munin:rw \
-    -v /etc/localtime:/etc/localtime:ro
+  dckr_run 
 }
-
 
 
 dckr__reset_sandbox()
@@ -628,6 +484,29 @@ dckr__init_dns()
     -v $DCKR_VOL/dnsmasq/dnsmasq.conf:/etc/dnsmasq.conf
 }
 
+dckr_man_1__dnsmasq_conf="dnsmasq static address config using image-name as hostname"
+dckr__dnsmasq_conf()
+{
+  #prefix=
+  #suffix=
+  dckr__ip | while read ip name
+  do
+    name=${name:1}
+    echo "address=/$prefix$name$suffix/$ip"
+  done
+}
+
+# XXX reload is not working
+dckr__dnsmasq_update()
+{
+  cp $DCKR_VOL/dnsmasq/dnsmasq.conf.default $DCKR_VOL/dnsmasq/dnsmasq.conf
+  dckr__dnsmasq_conf >> $DCKR_VOL/dnsmasq/dnsmasq.conf
+  image_name=${pref}dns
+  dckr_c
+  ${sudo}docker exec -i $dckr_c /opt/reload
+}
+
+
 dckr__init_jessie()
 {
   dckr_f_argv $@
@@ -732,86 +611,6 @@ dckr__init_redmine()
   docker-compose up
 }
 
-
-# Lib
-
-dckr_man_1_redock=\
-'
-  If container is running, leave image unless forced. Otherwise delete
-  for rebuild. Then build and run image. Finish with ps line and IP address.
-'
-dckr_spc_redock='redock <image-name> <dckr-name> [<tag>=latest]'
-dckr_redock()
-{
-  local reset= image_name= dckr_name= tag=
-
-  dckr_rebuild "$@"
-
-  # Run if needed and stat
-  ${sudo}docker ps -a | grep -q '\<'$dckr_name'\>' && {
-    test -z "$reset" || error "still running? $dckr_name" 3
-  } || {
-    ${sudo}docker run -dt --name $dckr_name \
-      $image_name:${tag}
-  }
-
-  echo "$dckr_name proc: "
-  ${sudo}docker ps -a | grep '\<'$dckr_name'\>'
-  dckr ip $dckr_name
-}
-
-dckr_rebuild()
-{
-  test -z "$choice_force" || reset=1
-
-  test -z "$1" || image_name=$1
-  test -n "$image_name" || error "image-name required" 1
-
-  test -z "$2" || dckr_name=$2
-  test -n "$dckr_name" || error "dckr-name required" 1
-
-  test -z "$3" || tag=$3
-  test -n "$tag" || tag=latest
-
-  test -n "$choice_force" \
-    && info "Rebuilding container $dckr_name" \
-    || info "Rebuilding offline $dckr_name"
-
-  # Remove if needed/wanted
-  ${sudo}docker ps -a | grep -q '\<'$dckr_name'\>' && {
-
-    ${sudo}docker ps | grep -q '\<'$dckr_name'\>' && {
-
-      test -z "$reset" || {
-        note "Forcing remove of existing image"
-        ${sudo}docker rm -f $dckr_name
-      }
-
-    } || {
-      debug "Container $dckr_name exists but does not seem to be running, rebuilding"
-      ${sudo}docker rm $dckr_name
-    }
-  }
-
-  ${sudo}docker ps -a | grep -q '\ \<'$dckr_name'\>\ ' || {
-
-    #${sudo}docker rmi -f $image_name:$tag
-
-    # Build
-    match_grep_pattern_test "$image_name:$tag"
-    ${sudo}docker images | grep -q $p_ && {
-
-      info "Reusing existing ${image_name}:${tag} image"
-    } || {
-
-      debug "Building new ${image_name}:${tag} image"
-      ${sudo}docker build -t ${image_name}:${tag} .
-      info "Done building ${image_name}:${tag} image"
-    }
-  }
-}
-
-
 # Setup correct IP's in host
 # exit 1 on error, 2 on updated, 0 on no-op
 dckr__machine_ip_update()
@@ -905,34 +704,51 @@ dckr__machines()
   }
 }
 
-# include private projects
-test ! -e $DCKR_CONF/local.sh || {
-  . $DCKR_CONF/local.sh
-}
-
-
-
-
 dckr__cleanup_all()
 {
-	# remove exited containers:
+  used_space_before="$(df --sync --output=used / | tail -n 1)"
+
+	log "Scanning for dead containers..."
 	containers="$( docker ps --filter status=dead --filter status=exited -aq )"
-	test -z "$containers" || docker rm -v $containers
+	test -z "$dckr_cs" || {
+    log "Ready to remove dead, exited containers? : $dckr_cs"
+    read confirm
+    trueish "$confirm" && {
+      docker rm -v $dckr_cs
+    }
+  }
 			
-	# remove unused images:
+	log "Scanning for untagged images..."
 	images="$( docker images --no-trunc | grep '<none>' | awk '{ print $3 }' )"
-	test -z "$images" || docker rmi $images
+	test -z "$images" || {
+    log "Ready to remove images? : $images"
+    read confirm
+    trueish "$confirm" && {
+      docker rmi $images
+    }
+  }
+
+  log "Scanning for old volumes..."
 
   # Get mounts for running containers
   mounts=/tmp/dckr-mounts
 
-  test -z "$(docker ps -aq)" || {
+  test -z "$(docker ps -aq)" && {
+    log "No containers, nothing further to do"
+    return
+  } || {
 
     docker ps -aq | xargs docker inspect \
         | jq -r '.[] | .Mounts | .[] | .Name | select(.)' > $mounts
   }
 
-  # Remove unused volumes:
+  test -s "$mounts" && {
+    log "Ready to remove unused volumes? (/var/lib/docker/volumes/* not in $mounts) "
+    read confirm
+    trueish "$confirm" || return 1
+  } || return
+
+  # Remove volumes not mounted in running containers
   test -n "$DOCKER_MACHINE_NAME" && {
 
     volumes=$( test -s "$mount" && \
@@ -953,7 +769,299 @@ dckr__cleanup_all()
 
     sudo rm -rf $volumes
   }
+
+  used_space_after="$(df --sync --output=used / | tail -n 1)"
+
+  #log "Freed $(( $(( $used_space_before - $used_space_after )) / 1024 )) kb"
+  log "Freed $(( $(( $used_space_before - $used_space_after )) / 1048576 )) Mb"
 }
+
+
+
+# Lib
+
+# Get project/running container context
+dckr_p_ctx()
+{
+  dckr_arg_psh $1 defaults
+  test -e "$HOME/project/$1/package.yml"
+  req_proj_meta
+  jsotk_package_sh_defaults $proj_meta  > $psh
+}
+
+dckr_p_arg()
+{
+  test -n "$1" || set -- '*'
+  set -- "$(normalize_relative "$go_to_before/$1")"
+  dckr_p_arg "$@"
+}
+
+
+req_proj_meta()
+{
+  test -n "$proj_meta" || proj_meta="$(echo $HOME/project/$1/package.y*ml | cut -d' ' -f1)"
+  test -e "$proj_meta" || error "no checkout $1" 1
+}
+
+# replace with dckr_p_ctx
+# Find container ID for name, or image-name (+tag)
+dckr_c()
+{
+  test -n "$ps_f"|| ps_f=-a
+  test -n "$2" && {
+    local name="$2" tag=
+    test -z "$3" || name=$2:$3
+    dckr_c=$(${sudo}docker ps $ps_f --format='{{.ID}} {{.Image}}' | 
+        grep '\ '$name'$' | cut -f1 -d' ')
+  } || {
+    req_vars dckr_name
+    dckr_c=$(${sudo}docker ps $ps_f --format='{{.ID}} {{.Names}}' | 
+        grep '\ '$dckr_name'$' | cut -f1 -d' ')
+  }
+  test -n "$dckr_c" || return 1
+}
+
+# Return true if running
+dckr_p()
+{
+  ${sudo}docker ps | grep -q '\<'$dckr_name'\>' || return 1
+}
+
+dckr_load_psh()
+{
+  local psh=
+  dckr_arg_psh "$1" "$2" || return $?
+  test -e "$psh" || error "no dckr $2 registered for $1" 1
+  cd ~/project/$1 || error "no dir for $1" 1
+  . $psh || return $?
+}
+
+dckr_arg_psh()
+{
+  test -n "$1" || error "project name expected" 1
+  psh=$UCONFDIR/dckr/$1/$2.sh
+  mkdir -vp $(dirname $psh)
+}
+
+dckr_script_from()
+{
+  local psh; dckr_arg_psh "$@" || return 4?
+  req_vars proj_meta psh
+  test $proj_meta -ot $psh || {
+    dckr_package_cmd_f_to_sh $proj_meta $2 > $psh
+    log "Regenerated $psh"
+  }
+}
+
+req_vars()
+{
+  local v=
+  while test -n "$1"
+  do
+    v="$(eval echo \$$1)"
+    test -n "$v" || error $1 $?
+  done
+}
+
+dckr_package_cmd_f_to_sh()
+{
+  test -n "$1" || set -- package.yaml
+  test -n "$2" || set -- "$1" run
+  jsotk_package_sh_defaults $1
+  echo "dckr_${2}_f=\\"
+  jsotk.py -I yaml -O fkv objectpath $1 '$..*[@.dckr.'$2'_f]' \
+    | grep -v '^\s*$' | sed 's/^__[0-9]*="/    /' | sed 's/"$/ \\/g'
+  echo "    \$dckr_${2}_f"
+}
+
+
+
+# Docker
+
+dckr_man_1_redock=\
+'
+  If container is running, leave image unless forced. Otherwise delete
+  for rebuild. Then build and run image. Finish with ps line and IP address.
+'
+dckr_spc_redock='redock <image-name> <dckr-name> [<tag>=latest]'
+dckr_redock()
+{
+  local reset= image_name= dckr_name= tag=
+
+  dckr_rebuild "$@"
+
+  # Run if needed and stat
+  ${sudo}docker ps -a | grep -q '\<'$dckr_name'\>' && {
+    test -z "$reset" || error "still running? $dckr_name" 3
+  } || {
+    ${sudo}docker run -dt --name $dckr_name \
+      $image_name:${tag}
+  }
+
+  echo "$dckr_name proc: "
+  ${sudo}docker ps -a | grep '\<'$dckr_name'\>'
+  dckr ip $dckr_name
+}
+
+dckr_rebuild()
+{
+  test -z "$choice_force" || reset=1
+  # TODO: rebuild
+}
+
+dckr_build()
+{
+  test -n "$image_name" || error "$image_name" $?
+  test -n "$dckrfile_dir" || dckrfile_dir=.
+  ${sudo}docker build -t $image_name $dckr_build_f $dckrfile_dir || return $?
+  return $?
+}
+
+dckr_run()
+{
+  # default flags: start daemon w/ tty
+  test -n "$dckr_f" || dckr_f=-dt
+
+  # pass container env script if set, or exists in default location
+  test -n "$dckr_env" || dckr_env=$DCKR_CONF/$dckr_name-env.sh
+  test -e "$dckr_env" && \
+    dckr_f="$dckr_f --env-file $dckr_env"
+  test -e "$proj_dir/env.sh" && \
+    dckr_f="$dckr_f --env-file $proj_dir/env.sh"
+
+  # pass hostname if set
+  test -z "$dckr_hostname" || \
+    dckr_f="$dckr_f --hostname $dckr_hostname"
+
+  test -n "$dckr_name" || error dckr_name 1
+
+  ${sudo}docker run $dckr_f $@ \
+    --name $dckr_name \
+    --env DCKR_NAME=$dckr_name \
+    --env DCKR_IMAGE=$image_name \
+    --env DCKR_CMD="$dckr_cmd" \
+    $dckr_argv \
+    $image_name \
+    $dckr_cmd
+
+  return $?
+}
+
+dckr_start()
+{
+  req_vars dckr_c
+  echo "Startng container $dckr_c:"
+  ${sudo}docker start $dckr_c || return $?
+}
+
+dckr_stop()
+{
+  test -n "$dckr_c" && {
+    info "Stopping container $dckr_c:"
+    ${sudo}docker stop $dckr_c
+    return
+  }
+  test -z "$dckr_name" && {
+    test -z "$image_name" || {
+      info "Looking for running container by image-name $image_name:"
+      dckr_c
+      info "Stopping container by image-name $image_name:"
+      ${sudo}docker stop $dckr_c
+    }
+  } || {
+    # check for container with name and remove
+    ${sudo}docker ps | grep -q '\<'$dckr_name'\>' && {
+      info "Stopping container by container-name $dckr_name:"
+      ${sudo}docker stop $dckr_name
+    } || noop
+  }
+}
+
+# remove container (with name or for image-name)
+dckr_rm()
+{
+  test -n "$dckr_c" && {
+    note "Removing container $dckr_c:"
+    ${sudo}docker rm $dckr_c
+    return
+  }
+  test -z "$dckr_name" && {
+    test -z "$image_name" || {
+      debug "Looking for container by image-name $image_name:"
+      dckr_c -a
+      info "Removing container $dckr_c"
+      ${sudo}docker rm $dckr_c
+    }
+  } || {
+    # check for container with name and remove
+    ${sudo}docker ps -a | grep -q '\<'$dckr_name'\>' && {
+      info "Removing container by container-name $dckr_name:"
+      ${sudo}docker rm $dckr_name
+    } || noop
+  }
+}
+
+dckr_names()
+{
+  ${sudo}docker inspect --format='{{.Name}}' $(${sudo}docker ps -aq --no-trunc)
+}
+
+dckr_ip()
+{
+  test -n "$1" || set -- $dckr_c
+  test -n "$1" || set -- $dckr_name
+  test -n "$1" || error "dckr-ip: container required" 1
+  ${sudo}docker inspect --format '{{ .NetworkSettings.IPAddress }}' $1 \
+    || error "docker IP inspect on $1 failed" 1
+}
+
+# gobble up flags and set $dckr_f, and/or set and return $dckr_cmd upon first arg.
+# $c is the amount of arguments consumed
+dckr_f_argv()
+{
+  c=0
+  while test -n "$1"
+  do
+    test -z "$1" || {
+      test "${1:0:1}" = "-" && {
+        dckr_f="$dckr_f $1"
+      } || {
+        dckr_cmd="$1"
+        c=$(( $c + 1 ))
+        return
+      }
+    }
+    c=$(( $c + 1 )) && shift 1
+  done
+}
+
+dckr_name_argv()
+{
+  test -z "$1" && {
+    # dont override without CLI args, only set
+    test -n "$dckr_name" && return 1;
+  }
+  test -z "$1" && name=$(basename $(pwd)) || name=$1
+  dckr_name=${pref}${name}
+_ test -n "$1" || info "Using dir for dckr-name: $dckr_name"
+}
+
+dckr_image_argv()
+{
+  test -z "$1" && error "Must enter image name or tag" 1 || tag=$1
+  c=1
+  image_name=${tag}
+}
+
+
+
+# include private projects
+test ! -e $DCKR_CONF/local.sh || {
+  . $DCKR_CONF/local.sh
+}
+
+
+
 
 
 ### Main
@@ -986,6 +1094,7 @@ dckr_init()
   . $LIB/main.sh
   . $LIB/main.init.sh
   . $LIB/util.sh
+  . $LIB/projectdir.inc.sh
 }
 
 dckr_lib()

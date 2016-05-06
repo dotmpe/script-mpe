@@ -3005,10 +3005,10 @@ htd__init_project()
 htd_main()
 {
   local scriptname=htd base=$(basename $htd_src .sh) verbosity=5
+  htd_init || exit $?
 
   case "$base" in $scriptname )
 
-      htd_init || exit $?
       htd_lib || exit $?
       run_subcmd "$@" || exit $?
       ;;

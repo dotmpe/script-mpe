@@ -218,10 +218,8 @@ pd__disable_clean()
 pd_run__update=yf
 pd__update()
 {
-  test -n "$1" \
-    && set -- "$go_to_before/$1" \
-    || set -- "$go_to_before/*"
-  set -- "$(normalize_relative "$1")"
+  test -n "$1" || set -- '*'
+  set -- "$(normalize_relative "$go_to_before/$1")"
 
   # XXX: see init, consolidate maybe
 

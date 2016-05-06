@@ -141,7 +141,16 @@ update_package_json()
 {
   test -n "$metajs" || metajs=$1/.package.json
   test $metaf -ot $metajs \
-    || jsotk.py yaml2json $metaf $metajs
+    || {
+    log "Regenerating $metajs from $metaf.."
+    jsotk.py yaml2json $metaf $metajs
+  }
+}
+
+jsotk_package_sh_defaults()
+{
+  jsotk.py -I yaml -O fkv objectpath $1 '$..*[@.*.defaults]]' \
+    | sed 's/^\([^=]*\)=/test -n "$\1" || \1=/g'
 }
 
 update_package_sh()
@@ -150,22 +159,24 @@ update_package_sh()
   test $metaf -ot $metash \
     || {
 
-    jsotk.py -I yaml -O fkv objectpath $metaf '$.*[@.defaults]' |
-      sed 's/^\([^=]*\)=/test -n "$\1" || \1=/g' > $metash
+    log "Regenerating $metash from $metaf.."
 
-    echo >> $metash
-
+    update_package_sh_defaults "$metaf" > $metash
     ( jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
         || rm $metash; exit 31 ) \
         | jsotk.py --output-prefix=package to-flat-kv - >> $metash
   }
 }
 
+# Given package.yaml metafile, extract and fromat as SH, JSON.
 update_package()
 {
   test -n "$metaf" || metaf=$(echo $1/package.y*ml | cut -f1 -d' ')
   test -e "$metaf" || warn "No package def" 0
-  update_package_json "$1"
+  # Package.sh is used by other scripts
   update_package_sh "$1"
+  # .package.json is not used, its a direct convert of te entire YAML doc.
+  # Other scripts can use it with jq if required
+  update_package_json "$1"
 }
 

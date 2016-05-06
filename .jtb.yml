@@ -1,4 +1,6 @@
 
+# Define jobs using JTB templates
+
 - project:
     name: script.mpe
 
@@ -26,13 +28,13 @@
     #
     # FIXME: travis build fails on TB config parts
     # XXX: want to use branch checkout? but not working
-    - '{name}-gh-travis':
-        disabled: true
-        title: 'script.mpe [gh,public,travis] ({branch})'
+    #- '{name}-gh-travis':
+    #    disabled: true
+    #    title: 'script.mpe [gh,public,travis] ({branch})'
 
-    - '{name}-local-gh-travis':
-        disabled: true
-        title: 'script.mpe [gh,travis] ({branch})'
+    #- '{name}-local-gh-travis':
+    #    disabled: true
+    #    title: 'script.mpe [gh,travis] ({branch})'
 
     #
     # Two custom script Github checkouts for testing.
@@ -40,9 +42,14 @@
     #
 
     - '{name}-local-gh':
-        disabled: false
+        disabled: true
         title: 'script.mpe [gh,local,no-test] ({branch})'
         htmlDescription: 'Running some bats test to see if they go, without parsing results'
+        credentials-id: 'f1899d66-848f-43e9-83cf-f26f171a1e27'
+        restrict-node: ubuntu || treebox
+        parameters: []
+        properties: []
+        metadata: []
         builders:
         - shell: |
 
@@ -61,14 +68,41 @@
             ./box help
             bash -c './test/{bats-tests}-spec.bats'
 
+        publishers:
+        - tap:
+            results: build/test-results.tap
+
 
     - '{name}-local-gh-bats':
         disabled: false
         title: 'script.mpe [gh,local,bats] ({branch})'
+        credentials-id: 'f1899d66-848f-43e9-83cf-f26f171a1e27'
+        restrict-node: ubuntu || treebox
+        parameters: []
+        properties: []
+        metadata: []
+        # TODO: fix JJB serialize
+        #- string:
+        #    name: Build_Deps_Default_Paths
+        #    value: on
+        #    expose-to-env: false
         builders:
         - shell: |
+            ./htd
 
-            export PATH=$PATH:$HOME/usr/bin/
+        - shell: |
+            set +x
+            export PATH=$WORKSPACE:$PATH
+            export PATH=$HOME/.local/bin:$PATH
+            export Build_Deps_Default_Paths=1
+            ./install-dependencies.sh
+        - shell: |
+            set +x
+
+            #export PATH=$PATH:$HOME/usr/bin/
+            export PATH=$WORKSPACE:$PATH
+            export PATH=$HOME/.local/bin:$PATH
+
             bats --version
 
             rm -rf $HOME/bin
@@ -77,9 +111,9 @@
             export JTB_HOME=$HOME/build/jtb
             export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
 
-            box -v
-            htd -v
-            match.sh -v
+            box version
+            htd help
+            #match.sh -v
 
             export PREFIX=$WORKSPACE
             export TRAVIS_SKIP=1
