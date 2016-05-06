@@ -3014,7 +3014,7 @@ htd_main()
       ;;
 
     * )
-      error "not a frontend for $base"
+      error "not a frontend for $base" 1
       ;;
   esac
 }
