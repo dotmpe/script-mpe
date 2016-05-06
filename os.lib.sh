@@ -1,7 +1,5 @@
 #!/bin/sh
 
-test -n "$PREFIX" || PREFIX=$HOME
-
 
 filesize()
 {

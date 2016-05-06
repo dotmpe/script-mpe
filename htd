@@ -3025,14 +3025,14 @@ htd_init()
   . $LIB/std.lib.sh
   . $LIB/str.lib.sh
   . $LIB/os.lib.sh
-  echo LIB=$LIB
-  echo 1
   . $LIB/match.lib.sh
-  echo LIB=$LIB
-  echo 2
   . $LIB/util.sh
   . $LIB/box.init.sh
+  echo LIB=$LIB
+  echo 1
   box_run_sh_test
+  echo LIB=$LIB
+  echo 2
   . $LIB/htd.lib.sh
   echo LIB=$LIB
   echo 3
