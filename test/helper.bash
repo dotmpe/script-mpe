@@ -32,10 +32,12 @@ init()
 # XXX: Hardcorded list of test envs, for use as is-skipped key
 current_test_env()
 {
-  case $(hostname -s | tr 'A-Z' 'a-z') in
-    simza | vs1 | dandy ) hostname -s | tr 'A-Z' 'a-z';;
-    * ) whoami ;;
-  esac
+  test -n "$TEST_ENV" \
+    && echo $TEST_ENV \
+    || case $(hostname -s | tr 'A-Z' 'a-z') in
+      simza | vs1 | dandy ) hostname -s | tr 'A-Z' 'a-z';;
+      * ) whoami ;;
+    esac
 }
 
 # Check if test is skipped. Currently works based on hostname and above values.

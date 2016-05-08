@@ -53,7 +53,8 @@
         builders:
         - shell: |
             . ./tools/sh/env.sh
-            ./tools/ci/build.sh
+            export TEST_ENV=jenkins
+            . ./tools/ci/test.sh
 
         publishers:
         - tap:
@@ -88,8 +89,7 @@
         builders:
         - shell: |
             . ./tools/sh/env.sh
-            func_exists str_upper
-            func_exists error
+            export TEST_ENV=jenkins
             . ./tools/ci/test.sh
 
 

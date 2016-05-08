@@ -25,6 +25,7 @@ env:
   global:
     - CS=dark
     - TRAVIS_SKIP=1
+    - TEST_ENV=travis
     - UCONFDIR=$HOME/etc
     - PATH=$PATH:$HOME/bin:$HOME/usr/bin:$HOME/.local/bin/
     - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
