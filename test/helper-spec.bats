@@ -26,9 +26,11 @@ init
     run current_test_env
     test "${status}" = 0
 
-    diag "${lines[@]}"
-    test "${lines[0]}" = "$(mkvid "$(hostname -s)"; echo $vid)" \
-      || test "${lines[0]}" = "$(whoami)"
+    mkvid "$(hostname -s)"
+    diag "${lines[@]} TEST_ENV=$TEST_ENV username=$(whoami) hostid=$vid"
+    test "${lines[0]}" = "" \
+      || test "${lines[0]}" = "$(whoami)" \
+      || test "${lines[0]}" = "$TEST_ENV"
 }
 
 @test "${lib}/${base} - check_skipped_envs: returns 0 or 1, no output" {
