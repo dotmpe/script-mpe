@@ -10,10 +10,9 @@ node('treebox') {
   test -e \$HOME/bin || ln -s \$(pwd -P) \$HOME/bin
   """
 
-  env.TEST_ENV=jenkins
-
   sh """#!/bin/sh
     . ./tools/sh/env.sh
+    export TEST_ENV=jenkins
     ./tools/ci/build.sh
   """
 }
