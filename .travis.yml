@@ -19,8 +19,7 @@ addons:
 before_script: []
 
 script:
-- echo "Warning: No tests while rebuilding tool scripts"
-- echo ./tools/ci/build.sh
+- ./tools/ci/build.sh
 
 env:
   global:
@@ -50,4 +49,5 @@ branches:
 #    repo: dotmpe/script.mpe
 #    tags: true
 #    condition: $ENV = production
+#
 #
