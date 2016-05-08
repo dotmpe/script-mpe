@@ -1,9 +1,5 @@
 #!/bin/sh
 
-# entry for tests:
-# - local-gh
-# - local-gh-bats
-
 
 export $(whoami|str_upper)_SKIP=1 $(mkvid $(hostname -s);echo $vid)_SKIP=1
 # start with essential tests

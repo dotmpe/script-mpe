@@ -13,6 +13,7 @@ test_inc="$lib/util.sh $lib/main.sh $lib/test/helper.bash $lib/test/main.inc.bas
 test_inc_bash="source $(echo $test_inc | sed 's/\ / \&\& source /g')"
 test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
+test -n "$SCRIPTPATH" || export SCRIPTPATH=$lib
 
 
 # util / Try-Exec
@@ -156,7 +157,7 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
   func_exists short
   run short
   test $status -eq 0 || fail "${lines[*]}"
-  test "${lines[*]}" = "~/bin"
+  test "${lines[*]}" = "$scriptdir"
 }
 
 

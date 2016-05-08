@@ -70,6 +70,11 @@
         - string:
             name: SUITE
             value: main
+            default: 
+            description: |
+              Values: helper util-lib str std os match vc main box-lib box-cmd box
+              statusdir htd basename-reg dckr diskdoc esop jsotk-py libcmd_stacked 
+              matchbox meta mimereg pd radical
         - bool:
             name: DEBUG
             value: false
@@ -85,6 +90,6 @@
             . ./tools/sh/env.sh
             func_exists str_upper
             func_exists error
-            #. ./tools/ci/test.sh
+            . ./tools/ci/test.sh
 
 
