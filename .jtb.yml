@@ -53,6 +53,7 @@
         builders:
         - shell: |
             . ./tools/sh/env.sh
+            util_init
             ./tools/ci/build.sh
 
         publishers:
@@ -80,6 +81,7 @@
         builders:
         - shell: |
             . ./tools/sh/env.sh
+            util_init
             ./tools/ci/test.sh
 
 
