@@ -218,16 +218,15 @@ pd__disable_clean()
 pd_run__update=yf
 pd__update()
 {
-  test -n "$1" || set -- '*'
+  #test -n "$1" || set -- '*'
   set -- "$(normalize_relative "$go_to_before/$1")"
 
   # XXX: see init, consolidate maybe
-
-  ( update_package "$1" ) || return
+  update_package "$1"
 
   test -e "$1/.package.sh" && . $1/.package.sh
 
-  echo package=$package_id
+  note "Found package '$package_id'"
   test -n "$package_id" || return
 
   env | grep -qv '^package_pd_meta_git_' || return
@@ -236,6 +235,40 @@ pd__update()
     generate_git_hooks
     install_git_hooks
   )
+
+  props=
+  test -d $prefix/.git/annex && {
+    props="annex=true"
+  }
+
+  props="$props $(verbosity=0;cd $1;echo "$(vc_remotes sh)")"
+  test -n "$props" || {
+    error "No remotes for $prefix"
+    touch $failed
+  }
+
+  # Update existing, add newly found repos to metadata
+
+  pd__meta_sq get-repo $1 && {
+    pd__meta update-repo $1 $props \
+      && note "Updated metadata for $1" \
+      || {
+        local r=$?;
+        test $r -eq 42 && {
+          info "Metadata already up-to-date for $1"
+        } || {
+          warn "Error updating $1 with '$(echo $props)'"
+          touch $failed
+        }
+        unset r
+      }
+  } || {
+
+    info "New repo: $1 props='$(echo $props)'"
+    pd__meta put-repo $1 sync=true enabled=true $props \
+      && note "Added metadata for $1" \
+      || error "Unexpected error adding repo $?" $?
+  }
 }
 
 # Add/remove repos, update remotes at first level. git only.
@@ -279,11 +312,6 @@ pd__update_all()
       prefix=$(dirname $git)
       match_grep_pattern_test "$prefix"
 
-      #{ cd $prefix; git remotes; } | while read remote
-      #do
-      #  echo
-      #done
-
       # Assemble metadata properties
 
       props=
@@ -307,14 +335,14 @@ pd__update_all()
             test $r -eq 42 && {
               info "Metadata already up-to-date for $prefix"
             } || {
-              warn "Error updating $prefix with '$props'"
+              warn "Error updating $prefix with '$(echo $props)'"
               touch $failed
             }
             unset r
           }
       } || {
 
-        info "Testing add $prefix props='$props'"
+        info "New repo: $1 props='$(echo $props)'"
         pd__meta put-repo $prefix $props \
           && note "Added metadata for $prefix" \
           || error "Unexpected error adding repo $?" $?

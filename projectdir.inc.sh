@@ -176,7 +176,7 @@ update_package_sh()
 # Given package.yaml metafile, extract and fromat as SH, JSON.
 update_package()
 {
-  test -n "$metaf" || metaf=$(echo $1/package.y*ml | cut -f1 -d' ')
+  test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
   test -e "$metaf" || warn "No package def" 0
   # Package.sh is used by other scripts
   update_package_sh "$1"
