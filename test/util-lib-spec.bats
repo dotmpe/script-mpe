@@ -82,17 +82,17 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
 @test "$lib try_exec_func (sh) on existing function" {
 
-  run sh -c 'scriptdir='$lib' && . '$lib'/util.sh && \
+  run sh -c 'TERM=dumb && scriptdir='$lib' && . '$lib'/util.sh && \
     . '$lib'/test/main.inc.bash && try_exec_func mytest_function'
-  diag "Output: ${lines[@]}"
+  test -n "${lines[*]}" || diag "${lines[*]}"
   test "${lines[0]}" = "mytest"
   test $status -eq 0
 }
 
 @test "$lib try_exec_func (sh) on non-existing function" {
 
-  run sh -c 'scriptdir='$lib' && . '$lib'/util.sh && try_exec_func no_such_function'
-  diag "Output: ${lines[@]}"
+  run sh -c 'TERM=dumb && scriptdir='$lib' && . '$lib'/util.sh && try_exec_func no_such_function'
+  test -n "${lines[*]}" || diag "${lines[*]}"
   test "" = "${lines[*]}"
 
   case "$(uname)" in
