@@ -80,11 +80,7 @@
         builders:
         - shell: |
             . ./tools/sh/env.sh
-            #util_init
-            source_script os.lib.sh
-            #source_script match.sh
-            source_script std.lib.sh
-            source_script str.lib.sh
+            util_init
             . ./tools/ci/test.sh
 
 
