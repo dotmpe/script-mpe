@@ -1,5 +1,6 @@
 #!/bin/sh
 
+test ! -d build || rm -rf build
 mkdir -vp build
 
 run_spec()
