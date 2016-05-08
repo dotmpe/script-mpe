@@ -10,7 +10,6 @@ echo HOME=$HOME PREFIX=$PREFIX pwd=$(pwd)
 whoami
 hostname
 htd help
-exit 0
 
 mkdir ~/public_html
 rm $HOME/bin && ln -s /home/travis/build/dotmpe/script.mpe $HOME/bin
