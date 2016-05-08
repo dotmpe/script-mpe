@@ -25,7 +25,7 @@ rs=build/test-results.tap
 failed=/tmp/failed
 
 I=1
-echo "1..24"
+echo "1..24" > $rs
 
 # start with essential tests
 for spec in helper util-lib str std os match vc main box-lib box-cmd box
