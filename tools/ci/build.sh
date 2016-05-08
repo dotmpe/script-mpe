@@ -10,7 +10,7 @@ whoami
 hostname
 htd help
 
-touch /home/travis/.basename-reg.yaml
+touch $HOME/.basename-reg.yaml
 
 box version && box -V
 vc.sh help
