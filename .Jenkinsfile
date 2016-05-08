@@ -7,9 +7,7 @@ node('treebox') {
   checkout scm
 
   sh """#!/bin/sh
-  test -e $HOME/bin || {
-    ln -s $(pwd -P) $HOME/bin
-  }
+  test -e \$HOME/bin || ln -s \$(pwd -P) \$HOME/bin
   """
 
   env.TEST_ENV=jenkins
