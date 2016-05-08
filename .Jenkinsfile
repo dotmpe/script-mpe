@@ -6,15 +6,19 @@ node('treebox') {
 
   checkout scm
 
+  def PWD = pwd()
+
   sh """#!/bin/sh
   test -e \$HOME/bin || ln -s \$(pwd -P) \$HOME/bin
+  test -d \$HOME/lib/py
+  mkdir \$HOME/lib/py
+  ln -s $PWD \$HOME/lib/py/script_mpe
   """
-
-  def PWD = pwd()
 
   sh """#!/bin/sh
     . ./tools/sh/env.sh
     export TEST_ENV=jenkins
+    export PYTHONPATH=$HOME/lib/py:\$PATH
     export PATH=$PWD:\$PATH
     ./tools/ci/build.sh
   """
