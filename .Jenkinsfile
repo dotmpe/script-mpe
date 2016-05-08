@@ -1,7 +1,10 @@
 
 node('treebox') {
-// No pipeline
-// see .jenkins-pipeline.groovy for experiments
+
+  // SImple "pipeline"
+  // see .jenkins-pipeline.groovy for experiments
+
+  checkout scm
 
   sh """#!/bin/sh
     . ./tools/sh/env.sh
