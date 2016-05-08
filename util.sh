@@ -350,26 +350,29 @@ func_exists source_script || {
 }
 
 
-test -z "$__load_lib" || set -- "load-ext"
-case "$1" in
-  load-* ) ;; # External include, do nothing
+case "$0" in "" ) ;; "-"* ) ;; * )
 
-  * ) # Setup SCRIPTPATH and include other scripts
+  test -z "$__load_lib" || set -- "load-ext"
+  case "$1" in
+    load-* ) ;; # External include, do nothing
 
-      test -n "$SCRIPTPATH" || {
-        echo "SCRIPTPATH not set" 1>&2
-        exit 2
-      }
+    * ) # Setup SCRIPTPATH and include other scripts
 
-      source_script os.lib.sh
-      #source_script match.sh
-      source_script std.lib.sh
-      source_script str.lib.sh
-      #source_script doc.lib.sh
-      #source_script table.lib.sh
+        test -n "$SCRIPTPATH" || {
+          echo "SCRIPTPATH not set" 1>&2
+          exit 2
+        }
 
-      str_load
+        source_script os.lib.sh
+        #source_script match.sh
+        source_script std.lib.sh
+        source_script str.lib.sh
+        #source_script doc.lib.sh
+        #source_script table.lib.sh
+
+        str_load
+
+  ;; esac
 
 ;; esac
-
 
