@@ -5,7 +5,7 @@
 
 set -e
 
-./install-dependencies.sh *
+Build_Deps_Default_Paths=1 ./install-dependencies.sh *
 
 
 whoami
