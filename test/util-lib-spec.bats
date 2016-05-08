@@ -13,7 +13,6 @@ test_inc="$lib/util.sh $lib/main.sh $lib/test/helper.bash $lib/test/main.inc.bas
 test_inc_bash="source $(echo $test_inc | sed 's/\ / \&\& source /g')"
 test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
-test -n "$SCRIPTPATH" || export SCRIPTPATH=$lib
 
 
 # util / Try-Exec
@@ -63,15 +62,16 @@ test -n "$SCRIPTPATH" || export SCRIPTPATH=$lib
 
 @test "$lib try_exec_func (bash) on existing function" {
 
-  run bash -c 'source '$lib'/util.sh && \
+  run bash -c 'scriptdir='$lib' && source '$lib'/util.sh && \
     source '$lib'/test/main.inc.bash && try_exec_func mytest_function'
+  diag "Output: ${lines[0]}"
   test "${lines[0]}" = "mytest"
   test $status -eq 0
 }
 
 @test "$lib try_exec_func (bash) on non-existing function" {
 
-  run bash -c 'source '$lib'/util.sh && try_exec_func no_such_function'
+  run bash -c 'scriptdir='$lib' && source '$lib'/util.sh && try_exec_func no_such_function'
   test "" = "${lines[*]}"
   test $status -eq 1
 
@@ -82,7 +82,7 @@ test -n "$SCRIPTPATH" || export SCRIPTPATH=$lib
 
 @test "$lib try_exec_func (sh) on existing function" {
 
-  run sh -c '. '$lib'/util.sh && \
+  run sh -c 'scriptdir='$lib' && . '$lib'/util.sh && \
     . '$lib'/test/main.inc.bash && try_exec_func mytest_function'
   test "${lines[0]}" = "mytest"
   test $status -eq 0
@@ -90,7 +90,7 @@ test -n "$SCRIPTPATH" || export SCRIPTPATH=$lib
 
 @test "$lib try_exec_func (sh) on non-existing function" {
 
-  run sh -c '. '$lib'/util.sh && try_exec_func no_such_function'
+  run sh -c 'scriptdir='$lib' && . '$lib'/util.sh && try_exec_func no_such_function'
   test "" = "${lines[*]}"
 
   case "$(uname)" in
@@ -157,7 +157,12 @@ test -n "$SCRIPTPATH" || export SCRIPTPATH=$lib
   func_exists short
   run short
   test $status -eq 0 || fail "${lines[*]}"
-  test "${lines[*]}" = "$scriptdir"
+
+  fnmatch "$HOME*" "$lib" && {
+    fnmatch "~/*" "${lines[*]}"
+  } || {
+    test "$lib" = "${lines[*]}"
+  }
 }
 
 

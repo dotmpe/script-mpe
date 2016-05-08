@@ -351,11 +351,6 @@ func_exists source_script || {
 
 util_init()
 {
-  test -n "$SCRIPTPATH" || {
-    echo "SCRIPTPATH not set" 1>&2
-    exit 2
-  }
-
   . $scriptdir/os.lib.sh
   #. $scriptdir/match.sh
   . $scriptdir/std.lib.sh
@@ -375,6 +370,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
     * ) # Setup SCRIPTPATH and include other scripts
 
+        test -n "$scriptdir"
         util_init
 
   ;; esac
