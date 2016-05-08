@@ -3,7 +3,7 @@
 # Complex jobs using templates in .jtb.yaml.
 
 - job:
-  name: 'script-mpe-pipeline'
+    name: 'script-mpe-pipeline'
     version: 0.0.0-dev # script.mpe
 
     description: |

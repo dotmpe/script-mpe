@@ -5,10 +5,11 @@ shopts=$-
 set +x
 set -e
 
-
 # Must be started from project root.
 # Import minimal setup and shell util functions.
-. ./tools/sh/init.sh
+test -n "$scriptdir" || scriptdir="$(pwd -P)"
+
+. $scriptdir/tools/sh/init.sh
 
 
 # Restore shell -e opt
