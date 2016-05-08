@@ -352,7 +352,7 @@ func_exists source_script || {
 
 test -z "$__load_lib" || set -- "load-ext"
 case "$1" in
-  load-ext ) ;; # External include, do nothing
+  load-* ) ;; # External include, do nothing
 
   * ) # Setup SCRIPTPATH and include other scripts
 

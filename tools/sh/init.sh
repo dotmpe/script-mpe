@@ -22,4 +22,7 @@ test -n "$SCRIPTPATH" || {
 
 # Now include script to source other utils
 source_script util.sh
+source_script os.lib.sh
+source_script std.lib.sh
+source_script str.lib.sh
 
