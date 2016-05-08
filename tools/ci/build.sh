@@ -5,6 +5,8 @@
 
 set -e
 
+./install-dependencies.sh *
+
 
 whoami
 hostname
