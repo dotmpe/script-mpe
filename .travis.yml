@@ -19,7 +19,7 @@ addons:
 before_script: []
 
 script:
-- ./tools/ci/build.sh
+- . ./tools/ci/build.sh
 
 env:
   global:
