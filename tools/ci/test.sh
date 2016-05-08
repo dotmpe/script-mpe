@@ -39,6 +39,7 @@ test ! -e $failed || rm $failed
 for spec in statusdir htd basename-reg dckr diskdoc esop jsotk-py libcmd_stacked matchbox meta mimereg pd radical
 do
   run_spec $spec
+  I=$(( $I + 1 ))
 done
 
 
