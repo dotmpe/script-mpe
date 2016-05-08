@@ -2,36 +2,44 @@
 
 mkdir -vp build
 
-export $(whoami|str_upper)_SKIP=1 $(mkvid $(hostname -s);echo $vid)_SKIP=1
-# start with essential tests
-
-tmp=/tmp/test-results.tap
-rs=build/test-results.tap
-
-echo "1..11"
-I=1
-for spec in helper util-lib str std os match vc main box-lib box-cmd box
-do
+run_spec()
+{
   R=
   ( bats --tap test/$spec-spec.bats || R=$? ) | sed 's/^/    /g' > $tmp 2>&1
   test -n "$R" -o $R -eq 0 && {
-    echo "ok $I $spec (returned $R)"
-    echo "ok $I $spec (returned $R)" >> $rs
+    echo "ok $I $spec "
+    echo "ok $I $spec " >> $rs
   } || {
-    echo "not ok $I $spec"
-    echo "not ok $I $spec" >> $rs
+    echo "not ok $I $spec (returned $R)"
+    echo "not ok $I $spec (returned $R)" >> $rs
+    echo $spec >> $failed
   }
   cat $tmp >> $rs
+}
+
+export $(whoami|str_upper)_SKIP=1 $(mkvid $(hostname -s);echo $vid)_SKIP=1
+
+tmp=/tmp/test-results.tap
+rs=build/test-results.tap
+failed=/tmp/failed
+
+I=1
+
+# start with essential tests
+echo "1..11"
+for spec in helper util-lib str std os match vc main box-lib box-cmd box
+do
+  run_spec $spec
   I=$(( $I + 1 ))
 done
 
 # in no particular order
-failed=/tmp/failed
 test ! -e $failed || rm $failed
 for spec in statusdir htd basename-reg dckr diskdoc esop jsotk-py libcmd_stacked matchbox meta mimereg pd radical
 do
-  bats test/$spec-spec.bats | tee build/test-results.tap || echo $spec >> $failed
+  run_spec $spec
 done
+
 
 test -e "$failed" && {
   echo "Failed: $(echo $(cat $failed))"
