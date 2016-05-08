@@ -9,7 +9,7 @@ set -e
 # Import minimal setup and shell util functions.
 test -n "$scriptdir" || scriptdir="$(pwd -P)"
 
-. $scriptdir/tools/sh/init.sh
+. $scriptdir/tools/sh/init.sh load-ext
 
 
 # Restore shell -e opt
