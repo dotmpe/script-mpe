@@ -38,6 +38,11 @@ jsotk.py objectpath \
       '$.*[@.main is not None]'
 
 
+
+. ./tools/sh/env.sh
+export TEST_ENV=jenkins
+. ./tools/ci/test.sh
+
 exit 0
 
 case "$ENV" in
