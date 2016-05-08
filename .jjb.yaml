@@ -26,26 +26,9 @@
     project-type: workflow
 
     parameters:
-
-    - choice:
-        name: Build_Version
-        choices:
-        - "2.0"
-        - "1.651.1"
-        - "1.565.3"
-
-    - choice:
-        name: Build_Tag
-        choices:
-        - "latest"
-        - "build"
-        - "dev"
-
     - bool:
-        name: Rebuild
-        default: False
-        description: |
-          TODO: remove images (and its layers) if they exist?
+        name: DEBUG
+        value: false
 
     triggers:
     - pollscm:
