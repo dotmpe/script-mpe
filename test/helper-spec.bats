@@ -26,6 +26,7 @@ init
     run current_test_env
     test "${status}" = 0
 
+    diag "${lines[@]}"
     test "${lines[0]}" = "$(mkvid "$(hostname -s)"; echo $vid)" \
       || test "${lines[0]}" = "$(whoami)"
 }
