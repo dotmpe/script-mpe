@@ -10,7 +10,7 @@ node('treebox') {
   test -e \$HOME/bin || ln -s \$(pwd -P) \$HOME/bin
   """
 
-  def PWD = pwd
+  def PWD = pwd()
 
   sh """#!/bin/sh
     . ./tools/sh/env.sh
