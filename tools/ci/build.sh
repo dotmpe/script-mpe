@@ -6,13 +6,10 @@
 set -e
 
 
-echo HOME=$HOME PREFIX=$PREFIX pwd=$(pwd)
 whoami
 hostname
 htd help
 
-mkdir ~/public_html
-rm $HOME/bin && ln -s /home/travis/build/dotmpe/script.mpe $HOME/bin
 touch /home/travis/.basename-reg.yaml
 
 box version && box -V
@@ -40,7 +37,6 @@ jsotk.py objectpath \
 
 
 . ./tools/sh/env.sh
-export TEST_ENV=jenkins
 . ./tools/ci/test.sh
 
 exit 0
