@@ -13,6 +13,6 @@ source_script()
 	# Don't expose local PATH with script lib dirs
 	local PATH=$2:$PATH
 	# Do import script into current shell
-	. $1 load-*
+	. $1 load-mod
 }
 

@@ -350,9 +350,9 @@ func_exists source_script || {
 }
 
 
-case "$0" in "" ) ;; "-"* ) ;; * )
+#case "$0" in "" ) ;; "-"* ) ;; * )
 
-  test -z "$__load_lib" || set -- "load-ext"
+#  test -z "$__load_lib" || set -- "load-ext"
   case "$1" in
     load-* ) ;; # External include, do nothing
 
@@ -374,5 +374,5 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   ;; esac
 
-;; esac
+#;; esac
 
