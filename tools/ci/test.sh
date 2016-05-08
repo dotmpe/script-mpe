@@ -6,7 +6,7 @@ run_spec()
 {
   R=
   ( bats --tap test/$spec-spec.bats || R=$? ) | sed 's/^/    /g' > $tmp 2>&1
-  test -n "$R" -o $R -eq 0 && {
+  test -z "$R" -o $R -eq 0 && {
     echo "ok $I $spec "
     echo "ok $I $spec " >> $rs
   } || {
