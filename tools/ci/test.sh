@@ -14,9 +14,9 @@ for spec in helper util-lib str std os match vc main box-lib box-cmd box
 do
   R=
   ( bats --tap test/$spec-spec.bats || R=$? ) | sed 's/^/    /g' > $tmp 2>&1
-  test -n "$R" && {
-    echo "ok $I $spec"
-    echo "ok $I $spec" >> $rs
+  test -n "$R" -o $R -eq 0 && {
+    echo "ok $I $spec (returned $R)"
+    echo "ok $I $spec (returned $R)" >> $rs
   } || {
     echo "not ok $I $spec"
     echo "not ok $I $spec" >> $rs
