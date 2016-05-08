@@ -104,7 +104,7 @@ main_entry()
 {
   test -n "$1" || set -- '*'
 
-  case "$1" in '*'|project|git )
+  case "$1" in * )
       git --version >/dev/null || {
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
     ;; esac
@@ -132,9 +132,11 @@ main_entry()
 }
 
 test "$(basename $0)" = "install-dependencies.sh" && {
-  test -z "$1" || {
-    main_entry $@ || exit $?
-  }
+  while test -n "$1"
+  do
+    main_entry $1 || exit $?
+    shift
+  done
 } || printf ""
 
 # Id: script-mpe/0 install-dependencies.sh

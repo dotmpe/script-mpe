@@ -3,7 +3,7 @@
 load helper
 base=vc.sh
 init
-. $lib/util.sh
+
 
 @test "$bin no arguments no-op" {
   run $bin

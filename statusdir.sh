@@ -98,7 +98,8 @@ statusdir__cons_json()
 
 statusdir__main()
 {
-  local scriptname=statusdir base=$(basename $0 .sh) verbosity=5
+  local scriptname=statusdir base=$(basename $0 .sh) verbosity=5 \
+    scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
 
   statusdir__init || exit $?
 
@@ -116,18 +117,17 @@ statusdir__main()
 
 statusdir__init()
 {
-  test -n "$LIB" || LIB=$HOME/bin
-  . $LIB/std.lib.sh
-  . $LIB/str.lib.sh
-  . $LIB/os.lib.sh
-  . $LIB/util.sh
-  . $LIB/box.init.sh
+  test -n "$scriptdir"
+  export SCRIPTPATH=$scriptdir
+  . $scriptdir/tools/sh/source-script.sh
+  source_script util.sh
+  . $scriptdir/box.init.sh
   box_run_sh_test
-  . $LIB/htd.lib.sh
-  . $LIB/main.sh
-  . $LIB/main.init.sh
-  . $LIB/box.lib.sh
-  . $LIB/date.lib.sh
+  . $scriptdir/htd.lib.sh
+  . $scriptdir/main.sh
+  . $scriptdir/main.init.sh
+  . $scriptdir/box.lib.sh
+  . $scriptdir/date.lib.sh
   # -- statusdir box init sentinel --
 }
 

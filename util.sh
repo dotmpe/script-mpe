@@ -2,16 +2,6 @@
 
 set -e
 
-test -n "$LIB" || LIB=.
-
-#TERM=xterm
-. $LIB/os.lib.sh
-#. $LIB/match.sh load-ext
-. $LIB/std.lib.sh
-. $LIB/str.lib.sh
-#. $LIB/doc.lib.sh
-#. $LIB/table.lib.sh
-
 
 # test for var decl, io. to no override empty
 var_isset()
@@ -55,7 +45,7 @@ short()
 {
   test -n "$1" || set -- "$(pwd)"
   # XXX maybe replace python script sometime
-  $PREFIX/bin/short-pwd.py -1 "$1"
+  $scriptdir/short-pwd.py -1 "$1"
 }
 
 test_out()
@@ -354,14 +344,35 @@ func_comment()
 
 
 
+func_exists source_script || {
+
+  . ./tools/sh/source-script.sh
+}
+
+
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
+  case "$1" in
+    load-ext ) ;; # External include, do nothing
+
+    * ) # Setup SCRIPTPATH and include other scripts
+
+        test -n "$SCRIPTPATH" || {
+          echo "SCRIPTPATH not set" 1>&2
+          exit 2
+        }
+
+        source_script os.lib.sh
+        #source_script match.sh
+        source_script std.lib.sh
+        source_script str.lib.sh
+        #source_script doc.lib.sh
+        #source_script table.lib.sh
 
         str_load
-    ;;
 
-  esac ;;
-esac
+  ;; esac
+
+;; esac
 

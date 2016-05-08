@@ -13,12 +13,11 @@ set -e
 vc_load()
 {
   local __load_lib=1
-  local LIB="$(dirname "$vc_src")"
 
 #. ~/.conf/bash/git-completion.bash
 
-  . $LIB/util.sh
-  . $LIB/match.lib.sh
+  source_script util.sh
+  source_script match.lib.sh
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
   str_load
@@ -453,9 +452,9 @@ vc_print_all()
 	for path in $@
 	do
 		[ ! -e "$path" ] && continue
-		echo -e vc-status[$path]=\"$(__vc_status "$path")\"
-		echo -e pwd-ps1[$path]=\"$(__pwd_ps1 "$path")\"
-		echo -e vc-ps1[$path]=\"$(__vc_ps1 "$path")\"
+		echo vc-status[$path]=\"$(__vc_status "$path")\"
+		echo pwd-ps1[$path]=\"$(__pwd_ps1 "$path")\"
+		echo vc-ps1[$path]=\"$(__vc_ps1 "$path")\"
 	done
 }
 
@@ -541,7 +540,7 @@ vc_gh() {
 vc_largest_objects()
 {
   test -n "$1" || set -- 10
-  $PREFIX/bin/git-largest-objects.sh $1
+  $scriptdir/git-largest-objects.sh $1
 }
 
 # list commits for object sha1
@@ -830,6 +829,12 @@ vc_main()
 
   case "$base" in $scriptname )
 
+        test -n "$scriptdir" || \
+            scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+        export SCRIPTPATH=$scriptdir
+        . $scriptdir/tools/sh/source-script.sh
+        source_script util.sh
+
         local func=$(echo vc_$subcmd | tr '-' '_') \
             verbosity=5 \
             ext_sh_sub=
@@ -841,14 +846,19 @@ vc_main()
         } || {
           R=$?
           vc_load || return
-          vc_print_all "$@"
-          exit $R
+          test -n "$1" && {
+            vc_print_all "$@"
+            exit $R
+          } || {
+            vc_print_all $(pwd)
+            exit 0
+          }
         }
 
       ;;
 
     * )
-      echo "VC is not a frontend for $base ($scriptname)"
+      echo "VC is not a frontend for $base ($scriptname)" 2>&1
       exit 1
       ;;
 

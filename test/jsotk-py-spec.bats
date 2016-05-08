@@ -3,10 +3,8 @@
 load helper
 base=jsotk.py
 
-init_lib
-init_bin
+init
 
-. $lib/str.lib.sh
 
 
 @test "${bin} -h" {
@@ -33,7 +31,7 @@ init_bin
 }
 
 @test "${bin} from-args l[]=1 l[]=2 l[2]=3" "update indices" {
-  skip "TODO: update at index with jsotk"
+  TODO "update at index with jsotk"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   test "${lines[*]}" = '{"l": [1, 3]}'
@@ -113,7 +111,7 @@ init_bin
 # as relief
 
 @test "${bin} --list-update merge ..." {
-  skip "TODO: implement list item updates for from-args"
+  TODO "implement list item updates for from-args"
 }
 
 @test "${bin} --list-update merge-one ..." {

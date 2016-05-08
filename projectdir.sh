@@ -10,7 +10,7 @@ version=0.0.0+20150911-0659 # script.mpe
 pd_man_1__version="Version info"
 pd__version()
 {
-  echo "$(cat $LIB/.app-id)/$version"
+  echo "$(cat $scriptdir/.app-id)/$version"
 }
 pd_als__V=version
 
@@ -20,7 +20,7 @@ pd__edit()
   $EDITOR \
     $0 \
     ~/bin/projectdir.inc.sh \
-    $LIB/projectdir-meta \
+    $scriptdir/projectdir-meta \
     "$@"
 }
 #pd__als__e=edit
@@ -57,7 +57,7 @@ pd__meta()
       return
     }
   }
-  $LIB/projectdir-meta -f $pd --address $sock "$@" || return $?
+  $scriptdir/projectdir-meta -f $pd --address $sock "$@" || return $?
 }
 
 # silent/quit
@@ -166,7 +166,7 @@ pd__check()
   do
     pd_check $prefix || continue
     test -d "$prefix" || continue
-    $LIB/$scriptname.sh sync $prefix || touch $failed
+    $scriptdir/$scriptname.sh sync $prefix || touch $failed
   done
 }
 
@@ -614,7 +614,7 @@ pd__disable()
         esac
 
     choice_sync_dismiss=1 \
-    $LIB/$scriptname.sh sync $1 \
+    $scriptdir/$scriptname.sh sync $1 \
       || error "Not in sync: $1" 1
 
     rm -rf $1 \
@@ -672,12 +672,12 @@ pd__copy()
       error "No projectdoc for host $1" 1
 
   test -n "$hostname"
-  $LIB/$scriptname.sh meta -sq get-repo "$2" \
+  $scriptdir/$scriptname.sh meta -sq get-repo "$2" \
     && error "Prefix '$2' already exists at $hostname" 1 || noop
 
   test "$hostname" != "$1" || error "You ARE at host '$2'" 1
   pd=~/.conf/project/$1/projects.yaml \
-    $LIB/$scriptname.sh meta dump $2 \
+    $scriptdir/$scriptname.sh meta dump $2 \
     | tail -n +2 - \
     >> ~/.conf/project/$hostname/.projects.yaml
 }
@@ -973,15 +973,16 @@ pd_unload()
 
 pd_lib()
 {
-  test -n "$LIB" || return 13
-  . $LIB/std.lib.sh
-  . $LIB/str.lib.sh
-  . $LIB/util.sh
-  . $LIB/box.init.sh
+  test -n "$scriptdir" || return 13
+  export SCRIPTPATH=$scriptdir
+  . $scriptdir/std.lib.sh
+  . $scriptdir/str.lib.sh
+  . $scriptdir/util.sh
+  . $scriptdir/box.init.sh
   box_run_sh_test
-  . $LIB/main.sh
-  . $LIB/projectdir.inc.sh "$@"
-  . $LIB/main.init.sh
+  . $scriptdir/main.sh
+  . $scriptdir/projectdir.inc.sh "$@"
+  . $scriptdir/main.init.sh
   # -- pd box init sentinel --
   test -n "$verbosity" || verbosity=6
 }
@@ -989,14 +990,14 @@ pd_lib()
 pd_init()
 {
   local __load_lib=1
-  test -n "$LIB" || return 13
-  . $LIB/box.lib.sh
-  . $LIB/match.lib.sh
-  . $LIB/os.lib.sh
-  . $LIB/date.lib.sh
-  . $LIB/doc.lib.sh
-  . $LIB/table.lib.sh
-  . $LIB/vc.sh load-ext
+  test -n "$scriptdir" || return 13
+  . $scriptdir/box.lib.sh
+  . $scriptdir/match.lib.sh
+  . $scriptdir/os.lib.sh
+  . $scriptdir/date.lib.sh
+  . $scriptdir/doc.lib.sh
+  . $scriptdir/table.lib.sh
+  . $scriptdir/vc.sh load-ext
   # -- pd box lib sentinel --
 }
 
@@ -1012,7 +1013,7 @@ pd_main()
   local scriptname=projectdir scriptalias=pd base= \
     subcmd=$1 \
     base="$(basename "$0" .sh)" \
-    LIB="$(dirname "$(realpath "$0")")"
+    scriptdir="$(dirname "$(realpath "$0")")"
 
   pd_lib "$@" || return $(( $? - 1 ))
 

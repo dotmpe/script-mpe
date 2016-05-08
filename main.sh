@@ -281,7 +281,9 @@ std_man_1__version="Version info"
 std_spc__version="-V|version"
 std__version()
 {
-  echo "$(cat $LIB/.app-id)/$version"
+	test -n "$scriptdir" || exit 156
+	test -n "$version" || exit 157
+  echo "$(cat $scriptdir/.app-id)/$version"
 }
 
 

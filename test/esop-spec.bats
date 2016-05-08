@@ -84,7 +84,7 @@ source $lib/str.lib.sh
 
 #@test "${lib}/${base} - function should ..." {
 #  check_skipped_envs || \
-#    skip "TODO envs $envs: implement lib (test) for env"
+#    TODO "envs $envs: implement lib (test) for env"
 #  run function args
 #  #echo ${status} > /tmp/1
 #  #echo "${lines[*]}" >> /tmp/1

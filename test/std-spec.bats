@@ -175,7 +175,7 @@ init
 
   tmpd
   case $(current_test_env) in jenkins )
-      skip "TODO a bit more testing with stdio type detection at $(current_test_env)" ;;
+      TODO "a bit more testing with stdio type detection at $(current_test_env)" ;;
     * )
       { echo foo | file /dev/fd/{0,1,2,3} > $tmpd/1; }
       echo >>$tmpd/1
@@ -199,7 +199,7 @@ init
 
 @test "${lib}/${base} - function should ..." {
   check_skipped_envs || \
-    skip "TODO envs $envs: implement lib (test) for env"
+    TODO "envs $envs: implement lib (test) for env"
   #run function args
   #echo ${status} > /tmp/1
   #echo "${lines[*]}" >> /tmp/1

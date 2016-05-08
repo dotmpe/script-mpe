@@ -20,8 +20,9 @@ usage_line_3="  ${base} <cmd> [<args>..]"
   #echo "${#lines[@]}" >> /tmp/1
 
   tmpd
-  tmp=$(cd $tmpd/;pwd -P)
-  run bash -c 'cd '$tmp'/ && '$pwd/${bin}
+  #tmp=$(cd $tmpd/;pwd -P)
+  #run bash -c 'cd '$tmp'/ && '$pwd/${bin}
+  run $bin
   lines_to_file $tmpd/1
   echo "env $(current_test_env)" >> $tmpd/1
   echo "status $status" >> $tmpd/1
@@ -134,7 +135,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 }
 
 @test "${bin} -vn -r" {
-  skip "TODO no opts for subcmds yet"
+  TODO "no opts for subcmds yet"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
 }
@@ -172,8 +173,9 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
 @test "${bin} list-libs" "lists the includes of a named file" {
 
-  is_skipped pd && skip "FIXME: Something with stdin maybe"
-  check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
+  skip "FIXME: $BATS_TEST_DESCRIPTION"
+  #is_skipped pd && skip "FIXME: Something with stdin maybe"
+  #check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
 
   run $BATS_TEST_DESCRIPTION
 
@@ -193,6 +195,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
       ;;
 
     * )
+      diag "Unknown env $(current_test_env), status ${status}"
       test $status -eq 3
       test "${#lines[@]}"
       skip "FIX testing at travis"

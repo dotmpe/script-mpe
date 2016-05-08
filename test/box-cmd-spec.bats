@@ -114,7 +114,7 @@ source $lib/str.lib.sh
 
 @test "${bin} -vv -n help" {
   #skip "envs: envs=$envs FIXME is hardcoded in test/helper.bash current_test_env"
-  #check_skipped_envs || skip "TODO envs $envs: implement bin (test) for env"
+  #check_skipped_envs || TODO "envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   test -n "${lines[*]}" # non-empty output
@@ -123,7 +123,7 @@ source $lib/str.lib.sh
 
 #@test "${lib}/${base} - function should ..." {
 #  check_skipped_envs || \
-#    skip "TODO envs $envs: implement lib (test) for env"
+#    TODO "envs $envs: implement lib (test) for env"
 #  run function args
 #  #echo ${status} > /tmp/1
 #  #echo "${lines[*]}" >> /tmp/1

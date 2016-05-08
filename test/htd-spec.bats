@@ -3,7 +3,6 @@
 base=htd
 load helper
 init
-source $lib/str.lib.sh
 pwd=$(cd .;pwd -P)
 
 
@@ -22,7 +21,7 @@ version=0.0.0+20150911-0659 # script.mpe
 
 @test "$bin home" {
   check_skipped_envs travis \
-  || skip "TODO envs $envs: implement $BATS_TEST_DESCRIPTION for env"
+  || TODO "envs $envs: implement $BATS_TEST_DESCRIPTION for env"
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
@@ -106,8 +105,10 @@ version=0.0.0+20150911-0659 # script.mpe
   cd "$tmp"
   test ! -d bats-test-log || rm -rf bats-test-log
 
+  echo "${lines[*]}" >> /tmp/1
+
   mkdir bats-test-log
-  run $pwd/$BATS_TEST_DESCRIPTION bats-test-log/
+  run $BATS_TEST_DESCRIPTION bats-test-log/
   test $status -eq 0
   #echo "${lines[*]}" > /tmp/1
   #echo "${#lines[@]}" >> /tmp/1
@@ -125,19 +126,19 @@ version=0.0.0+20150911-0659 # script.mpe
 
   rm -rf /tmp/journal
 
-  run $pwd/$BATS_TEST_DESCRIPTION
+  run $BATS_TEST_DESCRIPTION
   test $status -eq 1
   #echo "${lines[*]}" >/tmp/out222
   fnmatch "*Error*Dir *tmp/journal must exist*" "${lines[*]}"
   test "${#lines[@]}" = "1"
 
-  run $pwd/$BATS_TEST_DESCRIPTION
+  run $BATS_TEST_DESCRIPTION
   test $status -eq 1
 }
 
 @test "$bin rewrite and test to new main.sh" {
   check_skipped_envs || \
-    skip "TODO envs $envs: implement bin for env"
+    TODO "envs $envs: implement bin for env"
   #run $BATS_TEST_DESCRIPTION
   #test $status -eq 0
   #test "${#lines[@]}" = "9"
@@ -166,7 +167,7 @@ Public
 EOM
 } > test.rst
 
-  run $pwd/$BATS_TEST_DESCRIPTION test.rst
+  run $BATS_TEST_DESCRIPTION test.rst
 
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
@@ -195,7 +196,7 @@ Public
 EOM
 } > test.rst
 
-  run $pwd/$BATS_TEST_DESCRIPTION test.rst
+  run $BATS_TEST_DESCRIPTION test.rst
 
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
@@ -224,7 +225,7 @@ Public
 EOM
 } > test.rst
 
-  run $pwd/$BATS_TEST_DESCRIPTION test.rst
+  run $BATS_TEST_DESCRIPTION test.rst
 
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"

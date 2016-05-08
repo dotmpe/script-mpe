@@ -23,6 +23,6 @@ source $lib.sh
 }
 
 @test "$lib $func cleans up ID from path (II)" {
-    skip "TODO implement/test with dir/./.. etc"
+    TODO "implement/test with dir/./.. etc"
 }
 

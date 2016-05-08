@@ -9,7 +9,7 @@ init
 
 @test "${bin}" "default no-args" {
   case $(current_test_env) in travis )
-      skip "TODO $BATS_TEST_DESCRIPTION at travis";;
+      TODO "$BATS_TEST_DESCRIPTION at travis";;
   esac
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 1

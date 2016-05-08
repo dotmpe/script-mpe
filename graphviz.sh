@@ -108,13 +108,11 @@ gv_init()
 gv_preload()
 {
   local __load_lib=1
-  test -n "$LIB" || LIB=$HOME/bin
-  test -n "$BIN" || BIN=$HOME/bin
-  . $LIB/main.sh
-  . $LIB/util.sh
-  . $LIB/graphviz.inc.sh "$@"
-  . $LIB/os.lib.sh
-  . $LIB/date.lib.sh
+  test -n "$scriptdir"
+  test -n "$BIN" || BIN=$scriptdir
+  . $scriptdir/main.sh
+  . $scriptdir/graphviz.inc.sh "$@"
+  . $scriptdir/date.lib.sh
   . $BIN/match.sh load-ext
   . $BIN/vc.sh load-ext
   test -n "$verbosity" || verbosity=6
@@ -137,7 +135,9 @@ gv_main()
   test -z "$__load_lib" || return 1
 
   local scriptname=graphviz scriptalias=gv base=$(basename $0 .sh) \
-    subcmd=$1
+    subcmd=$1 \
+    scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+
 
   case "$base" in
 
@@ -145,6 +145,9 @@ gv_main()
 
         # invoke with function name first argument,
         local subcmd_func= c=0
+
+  			export SCRIPTPATH=$scriptdir
+				. $scriptdir/util.sh
 
         gv_init "$@" || {
           error "init error '$@'" 1

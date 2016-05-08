@@ -85,71 +85,14 @@
             value: main
         properties: []
         metadata: []
-        # TODO: fix JJB serialize
+        # TODO: fix JJB serialize choking on non-str: int, float, bool
         #- string:
         #    name: Build_Deps_Default_Paths
         #    value: on
         #    expose-to-env: false
         builders:
         - shell: |
-
-            export LIB=$WORKSPACE
-            ./htd version
-            ./htd help
-
-            export PATH=$WORKSPACE:$PATH
-            htd version
-            box version
-            #match.sh -v
-
-        - shell: |
-            set +x
-            export PATH=$WORKSPACE:$PATH
-            export PATH=$HOME/.local/bin:$PATH
-            export Build_Deps_Default_Paths=1
-            ./install-dependencies.sh test
-
-            bats --version
-
-        #    #export PATH=$PATH:$HOME/usr/bin/
-        #    export PATH=$WORKSPACE:$PATH
-        #    export PATH=$HOME/.local/bin:$PATH
-
-        #    rm -rf $HOME/bin
-        #    ln -s $WORKSPACE $HOME/bin
-        #    export PATH=$PATH:$HOME/bin/
-        #    export JTB_HOME=$HOME/build/jtb
-
-        - shell: |
-            set +x
-
-            export PATH=$WORKSPACE:$PATH
-            export PATH=$HOME/.local/bin:$PATH
-            export LIB=$WORKSPACE
-            export PREFIX=
-            export TRAVIS_SKIP=1
-            export JENKINS_SKIP=1
-            export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
-
-            mkdir -vp ./build
-
-            test -n "$SUITE" && {{
-              SPECS=
-              for SPEC in $SUITE
-              do
-                SPECS="$SPECS ./test/$SPEC-spec.bats"
-              done
-            }} || test -n "$SPEC" && {{
-              SPECS="./test/$SPEC-spec.bats"
-            }} || {{
-              SPECS=./test/*-spec.bats
-            }}
-
-            bats $SPECS || exit 0 > ./build/test-results.tap
-
-    #
-    # A job to test/update this build config file, if either JJB, JTB or
-    # this repo changes.
-    #
+            . ./tools/sh/env.sh
+            ./tools/ci/test.sh
 
 

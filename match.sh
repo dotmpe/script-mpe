@@ -144,9 +144,10 @@ req_arg()
 
 match_main()
 {
-  match_lib || return $(( $? - 1 ))
+  local scriptname=match base="$(basename "$0" .sh)" verbosity=5 \
+    scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
 
-  local scriptname=match base="$(basename "$0" .sh)" verbosity=5
+  match_lib || return $(( $? - 1 ))
 
   case "$base" in $scriptname )
 
@@ -162,27 +163,27 @@ match_main()
 match_lib()
 {
   test -z "$__load_lib" || return 1
-  test -n "$LIB" || LIB=$HOME/bin
-  . $LIB/std.lib.sh
-  . $LIB/str.lib.sh
-  . $LIB/util.sh
-  . $LIB/box.init.sh
+  test -n "$scriptdir"
+  export SCRIPTPATH=$scriptdir
+  . $scriptdir/tools/sh/source-script.sh
+  . $scriptdir/util.sh
+  . $scriptdir/box.init.sh
   box_run_sh_test
-  . $LIB/main.sh "$@"
-  . $LIB/main.init.sh
+  . $scriptdir/main.sh "$@"
+  . $scriptdir/main.init.sh
   # -- match box init sentinel --
 }
 
 match_init()
 {
   local __load_lib=1
-  test -n "$LIB" || return 13
-  . $LIB/box.lib.sh "$@"
-  . $LIB/match.lib.sh "$@"
-  . $LIB/os.lib.sh
-  . $LIB/date.lib.sh
-  . $LIB/doc.lib.sh
-  . $LIB/table.lib.sh
+  test -n "$scriptdir" || return 13
+  . $scriptdir/box.lib.sh "$@"
+  . $scriptdir/match.lib.sh "$@"
+  . $scriptdir/os.lib.sh
+  . $scriptdir/date.lib.sh
+  . $scriptdir/doc.lib.sh
+  . $scriptdir/table.lib.sh
   # -- match box lib sentinel --
   set --
 }

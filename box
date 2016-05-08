@@ -137,7 +137,7 @@ box__init()
   test $c -eq 0 || shift $c ; c=0
   box_init_local 2 || error "error during box-init-local" $?
 
-  script_subcmd_func=$(echo $(script_subcmd_name) | tr '/-' '__')
+  script_subcmd_func=$(echo $script_subcmd_name | tr '/-' '__')
   global_func_name=c_${script_name}__${script_subcmd_func}
   local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_func}
 
@@ -422,9 +422,11 @@ box__log_demo()
 
 box_main()
 {
+  local scriptname=box base=$(basename $0 .sh) \
+    scriptdir="$(cd $(dirname $0); pwd -P)"
+
   box_init || return 0
 
-  local scriptname=box base=$(basename $0 .sh) 
   var_isset verbosity || verbosity=5
 
   case "$base" in $scriptname )
@@ -445,15 +447,17 @@ box_main()
 box_init()
 {
   test -z "$BOX_INIT" || return 1
-  test -n "$LIB" || LIB=$HOME/bin
-  . $LIB/box.init.sh
-  . $LIB/box.lib.sh "$@"
-  . $LIB/std.lib.sh
-  . $LIB/str.lib.sh
-  . $LIB/util.sh
+  export SCRIPTPATH=$scriptdir
+  . $scriptdir/tools/sh/source-script.sh
+  source_script util.sh
+  . $scriptdir/box.init.sh
+  . $scriptdir/box.lib.sh "$@"
+  . $scriptdir/std.lib.sh
+  . $scriptdir/str.lib.sh
+  . $scriptdir/util.sh
   box_run_sh_test
-  . $LIB/main.sh
-  . $LIB/main.init.sh
+  . $scriptdir/main.sh
+  . $scriptdir/main.init.sh
   # -- box box init sentinel --
 }
 

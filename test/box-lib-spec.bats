@@ -67,7 +67,7 @@ test_lib=$lib/test/main.inc
 @test "${lib}/${base} - function should ..." {
 
   check_skipped_envs || \
-    skip "TODO envs $envs: implement lib (test) for env"
+    TODO "envs $envs: implement lib (test) for env"
 
   test -n "${status}" || test -z "run it first!"
   test ${status} -eq 0

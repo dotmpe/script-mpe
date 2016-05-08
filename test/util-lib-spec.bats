@@ -155,17 +155,17 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
   func_exists short
   run short
-  test $status -eq 0
+  test $status -eq 0 || fail "${lines[*]}"
   test "${lines[*]}" = "~/bin"
 }
 
 
 @test "$lib file_insert_where_before" {
-  skip "TODO"
+  TODO
 }
 
 @test "$lib file_insert_at" {
-  skip "TODO"
+  TODO
 }
 
 @test "$lib file_where_before" {
@@ -189,10 +189,28 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
   test -n "${lines[*]}"
 }
 
+@test "expr-substr - Should fail if not initialized" {
+
+  test -z "$expr" || {
+    diag "expr=$expr"
+    diag "$(set | grep expr)"
+    fail "Should not be initialized"
+  }
+
+  expr=illegal-value 
+  run expr_substr "FOO" 1 3
+  test ${status} -ne 0 || fail "Should not pass illegal setting"
+
+  . $lib/main.init.sh
+  run expr_substr "FOO" 1 3
+  test ${status} -eq 0 || fail "Should pass after init"
+}
 
 @test "$lib expr_substr: should slice simple string " {
 
   func_exists expr_substr
+  . $lib/main.init.sh
+  test -n "$expr" || fail "expr failed to init"
   test "$(expr_substr "testFOObar" 1 4)" = "test"
   test "$(expr_substr "testFOObar" 5 3)" = "FOO"
   test "$(expr_substr "testFOObar" 8 3)" = "bar"
@@ -203,6 +221,8 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 @test "$lib expr_substr: should slice with leading hyphen" {
 
   func_exists expr_substr
+  . $lib/main.init.sh
+  test -n "$expr" || fail "expr failed to init"
   test "$(expr_substr "-E" 1 2)" = "-E"
   test "$(expr_substr "---" 1 1)" = "-"
   test "$(expr_substr "---" 1 2)" = "--"

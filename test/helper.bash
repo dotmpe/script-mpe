@@ -4,40 +4,24 @@ test_init()
 {
   test -n "$base" || exit 12
   test -n "$uname" || uname=$(uname)
-}
-
-# Std test_init and setting script exec var `bin` based on PREFIX
-init_bin()
-{
-  # Global test if PREFIX isset
-  test -z "$PREFIX" && bin=./$base || bin=$PREFIX/bin/$base
-}
-
-# Std test_init for script lib var `lib`
-init_lib()
-{
-  # XXX path to shared files
-  test -z "$PREFIX" && lib=. || lib=$PREFIX/bin
-  #test -z "$PREFIX" && lib=./script || lib=$PREFIX/lib/$base/
+  test -n "$scriptdir" || scriptdir=$(pwd -P)
 }
 
 init()
 {
   test_init
-  test -x $base && {
-    init_bin
-  }
-  init_lib
+  . ./tools/sh/init.sh
 
-  . $lib/str.lib.sh
-  . $lib/std.lib.sh
-  . $lib/os.lib.sh
-  . $lib/util.sh
+  test -x $base && {
+    bin=$scriptdir/$base
+  }
+  lib=$scriptdir
+
   . $lib/main.sh
   main_init
 
-  # XXX does this overwrite bats load?
-  . main.init.sh
+  ## XXX does this overwrite bats load?
+  #. main.init.sh
 }
 
 

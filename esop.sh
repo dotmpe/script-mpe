@@ -11,7 +11,7 @@ version=0.0.0+20150911-0659 # script.mpe
 esop_man_1__version="Version info"
 esop__version()
 {
-  echo "$(cat $PREFIX/bin/.app-id)/$version"
+  echo "$(cat $scriptdir/.app-id)/$version"
 }
 esop_als__V=version
 
@@ -61,10 +61,10 @@ esop_main()
 {
   local \
       scriptname=esop \
-      base="$(basename $0 ".sh")"
+      base="$(basename $0 ".sh")" \
+      scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
   case "$base" in
     $scriptname )
-      local LIB="$(dirname $0)"
       esop_init || return $?
       run_subcmd "$@" || return $?
       ;;
@@ -77,11 +77,14 @@ esop_main()
 
 esop_init()
 {
-  . $LIB/main.sh
-  . $LIB/std.lib.sh
-  . $LIB/str.lib.sh
-  . $LIB/util.sh
-  . $LIB/box.init.sh
+  export SCRIPTPATH=$scriptdir
+  . $scriptdir/tools/sh/source-script.sh
+  source_script util.sh
+  . $scriptdir/main.sh
+  . $scriptdir/std.lib.sh
+  . $scriptdir/str.lib.sh
+  . $scriptdir/util.sh
+  . $scriptdir/box.init.sh
   box_run_sh_test
   # -- esop box init sentinel --
 }
@@ -89,7 +92,7 @@ esop_init()
 esop_load()
 {
   local __load_lib=1
-  . $LIB/match.sh load-ext
+  . $scriptdir/match.sh load-ext
   # -- esop box load sentinel --
 }
 

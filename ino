@@ -231,6 +231,7 @@ ino__esp_mcu_init()
 
 ino_main()
 {
+  local scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
   ino_init || return 0
 
   local scriptname=ino base=$(basename $0 .sh) verbosity=5
@@ -250,14 +251,16 @@ ino_main()
 ino_init()
 {
   test -z "$BOX_INIT" || return 1
-  test -n "$LIB" || LIB=$HOME/bin
-  . $LIB/box.init.sh
-  . $LIB/util.sh
+  test -n "$scriptdir"
+  export SCRIPTPATH=$scriptdir
+  . $scriptdir/tools/sh/source-script.sh
+  . $scriptdir/box.init.sh
+  . $scriptdir/util.sh
   box_run_sh_test
-  . $LIB/main.sh
-  . $LIB/main.init.sh
-  . $LIB/box.lib.sh
-  . $LIB/htd load-ext
+  . $scriptdir/main.sh
+  . $scriptdir/main.init.sh
+  . $scriptdir/box.lib.sh
+  . $scriptdir/htd load-ext
 }
 
 ino_lib()

@@ -76,6 +76,7 @@ c_rst_als___V=version
 
 rst_main()
 {
+  local scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
   rst_init || return 0
   local scriptname=rst base=$(basename $0 .sh) dirname=$(dirname $0)
   case "$base" in $scriptname )
@@ -88,13 +89,14 @@ rst_main()
 rst_init()
 {
   test -z "$BOX_INIT" || return 1
-  test -n "$LIB" || { test -n "$PREFIX" && { LIB=$PREFIX/lib; } || { LIB=.; } }
-  . $LIB/box.init.sh
-  . $LIB/box.lib.sh
+  export SCRIPTPATH=$scriptdir
+  . $scriptdir/tools/sh/source-script.sh
+  . $scriptdir/box.init.sh
+  . $scriptdir/box.lib.sh
   box_run_sh_test
-  . $LIB/util.sh
-  . $LIB/main.sh
-  . $LIB/main.init.sh
+  . $scriptdir/util.sh
+  . $scriptdir/main.sh
+  . $scriptdir/main.init.sh
   # -- rst box init sentinel --
 }
 

@@ -1,6 +1,42 @@
 #!/bin/sh
 
+# entry-point for Travis build
+
+
 set -e
+
+
+echo HOME=$HOME PREFIX=$PREFIX pwd=$(pwd)
+whoami
+hostname
+htd help
+
+mkdir ~/public_html
+rm $HOME/bin && ln -s /home/travis/build/dotmpe/script.mpe $HOME/bin
+touch /home/travis/.basename-reg.yaml
+
+box version && box -V
+vc.sh help
+projectdir.sh help
+
+pip install --user pytz
+pip install --user PyYAML
+pip install --user zope.interface
+pip install --user zope.component
+pip install --user objectpath
+pip install --user docutils
+pip install --user jsonschema
+pip install --user sqlalchemy
+pip install --user sqlalchemy-migrate
+npm install parse-torrent lodash
+
+radical.py --help
+jsotk.py -h
+jsotk.py from-args foo=bar
+jsotk.py objectpath \
+      $HOME/bin/test/var/jsotk/2.yaml \
+      '$.*[@.main is not None]'
+
 
 case "$ENV" in
 

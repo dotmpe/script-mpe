@@ -3,8 +3,7 @@
 load helper
 base=libcmd_stacked.py
 
-init_lib
-init_bin
+init
 
 
 @test "${bin} -h " {

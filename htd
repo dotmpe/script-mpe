@@ -7,8 +7,6 @@
 htd_src=$_
 test -z "$__load_lib" || set -- "load-ext"
 
-scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
-
 set -e
 
 version=0.0.0+20150911-0659 # script.mpe
@@ -240,7 +238,7 @@ htd_als___h=help
 htd_man_1__version="Version info"
 htd__version()
 {
-  echo "$(cat $LIB/.app-id)/$version"
+  echo "$(cat $scriptdir/.app-id)/$version"
 }
 htd_als___V=version
 
@@ -3004,7 +3002,9 @@ htd__init_project()
 
 htd_main()
 {
-  local scriptname=htd base=$(basename $0 .sh) verbosity=5
+  local scriptname=htd base=$(basename $0 .sh) verbosity=5 \
+    scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+
   htd_init || exit $?
 
   case "$base" in $scriptname )
@@ -3021,28 +3021,28 @@ htd_main()
 
 htd_init()
 {
-  test -n "$LIB" || LIB=$HOME/bin
-  . $LIB/std.lib.sh
-  . $LIB/str.lib.sh
-  . $LIB/os.lib.sh
-  . $LIB/match.lib.sh
-  . $LIB/util.sh
-  . $LIB/box.init.sh
+  # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
+  test -n "$scriptdir"
+  export SCRIPTPATH=$scriptdir
+  . $scriptdir/tools/sh/source-script.sh
+  . $scriptdir/util.sh
+  . $scriptdir/match.lib.sh
+  . $scriptdir/box.init.sh
   box_run_sh_test
-  . $LIB/htd.lib.sh
-  . $LIB/main.sh
-  . $LIB/main.init.sh
-  . $LIB/box.lib.sh
-  . $LIB/date.lib.sh
-  . $LIB/doc.lib.sh
-  . $LIB/table.lib.sh
+  . $scriptdir/htd.lib.sh
+  . $scriptdir/main.sh
+  . $scriptdir/main.init.sh
+  . $scriptdir/box.lib.sh
+  . $scriptdir/date.lib.sh
+  . $scriptdir/doc.lib.sh
+  . $scriptdir/table.lib.sh
   # -- htd box init sentinel --
 }
 
 htd_lib()
 {
   local __load_lib=1
-  . $LIB/match.sh load-ext
+  . $scriptdir/match.sh load-ext
   # -- htd box lib sentinel --
   set --
 }

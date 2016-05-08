@@ -173,7 +173,8 @@ daemonize__init()
 {
   daemonize_init || return 0
 
-  local scriptname=daemonize base=$(basename $0 .sh) verbosity=5
+  local scriptname=daemonize base=$(basename $0 .sh) verbosity=5 \
+    scriptdir="$(dirname "$(realpath "$0")")"
 
   case "$base" in $scriptname )
 
@@ -196,21 +197,21 @@ daemonize__init()
 daemonize_init()
 {
   test -z "$BOX_INIT" || return 1
-  test -n "$LIB" || LIB=$HOME/bin
-  . $LIB/box.init.sh
-  . $LIB/util.sh
+  export SCRIPTPATH=$scriptdir
+  . $scriptdir/box.init.sh
+  . $scriptdir/util.sh
   box_run_sh_test
-  . $LIB/main.sh
-  . $LIB/main.init.sh
-  . $LIB/box.lib.sh
-  . $LIB/date.lib.sh
-  . $LIB/darwin.lib.sh
+  . $scriptdir/main.sh
+  . $scriptdir/main.init.sh
+  . $scriptdir/box.lib.sh
+  . $scriptdir/date.lib.sh
+  . $scriptdir/darwin.lib.sh
   # -- daemonize box init sentinel --
 }
 
 daemonize_lib()
 {
-  . $LIB/match.sh load-ext
+  . $scriptdir/match.sh load-ext
   # -- daemonize box lib sentinel --
   set --
 }

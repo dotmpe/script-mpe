@@ -578,12 +578,11 @@ diskdoc_unload()
 diskdoc_init()
 {
   local __load_lib=1
-  . $LIB/box.init.sh
-  . $LIB/box.lib.sh
+  . $scriptdir/box.init.sh
+  . $scriptdir/box.lib.sh
   box_run_sh_test
-  . $LIB/main.sh
-  . $LIB/main.init.sh
-  . $LIB/util.sh
+  . $scriptdir/main.sh
+  . $scriptdir/main.init.sh
   #while test $# -gt 0
   #do
   #  case "$1" in
@@ -593,10 +592,10 @@ diskdoc_init()
   #        shift;;
   #  esac
   #done
-  #. $LIB/diskdoc.inc.sh "$@"
-  . $LIB/date.lib.sh
-  . $LIB/match.lib.sh
-  . $LIB/vc.sh load-ext
+  #. $scriptdir/diskdoc.inc.sh "$@"
+  . $scriptdir/date.lib.sh
+  . $scriptdir/match.lib.sh
+  . $scriptdir/vc.sh load-ext
   test -n "$verbosity" || verbosity=6
   # -- diskdoc box init sentinel --
 }
@@ -615,7 +614,7 @@ diskdoc_lib()
 diskdoc_main()
 {
   local scriptname=diskdoc base=$(basename $0 .sh) \
-    subcmd=$1
+    subcmd=$1 scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
 
   case "$base" in
 
@@ -629,9 +628,11 @@ diskdoc_main()
           func= \
           sock= \
           c=0
-        test -n "$LIB" || LIB=$HOME/bin
 
-        diskdoc_init "$@"
+				export SCRIPTPATH=$scriptdir
+				. $scriptdir/tools/sh/source-script.sh
+				. $scriptdir/util.sh
+        diskdoc_init "$@" || error "init failed" $?
         shift $c
 
         diskdoc_lib || exit $?

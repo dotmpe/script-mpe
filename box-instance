@@ -44,10 +44,11 @@ box_instance_main()
 {
   local \
       scriptname=box-instance \
-      base="$(basename $0 ".sh")"
+      base="$(basename $0 ".sh")" \
+      scriptdir="$(cd $(dirname $0); pwd -P)"
   case "$base" in
     $scriptname )
-      local LIB="$(dirname $0)"
+      local scriptdir="$(dirname $0)"
       box_instance_init || return $?
       run_subcmd "$@" || return $?
       ;;
@@ -60,11 +61,11 @@ box_instance_main()
 
 box_instance_init()
 {
-  . $LIB/main.sh
-  . $LIB/std.lib.sh
-  . $LIB/str.lib.sh
-  . $LIB/util.sh
-  . $LIB/box.init.sh
+  . $scriptdir/main.sh
+  . $scriptdir/std.lib.sh
+  . $scriptdir/str.lib.sh
+  . $scriptdir/util.sh
+  . $scriptdir/box.init.sh
   box_run_sh_test
   # -- box_instance box init sentinel --
 }
@@ -72,7 +73,7 @@ box_instance_init()
 box_instance_load()
 {
   local __load_lib=1
-  . $LIB/match.sh load-ext
+  . $scriptdir/match.sh load-ext
   # -- box_instance box load sentinel --
 
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')

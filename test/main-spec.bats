@@ -111,50 +111,50 @@ BOX_INIT=1
 
 @test "$lib/main std-usage" {
 
-  check_skipped_envs || skip "TODO envs $envs: implement for env"
+  check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
 @test "$lib/main std-commands" {
 
-  check_skipped_envs || skip "TODO envs $envs: implement for env"
+  check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
 @test "$lib/main locate-name" {
 
-  check_skipped_envs || skip "TODO envs $envs: implement for env"
+  check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
 @test "$lib/main get-cmd-{alias,func,func-name}" {
 
-  check_skipped_envs || skip "TODO envs $envs: implement for env"
+  check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
 
 @test "$lib/main get-cmd-func-name sets local ${1}_func from internal vars" {
 
   var_isset test_name && test -z "Unexpected test_name= var in env" || noop
-  check_skipped_envs || skip "TODO envs $envs: implement for env"
+  check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
 
 @test "$lib/main get-subcmd-args,parse-subcmd-{valid-args,alias,opts}" {
 
-  check_skipped_envs || skip "TODO envs $envs: implement for env"
+  check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
 @test "$lib/main main-load" {
 
-  check_skipped_envs || skip "TODO envs $envs: implement for env"
+  check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
 @test "$lib/main main-debug" {
 
-  check_skipped_envs || skip "TODO envs $envs: implement for env"
+  check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
 @test "$lib/main main" {
 
-  check_skipped_envs || skip "TODO envs $envs: implement for env"
+  check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
 

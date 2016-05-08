@@ -2,18 +2,25 @@
 
 load helper
 base=statusdir.sh
-
 init
-. $lib/util.sh
-
 
 
 @test "${bin}" "default no-args" {
   #case $(current_test_env) in travis )
-  #    skip "TODO $BATS_TEST_DESCRIPTION at travis";;
+  #    TODO "$BATS_TEST_DESCRIPTION at travis";;
   #esac
+
+rt()
+{
+  echo $BATS_TEST_DESCRIPTION > /tmp/1
+  $BATS_TEST_DESCRIPTION >> /tmp/1 2>&1 || echo "$?" >> /tmp/1
+}
+rt
+
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 1
+  echo "${status}" >> /tmp/1
+  echo "${lines[*]}" >> /tmp/1
 }
 
 @test "${bin} help" {

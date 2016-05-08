@@ -1,1 +1,6 @@
-/usr/local/share/mkdoc/Mkdoc-full.mk
+.PHONY: test
+
+test:
+	. ./tools/sh/env.sh; \
+	. ./tools/ci/test.sh
+

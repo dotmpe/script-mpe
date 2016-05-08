@@ -18,7 +18,7 @@ init
   #echo "${lines[*]}" > /tmp/1
   test $status -eq 1
   #simza: /Users/berend/bin/std.sh: line 90: [match.sh] Error: No command given, see "help": command not found
-  test "${lines[0]}" = "[match.sh] Error: No command given, see \"help\"" || skip "TODO should some colorless terminal?"
+  test "${lines[0]}" = "[match.sh] Error: No command given, see \"help\"" || TODO "should some colorless terminal?"
 }
 
 @test "${bin} help" {
