@@ -1,5 +1,6 @@
 #!/bin/sh
 
+mkdir -vp build
 
 export $(whoami|str_upper)_SKIP=1 $(mkvid $(hostname -s);echo $vid)_SKIP=1
 # start with essential tests
