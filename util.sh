@@ -356,12 +356,12 @@ util_init()
     exit 2
   }
 
-  . $scriptdir/ os.lib.sh
-  #. $scriptdir/ match.sh
-  . $scriptdir/ std.lib.sh
-  . $scriptdir/ str.lib.sh
-  #. $scriptdir/ doc.lib.sh
-  #. $scriptdir/ table.lib.sh
+  . $scriptdir/os.lib.sh
+  #. $scriptdir/match.sh
+  . $scriptdir/std.lib.sh
+  . $scriptdir/str.lib.sh
+  #. $scriptdir/doc.lib.sh
+  #. $scriptdir/table.lib.sh
 
   str_load
 }
