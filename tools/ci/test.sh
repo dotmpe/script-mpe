@@ -6,7 +6,7 @@ export $(whoami|str_upper)_SKIP=1 $(mkvid $(hostname -s);echo $vid)_SKIP=1
 # start with essential tests
 for spec in helper util-lib str std os match vc main box-lib box-cmd box
 do
-  bats test/$spec-spec.bats | build/test-results.tap  || exit $?
+  bats test/$spec-spec.bats | tree build/test-results.tap  || exit $?
 done
 
 # in no particular order
@@ -14,7 +14,7 @@ failed=/tmp/failed
 test ! -e $failed || rm $failed
 for spec in statusdir htd basename-reg dckr diskdoc esop jsotk-py libcmd_stacked matchbox meta mimereg pd radical
 do
-  bats test/$spec-spec.bats | build/test-results.tap || echo $spec >> $failed
+  bats test/$spec-spec.bats | tee build/test-results.tap || echo $spec >> $failed
 done
 
 test -e "$failed" && {
