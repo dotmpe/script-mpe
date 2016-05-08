@@ -21,5 +21,5 @@ test -n "$SCRIPTPATH" || {
 }
 
 # Now include script to source other utils
-source_script util.sh
+. $scriptdir/util.sh
 

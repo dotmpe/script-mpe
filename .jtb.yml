@@ -80,7 +80,11 @@
         builders:
         - shell: |
             . ./tools/sh/env.sh
+            set -x
             util_init
-            . ./tools/ci/test.sh
+            var_isset expr
+            func_exists str_upper
+            func_exists error
+            #. ./tools/ci/test.sh
 
 
