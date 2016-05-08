@@ -81,7 +81,6 @@
         builders:
         - shell: |
             . ./tools/sh/env.sh
-            util_init
-            ./tools/ci/test.sh
+            . ./tools/ci/test.sh
 
 

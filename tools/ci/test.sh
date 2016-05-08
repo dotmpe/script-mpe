@@ -5,7 +5,7 @@
 # - local-gh-bats
 
 
-export $(whoami|str_upper)_SKIP=1 $(hostname -s|str_upper)_SKIP=1
+export $(whoami|str_upper)_SKIP=1 $(mkvid $(hostname -s);echo $vid)_SKIP=1
 # start with essential tests
 for spec in helper util-lib str std os match vc main box-lib box-cmd box
 do
