@@ -4,9 +4,25 @@ mkdir -vp build
 
 export $(whoami|str_upper)_SKIP=1 $(mkvid $(hostname -s);echo $vid)_SKIP=1
 # start with essential tests
+
+tmp=/tmp/test-results.tap
+rs=build/test-results.tap
+
+echo "1..11"
+I=1
 for spec in helper util-lib str std os match vc main box-lib box-cmd box
 do
-  bats test/$spec-spec.bats | tree build/test-results.tap  || exit $?
+  R=
+  ( bats --tap test/$spec-spec.bats || R=$? ) | sed 's/^/    /g' > $tmp 2>&1
+  test -n "$R" && {
+    echo "ok $I $spec"
+    echo "ok $I $spec" >> $rs
+  } || {
+    echo "not ok $I $spec"
+    echo "not ok $I $spec" >> $rs
+  }
+  cat $tmp >> $rs
+  I=$(( $I + 1 ))
 done
 
 # in no particular order
