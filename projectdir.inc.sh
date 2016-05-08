@@ -166,7 +166,7 @@ update_package_sh()
 
     log "Regenerating $metash from $metaf.."
 
-    update_package_sh_defaults "$metaf" > $metash
+    jsotk_package_sh_defaults "$metaf" > $metash
     ( jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
         || rm $metash; exit 31 ) \
         | jsotk.py --output-prefix=package to-flat-kv - >> $metash
