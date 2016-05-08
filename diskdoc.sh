@@ -630,8 +630,8 @@ diskdoc_main()
           c=0
 
 				export SCRIPTPATH=$scriptdir
-				. $scriptdir/tools/sh/source-script.sh
-				. $scriptdir/util.sh
+        . $scriptdir/util.sh
+        util_init
         diskdoc_init "$@" || error "init failed" $?
         shift $c
 

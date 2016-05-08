@@ -165,8 +165,8 @@ match_lib()
   test -z "$__load_lib" || return 1
   test -n "$scriptdir"
   export SCRIPTPATH=$scriptdir
-  . $scriptdir/tools/sh/source-script.sh
   . $scriptdir/util.sh
+  util_init
   . $scriptdir/box.init.sh
   box_run_sh_test
   . $scriptdir/main.sh "$@"

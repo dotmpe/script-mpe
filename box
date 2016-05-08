@@ -448,8 +448,8 @@ box_init()
 {
   test -z "$BOX_INIT" || return 1
   export SCRIPTPATH=$scriptdir
-  . $scriptdir/tools/sh/source-script.sh
-  source_script util.sh
+  . $scriptdir/util.sh
+  util_init
   . $scriptdir/box.init.sh
   . $scriptdir/box.lib.sh "$@"
   . $scriptdir/std.lib.sh

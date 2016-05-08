@@ -1,7 +1,5 @@
 #!/bin/sh
 
-. $scriptdir/tools/sh/source-script.sh
-
 
 # if not provided, auto-setup env
 # assuming execution starts in script dir (project root)

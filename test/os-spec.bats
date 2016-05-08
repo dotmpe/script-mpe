@@ -15,7 +15,7 @@ version=0.0.0+20150911-0659 # script.mpe
     skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
 
   test -n "$TERM" || export TERM=dumb
-  run $($BATS_TEST_DESCRIPTION 'Foo/Bar/..')
+  run $BATS_TEST_DESCRIPTION 'Foo/Bar/..'
   test ${status} -eq 0
   test "${lines[@]}" = 'Foo'
 

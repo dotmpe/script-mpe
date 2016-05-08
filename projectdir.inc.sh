@@ -87,6 +87,8 @@ backup_if_comments()
 }
 
 
+# Generate/install GIT hook scripts from env (loaded from package.yaml)
+
 test -n "$GIT_HOOK_NAMES" || GIT_HOOK_NAMES="apply-patch commit-msg post-update pre-applypatch pre-commit pre-push pre-rebase prepare-commit-msg update"
 
 generate_git_hooks()
@@ -136,6 +138,9 @@ install_git_hooks()
     echo "Installed GIT hook symlink: $script -> $t"
 	done
 }
+
+
+# Deal with package metadata files
 
 update_package_json()
 {

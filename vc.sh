@@ -16,8 +16,8 @@ vc_load()
 
 #. ~/.conf/bash/git-completion.bash
 
-  source_script util.sh
-  source_script match.lib.sh
+  . $scriptdir/util.sh
+  . $scriptdir/match.lib.sh
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
   str_load
@@ -832,8 +832,7 @@ vc_main()
         test -n "$scriptdir" || \
             scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
         export SCRIPTPATH=$scriptdir
-        . $scriptdir/tools/sh/source-script.sh
-        source_script util.sh
+        . $scriptdir/util.sh
 
         local func=$(echo vc_$subcmd | tr '-' '_') \
             verbosity=5 \

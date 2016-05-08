@@ -119,8 +119,8 @@ statusdir__init()
 {
   test -n "$scriptdir"
   export SCRIPTPATH=$scriptdir
-  . $scriptdir/tools/sh/source-script.sh
-  source_script util.sh
+  . $scriptdir/util.sh
+  util_init
   . $scriptdir/box.init.sh
   box_run_sh_test
   . $scriptdir/htd.lib.sh

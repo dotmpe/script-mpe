@@ -253,9 +253,9 @@ ino_init()
   test -z "$BOX_INIT" || return 1
   test -n "$scriptdir"
   export SCRIPTPATH=$scriptdir
-  . $scriptdir/tools/sh/source-script.sh
-  . $scriptdir/box.init.sh
   . $scriptdir/util.sh
+  util_init
+  . $scriptdir/box.init.sh
   box_run_sh_test
   . $scriptdir/main.sh
   . $scriptdir/main.init.sh

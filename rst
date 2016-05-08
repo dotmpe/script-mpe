@@ -90,11 +90,11 @@ rst_init()
 {
   test -z "$BOX_INIT" || return 1
   export SCRIPTPATH=$scriptdir
-  . $scriptdir/tools/sh/source-script.sh
+  . $scriptdir/util.sh
+  util_init
   . $scriptdir/box.init.sh
   . $scriptdir/box.lib.sh
   box_run_sh_test
-  . $scriptdir/util.sh
   . $scriptdir/main.sh
   . $scriptdir/main.init.sh
   # -- rst box init sentinel --

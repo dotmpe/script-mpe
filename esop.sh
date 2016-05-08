@@ -78,8 +78,8 @@ esop_main()
 esop_init()
 {
   export SCRIPTPATH=$scriptdir
-  . $scriptdir/tools/sh/source-script.sh
-  source_script util.sh
+  . $scriptdir/util.sh
+  util_init
   . $scriptdir/main.sh
   . $scriptdir/std.lib.sh
   . $scriptdir/str.lib.sh

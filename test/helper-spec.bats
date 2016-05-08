@@ -28,7 +28,7 @@ init
 
     mkvid "$(hostname -s)"
     diag "${lines[@]} TEST_ENV=$TEST_ENV username=$(whoami) hostid=$vid"
-    test "${lines[0]}" = "" \
+    test "${lines[0]}" = "$vid" \
       || test "${lines[0]}" = "$(whoami)" \
       || test "${lines[0]}" = "$TEST_ENV"
 }

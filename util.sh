@@ -344,11 +344,6 @@ func_comment()
 
 
 
-func_exists source_script || {
-
-  . ./tools/sh/source-script.sh
-}
-
 util_init()
 {
   . $scriptdir/os.lib.sh
