@@ -215,19 +215,10 @@ pd__disable_clean()
   done
 }
 
-pd_run__update=yf
+pd_run__update=yfp
 pd__update()
 {
-  #test -n "$1" || set -- '*'
   set -- "$(normalize_relative "$go_to_before/$1")"
-
-  # XXX: see init, consolidate maybe
-  update_package "$1"
-
-  test -e "$1/.package.sh" && . $1/.package.sh
-
-  note "Found package '$package_id'"
-  test -n "$package_id" || return
 
   env | grep -qv '^package_pd_meta_git_' || return
   (
@@ -919,6 +910,17 @@ pd_load()
 {
   for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
   do case "$x" in
+
+      p ) # should implie y
+        test -e $go_to_before/package.yaml && update_package "$go_to_before"
+        test -e "$go_to_before/.package.sh" && . $go_to_before/.package.sh
+        test -n "$package_id" && {
+          note "Found package '$package_id'"
+        } || {
+          package_id="$(basename $(realpath $go_to_before))"
+          note "Using package ID '$package_id'"
+        }
+        ;;
 
       y )
         # set/check for Pd for subcmd

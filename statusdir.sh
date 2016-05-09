@@ -80,7 +80,10 @@ statusdir__assert_json()
   sf=$(statusdir__file "state.json" || return $?)
   test -s "$sf" || echo '{}' >$sf
   test -n "$1" || { echo $sf; return; }
-  echo "$@" | tr ' ' '\n' | jsotk.py update $sf.tmp $sf
+  echo "$@" | tr ' ' '\n' | jsotk.py update $sf.tmp $sf || {
+    echo "statusdir assert-json: Error reading $sf. "
+    return 1
+  }
   mv $sf.tmp $sf
 }
 

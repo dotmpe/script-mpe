@@ -32,15 +32,17 @@ vc_usage()
 vc_commands()
 {
 	echo 'Commands: '
-	echo '  print-all <path>                 Dump some debug info on given (versioned) paths'
-	echo '  ps1                              Print PS1'
-	echo '  prompt-command                   ...'
+	echo '  print-all <path>        Dump some debug info on given (versioned) paths'
+	echo '  ps1                     Print PS1'
+	echo '  prompt-command          ...'
+  echo '  ls-gitroots             List all GIT checkouts (roots only) below the current dir.'
+	echo '  ls-errors               '
 	echo ''
 	echo 'Other commands: '
-	echo '  -e|edit                          Edit this script.'
-	echo '  help                             Give a combined usage, command and docs. '
-	echo '  docs                             Echo manual page. '
-	echo '  commands                         Echo this comand description listing.'
+	echo '  -e|edit                 Edit this script.'
+	echo '  help                    Give a combined usage, command and docs. '
+	echo '  docs                    Echo manual page. '
+	echo '  commands                Echo this comand description listing.'
 }
 
 vc_help()
@@ -418,14 +420,15 @@ list_gitpaths()
 	done
 }
 
-list_git_checkouts()
+#list_git_checkouts()
+vc_ls_gitroots()
 {
 	list_gitpaths $1 | while read gitpath
 	do dirname $gitpath
 	done
 }
 
-list_errors()
+vc_ls_errors()
 {
 	list_gitpaths $1 | while read gitpath
 	do
