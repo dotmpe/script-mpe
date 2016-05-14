@@ -475,13 +475,20 @@ pd__sync()
 
     test $ahead -eq 0 || {
       note "$prefix ahead of $remote#$branch by $ahead commits"
-      test -n "$dry_run" \
-        || git push $remote $branch \
-        || echo "ahead:$prefix:$remoteref:$ahead" >>$failed
+      trueish "$dry_run" \
+        && echo "ahead:$prefix:$remoteref:$ahead" >>$failed \
+        || {
+
+          git push $remote $branch || {
+
+            echo "sync-fail:$prefix:$remoteref:$?" >>$failed
+            continue
+          }
+        }
     }
 
     test $behind -eq 0 || {
-      # ignore upstream commits?
+      # XXX: ignore upstream commits?
       test -n "$choice_sync_dismiss" \
         || {
           note "$prefix behind of $remote#$branch by $behind commits"
@@ -495,10 +502,9 @@ pd__sync()
 
   test $remote_cnt -gt 0 || echo 'remotes:0' >>$failed
 
-  test ! -s "$failed" \
-    && info "In sync with at least one remote: $prefix" \
-    || error "Not in sync: $prefix"
-
+  test -s "$failed" \
+    && error "Not in sync: $prefix" \
+    || info "In sync with at least one remote: $prefix"
 }
 
 pd_run__enable_all=ybf
