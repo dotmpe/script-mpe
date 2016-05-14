@@ -98,6 +98,34 @@ read_nix_style_file()
   cat $1 | grep -Ev '^\s*(#.*|\s*)$'
 }
 
+# [0|1] [1] read-file-lines-while file-path [while-expr]
+# Read lines in file while second argument evaluates (ie. w/o exiting non-zero)
+# Echo's each line, and count lines in line_number global var. Expression
+# while-expr is run within a `while read line` loop, and can refer to '$line'
+# and/or '$line_number' (and to '$1' also..).
+# Default while-expr is to read only empty commented lines.
+# Return non-zero if no match was found.
+read_file_lines_while()
+{
+  test -n "$1" || error "Argument expected (1)" 1
+  test -f "$1" || error "Not a filename argument: '$1'" 1
+  test -n "$2" || set -- "$1" 'echo "$line" | grep -qE "^\s*(#.*|\s*)$"'
+  line_number=0
+  local ln_f=/tmp/script-os-lib-sh-$(uuidgen)
+  test ! -e $ln_f
+  cat $1 | while read line
+  do
+    line_number=$(( $line_number + 1 ))
+    eval $2 || { echo $(( line_number - 1 ))>$ln_f; return; }
+    echo $line
+  done
+  test -s "$ln_f" \
+    && export line_number=$(cat $ln_f) \
+    || unset line_number
+  rm $ln_f 2>/dev/null || return $?
+}
+
+
 # Traverse to parent dir with file
 go_to_directory()
 {

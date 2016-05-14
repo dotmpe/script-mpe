@@ -13,7 +13,7 @@ pd_meta_bg_setup()
     pd__meta &
     while test ! -e $sock
     do note "Waiting for server.." ; sleep 1 ; done
-    info "Backgrounded pd-meta for $(pwd)/projects.yaml (PID $!)"
+    info "Backgrounded pd-meta for $pd (PID $!)"
   }
 }
 
@@ -31,31 +31,28 @@ pd_meta_bg_teardown()
 
 pd_clean()
 {
-  dirty="$(cd "$1"; git diff --quiet || echo 1)"
-  test -n "$dirty" && {
+  (cd "$1"; git diff --quiet) || {
+    dirty="$(cd "$1"; git diff --name-only)"
     return 1
+  }
 
-  } || {
+  test -n "$choice_strict" \
+    && cruft="$(cd $1; vc_excluded)" \
+    || {
 
-    test -n "$choice_strict" \
-      && cruft="$(cd $1; vc_excluded)" \
-      || {
+      pd__meta -q clean-mode $1 tracked || {
 
-        pd__meta -q clean-mode $1 tracked || {
-
-          pd__meta -q clean-mode $1 excluded \
-            && cruft="$(cd $1; vc_excluded)" \
-            || cruft="$(cd $1; vc_unversioned_files)"
-        }
-
+        pd__meta -q clean-mode $1 excluded \
+          && cruft="$(cd $1; vc_excluded)" \
+          || cruft="$(cd $1; vc_unversioned_files)"
       }
-
-    test -z "$cruft" || {
-      trueish $choice_force && {
-        ( cd "$1" ; git clean -dfx )
-        warn "Force cleaned everything in $1"
-      } || return 2
     }
+
+  test -z "$cruft" || {
+    trueish $choice_force && {
+      ( cd "$1" ; git clean -dfx )
+      warn "Force cleaned everything in $1"
+    } || return 2
   }
 }
 

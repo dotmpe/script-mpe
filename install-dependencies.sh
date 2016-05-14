@@ -31,16 +31,10 @@ install_bats()
   local pwd=$(pwd)
   mkdir -vp $SRC_PREFIX
   cd $SRC_PREFIX
-  git clone https://github.com/sstephenson/bats.git
+  git clone https://github.com/dotmpe/bats.git
   cd bats
   ${sudo} ./install.sh $PREFIX
   cd $pwd
-
-  bats --version && {
-    echo "BATS install OK"
-  } || {
-    echo "BATS installation invalid" 1
-  }
 }
 
 install_git_versioning()
@@ -51,8 +45,11 @@ install_git_versioning()
 
 install_docopt()
 {
+  test -n "$sudo" || install_f="--user"
   git clone https://github.com/dotmpe/docopt-mpe.git $SRC_PREFIX/docopt-mpe
-  ( cd $SRC_PREFIX/docopt-mpe && git checkout 0.6.x && python ./setup.py install --user )
+  ( cd $SRC_PREFIX/docopt-mpe \
+      && git checkout 0.6.x \
+      && $sudo python ./setup.py install $install_f )
 }
 
 install_mkdoc()
@@ -104,7 +101,7 @@ main_entry()
 {
   test -n "$1" || set -- '*'
 
-  case "$1" in * )
+  case "$1" in '*'|project|git )
       git --version >/dev/null || {
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
     ;; esac
@@ -118,7 +115,9 @@ main_entry()
         install_git_versioning || return $?; }
     ;; esac
 
-  case "$1" in '*'|python|docopt)
+  case "$1" in '*'|python|project|docopt)
+      pip --version >/dev/null || { echo "Sorry, PIP is a pre-requisite"; exit 1; }
+      # Using import seems more robust than scanning pip list
       python -c 'import docopt' || { install_docopt || return $?; }
     ;; esac
 

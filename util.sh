@@ -3,6 +3,12 @@
 set -e
 
 
+# FIXME: comment format:
+# [return codes] [exit codes] func-id [flags] pos-arg-id.. $name-arg-id..
+# Env: $name-env-id
+# Description.
+
+
 # test for var decl, io. to no override empty
 var_isset()
 {
@@ -27,6 +33,7 @@ noop()
 {
   . /dev/null # source empty file
   #echo -n # echo nothing
+  #printf "" # id. if echo -n incompatible (Darwin)
   #set -- # clear arguments (XXX set nothing?)
 }
 
@@ -34,7 +41,7 @@ trueish()
 {
   test -n "$1" || return 1
   case "$1" in
-    on|true|y*|j*|1)
+		[Oo]n|[Tt]rue|[Yy]es|1)
       return 0;;
     * )
       return 1;;
@@ -334,12 +341,33 @@ func_comment()
   test -n "$1" || error "function name expected" 1
   test -e "$2" || error "file expected: '$2'" 1
   test -z "$3" || error "surplus arguments: '$3'" 1
+  # find function line number, or return 0
   grep_line="$(grep -n "^$1()" "$2" | cut -d ':' -f 1)"
   case "$grep_line" in [0-9]* ) ;; * ) return 0;; esac
+  # get line before function line
   func_leading_line="$(head -n +$(( $grep_line - 1 )) "$2" | tail -n 1)"
+  # return if exact line is a comment
   echo "$func_leading_line" | grep -q '^\s*#\ ' && {
     echo "$func_leading_line" | sed 's/^\s*#\ //'
   } || noop
+}
+
+header_comment()
+{
+  read_file_lines_while "$1" 'echo "$line" | grep -qE "^\s*#.*$"' || return $?
+  export last_comment_line=$line_number
+}
+
+# Echo exact contents of the #-commented file header, or return 1
+# backup-header-comment file [suffix-or-abs-path]
+backup_header_comment()
+{
+  test -n "$2" || set -- "$1" ".header"
+  fnmatch "/*" "$2" \
+    && backup_file="$2" \
+    || backup_file="$1$2"
+  # find last line of header, add output to backup
+  header_comment "$1" > "$backup_file" || return $?
 }
 
 

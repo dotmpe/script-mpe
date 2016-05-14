@@ -116,6 +116,22 @@ fnmatch()
   case "$2" in $1 ) return 0 ;; *) return 1 ;; esac
 }
 
+words_to_lines()
+{
+  tr ' ' '\n'
+}
+lines_to_words()
+{
+  tr '\n' ' '
+}
+words_to_unique_lines()
+{
+  words_to_lines | sort -u
+}
+unique_words()
+{
+  words_to_unique_lines | lines_to_words
+}
 
 # Set env for str.lib.sh
 str_load()

@@ -193,6 +193,8 @@ def get_clean_mode(repo):
             repo_mode = 'untracked'
         else:
             repo_mode = 'tracked'
+    if not repo_mode:
+        repo_mode = 'untracked'
     return repo_mode
 
 
@@ -348,22 +350,45 @@ def H_enable(pdhdata, ctx):
 def H_disable(pdhdata, ctx):
     return toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
 
-# Return or check for clean-mode
-def H_clean_mode(pdhdata, ctx):
 
-    mode = ctx.opts.args.mode or 'untracked'
+# Return or check for clean-mode. Giving a mode argument implies quiet/exit.
+# With -q, be quiet and exit non-zero if required-mode >= given-mode
+# With -s, be strict, and exit non-zero if required-mode != given-mode
+# With no argument print whatever value repo-mode is, and with -s exit on None
+def H_clean_mode(pdhdata, ctx):
+    mode = ctx.opts.args.mode
+    if mode:
+        ctx.opts.flags.quiet = True
     if ctx.opts.args.prefix in pdhdata['repositories']:
+
         repo = pdhdata['repositories'][ctx.opts.args.prefix]
         repo_mode = get_clean_mode(repo)
-        if ctx.opts.flags.strict:
-            return repo_mode == mode
-        else:
+        if not mode:
+            assert not ctx.opts.flags.quiet, "illegal quiet flag"
+            #assert not ctx.opts.flags.strict, "illegal strict flag"
             if ctx.opts.flags.strict:
-                if repo_mode != mode:
+                if not repo_mode:
                     return 1
             else:
-                if repo_modes.index(repo_mode) < repo_modes.index(mode):
-                    return 1
+                print >>ctx.out, repo_mode
+        elif ctx.opts.flags.strict:
+            if repo_mode != mode:
+                return 1
+        else:
+            #print repo_modes.index(repo_mode), repo_modes.index(mode)
+            if repo_modes.index(repo_mode) < repo_modes.index(mode):
+                #if ctx.opts.flags.quiet:
+                return 1
+
+        #if not (opts.flags.strict or opts.flags.quiet):
+        #    mode = 'untracked'
+        #else:
+        #    if ctx.opts.flags.strict:
+        #        if repo_mode != mode:
+        #            return 1
+        #    else:
+        #        if repo_modes.index(repo_mode) < repo_modes.index(mode):
+        #            return 1
     else:
         for k in pdhdata['repositories'].keys():
             if not prefix_match( k, ctx.opts.args.prefix, ctx.opts ):

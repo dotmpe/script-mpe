@@ -104,7 +104,7 @@ tmpf()
 
 tmpd()
 {
-  tmpd=$BATS_TMPDIR/bats-tempd
+  tmpd=$BATS_TMPDIR/bats-tempd-$(uuidgen)
   test -d "$tmpd" && rm -rf $tmpd
   mkdir -vp $tmpd
 }

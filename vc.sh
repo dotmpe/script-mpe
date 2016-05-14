@@ -612,7 +612,7 @@ vc_excluded()
       warn "Not a checkout: ${path}"
       continue
     }
-    ( cd $path && vc_excluded )
+    ( note $path:;cd $path && vc_excluded )
   done
 }
 
@@ -816,6 +816,25 @@ vc_list_local_branches()
   test -z "$1" || cd $1
   git branch -l | sed -E 's/\*|[[:space:]]//g'
   test -z "$1" || cd $pwd
+}
+
+# regenerate .git/info/exclude
+vc_update()
+{
+  # backup header comment
+  test -n .git/info/exclude-header.txt
+  local excludes=.git/info/exclude
+  test -e $excludes.header || backup_header_comment $excludes
+  read_nix_style_file $excludes | sort -u > $excludes.list
+  cat $excludes.header $excludes.list > $excludes
+  for x in .gitignore-*
+  do
+    test -e $x || continue
+    fnmatch "$x: text/*" "$(file -I $x)" || continue
+    echo "# Source: $x" >> $excludes
+    read_nix_style_file $x >> $excludes
+  done
+  rm $excludes.list
 }
 
 

@@ -25,3 +25,37 @@ version=0.0.0+20150911-0659 # script.mpe
 
 }
 
+@test "$bin read-file-lines-while (default)" {
+  read_file_lines_while test/var/nix_comments.txt || r=$?
+  test "$line_number" = "5" || {
+    diag "Line_Number: ${line_number}"
+    diag "Status: $r"
+    fail "Should have last line before first content line. "
+  }
+  test -z "$r"
+}
+
+@test "$bin read-file-lines-while (negative)" {
+  testf=test/var/nix_comments.txt
+  r=; read_file_lines_while $testf \
+    'echo "$line" | grep -q "not-in-file"' || r=$?
+  test -n "$line_number"
+  test -z "$r" -a "$r" != "0"
+}
+
+@test "$bin read-file-lines-while header comments" {
+  testf=test/var/nix_comments.txt
+  r=; read_file_lines_while $testf \
+    'echo "$line" | grep -qE "^\s*#.*$"' || r=$?
+  test "$line_number" = "4" || {
+    diag "Line_Number: ${line_number}"
+    diag "Status: $r"
+    fail "Should have returned last header comment line. "
+  }
+  test -z "$r"
+
+  header_comment $testf
+  test "$line_number" = "4"
+}
+
+

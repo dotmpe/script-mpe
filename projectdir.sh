@@ -30,8 +30,8 @@ pd_run__meta=y
 pd__meta()
 {
   test -n "$1" || set -- --background
+  test -n "$pd"
 
-  # FIXME: remove python client for a real speed improvement
   fnmatch "$1" "-*" || {
     test -x "$(which socat)" -a -e "$sock" && {
       printf -- "$*\r\n" | socat -d - "UNIX-CONNECT:$sock" \
@@ -99,11 +99,12 @@ pd__status()
     return
   }
 
-  info "Prefixes: $(echo "$prefixes" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
-  debug "Registered: $(echo "$registered" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
+  info "Prefixes: $(echo "$prefixes" | unique_words)"
+  debug "Registered: $(echo "$registered" | unique_words)"
 
-  local union="$(echo "$prefixes $registered" | tr ' ' '\n' | sort -u)"
-  for checkout in $union
+  #local union="$(echo "$prefixes $registered" | words_to_unique_lines )"
+  for checkout in $prefixes
+    # XXX union
   do
     test -f "$checkout" -o -h "$checkout" && {
       note "Not a checkout path at $checkout"
@@ -125,12 +126,11 @@ pd__status()
     # FIXME: merge with pd-check? Need fast access to lists..
     #pd_check $checkout || echo pd-check:$checkout >>$failed
     pd__clean $checkout || {
-        warn "Checkout $checkout is not clean"
-        echo pd-clean:$checkout >>$failed
-        statusdir.sh assert-json \
-          'project/'$checkout'/clean'=false
-        statusdir.sh assert-json \
-          'project/'$checkout'/tags[]'=to-clean
+      echo pd-clean:$checkout >>$failed
+      statusdir.sh assert-json \
+        'project/'$checkout'/clean'=false
+      statusdir.sh assert-json \
+        'project/'$checkout'/tags[]'=to-clean
     }
 
     echo "$registered" | grep -qF $checkout && {
@@ -170,24 +170,32 @@ pd__check()
   done
 }
 
+pd_run__clean=y
 pd__clean()
 {
-  pd_clean "$1" || return
-  case "$?" in
+  local R=0; pd_clean "$1" || R=$?; case "$R" in
     0|"" )
-      info "OK $(__vc_status "$1")"
-      #info "OK $(vc.sh status "$1")"
-    ;;
+        info "OK $(__vc_status "$1")"
+      ;;
     1 )
-      warn "Dirty: $(__vc_status "$1")"
-      return 1
-    ;;
+        warn "Dirty: $(__vc_status "$1")"
+        return 1
+      ;;
     2 )
-      warn "Crufty: $(__vc_status "$1")"
-      test $verbosity -gt 6 &&
-        printf "$cruft\n" || noop
-      return 2
-    ;;
+        cruft_lines="$(echo $(echo "$cruft" | wc -l))"
+        test $verbosity -gt 6 \
+          && {
+            warn "Crufty: $(__vc_status "$1"):"
+            printf "$cruft\n"
+          } || {
+            warn "Crufty: $(__vc_status "$1"), $cruft_lines files."
+          }
+        return 2
+      ;;
+    * )
+        error "pd_clean error"
+        return -1
+      ;;
   esac
 }
 
@@ -220,12 +228,19 @@ pd__update()
 {
   set -- "$(normalize_relative "$go_to_before/$1")"
 
+  # Regenerate .git/info/exclude
+  vc_update
+
   env | grep -qv '^package_pd_meta_git_' || return
+
+  # Regenerate from package.yaml: GIT hooks
   (
     cd $1
     generate_git_hooks
     install_git_hooks
   )
+
+  # Update projectdocument with repo remotes
 
   props=
   test -d $prefix/.git/annex && {
@@ -387,6 +402,7 @@ pd_run__sync=yf
 pd__sync()
 {
   test -n "$1" || error "prefix argument expected" 1
+  remotes=/tmp/pd--sync-$(uuidgen)
   prefix=$1
 
   shift 1
@@ -397,17 +413,17 @@ pd__sync()
 
   test -d .git || error "Not a standalone .git: $prefix" 1
 
-  test -e .git/FETCH_HEAD && younger_than .git/FETCH_HEAD $PD_SYNC_AGE && {
-    return
-  }
-
   test ! -d .git/annex || {
-    git annex sync
-    return $?
+    git annex sync || r=$?
+    test -n "$r" || {
+      echo "annex-sync:$prefix" >>$failed
+      return $r
+    }
   }
 
   cd $pwd
 
+  # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
   {
     pd__meta -s list-upstream "$prefix" "$@" \
       || {
@@ -420,20 +436,26 @@ pd__sync()
 
     cd $pwd/$prefix
 
-    git fetch --quiet $remote || {
-      error "fetching $remote"
-      touch $failed
-      continue
+
+    ( test -e .git/FETCH_HEAD && younger_than .git/FETCH_HEAD $PD_SYNC_AGE ) || {
+      git fetch --quiet $remote || {
+        error "fetching $remote"
+        echo "fetch:$remote" >>$failed
+        continue
+      }
     }
 
+
     local remoteref=$remote/$branch
+
+    echo $remoteref >>$remotes
 
     git show-ref --quiet $remoteref || {
       test -n "$choice_sync_push" && {
         git push $remote +$branch
       } || {
         error "Missing remote branch in $prefix: $remoteref"
-        touch $failed
+        echo "missing:$prefix:$remoteref" >>$failed
         continue
       }
     }
@@ -455,7 +477,7 @@ pd__sync()
       note "$prefix ahead of $remote#$branch by $ahead commits"
       test -n "$dry_run" \
         || git push $remote $branch \
-        || touch $failed
+        || echo "ahead:$prefix:$remoteref:$ahead" >>$failed
     }
 
     test $behind -eq 0 || {
@@ -469,7 +491,14 @@ pd__sync()
 
   done
 
-  # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
+  remote_cnt=$(wc -l $remotes | awk '{print  $1}')
+
+  test $remote_cnt -gt 0 || echo 'remotes:0' >>$failed
+
+  test ! -s "$failed" \
+    && info "In sync with at least one remote: $prefix" \
+    || error "Not in sync: $prefix"
+
 }
 
 pd_run__enable_all=ybf
@@ -612,29 +641,19 @@ pd__disable()
 
   pd__meta_sq disabled $1 && {
     info "Already disabled: $1"
-
   } || {
-
-    pd__meta disable $1 \
-      && note "Disabled $1"
+    pd__meta disable $1 && note "Disabled $1"
   }
 
   test ! -d $1 && {
     info "No checkout, nothing to do"
   } || {
-    note "Found checkout, getting status.."
+    note "Found checkout, getting status.. (Clean-Mode: $(pd__meta clean-mode $1))"
 
-    choice_strict=1 \
-      pd_clean $1 \
-      || case "$?" in
-          1 ) warn "Dirty: $(__vc_status "$1")" 1 ;;
-          2 ) note "Crufty: $(__vc_status "$1")" 1 ;;
-          * ) error "pd_clean error" ;;
-        esac
+    pd__clean $1 || return $?
 
     choice_sync_dismiss=1 \
-    $scriptdir/$scriptname.sh sync $1 \
-      || error "Not in sync: $1" 1
+    $scriptdir/$scriptname.sh sync $1 || return $?
 
     rm -rf $1 \
       && note "Removed checkout $1"

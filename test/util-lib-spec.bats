@@ -153,6 +153,7 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 }
 
 
+# FIXME: this is far to slow
 @test "$lib short" {
   check_skipped_envs travis || skip "Nothing much to test anyway"
 
@@ -266,6 +267,27 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
   #uname=$(uname -s)
   #printf "1\r" >$out
   #test -n "$(line_count $out)"
+}
+
+
+@test "$lib header-comment test/var/nix_comments.txt prints file header comment, exports env" {
+  local testf=test/var/nix_comments.txt r=
+  header_comment $testf > $testf.header || r=$?
+  md5ck="$(echo $(md5sum $testf.header | awk '{print $1}'))"
+  rm $testf.header
+  test -z "$r" 
+  test "$md5ck" = "b37a5e1dd5f33d5ea937de72587052c7"
+  test $line_number -eq 4
+}
+
+@test "$lib backup-header-comment test/var/nix_comments.txt writes comment-header file" {
+  local testf=test/var/nix_comments.txt
+  run backup_header_comment $testf
+  test $status -eq 0
+  test -z "${lines[*]}"
+  test -s $testf.header
+  test "$(echo $(md5sum $testf.header | awk '{print $1}'))" \
+    = "b37a5e1dd5f33d5ea937de72587052c7"
 }
 
 
