@@ -791,6 +791,10 @@ pd__run()
         git-versioning check || echo $1>>$failed
       ;;
 
+    python:* )
+        python $(echo $1 | cut -c 8-) || echo $1>>$failed
+      ;;
+
     sh:* )
         local cmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
         info "Using Sh '$cmd'"
@@ -881,7 +885,9 @@ pd__check()
   do
     info "Check to run: $1"
     pd__run $1 || { r=$?; echo $1>>$failed; }
-    info "Check returned ($r)"
+    test -z "$r" \
+      && info "OK: $1" \
+      || info "Check $1 returned ($r)"
     shift
   done
 }

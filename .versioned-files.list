@@ -1,4 +1,5 @@
 ReadMe.rst
+package.yaml
 Rules.mk
 match.sh
 test/htd-spec.bats

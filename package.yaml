@@ -1,0 +1,19 @@
+# git-versioning main: script.mpe
+
+- type: application/x-project-mpe
+  main: script.mpe
+  id: script.mpe
+  version: 0.0.0-dev # script.mpe
+  environments: [ 'development' ]
+
+  pd-meta:
+
+    check: "vchk bats-specs"
+    test: "vchk python:test/main.py bats-specs bats"
+
+    git-hooks:
+      pre-commit: ./tools/git-hooks/pre-commit.sh
+
+    init: "./install-dependencies.sh git"
+
+

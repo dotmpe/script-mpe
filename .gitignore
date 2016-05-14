@@ -11,7 +11,4 @@ debug*
 .htdignore.merged
 node_modules/
 coverage_html_report/
-
-
-
-
+.package.json
