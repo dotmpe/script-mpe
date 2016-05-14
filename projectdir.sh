@@ -654,10 +654,10 @@ pd__add()
   # Check URL arg, add/update a repo remote if given
   test -z "$2" || props="remote_$1=$2"
 
-  pd__meta_sq get-repo "$3" && {
-    pd__add_new "$3" $props
-  } || {
+  pd__meta_sq get-repo "$3" 1>/dev/null || {
     pd__meta update-repo "$3" $props
+  } || {
+    pd__add_new "$3" $props
   }
   # XXX after pd-add, perhaps enable+init+regenerate
   #trueish "$choice_interactive" && {
