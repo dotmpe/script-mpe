@@ -229,16 +229,16 @@ pd__update()
   set -- "$(normalize_relative "$go_to_before/$1")"
 
   # Regenerate .git/info/exclude
-  vc_update
-
-  env | grep -qv '^package_pd_meta_git_' || return
+  vc_update || echo "update:vc-update:$1" >>$failed
 
   # Regenerate from package.yaml: GIT hooks
+  env | grep -qv '^package_pd_meta_git_' && \
   (
     cd $1
-    generate_git_hooks
-    install_git_hooks
-  )
+    generate_git_hooks && install_git_hooks
+  ) || {
+    echo "update:git-hooks:$prefix" >>$failed
+  }
 
   # Update projectdocument with repo remotes
 
@@ -250,7 +250,8 @@ pd__update()
   props="$props $(verbosity=0;cd $1;echo "$(vc_remotes sh)")"
   test -n "$props" || {
     error "No remotes for $prefix"
-    touch $failed
+    echo "update:no-remotes:$prefix" >>$failed
+    return
   }
 
   # Update existing, add newly found repos to metadata
@@ -264,7 +265,7 @@ pd__update()
           info "Metadata already up-to-date for $1"
         } || {
           warn "Error updating $1 with '$(echo $props)'"
-          touch $failed
+          echo "update-repo:$1:$r" >>$failed
         }
         unset r
       }
@@ -273,7 +274,10 @@ pd__update()
     info "New repo: $1 props='$(echo $props)'"
     pd__meta put-repo $1 sync=true enabled=true $props \
       && note "Added metadata for $1" \
-      || error "Unexpected error adding repo $?" $?
+      || {
+        error "Unexpected error adding repo $?" $?
+        echo "add-repo:$1" >>$failed
+      }
   }
 }
 
@@ -916,11 +920,13 @@ pd__show()
   set -- "$(normalize_relative $go_to_before/$1)"
   test -n "$1" || error "Prefix expected" 1
   pd__meta get-repo $1 | \
-    jsotk.py -I json -O yaml --pretty --output-prefix repositories update - -
-
-  jsotk.py --output-prefix package -I yaml -O yaml --pretty objectpath $metaf '$.*[@.main is not None]'
+    jsotk.py -I json -O yaml --pretty --output-prefix repositories/$1 update - -
 
   update_package "$1"
+
+  test -n "$metaf" || error metaf 1
+  test -e "$metaf" || error $metaf 1
+  jsotk.py --output-prefix package -I yaml -O yaml --pretty objectpath $metaf '$.*[@.main is not None]'
 }
 
 # ----
