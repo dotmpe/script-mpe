@@ -633,7 +633,7 @@ pd__disable_all()
 }
 
 # Disable prefix. Remove checkout if clean.
-pd_run__disable=y
+pd_run__disable=yf
 pd__disable()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -655,8 +655,14 @@ pd__disable()
     choice_sync_dismiss=1 \
     $scriptdir/$scriptname.sh sync $1 || return $?
 
-    rm -rf $1 \
-      && note "Removed checkout $1"
+    trueish "$dry_run" \
+      && {
+        echo "dry-run:rm:$1" >>$failed
+        note "** DRY_RUN **: checkout to be removed $1"
+      } || {
+        rm -rf $1 \
+          && note "Removed checkout $1"
+      }
   }
 }
 
