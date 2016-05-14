@@ -70,7 +70,7 @@ try_value()
   echo $value
 }
 
-try_var()
+try_local_var()
 {
   test -n "$1" || error "var" 1
   local value="$(eval echo "\$$(try_local "$2" "$3" "$4")")"
@@ -110,7 +110,7 @@ get_subcmd_func()
   # Get default sub for base script
   test -n "$1" || {
     test -n "$subcmd" || {
-      try_var subcmd "" default || return 12
+      try_local_var subcmd "" default || return 12
     }
     set -- "$subcmd"
   }
@@ -125,7 +125,7 @@ get_subcmd_func()
 
     try_local_func "$@" || {
       # Try command alias
-      try_var cmd_als $1 als $b
+      try_local_var cmd_als $1 als $b
       test -z "$cmd_als" || \
         set -- "$(mkvid "$cmd_als";echo $vid)" "" "$b"
     }
@@ -321,8 +321,8 @@ parse_subcmd_valid_flags()
 
 get_cmd_alias()
 {
-  try_var $1_alias $(echo "$2" | tr '-' '_') als \
-    || try_var $1_alias $(echo "$2" | tr '-' '_') als std
+  try_local_var $1_alias $(echo "$2" | tr '-' '_') als \
+    || try_local_var $1_alias $(echo "$2" | tr '-' '_') als std
 
 #  local func_pref="$(eval echo \$${1}_func_pref)"
 #  export ${1}_alias=$(eval echo \$${func_pref}als

@@ -85,11 +85,11 @@ BOX_INIT=1
   test "$(try_value var x)" = "var2"
 }
 
-@test "$lib/main try_var" {
+@test "$lib/main try_local_var" {
   var_isset myvar1 && test -z 'unexpected myvar1' || noop
   base=
   _x__b=123
-  try_var myvar1 b x
+  try_local_var myvar1 b x
   test "$myvar1" = "123"
   var_isset myvar1 || test -z 'expected myvar1'
   unset myvar1

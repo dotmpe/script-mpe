@@ -222,7 +222,7 @@ htd__commands()
 
 
 htd_man_1__help="Echo a combined usage, command and docs"
-htd__spc_help="-h|help [<id>]"
+htd_spc__help="-h|help [<id>]"
 htd__help()
 {
   test -z "$1" && {
@@ -278,7 +278,7 @@ htd__expand()
 
 
 htd_man_1__edit_main="Edit the main script file"
-htd__spc_edit_main="-E|edit-main"
+htd_spc__edit_main="-E|edit-main"
 htd__edit_main()
 {
   locate_name
@@ -289,7 +289,7 @@ htd_als___E=edit-main
 
 
 htd_man_1__edit="Edit a local file, or abort"
-htd__spc_edit="-e|edit <id>"
+htd_spc__edit="-e|edit <id>"
 htd__edit()
 {
   test -n "$1" || error "search term expected" 1
@@ -304,7 +304,7 @@ htd_als___e=edit
 
 
 htd_man_1__count="Look for doc"
-htd__spc_count="count"
+htd_spc__count="count"
 htd__count()
 {
   doc_path_args
@@ -317,7 +317,7 @@ htd__count()
 }
 
 htd_man_1__find="Look for document. "
-htd__spc_find="-f|find (<path>|<localname> [<project>])"
+htd_spc__find="-f|find (<path>|<localname> [<project>])"
 htd__find()
 {
   doc_path_args
@@ -331,6 +331,39 @@ htd__find()
 htd_als___f=find
 
 
+htd_man_1__status=""
+htd_spc__status=""
+htd__status()
+{
+  # global, local services
+  # disks, annex
+  # project tests, todos
+  # src, tools
+  echo "$@"
+}
+
+
+htd_man_1__tools=""
+htd_spc__tools=""
+htd__tools()
+{
+  echo "$@"
+}
+
+htd_man_1__install=""
+htd_spc__install=""
+htd__install()
+{
+  jsotk.py yaml2json ~/.conf/tools.yml ~/.conf/tools.json
+  local verbosity=6
+  while test -n "$1"
+  do
+    install_bin ~/.conf/tools.json $1 \
+      && info "Tool $1 is installed" \
+      || info "Tool $1 error: $?"
+    shift
+  done
+}
 
 htd__man_5__htdignore_merged='Exclude rules used by `htd find|edit|count`, compiled from other sources using ``htd init-ignores``. '
 
@@ -379,7 +412,7 @@ htd__list_local_ns()
 }
 
 # XXX: List matching tags
-htd__spc_ns_names='[<path>|<localname> [<ns>]]'
+htd_spc__ns_names='[<path>|<localname> [<ns>]]'
 htd__ns_names()
 {
   test -z "$3" || error "Surplus arguments: $3" 1
@@ -1528,7 +1561,7 @@ htd__ck_table()
 }
 
 htd_man_1__ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
-htd__spc_ck_table_subtree="ck-tabke-subtree $ck_arg_spec <path>"
+htd_spc__ck_table_subtree="ck-tabke-subtree $ck_arg_spec <path>"
 htd__ck_table_subtree()
 {
   ck_arg "$1"
@@ -1680,7 +1713,7 @@ htd__ck_drop()
 }
 
 htd_man_1__ck_clean="Iterate checksum table, check for duplicates, normalize paths"
-htd__spc_ck_clean="clean $ck_arg_spec"
+htd_spc__ck_clean="clean $ck_arg_spec"
 htd__ck_clean()
 {
   ck_arg "$1"
@@ -1692,7 +1725,7 @@ htd__ck_clean()
   }
 }
 
-htd__spc_ck_validate="ck-validate $ck_arg_spec"
+htd_spc__ck_validate="ck-validate $ck_arg_spec"
 htd__ck_validate()
 {
   ck_arg "$1"
@@ -1705,7 +1738,7 @@ htd__ck_validate()
 }
 
 # check file size and cksum
-htd__spc_checksums="checksums [<table-file>]"
+htd_spc__checksums="checksums [<table-file>]"
 htd__checksums()
 {
   test -n "$1"  && T=$1  || T=table.ck
@@ -3011,8 +3044,8 @@ htd_main()
 
   case "$base" in $scriptname )
 
-      htd_lib || exit $?
-      run_subcmd "$@" || exit $?
+        htd_lib || exit $?
+        run_subcmd "$@" || exit $?
       ;;
 
     * )

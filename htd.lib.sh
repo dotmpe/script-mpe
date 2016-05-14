@@ -151,4 +151,43 @@ mkrlink()
   ln -vs $(basename $1) $2
 }
 
+install_bin()
+{
+  # Check if binary is available
+  local bin="$(jsotk.py objectpath $1 '$.tools.'$2'.bin')"
+  test "$bin" = "True" && bin=$2
+  case "$bin" in
+    "["*"]" )
+        eval $(jsotk.py -O fkv objectpath $1 '$.tools.'$2'.bin')
+        local c=0
+        while test -n "$(try_var __$c)"
+        do
+          bin_=$(try_var __$c)
+          test -n "$(which $bin_)" && return
+          incr_c
+        done
+      ;;
+    * )
+      test -n "$(which $bin)" && return
+      #local version="$(jsotk.py objectpath $1 '$.tools.'$2'.version')"
+      #$bin $version && return || break
+      ;;
+  esac
+
+  # Look for installer
+  installer=$(jsotk.py objectpath $1 '$.tools.'$2'.installer')
+  test "$installer" = "null" && return 1
+  test -n "$installer" && {
+    id=$(jsotk.py objectpath $1 '$.tools.'$2'.id')
+    test -n "$id" || id=$2
+    case "$installer" in
+      pip )
+          pip list | grep -q $id || pip install $id
+        ;;
+    esac
+  } || {
+    jsotk.py objectpath $1 '$.tools.'$2'.install'
+  }
+}
+
 
