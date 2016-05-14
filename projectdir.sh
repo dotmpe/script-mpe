@@ -223,61 +223,40 @@ pd__disable_clean()
   done
 }
 
+# Regenerate local package metadata files and scripts
+pd_run__regenerate=dfp
+pd__regenerate()
+{
+  set -- "$(normalize_relative "$go_to_before/$1")"
+  exec 3>$failed
+  ( cd $1 && pd_regenerate "$1" )
+  exec 3<&-
+  test -s "$failed" || rm $failed
+}
+
+# Given existing checkouts upate local scripts and then projdoc
 pd_run__update=yfp
 pd__update()
 {
   set -- "$(normalize_relative "$go_to_before/$1")"
+  go_to_before=$(realpath $go_to_before)
 
-  # Regenerate .git/info/exclude
-  vc_update || echo "update:vc-update:$1" >>$failed
+  exec 3>$failed
+  ( cd $1 && pd_regenerate "$1" )
+  exec 3<&-
+  test -s "$failed" || rm $failed
 
-  # Regenerate from package.yaml: GIT hooks
-  env | grep -qv '^package_pd_meta_git_' && \
-  (
-    cd $1
-    generate_git_hooks && install_git_hooks
-  ) || {
-    echo "update:git-hooks:$prefix" >>$failed
-  }
+  cd $go_to_before
 
-  # Update projectdocument with repo remotes
-
-  props=
-  test -d $prefix/.git/annex && {
-    props="annex=true"
-  }
-
-  props="$props $(verbosity=0;cd $1;echo "$(vc_remotes sh)")"
-  test -n "$props" || {
-    error "No remotes for $prefix"
-    echo "update:no-remotes:$prefix" >>$failed
-    return
-  }
-
-  # Update existing, add newly found repos to metadata
-
+  # Update projectdocument with repo remotes etc
   pd__meta_sq get-repo $1 && {
-    pd__meta update-repo $1 $props \
-      && note "Updated metadata for $1" \
-      || {
-        local r=$?;
-        test $r -eq 42 && {
-          info "Metadata already up-to-date for $1"
-        } || {
-          warn "Error updating $1 with '$(echo $props)'"
-          echo "update-repo:$1:$r" >>$failed
-        }
-        unset r
-      }
+
+    note "Updating prefix $1"
+    pd__update_repo $1
   } || {
 
-    info "New repo: $1 props='$(echo $props)'"
-    pd__meta put-repo $1 sync=true enabled=true $props \
-      && note "Added metadata for $1" \
-      || {
-        error "Unexpected error adding repo $?" $?
-        echo "add-repo:$1" >>$failed
-      }
+    note "Adding prefix $1"
+    pd__add_new $1
   }
 }
 
@@ -323,40 +302,8 @@ pd__update_all()
       match_grep_pattern_test "$prefix"
 
       # Assemble metadata properties
+      pd__update $prefix
 
-      props=
-      test -d $prefix/.git/annex && {
-        props="annex=true"
-      }
-
-      props="$props $(verbosity=0;cd $prefix;echo "$(vc_remotes sh)")"
-      test -n "$props" || {
-        error "No remotes for $prefix"
-        touch $failed
-      }
-
-      # Update existing, add newly found repos to metadata
-
-      pd__meta_sq get-repo $prefix && {
-        pd__meta update-repo $prefix $props \
-          && note "Updated metadata for $prefix" \
-          || {
-            local r=$?;
-            test $r -eq 42 && {
-              info "Metadata already up-to-date for $prefix"
-            } || {
-              warn "Error updating $prefix with '$(echo $props)'"
-              touch $failed
-            }
-            unset r
-          }
-      } || {
-
-        info "New repo: $1 props='$(echo $props)'"
-        pd__meta put-repo $prefix $props \
-          && note "Added metadata for $prefix" \
-          || error "Unexpected error adding repo $?" $?
-      }
     done
 
     shift
@@ -418,6 +365,9 @@ pd__sync()
   test -d .git || error "Not a standalone .git: $prefix" 1
 
   test ! -d .git/annex || {
+    git annex version >/dev/null || {
+      error "GIT Annex dir but no git-annex" 1
+    }
     git annex sync || r=$?
     test -n "$r" || {
       echo "annex-sync:$prefix" >>$failed
@@ -570,7 +520,8 @@ pd__init_all()
   done
 }
 
-pd_run__init=y
+# Given existing checkout, update local .git with remotes, regen hooks.
+pd_run__init=yfp
 pd__init()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -578,15 +529,17 @@ pd__init()
   pd__meta_sq get-repo $1 || error "No repo for $1" 1
 
   pd__set_remotes $1
-  cwd=$(pwd)
-  cd $1
-  git submodule update --init --recursive
+
+  ( cd $1
+    git submodule update --init --recursive )
+
+  # Regenerate .git/info/exclude
+  vc_update || echo "update:vc-update:$1" >>$failed
 
   test ! -e .versioned-files.list || {
     echo "git-versioning check" > .git/hooks/pre-commit
     chmod +x .git/hooks/pre-commit
   }
-  cd $cwd
 }
 
 # Set the remotes from metadata
@@ -677,40 +630,117 @@ pd__disable()
 }
 
 
-# Add repo
+# Add or update SCMs of a repo
+# Arguments checkout dir prefix, url and prefix, or remote name, url and prefix.
 pd_run__add=y
-pd_spc__add="add ( PREFIX | REPO PREFIX )"
+pd_spc__add="add ( PREFIX | REPO PREFIX | NAME REPO PREFIX )"
 pd__add()
 {
-  # Shift first argument to second place if only one given
-  test -z "$1" || {
-    test -n "$2" || set -- "" "$1"
+  # Shift args to right, padding with empty arguments
+  while test ${#} -ne 3
+  do
+    set -- "" "$@"
+  done
+
+  # Check prefix or url arg
+  set -- "$1" "$2" "$(normalize_relative "$go_to_before/$3")"
+  test -n "$2" -o -d $3/.git || error "No repo, and not a checkout: $3" 1
+
+  # Set default args for single remote
+  test -n "$1" || {
+    test -z "$2" || set -- "origin" "$2" "$3"
   }
 
-  # Check prefix arg
-  set -- "$1" "$(normalize_relative "$go_to_before/$2")"
-  test -d $2/.git || error "Not a checkout: $2" 1
+  # Check URL arg, add/update a repo remote if given
+  test -z "$2" || props="remote_$1=$2"
 
-  # Check URL arg
-  test -n "$1" && {
-    noop # TODO: ping URL? validate URL format?
+  pd__meta_sq get-repo "$3" && {
+    pd__add_new "$3" $props
   } || {
-    test -n "$3" && remotes="$3" || remotes="origin $(cd $2; git remote )"
-    for remote in $remotes
-    do
-      set -- "$(cd $2; git config remote.$remote.url)" "$2" "$remote"
-      test -n "$1" || continue
-      note "Using remote $3 as primary repository: $1"
-      break
-    done
+    pd__meta update-repo "$3" $props
   }
-  test -n "$1" || error "No URL" 1
+  # XXX after pd-add, perhaps enable+init+regenerate
+  #trueish "$choice_interactive" && {
+  #  pd__init
+  #}
+}
 
-  note "Putting repo in projectdoc.."
-  pd__meta put-repo $2 origin=$1 enabled=true clean=tracked sync=pull || return $?
+# Add a new item to the projectdoc, resolving some default values
+# Fail if prefix already in use
+pd_run__add_new=f
+pd__add_new()
+{
+  local prefix=$1; shift; local props="$@"
 
-  note "Enabling pd repo.."
-  pd__enable $2 || return $?
+  # Concat props as k/v, and sort into unique mapping later; last value wins
+  # FIXME: where ar the defaults: host and user defined, and project defined.
+  props="clean=tracked sync=true $@"
+
+  info "New repo $prefix, props='$(echo $props)'"
+
+  pd__meta put-repo $prefix $props \
+    && note "Added metadata for $prefix" \
+    || {
+      error "Unexpected error adding repo $?" $?
+      echo "add-new:$prefix" >>$failed
+    }
+
+  # XXX: enabled?
+}
+
+# Given prefix and optional props, update metadata. Props is prepended
+# and so may be overruled by host/env. To update metadata directly,
+# use pd__meta{,_sq} update-repo.
+pd_run__update_repo=f
+pd__update_repo()
+{
+  local cwd=$(pwd); prefix=$1; shift; local props="$@"
+
+  #test -d "$prefix/.git" || {
+  #  trueish "$choice_enable" && {
+  #    note "Enabling pd repo.."
+  #    pd__enable $3 || return $?
+  #  }
+  #}
+
+  test -d "$prefix/.git" && props="$props enabled=true"
+
+  test -d $prefix/.git/annex && {
+    props="$props annex=true"
+  }
+
+  # scan checkout remotes
+
+  # FIXME: move here props="$props $(verbosity=0;cd $1;echo "$(vc_remotes sh)")"
+
+  local remotes=
+  for remote in $(cd $prefix; git remote)
+  do
+    remotes="$remotes remote_$remote=$(cd $prefix; git config remote.$remote.url)"
+  done
+
+  test -n "$remotes" && props="$props $remotes" || {
+    error "No remotes for $prefix"
+    echo "update:no-remotes:$prefix" >>$failed
+    return
+  }
+
+  trueish "$dry_run" && warn "** DRY-RUN **" 1
+
+  # Update existing, add newly found repos to metadata
+
+  pd__meta update-repo $prefix $props \
+    && note "Updated metadata for $prefix" \
+    || {
+      local r=$?;
+      test $r -eq 42 && {
+        info "Metadata already up-to-date for $prefix"
+      } || {
+        warn "Error updating $prefix with '$(echo $props)'"
+        echo "update-repo:$prefix:$r" >>$failed
+      }
+      unset r
+    }
 }
 
 
@@ -806,6 +836,15 @@ pd__run()
         info "Returned $?"
       ;;
 
+    -* )
+        # Ignore return
+        # backup $failed, setup new and only be verbose about failures.
+        test ! -s "$failed" || cp $failed $failed.ignore
+        ( failed=/tmp/pd-run-$(uuidgen) pd__run $(expr_substr ${1} 2 ${#1});
+          clean_failed "*IGNORED* Failed targets:")
+        test ! -e $failed.ignore || mv $failed.ignore $failed
+      ;;
+
     * )
         error "No such test type $1" 1
       ;;
@@ -818,10 +857,12 @@ pd__test()
 {
   test -n "$1" || set -- $(pd__ls_tests)
 
+  info "Tests to run: $*"
+
   r=0
   while test -n "$1"
   do
-    info "Test to run: $1"
+    info "Next test: $1"
     pd__run $1 || { r=$?; echo $1>>$failed; }
     test $r -eq 0 \
       && note "Test OK: $1" \
@@ -954,15 +995,19 @@ pd_load()
   for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
   do case "$x" in
 
-      p ) # should implie y
-        test -e $go_to_before/package.yaml && update_package "$go_to_before"
-        test -e "$go_to_before/.package.sh" && . $go_to_before/.package.sh
+      p ) # should imply y or d
+        test -e $go_to_before/$2/package.yaml && update_package "$go_to_before/$2"
+        test -e "$go_to_before/$2/.package.sh" && . $go_to_before/$2/.package.sh
         test -n "$package_id" && {
           note "Found package '$package_id'"
         } || {
-          package_id="$(basename $(realpath $go_to_before))"
+          package_id="$(basename $(realpath $go_to_before/$2))"
           note "Using package ID '$package_id'"
         }
+        ;;
+
+      d )
+        go_to_before=.
         ;;
 
       y )
@@ -1028,14 +1073,20 @@ pd_unload()
   unset subcmd subcmd_pref \
           def_subcmd func_exists func
 
+  clean_failed
+}
+
+clean_failed()
+{
   test -z "$failed" -o ! -e "$failed" || {
+    test -n "$1" || set -- "Failed: "
     test -s "$failed" && {
       count="$(sort -u $failed | wc -l | awk '{print $1}')"
       test "$count" -gt 2 && {
-        warn "Failed: $(echo $(sort -u $failed | head -n 3 )) and $(( $count - 3 )) more"
+        warn "$1 $(echo $(sort -u $failed | head -n 3 )) and $(( $count - 3 )) more"
         rotate-file $failed .failed
       } || {
-        warn "Failed: $(echo $(sort -u $failed))"
+        warn "$1 $(echo $(sort -u $failed))"
       }
     }
     test ! -e "$failed" || rm $failed

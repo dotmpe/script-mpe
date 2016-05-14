@@ -32,9 +32,9 @@ normalize_relative()
   OIFS=$IFS
   IFS='/'
   local NORMALIZED
+
   for I in $1
   do
-
     # Resolve relative path punctuation.
     if [ "$I" = "." ] || [ -z "$I" ]
       then continue
@@ -42,31 +42,30 @@ normalize_relative()
     elif [ "$I" = ".." ]
       then
         NORMALIZED=$(echo "$NORMALIZED"|sed 's/\/[^/]*$//g')
-        #NORMALIZED="${NORMALIZED%%/${NORMALIZED##*/}}"
         continue
       else
         NORMALIZED="${NORMALIZED}/${I}"
+        #test -n "$NORMALIZED" \
+        #  && NORMALIZED="${NORMALIZED}/${I}" \
+        #  || NORMALIZED="${I}"
     fi
-
-    # Dereference symbolic links.
-    #if [ -h "$NORMALIZED" ] && [ -x "/bin/ls" ]
-    #  then IFS=$OIFS
-    #       set `/bin/ls -l "$NORMALIZED"`
-    #       while shift ;
-    #       do
-    #         if [ "$1" = "->" ]
-    #           then NORMALIZED="$2"
-    #                shift $#
-    #                break
-    #         fi
-    #       done
-    #fi
-
   done
   IFS=$OIFS
-  test "${1#/}" != "$1" \
-    && echo "$NORMALIZED" \
-    || echo "${NORMALIZED#/}"
+  test -n "$NORMALIZED" \
+    && {
+      case "$1" in
+        /* ) ;;
+        * )
+            NORMALIZED=$(expr_substr $NORMALIZED 2 ${#NORMALIZED} )
+          ;;
+      esac
+    } || NORMALIZED=.
+  case "$1" in
+    */ ) echo $NORMALIZED/
+      ;;
+    * ) echo $NORMALIZED
+      ;;
+  esac
 }
 
 

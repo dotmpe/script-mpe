@@ -142,6 +142,7 @@ install_git_hooks()
 update_package_json()
 {
   test -n "$metajs" || metajs=$1/.package.json
+  metajs=$(normalize_relative "$metajs")
   test $metaf -ot $metajs \
     || {
     log "Regenerating $metajs from $metaf.."
@@ -158,6 +159,7 @@ jsotk_package_sh_defaults()
 update_package_sh()
 {
   test -n "$metash" || metash=$1/.package.sh
+  metash=$(normalize_relative "$metash")
   test $metaf -ot $metash \
     || {
 
@@ -174,7 +176,8 @@ update_package_sh()
 update_package()
 {
   test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
-  test -e "$metaf" || warn "No package def" 0
+  metaf=$(normalize_relative "$metaf")
+  test -e "$metaf" || warn "No package def '$metaf'" 0
   # Package.sh is used by other scripts
   update_package_sh "$1"
   # .package.json is not used, its a direct convert of te entire YAML doc.
@@ -182,3 +185,19 @@ update_package()
   update_package_json "$1"
 }
 
+pd_regenerate()
+{
+  debug "pd-regenerate pwd=$(pwd) 1=$1"
+
+  # Regenerate .git/info/exclude
+  vc_update "$1" || echo "pd-regenerate:vc_update:$1" 1>&3
+
+  test ! -e .package.sh || . .package.sh
+
+  # Regenerate from package.yaml: GIT hooks
+  env | grep -qv '^package_pd_meta_git_' && {
+    generate_git_hooks && install_git_hooks \
+      || echo "pd-regenerate:git-hooks:$1" 1>&3
+  }
+
+}

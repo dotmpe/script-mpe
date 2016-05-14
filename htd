@@ -23,6 +23,8 @@ htd_load()
 
   cwd=$(pwd)
 
+  test -e .package.sh && . .package.sh
+
   go_to_directory .projects.yaml && {
     cd $cwd
     # $go_to_before
@@ -238,7 +240,7 @@ htd_als___h=help
 htd_man_1__version="Version info"
 htd__version()
 {
-  echo "$(cat $scriptdir/.app-id)/$version"
+  echo "$package_id/$version"
 }
 htd_als___V=version
 

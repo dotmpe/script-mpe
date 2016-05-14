@@ -1,3 +1,1 @@
-set -e ;
-git annex pre-commit .
-pd check vchk bats-specs
+set -e ; pd check vchk bats-specs

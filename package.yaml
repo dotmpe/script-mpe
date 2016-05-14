@@ -9,11 +9,12 @@
   pd-meta:
 
     check: "vchk bats-specs"
-    test: "vchk python:test/main.py bats-specs bats"
+    test: "vchk -python:test/main.py bats-specs bats"
 
     git-hooks:
       pre-commit: ./tools/git-hooks/pre-commit.sh
 
     init: "./install-dependencies.sh git"
 
+      # FIXME: what about git annex pre-commit .
 

@@ -253,6 +253,8 @@ def repo_kv_to_dict( kwdargs ):
             new[k] = v
         else:
             del new[k]
+            if k.startswith('remote_'):
+                k = k[7:]
             new['remotes'][k] = v
     return new
 
@@ -412,6 +414,8 @@ def H_get_repo(pdhdata, ctx):
         return 1
 
 def H_put_repo(pdhdata, ctx):
+    if ctx.opts.args.prefix in pdhdata['repositories']:
+        raise Exception, "Prefix already in use"
     return update_repo(pdhdata, ctx)
 def H_update_repo(pdhdata, ctx):
     return update_repo(pdhdata, ctx)
