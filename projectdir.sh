@@ -239,14 +239,14 @@ pd_run__update=yfp
 pd__update()
 {
   set -- "$(normalize_relative "$go_to_before/$1")"
-  go_to_before=$(realpath $go_to_before)
+  local cwd=$(pwd)
 
   exec 3>$failed
   ( cd $1 && pd_regenerate "$1" )
   exec 3<&-
   test -s "$failed" || rm $failed
 
-  cd $go_to_before
+  cd $cwd
 
   # Update projectdocument with repo remotes etc
   pd__meta_sq get-repo $1 && {

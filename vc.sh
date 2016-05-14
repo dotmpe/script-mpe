@@ -830,7 +830,7 @@ vc_update()
   for x in .gitignore-*
   do
     test -e $x || continue
-    fnmatch "$x: text/*" "$(file -I $x)" || continue
+    fnmatch "$x: text/*" "$(file --mime $x)" || continue
     echo "# Source: $x" >> $excludes
     read_nix_style_file $x >> $excludes
   done
