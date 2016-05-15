@@ -3,8 +3,10 @@
 Javascript Object toolkit.
 
 Usage:
-    jsotk [options] path <srcfile> <expr>
+    jsotk [options] path <srcfile> <pathexpr>
     jsotk [options] objectpath <srcfile> <expr>
+    jsotk [options] keys <srcfile> <pathexpr>
+    jsotk [options] items <srcfile> <pathexpr>
     jsotk [options] [dump] [<srcfile> [<destfile]]
     jsotk [options] (json2yaml|yaml2json) [<srcfile> [<destfile>]]
     jsotk [options] (from-kv|to-kv) [<srcfile> [<destfile>]]
@@ -63,7 +65,7 @@ import util
 from jsotk_lib import PathKVParser, FlatKVParser, \
         load_data, stdout_data, readers, open_file, \
         get_src_dest_defaults, set_format, \
-        deep_union, deep_update
+        deep_union, deep_update, data_at_path
 
 
 ### Sub-command handlers
@@ -159,15 +161,8 @@ def H_update_from_args(opts):
 # Ad-hoc designed path query
 
 def H_path(opts):
-    infile, outfile = get_src_dest_defaults(opts)
-    l = load_data( opts.flags.input_format, infile )
-    path_el = opts.args.expr.split('/')
-    while len(path_el):
-        b = path_el.pop(0)
-        if b not in l:
-            raise KeyError, b
-        l = l[b]
-    print l
+    data = data_at_path(opts)
+    print data
 
     # FIXME: use parser
     #reader = PathKVParser(rootkey=args[0])
@@ -249,6 +244,18 @@ def H_from_flat_kv(opts):
 def H_to_flat_kv(opts):
     opts.flags.output_format = 'fkv'
     return H_dump(opts)
+
+
+def H_keys(opts):
+    data = data_at_path(opts)
+    assert isinstance(data, dict)
+    print os.linesep.join(data.keys())
+
+def H_items(opts):
+    data = data_at_path(opts)
+    assert isinstance(data, list)
+    for item in data:
+        print item
 
 
 

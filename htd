@@ -335,6 +335,7 @@ htd_man_1__status=""
 htd_spc__status=""
 htd__status()
 {
+  # TODO:
   # global, local services
   # disks, annex
   # project tests, todos
@@ -347,23 +348,50 @@ htd_man_1__tools=""
 htd_spc__tools=""
 htd__tools()
 {
-  echo "$@"
+  test -e tools.yml
+  tools_json
+  test -n "$1" || set -- "$(echo $(jsotk.py keys tools.json tools))"
+  echo "tools:"
+  while test -n "$1"
+  do
+    installed tools.json "$1" \
+      && echo "- $1 (installed)" \
+      || echo "- $1"
+    shift
+  done
 }
 
 htd_man_1__install=""
 htd_spc__install=""
 htd__install()
 {
-  jsotk.py yaml2json ~/.conf/tools.yml ~/.conf/tools.json
+  tools_json
   local verbosity=6
   while test -n "$1"
   do
-    install_bin ~/.conf/tools.json $1 \
+    install_bin tools.json $1 \
       && info "Tool $1 is installed" \
       || info "Tool $1 error: $?"
     shift
   done
 }
+htd__uninstall()
+{
+  tools_json
+  local verbosity=6
+  while test -n "$1"
+  do
+    uninstall_bin tools.json $1 \
+      && info "Tool $1 is not installed" \
+      || { r=$?; 
+        test $r -eq 1 \
+          && info "Tool $1 uninstalled" \
+          || info "Tool uninstall $1 error: $r" $r
+      }
+    shift
+  done
+}
+
 
 htd__man_5__htdignore_merged='Exclude rules used by `htd find|edit|count`, compiled from other sources using ``htd init-ignores``. '
 

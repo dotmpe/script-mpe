@@ -36,6 +36,7 @@ jsotk.py objectpath \
       $HOME/bin/test/var/jsotk/2.yaml \
       '$.*[@.main is not None]'
 
+htd install json-spec
 
 
 . ./tools/sh/env.sh
