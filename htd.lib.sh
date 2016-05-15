@@ -181,17 +181,17 @@ install_bin()
   installed "$@" && return
 
   # Look for installer
-  installer=$(jsotk.py objectpath $1 '$.tools."'$2'".installer')
-  test "$installer" = "null" && return 1
+  installer=$(jsotk.py -N -O py objectpath $1 '$.tools."'$2'".installer')
+  test -n "$installer" || return 3
   test -n "$installer" && {
-    id=$(jsotk.py objectpath $1 '$.tools."'$2'".id')
-    test -n "$id" || id=$2
+    id=$(jsotk.py -N -O py objectpath $1 '$.tools."'$2'".id')
+    test -n "$id" || id="$2"
     case "$installer" in
       npm )
-          npm install -g $1 || return $?
+          npm install -g $id || return 2
         ;;
       pip )
-          pip list | grep -q $id || pip install $id
+          pip install $id || return 2
         ;;
     esac
   } || {
@@ -209,19 +209,17 @@ uninstall_bin()
 {
   installed "$@" || return 0
 
-  installer=$(jsotk.py objectpath $1 '$.tools."'$2'".installer')
-  test "$installer" = "null" && return 1
+  installer="$(echo $(jsotk.py -N -O py objectpath $1 '$.tools."'$2'".installer'))"
+  test -n "$installer" || return 3
   test -n "$installer" && {
-    id=$(jsotk.py objectpath $1 '$.tools."'$2'".id')
+    id=$(jsotk.py -N -O py objectpath $1 '$.tools."'$2'".id')
     test -n "$id" || id=$2
     case "$installer" in
       npm )
           npm uninstall -g $id || return 2
-          return 1
         ;;
       pip )
           pip uninstall $id || return 2
-          return 1
         ;;
     esac
   }
@@ -237,8 +235,10 @@ tools_json()
 {
   test ./tools.yml -ot ./tools.json \
     || jsotk.py yaml2json ./tools.yml ./tools.json
-  test ~/.conf/tools.yml -ot ~/.conf/tools.json \
-    || jsotk.py yaml2json ~/.conf/tools.yml ~/.conf/tools.json
+  test -e ~/.conf/ && {
+    test ~/.conf/tools.yml -ot ~/.conf/tools.json \
+      || jsotk.py yaml2json ~/.conf/tools.yml ~/.conf/tools.json
+  }
 }
 
 

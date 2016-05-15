@@ -286,21 +286,34 @@ def json_writer(data, file, opts):
     if opts.flags.pretty:
         kwds.update(dict(indent=2))
     data = output_prefix(data, opts)
-    file.write(js.dumps(data, **kwds))
-    print >> file
+    if not data and opts.flags.empty_null:
+        print >>file
+    else:
+        file.write(js.dumps(data, **kwds))
+    print >>file
 
 def yaml_writer(data, file, opts):
     kwds = {}
     if opts.flags.pretty:
         kwds.update(dict(default_flow_style=False))
     data = output_prefix(data, opts)
-    yaml_safe_dump(data, file, **kwds)
+    if not data and opts.flags.empty_null:
+        print >>file
+    else:
+        yaml_safe_dump(data, file, **kwds)
+
+def py_writer(data, file, opts):
+    if not data and opts.flags.empty_null:
+        print >>file
+    else:
+        print >>file, str(data)
 
 writers = dict(
         json=json_writer,
         yaml=yaml_writer,
         pkv=pkv_writer,
-        fkv=fkv_writer
+        fkv=fkv_writer,
+        py=py_writer
     )
 
 

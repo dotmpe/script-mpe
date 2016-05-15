@@ -46,6 +46,8 @@ Options:
                 .
   --no-stdin
                 .
+  -N, --empty-null
+                Instead of null, print empty line.
 
 Formats
 -------
