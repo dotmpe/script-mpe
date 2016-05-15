@@ -154,18 +154,14 @@ mkrlink()
 installed()
 {
   # Check if binary is available
-  local bin="$(jsotk.py objectpath $1 '$.tools."'$2'".bin')"
+  local bin="$(jsotk.py -q -O py path $1 tools/$2/bin)"
   test "$bin" = "True" && bin=$2
   case "$bin" in
     "["*"]" )
-        eval $(jsotk.py -O fkv objectpath $1 '$.tools."'$2'".bin')
-        local c=0
-        while test -n "$(try_var __$c)"
-        do
-          bin_=$(try_var __$c)
+      jsotk.py -O list items $1 tools/$2/bin | while read bin_
+      do
           test -n "$(eval which $bin_)" && return
-          incr_c
-        done
+      done
       ;;
     * )
       test -n "$(eval which $bin)" && return
@@ -186,6 +182,7 @@ install_bin()
   test -n "$installer" && {
     id=$(jsotk.py -N -O py objectpath $1 '$.tools."'$2'".id')
     test -n "$id" || id="$2"
+    echo installer=$installer id=$id
     case "$installer" in
       npm )
           npm install -g $id || return 2
@@ -213,6 +210,7 @@ uninstall_bin()
   test -n "$installer" || return 3
   test -n "$installer" && {
     id=$(jsotk.py -N -O py objectpath $1 '$.tools."'$2'".id')
+    echo installer=$installer id=$id
     test -n "$id" || id=$2
     case "$installer" in
       npm )

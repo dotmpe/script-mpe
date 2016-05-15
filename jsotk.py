@@ -163,13 +163,23 @@ def H_update_from_args(opts):
 # Ad-hoc designed path query
 
 def H_path(opts):
-    data = data_at_path(opts)
-    print data
+    infile, outfile = get_src_dest_defaults(opts)
+    data = data_at_path(opts, infile)
+    return stdout_data( opts.flags.output_format, data, outfile, opts )
 
-    # FIXME: use parser
-    #reader = PathKVParser(rootkey=args[0])
-    #reader.scan_kv_args(args)
-    #reader.scan(file)
+def H_keys(opts):
+    infile, outfile = get_src_dest_defaults(opts)
+    data = data_at_path(opts, infile)
+    if data:
+        assert isinstance(data, dict), data
+    return stdout_data( opts.flags.output_format, data.keys(), outfile, opts )
+
+def H_items(opts):
+    infile, outfile = get_src_dest_defaults(opts)
+    data = data_at_path(opts, infile)
+    if data:
+        assert isinstance(data, list), data
+    return stdout_data( opts.flags.output_format, data, outfile, opts )
 
 
 def H_objectpath(opts):
@@ -248,17 +258,6 @@ def H_to_flat_kv(opts):
     return H_dump(opts)
 
 
-def H_keys(opts):
-    data = data_at_path(opts)
-    assert isinstance(data, dict)
-    print os.linesep.join(data.keys())
-
-def H_items(opts):
-    data = data_at_path(opts)
-    assert isinstance(data, list)
-    for item in data:
-        print item
-
 
 
 ### Main
@@ -285,6 +284,10 @@ if __name__ == '__main__':
     else:
         opts.flags.detect_format = True
     # TODO: opts.flags.no_json_string
-    sys.exit( main( opts.cmds[0], opts ) )
+    try:
+        sys.exit( main( opts.cmds[0], opts ) )
+    except:
+        #if not opts.flags.quiet:
+        sys.exit(1)
 
 

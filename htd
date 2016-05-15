@@ -350,7 +350,7 @@ htd__tools()
 {
   test -e tools.yml
   tools_json
-  test -n "$1" || set -- "$(echo $(jsotk.py keys tools.json tools))"
+  test -n "$1" || set -- $(echo $(jsotk.py -O list keys tools.json tools))
   echo "tools:"
   while test -n "$1"
   do

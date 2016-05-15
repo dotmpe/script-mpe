@@ -308,12 +308,21 @@ def py_writer(data, file, opts):
     else:
         print >>file, str(data)
 
+def list_writer(data, file, opts):
+    if not data:
+        return
+    assert isinstance(data, (tuple, list))
+    for item in data:
+        print >>file, item
+
+
 writers = dict(
         json=json_writer,
         yaml=yaml_writer,
         pkv=pkv_writer,
         fkv=fkv_writer,
-        py=py_writer
+        py=py_writer,
+        list=list_writer
     )
 
 
@@ -438,8 +447,9 @@ def deep_union(lists, opts):
     return data
 
 
-def data_at_path(opts):
-    infile, outfile = get_src_dest_defaults(opts)
+def data_at_path(opts, infile):
+    if not infile:
+        infile, outfile = get_src_dest_defaults(opts)
     l = load_data( opts.flags.input_format, infile )
     path_el = opts.args.pathexpr.split('/')
     while len(path_el):
