@@ -156,11 +156,16 @@ installed()
   # Check if binary is available
   local bin="$(jsotk.py -q -O py path $1 tools/$2/bin)"
   test "$bin" = "True" && bin=$2
+  test -n "$bin" || {
+    return 1
+  }
   case "$bin" in
     "["*"]" )
       jsotk.py -O list items $1 tools/$2/bin | while read bin_
       do
-          test -n "$(eval which $bin_)" && return
+        test -n "$bin_" || continue
+        test -n "$(eval echo $bin_)" || warn "No value for $bin_" 1
+        test -n "$(eval which $bin_)" && return
       done
       ;;
     * )

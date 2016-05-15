@@ -286,8 +286,12 @@ if __name__ == '__main__':
     # TODO: opts.flags.no_json_string
     try:
         sys.exit( main( opts.cmds[0], opts ) )
-    except:
-        #if not opts.flags.quiet:
+    except Exception as err:
+        if not opts.flags.quiet:
+            import traceback
+            tb = traceback.format_exc()
+            print tb
+            print 'Unexpected Error:', err
         sys.exit(1)
 
 
