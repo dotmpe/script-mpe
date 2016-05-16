@@ -78,6 +78,65 @@ htd_load()
   which rst2xml 1>/dev/null && rst2xml=$(which rst2xml) \
     || { which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) \
     || warn "No rst2xml"; }
+
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  do case "$x" in
+    S )
+        # Get a path to a storage blob, associated with the current base+subcmd
+        S=$(try_value "${subcmd}" S)
+        test -n "$S" \
+          && status=$(setup_stat .json "" ${subcmd}-$(eval echo $S)) \
+          || status=$(setup_stat .json)
+        #test -s $status || echo '{}' >$status
+        exec 5>$status.pkv
+      ;;
+    m )
+        # TODO: Metadata blob for host
+        metadoc=$(statusdir.sh assert)
+        exec 4>$metadoc.fkv
+      ;;
+    p )
+        test -e package.yaml && update_package
+        test -e .package.sh && . .package.sh
+        test -n "$package_id" && {
+          note "Found package '$package_id'"
+        } || {
+          package_id="$(basename $(realpath .))"
+          note "Using package ID '$package_id'"
+        }
+      ;;
+    f )
+        # Preset name to subcmd failed file placeholder
+        failed=$(setup_tmp .failed)
+      ;;
+    esac
+  done
+}
+
+htd_unload()
+{
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  do case "$x" in
+    S )
+        exec 5<&-
+        test -s $status || echo '{}' >$status
+        test ! -s $status.pkv \
+          || { 
+        cat $status.pkv
+            jsotk.py update --pretty $status $status.pkv
+            rm $status.pkv
+          }
+        test ! -e $status.pkv || rm $status.pkv
+        unset status
+      ;;
+
+    r )
+        # Report on scriptnames and associated script-lines provided in tools.yml
+        statusdir.sh dump $report | jsotk.py -O yaml --pretty dump -
+      ;;
+
+  esac; done
+  clean_failed
 }
 
 htd_usage()
@@ -333,6 +392,7 @@ htd_als___f=find
 
 htd_man_1__status=""
 htd_spc__status=""
+htd_run__status=fSm
 htd__status()
 {
   # TODO:
@@ -340,17 +400,64 @@ htd__status()
   # disks, annex
   # project tests, todos
   # src, tools
-  echo "$@"
+  echo TODO:htd-status:$status "$@" | tee $failed
 }
 
 
-htd_man_1__tools=""
-htd_spc__tools=""
+htd_man_1__script="Get/list scripts in tools.yml. Statusdata is a mapping of 
+  scriptnames to script lines. "
+htd_spc__script=""
+htd_run__script=pSmr
+htd_S__script=\$package_id
+htd__script()
+{
+  test -e tools.yml
+  tools_json
+
+  # Force regeneration for stale data
+  test $status -ot tools.yml \
+    && statusdir.sh reset $status
+
+  # Regenerate status data for this script if not available
+  statusdir.sh exists $status || {
+
+    scripts="$(
+      jsotk.py objectpath tools.yml '$..*[@.scripts]' \
+        | jsotk.py --line-input merge - - \
+        | jsotk.py -O lines keys - '/' )"
+    for script in $scripts
+    do
+      note "Scriptlines for '$script': "
+      jsotk.py objectpath -O lines tools.yml '$..*[@.scripts."'$script'"]' \
+        | while read scriptline
+        do
+          note "'$scriptline'"
+          #echo "script/$script/lines[]=$scriptline" 1>&5
+          echo "$script[]=$scriptline" 1>&5
+        done
+      #echo "scripts[]="$script 1>&5
+    done
+  }
+
+  # TODO: generate script to run. This keeps a JSON blob associated with
+  # htd-script and the script.mpe package (tools.yml). Gonna want a JSON
+  # for shell scripts/aliases/etc. Also validation.
+
+  #    while test -n "$1"
+  #    do
+  #      jsotk.py objectpath -O py tools.yml '$..*[@.scripts."'$1'"]'
+  #      shift
+  #    done
+  report=$status
+}
+
+htd_man_1__tools="Scan wether given binaries are installed. "
+htd_spc__tools="tools <tool-id>.."
 htd__tools()
 {
   test -e tools.yml
   tools_json
-  test -n "$1" || set -- $(echo $(jsotk.py -O list keys tools.json tools))
+  test -n "$1" || set -- $(echo $(jsotk.py -O lines keys tools.json tools))
   echo "tools:"
   while test -n "$1"
   do
@@ -1372,6 +1479,13 @@ htd__save_ref()
 htd__commit()
 {
   echo -e
+}
+
+htd_man_1__run="Resolve and execute scripts. Separate multiple scripts with --. "
+htd_run__run=f
+htd__run()
+{
+  echo
 }
 
 htd__show_rules()
@@ -3095,6 +3209,7 @@ htd_init()
   . $scriptdir/htd.lib.sh
   . $scriptdir/main.sh
   . $scriptdir/main.init.sh
+  . $scriptdir/meta.lib.sh
   . $scriptdir/box.lib.sh
   . $scriptdir/date.lib.sh
   . $scriptdir/doc.lib.sh

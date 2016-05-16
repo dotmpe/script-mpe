@@ -13,9 +13,9 @@ Usage:
     jsotk [options] (from-flat-kv|to-flat-kv) [<srcfile> [<destfile>]]
     jsotk [options] from-args <kv_args>...
     jsotk [options] from-flat-args <fkv-args>...
-    jsotk [options] merge-one <srcfile> <srcfile2> <destfile>
+    jsotk [options] merge-one <srcfile> <srcfile2> [<destfile>]
     jsotk [options] merge <destfile> <srcfiles>...
-    jsotk [options] update <destfile> <srcfiles>...
+    jsotk [options] update <destfile> [<srcfiles>...]
     jsotk [options] update-from-args <srcfiles> <kv-args> <destfile>
 
 
@@ -48,6 +48,9 @@ Options:
                 .
   -N, --empty-null
                 Instead of null, print empty line.
+  --line-input
+                Parse input lines separately.
+                Only with merge JSON.
 
 Formats
 -------
@@ -58,6 +61,7 @@ yaml
 """
 import os, sys
 import types
+from StringIO import StringIO
 
 from docopt import docopt
 from objectpath import Tree
@@ -66,7 +70,8 @@ from objectpath import Tree
 import util
 from jsotk_lib import PathKVParser, FlatKVParser, \
         load_data, stdout_data, readers, open_file, \
-        get_src_dest_defaults, set_format, \
+        get_src_dest_defaults, set_format, get_format_for_fileext, \
+        get_dest, \
         deep_union, deep_update, data_at_path
 
 
@@ -74,11 +79,14 @@ from jsotk_lib import PathKVParser, FlatKVParser, \
 
 # Conversions, json is default format
 
-def H_dump(opts):
+def H_dump(opts, write=True):
     "Read src and write destfile according to set i/o formats. "
     infile, outfile = get_src_dest_defaults(opts)
     data = load_data( opts.flags.input_format, infile )
-    return stdout_data( opts.flags.output_format, data, outfile, opts )
+    if write:
+        return stdout_data( opts.flags.output_format, data, outfile, opts )
+    else:
+        return data
 
 
 def H_merge_one(opts):
@@ -92,12 +100,19 @@ def H_merge(opts, write=True):
     Defaults to src-to-dest noop, iow. '- -' functions identical to
     'dump'.  """
 
-    if not opts.args.srcfiles:
+    if not opts.args.srcfiles and not opts.flags.line_input:
         opts.args.srcfile = '-'
-        return H_dump(opts)
+        return H_dump(opts, write=write)
+
+    if opts.flags.line_input:
+        opts.args.srcfile = opts.args.srcfiles.pop(0)
+        set_format('input', 'src', opts)
+        inp = open_file(opts.args.srcfile, 'in')
+        opts.args.srcfiles += [ StringIO(line) for line in inp.readlines() ]
     else:
         opts.args.srcfile = opts.args.srcfiles[0]
         set_format('input', 'src', opts)
+
 
     if not (opts.flags.list_union or opts.flags.list_update):
         if opts.flags.list_update_nodict:
@@ -140,17 +155,17 @@ def H_merge(opts, write=True):
 
 def H_update(opts):
     "Update srcfile from stdin. Write to destfile or stdout. "
-    infile, outfile = get_src_dest_defaults(opts)
-    data = H_merge(opts, write=False)
-
-    if '-' not in opts.args.srcfiles:
-        if not opts.flags.no_stdin:
-            parser = PathKVParser(data)
-            for line in sys.stdin.readlines():
-                parser.set_kv(line)
-            data = parser.data
-
-    return stdout_data( opts.flags.output_format, data, outfile, opts )
+    updatefile = get_dest(opts)
+    data = load_data( opts.flags.output_format, updatefile )
+    if not opts.args.srcfiles:
+        return
+    for src in opts.args.srcfiles:
+        fmt = get_format_for_fileext(src) or opts.flags.input_format
+        mdata = load_data( fmt, open_file( src, 'in' ) )
+        deep_update([data, mdata], opts)
+    updatefile = get_dest(opts)
+    updatefile.truncate()
+    return stdout_data( opts.flags.output_format, data, updatefile, opts )
 
 
 def H_update_from_args(opts):
@@ -168,18 +183,34 @@ def H_path(opts):
     return stdout_data( opts.flags.output_format, data, outfile, opts )
 
 def H_keys(opts):
+    "Output list of keys or indices"
     infile, outfile = get_src_dest_defaults(opts)
     data = data_at_path(opts, infile)
-    if data:
-        assert isinstance(data, dict), data
-    return stdout_data( opts.flags.output_format, data.keys(), outfile, opts )
+    if not data:
+        return 1
+    if isinstance(data, dict):
+        return stdout_data( opts.flags.output_format, data.keys(), outfile, opts )
+    elif isinstance(data, list):
+        return stdout_data( opts.flags.output_format, range(0, len(data)), outfile, opts )
+    else:
+        raise ValueError, "Unhandled type %s" % type(data)
 
 def H_items(opts):
+    "Output for every key or item in object at path"
     infile, outfile = get_src_dest_defaults(opts)
     data = data_at_path(opts, infile)
-    if data:
-        assert isinstance(data, list), data
-    return stdout_data( opts.flags.output_format, data, outfile, opts )
+    if not data:
+        return 1
+    if isinstance(data, list):
+        for item in data:
+            stdout_data( opts.flags.output_format, item, outfile, opts )
+    elif isinstance(data, dict):
+        for key, value in data.items():
+            subdata = { key: value }
+            stdout_data( opts.flags.output_format, subdata, outfile, opts )
+    else:
+        raise ValueError, "Unhandled type %s" % type(data)
+
 
 
 def H_objectpath(opts):

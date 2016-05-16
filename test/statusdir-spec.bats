@@ -10,12 +10,12 @@ init
   #    TODO "$BATS_TEST_DESCRIPTION at travis";;
   #esac
 
-rt()
-{
-  echo $BATS_TEST_DESCRIPTION > /tmp/1
-  $BATS_TEST_DESCRIPTION >> /tmp/1 2>&1 || echo "$?" >> /tmp/1
-}
-rt
+  rt()
+  {
+    echo $BATS_TEST_DESCRIPTION > /tmp/1
+    $BATS_TEST_DESCRIPTION >> /tmp/1 2>&1 || echo "$?" >> /tmp/1
+  }
+  rt
 
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 1
@@ -35,16 +35,16 @@ rt
   test "$HOME/.statusdir/" = "${lines[*]}"
 }
 
-#@test "${bin} assert-json $HOME/project/git-versioning/package.yaml project/git-versioning {}" {
+#@test "${bin} assert-state $HOME/project/git-versioning/package.yaml project/git-versioning {}" {
 #  run $BATS_TEST_DESCRIPTION
 #  test ${status} -eq 0
 #}
 
-@test "${bin} assert-json" {
+@test "${bin} assert-state" {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   test "$HOME/.statusdir/index/state.json" = "${lines[*]}"
 }
 
 
-
+# vim:ft=sh:

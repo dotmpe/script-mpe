@@ -135,12 +135,15 @@ init
 @test "${bin} update I - simple dict key" {
   jsotk_merge_test()
   {
-    echo newkey=value | jsotk.py update - test/var/jsotk/1.yaml || return $?
+    echo newkey=value | jsotk.py -I fkv update test/var/jsotk/1.yaml - || return $?
+    cat test/var/jsotk/1.yaml | jsotk.py yaml2json -
+    git co test/var/jsotk/1.yaml
   }
   run jsotk_merge_test
   test ${status} -eq 0
   echo "${lines[*]}" >/tmp/123
-  test "${lines[*]}" = '{"newkey": "value", "foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "items"]}}'
+  test "${lines[*]}" = '{"newkey": "value", "foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "items"]}}' \
+    || fail "output '${lines[*]}'"
 }
 
 @test "${bin} merge/update - output-prefix" {
@@ -151,17 +154,11 @@ init
   run jsotk_output_prefix_test
   test ${status} -eq 0
   test "${lines[*]}" = '{"pa": {"th": {"foo": [1, 2], "bar": true}}}'
-
-  jsotk_output_prefix_test()
-  {
-    jsotk.py --output-prefix pa/th --no-stdin update - test/var/jsotk/3.yaml || return $?
-  }
-  run jsotk_output_prefix_test
-  test ${status} -eq 0
-  test "${lines[*]}" = '{"pa": {"th": {"foo": [1, 2], "bar": true}}}'
 }
 
 @test "${bin} update II - nested dict with list index" {
+
+  TODO "fix ${bin} update testing"
 
   jsotk_update_3_test()
   {
@@ -184,3 +181,4 @@ init
   '{"foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "more", "items"]}}'
 }
 
+# vim:ft=sh:
