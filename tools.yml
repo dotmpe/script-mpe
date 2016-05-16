@@ -8,4 +8,6 @@ tools:
     - chmod +x /usr/local/bin/jsonspec
     post-uninstall:
     - "rm /usr/local/bin/jsonspec"
-
+    scripts:
+      jsonspec-validate:
+        - jsonspec validate --document-json $1 --schema-json $2

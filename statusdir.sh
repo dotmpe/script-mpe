@@ -30,9 +30,45 @@ statusdir__root()
 	echo $path
 }
 
-# Make path in statusdir exists, args are pathelems
-# echos path
+
+statusdir__reset()
+{
+  test ! -e $1 || { rm $1 || return $?; }
+}
+
+statusdir__exists()
+{
+  test -s $1 || return $?
+}
+
+statusdir__dump()
+{
+  test ! -e $1 || cat $1
+}
+
+# echos path. Default index is 'default'.
+# assert <path-expr> [<index-name-id>]
 statusdir__assert()
+{
+  test -n "$STATUSDIR_ROOT" || error "STATUSDIR_ROOT" 1
+  test -n "$1" || set -- status.json "$2"
+  test -n "$2" || set -- "$1" default
+  case "$2" in default )
+      path=$STATUSDIR_ROOT/$1
+    ;;
+    * )
+      path=$STATUSDIR_ROOT/bases/$2/$1
+    ;;
+  esac
+  path=$(normalize_relative $path)
+  test -d $(dirname $path) \
+    || mkdir -p $(dirname $path)
+  echo $path
+}
+
+# Make path in statusdir exists, args are pathelems
+# echos path.
+statusdir__assert_elems()
 {
   test -n "$STATUSDIR_ROOT" || return 13
 	tree="$(echo "$@" | tr ' ' '/')"
@@ -73,15 +109,19 @@ statusdir__file()
   echo $STATUSDIR_ROOT"index/$tree"
 }
 
+
+# XXX: get some plumping commands to deal with embedded structures
+# at paths.
+
 # Assert given value exists at path in state.json
 # arg: 1:jspath 2:value
-statusdir__assert_json()
+statusdir__assert_state()
 {
   sf=$(statusdir__file "state.json" || return $?)
   test -s "$sf" || echo '{}' >$sf
   test -n "$1" || { echo $sf; return; }
   echo "$@" | tr ' ' '\n' | jsotk.py update $sf.tmp $sf || {
-    echo "statusdir assert-json: Error reading $sf. "
+    echo "statusdir assert-state: Error reading $sf. "
     return 1
   }
   mv $sf.tmp $sf
@@ -91,7 +131,7 @@ statusdir__assert_json()
 # arg: 1:filepath 2:root-jspath
 statusdir__cons_json()
 {
-  status_json="$(statusdir__assert_json)"
+  status_json="$(statusdir__assert_state)"
   jsotk.py merge /tmp/new-status.json $status_json $1
   mv /tmp/new-status.json $status_json
 }
@@ -108,12 +148,12 @@ statusdir__main()
 
   case "$base" in $scriptname )
 
-      statusdir__lib || exit $?
-      run_subcmd "$@" || exit $?
+        statusdir__lib || exit $?
+        run_subcmd "$@" || exit $?
       ;;
 
     * )
-      error "not a frontend for $base"
+        error "not a frontend for $base"
       ;;
   esac
 }

@@ -39,17 +39,17 @@ pd__meta()
       do
         case "$line" in
           *" OK " )
-            return
+              return
             ;;
           "? "* )
-            return 1
+              return 1
             ;;
           "!! "* )
-            error "$line"
-            return 1
+              error "$line"
+              return 1
             ;;
           "! "*": "* )
-            return $(echo $line | sed 's/.*://g')
+              return $(echo $line | sed 's/.*://g')
             ;;
         esac
         echo $line
@@ -121,15 +121,15 @@ pd__status()
       note "Projectdir is not a checkout at $checkout"
       continue
     }
-    statusdir.sh assert-json 'project/'$checkout'/tags'='[]'
+    statusdir.sh assert-state 'project/'$checkout'/tags'='[]'
 
     # FIXME: merge with pd-check? Need fast access to lists..
     #pd_check $checkout || echo pd-check:$checkout >>$failed
     pd__clean $checkout || {
       echo pd-clean:$checkout >>$failed
-      statusdir.sh assert-json \
+      statusdir.sh assert-state \
         'project/'$checkout'/clean'=false
-      statusdir.sh assert-json \
+      statusdir.sh assert-state \
         'project/'$checkout'/tags[]'=to-clean
     }
 
@@ -137,14 +137,14 @@ pd__status()
       echo "$enabled" | grep -qF $checkout && {
         test -e "$checkout" || {
           note "Checkout missing: $checkout"
-          statusdir.sh assert-json \
+          statusdir.sh assert-state \
             'project/'$checkout'/tags[]'=to-enable
         }
       } || {
         echo "$disabled" | grep -qF $checkout && {
           test ! -e "$checkout" || {
             note "Checkout to be disabled: $checkout"
-            statusdir.sh assert-json \
+            statusdir.sh assert-state \
               'project/'$checkout'/tags[]'=to-clean
           }
         } || noop
@@ -995,7 +995,7 @@ pd_load()
   for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
   do case "$x" in
 
-      p ) # should imply y or d
+    p ) # should imply y or d
         test -e $go_to_before/$2/package.yaml && update_package "$go_to_before/$2"
         test -e "$go_to_before/$2/.package.sh" && . $go_to_before/$2/.package.sh
         test -n "$package_id" && {
@@ -1004,13 +1004,13 @@ pd_load()
           package_id="$(basename $(realpath $go_to_before/$2))"
           note "Using package ID '$package_id'"
         }
-        ;;
+      ;;
 
-      d )
+    d )
         go_to_before=.
-        ;;
+      ;;
 
-      y )
+    y )
         # set/check for Pd for subcmd
         pd=.projects.yaml
         go_to_directory $pd
@@ -1019,23 +1019,21 @@ pd_load()
 
         p="$(realpath "$pd" | sed 's/[^A-Za-z0-9_-]/-/g' | tr -s '_' '-')"
         sock=/tmp/pd-$p-serv.sock
-        ;;
+      ;;
 
-      f )
+    f )
         # Preset name to subcmd failed file placeholder
-        req_vars base subcmd
+        # include realpath of projectdoc (p)
         test -n "$pd" && {
           req_vars p
-          failed=/tmp/${base}-$p-$subcmd.failed
-        } || {
-          failed=/tmp/${base}-$subcmd.failed
-        }
-        ;;
+          failed=$(setup_tmp .failed -$p-$subcmd-$(uuidgen))
+        } || failed=$(setup_tmp .failed)
+      ;;
 
-      b )
+    b )
         # run metadata server in background for subcmd
         pd_meta_bg_setup
-        ;;
+      ;;
 
     esac
   done
@@ -1064,35 +1062,16 @@ pd_unload()
   for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
   do case "$x" in
       y )
-        test -z "$sock" || {
-          pd_meta_bg_teardown
-          unset bgd sock
-        }
+          test -z "$sock" || {
+            pd_meta_bg_teardown
+            unset bgd sock
+          }
         ;;
   esac; done
   unset subcmd subcmd_pref \
           def_subcmd func_exists func
 
   clean_failed
-}
-
-clean_failed()
-{
-  test -z "$failed" -o ! -e "$failed" || {
-    test -n "$1" || set -- "Failed: "
-    test -s "$failed" && {
-      count="$(sort -u $failed | wc -l | awk '{print $1}')"
-      test "$count" -gt 2 && {
-        warn "$1 $(echo $(sort -u $failed | head -n 3 )) and $(( $count - 3 )) more"
-        rotate-file $failed .failed
-      } || {
-        warn "$1 $(echo $(sort -u $failed))"
-      }
-    }
-    test ! -e "$failed" || rm $failed
-    unset failed
-    return 1
-  }
 }
 
 pd_lib()
@@ -1105,6 +1084,7 @@ pd_lib()
   . $scriptdir/box.init.sh
   box_run_sh_test
   . $scriptdir/main.sh
+  . $scriptdir/meta.lib.sh
   . $scriptdir/projectdir.inc.sh "$@"
   . $scriptdir/main.init.sh
   # -- pd box init sentinel --
@@ -1170,8 +1150,8 @@ pd_main()
       ;;
 
     * )
-      echo "Pd is not a frontend for $base ($scriptname)"
-      exit 1
+        echo "Pd is not a frontend for $base ($scriptname)"
+        exit 1
       ;;
 
   esac

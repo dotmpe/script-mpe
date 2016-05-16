@@ -226,6 +226,7 @@ def parse_json(value):
         return parse_primitive(value)
 
 
+# TODO: use the propery serializer asked for, or add datatype lib option
 re_float  = re.compile('\d+.\d+')
 def parse_primitive(value):
     # TODO: other numbers
@@ -308,7 +309,7 @@ def py_writer(data, file, opts):
     else:
         print >>file, str(data)
 
-def list_writer(data, file, opts):
+def lines_writer(data, file, opts):
     if not data:
         return
     assert isinstance(data, (tuple, list))
@@ -322,8 +323,16 @@ writers = dict(
         pkv=pkv_writer,
         fkv=fkv_writer,
         py=py_writer,
-        list=list_writer
+        lines=lines_writer
     )
+
+
+fmt_ext_aliases = dict(
+    yaml=[ 'yml' ],
+    json=[ 'jso' ],
+    kv=[ 'pkv' ],
+    lines=[ 'list' ]
+        )
 
 
 ### Misc. argument/option handling
@@ -349,23 +358,44 @@ def get_src_dest(opts):
 def set_format(tokey, fromkey, opts):
     file = getattr(opts.args, "%sfile" % fromkey)
     if file and isinstance(file, basestring):
-        fmt = get_format_for_fileext(file)
+        fmt = get_format_for_fileext(file, fromkey)
         if fmt:
             setattr(opts.flags, "%s_format" % tokey, fmt)
 
-def get_format_for_fileext(fn):
-    if fn.endswith('yaml') or fn.endswith('yml'):
-        return 'yaml'
+def get_format_for_fileext(fn, io='out'):
+    if io == 'out':
+        fmts = writers.keys()
+    else:
+        fmts = readers.keys()
 
-    if fn.endswith('json'):
-        return 'json'
+    for fmt in fmts:
+        if fmt in fmt_ext_aliases:
+            for alias in fmt_ext_aliases[fmt]:
+                ext = ".%s" % alias
+                if fn.endswith( ext ):
+                    return fmt
+        ext = ".%s" % fmt
+        if fn.endswith( ext ):
+            return fmt
+
+def get_dest(opts):
+    if opts.flags.detect_format:
+        set_format('output', 'dest', opts)
+    updatefile = None
+    if 'destfile' in opts.args and opts.args.destfile:
+        updatefile = open_file(opts.args.destfile, defio=None, mode='rw+')
+    return updatefile
 
 def get_src_dest_defaults(opts):
-
     if opts.flags.detect_format:
         set_format('input', 'src', opts)
         set_format('output', 'dest', opts)
 
+#    if not opts.args.destfile:
+#        opts.args.destfile = '-'
+#    if not opts.args.srcfile:
+#        opts.args.srcfile = '-'
+#
     infile, outfile = get_src_dest(opts)
     if not outfile:
         outfile = sys.stdout
@@ -452,6 +482,8 @@ def data_at_path(opts, infile):
         infile, outfile = get_src_dest_defaults(opts)
     l = load_data( opts.flags.input_format, infile )
     path_el = opts.args.pathexpr.split('/')
+    if not opts.args.pathexpr or path_el[0] == '':
+        return l
     while len(path_el):
         b = path_el.pop(0)
         if b not in l:

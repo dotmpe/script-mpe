@@ -36,12 +36,17 @@ jsotk.py objectpath \
       $HOME/bin/test/var/jsotk/2.yaml \
       '$.*[@.main is not None]'
 
+htd script
+htd tools
+
 htd install json-spec
 
+#./gtasks
 
 . ./tools/sh/env.sh
 . ./tools/ci/test.sh
 
+# FIXME:
 exit 0
 
 case "$ENV" in
