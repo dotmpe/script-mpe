@@ -312,7 +312,7 @@ def py_writer(data, file, opts):
 def lines_writer(data, file, opts):
     if not data:
         return
-    assert isinstance(data, (tuple, list))
+    assert isinstance(data, (tuple, list)), data
     for item in data:
         print >>file, item
 

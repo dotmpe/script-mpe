@@ -179,13 +179,19 @@ def H_update_from_args(opts):
 
 def H_path(opts):
     infile, outfile = get_src_dest_defaults(opts)
-    data = data_at_path(opts, infile)
+    try:
+        data = data_at_path(opts, infile)
+    except:
+        return 1
     return stdout_data( opts.flags.output_format, data, outfile, opts )
 
 def H_keys(opts):
     "Output list of keys or indices"
     infile, outfile = get_src_dest_defaults(opts)
-    data = data_at_path(opts, infile)
+    try:
+        data = data_at_path(opts, infile)
+    except:
+        return 1
     if not data:
         return 1
     if isinstance(data, dict):
@@ -198,7 +204,10 @@ def H_keys(opts):
 def H_items(opts):
     "Output for every key or item in object at path"
     infile, outfile = get_src_dest_defaults(opts)
-    data = data_at_path(opts, infile)
+    try:
+        data = data_at_path(opts, infile)
+    except:
+        return 1
     if not data:
         return 1
     if isinstance(data, list):

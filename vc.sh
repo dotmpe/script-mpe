@@ -12,15 +12,67 @@ set -e
 
 vc_load()
 {
-  local __load_lib=1
+  local __load_lib=1 cwd="$(pwd)"
 
 #. ~/.conf/bash/git-completion.bash
 
+  test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
+  test -n "$uname" || uname=$(uname)
+
   . $scriptdir/util.sh
+  . $scriptdir/main.sh
   . $scriptdir/match.lib.sh
-  statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
   str_load
+
+  statusdir.sh assert vc_status > /dev/null || error vc_status 1
+
+  gtd=$(__vc_gitdir)
+
+  # Look at run flags for subcmd
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  do case "$x" in
+    f )
+        # Preset name to subcmd failed file placeholder
+        failed=$(setup_tmp .failed)
+      ;;
+
+    C ) # Cache value.
+        C= c=
+
+        vc_stat_key >/dev/null
+        c="$(statusdir.sh get $C_key)"
+        $(try_local "${subcmd}" C) && {
+          echo $c
+          exit 0
+        } || continue
+      ;;
+    esac
+  done
+}
+
+vc_stat_key()
+{
+  mkvid "$(pwd)"
+  C_key="$hnid:vc-${subcmd}:$vid"
+  echo $C_key
+}
+
+
+vc_unload()
+{
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  do case "$x" in
+    C )
+        test -n "$C" || error "empty C" 1
+        statusdir.sh set $C_key "$C" $exptime 2>&1 >/dev/null
+        $(try_local "${subcmd}" C) && {
+          echo $c
+          exit 0
+        } || continue
+      ;;
+  esac; done
+  clean_failed
 }
 
 vc_usage()
@@ -29,7 +81,7 @@ vc_usage()
 	echo "  $scriptname <cmd> [<args>..]"
 }
 
-vc_commands()
+vc__commands()
 {
 	echo 'Commands: '
 	echo '  print-all <path>        Dump some debug info on given (versioned) paths'
@@ -45,42 +97,42 @@ vc_commands()
 	echo '  commands                Echo this comand description listing.'
 }
 
-vc_help()
+vc__help()
 {
 	vc_usage
 	echo ''
-	vc_commands
+	vc__commands
 	echo ''
-	vc_docs
+	vc__docs
 }
 
-vc_docs()
+vc__docs()
 {
 	echo "See htd and dckr for other scripts"
 }
 
 
-vc__v()
+vc___v()
 {
-	c_version
+	c__version
 }
 
-vc_version()
+vc__version()
 {
 	# no version, just checking it goes
 	echo 0.0.0
 }
 
-vc_edit()
+vc__edit()
 {
 	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
 	[ -n "$fn" ] || fn=$(which $scriptname.sh)
 	[ -n "$fn" ] || error "Nothing to edit" 1
 	$EDITOR $fn
 }
-vc__e()
+vc___e()
 {
-	vc_edit
+	vc__edit
 }
 
 
@@ -298,15 +350,15 @@ __vc_push ()
 # ? : untracked "
 __vc_status ()
 {
-    test -n "$1" || set -- "$(pwd)"
+  test -n "$1" || set -- "$(pwd)"
+
 	test -d "$1" || err "No such directory $1" 3
 
 	local w short repo sub
 
-    local pwd="$(pwd)"
+  local pwd="$(pwd)"
 
-	cd "$1"
-	realcwd="$(pwd -P)"
+	realcwd="$(cd $1; pwd -P)"
 
 	short="$(homepath "$1")"
 	test -n "$short" || err "homepath" 1
@@ -366,6 +418,12 @@ __pwd_ps1 ()
 	realcwd="$(cd $d && pwd -P)"
 	short=$(homepath $d)
 	echo $short
+}
+
+vc_run__stat=f
+vc__stat()
+{
+  echo $failed
 }
 
 
@@ -450,7 +508,7 @@ vc_ls_errors()
 ### Command Line handlers
 
 # print all fuctions/results for paths in arguments
-vc_print_all()
+vc__print_all()
 {
 	for path in $@
 	do
@@ -461,24 +519,72 @@ vc_print_all()
 	done
 }
 
-vc_ps1()
+vc_run__ps1=S
+vc_spc__ps1="ps1"
+vc__ps1()
 {
-	__vc_ps1 "$1" || return
+  C="$(__vc_status "$(pwd)" || return)"
+  echo "$C"
+}
+vc_exptime__ps1=0
+vc_C__ps1()
+{
+  # Validate based on last known .git dir mtime
+  test -n "$gtd" || error "gtd init" 1
+  gitmtime=$(vc__mtime $gtd)
+
+  test -z "$C" && {
+
+    # Pre-run: check cache validator(s)
+    test -n "$c" || return 1
+    cgitmtime=$(statusdir.sh get $C_key:time)
+    test -n "$cgitmtime" || return 1
+    test $cgitmtime -ge $gitmtime || return 1
+
+  } || {
+
+    # Post-run: update cache validator(s)
+    statusdir.sh set $C_key:time $gitmtime $exptime 2>&1 >/dev/null
+  }
 }
 
-vc_screen()
+vc_man_1__mtime="Return last modification time for GIT head or stage"
+vc__mtime()
+{
+  test -n "$1" || set -- "$gtd"
+
+  # Return highest mtime
+  (
+    filemtime $1/index
+    filemtime $1/HEAD
+  ) \
+    | awk '$0>x{x=$0};END{print x}'
+}
+
+vc_man_1__flush="Delete all subcmd value caches"
+vc__flush()
+{
+  for subcmd in ps1
+  do
+    vc_stat_key >/dev/null
+    membash delete $C_key 2>&1 >/dev/null || continue
+  done
+}
+
+
+vc__screen()
 {
 	__vc_screen $@ || return
 }
 
-vc_gitflags()
+vc__gitflags()
 {
   __vc_git_flags "$@" || return
 }
 
 
 # special updater (for Bash PROMPT_COMMAND)
-vc_prompt_command()
+vc__prompt_command()
 {
 	d="$1"
 	[ -z "$d" ] && d="$(pwd)"
@@ -499,14 +605,14 @@ vc_prompt_command()
 }
 
 
-vc_list_submodules()
+vc__list_submodules()
 {
   git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
 }
 
-vc_man_1_gh="Clone from Github to subdir, adding as submodule if already in checkout. "
-vc_spc_gh="gh <repo> [<prefix>]"
-vc_gh() {
+vc_man_1__gh="Clone from Github to subdir, adding as submodule if already in checkout. "
+vc_spc__gh="gh <repo> [<prefix>]"
+vc__gh() {
   test -n "$1" || error "Need repo name argument" 1
   str_match "$1" "[^/]*" && {
     repo=dotmpe/$1; prefix=$1; } || {
@@ -540,14 +646,14 @@ vc_gh() {
   }
 }
 
-vc_largest_objects()
+vc__largest_objects()
 {
   test -n "$1" || set -- 10
   $scriptdir/git-largest-objects.sh $1
 }
 
 # list commits for object sha1
-vc_path_for_object()
+vc__path_for_object()
 {
   test -n "$1" || error "provide object hash" 1
   while test -n "$1"
@@ -563,18 +669,18 @@ vc_path_for_object()
 }
 
 # print tree, blob, commit, etc. objs
-vc_list_objects()
+vc__list_objects()
 {
   git verify-pack -v .git/objects/pack/pack-*.idx
 }
 
-vc_object_contents()
+vc__object_contents()
 {
   git cat-file -p $1
 }
 
-vc_man_1_excludes="List path ignore patterns"
-vc_excludes()
+vc_man_1__excludes="List path ignore patterns"
+vc__excludes()
 {
   # (global) core.excludesfile setting
   global_excludes=$(echo $(git config --get core.excludesfile))
@@ -595,11 +701,11 @@ vc_excludes()
 }
 
 # List unversioned including ignored
-vc_ufx()
+vc__ufx()
 {
-  vc_excluded
+  vc__excluded
 }
-vc_excluded()
+vc__excluded()
 {
   # list paths not in git (including ignores)
   git ls-files --others --dir
@@ -617,11 +723,11 @@ vc_excluded()
 }
 
 # List all unversioned excluding ignored
-vc_uf()
+vc__uf()
 {
-  vc_unversioned_files
+  vc__unversioned_files
 }
-vc_unversioned_files()
+vc__unversioned_files()
 {
   # list cruft (not versioned and not ignored)
   git ls-files --others --exclude-standard
@@ -639,7 +745,7 @@ vc_unversioned_files()
 }
 
 # Annex diag.
-vc_annex_unused()
+vc__annex_unused()
 {
   git annex unused | grep '\s\s*[0-8]\+\ \ *.*$' | \
   while read line
@@ -648,7 +754,7 @@ vc_annex_unused()
   done
 }
 
-vc_annex_show_unused()
+vc__annex_show_unused()
 {
   c_annex_unused | while read num key
   do
@@ -657,7 +763,7 @@ vc_annex_show_unused()
   done
 }
 
-vc_annex_clear_unused()
+vc__annex_clear_unused()
 {
   test -z "$1" && {
     local cnt
@@ -683,7 +789,7 @@ vc_annex_clear_unused()
   }
 }
 
-vc_contains()
+vc__contains()
 {
   test -n "$1" || error "expected file path argument" 1
   test -f "$1" || error "not a file path argument '$1'" 1
@@ -695,12 +801,12 @@ vc_contains()
 
   { ( cd "$2" ; git rev-list --objects --all | grep "$sha1" ); } && {
     note "Found regular GIT object"
-  } || c_annex_contains "$1" "$2" || {
+  } || vc__annex_contains "$1" "$2" || {
     warn "Unable to find path in GIT at @$2: '$1'"
   }
 }
 
-vc_annex_contains()
+vc__annex_contains()
 {
   test -n "$1" || error "expected file path argument" 1
   test -f "$1" || error "not a file path argument '$1'" 1
@@ -716,7 +822,7 @@ vc_annex_contains()
 }
 
 # List submodule prefixes
-vc_list_prefixes()
+vc__list_prefixes()
 {
   git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
 }
@@ -724,14 +830,14 @@ vc_list_prefixes()
 # List all nested repositories, excluding submodules
 # XXX this does not work properly, best use it from root of repo
 # XXX: takes subdir, and should in case of being in a subdir act the same
-vc_list_subrepos()
+vc__list_subrepos()
 {
   local cwd=$(pwd)
   basedir="$(dirname "$(__vc_gitdir "$1")")"
   test -n "$1" || set -- "."
 
   cd $basedir
-  vc_list_prefixes > /tmp/vc-list-prefixes
+  vc__list_prefixes > /tmp/vc-list-prefixes
   cd $cwd
 
   find $1 -iname .git | while read path
@@ -752,7 +858,7 @@ vc_list_subrepos()
 #    config remote.$remote.url  ; done'
 }
 
-vc_status()
+vc__status()
 {
   local cwd=$(pwd)
   printf "" > /tmp/vc-status
@@ -773,7 +879,7 @@ vc_status()
   done
 }
 
-vc_projects()
+vc__projects()
 {
   test -f projects.sh || touch projects.sh
 
@@ -795,7 +901,7 @@ vc_projects()
   done
 }
 
-vc_remotes()
+vc__remotes()
 {
   git remote | while read remote
   do
@@ -810,7 +916,7 @@ vc_remotes()
   done
 }
 
-vc_list_local_branches()
+vc__list_local_branches()
 {
   local pwd=$(pwd)
   test -z "$1" || cd $1
@@ -819,7 +925,7 @@ vc_list_local_branches()
 }
 
 # regenerate .git/info/exclude
-vc_update()
+vc__update()
 {
   # backup header comment
   test -n .git/info/exclude-header.txt
@@ -856,7 +962,7 @@ vc_main()
         export SCRIPTPATH=$scriptdir
         . $scriptdir/util.sh
 
-        local func=$(echo vc_$subcmd | tr '-' '_') \
+        local func=$(echo vc__$subcmd | tr '-' '_') \
             verbosity=5 \
             ext_sh_sub=
 
@@ -864,14 +970,15 @@ vc_main()
           shift 1
           vc_load || return
           $func "$@"
+          vc_unload || return
         } || {
           R=$?
           vc_load || return
           test -n "$1" && {
-            vc_print_all "$@"
+            vc__print_all "$@"
             exit $R
           } || {
-            vc_print_all $(pwd)
+            vc__print_all $(pwd)
             exit 0
           }
         }
