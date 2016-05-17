@@ -207,7 +207,7 @@ __vc_git_flags()
       return
     }
 
-		cd $(dirname $g)
+		cd $(dirname "$g")
 		local r
 		local b
 		if [ -f "$g/rebase-merge/interactive" ]; then
@@ -536,7 +536,8 @@ vc_run__screen=x
 vc_spc__screen="screen"
 vc__screen()
 {
-  c="$(__vc_screen "$(dirname $gtd)" || return $?)"
+  test -n "$gtd" || { pwd; return; }
+  c="$(__vc_screen "$(dirname "$gtd")" || return $?)"
   echo "$c"
 }
 vc_C_exptime__screen=0

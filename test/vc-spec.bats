@@ -40,6 +40,20 @@ init
   test $status -eq 0
 }
 
+@test "$bin ps1" {
+  cd /tmp
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+  test "/tmp" = "${lines[*]}"
+}
+
+@test "$bin screen" {
+  cd /tmp
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0
+  test "/tmp" = "${lines[*]}"
+}
+
 setup_clean_git()
 {
   local tmpd=/tmp/script-mpe-vc-bats-$(uuidgen)
