@@ -175,20 +175,20 @@ pd__clean()
 {
   local R=0; pd_clean "$1" || R=$?; case "$R" in
     0|"" )
-        info "OK $(__vc_status "$1")"
+        info "OK $(vc__status "$1")"
       ;;
     1 )
-        warn "Dirty: $(__vc_status "$1")"
+        warn "Dirty: $(vc__status "$1")"
         return 1
       ;;
     2 )
         cruft_lines="$(echo $(echo "$cruft" | wc -l))"
         test $verbosity -gt 6 \
           && {
-            warn "Crufty: $(__vc_status "$1"):"
+            warn "Crufty: $(vc__status "$1"):"
             printf "$cruft\n"
           } || {
-            warn "Crufty: $(__vc_status "$1"), $cruft_lines files."
+            warn "Crufty: $(vc__status "$1"), $cruft_lines files."
           }
         return 2
       ;;
@@ -209,7 +209,7 @@ pd__disable_clean()
     test ! -d $prefix || {
       cd $pwd/$prefix
       git diff --quiet && {
-        test -z "$(vc_ufx)" && {
+        test -z "$(vc__ufx)" && {
           warn "TODO remove $prefix if synced"
           # XXX need to fetch remotes, compare local branches
           #pd__meta list-push-remotes $prefix | while read remote
@@ -357,7 +357,7 @@ pd__sync()
   prefix=$1
 
   shift 1
-  test -n "$1" || set -- $(vc_list_local_branches $prefix)
+  test -n "$1" || set -- $(vc__list_local_branches $prefix)
   pwd=$(pwd -P)
 
   cd $pwd/$prefix
@@ -534,7 +534,7 @@ pd__init()
     git submodule update --init --recursive )
 
   # Regenerate .git/info/exclude
-  vc_update || echo "update:vc-update:$1" >>$failed
+  vc__update || echo "update:vc-update:$1" >>$failed
 
   test ! -e .versioned-files.list || {
     echo "git-versioning check" > .git/hooks/pre-commit
@@ -711,7 +711,7 @@ pd__update_repo()
 
   # scan checkout remotes
 
-  # FIXME: move here props="$props $(verbosity=0;cd $1;echo "$(vc_remotes sh)")"
+  # FIXME: move here props="$props $(verbosity=0;cd $1;echo "$(vc__remotes sh)")"
 
   local remotes=
   for remote in $(cd $prefix; git remote)

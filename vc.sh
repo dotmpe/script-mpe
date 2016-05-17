@@ -14,7 +14,8 @@ vc_load()
 {
   local __load_lib=1 cwd="$(pwd)"
 
-#. ~/.conf/bash/git-completion.bash
+  # FIXME: sh autocompletion
+  #. ~/.conf/bash/git-completion.bash
 
   test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
   test -n "$uname" || uname=$(uname)
@@ -27,53 +28,67 @@ vc_load()
 
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
-  gtd=$(__vc_gitdir)
+  gtd=$(__vc_gitdir $cwd)
 
   # Look at run flags for subcmd
   for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
-  do case "$x" in
+  do
+    debug "${base} load ${subcmd} $x"
+    case "$x" in
+
     f )
         # Preset name to subcmd failed file placeholder
         failed=$(setup_tmp .failed)
       ;;
 
-    C ) # Cache value.
+    C )
+        # Return cached value. Validate based on timestamp.
         C= c=
-
-        vc_stat_key >/dev/null
-        c="$(statusdir.sh get $C_key)"
-        $(try_local "${subcmd}" C) && {
-          echo $c
+        C_exptime=$(try_value ${subcmd} C_exptime)
+        C_validate="$(try_value ${subcmd} C_validate)"
+        stat_key C >/dev/null
+        C="$(statusdir.sh get $C_key)"
+        C_mtime=
+        c_mtime=$(eval $C_validate 2>/dev/null)
+        ( test -n "$c_mtime" && C_cached $c_mtime ) && {
+          echo $C
+          debug "cached"
           exit 0
-        } || continue
+        } || debug "cache:$?"
       ;;
     esac
   done
 }
 
-vc_stat_key()
+C_cached()
 {
-  mkvid "$(pwd)"
-  C_key="$hnid:vc-${subcmd}:$vid"
-  echo $C_key
+  test -n "$C" || return 1
+  C_mtime=$(statusdir.sh get $C_key:time)
+  test -n "$C_mtime" || return 2
+  test $C_mtime -ge $c_mtime || return 3
 }
-
 
 vc_unload()
 {
   for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
-  do case "$x" in
+  do
+    debug "${base} unload ${subcmd} $x"
+    case "$x" in
+
     C )
-        test -n "$C" || error "empty C" 1
-        statusdir.sh set $C_key "$C" $exptime 2>&1 >/dev/null
-        $(try_local "${subcmd}" C) && {
-          echo $c
-          exit 0
-        } || continue
+        # Update cached value
+        test -z "$c" || {
+          test "$C" = "$c" \
+            || {
+              statusdir.sh set $C_key "$c" $exptime 2>&1 >/dev/null
+              statusdir.sh set $C_key:time $c_mtime $C_exptime 2>&1 >/dev/null
+            }
+          }
       ;;
   esac; done
   clean_failed
 }
+
 
 vc_usage()
 {
@@ -112,16 +127,13 @@ vc__docs()
 }
 
 
-vc___v()
-{
-	c__version
-}
-
 vc__version()
 {
 	# no version, just checking it goes
 	echo 0.0.0
 }
+vc___v() { c__version; }
+
 
 vc__edit()
 {
@@ -130,10 +142,7 @@ vc__edit()
 	[ -n "$fn" ] || error "Nothing to edit" 1
 	$EDITOR $fn
 }
-vc___e()
-{
-	vc__edit
-}
+vc___e() { vc__edit; }
 
 
 ### Internal functions
@@ -172,25 +181,13 @@ __vc_bzrdir ()
 # returns location of .git repo
 __vc_gitdir ()
 {
-  local pwd="$(pwd)"
-	#if [ -z "${1-}" ]; then
-	#	if [ -n "${__vc_git_dir-}" ]; then
-	#		echo "$__vc_git_dir"
-	#	elif [ -d .git ]; then
-	#		echo ".git"
-	#	else
-    #        cd $1
-	#		git rev-parse --git-dir 2>/dev/null
-	#	fi
-	D="$1"
-	[ -n "$D" ] || D=.
-	if [ -d "$D/.git" ]; then
-		echo "$D/.git"
-	else
-		cd "$D"
-		git rev-parse --git-dir 2>/dev/null
-		cd "$pwd"
-	fi
+  test -n "$1" || set -- .
+	test -d "$1/.git" && {
+		echo "$1/.git"
+  } || (
+    cd "$D"
+    git rev-parse --git-dir 2>/dev/null
+  )
 }
 
 # __vc_git_flags accepts 0 or 1 arguments (i.e., format string)
@@ -310,34 +307,6 @@ __vc_git_flags ()
 	fi
 }
 
-__vc_pull ()
-{
-	cd "$1"
-	local git=$(__vc_gitdir)
-	local bzr=$(__vc_bzrdir)
-	if [ "$git" ]; then
-		git pull;
-	else if [ "$bzr" ]; then
-		bzr pull;
-	else if [ -d ".svn" ]; then
-		svn update
-	fi; fi; fi;
-}
-
-__vc_push ()
-{
-	cd "$1"
-	local git=$(__vc_gitdir)
-	local bzr=$(__vc_bzrdir)
-	if [ "$git" ]; then
-		git push origin master;
-	else if [ "$bzr" ]; then
-		bzr push;
-#	else if [ -d ".svn" ]; then
-#	    svn
-	fi; fi;
-}
-
 # Switch the version control system detected for the current directory.
 # (First GIT, then BZR). Then make a pretty info string representing the status
 # of the working tree and repository.
@@ -348,7 +317,7 @@ __vc_push ()
 # * : modified "
 # - : removed "
 # ? : untracked "
-__vc_status ()
+__vc_status()
 {
   test -n "$1" || set -- "$(pwd)"
 
@@ -407,33 +376,6 @@ __vc_status ()
 	cd $cwd
 }
 
-# Helper for just path reference notation, no SCM bits
-__pwd_ps1 ()
-{
-	local w short
-
-	d="$1";
-	[ -z "$d" ] && d="$(pwd)"
-	[ ! -d "$d" ] && echo "No such directory $d" && exit 3
-	realcwd="$(cd $d && pwd -P)"
-	short=$(homepath $d)
-	echo $short
-}
-
-vc_run__stat=f
-vc__stat()
-{
-  echo $failed
-}
-
-
-# Wrapper for __vc_status stat sets argument default to current dirctory
-# Return all info bits from __vc_status()
-__vc_ps1 ()
-{
-	__vc_status "$1"
-}
-
 __vc_screen ()
 {
 	local w short repo sub
@@ -461,10 +403,35 @@ __vc_screen ()
 	fi
 }
 
-__vc_git_ps1()
+
+__vc_pull ()
 {
-    __vc_git_flags $@
+	cd "$1"
+	local git=$(__vc_gitdir)
+	local bzr=$(__vc_bzrdir)
+	if [ "$git" ]; then
+		git pull;
+	else if [ "$bzr" ]; then
+		bzr pull;
+	else if [ -d ".svn" ]; then
+		svn update
+	fi; fi; fi;
 }
+
+__vc_push ()
+{
+	cd "$1"
+	local git=$(__vc_gitdir)
+	local bzr=$(__vc_bzrdir)
+	if [ "$git" ]; then
+		git push origin master;
+	else if [ "$bzr" ]; then
+		bzr push;
+#	else if [ -d ".svn" ]; then
+#	    svn
+	fi; fi;
+}
+
 
 list_gitpaths()
 {
@@ -478,7 +445,6 @@ list_gitpaths()
 	done
 }
 
-#list_git_checkouts()
 vc_ls_gitroots()
 {
 	list_gitpaths $1 | while read gitpath
@@ -505,48 +471,50 @@ vc_ls_errors()
 	done
 }
 
+
 ### Command Line handlers
 
-# print all fuctions/results for paths in arguments
-vc__print_all()
+vc_run__stat=f
+vc__stat()
 {
-	for path in $@
-	do
-		[ ! -e "$path" ] && continue
-		echo vc-status[$path]=\"$(__vc_status "$path")\"
-		echo pwd-ps1[$path]=\"$(__pwd_ps1 "$path")\"
-		echo vc-ps1[$path]=\"$(__vc_ps1 "$path")\"
-	done
+  test -n "$1" || set -- .
+  __vc_status "$1" || return $?
+}
+# TODO: alias
+vc_als__status=stat
+
+
+# TODO: vcflags
+vc__gitflags()
+{
+  __vc_git_flags "$@" || return $?
 }
 
-vc_run__ps1=S
+
+vc_man_1__ps1="Print VC status in the middle of PWD. ".
+vc_run__ps1=C
 vc_spc__ps1="ps1"
 vc__ps1()
 {
-  C="$(__vc_status "$(pwd)" || return)"
-  echo "$C"
+  test -n "$gtd" || { pwd; return; }
+  c="$(__vc_status "$(pwd)" || return $?)"
+  echo "$c"
 }
-vc_exptime__ps1=0
-vc_C__ps1()
+vc_C_exptime__ps1=0
+vc_C_validate__ps1="vc__mtime \$gtd"
+
+
+vc_man_1__screen="Print VC status in the middle of PWD. ".
+vc_run__screen=C
+vc_spc__screen="screen"
+vc__screen()
 {
-  # Validate based on last known .git dir mtime
-  test -n "$gtd" || error "gtd init" 1
-  gitmtime=$(vc__mtime $gtd)
-
-  test -z "$C" && {
-
-    # Pre-run: check cache validator(s)
-    test -n "$c" || return 1
-    cgitmtime=$(statusdir.sh get $C_key:time)
-    test -n "$cgitmtime" || return 1
-    test $cgitmtime -ge $gitmtime || return 1
-
-  } || {
-
-    # Post-run: update cache validator(s)
-    statusdir.sh set $C_key:time $gitmtime $exptime 2>&1 >/dev/null
-  }
+  c="$(__vc_screen "$(dirname $gtd)" || return $?)"
+  echo "$c"
 }
+vc_C_exptime__screen=0
+vc_C_validate__screen="filemtime \$cwd"
+
 
 vc_man_1__mtime="Return last modification time for GIT head or stage"
 vc__mtime()
@@ -561,25 +529,25 @@ vc__mtime()
     | awk '$0>x{x=$0};END{print x}'
 }
 
+
 vc_man_1__flush="Delete all subcmd value caches"
 vc__flush()
 {
-  for subcmd in ps1
+  for subcmd_ in ps1 stat
   do
-    vc_stat_key >/dev/null
-    membash delete $C_key 2>&1 >/dev/null || continue
+    stat_key C
+    subcmd=$subcmd_ membash delete $C_key 2>&1 >/dev/null || continue
   done
 }
 
-
-vc__screen()
+# print all fuctions/results for paths in arguments
+vc__print_all()
 {
-	__vc_screen $@ || return
-}
-
-vc__gitflags()
-{
-  __vc_git_flags "$@" || return
+	for path in $@
+	do
+		[ ! -e "$path" ] && continue
+		echo vc-status[$path]=\"$(__vc_status "$path")\"
+	done
 }
 
 
@@ -858,27 +826,6 @@ vc__list_subrepos()
 #    config remote.$remote.url  ; done'
 }
 
-vc__status()
-{
-  local cwd=$(pwd)
-  printf "" > /tmp/vc-status
-  for gitdir in */.git
-  do
-    dir="$(dirname "$gitdir")"
-    cd "$dir"
-    git diff --quiet && {
-      info "$dir OK"
-    } || {
-      echo "$dir" >> /tmp/vc-status
-    }
-    cd $cwd
-  done
-  cat /tmp/vc-status | while read path
-  do
-    warn "Modified: $path"
-  done
-}
-
 vc__projects()
 {
   test -f projects.sh || touch projects.sh
@@ -962,8 +909,9 @@ vc_main()
         export SCRIPTPATH=$scriptdir
         . $scriptdir/util.sh
 
+        test -n "$verbosity" || verbosity=5
+
         local func=$(echo vc__$subcmd | tr '-' '_') \
-            verbosity=5 \
             ext_sh_sub=
 
         type $func >/dev/null 2>&1 && {
