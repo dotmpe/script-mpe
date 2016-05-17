@@ -267,7 +267,7 @@ __vc_git_flags()
 			if [ -n "${GIT_PS1_SHOWDIRTYSTATE-}" ]; then
 				if [ "$(git config --bool bash.showDirtyState)" != "false" ]; then
 					git diff --no-ext-diff --ignore-submodules \
-						--quiet --exit-code || w="*"
+						--quiet --exit-code || w='*'
 					if git rev-parse --quiet --verify HEAD >/dev/null; then
 						git diff-index --cached --quiet \
 							--ignore-submodules HEAD -- || i="+"
@@ -351,6 +351,7 @@ __vc_status()
 
 		realroot="$(git rev-parse --show-toplevel)"
 		[ -n "$realroot" ] && {
+
 			rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
 			sub="${realcwd##$realroot}"
 			realgitdir=$realroot/.git
@@ -362,6 +363,7 @@ __vc_status()
 		}
 		short="${short%$sub}"
 		echo "$short" $(__vc_git_flags $realgitdir "[git:%s $rev]")$sub
+
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
 		realbzr="$(cd "$bzr"; pwd -P)"
@@ -376,6 +378,7 @@ __vc_status()
 		if [ "$(bzr status|grep unknown)" ]; then s="${s}~"; fi
 		[ -n "$s" ] && s="$s "
 		echo "$short$PSEP [bzr:$s$revno]$sub"
+
 	#else if [ -d ".svn" ]; then
 	#	local r=$(svn info | sed -n -e '/^Revision: \([0-9]*\).*$/s//\1/p' )
 	#	local s=""
@@ -500,6 +503,12 @@ vc__stat()
 }
 # TODO: alias
 vc_als__status=stat
+
+
+vc__bits()
+{
+  __vc_status || return $?
+}
 
 
 # TODO: vcflags

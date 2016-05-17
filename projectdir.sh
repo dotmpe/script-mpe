@@ -121,31 +121,31 @@ pd__status()
       note "Projectdir is not a checkout at $checkout"
       continue
     }
-    statusdir.sh assert-state 'project/'$checkout'/tags'='[]'
+    #statusdir.sh assert-state 'project/'$checkout'/tags'='[]'
 
     # FIXME: merge with pd-check? Need fast access to lists..
     #pd_check $checkout || echo pd-check:$checkout >>$failed
     pd__clean $checkout || {
       echo pd-clean:$checkout >>$failed
-      statusdir.sh assert-state \
-        'project/'$checkout'/clean'=false
-      statusdir.sh assert-state \
-        'project/'$checkout'/tags[]'=to-clean
+      #statusdir.sh assert-state \
+      #  'project/'$checkout'/clean'=false
+      #statusdir.sh assert-state \
+      #  'project/'$checkout'/tags[]'=to-clean
     }
 
     echo "$registered" | grep -qF $checkout && {
       echo "$enabled" | grep -qF $checkout && {
         test -e "$checkout" || {
           note "Checkout missing: $checkout"
-          statusdir.sh assert-state \
-            'project/'$checkout'/tags[]'=to-enable
+          #statusdir.sh assert-state \
+          #  'project/'$checkout'/tags[]'=to-enable
         }
       } || {
         echo "$disabled" | grep -qF $checkout && {
           test ! -e "$checkout" || {
             note "Checkout to be disabled: $checkout"
-            statusdir.sh assert-state \
-              'project/'$checkout'/tags[]'=to-clean
+            #statusdir.sh assert-state \
+            #  'project/'$checkout'/tags[]'=to-clean
           }
         } || noop
       }
@@ -377,9 +377,10 @@ pd__sync()
 
   cd $pwd
 
+
   # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
   {
-    pd__meta -s list-upstream "$prefix" "$@" \
+    pd__meta -s list-upstream "$prefix" \
       || {
         warn "No sync setting, skipping $prefix"
         return 1
@@ -390,7 +391,6 @@ pd__sync()
 
     cd $pwd/$prefix
 
-
     ( test -e .git/FETCH_HEAD && younger_than .git/FETCH_HEAD $PD_SYNC_AGE ) || {
       git fetch --quiet $remote || {
         error "fetching $remote"
@@ -398,7 +398,6 @@ pd__sync()
         continue
       }
     }
-
 
     local remoteref=$remote/$branch
 
@@ -453,7 +452,7 @@ pd__sync()
   done
 
   test -s "$remotes" || {
-    error "No remotes for $(pwd)"
+    error "No remotes for $pwd/$prefix"
     return 1
   }
   remote_cnt=$(wc -l $remotes | awk '{print  $1}')
