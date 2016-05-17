@@ -155,7 +155,7 @@ def H_merge(opts, write=True):
 
 def H_update(opts):
     "Update srcfile from stdin. Write to destfile or stdout. "
-    updatefile = get_dest(opts)
+    updatefile = get_dest(opts, 'r')
     data = load_data( opts.flags.output_format, updatefile )
     if not opts.args.srcfiles:
         return
@@ -163,8 +163,7 @@ def H_update(opts):
         fmt = get_format_for_fileext(src) or opts.flags.input_format
         mdata = load_data( fmt, open_file( src, 'in' ) )
         deep_update([data, mdata], opts)
-    updatefile = get_dest(opts)
-    updatefile.truncate()
+    updatefile = get_dest(opts, 'w')
     return stdout_data( opts.flags.output_format, data, updatefile, opts )
 
 

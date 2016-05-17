@@ -379,13 +379,13 @@ def get_format_for_fileext(fn, io='out'):
         if fn.endswith( ext ):
             return fmt
 
-def get_dest(opts):
+def get_dest(opts, mode):
     if opts.flags.detect_format:
         set_format('output', 'dest', opts)
     updatefile = None
     if 'destfile' in opts.args and opts.args.destfile:
         assert opts.args.destfile != '-'
-        updatefile = open_file(opts.args.destfile, defio=None, mode='rw+')
+        updatefile = open_file(opts.args.destfile, defio=None, mode=mode)
     return updatefile
 
 def get_src_dest_defaults(opts):
