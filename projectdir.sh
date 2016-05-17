@@ -175,20 +175,20 @@ pd__clean()
 {
   local R=0; pd_clean "$1" || R=$?; case "$R" in
     0|"" )
-        info "OK $(vc__status "$1")"
+        info "OK $(vc__stat "$1")"
       ;;
     1 )
-        warn "Dirty: $(vc__status "$1")"
+        warn "Dirty: $(vc__stat "$1")"
         return 1
       ;;
     2 )
         cruft_lines="$(echo $(echo "$cruft" | wc -l))"
         test $verbosity -gt 6 \
           && {
-            warn "Crufty: $(vc__status "$1"):"
+            warn "Crufty: $(vc__stat "$1"):"
             printf "$cruft\n"
           } || {
-            warn "Crufty: $(vc__status "$1"), $cruft_lines files."
+            warn "Crufty: $(vc__stat "$1"), $cruft_lines files."
           }
         return 2
       ;;
@@ -452,8 +452,11 @@ pd__sync()
 
   done
 
+  test -s "$remotes" || {
+    error "No remotes for $(pwd)"
+    return 1
+  }
   remote_cnt=$(wc -l $remotes | awk '{print  $1}')
-
   test $remote_cnt -gt 0 || echo 'remotes:0' >>$failed
 
   test -s "$failed" \
@@ -961,7 +964,7 @@ pd__show()
   set -- "$(normalize_relative $go_to_before/$1)"
   test -n "$1" || error "Prefix expected" 1
   pd__meta get-repo $1 | \
-    jsotk.py -I json -O yaml --pretty --output-prefix repositories/$1 update - -
+    jsotk.py -I json -O yaml --pretty --output-prefix repositories/$1 merge - -
 
   update_package "$1"
 

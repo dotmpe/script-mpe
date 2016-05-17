@@ -343,6 +343,7 @@ def open_file(fpathname, defio='out', mode='r'):
     if not fpathname:
         fpathname = '-'
     if fpathname == '-':
+        assert defio in ( 'in', 'out' ), defio
         return getattr(sys, 'std%s' % defio)
     else:
         return open(fpathname, mode)
@@ -383,6 +384,7 @@ def get_dest(opts):
         set_format('output', 'dest', opts)
     updatefile = None
     if 'destfile' in opts.args and opts.args.destfile:
+        assert opts.args.destfile != '-'
         updatefile = open_file(opts.args.destfile, defio=None, mode='rw+')
     return updatefile
 

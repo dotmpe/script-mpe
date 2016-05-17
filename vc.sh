@@ -30,6 +30,7 @@ vc_load()
 
   gtd=$(__vc_gitdir $cwd)
 
+
   # Look at run flags for subcmd
   for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
   do
@@ -169,12 +170,13 @@ homepath()
 __vc_bzrdir ()
 {
   local cwd="$(pwd)"
-  cd "$1"
-	root=$(bzr info 2> /dev/null | grep 'branch root')
-	if [ -n "$root" ]; then
-		echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
-	fi
-	cd $cwd
+  (
+    cd "$1"
+    root=$(bzr info 2> /dev/null | grep 'branch root')
+    if [ -n "$root" ]; then
+      echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
+    fi
+  )
 }
 
 # __vc_gitdir accepts 0 or 1 arguments (i.e., location)
@@ -192,13 +194,19 @@ __vc_gitdir ()
 
 # __vc_git_flags accepts 0 or 1 arguments (i.e., format string)
 # returns text to add to bash PS1 prompt (includes branch name)
-__vc_git_flags ()
+__vc_git_flags()
 {
   local pwd="$(pwd)"
 	local g="$1"
 	[ -n "$g" ] || g="$(__vc_gitdir)"
 	if [ -e "$g" ]
 	then
+
+    test -e "$g/refs/heads/master" || {
+      echo "(git:unborn)"
+      return
+    }
+
 		cd $(dirname $g)
 		local r
 		local b
@@ -320,7 +328,6 @@ __vc_git_flags ()
 __vc_status()
 {
   test -n "$1" || set -- "$(pwd)"
-
 	test -d "$1" || err "No such directory $1" 3
 
 	local w short repo sub
@@ -336,6 +343,12 @@ __vc_status()
 	local bzr=$(__vc_bzrdir "$realcwd")
 
 	if [ -n "$git" ]; then
+
+    test -e "$git/refs/heads/master" || {
+      echo "$(pwd) (git:unborn)"
+      return
+    }
+
 		realroot="$(git rev-parse --show-toplevel)"
 		[ -n "$realroot" ] && {
 			rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
@@ -380,13 +393,18 @@ __vc_screen ()
 {
 	local w short repo sub
 
-    test -n "$1" || set -- "$(pwd)"
+  test -n "$1" || set -- "$(pwd)"
 
 	realcwd="$(pwd -P)"
 	short=$(homepath "$1")
 
 	local git=$(__vc_gitdir "$1")
 	if [ "$git" ]; then
+
+    test -e "$git/refs/heads/master" || {
+      echo "$(pwd) (git:unborn)"
+      return
+    }
 		realroot="$(git rev-parse --show-toplevel)"
 		[ -n "$realroot" ] && {
 			rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
@@ -505,7 +523,7 @@ vc_C_validate__ps1="vc__mtime \$gtd"
 
 
 vc_man_1__screen="Print VC status in the middle of PWD. ".
-vc_run__screen=C
+vc_run__screen=x
 vc_spc__screen="screen"
 vc__screen()
 {
@@ -952,7 +970,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
 
-      vc_main "$@"
+        vc_main "$@"
       ;;
 
   esac ;;

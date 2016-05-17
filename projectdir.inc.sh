@@ -37,14 +37,14 @@ pd_clean()
   }
 
   test -n "$choice_strict" \
-    && cruft="$(cd $1; vc_excluded)" \
+    && cruft="$(cd $1; vc__excluded)" \
     || {
 
       pd__meta -q clean-mode $1 tracked || {
 
         pd__meta -q clean-mode $1 excluded \
-          && cruft="$(cd $1; vc_excluded)" \
-          || cruft="$(cd $1; vc_unversioned_files)"
+          && cruft="$(cd $1; vc__excluded)" \
+          || cruft="$(cd $1; vc__unversioned_files)"
       }
     }
 
@@ -142,7 +142,7 @@ pd_regenerate()
   debug "pd-regenerate pwd=$(pwd) 1=$1"
 
   # Regenerate .git/info/exclude
-  vc_update "$1" || echo "pd-regenerate:vc_update:$1" 1>&3
+  vc__update "$1" || echo "pd-regenerate:vc-update:$1" 1>&3
 
   test ! -e .package.sh || . .package.sh
 
