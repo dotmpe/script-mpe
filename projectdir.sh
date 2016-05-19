@@ -533,10 +533,12 @@ pd__init()
   pd__set_remotes $1
 
   ( cd $1
-    git submodule update --init --recursive )
 
-  # Regenerate .git/info/exclude
-  vc__update || echo "update:vc-update:$1" >>$failed
+    git submodule update --init --recursive
+
+    # Regenerate .git/info/exclude
+    vc__update || echo "update:vc-update:$1" >>$failed
+  )
 
   test ! -e .versioned-files.list || {
     echo "git-versioning check" > .git/hooks/pre-commit

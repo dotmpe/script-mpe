@@ -902,12 +902,16 @@ vc__list_local_branches()
 # regenerate .git/info/exclude
 vc__update()
 {
-  # backup header comment
-  test -n .git/info/exclude-header.txt
   local excludes=.git/info/exclude
+
   test -e $excludes.header || backup_header_comment $excludes
+
+  info "Resetting local GIT excludes file"
   read_nix_style_file $excludes | sort -u > $excludes.list
   cat $excludes.header $excludes.list > $excludes
+  rm $excludes.list
+
+  info "Adding other git-ignore files"
   for x in .gitignore-*
   do
     test -e $x || continue
@@ -915,7 +919,8 @@ vc__update()
     echo "# Source: $x" >> $excludes
     read_nix_style_file $x >> $excludes
   done
-  rm $excludes.list
+
+  info Done
 }
 
 
