@@ -153,3 +153,21 @@ pd_regenerate()
   }
 
 }
+
+
+pd_list_upstream()
+{
+  test -n "$prefix"
+  pd__meta -s list-upstream "$prefix" \
+    | while read remote branch
+  do
+    test "$branch" != "*" && {
+      echo $remote $branch
+    } || {
+      for branch in $(vc__list_local_branches "$prefix")
+      do
+        echo $remote $branch
+      done
+    }
+  done
+}

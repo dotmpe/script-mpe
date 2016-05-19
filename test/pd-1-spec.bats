@@ -7,50 +7,37 @@ init
 . $lib/util.sh
 
 
-
-test_args_shift_1()
+setup_projdir()
 {
-  # Shift first argument to third place if only one given
-
-  test -z "$1" || {
-    test -n "$2" || set -- "" "$1"
-  }
-
-  echo "1:$1 2:$2"
-}
-
-@test "argument defaults, shift to 2" {
-
-  run test_args_shift_1 a b
-  #diag "${lines[*]}"
-  fnmatch "1:a 2:b" "${lines[*]}"
-  run test_args_shift_1 a
-  fnmatch "1: 2:a" "${lines[*]}"
-  run test_args_shift_1 "" b
-  fnmatch "1: 2:b" "${lines[*]}"
+  tmpd
+  { cat <<EOF
+repositories:
+  user-conf:
+    default: dev
+    disabled: true
+    remotes:
+      origin: https://github.com/dotmpe/user-conf.git
+    sync: true
+    clean: untracked
+EOF
+  } > $tmpd/.projects.yaml
 }
 
 
-test_args_shift_2()
-{
-  # Shift as long as desired argument length
-  while test ${#} -ne 3
-  do
-    set -- "" "$@"
-  done
-
-  echo "1:$1 2:$2 3:$3"
+@test "Pd use-case 1: enable, disable a checkout without errors" {
+  setup_projdir
+  test -s $tmpd/.projects.yaml
+  cd $tmpd 
+  pd enable user-conf
+  pd clean user-conf
+  pd disable user-conf
 }
 
-@test "argument defaults, shift to 3" {
 
-  run test_args_shift_2 a b c 
-  fnmatch "1:a 2:b 3:c" "${lines[*]}"
-  run test_args_shift_2 a b
-  fnmatch "1: 2:a 3:b" "${lines[*]}"
-  run test_args_shift_2 a
-  fnmatch "1: 2: 3:a" "${lines[*]}"
-  diag "${lines[*]}"
+@test "Pd use-case 2: tell about a prefix" {
+  setup_projdir
+  test -s $tmpd/.projects.yaml
+  pd show user-conf
 }
 
 # vim:ft=bash:

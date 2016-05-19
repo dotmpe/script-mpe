@@ -173,7 +173,8 @@ pd__check()
 pd_run__clean=y
 pd__clean()
 {
-  local R=0; pd_clean "$1" || R=$?; case "$R" in
+  local R=0; pd_clean "$1" || R=$?;
+  case "$R" in
     0|"" )
         info "OK $(vc__stat "$1")"
       ;;
@@ -377,17 +378,17 @@ pd__sync()
 
   cd $pwd
 
-
   # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
   {
-    pd__meta -s list-upstream "$prefix" \
-      || {
-        warn "No sync setting, skipping $prefix"
-        return 1
-      };
+    pd_list_upstream || {
+      warn "No sync setting, skipping $prefix"
+      return 1
+    }
   } | while read remote branch
   do
+
     fnmatch "*annex*" $branch && continue || noop
+
 
     cd $pwd/$prefix
 
@@ -398,6 +399,7 @@ pd__sync()
         continue
       }
     }
+
 
     local remoteref=$remote/$branch
 
@@ -553,7 +555,7 @@ pd__set_remotes()
   test -n "$1" || error "prefix argument expected" 1
   test -z "$2" || error "Surplus arguments: $2" 1
 
-  log "Syncing local remotes with $pd repository"
+  note "Syncing local remotes with $pd repository"
   cwd=$(pwd)
   pd__meta list-remotes "$1" | while read remote
   do
@@ -606,13 +608,14 @@ pd__disable()
   test -n "$1" || error "prefix argument expected" 1
   test -z "$2" || error "Surplus arguments: $2" 1
 
-  pd__meta_sq disabled $1 && {
-    info "Already disabled: $1"
+
+  pd__meta_sq disabled "$1" && {
+    info "Already disabled: '$1'"
   } || {
     pd__meta disable $1 && note "Disabled $1"
   }
 
-  test ! -d $1 && {
+  test ! -d "$1" && {
     info "No checkout, nothing to do"
   } || {
     note "Found checkout, getting status.. (Clean-Mode: $(pd__meta clean-mode $1))"

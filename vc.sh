@@ -198,16 +198,16 @@ __vc_git_flags()
 {
   local pwd="$(pwd)"
 	local g="$1"
-	[ -n "$g" ] || g="$(__vc_gitdir)"
+  [ -n "$g" ] || g="$(dirname $(__vc_gitdir))"
 	if [ -e "$g" ]
 	then
 
-    test -e "$g/refs/heads/master" || {
+    test -e "$g/.git/refs/heads/master" || {
       echo "(git:unborn)"
       return
     }
 
-		cd $(dirname "$g")
+		cd $g
 		local r
 		local b
 		if [ -f "$g/rebase-merge/interactive" ]; then
@@ -251,11 +251,7 @@ __vc_git_flags()
 			}
 		fi
 
-		local w
-		local i
-		local s
-		local u
-		local c
+		local w= i= s= u= c=
 
 		if [ "true" = "$(git rev-parse --is-inside-git-dir 2>/dev/null)" ]; then
 			if [ "true" = "$(git rev-parse --is-bare-repository 2>/dev/null)" ]; then
@@ -335,7 +331,6 @@ __vc_status()
   local pwd="$(pwd)"
 
 	realcwd="$(cd $1; pwd -P)"
-
 	short="$(homepath "$1")"
 	test -n "$short" || err "homepath" 1
 
@@ -345,24 +340,28 @@ __vc_status()
 	if [ -n "$git" ]; then
 
     test -e "$git/refs/heads/master" || {
-      echo "$(pwd) (git:unborn)"
+      echo "$realcwd (git:unborn)"
       return
     }
 
-		realroot="$(git rev-parse --show-toplevel)"
-		[ -n "$realroot" ] && {
+		checkoutdir="$(cd $realcwd; git rev-parse --show-toplevel)"
 
-			rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-			sub="${realcwd##$realroot}"
-			realgitdir=$realroot/.git
+		[ -n "$checkoutdir" ] && {
+
+			rev="$(cd $realcwd; git show "$checkoutdir" | grep '^commit' \
+			  | sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+			sub="${realcwd##$checkoutdir}"
+
 		} || {
+
 			realgitdir="$(cd "$git"; pwd -P)"
-			rev="$(git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+			rev="$(cd $realcwd; git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
 			realgit="$(basename $realgitdir)"
 			sub="${realcwd##$realgit}"
 		}
+
 		short="${short%$sub}"
-		echo "$short" $(__vc_git_flags $realgitdir "[git:%s $rev]")$sub
+		echo "$short" $(__vc_git_flags $realcwd "[git:%s $rev]")$sub
 
 	else if [ "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
@@ -418,7 +417,7 @@ __vc_screen ()
 			realgit="$(basename $realgitdir)"
 			sub="${realcwd##$realgit}"
 		}
-		echo $(basename "$realcwd") $(__vc_git_flags $realgitdir "[git:%s $rev]")
+		echo $(basename "$realcwd") $(__vc_git_flags $realcwd "[git:%s $rev]")
 	else
 		echo "$short"
 	fi
@@ -920,7 +919,7 @@ vc__update()
     read_nix_style_file $x >> $excludes
   done
 
-  info Done
+  note "Local excludes successfully regenerated"
 }
 
 
@@ -950,7 +949,7 @@ vc_main()
         type $func >/dev/null 2>&1 && {
           shift 1
           vc_load || return
-          $func "$@"
+          $func "$@" || return $?
           vc_unload || return
         } || {
           R=$?
