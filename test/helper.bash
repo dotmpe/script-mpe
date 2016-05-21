@@ -109,3 +109,14 @@ tmpd()
   mkdir -vp $tmpd
 }
 
+file_equal()
+{
+  sum1=$(md5sum $1 | cut -f 1 -d' ')
+  sum2=$(md5sum $2 | cut -f 1 -d' ')
+  test "$sum1" = "$sum2" || return 1
+}
+
+noop()
+{
+  printf ""
+}

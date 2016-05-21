@@ -27,7 +27,7 @@ Usage:
     projectdir-meta (-h | --help)
 
 Options:
-  --address ADDRESS
+  -S, --address ADDRESS
                 The address that the socket server will be listening on. If
                 the socket exists, any command invocation is relayed to the
                 server intance, and the result output and return code 
@@ -522,15 +522,22 @@ def main(ctx):
     """
 
     if ctx.opts.flags.background:
+        # Start background process
         localbg = __import__('local-bg')
         return localbg.serve(ctx, handlers, prerun=prerun)
+
     elif os.path.exists(ctx.opts.flags.address):
+        # Query background process
         localbg = __import__('local-bg')
         return localbg.query(ctx)
+
     elif 'exit' == ctx.opts.cmds[0]:
+        # Exit background process
         print >>ctx.err, "No background process at %s" % ctx.opts.flags.address
         return 1
+
     else:
+        # Normal execution
         pdhdata = yaml_load(open(ctx.opts.flags.file))
         func = ctx.opts.cmds[0]
         assert func in handlers

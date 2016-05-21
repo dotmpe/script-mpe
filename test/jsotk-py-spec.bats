@@ -78,7 +78,7 @@ init
     printf "foo/2[2]=more\nfoo/2[3]=items\n" | jsotk.py from-kv - || return $?
   }
   run jsotk_from_kv_test
-  test ${status} -eq 0
+  test ${status} -eq 0 || fail "Output: ${lines[*]}"
   test "${lines[*]}" = '{"foo": {"2": [null, null, "more", "items"]}}'
 }
 
@@ -88,7 +88,7 @@ init
   run jsotk.py objectpath \
     test/var/jsotk/2.yaml \
     '$.*[@.main]'
-  test ${status} -eq 0
+  test ${status} -eq 0 || fail "Output: ${lines[*]}"
   test '"third-type"' = "${lines[*]}" 
 
   # Select all objects under root with main attribute
@@ -120,7 +120,10 @@ init
   #jsotk.py from-args 'list[2]/foo=2' > /tmp/in2.json
   echo '{"list": [1, {"foo": 2}]}' >/tmp/in2.json
   run $bin --list-update merge-one /tmp/in1.json /tmp/in2.json /tmp/out.json
-  test ${status} -eq 0
+  test ${status} -eq 0 || {
+    echo ${lines[*]} >> $BATS_OUT
+    fail "Output above. "
+  }
   test "$(cat /tmp/out.json)" = '{"list": [1, {"foo": 2}]}'
 }
 
@@ -140,7 +143,7 @@ init
     git co test/var/jsotk/1.yaml
   }
   run jsotk_merge_test
-  test ${status} -eq 0
+  test ${status} -eq 0 || fail "Output: ${lines[*]}"
   echo "${lines[*]}" >/tmp/123
   test "${lines[*]}" = '{"newkey": "value", "foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "items"]}}' \
     || fail "output '${lines[*]}'"
@@ -179,6 +182,13 @@ init
   test ${status} -eq 0
   test "${lines[*]}" = \
   '{"foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "more", "items"]}}'
+}
+
+@test "${bin} -O fkv  path  test/var/jsotk/1.json  foo/2" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0 || fail "Output: ${lines[*]}"
+  test "${lines[*]}" = "__0=list __1=with __2=items" \
+    || fail "Output: ${lines[*]}"
 }
 
 # vim:ft=sh:

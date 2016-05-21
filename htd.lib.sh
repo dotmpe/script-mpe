@@ -32,9 +32,6 @@ htd_init_ignores()
   test -n "$HTD_IGNORE" || exit 1
 
   test -e $HTD_IGNORE.merged && grep -qF $HTD_IGNORE.merged $HTD_IGNORE.merged || {
-    test -e "$HTD_IGNORE.merged" && {
-      test -w "$HTD_IGNORE.merged" || error "Cannot write $(pwd)/$HTD_IGNORE.merged" 1
-    }
     echo $HTD_IGNORE.merged > $HTD_IGNORE.merged
   }
 
