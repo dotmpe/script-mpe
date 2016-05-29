@@ -137,6 +137,49 @@ statusdir__cons_json()
 }
 
 
+be=membash
+
+statusdir__get()
+{
+  test -n "$1" || error "key expected" 1
+  test -z "$2" || error "surplus arguments" 1
+  $be get $1 || return $?
+}
+
+statusdir__set()
+{
+  test -n "$1" || error "key expected" 1
+  test -n "$2" || error "value expected" 1
+  test -n "$3" || set -- "$1" "$2" 0
+  test -z "$4" || error "surplus arguments" 1
+  $be set $1 $3 $2 || return $?
+}
+
+statusdir__del()
+{
+  test -n "$1" || error "key expected" 1
+  test -z "$2" || error "surplus arguments" 1
+  $be delete $1 || return $?
+}
+
+statusdir__incr()
+{
+  test -n "$1" || error "key expected" 1
+  test -n "$2" || set -- "$1" 1
+  test -z "$3" || error "surplus arguments" 1
+  $be incr $1 $2 || return $?
+}
+
+statusdir__decr()
+{
+  test -n "$1" || error "key expected" 1
+  test -n "$2" || set -- "$1" 1
+  test -z "$3" || error "surplus arguments" 1
+  $be decr $1 $2 || return $?
+}
+
+
+
 ### Main
 
 statusdir__main()

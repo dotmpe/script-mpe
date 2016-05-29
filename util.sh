@@ -41,7 +41,7 @@ trueish()
 {
   test -n "$1" || return 1
   case "$1" in
-		[Oo]n|[Tt]rue|[Yy]es|1)
+		[Oo]n|[Tt]rue|[Yy]|[Yy]es|1)
       return 0;;
     * )
       return 1;;

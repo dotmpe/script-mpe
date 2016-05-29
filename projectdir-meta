@@ -546,5 +546,7 @@ if __name__ == '__main__':
         inp=sys.stdin,
         opts=util.get_opts(__doc__)
     ))
+    if ctx.opts.args.prefix:
+        ctx.opts.args.prefix = ctx.opts.args.prefix.strip(os.sep)
     sys.exit( main( ctx ) )
 

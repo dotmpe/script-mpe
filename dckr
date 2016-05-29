@@ -725,7 +725,7 @@ dckr__cleanup_all()
     read confirm
     trueish "$confirm" && {
       docker rmi $images
-    }
+    } || warn "Skipped rmi" 
   }
 
   log "Scanning for old volumes..."
@@ -745,7 +745,7 @@ dckr__cleanup_all()
   test -s "$mounts" && {
     log "Ready to remove unused volumes? (/var/lib/docker/volumes/* not in $mounts) "
     read confirm
-    trueish "$confirm" || return 1
+    trueish "$confirm" || warn "Cancelled" 1
   } || return
 
   # Remove volumes not mounted in running containers

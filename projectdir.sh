@@ -121,31 +121,31 @@ pd__status()
       note "Projectdir is not a checkout at $checkout"
       continue
     }
-    statusdir.sh assert-state 'project/'$checkout'/tags'='[]'
+    #statusdir.sh assert-state 'project/'$checkout'/tags'='[]'
 
     # FIXME: merge with pd-check? Need fast access to lists..
     #pd_check $checkout || echo pd-check:$checkout >>$failed
     pd__clean $checkout || {
       echo pd-clean:$checkout >>$failed
-      statusdir.sh assert-state \
-        'project/'$checkout'/clean'=false
-      statusdir.sh assert-state \
-        'project/'$checkout'/tags[]'=to-clean
+      #statusdir.sh assert-state \
+      #  'project/'$checkout'/clean'=false
+      #statusdir.sh assert-state \
+      #  'project/'$checkout'/tags[]'=to-clean
     }
 
     echo "$registered" | grep -qF $checkout && {
       echo "$enabled" | grep -qF $checkout && {
         test -e "$checkout" || {
           note "Checkout missing: $checkout"
-          statusdir.sh assert-state \
-            'project/'$checkout'/tags[]'=to-enable
+          #statusdir.sh assert-state \
+          #  'project/'$checkout'/tags[]'=to-enable
         }
       } || {
         echo "$disabled" | grep -qF $checkout && {
           test ! -e "$checkout" || {
             note "Checkout to be disabled: $checkout"
-            statusdir.sh assert-state \
-              'project/'$checkout'/tags[]'=to-clean
+            #statusdir.sh assert-state \
+            #  'project/'$checkout'/tags[]'=to-clean
           }
         } || noop
       }
@@ -175,20 +175,20 @@ pd__clean()
 {
   local R=0; pd_clean "$1" || R=$?; case "$R" in
     0|"" )
-        info "OK $(__vc_status "$1")"
+        info "OK $(vc__stat "$1")"
       ;;
     1 )
-        warn "Dirty: $(__vc_status "$1")"
+        warn "Dirty: $(vc__stat "$1")"
         return 1
       ;;
     2 )
         cruft_lines="$(echo $(echo "$cruft" | wc -l))"
         test $verbosity -gt 6 \
           && {
-            warn "Crufty: $(__vc_status "$1"):"
+            warn "Crufty: $(vc__stat "$1"):"
             printf "$cruft\n"
           } || {
-            warn "Crufty: $(__vc_status "$1"), $cruft_lines files."
+            warn "Crufty: $(vc__stat "$1"), $cruft_lines files."
           }
         return 2
       ;;
@@ -209,7 +209,7 @@ pd__disable_clean()
     test ! -d $prefix || {
       cd $pwd/$prefix
       git diff --quiet && {
-        test -z "$(vc_ufx)" && {
+        test -z "$(vc__ufx)" && {
           warn "TODO remove $prefix if synced"
           # XXX need to fetch remotes, compare local branches
           #pd__meta list-push-remotes $prefix | while read remote
@@ -357,7 +357,7 @@ pd__sync()
   prefix=$1
 
   shift 1
-  test -n "$1" || set -- $(vc_list_local_branches $prefix)
+  test -n "$1" || set -- $(vc__list_local_branches $prefix)
   pwd=$(pwd -P)
 
   cd $pwd/$prefix
@@ -377,9 +377,10 @@ pd__sync()
 
   cd $pwd
 
+
   # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
   {
-    pd__meta -s list-upstream "$prefix" "$@" \
+    pd__meta -s list-upstream "$prefix" \
       || {
         warn "No sync setting, skipping $prefix"
         return 1
@@ -390,7 +391,6 @@ pd__sync()
 
     cd $pwd/$prefix
 
-
     ( test -e .git/FETCH_HEAD && younger_than .git/FETCH_HEAD $PD_SYNC_AGE ) || {
       git fetch --quiet $remote || {
         error "fetching $remote"
@@ -398,7 +398,6 @@ pd__sync()
         continue
       }
     }
-
 
     local remoteref=$remote/$branch
 
@@ -452,8 +451,11 @@ pd__sync()
 
   done
 
+  test -s "$remotes" || {
+    error "No remotes for $pwd/$prefix"
+    return 1
+  }
   remote_cnt=$(wc -l $remotes | awk '{print  $1}')
-
   test $remote_cnt -gt 0 || echo 'remotes:0' >>$failed
 
   test -s "$failed" \
@@ -534,7 +536,7 @@ pd__init()
     git submodule update --init --recursive )
 
   # Regenerate .git/info/exclude
-  vc_update || echo "update:vc-update:$1" >>$failed
+  vc__update || echo "update:vc-update:$1" >>$failed
 
   test ! -e .versioned-files.list || {
     echo "git-versioning check" > .git/hooks/pre-commit
@@ -711,7 +713,7 @@ pd__update_repo()
 
   # scan checkout remotes
 
-  # FIXME: move here props="$props $(verbosity=0;cd $1;echo "$(vc_remotes sh)")"
+  # FIXME: move here props="$props $(verbosity=0;cd $1;echo "$(vc__remotes sh)")"
 
   local remotes=
   for remote in $(cd $prefix; git remote)
@@ -961,7 +963,7 @@ pd__show()
   set -- "$(normalize_relative $go_to_before/$1)"
   test -n "$1" || error "Prefix expected" 1
   pd__meta get-repo $1 | \
-    jsotk.py -I json -O yaml --pretty --output-prefix repositories/$1 update - -
+    jsotk.py -I json -O yaml --pretty --output-prefix repositories/$1 merge - -
 
   update_package "$1"
 

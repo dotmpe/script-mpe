@@ -312,7 +312,7 @@ def py_writer(data, file, opts):
 def lines_writer(data, file, opts):
     if not data:
         return
-    assert isinstance(data, (tuple, list))
+    assert isinstance(data, (tuple, list)), data
     for item in data:
         print >>file, item
 
@@ -343,6 +343,7 @@ def open_file(fpathname, defio='out', mode='r'):
     if not fpathname:
         fpathname = '-'
     if fpathname == '-':
+        assert defio in ( 'in', 'out' ), defio
         return getattr(sys, 'std%s' % defio)
     else:
         return open(fpathname, mode)
@@ -378,12 +379,13 @@ def get_format_for_fileext(fn, io='out'):
         if fn.endswith( ext ):
             return fmt
 
-def get_dest(opts):
+def get_dest(opts, mode):
     if opts.flags.detect_format:
         set_format('output', 'dest', opts)
     updatefile = None
     if 'destfile' in opts.args and opts.args.destfile:
-        updatefile = open_file(opts.args.destfile, defio=None, mode='rw+')
+        assert opts.args.destfile != '-'
+        updatefile = open_file(opts.args.destfile, defio=None, mode=mode)
     return updatefile
 
 def get_src_dest_defaults(opts):

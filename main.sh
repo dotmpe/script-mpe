@@ -732,3 +732,10 @@ setup_stat()
   statusdir.sh assert $2$1 $3 || return $?
 }
 
+stat_key()
+{
+  test -n "$1" || set -- stat
+  mkvid "$(pwd)"
+  export $1_key="$hnid:${base}-${subcmd}:$vid"
+}
+
