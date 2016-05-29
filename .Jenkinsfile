@@ -1,5 +1,5 @@
 
-node('dotmpe/devbox') {
+node('devbox') {
 
   // SImple "pipeline"
   // see .jenkins-pipeline.groovy for experiments
