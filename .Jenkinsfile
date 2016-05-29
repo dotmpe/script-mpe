@@ -10,7 +10,7 @@ node('devbox') {
 
   sh """#!/bin/sh
   test -e \$HOME/bin || ln -s \$(pwd -P) \$HOME/bin
-  test -d \$HOME/lib/py || mkdir \$HOME/lib/py
+  test -d \$HOME/lib/py || mkdir -vp \$HOME/lib/py
   test -h \$HOME/lib/py/script_mpe || ln -s $PWD \$HOME/lib/py/script_mpe
   """
 
