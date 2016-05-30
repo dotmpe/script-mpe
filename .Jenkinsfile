@@ -17,6 +17,11 @@ node('devbox') {
   """
 
   sh """#!/bin/sh
+    Build_Deps_Default_Paths=1 \
+    ./install-dependencies.sh -
+  """
+
+  sh """#!/bin/sh
     . ./tools/sh/env.sh
     export TEST_ENV=jenkins
     export PYTHONPATH=\$HOME/lib/py:\$PATH
