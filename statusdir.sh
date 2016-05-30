@@ -137,7 +137,13 @@ statusdir__cons_json()
 }
 
 
-be=membash
+test -n "$be" || {
+  which membash && be=membash
+}
+test -n "$be" || {
+  . $scriptdir/statusdir_$be.sh
+}
+
 
 statusdir__get()
 {
