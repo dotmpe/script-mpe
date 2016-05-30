@@ -51,6 +51,7 @@
         metadata: []
         builders:
         - shell: |
+            Build_Deps_Default_Paths=1 \
             ./install-dependencies.sh -
         - shell: |
             . ./tools/sh/env.sh
@@ -97,6 +98,7 @@
         #    expose-to-env: false
         builders:
         - shell: |
+            Build_Deps_Default_Paths=1 \
             ./install-dependencies.sh -
         - shell: |
             . ./tools/sh/env.sh

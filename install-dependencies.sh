@@ -104,6 +104,8 @@ main_entry()
   case "$1" in "-"|project|git )
       git --version >/dev/null || {
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
+      which pip >/dev/null || {
+        cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
     ;; esac
 
   case "$1" in "-"|build|test|sh-test|bats )
@@ -116,7 +118,6 @@ main_entry()
     ;; esac
 
   case "$1" in "-"|python|project|docopt)
-      pip --version >/dev/null || { echo "Sorry, PIP is a pre-requisite"; exit 1; }
       # Using import seems more robust than scanning pip list
       python -c 'import docopt' || { install_docopt || return $?; }
     ;; esac
