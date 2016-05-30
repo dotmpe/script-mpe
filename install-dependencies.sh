@@ -106,6 +106,7 @@ main_entry()
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
       which pip >/dev/null || {
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
+      pip install setuptools
     ;; esac
 
   case "$1" in "-"|build|test|sh-test|bats )
