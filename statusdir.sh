@@ -8,11 +8,18 @@ statusdir__source=$_
 
 set -e
 
+
 statusdir_load()
 {
   [ -z "$STATUSDIR_ROOT" ] && {
       STATUSDIR_ROOT="$(echo ~/.statusdir/)"
       #export STATUSDIR_ROOT
+  }
+  test -n "$be" || { which membash && be=membash; }
+  test -n "$be" || be=fsdir
+
+  test ! -e "$scriptdir/statusdir_$be.sh" || {
+    . $scriptdir/statusdir_$be.sh
   }
 }
 
@@ -137,7 +144,6 @@ statusdir__cons_json()
 }
 
 
-be=membash
 
 statusdir__get()
 {
