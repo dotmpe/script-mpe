@@ -25,7 +25,7 @@ pd__edit()
 }
 #pd__als__e=edit
 
-pd_run__meta=y
+pd_load__meta=y
 # Defer to python script for YAML parsing
 pd__meta()
 {
@@ -66,7 +66,7 @@ pd__meta_sq()
   pd__meta "$@" >/dev/null || return $?
 }
 
-pd_run__status=ybf
+pd_load__status=ybf
 # Run over known prefixes and present status indicators
 pd__status()
 {
@@ -156,21 +156,7 @@ pd__status()
   done
 }
 
-pd_run__check=ybf
-# Check with remote refs
-pd__check()
-{
-  test -z "$2" || error "Surplus arguments: $2" 1
-  note "Checking prefixes"
-  pd__meta list-prefixes "$1" | while read prefix
-  do
-    pd_check $prefix || continue
-    test -d "$prefix" || continue
-    $scriptdir/$scriptname.sh sync $prefix || touch $failed
-  done
-}
-
-pd_run__clean=y
+pd_load__clean=y
 pd__clean()
 {
   local R=0; pd_clean "$1" || R=$?;
@@ -225,7 +211,7 @@ pd__disable_clean()
 }
 
 # Regenerate local package metadata files and scripts
-pd_run__regenerate=dfp
+pd_load__regenerate=dfp
 pd__regenerate()
 {
   set -- "$(normalize_relative "$go_to_before/$1")"
@@ -236,7 +222,7 @@ pd__regenerate()
 }
 
 # Given existing checkouts upate local scripts and then projdoc
-pd_run__update=yfp
+pd_load__update=yfp
 pd__update()
 {
   set -- "$(normalize_relative "$go_to_before/$1")"
@@ -262,7 +248,7 @@ pd__update()
 }
 
 # Add/remove repos, update remotes at first level. git only.
-pd_run__update_all=yfb
+pd_load__update_all=yfb
 pd__update_all()
 {
   test -n "$1" \
@@ -311,7 +297,7 @@ pd__update_all()
   done
 }
 
-pd_run__find=y
+pd_load__find=y
 pd_spc_find='[<path>|<localname> [<project>]]'
 pd__find()
 {
@@ -327,14 +313,14 @@ pd__find()
   }
 }
 
-pd_run__list_prefixes=y
+pd_load__list_prefixes=y
 pd__list_prefixes()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
   pd__meta list-prefixes "$1" || return
 }
 
-pd_run__compile_ignores=y
+pd_load__compile_ignores=y
 pd__compile_ignores()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
@@ -349,7 +335,7 @@ pd__compile_ignores()
 }
 
 # prepare Pd var, failedfn
-pd_run__sync=yf
+pd_load__sync=yf
 # Update remotes and check refs
 pd__sync()
 {
@@ -465,7 +451,7 @@ pd__sync()
     || info "In sync with at least one remote: $prefix"
 }
 
-pd_run__enable_all=ybf
+pd_load__enable_all=ybf
 pd__enable_all()
 {
   pwd=$(pwd)
@@ -478,7 +464,7 @@ pd__enable_all()
 }
 
 # Assert checkout exists, or reinitialize from Pd document.
-pd_run__enable=y
+pd_load__enable=y
 pd__enable()
 {
   test -z "$1" && {
@@ -512,7 +498,7 @@ pd__enable()
   }
 }
 
-pd_run__init_all=ybf
+pd_load__init_all=ybf
 pd__init_all()
 {
   pwd=$(pwd)
@@ -525,7 +511,7 @@ pd__init_all()
 }
 
 # Given existing checkout, update local .git with remotes, regen hooks.
-pd_run__init=yfp
+pd_load__init=yfp
 pd__init()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -549,7 +535,7 @@ pd__init()
 }
 
 # Set the remotes from metadata
-pd_run__set_remotes=y
+pd_load__set_remotes=y
 pd__set_remotes()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -589,7 +575,7 @@ no_act()
   test -n "$dry_run"
 }
 
-pd_run__disable_all=ybf
+pd_load__disable_all=ybf
 pd__disable_all()
 {
   pwd=$(pwd)
@@ -602,7 +588,7 @@ pd__disable_all()
 }
 
 # Disable prefix. Remove checkout if clean.
-pd_run__disable=yf
+pd_load__disable=yf
 pd__disable()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -639,7 +625,7 @@ pd__disable()
 
 # Add or update SCMs of a repo
 # Arguments checkout dir prefix, url and prefix, or remote name, url and prefix.
-pd_run__add=y
+pd_load__add=y
 pd_spc__add="add ( PREFIX | REPO PREFIX | NAME REPO PREFIX )"
 pd__add()
 {
@@ -674,7 +660,7 @@ pd__add()
 
 # Add a new item to the projectdoc, resolving some default values
 # Fail if prefix already in use
-pd_run__add_new=f
+pd_load__add_new=f
 pd__add_new()
 {
   local prefix=$1; shift; local props="$@"
@@ -698,7 +684,7 @@ pd__add_new()
 # Given prefix and optional props, update metadata. Props is prepended
 # and so may be overruled by host/env. To update metadata directly,
 # use pd__meta{,_sq} update-repo.
-pd_run__update_repo=f
+pd_load__update_repo=f
 pd__update_repo()
 {
   local cwd=$(pwd); prefix=$1; shift; local props="$@"
@@ -773,7 +759,8 @@ pd__copy()
     >> ~/.conf/project/$hostname/.projects.yaml
 }
 
-pd_run__run=f
+pd_load__run=f
+# Run takes a single argument corresponding to some (glob patterned) command invocation
 pd__run()
 {
   test -n "$1" || error "argument expected" 1
@@ -836,7 +823,7 @@ pd__run()
         python $(echo $1 | cut -c 8-) || echo $1>>$failed
       ;;
 
-    sh:* )
+    :!* | sh:* )
         local cmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
         info "Using Sh '$cmd'"
         sh -c "$cmd" || echo $1>>$failed
@@ -859,7 +846,7 @@ pd__run()
   test ! -e $failed || return 1
 }
 
-pd_run__test=f
+pd_load__test=f
 pd__test()
 {
   test -n "$1" || set -- $(pd__ls_tests)
@@ -870,7 +857,12 @@ pd__test()
   while test -n "$1"
   do
     info "Next test: $1"
-    pd__run $1 || { r=$?; echo $1>>$failed; }
+    cmd="$(echo "$1" | cut -c2-)"
+    test ":" = "$(echo "$1" | cut -c1)" && {
+      pd__run "$cmd" || { r=$?; echo $1>>$failed; }
+    } || {
+      eval "$cmd" || { r=$?; echo $1>>$failed; }
+    }
     test $r -eq 0 \
       && note "Test OK: $1" \
       || warn "Test returned ($r)"
@@ -919,7 +911,21 @@ pd__ls_tests()
   }
 }
 
-pd_run__check=f
+pd_load__check_all=ybf
+# Check if setup, with remote refs
+pd__check()
+{
+  test -z "$2" || error "Surplus arguments: $2" 1
+  note "Checking prefixes"
+  pd__meta list-prefixes "$1" | while read prefix
+  do
+    pd_check $prefix || continue
+    test -d "$prefix" || continue
+    $scriptdir/$scriptname.sh sync $prefix || touch $failed
+  done
+}
+
+pd_load__check=f
 pd__check()
 {
   for pd_check in pd-check{,.sh}
@@ -961,7 +967,7 @@ pd__ls_checks()
   }
 }
 
-pd_run__show=y
+pd_load__show=y
 pd__show()
 {
   test -n "$1" || set -- "."
@@ -999,7 +1005,7 @@ pd__help()
 # subcmd prefix
 pd_load()
 {
-  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
 
     p ) # should imply y or d
@@ -1066,7 +1072,7 @@ pd_load()
 
 pd_unload()
 {
-  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
       y )
           test -z "$sock" || {
