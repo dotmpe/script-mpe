@@ -582,17 +582,18 @@ vc__print_all()
 # special updater (for Bash PROMPT_COMMAND)
 vc__prompt_command()
 {
-	test -n "$1" -a -d "$1" || error "No such directory '$1'" 3
+  test -n "$1" -a -d "$1" \
+    || error "No such directory '$1'" 3
 
-	# cache response in file
-  pwdref="$(echo "$1"|tr '/' '-')"
-  cache="$(statusdir.sh assert-elems vc prompt-command $pwdref)"
+  # cache response in file
+  pwdref="$(echo "$1" | tr '/' '-' )"
+  cache="$(statusdir.sh assert-dir vc prompt-command $pwdref)"
 
   test ! -e "$cache" -o $1/.git -nt "$cache" && {
-		__vc_status $1 > "$cache"
+    __vc_status $1 > "$cache"
   }
 
-	cat "$statsdir/$pwdref"
+  cat "$cache"
 }
 
 
