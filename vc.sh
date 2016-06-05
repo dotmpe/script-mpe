@@ -203,7 +203,7 @@ __vc_git_flags()
 	if [ -e "$g" ]
 	then
 
-    test -e "$g/refs/heads/master" || {
+    test "$(echo $g/refs/heads/*)" != "$g/refs/heads*" || {
       echo "(git:unborn)"
       return
     }
