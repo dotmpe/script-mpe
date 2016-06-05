@@ -72,7 +72,7 @@ statusdir__assert()
   esac
   path=$(normalize_relative $path)
   test -d $(dirname $path) \
-    || mkdir -p $(dirname $path)
+    || mkdir -vp $(dirname $path)
   echo $path
 }
 
@@ -95,7 +95,7 @@ statusdir__assert_dir()
   test -n "$STATUSDIR_ROOT" || return 14
 	tree="$(echo "$@" | tr ' ' '/')"
 	path=$STATUSDIR_ROOT"index/"$tree
-	mkdir -p $(dirname $path)
+	mkdir -vp $(dirname $path)
 	echo $path
 }
 
