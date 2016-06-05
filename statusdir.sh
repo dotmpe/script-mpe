@@ -15,12 +15,15 @@ statusdir_load()
       STATUSDIR_ROOT="$(echo ~/.statusdir/)"
       #export STATUSDIR_ROOT
   }
-  test -n "$be" || { which membash && be=membash; }
+
+  # Load backend
+  test -n "$be" || { which membash 2>&1 >/dev/null && be=membash; }
   test -n "$be" || be=fsdir
 
   test ! -e "$scriptdir/statusdir_$be.sh" || {
     . $scriptdir/statusdir_$be.sh
   }
+
 }
 
 statusdir_unload()

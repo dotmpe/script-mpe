@@ -64,7 +64,7 @@ vc_load()
 C_cached()
 {
   test -n "$C" || return 1
-  C_mtime=$(statusdir.sh get $C_key:time)
+  C_mtime=$(statusdir.sh get $C_key:time || return $?)
   test -n "$C_mtime" || return 2
   test $C_mtime -ge $c_mtime || return 3
 }
