@@ -8,7 +8,7 @@
 
 set -e
 
-test -n "$sessionname" || sessionname=Simza
+test -n "$sessionname" || sessionname=Brix/Simza
 test -n "$socketname" || socketname=/opt/tmux-socket/tmux-$(id -u)/default
 test -n "$configfile" || configfile=$HOME/.tmux.conf
 
