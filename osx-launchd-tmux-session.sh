@@ -10,13 +10,18 @@ set -e
 
 test -n "$sessionname" || sessionname=Simza
 test -n "$socketname" || socketname=/opt/tmux-socket/tmux-$(id -u)/default
+test -n "$configfile" || configfile=$HOME/.tmux.conf
+
+echo sessionname=$sessionname
+echo socketname=$socketname
+echo configfile=$configfile
 
 
 /usr/local/bin/tmux -S $socketname has-session -t $sessionname && {
   echo "Session $sessionname alreay exists"
 } || {
   echo "Starting session $sessionname"
-  /usr/local/bin/tmux -S $socketname new-session -d -s $sessionname bash
+  /usr/local/bin/tmux -S $socketname -f $configfile new-session -d -s $sessionname bash
 }
 
 while

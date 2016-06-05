@@ -197,17 +197,18 @@ __vc_gitdir ()
 __vc_git_flags()
 {
   local pwd="$(pwd)"
-	local g="$1"
-  [ -n "$g" ] || g="$(dirname $(__vc_gitdir))"
+	#local g="$1"
+  #[ -n "$g" ] ||
+  g="$(__vc_gitdir "$pwd")"
 	if [ -e "$g" ]
 	then
 
-    test -e "$g/.git/refs/heads/master" || {
+    test -e "$g/refs/heads/master" || {
       echo "(git:unborn)"
       return
     }
 
-		cd $g
+		cd $pwd
 		local r
 		local b
 		if [ -f "$g/rebase-merge/interactive" ]; then
@@ -417,7 +418,7 @@ __vc_screen ()
 			realgit="$(basename $realgitdir)"
 			sub="${realcwd##$realgit}"
 		}
-		echo $(basename "$realcwd") $(__vc_git_flags $realcwd "[git:%s $rev]")
+		echo $(basename "$realcwd") $(__vc_git_flags $git "[git:%s $rev]")
 	else
 		echo "$short"
 	fi
@@ -518,7 +519,7 @@ vc__gitflags()
 
 
 vc_man_1__ps1="Print VC status in the middle of PWD. ".
-vc_run__ps1=C
+vc_run__ps1=x
 vc_spc__ps1="ps1"
 vc__ps1()
 {
