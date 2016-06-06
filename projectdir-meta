@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 :created: 2015-11-30
-:updated: 2016-01-24
+:updated: 2016-06-06
 
 Python helper to query/update Projectdir metadatadocument '.projects.yaml'
 
@@ -39,6 +39,8 @@ Options:
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -g, --glob    Change from root prefix matching to glob matching.
+  -H NAME, --host NAME
+                Hostname to use for current entries.
 
 Schema:
     repositories:
@@ -120,6 +122,7 @@ FIXME: need to consider submodules dirt/cruft too before disabling parent checko
 import os
 from fnmatch import fnmatch
 from pprint import pformat
+from socket import gethostname
 
 from docopt import docopt
 import uuid
@@ -284,15 +287,20 @@ def list_state(target, pdhdata, ctx):
     for k in pdhdata['repositories'].keys():
         if not prefix_match( k, ctx.opts.args.root, ctx.opts ):
             continue
-        state = get_toggle_state(pdhdata['repositories'][k])
-        if state is None:
-            continue
-        bstate = toggle_active(state)
-        if bstate:
+	if ctx.opts.flags.host in pdhdata['repositories'][k]['hosts']:
+        #state = get_toggle_state(pdhdata['repositories'][k])
+        #if state is None:
+        #    continue
+        #bstate = toggle_active(state)
+        #if bstate:
             if target == 'list-enabled':
                 print >>ctx.out, k
         elif target == 'list-disabled':
             print >>ctx.out, k
+
+def init_hostname(ctx):
+    if not ctx.opts.flags.host:
+        ctx.opts.flags.host = gethostname()
 
 
 #
@@ -312,7 +320,7 @@ def H_list_upstream(pdhdata, ctx):
             return 1
         return
 
-    p=ctx.opts.args.prefix
+    p = ctx.opts.args.prefix
     if isinstance(sync, list):
         for remote in sync:
             for branch in branches:
@@ -432,9 +440,11 @@ def H_list_prefixes(pdhdata, ctx):
             print >>ctx.out, k
 
 def H_list_enabled(pdhdata, ctx):
+    init_hostname(ctx)
     return list_state(ctx.opts.cmds[0], pdhdata, ctx)
 
 def H_list_disabled(pdhdata, ctx):
+    init_hostname(ctx)
     return list_state(ctx.opts.cmds[0], pdhdata, ctx)
 
 def H_dump(pdhdata, ctx):

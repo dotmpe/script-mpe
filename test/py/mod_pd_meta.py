@@ -1,4 +1,5 @@
 """
+One unit-test on the logic in pd-meta clean-mode
 """
 import unittest
 import os, sys
