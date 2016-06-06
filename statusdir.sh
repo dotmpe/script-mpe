@@ -35,9 +35,9 @@ statusdir_unload()
 statusdir__root()
 {
   test -n "$STATUSDIR_ROOT" || return 12
-	path=$STATUSDIR_ROOT
-	[ -e "$path" ] || mkdir -p $path
-	echo $path
+  path=$STATUSDIR_ROOT
+  [ -e "$path" ] || mkdir -p $path
+  echo $path
 }
 
 
@@ -81,11 +81,11 @@ statusdir__assert()
 statusdir__assert_elems()
 {
   test -n "$STATUSDIR_ROOT" || return 13
-	tree="$(echo "$@" | tr ' ' '/')"
-	path=$STATUSDIR_ROOT"tree/"$tree
-	mkdir -p $path
-	echo $path
-	#export statusdir__tree=$tree
+  tree="$(echo "$@" | tr ' ' '/')"
+  path=$STATUSDIR_ROOT"tree/"$tree
+  mkdir -vp $path
+  echo $path
+  #export statusdir__tree=$tree
 }
 
 # As statusdir__assert, but last arg is filename
@@ -93,10 +93,10 @@ statusdir__assert_elems()
 statusdir__assert_dir()
 {
   test -n "$STATUSDIR_ROOT" || return 14
-	tree="$(echo "$@" | tr ' ' '/')"
-	path=$STATUSDIR_ROOT"index/"$tree
-	mkdir -vp $(dirname $path)
-	echo $path
+  tree="$(echo "$@" | tr ' ' '/')"
+  path=$STATUSDIR_ROOT"index/"$tree
+  mkdir -vp $(dirname $path)
+  echo $path
 }
 
 # Specific statusdir__dir assert for .list file
