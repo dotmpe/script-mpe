@@ -675,15 +675,67 @@ daemon()
   done
 }
 
-trueish()
+#trueish()
+#{
+#  test -n "$1" || return 1
+#  case "$1" in
+#		[Oo]n|[Tt]rue|[Yy]es|1)
+#      return 0;;
+#    * )
+#      return 1;;
+#  esac
+#}
+
+
+# Given $failed pointing to a path, cleanup after a run, observing
+# any notices and returning 1 for failures.
+clean_failed()
 {
-  test -n "$1" || return 1
-  case "$1" in
-    on|true|yes|1)
-      return 0;;
-    * )
-      return 1;;
-  esac
+  test -z "$failed" -o ! -e "$failed" || {
+    test -n "$1" || set -- "Failed: "
+    test -s "$failed" && {
+      count="$(sort -u $failed | wc -l | awk '{print $1}')"
+      test "$count" -gt 2 && {
+        warn "$1 $(echo $(sort -u $failed | head -n 3 )) and $(( $count - 3 )) more"
+        rotate-file $failed .failed
+      } || {
+        warn "$1 $(echo $(sort -u $failed))"
+      }
+    }
+    test ! -e "$failed" || rm $failed
+    unset failed
+    return 1
+  }
 }
 
+# Return path to new file in temp. dir. with ${base}- as filename prefix,
+# .out suffix and subcmd with uuid as middle part.
+# setup-tmp [ext [name-suffix]]
+setup_tmp()
+{
+  test -n "$1" || set -- .out "$2"
+  test -n "$2" || set -- $1 -$subcmd-$(uuidgen)
+  test -n "$1" -a -n "$2" || error "empty arg(s)" 1
+
+  test -d $(dirname /tmp/${base}$2$1) \
+    || mkdir -vp $(dirname /tmp/${base}$2$1)
+  echo /tmp/${base}$2$1
+}
+
+# Return path in metadata index
+setup_stat()
+{
+  test -n "$1" || set -- .json "$2" "$3"
+  test -n "$2" || set -- "$1" "${subcmd}" "$3"
+  test -n "$3" || set -- "$1" "$2" "${base}"
+  test -n "$1" -a -n "$2" -a -n "$3" || error "empty arg(s)" 1
+  statusdir.sh assert $2$1 $3 || return $?
+}
+
+stat_key()
+{
+  test -n "$1" || set -- stat
+  mkvid "$(pwd)"
+  export $1_key="$hnid:${base}-${subcmd}:$vid"
+}
 
