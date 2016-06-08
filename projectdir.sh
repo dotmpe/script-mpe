@@ -70,48 +70,54 @@ pd_run__status=ybf
 # Run over known prefixes and present status indicators
 pd__status()
 {
+  pd__list_prefixes "$1" > $PD_TMP/prefixes.list
+  pd__meta list-disabled "$1" > $PD_TMP/prefix-disabled.list
+  pd__meta list-enabled "$1" > $PD_TMP/prefix-enabled.list
+
+  #local \
+  #  registered="$(pd__list_prefixes "$1" || touch $failed)" \
+  #  disabled="$(pd__meta list-disabled "$1" || touch $failed)" \
+  #  enabled="$(pd__meta list-enabled "$1" || touch $failed)" \
   local \
-    registered="$(pd__list_prefixes "$1" || touch $failed)" \
-    disabled="$(pd__meta list-disabled "$1" || touch $failed)" \
-    enabled="$(pd__meta list-enabled "$1" || touch $failed)" \
     prefix_args= prefixes=
 
   test -n "$1" && prefix_args="$*" || prefix_args='*'
-  test -n "$1" || set -- "$prefix_args"
+  #test -n "$1" || set -- "$prefix_args"
 
   # Gobble up arguments as prefixes
-  test -z "$1" || {
+  test -z "$1" && {
+    prefixes="$(cat $PD_TMP/prefixes.list)"
+  } || {
     while test -n "$1"
     do
-      prefixes="$prefixes $(echo $1)"
+      grep -srIF "$1" $PD_TMP/prefixes.list && {
+        prefixes="$prefixes $(echo $1)"
+      } || {
+        warn "Not a known prefix $1"
+      }
       shift
-      registered="$registered $(pd__list_prefixes "$1" || touch $failed)"
-      disabled="$disabled $(pd__meta list-disabled "$1" || touch $failed)"
-      enabled="$enabled $(pd__meta list-enabled "$1" || touch $failed)"
+      #registered="$registered $(pd__list_prefixes "$1" || touch $failed)"
+      #disabled="$disabled $(pd__meta list-disabled "$1" || touch $failed)"
+      #enabled="$enabled $(pd__meta list-enabled "$1" || touch $failed)"
     done
   }
 
-  note "Getting status for checkouts in '$prefix_args'"
+  #note "Getting status for checkouts in '$prefix_args'"
 
-  # XXX
-  test "*" != "$prefixes" || {
-    info "Nothing to check"
-    return
-  }
-
-  info "Prefixes: $(echo "$prefixes" | unique_words)"
-  debug "Registered: $(echo "$registered" | unique_words)"
+  #info "Prefixes: $(echo "$prefixes" | unique_words)"
+  #debug "Registered: $(echo "$registered" | unique_words)"
 
   #local union="$(echo "$prefixes $registered" | words_to_unique_lines )"
   for checkout in $prefixes
     # XXX union
   do
+
     test -f "$checkout" -o -h "$checkout" && {
       note "Not a checkout path at $checkout"
       continue
     }
     test -d "$checkout" || {
-      echo "$prefixes" | grep -q $checkout && {
+      grep -qF $checkout $PD_TMP/prefixes.list || {
         touch $failed
         warn "Non-existant prefix? '$checkout'"
       }
@@ -133,24 +139,20 @@ pd__status()
         'project/'$checkout'/tags[]'=to-clean
     }
 
-    echo "$registered" | grep -qF $checkout && {
-      echo "$enabled" | grep -qF $checkout && {
-        test -e "$checkout" || {
-          note "Checkout missing: $checkout"
-          statusdir.sh assert-json \
-            'project/'$checkout'/tags[]'=to-enable
-        }
-      } || {
-        echo "$disabled" | grep -qF $checkout && {
-          test ! -e "$checkout" || {
-            note "Checkout to be disabled: $checkout"
-            statusdir.sh assert-json \
-              'project/'$checkout'/tags[]'=to-clean
-          }
-        } || noop
+    grep -qF $checkout $PD_TMP/prefix-enabled.list && {
+      test -e "$checkout" || {
+        note "Checkout missing: $checkout"
+        statusdir.sh assert-json \
+          'project/'$checkout'/tags[]'=to-enable
       }
     } || {
-      warn "Checkout not registered: $checkout"
+      grep -qF $checkout $PD_TMP/prefix-disabled.list && {
+        test ! -e "$checkout" || {
+          note "Checkout to be disabled: $checkout"
+          statusdir.sh assert-json \
+            'project/'$checkout'/tags[]'=to-clean
+        }
+      } || noop
     }
 
   done
@@ -1048,6 +1050,17 @@ pd_load()
     tdate=$(date +%y%m%d0000)
     test -n "$tdate" || error "formatting date" 1
     touch -t $tdate $today
+  }
+
+  test -n "$PD_TMP" || {
+    pwdref=$(pwd -P | tr -C 'A-Za-z0-9_-' '-')
+    test -n "$RAM_DISK_ROOT" && {
+      PD_TMP=$RAM_DISK_ROOT/pd/temp/$pwdref
+    } || {
+      PD_TMP=$(cd /tmp;pwd -P)/pd/$pwdref
+    }
+    mkdir -vp $PD_TMP
+    rm -rf $PD_TMP/*
   }
 
   PWD=$(pwd -P)
