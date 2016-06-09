@@ -143,14 +143,14 @@ pd__status()
       test -e "$checkout" || {
         note "Checkout missing: $checkout"
         statusdir.sh assert-json \
-          'project/'$checkout'/tags[]'=to-enable
+          'project/'$checkout'/tags[]=to-enable'
       }
     } || {
       grep -qF $checkout $PD_TMP/prefix-disabled.list && {
         test ! -e "$checkout" || {
           note "Checkout to be disabled: $checkout"
           statusdir.sh assert-json \
-            'project/'$checkout'/tags[]'=to-clean
+            'project/'$checkout'/tags[]=to-clean'
         }
       } || noop
     }
@@ -277,7 +277,7 @@ pd__update_all()
           && continue \
           || {
 
-          pd__meta update-repo $prefix disabled=true \
+          pd__meta disable $prefix \
             && note "Disabled $prefix" \
             || touch $failed
         }
