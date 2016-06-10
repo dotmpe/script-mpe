@@ -3,7 +3,7 @@
 # entry-point for Travis build
 
 
-set -e
+set -ex
 
 Build_Deps_Default_Paths=1 ./install-dependencies.sh '*'
 
