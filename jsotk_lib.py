@@ -383,7 +383,10 @@ def open_file(fpathname, defio='out', mode='r', ctx=None):
             import sys
             return getattr(sys, 'std%s' % defio)
     else:
-        return open(fpathname, mode)
+        try:
+            return open(fpathname, mode)
+        except IOError, e:
+            raise Exception, "Unable to open %s for %s" % (fpathname, mode)
 
 def get_src_dest(ctx):
     infile, outfile = None, None
@@ -422,8 +425,8 @@ def get_dest(ctx, mode):
     updatefile = None
     if 'destfile' in ctx.opts.args and ctx.opts.args.destfile:
         assert ctx.opts.args.destfile != '-'
-        updatefile = open_file(ctx.opts.args.destfile, defio=None, mode=mode,
-                ctx=ctx)
+        updatefile = open_file(
+                ctx.opts.args.destfile, defio=None, mode=mode, ctx=ctx)
     return updatefile
 
 def get_src_dest_defaults(ctx):

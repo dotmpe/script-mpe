@@ -126,6 +126,8 @@ statusdir__file()
 # arg: 1:jspath 2:value
 statusdir__assert_json()
 {
+  return
+  # FIXME assert-json
   sf=$(statusdir__file "state.json" || return $?)
   test -s "$sf" || echo '{}' >$sf
   test -n "$1" || { echo $sf; return; }

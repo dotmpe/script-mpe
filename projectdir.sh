@@ -90,7 +90,7 @@ pd__status()
   } || {
     while test -n "$1"
     do
-      grep -srIF "$1" $PD_TMP/prefixes.list && {
+      grep -qF "$1" $PD_TMP/prefixes.list && {
         prefixes="$prefixes $(echo $1)"
       } || {
         warn "Not a known prefix $1"
