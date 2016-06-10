@@ -23,7 +23,6 @@ statusdir_load()
   test ! -e "$scriptdir/statusdir_$be.sh" || {
     . $scriptdir/statusdir_$be.sh
   }
-
 }
 
 statusdir_unload()
@@ -125,23 +124,27 @@ statusdir__file()
 
 # Assert given value exists at path in state.json
 # arg: 1:jspath 2:value
-statusdir__assert_state()
+statusdir__assert_json()
 {
   sf=$(statusdir__file "state.json" || return $?)
   test -s "$sf" || echo '{}' >$sf
   test -n "$1" || { echo $sf; return; }
   echo "$@" | tr ' ' '\n' | jsotk.py update $sf.tmp $sf || {
-    echo "statusdir assert-state: Error reading $sf. "
+    echo "statusdir assert-json: Error reading $sf. " 1>&2
     return 1
   }
-  mv $sf.tmp $sf
+  test -s "$sf.tmp" && mv $sf.tmp $sf || {
+    test -s "$sf" && {
+      echo "statusdir assert-json: Error updating $sf with '$@'. " 1>&2
+    }
+  }
 }
 
 # Merge another json into state.json
 # arg: 1:filepath 2:root-jspath
 statusdir__cons_json()
 {
-  status_json="$(statusdir__assert_state)"
+  status_json="$(statusdir__assert_json)"
   jsotk.py merge /tmp/new-status.json $status_json $1
   mv /tmp/new-status.json $status_json
 }
