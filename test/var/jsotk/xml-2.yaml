@@ -1,0 +1,16 @@
+foo:
+  _1: bar
+  _2:
+  - '#text': list
+  - '#text': with
+  - '#text': items
+  _3:
+    _1:
+      subs: null
+
+  _4:
+    - '@a': x
+    - _name: y
+    - _: z
+
+

@@ -5,41 +5,53 @@ install:
 - "source ./install-dependencies.sh && install_mkdoc"
 - "source ./install-dependencies.sh && install_pylib"
 - "source ./install-dependencies.sh && install_script"
+- "source ./install-dependencies.sh && install_docopt"
 
 addons:
   apt:
     packages:
-# not needed    - tree
-# not allowed    - rhash
+      - tree
+      - realpath
+# not allowed:
+# - rhash
+# - pytz
 
-before_script:
-- 'echo HOME=$HOME PREFIX=$PREFIX pwd=$(pwd)'
-- 'npm install parse-torrent lodash'
-- 'pip install --user PyYAML'
-- 'pip install --user zope.interface'
-- 'pip install --user zope.component'
-- 'pip install --user jsonschema'
-- 'pip install --user sqlalchemy'
-- 'rm $HOME/bin && ln -s /home/travis/build/dotmpe/script.mpe $HOME/bin'
-- 'htd version'
-- 'box version && box -V'
-- 'touch /home/travis/.basename-reg.yaml'
+before_script: []
 
 script:
 - 'make -k test'
-
-branches:
-  only:
-  - '/^test.*$/'
-  - '/^dev.*$/'
-  - '/^[0-9]*\.[0-9]*\.[0-9]*/'
+#- . ./tools/ci/build.sh
+# verify exit of above script (everything again):
+- bats ./test/*-spec.bats
 
 env:
-- ENV= CS=dark TRAVIS_SKIP=1 \
-  UCONFDIR=$HOME/etc \
-  PATH=$PATH:$HOME/bin:$HOME/usr/bin \
-  PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
-
+  global:
+    - CS=dark
+    - TRAVIS_SKIP=1
+    - TEST_ENV=travis
+    - UCONFDIR=$HOME/etc
+    - PATH=$PATH:$HOME/bin:$HOME/usr/bin:$HOME/.local/bin/
+    - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
+    - Build_Deps_Default_Paths=1
+  matrix:
+  - ENV= 
 #- ENV=testing
 #- ENV=production
 
+branches:
+  only:
+    #  - master
+    #  - '/^test.*$/'
+    #  - '/^dev.*$/'
+    #  - '/^[0-9]*\.[0-9]*\.[0-9]*/'
+
+#deploy:
+#  provider: releases
+#  api_key: $GH_ACCESS_TOKEN
+#  file: script-mpe-$TRAVIS_TAG.tar
+#  on:
+#    repo: dotmpe/script.mpe
+#    tags: true
+#    condition: $ENV = production
+#
+#

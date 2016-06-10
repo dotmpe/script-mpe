@@ -1,60 +1,115 @@
 #!/bin/sh
 
-test -n "$PREFIX" || PREFIX=$HOME
+set -e
 
-#TERM=xterm
-. $PREFIX/bin/std.sh
-. $PREFIX/bin/os.sh
-. $PREFIX/bin/str.sh
-. $PREFIX/bin/doc.sh
+
+# FIXME: comment format:
+# [return codes] [exit codes] func-id [flags] pos-arg-id.. $name-arg-id..
+# Env: $name-env-id
+# Description.
 
 
 # test for var decl, io. to no override empty
 var_isset()
 {
-  # XXX 'set' may be safe for sh, not bash
-  #set | grep '\<'$1'=' >/dev/null 2>/dev/null && return
-  env | grep '\<'$1'=' >/dev/null 2>/dev/null && return
+  # Aside from declare or typeset in newer reincarnations,
+  # in posix or modern Bourne mode this seems to work best:
+  set | grep '\<'$1'=' >/dev/null 2>/dev/null && return
   return 1
+}
+
+# require vars to be initialized
+req_vars()
+{
+  while test $# -gt 0
+  do
+    var_isset "$1" || return 1
+    shift
+  done
 }
 
 # No-Op(eration)
 noop()
 {
-    set --
+  . /dev/null # source empty file
+  #echo -n # echo nothing
+  #printf "" # id. if echo -n incompatible (Darwin)
+  #set -- # clear arguments (XXX set nothing?)
 }
 
-#
-req_arg()
+trueish()
 {
-  label=$(eval echo \${req_arg_$4[0]})
-  varname=$(eval echo \${req_arg_$4[1]})
-  test -n "$1" || {
-    warn "$2 requires argument at $3 '$label'"
-    return 1
-  }
-  test -n "$varname" && {
-    export $varname="$1"
-  } || {
-    export $4="$1"
-  }
+  test -n "$1" || return 1
+  case "$1" in
+		[Oo]n|[Tt]rue|[Yy]|[Yy]es|1)
+      return 0;;
+    * )
+      return 1;;
+  esac
+}
+
+short()
+{
+  test -n "$1" || set -- "$(pwd)"
+  # XXX maybe replace python script sometime
+  $scriptdir/short-pwd.py -1 "$1"
+}
+
+test_out()
+{
+  test -n "$1" || error test_out 1
+  local val="$(echo $(eval echo "\$$1"))"
+  test -z "$val" || eval echo "\\$val"
+}
+
+list_functions()
+{
+  test -n "$1" || set -- $0
+  for file in $*
+  do
+    test_out list_functions_head
+    grep '^[A-Za-z0-9_\/-]*()$' $file
+    test_out list_functions_tail
+  done
 }
 
 # FIXME: testing..
-pushd_cwdir()
-{
-  test -n "$CWDIR" -a "$CWDIR" != "$(pwd)" && {
-    echo "pushd $CWDIR" "$(pwd)"
-    pushd $WDIR
-  } || set --
-}
+#cmd_exists pushd || {
+#pushd()
+#{
+#  tmp=/tmp/pushd-$$
+#  echo "pushd \$\$=$$ $@"
+#  echo "$1" >>$tmp
+#  cd $1
+#}
+#popd()
+#{
+#  tmp=/tmp/pushd-$$
+#  echo "popd \$\$=$$ $@"
+#  tail -n 1 $tmp
+#  cd $(truncate_trailing_lines $tmp 1)
+#}
+#}
+#
+#pushd_cwdir()
+#{
+#  test -n "$CWDIR" -a "$CWDIR" != "$(pwd)" && {
+#    echo "pushd $CWDIR" "$(pwd)"
+#    pushd $WDIR
+#  } || set --
+#}
+#
+#popd_cwdir()
+#{
+#  test -n "$CWDIR" -a "$CWDIR" = "$(pwd)" && {
+#    echo "popd $CWDIR" "$(pwd)"
+#    test "$(popd)" = "$CWDIR"
+#  } || set --
+#}
 
-popd_cwdir()
+cmd_exists()
 {
-  test -n "$CWDIR" -a "$CWDIR" = "$(pwd)" && {
-    echo "popd $CWDIR" "$(pwd)"
-    test "$(popd)" = "$CWDIR"
-  } || set --
+  test -x $(which $1) || return $?
 }
 
 func_exists()
@@ -66,9 +121,18 @@ func_exists()
 
 try_exec_func()
 {
-  test -n "$1" || return 1
+  test -n "$1" || return 97
   func_exists $1 || return $?
-  $1 || return $?
+  local func=$1
+  shift 1
+  $func "$@" || return $?
+}
+
+try_var()
+{
+  local value="$(eval echo "\$$1")"
+  test -n "$value" || return 1
+  echo $value
 }
 
 # 1:file-name[:line-number] 2:content
@@ -79,17 +143,18 @@ file_insert_at()
   test -n "$*" || error "arguments required" 1
 
   local file_name= line_number=
-  fnmatch "*:[0-9]*" $1 && {
-    file_name=$(echo $1 | sed 's/:\([0-9]\+\)$//')
-    line_number=$(echo $1 | sed 's/^\(.*\):\([0-9]\+\)$/\2/')
+  fnmatch *:[0-9]* "$1" && {
+    file_name=$(echo $1 | cut -f 1 -d :)
+    line_number=$(echo $1 | cut -f 2 -d :)
     shift 1
   } || {
     file_name=$1; shift 1
     line_number=$1; shift 1
   }
 
-  test -n "$*" || error "nothing to insert" 1
   test -e "$file_name" || error "no file $file_name" 1
+  test -n "$1" || error "content expected" 1
+  test -n "$*" || error "nothing to insert" 1
 
   # use ed-script to insert second file into first at line
   note "Inserting at $file_name:$line_number"
@@ -99,14 +164,36 @@ $1
 w" | ed $file_name $tmpf
 }
 
-# 
+file_replace_at()
+{
+  test -n "$*" || error "arguments required" 1
+
+  local file_name= line_number=
+
+  fnmatch *:[0-9]* "$1" && {
+    file_name=$(echo $1 | cut -f 1 -d :)
+    line_number=$(echo $1 | cut -f 2 -d :)
+    shift 1
+  } || {
+    file_name=$1; shift 1
+    line_number=$1; shift 1
+  }
+
+  test -e "$file_name" || error "no file $file_name" 1
+  test -n "$line_number" || error "no line_number" 1
+  test -n "$1" || error "nothing to insert" 1
+
+  sed $line_number's/.*/'$1'/' $file_name
+}
+
+#
 # 1:where-grep 2:file-path
 file_where_before()
 {
   test -n "$1" || error "where-grep required" 1
   test -n "$2" || error "file-path required" 1
-  where_line=$(grep -n $1 $2)
-  line_number=$(( $(echo $where_line | sed 's/^\([0-9]\+\):\(.*\)$/\1/') - 1 ))
+  where_line=$(grep -n "$@")
+  line_number=$(( $(echo "$where_line" | sed 's/^\([0-9]*\):\(.*\)$/\1/') - 1 ))
 }
 
 # 1:where-grep 2:file-path 3:content
@@ -117,7 +204,7 @@ file_insert_where_before()
   test -n "$3" || error "contents required" 1
   file_where_before "$1" "$2"
   test -n "$where_line" || {
-    error "missing or invalid file-insert sentinell for where-grep:$1 (in $2)" 1
+    error "missing or invalid file-insert sentinel for where-grep:$1 (in $2)" 1
   }
   file_insert_at $2:$line_number "$3"
 }
@@ -135,4 +222,193 @@ get_uuid()
   error "FIXME uuid required" 1
   return 1
 }
+
+expr_substr()
+{
+    test -n "$expr" || error "expr init req" 1
+    case "$expr" in
+        sh-substr )
+            expr substr "$1" "$2" "$3" ;;
+        bash-substr )
+            bash -c 'MYVAR=_"'"$1"'"; printf -- "${MYVAR:'$2':'$3'}"' ;;
+        * ) error "unable to substr $expr" 1
+    esac
+}
+
+epoch_microtime()
+{
+    case "$uname" in
+        Darwin ) gdate +%s%N ;;
+        Linux ) date +%s%N ;;
+    esac
+}
+
+date_microtime()
+{
+    case "$uname" in
+        Darwin ) gdate +"%Y-%m-%d %H:%M:%S.%N" ;;
+        Linux ) gdate +"%Y-%m-%d %H:%M:%S.%N" ;;
+    esac
+}
+
+xsed_rewrite()
+{
+    case "$uname" in
+        Darwin ) sed -i.applyBack "$@";;
+        Linux ) sed "$@";;
+    esac
+}
+
+on_host()
+{
+  test "$hostname" = "$1" || return 1
+}
+
+req_host()
+{
+  on_host "$1" || error "$0 runs on $1 only" 1
+}
+
+on_system()
+{
+  test "$uname" = "$1" || return 1
+}
+
+run_cmd()
+{
+  test -n "$1" || set -- "$hostname" "$2"
+  test -n "$2" || set -- "$1" "whoami"
+  test -n "$host_addr_info" || host_addr_info=$hostname
+
+  test -z "$dry_run" && {
+    on_host $1 && {
+      $2 \
+        && debug "Executed locally: '$2'" \
+        || {
+          err "Error executing local command: '$2'"
+          return 1
+        }
+    } || {
+      ssh $host_addr_info "$2" \
+        && debug "Executed at $host_addr_info: '$2'" \
+        || {
+          err "Error executing command at $host_addr_info: '$2'"
+          return 1
+        }
+    }
+  } || {
+    echo "on_host $1 && { '$2'..} || { ssh $host_addr_info '$2'.. }"
+  }
+}
+
+ssh_req()
+{
+  test -n "$host_addr_info" || {
+    test -n "$1" || set -- "$hostname" "$2"
+    test -n "$2" || set -- "$1" "$(whoami)"
+    host_addr_info="$1"
+    test -z "$2" || host_addr_info="$2"'@'$host_addr_info
+    note "Connecting to $host_addr_info"
+  }
+}
+
+wait_for()
+{
+  test -n "$1" || set -- "$hostname"
+  while [ 1 ]
+  do
+    ping -c 1 $1 >/dev/null 2>/dev/null && break
+    note "Waiting for $1.."
+    sleep 7
+  done
+}
+
+# Wrap wc but handle with or w.o. trailing posix line-end
+line_count()
+{
+  lc="$(echo $(od -An -tc -j $(( $(filesize $1) - 1 )) $1))"
+  case "$lc" in "\n" ) ;;
+    "\r" ) error "POSIX line-end required" 1 ;;
+    * ) printf "\n" >>$1 ;;
+  esac
+  local lc=$(wc -l $1 | awk '{print $1}')
+  echo $lc
+}
+
+truncate_trailing_lines()
+{
+  test -n "$1" || error "FILE expected" 1
+  test -n "$2" || error "LINES expected" 1
+  test $2 -gt 0 || error "LINES > 0 expected" 1
+  local lines=$(line_count "$1")
+  cp $1 $1.tmp
+  tail -n $2 $1.tmp
+  head -n +$(( $lines - $2 )) $1.tmp > $1
+  rm $1.tmp
+}
+
+# find '<func>()' line and see if its preceeded by a comment. Return comment text.
+func_comment()
+{
+  test -n "$1" || error "function name expected" 1
+  test -e "$2" || error "file expected: '$2'" 1
+  test -z "$3" || error "surplus arguments: '$3'" 1
+  # find function line number, or return 0
+  grep_line="$(grep -n "^$1()" "$2" | cut -d ':' -f 1)"
+  case "$grep_line" in [0-9]* ) ;; * ) return 0;; esac
+  # get line before function line
+  func_leading_line="$(head -n +$(( $grep_line - 1 )) "$2" | tail -n 1)"
+  # return if exact line is a comment
+  echo "$func_leading_line" | grep -q '^\s*#\ ' && {
+    echo "$func_leading_line" | sed 's/^\s*#\ //'
+  } || noop
+}
+
+header_comment()
+{
+  read_file_lines_while "$1" 'echo "$line" | grep -qE "^\s*#.*$"' || return $?
+  export last_comment_line=$line_number
+}
+
+# Echo exact contents of the #-commented file header, or return 1
+# backup-header-comment file [suffix-or-abs-path]
+backup_header_comment()
+{
+  test -n "$2" || set -- "$1" ".header"
+  fnmatch "/*" "$2" \
+    && backup_file="$2" \
+    || backup_file="$1$2"
+  # find last line of header, add output to backup
+  header_comment "$1" > "$backup_file" || return $?
+}
+
+
+
+util_init()
+{
+  . $scriptdir/os.lib.sh
+  #. $scriptdir/match.sh
+  . $scriptdir/std.lib.sh
+  . $scriptdir/str.lib.sh
+  #. $scriptdir/doc.lib.sh
+  #. $scriptdir/table.lib.sh
+
+  str_load
+}
+
+
+case "$0" in "" ) ;; "-"* ) ;; * )
+
+  test -z "$__load_lib" || set -- "load-ext"
+  case "$1" in
+    load-* ) ;; # External include, do nothing
+
+    * ) # Setup SCRIPTPATH and include other scripts
+
+        test -n "$scriptdir"
+        util_init
+
+  ;; esac
+
+;; esac
 

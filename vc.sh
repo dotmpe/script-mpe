@@ -1,22 +1,95 @@
-#!/usr/bin/env bash
+#!/bin/sh
 #
 # SCM util functions and pretty prompt printer for Bash, GIT
 # TODO: other SCMs, BZR, HG, SVN (but never need them so..)
 # XXX: more in projectdir.sh in private repo
 #
-HELP="vc - version-control helper functions "
-
-source ~/bin/statusdir.sh
-statusdir_assert vc_status > /dev/null
+#HELP="vc - version-control helper functions "
+vc_src="$_"
 
 set -e
 
-scriptname=vc
 
-load()
+vc_load()
 {
-	echo -n # no-op
+  local __load_lib=1 cwd="$(pwd)"
+
+  # FIXME: sh autocompletion
+  #. ~/.conf/bash/git-completion.bash
+
+  test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
+  test -n "$uname" || uname=$(uname)
+
+  . $scriptdir/util.sh
+  . $scriptdir/main.sh
+  . $scriptdir/match.lib.sh
+
+  str_load
+
+  statusdir.sh assert vc_status > /dev/null || error vc_status 1
+
+  gtd=$(__vc_gitdir $cwd)
+
+
+  # Look at run flags for subcmd
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  do
+    debug "${base} load ${subcmd} $x"
+    case "$x" in
+
+    f )
+        # Preset name to subcmd failed file placeholder
+        failed=$(setup_tmp .failed)
+      ;;
+
+    C )
+        # Return cached value. Validate based on timestamp.
+        C= c=
+        C_exptime=$(try_value ${subcmd} C_exptime)
+        C_validate="$(try_value ${subcmd} C_validate)"
+        stat_key C >/dev/null
+        C="$(statusdir.sh get $C_key)"
+        C_mtime=
+        c_mtime=$(eval $C_validate 2>/dev/null)
+        ( test -n "$c_mtime" && C_cached $c_mtime ) && {
+          echo $C
+          debug "cached"
+          exit 0
+        } || debug "cache:$?"
+      ;;
+    esac
+  done
 }
+
+C_cached()
+{
+  test -n "$C" || return 1
+  C_mtime=$(statusdir.sh get $C_key:time || return $?)
+  test -n "$C_mtime" || return 2
+  test $C_mtime -ge $c_mtime || return 3
+}
+
+vc_unload()
+{
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  do
+    debug "${base} unload ${subcmd} $x"
+    case "$x" in
+
+    C )
+        # Update cached value
+        test -z "$c" || {
+          test "$C" = "$c" \
+            || {
+              statusdir.sh set $C_key "$c" $exptime 2>&1 >/dev/null
+              statusdir.sh set $C_key:time $c_mtime $C_exptime 2>&1 >/dev/null
+            }
+          }
+      ;;
+  esac; done
+  clean_failed
+}
+
 
 vc_usage()
 {
@@ -24,65 +97,63 @@ vc_usage()
 	echo "  $scriptname <cmd> [<args>..]"
 }
 
-vc_commands()
+vc__commands()
 {
-	c_usage
 	echo 'Commands: '
-	echo '  print-all <path>                 Dump some debug info on given (versioned) paths'
-	echo '  ps1                              Print PS1'
-	echo '  prompt-command                   ...'
+	echo '  print-all <path>        Dump some debug info on given (versioned) paths'
+	echo '  ps1                     Print PS1'
+	echo '  prompt-command          ...'
+  echo '  ls-gitroots             List all GIT checkouts (roots only) below the current dir.'
+	echo '  ls-errors               '
 	echo ''
 	echo 'Other commands: '
-	echo '  -e|edit                          Edit this script.'
-	echo '  help                             Give a combined usage, command and docs. '
-	echo '  docs                             Echo manual page. '
-	echo '  commands                         Echo this comand description listing.'
+	echo '  -e|edit                 Edit this script.'
+	echo '  help                    Give a combined usage, command and docs. '
+	echo '  docs                    Echo manual page. '
+	echo '  commands                Echo this comand description listing.'
 }
 
-vc_help()
+vc__help()
 {
 	vc_usage
 	echo ''
-	vc_commands
+	vc__commands
 	echo ''
-	vc_docs
+	vc__docs
 }
 
-vc_docs()
+vc__docs()
 {
 	echo "See htd and dckr for other scripts"
 }
 
 
-vc__v()
-{
-	c_version
-}
-vc_version()
+vc__version()
 {
 	# no version, just checking it goes
 	echo 0.0.0
 }
+vc___v() { c__version; }
 
-vc_edit()
+
+vc__edit()
 {
 	[ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
 	[ -n "$fn" ] || fn=$(which $scriptname.sh)
 	[ -n "$fn" ] || error "Nothing to edit" 1
 	$EDITOR $fn
 }
-vc__e()
-{
-	vc_edit
-}
+vc___e() { vc__edit; }
 
 
 ### Internal functions
 
-homepath ()
+homepath()
 {
-	w="$1"
-	echo "${w/#$HOME/~}"
+    test -n "$1" || exit 212
+    test -n "$HOME" || exit 213
+	# Bash, BSD Sh?
+    str_replace_start "$1" "$HOME" "~"
 }
 
 # Flags legenda:
@@ -93,52 +164,51 @@ homepath ()
 # w: '*'
 # i: '+'|'#'
 # s: '$'
-# u: '%'
-# 
+# u: '~'
+#
 
 __vc_bzrdir ()
 {
-	pushd "$1" >> /dev/null
-	root=$(bzr info 2> /dev/null | grep 'branch root')
-	if [ -n "$root" ]; then
-		echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
-	fi
-	popd >> /dev/null
+  local cwd="$(pwd)"
+  (
+    cd "$1"
+    root=$(bzr info 2> /dev/null | grep 'branch root')
+    if [ -n "$root" ]; then
+      echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
+    fi
+  )
 }
 
 # __vc_gitdir accepts 0 or 1 arguments (i.e., location)
 # returns location of .git repo
 __vc_gitdir ()
 {
-	#if [ -z "${1-}" ]; then
-	#	if [ -n "${__vc_git_dir-}" ]; then
-	#		echo "$__vc_git_dir"
-	#	elif [ -d .git ]; then
-	#		echo ".git"
-	#	else
-    #        cd $1
-	#		git rev-parse --git-dir 2>/dev/null
-	#	fi
-	D="$1"
-	[ -n "$D" ] || D=.
-	if [ -d "$D/.git" ]; then
-		echo "$D/.git"
-	else
-		pushd "$D" >> /dev/null
-		git rev-parse --git-dir 2>/dev/null
-		popd >> /dev/null
-	fi
+  test -n "$1" || set -- .
+	test -d "$1/.git" && {
+		echo "$1/.git"
+  } || (
+    cd "$D"
+    git rev-parse --git-dir 2>/dev/null
+  )
 }
 
 # __vc_git_flags accepts 0 or 1 arguments (i.e., format string)
 # returns text to add to bash PS1 prompt (includes branch name)
-__vc_git_flags ()
+__vc_git_flags()
 {
-	local g="$1"
-	[ -n "$g" ] || g="$(__vc_gitdir)"
+  local pwd="$(pwd)"
+	#local g="$1"
+  #[ -n "$g" ] ||
+  g="$(__vc_gitdir "$pwd")"
 	if [ -e "$g" ]
 	then
-		pushd $(dirname $g) >> /dev/null
+
+    test "$(echo $g/refs/heads/*)" != "$g/refs/heads*" || {
+      echo "(git:unborn)"
+      return
+    }
+
+		cd $pwd
 		local r
 		local b
 		if [ -f "$g/rebase-merge/interactive" ]; then
@@ -161,9 +231,9 @@ __vc_git_flags ()
 			elif [ -f "$g/BISECT_LOG" ]; then
 				r="|BISECTING"
 			fi
-			
+
 			b="$(git symbolic-ref HEAD 2>/dev/null)" || {
-				
+
 				b="$(
 				case "${GIT_PS1_DESCRIBE_STYLE-}" in
 				(contains)
@@ -175,19 +245,15 @@ __vc_git_flags ()
 				(* | default)
 					git describe --exact-match HEAD ;;
 				esac 2>/dev/null)" ||
-				
+
 				b="$(cut -c1-7 "$g/HEAD" 2>/dev/null)..." ||
 				b="unknown"
 				b="($b)"
 			}
 		fi
-		
-		local w
-		local i
-		local s
-		local u
-		local c
-		
+
+		local w= i= s= u= c=
+
 		if [ "true" = "$(git rev-parse --is-inside-git-dir 2>/dev/null)" ]; then
 			if [ "true" = "$(git rev-parse --is-bare-repository 2>/dev/null)" ]; then
 				c="BARE:"
@@ -198,7 +264,7 @@ __vc_git_flags ()
 			if [ -n "${GIT_PS1_SHOWDIRTYSTATE-}" ]; then
 				if [ "$(git config --bool bash.showDirtyState)" != "false" ]; then
 					git diff --no-ext-diff --ignore-submodules \
-						--quiet --exit-code || w="*"
+						--quiet --exit-code || w='*'
 					if git rev-parse --quiet --verify HEAD >/dev/null; then
 						git diff-index --cached --quiet \
 							--ignore-submodules HEAD -- || i="+"
@@ -210,10 +276,10 @@ __vc_git_flags ()
 			if [ -n "${GIT_PS1_SHOWSTASHSTATE-}" ]; then
 				git rev-parse --verify refs/stash >/dev/null 2>&1 && s="$"
 			fi
-			
+
 			if [ -n "${GIT_PS1_SHOWUNTRACKEDFILES-}" ]; then
 				if [ -n "$(git ls-files --others --exclude-standard)" ]; then
-					u="%"
+					u="~"
 				fi
 			fi
 		fi
@@ -226,17 +292,138 @@ __vc_git_flags ()
 		untracked="$u"
 		state="$r"
 
-		if [ -n "${2-}" ]; then
-			printf "$2" "$c${b##refs/heads/}$w$i$s$u$r"
-		else
-			printf " (%s)" "$c${b##refs/heads/}$w$i$s$u$r"
+		x=
+		rg=$g
+		test -f "$g" && {
+			g=$(dirname $g)/$(cat .git | cut -d ' ' -f 2)
+		}
+		if [ -d $g/annex ]; then
+			#x="(annex:$(echo $(du -hs $g/annex/objects|cut -f1)))$c"
+			x="(annex)$c"
 		fi
 
-		popd >> /dev/null
+		if [ -n "${2-}" ]; then
+			printf "$2" "$c$x${b##refs/heads/}$w$i$s$u$r"
+		else
+			printf " (%s)" "$c$x${b##refs/heads/}$w$i$s$u$r"
+		fi
+
+		cd $cwd
 	fi
 }
 
-. ~/.conf/bash/git-completion.bash
+# Switch the version control system detected for the current directory.
+# (First GIT, then BZR). Then make a pretty info string representing the status
+# of the working tree and repository.
+#
+# <userpath>[<branchname><branchstate>]<branchpath>
+# Version Control part for prompt, state indicators:
+# + : added files
+# * : modified "
+# - : removed "
+# ? : untracked "
+__vc_status()
+{
+  test -n "$1" || set -- "$(pwd)"
+	test -d "$1" || err "No such directory $1" 3
+
+	local w short repo sub
+
+  local pwd="$(pwd)"
+
+	realcwd="$(cd $1; pwd -P)"
+	short="$(homepath "$1")"
+	test -n "$short" || err "homepath" 1
+
+	local git="$(__vc_gitdir "$realcwd")"
+	local bzr=$(__vc_bzrdir "$realcwd")
+
+	if [ -n "$git" ]; then
+
+    test -e "$git/refs/heads/master" || {
+      echo "$realcwd (git:unborn)"
+      return
+    }
+
+		checkoutdir="$(cd $realcwd; git rev-parse --show-toplevel)"
+
+		[ -n "$checkoutdir" ] && {
+
+			rev="$(cd $realcwd; git show "$checkoutdir" | grep '^commit' \
+			  | sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+			sub="${realcwd##$checkoutdir}"
+
+		} || {
+
+			realgitdir="$(cd "$git"; pwd -P)"
+			rev="$(cd $realcwd; git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+			realgit="$(basename $realgitdir)"
+			sub="${realcwd##$realgit}"
+		}
+
+		short="${short%$sub}"
+		echo "$short" $(__vc_git_flags $realcwd "[git:%s $rev]")$sub
+
+	else if [ "$bzr" ]; then
+		#if [ "$bzr" = "." ];then bzr="./"; fi
+		realbzr="$(cd "$bzr"; pwd -P)"
+		realbzr="${realbzr%/.bzr}"
+		sub="${realcwd##$realbzr}"
+		short="${short%$sub/}"
+		local revno=$(bzr revno)
+		local s=''
+		if [ "$(bzr status|grep added)" ]; then s="${s}+"; fi
+		if [ "$(bzr status|grep modified)" ]; then s="${s}*"; fi
+		if [ "$(bzr status|grep removed)" ]; then s="${s}-"; fi
+		if [ "$(bzr status|grep unknown)" ]; then s="${s}~"; fi
+		[ -n "$s" ] && s="$s "
+		echo "$short$PSEP [bzr:$s$revno]$sub"
+
+	#else if [ -d ".svn" ]; then
+	#	local r=$(svn info | sed -n -e '/^Revision: \([0-9]*\).*$/s//\1/p' )
+	#	local s=""
+	#	local sub=
+	#	if [ "$(svn status | grep -q -v '^?')" ]; then s="${s}*"; fi
+	#	if [ -n "$s" ]; then s=" ${s}"; fi;
+	#	echo "$short$PSEP [svn:r$r$s]$sub"
+	else
+		echo $short
+	fi;fi;
+	cd $cwd
+}
+
+__vc_screen ()
+{
+	local w short repo sub
+
+  test -n "$1" || set -- "$(pwd)"
+
+	realcwd="$(pwd -P)"
+	short=$(homepath "$1")
+
+	local git=$(__vc_gitdir "$1")
+	if [ "$git" ]; then
+
+    test -e "$git/refs/heads/master" || {
+      echo "$(pwd) (git:unborn)"
+      return
+    }
+		realroot="$(git rev-parse --show-toplevel)"
+		[ -n "$realroot" ] && {
+			rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+			sub="${realcwd##$realroot}"
+		} || {
+			realgitdir="$(cd "$git"; pwd -P)"
+			rev="$(git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+			realgit="$(basename $realgitdir)"
+			sub="${realcwd##$realgit}"
+		}
+		echo $(basename "$realcwd") $(__vc_git_flags $git "[git:%s $rev]")
+	else
+		echo "$short"
+	fi
+}
+
 
 __vc_pull ()
 {
@@ -262,129 +449,10 @@ __vc_push ()
 	else if [ "$bzr" ]; then
 		bzr push;
 #	else if [ -d ".svn" ]; then
-#	    svn 
+#	    svn
 	fi; fi;
 }
 
-# Switch the version control system detected for the current directory.
-# (First GIT, then BZR). Then make a pretty info string representing the status
-# of the working tree and repository.
-#
-# <userpath>[<branchname><branchstate>]<branchpath>
-# Version Control part for prompt, state indicators:
-# + : added files
-# * : modified "
-# - : removed "
-# ? : untracked "
-__vc_status ()
-{
-	local w short repo sub
-	
-	w="$1";
-	pushd "$w" >> /dev/null
-	realcwd="$(pwd -P)"
-	short="$(homepath "$w")"
-
-	local git="$(__vc_gitdir "$realcwd")"
-	local bzr=$(__vc_bzrdir "$realcwd")
-	
-	if [ -n "$git" ]; then
-		realroot="$(git rev-parse --show-toplevel)"
-		[ -n "$realroot" ] && { 
-			rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-			sub="${realcwd##$realroot}"
-			realgitdir=$realroot/.git
-		} || {
-			realgitdir="$(cd "$git"; pwd -P)"
-			rev="$(git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-			realgit="$(basename $realgitdir)"
-			sub="${realcwd##$realgit}"
-		}
-		short="${short%$sub}"
-		echo "$short" $(__vc_git_flags $realgitdir "[git:%s $rev]")$sub
-	else if [ "$bzr" ]; then
-		#if [ "$bzr" = "." ];then bzr="./"; fi
-		realbzr="$(cd "$bzr"; pwd -P)"
-		realbzr="${realbzr%/.bzr}"
-		sub="${realcwd##$realbzr}"
-		short="${short%$sub/}"
-		local revno=$(bzr revno)
-		local s=''
-		if [ "$(bzr status|grep added)" ]; then s="${s}+"; fi
-		if [ "$(bzr status|grep modified)" ]; then s="${s}*"; fi
-		if [ "$(bzr status|grep removed)" ]; then s="${s}-"; fi
-		if [ "$(bzr status|grep unknown)" ]; then s="${s}%"; fi
-		[ -n "$s" ] && s="$s "
-		echo "$short$PSEP [bzr:$s$revno]$sub"
-	#else if [ -d ".svn" ]; then
-	#	local r=$(svn info | sed -n -e '/^Revision: \([0-9]*\).*$/s//\1/p' )
-	#	local s=""
-	#	local sub=
-	#	if [ "$(svn status | grep -q -v '^?')" ]; then s="${s}*"; fi
-	#	if [ -n "$s" ]; then s=" ${s}"; fi;
-	#	echo "$short$PSEP [svn:r$r$s]$sub"
-	else
-		echo $short
-	fi;fi;
-	popd >> /dev/null
-}
-
-# Helper for just path reference notation, no SCM bits
-__pwd_ps1 ()
-{
-	local w short
-	
-	d="$1";
-	[ -z "$d" ] && d="$(pwd)"
-	[ ! -d "$d" ] && echo "No such directory $d" && exit 3
-	realcwd="$(cd $d && pwd -P)"
-	short=$(homepath $d)
-	echo $short
-}
-
-
-# Wrapper for __vc_status stat sets argument default to current dirctory
-# Return all info bits from __vc_status()
-__vc_ps1 ()
-{
-	d="$1"
-	[ -z "$d" ] && d="$(pwd)"
-	[ ! -d "$d" ] && echo "No such directory $d" && exit 3
-	__vc_status "$d"
-}
-
-__vc_screen ()
-{
-	local w short repo sub
-	
-	w="$1";
-	[ -z "$w" ] && w="$(pwd)"
-
-	realcwd="$(pwd -P)"
-	short=$(homepath "$w")
-	
-	local git=$(__vc_gitdir "$w")
-	if [ "$git" ]; then
-		realroot="$(git rev-parse --show-toplevel)"
-		[ -n "$realroot" ] && { 
-			rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-			sub="${realcwd##$realroot}"
-		} || {
-			realgitdir="$(cd "$git"; pwd -P)"
-			rev="$(git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-			realgit="$(basename $realgitdir)"
-			sub="${realcwd##$realgit}"
-		}
-		echo $(basename "$realcwd") $(__vc_git_flags $realgitdir "[git:%s $rev]")
-	else
-		echo "$short"
-	fi
-}
-
-__vc_git_ps1()
-{
-    __vc_git_flags $@
-}
 
 list_gitpaths()
 {
@@ -398,14 +466,14 @@ list_gitpaths()
 	done
 }
 
-list_git_checkouts()
+vc_ls_gitroots()
 {
 	list_gitpaths $1 | while read gitpath
 	do dirname $gitpath
 	done
 }
 
-list_errors()
+vc_ls_errors()
 {
 	list_gitpaths $1 | while read gitpath
 	do
@@ -424,66 +492,499 @@ list_errors()
 	done
 }
 
+
 ### Command Line handlers
 
+vc_run__stat=f
+vc__stat()
+{
+  test -n "$1" || set -- .
+  __vc_status "$1" || return $?
+}
+# TODO: alias
+vc_als__status=stat
+
+
+vc__bits()
+{
+  __vc_status || return $?
+}
+
+
+# TODO: vcflags
+vc__gitflags()
+{
+  __vc_git_flags "$@" || return $?
+}
+
+
+vc_man_1__ps1="Print VC status in the middle of PWD. ".
+vc_run__ps1=x
+vc_spc__ps1="ps1"
+vc__ps1()
+{
+  test -n "$gtd" || { pwd; return; }
+  c="$(__vc_status "$(pwd)" || return $?)"
+  echo "$c"
+}
+vc_C_exptime__ps1=0
+vc_C_validate__ps1="vc__mtime \$gtd"
+
+
+vc_man_1__screen="Print VC status in the middle of PWD. ".
+vc_run__screen=x
+vc_spc__screen="screen"
+vc__screen()
+{
+  test -n "$gtd" || { pwd; return; }
+  c="$(__vc_screen "$(dirname "$gtd")" || return $?)"
+  echo "$c"
+}
+vc_C_exptime__screen=0
+vc_C_validate__screen="filemtime \$cwd"
+
+
+vc_man_1__mtime="Return last modification time for GIT head or stage"
+vc__mtime()
+{
+  test -n "$1" || set -- "$gtd"
+
+  # Return highest mtime
+  (
+    filemtime $1/index
+    filemtime $1/HEAD
+  ) \
+    | awk '$0>x{x=$0};END{print x}'
+}
+
+
+vc_man_1__flush="Delete all subcmd value caches"
+vc__flush()
+{
+  for subcmd_ in ps1 stat
+  do
+    stat_key C
+    subcmd=$subcmd_ membash delete $C_key 2>&1 >/dev/null || continue
+  done
+}
+
 # print all fuctions/results for paths in arguments
-vc_print_all()
+vc__print_all()
 {
 	for path in $@
 	do
 		[ ! -e "$path" ] && continue
-		echo -e vc-status[$path]=\"$(__vc_status "$path")\"
-		echo -e pwd-ps1[$path]=\"$(__pwd_ps1 "$path")\"
-		echo -e vc-ps1[$path]=\"$(__vc_ps1 "$path")\"
+		echo vc-status[$path]=\"$(__vc_status "$path")\"
 	done
 }
 
-vc_ps1()
-{
-	__vc_ps1 $@
-}
 
 # special updater (for Bash PROMPT_COMMAND)
-vc_prompt_command()
+vc__prompt_command()
 {
-	d="$1"
-	[ -z "$d" ] && d="$(pwd)"
-	[ ! -d "$d" ] && error "No such directory $d" 3
+  test -n "$1" -a -d "$1" \
+    || error "No such directory '$1'" 3
 
-	# cache response in file
-	statsdir=$(statusdir_assert vc_status)
-	#index=$(statusdir_index vc_status)
-	pwdref=$(echo $d|md5sum -|cut -f1 -d' ')
-	#line=$(cat $index | grep $pwdref)
-	if [ ! -e "$statsdir/$pwdref" -o "$d/.git" -nt "$statsdir/$pwdref" ]
-	then
-		#echo -e "$pwdref\t$d" > $index
-		__vc_status $d > "$statsdir/$pwdref"
-	fi
+  # cache response in file
+  pwdref="$(echo "$1" | tr '/' '-' )"
+  cache="$(statusdir.sh assert-dir vc prompt-command $pwdref)"
 
-	cat "$statsdir/$pwdref"
+  test ! -e "$cache" -o $1/.git -nt "$cache" && {
+    __vc_status $1 > "$cache"
+  }
+
+  cat "$cache"
 }
 
 
-. ~/bin/std.sh
+vc__list_submodules()
+{
+  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
+}
+
+vc_man_1__gh="Clone from Github to subdir, adding as submodule if already in checkout. "
+vc_spc__gh="gh <repo> [<prefix>]"
+vc__gh() {
+  test -n "$1" || error "Need repo name argument" 1
+  str_match "$1" "[^/]*" && {
+    repo=dotmpe/$1; prefix=$1; } || {
+    repo=$1; prefix=$(basename $1); }
+  shift 1
+  test -n "$1" && prefix=$1/$prefix
+  giturl=git@github.com:$repo.git
+  test -n "$debug" && {
+    echo giturl=$giturl
+    echo repo=$repo
+    echo prefix=$prefix
+  }
+  git=git
+  test -n "$dry" && {
+    log "*** DRY-RUN ***"
+    git="echo git"
+  }
+  test -e .git && {
+    test -d .git && {
+      log "Adding submodule $giturl to $(pwd)/$prefix.."
+      ${git} submodule add $giturl $prefix
+      log "Added submodule $giturl to $(pwd)/$prefix"
+    } || {
+      # TODO: find/print root. then go there. see vc.sh
+      error "Please recede to root and use prefix to add submodule" 1
+    }
+  } || {
+    log "Cloning $giturl to $(pwd)/$prefix.."
+    ${git} clone $giturl $prefix
+    log "Cloned $giturl to $(pwd)/$prefix"
+  }
+}
+
+vc__largest_objects()
+{
+  test -n "$1" || set -- 10
+  $scriptdir/git-largest-objects.sh $1
+}
+
+# list commits for object sha1
+vc__path_for_object()
+{
+  test -n "$1" || error "provide object hash" 1
+  while test -n "$1"
+  do
+    git rev-list --all |
+    while read commit; do
+      if git ls-tree -r $commit | grep -q $1; then
+        echo $commit
+      fi
+    done
+    shift 1
+  done
+}
+
+# print tree, blob, commit, etc. objs
+vc__list_objects()
+{
+  git verify-pack -v .git/objects/pack/pack-*.idx
+}
+
+vc__object_contents()
+{
+  git cat-file -p $1
+}
+
+vc_man_1__excludes="List path ignore patterns"
+vc__excludes()
+{
+  # (global) core.excludesfile setting
+  global_excludes=$(echo $(git config --get core.excludesfile))
+  test ! -e "$global_excludes" || {
+    note "Global excludes:"
+    cat $global_excludes
+  }
+
+  note "Local excludes (repository):"
+  cat .git/info/exclude | grep -v '^\s*\(#\|$\)'
+
+  test -s ".gitignore" && {
+    note "Local excludes"
+    cat .gitignore
+  } || {
+    note "No local excludes"
+  }
+}
+
+# List unversioned including ignored
+vc__ufx()
+{
+  vc__excluded
+}
+vc__excluded()
+{
+  # list paths not in git (including ignores)
+  git ls-files --others --dir
+  # XXX: need to add prefixes to returned paths:
+  pwd=$(pwd)
+  git submodule | while read hash prefix ref
+  do
+    path=$pwd/$prefix
+    test -e $path/.git || {
+      warn "Not a checkout: ${path}"
+      continue
+    }
+    ( note $path:;cd $path && vc__excluded )
+  done
+}
+
+# List all unversioned excluding ignored
+vc__uf()
+{
+  vc__unversioned_files
+}
+vc__unversioned_files()
+{
+  # list cruft (not versioned and not ignored)
+  git ls-files --others --exclude-standard
+  # XXX: need to add prefixes to returned paths:
+  pwd=$(pwd)
+  git submodule | while read hash prefix ref
+  do
+    path=$pwd/$prefix
+    test -e $path/.git || {
+      warn "Not a checkout: ${path}"
+      continue
+    }
+    ( cd $path && vc__unversioned_files )
+  done
+}
+
+# Annex diag.
+vc__annex_unused()
+{
+  git annex unused | grep '\s\s*[0-8]\+\ \ *.*$' | \
+  while read line
+  do
+    echo $line
+  done
+}
+
+vc__annex_show_unused()
+{
+  c_annex_unused | while read num key
+  do
+    echo "GIT log for '$key'"
+    git log --stat -S"$key"
+  done
+}
+
+vc__annex_clear_unused()
+{
+  test -z "$1" && {
+    local cnt
+    cnt="$(c_annex_unused | tail -n 1 | cut -f 1 -d ' ')"
+    vc__annex_unused | while read num key
+    do
+      echo $num $key
+    done
+    echo cnt=$cnt
+    read -p 'Delete all? [yN] ' -n 1 user
+    echo
+    test "$user" = 'y' && {
+      while test "$cnt" -gt 0
+      do
+        git annex dropunused --force $cnt
+        cnt=$(( $cnt -1 ))
+      done
+    } || {
+      error 'Cancelled' 1
+    }
+  } || {
+    git annex move --unused --to $1
+  }
+}
+
+vc__contains()
+{
+  test -n "$1" || error "expected file path argument" 1
+  test -f "$1" || error "not a file path argument '$1'" 1
+  test -n "$2" || set -- "$1" "."
+  test -z "$3" || error ""
+
+  sha1="$(git hash-object "$1")"
+  info "SHA1: $sha1"
+
+  { ( cd "$2" ; git rev-list --objects --all | grep "$sha1" ); } && {
+    note "Found regular GIT object"
+  } || vc__annex_contains "$1" "$2" || {
+    warn "Unable to find path in GIT at @$2: '$1'"
+  }
+}
+
+vc__annex_contains()
+{
+  test -n "$1" || error "expected file path argument" 1
+  test -f "$1" || error "not a file path argument '$1'" 1
+  test -n "$2" || set -- "$1" "."
+  test -z "$3" || error ""
+
+  size="$(stat -Lf '%z' "$1")"
+  sha256="$(shasum -a 256 "$1" | cut -f 1 -d ' ')"
+  keyglob='*s'$size'--'$sha256'.*'
+  info "SHA256E key glob: $keyglob"
+  { find $2 -ilname $keyglob | while read path; do echo $path;ls -la $path; done;
+  } || warn "Found nothing for '$keyglob'"
+}
+
+# List submodule prefixes
+vc__list_prefixes()
+{
+  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
+}
+
+# List all nested repositories, excluding submodules
+# XXX this does not work properly, best use it from root of repo
+# XXX: takes subdir, and should in case of being in a subdir act the same
+vc__list_subrepos()
+{
+  local cwd=$(pwd)
+  basedir="$(dirname "$(__vc_gitdir "$1")")"
+  test -n "$1" || set -- "."
+
+  cd $basedir
+  vc__list_prefixes > /tmp/vc-list-prefixes
+  cd $cwd
+
+  find $1 -iname .git | while read path
+  do
+    # skip root
+    #test -n "$(realpath "$1/.git")" != "$(realpath "$path")" || continue
+
+    # skip proper submodules
+    match_grep_pattern_test "$(dirname "$path")" || continue
+    grep_pattern="$p_"
+    grep -q "$grep_pattern" /tmp/vc-list-prefixes && {
+      continue
+    } || {
+      echo "$(dirname $path)"
+    }
+  done
+#    git submodule foreach 'for remote in "$(git remote)"; do echo $remote; git
+#    config remote.$remote.url  ; done'
+}
+
+vc__projects()
+{
+  test -f projects.sh || touch projects.sh
+
+  cwd=$(pwd)
+  pwd=$(pwd -P)
+
+  for gitdir in */.git
+  do
+    dir="$(dirname "$gitdir")"
+    cd "$dir"
+    git remote | while read remote
+    do
+      url=$(git config remote.$remote.url)
+      grep -q ${dir}_${remote} $pwd/projects.sh || {
+        echo "${dir}_${remote}=$url" >> $pwd/projects.sh
+      }
+    done
+    cd $cwd
+  done
+}
+
+vc__remotes()
+{
+  git remote | while read remote
+  do
+    case "$1" in
+      '')
+        echo $remote $(git config remote.$remote.url);;
+      sh|var)
+        echo $remote=$(git config remote.$remote.url);;
+      *)
+        error "illegal $1" 1;;
+    esac
+  done
+}
+
+vc__list_local_branches()
+{
+  local pwd=$(pwd)
+  test -z "$1" || cd $1
+  git branch -l | sed -E 's/\*|[[:space:]]//g'
+  test -z "$1" || cd $pwd
+}
+
+# regenerate .git/info/exclude
+vc__update()
+{
+  local excludes=.git/info/exclude
+
+  test -e $excludes.header || backup_header_comment $excludes
+
+  info "Resetting local GIT excludes file"
+  read_nix_style_file $excludes | sort -u > $excludes.list
+  cat $excludes.header $excludes.list > $excludes
+  rm $excludes.list
+
+  info "Adding other git-ignore files"
+  for x in .gitignore-*
+  do
+    test -e $x || continue
+    fnmatch "$x: text/*" "$(file --mime $x)" || continue
+    echo "# Source: $x" >> $excludes
+    read_nix_style_file $x >> $excludes
+  done
+
+  note "Local excludes successfully regenerated"
+}
 
 
-# Main
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
-	# Do something if script invoked as 'vc.sh'
-	if [ "$(basename "$0")" = "vc.sh" ]; then
-		# invoke with function name first argument,
-		func=$1
-		type "vc_$func" &>/dev/null && { func="vc_$func"; }
-		cmd=$func
-		type $func &>/dev/null && {
-			shift 1
-			load
-			$func $@
-		} || { 
-			load
-			vc_print_all $@
-		}
-	fi
-fi
+# ----
+
+
+### Main
+
+vc_main()
+{
+  # Do something if script invoked as 'vc.sh'
+  local scriptname=vc base="$(basename "$0" .sh)" \
+    subcmd=$1
+
+  case "$base" in $scriptname )
+
+        test -n "$scriptdir" || \
+            scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+        export SCRIPTPATH=$scriptdir
+        . $scriptdir/util.sh
+
+        test -n "$verbosity" || verbosity=5
+
+        local func=$(echo vc__$subcmd | tr '-' '_') \
+            ext_sh_sub=
+
+        type $func >/dev/null 2>&1 && {
+          shift 1
+          vc_load || return
+          $func "$@" || return $?
+          vc_unload || return
+        } || {
+          R=$?
+          vc_load || return
+          test -n "$1" && {
+            vc__print_all "$@"
+            exit $R
+          } || {
+            vc__print_all $(pwd)
+            exit 0
+          }
+        }
+
+      ;;
+
+    * )
+      echo "VC is not a frontend for $base ($scriptname)" 2>&1
+      exit 1
+      ;;
+
+  esac
+}
+
+
+# Ignore login console interpreter
+case "$0" in "" ) ;; "-"* ) ;; * )
+
+  # Ignore 'load-ext' sub-command
+
+  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
+  # fix using another mechanism:
+  test -z "$__load_lib" || set -- "load-ext"
+  case "$1" in load-ext ) ;; * )
+
+        vc_main "$@"
+      ;;
+
+  esac ;;
+
+esac
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
 
-test -z "$PREFIX" && lib=./str || lib=$PREFIX/bin/str
+load helper
+
+test -z "$PREFIX" && lib=./str.lib || lib=$PREFIX/bin/str.lib
 func=mkvid
 
 source $lib.sh
@@ -21,22 +23,6 @@ source $lib.sh
 }
 
 @test "$lib $func cleans up ID from path (II)" {
-    skip "TODO implement/test with dir/./.. etc"
+    TODO "implement/test with dir/./.. etc"
 }
 
-@test "$lib fnmatch" {
-  fnmatch "f*o" "foo" || test
-  fnmatch "test" "test" || test
-  fnmatch "*test*" "test" || test
-  fnmatch "*test" "123test" || test
-  fnmatch "test*" "test123" || test
-}
-
-@test "$lib fnmatch (spaces)" {
-  fnmatch "* test" "123 test" || test
-  fnmatch "test *" "test 123" || test
-  fnmatch "*test*" " test " || test
-  fnmatch "./file.sh: line *: test" "./file.sh: line 1234: test" || test
-}
-
-# vim:ft=sh:

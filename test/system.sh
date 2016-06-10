@@ -91,7 +91,7 @@ function test_start # descr
 
 function test_end
 {
-  echo -n
+  set --
 #  CHAR='=' line
 }
 

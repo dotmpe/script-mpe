@@ -1,0 +1,636 @@
+#!/usr/bin/env python
+"""
+:created: 2015-11-30
+:updated: 2016-06-06
+
+Python helper to query/update Projectdir metadatadocument '.projects.yaml'
+
+Usage:
+    projectdir-meta [options] get-repo <prefix>
+    projectdir-meta [options] put-repo <prefix> [<kwdargs>...]
+    projectdir-meta [options] update-repo <prefix> [<kwdargs>...]
+    projectdir-meta [options] drop-repo <prefix>
+    projectdir-meta [options] (enabled|disabled) <prefix>
+    projectdir-meta [options] (enable|disable) <prefix>
+    projectdir-meta [options] clean-mode <prefix> [<mode>]
+    projectdir-meta [options] list-prefixes [<root>]
+    projectdir-meta [options] list-enabled [<root>]
+    projectdir-meta [options] list-disabled [<root>]
+    projectdir-meta [options] get-uri <prefix> [<remote>]
+    projectdir-meta [options] list-remotes <prefix>
+    projectdir-meta [options] list-upstream <prefix> [<branches>...]
+    projectdir-meta [options] exit
+    projectdir-meta [options] x-conv
+    projectdir-meta [options] x-check
+    projectdir-meta [options] (dump|x-dump) [<prefix>]
+    projectdir-meta --background [options]
+    projectdir-meta (-h | --help)
+
+Options:
+  -S, --address ADDRESS
+                The address that the socket server will be listening on. If
+                the socket exists, any command invocation is relayed to the
+                server intance, and the result output and return code 
+                returned to client. [default: /tmp/pd-serv.sock]
+  --background  Turns script into socket server. This does not fork, detach
+                or do anything else but enter an infinite server loop.
+  -f PD, --file PD
+                Give custom path to projectdir document file [default: ./.projects.yaml]
+  -q, --quiet   Quiet operations
+  -s, --strict  Strict operations
+  -g, --glob    Change from root prefix matching to glob matching.
+  -G, --global  Use global enabled status, instead of remote.
+  -H NAME, --host NAME
+                Hostname to use for current entries.
+
+Schema:
+    repositories:
+        - Root key, contains a map of all local path prefixes leading to SCM
+          checkouts. Below each prefix key 
+    disabled:
+        - Boolean indicator requests checkout to be available if false, or if
+          available and true, to be cleaned up and removed.
+    enabled:
+        - Vice versa to disabled.
+    remotes:
+        - A map of local names for remote GIT urls, updated from the GIT remotes
+          config, and configured for fresh checkouts upon enabling prefixes.
+
+    clean:
+        - enum: tracked|untracked|excluded
+        - Mode of cleanliness to employ to check for changed or new files in
+          project, before removing the checkout upon disable.
+
+          The modes are in order of strictness: tracked only checks versioned
+          files, untracked also considers the presence of unversioned, unignored
+          files. Excluded also considers files ignored (ie. by .gitignore).
+
+          Verifying wether a checkout has staged or unstaged changes (is dirty)
+          or has cruft is one, preferably the first step in syncing or cleaning.
+          The other is syncing.
+
+    sync:
+        - Complex variant value to indicate up and downstream remote references
+          for local references. Upstream references are synced from, dowstream
+          references are synced to, and full sync is done normally.
+
+          A boolean 'true' value indicates all remotes are synced from and to,
+          ie. no up- or down- but full-sync is assumed if no pull or push
+          qualifiers are given. Alternatively either a single or list of remote
+          names can restrict full-sync with selected remotes.
+
+          TODO: there needs to be a way to deal with specific references (tags/branches)
+          and also push and pull only.
+          XXX: something like this::
+
+            sync:
+            - origin: true
+            - seed:
+                pull:
+                - master
+            - joe:
+                - master
+                - dev
+            - pub:
+                push:
+                - master
+                - v*
+
+          with remotes origin, seed, joe and pub.
+
+          Upon syncing, the .git/FETCH_HEAD has to have a minimum modification
+          age, or the remotes are fetched first. Then the references are
+          compared, using simple name matching, with the local references.
+          Any delta is noted in the number of commits.
+
+          Sync exits with an error code if any remote or local reference is
+          behind.
+
+          XXX: if a project is to be deleted, it may forego the actual pull, if ffwd.
+
+    submodule:
+        - Boolean indicator wether this checkout is not a standalone,
+          but part of a parent project.
+
+          XXX: Pd currently holds no submodule prefixes. But is does need to
+          deal with clean/sync of embedded submodules before rm -rf'ing a prefix!
+
+
+FIXME: test wether staged changes are recognized as dirt. Build some tests.
+FIXME: need to consider submodules dirt/cruft too before disabling parent checkout.
+
+"""
+import os
+from fnmatch import fnmatch
+from pprint import pformat
+from socket import gethostname
+
+from docopt import docopt
+import uuid
+from deep_eq import deep_eq
+
+from script_mpe import util, confparse
+from script_mpe.res import js
+from script_mpe.confparse import yaml_load, yaml_safe_dump
+
+
+def meta_from_projectdir_doc(data):
+    newdata = {}
+
+    for prefix in data['repositories'].keys():
+
+        remotes = dict( data['repositories'][prefix]['remotes'] )
+        repoid = "repo:_:%s" % uuid.uuid4()
+        newdata[repoid] = dict(
+            prefix=prefix,
+            remotes=remotes
+        )
+    return newdata
+
+
+toggle_states = 'disabled', 'enabled'
+
+def toggle(state):
+    if state == toggle_states[0]:
+        return toggle_states[1]
+    else:
+        return toggle_states[0]
+
+def toggle_active(state):
+    return state == toggle_states[1]
+
+def toggle_inactive(state):
+    return state == toggle_states[0]
+
+def get_toggle_state(data):
+    for state in toggle_states:
+        if state in data:
+            if data[state]:
+                return state
+            else:
+                return toggle(state)
+
+def set_toggle_state(data, state):
+    assert state in toggle_states
+
+    if toggle(state) in data:
+        del data[toggle(state)]
+
+    enabled = state == toggle_states[1]
+
+    data[state] = True
+
+
+
+repo_modes = ['tracked', 'untracked', 'excluded']
+
+def get_clean_mode(repo):
+    """Clean mode is 'tracked' to only consider changes to tracked files,
+    untracked to include those as well, or excluded to consider all files in
+    the checkout directory including GIT ignored files.
+    """
+    if 'clean' in repo:
+        repo_mode = repo['clean']
+    else:
+        repo_mode = True
+    if isinstance(repo_mode, bool):
+        if repo_mode == True:
+            repo_mode = 'untracked'
+        else:
+            repo_mode = 'tracked'
+    if not repo_mode:
+        repo_mode = 'untracked'
+    return repo_mode
+
+
+def get_one_prefix(pdhdata, ctx):
+    "TODO: setup try catch and only stacktrace for debug/unexpected errors"
+    prefix = ctx.opts.args.prefix
+    if prefix not in pdhdata['repositories']:
+        print >>ctx.out, "No such repo prefix", prefix
+        return 3
+    record = pdhdata['repositories'][prefix]
+    return record
+
+def prefix_match(prefix, match, opts):
+    """Match path <prefix> with root-path or pattern <match> """
+    if match:
+        if opts.flags.glob:
+            return fnmatch( prefix, match )
+        else:
+            return prefix.startswith( match )
+
+        return False
+    else:
+        return True
+
+
+def check_state(target, pdhdata, ctx):
+    "Project repo Enabled/Disabled function"
+    prefix = ctx.opts.args.prefix
+    if prefix not in pdhdata['repositories']:
+        print >>ctx.out, "No such repo prefix", prefix
+        return 3
+    state = get_toggle_state(pdhdata['repositories'][prefix])
+    if not ctx.opts.flags.quiet:
+        print >>ctx.out, "%s\t%s" % ( prefix, state )
+    if ctx.opts.flags.strict and state is None:
+        return
+    if target != state:
+        return 1
+
+def toggle_state(newstate, pdhdata, ctx):
+    prefix = ctx.opts.args.prefix
+    if prefix not in pdhdata['repositories']:
+        print >>ctx.out, "No such repo prefix", prefix
+        return 3
+    state = get_toggle_state(pdhdata['repositories'][prefix])
+    if newstate+'d' != state:
+        set_toggle_state( pdhdata['repositories'][prefix], newstate+'d' )
+        yaml_safe_dump(pdhdata, 
+                open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+
+def toggle_host(newstate, pdhdata, ctx):
+    #record = get_one_prefix(pdhdata, ctx)
+    prefix = ctx.opts.args.prefix
+    if prefix not in pdhdata['repositories']:
+        print >>ctx.out, "No such repo prefix", prefix
+        return 3
+    record = pdhdata['repositories'][prefix]
+    if 'hosts' not in record:
+        record['hosts'] = []
+    if 'enable' in newstate:
+        if ctx.opts.flags.host not in record['hosts']:
+            record['hosts'] += [ ctx.opts.flags.host ]
+    elif 'disable' in newstate:
+        if ctx.opts.flags.host in record['hosts']:
+            record['hosts'].remove( ctx.opts.flags.host )
+
+def check_host(record, ctx):
+    if 'hosts' in record:
+        if ctx.opts.flags.host in record['hosts']:
+            return True
+    return False
+
+def yaml_commit(pdhdata, ctx):
+    yaml_safe_dump(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+
+def repo_kv_to_dict( kwdargs ):
+    new = dict(remotes={})
+    new.update(dict([ k.split('=') for k in kwdargs if k ]))
+    for k,v in new.items():
+        if isinstance(v, str):
+            if v.lower() == 'true':
+                v = True
+            elif v.lower() == 'false':
+                v = False
+            #elif v.isdigit():
+            #    v = int(v)
+        if k in "disabled enabled clean sync remotes annex description todo":
+            new[k] = v
+        else:
+            del new[k]
+            if k.startswith('remote_'):
+                k = k[7:]
+            new['remotes'][k] = v
+    return new
+
+def update_repo(pdhdata, ctx):
+    # add/update/drop repo metadata
+    new = repo_kv_to_dict( ctx.opts.args.kwdargs )
+
+    p = ctx.opts.args.prefix
+    if ctx.opts.cmds[0] == 'update-repo':
+        if p not in pdhdata['repositories']:
+            print >>ctx.out, "No such repo prefix", p
+            return 2
+        updated = dict(pdhdata['repositories'][p])
+        updated.update(new)
+        if deep_eq( pdhdata['repositories'][p], updated ):
+            return 42
+        pdhdata['repositories'][p] = updated
+    else:
+        if p in pdhdata['repositories']:
+            print >>ctx.out, "Repo prefix exists", p
+            return 3
+        pdhdata['repositories'][p] = new
+
+    yaml_commit(pdhdata, ctx)
+
+def list_state(target, pdhdata, ctx):
+    for k in pdhdata['repositories'].keys():
+        if not prefix_match( k, ctx.opts.args.root, ctx.opts ):
+            continue
+        state = get_toggle_state(pdhdata['repositories'][k])
+        if state is None:
+            continue
+        bstate = toggle_active(state)
+        if bstate:
+            if 'enable' in target:
+                print >>ctx.out, k
+        elif 'disable' in target:
+            print >>ctx.out, k
+
+def list_host_state(target, pdhdata, ctx):
+    for k in pdhdata['repositories'].keys():
+        if not prefix_match( k, ctx.opts.args.root, ctx.opts ):
+            continue
+        record = pdhdata['repositories'][k]
+        if check_host(record, ctx):
+            if 'enable' in target:
+                print >>ctx.out, k
+        elif 'disable' in target:
+            print >>ctx.out, k
+
+def init_hostname(ctx):
+    if not ctx.opts.flags.host:
+        ctx.opts.flags.host = gethostname()
+
+
+#
+
+def H_list_upstream(pdhdata, ctx):
+    repos = pdhdata['repositories']
+    assert ctx.opts.args.prefix in repos, "No key %s" %ctx.opts.args.prefix
+
+    branches = 'branches' in ctx.opts.args and ctx.opts.args.branches
+    if not branches: branches = '*'
+    sync = None
+    if 'sync' in repos[ctx.opts.args.prefix]:
+        sync = repos[ctx.opts.args.prefix]['sync']
+
+    if not sync:
+        if sync == None and ctx.opts.flags.strict:
+            return 1
+        return
+
+    p = ctx.opts.args.prefix
+    if isinstance(sync, list):
+        for remote in sync:
+            for branch in branches:
+                print >>ctx.out, remote, branch
+    elif isinstance(sync, str):
+        assert sync in repos[p]['remotes'], sync
+        for branch in branches:
+            print >>ctx.out, sync, branch
+    elif isinstance(sync, bool):
+        for remote in repos[p]['remotes']:
+            for branch in branches:
+                print >>ctx.out, remote, branch
+
+def H_list_remotes(pdhdata, ctx):
+    repos = pdhdata['repositories']
+    assert ctx.opts.args.prefix in repos, "No key %s" %ctx.opts.args.prefix
+    for remote in repos[ctx.opts.args.prefix]['remotes']:
+        print >>ctx.out, remote
+
+def H_get_uri(pdhdata, ctx):
+    repos = pdhdata['repositories']
+    assert ctx.opts.args.prefix in repos, "No key %s" %ctx.opts.args.prefix
+    remote = 'origin'
+    if 'remote' in ctx.opts.args:
+        remote = ctx.opts.args.remote or 'origin'
+    remotes = repos[ctx.opts.args.prefix]['remotes']
+    assert remote in remotes, remote
+    print >>ctx.out, remotes[remote]
+
+def H_disabled(pdhdata, ctx):
+    return check_state(ctx.opts.cmds[0], pdhdata, ctx)
+def H_enabled(pdhdata, ctx):
+    return check_state(ctx.opts.cmds[0], pdhdata, ctx)
+
+def H_enable(pdhdata, ctx):
+    if ctx.opts.flags['global']:
+        return toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+    else:
+        return H_enable_host(pdhdata, ctx)
+
+def H_disable(pdhdata, ctx):
+    if ctx.opts.flags['global']:
+        return toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+    else:
+        return H_disable_host(pdhdata, ctx)
+
+def H_enable_host(pdhdata, ctx):
+    if not check_state(ctx.opts.cmds[0], pdhdata, ctx):
+        assert toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+    return toggle_host(ctx.opts.cmds[0], pdhdata, ctx)
+
+def H_disable_host(pdhdata, ctx):
+    if check_state(ctx.opts.cmds[0], pdhdata, ctx):
+        assert toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+    return toggle_host(ctx.opts.cmds[0], pdhdata, ctx)
+
+
+# Return or check for clean-mode. Giving a mode argument implies quiet/exit.
+# With -q, be quiet and exit non-zero if required-mode >= given-mode
+# With -s, be strict, and exit non-zero if required-mode != given-mode
+# With no argument print whatever value repo-mode is, and with -s exit on None
+def H_clean_mode(pdhdata, ctx):
+    mode = ctx.opts.args.mode
+    if mode:
+        ctx.opts.flags.quiet = True
+    if ctx.opts.args.prefix in pdhdata['repositories']:
+
+        repo = pdhdata['repositories'][ctx.opts.args.prefix]
+        repo_mode = get_clean_mode(repo)
+        if not mode:
+            assert not ctx.opts.flags.quiet, "illegal quiet flag"
+            #assert not ctx.opts.flags.strict, "illegal strict flag"
+            if ctx.opts.flags.strict:
+                if not repo_mode:
+                    return 1
+            else:
+                print >>ctx.out, repo_mode
+        elif ctx.opts.flags.strict:
+            if repo_mode != mode:
+                return 1
+        else:
+            #print repo_modes.index(repo_mode), repo_modes.index(mode)
+            if repo_modes.index(repo_mode) < repo_modes.index(mode):
+                #if ctx.opts.flags.quiet:
+                return 1
+
+        #if not (opts.flags.strict or opts.flags.quiet):
+        #    mode = 'untracked'
+        #else:
+        #    if ctx.opts.flags.strict:
+        #        if repo_mode != mode:
+        #            return 1
+        #    else:
+        #        if repo_modes.index(repo_mode) < repo_modes.index(mode):
+        #            return 1
+    else:
+        for k in pdhdata['repositories'].keys():
+            if not prefix_match( k, ctx.opts.args.prefix, ctx.opts ):
+                continue
+            repo = pdhdata['repositories'][k]
+            repo_mode = get_clean_mode(repo)
+            if ctx.opts.flags.strict:
+                if repo_mode != mode:
+                    return 1
+            else:
+                if repo_modes.index(repo_mode) < repo_modes.index(mode):
+                    return 1
+
+def H_get_repo(pdhdata, ctx):
+    p = ctx.opts.args.prefix
+    repos = pdhdata['repositories']
+    if not ctx.opts.flags.quiet:
+        if p in repos:
+            print js.dumps(repos[p])
+    if p not in repos:
+        return 1
+
+def H_put_repo(pdhdata, ctx):
+    if ctx.opts.args.prefix in pdhdata['repositories']:
+        raise Exception, "Prefix already in use"
+    return update_repo(pdhdata, ctx)
+def H_update_repo(pdhdata, ctx):
+    return update_repo(pdhdata, ctx)
+
+def H_drop_repo(pdhdata, ctx):
+    p = ctx.opts.args.prefix
+    del pdhdata['repositories'][p]
+    yaml_commit(pdhdata, ctx)
+
+def H_list_prefixes(pdhdata, ctx):
+    # List all project repo prefixes
+    for k in pdhdata['repositories'].keys():
+        if prefix_match( k, ctx.opts.args.root, ctx.opts ):
+            print >>ctx.out, k
+
+def H_list_enabled(pdhdata, ctx):
+    if ctx.opts.flags['global']:
+        return list_state(ctx.opts.cmds[0], pdhdata, ctx)
+    else:
+        init_hostname(ctx)
+        return list_host_state(ctx.opts.cmds[0], pdhdata, ctx)
+
+def H_list_disabled(pdhdata, ctx):
+    if ctx.opts.flags['global']:
+        return list_state(ctx.opts.cmds[0], pdhdata, ctx)
+    else:
+        init_hostname(ctx)
+        return list_host_state(ctx.opts.cmds[0], pdhdata, ctx)
+
+def H_dump(pdhdata, ctx):
+    if 'prefix' not in ctx.opts.args:
+        print >>ctx.out, yaml_safe_dump(pdhdata, default_flow_style=False)
+    else:
+        print >>ctx.out, "repositories:"
+        for k in pdhdata['repositories'].keys():
+            if not prefix_match( k, ctx.opts.args.prefix, ctx.opts ):
+                continue
+            print >>ctx.out, "  %s:" % k
+            v = pdhdata['repositories'][k]
+            print >>ctx.out, "   ", yaml_safe_dump(v, default_flow_style=False).replace(
+                    '\n', '\n    ')
+
+def H_x_dump(pdhdata, ctx):
+    meta = meta_from_projectdir_doc(pdhdata)
+    print >>ctx.out, yaml_safe_dump(meta, default_flow_style=False)
+
+def H_x_check(pdhdata, ctx):
+    for h in handlers:
+        if h not in ctx.usage:
+            print >>ctx.err, "Missing %s docs" % h
+    print ctx.usage
+
+def H_x_conv(pdhdata, ctx):
+    """
+    Convert old yaml format 
+    """
+    newd = dict(repositories={})
+    for k, v in pdhdata['repositories'].items():
+        sd = {}
+        r = {}
+        for sk, sv in pdhdata['repositories'][k].items():
+            if sk in ('enabled', 'disabled', 'title', 'description', 'clean'):
+                sd[sk] = sv
+            else:
+                assert sk != 'enable', 'FIXME'
+                assert sk != 'disable', 'FIXME'
+                r[sk] = sv
+            #if sk in ('origin', 'original', 'brix', 'dotmpe')
+        sd['remotes'] = r
+        newd['repositories'][k] = sd
+    yaml_commit(newd, ctx)
+
+
+
+handlers = {}
+for k, h in locals().items():
+    if not k.startswith('H_'):
+        continue
+    handlers[k[2:].replace('_', '-')] = h
+
+# XXX: no sessions
+pdhdata = None
+def prerun(ctx, cmdline):
+    global pdhdata
+
+    argv = cmdline.split(' ')
+    ctx.opts = util.get_opts(ctx.usage, argv=argv)
+
+    if not pdhdata:
+        pdhdata = yaml_load(open(ctx.opts.flags.file))
+
+    return [ pdhdata ]
+
+
+def main(ctx):
+
+    """
+    Run command, or start socket server.
+
+    Normally this returns after running a single subcommand.
+    If backgrounded, There is at most one server per projectdir 
+    document. The server remains in the working directory,
+    and while running is used to resolve any calls. Iow. subsequent executions
+    turn into UNIX domain socket clients in a transparent way, and the user
+    command invocation is relayed via line-based protocol to the background
+    server isntance.
+
+    For projectdir document, which currently is 15-20kb, this setup has a 
+    minimal performance boost, while the Pd does not need
+    to be loaded from and committed back to disk on each execution.
+
+    """
+
+    if ctx.opts.flags.background:
+        # Start background process
+        localbg = __import__('local-bg')
+        return localbg.serve(ctx, handlers, prerun=prerun)
+
+    elif os.path.exists(ctx.opts.flags.address):
+        # Query background process
+        localbg = __import__('local-bg')
+        return localbg.query(ctx)
+
+    elif 'exit' == ctx.opts.cmds[0]:
+        # Exit background process
+        print >>ctx.err, "No background process at %s" % ctx.opts.flags.address
+        return 1
+
+    else:
+        # Normal execution
+        pdhdata = yaml_load(open(ctx.opts.flags.file))
+        func = ctx.opts.cmds[0]
+        assert func in handlers
+        return handlers[func](pdhdata, ctx)
+
+
+if __name__ == '__main__':
+    import sys
+    ctx = confparse.Values(dict(
+        usage=__doc__,
+        out=sys.stdout,
+        err=sys.stderr,
+        inp=sys.stdin,
+        opts=util.get_opts(__doc__)
+    ))
+    if ctx.opts.args.prefix:
+        ctx.opts.args.prefix = ctx.opts.args.prefix.strip(os.sep)
+    sys.exit( main( ctx ) )
+

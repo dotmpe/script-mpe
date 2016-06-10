@@ -1,0 +1,13 @@
+tools:
+  json-spec:
+    bin: jsonspec
+    installer: pip
+    post-install:
+    - echo '#!/bin/sh' >/usr/local/bin/jsonspec
+    - echo 'python $(python -c "import jsonspec;print jsonspec.__path__[0]")/cli.py \$@ || exit \$?' >>/usr/local/bin/jsonspec
+    - chmod +x /usr/local/bin/jsonspec
+    post-uninstall:
+    - "rm /usr/local/bin/jsonspec"
+    scripts:
+      jsonspec-validate:
+        - jsonspec validate --document-json $1 --schema-json $2

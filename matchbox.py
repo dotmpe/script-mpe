@@ -1,7 +1,20 @@
 #!/usr/bin/env python
+"""
+matchbox - a (file)naming utility based on regular expressions.
+
+A filename cleaning and reformatting utility. See matchbox.rst.
+"""
+import inspect
 import sys
 import os
 import re
+from pprint import pformat
+#from optparse import Values
+
+from script_mpe.res import js
+from script_mpe.confparse import Values
+from script_mpe.confparse import yaml_load, yaml_safe_dump
+
 
 
 escape_meta_re = re.compile(r'(?!\\)([^\\A-Za-z0-9{}(),!@+_])')
@@ -62,6 +75,11 @@ def load_from_bre(filepath):
     print '# Loaded %s' % filepath
 
 def load_templates(name='table.names'):
+    """
+    Load table `name` (with name templates)
+    from the local dir and/or parents,
+    and from the script dir.
+    """
     homedir=os.path.expanduser('~/bin')
     load_names_from(os.path.join(homedir, name))
     cwd=os.getcwd()
@@ -69,6 +87,14 @@ def load_templates(name='table.names'):
         load_names_from(os.path.join(cwd, name))
 
 def load_names_from(filepath):
+    """
+    Load templates from file, using tags field as ID.
+    Iow. tags must be unique. Put the globs for each
+    template as key in the global `paths`, pointing
+    to a list of tags. Iow. one globs may provide filepaths
+    that match one of multiple tags.
+    """
+    global templates, paths
     if not os.path.exists(filepath):
         return
     fl = open(filepath)
@@ -116,6 +142,9 @@ def name_regex(name_template, var_names=None):
     return '^%s$' % name_regexpat
 
 def name_format(seed, template, names=None):
+    """
+    Helper for rename.
+    """
     if not names:
         names = name_template_opts(template)
     name_new = template
@@ -134,19 +163,127 @@ def resolve_seed(path, seed, names):
             seed[name] = str(resolvers[name](path))
 
 
-# Main entry handlers
+### Main entry handlers
+
 def c_show():
+    "Print name and internal var/name table data"
     print 'matchbox.py'
+    print 'Var-table:'
+    print pformat(vartable)
+    print 'Templates:'
+    print pformat(templates)
+    print 'Paths:'
+    print pformat(paths)
+
+def c_dump():
+    """
+    Dump internal table data to output using a writer.
+    """
+    load_templates()
+    data = Values(dict(
+        vars=Values(vartable),
+        templates=Values(templates),
+        names=Values()
+      ))
+    #for key in templates:
+    outf = sys.stdout
+    opts = Values(dict(
+        flags = Values(dict(
+            pretty=True,
+            output_format='json',
+        ))
+      ))
+    writers[opts.flags.output_format](data.todict(), outf, opts)
+
+def c_help():
+    "Print generic usage help info and docs for each command. "
+    for x in globals():
+        c = globals()[x]
+        if x.startswith('c_') and callable(c):
+            print "matchbox.py", x[2:].replace('_', '-'), format_f_spec(c)
+            print '   ', c.__doc__.strip()
+
+def format_f_spec(func):
+    args, varargs, keywords, defaults = inspect.getargspec(func)
+    argspec = [ arg.upper() for arg in args ]
+    if defaults:
+        dfidx = len( args ) - len( defaults )
+        defaults = list(defaults)
+    while defaults:
+        argspec[dfidx] += '=%s' % defaults.pop()
+        dfidx += 1
+    if varargs:
+        argspec += [ '%s...' % varargs.upper() ]
+    if keywords:
+        argspec += [ '%s=...' % keywords.upper() ]
+
+    return ' '.join(argspec)
 
 def c_name_regex(name_template):
     "Print regex pattern for given name template. "
     print name_regex(name_template)
 
-def c_match_name_vars(name_template):
+def c_match_name_vars(name, name_template_or_tag="@NAMEPART.@EXT"):
+    """
+    Given name `name` and template or template tag, parse
+    and print a column formatted table.
+    """
+    load_templates()
+    name_template = name_template_or_tag
+    if name_template in templates:
+        name_template = templates[name_template_or_tag]
+    var_names = name_template_opts(name_template)
+    regex = name_regex(name_template, var_names)
+    print "# Compiled pattern to '%s'" % regex
+    regex_r = re.compile(regex)
+    rows = []
+    if name:
+        match = regex_r.match(name)
+        if not match:
+            print >> sys.stderr, "Mismatched '%s'" % name
+            return 1
+        else:
+            mdict = match.groupdict()
+            rows += [
+              [ mdict[var] if var in mdict else '' for var in var_names ]
+            ]
+
+    print_tab_cols(var_names, rows)
+
+
+def print_tab_cols(fields, rows):
+    """
+    Helper to print columnized data, checking with max. datum widths first.
+    """
+    widths = [ 1 ] * len(fields)
+    widths[0] = 2
+
+    for idx, field in enumerate(fields):
+        l = len(field)
+        if widths[idx] < l+1:
+            widths[idx] = l+1
+
+    for row in rows:
+        for idx, field in enumerate(row):
+            l = len(field)
+            if widths[idx] < l+1:
+                widths[idx] = l+1
+
+    widths[0] -= 2
+    print '# '+''.join([field.ljust(widths[i]) for i, field in enumerate(fields)])
+    widths[0] += 2
+    for row in rows:
+        print ''.join([datum.ljust(widths[i]) for i, datum in enumerate(row)])
+
+
+def c_match_names_vars(name_template_or_tag="@NAMEPART.@EXT"):
     """Read filenames from lines at std, extract fields by regex
     and output result line by line.
     The regex is build according to the name template,
     """
+    name_template = name_template_or_tag
+    if name_template in templates:
+        name_template = templates[name_template_or_tag]
     var_names = name_template_opts(name_template)
     regex = name_regex(name_template, var_names)
     print "# Fields: '%s'" % ', '.join(var_names)
@@ -211,6 +348,39 @@ def c_rename(from_template, to_template, exists=None, stat=None):
             name_new = name_format(mdict, to_template, names=var_names_to)
             print line, name_new
 
+def c_check_name(line, *tags):
+    """
+    Given line with path name, match against entire matchbox.
+    Returns an error if not a single match was found,
+    or if the match does not have a tag field listed in given `tags`.
+    """
+    load_templates()
+    matchbox = {}
+    for name in templates:
+        regex = name_regex(templates[name])
+        matchbox[name] = re.compile(regex)
+
+    passed = []
+    invalid = []
+    for name in matchbox:
+        match = matchbox[name].match(line)
+        if match:
+            if not tags or name in tags:
+                passed.append(name)
+            else:
+                invalid.append(name)
+
+    if not invalid:
+        if not passed:
+            print "! No match for", line
+            return 2
+        else:
+            print 'OK', ','.join(passed), line
+    else:
+        print 'INVALID', ','.join(invalid), ','.join(passed), line
+        return 1
+
+
 def c_check_names(*tags):
     """Read filenames from stdin, check all name templates to see if at least one
     matches and print their tags. Optionally pass set of valid tags on argv,
@@ -228,6 +398,7 @@ def c_check_names(*tags):
             break
         if not line:
             print '# (blank line) '
+            break
         else:
             passed = []
             invalid = []
@@ -246,7 +417,38 @@ def c_check_names(*tags):
             else:
                 print 'INVALID', ','.join(invalid), ','.join(passed), line
 
+
+### Readers/Writers
+
+readers = dict(
+        json=js.load,
+        yaml=yaml_load
+    )
+
+
+def json_writer(data, file, opts):
+    # XXX: SHOULD filter comments for proper JSON output, this program doesn't care
+    kwds = {}
+    if opts.flags.pretty:
+        kwds.update(dict(indent=2))
+    file.write(js.dumps(data, **kwds))
+
+def yaml_writer(data, file, opts):
+    kwds = {}
+    if opts.flags.pretty:
+        kwds.update(dict(default_flow_style=False))
+    yaml_safe_dump(data, file, **kwds)
+
+writers = dict(
+        json=json_writer,
+        yaml=yaml_writer
+    )
+
+
+### Main
+
 if __name__ == '__main__':
+    # XXX: use docopt for arg parsing maybe later, keep simple for now.
     argv = sys.argv
     scriptname = argv.pop(0)
     if not len(argv):

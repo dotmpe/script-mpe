@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """libcmd - a command-line program toolkit based on optparse (XXX: and yaml, zope?)
 
 .. note::
@@ -119,15 +120,19 @@ def optparse_print_help(options, optstr, value, parser):
 def optparse_increase_verbosity(option, optstr, value, parser):
     "Lower output-message threshold by increasing message level. "
     oldv = parser.values.message_level
-    parser.values.quiet = False
-    if parser.values.message_level == 7:
+
+    if parser.values.message_level == 0:
         log.warn( "Verbosity already at maximum. ")
         return
     #if not hasattr(parser.values, 'message_level'): # XXX: this seems to be a bug elsewhere
     #    parser.values.message_level = 0
+
     if parser.values.message_level:
-        parser.values.message_level += 1
+        parser.values.message_level -= 1
+
+    parser.values.quiet = False
     log.debug( "Verbosity changed from %s to %s", oldv, parser.values.message_level )
+
 
 def optparse_set_handler_list(option, flagstr, value, parser, append=False,
         default=None, prefix=None):
@@ -249,6 +254,7 @@ class SimpleCommand(object):
 
     DEFAULT_RC = 'libcmdrc'
     DEFAULT_CONFIG_KEY = NAME
+    INIT_RC = None
 
     @classmethod
     def get_optspec(Klass, inheritor):
@@ -302,7 +308,8 @@ class SimpleCommand(object):
             p(('-K', '--config-key',),{ 'metavar':'ID',
                 'dest': 'config_key',
                 'default': inheritor.DEFAULT_CONFIG_KEY,
-                'help': "Settings root node for run time configuration. "
+                'help': "Key to current program settings in config-file. Set "
+                    "if only part of settings in config file are used. "
                     " (default: %default). " }),
 
 #            p(('--init-config',),cmddict(help="runtime-configuration with default values. "
@@ -406,9 +413,9 @@ class SimpleCommand(object):
         classdict = {}
         for klass, optspec in options:
             if hasattr(klass, 'get_opt_prefix'):
-            	prefix = klass.get_opt_prefix()
+                prefix = klass.get_opt_prefix()
             else:
-            	prefix = 'cmd'
+                prefix = 'cmd'
             classdict[ prefix ] = klass, optspec
             for optnames, optattr in optspec:
                 try:
@@ -443,7 +450,7 @@ class SimpleCommand(object):
         self.globaldict.prog.handlers = self.BOOTSTRAP
         for handler_name in self.resolve_handlers():
             target = handler_name.replace('_', ':', 1)
-#            log.debug("%s.main deferring to %s", lib.cn(self), target)
+            log.debug("%s.main deferring to %s", lib.cn(self), target)
             self.execute( handler_name )
             log.info("%s.main returned from %s", lib.cn(self), target)
 
@@ -487,7 +494,8 @@ class SimpleCommand(object):
             self.globaldict.update(update)
         handler = getattr( self, handler_name )
         args, kwds = self.select_kwds(handler, self.globaldict)
-        log.debug("SimpleCommand.execute %s, %r, %r", handler.__name__, args, kwds)
+        log.debug("SimpleCommand.execute %s, %r, %r", handler.__name__,
+                repr(args), repr(kwds))
         try:
             ret = handler(*args, **kwds)
         except Exception, e:
@@ -610,11 +618,17 @@ class SimpleCommand(object):
         iface.registerAdapter(ResultFormatter)
 
     def load_config(self, prog, opts):
-        #    self.init_config() # case 1:
-        #        # file does not exist at all, init is automatic
+        """
+        Optionally find prog.config_file from opts.config_file,
+        and load returning its dict.
+        If set but path is non-existant, call self.INIT_RC if exists.
+        """
         if 'config_file' not in opts or not opts.config_file:
             log.err( "Nothing to load configuration from")
         else:
+	    # FIXME: init default config
+            #print self.DEFAULT_RC, self.DEFAULT_CONFIG_KEY, self.INIT_RC
+            #print opts.config_file, opts.config_key
             prog.config_file = self.find_config_file(opts.config_file)
             #self.main_user_defaults()
             self.load_config_( prog.config_file, opts )
@@ -625,28 +639,35 @@ class SimpleCommand(object):
         config_file = None
         if rcfile:
             config_file = rcfile.pop()
-        assert config_file, ("Expected some config files", rc, rcfile)
-        "Configuration filename."
+        # FIXME :if not config_file:
 
-        if not os.path.exists(config_file):
-            assert False, "Missing %s, perhaps use init_config_file"%config_file
-
+        assert config_file, \
+                "Missing config-file for %s, perhaps use init_config_file" %( rc, )
+        assert isinstance(config_file, basestring), config_file
+        assert os.path.exists(config_file), \
+                "Missing %s, perhaps use init_config_file"%config_file
         return config_file
 
     def load_config_(self, config_file, opts=None ):
         settings = confparse.load_path(config_file)
-        settings.set_source_key('config_file')
-        settings.config_file = config_file
+
         config_key = opts.config_key
         if not config_key:
-            self.rc = settings
+            self.rc = 'global'
             self.settings = settings
             return
-        if hasattr(settings, config_key):
-            self.rc = getattr(settings, config_key)
+
+        if not hasattr(settings, config_key):
+            if self.INIT_RC and hasattr(self, self.INIT_RC):
+                self.rc = getattr(self, self.INIT_RC)(opts)
+            else:
+                log.warn("Config key %s does not exist in %s" % (config_key,
+                    config_file))
         else:
-            log.warn("Config key %s does not exist in %s" % (config_key,
-                config_file))
+            self.rc = getattr(settings, config_key)
+
+        settings.set_source_key('config_file')
+        settings.config_file = config_file
         self.config_key = config_key
         self.settings = settings
 
@@ -660,7 +681,7 @@ class SimpleCommand(object):
         #    default_reporter = self
 
         prog.output = [ default_reporter ]
-        log.category = opts.message_level
+        log.category = 7-opts.message_level
         #print 'log level', log.category
 
         import taxus.core
@@ -691,6 +712,7 @@ class SimpleCommand(object):
             prog.handlers += opts.commands
         else:
             prog.handlers += self.DEFAULT
+        log.debug("Initial commands are %s", repr(prog.handlers))
 
 # TODO: post-deps
     def flush_reporters(self):

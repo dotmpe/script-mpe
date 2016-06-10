@@ -8,7 +8,7 @@ from sqlalchemy.engine import Engine
 
 import zope.interface
 
-from script_mpe import log
+import log
 from confparse import yaml_load, Values
 import iface
 import out
@@ -23,7 +23,7 @@ SqlBase = declarative_base(class_registry=class_registry)
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
     """
-    XXX on connect, assume is SQLite and > 3.6.19 
+    XXX on connect, assume is SQLite and > 3.6.19
     """
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
@@ -35,7 +35,7 @@ def get_session(dbref, initialize=False, metadata=SqlBase.metadata):
     metadata.bind = engine
     if initialize:
         log.info("Applying SQL DDL to DB %s..", dbref)
-        metadata.create_all()  # issue DDL create 
+        metadata.create_all()  # issue DDL create
         log.note('Updated schema for %s to %s', dbref, 'X')
     session = sessionmaker(bind=engine)()
     return session
@@ -64,10 +64,10 @@ def configure_components():
 
     iface.registerAdapter(out.NodeSetFormatter)
     iface.registerAdapter(out.NodeFormatter)
-    
+
     iface.registry.register([iface.IPrimitive], iface.IFormatted, '', out.PrimitiveFormatter)
 
-    # TODO iface.gsm.registerUtility( obj, iface.IReferenceResolver ) 
+    # TODO iface.gsm.registerUtility( obj, iface.IReferenceResolver )
 
 
 
@@ -275,9 +275,9 @@ def extract_listed_named(meta_list, force=True):
     Accept either dict or list, generate dicts
     that are assured to have a name property. In case of
     passing a dict in this name is copied over from meta_list
-    if needed, or forced to be equal to the key. 
-    In case meta_list is an actual list already, name should 
-    be given. 
+    if needed, or forced to be equal to the key.
+    In case meta_list is an actual list already, name should
+    be given.
     """
     isList = isinstance( meta_list, list )
     if isList:
@@ -305,12 +305,12 @@ def extract_listed_names(meta_list, sep=' ,', force=True):
     """
     if isinstance(meta_list, basestring):
         raw = meta_list
-        seps = list(sep) 
+        seps = list(sep)
         while seps[:-1]:
             raw = raw.replace(seps.pop(0), seps[-1])
         for name in raw.split(seps[-1]):
             yield dict(name=name)
-    elif isinstance(meta_list[0], basestring): 
+    elif isinstance(meta_list[2], basestring):
         for name in meta_list:
             yield dict(name=name)
     else:

@@ -36,7 +36,10 @@ if __name__ == '__main__':
     testclasses = gather_tests(testmodules)
     print 'Test cases:', len(testclasses)
     testsuite = unittest.TestSuite(testclasses)
-    unittest.TextTestRunner(verbosity=2).run(testsuite)
-
+    tr = unittest.TextTestRunner(verbosity=2).run(testsuite)
+    if tr.errors:
+        sys.exit(2)
+    if tr.failures:
+        sys.exit(1)
 
 

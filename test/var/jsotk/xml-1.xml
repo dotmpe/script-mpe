@@ -1,0 +1,12 @@
+<foo _1="bar">
+  <_2>
+    <_blank>list</_blank>
+    <_blank>with</_blank>
+    <_blank>items</_blank>
+    <_3>
+      <_4>
+        <subs/>
+      </_4>
+    </_3>
+  </_2>
+</foo>

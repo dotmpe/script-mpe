@@ -1,4 +1,4 @@
-# Id: script-mpe/0.0.0+20150906-0455 Rules.mk
+# Id: script.mpe/0.0.0-dev Rules.mk
 #
 # Non recursive make, partial rule file. See github mkdocs.
 include                $(MK_SHARE)Core/Main.dirstack.mk
@@ -7,7 +7,7 @@ MK                  += $/Rules.mk
 #      ------------ -- 
 
 
-VERSION= 0.0.0+20150906-0455# script-mpe
+VERSION= 0.0.0-dev# script.mpe
 
 $(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 
@@ -95,12 +95,15 @@ test_usr_$d::
 
 test_match_$d::
 test_match_$d::
-	source ~/bin/htd && match_load \
+	scriptname=make:$@ ; \
+	. ~/bin/{util,{match,{,.lib}}}.sh && . ~/bin/match.lib.sh && match_load
+	scriptname=make:$@ ; \
+	. ~/bin/{util,{match,{,.lib}}}.sh && . ~/bin/match.lib.sh && match_load \
 	    && match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART \
 	    && echo $$grep_pattern
-	source ~/bin/htd && match_load \
+	scriptname=make:$@ ; \
+	. ~/bin/{util,{match,{,.lib}}}.sh && . ~/bin/match.lib.sh && match_load \
 	    && match_name_pattern_opts ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART
-	-./match.sh || echo "Status 1=$$? OK"
 	bats ./test/match-spec.bats
 
 test_htd_$d::
@@ -114,7 +117,14 @@ test_htd_$d::
 	bats ./test/htd-spec.bats
 
 test_other_bats_$d::
-	bats ./test/{basename-reg,box,helper,main-inc,mimereg,str,util-lib}-spec.bats
+	@failed=/tmp/$@.failed; test ! -e $$failed || rm $$failed; \
+	$(shell hostname -s | tr 'a-z' 'A-Z')_SKIP=1; \
+	for x in ./test/{basename-reg,box,box.lib,helper,main,mimereg,str,util-lib,dckr}-spec.bats; \
+	do \
+		echo Running Bats spec: $$x;bats $$x || echo $$x>>$$failed; \
+	done; \
+	test ! -e $$failed || { echo Failed specs in files:; cat $$failed; rm $$failed; exit 1; }
+
 
 # Make SA do a test on the repo
 DB_SQLITE_TEST=.test/db.sqlite
@@ -259,18 +269,19 @@ IGNORE := coverage_html_report ReadMe.rst Rules.mk '*.html' '*.xml' TODO.list
 IGNORE_F := $(addprefix --exclude ,$(IGNORE))
 todo: TODO.list
 TODO.list: $/
-	@\
+	@-\
 		$(ll) file_target $@ "Grepping for" $<;\
-		grep -srI $(IGNORE_F) 'FIXME' $< > $@;\
+		grep -rI $(IGNORE_F) 'FIXME' $< > $@;\
 		echo >> $@;\
-		grep -srI $(IGNORE_F) 'TODO' $< >> $@;\
+		grep -rI $(IGNORE_F) 'TODO' $< >> $@;\
 		echo >> $@;\
-		grep -srI $(IGNORE_F) 'XXX' $< >> $@
+		grep -rI $(IGNORE_F) 'XXX' $< >> $@
 	@#radical.py -vvvvv > $@
 	@$(ll) file_ok $@ 
 
 
 INSTALL += symlinks
+
 
 #      ------------ --
 #

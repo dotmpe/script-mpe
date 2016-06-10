@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """project -
-:updated: 2014-08-26
+:created: 2014-02-26
+:updated: 2015-06-30
 """
 __version__ = '0.0.0'
 __db__ = '~/.taxus-code.sqlite'
@@ -46,7 +47,7 @@ import log
 from util import cmd_help
 from taxus import Node, Topic, Host, Project, VersionControl, ScriptMixin
 from taxus.init import SqlBase, get_session
-from res import Projectdir, Repo
+from res import Workdir, Repo
 
 
 models = [ Project, VersionControl ]
@@ -85,7 +86,7 @@ def cmd_db_stats(settings):
 
 def cmd_find(settings):
     #sa = get_session(settings.dbref)
-    project = Projectdir.find()
+    project = Workdir.find()
     print project
 
 def cmd_info(settings):
@@ -93,9 +94,9 @@ def cmd_info(settings):
     #sa = get_session(settings.dbref)
     pwd = os.getcwd()
     name = os.path.basename(pwd)
-    projdir = Projectdir.find(pwd)
-    if not projdir:
-        print "Not in a projectdir!"
+    workdir = Workdir.find(pwd)
+    if not workdir:
+        print "Not in a metadata workdir!"
     rs = Project.search(_sa=sa, name=name)
     if not rs:
         print "No project found for %r" % name
@@ -109,13 +110,14 @@ def cmd_info(settings):
         hosts = []
     print proj.name, hosts, proj.repositories[0].vc_type, proj.date_added
 
+
 def cmd_init(settings):
+    sa = Workspace.get_session('project', __version__)
     sa = Project.get_session('default', settings.dbref)
     #sa = get_session(settings.dbref)
-
     pwd = os.getcwd()
     name = os.path.basename(pwd)
-    projdir = Projectdir.find(pwd)
+    projdir = Workdir.find(pwd)
     rs = Project.search(name=name)
     if projdir:
         if not rs:
@@ -126,7 +128,7 @@ def cmd_init(settings):
     if rs:
         print "Project with this name already exists"
         return 1
-    projdir = Projectdir(pwd)
+    projdir = Workdir(pwd)
     project = Project(
             name=name,
             date_added=datetime.now(),

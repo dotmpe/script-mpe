@@ -4,7 +4,7 @@ __box_()
 {
   local box=$(which box)
   source $box
-  source $(dirname $box)/str.sh
+  source $(dirname $box)/str.lib.sh
 }
 __box_cmds()
 {
@@ -75,12 +75,6 @@ __box_bash_auto_complete()
   return 1
 }
 
-# Use dash to ignore source exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
-
-    echo -n
-
-fi
 
 complete -F __box_bash_auto_complete box
 

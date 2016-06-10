@@ -54,7 +54,7 @@ def rsr_add(prog=None, opts=None, volume=None, args=None):
     for name in args:
         yield meta.add(name, prog, opts)
     # print contents and status of stage
-    yield StageReport(meta)
+    #yield StageReport(meta)
     # print unknown stuff
     #yield VolumeReport()
 
@@ -84,7 +84,7 @@ See update_metafiles
         if not os.path.isfile(path):
             continue
         mf = res.Metafile(path)
-        mf.tmp_convert()
+        # XXX mf.tmp_convert()
 
 
 #@Target.register(NS, 'update-metafiles', 'rsr:volume')
@@ -310,15 +310,19 @@ class Rsr(libcmd.StackedCommand):
         """
         session = Session.init(prog.pwd, opts.session)
         log.note('Session: %s', session)
-        assert session.context, opts.session
-        prog.session = session
-        yield dict(context=session.context)
-        log.note('Context: %s', session.context)
+
+        if session.context:
+            prog.session = session
+            yield dict(context=session.context)
+            log.note('Context: %s', session.context)
+            repo_root = session.context.settings.data.repository.root_dir
+
+        else:
+            repo_root = 'sa_migrate'
 
         # SA session
         #dbref = session.context.settings.dbref
         #dbref = opts.dbref
-        repo_root = session.context.settings.data.repository.root_dir
         repo_path = os.path.join(repo_root, opts.repo)
 
         from sa_migrate import custom
