@@ -36,9 +36,9 @@ jsotk.py objectpath \
       $HOME/bin/test/var/jsotk/2.yaml \
       '$.*[@.main is not None]'
 
-htd script
+# TODO add local tests
+#htd script
 htd tools
-
 htd install json-spec
 
 #./gtasks
