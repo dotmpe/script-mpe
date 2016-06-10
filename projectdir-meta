@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 :created: 2015-11-30
-:updated: 2016-01-24
+:updated: 2016-06-06
 
 Python helper to query/update Projectdir metadatadocument '.projects.yaml'
 
@@ -39,6 +39,9 @@ Options:
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -g, --glob    Change from root prefix matching to glob matching.
+  -G, --global  Use global enabled status, instead of remote.
+  -H NAME, --host NAME
+                Hostname to use for current entries.
 
 Schema:
     repositories:
@@ -120,6 +123,7 @@ FIXME: need to consider submodules dirt/cruft too before disabling parent checko
 import os
 from fnmatch import fnmatch
 from pprint import pformat
+from socket import gethostname
 
 from docopt import docopt
 import uuid
@@ -177,6 +181,7 @@ def set_toggle_state(data, state):
     data[state] = True
 
 
+
 repo_modes = ['tracked', 'untracked', 'excluded']
 
 def get_clean_mode(repo):
@@ -197,6 +202,15 @@ def get_clean_mode(repo):
         repo_mode = 'untracked'
     return repo_mode
 
+
+def get_one_prefix(pdhdata, ctx):
+    "TODO: setup try catch and only stacktrace for debug/unexpected errors"
+    prefix = ctx.opts.args.prefix
+    if prefix not in pdhdata['repositories']:
+        print >>ctx.out, "No such repo prefix", prefix
+        return 3
+    record = pdhdata['repositories'][prefix]
+    return record
 
 def prefix_match(prefix, match, opts):
     """Match path <prefix> with root-path or pattern <match> """
@@ -233,7 +247,30 @@ def toggle_state(newstate, pdhdata, ctx):
     state = get_toggle_state(pdhdata['repositories'][prefix])
     if newstate+'d' != state:
         set_toggle_state( pdhdata['repositories'][prefix], newstate+'d' )
-        yaml_safe_dump(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+        yaml_safe_dump(pdhdata, 
+                open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+
+def toggle_host(newstate, pdhdata, ctx):
+    #record = get_one_prefix(pdhdata, ctx)
+    prefix = ctx.opts.args.prefix
+    if prefix not in pdhdata['repositories']:
+        print >>ctx.out, "No such repo prefix", prefix
+        return 3
+    record = pdhdata['repositories'][prefix]
+    if 'hosts' not in record:
+        record['hosts'] = []
+    if 'enable' in newstate:
+        if ctx.opts.flags.host not in record['hosts']:
+            record['hosts'] += [ ctx.opts.flags.host ]
+    elif 'disable' in newstate:
+        if ctx.opts.flags.host in record['hosts']:
+            record['hosts'].remove( ctx.opts.flags.host )
+
+def check_host(record, ctx):
+    if 'hosts' in record:
+        if ctx.opts.flags.host in record['hosts']:
+            return True
+    return False
 
 def yaml_commit(pdhdata, ctx):
     yaml_safe_dump(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
@@ -289,10 +326,25 @@ def list_state(target, pdhdata, ctx):
             continue
         bstate = toggle_active(state)
         if bstate:
-            if target == 'list-enabled':
+            if 'enable' in target:
                 print >>ctx.out, k
-        elif target == 'list-disabled':
+        elif 'disable' in target:
             print >>ctx.out, k
+
+def list_host_state(target, pdhdata, ctx):
+    for k in pdhdata['repositories'].keys():
+        if not prefix_match( k, ctx.opts.args.root, ctx.opts ):
+            continue
+        record = pdhdata['repositories'][k]
+        if check_host(record, ctx):
+            if 'enable' in target:
+                print >>ctx.out, k
+        elif 'disable' in target:
+            print >>ctx.out, k
+
+def init_hostname(ctx):
+    if not ctx.opts.flags.host:
+        ctx.opts.flags.host = gethostname()
 
 
 #
@@ -312,7 +364,7 @@ def H_list_upstream(pdhdata, ctx):
             return 1
         return
 
-    p=ctx.opts.args.prefix
+    p = ctx.opts.args.prefix
     if isinstance(sync, list):
         for remote in sync:
             for branch in branches:
@@ -348,9 +400,26 @@ def H_enabled(pdhdata, ctx):
     return check_state(ctx.opts.cmds[0], pdhdata, ctx)
 
 def H_enable(pdhdata, ctx):
-    return toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+    if ctx.opts.flags['global']:
+        return toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+    else:
+        return H_enable_host(pdhdata, ctx)
+
 def H_disable(pdhdata, ctx):
-    return toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+    if ctx.opts.flags['global']:
+        return toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+    else:
+        return H_disable_host(pdhdata, ctx)
+
+def H_enable_host(pdhdata, ctx):
+    if not check_state(ctx.opts.cmds[0], pdhdata, ctx):
+        assert toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+    return toggle_host(ctx.opts.cmds[0], pdhdata, ctx)
+
+def H_disable_host(pdhdata, ctx):
+    if check_state(ctx.opts.cmds[0], pdhdata, ctx):
+        assert toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+    return toggle_host(ctx.opts.cmds[0], pdhdata, ctx)
 
 
 # Return or check for clean-mode. Giving a mode argument implies quiet/exit.
@@ -432,10 +501,18 @@ def H_list_prefixes(pdhdata, ctx):
             print >>ctx.out, k
 
 def H_list_enabled(pdhdata, ctx):
-    return list_state(ctx.opts.cmds[0], pdhdata, ctx)
+    if ctx.opts.flags['global']:
+        return list_state(ctx.opts.cmds[0], pdhdata, ctx)
+    else:
+        init_hostname(ctx)
+        return list_host_state(ctx.opts.cmds[0], pdhdata, ctx)
 
 def H_list_disabled(pdhdata, ctx):
-    return list_state(ctx.opts.cmds[0], pdhdata, ctx)
+    if ctx.opts.flags['global']:
+        return list_state(ctx.opts.cmds[0], pdhdata, ctx)
+    else:
+        init_hostname(ctx)
+        return list_host_state(ctx.opts.cmds[0], pdhdata, ctx)
 
 def H_dump(pdhdata, ctx):
     if 'prefix' not in ctx.opts.args:

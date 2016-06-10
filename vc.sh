@@ -710,7 +710,7 @@ vc__excluded()
       warn "Not a checkout: ${path}"
       continue
     }
-    ( note $path:;cd $path && vc_excluded )
+    ( note $path:;cd $path && vc__excluded )
   done
 }
 
@@ -732,7 +732,7 @@ vc__unversioned_files()
       warn "Not a checkout: ${path}"
       continue
     }
-    ( cd $path && vc_unversioned_files )
+    ( cd $path && vc__unversioned_files )
   done
 }
 
@@ -760,7 +760,7 @@ vc__annex_clear_unused()
   test -z "$1" && {
     local cnt
     cnt="$(c_annex_unused | tail -n 1 | cut -f 1 -d ' ')"
-    c_annex_unused | while read num key
+    vc__annex_unused | while read num key
     do
       echo $num $key
     done

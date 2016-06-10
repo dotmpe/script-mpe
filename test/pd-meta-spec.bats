@@ -20,6 +20,42 @@ init
 }
 
 
+f_pd1=" -f test/var/pd/projects.yml "
+
+@test "${bin} $f_pd1 -H host1 list-enabled" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  test "${#lines[*]}" = "3"
+}
+
+@test "${bin} $f_pd1 -H host1 list-disabled" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  test "${#lines[*]}" = "1"
+}
+
+@test "${bin} $f_pd1 -H host2 list-enabled" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  test "${#lines[*]}" = "2"
+}
+@test "${bin} $f_pd1 -H host2 list-disabled" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  test "${#lines[*]}" = "2"
+}
+
+
+
+@test "${bin} $f_pd1 -H host1 " {
+   echo TODO
+# put-repo
+# update-repo prefix4 hosts=..
+# list-hosts
+}
+
+
+
 # XXX: see mod_pd_meta.py
 @test "${bin} clean-mode" {
   cd $tmpd

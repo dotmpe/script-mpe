@@ -72,28 +72,46 @@ init
   test -z "${lines[@]}"
 }
 
+word_diff()
+{
+  tmpf
+  f1=$tmpf
+  tmpf
+  f2=$tmpf
+  echo  "$1" | tr ' ' '\n' > $f1
+  echo  "$2" | tr ' ' '\n' > $f2
+  echo "Differences, result:"
+  echo "  $1"
+  echo "Versus expected:"
+  echo "  $2"
+  echo "Changes:"
+  diff $f1 $f2
+}
+
 @test "$bin lists var names" {
   check_skipped_envs travis || skip "FIXME names"
   run ${bin} -s var-names
   test $status -eq 0
-  vars="SZ SHA1_CKS MD5_CKS CK_CKS EXT NAMECHARS IDCHAR IDCHARS NAMEPART NAMEDOTPARTS ALPHA NUM PART OPTPART DOMAIN"
-  test "${lines[0]}" = "$vars"
+  vars="ALPHA CK_CKS DOMAIN EXT IDCHAR IDCHARS MD5_CKS NAMECHARS NAMEDOTPARTS NAMEPART NUM OPTPART PART SHA1_CKS SZ"
+  test "${lines[0]}" = "$vars" \
+    || fail "Vars mismatch: $(word_diff "${lines[0]}" "$vars")"
 }
 
 # TODO: test wether named patterns still exists, and notice any out-of-date testcase
 
 @test "$bin lists var names in name pattern" {
-  check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
   source ./match.sh load-ext
   source ./match.lib.sh
   silent=true
   match_load
   run match__name_pattern_opts ./@NAMEPART.@SHA1_CKS.@EXT
-  test $status -eq 0
-  test "${lines[0]}" = "SHA1_CKS"
-  test "${lines[1]}" = "EXT"
-  test "${lines[2]}" = "NAMEPART"
-  test "$(echo ${lines[@]})" = "SHA1_CKS EXT NAMEPART"
+  {
+    test $status -eq 0
+    test "${lines[0]}" = "EXT"
+    test "${lines[1]}" = "NAMEPART"
+    test "${lines[2]}" = "SHA1_CKS"
+    test "$(echo ${lines[@]})" = "EXT NAMEPART SHA1_CKS"
+  } || fail "Unexpected output: '${lines[*]}'"
 }
 
 @test "$bin compile regex for name pattern" {
@@ -129,7 +147,9 @@ init
   test "$grep_pattern" = "\.\/[A-Za-z0-9_,-]\{1,\}\.[a-f0-9]\{40\}\.\(partial\|part\|incomplete\)\.[a-z0-9]\{2,5\}"
   match_name_pattern ./@NAMEPART.@SHA1_CKS@PART.@EXT PART
   test $? -eq 0
-  test "$grep_pattern" = "\.\/[A-Za-z0-9_,-]\{1,\}\.[a-f0-9]\{40\}\(.\(partial\|part\|incomplete\)\)\.[a-z0-9]\{2,5\}"
+  expected="\.\/[A-Za-z0-9_,-]\{1,\}\.[a-f0-9]\{40\}\(\.\(partial\|part\|incomplete\)\)\.[a-z0-9]\{2,5\}"
+  test "$grep_pattern" = "$expected" \
+    || fail "Mismatch pattern: '$grep_pattern', but expected '$expected'"
 }
 
 
