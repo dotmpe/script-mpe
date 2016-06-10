@@ -3,7 +3,7 @@
 # entry-point for Travis build
 
 
-set -e
+set -ex
 
 Build_Deps_Default_Paths=1 ./install-dependencies.sh '*'
 
@@ -36,12 +36,17 @@ jsotk.py objectpath \
       $HOME/bin/test/var/jsotk/2.yaml \
       '$.*[@.main is not None]'
 
+# TODO add local tests
+#htd script
+htd tools
 htd install json-spec
 
+#./gtasks
 
 . ./tools/sh/env.sh
 . ./tools/ci/test.sh
 
+# FIXME:
 exit 0
 
 case "$ENV" in

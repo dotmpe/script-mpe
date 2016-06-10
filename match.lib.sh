@@ -23,18 +23,22 @@ match_req_names_tab()
 match_load_table()
 {
   test -n "$1" || set -- book
-  match_load_defs ~/bin/table.$1
-  test -s "$(pwd)/table.$1" && {
-    test "$(pwd)" != "$(echo ~/bin)" &&
-      match_load_defs "$(pwd)/table.$1" || noop
+
+  match_load_defs $scriptdir/table.$1
+
+  test "$scriptdir" = "$(cd "$(pwd)"; pwd -P)" || {
+    test -s "$(pwd)/table.$1" && {
+      match_load_defs "$(pwd)/table.$1" \
+        || error "Error loading ./table.$1" 1
     } || noop
-    #error "No local table.$1" 1
+  }
 }
 
 match_load_defs()
 {
-  MATCH_NAME_VARS="$MATCH_NAME_VARS $(echo $(grep '^match_[A-Z_][A-Z0-9_]*=.*' $1 |
-    sed 's/^match_\([^=]*\)=.*$/\1/g'))"
+  MATCH_NAME_VARS="$(echo $MATCH_NAME_VARS $(echo $(grep '^match_[A-Z_][A-Z0-9_]*=.*' $1 |
+    sed 's/^match_\([^=]*\)=.*$/\1/g')) | unique_words)"
+
   # read in as array? try to clean dupes? overrides?
   #echo MATCH_NAME_VARS_new=$MATCH_NAME_VARS_new
   #read -ra MATCH_NAME_VARS<<<$(printf '%s\n' "$MATCH_NAME_VARS_new" |

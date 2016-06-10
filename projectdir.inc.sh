@@ -37,14 +37,14 @@ pd_clean()
   }
 
   test -n "$choice_strict" \
-    && cruft="$(cd $1; vc_excluded)" \
+    && cruft="$(cd $1; vc__excluded)" \
     || {
 
       pd__meta -q clean-mode $1 tracked || {
 
         pd__meta -q clean-mode $1 excluded \
-          && cruft="$(cd $1; vc_excluded)" \
-          || cruft="$(cd $1; vc_unversioned_files)"
+          && cruft="$(cd $1; vc__excluded)" \
+          || cruft="$(cd $1; vc__unversioned_files)"
       }
     }
 
@@ -137,60 +137,12 @@ install_git_hooks()
 }
 
 
-# Deal with package metadata files
-
-update_package_json()
-{
-  test -n "$metajs" || metajs=$1/.package.json
-  metajs=$(normalize_relative "$metajs")
-  test $metaf -ot $metajs \
-    || {
-    log "Regenerating $metajs from $metaf.."
-    jsotk.py yaml2json $metaf $metajs
-  }
-}
-
-jsotk_package_sh_defaults()
-{
-  jsotk.py -I yaml -O fkv objectpath $1 '$..*[@.*.defaults]]' \
-    | sed 's/^\([^=]*\)=/test -n "$\1" || \1=/g'
-}
-
-update_package_sh()
-{
-  test -n "$metash" || metash=$1/.package.sh
-  metash=$(normalize_relative "$metash")
-  test $metaf -ot $metash \
-    || {
-
-    log "Regenerating $metash from $metaf.."
-
-    jsotk_package_sh_defaults "$metaf" > $metash
-    ( jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
-        || rm $metash; exit 31 ) \
-        | jsotk.py --output-prefix=package to-flat-kv - >> $metash
-  }
-}
-
-# Given package.yaml metafile, extract and fromat as SH, JSON.
-update_package()
-{
-  test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
-  metaf=$(normalize_relative "$metaf")
-  test -e "$metaf" || warn "No package def '$metaf'" 0
-  # Package.sh is used by other scripts
-  update_package_sh "$1"
-  # .package.json is not used, its a direct convert of te entire YAML doc.
-  # Other scripts can use it with jq if required
-  update_package_json "$1"
-}
-
 pd_regenerate()
 {
   debug "pd-regenerate pwd=$(pwd) 1=$1"
 
   # Regenerate .git/info/exclude
-  vc_update "$1" || echo "pd-regenerate:vc_update:$1" 1>&3
+  vc__update "$1" || echo "pd-regenerate:vc-update:$1" 1>&3
 
   test ! -e .package.sh || . .package.sh
 
@@ -200,4 +152,22 @@ pd_regenerate()
       || echo "pd-regenerate:git-hooks:$1" 1>&3
   }
 
+}
+
+
+pd_list_upstream()
+{
+  test -n "$prefix"
+  pd__meta -s list-upstream "$prefix" \
+    | while read remote branch
+  do
+    test "$branch" != "*" && {
+      echo $remote $branch
+    } || {
+      for branch in $(vc__list_local_branches "$prefix")
+      do
+        echo $remote $branch
+      done
+    }
+  done
 }

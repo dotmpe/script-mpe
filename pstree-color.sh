@@ -2,6 +2,9 @@
 
 
 case "$(uname -s)" in
+
+
+
     Darwin )
 
         pstree "$@" > /tmp/pstree
@@ -34,7 +37,10 @@ echo -e "$(cat /tmp/pstree | sed -E '
 #    s/[{}]/\\033[31m&\\033[0m/g
 
         ;;
+
+
     Linux )
+
 /usr/bin/pstree -U "$@" | sed '
     s/[-a-zA-Z]\+/\x1B[32m&\x1B[0m/g
     s/[{}]/\x1B[31m&\x1B[0m/g
