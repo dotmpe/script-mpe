@@ -891,25 +891,25 @@ pd__ls_tests()
 
   test -e Makefile && {
     note "Using make test"
-    echo "mk-test"
+    echo ":mk-test"
     return
   }
 
   test -e package.json && {
     note "Using npm test"
-    echo "npm-test"
+    echo ":npm-test"
     return
   }
 
   test -e $(ls Gruntfile*|head -n 1) && {
     note "Using grunt"
-    echo "grunt-test"
+    echo ":grunt-test"
     return
   }
 
   test "$(echo test/*-spec.bats)" != "test/*-spec.bats" && {
     note "Using Bats"
-    echo "bats-specs" "bats"
+    echo ":bats-specs" ":bats"
   }
 }
 
