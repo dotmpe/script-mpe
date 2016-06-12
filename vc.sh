@@ -822,7 +822,7 @@ vc_list_local_branches()
 vc_update()
 {
   # backup header comment
-  test -n .git/info/exclude-header.txt
+  #test -n .git/info/exclude-header.txt
   local excludes=.git/info/exclude
   test -e $excludes.header || backup_header_comment $excludes
   read_nix_style_file $excludes | sort -u > $excludes.list

@@ -532,16 +532,18 @@ pd__init()
 
   pd__set_remotes $1
 
-  ( cd $1
-    git submodule update --init --recursive )
+  (
+    cd $1
+    git submodule update --init --recursive
 
-  # Regenerate .git/info/exclude
-  vc_update || echo "update:vc-update:$1" >>$failed
+    # Regenerate .git/info/exclude
+    vc_update || echo "update:vc-update:$1" >>$failed
 
-  test ! -e .versioned-files.list || {
-    echo "git-versioning check" > .git/hooks/pre-commit
-    chmod +x .git/hooks/pre-commit
-  }
+    test ! -e .versioned-files.list || {
+      echo "git-versioning check" > .git/hooks/pre-commit
+      chmod +x .git/hooks/pre-commit
+    }
+  )
 }
 
 # Set the remotes from metadata
