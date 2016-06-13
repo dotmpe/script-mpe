@@ -85,14 +85,14 @@ diskdoc__clean()
   vc_clean "$1"
   case "$?" in
     0|"" )
-      info "OK $(__vc_status "$1")"
+      info "OK $(vc__status "$1")"
     ;;
     1 )
-      warn "Dirty: $(__vc_status "$1")"
+      warn "Dirty: $(vc__status "$1")"
       return 1
     ;;
     2 )
-      warn "Crufty: $(__vc_status "$1")"
+      warn "Crufty: $(vc__status "$1")"
       test $verbosity -gt 6 &&
         printf "$cruft\n" || noop
       return 2
@@ -249,7 +249,7 @@ diskdoc__sync()
   prefix=$1
 
   shift 1
-  test -n "$1" || set -- $(vc_list_local_branches $prefix)
+  test -n "$1" || set -- $(vc__list_local_branches $prefix)
   pwd=$(pwd -P)
 
   cd $pwd/$prefix
@@ -421,8 +421,8 @@ diskdoc__disable()
     choice_strict=1 \
       vc_clean $1 \
       || case "$?" in
-          1 ) warn "Dirty: $(__vc_status "$1")" 1 ;;
-          2 ) note "Crufty: $(__vc_status "$1")" 1 ;;
+          1 ) warn "Dirty: $(vc__status "$1")" 1 ;;
+          2 ) note "Crufty: $(vc__status "$1")" 1 ;;
         esac
 
     choice_sync_dismiss=1 \

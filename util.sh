@@ -41,7 +41,7 @@ trueish()
 {
   test -n "$1" || return 1
   case "$1" in
-		[Oo]n|[Tt]rue|[Yy]es|1)
+		[Oo]n|[Tt]rue|[Yy]|[Yy]es|1)
       return 0;;
     * )
       return 1;;
@@ -284,13 +284,18 @@ run_cmd()
     on_host $1 && {
       $2 \
         && debug "Executed locally: '$2'" \
-        || err "Error executing local command: '$2'" 1
+        || {
+          err "Error executing local command: '$2'"
+          return 1
+        }
     } || {
       ssh $host_addr_info "$2" \
         && debug "Executed at $host_addr_info: '$2'" \
-        || err "Error executing command at $host_addr_info: '$2'" 1
+        || {
+          err "Error executing command at $host_addr_info: '$2'"
+          return 1
+        }
     }
-    return $?
   } || {
     echo "on_host $1 && { '$2'..} || { ssh $host_addr_info '$2'.. }"
   }

@@ -25,7 +25,7 @@ pd__edit()
 }
 #pd__als__e=edit
 
-pd_run__meta=y
+pd_load__meta=y
 # Defer to python script for YAML parsing
 pd__meta()
 {
@@ -39,17 +39,17 @@ pd__meta()
       do
         case "$line" in
           *" OK " )
-            return
+              return
             ;;
           "? "* )
-            return 1
+              return 1
             ;;
           "!! "* )
-            error "$line"
-            return 1
+              error "$line"
+              return 1
             ;;
           "! "*": "* )
-            return $(echo $line | sed 's/.*://g')
+              return $(echo $line | sed 's/.*://g')
             ;;
         esac
         echo $line
@@ -66,7 +66,7 @@ pd__meta_sq()
   pd__meta "$@" >/dev/null || return $?
 }
 
-pd_run__status=ybf
+pd_load__status=ybf
 # Run over known prefixes and present status indicators
 pd__status()
 {
@@ -90,7 +90,7 @@ pd__status()
   } || {
     while test -n "$1"
     do
-      grep -srIF "$1" $PD_TMP/prefixes.list && {
+      grep -qF "$1" $PD_TMP/prefixes.list && {
         prefixes="$prefixes $(echo $1)"
       } || {
         warn "Not a known prefix $1"
@@ -127,30 +127,30 @@ pd__status()
       note "Projectdir is not a checkout at $checkout"
       continue
     }
-    statusdir.sh assert-json 'project/'$checkout'/tags'='[]'
+    #statusdir.sh assert-state 'project/'$checkout'/tags'='[]'
 
     # FIXME: merge with pd-check? Need fast access to lists..
     #pd_check $checkout || echo pd-check:$checkout >>$failed
     pd__clean $checkout || {
       echo pd-clean:$checkout >>$failed
-      statusdir.sh assert-json \
-        'project/'$checkout'/clean'=false
-      statusdir.sh assert-json \
-        'project/'$checkout'/tags[]'=to-clean
+      #statusdir.sh assert-state \
+      #  'project/'$checkout'/clean'=false
+      #statusdir.sh assert-state \
+      #  'project/'$checkout'/tags[]'=to-clean
     }
 
     grep -qF $checkout $PD_TMP/prefix-enabled.list && {
       test -e "$checkout" || {
         note "Checkout missing: $checkout"
         statusdir.sh assert-json \
-          'project/'$checkout'/tags[]'=to-enable
+          'project/'$checkout'/tags[]=to-enable'
       }
     } || {
       grep -qF $checkout $PD_TMP/prefix-disabled.list && {
         test ! -e "$checkout" || {
           note "Checkout to be disabled: $checkout"
           statusdir.sh assert-json \
-            'project/'$checkout'/tags[]'=to-clean
+            'project/'$checkout'/tags[]=to-clean'
         }
       } || noop
     }
@@ -158,39 +158,26 @@ pd__status()
   done
 }
 
-pd_run__check=ybf
-# Check with remote refs
-pd__check()
-{
-  test -z "$2" || error "Surplus arguments: $2" 1
-  note "Checking prefixes"
-  pd__meta list-prefixes "$1" | while read prefix
-  do
-    pd_check $prefix || continue
-    test -d "$prefix" || continue
-    $scriptdir/$scriptname.sh sync $prefix || touch $failed
-  done
-}
-
-pd_run__clean=y
+pd_load__clean=y
 pd__clean()
 {
-  local R=0; pd_clean "$1" || R=$?; case "$R" in
+  local R=0; pd_clean "$1" || R=$?;
+  case "$R" in
     0|"" )
-        info "OK $(__vc_status "$1")"
+        info "OK $(vc__stat "$1")"
       ;;
     1 )
-        warn "Dirty: $(__vc_status "$1")"
+        warn "Dirty: $(vc__stat "$1")"
         return 1
       ;;
     2 )
         cruft_lines="$(echo $(echo "$cruft" | wc -l))"
         test $verbosity -gt 6 \
           && {
-            warn "Crufty: $(__vc_status "$1"):"
+            warn "Crufty: $(vc__stat "$1"):"
             printf "$cruft\n"
           } || {
-            warn "Crufty: $(__vc_status "$1"), $cruft_lines files."
+            warn "Crufty: $(vc__stat "$1"), $cruft_lines files."
           }
         return 2
       ;;
@@ -211,7 +198,7 @@ pd__disable_clean()
     test ! -d $prefix || {
       cd $pwd/$prefix
       git diff --quiet && {
-        test -z "$(vc_ufx)" && {
+        test -z "$(vc__ufx)" && {
           warn "TODO remove $prefix if synced"
           # XXX need to fetch remotes, compare local branches
           #pd__meta list-push-remotes $prefix | while read remote
@@ -226,7 +213,7 @@ pd__disable_clean()
 }
 
 # Regenerate local package metadata files and scripts
-pd_run__regenerate=dfp
+pd_load__regenerate=dfp
 pd__regenerate()
 {
   set -- "$(normalize_relative "$go_to_before/$1")"
@@ -237,7 +224,7 @@ pd__regenerate()
 }
 
 # Given existing checkouts upate local scripts and then projdoc
-pd_run__update=yfp
+pd_load__update=yfp
 pd__update()
 {
   set -- "$(normalize_relative "$go_to_before/$1")"
@@ -263,7 +250,7 @@ pd__update()
 }
 
 # Add/remove repos, update remotes at first level. git only.
-pd_run__update_all=yfb
+pd_load__update_all=yfb
 pd__update_all()
 {
   test -n "$1" \
@@ -290,7 +277,7 @@ pd__update_all()
           && continue \
           || {
 
-          pd__meta update-repo $prefix disabled=true \
+          pd__meta disable $prefix \
             && note "Disabled $prefix" \
             || touch $failed
         }
@@ -312,7 +299,7 @@ pd__update_all()
   done
 }
 
-pd_run__find=y
+pd_load__find=y
 pd_spc_find='[<path>|<localname> [<project>]]'
 pd__find()
 {
@@ -328,14 +315,14 @@ pd__find()
   }
 }
 
-pd_run__list_prefixes=y
+pd_load__list_prefixes=y
 pd__list_prefixes()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
   pd__meta list-prefixes "$1" || return
 }
 
-pd_run__compile_ignores=y
+pd_load__compile_ignores=y
 pd__compile_ignores()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
@@ -350,7 +337,7 @@ pd__compile_ignores()
 }
 
 # prepare Pd var, failedfn
-pd_run__sync=yf
+pd_load__sync=yf
 # Update remotes and check refs
 pd__sync()
 {
@@ -359,7 +346,7 @@ pd__sync()
   prefix=$1
 
   shift 1
-  test -n "$1" || set -- $(vc_list_local_branches $prefix)
+  test -n "$1" || set -- $(vc__list_local_branches $prefix)
   pwd=$(pwd -P)
 
   cd $pwd/$prefix
@@ -381,17 +368,17 @@ pd__sync()
 
   # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
   {
-    pd__meta -s list-upstream "$prefix" "$@" \
-      || {
-        warn "No sync setting, skipping $prefix"
-        return 1
-      };
+    pd_list_upstream || {
+      warn "No sync setting, skipping $prefix"
+      return 1
+    }
   } | while read remote branch
   do
+
     fnmatch "*annex*" $branch && continue || noop
 
-    cd $pwd/$prefix
 
+    cd $pwd/$prefix
 
     ( test -e .git/FETCH_HEAD && younger_than .git/FETCH_HEAD $PD_SYNC_AGE ) || {
       git fetch --quiet $remote || {
@@ -454,8 +441,11 @@ pd__sync()
 
   done
 
+  test -s "$remotes" || {
+    error "No remotes for $pwd/$prefix"
+    return 1
+  }
   remote_cnt=$(wc -l $remotes | awk '{print  $1}')
-
   test $remote_cnt -gt 0 || echo 'remotes:0' >>$failed
 
   test -s "$failed" \
@@ -463,7 +453,7 @@ pd__sync()
     || info "In sync with at least one remote: $prefix"
 }
 
-pd_run__enable_all=ybf
+pd_load__enable_all=ybf
 pd__enable_all()
 {
   pwd=$(pwd)
@@ -476,7 +466,7 @@ pd__enable_all()
 }
 
 # Assert checkout exists, or reinitialize from Pd document.
-pd_run__enable=y
+pd_load__enable=y
 pd__enable()
 {
   test -z "$1" && {
@@ -510,7 +500,7 @@ pd__enable()
   }
 }
 
-pd_run__init_all=ybf
+pd_load__init_all=ybf
 pd__init_all()
 {
   pwd=$(pwd)
@@ -523,7 +513,7 @@ pd__init_all()
 }
 
 # Given existing checkout, update local .git with remotes, regen hooks.
-pd_run__init=yfp
+pd_load__init=yfp
 pd__init()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -547,13 +537,13 @@ pd__init()
 }
 
 # Set the remotes from metadata
-pd_run__set_remotes=y
+pd_load__set_remotes=y
 pd__set_remotes()
 {
   test -n "$1" || error "prefix argument expected" 1
   test -z "$2" || error "Surplus arguments: $2" 1
 
-  log "Syncing local remotes with $pd repository"
+  note "Syncing local remotes with $pd repository"
   cwd=$(pwd)
   pd__meta list-remotes "$1" | while read remote
   do
@@ -587,7 +577,7 @@ no_act()
   test -n "$dry_run"
 }
 
-pd_run__disable_all=ybf
+pd_load__disable_all=ybf
 pd__disable_all()
 {
   pwd=$(pwd)
@@ -600,19 +590,20 @@ pd__disable_all()
 }
 
 # Disable prefix. Remove checkout if clean.
-pd_run__disable=yf
+pd_load__disable=yf
 pd__disable()
 {
   test -n "$1" || error "prefix argument expected" 1
   test -z "$2" || error "Surplus arguments: $2" 1
 
-  pd__meta_sq disabled $1 && {
-    info "Already disabled: $1"
+
+  pd__meta_sq disabled "$1" && {
+    info "Already disabled: '$1'"
   } || {
     pd__meta disable $1 && note "Disabled $1"
   }
 
-  test ! -d $1 && {
+  test ! -d "$1" && {
     info "No checkout, nothing to do"
   } || {
     note "Found checkout, getting status.. (Clean-Mode: $(pd__meta clean-mode $1))"
@@ -636,7 +627,7 @@ pd__disable()
 
 # Add or update SCMs of a repo
 # Arguments checkout dir prefix, url and prefix, or remote name, url and prefix.
-pd_run__add=y
+pd_load__add=y
 pd_spc__add="add ( PREFIX | REPO PREFIX | NAME REPO PREFIX )"
 pd__add()
 {
@@ -671,7 +662,7 @@ pd__add()
 
 # Add a new item to the projectdoc, resolving some default values
 # Fail if prefix already in use
-pd_run__add_new=f
+pd_load__add_new=f
 pd__add_new()
 {
   local prefix=$1; shift; local props="$@"
@@ -695,7 +686,7 @@ pd__add_new()
 # Given prefix and optional props, update metadata. Props is prepended
 # and so may be overruled by host/env. To update metadata directly,
 # use pd__meta{,_sq} update-repo.
-pd_run__update_repo=f
+pd_load__update_repo=f
 pd__update_repo()
 {
   local cwd=$(pwd); prefix=$1; shift; local props="$@"
@@ -715,7 +706,7 @@ pd__update_repo()
 
   # scan checkout remotes
 
-  # FIXME: move here props="$props $(verbosity=0;cd $1;echo "$(vc_remotes sh)")"
+  # FIXME: move here props="$props $(verbosity=0;cd $1;echo "$(vc__remotes sh)")"
 
   local remotes=
   for remote in $(cd $prefix; git remote)
@@ -770,7 +761,8 @@ pd__copy()
     >> ~/.conf/project/$hostname/.projects.yaml
 }
 
-pd_run__run=f
+pd_load__run=f
+# Run takes a single argument corresponding to some (glob patterned) command invocation
 pd__run()
 {
   test -n "$1" || error "argument expected" 1
@@ -833,7 +825,7 @@ pd__run()
         python $(echo $1 | cut -c 8-) || echo $1>>$failed
       ;;
 
-    sh:* )
+    :!* | sh:* )
         local cmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
         info "Using Sh '$cmd'"
         sh -c "$cmd" || echo $1>>$failed
@@ -856,7 +848,7 @@ pd__run()
   test ! -e $failed || return 1
 }
 
-pd_run__test=f
+pd_load__test=f
 pd__test()
 {
   test -n "$1" || set -- $(pd__ls_tests)
@@ -867,7 +859,12 @@ pd__test()
   while test -n "$1"
   do
     info "Next test: $1"
-    pd__run $1 || { r=$?; echo $1>>$failed; }
+    cmd="$(echo "$1" | cut -c2-)"
+    test ":" = "$(echo "$1" | cut -c1)" && {
+      pd__run "$cmd" || { r=$?; echo $1>>$failed; }
+    } || {
+      eval "$cmd" || { r=$?; echo $1>>$failed; }
+    }
     test $r -eq 0 \
       && note "Test OK: $1" \
       || warn "Test returned ($r)"
@@ -894,29 +891,43 @@ pd__ls_tests()
 
   test -e Makefile && {
     note "Using make test"
-    echo "mk-test"
+    echo ":mk-test"
     return
   }
 
   test -e package.json && {
     note "Using npm test"
-    echo "npm-test"
+    echo ":npm-test"
     return
   }
 
   test -e $(ls Gruntfile*|head -n 1) && {
     note "Using grunt"
-    echo "grunt-test"
+    echo ":grunt-test"
     return
   }
 
   test "$(echo test/*-spec.bats)" != "test/*-spec.bats" && {
     note "Using Bats"
-    echo "bats-specs" "bats"
+    echo ":bats-specs" ":bats"
   }
 }
 
-pd_run__check=f
+pd_load__check_all=ybf
+# Check if setup, with remote refs
+pd__check()
+{
+  test -z "$2" || error "Surplus arguments: $2" 1
+  note "Checking prefixes"
+  pd__meta list-prefixes "$1" | while read prefix
+  do
+    pd_check $prefix || continue
+    test -d "$prefix" || continue
+    $scriptdir/$scriptname.sh sync $prefix || touch $failed
+  done
+}
+
+pd_load__check=f
 pd__check()
 {
   for pd_check in pd-check{,.sh}
@@ -958,14 +969,14 @@ pd__ls_checks()
   }
 }
 
-pd_run__show=y
+pd_load__show=y
 pd__show()
 {
   test -n "$1" || set -- "."
   set -- "$(normalize_relative $go_to_before/$1)"
   test -n "$1" || error "Prefix expected" 1
   pd__meta get-repo $1 | \
-    jsotk.py -I json -O yaml --pretty --output-prefix repositories/$1 update - -
+    jsotk.py -I json -O yaml --pretty --output-prefix repositories/$1 merge - -
 
   update_package "$1"
 
@@ -996,10 +1007,10 @@ pd__help()
 # subcmd prefix
 pd_load()
 {
-  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
 
-      p ) # should imply y or d
+    p ) # should imply y or d
         test -e $go_to_before/$2/package.yaml && update_package "$go_to_before/$2"
         test -e "$go_to_before/$2/.package.sh" && . $go_to_before/$2/.package.sh
         test -n "$package_id" && {
@@ -1008,13 +1019,13 @@ pd_load()
           package_id="$(basename $(realpath $go_to_before/$2))"
           note "Using package ID '$package_id'"
         }
-        ;;
+      ;;
 
-      d )
+    d )
         go_to_before=.
-        ;;
+      ;;
 
-      y )
+    y )
         # set/check for Pd for subcmd
         pd=.projects.yaml
         go_to_directory $pd
@@ -1023,23 +1034,21 @@ pd_load()
 
         p="$(realpath "$pd" | sed 's/[^A-Za-z0-9_-]/-/g' | tr -s '_' '-')"
         sock=/tmp/pd-$p-serv.sock
-        ;;
+      ;;
 
-      f )
+    f )
         # Preset name to subcmd failed file placeholder
-        req_vars base subcmd
+        # include realpath of projectdoc (p)
         test -n "$pd" && {
           req_vars p
-          failed=/tmp/${base}-$p-$subcmd.failed
-        } || {
-          failed=/tmp/${base}-$subcmd.failed
-        }
-        ;;
+          failed=$(setup_tmp .failed -$p-$subcmd-$(uuidgen))
+        } || failed=$(setup_tmp .failed)
+      ;;
 
-      b )
+    b )
         # run metadata server in background for subcmd
         pd_meta_bg_setup
-        ;;
+      ;;
 
     esac
   done
@@ -1076,38 +1085,19 @@ pd_load()
 
 pd_unload()
 {
-  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
       y )
-        test -z "$sock" || {
-          pd_meta_bg_teardown
-          unset bgd sock
-        }
+          test -z "$sock" || {
+            pd_meta_bg_teardown
+            unset bgd sock
+          }
         ;;
   esac; done
   unset subcmd subcmd_pref \
           def_subcmd func_exists func
 
   clean_failed
-}
-
-clean_failed()
-{
-  test -z "$failed" -o ! -e "$failed" || {
-    test -n "$1" || set -- "Failed: "
-    test -s "$failed" && {
-      count="$(sort -u $failed | wc -l | awk '{print $1}')"
-      test "$count" -gt 2 && {
-        warn "$1 $(echo $(sort -u $failed | head -n 3 )) and $(( $count - 3 )) more"
-        rotate-file $failed .failed
-      } || {
-        warn "$1 $(echo $(sort -u $failed))"
-      }
-    }
-    test ! -e "$failed" || rm $failed
-    unset failed
-    return 1
-  }
 }
 
 pd_lib()
@@ -1120,6 +1110,7 @@ pd_lib()
   . $scriptdir/box.init.sh
   box_run_sh_test
   . $scriptdir/main.sh
+  . $scriptdir/meta.lib.sh
   . $scriptdir/projectdir.inc.sh "$@"
   . $scriptdir/main.init.sh
   # -- pd box init sentinel --
@@ -1185,8 +1176,8 @@ pd_main()
       ;;
 
     * )
-      echo "Pd is not a frontend for $base ($scriptname)"
-      exit 1
+        echo "Pd is not a frontend for $base ($scriptname)"
+        exit 1
       ;;
 
   esac

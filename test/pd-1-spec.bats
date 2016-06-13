@@ -7,50 +7,88 @@ init
 . $lib/util.sh
 
 
-
-test_args_shift_1()
+setup()
 {
-  # Shift first argument to third place if only one given
+  pd=$(pwd)/projectdir.sh \
+  testid="$(echo $BATS_TEST_DESCRIPTION | cut -f 1 -d ' ')"
+  setup_projdir
+  test -s $tmpd/.projects.yaml
+}
 
-  test -z "$1" || {
-    test -n "$2" || set -- "" "$1"
+
+setup_projdir()
+{
+  tmpd
+  testpd="test/var/pd/$testid.yaml"
+  test -e "test/var/pd/$testid.yaml" && {
+    cp $testpd $tmpd/.projects.yaml
+  } || {
+    { cat <<EOF
+repositories:
+  user-conf:
+    default: dev
+    disabled: true
+    remotes:
+      origin: https://github.com/dotmpe/user-conf.git
+    sync: true
+    clean: untracked
+EOF
+    } > $tmpd/.projects.yaml
   }
-
-  echo "1:$1 2:$2"
-}
-
-@test "argument defaults, shift to 2" {
-
-  run test_args_shift_1 a b
-  #diag "${lines[*]}"
-  fnmatch "1:a 2:b" "${lines[*]}"
-  run test_args_shift_1 a
-  fnmatch "1: 2:a" "${lines[*]}"
-  run test_args_shift_1 "" b
-  fnmatch "1: 2:b" "${lines[*]}"
 }
 
 
-test_args_shift_2()
-{
-  # Shift as long as desired argument length
-  while test ${#} -ne 3
-  do
-    set -- "" "$@"
-  done
-
-  echo "1:$1 2:$2 3:$3"
+@test "1.1 enable, disable a checkout without errors. " {
+  cd $tmpd 
+  $pd enable user-conf
+  $pd clean user-conf
+  $pd disable user-conf
 }
 
-@test "argument defaults, shift to 3" {
+@test "1.2 update and check for remotes. " {
+  cd $tmpd 
+  TODO "$BATS_TEST_DESCRIPTION"
+}
 
-  run test_args_shift_2 a b c 
-  fnmatch "1:a 2:b 3:c" "${lines[*]}"
-  run test_args_shift_2 a b
-  fnmatch "1: 2:a 3:b" "${lines[*]}"
-  run test_args_shift_2 a
-  fnmatch "1: 2: 3:a" "${lines[*]}"
-  diag "${lines[*]}"
+@test "1.3 track enabled per host, or globally. " {
+  cd $tmpd 
+
+  # Normal enable/disable switched both global setting, and per-host
+
+  $pd enable user-conf
+  test ${status} -eq 0
+#assert_pd "prefixes/user-conf/enabled" true
+#  assert_pd "prefixes/user-conf/hosts" ["$hostname"]
+
+  $pd disable user-conf
+  test ${status} -eq 0
+#  assert_pd "prefixes/user-conf/enabled" false
+#  assert_pd "prefixes/user-conf/hosts" []
+
+  # Per host enables global, but disables only per-host
+
+  $pd enable-host user-conf
+  test ${status} -eq 0
+#  assert_pd "prefixes/user-conf/enabled" true
+#  assert_pd "prefixes/user-conf/hosts" ["$hostname"]
+
+  $pd disable-host user-conf
+  test ${status} -eq 0
+#  assert_pd "prefixes/user-conf/enabled" true
+#  assert_pd "prefixes/user-conf/hosts" []
+}
+
+@test "tell about a prefix; description, remotes, default branch, upstream/downstream settings, other dependencies. " {
+  $pd show user-conf
+  TODO "$BATS_TEST_DESCRIPTION"
+}
+
+@test "" {
+  TODO "$BATS_TEST_DESCRIPTION"
+}
+
+@test "Pd use-case 4: add a new prefix from existing checkout" {
+  TODO "$BATS_TEST_DESCRIPTION"
 }
 
 # vim:ft=bash:

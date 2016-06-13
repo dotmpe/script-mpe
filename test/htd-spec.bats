@@ -105,13 +105,9 @@ version=0.0.0-dev # script.mpe
   cd "$tmp"
   test ! -d bats-test-log || rm -rf bats-test-log
 
-  echo "${lines[*]}" >> /tmp/1
-
   mkdir bats-test-log
   run $BATS_TEST_DESCRIPTION bats-test-log/
   test $status -eq 0
-  #echo "${lines[*]}" > /tmp/1
-  #echo "${#lines[@]}" >> /tmp/1
   test "${#lines[@]}" -ge "24"
 
   for x in today tomorrow yesterday \
@@ -123,14 +119,14 @@ version=0.0.0-dev # script.mpe
   #   also, may want to have larger offsets and wider time-windows: months, years
 
   rm -rf bats-test-log
-
-  rm -rf /tmp/journal
+  rm -rf journal
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 1
   #echo "${lines[*]}" >/tmp/out222
   fnmatch "*Error*Dir *tmp/journal must exist*" "${lines[*]}"
-  test "${#lines[@]}" = "1"
+  test "${#lines[@]}" = "1" \
+    || fail "Output: ${lines[*]}"
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 1
@@ -167,12 +163,14 @@ Public
 EOM
 } > test.rst
 
-  run $BATS_TEST_DESCRIPTION test.rst
+  run $BATS_TEST_DESCRIPTION test.rst || \
+    fail "Output: ${lines[*]}"
 
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
 
-  test "${lines[0]}" = "/Dev/Software"
+  test "${lines[0]}" = "/Dev/Software" \
+    || fail "Output: ${lines[*]}"
   test "${lines[1]}" = "/Dev/Hardware"
   test "${lines[2]}" = "/Personal"
   test "${lines[3]}" = "/Public/Note"

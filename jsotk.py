@@ -2,6 +2,9 @@
 """
 Javascript Object toolkit.
 
+:created: 2015-12-28
+:updated: 2016-05-21
+
 Usage:
     jsotk [options] path <srcfile> <pathexpr>
     jsotk [options] objectpath <srcfile> <expr>
@@ -13,10 +16,11 @@ Usage:
     jsotk [options] (from-flat-kv|to-flat-kv) [<srcfile> [<destfile>]]
     jsotk [options] from-args <kv_args>...
     jsotk [options] from-flat-args <fkv-args>...
-    jsotk [options] merge-one <srcfile> <srcfile2> <destfile>
+    jsotk [options] merge-one <srcfile> <srcfile2> [<destfile>]
     jsotk [options] merge <destfile> <srcfiles>...
-    jsotk [options] update <destfile> <srcfiles>...
+    jsotk [options] update <destfile> [<srcfiles>...]
     jsotk [options] update-from-args <srcfiles> <kv-args> <destfile>
+    jsotk --background [options]
 
 
 Options:
@@ -46,65 +50,128 @@ Options:
                 .
   --no-stdin
                 .
+  -N, --empty-null
+                Instead of null, print empty line.
+  --line-input
+                Parse input lines separately.
+                Only with merge JSON.
+  --background  Turns script into socket server. This does not actually fork,
+                detach or do anything else but enter an infinite server loop:
+                use shell job control to background it.
+  -S, --address ADDRESS
+                The address that the socket server will be listening on for a
+                backgrounded process. This defaults to JSOTK_SOCKET, and
+                creates one if '--background' is requested. [default: /tmp/jsotk-serv.sock]
+
+                If the socket exists, any command invocation is relayed to the
+                "server" instance, and the result output and return code
+                returned to client. This python client process is less efficient
+                as using a socket client from a shell script.
+
+                If no ADDRESS or JSOTK_SOCKET is found the invocation is
+                executed normally
 
 Formats
 -------
-json
+json (i/o)
     ..
-yaml
+yaml (i/o)
     ..
+pkv
+    Parse syntax like::
+
+        path/to[1]/item=value-for-object-path
+        path/to[]=append-item-value
+
+    To::
+
+        {"path": {"to": [ {"item": "value-for-object-path"}, "append-item-value" ] } }
+
+fkv (o)
+    Like pkv, but this is even more restrictive in key characters, keys
+    can only contain [A-Za-Z_][A-Za-z0-9_]+ and everything else is lost.
+    Example::
+
+        path_to__1_item=value-for-object-path
+        path_to__2=append-item-value
+
+py (o)
+    Given one or more results, output as python value.
+lines (o)
+    Given a list result, simply output items line by line.
+
+Dev
+----
+- Functions seem to be behaving, but need a bit of refactoring to make the
+  arguments more consistent and clear. Maybe need to ditch docopt.
+- Background is a work in progress, file input buffering and parsed structure
+  caching needs to be added. jsotk (Sh) frontend is not in use yet.
+- Another improvement may be seeking out SHM filesystem support.
+
 """
-import os, sys
 import types
+from StringIO import StringIO
 
 from docopt import docopt
 from objectpath import Tree
 
 
-import util
+import util, confparse
 from jsotk_lib import PathKVParser, FlatKVParser, \
         load_data, stdout_data, readers, open_file, \
-        get_src_dest_defaults, set_format, \
+        get_src_dest_defaults, set_format, get_format_for_fileext, \
+        get_dest, \
         deep_union, deep_update, data_at_path
+
 
 
 ### Sub-command handlers
 
 # Conversions, json is default format
 
-def H_dump(opts):
+def H_dump(ctx, write=True):
     "Read src and write destfile according to set i/o formats. "
-    infile, outfile = get_src_dest_defaults(opts)
-    data = load_data( opts.flags.input_format, infile )
-    return stdout_data( opts.flags.output_format, data, outfile, opts )
+    infile, outfile = get_src_dest_defaults(ctx)
+    data = load_data( ctx.opts.flags.input_format, infile, ctx )
+    if write:
+        return stdout_data( ctx.opts.flags.output_format, data, outfile, ctx )
+    else:
+        return data
 
 
-def H_merge_one(opts):
+def H_merge_one(ctx):
     "Docopt does not handle args for 'merge', so instead use this. "
-    opts.args.srcfiles = [ opts.args.srcfile, opts.args.srcfile2 ]
-    H_merge(opts)
+    ctx.opts.args.srcfiles = [ ctx.opts.args.srcfile, ctx.opts.args.srcfile2 ]
+    H_merge(ctx)
 
 
-def H_merge(opts, write=True):
+def H_merge(ctx, write=True):
     """Merge srcfiles into last file. All srcfiles must be same format.
     Defaults to src-to-dest noop, iow. '- -' functions identical to
     'dump'.  """
 
-    if not opts.args.srcfiles:
-        opts.args.srcfile = '-'
-        return H_dump(opts)
-    else:
-        opts.args.srcfile = opts.args.srcfiles[0]
-        set_format('input', 'src', opts)
+    if not ctx.opts.args.srcfiles and not ctx.opts.flags.line_input:
+        ctx.opts.args.srcfile = '-'
+        return H_dump(ctx, write=write)
 
-    if not (opts.flags.list_union or opts.flags.list_update):
-        if opts.flags.list_update_nodict:
-            opts.flags.list_update = True
+    if ctx.opts.flags.line_input:
+        ctx.opts.args.srcfile = ctx.opts.args.srcfiles.pop(0)
+        set_format('input', 'src', ctx.opts)
+        inp = open_file(ctx.opts.args.srcfile, 'in', ctx=ctx)
+        ctx.opts.args.srcfiles += [ StringIO(line) for line in inp.readlines() ]
+    else:
+        ctx.opts.args.srcfile = ctx.opts.args.srcfiles[0]
+        set_format('input', 'src', ctx.opts)
+
+
+    if not (ctx.opts.flags.list_union or ctx.opts.flags.list_update):
+        if ctx.opts.flags.list_update_nodict:
+            ctx.opts.flags.list_update = True
         else:
-            opts.flags.list_union = True
+            ctx.opts.flags.list_union = True
 
     data = None
-    for srcfile in opts.args.srcfiles:
+    for srcfile in ctx.opts.args.srcfiles:
         mdata = None
         if hasattr(srcfile, 'read'):
             infile = srcfile
@@ -113,9 +180,9 @@ def H_merge(opts, write=True):
             srcfile = '<inline>'
             infile = None
         else:
-            infile = open_file(srcfile, defio='in')
+            infile = open_file(srcfile, defio='in', ctx=ctx)
         if infile and not mdata:
-            mdata = load_data( opts.flags.input_format, infile )
+            mdata = load_data( ctx.opts.flags.input_format, infile, ctx )
         if not data:
             data = type(mdata)()
         elif not isinstance(mdata, type(data)):
@@ -123,70 +190,104 @@ def H_merge(opts, write=True):
                     "Expected %s, but found %s (%s)" % (
                             type(data), type(mdata), srcfile )
         if isinstance(data, dict):
-            deep_update([data, mdata], opts)
+            deep_update([data, mdata], ctx)
         elif isinstance(data, list):
-            data = deep_union([data, mdata], opts)
+            data = deep_union([data, mdata], ctx)
         else:
             raise ValueError, data
 
     if write:
-        outfile = open_file(opts.args.destfile, mode='w+')
-        return stdout_data( opts.flags.output_format, data, outfile, opts )
+        outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
+        return stdout_data( ctx.opts.flags.output_format, data, outfile, ctx )
     else:
         return data
 
 
-def H_update(opts):
+def H_update(ctx):
     "Update srcfile from stdin. Write to destfile or stdout. "
-    infile, outfile = get_src_dest_defaults(opts)
-    data = H_merge(opts, write=False)
+    updatefile = get_dest(ctx, 'w+')
+    data = load_data( ctx.opts.flags.output_format, updatefile, ctx )
+    if not ctx.opts.args.srcfiles:
+        return
+    for src in ctx.opts.args.srcfiles:
+        fmt = get_format_for_fileext(src) or ctx.opts.flags.input_format
+        mdata = load_data( fmt, open_file( src, 'in', ctx=ctx ), ctx )
+        deep_update([data, mdata], ctx)
+    updatefile = get_dest(ctx, 'w')
+    return stdout_data( ctx.opts.flags.output_format, data, updatefile, ctx )
 
-    if '-' not in opts.args.srcfiles:
-        if not opts.flags.no_stdin:
-            parser = PathKVParser(data)
-            for line in sys.stdin.readlines():
-                parser.set_kv(line)
-            data = parser.data
 
-    return stdout_data( opts.flags.output_format, data, outfile, opts )
-
-
-def H_update_from_args(opts):
+def H_update_from_args(ctx):
     pass
     # TODO
     #reader = PathKVParser(rootkey=args[0])
-    #reader.scan_kv_args(opts.args.kv_args)
+    #reader.scan_kv_args(ctx.opts.args.kv_args)
 
 
 # Ad-hoc designed path query
 
-def H_path(opts):
-    data = data_at_path(opts)
-    print data
+def H_path(ctx):
+    infile, outfile = get_src_dest_defaults(ctx)
+    try:
+        data = data_at_path(ctx, infile)
+    except:
+        return 1
+    return stdout_data( ctx.opts.flags.output_format, data, outfile, ctx )
 
-    # FIXME: use parser
-    #reader = PathKVParser(rootkey=args[0])
-    #reader.scan_kv_args(args)
-    #reader.scan(file)
+def H_keys(ctx):
+    "Output list of keys or indices"
+    infile, outfile = get_src_dest_defaults(ctx)
+    try:
+        data = data_at_path(ctx, infile)
+    except:
+        return 1
+    if not data:
+        return 1
+    if isinstance(data, dict):
+        return stdout_data( ctx.opts.flags.output_format, data.keys(), outfile, ctx )
+    elif isinstance(data, list):
+        return stdout_data( ctx.opts.flags.output_format, range(0, len(data)), outfile, ctx )
+    else:
+        raise ValueError, "Unhandled type %s" % type(data)
+
+def H_items(ctx):
+    "Output for every key or item in object at path"
+    infile, outfile = get_src_dest_defaults(ctx)
+    try:
+        data = data_at_path(ctx, infile)
+    except:
+        return 1
+    if not data:
+        return 1
+    if isinstance(data, list):
+        for item in data:
+            stdout_data( ctx.opts.flags.output_format, item, outfile, ctx )
+    elif isinstance(data, dict):
+        for key, value in data.items():
+            subdata = { key: value }
+            stdout_data( ctx.opts.flags.output_format, subdata, outfile, ctx )
+    else:
+        raise ValueError, "Unhandled type %s" % type(data)
 
 
-def H_objectpath(opts):
-    infile, outfile = get_src_dest_defaults(opts)
-    q = Tree(load_data( opts.flags.input_format, infile ))
-    o = q.execute( opts.args.expr )
+
+def H_objectpath(ctx):
+    infile, outfile = get_src_dest_defaults(ctx)
+    q = Tree(load_data( ctx.opts.flags.input_format, infile, ctx ) )
+    o = q.execute( ctx.opts.args.expr )
     if isinstance(o, types.GeneratorType):
         for s in o:
-            v = stdout_data( opts.flags.output_format, s, outfile, opts )
+            v = stdout_data( ctx.opts.flags.output_format, s, outfile, ctx )
             if v:
                 return v
     else:
-        return stdout_data( opts.flags.output_format, o, outfile, opts )
+        return stdout_data( ctx.opts.flags.output_format, o, outfile, ctx )
 
 
 
 # TODO: helper for plain text (parser-less) updates to YAML/JSON
 
-def H_offsets(opts):
+def H_offsets(ctx):
     """
     TODO: could print offsets from yaml.tokens.*.start/end_mark
 
@@ -205,57 +306,46 @@ def H_offsets(opts):
 ## Conversion shortcuts
 
 
-def H_yaml2json(opts):
-    opts.flags.input_format = 'yaml'
-    return H_dump(opts)
+def H_yaml2json(ctx):
+    ctx.opts.flags.input_format = 'yaml'
+    return H_dump(ctx)
 
-def H_json2yaml(opts):
-    opts.flags.output_format = 'yaml'
-    return H_dump(opts)
+def H_json2yaml(ctx):
+    ctx.opts.flags.output_format = 'yaml'
+    return H_dump(ctx)
 
 
 # Flat key-value from/to nested list/dicts
 
-def H_from_args(opts):
-    args = opts.args.kv_args
+def H_from_args(ctx):
+    args = ctx.opts.args.kv_args
     reader = PathKVParser(rootkey=args[0])
     reader.scan_kv_args(args)
-    return stdout_data( opts.flags.output_format, reader.data, sys.stdout, opts )
+    return stdout_data( ctx.opts.flags.output_format, reader.data, ctx.out, ctx )
 
-def H_from_kv(opts):
-    opts.flags.input_format = 'pkv'
-    return H_dump(opts)
+def H_from_kv(ctx):
+    ctx.opts.flags.input_format = 'pkv'
+    return H_dump(ctx)
 
-def H_to_kv(opts):
-    opts.flags.output_format = 'pkv'
-    return H_dump(opts)
+def H_to_kv(ctx):
+    ctx.opts.flags.output_format = 'pkv'
+    return H_dump(ctx)
 
 
-def H_from_flat_args(opts):
-    args = opts.args.fkv_args
+def H_from_flat_args(ctx):
+    args = ctx.opts.args.fkv_args
     reader = FlatKVParser(rootkey=args[0])
     reader.scan_kv_args(args)
-    return stdout_data( opts.flags.output_format, reader.data, sys.stdout, opts )
+    return stdout_data( ctx.opts.flags.output_format, reader.data, ctx.out, ctx )
 
-def H_from_flat_kv(opts):
-    opts.flags.input_format = 'fkv'
-    return H_dump(opts)
+def H_from_flat_kv(ctx):
+    ctx.opts.flags.input_format = 'fkv'
+    return H_dump(ctx)
 
-def H_to_flat_kv(opts):
-    opts.flags.output_format = 'fkv'
-    return H_dump(opts)
+def H_to_flat_kv(ctx):
+    ctx.opts.flags.output_format = 'fkv'
+    return H_dump(ctx)
 
-
-def H_keys(opts):
-    data = data_at_path(opts)
-    assert isinstance(data, dict)
-    print os.linesep.join(data.keys())
-
-def H_items(opts):
-    data = data_at_path(opts)
-    assert isinstance(data, list)
-    for item in data:
-        print item
 
 
 
@@ -269,20 +359,83 @@ for k, h in locals().items():
     handlers[k[2:].replace('_', '-')] = h
 
 
-def main(func=None, opts=None):
+doc_cache = None
+def prerun(ctx, cmdline):
+    global doc_cache
 
-    return handlers[func](opts)
+    argv = cmdline.split(' ')
+    ctx.opts = util.get_opts(ctx.usage, argv=argv)
+
+    #if not pdhdata:
+    #    pdhdata = yaml_load(open(ctx.opts.flags.file))
+
+    return doc_cache
+
+
+def main(func, ctx):
+
+    """
+    Run command, or start socket server.
+
+    Normally this returns after running a single subcommand.
+    If backgrounded, There is at most one server per jsotk
+    document. The server remains in the working directory,
+    and while running is used to resolve any calls. Iow. subsequent executions
+    turn into UNIX domain socket clients in a transparent way, and the user
+    command invocation is relayed via line-based protocol to the background
+    server isntance.
+
+    """
+
+    if ctx.opts.flags.background:
+        # Start background process
+        localbg = __import__('local-bg')
+        return localbg.serve(ctx, handlers, prerun=prerun)
+
+    elif ctx.path_exists(ctx.opts.flags.address):
+        # Query background process
+        localbg = __import__('local-bg')
+        return localbg.query(ctx)
+
+    elif 'exit' == ctx.opts.cmds[0]:
+        # Exit background process
+        print >>ctx.err, "No background process at %s" % ctx.opts.flags.address
+        return 1
+
+    else:
+        # Normal execution
+        return handlers[func](ctx)
 
 
 if __name__ == '__main__':
-    opts = util.get_opts(__doc__)
-    if not opts.cmds:
-        opts.cmds = ['dump']
-    if opts.flags.no_detect_format:
-        opts.flags.detect_format = False
+    import sys, os
+    ctx = confparse.Values(dict(
+        usage=__doc__,
+        path_exists=os.path.exists,
+        sep=confparse.Values(dict(
+            line=os.linesep
+        )),
+        out=sys.stdout,
+        inp=sys.stdin,
+        err=sys.stderr,
+        opts=util.get_opts(__doc__)
+    ))
+    ctx['in'] = ctx['inp']
+    if not ctx.opts.cmds:
+        ctx.opts.cmds = ['dump']
+    if ctx.opts.flags.no_detect_format:
+        ctx.opts.flags.detect_format = False
     else:
-        opts.flags.detect_format = True
-    # TODO: opts.flags.no_json_string
-    sys.exit( main( opts.cmds[0], opts ) )
+        ctx.opts.flags.detect_format = True
+    # TODO: ctx.opts.flags.no_json_string
+    try:
+        sys.exit( main( ctx.opts.cmds[0], ctx ) )
+    except Exception as err:
+        if not ctx.opts.flags.quiet:
+            import traceback
+            tb = traceback.format_exc()
+            print tb
+            print 'Unexpected Error:', err
+        sys.exit(1)
 
 

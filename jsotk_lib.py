@@ -1,4 +1,3 @@
-import os, sys
 import re
 
 from fnmatch import fnmatch
@@ -160,6 +159,7 @@ class FlatKVParser(AbstractKVParser):
 
 class AbstractKVSerializer(object):
 
+    linesep = '\n'
     itemfmt, dirfmt = None, None
 
     write_indices = True
@@ -167,7 +167,7 @@ class AbstractKVSerializer(object):
     def serialize(self, data, prefix=''):
         if prefix is None:
             prefix = ''
-        return os.linesep.join(self.ser(data, prefix)) + os.linesep
+        return self.linesep.join(self.ser(data, prefix)) + self.linesep
     def ser(self, data, prefix=''):
         r = []
         if isinstance(data, list):
@@ -212,11 +212,11 @@ class FlatKVSerializer(AbstractKVSerializer):
         sp = prefix and prefix + self.dirfmt or '%s'
         return sp % re_alphanum.sub('_', key)
 
-def load_data(infmt, infile):
-    return readers[ infmt ]( infile )
+def load_data(infmt, infile, ctx):
+    return readers[ infmt ]( infile, ctx )
 
-def stdout_data(outfmt, data, outfile, opts):
-    return writers[ outfmt ]( data, outfile, opts )
+def stdout_data(outfmt, data, outfile, ctx):
+    return writers[ outfmt ]( data, outfile, ctx )
 
 
 def parse_json(value):
@@ -226,6 +226,7 @@ def parse_json(value):
         return parse_primitive(value)
 
 
+# TODO: use the propery serializer asked for, or add datatype lib option
 re_float  = re.compile('\d+.\d+')
 def parse_primitive(value):
     # TODO: other numbers
@@ -241,28 +242,51 @@ def parse_primitive(value):
 
 ### Readers/Writers
 
-def pkv_reader(file):
+def json_reader(file, ctx):
+    return js.load(file)
+
+def yaml_reader(file, ctx):
+    return yaml_load(file)
+
+def pkv_reader(file, ctx):
     reader = PathKVParser()
     reader.scan(file)
     return reader.data
 
-def fkv_reader(file):
+def fkv_reader(file, ctx):
     reader = FlatKVParser()
     reader.scan(file)
     return reader.data
 
+# FIXME: lazy loading readers, do something better to have optional imports
+def xml_reader(file, ctx):
+    from jsotk_xml_dom import reader
+    return reader( file, ctx )
+
+def properties_reader(file, ctx):
+    from jsotk_properties import reader
+    return reader( file, ctx )
+
+def ini_reader(file, ctx):
+    from jsotk_ini import reader
+    return reader( file, ctx )
+
+
 readers = dict(
-        json=js.load,
-        yaml=yaml_load,
+        json=json_reader,
+        yaml=yaml_reader,
         pkv=pkv_reader,
-        fkv=fkv_reader
+        fkv=fkv_reader,
+        xml=xml_reader,
+        properties=properties_reader,
+        ini=ini_reader
     )
 
 
-def write(writer, data, file, opts):
-    if opts.flags.no_indices:
+def write(writer, data, file, ctx):
+    if ctx.opts.flags.no_indices:
         writer.write_indices = False
-    file.write(writer.serialize(data, opts.flags.output_prefix))
+    file.write(writer.serialize(data, ctx.opts.flags.output_prefix))
 
 def output_prefix(data, opts):
     if opts.flags.output_prefix:
@@ -273,86 +297,152 @@ def output_prefix(data, opts):
     return data
 
 
-def pkv_writer(data, file, opts):
+def pkv_writer(data, file, ctx):
     writer = PathKVSerializer()
-    write(writer, data, file, opts)
+    writer.linesep = ctx.sep.line
+    write(writer, data, file, ctx)
 
-def fkv_writer(data, file, opts):
+def fkv_writer(data, file, ctx):
     writer = FlatKVSerializer()
-    write(writer, data, file, opts)
+    writer.linesep = ctx.sep.line
+    write(writer, data, file, ctx)
 
-def json_writer(data, file, opts):
+def json_writer(data, file, ctx):
     kwds = {}
-    if opts.flags.pretty:
+    if ctx.opts.flags.pretty:
         kwds.update(dict(indent=2))
-    data = output_prefix(data, opts)
-    file.write(js.dumps(data, **kwds))
-    print >> file
+    data = output_prefix(data, ctx.opts)
+    if not data and ctx.opts.flags.empty_null:
+        print >>file
+    else:
+        file.write(js.dumps(data, **kwds))
+    print >>file
 
-def yaml_writer(data, file, opts):
+def yaml_writer(data, file, ctx):
     kwds = {}
-    if opts.flags.pretty:
+    if ctx.opts.flags.pretty:
         kwds.update(dict(default_flow_style=False))
-    data = output_prefix(data, opts)
-    yaml_safe_dump(data, file, **kwds)
+    data = output_prefix(data, ctx.opts)
+    if not data and ctx.opts.flags.empty_null:
+        print >>file
+    else:
+        yaml_safe_dump(data, file, **kwds)
+
+def py_writer(data, file, ctx):
+    if not data and ctx.opts.flags.empty_null:
+        print >>file
+    else:
+        print >>file, str(data)
+
+def lines_writer(data, file, ctx):
+    if not data:
+        return
+    if not isinstance(data, (tuple, list)):
+        data = [ data ]
+    # XXX: seems object returns objects sometimes? assert isinstance(data, (tuple, list)), data
+    for item in data:
+        print >>file, item
+
+# FIXME: lazy loading writers, do something better to have optional imports
+def xml_writer(data, file, ctx):
+    from jsotk_xml_dom import writer
+    return writer( data, file, ctx )
+
 
 writers = dict(
         json=json_writer,
         yaml=yaml_writer,
         pkv=pkv_writer,
-        fkv=fkv_writer
+        fkv=fkv_writer,
+        py=py_writer,
+        lines=lines_writer,
+        xml=xml_writer
     )
+
+
+fmt_ext_aliases = dict(
+    yaml=[ 'yml' ],
+    json=[ 'jso' ],
+    kv=[ 'pkv' ],
+    lines=[ 'list' ]
+        )
 
 
 ### Misc. argument/option handling
 
-def open_file(fpathname, defio='out', mode='r'):
+def open_file(fpathname, defio='out', mode='r', ctx=None):
     if hasattr(fpathname, 'read'):
         return fpathname
     if not fpathname:
         fpathname = '-'
     if fpathname == '-':
-        return getattr(sys, 'std%s' % defio)
+        assert defio in ( 'in', 'out' ), defio
+        if ctx:
+            return ctx[defio]
+        else:
+            import sys
+            return getattr(sys, 'std%s' % defio)
     else:
-        return open(fpathname, mode)
+        try:
+            return open(fpathname, mode)
+        except IOError, e:
+            raise Exception, "Unable to open %s for %s" % (fpathname, mode)
 
-def get_src_dest(opts):
+def get_src_dest(ctx):
     infile, outfile = None, None
-    if 'srcfile' in opts.args and opts.args.srcfile:
-        infile = open_file(opts.args.srcfile, defio='in')
-    if 'destfile' in opts.args and opts.args.destfile:
-        outfile = open_file(opts.args.destfile, mode='w+')
+    if 'srcfile' in ctx.opts.args and ctx.opts.args.srcfile:
+        infile = open_file(ctx.opts.args.srcfile, defio='in', ctx=ctx)
+    if 'destfile' in ctx.opts.args and ctx.opts.args.destfile:
+        outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
     return infile, outfile
 
 def set_format(tokey, fromkey, opts):
     file = getattr(opts.args, "%sfile" % fromkey)
     if file and isinstance(file, basestring):
-        fmt = get_format_for_fileext(file)
+        fmt = get_format_for_fileext(file, fromkey)
         if fmt:
             setattr(opts.flags, "%s_format" % tokey, fmt)
 
-def get_format_for_fileext(fn):
-    if fn.endswith('yaml') or fn.endswith('yml'):
-        return 'yaml'
+def get_format_for_fileext(fn, io='out'):
+    if io == 'out':
+        fmts = writers.keys()
+    else:
+        fmts = readers.keys()
 
-    if fn.endswith('json'):
-        return 'json'
+    for fmt in fmts:
+        if fmt in fmt_ext_aliases:
+            for alias in fmt_ext_aliases[fmt]:
+                ext = ".%s" % alias
+                if fn.endswith( ext ):
+                    return fmt
+        ext = ".%s" % fmt
+        if fn.endswith( ext ):
+            return fmt
 
-def get_src_dest_defaults(opts):
+def get_dest(ctx, mode):
+    if ctx.opts.flags.detect_format:
+        set_format('output', 'dest', ctx.opts)
+    updatefile = None
+    if 'destfile' in ctx.opts.args and ctx.opts.args.destfile:
+        assert ctx.opts.args.destfile != '-'
+        updatefile = open_file(
+                ctx.opts.args.destfile, defio=None, mode=mode, ctx=ctx)
+    return updatefile
 
-    if opts.flags.detect_format:
-        set_format('input', 'src', opts)
-        set_format('output', 'dest', opts)
+def get_src_dest_defaults(ctx):
+    if ctx.opts.flags.detect_format:
+        set_format('input', 'src', ctx.opts)
+        set_format('output', 'dest', ctx.opts)
 
-    infile, outfile = get_src_dest(opts)
+    infile, outfile = get_src_dest(ctx)
     if not outfile:
-        outfile = sys.stdout
+        outfile = ctx.out
         if not infile:
-            infile = sys.stdin
+            infile = ctx['in']
     return infile, outfile
 
 
-def deep_update(dicts, opts):
+def deep_update(dicts, ctx):
     """Merge dicts by overwriting first given dict, with keys/paths-value
     mappings found in subsequent dicts. Update embedded lists according to
     --list-update or --list-union, see deep_union.
@@ -367,16 +457,16 @@ def deep_update(dicts, opts):
         for k, v in mdata.iteritems():
             if k in data:
                 if isinstance(data[k], dict):
-                    deep_update( [ data[k], v ], opts)
+                    deep_update( [ data[k], v ], ctx )
                 elif isinstance(data[k], list):
-                    data[k] = deep_union( [ data[k], v ], opts)
+                    data[k] = deep_union( [ data[k], v ], ctx )
                 else:
                     data[k] = v
             else:
                 data[k] = v
     return data
 
-def deep_union(lists, opts):
+def deep_union(lists, ctx):
     """List merger with different modes.
 
     Mode is 'update' to preserve indices (and assume equal length lists),
@@ -406,18 +496,18 @@ def deep_union(lists, opts):
             raise ValueError, "Expected %s but got %s" % (
                     type(data), type(mdata))
         for i, v in enumerate(mdata):
-            if opts.flags.list_update:
+            if ctx.opts.flags.list_update:
                 while len(data)-1 < i:
                     data.append(None)
                 # cmp index-by-index
-                if not opts.flags.list_update_nodict:
+                if not ctx.opts.flags.list_update_nodict:
                     if isinstance(data[i], dict):
-                        v = deep_update([data[i], v], opts)
+                        v = deep_update([data[i], v], ctx )
                 elif isinstance(data[i], list):
-                    v = deep_union([data[i], v], opts)
+                    v = deep_union([data[i], v], ctx )
                 data[i] = v
 
-            elif opts.flags.list_union:
+            elif ctx.opts.flags.list_union:
                 # TODO: deep-compare objects
                 if v not in data:
                     data.append(v)
@@ -425,10 +515,13 @@ def deep_union(lists, opts):
     return data
 
 
-def data_at_path(opts):
-    infile, outfile = get_src_dest_defaults(opts)
-    l = load_data( opts.flags.input_format, infile )
-    path_el = opts.args.pathexpr.split('/')
+def data_at_path(ctx, infile):
+    if not infile:
+        infile, outfile = get_src_dest_defaults(ctx)
+    l = load_data( ctx.opts.flags.input_format, infile, ctx )
+    path_el = ctx.opts.args.pathexpr.split('/')
+    if not ctx.opts.args.pathexpr or path_el[0] == '':
+        return l
     while len(path_el):
         b = path_el.pop(0)
         if b not in l:

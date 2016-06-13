@@ -32,9 +32,6 @@ htd_init_ignores()
   test -n "$HTD_IGNORE" || exit 1
 
   test -e $HTD_IGNORE.merged && grep -qF $HTD_IGNORE.merged $HTD_IGNORE.merged || {
-    test -e "$HTD_IGNORE.merged" && {
-      test -w "$HTD_IGNORE.merged" || error "Cannot write $(pwd)/$HTD_IGNORE.merged" 1
-    }
     echo $HTD_IGNORE.merged > $HTD_IGNORE.merged
   }
 
@@ -151,29 +148,45 @@ mkrlink()
   ln -vs $(basename $1) $2
 }
 
+# Check if binary is available for tool
 installed()
 {
-  # Check if binary is available
-  local bin="$(jsotk.py objectpath $1 '$.tools."'$2'".bin')"
+
+  # Get one name if any
+  local bin="$(jsotk.py -q -O py path $1 tools/$2/bin)"
   test "$bin" = "True" && bin=$2
+  test -n "$bin" || {
+    return 1
+  }
+
   case "$bin" in
     "["*"]" )
-        eval $(jsotk.py -O fkv objectpath $1 '$.tools."'$2'".bin')
-        local c=0
-        while test -n "$(try_var __$c)"
+
+        statusdir.sh set "htd:installed:$1:$2" 0 180
+
+        # Or a list of names
+        jsotk.py -O py items $1 tools/$2/bin | while read bin_
         do
-          bin_=$(try_var __$c)
-          test -n "$(eval which $bin_)" && return
-          incr_c
+          test -n "$bin_" || continue
+          test -n "$(eval echo "$bin_")" || warn "No value for $bin_" 1
+          test -n "$(eval which $bin_)" && {
+            statusdir.sh incr "htd:installed:$1:$2"
+          }
         done
-      ;;
-    * )
-      test -n "$(eval which $bin)" && return
-      #local version="$(jsotk.py objectpath $1 '$.tools.'$2'.version')"
-      #$bin $version && return || break
+
+        count=$(statusdir.sh get htd:installed:$1:$2)
+        test 0 -ne $count || return 1
+
+        return 0;
       ;;
   esac
-  return 1
+
+  test -n "$(eval echo "$bin")" || warn "No value for $bin" 1
+  test -n "$(eval which $bin)" && return
+  #local version="$(jsotk.py objectpath $1 '$.tools.'$2'.version')"
+  #$bin $version && return || break
+
+  return 1;
 }
 
 install_bin()
@@ -181,17 +194,18 @@ install_bin()
   installed "$@" && return
 
   # Look for installer
-  installer=$(jsotk.py objectpath $1 '$.tools."'$2'".installer')
-  test "$installer" = "null" && return 1
+  installer="$(jsotk.py -N -O py path $1 tools/$2/installer)"
+  test -n "$installer" || return 3
   test -n "$installer" && {
-    id=$(jsotk.py objectpath $1 '$.tools."'$2'".id')
-    test -n "$id" || id=$2
+    id="$(jsotk.py -N -O py path $1 tools/$2/id)"
+    test -n "$id" || id="$2"
+    debug "installer=$installer id=$id"
     case "$installer" in
       npm )
-          npm install -g $1 || return $?
+          npm install -g $id || return 2
         ;;
       pip )
-          pip list | grep -q $id || pip install $id
+          pip install $id || return 2
         ;;
     esac
   } || {
@@ -209,19 +223,18 @@ uninstall_bin()
 {
   installed "$@" || return 0
 
-  installer=$(jsotk.py objectpath $1 '$.tools."'$2'".installer')
-  test "$installer" = "null" && return 1
+  installer="$(jsotk.py -N -O py path $1 tools/$2/installer)"
+  test -n "$installer" || return 3
   test -n "$installer" && {
-    id=$(jsotk.py objectpath $1 '$.tools."'$2'".id')
+    id="$(jsotk.py -N -O py path $1 tools/$2/id)"
+    debug "installer=$installer id=$id"
     test -n "$id" || id=$2
     case "$installer" in
       npm )
           npm uninstall -g $id || return 2
-          return 1
         ;;
       pip )
           pip uninstall $id || return 2
-          return 1
         ;;
     esac
   }
@@ -237,8 +250,6 @@ tools_json()
 {
   test ./tools.yml -ot ./tools.json \
     || jsotk.py yaml2json ./tools.yml ./tools.json
-  test ~/.conf/tools.yml -ot ~/.conf/tools.json \
-    || jsotk.py yaml2json ~/.conf/tools.yml ~/.conf/tools.json
 }
 
 

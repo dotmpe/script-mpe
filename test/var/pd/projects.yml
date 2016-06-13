@@ -1,0 +1,22 @@
+
+
+repositories:
+  prefix1:
+    remotes: {}
+    hosts:
+    - host1
+    - host2
+  prefix2:
+    remotes: {}
+    hosts:
+    - host1
+  prefix3:
+    remotes: {}
+    hosts:
+    - host1
+  prefix4:
+    remotes: {}
+    hosts:
+    - host2
+
+     
