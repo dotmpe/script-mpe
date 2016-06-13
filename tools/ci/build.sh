@@ -18,6 +18,8 @@ box version && box -V
 vc.sh help
 projectdir.sh help
 
+export PATH=$PATH:/usr/local/bin
+
 pip install --user pytz
 pip install --user PyYAML
 pip install --user zope.interface
