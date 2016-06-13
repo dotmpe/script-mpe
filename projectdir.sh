@@ -90,7 +90,7 @@ pd__status()
   } || {
     while test -n "$1"
     do
-      grep -srIF "$1" $PD_TMP/prefixes.list && {
+      grep -qF "$1" $PD_TMP/prefixes.list && {
         prefixes="$prefixes $(echo $1)"
       } || {
         warn "Not a known prefix $1"
@@ -522,18 +522,18 @@ pd__init()
 
   pd__set_remotes $1
 
-  ( cd $1
-
+  (
+    cd $1
     git submodule update --init --recursive
 
     # Regenerate .git/info/exclude
-    vc__update || echo "update:vc-update:$1" >>$failed
-  )
+    vc_update || echo "update:vc-update:$1" >>$failed
 
-  test ! -e .versioned-files.list || {
-    echo "git-versioning check" > .git/hooks/pre-commit
-    chmod +x .git/hooks/pre-commit
-  }
+    test ! -e .versioned-files.list || {
+      echo "git-versioning check" > .git/hooks/pre-commit
+      chmod +x .git/hooks/pre-commit
+    }
+  )
 }
 
 # Set the remotes from metadata
@@ -891,25 +891,25 @@ pd__ls_tests()
 
   test -e Makefile && {
     note "Using make test"
-    echo "mk-test"
+    echo ":mk-test"
     return
   }
 
   test -e package.json && {
     note "Using npm test"
-    echo "npm-test"
+    echo ":npm-test"
     return
   }
 
   test -e $(ls Gruntfile*|head -n 1) && {
     note "Using grunt"
-    echo "grunt-test"
+    echo ":grunt-test"
     return
   }
 
   test "$(echo test/*-spec.bats)" != "test/*-spec.bats" && {
     note "Using Bats"
-    echo "bats-specs" "bats"
+    echo ":bats-specs" ":bats"
   }
 }
 

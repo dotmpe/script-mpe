@@ -205,7 +205,7 @@ def H_merge(ctx, write=True):
 
 def H_update(ctx):
     "Update srcfile from stdin. Write to destfile or stdout. "
-    updatefile = get_dest(ctx, 'r')
+    updatefile = get_dest(ctx, 'w+')
     data = load_data( ctx.opts.flags.output_format, updatefile, ctx )
     if not ctx.opts.args.srcfiles:
         return
