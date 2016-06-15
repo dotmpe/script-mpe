@@ -944,7 +944,8 @@ pd__check()
   while test -n "$1"
   do
     info "Check to run: $1"
-    pd__run $1 || { r=$?; echo $1>>$failed; }
+    cmd="$(echo "$1" | cut -c2-)"
+    pd__run $cmd || { r=$?; echo $1>>$failed; }
     test -z "$r" \
       && info "OK: $1" \
       || info "Check $1 returned ($r)"
