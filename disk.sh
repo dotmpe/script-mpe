@@ -77,8 +77,16 @@ disk__copy_fs()
 disk__check_all()
 {
   test -d /dev/disk || error "Expected /dev/disk, e.g. Linux, not '$uname'" 1
-  get_targets /dev/disk
+  get_targets /dev/disk | while read dev
+  do
+    fnmatch "*[0-9]" "$dev" && {
+      echo - $dev $(disk_partition_type $dev)
+    } || {
+      echo disk $dev $(disk_id $dev) $(disk_tabletype  $dev) 
+    }
+  done
 }
+
 
 
 ### Subcmd init, deinit

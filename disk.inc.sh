@@ -26,6 +26,12 @@ disk_tabletype()
       | sed 's/^Partition.Table: //'
 }
 
+disk_partition_type()
+{
+  sudo blkid -o value -s TYPE $dev
+  # Or parse sudo file -Ls $dev
+}
+
 find_partition_ids()
 {
   find /dev/disk/by-uuid -type l | while read path
