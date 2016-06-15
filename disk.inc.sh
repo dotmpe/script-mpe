@@ -110,6 +110,15 @@ disk_catalog_import()
     error "No metafile $1"
     return 1
   }
-  echo 1: $1
+  (
+    eval $(sed 's/volumes_main_//g' $1)
+    {
+      echo vol_id=$id
+      echo disk_id=$disk_id
+      echo label=$label
+      echo description=$description
+      echo mount=$mount
+    } > $DISK_CATALOG/$disk_id.sh
+  )
 }
 
