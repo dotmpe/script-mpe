@@ -2,6 +2,7 @@
 # Created: 2016-02-22
 disk__source=$_
 
+set -e
 
 ### User commands
 
@@ -72,6 +73,13 @@ disk__copy_fs()
 }
 
 
+# Sort of wizard, check/init vol(s) interactively for current disks
+disk__check_all()
+{
+  test -d /dev/disk || error "Expected /dev/disk, e.g. Linux, not '$uname'" 1
+  get_targets /dev/disk
+}
+
 
 ### Subcmd init, deinit
 
@@ -124,7 +132,7 @@ disk_init()
   #        shift;;
   #  esac
   #done
-  #. $scriptdir/disk.inc.sh "$@"
+  . $scriptdir/disk.inc.sh "$@"
   . $scriptdir/date.lib.sh
   . $scriptdir/match.lib.sh
   . $scriptdir/vc.sh load-ext

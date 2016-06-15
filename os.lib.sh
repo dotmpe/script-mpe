@@ -143,4 +143,9 @@ go_to_directory()
   test -e "$doc" || return 1
 }
 
+# Resolve all symlinks in subtree, return a list with targets
+get_targets()
+{
+  find $1 -type l -exec readlink {} + | sort -u
+}
 

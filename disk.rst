@@ -28,6 +28,9 @@ disk cmd is free so use that. See also ``diskdoc.*``.
 
 
 disk
+  depends
+    vc? jsotk for full regen/update.
+
   enable <device-id>
     load and import data from volume doc
     mount, and create volume symlinks

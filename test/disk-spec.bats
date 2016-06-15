@@ -21,16 +21,16 @@ test -n "$device_id" || device_id=disk-id
   fnmatch "*OK*" "${lines[*]}"
 }
 
+@test "${bin} help" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  fnmatch "*Usage:*disk <cmd> *" "${lines[*]}"
+}
+
 @test "${bin} list" {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*End*" "${lines[*]}"
-}
-
-@test "${bin} help" {
-  run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  fnmatch "*disk <cmd> *" "${lines[*]}"
 }
 
 @test "${bin} enable $device_id" {
