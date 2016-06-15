@@ -4,7 +4,7 @@ pd_src="$_"
 
 set -e
 
-version=0.0.0+20150911-0659 # script.mpe
+version=0.0.0+20150911-0659 # script-mpe
 
 
 pd_man_1__version="Version info"
@@ -527,7 +527,7 @@ pd__init()
     git submodule update --init --recursive
 
     # Regenerate .git/info/exclude
-    vc__update || echo "update:vc-update:$1" >>$failed
+    vc__regenerate || echo "init:vc-regenerate:$1" >>$failed
 
     test ! -e .versioned-files.list || {
       echo "git-versioning check" > .git/hooks/pre-commit
@@ -944,7 +944,8 @@ pd__check()
   while test -n "$1"
   do
     info "Check to run: $1"
-    pd__run $1 || { r=$?; echo $1>>$failed; }
+    cmd="$(echo "$1" | cut -c2-)"
+    pd__run $cmd || { r=$?; echo $1>>$failed; }
     test -z "$r" \
       && info "OK: $1" \
       || info "Check $1 returned ($r)"

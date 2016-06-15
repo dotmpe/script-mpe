@@ -38,7 +38,7 @@ class SessionMixin(object):
 class ScriptModelFacade(object):
 
     """
-    TODO: Using schemas from script.mpe, populate facade. Manage masterdb.
+    TODO: Using schemas from script-mpe, populate facade. Manage masterdb.
     XXX: probably move this to some kind of session
 
     On initialize, populate attr dict with each model class bound to its own

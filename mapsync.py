@@ -11,7 +11,7 @@ To automate the task, this scripts provides a few commands that make
 rsync'ing several copies of a tree more akin to working with revision control.
 
 TODO: Besides multiple synchronized working copies, it is possible to make backups
-and to assist in merges of diverged working trees. 
+and to assist in merges of diverged working trees.
 
 
 Implementation
@@ -26,11 +26,11 @@ have been modified since that log file was last updated.
 The mtime of the log file will correspond to the last line in the log.
 
 If there is a non-zero delta at both sides, then user intervention is needed to
-resolve changes made on both sides. This situation is sub-optimal. Rather, this 
-should be prevented by running the sync after making changes to the directory, 
-and/or just before starting modiciations. 
+resolve changes made on both sides. This situation is sub-optimal. Rather, this
+should be prevented by running the sync after making changes to the directory,
+and/or just before starting modiciations.
 
-With only one side 'out of sync', rsync can be ran with the ``-a --delete`` 
+With only one side 'out of sync', rsync can be ran with the ``-a --delete``
 options.
 This will greatly reduce accidental duplication of moved content, and allow
 updates of timestamps without regard which side is most recent.
@@ -39,13 +39,13 @@ Using this out of sync detection, this script can propagate changes found on any
 side, local or remote. The configuration accepts more than two sides and can
 keep several host/directory paths in sync.
 The restriction is that only one host may run out of sync at any time.
-Also, all hosts need to be online during synchronisation otherwise merges might 
+Also, all hosts need to be online during synchronisation otherwise merges might
 be needed later.
 
 Because of this detection keeping multiple copies of a working tree becomes more
 secure and convenient.
 
-XXX: Merge not simply means selecting the most recent file ofcourse. 
+XXX: Merge not simply means selecting the most recent file ofcourse.
 
 
 TODO: By default, no revision h directory is included in the sync.
@@ -74,7 +74,7 @@ config = confparse.expand_config_path('cllct.rc')
 
 settings = confparse.load_path(*config)
 "Static, persisted settings."
-    
+
 hostname = socket.gethostname()
 username = getpass.getuser()
 
@@ -149,7 +149,7 @@ def remote_mapsync_delta(map_id, host, remotepath):
     if not os.path.isdir(p):
         os.makedirs(p)
 
-    remote_src = "%s:%s" % (host, os.path.join(remotepath, 
+    remote_src = "%s:%s" % (host, os.path.join(remotepath,
         settings.mapsync.log_file))
     local_target = os.path.join(rc, 'remote', host, map_id)
 
@@ -167,8 +167,8 @@ def remote_mapsync_delta(map_id, host, remotepath):
     mapsync_timestamp = os.path.getmtime(local_target)
     assert open(local_target).readlines()[-1].strip() == str(mapsync_timestamp)
     #
-    worktree_timestamp, last_remote_path = remote_proc(host, 
-        "~/project/script.mpe/findlatest.py --print-timestamp %s/" % remotepath).split(' ')
+    worktree_timestamp, last_remote_path = remote_proc(host,
+        "~/project/script-mpe/findlatest.py --print-timestamp %s/" % remotepath).split(' ')
     worktree_timestamp = float(worktree_timestamp)
     #
     return mapsync_timestamp, worktree_timestamp
@@ -329,10 +329,10 @@ def sync(map_id, do_sync=True):
     """
     Synchronize changes from one location and or add several new empty locations.
 
-    At least one location must be initialized. Changes on several locations will 
+    At least one location must be initialized. Changes on several locations will
     need to be resolved manually first.
     """
-    
+
     global settings, hostname
 
     #if settings.verbose:
@@ -416,7 +416,7 @@ def sync(map_id, do_sync=True):
     for map in new_paths:
         sync_from = mapsync.find_optimum_source(map)
         if not sync_from:
-            fatal("cannot sync %s:%s, no up-to-date copy", 
+            fatal("cannot sync %s:%s, no up-to-date copy",
                     map.host, map.path)
         assert sync_from, map
         info('new copy: %s', map)
@@ -431,18 +431,18 @@ def init(map_id):
     Initialize one or more locations.
 
     If no locations have been initialized yet and there are working trees
-    present at one or more loctions these will be merged. Newest files 
+    present at one or more loctions these will be merged. Newest files
     will be added (ie. rsync -u).
 
     If this map was initialized before new locations can only be added if empty.
     Otherwise manual merge into one of the other locations is required first.
     """
-   
+
     global settings, hostname
 
     #if settings.verbose:
     info("mapsync: init '%s' (%i locations)", map_id, len(settings.map[map_id]))
-    
+
     mapsync = MapSync(map_id)
 
     out_of_sync = []
@@ -525,7 +525,7 @@ def main(argv=[]):
     pwd = os.getcwd()
     if not args:
         args = [pwd]
-    
+
     for map_id in args:
         assert map_id in settings.map, "Unknown map %s" % map_id
         if opts.list_maps:
@@ -539,7 +539,7 @@ def main(argv=[]):
         else:
             # default action
             sync(map_id)
-    
+
 
 if __name__ == '__main__':
     reload()

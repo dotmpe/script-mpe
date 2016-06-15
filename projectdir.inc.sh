@@ -142,7 +142,7 @@ pd_regenerate()
   debug "pd-regenerate pwd=$(pwd) 1=$1"
 
   # Regenerate .git/info/exclude
-  vc__update "$1" || echo "pd-regenerate:vc-update:$1" 1>&3
+  vc__regenerate "$1" || echo "pd-regenerate:$1" 1>&3
 
   test ! -e .package.sh || . .package.sh
 
