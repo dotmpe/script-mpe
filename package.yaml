@@ -6,6 +6,10 @@
   version: 0.0.0-dev # script.mpe
   environments: [ 'development' ]
 
+  vendor: dotmpe
+  distribution: public
+  license: GPL
+
   pd-meta:
 
     check: ":vchk :bats-specs"

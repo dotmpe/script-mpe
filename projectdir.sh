@@ -527,7 +527,7 @@ pd__init()
     git submodule update --init --recursive
 
     # Regenerate .git/info/exclude
-    vc__update || echo "update:vc-update:$1" >>$failed
+    vc__regenerate || echo "init:vc-regenerate:$1" >>$failed
 
     test ! -e .versioned-files.list || {
       echo "git-versioning check" > .git/hooks/pre-commit

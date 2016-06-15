@@ -102,9 +102,33 @@ vc__commands()
 	echo 'Commands: '
 	echo '  print-all <path>        Dump some debug info on given (versioned) paths'
 	echo '  ps1                     Print PS1'
-	echo '  prompt-command          ...'
+	echo '  screen'
   echo '  ls-gitroots             List all GIT checkouts (roots only) below the current dir.'
 	echo '  ls-errors               '
+	echo '  mtime'
+	echo '  flush'
+	echo '  print-all'
+	echo '  prompt-command'
+	echo '  list-submodules'
+	echo '  gh                      Clone from github'
+	echo '  largest-objects'
+	echo '  path-for-object'
+	echo '  list-object'
+	echo '  object-contents'
+	echo '  excludes'
+	echo '  ufx'
+	echo '  excluded'
+	echo '  annex-unused'
+	echo '  annex-show-unused'
+	echo '  annex-clear-unused'
+	echo '  contains'
+	echo '  annex-contains'
+	echo '  list-prefixes           '
+	echo '  list-subrepos           XXX: List all repositories below, excluding submodules. '
+	echo '  projects                XXX: list remotes in projectdir'
+	echo '  remotes                 List remotes in repo. '
+	echo '  regenerate              Regenerate local excludes. '
+	echo '  annex-local             Find or create remote annex repo in $ANNEX_DIR'
 	echo ''
 	echo 'Other commands: '
 	echo '  -e|edit                 Edit this script.'
@@ -167,7 +191,7 @@ homepath()
 # u: '~'
 #
 
-__vc_bzrdir ()
+__vc_bzrdir()
 {
   local cwd="$(pwd)"
   (
@@ -180,16 +204,33 @@ __vc_bzrdir ()
 }
 
 # __vc_gitdir accepts 0 or 1 arguments (i.e., location)
-# returns location of .git repo
-__vc_gitdir ()
+# returns absolute location of .git repo
+__vc_gitdir()
 {
-  test -n "$1" || set -- .
+  test -n "$1" || set -- $(pwd -P)
 	test -d "$1/.git" && {
 		echo "$1/.git"
   } || (
-    cd "$D"
-    git rev-parse --git-dir 2>/dev/null
+    cd "$1"
+    git rev-parse --git-dir
   )
+}
+
+# checkout dir
+# for regular checkouts, the parent dir
+# for modules, one level + prefix levels higher
+__vc_git_codir()
+{
+  git="$(__vc_gitdir "$1")"
+
+  fnmatch "*/.git" "$git" \
+    || while true
+      do
+        git="$(dirname "$git")"
+        fnmatch "*/.git" "$git" && break
+      done
+
+  dirname "$git"
 }
 
 # __vc_git_flags accepts 0 or 1 arguments (i.e., format string)
@@ -451,6 +492,87 @@ __vc_push ()
 #	else if [ -d ".svn" ]; then
 #	    svn
 	fi; fi;
+}
+
+
+# get a/the vendor/project ID's
+# many possible ways to get it, defaults to something github-ish.
+# But let .package.sh decide method
+# must be called from within checkout base dir
+__vc_gitrepo()
+{
+  test -e .git || err "not a checkout" 240
+  test -e .package && . .package.sh
+
+  test -z "$package_mpe_meta_get_repo" \
+    || set -- "$package_mpe_meta_get_repo"
+
+  test -n "$1" || {
+    test -z "$package_repo" || set -- "package-repo"
+  }
+
+  test -n "$1" || {
+    test -z "$package_vendor" -a -z "$package_id" \
+      || set -- package-vnd-id
+  }
+
+  test -n "$1" || {
+      set -- "$(
+    git remote | while read remote
+    do
+      fnmatch "git@github.com:*" "$(git config remote.$remote.url)" \
+        && {
+          echo remote-$remote
+          break
+        }
+      done )"
+  }
+
+  test -n "$1" || {
+
+      set -- "$(
+    git remote | while read remote
+    do
+      fnmatch "$HTD_GIT_REMOTE_URL*" "$(git config remote.$remote.url)" \
+        && {
+          echo remote-HTD-$remote
+          break
+        }
+      done )"
+  }
+
+  case "$1" in
+    package-repo )
+        echo $package_repo
+      ;;
+    package-vnd-id )
+        echo $package_vendor/$package_id
+      ;;
+    remote-*-* )
+        local \
+          remote_key=$(echo $1 | cut -c8- | cut -d- -f 1) \
+          remote_local=$(echo $1 | cut -c8- | cut -d- -f 2)
+        local \
+          remote_name=$(eval echo \$${remote_key}_GIT_REMOTE) \
+          remote_url_base=$(eval echo \$${remote_key}_GIT_REMOTE_URL) \
+          remote_url=$(git config remote.$remote_local.url)
+        local \
+          e=$(( ${#remote_url} - 4 )) l=$(( 2 + ${#remote_url_base} ))
+
+        local repo=$(echo $remote_url | cut -c$l-$e)
+
+        echo $remote_name/$repo
+      ;;
+    remote-* )
+        local remote=$(echo $1 | cut -c8-)
+        git config remote.$remote.url | sed -E '
+          s/^.*:([A-Za-z0-9_-]*)\/([A-Za-z0-9_-]*)(.git)?/\1\/\2/'
+      ;;
+
+    * )
+        error "Illegal vc gitrepo method '$1'" 1
+      ;;
+  esac
 }
 
 
@@ -896,7 +1018,7 @@ vc__list_local_branches()
 }
 
 # regenerate .git/info/exclude
-vc__update()
+vc__regenerate()
 {
   local excludes=.git/info/exclude
 
@@ -919,6 +1041,30 @@ vc__update()
   note "Local excludes successfully regenerated"
 }
 
+# Add/update annex-dir remote
+# If in an annex checkout, get repo name, and add remote $ANNEX_DIR/<repo>.git
+vc__annex_local()
+{
+  test -n "$ANNEX_DIR" || error "ANNEX_DIR empty" 1
+  test -d "$ANNEX_DIR" || error "ANNEX_DIR is not a dir '$ANNEX_DIR'" 1
+
+  git=$(__vc_git_codir)
+  test -n "$git" || err "not a checkout" 230
+
+  repo=$(__vc_gitrepo)
+  test -n "$repo" || err "no repo found for CWD" 1
+
+  test -e $ANNEX_DIR/$repo || {
+    mkdir -p $(dirname $ANNEX_DIR/$repo)
+    git clone $git $ANNEX_DIR/$repo
+  }
+
+  git config remote.annex-dir.url >/dev/null && {
+    git remote set-url annex-dir $ANNEX_DIR/$repo
+  } || {
+    git remote add annex-dir $ANNEX_DIR/$repo
+  }
+}
 
 # ----
 
