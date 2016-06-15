@@ -82,7 +82,18 @@ disk__check_all()
     fnmatch "*[0-9]" "$dev" && {
       echo - $dev $(disk_partition_type $dev)
     } || {
-      echo disk $dev $(disk_id $dev) $(disk_tabletype  $dev) 
+      disk_id=$(disk_id $dev)
+      test "$disk_id" = "" && {
+        error "Unknown partition type on disk '$dev'" 1
+      } || {
+        echo disk $dev $disk_id $(disk_tabletype $dev) 
+        is_mounted $dev && {
+          echo TODO find $dev mount point
+        } || {
+          echo copy_fs $dev .package.{y*ml,sh}
+          #copy_fs $dev '.package.{y*ml,sh}'
+        }
+      }
     }
   done
 }
