@@ -256,4 +256,9 @@ EOM
   test "${lines[@]}" = "9"
 }
 
+@test "$bin check-disks" {
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  fnmatch "Path*OK*" "${lines[*]}"
+}
 
