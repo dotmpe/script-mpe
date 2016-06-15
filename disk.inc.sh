@@ -58,6 +58,7 @@ find_partition_ids()
 }
 
 # TODO handle disk-ids too
+
 mount_tmp()
 {
   test -n "$1" || error "Device or disk-id required" 1
@@ -72,7 +73,16 @@ is_mounted()
   test -n "$1" || error "Device or disk-id required" 1
   test -z "$2" || error "surplus arguments '$2'" 1
   {
-    mount | grep -qF $1
+    mount | grep -q '^'$1
+  } || return $?
+}
+
+find_mount()
+{
+  test -n "$1" || error "Device or disk-id required" 1
+  test -z "$2" || error "surplus arguments '$2'" 1
+  {
+    mount | grep '^'$1 | cut -d ' ' -f 3
   } || return $?
 }
 
@@ -93,3 +103,13 @@ copy_fs()
   test -n "$4" || set -- "$@" 0
   return $4
 }
+
+disk_catalog_import()
+{
+  test -e "$1" || {
+    error "No metafile $1"
+    return 1
+  }
+  echo 1: $1
+}
+

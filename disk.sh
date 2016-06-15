@@ -69,6 +69,12 @@ disk__mount_tmp()
 
 disk__copy_fs()
 {
+  test -n "$1" || error "Device or disk-id required" 1
+  test -n "$2" || error "Filename required" 1
+  test -n "$3" || set -- "$1" "$2" "/tmp"
+  test -z "$4" || error "surplus arguments '$4'" 1
+
+  copy_fs "$1" "$2" "$3"
   note "Copied '$2' to '$3'"
 }
 
@@ -80,19 +86,47 @@ disk__check_all()
   get_targets /dev/disk | while read dev
   do
     fnmatch "*[0-9]" "$dev" && {
-      echo - $dev $(disk_partition_type $dev)
+
+      # Get partition meta
+
+      fstype=$(disk_partition_type $dev)
+      is_mounted $dev && {
+
+        mount=$(find_mount $dev)
+        disk_catalog_import $mount/.package.sh && {
+
+          echo
+        } || {
+
+          echo "- $mount ($fstype at $dev)"
+        }
+
+      } || {
+
+        # FIXME: get proper way of detecting supported fs types
+        case "$fstype" in
+          ext* | vfat | ntfs )
+              echo $fstype copy_fs $dev '.package.{y*ml,sh}'
+            ;;
+          '' | swap )
+              info "Ignored partition $dev ($fstype)";;
+          * )
+              error "Unhandled fs type '$fstype'"
+            ;;
+        esac
+      }
+
     } || {
+
+      # Get disk meta
+
+      echo
+
       disk_id=$(disk_id $dev)
       test "$disk_id" = "" && {
         error "Unknown partition type on disk '$dev'" 1
       } || {
-        echo disk $dev $disk_id $(disk_tabletype $dev) 
-        is_mounted $dev && {
-          echo TODO find $dev mount point
-        } || {
-          echo copy_fs $dev .package.{y*ml,sh}
-          #copy_fs $dev '.package.{y*ml,sh}'
-        }
+        echo "$disk_id $dev $(disk_tabletype $dev) "
       }
     }
   done
