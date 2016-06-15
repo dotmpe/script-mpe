@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load helper
+load vc
 base=vc.sh
 init
 
@@ -41,6 +42,7 @@ init
 }
 
 @test "$bin ps1" {
+
   cd /tmp
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
@@ -52,17 +54,6 @@ init
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "/tmp" = "${lines[*]}"
-}
-
-setup_clean_git()
-{
-  local tmpd=/tmp/script-mpe-vc-bats-$(uuidgen)
-  mkdir -vp $tmpd
-  cd $tmpd
-  git init
-  touch .gitignore
-  git add .
-  git ci -m Init
 }
 
 @test "$bin bits" {
@@ -133,3 +124,4 @@ setup_clean_git()
 }
 
 
+# vim:ft=sh:
