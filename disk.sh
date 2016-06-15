@@ -93,9 +93,12 @@ disk__check_all()
       is_mounted $dev && {
 
         mount=$(find_mount $dev)
-        disk_catalog_import $mount/.package.sh && {
+        disk_catalog_import $mount/.volumes.sh && {
 
-          echo
+          # Note: disk_id is set in preceeding look
+          . $DISK_CATALOG/$disk_id.sh
+          echo "- $mount ($fstype at $dev)"
+
         } || {
 
           echo "- $mount ($fstype at $dev)"
@@ -124,7 +127,7 @@ disk__check_all()
 
       disk_id=$(disk_id $dev)
       test "$disk_id" = "" && {
-        error "Unknown partition type on disk '$dev'" 1
+        error "Unknown type or unreadable partition table on disk '$dev'" 1
       } || {
         echo "$disk_id $dev $(disk_tabletype $dev) "
       }
@@ -143,8 +146,10 @@ disk_load()
   test -n "$hostname" || hostname=$(hostname)
   test -n "$domainname" || domainname=$(domainname)
 
+  test -n "$DISK_CATALOG" || export DISK_CATALOG=$HOME/.diskdoc
   #test -n "$DISK_VOL_DIR" || export DISK_VOL_DIR=/srv
 
+  test -d "$DISK_CATALOG" || mkdir -p $DISK_CATALOG
 
   for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
   do case "$x" in
