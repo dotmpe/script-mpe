@@ -90,8 +90,8 @@ disk__check_all()
         is_mounted $dev && {
           echo TODO find $dev mount point
         } || {
-          echo copy_fs $dev .package.{y*ml,sh}
-          #copy_fs $dev '.package.{y*ml,sh}'
+          echo copy_fs $dev '.volumes.{y*ml,sh}'
+          #copy_fs $dev '.volumes.{y*ml,sh}'
         }
       }
     }
