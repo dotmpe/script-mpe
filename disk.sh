@@ -12,7 +12,8 @@ disk__edit()
   $EDITOR \
     $0 \
     $(which disk.sh) \
-    $(dirname $(which disk.sh)/disk.rst) \
+    $(dirname $(which disk.sh))/disk.inc.sh \
+    $(dirname $(which disk.sh))/disk.rst \
     $(which diskdoc.sh) \
     $(which diskdoc.py) \
     "$@"
@@ -78,10 +79,15 @@ disk__copy_fs()
   note "Copied '$2' to '$3'"
 }
 
+disk__check()
+{
+  disk__check_all || return $?
+}
 
 # Sort of wizard, check/init vol(s) interactively for current disks
 disk__check_all()
 {
+  note "Got r00t"
   test -d /dev/disk || error "Expected /dev/disk, e.g. Linux, not '$uname'" 1
   get_targets /dev/disk | while read dev
   do
@@ -133,6 +139,8 @@ disk__check_all()
       }
     }
   done
+
+  echo
 }
 
 

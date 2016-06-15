@@ -112,7 +112,6 @@ disk_catalog_import()
   }
   (
     eval $(sed 's/volumes_main_//g' $1)
-    #env | grep '^aliases'
     {
       echo vol_id=$id
       echo disk_id=$disk_id
