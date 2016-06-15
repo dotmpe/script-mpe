@@ -3,6 +3,7 @@ Current inventaris docs are in ~/htdocs.
 But want something more managable. See 2016-06-15 jrnl.
 
 disk cmd is free so use that. See also ``diskdoc.*``.
+Also have some disk handling in htd, consolidated parted parts.
 
 
 .volumes.yaml::
