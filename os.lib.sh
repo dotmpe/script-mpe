@@ -146,6 +146,12 @@ go_to_directory()
 # Resolve all symlinks in subtree, return a list with targets
 get_targets()
 {
-  find $1 -type l -exec readlink {} + | sort -u
+  test -n "$1" || set -- /srv
+  # Assume
+  find $1 -type l | while read link
+  do
+    target=$(readlink $link)
+    normalize_relative $(dirname $link)/$target
+  done | sort -u
 }
 
