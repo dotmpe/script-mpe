@@ -2,14 +2,14 @@
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
-# Id: script.mpe/0.0.0+20150911-0659 htd
+# Id: script-mpe/0.0.0+20150911-0659 htd
 
 htd_src=$_
 test -z "$__load_lib" || set -- "load-ext"
 
 set -e
 
-version=0.0.0-dev # script.mpe
+version=0.0.0-dev # script-mpe
 
 
 htd_load()
@@ -440,7 +440,7 @@ htd__script()
   }
 
   # TODO: generate script to run. This keeps a JSON blob associated with
-  # htd-script and the script.mpe package (tools.yml). Gonna want a JSON
+  # htd-script and the script-mpe package (tools.yml). Gonna want a JSON
   # for shell scripts/aliases/etc. Also validation.
 
   #    while test -n "$1"

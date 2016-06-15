@@ -128,6 +128,7 @@ vc__commands()
 	echo '  projects                XXX: list remotes in projectdir'
 	echo '  remotes                 List remotes in repo. '
 	echo '  regenerate              Regenerate local excludes. '
+  echo '  local                   Find or create bare remote (default: $SCM_GIT_DIR)'
 	echo '  annex-local             Find or create remote annex repo in $ANNEX_DIR'
 	echo ''
 	echo 'Other commands: '
@@ -204,15 +205,16 @@ __vc_bzrdir()
 }
 
 # __vc_gitdir accepts 0 or 1 arguments (i.e., location)
-# returns absolute location of .git repo
+# echo absolute location of .git repo, return
+# be silent otherwise
 __vc_gitdir()
 {
   test -n "$1" || set -- $(pwd -P)
 	test -d "$1/.git" && {
 		echo "$1/.git"
   } || (
-    cd "$1"
-    git rev-parse --git-dir
+    cd "$1" || return 2
+    git rev-parse --git-dir 2>/dev/null || return 1
   )
 }
 
@@ -566,7 +568,7 @@ __vc_gitrepo()
     remote-* )
         local remote=$(echo $1 | cut -c8-)
         git config remote.$remote.url | sed -E '
-          s/^.*:([A-Za-z0-9_-]*)\/([A-Za-z0-9_-]*)(.git)?/\1\/\2/'
+          s/^.*:([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+)(\.git)?$/\1\/\2/'
       ;;
 
     * )
@@ -1041,30 +1043,78 @@ vc__regenerate()
   note "Local excludes successfully regenerated"
 }
 
-# Add/update annex-dir remote
+
+vc__gitrepo()
+{
+  __vc_gitrepo || return $?
+}
+
+# Add/update local git bare repo
+vc__local()
+{
+  test -n "$1" || set -- "SCM_GIT_DIR" "$2"
+  test -n "$2" || set -- "$1" "git-local"
+  test -z "$3" || error "surplus arguments '$3'" 1
+
+  set -- "$@" "$(eval echo \$$1)"
+  test -n "$3" || error "$1 empty" 1
+  test -d "$3" || error "$1 is not a dir '$3'" 1
+
+  git=$(__vc_git_codir)
+  test -n "$git" || error "not a checkout" 230
+
+  repo=$(__vc_gitrepo)
+  test -n "$repo" || error "no repo found for CWD" 1
+
+  test -e $3/$repo || {
+    mkdir -p $(dirname $3/$repo)
+
+    git clone $clone_flags $git $3/$repo || {
+      error "Failed creating bare clone '$2' '$3/$repo'" 1
+    }
+  }
+
+  git config remote.$2.url >/dev/null && {
+    test "$(git config remote.$2.url)" = "$3/$repo" \
+      && note "Remote '$2' url up to date" \
+      || {
+        git remote set-url $2 $3/$repo \
+          && note "Updated remote '$2' url" \
+          || error "Failed updating remote '$2' url '$3/$repo'" 1
+      }
+  } || {
+    git remote add $2 $3/$repo \
+      && note "Added remote '$2'" \
+      || error "Failed adding remote '$2' url '$3/$repo'" 1
+    git annex fetch $2
+  }
+}
+
+# Add/update for local annex-dir remote
 # If in an annex checkout, get repo name, and add remote $ANNEX_DIR/<repo>.git
 vc__annex_local()
 {
-  test -n "$ANNEX_DIR" || error "ANNEX_DIR empty" 1
-  test -d "$ANNEX_DIR" || error "ANNEX_DIR is not a dir '$ANNEX_DIR'" 1
-
-  git=$(__vc_git_codir)
-  test -n "$git" || err "not a checkout" 230
-
-  repo=$(__vc_gitrepo)
-  test -n "$repo" || err "no repo found for CWD" 1
-
-  test -e $ANNEX_DIR/$repo || {
-    mkdir -p $(dirname $ANNEX_DIR/$repo)
-    git clone $git $ANNEX_DIR/$repo
-  }
-
-  git config remote.annex-dir.url >/dev/null && {
-    git remote set-url annex-dir $ANNEX_DIR/$repo
-  } || {
-    git remote add annex-dir $ANNEX_DIR/$repo
+  test -n "$1" || set -- "ANNEX_DIR" "$2"
+  test -n "$2" || set -- "$1" "annex-dir"
+  clone_flags=--bare \
+  vc__local $1 $2 || return $?
+  git annex sync $2 \
+    && note "Succesfully synced annex with $2" \
+    || error "Syncing annex with $2" 1
+  echo "Press return to finish, or enter:"
+  echo " 1|m[ove] or 2|c[opy] for annex contents to $2.."
+  read act >/dev/null
+  test -z "$act" || {
+    case "$act" in
+      1 | m* ) act=move;;
+      2 | c* ) act=copy;;
+    esac
+    git annex $act --to $2 \
+      || return $? \
+      && note "Succesfully ran annex $act to $2"
   }
 }
+
 
 # ----
 

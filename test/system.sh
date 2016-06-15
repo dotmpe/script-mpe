@@ -2,7 +2,7 @@
 # system tests
 
 NUM="$1"
-PREFIX="/tmp/tests/script.mpe/system_$NUM"
+PREFIX="/tmp/tests/script-mpe/system_$NUM"
 
 if test -z "$1"; then
     while $0 $((++i)); do true; done
@@ -77,7 +77,7 @@ function coveragereport
 
 function line
 {
-  printf -- "$CHAR%.0s" {1..70} 
+  printf -- "$CHAR%.0s" {1..70}
   printf "\n"
 }
 
@@ -138,7 +138,7 @@ case $1 in
   5)
     test_start myCalendar
     check_run "python myCalendar.py"
-    check_run "myCalendar.py ." 
+    check_run "myCalendar.py ."
     check_out "myCalendar.py -h" myCalendar_help
     test_end
     ;;
@@ -157,7 +157,7 @@ case $1 in
 
   8)
     test_start cmdline
-    check_run "cmdline.py" 
+    check_run "cmdline.py"
     SRC1=$PREFIX.source1
     mkdir -p $SRC1/foo/bar
     touch $SRC1/foo/bar/baz-1
