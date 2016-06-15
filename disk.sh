@@ -87,7 +87,8 @@ disk__check()
 # Sort of wizard, check/init vol(s) interactively for current disks
 disk__check_all()
 {
-  note "Got r00t"
+  note "Got r00t?"
+  sudo printf ""
   test -d /dev/disk || error "Expected /dev/disk, e.g. Linux, not '$uname'" 1
   get_targets /dev/disk | while read dev
   do
