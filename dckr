@@ -354,7 +354,7 @@ dckr__init_munin()
 {
   dckr_f_argv $@
   image_name=scalingo-munin-server
-  dckr_name=scalingo_munin
+  dckr_name=${hostname}-munin-server
   test -d ~/project/docker-munin-server || {
     cd ~/project; pd enable docker-munin-server || return 1
   }
@@ -366,14 +366,14 @@ dckr__init_munin()
 dckr__stop_munin()
 {
   image_name=scalingo-munin-server
-  dckr_name=scalingo_munin
+  dckr_name=${hostname}-munin-server
   dckr_stop
 }
 
 dckr__run_munin()
 {
   image_name=scalingo-munin-server
-  dckr_name=scalingo_munin
+  dckr_name=${hostname}-munin-server
   dckr_run 
 }
 
@@ -1069,7 +1069,7 @@ test ! -e $DCKR_CONF/local.sh || {
 
 dckr_main()
 {
-  local scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+  test -n "$scriptdir" || scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
   dckr_init || return 0
 
   local scriptname=dckr base=$(basename $0 .sh) verbosity=5
