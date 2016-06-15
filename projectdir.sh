@@ -998,10 +998,10 @@ pd__usage()
 pd__help()
 {
   pd__usage
-  echo 'Functions: '
-  echo '  status                           List abbreviated status strings for all repos'
-  echo ''
-  echo '  help                             print this help listing.'
+  echo 'Functions:           '
+  echo '  status             List abbreviated status strings for all repos'
+  echo '                     '
+  echo '  help               print this help listing.'
   # XXX _init is bodged, std__help pd "$@"
 }
 
