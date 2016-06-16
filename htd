@@ -2,14 +2,14 @@
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
-# Id: script.mpe/0.0.0+20150911-0659 htd
+# Id: script-mpe/0.0.0+20150911-0659 htd
 
 htd_src=$_
 test -z "$__load_lib" || set -- "load-ext"
 
 set -e
 
-version=0.0.0-dev # script.mpe
+version=0.0.0-dev # script-mpe
 
 
 htd_load()
@@ -183,11 +183,6 @@ htd_commands()
   echo '  git-remote [repo]                List all names remotely, or give the SSH url for given repo. '
   echo '  git-init-remote [repo]           Initialze remote bare repo if local path is GIT project'
   echo '  git-remote-info                  Show current ~/.conf/git-remotes/* vars.'
-  echo '  git-largest-objects (10)         List the SHA1 sums of the largest objects.'
-  echo '  git-path-for-object <sha1>       Given SHA1 object, find its current path.'
-  echo '  git-annex-unused                 Show keys of stored objects without path using them. '
-  echo '  git-annex-show-unused            Show commit logs for unused keys. '
-  echo '  git-annex-clear-unused [<to>]    Drop the unused keys, or move to remote. '
   echo ''
   echo 'Working tree utils'
   echo '  check-names [. [<tags>]]         Check names in path, according to tags.'
@@ -440,7 +435,7 @@ htd__script()
   }
 
   # TODO: generate script to run. This keeps a JSON blob associated with
-  # htd-script and the script.mpe package (tools.yml). Gonna want a JSON
+  # htd-script and the script-mpe package (tools.yml). Gonna want a JSON
   # for shell scripts/aliases/etc. Also validation.
 
   #    while test -n "$1"
@@ -2360,60 +2355,28 @@ htd__disk_id()
 {
   test -n "$1" || error "Disk expected" 1
   test -e "$1" || error "Disk path expected '$1'" 1
-
-  diskid="$(sudo fdisk -l $1 | grep Disk.identifier\
-      | sed 's/^Disk.identifier: //')"
-  echo $diskid
+  disk_id "$1" || return $?
 }
 
 htd__disk_model()
 {
   test -n "$1" || error "Disk expected" 1
   test -e "$1" || error "Disk path expected '$1'" 1
-
-  diskmodel="$(sudo parted -s $1 print | grep Model: \
-      | sed 's/^Model: //')"
-  echo $diskmodel
+  disk_id "$1" || return $?
 }
 
 htd__disk_size()
 {
   test -n "$1" || error "Disk expected" 1
   test -e "$1" || error "Disk path expected '$1'" 1
-
-  disksize="$(sudo parted -s $1 print | grep Disk.*: \
-      | sed 's/^Disk[^:]*: //')"
-  echo $disksize
+  disk_size "$1" || return $?
 }
 
 htd__disk_tabletype()
 {
   test -n "$1" || error "Disk expected" 1
   test -e "$1" || error "Disk path expected '$1'" 1
-
-  disktabletype="$(sudo parted -s $1 print | grep Partition.Table: \
-      | sed 's/^Partition.Table: //')"
-  echo $disktabletype
-}
-
-find_partition_ids()
-{
-  find /dev/disk/by-uuid -type l | while read path
-  do
-    test "$(basename $(readlink $path))" != "$(basename $1)" || {
-      echo UUID:$(basename $path)
-    }
-  done
-
-  if test -e /dev/disk/by-partuuid
-  then
-    find /dev/disk/by-partuuid -type l | while read path
-    do
-      test "$(basename $(readlink $path))" != "$(basename $1)" || {
-        echo PART-UUID:$(basename $path)
-      }
-    done
-  fi
+  disk_tabletype "$1" || return $?
 }
 
 htd__disks()
@@ -3225,6 +3188,7 @@ htd_init()
   . $scriptdir/date.lib.sh
   . $scriptdir/doc.lib.sh
   . $scriptdir/table.lib.sh
+  . $scriptdir/disk.inc.sh
   # -- htd box init sentinel --
 }
 

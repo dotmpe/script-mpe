@@ -4,7 +4,7 @@
 
 - job:
     name: 'script-mpe-pipeline'
-    version: 0.0.0-dev # script.mpe
+    version: 0.0.0-dev # script-mpe
 
     description: |
       Testing Script.mpe in Jenkins CI Pipeline. FIXME: Experimental. Proper

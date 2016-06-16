@@ -143,4 +143,15 @@ go_to_directory()
   test -e "$doc" || return 1
 }
 
+# Resolve all symlinks in subtree, return a list with targets
+get_targets()
+{
+  test -n "$1" || set -- /srv
+  # Assume
+  find $1 -type l | while read link
+  do
+    target=$(readlink $link)
+    normalize_relative $(dirname $link)/$target
+  done | sort -u
+}
 

@@ -9,7 +9,7 @@ Build-status
 
 Stats
     .. image:: http://img.shields.io/badge/github-stats-ff5500.svg
-      :target: http://githubstats.com/dotmpe/script.mpe
+      :target: http://githubstats.com/dotmpe/script-mpe
       :alt: GitHub Stats
 
 

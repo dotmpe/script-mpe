@@ -1,10 +1,14 @@
-# git-versioning main: script.mpe
+# git-versioning main: script-mpe
 
 - type: application/x-project-mpe
-  main: script.mpe
-  id: script.mpe
-  version: 0.0.0-dev # script.mpe
+  main: script-mpe
+  id: script-mpe
+  version: 0.0.0-dev # script-mpe
   environments: [ 'development' ]
+
+  vendor: dotmpe
+  distribution: public
+  license: GPL
 
   pd-meta:
 
