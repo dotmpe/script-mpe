@@ -104,7 +104,8 @@ disk__check_all()
         disk_catalog_import $mount/.volumes.sh && {
 
           # Note: disk_id is set in preceeding look
-          . $DISK_CATALOG/$disk_id.sh
+          #. $DISK_CATALOG/$disk_id-.sh
+
           echo "- $mount ($fstype at $dev)"
 
         } || {
@@ -160,6 +161,8 @@ disk_load()
   #test -n "$DISK_VOL_DIR" || export DISK_VOL_DIR=/srv
 
   test -d "$DISK_CATALOG" || mkdir -p $DISK_CATALOG
+  mkdir -p $DISK_CATALOG/disk
+  mkdir -p $DISK_CATALOG/volume
 
   for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
   do case "$x" in

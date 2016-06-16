@@ -104,21 +104,106 @@ copy_fs()
   return $4
 }
 
+disk_catalog_put_disk()
+{
+  test -n "$disk_id" || error "disk-id not set" 1
+  test -n "$volumes_main_id" || error "volumes-main-id not set" 1
+  {
+    echo host=\"$host\"
+    echo disk_id=$volumes_main_disk_id
+    echo disk_index=$volumes_main_disk_index
+    test -n "$volumes" \
+      && echo volumes=\"$volumes $volumes_main_id\" \
+      || echo volumes=\"$volumes_main_id\"
+
+  } > $DISK_CATALOG/disk/$disk_id.sh
+}
+
+disk_catalog_update_disk()
+{
+  test "$disk_id" = "$volumes_main_disk_id" \
+    || error "disk-id mismatch '$1'" 1
+  test "$disk_index" = "$volumes_main_disk_index" \
+    || error "disk-index mismatch '$1'" 1
+
+  info "Current host: '$host'"
+  info "Existing volumes: '$volumes'"
+
+  local update=
+  fnmatch *"$volumes_main_id"* "$volumes" || update=1
+  test "$(hostname)" = "$host" || update=1
+
+  test -z "$update" ||  {
+    disk_catalog_put_disk || return $?
+  }
+}
+
+# Check .volumes.sh schema for disk
+disk_catalog_volumes_check()
+{
+  test -n "$volumes_main_id" || error "Volumes doc '$1' missing id" 1
+  test -n "$volumes_main_part_id" \
+    || error "Volumes doc '$1' missing part_id" 1
+  test -n "$volumes_main_part_index" \
+    || error "Volumes doc '$1' missing part_index" 1
+  test -n "$volumes_main_disk_id" \
+    || error "Volumes doc '$1' missing disk_id" 1
+  test -n "$volumes_main_disk_index" \
+    || error "Volumes doc '$1' missing disk_index" 1
+}
+
+disk_catalog_update()
+{
+  test -n "$1" || error "disk-catalog-update volumes-sh expected" 1
+  #eval $(sed 's/volumes_main_//g' $1)
+  #test -n "$id" || error "Volumes doc '$1' missing id" 1
+  host="$(hostname)"
+  volumes_main_id= volumes_main_part_id= volumes_main_part_index=
+
+  eval $(cat $1)
+  disk_catalog_volumes_check "$1"
+
+  # Extract disk ID parts from volumes doc
+  test -e "$DISK_CATALOG/disk/$disk_id.sh" \
+    && {
+
+      . "$DISK_CATALOG/disk/$disk_id.sh"
+      disk_catalog_update_disk "$1"
+
+    } || {
+      test "$disk_id" = "$volumes_main_disk_id" \
+        || error "disk-id mismatch '$1'" 1
+      disk_catalog_put_disk
+    }
+
+}
+
+disk_catalog_update_volume()
+{
+  test -e "$DISK_CATALOG/volume/$disk_id-$volumes_main_part_index.sh" \
+    && {
+      part_id="$volumes_main_part_id"
+      . $DISK_CATALOG/volume/$disk_id-$volumes_main_part_index.sh
+      test "$volumes_main_part_id" = "$part_id" || {
+        warn "Partition changed: $volumes_main_part_id"
+      }
+    } || {
+      cp $1 $DISK_CATALOG/volume/$disk_id-$volumes_main_part_index.sh
+    }
+}
+
+# evaluate, and use update env to copy file
 disk_catalog_import()
 {
   test -e "$1" || {
     error "No metafile $1"
     return 1
   }
+  test -n "$DISK_CATALOG" || error "DISK_CATALOG not set" 1
   (
-    eval $(sed 's/volumes_main_//g' $1)
-    {
-      echo vol_id=$id
-      echo disk_id=$disk_id
-      echo label=$label
-      echo description=$description
-      echo mount=$mount
-    } > $DISK_CATALOG/$disk_id.sh
+    disk_catalog_update "$1" || return $?
+    disk_catalog_update_volume "$1" || return $?
   )
+  note "Imported '$1'"
 }
 
