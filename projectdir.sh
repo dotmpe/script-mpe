@@ -769,16 +769,23 @@ pd__run()
   case "$1" in
 
     '*' | bats-specs )
-        local PREFIX=$(dirname $(dirname $(which bats)))
+
+        # Get path to bats libexec's
+        bats_bin=$(which bats)
+        while test -h "$bats_bin"; do bats_bin="$(realpath "$bats_bin")"; done
+
+        local PREFIX="$(dirname "$(dirname "$bats_bin")")"
+        # FIXME: still needed at travis?
         case "$(whoami)" in
           travis )
-              PATH=$PATH:$HOME/.local/libexec/
+              export PATH=$PATH:$HOME/.local/libexec/
             ;;
           * )
-              PATH=$PATH:$PREFIX/libexec/
+              export PATH=$PATH:$PREFIX/libexec/
             ;;
         esac
         unset PREFIX
+
         count=0; specs=0
         for x in ./test/*-spec.bats
         do
@@ -789,6 +796,11 @@ pd__run()
         test $count -gt 0 \
           && note "$specs specs, $count spec-files OK" \
           || { warn "No Bats specs found"; echo $1 >>$failed; }
+      ;;
+
+    bats:* )
+        export $(hostname -s | tr 'a-z.-' 'A-Z__')_SKIP=1
+        { bats $(echo $1 | cut -c 6-).bats || echo $1>>$failed; } | bats-color.sh
       ;;
 
     '*' | bats )
