@@ -161,7 +161,12 @@ pd__status()
 pd_load__clean=y
 pd__clean()
 {
-  local R=0; pd_clean "$1" || R=$?;
+  local R=0
+  test -z "$2" || pd_meta_clean_mode="$2"
+  test -n "$pd_meta_clean_mode" \
+    || pd_meta_clean_mode="$( pd__meta clean-mode "$1" )"
+  
+  pd_clean "$1" || R=$?;
   case "$R" in
     0|"" )
         info "OK $(vc__stat "$1")"

@@ -82,7 +82,10 @@ disk__copy_fs()
 
 disk__check()
 {
-  disk__check_all || return $?
+  {
+    disk__check_all \
+      || return $?
+  } > ~/.conf/disk/$hostname.txt
 }
 
 # Sort of wizard, check/init vol(s) interactively for current disks
