@@ -11,6 +11,11 @@ box_load()
   mkvid $(pwd)
   nid_cwd=$vid
   unset vid
+
+  test -n "$box_name" || box_name=$hostname
+
+  test -e "$BOX_DIR/bin/$box_name" \
+    && box_file="$BOX_DIR/bin/$box_name"
 }
 
 box_docs()

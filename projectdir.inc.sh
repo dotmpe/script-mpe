@@ -36,17 +36,22 @@ pd_clean()
     return 1
   }
 
-  test -n "$choice_strict" \
-    && cruft="$(cd $1; vc__excluded)" \
-    || {
+  test -n "$pd_meta_clean_mode" || pd_meta_clean_mode=untracked
 
-      pd__meta -q clean-mode $1 tracked || {
+  trueish "$choice_strict" \
+    && pd_meta_clean_mode=excluded
 
-        pd__meta -q clean-mode $1 excluded \
-          && cruft="$(cd $1; vc__excluded)" \
-          || cruft="$(cd $1; vc__unversioned_files)"
-      }
-    }
+  debug "Mode: $pd_meta_clean_mode"
+
+  test "$pd_meta_clean_mode" = tracked || {
+
+    #cruft="$(cd $1; vc__excluded)"
+
+    test "$pd_meta_clean_mode" = excluded \
+      && cruft="$(cd $1; vc__excluded)" \
+      || cruft="$(cd $1; vc__unversioned_files)"
+  }
+
 
   test -z "$cruft" || {
     trueish $choice_force && {

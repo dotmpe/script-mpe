@@ -3148,6 +3148,25 @@ htd__filesize_hist()
 }
 
 
+
+# exit succesfully after receiving 4 replies
+htd__ping()
+{
+  case "$uname" in
+
+    Darwin )
+        ping -ot 4 $1 || return $?
+      ;;
+
+    Linux )
+        ping -c 4 $1
+      ;;
+
+  esac
+}
+
+
+
 ### Main
 
 

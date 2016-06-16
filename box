@@ -45,6 +45,10 @@ box__als__S=stat
 box__stat()
 {
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  test -n "$box_file" || error "no box for '$box_name'" 1
+  $box_file status
+  return $?
+
   note "FIXME this is more like a info list. need something more actual for stat. think about keeping state in files.."
 
   local_file=$BOX_DIR/$(hostname -s | tr 'A-Z' 'a-z')/${nid_cwd}.sh
@@ -71,11 +75,11 @@ box__edit()
   }
   test -n "$choice_global" && {
     func_name=$global_func_name scope=global
-    files="$fn $BOX_DIR/${script_name} $script_files"
+    files="$fn $BOX_DIR/bin/${script_name} $script_files"
     note "Using **global** scope"
   } || {
     func_name=$local_func_name scope=local
-    files="$script_files $BOX_DIR/${script_name} $fn"
+    files="$script_files $BOX_DIR/bin/${script_name} $fn"
   }
   local lib_files="$(eval echo $(dry_run= box_list_libs \
       $named_script $script_name | cut -d ' ' -f 4))"
