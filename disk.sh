@@ -79,6 +79,7 @@ disk__copy_fs()
   note "Copied '$2' to '$3'"
 }
 
+
 disk__check()
 {
   disk__check_all || return $?
