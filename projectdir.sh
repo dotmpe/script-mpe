@@ -131,6 +131,8 @@ pd__status()
 
     # FIXME: merge with pd-check? Need fast access to lists..
     #pd_check $checkout || echo pd-check:$checkout >>$failed
+
+    pd_meta_clean_mode=
     pd__clean $checkout || {
       echo pd-clean:$checkout >>$failed
       #statusdir.sh assert-state \
@@ -162,11 +164,15 @@ pd_load__clean=y
 pd__clean()
 {
   local R=0
+
   test -z "$2" || pd_meta_clean_mode="$2"
   test -n "$pd_meta_clean_mode" \
     || pd_meta_clean_mode="$( pd__meta clean-mode "$1" )"
-  
+ 
+  info "Checkout: $checkout, Clean Mode: $pd_meta_clean_mode"
+
   pd_clean "$1" || R=$?;
+
   case "$R" in
     0|"" )
         info "OK $(vc__stat "$1")"

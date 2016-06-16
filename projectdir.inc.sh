@@ -41,7 +41,7 @@ pd_clean()
   trueish "$choice_strict" \
     && pd_meta_clean_mode=excluded
 
-  note "Mode: $pd_meta_clean_mode"
+  debug "Mode: $pd_meta_clean_mode"
 
   test "$pd_meta_clean_mode" = tracked || {
 
