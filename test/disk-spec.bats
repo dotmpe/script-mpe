@@ -69,10 +69,10 @@ test -n "$device_id" || device_id=disk-id
   fnmatch "*mount-tmp*Mounted*at temp*" "${lines[*]}"
 }
 
-@test "${bin} copy-fs $device_id" {
-  run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  fnmatch "*copy-fs*Copied*to*" "${lines[*]}"
-}
+#@test "${bin} copy-fs $device_id" {
+#  run $BATS_TEST_DESCRIPTION
+#  test ${status} -eq 0
+#  fnmatch "*copy-fs*Copied*to*" "${lines[*]}"
+#}
 
 
