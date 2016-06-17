@@ -46,7 +46,9 @@ box__stat()
 {
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
   test -n "$box_file" || error "no box for '$box_name'" 1
+
   $box_file status
+
   return $?
 
   note "FIXME this is more like a info list. need something more actual for stat. think about keeping state in files.."
