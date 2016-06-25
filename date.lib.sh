@@ -29,3 +29,38 @@ older_than()
 }
 
 
+# TODO: move date routines to lib
+# NOTE: these use BSD date -v, see GNU date -d
+case "$(uname)" in Darwin )
+    date_fmt() {
+      tags=$(for tag in $1; do echo "-v $tag"; done)
+      date $tags +"$2"
+    }
+    ;;
+  Linux )
+    date_fmt() {
+      # NOTE patching for GNU date
+      tags=$(for tag in $1; do echo "-d $tag" \
+          | sed 's/1d/1day/g' \
+          | sed 's/7d/1week/g'; done)
+      date $tags +"$2"
+    }
+    ;;
+esac
+
+datelink()
+{
+  test -z "$1" && datep=$(date "+$2") || datep=$(date_fmt "$1" "$2")
+  target_path=$3
+  test -d "$(dirname $3)" || error "Dir $(dirname $3) must exist" 1
+  test -L $target_path && {
+    test "$(readlink $target_path)" = "$(basename $datep)" && {
+        return
+    }
+    printf "Deleting "
+    rm -v $target_path
+  }
+  mkrlink $datep $target_path
+}
+
+

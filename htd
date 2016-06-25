@@ -670,14 +670,24 @@ htd__edit_today()
     test -e "$1" || touch $1
   }
 
+  # Open of dir causes default formatted filename+header created
   test -d "$1" && {
     note "Editing $1"
     htd__today "$1"
     # XXX: bash...
     FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
+    today=$(realpath $1/today.rst)
+    test -s "$today" || {
+      title="$(date_fmt "" '%A %G.%V')"
+      echo "$title" > $today
+      echo "$title" | tr -C '' '=' >> $today
+      printf "\n\n\n" >> $today
+    }
     $EDITOR \
       $(realpath $FILES)
     git add $1/[0-9]*-[0-9][0-9]-[0-9][0-9].rst
+
+  # Open of archive file cause day entry added
   } || {
     local Y=%Y MSEP=- M=%m DSEP=- D=%d r=
     local date_fmt="$Y$MSEP$M$DSEP$D"
