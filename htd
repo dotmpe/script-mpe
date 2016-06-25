@@ -635,44 +635,49 @@ htd__edit_today()
   local pwd=$(pwd) arg=$1
 
   cd $HTDIR
-  test -n "$1" || {
 
-    fnmatch "*/" "$1" && {
+  # XXX: edit-today
+  test -n "$1" || set -- journal/
 
-      test -e "$1" || \
-        set -- "$pwd/$1"
-      test -e "$1" || \
-        error "unknown dir $1" 1
+  fnmatch "*/" "$1" && {
 
-    } || {
+    case "$1" in *journal* )
+      set -- personal/journal
+    ;; esac
 
-      # Look for here and in pwd, or create in pwd; if ext matches filename
+    test -e "$1" || \
+      set -- "$pwd/$1"
+    test -e "$1" || \
+      error "unknown dir $1" 1
 
-      test -e "$1" || \
-        set -- "$pwd/$1"
+  } || {
 
-      test -e "$1" || \
-        fnmatch "*.$EXT" "$1"  && touch $1
+    # Look for here and in pwd, or create in pwd; if ext matches filename
 
-      # Test in htdir with ext
-      test -e "$1" || set -- "$arg$EXT"
+    test -e "$1" || \
+      set -- "$pwd/$1"
 
-      # Test in pwd with ext
-      test -e "$1" || set -- "$pwd$1$EXT"
+    test -e "$1" || \
+      fnmatch "*.$EXT" "$1"  && touch $1
 
-      # Create in pwd (with ext)
-      test -e "$1" || touch $1
-    }
+    # Test in htdir with ext
+    test -e "$1" || set -- "$arg$EXT"
+
+    # Test in pwd with ext
+    test -e "$1" || set -- "$pwd$1$EXT"
+
+    # Create in pwd (with ext)
+    test -e "$1" || touch $1
   }
 
   test -d "$1" && {
-    pwd
+    note "Editing $1"
     htd__today "$1"
     # XXX: bash...
-    FILES=$(bash -c "echo personal/journal/{today,tomorrow,yesterday}$EXT")
+    FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
     $EDITOR \
       $(realpath $FILES)
-    git add personal/journal/2*-*-*.rst
+    git add $1/[0-9]*-[0-9][0-9]-[0-9][0-9].rst
   } || {
     local Y=%Y MSEP=- M=%m DSEP=- D=%d r=
     local date_fmt="$Y$MSEP$M$DSEP$D"
@@ -3165,6 +3170,24 @@ htd__ping()
   esac
 }
 
+
+# (Re)init service volume links (srv-init) and get (repo) state (srv-stat)
+htd__srv()
+{
+  echo
+}
+htd__srv_init()
+{
+  echo
+}
+htd__srv_stat()
+{
+  echo
+}
+htd__srv_update()
+{
+  echo
+}
 
 
 ### Main
