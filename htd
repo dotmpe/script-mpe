@@ -733,6 +733,7 @@ htd__today()
 }
 
 
+# TODO: use with edit-local
 htd__edit_note()
 {
   test -n "$1" || error "ID expected" 1
