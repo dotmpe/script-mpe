@@ -234,7 +234,10 @@ other_cmds()
   echo "  info                             List env info. "
   echo "  files                            List file used by htd. "
   echo '  mk|make                          Run make (in htd dir).'
-  echo '  vt|edit-today                        '
+  echo '  vt|edit-today                    '
+  echo '  n|edit-node ID TAGS              '
+  echo '  nnl|edit-node-nnl ID TAGS        '
+  echo '  nen|edit-node-en ID TAGS         '
 }
 
 htd__docs()
@@ -728,6 +731,52 @@ htd__today()
     datelink "$tag" "$1" "${r}$tag$EXT"
   done
 }
+
+
+htd__edit_note()
+{
+  test -n "$1" || error "ID expected" 1
+  test -n "$2" || error "tags expected" 1
+  test -z "" || error "surplus arguments" 1
+
+  id="$(printf "$1" | tr -cs 'A-Za-z0-9' '-')"
+  #id="$(echo "$1" | sed 's/[^A-Za-z0-9]*/-/g')"
+
+  case " $2 " in *" nl "* | *" en "* ) ;;
+    * ) set -- "$1" "$2 en" ;; esac
+  fnmatch "* rst *" " $2 " || set -- "$1" "$2 rst"
+  ext="$(printf "$(echo $2)" | tr -cs 'A-Za-z0-9_-' '.')"
+
+  note=~/htdocs/note/$id.$ext
+
+  test -s "$note" && {
+    updated=":updated: $(date +%Y-%m-%d)"
+    grep -qi '^\:[Uu]pdated\:.*$' $note && {
+      sed -i.bak 's/^.[Uu]pdated.\.*$/'"$updated"'/g' $note
+    } || {
+      warn "Cannot update 'updated' field."
+    }
+  } || {
+    echo "$1" > $note
+    echo "$(echo "$1" | sed 's/./=/g')" >> $note
+    echo ":created: $(date +%Y-%m-%d)" >> $note
+    echo  >> $note
+  }
+  vim ~/htdocs/note/$id.$ext || return $? 
+}
+htd_als__edit_note=n
+
+htd__edit_note_nl()
+{
+  htd__edit_note "$1" "$2 nl" || return $?
+}
+htd_als__nnl=edit-note-nl
+
+htd__edit_note_en()
+{
+  htd__edit_note "$1" "$2 en" || return $?
+}
+htd_als__nen=edit-note-en
 
 
 ### VirtualBox
@@ -1510,7 +1559,7 @@ htd__show_rules()
 # and update statemachines.
 htd__period_status_files()
 {
-  touch -t $(date +%y%m%d%H%M) $(statusdir.sh file period 1min)
+  touch -t $(date %H%M) $(statusdir.sh file period 1min)
   M=$(date +%M)
   _5M=$(( $(( $M / 5 )) * 5 ))
   touch -t $(date +%y%m%d%H${_5M}) $(statusdir.sh file period 5min)
