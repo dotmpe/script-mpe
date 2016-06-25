@@ -509,6 +509,7 @@ pd__enable()
     }
     pd__init $1 || return
   }
+  note "Initialized '$1'"
 }
 
 pd_load__init_all=ybf
