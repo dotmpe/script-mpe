@@ -52,4 +52,13 @@ disk
   import-catalog <file>
     parse, consolidate settings
 
+  update <dev/disk/part>
+    (re)load catalog, check all links for volume or disk with volume(s)
+    then update links for volume(s)
+  udpate-all
+    Run update for every local disk (via /dev/disk).
+
+  check{,-all}
+    Dry-run variant of update.
+
 

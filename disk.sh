@@ -79,7 +79,8 @@ disk__copy_fs()
   note "Copied '$2' to '$3'"
 }
 
-
+# Return wether disk catalog looks up to date; 
+# ie. wether current catalog matches with available disks
 disk__check()
 {
   {
@@ -88,6 +89,7 @@ disk__check()
   } > ~/.conf/disk/$hostname.txt
 }
 
+# FIXME: check only, see init/update
 # Sort of wizard, check/init vol(s) interactively for current disks
 disk__check_all()
 {
@@ -146,6 +148,11 @@ disk__check_all()
     }
   done
 
+  echo
+}
+
+disk__update_all()
+{
   echo
 }
 

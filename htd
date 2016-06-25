@@ -3174,19 +3174,37 @@ htd__ping()
 # (Re)init service volume links (srv-init) and get (repo) state (srv-stat)
 htd__srv()
 {
-  echo
+  htd__srv_init "$@" || return $?
+  htd__srv_stat "$@" || return $?
 }
+
+# Update disk volume catalog, and reinitialize service links
 htd__srv_init()
 {
-  echo
+  disk check-all || {
+    disk update-all || {
+      error "Failed updating volumes catalog and links"
+    }
+  }
 }
+
+# Stat a volumes repositories
 htd__srv_stat()
 {
-  echo
+  # TODO: manage volume's repo's
+  
+  pd=/srv/.projects.yml
+  disk cat-to-pd /srv/ > $pd
+
+  ( cd /srv/; pd stat || return $? )
+
+  note "Local volume repositories all OK"
 }
+
+# Update volume repositories
 htd__srv_update()
 {
-  echo
+  note "TODO: Local volume repositories all updated"
 }
 
 
