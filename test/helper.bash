@@ -17,7 +17,7 @@ init()
   }
   lib=$scriptdir
 
-  . $lib/main.sh
+  . $lib/main.lib.sh
   main_init
 
   ## XXX does this overwrite bats load?

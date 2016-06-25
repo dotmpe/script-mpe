@@ -83,14 +83,18 @@ box__edit()
     func_name=$local_func_name scope=local
     files="$script_files $BOX_DIR/bin/${script_name} $fn"
   }
-  local lib_files="$(eval echo $(dry_run= box_list_libs \
+  local evoke="$EDITOR" lib_files="$(eval echo $(dry_run= box_list_libs \
       $named_script $script_name | cut -d ' ' -f 4))"
-  local evoke="$EDITOR -O2 +/${nid_cwd} \
-    -c "'":wincmd l"'" \
-    -c :sp +/${nid_cwd} \
-    -c "'"wincmd j"'" \
-    -c :bn \
-    -c "'"wincmd h"'
+  test "$EDITOR" = "vim" && {
+    # Two vertical panes, with h-split in the right,
+    # And execute search in first two.
+    evoke="$EDITOR -O2 +/${nid_cwd} \
+      -c "'":wincmd l"'" \
+      -c :sp +/${nid_cwd} \
+      -c "'"wincmd j"'" \
+      -c :bn \
+      -c "'"wincmd h"'
+  }
 
   test -z "$dry_run" || {
     debug "files='$files'"
@@ -421,7 +425,7 @@ box__log_demo()
 
 
 
-### main.sh / Box
+### main.lib.sh / Box
 
 
 ### Main
@@ -462,7 +466,7 @@ box_init()
   . $scriptdir/str.lib.sh
   . $scriptdir/util.sh
   box_run_sh_test
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/main.init.sh
   # -- box box init sentinel --
 }

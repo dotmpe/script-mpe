@@ -169,7 +169,7 @@ match_lib()
   util_init
   . $scriptdir/box.init.sh
   box_run_sh_test
-  . $scriptdir/main.sh "$@"
+  . $scriptdir/main.lib.sh "$@"
   . $scriptdir/main.init.sh
   # -- match box init sentinel --
 }

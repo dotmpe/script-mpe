@@ -14,7 +14,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
 @test "$bin no arguments no-op" {
 
-  check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
+  check_skipped_envs travis || skip "FIXME broken after main.lib.sh rewrite"
 
   #echo "${lines[*]}" > /tmp/1
   #echo "${#lines[@]}" >> /tmp/1
@@ -176,7 +176,7 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 
   skip "FIXME: $BATS_TEST_DESCRIPTION"
   #is_skipped pd && skip "FIXME: Something with stdin maybe"
-  #check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
+  #check_skipped_envs travis || skip "FIXME broken after main.lib.sh rewrite"
 
   run $BATS_TEST_DESCRIPTION
 

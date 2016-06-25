@@ -21,7 +21,7 @@ vc_load()
   test -n "$uname" || uname=$(uname)
 
   . $scriptdir/util.sh
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/match.lib.sh
 
   str_load

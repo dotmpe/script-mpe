@@ -195,7 +195,7 @@ disk_init()
   . $scriptdir/box.init.sh
   . $scriptdir/box.lib.sh
   box_run_sh_test
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/main.init.sh
   #while test $# -gt 0
   #do

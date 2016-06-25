@@ -227,7 +227,7 @@ statusdir__init()
   . $scriptdir/box.init.sh
   box_run_sh_test
   . $scriptdir/htd.lib.sh
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/main.init.sh
   . $scriptdir/box.lib.sh
   . $scriptdir/date.lib.sh
