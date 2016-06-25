@@ -118,6 +118,9 @@ statusdir__file()
   echo $STATUSDIR_ROOT"index/$tree"
 }
 
+# XXX
+
+
 
 # XXX: get some plumping commands to deal with embedded structures
 # at paths.
