@@ -347,9 +347,9 @@ htd__edit_main()
     $(dirname $fn)/*.lib.sh"
   test "$EDITOR" = "vim" && {
     # Two vertical panes, with h-split in the right
-    evoke="vim -O2 +/ \
+    evoke="vim -O2 \
       -c "'":wincmd l"'" \
-      -c :sp +/ \
+      -c :sp \
       -c "'"wincmd j"'" \
       -c :bn \
       -c "'"wincmd h"'
