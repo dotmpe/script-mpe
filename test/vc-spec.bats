@@ -69,14 +69,19 @@ init
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  fnmatch $twd' \[git:master +([0-9a-f])...\]' "${lines[*]}"
+
+  #diag "SHELL: $SHELL"
+
+  shopt -s extglob
+  fnmatch $twd' \[git:master +([0-9a-f])...\]' "${lines[*]}" \
+    || fail "'${lines[*]}'"
 
   mkdir doc
   cd doc
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
 
-  skip "Broke vc bits in subdir"
+  #skip "Broke vc bits in subdir"
 
   fnmatch $twd' \[git:master +([0-9a-f])...\]/doc' "${lines[*]}" \
     || fail "Output: ${lines[*]}"
@@ -102,12 +107,13 @@ init
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  fnmatch $twd' \[git:master\*~ +([0-9a-f])...\]' "${lines[*]}"
+  fnmatch $twd' \[git:master\*~ +([0-9a-f])...\]' "${lines[*]}" \
+    || fail "'${lines[*]}: $(git status)'"
 
   cd doc
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  fnmatch $twd' \[git:master\*~ +([0-9a-f])...\]/doc' "${lines[*]}"
+  fnmatch $twd' \[git:master\* +([0-9a-f])...\]/doc' "${lines[*]}"
 
   cd $twd
   touch CHANGELOG
@@ -115,12 +121,14 @@ init
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  fnmatch $twd' \[git:master\*\+~ +([0-9a-f])...\]' "${lines[*]}"
+  fnmatch $twd' \[git:master\*\+~ +([0-9a-f])...\]' "${lines[*]}" \
+    || fail "'${lines[*]}: $(git status)'"
 
   cd doc
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  fnmatch $twd' \[git:master\*\+~ +([0-9a-f])...\]/doc' "${lines[*]}"
+  fnmatch $twd' \[git:master\*\+ +([0-9a-f])...\]/doc' "${lines[*]}" \
+    || fail "'${lines[*]}: $(git status)'"
 }
 
 
