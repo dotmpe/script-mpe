@@ -3171,6 +3171,24 @@ htd__ping()
 }
 
 
+# (Re)init service volume links (srv-init) and get (repo) state (srv-stat)
+htd__srv()
+{
+  echo
+}
+htd__srv_init()
+{
+  echo
+}
+htd__srv_stat()
+{
+  echo
+}
+htd__srv_update()
+{
+  echo
+}
+
 
 ### Main
 
