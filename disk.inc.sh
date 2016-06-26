@@ -11,29 +11,88 @@ disk_fdisk_id()
 
 disk_id()
 {
-  udevadm info --query=all --name=$1 | grep ID_SERIAL_SHORT \
-    | cut -d '=' -f 2
+  case "$(uname)" in
+    Linux )
+        udevadm info --query=all --name=$1 | grep ID_SERIAL_SHORT \
+          | cut -d '=' -f 2
+      ;;
+    Darwin )
+        # FIXME: this only works with one disk, would need to parse XML plist
+        system_profiler SPSerialATADataType | grep -qv disk1 || {
+          error "Parse SPSerialATADataType plist" 1
+        }
+        echo $(system_profiler SPSerialATADataType | grep Serial.Number \
+          | cut -d ':' -f 2)
+      ;;
+  esac
 }
 
 disk_model()
 {
-  {
-    sudo parted -s $1 print || return $?
-  } | grep Model: | sed 's/^Model: //'
+  case "$(uname)" in
+    Linux )
+        {
+          sudo parted -s $1 print || return $?
+        } | grep Model: | sed 's/^Model: //'
+      ;;
+    Darwin )
+        # FIXME: this only works with one disk, would need to parse XML plist
+        system_profiler SPSerialATADataType | grep -qv disk1 || {
+          error "Parse SPSerialATADataType plist" 1
+        }
+        echo $(system_profiler SPSerialATADataType | head -n 15  | grep Model \
+          | cut -d ':' -f 2) | tr ' ' '-'
+      ;;
+  esac
 }
 
 disk_size()
 {
-  {
-    sudo parted -s $1 print || return $?
-  } | grep Disk.*: | sed 's/^Disk[^:]*: //'
+  case "$(uname)" in
+    Linux )
+        {
+          sudo parted -s $1 print || return $?
+        } | grep Disk.*: | sed 's/^Disk[^:]*: //'
+      ;;
+    Darwin )
+        system_profiler SPSerialATADataType | head -n 15 | grep Capacity \
+          | cut -d ':' -f 2 | cut -d ' ' -f 2
+      ;;
+  esac
 }
 
 disk_tabletype()
 {
-  {
-    sudo parted -s $1 print || return $?
-  } | grep Partition.Table: | sed 's/^Partition.Table: //'
+  case "$(uname)" in
+    Linux )
+        {
+          sudo parted -s $1 print || return $?
+        } | grep Partition.Table: | sed 's/^Partition.Table: //'
+      ;;
+    Darwin )
+        system_profiler SPSerialATADataType | grep -qv GPT || {
+          error "Parse SPSerialATADataType plist" 1
+        }
+        echo gpt
+      ;;
+  esac
+}
+
+# List local online disks (mounted or not)
+disk_list()
+{
+  case "$(uname)" in
+    Linux )
+        glob=/dev/sd*[a-z]
+        test "$(echo $glob)" = "$glob" || {
+          echo $glob | tr ' ' '\n'
+        }
+      ;;
+    Darwin )
+        # FIXME: deal with system_profiler plist datatypes
+        echo /dev/disk0
+      ;;
+  esac
 }
 
 disk_partition_type()
@@ -83,6 +142,8 @@ is_mounted()
   } || return $?
 }
 
+# TODO: Get mount point for dev/disk-id
+# Get mount point for device path
 find_mount()
 {
   test -n "$1" || error "Device or disk-id required" 1
@@ -109,6 +170,10 @@ copy_fs()
   test -n "$4" || set -- "$@" 0
   return $4
 }
+
+
+### Disk Catalog functions
+
 
 disk_catalog_put_disk()
 {

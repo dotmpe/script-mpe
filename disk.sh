@@ -61,7 +61,30 @@ disk__get_by_id()
   done
 }
 
-# Tabulate disks, and where they are.
+# Show disk info TODO: test this works at every platform
+disk__info()
+{
+  {
+    echo "#NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE"
+    echo $1 $(disk_id $1) $(disk_model $1) $(disk_size $1) $(disk_tabletype $1)
+  } | sort -n | column -tc 3
+}
+disk__info_all()
+{
+  {
+    echo "#DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE"
+    disk_list | while read disk
+    do
+      disk__info $disk | grep -Ev '^\s*(#.*|\s*)$'
+    done
+  } | sort -n | column -tc 3
+}
+disk__list_local()
+{
+  disk_list
+}
+
+# Tabulate disks, and where they are (from catalog)
 disk__list()
 {
   {
