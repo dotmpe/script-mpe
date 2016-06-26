@@ -41,7 +41,7 @@ disk_model()
           error "Parse SPSerialATADataType plist" 1
         }
         echo $(system_profiler SPSerialATADataType | head -n 15  | grep Model \
-          | cut -d ':' -f 2) | tr ' ' '-'
+          | cut -d ':' -f 2)
       ;;
   esac
 }
@@ -55,8 +55,8 @@ disk_size()
         } | grep Disk.*: | sed 's/^Disk[^:]*: //'
       ;;
     Darwin )
-        system_profiler SPSerialATADataType | head -n 15 | grep Capacity \
-          | cut -d ':' -f 2 | cut -d ' ' -f 2
+        echo $(system_profiler SPSerialATADataType | head -n 15 | grep Capacity \
+          | cut -d ':' -f 2 | cut -d ' ' -f 2 )GB
       ;;
   esac
 }

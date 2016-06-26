@@ -66,7 +66,7 @@ disk__info()
 {
   {
     echo "#NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE"
-    echo $1 $(disk_id $1) $(disk_model $1) $(disk_size $1) $(disk_tabletype $1)
+    echo $1 $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) $(disk_tabletype $1)
   } | sort -n | column -tc 3
 }
 disk__info_all()
