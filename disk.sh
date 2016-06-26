@@ -26,9 +26,59 @@ disk__status()
 }
 
 
+disk__id()
+{
+  disk_id "$1"
+}
+
+disk__fdisk_id()
+{
+  disk_fdisk_id "$1"
+}
+
+disk__rename_old()
+{
+  for disk in /dev/sd*[a-z]
+  do
+    disk_id=$(disk_id $disk)
+    disk_full_id=$(disk__get_by_id $disk_id)
+    old_disk_id=$(disk_fdisk_id $disk)
+    mv -v $DISK_CATALOG/disk/$old_disk_id.sh $DISK_CATALOG/disk/$disk_id.sh
+    (
+      cd $DISK_CATALOG/volume/
+      rename -v 's/^'"$old_disk_id"'/'"$disk_id"'/' $old_disk_id-*.sh
+    )
+  done
+}
+
+disk__get_by_id()
+{
+  test "$(echo /dev/disk/by-id/*$1)" = "/dev/disk/by-id/*$1" \
+    && return 1
+  echo /dev/disk/by-id/*$1 | grep -v '\-part' | while read path
+  do
+    basename $path
+  done
+}
+
+# Tabulate disks, and where they are.
 disk__list()
 {
-  note End
+  {
+    echo "#NUM DISK_ID DISK_UUID DISK_LABEL HOST PREFIX"
+    for disk in $DISK_CATALOG/disk/*.sh
+    do
+
+      . $disk
+
+      # Find device and check
+      dev=$(disk__get $disk_id)
+
+      printf "$disk_index. $disk_id $host $prefix\n"
+      unset host disk_id disk_index prefix volumes
+
+    done
+  } | sort -n | column -tc 3
 }
 
 

@@ -2,11 +2,17 @@
 
 
 
-disk_id()
+disk_fdisk_id()
 {
   {
     sudo fdisk -l $1 || return $?
   } | grep Disk.identifier | sed 's/^Disk.identifier: //'
+}
+
+disk_id()
+{
+  udevadm info --query=all --name=$1 | grep ID_SERIAL_SHORT \
+    | cut -d '=' -f 2
 }
 
 disk_model()
@@ -121,8 +127,11 @@ disk_catalog_put_disk()
 
 disk_catalog_update_disk()
 {
-  test "$disk_id" = "$volumes_main_disk_id" \
-    || error "disk-id mismatch '$1'" 1
+  test "$disk_id" = "$volumes_main_disk_id" || {
+    note "$disk_id != $volumes_main_disk_id"
+    error "disk-id mismatch '$1'" 1
+  }
+
   test "$disk_index" = "$volumes_main_disk_index" \
     || error "disk-index mismatch '$1'" 1
 
@@ -163,6 +172,11 @@ disk_catalog_update()
   eval $(cat $1)
   disk_catalog_volumes_check "$1"
 
+  test "$disk_id" = "$volumes_main_disk_id" || {
+    warn "Please fix ID $disk_id != $volumes_main_disk_id ($1)" 1
+    return
+  }
+
   # Extract disk ID parts from volumes doc
   test -e "$DISK_CATALOG/disk/$disk_id.sh" \
     && {
@@ -171,8 +185,10 @@ disk_catalog_update()
       disk_catalog_update_disk "$1"
 
     } || {
+
       test "$disk_id" = "$volumes_main_disk_id" \
         || error "disk-id mismatch '$1'" 1
+
       disk_catalog_put_disk
     }
 
