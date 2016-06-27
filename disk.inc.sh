@@ -95,6 +95,22 @@ disk_list()
   esac
 }
 
+disk_list_part()
+{
+  case "$(uname)" in
+    Linux )
+        glob=/dev/sd*[a-z]*[0-9]
+        test "$(echo $glob)" = "$glob" || {
+          echo $glob | tr ' ' '\n'
+        }
+      ;;
+    Darwin )
+        # FIXME: deal with system_profiler plist datatypes
+        echo /dev/disk0s*[0-9]
+      ;;
+  esac
+}
+
 disk_partition_type()
 {
   sudo blkid -o value -s TYPE $dev \

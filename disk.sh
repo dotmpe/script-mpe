@@ -61,15 +61,34 @@ disk__get_by_id()
   done
 }
 
-# Show disk info TODO: test this works at every platform
+disk__prefix()
+{
+  test -n "$1" || error "disk expected" 1
+  disk__info $1 prefix
+}
+
 disk__info()
+{
+  test -e "$DISK_CATALOG/disk/$1.sh" || {
+    set -- $(disk id $1) $2
+  }
+  test -e "$DISK_CATALOG/disk/$1.sh" \
+    || error "No such known disk $1" 1
+  . $DISK_CATALOG/disk/$1.sh
+
+  eval echo \$$2
+}
+
+
+# Show disk info TODO: test this works at every platform
+disk__local()
 {
   {
     echo "#NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE"
     echo $1 $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) $(disk_tabletype $1)
   } | sort -n | column -tc 3
 }
-disk__info_all()
+disk__list_local()
 {
   {
     echo "#DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE"
@@ -78,30 +97,36 @@ disk__info_all()
       disk__info $disk | grep -Ev '^\s*(#.*|\s*)$'
     done
   } | sort -n | column -tc 3
+  echo "# Disks at $(hostname), $(date --iso)"
 }
 disk__list_local()
 {
   disk_list
+}
+disk__list_part_local()
+{
+  disk_list_part
 }
 
 # Tabulate disks, and where they are (from catalog)
 disk__list()
 {
   {
-    echo "#NUM DISK_ID DISK_UUID DISK_LABEL HOST PREFIX"
+    echo "#NUM DISK_ID HOST PREFIX"
     for disk in $DISK_CATALOG/disk/*.sh
     do
 
       . $disk
 
       # Find device and check
-      dev=$(disk__get $disk_id)
+      dev=$(disk__get_by_id $disk_id)
 
       printf "$disk_index. $disk_id $host $prefix\n"
       unset host disk_id disk_index prefix volumes
 
     done
   } | sort -n | column -tc 3
+  echo "# Catalog at $(hostname):$DISK_CATALOG, $(date --iso)"
 }
 
 

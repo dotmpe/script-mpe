@@ -3249,7 +3249,8 @@ htd__ping()
 # (Re)init service volume links (srv-init) and get (repo) state (srv-stat)
 htd__srv()
 {
-  echo
+  htd__srv_init || return $?
+  htd__srv_stat || return $?
 }
 htd__srv_init()
 {
@@ -3263,6 +3264,79 @@ htd__srv_update()
 {
   echo
 }
+
+# services list
+SRVS="archive archive-old scm-git src annex www-data cabinet htdocs shared \
+  docker"
+# TODO: use service names from disk catalog
+
+# Go over local disk to see if volume links are there
+htd__ls_volumes()
+{
+  disk list-local | while read disk
+  do
+    prefix=$(disk prefix $disk 2>/dev/null)
+    test -n "$prefix" || error "No prefix found" 1
+
+    disk_index=$(disk info $disk disk_index 2>/dev/null)
+
+    for volume in /mnt/$prefix-*
+    do
+      test -e $volume/.volumes.sh || continue
+      . $volume/.volumes.sh
+      test "$volumes_main_prefix" = "$prefix" \
+        || error "Prefix mismatch '$volumes_main_prefix' != '$prefix' ($volume)" 1
+
+
+      # Check for unknown service roots
+      test -n "$volumes_main_export_all" || volumes_main_export_all=1
+      trueish "$volumes_main_export_all" && {
+        echo $volume/* | tr ' ' '\n' | while read vroot
+        do
+          test -n "$vroot" || continue
+          vdir=$(basename $vroot)
+          echo $SRVS lost+found | grep -q $vdir || {
+            warn "Unkown volume dir $vdir" 1
+          }
+        done
+      }
+
+
+      test -n "$volumes_main_aliases__1" \
+        || error "Expected one aliases ($volume)"
+
+      test -e "/srv/$volumes_main_aliases__1"  || {
+        error "Missing volume alias '$volumes_main_aliases__1' ($volume)" 1
+      }
+
+      # Go over known services
+      for srv in $SRVS
+      do
+        test -e $volume/$srv && {
+
+          t=/srv/$srv-local
+          test -e "$t" || warn "Missing $t ($volume/$srv)"
+
+          #t=/srv/$srv-${disk_idx}-${part_idx}-$(hostname -s)-$domain
+          #test -e "$t" || warn "Missing $t ($volume/$srv)"
+
+        }  
+      done
+
+      note "Volumes OK: $disk_index.$part_index $volume"
+
+      unset srv \
+        volumes_main_prefix \
+        volumes_main_aliases__1 \
+        volumes_main_export_all
+
+    done
+
+    note "Disk OK: $disk_index. $prefix"
+
+  done
+}
+
 
 
 ### Main

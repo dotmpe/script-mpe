@@ -4,7 +4,11 @@ Spec
 ----
 htd
   up|down [<host>.]<service> [<Env> [<env>=<val>]]
+    TODO: up/down
 
+  ls-volumes
+    List volumes for local disks, for any services it provides,
+    check that a local and global /srv/ path is present.
 
 htd rule-target
   - annotate :case
