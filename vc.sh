@@ -1071,7 +1071,7 @@ vc__local()
 
   test -e $3/$repo || {
     mkdir -p $(dirname $3/$repo)
-
+    test -n "$clone_flags" || clone_flags=--bare
     git clone $clone_flags $git $3/$repo || {
       error "Failed creating bare clone '$2' '$3/$repo'" 1
     }
@@ -1097,10 +1097,12 @@ vc__local()
 # If in an annex checkout, get repo name, and add remote $ANNEX_DIR/<repo>.git
 vc__annex_local()
 {
-  test -n "$1" || set -- "ANNEX_DIR" "$2"
+  test -n "$1" || set -- "$ANNEX_DIR" "$2"
   test -n "$2" || set -- "$1" "annex-dir"
-  clone_flags=--bare \
+
+  clone_flags=" " \
   vc__local $1 $2 || return $?
+
   git annex sync $2 \
     && note "Succesfully synced annex with $2" \
     || error "Syncing annex with $2" 1
