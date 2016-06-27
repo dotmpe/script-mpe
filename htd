@@ -3301,7 +3301,7 @@ htd__ls_volumes()
         done
       }
 
-
+      # TODO: check all aliases, and all mapping aliases
       test -n "$volumes_main_aliases__1" \
         || error "Expected one aliases ($volume)"
 
@@ -3317,6 +3317,7 @@ htd__ls_volumes()
           t=/srv/$srv-local
           test -e "$t" || warn "Missing $t ($volume/$srv)"
 
+          # TODO: check for global id as well
           #t=/srv/$srv-${disk_idx}-${part_idx}-$(hostname -s)-$domain
           #test -e "$t" || warn "Missing $t ($volume/$srv)"
 
