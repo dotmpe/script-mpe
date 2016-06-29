@@ -219,6 +219,10 @@ htd_commands()
   echo '  ck-dedup <path>                  With no path given, iterate the duplicate table. Otherwise deduplicate content, using given path as preferred location. '
   echo '  ck-find-content <path>           Given path, try find-name or checksum tables and annex-backend to find copies and give all alternate locations. '
   echo ''
+  echo 'System'
+  echo '  ls-volumes                       Go over local online disks, see that '
+  echo '                                   services symlinks are in place'
+  echo ''
   echo 'Other commands: '
   other_cmds
 }
