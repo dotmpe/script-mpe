@@ -132,7 +132,7 @@ version=0.0.0-dev # script-mpe
   test $status -eq 1
 }
 
-@test "$bin rewrite and test to new main.sh" {
+@test "$bin rewrite and test to new main.lib.sh" {
   check_skipped_envs || \
     TODO "envs $envs: implement bin for env"
   #run $BATS_TEST_DESCRIPTION

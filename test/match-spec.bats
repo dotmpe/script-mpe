@@ -115,7 +115,7 @@ word_diff()
 }
 
 @test "$bin compile regex for name pattern" {
-  check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
+  check_skipped_envs travis || skip "FIXME broken after main.lib.sh rewrite"
   source ./match.sh load-ext
   source ./match.lib.sh
   silent=true
@@ -126,7 +126,7 @@ word_diff()
 }
 
 @test "$bin compile regex for name pattern (II)" {
-  check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
+  check_skipped_envs travis || skip "FIXME broken after main.lib.sh rewrite"
   source ./match.sh load-ext
   source ./match.lib.sh
   silent=true

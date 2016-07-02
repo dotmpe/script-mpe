@@ -26,9 +26,107 @@ disk__status()
 }
 
 
+disk__id()
+{
+  disk_id "$1"
+}
+
+disk__fdisk_id()
+{
+  disk_fdisk_id "$1"
+}
+
+disk__rename_old()
+{
+  for disk in /dev/sd*[a-z]
+  do
+    disk_id=$(disk_id $disk)
+    disk_full_id=$(disk__get_by_id $disk_id)
+    old_disk_id=$(disk_fdisk_id $disk)
+    mv -v $DISK_CATALOG/disk/$old_disk_id.sh $DISK_CATALOG/disk/$disk_id.sh
+    (
+      cd $DISK_CATALOG/volume/
+      rename -v 's/^'"$old_disk_id"'/'"$disk_id"'/' $old_disk_id-*.sh
+    )
+  done
+}
+
+disk__get_by_id()
+{
+  test "$(echo /dev/disk/by-id/*$1)" = "/dev/disk/by-id/*$1" \
+    && return 1
+  echo /dev/disk/by-id/*$1 | grep -v '\-part' | while read path
+  do
+    basename $path
+  done
+}
+
+disk__prefix()
+{
+  test -n "$1" || error "disk expected" 1
+  disk__info $1 prefix
+}
+
+disk__info()
+{
+  test -e "$DISK_CATALOG/disk/$1.sh" || {
+    set -- $(disk id $1) $2
+  }
+  test -e "$DISK_CATALOG/disk/$1.sh" \
+    || error "No such known disk $1" 1
+  . $DISK_CATALOG/disk/$1.sh
+
+  eval echo \$$2
+}
+
+
+# Show disk info TODO: test this works at every platform
+disk__local()
+{
+  {
+    echo "#NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE"
+    echo $1 $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) $(disk_tabletype $1)
+  } | sort -n | column -tc 3
+}
+disk__list_local()
+{
+  {
+    echo "#DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE"
+    disk_list | while read disk
+    do
+      disk__info $disk | grep -Ev '^\s*(#.*|\s*)$'
+    done
+  } | sort -n | column -tc 3
+  echo "# Disks at $(hostname), $(date --iso)"
+}
+disk__list_local()
+{
+  disk_list
+}
+disk__list_part_local()
+{
+  disk_list_part
+}
+
+# Tabulate disks, and where they are (from catalog)
 disk__list()
 {
-  note End
+  {
+    echo "#NUM DISK_ID HOST PREFIX"
+    for disk in $DISK_CATALOG/disk/*.sh
+    do
+
+      . $disk
+
+      # Find device and check
+      dev=$(disk__get_by_id $disk_id)
+
+      printf "$disk_index. $disk_id $host $prefix\n"
+      unset host disk_id disk_index prefix volumes
+
+    done
+  } | sort -n | column -tc 3
+  echo "# Catalog at $(hostname):$DISK_CATALOG, $(date --iso)"
 }
 
 
@@ -202,7 +300,7 @@ disk_init()
   . $scriptdir/box.init.sh
   . $scriptdir/box.lib.sh
   box_run_sh_test
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/main.init.sh
   #while test $# -gt 0
   #do

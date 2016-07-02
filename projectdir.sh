@@ -168,7 +168,7 @@ pd__clean()
   test -z "$2" || pd_meta_clean_mode="$2"
   test -n "$pd_meta_clean_mode" \
     || pd_meta_clean_mode="$( pd__meta clean-mode "$1" )"
- 
+
   info "Checkout: $checkout, Clean Mode: $pd_meta_clean_mode"
 
   pd_clean "$1" || R=$?;
@@ -1134,7 +1134,7 @@ pd_lib()
   . $scriptdir/util.sh
   . $scriptdir/box.init.sh
   box_run_sh_test
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/meta.lib.sh
   . $scriptdir/projectdir.inc.sh "$@"
   . $scriptdir/main.init.sh
