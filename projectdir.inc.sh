@@ -31,11 +31,13 @@ pd_meta_bg_teardown()
 
 pd_clean()
 {
+  # Stage one, show just the modified files
   (cd "$1"; git diff --quiet) || {
     dirty="$(cd "$1"; git diff --name-only)"
     return 1
   }
 
+  # Stage two, show files after check for repo-clean mode (tracked, untracked, excluded)
   test -n "$pd_meta_clean_mode" || pd_meta_clean_mode=untracked
 
   trueish "$choice_strict" \
