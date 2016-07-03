@@ -740,7 +740,17 @@ vc__prompt_command()
 
 vc__list_submodules()
 {
-  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
+  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
+  do
+    smpath=$ppwd/$prefix
+    test -e $smpath/.git || {
+      warn "Not a submodule checkout '$prefix' ($spwd/$prefix)"
+      continue
+    }
+    note "Submodule '$prefix' ($spwd/$prefix)"
+    echo "$prefix"
+  done
+  #git submodule | cut -d ' ' -f 2
 }
 
 vc_man_1__gh="Clone from Github to subdir, adding as submodule if already in checkout. "
@@ -860,19 +870,14 @@ vc__untracked_files()
   # list paths not in git (including ignores)
   git ls-files --others --dir || return $?
 
-  git submodule | while read hash prefix ref
+  vc__list_submodules | while read prefix
   do
     smpath=$ppwd/$prefix
-    test -e $smpath/.git || {
-      warn "Not a checkout at submodule path: ${smpath}"
-      continue
-    }
-    ( note "Submodule $prefix ($smpath)"
-      cd $smpath && {
-        ppwd=$smpath spwd=$spwd/$prefix vc__excluded \
+    cd $smpath
+    ppwd=$smpath spwd=$spwd/$prefix \
+      vc__excluded \
           | grep -Ev '^\s*(#.*|\s*)$' \
           | sed 's#^#'"$prefix"'/#'
-    } )
   done
 
   cd $ppwd
@@ -882,23 +887,21 @@ vc__untracked_files()
 vc__uf() { vc__unversioned_files "$@"; }
 vc__unversioned_files()
 {
+  test -z "$1" || error "unexpected arguments" 1
+
   # list cruft (not versioned and not ignored)
-  git ls-files --others --exclude-standard
-  # XXX: need to add prefixes to returned paths:
-  pwd=$(pwd)
-  git submodule | while read hash prefix ref
+  git ls-files --others --exclude-standard || return $?
+
+  vc__list_submodules | while read prefix
   do
-    path=$pwd/$prefix
-    test -e $path/.git || {
-      warn "Not a checkout: ${path}"
-      continue
-    }
-    ( note "$path"
-      cd $path && {
-        vc__unversioned_files | grep -Ev '^\s*(#.*|\s*)$' \
-          | sed 's#^#'"$path"/'#'
-    } )
+    smpath=$ppwd/$prefix
+    cd $smpath
+    ppwd=$smpath spwd=$spwd/$prefix \
+      vc__unversioned_files | grep -Ev '^\s*(#.*|\s*)$' \
+          | sed 's#^#'"$prefix"/'#'
   done
+
+  cd $ppwd
 }
 
 # List (untracked) cleanable files
