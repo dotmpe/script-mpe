@@ -113,18 +113,32 @@ vc__commands()
 	echo '  gh                 Clone from github'
   echo '  git-largest-objects (10)'
   echo '                     List the SHA1 sums of the largest objects.'
-  echo '  git-path-for-object <sha1>'
-  echo '                     Given SHA1 object, find its current path.'
-	echo '  list-object'
+  echo '  path-for-object <sha1>'
+  echo '                     Given SHA1 object, its current path.'
+	echo '  contains PATH CHECKOUT '
+	echo '                     Find any version of PATH in CHECKOUIT. '
+	echo '  list-objects       Verify all packages. '
 	echo '  object-contents'
-	echo '  excludes'
-	echo '  ufx'
-	echo '  excluded'
+	echo ''
+	echo 'File Patterns'
+	echo '  excludes           Patterns to paths kept out of version control '
+	echo '                     (unversioned-files [uf]). '
+	echo '  temp-patterns      Patterns to paths '
+	echo '  cleanables         Paths '
+	echo ''
+	echo 'Files'
+	echo '  uf|unversioned-files '
+	echo '                     List untracked paths excluding ignored paths. '
+	echo '  ufx|excluded|untracked-files '
+	echo '                     List every untracked paths. '
+	echo '  ufc|cleanable-files '
+	echo '                     List cleanable file paths'
+	echo ''
+	echo 'Annex'
   echo '  annex-unused       Show keys of stored objects without path using them. '
   echo '  annex-show-unused  Show commit logs for unused keys. '
   echo '  annex-clear-unused [<to>]'
   echo '                     Drop the unused keys, or move to remote. '
-	echo '  contains'
 	echo '  annex-contains'
 	echo '  list-prefixes      '
 	echo '  list-subrepos      XXX: List all repositories below, excluding submodules. '
@@ -726,7 +740,17 @@ vc__prompt_command()
 
 vc__list_submodules()
 {
-  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
+  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
+  do
+    smpath=$ppwd/$prefix
+    test -e $smpath/.git || {
+      warn "Not a submodule checkout '$prefix' ($spwd/$prefix)"
+      continue
+    }
+    note "Submodule '$prefix' ($spwd/$prefix)"
+    echo "$prefix"
+  done
+  #git submodule | cut -d ' ' -f 2
 }
 
 vc_man_1__gh="Clone from Github to subdir, adding as submodule if already in checkout. "
@@ -772,7 +796,7 @@ vc__largest_objects()
 }
 
 # list commits for object sha1
-vc__path_for_object()
+vc__commit_for_object()
 {
   test -n "$1" || error "provide object hash" 1
   while test -n "$1"
@@ -787,12 +811,29 @@ vc__path_for_object()
   done
 }
 
+vc__count_packs()
+{
+  echo .git/objects/pack/pack-*.idx | wc -l
+}
+
 # print tree, blob, commit, etc. objs
 vc__list_objects()
 {
-  git verify-pack -v .git/objects/pack/pack-*.idx
+  test -n "$1" || set -- "-v"
+  git verify-pack "$@" .git/objects/pack/pack-*.idx
+  pack_cnt=$(vc__count_packs)
+  test $pack_cnt -gt 0 && {
+    test $pack_cnt -eq 1 && {
+      note "One package verified"
+    } || {
+      note "Multple ($pack_cnt)) packages verified"
+    }
+  } || {
+    error "No packages"
+  }
 }
 
+# Pretty print GIT object
 vc__object_contents()
 {
   git cat-file -p $1
@@ -819,49 +860,60 @@ vc__excludes()
   }
 }
 
-# List unversioned including ignored
-vc__ufx()
+# List unversioned files (including temp, cleanable and any excluded)
+vc__ufx() { vc__untracked_files "$@"; }
+vc__excluded() { vc__untracked_files "$@"; }
+vc__untracked_files()
 {
-  vc__excluded
-}
-vc__excluded()
-{
+  test -z "$1" || error "unexpected arguments" 1
+
   # list paths not in git (including ignores)
-  git ls-files --others --dir
-  # XXX: need to add prefixes to returned paths:
-  pwd=$(pwd)
-  git submodule | while read hash prefix ref
+  git ls-files --others --dir || return $?
+
+  vc__list_submodules | while read prefix
   do
-    path=$pwd/$prefix
-    test -e $path/.git || {
-      warn "Not a checkout: ${path}"
-      continue
-    }
-    ( note $path:;cd $path && vc__excluded )
+    smpath=$ppwd/$prefix
+    cd $smpath
+    ppwd=$smpath spwd=$spwd/$prefix \
+      vc__excluded \
+          | grep -Ev '^\s*(#.*|\s*)$' \
+          | sed 's#^#'"$prefix"'/#'
   done
+
+  cd $ppwd
 }
 
-# List all unversioned excluding ignored
-vc__uf()
-{
-  vc__unversioned_files
-}
+# List untracked paths. Unversioned files excluding ignored/excluded
+vc__uf() { vc__unversioned_files "$@"; }
 vc__unversioned_files()
 {
+  test -z "$1" || error "unexpected arguments" 1
+
   # list cruft (not versioned and not ignored)
-  git ls-files --others --exclude-standard
-  # XXX: need to add prefixes to returned paths:
-  pwd=$(pwd)
-  git submodule | while read hash prefix ref
+  git ls-files --others --exclude-standard || return $?
+
+  vc__list_submodules | while read prefix
   do
-    path=$pwd/$prefix
-    test -e $path/.git || {
-      warn "Not a checkout: ${path}"
-      continue
-    }
-    ( cd $path && vc__unversioned_files )
+    smpath=$ppwd/$prefix
+    cd $smpath
+    ppwd=$smpath spwd=$spwd/$prefix \
+      vc__unversioned_files | grep -Ev '^\s*(#.*|\s*)$' \
+          | sed 's#^#'"$prefix"/'#'
   done
+
+  cd $ppwd
 }
+
+# List (untracked) cleanable files
+vc__ufc()
+{
+  vc__unversioned_uncleanable_files
+}
+vc__unversioned_uncleanable_files()
+{
+  echo
+}
+
 
 # Annex diag.
 vc__annex_unused()
@@ -1135,7 +1187,9 @@ vc_main()
   case "$base" in $scriptname )
 
         test -n "$scriptdir" || \
-            scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+            scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
+            pwd=$(pwd -P) ppwd=$(pwd) spwd=.
+
         export SCRIPTPATH=$scriptdir
         . $scriptdir/util.sh
 

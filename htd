@@ -1473,7 +1473,7 @@ htd__resolve()
   set --
 }
 
-# GIT commits and push
+# Commit tracked files and push
 htd__pci()
 {
   test -n "$2" || set -- "$1" "--all"
