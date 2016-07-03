@@ -94,3 +94,49 @@ match_name_pattern()
   done
 }
 
+# glob to regex
+compile_glob()
+{
+  echo "$1" \
+    | sed -E '
+      s/\./\\./g
+      s/\*/.*/g
+    '
+}
+
+# rewrite file $1 to $1$2, compile-glob each content line
+compile_globs()
+{
+  test -e "$1" || error "source file expected" 1
+  test -n "$2" || set -- "$1" ".regex"
+  test ! -s "$1$2" || {
+    note "truncating existing $1$2"
+  }
+  read_nix_style_file "$1" | while read glob
+  do
+    compile_glob "$glob"
+  done > $1$2
+  info "Recompiled $(count_lines "$1$2") ($1$2)"
+}
+
+# wrapper for compile-globs
+globlist_to_regex()
+{
+  test -n "$1" || error "globlist argument(s) expected" 1
+
+  while test -n "$1"
+  do
+    test -e "$1" || error "no globlist file '$1'" 1
+    test -s "$1" && {
+      test $1 -ot $1.regex || {
+        compile_globs $1 .regex || {
+          error "error compiling '$1'"
+          return 1
+        }
+      }
+      cat $1.regex
+    }
+    shift
+  done
+}
+

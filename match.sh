@@ -88,6 +88,11 @@ match__glob()
   echo "$@" | grep '^'$glob_pat'$' > /dev/null || return 1
 }
 
+match__regex()
+{
+  compile_glob "$1"
+}
+
 # check given name with all name patterns
 match__names()
 {

@@ -94,7 +94,12 @@ split_multipath()
 # XXX: this one support leading whitespace but others in ~/bin/*.sh do not
 read_nix_style_file()
 {
-  cat $1 | grep -Ev '^\s*(#.*|\s*)$'
+  cat $@ | grep -Ev '^\s*(#.*|\s*)$'
+}
+
+read_if_exists()
+{
+  read_nix_style_file $@ 2>/dev/null
 }
 
 # [0|1] [1] read-file-lines-while file-path [while-expr]
@@ -153,5 +158,18 @@ get_targets()
     target=$(readlink $link)
     normalize_relative $(dirname $link)/$target
   done | sort -u
+}
+
+count_lines()
+{
+  test -n "$1" && {
+    while test -n "$1"
+    do
+      wc -l $1 | awk '{print $1}'
+      shift
+    done
+  } || {
+    wc -l | awk '{print $1}'
+  }
 }
 
