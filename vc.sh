@@ -30,6 +30,22 @@ vc_load()
 
   gtd=$(__vc_gitdir $cwd)
 
+  test -n "$vc_clean_gl" || {
+    test -e .gitignore-clean \
+      && export vc_clean_gl=.gitignore-clean
+    test -e ~/.gitignore-clean-global \
+      && export vc_clean_gl="$vc_clean_gl $HOME/.gitignore-clean-global"
+  }
+  test -n "$vc_temp_gl" || {
+    test -e .gitignore-temp \
+      && export vc_temp_gl=.gitignore-temp
+    test -e ~/.gitignore-temp-global \
+      && export vc_temp_gl="$vc_temp_gl $HOME/.gitignore-temp-global"
+  }
+
+  test -n "$vc_temp_gl" || error "vc_temp_gl" 1
+  test -n "$vc_clean_gl" || error "vc_clean_gl" 1
+
 
   # Look at run flags for subcmd
   for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
@@ -99,17 +115,23 @@ vc_usage()
 
 vc__commands()
 {
-	echo 'Commands: '
+	echo 'Commands'
+	echo '  status             TODO'
+  echo 'TODO: consolidate '
+  echo '  ls-gitroots        List all GIT checkouts (roots only) below the current dir.'
+	echo '  list-submodules    '
+	echo '  list-prefixes      '
+	echo '  list-subrepos      XXX: List all repositories below, excluding submodules. '
+	echo ''
+	echo 'Utils'
 	echo '  print-all <path>   Dump some debug info on given (versioned) paths'
 	echo '  ps1                Print PS1'
 	echo '  screen             '
-  echo '  ls-gitroots        List all GIT checkouts (roots only) below the current dir.'
 	echo '  ls-errors          '
 	echo '  mtime              '
 	echo '  flush              '
 	echo '  print-all          '
 	echo '  prompt-command     '
-	echo '  list-submodules    '
 	echo '  gh                 Clone from github'
   echo '  git-largest-objects (10)'
   echo '                     List the SHA1 sums of the largest objects.'
@@ -118,34 +140,44 @@ vc__commands()
 	echo '  contains PATH CHECKOUT '
 	echo '                     Find any version of PATH in CHECKOUIT. '
 	echo '  list-objects       Verify all packages. '
-	echo '  object-contents'
+	echo '  object-contents    '
+	echo '  projects           XXX: list remotes in projectdir'
+	echo '  remotes            List remotes in repo. '
+  echo '  local              Find or create bare remote (default: $SCM_GIT_DIR)'
+	echo ''
+	echo '  regenerate         Regenerate local excludes. '
+	echo '  regenerate-stale   Regenerate when local ignores are newer than excludes. '
 	echo ''
 	echo 'File Patterns'
 	echo '  excludes           Patterns to paths kept out of version control '
 	echo '                     (unversioned-files [uf]). '
-	echo '  temp-patterns      Patterns to paths '
-	echo '  cleanables         Paths '
+	echo '  temp-patterns      Patterns to excluded files that will be '
+	echo '                     regenerated if removed . '
+	echo '  cleanables         Patterns to excluded files that can be cleaned '
+	echo '                     but are required while the checkout exists. '
+	echo '  excludes-regex     '
+	echo '  cleanables-regex   '
+	echo '  temp-patterns-regex '
+	echo '                     Compile/echo globlists to regexes. '
 	echo ''
 	echo 'Files'
 	echo '  uf|unversioned-files '
 	echo '                     List untracked paths excluding ignored paths. '
 	echo '  ufx|excluded|untracked-files '
-	echo '                     List every untracked paths. '
+  echo '                     List every untracked path (including ignore). '
+	echo '  uft|temporary-files '
+  echo '                     List (untracked) temporary file paths'
 	echo '  ufc|cleanable-files '
-	echo '                     List cleanable file paths'
-	echo ''
+  echo '                     List (untracked) cleanable file paths'
+	echo '  ufu|uncleanable-files '
+  echo '                     List untracked paths excluding temp or cleanable. '
+  echo ''
 	echo 'Annex'
   echo '  annex-unused       Show keys of stored objects without path using them. '
   echo '  annex-show-unused  Show commit logs for unused keys. '
   echo '  annex-clear-unused [<to>]'
   echo '                     Drop the unused keys, or move to remote. '
-	echo '  annex-contains'
-	echo '  list-prefixes      '
-	echo '  list-subrepos      XXX: List all repositories below, excluding submodules. '
-	echo '  projects           XXX: list remotes in projectdir'
-	echo '  remotes            List remotes in repo. '
-	echo '  regenerate         Regenerate local excludes. '
-  echo '  local              Find or create bare remote (default: $SCM_GIT_DIR)'
+	echo '  annex-contains     '
 	echo '  annex-local        Find or create remote annex repo in $ANNEX_DIR'
 	echo ''
 	echo 'Other commands: '
@@ -839,6 +871,9 @@ vc__object_contents()
   git cat-file -p $1
 }
 
+
+## List Exclude Patterns
+
 vc_man_1__excludes="List path ignore patterns"
 vc__excludes()
 {
@@ -859,6 +894,18 @@ vc__excludes()
     note "No local excludes"
   }
 }
+
+vc__excludes_regex()
+{
+  vc__regenerate_stale
+  globlist_to_regex .git/info/exclude || return $?
+}
+
+vc__temp_patterns() { eval read_nix_style_file $vc_temp_gl || return $?; }
+vc__temp_patterns_regex() { globlist_to_regex $vc_temp_gl || return $?; }
+vc__cleanables() { eval read_nix_style_file $vc_clean_gl || return $?; }
+vc__cleanables_regex() { globlist_to_regex $vc_clean_gl || return $?; }
+
 
 # List unversioned files (including temp, cleanable and any excluded)
 vc__ufx() { vc__untracked_files "$@"; }
@@ -905,14 +952,42 @@ vc__unversioned_files()
 }
 
 # List (untracked) cleanable files
-vc__ufc()
+vc__ufc() { vc__unversioned_cleanable_files ; }
+vc__unversioned_cleanable_files()
 {
-  vc__unversioned_uncleanable_files
+  note "Listing unversioned cleanable paths"
+  vc__cleanables_regex > .git/info/exclude-clean.regex || return $?
+  vc__untracked_files | grep -f .git/info/exclude-clean.regex || {
+    warn "No uncleanable files"
+    return 1
+  }
 }
+
+vc__uft() { vc__unversioned_temporary_files ; }
+vc__unversioned_temporary_files()
+{
+  note "Listing unversioned temporary paths"
+  vc__temp_patterns_regex > .git/info/exclude-temp.regex || return $?
+  vc__untracked_files | grep -f .git/info/exclude-temp.regex \
+    || return $?
+}
+
+vc__ufu() { vc__unversioned_uncleanable_files ; }
 vc__unversioned_uncleanable_files()
 {
-  echo
+  note "Listing unversioned, uncleanable paths"
+  {
+    vc__cleanables_regex || return $?
+    vc__temp_patterns_regex || return $?
+  } > .git/info/exclude-uncleanable.regex
+
+  vc__untracked_files \
+    | grep -v -f .git/info/exclude-uncleanable.regex
+
+  rm .gitignore-*.regex
 }
+#vc_load__ufu=f
+#vc_load__unversioned_uncleanable_files=f
 
 
 # Annex diag.
@@ -1087,8 +1162,9 @@ vc__regenerate()
   rm $excludes.list
 
   info "Adding other git-ignore files"
-  for x in .gitignore-*
+  for x in .gitignore-* $HOME/.gitignore-global-*
   do
+    test "$(basename $x .regex)" = "$(basename $x)" || continue
     test -e $x || continue
     fnmatch "$x: text/*" "$(file --mime $x)" || continue
     echo "# Source: $x" >> $excludes
@@ -1096,6 +1172,17 @@ vc__regenerate()
   done
 
   note "Local excludes successfully regenerated"
+}
+
+vc__regenerate_stale()
+{
+  for gexcl in .gitignore{-{clean,temp},}
+  do
+    test .git/info/exclude -nt $gexcl || {
+      vc__regenerate
+      return
+    }
+  done
 }
 
 

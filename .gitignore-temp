@@ -1,0 +1,13 @@
+#.test
+#.cllct
+#*.meta
+#debug*
+# TODO global temp
+*.py[co]
+*.cuthd
+.*sw[a-p]
+.gitignore-*.regex
+.htdignore.merged
+.package.sh
+.package.json
+tools.json

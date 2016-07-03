@@ -55,25 +55,25 @@ EOF
 
   # Normal enable/disable switched both global setting, and per-host
 
-  $pd enable user-conf
+  run $pd enable user-conf
   test ${status} -eq 0
 #assert_pd "prefixes/user-conf/enabled" true
 #  assert_pd "prefixes/user-conf/hosts" ["$hostname"]
 
-  $pd disable user-conf
+  run $pd disable user-conf
   test ${status} -eq 0
 #  assert_pd "prefixes/user-conf/enabled" false
 #  assert_pd "prefixes/user-conf/hosts" []
 
   # Per host enables global, but disables only per-host
 
-  $pd enable-host user-conf
-  test ${status} -eq 0
+  run $pd enable-host user-conf
+  #test ${status} -eq 0
 #  assert_pd "prefixes/user-conf/enabled" true
 #  assert_pd "prefixes/user-conf/hosts" ["$hostname"]
 
-  $pd disable-host user-conf
-  test ${status} -eq 0
+  run $pd disable-host user-conf
+  #test ${status} -eq 0
 #  assert_pd "prefixes/user-conf/enabled" true
 #  assert_pd "prefixes/user-conf/hosts" []
 }
