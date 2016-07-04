@@ -3342,6 +3342,19 @@ htd__ls_volumes()
   done
 }
 
+htd__munin_ls()
+{
+  test -n "$1" || set -- $DCKR_VOL/munin/db
+  tail -n +2 $1/datafile | while read dataline
+  do 
+    hostgroup=$(echo $dataline | cut -d ':' -f 1)
+    echo hostgroup=$hostgroup
+    #grep -F $hostgroup $1/datafile \
+    #  | sed 's#/^.*:##'
+
+  done
+  #| sort -u
+}
 
 htd__munin_ls_hosts()
 {
@@ -3369,6 +3382,35 @@ htd__munin_merge()
   # rename/merge selected plugins, attributes
 }
 
+htd__munin_volumes()
+{
+  local local_dckr_vol=/srv/$(readlink /srv/docker-local)
+
+  echo /srv/docker-*-*/munin | words_to_lines | while read munin_volume
+  do
+    test "$local_dckr_vol/munin" = "$munin_volume" && {
+      echo $munin_volume [local]
+    } || {
+      echo $munin_volume
+    }
+  done
+}
+
+# Remove stale databases, check index
+htd__munin_check()
+{
+  test -n "$1" || set -- "$DCKR_VOL/munin/db"
+  while read dataline
+  do
+    group="$(echo $dataline | cut -d ':' -f 1)"
+    propline="$(echo $dataline | cut -d ':' -f 2)"
+    plugin="$(echo $propline | sed 's/\.[a-zA-Z0-9_-]*\ .*$//' )"
+    attr="$(echo $propline | sed 's/^.*\.\([a-zA-Z0-9_-]*\)\ .*$/\1/' )"
+    value="$(echo $propline | sed 's/^[^\ ]*\ //' )"
+
+  done < $4/datafile
+}
+
 htd__munin_export()
 {
   test -n "$1" || {
@@ -3391,7 +3433,7 @@ htd__munin_export()
     } 
     echo $dataline | grep -qv '\.graph_' && {
       echo "$group\t$plugin\t$attr\t$value"
-      ls -la $4/$(echo $group | tr ';' '/')-$plugin-$(echo $attr | tr '.' '_' )-*.rrd
+      #echo ls -la $4/$(echo $group | tr ';' '/')-$plugin-$(echo $attr | tr '.' '_' )-*.rrd
     }
   done < $4/datafile
 # | column -tc 3 -s '\t'

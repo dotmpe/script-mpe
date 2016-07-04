@@ -20,6 +20,11 @@ statusdir_load()
   test -n "$be" || { which membash 2>&1 >/dev/null && be=membash; }
   test -n "$be" || be=fsdir
 
+  test -w "/dev/shm" \
+    && pd_temp_dir=/dev/shm/pd-tmp \
+    || pd_temp_dir=/tmp/pd
+  test -d $pd_temp_dir || mkdir $pd_temp_dir
+
   test ! -e "$scriptdir/statusdir_$be.sh" || {
     . $scriptdir/statusdir_$be.sh
   }
@@ -39,6 +44,11 @@ statusdir__root()
   echo $path
 }
 
+
+statusdir__be()
+{
+  echo $be
+}
 
 statusdir__reset()
 {
