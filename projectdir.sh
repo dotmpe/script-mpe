@@ -188,7 +188,7 @@ pd__clean()
             warn "Crufty: $(vc__stat "$1"):"
             printf "$cruft\n"
           } || {
-            warn "Crufty: $(vc__stat "$1"), $cruft_lines files."
+            warn "Crufty: $(vc__stat "$1"), $cruft_lines path(s)"
           }
         return 2
       ;;
