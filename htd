@@ -1495,7 +1495,7 @@ htd__pcia()
 {
   test -n "$1" || error "Commit message expected" 1
   test -n "$git_add_f" || local git_add_f=-u
-  test -n "$2" || set -- "$1" "--all"
+  test -n "$2" || set -- "$1" "--all $(git remote)"
   git add $git_add_f;git commit -m "$1";git push $2
 }
 
