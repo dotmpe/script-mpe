@@ -1486,7 +1486,7 @@ htd_sp__pci="MSG [REMOTES]"
 htd__pci()
 {
   local git_add_f=" "
-  htd__pci "$1" "$2" || return
+  htd__pcia "$1" "$2" || return
 }
 
 # Commit tracked files and push to all remotes
