@@ -122,8 +122,6 @@ compile_globs()
 # wrapper for compile-globs
 globlist_to_regex()
 {
-  test -n "$1" || error "globlist argument(s) expected" 1
-
   while test -n "$1"
   do
     test -e "$1" || error "no globlist file '$1'" 1

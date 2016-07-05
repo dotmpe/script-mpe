@@ -30,6 +30,7 @@ vc_load()
 
   gtd=$(__vc_gitdir $cwd)
 
+
   test -n "$vc_clean_gl" || {
     test -e .gitignore-clean \
       && export vc_clean_gl=.gitignore-clean
@@ -42,9 +43,6 @@ vc_load()
     test -e ~/.gitignore-temp-global \
       && export vc_temp_gl="$vc_temp_gl $HOME/.gitignore-temp-global"
   }
-
-  test -n "$vc_temp_gl" || error "vc_temp_gl" 1
-  test -n "$vc_clean_gl" || error "vc_clean_gl" 1
 
 
   # Look at run flags for subcmd
@@ -958,7 +956,7 @@ vc__unversioned_cleanable_files()
   note "Listing unversioned cleanable paths"
   vc__cleanables_regex > .git/info/exclude-clean.regex || return $?
   vc__untracked_files | grep -f .git/info/exclude-clean.regex || {
-    warn "No uncleanable files"
+    warn "No cleanable files"
     return 1
   }
 }
@@ -968,8 +966,10 @@ vc__unversioned_temporary_files()
 {
   note "Listing unversioned temporary paths"
   vc__temp_patterns_regex > .git/info/exclude-temp.regex || return $?
-  vc__untracked_files | grep -f .git/info/exclude-temp.regex \
-    || return $?
+  vc__untracked_files | grep -f .git/info/exclude-temp.regex || {
+    warn "No temporary files"
+    return 1
+  }
 }
 
 vc__ufu() { vc__unversioned_uncleanable_files ; }
@@ -977,14 +977,14 @@ vc__unversioned_uncleanable_files()
 {
   note "Listing unversioned, uncleanable paths"
   {
-    vc__cleanables_regex || return $?
-    vc__temp_patterns_regex || return $?
-  } > .git/info/exclude-uncleanable.regex
+    vc__cleanables_regex
+    vc__temp_patterns_regex
+  } > .git/info/exclude-clean-or-temp.regex
 
-  vc__untracked_files \
-    | grep -v -f .git/info/exclude-uncleanable.regex
-
-  rm .gitignore-*.regex
+  vc__untracked_files | grep -v -f .git/info/exclude-clean-or-temp.regex || {
+    warn "No uncleanable files"
+    return 1
+  }
 }
 #vc_load__ufu=f
 #vc_load__unversioned_uncleanable_files=f

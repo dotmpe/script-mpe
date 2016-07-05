@@ -23,6 +23,10 @@ htd_load()
 
   cwd=$(pwd)
 
+  test -n "$HTD_TOOLS" || HTD_TOOLS=$HOME/.htd-tools
+  test -d $HTD_TOOLS/bin || mkdir -p $HTD_TOOLS/bin
+  test -d $HTD_TOOLS/cellar || mkdir -p $HTD_TOOLS/cellar
+
   test -e .package.sh && . .package.sh
 
   go_to_directory .projects.yaml && {
@@ -472,17 +476,20 @@ htd_man_1__tools="Scan wether given binaries are installed. "
 htd_spc__tools="tools <tool-id>.."
 htd__tools()
 {
-  test -e tools.yml
-  tools_json
-  test -n "$1" || set -- $(echo $(jsotk.py -O lines keys tools.json tools))
-  echo "tools:"
-  while test -n "$1"
-  do
-    installed tools.json "$1" \
-      && echo "- $1 (installed)" \
-      || echo "- $1"
-    shift
-  done
+  (
+    cd $HOME/.conf
+    test -e tools.yml
+    tools_json
+    test -n "$1" || set -- $(echo $(jsotk.py -O lines keys tools.json tools))
+    echo "tools:"
+    while test -n "$1"
+    do
+      installed tools.json "$1" \
+        && echo "- $1 (installed)" \
+        || echo "- $1"
+      shift
+    done
+  )
 }
 
 htd_man_1__install=""
@@ -1473,12 +1480,25 @@ htd__resolve()
   set --
 }
 
-# Commit tracked files and push
+
+# Commit staged files and push
+htd_sp__pci="MSG [REMOTES]"
 htd__pci()
 {
-  test -n "$2" || set -- "$1" "--all"
-  git add -u;git commit -m "$1";git push $2
+  local git_add_f=" "
+  htd__pci "$1" "$2" || return
 }
+
+# Commit tracked files and push to all remotes
+htd_sp__pcia="MSG [REMOTES]"
+htd__pcia()
+{
+  test -n "$1" || error "Commit message expected" 1
+  test -n "$git_add_f" || local git_add_f=-u
+  test -n "$2" || set -- "$1" "--all"
+  git add $git_add_f;git commit -m "$1";git push $2
+}
+
 
 # Move path to archive path in htdocs cabinet
 # $ archive [<prefix>]/[<datepath>]/[<id>] <refs>...
@@ -3359,6 +3379,19 @@ htd__ls_volumes()
   done
 }
 
+htd__munin_ls()
+{
+  test -n "$1" || set -- $DCKR_VOL/munin/db
+  tail -n +2 $1/datafile | while read dataline
+  do 
+    hostgroup=$(echo $dataline | cut -d ':' -f 1)
+    echo hostgroup=$hostgroup
+    #grep -F $hostgroup $1/datafile \
+    #  | sed 's#/^.*:##'
+
+  done
+  #| sort -u
+}
 
 htd__munin_ls_hosts()
 {
@@ -3386,6 +3419,35 @@ htd__munin_merge()
   # rename/merge selected plugins, attributes
 }
 
+htd__munin_volumes()
+{
+  local local_dckr_vol=/srv/$(readlink /srv/docker-local)
+
+  echo /srv/docker-*-*/munin | words_to_lines | while read munin_volume
+  do
+    test "$local_dckr_vol/munin" = "$munin_volume" && {
+      echo $munin_volume [local]
+    } || {
+      echo $munin_volume
+    }
+  done
+}
+
+# Remove stale databases, check index
+htd__munin_check()
+{
+  test -n "$1" || set -- "$DCKR_VOL/munin/db"
+  while read dataline
+  do
+    group="$(echo $dataline | cut -d ':' -f 1)"
+    propline="$(echo $dataline | cut -d ':' -f 2)"
+    plugin="$(echo $propline | sed 's/\.[a-zA-Z0-9_-]*\ .*$//' )"
+    attr="$(echo $propline | sed 's/^.*\.\([a-zA-Z0-9_-]*\)\ .*$/\1/' )"
+    value="$(echo $propline | sed 's/^[^\ ]*\ //' )"
+
+  done < $4/datafile
+}
+
 htd__munin_export()
 {
   test -n "$1" || {
@@ -3408,7 +3470,7 @@ htd__munin_export()
     } 
     echo $dataline | grep -qv '\.graph_' && {
       echo "$group\t$plugin\t$attr\t$value"
-      ls -la $4/$(echo $group | tr ';' '/')-$plugin-$(echo $attr | tr '.' '_' )-*.rrd
+      #echo ls -la $4/$(echo $group | tr ';' '/')-$plugin-$(echo $attr | tr '.' '_' )-*.rrd
     }
   done < $4/datafile
 # | column -tc 3 -s '\t'

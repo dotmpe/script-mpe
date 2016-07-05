@@ -1,4 +1,16 @@
 tools:
+
+  todotxt-machine:
+    bin: True
+    installer: pip
+    description: |
+      Python+Urwid plain text todo keeper. Nice client.
+      Just the features needed for editing a single TODO list.
+      Has projects, contexts, filters, priorities A-F.
+      And some keys: due:<YYYY-M-D>
+
+      https://github.com/AnthonyDiGirolamo/todotxt-machine
+
   json-spec:
     bin: jsonspec
     installer: pip
@@ -11,3 +23,13 @@ tools:
     scripts:
       jsonspec-validate:
         - jsonspec validate --document-json $1 --schema-json $2
+
+  # TODO: would want to use basher, but cannot use gist url. Only GH package.
+  membash:
+    bin: membash
+    src: membash.sh
+    installer: git
+    url: 'https://gist.github.com/dotmpe/045284c6522b1c24a3b5a56352d273e5'
+    
+
+
