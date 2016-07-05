@@ -1485,7 +1485,7 @@ htd__resolve()
 htd_sp__pci="MSG [REMOTES]"
 htd__pci()
 {
-  local git_add_f=" "
+  local git_add_f=""
   htd__pcia "$1" "$2" || return $?
 }
 
@@ -1494,9 +1494,9 @@ htd_sp__pcia="MSG [REMOTES]"
 htd__pcia()
 {
   test -n "$1" || error "Commit message expected" 1
-  test -n "$git_add_f" || local git_add_f=-u
 
-  test -z "$git_add_f" || {
+  test -n "$git_add_f" || local git_add_f=-u
+  test -z "$git_add_f" -o " " = "$git_add_f" || {
     git add $git_add_f || return $?
   }
 
