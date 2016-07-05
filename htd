@@ -1486,7 +1486,7 @@ htd_sp__pci="MSG [REMOTES]"
 htd__pci()
 {
   local git_add_f=" "
-  htd__pcia "$1" "$2" || return
+  htd__pcia "$1" "$2" || return $?
 }
 
 # Commit tracked files and push to all remotes
@@ -1495,11 +1495,17 @@ htd__pcia()
 {
   test -n "$1" || error "Commit message expected" 1
   test -n "$git_add_f" || local git_add_f=-u
-  
+
+  test -z "$git_add_f" || {
+    git add $git_add_f || return $?
+  }
+
+  git commit -m "$1" || return $?
+
   for remote in $(git remote)
   do
     test -n "$2" || set -- "$1" "--all"
-    git add $git_add_f;git commit -m "$1";git push $2 $remote
+    git push $2 $remote
   done
 }
 
