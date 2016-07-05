@@ -23,6 +23,10 @@ htd_load()
 
   cwd=$(pwd)
 
+  test -n "$HTD_TOOLS" || HTD_TOOLS=$HOME/.htd-tools
+  test -d $HTD_TOOLS/bin || mkdir -p $HTD_TOOLS/bin
+  test -d $HTD_TOOLS/cellar || mkdir -p $HTD_TOOLS/cellar
+
   test -e .package.sh && . .package.sh
 
   go_to_directory .projects.yaml && {
@@ -472,17 +476,20 @@ htd_man_1__tools="Scan wether given binaries are installed. "
 htd_spc__tools="tools <tool-id>.."
 htd__tools()
 {
-  test -e tools.yml
-  tools_json
-  test -n "$1" || set -- $(echo $(jsotk.py -O lines keys tools.json tools))
-  echo "tools:"
-  while test -n "$1"
-  do
-    installed tools.json "$1" \
-      && echo "- $1 (installed)" \
-      || echo "- $1"
-    shift
-  done
+  (
+    cd $HOME/.conf
+    test -e tools.yml
+    tools_json
+    test -n "$1" || set -- $(echo $(jsotk.py -O lines keys tools.json tools))
+    echo "tools:"
+    while test -n "$1"
+    do
+      installed tools.json "$1" \
+        && echo "- $1 (installed)" \
+        || echo "- $1"
+      shift
+    done
+  )
 }
 
 htd_man_1__install=""
@@ -1473,12 +1480,25 @@ htd__resolve()
   set --
 }
 
-# Commit tracked files and push
+
+# Commit staged files and push
+htd_sp__pci="MSG [REMOTES]"
 htd__pci()
 {
-  test -n "$2" || set -- "$1" "--all"
-  git add -u;git commit -m "$1";git push $2
+  local git_add_f=" "
+  htd__pci "$1" "$2" || return
 }
+
+# Commit tracked files and push to all remotes
+htd_sp__pcia="MSG [REMOTES]"
+htd__pcia()
+{
+  test -n "$1" || error "Commit message expected" 1
+  test -n "$git_add_f" || local git_add_f=-u
+  test -n "$2" || set -- "$1" "--all"
+  git add $git_add_f;git commit -m "$1";git push $2
+}
+
 
 # Move path to archive path in htdocs cabinet
 # $ archive [<prefix>]/[<datepath>]/[<id>] <refs>...

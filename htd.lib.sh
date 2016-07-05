@@ -173,6 +173,24 @@ install_bin()
       pip )
           pip install $id || return 2
         ;;
+      git )
+          url="$(jsotk.py -N -O py path $1 tools/$2/url)"
+          test -d $HOME/.htd-tools/cellar/$id || (
+            git clone $url $HOME/.htd-tools/cellar/$id
+          )
+          (
+            cd $HOME/.htd-tools/cellar/$id
+            git pull origin master
+          )
+          bin="$(jsotk.py -N -O py path $1 tools/$2/bin)"
+          src="$(jsotk.py -N -O py path $1 tools/$2/src)"
+          test -n "$src" || src=$bin
+          (
+            cd $HOME/.htd-tools/bin
+            test ! -e $bin || rm $bin
+            ln -s $HOME/.htd-tools/cellar/$id/$src $bin
+          )
+        ;;
     esac
   } || {
     jsotk.py objectpath $1 '$.tools.'$2'.install'
