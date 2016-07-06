@@ -949,8 +949,32 @@ htd__project_todo()
   refs=
 }
 
-# Experimenting with gtasks.. looking at todo targets
+# Edit local/new task descriptions
+htd_als__tte=todotxt-edit
+htd__todotxt_edit()
+{
+  # TODO find local
+  test -e .todo.ttxtm || touch .todo.ttxtm
+  test -e .done.ttxtm || touch .done.ttxtm
+  todotxt-machine .todo.ttxtm .done.ttxtm
+}
+
+# Current tasks?
 htd__todo()
+{
+  htd__todotxt_edit
+  htd__todotxt_tags
+}
+
+htd__todotxt_tags()
+{
+  # TODO: update/match with tag, project index
+  grep -o '+[^\ ]*' .todo.ttxtm | words_to_lines
+  grep -o '@[^\ ]*' .todo.ttxtm | words_to_lines
+}
+
+# Experimenting with gtasks.. looking at todo targets
+htd__todo_gtasks()
 {
   test -e TODO.list && {
     cat TODO.list | \
