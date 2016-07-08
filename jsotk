@@ -8,7 +8,7 @@ version=0.0.0-dev # script-mpe
 
 
 
-jsotk_man_1__version="Version info"
+jsotk__man_1_version="Version info"
 jsotk__version()
 {
   echo "$(cat $scriptdir/.app-id)/$version"

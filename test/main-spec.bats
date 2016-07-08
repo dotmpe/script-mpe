@@ -48,6 +48,17 @@ BOX_INIT=1
   unset c
 }
 
+
+@test "$lib/main std__help" {
+  base=cmd
+  cmd_man_1__sub="Bar1"
+  #cmd__man_1_sub="Bar2"
+  help_str=$(try_value sub man_1)
+  test "$help_str" = "Bar1" || fail "$(try_value sub man_1)"
+  std__help sub | grep -q $help_str || fail "$(std__help sub)"
+}
+
+
 @test "$lib/main try_help" {
   base=cmd
   cmd_man_1__sub="Bar"

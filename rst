@@ -62,7 +62,7 @@ c_rst__edit()
 }
 
 
-c_rst_man_1__version="Version info"
+c_rst__man_1_version="Version info"
 c_rst__version()
 {
   echo "box-rst/$version"
