@@ -8,7 +8,8 @@ set -e
 version=0.0.0+20150911-0659 # script-mpe
 
 
-esop__man_1_version="Version info"
+esop__man_1_version="Version info" # TODO: rewrite std__help to use try_value
+esop_man_1__version="Version info"
 esop__version()
 {
   echo "$(cat $scriptdir/.app-id)/$version"
