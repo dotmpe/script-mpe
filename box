@@ -21,7 +21,7 @@ box__als_c=commands
 
 
 # TODO: get a proper opt parser and do something like this:
-box_man_1__help="Box: Generic: Help
+box__man_1_help="Box: Generic: Help
 
   -h|help [<id>]      Print usage info, abbreviated command list and documentation
                       reference. Use 'help help', 'docs' or 'help docs' for
@@ -34,7 +34,7 @@ box__help()
 # XXX compile these from human readable cl-option docstring, provide bash
 #   auto-completion. Need to work out man5 and man7 stuff still. Save lot of
 #   clutter.
-box_man_1__help="Echo a combined usage, commands and docs"
+box__man_1_help="Echo a combined usage, commands and docs"
 box_spc__help="-h|help [<id>]"
 box_als___h="help"
 

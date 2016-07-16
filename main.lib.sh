@@ -167,7 +167,7 @@ try_subcmd()
 }
 
 
-std_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+std__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 std_spc__help='-h|help [ID]'
 std_als___h=help
 std__help()
@@ -278,7 +278,7 @@ std__commands()
 
 
 std_als___V=version
-std_man_1__version="Version info"
+std__man_1_version="Version info"
 std_spc__version="-V|version"
 std__version()
 {

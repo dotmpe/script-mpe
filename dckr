@@ -7,7 +7,7 @@ version=0.0.0-dev # script-mpe
 
 
 
-dckr_man_1__edit_main="Edit main scriptfiles. "
+dckr__man_1_edit_main="Edit main scriptfiles. "
 dckr_spc__edit_main="-E|edit-main"
 dckr__edit_main()
 {
@@ -18,7 +18,7 @@ dckr__edit_main()
 dckr_als___E=edit-main
 
 
-dckr_man_1__edit_local="Edit project files. "
+dckr__man_1_edit_local="Edit project files. "
 dckr_spc__edit_main="-e|edit-local"
 dckr__edit_local()
 {
@@ -30,7 +30,7 @@ dckr__edit_local()
 dckr_als___e=edit-local
 
 
-dckr_man_1__alias="Show bash aliases for this script."
+dckr__man_1_alias="Show bash aliases for this script."
 dckr__alias()
 {
   grep '\<'$scriptname'\>' ~/.alias | grep -v '^#' | while read _a A
@@ -42,7 +42,7 @@ dckr__alias()
 }
 
 
-dckr_man_1__ps="List processes for current project"
+dckr__man_1_ps="List processes for current project"
 dckr__ps()
 {
   dckr_p_ctx "$@"
@@ -50,7 +50,7 @@ dckr__ps()
 }
 
 
-dckr_man_1__stop="Stop container for image. "
+dckr__man_1_stop="Stop container for image. "
 dckr_spc__stop="stop <image-name>"
 dckr__stop()
 {
@@ -67,14 +67,14 @@ dckr__stop()
 }
 
 
-dckr_man_1__start="Start image"
+dckr__man_1_start="Start image"
 dckr__start()
 {
   dckr_p_ctx "$@"
   dckr_start
 }
 
-dckr_man_1__destroy="Clean given container names. "
+dckr__man_1_destroy="Clean given container names. "
 dckr_spc__destroy='[-f] destroy'
 dckr__destroy()
 {
@@ -83,13 +83,13 @@ dckr__destroy()
   do ${sudo}docker rm $f $1 ; shift ; done
 }
 
-dckr_man_1__names="List images"
+dckr__man_1_names="List images"
 dckr__names()
 {
   dckr_names
 }
 
-dckr_man_1__c="Get container ID"
+dckr__man_1_c="Get container ID"
 dckr_spc__c="c <image-name>"
 dckr__c()
 {
@@ -98,7 +98,7 @@ dckr__c()
   echo $dckr_c
 }
 
-dckr_man_1__ip="List IP for one or all running containers."
+dckr__man_1_ip="List IP for one or all running containers."
 dckr_spc__ip="ip [<image-name>]"
 dckr__ip()
 {
@@ -114,7 +114,7 @@ dckr__ip()
 }
 
 # get image name from vars or cmdline, and start build (in current dir)
-dckr_man_1__build="Do a simple docker build invocation (in cwd)"
+dckr__man_1_build="Do a simple docker build invocation (in cwd)"
 dckr_spc__build="build [<image-name>]"
 dckr__build_classic()
 {
@@ -130,7 +130,7 @@ dckr__build_classic()
 }
 
 # start new container for image, and (re)run initialization scripts
-dckr_man_1__init="Do a standard run+init for an image. "
+dckr__man_1_init="Do a standard run+init for an image. "
 dckr_spc__init="init [<flags> <dckr-cmd> <image-name>]"
 dckr__init()
 {
@@ -213,7 +213,7 @@ dckr__exec()
   ${sudo}docker exec -ti "$image_name" "$dckr_cmd"
 }
 
-dckr_man_1__register="Register a project with dckr build package metadata. "
+dckr__man_1_register="Register a project with dckr build package metadata. "
 dckr_spc__register="register <project-name>"
 dckr__register()
 {
@@ -258,7 +258,7 @@ dckr__reset()
 
 
 
-dckr_man_1__shipyard_options="Show currently available deploy help. "\
+dckr__man_1_shipyard_options="Show currently available deploy help. "\
 '
   ACTION: this is the action to use (deploy, upgrade, remove)
   IMAGE: this overrides the default Shipyard image
@@ -271,7 +271,7 @@ dckr__shipyard_options()
   curl -s https://shipyard-project.com/deploy | bash -s -- -h
 }
 
-dckr_man_1__shipyard_init="Deploy Shipyard at 8080"
+dckr__man_1_shipyard_init="Deploy Shipyard at 8080"
 dckr__shipyard_init()
 {
   note "Initializing VS1 Shipyard"
@@ -284,7 +284,7 @@ dckr__shipyard_init()
   }
 }
 
-dckr_man_1__shipyard_init_old="Shutdown and boot shipard at 8001"
+dckr__man_1_shipyard_init_old="Shutdown and boot shipard at 8001"
 dckr__shipyard_init_old()
 {
   for dckr_name in shipyard shipyard-rethinkdb-data shipyard-rethinkdb
@@ -309,7 +309,7 @@ dckr__shipyard_init_old()
 }
 
 
-dckr_man_1__init_cadvisor="Run cAdvisor at 8002"
+dckr__man_1_init_cadvisor="Run cAdvisor at 8002"
 dckr__init_cadvisor()
 {
   ${sudo}docker run \
@@ -326,7 +326,7 @@ dckr__init_cadvisor()
 }
 
 
-dckr_man_1__init_sickbeard="Rebuild sickbeard at 8008"
+dckr__man_1_init_sickbeard="Rebuild sickbeard at 8008"
 dckr__init_sickbeard()
 {
   dckr_f_argv $@
@@ -484,7 +484,7 @@ dckr__init_dns()
     -v $DCKR_VOL/dnsmasq/dnsmasq.conf:/etc/dnsmasq.conf
 }
 
-dckr_man_1__dnsmasq_conf="dnsmasq static address config using image-name as hostname"
+dckr__man_1_dnsmasq_conf="dnsmasq static address config using image-name as hostname"
 dckr__dnsmasq_conf()
 {
   #prefix=

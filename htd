@@ -279,14 +279,14 @@ htd__files()
   echo 'See dckr for container commands and vc for GIT related. '
 }
 
-htd_man_1__commands="List all commands"
+htd__man_1_commands="List all commands"
 htd__commands()
 {
-  choice_global= choice_all=true std_commands
+  choice_global= choice_all=true std__commands
 }
 
 
-htd_man_1__help="Echo a combined usage, command and docs"
+htd__man_1_help="Echo a combined usage, command and docs"
 htd_spc__help="-h|help [<id>]"
 htd__help()
 {
@@ -302,7 +302,7 @@ htd__help()
 htd_als___h=help
 
 
-htd_man_1__version="Version info"
+htd__man_1_version="Version info"
 htd__version()
 {
   echo "$package_id/$version"
@@ -342,7 +342,7 @@ htd__expand()
 }
 
 
-htd_man_1__edit_main="Edit the main script file"
+htd__man_1_edit_main="Edit the main script file"
 htd_spc__edit_main="-E|edit-main"
 htd__edit_main()
 {
@@ -368,7 +368,7 @@ htd__edit_main()
 htd_als___E=edit-main
 
 
-htd_man_1__edit="Edit a local file, or abort"
+htd__man_1_edit="Edit a local file, or abort"
 htd_spc__edit="-e|edit <id>"
 htd__edit()
 {
@@ -383,7 +383,7 @@ htd__edit()
 htd_als___e=edit
 
 
-htd_man_1__count="Look for doc"
+htd__man_1_count="Look for doc"
 htd_spc__count="count"
 htd__count()
 {
@@ -396,7 +396,7 @@ htd__count()
   doc_grep_content "$1" | wc -l
 }
 
-htd_man_1__find="Look for document. "
+htd__man_1_find="Look for document. "
 htd_spc__find="-f|find (<path>|<localname> [<project>])"
 htd__find()
 {
@@ -411,7 +411,7 @@ htd__find()
 htd_als___f=find
 
 
-htd_man_1__status=""
+htd__man_1_status=""
 htd_spc__status=""
 htd_run__status=fSm
 htd__status()
@@ -425,7 +425,7 @@ htd__status()
 }
 
 
-htd_man_1__script="Get/list scripts in tools.yml. Statusdata is a mapping of 
+htd__man_1_script="Get/list scripts in tools.yml. Statusdata is a mapping of 
   scriptnames to script lines. "
 htd_spc__script=""
 htd_run__script=pSmr
@@ -472,7 +472,7 @@ htd__script()
   report=$status
 }
 
-htd_man_1__tools="Scan wether given binaries are installed. "
+htd__man_1_tools="Scan wether given binaries are installed. "
 htd_spc__tools="tools <tool-id>.."
 htd__tools()
 {
@@ -492,7 +492,7 @@ htd__tools()
   )
 }
 
-htd_man_1__install=""
+htd__man_1_install=""
 htd_spc__install=""
 htd__install()
 {
@@ -526,14 +526,14 @@ htd__uninstall()
 
 htd__man_5__htdignore_merged='Exclude rules used by `htd find|edit|count`, compiled from other sources using ``htd init-ignores``. '
 
-htd_man_1__init_ignores="Write all exclude rules to .htdignores.merged"
+htd__man_1_init_ignores="Write all exclude rules to .htdignores.merged"
 htd__init_ignores()
 {
   htd_init_ignores
 }
 
 
-htd_man_1__relative_path="Test for relative path"
+htd__man_1_relative_path="Test for relative path"
 htd__relative_path()
 {
   # TODO: maybe build relative path from 1 arg and cwd, or two args
@@ -544,7 +544,7 @@ htd__relative_path()
   echo relpath=$relpath
   exit $r
 }
-htd_man_1__relpath="Alias for 'relative-path'"
+htd__man_1_relpath="Alias for 'relative-path'"
 htd_als__relpath='relative-path'
 
 
@@ -949,8 +949,32 @@ htd__project_todo()
   refs=
 }
 
-# Experimenting with gtasks.. looking at todo targets
+# Edit local/new task descriptions
+htd_als__tte=todotxt-edit
+htd__todotxt_edit()
+{
+  # TODO find local
+  test -e .todo.ttxtm || touch .todo.ttxtm
+  test -e .done.ttxtm || touch .done.ttxtm
+  todotxt-machine .todo.ttxtm .done.ttxtm
+}
+
+# Current tasks?
 htd__todo()
+{
+  htd__todotxt_edit
+  htd__todotxt_tags
+}
+
+htd__todotxt_tags()
+{
+  # TODO: update/match with tag, project index
+  grep -o '+[^\ ]*' .todo.ttxtm | words_to_lines
+  grep -o '@[^\ ]*' .todo.ttxtm | words_to_lines
+}
+
+# Experimenting with gtasks.. looking at todo targets
+htd__todo_gtasks()
 {
   test -e TODO.list && {
     cat TODO.list | \
@@ -1017,7 +1041,7 @@ htd_grep_line_exclude()
   #done
 }
 
-htd_man_1__build_todo_list="Build indented file of path/line/tag from FIXME: etc tagged
+htd__man_1_build_todo_list="Build indented file of path/line/tag from FIXME: etc tagged
 src files"
 htd__build_todo_list()
 {
@@ -1485,8 +1509,8 @@ htd__resolve()
 htd_sp__pci="MSG [REMOTES]"
 htd__pci()
 {
-  local git_add_f=" "
-  htd__pci "$1" "$2" || return
+  local git_add_f=""
+  htd__pcia "$1" "$2" || return $?
 }
 
 # Commit tracked files and push to all remotes
@@ -1494,9 +1518,19 @@ htd_sp__pcia="MSG [REMOTES]"
 htd__pcia()
 {
   test -n "$1" || error "Commit message expected" 1
+
   test -n "$git_add_f" || local git_add_f=-u
-  test -n "$2" || set -- "$1" "--all"
-  git add $git_add_f;git commit -m "$1";git push $2
+  test -z "$git_add_f" -o " " = "$git_add_f" || {
+    git add $git_add_f || return $?
+  }
+
+  git commit -m "$1" || return $?
+
+  for remote in $(git remote)
+  do
+    test -n "$2" || set -- "$1" "--all"
+    git push $2 $remote
+  done
 }
 
 
@@ -1580,7 +1614,7 @@ htd__commit()
   echo -e
 }
 
-htd_man_1__run="Resolve and execute scripts. Separate multiple scripts with --. "
+htd__man_1_run="Resolve and execute scripts. Separate multiple scripts with --. "
 htd_run__run=f
 htd__run()
 {
@@ -1801,7 +1835,7 @@ htd__ck_table()
   }
 }
 
-htd_man_1__ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
+htd__man_1_ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
 htd_spc__ck_table_subtree="ck-tabke-subtree $ck_arg_spec <path>"
 htd__ck_table_subtree()
 {
@@ -1953,7 +1987,7 @@ htd__ck_drop()
   rm table.$CK.tmp
 }
 
-htd_man_1__ck_clean="Iterate checksum table, check for duplicates, normalize paths"
+htd__man_1_ck_clean="Iterate checksum table, check for duplicates, normalize paths"
 htd_spc__ck_clean="clean $ck_arg_spec"
 htd__ck_clean()
 {
@@ -2423,7 +2457,7 @@ htd__reader_update()
   done
 }
 
-htd_man_1__test="Project test in HTDIR"
+htd__man_1_test="Project test in HTDIR"
 htd__test()
 {
   test -n "$HTDIR" || error HTDIR 1
@@ -2433,7 +2467,7 @@ htd__test()
 htd_als___t=test
 
 
-htd_man_1__edit_test="edit-tests"
+htd__man_1_edit_test="edit-tests"
 htd__edit_test()
 {
   $EDITOR ./test/*-spec.bats
@@ -2441,14 +2475,14 @@ htd__edit_test()
 htd_als___T=edit-test
 
 
-htd_man_1__inventory="All inventories"
+htd__man_1_inventory="All inventories"
 htd__inventory()
 {
   $EDITOR personal/inventory/{main,*}.rst
   git add personal/inventory/{main,*}.rst
 }
 
-htd_man_1__inv_elec="Electrics inventory"
+htd__man_1_inv_elec="Electrics inventory"
 htd__inv_elec()
 {
   $EDITOR personal/inventory/{components,modules,hardware}.rst
@@ -2797,7 +2831,7 @@ htd__clean()
   $UCONFDIR/script/clean.sh || return $?
 }
 
-htd_man_1__clean_unpacked="Given archive, look for existing, possibly unpacked (direct) neighbour dirs
+htd__man_1_clean_unpacked="Given archive, look for existing, possibly unpacked (direct) neighbour dirs
 interactively delete, compare, or skip"
 htd__clean_unpacked()
 {
@@ -3503,7 +3537,9 @@ htd_main()
 
   htd_init || exit $?
 
-  case "$base" in $scriptname )
+  case "$base" in
+    
+    $scriptname )
 
         htd_lib || exit $?
         run_subcmd "$@" || exit $?
@@ -3512,6 +3548,7 @@ htd_main()
     * )
         error "not a frontend for $base ($scriptname)" 1
       ;;
+
   esac
 }
 

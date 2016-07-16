@@ -8,7 +8,7 @@ set -e
 version=0.0.0+20150911-0659 # script-mpe
 
 
-esop_man_1__version="Version info"
+esop__man_1_version="Version info"
 esop__version()
 {
   echo "$(cat $scriptdir/.app-id)/$version"
@@ -52,6 +52,7 @@ esop__run()
         #done
         # ./test/*-spec.bats || { echo $1>>$failed; }
       ;;
+
   esac
   test ! -e $failed || return 1
 }

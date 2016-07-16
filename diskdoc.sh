@@ -485,7 +485,7 @@ diskdoc__ids()
 #  # XXX _init is bodged, std__help diskdoc "$@"
 #}
 
-diskdoc_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+diskdoc__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 diskdoc_spc__help='-h|help [ID]'
 diskdoc__help()
 {
