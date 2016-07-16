@@ -63,4 +63,35 @@ datelink()
   mkrlink $datep $target_path
 }
 
+epoch_microtime()
+{
+    case "$uname" in
+        Darwin ) gdate +%s%N ;;
+        Linux ) date +%s%N ;;
+    esac
+}
+
+date_microtime()
+{
+    case "$uname" in
+        Darwin ) gdate +"%Y-%m-%d %H:%M:%S.%N" ;;
+        Linux ) gdate +"%Y-%m-%d %H:%M:%S.%N" ;;
+    esac
+}
+
+date_iso()
+{
+    case "$uname" in
+        Darwin ) gdate --iso ;;
+        Linux ) date --iso ;;
+    esac
+}
+
+datetime_iso()
+{
+    case "$uname" in
+        Darwin ) gdate --iso=minutes ;;
+        Linux ) date --iso=minutes ;;
+    esac
+}
 

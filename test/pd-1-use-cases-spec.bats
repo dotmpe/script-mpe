@@ -38,19 +38,19 @@ EOF
 }
 
 
-@test "1.1 enable, disable a checkout without errors. " {
+@test "1.2.1 enable, disable a checkout without errors. " {
   cd $tmpd 
   $pd enable user-conf
   $pd clean user-conf
   $pd disable user-conf
 }
 
-@test "1.2 update and check for remotes. " {
+@test "1.2.2 update and check for remotes. " {
   cd $tmpd 
   TODO "$BATS_TEST_DESCRIPTION"
 }
 
-@test "1.3 track enabled per host, or globally. " {
+@test "1.2.3 track enabled per host, or globally. " {
   cd $tmpd 
 
   # Normal enable/disable switched both global setting, and per-host
@@ -80,10 +80,6 @@ EOF
 
 @test "tell about a prefix; description, remotes, default branch, upstream/downstream settings, other dependencies. " {
   $pd show user-conf
-  TODO "$BATS_TEST_DESCRIPTION"
-}
-
-@test "" {
   TODO "$BATS_TEST_DESCRIPTION"
 }
 

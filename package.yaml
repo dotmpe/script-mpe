@@ -12,6 +12,9 @@
 
   pd-meta:
 
+    # XXX: what if want to allow Sh here. Or use another project attr. for Sh
+    # scripts
+
     check: ":vchk :bats-specs"
     test: ":vchk :-sh:python:test/main.py :bats-specs :bats"
 

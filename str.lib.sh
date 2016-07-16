@@ -133,6 +133,19 @@ unique_words()
   words_to_unique_lines | lines_to_words
 }
 
+expr_substr()
+{
+    test -n "$expr" || error "expr init req" 1
+    case "$expr" in
+        sh-substr )
+            expr substr "$1" "$2" "$3" ;;
+        bash-substr )
+            bash -c 'MYVAR=_"'"$1"'"; printf -- "${MYVAR:'$2':'$3'}"' ;;
+        * ) error "unable to substr $expr" 1
+    esac
+}
+
+
 # Set env for str.lib.sh
 str_load()
 {

@@ -2,18 +2,19 @@
 
 set -e
 
+# Main: CLI helpers; init/run func as subcmd
 
+
+main_load()
+{
+  lib_load sys str std
+}
+
+
+# Count arguments consumed
 incr_c()
 {
   incr c $1
-}
-
-incr()
-{
-  local incr_amount
-  test -n "$2" && incr_amount=$2 || incr_amount=1
-  v=$(eval echo \$$1)
-  export $1=$(( $v + $incr_amount ))
 }
 
 # Get help str if exists for $section $id
@@ -691,7 +692,7 @@ daemon()
 # any notices and returning 1 for failures.
 clean_failed()
 {
-  test -z "$failed" -o ! -e "$failed" || {
+  test -z "$failed" -o ! -e "$failed" && return || {
     test -n "$1" || set -- "Failed: "
     test -s "$failed" && {
       count="$(sort -u $failed | wc -l | awk '{print $1}')"
@@ -707,6 +708,38 @@ clean_failed()
     return 1
   }
 }
+
+# TODO: retrieve leading/trailing X lines, truncate to Y length
+abbrev_content()
+{
+  echo
+}
+
+# remove named paths from env context; set status vars for line-count and
+# truncated contents; XXX: deprecates clean_failed
+clean_io_lists()
+{
+  local count= path=
+  while test -n "$1"
+  do
+    count=0 path="$(eval echo \$$1)"
+    test -s "$path" && {
+      count="$(count_lines $path)"
+      test $count -gt 2 && {
+        eval ${1}_abbrev="'$(echo $(sort -u $path | head -n 3 )) and $(( $count - 3 )) more'"
+        #rotate-file $failed .failed
+      } || {
+        eval ${1}_abbrev="'$(echo $(sort -u $path | lines_to_words ))'"
+        #rm $1
+      }
+    }
+    test ! -e $path || rm $path
+    eval ${1}_count="$count"
+    export ${1}_count ${1}_abbrev
+    shift
+  done
+}
+
 
 # Return path to new file in temp. dir. with ${base}- as filename prefix,
 # .out suffix and subcmd with uuid as middle part.

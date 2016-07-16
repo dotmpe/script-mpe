@@ -34,11 +34,11 @@ endif
 #      ------------ -- 
 
 ifeq ($(shell hostname -s),simza)
-TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d
+TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d 
 #test_usr_$d 
 #test_sa_$d test_schema_$d test_py_$d 
 else
-TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d
+TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d test-ci
 endif
 
 STRGT               += $(TEST_$d)
@@ -52,6 +52,10 @@ libcmdng.html: libcmdng.py
 	@$(ll) file_ok "$@"
 
 test:: $(TEST_$d)
+
+test-ci::
+	. ./tools/sh/env.sh; \
+	. ./tools/ci/test.sh
 
 test_py_$d test_sa_$d :: D := $/
 

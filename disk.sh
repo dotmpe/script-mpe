@@ -7,6 +7,18 @@ set -e
 ### User commands
 
 
+disk__man_1_help="Usage help. "
+disk_spc__help="-h|help"
+disk_als___h=help
+disk__help()
+{
+  test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  choice_global=1 std__help "$@"
+}
+
+
+disk__man_1_edit="Edit $base script file plus arguments. "
+disk_spc__edit="-e|edit [<file>..]"
 disk__edit()
 {
   $EDITOR \
@@ -18,13 +30,13 @@ disk__edit()
     $(which diskdoc.py) \
     "$@"
 }
+disk_als___e=edit
 
 
 disk__status()
 {
   note OK
 }
-
 
 disk__id()
 {
@@ -88,6 +100,7 @@ disk__local()
     echo $1 $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) $(disk_tabletype $1)
   } | sort -n | column -tc 3
 }
+
 disk__list_local()
 {
   {
@@ -97,12 +110,12 @@ disk__list_local()
       disk__info $disk | grep -Ev '^\s*(#.*|\s*)$'
     done
   } | sort -n | column -tc 3
-  echo "# Disks at $(hostname), $(date --iso)"
+  echo "# Disks at $(hostname), $(datetime_iso)"
 }
-disk__list_local()
-{
-  disk_list
-}
+#disk__list_local()
+#{
+#  disk_list
+#}
 disk__list_part_local()
 {
   disk_list_part
@@ -126,7 +139,7 @@ disk__list()
 
     done
   } | sort -n | column -tc 3
-  echo "# Catalog at $(hostname):$DISK_CATALOG, $(date --iso)"
+  echo "# Catalog at $(hostname):$DISK_CATALOG, $(datetime_iso)"
 }
 
 

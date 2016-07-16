@@ -196,7 +196,8 @@ jsotk_main()
           sock= \
           c=0 \
           ext_sh_sub= \
-          base=jsotk
+          base=jsotk \
+          failed=
 
         shift $c
 

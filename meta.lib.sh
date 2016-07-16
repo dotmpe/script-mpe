@@ -59,7 +59,10 @@ update_package()
   test -n "$1" || set -- ./
   test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
   metaf=$(normalize_relative "$metaf")
-  test -e "$metaf" || warn "No package def '$metaf'" 0
+  test -e "$metaf" || {
+    warn "No package def '$metaf'"
+    return 1
+  }
   # Package.sh is used by other scripts
   update_package_sh "$1"
   # .package.json is not used, its a direct convert of te entire YAML doc.

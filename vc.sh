@@ -1283,6 +1283,7 @@ vc_main()
         test -n "$verbosity" || verbosity=5
 
         local func=$(echo vc__$subcmd | tr '-' '_') \
+            failed= \
             ext_sh_sub=
 
         type $func >/dev/null 2>&1 && {

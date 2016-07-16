@@ -205,15 +205,21 @@ def H_merge(ctx, write=True):
 
 def H_update(ctx):
     "Update srcfile from stdin. Write to destfile or stdout. "
-    updatefile = get_dest(ctx, 'w+')
-    data = load_data( ctx.opts.flags.output_format, updatefile, ctx )
+
     if not ctx.opts.args.srcfiles:
         return
+
+    updatefile = get_dest(ctx, 'r')
+    data = load_data( ctx.opts.flags.output_format, updatefile, ctx )
+    updatefile.close()
+
     for src in ctx.opts.args.srcfiles:
         fmt = get_format_for_fileext(src) or ctx.opts.flags.input_format
         mdata = load_data( fmt, open_file( src, 'in', ctx=ctx ), ctx )
+
         deep_update([data, mdata], ctx)
-    updatefile = get_dest(ctx, 'w')
+
+    updatefile = get_dest(ctx, 'w+')
     return stdout_data( ctx.opts.flags.output_format, data, updatefile, ctx )
 
 

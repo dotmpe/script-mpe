@@ -213,7 +213,10 @@ class FlatKVSerializer(AbstractKVSerializer):
         return sp % re_alphanum.sub('_', key)
 
 def load_data(infmt, infile, ctx):
-    return readers[ infmt ]( infile, ctx )
+    data = readers[ infmt ]( infile, ctx )
+    if isinstance(data, type(None)):
+        raise Exception("No data from file %s (%s)" % ( infile, infmt ))
+    return data
 
 def stdout_data(outfmt, data, outfile, ctx):
     return writers[ outfmt ]( data, outfile, ctx )
@@ -448,6 +451,8 @@ def deep_update(dicts, ctx):
     --list-update or --list-union, see deep_union.
     """
     assert len(dicts) > 1
+    assert not isinstance( dicts[0], type(None) )
+    assert not isinstance( dicts[1], type(None) )
     data = dicts[0]
     while len(dicts) > 1:
         mdata = dicts.pop(1)

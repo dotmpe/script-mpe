@@ -1,6 +1,16 @@
 #!/bin/sh
 
 
+# OS: files, paths
+
+
+short()
+{
+  test -n "$1" || set -- "$(pwd)"
+  # XXX maybe replace python script sometime
+  $scriptdir/short-pwd.py -1 "$1"
+}
+
 filesize()
 {
   case "$uname" in
@@ -56,14 +66,14 @@ normalize_relative()
       case "$1" in
         /* ) ;;
         * )
-            NORMALIZED=$(expr_substr $NORMALIZED 2 ${#NORMALIZED} )
+            NORMALIZED="$(expr_substr "$NORMALIZED" 2 ${#NORMALIZED} )"
           ;;
       esac
     } || NORMALIZED=.
-  case "$1" in
-    */ ) echo $NORMALIZED/
+  trueish "$strip_trail" && echo "$NORMALIZED" || case "$1" in
+    */ ) echo "$NORMALIZED/"
       ;;
-    * ) echo $NORMALIZED
+    * ) echo "$NORMALIZED"
       ;;
   esac
 }
@@ -94,12 +104,12 @@ split_multipath()
 # XXX: this one support leading whitespace but others in ~/bin/*.sh do not
 read_nix_style_file()
 {
-  cat $@ | grep -Ev '^\s*(#.*|\s*)$'
+  cat $@ | grep -Ev '^\s*(#.*|\s*)$' || return 1
 }
 
 read_if_exists()
 {
-  read_nix_style_file $@ 2>/dev/null
+  read_nix_style_file $@ 2>/dev/null || return 1
 }
 
 # [0|1] [1] read-file-lines-while file-path [while-expr]
@@ -130,22 +140,22 @@ read_file_lines_while()
 }
 
 
-# Traverse to parent dir with file
+# Change cwd to parent dir with file $1, leave go_to_before var in env.
 go_to_directory()
 {
-  test -n "$doc" || doc=$1
+  test -n "$1" || error "Missing filename arg" 1
 
   # Find dir with metafile
   go_to_before=.
   while true
   do
-    test -e "$doc" && break
+    test -e "$1" && break
     go_to_before=$(basename $(pwd))/$go_to_before
     test "$(pwd)" = "/" && break
     cd ..
   done
 
-  test -e "$doc" || return 1
+  test -e "$1" || return 1
 }
 
 # Resolve all symlinks in subtree, return a list with targets
@@ -172,4 +182,86 @@ count_lines()
     wc -l | awk '{print $1}'
   }
 }
+
+count_words()
+{
+  test -n "$1" && {
+    while test -n "$1"
+    do
+      wc -w $1 | awk '{print $1}'
+      shift
+    done
+  } || {
+    wc -w | awk '{print $1}'
+  }
+}
+
+# Wrap wc but correct files with or w.o. trailing posix line-end
+line_count()
+{
+  lc="$(echo $(od -An -tc -j $(( $(filesize $1) - 1 )) $1))"
+  case "$lc" in "\n" ) ;;
+    "\r" ) error "POSIX line-end required" 1 ;;
+    * ) printf "\n" >>$1 ;;
+  esac
+  local lc=$(wc -l $1 | awk '{print $1}')
+  echo $lc
+}
+
+xsed_rewrite()
+{
+    case "$uname" in
+        Darwin ) sed -i.applyBack "$@";;
+        Linux ) sed "$@";;
+    esac
+}
+
+get_uuid()
+{
+  test -e /proc/sys/kernel/random/uuid && {
+    cat /proc/sys/kernel/random/uuid
+    return 0
+  }
+  test -x $(which uuidgen) && {
+    uuidgen
+    return 0
+  }
+  error "FIXME uuid required" 1
+  return 1
+}
+
+# FIXME: can Bourne Sh do pushd/popd in a function?
+#cmd_exists pushd || {
+#pushd()
+#{
+#  tmp=/tmp/pushd-$$
+#  echo "pushd \$\$=$$ $@"
+#  echo "$1" >>$tmp
+#  cd $1
+#}
+#popd()
+#{
+#  tmp=/tmp/pushd-$$
+#  echo "popd \$\$=$$ $@"
+#  tail -n 1 $tmp
+#  cd $(truncate_trailing_lines $tmp 1)
+#}
+#}
+#
+#pushd_cwdir()
+#{
+#  test -n "$CWDIR" -a "$CWDIR" != "$(pwd)" && {
+#    echo "pushd $CWDIR" "$(pwd)"
+#    pushd $WDIR
+#  } || set --
+#}
+#
+#popd_cwdir()
+#{
+#  test -n "$CWDIR" -a "$CWDIR" = "$(pwd)" && {
+#    echo "popd $CWDIR" "$(pwd)"
+#    test "$(popd)" = "$CWDIR"
+#  } || set --
+#}
+
 

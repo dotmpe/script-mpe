@@ -2,6 +2,8 @@
 
 Spec
 ----
+TODO: advanced rules:
+
 htd
   up|down [<host>.]<service> [<Env> [<env>=<val>]]
     TODO: up/down
