@@ -8,7 +8,7 @@ set -e
 version=0.0.0+20150911-0659 # script-mpe
 
 
-box_instance__man_1_version="Version info"
+box_instance_man_1__version="Version info"
 box_instance__version()
 {
   echo "script-mpe/$version"
@@ -16,7 +16,7 @@ box_instance__version()
 box_instance_als__V=version
 
 
-box_instance__man_1_x=abc
+box_instance_man_1__x=abc
 box_instance_load__x=f
 box_instance_spc__x="x ARG [ARG..]"
 box_instance__x()

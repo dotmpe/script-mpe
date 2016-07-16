@@ -28,6 +28,7 @@ disk__edit()
     $(dirname $(which disk.sh))/disk.rst \
     $(which diskdoc.sh) \
     $(which diskdoc.py) \
+    $(dirname $(which disk.sh))/test/disk-*.* \
     "$@"
 }
 disk_als___e=edit
