@@ -11,7 +11,7 @@ version=0.0.0+20150911-0659 # script-mpe
 box_instance__man_1_version="Version info"
 box_instance__version()
 {
-  echo "$(cat $PREFIX/bin/.app-id)/$version"
+  echo "script-mpe/$version"
 }
 box_instance_als__V=version
 

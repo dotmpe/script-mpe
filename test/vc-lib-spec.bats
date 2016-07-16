@@ -16,16 +16,16 @@ setup() {
 
   run __vc_gitdir
   test $status -eq 0 \
-    || fail "Status $status"
+    || fail "Status: $status"
   test "${lines[@]}" = "$tmpd/.git" \
-    || fail "${lines[@]}"
+    || fail "Lines: ${lines[@]}"
 
   mkdir -p sub-1/sub-1.1
   cd sub-1/sub-1.1
   run __vc_gitdir
   test $status -eq 0
   test "${lines[@]}" = "$tmpd/.git" \
-    || fail "${lines[@]}"
+    || fail "Lines 2: ${lines[@]}"
 }
 
 @test ". $bin __vc_git_flags - " {
