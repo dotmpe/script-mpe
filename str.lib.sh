@@ -15,7 +15,8 @@ mkvid()
 }
 mkcid()
 {
-	cid=$(echo "$1" | sed 's/\([^a-z0-9-]\|\-\)/-/g')
+  cid=$(echo "$1" | tr 'A-Z' 'a-z' | tr -sc 'a-z0-9' '-')
+  #  cid=$(echo "$1" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9-]/-/g')
 }
 
 str_upper()

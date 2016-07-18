@@ -11,17 +11,20 @@
   license: GPL
 
   pd-meta:
-
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
-
-    check: ":vchk :bats-specs"
-    test: ":vchk :-sh:python:test/main.py :bats-specs :bats"
+    #check: ":vchk :bats-specs"
+    test: ":vchk :-python:test/main.py :bats-specs :bats"
 
     git-hooks:
       pre-commit: ./tools/git-hooks/pre-commit.sh
 
-    init: "./install-dependencies.sh git"
+    init: "./install-dependencies.sh git:init"
 
-      # FIXME: what about git annex pre-commit .
+    # FIXME: what about git annex pre-commit .
+
+  environment:
+    development:
+    - package_pd_meta_default=dev
+    - Build_Deps_Default_Paths=1 
 

@@ -9,23 +9,24 @@ init
 setup() {
   . ./$base load-ext
   setup_clean_git
-  tmpd=$(pwd)
 }
 
 @test ". $bin __vc_gitdir - reports GIT dir in GIT checkout" {
+
+  tmpd=$(pwd -P)
 
   run __vc_gitdir
   test $status -eq 0 \
     || fail "Status: $status"
   test "${lines[@]}" = "$tmpd/.git" \
-    || fail "Lines: ${lines[@]}"
+    || fail "Lines: ${lines[@]} ($tmpd)"
 
   mkdir -p sub-1/sub-1.1
   cd sub-1/sub-1.1
   run __vc_gitdir
   test $status -eq 0
   test "${lines[@]}" = "$tmpd/.git" \
-    || fail "Lines 2: ${lines[@]}"
+    || fail "Lines 2: ${lines[@]} ($tmpd)"
 }
 
 @test ". $bin __vc_git_flags - " {

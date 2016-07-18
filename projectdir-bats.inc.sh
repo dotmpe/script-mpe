@@ -2,16 +2,30 @@
 pd_register bats check test
 
 
+pd__bats_autoconfig()
+{
+  test "$(echo test/*-spec.bats)" != "test/*-spec.bats" \
+    || return $?
+}
+
 pd_check__bats_autoconfig()
 {
-  echo bats:specs
+  pd__bats_autoconfig && {
+    note "Using Bats"
+    echo :bats:specs
+  }
 }
 
 pd_test__bats_autoconfig()
 {
-  echo bats
+  pd__bats_autoconfig && {
+    note "Using Bats"
+    echo :bats
+  }
 }
 
+#pd_trgtpref__bats_count=bats:count
+#pd_stat__bats_count=bats/count
 
 pd_glob__bats_files='./test/*-spec.bats'
 pd_trgtpref__bats_files=bats:file
@@ -24,58 +38,64 @@ pd_trgtpref__bats_files=bats:file
 #
 #   Filter prefixed arguments unless prefix bats:file, strip that one.
 #
-pd_load__bats_files=iI
-pd__bats_files()
+pd_bats_files_args()
 {
   test -n "$pd_trgtglob" \
-    || pd_trgtglob="$(eval echo "\"\$$(try_local "$subcmd" glob)\"")"
+    || pd_trgtglob="$(eval echo "\"\$$(try_local "bats-files" glob)\"")"
 
-  test -n "$1" && {
+  {
+    test -n "$1" && {
 
-    test -n "$pd_trgtpref" \
-      || pd_trgtpref="$(eval echo "\"\$$(try_local "$subcmd" trgtpref)\"")"
-    set -f
-    set -- $(pd_filter_args $pd_trgtpref "$@")
-    set +f
+      test -n "$pd_trgtpref" \
+        || pd_trgtpref="$(eval echo "\"\$$(try_local "$subcmd" trgtpref)\"")"
 
-    while test -n "$1"
-    do
-      set -f
-      for glob in $pd_trgtglob
+      while test -n "$1"
       do
+        set -f
+        for glob in $pd_trgtglob
+        do
+          set +f
+
+          target_globs="$(echo "$glob" | sed 's#\*#'$1'#')"
+          targets="$(for target in $target_globs
+            do
+              test -e "$target" && {
+                echo "$target"
+              }
+            done)"
+
+          test -n "$targets" && {
+            echo "$targets" | words_to_lines
+          } || {
+            test -e "$1" && {
+              echo $1 | sed 's/^bats:file://g'
+            }
+          }
+
+          set -f
+        done
         set +f
 
-        target_globs="$(echo "$glob" | sed 's#\*#'$1'#')"
-        targets="$(for target in $target_globs
-          do
-            test -e "$target" && {
-              echo "$target"
-            }
-          done)"
-
-        test -n "$targets" && {
-          echo "$targets" | words_to_lines
-        } || {
-          test -e "$1" && {
-            echo $1 | sed 's/^bats:file://g'
-          }
-        }
-
-        set -f
+        shift
       done
-      set +f
 
-      shift
-    done
+    } || {
 
-  } || {
-
-    for target in $pd_trgtglob
-    do
-      echo "$target"
-    done
-  }
+      for target in $pd_trgtglob
+      do
+        echo "$target"
+      done
+    }
+  } > $arguments
 }
+
+
+pd_load__bats_files=iIa
+pd__bats_files()
+{
+  cat $arguments
+}
+pd_defargs__bats_files=pd_bats_files_args
 
 
 # glob-names: use glob to find all shorter names
@@ -122,10 +142,10 @@ set_bats_bin_path()
 }
 
 
-pd_man_1__bats_tests="List tests from Bats files. Fail on missing or invalid files. "
-pd_spc__bats_tests="[ file | name | file:name | file:index ]..."
-pd_load__bats_tests=iaI
-pd__bats_tests()
+pd_man_1__bats_specs="List tests from Bats files. Fail on missing or invalid files. "
+pd_spc__bats_specs="[ file | name | file:name | file:index ]..."
+pd_load__bats_specs=iaI
+pd__bats_specs()
 {
   set -- $(cat $arguments)
   pd__bats_load
@@ -149,15 +169,15 @@ pd__bats_tests()
       failed "$pd_trgtpref:$@"
     }
 }
-pd_trgtpref__bats_tests=bats:tests
-pd_stat__bats_tests=bats/tests
-pd_defargs__bats_tests=pd__bats_files
+pd_trgtpref__bats_specs=bats:tests
+pd_stat__bats_specs=bats/tests
+pd_defargs__bats_specs=pd_bats_files_args
 
 
 
 pd_man_1__bats_count="List Bats files and count tests. Fail on missing or invalid count. "
-pd_spc__bats_count="[BATS]..."
-pd_load__bats_count=aigI
+pd_spc__bats_count="[ BATS ]..."
+pd_load__bats_count=igaI
 pd__bats_count()
 {
   set -- $(cat $arguments)
@@ -187,32 +207,22 @@ pd__bats_count()
       failed "$pd_trgtpref:$@"
     }
 }
-pd_trgtpref__bats_count=bats:count
-pd_stat__bats_count=bats/count
+pd_defargs__bats_count=pd_bats_files_args
 
 
-#pd_load__bats=iI
+pd_load__bats=iIa
 pd__bats()
 {
-  test -n "$1"
-
-  status_key=bats
-  local_target=$(echo $1 | cut -c 6-)
-  export $(hostname -s | tr 'a-z.-' 'A-Z__')_SKIP=1
-  {
-    bats $local_target.bats || return $?
-  } | bats-color.sh
-
-
-  status_key=bats
-  export $(hostname -s | tr 'a-z.-' 'A-Z__')_SKIP=1
-  {
-    verbosity=6 ./test/*-spec.bats || return $?
-  } | bats-color.sh
-
-  #for x in ./test/*-spec.bats;
-  #do
-  #  bats $x || echo bats:$x >&6
-  #done
+  for x in $@
+  do
+    status_key=bats
+    {
+      verbosity=6
+      bats $x \
+        || echo "bats:$x" >&6
+    } | bats-color.sh
+  done
 }
+pd_defargs__bats=pd_bats_files_args
+
 

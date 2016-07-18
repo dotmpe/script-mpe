@@ -226,7 +226,7 @@ pd__disable_clean()
 
 
 # Regenerate local package metadata files and scripts
-pd_load__regenerate=dfp
+pd_load__regenerate=dfP
 pd__regenerate()
 {
   set -- "$(normalize_relative "$go_to_before/$1")"
@@ -238,7 +238,7 @@ pd__regenerate()
 
 
 # Given existing checkouts upate local scripts and then projdoc
-pd_load__update=yfp
+pd_load__update=yfP
 pd__update()
 {
   set -- "$(normalize_relative "$go_to_before/$1")"
@@ -528,7 +528,7 @@ pd__init_all()
 }
 
 # Given existing checkout, update local .git with remotes, regen hooks.
-pd_load__init=yfp
+pd_load__init=yfP
 pd__init()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -777,64 +777,77 @@ pd__copy()
 }
 
 
-pd_load__run=yiYI
+pd_load__run=yiIap
+pd_defargs__run=pd_prefix_target_args
 # Run (project) helper commands and track results
 pd_spc__run='[ PREFIX | [:]TARGET ]...'
 pd__run()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
-  test -n "$1" || error "argument expected" 1
   record_env_keys pd-run pd-subcmd pd-env
-
-  local status_key= states=
-
   info "Pd targets requested: $*"
+  info "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
 
-  # TODO filter out prefixes from requested targets
-
-  cd $pd_prefix
-
-  while test -n "$1"
+  local state= status_key= states=
+  while read pd_prefix
   do
-    status_key=$1 states= result=0
+    cd $pd_realdir/$pd_prefix
 
-    info "Next target: $1"
-    record_env_keys pd-target pd-run pd-subcmd pd-env
-    pd_debug start $1 pd-target pd_prefix
-
-    . $scriptdir/$scriptname-run.inc.sh $1 && {
-      echo "$1" >&3
-    } || {
-      result=$?
-      echo "$1" >&5
+    set -- $(cat $arguments | lines_to_words )
+    test -n "$1" || {
+      info "Setting targets to states of 'init' for '$pd_root/$pd_prefix'"
+      set -- $(pd__ls_targets init 2>/dev/null)
     }
 
-    #    && pd_update_status $status_key/result=0 $states \
-    #    || {
-    #      pd_update_status $status_key/result=$? $states
-    #      echo $1 >&6
-    #    }
+    while test -n "$1"
+    do
+      state=$1; shift
+      debug "Next target: $pd_prefix:$state"
+      status_key=$state states= result=0
 
-    record_env_keys pd-target pd-run pd-subcmd pd-env
+      #record_env_keys pd-target pd-run pd-subcmd pd-env
+      #pd_debug start $state pd-target pd_prefix
 
-    pd_debug end $1 pd-target pd_prefix
+      (
+        test -n .package.sh || error package 1
+        export $(pd__env)
+        subcmd=$subcmd$state
+        pd_run $state
+      )
 
-    shift 1
-  done
+      #. $scriptdir/$scriptname-run.inc.sh $state && {
+      #  echo "$state" >&3
+      #} || {
+      #  result=$?
+      #  echo "$state" >&5
+      #}
+      #    && pd_update_status $status_key/result=0 $states \
+      #    || {
+      #      pd_update_status $status_key/result=$? $states
+      #      echo $state >&6
+      #    }
 
-  cd $pd_root
+      #pd_debug end $state pd-target pd_prefix
+
+    done
+  done < $prefixes
+
+  cd $pd_realdir
 }
 
 
 pd_man_1__test="Run test targets (for single prefix)"
-pd_load__test=yiI
+pd_load__test=yiIap
+pd_defargs__test=pd_prefix_target_args
 pd__test()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
-  test -n "$1" || set -- $(cd $pd_prefix; pd__ls_targets test)
+  test -n "$1" || set -- $(cd $pd_prefix; pd__ls_targets test 2>/dev/null)
 
   info "Tests to run: $*"
-  pd__run "$@"
+  echo "$@" >$arguments
+  subcmd=test:run
+  pd__run
   return $?
 }
 
@@ -854,19 +867,23 @@ pd__check_all()
 }
 
 
-pd_load__check=yiI
+pd_load__check=yiIap
+pd_defargs__check=pd_prefix_target_args
 pd__check()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
-  test -n "$1" || set -- $(cd $pd_prefix;pd__ls_targets check)
+  test -n "$1" || set -- $(cd $pd_prefix;pd__ls_targets check 2>/dev/null)
 
   info "Checks to run: $*"
-  pd__run "$@"
+  echo "$@" >$arguments
+  subcmd=check:run
+  pd__run
   return $?
 }
 
 
-pd_load__show=iy
+pd_load__show=yiap
+pd_defargs__show=pd_prefix_args
 pd_spc__show="[ PREFIX ]..."
 # Print Pdoc record and main section of package meta file.
 pd__show()
@@ -876,17 +893,20 @@ pd__show()
 
     test "$dry_run" && {
       
-      echo "pd:show:$1"
+      skipped "pd:show:$1"
 
     } || {
 
       note "Showing main package data for '$1'"
 
       pd__meta get-repo $1 | \
-        jsotk.py -I json -O yaml --pretty --output-prefix repositories/$1 merge - -
+        jsotk.py -I json -O yaml --pretty \
+        --output-prefix repositories/$1 merge - -
 
       local metaf=
-      update_package "$1" && {
+      update_package "$1" || {
+        note "No local package data for '$1'" 
+      } && {
 
         test -n "$metaf" || error metaf 1
         test -e "$metaf" || error $metaf 1
@@ -900,6 +920,7 @@ pd__show()
   done
 }
 
+
 pd__ls_sets()
 {
   for name in $pd_sets
@@ -908,6 +929,22 @@ pd__ls_sets()
   done
 }
 
+pd_named_set_args()
+{
+  local named_sets="$(pd__ls_sets | lines_to_words )"
+  test -n "$1" || set -- $named_sets 
+  while test -n "$1"
+  do
+    fnmatch "* $1 *" " $named_sets " && {
+      echo $1
+    } || {
+      error "No such named set '$1'"
+    }
+    shift
+  done | words_to_unique_lines >>$arguments
+}
+
+# List std named set(s)
 pd__ls_comp()
 {
   echo "Init comp: $pd_init__sets"
@@ -916,21 +953,50 @@ pd__ls_comp()
 }
 
 
+# List targets for given named set(s)
+pd__ls_reg()
+{
+  while test -n "$1"; do
+    note "Targets for set '$1'"
+    eval echo $(try_value sets $1) | words_to_lines
+    shift
+  done
+}
+pd_defargs__ls_reg=pd_named_set_args
+pd_load__ls_reg=ia
+
+
 pd_spc__ls_targets="[ NAME ]..."
-# Gather targets for given named set(s)
+# Gather targets that apply for given named set(s) (in prefix)
 pd__ls_targets()
 {
-  local name= value=
-  test -n "$1" || set -- $(pd__ls_sets)
+  local name=
   while test -n "$1"
   do
+    note "Named target list '$1' ($pd_prefix)"
     name=$1; shift
     read_if_exists .pd-$name && continue
     pd_package_meta "$name" && continue
     pd_autodetect $name
   done | words_to_lines
 }
-pd_load__ls_targets=dpi
+pd_defargs__ls_targets=pd_named_set_args
+pd_load__ls_targets=diap
+
+
+pd_spc__ls_auto_targets="[ NAME ]..."
+# Gather targets that would apply by default for given named set(s)
+pd__ls_auto_targets()
+{
+  while test -n "$1"
+  do
+    note "Returning auto targets '$1' ($pd_prefix)"
+    pd_autodetect $1
+    shift
+  done | words_to_lines
+}
+pd_defargs__ls_auto_targets=pd_named_set_args
+pd_load__ls_auto_targets=diap
 
 
 
@@ -957,17 +1023,36 @@ pd__help()
 pd_load()
 {
   test -n "$pd" || pd=.projects.yaml
+  
+  pd_inputs="arguments prefixes"
+  pd_outputs="passed skipped error failed"
+
   # Per subcmd init
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
 
-    p ) # Set package path at prefix; should imply y or d
-        test -e $go_to_before/package.yaml && update_package "$go_to_before"
-        test -e "$go_to_before/.package.sh" && . $go_to_before/.package.sh
+    p ) # Load/Update package meta at prefix; should imply y or d
+       
+        test -n "$prefixes" -a -s "$prefixes" \
+          && pd_prefixes="$(cat $prefixes | words_to_lines )" \
+          || pd_prefixes=$go_to_before
+
+        for pd_prefix in $pd_prefixes; do
+          update_package "$pd_prefix" || continue
+        done
+      ;;
+
+    P )
+       
+        pd_prefix=$go_to_before
+        update_package "$pd_prefix" || continue
+        . $pd_prefix/.package.sh
+
         test -n "$package_id" && {
           note "Found package '$package_id'"
         } || {
-          package_id="$(basename $(realpath $go_to_before))"
+          error "package_id" 1
+          package_id="$(basename $(realpath $pd_prefix))"
           note "Using package ID '$package_id'"
         }
       ;;
@@ -982,28 +1067,6 @@ pd_load()
         pd_finddoc $pd
       ;;
 
-    Y )
-        # given we have a Pdoc, expand any arguments as prefixes
-
-        test -n "$1" || {
-          test "." = "$go_to_before" && {
-            set -- '*' # default arg if within pd_root
-          } || {
-            set -- "." # default arg in subdir
-          }; }
-
-        while test -n "$1"
-        do
-          for expanded_arg in $go_to_before/$1
-          do
-            test -d "$expanded_arg" || continue
-            strip_trail=1 normalize_relative $expanded_arg
-          done
-          shift
-        done \
-          | words_to_unique_lines > $arguments
-      ;;
-
     f )
         # Preset name to subcmd failed file placeholder
         # include realpath of projectdoc (p)
@@ -1015,31 +1078,41 @@ pd_load()
 
     i ) 
         test -n "$pd_trgtpref" || pd_trgtpref="$(try_value "$subcmd" trgtpref)"
+        test -n "$io_id" || {
         test -n "$pd_root" && { 
-          # expect Pd Context; setup IO paths (req. y)
-          req_vars pd pd_cid pd_realpath pd_root pd_sid \
-            || error "Projectdoc context expected" 1
+            # expect Pd Context; setup IO paths (req. y)
+            req_vars pd pd_cid pd_realpath pd_root pd_sid \
+              || error "Projectdoc context expected" 1
 
-          io_id=-${pd_cid}-${subcmd}-${pd_sid}
-        } || {
-          io_id=-subcmd-$(uuidgen)
+            io_id=-${pd_cid}-${subcmd}-${pd_sid}
+          } || {
+            io_id=-subcmd-$(uuidgen)
+          }
         }
-        for io_name in passed skipped error failed arguments
+        fnmatch "*/*" "$io_id" && error "Illegal chars" 12
+        for io_name in $pd_inputs $pd_outputs
         do
-          eval $io_name=$(setup_tmp .$io_name $io_id)
+          test -n "$(eval echo \$$io_name)" || {
+            tmpname=$(setup_tmp .$io_name $io_id)
+            touch $tmpname
+            eval $io_name=$tmpname
+            unset tmpname
+          }
         done
-        export passed skipped error failed arguments
+        export $pd_inputs $pd_outputs
       ;;
 
     I ) # setup IO descriptors (requires i before)
-        req_vars pd pd_cid pd_realpath pd_root \
-          passed skipped error failed arguments
-        exec 3>$passed
-        exec 4>$skipped
-        exec 5>$error
-        exec 6>$failed
-        # TODO: setup to subcmd handlers can interact with argv arguments
-        touch $arguments
+        req_vars pd pd_cid pd_realpath pd_root $pd_inputs $pd_outputs
+        local fd_num=2 io_dev_path=$(io_dev_path)
+        for fd_name in $pd_outputs $pd_inputs
+        do
+          fd_num=$(( $fd_num + 1 ))
+          test -e "$io_dev_path/$fd_num" || {
+            debug "exec $(eval echo $fd_num\\\>$(eval echo \$$fd_name))"
+            eval exec $fd_num\>$(eval echo \$$fd_name)
+          }
+        done
       ;;
 
     b )
@@ -1048,22 +1121,24 @@ pd_load()
       ;;
 
     a ) 
-        # Set default args. Value can be literal or function.
+        # Set default args or filter. Value can be literal or function.
         local pd_default_args="$(eval echo "\"\$$(try_local $subcmd defargs)\"")"
-        pd_default_args "$pd_default_args" "$@" >> $arguments
+        pd_default_args "$pd_default_args" "$@"
       ;;
 
     g ) 
         # Set default args based on file glob(s), or expand short-hand arguments 
         # by looking through the globs for existing paths
         pd_trgtglob="$(eval echo "\"\$$(try_local $subcmd trgtglob)\"")"
-        pd_globstar_search "$pd_trgtglob" "$@" >> $arguments
+        pd_globstar_search "$pd_trgtglob" "$@"
       ;;
 
     esac
   done
 
-  export PD_SYNC_AGE=$_3HOUR
+  test -n "$EDITOR" || EDITOR=nano
+  
+  test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR
 
   local tdy="$(try_value "${subcmd}" today)"
   test -z "$tdy" || {
@@ -1084,11 +1159,11 @@ pd_load()
     rm -rf $PD_TMP/*
   }
 
-  PWD=$(pwd -P)
-  PATH=$PWD:$PATH
+  test -n "$PWD" || PWD=$(pwd -P)
+  #test -n "$P" || PATH=$PWD:$PATH
 
-  hostname=$(hostname -s)
-  uname=$(uname)
+  test -n "$hostname" || hostname=$(hostname -s)
+  test -n "$uname" || uname=$(uname)
 
   str_load
 }
@@ -1104,15 +1179,21 @@ pd_unload()
           exec 6<&-
         ;;
       i ) # remove named IO buffer files; set status vars
-          clean_io_lists passed skipped error failed arguments
-          unset passed skipped error failed arguments
-          pd_report passed skipped error failed arguments || subcmd_result=$?
+          clean_io_lists $pd_inputs $pd_outputs
+          pd_report $pd_inputs $pd_outputs || subcmd_result=$?
+          #eval rm $(for io_name in $pd_inputs $pd_outputs; do
+          #  echo "\$$io_name"; done)
         ;;
       I )
-          exec 3<&-
-          exec 4<&-
-          exec 5<&-
-          exec 6<&-
+          local fd_num=2
+          for fd_name in $pd_outputs $pd_inputs
+          do
+            fd_num=$(( $fd_num + 1 ))
+            #eval echo $fd_num\\\<\\\&-
+            eval exec $fd_num\<\&-
+          done
+          eval unset $pd_inputs $pd_outputs
+          unset pd_inputs pd_outputs
         ;;
       y )
           test -z "$pd_sock" || {
@@ -1203,9 +1284,8 @@ pd_main()
           pd_load "$@" || return
 
           test -z "$arguments" -o ! -s "$arguments" || {
-            set -f
-            set -- $(cat $arguments | lines_to_words)
-            set +f
+            info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
+            set -f; set -- $(cat $arguments | lines_to_words) ; set +f
           }
 
           $subcmd_func "$@" || r=$?

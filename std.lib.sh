@@ -1,6 +1,65 @@
 #!/bin/sh
 
 
+io_dev_path()
+{
+  case "$uname" in
+    Linux ) echo /proc/$pid/fd ;;
+    Darwin ) echo /dev/fd ;;
+    * ) error "io_dev_path $uname" 1
+  esac
+}
+
+list_io_nums()
+{
+  test -n "$1" \| set -- $$
+
+  # XXX: other IO's may be presetn, like 255? pipe-sort removes it.
+  case "$uname" in
+
+    Linux )
+        basenames /proc/$1/fd/*
+      ;;
+
+    Darwin )
+        basenames /dev/fd/*
+      ;;
+
+  esac | sort -n
+}
+
+get_stdio_type()
+{
+  test -n "$uname" || uname=$(uname)
+  case "$uname" in
+
+    Linux )
+        test -n "$2" && pid=$2 || pid=$$
+        test -e /proc/$pid/fd/${io} || error "No $uname FD $io"
+        if readlink /proc/$pid/fd/$io | grep -q "^pipe:"; then
+          echo p
+        elif file $( readlink /proc/$pid/fd/$io ) | grep -q 'character.special'; then
+          echo t
+        else
+          echo f
+        fi
+      ;;
+
+    Darwin )
+
+        test -e /dev/fd/${io} || error "No $uname FD $io"
+        if file /dev/fd/$io | grep -q 'named.pipe'; then
+          echo p
+        elif file /dev/fd/$io | grep -q 'character.special'; then
+          echo t
+        else
+          echo f
+        fi
+      ;;
+
+  esac
+}
+
 # stdio type detect - return char t(erminal) f(ile) p(ipe; or named-pipe, ie. FIFO)
 # On Linux, uses /proc/PID/fd/NR: Usage: stdio_type NR PID
 # On OSX/Darwin uses /dev/fd/NR: Usage: stdio_type NR
@@ -10,35 +69,7 @@ stdio_type()
 {
   local io= pid=
   test -n "$1" && io=$1 || io=1
-  test -n "$uname" || uname=$(uname)
-  case "$uname" in
-
-    Linux )
-        test -n "$2" && pid=$2 || pid=$$
-
-        test -e /proc/$pid/fd/${io} || error "No $uname FD $io"
-        if readlink /proc/$pid/fd/$io | grep -q "^pipe:"; then
-          export stdio_${io}_type=p
-        elif file $( readlink /proc/$pid/fd/$io ) | grep -q 'character.special'; then
-          export stdio_${io}_type=t
-        else
-          export stdio_${io}_type=f
-        fi
-      ;;
-
-    Darwin )
-
-        test -e /dev/fd/${io} || error "No $uname FD $io"
-        if file /dev/fd/$io | grep -q 'named.pipe'; then
-          export stdio_${io}_type=p
-        elif file /dev/fd/$io | grep -q 'character.special'; then
-          export stdio_${io}_type=t
-        else
-          export stdio_${io}_type=f
-        fi
-      ;;
-
-  esac
+  export stdio_${io}_type=$(get_stdio_type "$io")
 }
 
 

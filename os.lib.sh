@@ -11,6 +11,18 @@ short()
   $scriptdir/short-pwd.py -1 "$1"
 }
 
+# Get basename for each path: [ .EXT ] PATHS...
+basenames()
+{
+  local ext=
+  test -e "$1" || fnmatch ".*" "$1" && { ext=$1; shift; }
+  while test -n "$1"
+  do
+    basename $1 $ext
+    shift
+  done
+}
+
 filesize()
 {
   case "$uname" in

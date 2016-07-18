@@ -3,11 +3,14 @@ pd
   io::
 
     0,1,2 in/out/err
-    3 passed targets
-    4 skipped targets
-    5 error targets
-    6 failed targets
-    7 arguments
+
+    3 passed targets OUT
+    4 skipped targets OUT
+    5 error targets OUT
+    6 failed targets OUT
+
+    7 arguments IN
+    8 prefixes IN
 
   ret::
 

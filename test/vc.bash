@@ -3,8 +3,7 @@
 
 setup_clean_git()
 {
-  local tmpd=/tmp/vc-bats-$(uuidgen)
-  mkdir -vp $tmpd
+  tmpd
   cd $tmpd
   git init
   touch .gitignore
