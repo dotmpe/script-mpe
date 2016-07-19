@@ -137,8 +137,10 @@ read_file_lines_while()
   test -f "$1" || error "Not a filename argument: '$1'" 1
   test -n "$2" || set -- "$1" 'echo "$line" | grep -qE "^\s*(#.*|\s*)$"'
   line_number=0
-  local ln_f=/tmp/script-os-lib-sh-$(uuidgen)
-  test ! -e $ln_f
+  local ln_f="$(setup_tmpf)"
+
+  test -n "$ln_f" -a ! -e "$ln_f"
+
   cat $1 | while read line
   do
     line_number=$(( $line_number + 1 ))
@@ -211,6 +213,8 @@ count_words()
 # Wrap wc but correct files with or w.o. trailing posix line-end
 line_count()
 {
+  test -s "$1" || return 42
+  test $(filesize $1) -gt 0 || return 43
   lc="$(echo $(od -An -tc -j $(( $(filesize $1) - 1 )) $1))"
   case "$lc" in "\n" ) ;;
     "\r" ) error "POSIX line-end required" 1 ;;

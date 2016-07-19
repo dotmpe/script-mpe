@@ -15,7 +15,9 @@ init
   touch test/{foo,bar,baz}-spec.bats
 
   run $BATS_TEST_DESCRIPTION
+  diag "Output: ${lines[*]}"
   test ${status} -eq 0
+  diag "Lines: ${#lines[@]}"
   test ${#lines[@]} -eq 3
  
   mkdir test/sub

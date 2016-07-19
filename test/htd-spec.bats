@@ -101,8 +101,8 @@ version=0.0.0-dev # script-mpe
 
 @test "$bin today" 8 {
 
-  tmp="$(cd /tmp/; pwd -P)"
-  cd "$tmp"
+  cd $BATS_TMPDIR
+
   test ! -d bats-test-log || rm -rf bats-test-log
 
   mkdir bats-test-log
@@ -113,7 +113,7 @@ version=0.0.0-dev # script-mpe
   for x in today tomorrow yesterday \
     monday tuesday wednesday thursday friday saturday sunday
   do
-    test -h $tmp/bats-test-log/${x}.rst
+    test -h $BATS_TMPDIR/bats-test-log/${x}.rst
   done
   # XXX may also want to check last-saturday, next-* etc.
   #   also, may want to have larger offsets and wider time-windows: months, years
@@ -123,8 +123,7 @@ version=0.0.0-dev # script-mpe
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 1
-  #echo "${lines[*]}" >/tmp/out222
-  fnmatch "*Error*Dir *tmp/journal must exist*" "${lines[*]}"
+  fnmatch "*Error*Dir *$BATS_TMPDIR/journal must exist*" "${lines[*]}"
   test "${#lines[@]}" = "1" \
     || fail "Output: ${lines[*]}"
 
@@ -143,10 +142,7 @@ version=0.0.0-dev # script-mpe
 
 @test "$bin tpaths" "prints paths to definition-list terms" {
 
-  case "$uname" in
-    Darwin ) cd /private/tmp;;
-    Linux ) cd /tmp ;;
-  esac
+  cd $BATS_TMPDIR
 
   {
     cat - <<EOM
@@ -178,7 +174,7 @@ EOM
 
 @test "$bin tpath-raw" "prints paths to definition-list terms" {
 
-  cd /tmp/
+  cd $BATS_TMPDIR
   {
     cat - <<EOM
 Dev
@@ -200,13 +196,14 @@ EOM
     skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
 
   l=$(( ${#lines[*]} - 1 ))
-#echo "${lines[$l]}" > /tmp/1
-  test "${lines[$l]}" = "/Dev/Software/../Hardware/../../Personal/../Public/Note/../.."
+  diag "${lines[$l]}"
+  test "${lines[$l]}" = \
+    "/Dev/Software/../Hardware/../../Personal/../Public/Note/../.."
 }
 
 @test "$bin tpath-raw" "prints paths to definition-list terms with spaces and other chars" {
 
-  cd /tmp/
+  cd $BATS_TMPDIR
   {
     cat - <<EOM
 Soft Dev
@@ -229,7 +226,7 @@ EOM
     skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
 
   l=$(( ${#lines[*]} - 1 ))
-  test "${lines[$l]}" = "/Soft Dev/../Home/Shop/Electric Tools/../../Living Room/../../Public/Topic Note/../.."
+  test "${lines[$l]}" = '/"Soft Dev"/../Home/Shop/"Electric Tools"/../../"Living Room"/../../Public/"Topic Note"/../..'
 }
 
 
@@ -240,7 +237,7 @@ EOM
   . $lib/htd load-ext
   . $lib/table.lib.sh
 
-  htd_rules=/tmp/htd-rules.tab
+  htd_rules=$BATS_TMPDIR/htd-rules.tab
   echo "#CMD FOO BAR BAZ BAM" >$htd_rules
 
   run fixed_table_hd_offset CMD CMD $htd_rules
@@ -257,6 +254,7 @@ EOM
 }
 
 @test "$bin check-disks" {
+  case "$hostname" in boreas* ) skip "Boreas";; esac
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "Path*OK*" "${lines[*]}"

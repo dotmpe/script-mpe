@@ -150,14 +150,22 @@ expr_substr()
 # Set env for str.lib.sh
 str_load()
 {
-    test -n "$ext_sh_sub" && {
-        printf "" #info "Existing ext_sh_sub=$ext_sh_sub"
-    } || {
-        test "$(echo {foo,bar}-{el,baz})" != "{foo,bar}-{el,baz}" \
-            && ext_sh_sub=1 \
-            || ext_sh_sub=0
-        # debug "Initialized ext_sh_sub=$ext_sh_sub"
-    }
+
+  test -n "$ext_groupglob" || {
+    test "$(echo {foo,bar}-{el,baz})" != "{foo,bar}-{el,baz}" \
+          && ext_groupglob=1 \
+          || ext_groupglob=0
+    # FIXME: part of [vc.bash:ps1] so need to fix/disable verbosity
+    #debug "Initialized ext_groupglob=$ext_groupglob"
+  }
+
+  test -n "$ext_sh_sub" || ext_sh_sub=0
+
+  #      echo "${1/$2/$3}" ... =
+  #        && ext_sh_sub=1 \
+  #        || ext_sh_sub=0
+  #  #debug "Initialized ext_sh_sub=$ext_sh_sub"
+  #}
 }
 
 

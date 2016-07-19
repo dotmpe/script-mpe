@@ -184,7 +184,7 @@ disk__copy_fs()
 {
   test -n "$1" || error "Device or disk-id required" 1
   test -n "$2" || error "Filename required" 1
-  test -n "$3" || set -- "$1" "$2" "/tmp"
+  test -n "$3" || set -- "$1" "$2" "$(setup_tmpd)"
   test -z "$4" || error "surplus arguments '$4'" 1
 
   copy_fs "$1" "$2" "$3"
@@ -290,7 +290,7 @@ disk_load()
   do case "$x" in
 
       f )
-          failed=$(setup_tmp .failed)
+          failed=$(setup_tmpf .failed)
         ;;
 
     esac

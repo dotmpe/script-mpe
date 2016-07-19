@@ -106,7 +106,7 @@ generate_git_hooks()
 	do
 		t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
 		test -n "$t" || continue
-    test -e "$t" || {
+    test -e "$t" -a "$t" -nt ".package.sh" || {
       s=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_')_script)
       test -n "$s" || {
         echo "No default git $script script. "
@@ -138,6 +138,8 @@ install_git_hooks()
 				continue
 			}
 		}
+    test -d .git || error $(pwd)/.git 1
+    mkdir -p .git/hooks
 		( cd .git/hooks; ln -s ../../$t $script )
     echo "Installed GIT hook symlink: $script -> $t"
 	done
@@ -150,10 +152,10 @@ pd_regenerate()
   # Regenerate .git/info/exclude
   vc__regenerate "$1" || echo "pd-regenerate:$1" 1>&6
 
-  test ! -e .package.sh || . .package.sh
+  test ! -e .package.sh || eval $(cat .package.sh)
 
   # Regenerate from package.yaml: GIT hooks
-  env | grep -qv '^package_pd_meta_git_' && {
+  set | grep -q '^package_pd_meta_git_' && {
     generate_git_hooks && install_git_hooks \
       || echo "pd-regenerate:git-hooks:$1" 1>&6
   }
@@ -244,7 +246,6 @@ pd_finddoc()
   # set/check for Pd for subcmd
   go_to_directory $pd || return $?
   test -e "$pd" || error "No projects file $pd" 1
-  debug "PWD $(pwd), Before: $go_to_before"
 
   pd_root="$(dirname "$pd")"
   pd_realdir="$(realpath "$pd_root")"
@@ -264,14 +265,18 @@ pd_finddoc()
 
   pd_cid=$cid
   pd_sock=/tmp/pd-${pd_cid}-serv.sock
+
+  debug "Pd prefix: $pd_prefix, realdir: $pd_realdir Before: $go_to_before"
+  unset cid
 }
 
 
 # Update Pdoc status entry
 pd_update_status()
 {
-  test -e "$pd" || error pd_update_status 1
-  local key_pref=repositories/$(normalize_relative "$go_to_before")/status
+  test -e "$pd" || error "pd-update-status Pd" 1
+  test -n "$key_pref" || error "pd-update-status key-pref" 1
+
   { while test -n "$1"
     do
       fnmatch "/*" "$1" && {
@@ -280,6 +285,8 @@ pd_update_status()
       }
       echo $key_pref/$1; shift; done
   } | jsotk.py -I pkv --pretty update $pd - || return $?
+
+  debug "Updated Pd: $key_pref{$*}"
 }
 
 
@@ -547,27 +554,30 @@ pd_default_args()
 
 pd_autodetect()
 {
-  local named_sets= targets= func=
-  test -n "$1" ||
-  set -- $(pd__ls_sets | lines_to_words )
+  local named_sets= targets= func= target=
+  test -n "$1" || set -- $(pd__ls_sets | lines_to_words )
 
   while test -n "$1"; do
 
     targets="$(eval echo $(try_value sets $1) | words_to_lines)"
 
     for target in $targets; do
+
       func=$(try_local $target-autoconfig $1)
-      try_func $func && {
-        (
-          test -e .package.sh && export $(pd__env)
-          $func \
-            || error "target '$target' auto-config error for '$1' ($pd_prefix) "
-        )
-      }
+      try_func $func || continue
+
+      (
+        cd $pd_realdir/$pd_prefix
+        test -s .package.sh && export $(pd__env)
+        $func \
+          || error "target '$target' auto-config error for '$1' ($pd_prefix) " 1
+      )
+
     done
 
     shift
   done
+  cd $pd_realdir
 }
 
 
@@ -637,117 +647,136 @@ pd_prefix_target_args()
 # Execute external check/test/build scripts and track associated states
 pd_run()
 {
-  fnmatch "*:*" "$1" || {
-    set -- "sh:$1"
-  }
-  fnmatch "$base:*" "$1" && {
-    set -- "$(echo "$1" | cut -c$(( ${#base} + 1 ))- )"
-  }
-  fnmatch ":*" "$1" && {
-    set -- "$(echo "$1" | cut -c2-)"
-  }
+  test -n "$1" || error args 1
+
+  fnmatch ":*" "$1" && set -- "$base$1"
+  fnmatch "*:*" "$1" || set -- "sh:$1"
 
   test -z "$2" || error "surplus args '$*'" 1
 
+  #note "Run"
+
   case "$1" in
 
-    mk-test )
-        status_key=make/test
-        make test || return $?
-      ;;
-
-    make:* )
-        status_key=make
-        local_target=$(echo $1 | cut -c 6-)
-        test -z "$local_target" || status_key=$status_key/$local_target
-        make $local_target || return $?
-      ;;
-
-    npm | npm:* | npm-test )
-        status_key=npm
-        local_target=$(echo $1 | cut -c 5-)
-        test -z "$local_target" || status_key=$status_key/$local_target
-        npm $local_target || return $?
-      ;;
-
-    grunt-test | grunt | grunt:* )
-        status_key=grunt
-        local_target=$(echo $1 | cut -c 7-)
-        test -z "$local_target" || status_key=$status_key/$local_target
-        grunt $local_target || return $?
-      ;;
-
-    git-versioning | vchk )
-        status_key=vchk
-        git-versioning check >/dev/null 2>&1 || return $?
-      ;;
-
-    python:* )
-        status_key=python
-        local_target=$(echo $1 | cut -c 8-)
-        test -z "$local_target" || status_key=$status_key/$local_target
-        test $verbosity -gt 6 && {
-          python $local_target || return $?
-        } || {
-          python $local_target >/dev/null 2>&1 || return $?
-        }
-      ;;
-
     -* )
+        note "Ignore ($1)"
         # Ignore return
-        # backup $failed, setup new and only be verbose about failures.
-        #test ! -s "$failed" || cp $failed $failed.ignore
-
-        pd_run $(expr_substr ${1} 2 ${#1}) || noop
-
-        #( failed=/tmp/pd-run-$(uuidgen) pd__run $(expr_substr ${1} 2 ${#1});
-        #  clean_failed "*IGNORED* Failed targets:")
-        #test ! -e $failed.ignore || mv $failed.ignore $failed
+        # backup $failed
+        mv $failed $failed.ignore
+        touch $failed
+        (
+          pd_run $(expr_substr ${1} 2 ${#1}) || noop
+          clean_failed "*IGNORED* Failed targets:"
+        )
+        mv $failed.ignore $failed
       ;;
 
     ## Built in targets
 
     # Shell exec
     sh:* )
-        local cmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
-        info "Using Sh '$cmd'"
-        status_key=sh
-        local_target=$(echo $1 | cut -c 4-)
-        test -z "$local_target" || status_key=$status_key/$local_target
-        sh -c "$cmd" || return $?
+        local shcmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
+        status_key=$(printf "$1" | cut -d ':' -f 2 )
+        info "Running Sh '$shcmd' ($1)"
+        (
+          sh -c "$shcmd" \
+            && result=0 || { result=$?; echo $1 >>$failed; }
+          {
+            cd "$pd_realdir"
+            key_pref=repositories/$(normalize_relative \
+              "$pd_prefix")/status/$status_key
+            pd_update_status \
+              result=$result
+          }
+        )
+      ;;
+
+    ## Other built-ins
+
+    #pd:*:* )
+    #    info "Running Pd '$cmd' ($1)"
+    #  ;;
+
+    pd:* )
+
+        local comp=$(echo "$1" | cut -d ':' -f 2) ncomp=
+        local comp_idx=2 func= args=$(echo "$1" | cut -c$(( 5 + ${#comp} ))-)
+
+        # Consume components and look for local function
+        while true
+        do
+          # Resolve aliases
+          while true
+          do
+            als=$(try_local $comp als)
+            var_isset $als || break
+            comp=$(try_value $comp als)
+          done
+
+          func=$(try_local $comp "")
+
+          comp_idx=$(( $comp_idx + 1 ))
+          ncomp="$(echo "$1" | cut -d ':' -f $comp_idx)"
+          test -n "$ncomp" || {
+            break
+          }
+          args="$(echo "$args" | cut -c$(( 2 + ${#ncomp} ))-)"
+          comp="$comp:$ncomp"
+
+          try_func "$func" && {
+            try_func $(try_local $comp "") || break
+          }
+
+        done
+
+        try_func "$func" || {
+            error "No such run target '$comp'"; echo "$1" >>$error; return 1
+          }
+
+        note "Running Pd $comp '$args' ($pd_prefix)"
+
+        (
+          subcmd="$pd_prefix#$comp"
+          status_key="$(eval echo "\"\$$(try_local "$subcmd" stat)\"")"
+          test -n "$status_key" \
+            || status_key=$(printf "$comp" | tr -c 'a-zA-Z0-9-' '/')
+          states=
+          pd_load "$args" || {
+            error "Pd-load failed for '$1'"; echo "$1" >>$error; return 1
+          }
+          note "func='$func' "
+          $func "$args" && result=0 || { result=$?; echo $1 >>$failed; }
+          {
+            cd "$pd_realdir"
+            key_pref=repositories/$(normalize_relative \
+              "$pd_prefix")/status/$status_key
+            pd_update_status \
+              result=$result \
+              $states
+          }
+        )
       ;;
 
     ## External targets
+
     *:*:* )
         local cmd=$(echo "$1" | cut -d ':' -f 1)
         local local_subcmd=$(echo "$1" | cut -d ':' -f 2)
         local args=$(echo "$1" | cut -c$(( 3 + ${#cmd} + ${#subcmd} ))-)
         local func=$(try_local $local_subcmd "" $cmd)
+
         echo "TODO Comp: $cmd:$local_subcmd:$args"
-        $cmd $local_subcmd $args || return $?
+
+        (
+          $cmd $local_subcmd $args \
+            || echo $1 >>$failed
+        )
       ;;
 
-    ## Other built in targets
-    * )
-        local comp=$(echo "$1" | cut -d ':' -f 1)
-        local local=$(echo "$1" | cut -c$(( 2 + ${#comp} ))-)
-        local args=$(echo "$1" | cut -c$(( 3 + ${#comp} + ${#local} ))-)
-
-        local func=$(try_local $comp-$local)
-        try_func "$func" && {
-          note "Running $comp:$local '$args' ($pd_prefix)"
-          (
-            subcmd=$comp-$local
-            pd_load
-            $func || return $?
-          )
-        } || {
-          error "No such run target '$comp:$local'" 1
-        }
-      ;;
 
     * )
-        error "No such run target '$1'" 1
+        error "No such run target '$1'"
+        echo $1 >>$error
       ;;
 
   esac

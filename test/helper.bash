@@ -3,6 +3,7 @@
 test_init()
 {
   test -n "$base" || exit 12
+  test -n "$hostname" || hostname=$(hostname -s | tr 'A-Z' 'a-z')
   test -n "$uname" || uname=$(uname)
   test -n "$scriptdir" || scriptdir=$(pwd -P)
 }
@@ -20,6 +21,8 @@ init()
   . $lib/main.lib.sh
   main_init
 
+  export TMPDIR=$(cd $TMPDIR; pwd -P)
+  export BATS_TMPDIR=$(cd $BATS_TMPDIR; pwd -P)
   ## XXX does this overwrite bats load?
   #. main.init.sh
 }

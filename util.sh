@@ -26,6 +26,7 @@ lib_load()
 util_init()
 {
   lib_load
+  sys_load
   str_load
 }
 

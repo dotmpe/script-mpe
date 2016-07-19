@@ -40,7 +40,7 @@ init
 #  test ${status} -eq 0
 #}
 
-@test "${bin} assert-state" {
+@test "${bin} assert-json" {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   test "$HOME/.statusdir/index/state.json" = "${lines[*]}"

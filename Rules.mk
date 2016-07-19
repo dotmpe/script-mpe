@@ -12,13 +12,6 @@ VERSION= 0.0.0-dev# script-mpe
 $(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 
 #      ------------ -- 
-GIT_$d              := $(shell find "$d" -iname ".git")
-BZR_$d              := $(shell find "$d" -iname ".bzr")
-HG_$d               := $(shell find "$d" -iname ".hg")
-co::
-	@$(call log_line,info,$@,Trying to update..)
-	@$(clean-checkout)
-co:: DIR := $d
 
 # XXX Keep long list of clean targets out of normal stat messages
 ifneq ($(call contains,$(MAKECMDGOALS),clean),)

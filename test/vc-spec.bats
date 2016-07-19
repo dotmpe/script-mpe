@@ -43,17 +43,21 @@ init
 
 @test "$bin ps1" {
 
-  cd /tmp
+  cd $TMPDIR
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "/tmp" = "${lines[*]}"
+  test "$TMPDIR" = "${lines[@]}" || {
+    diag "TMPDIR:'${TMPDIR}'"
+    diag "BATS_TMPDIR:'${BATS_TMPDIR}'"
+    fail "Lines: '${lines[*]}'"
+  }
 }
 
 @test "$bin screen" {
-  cd /tmp
+  cd $TMPDIR
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "/tmp" = "${lines[*]}"
+  test "$TMPDIR" = "${lines[*]}"
 }
 
 @test "$bin bits" {
@@ -73,7 +77,7 @@ init
   #diag "SHELL: $SHELL"
 
   shopt -s extglob
-  fnmatch $twd' \[git:master +([0-9a-f])...\]' "${lines[*]}" \
+  fnmatch $(cd $twd; pwd -P)' \[git:master +([0-9a-f])...\]' "${lines[*]}" \
     || fail "'${lines[*]}'"
 
   mkdir doc
@@ -81,11 +85,8 @@ init
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
 
-  #skip "Broke vc bits in subdir"
-
   fnmatch $twd' \[git:master +([0-9a-f])...\]/doc' "${lines[*]}" \
-    || fail "Output: ${lines[*]}"
-  #/tmp/script-mpe-vc-bats-C8AEC93C-C607-4719-82EA-0C33633E65E6 (git:unborn)/doc
+    || fail "Output: ${lines[*]} ($twd)"
 
   cd $twd
   echo ignore > .gitignore
@@ -129,6 +130,8 @@ init
   test $status -eq 0
   fnmatch $twd' \[git:master\*\+ +([0-9a-f])...\]/doc' "${lines[*]}" \
     || fail "'${lines[*]}: $(git status)'"
+
+  shopt -u extglob
 }
 
 

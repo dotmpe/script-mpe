@@ -13,7 +13,7 @@ pd_check__bats_autoconfig()
   pd__bats_autoconfig && {
     note "Using Bats"
     echo :bats:specs
-  }
+  } || return 0
 }
 
 pd_test__bats_autoconfig()
@@ -21,7 +21,7 @@ pd_test__bats_autoconfig()
   pd__bats_autoconfig && {
     note "Using Bats"
     echo :bats
-  }
+  } || return 0
 }
 
 #pd_trgtpref__bats_count=bats:count
@@ -144,7 +144,6 @@ set_bats_bin_path()
 
 pd_man_1__bats_specs="List tests from Bats files. Fail on missing or invalid files. "
 pd_spc__bats_specs="[ file | name | file:name | file:index ]..."
-pd_load__bats_specs=iaI
 pd__bats_specs()
 {
   set -- $(cat $arguments)
@@ -153,31 +152,31 @@ pd__bats_specs()
   for arg in $@
   do
     local tests="$( { verbosity=0; bats-exec-test -l "$arg" || {
-      errored "$pd_trgtpref:$arg";
+      errored "$subcmd:$arg";
     };} | lines_to_words )"
     test -z "$tests" || {
       incr file_count
-      echo $tests | words_to_lines | sed 's#^#'$pd_trgtpref:$arg':#' | passed
+      echo $tests | words_to_lines | sed 's#^#'$subcmd:$arg':#' | passed
       incr test_count $(echo "$tests" | count_words)
     }
   done
   test $test_count -gt 0 \
     && {
+      states="files=$file_count tests=$test_count"
       note "$test_count tests, in $file_count files OK"
     } || {
       warn "No Bats files loaded"
-      failed "$pd_trgtpref:$@"
+      failed "$subcmd:$@"
     }
+  export states
 }
-pd_trgtpref__bats_specs=bats:tests
-pd_stat__bats_specs=bats/tests
+pd_load__bats_specs=iaI
 pd_defargs__bats_specs=pd_bats_files_args
 
 
 
 pd_man_1__bats_count="List Bats files and count tests. Fail on missing or invalid count. "
 pd_spc__bats_count="[ BATS ]..."
-pd_load__bats_count=igaI
 pd__bats_count()
 {
   set -- $(cat $arguments)
@@ -187,9 +186,9 @@ pd__bats_count()
   for x in $@
   do
     local s=$(verbosity=0; bats-exec-test -c "$x" && {
-      passed $pd_trgtpref:$x
+      passed $subcmd:$x
     } || {
-      errored $pd_trgtpref:$x
+      errored $subcmd:$x
     })
     test -z "$s" || {
       incr count
@@ -204,10 +203,12 @@ pd__bats_count()
       note "$specs tests, in $count count OK"
     } || {
       warn "No Bats count found"
-      failed "$pd_trgtpref:$@"
+      failed "$subcmd:$@"
     }
 }
+pd_load__bats_count=igaI
 pd_defargs__bats_count=pd_bats_files_args
+pd_stat__bats_count=bats/count
 
 
 pd_load__bats=iIa
@@ -215,10 +216,8 @@ pd__bats()
 {
   for x in $@
   do
-    status_key=bats
     {
-      verbosity=6
-      bats $x \
+      verbosity=6 bats $x \
         || echo "bats:$x" >&6
     } | bats-color.sh
   done

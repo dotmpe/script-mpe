@@ -47,6 +47,11 @@ jsotk_package_sh_defaults()
 update_package_sh()
 {
   test -n "$1" || set -- ./
+  test -z "$2" || error "Surplus arguments '$*'" 1
+  # XXX:
+  #shopt -s extglob
+  #fnmatch "+([A-ZA-z0-9./])" "$1" || error "Illegal format '$*'" 1
+
   test -n "$metash" || metash=$1/.package.sh
   test -n "$metamain" || metamain=$1/.package.main
   metash=$(normalize_relative "$metash")

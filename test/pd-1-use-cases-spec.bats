@@ -32,6 +32,13 @@ repositories:
       origin: https://github.com/dotmpe/user-conf.git
     sync: true
     clean: untracked
+  script-mpe:
+    default: dev
+    disabled: true
+    remotes:
+      origin: https://github.com/dotmpe/script-mpe.git
+    sync: true
+    clean: untracked
 EOF
     } > $tmpd/.projects.yaml
   }
@@ -79,12 +86,13 @@ EOF
 }
 
 @test "tell about a prefix; description, remotes, default branch, upstream/downstream settings, other dependencies. " {
-  $pd show user-conf
+  run $pd show script-mpe
   TODO "$BATS_TEST_DESCRIPTION"
 }
 
 @test "Pd use-case 4: add a new prefix from existing checkout" {
   TODO "$BATS_TEST_DESCRIPTION"
 }
+
 
 # vim:ft=bash:

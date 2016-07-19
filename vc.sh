@@ -20,10 +20,11 @@ vc_load()
   test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
   test -n "$uname" || uname=$(uname)
 
-  . $scriptdir/util.sh
-  . $scriptdir/main.lib.sh
-  . $scriptdir/match.lib.sh
+  . $scriptdir/util.sh load-ext
 
+  lib_load os sys std str main match
+
+  sys_load
   str_load
 
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
@@ -53,7 +54,7 @@ vc_load()
 
     f )
         # Preset name to subcmd failed file placeholder
-        failed=$(setup_tmp .failed)
+        failed=$(setup_tmpf .failed)
       ;;
 
     C )
@@ -883,7 +884,10 @@ vc__excludes()
   }
 
   note "Local excludes (repository):"
-  cat .git/info/exclude | grep -v '^\s*\(#\|$\)'
+
+  test -e .git/info/exclude && {
+    cat .git/info/exclude | grep -v '^\s*\(#\|$\)'
+  }
 
   test -s ".gitignore" && {
     note "Local excludes"
@@ -1078,12 +1082,12 @@ vc__list_prefixes()
 # XXX: takes subdir, and should in case of being in a subdir act the same
 vc__list_subrepos()
 {
-  local cwd=$(pwd)
+  local cwd=$(pwd) prefixes=$(setup_tmpf .prefixes)
   basedir="$(dirname "$(__vc_gitdir "$1")")"
   test -n "$1" || set -- "."
 
   cd $basedir
-  vc__list_prefixes > /tmp/vc-list-prefixes
+  vc__list_prefixes > $repfixes
   cd $cwd
 
   find $1 -iname .git | while read path
@@ -1094,12 +1098,13 @@ vc__list_subrepos()
     # skip proper submodules
     match_grep_pattern_test "$(dirname "$path")" || continue
     grep_pattern="$p_"
-    grep -q "$grep_pattern" /tmp/vc-list-prefixes && {
+    grep -q "$grep_pattern" $prefixes && {
       continue
     } || {
       echo "$(dirname $path)"
     }
   done
+  rm $prefixes
 #    git submodule foreach 'for remote in "$(git remote)"; do echo $remote; git
 #    config remote.$remote.url  ; done'
 }

@@ -122,8 +122,8 @@ jsotk_load()
         # include realpath of projectdoc (p)
         test -n "$jsotk" && {
           req_vars p
-          failed=$(setup_tmp .failed -$p-$subcmd-$(uuidgen))
-        } || failed=$(setup_tmp .failed)
+          failed=$(setup_tmpf .failed -$p-$subcmd-$(uuidgen))
+        } || failed=$(setup_tmpf .failed)
       ;;
 
     b )

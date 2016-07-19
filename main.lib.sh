@@ -61,7 +61,13 @@ try_local()
   test -n "$3" || set -- "$1" "$2" "$local_prefix"
   test -z "$1" || set -- " :$1" "$2" "$3"
   test -z "$2" || set -- "$1" "$2" "$3:"
-	echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
+  echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
+}
+
+try_local_var()
+{
+  local name=$(try_local "$@")
+  var_isset $name || return $?
 }
 
 try_value()
@@ -741,20 +747,6 @@ clean_io_lists()
 }
 
 
-# Return path to new file in temp. dir. with ${base}- as filename prefix,
-# .out suffix and subcmd with uuid as middle part.
-# setup-tmp [ext [name-suffix]]
-setup_tmp()
-{
-  test -n "$1" || set -- .out "$2"
-  test -n "$2" || set -- $1 -$subcmd-$(uuidgen)
-  test -n "$1" -a -n "$2" || error "empty arg(s)" 1
-
-  test -d $(dirname /tmp/${base}$2$1) \
-    || mkdir -vp $(dirname /tmp/${base}$2$1)
-  echo /tmp/${base}$2$1
-}
-
 # Return path in metadata index
 setup_stat()
 {
@@ -765,10 +757,12 @@ setup_stat()
   statusdir.sh assert $2$1 $3 || return $?
 }
 
+
 stat_key()
 {
   test -n "$1" || set -- stat
   mkvid "$(pwd)"
   export $1_key="$hnid:${base}-${subcmd}:$vid"
 }
+
 

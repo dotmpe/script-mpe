@@ -251,6 +251,15 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
   test "$ll" = "4"
 }
 
+@test "$lib filesize" {
+  tmpd
+  out=$tmpd/filesize
+  printf "1\n2\n3\n4" >$out
+  test -n "$(filesize "$out")" || bail
+  diag "$(filesize "$out")"
+  test $(filesize "$out") -eq 7
+}
+
 @test "$lib line_count: " {
 
   tmpd

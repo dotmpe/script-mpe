@@ -32,10 +32,13 @@ init
     echo package_pd_meta_git_hooks_pre_commit=./tools/ci/pre-commit.sh
   } > $tmpd/.package.sh
   cd $tmpd
+  git init
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0 \
     || fail "Stat: ${status}, Out: ${lines[@]}"
   test -e tools/ci/pre-commit.sh
+  cd ..
+  rm -rf $tmpd
 }
 
 
@@ -89,6 +92,7 @@ setup_pd_ls_checks_1()
   touch Makefile
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
+  diag "Out: ${lines[*]}"
   test ${#lines[@]} -eq 1
   test ${lines[0]} = :mk-test
   
@@ -100,7 +104,7 @@ setup_pd_ls_checks_1()
  
   mkdir test/; touch test/foo-spec.bats
   run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
+  test $status -eq 0 || fail "Out: ${lines[*]}"
   test ${#lines[@]} -eq 4
   test "${lines[0]}" = ":bats-specs"
   test "${lines[1]}" = ":bats"

@@ -72,9 +72,9 @@ pd_load__status=ybf
 # Run over known prefixes and present status indicators
 pd__status()
 {
-  pd__list_prefixes "$1" > $PD_TMP/prefixes.list
-  pd__meta list-disabled "$1" > $PD_TMP/prefix-disabled.list
-  pd__meta list-enabled "$1" > $PD_TMP/prefix-enabled.list
+  pd__list_prefixes "$1" > $PD_TMPDIR/prefixes.list
+  pd__meta list-disabled "$1" > $PD_TMPDIR/prefix-disabled.list
+  pd__meta list-enabled "$1" > $PD_TMPDIR/prefix-enabled.list
 
   #local \
   #  registered="$(pd__list_prefixes "$1" || touch $failed)" \
@@ -88,11 +88,11 @@ pd__status()
 
   # Gobble up arguments as prefixes
   test -z "$1" && {
-    prefixes="$(cat $PD_TMP/prefixes.list)"
+    prefixes="$(cat $PD_TMPDIR/prefixes.list)"
   } || {
     while test -n "$1"
     do
-      grep -qF "$1" $PD_TMP/prefixes.list && {
+      grep -qF "$1" $PD_TMPDIR/prefixes.list && {
         prefixes="$prefixes $(echo $1)"
       } || {
         warn "Not a known prefix $1"
@@ -117,7 +117,7 @@ pd__status()
       continue
     }
     test -d "$checkout" || {
-      grep -qF $checkout $PD_TMP/prefixes.list || {
+      grep -qF $checkout $PD_TMPDIR/prefixes.list || {
         touch $failed
         warn "Non-existant prefix? '$checkout'"
       }
@@ -141,14 +141,14 @@ pd__status()
       #  'project/'$checkout'/tags[]'=to-clean
     }
 
-    grep -qF $checkout $PD_TMP/prefix-enabled.list && {
+    grep -qF $checkout $PD_TMPDIR/prefix-enabled.list && {
       test -e "$checkout" || {
         note "Checkout missing: $checkout"
         statusdir.sh assert-json \
           'project/'$checkout'/tags[]=to-enable'
       }
     } || {
-      grep -qF $checkout $PD_TMP/prefix-disabled.list && {
+      grep -qF $checkout $PD_TMPDIR/prefix-disabled.list && {
         test ! -e "$checkout" || {
           note "Checkout to be disabled: $checkout"
           statusdir.sh assert-json \
@@ -229,7 +229,10 @@ pd__disable_clean()
 pd_load__regenerate=dfP
 pd__regenerate()
 {
-  set -- "$(normalize_relative "$go_to_before/$1")"
+  test -n "$pd_prefix" || error pd_prefix 1
+  test -n "$1" || set -- .
+  set -- "$(normalize_relative "$pd_prefix/$1")"
+  note "Regenerating meta files in '$1' ($(pwd))"
   exec 6>$failed
   ( cd $1 && pd_regenerate "$1" )
   exec 6<&-
@@ -241,7 +244,7 @@ pd__regenerate()
 pd_load__update=yfP
 pd__update()
 {
-  set -- "$(normalize_relative "$go_to_before/$1")"
+  set -- "$(normalize_relative "$pd_prefix/$1")"
   local cwd=$(pwd)
 
   exec 3>$failed
@@ -268,8 +271,8 @@ pd_load__update_all=yfb
 pd__update_all()
 {
   test -n "$1" \
-    && set -- "$go_to_before/$1" \
-    || set -- "$go_to_before/*"
+    && set -- "$pd_prefix/$1" \
+    || set -- "$pd_prefix/*"
   set -- "$(normalize_relative "$1")"
 
   backup_if_comments "$pd"
@@ -653,7 +656,7 @@ pd__add()
   done
 
   # Check prefix or url arg
-  set -- "$1" "$2" "$(normalize_relative "$go_to_before/$3")"
+  set -- "$1" "$2" "$(normalize_relative "$pd_prefix/$3")"
   test -n "$2" -o -d $3/.git || error "No repo, and not a checkout: $3" 1
 
   # Set default args for single remote
@@ -788,10 +791,11 @@ pd__run()
   info "Pd targets requested: $*"
   info "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
 
-  local state= status_key= states=
   while read pd_prefix
   do
     cd $pd_realdir/$pd_prefix
+
+    # Iterate targets
 
     set -- $(cat $arguments | lines_to_words )
     test -n "$1" || {
@@ -801,33 +805,25 @@ pd__run()
 
     while test -n "$1"
     do
-      state=$1; shift
-      debug "Next target: $pd_prefix:$state"
-      status_key=$state states= result=0
+      fnmatch ":*" "$1" && target=$(echo "$1" | cut -c2- ) || target=$1
 
-      #record_env_keys pd-target pd-run pd-subcmd pd-env
-      #pd_debug start $state pd-target pd_prefix
+      record_env_keys pd-target pd-run pd-subcmd pd-env
+      pd_debug start $target pd-target pd_prefix
 
       (
         test -n .package.sh || error package 1
         export $(pd__env)
-        subcmd=$subcmd$state
-        pd_run $state
+        subcmd="$subcmd $pd_prefix#$target" \
+          pd_run $1 && {
+            echo "$pd_prefix#$target" >&3
+          } || {
+            echo "$pd_prefix#$target" >&5
+          }
       )
 
-      #. $scriptdir/$scriptname-run.inc.sh $state && {
-      #  echo "$state" >&3
-      #} || {
-      #  result=$?
-      #  echo "$state" >&5
-      #}
-      #    && pd_update_status $status_key/result=0 $states \
-      #    || {
-      #      pd_update_status $status_key/result=$? $states
-      #      echo $state >&6
-      #    }
+      pd_debug end $target pd-target pd_prefix
 
-      #pd_debug end $state pd-target pd_prefix
+      shift
 
     done
   done < $prefixes
@@ -892,7 +888,7 @@ pd__show()
   do
 
     test "$dry_run" && {
-      
+
       skipped "pd:show:$1"
 
     } || {
@@ -901,18 +897,23 @@ pd__show()
 
       pd__meta get-repo $1 | \
         jsotk.py -I json -O yaml --pretty \
-        --output-prefix repositories/$1 merge - -
+        --output-prefix repositories/$1 merge - - || {
+        error "decoding '$1' JSON" 1
+      }
 
       local metaf=
       update_package "$1" || {
-        note "No local package data for '$1'" 
+        note "No local package data for '$1'"
       } && {
 
         test -n "$metaf" || error metaf 1
         test -e "$metaf" || error $metaf 1
 
         jsotk.py --output-prefix package -I yaml -O yaml --pretty objectpath \
-          $metaf '$.*[@.main is not None]'
+          $metaf '$.*[@.main is not None]' || {
+
+            error "decoding '$metaf' " 1
+        }
       }
     }
 
@@ -932,7 +933,7 @@ pd__ls_sets()
 pd_named_set_args()
 {
   local named_sets="$(pd__ls_sets | lines_to_words )"
-  test -n "$1" || set -- $named_sets 
+  test -n "$1" || set -- $named_sets
   while test -n "$1"
   do
     fnmatch "* $1 *" " $named_sets " && {
@@ -970,18 +971,21 @@ pd_spc__ls_targets="[ NAME ]..."
 # Gather targets that apply for given named set(s) (in prefix)
 pd__ls_targets()
 {
-  local name=
-  while test -n "$1"
+  local pd_prefix=
+  for pd_prefix in $pd_prefixes
   do
-    note "Named target list '$1' ($pd_prefix)"
-    name=$1; shift
-    read_if_exists .pd-$name && continue
-    pd_package_meta "$name" && continue
-    pd_autodetect $name
+    local name=
+    while test -n "$1"
+    do
+      note "Named target list '$1' ($pd_prefix)"; name=$1; shift
+      read_if_exists .pd-$name && continue
+      pd_package_meta "$name" && continue
+      pd_autodetect $name
+    done
   done | words_to_lines
 }
 pd_defargs__ls_targets=pd_named_set_args
-pd_load__ls_targets=diap
+pd_load__ls_targets=yiapd
 
 
 pd_spc__ls_auto_targets="[ NAME ]..."
@@ -1022,31 +1026,51 @@ pd__help()
 # Setup for subcmd; move some of this to box.lib.sh eventually
 pd_load()
 {
+  test -n "$EDITOR" || EDITOR=nano
+  CWD=$(pwd -P)
+  #test -n "$P" || PATH=$CWD:$PATH
+  test -n "$hostname" || hostname=$(hostname -s)
+  test -n "$uname" || uname=$(uname)
+
+  sys_load
+  str_load
+
+
   test -n "$pd" || pd=.projects.yaml
-  
+
+  test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR
+
+  test -n "$PD_TMPDIR" || PD_TMPDIR=$(setup_tmpd $base)
+  test -n "$PD_TMPDIR" -a -d "$PD_TMPDIR" || error "PD_TMPDIR load" 1
+
+  # FIXME: test with this enabled
+  #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
+  #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
+
   pd_inputs="arguments prefixes"
   pd_outputs="passed skipped error failed"
+  pd_session_id=$(uuidgen)
 
   # Per subcmd init
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
 
     p ) # Load/Update package meta at prefix; should imply y or d
-       
+
         test -n "$prefixes" -a -s "$prefixes" \
           && pd_prefixes="$(cat $prefixes | words_to_lines )" \
-          || pd_prefixes=$go_to_before
+          || pd_prefixes=$pd_prefix
 
-        for pd_prefix in $pd_prefixes; do
-          update_package "$pd_prefix" || continue
+        local pref=
+        for pref in $pd_prefixes; do
+          update_package "$pref" || continue
         done
+        unset pref
       ;;
 
     P )
-       
-        pd_prefix=$go_to_before
         update_package "$pd_prefix" || continue
-        . $pd_prefix/.package.sh
+        . $pd_root/$pd_prefix/.package.sh
 
         test -n "$package_id" && {
           note "Found package '$package_id'"
@@ -1057,14 +1081,19 @@ pd_load()
         }
       ;;
 
-    d ) # Stub for no Pd context
-        go_to_before=. pd_prefix=. pd_realpath= pd_root=
+    d ) # XXX: Stub for no Pd context?
+        #test -n "$pd_root" \
+        pd= pd_realpath= pd_root=. pd_realdir= pd_prefix=.
+
+        #test "$pd_prefix" = "." || {
+        #  cd $pd_prefix
+        #}
       ;;
 
     y )
         # look for Pd Yaml and set env: pd_prefix, pd_realpath, pd_root
         # including socket path, to check for running Bg metadata proc
-        pd_finddoc $pd
+        test -n "$pd_root" || pd_finddoc $pd
       ;;
 
     f )
@@ -1072,31 +1101,30 @@ pd_load()
         # include realpath of projectdoc (p)
         test -n "$pd" && {
           req_vars p
-          failed=$(setup_tmp .failed -$p-$subcmd-$(uuidgen))
-        } || failed=$(setup_tmp .failed)
+          failed=$(setup_tmpf .failed -$p-$subcmd-$(uuidgen))
+        } || failed=$(setup_tmpf .failed)
       ;;
 
-    i ) 
-        test -n "$pd_trgtpref" || pd_trgtpref="$(try_value "$subcmd" trgtpref)"
+    i )
         test -n "$io_id" || {
-        test -n "$pd_root" && { 
+          test -n "$pd_root" && {
             # expect Pd Context; setup IO paths (req. y)
             req_vars pd pd_cid pd_realpath pd_root pd_sid \
               || error "Projectdoc context expected" 1
 
             io_id=-${pd_cid}-${subcmd}-${pd_sid}
           } || {
-            io_id=-subcmd-$(uuidgen)
+            io_id=-$base-$subcmd-$(uuidgen)
           }
         }
         fnmatch "*/*" "$io_id" && error "Illegal chars" 12
         for io_name in $pd_inputs $pd_outputs
         do
           test -n "$(eval echo \$$io_name)" || {
-            tmpname=$(setup_tmp .$io_name $io_id)
+            tmpname=$(setup_tmpf .$io_name $io_id)
             touch $tmpname
             eval $io_name=$tmpname
-            unset tmpname
+            unset tmpname io_name
           }
         done
         export $pd_inputs $pd_outputs
@@ -1120,14 +1148,14 @@ pd_load()
         pd_meta_bg_setup
       ;;
 
-    a ) 
+    a )
         # Set default args or filter. Value can be literal or function.
         local pd_default_args="$(eval echo "\"\$$(try_local $subcmd defargs)\"")"
         pd_default_args "$pd_default_args" "$@"
       ;;
 
-    g ) 
-        # Set default args based on file glob(s), or expand short-hand arguments 
+    g )
+        # Set default args based on file glob(s), or expand short-hand arguments
         # by looking through the globs for existing paths
         pd_trgtglob="$(eval echo "\"\$$(try_local $subcmd trgtglob)\"")"
         pd_globstar_search "$pd_trgtglob" "$@"
@@ -1135,10 +1163,6 @@ pd_load()
 
     esac
   done
-
-  test -n "$EDITOR" || EDITOR=nano
-  
-  test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR
 
   local tdy="$(try_value "${subcmd}" today)"
   test -z "$tdy" || {
@@ -1148,24 +1172,7 @@ pd_load()
     touch -t $tdate $today
   }
 
-  test -n "$PD_TMP" || {
-    pwdref=$(pwd -P | tr -C 'A-Za-z0-9_-' '-')
-    test -n "$RAM_DISK_ROOT" && {
-      PD_TMP=$RAM_DISK_ROOT/pd/temp/$pwdref
-    } || {
-      PD_TMP=$(cd /tmp;pwd -P)/pd/$pwdref
-    }
-    mkdir -vp $PD_TMP
-    rm -rf $PD_TMP/*
-  }
-
-  test -n "$PWD" || PWD=$(pwd -P)
-  #test -n "$P" || PATH=$PWD:$PATH
-
-  test -n "$hostname" || hostname=$(hostname -s)
-  test -n "$uname" || uname=$(uname)
-
-  str_load
+  unset go_to_before
 }
 
 # Close subcmd; move some of this to box.lib.sh eventually
@@ -1181,8 +1188,9 @@ pd_unload()
       i ) # remove named IO buffer files; set status vars
           clean_io_lists $pd_inputs $pd_outputs
           pd_report $pd_inputs $pd_outputs || subcmd_result=$?
+
           #eval rm $(for io_name in $pd_inputs $pd_outputs; do
-          #  echo "\$$io_name"; done)
+          #  echo "\$$io_name"; done) 2>&1 >/dev/null || noop
         ;;
       I )
           local fd_num=2
@@ -1203,35 +1211,46 @@ pd_unload()
         ;;
   esac; done
 
+  test -n "$PD_TMPDIR" || error "PD_TMPDIR unload" 1
+  # FIXME: make so everything cleans up
+  #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
+  #  || warn "Leaving temp files $(echo $PD_TMPDIR/*)"
+
   unset subcmd subcmd_pref \
-          def_subcmd func_exists func
+          def_subcmd func_exists func \
+          PD_TMPDIR
 
   return $subcmd_result
 }
 
-pd_lib()
+pd_init()
 {
-  test -n "$scriptdir" || return 13
+  test -z "$scriptdir" || return 13
+  scriptdir="$(dirname "$(realpath "$0")")"
   export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  . $scriptdir/util.sh load-ext
   lib_load sys os std str src main meta
   . $scriptdir/box.init.sh
   box_run_sh_test
-  . $scriptdir/projectdir.inc.sh "$@"
-  . $scriptdir/projectdir-bats.inc.sh
-  . $scriptdir/projectdir-git.inc.sh
-  . $scriptdir/projectdir-git-versioning.inc.sh
   . $scriptdir/main.init.sh
   # -- pd box init sentinel --
   test -n "$verbosity" || verbosity=6
 }
 
-pd_init()
+pd_lib()
 {
+  test -z "$__load_lib" || return 14
   local __load_lib=1
-  test -n "$scriptdir" || return 13
+  test -n "$scriptdir" || return 12
   lib_load box match date doc table
   . $scriptdir/vc.sh load-ext
+  . $scriptdir/projectdir.inc.sh "$@"
+  . $scriptdir/projectdir-bats.inc.sh
+  . $scriptdir/projectdir-git.inc.sh
+  . $scriptdir/projectdir-git-versioning.inc.sh
+  . $scriptdir/projectdir-npm.inc.sh
+  . $scriptdir/projectdir-grunt.inc.sh
+  . $scriptdir/projectdir-make.inc.sh
   # -- pd box lib sentinel --
 }
 
@@ -1240,23 +1259,11 @@ pd_init()
 
 pd_main()
 {
-  mkdir -p /tmp/env-keys
-  {
-    env
-    set
-    local
-  } | sed 's/=.*$//' | sort -u > /tmp/env-keys/pd-env
-
-  test -n "$0" || {
-    echo "No 0?"
-    exit 124
-  }
   local scriptname=projectdir scriptalias=pd base= \
     subcmd=$1 \
-    base="$(basename "$0" .sh)" \
-    scriptdir="$(dirname "$(realpath "$0")")"
+    base="$(basename "$0" .sh)" scriptdir=
 
-  pd_lib "$@" || return $(( $? - 1 ))
+  pd_init || exit $?
 
   case "$base" in
 
@@ -1273,7 +1280,7 @@ pd_main()
 
         shift $c
 
-        pd_init || exit $?
+        pd_lib "$@" || error pd_lib $?
 
         try_subcmd "$@" && {
 

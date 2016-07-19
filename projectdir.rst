@@ -140,8 +140,6 @@ pd
       pd run.
       TODO: 1 - failed, 2 - unstable, 3 - TODO, 4 - skipped, 5 - re-run?
 
-      jjk
-
     pd check
       Idem as pd test, but for check attributes.
 
@@ -173,13 +171,16 @@ pd
 
       Or updated named status.
 
-
+    pd ls-sets
+      List named sets.
 
     pd ls-targets [ NAME ]...
       List targets for given named set, for current prefix.
       If none is defined, the list is generated using autodetection.
+      See ``ls-sets`` for the available set names.
 
     pd show [ PREFIX ]...
       Pretty print Pdoc record and package main section if it exists,
       for each prefix.
+
 

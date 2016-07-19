@@ -8,6 +8,8 @@ init
 
 setup() {
   . ./$base load-ext
+  . ./util.sh load-ext
+  lib_load os sys str std match
   setup_clean_git
 }
 
@@ -49,9 +51,10 @@ setup() {
 
 @test ". $bin __vc_status - status reports line for e.g. PS1 use" {
 
+  shopt -s extglob
+
   run __vc_status
   test $status -eq 0
-  shopt -s extglob
   fnmatch "$tmpd \[git:master +([0-9a-f])...\]" "${lines[*]}" \
     || fail "${lines[@]}"
 
@@ -61,6 +64,8 @@ setup() {
   test $status -eq 0
   fnmatch "$tmpd \[git:master +([0-9a-f])...\]/sub-1/sub-1.1" "${lines[*]}" \
     || fail "${lines[@]}"
+
+  shopt -u extglob
 }
 
 @test ". $bin __vc_gitrepo - report a vendor/project repo ID-ish" {

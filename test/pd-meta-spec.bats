@@ -58,6 +58,7 @@ f_pd1=" -f test/var/pd/projects.yml "
 
 # XXX: see mod_pd_meta.py
 @test "${bin} clean-mode" {
+  tmpd
   cd $tmpd
 {
   cat - <<EOM
@@ -101,6 +102,7 @@ EOM
   test ${status} -eq 0
 # Check mode (quiet)
 # Check mode (quiet+strict)
+  rm -rf $tmpd
 }
 
 

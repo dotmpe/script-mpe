@@ -68,6 +68,12 @@ htd_load()
     cols=79
   }
 
+  test -n "$htd_tmp_dir" || htd_tmp_dir=$(setup_tmpd)
+  test -n "$htd_tmp_dir" || error "htd_tmp_dir load" 1
+  test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" || {
+    rm $htd_tmp_dir/*
+  }
+
   htd_rules=~/.conf/rules/$hostname.tab
   ns_tab=$HOME/.conf/namespace/$hostname.tab
 
@@ -111,7 +117,7 @@ htd_load()
       ;;
     f )
         # Preset name to subcmd failed file placeholder
-        failed=$(setup_tmp .failed)
+        failed=$(setup_tmpf .failed)
       ;;
     esac
   done
@@ -141,6 +147,11 @@ htd_unload()
 
   esac; done
   clean_failed
+
+  test -n "$htd_tmp_dir" || error "htd_tmp_dir unload" 1
+  #test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" \
+  #  || warn "Leaving HtD temp files $(echo $htd_tmp_dir/*)"
+  unset htd_tmp_dir
 }
 
 htd_usage()
@@ -633,11 +644,11 @@ htd__st()
 
 htd__build()
 {
-  rm -f /tmp/htd-out
+  rm -f $(setup_tmpd)/htd-out
   htd__make build 2>1 | capture_and_clear
   echo Mixed output::
   echo
-  cat /tmp/htd-out | sed  's/^/    /'
+  cat $(setup_tmpd)/htd-out | sed  's/^/    /'
 }
 
 # show htd shell aliases
@@ -1356,7 +1367,7 @@ htd__check()
   log "Looking for unknown files.."
 
   pwd=$(pwd)
-  cruft=/tmp/htd-$(echo $pwd|tr '/' '-')-cruft.list
+  cruft=$(setup_tmpd)/htd-$(echo $pwd|tr '/' '-')-cruft.list
   test ! -e "$cruft" || rm $cruft
   eval find . $find_ignores -o -print \
     | while read p
@@ -2116,8 +2127,8 @@ htd__ck_torrent()
   #echo testing btshowmetainfo
   #btshowmetainfo $1
 
-  node $PREFIX/bin/btinfo.js "$1" > /tmp/htd-ck-torrent.sh
-  . /tmp/htd-ck-torrent.sh
+  node $PREFIX/bin/btinfo.js "$1" > $(setup_tmpd)/htd-ck-torrent.sh
+  . $(setup_tmpd)/htd-ck-torrent.sh
   echo BTIH:$infoHash
 
   torrent-verify.py "$1" | while read line
@@ -2379,10 +2390,9 @@ htd__tmux_init()
   #'reattach-to-user-namespace -l /bin/bash'"
   test -z "$3" || error "surplus arguments: '$3'" 1
 
-  #socket=/tmp/tmux-htd-socket
   test -n "$TMUX_TMPDIR" || TMUX_TMPDIR=/opt/tmux-socket
   mkdir -vp $TMUX_TMPDIR
-  out=/tmp/htd-tmux-init-$$
+  out=$(setup_tmpd)/htd-tmux-init-$$
 
   tmux has-session -t $1 >/dev/null 2>&1 && {
     logger "Session $1 exists" 0
@@ -2566,6 +2576,7 @@ htd__getx()
   test -n "$3" || set "$1" "$2" "$(htd__getxl $1)"
 
   xmllint --xpath "$2" "$3"
+  rm "$3"
 }
 
 # Get x-lang file for arg1
@@ -2573,7 +2584,7 @@ htd__getxl()
 {
   fnmatch '*.xml' $1 && set -- "$1" "$1"
   fnmatch '*.rst' $1 && {
-    test -n "$2" || set -- "$1" "/tmp/$(basename $1 .rst).xml"
+    test -n "$2" || set -- "$1" "$(setup_tmpd)/$(basename $1 .rst).xml"
     $rst2xml $1 > "$2"
     echo $2
   }
@@ -2593,10 +2604,10 @@ htd__tpaths()
       shift 1
       continue
     }
-    path= rel_leaf= root=
+    path= rel_leaf= root= xml=$(htd__getxl $1)
 
     # Read multi-leaf paths, and split it up into relative leafs
-    htd__xproc "$(htd__getxl $1)" $scriptdir/rst-terms2path.xsl \
+    htd__xproc2 "$xml" $scriptdir/rst-terms2path.xsl \
       | grep -Ev '^(#.*|\s*)$' \
       | sed 's/\([^\.]\)\/\.\./\1\
 ../g' \
@@ -2617,6 +2628,8 @@ htd__tpaths()
 
     done
 
+    rm $xml
+
     unset path rel_leaf root
     shift 1
   done
@@ -2626,7 +2639,7 @@ htd__tpath_raw()
 {
   test -n "$1" || error "document expected" 1
   test -e "$1" || error "no such document '$1'" 1
-  htd__xproc "$(htd__getxl "$1")" $scriptdir/rst-terms2path.xsl
+  htd__xproc2 "$(htd__getxl "$1")" $scriptdir/rst-terms2path.xsl
 }
 
 # Process XML using XSLT
@@ -2644,6 +2657,21 @@ EOM
   # remove XML prolog:
   } | tail -n +2 | grep -Ev '^(#.*|\s*)$'
 }
+htd__xproc2()
+{
+  {
+    fnmatch '<* *>' "$2" && {
+
+      saxon - $1 <<EOM
+$2
+EOM
+    } || {
+      saxon $1 $2
+    }
+  # remove XML prolog:
+  } | cut -c39-
+}
+
 
 # TODO: Append definition term to doc
 htd__dl_init()
@@ -2663,11 +2691,19 @@ htd__dl_append()
 # XXX: hacky hacking one day, see wishlist above
 list_host_disks()
 {
+  test -e sysadmin/$hostname.rst || error "Expected sysadm hostdoc" 1
+
   htd getx sysadmin/$hostname.rst \
     "//*/term[text()='Disk']/ancestor::definition_list_item/definition/definition_list" \
-    > /tmp/$hostname-disks.xml
+    > $(setup_tmpd)/$hostname-disks.xml
+
+  test -s "$(setup_tmpd)/$hostname-disks.xml" || {
+    rm "$(setup_tmpd)/$hostname-disks.xml"
+    return
+  }
+
   {
-    xsltproc - /tmp/$hostname-disks.xml <<EOM
+    xsltproc - $(setup_tmpd)/$hostname-disks.xml <<EOM
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="definition_list_item">
 <xsl:value-of select="term"/> .
@@ -2688,9 +2724,9 @@ htd__check_disks()
       echo "Path for $label OK"
       xmllint --xpath \
           "//definition_list/definition_list_item/definition/bullet_list/list_item[contains(paragraph,'"$path"')]/ancestor::bullet_list" \
-          /tmp/$hostname-disks.xml > /tmp/$hostname-disk.xml;
+          $(setup_tmpd)/$hostname-disks.xml > $(setup_tmpd)/$hostname-disk.xml;
       {
-    xsltproc - /tmp/$hostname-disk.xml <<EOM
+      xsltproc - $(setup_tmpd)/$hostname-disk.xml <<EOM
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="//bullet_list/list_item">
 <xsl:value-of select="paragraph/text()"/> .
@@ -2699,16 +2735,14 @@ htd__check_disks()
 EOM
   # remove XML prolog:
   } | tail -n +2 | grep -Ev '^(#.*|\s*)$' \
-      && {
-        echo
-      } || {
+      || {
         warn "failed $?"
       }
-
     } || {
       error "Missing $label $id <$path>" 1
     }
   done
+  rm $(setup_tmpd)/$hostname-disk.xml
 }
 
 
@@ -3156,7 +3190,7 @@ htd__colorize()
     
     - )
 
-      set -- /tmp/htd-vim-colorize.out
+      set -- $(setup_tmpd)/htd-vim-colorize.out
       #{ cat - > $1 ; }
       #exec 0<&-
 
@@ -3176,7 +3210,7 @@ htd__colorize()
 
       open $1.xhtml
 
-      rm /tmp/htd-vim-colorize* /tmp/.htd-vim-colorize*
+      rm $(setup_tmpd)/htd-vim-colorize* $(setup_tmpd)/.htd-vim-colorize*
       ;;
 
     * )
@@ -3524,6 +3558,17 @@ htd__munin_export()
   done
 }
 
+
+
+htd__create_ram_disk()
+{
+  test -n "$1" || set -- "RAM disk" "$2"
+  test -n "$2" || set -- "$1" 32
+  test -z "$3" || error "Surplus arguments '$3'" 1
+
+  note "Creating/updating RAM disk '$1' ($2 MB)"
+  create_ram_disk "$1" "$2" || return
+}
 
 
 ### Main

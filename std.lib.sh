@@ -388,10 +388,11 @@ clear_lines()
 # taken given terminal width ${cols}.
 capture_and_clear()
 {
-  tee /tmp/htd-out
-  mv /tmp/htd-out /tmp/htd-out.tmp
-  fold -s -w $cols /tmp/htd-out.tmp > /tmp/htd-out
-  lines=$(wc -l /tmp/htd-out|awk '{print $1}')
+  local tmpf=$(setup_tmpf)
+  tee $tmpf
+  mv $tmpf $tmpf.tmp
+  fold -s -w $cols $tmpf.tmp > $tmpf
+  lines=$(wc -l $tmpf | awk '{print $1}')
   clear_lines $lines
   echo Captured $lines lines
 }
