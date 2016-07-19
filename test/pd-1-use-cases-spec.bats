@@ -25,6 +25,10 @@ setup_projdir()
   } || {
     { cat <<EOF
 repositories:
+  empty:
+    remotes: {}
+    sync: false
+    clean: untracked
   user-conf:
     default: dev
     disabled: true

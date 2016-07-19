@@ -971,6 +971,7 @@ pd_spc__ls_targets="[ NAME ]..."
 # Gather targets that apply for given named set(s) (in prefix)
 pd__ls_targets()
 {
+  test -n "$pd_prefixes" || error "pd_prefixes" 1
   local pd_prefix=
   for pd_prefix in $pd_prefixes
   do
@@ -978,7 +979,7 @@ pd__ls_targets()
     while test -n "$1"
     do
       note "Named target list '$1' ($pd_prefix)"; name=$1; shift
-      read_if_exists .pd-$name && continue
+      read_if_exists $pd_prefix/.pd-$name && continue
       pd_package_meta "$name" && continue
       pd_autodetect $name
     done
@@ -1083,7 +1084,7 @@ pd_load()
 
     d ) # XXX: Stub for no Pd context?
         #test -n "$pd_root" \
-        pd= pd_realpath= pd_root=. pd_realdir= pd_prefix=.
+          pd= pd_realpath= pd_root=. pd_realdir=$(pwd -P) pd_prefix=.
 
         #test "$pd_prefix" = "." || {
         #  cd $pd_prefix
