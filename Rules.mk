@@ -262,6 +262,38 @@ symlinks: $/.symlinks
     $(call log,header1,$@,Symlinking from,$^);\
     SCRIPT_MPE=/srv/project-mpe/script-mpe ./init-symlinks.sh .symlinks
 
+
+DEP += $(BUILD)pd-make-states.sh
+# FIXME:	$(MK) has non-existing targets
+$(BUILD)pd-make-states.sh: $(SRC) Rules.mk
+	@{ \
+		echo sources=$$(echo $$(echo $(SRC) | wc -w)); \
+		echo dep=$$(echo $$(echo $(DEP) | wc -w)); \
+		echo dmk=$$(echo $$(echo $(DMK) | wc -w)); \
+		echo targets=$$(echo $$(echo $(TRGT) | wc -w)); \
+		echo special-targets=$$(echo $$(echo $(STRGT) | wc -w)); \
+		echo cleanable=$$(echo $$(echo $(CLN) | wc -w)); \
+		echo tests=$$(echo $$(echo $(TESTS) | wc -w)); \
+		echo src/mk/loc=$$(pd loc *.mk); \
+		echo src/py/loc=$$(pd loc *.py */*.py */*/*.py */*/*/*.py); \
+		echo src/sh/loc=$$(pd loc *.sh); \
+		echo src/sh/main/loc=$$(pd loc main*.*); \
+		echo src/sh/lib/loc=$$(pd loc *.lib.sh); \
+		echo src/sh/match/loc=$$(pd loc match*.sh); \
+		echo src/sh/disk/loc=$$(pd loc disk*.sh); \
+		echo src/sh/graphviz/loc=$$(pd loc graphviz*.sh); \
+		echo src/sh/vc/loc=$$(pd loc vc*.sh); \
+		echo src/sh/statusdir/loc=$$(pd loc statusdir*.sh); \
+		echo src/sh/htd/loc=$$(pd loc htd htd.lib.sh); \
+		echo src/sh/pd/loc=$$(pd loc projectdir*.sh); \
+		echo src/sh/bats-specs/loc=$$(pd loc test/*-spec.bats); \
+		echo doc/rst/loc=$$(pd loc *.rst); \
+	} \
+		> $@
+
+
+TRGT += TODO.list
+
 IGNORE := coverage_html_report ReadMe.rst Rules.mk '*.html' '*.xml' TODO.list
 IGNORE_F := $(addprefix --exclude ,$(IGNORE))
 todo: TODO.list

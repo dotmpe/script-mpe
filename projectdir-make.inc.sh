@@ -28,11 +28,12 @@ pd__make_test()
 {
   make test || return $?
 }
+pd__make_test=i
 
 
 pd__make()
 {
-  test -n "$1" -- set stat
+  test -n "$1" || set -- stat
 
   local result=0
 
@@ -46,6 +47,6 @@ pd__make()
   return $result
 }
 pd_load__make=i
-pd_reportsh__make=.build/report.sh
+pd_reportsh__make=.build/pd-make-states.sh
 
 

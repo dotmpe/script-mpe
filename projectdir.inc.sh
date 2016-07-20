@@ -723,11 +723,12 @@ pd_run()
             break
           }
           args="$(echo "$args" | cut -c$(( 2 + ${#ncomp} ))-)"
-          comp="$comp:$ncomp"
 
           try_func "$func" && {
-            try_func $(try_local $comp "") || break
+            try_func $(try_local $comp:$ncomp "") || break
           }
+
+          comp="$comp:$ncomp"
 
         done
 
@@ -754,6 +755,7 @@ pd_run()
           }
 
           test -s $arguments || echo "$args" >$arguments
+
           $func "$(cat $arguments)" && result=0 \
             || { result=$?; echo $1 >>$failed; }
 

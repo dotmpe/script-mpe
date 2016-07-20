@@ -29,4 +29,5 @@
     development:
     - package_pd_meta_default=dev
     - Build_Deps_Default_Paths=1 
+    - BOREAS_SKIP=1
 
