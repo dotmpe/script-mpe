@@ -261,8 +261,6 @@ pd_finddoc()
   p="$cid"
   sock=/tmp/pd-$p-serv.sock
 
-  pd_sid=$(uuidgen)
-
   pd_cid=$cid
   pd_sock=/tmp/pd-${pd_cid}-serv.sock
 
@@ -359,6 +357,7 @@ record_env_keys()
 # Echo debug line for target exec start; with diff of named envs + extra names
 pd_debug()
 {
+  return # XXX:
   local debug=$1 target=$2 env_keys=$3 vars=
   shift 3
   set -- "$@" $(cat /tmp/env-keys/$env_keys | lines_to_words )
@@ -649,14 +648,17 @@ pd_run()
 {
   test -n "$1" || error args 1
 
-  fnmatch ":*" "$1" && set -- "$base$1"
+  fnmatch ":*" "$1" && set -- "$(echo "$1" | cut -c2-)"
+  fnmatch "*:*:*" "$1" || set -- "$base:$1"
   fnmatch "*:*" "$1" || set -- "sh:$1"
 
   test -z "$2" || error "surplus args '$*'" 1
 
-  #note "Run"
+  note "Pd Run '$1'"
 
   case "$1" in
+
+    ## Built in targets
 
     -* )
         note "Ignore ($1)"
@@ -671,9 +673,8 @@ pd_run()
         mv $failed.ignore $failed
       ;;
 
-    ## Built in targets
-
     # Shell exec
+
     sh:* )
         local shcmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
         status_key=$(printf "$1" | cut -d ':' -f 2 )
@@ -701,6 +702,7 @@ pd_run()
 
         local comp=$(echo "$1" | cut -d ':' -f 2) ncomp=
         local comp_idx=2 func= args=$(echo "$1" | cut -c$(( 5 + ${#comp} ))-)
+
 
         # Consume components and look for local function
         while true
@@ -730,22 +732,31 @@ pd_run()
         done
 
         try_func "$func" || {
-            error "No such run target '$comp'"; echo "$1" >>$error; return 1
+            error "No such Pd target '$comp'"; echo "$1" >>$error; return 1
           }
 
-        note "Running Pd $comp '$args' ($pd_prefix)"
+        sub_session_id=$(uuidgen)
 
         (
           subcmd="$pd_prefix#$comp"
-          status_key="$(eval echo "\"\$$(try_local "$subcmd" stat)\"")"
+
+          status_key="$(eval echo "\"\$$(try_local "$comp" stat)\"")"
           test -n "$status_key" \
             || status_key=$(printf "$comp" | tr -c 'a-zA-Z0-9-' '/')
           states=
-          pd_load "$args" || {
+
+          local pd_session_id=$sub_session_id
+          eval local $(for io_name in $pd_inputs $pd_outputs; do
+            printf -- " $io_name= "; done)
+
+          subcmd=$comp pd_load "$args" || {
             error "Pd-load failed for '$1'"; echo "$1" >>$error; return 1
           }
-          note "func='$func' "
-          $func "$args" && result=0 || { result=$?; echo $1 >>$failed; }
+
+          test -s $arguments || echo "$args" >$arguments
+          $func "$(cat $arguments)" && result=0 \
+            || { result=$?; echo $1 >>$failed; }
+
           {
             cd "$pd_realdir"
             key_pref=repositories/$(normalize_relative \
@@ -755,22 +766,15 @@ pd_run()
               $states
           }
         )
-      ;;
 
-    ## External targets
-
-    *:*:* )
-        local cmd=$(echo "$1" | cut -d ':' -f 1)
-        local local_subcmd=$(echo "$1" | cut -d ':' -f 2)
-        local args=$(echo "$1" | cut -c$(( 3 + ${#cmd} + ${#subcmd} ))-)
-        local func=$(try_local $local_subcmd "" $cmd)
-
-        echo "TODO Comp: $cmd:$local_subcmd:$args"
-
-        (
-          $cmd $local_subcmd $args \
-            || echo $1 >>$failed
-        )
+        for io_name in $pd_outputs; do
+          out=${!io_name}
+          cat $(setup_tmpd)/pd-*$sub_session_id.$io_name >> $out
+          rm $(setup_tmpd)/pd-*$sub_session_id.$io_name
+        done
+        for io_name in $pd_inputs; do
+          rm $(setup_tmpd)/pd-*$sub_session_id.$io_name
+        done
       ;;
 
 

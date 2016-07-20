@@ -21,6 +21,7 @@ pd_test__git_autoconfig()
 }
 
 
+pd_load__git_check=i
 pd__git_check()
 {
   note "TODO $subcmd $@"

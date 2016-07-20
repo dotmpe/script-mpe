@@ -4,6 +4,7 @@ pd_register bats check test
 
 pd__bats_autoconfig()
 {
+  test -x "$(which bats 2>/dev/null)" || return 1
   test "$(echo test/*-spec.bats)" != "test/*-spec.bats" \
     || return $?
 }
@@ -156,7 +157,7 @@ pd__bats_specs()
     };} | lines_to_words )"
     test -z "$tests" || {
       incr file_count
-      echo $tests | words_to_lines | sed 's#^#'$subcmd:$arg':#' | passed
+      echo $tests | words_to_lines | sed 's#^#'$subcmd:$arg':#' >$passed
       incr test_count $(echo "$tests" | count_words)
     }
   done
@@ -218,7 +219,7 @@ pd__bats()
   do
     {
       verbosity=6 bats $x \
-        || echo "bats:$x" >&6
+        || echo "bats:$x" >>$failed
     } | bats-color.sh
   done
 }

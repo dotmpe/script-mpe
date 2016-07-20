@@ -3,6 +3,7 @@ pd_register grunt init test
 
 pd__grunt_autoconfig()
 {
+  test -x "$(which grunt 2>/dev/null)" || return 1
   test -e "$(echo Gruntfile*|head -n 1 2>/dev/null )" \
     || return 1
 }
@@ -32,6 +33,7 @@ pd__grunt_init_package()
 }
 
 
+pd_load__grunt_test=i
 pd__grunt_test()
 {
   grunt test || return $?

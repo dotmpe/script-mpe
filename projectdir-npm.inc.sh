@@ -4,6 +4,7 @@ pd_register npm init check test
 
 pd_init__npm_autoconfig()
 {
+  test -x "$(which npm 2>/dev/null)" || return 1
   test -e package.json && {
     # TODO: load data, may want to run check for target first.
     note "Using npm init-package"
@@ -13,6 +14,7 @@ pd_init__npm_autoconfig()
 
 pd_check__npm_autoconfig()
 {
+  return # TODO: npm:check-package
   test -e package.json && {
     # XXX: should really check for metadata, consolidate first
     note "Using npm check-package"
@@ -31,12 +33,14 @@ pd_test__npm_autoconfig()
 
 
 
+pd_load__npm_test=i
 pd__npm_test()
 {
   npm test || return $?
 }
 
 
+pd_load__npm_script=i
 pd__npm_script()
 {
   npm run "$@" || return $?

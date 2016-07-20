@@ -4,7 +4,11 @@ load helper
 base=projectdir-meta
 
 init
+
+setup()
+{
 . $lib/util.sh
+}
 
 
 @test "${bin}" "default no-args" {

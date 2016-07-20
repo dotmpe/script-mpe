@@ -9,6 +9,7 @@ init
 version=0.0.0+20150911-0659 # script-mpe
 
 @test "${bin}" "No arguments: default action is status" {
+  test "$uname" != Darwin || skip Darwin
   run $bin
   test $status -eq 0
 }

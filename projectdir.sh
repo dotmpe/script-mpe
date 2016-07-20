@@ -787,9 +787,10 @@ pd_spc__run='[ PREFIX | [:]TARGET ]...'
 pd__run()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
-  record_env_keys pd-run pd-subcmd pd-env
+  #record_env_keys pd-run pd-subcmd pd-env
   info "Pd targets requested: $*"
   info "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
+
 
   while read pd_prefix
   do
@@ -811,7 +812,7 @@ pd__run()
       pd_debug start $target pd-target pd_prefix
 
       (
-        test -n .package.sh || error package 1
+        test -n .package.sh || error package 31
         export $(pd__env)
         subcmd="$subcmd $pd_prefix#$target" \
           pd_run $1 && {
@@ -842,8 +843,7 @@ pd__test()
 
   info "Tests to run: $*"
   echo "$@" >$arguments
-  subcmd=test:run
-  pd__run
+  subcmd=test:run pd__run
   return $?
 }
 
@@ -872,8 +872,7 @@ pd__check()
 
   info "Checks to run: $*"
   echo "$@" >$arguments
-  subcmd=check:run
-  pd__run
+  subcmd=check:run pd__run
   return $?
 }
 
@@ -1033,6 +1032,7 @@ pd_load()
   test -n "$hostname" || hostname=$(hostname -s)
   test -n "$uname" || uname=$(uname)
 
+
   sys_load
   str_load
 
@@ -1050,7 +1050,8 @@ pd_load()
 
   pd_inputs="arguments prefixes"
   pd_outputs="passed skipped error failed"
-  pd_session_id=$(uuidgen)
+
+  test -n "$pd_session_id" || pd_session_id=$(uuidgen)
 
   # Per subcmd init
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
@@ -1101,32 +1102,29 @@ pd_load()
         # Preset name to subcmd failed file placeholder
         # include realpath of projectdoc (p)
         test -n "$pd" && {
-          req_vars p
-          failed=$(setup_tmpf .failed -$p-$subcmd-$(uuidgen))
-        } || failed=$(setup_tmpf .failed)
+          failed=$(setup_tmpf .failed -$pd_cid-$subcmd-$pd_session_id)
+        } || failed=$(setup_tmpf .failed -$subcmd-$pd_session_id )
       ;;
 
     i )
-        test -n "$io_id" || {
-          test -n "$pd_root" && {
-            # expect Pd Context; setup IO paths (req. y)
-            req_vars pd pd_cid pd_realpath pd_root pd_sid \
-              || error "Projectdoc context expected" 1
+        test -n "$pd_root" && {
+          # expect Pd Context; setup IO paths (req. y)
+          req_vars pd pd_cid pd_realpath pd_root \
+            || error "Projectdoc context expected" 1
 
-            io_id=-${pd_cid}-${subcmd}-${pd_sid}
-          } || {
-            io_id=-$base-$subcmd-$(uuidgen)
-          }
+          io_id=-${pd_cid}-${subcmd}-${pd_session_id}
+        } || {
+          io_id=-$base-$subcmd-${pd_session_id}
         }
         fnmatch "*/*" "$io_id" && error "Illegal chars" 12
         for io_name in $pd_inputs $pd_outputs
         do
-          test -n "$(eval echo \$$io_name)" || {
+          #test -n "$(eval echo \$$io_name)" || {
             tmpname=$(setup_tmpf .$io_name $io_id)
             touch $tmpname
             eval $io_name=$tmpname
             unset tmpname io_name
-          }
+          #}
         done
         export $pd_inputs $pd_outputs
       ;;
@@ -1137,6 +1135,7 @@ pd_load()
         for fd_name in $pd_outputs $pd_inputs
         do
           fd_num=$(( $fd_num + 1 ))
+          # TODO: only one descriptor set per proc, incl. subshell. So useless?
           test -e "$io_dev_path/$fd_num" || {
             debug "exec $(eval echo $fd_num\\\>$(eval echo \$$fd_name))"
             eval exec $fd_num\>$(eval echo \$$fd_name)
@@ -1270,8 +1269,10 @@ pd_main()
 
     $scriptname | $scriptalias )
 
+        unset pd_session_id
+
         # invoke with function name first argument,
-        local bgd= \
+        local pd_session_id= bgd= \
           func_exists= \
           func= \
           pd_sock= \
@@ -1289,7 +1290,8 @@ pd_main()
 
           box_src_lib pd
           shift 1
-          pd_load "$@" || return
+
+          pd_load "$@" || error "pd_load" $?
 
           test -z "$arguments" -o ! -s "$arguments" || {
             info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
@@ -1297,7 +1299,9 @@ pd_main()
           }
 
           $subcmd_func "$@" || r=$?
-          pd_unload || exit $?
+
+          pd_unload || r=$?
+
           exit $r
         }
 

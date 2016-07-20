@@ -4,6 +4,7 @@ pd_register make init test
 
 pd_init__make_autoconfig()
 {
+  test -x "$(which make 2>/dev/null)" || return 1
   test -e Makefile && {
     # TODO: targets
     note "Using make init-package"
@@ -44,7 +45,7 @@ pd__make()
 
   return $result
 }
-#pd_load__make=f
+pd_load__make=i
 pd_reportsh__make=.build/report.sh
 
 

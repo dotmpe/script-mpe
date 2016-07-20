@@ -38,7 +38,7 @@ current_test_env()
   test -n "$TEST_ENV" \
     && echo $TEST_ENV \
     || case $(hostname -s | tr 'A-Z' 'a-z') in
-      simza | vs1 | dandy ) hostname -s | tr 'A-Z' 'a-z';;
+      simza | boreas | vs1 | dandy ) hostname -s | tr 'A-Z' 'a-z';;
       * ) whoami ;;
     esac
 }
