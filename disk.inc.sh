@@ -2,32 +2,113 @@
 
 
 
-disk_id()
+disk_fdisk_id()
 {
   {
     sudo fdisk -l $1 || return $?
   } | grep Disk.identifier | sed 's/^Disk.identifier: //'
 }
 
+disk_id()
+{
+  case "$(uname)" in
+    Linux )
+        udevadm info --query=all --name=$1 | grep ID_SERIAL_SHORT \
+          | cut -d '=' -f 2
+      ;;
+    Darwin )
+        # FIXME: this only works with one disk, would need to parse XML plist
+        system_profiler SPSerialATADataType | grep -qv disk1 || {
+          error "Parse SPSerialATADataType plist" 1
+        }
+        echo $(system_profiler SPSerialATADataType | grep Serial.Number \
+          | cut -d ':' -f 2)
+      ;;
+  esac
+}
+
 disk_model()
 {
-  {
-    sudo parted -s $1 print || return $?
-  } | grep Model: | sed 's/^Model: //'
+  case "$(uname)" in
+    Linux )
+        {
+          sudo parted -s $1 print || return $?
+        } | grep Model: | sed 's/^Model: //'
+      ;;
+    Darwin )
+        # FIXME: this only works with one disk, would need to parse XML plist
+        system_profiler SPSerialATADataType | grep -qv disk1 || {
+          error "Parse SPSerialATADataType plist" 1
+        }
+        echo $(system_profiler SPSerialATADataType | head -n 15  | grep Model \
+          | cut -d ':' -f 2)
+      ;;
+  esac
 }
 
 disk_size()
 {
-  {
-    sudo parted -s $1 print || return $?
-  } | grep Disk.*: | sed 's/^Disk[^:]*: //'
+  case "$(uname)" in
+    Linux )
+        {
+          sudo parted -s $1 print || return $?
+        } | grep Disk.*: | sed 's/^Disk[^:]*: //'
+      ;;
+    Darwin )
+        echo $(system_profiler SPSerialATADataType | head -n 15 | grep Capacity \
+          | cut -d ':' -f 2 | cut -d ' ' -f 2 )GB
+      ;;
+  esac
 }
 
 disk_tabletype()
 {
-  {
-    sudo parted -s $1 print || return $?
-  } | grep Partition.Table: | sed 's/^Partition.Table: //'
+  case "$(uname)" in
+    Linux )
+        {
+          sudo parted -s $1 print || return $?
+        } | grep Partition.Table: | sed 's/^Partition.Table: //'
+      ;;
+    Darwin )
+        system_profiler SPSerialATADataType | grep -qv GPT || {
+          error "Parse SPSerialATADataType plist" 1
+        }
+        echo gpt
+      ;;
+  esac
+}
+
+# List local online disks (mounted or not)
+disk_list()
+{
+  case "$(uname)" in
+    Linux )
+        glob=/dev/sd*[a-z]
+        test "$(echo $glob)" = "$glob" || {
+          echo $glob | tr ' ' '\n'
+        }
+      ;;
+    Darwin )
+        # FIXME: deal with system_profiler plist datatypes
+        echo /dev/disk0
+      ;;
+  esac
+}
+
+disk_list_part()
+{
+  case "$(uname)" in
+    Linux )
+        glob=/dev/sd*[a-z]*[0-9]
+        test "$(echo $glob)" = "$glob" || {
+          echo $glob | tr ' ' '\n'
+        }
+      ;;
+    Darwin )
+        # FIXME: deal with system_profiler plist datatypes
+        echo /dev/disk0s*[0-9]
+      ;;
+  esac
 }
 
 disk_partition_type()
@@ -77,6 +158,8 @@ is_mounted()
   } || return $?
 }
 
+# TODO: Get mount point for dev/disk-id
+# Get mount point for device path
 find_mount()
 {
   test -n "$1" || error "Device or disk-id required" 1
@@ -104,6 +187,10 @@ copy_fs()
   return $4
 }
 
+
+### Disk Catalog functions
+
+
 disk_catalog_put_disk()
 {
   test -n "$disk_id" || error "disk-id not set" 1
@@ -121,8 +208,11 @@ disk_catalog_put_disk()
 
 disk_catalog_update_disk()
 {
-  test "$disk_id" = "$volumes_main_disk_id" \
-    || error "disk-id mismatch '$1'" 1
+  test "$disk_id" = "$volumes_main_disk_id" || {
+    note "$disk_id != $volumes_main_disk_id"
+    error "disk-id mismatch '$1'" 1
+  }
+
   test "$disk_index" = "$volumes_main_disk_index" \
     || error "disk-index mismatch '$1'" 1
 
@@ -163,6 +253,11 @@ disk_catalog_update()
   eval $(cat $1)
   disk_catalog_volumes_check "$1"
 
+  test "$disk_id" = "$volumes_main_disk_id" || {
+    warn "Please fix ID $disk_id != $volumes_main_disk_id ($1)" 1
+    return
+  }
+
   # Extract disk ID parts from volumes doc
   test -e "$DISK_CATALOG/disk/$disk_id.sh" \
     && {
@@ -171,8 +266,10 @@ disk_catalog_update()
       disk_catalog_update_disk "$1"
 
     } || {
+
       test "$disk_id" = "$volumes_main_disk_id" \
         || error "disk-id mismatch '$1'" 1
+
       disk_catalog_put_disk
     }
 

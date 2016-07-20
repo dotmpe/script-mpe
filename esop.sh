@@ -8,6 +8,7 @@ set -e
 version=0.0.0+20150911-0659 # script-mpe
 
 
+esop__man_1_version="Version info" # TODO: rewrite std__help to use try_value
 esop_man_1__version="Version info"
 esop__version()
 {
@@ -52,6 +53,7 @@ esop__run()
         #done
         # ./test/*-spec.bats || { echo $1>>$failed; }
       ;;
+
   esac
   test ! -e $failed || return 1
 }
@@ -80,7 +82,7 @@ esop_init()
   export SCRIPTPATH=$scriptdir
   . $scriptdir/util.sh
   util_init
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/std.lib.sh
   . $scriptdir/str.lib.sh
   . $scriptdir/util.sh

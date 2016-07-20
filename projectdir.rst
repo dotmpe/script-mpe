@@ -1,16 +1,25 @@
+Pd Specs
+========
 :Created: 2016-01-24
+:Updated: 2016-07-11
 
 Pd - unified project checkout handling.
 
-| Projectdir - directory of prefixes to checkouts, and with a Projectdoc on path
-| Projectdoc - metadata file listing prefixes repo/remotes metadata
+Definitions
+------------
+Projectdir
+  - directory of prefixes to checkouts, and with a Projectdoc on path
+Projectdoc
+  - metadata file listing prefixes repo/remotes etc.
+Prefix
+  - A directory below a Projectdir with package metadata files and/or SCM dirs.
+Target
+  - a specification of a command run on a prefix.
 
-Started docs for some projectdir actions.
-Metadata schema is in package.rst and projectdir-meta docs.
+projecdir-meta for Projectdoc schema. Package.rst for generic project metadata.
 
-Most docs, TODO points are in projectdir-meta for now.
-Migrate here upon testing.
-See also package.rst for related package.yml schema.
+FIXME: test wether staged changes are recognized as dirt. Build some tests.
+FIXME: need to consider submodules dirt/cruft too before disabling parent checkout.
 
 :TODO: Sub-commands should be documented in projectdir.sh (cq. man sections).
 :TODO: submodule support
@@ -25,6 +34,7 @@ See also package.rst for related package.yml schema.
   For now the entry point for this is package.yaml.
   See package.rst also for some related TODO's.
   See below for some sketchups on pd subcommands,
+
 
 pd
   - annotate ./projectdir.sh
@@ -63,14 +73,26 @@ pd
 
         b: exit pd-meta bg process
 
+  States
+
+    check
+    scm
+    deps
+    test
+    build
+    install
+
   Subcommands
     pd status
       With no args, set to current prefix, or prefixes at current location.
+      TODO: Add some named states to run for prefixes.
 
-      With (each) prefix, run ``:scm-check``
+      And with (each) prefix, run ``:scm-check``.
 
     pd run
-      Takes single argument specs, representing predefined command invocations.
+      Execute one or more targets at prefix. Track all Pd outputs,
+      count lines and keep verbosity minimal unless requested.
+      Fail on any skipped, errored or failed target.
 
       bats-spec
         ..
@@ -94,6 +116,10 @@ pd
         Modal command with DRY_RUN.
         Try update and determine ahead/behind/missing per remote.
 
+    pd exec
+      Isolate run, and handle multiple prefixes.
+      Runs targets, records status.
+
     pd install
       TODO: without args, detect+install any deps. Detect is actually
       install-dependencies.sh ?
@@ -106,7 +132,10 @@ pd
         .. etc.
 
     pd test
-      Run test scripts for project. Detects some standard build types, override
+      Run test scripts for project.
+      Run failed or error targets if found, or run all tests.
+
+      Detects some standard build types, override
       with package.yml? Runs shell scripts, and passes ':'-prefixed arguments to
       pd run.
       TODO: 1 - failed, 2 - unstable, 3 - TODO, 4 - skipped, 5 - re-run?
@@ -135,5 +164,23 @@ pd
 
     pd spec
       XXX: check that a certain specification is provided by the project?
+
+    pd update
+      With no args, set to current prefix, or prefixes at current location.
+      And with (each) prefix, update Pd, default updates.
+
+      Or updated named status.
+
+    pd ls-sets
+      List named sets.
+
+    pd ls-targets [ NAME ]...
+      List targets for given named set, for current prefix.
+      If none is defined, the list is generated using autodetection.
+      See ``ls-sets`` for the available set names.
+
+    pd show [ PREFIX ]...
+      Pretty print Pdoc record and package main section if it exists,
+      for each prefix.
 
 

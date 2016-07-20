@@ -2,18 +2,19 @@
 
 set -e
 
+# Main: CLI helpers; init/run func as subcmd
 
+
+main_load()
+{
+  lib_load sys str std
+}
+
+
+# Count arguments consumed
 incr_c()
 {
   incr c $1
-}
-
-incr()
-{
-  local incr_amount
-  test -n "$2" && incr_amount=$2 || incr_amount=1
-  v=$(eval echo \$$1)
-  export $1=$(( $v + $incr_amount ))
 }
 
 # Get help str if exists for $section $id
@@ -60,7 +61,13 @@ try_local()
   test -n "$3" || set -- "$1" "$2" "$local_prefix"
   test -z "$1" || set -- " :$1" "$2" "$3"
   test -z "$2" || set -- "$1" "$2" "$3:"
-	echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
+  echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
+}
+
+try_local_var()
+{
+  local name=$(try_local "$@")
+  var_isset $name || return $?
 }
 
 try_value()
@@ -166,7 +173,7 @@ try_subcmd()
 }
 
 
-std_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+std__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 std_spc__help='-h|help [ID]'
 std_als___h=help
 std__help()
@@ -277,7 +284,7 @@ std__commands()
 
 
 std_als___V=version
-std_man_1__version="Version info"
+std__man_1_version="Version info"
 std_spc__version="-V|version"
 std__version()
 {
@@ -691,7 +698,7 @@ daemon()
 # any notices and returning 1 for failures.
 clean_failed()
 {
-  test -z "$failed" -o ! -e "$failed" || {
+  test -z "$failed" -o ! -e "$failed" && return || {
     test -n "$1" || set -- "Failed: "
     test -s "$failed" && {
       count="$(sort -u $failed | wc -l | awk '{print $1}')"
@@ -708,19 +715,37 @@ clean_failed()
   }
 }
 
-# Return path to new file in temp. dir. with ${base}- as filename prefix,
-# .out suffix and subcmd with uuid as middle part.
-# setup-tmp [ext [name-suffix]]
-setup_tmp()
+# TODO: retrieve leading/trailing X lines, truncate to Y length
+abbrev_content()
 {
-  test -n "$1" || set -- .out "$2"
-  test -n "$2" || set -- $1 -$subcmd-$(uuidgen)
-  test -n "$1" -a -n "$2" || error "empty arg(s)" 1
-
-  test -d $(dirname /tmp/${base}$2$1) \
-    || mkdir -vp $(dirname /tmp/${base}$2$1)
-  echo /tmp/${base}$2$1
+  echo
 }
+
+# remove named paths from env context; set status vars for line-count and
+# truncated contents; XXX: deprecates clean_failed
+clean_io_lists()
+{
+  local count= path=
+  while test -n "$1"
+  do
+    count=0 path="$(eval echo \$$1)"
+    test -s "$path" && {
+      count="$(count_lines $path)"
+      test $count -gt 2 && {
+        eval ${1}_abbrev="'$(echo $(sort -u $path | head -n 3 )) and $(( $count - 3 )) more'"
+        #rotate-file $failed .failed
+      } || {
+        eval ${1}_abbrev="'$(echo $(sort -u $path | lines_to_words ))'"
+        #rm $1
+      }
+    }
+    test ! -e $path || rm $path
+    eval ${1}_count="$count"
+    export ${1}_count ${1}_abbrev
+    shift
+  done
+}
+
 
 # Return path in metadata index
 setup_stat()
@@ -732,10 +757,12 @@ setup_stat()
   statusdir.sh assert $2$1 $3 || return $?
 }
 
+
 stat_key()
 {
   test -n "$1" || set -- stat
   mkvid "$(pwd)"
   export $1_key="$hnid:${base}-${subcmd}:$vid"
 }
+
 

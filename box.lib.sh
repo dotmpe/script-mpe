@@ -205,6 +205,25 @@ box_init_args()
   }
 }
 
+# echo value of varname $1 on stdout if non empty
+test_out()
+{
+  test -n "$1" || error test_out 1
+  local val="$(echo $(eval echo "\$$1"))"
+  test -z "$val" || eval echo "\\$val"
+}
+
+list_functions()
+{
+  test -n "$1" || set -- $0
+  for file in $*
+  do
+    test_out list_functions_head
+    grep '^[A-Za-z0-9_\/-]*()$' $file
+    test_out list_functions_tail
+  done
+}
+
 box_list_libs()
 {
   test -n "$1" || set -- "$0" "$(basename "$0")"

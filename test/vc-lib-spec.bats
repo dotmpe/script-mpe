@@ -8,24 +8,27 @@ init
 
 setup() {
   . ./$base load-ext
+  . ./util.sh load-ext
+  lib_load os sys str std match
   setup_clean_git
-  tmpd=$(pwd)
 }
 
 @test ". $bin __vc_gitdir - reports GIT dir in GIT checkout" {
 
+  tmpd=$(pwd -P)
+
   run __vc_gitdir
   test $status -eq 0 \
-    || fail "Status $status"
+    || fail "Status: $status"
   test "${lines[@]}" = "$tmpd/.git" \
-    || fail "${lines[@]}"
+    || fail "Lines: ${lines[@]} ($tmpd)"
 
   mkdir -p sub-1/sub-1.1
   cd sub-1/sub-1.1
   run __vc_gitdir
   test $status -eq 0
   test "${lines[@]}" = "$tmpd/.git" \
-    || fail "${lines[@]}"
+    || fail "Lines 2: ${lines[@]} ($tmpd)"
 }
 
 @test ". $bin __vc_git_flags - " {
@@ -48,9 +51,10 @@ setup() {
 
 @test ". $bin __vc_status - status reports line for e.g. PS1 use" {
 
+  shopt -s extglob
+
   run __vc_status
   test $status -eq 0
-  shopt -s extglob
   fnmatch "$tmpd \[git:master +([0-9a-f])...\]" "${lines[*]}" \
     || fail "${lines[@]}"
 
@@ -60,6 +64,8 @@ setup() {
   test $status -eq 0
   fnmatch "$tmpd \[git:master +([0-9a-f])...\]/sub-1/sub-1.1" "${lines[*]}" \
     || fail "${lines[@]}"
+
+  shopt -u extglob
 }
 
 @test ". $bin __vc_gitrepo - report a vendor/project repo ID-ish" {

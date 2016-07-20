@@ -16,7 +16,6 @@ In various places where project metadata file is needed.
 Used in conjection with ``pd`` scripts (which uses ``projects.yml``).
 
 
-
 Other (optional) attributes
 -----------------------------
 
@@ -26,6 +25,11 @@ environments
 
 pd-meta
   Attribute for supplementary metadata to projectdir/doc scripts.
+
+  All of these map to the Projectdoc schema. A description of the
+  basic ones usefull in a Package file context are given here. But
+  on initializing a prefix any attribute under pd-meta should be consolidated
+  with the Pd attributes for that prefix. [pd-0.1.4.]
 
   init
     To override the default initialization (``pd init``, called indirectly
@@ -70,17 +74,17 @@ TODO: auto-detect pd check, test, init to run.
 TODO: add --pd-force and/or some prefix option for pd check, test, init to run.
 
 scripts
-  Generic ID-to-shell-lines mapping, like identical attribute in NPM's
-  package.json.
+  Mapping of named scripts for this project.
+  Like the identical attribute in NPM's package.json.
+
+  Common names:
 
   check
-    For projects not directly wanting to depend on ``pd`` scripts.
-    This gives the shell line(s). If present, ``pd check`` will prefer to
-    run these lines, unless --pd-force.
+    Scripts with pre-commit checklist; static code analysis etc.
   test
-    Idem. as check.
+    Scripts verifying correct functioning of project.
   init
-    Run to initialize a freshly unpack(ag)ed or otherwise checked out source.
+    Script(s) for post-checkout/unpack initialization.
 
     Level of setup this realizes depends per project, and the environment,
     ie. a local projectdir configuration or something else (apt, pip, brew, npm,
@@ -89,15 +93,26 @@ scripts
   build
     ..
 
+pd-script
+  Like scripts, but with all values corresponding to pd targets.
+
 status
   TODO: items for weather, health (wall monitors, badges, version tracking),
   either external or local?
 
-  Default to:
+  Convert to:
     - type: application/x-dotmpe-monitor
       static: build/monitor.json
       update:
       - pd status -
       - pd-meta -O json > build/monitor.json
+
+
+  Pd scripts return status codes and lists of failed targets, that are
+  cached iot. track project state. Ie. checkout modifications, failing test
+  cases.
+
+  The basic state is 'status:result'.
+  Other states are recorded below 'status', and each ``<prefix>:status``.
 
 

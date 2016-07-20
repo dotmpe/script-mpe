@@ -11,7 +11,7 @@ version=0.0.0+20150911-0659 # script-mpe
 box_instance_man_1__version="Version info"
 box_instance__version()
 {
-  echo "$(cat $PREFIX/bin/.app-id)/$version"
+  echo "script-mpe/$version"
 }
 box_instance_als__V=version
 
@@ -45,7 +45,8 @@ box_instance_main()
   local \
       scriptname=box-instance \
       base="$(basename $0 ".sh")" \
-      scriptdir="$(cd $(dirname $0); pwd -P)"
+      scriptdir="$(cd $(dirname $0); pwd -P)" \
+      failed=
   case "$base" in
     $scriptname )
       local scriptdir="$(dirname $0)"
@@ -61,7 +62,7 @@ box_instance_main()
 
 box_instance_init()
 {
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/std.lib.sh
   . $scriptdir/str.lib.sh
   . $scriptdir/util.sh

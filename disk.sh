@@ -7,6 +7,18 @@ set -e
 ### User commands
 
 
+disk__man_1_help="Usage help. "
+disk_spc__help="-h|help"
+disk_als___h=help
+disk__help()
+{
+  test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  choice_global=1 std__help "$@"
+}
+
+
+disk__man_1_edit="Edit $base script file plus arguments. "
+disk_spc__edit="-e|edit [<file>..]"
 disk__edit()
 {
   $EDITOR \
@@ -16,8 +28,10 @@ disk__edit()
     $(dirname $(which disk.sh))/disk.rst \
     $(which diskdoc.sh) \
     $(which diskdoc.py) \
+    $(dirname $(which disk.sh))/test/disk-*.* \
     "$@"
 }
+disk_als___e=edit
 
 
 disk__status()
@@ -25,10 +39,108 @@ disk__status()
   note OK
 }
 
+disk__id()
+{
+  disk_id "$1"
+}
 
+disk__fdisk_id()
+{
+  disk_fdisk_id "$1"
+}
+
+disk__rename_old()
+{
+  for disk in /dev/sd*[a-z]
+  do
+    disk_id=$(disk_id $disk)
+    disk_full_id=$(disk__get_by_id $disk_id)
+    old_disk_id=$(disk_fdisk_id $disk)
+    mv -v $DISK_CATALOG/disk/$old_disk_id.sh $DISK_CATALOG/disk/$disk_id.sh
+    (
+      cd $DISK_CATALOG/volume/
+      rename -v 's/^'"$old_disk_id"'/'"$disk_id"'/' $old_disk_id-*.sh
+    )
+  done
+}
+
+disk__get_by_id()
+{
+  test "$(echo /dev/disk/by-id/*$1)" = "/dev/disk/by-id/*$1" \
+    && return 1
+  echo /dev/disk/by-id/*$1 | grep -v '\-part' | while read path
+  do
+    basename $path
+  done
+}
+
+disk__prefix()
+{
+  test -n "$1" || error "disk expected" 1
+  disk__info $1 prefix
+}
+
+disk__info()
+{
+  test -e "$DISK_CATALOG/disk/$1.sh" || {
+    set -- $(disk id $1) $2
+  }
+  test -e "$DISK_CATALOG/disk/$1.sh" \
+    || error "No such known disk $1" 1
+  . $DISK_CATALOG/disk/$1.sh
+
+  eval echo \$$2
+}
+
+
+# Show disk info TODO: test this works at every platform
+disk__local()
+{
+  {
+    echo "#NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE"
+    echo $1 $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) $(disk_tabletype $1)
+  } | sort -n | column -tc 3
+}
+
+disk__list_local()
+{
+  {
+    echo "#DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE"
+    disk_list | while read disk
+    do
+      disk__info $disk | grep -Ev '^\s*(#.*|\s*)$'
+    done
+  } | sort -n | column -tc 3
+  echo "# Disks at $(hostname), $(datetime_iso)"
+}
+#disk__list_local()
+#{
+#  disk_list
+#}
+disk__list_part_local()
+{
+  disk_list_part
+}
+
+# Tabulate disks, and where they are (from catalog)
 disk__list()
 {
-  note End
+  {
+    echo "#NUM DISK_ID HOST PREFIX"
+    for disk in $DISK_CATALOG/disk/*.sh
+    do
+
+      . $disk
+
+      # Find device and check
+      dev=$(disk__get_by_id $disk_id)
+
+      printf "$disk_index. $disk_id $host $prefix\n"
+      unset host disk_id disk_index prefix volumes
+
+    done
+  } | sort -n | column -tc 3
+  echo "# Catalog at $(hostname):$DISK_CATALOG, $(datetime_iso)"
 }
 
 
@@ -72,14 +184,15 @@ disk__copy_fs()
 {
   test -n "$1" || error "Device or disk-id required" 1
   test -n "$2" || error "Filename required" 1
-  test -n "$3" || set -- "$1" "$2" "/tmp"
+  test -n "$3" || set -- "$1" "$2" "$(setup_tmpd)"
   test -z "$4" || error "surplus arguments '$4'" 1
 
   copy_fs "$1" "$2" "$3"
   note "Copied '$2' to '$3'"
 }
 
-
+# Return wether disk catalog looks up to date; 
+# ie. wether current catalog matches with available disks
 disk__check()
 {
   {
@@ -88,6 +201,7 @@ disk__check()
   } > ~/.conf/disk/$hostname.txt
 }
 
+# FIXME: check only, see init/update
 # Sort of wizard, check/init vol(s) interactively for current disks
 disk__check_all()
 {
@@ -149,6 +263,11 @@ disk__check_all()
   echo
 }
 
+disk__update_all()
+{
+  echo
+}
+
 
 
 ### Subcmd init, deinit
@@ -171,7 +290,7 @@ disk_load()
   do case "$x" in
 
       f )
-          failed=$(setup_tmp .failed)
+          failed=$(setup_tmpf .failed)
         ;;
 
     esac
@@ -195,7 +314,7 @@ disk_init()
   . $scriptdir/box.init.sh
   . $scriptdir/box.lib.sh
   box_run_sh_test
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/main.init.sh
   #while test $# -gt 0
   #do

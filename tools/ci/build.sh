@@ -85,7 +85,7 @@ case "$ENV" in
       echo "Build dir: $(pwd)"
 
       . ./util.sh
-      . ./main.sh
+      . ./main.lib.sh
       main_debug
 
       #./box-instance x foo bar

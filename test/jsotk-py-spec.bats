@@ -138,7 +138,10 @@ init
 @test "${bin} update I - simple dict key" {
   jsotk_merge_test()
   {
-    echo newkey=value | jsotk.py -I fkv update test/var/jsotk/1.yaml - || return $?
+    echo newkey=value | jsotk.py -I fkv update test/var/jsotk/1.yaml - || {
+      git co test/var/jsotk/1.yaml
+      return $?
+    }
     cat test/var/jsotk/1.yaml | jsotk.py yaml2json -
     git co test/var/jsotk/1.yaml
   }

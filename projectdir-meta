@@ -115,9 +115,18 @@ Schema:
           XXX: Pd currently holds no submodule prefixes. But is does need to
           deal with clean/sync of embedded submodules before rm -rf'ing a prefix!
 
+    TODO: valid attributes include those from package
+        (script:) init, check, test
 
-FIXME: test wether staged changes are recognized as dirt. Build some tests.
-FIXME: need to consider submodules dirt/cruft too before disabling parent checkout.
+    status:
+        XXX: contains at least result attr,
+        and totals for each named IO.
+        Also keys with per-target result & IO.
+
+        Status object appears at root, and at each prefix.
+
+    targets:
+        named, virtual targets defined in DSL
 
 """
 import os

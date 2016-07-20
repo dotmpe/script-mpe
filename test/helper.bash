@@ -3,6 +3,7 @@
 test_init()
 {
   test -n "$base" || exit 12
+  test -n "$hostname" || hostname=$(hostname -s | tr 'A-Z' 'a-z')
   test -n "$uname" || uname=$(uname)
   test -n "$scriptdir" || scriptdir=$(pwd -P)
 }
@@ -17,8 +18,16 @@ init()
   }
   lib=$scriptdir
 
-  . $lib/main.sh
+  . $lib/main.lib.sh
   main_init
+
+  test -n "$TMPDIR" || error TMPDIR 1
+
+  case "$uname" in Darwin )
+      export TMPDIR=$(cd $TMPDIR; pwd -P)
+      export BATS_TMPDIR=$(cd $BATS_TMPDIR; pwd -P)
+    ;;
+  esac
 
   ## XXX does this overwrite bats load?
   #. main.init.sh
@@ -35,7 +44,7 @@ current_test_env()
   test -n "$TEST_ENV" \
     && echo $TEST_ENV \
     || case $(hostname -s | tr 'A-Z' 'a-z') in
-      simza | vs1 | dandy ) hostname -s | tr 'A-Z' 'a-z';;
+      simza | boreas | vs1 | dandy ) hostname -s | tr 'A-Z' 'a-z';;
       * ) whoami ;;
     esac
 }
