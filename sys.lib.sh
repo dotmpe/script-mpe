@@ -155,8 +155,8 @@ setup_tmpd()
     }
     test -n "$RAM_TMPDIR" && set -- "$1" "$RAM_TMPDIR"
   }
+  test -d $2/$1 || mkdir -p $2/$1
   test -n "$2" -a -d "$2" || error "Not a dir: '$2'" 1
-  test -d $2/$1 || mkdir $2/$1
   echo "$2/$1"
 }
 
@@ -174,7 +174,7 @@ setup_tmpf()
   test -n "$3" -a -d "$3" || error "Not a dir: '$3'" 1
 
   test -d $(dirname $3/${base}$2$1) \
-    || mkdir -vp $(dirname $3/${base}$2$1)
+    || mkdir -p $(dirname $3/${base}$2$1)
   echo $3/${base}$2$1
 }
 
