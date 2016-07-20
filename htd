@@ -2555,6 +2555,17 @@ htd__disks()
 }
 
 
+htd__create_ram_disk()
+{
+  test -n "$1" || set -- "RAM disk" "$2"
+  test -n "$2" || set -- "$1" 32
+  test -z "$3" || error "Surplus arguments '$3'" 1
+
+  note "Creating/updating RAM disk '$1' ($2 MB)"
+  create_ram_disk "$1" "$2" || return
+}
+
+
 htd__realpath()
 {
   f_realpath "$@"
@@ -3560,15 +3571,11 @@ htd__munin_export()
 
 
 
-htd__create_ram_disk()
+htd__count_lines()
 {
-  test -n "$1" || set -- "RAM disk" "$2"
-  test -n "$2" || set -- "$1" 32
-  test -z "$3" || error "Surplus arguments '$3'" 1
-
-  note "Creating/updating RAM disk '$1' ($2 MB)"
-  create_ram_disk "$1" "$2" || return
+  count_lines "$@"
 }
+
 
 
 ### Main

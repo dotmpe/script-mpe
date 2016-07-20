@@ -14,6 +14,8 @@ init
   mkdir test
   touch test/{foo,bar,baz}-spec.bats
 
+  export verbosity=0
+
   run $BATS_TEST_DESCRIPTION
   diag "Output: ${lines[*]}"
   test ${status} -eq 0

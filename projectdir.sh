@@ -672,7 +672,7 @@ pd__add()
   } || {
     pd__add_new "$3" $props
   }
-  # XXX after pd-add, perhaps enable+init+regenerate
+  # TODO: after pd-add, perhaps enable+init+regenerate
   #trueish "$choice_interactive" && {
   #  pd__init
   #}
@@ -1003,6 +1003,17 @@ pd_defargs__ls_auto_targets=pd_named_set_args
 pd_load__ls_auto_targets=diap
 
 
+pd_spc__loc='SRC-FILE...'
+# Count non-empty, non-comment lines from files
+pd__loc()
+{
+  while test -n "$1"
+  do
+    read_nix_style_file "$1"
+    shift
+  done | count_lines
+}
+
 
 # ----
 
@@ -1188,9 +1199,6 @@ pd_unload()
       i ) # remove named IO buffer files; set status vars
           clean_io_lists $pd_inputs $pd_outputs
           pd_report $pd_inputs $pd_outputs || subcmd_result=$?
-
-          #eval rm $(for io_name in $pd_inputs $pd_outputs; do
-          #  echo "\$$io_name"; done) 2>&1 >/dev/null || noop
         ;;
       I )
           local fd_num=2

@@ -7,6 +7,7 @@ package_pd_meta_init="./install-dependencies.sh git:init"
 package_pd_meta_check=":vchk :bats:specs"
 package_environment_development__0=package_pd_meta_default=dev
 package_environment_development__1=Build_Deps_Default_Paths=1
+package_environment_development__2=BOREAS_SKIP=1
 package_version=0.0.0-dev
 package_distribution=public
 package_main=script-mpe
