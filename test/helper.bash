@@ -21,8 +21,14 @@ init()
   . $lib/main.lib.sh
   main_init
 
-  export TMPDIR=$(cd $TMPDIR; pwd -P)
-  export BATS_TMPDIR=$(cd $BATS_TMPDIR; pwd -P)
+  test -n "$TMPDIR" || error TMPDIR 1
+
+  case "$uname" in Darwin )
+      export TMPDIR=$(cd $TMPDIR; pwd -P)
+      export BATS_TMPDIR=$(cd $BATS_TMPDIR; pwd -P)
+    ;;
+  esac
+
   ## XXX does this overwrite bats load?
   #. main.init.sh
 }
