@@ -808,8 +808,8 @@ pd__run()
     do
       fnmatch ":*" "$1" && target=$(echo "$1" | cut -c2- ) || target=$1
 
-      record_env_keys pd-target pd-run pd-subcmd pd-env
-      pd_debug start $target pd-target pd_prefix
+      #record_env_keys pd-target pd-run pd-subcmd pd-env
+      #pd_debug start $target pd-target pd_prefix
 
       (
         test -n .package.sh || error package 31
@@ -822,7 +822,7 @@ pd__run()
           }
       )
 
-      pd_debug end $target pd-target pd_prefix
+      #pd_debug end $target pd-target pd_prefix
 
       shift
 
@@ -1294,7 +1294,7 @@ pd_main()
 
         try_subcmd "$@" && {
 
-          record_env_keys pd-subcmd pd-env
+          #record_env_keys pd-subcmd pd-env
 
           box_src_lib pd
           shift 1

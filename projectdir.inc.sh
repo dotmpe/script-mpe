@@ -770,7 +770,7 @@ pd_run()
         )
 
         for io_name in $pd_outputs; do
-          out=${!io_name}
+          out=$(try_var ${io_name})
           cat $(setup_tmpd)/pd-*$sub_session_id.$io_name >> $out
           rm $(setup_tmpd)/pd-*$sub_session_id.$io_name
         done
