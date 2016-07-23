@@ -99,25 +99,21 @@ update_package()
   test -n "$1" || set -- .
   test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
   metaf=$(normalize_relative "$metaf")
-  local delete_mf=0 ret=0
+  local ret=0
   test -e "$metaf" || {
-    delete_mf=1
-    pd__meta package  $1 > $1/package.yml
-    metaf=$1/package.yml
+    metaf=$(setup_tmpf .yml "-meta-$1")
+    metash=$1/.package.sh
+    test -e $metaf -a $metaf -nt $pd || {
+      pd__meta package  $1 > $metaf
+    }
   }
 
   # Package.sh is used by other scripts
-  update_package_sh "$1" || ret=$?
+  update_package_sh "$1" || return $?
 
   # .package.json is not used, its a direct convert of te entire YAML doc.
   # Other scripts can use it with jq if required
-  update_package_json "$1" || ret=$(( $ret + $? ))
-
-  trueish "$delete_mf" && {
-    rm $metaf
-  }
-
-  return $ret
+  update_package_json "$1" || return $?
 }
 
 

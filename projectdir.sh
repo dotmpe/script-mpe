@@ -1289,10 +1289,11 @@ pd_lib()
   . $scriptdir/vc.sh load-ext
   . $scriptdir/projectdir.inc.sh "$@"
   . $scriptdir/projectdir-bats.inc.sh
+  . $scriptdir/projectdir-fs.inc.sh
   . $scriptdir/projectdir-git.inc.sh
   . $scriptdir/projectdir-git-versioning.inc.sh
-  . $scriptdir/projectdir-npm.inc.sh
   . $scriptdir/projectdir-grunt.inc.sh
+  . $scriptdir/projectdir-npm.inc.sh
   . $scriptdir/projectdir-make.inc.sh
   # -- pd box lib sentinel --
 }
