@@ -232,8 +232,9 @@ uninstall_bin()
 
 tools_json()
 {
-  test ./tools.yml -ot ./tools.json \
-    || jsotk.py yaml2json ./tools.yml ./tools.json
+  test -e $HTD_TOOLSFILE
+  test $HTD_TOOLSFILE -ot ./tools.json \
+    || jsotk.py yaml2json $HTD_TOOLSFILE ./tools.json
 }
 
 

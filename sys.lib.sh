@@ -9,21 +9,27 @@ set -e
 
 sys_load()
 {
-  test -z "$TMPDIR" || {
+  test -n "$TMPDIR" && {
     test -z "$RAM_TMPDIR" && {
       require_fs_casematch $TMPDIR
     } || {
       test -d "$RAM_TMPDIR" || error "Not a dir $RAM_TMPDIR" 1
-      test "$TMPDIR" = "$RAM_TMPDIR" || require_fs_casematch "$RAM_TMPDIR"
+      require_fs_casematch "$RAM_TMPDIR"
     }
-  } || noop
+  } || {
+    test -d /tmp || error "No /tmp" 1
+    export TMPDIR=/tmp
+    note "TMPDIR=$TMPDIR"
+  }
 }
 
 
 require_fs_casematch()
 {
   test -n "$CWD" || CWD="$(pwd -P)"
-  test -n "$1" && cd $1
+  test -n "$1" && {
+    cd $1
+  }
   echo 'ok' > abc
   echo 'notok' > ABC
   test "$(echo $( cat abc ABC))" = "ok notok" && {
@@ -177,5 +183,4 @@ setup_tmpf()
     || mkdir -p $(dirname $3/${base}$2$1)
   echo $3/${base}$2$1
 }
-
 

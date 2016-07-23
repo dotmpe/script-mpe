@@ -15,17 +15,15 @@ version=0.0.0-dev # script-mpe
 htd_load()
 {
   # -- htd box load insert sentinel --
+  test -n "$EDITOR" || EDITOR=vim
+  test -n "$HTD_GIT_REMOTE" || HTD_GIT_REMOTE=default
+  test -n "$CWD" || CWD=$(pwd)
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
-  [ -n "$HTDIR" ] || HTDIR=$HOME/public_html
-  [ -n "$CWDIR" ] || CWDIR=
-  [ -n "$EDITOR" ] || EDITOR=vim
-  [ -n "$HTD_GIT_REMOTE" ] || HTD_GIT_REMOTE=default
-
-  cwd=$(pwd)
-
-  test -n "$HTD_TOOLS" || HTD_TOOLS=$HOME/.htd-tools
-  test -d $HTD_TOOLS/bin || mkdir -p $HTD_TOOLS/bin
-  test -d $HTD_TOOLS/cellar || mkdir -p $HTD_TOOLS/cellar
+  test -n "$HTDIR" || HTDIR=$HOME/public_html
+  test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE=$CWD/tools.yml
+  test -n "$HTD_TOOLSDIR" || HTD_TOOLSDIR=$HOME/.htd-tools
+  test -d "$HTD_TOOLS/bin" || mkdir -p $HTD_TOOLSDIR/bin
+  test -d "$HTD_TOOLS/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
 
   test -e .package.sh && . .package.sh
 
@@ -89,7 +87,8 @@ htd_load()
     || { which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) \
     || warn "No rst2xml"; }
 
-  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  local flags="$(try_value "${subcmd}" run | sed 's/./&\ /g')"
+  for x in $flags
   do case "$x" in
     S )
         # Get a path to a storage blob, associated with the current base+subcmd
@@ -141,7 +140,7 @@ htd_unload()
       ;;
 
     r )
-        # Report on scriptnames and associated script-lines provided in tools.yml
+        # Report on scriptnames and associated script-lines provided in $HTD_TOOLSFILE
         statusdir.sh dump $report | jsotk.py -O yaml --pretty dump -
       ;;
 
@@ -427,6 +426,7 @@ htd_spc__status=""
 htd_run__status=fSm
 htd__status()
 {
+  test -n "$failed" || error failed 1
   # TODO:
   # global, local services
   # disks, annex
@@ -434,33 +434,35 @@ htd__status()
   # src, tools
   echo TODO:htd-status:$status "$@" | tee $failed
 }
+htd_als__st=status
+htd_als__stat=status
 
 
-htd__man_1_script="Get/list scripts in tools.yml. Statusdata is a mapping of 
+
+htd__man_1_script="Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping of 
   scriptnames to script lines. "
 htd_spc__script=""
 htd_run__script=pSmr
 htd_S__script=\$package_id
 htd__script()
 {
-  test -e tools.yml
-  tools_json
+  tools_json || return $?
 
   # Force regeneration for stale data
-  test $status -ot tools.yml \
+  test $status -ot $HTD_TOOLSFILE \
     && statusdir.sh reset $status
 
   # Regenerate status data for this script if not available
   statusdir.sh exists $status || {
 
     scripts="$(
-      jsotk.py objectpath tools.yml '$..*[@.scripts]' \
+      jsotk.py objectpath $HTD_TOOLSFILE '$..*[@.scripts]' \
         | jsotk.py --line-input merge - - \
         | jsotk.py -O lines keys - '/' )"
     for script in $scripts
     do
       note "Scriptlines for '$script': "
-      jsotk.py objectpath -O lines tools.yml '$..*[@.scripts."'$script'"]' \
+      jsotk.py objectpath -O lines $HTD_TOOLSFILE '$..*[@.scripts."'$script'"]' \
         | while read scriptline
         do
           note "'$scriptline'"
@@ -472,12 +474,12 @@ htd__script()
   }
 
   # TODO: generate script to run. This keeps a JSON blob associated with
-  # htd-script and the script-mpe package (tools.yml). Gonna want a JSON
+  # htd-script and the script-mpe package ($HTD_TOOLSFILE). Gonna want a JSON
   # for shell scripts/aliases/etc. Also validation.
 
   #    while test -n "$1"
   #    do
-  #      jsotk.py objectpath -O py tools.yml '$..*[@.scripts."'$1'"]'
+  #      jsotk.py objectpath -O py $HTD_TOOLSFILE '$..*[@.scripts."'$1'"]'
   #      shift
   #    done
   report=$status
@@ -489,8 +491,8 @@ htd__tools()
 {
   (
     cd $HOME/.conf
-    test -e tools.yml
-    tools_json
+    test -e $HTD_TOOLSFILE
+    tools_json || return $?
     test -n "$1" || set -- $(echo $(jsotk.py -O lines keys tools.json tools))
     echo "tools:"
     while test -n "$1"
@@ -507,7 +509,7 @@ htd__man_1_install=""
 htd_spc__install=""
 htd__install()
 {
-  tools_json
+  tools_json || return $?
   local verbosity=6
   while test -n "$1"
   do
@@ -519,7 +521,7 @@ htd__install()
 }
 htd__uninstall()
 {
-  tools_json
+  tools_json || return $?
   local verbosity=6
   while test -n "$1"
   do
@@ -629,17 +631,6 @@ htd__make_sys()
   do
     make system-$x
   done
-}
-
-htd__stat()
-{
-  htd__make stat
-}
-
-htd_als__st=stat
-htd__st()
-{
-  cmd=stat htd__stat $*
 }
 
 htd__build()
@@ -932,6 +923,16 @@ htd__wake()
     wakeonlan $hwaddr
     echo ":WOL Host: \`$host <$hwaddr>\`_"
   }
+}
+
+htd_spc__shutdown='[ HOST [ USER ]]'
+htd__shutdown()
+{
+  echo
+  # Boreas
+  #sudo umount /Volumes/WDElements-USB-2T-3-1T7
+  #run_cmd vs1 'shutdown -h now'
+#  run_cmd dandy 'sudo shutdown -h now'
 }
 
 # Simply list ARP-table, may want something better like arp-scan or an nmap
@@ -3623,6 +3624,7 @@ htd_init()
   . $scriptdir/doc.lib.sh
   . $scriptdir/table.lib.sh
   . $scriptdir/disk.inc.sh
+  lib_load remote
   # -- htd box init sentinel --
 }
 

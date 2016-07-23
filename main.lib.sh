@@ -57,8 +57,8 @@ echo_help()
 try_local()
 {
   test -n "$2" -o -n "$1" || return
-  test -n "$local_prefix" || local_prefix=$(mkvid $base ; echo $vid)
-  test -n "$3" || set -- "$1" "$2" "$local_prefix"
+  test -n "$box_prefix" || box_prefix=$(mkvid $base ; echo $vid)
+  test -n "$3" || set -- "$1" "$2" "$box_prefix"
   test -z "$1" || set -- " :$1" "$2" "$3"
   test -z "$2" || set -- "$1" "$2" "$3:"
   echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
@@ -112,7 +112,7 @@ try_local_func()
 
 get_subcmd_func()
 {
-  test -n "$local_prefix" || local_prefix=$(mkvid $base; echo $vid)
+  test -n "$subcmd" || error "get-subcmd-func $subcmd" 1
 
   # Get default sub for base script
   test -n "$1" || {
@@ -133,8 +133,10 @@ get_subcmd_func()
     try_local_func "$@" || {
       # Try command alias
       try_local_var cmd_als $1 als $b
-      test -z "$cmd_als" || \
+      test -z "$cmd_als" || {
+        subcmd=$cmd_als
         set -- "$(mkvid "$cmd_als";echo $vid)" "" "$b"
+      }
     }
 
     try_local_func "$@" && {
@@ -178,15 +180,14 @@ std_spc__help='-h|help [ID]'
 std_als___h=help
 std__help()
 {
-  #local local_prefix=$subcmd_func_pref
-  test -n "$local_prefix" || local_prefix=$(mkvid $base; echo $vid)
+  test -n "$box_prefix" || box_prefix=$(mkvid $base; echo $vid)
 
   test -z "$1" && {
 
     # Generic help (no args)
-    try_exec_func ${local_prefix}__usage $1 || std__usage $1
-    try_exec_func ${local_prefix}__commands || std__commands
-    try_exec_func ${local_prefix}__docs || noop
+    try_exec_func ${box_prefix}__usage $1 || std__usage $1
+    try_exec_func ${box_prefix}__commands || std__commands
+    try_exec_func ${box_prefix}__docs || noop
 
   } || {
 
@@ -523,7 +524,7 @@ box_src_lib()
 # Run any load routines
 main_load()
 {
-  test -n "$1" || set -- "$local_prefix"
+  test -n "$1" || error "main-load argument expected" 1
   local r=
   try_exec_func std_load && {
     debug "Standard load OK"
@@ -551,8 +552,7 @@ std_unload()
 # Run any load routines
 main_unload()
 {
-  test -n "$local_prefix" || local_prefix=$(mkvid $base; echo $vid)
-  test -n "$1" || set -- "$local_prefix"
+  test -n "$1" || error "main-unload argument expected" 1
 
   local b=
   for b in "$1" "std"
@@ -614,8 +614,6 @@ run_subcmd()
   #func_exists ${base}_parse_subcmd_args
 
   test -n "$box_prefix" || box_prefix=$(mkvid $base; echo $vid)
-  #local_prefix=${box_prefix}__
-  test -n "$local_prefix" || local_prefix=$(mkvid $base; echo $vid)
 
   get_subcmd_args "$@" || {
     error "parsing args" $?
@@ -627,9 +625,6 @@ run_subcmd()
 
   test $c -gt 0 && shift $c ; c=0
   main_debug $*
-
-  main_load || return $?
-  debug "$base loaded"
 
   #box_lib="$(box_list_libs "$0")"
 
@@ -643,20 +638,24 @@ run_subcmd()
     }
   }
 
+  main_load $box_prefix || return $?
+  debug "$base loaded"
+
   test -z "$dry_run" \
     && debug "executing $scriptname $subcmd" \
     || info "** starting DRY RUN $scriptname $subcmd **"
 
   # Execute and exit
 
-  $subcmd_func "$@" || {
-    e=$?
-    main_unload
-    error "Command $subcmd returned $e" 3
-  }
+  $subcmd_func "$@" && {
 
-  main_unload || {
-    error "Command $subcmd failed (unload: $?)" 4
+    main_unload $box_prefix || {
+      error "Command $subcmd failed (unload: $?)" 4
+    }
+  } || {
+    e=$?
+    main_unload $box_prefix
+    error "Command $subcmd returned $e" 3
   }
 
   test -z "$dry_run" \
