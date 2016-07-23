@@ -27,7 +27,7 @@ pd__git_versioning()
   local result=0 mismatches=
   git-versioning "$@" 2>&1 | tee $vchk
   mismatches="$(grep 'Version.mismatch' $vchk | count_lines )"
-  states="matches=$(grep 'Version.match' $vchk | count_lines )"
+  values="$values matches=$(grep 'Version.match' $vchk | count_lines )"
   states="$states mismatches=$mismatches"
   test $mismatches -eq 0 || {
     result=1

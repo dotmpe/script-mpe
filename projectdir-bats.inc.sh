@@ -82,10 +82,18 @@ pd_bats_files_args()
 
     } || {
 
-      for target in $pd_trgtglob
-      do
-        echo "$target"
-      done
+      local retry=$(setup_tmpf .retry "$subcmd")
+      test -e "$retry" && {
+        note "Using targets from retry file ($(count_lines $retry))"
+        cat $retry | sed 's/^bats://g'
+        rm $retry
+      } || {
+
+        for target in $pd_trgtglob
+        do
+          echo "$target"
+        done
+      }
     }
   } > $arguments
 }
@@ -163,13 +171,13 @@ pd__bats_specs()
   done
   test $test_count -gt 0 \
     && {
-      states="files=$file_count tests=$test_count"
+      values="files=$file_count tests=$test_count"
       note "$test_count tests, in $file_count files OK"
     } || {
       warn "No Bats files loaded"
       failed "$subcmd:$@"
     }
-  export states
+  export values
 }
 pd_load__bats_specs=iaI
 pd_defargs__bats_specs=pd_bats_files_args
@@ -197,7 +205,7 @@ pd__bats_count()
     }
   done
 
-  states="bats/count=$count bats/tests=$specs"
+  values="bats/count=$count bats/tests=$specs"
 
   test $count -gt 0 \
     && {
@@ -222,6 +230,12 @@ pd__bats()
         || echo "bats:$x" >>$failed
     } | bats-color.sh
   done
+
+  wc -l "$failed"
+  test -s "$failed" && {
+    cp $failed $(setup_tmpf .retry "$subcmd")
+    return 1
+  }
 }
 pd_defargs__bats=pd_bats_files_args
 

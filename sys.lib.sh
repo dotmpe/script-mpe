@@ -30,21 +30,24 @@ require_fs_casematch()
   test -n "$1" && {
     cd $1
   }
-  echo 'ok' > abc
-  echo 'notok' > ABC
-  test "$(echo $( cat abc ABC))" = "ok notok" && {
-    debug "Case-sensitive fs '$1' OK"
-    rm abc ABC || noop
-  } || {
-    test "$(echo $( cat abc ABC))" = "notok notok" && {
-      rm abc || noop
-      warn "Case-insensitive fs '$1' detected!"
-    } || {
+  test -e ".fs-casematch" || {
+    echo 'ok' > abc
+    echo 'notok' > ABC
+    test "$(echo $( cat abc ABC))" = "ok notok" && {
+      debug "Case-sensitive fs '$1' OK"
       rm abc ABC || noop
-      cd $CWD
-      error "Unknown error" 1
+    } || {
+      test "$(echo $( cat abc ABC))" = "notok notok" && {
+        rm abc || noop
+        warn "Case-insensitive fs '$1' detected!"
+      } || {
+        rm abc ABC || noop
+        cd $CWD
+        error "Unknown error" 1
+      }
     }
   }
+  touch .fs-casematch
   cd $CWD
 }
 

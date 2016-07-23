@@ -252,7 +252,7 @@ pd_finddoc()
   pd_realpath="$(realpath "$pd")"
 
   # Relative path to previous dir where cmd was called
-  pd_prefix=$go_to_before
+  pd_prefix="$(normalize_relative "$go_to_before")"
 
   # Build path name based on real Pd path
   mkcid "$pd_realpath"
@@ -268,6 +268,11 @@ pd_finddoc()
   unset cid
 }
 
+
+pd_fetch_status()
+{
+  pd__meta status "$1" || return $?
+}
 
 # Update Pdoc status entry
 pd_update_status()
@@ -539,7 +544,10 @@ pd_globstar_names()
 pd_default_args()
 {
   local pd_default_args="$1"; shift
-  try_func $pd_default_args && {
+  {
+    test -n "$pd_default_args" -a "$pd_default_args" != "." \
+      && try_func $pd_default_args
+  } && {
     $pd_default_args "$@"
   } || {
     test -z "$1" && {
@@ -596,7 +604,7 @@ pd_prefix_args()
 pd_prefix_filter_args()
 {
   test -n "$1" || set -- $(cat $arguments | lines_to_words )
-  printf "" >$arguments
+  printf "" >$arguments # truncate
 
   # given we have a Pdoc, expand any arguments as prefixes
   test -n "$1" || {
@@ -622,8 +630,15 @@ pd_prefix_filter_args()
 }
 
 
+pd_registered_prefix_target_args()
+{
+  test -n "$choice_reg" || choice_reg=1
+  pd_prefix_target_args || return $?
+}
+
 pd_prefix_target_args()
 {
+  test -n "$choice_reg" || choice_reg=0
   local states=""
   while test -n "$1"
   do
@@ -635,8 +650,34 @@ pd_prefix_target_args()
     shift
   done
 
-  # Set default or expand prefix arguments
-  pd_prefix_filter_args
+  trueish "$choice_reg" && {
+
+    # Mixin enabled prefixes with existing dirs for default args,
+    # or scan for any registered prefix args iso stat existing dirs only
+    #pd__meta list-disabled "$1" > $PD_TMPDIR/prefix-disabled.list
+    #pd__meta list-enabled "$1" > $PD_TMPDIR/prefix-enabled.list
+    #rm $PD_TMPDIR/prefix-*.list
+
+    test -n "$1" || set -- $(cat $arguments | lines_to_words )
+    printf "" >$arguments # truncate
+
+    test -z "$1" && set -- "$go_to_before"
+
+    while test -n "$1"
+    do
+      pd_prefix_arg="$(normalize_relative $1)"
+      shift
+      test "$pd_prefix_arg" = "." && pd_prefix_arg=
+      pd__meta list-enabled "$pd_prefix_arg" | read_nix_style_file >> $prefixes
+    done
+
+  } || {
+
+    # Stat only, don't check on Pdoc prefixes
+
+    # Set default or expand prefix arguments (globbing)
+    pd_prefix_filter_args
+  }
 
   # Add prefiltered states to arguments
   echo $states | words_to_unique_lines >> $arguments
@@ -664,13 +705,16 @@ pd_run()
         note "Ignore ($1)"
         # Ignore return
         # backup $failed
+        mv $error $error.ignore
         mv $failed $failed.ignore
-        touch $failed
+        touch $failed $error
         (
           pd_run $(expr_substr ${1} 2 ${#1}) || noop
           clean_failed "*IGNORED* Failed targets:"
         )
+        mv $error.ignore $error
         mv $failed.ignore $failed
+        result=0
       ;;
 
     # Shell exec
@@ -682,13 +726,15 @@ pd_run()
         (
           sh -c "$shcmd" \
             && result=0 || { result=$?; echo $1 >>$failed; }
-          {
-            cd "$pd_realdir"
-            key_pref=repositories/$(normalize_relative \
-              "$pd_prefix")/status/$status_key
-            pd_update_status \
-              result=$result
-          }
+          #{
+          #  cd "$pd_realdir"
+          #  key_pref=repositories/$(normalize_relative \
+          #    "$pd_prefix")/status/$status_key
+          #  echo pd_update_status \
+          #    result=$result
+          #  pd_update_status \
+          #    result=$result
+          #}
         )
       ;;
 
@@ -744,7 +790,7 @@ pd_run()
           status_key="$(eval echo "\"\$$(try_local "$comp" stat)\"")"
           test -n "$status_key" \
             || status_key=$(printf "$comp" | tr -c 'a-zA-Z0-9-' '/')
-          states=
+          states= values=
 
           local pd_session_id=$sub_session_id
           eval local $(for io_name in $pd_inputs $pd_outputs; do
@@ -761,11 +807,24 @@ pd_run()
 
           {
             cd "$pd_realdir"
+
+            info "Updating Pdoc with $pd_prefix status=$result and other values"
+
+            # Update status result
             key_pref=repositories/$(normalize_relative \
               "$pd_prefix")/status/$status_key
             pd_update_status \
               result=$result \
               $states
+
+            # Update benchmark values
+            test -z "$values" || {
+              key_pref=repositories/$(normalize_relative \
+                "$pd_prefix")/benchmarks/$status_key
+              pd_update_status \
+                $values
+            }
+
           }
         )
 

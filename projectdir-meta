@@ -19,6 +19,7 @@ Usage:
     projectdir-meta [options] get-uri <prefix> [<remote>]
     projectdir-meta [options] list-remotes <prefix>
     projectdir-meta [options] list-upstream <prefix> [<branches>...]
+    projectdir-meta [options] status [<prefix>]
     projectdir-meta [options] exit
     projectdir-meta [options] x-conv
     projectdir-meta [options] x-check
@@ -39,7 +40,10 @@ Options:
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -g, --glob    Change from root prefix matching to glob matching.
-  -G, --global  Use global enabled status, instead of remote.
+  -G, --global  Use global enabled status, instead of per host.
+  -a, --all     List all prefixes
+  -l, --local   List all prefixes
+
   -H NAME, --host NAME
                 Hostname to use for current entries.
 
@@ -336,9 +340,9 @@ def list_state(target, pdhdata, ctx):
         bstate = toggle_active(state)
         if bstate:
             if 'enable' in target:
-                print >>ctx.out, k
+                yield k #print >>ctx.out, k
         elif 'disable' in target:
-            print >>ctx.out, k
+            yield k #print >>ctx.out, k
 
 def list_host_state(target, pdhdata, ctx):
     for k in pdhdata['repositories'].keys():
@@ -347,13 +351,14 @@ def list_host_state(target, pdhdata, ctx):
         record = pdhdata['repositories'][k]
         if check_host(record, ctx):
             if 'enable' in target:
-                print >>ctx.out, k
+                yield k #print >>ctx.out, k
         elif 'disable' in target:
-            print >>ctx.out, k
+            yield k #print >>ctx.out, k
 
 def init_hostname(ctx):
     if not ctx.opts.flags.host:
-        ctx.opts.flags.host = gethostname()
+        ctx.opts.flags.host = gethostname().split('.')[0]
+        print "# Set host to", ctx.opts.flags.host
 
 
 #
@@ -510,18 +515,30 @@ def H_list_prefixes(pdhdata, ctx):
             print >>ctx.out, k
 
 def H_list_enabled(pdhdata, ctx):
-    if ctx.opts.flags['global']:
-        return list_state(ctx.opts.cmds[0], pdhdata, ctx)
-    else:
+    prefixes = []
+
+    if ctx.opts.flags['all'] or not (
+                ctx.opts.flags['all'] or ctx.opts.flags['local'] or
+                ctx.opts.flags['global'] 
+            ):
+        ctx.opts.flags['local'] = ctx.opts.flags['global'] = True
+
+    if ctx.opts.flags['local']:
         init_hostname(ctx)
-        return list_host_state(ctx.opts.cmds[0], pdhdata, ctx)
+        local_prefixes = list_host_state(ctx.opts.cmds[0], pdhdata, ctx)
+        if local_prefixes:
+            prefixes += local_prefixes
+
+    if ctx.opts.flags['global']:
+        global_prefixes = list_state(ctx.opts.cmds[0], pdhdata, ctx)
+        if global_prefixes:
+            prefixes += global_prefixes
+
+    if prefixes:
+        print >>ctx.out, '\n'.join(prefixes)
 
 def H_list_disabled(pdhdata, ctx):
-    if ctx.opts.flags['global']:
-        return list_state(ctx.opts.cmds[0], pdhdata, ctx)
-    else:
-        init_hostname(ctx)
-        return list_host_state(ctx.opts.cmds[0], pdhdata, ctx)
+    return H_list_enabled(pdhdata, ctx)
 
 def H_dump(pdhdata, ctx):
     if 'prefix' not in ctx.opts.args:
@@ -566,6 +583,54 @@ def H_x_conv(pdhdata, ctx):
         newd['repositories'][k] = sd
     yaml_commit(newd, ctx)
 
+
+
+def update_status(data):
+    v = True
+    for s in data.keys():
+        if s is 'result': continue
+        if isinstance(data[s], dict):
+            update_status(data[s])
+            v = v and data[s]['result'] == 0
+        else:
+            assert isinstance(data[s], int), type(data[s])
+            v = v and data[s] == 0
+    data['result'] = [1, 0][v]
+
+
+def H_status(pdhdata, ctx):
+    ok = True
+
+    if 'prefix' in ctx.opts.args:
+        print >>ctx.out, "status:"
+        prefixes = []
+        for k in pdhdata['repositories'].keys():
+            if not prefix_match( k, ctx.opts.args.prefix, ctx.opts ):
+                continue
+            print >>ctx.out, "  %s:" % k
+            v = pdhdata['repositories'][k]
+            if 'status' not in v:
+                return 1
+            prefixes += [ k ]
+            update_status(v['status'])
+
+    for k in prefixes:
+        print >>ctx.out, "   ", yaml_safe_dump(v['status'], 
+                default_flow_style=False).replace( '\n', '\n    ').strip()
+        ok = ok and v['status']['result'] == 0
+    print >>ctx.out, "  result:", [1, 0][ok]
+    return [1, 0][ok]
+
+def H_update_states(pdhdata, ctx):
+    if 'prefix' not in ctx.opts.args:
+        """FIXME: find deepest states, update to all paths above
+        """
+    else:
+        for k in pdhdata['repositories'].keys():
+            if not prefix_match( k, ctx.opts.args.prefix, ctx.opts ):
+                continue
+            v = pdhdata['repositories'][k]
+    return 0
 
 
 handlers = {}
@@ -641,5 +706,7 @@ if __name__ == '__main__':
     ))
     if ctx.opts.args.prefix:
         ctx.opts.args.prefix = ctx.opts.args.prefix.strip(os.sep)
+    if ctx.opts.args.prefix == '.':
+        ctx.opts.args.prefix = None
     sys.exit( main( ctx ) )
 

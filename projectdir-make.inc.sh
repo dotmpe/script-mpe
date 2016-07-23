@@ -39,10 +39,10 @@ pd__make()
 
   make "$@" || result=$?
 
-  local pd_reportsh="$(eval echo "\"\$$(try_local make reportsh)\"")"
-  test -e "$pd_reportsh" && {
-    states="$(cat $pd_reportsh)"
-  }
+  #local pd_reportsh="$(eval echo "\"\$$(try_local make reportsh)\"")"
+  #test -e "$pd_reportsh" && {
+  #  states="$(cat $pd_reportsh)"
+  #}
 
   return $result
 }

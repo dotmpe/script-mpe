@@ -68,9 +68,41 @@ pd__meta_sq()
 }
 
 
-pd_load__status=ybf
-# Run over known prefixes and present status indicators
+pd_spc__status='[ PREFIX | [:]STATE ]'
+#pd_spc__status='[ PREFIX | [:]TARGET ]...'
+# List prefixes and their state(s)
 pd__status()
+{
+  test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
+  info "Pd targets requested: $*"
+  info "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
+
+  # XXX: fetching the state requires all branches to have status/result set.
+  #pd__meta update-states 
+  # TODO: also export for monitoring
+
+  while read pd_prefix
+  do
+    test -f "$checkout" -o -h "$checkout" && {
+      echo "pd:status:$pd_prefix" >$failed 
+      note "Not a checkout path at $checkout"
+      continue
+    }
+    note "pd-prefix=$pd_prefix ($CWD, $PWD)"
+    pd_fetch_status "$pd_prefix" \
+      || echo "pd:status:$pd_prefix" >>$failed
+
+  done < $prefixes
+
+  cd $pd_realdir
+}
+pd_load__status=yiIap
+pd_defargs__status=pd_registered_prefix_target_args
+
+
+pd_load__status_old=ybf
+# Run over known prefixes and present status indicators
+pd__status_old()
 {
   pd__list_prefixes "$1" > $PD_TMPDIR/prefixes.list
   pd__meta list-disabled "$1" > $PD_TMPDIR/prefix-disabled.list
@@ -839,9 +871,9 @@ pd_defargs__test=pd_prefix_target_args
 pd__test()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
-  test -n "$1" || set -- $(cd $pd_prefix; pd__ls_targets test 2>/dev/null)
+  test -n "$1" || set -- $(pd__ls_targets test 2>/dev/null)
 
-  info "Tests to run: $*"
+  info "Tests to run ($pd_prefixes): $*"
   echo "$@" >$arguments
   subcmd=test:run pd__run
   return $?
@@ -868,9 +900,9 @@ pd_defargs__check=pd_prefix_target_args
 pd__check()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
-  test -n "$1" || set -- $(cd $pd_prefix;pd__ls_targets check 2>/dev/null)
+  test -n "$1" || set -- $(pd__ls_targets check 2>/dev/null)
 
-  info "Checks to run: $*"
+  info "Checks to run ($pd_prefixes): $*"
   echo "$@" >$arguments
   subcmd=check:run pd__run
   return $?
@@ -978,9 +1010,11 @@ pd__ls_targets()
     while test -n "$1"
     do
       note "Named target list '$1' ($pd_prefix)"; name=$1; shift
-      read_if_exists $pd_prefix/.pd-$name && continue
-      pd_package_meta "$name" && continue
-      pd_autodetect $name
+      (
+        read_if_exists $pd_prefix/.pd-$name && continue
+        pd_package_meta "$name" && continue
+        pd_autodetect $name
+      )
     done
   done | words_to_lines
 }
@@ -1182,8 +1216,6 @@ pd_load()
     test -n "$tdate" || error "formatting date" 1
     touch -t $tdate $today
   }
-
-  unset go_to_before
 }
 
 # Close subcmd; move some of this to box.lib.sh eventually

@@ -28,11 +28,11 @@ htd_load()
   test -e .package.sh && . .package.sh
 
   go_to_directory .projects.yaml && {
-    cd $cwd
+    cd $CWD
     # $go_to_before
     #PROJECT="$(basename $(pwd))"
   } || {
-    cd $cwd
+    cd $CWD
   }
 
   #test -e 
@@ -53,7 +53,7 @@ htd_load()
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname="$(uname -s)"
 
-  test "$cwd" = "$(pwd -P)" || warn "current path seems to be aliased"
+  test "$CWD" = "$(pwd -P)" || warn "current path seems to be aliased ($CWD)"
 
   test -e table.sha1 && R_C_SHA3="$(cat table.sha1|wc -l)"
 
@@ -598,7 +598,7 @@ htd__ns_names()
     cd $CMD_PATH
     note "In '$ID' ($CMD_PATH)"
     eval $CMD "$1"
-    cd $cwd
+    cd $CWD
   done
 }
 

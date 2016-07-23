@@ -112,8 +112,6 @@ try_local_func()
 
 get_subcmd_func()
 {
-  test -n "$subcmd" || error "get-subcmd-func $subcmd" 1
-
   # Get default sub for base script
   test -n "$1" || {
     test -n "$subcmd" || {
@@ -121,6 +119,7 @@ get_subcmd_func()
     }
     set -- "$subcmd"
   }
+  #test -n "$subcmd" || error "get-subcmd-func $subcmd" 1
 
   # Look in local and std namespace
 

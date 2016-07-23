@@ -66,11 +66,27 @@ repositories:
     remotes: {}
     sync: false
     clean: untracked
+    status:
+      result: 0
+  another:
+    hosts:
+    - $hostname
+    remotes: {}
+    sync: false
+    clean: untracked
+    status:
+      result: 0
 EOF
     } > $tmpd/.projects.yaml
   }
   mkdir $tmpd/empty
   cd $tmpd/empty
+}
+
+cleanup_tmpd()
+{
+  cd ..
+  rm -rf $tmpd
 }
 
 
@@ -94,8 +110,7 @@ EOF
   test "${lines[0]}" = ":vchk"
   test "${lines[1]}" = ":bats-specs"
 
-  cd ..
-  rm -rf $tmpd
+  cleanup_tmpd
 }
 
 
@@ -165,9 +180,32 @@ EOF
 
   rm -rf test Gruntfile .pd-test Makefile .package.sh
 
-  cd ..
-  rm -rf $tmpd
+  cleanup_tmpd
 }
 
+
+@test "${bin} status" "" {
+
+  export verbosity=6
+
+  setup_empty_pd
+
+  diag "tmpd=$tmpd"
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  test ${#lines[@]} -gt 2
+  diag "Lines: ${lines[*]}"
+
+  cd $tmpd
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  test ${#lines[@]} -gt 3
+  fnmatch "* another *" "${lines[*]}" \
+    || fail "1 Lines: ${lines[*]}"
+  fnmatch "* empty *" "${lines[*]}" \
+    && fail "2 Lines: ${lines[*]}"
+
+  cleanup_tmpd
+}
 
 

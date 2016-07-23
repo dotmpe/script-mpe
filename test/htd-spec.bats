@@ -20,6 +20,11 @@ version=0.0.0-dev # script-mpe
 }
 
 @test "$bin home" {
+ 
+  OLDPWD=$PWD
+
+  cd $TMPDIR
+
   check_skipped_envs travis \
   || TODO "envs $envs: implement $BATS_TEST_DESCRIPTION for env"
 
@@ -27,7 +32,8 @@ version=0.0.0-dev # script-mpe
   test $status -eq 0
 
   test -n "$HTDIR" || HTDIR="$(echo ~/public_html)"
-  test "${lines[0]}" = "$HTDIR"
+  test "${lines[0]}" = "$HTDIR" \
+    || fail "${lines[0]} != $HTDIR"
 
   case "$(current_test_env)" in
 
@@ -53,6 +59,8 @@ version=0.0.0-dev # script-mpe
       ;;
 
   esac
+
+  cd $PWD
 }
 
 @test "$bin info" {
