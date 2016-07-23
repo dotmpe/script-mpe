@@ -20,6 +20,7 @@ Usage:
     projectdir-meta [options] list-remotes <prefix>
     projectdir-meta [options] list-upstream <prefix> [<branches>...]
     projectdir-meta [options] status [<prefix>]
+    projectdir-meta [options] package <prefix>
     projectdir-meta [options] exit
     projectdir-meta [options] x-conv
     projectdir-meta [options] x-check
@@ -631,6 +632,89 @@ def H_update_states(pdhdata, ctx):
                 continue
             v = pdhdata['repositories'][k]
     return 0
+
+
+# FIXME: parser is in jsotk, also fkv cannot always be parsed back to dict
+#from jsotk_lib import FlatKVParser
+
+def read_sh_pack(fn):
+    #prsr = FlatKVParser()
+    #prsr.scan(open(fn))
+    #return prsr.data
+
+    lines = open(fn).readlines() 
+    lpackd = {}
+    for line in lines:
+        if not line.strip() or line.strip().startswith('#'): continue
+        spos = line.index('=')
+        k = line[:spos]
+        assert k.startswith('package_')
+        k = k[8:]
+        if k.startswith('environment_'):
+            pass #print k[12:]
+        elif '__' in k:
+            continue
+        elif k.startswith('pd_meta_'):
+            k = k[8:]
+# TODO: set scripts in their own schema
+            if 'pd-meta' not in lpackd:
+                lpackd['pd-meta'] = {}
+            if k in 'test init check':
+                #lpackd['script'][k] = line[spos+1:].strip()
+                lpackd['pd-meta'][k] = line[spos+1:].strip()
+        else:
+            lpackd[k] = line[spos+1:].strip()
+
+    lpackd = set_sh_pack_types(lpackd)
+
+    return lpackd
+
+
+def set_sh_pack_types(lpackd):
+    for k in lpackd.keys():
+        if isinstance(lpackd[k], dict):
+            lpackd[k] = set_sh_pack_types(lpackd[k])
+            continue
+        elif not isinstance(lpackd[k], basestring):
+            continue
+        if lpackd[k].lower() in "true false":
+            lpackd[k] = bool(lpackd[k])
+        elif lpackd[k].isdigit() :
+            lpackd[k] = int(lpackd[k], 10)
+        else:
+            lpackd[k] = lpackd[k].strip('"\'')
+    return lpackd
+
+
+def H_package(pdhdata, ctx):
+    """
+    Show current package metadata at prefix. Loads and merges .package.sh
+    """
+    pref = ctx.opts.args.prefix
+    m = pdhdata['repositories'][pref]
+
+    lpack = os.path.join(pref, '.package.sh')
+    lpackd = {}
+    if os.path.exists(lpack):
+        lpackd = read_sh_pack(lpack)
+        pack_id = lpackd['id']
+    else:
+        pack_id = pref
+
+    pack = [ dict(
+          type='application/x-project-mpe',
+          main=pack_id,
+          id=pack_id 
+      ) ]
+
+    pack[0].update( lpackd )
+    pack[0].update( pdhdata['repositories'][pref] )
+
+    for k in 'status', 'benchmarks', 'enabled':
+        if k in pack[0]:
+            del pack[0][k]
+
+    print >>ctx.out, yaml_safe_dump(pack, default_flow_style=False)
 
 
 handlers = {}

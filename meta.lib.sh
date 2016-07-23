@@ -58,8 +58,10 @@ update_package_sh()
   test $metaf -ot $metash \
     || {
 
+    # Format Sh script/vars from local package file
     note "Regenerating $metash from $metaf.."
 
+    # Format Sh default env settings
     jsotk_package_sh_defaults "$metaf" > $metash || {
 
       warn "Failed reading package defaults from $1"
@@ -69,6 +71,7 @@ update_package_sh()
 
     test -s "$metash" || rm $metash
 
+    # Format main block
     jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' > $metamain \
     || {
       warn "Failed reading package main from $1"
@@ -89,18 +92,32 @@ update_package_sh()
   }
 }
 
-# Given package.yaml metafile, extract and fromat as SH, JSON.
+# Given package.yaml metafile, extract and fromat as SH, JSON. If no local
+# package.yaml exists, try to extract one temp package YAML from Pdoc.
 update_package()
 {
-  test -n "$1" || set -- ./
+  test -n "$1" || set -- .
   test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
   metaf=$(normalize_relative "$metaf")
-  test -e "$metaf" || return 1
+  local delete_mf=0 ret=0
+  test -e "$metaf" || {
+    delete_mf=1
+    pd__meta package  $1 > $1/package.yml
+    metaf=$1/package.yml
+  }
+
   # Package.sh is used by other scripts
-  update_package_sh "$1" || return $?
+  update_package_sh "$1" || ret=$?
+
   # .package.json is not used, its a direct convert of te entire YAML doc.
   # Other scripts can use it with jq if required
-  update_package_json "$1" || return $?
+  update_package_json "$1" || ret=$(( $ret + $? ))
+
+  trueish "$delete_mf" && {
+    rm $metaf
+  }
+
+  return $ret
 }
 
 

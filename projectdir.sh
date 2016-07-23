@@ -68,8 +68,7 @@ pd__meta_sq()
 }
 
 
-pd_spc__status='[ PREFIX | [:]STATE ]'
-#pd_spc__status='[ PREFIX | [:]TARGET ]...'
+pd_spc__status='[ PREFIX | [:]TARGET ]...'
 # List prefixes and their state(s)
 pd__status()
 {
@@ -98,6 +97,8 @@ pd__status()
 }
 pd_load__status=yiIap
 pd_defargs__status=pd_registered_prefix_target_args
+pd_als__stat=status
+pd_als__st=status
 
 
 pd_load__status_old=ybf
