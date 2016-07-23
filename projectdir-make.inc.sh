@@ -26,9 +26,9 @@ pd_test__make_autoconfig()
 
 pd__make_test()
 {
-  make test || return $?
+  echo make test || return $?
 }
-pd__make_test=i
+pd_load__make_test=i
 
 
 pd__make()

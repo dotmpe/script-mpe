@@ -166,8 +166,9 @@ pd_regenerate()
 pd_package_meta()
 {
   test -e .package.sh || return 1
+  test -s .package.sh || return 2
   local value=
-  . .package.sh
+  eval $(cat .package.sh)
   while test -n "$1"
   do
     value="$(eval echo "\$package_pd_meta_$1")"
@@ -746,9 +747,8 @@ pd_run()
 
     pd:* )
 
-        local comp=$(echo "$1" | cut -d ':' -f 2) ncomp=
-        local comp_idx=2 func= args=$(echo "$1" | cut -c$(( 5 + ${#comp} ))-)
-
+        local comp="$(echo "$1" | cut -d ':' -f 2)" ncomp=
+        local comp_idx=2 func= args="$(echo "$1" | cut -c$(( 5 + ${#comp} ))-)"
 
         # Consume components and look for local function
         while true

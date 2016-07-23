@@ -78,13 +78,13 @@ pd__status()
   info "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
 
   # XXX: fetching the state requires all branches to have status/result set.
-  #pd__meta update-states 
+  #pd__meta update-states
   # TODO: also export for monitoring
 
   while read pd_prefix
   do
     test -f "$checkout" -o -h "$checkout" && {
-      echo "pd:status:$pd_prefix" >$failed 
+      echo "pd:status:$pd_prefix" >$failed
       note "Not a checkout path at $checkout"
       continue
     }
@@ -1010,9 +1010,11 @@ pd__ls_targets()
     while test -n "$1"
     do
       note "Named target list '$1' ($pd_prefix)"; name=$1; shift
+      read_if_exists $pd_prefix/.pd-$name && continue
       (
-        read_if_exists $pd_prefix/.pd-$name && continue
+        cd $pd_prefix
         pd_package_meta "$name" && continue
+        info "Autodetect for '$name'"
         pd_autodetect $name
       )
     done
@@ -1117,7 +1119,7 @@ pd_load()
 
     P )
         update_package "$pd_prefix" || continue
-        . $pd_root/$pd_prefix/.package.sh
+        eval $(cat $pd_root/$pd_prefix/.package.sh)
 
         test -n "$package_id" && {
           note "Found package '$package_id'"
@@ -1147,7 +1149,7 @@ pd_load()
         # Preset name to subcmd failed file placeholder
         # include realpath of projectdoc (p)
         test -n "$pd" && {
-          failed=$(setup_tmpf .failed -$pd_cid-$subcmd-$pd_session_id)
+          export failed=$(setup_tmpf .failed -$pd_cid-$subcmd-$pd_session_id)
         } || failed=$(setup_tmpf .failed -$subcmd-$pd_session_id )
       ;;
 

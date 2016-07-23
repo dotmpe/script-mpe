@@ -82,7 +82,7 @@ pd_bats_files_args()
 
     } || {
 
-      local retry=$(setup_tmpf .retry "$subcmd")
+      local retry=$(setup_tmpf .retry "$subcmd-$PWD")
       test -e "$retry" && {
         note "Using targets from retry file ($(count_lines $retry))"
         cat $retry | sed 's/^bats://g'
@@ -231,11 +231,12 @@ pd__bats()
     } | bats-color.sh
   done
 
-  wc -l "$failed"
   test -s "$failed" && {
-    cp $failed $(setup_tmpf .retry "$subcmd")
+    cp $failed $(setup_tmpf .retry "$subcmd-$PWD")
     return 1
   }
+
+  return 0
 }
 pd_defargs__bats=pd_bats_files_args
 
