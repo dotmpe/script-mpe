@@ -198,8 +198,9 @@ install_bin()
 
   jsotk.py items $1 tools/$2/post-install | while read scriptline
   do
-    note "Running '$scriptline'.."
-    eval $scriptline || exit $?
+    scr=$(echo $scriptline | cut -c2-$(( ${#scriptline} - 1 )) )
+    note "Running '$scr'.."
+    eval $scr || exit $?
   done
 }
 
