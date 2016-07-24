@@ -74,10 +74,9 @@ update_package_sh()
     # Format main block
     { jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' || {
       warn "Failed reading package main from $1 ($?)"
-      cat $metamain
       rm $metamain
       return 17
-    } > $metamain ; }
+    }; }  > $metamain
 
     test -s "$metamain" || {
       warn "Failed reading package main from $1"
@@ -104,9 +103,7 @@ update_temp_package()
   #test -e "$metaf" && return || {
     metash=$1/.package.sh
     test -e $metaf -a $metaf -nt $pd || {
-      echo $scriptdir/projectdir-meta -f $pd package "$1"
-      $scriptdir/projectdir-meta -f $pd package "$1"
-      #pd__meta package $1 > $metaf
+      pd__meta package $1 > $metaf
     }
   #}
 }
