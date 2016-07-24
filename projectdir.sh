@@ -96,8 +96,11 @@ pd__status()
       do
         test "$var" = "None" && continue
         test "$stat" = "None" && continue
-        test $stat -eq 0 || warn "$pd_prefix: $var"
-        #(echo $var | cut -c8-)"
+        test $stat -eq 0 || {
+          echo "$pd_prefix" >> $failed
+          warn "$pd_prefix: $(echo $var | cut -c8-)"
+          #warn "$pd_prefix: $var"
+        }
       done
 
     } || echo "pd:status:$pd_prefix" >>$failed
