@@ -25,18 +25,37 @@ init
 
 
 @test "${bin} regenerate" "0.1.4. - generates pre-commit hook from a .package.sh" {
+
+  check_skipped_envs boreas || TODO "need to fix Pdoc context"
+
   tmpd
+  mkdir -p $tmpd/empty
   {
     echo 'package_pd_meta_check=":bats-specs"'
     echo 'package_pd_meta_test=":bats-specs :bats"'
     echo package_pd_meta_git_hooks_pre_commit=./tools/ci/pre-commit.sh
-  } > $tmpd/.package.sh
-  cd $tmpd
+  } > $tmpd/empty/.package.sh
+  { cat <<EOF
+repositories:
+  empty:
+    enabled: true
+    remotes: {}
+    sync: false
+    clean: untracked
+    status:
+      result: 0
+EOF
+  } > $tmpd/.projects.yaml
+  cd $tmpd/empty
   git init
+  cd $tmpd
+  export pd=$tmpd/.projects.yaml
+  export pd_prefix=empty
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0 \
     || fail "Stat: ${status}, Out: ${lines[@]}"
-  test -e tools/ci/pre-commit.sh
+  test -e tools/ci/pre-commit.sh \
+   || fail "tmpd=$tmpd"
   cd ..
   rm -rf $tmpd
 }
@@ -92,6 +111,8 @@ cleanup_tmpd()
 
 @test "${bin} ls-targets check" "Reads .pd-checks" {
 
+  check_skipped_envs boreas || TODO "need to fix Pdoc context"
+
   export verbosity=0
 
   setup_empty_pd
@@ -116,6 +137,7 @@ cleanup_tmpd()
 
 @test "${bin} ls-targets test" "Reads .pd-test, and autodetect test targets" {
 
+  check_skipped_envs boreas || TODO "need to fix Pdoc context"
   export verbosity=0
 
   setup_empty_pd
@@ -186,6 +208,7 @@ cleanup_tmpd()
 
 @test "${bin} status" "" {
 
+  check_skipped_envs boreas || TODO "need to fix Pdoc context"
   export verbosity=6
 
   setup_empty_pd

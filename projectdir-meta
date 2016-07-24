@@ -20,7 +20,7 @@ Usage:
     projectdir-meta [options] list-remotes <prefix>
     projectdir-meta [options] list-upstream <prefix> [<branches>...]
     projectdir-meta [options] status [<prefix>]
-    projectdir-meta [options] package <prefix>
+    projectdir-meta [options] package [<prefix>]
     projectdir-meta [options] exit
     projectdir-meta [options] x-conv
     projectdir-meta [options] x-check

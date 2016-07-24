@@ -37,7 +37,7 @@ jsotk_package_sh_defaults()
   {
     jsotk.py -I yaml -O fkv objectpath $1 '$..*[@.*.defaults]' \
       || {
-        warn "Failed reading package defaults from $1"
+        # TODO: check ret codes warn "Failed reading package defaults from $1 ($?)"
         return 1
       }
 
@@ -62,54 +62,83 @@ update_package_sh()
     note "Regenerating $metash from $metaf.."
 
     # Format Sh default env settings
-    jsotk_package_sh_defaults "$metaf" > $metash || {
+    { jsotk_package_sh_defaults "$metaf" || {
+      test ! -e $metash || rm $metash
+    }; } > $metash
 
-      warn "Failed reading package defaults from $1"
-      rm $metash
-      return 1
-    }
-
+    grep -q Exception $metash && rm $metash
     test -s "$metash" || rm $metash
 
+    test -e "$metaf" || return
+
     # Format main block
-    jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' > $metamain \
-    || {
-      warn "Failed reading package main from $1"
+    { jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' || {
+      warn "Failed reading package main from $1 ($?)"
+      cat $metamain
       rm $metamain
-      return 1
-    }
+      return 17
+    } > $metamain ; }
 
     test -s "$metamain" || {
       warn "Failed reading package main from $1"
       rm $metamain
-      return 1
+      return 16
     }
 
     jsotk.py --output-prefix=package to-flat-kv $metamain >> $metash || {
+      warn "Failed writing package Sh from $1 ($?)"
       rm $metash
-      return 1
+      return 15
     }
   }
 }
+
+
+update_temp_package()
+{
+  test -n "$pd" || error pd 21
+  test -n "$ppwd" || ppwd=$(cd $1; pwd)
+  mkvid "$ppwd"
+  metaf=$(setup_tmpf .yml "-meta-$vid")
+  test -e $metaf || touch $metaf $pd
+  #test -e "$metaf" && return || {
+    metash=$1/.package.sh
+    test -e $metaf -a $metaf -nt $pd || {
+      echo $scriptdir/projectdir-meta -f $pd package "$1"
+      $scriptdir/projectdir-meta -f $pd package "$1"
+      #pd__meta package $1 > $metaf
+    }
+  #}
+}
+
 
 # Given package.yaml metafile, extract and fromat as SH, JSON. If no local
 # package.yaml exists, try to extract one temp package YAML from Pdoc.
 update_package()
 {
   test -n "$1" || set -- .
+  test -d "$1" || error "update-package dir '$1'" 21
+  test -z "$2" || error "update-package args '$*'" 22
+  test -n "$pd" || error pd 20
+  test -n "$ppwd" || ppwd=$(cd $1; pwd)
   test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
   metaf=$(normalize_relative "$metaf")
-  local ret=0
+
   test -e "$metaf" || {
-    metaf=$(setup_tmpf .yml "-meta-$1")
-    metash=$1/.package.sh
-    test -e $metaf -a $metaf -nt $pd || {
-      pd__meta package  $1 > $metaf
+    update_temp_package "$1" || { r=$?
+      rm $metaf
+      error update_temp_package-$r
+      return 23
     }
   }
+  test -e "$metaf" || error "metaf='$metaf'" 34
 
   # Package.sh is used by other scripts
-  update_package_sh "$1" || return $?
+  update_package_sh "$1" || {
+    r=$?
+    grep -q Exception $metash && rm $metash
+    return $r
+  }
 
   # .package.json is not used, its a direct convert of te entire YAML doc.
   # Other scripts can use it with jq if required

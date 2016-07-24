@@ -31,7 +31,7 @@ pd_load__meta=y
 pd__meta()
 {
   test -n "$1" || set -- --background
-  test -n "$pd"
+  test -n "$pd" || error pd 2
 
   fnmatch "$1" "-*" || {
     test -x "$(which socat)" -a -e "$pd_sock" && {
@@ -58,7 +58,8 @@ pd__meta()
       return
     }
   }
-  $scriptdir/projectdir-meta -f $pd --address $pd_sock "$@" || return $?
+  test -n "$pd_sock" && set -- --address $pd_sock "$@"
+  $scriptdir/projectdir-meta -f $pd "$@" || return $?
 }
 
 # silent/quit; TODO should be able to replace with -sq
@@ -260,6 +261,7 @@ pd__disable_clean()
 
 # Regenerate local package metadata files and scripts
 pd_load__regenerate=dfP
+#pd_load__regenerate=yfip
 pd__regenerate()
 {
   test -n "$pd_prefix" || error pd_prefix 1
@@ -267,7 +269,7 @@ pd__regenerate()
   set -- "$(normalize_relative "$pd_prefix/$1")"
   note "Regenerating meta files in '$1' ($(pwd))"
   exec 6>$failed
-  ( cd $1 && pd_regenerate "$1" )
+  pd_regenerate "$1"
   exec 6<&-
   test -s "$failed" || rm $failed
 }
@@ -1119,7 +1121,11 @@ pd_load()
       ;;
 
     P )
-        update_package "$pd_prefix" || continue
+        update_package "$pd_prefix" || { r=$?
+          test  $r -eq 1 || error "update_package" $r
+          continue
+        }
+
         eval $(cat $pd_root/$pd_prefix/.package.sh)
 
         test -n "$package_id" && {
@@ -1133,10 +1139,12 @@ pd_load()
 
     d ) # XXX: Stub for no Pd context?
         #test -n "$pd_root" \
-          pd= pd_realpath= pd_root=. pd_realdir=$(pwd -P) pd_prefix=.
+        test -e "$pd" || unset pd
+        test -n "$pd_prefix" || pd_prefix=.
+        pd_realpath= pd_root=. pd_realdir=$(pwd -P) 
 
         #test "$pd_prefix" = "." || {
-        #  cd $pd_prefix
+        #  test ! -e $pd_prefix || cd $pd_prefix
         #}
       ;;
 
