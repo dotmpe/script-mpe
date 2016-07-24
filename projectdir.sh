@@ -88,7 +88,7 @@ pd__status()
       note "Not a checkout path at $checkout"
       continue
     }
-    info "pd-prefix=$pd_prefix ($CWD, $PWD)"
+    note "pd-prefix=$pd_prefix ($CWD)"
     {
       # XXX: hack to format Pdoc status into something readable
       pd_fetch_status "$pd_prefix" \
