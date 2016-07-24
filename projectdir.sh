@@ -89,8 +89,18 @@ pd__status()
       continue
     }
     note "pd-prefix=$pd_prefix ($CWD, $PWD)"
-    pd_fetch_status "$pd_prefix" \
-      || echo "pd:status:$pd_prefix" >>$failed
+    {
+      # XXX: hack to format Pdoc status into something readable
+      pd_fetch_status "$pd_prefix" \
+        | jsotk.py -I yaml -O pkv - | tr '=' ' ' | while read var stat
+      do
+        test "$var" = "None" && continue
+        test "$stat" = "None" && continue
+        test $stat -eq 0 || warn "$pd_prefix: $var"
+        #(echo $var | cut -c8-)"
+      done
+
+    } || echo "pd:status:$pd_prefix" >>$failed
 
   done < $prefixes
 
