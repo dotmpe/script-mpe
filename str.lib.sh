@@ -5,7 +5,7 @@
 mkid()
 {
   test -n "$1" || error "mkid argument expected" 1
-	id=$(echo "$1" | tr '[:blank:][:punct:]' '_')
+  id=$(echo "$1" | tr -sc 'A-Za-z0-9\/:_-' '-' )
 }
 
 # to filter strings to valid id

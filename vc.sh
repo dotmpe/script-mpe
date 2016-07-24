@@ -771,6 +771,7 @@ vc__prompt_command()
 
 vc__list_submodules()
 {
+  test -n "$spwd" || error spwd-12 12
   git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
   do
     smpath=$ppwd/$prefix
@@ -915,6 +916,7 @@ vc__excluded() { vc__untracked_files "$@"; }
 vc__untracked_files()
 {
   test -z "$1" || error "unexpected arguments" 1
+  test -n "$spwd" || error spwd-13 13
 
   # list paths not in git (including ignores)
   git ls-files --others --dir || return $?
@@ -937,6 +939,7 @@ vc__uf() { vc__unversioned_files "$@"; }
 vc__unversioned_files()
 {
   test -z "$1" || error "unexpected arguments" 1
+  test -n "$spwd" || error spwd-14 14
 
   # list cruft (not versioned and not ignored)
   git ls-files --others --exclude-standard || return $?
@@ -1167,7 +1170,7 @@ vc__regenerate()
   rm $excludes.list
 
   info "Adding other git-ignore files"
-  for x in .gitignore-* $HOME/.gitignore-global-*
+  for x in .gitignore-* $HOME/.gitignore-*-global
   do
     test "$(basename $x .regex)" = "$(basename $x)" || continue
     test -e $x || continue
