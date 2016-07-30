@@ -64,6 +64,7 @@ normalize_relative()
     elif [ "$I" = ".." ]
       then
         NORMALIZED=$(echo "$NORMALIZED"|sed 's/\/[^/]*$//g')
+        NORMALIZED=$(echo "$NORMALIZED"|sed 's/\/\"\?[^/]*\?$//g')
         continue
       else
         NORMALIZED="${NORMALIZED}/${I}"

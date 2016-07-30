@@ -160,7 +160,9 @@ Dev
   Hardware
     ..
 Personal
-  ..
+  Topic Title
+    Another Title
+      ..
 Public
   Note
     ..
@@ -176,7 +178,7 @@ EOM
   test "${lines[0]}" = "/Dev/Software" \
     || fail "Output: ${lines[*]}"
   test "${lines[1]}" = "/Dev/Hardware"
-  test "${lines[2]}" = "/Personal"
+  test "${lines[2]}" = "/Personal/\"Topic Title\"/\"Another Title\""
   test "${lines[3]}" = "/Public/Note"
 }
 

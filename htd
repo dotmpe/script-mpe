@@ -254,8 +254,8 @@ other_cmds()
   echo '  mk|make                          Run make (in htd dir).'
   echo '  vt|edit-today                    '
   echo '  n|edit-node ID TAGS              '
-  echo '  nnl|edit-node-nnl ID TAGS        '
-  echo '  nen|edit-node-en ID TAGS         '
+  echo '  nnl|edit-note-nnl ID TAGS        '
+  echo '  nen|edit-note-en ID TAGS         '
 }
 
 htd__docs()
@@ -792,6 +792,7 @@ htd__edit_note()
     echo  >> $note
   }
   vim ~/htdocs/note/$id.$ext || return $? 
+  git add ~/htdocs/note/$id.$ext
 }
 htd_als__edit_note=n
 
