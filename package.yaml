@@ -13,10 +13,10 @@
   pd-meta:
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
-    check: ":vchk :bats:specs"
+    check: "-sh:./tools/tags.sh :vchk :bats:specs"
     # TODO: check for /tmp usage, force TMPDIR use
     # TODO: check for XXX tags
-    test: ":vchk :-sh:python:test/main.py :bats:specs :bats"
+    test: ":vchk -sh:python:test/main.py :bats:specs :bats"
 
     git-hooks:
       pre-commit: ./tools/git-hooks/pre-commit.sh

@@ -12,12 +12,6 @@ pd_check__git_versioning_autoconfig()
 
 pd_als__vchk=git-versioning
 
-#pd__git_versioning_check()
-#{
-#  git-versioning check
-#}
-
-
 pd_load__git_versioning=i
 pd__git_versioning()
 {
@@ -38,5 +32,4 @@ pd__git_versioning()
   rm $vchk
   return $result
 }
-
 

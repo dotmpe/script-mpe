@@ -690,9 +690,15 @@ pd_run()
 {
   test -n "$1" || error args 1
 
-  fnmatch ":*" "$1" && set -- "$(echo "$1" | cut -c2-)"
-  fnmatch "*:*:*" "$1" || set -- "$base:$1"
-  fnmatch "*:*" "$1" || set -- "sh:$1"
+    fnmatch ":*" "$1" && {
+      set -- "$base$1"
+    } || {
+      fnmatch "-*" "$1" || {
+        fnmatch "sh*" "$1" || {
+          set -- "sh:$1"
+        }
+      }
+    }
 
   test -z "$2" || error "surplus args '$*'" 1
 

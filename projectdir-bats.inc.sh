@@ -41,6 +41,7 @@ pd_trgtpref__bats_files=bats:file
 #
 pd_bats_files_args()
 {
+
   test -n "$pd_trgtglob" \
     || pd_trgtglob="$(eval echo "\"\$$(try_local "bats-files" glob)\"")"
 
@@ -89,13 +90,13 @@ pd_bats_files_args()
         rm $retry
       } || {
 
-        for target in $pd_trgtglob
+        echo $pd_trgtglob | words_to_lines | while read target
         do
           echo "$target"
         done
       }
     }
-  } > $arguments
+  } | words_to_lines > $arguments
 }
 
 
@@ -179,7 +180,7 @@ pd__bats_specs()
     }
   export values
 }
-pd_load__bats_specs=iaI
+pd_load__bats_specs=iIa
 pd_defargs__bats_specs=pd_bats_files_args
 
 
