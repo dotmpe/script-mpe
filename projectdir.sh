@@ -856,6 +856,8 @@ pd__run()
     do
       fnmatch ":*" "$1" && target=$(echo "$1" | cut -c2- ) || target=$1
 
+      #note "1=$1 target=$target"
+
       #record_env_keys pd-target pd-run pd-subcmd pd-env
       #pd_debug start $target pd-target pd_prefix
 
