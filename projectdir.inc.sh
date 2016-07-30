@@ -836,11 +836,14 @@ pd_run()
 
         for io_name in $pd_outputs; do
           out=$(try_var ${io_name})
-          cat $(setup_tmpd)/pd-*$sub_session_id.$io_name >> $out
-          rm $(setup_tmpd)/pd-*$sub_session_id.$io_name
+          test ! -e $(setup_tmpd)/pd-*$sub_session_id.$io_name || {
+            cat $(setup_tmpd)/pd-*$sub_session_id.$io_name >> $out
+            rm $(setup_tmpd)/pd-*$sub_session_id.$io_name
+          }
         done
         for io_name in $pd_inputs; do
-          rm $(setup_tmpd)/pd-*$sub_session_id.$io_name
+          test ! -e $(setup_tmpd)/pd-*$sub_session_id.$io_name \
+            || rm $(setup_tmpd)/pd-*$sub_session_id.$io_name
         done
       ;;
 
