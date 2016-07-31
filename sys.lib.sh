@@ -66,6 +66,16 @@ incr()
   export $1=$(( $v + $incr_amount ))
 }
 
+getidx()
+{
+  test -n "$1" || error getidx-array 1
+  test -n "$2" || error getidx-index 1
+  test -z "$3" || error getidx-surplus 1
+  local idx=$2
+  set -- $1
+  eval echo \$$idx
+}
+
 # test for var decl, io. to no override empty
 var_isset()
 {

@@ -1318,6 +1318,7 @@ pd_lib()
   . $scriptdir/projectdir-grunt.inc.sh
   . $scriptdir/projectdir-npm.inc.sh
   . $scriptdir/projectdir-make.inc.sh
+  . $scriptdir/projectdir-lizard.inc.sh
   # -- pd box lib sentinel --
 }
 
