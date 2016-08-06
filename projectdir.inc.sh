@@ -275,11 +275,14 @@ pd_fetch_status()
   pd__meta status "$1" || return $?
 }
 
-# Update Pdoc status entry
-pd_update_status()
+# Update Pdoc prefix entry
+pd_update_record()
 {
-  test -e "$pd" || error "pd-update-status Pd" 1
-  test -n "$key_pref" || error "pd-update-status key-pref" 1
+  test -n "$1" || error "pd-update-record key-pref" 1
+  test -n "$2" || error "pd-update-record key-values" 1
+  test -e "$pd" || error "pd-update-record Pd" 1
+
+  local path=$1; shift; local values="$*"
 
   { while test -n "$1"
     do
@@ -287,10 +290,24 @@ pd_update_status()
         error "Missing relative prefix on '$1'"
         continue
       }
-      echo $key_pref/$1; shift; done
+      echo $path/$1; shift; done
   } | jsotk.py -I pkv --pretty update $pd - || return $?
 
-  debug "Updated Pd: $key_pref{$*}"
+  debug "Updated Pd: $path{$values}"
+}
+
+
+# update-records key-value prefixes
+pd_update_records()
+{
+  local kv=$1 states=
+  shift
+  states="$( while test -n "$1"
+  do
+    echo $(normalize_relative "$1")/$kv
+    shift
+  done )"
+  pd_update_record repositories $states
 }
 
 
@@ -728,7 +745,7 @@ pd_run()
 
     sh:* )
         local shcmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
-        status_key=$(printf "$1" | cut -d ':' -f 2 )
+        record_key=$(printf "$1" | cut -d ':' -f 2 )
         info "Running Sh '$shcmd' ($1)"
         (
           sh -c "$shcmd" \
@@ -736,10 +753,10 @@ pd_run()
           #{
           #  cd "$pd_realdir"
           #  key_pref=repositories/$(normalize_relative \
-          #    "$pd_prefix")/status/$status_key
-          #  echo pd_update_status \
+          #    "$pd_prefix")/status/$record_key
+          #  echo pd_update_record \
           #    result=$result
-          #  pd_update_status \
+          #  pd_update_record \
           #    result=$result
           #}
         )
@@ -785,17 +802,16 @@ pd_run()
         done
 
         try_func "$func" || {
-            error "No such Pd target '$comp'"; echo "$1" >>$error; return 1
-          }
+          error "No such Pd target '$comp'"; echo "$1" >>$error; return 1
+        }
 
         sub_session_id=$(uuidgen)
-
         (
           subcmd="$pd_prefix#$comp"
 
-          status_key="$(eval echo "\"\$$(try_local "$comp" stat)\"")"
-          test -n "$status_key" \
-            || status_key=$(printf "$comp" | tr -c 'a-zA-Z0-9-' '/')
+          record_key="$(eval echo "\"\$$(try_local "$comp" stat)\"")"
+          test -n "$record_key" \
+            || record_key=$(printf "$comp" | tr -c 'a-zA-Z0-9-' '/')
           states= values=
 
           local pd_session_id=$sub_session_id
@@ -813,24 +829,20 @@ pd_run()
 
           {
             cd "$pd_realdir"
-
-            info "Updating Pdoc with $pd_prefix status=$result and other values"
+            info "Updating Pdoc $pd_prefix"
 
             # Update status result
-            key_pref=repositories/$(normalize_relative \
-              "$pd_prefix")/status/$status_key
-            pd_update_status \
-              result=$result \
-              $states
-
-            # Update benchmark values
-            test -z "$values" || {
-              key_pref=repositories/$(normalize_relative \
-                "$pd_prefix")/benchmarks/$status_key
-              pd_update_status \
-                $values
+            test -n "$states" && {
+              pd_update_record $key_pref/status/$record_key $states
+            } || {
+              jsotk.py is-int $pd $key_pref/status/$record_key \
+                || record_key=$record_key/result
+              pd_update_record $key_pref/status $record_key=$result
             }
 
+            # Update benchmark values
+            test -z "$values" \
+              || pd_update_record $key_pref/benchmarks/$record_key $values
           }
         )
 
@@ -854,6 +866,17 @@ pd_run()
       ;;
 
   esac
+}
+
+
+pd_run_suite()
+{
+  local r=0 suite=$1; shift
+  echo "$@" >$arguments
+  subcmd=$suite:run pd__run || return $?
+  test -s "$errors" -o -s "$failed" && r=1
+  pd_update_records status/$suite=$r $pd_prefixes
+  return $r
 }
 
 

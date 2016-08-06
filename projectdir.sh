@@ -602,6 +602,19 @@ pd__init()
   )
 }
 
+
+pd_man_1__init_new="Run init_new targets (for single prefix)"
+pd_load__init_new=yiIap
+pd_defargs__init_new=pd_prefix_target_args
+pd__init_new()
+{
+  init -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
+  init -n "$1" || set -- $(pd__ls_targets init 2>/dev/null)
+  info "Tests to run ($pd_prefixes): $*"
+  pd_run_suite init "$@" || return $?
+}
+
+
 # Set the remotes from metadata
 pd_load__set_remotes=y
 pd__set_remotes()
@@ -842,6 +855,7 @@ pd__run()
 
   while read pd_prefix
   do
+    key_pref=repositories/$(normalize_relative "$pd_prefix")
     cd $pd_realdir/$pd_prefix
 
     # Iterate targets
@@ -883,6 +897,17 @@ pd__run()
 }
 
 
+pd_man_1__run_suite="Run test targets (for single prefix)"
+pd_load__run_suite=yiIp
+pd__run_suite()
+{
+  test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
+  test -n "$1" || error "Suite name expected" 1
+  test -z "$2" || error surplus-args 1
+  pd_run_suite $1 $(pd__ls_targets $1 2>/dev/null) || return $?
+}
+
+
 pd_man_1__test="Run test targets (for single prefix)"
 pd_load__test=yiIap
 pd_defargs__test=pd_prefix_target_args
@@ -890,11 +915,8 @@ pd__test()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || set -- $(pd__ls_targets test 2>/dev/null)
-
   info "Tests to run ($pd_prefixes): $*"
-  echo "$@" >$arguments
-  subcmd=test:run pd__run
-  return $?
+  pd_run_suite test "$@" || return $?
 }
 
 
@@ -919,11 +941,8 @@ pd__check()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || set -- $(pd__ls_targets check 2>/dev/null)
-
   info "Checks to run ($pd_prefixes): $*"
-  echo "$@" >$arguments
-  subcmd=check:run pd__run
-  return $?
+  pd_run_suite check "$@" || return $?
 }
 
 
