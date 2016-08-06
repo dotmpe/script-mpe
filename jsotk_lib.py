@@ -462,14 +462,23 @@ def deep_update(dicts, ctx):
         for k, v in mdata.iteritems():
             if k in data:
                 if isinstance(data[k], dict):
-                    deep_update( [ data[k], v ], ctx )
+                    try:
+                        deep_update( [ data[k], v ], ctx )
+                    except ValueError, e:
+                        raise Exception("Error updating %s (%r) with %r" % (
+                                k, data[k], v
+                            ), e)
                 elif isinstance(data[k], list):
                     data[k] = deep_union( [ data[k], v ], ctx )
                 else:
+                    if not isinstance(data[k], type(v)):
+                        raise ValueError, "Expected %s but got %s" % (
+                                type(data[k]), type(v))
                     data[k] = v
             else:
                 data[k] = v
     return data
+
 
 def deep_union(lists, ctx):
     """List merger with different modes.
@@ -507,7 +516,12 @@ def deep_union(lists, ctx):
                 # cmp index-by-index
                 if not ctx.opts.flags.list_update_nodict:
                     if isinstance(data[i], dict):
-                        v = deep_update([data[i], v], ctx )
+                        try:
+                            v = deep_update([data[i], v], ctx )
+                        except ValueError, e:
+                            raise Exception("Error updating %s (%r) with %r" % (
+                                    i, data[i], v
+                                ), e)
                 elif isinstance(data[i], list):
                     v = deep_union([data[i], v], ctx )
                 data[i] = v

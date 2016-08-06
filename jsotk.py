@@ -10,6 +10,8 @@ Usage:
     jsotk [options] objectpath <srcfile> <expr>
     jsotk [options] keys <srcfile> <pathexpr>
     jsotk [options] items <srcfile> <pathexpr>
+    jsotk [options] is-branch <srcfile> <pathexpr>
+    jsotk [options] is-int <srcfile> <pathexpr>
     jsotk [options] [dump] [<srcfile> [<destfile]]
     jsotk [options] (json2yaml|yaml2json) [<srcfile> [<destfile>]]
     jsotk [options] (from-kv|to-kv) [<srcfile> [<destfile>]]
@@ -120,7 +122,7 @@ import util, confparse
 from jsotk_lib import PathKVParser, FlatKVParser, \
         load_data, stdout_data, readers, open_file, \
         get_src_dest_defaults, set_format, get_format_for_fileext, \
-        get_dest, \
+        get_dest, get_src_dest, \
         deep_union, deep_update, data_at_path
 
 
@@ -352,6 +354,31 @@ def H_to_flat_kv(ctx):
     ctx.opts.flags.output_format = 'fkv'
     return H_dump(ctx)
 
+
+def H_is_branch(ctx):
+    """Return 3 on path error, 1 if data is not an object"""
+    if ctx.opts.flags.detect_format:
+        set_format('input', 'src', ctx.opts)
+    infile, _ = get_src_dest(ctx)
+    try:
+        data = data_at_path(ctx, infile)
+    except:
+        return 3
+    if not isinstance(data, dict):
+        return 1
+
+
+def H_is_int(ctx):
+    """Return 3 on path error, 1 if data is not an object"""
+    if ctx.opts.flags.detect_format:
+        set_format('input', 'src', ctx.opts)
+    infile, _ = get_src_dest(ctx)
+    try:
+        data = data_at_path(ctx, infile)
+    except:
+        return 3
+    if not isinstance(data, int):
+        return 1
 
 
 
