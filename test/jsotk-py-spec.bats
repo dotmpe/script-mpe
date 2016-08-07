@@ -30,11 +30,11 @@ init
   test "${lines[0]}" = '{"a": {"b": {"c": 1}, "d": [2, 3]}}'
 }
 
-@test "${bin} from-args l[]=1 l[]=2 l[2]=3" "update indices" {
-  TODO "update at index with jsotk"
+@test "${bin} from-args l[]=1 l[]=2 l[1]=3" "update at indices" {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
-  test "${lines[*]}" = '{"l": [1, 3]}'
+  test "${lines[*]}" = '{"l": [1, 3]}' \
+    || fail "Out: ${lines[*]}"
 }
 
 @test "${bin} compare src/dest formats for test/var/1.*" {
@@ -199,11 +199,32 @@ init
 @test "${bin} path - can check path data type or for insertable pats" {
 
   ${bin} path --is-str test/var/jsotk/4.json foo/1
+  ${bin} path --is-int test/var/jsotk/4.json foo/1 && fail "1 int"
+  ${bin} path --is-bool test/var/jsotk/4.json foo/1 && fail "1 bool"
+  ${bin} path --is-obj test/var/jsotk/4.json foo/1 && fail "1 obj"
+  ${bin} path --is-list test/var/jsotk/4.json foo/1 && fail "1 list"
+  # FIXME: jsotk path is-new and is-null
+  #${bin} path --is-new test/var/jsotk/4.json foo/1 && fail "1 new"
+  #${bin} path --is-null test/var/jsotk/4.json foo/1 && fail "1 null"
+
+  ${bin} path --is-str test/var/jsotk/4.json foo/2 && fail "2 str"
+  ${bin} path --is-int test/var/jsotk/4.json foo/2 && fail "2 int"
+  ${bin} path --is-bool test/var/jsotk/4.json foo/2 && fail "2 bool"
+  ${bin} path --is-obj test/var/jsotk/4.json foo/2 && fail "2 obj"
   ${bin} path --is-list test/var/jsotk/4.json foo/2
+  #${bin} path --is-new test/var/jsotk/4.json foo/2 && fail "2 new"
+  #${bin} path --is-null test/var/jsotk/4.json foo/2 && fail "2 null"
+
+  ${bin} path --is-str test/var/jsotk/4.json foo/3 && fail "3 str"
+  ${bin} path --is-int test/var/jsotk/4.json foo/3 && fail "3 int"
+  ${bin} path --is-bool test/var/jsotk/4.json foo/3 && fail "3 bool"
   ${bin} path --is-obj test/var/jsotk/4.json foo/3
+  ${bin} path --is-list test/var/jsotk/4.json foo/3 && fail "3 list"
+
   ${bin} path --is-new test/var/jsotk/4.json foo/4
 
   ${bin} path --is-int test/var/jsotk/4.json foo/3/2
+
   ${bin} path --is-bool test/var/jsotk/4.json foo/3/3
 
 }

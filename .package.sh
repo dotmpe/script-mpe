@@ -1,7 +1,7 @@
 package_vendor=dotmpe
 package_license=GPL
 package_environments__0=development
-package_pd_meta_test=":vchk -sh:python:test/main.py :bats:specs :bats"
+package_pd_meta_test=":vchk sh:python:test/main.py :bats:specs :bats"
 package_pd_meta_git_hooks_pre_commit=./tools/git-hooks/pre-commit.sh
 package_pd_meta_init="./install-dependencies.sh git:init"
 package_pd_meta_check="-verbose=false:./tools/sh/tags.sh :vchk :bats:specs :git:status"

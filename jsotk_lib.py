@@ -64,7 +64,6 @@ class AbstractKVParser(object):
         key, value = kv[:pos].strip(), kv[pos+1:].strip()
         self.set( key, value )
 
-
     def set( self, key, value, d=None, default=None, values_as_json=True ):
         """ Parse key to path within dict/list struct and insert value.
         kv syntax::
@@ -81,7 +80,10 @@ class AbstractKVParser(object):
 
         # Maybe want to allow other parsers too, ie YAML values
         if isinstance(value, basestring):
-            if values_as_json:
+            # Default value if empty is string
+            if value.lower() in ('none', 'null', 'nil'):
+                value = None
+            elif values_as_json:
                 value = parse_json(value)
             else:
                 value = parse_primitive(value)
@@ -115,6 +117,12 @@ class AbstractKVParser(object):
                     if key not in d:
                         d[key] = default
                 else:
+                    if isinstance(key, int):
+                        if not isinstance(d, list):
+                            raise TypeError, "%s is not a list: %r" % (key, d)
+                    else:
+                        if not isinstance(d, dict):
+                            raise TypeError, "%s is not a dict: %r" % (key, d)
                     d[key] = value
                 return key
 
@@ -130,6 +138,39 @@ class AbstractKVParser(object):
                 k = self.set( k, value, d )
             if path:
                 d = d[k]
+
+    def get( self, key, d=None):
+        """[2016-08-07] Adding get function """
+
+        if not d: d = self.data
+
+        if isinstance(d, list):
+            if not isinstance(d, list):
+                raise TypeError, "%s is not a list: %r" % (key, d)
+
+            if '[' not in key:
+                raise TypeError("Expected key with index, not %r" % key)
+
+            pos = key.index('[')
+            if key[:pos] not in d:
+                return None
+
+            if len(key) > pos+2:
+                idx = int(key[pos+1:-1])
+
+                while len(d[key[:pos]]) <= idx:
+                    d[key[:pos]].append(None)
+
+                return d[key[:pos]][idx]
+
+            else:
+                return d[key[:pos]]
+
+        else:
+            if not isinstance(d, dict):
+                raise TypeError, "%s is not a dict: %r" % (key, d)
+            return d[key]
+
 
     @staticmethod
     def get_data_instance(key):
@@ -556,11 +597,27 @@ def data_check_path(ctx, infile):
 
     data = load_data( ctx.opts.flags.input_format, infile, ctx )
 
-# FIXME
-    parser = PathKVParser(rootkey=ctx.opts.args.pathexpr)
-    parser.set(ctx.opts.args.pathexpr, '')
-    pathdata = parser.data
-    print 'pathdata', pathdata
+    parser = PathKVParser(data)
+
+    path_el = ctx.opts.args.pathexpr.split('/')
+    if not ctx.opts.args.pathexpr or path_el[0] == '':
+        return False
+
+    try:
+        path = ''
+        while path_el:
+            if not path:
+                path = path_el.pop(0)
+                dt = parser.get(path)
+            else:
+                key = path_el.pop(0)
+                dt = parser.get( key, d=dt )
+                path = '/'.join(path, key )
+    except TypeError, e:
+        return False
+    except (KeyError, IndexError), e:
+        pass
+
     return True
 
     while len(path_el):
@@ -573,9 +630,11 @@ def data_check_path(ctx, infile):
 
 typemap = {
     'str': 'basestring',
-    'obj': 'dict'
+    'obj': 'dict',
 }
 def maptype(typestr):
+    if typestr == 'null':
+        return type(None)
     if typestr in typemap:
         return locate(typemap[typestr])
     return locate(typestr)

@@ -15,7 +15,7 @@
     # scripts
     check: "-verbose=false:./tools/sh/tags.sh :vchk :bats:specs :git:status"
     # TODO: check for /tmp usage, force TMPDIR use
-    test: ":vchk -sh:python:test/main.py :bats:specs :bats"
+    test: ":vchk sh:python:test/main.py :bats:specs :bats"
 
     git-hooks:
       pre-commit: ./tools/git-hooks/pre-commit.sh
