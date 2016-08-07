@@ -213,13 +213,13 @@ pd__env()
 pd__package_env()
 {
   grep 'package_environment_'$1 .package.sh | \
-    sed 's/package_environment_'$1'.*__[0-9]*=//g'
+    sed 's/package_environment_'$1'.*__[0-9]*=//g' | sort -u
 }
 
 pd__package_envs()
 {
   grep 'package_environments' .package.sh | \
-    sed 's/package_environments__[0-9]*=//g'
+    sed 's/package_environments__[0-9]*=//g' | sort -u
 }
 
 
