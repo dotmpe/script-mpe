@@ -64,7 +64,7 @@ update_package_sh()
     # Format Sh default env settings
     { jsotk_package_sh_defaults "$metaf" || {
       test ! -e $metash || rm $metash
-    }; } > $metash
+    }; } | sort -u > $metash
 
     grep -q Exception $metash && rm $metash
     test -s "$metash" || rm $metash
@@ -84,7 +84,7 @@ update_package_sh()
       return 16
     }
 
-    jsotk.py --output-prefix=package to-flat-kv $metamain >> $metash || {
+    jsotk.py --output-prefix=package to-flat-kv $metamain | sort -u >> $metash || {
       warn "Failed writing package Sh from $1 ($?)"
       rm $metash
       return 15
