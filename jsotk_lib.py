@@ -3,6 +3,7 @@ import re
 from fnmatch import fnmatch
 from res import js
 from confparse import yaml_load, yaml_safe_dump
+from pydoc import locate
 
 
 re_non_escaped = re.compile('[\[\]\$%:<>;|\ ]')
@@ -547,4 +548,36 @@ def data_at_path(ctx, infile):
             raise KeyError, b
         l = l[b]
     return l
+
+
+def data_check_path(ctx, infile):
+    if not infile:
+        infile, outfile = get_src_dest_defaults(ctx)
+
+    data = load_data( ctx.opts.flags.input_format, infile, ctx )
+
+# FIXME
+    parser = PathKVParser(rootkey=ctx.opts.args.pathexpr)
+    parser.set(ctx.opts.args.pathexpr, '')
+    pathdata = parser.data
+    print 'pathdata', pathdata
+    return True
+
+    while len(path_el):
+        b = path_el.pop(0)
+        if b not in l:
+            raise KeyError, b
+        l = l[b]
+    return l
+
+
+typemap = {
+    'str': 'basestring',
+    'obj': 'dict'
+}
+def maptype(typestr):
+    if typestr in typemap:
+        return locate(typemap[typestr])
+    return locate(typestr)
+
 

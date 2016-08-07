@@ -277,8 +277,8 @@ def confparse_test_func1():
 
 
 def test_new():
-    # FIXME restructure confparse tests
     """
+
         testroot/.cllct/myConfig.ext
         testroot/sub/.cllct/myConfig.ext
         testroot/sub/sub2/.myConfig.ext
@@ -372,6 +372,7 @@ class Values2Test(unittest.TestCase):
 		self.assertEqual( config.sub.mySubValue, 2 )
 		self.assertEqual( config.source.myConfig_1, 'testroot/.cllct/myConfig.ext' )
 		chdir(pwd)
+
 
 # TODO: test values
 def get_cases():

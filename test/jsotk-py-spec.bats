@@ -187,11 +187,27 @@ init
   '{"foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "more", "items"]}}'
 }
 
+
 @test "${bin} -O fkv  path  test/var/jsotk/1.json  foo/2" {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0 || fail "Output: ${lines[*]}"
   test "${lines[*]}" = "__0=list __1=with __2=items" \
     || fail "Output: ${lines[*]}"
 }
+
+
+@test "${bin} path - can check path data type or for insertable pats" {
+
+  ${bin} path --is-str test/var/jsotk/4.json foo/1
+  ${bin} path --is-list test/var/jsotk/4.json foo/2
+  ${bin} path --is-obj test/var/jsotk/4.json foo/3
+  ${bin} path --is-new test/var/jsotk/4.json foo/4
+
+  ${bin} path --is-int test/var/jsotk/4.json foo/3/2
+  ${bin} path --is-bool test/var/jsotk/4.json foo/3/3
+
+}
+
+
 
 # vim:ft=sh:

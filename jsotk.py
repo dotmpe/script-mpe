@@ -6,12 +6,11 @@ Javascript Object toolkit.
 :updated: 2016-05-21
 
 Usage:
-    jsotk [options] path <srcfile> <pathexpr>
+    jsotk [options] path [--is-new] [--is-list] [--is-obj] \
+            [--is-int] [--is-str] [--is-bool] <srcfile> <pathexpr>
     jsotk [options] objectpath <srcfile> <expr>
     jsotk [options] keys <srcfile> <pathexpr>
     jsotk [options] items <srcfile> <pathexpr>
-    jsotk [options] is-branch <srcfile> <pathexpr>
-    jsotk [options] is-int <srcfile> <pathexpr>
     jsotk [options] [dump] [<srcfile> [<destfile]]
     jsotk [options] (json2yaml|yaml2json) [<srcfile> [<destfile>]]
     jsotk [options] (from-kv|to-kv) [<srcfile> [<destfile>]]
@@ -123,7 +122,7 @@ from jsotk_lib import PathKVParser, FlatKVParser, \
         load_data, stdout_data, readers, open_file, \
         get_src_dest_defaults, set_format, get_format_for_fileext, \
         get_dest, get_src_dest, \
-        deep_union, deep_update, data_at_path
+        deep_union, deep_update, data_at_path, data_check_path, maptype
 
 
 
@@ -235,12 +234,45 @@ def H_update_from_args(ctx):
 # Ad-hoc designed path query
 
 def H_path(ctx):
+
+    """
+    Return data at path. Return 1 if path is not found. Use with ``--is-*``
+    opts to OR-test for type or exit 2. To check if a path could be inserted,
+    use ``--is-new``. This overrules not-found errors, but only if the path
+    could be inserted. When any existing
+    element does not match a list or object type it also exits non-zero.
+    """
+
     infile, outfile = get_src_dest_defaults(ctx)
+    data = None
     try:
         data = data_at_path(ctx, infile)
+        infile.close()
     except:
-        return 1
-    return stdout_data( ctx.opts.flags.output_format, data, outfile, ctx )
+        if not ctx.opts.flags.is_new:
+            return 1
+
+    res = [ ]
+
+    for tp in "new list obj int str bool".split(" "):
+        if ctx.opts.flags["is_%s" % tp]:
+            if tp == "new":
+                infile, outfile = get_src_dest_defaults(ctx)
+                if not data and data_check_path(ctx, infile):
+                    res += [ 0 ]
+            elif isinstance(data, maptype(tp)):
+                res += [ 0 ]
+            else:
+                res += [ 1 ]
+
+    if res and min(res) == 0:
+        res = [ 0 ]
+
+    if not ctx.opts.flags.quiet:
+        res += [ stdout_data( ctx.opts.flags.output_format, data, outfile, ctx ) ]
+
+    return max(res)
+
 
 def H_keys(ctx):
     "Output list of keys or indices"
@@ -355,30 +387,6 @@ def H_to_flat_kv(ctx):
     return H_dump(ctx)
 
 
-def H_is_branch(ctx):
-    """Return 3 on path error, 1 if data is not an object"""
-    if ctx.opts.flags.detect_format:
-        set_format('input', 'src', ctx.opts)
-    infile, _ = get_src_dest(ctx)
-    try:
-        data = data_at_path(ctx, infile)
-    except:
-        return 3
-    if not isinstance(data, dict):
-        return 1
-
-
-def H_is_int(ctx):
-    """Return 3 on path error, 1 if data is not an object"""
-    if ctx.opts.flags.detect_format:
-        set_format('input', 'src', ctx.opts)
-    infile, _ = get_src_dest(ctx)
-    try:
-        data = data_at_path(ctx, infile)
-    except:
-        return 3
-    if not isinstance(data, int):
-        return 1
 
 
 

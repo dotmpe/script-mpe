@@ -833,16 +833,21 @@ pd_run()
 
             # Update status result
             test -n "$states" && {
-              pd_update_record $key_pref/status/$record_key $states
+              pd_update_record $key_pref/status/$record_key $states \
+                || error "Failed updating $key_pref/status/$record_key" 11
             } || {
-              jsotk.py is-int $pd $key_pref/status/$record_key \
+              jsotk.py -q path --is-new --is-int $pd $key_pref/status/$record_key \
                 || record_key=$record_key/result
-              pd_update_record $key_pref/status $record_key=$result
+              pd_update_record $key_pref/status $record_key=$result \
+                || error "Failed updating $key_pref/status/$record_key" 12
             }
 
             # Update benchmark values
             test -z "$values" \
-              || pd_update_record $key_pref/benchmarks/$record_key $values
+              || {
+                pd_update_record $key_pref/benchmarks/$record_key $values \
+                  || error "Failed updating $key_pref/benchmarks/$record_key" 11
+              }
           }
         )
 
