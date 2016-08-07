@@ -21,7 +21,7 @@ GIT Branches
 
         dev_confparse_hier
           Testing confparse with inherited properties and hierarchical src file
-          tree.
+          tree. Need to keep test cases alive here.
 
     test
         Writing and running tests.
