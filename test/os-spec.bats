@@ -19,12 +19,12 @@ version=0.0.0+20150911-0659 # script.mpe
   test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/.')" = 'Foo/Bar'
   test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/./')" = 'Foo/Bar/'
 
-#test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/../')" = 'Foo/'
-#test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/..')" = 'Foo'
+#  run $BATS_TEST_DESCRIPTION 'Foo/Bar/../'
+#  test ${status} -eq 0
+#  test "${lines[*]}" = 'Foo/' || fail "Out: ${lines[*]}"
 
-  run $BATS_TEST_DESCRIPTION 'Foo/Bar/../'
-  test ${status} -eq 0
-  test "${lines[*]}" = 'Foo/' || fail "Out: ${lines[*]}"
+  test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/../')" = 'Foo/'
+  test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/..')" = 'Foo'
 
   test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/../..')" = '.'
   test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/../')" = 'Foo/'
