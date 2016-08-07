@@ -2609,6 +2609,7 @@ htd__tpaths()
 {
   test -n "$1" || error "At least one document expected" 1
   test -n "$print_src" || local print_src=
+  test -n "$xsl_ver" || xsl_ver=1
 
   while test -n "$1"
   do
@@ -2620,8 +2621,14 @@ htd__tpaths()
     path= rel_leaf= root= xml=$(htd__getxl $1)
 
     # Read multi-leaf paths, and split it up into relative leafs
-    htd__xproc2 "$xml" $scriptdir/rst-terms2path.xsl \
-      | grep -Ev '^(#.*|\s*)$' \
+
+    {
+      case "$xsl_ver" in
+        1 ) htd__xproc "$xml" $scriptdir/rst-terms2path.xsl ;;
+        2 ) htd__xproc2 "$xml" $scriptdir/rst-terms2path-2.xsl ;;
+        * ) error "xsl-ver '$xsl_ver'" 1 ;;
+      esac
+    } | grep -Ev '^(#.*|\s*)$' \
       | sed 's/\([^\.]\)\/\.\./\1\
 ../g' \
       | grep -v '^\.[\.\/]*$' \
@@ -2652,7 +2659,7 @@ htd__tpath_raw()
 {
   test -n "$1" || error "document expected" 1
   test -e "$1" || error "no such document '$1'" 1
-  htd__xproc2 "$(htd__getxl "$1")" $scriptdir/rst-terms2path.xsl
+  htd__xproc "$(htd__getxl "$1")" $scriptdir/rst-terms2path.xsl
 }
 
 # Process XML using XSLT
