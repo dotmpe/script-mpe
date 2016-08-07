@@ -1,5 +1,5 @@
 $schema: ./taxus-schema.yml
-$ref: https://raw.githubusercontent.com/dotmpe/script.mpe/dev_taxus/taxus-schema.yml#
+$ref: https://raw.githubusercontent.com/dotmpe/script-mpe/dev_taxus/taxus-schema.yml#
 schema:
     name: "taxus.test.extends"
     models:

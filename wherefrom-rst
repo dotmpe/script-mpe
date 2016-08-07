@@ -47,6 +47,10 @@ while getopts hfn OPT; do
             echo $USAGE
             exit 0
             ;;
+        f)
+            shift 1
+            FORCE_RECORD=`shift 1`
+            ;;
         F)
             shift 1
             PREFIX=`shift 1`
@@ -75,7 +79,9 @@ fi
 for file in "$@"
 do
 	if [ -z "`xattr "$file" | grep com.apple.metadata:kMDItemWhereFroms`" ];
-	then continue; fi
+	then 
+    test -n "$FORCE_RECORD" || continue
+	fi
 
 	path=`dirname "$file"`
 	base=`basename "$file"`

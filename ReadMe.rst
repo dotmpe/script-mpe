@@ -9,7 +9,7 @@ Build-status
 
 Stats
     .. image:: http://img.shields.io/badge/github-stats-ff5500.svg
-      :target: http://githubstats.com/dotmpe/script.mpe
+      :target: http://githubstats.com/dotmpe/script-mpe
       :alt: GitHub Stats
 
 
@@ -34,7 +34,7 @@ Other documents
 Dev
 ---
 
-- XXX: maybe look to replace lots of main.sh with dispatch_
+- XXX: maybe look to replace lots of main.lib.sh with dispatch_
 
 .. _dispatch: https://github.com/Mosai/workshop/blob/master/doc/dispatch.md
 

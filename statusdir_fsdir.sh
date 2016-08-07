@@ -5,9 +5,8 @@ set -e
 
 fsdir()
 {
-  local p=$HOME/.statusdir/fsdir
-
-  mkdir -vp $p
+  local p=$sd_tmp_dir/fsdir
+  test -d $p || mkdir $p
 
   case "$1" in
 

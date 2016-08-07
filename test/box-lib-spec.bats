@@ -11,7 +11,7 @@ test_lib=$lib/test/main.inc
 
 @test "${lib}/${base} - box-script-insert-point should return the line before std script functions" {
 
-  check_skipped_envs travis || skip "FIXME broken after main.sh rewrite"
+  check_skipped_envs travis || skip "FIXME broken after main.lib.sh rewrite"
   run box_script_insert_point $test_lib.bash "" load mytest
 
   test ${status} -eq 0

@@ -99,7 +99,7 @@ source $lib/str.lib.sh
 
 @test "${bin} help x " {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
+  test ${status} -eq 0 || fail "$status Out: ${lines[*]}"
   test ! -z "${lines[*]}" # non-empty output
   fnmatch "*Usage:*" "${lines[*]}"
   fnmatch "*x*abc*" "${lines[*]}"

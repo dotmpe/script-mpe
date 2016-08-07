@@ -1,4 +1,4 @@
-# Id: script.mpe/0.0.0-dev Rules.mk
+# Id: script-mpe/0.0.0-dev Rules.mk
 #
 # Non recursive make, partial rule file. See github mkdocs.
 include                $(MK_SHARE)Core/Main.dirstack.mk
@@ -7,18 +7,11 @@ MK                  += $/Rules.mk
 #      ------------ -- 
 
 
-VERSION= 0.0.0-dev# script.mpe
+VERSION= 0.0.0-dev# script-mpe
 
 $(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 
 #      ------------ -- 
-GIT_$d              := $(shell find "$d" -iname ".git")
-BZR_$d              := $(shell find "$d" -iname ".bzr")
-HG_$d               := $(shell find "$d" -iname ".hg")
-co::
-	@$(call log_line,info,$@,Trying to update..)
-	@$(clean-checkout)
-co:: DIR := $d
 
 # XXX Keep long list of clean targets out of normal stat messages
 ifneq ($(call contains,$(MAKECMDGOALS),clean),)
@@ -34,11 +27,11 @@ endif
 #      ------------ -- 
 
 ifeq ($(shell hostname -s),simza)
-TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d
+TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d 
 #test_usr_$d 
 #test_sa_$d test_schema_$d test_py_$d 
 else
-TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d
+TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d test-ci
 endif
 
 STRGT               += $(TEST_$d)
@@ -52,6 +45,10 @@ libcmdng.html: libcmdng.py
 	@$(ll) file_ok "$@"
 
 test:: $(TEST_$d)
+
+test-ci::
+	. ./tools/sh/env.sh; \
+	. ./tools/ci/test.sh
 
 test_py_$d test_sa_$d :: D := $/
 
@@ -264,6 +261,38 @@ symlinks: $/.symlinks
 	@\
     $(call log,header1,$@,Symlinking from,$^);\
     SCRIPT_MPE=/srv/project-mpe/script-mpe ./init-symlinks.sh .symlinks
+
+
+DEP += $(BUILD)pd-make-states.sh
+# FIXME:	$(MK) has non-existing targets
+$(BUILD)pd-make-states.sh: $(SRC) Rules.mk
+	@{ \
+		echo sources=$$(echo $$(echo $(SRC) | wc -w)); \
+		echo dep=$$(echo $$(echo $(DEP) | wc -w)); \
+		echo dmk=$$(echo $$(echo $(DMK) | wc -w)); \
+		echo targets=$$(echo $$(echo $(TRGT) | wc -w)); \
+		echo special-targets=$$(echo $$(echo $(STRGT) | wc -w)); \
+		echo cleanable=$$(echo $$(echo $(CLN) | wc -w)); \
+		echo tests=$$(echo $$(echo $(TESTS) | wc -w)); \
+		echo src/mk/loc=$$(pd loc *.mk); \
+		echo src/py/loc=$$(pd loc *.py */*.py */*/*.py */*/*/*.py); \
+		echo src/sh/loc=$$(pd loc *.sh); \
+		echo src/sh/main/loc=$$(pd loc main*.*); \
+		echo src/sh/lib/loc=$$(pd loc *.lib.sh); \
+		echo src/sh/match/loc=$$(pd loc match*.sh); \
+		echo src/sh/disk/loc=$$(pd loc disk*.sh); \
+		echo src/sh/graphviz/loc=$$(pd loc graphviz*.sh); \
+		echo src/sh/vc/loc=$$(pd loc vc*.sh); \
+		echo src/sh/statusdir/loc=$$(pd loc statusdir*.sh); \
+		echo src/sh/htd/loc=$$(pd loc htd htd.lib.sh); \
+		echo src/sh/pd/loc=$$(pd loc projectdir*.sh); \
+		echo src/sh/bats-specs/loc=$$(pd loc test/*-spec.bats); \
+		echo doc/rst/loc=$$(pd loc *.rst); \
+	} \
+		> $@
+
+
+TRGT += TODO.list
 
 IGNORE := coverage_html_report ReadMe.rst Rules.mk '*.html' '*.xml' TODO.list
 IGNORE_F := $(addprefix --exclude ,$(IGNORE))

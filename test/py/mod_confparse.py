@@ -23,7 +23,6 @@ class AbstractConfparseTest(unittest.TestCase, object):
             self.tmpdir = '/tmp/'
         else:
             raise Exception ("Uknown platform: %s" % sys.platform)
-
         self.testrootdir = join(self.tmpdir, self.NAME)
         #self.testrootdir = join(dirname(tmpnam()), self.NAME)
         makedirs(self.testrootdir)
@@ -58,7 +57,7 @@ class CPTest2(AbstractConfparseTest):
 
     def confparse_test_func1_(self):
         self._print_test_files()
-        conf = expand_config_path(self.NAME).next() 
+        conf = expand_config_path(self.NAME).next()
         #self.assertEqual(conf, self.name)
         settings = load(self.NAME)
         #self.assertEqual(load(conf), settings)
@@ -206,22 +205,22 @@ class CPTest1(AbstractConfparseTest):
         self.assertEqual(test_settings.copy(True), {
             'foo': {
                 'bar': {'var': 'v'},
-                'test4': [{'foo': 'bar'}], 
-            }, 
+                'test4': [{'foo': 'bar'}],
+            },
             #'file': '/tmp/test1/.testrc',
-            'config_file': '/tmp/test1/test/sub/dir/testrc',
+            'config_file': self.tmpdir + 'test1/test/sub/dir/testrc',
         });
         test_settings = self.test_3_set_string()
         self.assertEqual(test_settings.copy(), {
-            'test1': 'value', 
+            'test1': 'value',
             'test2': {
                 'foo': {'bar': {'z': 'value3'}}},
             'foo': {
                 'bar': {'var': 'v'},
-                'test4': [{'foo': 'bar'}], 
-            }, 
+                'test4': [{'foo': 'bar'}],
+            },
             #'file': '/tmp/test1/.testrc'
-            'config_file': '/tmp/test1/test/sub/dir/testrc',
+            'config_file': self.tmpdir + 'test1/test/sub/dir/testrc',
         });
         #print test_settings
         #print test_settings.keys()
@@ -231,25 +230,26 @@ class CPTest1(AbstractConfparseTest):
         test_settings = self.test_5_copy()
 
         self.assertEqual(test_settings.getsource(), test_settings)
-        test_settings.commit()
+        # FIXME: should get commit working with multiple modules, see
+        # dev_confparse_hier
+        #test_settings.commit()
 
         # FIXME: confparse.commit is not really tested
         #test_settings.reload()
         test_settings = self.test_5_copy()
         self.assertEqual(test_settings.copy(), {
-            'test1': 'value', 
+            'test1': 'value',
             'test2': {
                 'foo': {'bar': {'z': 'value3'}}},
             'foo': {
                 'bar': {'var': 'v'},
-                'test4': [{'foo': 'bar'}], 
-            }, 
+                'test4': [{'foo': 'bar'}],
+            },
             #'config_file': self.tmpdir+'test1/.testrc'
-            'config_file': self.tmpdir+'test1/test/sub/dir/testrc'
+            'config_file': self.tmpdir + 'test1/test/sub/dir/testrc'
         });
 
 
-# Testing
 
 def confparse_test_func1():
     from confparse import yaml
@@ -278,8 +278,8 @@ def confparse_test_func1():
 
 
 def test_new():
-    # FIXME restructure confparse tests
     """
+
         testroot/.cllct/myConfig.ext
         testroot/sub/.cllct/myConfig.ext
         testroot/sub/sub2/.myConfig.ext
@@ -336,7 +336,7 @@ def test_new():
     Iow. when updated, the change will be committed to this file.
     The value may behave as a stack, where we can delete an override.
     """
-    
+
 
 class Values2Test(unittest.TestCase):
 	def makeFiles(self, *resources):
@@ -362,18 +362,24 @@ class Values2Test(unittest.TestCase):
 	#	from subprocess import Popen
 	#	p = Popen("tree" + " -aifgup %s" % self.testDir, shell=True)
 	#	pid, sts = os.waitpid(p.pid, 0)
+
 	def test_1(self):
+	        pwd = os.getcwd()
 		chdir(join(self.testDir, 'sub/sub2'))
-		config = confparse.load_all(['myConfig', 'myConfigLocal'], alt_paths=['~/', './'],
-				prefixes=['', '.', '.cllct/'], exts=['.yaml'])
+		config = confparse.load_all(
+		        ['myConfig', 'myConfigLocal'], alt_paths=['~/', './'],
+			prefixes=['', '.', '.cllct/'], exts=['.yaml'])
 		self.assertEqual( config.myValue, 2 )
 		self.assertEqual( config.sub.mySubValue, 2 )
 		self.assertEqual( config.source.myConfig_1, 'testroot/.cllct/myConfig.ext' )
+		chdir(pwd)
+
+
 # TODO: test values
 def get_cases():
 	return [
-			CPTest2, 
-			CPTest1, 
+			CPTest2,
+			CPTest1,
 			#            unittest.FunctionTestCase( confparse_test_func1 )
 		]
 

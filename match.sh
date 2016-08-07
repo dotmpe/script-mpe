@@ -3,7 +3,7 @@ match_src=$_
 
 set -e
 
-match_version=0.0.0-dev # script.mpe
+match_version=0.0.0-dev # script-mpe
 
 
 
@@ -88,6 +88,11 @@ match__glob()
   echo "$@" | grep '^'$glob_pat'$' > /dev/null || return 1
 }
 
+match__regex()
+{
+  compile_glob "$1"
+}
+
 # check given name with all name patterns
 match__names()
 {
@@ -169,7 +174,7 @@ match_lib()
   util_init
   . $scriptdir/box.init.sh
   box_run_sh_test
-  . $scriptdir/main.sh "$@"
+  . $scriptdir/main.lib.sh "$@"
   . $scriptdir/main.init.sh
   # -- match box init sentinel --
 }

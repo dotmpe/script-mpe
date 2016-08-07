@@ -1,9 +1,17 @@
+package_distribution=public
+package_environment_development__0=package_pd_meta_default=dev
+package_environment_development__1=Build_Deps_Default_Paths=1
+package_environment_development__2=BOREAS_SKIP=1
+package_environment_development__3=DANDY_SKIP=1
+package_environment_development__4=VS1_SKIP=1
 package_environments__0=development
-package_id=script.mpe
-package_version=0.0.0-dev
-package_main=script.mpe
-package_type=application/x-project-mpe
-package_pd_meta_test="vchk -python:test/main.py bats-specs bats"
+package_id=script-mpe
+package_license=GPL
+package_main=script-mpe
+package_pd_meta_check="-verbose=false:./tools/sh/tags.sh :vchk :bats:specs :git:status"
 package_pd_meta_git_hooks_pre_commit=./tools/git-hooks/pre-commit.sh
-package_pd_meta_init="./install-dependencies.sh git"
-package_pd_meta_check="vchk bats-specs"
+package_pd_meta_init="./install-dependencies.sh git:init"
+package_pd_meta_test=":vchk sh:python:test/main.py :bats:specs :bats"
+package_type=application/x-project-mpe
+package_vendor=dotmpe
+package_version=0.0.0-dev

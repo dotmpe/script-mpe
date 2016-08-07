@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load helper
+load vc
 base=vc.sh
 init
 
@@ -41,28 +42,22 @@ init
 }
 
 @test "$bin ps1" {
-  cd /tmp
+
+  cd $TMPDIR
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "/tmp" = "${lines[*]}"
+  test "$TMPDIR" = "${lines[@]}" || {
+    diag "TMPDIR:'${TMPDIR}'"
+    diag "BATS_TMPDIR:'${BATS_TMPDIR}'"
+    fail "Lines: '${lines[*]}'"
+  }
 }
 
 @test "$bin screen" {
-  cd /tmp
+  cd $TMPDIR
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "/tmp" = "${lines[*]}"
-}
-
-setup_clean_git()
-{
-  local tmpd=/tmp/script-mpe-vc-bats-$(uuidgen)
-  mkdir -vp $tmpd
-  cd $tmpd
-  git init
-  touch .gitignore
-  git add .
-  git ci -m Init
+  test "$TMPDIR" = "${lines[*]}"
 }
 
 @test "$bin bits" {
@@ -78,18 +73,20 @@ setup_clean_git()
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  fnmatch $twd' \[git:master +([0-9a-f])...\]' "${lines[*]}"
+
+  #diag "SHELL: $SHELL"
+
+  shopt -s extglob
+  fnmatch $(cd $twd; pwd -P)' \[git:master +([0-9a-f])...\]' "${lines[*]}" \
+    || fail "'${lines[*]}'"
 
   mkdir doc
   cd doc
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
 
-  skip "Broke vc bits in subdir"
-
   fnmatch $twd' \[git:master +([0-9a-f])...\]/doc' "${lines[*]}" \
-    || fail "Output: ${lines[*]}"
-  #/tmp/script-mpe-vc-bats-C8AEC93C-C607-4719-82EA-0C33633E65E6 (git:unborn)/doc
+    || fail "Output: ${lines[*]} ($twd)"
 
   cd $twd
   echo ignore > .gitignore
@@ -111,12 +108,13 @@ setup_clean_git()
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  fnmatch $twd' \[git:master\*~ +([0-9a-f])...\]' "${lines[*]}"
+  fnmatch $twd' \[git:master\*~ +([0-9a-f])...\]' "${lines[*]}" \
+    || fail "'${lines[*]}: $(git status)'"
 
   cd doc
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  fnmatch $twd' \[git:master\*~ +([0-9a-f])...\]/doc' "${lines[*]}"
+  fnmatch $twd' \[git:master\* +([0-9a-f])...\]/doc' "${lines[*]}"
 
   cd $twd
   touch CHANGELOG
@@ -124,12 +122,17 @@ setup_clean_git()
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  fnmatch $twd' \[git:master\*\+~ +([0-9a-f])...\]' "${lines[*]}"
+  fnmatch $twd' \[git:master\*\+~ +([0-9a-f])...\]' "${lines[*]}" \
+    || fail "'${lines[*]}: $(git status)'"
 
   cd doc
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  fnmatch $twd' \[git:master\*\+~ +([0-9a-f])...\]/doc' "${lines[*]}"
+  fnmatch $twd' \[git:master\*\+ +([0-9a-f])...\]/doc' "${lines[*]}" \
+    || fail "'${lines[*]}: $(git status)'"
+
+  shopt -u extglob
 }
 
 
+# vim:ft=sh:

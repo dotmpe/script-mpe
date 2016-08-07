@@ -3,6 +3,7 @@ import re
 from fnmatch import fnmatch
 from res import js
 from confparse import yaml_load, yaml_safe_dump
+from pydoc import locate
 
 
 re_non_escaped = re.compile('[\[\]\$%:<>;|\ ]')
@@ -63,7 +64,6 @@ class AbstractKVParser(object):
         key, value = kv[:pos].strip(), kv[pos+1:].strip()
         self.set( key, value )
 
-
     def set( self, key, value, d=None, default=None, values_as_json=True ):
         """ Parse key to path within dict/list struct and insert value.
         kv syntax::
@@ -80,7 +80,10 @@ class AbstractKVParser(object):
 
         # Maybe want to allow other parsers too, ie YAML values
         if isinstance(value, basestring):
-            if values_as_json:
+            # Default value if empty is string
+            if value.lower() in ('none', 'null', 'nil'):
+                value = None
+            elif values_as_json:
                 value = parse_json(value)
             else:
                 value = parse_primitive(value)
@@ -114,6 +117,12 @@ class AbstractKVParser(object):
                     if key not in d:
                         d[key] = default
                 else:
+                    if isinstance(key, int):
+                        if not isinstance(d, list):
+                            raise TypeError, "%s is not a list: %r" % (key, d)
+                    else:
+                        if not isinstance(d, dict):
+                            raise TypeError, "%s is not a dict: %r" % (key, d)
                     d[key] = value
                 return key
 
@@ -129,6 +138,39 @@ class AbstractKVParser(object):
                 k = self.set( k, value, d )
             if path:
                 d = d[k]
+
+    def get( self, key, d=None):
+        """[2016-08-07] Adding get function """
+
+        if not d: d = self.data
+
+        if isinstance(d, list):
+            if not isinstance(d, list):
+                raise TypeError, "%s is not a list: %r" % (key, d)
+
+            if '[' not in key:
+                raise TypeError("Expected key with index, not %r" % key)
+
+            pos = key.index('[')
+            if key[:pos] not in d:
+                return None
+
+            if len(key) > pos+2:
+                idx = int(key[pos+1:-1])
+
+                while len(d[key[:pos]]) <= idx:
+                    d[key[:pos]].append(None)
+
+                return d[key[:pos]][idx]
+
+            else:
+                return d[key[:pos]]
+
+        else:
+            if not isinstance(d, dict):
+                raise TypeError, "%s is not a dict: %r" % (key, d)
+            return d[key]
+
 
     @staticmethod
     def get_data_instance(key):
@@ -213,7 +255,10 @@ class FlatKVSerializer(AbstractKVSerializer):
         return sp % re_alphanum.sub('_', key)
 
 def load_data(infmt, infile, ctx):
-    return readers[ infmt ]( infile, ctx )
+    data = readers[ infmt ]( infile, ctx )
+    if isinstance(data, type(None)):
+        raise Exception("No data from file %s (%s)" % ( infile, infmt ))
+    return data
 
 def stdout_data(outfmt, data, outfile, ctx):
     return writers[ outfmt ]( data, outfile, ctx )
@@ -383,7 +428,10 @@ def open_file(fpathname, defio='out', mode='r', ctx=None):
             import sys
             return getattr(sys, 'std%s' % defio)
     else:
-        return open(fpathname, mode)
+        try:
+            return open(fpathname, mode)
+        except IOError, e:
+            raise Exception, "Unable to open %s for %s" % (fpathname, mode)
 
 def get_src_dest(ctx):
     infile, outfile = None, None
@@ -422,8 +470,8 @@ def get_dest(ctx, mode):
     updatefile = None
     if 'destfile' in ctx.opts.args and ctx.opts.args.destfile:
         assert ctx.opts.args.destfile != '-'
-        updatefile = open_file(ctx.opts.args.destfile, defio=None, mode=mode,
-                ctx=ctx)
+        updatefile = open_file(
+                ctx.opts.args.destfile, defio=None, mode=mode, ctx=ctx)
     return updatefile
 
 def get_src_dest_defaults(ctx):
@@ -445,6 +493,8 @@ def deep_update(dicts, ctx):
     --list-update or --list-union, see deep_union.
     """
     assert len(dicts) > 1
+    assert not isinstance( dicts[0], type(None) )
+    assert not isinstance( dicts[1], type(None) )
     data = dicts[0]
     while len(dicts) > 1:
         mdata = dicts.pop(1)
@@ -454,14 +504,23 @@ def deep_update(dicts, ctx):
         for k, v in mdata.iteritems():
             if k in data:
                 if isinstance(data[k], dict):
-                    deep_update( [ data[k], v ], ctx )
+                    try:
+                        deep_update( [ data[k], v ], ctx )
+                    except ValueError, e:
+                        raise Exception("Error updating %s (%r) with %r" % (
+                                k, data[k], v
+                            ), e)
                 elif isinstance(data[k], list):
                     data[k] = deep_union( [ data[k], v ], ctx )
                 else:
+                    if not isinstance(data[k], type(v)):
+                        raise ValueError, "Expected %s but got %s" % (
+                                type(data[k]), type(v))
                     data[k] = v
             else:
                 data[k] = v
     return data
+
 
 def deep_union(lists, ctx):
     """List merger with different modes.
@@ -499,7 +558,12 @@ def deep_union(lists, ctx):
                 # cmp index-by-index
                 if not ctx.opts.flags.list_update_nodict:
                     if isinstance(data[i], dict):
-                        v = deep_update([data[i], v], ctx )
+                        try:
+                            v = deep_update([data[i], v], ctx )
+                        except ValueError, e:
+                            raise Exception("Error updating %s (%r) with %r" % (
+                                    i, data[i], v
+                                ), e)
                 elif isinstance(data[i], list):
                     v = deep_union([data[i], v], ctx )
                 data[i] = v
@@ -525,4 +589,54 @@ def data_at_path(ctx, infile):
             raise KeyError, b
         l = l[b]
     return l
+
+
+def data_check_path(ctx, infile):
+    if not infile:
+        infile, outfile = get_src_dest_defaults(ctx)
+
+    data = load_data( ctx.opts.flags.input_format, infile, ctx )
+
+    parser = PathKVParser(data)
+
+    path_el = ctx.opts.args.pathexpr.split('/')
+    if not ctx.opts.args.pathexpr or path_el[0] == '':
+        return False
+
+    try:
+        path = ''
+        while path_el:
+            if not path:
+                path = path_el.pop(0)
+                dt = parser.get(path)
+            else:
+                key = path_el.pop(0)
+                dt = parser.get( key, d=dt )
+                path = '/'.join(path, key )
+    except TypeError, e:
+        return False
+    except (KeyError, IndexError), e:
+        pass
+
+    return True
+
+    while len(path_el):
+        b = path_el.pop(0)
+        if b not in l:
+            raise KeyError, b
+        l = l[b]
+    return l
+
+
+typemap = {
+    'str': 'basestring',
+    'obj': 'dict',
+}
+def maptype(typestr):
+    if typestr == 'null':
+        return type(None)
+    if typestr in typemap:
+        return locate(typemap[typestr])
+    return locate(typestr)
+
 

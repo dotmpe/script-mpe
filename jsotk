@@ -4,11 +4,11 @@ jsotk_src="$_"
 
 set -e
 
-version=0.0.0-dev # script.mpe
+version=0.0.0-dev # script-mpe
 
 
 
-jsotk_man_1__version="Version info"
+jsotk__man_1_version="Version info"
 jsotk__version()
 {
   echo "$(cat $scriptdir/.app-id)/$version"
@@ -122,8 +122,8 @@ jsotk_load()
         # include realpath of projectdoc (p)
         test -n "$jsotk" && {
           req_vars p
-          failed=$(setup_tmp .failed -$p-$subcmd-$(uuidgen))
-        } || failed=$(setup_tmp .failed)
+          failed=$(setup_tmpf .failed -$p-$subcmd-$(uuidgen))
+        } || failed=$(setup_tmpf .failed)
       ;;
 
     b )
@@ -196,7 +196,8 @@ jsotk_main()
           sock= \
           c=0 \
           ext_sh_sub= \
-          base=jsotk
+          base=jsotk \
+          failed=
 
         shift $c
 
