@@ -6,6 +6,7 @@ import hashlib
 import socket
 import time
 import traceback
+import uuid
 
 import calendar
 
@@ -19,12 +20,15 @@ from persistence import PersistedMetaObject
 
 
 class MetaProperty(object):
+
     """
     Facade to tie volume/path/prop to its impl.
     """
+
     cname = ''
     depends = ()
     provides = ()
+
     def __init__(self, metaresolver):
         self.resolver = metaresolver
     def extract(self, props, path, opts):
@@ -33,18 +37,18 @@ class MetaProperty(object):
         return 0
     def __get__(self, obj, type=None):
         print 'MP get', obj, type
-
     def __set__(self, obj, value):
         print 'MP set', obj, value
-
     def __delete__(self, obj):
         print 'MP delete', obj
 
 # MP may test for extraction and fail
 # MP may be extractor and/or provide classnames for (possible) extractors
 class MetaContentLocationProperty(MetaProperty):
+
     cname = 'rsr:content-location'
     depends = ()
+
     def applies(self, props, path, opts):
         if os.path.exists(path): # and has read access
             return 1
@@ -184,7 +188,7 @@ class MetaResolver(object):
         while len(props) > p:
             mp_class = props[p]
             for mp_dep_class in mpe_prerequisites(mp_class):
-                # prepend all prerequisite MP classes before current 
+                # prepend all prerequisite MP classes before current
                 if mp_dep_class not in props:
                     props.insert(p, mp_dep_class)
             if mp_class != props[p]:
@@ -218,12 +222,19 @@ class SHA1Sum(object):
 
 
 class Metafile(PersistedMetaObject):
-    
+
     """
     rsr abstraction of of filebased metadata's?
 
     FIXME make this as a hub for shelve/file instances. Autodiscover, do a few
     methods of storage and see what works.
+
+    Metafile exists as a file <file>.extension along a regular file.
+    Some dotnames could be considered directory metafiles.
+
+    TODO the metafile data is stored alternatively in the shelve from a metadir.
+        this implements a (database0 PersistedMetaObject, see MetafileFile for
+        th other..
     """
     storage_name = 'metafile'
 
@@ -249,6 +260,7 @@ class Metafile(PersistedMetaObject):
         return mid in self.store
 
     def fetch(self):
+        "Return metafile-object from local PMO-store"
         mid = self.metaid()
         if mid in self.store:
             return self.store[mid]
@@ -291,7 +303,7 @@ class MetafileFile(object): # XXX: Metalink syntax
         #('Digest', util.md5_content_digest_header),
         ('Digest', util.sha1_content_digest_header),
         # TODO: Link, Location?
-#            'Content-MD5': lib.get_md5sum_sub, 
+#            'Content-MD5': lib.get_md5sum_sub,
 # not all instances qualify: the spec only covers the message body, which may be
 # chunked.
     )
@@ -394,7 +406,7 @@ class MetafileFile(object): # XXX: Metalink syntax
                 print '\tFile changed size'
             else:
                 print '\tNew attribute', attr[i1-2]
-        # /xxx:chatter 
+        # /xxx:chatter
 
         needs_update = updates != []
         if needs_update:
@@ -420,7 +432,7 @@ class MetafileFile(object): # XXX: Metalink syntax
         return self.__class__.has_metafile(self.path, self.basedir)
 
     @classmethod
-    def has_metafile(Class, path, basedir):
+    def has_metafile(Class, path, basedir=None):
         return os.path.exists(Class.get_metafile(path, basedir))
 
     @classmethod
@@ -482,7 +494,7 @@ class MetafileFile(object): # XXX: Metalink syntax
             )
         for handlers in self.handlers, envelope:
             for header, handler in handlers:
-                
+
                 value = None
 
                 try:
@@ -525,7 +537,7 @@ class MetafileFile(object): # XXX: Metalink syntax
         os.utime(self.__class_.get_metafile(self.path, self.basedir), (mtime, mtime))
 
     def read(self):
-        if not self.has_metafile():
+        if not self.__class__.has_metafile(self.path, self.basedir):
             raise Exception("No metafile exists")
         fl = open(self.__class__.get_metafile(self.path, self.basedir), 'r')
         for line in fl.readlines():
@@ -536,56 +548,118 @@ class MetafileFile(object): # XXX: Metalink syntax
             #fl.write("%s: %s" % (header, value))
         fl.close()
 
+    def get_sha1sum(self):
+	if 'Digest' in self.data:
+	    data = self.data['Digest']
+	    if data.startswith('SHA1'):
+	        b64_sha1 = data[5:]
+                return base64.b64decode(b64_sha1).encode('hex')
+
 
 class Metadir(object):
 
     """
-    Find like metafile, this checks if a dotname is a directory,
-    and if there is a file dotdir_id in it.
+    Find like metafile, except this checks if a dotname is a dotted directory,
+    and wether some ID file exists in there.
     """
-    dotdir = 'meta'
-    dotdir_id = 'dir'
+
+    # XXX used as class variuables..
+    DOTDIR = 'meta'
+    DOTID = 'dir'
 
     def __init__(self, path):
-        self.path = path
-        assert not path.endswith(self.dotdir)
-        assert not path.endswith(self.dotdir+'/')
+        """
+        Like metafile, the path here will be the directory itself,
+        if it ends with the metadir and id file it, that is stripped.
+        """
+        dotext = os.path.splitext( os.path.basename( path ))
+        if dotext[0] == self.DOTID:
+            assert dotext[1] == '.id'
+            self.path = os.path.dirname( path )
+        else:
+            self.path = path
+        if self.path.endswith(self.DOTDIR) or self.path.endswith(self.DOTDIR+'/'):
+            self.path = os.path.dirname( self.path )
+            self.prefix = '.'+self.DOTDIR+'/'
+        assert self.DOTDIR not in self.path, self.path
+        self.init()
 
     @property
     def full_path(self):
-        return os.path.join(self.path, '.'+self.dotdir)
+        """Return %s metadir path. """ % lib.cn(self)
+        return os.path.join(self.path, '.'+self.DOTDIR)
+
+    def metadirref(self, ext='db', name=None):
+        if not name:
+            name = self.DOTID
+        return os.path.join(self.full_path, '%s.%s' % (name, ext))
 
     @property
     def id_path(self):
-        return os.path.join(self.full_path, self.dotdir_id)
+        """Return %s metadir id-file path. """ % lib.cn(self)
+        # XXX: perhaps rename DOTID just markerleaf to reflect find_config_path
+        return self.metadirref( 'id' )
+
+    @property
+    def metadir_id(self):
+        #if self.exists():
+        #    return open(self.id_path).read().strip()
+        return self.__id
+
+    def exists(self):
+        return os.path.exists(self.id_path)
+
+    def init(self, create=False, reset=False, metadir_id=None):
+        if self.exists() and not reset:
+            assert not metadir_id
+            self.__id = open(self.id_path).read().strip()
+        elif reset or create:
+            if not metadir_id:
+                metadir_id = str(uuid.uuid4())
+            assert isinstance(metadir_id, str)
+            self.__id = metadir_id
+            if not os.path.exists(self.full_path):
+                os.mkdir(self.full_path)
+            open(self.id_path, 'w+').write(self.__id)
+            log.note( "%s Metadir.init %s %s" % (
+                lib.cn(self), reset and 'Reset' or 'Created', self.full_path  ))
+        else:
+            self.__id = metadir_id
 
     def __str__(self):
-        guid = self.guid
-        return "%s at %s with GUID %s" % (lib.cn(self), self.id_path, guid)
+        if self.__id:
+            return "<Metadir:%s at %s, Id %r>" % ( lib.cn(self), self.id_path, self.__id )
+        else:
+            return "<Metadir:%s at %s, unregistered>" % ( lib.cn(self), self.id_path )
 
     def __repr__(self):
-        guid = self.guid
-#        guid = hex(id(self))
-        return "<%s %s at %s>" % (lib.cn(self), guid, self.id_path)
+        return self.__str__()
 
     @classmethod
     def find(clss, *paths):
-        """
-        Find metadir by searching for markerleaf indicated by Class
-        'dotdir' property (see confparse.find_config_path).
+        prefixes = confparse.name_prefixes + ( '.'+clss.DOTDIR+'/', )
+        return list(confparse.find_config_path(clss.DOTID,
+            paths=list(paths),
+            prefixes=prefixes,
+            suffixes=['.id']
+        ))
 
-        Returning Class instance if path exists.
+    @classmethod
+    def fetch(clss, *paths):
         """
-        path = None
-        for path in confparse.find_config_path(clss.dotdir, paths=list(paths)):
-            vid = os.path.join(path, clss.dotdir_id)
-            if os.path.exists(vid):
-                break
-            else:
-                path = None
-        if path:
-            return clss(os.path.dirname(path))
+        Find metadir by searching for markerleaf indicated by Class'
+        DOTID property, using '.' DOTDIR '/' as one of the name prefixes.
 
+        See confparse.find_config_path. This will be searching for the .id
+        extensions.
+
+        Returning Class instance for first path, if any.
+        """
+        configpaths = list(clss.find(*paths))
+        if configpaths:
+            if len(configpaths) > 1:
+                log.warn('Using first config file %s for %s', clss.DOTID, configpaths)
+            return clss(configpaths[0])
 
 class Meta(object):
 
@@ -596,8 +670,8 @@ class Meta(object):
     def __init__(self, volume):
         self.volume = volume
         # init STAGE shelve
-        ref = volume.idxref('STAGE')
-        self.stage = PersistedMetaObject.get_store(name='STAGE', dbref=ref)
+        #ref = volume.idxref('STAGE')
+        #self.stage = PersistedMetaObject.get_store(name='STAGE', dbref=ref)
 
     def get_property(self, name, index='STAGE'):
         assert index == 'STAGE'
@@ -652,10 +726,13 @@ class Meta(object):
         volume.store
         volume.indices
 
-if __name__ == '__main__':
-    import shelve
-    path = '/Volumes/archive-7/media/text/US-patent/US2482773.pdf'
-    vdb = PersistedMetaObject.get_store(name='tmp')
 
-    mf = Metafile.find(path, vdb)
+if __name__ == '__main__':
+    import os
+    print Metadir.find(os.getcwd())
+
+    #import shelve
+    #path = '/Volumes/archive-7/media/text/US-patent/US2482773.pdf'
+    #vdb = PersistedMetaObject.get_store(name='tmp')
+    #mf = Metafile.find(path, vdb)
 

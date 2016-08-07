@@ -15,11 +15,30 @@ Schema
    FileDescription
     * description:String(255)
 
+   Mediameta:Node
+    * checksums:List<ChecksumDigest>
+    * mediatype:Mediatype
+    * mediaformat:Mediaformat
+    * genres:List<Genre>
+
+   Mediatype:Node
+    * mime:Name
+
+   MediatypeParameter:None
+    * localName:Str
+    * default:
+
+   Genre:Node
+    ..
+   Mediaformat:Name
+    ..
+
 TODO: add files to global index manually.
 TODO: map manualy added paths elements to GroupNode, relative paths? entered paths are
   important, watch out for bash globbing.
 TODO: some checksums for my precious media. Could use sums somehow to tie..
 TODO: tagging? or not. 
+
 """
 import os
 from datetime import datetime
@@ -44,7 +63,7 @@ import taxus.checksum
 import taxus.fs
 from taxus.core import Node, Name
 from taxus.media import Mediatype, Mediaformat, Genre, Mediameta
-from txs import TaxusFe
+from txs import Txs
 
 
 """
@@ -55,7 +74,7 @@ class FileDescription(Node):
     filedescription_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
     description = Column(String(255), unique=True)
 
-ass FileInfo(Node):
+class FileInfo(Node):
     __tablename__ = 'fileinfo'
     __mapper_args__ = {'polymorphic_identity': 'filedescription'}
     fileinfo_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
@@ -68,9 +87,10 @@ ass FileInfo(Node):
             primaryjoin=description_id == FileDescription.filedescription_id)
 """
 
-class FileInfoApp(TaxusFe):
+class FileInfoApp(Txs):
 
-    NAME = os.path.splitext(os.path.basename(__file__))[0]
+    NAME = 'mm'
+    PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
 
 #    DB_PATH = os.path.expanduser('~/.fileinfo.db')
 #    DEFAULT_DB = "sqlite:///%s" % DB_PATH
@@ -79,7 +99,7 @@ class FileInfoApp(TaxusFe):
 
 #    TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['file_info']
     #NONTRANSIENT_OPTS = Cmd.NONTRANSIENT_OPTS 
-    DEFAULT_ACTION = 'file_info'
+    DEFAULT = ['file_info']
 
     DEPENDS = {
             'file_info': ['txs_session'],
@@ -93,30 +113,31 @@ class FileInfoApp(TaxusFe):
         }
 
     @classmethod
-    def get_optspec(Klass, inherit):
+    def get_optspec(Klass, inheritor):
+        p = inheritor.get_prefixer(Klass)
         return (
-                (('--file-info',), libcmd.cmddict(help="Default command. ")),
-                (('--name-and-categorize',), libcmd.cmddict(
+                p(('--file-info',), libcmd.cmddict(help="Default command. ")),
+                p(('--name-and-categorize',), libcmd.cmddict(
                     help="Need either --interactive, or --name, --mediatype and "
                         " --mediaformat. Optionally provide one or more --genre's. "
                 )),
-                (('--mm-stats',), libcmd.cmddict(help="Print media stats. ")),
-                (('--list-mtype',), libcmd.cmddict(help="List all mediatypes. ")),
-                (('--list-mformat',), libcmd.cmddict(help="List all media formats. ")),
-                (('--add-mtype',), libcmd.cmddict(help="Add a new mediatype. ")),
-                (('--add-mformats',), libcmd.cmddict(help="Add a new media format(s). ")),
-                (('--add-genre',), libcmd.cmddict(help="Add a new media genre. ")),
+                p(('--stats',), libcmd.cmddict(help="Print media stats. ")),
+                p(('--list-mtype',), libcmd.cmddict(help="List all mediatypes. ")),
+                p(('--list-mformat',), libcmd.cmddict(help="List all media formats. ")),
+                p(('--add-mtype',), libcmd.cmddict(help="Add a new mediatype. ")),
+                p(('--add-mformats',), libcmd.cmddict(help="Add a new media format(s). ")),
+                p(('--add-genre',), libcmd.cmddict(help="Add a new media genre. ")),
 
-                (('--name',), dict(
+                p(('--name',), dict(
                     type='str'
                 )),
-                (('--mtype',), dict(
+                p(('--mtype',), dict(
                     type='str'
                 )),
-                (('--mformat',), dict(
+                p(('--mformat',), dict(
                     type='str'
                 )),
-                (('--genres',), dict(
+                p(('--genres',), dict(
                     action='append',
                     default=[],
                     type='str'
@@ -124,7 +145,7 @@ class FileInfoApp(TaxusFe):
                # (('-d', '--dbref'), {'default':self.DEFAULT_DB, 'metavar':'DB'}),
             )
 
-    def list_mformat(self, sa=None):
+    def list_mformat(self, sa):
         mfs = sa.query(Mediaformat).all()
         for mf in mfs:
             print mf
@@ -150,8 +171,8 @@ class FileInfoApp(TaxusFe):
         Add one or more new mediatypes.
         """
         assert mtype, "First argument 'mtype' required. "
-        mt = sa.query( Mediatype, Name )\
-                .filter( Name.name == mtype )\
+        mt = sa.query( Mediatype )\
+                .filter( Mediatype.name == mtype )\
                 .all()
         if mt:
             mt = mt[0]

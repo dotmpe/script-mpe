@@ -9,11 +9,10 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship, backref
 
 # script Namespace
-import log
+from script_mpe import log
 # script.res Namespace
 import core
 import out
-from util import SessionMixin
 from init import SqlBase
 
 
@@ -158,3 +157,5 @@ class Socket(INode):
     socket_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
 
 
+
+models = [ INode, Dir, File, Symlink, Device, Mount, FIFO, Socket ]

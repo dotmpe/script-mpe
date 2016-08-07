@@ -5,7 +5,13 @@ Taxus ORM (SQL) model.
 All objects inherit from Node. Each object type is has its own table. Stored
 objects have records in `nodes` and all other 'parent' tables (references via
 foreign-keys). The `nodes` table stores the objects type, meaning there can be 
-only one type for a node record at any time.
+only one (sub)type for a node record at any time.
+
+Futher the main value of Node is a string, 'name' of at most 255 characters ie. 
+easy to fit in common databases string columns.
+This value must be unique.
+
+
 
 TODO: redraw this diagram.
 ::
@@ -158,29 +164,46 @@ Resource nodes, adding another layer of similar but distinct nodes.
 
 The Description column in the diagram is there to get an idea, while most such
 data should be stored a suitable triple store.
-
-TODO: move all models to _model module.
 """
 import os
 
 from sqlalchemy.orm.exc import NoResultFound
 
+# Local
 import iface
+import init
 import util
-
-from init import SqlBase
-from util import SessionMixin
-
+# Local: model
+import checksum
 import core
 import fs
-import checksum
-import net
 import fslayout
+import generic
+import net
+import web
+import semweb
 
+from init import SqlBase
+from util import SessionMixin, ScriptMixin, ORMMixin, get_session
 from core import *
 from net import *
+from code import *
 from fs import *
 from fslayout import *
+from model import Namespace, Relocated, Volume, Bookmark
+
+
+
+models = \
+        checksum.models + \
+        core.models + \
+        fs.models + \
+        model.models + \
+        net.models + \
+        web.models + \
+        generic.models + \
+        semweb.models + \
+        code.models
 
 
 class Taxus(object):

@@ -5,9 +5,9 @@ from script_mpe.lib import cn
 
 from zope.interface import implements
 
-import res.iface
-import taxus.iface
-from taxus.iface import IFormatted
+#import res.iface
+from script_mpe.taxus import iface
+import iface
 
 
 ### User view/Debug serializers
@@ -106,8 +106,8 @@ class PrimitiveFormatter(object):
     """
     Adapter
     """
-    implements(IFormatted)
-    __used_for__ = taxus.iface.Node
+    implements(iface.IFormatted)
+    __used_for__ = iface.Node
 
     def __init__(self, context):
         self.context = context
@@ -129,8 +129,8 @@ class IDFormatter(object):
     """
     Adapter
     """
-    implements(IFormatted)
-    __used_for__ = taxus.iface.IID
+    implements(iface.IFormatted)
+    __used_for__ = iface.IID
 
     def __init__(self, context):
         self.context = context
@@ -148,8 +148,8 @@ class NodeFormatter(object):
     """
     Adapter
     """
-    implements(IFormatted)
-    __used_for__ = taxus.iface.Node
+    implements(iface.IFormatted)
+    __used_for__ = iface.Node
 
     def __init__(self, context):
         self.context = context
@@ -158,9 +158,9 @@ class NodeFormatter(object):
         ctx = self.context
         indentstr = "".join('  ' * indent)
         fields = [
-            indentstr+"%s: %s" % (k.key, IFormatted(getattr(ctx,
-                k.key)).__str__(indent+1)) 
-            #"%s: %s" % (k.key, getattr(ctx, k.key)) 
+            indentstr+"%s: %s" % (k.key, iface.IFormatted(getattr(ctx,
+                k.key)).__str__(indent+1))
+            #"%s: %s" % (k.key, getattr(ctx, k.key))
             for k in ctx.__mapper__.iterate_properties
             if not k.key.endswith('id')]
         #header = "%s <%s>" % ( cn(ctx), ctx.id )
@@ -172,15 +172,15 @@ class NodeSetFormatter(object):
     """
     Adapter.
     """
-    implements(IFormatted)
+    implements(iface.IFormatted)
 
-    __used_for__ = taxus.iface.INodeSet
+    __used_for__ = iface.INodeSet
 
     def __init__(self, context):
         self.context = context
     def __str__(self, indent=0):
         strbuf = ""
         for node in self.context.nodes:
-            strbuf += IFormatted(node).__str__(indent+1) + '\n'
+            strbuf += iface.IFormatted(node).__str__(indent+1) + '\n'
         return strbuf
 

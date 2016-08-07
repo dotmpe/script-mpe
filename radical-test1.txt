@@ -1,6 +1,16 @@
 /**
  * XXX Comment
+ *   Runs two lines
  */
 def func();
 
 # TEST: $ radical.py -vvv test.txt
+
+// FIXME: a c-style line comment
+//    runs two lines
+
+# XXX:2: another unix-style comment
+#     runs two lines also. And has two sentences.
+
+#the unix-style discerns c-style directives, NOTE: this is not a comment.
+

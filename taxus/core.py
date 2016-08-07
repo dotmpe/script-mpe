@@ -1,6 +1,8 @@
 """
-Docs are in __init__
+Docs are in taxus/__init__
 """
+from datetime import datetime
+
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
@@ -9,25 +11,21 @@ from sqlalchemy.orm import relationship, backref
 
 import iface
 from init import SqlBase
-from util import SessionMixin
+from util import ORMMixin
 
-import lib
-import log
+from script_mpe import lib, log
 
 
 
 
 # mapping table for Node *-* Node
-nodes_nodes = Table('nodes_nodes', SqlBase.metadata,
-    Column('nodes_ida', Integer, ForeignKey('nodes.id'), nullable=False),
-    Column('nodes_idb', Integer, ForeignKey('nodes.id'), nullable=False),
-    Column('nodes_idc', Integer, ForeignKey('nodes.id'))
-)
+#nodes_nodes = Table('nodes_nodes', SqlBase.metadata,
+#    Column('nodes_ida', Integer, ForeignKey('nodes.id'), nullable=False),
+#    Column('nodes_idb', Integer, ForeignKey('nodes.id'), nullable=False),
+#    Column('nodes_idc', Integer, ForeignKey('nodes.id'))
+#)
 
-
-
-
-class Node(SqlBase, SessionMixin):
+class Node(SqlBase, ORMMixin):
 
     """
     Provide lookup on numeric ID, name (non-unique) and standard dates.
@@ -36,21 +34,43 @@ class Node(SqlBase, SessionMixin):
     zope.interface.implements(iface.Node)
 
     __tablename__ = 'nodes'
+
+    # Numeric ID
     node_id = Column('id', Integer, primary_key=True)
 
-    ntype = Column(String(50), nullable=False)
+    # Node type
+    ntype = Column(String(36), nullable=False, default="node")
     __mapper_args__ = {'polymorphic_on': ntype,
             'polymorphic_identity': 'node'}
-    
-    #name = Column(String(255), nullable=True)
+
+    # Unique node Name (String ID)
     name = Column(String(255), nullable=False, index=True, unique=True)
-    
-    #space_id = Column(Integer, ForeignKey('nodes.id'))
-    #space = relationship('Node', backref='children', remote_side='Node.id')
-    
+
+    space_id = Column(Integer, ForeignKey('spaces.id'))
+    space = relationship(
+            'Space', 
+            #primaryjoin='Node.space_id == Space.space_id'
+            backref='children', 
+#            remote_side='spaces.id',
+#            foreign_keys=[space_id]
+        )
+
     date_added = Column(DateTime, index=True, nullable=False)
+    last_updated = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
+
+    def init_defaults(self):
+        if not self.date_added:
+            self.last_updated = self.date_added = datetime.now()
+        elif not self.last_updated:
+            self.last_updated = datetime.now()
+
+    @classmethod
+    def default_filters(Klass):
+        return (
+            ( Klass.deleted == False ),
+        )
 
     def __repr__(self):
         return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.name)
@@ -73,14 +93,22 @@ class GroupNode(Node):
     """
 
     __tablename__ = 'groupnodes'
-    __mapper_args__ = {'polymorphic_identity': 'groupnode'}
+    __mapper_args__ = {'polymorphic_identity': 'group'}
     group_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
-    subnodes = relationship(Node, secondary=groupnode_node_table)
+    subnodes = relationship(Node, secondary=groupnode_node_table, backref='supernode')
     root = Column(Boolean)
 
 
-class ID(SqlBase, SessionMixin):
+class Folder(GroupNode):
+
+    __tablename__ = 'folders'
+
+    __mapper_args__ = {'polymorphic_identity': 'folder'}
+    folder_id = Column('id', Integer, ForeignKey('groupnodes.id'), primary_key=True)
+
+
+class ID(SqlBase, ORMMixin):
 
     """
     A global system identifier.
@@ -101,17 +129,48 @@ class ID(SqlBase, SessionMixin):
     """
 
     date_added = Column(DateTime, index=True, nullable=False)
+    last_updated = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
 
+    def init_defaults(self):
+        if not self.date_added:
+            self.last_updated = self.date_added = datetime.now()
+        elif not self.last_updated:
+            self.last_updated = datetime.now()
+
     def __repr__(self):
         return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.global_id)
+
+
+class Space(ID):
+
+    """
+    Spaces segment the Nodeverse. 
+    
+    An abstraction to deal with segmented storage (ie. different databases,
+    hosts).
+    """
+
+    __tablename__ = 'spaces'
+
+    __mapper_args__ = {'polymorphic_identity': 'space'}
+
+    space_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
+
+    #host = Column(String)
+    #storage_uri = Column(String)
+    classes = Column(String)
+
 
 
 class Name(Node):
 
     """
     A local unique identifier.
+
+    XXX: this is a vestige of having non-unique node names,
+      currently node names are unique so Name need not be used.. much.
     """
 
     __tablename__ = 'names'
@@ -149,13 +208,17 @@ class Tag(Name):
     __mapper_args__ = {'polymorphic_identity': 'tag'}
 
     tag_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
-
     #name = Column(String(255), unique=True, nullable=True)
     #sid = Column(String(255), nullable=True)
     # XXX: perhaps add separate table for Tag.namespace attribute
 #    namespaces = relationship('Namespace', secondary=tag_namespace_table,
 #        backref='tags')
 
+tags_freq = Table('names_tags_stat', SqlBase.metadata,
+        Column('tag_id', ForeignKey('names_tag.id'), primary_key=True),
+        Column('node_type', String(36), primary_key=True),
+        Column('frequency', Integer)
+)
 
 class Topic(Tag):
     """
@@ -173,6 +236,7 @@ class Topic(Tag):
     __mapper_args__ = {'polymorphic_identity': 'topic'}
 
     topic_id = Column('id', Integer, ForeignKey('names_tag.id'), primary_key=True)
+    #key_names = ['topic_id']
 
     about_id = Column(Integer, ForeignKey('nodes.id'))
 
@@ -259,4 +323,15 @@ class Document(Node):
 
 
 
+models = [
+
+        Node, Space,
+
+        GroupNode,
+
+        Document,
+        ID,
+        Name, Tag, Topic
+
+    ]
 

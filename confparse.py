@@ -26,7 +26,7 @@ Consider:
 TODO: segment configuration into multiple files.
 """
 import collections
-import os, re, sys, types
+import os, inspect, re, shutil, sys, types
 from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
@@ -40,9 +40,10 @@ except ImportError, e:
         import yaml
         yaml_load = yaml.load
         yaml_dump = yaml.dump
+        yaml_safe_dump = yaml.safe_dump
     except ImportError, e:
         print >>sys.stderr, "confparse.py: no YAML parser"
-
+# XXX: see also res/js.py
 
 _ = None
 "In-mem. settings. "
@@ -50,17 +51,19 @@ _ = None
 _paths = {}
 "Source-paths for settings. "
 
-config_prefix = (
+name_prefixes = (
     '',  # local (cwd) name
     '.', # local hidden name
+#    '.cllct/', # local hidden dir
 )
 
-config_path = (
+path_prefixes = (
     '~/', # hidden name in $HOME
     '/etc/' # name in /etc/
+    '/etc/default/' # name in /etc/
 )
 
-config_suffix = (
+name_suffixes = (
     '',
     '.yaml',
     '.conf',
@@ -78,35 +81,37 @@ def tree_paths(path):
         cpath = join(*parts)
         if path.startswith(os.sep):
             cpath = os.sep+cpath
-        
+
         yield cpath
         parts.pop()
 
 
-def expand_config_path(name, paths=config_path):
+def expand_config_path(name, paths=path_prefixes):
 
     """
-    Yield all existing config paths. See config_prefix for search path.
-
-    Expands '~/' and '~`username`/' sequences.
+    Yield all existing file paths. See `confparse.path_prefixes` for search path.
+    Defers to find_config_path.
     """
 
     return find_config_path(name, path=getcwd(), paths=list(paths))
 
 
-def find_config_path(markerleaf, path=None, prefixes=config_prefix,
-        suffixes=config_suffix, paths=[], exists=os.path.exists):
+def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
+        suffixes=name_suffixes, paths=[], exists=os.path.exists):
 
     """
     Search paths for markerleaf with prefixes/suffixes. Yields only existing
     paths. The sequence is depth-first.
+    Expands '~/' and '~`username`/' sequences.
 
     Defaults:
         Prefix: '', '.'
         Path: '~/', '/etc/'
         Suffix: '', '.yaml', '.conf'
 
-    Path, if given, should be a directory. And/or a list of paths may be given.
+    Path, if given, should be a directory. And/or a list of paths may be given
+    if that is more convenient. The result is that the search runs in sequence
+    from one or more directories.
 
     Rationale
     ---------
@@ -118,6 +123,8 @@ def find_config_path(markerleaf, path=None, prefixes=config_prefix,
     assert isinstance(markerleaf, basestring), markerleaf
     if path:
         paths.append(path)
+    elif not paths:
+        paths = [os.getcwd()]
     # Get a list of all paths, parents, symlinked locations
     expanded_paths = []
     for p in paths:
@@ -141,18 +148,27 @@ def find_config_path(markerleaf, path=None, prefixes=config_prefix,
 class DictDeepUpdate:
 
     @classmethod
-    def update(Klass, sub, data):
+    def update_list(Klass, sub, k, v, key_h=None):
+        if k in sub:
+            assert isinstance(sub[k], list)
+        else:
+            sub[k] = []
+        #for x in v:
+        #	Klass.update_value()
+        sub[k].extend(v)
+
+    @classmethod
+    def update(Klass, sub, data, key_h=None):
         for k, v in data.iteritems():
+            if key_h:
+                k = key_h(k)
             if isinstance(v, collections.Mapping):
-                r = Klass.update(sub.get(k, {}), v)
+                r = Klass.update(sub.get(k, {}), v, key_h=key_h)
                 sub[k] = r
             elif isinstance(v, list):
-                if k in sub:
-                    assert isinstance(sub[k], list)
-                else:
-                    sub[k] = []
-                sub[k].extend(v)
+                Klass.update_list(sub, k, v, key_h=key_h)
             else:
+                #Klass.update_value(sub, k, v, key_h=key_h)
                 sub[k] = data[k]
         return sub
 
@@ -162,8 +178,7 @@ class Values(dict):
     """
     Holds configuration settings once loaded.
 
-    FIXME: this is used a lot as a simple attribute-access dict, 
-    asbtract this for that use too.
+    This is used a lot as a simple attribute-access dict.
     """
 
     default_source_key = 'config_file'
@@ -201,6 +216,24 @@ class Values(dict):
                 self.initialize(key, defaults[key])
         self.__dict__['initialized'] = True
         #TODO:self.updated = False
+
+    def append(self, k, **default):
+        """
+        Set new subvalue property.
+        """
+        p = Values(default, root=self)
+        setattr(self, k, p)
+
+    def get(self, k, default={}):
+        """
+        Helper for getattr calls.
+        XXX initializes defaults for dict only
+        """
+        if k not in self:
+            # FIXME: need a list values type?
+            if isinstance(default, dict):
+                self.append(k, **default)
+        return getattr(self, k)
 
     def initialize(self, key, value):
         if isinstance(value, dict):
@@ -320,7 +353,7 @@ class Values(dict):
         Return a module path for this Values instance.
         """
         pp = ''
-        p = self.__dict__['parent'] 
+        p = self.__dict__['parent']
         if p:
             pp = p.path()
             for k in p.keys():
@@ -341,14 +374,35 @@ class Values(dict):
     def changelog(self):
         return self.__dict__['changelog']
 
-    def copy(self):
+    def todict(self, deep=True):
+        if deep:
+            return self.copy(plain=True)
+        else:
+            c = dict()
+            assert False
+
+    def copy(self, plain=False, prune=['volatile']):
         """
-        Return flat dicts 'n lists copy.
+        Return deep copy dicts 'n lists copy.
+        XXX: lists can only nest twice, has not needed recursion
+        TODO: reimplement this as tree visitor
         """
-        c = dict()
+        if plain:
+            c = dict()
+        else:
+            c = self.__class__()
+        def _prune(k):
+            if k in prune:
+                return True
+            for p in prune:
+                if p in self:
+                    return k in getattr(self, p)
         for k in self:
-            if hasattr(self[k], 'copy'):
-                #print type(self[k])
+            if _prune(k):
+                continue
+            if plain and hasattr(self[k], 'todict'):
+                c[k] = self[k].todict(True)
+            elif hasattr(self[k], 'copy'):
                 c[k] = self[k].copy()
             elif hasattr(self[k], 'keys') and not self[k].keys():
                 c[k] = dict()
@@ -356,19 +410,23 @@ class Values(dict):
                 # XXX: hardcoded list nesting depth (at 2)
                 c[k] = []
                 for c1 in self[k]:
-                    if hasattr(c1, 'copy'):
+                    if plain and hasattr(c1, 'todict'):
+                        i = c1.todict(True)
+                    elif hasattr(c1, 'copy'):
                         i = c1.copy()
                     elif hasattr(c1, 'keys') and not c1.keys():
                         i = dict()
                     elif isinstance(c1, list):
                         i = []
                         for c2 in c1:
+                            if plain and hasattr(c2, 'todict'):
+                                i2 = c2.todict(True)
                             if hasattr(c2, 'copy'):
                                 i2 = c2.copy()
                             elif hasattr(c2, 'keys') and not c2.keys():
                                 i2 = dict()
                             elif isinstance(c2, list):
-                                raise Exception("list recursion")
+                                raise Exception("list recursion, only two levels")
                             else:
                                 i2 = c2
                             i.append(i2)
@@ -400,9 +458,9 @@ def backup(file):
     # Copy or move currentfile to suffixed
     #if not re.match('~[0-9]*', file):
     if os.path.islink(file):
-        os.rename(os.path.realpath(file), bup)
+        shutil.copy(os.path.realpath(file), bup)
     else:
-        os.rename(file, bup)
+        shutil.copy(file, bup)
 
 
 class YAMLValues(Values):
@@ -410,30 +468,27 @@ class YAMLValues(Values):
     """
     Loads configuration settings from YAML file.
     """
-#    def __init__(self, path):
-#        ValueStorage.__init__(self, path)
 
     def commit(self, do_backup=True):
+
         """
         Save settings in nearest config module.
         """
-        print '!!! NO-op: commit', self
 
+        assert not self.__dict__['parent'], "TODO"
+        #self.root().commit()
+        print 'saving settings to',self.source
         mod = self.getsource()
-        #mod.copy(prune_mod=True)
-        #mod.commit()
-
-        ##if self.__dict__['parent']:
-        #    self.root().commit()
-        #else:
-        #    print 'saving to',self.source
-        #    #assert 'source_key' in self
-        #    #file = self[self['source_key']]
-        #    file = self.source;#__dict__[self.__dict__['source_key']]
-        #    if do_backup:
-        #        backup(file)
-        #    data = self.copy()
-        #    yaml_dump(data, open(file, 'a+'))
+        data = mod.copy(plain=True)
+        assert 'volatile' in self
+        assert 'volatile' not in data
+        assert 'config_file' not in data
+        #assert 'source_key' in self
+        #file = self[self['source_key']]
+        path = self.source;#__dict__[self.__dict__['source_key']]
+        if do_backup:
+            backup(path)
+        yaml_dump(data, open(path, 'w+'))
 
     @classmethod
     def load(cls, path):
@@ -471,20 +526,20 @@ def yaml(path, *args):
     assert not args, "Cannot override from multiple files: %s, %s " % (path, args)
     return load_path(path, type=YAMLValues)
 
-def init_config(name, paths=config_prefix, default=None):
+def init_config(name, paths=name_prefixes, default=None):
 
     """
     Expect one existing config for name, otherwise initialize.
 
     Note that default must be a complete path that is matched by
-    confparse.config_prefix.
+    confparse.name_prefixes.
     """
 
     rcfile = expand_config_path(name, paths=paths)
 
     if default == '.':
         default += name
-    
+
     if not rcfile:
         assert default, "Not initialized: %s for %s" % (name, paths)
         for path in find_config_path('cllct', paths=paths, suffixes=['','.rc'],
@@ -498,11 +553,12 @@ def init_config(name, paths=config_prefix, default=None):
 
     return yaml(rcfile)
 
-def load_path(path, type=YAMLValues):
+def load_path(path, values_type=YAMLValues):
     global _paths, _
-    return getattr(type, 'load')(path)
+    assert inspect.isclass(values_type), values_type
+    return getattr(values_type, 'load')(path)
 
-def load(name, paths=config_path):
+def load(name, paths=path_prefixes):
     global _paths, _
     configs = expand_config_path(name, paths=paths)
     try:
@@ -515,19 +571,59 @@ def load(name, paths=config_path):
     ext = splitext(config)[1]
     if isdir(config):
         assert not ext
-        values_type = FSValues 
+        values_type = FSValues
     else:
         assert not ext or ext == 'yaml', ext
         values_type = YAMLValues
     _paths[config] = name
-    settings = load_path(config, type=values_type)
+    settings = load_path(config, values_type=values_type)
     setattr(_, name, settings)
     return settings
+
+
+class ValuesFacade(Values):
+
+    default_source_key = 'config_file'
+    default_config_key = 'default'
+
+    def __init__(self, *args, **kwds):
+        super(ValuesFacade, self).__init__(*args, **kwds)
+        self.overrides = []
+
+    @classmethod
+    def load(Klass, path, source_key=default_source_key,
+            config_key=default_config_key):
+        try:
+            data = yaml_load(open(path).read())
+        except Exception, e:
+            raise Exception("Parsing %s: %s"%(path, e))
+        config = Klass(data, source_file=path,
+                source_key=source_key)
+        if 'parent_key' not in config:
+            config.parent_key = config_key
+        return config
+
+    def add_override(self, other):
+        self.overrides.append(other)
+
+
+def load_all(names, alt_paths=path_prefixes, prefixes=name_prefixes,
+        exts=name_suffixes, configtype=YAMLValues):
+    "New-style loader. "
+    root = ValuesFacade(dict())
+    root.parent_key = configtype.default_config_key
+    for name in names:
+        for path in find_config_path(name, path=getcwd(), paths=alt_paths,
+                prefixes=name_prefixes, suffixes=exts):
+            loaded = load_path(path, configtype)
+            if loaded.parent_key:
+                root.add_override(loaded)
+    return root
 
 _ = Values()
 
 
 # XXX: testing
 if __name__ == '__main__':
-    configs = list(expand_config_path('cllct.rc')) 
+    configs = list(expand_config_path('cllct.rc'))
     assert configs == ['/Users/berend/.cllct.rc'], configs

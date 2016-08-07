@@ -1,0 +1,13 @@
+# Header comment lines 1/4
+# Header comment lines 2/4
+# Header comment lines 3/4
+# Header comment lines 4/4
+
+Something content first.
+
+# Middle comment 1/2
+# Middle comment 2/2
+
+Something else.
+
+# Footer line

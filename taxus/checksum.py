@@ -3,14 +3,14 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
 from sqlalchemy.orm import relationship, backref
 
 from init import SqlBase
-from util import SessionMixin
+from util import ORMMixin
 
-import lib
+from script_mpe import lib
 import core
 import fs
 
 
-class ChecksumDigest(SqlBase, SessionMixin):
+class ChecksumDigest(SqlBase, ORMMixin):
 
     """
     Superclass for fixed length content checksums
@@ -69,3 +69,5 @@ class MD5Digest(ChecksumDigest):
 #
 #fs.INode.checksums = relationship(ChecksumDigest, secondary=inode_checksum_table)
 
+
+models = [ ChecksumDigest, SHA1Digest, MD5Digest ]

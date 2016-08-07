@@ -1,0 +1,34 @@
+# git-versioning main: script-mpe
+
+- type: application/x-project-mpe
+  main: script-mpe
+  id: script-mpe
+  version: 0.0.0-dev # script-mpe
+  environments: [ 'development' ]
+
+  vendor: dotmpe
+  distribution: public
+  license: GPL
+
+  pd-meta:
+    # XXX: what if want to allow Sh here. Or use another project attr. for Sh
+    # scripts
+    check: "-verbose=false:./tools/sh/tags.sh :vchk :bats:specs :git:status"
+    # TODO: check for /tmp usage, force TMPDIR use
+    test: ":vchk sh:python:test/main.py :bats:specs :bats"
+
+    git-hooks:
+      pre-commit: ./tools/git-hooks/pre-commit.sh
+
+    init: "./install-dependencies.sh git:init"
+
+    # FIXME: what about git annex pre-commit .
+
+  environment:
+    development:
+    - package_pd_meta_default=dev
+    - Build_Deps_Default_Paths=1 
+    - BOREAS_SKIP=1
+    - DANDY_SKIP=1
+    - VS1_SKIP=1
+

@@ -4,7 +4,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
 from sqlalchemy.orm import relationship, backref
 
 from init import SqlBase
-from util import SessionMixin
+from util import ORMMixin
 import core
 import net
 import web
@@ -63,7 +63,7 @@ class Volume(web.Resource):
 
     """
     A particular storage of serialized entities, 
-    as in a local filesystem tree or a blob store.
+    as in a local filesystem or a blob store.
     """
 
     __tablename__ = 'volumes'
@@ -137,7 +137,7 @@ token_locator_table = Table('token_locator', SqlBase.metadata,
 
 
 
-class Token(SqlBase, SessionMixin):
+class Token(SqlBase, ORMMixin):
 
     """
     A large-value variant on Tag, perhaps should make this a typetree.
@@ -150,4 +150,8 @@ class Token(SqlBase, SessionMixin):
 
     value = Column(Text(65535), index=True, nullable=True, unique=True)
     refs = relationship(net.Locator, secondary=token_locator_table)
+
+
+models = [ Namespace, Relocated, Volume, Bookmark, Workset, Token ]
+
 

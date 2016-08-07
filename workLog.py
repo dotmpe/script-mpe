@@ -2,7 +2,7 @@
 """
 :created: 2011-12-23
 
-Trying to create simple model to log work. 
+Trying to create simple model to log work.
 Lookup the project for the CWD, and list/add/update tickets and tasks.
 
 Changelog
@@ -26,16 +26,16 @@ import zope
 
 import libcmd
 import txs
+import rsr
 import res
 import taxus
 from taxus import Taxus
 import taxus.semweb
 import taxus.generic
 
-from taxus import SessionMixin
 
 
-# Data model 
+# Data model
 
 class Project(taxus.semweb.Description):
     """
@@ -59,9 +59,9 @@ class Ticket(taxus.semweb.Description):
     project = relationship(Project, primaryjoin=project_id==Project.project_id)
     time_estimated = Column(Integer)
     time_spent = Column(Integer)
-    #worklog = relationship('Entry', 
+    #worklog = relationship('Entry',
     #        primaryjoin='wltickets.id == wlrecords.ticket_id')
-    comments = relationship(taxus.generic.Comment, 
+    comments = relationship(taxus.generic.Comment,
             primaryjoin= taxus.Node.node_id == taxus.generic.Comment.annotated_node )
     #status = Column(Enum ...
     active = Column(Boolean)
@@ -88,37 +88,37 @@ class Entry(taxus.semweb.Description):
 # Main app
 
 # XXX see radical get that working atain, or mime-reg
-class workLog(txs.TaxusFe):
+class workLog(rsr.Rsr):
 
     zope.interface.implements(res.iface.ISimpleCommand)
 
     NAME = os.path.splitext(os.path.basename(__file__))[0]
 
+    DEFAULT_RC = 'cllct.rc'
     DEFAULT_CONFIG_KEY = NAME
 
-    #TRANSIENT_OPTS = Taxus.TRANSIENT_OPTS + ['']
-    DEFAULT_ACTION = 'tasks'
+    DEFAULT = [ 'tasks' ]
 
     @classmethod
-    def get_optspec(klass, inherit):
+    def get_optspec(Klass, inheritor):
         """
         Return tuples with optparse command-line argument specification.
         """
+        p = inheritor.get_prefixer(Klass)
         return (
             )
 
     DEPENDS = {
-            'tasks': ['txs_session'],
+            'tasks': ['rsr_session'],
         }
 
     def tasks(self, opts=None, sa=None):
-        #sa = SessionMixin.get_instance('default', opts.dbref, opts.init)
         print 'All tickets', sa.query(Ticket).all()
         print 'Active tickets', sa.query(Ticket)\
                 .filter(Ticket.active == True).all()
 
     # TODO: perhaps implement export and update from import while I'm to lazy to
-    # implement all of the UI.. maybe. requires demux + 
+    # implement all of the UI.. maybe. requires demux +
 
     # Manage project nodes
 
@@ -143,7 +143,7 @@ class workLog(txs.TaxusFe):
 # XXX: rethink what to store..
         #projectdata.location.ref
         name = args[0]
-        #project_NS = 
+        #project_NS =
         node = Project(name=name,
                 date_added=datetime.now(),
                 #namespace=project_NS

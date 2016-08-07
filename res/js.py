@@ -1,7 +1,7 @@
 # XXX: Dont use cjson, its buggy, see comments at
 # http://pypi.python.org/pypi/python-cjson
 # use jsonlib or simplejson
-import log
+from script_mpe import log
 
 loads = None
 dumps = None
@@ -15,17 +15,17 @@ try:
     load = simplejson.load
     dump = simplejson.dump
 except Exception, e:
-    log.warn("Failed loading simplejson %r", e)
+    pass#log.warn("Failed loading simplejson %r", e)
 
 try:
-    import ujson 
+    import ujson
     loads = ujson.loads
     dumps = ujson.dumps
     load = ujson.load
     dump = ujson.dump
 
 except Exception, e:
-    log.warn("Failed loading ujson %r", e)
+    pass#log.warn("Failed loading ujson %r", e)
 
 try:
     import json as json_
@@ -36,7 +36,14 @@ try:
     dump = json_.dump
 
 except Exception, e:
-    log.warn("Failed loading json %r", e)
+    pass#log.warn("Failed loading json %r", e)
+
+if not loads:
     log.err("No known json library installed. Plain Python printing.")
+
+def require(self):
+    if not loads:
+        import sys
+        sys.exit(1)
 
 

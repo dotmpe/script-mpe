@@ -1,0 +1,236 @@
+#!/bin/sh
+# Created: 2016-05-21
+jsotk_src="$_"
+
+set -e
+
+version=0.0.0-dev # script-mpe
+
+
+
+jsotk__man_1_version="Version info"
+jsotk__version()
+{
+  echo "$(cat $scriptdir/.app-id)/$version"
+}
+jsotk_als__V=version
+
+
+jsotk__edit()
+{
+  $EDITOR \
+    $0 \
+    jsotk*py \
+    "$@"
+}
+
+
+jsotk_run__meta=y
+# Setup background python process for YAML handling (parsing/queries/ujsotkates)
+jsotk__meta()
+{
+  test -n "$1" || set -- --background
+  test -n "$jsotk"
+
+  fnmatch "$1" "-*" || {
+
+    test -x "$(which socat)" -a -e "$sock" && {
+      printf -- "$*\r\n" | socat -d - "UNIX-CONNECT:$sock" \
+        2>&1 | tr "\r" " " | while read line
+      do
+        case "$line" in
+          *" OK " )
+              return
+            ;;
+          "? "* )
+              return 1
+            ;;
+          "!! "* )
+              error "$line"
+              return 1
+            ;;
+          "! "*": "* )
+              return $(echo $line | sed 's/.*://g')
+            ;;
+        esac
+        echo $line
+      done
+      return
+    }
+  }
+  $scriptdir/jsotk.py -f $jsotk --address $sock "$@" || return $?
+}
+
+
+# silent/quit
+jsotk__meta_sq()
+{
+  jsotk__meta "$@" >/dev/null || return $?
+}
+
+
+jsotk__usage()
+{
+  echo 'Usage: '
+  echo "  $scriptname.sh <cmd> [<args>..]"
+}
+
+jsotk__help()
+{
+  jsotk__usage
+  echo 'Functions: '
+  echo '  status                           List abbreviated status strings for all repos'
+  echo ''
+  echo '  help                             print this help listing.'
+  # XXX _init is bodged, std__help jsotk "$@"
+}
+
+# subcmd prefix
+jsotk_load()
+{
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  do case "$x" in
+
+    p ) # should imply y or d
+        test -e $go_to_before/$2/package.yaml && ujsotkate_package "$go_to_before/$2"
+        test -e "$go_to_before/$2/.package.sh" && . $go_to_before/$2/.package.sh
+        test -n "$package_id" && {
+          note "Found package '$package_id'"
+        } || {
+          package_id="$(basename $(realpath $go_to_before/$2))"
+          note "Using package ID '$package_id'"
+        }
+      ;;
+
+    d )
+        go_to_before=.
+      ;;
+
+    y )
+        # set/check for Pd for subcmd
+        jsotk=.projects.yaml
+        go_to_directory $jsotk
+        test -e "$jsotk" || error "No projects file $jsotk" 1
+        debug "PWD $(pwd), Before: $go_to_before"
+
+        p="$(realpath "$jsotk" | sed 's/[^A-Za-z0-9_-]/-/g' | tr -s '_' '-')"
+        sock=/tmp/jsotk-$p-serv.sock
+      ;;
+
+    f )
+        # Preset name to subcmd failed file placeholder
+        # include realpath of projectdoc (p)
+        test -n "$jsotk" && {
+          req_vars p
+          failed=$(setup_tmpf .failed -$p-$subcmd-$(uuidgen))
+        } || failed=$(setup_tmpf .failed)
+      ;;
+
+    b )
+        # run metadata server in background for subcmd
+        jsotk_meta_bg_setup
+      ;;
+
+    esac
+  done
+
+  export PD_SYNC_AGE=$_3HOUR
+
+  local tdy="$(try_value "${subcmd}" today)"
+  test -z "$tdy" || {
+    today=$(statusdir.sh file $tdy)
+    tdate=$(date +%y%m%d0000)
+    test -n "$tdate" || error "formatting date" 1
+    touch -t $tdate $today
+  }
+
+  PWD=$(pwd -P)
+  PATH=$PWD:$PATH
+
+  hostname=$(hostname -s)
+  uname=$(uname)
+
+  str_load
+}
+
+jsotk_unload()
+{
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  do case "$x" in
+      y )
+          test -z "$sock" || {
+            jsotk_meta_bg_teardown
+            unset bgd sock
+          }
+        ;;
+  esac; done
+  unset subcmd subcmd_pref \
+          def_subcmd func_exists func
+
+  clean_failed
+}
+
+### Main
+
+jsotk_main()
+{
+  test -n "$0" || {
+    echo "No 0?"
+    exit 124
+  }
+  local scriptname=projectdir scriptalias=jsotk base= \
+    subcmd=$1 \
+    base="$(basename "$0" .sh)" \
+    scriptdir="$(dirname "$(realpath "$0")")"
+
+  jsotk_lib "$@" || return $(( $? - 1 ))
+
+  case "$base" in
+
+    $scriptname | $scriptalias )
+
+        # invoke with function name first argument,
+        local bgd= \
+          func_exists= \
+          func= \
+          sock= \
+          c=0 \
+          ext_sh_sub= \
+          base=jsotk \
+          failed=
+
+        shift $c
+
+        jsotk_init || exit $?
+
+        try_subcmd "$@" && {
+          box_src_lib jsotk
+          shift 1
+          jsotk_load $subcmd "$@" || return
+          $subcmd_func "$@" || r=$?
+          jsotk_unload || exit $?
+          exit $r
+        }
+
+      ;;
+
+    * )
+        echo "Pd is not a frontend for $base ($scriptname)"
+        exit 1
+      ;;
+
+  esac
+}
+
+case "$0" in "" ) ;; "-"* ) ;; * )
+
+  test -z "$__load_lib" || set -- "load-ext"
+  case "$1" in load-ext ) ;; * )
+
+      jsotk_main "$@"
+    ;;
+
+  esac ;;
+esac
+
+

@@ -40,8 +40,9 @@ error1 = "c00,TS,c10,PRI,c05,HOSTNAME,c11,msg,c00"
 level_templates = {
     'emerg':  "c11,TS,c05, ,HOSTNAME, ,FAC,.,c11,LVL, ,c01,msg,c00",
     'alert':  "c13,TS,c05, ,HOSTNAME, ,FAC,.,c11,LVL, ,c07,msg,c00",
-    'crit':   "c13,TS,c05, ,HOSTNAME, ,FAC,.,c11,LVL, ,c07,msg,c00",
-    'err':      "c03,TS,c05, ,HOSTNAME, ,FAC,.,c01,LVL, ,c07,msg,c00",
+#    'crit':   "c13,TS,c05, ,HOSTNAME, ,FAC,.,c11,LVL, ,c07,msg,c00",
+    'crit':   "TS, ,HOSTNAME, ,FAC,.,LVL, ,msg",
+    'err':    "c03,TS,c05, ,HOSTNAME, ,FAC,.,c01,LVL, ,c07,msg,c00",
     'warn':   "c03,TS,c05, ,HOSTNAME, ,FAC,.,c03,LVL, ,c07,msg,c00",
     'notice': "c07,TS,c05, ,HOSTNAME, ,FAC,.,c07,LVL, ,c07,msg,c00",
     'info':   "c07,TS,c05, ,HOSTNAME, ,FAC,.,c10,LVL, ,c07,msg,c00",
@@ -102,12 +103,16 @@ palette = dict(
     bwhite='\x1b[1;37m', # bright white
 )
 
-def format_line(msg):
+def format_str(msg):
     for k in palette:
         msg = msg.replace('{%s}' % k, palette[k])
     return msg
 
+def std(msg, *args):
+    print format_str(msg % args)
+
 category = 4
+#category = 7
 strict = False
 
 def log(level, msg, *args):
@@ -144,7 +149,7 @@ def log(level, msg, *args):
             return
     if level in title:
         msg = title[level] +': '+ msg
-    msg = format_line(msg)
+    msg = format_str(msg + '{default}')
     # XXX: nicer to put in __repr/str__
     args = list(args)
     import zope.interface

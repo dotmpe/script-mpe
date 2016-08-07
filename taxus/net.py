@@ -1,36 +1,64 @@
+from datetime import datetime
+
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship, backref
 
-import lib
+from script_mpe import lib
 from init import SqlBase
-from util import SessionMixin
+from util import current_hostname
 import core
 import util
 import iface
 import checksum
 
 
-class Host(core.Node):
+class Domain(core.Node):
+
     """
     """
+
+    __tablename__ = 'domains'
+    __mapper_args__ = {'polymorphic_identity': 'domain'}
+
+    domain_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+
+
+class Host(Domain):
+
+    """
+    """
+
     __tablename__ = 'hosts'
     __mapper_args__ = {'polymorphic_identity': 'host'}
 
-    host_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    host_id = Column('id', Integer, ForeignKey('domains.id'), primary_key=True)
 
     @classmethod
-    def current(Klass, session):
+    def current(Klass, sa=None, session='default'):
         hostname_ = current_hostname()
-        return Klass.find((Klass.name == hostname_,))
+        return Klass.fetch(filters=(Klass.name == hostname_,), sa=sa, session=session)
+
+    @classmethod
+    def init(Klass, sa=None, session='default'):
+        host = Klass.current(sa=sa, session=session)
+        if host:
+            return host
+        if not sa:
+            sa = Klass.get_session(session=session)
+        hostname = current_hostname(initialize=True)
+        host = Klass(name = hostname, date_added=datetime.now())
+        sa.add(host)
+        sa.commit()
+        return host
 
     @property
     def netpath(self):
         return "//%s" % self.name
 
     def __str__(self):
-        return "Host %s" % ( self.hostname )
+        return "Host %s" % ( self.name )
 
     def __repr__(self):
         return "<Host at % with %r>" % ( hex(id(self)), self.hostname )
@@ -56,9 +84,9 @@ class Locator(core.ID):
 
     """
     A global identifier for retrieval of remote content.
-    
+
     Maybe based on DNS and route, script or filename for HTTP etc.
-    For file based descriptors may be registered domain and filename, 
+    For file based descriptors may be registered domain and filename,
     but also IP and variants on netpath, even inode number lookups.
 
     Not just variant notations but "seeping through" of the filesystem
@@ -67,7 +95,6 @@ class Locator(core.ID):
     prove.
 
     The reference should follow URL syntax, not URN or otherwise.
-    FIXME: There is some issue as to lctr-ref length. Would 255 be enough? 
     Perhaps if rogue web-content where entered into the
     system is properly contained.
 
@@ -81,8 +108,8 @@ class Locator(core.ID):
         fragment. This can be misleading as URL routing is part of the web
         application framework and may serve other requirements than resource
         parametrization, and further parametrization may occur at other places
-        (Headers, cookies, embedded, etc.). 
-        
+        (Headers, cookies, embedded, etc.).
+
         The Locator sameAs allows comparison on references,
         comparison of the dereferenced objects belongs on other Taxus objects that
         refer to the Locator table.
@@ -94,16 +121,12 @@ class Locator(core.ID):
 
     lctr_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
 
-    date_added = Column(DateTime, index=True, nullable=False)
-    deleted = Column(Boolean, index=True, default=False)
-    date_deleted = Column(DateTime)
-
     ref_md5_id = Column(Integer, ForeignKey('chks_md5.id'))
     ref_md5 = relationship(checksum.MD5Digest, primaryjoin=ref_md5_id==checksum.MD5Digest.md5_id)
     "A checksum for the complete reference, XXX to use while shortref missing? "
 
     #ref = Column(String(255), index=True, unique=True)
-    # XXX: varchar(255) would be much too small for many (web) URL locators 
+    # XXX: varchar(255) would be much too small for many (web) URL locators
     ref = Column(Text(2048), index=True, unique=True)
 
     @property
@@ -119,10 +142,11 @@ class Locator(core.ID):
         if scheme: # remove scheme
             assert ref.startswith(scheme+':'), ref
             ref = ref[len(scheme)+1:]
-        # FIXME:
+        # FIXME: return bare path of Locator?
         if self.host:
-            if ref.startswith("//"): # remove netpath 
-                ref = ref[2+len(self.host):]
+            if ref.startswith("//"): # remove netpath
+                assert ref.startswith('//'+self.host.name)
+                ref = ref[2+len(self.host.name):]
             return ref
         else:
             assert ref.startswith('//'), ref
@@ -145,4 +169,6 @@ class Locator(core.ID):
         return "%s %r" % (lib.cn(self), self.ref or self.global_id)
 
 
-
+models = [
+        Domain, Host, Locator
+    ]

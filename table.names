@@ -1,0 +1,5 @@
+# XXX named file patterns for htd+matchbox?
+* @NAMEDOTPARTS.@EXT filenames-ext
+* @NAMEDOTPARTS.@SZ.@EXT media-archive
+*.py @NAMEPART.@EXT python-script
+*.py @IDCHAR.@EXT python-module
