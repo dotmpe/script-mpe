@@ -171,7 +171,7 @@ install_bin()
           npm install -g $id || return 2
         ;;
       pip )
-          pip install $id || return 2
+          pip install --user $id || return 2
         ;;
       git )
           url="$(jsotk.py -N -O py path $1 tools/$2/url)"
