@@ -13,6 +13,7 @@ addons:
     packages:
       - tree
       - realpath
+      - uuid-runtime
 # not allowed:
 # - rhash
 # - pytz
