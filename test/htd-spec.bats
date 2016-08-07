@@ -309,6 +309,7 @@ EOM
     skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
 
   l=$(( ${#lines[*]} - 1 ))
+  diag "Lines: ${lines[*]}"
   test "${lines[$l]}" = '/"Soft Dev"/../Home/Shop/"Electric Tools"/../../"Living Room"/../../Public/"Topic Note"/../..'
 }
 

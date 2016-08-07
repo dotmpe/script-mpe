@@ -2610,6 +2610,7 @@ htd__tpaths()
   test -n "$1" || error "At least one document expected" 1
   test -n "$print_src" || local print_src=
   test -n "$xsl_ver" || xsl_ver=1
+  info "xsl_ver=$xsl_ver"
 
   while test -n "$1"
   do
@@ -2659,7 +2660,15 @@ htd__tpath_raw()
 {
   test -n "$1" || error "document expected" 1
   test -e "$1" || error "no such document '$1'" 1
-  htd__xproc "$(htd__getxl "$1")" $scriptdir/rst-terms2path.xsl
+  test -n "$xsl_ver" || xsl_ver=1
+  info "xsl_ver=$xsl_ver"
+  local xml=$(htd__getxl $1)
+
+  case "$xsl_ver" in
+    1 ) htd__xproc "$xml" $scriptdir/rst-terms2path.xsl ;;
+    2 ) htd__xproc2 "$xml" $scriptdir/rst-terms2path-2.xsl ;;
+    * ) error "xsl-ver '$xsl_ver'" 1 ;;
+  esac
 }
 
 # Process XML using XSLT
