@@ -26,7 +26,7 @@ init
 
 @test "${bin} regenerate" "0.1.4. - generates pre-commit hook from a .package.sh" {
 
-  check_skipped_envs boreas || TODO "need to fix Pdoc context"
+  TODO "need to fix Pdoc context"
 
   tmpd
   mkdir -p $tmpd/empty
@@ -208,7 +208,8 @@ cleanup_tmpd()
 
 @test "${bin} status" "" {
 
-  check_skipped_envs boreas || TODO "need to fix Pdoc context"
+  TODO "need to fix Pdoc context"
+
   export verbosity=6
 
   setup_empty_pd
