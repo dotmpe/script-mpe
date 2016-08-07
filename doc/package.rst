@@ -19,6 +19,10 @@ GIT Branches
             Working to reintegrate ideas from old ``dev_`` forks into dev,
             currently concerning libcmd functionality and txs.Txs with subclasses.
 
+        dev_confparse_hier
+          Testing confparse with inherited properties and hierarchical src file
+          tree.
+
     test
         Writing and running tests.
         Should follow dev before master reintegration.
