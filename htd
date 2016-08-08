@@ -421,6 +421,30 @@ htd__find()
 htd_als___f=find
 
 
+
+htd__man_1_init="Shortcut for pd init"
+htd_spc__init=""
+htd_run__init=fSm
+htd__init()
+{
+  echo
+}
+
+
+htd__man_1_check="Shortcut for pd check"
+htd_spc__check=""
+htd_run__check=fSm
+htd__check()
+{
+  local dirs="~/htdocs ~/bin ~/.conf"
+  for dir in $dirs
+  do
+    cd $dir
+    pd check
+  done
+}
+
+
 htd__man_1_status=""
 htd_spc__status=""
 htd_run__status=fSm
@@ -432,7 +456,11 @@ htd__status()
   # disks, annex
   # project tests, todos
   # src, tools
-  echo TODO:htd-status:$status "$@" | tee $failed
+  ( cd ; pd st ) || echo "home" >> $failed
+  ( cd ~/project; pd st ) || echo "project" >> $failed
+  #( cd /src; pd st ) || echo "src" >> $failed
+
+  #echo TODO:htd-status:$status "$@" | tee $failed
 }
 htd_als__st=status
 htd_als__stat=status
