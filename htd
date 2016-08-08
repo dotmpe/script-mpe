@@ -436,10 +436,16 @@ htd_spc__check=""
 htd_run__check=fSm
 htd__check()
 {
-  local dirs="~/htdocs ~/bin ~/.conf"
+  # Home
+  local dirs="Desktop Downloads bin .conf"
   for dir in $dirs
   do
-    cd $dir
+    cd ~/$dir
+    pd check
+  done
+  for dir in htdocs
+  do
+    cd /Volumes/Zephyr/$dir
     pd check
   done
 }
@@ -1392,7 +1398,7 @@ htd__filesize()
 # XXX: a function to clean directories
 # TODO: hark back to statusdir?
 # TODO: notice deprecation marks
-htd__check()
+htd__check_files()
 {
   log "Looking for unknown files.."
 
