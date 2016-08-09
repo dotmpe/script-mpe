@@ -777,6 +777,20 @@ dckr__cleanup_all()
 }
 
 
+dckr__vbox()
+{
+  test -n "$DCKR_CONF" || error dckr-conf 1
+  test -d "$DCKR_CONF" || error dckr-conf 2
+
+  mkdir -vp $DCKR_CONF/ubuntu-trusty64-docker
+  cd $DCKR_CONF/ubuntu-trusty64-docker
+
+  vagrant init williamyeh/ubuntu-trusty64-docker
+  vagrant up --provider virtualbox
+}
+
+
+
 
 # Lib
 

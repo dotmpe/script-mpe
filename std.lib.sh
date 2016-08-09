@@ -211,6 +211,7 @@ log_256()
   printf "$1\n"
 }
 
+# deprecate
 err()
 {
   test -z "$3" || {

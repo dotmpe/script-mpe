@@ -811,22 +811,8 @@ htd__edit_note()
   ext="$(printf "$(echo $2)" | tr -cs 'A-Za-z0-9_-' '.')"
 
   note=~/htdocs/note/$id.$ext
-
-  test -s "$note" && {
-    updated=":updated: $(date +%Y-%m-%d)"
-    grep -qi '^\:[Uu]pdated\:.*$' $note && {
-      sed -i.bak 's/^.[Uu]pdated.\.*$/'"$updated"'/g' $note
-    } || {
-      warn "Cannot update 'updated' field."
-    }
-  } || {
-    echo "$1" > $note
-    echo "$(echo "$1" | sed 's/./=/g')" >> $note
-    echo ":created: $(date +%Y-%m-%d)" >> $note
-    echo  >> $note
-  }
-  vim ~/htdocs/note/$id.$ext || return $? 
-  git add ~/htdocs/note/$id.$ext
+  htd_rst_doc_create_update $note "$1"
+  htd_edit_and_update $note
 }
 htd_als__edit_note=n
 
@@ -841,6 +827,29 @@ htd__edit_note_en()
   htd__edit_note "$1" "$2 en" || return $?
 }
 htd_als__nen=edit-note-en
+
+
+
+htd__main_doc()
+{
+  test -n "$1" || {
+    for x in $(htd_main_files)
+    do
+      test -e $x && {
+        set -- $x
+        break
+      }
+    done
+  }
+
+  local cksum=
+  htd_rst_doc_create_update $1
+
+  htd_edit_and_update $files $(htd_main_files)
+
+}
+htd_als__md=main-doc
+
 
 
 ### VirtualBox
@@ -3630,6 +3639,53 @@ htd__count_lines()
 
 
 
+htd_rst_doc_create_update()
+{
+  test -s "$1" && {
+    updated=":updated: $(date +%Y-%m-%d)"
+    grep -qi '^\:[Uu]pdated\:.*$' $1 && {
+      sed -i.bak 's/^.[Uu]pdated.\.*$/'"$updated"'/g' $1
+    } || {
+      warn "Cannot update 'updated' field."
+    }
+  } || {
+    test -n "$2" || set -- "$1" "$(basename "$(dirname "$1")")"
+    echo "$2" > $1
+    echo "$(echo "$2" | sed 's/./=/g')" >> $1
+    echo ":created: $(date +%Y-%m-%d)" >> $1
+    echo  >> $1
+    export cksum="$(md5sum $1 | cut -f 1 -d ' ')"
+  }
+}
+
+htd_edit_and_update()
+{
+  test -e "$1" || error htd-edit-and-update-file 1
+  vim "$@" || return $?
+  new_ck="$(md5sum "$1" | cut -f 1 -d ' ')"
+  test "$cksum" = "$new_ck" && {
+    git co $1 || rm "$1"
+  } || {
+    git add "$1"
+  }
+}
+
+
+htd_main_files()
+{
+  for x in "" .txt .md .rst
+  do
+    for y in ReadMe ChangeLog
+    do
+      for z in $y $(str_upper $y) $(str_lower $y)
+      do
+        test -e $z$x && printf "$z$x "
+      done
+    done
+  done
+}
+
+
 ### Main
 
 
@@ -3644,6 +3700,8 @@ htd_main()
   case "$base" in
     
     $scriptname )
+
+        test -n "$1" || set -- main-edit-en
 
         htd_lib || exit $?
         run_subcmd "$@" || exit $?
