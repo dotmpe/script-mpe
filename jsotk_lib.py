@@ -332,7 +332,7 @@ readers = dict(
 def write(writer, data, file, ctx):
     if ctx.opts.flags.no_indices:
         writer.write_indices = False
-    file.write(writer.serialize(data, ctx.opts.flags.output_prefix))
+    file.write(writer.serialize(data, ctx.opts.flags.output_prefix)+"\n")
 
 def output_prefix(data, opts):
     if opts.flags.output_prefix:
@@ -378,7 +378,7 @@ def py_writer(data, file, ctx):
     if not data and ctx.opts.flags.empty_null:
         file.write('\n')
     else:
-        file.write(str(data))
+        file.write(str(data)+"\n")
 
 def lines_writer(data, file, ctx):
     if not data:
