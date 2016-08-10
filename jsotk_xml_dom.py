@@ -1,6 +1,7 @@
 """
 XML writer module for Jsotk using minidom (xml.dom.minidom).
 """
+from __future__ import print_function
 import types
 import uuid
 import re
@@ -130,16 +131,16 @@ def data_to_xml( data, level, out, ctx ):
                 E[key[a_pl:]] = item
                 del data[key]
 
-        print >>out, xml_indent(level, ctx) + xml_element_start( E_name, **E )
+        out.write(xml_indent(level, ctx) + xml_element_start( E_name, **E ) + "\n")
         data_to_xml( item, level+1, out, ctx )
-        print >>out, xml_indent(level, ctx) + "</%s>" % E_name
+        out.write(xml_indent(level, ctx) + "</%s>\n" % E_name)
 
     elif type(data) == types.DictType:
         # Output in sequence without envelope
         for item in data:
             data_to_xml( item, level+1, out, ctx )
     else:
-        print >>out, str(data)
+        out.write(str(data) + "\n")
 
 
 

@@ -110,6 +110,7 @@ Dev
 - Another improvement may be seeking out SHM filesystem support.
 
 """
+from __future__ import print_function
 import types
 from StringIO import StringIO
 
@@ -440,7 +441,7 @@ def main(func, ctx):
 
     elif 'exit' == ctx.opts.cmds[0]:
         # Exit background process
-        print >>ctx.err, "No background process at %s" % ctx.opts.flags.address
+        ctx.err.write("No background process at %s\n" % ctx.opts.flags.address)
         return 1
 
     else:
@@ -475,8 +476,8 @@ if __name__ == '__main__':
         if not ctx.opts.flags.quiet:
             import traceback
             tb = traceback.format_exc()
-            print tb
-            print 'Unexpected Error:', err
+            print(tb)
+            print('Unexpected Error:', err)
         sys.exit(1)
 
 

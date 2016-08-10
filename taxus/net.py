@@ -6,12 +6,12 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
 from sqlalchemy.orm import relationship, backref
 
 from script_mpe import lib
-from init import SqlBase
-from util import current_hostname
-import core
-import util
-import iface
-import checksum
+from .init import SqlBase
+from .util import current_hostname
+from . import core
+from . import util
+from . import iface
+from . import checksum
 
 
 class Domain(core.Node):

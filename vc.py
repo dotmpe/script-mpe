@@ -27,10 +27,10 @@ import re
 
 from docopt import docopt
 
-import libcmd
-import util
-import rsr
-import log
+from . import libcmd
+from . import util
+from . import rsr
+from . import log
 
 
 class VC(rsr.Rsr):
@@ -86,8 +86,8 @@ class VC(rsr.Rsr):
         """
         TODO: Yield all repositories in workspace.
         """
-        print 'context=',context
-        print 'sa=',sa
+        print('context=',context)
+        print('sa=',sa)
         # TODO: should be some workspace
         log.info('vc:repos done')
 
@@ -101,7 +101,7 @@ def cmd_find(settings):
     #= Project.find()
 
 def cmd_info():
-    print 'info'
+    print('info')
 
 
 ### Transform cmd_ function names to nested dict

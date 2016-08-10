@@ -3,11 +3,11 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship, backref
 
-from init import SqlBase
-from util import ORMMixin
-import core
-import net
-import web
+from .init import SqlBase
+from .util import ORMMixin
+from . import core
+from . import net
+from . import web
 
 
 class QName():

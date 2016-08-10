@@ -170,27 +170,27 @@ import os
 from sqlalchemy.orm.exc import NoResultFound
 
 # Local
-import iface
-import init
-import util
+from . import iface
+from . import init
+from . import util
 # Local: model
-import checksum
-import core
-import fs
-import fslayout
-import generic
-import net
-import web
-import semweb
+from . import checksum
+from . import core
+from . import fs
+from . import fslayout
+from . import generic
+from . import net
+from . import web
+from . import semweb
 
-from init import SqlBase
-from util import SessionMixin, ScriptMixin, ORMMixin, get_session
-from core import *
-from net import *
-from code import *
-from fs import *
-from fslayout import *
-from model import Namespace, Relocated, Volume, Bookmark
+from .init import SqlBase
+from .util import SessionMixin, ScriptMixin, ORMMixin, get_session
+from .core import *
+from .net import *
+from .code import *
+from .fs import *
+from .fslayout import *
+from .model import Namespace, Relocated, Volume, Bookmark
 
 
 
@@ -228,13 +228,13 @@ class Taxus(object):
                     date_added=datetime.now())
             host.commit()
         assert host
-        print "Initialized host:"
-        print iface.IFormatted(host).__str__()
+        print("Initialized host:")
+        print(iface.IFormatted(host).__str__())
         return host
 
     def init_database(self, options=None):
         dbref = options.dbref
-        print "Applying SQL DDL to DB %s " % dbref
+        print("Applying SQL DDL to DB %s " % dbref)
         self.session = util.get_session(dbref, initialize=True)
         return self.session
 
@@ -245,7 +245,7 @@ class Taxus(object):
         return inode
 
     def query(self, *args, **opts):
-        print 'TODO: query:',args
+        print('TODO: query:',args)
         q = self.session.query(Node)
         return ResultSet(q, q.all())
 

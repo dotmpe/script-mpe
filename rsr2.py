@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-import rsr
-from libname import Namespace
-from libcmdng import Targets, Arguments, Keywords, Options,\
+from . import rsr
+from .libname import Namespace
+from .libcmdng import Targets, Arguments, Keywords, Options,\
     Target, TargetResolver
 
 # register
-import cmdline2
+from . import cmdline2
 
 
 NS = Namespace.register(
@@ -60,9 +60,9 @@ def rsr_workspace(prog=None, opts=None):
         if opts.force or lib.Prompt.ask("Create workspace %r?" % ws):
             ws.init(True)
         else:
-            print "Workspace init cancelled. "
+            print("Workspace init cancelled. ")
     if not ws:
-        print "No workspace, make sure you are below one or have one in your homefolder."
+        print("No workspace, make sure you are below one or have one in your homefolder.")
         yield 2
     libs = confparse.Values(dict(
             path='/usr/lib/cllct',

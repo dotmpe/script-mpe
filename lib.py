@@ -1,3 +1,4 @@
+from __future__ import print_function
 import datetime
 import getpass
 import optparse
@@ -11,8 +12,7 @@ import readline
 from os.path import basename, join,\
         isdir
 
-import log
-#from script_mpe import log
+from script_mpe import log
 #import confparse
 #
 #
@@ -84,7 +84,7 @@ def get_mediatype_sub(path):
     if uname == 'Linux':
         try:
             mediatypespec = cmd("xdg-mime query filetype %r", path).strip()
-        except Exception, e:
+        except Exception as e:
             mediatypespec = cmd("file -bsi %r", path).strip()
     elif uname == 'Darwin':
         mediatypespec = cmd("file -bsI %r", path).strip()
@@ -176,7 +176,7 @@ cn = class_name
 
 
 if __name__ == '__main__':
-    print get_sha1sum_sub("volume.py");
+    print(get_sha1sum_sub("volume.py"));
 
     for f in sys.argv:
         if not os.path.exists(f):
@@ -185,7 +185,7 @@ if __name__ == '__main__':
                 ('c',os.path.getctime(f)),
                 ('a',os.path.getatime(f)),
                 ('m',os.path.getmtime(f)),):
-            print n, timestamp_to_datetime(ts), f
+            print(n, timestamp_to_datetime(ts), f)
 
 
 
@@ -240,7 +240,7 @@ class Prompt(object):
         yes, no = list(yes_no)
         assert yes.isupper() or no.isupper()
         #v = raw_input('%s [%s] ' % (question, yes_no))
-        print '%s [%s] ' % (question, yes_no)
+        print('%s [%s] ' % (question, yes_no))
         v = getch().strip()
         if not v:
             if yes.isupper():
@@ -253,7 +253,7 @@ class Prompt(object):
 
     @classmethod
     def raw_input(clss, prompt, default=None):
-        v = raw_input('%s [%s] ' % (prompt, default))
+        v = input('%s [%s] ' % (prompt, default))
         if v:
             return v
         elif default:
@@ -266,7 +266,7 @@ class Prompt(object):
         """
         readline.set_startup_hook(lambda: readline.insert_text(prefill))
         try:
-            return raw_input(prompt)
+            return input(prompt)
         finally:
             readline.set_startup_hook()
 
@@ -289,8 +289,8 @@ class Prompt(object):
         origopts = list(options)
         opts = clss.create_choice(options)
         while True:
-            print log.format_str('{green}%s {blue}%s {bwhite}[{white}%s{bwhite}]{default} or [?help] ' %
-                    (question, ','.join(options), opts))
+            print(log.format_str('{green}%s {blue}%s {bwhite}[{white}%s{bwhite}]{default} or [?help] ' %
+                    (question, ','.join(options), opts)))
 #            v = sys.stdin.read(1)
             v = getch()
             #v = raw_input(
@@ -299,10 +299,10 @@ class Prompt(object):
             if not v.strip(): # FIXME: have to only strip whitespace, not ctl?
                 v = opts[0]
             if v == 'help'  or v in '?h':
-                print ("Choose from %s. Default is %r, use --recurse option to "
-                    "override. ") % (', '.join(options), options[0])
+                print(("Choose from %s. Default is %r, use --recurse option to "
+                    "override. ") % (', '.join(options), options[0]))
             if v.upper() in opts.upper():
                 choice = opts.upper().index(v.upper())
-                print 'Answer:', origopts[choice].title()
+                print('Answer:', origopts[choice].title())
                 return choice
 

@@ -3,19 +3,18 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship, backref
 
-import core
-import web
-import net
-import fs
+from . import core
+from . import net
+from . import fs
 
 
 class CachedContent(fs.INode):
 
     """
     This is a pointer to a local path, that may or may not contain a cached
-    resource. If (fully) retrieved, the entities body is located at local_path. 
+    resource. If (fully) retrieved, the entities body is located at local_path.
     TODO: The entity headers can be reconstructed from DB and/or metafile or resource is filed as-is.
-    Complete header information should be mantained when a CachedContent record is created. 
+    Complete header information should be mantained when a CachedContent record is created.
     """
 
     __tablename__ = 'cnt'
@@ -57,11 +56,11 @@ class Resource(core.Node):
 
     """
     A generic resource description. A (web) document.
-    Normally a subclass should be used for instances, choose between Invariant 
+    Normally a subclass should be used for instances, choose between Invariant
     if the document ought not to change,
     or choose Variant to indicate a more dynamic resource.
-    Invariant resources are generally non-negotiated, but sometimes 
-    a specific representation may be retrieved through negotiation on 
+    Invariant resources are generally non-negotiated, but sometimes
+    a specific representation may be retrieved through negotiation on
     an associated Variant resource.
     """
 
@@ -91,7 +90,7 @@ class Resource(core.Node):
 class Invariant(Resource):
 
     """
-    A resource consisting of a single datastream. 
+    A resource consisting of a single datastream.
     As a general rule, Invariants should not change their semantic content,
     but may allow differation in the codec stack used.
 
@@ -120,7 +119,7 @@ class Variant(Resource):
     A resource the content of which comes with several variations, such as
     output format, natural language, quality indicators, and/or other features.
 
-    Mechanisms for variation include client-negotiated capabilities such as 
+    Mechanisms for variation include client-negotiated capabilities such as
     peripheral abilities to render or interact with specific media/services.
     """
 
@@ -130,7 +129,7 @@ class Variant(Resource):
     variant_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
 
     # FIXME: vary information not stored
-    # Structure for vary is given in RFC draft on HTTP TCN and RVSA. 
+    # Structure for vary is given in RFC draft on HTTP TCN and RVSA.
 
     # descriptions - many-to-may to Description.variants
 

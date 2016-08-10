@@ -1,3 +1,4 @@
+from __future__ import print_function
 import re
 
 from fnmatch import fnmatch
@@ -358,10 +359,10 @@ def json_writer(data, file, ctx):
         kwds.update(dict(indent=2))
     data = output_prefix(data, ctx.opts)
     if not data and ctx.opts.flags.empty_null:
-        print >>file
+        file.write('\n')
     else:
         file.write(js.dumps(data, **kwds))
-    print >>file
+    file.write('\n')
 
 def yaml_writer(data, file, ctx):
     kwds = {}
@@ -369,15 +370,15 @@ def yaml_writer(data, file, ctx):
         kwds.update(dict(default_flow_style=False))
     data = output_prefix(data, ctx.opts)
     if not data and ctx.opts.flags.empty_null:
-        print >>file
+        file.write('\n')
     else:
         yaml_safe_dump(data, file, **kwds)
 
 def py_writer(data, file, ctx):
     if not data and ctx.opts.flags.empty_null:
-        print >>file
+        file.write('\n')
     else:
-        print >>file, str(data)
+        file.write(str(data))
 
 def lines_writer(data, file, ctx):
     if not data:
@@ -386,7 +387,7 @@ def lines_writer(data, file, ctx):
         data = [ data ]
     # XXX: seems object returns objects sometimes? assert isinstance(data, (tuple, list)), data
     for item in data:
-        print >>file, item
+        file.write('%s\n' % item)
 
 # FIXME: lazy loading writers, do something better to have optional imports
 def xml_writer(data, file, ctx):

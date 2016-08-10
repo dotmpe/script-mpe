@@ -2,12 +2,12 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship, backref
 
-from init import SqlBase
-from util import ORMMixin
+from .init import SqlBase
+from .util import ORMMixin
 
 from script_mpe import lib
-import core
-import fs
+from . import core
+from . import fs
 
 
 class ChecksumDigest(SqlBase, ORMMixin):

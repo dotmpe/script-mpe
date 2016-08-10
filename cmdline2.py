@@ -1,5 +1,5 @@
-from libname import Namespace, Name
-from libcmdng import Targets, Arguments, Keywords, Options,\
+from .libname import Namespace, Name
+from .libcmdng import Targets, Arguments, Keywords, Options,\
     Target, TargetResolver
 
 

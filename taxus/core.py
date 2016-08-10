@@ -9,9 +9,9 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
 #from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship, backref
 
-import iface
-from init import SqlBase
-from util import ORMMixin
+from . import iface
+from .init import SqlBase
+from .util import ORMMixin
 
 from script_mpe import lib, log
 

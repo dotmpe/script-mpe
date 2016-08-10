@@ -26,6 +26,7 @@ XXX: while under development, further explanation is given inline.
 Wether any var in the function signature has a default does not matter,
 XXX currently missing vars are padded with None values, perhaps a warning
 """
+from __future__ import print_function
 import inspect
 import optparse
 import os
@@ -42,6 +43,7 @@ from taxus import iface, init
 import log
 import confparse
 from confparse import Values
+import collections
 
 
 class HandlerReturnAdapter(object):
@@ -420,9 +422,9 @@ class SimpleCommand(object):
             for optnames, optattr in optspec:
                 try:
                     opt = parser.add_option(*optnames, **optattr)
-                except Exception, e:
-                    print "Error adding optspec %r to parser from %r: %s" % (
-                            (optnames,optattr), klass, e)
+                except Exception as e:
+                    print("Error adding optspec %r to parser from %r: %s" % (
+                            (optnames,optattr), klass, e))
                     traceback.print_exc()
 
         optsv, args = parser.parse_args(argv)
@@ -433,7 +435,7 @@ class SimpleCommand(object):
         optsd = {}
         for name in dir(optsv):
             v = getattr(optsv, name)
-            if not name.startswith('_') and not callable(v):
+            if not name.startswith('_') and not isinstance(v, collections.Callable):
                 optsd[name] = v
 
         return parser, optsd, args
@@ -498,7 +500,7 @@ class SimpleCommand(object):
                 repr(args), repr(kwds))
         try:
             ret = handler(*args, **kwds)
-        except Exception, e:
+        except Exception as e:
             log.crit("Exception in handler %s: %s", handler_name, e)
             traceback.print_exc()
             raise e
@@ -579,7 +581,7 @@ class SimpleCommand(object):
 #            print 'hiding args from %s' % handler, args
         # ret_kwds gets argnames missed, if there is kwds pass-through
         if func_kwds_var:
-            for kwd, val in globaldict.items():
+            for kwd, val in list(globaldict.items()):
                 if kwd in pos_args:
                     continue
                 ret_kwds[kwd] = value
@@ -643,7 +645,7 @@ class SimpleCommand(object):
 
         assert config_file, \
                 "Missing config-file for %s, perhaps use init_config_file" %( rc, )
-        assert isinstance(config_file, basestring), config_file
+        assert isinstance(config_file, str), config_file
         assert os.path.exists(config_file), \
                 "Missing %s, perhaps use init_config_file"%config_file
         return config_file
@@ -720,9 +722,9 @@ class SimpleCommand(object):
             reporter.flush()
 
     def help(self, parser, opts, args):
-        print """
+        print("""
         libcmd.Cmd.help
-        """
+        """)
 
     def stat(self, opts=None, args=None):
         if not self.rc:
@@ -735,8 +737,8 @@ class SimpleCommand(object):
             else:
                 log.err("Run com version mismatch: %s vs %s", self.rc.version,
                         self.VERSION)
-        print 'args:', args
-        print 'opts:', pformat(opts.todict())
+        print('args:', args)
+        print('opts:', pformat(opts.todict()))
 
 
 class StackedCommand(SimpleCommand):
@@ -935,12 +937,12 @@ class StackedCommand(SimpleCommand):
 
         self.init_config_defaults()
 
-        v = raw_input("Write new config to %s? [Yn]" % settings.getsource().config_file)
+        v = input("Write new config to %s? [Yn]" % settings.getsource().config_file)
         if not v.strip() or v.lower().strip() == 'y':
             settings.commit()
-            print "File rewritten. "
+            print("File rewritten. ")
         else:
-            print "Not writing file. "
+            print("Not writing file. ")
 
     def init_config_defaults(self):
         self.rc.version = self.VERSION
@@ -955,14 +957,14 @@ class StackedCommand(SimpleCommand):
     def print_config(self, config_file=None, **opts):
         #rcfile = list(confparse.expand_config_path(name))
         #print name, rcfile
-        print ">>> libcmd.Cmd.print_config(config_file=%r, **%r)" % (config_file,
-                opts)
-        print '# self.settings =', self.settings
+        print(">>> libcmd.Cmd.print_config(config_file=%r, **%r)" % (config_file,
+                opts))
+        print('# self.settings =', self.settings)
         if self.rc:
-            print '# self.rc =',self.rc
-            print '# self.rc.parent =', self.rc.parent
+            print('# self.rc =',self.rc)
+            print('# self.rc.parent =', self.rc.parent)
         if 'config_file' in self.settings:
-            print '# self.settings.config_file =', self.settings.config_file
+            print('# self.settings.config_file =', self.settings.config_file)
         if self.rc:
             confparse.yaml_dump(self.rc.copy(), sys.stdout)
         return False

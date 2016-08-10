@@ -11,9 +11,9 @@ from sqlalchemy.orm import relationship, backref
 # script Namespace
 from script_mpe import log
 # script.res Namespace
-import core
-import out
-from init import SqlBase
+from . import core
+from . import out
+from .init import SqlBase
 
 
 """
@@ -97,7 +97,7 @@ class INode(core.Node):
         return "file:%s" % "/".join((self.host.netpath, self.local_path))
 
     def __unicode__(self):
-        return u"<%s %s>" % (lib.cn(self), self.location)
+        return "<%s %s>" % (lib.cn(self), self.location)
 
     def __str__(self):
         return "<%s %s>" % (lib.cn(self), self.location)
