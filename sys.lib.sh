@@ -19,7 +19,7 @@ sys_load()
   } || {
     test -d /tmp || error "No /tmp" 1
     export TMPDIR=/tmp
-    note "TMPDIR=$TMPDIR"
+    info "TMPDIR=$TMPDIR"
   }
 }
 
