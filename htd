@@ -738,19 +738,16 @@ htd__edit_today()
   # Open of dir causes default formatted filename+header created
   test -d "$1" && {
     note "Editing $1"
+    #git add $1/[0-9]*-[0-9][0-9]-[0-9][0-9].rst
     htd__today "$1"
-    # XXX: bash...
-    FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
     today=$(realpath $1/today.rst)
     test -s "$today" || {
       title="$(date_fmt "" '%A %G.%V')"
-      echo "$title" > $today
-      echo "$title" | tr -C '' '=' >> $today
-      printf "\n\n\n" >> $today
+      htd_rst_doc_create_update "$today" "$title"
     }
-    $EDITOR \
-      $(realpath $FILES)
-    git add $1/[0-9]*-[0-9][0-9]-[0-9][0-9].rst
+    # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
+    FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
+    htd_edit_and_update $(realpath $FILES)
 
   # Open of archive file cause day entry added
   } || {
@@ -3651,20 +3648,27 @@ htd_rst_doc_create_update()
   } || {
     test -n "$2" || set -- "$1" "$(basename "$(dirname "$1")")"
     echo "$2" > $1
-    echo "$(echo "$2" | sed 's/./=/g')" >> $1
+    echo "$2" | tr -C '\n' '=' >> $1
     echo ":created: $(date +%Y-%m-%d)" >> $1
     echo  >> $1
     export cksum="$(md5sum $1 | cut -f 1 -d ' ')"
+    export cksums="$cksums $cksum"
   }
 }
 
 htd_edit_and_update()
 {
   test -e "$1" || error htd-edit-and-update-file 1
+
   vim "$@" || return $?
+
   new_ck="$(md5sum "$1" | cut -f 1 -d ' ')"
   test "$cksum" = "$new_ck" && {
-    git co $1 || rm "$1"
+    # Remove unchanged generated file, if not added to git
+    git ls-files --error-unmatch $1 >/dev/null 2>&1 || {
+      rm "$1"
+      note "Removed unchanged generated file ($1)"
+    }
   } || {
     git add "$1"
   }
