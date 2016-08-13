@@ -829,6 +829,7 @@ htd_als__nen=edit-note-en
 
 htd__main_doc()
 {
+  # Find first standard main document
   test -n "$1" || {
     for x in $(htd_main_files)
     do
@@ -838,6 +839,7 @@ htd__main_doc()
       }
     done
   }
+  test -n "$1" || set -- main.rst
 
   local cksum=
   htd_rst_doc_create_update $1
@@ -3638,6 +3640,7 @@ htd__count_lines()
 
 htd_rst_doc_create_update()
 {
+  test -n "$1" || error htd-rst-doc-create-update 12
   test -s "$1" && {
     updated=":updated: $(date +%Y-%m-%d)"
     grep -qi '^\:[Uu]pdated\:.*$' $1 && {
@@ -3646,7 +3649,7 @@ htd_rst_doc_create_update()
       warn "Cannot update 'updated' field."
     }
   } || {
-    test -n "$2" || set -- "$1" "$(basename "$(dirname "$1")")"
+    test -n "$2" || set -- "$1" "$(basename "$(dirname "$(realpath "$1")")")"
     echo "$2" > $1
     echo "$2" | tr -C '\n' '=' >> $1
     echo ":created: $(date +%Y-%m-%d)" >> $1
@@ -3679,7 +3682,7 @@ htd_main_files()
 {
   for x in "" .txt .md .rst
   do
-    for y in ReadMe ChangeLog
+    for y in ReadMe main ChangeLog index doc/main docs/main
     do
       for z in $y $(str_upper $y) $(str_lower $y)
       do

@@ -292,8 +292,11 @@ pd__regenerate()
 pd_load__update=yfP
 pd__update()
 {
+  test -n "$1" || set -- .
   set -- "$(normalize_relative "$pd_prefix/$1")"
   local cwd=$(pwd)
+
+  note "Regenerating in $1"
 
   exec 3>$failed
   ( cd $1 && pd_regenerate "$1" )
@@ -310,7 +313,7 @@ pd__update()
   } || {
 
     note "Adding prefix $1"
-    pd__add_new $1
+    pd__add_new $1 $(cd "$1"; vc.sh remotes sh)
   }
 }
 
@@ -1163,23 +1166,28 @@ pd_load()
 
         local pref=
         for pref in $pd_prefixes; do
-          update_package "$pref" || continue
+          pd__meta_sq get-repo "$pref" && update_package "$pref" || continue
         done
         unset pref
       ;;
 
     P )
-        update_package "$pd_prefix" || { r=$?
-          test  $r -eq 1 || error "update_package" $r
-          continue
+        pd__meta_sq get-repo "$pd_prefix" && {
+
+          update_package "$pd_prefix" || { r=$?
+            test  $r -eq 1 || error "update_package" $r
+            continue
+          }
         }
 
-        eval $(cat $pd_root/$pd_prefix/.package.sh)
+        test -e $pd_root/$pd_prefix/.package.sh \
+          && eval $(cat $pd_root/$pd_prefix/.package.sh)
 
         test -n "$package_id" && {
           note "Found package '$package_id'"
         } || {
-          error "package_id" 1
+          trueish "$require_prefixes" && error "package_id" 1
+
           package_id="$(basename $(realpath $pd_prefix))"
           note "Using package ID '$package_id'"
         }
