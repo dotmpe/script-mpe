@@ -650,8 +650,13 @@ pd_prefix_filter_args()
 
 pd_registered_prefix_target_args()
 {
+  set -- $(while test -n "$1"
+  do
+    fnmatch "-*" "$1" && echo "$1" >>$options || printf "\"$1\" "
+    shift
+  done)
   test -n "$choice_reg" || choice_reg=1
-  pd_prefix_target_args || return $?
+  pd_prefix_target_args "$@" || return $?
 }
 
 pd_prefix_target_args()
@@ -700,6 +705,22 @@ pd_prefix_target_args()
   # Add prefiltered states to arguments
   echo $states | words_to_unique_lines >> $arguments
 }
+
+
+pd_options_v()
+{
+  set -- "$(cat $options)"
+  while test -n "$1"
+  do
+    case "$1" in
+      --stm-yaml ) format_stm_yaml=1 ;;
+      --yaml ) format_yaml=1 ;;
+      * ) error "unknown option '$1'" 1 ;;
+    esac
+    shift
+  done
+}
+
 
 
 # Execute external check/test/build scripts and track associated states

@@ -381,6 +381,7 @@ def py_writer(data, file, ctx):
         file.write(str(data)+"\n")
 
 def lines_writer(data, file, ctx):
+    "Given a list, string format items line-by-line. "
     if not data:
         return
     if not isinstance(data, (tuple, list)):
@@ -388,6 +389,16 @@ def lines_writer(data, file, ctx):
     # XXX: seems object returns objects sometimes? assert isinstance(data, (tuple, list)), data
     for item in data:
         file.write('%s\n' % item)
+
+def table_writer(data, file, ctx):
+    "Given nested list of rows/columns, string format row/cols to lines of tab-separated cells. "
+    if not data:
+        return
+    if not isinstance(data, (tuple, list)):
+        data = [ data ]
+    for item in data:
+        file.write('%s\n' % '\t'.join([ str(i) for i in item]))
+
 
 # FIXME: lazy loading writers, do something better to have optional imports
 def xml_writer(data, file, ctx):
@@ -402,6 +413,7 @@ writers = dict(
         fkv=fkv_writer,
         py=py_writer,
         lines=lines_writer,
+        table=table_writer,
         xml=xml_writer
     )
 

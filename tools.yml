@@ -1,5 +1,19 @@
 tools:
 
+  jsonwidget:
+    installer: pip
+    bin:
+      - jsonedit
+      - jsonaddress
+    description: |
+      Generate forms from JSON schema with Python+Urwid.
+      Does not work out of the box, it seems.
+      No SCM. Around 2010.
+
+      https://pypi.python.org/pypi/jsonwidget/
+      http://blog.robla.net/2010/jsonwidget-python/
+
+
   todotxt-machine:
     bin: True
     installer: pip
@@ -31,5 +45,14 @@ tools:
     installer: git
     url: 'https://gist.github.com/dotmpe/045284c6522b1c24a3b5a56352d273e5'
     
+
+  jolt:
+    bin: jolt
+    installer: basher
+    description: "Transforms for JSON (Java)"
+    post-install:
+    - cd ~/.basher/cellar/packages/bazaarvoice/jolt/
+    - git pull
+    - mvn clean package
 
 

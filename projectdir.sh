@@ -77,6 +77,8 @@ pd__status()
   info "Pd targets requested: $*"
   info "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
 
+  #test -s "$options" || format_yaml=1
+
   # XXX: fetching the state requires all branches to have status/result set.
   #pd__meta update-states
   # TODO: also export for monitoring
@@ -88,29 +90,42 @@ pd__status()
       note "Not a checkout path at $checkout"
       continue
     }
-    note "pd-prefix=$pd_prefix ($CWD)"
-    {
-      # XXX: hack to format Pdoc status into something readable
-      pd_fetch_status "$pd_prefix" \
-        | jsotk.py -I yaml -O pkv - | tr '=' ' ' | while read var stat
-      do
-        test "$var" = "None" && continue
-        test "$stat" = "None" && continue
-        test $stat -eq 0 || {
-          echo "$pd_prefix" >> $failed
-          warn "$pd_prefix: $(echo $var | cut -c8-)"
-          #warn "$pd_prefix: $var"
-        }
-      done
 
-    } || echo "pd:status:$pd_prefix" >>$failed
+    note "pd-prefix=$pd_prefix ($CWD)"
+
+    trueish "$format_yaml" && {
+
+      {
+        pd_fetch_status "$pd_prefix"
+        continue
+        # XXX: hack to format Pdoc status into something readable
+        pd_fetch_status "$pd_prefix" | read_nix_style_file \
+          | jsotk.py -I yaml -O pkv - | read_nix_style_file | tr '=' ' ' | while read var stat
+        do
+          test "$var" = "None" && continue
+          test "$stat" = "None" && continue
+          test "$stat" -eq 0 || {
+            echo "$pd_prefix" >> $failed
+            warn "$pd_prefix: $(echo $var | cut -c8-)"
+            #warn "$pd_prefix: $var"
+          }
+        done
+
+      } || echo "pd:status:$pd_prefix" >>$failed
+
+    }
+
+    trueish "$format_stm_yaml" && {
+      note "TODO"
+    }
 
   done < $prefixes
 
   cd $pd_realdir
 }
-pd_load__status=yiIap
+pd_load__status=yiIaop
 pd_defargs__status=pd_registered_prefix_target_args
+pd_optsv__status=pd_options_v
 pd_als__stat=status
 pd_als__st=status
 
@@ -1149,7 +1164,7 @@ pd_load()
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
 
-  pd_inputs="arguments prefixes"
+  pd_inputs="arguments prefixes options"
   pd_outputs="passed skipped error failed"
 
   test -n "$pd_session_id" || pd_session_id=$(uuidgen)
@@ -1264,6 +1279,13 @@ pd_load()
         # Set default args or filter. Value can be literal or function.
         local pd_default_args="$(eval echo "\"\$$(try_local $subcmd defargs)\"")"
         pd_default_args "$pd_default_args" "$@"
+      ;;
+
+    o )
+        local pd_optsv="$(eval echo "\"\$$(try_local $subcmd optsv)\"")"
+        test -s "$options" && {
+          $pd_optsv
+        } || noop
       ;;
 
     g )
