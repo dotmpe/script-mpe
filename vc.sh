@@ -39,7 +39,7 @@ vc_load()
 
     f )
         # Preset name to subcmd failed file placeholder
-        failed=$(setup_tmp .failed)
+        failed=$(setup_tmpf .failed)
       ;;
 
     C )
