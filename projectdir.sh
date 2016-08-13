@@ -903,6 +903,9 @@ pd__run_suite()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || error "Suite name expected" 1
+  local suite_name=$1
+  shift
+  # TODO: handle prefixes
   test -z "$2" || error surplus-args 1
   pd_run_suite $1 $(pd__ls_targets $1 2>/dev/null) || return $?
 }
@@ -943,6 +946,17 @@ pd__check()
   test -n "$1" || set -- $(pd__ls_targets check 2>/dev/null)
   info "Checks to run ($pd_prefixes): $*"
   pd_run_suite check "$@" || return $?
+}
+
+
+pd_load__build=yiIap
+pd_defargs__build=pd_prefix_target_args
+pd__build()
+{
+  test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
+  test -n "$1" || set -- $(pd__ls_targets build 2>/dev/null)
+  info "Checks to run ($pd_prefixes): $*"
+  pd_run_suite build "$@" || return $?
 }
 
 
@@ -1338,6 +1352,7 @@ pd_lib()
   . $scriptdir/projectdir-npm.inc.sh
   . $scriptdir/projectdir-make.inc.sh
   . $scriptdir/projectdir-lizard.inc.sh
+  . $scriptdir/projectdir-vagrant.inc.sh
   # -- pd box lib sentinel --
 }
 

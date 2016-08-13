@@ -791,12 +791,12 @@ pd_run()
           test -n "$ncomp" || {
             break
           }
-          args="$(echo "$args" | cut -c$(( 2 + ${#ncomp} ))-)"
 
           try_func "$func" && {
             try_func $(try_local $comp:$ncomp "") || break
           }
 
+          args="$(echo "$args" | cut -c$(( 2 + ${#ncomp} ))-)"
           comp="$comp:$ncomp"
 
         done
@@ -820,6 +820,9 @@ pd_run()
 
           subcmd=$comp pd_load "$args" || {
             error "Pd-load failed for '$1'"; echo "$1" >>$error; return 1
+          }
+          test -e "$arguments" || {
+            test -n "$args" || echo "$args" >$arguments
           }
 
           test -s $arguments || echo "$args" >$arguments

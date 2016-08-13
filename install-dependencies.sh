@@ -63,7 +63,7 @@ install_mkdoc()
   popd
   rm Makefile
   ln -s ~/usr/share/mkdoc/Mkdoc-full.mk Makefile
-  make
+  #make
 }
 
 # expecting cwd to be ~/build/dotmpe/script-mpe/ but asking anyway
