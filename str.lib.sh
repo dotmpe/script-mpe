@@ -4,18 +4,22 @@
 # ID for simple strings without special characters
 mkid()
 {
-	id=$(echo "$1" | tr '[:blank:][:punct:]' '_')
+  test -n "$1" || error "mkid argument expected" 1
+  id=$(echo "$1" | tr -sc 'A-Za-z0-9\/:_-' '-' )
 }
 
 # to filter strings to valid id
 mkvid()
 {
+  test -n "$1" || error "mkvid argument expected" 1
 	vid=$(echo "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
 	# Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
 }
 mkcid()
 {
-	cid=$(echo "$1" | sed 's/\([^a-z0-9-]\|\-\)/-/g')
+  test -n "$1" || error "mkcid argument expected" 1
+  cid=$(echo "$1" | tr 'A-Z' 'a-z' | tr -sc 'a-z0-9' '-')
+  #  cid=$(echo "$1" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9-]/-/g')
 }
 
 str_upper()
@@ -133,17 +137,38 @@ unique_words()
   words_to_unique_lines | lines_to_words
 }
 
+expr_substr()
+{
+    test -n "$expr" || error "expr init req" 1
+    case "$expr" in
+        sh-substr )
+            expr substr "$1" "$2" "$3" ;;
+        bash-substr )
+            bash -c 'MYVAR=_"'"$1"'"; printf -- "${MYVAR:'$2':'$3'}"' ;;
+        * ) error "unable to substr $expr" 1
+    esac
+}
+
+
 # Set env for str.lib.sh
 str_load()
 {
-    test -n "$ext_sh_sub" && {
-        printf "" #info "Existing ext_sh_sub=$ext_sh_sub"
-    } || {
-        test "$(echo {foo,bar}-{el,baz})" != "{foo,bar}-{el,baz}" \
-            && ext_sh_sub=1 \
-            || ext_sh_sub=0
-        # debug "Initialized ext_sh_sub=$ext_sh_sub"
-    }
+
+  test -n "$ext_groupglob" || {
+    test "$(echo {foo,bar}-{el,baz})" != "{foo,bar}-{el,baz}" \
+          && ext_groupglob=1 \
+          || ext_groupglob=0
+    # FIXME: part of [vc.bash:ps1] so need to fix/disable verbosity
+    #debug "Initialized ext_groupglob=$ext_groupglob"
+  }
+
+  test -n "$ext_sh_sub" || ext_sh_sub=0
+
+  #      echo "${1/$2/$3}" ... =
+  #        && ext_sh_sub=1 \
+  #        || ext_sh_sub=0
+  #  #debug "Initialized ext_sh_sub=$ext_sh_sub"
+  #}
 }
 
 

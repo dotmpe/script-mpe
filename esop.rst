@@ -8,3 +8,7 @@ Dev
 - TODO: add options, validation for envs or component/features
 - TODO: manage options, for env, build etc. and kinds of tag sets
 
+See also dotmpe/x-go for parser experimenting.
+Also, may want to have a look at Py's shlex for possible content format.
+
+

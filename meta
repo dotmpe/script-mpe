@@ -5,11 +5,11 @@ meta__source=$_
 
 set -e
 
-version=0.0.0+20150911-0659 # script.mpe
+version=0.0.0+20150911-0659 # script-mpe
 
 
 
-meta_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+meta__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 meta_spc__help='-h|help [ID]'
 meta__help()
 {
@@ -20,14 +20,14 @@ meta_als___h=help
 
 
 meta_als___V=version
-meta_man_1__version="Version info"
+meta__man_1_version="Version info"
 meta_spc__version="-V|version"
 meta__version()
 {
   echo "$(cat $PREFIX/bin/.app-id)/$version"
 }
 
-meta_man_1__edit_main="Edit the main script file"
+meta__man_1_edit_main="Edit the main script file"
 meta_spc__edit_main="-E|edit-main"
 meta__edit_main()
 {
@@ -40,7 +40,7 @@ meta_als___E=edit-main
 
 # XXX mediainfo for OSX brew
 
-meta_man_1__info="Print metadata (default command)"
+meta__man_1_info="Print metadata (default command)"
 meta__info()
 {
   test -n "$1" || error "Expected path" 1
@@ -136,7 +136,7 @@ meta_init()
   util_init
   . $scriptdir/box.init.sh
   box_run_sh_test
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/main.init.sh
   . $scriptdir/box.lib.sh
   . $scriptdir/meta.lib.sh

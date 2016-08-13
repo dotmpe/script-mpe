@@ -110,7 +110,7 @@ gv_preload()
   local __load_lib=1
   test -n "$scriptdir"
   test -n "$BIN" || BIN=$scriptdir
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/graphviz.inc.sh "$@"
   . $scriptdir/date.lib.sh
   . $BIN/match.sh load-ext

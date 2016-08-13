@@ -16,6 +16,7 @@ filetype()
   esac
 }
 
+
 # Deal with package metadata files
 
 update_package_json()
@@ -25,46 +26,120 @@ update_package_json()
   metajs=$(normalize_relative "$metajs")
   test $metaf -ot $metajs \
     || {
-    log "Regenerating $metajs from $metaf.."
-    jsotk.py yaml2json $metaf $metajs
+    note "Regenerating $metajs from $metaf.."
+    jsotk.py yaml2json $metaf $metajs \
+      || return $?
   }
 }
 
 jsotk_package_sh_defaults()
 {
-  jsotk.py -I yaml -O fkv objectpath $1 '$..*[@.*.defaults]' \
-    | sed 's/^\([^=]*\)=/test -n "$\1" || \1=/g'
+  {
+    jsotk.py -I yaml -O fkv objectpath $1 '$..*[@.*.defaults]' \
+      || {
+        # TODO: check ret codes warn "Failed reading package defaults from $1 ($?)"
+        return 1
+      }
+
+  } | sed 's/^\([^=]*\)=/test -n "$\1" || \1=/g'
 }
 
 update_package_sh()
 {
   test -n "$1" || set -- ./
+  test -z "$2" || error "Surplus arguments '$*'" 1
+  # XXX:
+  #shopt -s extglob
+  #fnmatch "+([A-ZA-z0-9./])" "$1" || error "Illegal format '$*'" 1
+
   test -n "$metash" || metash=$1/.package.sh
+  test -n "$metamain" || metamain=$1/.package.main
   metash=$(normalize_relative "$metash")
   test $metaf -ot $metash \
     || {
 
-    log "Regenerating $metash from $metaf.."
+    # Format Sh script/vars from local package file
+    note "Regenerating $metash from $metaf.."
 
-    jsotk_package_sh_defaults "$metaf" > $metash
-    ( jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
-        || rm $metash; exit 31 ) \
-        | jsotk.py --output-prefix=package to-flat-kv - >> $metash
+    # Format Sh default env settings
+    { jsotk_package_sh_defaults "$metaf" || {
+      test ! -e $metash || rm $metash
+    }; } | sort -u > $metash
+
+    grep -q Exception $metash && rm $metash
+    test -s "$metash" || rm $metash
+
+    test -e "$metaf" || return
+
+    # Format main block
+    { jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' || {
+      warn "Failed reading package main from $1 ($?)"
+      rm $metamain
+      return 17
+    }; }  > $metamain
+
+    test -s "$metamain" || {
+      warn "Failed reading package main from $1"
+      rm $metamain
+      return 16
+    }
+
+    jsotk.py --output-prefix=package to-flat-kv $metamain | sort -u >> $metash || {
+      warn "Failed writing package Sh from $1 ($?)"
+      rm $metash
+      return 15
+    }
   }
 }
 
-# Given package.yaml metafile, extract and fromat as SH, JSON.
+
+update_temp_package()
+{
+  test -n "$pd" || error pd 21
+  test -n "$ppwd" || ppwd=$(cd $1; pwd)
+  mkvid "$ppwd"
+  metaf=$(setup_tmpf .yml "-meta-$vid")
+  test -e $metaf || touch $metaf $pd
+  #test -e "$metaf" && return || {
+    metash=$1/.package.sh
+    test -e $metaf -a $metaf -nt $pd || {
+      pd__meta package $1 > $metaf
+    }
+  #}
+}
+
+
+# Given package.yaml metafile, extract and fromat as SH, JSON. If no local
+# package.yaml exists, try to extract one temp package YAML from Pdoc.
 update_package()
 {
-  test -n "$1" || set -- ./
+  test -n "$1" || set -- .
+  test -d "$1" || error "update-package dir '$1'" 21
+  test -z "$2" || error "update-package args '$*'" 22
+  test -n "$pd" || error pd 20
+  test -n "$ppwd" || ppwd=$(cd $1; pwd)
   test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
   metaf=$(normalize_relative "$metaf")
-  test -e "$metaf" || warn "No package def '$metaf'" 0
+
+  test -e "$metaf" || {
+    update_temp_package "$1" || { r=$?
+      rm $metaf
+      error update_temp_package-$r
+      return 23
+    }
+  }
+  test -e "$metaf" || error "metaf='$metaf'" 34
+
   # Package.sh is used by other scripts
-  update_package_sh "$1"
+  update_package_sh "$1" || {
+    r=$?
+    grep -q Exception $metash && rm $metash
+    return $r
+  }
+
   # .package.json is not used, its a direct convert of te entire YAML doc.
   # Other scripts can use it with jq if required
-  update_package_json "$1"
+  update_package_json "$1" || return $?
 }
 
 

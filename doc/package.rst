@@ -19,6 +19,10 @@ GIT Branches
             Working to reintegrate ideas from old ``dev_`` forks into dev,
             currently concerning libcmd functionality and txs.Txs with subclasses.
 
+        dev_confparse_hier
+          Testing confparse with inherited properties and hierarchical src file
+          tree. Need to keep test cases alive here.
+
     test
         Writing and running tests.
         Should follow dev before master reintegration.
@@ -88,6 +92,6 @@ Configuration
 .. _maildir: http://en.wikipedia.org/wiki/Maildir
 .. _Transliterature Project: translit_
 .. _translit: http://transliterature.org/
-.. __: https://github.com/dotmpe/script.mpe/blob/master/WorkFlow.rst
+.. __: https://github.com/dotmpe/script-mpe/blob/master/WorkFlow.rst
 
 

@@ -6,10 +6,10 @@ load main.inc
 
 init
 source $lib/util.sh
-source $lib/main.sh
+source $lib/main.lib.sh
 
 # XXX: clean me up to a test-helper func
-test_inc="$lib/util.sh $lib/main.sh $lib/test/helper.bash $lib/test/main.inc.bash"
+test_inc="$lib/util.sh $lib/main.lib.sh $lib/test/helper.bash $lib/test/main.inc.bash"
 test_inc_bash="source $(echo $test_inc | sed 's/\ / \&\& source /g')"
 test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
@@ -249,6 +249,15 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
   ll="$(truncate_trailing_lines $out 1)"
   test -n "$ll"
   test "$ll" = "4"
+}
+
+@test "$lib filesize" {
+  tmpd
+  out=$tmpd/filesize
+  printf "1\n2\n3\n4" >$out
+  test -n "$(filesize "$out")" || bail
+  diag "$(filesize "$out")"
+  test $(filesize "$out") -eq 7
 }
 
 @test "$lib line_count: " {

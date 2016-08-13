@@ -107,40 +107,6 @@ htd_find_path_locals()
 }
 
 
-# TODO: move date routines to lib
-# NOTE: these use BSD date -v, see GNU date -d
-case "$(uname)" in Darwin )
-    date_fmt() {
-      tags=$(for tag in $1; do echo "-v $tag"; done)
-      date $tags +$2
-    }
-    ;;
-  Linux )
-    date_fmt() {
-      # NOTE patching for GNU date
-      tags=$(for tag in $1; do echo "-d $tag" \
-          | sed 's/1d/1day/g' \
-          | sed 's/7d/1week/g'; done)
-      date $tags +$2
-    }
-    ;;
-esac
-
-datelink()
-{
-  test -z "$1" && datep=$(date "+$2") || datep=$(date_fmt "$1" "$2")
-  target_path=$3
-  test -d "$(dirname $3)" || error "Dir $(dirname $3) must exist" 1
-  test -L $target_path && {
-    test "$(readlink $target_path)" = "$(basename $datep)" && {
-        return
-    }
-    printf "Deleting "
-    rm -v $target_path
-  }
-  mkrlink $datep $target_path
-}
-
 mkrlink()
 {
   # TODO: find shortest relative path
@@ -205,7 +171,25 @@ install_bin()
           npm install -g $id || return 2
         ;;
       pip )
-          pip install $id || return 2
+          pip install --user $id || return 2
+        ;;
+      git )
+          url="$(jsotk.py -N -O py path $1 tools/$2/url)"
+          test -d $HOME/.htd-tools/cellar/$id || (
+            git clone $url $HOME/.htd-tools/cellar/$id
+          )
+          (
+            cd $HOME/.htd-tools/cellar/$id
+            git pull origin master
+          )
+          bin="$(jsotk.py -N -O py path $1 tools/$2/bin)"
+          src="$(jsotk.py -N -O py path $1 tools/$2/src)"
+          test -n "$src" || src=$bin
+          (
+            cd $HOME/.htd-tools/bin
+            test ! -e $bin || rm $bin
+            ln -s $HOME/.htd-tools/cellar/$id/$src $bin
+          )
         ;;
     esac
   } || {
@@ -214,8 +198,9 @@ install_bin()
 
   jsotk.py items $1 tools/$2/post-install | while read scriptline
   do
-    note "Running '$scriptline'.."
-    eval $scriptline || exit $?
+    scr=$(echo $scriptline | cut -c2-$(( ${#scriptline} - 1 )) )
+    note "Running '$scr'.."
+    eval $scr || exit $?
   done
 }
 
@@ -248,8 +233,9 @@ uninstall_bin()
 
 tools_json()
 {
-  test ./tools.yml -ot ./tools.json \
-    || jsotk.py yaml2json ./tools.yml ./tools.json
+  test -e $HTD_TOOLSFILE
+  test $HTD_TOOLSFILE -ot ./tools.json \
+    || jsotk.py yaml2json $HTD_TOOLSFILE ./tools.json
 }
 
 

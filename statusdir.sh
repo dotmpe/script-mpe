@@ -16,18 +16,25 @@ statusdir_load()
       #export STATUSDIR_ROOT
   }
 
-  # Load backend
-  test -n "$be" || { which membash 2>&1 >/dev/null && be=membash; }
-  test -n "$be" || be=fsdir
+  # Get temporary dir
+  test -n "$sd_tmp_dir" || sd_tmp_dir=$(setup_tmpd $base)
+  test -n "$sd_tmp_dir" -a -d "$sd_tmp_dir" || error "sd_tmp_dir load" 1
 
-  test ! -e "$scriptdir/statusdir_$be.sh" || {
-    . $scriptdir/statusdir_$be.sh
+  # Load backend
+  test -n "$sd_be" || { which membash 2>&1 >/dev/null && sd_be=membash; }
+  test -n "$sd_be" || sd_be=fsdir
+
+  test ! -e "$scriptdir/statusdir_$sd_be.sh" || {
+    . $scriptdir/statusdir_$sd_be.sh
   }
 }
 
 statusdir_unload()
 {
-  noop
+  test -n "$sd_tmp_dir" || error "sd_tmp_dir unload" 1
+  test "$(echo $sd_tmp_dir/*)" = "$sd_tmp_dir/*" \
+    || warn "Leaving temp files $(echo $sd_tmp_dir/*)"
+  unset sd_be sd_tmp_dir
 }
 
 
@@ -39,6 +46,11 @@ statusdir__root()
   echo $path
 }
 
+
+statusdir__be()
+{
+  echo $sd_be
+}
 
 statusdir__reset()
 {
@@ -118,6 +130,9 @@ statusdir__file()
   echo $STATUSDIR_ROOT"index/$tree"
 }
 
+# XXX
+
+
 
 # XXX: get some plumping commands to deal with embedded structures
 # at paths.
@@ -126,6 +141,7 @@ statusdir__file()
 # arg: 1:jspath 2:value
 statusdir__assert_json()
 {
+  # FIXME assert-json
   sf=$(statusdir__file "state.json" || return $?)
   test -s "$sf" || echo '{}' >$sf
   test -n "$1" || { echo $sf; return; }
@@ -144,9 +160,13 @@ statusdir__assert_json()
 # arg: 1:filepath 2:root-jspath
 statusdir__cons_json()
 {
-  status_json="$(statusdir__assert_json)"
-  jsotk.py merge /tmp/new-status.json $status_json $1
-  mv /tmp/new-status.json $status_json
+  local status_json="$(statusdir__assert_json)" tmpf=$(setup_tmpf .json)
+  jsotk.py merge $tmpf $status_json $1 || {
+    rm $tmpf
+    return 1
+  }
+  mv $tmpf $status_json
+  echo $status_json
 }
 
 
@@ -155,7 +175,7 @@ statusdir__get()
 {
   test -n "$1" || error "key expected" 1
   test -z "$2" || error "surplus arguments" 1
-  $be get $1 || return $?
+  $sd_be get $1 || return $?
 }
 
 statusdir__set()
@@ -164,14 +184,14 @@ statusdir__set()
   test -n "$2" || error "value expected" 1
   test -n "$3" || set -- "$1" "$2" 0
   test -z "$4" || error "surplus arguments" 1
-  $be set $1 $3 $2 || return $?
+  $sd_be set $1 $3 $2 || return $?
 }
 
 statusdir__del()
 {
   test -n "$1" || error "key expected" 1
   test -z "$2" || error "surplus arguments" 1
-  $be delete $1 || return $?
+  $sd_be delete $1 || return $?
 }
 
 statusdir__incr()
@@ -179,7 +199,7 @@ statusdir__incr()
   test -n "$1" || error "key expected" 1
   test -n "$2" || set -- "$1" 1
   test -z "$3" || error "surplus arguments" 1
-  $be incr $1 $2 || return $?
+  $sd_be incr $1 $2 || return $?
 }
 
 statusdir__decr()
@@ -187,7 +207,7 @@ statusdir__decr()
   test -n "$1" || error "key expected" 1
   test -n "$2" || set -- "$1" 1
   test -z "$3" || error "surplus arguments" 1
-  $be decr $1 $2 || return $?
+  $sd_be decr $1 $2 || return $?
 }
 
 
@@ -197,7 +217,9 @@ statusdir__decr()
 statusdir__main()
 {
   local scriptname=statusdir base=$(basename $0 .sh) verbosity=5 \
-    scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+    scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
+    sd_be= \
+    sd_tmpdir=
 
   statusdir__init || exit $?
 
@@ -222,7 +244,7 @@ statusdir__init()
   . $scriptdir/box.init.sh
   box_run_sh_test
   . $scriptdir/htd.lib.sh
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/main.init.sh
   . $scriptdir/box.lib.sh
   . $scriptdir/date.lib.sh
@@ -231,6 +253,7 @@ statusdir__init()
 
 statusdir__lib()
 {
+  test -z "$__load_lib" || return 14
   local __load_lib=1
   # -- statusdir box lib sentinel --
   set --

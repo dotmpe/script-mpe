@@ -6,7 +6,8 @@ Javascript Object toolkit.
 :updated: 2016-05-21
 
 Usage:
-    jsotk [options] path <srcfile> <pathexpr>
+    jsotk [options] path [--is-new] [--is-null] [--is-list] [--is-obj] \
+            [--is-int] [--is-str] [--is-bool] <srcfile> <pathexpr>
     jsotk [options] objectpath <srcfile> <expr>
     jsotk [options] keys <srcfile> <pathexpr>
     jsotk [options] items <srcfile> <pathexpr>
@@ -120,8 +121,8 @@ import util, confparse
 from jsotk_lib import PathKVParser, FlatKVParser, \
         load_data, stdout_data, readers, open_file, \
         get_src_dest_defaults, set_format, get_format_for_fileext, \
-        get_dest, \
-        deep_union, deep_update, data_at_path
+        get_dest, get_src_dest, \
+        deep_union, deep_update, data_at_path, data_check_path, maptype
 
 
 
@@ -205,15 +206,21 @@ def H_merge(ctx, write=True):
 
 def H_update(ctx):
     "Update srcfile from stdin. Write to destfile or stdout. "
-    updatefile = get_dest(ctx, 'r')
-    data = load_data( ctx.opts.flags.output_format, updatefile, ctx )
+
     if not ctx.opts.args.srcfiles:
         return
+
+    updatefile = get_dest(ctx, 'r')
+    data = load_data( ctx.opts.flags.output_format, updatefile, ctx )
+    updatefile.close()
+
     for src in ctx.opts.args.srcfiles:
         fmt = get_format_for_fileext(src) or ctx.opts.flags.input_format
         mdata = load_data( fmt, open_file( src, 'in', ctx=ctx ), ctx )
+
         deep_update([data, mdata], ctx)
-    updatefile = get_dest(ctx, 'w')
+
+    updatefile = get_dest(ctx, 'w+')
     return stdout_data( ctx.opts.flags.output_format, data, updatefile, ctx )
 
 
@@ -227,12 +234,45 @@ def H_update_from_args(ctx):
 # Ad-hoc designed path query
 
 def H_path(ctx):
+
+    """
+    Return data at path. Return 1 if path is not found. Use with ``--is-*``
+    opts to OR-test for type or exit 2. To check if a path could be inserted,
+    use ``--is-new``. This overrules not-found errors, but only if the path
+    could be inserted. When any existing
+    element does not match a list or object type it also exits non-zero.
+    """
+
     infile, outfile = get_src_dest_defaults(ctx)
+    data = None
     try:
         data = data_at_path(ctx, infile)
+        infile.close()
     except:
-        return 1
-    return stdout_data( ctx.opts.flags.output_format, data, outfile, ctx )
+        if not ctx.opts.flags.is_new:
+            return 1
+
+    res = [ ]
+
+    for tp in "new list obj int str bool".split(" "):
+        if ctx.opts.flags["is_%s" % tp]:
+            if tp == "new":
+                infile, outfile = get_src_dest_defaults(ctx)
+                if not data and data_check_path(ctx, infile):
+                    res += [ 0 ]
+            elif isinstance(data, maptype(tp)):
+                res += [ 0 ]
+            else:
+                res += [ 1 ]
+
+    if res and min(res) == 0:
+        res = [ 0 ]
+
+    if not ctx.opts.flags.quiet:
+        res += [ stdout_data( ctx.opts.flags.output_format, data, outfile, ctx ) ]
+
+    return max(res)
+
 
 def H_keys(ctx):
     "Output list of keys or indices"
@@ -345,6 +385,7 @@ def H_from_flat_kv(ctx):
 def H_to_flat_kv(ctx):
     ctx.opts.flags.output_format = 'fkv'
     return H_dump(ctx)
+
 
 
 

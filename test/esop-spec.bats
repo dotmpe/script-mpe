@@ -67,8 +67,10 @@ source $lib/str.lib.sh
   base=esop
 
   run try_value version man_1
-  test ${status} -eq 0
-  test "${lines[*]}" = "Version info"
+  test ${status} -eq 0 \
+    || fail "try_value version man_1: ${status}, out: ${lines[*]}"
+  test "${lines[*]}" = "Version info" \
+    || fail "try_value version man_1: ${status}, out: ${lines[*]}"
   test ! -z "${lines[*]}" # non-empty output
 
   run $BATS_TEST_DESCRIPTION

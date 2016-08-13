@@ -6,7 +6,7 @@ setup_launchd_service()
   test -n "$program" || program=$0
   test -n "$port" || port=18083
   id=com.dotmpe.$base
-  cd /tmp/
+  cd $TMPDIR
   { cat - <<EOM
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

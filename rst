@@ -62,7 +62,7 @@ c_rst__edit()
 }
 
 
-c_rst_man_1__version="Version info"
+c_rst__man_1_version="Version info"
 c_rst__version()
 {
   echo "box-rst/$version"
@@ -95,7 +95,7 @@ rst_init()
   . $scriptdir/box.init.sh
   . $scriptdir/box.lib.sh
   box_run_sh_test
-  . $scriptdir/main.sh
+  . $scriptdir/main.lib.sh
   . $scriptdir/main.init.sh
   # -- rst box init sentinel --
 }

@@ -4,8 +4,8 @@ import unittest
 from zope.interface.verify import verifyObject
 from zope.component import getGlobalSiteManager
 
-import res.primitive
-import res.iface
+from script_mpe.res import primitive
+from script_mpe.res import iface
 
 
 
@@ -16,35 +16,35 @@ class TreeNodeDictTest(unittest.TestCase):
         self.pwd = os.getcwd()
 
     def test_ifaces(self):
-        tree = res.primitive.TreeNodeDict(u'name')
-        verifyObject( res.iface.Node, tree )
-        verifyObject( res.iface.ITree, tree )
+        tree = primitive.TreeNodeDict(u'name')
+        verifyObject( iface.Node, tree )
+        verifyObject( iface.ITree, tree )
 
     def test_name(self):
-        tree = res.primitive.TreeNodeDict(u'<root>')
+        tree = primitive.TreeNodeDict(u'<root>')
         assert tree.__name__ == u'<root>'
 
     def test_nodeid(self):
-        tree = res.primitive.TreeNodeDict(u'<root>')
+        tree = primitive.TreeNodeDict(u'<root>')
         assert tree.nodeid == u'<root>'
 
     def test_tree_append(self):
-        tree = res.primitive.TreeNodeDict(u'<root>')
+        tree = primitive.TreeNodeDict(u'<root>')
         assert tree.nodeid == u'<root>'
-        subnode = res.primitive.TreeNodeDict(u'<node>')
+        subnode = primitive.TreeNodeDict(u'<node>')
         tree.append(subnode)
         self.assert_( tree.subnodes == [ subnode ] )
 
     def test_conform(self):
-        tree = res.primitive.TreeNodeDict(  )
+        tree = primitive.TreeNodeDict(  )
 
     def test_tree_traverse(self):
         return # FIXME recursing in test_tree_traverse
-        tree = res.primitive.TreeNodeDict(u'<root>')
-        subnode = res.primitive.TreeNodeDict(u'<node>')
+        tree = primitive.TreeNodeDict(u'<root>')
+        subnode = primitive.TreeNodeDict(u'<node>')
         tree.append(subnode)
         #visitor = AbstractHierarchicalVisitor()
-        visitor = res.primitive.NodeIDExtractor()
+        visitor = primitive.NodeIDExtractor()
         r = visitor.traverse(tree)
         self.assert_( list(r) == [ tree, subnode ] )
 
@@ -55,18 +55,18 @@ class TreeNodeDictTest(unittest.TestCase):
 def test_dictnode_fs_populate(): # TEST creating a dicttree from fs
     root = 'res'
     gsm = getGlobalSiteManager()
-    localfs_service = gsm.queryUtility(res.iface.ILocalNodeService, 'fs')
+    localfs_service = gsm.queryUtility(iface.ILocalNodeService, 'fs')
     return # FIXME test_dictnode_fs_populate
     rootnode = localfs_service(root)
-    tree = res.primitive.TreeNodeDict(None)
+    tree = primitive.TreeNodeDict(None)
 # XXX ITraveler + Updater
-    visitor = res.primitive.NodeUpdater(tree)
-    traveler = res.iface.ITraveler(tree)
+    visitor = primitive.NodeUpdater(tree)
+    traveler = iface.ITraveler(tree)
     tree.travel(rootnode, visitor)
     #list ( visitor.traverse( rootnode ) )
-   
+
 def test_tree():
-    import confparse
+    from script_mpe import confparse
     root = 'res'
     opts = confparse.Values({})
     tree_init = {}
@@ -74,7 +74,7 @@ def test_tree():
 
 def test_treenodedict():
     # nodes will be root of a node structure
-    nodes = res.primitive.TreeNodeDict()
+    nodes = primitive.TreeNodeDict()
     # get the right iface for IHierarchicalVisitor
     tree = iface.ITree( nodes )
 # Set up a traveler

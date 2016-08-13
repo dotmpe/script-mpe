@@ -118,10 +118,11 @@ class TestTaxusInitExtends(TestTaxusSchema):
 
         os.unlink(os.path.expanduser(self.prefix+'taxus-schema-test.sqlite'))
 
+
 def get_cases():
     return [
-        TestTaxusInitBasic,
-        TestTaxusInitExtends
+        #TestTaxusInitBasic,
+        #TestTaxusInitExtends
     ]
 
 if __name__ == '__main__':

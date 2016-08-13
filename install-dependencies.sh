@@ -66,7 +66,7 @@ install_mkdoc()
   make
 }
 
-# expecting cwd to be ~/build/dotmpe/script.mpe/ but asking anyway
+# expecting cwd to be ~/build/dotmpe/script-mpe/ but asking anyway
 
 install_pylib()
 {
@@ -99,9 +99,9 @@ install_script()
 
 main_entry()
 {
-  test -n "$1" || set -- "-"
+  test -n "$1" || set -- '-'
 
-  case "$1" in "-"|project|git )
+  case "$1" in '-'|project|git )
       git --version >/dev/null || {
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
       which pip >/dev/null || {
@@ -109,21 +109,21 @@ main_entry()
       pip install setuptools
     ;; esac
 
-  case "$1" in "-"|build|test|sh-test|bats )
+  case "$1" in '-'|build|test|sh-test|bats )
       test -x "$(which bats)" || { install_bats || return $?; }
     ;; esac
 
-  case "$1" in "-"|dev|build|check|test|git-versioning )
+  case "$1" in '-'|dev|build|check|test|git-versioning )
       test -x "$(which git-versioning)" || {
         install_git_versioning || return $?; }
     ;; esac
 
-  case "$1" in "-"|python|project|docopt)
+  case "$1" in '-'|python|project|docopt)
       # Using import seems more robust than scanning pip list
       python -c 'import docopt' || { install_docopt || return $?; }
     ;; esac
 
-  case "$1" in "-")
+  case "$1" in '-')
       install_mkdoc
       install_pylib
       install_script
@@ -135,7 +135,7 @@ main_entry()
 test "$(basename $0)" = "install-dependencies.sh" && {
   while test -n "$1"
   do
-    main_entry $1 || exit $?
+    main_entry "$1" || exit $?
     shift
   done
 } || printf ""

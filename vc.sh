@@ -20,15 +20,30 @@ vc_load()
   test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
   test -n "$uname" || uname=$(uname)
 
-  . $scriptdir/util.sh
-  . $scriptdir/main.sh
-  . $scriptdir/match.lib.sh
+  . $scriptdir/util.sh load-ext
 
+  lib_load os sys std str main match
+
+  sys_load
   str_load
 
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
   gtd=$(__vc_gitdir $cwd)
+
+
+  test -n "$vc_clean_gl" || {
+    test -e .gitignore-clean \
+      && export vc_clean_gl=.gitignore-clean
+    test -e ~/.gitignore-clean-global \
+      && export vc_clean_gl="$vc_clean_gl $HOME/.gitignore-clean-global"
+  }
+  test -n "$vc_temp_gl" || {
+    test -e .gitignore-temp \
+      && export vc_temp_gl=.gitignore-temp
+    test -e ~/.gitignore-temp-global \
+      && export vc_temp_gl="$vc_temp_gl $HOME/.gitignore-temp-global"
+  }
 
 
   # Look at run flags for subcmd
@@ -99,18 +114,76 @@ vc_usage()
 
 vc__commands()
 {
-	echo 'Commands: '
-	echo '  print-all <path>        Dump some debug info on given (versioned) paths'
-	echo '  ps1                     Print PS1'
-	echo '  prompt-command          ...'
-  echo '  ls-gitroots             List all GIT checkouts (roots only) below the current dir.'
-	echo '  ls-errors               '
+	echo 'Commands'
+	echo '  status             TODO'
+  echo 'TODO: consolidate '
+  echo '  ls-gitroots        List all GIT checkouts (roots only) below the current dir.'
+	echo '  list-submodules    '
+	echo '  list-prefixes      '
+	echo '  list-subrepos      XXX: List all repositories below, excluding submodules. '
+	echo ''
+	echo 'Utils'
+	echo '  print-all <path>   Dump some debug info on given (versioned) paths'
+	echo '  ps1                Print PS1'
+	echo '  screen             '
+	echo '  ls-errors          '
+	echo '  mtime              '
+	echo '  flush              '
+	echo '  print-all          '
+	echo '  prompt-command     '
+	echo '  gh                 Clone from github'
+  echo '  git-largest-objects (10)'
+  echo '                     List the SHA1 sums of the largest objects.'
+  echo '  path-for-object <sha1>'
+  echo '                     Given SHA1 object, its current path.'
+	echo '  contains PATH CHECKOUT '
+	echo '                     Find any version of PATH in CHECKOUIT. '
+	echo '  list-objects       Verify all packages. '
+	echo '  object-contents    '
+	echo '  projects           XXX: list remotes in projectdir'
+	echo '  remotes            List remotes in repo. '
+  echo '  local              Find or create bare remote (default: $SCM_GIT_DIR)'
+	echo ''
+	echo '  regenerate         Regenerate local excludes. '
+	echo '  regenerate-stale   Regenerate when local ignores are newer than excludes. '
+	echo ''
+	echo 'File Patterns'
+	echo '  excludes           Patterns to paths kept out of version control '
+	echo '                     (unversioned-files [uf]). '
+	echo '  temp-patterns      Patterns to excluded files that will be '
+	echo '                     regenerated if removed . '
+	echo '  cleanables         Patterns to excluded files that can be cleaned '
+	echo '                     but are required while the checkout exists. '
+	echo '  excludes-regex     '
+	echo '  cleanables-regex   '
+	echo '  temp-patterns-regex '
+	echo '                     Compile/echo globlists to regexes. '
+	echo ''
+	echo 'Files'
+	echo '  uf|unversioned-files '
+	echo '                     List untracked paths excluding ignored paths. '
+	echo '  ufx|excluded|untracked-files '
+  echo '                     List every untracked path (including ignore). '
+	echo '  uft|temporary-files '
+  echo '                     List (untracked) temporary file paths'
+	echo '  ufc|cleanable-files '
+  echo '                     List (untracked) cleanable file paths'
+	echo '  ufu|uncleanable-files '
+  echo '                     List untracked paths excluding temp or cleanable. '
+  echo ''
+	echo 'Annex'
+  echo '  annex-unused       Show keys of stored objects without path using them. '
+  echo '  annex-show-unused  Show commit logs for unused keys. '
+  echo '  annex-clear-unused [<to>]'
+  echo '                     Drop the unused keys, or move to remote. '
+	echo '  annex-contains     '
+	echo '  annex-local        Find or create remote annex repo in $ANNEX_DIR'
 	echo ''
 	echo 'Other commands: '
-	echo '  -e|edit                 Edit this script.'
-	echo '  help                    Give a combined usage, command and docs. '
-	echo '  docs                    Echo manual page. '
-	echo '  commands                Echo this comand description listing.'
+	echo '  -e|edit            Edit this script.'
+	echo '  help               Give a combined usage, command and docs. '
+	echo '  docs               Echo manual page. '
+	echo '  commands           Echo this comand description listing.'
 }
 
 vc__help()
@@ -167,7 +240,7 @@ homepath()
 # u: '~'
 #
 
-__vc_bzrdir ()
+__vc_bzrdir()
 {
   local cwd="$(pwd)"
   (
@@ -180,16 +253,34 @@ __vc_bzrdir ()
 }
 
 # __vc_gitdir accepts 0 or 1 arguments (i.e., location)
-# returns location of .git repo
-__vc_gitdir ()
+# echo absolute location of .git repo, return
+# be silent otherwise
+__vc_gitdir()
 {
-  test -n "$1" || set -- .
+  test -n "$1" || set -- $(pwd -P)
 	test -d "$1/.git" && {
 		echo "$1/.git"
   } || (
-    cd "$D"
-    git rev-parse --git-dir 2>/dev/null
+    cd "$1" || return 2
+    git rev-parse --git-dir 2>/dev/null || return 1
   )
+}
+
+# checkout dir
+# for regular checkouts, the parent dir
+# for modules, one level + prefix levels higher
+__vc_git_codir()
+{
+  git="$(__vc_gitdir "$1")"
+
+  fnmatch "*/.git" "$git" \
+    || while true
+      do
+        git="$(dirname "$git")"
+        fnmatch "*/.git" "$git" && break
+      done
+
+  dirname "$git"
 }
 
 # __vc_git_flags accepts 0 or 1 arguments (i.e., format string)
@@ -454,6 +545,87 @@ __vc_push ()
 }
 
 
+# get a/the vendor/project ID's
+# many possible ways to get it, defaults to something github-ish.
+# But let .package.sh decide method
+# must be called from within checkout base dir
+__vc_gitrepo()
+{
+  test -e .git || err "not a checkout" 240
+  test -e .package && . .package.sh
+
+  test -z "$package_mpe_meta_get_repo" \
+    || set -- "$package_mpe_meta_get_repo"
+
+  test -n "$1" || {
+    test -z "$package_repo" || set -- "package-repo"
+  }
+
+  test -n "$1" || {
+    test -z "$package_vendor" -a -z "$package_id" \
+      || set -- package-vnd-id
+  }
+
+  test -n "$1" || {
+      set -- "$(
+    git remote | while read remote
+    do
+      fnmatch "git@github.com:*" "$(git config remote.$remote.url)" \
+        && {
+          echo remote-$remote
+          break
+        }
+      done )"
+  }
+
+  test -n "$1" || {
+
+      set -- "$(
+    git remote | while read remote
+    do
+      fnmatch "$HTD_GIT_REMOTE_URL*" "$(git config remote.$remote.url)" \
+        && {
+          echo remote-HTD-$remote
+          break
+        }
+      done )"
+  }
+
+  case "$1" in
+    package-repo )
+        echo $package_repo
+      ;;
+    package-vnd-id )
+        echo $package_vendor/$package_id
+      ;;
+    remote-*-* )
+        local \
+          remote_key=$(echo $1 | cut -c8- | cut -d- -f 1) \
+          remote_local=$(echo $1 | cut -c8- | cut -d- -f 2)
+        local \
+          remote_name=$(eval echo \$${remote_key}_GIT_REMOTE) \
+          remote_url_base=$(eval echo \$${remote_key}_GIT_REMOTE_URL) \
+          remote_url=$(git config remote.$remote_local.url)
+        local \
+          e=$(( ${#remote_url} - 4 )) l=$(( 2 + ${#remote_url_base} ))
+
+        local repo=$(echo $remote_url | cut -c$l-$e)
+
+        echo $remote_name/$repo
+      ;;
+    remote-* )
+        local remote=$(echo $1 | cut -c8-)
+        git config remote.$remote.url | sed -E '
+          s/^.*:([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+)(\.git)?$/\1\/\2/'
+      ;;
+
+    * )
+        error "Illegal vc gitrepo method '$1'" 1
+      ;;
+  esac
+}
+
+
 list_gitpaths()
 {
 	d=$1
@@ -518,7 +690,7 @@ vc__gitflags()
 }
 
 
-vc_man_1__ps1="Print VC status in the middle of PWD. ".
+vc__man_1_ps1="Print VC status in the middle of PWD. ".
 vc_run__ps1=x
 vc_spc__ps1="ps1"
 vc__ps1()
@@ -531,7 +703,7 @@ vc_C_exptime__ps1=0
 vc_C_validate__ps1="vc__mtime \$gtd"
 
 
-vc_man_1__screen="Print VC status in the middle of PWD. ".
+vc__man_1_screen="Print VC status in the middle of PWD. ".
 vc_run__screen=x
 vc_spc__screen="screen"
 vc__screen()
@@ -544,7 +716,7 @@ vc_C_exptime__screen=0
 vc_C_validate__screen="filemtime \$cwd"
 
 
-vc_man_1__mtime="Return last modification time for GIT head or stage"
+vc__man_1_mtime="Return last modification time for GIT head or stage"
 vc__mtime()
 {
   test -n "$1" || set -- "$gtd"
@@ -558,7 +730,7 @@ vc__mtime()
 }
 
 
-vc_man_1__flush="Delete all subcmd value caches"
+vc__man_1_flush="Delete all subcmd value caches"
 vc__flush()
 {
   for subcmd_ in ps1 stat
@@ -599,10 +771,21 @@ vc__prompt_command()
 
 vc__list_submodules()
 {
-  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
+  test -n "$spwd" || error spwd-12 12
+  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
+  do
+    smpath=$ppwd/$prefix
+    test -e $smpath/.git || {
+      warn "Not a submodule checkout '$prefix' ($spwd/$prefix)"
+      continue
+    }
+    note "Submodule '$prefix' ($spwd/$prefix)"
+    echo "$prefix"
+  done
+  #git submodule | cut -d ' ' -f 2
 }
 
-vc_man_1__gh="Clone from Github to subdir, adding as submodule if already in checkout. "
+vc__man_1_gh="Clone from Github to subdir, adding as submodule if already in checkout. "
 vc_spc__gh="gh <repo> [<prefix>]"
 vc__gh() {
   test -n "$1" || error "Need repo name argument" 1
@@ -645,7 +828,7 @@ vc__largest_objects()
 }
 
 # list commits for object sha1
-vc__path_for_object()
+vc__commit_for_object()
 {
   test -n "$1" || error "provide object hash" 1
   while test -n "$1"
@@ -660,18 +843,38 @@ vc__path_for_object()
   done
 }
 
+vc__count_packs()
+{
+  echo .git/objects/pack/pack-*.idx | wc -l
+}
+
 # print tree, blob, commit, etc. objs
 vc__list_objects()
 {
-  git verify-pack -v .git/objects/pack/pack-*.idx
+  test -n "$1" || set -- "-v"
+  git verify-pack "$@" .git/objects/pack/pack-*.idx
+  pack_cnt=$(vc__count_packs)
+  test $pack_cnt -gt 0 && {
+    test $pack_cnt -eq 1 && {
+      note "One package verified"
+    } || {
+      note "Multple ($pack_cnt)) packages verified"
+    }
+  } || {
+    error "No packages"
+  }
 }
 
+# Pretty print GIT object
 vc__object_contents()
 {
   git cat-file -p $1
 }
 
-vc_man_1__excludes="List path ignore patterns"
+
+## List Exclude Patterns
+
+vc__man_1_excludes="List path ignore patterns"
 vc__excludes()
 {
   # (global) core.excludesfile setting
@@ -682,7 +885,10 @@ vc__excludes()
   }
 
   note "Local excludes (repository):"
-  cat .git/info/exclude | grep -v '^\s*\(#\|$\)'
+
+  test -e .git/info/exclude && {
+    cat .git/info/exclude | grep -v '^\s*\(#\|$\)'
+  }
 
   test -s ".gitignore" && {
     note "Local excludes"
@@ -692,49 +898,104 @@ vc__excludes()
   }
 }
 
-# List unversioned including ignored
-vc__ufx()
+vc__excludes_regex()
 {
-  vc__excluded
-}
-vc__excluded()
-{
-  # list paths not in git (including ignores)
-  git ls-files --others --dir
-  # XXX: need to add prefixes to returned paths:
-  pwd=$(pwd)
-  git submodule | while read hash prefix ref
-  do
-    path=$pwd/$prefix
-    test -e $path/.git || {
-      warn "Not a checkout: ${path}"
-      continue
-    }
-    ( note $path:;cd $path && vc__excluded )
-  done
+  vc__regenerate_stale
+  globlist_to_regex .git/info/exclude || return $?
 }
 
-# List all unversioned excluding ignored
-vc__uf()
+vc__temp_patterns() { eval read_nix_style_file $vc_temp_gl || return $?; }
+vc__temp_patterns_regex() { globlist_to_regex $vc_temp_gl || return $?; }
+vc__cleanables() { eval read_nix_style_file $vc_clean_gl || return $?; }
+vc__cleanables_regex() { globlist_to_regex $vc_clean_gl || return $?; }
+
+
+# List unversioned files (including temp, cleanable and any excluded)
+vc__ufx() { vc__untracked_files "$@"; }
+vc__excluded() { vc__untracked_files "$@"; }
+vc__untracked_files()
 {
-  vc__unversioned_files
+  test -z "$1" || error "unexpected arguments" 1
+  test -n "$spwd" || error spwd-13 13
+
+  # list paths not in git (including ignores)
+  git ls-files --others --dir || return $?
+
+  vc__list_submodules | while read prefix
+  do
+    smpath=$ppwd/$prefix
+    cd $smpath
+    ppwd=$smpath spwd=$spwd/$prefix \
+      vc__excluded \
+          | grep -Ev '^\s*(#.*|\s*)$' \
+          | sed 's#^#'"$prefix"'/#'
+  done
+
+  cd $ppwd
 }
+
+# List untracked paths. Unversioned files excluding ignored/excluded
+vc__uf() { vc__unversioned_files "$@"; }
 vc__unversioned_files()
 {
+  test -z "$1" || error "unexpected arguments" 1
+  test -n "$spwd" || error spwd-14 14
+
   # list cruft (not versioned and not ignored)
-  git ls-files --others --exclude-standard
-  # XXX: need to add prefixes to returned paths:
-  pwd=$(pwd)
-  git submodule | while read hash prefix ref
+  git ls-files --others --exclude-standard || return $?
+
+  vc__list_submodules | while read prefix
   do
-    path=$pwd/$prefix
-    test -e $path/.git || {
-      warn "Not a checkout: ${path}"
-      continue
-    }
-    ( cd $path && vc__unversioned_files )
+    smpath=$ppwd/$prefix
+    cd $smpath
+    ppwd=$smpath spwd=$spwd/$prefix \
+      vc__unversioned_files | grep -Ev '^\s*(#.*|\s*)$' \
+          | sed 's#^#'"$prefix"/'#'
   done
+
+  cd $ppwd
 }
+
+# List (untracked) cleanable files
+vc__ufc() { vc__unversioned_cleanable_files ; }
+vc__unversioned_cleanable_files()
+{
+  note "Listing unversioned cleanable paths"
+  vc__cleanables_regex > .git/info/exclude-clean.regex || return $?
+  vc__untracked_files | grep -f .git/info/exclude-clean.regex || {
+    warn "No cleanable files"
+    return 1
+  }
+}
+
+vc__uft() { vc__unversioned_temporary_files ; }
+vc__unversioned_temporary_files()
+{
+  note "Listing unversioned temporary paths"
+  vc__temp_patterns_regex > .git/info/exclude-temp.regex || return $?
+  vc__untracked_files | grep -f .git/info/exclude-temp.regex || {
+    warn "No temporary files"
+    return 1
+  }
+}
+
+vc__ufu() { vc__unversioned_uncleanable_files ; }
+vc__unversioned_uncleanable_files()
+{
+  note "Listing unversioned, uncleanable paths"
+  {
+    vc__cleanables_regex
+    vc__temp_patterns_regex
+  } > .git/info/exclude-clean-or-temp.regex
+
+  vc__untracked_files | grep -v -f .git/info/exclude-clean-or-temp.regex || {
+    warn "No uncleanable files"
+    return 1
+  }
+}
+#vc_load__ufu=f
+#vc_load__unversioned_uncleanable_files=f
+
 
 # Annex diag.
 vc__annex_unused()
@@ -824,12 +1085,12 @@ vc__list_prefixes()
 # XXX: takes subdir, and should in case of being in a subdir act the same
 vc__list_subrepos()
 {
-  local cwd=$(pwd)
+  local cwd=$(pwd) prefixes=$(setup_tmpf .prefixes)
   basedir="$(dirname "$(__vc_gitdir "$1")")"
   test -n "$1" || set -- "."
 
   cd $basedir
-  vc__list_prefixes > /tmp/vc-list-prefixes
+  vc__list_prefixes > $repfixes
   cd $cwd
 
   find $1 -iname .git | while read path
@@ -840,12 +1101,13 @@ vc__list_subrepos()
     # skip proper submodules
     match_grep_pattern_test "$(dirname "$path")" || continue
     grep_pattern="$p_"
-    grep -q "$grep_pattern" /tmp/vc-list-prefixes && {
+    grep -q "$grep_pattern" $prefixes && {
       continue
     } || {
       echo "$(dirname $path)"
     }
   done
+  rm $prefixes
 #    git submodule foreach 'for remote in "$(git remote)"; do echo $remote; git
 #    config remote.$remote.url  ; done'
 }
@@ -896,7 +1158,7 @@ vc__list_local_branches()
 }
 
 # regenerate .git/info/exclude
-vc__update()
+vc__regenerate()
 {
   local excludes=.git/info/exclude
 
@@ -908,8 +1170,9 @@ vc__update()
   rm $excludes.list
 
   info "Adding other git-ignore files"
-  for x in .gitignore-*
+  for x in .gitignore-* $HOME/.gitignore-*-global
   do
+    test "$(basename $x .regex)" = "$(basename $x)" || continue
     test -e $x || continue
     fnmatch "$x: text/*" "$(file --mime $x)" || continue
     echo "# Source: $x" >> $excludes
@@ -917,6 +1180,91 @@ vc__update()
   done
 
   note "Local excludes successfully regenerated"
+}
+
+vc__regenerate_stale()
+{
+  for gexcl in .gitignore{-{clean,temp},}
+  do
+    test .git/info/exclude -nt $gexcl || {
+      vc__regenerate
+      return
+    }
+  done
+}
+
+
+vc__gitrepo()
+{
+  __vc_gitrepo || return $?
+}
+
+# Add/update local git bare repo
+vc__local()
+{
+  test -n "$1" || set -- "SCM_GIT_DIR" "$2"
+  test -n "$2" || set -- "$1" "git-local"
+  test -z "$3" || error "surplus arguments '$3'" 1
+
+  set -- "$@" "$(eval echo \$$1)"
+  test -n "$3" || error "$1 empty" 1
+  test -d "$3" || error "$1 is not a dir '$3'" 1
+
+  git=$(__vc_git_codir)
+  test -n "$git" || error "not a checkout" 230
+
+  repo=$(__vc_gitrepo)
+  test -n "$repo" || error "no repo found for CWD" 1
+
+  test -e $3/$repo || {
+    mkdir -p $(dirname $3/$repo)
+    test -n "$clone_flags" || clone_flags=--bare
+    git clone $clone_flags $git $3/$repo || {
+      error "Failed creating bare clone '$2' '$3/$repo'" 1
+    }
+  }
+
+  git config remote.$2.url >/dev/null && {
+    test "$(git config remote.$2.url)" = "$3/$repo" \
+      && note "Remote '$2' url up to date" \
+      || {
+        git remote set-url $2 $3/$repo \
+          && note "Updated remote '$2' url" \
+          || error "Failed updating remote '$2' url '$3/$repo'" 1
+      }
+  } || {
+    git remote add $2 $3/$repo \
+      && note "Added remote '$2'" \
+      || error "Failed adding remote '$2' url '$3/$repo'" 1
+    git annex fetch $2
+  }
+}
+
+# Add/update for local annex-dir remote
+# If in an annex checkout, get repo name, and add remote $ANNEX_DIR/<repo>.git
+vc__annex_local()
+{
+  test -n "$1" || set -- "$ANNEX_DIR" "$2"
+  test -n "$2" || set -- "$1" "annex-dir"
+
+  clone_flags=" " \
+  vc__local $1 $2 || return $?
+
+  git annex sync $2 \
+    && note "Succesfully synced annex with $2" \
+    || error "Syncing annex with $2" 1
+  echo "Press return to finish, or enter:"
+  echo " 1|m[ove] or 2|c[opy] for annex contents to $2.."
+  read act >/dev/null
+  test -z "$act" || {
+    case "$act" in
+      1 | m* ) act=move;;
+      2 | c* ) act=copy;;
+    esac
+    git annex $act --to $2 \
+      || return $? \
+      && note "Succesfully ran annex $act to $2"
+  }
 }
 
 
@@ -934,13 +1282,16 @@ vc_main()
   case "$base" in $scriptname )
 
         test -n "$scriptdir" || \
-            scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+            scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
+            pwd=$(pwd -P) ppwd=$(pwd) spwd=.
+
         export SCRIPTPATH=$scriptdir
         . $scriptdir/util.sh
 
         test -n "$verbosity" || verbosity=5
 
         local func=$(echo vc__$subcmd | tr '-' '_') \
+            failed= \
             ext_sh_sub=
 
         type $func >/dev/null 2>&1 && {
