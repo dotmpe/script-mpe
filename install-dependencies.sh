@@ -86,6 +86,41 @@ install_pylib()
   export PYTHON_PATH=$PYTHON_PATH:.:$pylibdir/
 }
 
+install_apenwarr_redo()
+{
+  test -n "$global" || {
+    test -n "$sudo" && global=1 || global=0
+  }
+
+  test $global -eq 1 && {
+
+    test -d /usr/local/lib/python2.7/site-packages/redo \
+      || {
+
+        $sudo git clone https://github.com/apenwarr/redo.git \
+            /usr/local/lib/python2.7/site-packages/redo || return 1
+      }
+
+    test -h /usr/local/bin/redo \
+      || {
+
+        $sudo ln -s /usr/local/lib/python2.7/site-packages/redo/redo \
+            /usr/local/bin/redo || return 1
+      }
+
+  } || {
+
+    which basher 2>/dev/null >&2 && {
+
+      basher install apenwarr/redo
+    } || {
+
+      echo "Need basher to install apenwarr/redo locally" >&2
+      return 1
+    }
+  }
+}
+
 install_script()
 {
   cwd=$(pwd)
@@ -123,10 +158,19 @@ main_entry()
       python -c 'import docopt' || { install_docopt || return $?; }
     ;; esac
 
+  case "$1" in '-'|ruby|redmine|tasks)
+      gem install redmine-cli || return $?
+      redmine install || return $?
+    ;; esac
+
+  case "$1" in '-'|redo )
+      install_apenwarr_redo || return $?
+    ;; esac
+
   case "$1" in '-')
-      install_mkdoc
-      install_pylib
-      install_script
+      install_mkdoc || return $?
+      install_pylib || return $?
+      install_script || return $?
     ;; esac
 
   echo "OK. All pre-requisites for '$1' checked"

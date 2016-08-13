@@ -830,7 +830,10 @@ htd_als__nen=edit-note-en
 htd__main_doc()
 {
   # Find first standard main document
-  test -n "$1" || {
+  test -n "$1" && { 
+    fnmatch "* $1 *" " $(htd_main_files) " \
+      || set -- main.rst "$@"
+  } || {
     for x in $(htd_main_files)
     do
       test -e $x && {
