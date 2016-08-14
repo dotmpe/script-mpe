@@ -5,8 +5,10 @@ script.mpe
 
 
 Build-status
-    .. image:: https://secure.travis-ci.org/dotmpe/git-versioning.png?branch=test
-      :target: https://travis-ci.org/dotmpe/git-versioning
+    .. FIXME: cannot att ?branch= without Du/rSt2html breaking
+    .. image:: https://secure.travis-ci.org/dotmpe/script-mpe.svg
+      :width: 89
+      :target: https://travis-ci.org/dotmpe/script-mpe
       :alt: Build
 
 Stats
