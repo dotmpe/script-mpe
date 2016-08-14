@@ -31,7 +31,7 @@ Other documents
 ---------------
 - `Change Log <ChangeLog.rst>`_
 - `Branche and Directory Docs <doc/package.rst>`_
-
+- `Projectdir <projectdir.rst>`_
 
 Dev
 ---

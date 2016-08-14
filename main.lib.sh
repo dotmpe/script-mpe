@@ -648,9 +648,10 @@ run_subcmd()
 
   $subcmd_func "$@" && {
 
-    main_unload $box_prefix || {
+    main_unload $box_prefix && noop || {
       error "Command $subcmd failed (unload: $?)" 4
     }
+
   } || {
     e=$?
     main_unload $box_prefix
@@ -711,6 +712,16 @@ clean_failed()
     unset failed
     return 1
   }
+}
+
+# Extra helper to remove empty failed since not all subcmds have same semantics
+# New pd load=y accepts empty files. Older subcmds use presence of failed to
+# indicate failure. XXX: maybe make old commands echo a line eventually.
+rm_failed()
+{
+  local ret=0
+
+  return $ret
 }
 
 # TODO: retrieve leading/trailing X lines, truncate to Y length

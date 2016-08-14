@@ -9,8 +9,9 @@ pwd=$(cd .;pwd -P)
 version=0.0.0-dev # script-mpe
 
 @test "$bin no arguments no-op" {
+  skip "Default command is $EDITOR now"
   run $bin
-  test ${status} -eq 1
+  test ${status} -eq 2
   fnmatch "*htd*No command given*" "${lines[*]}"
 }
 

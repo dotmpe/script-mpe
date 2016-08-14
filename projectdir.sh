@@ -77,7 +77,7 @@ pd__status()
   info "Pd targets requested: $*"
   info "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
 
-  #test -s "$options" || format_yaml=1
+  test -s "$options" || format_yaml=1
 
   # XXX: fetching the state requires all branches to have status/result set.
   #pd__meta update-states
@@ -97,10 +97,12 @@ pd__status()
 
       {
         pd_fetch_status "$pd_prefix"
+        pd_fetch_status "$pd_prefix" | jsotk.py -I yaml -O json -
+
         continue
         # XXX: hack to format Pdoc status into something readable
         pd_fetch_status "$pd_prefix" | read_nix_style_file \
-          | jsotk.py -I yaml -O pkv - | read_nix_style_file | tr '=' ' ' | while read var stat
+          | jsotk.py -I yaml -O pkv - - | read_nix_style_file | tr '=' ' ' | while read var stat
         do
           test "$var" = "None" && continue
           test "$stat" = "None" && continue
@@ -1212,7 +1214,7 @@ pd_load()
         #test -n "$pd_root" \
         test -e "$pd" || unset pd
         test -n "$pd_prefix" || pd_prefix=.
-        pd_realpath= pd_root=. pd_realdir=$(pwd -P) 
+        pd_realpath= pd_root=. pd_realdir=$(pwd -P)
 
         #test "$pd_prefix" = "." || {
         #  test ! -e $pd_prefix || cd $pd_prefix
@@ -1347,7 +1349,8 @@ pd_unload()
 
   unset subcmd subcmd_pref \
           def_subcmd func_exists func \
-          PD_TMPDIR
+          PD_TMPDIR \
+          pd_session_id
 
   return $subcmd_result
 }

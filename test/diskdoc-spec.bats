@@ -16,7 +16,8 @@ version=0.0.0+20150911-0659 # script-mpe
 
 @test "$bin help" "Lists commands" {
   run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
+  test $status -eq 0 \
+    || { diag "Output: ${lines[*]}"; fail "Status: ${status}"; }
   # Output must at least be usage lines + nr of functions
   test "${#lines[@]}" -gt 8
 }

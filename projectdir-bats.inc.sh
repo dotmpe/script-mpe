@@ -224,9 +224,12 @@ pd_stat__bats_count=bats/count
 pd_load__bats=iIa
 pd__bats()
 {
+  local argc=$# curarg=0
   for x in $@
   do
+    incr curarg
     {
+      echo "# Bats $curarg of $argc ($x)"
       verbosity=6 bats $x \
         || echo "bats:$x" >>$failed
     } | bats-color.sh

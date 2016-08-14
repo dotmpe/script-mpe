@@ -1,0 +1,70 @@
+digraph "doc_taxus_classes_en_dot" {
+	graph [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		bgcolor = "black"
+		rankdir = "BT"
+	]
+	node [
+		fontsize = "14"
+		fontname = "Bitstream Vera Sans"
+		fontcolor = "white"
+		shape = "record"
+		style = "solid"
+		color = "grey"
+	]
+	edge [
+		fontsize = "14"
+		fontname = "Bitstream Vera Sans"
+		fontcolor = "yellow"
+		style = "dotted"
+		color = "white"
+		weight = "4"
+	]
+
+	"core.Node" ; //-> SQLBase ;
+	"core.ID" ; //-> SQLBase ;
+
+  "core.GroupNode" -> "core.Node" ;
+  "core.Folder" -> "core.Node" ;
+  "core.Space" -> "core.ID" ;
+  "core.Name" -> "core.Node" ;
+  "core.Tag" -> "core.Name" ;
+  "core.Topic" -> "core.Tag" ;
+  "core.Document" -> "core.Node" ;
+
+	"checksum.ChecksumDigest" ; //-> SQLBase ;
+  "checksum.SHA1Digest" -> "checksum.ChecksumDigest" ;
+  "checksum.MD5Digest" -> "checksum.ChecksumDigest" ;
+
+  "fs.INode" -> "core.Node" ;
+  "fs.Dir" -> "fs.INode" ;
+  "fs.File" -> "fs.INode" ;
+  "fs.Symlink" -> "fs.INode" ;
+  "fs.Device" -> "fs.INode" ;
+  "fs.Mount" -> "fs.INode" ;
+  "fs.FIFO" -> "fs.INode" ;
+  "fs.Socket" -> "fs.INode" ;
+
+  "web.CachedContent" -> "fs.INode" ;
+  "web.Status" -> "core.Node" ;
+  "web.Resource" -> "core.Node" ;
+  "web.Invariant" -> "web.Resource" ;
+  "web.Variant" -> "web.Resource" ;
+
+  "semweb.Description" -> "core.Node" ;
+  "generic.Comment" -> "semweb.Description" ;
+
+  "net.Domain" -> "core.Node" ;
+  "net.Host" -> "net.Domain" ;
+  "net.Locator" -> "core.ID" ;
+
+  "model.Namespace" -> "web.Variant" ;
+  "model.Relocated" -> "web.Resource" ;
+  "model.Volume" -> "web.Resource" ;
+  "model.Bookmark" -> "core.Node" ;
+  "model.Workset" -> "web.Resource" ;
+	"model.Token" ; //-> SQLBase ;
+
+}
