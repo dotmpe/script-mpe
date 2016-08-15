@@ -23,7 +23,7 @@ Options:
                   Iow. this shows the actual schema in case of mismatch.
 
 Other flags:
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
@@ -95,7 +95,7 @@ def cmd_stats(settings, opts):
             log.std("{yellow}Loaded tables from DB{default}")
         for t in metadata.tables:
             try:
-                log.std("{blue}%s{default}: {bwhite}%s{default}", 
+                log.std("{blue}%s{default}: {bwhite}%s{default}",
                         t, sa.query(metadata.tables[t].count()).all()[0][0])
             except Exception, e:
                 log.err("Count failed for %s: %s", t, e)
@@ -103,7 +103,7 @@ def cmd_stats(settings, opts):
     else:
         for m in schema.models:
             try:
-                log.std("{blue}%s{default}: {bwhite}%s{default}", 
+                log.std("{blue}%s{default}: {bwhite}%s{default}",
                         m.__name__, sa.query(m).count())
             except Exception, e:
                 log.err("Count failed for %s: %s", m, e)
@@ -121,7 +121,7 @@ def cmd_info(settings):
 
 def cmd_show(settings):
     for name, table in metadata.tables.items():
-        log.std('{green}%s{default}: {bwhite}%s{default}', 
+        log.std('{green}%s{default}: {bwhite}%s{default}',
                 name, "{default}, {bwhite}".join(table.columns.keys()))
 
 
@@ -160,9 +160,10 @@ if __name__ == '__main__':
     metadata = schema.SqlBase.metadata
 
     # Override dbref setting from schema
-    if hasattr(schema, '__db__'):
-        opts.flags.dbref = schema.__db__
-    opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
+    if opts.flags.dbref == __db__:
+        if hasattr(schema, '__db__'):
+            opts.flags.dbref = schema.__db__
+        opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
 
     sys.exit(main(opts))
 

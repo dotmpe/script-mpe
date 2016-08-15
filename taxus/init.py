@@ -20,16 +20,20 @@ class_registry = {}
 SqlBase = declarative_base(class_registry=class_registry)
 
 
-@event.listens_for(Engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
-    """
-    XXX on connect, assume is SQLite and > 3.6.19
-    """
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+def register_sqlite_connection_event():
+    @event.listens_for(Engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        """
+        On connect, assume is SQLite and > 3.6.19
+        """
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
 
 def get_session(dbref, initialize=False, metadata=SqlBase.metadata):
+    if dbref.startswith('sqlite'):
+        register_sqlite_connection_event()
     engine = create_engine(dbref)#, encoding='utf8')
     #engine.raw_connection().connection.text_factory = unicode
     metadata.bind = engine
@@ -310,7 +314,7 @@ def extract_listed_names(meta_list, sep=' ,', force=True):
             raw = raw.replace(seps.pop(0), seps[-1])
         for name in raw.split(seps[-1]):
             yield dict(name=name)
-    elif isinstance(meta_list[2], str):
+    elif isinstance(meta_list, list) and len(meta_list) > 2 and isinstance(meta_list[2], str):
         for name in meta_list:
             yield dict(name=name)
     else:
