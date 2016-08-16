@@ -141,7 +141,7 @@ main_entry()
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
       which pip >/dev/null || {
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
-      pip install setuptools objectpath \
+      pip install --user setuptools objectpath \
         || exit $?
     ;; esac
 
@@ -159,12 +159,13 @@ main_entry()
       python -c 'import docopt' || { install_docopt || return $?; }
     ;; esac
 
-  case "$1" in '-'|ruby|redmine|tasks)
+  case "$1" in ruby|redmine|tasks)
       gem install redmine-cli || return $?
       redmine install || return $?
     ;; esac
 
   case "$1" in '-'|redo )
+      # TODO: fix for other python versions
       install_apenwarr_redo || return $?
     ;; esac
 
