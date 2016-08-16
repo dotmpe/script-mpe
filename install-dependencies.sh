@@ -159,9 +159,8 @@ main_entry()
       python -c 'import docopt' || { install_docopt || return $?; }
     ;; esac
 
-  case "$1" in ruby|redmine|tasks)
-      gem install redmine-cli || return $?
-      redmine install || return $?
+  case "$1" in npm|redmine|tasks)
+      npm install -g redmine-cli || return $?
     ;; esac
 
   case "$1" in '-'|redo )
