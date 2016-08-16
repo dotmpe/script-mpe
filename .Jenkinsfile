@@ -14,7 +14,7 @@ node('devbox') {
 
   withEnv([
     'PYTHONPATH=$HOME/lib/py:$PATH',
-    'PATH='+PWD+':/usr/local/bin:$PATH'
+    'PATH='+PWD+':/usr/local/bin:$HOME/.basher/bin:$HOME/.local/bin:$PATH'
   ]) {
 
     sh """#!/bin/sh
