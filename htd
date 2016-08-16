@@ -3644,6 +3644,67 @@ htd__count_lines()
 }
 
 
+htd__init_backup_repo()
+{
+  test ! -e "/srv/backup-local" \
+    || error "Local backup annex exists (/srv/backup-local)" 1
+
+  test -n "$1" && {
+    test -d "$1" || error "Dir expected" 1
+  } || {
+    test -d /srv/annex-local/ && set -- "/srv/annex-local"
+    info "Using local annex folder for annex-backup checkout"
+  }
+
+  git clone $(htd git-remote annex-backup) $1/backup \
+    && info "Cloned annex-backup into $1/backup" || return $?
+  ln -s $1/backup /srv/backup-local \
+    && info "Initialized backup-local symlink ($1/backup)" || return $?
+
+  note "Initialized local backup annex ($1/backup)"
+}
+
+htd__backup()
+{
+  test -n "$*" || error "Nothing to backup?" 1
+
+  test -e /srv/backup-local || {
+    htd init-backup-repo || return $?
+  }
+
+  srcpaths="$(for arg in $@
+    do
+      test -f "$arg" || warn "Missing or not a file for backup: '$arg'" 1
+      realpath "$arg"
+    done )"
+
+  # TODO: check if currently clean maybe.. before adding new stuff
+
+  note "Moving $# files to backup.."
+  while test -n "$1"
+  do
+    cp $1 /srv/backup-local/ \
+      && note "Copied '$1' to backup" \
+      || warn "Copy '$1' failed" 1
+    shift
+  done
+
+  cd /srv/backup-local || error "Unknown error" $?
+  git annex add . || error "Failed adding files to annex" $?
+
+  {
+    printf -- "Backed up files at '$hostname':\n\n$srcpaths" \
+      | git commit -F -
+  } \
+    || error "Failed making backup commit" $?
+
+  git annex sync \
+    || error "Annex sync failed" $?
+}
+
+
+
+# util
 
 htd_rst_doc_create_update()
 {
@@ -3665,6 +3726,7 @@ htd_rst_doc_create_update()
     export cksums="$cksums $cksum"
   }
 }
+
 
 htd_edit_and_update()
 {
