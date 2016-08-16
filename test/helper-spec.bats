@@ -43,7 +43,7 @@ init
     test "${status}" = 1
     test "${lines[*]}" = "" # No output
 
-    key=$(hostname -s | tr 'a-z.-' 'A-Z__')
+    key=$(get_key "$(hostname -s)")
     keys="${key}_SKIP=1 $(whoami | tr 'a-z' 'A-Z')_SKIP=1"
 
     run bash -c '. '${lib}/${base}' && '"$keys"' check_skipped_envs'

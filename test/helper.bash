@@ -68,12 +68,18 @@ check_skipped_envs()
   return $skipped
 }
 
+get_key()
+{
+  local key="$(echo "$1" | tr 'a-z._-' 'A-Z___')"
+  fnmatch "[0-9]*" "$key" && key=_$key
+  echo $key
+}
+
 # Returns successful if given key is not marked as skipped in the env
 # Specifically return 1 for not-skipped, unless $1_SKIP evaluates to non-empty.
 is_skipped()
 {
-  local key="$(echo "$1" | tr 'a-z._-' 'A-Z___')"
-  local skipped="$(echo $(eval echo \$${key}_SKIP))"
+  local skipped="$(echo $(eval echo \$$(get_key "$1")_SKIP))"
   test -n "$skipped" && return
   return 1
 }
