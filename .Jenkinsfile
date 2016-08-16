@@ -4,13 +4,17 @@ node('devbox') {
   // SImple "pipeline"
   // see .jenkins-pipeline.groovy for experiments
 
+  sh 'env'
+  sh 'ls -la /usr/local/bin'
+  sh 'which pip || echo'
+
   checkout scm
 
   def PWD = pwd()
 
   withEnv([
     'PYTHONPATH=$HOME/lib/py:$PATH',
-    'PATH='+PWD+':$PATH'
+    'PATH='+PWD+':/usr/local/bin:$PATH'
   ]) {
 
     sh """#!/bin/sh
