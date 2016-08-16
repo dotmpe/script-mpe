@@ -18,7 +18,8 @@ run_spec()
   cat $tmp >> $rs
 }
 
-export $(whoami|str_upper)_SKIP=1 $(mkvid $(hostname -s);echo $vid)_SKIP=1
+#export $(whoami|str_upper)_SKIP=1 $(mkvid $(hostname -s);echo $vid)_SKIP=1
+export JENKINS_SKIP=1
 
 tmp=/tmp/test-results.tap
 rs=build/test-results.tap
