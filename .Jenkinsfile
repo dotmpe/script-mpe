@@ -1,12 +1,8 @@
 
 node('devbox') {
 
-  // SImple "pipeline"
+  // Simple "pipeline"
   // see .jenkins-pipeline.groovy for experiments
-
-  sh 'env'
-  sh 'ls -la /usr/local/bin'
-  sh 'which pip || echo'
 
   checkout scm
 

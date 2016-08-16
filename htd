@@ -563,7 +563,7 @@ htd__uninstall()
   local verbosity=6
   while test -n "$1"
   do
-    uninstall_bin tools.json $1 \
+    uninstall_bin tools.json "$1" \
       && info "Tool $1 is not installed" \
       || { r=$?; 
         test $r -eq 1 \
@@ -573,7 +573,11 @@ htd__uninstall()
     shift
   done
 }
-
+htd__installed()
+{
+  tools_json || return $?
+  installed tools.json "$1" && note "Tool '$1' is present"
+}
 
 htd__man_5__htdignore_merged='Exclude rules used by `htd find|edit|count`, compiled from other sources using ``htd init-ignores``. '
 

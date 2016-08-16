@@ -117,11 +117,15 @@ mkrlink()
 # Check if binary is available for tool
 installed()
 {
+  test -e "$1" || error installed-arg1 1
+  test -n "$2" || error installed-arg2 1
+  test -z "$3" || error "installed-args:$3" 1
 
   # Get one name if any
-  local bin="$(jsotk.py -q -O py path $1 tools/$2/bin)"
-  test "$bin" = "True" && bin=$2
+  local bin="$(jsotk.py -O py path $1 tools/$2/bin)"
+  test "$bin" = "True" && bin="$2"
   test -n "$bin" || {
+    warn "Not installed '$2' (bin/$bin)"
     return 1
   }
 
@@ -157,6 +161,10 @@ installed()
 
 install_bin()
 {
+  test -e "$1" || error install-bin-arg1 1
+  test -n "$2" || error install-bin-arg2 1
+  test -z "$3" || error "install-bin-args:$3" 1
+
   installed "$@" && return
 
   # Look for installer
@@ -206,6 +214,10 @@ install_bin()
 
 uninstall_bin()
 {
+  test -e "$1" || error uninstall-bin-arg1 1
+  test -n "$2" || error uninstall-bin-arg2 1
+  test -z "$3" || error uninstall-bin-args 1
+
   installed "$@" || return 0
 
   installer="$(jsotk.py -N -O py path $1 tools/$2/installer)"
