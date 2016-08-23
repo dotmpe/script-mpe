@@ -117,29 +117,29 @@ stdio_type()
   case $TERM in
 
     *256color )
-      LOG_TERM=256
-      ncolors=$(tput colors)
-      # FIXME echo -e something going on with BSD sh?
-      echo="echo -e"
+        LOG_TERM=256
+        ncolors=$(tput colors)
+        # FIXME echo -e something going on with BSD sh?
+        echo="echo -e"
       ;;
 
     xterm* | ansi | linux )
-      LOG_TERM=16
-      ncolors=$(tput -T xterm colors)
+        LOG_TERM=16
+        ncolors=$(tput -T xterm colors)
       ;;
 
-    dumb )
-      LOG_TERM=bw
+    dumb | '' )
+        LOG_TERM=bw
       ;;
 
     * )
-      LOG_TERM=bw
-      echo "[std.sh] Other term: '$TERM'"
+        LOG_TERM=bw
+        echo "[std.sh] Other term: '$TERM'"
       ;;
 
   esac
 
-  if test -n "$ncolors" && test $ncolors -ge 8; then
+  if test -n "$ncolors" -a $ncolors -ge 8; then
 
     test -z "$debug" || echo "ncolors=$ncolors"
 
