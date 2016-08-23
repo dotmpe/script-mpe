@@ -1,4 +1,7 @@
 
+// TODO: pipeline experiments, cleanup. See .Jenkinsfile for actual scripts.
+
+
 // Track each component individually
 def success = []
 def unstable = []

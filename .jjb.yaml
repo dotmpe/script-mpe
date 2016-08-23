@@ -6,20 +6,24 @@
     name: 'script-mpe-pipeline'
     version: 0.0.0-dev # script-mpe
 
-    description: |
-      Testing Script.mpe in Jenkins CI Pipeline. FIXME: Experimental. Proper
-      test/build in .travis.yml and/or .jtb.yml.
+    display-name: 'script.mpe [dev]'
 
-      This defines a single flow-definition project (workflow-job plugin).
+    description: |
+      <p>Testing Script.mpe in Jenkins CI Pipeline. </p>
+      <p>
+      TODO: Experimental. Proper test/build in .travis.yml and/or .jtb.yml.
+      </p>
+
+      <p>This defines a single flow-definition project (workflow-job plugin).
       It cannot run wrappers, builders or publishers directly,
       but provides a more integrated build process using a Groovy formatted
-      pipeline DSL script called 'Jenkinsfile'. 
+      pipeline DSL script called 'Jenkinsfile'. </p>
 
-      TODO: it should be able to call wrappers, test that. Build other jobs, 
+      <p>TODO: it should be able to call wrappers, test that. Build other jobs, 
       OK. No disable or restrict-node, but can use DSL for that. OK.
       What about builders, and publishers. And the integration of those 
       with Jenkins (esp. test results, but also static analysis and reporting).
-      E.g. build-name and description setter. 
+      E.g. build-name and description setter. </p>
 
     enabled: false
 

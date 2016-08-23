@@ -1,6 +1,8 @@
 
 node('devbox') {
 
+  stage "Checkout"
+
   // Simple "pipeline"
   // see .jenkins-pipeline.groovy for experiments
 
@@ -12,6 +14,8 @@ node('devbox') {
     'PYTHONPATH=$HOME/lib/py:$PATH',
     'PATH='+PWD+':/usr/local/bin:$HOME/.basher/bin:$HOME/.local/bin:$PATH'
   ]) {
+
+    stage "Setup"
 
     sh """#!/bin/sh
     pwd
@@ -25,6 +29,9 @@ node('devbox') {
       Build_Deps_Default_Paths=1 \
       ./install-dependencies.sh -
     """
+
+
+    stage "CI Build"
 
     sh """#!/bin/sh
       . ./tools/sh/env.sh
