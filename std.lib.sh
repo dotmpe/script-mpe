@@ -139,7 +139,7 @@ stdio_type()
 
   esac
 
-  if test -n "$ncolors" -a $ncolors -ge 8; then
+  if test -n "$ncolors" && test $ncolors -ge 8; then
 
     test -z "$debug" || echo "ncolors=$ncolors"
 
