@@ -132,19 +132,19 @@ alternating/interleaving tasks. Ie. based on where we are we do everything
 we can there. Obviously for tasks it would be usefull to be bound a calendar in
 some way.
 
-Recap::
+Recap:
 
 1. Dimension prerequisite. A task can only be started or completed if preceding
    task is done.
 2. Dimension time. A task can be planned or required at a certain time, the
    posward links points to datetime cell or cells to express a moment or span
    on a calendar. Lots of more possibilities here.
-2. Dimension clone (multiple instances).
+3. Dimension clone (multiple instances).
    Each task has one rank with all its aliases used in prerequisite links,
    and one for each link (iow. alias linked to a) place.
-3. Dimension place. Expresses a certain place has certain affordances or objects
+4. Dimension place. Expresses a certain place has certain affordances or objects
    for a task, and vice versa explicates where these are located.
-4. Dimension group. Each task can be added to one group, no need for aliases.
+5. Dimension group. Each task can be added to one group, no need for aliases.
    Maybe convenient, maybe not.
 
 Note:

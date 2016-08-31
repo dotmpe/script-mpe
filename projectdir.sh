@@ -927,7 +927,7 @@ pd__run_suite()
   shift
   # TODO: handle prefixes
   test -z "$2" || error surplus-args 1
-  pd_run_suite $1 $(pd__ls_targets $1 2>/dev/null) || return $?
+  pd_run_suite $1 $(pd__ls_targets $1 2>/dev/null)
 }
 
 
@@ -939,7 +939,7 @@ pd__test()
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || set -- $(pd__ls_targets test 2>/dev/null)
   info "Tests to run ($pd_prefixes): $*"
-  pd_run_suite test "$@" || return $?
+  pd_run_suite test "$@"
 }
 
 
@@ -959,24 +959,40 @@ pd__check_all()
 
 
 pd_load__check=yiIap
-pd_defargs__check=pd_prefix_target_args
+pd_defargs__check=pd_registered_prefix_target_args
 pd__check()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || set -- $(pd__ls_targets check 2>/dev/null)
   info "Checks to run ($pd_prefixes): $*"
-  pd_run_suite check "$@" || return $?
+  pd_run_suite check "$@"
 }
 
 
 pd_load__build=yiIap
-pd_defargs__build=pd_prefix_target_args
+pd_defargs__build=pd_registered_prefix_target_args
 pd__build()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || set -- $(pd__ls_targets build 2>/dev/null)
   info "Checks to run ($pd_prefixes): $*"
   pd_run_suite build "$@" || return $?
+}
+
+
+pd_load__tasks=yiIap
+pd_defargs__tasks=pd_registered_prefix_target_args
+pd__tasks()
+{
+  test -n "$pd_prefixes" -o \( -n "$pd_prefix" -a -n "$pd_root" \) \
+    || error "Projectdoc context expected" 1
+
+  local r=0 suite=tasks
+  echo "sh:pwd" >$arguments
+  subcmd=$suite:run pd__run || r=$?
+  test -s "$errors" -o -s "$failed" && r=1
+  pd_update_records status/$suite=$r $pd_prefixes
+  return $r
 }
 
 

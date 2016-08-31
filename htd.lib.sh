@@ -250,4 +250,69 @@ tools_json()
     || jsotk.py yaml2json $HTD_TOOLSFILE ./tools.json
 }
 
+htd_options_v()
+{
+  set -- "$(cat $options)"
+  while test -n "$1"
+  do
+    case "$1" in
+      --yaml ) format_yaml=1 ;;
+      --interactive ) choice_interactive=1 ;;
+      --non-interactive ) choice_interactive=0 ;;
+      * ) error "unknown option '$1'" 1 ;;
+    esac
+    shift
+  done
+}
+
+htd_report()
+{
+  # leave htd_report_result to "highest" set value (where 1 is highest)
+  htd_report_result=0
+
+  while test -n "$1"
+  do
+    case "$1" in
+
+      passed )
+          test $passed_count -gt 0 \
+            && info "Passed ($passed_count): $passed_abbrev"
+        ;;
+
+      skipped )
+          test $skipped_count -gt 0 \
+            && {
+              note "Skipped ($skipped_count): $skipped_abbrev"
+              test $htd_report_result -eq 0 -o $htd_report_result -gt 4 \
+                && htd_report_result=4
+            }
+        ;;
+
+      error )
+          test $error_count -gt 0 \
+            && {
+              error "Errors ($error_count): $error_abbrev"
+              test $htd_report_result -eq 0 -o $htd_report_result -gt 2 \
+                && htd_report_result=2
+            }
+        ;;
+
+      failed )
+          test $failed_count -gt 0 \
+            && {
+              warn "Failed ($failed_count): $failed_abbrev"
+              test $htd_report_result -eq 0 -o $htd_report_result -gt 3 \
+                && htd_report_result=3
+            }
+        ;;
+
+      * )
+        ;;
+
+    esac
+    shift
+  done
+
+  return $htd_report_result
+}
 
