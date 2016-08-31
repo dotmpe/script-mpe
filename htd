@@ -1090,10 +1090,15 @@ htd__todo()
     tree )
       ;;
     list )
+        for fn in $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
+        do
+          echo "# $fn"
+          cat $fn
+        done
       ;;
     list-all )
         # List paths below current (proj/dirs with txtm files)
-        cat $UCONFDIR/todotxtm/$hostname-*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
+        cat $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
       ;;
     count|count-all )
         # List paths below current (proj/dirs with txtm files)
