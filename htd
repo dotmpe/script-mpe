@@ -1040,14 +1040,13 @@ htd__todotxt_edit()
     }
   }
 
-  test -e $ttxtm_fn || {
-    mkdir -vp $(dirname $ttxtm_fn)
-    touch $ttxtm_fn
-  }
-  test -e $ttxtm_done_fn || {
-    mkdir -vp $(dirname $ttxtm_done_fn)
-    touch $ttxtm_done_fn
-  }
+  for fn in $ttxtm_fn $ttxtm_done_fn
+  do
+    test -e $fn || {
+      mkdir -vp $(dirname $fn)
+      touch $fn
+    }
+  done
 
   todotxt-machine $ttxtm_fn $ttxtm_done_fn
 }
@@ -1055,9 +1054,26 @@ htd__todotxt_edit()
 # Current tasks?
 htd__todo()
 {
-  local ttxtm_fn= ttxtm_done_fn=
-  htd__todotxt_edit
-  htd__todotxt_tags
+  test -n "$UCONFDIR" || error UCONFDIR 12
+  case "$1" in
+    tree )
+      ;;
+    list )
+      ;;
+    list-all )
+        # List paths below current (proj/dirs with txtm files)
+        cat $UCONFDIR/$hostname-*.ttxtm $UCONFDIR/project/*.ttxtm
+      ;;
+    count|count-all )
+        # List paths below current (proj/dirs with txtm files)
+        wc -l $UCONFDIR/$hostname-*.ttxtm $UCONFDIR/project/*.ttxtm
+      ;;
+    "" )
+        local ttxtm_fn= ttxtm_done_fn=
+        htd__todotxt_edit
+        htd__todotxt_tags
+      ;;
+  esac
 }
 
 htd__todotxt_tags()
