@@ -1021,7 +1021,7 @@ htd__todotxt_edit()
 {
   test -n "$UCONFDIR" || error UCONFDIR 12
   test -n "$hostname" || error hostname 12
-  test -n "$domain" || error domain 12
+  #test -n "$domain" || error domain 12
 
   var_isset ttxtm_fn || local ttxtm_fn= ttxtm_done_fn=
 
@@ -1062,7 +1062,6 @@ htd__todotxt_edit()
       test -n "$ttxtm_fn" -o ! -e "$ttxtm_fn" && ttxtm_fn=$( \
         for fn in $UCONFDIR/todotxtm/$hostname-$id.ttxtm \
           $UCONFDIR/todotxtm/$hostname.ttxtm \
-          $UCONFDIR/todotxtm/$domain.ttxtm \
           $UCONFDIR/todotxtm/global.ttxtm
         do
           test -e "$fn" && { echo $fn; break; }
