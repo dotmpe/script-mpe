@@ -5,20 +5,20 @@
 mkid()
 {
   test -n "$1" || error "mkid argument expected" 1
-  id=$(echo "$1" | tr -sc 'A-Za-z0-9\/:_-' '-' )
+  id=$(printf -- "$1" | tr -sc 'A-Za-z0-9\/:_-' '-' )
 }
 
 # to filter strings to valid id
 mkvid()
 {
   test -n "$1" || error "mkvid argument expected" 1
-	vid=$(echo "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
+	vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
 	# Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
 }
 mkcid()
 {
   test -n "$1" || error "mkcid argument expected" 1
-  cid=$(echo "$1" | tr 'A-Z' 'a-z' | tr -sc 'a-z0-9' '-')
+  cid=$(printf -- "$1" | tr 'A-Z' 'a-z' | tr -sc 'a-z0-9' '-')
   #  cid=$(echo "$1" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9-]/-/g')
 }
 

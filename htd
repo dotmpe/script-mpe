@@ -1085,7 +1085,8 @@ htd__todotxt_edit()
   #trueish "$choice_host" && ttxtm_fn=$UCONFDIR/todotxtm/$hostname.ttxtm
   #trueish "$choice_domain" && ttxtm_fn=$UCONFDIR/todotxtm/$domain.ttxtm
 
-  mkid $(pwd)
+  mkcid "$(pwd)"
+  local id=$cid
 
   #trueish "$choice_ext" && ttxtm_fn=$UCONFDIR/todotxtm/$hostname-$id.ttxtm
 
@@ -1104,23 +1105,29 @@ htd__todotxt_edit()
       ttxtm_done_fn=$UCONFDIR/todotxtm/project/$package_id-done.ttxtm
   
     } || {
-  
+
       # Or, look for host/path
-      test -n "$ttxtm_fn" -o ! -e "$ttxtm_fn" && ttxtm_fn=$( \
-        for fn in $UCONFDIR/todotxtm/$hostname-$id.ttxtm \
-          $UCONFDIR/todotxtm/$hostname.ttxtm \
-          $UCONFDIR/todotxtm/global.ttxtm
-        do
-          test -e "$fn" && { echo $fn; break; }
-        done )
+      test -n "$ttxtm_fn" -a -e "$ttxtm_fn" || {
+        ttxtm_fn=$( \
+          for fn in $UCONFDIR/todotxtm/$hostname$id.ttxtm \
+            $UCONFDIR/todotxtm/$hostname.ttxtm \
+            $UCONFDIR/todotxtm/global.ttxtm
+          do
+            test -e "$fn" && { echo $fn; break; }
+          done )
+      }
     }
-    ttxtm_done_fn=$(dirname $ttxtm_fn)/$(basename $ttxtm_fn .ttxtm)-done.ttxtm
+
+    test -n "$ttxtm_fn" || error ttxtm_fn 12
+
+    ttxtm_done_fn=./$(dirname $ttxtm_fn)/$(basename $ttxtm_fn .ttxtm)-done.ttxtm
   }
   
   for fn in $ttxtm_fn $ttxtm_done_fn
   do
+    test -n "$fn" || continue
     test -e $fn || {
-      mkdir -vp $(dirname $fn)
+      test -z "$(dirname $fn)" || mkdir -vp $(dirname $fn)
       touch $fn
     }
   done
@@ -1136,20 +1143,25 @@ htd__todo()
   case "$1" in
     tree )
       ;;
-    list )
+    list|list-all )
         for fn in $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
         do
-          echo "# $fn"
-          cat $fn
+          fnmatch "*done.ttxtm" "$fn" && continue
+          test -s "$fn" && {
+            echo "# $fn"
+            cat $fn
+            echo
+          }
         done
-      ;;
-    list-all )
-        # List paths below current (proj/dirs with txtm files)
-        cat $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
       ;;
     count|count-all )
         # List paths below current (proj/dirs with txtm files)
-        wc -l $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
+        { for fn in $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
+          do
+            fnmatch "*done.ttxtm" "$fn" && continue
+            cat $fn
+          done
+        } | wc -l 
       ;;
     "" )
         local ttxtm_fn= ttxtm_done_fn=
@@ -1162,8 +1174,10 @@ htd__todo()
 htd__todotxt_tags()
 {
   # TODO: update/match with tag, project index
-  grep -o '+[^\ ]*' $ttxtm_fn | words_to_lines
-  grep -o '@[^\ ]*' $ttxtm_fn | words_to_lines
+  test -e "$ttxtm_fn" && {
+    grep -o '+[^\ ]*' $ttxtm_fn | words_to_lines
+    grep -o '@[^\ ]*' $ttxtm_fn | words_to_lines
+  }
 }
 
 # Experimenting with gtasks.. looking at todo targets
