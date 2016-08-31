@@ -1019,15 +1019,43 @@ htd__project_todo()
 htd_als__tte=todotxt-edit
 htd__todotxt_edit()
 {
-  # TODO find local
-  test -e .todo.ttxtm || touch .todo.ttxtm
-  test -e .done.ttxtm || touch .done.ttxtm
-  todotxt-machine .todo.ttxtm .done.ttxtm
+  test -n "$UCONFDIR" || error UCONFDIR 12
+  test -e package.yaml && {
+    var_isset ttxtm_fn || local ttxtm_fn= ttxtm_done_fn=
+    ttxtm_fn=.todo.ttxtm ttxtm_done_fn=.done.ttxtm
+    local metaf=package.yaml 
+    local package_id=$( jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
+      | jsotk -O py path - "id" )
+
+    # Set ext. ttxtm file for project
+    ttxtm_fn=$UCONFDIR/todotxtm/project/$package_id.ttxtm
+    ttxtm_done_fn=$UCONFDIR/todotxtm/project/$package_id-done.ttxtm
+
+  } || {
+    # Or, look for path
+    mkid $(pwd)
+    test -e "$UCONFDIR/todotxtm/$hostname-$id.ttxtm" && {
+      ttxtm_fn=$UCONFDIR/todotxtm/$hostname-$id.ttxtm
+      ttxtm_done_fn=$UCONFDIR/todotxtm/$hostname-$id-done.ttxtm
+    }
+  }
+
+  test -e $ttxtm_fn || {
+    mkdir -vp $(dirname $ttxtm_fn)
+    touch $ttxtm_fn
+  }
+  test -e $ttxtm_done_fn || {
+    mkdir -vp $(dirname $ttxtm_done_fn)
+    touch $ttxtm_done_fn
+  }
+
+  todotxt-machine $ttxtm_fn $ttxtm_done_fn
 }
 
 # Current tasks?
 htd__todo()
 {
+  local ttxtm_fn= ttxtm_done_fn=
   htd__todotxt_edit
   htd__todotxt_tags
 }
@@ -1035,8 +1063,8 @@ htd__todo()
 htd__todotxt_tags()
 {
   # TODO: update/match with tag, project index
-  grep -o '+[^\ ]*' .todo.ttxtm | words_to_lines
-  grep -o '@[^\ ]*' .todo.ttxtm | words_to_lines
+  grep -o '+[^\ ]*' $ttxtm_fn | words_to_lines
+  grep -o '@[^\ ]*' $ttxtm_fn | words_to_lines
 }
 
 # Experimenting with gtasks.. looking at todo targets

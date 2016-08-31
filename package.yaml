@@ -3,6 +3,7 @@
 - type: application/x-project-mpe
   main: script-mpe
   id: script-mpe
+
   version: 0.0.0-dev # script-mpe
   environments: [ 'development' ]
 
@@ -19,6 +20,14 @@
     # TODO: run tests at VM/... if available
     build: ":vagrant:tools/ci/vbox"
     #build: ":vagrant:tools/ci/vbox:ubuntu"
+
+    tasks:
+      tags:
+        - TODO
+        - XXX
+        - FIXME
+        - BUG
+        - NOTE
 
     git-hooks:
       pre-commit: ./tools/git-hooks/pre-commit.sh
