@@ -99,7 +99,7 @@ generate_git_hooks()
 {
   # Create default script from pd-check
   test -n "$package_pd_meta_git_hooks_pre_commit_script" || {
-    package_pd_meta_git_hooks_pre_commit_script="set -e ; pd check $package_pd_meta_check"
+    package_pd_meta_git_hooks_pre_commit_script="set -e ; pd run $package_pd_meta_check"
   }
 
 	for script in $GIT_HOOK_NAMES
@@ -158,7 +158,7 @@ pd_regenerate()
   set | grep -q '^package_pd_meta_git_' && {
     generate_git_hooks && install_git_hooks \
       || echo "pd-regenerate:git-hooks:$1" 1>&6
-  }
+  } || noop
 
 }
 
@@ -648,10 +648,12 @@ pd_prefix_filter_args()
 }
 
 
+# Filter out options and states from any given prefixes, or check enabled
 pd_registered_prefix_target_args()
 {
   set -- $(while test -n "$1"
   do
+    #case "$1" in --registered ) ;; esac
     fnmatch "-*" "$1" && echo "$1" >>$options || printf "\"$1\" "
     shift
   done)
@@ -659,6 +661,7 @@ pd_registered_prefix_target_args()
   pd_prefix_target_args "$@" || return $?
 }
 
+# Filter states, and either expand to enabled prefixes or found prefixes
 pd_prefix_target_args()
 {
   test -n "$choice_reg" || choice_reg=0
@@ -696,7 +699,7 @@ pd_prefix_target_args()
 
   } || {
 
-    # Stat only, don't check on Pdoc prefixes
+    # Stat only, don't check on (enabled) Pdoc prefixes
 
     # Set default or expand prefix arguments (globbing)
     pd_prefix_filter_args

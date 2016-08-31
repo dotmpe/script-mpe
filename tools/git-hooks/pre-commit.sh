@@ -1,1 +1,1 @@
-set -e ; pd check :vchk :bats:specs
+set -e ; pd run :vchk :bats:specs

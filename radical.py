@@ -136,6 +136,8 @@ Changelog
 2014-01-03
     During rewrite of libcmd keeping this up to date,
     perhaps looking to store files/comments/tags in SQL with taxus.
+2016-08-27
+    Need task scripts for `Pd`. Reviewing.
 
 Issues
 ------

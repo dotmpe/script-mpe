@@ -282,4 +282,20 @@ get_uuid()
 #  } || set --
 #}
 
+test_dir()
+{
+	test -d "$1" || {
+		err "No such dir: $1"
+		return 1
+	}
+}
+
+test_file()
+{
+	test -f "$1" || {
+		err "No such file: $1"
+		return 1
+	}
+}
+
 

@@ -87,17 +87,43 @@ htd_load()
     || { which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) \
     || warn "No rst2xml"; }
 
+  htd_inputs="arguments prefixes options"
+  htd_outputs="passed skipped error failed"
+
+  test -n "$htd_session_id" || htd_session_id=$(uuidgen)
+  test -n "$choice_interactive" || choice_interactive=1
+
   local flags="$(try_value "${subcmd}" run | sed 's/./&\ /g')"
   for x in $flags
   do case "$x" in
-    S )
-        # Get a path to a storage blob, associated with the current base+subcmd
-        S=$(try_value "${subcmd}" S)
-        test -n "$S" \
-          && status=$(setup_stat .json "" ${subcmd}-$(eval echo $S)) \
-          || status=$(setup_stat .json)
-        #test -s $status || echo '{}' >$status
-        exec 5>$status.pkv
+    a )
+        # Set default args or filter. Value can be literal or function.
+        local htd_default_args="$(eval echo "\$$(try_local $subcmd argsv)")"
+        test -n "$htd_default_args" && {
+          $htd_default_args "$@"
+        }
+      ;;
+    o )
+        local htd_optsv="$(eval echo "\"\$$(try_local $subcmd optsv)\"")"
+        test -s "$options" && {
+          $htd_optsv
+        } || noop
+      ;;
+    f )
+        # Preset name to subcmd failed file placeholder
+        failed=$(setup_tmpf .failed)
+      ;;
+    i )
+        io_id=-$base-$subcmd-${htd_session_id}
+        fnmatch "*/*" "$io_id" && error "Illegal chars" 12
+        for io_name in $htd_inputs $htd_outputs
+        do
+          tmpname=$(setup_tmpf .$io_name $io_id)
+          touch $tmpname
+          eval $io_name=$tmpname
+          unset tmpname io_name
+        done
+        export $htd_inputs $htd_outputs
       ;;
     m )
         # TODO: Metadata blob for host
@@ -114,12 +140,22 @@ htd_load()
           note "Using package ID '$package_id'"
         }
       ;;
-    f )
-        # Preset name to subcmd failed file placeholder
-        failed=$(setup_tmpf .failed)
+    P )
+        local prereq_func="$(eval echo "\"\$$(try_local $subcmd pre)\"")"
+        test -z "$prereq_func" || $prereq_func $subcmd
+      ;;
+    S )
+        # Get a path to a storage blob, associated with the current base+subcmd
+        S=$(try_value "${subcmd}" S)
+        test -n "$S" \
+          && status=$(setup_stat .json "" ${subcmd}-$(eval echo $S)) \
+          || status=$(setup_stat .json)
+        #test -s $status || echo '{}' >$status
+        exec 5>$status.pkv
       ;;
     esac
   done
+
 }
 
 htd_unload()
@@ -127,6 +163,12 @@ htd_unload()
   local unload_ret=0
   for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
   do case "$x" in
+
+    i ) # remove named IO buffer files; set status vars
+        clean_io_lists $htd_inputs $htd_outputs
+        htd_report $htd_inputs $htd_outputs || subcmd_result=$?
+      ;;
+
     S )
         exec 5<&-
         test -s $status || echo '{}' >$status
@@ -138,6 +180,11 @@ htd_unload()
           }
         test ! -e $status.pkv || rm $status.pkv
         unset status
+      ;;
+
+    P )
+        local postreq_func="$(eval echo "\"\$$(try_local $subcmd post)\"")"
+        test -z "$postreq_func" || $postreq_func $subcmd
       ;;
 
     r )
@@ -426,7 +473,7 @@ htd_als___f=find
 
 
 
-htd__man_1_init="Shortcut for pd init"
+  htd__man_1_init="Shortcut for htd init"
 htd_spc__init=""
 htd_run__init=fSm
 htd__init()
@@ -435,7 +482,7 @@ htd__init()
 }
 
 
-htd__man_1_check="Shortcut for pd check"
+htd__man_1_check="Shortcut for htd check"
 htd_spc__check=""
 htd_run__check=fSm
 htd__check()
@@ -2449,7 +2496,7 @@ htd__tmux_init()
   mkdir -vp $TMUX_TMPDIR
   out=$(setup_tmpd)/htd-tmux-init-$$
 
-  tmux has-session -t $1 >/dev/null 2>&1 && {
+  tmux has-session -t "$1" >/dev/null 2>&1 && {
     logger "Session $1 exists" 0
     note "Session $1 exists" 0
   } || {
@@ -3648,6 +3695,7 @@ htd__count_lines()
 }
 
 
+# Initialize local backup annex and symlinks
 htd__init_backup_repo()
 {
   test ! -e "/srv/backup-local" \
@@ -3668,15 +3716,20 @@ htd__init_backup_repo()
   note "Initialized local backup annex ($1/backup)"
 }
 
+
+# Copy/move all given file args to backup repo
 htd__backup()
 {
-  test -n "$*" || error "Nothing to backup?" 1
-
-  test -e /srv/backup-local || {
-    htd init-backup-repo || return $?
+  local act= act_lbl=
+  test -n "$choice_keep" || choice_keep=0
+  trueish "$choice_keep" && {
+    note "Copying $# files to backup.."; act=cp; act_lbl=Copy
+  } || {
+    note "Moving $# files to backup.."; act=mv; act_lbl=Move
   }
+  return
 
-  srcpaths="$(for arg in $@
+  local srcpaths="$(for arg in $@
     do
       test -f "$arg" || warn "Missing or not a file for backup: '$arg'" 1
       realpath "$arg"
@@ -3684,28 +3737,84 @@ htd__backup()
 
   # TODO: check if currently clean maybe.. before adding new stuff
 
-  note "Moving $# files to backup.."
+  local destpath=
   while test -n "$1"
   do
-    cp $1 /srv/backup-local/ \
-      && note "Copied '$1' to backup" \
-      || warn "Copy '$1' failed" 1
+    destpath="$(basename "$1")"
+    $act $1 /srv/backup-local/$destpath \
+      && note "$act_lbl '$1' to backup" \
+      || warn "$act_lbl '$1' failed" 1
     shift
   done
 
   cd /srv/backup-local || error "Unknown error" $?
-  git annex add . || error "Failed adding files to annex" $?
 
-  {
-    printf -- "Backed up files at '$hostname':\n\n$srcpaths" \
-      | git commit -F -
-  } \
-    || error "Failed making backup commit" $?
+  test ! -d /src/backup-local/.git || {
+    git annex add . || error "Failed adding files to annex" $?
 
-  git annex sync \
-    || error "Annex sync failed" $?
+    {
+      printf -- "Backed up files at '$hostname':\n\n$srcpaths" \
+        | git commit -F -
+    } \
+      || error "Failed making backup commit" $?
+
+    test ! -d "/srv/backup-local/.git/annex" || {
+      git annex sync \
+        || error "Annex sync failed" $?
+    }
+  }
+}
+htd_run__backup=iaoP
+htd_pre__backup=htd_backup_prereq
+htd_argsv__backup=htd_backup_args
+htd_optsv__backup=htd_backup_opts
+
+htd_backup_prereq()
+{
+  test -e /srv/backup-local || {
+    trueish "$choice_interactive" && {
+      test -n "$choice_confirm" || confirm "Create local backup annex repo?"
+      trueish "$choice_confirm" && {
+        htd init-backup-repo || return $?
+      }
+    } || {
+      error "Expected backup dir" 1
+    }
+  }
 }
 
+htd_backup_args()
+{
+  test -n "$*" || error "Nothing to backup?" 1
+
+  for arg in $@
+  do fnmatch "-*" "$arg" && echo "$arg" >>$options || echo $arg >>$arguments 
+  done
+}
+
+htd_backup_opts()
+{
+  set -- "$(cat $options)"
+  while test -n "$1"
+  do
+    case "$1" in
+      --archive* ) 
+        ;;
+      --tags-append* ) 
+        ;;
+      --node-base ) 
+        ;;
+      --add-base ) 
+        ;;
+      --no-cabinet ) 
+        ;;
+      * ) 
+          htd_options_v "$1"
+        ;;
+    esac
+    shift
+  done
+}
 
 
 # util
@@ -3783,8 +3892,31 @@ htd_main()
 
         test -n "$1" || set -- main-doc
 
-        htd_lib || exit $?
-        run_subcmd "$@" || exit $?
+        #htd_lib || exit $?
+        #run_subcmd "$@" || exit $?
+
+        htd_lib "$@" || error htd_lib $?
+
+        try_subcmd "$@" && {
+
+          #record_env_keys htd-subcmd htd-env
+
+          box_src_lib htd
+          shift 1
+
+          htd_load "$@" || error "htd_load" $?
+
+          test -z "$arguments" -o ! -s "$arguments" || {
+            info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
+            set -f; set -- $(cat $arguments | lines_to_words) ; set +f
+          }
+
+          $subcmd_func "$@" || r=$?
+
+          htd_unload || r=$?
+
+          exit $r
+        }
       ;;
 
     * )

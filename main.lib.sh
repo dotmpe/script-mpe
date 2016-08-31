@@ -384,9 +384,9 @@ get_subcmd_args()
       break
       ;;
 
-    --* )
-      error "no long options $1" 1
-      ;;
+    #--* )
+    #  error "no long options $1" 1
+    #  ;;
 
     -* )
 

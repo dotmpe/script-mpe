@@ -45,6 +45,13 @@ vc_load()
       && export vc_temp_gl="$vc_temp_gl $HOME/.gitignore-temp-global"
   }
 
+  # TODO: list of dirs (checkouts, annexes) to retrieve/store files
+	test -n "$UNVERSIONED_FILES" || {
+    #test -e /srv/annex-local	  
+	  UNVERSIONED_FILES=$( for dir in /srv/backup-local /srv/archive-local \
+	      /srv/archive-old-local /srv/htdocs-local; do
+      test -e $dir && echo "$dir" || continue; done )
+  }
 
   # Look at run flags for subcmd
   for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
@@ -1266,6 +1273,116 @@ vc__annex_local()
       && note "Succesfully ran annex $act to $2"
   }
 }
+
+
+
+# TODO: add other backup commands, like htd backup. modelled after brixadmin
+# unversioned-files. 
+# - Copy with relative path as given into first UNVERSIONED_FILES dir
+# - Check into git annex, git, bzr, or poor mans checksum SCM
+# - Check any matching path out of repo
+#
+#project_id()
+#{
+#	test -d .git && {
+#		basename $(git config --get remote.origin.url) .git
+#	} || {
+#		test "$(hostname -s)" = "jenkins" && {
+#			basename $(dirname $(pwd))
+#		} || {
+#			basename $(pwd)
+#		}
+#	}
+#}
+#	test -n "$project" || export project="$(cmd_project_id)"
+#  export UNVERSIONED_FILES=../unversioned-files/$project
+#
+#
+## list files in unversioned dir for current project
+#vc__unversioned()
+#{
+#	test -z "$2" || err "surplus arguments" 1
+#	test_dir $UNVERSIONED_FILES/$1 || return 1
+#	test -x "$(which tree)" && {
+#		tree -C "$UNVERSIONED_FILES/$1"
+#	} || {
+#		echo "$UNVERSIONED_FILES/$1:"
+#		find $UNVERSIONED_FILES/$1
+#	}
+#}
+#
+#vc__backup_unversioned()
+#{
+#	test -z "$2" || err "surplus arguments" 1
+#	test -n "$1" && {
+#		# backup path at argument
+#		for p in $@
+#		do
+#			test -e "$1" || err "Not an existing path" 1
+#			test -f "$1" && {
+#				mkdir -p $(dirname $UNVERSIONED_FILES/$p)
+#				cp -v "$p" "$(dirname $UNVERSIONED_FILES/$p)/"
+#			} || test -d "$1" && {
+#				vc__backup_unversioned_from_dir $1
+#			}
+#		done
+#	} || {
+#		# no argument: backup all GIT cleanable files
+#		vc__backup_unversioned_from_dir "$(pwd)" || return $?
+#	}
+#}
+#
+#vc__backup_unversioned_from_dir()
+#{
+#	test -n "$1" || err "expected dir argument" 1
+#	test -n "$UNVERSIONED_FILES" || error UNVERSIONED_FILES= 1
+#	test -d "$(dirname $UNVERSIONED_FILES)" || error "No dir '$UNVERSIONED_FILES'" 1
+#	test -d "$UNVERSIONED_FILES" || mkdir $UNVERSIONED_FILES
+#
+#	pwd=$(pwd)
+#	cd $UNVERSIONED_FILES/..
+#	git annex unlock ./$project || error "projdir" 1
+#	cd $pwd
+#
+#	git ls-files --others "$1" | while read p
+#	do
+#		test_file $p || err "Not a file: $p" 1
+#		mkdir -p $(dirname $UNVERSIONED_FILES/$p)
+#		cp -v "$p" "$(dirname $UNVERSIONED_FILES/$p)/"
+#	done
+#
+#	cd $UNVERSIONED_FILES
+#	git annex add . || error "annex add" 1
+#	git commit -m "Files from $project"
+#	git annex lock . || error "projdir" 1
+#	git annex sync
+#	git annex copy --to simza
+#	cd $pwd
+#}
+#
+#vc__restore_unversioned()
+#{
+#	test -z "$2" || err "surplus arguments" 1
+#	test_file $UNVERSIONED_FILES/$1 || return 1
+#	cp -v $UNVERSIONED_FILES/$1 $1
+#}
+#
+## list different files
+#vc__diff_unversioned()
+#{
+#	test -z "$2" || err "surplus arguments" 1
+#	test -n "$1" && p="$1" || p=.
+#	diff -bqr $UNVERSIONED_FILES/$p $p
+#}
+#
+#vc__vimdiff_unversioned()
+#{
+#	test -z "$2" || err "surplus arguments" 1
+#	test -n "$1" && p="$1" || p=.
+#	vimdiff $UNVERSIONED_FILES/$p $p
+#}
+
+
 
 
 # ----

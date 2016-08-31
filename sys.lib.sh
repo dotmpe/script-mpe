@@ -203,3 +203,9 @@ setup_tmpf()
   echo $3/${base}$2$1
 }
 
+# confirm PROMPT [varname=choice_confirm]
+confirm()
+{
+  echo $1
+  read choice_confirm
+}

@@ -55,7 +55,8 @@ Model::
 
 - Links only along same level.
 
-- XXX: Refs allows for extensions; and link to embedded tagged comments:
+- XXX: Refs allows for extensions; and link to embedded tagged comments::
+
     file:///<filepath>;line=<line>
     file:///<filepath>;line=<line>#TODO:<n>
     file:///<dirpath>;project=<label>/<filename>;...#TODO:<n>
