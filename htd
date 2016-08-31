@@ -1020,26 +1020,57 @@ htd_als__tte=todotxt-edit
 htd__todotxt_edit()
 {
   test -n "$UCONFDIR" || error UCONFDIR 12
-  test -e package.yaml && {
-    var_isset ttxtm_fn || local ttxtm_fn= ttxtm_done_fn=
-    ttxtm_fn=.todo.ttxtm ttxtm_done_fn=.done.ttxtm
-    local metaf=package.yaml 
-    local package_id=$( jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
-      | jsotk -O py path - "id" )
+  test -n "$hostname" || error hostname 12
+  test -n "$domain" || error domain 12
 
-    # Set ext. ttxtm file for project
-    ttxtm_fn=$UCONFDIR/todotxtm/project/$package_id.ttxtm
-    ttxtm_done_fn=$UCONFDIR/todotxtm/project/$package_id-done.ttxtm
+  var_isset ttxtm_fn || local ttxtm_fn= ttxtm_done_fn=
 
+  ttxtm_fn=.todo.ttxtm ttxtm_done_fn=.done.ttxtm
+
+  trueish "$choice_local" && {
+    touch $ttxtm_fn $ttxtm_done_fn
   } || {
-    # Or, look for path
-    mkid $(pwd)
-    test -e "$UCONFDIR/todotxtm/$hostname-$id.ttxtm" && {
-      ttxtm_fn=$UCONFDIR/todotxtm/$hostname-$id.ttxtm
-      ttxtm_done_fn=$UCONFDIR/todotxtm/$hostname-$id-done.ttxtm
-    }
+    ttxtm_fn=
+    ttxtm_done_fn=
   }
 
+  #trueish "$choice_global" && ttxtm_fn=$UCONFDIR/todotxtm/global.ttxtm
+  #trueish "$choice_host" && ttxtm_fn=$UCONFDIR/todotxtm/$hostname.ttxtm
+  #trueish "$choice_domain" && ttxtm_fn=$UCONFDIR/todotxtm/$domain.ttxtm
+
+  mkid $(pwd)
+
+  #trueish "$choice_ext" && ttxtm_fn=$UCONFDIR/todotxtm/$hostname-$id.ttxtm
+
+  test -n "$ttxtm_fn" -o ! -e "$ttxtm_fn" && {
+
+    # Set filenames from project
+    {
+      { test -z "$choice_package" || trueish "$choice_package"; } && test -e package.yaml 
+    } && {
+      local metaf=package.yaml 
+      local package_id=$( jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
+        | jsotk -O py path - "id" )
+  
+      # Set ext. ttxtm file for project
+      ttxtm_fn=$UCONFDIR/todotxtm/project/$package_id.ttxtm
+      ttxtm_done_fn=$UCONFDIR/todotxtm/project/$package_id-done.ttxtm
+  
+    } || {
+  
+      # Or, look for host/path
+      test -n "$ttxtm_fn" -o ! -e "$ttxtm_fn" && ttxtm_fn=$( \
+        for fn in $UCONFDIR/todotxtm/$hostname-$id.ttxtm \
+          $UCONFDIR/todotxtm/$hostname.ttxtm \
+          $UCONFDIR/todotxtm/$domain.ttxtm \
+          $UCONFDIR/todotxtm/global.ttxtm
+        do
+          test -e "$fn" && { echo $fn; break; }
+        done )
+    }
+    ttxtm_done_fn=$(dirname $ttxtm_fn)/$(basename $ttxtm_fn .ttxtm)-done.ttxtm
+  }
+  
   for fn in $ttxtm_fn $ttxtm_done_fn
   do
     test -e $fn || {
@@ -1047,9 +1078,10 @@ htd__todotxt_edit()
       touch $fn
     }
   done
-
+  
   todotxt-machine $ttxtm_fn $ttxtm_done_fn
 }
+#htd_run__todo=o
 
 # Current tasks?
 htd__todo()
@@ -1062,11 +1094,11 @@ htd__todo()
       ;;
     list-all )
         # List paths below current (proj/dirs with txtm files)
-        cat $UCONFDIR/$hostname-*.ttxtm $UCONFDIR/project/*.ttxtm
+        cat $UCONFDIR/todotxtm/$hostname-*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
       ;;
     count|count-all )
         # List paths below current (proj/dirs with txtm files)
-        wc -l $UCONFDIR/$hostname-*.ttxtm $UCONFDIR/project/*.ttxtm
+        wc -l $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
       ;;
     "" )
         local ttxtm_fn= ttxtm_done_fn=
