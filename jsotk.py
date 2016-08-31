@@ -6,7 +6,7 @@ Javascript Object toolkit.
 :updated: 2016-05-21
 
 Usage:
-    jsotk [options] path [--is-new] [--is-null] [--is-list] [--is-obj] \
+    jsotk [options] path [--is-new] [--is-null] [--is-list] [--is-obj] 
             [--is-int] [--is-str] [--is-bool] <srcfile> <pathexpr>
     jsotk [options] objectpath <srcfile> <expr>
     jsotk [options] keys <srcfile> <pathexpr>
@@ -249,8 +249,9 @@ def H_path(ctx):
     try:
         data = data_at_path(ctx, infile)
         infile.close()
-    except:
+    except (Exception) as e:
         if not ctx.opts.flags.is_new:
+            sys.stderr.write("Error: getting %r: %r" % ( ctx.opts.args.pathexpr, e ))
             return 1
 
     res = [ ]

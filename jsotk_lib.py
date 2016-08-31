@@ -598,9 +598,11 @@ def data_at_path(ctx, infile):
         return l
     while len(path_el):
         b = path_el.pop(0)
-        if b not in l:
-            raise KeyError, b
-        l = l[b]
+        if isinstance(PathKVParser.get_data_instance(b), list):
+            b = int(b[1:-1])
+            l = l[b]
+        else:
+            l = l[b]
     return l
 
 
