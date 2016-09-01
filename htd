@@ -3815,13 +3815,12 @@ htd__init_backup_repo()
 htd__backup()
 {
   local act= act_lbl=
-  test -n "$choice_keep" || choice_keep=0
+  test -n "$choice_keep" || choice_keep=1 # TODO
   trueish "$choice_keep" && {
     note "Copying $# files to backup.."; act=cp; act_lbl=Copy
   } || {
     note "Moving $# files to backup.."; act=mv; act_lbl=Move
   }
-  return
 
   local srcpaths="$(for arg in $@
     do
@@ -3829,23 +3828,34 @@ htd__backup()
       realpath "$arg"
     done )"
 
+  trueish "$no_cabinet" || {
+    prefix=$(date_fmt "" %Y/%m/%d-)
+  }
+
   # TODO: check if currently clean maybe.. before adding new stuff
 
   local destpath=
   while test -n "$1"
   do
-    destpath="$(basename "$1")"
+    destpath="$prefix$(echo "$1" | tr '/' '-')"
+    dirname=$(dirname $destpath)
+    test -z "$dirname" || {
+      test -d $dirname || mkdir -vp $dirname
+    }
     $act $1 /srv/backup-local/$destpath \
       && note "$act_lbl '$1' to backup" \
       || warn "$act_lbl '$1' failed" 1
     shift
+    test ! -d /srv/backup-local/.git || {
+      ( cd /srv/backup-local
+        git annex add $destpath || error "Failed adding files to annex" $?
+      )
+    }
   done
 
   cd /srv/backup-local || error "Unknown error" $?
 
-  test ! -d /src/backup-local/.git || {
-    git annex add . || error "Failed adding files to annex" $?
-
+  test ! -d .git || {
     {
       printf -- "Backed up files at '$hostname':\n\n$srcpaths" \
         | git commit -F -
