@@ -362,6 +362,32 @@ class EmbeddedIssue:
     def descr(self, data):
         return data[slice(*self.description_span)]
 
+    def scei_id(self, full=True):
+        scei_id = self.srcdoc.source_name
+        if full:
+            scei_id += ":%s-%s;lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
+                    self.description_span + self.comment_line_span + (
+                        self.comment_flavour, ) + self.comment_char_span )
+        else:
+            scei_id += ":%s-%s" % self.description_span
+        return scei_id
+
+
+    formats = {
+            'todo.txt': lambda cmt, data: "",
+            'id': lambda cmt, data: cmt.scei_id(False),
+            'full-id': lambda cmt, data: cmt.scei_id(),
+            'raw': lambda cmt, data: " ".join(
+                map(str, [ cmt.srcdoc.source_name, cmt.comment_line_span, \
+                            cmt.comment_flavour, \
+                            repr(cmt.raw(data)), \
+                            repr(cmt.descr(data)) ])),
+            'raw2': lambda cmt, data: "%s '%s' <%s> %s" %( tag, tag.raw(data),
+                    tag.canonical(data), cmt )
+
+        }
+
+
 class EmbeddedIssueOld:
 
     def __init__(self, file_name, comment_span, tag_name, tag_id, tag_span,
@@ -612,7 +638,7 @@ def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
 
             break
 
-    if comment_end > -1:
+    if comment_end > -1 and description_end > -1:
         #print language_key, 'found comment', start_line, comment_offset, \
         #            last_line, comment_end,\
         #            lines[start_line:last_line+1]
@@ -1036,6 +1062,7 @@ class Radical(rsr.Rsr):
                 p(('--issue-format',), {
                     'dest': 'issue_format',
                     'action': 'store',
+                    'default': 'id',
                     'help': "" }),
 
                 #(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
@@ -1145,23 +1172,28 @@ class Radical(rsr.Rsr):
             parser = Parser(sa, matchbox, source, context, data, lines)
 
             for tag in parser.find_tags():
-                cmt = parser.for_tag(srcdoc, tag)
-                if not cmt:
-                    #if not opts.quiet:
-                    #    log.err("Unable to find comment span for tag '%s' at %s:%s " % (
-                    #        parser.data[tag.start:tag.end], srcdoc.source_name, tag.char_span))
-                    #else:
-                    #    return 1
+
+                try:
+                    cmt = parser.for_tag(srcdoc, tag)
+                except (Exception) as e:
+                    if not opts.quiet:
+                        log.err("Unable to find comment span for tag '%s' at %s:%s " % (
+                            parser.data[tag.start:tag.end], srcdoc.source_name, tag.char_span))
                     continue
+
+                if not cmt:
+                    continue
+
+                # XXX
                 srcdoc.scei.append(cmt)
 
-                if not opts.quiet:
-                    print cmt.comment_line_span, cmt.description_span, repr(cmt.descr(data))
+                if opts.quiet:
+                    issue_format = 'id'
 
-                    #print("%s '%s' <%s> %s" %( tag, tag.raw(data),
-                    #    tag.canonical(data), cmt ))
-
+                print EmbeddedIssue.formats[issue_format](cmt, data)
         return
+
+        # TODO: old clean/rewrite functions
 
         # iterate paths
         for embedded in find_files_with_tag(sa, matchbox, paths):

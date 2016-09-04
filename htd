@@ -509,10 +509,10 @@ htd__status()
 {
   test -n "$failed" || error failed 1
   # TODO:
-  # global, local services
-  # disks, annex
-  # project tests, todos
-  # src, tools
+  #  global, local services
+  #  disks, annex
+  #  project tests, todos
+  #  src, tools
   ( cd ; pd st ) || echo "home" >> $failed
   ( cd ~/project; pd st ) || echo "project" >> $failed
   #( cd /src; pd st ) || echo "src" >> $failed
@@ -1204,6 +1204,14 @@ htd__todo_gtasks()
   }
 }
 
+# TODO: integrate radical
+htd__radical_scan()
+{
+  # XXX: experimenting with todo.txt output
+  radical.py run-embedded-issue-scan .
+}
+
+
 todo_clean_descr()
 {
   echo "$@" | \
@@ -1274,13 +1282,6 @@ htd__build_todo_list()
       done
   done; } | todo-meta.py import -
 
-#  grep -nsrI '\(\<FIXME\|TODO\|NOTE\|XXX\>\):' . \
-#      | grep -v '^#|\s*$' \
-#      | grep -v '.*#\ htd:ignore\s*' \
-#      | sort \
-#      | sed 's/\:\([0-9]*\)\:[\s\#]*/:\
-#\ \ \1\
-#\ \ \ \ /g' > $1
 }
 
 
