@@ -343,8 +343,9 @@ class EmbeddedIssue:
     """
 
     def __init__(self, srcdoc, comment_char_span, comment_line_span,
-            comment_flavour, inline, tags):
+            description_span, comment_flavour, inline, tags):
         self.srcdoc = srcdoc
+        self.description_span = description_span
         self.comment_char_span = comment_char_span
         self.comment_line_span = comment_line_span
         self.comment_flavour = comment_flavour
@@ -358,6 +359,8 @@ class EmbeddedIssue:
     def raw(self, data):
         return data[slice(*self.comment_char_span)]
 
+    def descr(self, data):
+        return data[slice(*self.description_span)]
 
 class EmbeddedIssueOld:
 
@@ -543,14 +546,14 @@ def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
         data = lines[tag_line]
         start_line = tag_line
 
-        #print language_key, search_line, data, start_line
-
         if search_line:
             # scan for line-style comment, concatenate multiple lines
             line_start = search_line(data)
+
             if line_start:
+                #print 'search_line', language_key, data, start_line, line_start.span()
                 comment_offset = line_offset + line_start.start()
-                description_offset = line_offset + line_start.end()
+                description_offset = offset
                 last_line = tag_line
                 comment_end = line_offset + line_width
                 description_end = comment_end
@@ -729,8 +732,8 @@ class Parser:
         # XXX:
         inline = None
         tags = []
-        return EmbeddedIssue(srcdoc, comment_span, lines, comment_flavour, inline,
-                tags)
+        return EmbeddedIssue(srcdoc, comment_span, lines, descr_span,
+                comment_flavour, inline, tags)
 
 
 
@@ -777,8 +780,8 @@ def find_tagged_comments(session, matchbox, source, data, lines=None):
                     tag_span[1]-tag_span[0], data, lines,
                     rc.comment_flavours, matchbox)
             if not comment:
-                log.err("Unable to find comment span for tag '%s' at %s:%s " % (
-                    data[tag_span[0]:tag_span[1]], source, tag_span, lines))
+                #log.err("Unable to find comment span for tag '%s' at %s:%s " % (
+                #    data[tag_span[0]:tag_span[1]], source, tag_span, lines))
                 continue
             comment_flavour, comment_span, description_span, lines = comment
 
@@ -1144,17 +1147,19 @@ class Radical(rsr.Rsr):
             for tag in parser.find_tags():
                 cmt = parser.for_tag(srcdoc, tag)
                 if not cmt:
-                    if not opts.quiet:
-                        log.err("Unable to find comment span for tag '%s' at %s:%s " % (
-                            parser.data[tag.start:tag.end], srcdoc.source_name, tag.char_span))
+                    #if not opts.quiet:
+                    #    log.err("Unable to find comment span for tag '%s' at %s:%s " % (
+                    #        parser.data[tag.start:tag.end], srcdoc.source_name, tag.char_span))
                     #else:
                     #    return 1
                     continue
                 srcdoc.scei.append(cmt)
 
                 if not opts.quiet:
-                    print("%s '%s' <%s> %s" %( tag, tag.raw(data),
-                        tag.canonical(data), cmt ))
+                    print cmt.comment_line_span, cmt.description_span, repr(cmt.descr(data))
+
+                    #print("%s '%s' <%s> %s" %( tag, tag.raw(data),
+                    #    tag.canonical(data), cmt ))
 
         return
 

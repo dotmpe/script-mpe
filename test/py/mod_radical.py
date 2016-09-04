@@ -119,7 +119,9 @@ class RadicalTestCase(unittest.TestCase):
         ( 7, '// TODO comment ', ( 'c_line', (0, 17), (0, 0) ) ),
         ( 8, '# TODO comment ', ( 'unix_generic', ( 0, 16 ), ( 0, 0 ) ) ),
         ( 9, 'asdf\nfdsa\n// TODO comment \nfoo', ( 'c_line', (10, 27), (2, 2) ) ),
-        #( 10, 'asdf\nfdsa\n// TODO comment \n// foo', ( 'c_line', (10, 32), (2, 3) ) ),
+        ( 10, 'asdf fdsa // TODO comment \nfoo', ( 'c_line', (10, 27), (0, 0) ) ),
+        #( 11, '// asdf fdsa TODO comment \nfoo', ( 'c_line', (12, 27), (0, 0) ) ),
+        #( 11, 'asdf\nfdsa\n// TODO comment \n// foo', ( 'c_line', (10, 32), (2, 3) ) ),
     ])
     def test_get_tagged_comment(self, testnr, data, expected):
         lines = get_lines(data)
