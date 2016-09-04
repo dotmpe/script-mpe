@@ -39,7 +39,7 @@ init
   test ${status} -eq 0
   test -n "${lines[*]}" # non-empty output
   # 6 'note'-level log lines, three for issues: TODO: fix multiline scanning
-  test "${#lines[@]}" = "6" # lines of output (stderr+stderr)
+  test "${#lines[@]}" = "13" # lines of output (stderr+stderr)
 }
 
 

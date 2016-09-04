@@ -116,3 +116,15 @@ status
   Other states are recorded below 'status', and each ``<prefix>:status``.
 
 
+- TODO: npm supports various script attributes that are interesting for Pd
+  package schema.
+
+  - install, and pre-/post-~ I suppose can help a bit to kick of a build.
+
+  - prepublish (run before local 'npm install' too).
+
+  - npm does also version bump or tags with ``npm version``
+
+  And there is publish when uploading to NPM registry.
+  stop/start, and restart.
+

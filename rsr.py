@@ -326,7 +326,7 @@ class Rsr(libcmd.StackedCommand):
         #dbref = opts.dbref
         repo_path = os.path.join(repo_root, opts.repo)
 
-        from .sa_migrate import custom
+        from sa_migrate import custom
         config = custom.read(repo_path)
         repo_opts = custom.migrate_opts(repo_path, config)
         dbref = repo_opts['url']

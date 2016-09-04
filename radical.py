@@ -172,7 +172,7 @@ TODO: domain structure::
       ^                                                 |
       \--------------------\                            |
                            |          Comment           |
-   EmbeddedIssue           |           * inode:INode ---/
+   EmbeddedIssueOld        |           * inode:INode ---/
     * tag:CommentTag ------/           * line_span_start,end:Integer
     * tag_span_start,end:Integer       * comment:Text
     * description_span_start,end       * comment_span_start,end:Integer
@@ -195,7 +195,7 @@ from pprint import pformat
 
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
-                        ForeignKey, Table, Index
+                        ForeignKey, Table, Index, UniqueConstraint, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
@@ -215,10 +215,60 @@ import res.fs
 
 Base = declarative_base()
 
-class CommentTag(Base):
-    __tablename__ = 'tags'
-    tagname = Column(String(16), primary_key=True)
-    #storage = Column(String(1024))
+
+class IssueTracker(Base):
+    """
+    Keep table of tag/contexts together with (remote) backend ID.
+
+    Identifies a remote tracker for instances of a tagname in a context .
+    The remote trackers should contain all locally found embedded issues tagged
+    with given ID.
+    The opposite is not true - associated trackers can contain issues from
+    different contexts (ie. different projects, branches).
+
+    There is one tracker per tag instance, per context. Tracker URL's are
+    not unique, but reusable remote references. TODO: see backend-ref for
+    format.
+    """
+    __tablename__ = 'issue_trackers'
+    id = Column(Integer, primary_key=True)
+    tracker_url = Column(String(16))
+    context = Column(String(255), primary_key=True)
+    slug = Column(String(16), primary_key=True)
+    __table_args__ = (
+            UniqueConstraint('context', 'slug', name='_slug_context'),
+        )
+
+
+class TagInstance(object):
+    def __init__(self, source, slug, char_span):
+        self.source = source
+        self.slug = slug
+        self.start = char_span[0]
+        self.end = char_span[1]
+
+    @property
+    def char_span(self):
+        return self.start, self.end
+
+    def raw(self, data):
+        "Retrieve raw string from data"
+        return data[slice(*self.char_span)]
+
+    def canonical(self, data):
+        "Clean-up raw tag"
+        tag = self.raw(data)
+        # Strip ends
+        ctag = tag
+        for p in '^'+tag_chars, tag_sepchars:
+            ctag = re.sub('^[%s]+' % p, '', ctag)
+            ctag = re.sub('[%s]+$' % p, '', ctag)
+        # Replace other non-tag chars
+        ctag, num = tag_clean_re.subn(':', ctag)
+        return ctag
+
+    def __str__(self):
+        return "<TagInstance %s %s#c%s-%s>" % ( self.slug, self.source, self.start, self.end)
 
 #indices_comments = Table('indices_comments', Base.metadata,
 #        Column('tag', ForeignKey('tags.tagname'), index=True),
@@ -232,11 +282,20 @@ class CommentTag(Base):
 #    tags = relationship(Tag, secondary=indices_comments, backref='comments')
 
 class TrackedIssue(Base):
-    __tablename__ = 'issues'
+    __tablename__ = 'tracked_issues'
     id = Column(Integer, primary_key=True)
-    tag_id = Column(String(16), ForeignKey('tags.tagname'))
-    tag = relationship(CommentTag, primaryjoin=tag_id == CommentTag.tagname,
-            backref='issues')
+    src_spec = Column(String(2048))
+
+    tracker_id = Column(Integer, ForeignKey('issue_trackers.id'))
+    tracker = relationship(IssueTracker,
+            primaryjoin=tracker_id == IssueTracker.id)
+
+    role = Column( Enum( 'primary', 'copy', 'reference' ))
+
+# XXX: old
+    #tag_id = Column(String(16), ForeignKey('tags.tagname'))
+    #tag = relationship(CommentTag, primaryjoin=tag_id == CommentTag.tagname,
+    #        backref='issues')
     description = Column(Text, index=True)
     inline = Column(Boolean, default=False)
     # XXX: unique on filename/linenumber?
@@ -248,11 +307,66 @@ NO_ID = 0
 NEED_ID = -1
 
 
+
+class SrcDoc:
+
+    """
+    Holder for tag/comments found in source.
+    """
+
+    def __init__(self, source_name, line_count=None ):
+
+        self.source_name = source_name
+        "Location for source."
+
+        self.line_count = line_count
+
+        self.scei = []
+
+
+class CommentTag:
+    """ TODO: hold some types of tags:
+    TODO-10af
+    TODO-1234
+    BUG:1.2.3-a.b.c+d
+    """
+    def __init__(self, slug, id, matchbox):
+        self.slug = slug
+        self.id = id
+        self.matchbox = matchbox
+
+
 class EmbeddedIssue:
+
+    """
+    Holder for specific tagged comment found in source.
+    """
+
+    def __init__(self, srcdoc, comment_char_span, comment_line_span,
+            comment_flavour, inline, tags):
+        self.srcdoc = srcdoc
+        self.comment_char_span = comment_char_span
+        self.comment_line_span = comment_line_span
+        self.comment_flavour = comment_flavour
+        self.inline = inline
+        self.tags = tags
+
+    def __str__(self):
+        return "<EmbeddedIssue %s %i-%i %i-%i>" % ( ( self.comment_flavour,
+                ) + self.comment_char_span + self.comment_line_span )
+
+    def raw(self, data):
+        return data[slice(*self.comment_char_span)]
+
+
+class EmbeddedIssueOld:
+
     def __init__(self, file_name, comment_span, tag_name, tag_id, tag_span,
             description_span, inline, comment_flavour, comment_lines):
+
         self.file_name = file_name
         "Local file location for source."
+
         self.tag_name = tag_name
         self.tag_id = tag_id
         self.tag_span = tag_span
@@ -325,6 +439,7 @@ class EmbeddedIssue:
                 description += ' '
         return description
 
+
 # Storage & service IO
 
 def store_comments(session, data, comment_span, flavour_spec, tagname, matchbox):
@@ -346,13 +461,24 @@ def end_of_line(data):
             return pos
         pos += 1
 
-
-def at_line(offset, width, data):
-    #data = data.decode('utf-8')
+def get_lines(data):
     lines = data.split('\n')
+    if lines[-1] == '':
+        lines.pop()
+    return lines
+
+def at_line(offset, width, data, lines=None):
+    """Return the line number, and its char-span. Given a sub-line char span
+    (of single word span, ie. never crossing a line-end).
+
+    Assumes single-char line-end.
+    And that it is always present, and included in line-width.
+
+    """
+    if not lines:
+        lines = get_lines(data)
     chars = 0
     for line, line_data in enumerate(lines):
-        #print line, chars
         if offset < chars+len(line_data)+1:
             return line, chars, len(line_data)+1
         chars += len(line_data)+1
@@ -377,19 +503,19 @@ def compile_rdc_matchbox(rc):
 
     for flavour in rc.comment_scan:
         scan = rc.comment_scan[flavour]
-        match_start = re.compile(scan[0], re.M)
+        search_line = re.compile(scan[0], re.M)
         if len(scan) > 1:
-            match_end = re.compile(scan[1], re.M)
-            matchbox[flavour] = (None, match_start.match, match_end.match)
+            search_end = re.compile(scan[1], re.M)
+            matchbox[flavour] = (None, search_line.search, search_end.search)
         else:
-            matchbox[flavour] = (match_start.match, None, None)
+            matchbox[flavour] = (search_line.search, None, None)
 
     return matchbox
 
 
 _parsed_file_comments = {}
 
-def get_tagged_comment(offset, width, data, language_keys, matchbox):
+def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
     """
     Return the comment span that has a tag embedded at offset/width.
 
@@ -402,33 +528,41 @@ def get_tagged_comment(offset, width, data, language_keys, matchbox):
     metacharacters used to markup comments. Further parsing of the comment
     block is left to the caller.
     """
-    tag_line, line_offset, line_width = at_line(offset, width, data)
+    tag_line, line_offset, line_width = at_line(offset, width, data, lines)
 
-    lines = data.split('\n')
+    #print 'get_tagged_comment', offset, width, 'tag', tag_line, line_offset, line_width, language_keys
 
     comment_offset, comment_end = -1, -1
+    description_offset, description_end = -1, -1
     start_line, last_line = -1, -1
     for language_key in language_keys:
 
         scan_spec = matchbox[language_key]
-        match_line, match_start, match_end = scan_spec
+        search_line, search_start, search_end = scan_spec
 
         data = lines[tag_line]
         start_line = tag_line
 
-        if match_line:
-            # scan multiline for line-style comment
-            if match_line(data):
-                comment_offset = line_offset # FIXME scan to tagname
-                data = lines[tag_line]
-                last_line = tag_line
-                comment_end = line_offset + len(data)
-                while match_line(data):
-                    data = lines[last_line+1]
-                    if match_line(data):
-                        last_line += 1
-                        comment_end += len(data) + 1 # FIXME: CRLF size
+        #print language_key, search_line, data, start_line
 
+        if search_line:
+            # scan for line-style comment, concatenate multiple lines
+            line_start = search_line(data)
+            if line_start:
+                comment_offset = line_offset + line_start.start()
+                description_offset = line_offset + line_start.end()
+                last_line = tag_line
+                comment_end = line_offset + line_width
+                description_end = comment_end
+                if last_line == 0:
+                    break
+                data = lines[last_line+1]
+                while search_line(data):
+                    last_line += 1
+                    comment_end = len(data) + 1
+                    data = lines[last_line+1]
+
+                #print "Line-match ", language_key, tag_line, lines[tag_line]
                 break
 
             else:
@@ -437,29 +571,41 @@ def get_tagged_comment(offset, width, data, language_keys, matchbox):
 
         else: # seek multiline block comment
 
-            if not match_start(data):
-                #print "No start-match at", language_key, tag_line, lines[tag_line], data
-                continue
-
             comment_offset = line_offset
-            while match_start(data):
-                data = lines[start_line-1]
-                # adjust start-line and start-char
-                if match_start(data):
-                    start_line -= 1
-                    comment_offset -= len(data) + 1
+            while data:
+                #print 'comment_offset', comment_offset, 'len-data', len(data)
+                start = search_start(data)
+                if start:
+                    description_offset = comment_offset + start.end()
+                    comment_offset += start.start()
+                    comment_end = comment_offset
+                    data = data[start.start():]
+                    break
+                if start_line == 0:
+                    break
+                start_line -= 1
+                data = lines[start_line]
+                comment_offset -= len(data) + 1
 
-            if not match_end:
-                match_end = match_start
+            if comment_end == -1:
+                continue
+            #print 'Start match', comment_end, comment_offset, start_line, data
 
-            data = lines[tag_line]
-            last_line = tag_line
-            comment_end = line_offset + len(data)
-            while match_end(data):
-                data = lines[last_line+1]
-                if match_end(data):
-                    last_line += 1
-                    comment_end += len(data) + 1
+            if not search_end:
+                search_end = search_start
+
+            last_line = start_line
+            while data:
+                end = search_end(data)
+                if end:
+                    description_end = comment_end + end.start()
+                    comment_end += end.end()
+                    break
+                comment_end += len(data) + 1
+                last_line += 1
+                data = lines[last_line]
+
+            #print 'End match', comment_end, last_line, data
 
             break
 
@@ -467,7 +613,11 @@ def get_tagged_comment(offset, width, data, language_keys, matchbox):
         #print language_key, 'found comment', start_line, comment_offset, \
         #            last_line, comment_end,\
         #            lines[start_line:last_line+1]
-        return language_key, (comment_offset, comment_end), (start_line, last_line)
+        return language_key, (comment_offset, comment_end), \
+                (description_offset, description_end), \
+                (start_line, last_line)
+
+
 
 def scan_for_tag(tags, matchbox, data):
     pos = len(data)
@@ -539,7 +689,54 @@ def clean_comment(scan, data):
     return data
 
 
-def find_tagged_comments(session, matchbox, source, data):
+class Parser:
+    """
+    TODO: parse/cache comments from source. Map between tag and comment specs.
+    Keep context.
+    """
+    def __init__(self, session, matchbox, source_name, context, data, lines):
+        self.session = session
+        self.matchbox = matchbox
+        self.source_name = source_name
+        self.context = context
+        self.data = data
+        self.lines = lines
+
+    def find_tags(self):
+        "scan for tags. return entire tag spec"
+        for tagname in rc.tags:
+            for tag_match in self.matchbox[tagname].finditer(self.data):
+                tag_span = tag_match.start(), tag_match.end()
+                yield TagInstance(self.source_name, tagname, tag_span)
+
+    def for_tag(self, srcdoc, tag):
+        "retrieve comment for TagInstance TODO: map streams"
+
+        # Get entire comment
+        comment = get_tagged_comment(tag.start, tag.end-tag.start,
+                self.data, self.lines,
+                rc.comment_flavours, self.matchbox)
+        if not comment:
+            return
+        comment_flavour, comment_span, descr_span, lines = comment
+
+        # Clean comment from markup and adjust source span
+        comment_data, comment_span = \
+                trim_comment(self.matchbox[comment_flavour], self.data,
+                                                            comment_span)
+        (comment_start, comment_end) = comment_span
+
+        # XXX:
+        inline = None
+        tags = []
+        return EmbeddedIssue(srcdoc, comment_span, lines, comment_flavour, inline,
+                tags)
+
+
+
+
+# XXX: old
+def find_tagged_comments(session, matchbox, source, data, lines=None):
     """
     Scan a single source for embedded-issues/tagged-comments.
 
@@ -563,12 +760,8 @@ def find_tagged_comments(session, matchbox, source, data):
     FIXME: C-style line and block comments.
     """
 
-    lines = data.split('\n')
-
-    for flavour in rc.comment_flavours:
-        scan_spec = matchbox[flavour]
-        match_line, match_start, match_end = scan_spec
-        # TODO index comments, line and offset/width
+    if not lines:
+        lines = get_lines(data)
 
     # pass data along each tag-name and regexes from matchbox
     for tagname in rc.tags:
@@ -581,13 +774,13 @@ def find_tagged_comments(session, matchbox, source, data):
 
             # Get entire comment
             comment = get_tagged_comment(tag_span[0],
-                    tag_span[1]-tag_span[0], data,
+                    tag_span[1]-tag_span[0], data, lines,
                     rc.comment_flavours, matchbox)
             if not comment:
                 log.err("Unable to find comment span for tag '%s' at %s:%s " % (
-                    data[tag_span[0]:tag_span[1]], source, tag_span))
+                    data[tag_span[0]:tag_span[1]], source, tag_span, lines))
                 continue
-            comment_flavour, comment_span, lines = comment
+            comment_flavour, comment_span, description_span, lines = comment
 
             # Clean comment from markup and adjust source span
             comment_data, comment_span = \
@@ -632,7 +825,7 @@ def find_tagged_comments(session, matchbox, source, data):
                 else:
                     current_id = NEED_ID
 
-            yield EmbeddedIssue(source, (comment_start, comment_end), tagname,
+            yield EmbeddedIssueOld(source, (comment_start, comment_end), tagname,
                     current_id,
                     (tag_match.start(), tag_match.end()),
                     (tag_match.end(), description_end),
@@ -685,9 +878,6 @@ def get_peek(source):
     except Exception, e:
         log.debug("get-peek: %s", e)
 
-def detect_flavour(pathname, data):
-    pass
-
 def find_files_with_tag(session, matchbox, paths):
 
     """
@@ -700,26 +890,8 @@ def find_files_with_tag(session, matchbox, paths):
     process tagged comments.
     """
 
-    sources = []
-    for p in paths:
-        if not os.path.isdir(p):
-            sources.append(p)
-        else:
-            for p2 in res.fs.Dir.walk(p, opts=dict(recurse=True, files=True)):
-                sources.append(p2)
+    # Walk files, XXX: ignore non-ascii, retrieve tag references
     for source in sources:
-
-        peek = get_peek(source)
-        if not peek:
-            log.err("Error reading %s" % source)
-            continue
-
-        if not plain_text_flavor(peek, source):
-            continue
-
-        # XXX
-        #comment_flavours = detect_flavour(source, data)
-        data = open(source).read()
 
         try:
             tag_generator = find_tagged_comments(session, matchbox, source, data)
@@ -727,6 +899,7 @@ def find_files_with_tag(session, matchbox, paths):
             log.err("Find: %s", e)
             traceback.print_exc()
             tag_generator = None
+
         while tag_generator:
             try:
                 tag = tag_generator.next()
@@ -774,18 +947,27 @@ tags
 
 # Start/end regex patterns per comment flavour
 STD_COMMENT_SCAN = {
-        'unix_generic': [ '^(\s*\#\s).*$' ],
-        'c_line': [ '^(\s*\/\/).*$' ]
+        'c': [ '(\/\*+)', '(\*\/)' ],
+        'unix_generic': [ '(\#\s)' ],
+        'c_line': [ '(\/\/)' ]
     }
 # Tag pattern, format and index type
 DEFAULT_TAGS = {
-    'FIXME': [ '(%s)[:_\s-](?:([0-9]+)[\s:])?' ],
-    'TEST': ['(%s)[:_\s-](?:([0-9]+)[\s:])?', '%s:%i:', 'numeric_index' ],
-    'TODO': ['(%s)[:_\s-](?:([0-9]+)[\s:])?', '%s:%i:', 'numeric_index' ],
-    'XXX': [ '(%s)[:_-](?:([0-9]+)[:])?\s' ]
+    'FIXME': [ '(\\b%s)[:_\s-]*(?:([0-9]+))?\\b' ],
+    'TEST': ['(\\b%s)[:_\s-]*(?:([0-9]+))?\\b', '%s:%i:', 'numeric_index' ],
+    'TODO': ['(\\b%s)[:_\s-]*(?:([0-9]+))?\\b', '%s:%i:', 'numeric_index' ],
+    'XXX': [ '(\\b%s)[:_\s-]*(?:([0-9]+))?\\b' ],
+    'NOTE': [ '(\\b%s)[:_\s-]*(?:([0-9]+))?\\b' ],
+    'BUG': [ '(\\b%s)[:_\s-]*(?:([0-9]+))?\\b' ]
 }
 
 rc = confparse.Values()
+
+tag_chars = 'A-Za-z0-9\/:\._-'
+tag_sepchars = ':\.'
+tag_clean_re = re.compile('[^%s]' % tag_chars)
+tag_match_re = re.compile('[%s]{2,}' % tag_chars)
+
 
 # Main
 
@@ -908,29 +1090,87 @@ class Radical(rsr.Rsr):
 
         yield dict( services=services )
 
-    def rdc_run_embedded_issue_scan(self, sa, issue_format=None, *paths):
+    def walk_paths(self, paths):
+        # Recurse dirs, return all file paths
+        sources = []
+        for p in paths:
+            if not os.path.isdir(p):
+                sources.append(p)
+            else:
+                for p2 in res.fs.Dir.walk(p, opts=dict(recurse=True, files=True)):
+                    sources.append(p2)
+
+        for source in sources:
+            peek = get_peek(source)
+            if not peek:
+                log.err("Error reading %s" % source)
+                continue
+
+            if not plain_text_flavor(peek, source):
+                log.warn("Ignored non-ascii %s" % source)
+                continue
+
+            yield source
+
+    def rdc_run_embedded_issue_scan(self, sa, issue_format=None, opts=None, *paths):
 
         """
         Main function: scan multiple sources and print/log embedded issues
         found.
         """
+
         if not paths: paths=['.']
 
-        # pre-compile patterns
+        # TODO: make ascii peek optional, charset configurable
+        # TODO: implement contexts, ref per source
+        context = ''
+        source_iter = self.walk_paths(paths)
+
+        # pre-compile patterns XXX: per context
         matchbox = compile_rdc_matchbox(rc)
+
+        taskdocs = {}
+
+        for source in source_iter:
+            data = open(source).read()
+
+            lines = get_lines(data)
+
+            srcdoc = SrcDoc( source, len(lines) )
+            taskdocs[source] = srcdoc
+
+            parser = Parser(sa, matchbox, source, context, data, lines)
+
+            for tag in parser.find_tags():
+                cmt = parser.for_tag(srcdoc, tag)
+                if not cmt:
+                    if not opts.quiet:
+                        log.err("Unable to find comment span for tag '%s' at %s:%s " % (
+                            parser.data[tag.start:tag.end], srcdoc.source_name, tag.char_span))
+                    #else:
+                    #    return 1
+                    continue
+                srcdoc.scei.append(cmt)
+
+                if not opts.quiet:
+                    print("%s '%s' <%s> %s" %( tag, tag.raw(data),
+                        tag.canonical(data), cmt ))
+
+        return
 
         # iterate paths
         for embedded in find_files_with_tag(sa, matchbox, paths):
+
             if embedded.tag_id:
                 #if embedded.tag_id == NEED_ID:
                     yield dict(issues=[ embedded ])
                     try:
                         if issue_format:
-                            print EmbeddedIssue.formats[issue_format](embedded)
+                            print EmbeddedIssueOld.formats[issue_format](embedded)
                         log.note('Embedded Issue %r', (embedded.file_name, \
                                 embedded.tag_name, embedded.tag_id, \
                                 embedded.comment_span, embedded.comment_lines, \
-                                embedded.description))
+                                embedded.description, embedded.comment_flavour))
                     except Exception, e:
                         log.err(e)
                     #new_id = service.new_issue(embedded.tag_name, embedded.description)

@@ -1,6 +1,7 @@
 /**
- * XXX Comment
+ * NOTE Comment
  *   Runs two lines
+ * This not
  */
 def func();
 
@@ -13,4 +14,12 @@ def func();
 #     runs two lines also. And has two sentences.
 
 #the unix-style discerns c-style directives, NOTE: this is not a comment.
+# NOTE this is a comment
+
+/* TODO 123 foo */
+/** TODO-45 bar */
+/** TODO 6 baz */
+/* TODO 7 baz */
+/* TODO 17 baz 
+*/
 
