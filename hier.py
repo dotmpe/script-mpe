@@ -11,6 +11,7 @@ Usage:
   hier.py [options] init
   hier.py [options] info
   hier.py [options] list
+  hier.py [options] find LIKE
   hier.py [options] tree TODO
   hier.py [options] record [TAGS...]
   hier.py [options] clear
@@ -20,19 +21,17 @@ Options:
                   SQLAlchemy DB URL [default: %s]
     -i FILE --input=FILE
     -o FILE --output=FILE
+    --add-prefix=PREFIX
+                  Use this context with the provided tags.
+    -I --interactive
+    --force
+    --override-prefix
+                  ..
 
 Other flags:
     -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
-
-Commands:
-    init
-        Commit SQL DDL to storage schema. Creates DB file if not present.
-    info
-        Verify DB connection is working. Print some settings and storage stats.
-    list
-        List to root tags.
 
 """ % ( __db__, __version__ )
 import os
@@ -40,7 +39,7 @@ import resource
 from pprint import pformat
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, \
-        Table, create_engine
+        Table, create_engine, or_
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -54,12 +53,13 @@ SqlBase = declarative_base()
 metadata = SqlBase.metadata
 
 
+# Util
+def clean_tag(s):
+    yield s.strip(' \n\r')
+
+
 ### Object classes
 
-tag_context_table = Table('tag_context', metadata,
-        Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True),
-        Column('ctx_id', Integer, ForeignKey('tags.id'), primary_key=True)
-)
 class Tag(ORMMixin, SqlBase):
 
     """
@@ -72,6 +72,50 @@ class Tag(ORMMixin, SqlBase):
     label = Column(String(255), unique=True, nullable=True)
     description = Column(Text, nullable=True)
 
+    def __str__(self):
+        if self.label:
+            return "%s %r" % ( self.name, self.label )
+        else:
+            return self.name
+
+    @classmethod
+    def record(cls, raw, sa, opts):
+        def record_inner(name):
+            try:
+                tag = sa.query(Tag).filter(Tag.name == name).one()
+                return tag
+            except:
+                tag_matches = sa.query(Tag).filter(or_(
+                    Tag.name.like('%'+stem+'%') for stem in
+                        clean_tag(name) )).all()
+                if tag_matches and not opts.flags.override_prefix:
+                    opts.flags.interactive
+                    print('Existing match for %s:' % name)
+                    for t in tag_matches:
+                        print(t)
+                    raise ValueError
+                elif not tag_matches or opts.flags.override_prefix:
+                    tag = Tag(name=name)
+                    sa.add(tag)
+                    return tag
+                else: pass
+        if '/' in raw:
+            els = raw.split('/')
+            while els:
+                tag = None
+                print(record_inner(els[0]))
+                els.pop(0)
+        else:
+            print(record_inner(raw))
+        sa.commit()
+
+
+tag_context_table = Table('tag_context', metadata,
+        Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True),
+        Column('ctx_id', Integer, ForeignKey('tags.id'), primary_key=True),
+        Column('role', String(32), nullable=True)
+)
+
 Tag.contexts = relationship('Tag', secondary=tag_context_table,
             primaryjoin=( Tag.tag_id == tag_context_table.columns.tag_id ),
             secondaryjoin=( Tag.tag_id == tag_context_table.columns.ctx_id ),
@@ -83,7 +127,7 @@ Tag.contexts = relationship('Tag', secondary=tag_context_table,
 def cmd_info(settings):
 
     """
-    Print some settings, stats.
+        Verify DB connection is working. Print some settings and storage stats.
     """
 
     for l, v in (
@@ -120,43 +164,60 @@ def cmd_info(settings):
         ):
             log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
 
-    #log.std('\n{green}stat {bwhite}OK{default}')
+    log.std('\n{green}info {bwhite}OK{default}')
 
 
 def cmd_list(settings):
+    """
+        List to root tags.
+    """
     sa = get_session(settings.dbref, metadata=metadata)
     roots = sa.query(Tag).filter(Tag.contexts == None).all()
     for root in roots:
-        print(root)
+        print(root.name)
+
+
+def cmd_find(settings, LIKE):
+    """
+        Look for tag.
+    """
+    sa = get_session(settings.dbref, metadata=metadata)
+    alikes = sa.query(Tag).filter(Tag.name.like(LIKE)).all()
+    for tag in alikes:
+        print(tag.name)
+
 
 def cmd_init(settings):
+    """
+        Commit SQL DDL to storage schema. Creates DB file if not present.
+    """
     sa = get_session(settings.dbref, initialize=True, metadata=metadata)
 
+
 def cmd_clear(settings):
+    """
+        Drop all tables and re-create.
+    """
     sa = get_session(settings.dbref, metadata=metadata)
 
     for name, table in metadata.tables.items():
 
-	print(table.delete())
-	sa.execute(table.delete())
+        print(table.delete())
+        sa.execute(table.delete())
 
     sa.commit()
 
     sa = get_session(settings.dbref, initialize=True, metadata=metadata)
 
 
-def cmd_record(settings, TAGS):
-    "Record tags/paths. Report on inconsistencies. "
+def cmd_record(settings, opts, TAGS):
+    """
+        Record tags/paths. Report on inconsistencies.
+    """
     sa = get_session(settings.dbref, initialize=True, metadata=metadata)
-    assert TAGS, "TODO: read from stdin"
+    assert TAGS # TODO: read from stdin
     for raw_tag in TAGS:
-        if '/' in raw_tag:
-            pass
-        else:
-            tag = Tag(name=raw_tag)
-            sa.add(tag)
-            sa.commit()
-            print(raw_tag)
+        Tag.record(raw_tag, sa, opts)
 
 
 

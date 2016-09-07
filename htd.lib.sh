@@ -58,18 +58,22 @@ htd_init_ignores()
   done
 }
 
+# Initi empty find_ignores var
 htd_find_ignores()
 {
-  find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
-    grep -Ev '^(#.*|\s*)$' | \
-    sed -E 's/^\//\.\//' | \
-    grep -v '\/' | \
-    sed -E 's/(.*)/ -o -name "\1" -prune /g'))"\
-  "$(echo $(cat $HTD_IGNORE.merged | \
-    grep -Ev '^(#.*|\s*)$' | \
-    sed -E 's/^\//\.\//' | \
-    grep '\/' | \
-    sed -E 's/(.*)/ -o -path "*\1*" -prune /g'))
+  test -z "$find_ignores" || return
+  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" && {
+    find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
+      grep -Ev '^(#.*|\s*)$' | \
+      sed -E 's/^\//\.\//' | \
+      grep -v '\/' | \
+      sed -E 's/(.*)/ -o -name "\1" -prune /g'))"\
+    "$(echo $(cat $HTD_IGNORE.merged | \
+      grep -Ev '^(#.*|\s*)$' | \
+      sed -E 's/^\//\.\//' | \
+      grep '\/' | \
+      sed -E 's/(.*)/ -o -path "*\1*" -prune /g'))
+  } || warn "Missing or empty HTD_IGNORE '$HTD_IGNORE'"
   find_ignores="-path \"*/.git\" -prune $find_ignores "
   find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
   find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
@@ -77,6 +81,8 @@ htd_find_ignores()
 
 htd_grep_excludes()
 {
+  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" \
+    || warn "Missing or empty HTD_IGNORE '$HTD_IGNORE'"
   grep_excludes=""$(echo $(cat $HTD_IGNORE.merged | \
     grep -Ev '^\s*(#.*|\s*)$' | \
     sed -E 's/^\//\.\//' | \
@@ -316,3 +322,9 @@ htd_report()
   return $htd_report_result
 }
 
+htd_passed()
+{
+  test -n "$passed" || error htd-passed-file 1
+  stderr ok "$1"
+  echo "$1" >>$passed
+}

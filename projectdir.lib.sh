@@ -772,8 +772,11 @@ pd_run()
         record_key=$(printf "$1" | cut -d ':' -f 2 )
         info "Running Sh '$shcmd' ($1)"
         (
-          sh -c "$shcmd" \
-            && result=0 || { result=$?; echo $1 >>$failed; }
+          unset $pd_inputs $pd_inputs
+          unset verbosity pd_inputs pd_outputs pd_session_id subcmd
+
+          note "shcmd=$shcmd"
+          sh -c "$shcmd"
           #{
           #  cd "$pd_realdir"
           #  key_pref=repositories/$(normalize_relative \
@@ -783,7 +786,7 @@ pd_run()
           #  pd_update_record \
           #    result=$result
           #}
-        )
+        ) && result=0 || { result=$?; echo $1 >>$failed; }
       ;;
 
     ## Other built-ins
@@ -831,6 +834,7 @@ pd_run()
 
         sub_session_id=$(uuidgen)
         (
+          unset verbosity
           subcmd="$pd_prefix#$comp"
 
           record_key="$(eval echo "\"\$$(try_local "$comp" stat)\"")"

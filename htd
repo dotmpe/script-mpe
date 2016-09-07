@@ -265,24 +265,29 @@ htd_commands()
   echo '                                   Add either function and inline script to run for every path matching pattern. '
   echo ''
   echo 'Working tree metadata'
+  echo '  ck-init                          Initialize new checksum table'
   echo '  ck-consolidate [.|<path>]        TODO: integrate metadata from all metafiles (see ck-metafile)'
-  echo '  ck-metafile <path>               TODO: integrate metadata from .meta/.rst/.sha1sum/etc. '
+  echo '  ck-metafile <path>               TODO: integrate metadata from .meta/.rst/.sha1sum/etc.'
   echo ''
   echo 'Working tree checksum metadata [CK_TABLE=./]'
-  echo '  ck-update [ck|md5|sha1] (<path>)  Iterate all files, and create checksum table records for unknown files. '
-  echo "  ck-table [ck|md5|sha1] <path>    Tell if checksum exists for file, don\'t validate or update. "
+  echo "  ck-table [ck|md5|sha1] <path>    Tell if checksum exists for file, don\'t validate or update"
   echo '  ck-table-subtree [ck|md5|sha1] <path> '
-  echo '                                   Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. '
-  echo '  ck-drop [ck|mk5|sha1] <path>     Remove row for given path from checksum table. '
-  echo '  ck-validate [ck|md5|sha1]        Verify each file by generating and comparing its checksum. '
-  echo '  ck-check [ck|md5|sha1]           Iterate table, move lines with non-existant paths to .missing table'
-  echo '  ck-fix [.|<path>]                If path exists, look for duplicates using ck-find-content and move this path to .duplicates marking it to be resolved interactively. '
-  echo '                                   Or if path is missing, try find-name to find new location. If still missing, look for any copy using ck-find-content and move current entry to table .duplicate on success, or .gone on failure. '
-  echo '  ck-check-missing [ck|md5|sha1]   TODO: iterate .missing table, and call ck-fix. Move checksum to .gone if file stays missing. '
-  echo '  ck-clean [ck|md5|sha1]           TODO: iterate .gone table, and call ck-fix. Move gone checksum if file stays missing. '
-  echo '  ck-purge [|missing|duplicate|gone] TODO: drop missing-paths from indicate tables. '
-  echo '  ck-dedup <path>                  With no path given, iterate the duplicate table. Otherwise deduplicate content, using given path as preferred location. '
-  echo '  ck-find-content <path>           Given path, try find-name or checksum tables and annex-backend to find copies and give all alternate locations. '
+  echo '                                   Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that'
+  #echo '  ck-check [ck|md5|sha1]           Iterate table, move lines with non-existant paths to .missing table'
+  #echo '  ck-fix [.|<path>]                TODO: If path exists, look for duplicates using ck-find-content and move this path to .duplicates marking it to be resolved interactively'
+  #echo '                                   Or if path is missing, try find-name to find new location. If still missing, look for any copy using ck-find-content and move current entry to table .duplicate on success, or .gone on failure'
+  #echo '  ck-check-missing [ck|md5|sha1]   TODO: see ck-clean; iterate .missing table, and call ck-fix. Move checksum to .gone if file stays missing'
+  #echo '  ck-purge [|missing|duplicate|gone] TODO: drop missing-paths from indicate tables'
+  #echo '  ck-dedup <path>                  With no path given, iterate the duplicate table. Otherwise deduplicate content, using given path as preferred location. '
+  #echo '  ck-find-content <path>           TODO: Given path, try find-name or checksum tables and annex-backend to find copies and give all alternate locations. '
+  echo '  ck-update [ck|md5|sha1] (<path>) Iterate all files, and create checksum table records for unknown files'
+  echo '  ck-drop [ck|mk5|sha1] <path>     Remove row for given path from checksum table'
+  echo '  ck-validate [ck|md5|sha1]        Verify each file by generating and comparing its checksum'
+  echo '  ck-checksums [TABLE]             check file size and cksum'
+  echo '  ck-prune                         Drop non-existant paths from table, copy to .missing'
+  echo '  ck-clean [ck|md5|sha1]           TODO: iterate .gone table, and call ck-fix. Move gone checksum if file stays missing'
+  echo '  ck-metafile                      TODO: consolidate meta files'
+  echo '  ck-torrent TORRENT               Check torrent download'
   echo ''
   echo 'System'
   echo '  ls-volumes                       Go over local online disks, see that '
@@ -1603,7 +1608,7 @@ htd__check_files()
       fi
 
       test "$SZ" -ge "$MIN_SIZE" || {
-        info "File too small: $p"
+        warn "File too small: $p"
         echo $p >>$cruft
         continue
       }
@@ -1741,13 +1746,15 @@ htd__pcia()
   done
 }
 
-
 # Move path to archive path in htdocs cabinet
+# XXX: see backup. 
 # $ archive [<prefix>]/[<datepath>]/[<id>] <refs>...
 htd__archive()
 {
   test -n "$1" || error "ID expected"
 }
+
+
 
 ## Annex:
 
@@ -1970,11 +1977,14 @@ htd__name_tags_all()
 
 htd__update()
 {
+  failed=$(setup_tmpf .failed)
   for CK in ck sha1 md5
   do
-    htd__ck_prune $CK
-    htd__ck_clean $CK
-    htd__ck_update $CK
+    note "Updating $CK table..."
+    htd__ck_prune $CK || echo "htd:update:ck-prune:$CK" >>$failed
+    htd__ck_clean $CK || echo "htd:update:ck-prune:$CK" >>$failed
+    htd__ck_update $CK || echo "htd:update:ck-prune:$CK" >>$failed
+    note "Update $CK table done"
   done
 }
 
@@ -1984,12 +1994,13 @@ htd__update()
 ck_arg_spec="[ck|sha1|md5]"
 ck_arg()
 {
+  test -n "$ck_tab" || ck_tab=table
   test -n "$1"  && CK=$1  || CK=ck
-  test -e table.$CK || {
-    error "First argument must be CK table extension, no such table: table.$CK" 1
+  test -e $ck_tab.$CK || {
+    error "First argument must be CK table extension, no such table: $ck_tab.$CK" 1
   }
-  test -r table.$CK || {
-    error "Not readable: table.$CK" 1
+  test -r $ck_tab.$CK || {
+    error "Not readable: $ck_tab.$CK" 1
   }
   T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
 }
@@ -1997,9 +2008,55 @@ ck_arg()
 ck_write()
 {
   ck_arg "$1"
-  test -w table.$CK || {
-    error "Not writable: table.$CK" 1
+  test -w $ck_tab.$CK || {
+    error "Not writable: $ck_tab.$CK" 1
   }
+}
+
+htd_spc__ck="TAB [PATH|.]"
+htd__ck()
+{
+  local table=$1 \
+    ck_find_ignores="-name 'manifest.*' -prune \
+      -o -name 'table.ck' -prune \
+      -o -name 'table.sha1' -prune \
+      -o -name 'table.md5' -prune"
+  shift
+  test -n "$1" || set -- .
+  test -z "$find_ignores" \
+    && find_ignores="$ck_find_ignores" \
+    || find_ignores="$find_ignores -o $ck_find_ignores"
+  
+  while test -n "$1"
+  do
+    test -e "$1" || error "No such path to check: '$1'" 1
+    test -d "$1" && {
+      note "Adding dir '$1'"
+      {
+        eval find "$1" $find_ignores -o -type f -exec ${CK}sum "{}" + || return $?
+      } > $table
+      shift
+      continue
+    }
+    test -f "$1" && {
+      info "Adding one file '$1'"
+      ${CK}sum "$1" > $table
+      shift
+      continue
+    }
+    note "Skipped '$1'"
+    shift
+  done
+  note "Updated CK table '$table'"
+}
+
+htd__ck_init()
+{
+  test -n "$ck_tab" || ck_tab=table
+  test -n "$1" || set -- ck 
+  touch $ck_tab.$CK
+  shift 1
+  htd__ck $ck_tab.$CK "$@"
 }
 
 htd__man_5_table_ck="Table of CK checksum, filesize and path"
@@ -2008,16 +2065,17 @@ htd__man_5_table_md5="Table of MD5 checksum and path"
 # Either check table for path, or iterate all entries. Echoes checksum, two spaces and a path
 htd__ck_table()
 {
+  var_isset ck_tab || local ck_tab=
   # table ext
   ck_arg "$1"
   shift 1
   # second table ext
-  test -n "$1" -a -e "table.$CK.$1" && {
+  test -n "$1" -a -e "$ck_tab.$CK.$1" && {
     S=$1; shift 1
   } || S=
   test -z "$1" && {
     # run all entries
-    cat table.$CK$S | grep -Ev '^\s*(#.*|\s*)$' | \
+    cat $ck_tab.$CK$S | grep -Ev '^\s*(#.*|\s*)$' | \
     while read -a ckline
     do
       test "$CK" = "ck" && {
@@ -2034,8 +2092,8 @@ htd__ck_table()
     # look for single path
     htd_relative_path "$1"
     match_grep_pattern_test "$relpath" || return 1
-    grep ".*\ \(\.\/\)\?$p_$" table.$CK$S >> /dev/null && {
-      grep ".*\ \(\.\/\)\?$p_$" table.$CK$S | cut -f 1 -d ' '
+    grep ".*\ \(\.\/\)\?$p_$" $ck_tab.$CK$S >> /dev/null && {
+      grep ".*\ \(\.\/\)\?$p_$" $ck_tab.$CK$S
     } || {
       echo unknown
       return 1
@@ -2069,20 +2127,21 @@ htd__ck_table_subtree()
 ck_update_file()
 {
   ck_write "$CK"
+  test -f "$1" || error "ck-update-file: Not a file '$1'" 1
   update_file="$1"
   # FIXME use test name again but must have some testcases
   # to verify because currently htd_name_precaution is a bit too strict
   # htd__test_name
   match_grep_pattern_test "$update_file" > /dev/null || {
-    error "Skip path with unhandled characters"
+    error "Skipped path with unhandled characters"
     return
   }
   test -r "$update_file" || {
-    error "Skip path not readable by user"
+    error "Skipped unreadable path '$update_file'"
     return
   }
   test -d "$update_file" && {
-    error "Skipped directory path"
+    error "Skipped directory path '$update_file'"
     return
   }
   test -L "$update_file" && {
@@ -2096,7 +2155,7 @@ ck_update_file()
     SZ="$(filesize "$update_file")"
   }
   test "$SZ" -ge "$MIN_SIZE" || {
-    error "File too small: $SZ"
+    warn "File too small: $SZ"
     return
   }
   # test localname for SHA1 tag
@@ -2108,6 +2167,7 @@ ck_update_file()
   # FIXME: normalize relpath
   test "${update_file:0:2}" = "./" && update_file="${update_file:2}"
   #EXT="$(echo $BE)"
+
   test -n "$HAS_CKS" && {
     htd__ck_table "$CK" "$update_file" > /dev/null && {
       echo "path found"
@@ -2129,51 +2189,70 @@ ck_update_file()
   } || {
     # TODO prepare to rename, keep SHA1 hashtable
     htd__ck_table "$CK" "$update_file" > /dev/null && {
-      echo ok
+      note "Checksum present $update_file"
     } || {
       ${CK}sum "$update_file" >> table.$CK
-      echo new
+      note "New checksum $update_file"
     }
   }
 }
 
 ck_update_find()
 {
-  log "Reading $T_CK, looking for paths '$1'"
+  log "Reading $T_CK, looking for files '$1'"
   find_p="$1"
   # strip trailing slash
   test "${find_p: -1:1}" = "/" && find_p="${find_p:0: -1}"
-  eval find "$find_p" $find_ignores -o -print \
-  | while read p
-    do
-      ck_update_file "$p"
-    done
+
+  failed=$(setup_tmpf .failed)
+  local paths=$(setup_tmpf .$subcmd)
+
+  ck_update_find_inner()
+  {
+    test -n "$find_ignores" && {
+      eval find "$find_p" $find_ignores -o -type f -print || return $?
+    } || {
+      find "$find_p" -type f -print || return $?
+    }
+  }
+
+  ck_update_find_inner > $paths || {
+    echo "htd:$subcmd:find-inner" >>$failed
+    test ! -e $paths || rm $paths
+  }
+
+  while read p
+  do
+    ck_update_file "$p" || echo "htd:$subcmd:$p" >>$failed
+  done < $paths
+
+  rm -rf $paths
 }
 
 # find all files, check their names, size and checksum
 htd__ck_update()
 {
+  htd_find_ignores
   ck_write "$1"
   shift 1
-  #args=($@);
+  test -n "$1" || set -- .
   while test -e "$1"
   do
     update_p="$1"
     shift 1
-    log "Checking '$update_p'"
-    test -z "$update_p"  && {
-      ck_update_find . 
-      continue
-    }
+    test -n "$update_p" || error "empty argument" 1
     test -d "$update_p"  && {
-      ck_update_find "$update_p"
+      log "Checking dir '$update_p'"
+      ck_update_find "$update_p" || return $?
       continue
     }
     test -f "$1" && {
-      ck_update_file "$1"
+      log "Checking '$update_p'"
+      ck_update_file "$1" || return $?
       continue
-        }
+    }
     test -L "$1"  &&  {
+      log "Checking symlink '$update_p'"
       ck_update_file "$1" || return 4
       continue
     }
@@ -2193,19 +2272,6 @@ htd__ck_drop()
   cat table.$CK.tmp | grep "^.*$p_$" >> table.$CK.missing
   cat table.$CK.tmp | grep -v "^.*$p_$" > table.$CK
   rm table.$CK.tmp
-}
-
-htd__man_1_ck_clean="Iterate checksum table, check for duplicates, normalize paths"
-htd_spc__ck_clean="clean $ck_arg_spec"
-htd__ck_clean()
-{
-  ck_arg "$1"
-  shift 1
-  test "$CK" = "ck" && {
-    set --
-  } || {
-    set --
-  }
 }
 
 htd_spc__ck_validate="ck-validate $ck_arg_spec"
@@ -2231,7 +2297,7 @@ htd__checksums()
     test "$SZ" = "$sz" || { error "File-size mismatch on '$p'"; continue; }
     CKS="$(cksum "$p" | awk '{print $1}')"
     test "$CKS" = "$cks" || { error "Checksum mismatch on '$p'"; continue; }
-    echo "$cks ok"
+    note "$cks ok"
   done
 }
 
@@ -2253,6 +2319,8 @@ htd__ck_prune()
 # Read checksums from *.{sha1,md5,ck}{,sum}
 htd__ck_consolidate()
 {
+  htd_find_ignores
+  test -n "$find_ignores" || error htd-$subcmd-find_ignores 1
   eval "find . $find_ignores -o -name '*.{sha1,md5,ck}{,sum}' -a \( -type f -o -type l \) " -print | while read p
   do
     echo "$p"
@@ -2260,19 +2328,21 @@ htd__ck_consolidate()
 }
 
 # try to find files from .missing, or put them in .gone
+# XXX: htd__man_1_ck_clean="Iterate checksum table, check for duplicates, normalize paths"
 htd__ck_clean()
 {
   ck_write "$1"
   shift 1
   test -s "table.$CK.missing" || {
-    error "$T_CK.missing table does not exists"
+    note "$T_CK.missing table does not exists, nothing to check"
     return
   }
   log "Looking for missing files from $CK table"/
   htd__ck_table $CK .missing | while read cks p
   do
     BN="$(basename "$p")"
-    NW=$(eval find ./ $find_ignores -o -iname '$BN' -print)
+    test -n "$BN" || continue
+    NW=$(eval find ./ $find_ignores -o -iname '$BN' -a type f -a -print)
     test -n "$NW" && echo "$BN -> $NW"
   done
   echo 'TODO rewrite ck table path'
@@ -2802,6 +2872,7 @@ htd__getxl()
 # List topic paths (nested dl terms) in document paths
 htd__tpaths()
 {
+  local verbosity=5
   test -n "$1" || error "At least one document expected" 1
   test -n "$print_src" || local print_src=
   test -n "$xsl_ver" || xsl_ver=1
@@ -3874,6 +3945,95 @@ htd_pre__backup=htd_backup_prereq
 htd_argsv__backup=htd_backup_args
 htd_optsv__backup=htd_backup_opts
 
+
+htd__man_1_pack_create="Create archive for dir with ck manifest"
+htd__man_1_pack_verify="Verify archive with manifest, see that all files in dir are there"
+htd__man_1_pack_check="Check file (w. checksum) TODO:dir with archive manifest"
+htd_run__pack=i
+htd__pack()
+{
+  test -n "$2" || set -- "$1" . "$3"
+
+  test -n "$3" || set -- "$1" "$2" "$(basename "$(realpath "$2")")" 
+  fnmatch "*.tar.*" "$3" || set -- "$1" "$2" "$3.tar.lzma"
+
+  case "$1" in
+
+    create )
+  test -d "$2" || error "No such dir '$2'" 3
+        test ! -e "$3" || error "archive already exists '$3'" 3
+        test -n "$CK" || CK=sha1
+        test "$CK" != "ck" || error "TODO ck sums" 1
+        local tab=manifest.$CK
+        test ! -e $tab || error "Manifest exists: $tab" 1
+        htd__ck $tab "$2"
+        find $2 -iname '*.tar*' >>$skipped
+        info "Creating archive from '$2'"
+        tar --exclude '*.tar*' --lzma -cvf "$3" $tab "$2" \
+          2>&1 | grep '^a\ ' | sed 's/^a\ /htd:'"$subcmd"':create:added/g' \
+          >> $passed
+        rm $tab
+        note "Created archive '$3' from '$2'"
+      ;;
+
+    verify ) # verify files are present and cataloged. No checksumming.
+        tar -tf "$3" >/dev/null \
+          && htd_passed "Archive checked '$3'" \
+          || error "Error in archive '$3'" 1
+        tar -xf "$3" manifest.* || error "No manifest(s) in archive '$3'" 1
+        local ck_tab=manifest
+        test -e $ck_tab.sha1 || error $ck_tab.sha1-expected 1
+        # FIXME: iterate files instead
+        while read checksum path
+        do
+          htd__ck_table sha1 "$path" \
+            || echo "htd:$subcmd:verify:$check" >>$failed
+        done < $ck_tab.sha1
+        rm $ck_tab.*
+      ;;
+
+    #validate )
+    #    test "$CK" = "ck" && {
+    #      htd__checksums table.$CK
+    #    } || {
+    #      ${CK}sum -c table.$CK
+    #    }
+    #  ;;
+
+    check ) # lookup and compare checksum from manifest
+  test -f "$2" || error "No such file '$2'" 3
+        tar -xf "$3" manifest.* || error "No manifest(s) in archive '$3'" 1
+        sha1sum="$(sha1sum "$2" | awk '{print $1}')"
+        local ck_tab=manifest
+        test "$sha1sum" = "$(htd__ck_table sha1 "$2" | cut -f 1 -d ' ')" \
+          && echo "htd:$subcmd:$2" >>$passed \
+          || echo "htd:$subcmd:$2" >>$failed
+      ;;
+
+    add )
+        echo TODO
+      ;;
+
+  esac
+
+  test ! -s "$skipped" || {
+    note "Skipped files: $(cat $skipped)"
+    return 1
+  }
+}
+
+
+htd_spc__contains="PACK FILE"
+htd__contains()
+{
+  test -n "$1" || error "expected archive argument" 1
+  test -f "$1" || error "not an file argument '$1'" 1
+  test -f "$2" || error "expected check file argument" 1
+  test -z "$3" || error "surplus args" 1
+  
+}
+
+
 htd_backup_prereq()
 {
   test -e /srv/backup-local || {
@@ -3919,6 +4079,18 @@ htd_backup_opts()
     esac
     shift
   done
+}
+
+
+
+htd__find_broken_symlinks()
+{
+  find . -type l -xtype l
+}
+
+htd__find_skip_broken_symlinks()
+{
+  find . -type l | xargs file | grep -v broken
 }
 
 
@@ -3985,7 +4157,7 @@ htd_main_files()
 
 htd_main()
 {
-  local scriptname=htd base=$(basename $0 .sh) verbosity=5 \
+  local scriptname=htd base=$(basename $0 .sh) \
     scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
     failed=
 
@@ -4000,16 +4172,18 @@ htd_main()
         #htd_lib || exit $?
         #run_subcmd "$@" || exit $?
 
-        htd_lib "$@" || error htd_lib $?
+        htd_lib "$@" || error htd-lib $?
 
         try_subcmd "$@" && {
 
           #record_env_keys htd-subcmd htd-env
 
-          box_src_lib htd
+          box_src_lib htd || error "box-src-lib htd" 1
           shift 1
 
-          htd_load "$@" || error "htd_load" $?
+          htd_load "$@" || error "htd-load" $?
+
+          var_isset verbosity || local verbosity=5
 
           test -z "$arguments" -o ! -s "$arguments" || {
             info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
@@ -4018,7 +4192,7 @@ htd_main()
 
           $subcmd_func "$@" || r=$?
 
-          htd_unload || r=$?
+          htd_unload || error "htd-unload" $?
 
           exit $r
         }

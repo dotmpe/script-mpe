@@ -1392,7 +1392,7 @@ pd_lib()
   test -n "$scriptdir" || return 12
   lib_load box match date doc table
   . $scriptdir/vc.sh load-ext
-  . $scriptdir/projectdir.inc.sh "$@"
+  . $scriptdir/projectdir.lib.sh "$@"
   . $scriptdir/projectdir-bats.inc.sh
   . $scriptdir/projectdir-fs.inc.sh
   . $scriptdir/projectdir-git.inc.sh

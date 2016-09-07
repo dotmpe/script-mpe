@@ -346,3 +346,26 @@ EOM
   fnmatch "Path*OK*" "${lines[*]}"
 }
 
+@test "$bin ck-init" {
+  tmpd
+  mkdir -p $tmpd/foo
+  echo baz > $tmpd/foo/bar
+  cd $tmpd
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  fnmatch "*Adding dir '.'*" "${lines[*]}" \
+    || fail "Output: ${lines[*]}"
+  test ${#lines[@]} -eq 2 \
+    || {
+      diag "Output: ${lines[*]}"
+      fail "Line count: ${#lines[@]}"
+    }
+}
+
+@test "$bin update (ck-prune, ck-clean, ck-update)" {
+  run $bin update
+  rm *.missing
+  git checkout table.*
+  test ${status} -eq 0
+}
+

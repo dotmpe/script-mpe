@@ -47,7 +47,7 @@ vc_load()
 
   # TODO: list of dirs (checkouts, annexes) to retrieve/store files
 	test -n "$UNVERSIONED_FILES" || {
-    #test -e /srv/annex-local	  
+    #test -e /srv/annex-local
 	  UNVERSIONED_FILES=$( for dir in /srv/backup-local /srv/archive-local \
 	      /srv/archive-old-local /srv/htdocs-local; do
       test -e $dir && echo "$dir" || continue; done )
@@ -1049,12 +1049,14 @@ vc__annex_clear_unused()
   }
 }
 
+vc_spc__contains="REPO FILE"
 vc__contains()
 {
   test -n "$1" || error "expected file path argument" 1
   test -f "$1" || error "not a file path argument '$1'" 1
   test -n "$2" || set -- "$1" "."
-  test -z "$3" || error ""
+  test -d "$2/.git" || error "expected checkout dir" 1
+  test -z "$3" || error "surplus args" 1
 
   sha1="$(git hash-object "$1")"
   info "SHA1: $sha1"
@@ -1277,7 +1279,7 @@ vc__annex_local()
 
 
 # TODO: add other backup commands, like htd backup. modelled after brixadmin
-# unversioned-files. 
+# unversioned-files.
 # - Copy with relative path as given into first UNVERSIONED_FILES dir
 # - Check into git annex, git, bzr, or poor mans checksum SCM
 # - Check any matching path out of repo
