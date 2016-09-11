@@ -37,13 +37,21 @@ redmine__issues()
 }
 
 
+# Direct to DB. Careful!
+redmine__db_sa()
+{
+  test -n "$flags" || flags="-v"
+  test -n "$cmd" || cmd=stats
+  dbref=$(redmine_meta.py print-db-ref)
+  test -n "$dbref" || error dbref 1
+  db_sa.py -d $dbref $flags $cmd redmine_schema
+}
+
+
 # Print schema stats
 redmine__stats()
 {
-  test -n "$flags" || flags="-v"
-  dbref=$(redmine_meta.py print-db-ref)
-  test -n "$dbref" || error dbref 1
-  db_sa.py -d $dbref $flags stats redmine_schema
+  cmd=stats redmine__db_sa
 }
 
 
@@ -118,8 +126,8 @@ redmine_load()
 {
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
 
-  remote_host=dandy
-  remote_user=hari
+  test -n "$remote_host" || remote_host=dandy
+  test -n "$remote_user" || remote_user=hari
   on_host $remote_host || ssh_req $remote_host $remote_user
 }
 
@@ -132,5 +140,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
     redmine_main "$@"
   ;; esac
 ;; esac
-
 

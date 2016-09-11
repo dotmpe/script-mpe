@@ -9,6 +9,8 @@ Usage:
     rdm [options] projects
     rdm [options] custom-fields
     rdm [options] print-db-ref
+    rdm [options] run-indexer
+    rdm [options] home-doc [ISSUE]
 
 Options:
     -v            Increase verbosity.
@@ -27,6 +29,11 @@ from script_mpe import util, log
 from script_mpe import redmine_schema as rdm
 from script_mpe.redmine_schema import get_session
 
+
+
+def get_custom_field(name, sa=None):
+    return sa.query(rdm.CustomField).filter(
+            rdm.CustomField.name == name ).one()
 
 
 
@@ -93,8 +100,79 @@ def cmd_custom_fields(settings):
             print "  Description:"
             print "   ", rs.description.replace('\n', '\n    ')
 
+
 def cmd_print_db_ref(settings):
+    "Print DB after parsing settings. "
     print settings.dbref
+
+
+def cmd_run_indexer(settings):
+    "TODO: Update subjects for projects with index mode set"
+    sa = get_session(settings.dbref)
+    index_cf = get_custom_field('Index Method', sa)
+    index_offset_cf = get_custom_field('Index Offset', sa)
+    for project, idx_cf_v in sa.query(rdm.Project, rdm.CustomValue).join(
+                rdm.CustomValue,
+                rdm.CustomValue.customized_id == rdm.Project.id
+            ).filter(
+                rdm.CustomValue.custom_field_id == index_cf.id
+            ).all():
+
+        index_mode = idx_cf_v.value
+        if index_mode:
+            print '# TODO index project, index_mode'
+
+    #index_current_cf = get_custom_field('Index Method', sa)
+
+
+def cmd_home_doc(settings, opts):
+    sa = get_session(settings.dbref)
+    home_doc_cf = get_custom_field('Home Doc', sa)
+    proj_id_cf = get_custom_field('ID Slug', sa)
+    assert home_doc_cf.field_format == 'link', home_doc_cf.field_format
+    # yaml
+    assert home_doc_cf.format_store.startswith('---')
+    format = home_doc_cf.format_store.split('\n')[1:]
+    assert format[0].startswith('url_pattern: '),\
+            format
+    url_pattern = format[0][len('url_pattern: '):]
+
+    if opts.args.ISSUE:
+        iid = int(opts.args.ISSUE)
+        issue, home_doc_cf_v = sa.query(rdm.Issue, rdm.CustomValue).join(
+                rdm.CustomValue,
+                rdm.CustomValue.customized_id == rdm.Issue.id
+            ).filter(
+                rdm.CustomValue.custom_field_id == home_doc_cf.id,
+                rdm.Issue.id == iid
+            ).one()
+
+        project, proj_id_cf_v = sa.query(rdm.Project, rdm.CustomValue).join(
+                rdm.CustomValue,
+                rdm.CustomValue.customized_id == rdm.Project.id
+            ).filter(
+                rdm.CustomValue.custom_field_id == proj_id_cf.id,
+                rdm.Project.id == issue.project_id
+            ).one()
+
+        if not home_doc_cf_v.value:
+            log.warn("No Home Doc")
+            return 1
+
+        if proj_id_cf_v.value:
+            id_slug = proj_id_cf_v.value
+        else:
+            id_slug = ''
+
+        url = url_pattern.replace('%project_identifier%', id_slug)
+        url = url.replace('%project_id%', str(issue.project_id))
+        url = url.replace('%value%', home_doc_cf_v.value)
+        url = url.replace('%id%', str(issue.id))
+
+        print url, issue.subject
+    else:
+        print url_pattern
+
 
 
 
