@@ -74,39 +74,58 @@ TODO: auto-detect pd check, test, init to run.
 TODO: add --pd-force and/or some prefix option for pd check, test, init to run.
 
 scripts
-  Mapping of named scripts for this project.
+  Mapping of named scripts for this project, used with alike named subcommands.
   Like the identical attribute in NPM's package.json.
+  FIXME: Accept shell scripts, or ``pd run`` targets.
 
   Common names:
 
   check
-    Scripts with pre-commit checklist; static code analysis etc.
+    Scripts with pre-commit, pre-clean etc. checklist; should run fast.
+    The results are used with ``pd stat``.
+
   test
     Scripts verifying correct functioning of project.
+
   init
     Script(s) for post-checkout/unpack initialization.
-
-    Level of setup this realizes depends per project, and the environment,
-    ie. a local projectdir configuration or something else (apt, pip, brew, npm,
-    etc. etc.)
+    Default is to (re)generate local git hooks.
 
   build
-    ..
+    Build the project from source.
+
+  TODO: stats
+    Additional scripts with results for ``pd stat``, but that would have no
+    significance as a check.
+
+  tasks
+    List open tasks in project, one item per line.
+    Default: ``htd list-paths | xarg radical.py``
+
+  TODO: dist .. pack?
+    Package the project.
+
+  TODO: pub
+    Publish.
+
+  TODO: sync
+    Default: make sure checkout is clean, and every local branch is at least one
+    (off-disk/host) remote.
+
 
 pd-script
-  Like scripts, but with all values corresponding to pd targets.
+  Like scripts, but with all values formatted as pd targets.
 
 status
   TODO: items for weather, health (wall monitors, badges, version tracking),
   either external or local?
 
-  Convert to:
+  XXX: Convert to STM config?
     - type: application/x-dotmpe-monitor
       static: build/monitor.json
       update:
       - pd status -
       - pd-meta -O json > build/monitor.json
-
 
   Pd scripts return status codes and lists of failed targets, that are
   cached iot. track project state. Ie. checkout modifications, failing test

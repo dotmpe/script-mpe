@@ -13,6 +13,7 @@ package_pd_meta_build=":vagrant:tools/ci/vbox"
 package_pd_meta_check="-verbose=false:./tools/sh/tags.sh :vchk :bats:specs :git:status"
 package_pd_meta_git_hooks_pre_commit=./tools/git-hooks/pre-commit.sh
 package_pd_meta_init="./install-dependencies.sh git:init"
+package_pd_meta_tasks_document=tasks.ttxtm
 package_pd_meta_tasks_tags__0=TODO
 package_pd_meta_tasks_tags__1=XXX
 package_pd_meta_tasks_tags__2=FIXME

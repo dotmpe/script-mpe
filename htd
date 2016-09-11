@@ -251,7 +251,8 @@ htd_commands()
   echo ''
   echo 'Working tree utils'
   echo '  check-names [. [<tags>]]         Check names in path, according to tags.'
-  echo '  list-paths [.|<dirpath]          List all paths below, including dirs. '
+  echo '  list-paths [-d|-f|-l] [.|<dirpath]'
+  echo '                                   List all paths, including dirs. '
   echo '  test-name <path>                 Test filename for unhandled characters. '
   echo '  find-name <path|localname>       TODO: Given (partial) path, try to find the file using find.  '
   echo '  update                           Fill checksums tables for all local files. TODO: find out what there is to know about file using settings, other commands, ext. tooling & services. And trigger resolve'
@@ -1048,23 +1049,31 @@ htd__mac()
   arp -a
 }
 
-# 
+# Current tasks
 
-htd__cron()
+# Update todo/tasks/plan document from local tasks
+htd_run__tasks=i
+htd__tasks()
 {
-  printf ""
+  local $(package_sh \
+    id \
+    pd_meta_tasks_slug \
+    pd_meta_tasks_document  || return $?)
+
+  test -n "$pd_meta_tasks_document" || pd_meta_tasks_document=tasks.ttxtm
+  test -n "$pd_meta_tasks_slug" || {
+    pd_meta_tasks_slug="$(printf -- "$id" | tr 'a-z' 'A-Z' | tr -sc 'A-Z0-9_-' '-')"
+  }
+
+  local comments=$(setup_tmpf .comments)
+  htd__list_paths -f | xargs radical.py --issue-format full-sh > $comments
+  tasks.py -s $pd_meta_tasks_slug read-issues -g $comments -t $pd_meta_tasks_document
+  note "OK. $(count_lines $pd_meta_tasks_document) open tasks"
 }
 
-htd__project()
+htd__todo()
 {
-  printf ""
-}
-
-htd__project_todo()
-{
-  title=
-  descr=
-  refs=
+  htd__todotxt edit
 }
 
 # Edit local/new task descriptions
@@ -1141,11 +1150,13 @@ htd__todotxt_edit()
 }
 #htd_run__todo=o
 
-# Current tasks?
-htd__todo()
+htd__todotxt()
 {
   test -n "$UCONFDIR" || error UCONFDIR 12
+  test -n "$1" || set -- edit
   case "$1" in
+
+    # Print 
     tree )
       ;;
     list|list-all )
@@ -1168,7 +1179,7 @@ htd__todo()
           done
         } | wc -l 
       ;;
-    "" )
+    edit )
         local ttxtm_fn= ttxtm_done_fn=
         htd__todotxt_edit
         htd__todotxt_tags
@@ -1342,7 +1353,7 @@ htd__lists()
 }
 
 # List tasks in lists
-htd__tasks()
+htd__gtasks()
 {
   gtasks_opts $@
   shift $?
@@ -1366,7 +1377,7 @@ htd__new_task()
 }
 
 # Edit notes of a task in the $EDITOR
-htd__task_note()
+htd__gtask_note()
 {
   gtasks_list_arg $1 && shift 1
   gtasks_num_arg $1 && shift 1 || exit 1
@@ -1396,7 +1407,7 @@ htd__task_note()
 }
 
 # Get or updte title of task
-htd__task_title()
+htd__gtask_title()
 {
   gtasks_list_arg $1 && shift 1
   gtasks_num_arg $1 && shift 1 || exit 1
@@ -1424,6 +1435,8 @@ htd__done()
   }
   gtasks -dsc -l "$list" -c $num
 }
+
+
 
 # TODO: get references from file
 htd__urls()
@@ -1651,15 +1664,32 @@ htd__rename()
   }
 }
 
-# List all paths including dirs
+# List all paths
+htd_run__list_paths=i
 htd__list_paths()
 {
+  htd_opt_args "$@"
+  set -- "$(cat $arguments)"
   req_path_arg "$@"
-  eval find $path $find_ignores -o -print
+  htd_find_ignores
+  find_ignores="$find_ignores $(htd__list_paths_opts)"
+  eval find $path $find_ignores -o -path . -o -print
 }
+htd__list_paths_opts()
+{
+  while read option; do case "$option" in 
+      -d ) echo "-o -not -type d " ;;
+      -f ) echo "-o -not -type f " ;;
+      -l ) echo "-o -not -type l " ;;
+      * ) echo "$option " ;;
+    esac
+  done < $options
+}
+
 
 htd__check_names()
 {
+  htd_find_ignores
   test -z "$1" && d="." || { d="$1"; shift 1; }
   test -z "$1" && valid_tags="" || valid_tags="$1"
   test "${d: -1:1}" = "/" && d="${d:0: -1}"
@@ -4003,8 +4033,9 @@ htd__pack()
     check ) # lookup and compare checksum from manifest
   test -f "$2" || error "No such file '$2'" 3
         tar -xf "$3" manifest.* || error "No manifest(s) in archive '$3'" 1
-        sha1sum="$(sha1sum "$2" | awk '{print $1}')"
         local ck_tab=manifest
+        # find...
+        sha1sum="$(sha1sum "$2" | awk '{print $1}')"
         test "$sha1sum" = "$(htd__ck_table sha1 "$2" | cut -f 1 -d ' ')" \
           && echo "htd:$subcmd:$2" >>$passed \
           || echo "htd:$subcmd:$2" >>$failed
@@ -4020,17 +4051,6 @@ htd__pack()
     note "Skipped files: $(cat $skipped)"
     return 1
   }
-}
-
-
-htd_spc__contains="PACK FILE"
-htd__contains()
-{
-  test -n "$1" || error "expected archive argument" 1
-  test -f "$1" || error "not an file argument '$1'" 1
-  test -f "$2" || error "expected check file argument" 1
-  test -z "$3" || error "surplus args" 1
-  
 }
 
 
@@ -4051,10 +4071,7 @@ htd_backup_prereq()
 htd_backup_args()
 {
   test -n "$*" || error "Nothing to backup?" 1
-
-  for arg in $@
-  do fnmatch "-*" "$arg" && echo "$arg" >>$options || echo $arg >>$arguments 
-  done
+  htd_opt_args "$@"
 }
 
 htd_backup_opts()

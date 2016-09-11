@@ -377,6 +377,13 @@ class EmbeddedIssue:
             'todo.txt': lambda cmt, data: "",
             'id': lambda cmt, data: cmt.scei_id(False),
             'full-id': lambda cmt, data: cmt.scei_id(),
+            'full-sh': lambda cmt, data: ":".join(
+                map(str, [
+                    cmt.srcdoc.source_name,
+                    '', '', '',
+                    "-".join(map(str, cmt.description_span)),
+                    ' '+str(cmt.descr(data).strip())
+                ])),
             'raw': lambda cmt, data: " ".join(
                 map(str, [ cmt.srcdoc.source_name, cmt.comment_line_span, \
                             cmt.comment_flavour, \
@@ -384,7 +391,6 @@ class EmbeddedIssue:
                             repr(cmt.descr(data)) ])),
             'raw2': lambda cmt, data: "%s '%s' <%s> %s" %( tag, tag.raw(data),
                     tag.canonical(data), cmt )
-
         }
 
 
@@ -919,7 +925,6 @@ def find_files_with_tag(session, matchbox, paths):
     process tagged comments.
     """
 
-    # Walk files, XXX: ignore non-ascii, retrieve tag references
     for source in sources:
 
         try:

@@ -22,6 +22,8 @@
     #build: ":vagrant:tools/ci/vbox:ubuntu"
 
     tasks:
+      document: tasks.ttxtm
+
       tags:
         - TODO
         - XXX

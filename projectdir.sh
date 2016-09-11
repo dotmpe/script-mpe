@@ -986,13 +986,17 @@ pd__tasks()
 {
   test -n "$pd_prefixes" -o \( -n "$pd_prefix" -a -n "$pd_root" \) \
     || error "Projectdoc context expected" 1
+  test -n "$1" || set -- $(pd__ls_targets tasks 2>/dev/null)
+  info "Checks to run ($pd_prefixes): $*"
+  pd_run_suite tasks "$@" || return $?
 
-  local r=0 suite=tasks
-  echo "sh:pwd" >$arguments
-  subcmd=$suite:run pd__run || r=$?
-  test -s "$errors" -o -s "$failed" && r=1
-  pd_update_records status/$suite=$r $pd_prefixes
-  return $r
+  #local r=0 suite=tasks
+  ## TODO: pd tasks
+  #echo "sh:pwd" >$arguments
+  #subcmd=$suite:run pd__run || r=$?
+  #test -s "$errors" -o -s "$failed" && r=1
+  #pd_update_records status/$suite=$r $pd_prefixes
+  #return $r
 }
 
 

@@ -26,6 +26,13 @@ htd_relative_path()
   return 1
 }
 
+htd_opt_args()
+{
+  for arg in $@
+  do fnmatch "-*" "$arg" && echo "$arg" >>$options || echo $arg >>$arguments
+  done
+}
+
 
 htd_init_ignores()
 {

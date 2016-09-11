@@ -775,8 +775,8 @@ pd_run()
           unset $pd_inputs $pd_inputs
           unset verbosity pd_inputs pd_outputs pd_session_id subcmd
 
-          note "shcmd=$shcmd"
           sh -c "$shcmd"
+          # XXX:
           #{
           #  cd "$pd_realdir"
           #  key_pref=repositories/$(normalize_relative \

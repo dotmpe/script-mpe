@@ -149,11 +149,13 @@ get_subcmd_func()
 # Set and see if $func exists
 try_subcmd()
 {
-  test -z "$1" || {
-    get_subcmd_args "$@" || {
-      error "parsing args" $?
-    }
-  }
+  #test -z "$1" || {
+  #  get_subcmd_args "$@" || {
+  #    error "parsing args" $?
+  #  }
+  #}
+  test -z "$subcmd" && subcmd=$1
+
   get_subcmd_func || {
     e=$?
     test -z "$subcmd" && {

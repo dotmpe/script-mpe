@@ -26,6 +26,7 @@ update_package_json()
   metajs=$(normalize_relative "$metajs")
   test $metaf -ot $metajs \
     || {
+    debug "$metaf is newer than $metajs"
     note "Regenerating $metajs from $metaf.."
     jsotk.py yaml2json $metaf $metajs \
       || return $?
@@ -44,6 +45,7 @@ jsotk_package_sh_defaults()
   } | sed 's/^\([^=]*\)=/test -n "$\1" || \1=/g'
 }
 
+# Easy access for shell to package.yml/json: convert to Sh vars.
 update_package_sh()
 {
   test -n "$1" || set -- ./
@@ -140,6 +142,23 @@ update_package()
   # .package.json is not used, its a direct convert of te entire YAML doc.
   # Other scripts can use it with jq if required
   update_package_json "$1" || return $?
+}
+
+package_sh()
+{
+  test -e .package.sh || error package.sh 1
+  (
+    eval $(cat .package.sh | sed 's/^package_//g')
+
+    while test -n "$1"
+    do
+      key=$1
+      value="$(eval echo "\$$1")"
+      shift
+      test -n "$value" || continue
+      echo "$key=$value"
+    done
+  )
 }
 
 

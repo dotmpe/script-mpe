@@ -29,7 +29,14 @@ class AbstractKVParser(object):
         "Initialize root (self.data) to correct data type: dict or list"
         if '/' in key:
             key = key.split('/')[0]
-        self.data = FlatKVParser.get_data_instance(key)
+        if self.__class__.contains_root_list(key):
+            skey, rest, idx = self.__class__.parse_list_key(key)
+            if skey:
+                self.data = {}
+            else:
+                self.data = []
+        else:
+            self.data = {}
 
     def scan(self, fh):
         " Parse from file, listing one kv each line. "
@@ -59,7 +66,7 @@ class AbstractKVParser(object):
             self.set_kv(arg)
 
     def set_kv(self, kv):
-        " Split kv to key and value, the the first '=' occurence. "
+        " Split kv to key and value, on the first '=' occurence. "
         if '=' not in kv: return
         pos = kv.index('=')
         key, value = kv[:pos].strip(), kv[pos+1:].strip()
@@ -94,25 +101,30 @@ class AbstractKVParser(object):
         if '/' in key:
             self.set_path(key.split('/'), value)
         else:
-            di = self.__class__.get_data_instance(key)
-            if isinstance(di, list):
-                pos = key.index('[')
+            if self.__class__.contains_list(key):
+                skey, rest, idx = self.__class__.parse_list_key(key)
 
-                if key[:pos] not in d:
-                    d[key[:pos]] = di
+                if skey:
+                    if skey not in d:
+                        d[skey] = []
+                    d = d[skey]
 
-                if len(key) > pos+2:
-                    idx = int(key[pos+1:-1])
+                if isinstance(idx, int):
+                    while idx >= len(d):
+                        d.append( None )
 
-                    while len(d[key[:pos]]) <= idx:
-                        d[key[:pos]].append(None)
-
-                    d[key[:pos]][idx] = value
+                if rest:
+                    self.set( rest, value, d )
 
                 else:
-                    d[key[:pos]].append( value )
+                    if isinstance(idx, int):
+                        d[idx] = value
 
-                return key[:pos]
+                    else:
+                        d.append( value )
+
+                    return idx
+
             else:
                 if value is None and default is not None:
                     if key not in d:
@@ -132,7 +144,14 @@ class AbstractKVParser(object):
         d = self.data
         while path:
             k = path.pop(0)
-            di = self.__class__.get_data_instance(k)
+            if self.__class__.contains_list(k):
+                skey, rest, idx = self.__class__.parse_list_key(k)
+
+            if self.__class__.contains_root_list(k):
+                di = []
+            else:
+                di = {}
+
             if path:
                 k = self.set( k, None, d, di )
             else:
@@ -183,20 +202,98 @@ class AbstractKVParser(object):
 class PathKVParser(AbstractKVParser):
 
     @staticmethod
+    def contains_list(key):
+        return key.endswith(']')
+
+    @staticmethod
+    def contains_root_list(key):
+        return key.startswith('[')
+
+    @staticmethod
+    def parse_list_key(key):
+        idx = None
+        assert '[' in key, key
+        ps = key.index('[')
+        pe = key.index(']')
+        idx = key[ps+1:pe]
+        if idx:
+            idx = int(idx)-1
+        return key[:ps], key[pe+1:], idx
+
+    @staticmethod
     def get_data_instance(key):
         if fnmatch(key, '*[[0-9]]') or fnmatch(key, '*[]'):
             return []
         else:
             return {}
 
+    @staticmethod
+    def get_list_index(key):
+
+        pos = key.index('[')
+        idx = None
+
+        if len(key) > pos+2:
+            idx = int(key[pos+1:-1])-1
+
+        return key[:pos], idx
+
+
+
 class FlatKVParser(AbstractKVParser):
 
     @staticmethod
+    def contains_list(key):
+        if '__' in key:
+            last = key.split('__')[-1]
+            return not last or last.isdigit()
+
+    @staticmethod
+    def contains_root_list(key):
+        return key.startswith('__')
+
+    @staticmethod
+    def parse_list_key(key):
+        idx = None
+        p = key.index('__')
+        rest = key[p+2:]
+        if rest:
+            if '__' in rest:
+                p2 = key.index('__')
+                if rest[:p2].isdigit():
+                    idx = int(rest[:p2])-1
+                    rest = rest[p2+2:]
+            elif rest.isdigit():
+                idx = int(rest)-1
+        return key[:p], rest, idx
+
+
+    @staticmethod
     def get_data_instance(key):
-        if fnmatch(key, '*__[0-9]*') or fnmatch(key, '*__*'):
+        if fnmatch(key, '*__[0-9]*') or fnmatch(key, '*__'):
             return []
         else:
             return {}
+
+    @staticmethod
+    def get_root_data_instance(key):
+        if '/' in key:
+            key = key.split('/')[0]
+        if '__' in key and key.split('__')[0]:
+            return key.split('__')[0]
+        return FlatKVParser.get_data_instance(key)
+
+    @staticmethod
+    def get_list_index(key):
+
+        pos = key.index('__')
+        idx = None
+
+        if len(key) > pos+2:
+            idx = int(key[pos+2:])
+
+        return key[:pos], idx
+
 
 
 

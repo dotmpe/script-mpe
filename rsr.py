@@ -322,18 +322,25 @@ class Rsr(libcmd.StackedCommand):
             repo_root = 'sa_migrate'
 
         # SA session
-        #dbref = session.context.settings.dbref
-        #dbref = opts.dbref
         repo_path = os.path.join(repo_root, opts.repo)
 
-        from sa_migrate import custom
-        config = custom.read(repo_path)
-        repo_opts = custom.migrate_opts(repo_path, config)
-        dbref = repo_opts['url']
+        if os.path.exists(repo_path):
+            log.info("Reading SA migrate config for repo %r" % repo_path)
+            # hard coded module name, root dir for local repos
+            from sa_migrate import custom
+            config = custom.read(repo_path)
+            log.info("Reading SA migrate config from %r" % config)
+            repo_opts = custom.migrate_opts(repo_path, config)
+            dbref = repo_opts['url']
+        else:
+            dbref = opts.dbref
+
         log.note('DBRef: %s', dbref)
+
         if opts.init_db:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
         sa = SessionMixin.get_session(opts.session, dbref, opts.init_db)
+
         yield dict(sa=sa)
 
     def rsr_nodes(self, sa, *args):

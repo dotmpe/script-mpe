@@ -33,7 +33,7 @@ init
 @test "${bin} from-args l[]=1 l[]=2 l[1]=3" "update at indices" {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
-  test "${lines[*]}" = '{"l": [1, 3]}' \
+  test "${lines[*]}" = '{"l": [3, 2]}' \
     || fail "Out: ${lines[*]}"
 }
 
@@ -79,7 +79,7 @@ init
   }
   run jsotk_from_kv_test
   test ${status} -eq 0 || fail "Output: ${lines[*]}"
-  test "${lines[*]}" = '{"foo": {"2": [null, null, "more", "items"]}}'
+  test "${lines[*]}" = '{"foo": {"2": [null, "more", "items"]}}'
 }
 
 @test "${bin} can use objectpath" {

@@ -41,13 +41,13 @@ import os
 import re
 from datetime import datetime
 
-from . import rsr
-from . import util
-from . import log
-from .util import cmd_help
-from .taxus import Node, Topic, Host, Project, VersionControl, ScriptMixin
-from .taxus.init import SqlBase, get_session
-from .res import Workdir, Repo
+import rsr
+import util
+import log
+from util import cmd_help
+from taxus import Node, Topic, Host, Project, VersionControl, ScriptMixin
+from taxus.init import SqlBase, get_session
+from res import Workdir, Repo
 
 
 models = [ Project, VersionControl ]
