@@ -34,7 +34,8 @@ run_cmd()
           return 1
         }
     } || {
-      ssh $host_addr_info "$2" \
+      # XXX: see MPE_CONF_DEBUG=1 too
+      ssh $host_addr_info "RC_ENV_OVERRIDE=1 . \$HOME/.bashrc ; $2" \
         && debug "Executed at $host_addr_info: '$2'" \
         || {
           err "Error executing command at $host_addr_info: '$2'"

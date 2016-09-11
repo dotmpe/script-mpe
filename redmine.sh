@@ -11,7 +11,16 @@ redmine__list()
 {
   local remote_host=dandy remote_user=hari
   on_host $remote_host || ssh_req $remote_host $remote_user
-  run_cmd "$remote_host" redmine_meta.py list
+  local projects=$(setup_tmpf projects-tab)
+
+  echo -------------------------------
+  run_cmd "$remote_host" "redmine_meta.py list" > $projects
+  #cat $projects | sed 's/\([0-9]\+\ \)\+//g'
+  echo -------------------------------
+  cat $projects
+  echo -------------------------------
+  cat $projects | sed -E 's/([0-9]+\ )+//g'
+  line_count $projects
 }
 
 
