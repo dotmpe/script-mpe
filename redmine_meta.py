@@ -7,6 +7,7 @@ redmine-meta - Read data from Redmine database.
 Usage:
     rdm [options] issues
     rdm [options] projects
+    rdm [options] custom-fields
 
 Options:
     -v             Increase verbosity.
@@ -64,9 +65,32 @@ def cmd_issues(settings):
         print i.subject
 
 
+def cmd_custom_fields(settings):
+    """
+        List custom-fields
+    """
+
+    sa = get_session(settings.dbref)
+    l = 'Custom Fields'
+    # TODO: filter custom_fields;
+    v = sa.query(rdm.CustomField).count()
+    log.info('{green}%s{default}: {bwhite}%s{default}', l, v)
+    for rs in sa.query(rdm.CustomField).all():
+        print rs.id, rs.type
+        print "  Name:", rs.name
+        if rs.possible_values: # yaml value
+            print "  Possible values: "
+            for x in rs.possible_values.split('\n'):
+                if x == '---': continue
+                print "  ",x
+        if rs.description:
+            print "  Description:"
+            print "   ", rs.description.replace('\n', '\n    ')
+
+
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
+commands = util.get_cmd_handlers_2(globals(), 'cmd_')
 
 
 ### Util functions to run above functions from cmdline
