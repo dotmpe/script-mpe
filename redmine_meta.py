@@ -78,7 +78,7 @@ def main(opts):
     """
 
     settings = opts.flags
-    opts.default = ['balance', 'verify']
+    opts.default = ['info']
     return util.run_commands(commands, settings, opts)
 
 def get_version():

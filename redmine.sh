@@ -7,15 +7,31 @@ set -e
 
 
 
-redmine__list()
+redmine__projects()
 {
   local remote_host=dandy remote_user=hari
   on_host $remote_host || ssh_req $remote_host $remote_user
-  local projects=$(setup_tmpf projects-tab)
+  local projects=$(setup_tmpf -projects.tab)
 
-  run_cmd "$remote_host" "redmine_meta.py list" > $projects
+  run_cmd "$remote_host" "redmine_meta.py projects" > $projects
   cat $projects | sed -E 's/([0-9]+\ )+//g'
   note "$(count_lines $projects) projects at RDM $remote_host"
+}
+
+redmine__list()
+{
+  redmine__issues
+}
+
+redmine__issues()
+{
+  local remote_host=dandy remote_user=hari
+  on_host $remote_host || ssh_req $remote_host $remote_user
+  local issues=$(setup_tmpf -issues.tab)
+
+  run_cmd "$remote_host" "redmine_meta.py issues" > $issues
+  cat $issues | sed -E 's/([0-9-]+\ )+//g'
+  note "$(count_lines $issues) issues at RDM $remote_host"
 }
 
 
@@ -77,6 +93,12 @@ redmine_lib()
   # -- redmine box lib sentinel --
   set --
 }
+
+redmine_load()
+{
+  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+}
+
 
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )

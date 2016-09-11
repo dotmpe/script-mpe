@@ -1167,7 +1167,7 @@ pd_load()
   test -n "$EDITOR" || EDITOR=nano
   CWD=$(pwd -P)
   #test -n "$P" || PATH=$CWD:$PATH
-  test -n "$hostname" || hostname=$(hostname -s)
+  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname=$(uname)
 
 
