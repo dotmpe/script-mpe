@@ -14,7 +14,7 @@ redmine__projects()
   local projects=$(setup_tmpf -projects.tab)
 
   run_cmd "$remote_host" "redmine_meta.py projects" > $projects
-  cat $projects | sed -E 's/([0-9]+\ )+//g'
+  cat $projects | sed -E 's/([0-9-]+\ )+//g'
   note "$(count_lines $projects) projects at RDM $remote_host"
 }
 

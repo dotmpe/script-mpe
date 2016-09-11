@@ -275,9 +275,12 @@ box_update()
   test -n "$UCONF" || error UCONF 1
   cd $UCONF
 
-  on_host $box_host || ssh_req $box_host $box_user
-  run_cmd $box_host "cd ~/.conf && git fetch --all && git pull"
-  run_cmd $box_host "cd ~/.conf && git fetch --all && git pull"
+  test -n "$box_host" || box_host=$hostname
+  test -n "$box_user" || box_user=$(whoami)
+
+  on_host "$box_host" || ssh_req $box_host $box_user
+  run_cmd "$box_host" "cd ~/.conf && git fetch --all && git pull"
+  run_cmd "$box_host" "cd ~/.conf && git fetch --all && git pull"
 
   ansible-playbook -l $box_host ansible/playbook/user-conf.yml
   #ansible-playbook -l $box_host ansible/playbook/system-update.yml
