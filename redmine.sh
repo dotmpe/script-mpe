@@ -7,10 +7,15 @@ set -e
 
 
 
+redmine__custom()
+{
+  local custom_fields=$(setup_tmpf -custom_fields.tab)
+  run_cmd "$remote_host" "redmine_meta.py custom-fields" > $custom_fields
+  cat $custom_fields | sed -E 's/([0-9-]+\ )+//g'
+}
+
 redmine__projects()
 {
-  local remote_host=dandy remote_user=hari
-  on_host $remote_host || ssh_req $remote_host $remote_user
   local projects=$(setup_tmpf -projects.tab)
 
   run_cmd "$remote_host" "redmine_meta.py projects" > $projects
@@ -25,10 +30,7 @@ redmine__list()
 
 redmine__issues()
 {
-  local remote_host=dandy remote_user=hari
-  on_host $remote_host || ssh_req $remote_host $remote_user
   local issues=$(setup_tmpf -issues.tab)
-
   run_cmd "$remote_host" "redmine_meta.py issues" > $issues
   cat $issues | sed -E 's/([0-9-]+\ )+//g'
   note "$(count_lines $issues) issues at RDM $remote_host"
@@ -97,6 +99,10 @@ redmine_lib()
 redmine_load()
 {
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+
+  remote_host=dandy
+  remote_user=hari
+  on_host $remote_host || ssh_req $remote_host $remote_user
 }
 
 
