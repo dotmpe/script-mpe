@@ -15,7 +15,6 @@ redmine__list()
 
   echo -------------------------------
   run_cmd "$remote_host" "redmine_meta.py list" > $projects
-  #cat $projects | sed 's/\([0-9]\+\ \)\+//g'
   echo -------------------------------
   cat $projects
   echo -------------------------------

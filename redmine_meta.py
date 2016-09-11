@@ -33,7 +33,7 @@ def cmd_list(settings):
     sa = get_session(settings.dbref)
     l = 'Projects'
     v = sa.query(rdm.Project).count()
-    log.log('{green}%s{default}: {bwhite}%s{default}', l, v)
+    log.info('{green}%s{default}: {bwhite}%s{default}', l, v)
     for p in sa.query(rdm.Project).all():
         if p.parent_id:
             print p.id, p.parent_id, p.name
