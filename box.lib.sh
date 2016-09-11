@@ -260,3 +260,26 @@ box_list_libs()
     tail -n +4 | tail -n +$line_offset | head -n $line_diff;
   } < $1
 }
+
+
+# XXX: goes here at box.lib? or into main.lib?
+
+box_init()
+{
+  test -n "$UCONF" || error UCONF 1
+  cd $UCONF
+}
+
+box_update()
+{
+  test -n "$UCONF" || error UCONF 1
+  cd $UCONF
+
+  on_host $box_host || ssh_req $box_host $box_user
+  run_cmd $box_host "cd ~/.conf && git fetch --all && git pull"
+  run_cmd $box_host "cd ~/.conf && git fetch --all && git pull"
+
+  ansible-playbook -l $box_host ansible/playbook/user-conf.yml
+  #ansible-playbook -l $box_host ansible/playbook/system-update.yml
+  #ansible-playbook -l $box_host ansible/playbook/user-env-update.yml
+}
