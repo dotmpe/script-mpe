@@ -23,6 +23,9 @@ Options:
                   Iow. this shows the actual schema in case of mismatch.
 
 Other flags:
+    -v
+    --verbosity VALUE
+                  Increase verbosity.
     -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
@@ -32,6 +35,7 @@ from datetime import datetime
 import os
 import re
 import hashlib
+import inspect
 
 import zope.interface
 import zope.component
@@ -92,22 +96,29 @@ def cmd_stats(settings, opts):
     if opts.flags.all_tables or opts.flags.database_tables:
         if opts.flags.database_tables:
             reload_metadata(settings)
-            log.std("{yellow}Loaded tables from DB{default}")
+            log.info("{yellow}Loaded tables from DB{default}")
         for t in metadata.tables:
             try:
                 log.std("{blue}%s{default}: {bwhite}%s{default}",
-                        t, sa.query(metadata.tables[t].count()).all()[0][0])
+                        t, sa.query(metadata.tables[t].count().alias("cnt")).all()[0][0])
             except Exception, e:
                 log.err("Count failed for %s: %s", t, e)
         log.std("%i tables, done.", len(metadata.tables))
     else:
-        for m in schema.models:
+        if hasattr(schema, 'models'):
+            models = schema.models
+        else:
+            models = [
+                    getattr(schema, x) for x in dir(schema)
+                    if inspect.isclass(getattr(schema, x))
+                        and issubclass( getattr(schema, x), schema.SqlBase ) ]
+        for m in models:
             try:
                 log.std("{blue}%s{default}: {bwhite}%s{default}",
                         m.__name__, sa.query(m).count())
             except Exception, e:
                 log.err("Count failed for %s: %s", m, e)
-        log.std("%i models, done.", len(schema.models))
+        log.std("%i models, done.", len(models))
 
 def cmd_info(settings):
     if opts.flags.database_tables:
@@ -151,19 +162,31 @@ if __name__ == '__main__':
 
     opts = util.get_opts(__usage__, version=get_version())
 
+    # Override dbref setting from schema
+    if opts.flags.v or opts.flags.verbosity:
+        log.category = 6
+        # FIXME: log.category log.test()
+    #if opts.flags.v
+    #    print opts.flags.v
+    #if opts.flags.verbosity:
+    #    print opts.flags.verbosity
+
+
     # schema corresponds to module name
     if opts.args.schema:
+        log.note("Using schema %r", opts.args.schema)
         schema = __import__(os.path.splitext(opts.args.schema)[0])
     else:
+        log.note("Using local schema %s", __name__)
         schema = sys.modules[__name__]
 
     metadata = schema.SqlBase.metadata
 
-    # Override dbref setting from schema
     if opts.flags.dbref == __db__:
         if hasattr(schema, '__db__'):
             opts.flags.dbref = schema.__db__
         opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
+        print opts.flags.dbref
 
     sys.exit(main(opts))
 

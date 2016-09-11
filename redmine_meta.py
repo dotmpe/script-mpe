@@ -8,11 +8,12 @@ Usage:
     rdm [options] issues
     rdm [options] projects
     rdm [options] custom-fields
+    rdm [options] print-db-ref
 
 Options:
-    -v             Increase verbosity.
+    -v            Increase verbosity.
     -d REF --dbref=REF
-                   SQLAlchemy DB URL [default: %s].
+                  SQLAlchemy DB URL [default: %s].
     -y --yes
     -V, --version  Show version (%s).
 
@@ -31,7 +32,9 @@ from script_mpe.redmine_schema import get_session
 
 ### Program sub-commands
 
+
 def cmd_projects(settings):
+
     """
         List projects, with id and parent id.
     """
@@ -45,7 +48,9 @@ def cmd_projects(settings):
     for p in sa.query(rdm.Project).all():
         print p.id, p.parent_id or '-', p.name
 
+
 def cmd_issues(settings):
+
     """
         List issues
     """
@@ -66,6 +71,7 @@ def cmd_issues(settings):
 
 
 def cmd_custom_fields(settings):
+
     """
         List custom-fields
     """
@@ -87,10 +93,15 @@ def cmd_custom_fields(settings):
             print "  Description:"
             print "   ", rs.description.replace('\n', '\n    ')
 
+def cmd_print_db_ref(settings):
+    print settings.dbref
+
+
 
 ### Transform cmd_ function names to nested dict
 
 commands = util.get_cmd_handlers_2(globals(), 'cmd_')
+
 
 
 ### Util functions to run above functions from cmdline

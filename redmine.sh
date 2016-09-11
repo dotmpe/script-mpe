@@ -37,6 +37,24 @@ redmine__issues()
 }
 
 
+# Print schema stats
+redmine__stats()
+{
+  test -n "$flags" || flags="-v"
+  dbref=$(redmine_meta.py print-db-ref)
+  test -n "$dbref" || error dbref 1
+  db_sa.py -d $dbref $flags stats redmine_schema
+}
+
+
+# Disregard local Py schema, print everything in DB schema
+redmine__db_stats()
+{
+  flags="-v --database-tables"
+  redmine__info
+}
+
+
 
 ### Main
 

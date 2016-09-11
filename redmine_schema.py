@@ -10,12 +10,12 @@ from sqlalchemy.orm import sessionmaker
 
 
 class_registry = {}
-Base = declarative_base(class_registry=class_registry)
-metadata = Base.metadata
+SqlBase = declarative_base(class_registry=class_registry)
+metadata = SqlBase.metadata
 
 
 
-def get_session(dbref, initialize=False, metadata=Base.metadata):
+def get_session(dbref, initialize=False, metadata=SqlBase.metadata):
     engine = create_engine(dbref)#, encoding='utf8')
     #engine.raw_connection().connection.text_factory = unicode
     metadata.bind = engine
@@ -31,7 +31,7 @@ def get_session(dbref, initialize=False, metadata=Base.metadata):
 ### ORM Schema (generated with sqlacodegen)
 
 
-class AgileColor(Base):
+class AgileColor(SqlBase):
     __tablename__ = 'agile_colors'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('agile_colors_id_seq'::regclass)"))
@@ -40,7 +40,7 @@ class AgileColor(Base):
     color = Column(String)
 
 
-class AgileDatum(Base):
+class AgileDatum(SqlBase):
     __tablename__ = 'agile_data'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('agile_data_id_seq'::regclass)"))
@@ -49,7 +49,7 @@ class AgileDatum(Base):
     story_points = Column(Integer)
 
 
-class Attachment(Base):
+class Attachment(SqlBase):
     __tablename__ = 'attachments'
     __table_args__ = (
         Index('index_attachments_on_container_id_and_container_type', 'container_id', 'container_type'),
@@ -70,7 +70,7 @@ class Attachment(Base):
     disk_directory = Column(String)
 
 
-class AuthSource(Base):
+class AuthSource(SqlBase):
     __tablename__ = 'auth_sources'
     __table_args__ = (
         Index('index_auth_sources_on_id_and_type', 'id', 'type'),
@@ -94,7 +94,7 @@ class AuthSource(Base):
     timeout = Column(Integer)
 
 
-class Board(Base):
+class Board(SqlBase):
     __tablename__ = 'boards'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('boards_id_seq'::regclass)"))
@@ -108,7 +108,7 @@ class Board(Base):
     parent_id = Column(Integer)
 
 
-class Change(Base):
+class Change(SqlBase):
     __tablename__ = 'changes'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('changes_id_seq'::regclass)"))
@@ -128,7 +128,7 @@ t_changeset_parents = Table(
 )
 
 
-class Changeset(Base):
+class Changeset(SqlBase):
     __tablename__ = 'changesets'
     __table_args__ = (
         Index('changesets_repos_rev', 'repository_id', 'revision', unique=True),
@@ -154,7 +154,7 @@ t_changesets_issues = Table(
 )
 
 
-class Comment(Base):
+class Comment(SqlBase):
     __tablename__ = 'comments'
     __table_args__ = (
         Index('index_comments_on_commented_id_and_commented_type', 'commented_id', 'commented_type'),
@@ -169,7 +169,7 @@ class Comment(Base):
     updated_on = Column(DateTime, nullable=False)
 
 
-class CustomFieldEnumeration(Base):
+class CustomFieldEnumeration(SqlBase):
     __tablename__ = 'custom_field_enumerations'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('custom_field_enumerations_id_seq'::regclass)"))
@@ -179,7 +179,7 @@ class CustomFieldEnumeration(Base):
     position = Column(Integer, nullable=False, server_default=text("1"))
 
 
-class CustomField(Base):
+class CustomField(SqlBase):
     __tablename__ = 'custom_fields'
     __table_args__ = (
         Index('index_custom_fields_on_id_and_type', 'id', 'type'),
@@ -230,7 +230,7 @@ t_custom_fields_trackers = Table(
 )
 
 
-class CustomValue(Base):
+class CustomValue(SqlBase):
     __tablename__ = 'custom_values'
     __table_args__ = (
         Index('custom_values_customized', 'customized_type', 'customized_id'),
@@ -243,7 +243,7 @@ class CustomValue(Base):
     value = Column(Text)
 
 
-class Document(Base):
+class Document(SqlBase):
     __tablename__ = 'documents'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('documents_id_seq'::regclass)"))
@@ -254,7 +254,7 @@ class Document(Base):
     created_on = Column(DateTime, index=True)
 
 
-class EmailAddress(Base):
+class EmailAddress(SqlBase):
     __tablename__ = 'email_addresses'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('email_addresses_id_seq'::regclass)"))
@@ -266,7 +266,7 @@ class EmailAddress(Base):
     updated_on = Column(DateTime, nullable=False)
 
 
-class EnabledModule(Base):
+class EnabledModule(SqlBase):
     __tablename__ = 'enabled_modules'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('enabled_modules_id_seq'::regclass)"))
@@ -274,7 +274,7 @@ class EnabledModule(Base):
     name = Column(String, nullable=False)
 
 
-class Enumeration(Base):
+class Enumeration(SqlBase):
     __tablename__ = 'enumerations'
     __table_args__ = (
         Index('index_enumerations_on_id_and_type', 'id', 'type'),
@@ -299,7 +299,7 @@ t_groups_users = Table(
 )
 
 
-class ImportItem(Base):
+class ImportItem(SqlBase):
     __tablename__ = 'import_items'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('import_items_id_seq'::regclass)"))
@@ -309,7 +309,7 @@ class ImportItem(Base):
     message = Column(Text)
 
 
-class Import(Base):
+class Import(SqlBase):
     __tablename__ = 'imports'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('imports_id_seq'::regclass)"))
@@ -323,7 +323,7 @@ class Import(Base):
     updated_at = Column(DateTime, nullable=False)
 
 
-class IssueCategory(Base):
+class IssueCategory(SqlBase):
     __tablename__ = 'issue_categories'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('issue_categories_id_seq'::regclass)"))
@@ -332,7 +332,7 @@ class IssueCategory(Base):
     assigned_to_id = Column(Integer, index=True)
 
 
-class IssueRelation(Base):
+class IssueRelation(SqlBase):
     __tablename__ = 'issue_relations'
     __table_args__ = (
         Index('index_issue_relations_on_issue_from_id_and_issue_to_id', 'issue_from_id', 'issue_to_id', unique=True),
@@ -345,7 +345,7 @@ class IssueRelation(Base):
     delay = Column(Integer)
 
 
-class IssueStatus(Base):
+class IssueStatus(SqlBase):
     __tablename__ = 'issue_statuses'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('issue_statuses_id_seq'::regclass)"))
@@ -355,7 +355,7 @@ class IssueStatus(Base):
     default_done_ratio = Column(Integer)
 
 
-class Issue(Base):
+class Issue(SqlBase):
     __tablename__ = 'issues'
     __table_args__ = (
         Index('index_issues_on_root_id_and_lft_and_rgt', 'root_id', 'lft', 'rgt'),
@@ -389,7 +389,7 @@ class Issue(Base):
     position = Column(Integer, index=True)
 
 
-class JournalDetail(Base):
+class JournalDetail(SqlBase):
     __tablename__ = 'journal_details'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('journal_details_id_seq'::regclass)"))
@@ -400,7 +400,7 @@ class JournalDetail(Base):
     value = Column(Text)
 
 
-class Journal(Base):
+class Journal(SqlBase):
     __tablename__ = 'journals'
     __table_args__ = (
         Index('journals_journalized_id', 'journalized_id', 'journalized_type'),
@@ -415,7 +415,7 @@ class Journal(Base):
     private_notes = Column(Boolean, nullable=False, server_default=text("false"))
 
 
-class MemberRole(Base):
+class MemberRole(SqlBase):
     __tablename__ = 'member_roles'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('member_roles_id_seq'::regclass)"))
@@ -424,7 +424,7 @@ class MemberRole(Base):
     inherited_from = Column(Integer)
 
 
-class Member(Base):
+class Member(SqlBase):
     __tablename__ = 'members'
     __table_args__ = (
         Index('index_members_on_user_id_and_project_id', 'user_id', 'project_id', unique=True),
@@ -437,7 +437,7 @@ class Member(Base):
     mail_notification = Column(Boolean, nullable=False, server_default=text("false"))
 
 
-class Message(Base):
+class Message(SqlBase):
     __tablename__ = 'messages'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('messages_id_seq'::regclass)"))
@@ -454,7 +454,7 @@ class Message(Base):
     sticky = Column(Integer, server_default=text("0"))
 
 
-class News(Base):
+class News(SqlBase):
     __tablename__ = 'news'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('news_id_seq'::regclass)"))
@@ -467,7 +467,7 @@ class News(Base):
     comments_count = Column(Integer, nullable=False, server_default=text("0"))
 
 
-class OpenIdAuthenticationAssociation(Base):
+class OpenIdAuthenticationAssociation(SqlBase):
     __tablename__ = 'open_id_authentication_associations'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('open_id_authentication_associations_id_seq'::regclass)"))
@@ -479,7 +479,7 @@ class OpenIdAuthenticationAssociation(Base):
     secret = Column(LargeBinary)
 
 
-class OpenIdAuthenticationNonce(Base):
+class OpenIdAuthenticationNonce(SqlBase):
     __tablename__ = 'open_id_authentication_nonces'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('open_id_authentication_nonces_id_seq'::regclass)"))
@@ -488,7 +488,7 @@ class OpenIdAuthenticationNonce(Base):
     salt = Column(String, nullable=False)
 
 
-class PendingEffort(Base):
+class PendingEffort(SqlBase):
     __tablename__ = 'pending_efforts'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('pending_efforts_id_seq'::regclass)"))
@@ -497,7 +497,7 @@ class PendingEffort(Base):
     effort = Column(Float(53))
 
 
-class Project(Base):
+class Project(SqlBase):
     __tablename__ = 'projects'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('projects_id_seq'::regclass)"))
@@ -525,7 +525,7 @@ t_projects_trackers = Table(
 )
 
 
-class Query(Base):
+class Query(SqlBase):
     __tablename__ = 'queries'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('queries_id_seq'::regclass)"))
@@ -549,7 +549,7 @@ t_queries_roles = Table(
 )
 
 
-class Repository(Base):
+class Repository(SqlBase):
     __tablename__ = 'repositories'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('repositories_id_seq'::regclass)"))
@@ -567,7 +567,7 @@ class Repository(Base):
     created_on = Column(DateTime)
 
 
-class Role(Base):
+class Role(SqlBase):
     __tablename__ = 'roles'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('roles_id_seq'::regclass)"))
@@ -596,7 +596,7 @@ t_schema_migrations = Table(
 )
 
 
-class Setting(Base):
+class Setting(SqlBase):
     __tablename__ = 'settings'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('settings_id_seq'::regclass)"))
@@ -605,7 +605,7 @@ class Setting(Base):
     updated_on = Column(DateTime)
 
 
-class SprintEffort(Base):
+class SprintEffort(SqlBase):
     __tablename__ = 'sprint_efforts'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('sprint_efforts_id_seq'::regclass)"))
@@ -615,7 +615,7 @@ class SprintEffort(Base):
     effort = Column(Float(53))
 
 
-class Sprint(Base):
+class Sprint(SqlBase):
     __tablename__ = 'sprints'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('sprints_id_seq'::regclass)"))
@@ -631,7 +631,7 @@ class Sprint(Base):
     status = Column(String(10), index=True, server_default=text("'open'::character varying"))
 
 
-class TimeEntry(Base):
+class TimeEntry(SqlBase):
     __tablename__ = 'time_entries'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('time_entries_id_seq'::regclass)"))
@@ -649,7 +649,7 @@ class TimeEntry(Base):
     updated_on = Column(DateTime, nullable=False)
 
 
-class Token(Base):
+class Token(SqlBase):
     __tablename__ = 'tokens'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('tokens_id_seq'::regclass)"))
@@ -660,7 +660,7 @@ class Token(Base):
     updated_on = Column(DateTime)
 
 
-class Tracker(Base):
+class Tracker(SqlBase):
     __tablename__ = 'trackers'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('trackers_id_seq'::regclass)"))
@@ -672,7 +672,7 @@ class Tracker(Base):
     default_status_id = Column(Integer)
 
 
-class UserPreference(Base):
+class UserPreference(SqlBase):
     __tablename__ = 'user_preferences'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('user_preferences_id_seq'::regclass)"))
@@ -682,7 +682,7 @@ class UserPreference(Base):
     time_zone = Column(String)
 
 
-class User(Base):
+class User(SqlBase):
     __tablename__ = 'users'
     __table_args__ = (
         Index('index_users_on_id_and_type', 'id', 'type'),
@@ -708,7 +708,7 @@ class User(Base):
     passwd_changed_on = Column(DateTime)
 
 
-class Version(Base):
+class Version(SqlBase):
     __tablename__ = 'versions'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('versions_id_seq'::regclass)"))
@@ -723,7 +723,7 @@ class Version(Base):
     sharing = Column(String, nullable=False, index=True, server_default=text("'none'::character varying"))
 
 
-class Watcher(Base):
+class Watcher(SqlBase):
     __tablename__ = 'watchers'
     __table_args__ = (
         Index('index_watchers_on_watchable_id_and_watchable_type', 'watchable_id', 'watchable_type'),
@@ -736,7 +736,7 @@ class Watcher(Base):
     user_id = Column(Integer, index=True)
 
 
-class WikiContentVersion(Base):
+class WikiContentVersion(SqlBase):
     __tablename__ = 'wiki_content_versions'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('wiki_content_versions_id_seq'::regclass)"))
@@ -750,7 +750,7 @@ class WikiContentVersion(Base):
     version = Column(Integer, nullable=False)
 
 
-class WikiContent(Base):
+class WikiContent(SqlBase):
     __tablename__ = 'wiki_contents'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('wiki_contents_id_seq'::regclass)"))
@@ -762,7 +762,7 @@ class WikiContent(Base):
     version = Column(Integer, nullable=False)
 
 
-class WikiPage(Base):
+class WikiPage(SqlBase):
     __tablename__ = 'wiki_pages'
     __table_args__ = (
         Index('wiki_pages_wiki_id_title', 'wiki_id', 'title'),
@@ -776,7 +776,7 @@ class WikiPage(Base):
     parent_id = Column(Integer, index=True)
 
 
-class WikiRedirect(Base):
+class WikiRedirect(SqlBase):
     __tablename__ = 'wiki_redirects'
     __table_args__ = (
         Index('wiki_redirects_wiki_id_title', 'wiki_id', 'title'),
@@ -790,7 +790,7 @@ class WikiRedirect(Base):
     redirects_to_wiki_id = Column(Integer, nullable=False)
 
 
-class Wiki(Base):
+class Wiki(SqlBase):
     __tablename__ = 'wikis'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('wikis_id_seq'::regclass)"))
@@ -799,7 +799,7 @@ class Wiki(Base):
     status = Column(Integer, nullable=False, server_default=text("1"))
 
 
-class Workflow(Base):
+class Workflow(SqlBase):
     __tablename__ = 'workflows'
     __table_args__ = (
         Index('wkfs_role_tracker_old_status', 'role_id', 'tracker_id', 'old_status_id'),
