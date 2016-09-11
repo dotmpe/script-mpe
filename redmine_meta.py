@@ -5,7 +5,8 @@ __usage__ = """
 redmine-meta - Read data from Redmine database.
 
 Usage:
-    rdm [options] list
+    rdm [options] issues
+    rdm [options] projects
 
 Options:
     -v             Increase verbosity.
@@ -29,17 +30,38 @@ from script_mpe.redmine_schema import get_session
 
 ### Program sub-commands
 
-def cmd_list(settings):
+def cmd_projects(settings):
+    """
+        List projects, with id and parent id.
+    """
+
     sa = get_session(settings.dbref)
     l = 'Projects'
     v = sa.query(rdm.Project).count()
+    # TODO: filter project; age, public
     log.info('{green}%s{default}: {bwhite}%s{default}', l, v)
+    print '# ID PARENT NAME'
     for p in sa.query(rdm.Project).all():
-        if p.parent_id:
-            print p.id, p.parent_id, p.name
-        else:
-            print p.id, p.name
+        print p.id, p.parent_id or '-', p.name
 
+def cmd_issues(settings):
+    """
+        List issues
+    """
+
+    sa = get_session(settings.dbref)
+    l = 'Issues'
+    # TODO: filter issues; where not closed, where due, started, etc.
+    v = sa.query(rdm.Issue).count()
+    log.info('{green}%s{default}: {bwhite}%s{default}', l, v)
+    print('# ID PARENT_ID ROOT_ID SUBJECT ')
+    #print('# ID PARENT_ID ROOT_ID PRIO SUBJECT ')
+    for i in sa.query(rdm.Issue).all():
+        print i.id,
+        for k in i.parent_id, i.root_id:
+            print k or '-',
+        #print i.priority_id or '-', i.subject
+        print i.subject
 
 
 ### Transform cmd_ function names to nested dict
