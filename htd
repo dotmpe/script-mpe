@@ -756,7 +756,8 @@ htd__alias()
 # TODO: maintain symbolic dates in files, absolute and relative (Yesterday, Saturday, 2015-12-11 )
 htd__edit_today()
 {
-  test -n "$HTDIR" && test -d "$HTDIR"
+  { test -n "$HTDIR" && test -d "$HTDIR" ; } \
+    || error "HTDIR empty or missing: $HTDIR" 1
   test -n "$EXT" || EXT=.rst
   local pwd=$(pwd) arg=$1
 
