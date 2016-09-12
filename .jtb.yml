@@ -19,6 +19,10 @@
     # XXX bats-tests: '{{box,str}}'
     # XXX bats-tests: '\{box,str\}'
 
+    properties: {}
+    parameters: {}
+    metadata: {}
+    publishers: {}
 
     jobs:
 
@@ -26,8 +30,10 @@
     # Two partially pre-scripted jobs Using the .travis.yml 
     # build config.
     #
+    # FIXME: jjb/jnk currently not working with travis build anymore
     # FIXME: travis build fails on TB config parts
     # XXX: want to use branch checkout? but not working
+    #
     #- '{name}-gh-travis':
     #    disabled: true
     #    title: 'script.mpe [gh,public,travis] ({branch})'
@@ -35,6 +41,7 @@
     #- '{name}-local-gh-travis':
     #    disabled: true
     #    title: 'script.mpe [gh,travis] ({branch})'
+
 
     #
     # Two custom script Github checkouts for testing.
@@ -44,37 +51,40 @@
     - '{name}-gh':
         disabled: true
         title: 'script.mpe [gh,local,no-test] ({branch})'
-        htmlDescription: 'Running some bats test to see if they go, without parsing results'
+        htmlDescription: |
+          Running some bats test to see if they go, without parsing results.
+          Part of script-mpe/0.0.0 .jtb.yml
         restrict-node: ubuntu || treebox
-        parameters: []
-        properties: []
-        metadata: []
         builders:
         - shell: |
+            export PATH=$HOME/.local/bin:$HOME/.basher/bin:$PATH
             Build_Deps_Default_Paths=1 \
             ./install-dependencies.sh -
         - shell: |
+            export PATH=$HOME/.local/bin:$HOME/.basher/bin:$PATH
             . ./tools/sh/env.sh
             export TEST_ENV=jenkins
             . ./tools/ci/test.sh
-
         publishers:
         - tap:
             results: build/test-results.tap
-
-
-    - '{name}-gh-travis':
-        disabled: false
-        title: 'script.mpe [gh,travis] ({branch})'
-        restrict-node: ubuntu || treebox
-        properties: []
-        parameters: []
-        metadata: []
+    
+    
+    #    - '{name}-gh-travis':
+    #        disabled: false
+    #        title: 'script.mpe [gh,travis] ({branch})'
+    #        restrict-node: ubuntu || treebox
+    #        properties: []
+    #        parameters: []
+    #        metadata: []
 
 
     - '{name}-gh-bats':
         disabled: false
         title: 'script.mpe [gh,bats] ({branch})'
+        htmlDescription: |
+          Run some bats tests and publish results
+          Part of script-mpe/0.0.0 .jtb.yml
         restrict-node: ubuntu || treebox
         bats-tap-results: build/test-results.tap
         parameters:
@@ -98,9 +108,11 @@
         #    expose-to-env: false
         builders:
         - shell: |
+            export PATH=$HOME/.local/bin:$HOME/.basher/bin:$PATH
             Build_Deps_Default_Paths=1 \
             ./install-dependencies.sh -
         - shell: |
+            export PATH=$HOME/.local/bin:$HOME/.basher/bin:$PATH
             . ./tools/sh/env.sh
             export TEST_ENV=jenkins
             . ./tools/ci/test.sh
