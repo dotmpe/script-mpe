@@ -1083,6 +1083,28 @@ vc__annex_contains()
   } || warn "Found nothing for '$keyglob'"
 }
 
+# Search all repos/branches for file with content
+vc__grep_file()
+{
+	test -n "$1" || error "Filename required" 1
+	test -n "$2" || error "Pattern required" 1
+	local filename=$1 pattern="$2"
+	shift 2
+	test -n "$3" || error "Checkout path(s) required" 1
+
+	local cwd=$(pwd)
+	for checkout in $3
+	do
+		(
+			cd $cwd/$checkout
+			for b in HEAD $(git ls-remote . refs/heads/* | cut -f 2)
+			do
+				git show $b:$filename | grep -q "$2" && echo "$checkout $b"
+			done
+		)
+	done 2>/dev/null
+}
+
 # List submodule prefixes
 vc__list_prefixes()
 {

@@ -42,20 +42,20 @@ htd_init_ignores()
     echo $HTD_IGNORE.merged > $HTD_IGNORE.merged
   }
 
-  test -n "$pwd" || pwd=$(pwd)
-  test ! -e $HTDIR || {
-    cd $HTDIR
+  #test -n "$pwd" || pwd=$(pwd)
+  #test ! -e $HTDIR || {
+  #  cd $HTDIR
 
-    for x in .git/info/exclude .gitignore $HTD_IGNORE
-    do
-      test -s $x && {
-        cat $x | grep -Ev '^(#.*|\s*)$'
-      }
-    done
+  #  for x in .git/info/exclude .gitignore $HTD_IGNORE
+  #  do
+  #    test -s $x && {
+  #      cat $x | grep -Ev '^(#.*|\s*)$'
+  #    }
+  #  done
 
-    cd $pwd
+  #  cd $pwd
 
-  } >> $HTD_IGNORE.merged
+  #} >> $HTD_IGNORE.merged
 
   for x in .git/info/exclude .gitignore $HTD_IGNORE
   do
@@ -69,7 +69,9 @@ htd_init_ignores()
 htd_find_ignores()
 {
   test -z "$find_ignores" || return
-  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" && {
+  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE.merged" && {
+    mv $HTD_IGNORE.merged $HTD_IGNORE.tmp
+    sort -u $HTD_IGNORE.tmp > $HTD_IGNORE.merged
     find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
       grep -Ev '^(#.*|\s*)$' | \
       sed -E 's/^\//\.\//' | \

@@ -1059,7 +1059,7 @@ htd__tasks()
   local $(package_sh \
     id \
     pd_meta_tasks_slug \
-    pd_meta_tasks_document  || return $?)
+    pd_meta_tasks_document || error "Missing package.sh var(s)" 1 )
 
   test -n "$pd_meta_tasks_document" || pd_meta_tasks_document=tasks.ttxtm
   test -n "$pd_meta_tasks_slug" || {
@@ -1068,7 +1068,7 @@ htd__tasks()
 
   local comments=$(setup_tmpf .comments)
   htd__list_paths -f | xargs radical.py --issue-format full-sh > $comments
-  tasks.py -s $pd_meta_tasks_slug read-issues -g $comments -t $pd_meta_tasks_document
+  tasks.py -v -s $pd_meta_tasks_slug read-issues -g $comments -t $pd_meta_tasks_document
   note "OK. $(count_lines $pd_meta_tasks_document) open tasks"
 }
 
@@ -1674,6 +1674,7 @@ htd__list_paths()
   req_path_arg "$@"
   htd_find_ignores
   find_ignores="$find_ignores $(htd__list_paths_opts)"
+  debug "Find ignores: $find_ignores"
   eval find $path $find_ignores -o -path . -o -print
 }
 htd__list_paths_opts()

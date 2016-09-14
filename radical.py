@@ -901,7 +901,7 @@ def plain_text_flavor(peek, source):
         peek.decode('ascii')
         return True
     except UnicodeDecodeError, e:
-        print e
+        pass
 
 def get_peek(source):
     try:

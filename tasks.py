@@ -62,6 +62,9 @@ Options:
                   Separator [default: -]
 
 Other flags:
+    -v
+    --verbosity VALUE
+                  Increase verbosity.
     -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
@@ -139,18 +142,20 @@ class Comment:
             self.line_nr = self.line_range[0]
 
     def __str__(self):
-        return "%s %r" % ( self.strid or '(blank)', self.text )
+        return "%s %r" % ( self.issue_id or '(blank)', self.text )
 
     @classmethod
     def parse_tag_grep(cls, file, settings):
 
         for line in open(file).readlines():
 
+            attr= {}
+            srcfile, comment = None, None
+
             grep_nH_rs_match = grep_nH_rs.match(line)
             if grep_nH_rs_match:
                 srcfile, linenr, comment = grep_nH_rs_match.groups()
-                yield Comment(srcfile, linenr=linenr, text=comment)
-                continue
+                attr['linenr'] = linenr
 
             rad_cmnt_rs_match = rad_cmnt_rs.match(line)
             if rad_cmnt_rs_match:
@@ -160,13 +165,28 @@ class Comment:
                 fr = map(int, groups[0].strip(':').split('-'))
                 if fa == 4:
                     inner_char_range = fr
-                yield Comment(srcfile, inner_range=inner_char_range, text=comment)
+                attr['inner_range'] = inner_char_range
+
+            if not srcfile:
+                log.warn('No match for %r', line)
                 continue
 
-            log.warn('No match for %r', line)
+            attr['issue_id'] = try_parse_issue_id( settings.project_slug, comment )
+
+            yield Comment(srcfile, text=comment, **attr)
+
 
 def get_project_slug(name_id):
     return re.sub('[^A-Z_-]+', '-', name_id.upper())
+
+
+re_issue_id = '\\b%s[\ ]?[0-9a-z:_\.-]+\\b'
+
+def try_parse_issue_id(tag, text):
+    r = re.compile(re_issue_id % tag)
+    m = r.search(text)
+    if m:
+        return text[slice(*m.span())]
 
 
 ### Commands
@@ -193,12 +213,14 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
     for comment in Comment.parse_tag_grep(grep_file, settings):
         if not comment.issue_id:
             log.warn("No %r ID for %s:%s: %s", settings.project_slug,
-                    comment.srcfile, comment.line_nr, comment.text )
+                    comment.srcfile, comment.line_nr or '', comment.text )
             continue
         # TODO: scan for project slug, and match with taskdoc.
-        if comment.strid not in issues:
+        if comment.issue_id not in issues:
+            log.note("New issue from comment: %s" % comment)
             issues[comment.issue_id] = Issue.from_comment(comment, settings)
         else:
+            log.info("Existing issue for comment: %s" % comment)
             pass # TODO: check, update from changed comment
 
 
@@ -227,6 +249,8 @@ def get_version():
 if __name__ == '__main__':
     import sys
     opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    if opts.flags.v or opts.flags.verbosity:
+        log.category = 6
     if not opts.flags.project_slug:
         opts.flags.project_slug = get_project_slug(os.path.basename(os.getcwd()))
     sys.exit(main(opts))
