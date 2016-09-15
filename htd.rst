@@ -1,5 +1,6 @@
 
 
+
 Spec
 ----
 TODO: SCRIPT-MPE-1 advanced rules:
@@ -31,14 +32,14 @@ htd
 
     2. A local path to a file;
 
-      - use path elements as tags (require strict format)
+       - use path elements as tags (require strict format)
 
-      TODO: record trees. See process tags task below.
+       TODO: record trees. See process tags task below.
 
     3. A directory;
 
-        Replace argument with list of (file) paths below dir.
-        Then process as files. (--level[=1] --recurse)
+       Replace argument with list of (file) paths below dir.
+       Then process as files. (--level[=1] --recurse)
 
     Options:
         --archive[=tgz] [--archive-base=.] [--archive-name=<cabinet-path>]

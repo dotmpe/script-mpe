@@ -34,7 +34,7 @@ older_than()
 case "$(uname)" in Darwin )
     date_fmt() {
       tags=$(for tag in $1; do echo "-v $tag"; done)
-      date $tags +"$2"
+      date $date_flags $tags +"$2"
     }
     ;;
   Linux )
@@ -43,7 +43,7 @@ case "$(uname)" in Darwin )
       tags=$(for tag in $1; do echo "-d $tag" \
           | sed 's/1d/1day/g' \
           | sed 's/7d/1week/g'; done)
-      date $tags +"$2"
+      date $date_flags $tags +"$2"
     }
     ;;
 esac

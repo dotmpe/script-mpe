@@ -3918,12 +3918,19 @@ htd__init_backup_repo()
 # Copy/move all given file args to backup repo
 htd__backup()
 {
-  local act= act_lbl=
+  local act= bu_act_lbl= bu_act=
+
   test -n "$choice_keep" || choice_keep=1 # TODO
+
+  trueish "$dry_run" && {
+    note "Doing dry-run of $# files.."
+    act="echo '*** DRY-RUN ***'"
+  } || act=''
+  
   trueish "$choice_keep" && {
-    note "Copying $# files to backup.."; act=cp; act_lbl=Copy
+    note "Copying $# files to backup.."; bu_act=cp; bu_act_lbl=Copy
   } || {
-    note "Moving $# files to backup.."; act=mv; act_lbl=Move
+    note "Moving $# files to backup.."; bu_act=mv; bu_act_lbl=Move
   }
 
   local srcpaths="$(for arg in $@
@@ -3932,42 +3939,53 @@ htd__backup()
       realpath "$arg"
     done )"
 
-  trueish "$no_cabinet" || {
-    prefix=$(date_fmt "" %Y/%m/%d-)
-  }
+  test -d "/srv/backup-local" || error "Unknown error" $?
+  (
+    cd /srv/backup-local 
+    git diff --quiet --exit-code \
+      || error "Changed in local backup repo" 1
+  )
 
-  # TODO: check if currently clean maybe.. before adding new stuff
-
-  local destpath=
+  # Created dest path from given path but replace path elements
+  local destpath= prefix=
   while test -n "$1"
   do
+    trueish "$no_cabinet" || {
+      prefix=$(date_flags="-r $(filemtime $1)" date_fmt "" %Y/%m/%d-)
+    }
     destpath="$prefix$(echo "$1" | tr '/' '-')"
     dirname=$(dirname $destpath)
     test -z "$dirname" || {
-      test -d $dirname || mkdir -vp $dirname
+      test -d /srv/backup-local/$dirname || mkdir -vp /srv/backup-local/$dirname
     }
-    $act $1 /srv/backup-local/$destpath \
-      && note "$act_lbl '$1' to backup" \
-      || warn "$act_lbl '$1' failed" 1
+    test ! -e /srv/backup-local/$destpath \
+      || error "File $destpath already exist" 1
+    eval $act $bu_act $1 /srv/backup-local/$destpath \
+      && note "$bu_act_lbl '$1' to backup" \
+      || warn "$bu_act_lbl '$1' failed" 1
     shift
     test ! -d /srv/backup-local/.git || {
       ( cd /srv/backup-local
-        git annex add $destpath || error "Failed adding files to annex" $?
+        eval $act git annex add $destpath || error "Failed adding files to annex" $?
       )
     }
   done
 
-  cd /srv/backup-local || error "Unknown error" $?
+  cd /srv/backup-local
 
   test ! -d .git || {
     {
-      printf -- "Backed up files at '$hostname':\n\n$srcpaths" \
-        | git commit -F -
+      test -n "$msg" || msg="Backed up files at '$hostname':\n\n$srcpaths"
+      trueish "$dry_run" && {
+        eval $act git ci -m \\\"\"$msg\"\\\"
+      } || {
+        echo "$msg" | git ci -F -
+      }
     } \
       || error "Failed making backup commit" $?
 
     test ! -d "/srv/backup-local/.git/annex" || {
-      git annex sync \
+      eval $act git annex sync \
         || error "Annex sync failed" $?
     }
   }
