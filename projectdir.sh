@@ -843,21 +843,25 @@ pd__copy()
 {
   test -n "$1" || error "expected hostname" 1
   test -n "$2" || error "expected prefix" 1
+  test -n "$hostname" || error "expected env hostname" 1
+  for host in $hostname $1
+  do
+    test -d ~/.conf/project/$host || \
+        error "No dir for host $host" 1
+    test -e ~/.conf/project/$1/projects.yaml || \
+        error "No projectdoc for host $1" 1
+  done
+  test "$hostname" != "$1" || error "You ARE at host '$2'" 1
 
-  test -d ~/.conf/project/$1 || \
-      error "No dir for host $1" 1
-  test -e ~/.conf/project/$1/projects.yaml || \
-      error "No projectdoc for host $1" 1
 
-  test -n "$hostname"
   $scriptdir/$scriptname.sh meta -sq get-repo "$2" \
     && error "Prefix '$2' already exists at $hostname" 1 || noop
 
-  test "$hostname" != "$1" || error "You ARE at host '$2'" 1
   pd=~/.conf/project/$1/projects.yaml \
     $scriptdir/$scriptname.sh meta dump $2 \
     | tail -n +2 - \
-    >> ~/.conf/project/$hostname/.projects.yaml
+    >> ~/.conf/project/$hostname/projects.yaml \
+    && note "Copied $2 from $1 to $hostname projects YAML"
 }
 
 
