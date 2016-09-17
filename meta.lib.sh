@@ -118,7 +118,7 @@ update_package()
   test -n "$1" || set -- .
   test -d "$1" || error "update-package dir '$1'" 21
   test -z "$2" || error "update-package args '$*'" 22
-  test -n "$pd" || error pd 20
+  test -n "$pd" || error no-pd 20
   test -n "$ppwd" || ppwd=$(cd $1; pwd)
   test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
   metaf=$(normalize_relative "$metaf")
@@ -146,6 +146,7 @@ update_package()
 
 package_sh()
 {
+  update_package
   test -e .package.sh || error package.sh 1
   (
     eval $(cat .package.sh | sed 's/^package_//g')

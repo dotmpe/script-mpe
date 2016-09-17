@@ -83,6 +83,7 @@ htd_find_ignores()
       grep '\/' | \
       sed -E 's/(.*)/ -o -path "*\1*" -prune /g'))
   } || warn "Missing or empty HTD_IGNORE '$HTD_IGNORE'"
+  rm $HTD_IGNORE.tmp
   find_ignores="-path \"*/.git\" -prune $find_ignores "
   find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
   find_ignores="-path \"*/.svn\" -prune -o $find_ignores "

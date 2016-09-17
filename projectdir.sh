@@ -890,13 +890,14 @@ pd__run()
     do
       fnmatch ":*" "$1" && target=$(echo "$1" | cut -c2- ) || target=$1
 
+      test -n .package.sh || error package 31
+
       #note "1=$1 target=$target"
 
       #record_env_keys pd-target pd-run pd-subcmd pd-env
       #pd_debug start $target pd-target pd_prefix
 
       (
-        test -n .package.sh || error package 31
         export $(pd__env)
         subcmd="$subcmd $pd_prefix#$target" \
           pd_run $1 && {

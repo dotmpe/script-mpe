@@ -76,6 +76,9 @@ htd_load()
   ns_tab=$HOME/.conf/namespace/$hostname.tab
 
   HTD_IGNORE=.htdignore
+  test -e $HTD_IGNORE || {
+    HTD_IGNORE=$(setup_tmpf .htdignore)
+  }
   htd_init_ignores
   #match_load_table vars
 
@@ -1338,13 +1341,6 @@ gtasks_opts()
   return $cnt
 }
 
-htd_file_arg()
-{
-  test -n "$1" && {
-    file=$1
-    shift 1
-  } || return 1
-}
 
 # List all lists
 htd__lists()
@@ -1438,18 +1434,73 @@ htd__done()
 }
 
 
+# Read urls for local files from file. If url is local dir, then
+# use that to change CWD.
+htd__urls_list()
+{
+  local cwd=$(pwd) file=
+  htd_urls_args "$@"
+  grep '\([a-z]\+\):\/\/.*' $file | while read url fn
+  do
+    test -d "$cwd/$url" && {
+      cd $cwd/$url
+      continue
+    }
+    test -n "$fn" || fn="$(basename "$url")"
+    sha1ref=$(printf $url | sha1sum - | cut -d ' ' -f 1)
+    md5ref=$(printf $url | md5sum - | cut -d ' ' -f 1)
+    #echo $sha1ref $md5ref $url
+    test -e "$fn" && {
+      note "TODO: check checksum for file $fn"
+    } || {
+      warn "No file '$fn'"
+    }
+  done
+}
 
-# TODO: get references from file
+htd__urls_get()
+{
+  local cwd=$(pwd) file=
+  htd_urls_args "$@"
+  read_nix_style_file "$file" | while read url fn utime size checksum
+  do
+    test -d "$cwd/$url" && {
+      cd $cwd/$url
+      continue
+    }
+    test -n "$fn" || fn="$(basename "$url")"
+    test -e "$fn" || {
+      wget -q "$url" -O "$fn" && {
+        test -e "$fn" && note "New file $fn" 
+      } || {
+        error "Retrieving file $fn"
+      }
+    }
+  done
+}
+
+htd_urls_args()
+{
+  test -n "$1" && file=$1 || file=urls.list
+  shift 1
+  test -e "$file" || error urls-list-file 1
+}
+
 htd__urls()
 {
-  htd_file_arg $1 || exit 1
-  shift 1
-  grep '\([a-z]\+\):\/\/.*' $file | while read url
-  do
-    sha1=$(printf $url | sha1sum - | cut -d ' ' -f 1)
-    md5=$(printf $url | md5sum - | cut -d ' ' -f 1)
-    echo $sha1 $md5 $url
-  done
+  test -n "$1" || set -- list
+  local act=$1; shift
+  case "$act" in
+    get )
+        htd__urls_get "$@" || return $?
+      ;;
+    list )
+        htd__urls_list "$@" || return $?
+      ;;
+    * ) error "No action '$act' for Htd urls"
+        return 4
+      ;;
+  esac
 }
 
 # init or list SSH based remote 
@@ -4127,7 +4178,7 @@ htd__find_broken_symlinks()
 
 htd__find_skip_broken_symlinks()
 {
-  find . -type l | xargs file | grep -v broken
+  find . -type l -exec file {} + | grep -v broken
 }
 
 
