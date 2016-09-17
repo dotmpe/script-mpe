@@ -10,6 +10,9 @@ test -z "$Build_Deps_Default_Paths" || {
 }
 
 test -n "$sudo" || sudo=
+test -z "$sudo" || pref="sudo $pref"
+
+test -z "$dry_run" || pref="echo $pref"
 
 test -n "$SRC_PREFIX" || {
   echo "Not sure where checkout"
@@ -33,7 +36,7 @@ install_bats()
   cd $SRC_PREFIX
   git clone https://github.com/dotmpe/bats.git
   cd bats
-  ${sudo} ./install.sh $PREFIX
+  ${pref} ./install.sh $PREFIX
   cd $pwd
 }
 
@@ -49,7 +52,7 @@ install_docopt()
   git clone https://github.com/dotmpe/docopt-mpe.git $SRC_PREFIX/docopt-mpe
   ( cd $SRC_PREFIX/docopt-mpe \
       && git checkout 0.6.x \
-      && $sudo python ./setup.py install $install_f )
+      && $pref python ./setup.py install $install_f )
 }
 
 install_mkdoc()
@@ -97,14 +100,14 @@ install_apenwarr_redo()
     test -d /usr/local/lib/python2.7/site-packages/redo \
       || {
 
-        $sudo git clone https://github.com/apenwarr/redo.git \
+        $pref git clone https://github.com/apenwarr/redo.git \
             /usr/local/lib/python2.7/site-packages/redo || return 1
       }
 
     test -h /usr/local/bin/redo \
       || {
 
-        $sudo ln -s /usr/local/lib/python2.7/site-packages/redo/redo \
+        $pref ln -s /usr/local/lib/python2.7/site-packages/redo/redo \
             /usr/local/bin/redo || return 1
       }
 
@@ -119,6 +122,18 @@ install_apenwarr_redo()
       return 1
     }
   }
+}
+
+install_git_lfs()
+{
+  # XXX: for debian only, and requires sudo
+  test -n "$sudo" || {
+    error "sudo required for GIT lfs"
+    return 1
+  }
+  curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+  $pref apt-get install git-lfs
+  # TODO: must be in repo. git lfs install
 }
 
 install_script()
@@ -172,6 +187,9 @@ main_entry()
       install_mkdoc || return $?
       install_pylib || return $?
       install_script || return $?
+    ;; esac
+
+  case "$1" in '-'|project|git|git-lfs )
     ;; esac
 
   echo "OK. All pre-requisites for '$1' checked"
