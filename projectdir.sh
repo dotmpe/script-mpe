@@ -330,7 +330,7 @@ pd__update()
   } || {
 
     note "Adding prefix $1"
-    pd__add_new $1 $(cd "$1"; vc.sh remotes sh)
+    pd__add_new $1 $(cd "$cwd/$1"; vc.sh remotes sh)
   }
 }
 
@@ -748,8 +748,19 @@ pd__add()
     test -z "$2" || set -- "origin" "$2" "$3"
   }
 
-  # Check URL arg, add/update a repo remote if given
-  test -z "$2" || props="remote_$1=$2"
+  # Check URL arg
+  test -n "$2" && {
+    # add/update a repo remote if arg given
+    props="remote_$1=$2"
+  } || {
+    # Or fill out all remotes
+    props="$(verbosity=0 ; cd $3 && vc remotes sh)"
+  }
+
+  note "Prefix: $3"
+  note "Repo: $2"
+  note "Remote: $1"
+  note "Properties: $props"
 
   pd__meta_sq get-repo "$3" 1>/dev/null || {
     pd__meta update-repo "$3" $props
@@ -771,7 +782,7 @@ pd__add_new()
 
   # Concat props as k/v, and sort into unique mapping later; last value wins
   # FIXME: where ar the defaults: host and user defined, and project defined.
-  props="clean=tracked sync=true $@"
+  props="clean=tracked sync=true $props"
 
   info "New repo $prefix, props='$(echo $props)'"
 
