@@ -579,7 +579,9 @@ pd__enable()
       test -n "$upstream" || upstream=origin
       uri="$(pd__meta get-uri "$1" $upstream)"
       test -n "$uri" || error "No uri for $1 $upstream" 1
-      git clone $uri --origin $upstream $1 || error "Cloning $uri" 1
+      branch=$(jsotk path "$pd" repositories/"$1"/default -Opy 2>/dev/null || echo master)
+      git clone $uri --origin $upstream --branch $branch $1 \
+        || error "Cloning $uri ($upstream/$branch)" 1
     }
     pd__init $1 || return
   }
@@ -603,6 +605,7 @@ pd_load__init=yfP
 pd__init()
 {
   test -n "$1" || error "prefix argument expected" 1
+  test -d "$1" || error "No checkout for $1" 1
   test -z "$2" || error "Surplus arguments: $2" 1
   pd__meta_sq get-repo $1 || error "No repo for $1" 1
 
