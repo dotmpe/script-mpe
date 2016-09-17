@@ -572,6 +572,7 @@ pd__enable()
     done
   } || {
     test -z "$2" || error "Surplus arguments: $2" 1
+    set -- "$(strip_trail=1 normalize_relative "$1")"
     pd__meta_sq get-repo $1 || error "No repo for $1" 1
     pd__meta -sq enabled $1 || pd__meta -q enable $1 || return
     test -d $1 || {
