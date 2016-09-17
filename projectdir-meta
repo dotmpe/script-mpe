@@ -145,7 +145,7 @@ from deep_eq import deep_eq
 
 from script_mpe import util, confparse
 from script_mpe.res import js
-from script_mpe.confparse import yaml_load, yaml_safe_dump
+from script_mpe.confparse import yaml_load, yaml_safe_dump, yaml_dump
 
 
 def meta_from_projectdir_doc(data):
@@ -551,8 +551,8 @@ def H_dump(pdhdata, ctx):
                 continue
             ctx.out.write("  %s:\n" % k)
             v = pdhdata['repositories'][k]
-            ctx.out.write("   "+ yaml_safe_dump(v, default_flow_style=False).replace(
-                    '\n', '\n    ')+"\n")
+            ctx.out.write("    "+ yaml_safe_dump(v
+                ).replace( '\n', '\n    ')+"\n")
 
 def H_x_dump(pdhdata, ctx):
     meta = meta_from_projectdir_doc(pdhdata)

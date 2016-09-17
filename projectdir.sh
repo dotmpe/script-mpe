@@ -579,7 +579,9 @@ pd__enable()
       test -n "$upstream" || upstream=origin
       uri="$(pd__meta get-uri "$1" $upstream)"
       test -n "$uri" || error "No uri for $1 $upstream" 1
-      git clone $uri --origin $upstream $1 || error "Cloning $uri" 1
+      branch=$(jsotk path "$pd" repositories/"$1"/default -Opy 2>/dev/null || echo master)
+      git clone $uri --origin $upstream --branch $branch $1 \
+        || error "Cloning $uri ($upstream/$branch)" 1
     }
     pd__init $1 || return
   }
@@ -603,6 +605,7 @@ pd_load__init=yfP
 pd__init()
 {
   test -n "$1" || error "prefix argument expected" 1
+  test -d "$1" || error "No checkout for $1" 1
   test -z "$2" || error "Surplus arguments: $2" 1
   pd__meta_sq get-repo $1 || error "No repo for $1" 1
 
@@ -854,21 +857,25 @@ pd__copy()
 {
   test -n "$1" || error "expected hostname" 1
   test -n "$2" || error "expected prefix" 1
+  test -n "$hostname" || error "expected env hostname" 1
+  for host in $hostname $1
+  do
+    test -d ~/.conf/project/$host || \
+        error "No dir for host $host" 1
+    test -e ~/.conf/project/$1/projects.yaml || \
+        error "No projectdoc for host $1" 1
+  done
+  test "$hostname" != "$1" || error "You ARE at host '$2'" 1
 
-  test -d ~/.conf/project/$1 || \
-      error "No dir for host $1" 1
-  test -e ~/.conf/project/$1/projects.yaml || \
-      error "No projectdoc for host $1" 1
 
-  test -n "$hostname"
   $scriptdir/$scriptname.sh meta -sq get-repo "$2" \
     && error "Prefix '$2' already exists at $hostname" 1 || noop
 
-  test "$hostname" != "$1" || error "You ARE at host '$2'" 1
   pd=~/.conf/project/$1/projects.yaml \
     $scriptdir/$scriptname.sh meta dump $2 \
     | tail -n +2 - \
-    >> ~/.conf/project/$hostname/.projects.yaml
+    >> ~/.conf/project/$hostname/projects.yaml \
+    && note "Copied $2 from $1 to $hostname projects YAML"
 }
 
 
