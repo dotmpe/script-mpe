@@ -21,7 +21,7 @@ vc.sh help
 #projectdir.sh help
 
 export PATH=$PATH:/usr/local/bin
-export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/dist-packages
+#export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/dist-packages
 export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/site-packages
 export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
 
