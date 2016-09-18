@@ -2,11 +2,11 @@
 box__source=$_
 # Box: create namespaced script commands 
 
-# Id: script-mpe/0.0.1 box.sh
+# Id: script-mpe/0.0.2-dev box.sh
 
 set -e
 
-version=0.0.1 # script-mpe
+version=0.0.2-dev # script-mpe
 
 
 ### User commands

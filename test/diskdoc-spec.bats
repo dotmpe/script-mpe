@@ -6,7 +6,7 @@ init
 #pwd=$(cd .;pwd -P)
 
 
-version=0.0.1 # script-mpe
+version=0.0.2-dev # script-mpe
 
 @test "${bin}" "No arguments: default action is status" {
   test "$uname" != Darwin || skip Darwin

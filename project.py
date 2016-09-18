@@ -3,7 +3,7 @@
 :created: 2014-02-26
 :updated: 2015-06-30
 """
-__version__ = '0.0.1' # script-mpe
+__version__ = '0.0.2-dev' # script-mpe
 __db__ = '~/.taxus-code.sqlite'
 __usage__ = """
 

@@ -21,7 +21,7 @@ Other flags:
     --version     Show version.
 
 """
-__version__ = '0.0.1' # script-mpe
+__version__ = '0.0.2-dev' # script-mpe
 
 import os
 import re

@@ -10,7 +10,7 @@ vc_src="$_"
 set -e
 
 
-version=0.0.1 # script-mpe
+version=0.0.2-dev # script-mpe
 
 
 vc_load()

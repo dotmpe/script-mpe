@@ -7,7 +7,7 @@ source $lib/util.sh
 source $lib/str.lib.sh
 
 
-version=0.0.1 # script-mpe
+version=0.0.2-dev # script-mpe
 
 @test "$bin normalize-relative" {
 

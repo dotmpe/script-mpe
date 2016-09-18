@@ -4,7 +4,7 @@
 
 - job:
     name: 'script-mpe-pipeline'
-    version: 0.0.1 # script-mpe
+    version: 0.0.2-dev # script-mpe
 
     display-name: 'script.mpe [dev]'
 

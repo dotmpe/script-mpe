@@ -3,7 +3,7 @@ match_src=$_
 
 set -e
 
-match_version=0.0.1 # script-mpe
+match_version=0.0.2-dev # script-mpe
 
 
 
