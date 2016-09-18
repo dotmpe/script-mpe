@@ -90,7 +90,7 @@ bats --version
 export PREFIX=
 export TRAVIS_SKIP=1
 export JENKINS_SKIP=1
-export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
+export PYTHONPATH=$PYTHONPATH:$HOME/lib/py
 
 mkdir -vp ./build
 
@@ -116,7 +116,7 @@ bats $SPECS || exit 0 > ./build/test-results.tap
             rm -rf $HOME/bin
             ln -s $WORKSPACE $HOME/bin
             export PATH=$PATH:$HOME/bin/
-            export PYTHON_PATH=$PYTHON_PATH:$HOME/lib/py
+            #export PYTHONPATH=$PYTHONPATH:$HOME/lib/py
             export JTB_HOME=$HOME/build/jtb
 
             export PREFIX=$WORKSPACE

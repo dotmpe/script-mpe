@@ -86,7 +86,7 @@ install_pylib()
   pushd $pylibdir
   ln -s $cwd script_mpe
   popd
-  export PYTHON_PATH=$PYTHON_PATH:.:$pylibdir/
+  export PYTHONPATH=$PYTHONPATH:.:$pylibdir/
 }
 
 install_apenwarr_redo()
