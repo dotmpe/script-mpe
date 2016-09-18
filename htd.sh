@@ -1482,7 +1482,6 @@ htd__urls_get()
 htd_urls_args()
 {
   test -n "$1" && file=$1 || file=urls.list
-  shift 1
   test -e "$file" || error urls-list-file 1
 }
 
