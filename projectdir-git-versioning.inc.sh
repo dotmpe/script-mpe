@@ -16,7 +16,7 @@ pd_load__git_versioning=i
 pd__git_versioning()
 {
   test -n "$1" || set -- check
-  test -n "$io_id" || local io_id="-$base-$subcmd-$(uuidgen)"
+  test -n "$io_id" || local io_id="-$base-$subcmd-$(htd uuid)"
   test -n "$vchk" || local vchk=$(setup_tmpf .vchk $io_id)
   local result=0 mismatches=
   git-versioning "$@" 2>&1 | tee $vchk

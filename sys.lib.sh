@@ -191,7 +191,7 @@ setup_tmpd()
 setup_tmpf()
 {
   test -n "$1" || set -- .out "$2" "$3"
-  test -n "$2" || set -- $1 $(uuidgen) "$3"
+  test -n "$2" || set -- $1 $(get_uuid) "$3"
   test -n "$1" -a -n "$2" || error "empty arg(s)" 1
   test -z "$4" || error "surplus arg(s) '$3'" 1
 

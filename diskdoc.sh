@@ -503,7 +503,7 @@ diskdoc_als___h=help
 
 diskdoc_load()
 {
-  test -n "$diskdoc_session_id" || diskdoc_session_id=$(uuidgen)
+  test -n "$diskdoc_session_id" || diskdoc_session_id=$(get_uuid)
 
   for x in $(try_value "${subcmd}" "" load | sed 's/./&\ /g')
   do case "$x" in

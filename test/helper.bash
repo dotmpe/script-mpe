@@ -119,7 +119,7 @@ tmpf()
 
 tmpd()
 {
-  tmpd=$BATS_TMPDIR/bats-tempd-$(uuidgen)
+  tmpd=$BATS_TMPDIR/bats-tempd-$(get_uuid)
   test -d "$tmpd" && rm -rf $tmpd
   mkdir -vp $tmpd
 }

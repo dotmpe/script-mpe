@@ -451,7 +451,7 @@ dckr__swarm_host()
 
 dckr__init_interlock()
 {
-  tmp=/tmp/$(uuidgen)
+  tmp=/tmp/$(get_uuid)
   mkdir -vp $tmp
   cd $tmp
   wget https://github.com/ehazlett/interlock/raw/master/docs/examples/nginx-swarm-machine/docker-compose.yml || return $?
@@ -641,7 +641,7 @@ dckr__machine_ip_update()
 dckr__machines_nfs()
 {
   test -n "$1" || set -- $(docker-machine ls -q)
-  local updated=/tmp/dckr-machines-nfs-$(uuidgen)
+  local updated=/tmp/dckr-machines-nfs-$(htd uuid)
   while test -n "$1"
   do
     test "$(docker-machine status $1)" = "Running" || { 
@@ -672,7 +672,7 @@ dckr__machines_nfs()
 dckr__machines()
 {
   test -n "$1" || set -- $(docker-machine ls -q)
-  local updated=/tmp/dckr-machines-ip-updated-$(uuidgen)
+  local updated=/tmp/dckr-machines-ip-updated-$(htd uuid)
   test ! -e "$updated" || rm $updated
   test -e /etc/exports || sudo touch /etc/exports
   while test -n "$1"

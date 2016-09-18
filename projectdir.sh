@@ -427,7 +427,7 @@ pd_load__sync=yf
 pd__sync()
 {
   test -n "$1" || error "prefix argument expected" 1
-  remotes=/tmp/pd--sync-$(uuidgen)
+  remotes=/tmp/pd--sync-$(get_uuid)
   prefix=$1
 
   shift 1
@@ -1209,7 +1209,7 @@ pd_load()
   pd_inputs="arguments prefixes options"
   pd_outputs="passed skipped error failed"
 
-  test -n "$pd_session_id" || pd_session_id=$(uuidgen)
+  test -n "$pd_session_id" || pd_session_id=$(get_uuid)
 
   # Per subcmd init
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')

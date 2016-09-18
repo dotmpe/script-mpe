@@ -93,7 +93,7 @@ htd_load()
   htd_inputs="arguments prefixes options"
   htd_outputs="passed skipped error failed"
 
-  test -n "$htd_session_id" || htd_session_id=$(uuidgen)
+  test -n "$htd_session_id" || htd_session_id=$(htd__uuid)
   test -n "$choice_interactive" || choice_interactive=1
 
   local flags="$(try_value "${subcmd}" run | sed 's/./&\ /g')"
@@ -4220,6 +4220,12 @@ htd__find_broken_symlinks()
 htd__find_skip_broken_symlinks()
 {
   find . -type l -exec file {} + | grep -v broken
+}
+
+
+htd__uuid()
+{
+  get_uuid
 }
 
 

@@ -832,7 +832,7 @@ pd_run()
           error "No such Pd target '$comp'"; echo "$1" >>$error; return 1
         }
 
-        sub_session_id=$(uuidgen)
+        sub_session_id=$(get_uuid)
         (
           unset verbosity
           subcmd="$pd_prefix#$comp"
