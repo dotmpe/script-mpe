@@ -21,10 +21,14 @@ vc.sh help
 #projectdir.sh help
 
 export PATH=$PATH:/usr/local/bin
-export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/dist-packages:$HOME/.local/lib/python2.7/site-packages
+export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/dist-packages
+export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/site-packages
+export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
+
 echo "*PATH* env:"
 env | grep PATH
 
+pip uninstall zope.interface
 pip install --user -r requirements.txt
 pip install --user -r test-requirements.txt
 npm install parse-torrent lodash
