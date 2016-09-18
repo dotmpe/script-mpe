@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = '0.0.0'
+__version__ = '0.0.1' # script-mpe
 __db__ = 'postgresql+psycopg2://redmine:password@localhost:15432/redmine_production'
 __usage__ = """
 redmine-meta - Read data from Redmine database.

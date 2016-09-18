@@ -5,6 +5,7 @@
     name: script.mpe
 
     branch: dev
+    version: '0.0.1' # script-mpe
     vendor-path: dotmpe/script.mpe
     htmlDescription: ''
     project-src: '*.sh,*.py'
@@ -53,7 +54,7 @@
         title: 'script.mpe [gh,local,no-test] ({branch})'
         htmlDescription: |
           Running some bats test to see if they go, without parsing results.
-          Part of script-mpe/0.0.0 .jtb.yml
+          Part of script-mpe/{version} .jtb.yml
         restrict-node: ubuntu || treebox
         builders:
         - shell: |
@@ -84,7 +85,7 @@
         title: 'script.mpe [gh,bats] ({branch})'
         htmlDescription: |
           Run some bats tests and publish results
-          Part of script-mpe/0.0.0 .jtb.yml
+          Part of script-mpe/{version} .jtb.yml
         restrict-node: ubuntu || treebox
         bats-tap-results: build/test-results.tap
         parameters:

@@ -9,7 +9,7 @@ TODO: create all nodes; name, description, hierarchy and dump/load json/xml
     files in ~/htdocs/note/*.rst
 """
 __description__ = "topic - "
-__version__ = '0.0.0'
+__version__ = '0.0.1' # script-mpe
 __db__ = '~/.topic.sqlite'
 __usage__ = """
 Usage:
@@ -25,7 +25,7 @@ Options:
                   SQLAlchemy DB URL [default: %s]
 
 Other flags:
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 """ % ( __db__, __version__ )
@@ -95,7 +95,7 @@ def cmd_new(NAME, REF, settings):
     #    store.commit()
     #reporter.stdout.Topic(topic)
 
-    # XXX: old 
+    # XXX: old
     sa = Topic.get_session('default', settings.dbref)
     topic = Topic.byName(NAME)
     if topic:

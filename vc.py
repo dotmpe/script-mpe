@@ -16,11 +16,12 @@ Options:
     -p --props=NAME=VALUE
 
 Other flags:
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version.
 
 """
+__version__ = '0.0.1' # script-mpe
 
 import os
 import re
@@ -46,7 +47,7 @@ class VC(rsr.Rsr):
     NAME = os.path.splitext(os.path.basename(__file__))[0]
     assert NAME == 'vc'
     DEFAULT_CONFIG_KEY = NAME
-    DEPENDS = { 
+    DEPENDS = {
         'vc_repos': [ 'rsr_session' ],
         'vc_repo': [ 'rsr_session' ],
         'vc_status': [ 'vc_repo' ],

@@ -10,6 +10,9 @@ vc_src="$_"
 set -e
 
 
+version=0.0.1 # script-mpe
+
+
 vc_load()
 {
   local __load_lib=1 cwd="$(pwd)"
@@ -210,8 +213,7 @@ vc__docs()
 
 vc__version()
 {
-	# no version, just checking it goes
-	echo 0.0.0
+  echo $version
 }
 vc___v() { c__version; }
 

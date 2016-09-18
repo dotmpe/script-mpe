@@ -14,7 +14,7 @@
 :updated: 2014-08-26
 """
 __description__ = "bookmarks - "
-__version__ = '0.0.0'
+__version__ = '0.0.1' # script-mpe
 __db__ = '~/.bookmarks.sqlite'
 __usage__ = """
 Usage:
@@ -33,7 +33,7 @@ Options:
                   relations if the usage is below given value.
                   This entirely depends on usage.
                   0 means to import everything [default: -1]
-                  Defaults to hiFreq * 0.1. 
+                  Defaults to hiFreq * 0.1.
     --domain-offset INT
                   Typical --*-offset, see before.
                   Defaults to avgFreq. [default: -1]
@@ -42,7 +42,7 @@ Options:
     -v            Increase verbosity.
 
 Other flags:
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
@@ -185,8 +185,8 @@ class bookmarks(rsr.Rsr):
             if len(href) > 255:
                 log.err("Reference too long: %s", href)
                 return
-            lctr = Locator( 
-                    global_id=href, 
+            lctr = Locator(
+                    global_id=href,
                     date_added=datetime.now() )
             sa.add( lctr )
             if opts.rsr_auto_commit:
@@ -206,7 +206,7 @@ class bookmarks(rsr.Rsr):
         "Create or update. alias --update?"
         lctr = [ r['lctr'] for r in self.assert_locator(sa=sa, href=href, opts=opts) ]
         if not lctr:
-            yield dict( err="XXX Missed ref" ) 
+            yield dict( err="XXX Missed ref" )
         else:
             lctr = lctr.pop()
             assert lctr
@@ -295,14 +295,14 @@ class bookmarks(rsr.Rsr):
             #for ref in mozbm.read_lctr(path):
             #    list(self.assert_locator(sa=sa, href=ref, opts=opts))
             for node in mozbm.read_bm(path):
-                descr = [ a['value'] for a in node.get('annos', [] ) 
+                descr = [ a['value'] for a in node.get('annos', [] )
                         if a['name'] == 'bookmarkProperties/description' ]
                 if 'uri' not in node or 'title' not in node or not node['title']:
                     log.warn("Illegal %s", node)
                 else:
-                    list(self.add(sa=sa, 
-                        href=node['uri'], 
-                        name=node['title'], 
+                    list(self.add(sa=sa,
+                        href=node['uri'],
+                        name=node['title'],
                         ext=descr and descr.pop() or None,
                         opts=opts))
 
@@ -321,7 +321,7 @@ class bookmarks(rsr.Rsr):
                         roots.append(node)
             # TODO: store groups, but need to start at the root, sort out struct
             # XXX should need a tree formatter here
-            print 'Groups' 
+            print 'Groups'
             for nid, node in nodes.items():
                 #print repr(node['title']),
                 if 'parent' in node:
@@ -329,9 +329,9 @@ class bookmarks(rsr.Rsr):
                     self.rsr_add_group( node['title'], parent['title'],
                             sa=sa, opts=opts )
                 else:
-                    self.rsr_add_group( node['title'], None, 
+                    self.rsr_add_group( node['title'], None,
                             sa=sa, opts=opts )
-            print 'Roots' 
+            print 'Roots'
             for root in roots:
                 print root['id'], root['title']
 
@@ -340,7 +340,7 @@ class bookmarks(rsr.Rsr):
         data = dlcs_parse_xml(open(p).read())
         for post in data['posts']:
             yield post
-    
+
     def dlcs_post_test(self, p):
         bm = self.execute( 'dlcs_post_read', dict( p=p) , 'all-key:href' )
         print p, len(bm)
@@ -367,16 +367,16 @@ class bookmarks(rsr.Rsr):
                 bm = self.execute( 'assert_locator', bm_dict, 'first-key:bm' )
 
                 lctr = lctrs.pop()
-                bms = [ d['bm'] for d in self.add( sa=sa, 
-                    href=post['href'], 
-                    name=post['description'], 
-                    ext=post['extended'], 
+                bms = [ d['bm'] for d in self.add( sa=sa,
+                    href=post['href'],
+                    name=post['description'],
+                    ext=post['extended'],
                     tags=post['tag'],
                     opts=opts) ]
                 if not bms:
                     continue
                 bm = bms.pop()
-                tags = [ GroupNode.find(( GroupNode.name == t, ), sa=sa ) 
+                tags = [ GroupNode.find(( GroupNode.name == t, ), sa=sa )
                         for t in post['tag'].split(' ') ]
                 [ grouptags.append(t) for t in tags if t ]
                 for tag in tags:
@@ -392,7 +392,7 @@ class bookmarks(rsr.Rsr):
                     print node.ref
                 else:
                     print
-        
+
         if opts.rsr_auto_commit:
             sa.commit()
 

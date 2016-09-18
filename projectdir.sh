@@ -4,7 +4,7 @@ pd_src="$_"
 
 set -e
 
-version=0.0.0+20150911-0659 # script-mpe
+version=0.0.1 # script-mpe
 
 
 pd__man_1_version="Version info"

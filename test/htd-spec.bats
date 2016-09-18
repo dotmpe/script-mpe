@@ -6,7 +6,7 @@ init
 pwd=$(cd .;pwd -P)
 
 
-version=0.0.0-dev # script-mpe
+version=0.0.1 # script-mpe
 
 @test "$bin no arguments no-op" {
   skip "Default command is $EDITOR now"

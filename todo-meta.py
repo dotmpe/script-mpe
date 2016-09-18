@@ -2,7 +2,7 @@
 """:created: 2015-11-30
 """
 __description__ = "todo-meta - todo document proc"
-__version__ = '0.0.0'
+__version__ = '0.0.1' # script-mpe
 __usage__ = """
 Usage:
   todo-meta.py [options] info

@@ -24,6 +24,8 @@ Change Log
     Stopped dev on most python scripts, but for now and then.
 
 
-(0.0.0)
+0.0.1
+  Initial version. All test at Boreas and Travis OK.
+  Some minor failures at dandy (243 tests, 2 failures, 31 todo, 21 skipped)
 
 

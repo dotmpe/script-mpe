@@ -1,7 +1,7 @@
 script.mpe
 ==========
-:Version: 0.0.0-dev
-:Updated: 2016-08-09
+:Version: 0.0.1
+:Updated: 2016-09-18
 
 
 Build-status

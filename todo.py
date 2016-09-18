@@ -4,7 +4,7 @@
 TODO: interface this with Google tasks
 """
 __description__ = "todo - time ordered, grouped tasks"
-__version__ = '0.0.0'
+__version__ = '0.0.1' # script-mpe
 __db__ = '~/.todo.sqlite'
 __usage__ = """
 Usage:
