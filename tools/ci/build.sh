@@ -20,10 +20,10 @@ vc.sh help
 #projectdir.sh help
 
 export PATH=$PATH:/usr/local/bin
+export PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/python2.7/site-packages
 
 pip install --user -r requirements.txt
 pip install --user -r test-requirements.txt
-
 npm install parse-torrent lodash
 
 radical.py --help
