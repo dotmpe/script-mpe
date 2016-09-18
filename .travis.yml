@@ -6,6 +6,7 @@ install:
 - "source ./install-dependencies.sh && install_pylib"
 - "source ./install-dependencies.sh && install_script"
 - "source ./install-dependencies.sh && install_docopt"
+- pip uninstall -y zope.interface
 - pip install --user nose-parameterized
 
 addons:
