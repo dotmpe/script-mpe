@@ -28,7 +28,7 @@ export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
 echo "*PATH* env:"
 env | grep PATH
 
-pip uninstall zope.interface
+pip uninstall -y zope.interface
 pip install --user -r requirements.txt
 pip install --user -r test-requirements.txt
 npm install parse-torrent lodash
