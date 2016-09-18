@@ -28,8 +28,8 @@ export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
 echo "*PATH* env:"
 env | grep PATH
 
-pip install --user -r requirements.txt
-pip install --user -r test-requirements.txt
+pip install --upgrade --user -r requirements.txt
+pip install --upgrade --user -r test-requirements.txt
 npm install parse-torrent lodash
 
 radical.py --help
