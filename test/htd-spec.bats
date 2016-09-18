@@ -364,6 +364,7 @@ EOM
 
 @test "$bin update (ck-prune, ck-clean, ck-update)" {
   run $bin update
+  rm table.*missing || noop
   git checkout table.*
   test ${status} -eq 0
 }

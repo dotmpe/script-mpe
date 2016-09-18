@@ -407,6 +407,27 @@ pd__list_prefixes()
   pd__meta list-prefixes "$1" || return
 }
 
+pd__list()
+{
+  pd__meta list-prefixes | read_nix_style_file | while read prefix
+  do
+    echo $prefix
+    # TODO: echo table; id name main envs..
+  done
+}
+
+pd__list_all()
+{
+  test -d "$UCONF/project/" || error list-all-UCONF 1
+  local pd=
+  {
+    for pd in $UCONF/project/*/*.y*ml
+    do
+      pd__meta list-prefixes 
+    done
+  } | sort -u
+}
+
 pd_load__compile_ignores=y
 pd__compile_ignores()
 {
@@ -1202,6 +1223,11 @@ pd_load()
   test -n "$PD_TMPDIR" || PD_TMPDIR=$(setup_tmpd $base)
   test -n "$PD_TMPDIR" -a -d "$PD_TMPDIR" || error "PD_TMPDIR load" 1
 
+  test -n "$UCONF" || {
+    test -e $HOME/.conf \
+      && UCONF=$HOME/.conf \
+      || error env-UCONF 1
+  }
   # FIXME: test with this enabled
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"

@@ -37,11 +37,37 @@ disk_als___e=edit
 disk__status()
 {
   disk__list_local | grep -Ev '^\s*(#.*|\s*)$' | while\
-    read dev disk_id disk_model size table_type
+    read num dev disk_id disk_model size table_type
   do
     test -e $dev || error "No such device? $dev" 1
     mnts="$(echo $(find_mount $dev))"
-    stderr ok "$dev $size ($mnts)"
+    stderr ok "${grey}$disk_id $(echo $mnts | count_words) known partition(s) (${nrml}$size ${grey}$dev)"
+    disk_list_part_local $dev | while read vol_dev
+    do
+      test -e "$vol_dev" || error "No such volume device '$vol_dev'" 1
+      mount=$(find_mount $vol_dev)
+      # FIXME: shomehow fstype is not showing up. Also, want part size/free 
+      fstype="$(disk_partition_type "$vol_dev")"
+      vol_idx=$(echo $vol_dev | sed -E 's/^.*([0-9]+)$/\1/')
+      vol_id="$(disk_vol_info $disk_id-$vol_idx 2>/dev/null)"
+      vsize=$(disk_partition_size $vol_dev)
+      vusg=$(disk_partition_usage $vol_dev)
+      case "$fstype" in
+        swap* ) info "$disk_id:$vol_idx: swap space ($fstype $vol_dev)" ;;
+        * )
+          test -n "$mount" \
+            && {
+              info "$disk_id:${grn}$vol_idx${grey}: ${bnrml}$vol_id${grey} ($vsize ${bnrml}$vusg%% ${grey}$fstype $vol_dev)"
+              test -e $mount/.volumes.sh \
+                || warn "Missing catalog at $mount"
+            } || {
+              fnmatch "* extended partition table *" "$(sudo file -sL $vol_dev)" && {
+                info "$disk_id:$vol_idx: extended table ($fstype $vol_dev)"
+              } || info "$disk_id:${ylw}$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
+            }
+          ;;
+      esac
+    done
   done
 }
 
@@ -83,34 +109,30 @@ disk__get_by_id()
 disk__prefix()
 {
   test -n "$1" || error "disk expected" 1
-  disk__info $1 prefix
+  disk_info $1 prefix
 }
 
-# Get key
+# Get single attribute from catalog disk record by DISK_ID KEY
 disk__info()
 {
-  test -n "$2" || set -- "$1" "prefix"
-  test -e "$DISK_CATALOG/disk/$1.sh" || {
-    set -- $(disk__id $1) $2
-  }
-  test -e "$DISK_CATALOG/disk/$1.sh" \
-    || error "No such known disk $1" 1
-  . $DISK_CATALOG/disk/$1.sh
-  eval echo \$$2
+  disk_info "$@"
 }
 
 
 # Show disk info TODO: test this works at every platform
 disk__local()
 {
+  test -n "$1" || set -- $(disk_list)
   {
-    echo "#NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE"
-    while test -n "$1"
-    do
-      disk_local "$1"
-      shift
-    done
-  } | sort -n | column -tc 3
+    echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
+    {
+      while test -n "$1"
+      do
+        disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C
+        shift
+      done
+    } | sort -n
+  } | column -tc 3
 }
 
 disk__list_local()
@@ -119,7 +141,8 @@ disk__list_local()
     echo "#DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE"
     disk_list | while read disk
     do
-      disk_local $disk | grep -Ev '^\s*(#.*|\s*)$'
+      disk_local $disk NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C \
+        | grep -Ev '^\s*(#.*|\s*)$'
     done
   } | sort -n | column -tc 3
   echo "# Disks at $(hostname), $(datetime_iso)"
@@ -130,7 +153,7 @@ disk__list_local()
 #}
 disk__list_part_local()
 {
-  disk_list_part
+  disk_list_part_local
 }
 
 # Tabulate disks, and where they are (from catalog)
@@ -163,6 +186,7 @@ disk__enable()
 
 disk__enable_volumes()
 {
+  note "TODO: enable volumes"
   note Done
 }
 

@@ -2150,26 +2150,29 @@ htd__ck_table()
   var_isset ck_tab || local ck_tab=
   # table ext
   ck_arg "$1"
-  shift 1
+  test -n  "$1" && shift 1
   # second table ext
   test -n "$1" -a -e "$ck_tab.$CK.$1" && {
     S=$1; shift 1
   } || S=
   test -z "$1" && {
-    # run all entries
-    cat $ck_tab.$CK$S | grep -Ev '^\s*(#.*|\s*)$' | \
-    while read -a ckline
-    do
-      test "$CK" = "ck" && {
-        cks=${ckline[@]::1}
-        sz=${ckline[@]::1}
-        p="${ckline[@]:2}"
-      } || {
-        cks=${ckline[@]::1}
-        p="${ckline[@]:1}"
-      }
-      echo "$cks  $p"
-    done
+    {
+      echo "#${T_CK}SUM  PATH"
+      # run all entries
+      cat $ck_tab.$CK$S | grep -Ev '^\s*(#.*|\s*)$' | \
+      while read ckline_1 ckline_2 ckline_3
+      do
+        test "$CK" = "ck" && {
+          cks=$ckline_1
+          sz=$ckline_2
+          p=$ckline_3
+        } || {
+          cks=$ckline_1
+          p=$ckline_2
+        }
+        echo "$cks  $p"
+      done
+    } | column -tc 2
   } || {
     # look for single path
     htd_relative_path "$1"
@@ -2237,7 +2240,8 @@ ck_update_file()
     SZ="$(filesize "$update_file")"
   }
   test "$SZ" -ge "$MIN_SIZE" || {
-    warn "File too small: $SZ"
+    trueish "$choice_ignore_small" \
+      || warn "File too small: $SZ"
     return
   }
   # test localname for SHA1 tag
@@ -2281,13 +2285,16 @@ ck_update_file()
 
 ck_update_find()
 {
-  log "Reading $T_CK, looking for files '$1'"
-  find_p="$1"
-  # strip trailing slash
-  test "${find_p: -1:1}" = "/" && find_p="${find_p:0: -1}"
+  info "Reading $T_CK, looking for files '$1'"
+  find_p="$(strip_trail=1 normalize_relative "$1")"
 
-  failed=$(setup_tmpf .failed)
+  var_isset failed || {
+    local failed_local=1 failed=$(setup_tmpf .failed)
+    test ! -e $failed || rm $failed
+  }
+
   local paths=$(setup_tmpf .$subcmd)
+  test ! -e $paths || rm $paths
 
   ck_update_find_inner()
   {
@@ -2308,12 +2315,18 @@ ck_update_find()
     ck_update_file "$p" || echo "htd:$subcmd:$p" >>$failed
   done < $paths
 
+  test -s "$failed" \
+    && warn "Failures: $T_CK '$1', $(count_lines $failed) targets" \
+    || stderr ok "$T_CK '$1', $(count_lines $paths) files"
   rm -rf $paths
+  test -n "$failed_local" -o ! -e $failed || rm $failed
 }
+
 
 # find all files, check their names, size and checksum
 htd__ck_update()
 {
+  test -n "$choice_ignore_small" || choice_ignore_small=1
   htd_find_ignores
   ck_write "$1"
   shift 1
@@ -2324,17 +2337,17 @@ htd__ck_update()
     shift 1
     test -n "$update_p" || error "empty argument" 1
     test -d "$update_p"  && {
-      log "Checking dir '$update_p'"
+      note "Checking $T_CK for dir '$update_p'"
       ck_update_find "$update_p" || return $?
       continue
     }
     test -f "$1" && {
-      log "Checking '$update_p'"
+      note "Checking $T_CK for '$update_p'"
       ck_update_file "$1" || return $?
       continue
     }
     test -L "$1"  &&  {
-      log "Checking symlink '$update_p'"
+      note "Checking $T_CK for symlink '$update_p'"
       ck_update_file "$1" || return 4
       continue
     }
@@ -2347,7 +2360,8 @@ htd__ck_drop()
 {
   ck_write "$1"
   shift 1
-  ck_drop "$1"
+  echo TODO ck_drop "$1"
+  return 
   req_arg "$1" 'ck-drop' 2 path || return 1
   match_grep_pattern_test "$1" || return 1
   cp table.$CK table.$CK.tmp
@@ -2388,12 +2402,14 @@ htd__ck_prune()
 {
   ck_write "$1"
   shift 1
-  log "Pruning missing files from $CK table"
-  htd__ck_table $CK | while read cks p
+  info "Looking for missing files in $CK table.."
+  htd__ck_table $CK \
+    | grep -Ev '^(#.*|\s*)$' \
+    | while read cks p
   do
     test -e "$p" || {
-      htd__ck_drop $CK "$p"
-      echo "Dropped $CK key $cks for '$p'"
+      htd__ck_drop $CK "$p" \
+        && note "Dropped $CK key $cks for '$p'"
     }
   done
 }
