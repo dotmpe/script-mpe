@@ -156,7 +156,7 @@ main_entry()
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
       which pip >/dev/null || {
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
-      pip install --user setuptools objectpath \
+      pip install --user setuptools objectpath ruamel.yaml \
         || exit $?
     ;; esac
 
