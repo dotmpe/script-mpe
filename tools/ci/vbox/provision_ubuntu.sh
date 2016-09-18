@@ -11,6 +11,6 @@ which pip >/dev/null || { cd /tmp/ && { test -e get-pip.py || wget https://boots
 
 pip uninstall -y zope.interface || printf ""
 
-pip install setuptools pytz twisted sqlalchemy virtualenv ruamel.PyYAML nose-parameterized objectpath \
-  zope.component zope.interface
+pip install -r requirements.txt
+pip install -r test-requirements.txt
 

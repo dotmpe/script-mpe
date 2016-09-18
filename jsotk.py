@@ -6,7 +6,7 @@ Javascript Object toolkit.
 :updated: 2016-05-21
 
 Usage:
-    jsotk [options] path [--is-new] [--is-null] [--is-list] [--is-obj] 
+    jsotk [options] path [--is-new] [--is-null] [--is-list] [--is-obj]
             [--is-int] [--is-str] [--is-bool] <srcfile> <pathexpr>
     jsotk [options] objectpath <srcfile> <expr>
     jsotk [options] keys <srcfile> <pathexpr>
@@ -315,7 +315,10 @@ def H_items(ctx):
 
 def H_objectpath(ctx):
     infile, outfile = get_src_dest_defaults(ctx)
-    q = Tree(load_data( ctx.opts.flags.input_format, infile, ctx ) )
+    data = load_data( ctx.opts.flags.input_format, infile, ctx )
+    assert data
+    q = Tree(data)
+    assert q.data
     o = q.execute( ctx.opts.args.expr )
     if isinstance(o, types.GeneratorType):
         for s in o:

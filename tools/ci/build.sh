@@ -21,15 +21,9 @@ vc.sh help
 
 export PATH=$PATH:/usr/local/bin
 
-pip install --user pytz
-pip install --user ruamel.yaml
-pip install --user zope.interface
-pip install --user zope.component
-pip install --user objectpath
-pip install --user docutils
-pip install --user jsonschema
-pip install --user sqlalchemy
-pip install --user sqlalchemy-migrate
+pip install --user -r requirements.txt
+pip install --user -r test-requirements.txt
+
 npm install parse-torrent lodash
 
 radical.py --help

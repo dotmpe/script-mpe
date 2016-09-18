@@ -1,0 +1,4 @@
+virtualenv
+nose-parameterized
+jsonschema
+sqlalchemy-migrate
