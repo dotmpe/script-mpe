@@ -21,6 +21,7 @@ addons:
 before_script: []
 
 script:
+- uuidgen
 - . ./tools/ci/build.sh
 # verify exit of above script (everything again):
 - bats ./test/*-spec.bats

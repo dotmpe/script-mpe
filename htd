@@ -3716,6 +3716,25 @@ htd__ping()
 }
 
 
+# Count depth (excluding root)
+htd__path_depth()
+{
+  test -n "$1" || error arg-1-path-expected 1
+
+  while test -n "$1"
+  do
+    path="$(htd normalize-relative "$1")"
+    #note "Depth for path $path"
+    # Count dashes (except the trailing one)
+    depth=$(echo $path | tr '/' ' ' | count_words)
+    # Remove root. 
+    echo $(( $depth - 1 ))
+    shift
+  done
+}
+htd_als__depth=path-depth
+
+
 # (Re)init service volume links (srv-init) and get (repo) state (srv-stat)
 htd__srv()
 {
@@ -3733,18 +3752,40 @@ htd__srv_init()
   }
 }
 
-# Stat a volumes repositories
+
+# Volumes for services
+
+htd__srv_list()
+{
+  for srv in /srv/*
+  do
+    test -h $srv || continue
+    target="$(readlink $srv)"
+    name="$(basename $srv -local)"
+    depth=$(htd__path_depth "$target") 
+        case "$target" in
+          /mnt*|/media*|/Volumes* )
+              note "Volume link '$name' to $target" ;;
+          * )
+              test $depth -eq 1 && {
+                info "Chain link '$name' to $target"
+              } || {
+                test $depth -gt 1 && {
+                  warn "Deep link '$name' to $target"
+                } || {
+                  info "Local link '$name' to $target"
+                }
+              } ;;
+        esac
+  done
+}
+
 htd__srv_stat()
 {
   # TODO: manage volume's repo's
-  
-  pd=/srv/.projects.yml
-  disk cat-to-pd /srv/ > $pd
-
-  ( cd /srv/; pd stat || return $? )
-
-  note "Local volume repositories all OK"
+  note "TODO: Local volume repositories all OK"
 }
+
 
 # Update volume repositories
 htd__srv_update()
@@ -4311,7 +4352,7 @@ htd_init()
   . $scriptdir/date.lib.sh
   . $scriptdir/doc.lib.sh
   . $scriptdir/table.lib.sh
-  . $scriptdir/disk.inc.sh
+  . $scriptdir/disk.lib.sh
   lib_load remote
   # -- htd box init sentinel --
 }

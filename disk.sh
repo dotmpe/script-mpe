@@ -24,7 +24,7 @@ disk__edit()
   $EDITOR \
     $0 \
     $(which disk.sh) \
-    $(dirname $(which disk.sh))/disk.inc.sh \
+    $(dirname $(which disk.sh))/disk.lib.sh \
     $(dirname $(which disk.sh))/disk.rst \
     $(which diskdoc.sh) \
     $(which diskdoc.py) \
@@ -36,7 +36,13 @@ disk_als___e=edit
 
 disk__status()
 {
-  note OK
+  disk__list_local | grep -Ev '^\s*(#.*|\s*)$' | while\
+    read dev disk_id disk_model size table_type
+  do
+    test -e $dev || error "No such device? $dev" 1
+    mnts="$(echo $(find_mount $dev))"
+    stderr ok "$dev $size ($mnts)"
+  done
 }
 
 disk__id()
@@ -80,15 +86,16 @@ disk__prefix()
   disk__info $1 prefix
 }
 
+# Get key
 disk__info()
 {
+  test -n "$2" || set -- "$1" "prefix"
   test -e "$DISK_CATALOG/disk/$1.sh" || {
-    set -- $(disk id $1) $2
+    set -- $(disk__id $1) $2
   }
   test -e "$DISK_CATALOG/disk/$1.sh" \
     || error "No such known disk $1" 1
   . $DISK_CATALOG/disk/$1.sh
-
   eval echo \$$2
 }
 
@@ -98,7 +105,11 @@ disk__local()
 {
   {
     echo "#NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE"
-    echo $1 $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) $(disk_tabletype $1)
+    while test -n "$1"
+    do
+      disk_local "$1"
+      shift
+    done
   } | sort -n | column -tc 3
 }
 
@@ -108,7 +119,7 @@ disk__list_local()
     echo "#DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE"
     disk_list | while read disk
     do
-      disk__info $disk | grep -Ev '^\s*(#.*|\s*)$'
+      disk_local $disk | grep -Ev '^\s*(#.*|\s*)$'
     done
   } | sort -n | column -tc 3
   echo "# Disks at $(hostname), $(datetime_iso)"
@@ -191,7 +202,7 @@ disk__copy_fs()
   note "Copied '$2' to '$3'"
 }
 
-# Return wether disk catalog looks up to date; 
+# Return wether disk catalog looks up to date;
 # ie. wether current catalog matches with available disks
 disk__check()
 {
@@ -223,19 +234,19 @@ disk__check_all()
           # Note: disk_id is set in preceeding look
           #. $DISK_CATALOG/$disk_id-.sh
 
-          echo "- $mount ($fstype at $dev)"
+          stderr ok "$mount ($fstype at $dev)"
 
         } || {
 
-          echo "- $mount ($fstype at $dev)"
+          stderr ok "$mount ($fstype at $dev)"
         }
 
       } || {
 
         # FIXME: get proper way of detecting supported fs types
         case "$fstype" in
-          ext* | vfat | ntfs )
-              echo $fstype copy_fs $dev '.package.{y*ml,sh}'
+          ext* | vfat | ntfs | iso9660 )
+              note "TODO: $fstype copy_fs $dev '.package.{y*ml,sh}'"
             ;;
           '' | swap )
               info "Ignored partition $dev ($fstype)";;
@@ -248,8 +259,6 @@ disk__check_all()
     } || {
 
       # Get disk meta
-
-      echo
 
       disk_id=$(disk_id $dev)
       test "$disk_id" = "" && {
@@ -325,7 +334,7 @@ disk_init()
   #        shift;;
   #  esac
   #done
-  . $scriptdir/disk.inc.sh "$@"
+  . $scriptdir/disk.lib.sh "$@"
   . $scriptdir/date.lib.sh
   . $scriptdir/match.lib.sh
   . $scriptdir/vc.sh load-ext

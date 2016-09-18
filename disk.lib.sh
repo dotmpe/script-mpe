@@ -78,6 +78,13 @@ disk_tabletype()
   esac
 }
 
+# Print tab for lcal disk
+#NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE
+disk_local()
+{
+  echo $1 $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) $(disk_tabletype $1)
+}
+
 # List local online disks (mounted or not)
 disk_list()
 {
@@ -301,6 +308,6 @@ disk_catalog_import()
     disk_catalog_update "$1" || return $?
     disk_catalog_update_volume "$1" || return $?
   )
-  note "Imported '$1'"
+  info "Imported '$1'"
 }
 

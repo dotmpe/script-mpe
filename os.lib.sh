@@ -181,6 +181,7 @@ get_targets()
   # Assume
   find $1 -type l | while read link
   do
+    test -e "$link" || continue
     target=$(readlink $link)
     normalize_relative $(dirname $link)/$target
   done | sort -u
