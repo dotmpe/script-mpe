@@ -16,11 +16,14 @@ touch $HOME/.basename-reg.yaml
 
 box version && box -V
 vc.sh help
-#skip "Something wrong with pd/std__help"
+
+# FIXME: "Something wrong with pd/std__help"
 #projectdir.sh help
 
 export PATH=$PATH:/usr/local/bin
-export PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/python2.7/site-packages
+export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/dist-packages:$HOME/.local/lib/python2.7/site-packages
+echo "*PATH* env:"
+env | grep PATH
 
 pip install --user -r requirements.txt
 pip install --user -r test-requirements.txt
@@ -43,8 +46,8 @@ htd install json-spec
 . ./tools/sh/env.sh
 . ./tools/ci/test.sh
 
-# FIXME:
 exit 0
+# FIXME: ci build per env
 
 case "$ENV" in
 
