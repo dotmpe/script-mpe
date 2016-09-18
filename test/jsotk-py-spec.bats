@@ -96,7 +96,9 @@ init
     test/var/jsotk/2.yaml \
     '$.*[@.main is not None]'
   test ${status} -eq 0
-  test '{"main": "third-type", "type": "third-type", "manifest": [1, 2, 3]}' = "${lines[*]}" 
+  test '{"type": "third-type", "main": "third-type", "manifest": [1, 2, 3]}' = "${lines[*]}" \
+    || fail "Lines: ${lines[*]}"
+
 
   # Recursively select all manifest attribute list values
   run jsotk.py objectpath \
@@ -148,7 +150,7 @@ init
   run jsotk_merge_test
   test ${status} -eq 0 || fail "Output: ${lines[*]}"
   echo "${lines[*]}" >/tmp/123
-  test "${lines[*]}" = '{"newkey": "value", "foo": {"1": "bar", "3": {"1": "subs"}, "2": ["list", "with", "items"]}}' \
+  test "${lines[*]}" = '{"foo": {"1": "bar", "2": ["list", "with", "items"], "3": {"1": "subs"}}, "newkey": "value"}' \
     || fail "output '${lines[*]}'"
 }
 

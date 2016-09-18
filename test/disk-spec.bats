@@ -18,7 +18,6 @@ test -n "$device_id" || device_id=disk-id
 @test "${bin} status" {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
-  fnmatch "*OK*" "${lines[*]}"
 }
 
 @test "${bin} help" {
