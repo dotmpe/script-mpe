@@ -85,7 +85,7 @@ Vagrant.configure("2") do |config|
 
     which pip >/dev/null || { cd /tmp/ && { test -e get-pip.py || wget https://bootstrap.pypa.io/get-pip.py; } && python get-pip.py; }
     pip uninstall -y zope.interface || printf ""
-    pip install setuptools pytz twisted sqlalchemy virtualenv PyYAML nose-parameterized objectpath \
+    pip install setuptools pytz twisted sqlalchemy virtualenv ruamel.yaml nose-parameterized objectpath \
       zope.component zope.interface 
 
     echo "Provisioned as: $(whoami), ($SHELL, $TERM)"

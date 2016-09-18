@@ -22,7 +22,7 @@ vc.sh help
 export PATH=$PATH:/usr/local/bin
 
 pip install --user pytz
-pip install --user PyYAML
+pip install --user ruamel.yaml
 pip install --user zope.interface
 pip install --user zope.component
 pip install --user objectpath
