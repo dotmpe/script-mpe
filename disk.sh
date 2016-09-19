@@ -61,7 +61,7 @@ disk__status()
               test -e $mount/.volumes.sh \
                 || warn "Missing catalog at $mount"
             } || {
-              fnmatch "* extended partition table *" "$(sudo file -sL $vol_dev)" && {
+              fnmatch "* extended partition table *" " $(sudo file -sL $vol_dev) " && {
                 info "$disk_id:$vol_idx: extended table ($fstype $vol_dev)"
               } || info "$disk_id:${ylw}$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
             }
