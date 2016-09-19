@@ -138,7 +138,7 @@ disk__local()
 disk__list_local()
 {
   {
-    echo "#DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE"
+    echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
     disk_list | while read disk
     do
       disk_local $disk NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C \

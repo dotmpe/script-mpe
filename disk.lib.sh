@@ -101,7 +101,7 @@ disk_local_inner()
 disk_local()
 {
   local disk=$1; shift
-  echo "$(disk_local_inner "$@")"
+  echo $(disk_local_inner "$@")
 
   return
 
