@@ -240,57 +240,57 @@ disk__check()
 # Sort of wizard, check/init vol(s) interactively for current disks
 disk__check_all()
 {
-  note "Got r00t?"
-  sudo printf ""
-  test -d /dev/disk || error "Expected /dev/disk, e.g. Linux, not '$uname'" 1
-  get_targets /dev/disk | while read dev
+  #note "Got r00t?"
+  #sudo printf ""
+
+  disk_list | while read dev
   do
-    fnmatch "*[0-9]" "$dev" && {
+    # Get disk meta
 
-      # Get partition meta
-
-      fstype=$(disk_partition_type $dev)
-      is_mounted $dev && {
-
-        mount=$(find_mount $dev)
-        disk_catalog_import $mount/.volumes.sh && {
-
-          # Note: disk_id is set in preceeding look
-          #. $DISK_CATALOG/$disk_id-.sh
-
-          stderr ok "$mount ($fstype at $dev)"
-
-        } || {
-
-          stderr ok "$mount ($fstype at $dev)"
-        }
-
-      } || {
-
-        # FIXME: get proper way of detecting supported fs types
-        case "$fstype" in
-          ext* | vfat | ntfs | iso9660 )
-              note "TODO: $fstype copy_fs $dev '.package.{y*ml,sh}'"
-            ;;
-          '' | swap )
-              info "Ignored partition $dev ($fstype)";;
-          * )
-              error "Unhandled fs type '$fstype'"
-            ;;
-        esac
-      }
-
+    disk_id=$(disk_id $dev)
+    test "$disk_id" = "" && {
+      error "Unknown type or unreadable partition table on disk '$dev'" 1
     } || {
+      echo "$disk_id $dev $(disk_tabletype $dev) "
 
-      # Get disk meta
-
-      disk_id=$(disk_id $dev)
-      test "$disk_id" = "" && {
-        error "Unknown type or unreadable partition table on disk '$dev'" 1
-      } || {
-        echo "$disk_id $dev $(disk_tabletype $dev) "
-      }
     }
+
+    #}
+    #  # Get partition meta
+
+    #  fstype=$(disk_partition_type $dev)
+    #  is_mounted $dev && {
+
+    #    mount=$(find_mount $dev)
+    #    disk_catalog_import $mount/.volumes.sh && {
+
+    #      # Note: disk_id is set in preceeding look
+    #      #. $DISK_CATALOG/$disk_id-.sh
+
+    #      stderr ok "$mount ($fstype at $dev)"
+
+    #    } || {
+
+    #      stderr ok "$mount ($fstype at $dev)"
+    #    }
+
+    #  } || {
+
+    #    # FIXME: get proper way of detecting supported fs types
+    #    case "$fstype" in
+    #      ext* | vfat | ntfs | iso9660 )
+    #          note "TODO: $fstype copy_fs $dev '.package.{y*ml,sh}'"
+    #        ;;
+    #      '' | swap )
+    #          info "Ignored partition $dev ($fstype)";;
+    #      * )
+    #          error "Unhandled fs type '$fstype'"
+    #        ;;
+    #    esac
+    #  }
+
+    #} || {
+
   done
 
   echo
