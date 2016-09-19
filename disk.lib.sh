@@ -18,7 +18,8 @@ disk_id()
       ;;
     Darwin )
         # FIXME: this only works with one disk, would need to parse XML plist
-        system_profiler SPSerialATADataType | grep -qv disk1 || {
+        local b=$(basename $1)
+        system_profiler SPSerialATADataType | grep -qv $b || {
           error "Parse SPSerialATADataType plist" 1
         }
         echo $(system_profiler SPSerialATADataType | grep Serial.Number \
@@ -78,12 +79,9 @@ disk_tabletype()
   esac
 }
 
-# Print tab for lcal disk
-#NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT
-disk_local()
+disk_local_inner()
 {
-  local disk=$1; shift
-  echo $( while test -n "$1"
+  while test -n "$1"
   do
     case $(str_lower $1) in
       num ) disk_info $disk disk_index ;;
@@ -95,7 +93,15 @@ disk_local()
       mnt_c ) find_mount $disk | count_words ;;
     esac
     shift
-  done)
+  done
+}
+
+# Print tab for lcal disk
+#NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT
+disk_local()
+{
+  local disk=$1; shift
+  echo "$(disk_local_inner "$@")"
 
   return
 
@@ -116,10 +122,12 @@ disk_list()
       ;;
     Darwin )
         # FIXME: deal with system_profiler plist datatypes
-        echo /dev/disk0
+        echo /dev/disk[0-9] \
+          | tr ' ' '\n'
       ;;
   esac
 }
+
 
 # List all local disk partitions
 disk_list_part_local()

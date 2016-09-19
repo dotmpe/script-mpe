@@ -139,11 +139,8 @@ install_git_lfs()
 install_script()
 {
   cwd=$(pwd)
-  pushd ~/
-  ln -s $cwd bin
-  popd
-  echo "pwd=$cwd"
-  echo "bats=$(which bats)"
+  echo "install-script pwd=$cwd"
+  echo "install-script bats=$(which bats)"
 }
 
 
