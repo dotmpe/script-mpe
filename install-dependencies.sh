@@ -92,7 +92,7 @@ install_pylib()
     cwd=$(pwd)/
     pushd $pylibdir
     pwd -P
-    echo ln -s $cwd script_mpe
+    ln -s $cwd script_mpe
     popd
   }
   export PYTHONPATH=$PYTHONPATH:.:$pylibdir/
