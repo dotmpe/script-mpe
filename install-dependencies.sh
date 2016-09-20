@@ -23,6 +23,10 @@ test -n "$sudo" || sudo=
 test -z "$sudo" || pref="sudo $pref"
 test -z "$dry_run" || pref="echo $pref"
 
+test -w /usr/local || {
+  test -n "$sudo" || pip_flags=--user
+}
+
 
 test -n "$SRC_PREFIX" || {
   echo "Not sure where checkout"
