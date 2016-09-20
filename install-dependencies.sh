@@ -82,10 +82,13 @@ install_pylib()
   esac
   # hack py lib here
   mkdir -vp $pylibdir
-  cwd=$(pwd)/
-  pushd $pylibdir
-  ln -s $cwd script_mpe
-  popd
+  test -e $pylibdir/script_mpe || {
+    cwd=$(pwd)/
+    pushd $pylibdir
+    pwd -P
+    echo ln -s $cwd script_mpe
+    popd
+  }
   export PYTHONPATH=$PYTHONPATH:.:$pylibdir/
 }
 
@@ -181,9 +184,15 @@ main_entry()
       install_apenwarr_redo || return $?
     ;; esac
 
-  case "$1" in '-')
+  case "$1" in -|mkdoc)
       install_mkdoc || return $?
+    ;; esac
+
+  case "$1" in -|pylib)
       install_pylib || return $?
+    ;; esac
+
+  case "$1" in -|script)
       install_script || return $?
     ;; esac
 
