@@ -5,8 +5,18 @@ set -e
 test -z "$Build_Debug" || set -x
 
 test -z "$Build_Deps_Default_Paths" || {
-  test -n "$SRC_PREFIX" || SRC_PREFIX=$HOME/build
-  test -n "$PREFIX" || PREFIX=$HOME/.local
+
+  test -n "$SRC_PREFIX" || {
+    test -w /src/ \
+      && SRC_PREFIX=/src/ \
+      || SRC_PREFIX=$HOME/build
+  }
+
+  test -n "$PREFIX" || {
+    test -w /usr/local/ \
+      && PREFIX=/usr/local/ \
+      || PREFIX=$HOME/.local
+  }
 }
 
 test -n "$sudo" || sudo=
