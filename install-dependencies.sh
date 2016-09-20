@@ -37,7 +37,9 @@ install_bats()
   cd $SRC_PREFIX
   test -n "$BATS_REPO" || BATS_REPO=https://github.com/dotmpe/bats.git
   test -n "$BATS_BRANCH" || BATS_BRANCH=master
-  git clone $BATS_REPO bats || return $?
+  test -d bats || {
+    git clone $BATS_REPO bats || return $?
+  }
   cd bats
   git checkout $BATS_BRANCH
   ${pref} ./install.sh $PREFIX
