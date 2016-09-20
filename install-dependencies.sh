@@ -11,8 +11,8 @@ test -z "$Build_Deps_Default_Paths" || {
 
 test -n "$sudo" || sudo=
 test -z "$sudo" || pref="sudo $pref"
-
 test -z "$dry_run" || pref="echo $pref"
+
 
 test -n "$SRC_PREFIX" || {
   echo "Not sure where checkout"
@@ -32,10 +32,14 @@ install_bats()
 {
   echo "Installing bats"
   local pwd=$(pwd)
+  test -n "$BATS_BRANCH" || BATS_BRANCH=master
   mkdir -vp $SRC_PREFIX
   cd $SRC_PREFIX
-  git clone https://github.com/dotmpe/bats.git
+  test -n "$BATS_REPO" || BATS_REPO=https://github.com/dotmpe/bats.git
+  test -n "$BATS_BRANCH" || BATS_BRANCH=master
+  git clone $BATS_REPO bats || return $?
   cd bats
+  git checkout $BATS_BRANCH
   ${pref} ./install.sh $PREFIX
   cd $pwd
 }
