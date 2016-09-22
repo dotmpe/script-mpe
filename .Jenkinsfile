@@ -7,8 +7,8 @@ node('devbox') {
     // see .jenkins-pipeline.groovy for experiments
 
     sh '''
-      echo DCKR_JNK_VERSION=$DCKR_JNK_VERSION
-      echo DCKR_JNK_JJB_FILE=$DCKR_JNK_JJB_FILE
+      echo SCRIPT_MPE_VERSION=$SCRIPT_MPE_VERSION
+      echo SCRIPT_MPE_JJB_FILE=$SCRIPT_MPE_JJB_FILE
     '''
 
     String checkout_dir="../workspace@script"
@@ -29,7 +29,8 @@ node('devbox') {
 
     currentBuild.displayName = "${git_descr} b${env.BUILD_NUMBER}"
     currentBuild.description = \
-      "$rev_abbrev ($branchName)  Job version: $SCRIPT_MPE_VERSION"
+      "$rev_abbrev ($branchName)  Job version: ${env.SCRIPT_MPE_VERSION}"
+
   }
 
   def PWD = pwd()
