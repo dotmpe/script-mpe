@@ -5,6 +5,7 @@
 - job:
     name: 'script-mpe-pipeline'
     version: 0.0.2-dev # script-mpe
+    file: .jjb.yaml
 
     display-name: 'script.mpe [dev]'
 
@@ -30,6 +31,12 @@
     project-type: workflow
 
     parameters:
+    - hidden:
+        name: SCRIPT_MPE_VERSION
+        default: '{version}'
+    - hidden:
+        name: SCRIPT_MPE_JJB_FILE
+        default: '{file}'
     - bool:
         name: DEBUG
         value: false
