@@ -66,4 +66,10 @@ node('devbox') {
   }
 }
 
+def getSh(cmd) {
+	sh "sh -c \"( $cmd ) > build/cmd-out\""
+	// returun output minus trailing whitespace
+	return readFile("build/cmd-out").trim()
+}
+
 // vim:ft=groovy:
