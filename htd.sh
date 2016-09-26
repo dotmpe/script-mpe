@@ -4321,6 +4321,7 @@ htd_rst_doc_create_update()
     echo "$2" > $1
     echo "$2" | tr -C '\n' '=' >> $1
     echo ":created: $(date +%Y-%m-%d)" >> $1
+    echo ":updated: $(date +%Y-%m-%d)" >> $1
     echo  >> $1
     export cksum="$(md5sum $1 | cut -f 1 -d ' ')"
     export cksums="$cksums $cksum"
