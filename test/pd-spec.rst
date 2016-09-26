@@ -1,7 +1,8 @@
 
 pd
   Test specifications for Projectdir, using Projectdoc.
-  For generic project metadata testing, see Package specs.
+  For a description of the generic project metadata testing, see also
+  ``package.y*ml`` manual.
 
 
   0. Specs (Bats)
@@ -40,8 +41,15 @@ pd
 
            - pd enable restores disabled project
 
-     2. pd/sh lib syntax is valid
-     3. projectdoc is valid YAML
+        - pd supports several modes of project identification/metadata,
+          aided by either/or the filesystem context, the Pdoc, and the package
+          metadata document.
+
+          - Basic attributes [spec pd-2.1.]
+          - Context sensitive [spec pd-2.1.]
+
+     2. pd/sh lib source code syntax is valid
+     3. projectdoc is YAML, and valid acc. to schema/package.yml
 
 
   1. Uses cases (Bats)
@@ -61,15 +69,54 @@ pd
         - TODO: tell about a prefix; description, remotes, default branch, upstream/downstream settings, other dependencies.
 
 
-  meta-spec.bats
-    - default no-args
-    - ${bin} help
-    - ${bin} $f_pd1 -H host1 list-enabled
-    - ${bin} $f_pd1 -H host1 list-disabled
-    - ${bin} $f_pd1 -H host2 list-enabled
-    - ${bin} $f_pd1 -H host2 list-disabled
-    - TODO: ${bin} $f_pd1 -H host1
-    - ${bin} clean-mode
+  2. Metadata
+
+     1. Basic attributes
+
+        an object, block of key -> value mappings, which
+        identifies a project by:
+
+        - id; (required) an ID string that corresponds to a globally unique project
+        - name; a more loose unique title/label string
+        - pd-meta/prefix; corresponds to a checkout in a projectdir relative to a
+          projectdocument.
+
+      2. Contexts (documents/filesystem)
+
+         FIXME: `application/x-*` is not a valid mediatype [#]_
+
+         Pdir/Pdoc:
+          a per-host directory of prefix to repo path mappings, with data in
+          the `pd-meta` schema recorded in a Pdoc.
+
+         ``package.y?ml``:
+           a per project metadata container YAML, containing a list of objects.
+           At least one object has an `id`, `type` and `main` attribute,
+           and the type equals `application/vnd.dotmpe.project`.
+
+         pd-meta:
+           the schema for the records in a Pdoc, or the like-named attributed
+           in a `application/vnd.dotmpe.project` object.
+
+          other:
+            with none of the above present, the following local files have a
+            special significance
+
+            - .app-id
+            - .pd-check
+            - .pd-test
+
+
+     meta-spec.bats
+       - default no-args
+       - ${bin} help
+       - ${bin} $f_pd1 -H host1 list-enabled
+       - ${bin} $f_pd1 -H host1 list-disabled
+       - ${bin} $f_pd1 -H host2 list-enabled
+       - ${bin} $f_pd1 -H host2 list-disabled
+       - TODO: ${bin} $f_pd1 -H host1
+       - ${bin} clean-mode
+
 
   args-spec.bats
     Verify shell works as expected wrt. shifting arguments, iot. enable a preset
@@ -77,4 +124,7 @@ pd
 
     - argument defaults, shift to 2
     - argument defaults, shift to 3
+
+
+.. [#] http://stackoverflow.com/questions/18969938/vendor-mime-types-for-api-versioning
 

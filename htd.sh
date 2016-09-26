@@ -1598,6 +1598,66 @@ htd__git_drop_remote()
 }
 
 
+# List everything in  HTD_GIT_REMOTE repo collection
+
+# Warn about missing src or project
+htd__git_missing()
+{
+  htd__git_remote | while read repo
+  do 
+    test -e /src/$repo.git \
+      || warn "No src $repo" & continue
+
+    test -e /srv/project-local/$repo \
+      || warn "No checkout $repo"
+
+  done
+}
+
+# Create local bare in /src/
+htd__git_init_src()
+{
+  htd__git_remote | while read repo
+  do 
+    fnmatch "*annex*" "$repo" && continue
+    test -e /src/$repo.git || {
+      git clone --bare $(htd git-remote $repo) /src/$repo.git
+    }
+  done
+}
+
+htd__git_list()
+{
+  test -n "$1" || set -- $(echo /src/*.git)
+  for repo in $@
+  do
+    echo $repo
+    git ls-remote $repo
+  done
+}
+
+htd__git_files()
+{
+  test -n "$1" || set -- $(echo /src/*.git)
+  for repo in $@
+  do
+    ( cd $repo && echo $repo && git ls-tree --full-tree -r HEAD )
+  done
+}
+
+# 
+htd__git_grep()
+{
+  test -n "$1" || set -- $(echo /src/*.git)
+  test -n "$grep" || grep=TODO
+  {
+    for repo in $@
+    do
+      ( cd $repo && echo $repo && git grep $grep $(git rev-list --all) )
+    done
+  } | less
+}
+
 
 # indexing, cleaning
 
