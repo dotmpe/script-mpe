@@ -4310,9 +4310,9 @@ htd_rst_doc_create_update()
 {
   test -n "$1" || error htd-rst-doc-create-update 12
   test -s "$1" && {
-    updated=":updated: $(date +%Y-%m-%d)"
+    updated=":\1pdated: $(date +%Y-%m-%d)"
     grep -qi '^\:[Uu]pdated\:.*$' $1 && {
-      sed -i.bak 's/^.[Uu]pdated.\.*$/'"$updated"'/g' $1
+      sed -i.bak 's/^\:\([Uu]\)pdated\:.*$/'"$updated"'/g' $1
     } || {
       warn "Cannot update 'updated' field."
     }
