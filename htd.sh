@@ -911,7 +911,6 @@ htd__main_doc()
 
   local cksum=
   htd_rst_doc_create_update $1
-
   htd_edit_and_update $files $(htd_main_files)
 
 }
@@ -2913,16 +2912,27 @@ htd_als___T=edit-test
 htd__man_1_inventory="All inventories"
 htd__inventory()
 {
-  $EDITOR personal/inventory/{main,*}.rst
-  git add personal/inventory/{main,*}.rst
+  test -e "$HTDIR/personal/inventory/$1.rst" && {
+    set -- "personal/inventory/$1.rst" "$@"
+  } || {
+    set -- "personal/inventory/main.rst" "$@"
+  }
+  htd_rst_doc_create_update $1
+  htd_edit_and_update $@
 }
+htd_als__inv=inventory
 
-htd__man_1_inv_elec="Electrics inventory"
-htd__inv_elec()
+htd__man_1_inventory_elecronics="Electr(on)ics inventory"
+htd__inventory_electronics()
 {
-  $EDITOR personal/inventory/{components,modules,hardware}.rst
-  git add personal/inventory/{components,modules,hardware}.rst
+  set -- "personal/inventory/components.rst" \
+      "personal/inventory/modules.rst" \
+      "personal/inventory/hardware.rst" "$@"
+  htd_rst_doc_create_update $1
+  htd_edit_and_update $@
 }
+htd_als__inv_elec=inventory-electronics
+
 
 htd__disk_id()
 {
