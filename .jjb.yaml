@@ -2,9 +2,17 @@
 # Simple Jenkins job definition for use with Jenkins Job Builder
 # Complex jobs using templates in .jtb.yaml.
 
-- job:
-    name: 'script-mpe-pipeline'
+- project:
+    name: 'script-mpe'
     version: 0.0.2-dev # script-mpe
+    file: .jjb.yaml
+
+    jobs:
+      - '{name}-pipeline'
+
+
+- job-templates:
+    name: '{name}-pipeline'
 
     display-name: 'script.mpe [dev]'
 
@@ -30,6 +38,12 @@
     project-type: workflow
 
     parameters:
+    - hidden:
+        name: SCRIPT_MPE_VERSION
+        default: '{version}'
+    - hidden:
+        name: SCRIPT_MPE_JJB_FILE
+        default: '{file}'
     - bool:
         name: DEBUG
         value: false

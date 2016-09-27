@@ -5,7 +5,9 @@
     name: script.mpe
 
     branch: dev
-    version: '0.0.1' # script-mpe
+    version: 0.0.2-dev  # script-mpe
+    jtb-file: .jtb.yml
+
     vendor-path: dotmpe/script.mpe
     htmlDescription: ''
     project-src: '*.sh,*.py'
@@ -21,7 +23,13 @@
     # XXX bats-tests: '\{box,str\}'
 
     properties: {}
-    parameters: {}
+    parameters:
+    - hidden:
+        name: SCRIPT_MPE_VERSION
+        default: '{version}'
+    - hidden:
+        name: SCRIPT_MPE_JTB_FILE
+        default: '{jtb-file}'
     metadata: {}
     publishers: {}
 
@@ -53,8 +61,8 @@
         disabled: true
         title: 'script.mpe [gh,local,no-test] ({branch})'
         htmlDescription: |
-          Running some bats test to see if they go, without parsing results.
-          Part of script-mpe/{version} .jtb.yml
+          <p>Running some bats test to see if they go, without parsing results.</p>
+          <p>Part of <code class="muted">{name}/{version}</code> <code>{file}</code></p>
         restrict-node: ubuntu || treebox
         builders:
         - shell: |
@@ -84,11 +92,17 @@
         disabled: false
         title: 'script.mpe [gh,bats] ({branch})'
         htmlDescription: |
-          Run some bats tests and publish results
-          Part of script-mpe/{version} .jtb.yml
+          <p>Run some bats tests and publish results</p>
+          <p>Part of <code class="muted">{name}/{version}</code> <code>{file}</code></p>
         restrict-node: ubuntu || treebox
         bats-tap-results: build/test-results.tap
         parameters:
+        - hidden:
+            name: SCRIPT_MPE_VERSION
+            default: '{version}'
+        - hidden:
+            name: SCRIPT_MPE_JTB_FILE
+            default: '{jtb-file}'
         - string:
             name: SUITE
             value: main

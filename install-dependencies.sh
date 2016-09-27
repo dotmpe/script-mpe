@@ -5,14 +5,28 @@ set -e
 test -z "$Build_Debug" || set -x
 
 test -z "$Build_Deps_Default_Paths" || {
-  test -n "$SRC_PREFIX" || SRC_PREFIX=$HOME/build
-  test -n "$PREFIX" || PREFIX=$HOME/.local
+
+  test -n "$SRC_PREFIX" || {
+    test -w /src/ \
+      && SRC_PREFIX=/src/ \
+      || SRC_PREFIX=$HOME/build
+  }
+
+  test -n "$PREFIX" || {
+    test -w /usr/local/ \
+      && PREFIX=/usr/local/ \
+      || PREFIX=$HOME/.local
+  }
 }
 
 test -n "$sudo" || sudo=
 test -z "$sudo" || pref="sudo $pref"
-
 test -z "$dry_run" || pref="echo $pref"
+
+test -w /usr/local || {
+  test -n "$sudo" || pip_flags=--user
+}
+
 
 test -n "$SRC_PREFIX" || {
   echo "Not sure where checkout"
@@ -32,10 +46,16 @@ install_bats()
 {
   echo "Installing bats"
   local pwd=$(pwd)
+  test -n "$BATS_BRANCH" || BATS_BRANCH=master
   mkdir -vp $SRC_PREFIX
   cd $SRC_PREFIX
-  git clone https://github.com/dotmpe/bats.git
+  test -n "$BATS_REPO" || BATS_REPO=https://github.com/dotmpe/bats.git
+  test -n "$BATS_BRANCH" || BATS_BRANCH=master
+  test -d bats || {
+    git clone $BATS_REPO bats || return $?
+  }
   cd bats
+  git checkout $BATS_BRANCH
   ${pref} ./install.sh $PREFIX
   cd $pwd
 }
@@ -82,10 +102,13 @@ install_pylib()
   esac
   # hack py lib here
   mkdir -vp $pylibdir
-  cwd=$(pwd)/
-  pushd $pylibdir
-  ln -s $cwd script_mpe
-  popd
+  test -e $pylibdir/script_mpe || {
+    cwd=$(pwd)/
+    pushd $pylibdir
+    pwd -P
+    ln -s $cwd script_mpe
+    popd
+  }
   export PYTHONPATH=$PYTHONPATH:.:$pylibdir/
 }
 
@@ -139,6 +162,7 @@ install_git_lfs()
 install_script()
 {
   cwd=$(pwd)
+  test -e $HOME/bin || ln -s $cwd $HOME/bin
   echo "install-script pwd=$cwd"
   echo "install-script bats=$(which bats)"
 }
@@ -180,9 +204,15 @@ main_entry()
       install_apenwarr_redo || return $?
     ;; esac
 
-  case "$1" in '-')
+  case "$1" in -|mkdoc)
       install_mkdoc || return $?
+    ;; esac
+
+  case "$1" in -|pylib)
       install_pylib || return $?
+    ;; esac
+
+  case "$1" in -|script)
       install_script || return $?
     ;; esac
 

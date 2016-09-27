@@ -7,6 +7,7 @@ test/os-spec.bats
 test/diskdoc-spec.bats
 test/meta-spec.bats
 .jjb.yaml
+.jtb.yml
 dckr.sh
 htd.sh
 box.sh

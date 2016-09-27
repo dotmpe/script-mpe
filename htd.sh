@@ -911,7 +911,6 @@ htd__main_doc()
 
   local cksum=
   htd_rst_doc_create_update $1
-
   htd_edit_and_update $files $(htd_main_files)
 
 }
@@ -1597,6 +1596,66 @@ htd__git_drop_remote()
   log "OK, $repo no longer exists"
 }
 
+
+# List everything in  HTD_GIT_REMOTE repo collection
+
+# Warn about missing src or project
+htd__git_missing()
+{
+  htd__git_remote | while read repo
+  do 
+    test -e /src/$repo.git \
+      || warn "No src $repo" & continue
+
+    test -e /srv/project-local/$repo \
+      || warn "No checkout $repo"
+
+  done
+}
+
+# Create local bare in /src/
+htd__git_init_src()
+{
+  htd__git_remote | while read repo
+  do 
+    fnmatch "*annex*" "$repo" && continue
+    test -e /src/$repo.git || {
+      git clone --bare $(htd git-remote $repo) /src/$repo.git
+    }
+  done
+}
+
+htd__git_list()
+{
+  test -n "$1" || set -- $(echo /src/*.git)
+  for repo in $@
+  do
+    echo $repo
+    git ls-remote $repo
+  done
+}
+
+htd__git_files()
+{
+  test -n "$1" || set -- $(echo /src/*.git)
+  for repo in $@
+  do
+    ( cd $repo && echo $repo && git ls-tree --full-tree -r HEAD )
+  done
+}
+
+# 
+htd__git_grep()
+{
+  test -n "$1" || set -- $(echo /src/*.git)
+  test -n "$grep" || grep=TODO
+  {
+    for repo in $@
+    do
+      ( cd $repo && echo $repo && git grep $grep $(git rev-list --all) )
+    done
+  } | less
+}
 
 
 # indexing, cleaning
@@ -2853,16 +2912,27 @@ htd_als___T=edit-test
 htd__man_1_inventory="All inventories"
 htd__inventory()
 {
-  $EDITOR personal/inventory/{main,*}.rst
-  git add personal/inventory/{main,*}.rst
+  test -e "$HTDIR/personal/inventory/$1.rst" && {
+    set -- "personal/inventory/$1.rst" "$@"
+  } || {
+    set -- "personal/inventory/main.rst" "$@"
+  }
+  htd_rst_doc_create_update $1
+  htd_edit_and_update $@
 }
+htd_als__inv=inventory
 
-htd__man_1_inv_elec="Electrics inventory"
-htd__inv_elec()
+htd__man_1_inventory_elecronics="Electr(on)ics inventory"
+htd__inventory_electronics()
 {
-  $EDITOR personal/inventory/{components,modules,hardware}.rst
-  git add personal/inventory/{components,modules,hardware}.rst
+  set -- "personal/inventory/components.rst" \
+      "personal/inventory/modules.rst" \
+      "personal/inventory/hardware.rst" "$@"
+  htd_rst_doc_create_update $1
+  htd_edit_and_update $@
 }
+htd_als__inv_elec=inventory-electronics
+
 
 htd__disk_id()
 {
@@ -4250,9 +4320,9 @@ htd_rst_doc_create_update()
 {
   test -n "$1" || error htd-rst-doc-create-update 12
   test -s "$1" && {
-    updated=":updated: $(date +%Y-%m-%d)"
+    updated=":\1pdated: $(date +%Y-%m-%d)"
     grep -qi '^\:[Uu]pdated\:.*$' $1 && {
-      sed -i.bak 's/^.[Uu]pdated.\.*$/'"$updated"'/g' $1
+      sed -i.bak 's/^\:\([Uu]\)pdated\:.*$/'"$updated"'/g' $1
     } || {
       warn "Cannot update 'updated' field."
     }
@@ -4261,6 +4331,7 @@ htd_rst_doc_create_update()
     echo "$2" > $1
     echo "$2" | tr -C '\n' '=' >> $1
     echo ":created: $(date +%Y-%m-%d)" >> $1
+    echo ":updated: $(date +%Y-%m-%d)" >> $1
     echo  >> $1
     export cksum="$(md5sum $1 | cut -f 1 -d ' ')"
     export cksums="$cksums $cksum"
