@@ -4304,6 +4304,19 @@ htd__uuid()
 }
 
 
+# List GNU PG keys
+htd__gpg()
+{
+  gpg -K --keyid-format long --with-colons --with-fingerprint
+}
+
+htd__gpg_export()
+{
+  gpg --export --armor $1
+}
+
+
+
 # util
 
 htd_rst_doc_create_update()
