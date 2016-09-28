@@ -39,9 +39,11 @@ disk__status()
   disk__list_local | grep -Ev '^\s*(#.*|\s*)$' | while\
     read num dev disk_id disk_model size table_type
   do
+    disk_id_=$(printf "%-19s\n" $disk_id)
+    num_=$(printf "%4s\n" $num)
     test -e $dev || error "No such device? $dev" 1
     mnts="$(echo $(find_mount $dev))"
-    stderr ok "${grey}$disk_id $(echo $mnts | count_words) known partition(s) (${nrml}$size ${grey}$dev)"
+    stderr ok "${grey}[$disk_id_] Disk #$num: $(echo $mnts | count_words) known partition(s) (${nrml}$size ${grey}$dev)"
     disk_list_part_local $dev | while read vol_dev
     do
       test -e "$vol_dev" || error "No such volume device '$vol_dev'" 1
@@ -53,17 +55,17 @@ disk__status()
       vsize=$(disk_partition_size $vol_dev)
       vusg=$(disk_partition_usage $vol_dev)
       case "$fstype" in
-        swap* ) info "$disk_id:$vol_idx: swap space ($fstype $vol_dev)" ;;
+        swap* ) info "[$disk_id_] $num_.$vol_idx: swap space ($fstype $vol_dev)" ;;
         * )
           test -n "$mount" \
             && {
-              info "$disk_id:${grn}$vol_idx${grey}: ${bnrml}$vol_id${grey} ($vsize ${bnrml}$vusg%% ${grey}$fstype $vol_dev)"
+              info "[$disk_id_] ${grn}$num_.$vol_idx${grey}: ${bnrml}$vol_id${grey} ($vsize ${bnrml}$vusg%% ${grey}$fstype $vol_dev)"
               test -e $mount/.volumes.sh \
                 || warn "Missing catalog at $mount"
             } || {
               fnmatch "* extended partition table *" " $(sudo file -sL $vol_dev) " && {
-                info "$disk_id:$vol_idx: extended table ($fstype $vol_dev)"
-              } || info "$disk_id:${ylw}$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
+                info "[$disk_id_] $num_.$vol_idx: extended table ($fstype $vol_dev)"
+              } || info "[$disk_id_] ${ylw}$num_.$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
             }
           ;;
       esac
