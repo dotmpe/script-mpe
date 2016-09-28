@@ -262,7 +262,7 @@ box_list_libs()
 }
 
 
-# XXX: goes here at box.lib? or into main.lib?
+# XXX: goes here at box.lib? or into main.lib? Unused still
 
 box_init()
 {
@@ -286,3 +286,4 @@ box_update()
   #ansible-playbook -l $box_host ansible/playbook/system-update.yml
   #ansible-playbook -l $box_host ansible/playbook/user-env-update.yml
 }
+
