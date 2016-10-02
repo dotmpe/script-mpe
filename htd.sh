@@ -25,6 +25,8 @@ htd_load()
   test -d "$HTD_TOOLS/bin" || mkdir -p $HTD_TOOLSDIR/bin
   test -d "$HTD_TOOLS/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
 
+  req_htdir
+
   test -e .package.sh && . .package.sh
 
   go_to_directory .projects.yaml && {
@@ -35,7 +37,7 @@ htd_load()
     cd $CWD
   }
 
-  #test -e 
+  #test -e
   #grep -qF $PROJECT':'  ../.projects.yaml || {
   #  warn "No such project prefix $PROJECT"
   #}
@@ -112,21 +114,12 @@ htd_load()
           $htd_optsv
         } || noop
       ;;
-    f )
-        # Preset name to subcmd failed file placeholder
-        failed=$(setup_tmpf .failed)
+    f ) # set only failed varname
+        export failed=$(setup_tmpf .failed)
       ;;
-    i )
-        io_id=-$base-$subcmd-${htd_session_id}
-        fnmatch "*/*" "$io_id" && error "Illegal chars" 12
-        for io_name in $htd_inputs $htd_outputs
-        do
-          tmpname=$(setup_tmpf .$io_name $io_id)
-          touch $tmpname
-          eval $io_name=$tmpname
-          unset tmpname io_name
-        done
-        export $htd_inputs $htd_outputs
+    i ) # set all io varnames
+        setup_io_paths -$subcmd-${htd_session_id}
+        export $htd__inputs $htd__outputs
       ;;
     m )
         # TODO: Metadata blob for host
@@ -168,15 +161,15 @@ htd_unload()
   do case "$x" in
 
     i ) # remove named IO buffer files; set status vars
-        clean_io_lists $htd_inputs $htd_outputs
-        htd_report $htd_inputs $htd_outputs || subcmd_result=$?
+        clean_io_lists $htd__inputs $htd__outputs
+        htd_report $htd__inputs $htd__outputs || subcmd_result=$?
       ;;
 
     S )
         exec 5<&-
         test -s $status || echo '{}' >$status
         test ! -s $status.pkv \
-          || { 
+          || {
         cat $status.pkv
             jsotk.py update --pretty $status $status.pkv
             rm $status.pkv
@@ -320,7 +313,7 @@ other_cmds()
 
 htd__docs()
 {
-  echo "Docs:" 
+  echo "Docs:"
   echo ""
 }
 
@@ -533,7 +526,7 @@ htd_als__stat=status
 
 
 
-htd__man_1_script="Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping of 
+htd__man_1_script="Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping of
   scriptnames to script lines. "
 htd_spc__script=""
 htd_run__script=pSmr
@@ -621,7 +614,7 @@ htd__uninstall()
   do
     uninstall_bin tools.json "$1" \
       && info "Tool $1 is not installed" \
-      || { r=$?; 
+      || { r=$?;
         test $r -eq 1 \
           && info "Tool $1 uninstalled" \
           || info "Tool uninstall $1 error: $r" $r
@@ -766,7 +759,6 @@ htd__edit_today()
 
   cd $HTDIR
 
-  # XXX: edit-today
   test -n "$1" || set -- journal/
 
   fnmatch "*/" "$1" && {
@@ -895,7 +887,7 @@ htd_als__nen=edit-note-en
 htd__main_doc()
 {
   # Find first standard main document
-  test -n "$1" && { 
+  test -n "$1" && {
     fnmatch "* $1 *" " $(htd_main_files) " \
       || set -- main.rst "$@"
   } || {
@@ -1069,7 +1061,7 @@ htd__tasks()
   }
 
   local comments=$(setup_tmpf .comments)
-  htd__list_paths -f | xargs radical.py --issue-format full-sh > $comments
+  pd list-paths --tasks | xargs radical.py run-embedded-issue-scan --issue-format full-sh > $comments
   tasks.py -v -s $pd_meta_tasks_slug read-issues -g $comments -t $pd_meta_tasks_document
   note "OK. $(count_lines $pd_meta_tasks_document) open tasks"
 }
@@ -1111,16 +1103,16 @@ htd__todotxt_edit()
 
     # Set filenames from project
     {
-      { test -z "$choice_package" || trueish "$choice_package"; } && test -e package.yaml 
+      { test -z "$choice_package" || trueish "$choice_package"; } && test -e package.yaml
     } && {
-      local metaf=package.yaml 
+      local metaf=package.yaml
       local package_id=$( jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
         | jsotk -O py path - "id" )
-  
+
       # Set ext. ttxtm file for project
       ttxtm_fn=$UCONFDIR/todotxtm/project/$package_id.ttxtm
       ttxtm_done_fn=$UCONFDIR/todotxtm/project/$package_id-done.ttxtm
-  
+
     } || {
 
       # Or, look for host/path
@@ -1139,7 +1131,7 @@ htd__todotxt_edit()
 
     ttxtm_done_fn=./$(dirname $ttxtm_fn)/$(basename $ttxtm_fn .ttxtm)-done.ttxtm
   }
-  
+
   for fn in $ttxtm_fn $ttxtm_done_fn
   do
     test -n "$fn" || continue
@@ -1148,7 +1140,7 @@ htd__todotxt_edit()
       touch $fn
     }
   done
-  
+
   todotxt-machine $ttxtm_fn $ttxtm_done_fn
 }
 #htd_run__todo=o
@@ -1159,7 +1151,7 @@ htd__todotxt()
   test -n "$1" || set -- edit
   case "$1" in
 
-    # Print 
+    # Print
     tree )
       ;;
     list|list-all )
@@ -1180,7 +1172,7 @@ htd__todotxt()
             fnmatch "*done.ttxtm" "$fn" && continue
             cat $fn
           done
-        } | wc -l 
+        } | wc -l
       ;;
     edit )
         local ttxtm_fn= ttxtm_done_fn=
@@ -1223,24 +1215,18 @@ htd__todo_gtasks()
   }
 }
 
-# TODO: integrate radical
-htd__radical_scan()
-{
-  # XXX: experimenting with todo.txt output
-  radical.py run-embedded-issue-scan .
-}
-
-
 todo_clean_descr()
 {
   echo "$@" | \
-  grep -E '^.*(TODO|XXX|FIXME)[\ \:]*(.*)((\?\ )|(\.\ )|(\.\s*$)).*$' \
-  > /dev/null && {
-    clean=$( echo "$@" | \
-      sed -E 's/^.*(TODO|XXX|FIXME)[\ \:]*(.*)((\?\ )|(\.\ )|(\.\s*$)).*$/\1 \2\3/' )
+
+  tag_grep_1='^.*(TODO|XXX|FIXME)[\ \:]*(.*)((\?\ )|(\.\ )|(\.\s*$)).*$' # tasks:no-check
+  tag_grep_2='s/^.*(TODO|XXX|FIXME)[\ \:]*(.*)((\?\ )|(\.\ )|(\.\s*$)).*$/\1 \2\3/' # tasks:no-check
+  tag_grep_3='s/^.*(TODO|XXX|FIXME)[\ \:]*(.*)$/\1 \2/' # tasks:no-check
+
+  grep -E "$tag_grep_1" > /dev/null && {
+    clean=$( echo "$@" | sed -E "$tag_grep_2" )
   } || {
-    clean=$( echo "$@" | \
-      sed -E 's/^.*(TODO|XXX|FIXME)[\ \:]*(.*)$/\1 \2/' )
+    clean=$( echo "$@" | sed -E "$tag_grep_3" )
   }
   tag=$(echo $clean|cut -f 1 -d ' ')
   descr="$(echo ${clean:$(( ${#tag} + 1 ))})"
@@ -1286,7 +1272,7 @@ htd__build_todo_list()
         || set -- "$2" "$(basename $(pwd))"
   }
 
-  { for tag in FIXME TODO NOTE XXX
+  { for tag in FIXME TODO NOTE XXX # tasks:no-check
   do
     grep -nsrI $tag':' . \
         | grep -v $1':' \
@@ -1470,7 +1456,7 @@ htd__urls_get()
     test -n "$fn" || fn="$(basename "$url")"
     test -e "$fn" || {
       wget -q "$url" -O "$fn" && {
-        test -e "$fn" && note "New file $fn" 
+        test -e "$fn" && note "New file $fn"
       } || {
         error "Retrieving file $fn"
       }
@@ -1501,7 +1487,7 @@ htd__urls()
   esac
 }
 
-# init or list SSH based remote 
+# init or list SSH based remote
 
 source_git_remote()
 {
@@ -1603,7 +1589,7 @@ htd__git_drop_remote()
 htd__git_missing()
 {
   htd__git_remote | while read repo
-  do 
+  do
     test -e /src/$repo.git \
       || warn "No src $repo" & continue
 
@@ -1617,7 +1603,7 @@ htd__git_missing()
 htd__git_init_src()
 {
   htd__git_remote | while read repo
-  do 
+  do
     fnmatch "*annex*" "$repo" && continue
     test -e /src/$repo.git || {
       git clone --bare $(htd git-remote $repo) /src/$repo.git
@@ -1644,7 +1630,7 @@ htd__git_files()
   done
 }
 
-# 
+#
 htd__git_grep()
 {
   test -n "$1" || set -- $(echo /src/*.git)
@@ -1774,29 +1760,6 @@ htd__rename()
   }
 }
 
-# List all paths
-htd_run__list_paths=i
-htd__list_paths()
-{
-  htd_opt_args "$@"
-  set -- "$(cat $arguments)"
-  req_path_arg "$@"
-  htd_find_ignores
-  find_ignores="$find_ignores $(htd__list_paths_opts)"
-  debug "Find ignores: $find_ignores"
-  eval find $path $find_ignores -o -path . -o -print
-}
-htd__list_paths_opts()
-{
-  while read option; do case "$option" in 
-      -d ) echo "-o -not -type d " ;;
-      -f ) echo "-o -not -type f " ;;
-      -l ) echo "-o -not -type l " ;;
-      * ) echo "$option " ;;
-    esac
-  done < $options
-}
-
 
 htd__check_names()
 {
@@ -1818,11 +1781,11 @@ htd__check_names()
 htd__fix_names()
 {
   local path_regex names_tables names_table
-  req_path_arg "$1"
+  req_cdir_arg "$1"
   match_grep_pattern_test "$path" || return 1
   path_regex="$p_"
   match_name_tables "$path"
-  # 
+  #
   htd_find_path_locals table.names $(pwd)
   names_tables=$path_locals
   for names_table in $names_tables
@@ -1888,7 +1851,7 @@ htd__pcia()
 }
 
 # Move path to archive path in htdocs cabinet
-# XXX: see backup. 
+# XXX: see backup.
 # $ archive [<prefix>]/[<datepath>]/[<id>] <refs>...
 htd__archive()
 {
@@ -1905,7 +1868,7 @@ htd__archive()
 # TODO: define global <prefix> and <id> to correspond with (sets of) path instances
 # ie. lookup given prefix and id first, see if it exists.
 # XXX: may have lookup lookup. Use -g to override.
-# <prefix> 
+# <prefix>
 htd__save()
 {
   htd__save_tags "$1"
@@ -1957,7 +1920,7 @@ htd__save_ref()
 {
   test -n "$1" || error "tags expected" 1
   tags="$1"
-  
+
   shift 1
   for ref in "$@"
   do
@@ -2167,7 +2130,7 @@ htd__ck()
   test -z "$find_ignores" \
     && find_ignores="$ck_find_ignores" \
     || find_ignores="$find_ignores -o $ck_find_ignores"
-  
+
   while test -n "$1"
   do
     test -e "$1" || error "No such path to check: '$1'" 1
@@ -2194,7 +2157,7 @@ htd__ck()
 htd__ck_init()
 {
   test -n "$ck_tab" || ck_tab=table
-  test -n "$1" || set -- ck 
+  test -n "$1" || set -- ck
   touch $ck_tab.$CK
   shift 1
   htd__ck $ck_tab.$CK "$@"
@@ -2420,7 +2383,7 @@ htd__ck_drop()
   ck_write "$1"
   shift 1
   echo TODO ck_drop "$1"
-  return 
+  return
   req_arg "$1" 'ck-drop' 2 path || return 1
   match_grep_pattern_test "$1" || return 1
   cp table.$CK table.$CK.tmp
@@ -2532,7 +2495,7 @@ htd__ck_metafile()
       }
       echo "$CKS  $ck_mf_p" >> table.$CK
     }
-    
+
   done
 }
 
@@ -2789,13 +2752,13 @@ htd__tmux_winit()
         set -- "$1" "$2" "~/work/brix/tree/$2" ;;
       Prive )
         set -- "$1" "$2" "~/project/$2" ;;
-      * ) 
+      * )
         error "Cannot setup working-dir for window '$1:$2'" 1 ;;
     esac
   }
   test -d "$3" || error "Expected <arg3> to be directory '$3'" 1
   test -n "$4" || {
-    set -- "$1" "$2" "$3" "git fetch --all && status" 
+    set -- "$1" "$2" "$3" "git fetch --all && status"
   }
 
   tmux list-windows -t $1 | grep -q $2 && {
@@ -3649,8 +3612,8 @@ htd__colorize()
 {
   test -n "$1" || set -- "-"
 
-  case "$1" in 
-    
+  case "$1" in
+
     - )
 
       set -- $(setup_tmpd)/htd-vim-colorize.out
@@ -3709,19 +3672,19 @@ htd__say()
     uk )
       case "$s" in m )
           say -v Daniel "$@" ;;
-        f ) 
+        f )
           say -v Kate "$@" ;;
       esac;;
     us )
       case "$s" in m )
           say -v Alex "$@" ;;
-        f ) 
+        f )
           say -v Samantha "$@" ;;
       esac;;
     dutch | nl )
       case "$s" in m )
           say -v Xander "$@" ;;
-        f ) 
+        f )
           say -v Claire "$@" ;;
       esac;;
     japanese | jp )
@@ -3812,7 +3775,7 @@ htd__path_depth()
     #note "Depth for path $path"
     # Count dashes (except the trailing one)
     depth=$(echo $path | tr '/' ' ' | count_words)
-    # Remove root. 
+    # Remove root.
     echo $(( $depth - 1 ))
     shift
   done
@@ -3847,7 +3810,7 @@ htd__srv_list()
     test -h $srv || continue
     target="$(readlink $srv)"
     name="$(basename $srv -local)"
-    depth=$(htd__path_depth "$target") 
+    depth=$(htd__path_depth "$target")
         case "$target" in
           /mnt*|/media*|/Volumes* )
               note "Volume link '$name' to $target" ;;
@@ -3934,7 +3897,7 @@ htd__ls_volumes()
           #t=/srv/$srv-${disk_idx}-${part_idx}-$(hostname -s)-$domain
           #test -e "$t" || warn "Missing $t ($volume/$srv)"
 
-        }  
+        }
       done
 
       note "Volumes OK: $disk_index.$part_index $volume"
@@ -3955,7 +3918,7 @@ htd__munin_ls()
 {
   test -n "$1" || set -- $DCKR_VOL/munin/db
   tail -n +2 $1/datafile | while read dataline
-  do 
+  do
     hostgroup=$(echo $dataline | cut -d ':' -f 1)
     echo hostgroup=$hostgroup
     #grep -F $hostgroup $1/datafile \
@@ -3976,19 +3939,19 @@ htd__munin_ls_hosts()
 htd__munin_archive()
 {
   echo TODO $subcmd
-# archive selected plugins, attributes
-# 4 sets MIN/MAX/AVG values per attr: 
+# archive selected plugins, sensor names
+# 4 sets MIN/MAX/AVG values per attr:
 # 5min (day), 30min (week), 2h (month), 24h (year)
 # File: munin-log/2016/[02/[01/]]<group>.log.gz
 # Line: <ts> <plugin> <attr>=<min>,<max>,<avg> [<attr>.*=<v>]*
-# 
+#
 # One backup every day, two every week, three every month, and all four very year.
 }
 
 htd__munin_merge()
 {
   echo TODO $subcmd
-  # rename/merge selected plugins, attributes
+  # rename/merge selected plugins, sensor names
 }
 
 htd__munin_volumes()
@@ -4039,7 +4002,7 @@ htd__munin_export()
 
     echo $dataline | grep -q 'title' && {
       echo "$group\t$plugin\t$attr\t$value"
-    } 
+    }
     echo $dataline | grep -qv '\.graph_' && {
       echo "$group\t$plugin\t$attr\t$value"
       #echo ls -la $4/$(echo $group | tr ';' '/')-$plugin-$(echo $attr | tr '.' '_' )-*.rrd
@@ -4103,7 +4066,7 @@ htd__backup()
     note "Doing dry-run of $# files.."
     act="echo '*** DRY-RUN ***'"
   } || act=''
-  
+
   trueish "$choice_keep" && {
     note "Copying $# files to backup.."; bu_act=cp; bu_act_lbl=Copy
   } || {
@@ -4118,7 +4081,7 @@ htd__backup()
 
   test -d "/srv/backup-local" || error "Unknown error" $?
   (
-    cd /srv/backup-local 
+    cd /srv/backup-local
     git diff --quiet --exit-code \
       || error "Changed in local backup repo" 1
   )
@@ -4181,7 +4144,7 @@ htd__pack()
 {
   test -n "$2" || set -- "$1" . "$3"
 
-  test -n "$3" || set -- "$1" "$2" "$(basename "$(realpath "$2")")" 
+  test -n "$3" || set -- "$1" "$2" "$(basename "$(realpath "$2")")"
   fnmatch "*.tar.*" "$3" || set -- "$1" "$2" "$3.tar.lzma"
 
   case "$1" in
@@ -4268,7 +4231,7 @@ htd_backup_prereq()
 htd_backup_args()
 {
   test -n "$*" || error "Nothing to backup?" 1
-  htd_opt_args "$@"
+  opt_args "$@"
 }
 
 htd_backup_opts()
@@ -4277,17 +4240,17 @@ htd_backup_opts()
   while test -n "$1"
   do
     case "$1" in
-      --archive* ) 
+      --archive* )
         ;;
-      --tags-append* ) 
+      --tags-append* )
         ;;
-      --node-base ) 
+      --node-base )
         ;;
-      --add-base ) 
+      --add-base )
         ;;
-      --no-cabinet ) 
+      --no-cabinet )
         ;;
-      * ) 
+      * )
           htd_options_v "$1"
         ;;
     esac
@@ -4398,7 +4361,7 @@ htd_main()
   htd_init || exit $?
 
   case "$base" in
-    
+
     $scriptname )
 
         test -n "$1" || set -- main-doc
@@ -4452,13 +4415,7 @@ htd_init()
   . $scriptdir/htd.lib.sh
   . $scriptdir/main.lib.sh
   . $scriptdir/main.init.sh
-  . $scriptdir/meta.lib.sh
-  . $scriptdir/box.lib.sh
-  . $scriptdir/date.lib.sh
-  . $scriptdir/doc.lib.sh
-  . $scriptdir/table.lib.sh
-  . $scriptdir/disk.lib.sh
-  lib_load remote
+  lib_load htd meta box date doc table disk remote
   # -- htd box init sentinel --
 }
 

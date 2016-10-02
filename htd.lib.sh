@@ -1,12 +1,4 @@
 
-req_path_arg()
-{
-  test -n "$1"  && path="$1"  || path=.
-  test -d "$path" || {
-    error "Must pass directory" 1
-  }
-}
-
 htd_relative_path()
 {
   cwd=$(pwd)
@@ -26,11 +18,10 @@ htd_relative_path()
   return 1
 }
 
-htd_opt_args()
+
+req_htdir()
 {
-  for arg in $@
-  do fnmatch "-*" "$arg" && echo "$arg" >>$options || echo $arg >>$arguments
-  done
+  test -n "$HTDIR" -a -d "$HTDIR" || return 1
 }
 
 
@@ -65,25 +56,14 @@ htd_init_ignores()
   done
 }
 
-# Initi empty find_ignores var
+# Init empty find_ignores var
 htd_find_ignores()
 {
   test -z "$find_ignores" || return
   test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE.merged" && {
-    mv $HTD_IGNORE.merged $HTD_IGNORE.tmp
-    sort -u $HTD_IGNORE.tmp > $HTD_IGNORE.merged
-    find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
-      grep -Ev '^(#.*|\s*)$' | \
-      sed -E 's/^\//\.\//' | \
-      grep -v '\/' | \
-      sed -E 's/(.*)/ -o -name "\1" -prune /g'))"\
-    "$(echo $(cat $HTD_IGNORE.merged | \
-      grep -Ev '^(#.*|\s*)$' | \
-      sed -E 's/^\//\.\//' | \
-      grep '\/' | \
-      sed -E 's/(.*)/ -o -path "*\1*" -prune /g'))
+    find_ignores="$(find_ignores $HTD_IGNORE)"
   } || warn "Missing or empty HTD_IGNORE '$HTD_IGNORE'"
-  rm $HTD_IGNORE.tmp
+
   find_ignores="-path \"*/.git\" -prune $find_ignores "
   find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
   find_ignores="-path \"*/.svn\" -prune -o $find_ignores "

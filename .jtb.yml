@@ -5,7 +5,7 @@
     name: script.mpe
 
     branch: dev
-    version: 0.0.2-dev  # script-mpe
+    version: 0.0.2-dev # script-mpe
     jtb-file: .jtb.yml
 
     vendor-path: dotmpe/script.mpe

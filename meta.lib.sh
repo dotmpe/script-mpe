@@ -195,5 +195,14 @@ mediadisplayaspectratio()
 # Text; |Sub: %Language/String% * %Codec%
 # File_End;\n
 
-
+meta_attribute()
+{
+  test -e .attributes || return
+  test -n "$1" || set -- "$1"
+  case "$1" in
+    tagged )
+        grep 'no-tasks' .attributes | cut -f 1 -d ' '
+      ;;
+  esac
+}
 

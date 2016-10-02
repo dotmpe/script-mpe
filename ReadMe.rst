@@ -1,7 +1,7 @@
 script.mpe
 ==========
 :Version: 0.0.2-dev
-:Updated: 2016-09-18
+:Updated: 2016-10-01
 
 
 Build-status
@@ -37,8 +37,8 @@ Other documents
 
 Dev
 ---
+- Maybe look at dispatch_ a bit, a run-subcmd handler in 48 lines Bash.
 
-- XXX: maybe look to replace lots of main.lib.sh with dispatch_
 
 .. _dispatch: https://github.com/Mosai/workshop/blob/master/doc/dispatch.md
 

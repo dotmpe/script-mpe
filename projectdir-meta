@@ -703,7 +703,7 @@ def H_package(pdhdata, ctx):
         pack_id = pref
 
     pack = [ dict(
-          type='application/x-project-mpe',
+          type='application/vnd.dotmpe.project',
           main=pack_id,
           id=pack_id
       ) ]

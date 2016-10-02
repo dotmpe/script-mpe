@@ -115,6 +115,17 @@ trueish()
   esac
 }
 
+falseish()
+{
+  test -n "$1" || return 1
+  case "$1" in
+		[Oo]ff|[Ff]alse|[Nn]|[Nn]o|0)
+      return 0;;
+    * )
+      return 1;;
+  esac
+}
+
 cmd_exists()
 {
   test -x $(which $1) || return $?

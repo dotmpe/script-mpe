@@ -1,6 +1,8 @@
 #!/bin/sh
 
 
+# std: logging and dealing with the shell's stdio decriptors
+
 io_dev_path()
 {
   case "$uname" in

@@ -81,9 +81,11 @@ pd
         - pd-meta/prefix; corresponds to a checkout in a projectdir relative to a
           projectdocument.
 
-      2. Contexts (documents/filesystem)
+        TODO: use a mimetype, or initially just schema/class/type? ref to
+        1) recognized the root object as .mpe project and 2) validate the entire
+        document.
 
-         FIXME: `application/x-*` is not a valid mediatype [#]_
+      2. Contexts (documents/filesystem)
 
          Pdir/Pdoc:
           a per-host directory of prefix to repo path mappings, with data in
@@ -125,6 +127,4 @@ pd
     - argument defaults, shift to 2
     - argument defaults, shift to 3
 
-
-.. [#] http://stackoverflow.com/questions/18969938/vendor-mime-types-for-api-versioning
 

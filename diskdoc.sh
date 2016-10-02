@@ -126,9 +126,9 @@ diskdoc__disable_clean()
   done
 }
 
-# Add/remove repos, udiskdocate remotes at first level. git only.
-diskdoc_load__udiskdocate=yfb
-diskdoc__udiskdocate()
+# Add/remove repos, update remotes at first level. git only.
+diskdoc_load__update=yfb
+diskdoc__update()
 {
   test -n "$1" || set -- "*"
 
@@ -152,7 +152,7 @@ diskdoc__udiskdocate()
           && continue \
           || {
 
-          diskdoc__meta udiskdocate-repo $prefix disabled=true \
+          diskdoc__meta update-repo $prefix disabled=true \
             && note "Disabled $prefix" \
             || touch $failed
         }
@@ -183,13 +183,13 @@ diskdoc__udiskdocate()
         touch $failed
       }
 
-      # Udiskdocate existing, add newly found repos to metadata
+      # Update existing, add newly found repos to metadata
 
       diskdoc__meta_sq get-repo $prefix && {
-        diskdoc__meta udiskdocate-repo $prefix $props \
-          && note "Udiskdocated metadata for $prefix" \
+        diskdoc__meta update-repo $prefix $props \
+          && note "Updated metadata for $prefix" \
           || { r=$?; test $r -eq 42 && info "Metadata up-to-date for $prefix" \
-            || { warn "Error udiskdocating $prefix with '$props'"
+            || { warn "Error updating $prefix with '$props'"
               touch $failed
             } }
       } || {
@@ -207,7 +207,7 @@ diskdoc__udiskdocate()
 }
 
 diskdoc_load__find=y
-diskdoc_spc_find='[<path>|<localname> [<project>]]'
+diskdoc_spc__find='[<path>|<localname> [<project>]]'
 diskdoc__find()
 {
   test -z "$3" || error "Surplus arguments: $3" 1
@@ -245,7 +245,7 @@ diskdoc__compile_ignores()
 
 # prepare Pd var, failedfn
 diskdoc_load__sync=yf
-# Udiskdocate remotes and check refs
+# Update remotes and check refs
 diskdoc__sync()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -362,7 +362,7 @@ diskdoc__init()
   diskdoc__set_remotes $1
   cwd=$(pwd)
   cd $1
-  git submodule udiskdocate --init --recursive
+  git submodule update --init --recursive
   cd $cwd
 }
 
@@ -473,22 +473,6 @@ diskdoc__ids()
 # ----
 
 
-#diskdoc__usage()
-#{
-#  echo 'Usage: '
-#  echo "  $scriptname.sh <cmd> [<args>..]"
-#}
-#
-#diskdoc__help()
-#{
-#  diskdoc__usage
-#  echo 'Functions: '
-#  echo '  status                           List abbreviated status strings for all repos'
-#  echo ''
-#  echo '  help                             print this help listing.'
-#  # XXX _init is bodged, std__help diskdoc "$@"
-#}
-
 diskdoc__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 diskdoc_load__help=f
 diskdoc_spc__help='-h|help [ID]'
@@ -504,6 +488,9 @@ diskdoc_als___h=help
 diskdoc_load()
 {
   test -n "$diskdoc_session_id" || diskdoc_session_id=$(get_uuid)
+
+  sys_load
+  str_load
 
   for x in $(try_value "${subcmd}" "" load | sed 's/./&\ /g')
   do case "$x" in
@@ -591,10 +578,9 @@ diskdoc_unload()
 diskdoc_init()
 {
   local __load_lib=1
+  lib_load box main
   . $scriptdir/box.init.sh
-  . $scriptdir/box.lib.sh
   box_run_sh_test
-  . $scriptdir/main.lib.sh
   . $scriptdir/main.init.sh
   #while test $# -gt 0
   #do
@@ -606,9 +592,6 @@ diskdoc_init()
   #  esac
   #done
   #. $scriptdir/diskdoc.inc.sh "$@"
-  . $scriptdir/date.lib.sh
-  . $scriptdir/match.lib.sh
-  . $scriptdir/vc.sh load-ext
   test -n "$verbosity" || verbosity=6
   # -- diskdoc box init sentinel --
 }
@@ -616,8 +599,8 @@ diskdoc_init()
 diskdoc_lib()
 {
   local __load_lib=1
-  . ~/bin/util.sh
-  . ~/bin/box.lib.sh
+  lib_load date match
+  . $scriptdir/vc.sh load-ext
   # -- diskdoc box lib sentinel --
 }
 
@@ -652,17 +635,6 @@ diskdoc_main()
         diskdoc_lib || error diskdoc-lib $?
         run_subcmd "$@" || error "run-subcmd:$*" $?
 
-        # XXX:
-        #try_subcmd && {
-        #  diskdoc_lib
-        #  box_src_lib diskdoc
-        #  shift 1
-        #  diskdoc_load $subcmd "$@" || return
-        #  $func "$@" || r=$?
-        #  diskdoc_unload
-        #  exit $r
-        #}
-
       ;;
 
     * )
@@ -676,7 +648,7 @@ diskdoc_main()
 case "$0" in "" ) ;; "-*" ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
+  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux?
   # fix using another mechanism:
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )

@@ -649,25 +649,21 @@ run_subcmd()
   # Execute and exit
 
   $subcmd_func "$@" && {
-
+    prev_subcmd=$subcmd
     main_unload $box_prefix && noop || {
-      error "Command $subcmd failed (unload: $?)" 4
+      error "Command $prev_subcmd failed ($?)" 4
     }
 
   } || {
     e=$?
+    prev_subcmd=$subcmd
     main_unload $box_prefix
-    error "Command $subcmd returned $e" 3
+    error "Command $prev_subcmd returned $e" 3
   }
 
   test -z "$dry_run" \
     && info "$subcmd completed normally" 0 \
     || info "$subcmd dry-drun completed" 0
-}
-
-req_htdir()
-{
-  test -n "$HTDIR" -a -d "$HTDIR" || return 1
 }
 
 
@@ -695,36 +691,6 @@ daemon()
 #}
 
 
-# Given $failed pointing to a path, cleanup after a run, observing
-# any notices and returning 1 for failures.
-clean_failed()
-{
-  test -z "$failed" -o ! -e "$failed" && return || {
-    test -n "$1" || set -- "Failed: "
-    test -s "$failed" && {
-      count="$(sort -u $failed | wc -l | awk '{print $1}')"
-      test "$count" -gt 2 && {
-        warn "$1 $(echo $(sort -u $failed | head -n 3 )) and $(( $count - 3 )) more"
-        rotate-file $failed .failed
-      } || {
-        warn "$1 $(echo $(sort -u $failed))"
-      }
-    }
-    test ! -e "$failed" || rm $failed
-    unset failed
-    return 1
-  }
-}
-
-# Extra helper to remove empty failed since not all subcmds have same semantics
-# New pd load=y accepts empty files. Older subcmds use presence of failed to
-# indicate failure. XXX: maybe make old commands echo a line eventually.
-rm_failed()
-{
-  local ret=0
-
-  return $ret
-}
 
 # TODO: retrieve leading/trailing X lines, truncate to Y length
 abbrev_content()
@@ -732,33 +698,9 @@ abbrev_content()
   echo
 }
 
-# remove named paths from env context; set status vars for line-count and
-# truncated contents; XXX: deprecates clean_failed
-clean_io_lists()
-{
-  local count= path=
-  while test -n "$1"
-  do
-    count=0 path="$(eval echo \$$1)"
-    test -s "$path" && {
-      count="$(count_lines $path)"
-      test $count -gt 2 && {
-        eval ${1}_abbrev="'$(echo $(sort -u $path | head -n 3 )) and $(( $count - 3 )) more'"
-        #rotate-file $failed .failed
-      } || {
-        eval ${1}_abbrev="'$(echo $(sort -u $path | lines_to_words ))'"
-        #rm $1
-      }
-    }
-    test ! -e $path || rm $path
-    eval ${1}_count="$count"
-    export ${1}_count ${1}_abbrev
-    shift
-  done
-}
 
 
-# Return path in metadata index
+# Return path in statusdir metadata index
 setup_stat()
 {
   test -n "$1" || set -- .json "$2" "$3"

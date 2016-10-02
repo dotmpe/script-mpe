@@ -85,6 +85,7 @@ pd_bats_files_args()
 
       local retry=$(setup_tmpf .retry "$subcmd-$PWD")
       test -e "$retry" && {
+        debug "Retry file: $retry"
         note "Using targets from retry file ($(count_lines $retry))"
         cat $retry | sed 's/^bats://g'
         rm $retry

@@ -2,7 +2,6 @@
 #
 # SCM util functions and pretty prompt printer for Bash, GIT
 # TODO: other SCMs, BZR, HG, SVN (but never need them so..)
-# XXX: more in projectdir.sh in private repo
 #
 #HELP="vc - version-control helper functions "
 vc_src="$_"
@@ -1470,7 +1469,9 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
 
-  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
+  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux. But it
+  # maybe Darwin/BSD sh is relaying to bash instead?
+
   # fix using another mechanism:
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )

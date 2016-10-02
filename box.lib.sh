@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 
 box_load()
 {
@@ -286,4 +284,20 @@ box_update()
   #ansible-playbook -l $box_host ansible/playbook/system-update.yml
   #ansible-playbook -l $box_host ansible/playbook/user-env-update.yml
 }
+
+
+req_path_arg()
+{
+	test -n "$1" || error "path or file argument expected" 1
+	test -e "$1" || error "not a path '$1'" 1
+}
+
+req_cdir_arg()
+{
+  test -n "$1"  && path="$1"  || path=.
+  test -d "$path" || {
+    error "Must pass directory" 1
+  }
+}
+
 

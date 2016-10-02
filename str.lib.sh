@@ -171,4 +171,22 @@ str_load()
   #}
 }
 
-
+# Try to turn given variable names into a more "terse", human readble string seq
+var2tags()
+{
+  echo $(for varname in $@
+  do
+    local value="$(eval echo "\$$varname")" \
+      pretty_var=$(echo $varname | tr '_' '-')
+    test -n "$value" || continue
+    falseish "$value" && {
+      printf "!$pretty_var "
+    } || {
+      trueish "$value" && {
+        printf "$pretty_var "
+      } || {
+        printf "$pretty_var=\"$value\" "
+      }
+    }
+  done)
+}

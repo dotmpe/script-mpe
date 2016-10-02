@@ -393,103 +393,17 @@ pd_debug()
 }
 
 
-pd_report()
-{
-  # leave pd_report_result to "highest" set value (where 1 is highest)
-  pd_report_result=0
 
-  while test -n "$1"
-  do
-    case "$1" in
+# Pd output shortcut
 
-      passed )
-          test $passed_count -gt 0 \
-            && info "Passed ($passed_count): $passed_abbrev"
-        ;;
-
-      skipped )
-          test $skipped_count -gt 0 \
-            && {
-              note "Skipped ($skipped_count): $skipped_abbrev"
-              test $pd_report_result -eq 0 -o $pd_report_result -gt 4 \
-                && pd_report_result=4
-            }
-        ;;
-
-      error )
-          test $error_count -gt 0 \
-            && {
-              error "Errors ($error_count): $error_abbrev"
-              test $pd_report_result -eq 0 -o $pd_report_result -gt 2 \
-                && pd_report_result=2
-            }
-        ;;
-
-      failed )
-          test $failed_count -gt 0 \
-            && {
-              warn "Failed ($failed_count): $failed_abbrev"
-              test $pd_report_result -eq 0 -o $pd_report_result -gt 3 \
-                && pd_report_result=3
-            }
-        ;;
-
-      * )
-        ;;
-
-    esac
-    shift
-  done
-
-  return $pd_report_result
-}
-
-
-# Pd output shortcuts
-
+# XXX: unused
 pd_stdout()
 {
   test -n "$1" && {
-    test -z "$2" || error "passed surplus args" 1
+    test -z "$2" || error "pd-stdout '$2': surplus args" 1
     echo "$1" >&1
   } || {
     cat >&1
-  }
-}
-passed()
-{
-  test -n "$1" && {
-    test -z "$2" || error "passed surplus args" 1
-    echo "$1" >&3
-  } || {
-    cat >&3
-  }
-}
-skipped()
-{
-  test -n "$1" && {
-    test -z "$2" || error "skipped surplus args" 1
-    echo "$1" >&4
-  } || {
-    cat >&4
-  }
-}
-errored()
-{
-  test -n "$1" && {
-    test -z "$2" || error "errored surplus args" 1
-    echo "$1" >&5
-  } || {
-    cat >&5
-  }
-}
-failed()
-{
-  test -n "$1" && {
-    test -z "$2" || error "failed surplus args" 1
-    echo "$1" >&6
-  } || {
-    cat >&6
   }
 }
 
@@ -753,14 +667,14 @@ pd_run()
         note "Ignore ($1)"
         # Ignore return
         # backup $failed
-        mv $error $error.ignore
+        mv $errored $errored.ignore
         mv $failed $failed.ignore
-        touch $failed $error
+        touch $failed $errored
         (
           pd_run $(expr_substr ${1} 2 ${#1}) || noop
           clean_failed "*IGNORED* Failed targets:"
         )
-        mv $error.ignore $error
+        mv $errored.ignore $errored
         mv $failed.ignore $failed
         result=0
       ;;
@@ -768,6 +682,7 @@ pd_run()
     # Shell exec
 
     sh:* )
+        # NOTE: pd run sh automatically accepts env decl. beacuse 's/:/ /g'
         local shcmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
         record_key=$(printf "$1" | cut -d ':' -f 2 )
         info "Running Sh '$shcmd' ($1)"
@@ -798,7 +713,21 @@ pd_run()
     pd:* )
 
         local comp="$(echo "$1" | cut -d ':' -f 2)" ncomp=
-        local comp_idx=2 func= args="$(echo "$1" | cut -c$(( 5 + ${#comp} ))-)"
+        local comp_idx=2 func= args=
+        local comp_env=
+
+        # Phase 1: read env/comp-name from $1
+
+        # Consume env kv's
+        while true
+        do
+          ncomp="$(echo "$1" | cut -d ':' -f $comp_idx)"
+          test -n "$ncomp" || break
+          fnmatch "*=*" "$ncomp" || break
+          comp_env="$comp_env $ncomp"
+          comp_idx=$(( $comp_idx + 1 ))
+          comp="$(echo "$1" | cut -d ':' -f $comp_idx)"
+        done
 
         # Consume components and look for local function
         while true
@@ -823,13 +752,21 @@ pd_run()
             try_func $(try_local $comp:$ncomp "") || break
           }
 
-          args="$(echo "$args" | cut -c$(( 2 + ${#ncomp} ))-)"
           comp="$comp:$ncomp"
 
         done
 
+        test -n "$comp_env" && {
+          args="$(echo "$1" | cut -c$(( 5 + ${#comp_env} + ${#comp} ))-)"
+        } || {
+          args="$(echo "$1" | cut -c$(( 4 + ${#comp} ))-)"
+        }
+
+
+        # Phase 2: exec. comp func in new env
+
         try_func "$func" || {
-          error "No such Pd target '$comp'"; echo "$1" >>$error; return 1
+          error "No such Pd target '$comp'"; echo "$1" >>$errored; return 1
         }
 
         sub_session_id=$(get_uuid)
@@ -844,10 +781,10 @@ pd_run()
 
           local pd_session_id=$sub_session_id
           eval local $(for io_name in $pd_inputs $pd_outputs; do
-            printf -- " $io_name= "; done)
+            printf -- " $io_name= "; done) $comp_env
 
           subcmd=$comp pd_load "$args" || {
-            error "Pd-load failed for '$1'"; echo "$1" >>$error; return 1
+            error "Pd-load failed for '$1'"; echo "$1" >>$errored; return 1
           }
           test -e "$arguments" || {
             test -n "$args" || echo "$args" >$arguments
@@ -898,7 +835,7 @@ pd_run()
 
     * )
         error "No such run target '$1'"
-        echo $1 >>$error
+        echo $1 >>$errored
       ;;
 
   esac
@@ -910,9 +847,22 @@ pd_run_suite()
   local r=0 suite=$1; shift
   echo "$@" >$arguments
   subcmd=$suite:run pd__run || return $?
-  test -s "$errors" -o -s "$failed" && r=1
+  test -s "$errored" -o -s "$failed" && r=1
   pd_update_records status/$suite=$r $pd_prefixes
   return $r
 }
 
+
+# TODO: duplicate from htd_find_ignores, while further devving
+pd_find_ignores()
+{
+  test -z "$find_ignores" || return
+  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE.merged" && {
+    find_ignores="$(find_ignores $HTD_IGNORE)"
+  } || warn "Missing or empty HTD_IGNORE '$HTD_IGNORE'"
+
+  find_ignores="-path \"*/.git\" -prune $find_ignores "
+  find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
+  find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
+}
 

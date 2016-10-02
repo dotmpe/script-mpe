@@ -28,9 +28,21 @@ older_than()
   test $(( $(date +%s) - $2 )) -gt $(filemtime $1) && return 0 || return 1
 }
 
+timestamp2touch()
+{
+  test -n "$1" || set -- "$(date +%s)"
+  date_flags="-r $1" \
+    date_fmt "" %y%m%d%H%M.%S
+}
 
-# TODO: move date routines to lib
-# NOTE: these use BSD date -v, see GNU date -d
+# TS FILE
+touch_ts()
+{
+  touch -t $(timestamp2touch $1) $2
+}
+
+# TAGS DTFMT
+# NOTE: BSD date -v style TAG-values are used, translated to GNU date -d
 case "$(uname)" in Darwin )
     date_fmt() {
       tags=$(for tag in $1; do echo "-v $tag"; done)

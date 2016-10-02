@@ -423,7 +423,7 @@ pd__list_all()
   {
     for pd in $UCONF/project/*/*.y*ml
     do
-      pd__meta list-prefixes 
+      pd__meta list-prefixes
     done
   } | sort -u
 }
@@ -1035,7 +1035,7 @@ pd__tasks()
   ## TODO: pd tasks
   #echo "sh:pwd" >$arguments
   #subcmd=$suite:run pd__run || r=$?
-  #test -s "$errors" -o -s "$failed" && r=1
+  #test -s "$errored" -o -s "$failed" && r=1
   #pd_update_records status/$suite=$r $pd_prefixes
   #return $r
 }
@@ -1171,6 +1171,42 @@ pd_defargs__ls_auto_targets=pd_named_set_args
 pd_load__ls_auto_targets=diap
 
 
+# List all paths; -dfl or  filters
+pd_load__list_paths=i
+pd__list_paths()
+{
+  opt_args "$@"
+  set -- "$(cat $arguments)"
+  req_cdir_arg "$@"
+  pd_find_ignores
+  find_ignores="$find_ignores $(pd__list_paths_opts)"
+  debug "Find ignores: $find_ignores"
+  return
+  eval find $path $find_ignores -o -path . -o -print
+}
+pd__list_paths_opts()
+{
+  while read option; do case "$option" in
+      -d ) echo "-o -not -type d " ;;
+      -f ) echo "-o -not -type f " ;;
+      -l ) echo "-o -not -type l " ;;
+      --tasks )
+          for tag in no-tasks shadow-tasks
+          do
+            meta_attribute tagged $tag | while read glob
+            do
+              glob_to_find_prune "$glob"
+            done
+          done
+          echo "-o -not -type f "
+        ;;
+      * ) echo "$option " ;;
+    esac
+  done < $options
+}
+
+
+
 pd_spc__loc='SRC-FILE...'
 # Count non-empty, non-comment lines from files
 pd__loc()
@@ -1205,8 +1241,8 @@ pd__help()
 # Setup for subcmd; move some of this to box.lib.sh eventually
 pd_load()
 {
-  test -n "$EDITOR" || EDITOR=nano
   CWD=$(pwd -P)
+  test -n "$EDITOR" || EDITOR=nano
   #test -n "$P" || PATH=$CWD:$PATH
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname=$(uname)
@@ -1233,11 +1269,11 @@ pd_load()
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
 
   pd_inputs="arguments prefixes options"
-  pd_outputs="passed skipped error failed"
+  pd_outputs="passed skipped errored failed"
 
   test -n "$pd_session_id" || pd_session_id=$(get_uuid)
 
-  # Per subcmd init
+  # Selective per-subcmd init
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
 
@@ -1302,6 +1338,8 @@ pd_load()
       ;;
 
     i )
+        # TODO: replace below with setup_io_paths, but rename pd_in/outputs frst
+
         test -n "$pd_root" && {
           # expect Pd Context; setup IO paths (req. y)
           req_vars pd pd_cid pd_realpath pd_root \
@@ -1363,8 +1401,7 @@ pd_load()
         pd_globstar_search "$pd_trgtglob" "$@"
       ;;
 
-    esac
-  done
+  esac; done
 
   local tdy="$(try_value "${subcmd}" today)"
   test -z "$tdy" || {
@@ -1382,30 +1419,30 @@ pd_unload()
 
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
-      F )
-          exec 6<&-
-        ;;
-      i ) # remove named IO buffer files; set status vars
-          clean_io_lists $pd_inputs $pd_outputs
-          pd_report $pd_inputs $pd_outputs || subcmd_result=$?
-        ;;
-      I )
-          local fd_num=2
-          for fd_name in $pd_outputs $pd_inputs
-          do
-            fd_num=$(( $fd_num + 1 ))
-            #eval echo $fd_num\\\<\\\&-
-            eval exec $fd_num\<\&-
-          done
-          eval unset $pd_inputs $pd_outputs
-          unset pd_inputs pd_outputs
-        ;;
-      y )
-          test -z "$pd_sock" || {
-            pd_meta_bg_teardown
-            unset bgd pd_sock
-          }
-        ;;
+    F )
+        exec 6<&-
+      ;;
+    i ) # remove named IO buffer files; set status vars
+        clean_io_lists $pd_inputs $pd_outputs
+        std_io_report $pd_outputs || subcmd_result=$?
+      ;;
+    I )
+        local fd_num=2
+        for fd_name in $pd_outputs $pd_inputs
+        do
+          fd_num=$(( $fd_num + 1 ))
+          #eval echo $fd_num\\\<\\\&-
+          eval exec $fd_num\<\&-
+        done
+        eval unset $pd_inputs $pd_outputs
+        unset pd_inputs pd_outputs
+      ;;
+    y )
+        test -z "$pd_sock" || {
+          pd_meta_bg_teardown
+          unset bgd pd_sock
+        }
+      ;;
   esac; done
 
   test -n "$PD_TMPDIR" || error "PD_TMPDIR unload" 1
@@ -1427,8 +1464,9 @@ pd_init()
   scriptdir="$(dirname "$(realpath "$0")")"
   export SCRIPTPATH=$scriptdir
   . $scriptdir/util.sh load-ext
-  lib_load sys os std str src main meta
+  lib_load sys os std stdio str src main meta
   . $scriptdir/box.init.sh
+  lib_load box
   box_run_sh_test
   . $scriptdir/main.init.sh
   # -- pd box init sentinel --
