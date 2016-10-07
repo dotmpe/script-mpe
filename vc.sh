@@ -1109,7 +1109,7 @@ vc__grep_file()
 # List submodule prefixes
 vc__list_prefixes()
 {
-  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
+  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" # vim syntax fix: '"
 }
 
 # List all nested repositories, excluding submodules
@@ -1190,6 +1190,9 @@ vc__list_local_branches()
 }
 
 # regenerate .git/info/exclude
+# NOTE: a duplication is happening, but not no recursion, only one. As
+# accumulated patterns (current contents) is unique listed first, and then all
+# items are added again grouped with each source path
 vc__regenerate()
 {
   local excludes=.git/info/exclude
@@ -1202,7 +1205,7 @@ vc__regenerate()
   rm $excludes.list
 
   info "Adding other git-ignore files"
-  for x in .gitignore-* $HOME/.gitignore-*-global
+  for x in .gitignore-* $HOME/.gitignore*-global
   do
     test "$(basename $x .regex)" = "$(basename $x)" || continue
     test -e $x || continue

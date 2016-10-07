@@ -40,3 +40,4 @@ do
 done
  
 echo -e $output | column -t -s ', '
+

@@ -1171,17 +1171,21 @@ pd_defargs__ls_auto_targets=pd_named_set_args
 pd_load__ls_auto_targets=diap
 
 
-# List all paths; -dfl or  filters
-pd_load__list_paths=i
+# List all paths; -dfl or with --tasks filters
+pd_load__list_paths=iO
 pd__list_paths()
 {
   opt_args "$@"
   set -- "$(cat $arguments)"
   req_cdir_arg "$@"
-  pd_find_ignores
-  find_ignores="$find_ignores $(pd__list_paths_opts)"
+  shift 1; test -z "$@" || error surplus-arguments 1
+  local find_ignores="$(find_ignores $IGNORE_GLOBFILE) $(pd__list_paths_opts)"
+  # FIXME: some nice way to get these added in certain contexts
+  find_ignores="-path \"*/.git\" -prune $find_ignores "
+  find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
+  find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
+
   debug "Find ignores: $find_ignores"
-  return
   eval find $path $find_ignores -o -path . -o -print
 }
 pd__list_paths_opts()
@@ -1190,6 +1194,9 @@ pd__list_paths_opts()
       -d ) echo "-o -not -type d " ;;
       -f ) echo "-o -not -type f " ;;
       -l ) echo "-o -not -type l " ;;
+      --src )
+          echo " -o -not -type f "
+        ;;
       --tasks )
           for tag in no-tasks shadow-tasks
           do
@@ -1198,7 +1205,7 @@ pd__list_paths_opts()
               glob_to_find_prune "$glob"
             done
           done
-          echo "-o -not -type f "
+          echo " -o -not -type f "
         ;;
       * ) echo "$option " ;;
     esac
@@ -1215,7 +1222,19 @@ pd__loc()
   do
     read_nix_style_file "$1"
     shift
-  done | count_lines
+  done | line_count
+}
+
+
+pd_load__src_report=iO
+pd__src_report()
+{
+  pd__list_paths . --src | while read path
+  do
+    test -e "$path" || continue
+    echo $path chars=$(count_chars $path) lines=$(count_lines $path)
+    # src_loc="$(line_count $path)"
+  done
 }
 
 
@@ -1267,6 +1286,10 @@ pd_load()
   # FIXME: test with this enabled
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
+
+  ignores_load
+  test -n "$PD_IGNORE" -a -e "$PD_IGNORE" || error "expected $base ignore dotfile" 1
+  lst_init_ignores
 
   pd_inputs="arguments prefixes options"
   pd_outputs="passed skipped errored failed"
@@ -1478,7 +1501,7 @@ pd_lib()
   test -z "$__load_lib" || return 14
   local __load_lib=1
   test -n "$scriptdir" || return 12
-  lib_load box match date doc table
+  lib_load box match date doc table ignores list
   . $scriptdir/vc.sh load-ext
   . $scriptdir/projectdir.lib.sh "$@"
   . $scriptdir/projectdir-bats.inc.sh
@@ -1565,4 +1588,5 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   esac ;;
 esac
+
 

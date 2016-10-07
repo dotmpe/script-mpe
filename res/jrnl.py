@@ -6,3 +6,4 @@ class Journal(Metadir):
     DOTID = 'journal'
 
 
+

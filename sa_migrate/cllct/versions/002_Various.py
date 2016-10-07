@@ -151,3 +151,4 @@ def downgrade(migrate_engine):
 	post_meta.tables['groupnodes'].drop()
 	post_meta.tables['groupnode_node'].drop()
 
+

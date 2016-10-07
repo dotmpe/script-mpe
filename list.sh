@@ -128,14 +128,61 @@ lst__watch_inotify()
 }
 
 
+# List all paths; -dfl or with --tasks filters
+lst_load__list_paths=iO
+lst__list_paths()
+{
+  opt_args "$@"
+  set -- "$(cat $arguments)"
+  req_cdir_arg "$@"
+  shift 1; test -z "$@" || error surplus-arguments 1
+  local find_ignores="$(find_ignores $IGNORE_GLOBFILE) $(lst__list_paths_opts)"
+  # FIXME: some nice way to get these added in certain contexts
+  find_ignores="-path \"*/.git\" -prune $find_ignores "
+  find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
+  find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
+  debug "Find ignores: $find_ignores"
+  eval find $path $find_ignores -o -path . -o -print
+}
+lst__list_paths_opts()
+{
+  while read option; do case "$option" in
+      -d ) echo "-o -not -type d " ;;
+      -f ) echo "-o -not -type f " ;;
+      -l ) echo "-o -not -type l " ;;
+      --tasks )
+          for tag in no-tasks shadow-tasks
+          do
+            meta_attribute tagged $tag | while read glob
+            do
+              glob_to_find_prune "$glob"
+            done
+          done
+          echo " -o -not -type f "
+        ;;
+      --add-scm-ext )
+          find_ignores="-path \"*/.git\" -prune $find_ignores "
+          find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
+          find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
+        ;;
+      * ) echo "$option " ;;
+    esac
+  done < $options
+}
+
+
+
+
 ### Main
 
 
 lst_main()
 {
-  local scriptname=lst base=$(basename $0 .sh) verbosity=5 \
+  local scriptname=lst base=$(basename $0 .sh) \
     scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
     failed=
+
+  test -n "$verbosity" || verbosity=5
 
   export SCRIPTPATH=$scriptdir
   . $scriptdir/util.sh
@@ -186,4 +233,5 @@ case "$0" in "" ) ;; "-"* ) ;; * )
     lst_main "$@"
   ;; esac
 ;; esac
+
 

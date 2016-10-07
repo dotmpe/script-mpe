@@ -679,3 +679,4 @@ _ = Values()
 if __name__ == '__main__':
     configs = list(expand_config_path('cllct.rc'))
     assert configs == ['/Users/berend/.cllct.rc'], configs
+

@@ -26,7 +26,10 @@ lst_load()
         || warn "No 'watch' backend"
     }
 
+  # build ignore pattern file
   ignores_load lst
+  test -n "$LST_IGNORE" -a -e "$LST_IGNORE" || error "expected $base ignore dotfile" 1
+  lst_init_ignores
 
   # Selective per-subcmd init
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
@@ -72,6 +75,113 @@ lst_unload()
     lst_session_id
 
   return $subcmd_result
+}
+
+
+# Update IGNORE_GLOBFILE lines
+lst_init_ignores()
+{
+  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" \
+    || error "expected existing IGNORE_GLOBFILE ($IGNORE_GLOBFILE)" 1
+  test -n "$1" || {
+    set -- scm
+    test ! -e .attributes || set -- scm attributes
+    debug "Set ignores for $base ($IGNORE_GLOBFILE) to '$*'"
+  }
+
+  for tag in $@
+  do
+    case $tag in
+      scm )
+          # TODO: why no list using frontend iso. GIT hardcoded. vc.sh
+          for x in .gitignore .git/info/exclude
+          do
+            test -e $x || continue
+            cat $x | grep -Ev '^(#.*|\s*)$' >> $IGNORE_GLOBFILE
+          done
+        ;;
+      attributes )
+          # see pd:list-paths opts parsing; could create sets of exclude globs
+        ;;
+    esac
+  done
+
+  test -s $IGNORE_GLOBFILE || {
+    warn "Failed to find any ignore glob rules for $base"
+    return 1
+  }
+}
+
+# XXX: cons
+htd_init_ignores()
+{
+  test -n "$IGNORE_GLOBFILE" || exit 1
+
+  test -e $IGNORE_GLOBFILE.merged \
+    && grep -qF $IGNORE_GLOBFILE.merged $IGNORE_GLOBFILE.merged || {
+      echo $IGNORE_GLOBFILE.merged > $IGNORE_GLOBFILE.merged
+    }
+
+  #test -n "$pwd" || pwd=$(pwd)
+  #test ! -e $HTDIR || {
+  #  cd $HTDIR
+
+  #  for x in .git/info/exclude .gitignore $IGNORE_GLOBFILE
+  #  do
+  #    test -s $x && {
+  #      cat $x | grep -Ev '^(#.*|\s*)$'
+  #    }
+  #  done
+
+  #  cd $pwd
+
+  #} >> $IGNORE_GLOBFILE.merged
+}
+
+# Init empty find_ignores var
+htd_find_ignores()
+{
+  test -z "$find_ignores" || return
+  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE.merged" && {
+    find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
+  } || warn "Missing or empty IGNORE_GLOBFILE '$IGNORE_GLOBFILE'"
+
+  find_ignores="-path \"*/.git\" -prune $find_ignores "
+  find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
+  find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
+}
+
+htd_grep_excludes()
+{
+  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" \
+    || warn "Missing or empty IGNORE_GLOBFILE '$IGNORE_GLOBFILE'"
+  grep_excludes=""$(echo $(cat $IGNORE_GLOBFILE.merged | \
+    grep -Ev '^\s*(#.*|\s*)$' | \
+    sed -E 's/^\//\.\//' | \
+    sed -E 's/(.*)/ --exclude "*\1*" --exclude-dir "\1" /g'))
+  grep_excludes="--exclude-dir \"*/.git\" $grep_excludes"
+  grep_excludes="--exclude-dir \"*/.bzr\" $grep_excludes"
+  grep_excludes="--exclude-dir \"*/.svn\" $grep_excludes"
+}
+
+# return paths for names that exist along given path
+htd_find_path_locals()
+{
+  local name path stop_at
+  name=$1
+  path="$(cd $2;pwd)"
+  test -z "$3" && stop_at= || stop_at="$(cd $3;pwd)"
+  path_locals=
+  while test -n "$path" -a "$path" != "/"
+  do
+    test -e "$path/$name" && {
+        path_locals="$path_locals $path/$name"
+    }
+    test "$path" = "$stop_at" && {
+        break
+    }
+    path=$(dirname $path)
+  done
 }
 
 

@@ -35,3 +35,4 @@ esac
 gsettings set org.gnome.system.proxy.socks host "$2"
 gsettings set org.gnome.system.proxy.socks port "$3"
 gsettings set org.gnome.system.proxy mode "$mode"
+

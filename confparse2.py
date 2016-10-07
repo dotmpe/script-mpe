@@ -138,3 +138,4 @@ def obj_dic(d, name='obj_dic', super_=None):
 
 #o = obj_dic({'test':'foo'})
 
+

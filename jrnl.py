@@ -69,3 +69,4 @@ class Jrnl(rsr.Rsr):
 if __name__ == '__main__':
     Jrnl.main()
 
+

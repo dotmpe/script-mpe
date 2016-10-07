@@ -213,6 +213,19 @@ count_words()
   }
 }
 
+count_chars()
+{
+  test -n "$1" && {
+    while test -n "$1"
+    do
+      wc -c $1 | awk '{print $1}'
+      shift
+    done
+  } || {
+    wc -w | awk '{print $1}'
+  }
+}
+
 # Wrap wc but correct files with or w.o. trailing posix line-end
 line_count()
 {
@@ -298,5 +311,6 @@ test_file()
 		return 1
 	}
 }
+
 
 

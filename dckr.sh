@@ -1145,3 +1145,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
     dckr_main "$@"
   ;; esac
 ;; esac
+

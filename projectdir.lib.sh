@@ -857,12 +857,16 @@ pd_run_suite()
 pd_find_ignores()
 {
   test -z "$find_ignores" || return
-  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE.merged" && {
-    find_ignores="$(find_ignores $HTD_IGNORE)"
-  } || warn "Missing or empty HTD_IGNORE '$HTD_IGNORE'"
+  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
+    #mv $a.merged $a.tmp
+    #sort -u $a.tmp > $a.merged
+    find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
+  } || warn "Missing or empty IGNORE_GLOBFILE '$IGNORE_GLOBFILE'"
 
   find_ignores="-path \"*/.git\" -prune $find_ignores "
   find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
   find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
 }
+
+
 

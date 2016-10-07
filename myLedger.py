@@ -217,3 +217,4 @@ class Simplemovingaverage():
         return average
 
 
+

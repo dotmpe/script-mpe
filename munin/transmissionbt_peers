@@ -35,3 +35,4 @@ transmission-remote \
 	--session-stats
 #transmission-remote -n mpe:tr4bt0 -l --info  -t ......
 
+

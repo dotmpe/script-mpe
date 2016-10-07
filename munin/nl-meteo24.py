@@ -114,3 +114,4 @@ else:
         if temperature:
             print 'temperature.value', temperature.parent.nextSibling.nextSibling.text.replace('&nbsp;', '').encode(enc)
 
+

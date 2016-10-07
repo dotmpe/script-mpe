@@ -58,3 +58,4 @@ printf '%s_%s.value %f' $node $measure $(
 # Truncate
 echo > $path
 
+

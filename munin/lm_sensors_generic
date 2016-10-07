@@ -23,3 +23,4 @@ fi
 TYPE=$(echo $(basename $0) | sed 's/^lm_sensors_//g')
 bash $MUNIN_LIBDIR/plugins/lm_sensors.sh $TYPE $1
 
+

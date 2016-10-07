@@ -77,11 +77,9 @@ htd_load()
   htd_rules=~/.conf/rules/$hostname.tab
   ns_tab=$HOME/.conf/namespace/$hostname.tab
 
-  HTD_IGNORE=.htdignore
-  test -e $HTD_IGNORE || {
-    HTD_IGNORE=$(setup_tmpf .htdignore)
-  }
-  htd_init_ignores
+  ignores_load
+  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" || error "expected $base ignore dotfile" 1
+  lst_init_ignores
   #match_load_table vars
 
   which tmux 1>/dev/null || {
@@ -4423,6 +4421,7 @@ htd_lib()
 {
   local __load_lib=1
   . $scriptdir/match.sh load-ext
+  lib_load list ignores
   # -- htd box lib sentinel --
   set --
 }
@@ -4435,3 +4434,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
     htd_main "$@"
   ;; esac
 ;; esac
+

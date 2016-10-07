@@ -50,3 +50,4 @@ print "splot cos(u*2*pi)*v, sin(u*2*pi)*v, a+s w pm3d"
 print "unset multiplot"
 
 }' $1
+

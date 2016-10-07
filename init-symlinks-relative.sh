@@ -217,3 +217,4 @@ main()
 # Run only if scriptname matches (allow other script to include this one)
 [ "$(basename $0)" = "init-symlinks-relative.sh" ] && main $*
 
+

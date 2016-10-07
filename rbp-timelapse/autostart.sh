@@ -25,3 +25,4 @@ sleep 1
 screen -S WebCam -p 0 -X stuff "/opt/raspberry-pi/timelapse.sh 60"$(echo -ne '\r')
 
 SCREEN_INIT
+

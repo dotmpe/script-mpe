@@ -25,84 +25,6 @@ req_htdir()
 }
 
 
-htd_init_ignores()
-{
-  test -n "$HTD_IGNORE" || exit 1
-
-  test -e $HTD_IGNORE.merged && grep -qF $HTD_IGNORE.merged $HTD_IGNORE.merged || {
-    echo $HTD_IGNORE.merged > $HTD_IGNORE.merged
-  }
-
-  #test -n "$pwd" || pwd=$(pwd)
-  #test ! -e $HTDIR || {
-  #  cd $HTDIR
-
-  #  for x in .git/info/exclude .gitignore $HTD_IGNORE
-  #  do
-  #    test -s $x && {
-  #      cat $x | grep -Ev '^(#.*|\s*)$'
-  #    }
-  #  done
-
-  #  cd $pwd
-
-  #} >> $HTD_IGNORE.merged
-
-  for x in .git/info/exclude .gitignore $HTD_IGNORE
-  do
-    test -s $x && {
-      cat $x | grep -Ev '^(#.*|\s*)$' >> $HTD_IGNORE.merged
-    }
-  done
-}
-
-# Init empty find_ignores var
-htd_find_ignores()
-{
-  test -z "$find_ignores" || return
-  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE.merged" && {
-    find_ignores="$(find_ignores $HTD_IGNORE)"
-  } || warn "Missing or empty HTD_IGNORE '$HTD_IGNORE'"
-
-  find_ignores="-path \"*/.git\" -prune $find_ignores "
-  find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
-  find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
-}
-
-htd_grep_excludes()
-{
-  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" \
-    || warn "Missing or empty HTD_IGNORE '$HTD_IGNORE'"
-  grep_excludes=""$(echo $(cat $HTD_IGNORE.merged | \
-    grep -Ev '^\s*(#.*|\s*)$' | \
-    sed -E 's/^\//\.\//' | \
-    sed -E 's/(.*)/ --exclude "*\1*" --exclude-dir "\1" /g'))
-  grep_excludes="--exclude-dir \"*/.git\" $grep_excludes"
-  grep_excludes="--exclude-dir \"*/.bzr\" $grep_excludes"
-  grep_excludes="--exclude-dir \"*/.svn\" $grep_excludes"
-}
-
-# return paths for names that exist along given path
-htd_find_path_locals()
-{
-  local name path stop_at
-  name=$1
-  path="$(cd $2;pwd)"
-  test -z "$3" && stop_at= || stop_at="$(cd $3;pwd)"
-  path_locals=
-  while test -n "$path" -a "$path" != "/"
-  do
-    test -e "$path/$name" && {
-        path_locals="$path_locals $path/$name"
-    }
-    test "$path" = "$stop_at" && {
-        break
-    }
-    path=$(dirname $path)
-  done
-}
-
-
 mkrlink()
 {
   # TODO: find shortest relative path
@@ -318,3 +240,4 @@ htd_passed()
   stderr ok "$1"
   echo "$1" >>$passed
 }
+

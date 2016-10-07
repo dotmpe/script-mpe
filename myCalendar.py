@@ -195,3 +195,4 @@ class calendarCLI(libcmd.SimpleCommand):
 if __name__ == '__main__':
     calendarCLI.main()
 
+

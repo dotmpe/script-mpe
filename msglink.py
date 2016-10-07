@@ -49,3 +49,4 @@ for line in lines:
     print " * ('%s', <%s>) msglink> <./%s>" % (grep, path, fn)
     os.symlink(path, './%s' % fn)
 
+
