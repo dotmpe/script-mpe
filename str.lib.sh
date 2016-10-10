@@ -122,11 +122,22 @@ fnmatch()
 
 words_to_lines()
 {
-  tr ' ' '\n'
+  test -n "$1" && {
+    while test -n "$1"
+    do echo "$1"; shift; done
+  } || {
+    tr ' ' '\n'
+  }
 }
 lines_to_words()
 {
-  tr '\n' ' '
+  test -n "$1" && {
+    { while test -n "$1"
+      do cat "$1"; shift; done
+    } | tr '\n' ' '
+  } || {
+    tr '\n' ' '
+  }
 }
 words_to_unique_lines()
 {
@@ -135,6 +146,10 @@ words_to_unique_lines()
 unique_words()
 {
   words_to_unique_lines | lines_to_words
+}
+reverse_lines()
+{
+  sed '1!G;h;$!d'
 }
 
 expr_substr()

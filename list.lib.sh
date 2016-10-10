@@ -141,7 +141,10 @@ htd_init_ignores()
 # Init empty find_ignores var
 htd_find_ignores()
 {
+  error "deprecated" 1
+
   test -z "$find_ignores" || return
+
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE.merged" && {
     find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
   } || warn "Missing or empty IGNORE_GLOBFILE '$IGNORE_GLOBFILE'"

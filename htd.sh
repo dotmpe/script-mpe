@@ -12,6 +12,9 @@ set -e
 version=0.0.2-dev # script-mpe
 
 
+htd__inputs="arguments prefixes options"
+htd__outputs="passed skipped error failed"
+
 htd_load()
 {
   # -- htd box load insert sentinel --
@@ -90,32 +93,67 @@ htd_load()
     || { which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) \
     || warn "No rst2xml"; }
 
-  htd_inputs="arguments prefixes options"
-  htd_outputs="passed skipped error failed"
-
   test -n "$htd_session_id" || htd_session_id=$(htd__uuid)
   test -n "$choice_interactive" || choice_interactive=1
 
   local flags="$(try_value "${subcmd}" run | sed 's/./&\ /g')"
   for x in $flags
   do case "$x" in
-    a )
+
+    a ) # argv-handler: use method to process arguments
+
+        local htd_args_handler="$(eval echo "\$$(try_local $subcmd argsv)")"
+        case "$htd_args_handler" in
+
+          arg-groups* ) # Read in '--' separated argument groups, ltr/rtl
+            test "$htd_args_handler" = arg-groups-r && dir=rtl || dir=ltr
+
+            local htd_arg_groups="$(eval echo "\$$(try_local $subcmd arg-groups)")"
+
+            # To read groups from the end instead, 
+            test $dir = ltr \
+              || { set -- "$(echo "$@" | words_to_lines | reverse_lines )"; }
+            test $dir = ltr \
+              || htd_arg_groups="$(words_to_lines $htd_arg_groups | reverse_lines )"
+
+            for group in $htd_arg_groups
+            do
+                while test -n "$1" -a "$1" != "--"
+                do
+                  echo "$1" >>$arguments.$group
+                  shift
+                done
+                shift
+
+              test -s $arguments.$groups || {
+                local htd_defargs="$(eval echo "\$$(try_local $subcmd defargs-$group)")"
+                test -z "$htd_defargs" \
+                  || { echo $htd_defargs | words_to_lines >>$arguments.$group; }
+              }
+            done
+            test -z "$DEBUG" || wc -l $arguments*
+
+          ;; # /arg-groups*
+        esac 
+      ;; # /argv-handler
+
+    A ) 
         # Set default args or filter. Value can be literal or function.
         local htd_default_args="$(eval echo "\$$(try_local $subcmd argsv)")"
         test -n "$htd_default_args" && {
           $htd_default_args "$@"
         }
       ;;
-    o )
+    o ) # process optsv
         local htd_optsv="$(eval echo "\"\$$(try_local $subcmd optsv)\"")"
         test -s "$options" && {
           $htd_optsv
         } || noop
       ;;
-    f ) # set only failed varname
+    f ) # failed: set/cleanup failed varname
         export failed=$(setup_tmpf .failed)
       ;;
-    i ) # set all io varnames
+    i ) # io-setup: set all io varnames
         setup_io_paths -$subcmd-${htd_session_id}
         export $htd__inputs $htd__outputs
       ;;
@@ -444,7 +482,40 @@ htd__edit()
 htd_als___e=edit
 
 
-htd__man_1_count="Look for doc"
+htd__man_1_find="Find a local file, or abort.
+
+Searches every integrated source for a filename: volumes, repositories,
+archives. See 'search' for looking inside files. "
+htd_spc__find="-f|find <id>"
+htd__find()
+{
+  test -n "$1" || error "name pattern expected" 1
+  test -z "$2" || error "surplus argumets '$2'" 1
+
+  note "Compiling ignores..."
+  local find_ignores="$(find_ignores $HTD_IGNORE)"
+
+  note "Looking in all volumes"
+  for v in /srv/volume-[0-9]*-[0-9]*
+  do
+    vr="$(cd "$v"; pwd -P)"
+    note "Looking in $v ($vr)..."
+
+    # NOTE: supress output of any permision, non-existent or other IO error
+    eval find "$vr" -iname "$1" 2>/dev/null
+
+    #echo find $v $find_ignores -o -iname "$1" -a -print
+    #eval find $v "$find_ignores -o \( -type l -o -type f \) -a -print "
+    #echo "\l"
+  done
+
+  note "Looking in repositories"
+  htd git-files "$1"
+}
+htd_als___f=find
+
+
+htd__man_1_count="Look for doc and count. "
 htd_spc__count="count"
 htd__count()
 {
@@ -457,9 +528,10 @@ htd__count()
   doc_grep_content "$1" | wc -l
 }
 
-htd__man_1_find="Look for document. "
-htd_spc__find="-f|find (<path>|<localname> [<project>])"
-htd__find()
+
+htd__man_1_find_doc="Look for document. "
+htd_spc__find_doc="-F|find-doc (<path>|<localname> [<project>])"
+htd__find_doc()
 {
   doc_path_args
 
@@ -469,11 +541,11 @@ htd__find()
   info "Searching matched content '$1' ($paths)"
   doc_grep_content "\<$1\>"
 }
-htd_als___f=find
+htd_als___F=find-doc
 
 
 
-  htd__man_1_init="Shortcut for htd init"
+htd__man_1_init="Shortcut for htd init"
 htd_spc__init=""
 htd_run__init=fSm
 htd__init()
@@ -1609,6 +1681,7 @@ htd__git_init_src()
   done
 }
 
+
 htd__git_list()
 {
   test -n "$1" || set -- $(echo /src/*.git)
@@ -1619,14 +1692,24 @@ htd__git_list()
   done
 }
 
+# List or look for files
+# htd git-files [ REPO... -- ] GLOB...
 htd__git_files()
 {
-  test -n "$1" || set -- $(echo /src/*.git)
-  for repo in $@
+  local pat="$(compile_glob $(lines_to_words $arguments.glob))"
+  read_nix_style_file $arguments.repo | while read repo
   do
-    ( cd $repo && echo $repo && git ls-tree --full-tree -r HEAD )
+    cd $repo || continue
+    # NOTE: only lists files at HEAD branch
+    git ls-tree --full-tree -r HEAD | cut -d "	" -f 2 \
+      | sed 's#^#'"$repo"':HEAD/#' | grep "$pat"
   done
 }
+htd_run__git_files=ia
+htd_argsv__git_files=arg-groups-r
+htd_arg_groups__git_files="repo glob"
+htd_defargs_repo__git_files=/src/*.git
+
 
 #
 htd__git_grep()
@@ -4128,7 +4211,7 @@ htd__backup()
     }
   }
 }
-htd_run__backup=iaoP
+htd_run__backup=iAoP
 htd_pre__backup=htd_backup_prereq
 htd_argsv__backup=htd_backup_args
 htd_optsv__backup=htd_backup_opts

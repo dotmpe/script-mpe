@@ -832,6 +832,7 @@ vc__gh() {
 vc__largest_objects()
 {
   test -n "$1" || set -- 10
+  test -n "$scriptdir" || error scriptdir 1
   $scriptdir/git-largest-objects.sh $1
 }
 
