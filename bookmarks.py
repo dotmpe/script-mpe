@@ -180,7 +180,7 @@ class bookmarks(rsr.Rsr):
                 print
 
     def assert_locator(self, sa=None, href=None, opts=None):
-        lctr = Locator.find((Locator.global_id==href,), sa=sa)
+        lctr = Locator.fetch((Locator.global_id==href,), _sa=sa, exists=False)
         if not lctr:
             if len(href) > 255:
                 log.err("Reference too long: %s", href)
@@ -210,7 +210,7 @@ class bookmarks(rsr.Rsr):
         else:
             lctr = lctr.pop()
             assert lctr
-            bm = Bookmark.find((Bookmark.ref==lctr,), sa=sa)
+            bm = Bookmark.fetch((Bookmark.ref==lctr,), _sa=sa, exists=False)
             if bm:
                 # XXX: start local to bean dict
 # XXXL name must be unique, must catch problems
@@ -226,7 +226,7 @@ class bookmarks(rsr.Rsr):
                     bm.tags = tags
                 bm.last_update = datetime.now()
             else:
-                bm = Bookmark.find((Bookmark.name==name,), sa=sa)
+                bm = Bookmark.fetch((Bookmark.name==name,), _sa=sa, exists=False)
                 if bm:
                     log.err("Duplicate name %s", bm.name)
                     #bm.name = "%s (copy)" % name
@@ -272,7 +272,8 @@ class bookmarks(rsr.Rsr):
             for lctr in lctrs:
                 ref = lctr.ref or lctr.global_id
                 ref_md5 = hashlib.md5( ref ).hexdigest()
-                md5 = MD5Digest.find(( MD5Digest.digest == ref_md5, ))
+                md5 = MD5Digest.fetch(( MD5Digest.digest == ref_md5, ),
+                        exists=False)
                 if not md5:
                     md5 = MD5Digest( digest=ref_md5,
                             date_added=datetime.now() )
@@ -376,7 +377,7 @@ class bookmarks(rsr.Rsr):
                 if not bms:
                     continue
                 bm = bms.pop()
-                tags = [ GroupNode.find(( GroupNode.name == t, ), sa=sa )
+                tags = [ GroupNode.fetch(( GroupNode.name == t, ), _sa=sa )
                         for t in post['tag'].split(' ') ]
                 [ grouptags.append(t) for t in tags if t ]
                 for tag in tags:
@@ -415,7 +416,7 @@ def cmd_dlcs_import(opts, settings):
     # first pass: validate, track stats and create Locator records where missing
     for post in data['posts']:
         href = post['href']
-        lctr = Locator.find((Locator.ref == href,))
+        lctr = Locator.fetch((Locator.ref == href,), exists=False)
 # validate URL
         url = urlparse(href)
         domain = url[1]
@@ -460,7 +461,7 @@ def cmd_dlcs_import(opts, settings):
         freq = domains_stat[domain]
         if freq >= domainOffset:
             domains += 1
-            domain_record = Domain.find((Domain.name == domain,))
+            domain_record = Domain.fetch((Domain.name == domain,), exists=False)
             if not domain_record:
                 domain_record = Domain(name=domain)
                 domain_record.init_defaults()
@@ -486,7 +487,7 @@ def cmd_dlcs_import(opts, settings):
             log.std("Non-std tag %s", tag)
         if freq >= tagOffset:
             tags += 1
-            t = Tag.find((Tag.name == tag,))
+            t = Tag.fetch((Tag.name == tag,), exists=False)
             if not t:
                 t = Tag(name=tag)
                 t.init_defaults()
@@ -499,7 +500,7 @@ def cmd_dlcs_import(opts, settings):
     sa.commit()
     return
     for post in data['posts']:
-        lctr = Locator.find((Locator.ref == post['href'],))
+        lctr = Locator.fetch((Locator.ref == post['href'],), exists=False)
         for tag in post['tag'].split(' '):
             if tags_stat[tag] > x:
                 x = tags_stat[x]
@@ -620,8 +621,7 @@ if __name__ == '__main__':
     #bookmarks.main()
     import sys
     db = os.getenv( 'BOOKMARKS_DB', __db__ )
-    vdir = Volumedir.find()
-    print 'vdir', vdir
+    # TODO : vdir = Volumedir.find()
     usage = __usage__ % ( db, __version__ )
     opts = util.get_opts(__doc__ + usage, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
