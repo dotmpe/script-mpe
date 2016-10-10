@@ -32,8 +32,7 @@ See also `.travis.yml`.
 Other documents
 ---------------
 - `Change Log <ChangeLog.rst>`_
-- `Branche and Directory Docs <doc/package.rst>`_
-- `Projectdir <projectdir.rst>`_
+- `Features <doc/features.rst>`_
 
 Dev
 ---
