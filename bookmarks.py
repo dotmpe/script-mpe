@@ -47,7 +47,7 @@ Other flags:
     --version     Show version (%s).
 
 
-"""
+""" % ( __db__, __version__, )
 from datetime import datetime
 import os
 import re
@@ -68,12 +68,14 @@ import res.iface
 import res.js
 import res.bm
 from res import Volumedir
+from res.util import ISO_8601_DATETIME
 from taxus import init as model
 from taxus.init import SqlBase, get_session
 from taxus.core import Node, Name, Tag
 from taxus.net import Locator, Domain
+from taxus.model import Bookmark
 
-models = [Locator, Tag, Domain ]
+models = [ Locator, Tag, Domain, Bookmark ]
 
 #import bookmarks_model as model
 #from bookmarks_model import Locator, Bookmark
@@ -416,22 +418,53 @@ def cmd_dlcs_import(opts, settings):
     # first pass: validate, track stats and create Locator records where missing
     for post in data['posts']:
         href = post['href']
-        lctr = Locator.fetch((Locator.ref == href,), exists=False)
+        dt = datetime.strptime(post['time'], ISO_8601_DATETIME)
 # validate URL
         url = urlparse(href)
         domain = url[1]
         if not domain:
-            log.std("Ignored non-net URIRef: %s", href)
+            log.std("Ignored domainless (non-net?) URIRef: %s", href)
             continue
         assert re.match('[a-z0-9]+(\.[a-z0-9]+)*', domain), domain
 # get/init Locator
-        if not lctr:
+        lctr = Locator.fetch((Locator.ref == href,), exists=False)
+        if lctr:
+            if lctr.date_added != dt:
+                lctr.date_added = dt
+                sa.add(lctr)
+        else:
             lctr = Locator(
                     global_id=href,
-                    ref=href)
+                    ref=href,
+                    date_added=datetime.strptime(post['time'], ISO_8601_DATETIME)
+                )
             lctr.init_defaults()
             log.std("new: %s", lctr)
             sa.add(lctr)
+# get/init Bookmark
+        bm = Bookmark.fetch((Bookmark.ref_id == lctr.lctr_id,), exists=False)
+        if bm:
+            if bm.date_added != dt:
+                bm.date_added = dt
+                sa.add(bm)
+            if bm.ref_id != lctr.lctr_id:
+                bm.ref = lctr
+                sa.add(bm)
+        else:
+            bm = Bookmark.fetch((Bookmark.name == post['description'],), exists=False)
+            if bm:
+                log.std("Name already exists: %r" % post['description'])
+                continue
+            bm = Bookmark(
+                    ref=lctr,
+                    name=post['description'],
+                    extended=post['extended'],
+                    tags=post['tag'].replace(' ', ', '),
+                    date_added=datetime.strptime(post['time'], ISO_8601_DATETIME)
+                )
+            bm.init_defaults()
+            log.std("new: %s", bm)
+            sa.add(bm)
 # track domain frequency
         if domain in domains_stat:
             domains_stat[domain] += 1
@@ -487,7 +520,7 @@ def cmd_dlcs_import(opts, settings):
             log.std("Non-std tag %s", tag)
         if freq >= tagOffset:
             tags += 1
-            t = Tag.fetch((Tag.name == tag,), exists=False)
+            t = Node.fetch((Node.name == tag,), exists=False)
             if not t:
                 t = Tag(name=tag)
                 t.init_defaults()
@@ -498,16 +531,7 @@ def cmd_dlcs_import(opts, settings):
     log.std("Checked %i tags", len(tags_stat))
     log.std("Tracking %i tags", tags)
     sa.commit()
-    return
-    for post in data['posts']:
-        lctr = Locator.fetch((Locator.ref == post['href'],), exists=False)
-        for tag in post['tag'].split(' '):
-            if tags_stat[tag] > x:
-                x = tags_stat[x]
-            if tag in tags_stat:
-                tags_stat[tag] += 1
-            else:
-                tags_stat[tag] = 1
+
 
 def cmd_chrome_all(settings):
     """
@@ -608,7 +632,7 @@ commands['help'] = util.cmd_help
 def main(opts):
 
     """
-    Execute command.
+    Execute using docopt-mpe options.
     """
 
     settings = opts.flags
@@ -622,10 +646,9 @@ if __name__ == '__main__':
     import sys
     db = os.getenv( 'BOOKMARKS_DB', __db__ )
     # TODO : vdir = Volumedir.find()
-    usage = __usage__ % ( db, __version__ )
-    opts = util.get_opts(__doc__ + usage, version=get_version())
+    if db is not __db__:
+        __usage__ = __usage__.replace(__db__, db)
+    opts = util.get_opts(__doc__ + __usage__, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-
 
