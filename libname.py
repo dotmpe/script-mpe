@@ -1,7 +1,7 @@
 import zope.interface
 
-from . import confparse
-from . import res
+import confparse
+import res
 #import log
 
 
