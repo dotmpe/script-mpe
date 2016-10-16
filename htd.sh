@@ -110,7 +110,7 @@ htd_load()
 
             local htd_arg_groups="$(eval echo "\$$(try_local $subcmd arg-groups)")"
 
-            # To read groups from the end instead, 
+            # To read groups from the end instead,
             test $dir = ltr \
               || { set -- "$(echo "$@" | words_to_lines | reverse_lines )"; }
             test $dir = ltr \
@@ -134,10 +134,10 @@ htd_load()
             test -z "$DEBUG" || wc -l $arguments*
 
           ;; # /arg-groups*
-        esac 
+        esac
       ;; # /argv-handler
 
-    A ) 
+    A )
         # Set default args or filter. Value can be literal or function.
         local htd_default_args="$(eval echo "\$$(try_local $subcmd argsv)")"
         test -n "$htd_default_args" && {
@@ -4114,6 +4114,32 @@ htd__count_lines()
 }
 
 
+htd__find_broken_symlinks()
+{
+  find . -type l -xtype l
+}
+
+htd__find_skip_broken_symlinks()
+{
+  find . -type l -exec file {} + | grep -v broken
+}
+
+
+htd__uuid()
+{
+  get_uuid
+}
+
+
+htd__finfo()
+{
+  for dir in $@
+  do
+    finfo.py --env htdocs=HTDIR $dir
+  done
+}
+
+
 # Initialize local backup annex and symlinks
 htd__init_backup_repo()
 {
@@ -4339,23 +4365,6 @@ htd_backup_opts()
   done
 }
 
-
-
-htd__find_broken_symlinks()
-{
-  find . -type l -xtype l
-}
-
-htd__find_skip_broken_symlinks()
-{
-  find . -type l -exec file {} + | grep -v broken
-}
-
-
-htd__uuid()
-{
-  get_uuid
-}
 
 
 # List GNU PG keys

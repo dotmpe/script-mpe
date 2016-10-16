@@ -9,9 +9,10 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship, backref
 
 # script Namespace
-from script_mpe import log
+from script_mpe import lib, log
 # script.res Namespace
 from . import core
+from . import net
 from . import out
 from .init import SqlBase
 
@@ -48,18 +49,18 @@ class INode(core.Node):
     Provide lookup on file-locator URI or file-inode URI.
 
     Abstraction of types of local filesystem resources, some of which are
-    files. References to filelikes (file handlers or 'descriptor')  should be 
+    files. References to filelikes (file handlers or 'descriptor')  should be
     abstracted another way, see Stream.
 
     It needs either a localname and volume (host+path) as reference,
-    or use a set of bare references. 
+    or use a set of bare references.
     The latter is current.
 
     May be need volumes.. should need a way to lookup if a Locator is within
     some volume.
     It is convenient in early phase to use a bunch of references. But move to
     better structure later.
-    
+
     TODO: implement __cmp__ for use with sameAs to query the host system
     TODO: should mirror host system attributes for dates, etc.
     """
@@ -76,10 +77,10 @@ class INode(core.Node):
     #locator_id = Column(ForeignKey('ids_lctr.id'), index=True)
     #location = relationship(Locator, primaryjoin=locator_id == Locator.id)
 
-    #local_path = Column(String(255), index=True, unique=True)
+    local_path = Column(String(255), index=True, unique=True)
 
     #host_id = Column(Integer, ForeignKey('hosts.id'))
-    #host = relationship(Host, primaryjoin=Host.host_id==host_id)
+    #host = relationship(net.Host, primaryjoin=net.Host.host_id==host_id)
 
     locators = relationship('Locator', secondary=inode_locator_table)
 
@@ -96,14 +97,18 @@ class INode(core.Node):
         "Construct global, host-based file-locator"
         return "file:%s" % "/".join((self.host.netpath, self.local_path))
 
+    @property
+    def record_name(self):
+        return self.ntype +':'+ self.name
+
     def __unicode__(self):
-        return "<%s %s>" % (lib.cn(self), self.location)
+        return "<%s %s>" % (lib.cn(self), self.record_name)
 
     def __str__(self):
-        return "<%s %s>" % (lib.cn(self), self.location)
+        return "<%s %s>" % (lib.cn(self), self.record_name)
 
     def __repr__(self):
-        return "<%s %s>" % (lib.cn(self), self.location)
+        return "<%s %s>" % (lib.cn(self), self.record_name)
 
 
 
@@ -125,7 +130,7 @@ class Symlink(INode):
 
     __tablename__ = 'symlinks'
     __mapper_args__ = {'polymorphic_identity': INode.Symlink}
-    
+
     symlink_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
 
 class Device(INode):

@@ -4,10 +4,10 @@ Taxus ORM (SQL) model.
 
 All objects inherit from Node. Each object type is has its own table. Stored
 objects have records in `nodes` and all other 'parent' tables (references via
-foreign-keys). The `nodes` table stores the objects type, meaning there can be 
+foreign-keys). The `nodes` table stores the objects type, meaning there can be
 only one (sub)type for a node record at any time.
 
-Futher the main value of Node is a string, 'name' of at most 255 characters ie. 
+Futher the main value of Node is a string, 'name' of at most 255 characters ie.
 easy to fit in common databases string columns.
 This value must be unique.
 
@@ -64,7 +64,7 @@ Names may turn out to be different, or the same.
 Different names may be noted as such, ie. given a sense-number using some notation.
 Otherwise; names that are the same, can be aggregated into the same node where possible.
 Ie. in this case Tags that are the same are merged by combining their lists of namespaces
-onto one node record. 
+onto one node record.
 That may not always be feasible.
 Their sense should be the same too.
 Lets hope it finds clarity and not raise semantics.
@@ -83,51 +83,51 @@ Inheritance hierarchy and relations::
 
                               A
                               |
-        .---- .----------- .--^-------. ----------. -----. 
-        |     |            |          |            |      |   
+        .---- .----------- .--^-------. ----------. -----.
+        |     |            |          |            |      |
         |    Token         |          |            |      |
         |     * value      |          |            |      |
         |     * refs       |          |            |      |
         |                  |          |            |      |
        INode:Node          |         Status       Host    |
-        * local_path:255   |          * nr         * hostname 
+        * local_path:255   |          * nr         * hostname
         * size             |          * http_code         |
         * cum_size         |                              |
         * host:Host        |          ^                   |
-                           |          |                   | 
-          A                |          |                   | 
-          |                |          |                   | 
-       CachedContent      Resource    |                   |    
-        * cid              * status --/                   |        
-        * size             * location:Location            | 
-        * charset          * last/a/u-time                |  
-        * partial          * allowed                      | 
+                           |          |                   |
+          A                |          |                   |
+          |                |          |                   |
+       CachedContent      Resource    |                   |
+        * cid              * status --/                   |
+        * size             * location:Location            |
+        * charset          * last/a/u-time                |
+        * partial          * allowed                      |
         * expires                                         |
         * etag             A                              |
         * encodings        |                              |
-                           |                              | 
+                           |                              |
         ^                  |                        /--< Description
         |                  |                        |     * namespace:Namespace
-        |  Invariant ------'-- Variant              |      
-        \-- * content      |    * vary              |     A               
-            * mediatype    |    * descriptions >----/     |         
-            * languages    |                              '-- Comment       
+        |  Invariant ------'-- Variant              |
+        \-- * content      |    * vary              |     A
+            * mediatype    |    * descriptions >----/     |
+            * languages    |                              '-- Comment
                            |    A                         |    * node:Node
                            |    |                         |    * comment:Text
-                           |    |                         |     
+                           |    |                         |
                            |   Namespace                  '-- ...
-                           |    * prefix:String           * subject    
-                           |                              * predicate   
-                           '-- Relocated                  * object     
-                           |    * redirect:Location 
+                           |    * prefix:String           * subject
+                           |                              * predicate
+                           '-- Relocated                  * object
+                           |    * redirect:Location
                            |    * temporary:Bool
-                           |                                                
-                           '-- Bookmark                  Formula         
+                           |
+                           '-- Bookmark                  Formula
                                                           * statements
                            '-- Volume
                            '-- Workset
 
-          ChecksumDigest   
+          ChecksumDigest
            * date_added
            * date_/deleted
            A
@@ -137,7 +137,7 @@ Inheritance hierarchy and relations::
     SHA1Digest   MD5Digest
      * digest     * digest
 
-    ID 
+    ID
      * id:Integer
      * date-added
      * deleted
@@ -151,7 +151,7 @@ Inheritance hierarchy and relations::
      |         * id
      |         * name
      |
-   Locator   
+   Locator
     * id
     * ref
     * checksums
@@ -159,7 +159,7 @@ Inheritance hierarchy and relations::
 
 This schema will make node become large very quickly. Especially as various
 metadata relations between Nodes are recorded in Statements.
-In addition, Statements will probably rather refer to Fragment nodes rather than 
+In addition, Statements will probably rather refer to Fragment nodes rather than
 Resource nodes, adding another layer of similar but distinct nodes.
 
 The Description column in the diagram is there to get an idea, while most such
@@ -211,7 +211,7 @@ class Taxus(object):
     # Extra commands
     def init_host(self, options=None):
         """
-        Tie Host to current system. Initialize Host if needed. 
+        Tie Host to current system. Initialize Host if needed.
         """
 #        assert self.volumedb, "Must have DB first "
         hostnamestr = util.current_hostname(True, options.interactive)
@@ -260,11 +260,11 @@ class Taxus(object):
             subcmd = subcmd_aliases[subcmd]
         assert subcmd in ('add', 'update', 'remove'), subcmd
         getattr(self, subcmd)(args[1:], **opts)
-       
+
     def node_add(self, name, **opts):
         "Don't call this directly from CL. "
         s = util.get_session(opts.get('dbref'))
-        node = Node(name=name, 
+        node = Node(name=name,
                 date_added=datetime.now())
         s.add(node)
         return node
@@ -292,7 +292,7 @@ class Taxus(object):
 #        return node
 
 #    def description_new(self, name, ns_uri):
-#        Description(name=name, 
+#        Description(name=name,
 #                date_added=datetime.now())
 
     def comment_new(self, name, comment, ns, node):
