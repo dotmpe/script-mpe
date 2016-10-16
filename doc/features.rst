@@ -4,9 +4,6 @@ ________
 :Updated: 2016-10-10
 
 
-- `Branche and Directory Docs <doc/package.rst>`_
-- `Projectdir <projectdir.rst>`_
-
 
 ----
 

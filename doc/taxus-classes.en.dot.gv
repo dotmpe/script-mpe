@@ -4,7 +4,7 @@ digraph "doc_taxus_classes_en_dot" {
 		fontname = "Times-Roman"
 		fontcolor = "black"
 		bgcolor = "black"
-		rankdir = "BT"
+		rankdir = "RL"
 	]
 	node [
 		fontsize = "14"

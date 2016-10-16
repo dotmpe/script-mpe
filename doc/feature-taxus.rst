@@ -12,3 +12,7 @@ Python SQLAlchemy based command-line tools.
 
 - ``fscard.py`` TODO: use with taxus? finfo?
 
+
+.. image:: taxus-classes.en.dot
+   :target: taxus-classes.en.dot
+
