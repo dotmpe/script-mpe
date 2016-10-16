@@ -46,4 +46,14 @@
     - DANDY_SKIP=1
     - VS1_SKIP=1
 
+  prefixes: {} # See ~/.cllct.rc finfo
+
+  # For make data/*: or move to cllct.rc
+  data:
+    finfo:
+      handlers: # TODO: map to taxus.core.Node annotated/dynamic properties
+        - last_updated:mtime
+        - last_seen:atime
+        # taxus.web.Invariant.mediatype
+        - mime_type:lib...
 

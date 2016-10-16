@@ -1,9 +1,36 @@
+#!/usr/bin/env python
 """
 """
+__description__ = "volume - "
+__version__ = '0.0.2-dev' # script-mpe
+__db__ = '~/.volume.sqlite'
+__usage__ = """
+Usage:
+  volume.py [options] [ARGS]
+  volume.py -h|--help
+  volume.py --version
+
+Options:
+    -d REF --dbref=REF
+                  SQLAlchemy DB URL [default: %s]
+    --config NAME
+                  Config [default: cllct.rc]
+
+Other flags:
+    -v            Increase verbosity.
+    -h --help     Show this usage description. For a command and argument
+                  description use the command 'help'.
+    --version     Show version (%s).
+
+""" % ( __db__, __version__, )
 import os
+import sys
+from pprint import pprint
 
 import lib
 import confparse
+import taxus
+import util
 from libname import Namespace, Name
 from libcmdng import Targets, Arguments, Keywords, Options,\
     Target, TargetResolver
@@ -15,7 +42,7 @@ NS = Namespace.register(
         uriref='http://project.dotmpe.com/script/#/cmdline.Volume'
     )
 
-Options.register(NS, 
+Options.register(NS,
     )
 
 
@@ -35,7 +62,8 @@ def find_volume(opts=None, pwd=None):
     yield vdb
 
 
-if __name__ == '__main__':
+def oldmain():
+    # XXX:
 
     print Target.instances.keys()
     import txs, cmdline
@@ -43,4 +71,38 @@ if __name__ == '__main__':
 
     TargetResolver().main(['vol:find-volume'])
     #TargetResolver().main(['cmd:options'])
+
+
+def main(argv, doc=__doc__, usage=__usage__):
+
+    """
+    Execute using docopt-mpe options.
+    """
+
+    # Process environment
+    db = os.getenv( 'VOLUME_DB', __db__ )
+    if db is not __db__:
+        usage = usage.replace(__db__, db)
+    opts = util.get_opts(doc + usage, version=get_version(), argv=argv[1:])
+    opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
+
+    # Load configuration
+    config_file = list(confparse.expand_config_path(opts.flags.config)).pop()
+    settings = confparse.load_path(config_file)
+
+    pprint(settings.todict())
+    print
+    for v, p in settings.volume.items():
+        print v, p
+    print
+    for v, s in settings.volumes.items():
+        print v, s
+
+
+def get_version():
+    return 'volume.mpe/%s' % __version__
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))
 

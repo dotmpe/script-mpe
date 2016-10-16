@@ -11,7 +11,7 @@ Make context specific, but dont accept path arguments "outside"::
 
     finfo.py [options] PATH myexec
     finfo.py [options] PATH=. my-file-in-path
-    finfo.py [options] [PWD] myexec
+    finfo.py [options] [PWD] my-local-file
 
     finfo.py [options] DIR=~/mydir my/path/in/dir
     finfo.py [options] HTDOCS personal/journal
@@ -29,33 +29,48 @@ XXX: Keep complete resource description
 
 Schema
 ------
-::
-
-   FileInfo
-    * inode:INode
-    * description:FileDescription
-
-   FileDescription
-    * description:String(255)
-
-   Mediameta:Node
+``taxus.media``
+  Mediameta:Node
     * checksums:List<ChecksumDigest>
     * mediatype:Mediatype
     * mediaformat:Mediaformat
     * genres:List<Genre>
 
-   Mediatype:Node
+  Mediatype:Node
     * mime:Name
 
-   MediatypeParameter:None
+  MediatypeParameter:None
     * localName:Str
     * default:
 
-   Genre:Node
-    ..
-   Mediaformat:Name
+  Genre:Node
     ..
 
+  Mediaformat:Name
+    ..
+
+``taxus.web``
+  CachedContent:INode
+    * cid:String
+    * size:Int
+    * charset:String
+    * partial:Boolean
+    * etag:String
+    * expires:DateTime
+    * encodings:String
+  Status
+    * http_code:Int
+  Resource:Node
+    * status:STatus
+    * location:Locator
+    * last_access/modified/update
+    * allow:String
+  Invariant:Resource
+    * content:CachedContent
+    * language:String
+    * mediatype:String
+  Variant:Resource
+    ..
 
 [2016-10-11] Adding simpler docopts-mpe based frontend.
 """
@@ -64,31 +79,34 @@ __version__ = '0.0.2-dev' # script-mpe
 __db__ = '~/.finfo.sqlite'
 __usage__ = """
 Usage:
-  finfo.py [options] [--env name=VAR]... [--name name=VAR]... [CTX] (FILE|DIR)...
+  finfo.py [options] [--env name=VAR]... [--name name=VAR]... (CTX|FILE...|DIR...)
   finfo.py -h|--help
   finfo.py --version
 
 Options:
+    --auto-prefix
+                  Look for prefix per given argument.
+    --update
+                  Update records.
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
-    -s SESSION --session-name SESSION
-                  should be finfo [default: default].
-    -v            Increase verbosity.
-
     -n name=PATH --name name=PATH[:PATH]
                   Define a name with path(set), to look for existing paths
                   and/or replace prefix common path prefixes with 'name:'.
 
-    -e name=VAR --env name=VAR
-                  Bind env vars to named sets. If env isset overrides any
+    -e VAR=name --env VAR=name
+                  Bind env 'VAR' to named set 'name'. If env isset overrides any
                   named set (see --name).
-                  [default: pwd=PWD] (and PWD evaluates to .)
+                  [default: PWD=pwd] (and PWD evaluates to .)
     -f --files
                   Return files only.
     -d --directories
                   Return directories only.
+    --config NAME
+                  Config [default: cllct.rc]
 
 Other flags:
+    -v            Increase verbosity.
     -h --help     Show this usage description. For a command and argument
                   description use the command 'help'.
     --version     Show version (%s).
@@ -96,12 +114,15 @@ Other flags:
 """ % ( __db__, __version__, )
 import os
 from datetime import datetime
+from pprint import pprint, pformat
+import re
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
                         ForeignKey, Table, Index, DateTime, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
 
+import confparse
 import lib
 import log
 import libcmd
@@ -120,6 +141,7 @@ import util
 from taxus.core import Node, Name
 from taxus.media import Mediatype, Mediaformat, Genre, Mediameta
 from taxus.fs import INode, Dir, File, Mount
+from taxus.init import SqlBase, get_session
 #from txs import Txs
 
 models = [
@@ -130,26 +152,6 @@ models = [
         Mount
     ]
 
-"""
-class FileDescription(Node):
-    __tablename__ = 'filedescription'
-    __mapper_args__ = {'polymorphic_identity': 'filedescription'}
-
-    filedescription_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-    description = Column(String(255), unique=True)
-
-class FileInfo(Node):
-    __tablename__ = 'fileinfo'
-    __mapper_args__ = {'polymorphic_identity': 'filedescription'}
-    fileinfo_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-
-    inode_id = Column('inode_id', ForeignKey('inodes.id'))
-    inode = relationship(INode, primaryjoin= inode_id == INode.inode_id )
-
-    description_id = Column(ForeignKey('filedescription.id'), index=True)
-    description = relationship(FileDescription,
-            primaryjoin=description_id == FileDescription.filedescription_id)
-"""
 
 class FileInfoApp(rsr.Rsr):
 
@@ -309,47 +311,171 @@ class FileInfoApp(rsr.Rsr):
                 print ':mt:', mediatype
                 print
 
-def search_path(pathset, name):
-    for root_dir in pathset.split(':'):
-        path = os.path.join(root_dir, name)
+
+varname = re.compile('^\$[A-Z0-9a-z]+$')
+
+def search_path(paths, ctx):
+    for root_dir in paths:
+        if root_dir.startswith('#prefixes/'):
+            prefref = root_dir[10:]
+            if ':' in prefref:
+                prefref, num = prefref.split(':')
+                yield ctx.prefixes.map_[prefref][int(num)]
+            else:
+                for ref_root in search_path(ctx.prefixes.map_[prefref], ctx):
+                    yield ref_root
+        else:
+            yield root_dir
+
+def find_local(name, search):
+    for prefix in search:
+        path = os.path.join(prefix, name)
         if os.path.exists(path):
             if os.path.isdir(path):
-                return root_dir, None, name
+                return prefix, None, name
             else:
-                return root_dir, name, os.path.dirname(name) or '.'
+                return prefix, name, os.path.dirname(name) or '.'
+
+def find_prefixes(path, ctx):
+    for prefix, pathrefs in ctx.prefixes.map_.items():
+        for prefpath in pathrefs:
+            if path.startswith('#prefixes/'):
+                prefref = prefpath[10:]
+                prefpath = ctx.prefixes.map_[prefref]
+
+        if path.startswith( prefpath ):
+            yield prefix
+
+def get_record(name, ctx):
+    rec = taxus.fs.File.fetch((taxus.fs.File.name==name,), sa=ctx.sa, exists=False)
+    if not rec:
+        rec = taxus.fs.File(name=name,
+                    last_updated=datetime.now(),
+                    date_added=datetime.now() )
+        ctx.sa.add(rec)
+    return rec
+
+def print_record(record, ctx):
+    print record.record_name
 
 
-def main(opts):
+def main(argv, doc=__doc__, usage=__usage__):
 
     """
     Execute using docopt-mpe options.
     """
 
-    # Process arguments
+    # Process environment
+    db = os.getenv( 'FINFO_DB', __db__ )
+    if db is not __db__:
+        usage = usage.replace(__db__, db)
 
+    ctx = confparse.Values(dict(
+        opts = util.get_opts(doc + usage, version=get_version(), argv=argv[1:])
+    ))
+    ctx.opts.flags.dbref = taxus.ScriptMixin.assert_dbref(ctx.opts.flags.dbref)
+    # Load configuration
+    ctx.config_file = list(confparse.expand_config_path(ctx.opts.flags.config)).pop()
+    ctx.settings = settings = confparse.load_path(ctx.config_file)
+    # Load SA session
+    ctx.sa = get_session(ctx.opts.flags.dbref)
+
+    # DEBUG: pprint(ctx.settings.todict())
+
+    # Process arguments
     dirs = []
     # Shift paths from ctx arg
-    if os.path.exists(opts.args.CTX):
-        opts.args.FILE.append(opts.args.CTX)
-        opts.args.CTX = None
+    if os.path.exists(ctx.opts.args.CTX):
+        ctx.opts.args.FILE.append(ctx.opts.args.CTX)
+        ctx.opts.args.CTX = None
     # Sort out dirs from files
-    for arg in opts.args.FILE:
+    for arg in ctx.opts.args.FILE:
         if os.path.isdir(arg):
-            opts.args.FILE.remove(arg)
+            ctx.opts.args.FILE.remove(arg)
             dirs.append(arg)
         elif os.path.isfile(arg):
             pass
         else:
             log.note("Unhandled path %r" % arg)
-    opts.args.DIR = dirs
-    # Set default and get path context
-    if not opts.args.CTX:
-        opts.args.CTX = 'PWD'
-    ctx = os.getenv(opts.args.CTX, '.')
+    ctx.opts.args.DIR = dirs
+    # Set default path context
+    if not ctx.opts.args.CTX:
+        ctx.opts.args.CTX = 'current'
+
+    # XXX: create prefixes object on context
+    ctx.prefixes = confparse.Values(dict(
+        map= settings.finfo['prefix-map'],
+        env={},
+        map_={}
+    ))
+    if 'homedir' not in ctx.prefixes.map:
+        ctx.prefixes.map['homedir'] = 'HOME=%s' % os.path.expanduser('~')
+    if 'current' not in ctx.prefixes.map:
+        ctx.prefixes.map['current'] = '$PWD:$HOME'
+    if 'pwd' not in ctx.prefixes.map:
+        ctx.prefixes.map['pwd'] = 'PWD=%s' % os.path.abspath('.')
+
+    for prefix, path in ctx.prefixes.map.items():
+        if '=' in path:
+            envvar, path = path.split('=')
+            if envvar in ctx.prefixes.env:
+                assert ctx.prefixes.env[envvar] == prefix, (
+                        ctx.prefixes.env[envvar], prefix )
+            ctx.prefixes.env[envvar] = prefix
+
+    # Pre-pocess binds from env flags
+    for env_map in ctx.opts.flags.env:
+        envvar, prefix = env_map.split('=')
+        if envvar in ctx.prefixes.env:
+            assert prefix == ctx.prefixes.env[envvar]
+        else:
+            ctx.prefixes.env[envvar] = prefix
+
+        envvalue = os.getenv(envvar, None)
+        if envvalue:
+            ctx.prefixes.map[prefix] = "%s=%s" % ( envvar, envvalue )
+            #ctx.prefixes.map_[prefix] = envvalue.split(':')
+
+    # Post-process prefixes after passed flags, and resolve all values
+    for prefix, spec in ctx.prefixes.map.items():
+        if '=' in spec:
+            envvar, spec = spec.split('=')
+            if envvar in ctx.prefixes.env:
+                assert ctx.prefixes.env[envvar] == prefix, (
+                        ctx.prefixes.env[envvar], prefix )
+            ctx.prefixes.env[envvar] = prefix
+
+        specs = spec.split(':')
+        set_ = []
+
+        for idx, path in enumerate(specs):
+            path = os.path.expanduser(path)
+            if varname.match(path):
+                refpref = ctx.prefixes.env[path[1:]]
+                #refpath = ctx.prefixes.map[]
+                path = '#prefixes/'+refpref
+
+            elif '$' in path:
+                pass
+            #else:
+            #    path = '#prefixes/'+prefix+':'+str(idx)
+
+            set_.append(path)
+
+
+        ctx.prefixes.map_[prefix] = set_
+
+    ctx.pathrefs = ctx.prefixes.map_[ctx.opts.args.CTX]
+
+    #DEBUG:
+    #print ctx.opts.todict()
+    #print pformat(ctx.prefixes.todict())
+    #print pformat(ctx.pathrefs)
+
     # Resolve arguments
     files, dirs = [], []
-    for arg in opts.args.FILE + opts.args.DIR:
-        prefix, file, dir = search_path(ctx, arg)
+    for arg in ctx.opts.args.FILE + ctx.opts.args.DIR:
+        prefix, file, dir = find_local(arg, search_path(ctx.pathrefs, ctx))
         if not dir:
             raise Exception("No path for %s" % arg)
         elif file:
@@ -357,19 +483,8 @@ def main(opts):
         else:
             dirs.append((prefix, dir))
 
-    prefix_map = {
-        'script-mpe': os.path.expanduser('~/bin'),
-        'PWD': '.'
-        #'script-mpe': '~/bin'
-    }
-    for env_map in opts.flags.env:
-        vn, vv = env_map.split('=')
-        prefix_map[vn] = os.getenv(vv, prefix_map[vv])
-
-    #DEBUG: print opts.todict()
-
     # Resolve directories
-    if not opts.flags.directories:
+    if not ctx.opts.flags.directories:
         for p, d in dirs:
             for top, path_dirs, path_files in list(os.walk(os.path.join(p, d))):
                 if top.startswith('./'):
@@ -378,17 +493,36 @@ def main(opts):
                     files.append((p, os.path.join(top, path_file)))
 
 
-    # Print references
-    prefix = prefix_map.get(opts.args.CTX)
-    print opts.args.CTX, prefix
-    for p, f in files:
-        path = os.path.join(prefix, f)
-        # GNU/Linux: -bi = --brief --mime
-        # Darwin/BSD: -bI = --brief --mime
-        #mediatype = lib.cmd('file --brief --mime "%s"', path).strip()
-        # XXX: see basename-reg
+    if ctx.opts.flags.auto_prefix:
+        prefix = None
+        prefixes = {}
 
-        print opts.args.CTX+':'+f
+        for p, f in files:
+            prefixes = find_prefixes(p, ctx)
+            assert prefixes
+            prefix = prefixes.next()
+            assert len(ctx.prefixes.map_[prefix]) == 1, prefix
+
+            name = prefix+':'+f[len(ctx.prefixes.map_[prefix][0])+1:]
+            if ctx.opts.flags.update:
+                taxus_file = get_record(name, ctx)
+                # TODO: populate metadata;
+                print_record(taxus_file)
+            else:
+                print name
+
+    else:
+
+        # Print references
+        prefix = ctx.prefixes.map.get(ctx.opts.args.CTX)
+        print ctx.opts.args.CTX, prefix
+        for p, f in files:
+            path = os.path.join(prefix, f)
+            # GNU/Linux: -bi = --brief --mime
+            # Darwin/BSD: -bI = --brief --mime
+            #mediatype = lib.cmd('file --brief --mime "%s"', path).strip()
+            # XXX: see basename-reg
+            print ctx.opts.args.CTX+':'+f
 
 
 def get_version():
@@ -398,10 +532,6 @@ def get_version():
 if __name__ == '__main__':
     #FileInfoApp.main()
     import sys
-    db = os.getenv( 'FINFO_DB', __db__ )
-    if db is not __db__:
-        __usage__ = __usage__.replace(__db__, db)
-    opts = util.get_opts(__doc__ + __usage__, version=get_version())
-    opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
-    sys.exit(main(opts))
+    #sys.setrecursionlimit(100)
+    sys.exit(main(sys.argv))
 
