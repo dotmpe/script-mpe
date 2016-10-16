@@ -1,4 +1,7 @@
 
+package_data_finfo_handlers__0="last_updated:mtime"
+package_data_finfo_handlers__1="last_seen:atime"
+package_data_finfo_handlers__2="mime_type:lib..."
 package_distribution=public
 package_environment_development__0=package_pd_meta_default=dev
 package_environment_development__1=Build_Deps_Default_Paths=1
