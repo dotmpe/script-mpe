@@ -11,10 +11,13 @@ Build-status
       :target: https://travis-ci.org/dotmpe/script-mpe
       :alt: Build
 
-Stats
-    .. image:: http://img.shields.io/badge/github-stats-ff5500.svg
-      :target: http://githubstats.com/dotmpe/script-mpe
-      :alt: GitHub Stats
+Version
+  TODO
+
+Issues
+    .. image:: https://img.shields.io/github/issues/dotmpe/script-mpe.svg
+      :target: http://githubstats.com/dotmpe/script-mpe/issues
+      :alt: GitHub issues
 
 
 Various tools and ongoing experiments that have not yet deserved their own
