@@ -6,11 +6,12 @@ init
 pwd=$(cd .;pwd -P)
 
 
-version=0.0.0-dev # script-mpe
+version=0.0.2-dev # script-mpe
 
 @test "$bin no arguments no-op" {
+  skip "Default command is $EDITOR now"
   run $bin
-  test ${status} -eq 1
+  test ${status} -eq 2
   fnmatch "*htd*No command given*" "${lines[*]}"
 }
 
@@ -343,5 +344,28 @@ EOM
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "Path*OK*" "${lines[*]}"
+}
+
+@test "$bin ck-init" {
+  tmpd
+  mkdir -p $tmpd/foo
+  echo baz > $tmpd/foo/bar
+  cd $tmpd
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -eq 0
+  fnmatch "*Adding dir '.'*" "${lines[*]}" \
+    || fail "Output: ${lines[*]}"
+  test ${#lines[@]} -eq 2 \
+    || {
+      diag "Output: ${lines[*]}"
+      fail "Line count: ${#lines[@]}"
+    }
+}
+
+@test "$bin update (ck-prune, ck-clean, ck-update)" {
+  run $bin update
+  rm table.*missing || noop
+  git checkout table.*
+  test ${status} -eq 0
 }
 

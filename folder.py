@@ -9,7 +9,7 @@ TODO: print path relative to current dir
 
 """
 __description__ = "folder - "
-__version__ = '0.0.0'
+__version__ = '0.0.2-dev' # script-mpe
 __db__ = '~/.folder.sqlite'
 __usage__ = """
 Usage:
@@ -23,7 +23,7 @@ Options:
                   SQLAlchemy DB URL [default: %s]
 
 Other flags:
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 """ % ( __db__, __version__ )
@@ -69,7 +69,7 @@ def cmd_info(settings):
             ( "Tables in schema", ", ".join(metadata.tables.keys()) ),
     ):
         log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
-    # if pwd in Projectdir, Volumedir or Homedir 
+    # if pwd in Projectdir, Volumedir or Homedir
     # display relative path for output nodes
 
 def cmd_list(settings):
@@ -163,6 +163,7 @@ if __name__ == '__main__':
     opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
+
 
 
 

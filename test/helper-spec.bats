@@ -13,7 +13,7 @@ init
 
     run bash -c '. '${lib}/${base}' && FOO_SKIP=1 is_skipped foo'
     test "${status}" = 0
-    test "${lines[*]}" = ""
+    test "${lines[*]}" = "" || fail "Output: ${lines[*]}"
 
     FOO_SKIP=1
     run is_skipped foo
@@ -26,11 +26,13 @@ init
     run current_test_env
     test "${status}" = 0
 
-    mkvid "$(hostname -s)"
-    diag "${lines[@]} TEST_ENV=$TEST_ENV username=$(whoami) hostid=$vid"
-    test "${lines[0]}" = "$vid" \
-      || test "${lines[0]}" = "$(whoami)" \
-      || test "${lines[0]}" = "$TEST_ENV"
+    test -z "$TEST_ENV" || {
+      mkvid "$(hostname -s)"
+      diag "${lines[@]} TEST_ENV=$TEST_ENV username=$(whoami) hostid=$vid"
+      test "${lines[0]}" = "$vid" \
+        || test "${lines[0]}" = "$(whoami)" \
+        || test "${lines[0]}" = "$TEST_ENV"
+    }
 }
 
 @test "${lib}/${base} - check_skipped_envs: returns 0 or 1, no output" {
@@ -43,7 +45,7 @@ init
     test "${status}" = 1
     test "${lines[*]}" = "" # No output
 
-    key=$(hostname -s | tr 'a-z.-' 'A-Z__')
+    key=$(get_key "$(hostname -s)")
     keys="${key}_SKIP=1 $(whoami | tr 'a-z' 'A-Z')_SKIP=1"
 
     run bash -c '. '${lib}/${base}' && '"$keys"' check_skipped_envs'

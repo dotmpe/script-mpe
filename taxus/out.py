@@ -7,7 +7,7 @@ from zope.interface import implements
 
 #import res.iface
 from script_mpe.taxus import iface
-import iface
+from . import iface
 
 
 ### User view/Debug serializers
@@ -113,7 +113,7 @@ class PrimitiveFormatter(object):
         self.context = context
 
     def toString(self):
-        if isinstance(self.context, unicode) or isinstance(self.context, str):
+        if isinstance(self.context, str) or isinstance(self.context, str):
             return self.context
         else:
             return str(self.context)
@@ -122,7 +122,7 @@ class PrimitiveFormatter(object):
         return str(self.context)
 
     def __unicode__(self, indent=0):
-        return unicode(self.context)
+        return str(self.context)
 
 
 class IDFormatter(object):

@@ -2,7 +2,7 @@
 """host -
 :created: 2015-06-29
 """
-__version__ = '0.0.0'
+__version__ = '0.0.2-dev' # script-mpe
 __db__ = '~/.taxus-code.sqlite'
 __rc__ = '~/.domain.rc'
 __usage__ = """
@@ -99,4 +99,5 @@ if __name__ == '__main__':
     opts = util.get_opts(__doc__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
+
 

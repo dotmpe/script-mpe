@@ -1,5 +1,5 @@
-from libname import Namespace, Name
-from libcmdng import Targets, Arguments, Keywords, Options,\
+from .libname import Namespace, Name
+from .libcmdng import Targets, Arguments, Keywords, Options,\
     Target, TargetResolver
 
 
@@ -18,5 +18,7 @@ def cmd_options(prog=None, opts=None):
 if __name__ == '__main__':
     # libcmdng
     TargetResolver().main(['cmd:options'])
+
+
 
 

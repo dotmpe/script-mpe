@@ -8,3 +8,4 @@ sync-remote:
 	rsync $(RSYNC_FLAGS)   ./  raspb1:/opt/raspberry-pi
 sync-local:
 	rsync $(RSYNC_FLAGS)   raspb1:/opt/raspberry-pi/  .
+

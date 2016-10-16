@@ -129,3 +129,4 @@ else:
             print 'temperature.value', temperature.text.split(' ')[0]
 
 
+

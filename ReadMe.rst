@@ -1,10 +1,14 @@
 script.mpe
 ==========
-:Version: 0.0.0-dev
+:Version: 0.0.2-dev
+:Updated: 2016-10-01
+
 
 Build-status
-    .. image:: https://secure.travis-ci.org/dotmpe/git-versioning.png?branch=test
-      :target: https://travis-ci.org/dotmpe/git-versioning
+    .. FIXME: cannot att ?branch= without Du/rSt2html breaking
+    .. image:: https://secure.travis-ci.org/dotmpe/script-mpe.svg
+      :width: 89
+      :target: https://travis-ci.org/dotmpe/script-mpe
       :alt: Build
 
 Stats
@@ -28,13 +32,13 @@ See also `.travis.yml`.
 Other documents
 ---------------
 - `Change Log <ChangeLog.rst>`_
-- `Branche and Directory Docs <doc/package.rst>`_
-
+- `Features <doc/features.rst>`_
 
 Dev
 ---
+- Maybe look at dispatch_ a bit, a run-subcmd handler in 48 lines Bash.
 
-- XXX: maybe look to replace lots of main.lib.sh with dispatch_
 
 .. _dispatch: https://github.com/Mosai/workshop/blob/master/doc/dispatch.md
+
 

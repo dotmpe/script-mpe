@@ -3,7 +3,7 @@ match_src=$_
 
 set -e
 
-match_version=0.0.0-dev # script-mpe
+match_version=0.0.2-dev # script-mpe
 
 
 
@@ -213,3 +213,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   ;;
 
 esac
+

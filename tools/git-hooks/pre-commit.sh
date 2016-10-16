@@ -1,1 +1,1 @@
-set -e ; pd run -verbose=false:./tools/sh/tags.sh :vchk :bats:specs :git:status
+set -e ; pd run :vchk sh:verbose=false:max=385:tools/sh/tags.sh :bats:specs

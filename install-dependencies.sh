@@ -5,11 +5,28 @@ set -e
 test -z "$Build_Debug" || set -x
 
 test -z "$Build_Deps_Default_Paths" || {
-  test -n "$SRC_PREFIX" || SRC_PREFIX=$HOME/build
-  test -n "$PREFIX" || PREFIX=$HOME/.local
+
+  test -n "$SRC_PREFIX" || {
+    test -w /src/ \
+      && SRC_PREFIX=/src/ \
+      || SRC_PREFIX=$HOME/build
+  }
+
+  test -n "$PREFIX" || {
+    test -w /usr/local/ \
+      && PREFIX=/usr/local/ \
+      || PREFIX=$HOME/.local
+  }
 }
 
 test -n "$sudo" || sudo=
+test -z "$sudo" || pref="sudo $pref"
+test -z "$dry_run" || pref="echo $pref"
+
+test -w /usr/local || {
+  test -n "$sudo" || pip_flags=--user
+}
+
 
 test -n "$SRC_PREFIX" || {
   echo "Not sure where checkout"
@@ -29,11 +46,17 @@ install_bats()
 {
   echo "Installing bats"
   local pwd=$(pwd)
+  test -n "$BATS_BRANCH" || BATS_BRANCH=master
   mkdir -vp $SRC_PREFIX
   cd $SRC_PREFIX
-  git clone https://github.com/dotmpe/bats.git
+  test -n "$BATS_REPO" || BATS_REPO=https://github.com/dotmpe/bats.git
+  test -n "$BATS_BRANCH" || BATS_BRANCH=master
+  test -d bats || {
+    git clone $BATS_REPO bats || return $?
+  }
   cd bats
-  ${sudo} ./install.sh $PREFIX
+  git checkout $BATS_BRANCH
+  ${pref} ./install.sh $PREFIX
   cd $pwd
 }
 
@@ -49,7 +72,7 @@ install_docopt()
   git clone https://github.com/dotmpe/docopt-mpe.git $SRC_PREFIX/docopt-mpe
   ( cd $SRC_PREFIX/docopt-mpe \
       && git checkout 0.6.x \
-      && $sudo python ./setup.py install $install_f )
+      && $pref python ./setup.py install $install_f )
 }
 
 install_mkdoc()
@@ -63,7 +86,7 @@ install_mkdoc()
   popd
   rm Makefile
   ln -s ~/usr/share/mkdoc/Mkdoc-full.mk Makefile
-  make
+  #make
 }
 
 # expecting cwd to be ~/build/dotmpe/script-mpe/ but asking anyway
@@ -79,21 +102,69 @@ install_pylib()
   esac
   # hack py lib here
   mkdir -vp $pylibdir
-  cwd=$(pwd)/
-  pushd $pylibdir
-  ln -s $cwd script_mpe
-  popd
-  export PYTHON_PATH=$PYTHON_PATH:.:$pylibdir/
+  test -e $pylibdir/script_mpe || {
+    cwd=$(pwd)/
+    pushd $pylibdir
+    pwd -P
+    ln -s $cwd script_mpe
+    popd
+  }
+  export PYTHONPATH=$PYTHONPATH:.:$pylibdir/
+}
+
+install_apenwarr_redo()
+{
+  test -n "$global" || {
+    test -n "$sudo" && global=1 || global=0
+  }
+
+  test $global -eq 1 && {
+
+    test -d /usr/local/lib/python2.7/site-packages/redo \
+      || {
+
+        $pref git clone https://github.com/apenwarr/redo.git \
+            /usr/local/lib/python2.7/site-packages/redo || return 1
+      }
+
+    test -h /usr/local/bin/redo \
+      || {
+
+        $pref ln -s /usr/local/lib/python2.7/site-packages/redo/redo \
+            /usr/local/bin/redo || return 1
+      }
+
+  } || {
+
+    which basher 2>/dev/null >&2 && {
+
+      basher install apenwarr/redo
+    } || {
+
+      echo "Need basher to install apenwarr/redo locally" >&2
+      return 1
+    }
+  }
+}
+
+install_git_lfs()
+{
+  # XXX: for debian only, and requires sudo
+  test -n "$sudo" || {
+    error "sudo required for GIT lfs"
+    return 1
+  }
+  curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+  $pref apt-get install git-lfs
+  # TODO: must be in repo. git lfs install
 }
 
 install_script()
 {
   cwd=$(pwd)
-  pushd ~/
-  ln -s $cwd bin
-  popd
-  echo "pwd=$cwd"
-  echo "bats=$(which bats)"
+  test -e $HOME/bin || ln -s $cwd $HOME/bin
+  echo "install-script pwd=$cwd"
+  echo "install-script bats=$(which bats)"
 }
 
 
@@ -106,7 +177,8 @@ main_entry()
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
       which pip >/dev/null || {
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
-      pip install setuptools
+      pip install --user setuptools objectpath ruamel.yaml \
+        || exit $?
     ;; esac
 
   case "$1" in '-'|build|test|sh-test|bats )
@@ -123,10 +195,28 @@ main_entry()
       python -c 'import docopt' || { install_docopt || return $?; }
     ;; esac
 
-  case "$1" in '-')
-      install_mkdoc
-      install_pylib
-      install_script
+  case "$1" in npm|redmine|tasks)
+      npm install -g redmine-cli || return $?
+    ;; esac
+
+  case "$1" in '-'|redo )
+      # TODO: fix for other python versions
+      install_apenwarr_redo || return $?
+    ;; esac
+
+  case "$1" in -|mkdoc)
+      install_mkdoc || return $?
+    ;; esac
+
+  case "$1" in -|pylib)
+      install_pylib || return $?
+    ;; esac
+
+  case "$1" in -|script)
+      install_script || return $?
+    ;; esac
+
+  case "$1" in '-'|project|git|git-lfs )
     ;; esac
 
   echo "OK. All pre-requisites for '$1' checked"
@@ -141,3 +231,4 @@ test "$(basename $0)" = "install-dependencies.sh" && {
 } || printf ""
 
 # Id: script-mpe/0 install-dependencies.sh
+

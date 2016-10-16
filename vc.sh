@@ -2,12 +2,14 @@
 #
 # SCM util functions and pretty prompt printer for Bash, GIT
 # TODO: other SCMs, BZR, HG, SVN (but never need them so..)
-# XXX: more in projectdir.sh in private repo
 #
 #HELP="vc - version-control helper functions "
 vc_src="$_"
 
 set -e
+
+
+version=0.0.2-dev # script-mpe
 
 
 vc_load()
@@ -45,6 +47,13 @@ vc_load()
       && export vc_temp_gl="$vc_temp_gl $HOME/.gitignore-temp-global"
   }
 
+  # TODO: list of dirs (checkouts, annexes) to retrieve/store files
+	test -n "$UNVERSIONED_FILES" || {
+    #test -e /srv/annex-local
+	  UNVERSIONED_FILES=$( for dir in /srv/backup-local /srv/archive-local \
+	      /srv/archive-old-local /srv/htdocs-local; do
+      test -e $dir && echo "$dir" || continue; done )
+  }
 
   # Look at run flags for subcmd
   for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
@@ -203,8 +212,7 @@ vc__docs()
 
 vc__version()
 {
-	# no version, just checking it goes
-	echo 0.0.0
+  echo $version
 }
 vc___v() { c__version; }
 
@@ -824,6 +832,7 @@ vc__gh() {
 vc__largest_objects()
 {
   test -n "$1" || set -- 10
+  test -n "$scriptdir" || error scriptdir 1
   $scriptdir/git-largest-objects.sh $1
 }
 
@@ -1042,12 +1051,14 @@ vc__annex_clear_unused()
   }
 }
 
+vc_spc__contains="REPO FILE"
 vc__contains()
 {
   test -n "$1" || error "expected file path argument" 1
   test -f "$1" || error "not a file path argument '$1'" 1
   test -n "$2" || set -- "$1" "."
-  test -z "$3" || error ""
+  test -d "$2/.git" || error "expected checkout dir" 1
+  test -z "$3" || error "surplus args" 1
 
   sha1="$(git hash-object "$1")"
   info "SHA1: $sha1"
@@ -1074,10 +1085,32 @@ vc__annex_contains()
   } || warn "Found nothing for '$keyglob'"
 }
 
+# Search all repos/branches for file with content
+vc__grep_file()
+{
+	test -n "$1" || error "Filename required" 1
+	test -n "$2" || error "Pattern required" 1
+	local filename=$1 pattern="$2"
+	shift 2
+	test -n "$3" || error "Checkout path(s) required" 1
+
+	local cwd=$(pwd)
+	for checkout in $3
+	do
+		(
+			cd $cwd/$checkout
+			for b in HEAD $(git ls-remote . refs/heads/* | cut -f 2)
+			do
+				git show $b:$filename | grep -q "$2" && echo "$checkout $b"
+			done
+		)
+	done 2>/dev/null
+}
+
 # List submodule prefixes
 vc__list_prefixes()
 {
-  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
+  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" # vim syntax fix: '"
 }
 
 # List all nested repositories, excluding submodules
@@ -1158,6 +1191,9 @@ vc__list_local_branches()
 }
 
 # regenerate .git/info/exclude
+# NOTE: a duplication is happening, but not no recursion, only one. As
+# accumulated patterns (current contents) is unique listed first, and then all
+# items are added again grouped with each source path
 vc__regenerate()
 {
   local excludes=.git/info/exclude
@@ -1170,7 +1206,7 @@ vc__regenerate()
   rm $excludes.list
 
   info "Adding other git-ignore files"
-  for x in .gitignore-* $HOME/.gitignore-*-global
+  for x in .gitignore-* $HOME/.gitignore*-global
   do
     test "$(basename $x .regex)" = "$(basename $x)" || continue
     test -e $x || continue
@@ -1268,6 +1304,116 @@ vc__annex_local()
 }
 
 
+
+# TODO: add other backup commands, like htd backup. modelled after brixadmin
+# unversioned-files.
+# - Copy with relative path as given into first UNVERSIONED_FILES dir
+# - Check into git annex, git, bzr, or poor mans checksum SCM
+# - Check any matching path out of repo
+#
+#project_id()
+#{
+#	test -d .git && {
+#		basename $(git config --get remote.origin.url) .git
+#	} || {
+#		test "$(hostname -s)" = "jenkins" && {
+#			basename $(dirname $(pwd))
+#		} || {
+#			basename $(pwd)
+#		}
+#	}
+#}
+#	test -n "$project" || export project="$(cmd_project_id)"
+#  export UNVERSIONED_FILES=../unversioned-files/$project
+#
+#
+## list files in unversioned dir for current project
+#vc__unversioned()
+#{
+#	test -z "$2" || err "surplus arguments" 1
+#	test_dir $UNVERSIONED_FILES/$1 || return 1
+#	test -x "$(which tree)" && {
+#		tree -C "$UNVERSIONED_FILES/$1"
+#	} || {
+#		echo "$UNVERSIONED_FILES/$1:"
+#		find $UNVERSIONED_FILES/$1
+#	}
+#}
+#
+#vc__backup_unversioned()
+#{
+#	test -z "$2" || err "surplus arguments" 1
+#	test -n "$1" && {
+#		# backup path at argument
+#		for p in $@
+#		do
+#			test -e "$1" || err "Not an existing path" 1
+#			test -f "$1" && {
+#				mkdir -p $(dirname $UNVERSIONED_FILES/$p)
+#				cp -v "$p" "$(dirname $UNVERSIONED_FILES/$p)/"
+#			} || test -d "$1" && {
+#				vc__backup_unversioned_from_dir $1
+#			}
+#		done
+#	} || {
+#		# no argument: backup all GIT cleanable files
+#		vc__backup_unversioned_from_dir "$(pwd)" || return $?
+#	}
+#}
+#
+#vc__backup_unversioned_from_dir()
+#{
+#	test -n "$1" || err "expected dir argument" 1
+#	test -n "$UNVERSIONED_FILES" || error UNVERSIONED_FILES= 1
+#	test -d "$(dirname $UNVERSIONED_FILES)" || error "No dir '$UNVERSIONED_FILES'" 1
+#	test -d "$UNVERSIONED_FILES" || mkdir $UNVERSIONED_FILES
+#
+#	pwd=$(pwd)
+#	cd $UNVERSIONED_FILES/..
+#	git annex unlock ./$project || error "projdir" 1
+#	cd $pwd
+#
+#	git ls-files --others "$1" | while read p
+#	do
+#		test_file $p || err "Not a file: $p" 1
+#		mkdir -p $(dirname $UNVERSIONED_FILES/$p)
+#		cp -v "$p" "$(dirname $UNVERSIONED_FILES/$p)/"
+#	done
+#
+#	cd $UNVERSIONED_FILES
+#	git annex add . || error "annex add" 1
+#	git commit -m "Files from $project"
+#	git annex lock . || error "projdir" 1
+#	git annex sync
+#	git annex copy --to simza
+#	cd $pwd
+#}
+#
+#vc__restore_unversioned()
+#{
+#	test -z "$2" || err "surplus arguments" 1
+#	test_file $UNVERSIONED_FILES/$1 || return 1
+#	cp -v $UNVERSIONED_FILES/$1 $1
+#}
+#
+## list different files
+#vc__diff_unversioned()
+#{
+#	test -z "$2" || err "surplus arguments" 1
+#	test -n "$1" && p="$1" || p=.
+#	diff -bqr $UNVERSIONED_FILES/$p $p
+#}
+#
+#vc__vimdiff_unversioned()
+#{
+#	test -z "$2" || err "surplus arguments" 1
+#	test -n "$1" && p="$1" || p=.
+#	vimdiff $UNVERSIONED_FILES/$p $p
+#}
+
+
+
+
 # ----
 
 
@@ -1327,7 +1473,9 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
 
-  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
+  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux. But it
+  # maybe Darwin/BSD sh is relaying to bash instead?
+
   # fix using another mechanism:
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )

@@ -18,7 +18,6 @@ test -n "$device_id" || device_id=disk-id
 @test "${bin} status" {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
-  fnmatch "*OK*" "${lines[*]}"
 }
 
 @test "${bin} help" {
@@ -30,7 +29,7 @@ test -n "$device_id" || device_id=disk-id
 @test "${bin} list" {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
-  fnmatch "*Catalog at ${hostname}*" "${lines[*]}"
+  fnmatch "*Catalog at $(hostname)*" "${lines[*]}"
 }
 
 @test "${bin} enable $device_id" {

@@ -16,21 +16,22 @@ Options:
     -p --props=NAME=VALUE
 
 Other flags:
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version.
 
 """
+__version__ = '0.0.2-dev' # script-mpe
 
 import os
 import re
 
 from docopt import docopt
 
-import libcmd
-import util
-import rsr
-import log
+from . import libcmd
+from . import util
+from . import rsr
+from . import log
 
 
 class VC(rsr.Rsr):
@@ -46,7 +47,7 @@ class VC(rsr.Rsr):
     NAME = os.path.splitext(os.path.basename(__file__))[0]
     assert NAME == 'vc'
     DEFAULT_CONFIG_KEY = NAME
-    DEPENDS = { 
+    DEPENDS = {
         'vc_repos': [ 'rsr_session' ],
         'vc_repo': [ 'rsr_session' ],
         'vc_status': [ 'vc_repo' ],
@@ -86,8 +87,8 @@ class VC(rsr.Rsr):
         """
         TODO: Yield all repositories in workspace.
         """
-        print 'context=',context
-        print 'sa=',sa
+        print('context=',context)
+        print('sa=',sa)
         # TODO: should be some workspace
         log.info('vc:repos done')
 
@@ -101,7 +102,7 @@ def cmd_find(settings):
     #= Project.find()
 
 def cmd_info():
-    print 'info'
+    print('info')
 
 
 ### Transform cmd_ function names to nested dict

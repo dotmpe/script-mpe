@@ -95,8 +95,6 @@ b9765dfb2e5bedb64cb8b41c76d58e7b  transquote.py
 c4864ed634389be3b16088ce3a1b5b49  vc.py
 48f4b4d1cf47547e9e198d1578e72b77  workLog.py
 e35f741c7c63656739e1ad166f1807bd  worklog_google.py
-25f8a1b0d63532a120fd24815b434528  munin/com-spaceweather.py
-8d10d46a0587057906217d0da2ee552e  munin/mpe_martador_.py
 d50a430f9adb779d9a9634c4c4f1236a  munin/mpe_project-stats.py
 69f07822993e93edf8912e128d41b6e0  munin/mpe_projects.py
 44ff4e6fe0370a2621d6887930f16bb2  munin/nl-meteo24.py
@@ -105,7 +103,6 @@ d50a430f9adb779d9a9634c4c4f1236a  munin/mpe_project-stats.py
 9c97338e999b18c8ea4bc25b4bab707e  res/__init__.py
 2923c81f934fd04a87e6ba36e9700592  res/bm.py
 7ed55c653b1057e5192f522da2164dd2  res/iface.py
-ca23f6d944fe99e9e0a5e80b99d7df8e  res/mime.py
 8c0e21f086c026d8d9b98271e5fd26a7  res/persistence.py
 3fb7ac83ec84258047597f3e5374ed33  res/session.py
 1614306a9b29b89c33dd5638c26b7240  res/vc.py

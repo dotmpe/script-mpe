@@ -2,9 +2,7 @@
 """
 libcmd+taxus (SQLAlchemy) session
 
-XXX:
-    taxus should do basic storage model
-    rsr ("resourcer") builds on taxus to explore res.meta further
+FIXME: txs
 """
 import os, stat, sys
 from os import sep
@@ -20,7 +18,7 @@ import log
 import res
 from libname import Namespace#, Name
 from libcmdng import Targets, Arguments, Keywords, Options,\
-    Target 
+    Target
 import taxus.checksum
 import taxus.core
 import taxus.fs
@@ -30,7 +28,6 @@ import taxus.model
 import taxus.net
 import taxus.semweb
 import taxus.web
-# XXX
 from taxus import SessionMixin, \
         Node, GroupNode, \
         INode, Dir, \
@@ -72,7 +69,7 @@ class LocalPathResolver(object):
             pass
 
         return INode(local_path=path, host=self.host)
-# XXX: why hijack init which is for session init..
+        # XXX: why hijack init which is for session init..
         assert False
 
         if not opts.init:
@@ -154,7 +151,7 @@ def host_find(args, sa=None):
     except NoResultFound, e:
         return
     return node
-          
+
 
 #@Target.register(NS, 'session', 'cmd:options')
 def txs_session(prog=None, sa=None, opts=None, settings=None):
@@ -250,7 +247,7 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
                     log.note(tag)
                 except NoResultFound, e:
                     log.note(e)
-                # Ask about each new tag, TODO: or rename, fuzzy match.      
+                # Ask about each new tag, TODO: or rename, fuzzy match.
                 if tagstr not in tags:
                     type = raw_input('%s%s%s:?' % (
                         log.palette['yellow'], tagstr,

@@ -18,6 +18,7 @@ init
 
 @test "${bin} help" "0.1.1.2"  {
   skip "Something wrong with pd/std__help"
+
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*$base <cmd> *" "${lines[*]}"

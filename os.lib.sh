@@ -181,6 +181,7 @@ get_targets()
   # Assume
   find $1 -type l | while read link
   do
+    test -e "$link" || continue
     target=$(readlink $link)
     normalize_relative $(dirname $link)/$target
   done | sort -u
@@ -205,6 +206,19 @@ count_words()
     while test -n "$1"
     do
       wc -w $1 | awk '{print $1}'
+      shift
+    done
+  } || {
+    wc -w | awk '{print $1}'
+  }
+}
+
+count_chars()
+{
+  test -n "$1" && {
+    while test -n "$1"
+    do
+      wc -c $1 | awk '{print $1}'
       shift
     done
   } || {
@@ -281,5 +295,22 @@ get_uuid()
 #    test "$(popd)" = "$CWDIR"
 #  } || set --
 #}
+
+test_dir()
+{
+	test -d "$1" || {
+		err "No such dir: $1"
+		return 1
+	}
+}
+
+test_file()
+{
+	test -f "$1" || {
+		err "No such file: $1"
+		return 1
+	}
+}
+
 
 

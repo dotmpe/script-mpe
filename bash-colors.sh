@@ -10,3 +10,5 @@ echo -e "\033[0;31mRed         0;31\033[0m     \033[1;31mBold/Light Red     1;31
 echo -e "\033[0;35mPurple      0;35\033[0m     \033[1;35mBold/Light Purple  1;35\033[0m"
 echo -e "\033[0;33mBrown       0;33\033[0m     \033[1;33mYellow        1;33\033[0m"
 echo -e "\033[0;37mLight Gray  0;37\033[0m     \033[1;37mWhite         1;37\033[0m"
+
+

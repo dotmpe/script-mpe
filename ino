@@ -5,7 +5,7 @@ ino__source=$_
 
 set -e
 
-version=0.0.0+20150911-0659 # script-mpe
+version=0.0.1 # script-mpe
 
 
 
@@ -286,4 +286,5 @@ ino_load()
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
   ino_main "$@"
 fi
+
 

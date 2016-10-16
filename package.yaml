@@ -1,9 +1,10 @@
 # git-versioning main: script-mpe
 
-- type: application/x-project-mpe
+- type: application/vnd.dotmpe.project
   main: script-mpe
   id: script-mpe
-  version: 0.0.0-dev # script-mpe
+
+  version: 0.0.2-dev # script-mpe
   environments: [ 'development' ]
 
   vendor: dotmpe
@@ -13,9 +14,22 @@
   pd-meta:
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
-    check: "-verbose=false:./tools/sh/tags.sh :vchk :bats:specs :git:status"
+    check: "sh:verbose=false:max=385:./tools/sh/tags.sh :verbose=1:vchk :bats:specs :git:status"
     # TODO: check for /tmp usage, force TMPDIR use
-    test: ":vchk sh:python:test/main.py :bats:specs :bats"
+    test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats"
+    # TODO: run tests at VM/... if available
+    build: ":vagrant:tools/ci/vbox"
+    #build: ":vagrant:tools/ci/vbox:ubuntu"
+
+    tasks:
+      document: tasks.ttxtm
+
+      tags:
+        - TODO # tasks:no-check
+        - XXX # tasks:no-check
+        - FIXME # tasks:no-check
+        - BUG # tasks:no-check
+        - NOTE # tasks:no-check
 
     git-hooks:
       pre-commit: ./tools/git-hooks/pre-commit.sh
@@ -31,4 +45,5 @@
     - BOREAS_SKIP=1
     - DANDY_SKIP=1
     - VS1_SKIP=1
+
 

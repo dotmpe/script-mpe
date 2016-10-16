@@ -1,4 +1,4 @@
-# Id: script-mpe/0.0.0-dev Rules.mk
+# Id: script-mpe/0.0.2-dev Rules.mk
 #
 # Non recursive make, partial rule file. See github mkdocs.
 include                $(MK_SHARE)Core/Main.dirstack.mk
@@ -7,7 +7,7 @@ MK                  += $/Rules.mk
 #      ------------ -- 
 
 
-VERSION= 0.0.0-dev# script-mpe
+VERSION= 0.0.2-dev# script-mpe
 
 $(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 
@@ -316,3 +316,4 @@ INSTALL += symlinks
 #
 include                $(MK_SHARE)Core/Main.dirstack-pop.mk
 # vim:noet:
+

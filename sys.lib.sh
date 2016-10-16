@@ -19,7 +19,7 @@ sys_load()
   } || {
     test -d /tmp || error "No /tmp" 1
     export TMPDIR=/tmp
-    note "TMPDIR=$TMPDIR"
+    info "TMPDIR=$TMPDIR"
   }
 }
 
@@ -115,6 +115,17 @@ trueish()
   esac
 }
 
+falseish()
+{
+  test -n "$1" || return 1
+  case "$1" in
+		[Oo]ff|[Ff]alse|[Nn]|[Nn]o|0)
+      return 0;;
+    * )
+      return 1;;
+  esac
+}
+
 cmd_exists()
 {
   test -x $(which $1) || return $?
@@ -191,7 +202,7 @@ setup_tmpd()
 setup_tmpf()
 {
   test -n "$1" || set -- .out "$2" "$3"
-  test -n "$2" || set -- $1 $(uuidgen) "$3"
+  test -n "$2" || set -- $1 $(get_uuid) "$3"
   test -n "$1" -a -n "$2" || error "empty arg(s)" 1
   test -z "$4" || error "surplus arg(s) '$3'" 1
 
@@ -203,3 +214,9 @@ setup_tmpf()
   echo $3/${base}$2$1
 }
 
+# confirm PROMPT [varname=choice_confirm]
+confirm()
+{
+  echo $1
+  read choice_confirm
+}

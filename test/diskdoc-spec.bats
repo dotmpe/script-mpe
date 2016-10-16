@@ -6,7 +6,7 @@ init
 #pwd=$(cd .;pwd -P)
 
 
-version=0.0.0+20150911-0659 # script-mpe
+version=0.0.2-dev # script-mpe
 
 @test "${bin}" "No arguments: default action is status" {
   test "$uname" != Darwin || skip Darwin
@@ -16,7 +16,8 @@ version=0.0.0+20150911-0659 # script-mpe
 
 @test "$bin help" "Lists commands" {
   run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
+  test $status -eq 0 \
+    || { diag "Output: ${lines[*]}"; fail "Status: ${status}"; }
   # Output must at least be usage lines + nr of functions
   test "${#lines[@]}" -gt 8
 }

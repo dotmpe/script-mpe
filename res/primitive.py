@@ -343,3 +343,4 @@ class DictNodeUpdater(AbstractHierarchicalVisitor, AbstractAdapter):
         return node
 
 
+

@@ -5,7 +5,7 @@
 TODO: experiment with nodes from other DBs. Sync to and from master.
 """
 __description__ = "node - "
-__version__ = '0.0.0'
+__version__ = '0.0.2-dev' # script-mpe
 __db__ = '~/.node.sqlite'
 __usage__ = """
 Usage:
@@ -22,7 +22,7 @@ Options:
                   SQLAlchemy DB URL [default: %s]
 
 Other flags:
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 """ % ( __db__, __version__ )
@@ -80,7 +80,7 @@ def cmd_list(settings):
 def cmd_get(REF, settings):
 
     """
-    Retrieve and format node. 
+    Retrieve and format node.
     TODO: full type-specific representation may depend on sub-database.
     """
 
@@ -136,5 +136,6 @@ if __name__ == '__main__':
     else:
         opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
+
 
 

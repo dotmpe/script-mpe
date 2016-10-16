@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 
 box_load()
 {
@@ -260,3 +258,48 @@ box_list_libs()
     tail -n +4 | tail -n +$line_offset | head -n $line_diff;
   } < $1
 }
+
+
+# XXX: goes here at box.lib? or into main.lib? Unused still
+
+box_init()
+{
+  test -n "$UCONF" || error UCONF 1
+  cd $UCONF
+}
+
+box_update()
+{
+  test -n "$UCONF" || error UCONF 1
+  cd $UCONF
+
+  test -n "$box_host" || box_host=$hostname
+  test -n "$box_user" || box_user=$(whoami)
+
+  on_host "$box_host" || ssh_req $box_host $box_user
+  run_cmd "$box_host" "cd ~/.conf && git fetch --all && git pull"
+  run_cmd "$box_host" "cd ~/.conf && git fetch --all && git pull"
+
+  ansible-playbook -l $box_host ansible/playbook/user-conf.yml
+  #ansible-playbook -l $box_host ansible/playbook/system-update.yml
+  #ansible-playbook -l $box_host ansible/playbook/user-env-update.yml
+}
+
+
+req_path_arg()
+{
+	test -n "$1" || error "path or file argument expected" 1
+	test -e "$1" || error "not a path '$1'" 1
+}
+
+req_cdir_arg()
+{
+  test -n "$1"  && path="$1"  || path=.
+  test -d "$path" || {
+    error "Must pass directory" 1
+  }
+}
+
+
+
+

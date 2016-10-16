@@ -28,7 +28,8 @@ init
     TODO "envs $envs: implement for env"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
+  #test -z "${lines[*]}" # empty output
+  test "${#lines[@]}" = "10" # lines of output (stderr+stderr)
 }
 
 @test "${bin} radical-test1.txt" {
@@ -39,7 +40,10 @@ init
   test ${status} -eq 0
   test -n "${lines[*]}" # non-empty output
   # 6 'note'-level log lines, three for issues: TODO: fix multiline scanning
-  test "${#lines[@]}" = "6" # lines of output (stderr+stderr)
+  test "${#lines[@]}" = "12" || fail "Lines: ${#lines[@]}" # lines of output (stderr+stderr)
 }
 
+@test "${bin} radical run-embedded-issue-scan - has to run without faults" {
+  run htd -q radical-scan
+}
 

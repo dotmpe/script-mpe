@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """:created: 2014-10-5
 
-script_mpe + taxus 
+script_mpe + taxus
 
 TODO: manage schemas and datastores.
 
 Work with models across databases, synchronize base types through master
-database. 
+database.
 """
 __description__ = "cllct - "
-__version__ = '0.0.0'
+__version__ = '0.0.2-dev' # script-mpe
 __db__ = '~/.cllct.sqlite'
 __usage__ = """
 Usage:
@@ -27,7 +27,7 @@ Options:
                   SQLAlchemy DB URL [default: %s]
 
 Other flags:
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 """ % ( __db__, __version__ )
@@ -92,7 +92,7 @@ def cmd_init(settings):
 
     store = Space.start_master_session()
     store.init()
-  
+
     # modeltype, dbref
     canonical = {}
 
@@ -114,7 +114,7 @@ def cmd_init(settings):
 def cmd_list(settings):
 
     """
-    TODO: list all nodes from all databases, 
+    TODO: list all nodes from all databases,
         or just all databases.
     """
 
@@ -206,6 +206,8 @@ if __name__ == '__main__':
         else:
             log.warn("{yellow}Warning: {default}no DB found and none provided.");
     sys.exit(main(opts))
+
+
 
 
 

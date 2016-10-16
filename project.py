@@ -3,7 +3,7 @@
 :created: 2014-02-26
 :updated: 2015-06-30
 """
-__version__ = '0.0.0'
+__version__ = '0.0.2-dev' # script-mpe
 __db__ = '~/.taxus-code.sqlite'
 __usage__ = """
 
@@ -60,7 +60,7 @@ def cmd_db_init(settings):
     """
     get_session(settings.dbref)
     SqlBase.metadata.create_all()
-    print "Updated schema", settings.dbref
+    print("Updated schema", settings.dbref)
 
 def cmd_db_reset(settings):
     """
@@ -68,12 +68,12 @@ def cmd_db_reset(settings):
     """
     get_session(settings.dbref)
     if not settings.yes:
-        x = raw_input("This will destroy all data? [yN] ")
+        x = input("This will destroy all data? [yN] ")
         if not x or x not in 'Yy':
             return 1
     SqlBase.metadata.drop_all()
     SqlBase.metadata.create_all()
-    print "Done", settings.dbref
+    print("Done", settings.dbref)
 
 def cmd_db_stats(settings):
     """
@@ -81,13 +81,13 @@ def cmd_db_stats(settings):
     """
     sa = get_session(settings.dbref)
     for m in [ Node, Topic, Project, VersionControl, Host ]:
-        print m.__name__+':', sa.query(m).count()
-    print "Done", settings.dbref
+        print(m.__name__+':', sa.query(m).count())
+    print("Done", settings.dbref)
 
 def cmd_find(settings):
     #sa = get_session(settings.dbref)
     project = Workdir.find()
-    print project
+    print(project)
 
 def cmd_info(settings):
     sa = Project.get_session('default', settings.dbref)
@@ -96,19 +96,19 @@ def cmd_info(settings):
     name = os.path.basename(pwd)
     workdir = Workdir.find(pwd)
     if not workdir:
-        print "Not in a metadata workdir!"
+        print("Not in a metadata workdir!")
     rs = Project.search(_sa=sa, name=name)
     if not rs:
-        print "No project found for %r" % name
+        print("No project found for %r" % name)
         return 1
     proj=rs[0]
     try:
         hosts = proj.hosts
-    except Exception, e:
-        print settings.dbref, Project.metadata.bind
+    except Exception as e:
+        print(settings.dbref, Project.metadata.bind)
         log.std("Error proj.hosts %s", e)
         hosts = []
-    print proj.name, hosts, proj.repositories[0].vc_type, proj.date_added
+    print(proj.name, hosts, proj.repositories[0].vc_type, proj.date_added)
 
 
 def cmd_init(settings):
@@ -122,11 +122,11 @@ def cmd_init(settings):
     if projdir:
         if not rs:
         	pass
-        print "Already in existing project!"
-        print projdir[0]
+        print("Already in existing project!")
+        print(projdir[0])
         return 1
     if rs:
-        print "Project with this name already exists"
+        print("Project with this name already exists")
         return 1
     projdir = Workdir(pwd)
     project = Project(
@@ -142,18 +142,18 @@ def cmd_init(settings):
     sa.add(project)
     sa.commit()
     projdir.init(create=True)
-    print "Created project", name, projdir.metadir_id
+    print("Created project", name, projdir.metadir_id)
 
 def cmd_new():
-    print 'project-new'
+    print('project-new')
 
 def cmd_update():
-    print 'project-update'
+    print('project-update')
 
 def cmd_list(settings):
     sa = Project.get_session('default', settings.dbref)
     for p in sa.query(Project).all():
-        print p
+        print(p)
 
 
 
@@ -184,4 +184,5 @@ if __name__ == '__main__':
     opts = util.get_opts(__doc__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
+
 

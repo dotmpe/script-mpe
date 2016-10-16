@@ -8,7 +8,7 @@ setup_clean_git()
   git init
   touch .gitignore
   git add .
-  git ci -m Init
+  git commit -m Init
 }
 
 

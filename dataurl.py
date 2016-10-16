@@ -8,3 +8,4 @@ for url in urls:
     groups = re.match(r"^data:([^;,]*);?([^,]*),(.*)$", url).groups()
     print groups
 
+

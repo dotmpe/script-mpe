@@ -21,3 +21,4 @@ sudo /etc/init.d/nfs-common stop
 sudo /etc/init.d/nfs-kernel-server stop
 sudo /etc/init.d/nfs-common start
 sudo /etc/init.d/nfs-kernel-server start
+

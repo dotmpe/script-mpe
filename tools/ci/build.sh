@@ -16,19 +16,20 @@ touch $HOME/.basename-reg.yaml
 
 box version && box -V
 vc.sh help
-projectdir.sh help
+
+# FIXME: "Something wrong with pd/std__help"
+#projectdir.sh help
 
 export PATH=$PATH:/usr/local/bin
+#export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/dist-packages
+export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/site-packages
+export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
 
-pip install --user pytz
-pip install --user PyYAML
-pip install --user zope.interface
-pip install --user zope.component
-pip install --user objectpath
-pip install --user docutils
-pip install --user jsonschema
-pip install --user sqlalchemy
-pip install --user sqlalchemy-migrate
+echo "*PATH* env:"
+env | grep PATH
+
+pip install --upgrade --user -r requirements.txt
+pip install --upgrade --user -r test-requirements.txt
 npm install parse-torrent lodash
 
 radical.py --help
@@ -48,8 +49,8 @@ htd install json-spec
 . ./tools/sh/env.sh
 . ./tools/ci/test.sh
 
-# FIXME:
 exit 0
+# FIXME: ci build per env
 
 case "$ENV" in
 

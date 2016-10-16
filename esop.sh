@@ -5,7 +5,7 @@ set -e
 
 
 
-version=0.0.0+20150911-0659 # script-mpe
+version=0.0.2-dev # script-mpe
 
 
 esop__man_1_version="Version info" # TODO: rewrite std__help to use try_value
@@ -105,3 +105,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
     esop_main "$@" || exit $?
   ;; esac
 ;; esac
+

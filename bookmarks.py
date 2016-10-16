@@ -14,7 +14,7 @@
 :updated: 2014-08-26
 """
 __description__ = "bookmarks - "
-__version__ = '0.0.0'
+__version__ = '0.0.2-dev' # script-mpe
 __db__ = '~/.bookmarks.sqlite'
 __usage__ = """
 Usage:
@@ -33,7 +33,7 @@ Options:
                   relations if the usage is below given value.
                   This entirely depends on usage.
                   0 means to import everything [default: -1]
-                  Defaults to hiFreq * 0.1. 
+                  Defaults to hiFreq * 0.1.
     --domain-offset INT
                   Typical --*-offset, see before.
                   Defaults to avgFreq. [default: -1]
@@ -42,12 +42,12 @@ Options:
     -v            Increase verbosity.
 
 Other flags:
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
 
-"""
+""" % ( __db__, __version__, )
 from datetime import datetime
 import os
 import re
@@ -68,12 +68,14 @@ import res.iface
 import res.js
 import res.bm
 from res import Volumedir
+from res.util import ISO_8601_DATETIME
 from taxus import init as model
 from taxus.init import SqlBase, get_session
 from taxus.core import Node, Name, Tag
 from taxus.net import Locator, Domain
+from taxus.model import Bookmark
 
-models = [Locator, Tag, Domain ]
+models = [ Locator, Tag, Domain, Bookmark ]
 
 #import bookmarks_model as model
 #from bookmarks_model import Locator, Bookmark
@@ -180,13 +182,13 @@ class bookmarks(rsr.Rsr):
                 print
 
     def assert_locator(self, sa=None, href=None, opts=None):
-        lctr = Locator.find((Locator.global_id==href,), sa=sa)
+        lctr = Locator.fetch((Locator.global_id==href,), _sa=sa, exists=False)
         if not lctr:
             if len(href) > 255:
                 log.err("Reference too long: %s", href)
                 return
-            lctr = Locator( 
-                    global_id=href, 
+            lctr = Locator(
+                    global_id=href,
                     date_added=datetime.now() )
             sa.add( lctr )
             if opts.rsr_auto_commit:
@@ -206,11 +208,11 @@ class bookmarks(rsr.Rsr):
         "Create or update. alias --update?"
         lctr = [ r['lctr'] for r in self.assert_locator(sa=sa, href=href, opts=opts) ]
         if not lctr:
-            yield dict( err="XXX Missed ref" ) 
+            yield dict( err="XXX Missed ref" )
         else:
             lctr = lctr.pop()
             assert lctr
-            bm = Bookmark.find((Bookmark.ref==lctr,), sa=sa)
+            bm = Bookmark.fetch((Bookmark.ref==lctr,), _sa=sa, exists=False)
             if bm:
                 # XXX: start local to bean dict
 # XXXL name must be unique, must catch problems
@@ -226,7 +228,7 @@ class bookmarks(rsr.Rsr):
                     bm.tags = tags
                 bm.last_update = datetime.now()
             else:
-                bm = Bookmark.find((Bookmark.name==name,), sa=sa)
+                bm = Bookmark.fetch((Bookmark.name==name,), _sa=sa, exists=False)
                 if bm:
                     log.err("Duplicate name %s", bm.name)
                     #bm.name = "%s (copy)" % name
@@ -272,7 +274,8 @@ class bookmarks(rsr.Rsr):
             for lctr in lctrs:
                 ref = lctr.ref or lctr.global_id
                 ref_md5 = hashlib.md5( ref ).hexdigest()
-                md5 = MD5Digest.find(( MD5Digest.digest == ref_md5, ))
+                md5 = MD5Digest.fetch(( MD5Digest.digest == ref_md5, ),
+                        exists=False)
                 if not md5:
                     md5 = MD5Digest( digest=ref_md5,
                             date_added=datetime.now() )
@@ -295,14 +298,14 @@ class bookmarks(rsr.Rsr):
             #for ref in mozbm.read_lctr(path):
             #    list(self.assert_locator(sa=sa, href=ref, opts=opts))
             for node in mozbm.read_bm(path):
-                descr = [ a['value'] for a in node.get('annos', [] ) 
+                descr = [ a['value'] for a in node.get('annos', [] )
                         if a['name'] == 'bookmarkProperties/description' ]
                 if 'uri' not in node or 'title' not in node or not node['title']:
                     log.warn("Illegal %s", node)
                 else:
-                    list(self.add(sa=sa, 
-                        href=node['uri'], 
-                        name=node['title'], 
+                    list(self.add(sa=sa,
+                        href=node['uri'],
+                        name=node['title'],
                         ext=descr and descr.pop() or None,
                         opts=opts))
 
@@ -321,7 +324,7 @@ class bookmarks(rsr.Rsr):
                         roots.append(node)
             # TODO: store groups, but need to start at the root, sort out struct
             # XXX should need a tree formatter here
-            print 'Groups' 
+            print 'Groups'
             for nid, node in nodes.items():
                 #print repr(node['title']),
                 if 'parent' in node:
@@ -329,9 +332,9 @@ class bookmarks(rsr.Rsr):
                     self.rsr_add_group( node['title'], parent['title'],
                             sa=sa, opts=opts )
                 else:
-                    self.rsr_add_group( node['title'], None, 
+                    self.rsr_add_group( node['title'], None,
                             sa=sa, opts=opts )
-            print 'Roots' 
+            print 'Roots'
             for root in roots:
                 print root['id'], root['title']
 
@@ -340,7 +343,7 @@ class bookmarks(rsr.Rsr):
         data = dlcs_parse_xml(open(p).read())
         for post in data['posts']:
             yield post
-    
+
     def dlcs_post_test(self, p):
         bm = self.execute( 'dlcs_post_read', dict( p=p) , 'all-key:href' )
         print p, len(bm)
@@ -367,16 +370,16 @@ class bookmarks(rsr.Rsr):
                 bm = self.execute( 'assert_locator', bm_dict, 'first-key:bm' )
 
                 lctr = lctrs.pop()
-                bms = [ d['bm'] for d in self.add( sa=sa, 
-                    href=post['href'], 
-                    name=post['description'], 
-                    ext=post['extended'], 
+                bms = [ d['bm'] for d in self.add( sa=sa,
+                    href=post['href'],
+                    name=post['description'],
+                    ext=post['extended'],
                     tags=post['tag'],
                     opts=opts) ]
                 if not bms:
                     continue
                 bm = bms.pop()
-                tags = [ GroupNode.find(( GroupNode.name == t, ), sa=sa ) 
+                tags = [ GroupNode.fetch(( GroupNode.name == t, ), _sa=sa )
                         for t in post['tag'].split(' ') ]
                 [ grouptags.append(t) for t in tags if t ]
                 for tag in tags:
@@ -392,7 +395,7 @@ class bookmarks(rsr.Rsr):
                     print node.ref
                 else:
                     print
-        
+
         if opts.rsr_auto_commit:
             sa.commit()
 
@@ -415,22 +418,53 @@ def cmd_dlcs_import(opts, settings):
     # first pass: validate, track stats and create Locator records where missing
     for post in data['posts']:
         href = post['href']
-        lctr = Locator.find((Locator.ref == href,))
+        dt = datetime.strptime(post['time'], ISO_8601_DATETIME)
 # validate URL
         url = urlparse(href)
         domain = url[1]
         if not domain:
-            log.std("Ignored non-net URIRef: %s", href)
+            log.std("Ignored domainless (non-net?) URIRef: %s", href)
             continue
         assert re.match('[a-z0-9]+(\.[a-z0-9]+)*', domain), domain
 # get/init Locator
-        if not lctr:
+        lctr = Locator.fetch((Locator.ref == href,), exists=False)
+        if lctr:
+            if lctr.date_added != dt:
+                lctr.date_added = dt
+                sa.add(lctr)
+        else:
             lctr = Locator(
                     global_id=href,
-                    ref=href)
+                    ref=href,
+                    date_added=datetime.strptime(post['time'], ISO_8601_DATETIME)
+                )
             lctr.init_defaults()
             log.std("new: %s", lctr)
             sa.add(lctr)
+# get/init Bookmark
+        bm = Bookmark.fetch((Bookmark.ref_id == lctr.lctr_id,), exists=False)
+        if bm:
+            if bm.date_added != dt:
+                bm.date_added = dt
+                sa.add(bm)
+            if bm.ref_id != lctr.lctr_id:
+                bm.ref = lctr
+                sa.add(bm)
+        else:
+            bm = Bookmark.fetch((Bookmark.name == post['description'],), exists=False)
+            if bm:
+                log.std("Name already exists: %r" % post['description'])
+                continue
+            bm = Bookmark(
+                    ref=lctr,
+                    name=post['description'],
+                    extended=post['extended'],
+                    tags=post['tag'].replace(' ', ', '),
+                    date_added=datetime.strptime(post['time'], ISO_8601_DATETIME)
+                )
+            bm.init_defaults()
+            log.std("new: %s", bm)
+            sa.add(bm)
 # track domain frequency
         if domain in domains_stat:
             domains_stat[domain] += 1
@@ -460,7 +494,7 @@ def cmd_dlcs_import(opts, settings):
         freq = domains_stat[domain]
         if freq >= domainOffset:
             domains += 1
-            domain_record = Domain.find((Domain.name == domain,))
+            domain_record = Domain.fetch((Domain.name == domain,), exists=False)
             if not domain_record:
                 domain_record = Domain(name=domain)
                 domain_record.init_defaults()
@@ -486,7 +520,7 @@ def cmd_dlcs_import(opts, settings):
             log.std("Non-std tag %s", tag)
         if freq >= tagOffset:
             tags += 1
-            t = Tag.find((Tag.name == tag,))
+            t = Node.fetch((Node.name == tag,), exists=False)
             if not t:
                 t = Tag(name=tag)
                 t.init_defaults()
@@ -497,16 +531,7 @@ def cmd_dlcs_import(opts, settings):
     log.std("Checked %i tags", len(tags_stat))
     log.std("Tracking %i tags", tags)
     sa.commit()
-    return
-    for post in data['posts']:
-        lctr = Locator.find((Locator.ref == post['href'],))
-        for tag in post['tag'].split(' '):
-            if tags_stat[tag] > x:
-                x = tags_stat[x]
-            if tag in tags_stat:
-                tags_stat[tag] += 1
-            else:
-                tags_stat[tag] = 1
+
 
 def cmd_chrome_all(settings):
     """
@@ -607,7 +632,7 @@ commands['help'] = util.cmd_help
 def main(opts):
 
     """
-    Execute command.
+    Execute using docopt-mpe options.
     """
 
     settings = opts.flags
@@ -620,10 +645,10 @@ if __name__ == '__main__':
     #bookmarks.main()
     import sys
     db = os.getenv( 'BOOKMARKS_DB', __db__ )
-    vdir = Volumedir.find()
-    print 'vdir', vdir
-    usage = __usage__ % ( db, __version__ )
-    opts = util.get_opts(__doc__ + usage, version=get_version())
+    # TODO : vdir = Volumedir.find()
+    if db is not __db__:
+        __usage__ = __usage__.replace(__db__, db)
+    opts = util.get_opts(__doc__ + __usage__, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
 

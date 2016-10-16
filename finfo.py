@@ -1,8 +1,31 @@
 #!/usr/bin/env python
-"""
+"""Walk paths according to excludes, print paths and/or attributes.
+
+TODO:
+- auto name disks/mount points
+- inherited exclude rules
+- any number of named pathsets
+- exclude rule tags per contexts
+
+Make context specific, but dont accept path arguments "outside"::
+
+    finfo.py [options] PATH myexec
+    finfo.py [options] PATH=. my-file-in-path
+    finfo.py [options] [PWD] myexec
+
+    finfo.py [options] DIR=~/mydir my/path/in/dir
+    finfo.py [options] HTDOCS personal/journal
+
+Iow. no absolute paths, relative paths, symlinks going elsewhere, etc;
+all path arguments parse to (canonical) named root.
+
 TODO: Keep catalog of file format descriptions for local paths
-XXX: Verify valid extensions for format. 
+XXX: Verify valid extensions for format.
 XXX: Keep complete resource description
+
+----
+
+2011 stuff:
 
 Schema
 ------
@@ -33,13 +56,44 @@ Schema
    Mediaformat:Name
     ..
 
-TODO: add files to global index manually.
-TODO: map manualy added paths elements to GroupNode, relative paths? entered paths are
-  important, watch out for bash globbing.
-TODO: some checksums for my precious media. Could use sums somehow to tie..
-TODO: tagging? or not. 
 
+[2016-10-11] Adding simpler docopts-mpe based frontend.
 """
+__description__ = "finfo - walk paths, using ignore dotfiles, get attributes"
+__version__ = '0.0.2-dev' # script-mpe
+__db__ = '~/.finfo.sqlite'
+__usage__ = """
+Usage:
+  finfo.py [options] [--env name=VAR]... [--name name=VAR]... [CTX] (FILE|DIR)...
+  finfo.py -h|--help
+  finfo.py --version
+
+Options:
+    -d REF --dbref=REF
+                  SQLAlchemy DB URL [default: %s]
+    -s SESSION --session-name SESSION
+                  should be finfo [default: default].
+    -v            Increase verbosity.
+
+    -n name=PATH --name name=PATH[:PATH]
+                  Define a name with path(set), to look for existing paths
+                  and/or replace prefix common path prefixes with 'name:'.
+
+    -e name=VAR --env name=VAR
+                  Bind env vars to named sets. If env isset overrides any
+                  named set (see --name).
+                  [default: pwd=PWD] (and PWD evaluates to .)
+    -f --files
+                  Return files only.
+    -d --directories
+                  Return directories only.
+
+Other flags:
+    -h --help     Show this usage description. For a command and argument
+                  description use the command 'help'.
+    --version     Show version (%s).
+
+""" % ( __db__, __version__, )
 import os
 from datetime import datetime
 
@@ -52,6 +106,7 @@ import lib
 import log
 import libcmd
 import res.fs
+import rsr
 import taxus.core
 import taxus.media
 import taxus.model
@@ -61,10 +116,19 @@ import taxus.net
 import taxus.generic
 import taxus.checksum
 import taxus.fs
+import util
 from taxus.core import Node, Name
 from taxus.media import Mediatype, Mediaformat, Genre, Mediameta
-from txs import Txs
+from taxus.fs import INode, Dir, File, Mount
+#from txs import Txs
 
+models = [
+        Mediatype,
+        INode,
+        Dir,
+        File,
+        Mount
+    ]
 
 """
 class FileDescription(Node):
@@ -83,11 +147,11 @@ class FileInfo(Node):
     inode = relationship(INode, primaryjoin= inode_id == INode.inode_id )
 
     description_id = Column(ForeignKey('filedescription.id'), index=True)
-    description = relationship(FileDescription, 
+    description = relationship(FileDescription,
             primaryjoin=description_id == FileDescription.filedescription_id)
 """
 
-class FileInfoApp(Txs):
+class FileInfoApp(rsr.Rsr):
 
     NAME = 'mm'
     PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
@@ -98,7 +162,7 @@ class FileInfoApp(Txs):
     DEFAULT_CONFIG_KEY = NAME
 
 #    TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['file_info']
-    #NONTRANSIENT_OPTS = Cmd.NONTRANSIENT_OPTS 
+    #NONTRANSIENT_OPTS = Cmd.NONTRANSIENT_OPTS
     DEFAULT = ['file_info']
 
     DEPENDS = {
@@ -210,7 +274,7 @@ class FileInfoApp(Txs):
         sa.commit()
 
 # TODO: adding Mediameta for files
-    def name_and_categorize(self, opts=None, sa=None, 
+    def name_and_categorize(self, opts=None, sa=None,
             name=None, mtype=None, mformat=None, genres=None, *paths):
         if len(paths) > 1:
             assert opts.interactive
@@ -229,7 +293,7 @@ class FileInfoApp(Txs):
                         if 'mf' in ret ].pop()
                 mm.mediaformat = mf
             if genres:
-                mm.genres = [ ret['genre'] 
+                mm.genres = [ ret['genre']
                         for ret in self.add_genre( genre, None, opts=opts, sa=sa )
                         if 'genre' in ret ]
             sa.add(mm)
@@ -245,7 +309,99 @@ class FileInfoApp(Txs):
                 print ':mt:', mediatype
                 print
 
+def search_path(pathset, name):
+    for root_dir in pathset.split(':'):
+        path = os.path.join(root_dir, name)
+        if os.path.exists(path):
+            if os.path.isdir(path):
+                return root_dir, None, name
+            else:
+                return root_dir, name, os.path.dirname(name) or '.'
+
+
+def main(opts):
+
+    """
+    Execute using docopt-mpe options.
+    """
+
+    # Process arguments
+
+    dirs = []
+    # Shift paths from ctx arg
+    if os.path.exists(opts.args.CTX):
+        opts.args.FILE.append(opts.args.CTX)
+        opts.args.CTX = None
+    # Sort out dirs from files
+    for arg in opts.args.FILE:
+        if os.path.isdir(arg):
+            opts.args.FILE.remove(arg)
+            dirs.append(arg)
+        elif os.path.isfile(arg):
+            pass
+        else:
+            log.note("Unhandled path %r" % arg)
+    opts.args.DIR = dirs
+    # Set default and get path context
+    if not opts.args.CTX:
+        opts.args.CTX = 'PWD'
+    ctx = os.getenv(opts.args.CTX, '.')
+    # Resolve arguments
+    files, dirs = [], []
+    for arg in opts.args.FILE + opts.args.DIR:
+        prefix, file, dir = search_path(ctx, arg)
+        if not dir:
+            raise Exception("No path for %s" % arg)
+        elif file:
+            files.append((prefix, file))
+        else:
+            dirs.append((prefix, dir))
+
+    prefix_map = {
+        'script-mpe': os.path.expanduser('~/bin'),
+        'PWD': '.'
+        #'script-mpe': '~/bin'
+    }
+    for env_map in opts.flags.env:
+        vn, vv = env_map.split('=')
+        prefix_map[vn] = os.getenv(vv, prefix_map[vv])
+
+    #DEBUG: print opts.todict()
+
+    # Resolve directories
+    if not opts.flags.directories:
+        for p, d in dirs:
+            for top, path_dirs, path_files in list(os.walk(os.path.join(p, d))):
+                if top.startswith('./'):
+                    top = top[2:]
+                for path_file in path_files:
+                    files.append((p, os.path.join(top, path_file)))
+
+
+    # Print references
+    prefix = prefix_map.get(opts.args.CTX)
+    print opts.args.CTX, prefix
+    for p, f in files:
+        path = os.path.join(prefix, f)
+        # GNU/Linux: -bi = --brief --mime
+        # Darwin/BSD: -bI = --brief --mime
+        #mediatype = lib.cmd('file --brief --mime "%s"', path).strip()
+        # XXX: see basename-reg
+
+        print opts.args.CTX+':'+f
+
+
+def get_version():
+    return 'finfo.mpe/%s' % __version__
+
 
 if __name__ == '__main__':
-    FileInfoApp.main()
+    #FileInfoApp.main()
+    import sys
+    db = os.getenv( 'FINFO_DB', __db__ )
+    if db is not __db__:
+        __usage__ = __usage__.replace(__db__, db)
+    opts = util.get_opts(__doc__ + __usage__, version=get_version())
+    opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
+    sys.exit(main(opts))
 

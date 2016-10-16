@@ -1,7 +1,14 @@
 Features
 ________
 :Created: 2016-03-27
+:Updated: 2016-10-10
 
+
+- `Branche and Directory Docs <doc/package.rst>`_
+- `Projectdir <projectdir.rst>`_
+
+
+----
 
 Did some experimental writeups on feature or behaviour driven test cases.
 
@@ -228,5 +235,6 @@ Dev
   Making some notes in projectdir.rst and htd.rst.
   Also maybe some stuff from htd rules/components should be consolidated at some point
   to clean things up.
+
 
 

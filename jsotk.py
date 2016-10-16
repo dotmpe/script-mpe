@@ -6,7 +6,7 @@ Javascript Object toolkit.
 :updated: 2016-05-21
 
 Usage:
-    jsotk [options] path [--is-new] [--is-null] [--is-list] [--is-obj] \
+    jsotk [options] path [--is-new] [--is-null] [--is-list] [--is-obj]
             [--is-int] [--is-str] [--is-bool] <srcfile> <pathexpr>
     jsotk [options] objectpath <srcfile> <expr>
     jsotk [options] keys <srcfile> <pathexpr>
@@ -110,6 +110,7 @@ Dev
 - Another improvement may be seeking out SHM filesystem support.
 
 """
+from __future__ import print_function
 import types
 from StringIO import StringIO
 
@@ -248,8 +249,9 @@ def H_path(ctx):
     try:
         data = data_at_path(ctx, infile)
         infile.close()
-    except:
+    except (Exception) as e:
         if not ctx.opts.flags.is_new:
+            sys.stderr.write("Error: getting %r: %r" % ( ctx.opts.args.pathexpr, e ))
             return 1
 
     res = [ ]
@@ -313,7 +315,10 @@ def H_items(ctx):
 
 def H_objectpath(ctx):
     infile, outfile = get_src_dest_defaults(ctx)
-    q = Tree(load_data( ctx.opts.flags.input_format, infile, ctx ) )
+    data = load_data( ctx.opts.flags.input_format, infile, ctx )
+    assert data
+    q = Tree(data)
+    assert q.data
     o = q.execute( ctx.opts.args.expr )
     if isinstance(o, types.GeneratorType):
         for s in o:
@@ -440,7 +445,7 @@ def main(func, ctx):
 
     elif 'exit' == ctx.opts.cmds[0]:
         # Exit background process
-        print >>ctx.err, "No background process at %s" % ctx.opts.flags.address
+        ctx.err.write("No background process at %s\n" % ctx.opts.flags.address)
         return 1
 
     else:
@@ -475,8 +480,9 @@ if __name__ == '__main__':
         if not ctx.opts.flags.quiet:
             import traceback
             tb = traceback.format_exc()
-            print tb
-            print 'Unexpected Error:', err
+            print(tb)
+            print('Unexpected Error:', err)
         sys.exit(1)
+
 
 

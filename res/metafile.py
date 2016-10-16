@@ -736,3 +736,4 @@ if __name__ == '__main__':
     #vdb = PersistedMetaObject.get_store(name='tmp')
     #mf = Metafile.find(path, vdb)
 
+

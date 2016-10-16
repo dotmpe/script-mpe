@@ -26,6 +26,7 @@ update_package_json()
   metajs=$(normalize_relative "$metajs")
   test $metaf -ot $metajs \
     || {
+    debug "$metaf is newer than $metajs"
     note "Regenerating $metajs from $metaf.."
     jsotk.py yaml2json $metaf $metajs \
       || return $?
@@ -44,6 +45,7 @@ jsotk_package_sh_defaults()
   } | sed 's/^\([^=]*\)=/test -n "$\1" || \1=/g'
 }
 
+# Easy access for shell to package.yml/json: convert to Sh vars.
 update_package_sh()
 {
   test -n "$1" || set -- ./
@@ -116,7 +118,7 @@ update_package()
   test -n "$1" || set -- .
   test -d "$1" || error "update-package dir '$1'" 21
   test -z "$2" || error "update-package args '$*'" 22
-  test -n "$pd" || error pd 20
+  test -n "$pd" || error no-pd 20
   test -n "$ppwd" || ppwd=$(cd $1; pwd)
   test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
   metaf=$(normalize_relative "$metaf")
@@ -140,6 +142,24 @@ update_package()
   # .package.json is not used, its a direct convert of te entire YAML doc.
   # Other scripts can use it with jq if required
   update_package_json "$1" || return $?
+}
+
+package_sh()
+{
+  update_package
+  test -e .package.sh || error package.sh 1
+  (
+    eval $(cat .package.sh | sed 's/^package_//g')
+
+    while test -n "$1"
+    do
+      key=$1
+      value="$(eval echo "\$$1")"
+      shift
+      test -n "$value" || continue
+      echo "$key=$value"
+    done
+  )
 }
 
 
@@ -175,5 +195,18 @@ mediadisplayaspectratio()
 # Text; |Sub: %Language/String% * %Codec%
 # File_End;\n
 
+
+
+meta_attribute()
+{
+  test -e .attributes || return
+  test -n "$1" || error meta-attributes-act 1
+  case "$1" in
+    tagged )
+        test -n "$2" || set -- "$1" "src"
+        grep $2 .attributes | cut -f 1 -d ' '
+      ;;
+  esac
+}
 
 

@@ -141,3 +141,4 @@ def deep_eq(_v1, _v2, datetime_fudge=default_fudge, _assert=False):
         op = _deep_iter_eq
 
   return op(c1, c2)
+

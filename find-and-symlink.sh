@@ -16,3 +16,4 @@ find ~/project/docutils-ext.git/ -iname $PATTERN \
             sed -e 's/[a-z0-9\.-]\+\/\?/\.\.\//g' -); \
         \
         echo ln -s ../../../${PATHDIFF}project/docutils-ext.git/$F $F; done
+

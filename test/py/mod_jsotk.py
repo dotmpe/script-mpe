@@ -13,20 +13,42 @@ import jsotk, jsotk_lib
 
 
 
-class JsotkPathKVParserTest(unittest.TestCase):
+class AbstractKV:
+    """These test are common to the two line-based key-value formats. """
 
-    @parameterized.expand([
+    Parser = None
+
+
+    key_types_testdata = [
+        ( 1, 'foo', dict ),
+        ( 1, 'foo123', dict ),
+        ( 1, '123', dict ),
+        ( 1, '123foo', dict ),
+    ]
+
+    def abstract_scan_key_type(self, testnr, key, data_type ):
+
+        d = self.Parser.get_data_instance(key)
+        self.assert_(
+                isinstance( d, data_type ),
+                "Got %r instance instead of %r" % (
+                    type( d ), data_type )
+            )
+
+
+    kv_testdata = [
         ( 1, None, 'rootkey=', {'rootkey': ''} ),
         ( 2, None, 'rootkey=null', {'rootkey': None} ),
         ( 3, None, 'rootkey={}', {'rootkey': {}} ),
-        #( 4, None, '[]=', [''] ),
-        #( 5, None, '[]/foo={}', [{}] ),
-        #( 6, None, '[0]={}', [{}] ),
         ( 7, {}, None, {} ),
         ( 8, {"foo":123}, None, {"foo":123} ),
-    ])
-    def test_(self, testnr, seed, rootkv, data):
-        parser = jsotk_lib.PathKVParser(seed=seed, rootkey=rootkv)
+    ]
+
+    def abstract_key_value_parser_init(self, testnr, seed, rootkv, data):
+        """
+            flat-key-value parser init
+        """
+        parser = self.Parser(seed=seed, rootkey=rootkv)
 
         self.assert_(
                 isinstance( parser.data, type( data ) ),
@@ -43,6 +65,84 @@ class JsotkPathKVParserTest(unittest.TestCase):
             except: pass
             self.assert_( eq, "%i: %r does not match %r" % ( testnr, parser.data, data ))
 
+    def abstract_key_value_parser_scan(self, testnr, seed, rootkv, data):
+        """
+            flat-key-value parses stream
+        """
+        parser = self.Parser(seed=seed, rootkey=rootkv)
+
+
+
+class JsotkFlatKVParserTest(unittest.TestCase, AbstractKV):
+
+    Parser = jsotk_lib.FlatKVParser
+
+
+    key_types_testdata = AbstractKV.key_types_testdata + [
+        ( 2, 'foo__', list ),
+        ( 3, '__', list ),
+        ( 4, 'foo__1', list ),
+        ( 5, '__1', list ),
+    ]
+
+    @parameterized.expand(key_types_testdata)
+    def test_flat_key_value_parser_type_scan(self, *args, **kwds):
+        self.abstract_scan_key_type(*args, **kwds)
+
+
+    kv_testdata = AbstractKV.kv_testdata + [
+        # testnr, seed, rootkv, data
+        ( 4, None, '__=', [''] ),
+        ( 5, None, 'foo__=', {'foo':['']} ),
+        ( 6, [], '__=', [''] ),
+    ]
+
+    @parameterized.expand(kv_testdata)
+    def test_flat_key_value_parser_init(self, *args, **kwds):
+        self.abstract_key_value_parser_init(*args, **kwds)
+
+    @parameterized.expand(kv_testdata)
+    def test_flat_key_value_parser_scan(self, *args, **kwds):
+        self.abstract_key_value_parser_scan(*args, **kwds)
+
+
+
+class JsotkPathKVParserTest(unittest.TestCase, AbstractKV):
+
+    Parser = jsotk_lib.PathKVParser
+
+
+    key_types_testdata = AbstractKV.key_types_testdata + [
+        ( 2, 'foo[]', list ),
+        ( 3, '[]', list ),
+        ( 4, 'foo[1]', list ),
+        ( 5, '[1]', list ),
+    ]
+
+    @parameterized.expand(key_types_testdata)
+    def test_path_key_value_parser_type_scan(self, *args, **kwds):
+        self.abstract_scan_key_type(*args, **kwds)
+
+
+    kv_testdata = AbstractKV.kv_testdata + [
+        # testnr, seed, rootkv, data
+        ( 4, None, 'foo[]=', {'foo':['']} ),
+        ( 5, None, '[]=', [''] ),
+        # FIXME:   ( 5, None, '[]/foo={}', [{'foo':{}}] ),
+        ( 6, None, '[]={}', [{}] ),
+        ( 7, None, '[1]={}', [{}] ),
+        ( 5, None, 'foo/2[2]=more', {'foo':{'2':[None,"more"]}} ),
+    ]
+
+    @parameterized.expand(kv_testdata)
+    def test_path_key_value_parser_init(self, *args, **kwds):
+        self.abstract_key_value_parser_init(*args, **kwds)
+
+    @parameterized.expand(kv_testdata)
+    def test_path_key_value_parser_scan(self, *args, **kwds):
+        self.abstract_key_value_parser_scan(*args, **kwds)
+
+
 
 class JsotkTest(unittest.TestCase):
 
@@ -50,12 +150,16 @@ class JsotkTest(unittest.TestCase):
     @parameterized.expand([
         ( 1, "baz", True),
         ( 2, "foo/bar", False),
-        #( 3, "foo[0]/bar", True),
+        ( 3, "foo[0]/bar", True),
         #( 4, "foo[0][0]", False),
         ( 5, "baz/bar", True),
         #( 6, "[0]/bar", False)
     ])
     def test_data_check_path( self, testnr, pathexpr, expected ):
+
+        """
+        data-check-path should evalue path expression and return data
+        """
 
         infile = StringIO('{"foo":[{"bar":null}]}')
         ctx = confparse.Values(dict(
@@ -69,10 +173,13 @@ class JsotkTest(unittest.TestCase):
         self.assert_( is_new == expected, testnr )
 
 
+
 # Return module test cases
 
 def get_cases():
     return [
+            JsotkFlatKVParserTest,
+            JsotkPathKVParserTest,
             JsotkTest,
         ]
 

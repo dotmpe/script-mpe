@@ -4,7 +4,7 @@
 TODO: interface this with Google tasks
 """
 __description__ = "todo - time ordered, grouped tasks"
-__version__ = '0.0.0'
+__version__ = '0.0.2-dev' # script-mpe
 __db__ = '~/.todo.sqlite'
 __usage__ = """
 Usage:
@@ -55,7 +55,8 @@ Model::
 
 - Links only along same level.
 
-- XXX: Refs allows for extensions; and link to embedded tagged comments:
+- XXX: Refs allows for extensions; and link to embedded tagged comments::
+
     file:///<filepath>;line=<line>
     file:///<filepath>;line=<line>#TODO:<n>
     file:///<dirpath>;project=<label>/<filename>;...#TODO:<n>

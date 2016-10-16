@@ -1,12 +1,4 @@
 
-req_path_arg()
-{
-  test -n "$1"  && path="$1"  || path=.
-  test -d "$path" || {
-    error "Must pass directory" 1
-  }
-}
-
 htd_relative_path()
 {
   cwd=$(pwd)
@@ -27,83 +19,9 @@ htd_relative_path()
 }
 
 
-htd_init_ignores()
+req_htdir()
 {
-  test -n "$HTD_IGNORE" || exit 1
-
-  test -e $HTD_IGNORE.merged && grep -qF $HTD_IGNORE.merged $HTD_IGNORE.merged || {
-    echo $HTD_IGNORE.merged > $HTD_IGNORE.merged
-  }
-
-  test -n "$pwd" || pwd=$(pwd)
-  test ! -e $HTDIR || {
-    cd $HTDIR
-
-    for x in .git/info/exclude .gitignore $HTD_IGNORE
-    do
-      test -s $x && {
-        cat $x | grep -Ev '^(#.*|\s*)$'
-      }
-    done
-
-    cd $pwd
-
-  } >> $HTD_IGNORE.merged
-
-  for x in .git/info/exclude .gitignore $HTD_IGNORE
-  do
-    test -s $x && {
-      cat $x | grep -Ev '^(#.*|\s*)$' >> $HTD_IGNORE.merged
-    }
-  done
-}
-
-htd_find_ignores()
-{
-  find_ignores=""$(echo $(cat $HTD_IGNORE.merged | \
-    grep -Ev '^(#.*|\s*)$' | \
-    sed -E 's/^\//\.\//' | \
-    grep -v '\/' | \
-    sed -E 's/(.*)/ -o -name "\1" -prune /g'))"\
-  "$(echo $(cat $HTD_IGNORE.merged | \
-    grep -Ev '^(#.*|\s*)$' | \
-    sed -E 's/^\//\.\//' | \
-    grep '\/' | \
-    sed -E 's/(.*)/ -o -path "*\1*" -prune /g'))
-  find_ignores="-path \"*/.git\" -prune $find_ignores "
-  find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
-  find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
-}
-
-htd_grep_excludes()
-{
-  grep_excludes=""$(echo $(cat $HTD_IGNORE.merged | \
-    grep -Ev '^\s*(#.*|\s*)$' | \
-    sed -E 's/^\//\.\//' | \
-    sed -E 's/(.*)/ --exclude "*\1*" --exclude-dir "\1" /g'))
-  grep_excludes="--exclude-dir \"*/.git\" $grep_excludes"
-  grep_excludes="--exclude-dir \"*/.bzr\" $grep_excludes"
-  grep_excludes="--exclude-dir \"*/.svn\" $grep_excludes"
-}
-
-# return paths for names that exist along given path
-htd_find_path_locals()
-{
-  local name path stop_at
-  name=$1
-  path="$(cd $2;pwd)"
-  test -z "$3" && stop_at= || stop_at="$(cd $3;pwd)"
-  path_locals=
-  while test -n "$path" -a "$path" != "/"
-  do
-    test -e "$path/$name" && {
-        path_locals="$path_locals $path/$name"
-    }
-    test "$path" = "$stop_at" && {
-        break
-    }
-    path=$(dirname $path)
-  done
+  test -n "$HTDIR" -a -d "$HTDIR" || return 1
 }
 
 
@@ -117,11 +35,15 @@ mkrlink()
 # Check if binary is available for tool
 installed()
 {
+  test -e "$1" || error installed-arg1 1
+  test -n "$2" || error installed-arg2 1
+  test -z "$3" || error "installed-args:$3" 1
 
   # Get one name if any
-  local bin="$(jsotk.py -q -O py path $1 tools/$2/bin)"
-  test "$bin" = "True" && bin=$2
+  local bin="$(jsotk.py -O py path $1 tools/$2/bin)"
+  test "$bin" = "True" && bin="$2"
   test -n "$bin" || {
+    warn "Not installed '$2' (bin/$bin)"
     return 1
   }
 
@@ -157,6 +79,10 @@ installed()
 
 install_bin()
 {
+  test -e "$1" || error install-bin-arg1 1
+  test -n "$2" || error install-bin-arg2 1
+  test -z "$3" || error "install-bin-args:$3" 1
+
   installed "$@" && return
 
   # Look for installer
@@ -171,7 +97,7 @@ install_bin()
           npm install -g $id || return 2
         ;;
       pip )
-          pip install $id || return 2
+          pip install --user $id || return 2
         ;;
       git )
           url="$(jsotk.py -N -O py path $1 tools/$2/url)"
@@ -206,6 +132,10 @@ install_bin()
 
 uninstall_bin()
 {
+  test -e "$1" || error uninstall-bin-arg1 1
+  test -n "$2" || error uninstall-bin-arg2 1
+  test -z "$3" || error uninstall-bin-args 1
+
   installed "$@" || return 0
 
   installer="$(jsotk.py -N -O py path $1 tools/$2/installer)"
@@ -238,4 +168,76 @@ tools_json()
     || jsotk.py yaml2json $HTD_TOOLSFILE ./tools.json
 }
 
+htd_options_v()
+{
+  set -- "$(cat $options)"
+  while test -n "$1"
+  do
+    case "$1" in
+      --yaml ) format_yaml=1 ;;
+      --interactive ) choice_interactive=1 ;;
+      --non-interactive ) choice_interactive=0 ;;
+      * ) error "unknown option '$1'" 1 ;;
+    esac
+    shift
+  done
+}
+
+htd_report()
+{
+  # leave htd_report_result to "highest" set value (where 1 is highest)
+  htd_report_result=0
+
+  while test -n "$1"
+  do
+    case "$1" in
+
+      passed )
+          test $passed_count -gt 0 \
+            && info "Passed ($passed_count): $passed_abbrev"
+        ;;
+
+      skipped )
+          test $skipped_count -gt 0 \
+            && {
+              note "Skipped ($skipped_count): $skipped_abbrev"
+              test $htd_report_result -eq 0 -o $htd_report_result -gt 4 \
+                && htd_report_result=4
+            }
+        ;;
+
+      error )
+          test $error_count -gt 0 \
+            && {
+              error "Errors ($error_count): $error_abbrev"
+              test $htd_report_result -eq 0 -o $htd_report_result -gt 2 \
+                && htd_report_result=2
+            }
+        ;;
+
+      failed )
+          test $failed_count -gt 0 \
+            && {
+              warn "Failed ($failed_count): $failed_abbrev"
+              test $htd_report_result -eq 0 -o $htd_report_result -gt 3 \
+                && htd_report_result=3
+            }
+        ;;
+
+      * )
+        ;;
+
+    esac
+    shift
+  done
+
+  return $htd_report_result
+}
+
+htd_passed()
+{
+  test -n "$passed" || error htd-passed-file 1
+  stderr ok "$1"
+  echo "$1" >>$passed
+}
 

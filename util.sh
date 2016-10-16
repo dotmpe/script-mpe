@@ -11,7 +11,7 @@ set -e
 
 lib_load()
 {
-  test -n "$1" || set -- sys os std str src
+  test -n "$1" || set -- sys os std stdio str src
   while test -n "$1"
   do
     . $scriptdir/$1.lib.sh

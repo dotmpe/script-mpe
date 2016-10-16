@@ -70,3 +70,5 @@ if __name__ == '__main__':
     print cal.as_string()
     #f = open('example.ics', 'wb').write(cal.as_string()) 
 
+
+

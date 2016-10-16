@@ -28,8 +28,8 @@ def get_opts(docstr, meta={}, version=None, argv=None):
 def get_optvalues(opts, handlers={}):
 
     """
-    Given docopt dict, return 1). an optparse-like values object 
-    and (iow. with all short -o and long --opt) 
+    Given docopt dict, return 1). an optparse-like values object
+    and (iow. with all short -o and long --opt)
     2). something similar for all <arguments>.
     """
 
@@ -49,7 +49,7 @@ def get_optvalues(opts, handlers={}):
             d = args
         else:
             if v:
-                cmds.append(k) 
+                cmds.append(k)
             continue
         if isinstance(v, basestring) and v and '=' in v[0]:
             # allo access to subkey, value container for certain key
@@ -68,7 +68,7 @@ def get_optvalues(opts, handlers={}):
 def select_kwdargs(handler, settings, **override):
 
     """
-    Given a function and a dictionary, return arguments and keywords 
+    Given a function and a dictionary, return arguments and keywords
     for function with values from dictionary.
     """
 
@@ -99,6 +99,12 @@ def select_kwdargs(handler, settings, **override):
         elif k in settings:
             func_defaults[k] = settings[k]
     return func_arg_vars, func_defaults
+
+
+def get_cmd_handlers_2(scope, prefix='cmd_'):
+    return dict([ ( n[len(prefix):].replace('_', '-'), scope[n] )
+            for n in scope
+            if n.startswith(prefix) ])
 
 
 def get_cmd_handlers(scope, prefix='cmd_'):
@@ -189,7 +195,7 @@ def init_config(path, defaults={}, overrides={}, persist=[]):
     """
     Get settings from path. Use defaults to seed non-existant keys.
     Overwrite using overrides. Persists allows to indicate which settings
-    are persisted. 
+    are persisted.
     Any override key not in this list will be listed as volatile.
     Normally persist equals defaults.keys.
     """

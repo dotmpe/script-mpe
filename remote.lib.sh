@@ -26,18 +26,19 @@ run_cmd()
   test -n "$host_addr_info" || host_addr_info=$hostname
 
   test -z "$dry_run" && {
-    on_host $1 && {
-      exec $2 \
+    on_host "$1" && {
+      $2 \
         && debug "Executed locally: '$2'" \
         || {
-          err "Error executing local command: '$2'"
+          error "Error executing local command: '$2'"
           return 1
         }
     } || {
-      ssh $host_addr_info "$2" \
+      # XXX: see MPE_CONF_DEBUG=1 too
+      ssh $host_addr_info "RC_ENV_OVERRIDE=1 . \$HOME/.bashrc ; $2" \
         && debug "Executed at $host_addr_info: '$2'" \
         || {
-          err "Error executing command at $host_addr_info: '$2'"
+          error "Error executing command at $host_addr_info: '$2'"
           return 1
         }
     }
@@ -69,5 +70,6 @@ wait_for()
     sleep 7
   done
 }
+
 
 

@@ -24,7 +24,7 @@ disk__edit()
   $EDITOR \
     $0 \
     $(which disk.sh) \
-    $(dirname $(which disk.sh))/disk.inc.sh \
+    $(dirname $(which disk.sh))/disk.lib.sh \
     $(dirname $(which disk.sh))/disk.rst \
     $(which diskdoc.sh) \
     $(which diskdoc.py) \
@@ -36,7 +36,41 @@ disk_als___e=edit
 
 disk__status()
 {
-  note OK
+  disk__list_local | grep -Ev '^\s*(#.*|\s*)$' | while\
+    read num dev disk_id disk_model size table_type
+  do
+    disk_id_=$(printf "%-19s\n" $disk_id)
+    num_=$(printf "%4s\n" $num)
+    test -e $dev || error "No such device? $dev" 1
+    mnts="$(echo $(find_mount $dev))"
+    stderr ok "${grey}[$disk_id_] Disk #$num: $(echo $mnts | count_words) known partition(s) (${nrml}$size ${grey}$dev)"
+    disk_list_part_local $dev | while read vol_dev
+    do
+      test -e "$vol_dev" || error "No such volume device '$vol_dev'" 1
+      mount=$(find_mount $vol_dev)
+      # FIXME: shomehow fstype is not showing up. Also, want part size/free 
+      fstype="$(disk_partition_type "$vol_dev")"
+      vol_idx=$(echo $vol_dev | sed -E 's/^.*([0-9]+)$/\1/')
+      vol_id="$(disk_vol_info $disk_id-$vol_idx 2>/dev/null)"
+      vsize=$(disk_partition_size $vol_dev)
+      vusg=$(disk_partition_usage $vol_dev)
+      case "$fstype" in
+        swap* ) info "[$disk_id_] $num_.$vol_idx: swap space ($fstype $vol_dev)" ;;
+        * )
+          test -n "$mount" \
+            && {
+              info "[$disk_id_] ${grn}$num_.$vol_idx${grey}: ${bnrml}$vol_id${grey} ($vsize ${bnrml}$vusg%% ${grey}$fstype $vol_dev)"
+              test -e $mount/.volumes.sh \
+                || warn "Missing catalog at $mount"
+            } || {
+              fnmatch "* extended partition table *" " $(sudo file -sL $vol_dev) " && {
+                info "[$disk_id_] $num_.$vol_idx: extended table ($fstype $vol_dev)"
+              } || info "[$disk_id_] ${ylw}$num_.$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
+            }
+          ;;
+      esac
+    done
+  done
 }
 
 disk__id()
@@ -77,38 +111,40 @@ disk__get_by_id()
 disk__prefix()
 {
   test -n "$1" || error "disk expected" 1
-  disk__info $1 prefix
+  disk_info $1 prefix
 }
 
+# Get single attribute from catalog disk record by DISK_ID KEY
 disk__info()
 {
-  test -e "$DISK_CATALOG/disk/$1.sh" || {
-    set -- $(disk id $1) $2
-  }
-  test -e "$DISK_CATALOG/disk/$1.sh" \
-    || error "No such known disk $1" 1
-  . $DISK_CATALOG/disk/$1.sh
-
-  eval echo \$$2
+  disk_info "$@"
 }
 
 
 # Show disk info TODO: test this works at every platform
 disk__local()
 {
+  test -n "$1" || set -- $(disk_list)
   {
-    echo "#NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE"
-    echo $1 $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) $(disk_tabletype $1)
-  } | sort -n | column -tc 3
+    echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
+    {
+      while test -n "$1"
+      do
+        disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C
+        shift
+      done
+    } | sort -n
+  } | column -tc 3
 }
 
 disk__list_local()
 {
   {
-    echo "#DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE"
+    echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
     disk_list | while read disk
     do
-      disk__info $disk | grep -Ev '^\s*(#.*|\s*)$'
+      disk_local $disk NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C \
+        | grep -Ev '^\s*(#.*|\s*)$'
     done
   } | sort -n | column -tc 3
   echo "# Disks at $(hostname), $(datetime_iso)"
@@ -119,7 +155,7 @@ disk__list_local()
 #}
 disk__list_part_local()
 {
-  disk_list_part
+  disk_list_part_local
 }
 
 # Tabulate disks, and where they are (from catalog)
@@ -152,6 +188,7 @@ disk__enable()
 
 disk__enable_volumes()
 {
+  note "TODO: enable volumes"
   note Done
 }
 
@@ -191,7 +228,7 @@ disk__copy_fs()
   note "Copied '$2' to '$3'"
 }
 
-# Return wether disk catalog looks up to date; 
+# Return wether disk catalog looks up to date;
 # ie. wether current catalog matches with available disks
 disk__check()
 {
@@ -205,59 +242,57 @@ disk__check()
 # Sort of wizard, check/init vol(s) interactively for current disks
 disk__check_all()
 {
-  note "Got r00t?"
-  sudo printf ""
-  test -d /dev/disk || error "Expected /dev/disk, e.g. Linux, not '$uname'" 1
-  get_targets /dev/disk | while read dev
+  #note "Got r00t?"
+  #sudo printf ""
+
+  disk_list | while read dev
   do
-    fnmatch "*[0-9]" "$dev" && {
+    # Get disk meta
 
-      # Get partition meta
-
-      fstype=$(disk_partition_type $dev)
-      is_mounted $dev && {
-
-        mount=$(find_mount $dev)
-        disk_catalog_import $mount/.volumes.sh && {
-
-          # Note: disk_id is set in preceeding look
-          #. $DISK_CATALOG/$disk_id-.sh
-
-          echo "- $mount ($fstype at $dev)"
-
-        } || {
-
-          echo "- $mount ($fstype at $dev)"
-        }
-
-      } || {
-
-        # FIXME: get proper way of detecting supported fs types
-        case "$fstype" in
-          ext* | vfat | ntfs )
-              echo $fstype copy_fs $dev '.package.{y*ml,sh}'
-            ;;
-          '' | swap )
-              info "Ignored partition $dev ($fstype)";;
-          * )
-              error "Unhandled fs type '$fstype'"
-            ;;
-        esac
-      }
-
+    disk_id=$(disk_id $dev)
+    test "$disk_id" = "" && {
+      error "Unknown type or unreadable partition table on disk '$dev'" 1
     } || {
+      echo "$disk_id $dev $(disk_tabletype $dev) "
 
-      # Get disk meta
-
-      echo
-
-      disk_id=$(disk_id $dev)
-      test "$disk_id" = "" && {
-        error "Unknown type or unreadable partition table on disk '$dev'" 1
-      } || {
-        echo "$disk_id $dev $(disk_tabletype $dev) "
-      }
     }
+
+    #}
+    #  # Get partition meta
+
+    #  fstype=$(disk_partition_type $dev)
+    #  is_mounted $dev && {
+
+    #    mount=$(find_mount $dev)
+    #    disk_catalog_import $mount/.volumes.sh && {
+
+    #      # Note: disk_id is set in preceeding look
+    #      #. $DISK_CATALOG/$disk_id-.sh
+
+    #      stderr ok "$mount ($fstype at $dev)"
+
+    #    } || {
+
+    #      stderr ok "$mount ($fstype at $dev)"
+    #    }
+
+    #  } || {
+
+    #    # FIXME: get proper way of detecting supported fs types
+    #    case "$fstype" in
+    #      ext* | vfat | ntfs | iso9660 )
+    #          note "TODO: $fstype copy_fs $dev '.package.{y*ml,sh}'"
+    #        ;;
+    #      '' | swap )
+    #          info "Ignored partition $dev ($fstype)";;
+    #      * )
+    #          error "Unhandled fs type '$fstype'"
+    #        ;;
+    #    esac
+    #  }
+
+    #} || {
+
   done
 
   echo
@@ -325,7 +360,7 @@ disk_init()
   #        shift;;
   #  esac
   #done
-  . $scriptdir/disk.inc.sh "$@"
+  . $scriptdir/disk.lib.sh "$@"
   . $scriptdir/date.lib.sh
   . $scriptdir/match.lib.sh
   . $scriptdir/vc.sh load-ext
@@ -393,5 +428,6 @@ case "$0" in "" ) ;; "-*" ) ;; * )
 
   esac ;;
 esac
+
 
 

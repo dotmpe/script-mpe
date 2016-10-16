@@ -155,7 +155,7 @@ init
 
   stdio_type 1
   test "$?" = "0"
-  case $(current_test_env) in dandy|travis|jenkins )
+  case $(current_test_env) in dandy|travis|jenkins|precise64 )
         test "$stdio_1_type" = "f" ;;
     * )
         #tmpd

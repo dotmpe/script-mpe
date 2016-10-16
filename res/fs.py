@@ -598,3 +598,4 @@ class StatCache:
     def issocket( Klass, path ):
         return Klass.ismode( path, 'issocket' )
 
+

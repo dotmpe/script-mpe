@@ -32,3 +32,4 @@ def parse(path):
     if funcname in sys.modules[__name__]:
         return getattr(sys.modules[__name__], funcname)(data)
 
+

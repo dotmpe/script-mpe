@@ -1,0 +1,11 @@
+setuptools 
+pytz
+ruamel.yaml
+#objectpath
+git+https://github.com/hackerhelmut/ObjectPath.git
+zope.component
+zope.interface 
+twisted
+sqlalchemy
+docutils
+

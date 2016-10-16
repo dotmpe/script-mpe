@@ -4,9 +4,9 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship, backref
 
-import core
-import init
-import checksum
+from . import core
+from . import init
+from . import checksum
 
 
 class Mediatype(core.Node):

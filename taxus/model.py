@@ -3,11 +3,11 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship, backref
 
-from init import SqlBase
-from util import ORMMixin
-import core
-import net
-import web
+from .init import SqlBase
+from .util import ORMMixin
+from . import core
+from . import net
+from . import web
 
 
 class QName():
@@ -16,13 +16,13 @@ class QName():
 
 class Namespace(web.Variant):
     """
-    A set of unique names. 
+    A set of unique names.
 
     The namespace at a minimum has an system identifier,
     which may refer to one or more global identifiers.
 
     XXX: A collection of anything? What.
-    See Tag, a namespace constituting distinct tag types. 
+    See Tag, a namespace constituting distinct tag types.
     But also code, objects.
     XXX: there is no mux/demux (yet) so subclassing variant does not mean much, but anyway.
     XXX: Being a variant, the canonical URL, may be used as identifier, may be
@@ -62,7 +62,7 @@ class Volume(web.Resource):
     # XXX: merge with res.Volume
 
     """
-    A particular storage of serialized entities, 
+    A particular storage of serialized entities,
     as in a local filesystem or a blob store.
     """
 
@@ -74,16 +74,16 @@ class Volume(web.Resource):
     #type_id = Column(Integer, ForeignKey('classes.id'))
     #store = relation(StorageClass, primaryjoin=type_id==StorageClass.id)
 
-    node_id = Column(Integer, ForeignKey('nodes.id'))
+    root_node_id = Column(Integer, ForeignKey('nodes.id'))
     root = relationship(core.Node, backref='volumes',
-            primaryjoin=node_id == core.Node.node_id)
+            primaryjoin=root_node_id == core.Node.node_id)
 
 
 class Bookmark(core.Node):
 
     """
     A textual annotation with a short and long descriptive label,
-    a sequence of tags, the regular set of dates, 
+    a sequence of tags, the regular set of dates,
     """
 
     __tablename__ = 'bm'
@@ -109,7 +109,7 @@ class Bookmark(core.Node):
 workset_locator_table = Table('workset_locator', SqlBase.metadata,
     Column('left_id', Integer, ForeignKey('ws.id'), primary_key=True),
     Column('right_id', Integer, ForeignKey('ids_lctr.id'), primary_key=True),
-#    mysql_engine='InnoDB', 
+#    mysql_engine='InnoDB',
 #    mysql_charset='utf8'
 )
 
