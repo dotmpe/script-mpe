@@ -28,7 +28,7 @@ from script_mpe import lib, log
 class Node(SqlBase, ORMMixin):
 
     """
-    Provide lookup on numeric ID, name (non-unique) and standard dates.
+    Provide lookup on numeric ID, and standard dates.
     """
 
     zope.interface.implements(iface.Node)
@@ -42,9 +42,6 @@ class Node(SqlBase, ORMMixin):
     ntype = Column(String(36), nullable=False, default="node")
     __mapper_args__ = {'polymorphic_on': ntype,
             'polymorphic_identity': 'node'}
-
-    # Unique node Name (String ID)
-    name = Column(String(255), nullable=False, index=True, unique=True)
 
     space_id = Column(Integer, ForeignKey('spaces.id'))
     space = relationship(
@@ -107,6 +104,9 @@ class Folder(GroupNode):
     __mapper_args__ = {'polymorphic_identity': 'folder'}
     folder_id = Column('id', Integer, ForeignKey('groupnodes.id'), primary_key=True)
 
+    title_id = Column(Integer, ForeignKey('names.id'))
+    title = relationship(core.Name, primaryjoin=title_id==core.Name.name_id)
+
 
 class ID(SqlBase, ORMMixin):
 
@@ -167,33 +167,19 @@ class Space(ID):
 class Name(Node):
 
     """
-    A local unique identifier.
+    A local unique name; title or human identifier.
 
-    XXX: this is a vestige of having non-unique node names,
-      currently node names are unique so Name need not be used.. much.
     """
 
     __tablename__ = 'names'
     __mapper_args__ = {'polymorphic_identity': 'name'}
     name_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
-#    name_id = Column('id', Integer, primary_key=True)
+    # Unique node Name (String ID)
+    name = Column(String(255), nullable=False, index=True, unique=True)
 
-#    nametype = Column(String(50), nullable=False)
-#    __mapper_args__ = {'polymorphic_on': nametype,
-#            'polymorphic_identity': 'name'}
-#
-#    name = Column(String(255), index=True, unique=True)
-#
-#    date_added = Column(DateTime, index=True, nullable=False)
-#    deleted = Column(Boolean, index=True, default=False)
-#    date_deleted = Column(DateTime)
-#
-#    def __str__(self):
-#        return "%s at %s having %r" % (lib.cn(self), self.taxus_id(), self.name)
-#
-#    def __repr__(self):
-#        return "<%s at %s with %r>" % (lib.cn(self), hex(id(self)), self.name)
+    # XXX: contexts?
+
 
 
 class Tag(Name):
@@ -208,11 +194,8 @@ class Tag(Name):
     __mapper_args__ = {'polymorphic_identity': 'tag'}
 
     tag_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
-    #name = Column(String(255), unique=True, nullable=True)
-    #sid = Column(String(255), nullable=True)
-    # XXX: perhaps add separate table for Tag.namespace attribute
-#    namespaces = relationship('Namespace', secondary=tag_namespace_table,
-#        backref='tags')
+
+    # XXX: namespaces?
 
 tags_freq = Table('names_tags_stat', SqlBase.metadata,
         Column('tag_id', ForeignKey('names_tag.id'), primary_key=True),
@@ -228,12 +211,10 @@ class Topic(Tag):
 
     Names are given in singular form, a text field codes the plural for UI use.
     """
-
     __tablename__ = 'names_topic'
     __mapper_args__ = {'polymorphic_identity': 'topic'}
 
     topic_id = Column('id', Integer, ForeignKey('names_tag.id'), primary_key=True)
-    #key_names = ['topic_id']
 
     about_id = Column(Integer, ForeignKey('nodes.id'))
 
@@ -241,7 +222,6 @@ class Topic(Tag):
     thing = Column(Boolean)
     plural = Column(String)
 
-    # TODO backref from locators of this topic
     # TODO hierarchical relation
 
 
@@ -252,6 +232,9 @@ doc_root_element_table = Table('doc_root_element', SqlBase.metadata,
 
 class Document(Node):
     """
+
+    XXX: see htd.TNode.
+
     After INode and Resource, the most abstract representation of a (file-based)
     resource in taxus.
     A document comprises a set of elements in an unspecified further structure.

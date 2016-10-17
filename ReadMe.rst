@@ -11,9 +11,6 @@ Build-status
       :target: https://travis-ci.org/dotmpe/script-mpe
       :alt: Build
 
-Version
-  TODO
-
 Issues
     .. image:: https://img.shields.io/github/issues/dotmpe/script-mpe.svg
       :target: http://githubstats.com/dotmpe/script-mpe/issues

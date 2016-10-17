@@ -3,13 +3,11 @@ digraph "doc_taxus_classes_en_dot" {
 		fontsize = "14"
 		fontname = "Times-Roman"
 		fontcolor = "black"
-		bgcolor = "black"
-		rankdir = "RL"
+    pad = 1
 	]
 	node [
-		fontsize = "14"
+		fontsize = "15"
 		fontname = "Bitstream Vera Sans"
-		fontcolor = "white"
 		shape = "record"
 		style = "solid"
 		color = "grey"
@@ -17,9 +15,7 @@ digraph "doc_taxus_classes_en_dot" {
 	edge [
 		fontsize = "14"
 		fontname = "Bitstream Vera Sans"
-		fontcolor = "yellow"
 		style = "dotted"
-		color = "white"
 		weight = "4"
 	]
 
@@ -27,8 +23,9 @@ digraph "doc_taxus_classes_en_dot" {
 	"core.ID" ; //-> SQLBase ;
 
   "core.GroupNode" -> "core.Node" ;
-  "core.Folder" -> "core.Node" ;
+  "core.Folder" -> "core.GroupNode" ;
   "core.Space" -> "core.ID" ;
+
   "core.Name" -> "core.Node" ;
   "core.Tag" -> "core.Name" ;
   "core.Topic" -> "core.Tag" ;
@@ -56,7 +53,7 @@ digraph "doc_taxus_classes_en_dot" {
   "semweb.Description" -> "core.Node" ;
   "generic.Comment" -> "semweb.Description" ;
 
-  "net.Domain" -> "core.Node" ;
+  "net.Domain" -> "core.Name" ;
   "net.Host" -> "net.Domain" ;
   "net.Locator" -> "core.ID" ;
 
@@ -67,5 +64,46 @@ digraph "doc_taxus_classes_en_dot" {
   "model.Workset" -> "web.Resource" ;
 	"model.Token" ; //-> SQLBase ;
 
+  "media.Mediatype" -> "core.Name" [] ;
+  "media.MediatypeParameter" -> "core.Name" [] ;
+  //"media.Genre" -> "core.Name" [] ;
+  "media.Mediameta" -> "core.Node" [] ;
+
+  "htd.TNode" -> "core.Node" ;
+  "htd.JournalNode" -> "htd.TNode" ;
+
+
+  edge [ style="normal" ] ;
+
+  "core.Node" -> "core.Space" [ label="space" ];
+  "core.GroupNode" -> "core.Node" [ label="subnodes" ];
+  "core.Folder" -> "core.Name" [ label=title ] ;
+
+  "fs.INode" -> "net.Host" [ label="host" ];
+  "net.Host" -> "net.Domain" [ label="domain" ];
+  "fs.INode" -> "net.Locator" [ label="locators" ];
+
+  "htd.TNode" -> "core.Tag" [ label="tags" ];
+  "htd.TNode" -> "core.Topic" [ label="topics" ];
+
+  "media.Mediatype" -> "core.Name" [ label=mime ] ;
+  "media.Mediatype" -> "media.Mediatype" [ label=subtypes ] ;
+
+  "media.Mediameta" -> "checksum.Checksumdigest" [ label=checksums ] ;
+  "media.Mediameta" -> "media.Mediatype" [ label=mediatype ] ;
+  "media.Mediameta" -> "media.MediatypeParameter" [ label="mediatype-parameters" ] ;
+
+  //"media.Mediameta" -> "media.Genre" [ label=genres ] ;
+
+  "model.Workset" -> "net.Locator" [ label=refs ] ;
+  "model.Token" -> "net.Locator" [ label=refs ] ;
+
+  "net.Locator" -> "checksum.Checksumdigest" [ label=ref_md5 ] ;
+  "net.Locator" -> "checksum.Checksumdigest" [ label=checksums ] ;
+  "net.Locator" -> "core.Domain" [ label=domain ] ;
+
+  "web.Resource" -> "web.Status" [ label=status ] ;
+  "web.Resource" -> "net.Locator" [ label=location ] ;
+  "web.Invariant" -> "web.CachedContent" [ label=content ] ;
 }
 

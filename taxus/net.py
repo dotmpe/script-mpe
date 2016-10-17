@@ -14,7 +14,7 @@ from . import iface
 from . import checksum
 
 
-class Domain(core.Node):
+class Domain(core.Name):
 
     """
     """
@@ -22,7 +22,7 @@ class Domain(core.Node):
     __tablename__ = 'domains'
     __mapper_args__ = {'polymorphic_identity': 'domain'}
 
-    domain_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    domain_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
 
 
 class Host(Domain):
@@ -70,7 +70,7 @@ class Host(Domain):
 #    Column('host_idb', ForeignKey('hosts.id'))
 #)
 # mapping table for ChecksumDigest Locator
-locators_checksum = Table('locators_checksum', SqlBase.metadata,
+locators_checksums = Table('locators_checksums', SqlBase.metadata,
     Column('locators_ida', ForeignKey('ids_lctr.id')),
     Column('chk_idb', ForeignKey('chks.id'))
 )
@@ -125,10 +125,6 @@ class Locator(core.ID):
     ref_md5 = relationship(checksum.MD5Digest, primaryjoin=ref_md5_id==checksum.MD5Digest.md5_id)
     "A checksum for the complete reference, XXX to use while shortref missing? "
 
-    #ref = Column(String(255), index=True, unique=True)
-    # XXX: varchar(255) would be much too small for many (web) URL locators
-    ref = Column(Text(2048), index=True, unique=True)
-
     @property
     def scheme(self):
         ref = self.ref
@@ -157,12 +153,11 @@ class Locator(core.ID):
             else:
                 assert not "No path", ref
 
-#    checksum = relationship('ChecksumDigest', secondary=locators_checksum,
-#        backref='locations')
-#    tags = relationship('Tag', secondary=locators_tags,
-#        backref='locations')
-    host_id = Column(Integer, ForeignKey('hosts.id'))
-    host = relationship('Host', primaryjoin="Locator.host_id==Host.host_id",
+    checksums = relationship('ChecksumDigest', secondary=locators_checksums,
+        backref='locations')
+
+    domain_id = Column(Integer, ForeignKey('domains.id'))
+    domain = relationship('Host', primaryjoin="Locator.domain_id==Host.domain_id",
         backref='locations')
 
     def __str__(self):
