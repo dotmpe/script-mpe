@@ -28,7 +28,7 @@ from script_mpe import lib, log
 class Node(SqlBase, ORMMixin):
 
     """
-    Provide lookup on numeric ID, name (non-unique) and standard dates.
+    Provide lookup on numeric ID, and standard dates.
     """
 
     zope.interface.implements(iface.Node)
@@ -43,14 +43,11 @@ class Node(SqlBase, ORMMixin):
     __mapper_args__ = {'polymorphic_on': ntype,
             'polymorphic_identity': 'node'}
 
-    # Unique node Name (String ID)
-    name = Column(String(255), nullable=False, index=True, unique=True)
-
     space_id = Column(Integer, ForeignKey('spaces.id'))
     space = relationship(
-            'Space', 
+            'Space',
             #primaryjoin='Node.space_id == Space.space_id'
-            backref='children', 
+            backref='children',
 #            remote_side='spaces.id',
 #            foreign_keys=[space_id]
         )
@@ -107,6 +104,9 @@ class Folder(GroupNode):
     __mapper_args__ = {'polymorphic_identity': 'folder'}
     folder_id = Column('id', Integer, ForeignKey('groupnodes.id'), primary_key=True)
 
+    title_id = Column(Integer, ForeignKey('names.id'))
+    title = relationship(core.Name, primaryjoin=title_id==core.Name.name_id)
+
 
 class ID(SqlBase, ORMMixin):
 
@@ -124,7 +124,7 @@ class ID(SqlBase, ORMMixin):
 
     global_id = Column(String(255), index=True, unique=True, nullable=False)
     """
-    With regard to x-db deployment, not using string ID as or in primary key 
+    With regard to x-db deployment, not using string ID as or in primary key
     for table, even while that makes sense to me.
     """
 
@@ -146,8 +146,8 @@ class ID(SqlBase, ORMMixin):
 class Space(ID):
 
     """
-    Spaces segment the Nodeverse. 
-    
+    Spaces segment the Nodeverse.
+
     An abstraction to deal with segmented storage (ie. different databases,
     hosts).
     """
@@ -167,33 +167,19 @@ class Space(ID):
 class Name(Node):
 
     """
-    A local unique identifier.
+    A local unique name; title or human identifier.
 
-    XXX: this is a vestige of having non-unique node names,
-      currently node names are unique so Name need not be used.. much.
     """
 
     __tablename__ = 'names'
     __mapper_args__ = {'polymorphic_identity': 'name'}
-    name_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    name_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
 
-#    name_id = Column('id', Integer, primary_key=True)
+    # Unique node Name (String ID)
+    name = Column(String(255), nullable=False, index=True, unique=True)
 
-#    nametype = Column(String(50), nullable=False)
-#    __mapper_args__ = {'polymorphic_on': nametype, 
-#            'polymorphic_identity': 'name'}
-#
-#    name = Column(String(255), index=True, unique=True)
-#
-#    date_added = Column(DateTime, index=True, nullable=False)
-#    deleted = Column(Boolean, index=True, default=False)
-#    date_deleted = Column(DateTime)
-#
-#    def __str__(self):
-#        return "%s at %s having %r" % (lib.cn(self), self.taxus_id(), self.name)
-#
-#    def __repr__(self):
-#        return "<%s at %s with %r>" % (lib.cn(self), hex(id(self)), self.name)
+    # XXX: contexts?
+
 
 
 class Tag(Name):
@@ -208,11 +194,8 @@ class Tag(Name):
     __mapper_args__ = {'polymorphic_identity': 'tag'}
 
     tag_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
-    #name = Column(String(255), unique=True, nullable=True)
-    #sid = Column(String(255), nullable=True)
-    # XXX: perhaps add separate table for Tag.namespace attribute
-#    namespaces = relationship('Namespace', secondary=tag_namespace_table,
-#        backref='tags')
+
+    # XXX: namespaces?
 
 tags_freq = Table('names_tags_stat', SqlBase.metadata,
         Column('tag_id', ForeignKey('names_tag.id'), primary_key=True),
@@ -223,12 +206,12 @@ tags_freq = Table('names_tags_stat', SqlBase.metadata,
 class Topic(Tag):
     """
     A topic describes a subject; a theme, issue or matter, regarding something
-    else. 
+    else.
     XXX: It is the first of a level abstraction for other elementary types like
     inodes or document elements.
     For now, it is a succinct name on the Tag supertype, with an additional
     Text field for further specification.
-    
+
     XXX: a basic type indicator to toggle between a thing or an idea.
     Names are given in singular form, a text field codes the plural for UI use.
     """
@@ -236,7 +219,6 @@ class Topic(Tag):
     __mapper_args__ = {'polymorphic_identity': 'topic'}
 
     topic_id = Column('id', Integer, ForeignKey('names_tag.id'), primary_key=True)
-    #key_names = ['topic_id']
 
     about_id = Column(Integer, ForeignKey('nodes.id'))
 
@@ -244,7 +226,6 @@ class Topic(Tag):
     thing = Column(Boolean)
     plural = Column(String)
 
-    # TODO backref from locators of this topic
     # TODO hierarchical relation
 
 
@@ -255,7 +236,10 @@ doc_root_element_table = Table('doc_root_element', SqlBase.metadata,
 
 class Document(Node):
     """
-    After INode and Resource, the most abstract representation of a (file-based) 
+
+    XXX: see htd.TNode.
+
+    After INode and Resource, the most abstract representation of a (file-based)
     resource in taxus.
     A document comprises a set of elements in an unspecified further structure.
 
@@ -282,7 +266,7 @@ class Document(Node):
 #    Some may be canonical, or ambigious, generic or very specific, etc.
 #    It forces serialization and a way to look at the resource as a single
 #    stream with discrete, nested elements (iow. XML with either some DOMesque
-#    interface or serial access interface). 
+#    interface or serial access interface).
 #
 #    TODO: It implements sameAs to indicate ...
 #    """
