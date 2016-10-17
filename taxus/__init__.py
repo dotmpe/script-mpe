@@ -191,6 +191,7 @@ from .code import *
 from .fs import *
 from .fslayout import *
 from .model import Namespace, Relocated, Volume, Bookmark
+from .htd import TNode, JournalEntry
 
 
 

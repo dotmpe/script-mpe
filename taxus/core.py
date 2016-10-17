@@ -48,9 +48,9 @@ class Node(SqlBase, ORMMixin):
 
     space_id = Column(Integer, ForeignKey('spaces.id'))
     space = relationship(
-            'Space', 
+            'Space',
             #primaryjoin='Node.space_id == Space.space_id'
-            backref='children', 
+            backref='children',
 #            remote_side='spaces.id',
 #            foreign_keys=[space_id]
         )
@@ -124,7 +124,7 @@ class ID(SqlBase, ORMMixin):
 
     global_id = Column(String(255), index=True, unique=True, nullable=False)
     """
-    With regard to x-db deployment, not using string ID as or in primary key 
+    With regard to x-db deployment, not using string ID as or in primary key
     for table, even while that makes sense to me.
     """
 
@@ -146,8 +146,8 @@ class ID(SqlBase, ORMMixin):
 class Space(ID):
 
     """
-    Spaces segment the Nodeverse. 
-    
+    Spaces segment the Nodeverse.
+
     An abstraction to deal with segmented storage (ie. different databases,
     hosts).
     """
@@ -180,7 +180,7 @@ class Name(Node):
 #    name_id = Column('id', Integer, primary_key=True)
 
 #    nametype = Column(String(50), nullable=False)
-#    __mapper_args__ = {'polymorphic_on': nametype, 
+#    __mapper_args__ = {'polymorphic_on': nametype,
 #            'polymorphic_identity': 'name'}
 #
 #    name = Column(String(255), index=True, unique=True)
@@ -221,17 +221,14 @@ tags_freq = Table('names_tags_stat', SqlBase.metadata,
 )
 
 class Topic(Tag):
+
     """
     A topic describes a subject; a theme, issue or matter, regarding something
-    else. 
-    XXX: It is the first of a level abstraction for other elementary types like
-    inodes or document elements.
-    For now, it is a succinct name on the Tag supertype, with an additional
-    Text field for further specification.
-    
-    XXX: a basic type indicator to toggle between a thing or an idea.
+    else.
+
     Names are given in singular form, a text field codes the plural for UI use.
     """
+
     __tablename__ = 'names_topic'
     __mapper_args__ = {'polymorphic_identity': 'topic'}
 
@@ -255,7 +252,7 @@ doc_root_element_table = Table('doc_root_element', SqlBase.metadata,
 
 class Document(Node):
     """
-    After INode and Resource, the most abstract representation of a (file-based) 
+    After INode and Resource, the most abstract representation of a (file-based)
     resource in taxus.
     A document comprises a set of elements in an unspecified further structure.
 
@@ -282,7 +279,7 @@ class Document(Node):
 #    Some may be canonical, or ambigious, generic or very specific, etc.
 #    It forces serialization and a way to look at the resource as a single
 #    stream with discrete, nested elements (iow. XML with either some DOMesque
-#    interface or serial access interface). 
+#    interface or serial access interface).
 #
 #    TODO: It implements sameAs to indicate ...
 #    """

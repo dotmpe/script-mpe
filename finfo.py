@@ -124,24 +124,26 @@ from sqlalchemy.orm import relationship, backref
 
 import confparse
 import lib
-import log
 import libcmd
+import log
 import res.fs
 import rsr
 import taxus.core
-import taxus.media
-import taxus.model
-import taxus.web
-import taxus.semweb
-import taxus.net
-import taxus.generic
 import taxus.checksum
 import taxus.fs
+import taxus.generic
+import taxus.htd
+import taxus.media
+import taxus.model
+import taxus.net
+import taxus.semweb
+import taxus.web
 import util
 from taxus.core import Node, Name
 from taxus.media import Mediatype, Mediaformat, Genre, Mediameta
 from taxus.fs import INode, Dir, File, Mount
 from taxus.init import SqlBase, get_session
+from taxus.htd import TNode
 #from txs import Txs
 
 models = [
@@ -149,7 +151,8 @@ models = [
         INode,
         Dir,
         File,
-        Mount
+        Mount,
+        TNode
     ]
 
 

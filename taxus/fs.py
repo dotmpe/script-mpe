@@ -45,21 +45,7 @@ inode_locator_table = Table('inode_locator', SqlBase.metadata,
 class INode(core.Node):
 
     """
-    Used for temporary things?
     Provide lookup on file-locator URI or file-inode URI.
-
-    Abstraction of types of local filesystem resources, some of which are
-    files. References to filelikes (file handlers or 'descriptor')  should be
-    abstracted another way, see Stream.
-
-    It needs either a localname and volume (host+path) as reference,
-    or use a set of bare references.
-    The latter is current.
-
-    May be need volumes.. should need a way to lookup if a Locator is within
-    some volume.
-    It is convenient in early phase to use a bunch of references. But move to
-    better structure later.
 
     TODO: implement __cmp__ for use with sameAs to query the host system
     TODO: should mirror host system attributes for dates, etc.
