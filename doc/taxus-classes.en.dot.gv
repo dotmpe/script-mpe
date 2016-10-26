@@ -27,24 +27,29 @@ digraph "doc_taxus_classes_en_dot" {
   "core.Space" -> "core.ID" ;
 
   "core.Name" -> "core.Node" ;
+  "core.Scheme" -> "core.Name" ;
+  "core.Protocol" -> "core.Scheme" ;
+
   "core.Tag" -> "core.Name" ;
   "core.Topic" -> "core.Tag" ;
   "core.Document" -> "core.Node" ;
 
-	"checksum.ChecksumDigest" ; //-> SQLBase ;
-  "checksum.SHA1Digest" -> "checksum.ChecksumDigest" ;
-  "checksum.MD5Digest" -> "checksum.ChecksumDigest" ;
+//	"checksum.ChecksumDigest" ; //-> SQLBase ;
+//  "checksum.SHA1Digest" -> "checksum.ChecksumDigest" ;
+//  "checksum.MD5Digest" -> "checksum.ChecksumDigest" ;
 
   "fs.INode" -> "core.Node" ;
-  "fs.Dir" -> "fs.INode" ;
-  "fs.File" -> "fs.INode" ;
-  "fs.Symlink" -> "fs.INode" ;
-  "fs.Device" -> "fs.INode" ;
-  "fs.Mount" -> "fs.INode" ;
-  "fs.FIFO" -> "fs.INode" ;
-  "fs.Socket" -> "fs.INode" ;
+  "fs.Disk" -> "core.Name" ;
 
-  "web.CachedContent" -> "fs.INode" ;
+//  "fs.Dir" -> "fs.INode" ;
+//  "fs.File" -> "fs.INode" ;
+//  "fs.Symlink" -> "fs.INode" ;
+//  "fs.Device" -> "fs.INode" ;
+//  "fs.Mount" -> "fs.INode" ;
+//  "fs.FIFO" -> "fs.INode" ;
+//  "fs.Socket" -> "fs.INode" ;
+
+//  "web.CachedContent" -> "fs.INode" ;
   "web.Status" -> "core.Node" ;
   "web.Resource" -> "core.Node" ;
   "web.Invariant" -> "web.Resource" ;
@@ -59,10 +64,10 @@ digraph "doc_taxus_classes_en_dot" {
 
   "model.Namespace" -> "web.Variant" ;
   "model.Relocated" -> "web.Resource" ;
-  "model.Volume" -> "web.Resource" ;
+  "model.Volume" -> "core.Scheme" ;
   "model.Bookmark" -> "core.Node" ;
   "model.Workset" -> "web.Resource" ;
-	"model.Token" ; //-> SQLBase ;
+//	"model.Token" ; //-> SQLBase ;
 
   "media.Mediatype" -> "core.Name" [] ;
   "media.MediatypeParameter" -> "core.Name" [] ;
@@ -78,10 +83,11 @@ digraph "doc_taxus_classes_en_dot" {
   "core.Node" -> "core.Space" [ label="space" ];
   "core.GroupNode" -> "core.Node" [ label="subnodes" ];
   "core.Folder" -> "core.Name" [ label=title ] ;
+  "core.Document" -> "media.Mediameta" [ label=mediameta ] ;
 
-  "fs.INode" -> "net.Host" [ label="host" ];
+ // "fs.INode" -> "net.Host" [ label="host" ];
   "net.Host" -> "net.Domain" [ label="domain" ];
-  "fs.INode" -> "net.Locator" [ label="locators" ];
+//  "fs.INode" -> "net.Locator" [ label="locators" ];
 
   "htd.TNode" -> "core.Tag" [ label="tags" ];
   "htd.TNode" -> "core.Topic" [ label="topics" ];
@@ -92,18 +98,17 @@ digraph "doc_taxus_classes_en_dot" {
   "media.Mediameta" -> "checksum.Checksumdigest" [ label=checksums ] ;
   "media.Mediameta" -> "media.Mediatype" [ label=mediatype ] ;
   "media.Mediameta" -> "media.MediatypeParameter" [ label="mediatype-parameters" ] ;
-
   //"media.Mediameta" -> "media.Genre" [ label=genres ] ;
 
   "model.Workset" -> "net.Locator" [ label=refs ] ;
-  "model.Token" -> "net.Locator" [ label=refs ] ;
+//  "model.Token" -> "net.Locator" [ label=refs ] ;
 
-  "net.Locator" -> "checksum.Checksumdigest" [ label=ref_md5 ] ;
-  "net.Locator" -> "checksum.Checksumdigest" [ label=checksums ] ;
+//  "net.Locator" -> "checksum.Checksumdigest" [ label=ref_md5 ] ;
+//  "net.Locator" -> "checksum.Checksumdigest" [ label=checksums ] ;
   "net.Locator" -> "core.Domain" [ label=domain ] ;
 
   "web.Resource" -> "web.Status" [ label=status ] ;
   "web.Resource" -> "net.Locator" [ label=location ] ;
-  "web.Invariant" -> "web.CachedContent" [ label=content ] ;
+//  "web.Invariant" -> "web.CachedContent" [ label=content ] ;
 }
 
