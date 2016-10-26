@@ -8,7 +8,6 @@ looked for.
 import shelve
 import hashlib
 
-#from rsrlib.store import UpgradedPickle, Object
 
 
 class UpgradedPickle:
@@ -49,18 +48,28 @@ class UpgradedPickle:
 
 class Object(object, UpgradedPickle):
 
-    factory = None
+    store = None
 
-    def fetch(self):
-        """
-        Retrieve object from pickle storage.
-        """
-        raise NotImplemented
+    def objectid(self):
+        return id(self)
+
+    def exists(self):
+        return self.objectid() in self.store
+
+    @classmethod
+    def fetch(clss, object_id, store=None):
+        "Return object from local PMO-store"
+        if not store:
+            store = clss.store
+        object_id = self.objectid()
+        if object_id in self.store:
+            return self.store[object_id]
 
     def store(self):
         """
         """
-        raise NotImplemented
+        self.store[self.object_id()] = self
+        self.store.sync()
 
     def init(self):
         """

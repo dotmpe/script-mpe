@@ -3,6 +3,8 @@ import os
 from os.path import join
 import re
 import stat
+import xattr
+import pbPlist
 
 import zope.interface
 
@@ -19,7 +21,6 @@ class INode(object):
 
     """
     Represents an inode on the filesystem.
-    Not to be confused with the Node interface.
     """
 
     zope.interface.implements(iface.Node)
@@ -81,6 +82,29 @@ class INode(object):
             if not rs:
                 return False
         return True
+
+    @classmethod
+    def stat(self, path):
+        if not isinstance(path, basestring) and hasattr(path, 'path'):
+            path = path.path
+        st = os.stat(path)
+        return {
+                'atime': st.st_atime,
+                'ctime': st.st_ctime,
+                'mtime': st.st_mtime,
+                'x_attr': get_fs_xattr(path)
+            }
+
+
+def get_fs_xattr(fn):
+    x = {}
+    for attr in xattr.listxattr(fn):
+        value = xattr.getxattr(fn, attr)
+        if value.startswith('bplist'):
+            x[attr] = pbPlist.PBPlist(value)
+        else:
+            x[attr] = value
+    return x
 
 
 def __register__():

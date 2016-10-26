@@ -29,7 +29,10 @@ version=0.0.2-dev # script-mpe
   check_skipped_envs travis \
   || TODO "envs $envs: implement $BATS_TEST_DESCRIPTION for env"
 
-  run $BATS_TEST_DESCRIPTION
+  _test() {
+    $BATS_TEST_DESCRIPTION 2>/dev/null
+  }
+  run _test
   test $status -eq 0
 
   test -n "$HTDIR" || HTDIR="$(echo ~/public_html)"
@@ -49,7 +52,7 @@ version=0.0.2-dev # script-mpe
 
   esac
 
-  run bash -c "HTDIR= && $BATS_TEST_DESCRIPTION"
+  run bash -c "_test() { $BATS_TEST_DESCRIPTION 2>/dev/null; } ; HTDIR= && _test"
   test "${lines[*]}" = "$(echo ~/public_html)"
 
   case "$(current_test_env)" in
@@ -116,7 +119,10 @@ version=0.0.2-dev # script-mpe
   test ! -d bats-test-log || rm -rf bats-test-log
 
   mkdir bats-test-log
-  run $BATS_TEST_DESCRIPTION bats-test-log/
+  _test() {
+    $BATS_TEST_DESCRIPTION bats-test-log/ 2>/dev/null
+  }
+  run _test
   test $status -eq 0
   test "${#lines[@]}" -ge "24"
 
@@ -133,12 +139,10 @@ version=0.0.2-dev # script-mpe
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 1
-  fnmatch "*Error*Dir *$BATS_TMPDIR/journal must exist*" "${lines[*]}"
-  test "${#lines[@]}" = "1" \
-    || fail "Output: ${lines[*]}"
 
-  run $BATS_TEST_DESCRIPTION
-  test $status -eq 1
+  fnmatch "*Error*Dir *$BATS_TMPDIR/journal must exist*" "${lines[*]}"
+  test "${#lines[@]}" = "2" \
+    || fail "Output: ${lines[*]}"
 }
 
 @test "$bin rewrite and test to new main.lib.sh" {
@@ -171,8 +175,12 @@ Public
 EOM
 } > test.rst
 
-  run $BATS_TEST_DESCRIPTION test.rst || \
-    fail "Output: ${lines[*]}"
+  _test() {
+    $BATS_TEST_DESCRIPTION $@ 2>/dev/null
+  }
+  run _test test.rst
+
+  test $status -eq 0 || fail "Output: ${lines[*]}"
 
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
@@ -209,8 +217,12 @@ EOM
 } > test.rst
 
   export xsl_ver=2 
-  run $BATS_TEST_DESCRIPTION test.rst || \
-    fail "Output: ${lines[*]}"
+  _test() {
+    $BATS_TEST_DESCRIPTION $@ 2>/dev/null
+  }
+  run _test test.rst
+
+  test $status -eq 0 || fail "Output: ${lines[*]}"
 
   check_skipped_envs travis || \
     skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
@@ -355,7 +367,7 @@ EOM
   test ${status} -eq 0
   fnmatch "*Adding dir '.'*" "${lines[*]}" \
     || fail "Output: ${lines[*]}"
-  test ${#lines[@]} -eq 2 \
+  test ${#lines[@]} -eq 3 \
     || {
       diag "Output: ${lines[*]}"
       fail "Line count: ${#lines[@]}"
@@ -363,9 +375,11 @@ EOM
 }
 
 @test "$bin update (ck-prune, ck-clean, ck-update)" {
+  skip "Deprecated"
   run $bin update
   rm table.*missing || noop
   git checkout table.*
-  test ${status} -eq 0
+  test ${status} -eq 0 \
+    || fail "Output: ${lines[*]}"
 }
 

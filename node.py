@@ -86,7 +86,7 @@ def cmd_get(REF, settings):
 
     sa = Node.get_session('default', settings.dbref)
     Root, nid = Node.init_ref(REF)
-    node = Root.get_instance(nid, sa=sa)
+    node = Root.fetch_instance(nid, sa=sa)
     reporter.stdout.Node(node)
 
 def cmd_new(NAME, settings):

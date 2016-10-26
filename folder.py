@@ -102,9 +102,9 @@ def cmd_group(ID, SUB, settings):
 
     taxus.ORMMixin.init('folder', settings.dbref)
     sa = Folder.start_session('folder', settings.dbref)
-    root = Folder.get_instance(ID, 'folder')
+    root = Folder.fetch_instance(ID, 'folder')
     for subid in SUB:
-        sub = Folder.get_instance(subid, 'folder')
+        sub = Folder.fetch_instance(subid, 'folder')
         sub.partOf_id = ID
         # XXX abstract using some kind of master store iface
         sa.add(node)
@@ -116,7 +116,7 @@ def cmd_ungroup(SUB, settings):
     """
     sa = Folder.start_session('folder', settings.dbref)
     for subid in SUB:
-        sub = Folder.get_instance(subid, 'folder')
+        sub = Folder.fetch_instance(subid, 'folder')
         node.partOf_id = None
         sa.add(node)
     sa.commit()

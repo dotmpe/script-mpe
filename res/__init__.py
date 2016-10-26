@@ -14,7 +14,7 @@ TODO:
 - Content-* properties
 """
 
-#from fs import File, Dir
+from fs import File, Dir
 from mimemsg import MIMEHeader
 from metafile import Metafile, Metadir, Meta, SHA1Sum
 from jrnl import Journal

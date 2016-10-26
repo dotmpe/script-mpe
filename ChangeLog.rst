@@ -29,7 +29,10 @@ Change Log
   Some minor failures at dandy (243 tests, 2 failures, 31 todo, 21 skipped)
 
 (0.0.2)
-  Just testing travis builds.
+  - Developing Travis builds.
 
+  - Refactoring Taxus schema for finfo.py.
+
+  - TODO: radical broken after 449ea4f, fork and build unittest
 
 

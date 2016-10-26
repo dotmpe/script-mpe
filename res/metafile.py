@@ -161,7 +161,7 @@ class MetaResolver(object):
 
     def list(self):
         "List current meta properties. "
-        print self.data.keys()
+        print 'MetaResolver.list', self.data.keys()
 
     def persist(self):
         "Write X-Meta-Feature header. "
@@ -224,7 +224,8 @@ class SHA1Sum(object):
 class Metafile(PersistedMetaObject):
 
     """
-    rsr abstraction of of filebased metadata's?
+    TODO: Abstraction for local filesystem paths in a Metadir.
+    Use context (metadir) to resolve and track metadata.
 
     FIXME make this as a hub for shelve/file instances. Autodiscover, do a few
     methods of storage and see what works.
@@ -240,46 +241,28 @@ class Metafile(PersistedMetaObject):
 
     sha1sum = meta_property('sha1sum', SHA1Sum)
 
-    def __init__(self, path, storage=None):
+    def __init__(self, path, storage=None, context=None, auto_populate=True):
+        #if not issubclass(type(path), INode):
+        if isinstance(path, basestring):
+            path = fs.INode.factory(path)
         self.path = path
-        if not storage:
-            storage = self.__class__.storage_name
-        self.store = PersistedMetaObject.get_store(name=storage)
-
-    def metaid(self):
-        """
-        Id. that changes depending on path location.
-        """
-        return hashlib.md5(self.path).hexdigest()
-
-    def init(self):
-        pass
-
-    def exists(self):
-        mid = self.metaid()
-        return mid in self.store
-
-    def fetch(self):
-        "Return metafile-object from local PMO-store"
-        mid = self.metaid()
-        if mid in self.store:
-            return self.store[mid]
-
-    def store(self):
-        mid = self.metaid()
-        self.store[mid] = self
-        self.store.sync()
-
+        if not context:
+            context = Metadir(os.path.dirname(path.path))
+        self.context = context
+        #if not storage:
+        #    storage = self.__class__.storage_name
+        #self.store = PersistedMetaObject.get_store(name=storage)
+        if auto_populate:
+            self.context.resolve(self, 'path')
 
 
 
 class MetafileFile(object): # XXX: Metalink syntax
 
     """
-    XXX: rewrite this to metafile wrapper?
+    A MIME-headers like file, exists as a snapshot of a certain graph state.
 
     Headers for the resource entity in the file.
-    XXX: May not be entirely MIME compliant yet.
 
     XXX: This is obviously the same as metalink format, and should learn from
         that. Metalink has also been expressed as HTTP headers, though the
@@ -549,10 +532,10 @@ class MetafileFile(object): # XXX: Metalink syntax
         fl.close()
 
     def get_sha1sum(self):
-	if 'Digest' in self.data:
-	    data = self.data['Digest']
-	    if data.startswith('SHA1'):
-	        b64_sha1 = data[5:]
+        if 'Digest' in self.data:
+            data = self.data['Digest']
+            if data.startswith('SHA1'):
+                b64_sha1 = data[5:]
                 return base64.b64decode(b64_sha1).encode('hex')
 
 
@@ -564,7 +547,7 @@ class Metadir(object):
     """
 
     # XXX used as class variuables..
-    DOTDIR = 'meta'
+    DOTNAME = 'meta'
     DOTID = 'dir'
 
     def __init__(self, path):
@@ -578,16 +561,16 @@ class Metadir(object):
             self.path = os.path.dirname( path )
         else:
             self.path = path
-        if self.path.endswith(self.DOTDIR) or self.path.endswith(self.DOTDIR+'/'):
+        if self.path.endswith(self.DOTNAME) or self.path.endswith(self.DOTNAME+'/'):
             self.path = os.path.dirname( self.path )
-            self.prefix = '.'+self.DOTDIR+'/'
-        assert self.DOTDIR not in self.path, self.path
+            self.prefix = '.'+self.DOTNAME+'/'
+        assert self.DOTNAME not in self.path, self.path
         self.init()
 
     @property
     def full_path(self):
         """Return %s metadir path. """ % lib.cn(self)
-        return os.path.join(self.path, '.'+self.DOTDIR)
+        return os.path.join(self.path, '.'+self.DOTNAME)
 
     def metadirref(self, ext='db', name=None):
         if not name:
@@ -636,8 +619,8 @@ class Metadir(object):
         return self.__str__()
 
     @classmethod
-    def find(clss, *paths):
-        prefixes = confparse.name_prefixes + ( '.'+clss.DOTDIR+'/', )
+    def find_id(clss, *paths):
+        prefixes = confparse.name_prefixes + ( '.'+clss.DOTNAME+'/', )
         return list(confparse.find_config_path(clss.DOTID,
             paths=list(paths),
             prefixes=prefixes,
@@ -645,10 +628,18 @@ class Metadir(object):
         ))
 
     @classmethod
+    def find_meta(clss, *paths):
+        return list(confparse.find_config_path(clss.DOTNAME,
+            paths=list(paths),
+            prefixes=confparse.name_prefixes,
+            suffixes=['']
+        ))
+
+    @classmethod
     def fetch(clss, *paths):
         """
         Find metadir by searching for markerleaf indicated by Class'
-        DOTID property, using '.' DOTDIR '/' as one of the name prefixes.
+        DOTID property, using '.' DOTNAME '/' as one of the name prefixes.
 
         See confparse.find_config_path. This will be searching for the .id
         extensions.
@@ -660,6 +651,58 @@ class Metadir(object):
             if len(configpaths) > 1:
                 log.warn('Using first config file %s for %s', clss.DOTID, configpaths)
             return clss(configpaths[0])
+
+    """ XXX:
+
+        Metadir.item* -> Metafile path
+        .path -> fs.INode atime,ctime,mtime,x-attr
+        .path -> fs.File size
+        .size -> Checksums.*,compression, encodings,,  Mediatype
+        .mediatype -> MediatypeParameter parameters,charset,format,delsp
+        .checksums* -> lookup...
+        .compression -> optimize...
+        .encodings -> recode...
+
+    """
+    resolvers = {
+            'path:fs.INode': "fs.INode.stat:atime,ctime,mtime,x_attr",
+            'path:fs.Dir': "fs.Dir.dir_stat:file_count,dir_count",
+            #'path:fs.File': "fs.File.data:data",
+            #'data:Stream': "Mediatype.detect:mediatype",
+            #'data:Stream': "Checksum.calc:checksums",
+            #'mediatype:TextFile': "TextFile.content:content",
+            #'checksum:Checksum': "Registry.lookup:refs"
+        }
+    def resolve(self, item, attr):
+        "given start attribute, copy or initialize attributes from other types"
+        toresolve = []
+        for resolver in self.resolvers.keys():
+            if resolver.startswith(attr +':'):
+                toresolve += [ resolver ]
+        for resolver in toresolve:
+            src_attr, type_ = resolver.split(':')
+            obj = getattr( item, src_attr )
+            if not isinstance(obj, get_global_attr(type_)):
+                continue
+            handler, trgt_spec = self.resolvers[resolver].split(':')
+            self._apply_resolver(item, handler, trgt_spec)
+
+    def _apply_resolver(self, obj, handler_spec, trgt_spec):
+        data = get_global_attr(handler_spec)(self)
+        if ',' in trgt_spec:
+            assert isinstance(data, dict)
+            for attr in trgt_spec.split(','):
+                setattr(obj, attr, data[attr])
+        else:
+            setattr(obj, trgt_spec, data)
+
+def get_global_attr(handler_spec):
+    path = handler_spec.split('.')
+    obj = globals()[path.pop(0)]
+    while path:
+        obj = getattr(obj, path.pop(0))
+    return obj
+
 
 class Meta(object):
 

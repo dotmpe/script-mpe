@@ -603,13 +603,13 @@ class Rsr(libcmd.StackedCommand):
         #metafile = res.Metafile(path)
         import res.metafile
         metafile = res.metafile.MetafileFile(path)
-	#from pprint import pformat
-	print(pformat(metafile.data))
+        #from pprint import pformat
+        print(pformat(metafile.data))
 
     def rsr_show_sha1sum_hexdigest(self, path):
         import res.metafile
         metafile = res.metafile.MetafileFile(path)
-	print(metafile.get_sha1sum())
+        print(metafile.get_sha1sum())
 
 
 if __name__ == '__main__':

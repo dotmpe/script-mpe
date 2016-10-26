@@ -74,7 +74,7 @@ htd_load()
   test -n "$htd_tmp_dir" || htd_tmp_dir=$(setup_tmpd)
   test -n "$htd_tmp_dir" || error "htd_tmp_dir load" 1
   test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" || {
-    rm $htd_tmp_dir/*
+    rm -r $htd_tmp_dir/*
   }
 
   htd_rules=~/.conf/rules/$hostname.tab

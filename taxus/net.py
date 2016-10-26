@@ -83,36 +83,15 @@ locators_tags = Table('locators_tags', SqlBase.metadata,
 class Locator(core.ID):
 
     """
-    A global identifier for retrieval of remote content.
+    A global identifier for retrieval of local or remote content.
 
-    Maybe based on DNS and route, script or filename for HTTP etc.
-    For file based descriptors may be registered domain and filename,
-    but also IP and variants on netpath, even inode number lookups.
+    Regular known schema are tied to protocols, ie. http, ftp, .. gopher.
+    Some more specific to applications, ie. wrt. mediafiles or distributed, P2P
+    content.
 
-    Not just variant notations but "seeping through" of the filesystem
-    organization used in locators is what introduces difficult forms of
-    ambiguity. Possibly too in this index, not sure, practice would need to
-    prove.
-
-    The reference should follow URL syntax, not URN or otherwise.
-    Perhaps if rogue web-content where entered into the
-    system is properly contained.
-
-    sameAs
-        Incorporates sameAs to indicate references which contain parametrization
-        and are a variant or more specific form of another references,
-        but essentially the same 'resource'. Note that references may point to other
-        'things' than files or HTTP resources.
-
-        A misleading example may be HTTP URLs which are path + query, even more a
-        fragment. This can be misleading as URL routing is part of the web
-        application framework and may serve other requirements than resource
-        parametrization, and further parametrization may occur at other places
-        (Headers, cookies, embedded, etc.).
-
-        The Locator sameAs allows comparison on references,
-        comparison of the dereferenced objects belongs on other Taxus objects that
-        refer to the Locator table.
+    Use htdocs: scheme to standardize adressing of Taxus et al.
+    core.Scheme and subtypes are used to manage instances of protocols,
+    and other htdocs sub-schemes.
     """
     zope.interface.implements(iface.IID)
 
@@ -120,6 +99,8 @@ class Locator(core.ID):
     __mapper_args__ = {'polymorphic_identity': 'id_lctr'}
 
     lctr_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
+
+    # TODO: shortID if length >32
 
     ref_md5_id = Column(Integer, ForeignKey('chks_md5.id'))
     ref_md5 = relationship(checksum.MD5Digest, primaryjoin=ref_md5_id==checksum.MD5Digest.md5_id)

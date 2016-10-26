@@ -42,7 +42,7 @@ inode_locator_table = Table('inode_locator', SqlBase.metadata,
     Column('lctr_id', Integer, ForeignKey('ids_lctr.id'), primary_key=True),
 )
 
-class INode(core.Node):
+class INode(core.Name):
 
     """
     Provide lookup on file-locator URI or file-inode URI.
@@ -54,7 +54,7 @@ class INode(core.Node):
     __tablename__ = 'inodes'
     __mapper_args__ = {'polymorphic_identity': 'inode'}
 
-    inode_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    inode_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
 
     #inode_number = Column(Integer, unique=True)
 
@@ -63,7 +63,7 @@ class INode(core.Node):
     #locator_id = Column(ForeignKey('ids_lctr.id'), index=True)
     #location = relationship(Locator, primaryjoin=locator_id == Locator.id)
 
-    local_path = Column(String(255), index=True, unique=True)
+    #local_path = Column(String(255), index=True, unique=True)
 
     #host_id = Column(Integer, ForeignKey('hosts.id'))
     #host = relationship(net.Host, primaryjoin=net.Host.host_id==host_id)
@@ -81,7 +81,7 @@ class INode(core.Node):
     @property
     def location(self):
         "Construct global, host-based file-locator"
-        return "file:%s" % "/".join((self.host.netpath, self.local_path))
+        return "file:%s" % "/".join((self.host.netpath, self.name))
 
     @property
     def record_name(self):
@@ -147,6 +147,20 @@ class Socket(INode):
 
     socket_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
 
+
+class Disk(core.Name):
+
+    """
+    A block storage device with one or more volumes.
+    """
+
+    __tablename__ = 'disks'
+    __mapper_args__ = {'polymorphic_identity': 'disk-name'}
+
+    disk_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
+
+    # volumes = relationship('Volume',
+    "Links to the partitions (root-volumes) of the disk. "
 
 
 models = [ INode, Dir, File, Symlink, Device, Mount, FIFO, Socket ]

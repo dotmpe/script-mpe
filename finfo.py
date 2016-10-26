@@ -98,12 +98,20 @@ Options:
                   Bind env 'VAR' to named set 'name'. If env isset overrides any
                   named set (see --name).
                   [default: PWD=pwd] (and PWD evaluates to .)
+    --names-only
+                  Print prefix with names only, instead of record report.
     -f --files
                   Return files only.
     -d --directories
                   Return directories only.
+    -r --recurse
+                  Recurse
     --config NAME
                   Config [default: cllct.rc]
+    --documents
+                  Return document type files only.
+    --filter FILTER...
+                  ..
 
 Other flags:
     -v            Increase verbosity.
@@ -127,6 +135,8 @@ import lib
 import libcmd
 import log
 import res.fs
+import res.metafile
+import res.persistence
 import rsr
 import taxus.core
 import taxus.checksum
@@ -139,8 +149,9 @@ import taxus.net
 import taxus.semweb
 import taxus.web
 import util
+
 from taxus.core import Node, Name
-from taxus.media import Mediatype, Mediaformat, Genre, Mediameta
+from taxus.media import Mediatype, MediatypeParameter, Genre, Mediameta
 from taxus.fs import INode, Dir, File, Mount
 from taxus.init import SqlBase, get_session
 from taxus.htd import TNode
@@ -154,6 +165,16 @@ models = [
         Mount,
         TNode
     ]
+
+
+default_filters = [
+            re.compile('^[^\.(git|svn|bzr|build)]$')
+        ]
+
+doc_exts = "doc docx pdf tex latex troff man rst md txt".split(' ')
+doc_filters = [
+            re.compile('^.*\.(%s)$' % '|'.join(doc_exts))
+        ]
 
 
 class FileInfoApp(rsr.Rsr):
@@ -318,8 +339,10 @@ class FileInfoApp(rsr.Rsr):
 varname = re.compile('^\$[A-Z0-9a-z]+$')
 
 def search_path(paths, ctx):
+    """Yield directories. Process JSON-path references from list `paths`. """
     for root_dir in paths:
         if root_dir.startswith('#prefixes/'):
+            # Process symbolic rc references
             prefref = root_dir[10:]
             if ':' in prefref:
                 prefref, num = prefref.split(':')
@@ -331,6 +354,10 @@ def search_path(paths, ctx):
             yield root_dir
 
 def find_local(name, search):
+    """
+    Traverse prefixes in list `search`, yields where `name` exists.
+    Yield load is tuple `prefix`, `full-file-path`, `full-dir-path`
+    """
     for prefix in search:
         path = os.path.join(prefix, name)
         if os.path.exists(path):
@@ -349,23 +376,15 @@ def find_prefixes(path, ctx):
         if path.startswith( prefpath ):
             yield prefix
 
-def get_record(name, ctx):
-    rec = taxus.fs.File.fetch((taxus.fs.File.name==name,), sa=ctx.sa, exists=False)
-    if not rec:
-        rec = taxus.fs.File(name=name,
-                    last_updated=datetime.now(),
-                    date_added=datetime.now() )
-        ctx.sa.add(rec)
-    return rec
-
-def print_record(record, ctx):
-    print record.record_name
 
 
 def main(argv, doc=__doc__, usage=__usage__):
 
     """
     Execute using docopt-mpe options.
+
+        prog [opts] [CTX] ( FILE... | DIR... )
+
     """
 
     # Process environment
@@ -388,9 +407,10 @@ def main(argv, doc=__doc__, usage=__usage__):
     # Process arguments
     dirs = []
     # Shift paths from ctx arg
-    if os.path.exists(ctx.opts.args.CTX):
+    if ctx.opts.args.CTX and os.path.exists(ctx.opts.args.CTX):
         ctx.opts.args.FILE.append(ctx.opts.args.CTX)
         ctx.opts.args.CTX = None
+
     # Sort out dirs from files
     for arg in ctx.opts.args.FILE:
         if os.path.isdir(arg):
@@ -401,9 +421,15 @@ def main(argv, doc=__doc__, usage=__usage__):
         else:
             log.note("Unhandled path %r" % arg)
     ctx.opts.args.DIR = dirs
+
     # Set default path context
-    if not ctx.opts.args.CTX:
+    if ctx.opts.flags.name:
+        assert not ctx.opts.args.CTX
+        ctx.opts.args.CTX = ctx.opts.flags.name
+
+    elif not ctx.opts.args.CTX:
         ctx.opts.args.CTX = 'current'
+
 
     # XXX: create prefixes object on context
     ctx.prefixes = confparse.Values(dict(
@@ -427,6 +453,10 @@ def main(argv, doc=__doc__, usage=__usage__):
             ctx.prefixes.env[envvar] = prefix
 
     # Pre-pocess binds from env flags
+
+    if not isinstance(ctx.opts.flags.env, list):
+        ctx.opts.flags.env = [ ctx.opts.flags.env ]
+
     for env_map in ctx.opts.flags.env:
         envvar, prefix = env_map.split('=')
         if envvar in ctx.prefixes.env:
@@ -465,7 +495,6 @@ def main(argv, doc=__doc__, usage=__usage__):
 
             set_.append(path)
 
-
         ctx.prefixes.map_[prefix] = set_
 
     ctx.pathrefs = ctx.prefixes.map_[ctx.opts.args.CTX]
@@ -475,10 +504,24 @@ def main(argv, doc=__doc__, usage=__usage__):
     #print pformat(ctx.prefixes.todict())
     #print pformat(ctx.pathrefs)
 
-    # Resolve arguments
+    # Preprocess filters to regex
+    if 'FILTER' not in ctx.opts.args:
+        ctx.opts.args.FILTER = []
+
+    if not ctx.opts.args.FILTER:
+        ctx.opts.args.FILTER = default_filters
+    if ctx.opts.flags.documents:
+        ctx.opts.args.FILTER = doc_filters + ctx.opts.args.FILTER
+    for idx, filter in enumerate(ctx.opts.args.FILTER):
+        if isinstance(filter, str):
+            ctx.opts.args.FILTER[idx] = fnmatch.translating(filter)
+
+    # Resolve FILE/DIR arguments
     files, dirs = [], []
     for arg in ctx.opts.args.FILE + ctx.opts.args.DIR:
-        prefix, file, dir = find_local(arg, search_path(ctx.pathrefs, ctx))
+        r = find_local(arg, search_path(ctx.pathrefs, ctx))
+        if not r: continue
+        prefix, file, dir = r
         if not dir:
             raise Exception("No path for %s" % arg)
         elif file:
@@ -486,46 +529,85 @@ def main(argv, doc=__doc__, usage=__usage__):
         else:
             dirs.append((prefix, dir))
 
-    # Resolve directories
-    if not ctx.opts.flags.directories:
+    print("Resolved arguments to %s dirs, %s files" % ( len(dirs), len(files) ))
+
+    # XXX: if not ctx.opts.flags.directories:
+
+    if ctx.opts.flags.recurse:
+        # Resolve all dirs to file lists
         for p, d in dirs:
-            for top, path_dirs, path_files in list(os.walk(os.path.join(p, d))):
+            for top, path_dirs, path_files in os.walk(os.path.join(p, d)):
+                for path_dir in list(path_dirs):
+                    for filter in ctx.opts.args.FILTER:
+                        if not filter.match(os.path.basename(path_dir)):
+                            path_dirs.remove(path_dir)
+                            break
+
                 if top.startswith('./'):
                     top = top[2:]
-                for path_file in path_files:
+
+                for path_file in list(path_files):
+                    filter = None
+                    for filter in ctx.opts.args.FILTER:
+                        if filter.match(os.path.basename(path_file)):
+                            break
+                        else:
+                            continue
+                    if not filter.match(os.path.basename(path_file)):
+                        path_files.remove(path_file)
+                    #print path_file, len(path_files), path_files
+                    #print path_file, filter.match(os.path.basename(path_file))
+                    if path_file not in path_files:
+                        continue
                     files.append((p, os.path.join(top, path_file)))
 
+    print("Continue with %s files" % len(files))
 
-    if ctx.opts.flags.auto_prefix:
-        prefix = None
-        prefixes = {}
+    mfadapter = None
+    res.persistence.PersistedMetaObject.stores['metafile'] = mfadapter
 
-        for p, f in files:
+
+    prefix = None
+    for p, f in files:
+
+        if ctx.opts.flags.auto_prefix:
+
             prefixes = find_prefixes(p, ctx)
-            assert prefixes
+            assert prefixes # FIXME: use first??
             prefix = prefixes.next()
             assert len(ctx.prefixes.map_[prefix]) == 1, prefix
+            name = f[len(ctx.prefixes.map_[prefix][0])+1:]
 
-            name = prefix+':'+f[len(ctx.prefixes.map_[prefix][0])+1:]
-            if ctx.opts.flags.update:
-                taxus_file = get_record(name, ctx)
-                # TODO: populate metadata;
-                print_record(taxus_file)
-            else:
-                print name
+        else:
+            prefix = ctx.opts.args.CTX
+            name = f[len(p)+1:]
 
-    else:
+        ref = prefix+':'+name
 
-        # Print references
-        prefix = ctx.prefixes.map.get(ctx.opts.args.CTX)
-        print ctx.opts.args.CTX, prefix
-        for p, f in files:
-            path = os.path.join(prefix, f)
+        if ctx.opts.flags.names_only:
+            print ref
+
+        else:
+
+            # TODO: get INode through context? add mediatype & parameters
+            record = taxus.INode.get_instance(name=f, _sa=ctx.sa)
+
             # GNU/Linux: -bi = --brief --mime
             # Darwin/BSD: -bI = --brief --mime
             #mediatype = lib.cmd('file --brief --mime "%s"', path).strip()
-            # XXX: see basename-reg
-            print ctx.opts.args.CTX+':'+f
+
+            # XXX: see basename-reg?
+
+            #if ctx.opts.flags.update == True:
+            # TODO: repopulate metadata;
+            if not record.node_id:
+                ctx.sa.add(record)
+
+            mf = res.metafile.Metafile(f)
+            #print_record(taxus_file)
+            if ctx.opts.flags.update:
+                ctx.sa.commit()
+
 
 
 def get_version():

@@ -81,6 +81,13 @@ class Workspace(Metadir):
             idcs[name] = idx
         return confparse.Values(idcs)
 
+    @classmethod
+    def find(self, *paths):
+        for idfile in Metadir.find_id(*paths):
+            yield os.path.dirname( os.path.dirname( idfile ))
+        for metafile in Metadir.find_meta(*paths):
+            yield os.path.dirname( metafile )
+
 
 class Homedir(Workspace):
 
@@ -130,12 +137,6 @@ class Volumedir(Workspace):
         else:
             path = ""
         return os.path.join(path, name)
-
-    @classmethod
-    def find(self, *paths):
-        for idfile in Metadir.find(*paths):
-            print idfile
-            yield os.path.dirname( os.path.dirname( idfile ))
 
 
 

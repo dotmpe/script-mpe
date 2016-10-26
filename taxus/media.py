@@ -83,4 +83,4 @@ class Mediameta(core.Node):
 
 
 
-models = [ Mediaformat, Mediatype, Genre, Mediameta ]
+models = [ Mediatype, MediatypeParameter, Genre, Mediameta ]

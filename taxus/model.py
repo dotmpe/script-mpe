@@ -57,19 +57,25 @@ class Relocated(web.Resource):
     temporary = Column(Boolean)
 
 
-class Volume(web.Resource):
-
-    # XXX: merge with res.Volume
+class Volume(core.Scheme):
 
     """
-    A particular storage of serialized entities,
-    as in a local filesystem or a blob store.
+    A packaged collection of resources. A particular storage of serialized
+    entities, as in a local filesystem (disk partition) or a blob store.
+
+    Volumes can be nested. TODO: express some types of nesting, ie. SCM, TAR,
+    other compositions.
+
+    Each volume may have its own local name access method, or not?
+
+    E.g. consider ``volume-16-4-boreas-brix:htdocs/main.rst`` or
+    ``htdocs-16-4-boreas-brix:main``. Both identify the index for Htdocs.
     """
 
     __tablename__ = 'volumes'
-    __mapper_args__ = {'polymorphic_identity': 'resource:volume'}
+    __mapper_args__ = {'polymorphic_identity': 'volume-name'}
 
-    volume_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
+    volume_id = Column('id', Integer, ForeignKey('schemes.id'), primary_key=True)
 
     #type_id = Column(Integer, ForeignKey('classes.id'))
     #store = relation(StorageClass, primaryjoin=type_id==StorageClass.id)

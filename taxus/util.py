@@ -2,10 +2,11 @@ import os
 import socket
 import types
 import re
+from datetime import datetime
 
 import zope.interface
 
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.ext import declarative
 from sqlalchemy.ext.declarative import api
 from sqlalchemy.orm.exc import NoResultFound
@@ -110,17 +111,6 @@ class ScriptMixin(SessionMixin):
 class RecordMixin(object):
 
     @classmethod
-    def get_instance(Klass, nid, session='default', sa=None):
-
-        """
-        """
-
-        if not sa:
-            sa = Klass.get_session(session)
-        q = sa.query(Klass).filter(Klass.__tablename__ + '.id == ' + nid)
-        return q.one()
-
-    @classmethod
     def fetch(Klass, filters=(), query=(), session='default', sa=None, exists=True):
 
         """
@@ -148,6 +138,33 @@ class RecordMixin(object):
                 raise e
 
         return rs
+
+    @classmethod
+    def fetch_instance(Klass, nid, session='default', sa=None):
+
+        """
+        """
+
+        if not sa:
+            sa = Klass.get_session(session)
+        q = sa.query(Klass).filter(Klass.__tablename__ + '.id' == nid)
+        return q.one()
+
+    @classmethod
+    def get_instance(Klass, _session='default', _sa=None, **match_attrs):
+        filters = []
+        for attr in match_attrs:
+            filters.append(
+                    Klass.__name__+'.'+attr == match_attrs[attr]
+                )
+        rec = Klass.fetch(filters, sa=_sa, session=_session, exists=False)
+        if not rec:
+            # FIXME: proper init per type, ie INode a/c/mtime
+            for attr in 'last_updated', 'date_added':
+                if attr not in match_attrs:
+                    match_attrs[attr] = datetime.now()
+            rec = Klass(**match_attrs)
+        return rec
 
     @classmethod
     def find(Klass, _sa=None, _session='default', _exists=False, **keys):

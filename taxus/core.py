@@ -99,13 +99,17 @@ class GroupNode(Node):
 
 class Folder(GroupNode):
 
+    """
+    A group-node with a shared title.
+    """
+
     __tablename__ = 'folders'
 
     __mapper_args__ = {'polymorphic_identity': 'folder'}
     folder_id = Column('id', Integer, ForeignKey('groupnodes.id'), primary_key=True)
 
     title_id = Column(Integer, ForeignKey('names.id'))
-    title = relationship(core.Name, primaryjoin=title_id==core.Name.name_id)
+    title = relationship('Name', primaryjoin='Folder.title_id==Name.name_id')
 
 
 class ID(SqlBase, ORMMixin):
@@ -168,9 +172,7 @@ class Name(Node):
 
     """
     A local unique name; title or human identifier.
-
     """
-
     __tablename__ = 'names'
     __mapper_args__ = {'polymorphic_identity': 'name'}
     name_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
@@ -180,6 +182,25 @@ class Name(Node):
 
     # XXX: contexts?
 
+
+class Scheme(Name):
+
+    """
+    Reserved names for Locator schemes.
+    """
+    __tablename__ = 'schemes'
+    __mapper_args__ = {'polymorphic_identity': 'scheme-name'}
+    scheme_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
+
+
+class Protocol(Scheme):
+
+    """
+    Reserved names for Locator schemes.
+    """
+    __tablename__ = 'protocols'
+    __mapper_args__ = {'polymorphic_identity': 'protocol-name'}
+    protocol_id = Column('id', Integer, ForeignKey('schemes.id'), primary_key=True)
 
 
 class Tag(Name):
@@ -231,27 +252,22 @@ doc_root_element_table = Table('doc_root_element', SqlBase.metadata,
 )
 
 class Document(Node):
+
     """
+    Document is an (invariant?) instance for a resource with a unique title,
+    and one specific location. Probably with a htdocs:volume: scheme
 
     XXX: see htd.TNode.
-
-    After INode and Resource, the most abstract representation of a (file-based)
-    resource in taxus.
-    A document comprises a set of elements in an unspecified further structure.
-
-    Systems may allow muxing or demuxing a document from or resp. to its
-    elements, Ie. the document object is interchangable by the set of its
-    elements (although Node attributes may not be accounted for).
-
-    sameAs
-        Incorporates sameAs from N3 to indicate references that may have
-        different access protocols but result in the same object
-        (properties/actions)?
     """
     __tablename__ = 'docs'
     __mapper_args__ = {'polymorphic_identity': 'doc'}
+
     doc_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-#    elements = relationship('Element', secondary=doc_root_element_table)
+
+    title_id = Column('title_id', Integer, ForeignKey('names.id'))
+    title = relationship(Name, primaryjoin='Document.title_id==Name.name_id')
+
+    #elements = relationship('Element', secondary=doc_root_element_table)
 
 
 #class ReCoDoc(Document):

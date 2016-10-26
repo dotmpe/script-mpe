@@ -128,7 +128,7 @@ def cmd_get(REF, settings):
     #print Node.byKey(dict(cllct_id=REF))
     #print Node.byName(REF)
     Root, nid = Node.init_ref(REF)
-    print Root.get_instance(nid, sa=sa)
+    print Root.fetch_instance(nid, sa=sa)
 
 def cmd_new(NAME, settings):
     sa = Node.get_session('default', settings.dbref)
