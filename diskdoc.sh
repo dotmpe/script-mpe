@@ -473,7 +473,7 @@ diskdoc__ids()
 # ----
 
 
-diskdoc__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+diskdoc_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 diskdoc_load__help=f
 diskdoc_spc__help='-h|help [ID]'
 diskdoc__help()

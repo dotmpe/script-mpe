@@ -7,7 +7,7 @@ set -e
 version=0.0.2-dev # script-mpe
 
 
-pd__man_1_version="Version info"
+pd_man_1__version="Version info"
 pd__version()
 {
   echo "$(cat $scriptdir/.app-id)/$version"
