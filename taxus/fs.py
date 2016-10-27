@@ -68,6 +68,10 @@ class INode(core.Name):
     #host_id = Column(Integer, ForeignKey('hosts.id'))
     #host = relationship(net.Host, primaryjoin=net.Host.host_id==host_id)
 
+    date_created = Column(DateTime, index=True, nullable=True)
+    date_accessed = Column(DateTime, index=True, nullable=False)
+    date_modified = Column(DateTime, index=True, nullable=False)
+
     locators = relationship('Locator', secondary=inode_locator_table)
 
     Dir = 'inode:dir'

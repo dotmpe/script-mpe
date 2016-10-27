@@ -1,3 +1,4 @@
+from datetime import datetime
 from fnmatch import fnmatch
 import os
 from os.path import join
@@ -88,12 +89,18 @@ class INode(object):
         if not isinstance(path, basestring) and hasattr(path, 'path'):
             path = path.path
         st = os.stat(path)
-        return {
-                'atime': st.st_atime,
-                'ctime': st.st_ctime,
-                'mtime': st.st_mtime,
-                'x_attr': get_fs_xattr(path)
+        d = {
+                'date_accessed': datetime.fromtimestamp(st.st_atime),
+                'date_modified': datetime.fromtimestamp(st.st_mtime),
+                'extended_attributes': get_fs_xattr(path),
+                'date_metadata_update': None,
+                'date_created': None
             }
+        if os.uname() in ( 'Linux', 'Darwin' ):
+            d['date_metadata_update'] = datetime.fromtimestamp(st.st_ctime)
+        elif os.uname() in ( 'Windows', ):
+            d['date_created'] = datetime.fromtimestamp(st.st_ctime)
+        return d
 
 
 def get_fs_xattr(fn):

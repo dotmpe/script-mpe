@@ -160,9 +160,10 @@ class RecordMixin(object):
         rec = Klass.fetch(filters, sa=_sa, session=_session, exists=False)
         if not rec:
             # FIXME: proper init per type, ie INode a/c/mtime
-            for attr in 'last_updated', 'date_added':
-                if attr not in match_attrs:
+            for attr in 'date_updated', 'date_added':
+                if attr not in match_attrs or not match_attrs[attr]:
                     match_attrs[attr] = datetime.now()
+
             rec = Klass(**match_attrs)
         return rec
 

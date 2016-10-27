@@ -75,7 +75,7 @@ def cmd_info(settings):
 def cmd_list(settings):
     sa = Node.get_session('default', settings.dbref)
     for t in Node.all():
-        print t, t.date_added, t.last_updated
+        print t, t.date_added, t.date_updated
 
 def cmd_get(REF, settings):
 

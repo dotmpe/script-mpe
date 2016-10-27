@@ -555,8 +555,6 @@ def main(argv, doc=__doc__, usage=__usage__):
                             continue
                     if not filter.match(os.path.basename(path_file)):
                         path_files.remove(path_file)
-                    #print path_file, len(path_files), path_files
-                    #print path_file, filter.match(os.path.basename(path_file))
                     if path_file not in path_files:
                         continue
                     files.append((p, os.path.join(top, path_file)))
@@ -573,7 +571,7 @@ def main(argv, doc=__doc__, usage=__usage__):
         if ctx.opts.flags.auto_prefix:
 
             prefixes = find_prefixes(p, ctx)
-            assert prefixes # FIXME: use first??
+            assert prefixes # FIXME: how come only use first??
             prefix = prefixes.next()
             assert len(ctx.prefixes.map_[prefix]) == 1, prefix
             name = f[len(ctx.prefixes.map_[prefix][0])+1:]
@@ -588,23 +586,32 @@ def main(argv, doc=__doc__, usage=__usage__):
             print ref
 
         else:
-
-            # TODO: get INode through context? add mediatype & parameters
-            record = taxus.INode.get_instance(name=f, _sa=ctx.sa)
+            # TODO: get INode through context? Also add mediatype & parameters
+            # resolver. But needs access to finfo ctx..
+            record = taxus.INode.get_instance(name=ref, _sa=ctx.sa)
 
             # GNU/Linux: -bi = --brief --mime
             # Darwin/BSD: -bI = --brief --mime
             #mediatype = lib.cmd('file --brief --mime "%s"', path).strip()
-
             # XXX: see basename-reg?
 
             #if ctx.opts.flags.update == True:
+
             # TODO: repopulate metadata;
+
+            mf = res.metafile.Metafile(f)
+
+            assert mf.date_accessed
+            record.date_accessed = mf.date_accessed
+            assert mf.date_modified
+            record.date_modified = mf.date_modified
+
             if not record.node_id:
                 ctx.sa.add(record)
 
-            mf = res.metafile.Metafile(f)
-            #print_record(taxus_file)
+            print record, record.date_updated, record.date_modified
+            #sys.exit()
+
             if ctx.opts.flags.update:
                 ctx.sa.commit()
 

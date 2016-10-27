@@ -55,7 +55,7 @@ def print_Folder(folder):
                 folder.root,
 
                 str(folder.date_added).replace(' ', 'T'),
-                str(folder.last_updated).replace(' ', 'T'),
+                str(folder.date_updated).replace(' ', 'T'),
                 str(folder.date_deleted).replace(' ', 'T')
             )
         )

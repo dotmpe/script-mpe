@@ -58,7 +58,7 @@ def format_Topic_item(topic):
                 topic.about_id,
 
                 str(topic.date_added).replace(' ', 'T'),
-                str(topic.last_updated).replace(' ', 'T'),
+                str(topic.date_updated).replace(' ', 'T'),
                 str(topic.date_deleted).replace(' ', 'T')
             )
         )

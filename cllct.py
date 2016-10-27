@@ -61,7 +61,7 @@ def format_Space_item(space):
                 space.classes,
 
                 str(space.date_added).replace(' ', 'T'),
-                str(space.last_updated).replace(' ', 'T'),
+                str(space.date_updated).replace(' ', 'T'),
                 str(space.date_deleted).replace(' ', 'T')
             )
         )
@@ -158,7 +158,7 @@ def cmd_status(SCHEMA, settings):
         print session
         for model in schema.models:
             try:
-                print model, model.last_id(None, session)
+                print model, model.date_id(None, session)
             except Exception, e:
                 print e
 

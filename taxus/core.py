@@ -52,16 +52,17 @@ class Node(SqlBase, ORMMixin):
 #            foreign_keys=[space_id]
         )
 
-    date_added = Column(DateTime, index=True, nullable=False)
-    last_updated = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
+
+    date_added = Column(DateTime, index=True, nullable=False)
     date_deleted = Column(DateTime)
+    date_updated = Column(DateTime, index=True, nullable=False)
 
     def init_defaults(self):
         if not self.date_added:
-            self.last_updated = self.date_added = datetime.now()
-        elif not self.last_updated:
-            self.last_updated = datetime.now()
+            self.date_updated = self.date_added = datetime.now()
+        elif not self.date_updated:
+            self.date_updated = datetime.now()
 
     @classmethod
     def default_filters(Klass):
@@ -133,15 +134,15 @@ class ID(SqlBase, ORMMixin):
     """
 
     date_added = Column(DateTime, index=True, nullable=False)
-    last_updated = Column(DateTime, index=True, nullable=False)
+    date_updated = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
 
     def init_defaults(self):
         if not self.date_added:
-            self.last_updated = self.date_added = datetime.now()
-        elif not self.last_updated:
-            self.last_updated = datetime.now()
+            self.date_updated = self.date_added = datetime.now()
+        elif not self.date_updated:
+            self.date_updated = datetime.now()
 
     def __repr__(self):
         return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.global_id)

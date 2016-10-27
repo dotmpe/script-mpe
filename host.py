@@ -48,7 +48,7 @@ def cmd_init(settings):
     record = Host.fetch(filters=(Host.name == name,), sa=sa, exists=False)
     if not record:
         host = Host(name=name, date_added=datetime.now(),
-                last_updated=datetime.now())
+                date_updated=datetime.now())
         sa.add(host)
         sa.commit()
         log.std('{bwhite}Added host %s record{default}', name)

@@ -655,7 +655,7 @@ class Metadir(object):
     """ XXX:
 
         Metadir.item* -> Metafile path
-        .path -> fs.INode atime,ctime,mtime,x-attr
+        .path -> fs.INode date_accessed,date_metadata_update,date_modified,x-attr
         .path -> fs.File size
         .size -> Checksums.*,compression, encodings,,  Mediatype
         .mediatype -> MediatypeParameter parameters,charset,format,delsp
@@ -665,7 +665,7 @@ class Metadir(object):
 
     """
     resolvers = {
-            'path:fs.INode': "fs.INode.stat:atime,ctime,mtime,x_attr",
+            'path:fs.INode': "fs.INode.stat:date_accessed,date_metadata_update,date_modified,extended_attributes",
             'path:fs.Dir': "fs.Dir.dir_stat:file_count,dir_count",
             #'path:fs.File': "fs.File.data:data",
             #'data:Stream': "Mediatype.detect:mediatype",

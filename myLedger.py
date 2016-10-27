@@ -43,18 +43,18 @@ class Account(SqlBase, ORMMixin):
     account_type = Column('type', String)
 
     date_added = Column(DateTime, index=True, nullable=False)
-    last_updated = Column(DateTime, index=True, nullable=False)
+    date_updated = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
 
     def init_defaults(self):
         if not self.date_added:
-            self.last_updated = self.date_added = datetime.now()
-        elif not self.last_updated:
-            self.last_updated = datetime.now()
+            self.date_updated = self.date_added = datetime.now()
+        elif not self.date_updated:
+            self.date_updated = datetime.now()
 
     def __str__(self):
-        return "[Account %r #%s %s]" % ( self.name, 
+        return "[Account %r #%s %s]" % ( self.name,
                 self.iban or self.nl_number or self.nl_p_number,
                 self.account_type)
 
@@ -167,7 +167,7 @@ def get_session(dbref, initialize=False, metadata=SqlBase.metadata):
     engine = create_engine(dbref)
     metadata.bind = engine
     if initialize:
-        metadata.create_all()  # issue DDL create 
+        metadata.create_all()  # issue DDL create
         print 'Updated myLedger schema'
     session = sessionmaker(bind=engine)()
     return session
@@ -189,19 +189,19 @@ def fetch_expense_balance(settings, sa=None):
         sa = get_session(settings.dbref)
     expenses_acc = Account.all((Account.name.like(ACCOUNT_CREDIT+'%'),), sa=sa)
     balance, = sa.query(func.sum(Mutation.amount))\
-            .filter( Mutation.from_account.in_([ 
+            .filter( Mutation.from_account.in_([
                 acc.account_id for acc in expenses_acc ]) ).one()
     return expenses_acc, balance
 
 
 from collections import deque
- 
+
 class Simplemovingaverage():
     def __init__(self, period):
         assert period == int(period) and period > 0, "Period must be an integer >0"
         self.period = period
         self.stream = deque()
- 
+
     def __call__(self, n):
         stream = self.stream
         stream.append(n)    # appends on the right
@@ -213,7 +213,7 @@ class Simplemovingaverage():
             average = 0
         else:
             average = sum( stream ) / streamlength
- 
+
         return average
 
 

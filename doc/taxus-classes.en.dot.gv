@@ -69,7 +69,7 @@ digraph "doc_taxus_classes_en_dot" {
   //"media.Genre" -> "core.Name" [] ;
   "media.Mediameta" -> "core.Node" [] ;
 
-  "htd.TNode" -> "core.Node" ;
+  "htd.TNode" -> "core.Document" ;
   "htd.JournalNode" -> "htd.TNode" ;
 
 
