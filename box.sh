@@ -11,7 +11,7 @@ version=0.0.2-dev # script-mpe
 
 ### User commands
 
-box__man_1_commands="List all commands"
+box_man_1__commands="List all commands"
 box__commands()
 {
   choice_global=1 std__commands
@@ -21,7 +21,7 @@ box__als_c=commands
 
 
 # TODO: get a proper opt parser and do something like this:
-box__man_1_help="Box: Generic: Help
+box_man_1__help="Box: Generic: Help
 
   -h|help [<id>]      Print usage info, abbreviated command list and documentation
                       reference. Use 'help help', 'docs' or 'help docs' for
@@ -34,12 +34,12 @@ box__help()
 # XXX compile these from human readable cl-option docstring, provide bash
 #   auto-completion. Need to work out man5 and man7 stuff still. Save lot of
 #   clutter.
-box__man_1_help="Echo a combined usage, commands and docs"
+box_man_1__help="Echo a combined usage, commands and docs"
 box_spc__help="-h|help [<id>]"
 box_als___h="help"
 
 
-box__man_1_stat="Stat local host script file"
+box_man_1__stat="Stat local host script file"
 box_spc_stat="-S|stat"
 box__als__S=stat
 box__stat()
@@ -64,7 +64,7 @@ box__stat()
 }
 
 
-box__man_1_edit="Edit localscript and box script or abort. "
+box_man_1__edit="Edit localscript and box script or abort. "
 box_spc_edit="-e|edit [<name>:]<script>"
 box__edit()
 {
@@ -108,7 +108,7 @@ box__edit()
 box__als__e="edit"
 
 
-box__man_1_edit_main="Edit box script and local scripts. "
+box_man_1__edit_main="Edit box script and local scripts. "
 box_spc_edit_main="-E|edit-main"
 box__edit_main()
 {
@@ -265,7 +265,7 @@ box__function()
 box__als__f=function
 
 
-box__man_1_list="."
+box_man_1__list="."
 box_spc_list="list <Name>"
 box__list()
 {
@@ -280,7 +280,7 @@ box__list()
 box__als__l=list
 
 
-box__man_1_list_libs="List includes for script."
+box_man_1__list_libs="List includes for script."
 box_spc_list_libs="list-libs"
 box__list_libs()
 {
@@ -309,7 +309,7 @@ vs1_init_args_run()
   fi
 }
 
-box__man_1_run="Run local or global function.
+box_man_1__run="Run local or global function.
 
 For local, require localscript and exec. given function.
 "
@@ -372,11 +372,11 @@ box__run()
 }
 
 
-box__man_1_="Default: (local) run"
+box_man_1__="Default: (local) run"
 box__als__c=run
 
 
-box__man_1_complete="Testing bash complete with sh compatible script."
+box_man_1__complete="Testing bash complete with sh compatible script."
 box_spc_complete=complete
 box__complete()
 {
@@ -384,7 +384,7 @@ box__complete()
 }
 
 
-box__man_1_check_install="Run internal tests."
+box_man_1__check_install="Run internal tests."
 box_spc_check_install=check-install
 box__check_install()
 {

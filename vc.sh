@@ -698,7 +698,7 @@ vc__gitflags()
 }
 
 
-vc__man_1_ps1="Print VC status in the middle of PWD. ".
+vc_man_1__ps1="Print VC status in the middle of PWD. ".
 vc_run__ps1=x
 vc_spc__ps1="ps1"
 vc__ps1()
@@ -711,7 +711,7 @@ vc_C_exptime__ps1=0
 vc_C_validate__ps1="vc__mtime \$gtd"
 
 
-vc__man_1_screen="Print VC status in the middle of PWD. ".
+vc_man_1__screen="Print VC status in the middle of PWD. ".
 vc_run__screen=x
 vc_spc__screen="screen"
 vc__screen()
@@ -724,7 +724,7 @@ vc_C_exptime__screen=0
 vc_C_validate__screen="filemtime \$cwd"
 
 
-vc__man_1_mtime="Return last modification time for GIT head or stage"
+vc_man_1__mtime="Return last modification time for GIT head or stage"
 vc__mtime()
 {
   test -n "$1" || set -- "$gtd"
@@ -738,7 +738,7 @@ vc__mtime()
 }
 
 
-vc__man_1_flush="Delete all subcmd value caches"
+vc_man_1__flush="Delete all subcmd value caches"
 vc__flush()
 {
   for subcmd_ in ps1 stat
@@ -793,7 +793,7 @@ vc__list_submodules()
   #git submodule | cut -d ' ' -f 2
 }
 
-vc__man_1_gh="Clone from Github to subdir, adding as submodule if already in checkout. "
+vc_man_1__gh="Clone from Github to subdir, adding as submodule if already in checkout. "
 vc_spc__gh="gh <repo> [<prefix>]"
 vc__gh() {
   test -n "$1" || error "Need repo name argument" 1
@@ -883,7 +883,7 @@ vc__object_contents()
 
 ## List Exclude Patterns
 
-vc__man_1_excludes="List path ignore patterns"
+vc_man_1__excludes="List path ignore patterns"
 vc__excludes()
 {
   # (global) core.excludesfile setting

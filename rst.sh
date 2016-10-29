@@ -9,7 +9,7 @@ version=0.0.2-dev # script-mpe
 ### User commands
 
 
-c_rst__man_1_test="rst test? "
+c_rst_man_1__test="rst test? "
 c_rst__test()
 {
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
@@ -17,7 +17,7 @@ c_rst__test()
 }
 
 
-c_rst__man_1_date="Print date"
+c_rst_man_1__date="Print date"
 c_rst__date()
 {
     echo 1
@@ -62,7 +62,7 @@ c_rst__edit()
 }
 
 
-c_rst__man_1_version="Version info"
+c_rst_man_1__version="Version info"
 c_rst__version()
 {
   echo "box-rst/$version"

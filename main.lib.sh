@@ -176,7 +176,7 @@ try_subcmd()
 }
 
 
-std__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+std_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 std_spc__help='-h|help [ID]'
 std_als___h=help
 std__help()
@@ -186,8 +186,8 @@ std__help()
   test -z "$1" && {
 
     # Generic help (no args)
-    try_exec_func ${box_prefix}__usage $1 || std__usage $1
-    try_exec_func ${box_prefix}__commands || std__commands
+    try_exec_func ${box_prefix}__usage $1 || { std__usage $1; echo ; }
+    try_exec_func ${box_prefix}__commands || { std__commands; echo ; }
     try_exec_func ${box_prefix}__docs || noop
 
   } || {
@@ -252,16 +252,18 @@ std__commands()
       } || continue
     }
 
-    local subcmd_func_pref=${base}__
-    #echo "file=$file local-file=$local-file 0=$0"
+    local subcmd_func_pref=${base}_
+    #echo "file=$file local-file=$local_file 0=$0"
+
     if trueish "$cont"; then continue; fi
     #echo "line=$line subcmd_func_pref=$subcmd_func_pref cont=$cont"
 
-    func=$(echo $line | grep '^'${subcmd_func_pref} | sed 's/()//')
+    func=$(echo $line | grep '^'${subcmd_func_pref}_ | sed 's/()//')
     test -n "$func" || continue
 
-    func_name="$(echo "$func"| sed 's/'${subcmd_func_pref}'//')"
+    func_name="$(echo "$func"| sed 's/'${subcmd_func_pref}'_//')"
     spc=
+
     if test "$(expr_substr "$func_name" 1 7)" = "local__"
     then
       lcwd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\1/' | tr '_' '-')"
@@ -269,10 +271,10 @@ std__commands()
       test -n "$lcmd" || lcmd="-"
       #spc="* $lcmd ($lcwd)"
       spc="* $lcmd "
-      descr="$(eval echo "\$${subcmd_func_pref}man_1_$func_name")"
+      descr="$(eval echo "\$${subcmd_func_pref}man_1__$func_name")"
     else
-      spc="$(eval echo "\$${subcmd_func_pref}spc_$func_name")"
-      descr="$(eval echo "\$${subcmd_func_pref}man_1_$func_name")"
+      spc="$(eval echo "\$${subcmd_func_pref}spc__$func_name")"
+      descr="$(eval echo "\$${subcmd_func_pref}man_1__$func_name")"
     fi
     test -n "$spc" || spc=$(echo $func_name | tr '_' '-' )
     test -n "$descr" || {
@@ -280,13 +282,18 @@ std__commands()
         descr="$(func_comment $subcmd_func_pref$func_name $file)"
       } || noop
     }
-    printf "  %-25s  %-50s\n" "$spc" "$descr"
+
+    test ${#spc} -gt 20 && {
+      printf "  %-18s\n                      %-50s\n" "$spc" "$descr"
+    } || {
+      printf "  %-18s  %-50s\n" "$spc" "$descr"
+    }
   done
 }
 
 
 std_als___V=version
-std__man_1_version="Version info"
+std_man_1__version="Version info"
 std_spc__version="-V|version"
 std__version()
 {

@@ -7,7 +7,7 @@ set -e
 ### User commands
 
 
-disk__man_1_help="Usage help. "
+disk_man_1__help="Usage help. "
 disk_spc__help="-h|help"
 disk_als___h=help
 disk__help()
@@ -17,7 +17,7 @@ disk__help()
 }
 
 
-disk__man_1_edit="Edit $base script file plus arguments. "
+disk_man_1__edit="Edit $base script file plus arguments. "
 disk_spc__edit="-e|edit [<file>..]"
 disk__edit()
 {
@@ -48,7 +48,7 @@ disk__status()
     do
       test -e "$vol_dev" || error "No such volume device '$vol_dev'" 1
       mount=$(find_mount $vol_dev)
-      # FIXME: shomehow fstype is not showing up. Also, want part size/free 
+      # FIXME: shomehow fstype is not showing up. Also, want part size/free
       fstype="$(disk_partition_type "$vol_dev")"
       vol_idx=$(echo $vol_dev | sed -E 's/^.*([0-9]+)$/\1/')
       vol_id="$(disk_vol_info $disk_id-$vol_idx 2>/dev/null)"

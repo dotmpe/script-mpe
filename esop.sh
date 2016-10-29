@@ -8,7 +8,7 @@ set -e
 version=0.0.2-dev # script-mpe
 
 
-esop__man_1_version="Version info" # TODO: rewrite std__help to use try_value
+esop_man_1__version="Version info" # TODO: rewrite std__help to use try_value
 esop_man_1__version="Version info"
 esop__version()
 {

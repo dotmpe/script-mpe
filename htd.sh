@@ -378,14 +378,14 @@ htd__files()
   echo 'See dckr for container commands and vc for GIT related. '
 }
 
-htd__man_1_commands="List all commands"
+htd_man_1__commands="List all commands"
 htd__commands()
 {
   choice_global= choice_all=true std__commands
 }
 
 
-htd__man_1_help="Echo a combined usage, command and docs"
+htd_man_1__help="Echo a combined usage, command and docs"
 htd_spc__help="-h|help [<id>]"
 htd__help()
 {
@@ -401,7 +401,7 @@ htd__help()
 htd_als___h=help
 
 
-htd__man_1_version="Version info"
+htd_man_1__version="Version info"
 htd__version()
 {
   echo "$package_id/$version"
@@ -441,7 +441,7 @@ htd__expand()
 }
 
 
-htd__man_1_edit_main="Edit the main script file"
+htd_man_1__edit_main="Edit the main script file"
 htd_spc__edit_main="-E|edit-main"
 htd__edit_main()
 {
@@ -467,7 +467,7 @@ htd__edit_main()
 htd_als___E=edit-main
 
 
-htd__man_1_edit="Edit a local file, or abort"
+htd_man_1__edit="Edit a local file, or abort"
 htd_spc__edit="-e|edit <id>"
 htd__edit()
 {
@@ -482,7 +482,7 @@ htd__edit()
 htd_als___e=edit
 
 
-htd__man_1_find="Find a local file, or abort.
+htd_man_1__find="Find a local file, or abort.
 
 Searches every integrated source for a filename: volumes, repositories,
 archives. See 'search' for looking inside files. "
@@ -515,7 +515,7 @@ htd__find()
 htd_als___f=find
 
 
-htd__man_1_count="Look for doc and count. "
+htd_man_1__count="Look for doc and count. "
 htd_spc__count="count"
 htd__count()
 {
@@ -529,7 +529,7 @@ htd__count()
 }
 
 
-htd__man_1_find_doc="Look for document. "
+htd_man_1__find_doc="Look for document. "
 htd_spc__find_doc="-F|find-doc (<path>|<localname> [<project>])"
 htd__find_doc()
 {
@@ -545,7 +545,7 @@ htd_als___F=find-doc
 
 
 
-htd__man_1_init="Shortcut for htd init"
+htd_man_1__init="Shortcut for htd init"
 htd_spc__init=""
 htd_run__init=fSm
 htd__init()
@@ -554,7 +554,7 @@ htd__init()
 }
 
 
-htd__man_1_check="Shortcut for htd check"
+htd_man_1__check="Shortcut for htd check"
 htd_spc__check=""
 htd_run__check=fSm
 htd__check()
@@ -574,7 +574,7 @@ htd__check()
 }
 
 
-htd__man_1_status=""
+htd_man_1__status=""
 htd_spc__status=""
 htd_run__status=fSm
 htd__status()
@@ -596,7 +596,7 @@ htd_als__stat=status
 
 
 
-htd__man_1_script="Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping of
+htd_man_1__script="Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping of
   scriptnames to script lines. "
 htd_spc__script=""
 htd_run__script=pSmr
@@ -642,7 +642,7 @@ htd__script()
   report=$status
 }
 
-htd__man_1_tools="Scan wether given binaries are installed. "
+htd_man_1__tools="Scan wether given binaries are installed. "
 htd_spc__tools="tools <tool-id>.."
 htd__tools()
 {
@@ -662,7 +662,7 @@ htd__tools()
   )
 }
 
-htd__man_1_install=""
+htd_man_1__install=""
 htd_spc__install=""
 htd__install()
 {
@@ -700,14 +700,14 @@ htd__installed()
 
 htd__man_5__htdignore_merged='Exclude rules used by `htd find|edit|count`, compiled from other sources using ``htd init-ignores``. '
 
-htd__man_1_init_ignores="Write all exclude rules to .htdignores.merged"
+htd_man_1__init_ignores="Write all exclude rules to .htdignores.merged"
 htd__init_ignores()
 {
   htd_init_ignores
 }
 
 
-htd__man_1_relative_path="Test for relative path"
+htd_man_1__relative_path="Test for relative path"
 htd__relative_path()
 {
   # TODO: maybe build relative path from 1 arg and cwd, or two args
@@ -718,7 +718,7 @@ htd__relative_path()
   echo relpath=$relpath
   exit $r
 }
-htd__man_1_relpath="Alias for 'relative-path'"
+htd_man_1__relpath="Alias for 'relative-path'"
 htd_als__relpath='relative-path'
 
 
@@ -1331,7 +1331,7 @@ htd_grep_line_exclude()
   #done
 }
 
-htd__man_1_build_todo_list="Build indented file of path/line/tag from FIXME: etc tagged
+htd_man_1__build_todo_list="Build indented file of path/line/tag from FIXME: etc tagged
 src files"
 htd__build_todo_list()
 {
@@ -2014,7 +2014,7 @@ htd__commit()
   echo -e
 }
 
-htd__man_1_run="Resolve and execute scripts. Separate multiple scripts with --. "
+htd_man_1__run="Resolve and execute scripts. Separate multiple scripts with --. "
 htd_run__run=f
 htd__run()
 {
@@ -2289,7 +2289,7 @@ htd__ck_table()
   }
 }
 
-htd__man_1_ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
+htd_man_1__ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
 htd_spc__ck_table_subtree="ck-tabke-subtree $ck_arg_spec <path>"
 htd__ck_table_subtree()
 {
@@ -2529,7 +2529,7 @@ htd__ck_consolidate()
 }
 
 # try to find files from .missing, or put them in .gone
-# XXX: htd__man_1_ck_clean="Iterate checksum table, check for duplicates, normalize paths"
+# XXX: htd_man_1__ck_clean="Iterate checksum table, check for duplicates, normalize paths"
 htd__ck_clean()
 {
   ck_write "$1"
@@ -2935,7 +2935,7 @@ htd__reader_update()
   done
 }
 
-htd__man_1_test="Project test in HTDIR"
+htd_man_1__test="Project test in HTDIR"
 htd__test()
 {
   test -n "$HTDIR" || error HTDIR 1
@@ -2945,7 +2945,7 @@ htd__test()
 htd_als___t=test
 
 
-htd__man_1_edit_test="edit-tests"
+htd_man_1__edit_test="edit-tests"
 htd__edit_test()
 {
   $EDITOR ./test/*-spec.bats
@@ -2953,7 +2953,7 @@ htd__edit_test()
 htd_als___T=edit-test
 
 
-htd__man_1_inventory="All inventories"
+htd_man_1__inventory="All inventories"
 htd__inventory()
 {
   test -e "$HTDIR/personal/inventory/$1.rst" && {
@@ -2966,7 +2966,7 @@ htd__inventory()
 }
 htd_als__inv=inventory
 
-htd__man_1_inventory_elecronics="Electr(on)ics inventory"
+htd_man_1__inventory_elecronics="Electr(on)ics inventory"
 htd__inventory_electronics()
 {
   set -- "personal/inventory/components.rst" \
@@ -3372,7 +3372,7 @@ htd__clean()
   $UCONFDIR/script/clean.sh || return $?
 }
 
-htd__man_1_clean_unpacked="Given archive, look for existing, possibly unpacked (direct) neighbour dirs
+htd_man_1__clean_unpacked="Given archive, look for existing, possibly unpacked (direct) neighbour dirs
 interactively delete, compare, or skip"
 htd__clean_unpacked()
 {
@@ -4243,9 +4243,9 @@ htd_argsv__backup=htd_backup_args
 htd_optsv__backup=htd_backup_opts
 
 
-htd__man_1_pack_create="Create archive for dir with ck manifest"
-htd__man_1_pack_verify="Verify archive with manifest, see that all files in dir are there"
-htd__man_1_pack_check="Check file (w. checksum) TODO:dir with archive manifest"
+htd_man_1__pack_create="Create archive for dir with ck manifest"
+htd_man_1__pack_verify="Verify archive with manifest, see that all files in dir are there"
+htd_man_1__pack_check="Check file (w. checksum) TODO:dir with archive manifest"
 htd_run__pack=i
 htd__pack()
 {
