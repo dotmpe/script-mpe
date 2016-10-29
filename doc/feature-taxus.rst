@@ -16,3 +16,7 @@ Python SQLAlchemy based command-line tools.
 .. image:: taxus-classes.en.dot
    :target: taxus-classes.en.dot
 
+
+See also `Resourcer <../Resourcer.rst>`_ for lower-level, non-SQL resource
+manipulation types. Possibly with binary blob stores.
+

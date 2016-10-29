@@ -1,7 +1,7 @@
 
-- `Branche and Directory Docs <../package.rst>`_
+- `Branche and Directory Docs <package.rst>`_
 
-- `Features <./features>`_
+- `Features <./features.rst>`_:
 
   - `Taxus <./feature-taxus>`_
   - `Projectdir <../projectdir.rst>`_
