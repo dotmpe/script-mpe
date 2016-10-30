@@ -759,7 +759,7 @@ pd_run()
         test -n "$comp_env" && {
           args="$(echo "$1" | cut -c$(( 5 + ${#comp_env} + ${#comp} ))-)"
         } || {
-          args="$(echo "$1" | cut -c$(( 4 + ${#comp} ))-)"
+          args="$(echo "$1" | cut -c$(( 5 + ${#comp} ))-)"
         }
 
 

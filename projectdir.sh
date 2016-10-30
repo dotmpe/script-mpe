@@ -21,6 +21,7 @@ pd__edit()
     $0 \
     $scriptdir/projectdir*sh \
     $scriptdir/projectdir-meta \
+    $scriptdir/meta.lib.sh \
     "$@"
 }
 pd_als___e=edit
