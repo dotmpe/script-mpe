@@ -45,9 +45,10 @@ XXX: These are not used by libcmd.load_config yet, subcommands can used them
 
 
 
-.. image:: ./doc/res-classes.en.dot.gv
+.. figure:: ./doc/res-classes.en.dot.gv
    :target: ./doc/res-classes.en.dot.gv
 
+   Python class diagram for inheritance and structure in module ``res``
 
 
 
