@@ -688,7 +688,9 @@ pd_run()
         info "Running Sh '$shcmd' ($1)"
         (
           unset $pd_inputs $pd_inputs
-          unset verbosity pd_inputs pd_outputs pd_session_id subcmd
+          export \
+            base= func_name= func_exists= subcmd_func= \
+            verbosity= pd_inputs= pd_outputs= pd_session_id= subcmd=
 
           sh -c "$shcmd"
           # XXX:
