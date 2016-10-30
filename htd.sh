@@ -48,7 +48,8 @@ htd_load()
   _14MB=14680064
   _6MB=7397376
   _5k=5120
-  test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
+  test -n "$MIN_SIZE" || MIN_SIZE=1
+  #test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
 
   TODAY=+%y%m%d0000
   _1HR_AGO=+%y%m%d0000
@@ -81,7 +82,8 @@ htd_load()
   ns_tab=$HOME/.conf/namespace/$hostname.tab
 
   ignores_load
-  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" || error "expected $base ignore dotfile" 1
+  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" \
+    || error "expected $base ignore dotfile" 1
   lst_init_ignores
   #match_load_table vars
 
@@ -316,7 +318,7 @@ htd_commands()
   echo '  ck-update [ck|md5|sha1] (<path>) Iterate all files, and create checksum table records for unknown files'
   echo '  ck-drop [ck|mk5|sha1] <path>     Remove row for given path from checksum table'
   echo '  ck-validate [ck|md5|sha1]        Verify each file by generating and comparing its checksum'
-  echo '  ck-checksums [TABLE]             check file size and cksum'
+  echo '  ck-cksum [TABLE]                 check file size and cksum'
   echo '  ck-prune                         Drop non-existant paths from table, copy to .missing'
   echo '  ck-clean [ck|md5|sha1]           TODO: iterate .gone table, and call ck-fix. Move gone checksum if file stays missing'
   echo '  ck-metafile                      TODO: consolidate meta files'
@@ -1844,7 +1846,7 @@ htd__rename()
 
 htd__check_names()
 {
-  htd_find_ignores
+  #htd_find_ignores
   test -z "$1" && d="." || { d="$1"; shift 1; }
   test -z "$1" && valid_tags="" || valid_tags="$1"
   test "${d: -1:1}" = "/" && d="${d:0: -1}"
@@ -2343,8 +2345,8 @@ ck_update_file()
     SZ="$(filesize "$update_file")"
   }
   test "$SZ" -ge "$MIN_SIZE" || {
-    trueish "$choice_ignore_small" \
-      || warn "File too small: $SZ"
+    # XXX: trueish "$choice_ignore_small" \
+    warn "File too small: $SZ"
     return
   }
   # test localname for SHA1 tag
@@ -2422,7 +2424,7 @@ ck_update_find()
     && warn "Failures: $T_CK '$1', $(count_lines $failed) targets" \
     || stderr ok "$T_CK '$1', $(count_lines $paths) files"
   rm -rf $paths
-  test -n "$failed_local" -o ! -e $failed || rm $failed
+  test -z "$failed" -o ! -e "$failed" || rm $failed
 }
 
 
@@ -2430,7 +2432,7 @@ ck_update_find()
 htd__ck_update()
 {
   test -n "$choice_ignore_small" || choice_ignore_small=1
-  htd_find_ignores
+  # XXX: htd_find_ignores
   ck_write "$1"
   shift 1
   test -n "$1" || set -- .
@@ -2444,19 +2446,19 @@ htd__ck_update()
       ck_update_find "$update_p" || return $?
       continue
     }
-    test -f "$1" && {
+    test -f "$update_p" && {
       note "Checking $T_CK for '$update_p'"
-      ck_update_file "$1" || return $?
+      ck_update_file "$update_p" || return $?
       continue
     }
-    test -L "$1"  &&  {
+    test -L "$update_p" && {
       note "Checking $T_CK for symlink '$update_p'"
-      ck_update_file "$1" || return 4
+      ck_update_file "$update_p" || return 4
       continue
     }
-    shift 1
+    warn "Failed updating '$(pwd)/$update_p'"
   done
-  test -z "$1" || error "Unknown path '$1'" 1
+  test -z "$1" || error "Aborted on missing path '$1'" 1
 }
 
 htd__ck_drop()
@@ -2473,30 +2475,47 @@ htd__ck_drop()
   rm table.$CK.tmp
 }
 
-htd_spc__ck_validate="ck-validate $ck_arg_spec"
+htd_spc__ck_validate="ck-validate $ck_arg_spec [FILE..]"
 htd__ck_validate()
 {
   ck_arg "$1"
   shift 1
   test "$CK" = "ck" && {
-    htd__checksums table.$CK
+    test -n "$1" && {
+      for update_file in "$@"
+      do
+        htd__ck_table "$CK" "$update_file" | htd__cksum -
+      done
+    } || {
+      htd__cksum table.$CK
+    }
   } || {
-    ${CK}sum -c table.$CK
+    test -n "$1" && {
+      for update_file in "$@"
+      do
+        htd__ck_table "$CK" "$update_file" | ${CK}sum -c -
+      done
+    } || {
+      # Chec entire current $CK table
+      ${CK}sum -c table.$CK 
+    }
   }
+  stderr ok "Validated files from table.$CK"
 }
 
 # check file size and cksum
-htd_spc__checksums="checksums [<table-file>]"
-htd__checksums()
+htd_spc__cksum="cksum [<table-file>]"
+htd__cksum()
 {
   test -n "$1"  && T=$1  || T=table.ck
+  test -z "$2" || error "Surplus cksum arguments: '$2'" 1
   cat $T | while read cks sz p
   do
     SZ="$(filesize "$p")"
     test "$SZ" = "$sz" || { error "File-size mismatch on '$p'"; continue; }
     CKS="$(cksum "$p" | awk '{print $1}')"
     test "$CKS" = "$cks" || { error "Checksum mismatch on '$p'"; continue; }
-    note "$cks ok"
+    note "$p cks ok"
   done
 }
 
@@ -2512,7 +2531,7 @@ htd__ck_prune()
   do
     test -e "$p" || {
       htd__ck_drop $CK "$p" \
-        && note "Dropped $CK key $cks for '$p'"
+        && note "TODO Dropped $CK key $cks for '$p'"
     }
   done
 }
@@ -4291,7 +4310,7 @@ htd__pack()
 
     #validate )
     #    test "$CK" = "ck" && {
-    #      htd__checksums table.$CK
+    #      htd__cksum table.$CK
     #    } || {
     #      ${CK}sum -c table.$CK
     #    }
