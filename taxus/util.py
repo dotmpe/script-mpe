@@ -154,10 +154,11 @@ class RecordMixin(object):
     def get_instance(Klass, _session='default', _sa=None, **match_attrs):
         filters = []
         for attr in match_attrs:
-            filters.append(
-                    Klass.__name__+'.'+attr == match_attrs[attr]
-                )
+            #filters.append( text(Klass.__name__+'.'+attr+" = %r" % match_attrs[attr]) )
+            filters.append( getattr(Klass, attr) == match_attrs[attr] )
+
         rec = Klass.fetch(filters, sa=_sa, session=_session, exists=False)
+
         if not rec:
             # FIXME: proper init per type, ie INode a/c/mtime
             for attr in 'date_updated', 'date_added':
