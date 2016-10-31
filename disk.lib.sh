@@ -224,6 +224,17 @@ find_mount()
   } || return $?
 }
 
+# Get device for mount point
+get_device()
+{
+  test -n "$1" || error "Mount point argument expected" 1
+  mountpoint -q "$1" || error "Mount point expected" 1
+  test -z "$2" || error "surplus arguments '$2'" 1
+  {
+    mount | grep 'on\ '$1 | cut -d ' ' -f 1
+  } || return $?
+}
+
 copy_fs()
 {
   test -n "$1" || error "Device or disk-id required" 1

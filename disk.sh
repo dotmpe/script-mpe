@@ -34,6 +34,7 @@ disk__edit()
 disk_als___e=edit
 
 
+disk_man_1_status="Print some information on currently mounted disks/partitions. "
 disk__status()
 {
   disk__list_local | grep -Ev '^\s*(#.*|\s*)$' | while\
@@ -73,8 +74,29 @@ disk__status()
   done
 }
 
+disk_man_1__id="Print the disk ID of a given device or path. "
+disk_spc__id="id [PATH|MOUNT|DEV]"
 disk__id()
 {
+  test -b "$1" || {
+    test -d "$1" && {
+      set -- "$(cd $1; pwd -P)"
+    } || {
+      error "Block device or directory expected"
+    }
+
+    # Set mount point
+    set -- "$( df -P "$1" | awk 'END{print $NF}' )"
+    note "Set mount point to '$1'"
+  }
+
+  test -b "$1" || {
+    mountpoint -q "$1" || error "Mount point expected" 1
+    # Set device
+    set -- "$(get_device $1)"
+    note "Set device to '$1'"
+  }
+
   disk_id "$1"
 }
 

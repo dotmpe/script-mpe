@@ -3975,13 +3975,16 @@ htd__srv_list()
             TRGT=$(mkvid "$target"; echo $vid)
             case "$target" in
               /mnt*|/media*|/Volumes* )
+
                   echo "$TRGT [ shape=box3d, label=\"$(basename "$target")\" ] ;"
                   echo "$NAME [ shape=tab, label=\"$name\" ] ;"
 
-                  TRGT_P=$(mkvid "$(dirname "$target")";echo $vid)
-                  echo "$TRGT_P [ shape=plaintext, label=\"$(dirname $target)\" ] ;"
+                  DISK="$(cd /srv; disk id $target)"
 
-                  echo "$TRGT -> $TRGT_P ; "
+                  #TRGT_P=$(mkvid "$(dirname "$target")";echo $vid)
+                  #echo "$TRGT_P [ shape=plaintext, label=\"$(dirname $target)\" ] ;"
+
+                  echo "$TRGT -> $DISK ; "
                   echo "$NAME -> $TRGT ; "
                   #[ label=\"$(basename "$target")\" ] ;"
                 ;;
