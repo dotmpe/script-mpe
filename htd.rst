@@ -62,6 +62,9 @@ htd
     settings, and more uniform entry. Kinda long term goal still.
     TODO: test in sandbox.
 
+  volumes
+    ..
+
 htd rule-target
   - annotate :case
   - extend

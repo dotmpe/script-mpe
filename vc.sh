@@ -145,8 +145,8 @@ vc__commands()
   echo '                     List the SHA1 sums of the largest objects.'
   echo '  path-for-object <sha1>'
   echo '                     Given SHA1 object, its current path.'
-	echo '  contains PATH CHECKOUT '
-	echo '                     Find any version of PATH in CHECKOUIT. '
+	echo '  contains REPO FILE'
+	echo '                     Find matching FILE content in REPO. '
 	echo '  list-objects       Verify all packages. '
 	echo '  object-contents    '
 	echo '  projects           XXX: list remotes in projectdir'
@@ -1051,6 +1051,7 @@ vc__annex_clear_unused()
   }
 }
 
+vc_man_1__contains="Find matching FILE content in REPO. Based on git hash-object. "
 vc_spc__contains="REPO FILE"
 vc__contains()
 {

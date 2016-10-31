@@ -48,8 +48,9 @@ htd_load()
   _14MB=14680064
   _6MB=7397376
   _5k=5120
-  test -n "$MIN_SIZE" || MIN_SIZE=1
-  #test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
+
+  #test -n "$MIN_SIZE" || MIN_SIZE=1
+  test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
 
   TODAY=+%y%m%d0000
   _1HR_AGO=+%y%m%d0000
@@ -244,6 +245,35 @@ htd_usage()
   echo 'Usage: '
   echo "  $scriptname <cmd> [<args>..]"
 }
+
+
+# Main aliases
+
+htd_als__init=pd-init
+#htd_als__install=install-tool
+htd_als__update=update-checksums
+#htd_als__check=pd-check
+htd_als__doctor=check
+htd__check()
+{
+  htd__find_empty || stderr ok "No empty files"
+  # TODO check (some) names htd_name_precaution
+  # TODO run check-files
+  # htd check-names
+  htd__ck_validate sha1
+}
+htd__fsck()
+{
+  htd__ck_validate sha1
+}
+
+htd__make()
+{
+  cd $HTDIR && make $*
+}
+htd_als__mk=make
+
+
 
 htd_commands()
 {
@@ -484,7 +514,7 @@ htd__edit()
 htd_als___e=edit
 
 
-htd_man_1__find="Find a local file, or abort.
+htd_man_1__find="Find file by name, or abort.
 
 Searches every integrated source for a filename: volumes, repositories,
 archives. See 'search' for looking inside files. "
@@ -546,20 +576,25 @@ htd__find_doc()
 htd_als___F=find-doc
 
 
+htd__volumes()
+{
+  htd__srv_list
+}
 
-htd_man_1__init="Shortcut for htd init"
-htd_spc__init=""
-htd_run__init=fSm
-htd__init()
+
+htd_man_1__pd_init="TODO: Shortcut for pd init"
+htd_spc__pd_init=""
+htd_run__pd_init=fSm
+htd__pd_init()
 {
   echo
 }
 
 
-htd_man_1__check="Shortcut for htd check"
-htd_spc__check=""
-htd_run__check=fSm
-htd__check()
+htd_man_1__pd_check="Shortcut for pd check in several dirs..."
+htd_spc__pd_check="pd-check"
+htd_run__pd_check=fSm
+htd__pd_check()
 {
   # Home
   local dirs="Desktop Downloads bin .conf"
@@ -771,20 +806,6 @@ htd__ns_resources()
   set --
 }
 
-
-htd__fsck()
-{
-  htd__ck_validate sha1
-}
-
-htd__make()
-{
-  cd $HTDIR && make $*
-}
-htd__mk()
-{
-  htd__make $*
-}
 
 # Run a sys-* target in the main htdocs dir.
 htd__make_sys()
@@ -1756,6 +1777,7 @@ htd__filesize()
 # XXX: a function to clean directories
 # TODO: hark back to statusdir?
 # TODO: notice deprecation marks
+htd_run__check_files=
 htd__check_files()
 {
   log "Looking for unknown files.."
@@ -1933,6 +1955,7 @@ htd__pcia()
   done
 }
 
+
 # Move path to archive path in htdocs cabinet
 # XXX: see backup.
 # $ archive [<prefix>]/[<datepath>]/[<id>] <refs>...
@@ -1941,6 +1964,29 @@ htd__archive()
   test -n "$1" || error "ID expected"
 }
 
+
+htd__file()
+{
+  file -s "$@"
+}
+
+
+htd_man_1__record="Retrieve, update or initalize record(s). "
+htd_spc__record="record [PATH]"
+htd__record()
+{
+  # TODO: Look at all services with .git or .meta/table
+
+  htd__services 
+
+  # Else record locally
+  test -e table.sha1 \
+    && htd__ck_table sha1 "$1" \
+    || {
+      touch table.sha1
+      htd__ck_update sha1 "$1"
+    }
+}
 
 
 ## Annex:
@@ -2162,11 +2208,16 @@ htd__name_tags_all()
   }
 }
 
-htd__update()
+
+htd_spc__update_checksums="update-checksums [TABLE_EXT]..."
+htd__update_checksums()
 {
+  test -n "$1" || set -- ck sha1 md5
   failed=$(setup_tmpf .failed)
-  for CK in ck sha1 md5
+  test $(echo table.*) != "table.*" || error "No tables" 1
+  for CK in $1
   do
+    test -e table.$CK || continue
     note "Updating $CK table..."
     htd__ck_prune $CK || echo "htd:update:ck-prune:$CK" >>$failed
     htd__ck_clean $CK || echo "htd:update:ck-prune:$CK" >>$failed
@@ -2270,14 +2321,14 @@ htd__ck_table()
         test "$CK" = "ck" && {
           cks=$ckline_1
           sz=$ckline_2
-          p=$ckline_3
+          p="$ckline_3"
         } || {
           cks=$ckline_1
-          p=$ckline_2
+          p="$ckline_2 $ckline_3"
         }
         echo "$cks  $p"
       done
-    } | column -tc 2
+    }
   } || {
     # look for single path
     htd_relative_path "$1"
@@ -3871,7 +3922,7 @@ htd__path_depth()
 
   while test -n "$1"
   do
-    path="$(htd normalize-relative "$1")"
+    path="$(htd__normalize_relative "$1")"
     #note "Depth for path $path"
     # Count dashes (except the trailing one)
     depth=$(echo $path | tr '/' ' ' | count_words)
@@ -3903,29 +3954,77 @@ htd__srv_init()
 
 # Volumes for services
 
+htd_man_1__srv_list="Print info to stdout, one line per symlink in /srv"
+htd_spc__srv_list="[DOT]"
 htd__srv_list()
 {
+  test -n "$verbosity" -a $verbosity -gt 5 || verbosity=6
+  set -- "$(echo $1 | str_upper)"
+  case "$1" in
+      DOT )  echo "digraph htd__srv_list { rankdir=RL; ";; esac
   for srv in /srv/*
   do
     test -h $srv || continue
     target="$(readlink $srv)"
     name="$(basename $srv -local)"
     depth=$(htd__path_depth "$target")
-        case "$target" in
-          /mnt*|/media*|/Volumes* )
-              note "Volume link '$name' to $target" ;;
-          * )
-              test $depth -eq 1 && {
-                info "Chain link '$name' to $target"
-              } || {
-                test $depth -gt 1 && {
-                  warn "Deep link '$name' to $target"
-                } || {
-                  info "Local link '$name' to $target"
-                }
-              } ;;
-        esac
+
+    case "$1" in
+        DOT ) 
+            NAME=$(mkvid "$name"; echo $vid)
+            TRGT=$(mkvid "$target"; echo $vid)
+            case "$target" in
+              /mnt*|/media*|/Volumes* )
+                  echo "$TRGT [ shape=box3d, label=\"$(basename "$target")\" ] ;"
+                  echo "$NAME [ shape=tab, label=\"$name\" ] ;"
+
+                  TRGT_P=$(mkvid "$(dirname "$target")";echo $vid)
+                  echo "$TRGT_P [ shape=plaintext, label=\"$(dirname $target)\" ] ;"
+
+                  echo "$TRGT -> $TRGT_P ; "
+                  echo "$NAME -> $TRGT ; "
+                  #[ label=\"$(basename "$target")\" ] ;"
+                ;;
+              *)
+                  echo "$NAME [ shape=folder, label=\"$name\"] ;"
+                  test $depth -eq 1 && {
+
+                    TRGT_P=$(mkvid "$(dirname "$target")";echo $vid)
+                    echo "$TRGT_P [ label=\"$(dirname "$target")\" ] ;"
+                    echo "$NAME -> $TRGT_P [ label=\"$(basename "$target")\" ] ;"
+                    info "Chain link '$name' to $target"
+                  } || {
+                    test $depth -gt 1 && {
+                      warn "Deep link '$name' to $target"
+                    } || {
+                      info "Neighbour link '$name' to $target"
+                      echo "$NAME -> $TRGT [style=dotted] ;"
+                    }
+                  } ;;
+            esac
+          #        echo "$(mkvid "$(dirname "$target")";echo $vid) [ label=\"$(dirname $target)\" ]; "
+          #        echo "$(mkvid "$(dirname "$target")";echo $vid) -> $TRGT ; "
+          ;;
+    esac
+
+    case "$target" in
+      /mnt*|/media*|/Volumes* )
+          note "Volume link '$name' to $target" ;;
+      * )
+          test $depth -eq 1 && {
+            info "Chain link '$name' to $target"
+          } || {
+            test $depth -gt 1 && {
+              warn "Deep link '$name' to $target"
+            } || {
+              info "Neighbour link '$name' to $target"
+            }
+          } ;;
+
+    esac
   done
+  case "$1" in
+      DOT )  echo "} // digraph htd__srv_list";; esac
 }
 
 htd__srv_stat()

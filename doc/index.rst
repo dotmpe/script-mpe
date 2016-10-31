@@ -1,7 +1,12 @@
 
-- `Branche and Directory Docs <package.rst>`_
+Specs
+  - `Branche and Directory Docs <package.rst>`_
+  - `finfo </test/finfo-spec.rst>`_
+  - `Pd </test/pd-spec.rst>`_
+  - `Htd </htd.rst>`_
 
-- `Features <./features.rst>`_:
+`Features <./features.rst>`_:
+  ..
 
   - `Taxus <./feature-taxus>`_
   - `Projectdir <../projectdir.rst>`_
