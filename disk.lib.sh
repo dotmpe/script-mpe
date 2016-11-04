@@ -84,12 +84,12 @@ disk_local_inner()
   while test -n "$1"
   do
     case $(str_lower $1) in
-      num ) disk_info $disk disk_index ;;
-      dev ) printf -- "$disk " ;;
-      disk_id ) disk_id $disk ;;
+      num ) disk_info $disk disk_index || return $?;;
+      dev ) printf -- "$disk " || return $?;;
+      disk_id ) disk_id $disk || return $?;;
       disk_model ) disk_model $disk | tr ' ' '-';;
-      size ) disk_size $disk ;;
-      table_type ) disk_tabletype $disk ;;
+      size ) disk_size $disk || return $?;;
+      table_type ) disk_tabletype $disk || return $?;;
       mnt_c ) find_mount $disk | count_words ;;
     esac
     shift
@@ -100,11 +100,13 @@ disk_local_inner()
 #NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT
 disk_local()
 {
-  local disk=$1; shift
-  echo $(disk_local_inner "$@")
+  local disk=$1 failed=$(setup_tmpf .failed)
+  shift
+  echo $(disk_local_inner "$@" || echo "disk-local:$1:$2">>$failed)
 
-  return
+  test ! -e "$failed" -o -s "$failed" && return 1 || return 0
 
+  # XXX:
   echo $first $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) \
     $(disk_tabletype $1) $(find_mount $1 | count_words)
 
@@ -199,7 +201,7 @@ mount_tmp()
 {
   test -n "$1" || error "Device or disk-id required" 1
   tmpd
-  echo sudo mount $1 $tmpd || return $?
+  sudo mount $1 $tmpd || return $?
   note "Mounted $1 at $tmpd"
   export tmp_mnt=$tmpd
 }
@@ -228,10 +230,10 @@ find_mount()
 get_device()
 {
   test -n "$1" || error "Mount point argument expected" 1
-  mountpoint -q "$1" || error "Mount point expected" 1
+  mountpoint "$1" >/dev/null || error "Mount point expected" 1
   test -z "$2" || error "surplus arguments '$2'" 1
   {
-    mount | grep 'on\ '$1 | cut -d ' ' -f 1
+    mount | grep 'on\ '"$1" | cut -d ' ' -f 1
   } || return $?
 }
 
@@ -264,7 +266,7 @@ disk_info()
     set -- $(disk_id $1) $2
   }
   test -e "$DISK_CATALOG/disk/$1.sh" \
-    || error "No such known disk $1" 1
+    || { error "No such known disk $1"; return 1; }
   . $DISK_CATALOG/disk/$1.sh
   eval echo \$$2
 }
@@ -395,5 +397,9 @@ disk_catalog_import()
   )
   info "Imported '$1'"
 }
+
+
+
+
 
 

@@ -19,10 +19,10 @@ teardown() {
 }
 
 
-@test "$bin - no arguments prints paths in current prefix" {
+@test "$bin - no arguments prints usage" {
 
   run $bin
-  test $status -eq 0
+  test $status -eq 1
 }
 
 

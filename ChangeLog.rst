@@ -30,9 +30,8 @@ Change Log
 
 (0.0.2)
   - Developing Travis builds.
-
   - Refactoring Taxus schema for finfo.py.
-
+  - 247 tests, 2 failures, 29 todo, 21 skipped (Boreas)
   - TODO: radical broken after 449ea4f, fork and build unittest
 
 

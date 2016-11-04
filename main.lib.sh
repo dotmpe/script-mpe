@@ -64,12 +64,6 @@ try_local()
   echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
 }
 
-try_local_var()
-{
-  local name=$(try_local "$@")
-  var_isset $name || return $?
-}
-
 try_value()
 {
   local value="$(eval echo "\$$(try_local "$@")")"

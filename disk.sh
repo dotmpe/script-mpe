@@ -18,7 +18,7 @@ disk__help()
 
 
 disk_man_1__edit="Edit $base script file plus arguments. "
-disk_spc__edit="-e|edit [<file>..]"
+disk_spc__edit="-e|edit \[<file>..]"
 disk__edit()
 {
   $EDITOR \
@@ -34,7 +34,7 @@ disk__edit()
 disk_als___e=edit
 
 
-disk_man_1_status="Print some information on currently mounted disks/partitions. "
+disk_man_1__status="Print some information on currently mounted disks/partitions. "
 disk__status()
 {
   disk__list_local | grep -Ev '^\s*(#.*|\s*)$' | while\
@@ -80,7 +80,7 @@ disk__id()
 {
   test -b "$1" || {
     test -d "$1" && {
-      set -- "$(cd $1; pwd -P)"
+      set -- "$(cd "$1"; pwd -P)"
     } || {
       error "Block device or directory expected"
     }
@@ -91,20 +91,25 @@ disk__id()
   }
 
   test -b "$1" || {
-    mountpoint -q "$1" || error "Mount point expected" 1
+    mountpoint "$1" >/dev/null || error "Mount point expected" 1
+
     # Set device
-    set -- "$(get_device $1)"
+    set -- "$(get_device "$1")"
     note "Set device to '$1'"
   }
 
   disk_id "$1"
 }
 
+disk_man_1__fdisk_id="Print ID as reported by fdisk"
+disk_spc__fdisk_id="fdisk-id DEV"
 disk__fdisk_id()
 {
   disk_fdisk_id "$1"
 }
 
+disk_man_1__rename_old="Rename fdisk catalog entry to one based on disk serial \
+  number (Not good enough for some OEM SD cards)"
 disk__rename_old()
 {
   for disk in /dev/sd*[a-z]
@@ -120,6 +125,7 @@ disk__rename_old()
   done
 }
 
+disk_man_1__get_by_id="Only on *nix/systems with /dev/disk tree."
 disk__get_by_id()
 {
   test "$(echo /dev/disk/by-id/*$1)" = "/dev/disk/by-id/*$1" \
@@ -130,20 +136,22 @@ disk__get_by_id()
   done
 }
 
+
+disk_man_1__prefix="Print disk mount name prefix. "
+disk_spc__prefix="prefix DEV"
 disk__prefix()
 {
   test -n "$1" || error "disk expected" 1
   disk_info $1 prefix
 }
 
-# Get single attribute from catalog disk record by DISK_ID KEY
+disk_man_1__info="Get single attribute from catalog disk record by DISK_ID KEY"
 disk__info()
 {
   disk_info "$@"
 }
 
-
-# Show disk info TODO: test this works at every platform
+disk_man_1__local="Show disk info TODO: test this works at every platform"
 disk__local()
 {
   test -n "$1" || set -- $(disk_list)
@@ -152,35 +160,33 @@ disk__local()
     {
       while test -n "$1"
       do
-        disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C
+        disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C \
+          || echo "disk:local:$1" >>$failed
         shift
       done
     } | sort -n
   } | column -tc 3
 }
+disk_run__local=f
 
+disk_man_1__list_local="Tabulate disk info for local disks (e.g. from /dev/)"
+disk_spc__list_local=list-local
 disk__list_local()
 {
-  {
-    echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
-    disk_list | while read disk
-    do
-      disk_local $disk NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C \
-        | grep -Ev '^\s*(#.*|\s*)$'
-    done
-  } | sort -n | column -tc 3
-  echo "# Disks at $(hostname), $(datetime_iso)"
+  disk__local || return && echo "# Disks at $(hostname), $(datetime_iso)"
 }
+disk_run__list_local=f
 #disk__list_local()
 #{
 #  disk_list
 #}
+disk_man_1__list_local="Print info for local partitions"
 disk__list_part_local()
 {
   disk_list_part_local
 }
 
-# Tabulate disks, and where they are (from catalog)
+disk_man_1__list="Tabulate disks, and where they are (from catalog)"
 disk__list()
 {
   {
@@ -202,12 +208,14 @@ disk__list()
 }
 
 
+disk_man_1__enable="TODO"
 disk__enable()
 {
   note Done
 }
 
 
+disk_man_1__enable_volumes="TODO"
 disk__enable_volumes()
 {
   note "TODO: enable volumes"
@@ -215,30 +223,36 @@ disk__enable_volumes()
 }
 
 
+disk_man_1__load_catalog="TODO"
 disk__load_catalog()
 {
   note "Loaded '$disk_id'"
 }
 
 
+disk_man_1__import_catalog="TODO"
 disk__import_catalog()
 {
   note "Imported '$disk_id' ($x volumes)"
 }
 
 
+disk_man_1__mount="TODO"
 disk__mount()
 {
   note "Mounted '$1' at '$3'"
 }
 
 
+disk_man_1__mount_tmp="Temporarily mount given device. "
+disk_spc__mount_tmp="mount-tmp DEV"
 disk__mount_tmp()
 {
-  note "Mounted '$1' at temp '$3'"
+  mount_tmp "$1"
 }
 
 
+disk_man_1__copy_fs="Temporarily mount FS, copy path, and unmount. "
 disk__copy_fs()
 {
   test -n "$1" || error "Device or disk-id required" 1
@@ -250,8 +264,10 @@ disk__copy_fs()
   note "Copied '$2' to '$3'"
 }
 
-# Return wether disk catalog looks up to date;
-# ie. wether current catalog matches with available disks
+disk_man_1__check="
+Return wether disk catalog looks up to date;
+ie. wether current catalog matches with available disks
+"
 disk__check()
 {
   {
@@ -260,8 +276,10 @@ disk__check()
   } > ~/.conf/disk/$hostname.txt
 }
 
-# FIXME: check only, see init/update
-# Sort of wizard, check/init vol(s) interactively for current disks
+disk_man_1__check_all="
+FIXME: check only, see init/update
+Sort of wizard, check/init vol(s) interactively for current disks
+"
 disk__check_all()
 {
   #note "Got r00t?"
@@ -320,6 +338,7 @@ disk__check_all()
   echo
 }
 
+disk_man_1__update_all="TODO: disk update-all"
 disk__update_all()
 {
   echo
@@ -343,7 +362,7 @@ disk_load()
   mkdir -p $DISK_CATALOG/disk
   mkdir -p $DISK_CATALOG/volume
 
-  for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
   do case "$x" in
 
       f )
@@ -373,19 +392,8 @@ disk_init()
   box_run_sh_test
   . $scriptdir/main.lib.sh
   . $scriptdir/main.init.sh
-  #while test $# -gt 0
-  #do
-  #  case "$1" in
-  #      -v )
-  #        verbosity=$(( $verbosity + 1 ))
-  #        incr_c
-  #        shift;;
-  #  esac
-  #done
-  . $scriptdir/disk.lib.sh "$@"
-  . $scriptdir/date.lib.sh
-  . $scriptdir/match.lib.sh
-  . $scriptdir/vc.sh load-ext
+  #. $scriptdir/vc.sh load-ext
+  lib_load htd meta box date doc table disk remote match
   test -n "$verbosity" || verbosity=6
   # -- disk box init sentinel --
 }

@@ -57,12 +57,14 @@ test -n "$device_id" || device_id=disk-id
 }
 
 @test "${bin} mount $device_id" {
+  trueish "$test_disk_mount" || skip "Toggled by test_disk_mount"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*mount*Mounted*at*" "${lines[*]}"
 }
 
 @test "${bin} mount-tmp $device_id" {
+  trueish "$test_disk_mount" || skip "Toggled by test_disk_mount"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*mount-tmp*Mounted*at temp*" "${lines[*]}"

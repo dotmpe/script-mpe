@@ -1769,6 +1769,14 @@ htd__find_empty()
   eval find . $find_ignores -o -size 0 -a -print
 }
 
+htd__find_largest()
+{
+  test -n "$1" || set -- 15
+  # FIXME: find-ignores
+  test -n "$find_ignores" || find_ignores="-not -iname .git "
+  eval find . \\\( $find_ignores \\\) -a -size +${MIN_SIZE}c -a -print | head -n $1
+}
+
 htd__filesize()
 {
   filesize "$1"
@@ -2292,7 +2300,8 @@ htd__ck_init()
 {
   test -n "$ck_tab" || ck_tab=table
   test -n "$1" || set -- ck
-  touch $ck_tab.$CK
+  touch $ck_tab.$1
+  ck_arg "$1"
   shift 1
   htd__ck $ck_tab.$CK "$@"
 }
@@ -4567,7 +4576,7 @@ htd_main()
 {
   local scriptname=htd base=$(basename $0 .sh) \
     scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
-    failed=
+    subcmd= failed=
 
   htd_init || exit $?
 

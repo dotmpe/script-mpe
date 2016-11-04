@@ -84,6 +84,18 @@ is_skipped()
   return 1
 }
 
+trueish()
+{
+  test -n "$1" || return 1
+  case "$1" in
+		[Oo]n|[Tt]rue|[Yyj]|[Yy]es|1)
+      return 0;;
+    * )
+      return 1;;
+  esac
+}
+
+
 
 ### Misc. helper functions
 

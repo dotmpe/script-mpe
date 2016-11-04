@@ -135,14 +135,12 @@ version=0.0.2-dev # script-mpe
   #   also, may want to have larger offsets and wider time-windows: months, years
 
   rm -rf bats-test-log
-  rm -rf journal
+  rm -rf journal || noop
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 1
 
   fnmatch "*Error*Dir *$BATS_TMPDIR/journal must exist*" "${lines[*]}"
-  test "${#lines[@]}" = "2" \
-    || fail "Output: ${lines[*]}"
 }
 
 @test "$bin rewrite and test to new main.lib.sh" {
@@ -367,11 +365,11 @@ EOM
   test ${status} -eq 0
   fnmatch "*Adding dir '.'*" "${lines[*]}" \
     || fail "Output: ${lines[*]}"
-  test ${#lines[@]} -eq 3 \
-    || {
-      diag "Output: ${lines[*]}"
-      fail "Line count: ${#lines[@]}"
-    }
+
+  fnmatch "*ck-init*Adding dir '.'*" "${lines[*]}" \
+    || fail "Output: ${lines[*]}"
+  fnmatch "*ck-init*Updated CK table 'table.ck'*" "${lines[*]}" \
+    || fail "Output: ${lines[*]}"
 }
 
 @test "$bin update (ck-prune, ck-clean, ck-update)" {
