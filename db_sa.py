@@ -185,6 +185,8 @@ if __name__ == '__main__':
     if opts.flags.dbref == __db__:
         if hasattr(schema, '__db__'):
             opts.flags.dbref = schema.__db__
+
+    if ':/' not in opts.flags.dbref: # FIXME: scan for uri properly (regex)
         opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
         print opts.flags.dbref
 
