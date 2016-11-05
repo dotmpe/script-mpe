@@ -675,6 +675,16 @@ def load_all(names, alt_paths=path_prefixes, prefixes=name_prefixes,
 _ = Values()
 
 
+def haspath(obj, attrs):
+    path = attrs.split('.')
+    while path:
+        attr = path.pop(0)
+        if not hasattr(obj, attr):
+            return False
+        obj = getattr(obj, attr)
+    return True
+
+
 # XXX: testing
 if __name__ == '__main__':
     configs = list(expand_config_path('cllct.rc'))
