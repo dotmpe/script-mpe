@@ -23,15 +23,15 @@ class SessionMixin(object):
     sessions = {}
 
     @staticmethod
-    def get_session(name='default', dbref=None, init=False):
+    def get_session(name='default', dbref=None, init=False, SqlBase=SqlBase):
         if name not in SessionMixin.sessions:
             assert dbref, "session does not exists: %s" % name
-            session = get_session(dbref, init)
+            session = get_session(dbref, init, metadata=SqlBase.metadata)
             #assert session.engine, "new session has no engine"
             SessionMixin.sessions[name] = session
         else:
             session = SessionMixin.sessions[name]
-            #assert session.engine, "existing session does not have engine"
+            assert session.engine, "existing session does not have engine"
         return session
 
 
