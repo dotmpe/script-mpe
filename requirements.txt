@@ -8,4 +8,5 @@ zope.interface
 twisted
 sqlalchemy
 docutils
-
+xattr
+pbPlist
