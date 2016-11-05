@@ -4,7 +4,7 @@ lst_src="$_"
 
 set -e
 
-version=0.0.2 # script-mpe
+version=0.0.3-dev # script-mpe
 
 
 lst_man_1__version="Version info"

@@ -9,7 +9,7 @@ TODO: create all nodes; name, description, hierarchy and dump/load json/xml
     files in ~/htdocs/note/*.rst
 """
 __description__ = "topic - "
-__version__ = '0.0.2' # script-mpe
+__version__ = '0.0.3-dev' # script-mpe
 __db__ = '~/.topic.sqlite'
 __usage__ = """
 Usage:

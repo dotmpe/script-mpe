@@ -2,7 +2,7 @@
 """host -
 :created: 2015-06-29
 """
-__version__ = '0.0.2' # script-mpe
+__version__ = '0.0.3-dev' # script-mpe
 __db__ = '~/.taxus-code.sqlite'
 __rc__ = '~/.domain.rc'
 __usage__ = """

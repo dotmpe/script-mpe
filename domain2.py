@@ -17,7 +17,7 @@ TODO: fully initialize settings for host without editing config by hand
 TODO: should record network domain names, use this with ifaces.
 FQDN are not used really, except to put the last known network/IP.
 """
-__version__ = '0.0.2' # script-mpe
+__version__ = '0.0.3-dev' # script-mpe
 __db__ = '~/.domain.sqlite'
 __rc__ = '~/.domain.rc'
 __usage__ = """
