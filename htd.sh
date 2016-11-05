@@ -22,6 +22,7 @@ htd_load()
   test -n "$HTD_GIT_REMOTE" || HTD_GIT_REMOTE=default
   test -n "$CWD" || CWD=$(pwd)
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
+  test -n "$TMPDIR" || TMPDIR=/tmp/
   test -n "$HTDIR" || HTDIR=$HOME/public_html
   test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE=$CWD/tools.yml
   test -n "$HTD_TOOLSDIR" || HTD_TOOLSDIR=$HOME/.htd-tools
@@ -617,16 +618,23 @@ htd_run__status=fSm
 htd__status()
 {
   test -n "$failed" || error failed 1
+  test -n "$CRON_LOG" || CRON_LOG=$TMPDIR/htd-cron.out 
+  test ! -e "$CRON_LOG" || {
+    warn "Cron error"
+    cat $CRON_LOG
+  }
   # TODO:
   #  global, local services
   #  disks, annex
   #  project tests, todos
   #  src, tools
-  ( cd ; pd st ) || echo "home" >> $failed
-  ( cd ~/project; pd st ) || echo "project" >> $failed
+
+  #( cd ; pd st ) || echo "home" >> $failed
+  #( cd ~/project; pd st ) || echo "project" >> $failed
   #( cd /src; pd st ) || echo "src" >> $failed
 
   #echo TODO:htd-status:$status "$@" | tee $failed
+  stderr ok "htd stat OK"
 }
 htd_als__st=status
 htd_als__stat=status
