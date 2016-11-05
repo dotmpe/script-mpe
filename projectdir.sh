@@ -15,6 +15,8 @@ pd__version()
 pd_als__V=version
 
 
+pd_man_1__edit="Edit script-files, append ARGS to EDITOR arguments. "
+pd_spc__edit="edit [ARGS]"
 pd__edit()
 {
   $EDITOR \
@@ -28,7 +30,7 @@ pd_als___e=edit
 
 
 pd_load__meta=y
-# Defer to python script for YAML parsing
+pd_man_1__meta="Defer to python script for YAML parsing"
 pd__meta()
 {
   test -n "$1" || set -- --background
@@ -63,15 +65,15 @@ pd__meta()
   $scriptdir/projectdir-meta -f $pd "$@" || return $?
 }
 
-# silent/quit; TODO should be able to replace with -sq
+pd_man_1__meta_sq="double silent/quiet; TODO should be able to replace with -sq"
 pd__meta_sq()
 {
   pd__meta "$@" >/dev/null || return $?
 }
 
 
-pd_spc__status='[ PREFIX | [:]TARGET ]...'
-# List prefixes and their state(s)
+pd_man_1__status="List prefixes and their state(s)"
+pd_spc__status='st|stat|status [ PREFIX | [:]TARGET ]...'
 pd__status()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
@@ -97,13 +99,9 @@ pd__status()
     trueish "$format_yaml" && {
 
       {
-        pd_fetch_status "$pd_prefix"
-        pd_fetch_status "$pd_prefix" | jsotk.py -I yaml -O json -
-
-        continue
-        # XXX: hack to format Pdoc status into something readable
+        # Read from tree, note status != 0 as failures.
         pd_fetch_status "$pd_prefix" | read_nix_style_file \
-          | jsotk.py -I yaml -O pkv - - | read_nix_style_file | tr '=' ' ' | while read var stat
+          | jsotk.py -I yaml -O pkv - | read_nix_style_file | tr '=' ' ' | while read var stat
         do
           test "$var" = "None" && continue
           test "$stat" = "None" && continue
@@ -265,7 +263,7 @@ pd__clean()
   esac
 }
 
-# drop clean checkouts and disable repository
+pd_man_1__disable_clean="drop clean checkouts and disable repository"
 pd__disable_clean()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
@@ -290,7 +288,7 @@ pd__disable_clean()
 }
 
 
-# Regenerate local package metadata files and scripts
+pd_man_1__regenerate="Regenerate local package metadata files and scripts"
 pd_load__regenerate=dfP
 #pd_load__regenerate=yfip
 pd__regenerate()
@@ -306,7 +304,7 @@ pd__regenerate()
 }
 
 
-# Given existing checkouts upate local scripts and then projdoc
+pd_man_1__update="Given existing checkouts upate local scripts and then projdoc"
 pd_load__update=yfP
 pd__update()
 {
@@ -335,7 +333,7 @@ pd__update()
   }
 }
 
-# Add/remove repos, update remotes at first level. git only.
+pd_man_1__updatE_all="Add/remove repos, update remotes at first level. git only."
 pd_load__update_all=yfb
 pd__update_all()
 {

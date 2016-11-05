@@ -629,7 +629,7 @@ htd__status()
   #  project tests, todos
   #  src, tools
 
-  #( cd ; pd st ) || echo "home" >> $failed
+  ( cd ; pd st ) || echo "home" >> $failed
   #( cd ~/project; pd st ) || echo "project" >> $failed
   #( cd /src; pd st ) || echo "src" >> $failed
 

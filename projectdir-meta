@@ -614,7 +614,7 @@ def H_status(pdhdata, ctx):
                 return 1
             prefixes += [ k ]
             update_status(v['status'])
-            ctx.out.write("   " + yaml_safe_dump(v['status'], default_flow_style=False).replace( '\n', '\n    ').strip() + "\n")
+            ctx.out.write("    " + yaml_safe_dump(v['status'], default_flow_style=False).replace( '\n', '\n    ').strip() + "\n")
 
     for k in prefixes:
         ok = ok and v['status']['result'] == 0
