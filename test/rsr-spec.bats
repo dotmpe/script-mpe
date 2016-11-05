@@ -21,7 +21,7 @@ init
 db_path=/srv/project-mpe/script-mpe/.cllct/cllct_2012.sqlite
 
 @test "${bin} --init-db" {
-  mkdir $(dirname $db_path)
+  test -e $(dirname $db_path) || mkdir $(dirname $db_path)
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   test -e $db_path

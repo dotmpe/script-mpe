@@ -312,7 +312,7 @@ class Rsr(libcmd.StackedCommand):
         session = Session.init(prog.pwd, opts.session)
         log.note('Session: %s', session)
 
-        if session.context:
+        if session.context and haspath(session.context, 'data.repository.root_dir'):
             prog.session = session
             yield dict(context=session.context)
             log.note('Context: %s', session.context)
