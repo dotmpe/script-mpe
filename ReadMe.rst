@@ -32,7 +32,9 @@ See also `.travis.yml`.
 Other documents
 ---------------
 - `Change Log <ChangeLog.rst>`_
+- `Bugs <Bugs.rst>`_
 - `Documentation <doc/>`_
+
 
 Dev
 ---

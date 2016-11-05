@@ -31,5 +31,6 @@ Change Log
 (0.0.2)
   Just testing travis builds.
 
+  - See Bugs.rst
 
 
