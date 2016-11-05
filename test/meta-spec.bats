@@ -6,7 +6,7 @@ init
 #pwd=$(cd .;pwd -P)
 
 
-version=0.0.2-dev # script-mpe
+version=0.0.2 # script-mpe
 
 @test "$bin no arguments no-op prints usage" {
   run $bin

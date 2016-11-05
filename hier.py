@@ -4,7 +4,7 @@
 """
 from __future__ import print_function
 __description__ = "hier - tag hierarchies"
-__version__ = '0.0.2-dev' # script-mpe
+__version__ = '0.0.2' # script-mpe
 __db__ = '~/.hier.sqlite'
 __usage__ = """
 Usage:

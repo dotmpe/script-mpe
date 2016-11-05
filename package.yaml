@@ -4,7 +4,7 @@
   main: script-mpe
   id: script-mpe
 
-  version: 0.0.2-dev # script-mpe
+  version: 0.0.2 # script-mpe
   environments: [ 'development' ]
 
   vendor: dotmpe

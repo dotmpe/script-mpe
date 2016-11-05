@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = '0.0.2-dev' # script-mpe
+__version__ = '0.0.2' # script-mpe
 __db__ = '~/.db.sqlite'
 __usage__ = """
 db_sa - SQLAlchemy DB init

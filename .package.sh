@@ -25,4 +25,4 @@ package_pd_meta_tasks_tags__4=NOTE
 package_pd_meta_test=":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats"
 package_type=application/vnd.dotmpe.project
 package_vendor=dotmpe
-package_version=0.0.2-dev
+package_version=0.0.2

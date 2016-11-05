@@ -3,7 +3,7 @@ dckr__source=$_
 
 set -e
 
-version=0.0.2-dev # script-mpe
+version=0.0.2 # script-mpe
 
 
 

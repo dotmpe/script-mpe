@@ -2,14 +2,14 @@
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
-# Id: script-mpe/0.0.2-dev htd.sh
+# Id: script-mpe/0.0.2 htd.sh
 
 htd_src=$_
 test -z "$__load_lib" || set -- "load-ext"
 
 set -e
 
-version=0.0.2-dev # script-mpe
+version=0.0.2 # script-mpe
 
 
 htd__inputs="arguments prefixes options"

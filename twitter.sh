@@ -115,4 +115,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   ;; esac
 ;; esac
 
-# Id: script-mpe/0.0.2-dev twitter.sh
+# Id: script-mpe/0.0.2 twitter.sh
