@@ -107,6 +107,7 @@ version=0.0.2-dev # script-mpe
 
 @test "$bin version" {
   check_skipped_envs travis || skip "$BATS_TEST_DESCRIPTION not running at Travis CI"
+  export verbosity=5
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
   test "${lines[0]}" = "script-mpe/$version"

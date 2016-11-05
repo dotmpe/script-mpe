@@ -31,8 +31,7 @@ Change Log
 (0.0.2)
   - Developing Travis builds.
   - Refactoring Taxus schema for finfo.py.
-  - 247 tests, 2 failures, 29 todo, 21 skipped (Boreas)
-  - 247 tests, 1 failure, 29 todo, 24 skipped (dandy)
-
+  - 251 tests, 0 failures, 29 todo, 22 skipped (Boreas)
+  - 251 tests, 0 failures, 29 todo, 23 skipped (dandy)
   - See Bugs.rst
 

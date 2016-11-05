@@ -14,5 +14,6 @@
 				repo_root = session.context.settings.data.repository.root_dir
 		AttributeError: 'dict' object has no attribute 'data'
 
-	- TODO: radical broken after 449ea4f, fork and build unittest
+	- Radical broken after 449ea4f, fork and build unittest
+  - Fixed (tests/bugs/1-radical-regression) by ignoring session.context
 
