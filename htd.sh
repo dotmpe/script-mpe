@@ -258,6 +258,7 @@ htd_als__doctor=check
 htd__check()
 {
   htd__find_empty || stderr ok "No empty files"
+  htd pd-check
   # TODO check (some) names htd_name_precaution
   # TODO run check-files
   # htd check-names
