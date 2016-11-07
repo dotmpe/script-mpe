@@ -70,7 +70,7 @@ def rsr_workspace(prog=None, opts=None):
     yield Keywords(ws=ws, libs=libs)
 
 
-@Target.register(NS, 'volume', 'cmd:options')
+@Target.register(NS, 'volume', 'rsr:workspace')
 def rsr_volume(prog=None, opts=None):
     """
     Find existing volume from current working dir, reset it, or create one in the current

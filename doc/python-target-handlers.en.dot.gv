@@ -19,20 +19,22 @@ digraph "doc_python_target_handlers" {
 		weight = "4"
 	]
 
-	"cmd:options" -> "" ;
-	"txs:session" -> "cmd:options" ;
+	"cmd:main" -> "cmd:argv" ;
+
+	"txs:session" -> "cmd:main" ;
+
 	"txs:pwd" -> "txs:session" ;
 	"txs:ls" -> "txs:session" ;
 	"txs:run" -> "txs:session" ;
 
-  "rsr2:workspace" -> "cmd:options" ;
-  "rsr2:volume" -> "cmd:options" ;
+  "rsr2:workspace" -> "cmd:main" ;
+  "rsr2:volume" -> "rsr2:workspace" ;
 
-  "rsr:add" -> "rsr:volume" ;
-  "rsr:status" -> "rsr:volume" ;
-  "rsr:update-volume" -> "rsr:volume" ;
-  "rsr:update-metafiles" -> "rsr:volume" ;
-  "rsr:meta" -> "rsr:volume" ;
+  "rsr:add" -> "rsr2:volume" ;
+  "rsr:status" -> "rsr2:volume" ;
+  "rsr:update-volume" -> "rsr2:volume" ;
+  "rsr:update-metafiles" -> "rsr2:volume" ;
+  "rsr:meta" -> "rsr2:volume" ;
 
 
   "lnd:tag" -> "txs:pwd" ;
