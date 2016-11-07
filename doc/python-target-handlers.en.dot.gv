@@ -1,0 +1,41 @@
+digraph "doc_python_target_handlers" {
+	graph [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+    pad = 1
+	]
+	node [
+		fontsize = "15"
+		fontname = "Bitstream Vera Sans"
+		shape = "record"
+		style = "solid"
+		color = "grey"
+	]
+	edge [
+		fontsize = "14"
+		fontname = "Bitstream Vera Sans"
+		style = "dotted"
+		weight = "4"
+	]
+
+	"cmd:options" -> "" ;
+	"txs:session" -> "cmd:options" ;
+	"txs:pwd" -> "txs:session" ;
+	"txs:ls" -> "txs:session" ;
+	"txs:run" -> "txs:session" ;
+
+  "rsr2:workspace" -> "cmd:options" ;
+  "rsr2:volume" -> "cmd:options" ;
+
+  "rsr:add" -> "rsr:volume" ;
+  "rsr:status" -> "rsr:volume" ;
+  "rsr:update-volume" -> "rsr:volume" ;
+  "rsr:update-metafiles" -> "rsr:volume" ;
+  "rsr:meta" -> "rsr:volume" ;
+
+
+  "lnd:tag" -> "txs:pwd" ;
+
+  edge [ style="normal" ] ;
+}
