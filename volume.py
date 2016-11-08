@@ -65,11 +65,9 @@ def find_volume(opts=None, pwd=None):
 def oldmain():
     # XXX:
 
-    print Target.instances.keys()
     import txs, cmdline
-    print Target.instances.keys()
 
-    TargetResolver().main(['vol:find-volume'])
+    print TargetResolver().main(['vol:find-volume'])
     #TargetResolver().main(['cmd:options'])
 
 
@@ -104,5 +102,6 @@ def get_version():
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv))
+    oldmain()
+    #sys.exit(main(sys.argv))
 

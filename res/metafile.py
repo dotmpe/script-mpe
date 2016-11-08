@@ -564,7 +564,7 @@ class Metadir(object):
         if self.path.endswith(self.DOTNAME) or self.path.endswith(self.DOTNAME+'/'):
             self.path = os.path.dirname( self.path )
             self.prefix = '.'+self.DOTNAME+'/'
-        assert self.DOTNAME not in self.path, self.path
+        assert self.DOTNAME not in self.path.strip('/').split('/'), self.path
         self.init()
 
     @property

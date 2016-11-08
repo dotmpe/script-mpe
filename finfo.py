@@ -110,7 +110,7 @@ Options:
                   Config [default: cllct.rc]
     --documents
                   Return document type files only.
-    --filter FILTER...
+    --filter INCLUDE...
                   ..
 
 Other flags:
@@ -504,17 +504,22 @@ def main(argv, doc=__doc__, usage=__usage__):
     #print pformat(ctx.prefixes.todict())
     #print pformat(ctx.pathrefs)
 
-    # Preprocess filters to regex
-    if 'FILTER' not in ctx.opts.args:
-        ctx.opts.args.FILTER = []
+    # Get filter arguments, order most significant first
+    # Preprocess filter spec strings, compile to regex
 
-    if not ctx.opts.args.FILTER:
-        ctx.opts.args.FILTER = default_filters
+    if 'INCLUDE' not in ctx.opts.args:
+        ctx.opts.args.INCLUDE = []
+    if 'INCLUDE_PATH' not in ctx.opts.args:
+        ctx.opts.args.INCLUDE_PATH = []
+
+    if not ctx.opts.args.INCLUDE:
+        ctx.opts.args.INCLUDE = default_filters
     if ctx.opts.flags.documents:
-        ctx.opts.args.FILTER = doc_filters + ctx.opts.args.FILTER
-    for idx, filter in enumerate(ctx.opts.args.FILTER):
+        ctx.opts.args.INCLUDE = doc_filters + ctx.opts.args.INCLUDE
+    for idx, filter in enumerate(ctx.opts.args.INCLUDE):
         if isinstance(filter, str):
-            ctx.opts.args.FILTER[idx] = fnmatch.translating(filter)
+            print 'new filter', filter
+            ctx.opts.args.INCLUDE[idx] = fnmatch.translating(filter)
 
     # Resolve FILE/DIR arguments
     files, dirs = [], []
@@ -538,7 +543,7 @@ def main(argv, doc=__doc__, usage=__usage__):
         for p, d in dirs:
             for top, path_dirs, path_files in os.walk(os.path.join(p, d)):
                 for path_dir in list(path_dirs):
-                    for filter in ctx.opts.args.FILTER:
+                    for filter in ctx.opts.args.INCLUDE_PATH:
                         if not filter.match(os.path.basename(path_dir)):
                             path_dirs.remove(path_dir)
                             break
@@ -548,7 +553,7 @@ def main(argv, doc=__doc__, usage=__usage__):
 
                 for path_file in list(path_files):
                     filter = None
-                    for filter in ctx.opts.args.FILTER:
+                    for filter in ctx.opts.args.INCLUDE:
                         if filter.match(os.path.basename(path_file)):
                             break
                         else:
@@ -588,7 +593,16 @@ def main(argv, doc=__doc__, usage=__usage__):
         else:
             # TODO: get INode through context? Also add mediatype & parameters
             # resolver. But needs access to finfo ctx..
-            record = taxus.INode.get_instance(name=ref, _sa=ctx.sa)
+
+            records = ctx.sa.query(taxus.INode).filter(
+                    taxus.INode.name.like("%%:%s" % name)).all()
+            if not records:
+                record = taxus.INode.get_instance(name=ref, _sa=ctx.sa,
+                        _fetch=False)
+            elif len(records) > 1:
+                raise Exception("Multiple path ID matches %r" % name)
+            else:
+                record = records[0]
 
             # GNU/Linux: -bi = --brief --mime
             # Darwin/BSD: -bI = --brief --mime

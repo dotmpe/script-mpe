@@ -619,17 +619,20 @@ htd_run__status=fSm
 htd__status()
 {
   test -n "$failed" || error failed 1
+
   test -n "$CRON_LOG" || CRON_LOG=$TMPDIR/htd-cron.out 
   test ! -e "$CRON_LOG" || {
     warn "Cron error"
     cat $CRON_LOG
   }
+ 
   # TODO:
   #  global, local services
   #  disks, annex
   #  project tests, todos
   #  src, tools
 
+  # TODO: rewrite to htd proj/vol/..-status
   ( cd ; pd st ) || echo "home" >> $failed
   #( cd ~/project; pd st ) || echo "project" >> $failed
   #( cd /src; pd st ) || echo "src" >> $failed
@@ -640,6 +643,39 @@ htd__status()
 htd_als__st=status
 htd_als__stat=status
 
+
+htd__volume_status()
+{
+  htd__context
+}
+
+htd__project_status()
+{
+  htd__context
+}
+
+htd__workdir_status()
+{
+  htd__context
+}
+
+htd_man_1__context="TODO find packages, .meta dirs"
+htd__context()
+{
+  test -n "$1" || set -- "$(pwd)"
+  while test -n "$1"
+  do
+    test -e $1/.meta && echo $1/.meta
+    test "$p" != "/" || break
+    p=$1
+    shift
+    test "$p" = "$(cd "$p"; pwd -P)" && {
+      set -- "$(dirname "$p")"
+    } || {
+      set -- "$(dirname "$(cd "$p";pwd -P)")" "$(dirname "$p")"
+    }
+  done
+}
 
 
 htd_man_1__script="Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping of
@@ -4274,7 +4310,8 @@ htd__finfo()
 {
   for dir in $@
   do
-    finfo.py --env htdocs=HTDIR $dir
+    finfo.py --recurse --documents --env htdocs=HTDIR $dir \
+      || return $?
   done
 }
 
@@ -4586,7 +4623,7 @@ htd_main()
   local scriptname=htd base=$(basename $0 .sh) \
     scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
     subcmd= failed=
-
+  
   htd_init || exit $?
 
   case "$base" in

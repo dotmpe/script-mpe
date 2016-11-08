@@ -26,7 +26,7 @@ sys_load()
 
 require_fs_casematch()
 {
-  test -n "$CWD" || CWD="$(pwd -P)"
+  test -n "$CWD" || CWD="$(pwd)"
   test -n "$1" && {
     cd $1
   }
