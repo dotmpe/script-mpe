@@ -101,7 +101,7 @@ class GroupNode(Node):
 class Folder(GroupNode):
 
     """
-    A group-node with a shared title.
+    A group-node with a shared title?
     """
 
     __tablename__ = 'folders'
@@ -111,6 +111,7 @@ class Folder(GroupNode):
 
     title_id = Column(Integer, ForeignKey('names.id'))
     title = relationship('Name', primaryjoin='Folder.title_id==Name.name_id')
+
 
 
 class ID(SqlBase, ORMMixin):

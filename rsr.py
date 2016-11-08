@@ -304,6 +304,9 @@ class Rsr(libcmd.StackedCommand):
 
     def rsr_session(self, prog, volume, workspace, homedir, opts):
         """
+        TODO: get an Metadir session; lock (and later sync) an file/db.
+        Move current db setup to new txs.
+
         Determine context, and from there get the session/dbref to initialize an
         SQLAlchemy session.
         The context depends on the current working directory, and defaults to
