@@ -38,16 +38,21 @@ digraph "doc_taxus_classes_en_dot" {
 //  "checksum.SHA1Digest" -> "checksum.ChecksumDigest" ;
 //  "checksum.MD5Digest" -> "checksum.ChecksumDigest" ;
 
-  "fs.INode" -> "core.Node" ;
+  "fs.INode" -> "core.Name" ;
+
+  "fs.Special" -> "fs.INode" ;
+  "fs.Device" -> "fs.Special" ;
+  "fs.FIFO" -> "fs.Special" ;
+  "fs.Socket" -> "fs.Special" ;
+
+  "fs.Dir" -> "fs.INode" ;
+  "fs.File" -> "fs.INode" ;
+  "fs.Symlink" -> "fs.INode" ;
+
+  "fs.Mount" -> "fs.Dir" ;
+
   "fs.Disk" -> "core.Name" ;
 
-//  "fs.Dir" -> "fs.INode" ;
-//  "fs.File" -> "fs.INode" ;
-//  "fs.Symlink" -> "fs.INode" ;
-//  "fs.Device" -> "fs.INode" ;
-//  "fs.Mount" -> "fs.INode" ;
-//  "fs.FIFO" -> "fs.INode" ;
-//  "fs.Socket" -> "fs.INode" ;
 
 //  "web.CachedContent" -> "fs.INode" ;
   "web.Status" -> "core.Node" ;
