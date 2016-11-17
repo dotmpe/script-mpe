@@ -229,11 +229,17 @@ pd__clean()
 {
   local R=0
 
+  test -n "$1" || error "Prefix expected" 1
   test -z "$2" || pd_meta_clean_mode="$2"
   test -n "$pd_meta_clean_mode" \
     || pd_meta_clean_mode="$( pd__meta clean-mode "$1" )"
 
-  info "Checkout: $checkout, Clean Mode: $pd_meta_clean_mode"
+  info "Checkout: $1, Clean Mode: $pd_meta_clean_mode"
+
+  pd_auto_clean "$1" || {
+    error "Auto-clean failure for checkout '$1'"
+    return 1
+  }
 
   pd_clean "$1" || R=$?;
 
@@ -729,8 +735,7 @@ pd__disable()
   test ! -d "$1" && {
     info "No checkout, nothing to do"
   } || {
-    note "Found checkout, getting status.. (Clean-Mode: $(pd__meta clean-mode $1))"
-
+    note "Found checkout, running pd-clean..."
     pd__clean $1 || return $?
 
     choice_sync_dismiss=1 \
@@ -1492,7 +1497,7 @@ pd_init()
   box_run_sh_test
   . $scriptdir/main.init.sh
   # -- pd box init sentinel --
-  test -n "$verbosity" || verbosity=6
+  test -n "$verbosity" && note "Verbosity at $verbosity" || verbosity=6
 }
 
 pd_lib()

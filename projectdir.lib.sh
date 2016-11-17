@@ -29,15 +29,31 @@ pd_meta_bg_teardown()
   }
 }
 
+# TODO: run git clean, with ignore rules adjusted to exclude gitignore-clean
+# TODO: setup some htd/pd clean. Fix htd/pd ignore setup.
+# TODO: rename force_clean to pd_meta_Force_Clean or something.. --force-clean
+pd_auto_clean()
+{
+  debug "Runing Pd auto-clean (Force-Clean: $force_clean)"
+  trueish "$force_clean" && {
+    ( cd $1; git clean -dfx ; git checkout . ; git submodule update --recursive )
+  } || {
+    ( cd $1; git clean -df )
+  }
+}
+
+# Test is checkout is clean according to pd-meta Clean-Mode.
 pd_clean()
 {
-  # Stage one, show just the modified files
-  (cd "$1"; git diff --quiet) || {
+  # Stage one, show just the modified files (always consider mode tracked)
+  (cd "$1"; git diff --quiet) && {
+    info "No modifications found ($1)"
+  } || {
     dirty="$(cd "$1"; git diff --name-only)"
     return 1
   }
 
-  # Stage two, show files after check for repo-clean mode (tracked, untracked, excluded)
+  # Stage two, show other files (consider untracked, excluded)
   test -n "$pd_meta_clean_mode" || pd_meta_clean_mode=untracked
 
   trueish "$choice_strict" \

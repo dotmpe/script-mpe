@@ -619,12 +619,6 @@ htd_run__status=fSm
 htd__status()
 {
   test -n "$failed" || error failed 1
-
-  test -n "$CRON_LOG" || CRON_LOG=$TMPDIR/htd-cron.out 
-  test ! -e "$CRON_LOG" || {
-    warn "Cron error"
-    cat $CRON_LOG
-  }
  
   # TODO:
   #  global, local services
@@ -637,8 +631,7 @@ htd__status()
   #( cd ~/project; pd st ) || echo "project" >> $failed
   #( cd /src; pd st ) || echo "src" >> $failed
 
-  #echo TODO:htd-status:$status "$@" | tee $failed
-  stderr ok "htd stat OK"
+  test -s "$failed" -o -s "$errored" && stderr ok "htd stat OK" || noop
 }
 htd_als__st=status
 htd_als__stat=status
@@ -657,8 +650,10 @@ htd__project_status()
 htd__workdir_status()
 {
   htd__context
+  finfo.py --metadir .meta
 }
 
+htd_als__metadirs=context
 htd_man_1__context="TODO find packages, .meta dirs"
 htd__context()
 {

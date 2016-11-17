@@ -257,12 +257,13 @@ def toggle_state(newstate, pdhdata, ctx):
     prefix = ctx.opts.args.prefix
     if prefix not in pdhdata['repositories']:
         ctx.out.write("No such repo prefix %r\n" % prefix)
-        return 3
+        return False
     state = get_toggle_state(pdhdata['repositories'][prefix])
     if newstate+'d' != state:
         set_toggle_state( pdhdata['repositories'][prefix], newstate+'d' )
         yaml_safe_dump(pdhdata,
                 open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+    return True
 
 def toggle_host(newstate, pdhdata, ctx):
     #record = get_one_prefix(pdhdata, ctx)
@@ -433,7 +434,11 @@ def H_enable_host(pdhdata, ctx):
 
 def H_disable_host(pdhdata, ctx):
     if check_state(ctx.opts.cmds[0], pdhdata, ctx):
-        assert toggle_state(ctx.opts.cmds[0], pdhdata, ctx)
+        assert toggle_state(ctx.opts.cmds[0], pdhdata, ctx), (
+                ctx.opts.cmds[0], 
+                pdhdata['repositories'].keys(),
+                ctx.opts.args.prefix
+            )
     return toggle_host(ctx.opts.cmds[0], pdhdata, ctx)
 
 
