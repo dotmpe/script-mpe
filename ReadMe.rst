@@ -1,7 +1,7 @@
 script.mpe
 ==========
 :Version: 0.0.3-dev
-:Updated: 2016-11-05
+:Updated: 2016-11-19
 
 
 Build-status
@@ -20,13 +20,32 @@ Issues
 Various tools and ongoing experiments that have not yet deserved their own
 project.
 
-Test
-    ::
+
+
+Quickstart
+-----------
+Prerequisites
+  User-Conf_
+    - Not required. But as for the shell tooling, this may contain
+      some context.
+
+https://gist.github.com/jczaplew/bf3a33c5a82a2d93bba4
+::
+
+  git@github.com:dotmpe/google-chrome-htdocs.git
+
+
+.. _user-conf: https://github.com/dotmpe/user-conf
+
+
+
+Testing
+--------
+::
 
        ./test/*-spec.bats
 
 See also `.travis.yml`.
-
 
 
 Other documents
