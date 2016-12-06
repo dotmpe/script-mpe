@@ -205,3 +205,11 @@ var2tags()
     }
   done)
 }
+
+properties2sh()
+{
+  awk 'BEGIN { FS = "=" } ;
+      { if (NF<2) next;
+      gsub(/[^a-z0-9]/,"_",$1) ;
+      print $1"="$2 }' $1
+}

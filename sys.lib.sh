@@ -209,9 +209,9 @@ setup_tmpf()
   test -n "$3" || set -- "$1" "$2" "$(setup_tmpd)"
   test -n "$3" -a -d "$3" || error "Not a dir: '$3'" 1
 
-  test -d $(dirname $3/${base}$2$1) \
-    || mkdir -p $(dirname $3/${base}$2$1)
-  echo $3/${base}$2$1
+  test -d $(dirname $3/$2$1) \
+    || mkdir -p $(dirname $3/$2$1)
+  echo $3/$2$1
 }
 
 # confirm PROMPT [varname=choice_confirm]

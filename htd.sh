@@ -76,8 +76,10 @@ htd_load()
 
   test -n "$htd_tmp_dir" || htd_tmp_dir=$(setup_tmpd)
   test -n "$htd_tmp_dir" || error "htd_tmp_dir load" 1
-  test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" || {
-    rm -r $htd_tmp_dir/*
+  fnmatch "dev*" "$ENV" || {
+    test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" || {
+      rm -r $htd_tmp_dir/*
+    }
   }
 
   htd_rules=~/.conf/rules/$hostname.tab
@@ -1190,12 +1192,21 @@ htd__tasks()
 
   test -n "$pd_meta_tasks_document" || pd_meta_tasks_document=tasks.ttxtm
   test -n "$pd_meta_tasks_slug" || {
-    pd_meta_tasks_slug="$(printf -- "$id" | tr 'a-z' 'A-Z' | tr -sc 'A-Z0-9_-' '-')"
+    test -n "$id" \
+      && pd_meta_tasks_slug="$(printf -- "$id" | tr 'a-z' 'A-Z' | tr -sc 'A-Z0-9_-' '-')"
   }
-
+  test -n "$pd_meta_tasks_slug" || error "Project slug required" 1
   local comments=$(setup_tmpf .comments)
-  pd list-paths --tasks | xargs radical.py run-embedded-issue-scan --issue-format full-sh > $comments
-  tasks.py -v -s $pd_meta_tasks_slug read-issues -g $comments -t $pd_meta_tasks_document
+  mkdir -vp $(dirname "$comments")
+  (
+    { test -e .git && git ls-files || pd list-paths --tasks; } \
+      | xargs radical.py run-embedded-issue-scan \
+        --issue-format full-sh > $comments
+  ) || error "Could not update $comments" 1
+  wc -l $comments
+  tasks.py -v -s $pd_meta_tasks_slug read-issues \
+    -g $comments -t $pd_meta_tasks_document \
+      || error "Could not update $pd_meta_tasks_document" 1
   note "OK. $(count_lines $pd_meta_tasks_document) open tasks"
 }
 
@@ -3456,6 +3467,60 @@ htd__current_paths()
   lsof -Fn +D $1 | tail -n +2 | grep -v '^p' | cut -c2- | sort -u
 }
 htd_als__lsof=current-paths
+
+
+htd__open_paths()
+{
+  test -n "$1" || set -- '\<sh\|bash\>'
+
+  export lsof=$(statusdir.sh assert-dir htd/open-paths.lsof)
+  export lsof_paths=$lsof.paths
+  export lsof_paths_ck=$lsof_paths.sha1
+
+  # Get open paths for user, bound to CWD of processes, and with 15 COMMAND chars
+  # But keep only non-root, and sh or bash lines, throttle update of cached file
+  # by 10s period.
+  { 
+    test -e "$lsof" && younger_than $lsof 10
+  } || {
+    lsof +c 15 -u $(whoami) -a -d cwd \
+      | eval "grep '^$1'" \
+      | grep -v '\ \/$' \
+      | tail -n +2 >$lsof
+
+    debug "Updated $lsof"
+
+    info "Commands: $(echo $(
+        sed 's/\ .*$//' $lsof | sort -u
+      ))"
+
+    sed 's/^.*\ //' $lsof | sort -u > $lsof_paths.tmp
+  }
+
+  test -e $lsof_paths_ck && {
+    sha1sum -c $lsof_paths_ck >/dev/null
+  } || {
+    sha1sum "$lsof.paths.tmp" > $lsof_paths_ck
+    test ! -e $lsof_paths && {
+      note "Initialized $(
+        sed 's/^\([^\ ]*\).*/\1/g' $lsof_paths_ck | cut -c-11
+      )"
+    } || {
+      note "Updated $(
+        sed 's/^\([^\ ]*\).*/\1/g' $lsof_paths_ck | cut -c-11
+      )"
+      git diff --color $lsof_paths $lsof_paths.tmp | tail -n +6
+      #diff $lsof_paths $lsof_paths.tmp | vim -R -
+      #cdiff $lsof_paths $lsof_paths.tmp
+    }
+    cp $lsof.paths.tmp $lsof.paths
+  }
+
+  note "Paths:"
+  cat $lsof_paths
+}
+htd_als__of=open-paths
+
 
 # List paths newer than recent-paths setting
 htd__recent_paths()

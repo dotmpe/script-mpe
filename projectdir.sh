@@ -30,7 +30,7 @@ pd_als___e=edit
 
 
 pd_load__meta=y
-pd_man_1__meta="Defer to python script for YAML parsing"
+pd_man_1__meta="Defer a command to the python script for YAML parsing"
 pd__meta()
 {
   test -n "$1" || set -- --background
@@ -268,6 +268,7 @@ pd__clean()
       ;;
   esac
 }
+
 
 pd_man_1__disable_clean="drop clean checkouts and disable repository"
 pd__disable_clean()
