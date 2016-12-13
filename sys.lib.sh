@@ -28,7 +28,7 @@ require_fs_casematch()
 {
   test -n "$CWD" || CWD="$(pwd)"
   test -n "$1" && {
-    cd $1
+    cd "$1"
   }
   test -e ".fs-casematch" || {
     test -e ".fs-nocasematch" && {
@@ -48,13 +48,13 @@ require_fs_casematch()
           touch .fs-nocasematch
         } || {
           rm abc ABC || noop
-          cd $CWD
+          cd "$CWD"
           error "Unknown error" 1
         }
       }
     }
   }
-  cd $CWD
+  cd "$CWD"
 }
 
 

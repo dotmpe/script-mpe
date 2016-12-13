@@ -31,7 +31,7 @@ vc_load()
 
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
-  gtd=$(__vc_gitdir $cwd)
+  gtd="$(__vc_gitdir "$cwd")"
 
 
   test -n "$vc_clean_gl" || {
