@@ -4,6 +4,7 @@ Radical
 =======
 Index and identify tagged comments in documents and source code.
 
+
 Introduction
 -------------
 The motivation for this program is that working on a software project is an
@@ -32,6 +33,7 @@ The effect is that tagged comments are tracked for changes, and may have
 a reference to some kind of ticket in a remote tracker with an variety
 of attributes. To keep it simple, `radical` recognizes an ordering for
 certain tags.
+
 
 Storage
 --------
@@ -163,6 +165,8 @@ Further comments
   - SGML or XML style embedded comments.
 
 
+TODO: see line-based tasks format (for shell) in tasks.rst
+
 TODO: domain structure::
 
                                                       INode
@@ -186,7 +190,6 @@ TODO: domain structure::
 """
 # TODO:1: Integrate gate content stream
 # TODO:2: Extend supported comment styles
-
 # TODO:3: Scan for other literals, recognize language constructs.
 
 import traceback
@@ -314,12 +317,17 @@ class SrcDoc:
     Holder for tag/comments found in source.
     """
 
-    def __init__(self, source_name, line_count=None ):
+    def __init__(self, source_name, line_count, data ):
 
+        assert isinstance(source_name, str), "source_name: %r" % source_name
         self.source_name = source_name
         "Location for source."
 
+        assert isinstance(line_count, int), "line_count: %r" % line_count
         self.line_count = line_count
+
+        assert isinstance(data, str), "data: %r" % data
+        self.data = data
 
         self.scei = []
 
@@ -353,23 +361,36 @@ class EmbeddedIssue:
         self.tags = tags
 
     def __str__(self):
+        # NOTE: 0-index ranges/spans in ID
         return "<EmbeddedIssue %s %i-%i %i-%i>" % ( ( self.comment_flavour,
                 ) + self.comment_char_span + self.comment_line_span )
 
-    def raw(self, data):
-        return data[slice(*self.comment_char_span)]
+    @property
+    def line_span(self):
+        return [ i + 1 for i in self.comment_line_span ]
 
-    def descr(self, data):
-        return data[slice(*self.description_span)]
+    @property
+    def char_span(self):
+        return [ i + 1 for i in self.comment_char_span ]
+
+    @property
+    def raw(self):
+        return self.srcdoc.data[slice(*self.comment_char_span)]
+
+    @property
+    def descr(self):
+        return self.srcdoc.data[slice(*self.description_span)]
 
     def scei_id(self, full=True):
+        # NOTE: turn ranges from 0-index into 1-indexed (lines, chars, etc)
+        dspan = tuple([ x+1 for x in self.description_span ])
         scei_id = self.srcdoc.source_name
         if full:
+            cspan = tuple([ x+1 for x in self.comment_char_span ])
             scei_id += ":%s-%s;lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
-                    self.description_span + self.comment_line_span + (
-                        self.comment_flavour, ) + self.comment_char_span )
+                    dspan + self.line_span + ( self.comment_flavour, ) + self.char_span )
         else:
-            scei_id += ":%s-%s" % self.description_span
+            scei_id += ":%s-%s" % dspan
         return scei_id
 
 
@@ -379,18 +400,26 @@ class EmbeddedIssue:
             'full-id': lambda cmt, data: cmt.scei_id(),
             'full-sh': lambda cmt, data: ":".join(
                 map(str, [
+                    '',
                     cmt.srcdoc.source_name,
-                    '', '', '',
-                    "-".join(map(str, cmt.description_span)),
-                    ' '+str(cmt.descr(data).strip())
+                    # NOTE: 0 to 1-indexed, and add spans for Sh
+                    "%i-%i" % tuple([ x+1 for x in cmt.line_span ]),
+                    "%i-%i" % tuple([ x+1 for x in cmt.description_span ]),
+                    '', # line-offset-descr-span
+                    '', # cmnt-span
+                    '', # line-offset-cmnt-span
+                    cmt.descr
                 ])),
             'raw': lambda cmt, data: " ".join(
-                map(str, [ cmt.srcdoc.source_name, cmt.comment_line_span, \
-                            cmt.comment_flavour, \
-                            repr(cmt.raw(data)), \
-                            repr(cmt.descr(data)) ])),
-            'raw2': lambda cmt, data: "%s '%s' <%s> %s" %( tag, tag.raw(data),
-                    tag.canonical(data), cmt )
+                map(str, [ cmt.srcdoc.source_name,
+                    cmt.line_span, \
+                    cmt.comment_flavour, \
+                    repr(cmt.raw), \
+                    repr(cmt.descr) ])),
+            'raw2': lambda cmt, data: [
+                "%s '%s' <%s> %s" %(
+                    tag, tag.raw, tag.canonical(data), cmt
+                ) for tag in cmt.tags ]
         }
 
 
@@ -512,8 +541,11 @@ def at_line(offset, width, data, lines=None):
     """
     if not lines:
         lines = get_lines(data)
+    assert isinstance(lines, ( list, tuple )), lines
     chars = 0
     for line, line_data in enumerate(lines):
+        assert isinstance(line, int), "line: %r" % line
+        assert isinstance(line_data, str), "line_data: %r " % line_data
         if offset < chars+len(line_data)+1:
             return line, chars, len(line_data)+1
         chars += len(line_data)+1
@@ -665,6 +697,7 @@ def scan_for_tag(tags, matchbox, data):
     else:
         return pos
 
+
 def trim_comment(match, data, (start, end)):
     comment_data = data[start:end]
 
@@ -699,12 +732,13 @@ def trim_comment(match, data, (start, end)):
     m = re.match('^.*(\s*)$', _2, re.M + re.S)
     if m:
         end = start + m.start(1)
-        if data[end] == ' ':
+        if end < len(data) and data[end] == ' ':
             end += 1
 
     start += re.search('[^\s]', _2).start()
 
     return data[start:end], (start, end)
+
 
 def clean_comment(scan, data):
 
@@ -736,6 +770,7 @@ class Parser:
         self.context = context
         self.data = data
         self.lines = lines
+        self.srcdoc = SrcDoc( self.source_name, len(self.lines), self.data )
 
     def find_tags(self):
         "scan for tags. return entire tag spec"
@@ -744,7 +779,7 @@ class Parser:
                 tag_span = tag_match.start(), tag_match.end()
                 yield TagInstance(self.source_name, tagname, tag_span)
 
-    def for_tag(self, srcdoc, tag):
+    def for_tag(self, tag):
         "retrieve comment for TagInstance TODO: map streams"
 
         # Get entire comment
@@ -764,7 +799,7 @@ class Parser:
         # XXX:
         inline = None
         tags = []
-        return EmbeddedIssue(srcdoc, comment_span, lines, descr_span,
+        return EmbeddedIssue(self.srcdoc, comment_span, lines, descr_span,
                 comment_flavour, inline, tags)
 
 
@@ -986,14 +1021,16 @@ STD_COMMENT_SCAN = {
         'c_line': [ '(\/\/)' ]
     }
 # Tag pattern, format and index type
+DEFAULT_TAG_RE = r'\s*\b(%s)(?:[:_\ -]([A-Za-z0-9:_-]+))?\b[:]?\s+'
 DEFAULT_TAGS = {
-    'FIXME': [ '(\\b%s)[:_\s-]*(?:([0-9]+))?\\b' ],
-    'TEST': ['(\\b%s)[:_\s-]*(?:([0-9]+))?\\b', '%s:%i:', 'numeric_index' ],
-    'TODO': ['(\\b%s)[:_\s-]*(?:([0-9]+))?\\b', '%s:%i:', 'numeric_index' ],
-    'XXX': [ '(\\b%s)[:_\s-]*(?:([0-9]+))?\\b' ],
-    'NOTE': [ '(\\b%s)[:_\s-]*(?:([0-9]+))?\\b' ],
-    'BUG': [ '(\\b%s)[:_\s-]*(?:([0-9]+))?\\b' ]
+    'FIXME': [ DEFAULT_TAG_RE ],
+    'TEST':  [ DEFAULT_TAG_RE, '%s:%i:', 'numeric_index' ],
+    'TODO':  [ DEFAULT_TAG_RE, '%s:%i:', 'numeric_index' ],
+    'XXX':   [ DEFAULT_TAG_RE ],
+    'NOTE':  [ DEFAULT_TAG_RE ],
+    'BUG':   [ DEFAULT_TAG_RE ]
 }
+#    'BUG': [ '(\\b\s*%s)(?:[:_\s-]([0-9]+))?[:_\s-]*\\b' ]
 
 rc = confparse.Values()
 
@@ -1171,7 +1208,7 @@ class Radical(rsr.Rsr):
 
             lines = get_lines(data)
 
-            srcdoc = SrcDoc( source, len(lines) )
+            srcdoc = SrcDoc( source, len(lines), data )
             taskdocs[source] = srcdoc
 
             parser = Parser(sa, matchbox, source, context, data, lines)
@@ -1179,11 +1216,12 @@ class Radical(rsr.Rsr):
             for tag in parser.find_tags():
 
                 try:
-                    cmt = parser.for_tag(srcdoc, tag)
+                    cmt = parser.for_tag(tag)
                 except (Exception) as e:
                     if not opts.quiet:
                         log.err("Unable to find comment span for tag '%s' at %s:%s " % (
                             parser.data[tag.start:tag.end], srcdoc.source_name, tag.char_span))
+                        traceback.print_exc()
                     continue
 
                 if not cmt:

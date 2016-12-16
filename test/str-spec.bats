@@ -57,3 +57,16 @@ func=str_replace
 }
 
 
+@test "resolve_prefix_element" {
+  element=$(resolve_prefix_element 1 123:456)
+  test "${element}" = "123" || fail "${element}"
+  element=$(resolve_prefix_element 2 123:456)
+  test "${element}" = "456" || fail "${element}"
+  element=$(resolve_prefix_element 1 :123:456)
+  test "${element}" = "" || fail "${element}"
+  element=$(resolve_prefix_element 3 123:456:)
+  test "${element}" = "" || fail "${element}"
+  element=$(resolve_prefix_element 4 123:456:abcd-dfs:A:)
+  test "${element}" = "A" || fail "${element}"
+}
+
