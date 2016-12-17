@@ -317,17 +317,19 @@ class SrcDoc:
     Holder for tag/comments found in source.
     """
 
-    def __init__(self, source_name, line_count, data ):
+    def __init__(self, source_name, data=None ):
 
         assert isinstance(source_name, str), "source_name: %r" % source_name
         self.source_name = source_name
         "Location for source."
 
-        assert isinstance(line_count, int), "line_count: %r" % line_count
-        self.line_count = line_count
+        if data:
+            assert isinstance(data, str), "data: %r" % data
+            self.data = data
+        else:
+            self.data = open(source_name).read()
 
-        assert isinstance(data, str), "data: %r" % data
-        self.data = data
+        self.lines = get_lines(self.data)
 
         self.scei = []
 
@@ -537,7 +539,6 @@ def at_line(offset, width, data, lines=None):
 
     Assumes single-char line-end.
     And that it is always present, and included in line-width.
-
     """
     if not lines:
         lines = get_lines(data)
@@ -582,9 +583,13 @@ def compile_rdc_matchbox(rc):
 
 _parsed_file_comments = {}
 
-def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
+# [2016-12-17] rewriting get_tagged_comment
+
+def get_tagged_comment(parser, tag_or_offset, tag_width, rc):
     """
-    Return the comment span that has a tag embedded at offset/width.
+    Return the comment line and character ranges for a tagged comment.
+
+    that has a tag embedded at offset/width.
 
     This scans for continues sequences of comment lines, and may return spans
     for comment blocks that contain other tags.
@@ -595,41 +600,71 @@ def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
     metacharacters used to markup comments. Further parsing of the comment
     block is left to the caller.
     """
-    tag_line, line_offset, line_width = at_line(offset, width, data, lines)
+    if not tag_width:
+        assert isinstance(tag_or_offset, TagInstance)
+        tag = tag_or_offset
+        tag_offset = tag.start
+        tag_width = tag.end-tag.start+1
+    else:
+        tag_offset = tag_or_offset
+
+    srcdoc = parser.srcdoc
+    tag_line, line_offset, line_width = at_line(tag_offset, tag_width,
+            srcdoc.data, srcdoc.lines)
 
     #print 'get_tagged_comment', offset, width, 'tag', tag_line, line_offset, line_width, language_keys
 
-    comment_offset, comment_end = -1, -1
-    description_offset, description_end = -1, -1
-    start_line, last_line = -1, -1
-    for language_key in language_keys:
+    language_key = None
+    comment_start, comment_end = -1, -1
+    start_line, end_line = -1, -1
+    for language_key in rc.comment_flavours:
 
-        scan_spec = matchbox[language_key]
+        # Comment re.search methods; either two for a block-start/end or
+        # just one for a line-based comment parser.
+        scan_spec = parser.matchbox[language_key]
         search_line, search_start, search_end = scan_spec
 
-        data = lines[tag_line]
-        start_line = tag_line
-
+        linedata = srcdoc.lines[tag_line]
+        # scan for lines,
         if search_line:
-            # scan for line-style comment, concatenate multiple lines
-            line_start = search_line(data)
 
+            # Match first line, ignore non-commented tag-line
+            line_start = search_line(linedata)
             if line_start:
-                #print 'search_line', language_key, data, start_line, line_start.span()
-                comment_offset = line_offset + line_start.start()
-                description_offset = offset
-                last_line = tag_line
-                comment_end = line_offset + line_width
-                description_end = comment_end
-                if last_line == 0:
-                    break
-                data = lines[last_line+1]
-                while search_line(data):
-                    last_line += 1
-                    comment_end = len(data) + 1
-                    data = lines[last_line+1]
+                start_line = end_line = tag_line
+                comment_start = line_offset
+                comment_end = line_offset + len(linedata)
+                #print 'search_line', language_key, linedata, start_line
+                # TODO: assert indentation remains constant.. or warn about
+                #   messy stuff
 
-                #print "Line-match ", language_key, tag_line, lines[tag_line]
+                # Track indent
+                # NOTE: the first match group of search_line.start should be at
+                # a clean comment match. Leading line data is ignored, iow.
+                # this parses block comments regardless of the text before the
+                # line comment.
+                comment_line_offset = line_start.start(1)
+
+                # Search to first line
+                while start_line < 0:
+                    line_start_ = search_line(srcdoc.lines[tag_line-1])
+                    while line_start_:
+                        start_line -= 1
+                        comment_start -= len(srcdoc.lines[start_line])
+                        line_start = line_start_
+                        line_start_ = search_line(srcdoc.lines[start_line-1])
+                    break
+                # Search to end line
+                while end_line+1 < len(srcdoc.lines):
+                    line_end_ = search_line(srcdoc.lines[tag_line+1])
+                    while line_end_:
+                        end_line += 1
+                        comment_end += len(srcdoc.lines[end_line])
+                        line_end = line_end_
+                        line_end_ = search_line(srcdoc.lines[tag_line+1])
+                    break
+                #print "Line-match ", language_key, tag_line, srcdoc.lines[tag_line]
+                #print 'Comment:', comment_start, comment_end, srcdoc.data[comment_start:comment_end]
                 break
 
             else:
@@ -638,51 +673,55 @@ def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
 
         else: # seek multiline block comment
 
-            comment_offset = line_offset
-            while data:
-                #print 'comment_offset', comment_offset, 'len-data', len(data)
-                start = search_start(data)
+            comment_start = line_offset
+            continue
+        # FIXME
+            data_ = srcdoc.data
+            while data_:
+                break
+                start_line = end_line = tag_line
+                comment_start = line_offset
+                #comment_end = line_offset + len(linedata)
+                #print 'comment_start', comment_start, 'len-data', len(data_)
+                start = search_start(data_)
                 if start:
-                    description_offset = comment_offset + start.end()
-                    comment_offset += start.start()
-                    comment_end = comment_offset
-                    data = data[start.start():]
+                    comment_start += start.start()
+                    comment_end = comment_start
+                    data_ = data_[start.start():]
                     break
                 if start_line == 0:
                     break
                 start_line -= 1
-                data = lines[start_line]
-                comment_offset -= len(data) + 1
+                data_ = srcdoc.lines[start_line]
+                comment_start -= len(data_) + 1
 
             if comment_end == -1:
                 continue
-            #print 'Start match', comment_end, comment_offset, start_line, data
+            #print 'Start match', comment_end, comment_start, start_line, data.
 
             if not search_end:
                 search_end = search_start
 
-            last_line = start_line
-            while data:
-                end = search_end(data)
+            end_line = start_line
+            while data_:
+                end = search_end(data_)
                 if end:
-                    description_end = comment_end + end.start()
                     comment_end += end.end()
                     break
-                comment_end += len(data) + 1
-                last_line += 1
-                data = lines[last_line]
+                comment_end += len(data_) + 1
+                end_line += 1
+                data_ = srcdoc.lines[end_line]
 
-            #print 'End match', comment_end, last_line, data
+            #print 'End match', comment_end, end_line, data.
 
             break
 
-    if comment_end > -1 and description_end > -1:
-        #print language_key, 'found comment', start_line, comment_offset, \
-        #            last_line, comment_end,\
-        #            lines[start_line:last_line+1]
-        return language_key, (comment_offset, comment_end), \
-                (description_offset, description_end), \
-                (start_line, last_line)
+    if comment_end > -1:
+        #print language_key, 'found comment', start_line, comment_start, \
+        #            end_line, comment_end,\
+        #            srcdoc.lines[start_line:end_line+1]
+        return language_key, (comment_start, comment_end), \
+                (start_line, end_line)
 
 
 
@@ -696,6 +735,62 @@ def scan_for_tag(tags, matchbox, data):
         return None
     else:
         return pos
+
+
+def find_comment_start_after(line, data, lines, flavours, matchbox):
+    """Return at first comment match in lines.
+    """
+    start = line
+    for language_key in flavours:
+        line = start
+        scan_spec = matchbox[language_key]
+        search_line, search_start, search_end = scan_spec
+        if search_line:
+            if search_line(lines[line]):
+                return line
+            while line+1 < len(lines):
+                if search_line(lines[line]):
+                    return line
+                line += 1
+        else:
+            if search_start(lines[line]):
+                return line
+            while line+1 < len(lines):
+                if search_start(lines[line]):
+                    return line
+                line += 1
+
+def find_comment_end_after(line, data, lines, flavours, matchbox):
+    end = line
+    for language_key in flavours:
+        line = end
+        scan_spec = matchbox[language_key]
+        search_line, search_start, search_end = scan_spec
+        if search_line:
+            if not search_line(lines[line]):
+                continue
+            while line+1 < len(lines):
+                if search_line(lines[line+1]):
+                    line += 1
+                else:
+                    break
+            return line
+        else:
+            if search_end(lines[line]):
+                return line
+            while line < len(lines):
+                if search_end(lines[line]):
+                    return line
+                line+=1
+
+def find_comment(line, data, lines, flavours, matchbox):
+    cmnt_start_line = find_comment_start_after(line, data, lines, flavours,
+            matchbox)
+    if cmnt_start_line == None:
+        return
+    cmnt_end_line = find_comment_end_after(cmnt_start_line, data, lines,
+            flavours, matchbox)
+    return cmnt_start_line, cmnt_end_line
 
 
 def trim_comment(match, data, (start, end)):
@@ -763,45 +858,56 @@ class Parser:
     TODO: parse/cache comments from source. Map between tag and comment specs.
     Keep context.
     """
-    def __init__(self, session, matchbox, source_name, context, data, lines):
+    def __init__(self, session, matchbox, source_name, context, data=None):
         self.session = session
         self.matchbox = matchbox
         self.source_name = source_name
         self.context = context
-        self.data = data
-        self.lines = lines
-        self.srcdoc = SrcDoc( self.source_name, len(self.lines), self.data )
+        self.srcdoc = SrcDoc( self.source_name, data )
 
     def find_tags(self):
         "scan for tags. return entire tag spec"
         for tagname in rc.tags:
-            for tag_match in self.matchbox[tagname].finditer(self.data):
+            for tag_match in self.matchbox[tagname].finditer(self.srcdoc.data):
                 tag_span = tag_match.start(), tag_match.end()
                 yield TagInstance(self.source_name, tagname, tag_span)
+
+    def find_comment(at_span=None):
+        """return ranges for comment. with no arg returns header comment.
+        If some lines contain non-ws chars other than the comment itself
+        then a list of ranges is returned, one for each line. Otherwise
+        ranges are concatenated.
+        """
+        if at_span:
+            start_line, line_offset, line_width = at_line( *(
+                    at_span + ( self.srcdoc.data, self.srcdoc.lines ) ) )
+        else:
+            cmnt = find_comment(0, self.srcdoc.data, self.srcdoc.lines,
+                    self.rc.flavours, self.matchbox)
+            if not cmnt:
+                return
+            start_line, line_offset, line_width = cmnt
 
     def for_tag(self, tag):
         "retrieve comment for TagInstance TODO: map streams"
 
         # Get entire comment
-        comment = get_tagged_comment(tag.start, tag.end-tag.start,
-                self.data, self.lines,
-                rc.comment_flavours, self.matchbox)
+        comment = get_tagged_comment(self, tag, None, rc)
         if not comment:
             return
-        comment_flavour, comment_span, descr_span, lines = comment
+        comment_flavour, comment_span, lines = comment
 
         # Clean comment from markup and adjust source span
         comment_data, comment_span = \
-                trim_comment(self.matchbox[comment_flavour], self.data,
+                trim_comment(self.matchbox[comment_flavour], self.srcdoc.data,
                                                             comment_span)
         (comment_start, comment_end) = comment_span
 
         # XXX:
         inline = None
         tags = []
-        return EmbeddedIssue(self.srcdoc, comment_span, lines, descr_span,
+        return EmbeddedIssue(self.srcdoc, comment_span, lines, (),
                 comment_flavour, inline, tags)
-
 
 
 
@@ -840,16 +946,16 @@ def find_tagged_comments(session, matchbox, source, data, lines=None):
             #print 'Tag match', tag_match.start(), tag_match.end(), \
             #        tag_match.group().strip(), tag_match.span()
 
-            tag_span = tag_match.start(), tag_match.end()
+            tag_range = tag_match.start(), tag_match.end()
 
             # Get entire comment
-            comment = get_tagged_comment(tag_span[0],
-                    tag_span[1]-tag_span[0], data, lines,
-                    rc.comment_flavours, matchbox)
+            comment = get_tagged_comment(parser, tag_range[0],
+                    tag_range[1]-tag_span[0]+1, rc)
             if not comment:
                 #log.err("Unable to find comment span for tag '%s' at %s:%s " % (
                 #    data[tag_span[0]:tag_span[1]], source, tag_span, lines))
                 continue
+
             comment_flavour, comment_span, description_span, lines = comment
 
             # Clean comment from markup and adjust source span
@@ -1017,8 +1123,19 @@ tags
 # Start/end regex patterns per comment flavour
 STD_COMMENT_SCAN = {
         'c': [ '(\/\*+)', '(\*\/)' ],
-        'unix_generic': [ '(\#\s)' ],
-        'c_line': [ '(\/\/)' ]
+        'unix_generic': [ '(\#\s)' ], #(?![^\s]+)
+        'c_line': [ '(\/\/)' ],
+
+        # Match comment start line but not directives,
+        # NOTE: directive format in negative lookahead
+        'restructuredtext': [ '(\.\.)(?!\s+[a-zA-Z0-9-]*:)\s' ]
+# TODO: differentiate comment scans. restructuredtext has indented
+#   continuations (without trailing \). I think c_line should support
+#   this. Just like shell programs should and readline does. Its probably
+#   evil to use in source like C or something. But for a generic comment
+#   parser its essential to understand I think.
+# FIXME: Alternatively as a "solution" radical currently supports continued
+#   task descriptions using a single/double? or more indent.
     }
 # Tag pattern, format and index type
 DEFAULT_TAG_RE = r'\s*\b(%s)(?:[:_\ -]([A-Za-z0-9:_-]+))?\b[:]?\s+'
@@ -1204,14 +1321,8 @@ class Radical(rsr.Rsr):
         taskdocs = {}
 
         for source in source_iter:
-            data = open(source).read()
-
-            lines = get_lines(data)
-
-            srcdoc = SrcDoc( source, len(lines), data )
-            taskdocs[source] = srcdoc
-
-            parser = Parser(sa, matchbox, source, context, data, lines)
+            parser = Parser(sa, matchbox, source, context)
+            taskdocs[source] = srcdoc = parser.srcdoc
 
             for tag in parser.find_tags():
 
@@ -1220,7 +1331,7 @@ class Radical(rsr.Rsr):
                 except (Exception) as e:
                     if not opts.quiet:
                         log.err("Unable to find comment span for tag '%s' at %s:%s " % (
-                            parser.data[tag.start:tag.end], srcdoc.source_name, tag.char_span))
+                            srcdoc.data[tag.start:tag.end], srcdoc.source_name, tag.char_span))
                         traceback.print_exc()
                     continue
 
@@ -1233,7 +1344,7 @@ class Radical(rsr.Rsr):
                 if opts.quiet:
                     issue_format = 'id'
 
-                print EmbeddedIssue.formats[issue_format](cmt, data)
+                print EmbeddedIssue.formats[issue_format](cmt, srcdoc.data)
         return
 
         # TODO: old clean/rewrite functions

@@ -1,3 +1,4 @@
+#!/no/such/header
 # Header comment lines 1/4
 # Header comment lines 2/4
 # Header comment lines 3/4

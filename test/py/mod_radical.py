@@ -30,6 +30,23 @@ class RadicalTestCase(unittest.TestCase):
 
 
     @parameterized.expand([
+        # Select a commented line
+        ( 1, 'restructuredtext', '\n\n.. Foo\n\n', 2 ),
+        # Negate possible directives
+        ( 2, 'restructuredtext', '\n\n.. include: Foo\n\n', None ),
+    ])
+    def test_1_1_comment_scan(self, testnr, flavour, source, expected):
+        result = re.search(radical.STD_COMMENT_SCAN[flavour][0], source)
+        if expected == None:
+            self.assert_(result == None, "Expected no match at %i, %s" % (
+                testnr, flavour ) )
+        else:
+            self.assert_(result, "No result for %i, %s" % ( testnr, flavour ) )
+            self.assertEquals(result.start(), expected,
+                "Offset mismatch, expected %i. Result: %i" % (
+                    expected, result.start() ) )
+
+    @parameterized.expand([
         ( 1,  'FIXME', '  FIXME  ',             '  FIXME  ',        ),
         ( 2,  'XXX',   '  XXX  ',               '  XXX  ',          ),
         ( 3,  'TODO',  '  TODO  ',              '  TODO  ',         ),
@@ -44,7 +61,7 @@ class RadicalTestCase(unittest.TestCase):
         ( 12, 'PRJ',   '-  PRJ-09af-2: Foo  -', '  PRJ-09af-2: ',   ),
         ( 13, 'FIXME', '_ FIXME_af09 _',        ' FIXME_af09 ',     ),
     ])
-    def test_1_tag_regex(self, testnr, tag, source, expected):
+    def test_1_2_tag_regex(self, testnr, tag, source, expected):
         result = re.search(radical.DEFAULT_TAG_RE % tag, source)
         self.assert_(result, "No result for %s: %s" % ( testnr, tag) )
         matchgroups = result.groups()
@@ -92,29 +109,44 @@ class RadicalTestCase(unittest.TestCase):
           ( '<TagInstance TODO test/var/radical-tasks-4.txt#c773-780>', ' TODO: ' ),
         ] ),
     ])
-    def test_2_Parser_find_tags(self, testnr, source, expected):
+    def test_2_1_Parser_find_tags(self, testnr, source, expected):
         """
         radical.Parser.find_tags
             - should return all expected TagInstances.
         """
-        data = open(source).read()
-        lines = data.split('\n')
-        if lines[-1] == '':
-            lines.pop()
-        parser = Parser(None, self.mb, source, '', data, lines)
+        #data = open(source).read()
+        #lines = data.split('\n')
+        #if lines[-1] == '':
+        #    lines.pop()
+        parser = Parser(None, self.mb, source, '')
         tags = list(parser.find_tags())
         for idx, ( tagrepr, result ) in enumerate(expected):
             self.assert_( str(tags[idx]) == expected[idx][0], "%i: %s not found" % (
                 idx, tags[idx] ) )
             exp = expected[idx][1]
             if exp:
-                rs = data[slice(*tags[idx].char_span)]
+                rs = parser.srcdoc.data[slice(*tags[idx].char_span)]
                 self.assertEquals( rs, exp,
                         "No match at %i: result %r vs. expected %r" % (idx, rs, exp ) )
         self.assertEquals( len(tags), len(expected),
                 "%i: Missing tag tests for %r, %i != %i " % (
                     idx, source, len(tags), len(expected) ) )
 
+    @parameterized.expand([
+        ( 1, 'test/var/nix_comments.txt', ( (1,4), ) ),
+        ( 2, 'radical-test1.txt', ( (0,4), ) ),
+        ( 3, 'test/var/radical-tasks-1.txt', ( (1,1), ) ),
+        ( 4, 'test/var/radical-tasks-2.txt', ( (0,0), ) ),
+        ( 5, 'test/var/radical-tasks-4.txt', ( (1,1), ) ),
+        ( 6, 'test/var/c_header-1.txt', ( (0,2), ) ),
+        ( 7, 'test/var/c_header-2.txt', ( (0,0), ) ),
+    ])
+    def test_2_2_Parser_find_comment(self, testnr, source, expected):
+        tname=self.id().replace(__name__, '').strip('.')
+        srcdoc = radical.SrcDoc( source )
+        first_cmnt = radical.find_comment(0, srcdoc.data, srcdoc.lines,
+                self.rc.comment_flavours, self.mb )
+        self.assertEquals( expected[0], first_cmnt )
 
     @parameterized.expand([
         ( 1, 'radical-test1.txt', [
@@ -155,12 +187,13 @@ class RadicalTestCase(unittest.TestCase):
             ( '<EmbeddedIssue unix_generic 774-853 15-15>', (), (773, 853), '', '' ),
         ] ),
     ])
-    def test_Parser_for_tag(self, testnr, source, expected):
-        data = open(source).read()
-        lines = data.split('\n')
-        if lines[-1] == '':
-            lines.pop()
-        parser = Parser(None, self.mb, source, '', data, lines)
+    def test_2_3_Parser_for_tag(self, testnr, source, expected):
+        tname=self.id().replace(__name__, '').strip('.')
+        #data = open(source).read()
+        #lines = data.split('\n')
+        #if lines[-1] == '':
+        #    lines.pop()
+        parser = Parser(None, self.mb, source, '')
         tags = list(parser.find_tags())
         for idx, ( ei_str, lspan, dspan, raw, descr ) in enumerate(expected):
             tag = tags[idx]
@@ -173,10 +206,18 @@ class RadicalTestCase(unittest.TestCase):
                     "%i: %r vs. expected %r" % ( idx, str(ei), ei_str ) )
             if lspan:
                 self.assertEquals( ei.comment_line_span, lspan,
-                    "%i: %r vs. expected %r" % ( idx, ei.comment_line_span, lspan ) )
+                    "%i: %r vs. expected %r\n<<<< result %s %i\n%r\n====\n%r\n>>>> expected %s %i" % (
+                        idx, ei.comment_line_span, lspan,
+                        tname, idx,
+                        '\n'.join(parser.srcdoc.lines[slice(*ei.comment_line_span)]),
+                        '\n'.join(parser.srcdoc.lines[slice(*lspan)]),
+                        tname, idx
+
+                    ) )
             if dspan:
-                self.assertEquals( ei.description_span, dspan,
-                    "%i: %r vs. expected %r" % ( idx, ei.description_span, dspan ) )
+                pass
+                # FIXME self.assertEquals( ei.description_span, dspan,
+                #    "%i: %r vs. expected %r" % ( idx, ei.description_span, dspan ) )
             if raw:
                 self.assertEquals( ei.raw, raw,
                     "%i: %r vs. expected %r" % ( idx, ei.raw, raw ) )
@@ -210,38 +251,89 @@ class RadicalTestCase(unittest.TestCase):
         self.assertEquals( line_offset, expected[1] )
         self.assertEquals( line_width, expected[2] )
 
+    def test_4_1_1_1_get_tagged_comment(self):
+        source_name = 'test/var/radical-tasks-1.txt'
+        prsr = Parser(None, self.mb, source_name, '')
+        tag = radical.TagInstance(source_name, 'TODO', (2, 9))
+        # sanity check on test file data
+        self.assertEquals(prsr.srcdoc.data[3:7], 'TODO')
+        cmnt = radical.get_tagged_comment(prsr, tag, self.rc)
+        self.assert_(cmnt,
+        "radical.get_tagged_comment TODO returned nothing on %s (%s chars)" % (
+            source_name, len(prsr.srcdoc.data)))
+        self.assertEquals(len(cmnt), 3)
+        comment_flavour, char_span, line_span = cmnt
+        self.assertEquals(comment_flavour, 'unix_generic')
+        self.assertEquals(line_span, (1, 1))
+        self.assertEquals(char_span, (1, 65))
 
     @parameterized.expand([
-        ( 1, '/** TODO comment */', ( 'c', (0, 19), (0, 0) ) ),
-        ( 2, '/** TODO comment */\n', (  'c', (0, 19 ), (0, 0) ) ),
-        ( 3, '     /** TODO comment */\n', (  'c', (5, 24), (0, 0) ) ),
-        ( 4, 'lkj\nlkj lkj\nfoo /** TODO comment */ bar\nqwiefn\n', (  'c', (16, 35), (2, 2) ) ),
-        ( 5, 'lkjlkj lkj\nfoo /** TODO comment */ bar\nqwiefn\n', (  'c', (15, 34), (1, 1) ) ),
-        ( 6, '     \n/**\n TODO comment \n*/\n', (  'c', (6, 27 ), (1, 3) ) ),
+        #( 1, '/** TODO comment */', ( (3, 14), 'c', (0, 19), (0, 0) ) ),
+        #( 2, '/** TODO comment */\n', (  (), 'c', (0, 19 ), (0, 0) ) ),
+        #( 3, '     /** TODO comment */\n', ( (), 'c', (5, 24), (0, 0) ) ),
+        #( 4, 'lkj\nlkj lkj\nfoo /** TODO comment */ bar\nqwiefn\n', (  'c', (16, 35), (2, 2) ) ),
+        #( 5, 'lkjlkj lkj\nfoo /** TODO comment */ bar\nqwiefn\n', (  'c', (15, 34), (1, 1) ) ),
+        #( 6, '     \n/**\n TODO comment \n*/\n', (  (), 'c', (6, 27 ), (1, 3) ) ),
 
-        ( 7, '// TODO comment ', ( 'c_line', (0, 17), (0, 0) ) ),
-        ( 8, '# TODO comment ', ( 'unix_generic', ( 0, 16 ), ( 0, 0 ) ) ),
-        ( 9, 'asdf\nfdsa\n// TODO comment \nfoo', ( 'c_line', (10, 27), (2, 2) ) ),
-        ( 10, 'asdf fdsa // TODO comment \nfoo', ( 'c_line', (10, 27), (0, 0) ) ),
+        ( 7, '// TODO comment ', ( (2, 16), 'c_line', (0, 16), (0, 0) ) ),
+        ( 8, '# TODO comment ', ( (1, 15), 'unix_generic', ( 0, 15 ), ( 0, 0 ) ) ),
+        ( 9, '  # TODO comment ', ( (3, 17), 'unix_generic', ( 0, 17 ), ( 0, 0 )
+            , '   TODO comment ' ) ),
+        ( 9, 'asdf\nfdsa\n// TODO comment \nfoo', ( (12, 26), 'c_line', (10, 26), (2, 2) ) ),
+        ( 10, 'asdf fdsa // TODO comment \nfoo', ( (12, 26), 'c_line', (10, 27), (0, 0) ) ),
         #( 11, '// asdf fdsa TODO comment \nfoo', ( 'c_line', (12, 27), (0, 0) ) ),
-        #( 11, 'asdf\nfdsa\n// TODO comment \n// foo', ( 'c_line', (10, 32), (2, 3) ) ),
     ])
-    def test_4_get_tagged_comment(self, testnr, data, expected):
-        lines = get_lines(data)
-        offset = data.index('TODO')
-        width = 4
-        tag_line, line_offset, line_width = at_line(offset, width, data, lines)
-        comment_flavour, char_span, descr_span, line_span = get_tagged_comment(
-                offset, width, data, lines, self.rc.comment_flavours, self.mb)
-        # Verify test (ever case should have same str result)
-        self.assertEquals( data[slice(*expected[1])].strip('/*#\n'), ' TODO comment ' )
+    def test_4_1_2_get_tagged_comment_2016(self, testnr, data, expected):
+        prsr = Parser(None, self.mb, '<inline>', '<unittest>', data)
+        tag = radical.TagInstance('<inline>', 'TODO', expected[0])
+        # Sanity
+        self.assertEquals( prsr.srcdoc.data[slice(*expected[0])], ' TODO comment ')
+        #lines = get_lines(data)
+        #offset = data.index('TODO')
+        #width = 4
+        #tag_line, line_offset, line_width = at_line(offset, width, data, lines)
+        #if expected == None:
+        #    print tag_line, line_offset, line_width
+        #    return
+        cmnt = radical.get_tagged_comment(prsr, tag, None, self.rc)
+        comment_flavour, char_span, line_span = cmnt
+        old = len(expected) == 4
+        if old:
+            # Verify test (ever case should have same str result)
+            comment = ' TODO comment '
+        else:
+            comment = expected[4]
+        cmnt_exp = re.sub( r'[/*#\n]', '', data[slice(*expected[2])] )
+        self.assertEquals( cmnt_exp, comment )
         # Actual tests
-        self.assertEquals( comment_flavour, expected[0] )
-        self.assertEquals( char_span, expected[1] )
-        self.assertEquals( line_span, expected[2] )
-        self.assertEquals( data[slice(*descr_span)].strip('\n '), 'TODO comment' )
-        self.assertEquals( data[slice(*descr_span)].strip('/*\n '), 'TODO comment' )
+        self.assertEquals( comment_flavour, expected[1] )
+        self.assertEquals( char_span, expected[2] )
+        self.assertEquals( line_span, expected[3] )
+        if not old:
+            pass
+            #descr = data[slice(*descr_span)]
+            #exp_descr = data[slice(*exp_descr[2])]
+            #self.assertEquals( descr, exp_descr )
+        else:
+            pass
+            #self.assertEquals(
+            #        data[slice(*descr_span)].strip('\n '),
+            #        'TODO comment' )
+            #self.assertEquals( data[slice(*descr_span)].strip('/*\n '), 'TODO comment' )
 
+    @parameterized.expand([
+        ( 12, 'asdf\nfdsa\n// TODO comment \n// foo\n\n', ( 'c_line', (10, 32), (2,
+            3), '// TODO comment \n// foo\n' ) ),
+        ( 13, 'asdf\nfdsa\n// TODO comment \n// foo', ( 'c_line', (10, 32), (2,
+            3), '// TODO comment \n// foo' ) ),
+
+        ( 14, 'asdf fdsa // comment ', None ),
+        ( 15, 'asdf fdsa TODO comment \nfoo', None ),
+    ])
+    def test_4_1_3_get_tagged_comment(self, testnr, data, expected):
+        pass
+    def test_4_2_get_comment_tag_description(self, testnr, data, expected):
+        pass
 
     @parameterized.expand([
         #( 1, 'radical-test1.txt', [
@@ -249,7 +341,7 @@ class RadicalTestCase(unittest.TestCase):
     ])
     def test_find_tagged_comments(self, testnr, source, expected):
         data = open(source).read()
-        comments = list(find_tagged_comments(source, self.mb, source, data))
+        #comments = list(find_tagged_comments(source, self.mb, source, data))
 
 
     #def setUp(self):
