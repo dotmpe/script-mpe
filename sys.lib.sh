@@ -28,7 +28,7 @@ require_fs_casematch()
 {
   test -n "$CWD" || CWD="$(pwd)"
   test -n "$1" && {
-    cd $1
+    cd "$1"
   }
   test -e ".fs-casematch" || {
     test -e ".fs-nocasematch" && {
@@ -48,13 +48,13 @@ require_fs_casematch()
           touch .fs-nocasematch
         } || {
           rm abc ABC || noop
-          cd $CWD
+          cd "$CWD"
           error "Unknown error" 1
         }
       }
     }
   }
-  cd $CWD
+  cd "$CWD"
 }
 
 
@@ -209,9 +209,9 @@ setup_tmpf()
   test -n "$3" || set -- "$1" "$2" "$(setup_tmpd)"
   test -n "$3" -a -d "$3" || error "Not a dir: '$3'" 1
 
-  test -d $(dirname $3/${base}$2$1) \
-    || mkdir -p $(dirname $3/${base}$2$1)
-  echo $3/${base}$2$1
+  test -d $(dirname $3/$2$1) \
+    || mkdir -p $(dirname $3/$2$1)
+  echo $3/$2$1
 }
 
 # confirm PROMPT [varname=choice_confirm]

@@ -78,7 +78,7 @@ statusdir__assert()
       path=$STATUSDIR_ROOT/$1
     ;;
     * )
-      path=$STATUSDIR_ROOT/bases/$2/$1
+      path=$STATUSDIR_ROOT/$2/$1
     ;;
   esac
   path=$(normalize_relative $path)
@@ -105,7 +105,7 @@ statusdir__assert_dir()
 {
   test -n "$STATUSDIR_ROOT" || return 14
   tree="$(echo "$@" | tr ' ' '/')"
-  path=$STATUSDIR_ROOT"index/"$tree
+  path=$STATUSDIR_ROOT$tree
   mkdir -vp $(dirname $path)
   echo $path
 }
@@ -129,6 +129,28 @@ statusdir__file()
   esac
   echo $STATUSDIR_ROOT"index/$tree"
 }
+
+# Create and cat properties file ($format $1)
+statusdir__properties()
+{
+  (
+    props=$(statusdir__file "$1.properties")
+    # XXX: initialize file sd_be=properties
+    #statusdir.sh assert-
+
+    test -n "$format" || format=properties
+    case "$format" in
+      properties )
+          cat $props
+        ;;
+      sh )
+          properties2sh $props
+        ;;
+    esac
+  )
+}
+
+
 
 # XXX
 
@@ -209,7 +231,6 @@ statusdir__decr()
   test -z "$3" || error "surplus arguments" 1
   $sd_be decr $1 $2 || return $?
 }
-
 
 
 ### Main

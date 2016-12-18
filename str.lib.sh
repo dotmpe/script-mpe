@@ -205,3 +205,29 @@ var2tags()
     }
   done)
 }
+
+properties2sh()
+{
+  awk 'BEGIN { FS = "=" } ;
+      { if (NF<2) next;
+      gsub(/[^a-z0-9]/,"_",$1) ;
+      print $1"="$2 }' $1
+}
+
+
+# Echo element in a field-separated string the hard way. Fetches one prefix
+# at a time to 1. keep the function adn regex simple enough while 2. allow
+# the suffix contain field separators.
+# For example to parse file names or numbers from grep -rn result lines.
+# Or, specifically to parse EDL Sh-references (see edl.rst)
+resolve_prefix_element()
+{
+  test -n "$3" || set -- "$1" "$2" ":"
+  while test $1 -gt 1
+  do
+    set -- "$(( $1 - 1 ))" "$(echo "$2" | sed "s/^[^$3]*$3\\(.*\\)$/\\1/" )" "$3"
+  done
+  echo "$2" | sed "s/^\\([^$3]*\\)$3.*$/\\1/"
+}
+
+

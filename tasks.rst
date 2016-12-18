@@ -63,4 +63,28 @@ somewhere. This also enables creating new tasks for new found tagged
 comments. And meanwhile allows other tags with the same format present.
 
 
+Sh (line-based) formats::
+
+  <file>:<start-line>: <match> # grep
+
+  TODO: sh, id formatting
+
+  :<file>:<line-range>:lines=<>;flavour=<>;comment=<> # full-id
+  <prefix>:<file>:<line-range>:lines=<>;flavour=<>;comment=<> # full-id
+
+  :<file>:<line-range>::::<>: # full-sh
+  <prefix>:<file>:<line-range>:<line-span>:<descr-range>:::<comment-range>:::
+  <prefix>:<file>:<line-range>:<line-span>::<descr-offset-span>:::<cmnt-offset-range>::
+  <prefix>:<file>:<line-range>:<line-span>:::<descr-line-offset-span>:::<cmnt-line-offset-range>:
+
+  <1-prefix>:<2-file>:<3-line-range>:<4-line-span>:<5-descr-range>:::<8-comment-range>:::
+  <1-prefix>:<2-file>:<3-line-range>:<4-line-span>::<6-descr-span>:::<9-cmnt-span>::
+  <1-prefix>:<2-file>:<3-line-range>:<4-line-span>:::<7-descr-line-span>:::<10-cmnt-line-span>:
+
+  <prefix>/<project>:<file>:<line-range>::::
+  <prefix>/<project>:<file>::<comment-char-range>:::
+  <prefix>/<project>:<file>:::<line-range>::
+  <prefix>/<project>:<file>::::<description-char-range>: <tag>
+
+
 

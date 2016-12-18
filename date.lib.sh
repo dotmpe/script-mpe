@@ -10,6 +10,7 @@ _1DAY=86400
 _1WEEK=604800
 
 
+# younger-than FILE SECONDS
 younger_than()
 {
   test -n "$1" || error "younger-than expected path" 1
@@ -19,6 +20,7 @@ younger_than()
   test $(( $(date +%s) - $2 )) -lt $(filemtime $1) && return 0 || return 1
 }
 
+# older-than FILE SECONDS
 older_than()
 {
   test -n "$1" || error "older-than expected path" 1

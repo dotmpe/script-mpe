@@ -31,7 +31,7 @@ vc_load()
 
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
-  gtd=$(__vc_gitdir $cwd)
+  gtd="$(__vc_gitdir "$cwd")"
 
 
   test -n "$vc_clean_gl" || {
@@ -141,8 +141,8 @@ vc__commands()
 	echo '  print-all          '
 	echo '  prompt-command     '
 	echo '  gh                 Clone from github'
-  echo '  git-largest-objects (10)'
-  echo '                     List the SHA1 sums of the largest objects.'
+  echo '  largest-objects (10)'
+  echo '                     List the SHA1 sums of the largest GIT objects.'
   echo '  path-for-object <sha1>'
   echo '                     Given SHA1 object, its current path.'
 	echo '  contains REPO FILE'
@@ -197,15 +197,31 @@ vc__commands()
 
 vc__help()
 {
+  echo "$base/$version - Reports on SCM state, build short description. "
+  echo
 	vc_usage
-	echo ''
-	vc__commands
+  echo
+  echo "Default command: "
+  echo "  $scriptname (print-all) [PATH...]"
+	echo
+	echo "For example to be embedded in PS1: "
+	echo "  $scriptname ps1"
+	echo
+  echo "Tokens:"
+  echo "  *      modified"
+  echo "  +      stage"
+  echo "  $      stash"
+  echo "  ~      untracked"
+  echo "  #      no HEAD"
+  echo "  GIT_DIR!:  "
+  echo "  BARE:  "
 	echo ''
 	vc__docs
 }
 
 vc__docs()
 {
+	echo "See vc commands for full comand list"
 	echo "See htd and dckr for other scripts"
 }
 
@@ -361,10 +377,14 @@ __vc_git_flags()
 			fi
 		elif [ "true" = "$(git rev-parse --is-inside-work-tree 2>/dev/null)" ]; then
 			if [ -n "${GIT_PS1_SHOWDIRTYSTATE-}" ]; then
+
 				if [ "$(git config --bool bash.showDirtyState)" != "false" ]; then
+
 					git diff --no-ext-diff --ignore-submodules \
 						--quiet --exit-code || w='*'
+
 					if git rev-parse --quiet --verify HEAD >/dev/null; then
+
 						git diff-index --cached --quiet \
 							--ignore-submodules HEAD -- || i="+"
 					else
@@ -1449,6 +1469,7 @@ vc_main()
         } || {
           R=$?
           vc_load || return
+          # TODO: rewrite to use default command, proper error handler here
           test -n "$1" && {
             vc__print_all "$@"
             exit $R
