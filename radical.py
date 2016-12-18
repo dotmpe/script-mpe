@@ -267,7 +267,7 @@ DEFAULT_TAGS = {
     'FIXME': [ DEFAULT_TAG_RE ],
     'TEST':  [ DEFAULT_TAG_RE, '%s:%i:', 'numeric_index' ],
     'TODO':  [ DEFAULT_TAG_RE, '%s:%i:', 'numeric_index' ],
-    'XXX':   [ DEFAULT_TAG_RE ],
+    'XXX':   [ DEFAULT_TAG_RE ], # tasks:no-check
     'NOTE':  [ DEFAULT_TAG_RE ],
     'BUG':   [ DEFAULT_TAG_RE ]
 }

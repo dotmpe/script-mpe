@@ -49,19 +49,19 @@ class RadicalTestCase(unittest.TestCase):
                     expected, result.start() ) )
 
     @parameterized.expand([
-        ( 1,  'FIXME', '  FIXME  ',             '  FIXME  ',        ),
-        ( 2,  'XXX',   '  XXX  ',               '  XXX  ',          ),
-        ( 3,  'TODO',  '  TODO  ',              '  TODO  ',         ),
-        ( 4,  'BUG',   '  BUG  ',               '  BUG  ',          ),
-        ( 5,  'NOTE',  '  NOTE  ',              '  NOTE  ',         ),
-        ( 6,  'TEST',  '  TEST  ',              '  TEST  '          ),
-        ( 7,  'XXX',   '-  XXX  -',             '  XXX  ',          ),
-        ( 8,  'XXX',   '-  XXX:1ax0d  -',       '  XXX:1ax0d  ',    ),
-        ( 9,  'XXX',   '-  XXX:_a:0d  -',       '  XXX:_a:0d  ',    ),
-        ( 10, 'XXX',   '-  XXX:1ax 0d  -',      '  XXX:1ax ',       ),
-        ( 11, 'XXX',   '-  XXX:1ax: 0d  -',     '  XXX:1ax: ',      ),
-        ( 12, 'PRJ',   '-  PRJ-09af-2: Foo  -', '  PRJ-09af-2: ',   ),
-        ( 13, 'FIXME', '_ FIXME_af09 _',        ' FIXME_af09 ',     ),
+        ( 1,  'FIXME', '  FIXME  ',             '  FIXME  ',        ), # tasks:no-check
+        ( 2,  'XXX',   '  XXX  ',               '  XXX  ',          ), # tasks:no-check
+        ( 3,  'TODO',  '  TODO  ',              '  TODO  ',         ), # tasks:no-check
+        ( 4,  'BUG',   '  BUG  ',               '  BUG  ',          ), # tasks:no-check
+        ( 5,  'NOTE',  '  NOTE  ',              '  NOTE  ',         ), # tasks:no-check
+        ( 6,  'TEST',  '  TEST  ',              '  TEST  '          ), # tasks:no-check
+        ( 7,  'XXX',   '-  XXX  -',             '  XXX  ',          ), # tasks:no-check
+        ( 8,  'XXX',   '-  XXX:1ax0d  -',       '  XXX:1ax0d  ',    ), # tasks:no-check
+        ( 9,  'XXX',   '-  XXX:_a:0d  -',       '  XXX:_a:0d  ',    ), # tasks:no-check
+        ( 10, 'XXX',   '-  XXX:1ax 0d  -',      '  XXX:1ax ',       ), # tasks:no-check
+        ( 11, 'XXX',   '-  XXX:1ax: 0d  -',     '  XXX:1ax: ',      ), # tasks:no-check
+        ( 12, 'PRJ',   '-  PRJ-09af-2: Foo  -', '  PRJ-09af-2: ',   ), # tasks:no-check
+        ( 13, 'FIXME', '_ FIXME_af09 _',        ' FIXME_af09 ',     ), # tasks:no-check
     ])
     def test_1_2_tag_regex(self, testnr, tag, source, expected):
         """1.2 Tag regex does what is expected"""
@@ -133,33 +133,33 @@ class RadicalTestCase(unittest.TestCase):
 
     @parameterized.expand([
         ( 1, 'radical-test1.txt', [
-          [ '<TagInstance FIXME radical-test1.txt#c107-115>', ' FIXME: '    ],
-          [ '<TagInstance XXX radical-test1.txt#c161-169>',   ' XXX:2: '    ],
-          [ '<TagInstance XXX radical-test1.txt#c405-412>',   ' XXX 7 '     ],
-          [ '<TagInstance NOTE radical-test1.txt#c6-21>',     ' NOTE Comment\n ' ],
-          [ '<TagInstance NOTE radical-test1.txt#c291-298>',  ' NOTE: '     ],
-          [ '<TagInstance NOTE radical-test1.txt#c322-333>',  ' NOTE this ' ],
-          [ '<TagInstance TEST radical-test1.txt#c70-77>',    ' TEST: '     ],
-          [ '<TagInstance TODO radical-test1.txt#c349-359>',  ' TODO 123 '  ],
-          [ '<TagInstance TODO radical-test1.txt#c369-378>',  ' TODO-45 '   ],
-          [ '<TagInstance TODO radical-test1.txt#c388-396>',  None          ],
-          [ '<TagInstance TODO radical-test1.txt#c421-430>',  ' TODO 17 '   ],
+          [ '<TagInstance FIXME radical-test1.txt#c107-115>', ' FIXME: '    ], # tasks:no-check
+          [ '<TagInstance XXX radical-test1.txt#c161-169>',   ' XXX:2: '    ], # tasks:no-check
+          [ '<TagInstance XXX radical-test1.txt#c405-412>',   ' XXX 7 '     ], # tasks:no-check
+          [ '<TagInstance NOTE radical-test1.txt#c6-21>',     ' NOTE Comment\n ' ], # tasks:no-check
+          [ '<TagInstance NOTE radical-test1.txt#c291-298>',  ' NOTE: '     ], # tasks:no-check
+          [ '<TagInstance NOTE radical-test1.txt#c322-333>',  ' NOTE this ' ], # tasks:no-check
+          [ '<TagInstance TEST radical-test1.txt#c70-77>',    ' TEST: '     ], # tasks:no-check
+          [ '<TagInstance TODO radical-test1.txt#c349-359>',  ' TODO 123 '  ], # tasks:no-check
+          [ '<TagInstance TODO radical-test1.txt#c369-378>',  ' TODO-45 '   ], # tasks:no-check
+          [ '<TagInstance TODO radical-test1.txt#c388-396>',  None          ], # tasks:no-check
+          [ '<TagInstance TODO radical-test1.txt#c421-430>',  ' TODO 17 '   ], # tasks:no-check
         ] ),
         ( 2, 'test/var/radical-tasks-1.txt', [
-          ( '<TagInstance TODO test/var/radical-tasks-1.txt#c2-9>', ' TODO: ' ),
+          ( '<TagInstance TODO test/var/radical-tasks-1.txt#c2-9>', ' TODO: ' ), # tasks:no-check
         ] ),
         ( 3, 'test/var/radical-tasks-2.txt', [
-          ( '<TagInstance FIXME test/var/radical-tasks-2.txt#c1-11>', ' FIXME:2: ' ),
+          ( '<TagInstance FIXME test/var/radical-tasks-2.txt#c1-11>', ' FIXME:2: ' ), # tasks:no-check
         ] ),
         ( 4, 'test/var/radical-tasks-3.txt', [
-          ( '<TagInstance TODO test/var/radical-tasks-3.txt#c2-9>', ' TODO: ' ),
-          ( '<TagInstance TODO test/var/radical-tasks-3.txt#c68-75>', ' TODO: ' ),
+          ( '<TagInstance TODO test/var/radical-tasks-3.txt#c2-9>', ' TODO: ' ), # tasks:no-check
+          ( '<TagInstance TODO test/var/radical-tasks-3.txt#c68-75>', ' TODO: ' ), # tasks:no-check
         ] ),
         ( 5, 'test/var/radical-tasks-4.txt', [
-          ( '<TagInstance TODO test/var/radical-tasks-4.txt#c2-9>', ' TODO: ' ),
-          ( '<TagInstance TODO test/var/radical-tasks-4.txt#c457-464>', ' TODO: ' ),
-          ( '<TagInstance TODO test/var/radical-tasks-4.txt#c523-530>', ' TODO: ' ),
-          ( '<TagInstance TODO test/var/radical-tasks-4.txt#c773-780>', ' TODO: ' ),
+          ( '<TagInstance TODO test/var/radical-tasks-4.txt#c2-9>', ' TODO: ' ), # tasks:no-check
+          ( '<TagInstance TODO test/var/radical-tasks-4.txt#c457-464>', ' TODO: ' ), # tasks:no-check
+          ( '<TagInstance TODO test/var/radical-tasks-4.txt#c523-530>', ' TODO: ' ), # tasks:no-check
+          ( '<TagInstance TODO test/var/radical-tasks-4.txt#c773-780>', ' TODO: ' ), # tasks:no-check
         ] ),
     ])
     def test_2_1_Parser_find_tags(self, testnr, source, expected):
@@ -202,7 +202,7 @@ class RadicalTestCase(unittest.TestCase):
                 #(160, 245)
                 (160, 195), (196, 245)
             ], [
-                '# XXX:2: another unix-style comment',
+                '# XXX:2: another unix-style comment', # tasks:no-check
                 '#     runs two lines also. And has two sentences.'
             ], ) ),
         ( 5, 'test/var/radical-tasks-1.txt', -1, ( ('unix_generic', (1,1)), (), ) ),
@@ -248,27 +248,27 @@ class RadicalTestCase(unittest.TestCase):
             ( '', (), (), '', '' ),
             ( '', (), (), '', '' ),
             ( '', (), (), '', '' ),
-            ( '', (22, 23), (421, 435), 'TODO 17 baz \n', ' TODO 17 baz \n' ),
+            ( '', (22, 23), (421, 435), 'TODO 17 baz \n', ' TODO 17 baz \n' ), # tasks:no-check
         ] ),
         ( 2, 'test/var/radical-tasks-1.txt', [
             ( '', (1, 1), (2, 66), '', '' ),
         ] ),
         ( 3, 'test/var/radical-tasks-2.txt', [
             ( '<EmbeddedIssue unix_generic 2-67 0-0>', ( 0, 0 ), ( 1, 68 ),
-                'FIXME:2: Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-                ' FIXME:2: Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n' ),
+                'FIXME:2: Lorem ipsum dolor sit amet, consectetur adipiscing elit.', # tasks:no-check
+                ' FIXME:2: Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n' ), # tasks:no-check
         ] ),
         ( 4, 'test/var/radical-tasks-3.txt', [
             ( '<EmbeddedIssue unix_generic 3-65 1-1>', ( 1, 1 ), ( 2, 66 ), '',
-                ' TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n' ),
+                ' TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n' ), # tasks:no-check
             ( '', (3, 6), (68, 148), '',
                 # FIXME: scan comments properly?
                 #'TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.'
-                ' TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod \n' ),
+                ' TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod \n' ), # tasks:no-check
         ] ),
         ( 5, 'test/var/radical-tasks-4.txt', [
             ( '<EmbeddedIssue unix_generic 3-80 1-1>', (), (2, 81), '',
-                ' TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod'
+                ' TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod' # tasks:no-check
             ),
             ( '<EmbeddedIssue unix_generic 458-520 8-8>', (), (457, 521), '', '' ),
             ( '<EmbeddedIssue unix_generic 524-602 10-10>', (), (523, 603), '', '' ),
