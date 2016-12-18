@@ -1,0 +1,6 @@
+#!/usr/bin/env sitefile
+sitefile: 0.0.4-dev
+port: 4500
+routes: 
+  _du: 'du:**/*.rst'
+  coverage/python: static:coverage_html_report

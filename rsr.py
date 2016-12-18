@@ -23,10 +23,16 @@ from taxus import SessionMixin, Node, Name, Tag, SqlBase, get_session
 import sys
 import os
 import libcmd
+import libcmdng
 
 
 
-#@Target.register(NS, 'status', 'rsr:volume')
+NS = libcmdng.Namespace.register(
+        prefix='rsr',
+        uriref='http://project.dotmpe.com/script/#/rsr'
+    )
+
+@libcmdng.Target.register(NS, 'status', 'rsr:volume')
 def rsr_status(prog=None, volume=None, opts=None):
     log.debug("{bblack}rsr{bwhite}:status{default}")
     # print if superdir is OK

@@ -1,10 +1,11 @@
+import os
 import unittest
 import re
 
 from nose_parameterized import parameterized
 
-from script_mpe import confparse, radical
-from script_mpe.radical import compile_rdc_matchbox, Parser, DEFAULT_TAGS, \
+import confparse, radical
+from radical import compile_rdc_matchbox, Parser, DEFAULT_TAGS, \
         find_tagged_comments, get_tagged_comment, get_lines, STD_COMMENT_SCAN,\
         at_line
 
@@ -278,6 +279,8 @@ class RadicalTestCase(unittest.TestCase):
     def test_2_3_Parser_for_tag(self, testnr, source, expected):
         """2.3 Parser for-tag returns embedded issues"""
 
+        # TODO: first fix radical comment parsing, then update EmbeddedIssue API
+
         tname=self.id().replace(__name__, '').strip('.')
         parser = Parser(None, self.mb, source, '')
         tags = list(parser.find_tags())
@@ -289,7 +292,6 @@ class RadicalTestCase(unittest.TestCase):
                 self.assert_(False, "%i: error for %s: %s" % ( testnr, tag, err))
             if not ei:
                 continue
-                # XXX:
                 self.assert_( ei, "Expected comment at %i: %i: for %r" % (testnr, idx, tag))
             if ei_str:
                 self.assertEquals( str(ei), ei_str,
@@ -417,12 +419,6 @@ class RadicalTestCase(unittest.TestCase):
         # Actual tests
         self.assertEquals( comment_flavour, expected[1] )
         self.assertEquals( line_span, expected[3] )
-        # XXX:
-        #self.assertEquals( char_span, expected[2] )
-
-            #descr = data[slice(*descr_span)]
-            #exp_descr = data[slice(*exp_descr[2])]
-            #self.assertEquals( descr, exp_descr )
 
     @parameterized.expand([
         ( 12, 'asdf\nfdsa\n// TODO comment \n// foo\n\n', ( 'c_line', (10, 32), (2,
@@ -436,9 +432,6 @@ class RadicalTestCase(unittest.TestCase):
     def test_4_1_3_get_tagged_comment(self, testnr, data, expected):
         pass
 
-
-
-    # XXX: stubs
     @parameterized.expand([
         ( 12, 'asdf\nfdsa\n// TODO comment \n// foo\n\n', ( 'c_line', (), )),
     ])

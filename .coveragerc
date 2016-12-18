@@ -23,6 +23,7 @@ exclude_lines =
 ignore_errors = True
 #include = rsr,txs,lind,cmdline,res,libcmd
 #omit = /usr/*,/src/google*,*rsrlib/*,*uriref/*
+omit = */site-packages/*
 
 [html]
 directory = coverage_html_report

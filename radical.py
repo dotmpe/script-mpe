@@ -228,8 +228,7 @@ tags
     a format and item index service name
 """
 # TODO: groups of filetype tags for each flavour scanned comment
-
-# XXX: probably use gate to map between content-type and format tag
+# FIXME: probably use gate to map between content-type and format tag
 #flavour_format_map = {
 #        'unix_generic': (),
 #        'c':   ('c', 'js', 'hx', 'php', ),
@@ -239,9 +238,8 @@ tags
 #        'sql': ('sql', 'mysql',),
 #        'ini':  ('ini',),
 #        'py':  ('py',),
-# XXX: collapse htm and html
-#        'xml': ('xml', 'xslt', 'xsd', 'relax', 'xhtml', 'html'),
-#        'sgml': ('sgml','html'),
+#        'xml': ('xml', 'xslt', 'xsd', 'relax', 'xhtml', 'html', 'htm'),
+#        'sgml': ('sgml','html','htm'),
 #    }
 
 # Start/end regex patterns per comment flavour
@@ -363,7 +361,6 @@ class TrackedIssue(Base):
     #        backref='issues')
     description = Column(Text, index=True)
     inline = Column(Boolean, default=False)
-    # XXX: unique on filename/linenumber?
     filename = Column(String(255), index=True)
     last_seen_startline = Column(Integer)
 
@@ -443,7 +440,7 @@ class EmbeddedIssue:
     """
 
     def __init__(self, srcdoc, comment_char_span, comment_line_span,
-            description_span, comment_flavour, inline, tags):
+            description_span, comment_flavour, inline=False, tags=[]):
         self.srcdoc = srcdoc
         self.description_span = description_span
         self.comment_char_span = comment_char_span
@@ -1054,11 +1051,8 @@ class Parser:
                                                             comment_span)
         (comment_start, comment_end) = comment_span
 
-        # XXX:
-        inline = None
-        tags = []
         return EmbeddedIssue(self.srcdoc, comment_span, lines, (),
-                comment_flavour, inline, tags)
+                comment_flavour)
 
 
 
@@ -1405,7 +1399,7 @@ class Radical(rsr.Rsr):
         context = ''
         source_iter = self.walk_paths(paths)
 
-        # pre-compile patterns XXX: per context
+        # pre-compile patterns TODO: per context
         matchbox = compile_rdc_matchbox(rc)
 
         taskdocs = {}
@@ -1428,7 +1422,6 @@ class Radical(rsr.Rsr):
                 if not cmt:
                     continue
 
-                # XXX
                 srcdoc.scei.append(cmt)
 
                 if opts.quiet:
@@ -1470,6 +1463,7 @@ class Radical(rsr.Rsr):
 
 
 if __name__ == '__main__':
-    Radical.main()
+    pass
+    #Radical.main()
 
 
