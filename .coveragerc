@@ -1,7 +1,7 @@
 # .coveragerc to control coverage.py
 [run]
 branch = True
-parallel_mode = True
+#parallel_mode = True
 
 [report]
 # Regexes for lines to exclude from consideration
@@ -27,6 +27,6 @@ ignore_errors = True
 [html]
 directory = coverage_html_report
 
-[xml]
-file = coverage_xml_report.xml
+#[xml]
+#file = coverage_xml_report.xml
 

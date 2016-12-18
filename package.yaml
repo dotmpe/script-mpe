@@ -16,7 +16,7 @@
     # scripts
     check: "sh:verbose=false:max=385:./tools/sh/tags.sh :verbose=1:vchk :bats:specs :git:status"
     # TODO: check for /tmp usage, force TMPDIR use
-    test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats"
+    test: ":vchk sh:python:test/main.py sh:system-test :bats:specs :bats :bats:test/ubuntu-suite.bats"
     # TODO: run tests at VM/... if available
     build: ":vagrant:tools/ci/vbox"
     #build: ":vagrant:tools/ci/vbox:ubuntu"

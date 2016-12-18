@@ -29,7 +29,9 @@ init
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   #test -z "${lines[*]}" # empty output
-  test "${#lines[@]}" = "10" # lines of output (stderr+stderr)
+  # lines of output (stderr+stderr)
+  test "${#lines[@]}" = "10" \
+    || fail "${#lines[@]}"
 }
 
 @test "${bin} radical-test1.txt" {

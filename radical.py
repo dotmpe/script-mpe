@@ -399,16 +399,19 @@ class SrcDoc:
     def line_dsp(self, number):
         line = 0
         dsp = 0
-        while line+1 <= number:
+        while line < number:
             dsp += len(self.lines[line]+self.newline)
             line += 1
         return dsp
 
     def line_wid(self, number):
         "return char position to end of line"
-        dsp = self.line_dsp(number)
-        dsp += len(self.lines[number])
-        return dsp
+        return len(self.lines[number])
+
+    def line_char_span(self, from_line=0, to_line=None):
+        if to_line == None:
+            to_line = from_line
+        return self.line_dsp(from_line), self.line_wid(to_line)
 
     def line_char_range(self, from_line=0, to_line=None):
         """translate line range to character range
@@ -417,7 +420,7 @@ class SrcDoc:
         if to_line == None:
             to_line = from_line
         start = self.line_dsp(from_line)
-        end = start + self.line_wid(to_line)
+        end = self.line_dsp(to_line) + self.line_wid(to_line)
         return start, end
 
 
@@ -456,11 +459,11 @@ class EmbeddedIssue:
 
     @property
     def line_span(self):
-        return [ i + 1 for i in self.comment_line_span ]
+        return tuple([ i + 1 for i in self.comment_line_span ])
 
     @property
     def char_span(self):
-        return [ i + 1 for i in self.comment_char_span ]
+        return tuple([ i + 1 for i in self.comment_char_span ])
 
     @property
     def raw(self):
@@ -476,39 +479,43 @@ class EmbeddedIssue:
         scei_id = self.srcdoc.source_name
         if full:
             cspan = tuple([ x+1 for x in self.comment_char_span ])
-            scei_id += ":%s-%s;lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
-                    dspan + self.line_span + ( self.comment_flavour, ) + self.char_span )
+            scei_id += ":lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
+                    self.line_span + ( self.comment_flavour, ) + self.char_span )
         else:
-            scei_id += ":%s-%s" % dspan
+            #scei_id += ":%s-%s" % dspan
+            scei_id += ":%s-%s" % self.char_span
         return scei_id
 
 
     formats = {
-            'todo.txt': lambda cmt, data: "",
-            'id': lambda cmt, data: cmt.scei_id(False),
-            'full-id': lambda cmt, data: cmt.scei_id(),
-            'full-sh': lambda cmt, data: ":".join(
+            #'todo.txt': lambda ei, data: "",
+            'id': lambda ei, data: ei.scei_id(False),
+            'full-id': lambda ei, data: ei.scei_id(),
+            'full-sh': lambda ei, data: ":".join(
                 map(str, [
                     '',
-                    cmt.srcdoc.source_name,
+                    ei.srcdoc.source_name,
                     # NOTE: 0 to 1-indexed, and add spans for Sh
-                    "%i-%i" % tuple([ x+1 for x in cmt.line_span ]),
-                    "%i-%i" % tuple([ x+1 for x in cmt.description_span ]),
+                    "%i-%i" % tuple([ x+1 for x in ei.line_span ]),
+                    "", # FIXME: "%i-%i" % tuple([ x+1 for x in ei.description_span ]),
                     '', # line-offset-descr-span
                     '', # cmnt-span
                     '', # line-offset-cmnt-span
-                    cmt.descr
+                    '',# FIXME: ei.descr
                 ])),
-            'raw': lambda cmt, data: " ".join(
-                map(str, [ cmt.srcdoc.source_name,
-                    cmt.line_span, \
-                    cmt.comment_flavour, \
-                    repr(cmt.raw), \
-                    repr(cmt.descr) ])),
-            'raw2': lambda cmt, data: [
-                "%s '%s' <%s> %s" %(
-                    tag, tag.raw, tag.canonical(data), cmt
-                ) for tag in cmt.tags ]
+            'raw': lambda ei, data: " ".join(
+                map(str, [ ei.srcdoc.source_name,
+                    ei.line_span, \
+                    ei.comment_flavour, \
+                    repr(ei.raw), \
+                    '', # FIXME: repr(ei.descr)
+                    ])),
+            'raw2': lambda ei, data:
+                ei.tags and \
+                    "/".join([ "%s '%s' <%s> %s" %(
+                        tag, tag.raw, tag.canonical(data), ei
+                    ) for tag in ei.tags ])
+                or "No tags %r" % ei
         }
 
 
@@ -734,7 +741,7 @@ def get_tagged_comment(parser, tag_or_offset, tag_width, rc):
 
                 # Search to first line
                 while start_line < 0:
-                    line_start_ = search_line(srcdoc.lines[tag_line-1])
+                    line_start_ = search_line(srcdoc.lines[start_line-1])
                     while line_start_:
                         start_line -= 1
                         comment_start -= len(srcdoc.lines[start_line])
@@ -743,12 +750,12 @@ def get_tagged_comment(parser, tag_or_offset, tag_width, rc):
                     break
                 # Search to end line
                 while end_line+1 < len(srcdoc.lines):
-                    line_end_ = search_line(srcdoc.lines[tag_line+1])
+                    line_end_ = search_line(srcdoc.lines[end_line+1])
                     while line_end_:
                         end_line += 1
                         comment_end += len(srcdoc.lines[end_line])
                         line_end = line_end_
-                        line_end_ = search_line(srcdoc.lines[tag_line+1])
+                        line_end_ = search_line(srcdoc.lines[end_line+1])
                     break
                 #print "Line-match ", language_key, tag_line, srcdoc.lines[tag_line]
                 #print 'Comment:', comment_start, comment_end, srcdoc.data[comment_start:comment_end]

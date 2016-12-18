@@ -3,6 +3,8 @@
 # System tests for libcmd/rsr.
 # 
 
+set -e
+
 #################################### CONF ####################################
 PROJECTDIR=$(pwd)
 ABORT=0.4
