@@ -79,6 +79,35 @@ class RadicalTestCase(unittest.TestCase):
 
 
     @parameterized.expand([
+        ( 1, 'test/var/nix_comments.txt', 0, (
+            0, 18, 45, 72, 99, 126, 127, 152, 153, 174, 195, 196, 212, 213
+        ) ),
+    ])
+    def test_5_1_SrcDoc_line_dsp(self, testnr, source, start, expected):
+        tname=self.id().replace(__name__, '').strip('.')
+        srcdoc = radical.SrcDoc( source )
+        for idx, exp_dsp in enumerate(expected):
+            dsp = srcdoc.line_dsp(idx)
+            self.assertEquals( dsp, exp_dsp,
+                    "%s: %r vs. expected %r" % (tname, dsp, exp_dsp))
+        self.assertEquals(len(srcdoc.lines), len(expected))
+
+    @parameterized.expand([
+        ( 1, 'test/var/nix_comments.txt', 0, (
+            17, 44, 71, 98, 125, 126, 151, 152, 173, 194, 195, 211, 212, 226
+        ) ),
+    ])
+    def test_5_2_SrcDoc_line_wid(self, testnr, source, start, expected):
+        tname=self.id().replace(__name__, '').strip('.')
+        srcdoc = radical.SrcDoc( source )
+        for idx, exp_wid in enumerate(expected):
+            wid = srcdoc.line_wid(idx)
+            self.assertEquals( wid, exp_wid,
+                    "%s: %r vs. expected %r" % (tname, wid, exp_wid))
+        self.assertEquals(len(srcdoc.lines), len(expected))
+
+
+    @parameterized.expand([
         ( 1, 'radical-test1.txt', [
           [ '<TagInstance FIXME radical-test1.txt#c107-115>', ' FIXME: '    ],
           [ '<TagInstance XXX radical-test1.txt#c161-169>',   ' XXX:2: '    ],
@@ -133,20 +162,59 @@ class RadicalTestCase(unittest.TestCase):
                     idx, source, len(tags), len(expected) ) )
 
     @parameterized.expand([
-        ( 1, 'test/var/nix_comments.txt', ( (1,4), ) ),
-        ( 2, 'radical-test1.txt', ( (0,4), ) ),
-        ( 3, 'test/var/radical-tasks-1.txt', ( (1,1), ) ),
-        ( 4, 'test/var/radical-tasks-2.txt', ( (0,0), ) ),
-        ( 5, 'test/var/radical-tasks-4.txt', ( (1,1), ) ),
-        ( 6, 'test/var/c_header-1.txt', ( (0,2), ) ),
-        ( 7, 'test/var/c_header-2.txt', ( (0,0), ) ),
+        ( 1, 'test/var/nix_comments.txt', -1, (
+            # Expected:
+            # 1:flavour+comment-lines, 2:comment-char-spans
+            ('unix_generic', (1,3)), [
+                (18,45), (45,72), (72,99) ],
+            # 3:comment-text
+            [ '# Header comment lines 1/3\n',
+              '# Header comment lines 2/3\n',
+              '# Header comment lines 3/3\n' ]
+        ) ),
+        ( 2, 'radical-test1.txt', -1, (
+            ('c', (0,4)), [
+                (0, 3), (4, 23), (20, 59), (40, 91), (52, 107)
+            ], [ ], ) ),
+        ( 3, 'radical-test1.txt', -1, (
+            ('unix_generic', (7,7)), [
+            ], [ ], ) ),
+        ( 4, 'radical-test1.txt', 7, (
+            ('unix_generic', (12,13)), [
+                #(0, 3), (4, 23), (20, 59), (40, 91), (52, 107)
+                (160, 245)
+            ], [
+                '# XXX:2: another unix-style comment\n'
+                '#     runs two lines also. And has two sentences.'
+            ], ) ),
+        ( 5, 'test/var/radical-tasks-1.txt', -1, ( ('unix_generic', (1,1)), (), ) ),
+        ( 6, 'test/var/radical-tasks-2.txt', -1, ( ('unix_generic', (0,0)), (), ) ),
+        ( 7, 'test/var/radical-tasks-4.txt', -1, ( ('unix_generic', (1,1)), (), ) ),
+        ( 8, 'test/var/c_header-1.txt', -1, ( ('c', (0,2)), (), ) ),
+        ( 9, 'test/var/c_header-2.txt', -1, ( ('c', (0,0)), (), ) ),
     ])
-    def test_2_2_Parser_find_comment(self, testnr, source, expected):
+    def test_2_2_Parser_find_comment(self, testnr, source, start, expected):
         tname=self.id().replace(__name__, '').strip('.')
-        srcdoc = radical.SrcDoc( source )
-        first_cmnt = radical.find_comment(0, srcdoc.data, srcdoc.lines,
-                self.rc.comment_flavours, self.mb )
-        self.assertEquals( expected[0], first_cmnt )
+        prsr = Parser('', self.mb, source, '<unittest>')
+        srcdoc = prsr.srcdoc
+        cmnt_spec = radical.find_comment_start_after(start, srcdoc.data,
+                srcdoc.lines, [ expected[0][0] ], self.mb)
+        self.assert_(cmnt_spec)
+        flavour, cmnt_start_line = cmnt_spec
+        self.assertLessEqual(start, cmnt_start_line)
+        self.assertEquals( expected[0][1][0], cmnt_start_line )
+        self.assertEquals( expected[0][0], flavour )
+        cmnt_range = radical.find_comment(start, srcdoc.data, srcdoc.lines,
+                [ flavour ], self.mb )
+        self.assertEquals( expected[0], cmnt_range )
+        if not expected[1]:
+            return
+        if expected[2]:
+            # Verify test-file and test-case numbers by expected string values
+            for idx, value in enumerate(expected[2]):
+                self.assertEquals( srcdoc.data[slice(*expected[1][idx])], value )
+        cmnt_char_spans = prsr.find_comment(from_line=start)
+        self.assertEquals( expected[1] , cmnt_char_spans )
 
     @parameterized.expand([
         ( 1, 'radical-test1.txt', [

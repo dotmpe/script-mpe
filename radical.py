@@ -219,6 +219,68 @@ import res.fs
 Base = declarative_base()
 
 
+# Static global metadata
+
+"""
+scan
+    a dict with start,[end] expressions for each comment flavour
+tags
+    a format and item index service name
+"""
+# TODO: groups of filetype tags for each flavour scanned comment
+
+# XXX: probably use gate to map between content-type and format tag
+#flavour_format_map = {
+#        'unix_generic': (),
+#        'c':   ('c', 'js', 'hx', 'php', ),
+#        'c_line':   ('c', 'js', 'hx', 'php', ),
+#        'vim': ('vim', 'vimrc'),
+#        'rst': ('rst', 'text',),
+#        'sql': ('sql', 'mysql',),
+#        'ini':  ('ini',),
+#        'py':  ('py',),
+# XXX: collapse htm and html
+#        'xml': ('xml', 'xslt', 'xsd', 'relax', 'xhtml', 'html'),
+#        'sgml': ('sgml','html'),
+#    }
+
+# Start/end regex patterns per comment flavour
+STD_COMMENT_SCAN = {
+        'c': [ '(\/\*+)', '(\*\/)' ],
+        'unix_generic': [ '(\#\s)' ], #(?![^\s]+)
+        'c_line': [ '(\/\/)' ],
+
+        # Match comment start line but not directives,
+        # NOTE: directive format in negative lookahead
+        'restructuredtext': [ '(\.\.)(?!\s+[a-zA-Z0-9-]*:)\s' ]
+# TODO: differentiate comment scans. restructuredtext has indented
+#   continuations (without trailing \). I think c_line should support
+#   this. Just like shell programs should and readline does. Its probably
+#   evil to use in source like C or something. But for a generic comment
+#   parser its essential to understand I think.
+# FIXME: Alternatively as a "solution" radical currently supports continued
+#   task descriptions using a single/double? or more indent.
+    }
+# Tag pattern, format and index type
+DEFAULT_TAG_RE = r'\s*\b(%s)(?:[:_\ -]([A-Za-z0-9:_-]+))?\b[:]?\s+'
+DEFAULT_TAGS = {
+    'FIXME': [ DEFAULT_TAG_RE ],
+    'TEST':  [ DEFAULT_TAG_RE, '%s:%i:', 'numeric_index' ],
+    'TODO':  [ DEFAULT_TAG_RE, '%s:%i:', 'numeric_index' ],
+    'XXX':   [ DEFAULT_TAG_RE ],
+    'NOTE':  [ DEFAULT_TAG_RE ],
+    'BUG':   [ DEFAULT_TAG_RE ]
+}
+#    'BUG': [ '(\\b\s*%s)(?:[:_\s-]([0-9]+))?[:_\s-]*\\b' ]
+
+rc = confparse.Values()
+
+tag_chars = 'A-Za-z0-9\/:\._-'
+tag_sepchars = ':\.'
+tag_clean_re = re.compile('[^%s]' % tag_chars)
+tag_match_re = re.compile('[%s]{2,}' % tag_chars)
+
+
 class IssueTracker(Base):
     """
     Keep table of tag/contexts together with (remote) backend ID.
@@ -329,9 +391,34 @@ class SrcDoc:
         else:
             self.data = open(source_name).read()
 
-        self.lines = get_lines(self.data)
+        self.newline = '\n'
+        self.lines = get_lines(self.data, self.newline)
 
         self.scei = []
+
+    def line_dsp(self, number):
+        line = 0
+        dsp = 0
+        while line+1 <= number:
+            dsp += len(self.lines[line]+self.newline)
+            line += 1
+        return dsp
+
+    def line_wid(self, number):
+        "return char position to end of line"
+        dsp = self.line_dsp(number)
+        dsp += len(self.lines[number])
+        return dsp
+
+    def line_char_range(self, from_line=0, to_line=None):
+        """translate line range to character range
+        Excluding last but including all intermediate newlines characters
+        """
+        if to_line == None:
+            to_line = from_line
+        start = self.line_dsp(from_line)
+        end = start + self.line_wid(to_line)
+        return start, end
 
 
 class CommentTag:
@@ -527,8 +614,8 @@ def end_of_line(data):
             return pos
         pos += 1
 
-def get_lines(data):
-    lines = data.split('\n')
+def get_lines(data, newline='\n'):
+    lines = data.split(newline)
     if lines[-1] == '':
         lines.pop()
     return lines
@@ -737,30 +824,47 @@ def scan_for_tag(tags, matchbox, data):
         return pos
 
 
-def find_comment_start_after(line, data, lines, flavours, matchbox):
-    """Return at first comment match in lines.
+def find_comment_start(line, data, lines, flavours, matchbox):
+    """Return at first comment match in lines before line, starting with comment line.
+    Iow. given a comment line, return first line of continuous commentlines.
     """
+
+def find_comment_start_after(line, data, lines, flavours, matchbox):
+    """Return at first comment match of lines after line, starting with non-comment line.
+    Iow. given a non comment line (or "any-line" -1), return first following
+    comment line number.
+    """
+    assert isinstance(line, int)
+    assert isinstance(lines, list)
+    assert isinstance(lines[0], str)
+    assert isinstance(flavours, list)
+    assert isinstance(flavours[0], str)
     start = line
+    if line == -1:
+        start = 0
     for language_key in flavours:
-        line = start
+        find = start
         scan_spec = matchbox[language_key]
         search_line, search_start, search_end = scan_spec
         if search_line:
-            if search_line(lines[line]):
-                return line
-            while line+1 < len(lines):
-                if search_line(lines[line]):
-                    return line
-                line += 1
+            if line == -1 and search_line(lines[find]):
+                return language_key, find
+            while find+1 < len(lines):
+                find += 1
+                if search_line(lines[find]):
+                    return language_key, find
         else:
-            if search_start(lines[line]):
-                return line
-            while line+1 < len(lines):
-                if search_start(lines[line]):
-                    return line
-                line += 1
+            if line == -1 and search_start(lines[find]):
+                return language_key, find
+            while find+1 < len(lines):
+                find += 1
+                if search_start(lines[find]):
+                    return language_key, find
 
 def find_comment_end_after(line, data, lines, flavours, matchbox):
+    assert isinstance(line, int), type(line)
+    assert isinstance(lines, list), type(lines)
+    assert isinstance(flavours, list), type(flavours)
     end = line
     for language_key in flavours:
         line = end
@@ -774,23 +878,32 @@ def find_comment_end_after(line, data, lines, flavours, matchbox):
                     line += 1
                 else:
                     break
-            return line
+            return language_key, line
         else:
             if search_end(lines[line]):
-                return line
+                return language_key, line
             while line < len(lines):
                 if search_end(lines[line]):
-                    return line
+                    return language_key, line
                 line+=1
 
 def find_comment(line, data, lines, flavours, matchbox):
-    cmnt_start_line = find_comment_start_after(line, data, lines, flavours,
-            matchbox)
+    "Return range of first comment, if any. "
+    assert isinstance(line, int), type(int)
+    assert isinstance(lines, list), type(lines)
+    assert isinstance(flavours, list), type(flavours)
+    cmnt_spec = find_comment_start_after(line, data, lines,
+            flavours, matchbox)
+    if not cmnt_spec:
+        return
+    flavour, cmnt_start_line = cmnt_spec
     if cmnt_start_line == None:
         return
-    cmnt_end_line = find_comment_end_after(cmnt_start_line, data, lines,
-            flavours, matchbox)
-    return cmnt_start_line, cmnt_end_line
+    assert isinstance(cmnt_start_line, int), cmnt_spec
+    flavour, cmnt_end_line = find_comment_end_after(cmnt_start_line, data,
+            lines, [ flavour ], matchbox)
+    assert isinstance(cmnt_end_line, int)
+    return flavour, ( cmnt_start_line, cmnt_end_line )
 
 
 def trim_comment(match, data, (start, end)):
@@ -872,21 +985,52 @@ class Parser:
                 tag_span = tag_match.start(), tag_match.end()
                 yield TagInstance(self.source_name, tagname, tag_span)
 
-    def find_comment(at_span=None):
-        """return ranges for comment. with no arg returns header comment.
+    def find_comment_lines(self, flavours=STD_COMMENT_SCAN.keys(), from_line=None, at_span=None):
+        if at_span:
+            # Get comment at tag
+            at_spec = at_line( *(
+                    at_span + ( self.srcdoc.data, self.srcdoc.lines ) ) )
+            if not at_spec:
+                return
+            start_line, line_offset, line_width = at_spec
+            cmnt_spec = find_comment_start(start_line,
+                    self.srcdoc.data, self.srcdoc.lines, flavours,
+                    self.matchbox)
+            if not cmnt_spec:
+                return
+            flavour, start_line = cmnt_spec
+            flavour, end_line = find_comment_end_after(start_line,
+                    self.srcdoc.data, self.srcdoc.lines, [ flavour ],
+                    self.matchbox)
+        else:
+            if not from_line:
+                # Get header comment by default
+                from_line = 0
+            flavour, cmnt_range = find_comment(from_line, self.srcdoc.data, self.srcdoc.lines,
+                    flavours, self.matchbox)
+            if not cmnt_range:
+                return
+            start_line, end_line = cmnt_range
+        return flavour, start_line, end_line
+
+    def find_comment(self, flavours=STD_COMMENT_SCAN.keys(), from_line=None, at_span=None):
+        """Return ranges for comment. with no arg returns header comment.
         If some lines contain non-ws chars other than the comment itself
         then a list of ranges is returned, one for each line. Otherwise
         ranges are concatenated.
         """
-        if at_span:
-            start_line, line_offset, line_width = at_line( *(
-                    at_span + ( self.srcdoc.data, self.srcdoc.lines ) ) )
-        else:
-            cmnt = find_comment(0, self.srcdoc.data, self.srcdoc.lines,
-                    self.rc.flavours, self.matchbox)
-            if not cmnt:
-                return
-            start_line, line_offset, line_width = cmnt
+        cmnt_spec = self.find_comment_lines(flavours=flavours, from_line=from_line, at_span=at_span)
+        if not cmnt_spec:
+            return
+        assert len(cmnt_spec) == 3, cmnt_spec
+        cmnt_line_range = cmnt_spec[1:3]
+        ranges = []
+        #ranges.append(cmnt_range)
+        line = cmnt_line_range[0]
+        while line <= cmnt_line_range[1]:
+            ranges.append( self.srcdoc.line_char_range( line ) )
+            line += 1
+        return ranges
 
     def for_tag(self, tag):
         "retrieve comment for TagInstance TODO: map streams"
@@ -1094,67 +1238,6 @@ def append_comment_scan(option, value, parser):
     print "TODO comment_scan", (option, value, parser)
     pass
 
-
-# Static metadata
-
-"""
-scan
-    a dict with start,[end] expressions for each comment flavour
-tags
-    a format and item index service name
-"""
-# TODO: groups of filetype tags for each flavour scanned comment
-
-# XXX: probably use gate to map between content-type and format tag
-#flavour_format_map = {
-#        'unix_generic': (),
-#        'c':   ('c', 'js', 'hx', 'php', ),
-#        'c_line':   ('c', 'js', 'hx', 'php', ),
-#        'vim': ('vim', 'vimrc'),
-#        'rst': ('rst', 'text',),
-#        'sql': ('sql', 'mysql',),
-#        'ini':  ('ini',),
-#        'py':  ('py',),
-# XXX: collapse htm and html
-#        'xml': ('xml', 'xslt', 'xsd', 'relax', 'xhtml', 'html'),
-#        'sgml': ('sgml','html'),
-#    }
-
-# Start/end regex patterns per comment flavour
-STD_COMMENT_SCAN = {
-        'c': [ '(\/\*+)', '(\*\/)' ],
-        'unix_generic': [ '(\#\s)' ], #(?![^\s]+)
-        'c_line': [ '(\/\/)' ],
-
-        # Match comment start line but not directives,
-        # NOTE: directive format in negative lookahead
-        'restructuredtext': [ '(\.\.)(?!\s+[a-zA-Z0-9-]*:)\s' ]
-# TODO: differentiate comment scans. restructuredtext has indented
-#   continuations (without trailing \). I think c_line should support
-#   this. Just like shell programs should and readline does. Its probably
-#   evil to use in source like C or something. But for a generic comment
-#   parser its essential to understand I think.
-# FIXME: Alternatively as a "solution" radical currently supports continued
-#   task descriptions using a single/double? or more indent.
-    }
-# Tag pattern, format and index type
-DEFAULT_TAG_RE = r'\s*\b(%s)(?:[:_\ -]([A-Za-z0-9:_-]+))?\b[:]?\s+'
-DEFAULT_TAGS = {
-    'FIXME': [ DEFAULT_TAG_RE ],
-    'TEST':  [ DEFAULT_TAG_RE, '%s:%i:', 'numeric_index' ],
-    'TODO':  [ DEFAULT_TAG_RE, '%s:%i:', 'numeric_index' ],
-    'XXX':   [ DEFAULT_TAG_RE ],
-    'NOTE':  [ DEFAULT_TAG_RE ],
-    'BUG':   [ DEFAULT_TAG_RE ]
-}
-#    'BUG': [ '(\\b\s*%s)(?:[:_\s-]([0-9]+))?[:_\s-]*\\b' ]
-
-rc = confparse.Values()
-
-tag_chars = 'A-Za-z0-9\/:\._-'
-tag_sepchars = ':\.'
-tag_clean_re = re.compile('[^%s]' % tag_chars)
-tag_match_re = re.compile('[%s]{2,}' % tag_chars)
 
 
 # Main
