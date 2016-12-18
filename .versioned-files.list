@@ -33,3 +33,4 @@ todo-meta.py
 todo.py
 topic.py
 vc.py
+tools/sh/tags.sh
