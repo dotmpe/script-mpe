@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-TODO: construct TopicTree from Definition Lists in restructured text. 
+TODO: construct TopicTree from Definition Lists in restructured text.
 See also filetree.
 
 FIXME: move something like a definition parser to elsewhere? something simple
@@ -8,6 +8,8 @@ FIXME: move something like a definition parser to elsewhere? something simple
 """
 import os
 
+import dotmpe.du.comp
+import dotmpe.du.frontend
 from dotmpe.du import comp, frontend
 
 #from script_mpe import res
@@ -17,7 +19,7 @@ import res.fs
 from libname import Namespace
 import libcmd
 from libcmdng import Targets, Arguments, Keywords, Options,\
-    Target 
+    Target
 import traceback
 
 
@@ -30,7 +32,7 @@ class Htdocs(libcmd.SimpleCommand):
 
     DEFAULT = [ 'status' ]
     #DEFAULT_CONFIG_KEY = 'htdocs'
-        
+
     def __init__(self):
         super(Htdocs, self).__init__()
 
