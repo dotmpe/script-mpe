@@ -12,6 +12,8 @@
   license: GPL
 
   pd-meta:
+    run:
+      cruft: "sh:verbose=false:max=385:./tools/sh/tags.sh"
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
     check: "sh:verbose=false:max=385:./tools/sh/tags.sh :verbose=1:vchk :bats:specs :git:status"

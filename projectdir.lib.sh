@@ -864,6 +864,7 @@ pd_run_suite()
 {
   local r=0 suite=$1; shift
   echo "$@" >$arguments
+  echo subcmd=$suite:run pd__run
   subcmd=$suite:run pd__run || return $?
   test -s "$errored" -o -s "$failed" && r=1
   pd_update_records status/$suite=$r $pd_prefixes

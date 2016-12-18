@@ -660,7 +660,7 @@ pd_defargs__init_new=pd_prefix_target_args
 pd__init_new()
 {
   init -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
-  init -n "$1" || set -- $(pd__ls_targets init 2>/dev/null)
+  init -n "$1" || set -- $(pd__ls_suite init 2>/dev/null)
   info "Tests to run ($pd_prefixes): $*"
   pd_run_suite init "$@" || return $?
 }
@@ -928,7 +928,7 @@ pd__run()
     set -- $(cat $arguments | lines_to_words )
     test -n "$1" || {
       info "Setting targets to states of 'init' for '$pd_root/$pd_prefix'"
-      set -- $(pd__ls_targets init 2>/dev/null)
+      set -- $(pd__ls_suite init 2>/dev/null)
     }
 
     while test -n "$1"
@@ -963,17 +963,21 @@ pd__run()
 }
 
 
-pd_man_1__run_suite="Run test targets (for single prefix)"
-pd_load__run_suite=yiIp
-pd__run_suite()
+pd_man_1__run_script="Run test targets (for single prefix)"
+pd_load__run_script=yiIp
+pd__run_script()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || error "Suite name expected" 1
   local suite_name=$1
   shift
-  # TODO: handle prefixes
   test -z "$2" || error surplus-args 1
-  pd_run_suite $1 $(pd__ls_targets $1 2>/dev/null)
+  for pd_prefix in $pd_prefixes
+  do
+    cd $pd_realdir/$pd_prefix
+    echo pd_run $(pd__ls_suite $suite_name 2>/dev/null)
+  done
+  #pd_run_suite $1 $(pd__ls_suite $suite_name 2>/dev/null)
 }
 
 
@@ -983,7 +987,7 @@ pd_defargs__test=pd_prefix_target_args
 pd__test()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
-  test -n "$1" || set -- $(pd__ls_targets test 2>/dev/null)
+  test -n "$1" || set -- $(pd__ls_suite test 2>/dev/null)
   info "Tests to run ($pd_prefixes): $*"
   pd_run_suite test "$@"
 }
@@ -1009,7 +1013,8 @@ pd_defargs__check=pd_registered_prefix_target_args
 pd__check()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
-  test -n "$1" || set -- $(pd__ls_targets check 2>/dev/null)
+  test -n "$1" || set -- $(pd__ls_suite check 2>/dev/null)
+  echo "pwd=$(pwd) pd_prefix='$pd_prefix' pd_prefixes='$pd_prefixes'"
   info "Checks to run ($pd_prefixes): $*"
   pd_run_suite check "$@"
 }
@@ -1020,7 +1025,7 @@ pd_defargs__build=pd_registered_prefix_target_args
 pd__build()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
-  test -n "$1" || set -- $(pd__ls_targets build 2>/dev/null)
+  test -n "$1" || set -- $(pd__ls_suite build 2>/dev/null)
   info "Checks to run ($pd_prefixes): $*"
   pd_run_suite build "$@" || return $?
 }
@@ -1032,7 +1037,7 @@ pd__tasks()
 {
   test -n "$pd_prefixes" -o \( -n "$pd_prefix" -a -n "$pd_root" \) \
     || error "Projectdoc context expected" 1
-  test -n "$1" || set -- $(pd__ls_targets tasks 2>/dev/null)
+  test -n "$1" || set -- $(pd__ls_suite tasks 2>/dev/null)
   info "Checks to run ($pd_prefixes): $*"
   pd_run_suite tasks "$@" || return $?
 
@@ -1098,6 +1103,7 @@ pd__ls_sets()
   done
 }
 
+# Suites are provided by projectdir-*.inc.sh 
 pd_named_set_args()
 {
   local named_sets="$(pd__ls_sets | lines_to_words )"
@@ -1135,11 +1141,12 @@ pd_defargs__ls_reg=pd_named_set_args
 pd_load__ls_reg=ia
 
 
-pd_spc__ls_targets="[ NAME ]..."
+pd_spc__ls_suite="[ NAME ]..."
 # Gather targets that apply for given named set(s) (in prefix)
-pd__ls_targets()
+pd__ls_suite()
 {
   test -n "$pd_prefixes" || error "pd_prefixes" 1
+  # TODO: remove prefix handling
   local pd_prefix=
   for pd_prefix in $pd_prefixes
   do
@@ -1157,8 +1164,8 @@ pd__ls_targets()
     done
   done | words_to_lines
 }
-pd_defargs__ls_targets=pd_named_set_args
-pd_load__ls_targets=yiapd
+pd_defargs__ls_suite=pd_named_set_args
+pd_load__ls_suite=yiapd
 
 
 pd_spc__ls_auto_targets="[ NAME ]..."
@@ -1174,6 +1181,33 @@ pd__ls_auto_targets()
 }
 pd_defargs__ls_auto_targets=pd_named_set_args
 pd_load__ls_auto_targets=diap
+
+
+pd_spc__ls_run="NAME"
+pd__ls_run()
+{
+  (
+    cd $pd_prefix
+    pd_package_meta "run_$1"
+  )
+}
+pd_load__ls_run=yiapd
+
+
+pd_spc__run_name="NAME"
+pd__run_name()
+{
+  (
+    cd $pd_prefix
+    set -- "$(pd_package_meta "run_$1")"
+    while test -n "$1"
+    do
+      pd_run "$1"
+      shift
+    done
+  )
+}
+pd_load__run_name=yiapd
 
 
 # List all paths; -dfl or with --tasks filters

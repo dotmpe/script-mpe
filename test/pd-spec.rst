@@ -17,29 +17,26 @@ pd
 
         2. pd detects checkout
 
-           - handles SCM backends
+           - TODO: check for cruft, clean, with GIT
 
         3. pd detects projectdoc
 
            - lists prefixes, handles metadata updates
            - each prefix metadata matches schema
+           - adds to or updates projectdoc from prefix
+           - enables/disables prefixes in projectdoc
 
         4. pd detects package
 
-           - works with Projectdoc, default metafiles, has overrides
+           1. - TODO: works with Projectdoc, default metafiles, has overrides
+              - TODO: consolidates Package metadata (core, pd-meta) into Projectdoc (on enable, ci, reload)
+              - TODO: updates package from Projectdoc (on initialize)
+           2. lists run names in package
+           3. lists suite names in package
+           4. TODO: manages GIT client hooks
 
-           - generates pre-commit hook from a .package.sh
-
-             - ${bin} regenerate
-
-           - TODO: consolidates Package metadata (core, pd-meta) into Projectdoc
-             (on enable, ci, reload)
-
-           - updates package from Projectdoc (on initialize)
-
-        - pd  enables/disables projects
-
-          - pd enable restores disabled project
+              - generates pre-commit hook from a .package.sh
+              - ${bin} regenerate
 
         - pd supports several modes of project identification/metadata,
           aided by either/or the filesystem context, the Pdoc, and the package

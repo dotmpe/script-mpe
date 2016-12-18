@@ -174,10 +174,13 @@ pd
     pd ls-sets
       List named sets.
 
-    pd ls-targets [ NAME ]...
+    pd ls-suite [ NAME ]...
       List targets for given named set, for current prefix.
       If none is defined, the list is generated using autodetection.
       See ``ls-sets`` for the available set names.
+
+    pd ls-run NAME
+      List named scripts.
 
     pd show [ PREFIX ]...
       Pretty print Pdoc record and package main section if it exists,

@@ -7,6 +7,50 @@ init
 . $lib/util.sh
 
 
+
+setup_empty_pd()
+{
+  tmpd
+  testpd="test/var/pd/$testid.yaml"
+  test -e "test/var/pd/$testid.yaml" && {
+    cp $testpd $tmpd/.projects.yaml
+  } || {
+    { cat <<EOF
+repositories:
+  empty:
+    remotes: {}
+    sync: false
+    clean: untracked
+    status:
+      result: 0
+  another:
+    hosts:
+    - $hostname
+    remotes: {}
+    sync: false
+    clean: untracked
+    status:
+      result: 0
+EOF
+    } > $tmpd/.projects.yaml
+  }
+  mkdir $tmpd/empty
+  cd $tmpd/empty
+}
+
+cleanup_tmpd()
+{
+  cd ..
+  rm -rf $tmpd
+}
+
+faillines()
+{
+  fail "Lines (${#lines[@]}): ${lines[*]}"
+}
+
+
+
 @test "${bin}" "0.1.1.1 default no-args" {
   case $(current_test_env) in travis )
       TODO "$BATS_TEST_DESCRIPTION at travis";;
@@ -25,7 +69,7 @@ init
 }
 
 
-@test "${bin} regenerate" "0.1.4. - generates pre-commit hook from a .package.sh" {
+@test "${bin} regenerate" "0.1.4.4.- generates pre-commit hook from a .package.sh" {
 
   TODO "need to fix Pdoc context"
 
@@ -73,44 +117,7 @@ EOF
 }
 
 
-setup_empty_pd()
-{
-  tmpd
-  testpd="test/var/pd/$testid.yaml"
-  test -e "test/var/pd/$testid.yaml" && {
-    cp $testpd $tmpd/.projects.yaml
-  } || {
-    { cat <<EOF
-repositories:
-  empty:
-    remotes: {}
-    sync: false
-    clean: untracked
-    status:
-      result: 0
-  another:
-    hosts:
-    - $hostname
-    remotes: {}
-    sync: false
-    clean: untracked
-    status:
-      result: 0
-EOF
-    } > $tmpd/.projects.yaml
-  }
-  mkdir $tmpd/empty
-  cd $tmpd/empty
-}
-
-cleanup_tmpd()
-{
-  cd ..
-  rm -rf $tmpd
-}
-
-
-@test "${bin} ls-targets check" "Reads .pd-checks" {
+@test "${bin} ls-suite check" "0.1.4.- Reads .pd-checks" {
 
   check_skipped_envs boreas || TODO "need to fix Pdoc context"
 
@@ -136,7 +143,7 @@ cleanup_tmpd()
 }
 
 
-@test "${bin} ls-targets test" "Reads .pd-test, and autodetect test targets" {
+@test "${bin} ls-suite test" "0.1.4.- Reads .pd-test, and autodetect test targets" {
 
   check_skipped_envs boreas || TODO "need to fix Pdoc context"
   export verbosity=0
@@ -202,6 +209,30 @@ cleanup_tmpd()
   test ${lines[0]} = :pd-test-xxx
 
   rm -rf test Gruntfile .pd-test Makefile .package.sh
+
+  cleanup_tmpd
+}
+
+
+@test "${bin} ls-run echo" "0.1.4.2 Get named run scripts" {
+  
+  setup_empty_pd
+
+  diag "tmpd=$tmpd"
+  { cat <<EOF
+- type: application/vnd.dotmpe.project
+  main: empty
+  id: empty
+  pd-meta:
+    run:
+      echo: "echo:echo"
+EOF
+  } > package.yaml
+
+  run $BATS_TEST_DESCRIPTION
+  test $status -eq 0 || faillines
+  test ${#lines[@]} -eq 5 || faillines
+  test ${lines[4]} = "echo:echo" || faillines
 
   cleanup_tmpd
 }
