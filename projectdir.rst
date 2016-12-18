@@ -89,7 +89,77 @@ pd
 
       And with (each) prefix, run ``:scm-check``.
 
-    pd run
+    pd update
+      With no args, set to current prefix, or prefixes at current location.
+      And with (each) prefix, update Pd, default updates.
+
+      Or updated named status.
+
+    pd ls-sets
+      List named sets.
+
+    pd ls-suite [ NAME ]...
+      List targets for given named set, for current prefix.
+      If none is defined, the list is generated using autodetection.
+      See ``ls-sets`` for the available set names.
+
+    pd ls-run NAME
+      List named scripts.
+
+    pd show [ PREFIX ]...
+      Pretty print Pdoc record and package main section if it exists,
+      for each prefix.
+
+    pd vet
+      TODO: validate package metadata
+
+    pd h(t)docs / web-docs
+      TODO: Setup web server (container) to local documentation.
+
+    pd monitor
+      setup ncurses or HTTP+HTML wall monitor display, see package status.
+
+    pd spec
+      XXX: check that a certain specification is provided by the project?
+
+    pd run NAME
+      Execute named script.
+
+    Suites
+      pd install
+        TODO: without args, detect+install any deps. Detect is actually
+        install-dependencies.sh ?
+
+        With '.', install local project. Or specify single tool/dep directly.
+
+        bats
+          - installs bats BATS_VERSION PREFIX
+        jjb
+          .. etc.
+
+      pd test
+        Run test scripts for project.
+        Run failed or error targets if found, or run all tests.
+
+        Detects some standard build types, override
+        with package.yml? Runs shell scripts, and passes ':'-prefixed arguments to
+        pd run-targets.
+        TODO: 1 - failed, 2 - unstable, 3 - TODO, 4 - skipped, 5 - re-run?
+
+      pd check
+        Idem as pd test, but for check attributes.
+
+      pd init
+        Initialize a fresh upack(ag)ed/checkouted source dir to a projectdir prefix
+        record (creating or updating existing).
+        TODO: write a package skeleton as well, or sync with existing.
+        TODO: 1 for (unresolved failure), 2 for continue after pre-rq
+
+      pd build
+        TODO: In place build, requires access to PATH (or export PATH?)
+        Function again varies per project goals.
+
+    pd run-targets
       Execute one or more targets at prefix. Track all Pd outputs,
       count lines and keep verbosity minimal unless requested.
       Fail on any skipped, errored or failed target.
@@ -119,72 +189,6 @@ pd
     pd exec
       Isolate run, and handle multiple prefixes.
       Runs targets, records status.
-
-    pd install
-      TODO: without args, detect+install any deps. Detect is actually
-      install-dependencies.sh ?
-
-      With '.', install local project. Or specify single tool/dep directly.
-
-      bats
-        - installs bats BATS_VERSION PREFIX
-      jjb
-        .. etc.
-
-    pd test
-      Run test scripts for project.
-      Run failed or error targets if found, or run all tests.
-
-      Detects some standard build types, override
-      with package.yml? Runs shell scripts, and passes ':'-prefixed arguments to
-      pd run.
-      TODO: 1 - failed, 2 - unstable, 3 - TODO, 4 - skipped, 5 - re-run?
-
-    pd check
-      Idem as pd test, but for check attributes.
-
-    pd init
-      Initialize a fresh upack(ag)ed/checkouted source dir to a projectdir prefix
-      record (creating or updating existing).
-      TODO: write a package skeleton as well, or sync with existing.
-      TODO: 1 for (unresolved failure), 2 for continue after pre-rq
-
-    pd vet
-      TODO: validate package metadata
-
-    pd build
-      TODO: In place build, requires access to PATH (or export PATH?)
-      Function again varies per project goals.
-
-    pd h(t)docs / web-docs
-      TODO: Setup web server (container) to local documentation.
-
-    pd monitor
-      setup ncurses or HTTP+HTML wall monitor display, see package status.
-
-    pd spec
-      XXX: check that a certain specification is provided by the project?
-
-    pd update
-      With no args, set to current prefix, or prefixes at current location.
-      And with (each) prefix, update Pd, default updates.
-
-      Or updated named status.
-
-    pd ls-sets
-      List named sets.
-
-    pd ls-suite [ NAME ]...
-      List targets for given named set, for current prefix.
-      If none is defined, the list is generated using autodetection.
-      See ``ls-sets`` for the available set names.
-
-    pd ls-run NAME
-      List named scripts.
-
-    pd show [ PREFIX ]...
-      Pretty print Pdoc record and package main section if it exists,
-      for each prefix.
 
 
 

@@ -906,11 +906,11 @@ pd__copy()
 }
 
 
-pd_load__run=yiIap
-pd_defargs__run=pd_prefix_target_args
+pd_load__run_targets=yiIap
+pd_defargs__run_targets=pd_prefix_target_args
 # Run (project) helper commands and track results
-pd_spc__run='[ PREFIX | [:]TARGET ]...'
-pd__run()
+pd_spc__run_targets='[ PREFIX | [:]TARGET ]...'
+pd__run_targets()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   #record_env_keys pd-run pd-subcmd pd-env
@@ -1044,7 +1044,7 @@ pd__tasks()
   #local r=0 suite=tasks
   ## TODO: pd tasks
   #echo "sh:pwd" >$arguments
-  #subcmd=$suite:run pd__run || r=$?
+  #subcmd=$suite:run pd__run_targets || r=$?
   #test -s "$errored" -o -s "$failed" && r=1
   #pd_update_records status/$suite=$r $pd_prefixes
   #return $r
@@ -1194,8 +1194,8 @@ pd__ls_run()
 pd_load__ls_run=yiapd
 
 
-pd_spc__run_name="NAME"
-pd__run_name()
+pd_spc__run="NAME"
+pd__run()
 {
   (
     cd $pd_prefix
@@ -1207,7 +1207,7 @@ pd__run_name()
     done
   )
 }
-pd_load__run_name=yiapd
+pd_load__run=yiapd
 
 
 # List all paths; -dfl or with --tasks filters
