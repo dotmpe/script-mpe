@@ -1,5 +1,5 @@
 
-The tasks document is a lists of tickets/calls/todos.
+The tasks document is a collection of tickets/calls/todos/... lists.
 
 todo.txt::
 
@@ -62,6 +62,12 @@ To keep these together, there is one tag specific to the project, set or given
 somewhere. This also enables creating new tasks for new found tagged
 comments. And meanwhile allows other tags with the same format present.
 
+----
+
+
+
+
+----
 
 Sh (line-based) formats::
 

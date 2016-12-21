@@ -25,6 +25,7 @@ test -z "$dry_run" || pref="echo $pref"
 
 test -w /usr/local || {
   test -n "$sudo" || pip_flags=--user
+  test -n "$sudo" || py_setup_f="--user"
 }
 
 
@@ -68,7 +69,7 @@ install_git_versioning()
 
 install_docopt()
 {
-  test -n "$sudo" || install_f="--user"
+  test -n "$install_f" || install_f="$py_setup_f"
   git clone https://github.com/dotmpe/docopt-mpe.git $SRC_PREFIX/docopt-mpe
   ( cd $SRC_PREFIX/docopt-mpe \
       && git checkout 0.6.x \
@@ -170,9 +171,9 @@ install_script()
 
 main_entry()
 {
-  test -n "$1" || set -- '-'
+  test -n "$1" || set -- 'all'
 
-  case "$1" in '-'|project|git )
+  case "$1" in all|project|git )
       git --version >/dev/null || {
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
       which pip >/dev/null || {
@@ -181,16 +182,17 @@ main_entry()
         || exit $?
     ;; esac
 
-  case "$1" in '-'|build|test|sh-test|bats )
+  case "$1" in all|build|test|sh-test|bats )
       test -x "$(which bats)" || { install_bats || return $?; }
+      PATH=$PATH:$PREFIX/bin bats --version
     ;; esac
 
-  case "$1" in '-'|dev|build|check|test|git-versioning )
+  case "$1" in all|dev|build|check|test|git-versioning )
       test -x "$(which git-versioning)" || {
         install_git_versioning || return $?; }
     ;; esac
 
-  case "$1" in '-'|python|project|docopt)
+  case "$1" in all|python|project|docopt)
       # Using import seems more robust than scanning pip list
       python -c 'import docopt' || { install_docopt || return $?; }
     ;; esac
@@ -199,7 +201,7 @@ main_entry()
       npm install -g redmine-cli || return $?
     ;; esac
 
-  case "$1" in '-'|redo )
+  case "$1" in all|redo )
       # TODO: fix for other python versions
       install_apenwarr_redo || return $?
     ;; esac
@@ -216,13 +218,14 @@ main_entry()
       install_script || return $?
     ;; esac
 
-  case "$1" in '-'|project|git|git-lfs )
+  case "$1" in all|project|git|git-lfs )
     ;; esac
 
   echo "OK. All pre-requisites for '$1' checked"
 }
 
 test "$(basename $0)" = "install-dependencies.sh" && {
+  test -n "$1" || set -- 'all'
   while test -n "$1"
   do
     main_entry "$1" || exit $?
@@ -231,4 +234,3 @@ test "$(basename $0)" = "install-dependencies.sh" && {
 } || printf ""
 
 # Id: script-mpe/0 install-dependencies.sh
-
