@@ -30,7 +30,11 @@ lst_spc__names="GROUP.."
 lst_load__names=iI
 lst__names()
 {
-  ignores_groups "$@"
+  trueish "$choice_all" && {
+    ignores_groups "$@"
+  } || {
+    ignores_groups_exist "$@"
+  }
 }
 
 lst_man_1__globs="List globs (in group)"

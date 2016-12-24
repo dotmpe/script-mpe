@@ -15,14 +15,12 @@ Feature: list
     When the user runs "lst names local"
     Then `output` should match:
     """
-.htdignore-cleanable
 .htdignore-clean
-.htdignore-purgeable
 .htdignore-purge
-.htdignore-droppable
 .htdignore-drop
 """
 
+  @skip
   Scenario: print names in group
     Given the current project,
     When the user runs "lst globs names"

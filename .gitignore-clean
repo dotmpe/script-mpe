@@ -4,6 +4,4 @@ node_modules/
 coverage_html_report/
 # TODO global cleanables
 .DS_Store
-vbox/.vagrant
-
-
+.vagrant

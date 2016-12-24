@@ -6,6 +6,8 @@ addons:
       - tree
       - realpath
       - uuid-runtime
+      - curl
+      - php5-cli
 # not allowed:
 # - rhash
 # - pytz

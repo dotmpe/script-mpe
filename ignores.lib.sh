@@ -70,6 +70,32 @@ ignores_groups()
       * ) error "Unhandled ignores-group '$*'" 1 ;;
     esac
     shift
+  done | sort -u
+}
+
+ignores_groups_exist()
+{
+  # Resolve arguments
+  set -- $(ignores_groups "$@" | lines_to_words )
+  note "Resolved ignores to '$*'"
+
+  while test -n "$1"
+  do
+    case "$1" in
+
+      etc:* )
+            test -e \
+              "$HTD_ETC/htd/list-ignores/$(echo "$1" | cut -c5-)" || {
+                  shift; continue; }
+          ;;
+
+      * )
+            test -e "$1" || { shift; continue; }
+          ;;
+
+    esac
+    echo "$1"
+    shift
   done
 }
 
