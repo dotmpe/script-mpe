@@ -1509,6 +1509,7 @@ pd_init_etc()
 {
   test ! -e etc/htd || echo etc
   test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
+  test ! -e $HOME/bin/etc/htd || echo $HOME/bin/etc
   #XXX: test ! -e .conf || echo .conf
   #test ! -e $UCONFDIR/htd || echo $UCONFDIR
 }
