@@ -6,13 +6,20 @@ lst__inputs="arguments options paths files"
 lst__outputs="passed skipped errored failed"
 
 
-lst_load()
+lst_preload()
 {
   CWD=$(pwd -P)
   test -n "$EDITOR" || EDITOR=nano
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname=$(uname)
   test -n "$archive_dt_strf" || archive_dt_strf=%Y-%M-%dT%H:%m:%S
+  test -n "$lst_base" || lst_base=htd
+
+  test -n "$HTD_ETC" || HTD_ETC="$(lst_init_etc | head -n 1)"
+}
+
+lst_load()
+{
 
   sys_load
   str_load
@@ -27,8 +34,9 @@ lst_load()
     }
 
   # build ignore pattern file
-  ignores_load lst
-  test -n "$LST_IGNORE" -a -e "$LST_IGNORE" || error "expected $base ignore dotfile" 1
+  ignores_load $lst_base
+  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
+    error "expected $lst_base ignore dotfile" 1
   lst_init_ignores
 
   # Selective per-subcmd init
@@ -47,6 +55,15 @@ lst_load()
       ;;
 
   esac; done
+}
+
+lst_init_etc()
+{
+  test ! -e etc/htd || echo etc
+  test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
+  #XXX: test ! -e .conf || echo .conf
+  #test ! -e $UCONFDIR/htd || echo $UCONFDIR
+  info "Set htd-etc to '$*'"
 }
 
 
@@ -73,7 +90,6 @@ lst_unload()
     def_subcmd \
     func_exists func \
     lst_session_id
-
   return $subcmd_result
 }
 
@@ -83,65 +99,37 @@ lst_init_ignores()
 {
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" \
     || error "expected existing IGNORE_GLOBFILE ($IGNORE_GLOBFILE)" 1
-  test -n "$1" || {
-    set -- scm
-    test ! -e .attributes || set -- scm attributes
-    debug "Set ignores for $base ($IGNORE_GLOBFILE) to '$*'"
-  }
 
-  for tag in $@
-  do
-    case $tag in
-      scm )
-          # TODO: why no list using frontend iso. GIT hardcoded. vc.sh
-          for x in .gitignore .git/info/exclude
-          do
-            test -e $x || continue
-            cat $x | grep -Ev '^(#.*|\s*)$' >> $IGNORE_GLOBFILE
-          done
-        ;;
-      attributes )
-          # see pd:list-paths opts parsing; could create sets of exclude globs
-        ;;
-    esac
-  done
+  local suf=$1
+  shift
+  {
+    test -n "$1" || {
+      set -- "$@" global-drop global-purge
+      test ! -e .git || set -- "$@" scm
+      debug "Set ignores for $base ($IGNORE_GLOBFILE$suf) to '$*'"
+    }
 
-  test -s $IGNORE_GLOBFILE || {
+    ignores_cat "$@"
+  } >> $IGNORE_GLOBFILE$suf
+  sort -u $IGNORE_GLOBFILE$suf | sponge $IGNORE_GLOBFILE$suf
+
+  test -s $IGNORE_GLOBFILE$suf || {
     warn "Failed to find any ignore glob rules for $base"
     return 1
   }
 }
 
+
 # XXX: cons
 htd_init_ignores()
 {
-  test -n "$IGNORE_GLOBFILE" || exit 1
-
-  test -e $IGNORE_GLOBFILE.merged \
-    && grep -qF $IGNORE_GLOBFILE.merged $IGNORE_GLOBFILE.merged || {
-      echo $IGNORE_GLOBFILE.merged > $IGNORE_GLOBFILE.merged
-    }
-
-  #test -n "$pwd" || pwd=$(pwd)
-  #test ! -e $HTDIR || {
-  #  cd $HTDIR
-
-  #  for x in .git/info/exclude .gitignore $IGNORE_GLOBFILE
-  #  do
-  #    test -s $x && {
-  #      cat $x | grep -Ev '^(#.*|\s*)$'
-  #    }
-  #  done
-
-  #  cd $pwd
-
-  #} >> $IGNORE_GLOBFILE.merged
+  error "deprecated" 123
 }
 
 # Init empty find_ignores var
 htd_find_ignores()
 {
-  error "deprecated" 1
+  error "deprecated" 124
 
   test -z "$find_ignores" || return
 

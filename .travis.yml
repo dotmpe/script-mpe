@@ -1,13 +1,5 @@
 sudo: false
 
-install:
-- "source ./install-dependencies.sh && install_bats"
-- "source ./install-dependencies.sh && install_mkdoc"
-- "source ./install-dependencies.sh && install_pylib"
-- "source ./install-dependencies.sh && install_script"
-- "source ./install-dependencies.sh && install_docopt"
-- pip install --user nose-parameterized
-
 addons:
   apt:
     packages:
@@ -18,12 +10,26 @@ addons:
 # - rhash
 # - pytz
 
+install:
+- "source ./install-dependencies.sh && install_bats"
+- "source ./install-dependencies.sh && install_mkdoc"
+- "source ./install-dependencies.sh && install_pylib"
+- "source ./install-dependencies.sh && install_script"
+- "source ./install-dependencies.sh && install_docopt"
+- pip install --user nose-parameterized
+
+- mkdir -vp ~/.local/{bin,lib,share}
+- 'curl -sS https://getcomposer.org/installer | php -- --install-dir=$HOME/.local/bin --filename=composer'
+- ~/.local/bin/composer --version
+- composer install
+
 before_script: []
 
 script:
 - . ./tools/ci/build.sh
 # verify exit of above script (everything again):
 - bats ./test/*-spec.bats
+- ./bin/behat
 
 env:
   global:
