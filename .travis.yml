@@ -6,6 +6,7 @@ addons:
       - tree
       - realpath
       - uuid-runtime
+      - moreutils
       - curl
       - php5-cli
 # not allowed:
