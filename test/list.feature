@@ -6,9 +6,9 @@ Feature: list
 
   Scenario: no such command
     When the user runs "lst foo"...
+    Then `status` should not be '0'
     Then `output` contains the pattern "/Usage:/"
-    And `stderr` contains the pattern "/No\ such\ command/"
-    And `status` should not be '0'
+    Then `stderr` contains the pattern "/No\ such\ command/"
 
   Scenario: print names in group
     Given the current project,
