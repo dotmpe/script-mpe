@@ -101,9 +101,10 @@ lst_init_ignores()
     || error "expected existing IGNORE_GLOBFILE ($IGNORE_GLOBFILE)" 1
 
   local suf=$1
-  shift
   {
-    test -n "$1" || {
+    test -n "$1" && {
+      shift
+    } || {
       set -- "$@" global-drop global-purge
       test ! -e .git || set -- "$@" scm
       debug "Set ignores for $base ($IGNORE_GLOBFILE$suf) to '$*'"
