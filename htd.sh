@@ -99,9 +99,10 @@ htd_load()
     export PATH=/usr/local/bin:$PATH
   }
 
-  which rst2xml 1>/dev/null && rst2xml=$(which rst2xml) \
-    || { which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) \
-    || warn "No rst2xml"; }
+  which rst2xml 1>/dev/null && rst2xml=$(which rst2xml) || {
+    which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) || 
+      warn "No rst2xml"
+  }
 
   test -n "$htd_session_id" || htd_session_id=$(htd__uuid)
   test -n "$choice_interactive" || choice_interactive=1
