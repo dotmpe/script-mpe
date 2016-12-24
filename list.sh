@@ -25,17 +25,41 @@ lst__edit()
 lst_als___e=edit
 
 
-lst_load__list=iI
-lst__list()
+lst_man_1__names="List names for groups"
+lst_spc__names="GROUP.."
+lst_load__names=iI
+lst__names()
 {
-  ls -la
-  failed "TODO"
+  trueish "$choice_all" && {
+    ignores_groups "$@"
+  } || {
+    ignores_groups_exist "$@"
+  }
 }
 
-lst_load__excludes=iI
-lst__excludes()
+lst_man_1__globs="List globs (in group)"
+lst_als__list=globs
+lst_spc__globs="[GROUP]"
+lst_load__globs=iI
+lst__globs()
 {
-  echo
+  local ext=
+  test -z "$1" || ext=.$1
+  lst_init_ignores "$ext" local global
+  read_nix_style_file $IGNORE_GLOBFILE$ext
+}
+
+lst_man_1__local="List globs from local file only, without inherited patterns"
+lst_load__local=iI
+lst__local()
+{
+  local ext=
+  test -z "$1" || ext=.$1
+  mv $IGNORE_GLOBFILE$ext $IGNORE_GLOBFILE.bup$ext
+  lst_init_ignores "$ext.tmp" local global
+  mv $IGNORE_GLOBFILE.bup$ext $IGNORE_GLOBFILE$ext
+  diff $IGNORE_GLOBFILE$ext $IGNORE_GLOBFILE$ext.tmp ||
+    note "Local lines shown above"
 }
 
 lst_man_1__watch="Watch files for changes"
@@ -220,7 +244,9 @@ lst_init()
 lst_lib()
 {
   local __load_lib=1
-  lib_load meta list ignores date
+  lib_load meta list
+  lst_preload || exit $?
+  lib_load ignores date
   # -- lst box lib sentinel --
   set --
 }

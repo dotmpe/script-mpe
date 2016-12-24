@@ -1,0 +1,7 @@
+# script-mpe:ignores.rst#clean-able
+.htdignore-*.regex
+.gitignore-*.regex
+*~*
+*.sw[po]
+*.cuthd
+*.py[co]

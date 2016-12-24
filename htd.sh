@@ -24,10 +24,11 @@ htd_load()
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
   test -n "$TMPDIR" || TMPDIR=/tmp/
   test -n "$HTDIR" || HTDIR=$HOME/public_html
+  test -n "$HTD_ETC" || HTD_ETC=$(htd_init_etc|head -n 1)
   test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE=$CWD/tools.yml
   test -n "$HTD_TOOLSDIR" || HTD_TOOLSDIR=$HOME/.htd-tools
-  test -d "$HTD_TOOLS/bin" || mkdir -p $HTD_TOOLSDIR/bin
-  test -d "$HTD_TOOLS/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
+  test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
+  test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
 
   req_htdir
 
@@ -85,19 +86,23 @@ htd_load()
   htd_rules=~/.conf/rules/$hostname.tab
   ns_tab=$HOME/.conf/namespace/$hostname.tab
 
+  # Initialize one HTD_IGNORE file. 
   ignores_load
   test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" \
     || error "expected $base ignore dotfile" 1
+
   lst_init_ignores
+  lst_init_ignores .names
   #match_load_table vars
 
   which tmux 1>/dev/null || {
     export PATH=/usr/local/bin:$PATH
   }
 
-  which rst2xml 1>/dev/null && rst2xml=$(which rst2xml) \
-    || { which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) \
-    || warn "No rst2xml"; }
+  which rst2xml 1>/dev/null && rst2xml=$(which rst2xml) || {
+    which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) || 
+      warn "No rst2xml"
+  }
 
   test -n "$htd_session_id" || htd_session_id=$(htd__uuid)
   test -n "$choice_interactive" || choice_interactive=1
@@ -621,7 +626,8 @@ htd_run__status=fSm
 htd__status()
 {
   test -n "$failed" || error failed 1
- 
+
+  htd check-names
   # TODO:
   #  global, local services
   #  disks, annex
@@ -629,7 +635,7 @@ htd__status()
   #  src, tools
 
   # TODO: rewrite to htd proj/vol/..-status
-  ( cd ; pd st ) || echo "home" >> $failed
+  #( cd ; pd st ) || echo "home" >> $failed
   #( cd ~/project; pd st ) || echo "project" >> $failed
   #( cd /src; pd st ) || echo "src" >> $failed
 
@@ -1925,19 +1931,28 @@ htd__rename()
 }
 
 
+htd__ignore_names()
+{
+  test -n "$IGNORE_GLOBFILE" || error "IGNORE_GLOBFILE" 1
+  lst list "$@"
+}
+
 htd__check_names()
 {
-  #htd_find_ignores
+  test -n "$IGNORE_GLOBFILE" || error "IGNORE_GLOBFILE" 1
+  local find_ignores="$(find_ignores $IGNORE_GLOBFILE.names | lines_to_words)"
+  test -z "$find_ignores" || find_ignores="-false $find_ignores -o"
+
   test -z "$1" && d="." || { d="$1"; shift 1; }
   test -z "$1" && valid_tags="" || valid_tags="$1"
   test "${d: -1:1}" = "/" && d="${d:0: -1}"
 
   test -z "$valid_tags" &&
-  log "Looking for unmatched paths in $d" ||
-  log "Validating $d, using valid patterns $valid_tags"
+    log "Looking for unmatched paths in $d" ||
+    log "Validating $d, using valid patterns $valid_tags"
 
   {
-    eval find $d "$find_ignores -o \( -type l -o -type f \) -a -print "
+    eval find $d " $find_ignores \( -type l -o -type f \) -a -print "
     echo "\l"
   } | matchbox.py check-names $valid_tags
 }
@@ -2035,9 +2050,6 @@ htd_spc__record="record [PATH]"
 htd__record()
 {
   # TODO: Look at all services with .git or .meta/table
-
-  htd__services 
-
   # Else record locally
   test -e table.sha1 \
     && htd__ck_table sha1 "$1" \
@@ -2313,13 +2325,14 @@ ck_write()
 htd_spc__ck="TAB [PATH|.]"
 htd__ck()
 {
+  test -n "$1" || error "Need table to update" 1
   local table=$1 \
     ck_find_ignores="-name 'manifest.*' -prune \
       -o -name 'table.ck' -prune \
       -o -name 'table.sha1' -prune \
       -o -name 'table.md5' -prune"
   shift
-  test -n "$1" || set -- .
+  test -n "$1" || error "Need path to update table for " 1
   test -z "$find_ignores" \
     && find_ignores="$ck_find_ignores" \
     || find_ignores="$find_ignores -o $ck_find_ignores"
@@ -4728,6 +4741,15 @@ htd_main()
   esac
 }
 
+htd_init_etc()
+{
+  test ! -e etc/htd || echo etc
+  test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
+  #XXX: test ! -e .conf || echo .conf
+  #test ! -e $UCONFDIR/htd || echo $UCONFDIR
+  info "Set htd-etc to '$*'"
+}
+
 htd_init()
 {
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
@@ -4741,7 +4763,7 @@ htd_init()
   . $scriptdir/htd.lib.sh
   . $scriptdir/main.lib.sh
   . $scriptdir/main.init.sh
-  lib_load htd meta box date doc table disk remote
+  lib_load htd meta box date doc table disk remote ignores
   # -- htd box init sentinel --
 }
 

@@ -1,5 +1,18 @@
 sudo: false
 
+addons:
+  apt:
+    packages:
+      - tree
+      - realpath
+      - uuid-runtime
+      - moreutils
+      - curl
+      - php5-cli
+# not allowed:
+# - rhash
+# - pytz
+
 install:
 - "source ./install-dependencies.sh && install_bats"
 - "source ./install-dependencies.sh && install_mkdoc"
@@ -8,15 +21,10 @@ install:
 - "source ./install-dependencies.sh && install_docopt"
 - pip install --user nose-parameterized
 
-addons:
-  apt:
-    packages:
-      - tree
-      - realpath
-      - uuid-runtime
-# not allowed:
-# - rhash
-# - pytz
+- mkdir -vp ~/.local/{bin,lib,share}
+- 'curl -sS https://getcomposer.org/installer | php -- --install-dir=$HOME/.local/bin --filename=composer'
+- ~/.local/bin/composer --version
+- composer install
 
 before_script: []
 
@@ -24,6 +32,7 @@ script:
 - . ./tools/ci/build.sh
 # verify exit of above script (everything again):
 - bats ./test/*-spec.bats
+- ./bin/behat
 
 env:
   global:

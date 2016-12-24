@@ -1297,15 +1297,18 @@ pd__help()
 }
 
 # Setup for subcmd; move some of this to box.lib.sh eventually
-pd_load()
+pd_preload()
 {
   CWD=$(pwd -P)
   test -n "$EDITOR" || EDITOR=nano
   #test -n "$P" || PATH=$CWD:$PATH
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname=$(uname)
+  test -n "$HTD_ETC" || HTD_ETC="$(pd_init_etc | head -n 1)"
+}
 
-
+pd_load()
+{
   sys_load
   str_load
 
@@ -1525,6 +1528,7 @@ pd_init()
   test -z "$scriptdir" || return 13
   scriptdir="$(dirname "$(realpath "$0")")"
   export SCRIPTPATH=$scriptdir
+  pd_preload || exit $?
   . $scriptdir/util.sh load-ext
   lib_load sys os std stdio str src main meta
   . $scriptdir/box.init.sh
@@ -1535,12 +1539,20 @@ pd_init()
   test -n "$verbosity" && note "Verbosity at $verbosity" || verbosity=6
 }
 
+pd_init_etc()
+{
+  test ! -e etc/htd || echo etc
+  test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
+  #XXX: test ! -e .conf || echo .conf
+  #test ! -e $UCONFDIR/htd || echo $UCONFDIR
+}
+
 pd_lib()
 {
   test -z "$__load_lib" || return 14
   local __load_lib=1
   test -n "$scriptdir" || return 12
-  lib_load box match date doc table ignores list
+  lib_load box meta list match date doc table ignores
   . $scriptdir/vc.sh load-ext
   . $scriptdir/projectdir.lib.sh "$@"
   . $scriptdir/projectdir-bats.inc.sh
