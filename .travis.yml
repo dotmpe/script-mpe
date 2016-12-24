@@ -29,10 +29,10 @@ install:
 before_script: []
 
 script:
-#- . ./tools/ci/build.sh
+- ./bin/behat --tags ~@skip
+- ./tools/ci/build.sh
 # verify exit of above script (everything again):
 - bats ./test/*-spec.bats
-- ./bin/behat --tags ~@skip
 
 env:
   global:
