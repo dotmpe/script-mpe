@@ -10,11 +10,10 @@ import uuid
 
 import calendar
 
+from script_mpe import lib, log, confparse
+from script_mpe.res import fs
+
 import util
-import confparse
-from script_mpe import lib
-from script_mpe import log
-from script_mpe.res import fs, util
 from persistence import PersistedMetaObject
 
 

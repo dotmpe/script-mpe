@@ -1,0 +1,14 @@
+digraph tasks_wf {
+
+  ToDo [
+    label="ToDo.edl"
+  ]
+
+  SRC -> ToDo [
+    label="radical.py ."
+  ]
+
+  DOC -> ToDo [
+    label="cli.py regex $TODO_RX --rx-group 1,2,3 "
+  ]
+}

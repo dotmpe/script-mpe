@@ -139,7 +139,6 @@ from fnmatch import fnmatch
 from pprint import pformat
 from socket import gethostname
 
-from docopt import docopt
 import uuid
 from deep_eq import deep_eq
 

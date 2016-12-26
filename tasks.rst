@@ -1,6 +1,13 @@
 
 The tasks document is a collection of tickets/calls/todos/... lists.
 
+----
+
+Workflow
+  .. figure:: tasks-wf.png
+
+----
+
 todo.txt::
 
   (prio) <created> description +project @context due:<date> [WAIT]
@@ -66,8 +73,6 @@ comments. And meanwhile allows other tags with the same format present.
 
 
 
-
-----
 
 Sh (line-based) formats::
 

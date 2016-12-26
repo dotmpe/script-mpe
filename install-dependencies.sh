@@ -39,26 +39,24 @@ test -n "$PREFIX" || {
   exit 1
 }
 
-test -d $SRC_PREFIX || ${sudo} mkdir -vp $SRC_PREFIX
-test -d $PREFIX || ${sudo} mkdir -vp $PREFIX
+test -d $SRC_PREFIX || ${pref} mkdir -vp $SRC_PREFIX
+test -d $PREFIX || ${pref} mkdir -vp $PREFIX
 
 
 install_bats()
 {
   echo "Installing bats"
-  local pwd=$(pwd)
   test -n "$BATS_BRANCH" || BATS_BRANCH=master
-  mkdir -vp $SRC_PREFIX
-  cd $SRC_PREFIX
   test -n "$BATS_REPO" || BATS_REPO=https://github.com/dotmpe/bats.git
   test -n "$BATS_BRANCH" || BATS_BRANCH=master
-  test -d bats || {
-    git clone $BATS_REPO bats || return $?
+  test -d $SRC_PREFIX/bats || {
+    git clone $BATS_REPO $SRC_PREFIX/bats || return $?
   }
-  cd bats
-  git checkout $BATS_BRANCH
-  ${pref} ./install.sh $PREFIX
-  cd $pwd
+  (
+    cd $SRC_PREFIX/bats
+    git checkout $BATS_BRANCH
+    ${pref} ./install.sh $PREFIX
+  )
 }
 
 install_git_versioning()
@@ -206,15 +204,15 @@ main_entry()
       install_apenwarr_redo || return $?
     ;; esac
 
-  case "$1" in -|mkdoc)
+  case "$1" in all|mkdoc)
       install_mkdoc || return $?
     ;; esac
 
-  case "$1" in -|pylib)
+  case "$1" in all|pylib)
       install_pylib || return $?
     ;; esac
 
-  case "$1" in -|script)
+  case "$1" in all|script)
       install_script || return $?
     ;; esac
 

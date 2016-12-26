@@ -5,6 +5,9 @@
 *.sw[po]
 *DS_Store
 *~*
+.*.sw[a-p]
+.*sw[ap]
+.DS_Store
 .account.*
 .build/
 .bzr/
@@ -13,6 +16,8 @@
 .coverage
 .coverage/
 .git/
+.gitignore-*.regex
+.htdignore.merged
 .jira
 .meta/
 .package.json
@@ -20,6 +25,7 @@
 .package.sh
 .redo/
 .svn/
+.vagrant
 .vagrant/
 /.coverage
 /htmlcov

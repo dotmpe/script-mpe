@@ -3,4 +3,5 @@ sitefile: 0.0.4-dev
 port: 4500
 routes: 
   _du: 'du:**/*.rst'
+  _gv: 'gv:**/*.gv'
   coverage/python: static:coverage_html_report
