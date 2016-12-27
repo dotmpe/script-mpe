@@ -4,7 +4,23 @@ The tasks document is a collection of tickets/calls/todos/... lists.
 ----
 
 Workflow
-  .. figure:: tasks-wf.png
+  .. XXX: cleanup .. figure:: tasks/wf.png
+     :target: tasks/wf
+
+  .. figure:: tasks/comp-wf-1.svg
+     :target: tasks/comp-wf-1
+
+     Radical workflow. Only extracting references is implemented.
+
+  .. figure:: tasks/comp-wf-2.svg
+     :target: tasks/comp-wf-2
+
+     Index numbering workflow.
+
+  .. figure:: tasks/comp-wf.svg
+     :target: tasks/comp-wf
+
+     CLI record update/sync pipeline?
 
 ----
 

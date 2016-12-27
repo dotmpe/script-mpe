@@ -1,8 +1,9 @@
 digraph tasks_wf {
 
-  ToDo [
-    label="ToDo.edl"
-  ]
+
+  ToDo [ label = "ToDo.edl" ]
+  DOC [ label = "<DOC>" ]
+  SRC [ label = "<SRC>" ]
 
   SRC -> ToDo [
     label="radical.py ."
