@@ -17,6 +17,8 @@ package_pd_meta_check="sh:verbose=false:max=385:./tools/sh/tags.sh :verbose=1:vc
 package_pd_meta_git_hooks_pre_commit=./tools/git-hooks/pre-commit.sh
 package_pd_meta_init="./install-dependencies.sh git:init"
 package_pd_meta_run_behat="./bin/behat:--tags:~@skip"
+package_pd_meta_run_behat_defs="./bin/behat:-dl"
+package_pd_meta_run_behat_specs="./bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip"
 package_pd_meta_tasks_document=tasks.ttxtm
 package_pd_meta_tasks_tags__0=TODO
 package_pd_meta_tasks_tags__1=XXX
