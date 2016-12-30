@@ -2,22 +2,22 @@ Feature: list
 
   Scenario: print version
     When the user runs "lst version"
-    Then `output` contains the pattern "/script-mpe\/[0-9A-Za-z\._-]*/"
+    Then `output` contains the pattern "script-mpe\/[0-9A-Za-z\._-]*"
 
   Scenario: no such command
     When the user runs "lst foo"...
-    Then `output` contains the pattern "/Usage:/"
-    And `stderr` contains the pattern "/No\ such\ command/"
+    Then `output` contains the pattern "Usage:"
+    And `stderr` contains the pattern "No\ such\ command"
     And `status` should not be '0'
 
   Scenario: print names in group
     Given the current project,
     When the user runs "lst names local"
-    Then `output` should match:
+    Then `output` contains the patterns:
     """
-.htdignore-clean
-.htdignore-purge
-.htdignore-drop
+\.htdignore-clean
+\.htdignore-purge
+\.htdignore-drop
 """
 
   @skip

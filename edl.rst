@@ -14,6 +14,7 @@ See also
 Range link formats
 ------------------
 Lets define
+
 - *ranges* as start and end position.
 - *Spans* are offset (same as start) and length (ie. end - start + 1 ).
 - All serialized references should have 1-indexed offsets.

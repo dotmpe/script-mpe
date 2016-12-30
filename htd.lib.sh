@@ -24,14 +24,6 @@ req_htdir()
   test -n "$HTDIR" -a -d "$HTDIR" || return 1
 }
 
-
-mkrlink()
-{
-  # TODO: find shortest relative path
-  printf "Linking "
-  ln -vs $(basename $1) $2
-}
-
 # Check if binary is available for tool
 installed()
 {
@@ -240,4 +232,20 @@ htd_passed()
   stderr ok "$1"
   echo "$1" >>$passed
 }
+
+htd_main_files()
+{
+  for x in "" .txt .md .rst
+  do
+    for y in ReadMe main ChangeLog index doc/main docs/main
+    do
+      for z in $y $(str_upper $y) $(str_lower $y)
+      do
+        test -e $z$x && printf "$z$x "
+      done
+    done
+  done
+}
+
+
 

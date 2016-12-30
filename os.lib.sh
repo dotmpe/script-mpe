@@ -312,5 +312,12 @@ test_file()
 	}
 }
 
-
+# strip-trailing-dash
+strip_trail()
+{
+  fnmatch "*/" "$1" && {
+    echo "$1" | sed 's/\/$//'
+  } ||
+    echo "$1"
+}
 

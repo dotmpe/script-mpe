@@ -110,7 +110,8 @@ version=0.0.3-dev # script-mpe
   export verbosity=5
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "${lines[0]}" = "script-mpe/$version"
+  test "${lines[0]}" = "script-mpe/$version" ||
+    fail "Expected script-mpe/$version" 
 }
 
 @test "$bin today" 8 {
@@ -185,7 +186,7 @@ EOM
     skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
 
   test "${lines[0]}" = "/Dev/Software" || fail "Output: ${lines[*]}"
-  skip "TODO: fixme tpaths is failing"
+#skip "TODO: fixme tpaths is failing"
   test "${lines[1]}" = "/Dev/Hardware" || fail "Output: ${lines[*]}"
   test "${lines[2]}" = "/Personal/Topic" || fail "Output: ${lines[*]}"
   test "${lines[3]}" = "/Public/Note" || fail "Output: ${lines[*]}"
@@ -363,14 +364,14 @@ EOM
   echo baz > $tmpd/foo/bar
   cd $tmpd
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  fnmatch "*Adding dir '.'*" "${lines[*]}" \
-    || fail "Output: ${lines[*]}"
+  {
+    test ${status} -eq 0
+    fnmatch "*Adding dir '.'*" "${lines[*]}"
+    fnmatch "*ck-init*Adding dir '.'*" "${lines[*]}"
+    fnmatch "*ck-init*Updated CK table 'table.ck'*" "${lines[*]}"
+  } || 
 
-  fnmatch "*ck-init*Adding dir '.'*" "${lines[*]}" \
-    || fail "Output: ${lines[*]}"
-  fnmatch "*ck-init*Updated CK table 'table.ck'*" "${lines[*]}" \
-    || fail "Output: ${lines[*]}"
+    fail "Status: $status; Output: ${lines[*]}"
 }
 
 @test "$bin update (ck-prune, ck-clean, ck-update)" {
@@ -378,7 +379,64 @@ EOM
   run $bin update
   rm table.*missing || noop
   git checkout table.*
-  test ${status} -eq 0 \
-    || fail "Output: ${lines[*]}"
+  test ${status} -eq 0 ||
+    fail "Status: $status; Output: ${lines[*]}"
 }
+
+
+# Std journal path: journal/today.rst -> journal/%Y-%d-%m.rst
+
+@test "$bin archive-path journal" {
+  tmpd
+  mkdir -p $tmpd/journal
+  cd $tmpd
+  export EXT=.rst
+  run $BATS_TEST_DESCRIPTION
+  dl=$tmpd/journal/today.rst
+  {
+    test ${status} -eq 0
+    test -h "$dl"
+    # FIXME: test "$(readlink $dl)" = 2016/12/30.rst
+  } || {
+    diag "Output: ${lines[*]}"
+    diag "Link: $dl"
+    diag "Target: $(readlink "$dl")"
+    fail "$BATS_TEST_DESCRIPTION ($status)"
+  }
+}
+
+@test "$bin archive-path journal/" "non-zero exit" {
+  tmpd
+  cd $tmpd
+  run $BATS_TEST_DESCRIPTION
+  test ${status} -ne 0 || {
+    diag "Output: ${lines[*]}"
+    fail "$BATS_TEST_DESCRIPTION ($status)"
+  }
+}
+
+
+# Adjusted for cabinet
+#   cabinet/today -> cabinet/%Y/%d/%m
+@test "$bin archive-path cabinet" "EXT= M=/%m D=/%d" {
+  skip 'TODO: fix archive basename link'
+  tmpd
+  mkdir -p $tmpd/cabinet
+  cd $tmpd
+  export EXT= M=/%m D=/%d 
+  run $BATS_TEST_DESCRIPTION
+  dl=$tmpd/cabinet/today
+  {
+    test ${status} -eq 0
+    test -h "$dl"
+    test "$(readlink $dl)" = 2016/12/30
+  } || {
+    diag "Output: ${lines[*]}"
+    diag "Link: $dl"
+    diag "Target: $(readlink "$dl")"
+    fail "$BATS_TEST_DESCRIPTION ($status)"
+  }
+}
+
+
 

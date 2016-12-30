@@ -220,3 +220,11 @@ confirm()
   echo $1
   read choice_confirm
 }
+
+mkrlink()
+{
+  # TODO: find shortest relative path
+  printf "Linking "
+  ln -vs $(basename $1) $2
+}
+

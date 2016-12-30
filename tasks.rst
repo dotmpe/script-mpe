@@ -4,9 +4,6 @@ The tasks document is a collection of tickets/calls/todos/... lists.
 ----
 
 Workflow
-  .. XXX: cleanup .. figure:: tasks/wf.png
-     :target: tasks/wf
-
   .. figure:: tasks/comp-wf-1.svg
      :target: tasks/comp-wf-1
 

@@ -19,6 +19,7 @@ htd_load()
 {
   # -- htd box load insert sentinel --
   test -n "$EDITOR" || EDITOR=vim
+  test -n "$DOC_EXT" || DOC_EXT=.rst
   test -n "$HTD_GIT_REMOTE" || HTD_GIT_REMOTE=default
   test -n "$CWD" || CWD=$(pwd)
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
@@ -27,6 +28,8 @@ htd_load()
   test -n "$HTD_ETC" || HTD_ETC=$(htd_init_etc|head -n 1)
   test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE=$CWD/tools.yml
   test -n "$HTD_TOOLSDIR" || HTD_TOOLSDIR=$HOME/.htd-tools
+  test -n "$HTD_JRNL" || HTD_JRNL=personal/journal
+
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
 
@@ -59,6 +62,7 @@ htd_load()
   _15MIN_AGO=+%y%m%d0000
   _5MIN_AGO=+%y%m%d0000
 
+
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname="$(uname -s)"
 
@@ -85,15 +89,6 @@ htd_load()
 
   htd_rules=~/.conf/rules/$hostname.tab
   ns_tab=$HOME/.conf/namespace/$hostname.tab
-
-  # Initialize one HTD_IGNORE file. 
-  ignores_load
-  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" \
-    || error "expected $base ignore dotfile" 1
-
-  lst_init_ignores
-  lst_init_ignores .names
-  #match_load_table vars
 
   which tmux 1>/dev/null || {
     export PATH=/usr/local/bin:$PATH
@@ -196,9 +191,19 @@ htd_load()
         #test -s $status || echo '{}' >$status
         exec 5>$status.pkv
       ;;
+
+    x ) # ignores, exludes, filters
+        htd_load_ignores
+      ;;
+
     esac
   done
 
+  # load extensions via load/unload function
+  for ext in $(try_value "${subcmd}" load)
+  do
+    htd_load_$ext || warn "Exception during loading $subcmd $ext"
+  done
 }
 
 htd_unload()
@@ -239,6 +244,10 @@ htd_unload()
 
   clean_failed || unload_ret=1
 
+  for var in $(try_value "${subcmd}" vars)
+  do
+    eval unset $var
+  done
   test -n "$htd_tmp_dir" || error "htd_tmp_dir unload" 1
   #test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" \
   #  || warn "Leaving HtD temp files $(echo $htd_tmp_dir/*)"
@@ -247,12 +256,30 @@ htd_unload()
   return $unload_ret
 }
 
-htd_usage()
+
+# Misc. load functions
+
+
+htd_load_ignores()
 {
-  echo "$scriptname.sh Bash/Shell script helper"
-  echo 'Usage: '
-  echo "  $scriptname <cmd> [<args>..]"
+  # Initialize one HTD_IGNORE file. 
+  ignores_load
+  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" \
+    || error "expected $base ignore dotfile" 1
+
+  lst_init_ignores
+  lst_init_ignores .names
+  #match_load_table vars
 }
+
+htd_load_xsl()
+{
+  test -x "$(which saxon)" &&
+    xsl_ver=2 ||
+    xsl_ver=1
+  note "Set XSL proc version=$xsl_ver.0"
+}
+
 
 
 # Main aliases
@@ -284,7 +311,19 @@ htd_als__mk=make
 
 
 
-htd_commands()
+# Static help echo's
+
+htd_usage()
+{
+  echo "$scriptname.sh Bash/Shell script helper"
+  echo 'Usage: '
+  echo "  $scriptname <cmd> [<args>..]"
+  echo ""
+  echo "Possible commands are listed by help-commands or commands. "
+  echo "The former is hard-coded and more document but possibly stale,"
+  echo "the later long listing is generated en-passant from the source documents. "
+}
+htd__help_commands()
 {
   echo 'Commands: '
   echo '  home                             Print htd dir.'
@@ -388,13 +427,16 @@ other_cmds()
   echo '  nen|edit-note-en ID TAGS         '
 }
 
-htd__docs()
+
+# Help (sub)commands:
+
+htd__help_docs()
 {
   echo "Docs:"
   echo ""
 }
 
-htd__files()
+htd__help_files()
 {
   echo "Files"
   echo ""
@@ -433,7 +475,7 @@ htd__help()
   test -z "$1" && {
     htd_usage
     echo ''
-    echo 'Main commands: '
+    echo 'Other commands: '
     other_cmds
   } || {
     echo_help $1
@@ -592,7 +634,7 @@ htd__volumes()
 
 
 htd_man_1__pd_init="TODO: Shortcut for pd init"
-htd_spc__pd_init=""
+htd_spc__pd_init="pd-init"
 htd_run__pd_init=fSm
 htd__pd_init()
 {
@@ -620,14 +662,39 @@ htd__pd_check()
 }
 
 
-htd_man_1__status=""
-htd_spc__status=""
+htd_man_1__status="Short status for current working directory"
+htd_spc__status="status"
 htd_run__status=fSm
+htd_load__status=""
 htd__status()
 {
   test -n "$failed" || error failed 1
 
-  htd check-names
+  # Check local names
+  { 
+    htd check-names ||
+      echo "htd:check-names" >>$failed
+  } | tail -n 1
+
+  # Check open paths
+  htd__current_paths
+  htd__open_paths | wc -l
+
+  # FIXME: maybe something in status backend on open resource etc.
+  #htd__recent_paths
+  #htd__active
+
+  # Check main document elements
+  {
+    test ! -d "$HTD_JRNL" || 
+      EXT=$DOC_EXT htd__archive_path $HTD_JRNL
+    htd__main_doc_paths "$1"
+  } | while read tag path
+  do
+    test -e $path || continue
+    htd tpath-raw $path
+  done
+
   # TODO:
   #  global, local services
   #  disks, annex
@@ -683,7 +750,7 @@ htd__context()
 
 htd_man_1__script="Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping of
   scriptnames to script lines. "
-htd_spc__script=""
+htd_spc__script="script"
 htd_run__script=pSmr
 htd_S__script=\$package_id
 htd__script()
@@ -748,7 +815,7 @@ htd__tools()
 }
 
 htd_man_1__install=""
-htd_spc__install=""
+htd_spc__install="install [TOOL...]"
 htd__install()
 {
   tools_json || return $?
@@ -830,7 +897,7 @@ htd__list_local_ns()
 }
 
 # XXX: List matching tags
-htd_spc__ns_names='[<path>|<localname> [<ns>]]'
+htd_spc__ns_names='ns-names [<path>|<localname> [<ns>]]'
 htd__ns_names()
 {
   test -z "$3" || error "Surplus arguments: $3" 1
@@ -905,7 +972,7 @@ htd__edit_today()
   fnmatch "*/" "$1" && {
 
     case "$1" in *journal* )
-      set -- personal/journal
+      set -- $HTD_JRNL
     ;; esac
 
     test -e "$1" || \
@@ -965,16 +1032,58 @@ htd__edit_today()
 htd_als__vt=edit_today
 
 
+# TODO consolidate with today, split into days/week/ or something
+htd__archive_path()
+{
+  test -n "$1" || set -- "$(pwd)/cabinet"
+  test -d "$1" || {
+    fnmatch "*/" "$1" && {
+      error "Dir $1 must exist" 1
+    } ||
+      test -d "$(dirname "$1")" ||
+        error "Dir for base $1 must exist" 1
+  }
+  fnmatch "*/" "$1" || set -- "$(strip_trail $1)"
+
+  # Default pattern: "$1/%Y-%m-%d"
+  test -n "$base" -a -n "$name" || {
+    test -n "$Y" || Y=/%Y
+    test -n "$M" || M=-%m
+    test -n "$D" || D=-%d
+    #test -n "$EXT" || EXT=.rst
+    test -d "$1" && 
+      ARCHIVE_DIR=$1/ || 
+      ARCHIVE_DIR=$(dirname $1)/
+    ARCHIVE_BASE=$1$Y
+    ARCHIVE_ITEM=$M$D$EXT
+  }
+  local f=$ARCHIVE_BASE$ARCHIVE_ITEM
+
+  datelink -1d "$f" ${ARCHIVE_DIR}yesterday$EXT
+  echo yesterday $datep
+  datelink "" "$f" ${ARCHIVE_DIR}today$EXT
+  echo today $datep
+  datelink +1d "$f" ${ARCHIVE_DIR}tomorrow$EXT
+  echo tomorrow $datep
+
+  unset datep target_path
+}
+# declare locals for unset
+htd_vars__archive_path="Y M D EXT ARCHIVE_BASE ARCHIVE_ITEM datep target_path"
+
 # update yesterday, today and tomorrow links
 htd__today()
 {
-  test -n "$1" || set -- "$(pwd)/journal"
+  test -n "$1" || set -- "$(pwd)/journal" "$2" "$3" "$4"
+  test -n "$2" || set -- "$1" "-" "$3" "$4"
+  test -n "$3" || set -- "$1" "$2" "-" "$4"
+  test -n "$4" || set -- "$1" "$2" "$3" "/"
   test -d "$1" || error "Dir $1 must exist" 1
   fnmatch "*/" "$1" || set -- "$1/"
 
+  # Append pattern to given dir path arguments
   local YSEP=/ Y=%Y MSEP=- M=%m DSEP=- D=%d r=$1$YSEP
   test -n "$EXT" || EXT=.rst
-
   set -- "$1$YSEP$Y$MSEP$M$DSEP$D$EXT"
 
   datelink -1d "$1" ${r}yesterday$EXT
@@ -987,6 +1096,15 @@ htd__today()
     datelink "$tag +7d" "$1" "${r}next-$tag$EXT"
     datelink "$tag" "$1" "${r}$tag$EXT"
   done
+
+  note "Today: $today"
+}
+
+
+htd_als__week=this-week
+htd__this_week()
+{
+  echo
 }
 
 
@@ -1023,24 +1141,28 @@ htd__edit_note_en()
 }
 htd_als__nen=edit-note-en
 
+# Print existing candidates to use as main document
+htd__main_doc_paths()
+{
+  local candidates="$(htd_main_files)"
+  test -n "$1" && {
+    fnmatch "* $1$DOC_EXT *" " $candidates " &&
+      set -- $1$DOC_EXT || 
+        error "Not a main-doc $1"
 
+  } || set -- "$candidates"
+  for x in $@; do
+    test -e "$x" || continue
+    set -- "$x"; break; done
+  echo "$(basename "$1" $DOC_EXT) $1"
+}
 
+# Edit first candidates or set to main$DOC_EXT
 htd__main_doc()
 {
   # Find first standard main document
-  test -n "$1" && {
-    fnmatch "* $1 *" " $(htd_main_files) " \
-      || set -- main.rst "$@"
-  } || {
-    for x in $(htd_main_files)
-    do
-      test -e $x && {
-        set -- $x
-        break
-      }
-    done
-  }
-  test -n "$1" || set -- main.rst
+  test -n "$1" || set -- "$(htd__main_doc_paths "$1")"
+  test -n "$1" || set -- main$DOC_EXT
 
   local cksum=
   htd_rst_doc_create_update $1
@@ -1168,7 +1290,7 @@ htd__wake()
   }
 }
 
-htd_spc__shutdown='[ HOST [ USER ]]'
+htd_spc__shutdown='shutdown [ HOST [ USER ]]'
 htd__shutdown()
 {
   echo
@@ -1937,6 +2059,7 @@ htd__ignore_names()
   lst list "$@"
 }
 
+htd_load__check_names="ignores"
 htd__check_names()
 {
   test -n "$IGNORE_GLOBFILE" || error "IGNORE_GLOBFILE" 1
@@ -2322,7 +2445,7 @@ ck_write()
   }
 }
 
-htd_spc__ck="TAB [PATH|.]"
+htd_spc__ck="ck TAB [PATH|.]"
 htd__ck()
 {
   test -n "$1" || error "Need table to update" 1
@@ -2363,7 +2486,8 @@ htd__ck()
 htd__ck_init()
 {
   test -n "$ck_tab" || ck_tab=table
-  test -n "$1" || set -- ck
+  test -n "$1" || set -- ck "$@"
+  test -n "$2" || set -- ck .
   touch $ck_tab.$1
   ck_arg "$1"
   shift 1
@@ -2788,8 +2912,9 @@ htd__tmux_prive()
   }
   tmux list-windows -t Prive | grep -q HtD || {
     tmux new-window -t Prive -n HtD
-    tmux send-keys -t Prive:HtD "cd ~/htdocs/; htd today personal/journal;git st" enter
-    tmux send-keys -t Prive:HtD "git add -u;git add dev/ personal/*.rst personal/journal/2*.rst sysadmin/*.rst *.rst;git st" enter
+    tmux send-keys -t Prive:HtD "cd ~/htdocs/; htd today $HTD_JRNL;git st" enter
+    tmux send-keys -t Prive:HtD "git add -u;git add dev/ personal/*.rst
+    $HTD_JRNL/2*.rst sysadmin/*.rst *.rst;git st" enter
     note "Initialized 'HtD' window"
   }
   tmux list-windows -t Prive | grep -q '\ conf' || {
@@ -3225,6 +3350,7 @@ htd__getxl()
 }
 
 # List topic paths (nested dl terms) in document paths
+htd_load__tpaths="xsl"
 htd__tpaths()
 {
   local verbosity=5
@@ -3277,6 +3403,13 @@ htd__tpaths()
   done
 }
 
+htd__tpath_refs()
+{
+  test -n "$1" || error "document expected" 1
+  test -e "$1" || error "no such document '$1'" 1
+}
+
+htd_load__tpath_raw="xsl"
 htd__tpath_raw()
 {
   test -n "$1" || error "document expected" 1
@@ -3307,6 +3440,7 @@ EOM
   # remove XML prolog:
   } | tail -n +2 | grep -Ev '^(#.*|\s*)$'
 }
+
 htd__xproc2()
 {
   {
@@ -3316,6 +3450,7 @@ htd__xproc2()
 $2
 EOM
     } || {
+      test -e "$1" || error "no file for saxon: $1" 1
       saxon $1 $2
     }
   # remove XML prolog:
@@ -3338,7 +3473,7 @@ htd__dl_append()
   echo
 }
 
-# XXX: hacky hacking one day, see wishlist above
+# XXX: host-disks hacky hacking one day, see wishlist above
 list_host_disks()
 {
   test -e sysadmin/$hostname.rst || error "Expected sysadm hostdoc" 1
@@ -3522,7 +3657,9 @@ htd__open_paths()
       note "Updated $(
         sed 's/^\([^\ ]*\).*/\1/g' $lsof_paths_ck | cut -c-11
       )"
-      git diff --color $lsof_paths $lsof_paths.tmp | tail -n +6
+      git diff --color $lsof_paths $lsof_paths.tmp | tail -n +6 \
+        1>&2
+      # XXX: clean-me
       #diff $lsof_paths $lsof_paths.tmp | vim -R -
       #cdiff $lsof_paths $lsof_paths.tmp
     }
@@ -3546,6 +3683,7 @@ htd__recent_paths()
 
 
 # Scan for bashims in given file or current dir
+htd__spc__bashisms="bashism [DIR]"
 htd__bashisms()
 {
   test -n "$1" || set -- "."
@@ -4082,7 +4220,7 @@ htd__srv_init()
 # Volumes for services
 
 htd_man_1__srv_list="Print info to stdout, one line per symlink in /srv"
-htd_spc__srv_list="[DOT]"
+htd_spc__srv_list="src-list [DOT]"
 htd__srv_list()
 {
   test -n "$verbosity" -a $verbosity -gt 5 || verbosity=6
@@ -4373,12 +4511,16 @@ htd__find_skip_broken_symlinks()
 }
 
 
+htd_man_1__uuid="Print a UUID line to stdout"
+htd_spc__uuid="uuid"
 htd__uuid()
 {
   get_uuid
 }
 
 
+htd_man_1__finfo="Touch document metadata for htdocs:$HTDIR"
+htd_spc__finfo="finfo DIR"
 htd__finfo()
 {
   for dir in $@
@@ -4673,21 +4815,6 @@ htd_edit_and_update()
 }
 
 
-htd_main_files()
-{
-  for x in "" .txt .md .rst
-  do
-    for y in ReadMe main ChangeLog index doc/main docs/main
-    do
-      for z in $y $(str_upper $y) $(str_lower $y)
-      do
-        test -e $z$x && printf "$z$x "
-      done
-    done
-  done
-}
-
-
 ### Main
 
 
@@ -4727,9 +4854,7 @@ htd_main()
           }
 
           $subcmd_func "$@" || r=$?
-
-          htd_unload || error "htd-unload" $?
-
+          htd_unload || r=$?
           exit $r
         }
       ;;

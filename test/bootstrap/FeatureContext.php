@@ -99,15 +99,31 @@ class FeatureContext extends BehatContext
     }
 
     /**
-     * @Then /^`([^`]+)` contains the pattern "([^"]+)"\.?$/
+     * @Then /^`([^`]+)` (contains|matches) the pattern "([^"]+)"\.?$/
      */
-    public function thePropertyContainsThePattern($propertyName, $pattern)
+    public function thenPropertyPregForPattern($propertyName, $mode, $pattern)
     {
         $data = $this->$propertyName;
         $matches = array();
-        preg_match($pattern, $data, $matches);
+        //echo "/$pattern/".PHP_EOL;
+        if ($mode == 'contains') {
+          preg_match_all("/$pattern/", $data, $matches);
+        } else {
+          preg_match("/$pattern/", $data, $matches);
+        }
         if (!count($matches)) {
             throw new Exception("Pattern not found");
+        }
+    }
+
+    /**
+     * @Then /^`([^`]+)` (contains|matches) the patterns:$/
+     */
+    public function thePropertyContainsThePatterns($propertyName, $mode, $patterns)
+    {
+        $patterns = explode(PHP_EOL, $patterns);
+        foreach ($patterns as $idx => $pattern ) {
+          $this->thenPropertyPregForPattern($propertyName, $mode, trim($pattern));
         }
     }
 

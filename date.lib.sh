@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bi
 
 
 # Age in seconds
