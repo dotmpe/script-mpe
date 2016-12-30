@@ -1933,6 +1933,60 @@ htd__git_grep()
 }
 
 
+htd__git_features()
+{
+  vc.sh list_local_branches
+}
+
+htd__features()
+{
+  (
+    cd $1
+    htd__git_features
+  )
+}
+
+htd__gitflow_doc()
+{
+  test -n "$1" || set -- gitflow
+  test -e "$1" || {
+    for ext in .rst .txt
+    do
+      test -e $1$ext || continue
+      set -- $1$ext; break
+    done
+  }
+  test -e $1 || error no-gitflow-doc 2
+  echo $1
+}
+
+htd_run__gitflow_check_doc=f
+htd__gitflow_check_doc()
+{
+  test -n "$failed" || error failed 1
+  test -z "$2" || error surplus-args 2
+  set -- "$(htd__gitflow_doc "$1")"
+  vc.sh list-all-branches | while read branch
+  do
+    match_grep_pattern_test "$branch" || return 12
+    grep -q "\\s*$p_\\s*$" $1 || {
+      error "Expected '$branch' in $1"
+    }
+  done
+  stderr ok "All branches found $1"
+}
+
+htd__gitflow_status()
+{
+  defs gitflow.txt | \
+    tree_to_table  | \
+    while read base branch 
+    do
+      git cherry $base $branch | wc -l
+    done
+}
+
+
 # indexing, cleaning
 
 htd_name_precaution() {

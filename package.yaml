@@ -20,7 +20,7 @@
 
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
-    check: "sh:verbose=false:max=385:./tools/sh/tags.sh :verbose=1:vchk :bats:specs ./bin/behat:--dry-run:--no-multiline :git:status"
+    check: "sh:verbose=false:max=385:./tools/sh/tags.sh htd:gitflow-check-doc :verbose=1:vchk :bats:specs ./bin/behat:--dry-run:--no-multiline :git:status"
     # TODO: check for /tmp usage, force TMPDIR use
     test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats ./bin/behat:--tags:~@skip"
     # TODO: run tests at VM/... if available

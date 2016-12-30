@@ -1,21 +1,12 @@
 #!/bin/sh
 
 # entry-point for Travis build
+echo "entry-point for Travis build"
 
 
 set -ex
 
 Build_Deps_Default_Paths=1 ./install-dependencies.sh '*'
-
-
-whoami
-hostname
-htd help
-
-touch $HOME/.basename-reg.yaml
-
-box version && box -V
-vc.sh help
 
 # FIXME: "Something wrong with pd/std__help"
 #projectdir.sh help
@@ -32,8 +23,6 @@ pip install --upgrade --user -r requirements.txt
 pip install --upgrade --user -r test-requirements.txt
 npm install parse-torrent lodash
 
-radical.py --help
-jsotk.py -h
 jsotk.py from-args foo=bar
 jsotk.py objectpath \
       $HOME/bin/test/var/jsotk/2.yaml \

@@ -1207,7 +1207,25 @@ vc__list_local_branches()
 {
   local pwd=$(pwd)
   test -z "$1" || cd $1
-  git branch -l | sed -E 's/\*|[[:space:]]//g'
+  # use git output, replace asterix and spaces
+  git branch --list | sed -E 's/\*|[[:space:]]//g'
+  test -z "$1" || cd $pwd
+}
+
+# instead of git -a sort into unqiue branche names
+vc__list_all_branches()
+{
+  local pwd=$(pwd)
+  test -z "$1" || cd $1
+  # use git output, replace asterix and spaces
+  # NOTE: hardcoded annex branch ignore
+  # And HEAD. Not sure if git-branch has an option to
+  git branch --list -a | \
+    grep -v 'HEAD' | \
+    grep -v 'git-annex\|synced\/.*' | \
+    sed -E 's/\*|[[:space:]]//g' | \
+    sed -E 's/^remotes\/[^\/]*\///g' | \
+    sort -u
   test -z "$1" || cd $pwd
 }
 
