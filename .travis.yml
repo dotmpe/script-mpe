@@ -14,6 +14,9 @@ addons:
 # - pytz
 
 install:
+  - pip install --upgrade --user -r requirements.txt
+  - pip install --upgrade --user -r test-requirements.txt
+  - npm install parse-torrent lodash
   - "source ./install-dependencies.sh && install_bats"
   - "source ./install-dependencies.sh && install_mkdoc"
   - "source ./install-dependencies.sh && install_pylib"

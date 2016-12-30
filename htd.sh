@@ -3406,7 +3406,7 @@ htd__getxl()
     $rst2xml $1 > "$2"
     echo $2
   }
-  test -e "$2" || error "Need XML repr of doc $1" 1
+  test -e "$2" || error "Need XML repr. for doc '$1'" 1
 }
 
 # List topic paths (nested dl terms) in document paths
@@ -3456,12 +3456,13 @@ htd__tpaths()
 
     done
 
-    rm $xml
+    test ! -e "$xml" || rm "$xml"
 
     unset path rel_leaf root
     shift 1
   done
 }
+htd_vars__tpaths="path rel_leaf root xml"
 
 htd__tpath_refs()
 {
@@ -3510,7 +3511,7 @@ htd__xproc2()
 $2
 EOM
     } || {
-      test -e "$1" || error "no file for saxon: $1" 1
+      test -e "$1" || error "no file for saxon: '$1'" 1
       saxon $1 $2
     }
   # remove XML prolog:

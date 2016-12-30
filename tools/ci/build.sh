@@ -1,10 +1,9 @@
 #!/bin/sh
 
+set -ex
+
 # entry-point for Travis build
 echo "entry-point for Travis build"
-
-
-set -ex
 
 Build_Deps_Default_Paths=1 ./install-dependencies.sh '*'
 
@@ -18,10 +17,6 @@ export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
 
 echo "*PATH* env:"
 env | grep PATH
-
-pip install --upgrade --user -r requirements.txt
-pip install --upgrade --user -r test-requirements.txt
-npm install parse-torrent lodash
 
 jsotk.py from-args foo=bar
 jsotk.py objectpath \
@@ -45,7 +40,7 @@ bats ./test/*-spec.bats
 ./bin/behat --tags '~@todo&&~@skip'
 
 
-#exit 0
+exit 0
 # FIXME: ci build per env
 
 
