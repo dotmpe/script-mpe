@@ -13,7 +13,7 @@ package_id=script-mpe
 package_license=GPL
 package_main=script-mpe
 package_pd_meta_build=":vagrant:tools/ci/vbox"
-package_pd_meta_check="sh:verbose=false:max=385:./tools/sh/tags.sh :verbose=1:vchk :bats:specs :git:status"
+package_pd_meta_check="sh:verbose=false:max=385:./tools/sh/tags.sh :verbose=1:vchk :bats:specs ./bin/behat:--dry-run:--no-multiline :git:status"
 package_pd_meta_git_hooks_pre_commit=./tools/git-hooks/pre-commit.sh
 package_pd_meta_init="./install-dependencies.sh git:init"
 package_pd_meta_run_behat="./bin/behat:--tags:~@skip"
