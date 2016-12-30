@@ -274,9 +274,15 @@ htd_load_ignores()
 
 htd_load_xsl()
 {
-  test -x "$(which saxon)" &&
-    xsl_ver=2 ||
-    xsl_ver=1
+  test -z "$xsl_ver" && {
+    test -x "$(which saxon)" &&
+      xsl_ver=2 ||
+      xsl_ver=1
+  } || {
+    test xsl_ver != 2  ||
+      test -x "$(which saxon)" ||
+        error "Saxon required for XSLT 2.0" 1
+  }
   note "Set XSL proc version=$xsl_ver.0"
 }
 
@@ -1161,7 +1167,7 @@ htd__main_doc_paths()
 htd__main_doc()
 {
   # Find first standard main document
-  test -n "$1" || set -- "$(htd__main_doc_paths "$1")"
+  test -n "$1" || set -- "$(htd__main_doc_paths "$1"|read tag path)"
   test -n "$1" || set -- main$DOC_EXT
 
   local cksum=
