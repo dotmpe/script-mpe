@@ -2,7 +2,7 @@
 
 set -e
 
-# TODO: access objects through loobpack REST
+# TODO: access objects through loopback REST
 sl_rest()
 {
   local p=$sd_tmp_dir/sl_rest

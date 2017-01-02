@@ -1,10 +1,20 @@
 Edit Decision Lists
 ===================
 
+.. figure:: edl/comp.svg
+
+.. figure:: edl/comp-1.svg
+
+
+See also
+  - Scrow http://localhost:4501 (demo)
+  - Scrow http://localhost:8067 (dev)
+
 
 Range link formats
 ------------------
 Lets define
+
 - *ranges* as start and end position.
 - *Spans* are offset (same as start) and length (ie. end - start + 1 ).
 - All serialized references should have 1-indexed offsets.

@@ -29,7 +29,6 @@ Prerequisites
     - Not required. But as for the shell tooling, this may contain
       some context.
 
-https://gist.github.com/jczaplew/bf3a33c5a82a2d93bba4
 ::
 
   git@github.com:dotmpe/google-chrome-htdocs.git

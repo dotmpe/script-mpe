@@ -1,0 +1,58 @@
+@startuml
+
+
+frame "radical.py ." as rad {
+}
+
+database "<record>" as objrec {
+}
+
+rad -> objrec : SQL
+
+
+folder "<project>" {
+
+  file "<DOC>" as DOC {
+  }
+  file "<SRC>" as SRC {
+  }
+  file "ToDo.edl" as ToDo_edl {
+    
+    component "<XTLGrepRef>" as xtlgrepref {
+    }
+    component "<XTLRef>" as xtlref {
+    }
+  }
+
+}
+
+note bottom of ToDo_edl {
+  For EDL types,
+  see [[/edl]]
+}
+
+
+DOC -> rad
+rad -> xtlgrepref
+
+
+
+/'
+' XXX: cannot seem to get note with id and alignment?
+note right of DOC
+note "" as docvssrc bottom of DOC
+'/
+note as docvssrc
+  Documents are entirely literals.
+  Source files are serialized 
+  language trees, with comments and
+  literals among other structs.
+end note
+/' XXX:
+docvssrc bottom of DOC
+'/
+docvssrc - DOC
+docvssrc - SRC
+
+
+@enduml

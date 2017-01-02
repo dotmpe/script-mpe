@@ -1,6 +1,26 @@
 #!/usr/bin/env sitefile
 sitefile: 0.0.4-dev
+
 port: 4500
 routes: 
   _du: 'du:**/*.rst'
+  _gv: 'gv:**/*.gv'
+  _pu: 'plantuml:**/*.plantuml'
   coverage/python: static:coverage_html_report
+  vendor/:package.:format: http.vendor:cdn.json
+  media/script/client.js: coffee:sitefile/client.coffee
+  npm/packages: static:{,sitefile:}node_modules/
+  '': redir:ReadMe
+
+options:
+  global:
+    du:
+      link_stylesheets: true
+      scripts:
+        urls:
+          - /vendor/jquery.js
+          - /vendor/underscore.js
+          - /media/script/client.js
+      stylesheets:
+        - url: /vendor/bootstrap.css
+

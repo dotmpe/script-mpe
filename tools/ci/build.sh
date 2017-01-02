@@ -1,21 +1,11 @@
 #!/bin/sh
 
-# entry-point for Travis build
-
-
 set -ex
 
+# entry-point for Travis build
+echo "entry-point for Travis build"
+
 Build_Deps_Default_Paths=1 ./install-dependencies.sh '*'
-
-
-whoami
-hostname
-htd help
-
-touch $HOME/.basename-reg.yaml
-
-box version && box -V
-vc.sh help
 
 # FIXME: "Something wrong with pd/std__help"
 #projectdir.sh help
@@ -28,12 +18,6 @@ export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
 echo "*PATH* env:"
 env | grep PATH
 
-pip install --upgrade --user -r requirements.txt
-pip install --upgrade --user -r test-requirements.txt
-npm install parse-torrent lodash
-
-radical.py --help
-jsotk.py -h
 jsotk.py from-args foo=bar
 jsotk.py objectpath \
       $HOME/bin/test/var/jsotk/2.yaml \
@@ -46,11 +30,19 @@ htd install json-spec
 
 #./gtasks
 
+
 . ./tools/sh/env.sh
 . ./tools/ci/test.sh
 
+
+# XXX: cleanup, verify exit of above script (everything again):
+bats ./test/*-spec.bats
+./bin/behat --tags '~@todo&&~@skip'
+
+
 exit 0
 # FIXME: ci build per env
+
 
 case "$ENV" in
 
@@ -71,49 +63,46 @@ case "$ENV" in
      ;;
 
    * )
-      env
+       env
 
-      # XXX: Skip build on git-annex branches
-      test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
-      GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
-      BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
-        | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
-      echo "Branch Names: $BRANCH_NAMES"
-      case "$BRANCH_NAMES" in "*annex*" ) exit 0 ;; esac
+       # XXX: Skip build on git-annex branches
+       test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
+       GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
+       BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
+         | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
+       echo "Branch Names: $BRANCH_NAMES"
+       case "$BRANCH_NAMES" in "*annex*" ) exit 0 ;; esac
 
-      echo "TRAVIS_SKIP=$TRAVIS_SKIP"
-      echo "ENV=$ENV"
-      echo "Build dir: $(pwd)"
+       echo "TRAVIS_SKIP=$TRAVIS_SKIP"
+       echo "ENV=$ENV"
+       echo "Build dir: $(pwd)"
 
-      . ./util.sh
-      . ./main.lib.sh
-      main_debug
+       . ./util.sh
+       . ./main.lib.sh
+       main_debug
 
-      #./box-instance x foo bar
-      #./box-instance y
+       #./box-instance x foo bar
+       #./box-instance y
 
-      #./match.sh help
-      #./match.sh -h
-      #./match.sh -h help
-      #./match.sh -s var-names
+       #./match.sh help
+       #./match.sh -h
+       #./match.sh -h help
+       #./match.sh -s var-names
 #
-      #bats
-      ./projectdir.sh test bats-specs bats
-      #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
+       #bats
+       ./projectdir.sh test bats-specs bats
+       #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
 
-      #./matchbox.py help
-      #./libcmd_stacked.py -h
-      #./radical.py --help
-      #./radical.py -vv -h
+       #./matchbox.py help
+       #./libcmd_stacked.py -h
+       #./radical.py --help
+       #./radical.py -vv -h
 
-      ./matchbox.py
+       ./matchbox.py
 
-      ./basename-reg --help
-      #./basename-reg ffnnec.py
-      #./mimereg ffnenc.py
-
-
-
+       ./basename-reg --help
+       #./basename-reg ffnnec.py
+       #./mimereg ffnenc.py
      ;;
 
 esac
