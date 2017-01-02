@@ -15,7 +15,6 @@ addons:
 
 install:
   - echo "phase Travis install"
-  - pip install --upgrade pip
   - pip install --upgrade --user -r requirements.txt
   - pip install --upgrade --user -r test-requirements.txt
   - npm install parse-torrent lodash
