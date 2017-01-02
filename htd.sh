@@ -1172,7 +1172,7 @@ htd__main_doc()
 
   local cksum=
   htd_rst_doc_create_update $1
-  htd_edit_and_update $files $(htd_main_files)
+  htd_edit_and_update $files $(htd_main_files|cut -d' ' -f2)
 
 }
 htd_als__md=main-doc
@@ -1976,8 +1976,12 @@ htd__gitflow_check_doc()
   stderr ok "All branches found $1"
 }
 
+htd_als__gitflow_check=gitflow-check-doc
+htd_als__gitflow=gitflow-status
+
 htd__gitflow_status()
 {
+  note "TODO: see gitflow-check"
   defs gitflow.txt | \
     tree_to_table  | \
     while read base branch 

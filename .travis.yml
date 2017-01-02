@@ -14,6 +14,8 @@ addons:
 # - pytz
 
 install:
+  - echo "phase Travis install"
+  - pip install --upgrade pip
   - pip install --upgrade --user -r requirements.txt
   - pip install --upgrade --user -r test-requirements.txt
   - npm install parse-torrent lodash
@@ -30,7 +32,7 @@ install:
   - touch $HOME/.basename-reg.yaml
 
 before_script:
-  - echo "before script"
+  - echo "phase Travis before-script"
   - whoami
   - hostname
   - box version && box -V
@@ -42,6 +44,7 @@ before_script:
   - ./bin/behat --version
 
 script:
+- echo "phase Travis script"
 - . ./tools/ci/build.sh
 
 env:

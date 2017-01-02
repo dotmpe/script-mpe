@@ -20,13 +20,28 @@ statusdir_load()
   test -n "$sd_tmp_dir" || sd_tmp_dir=$(setup_tmpd $base)
   test -n "$sd_tmp_dir" -a -d "$sd_tmp_dir" || error "sd_tmp_dir load" 1
 
-  # Load backend
-  test -n "$sd_be" || { which membash 2>&1 >/dev/null && sd_be=membash; }
+
+  # Detect backend
+
+  test -n "$sd_be" || {
+    which redis-cli 2>&1 >/dev/null &&
+      redis-cli ping 2>&1 >/dev/null &&
+        sd_be=redis
+  }
+
+  test -n "$sd_be" || {
+    which membash 2>&1 >/dev/null && sd_be=membash
+  }
+
+  # Set default be
   test -n "$sd_be" || sd_be=fsdir
 
+  # Load backend
   test ! -e "$scriptdir/statusdir_$sd_be.sh" || {
     . $scriptdir/statusdir_$sd_be.sh
   }
+
+  $sd_be ping
 }
 
 statusdir_unload()

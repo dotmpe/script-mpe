@@ -7,7 +7,7 @@ routes:
   _gv: 'gv:**/*.gv'
   _pu: 'plantuml:**/*.plantuml'
   coverage/python: static:coverage_html_report
-  vendor/:package.:format: cdn:cdn.json
+  vendor/:package.:format: http.vendor:cdn.json
   media/script/client.js: coffee:sitefile/client.coffee
   npm/packages: static:{,sitefile:}node_modules/
   '': redir:ReadMe
@@ -22,6 +22,5 @@ options:
           - /vendor/underscore.js
           - /media/script/client.js
       stylesheets:
-        urls:
-          - /vendor/bootstrap.css
+        - url: /vendor/bootstrap.css
 

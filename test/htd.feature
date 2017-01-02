@@ -5,7 +5,7 @@ Feature: Htd
     When the user runs "htd main-doc-paths"
     Then `output` should match:
     """
-    ReadMe.rst
+    ReadMe ReadMe.rst
     """
 
 
