@@ -4829,6 +4829,7 @@ htd__gpg()
   gpg -K --keyid-format long --with-colons --with-fingerprint
 }
 
+# Export GNU-PG keys in ASCII format
 htd__gpg_export()
 {
   gpg --export --armor $1
