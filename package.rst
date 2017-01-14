@@ -130,6 +130,13 @@ pd-meta
       Possibly only to identify local code, or also to usually to associate code
       blocks with issue/ticket/time tracker records.
 
+      TODO: A list of objects to further specificy backend of tag?
+      See ie. jnk/userContent.git
+
+    document
+      Name of a local file serving as central storage for project tasks.
+
+
   docs
     Metadata for document (wiki/specs/manual/license) tracking per project.
 

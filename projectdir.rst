@@ -17,7 +17,7 @@ Pd - unified project checkout handling.
 :TODO: submodule support
 :TODO: annex support
 :TODO: reload bg command.
-:TODO: compile packaged scripts from literate style scripting like below. Package for subcomamnds, and with relations/decorations, with embedded scripts or to annotated external scripts.
+:TODO: compile packaged scripts from literate style scripting like below. Package for subcommands, and with relations/decorations, with embedded scripts or to annotated external scripts.
 
 
 - Annotation like this should eliminate scattered metadata files

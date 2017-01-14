@@ -5,7 +5,7 @@ script.mpe
 
 
 Build-status
-    .. FIXME: cannot att ?branch= without Du/rSt2html breaking
+    .. BUG: cannot add ?branch= without Du/rSt2html breaking
     .. image:: https://secure.travis-ci.org/dotmpe/script-mpe.svg
       :width: 89
       :target: https://travis-ci.org/dotmpe/script-mpe
