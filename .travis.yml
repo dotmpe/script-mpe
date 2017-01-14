@@ -24,6 +24,7 @@ before_script:
 script:
   - echo "phase Travis (test) script"
   - . ./tools/ci/build.sh
+  - . ./tools/ci/test.sh
 
 env:
   global:

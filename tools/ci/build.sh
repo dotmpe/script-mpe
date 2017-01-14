@@ -1,11 +1,12 @@
 #!/bin/sh
 
+set -e
+
 . ./tools/sh/env.sh
 . ./util.sh
 . ./main.lib.sh
 
-# entry-point for CI build phase
-echo "entry-point for CI build phase"
+note "entry-point for CI build phase"
 
 
 # Start build per env

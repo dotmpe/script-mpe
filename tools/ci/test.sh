@@ -2,6 +2,13 @@
 
 set -e
 
+. ./tools/sh/env.sh
+. ./util.sh
+. ./main.lib.sh
+
+note "entry-point for CI test phase"
+
+
 test ! -d build || rm -rf build
 mkdir -vp build
 
