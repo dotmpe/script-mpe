@@ -88,9 +88,5 @@ Ignores
     files. For .gitignore-{temp,clean} see temporary and cleanable files resp.
 
 
-Rules
------
-
-
 
 
