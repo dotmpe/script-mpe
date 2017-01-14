@@ -12,6 +12,8 @@ hostname
 echo "*PATH* env:"
 env | grep PATH
 
+echo TERM=$TERM
+
 echo "TRAVIS_SKIP=$TRAVIS_SKIP"
 echo "ENV=$ENV"
 echo "Build dir: $(pwd)"
@@ -23,12 +25,19 @@ echo "Pre-flight check.."
 
 composer --version
 behat --version
+bats --version
 
 box version && box -V
+htd version
 vc.sh help
 radical.py --help
 jsotk.py -h
 htd help
+
+./htd version
+./htd help
+./box help
+
 
 # FIXME: "Something wrong with pd/std__help"
 #projectdir.sh help
