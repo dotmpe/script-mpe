@@ -38,7 +38,7 @@ import os
 import optparse
 import inspect
 
-import yaml
+import ruamel.yaml as yaml
 
 import log
 import lib
