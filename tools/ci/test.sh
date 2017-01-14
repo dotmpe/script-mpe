@@ -59,7 +59,7 @@ test -e "$failed" && {
 
 
 # FIXME: cleanup
-exit 0
+#exit 0
 
 
 var_isset PATH && echo PATH=$PATH || echo no \$PATH
