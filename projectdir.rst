@@ -7,39 +7,43 @@ Pd - unified project checkout handling.
 
 - Frontend: projectdir.sh_
 - Extensions: ``projectdir-*.inc.sh``
-- YAML store backend: projectdir-meta_ (Python)
+- YAML store backend: projectdir-meta_ (Python script for handing Pdocs)
+- Package_ for generic project metadata.
 
-Definitions
-------------
-Projectdir
-  - directory of prefixes to checkouts, and with a Projectdoc on path
-Projectdoc
-  - metadata file listing prefixes repo/remotes etc.
-Prefix
-  - A directory below a Projectdir with package metadata files and/or SCM dirs.
-Target
-  - a specification of a command run on a prefix.
-
-projecdir-meta for Projectdoc schema. Package.rst for generic project metadata.
-
-FIXME: test wether staged changes are recognized as dirt. Build some tests.
-FIXME: need to consider submodules dirt/cruft too before disabling parent checkout.
-
+:FIXME: test wether staged changes are recognized as dirt. Build some tests.
+:FIXME: need to consider submodules dirt/cruft too before disabling parent checkout.
 :TODO: Sub-commands should be documented in projectdir.sh (cq. man sections).
 :TODO: submodule support
 :TODO: annex support
 :TODO: reload bg command.
 :TODO: compile packaged scripts from literate style scripting like below. Package for subcomamnds, and with relations/decorations, with embedded scripts or to annotated external scripts.
 
+
 - Annotation like this should eliminate scattered metadata files
   like .pd-test
   and consolidate the settings into a single definitive document.
+  And sync with local package metadata.
 
   For now the entry point for this is package.yaml.
-  See package.rst also for some related TODO's.
+
+  See package_ also for some related TODO's.
   See below for some sketchups on pd subcommands,
 
 
+Definitions
+------------
+Projectdir [Pd]
+  - directory of prefixes to checkouts, and with a Projectdoc on path
+Projectdoc [Pdoc]
+  - metadata file listing prefixes repo/remotes etc.
+Prefix
+  - A directory below a Projectdir with package metadata files and/or SCM dirs.
+Target
+  - a specification of a command run on a prefix.
+
+
+Components
+------------
 pd
   - annotate ./projectdir.sh
 
@@ -187,5 +191,6 @@ pd
       for each prefix.
 
 
+.. _package: ./package.rst
 .. _projectdir.sh: ./projectdir.sh
 .. _projectdir-meta: ./projectdir-meta
