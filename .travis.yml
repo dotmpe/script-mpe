@@ -31,7 +31,7 @@ env:
     - TRAVIS_SKIP=1
     - TEST_ENV=travis
     - UCONFDIR=$HOME/etc
-    - PATH=$PATH:$HOME/bin:$HOME/bin/bin:$HOME/usr/bin:$HOME/.local/bin/
+    - PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/usr/bin:$HOME/.local/bin/
     - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
     - Build_Deps_Default_Paths=1
   matrix:

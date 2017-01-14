@@ -215,7 +215,7 @@ main_entry()
       npm install -g redmine-cli || return $?
     ;; esac
 
-  case "$1" in all|redo )
+  case "$1" in redo )
       # TODO: fix for other python versions
       install_apenwarr_redo || return $?
     ;; esac
