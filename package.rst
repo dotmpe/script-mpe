@@ -24,6 +24,13 @@ See `test/pd-spec <test/pd-spec.rst>`_  for tested specifications.
 Specifically `spec pd/0/1/6 <test/pd-spec#/pd/0/1/6>`_  that describes how the
 scripts interact with the Pdoc, local package metadata and other context.
 
+Sources
+-------
+May want to integrate to some degrees with:
+
+- NPM package.json, PHP Composer JSON, Bower Components JSON
+- Github pages uses ``_config.yml theme`` to set Jekyll GH page generator.
+
 
 Other (optional) attributes
 -----------------------------
