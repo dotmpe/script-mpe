@@ -91,11 +91,12 @@ pkv
 fkv (o)
     Like pkv, but this is even more restrictive in key characters, keys
     can only contain [A-Za-Z_][A-Za-z0-9_]+ and everything else is lost.
-    Example::
+    Still the (example at pkv) above can be represented, for example::
 
         path_to__1_item=value-for-object-path
         path_to__2=append-item-value
 
+    Double underscores are used to separate path elements.
 py (o)
     Given one or more results, output as python value.
 lines (o)

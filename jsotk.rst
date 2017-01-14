@@ -1,6 +1,39 @@
+Jsotk
+=========
+Javascript Object toolkit
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Jsotk, see docstrings for help.
+Load, query, transform JSON/YAML data to and from (Bourne) Shell.
+
+Features in a nutshel:
+  Auto detects YAML or JSON output.
+  Has ObjectPath_ and other retrieval commands. And updates or outputs
+  plain JSON/YAML elements.
+
+Usage::
+
+  <some-json-output> | jsotk -O yaml --pretty -
+
+  jsotk json2yaml [--pretty] [SRC [DEST]]
+  jsotk yaml2json [--pretty] [SRC [DEST]]
+
+  # Print data as Shell usable variables declarations
+  eval $(jsotk.py -O fkv path tools.yml tools/jsonwidget --output-prefix jsonwidget)
+  echo $jsonwidget_bin
+
+  # Print data at path as Python formatted obj
+  jsotk.py -O py path $1 tools/$2/bin
+
+  # Find objects in list with 'main' attribute
+  jsotk objectpath <json-fn> '$.*[@.main is not None]'
+
+There is also local background process support, usable with `socat` which
+is implemented in `projectdir.sh` `meta` command. Having a persistent
+process while looping over results in shell scripts may improve performance.
+
+See docstrings in http:jsotk.py for further help, or run with ``-h``.
 This file for notes, test descriptions.
+
 
 Dev
 ---
@@ -64,4 +97,6 @@ jsotk_xml_dom
                 leaf2: value2
 
 
+
+.. _ObjectPath: http://objectpath.org
 
