@@ -1,1 +1,0 @@
-/home/vagrant/usr/share/mkdoc/Mkdoc-full.mk
