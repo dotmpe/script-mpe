@@ -69,6 +69,10 @@ do
         bundle exec jekyll build
       ;;
 
+    noop )
+        note "Mepty Build! ($1)" 1
+      ;;
+
     * )
         error "Unknown build '$1'" 1
       ;;
