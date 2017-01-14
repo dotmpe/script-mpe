@@ -10,7 +10,8 @@ Pd - unified project checkout handling.
 - YAML store backend: projectdir-meta_ (Python script for handing Pdocs)
 - Package_ for generic project metadata.
 
-:FIXME: test wether staged changes are recognized as dirt. Build some tests.
+:FIXME: test wether staged, unstaged changes or stash are recognized as dirt
+   or cruft. Build some tests.
 :FIXME: need to consider submodules dirt/cruft too before disabling parent checkout.
 :TODO: Sub-commands should be documented in projectdir.sh (cq. man sections).
 :TODO: submodule support
@@ -40,6 +41,19 @@ Prefix
   - A directory below a Projectdir with package metadata files and/or SCM dirs.
 Target
   - a specification of a command run on a prefix.
+Cruft
+  - Unrecognized or cleanable, but unignored files. Ie. swap files, cache,
+    build artefacts.
+  - Usually ignored (e.g. gitignores) but when removing checkouts, all files
+    below should be considered.
+Dirt
+  - Uncommitted or unsynchronized SCM elements. Ie. modified, staged, stashed.
+  - Before removing checkouts first always a check and confirmation should
+    be required before purging local unmerged branches, stashed changes,
+    dirty files, etc.
+
+
+SCM (clean/dirty/crufty) handling depends on vc.sh_ script.
 
 
 Components
@@ -194,3 +208,4 @@ pd
 .. _package: ./package.rst
 .. _projectdir.sh: ./projectdir.sh
 .. _projectdir-meta: ./projectdir-meta
+.. _vc.sh: ./vc.sh
