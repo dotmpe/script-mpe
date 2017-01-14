@@ -64,7 +64,12 @@ do
 
         python sh_switch.py
 
-        lst names local
+        #892.2 https://travis-ci.org/dotmpe/script-mpe/jobs/191996789
+        #lst names local
+        # [lst.bash:names] Warning: No 'watch' backend
+        # [lst.bash:names] Resolved ignores to '.bzrignore etc:droppable.globs
+        # etc:purgeable.globs .gitignore .git/info/exclude'
+        #/home/travis/bin/lst: 1: exec: 10: not found
       ;;
 
     jekyll )
