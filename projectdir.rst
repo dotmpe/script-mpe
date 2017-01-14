@@ -1,9 +1,13 @@
 Pd Specs
 ========
 :Created: 2016-01-24
-:Updated: 2016-07-11
+:Updated: 2017-01-14
 
 Pd - unified project checkout handling.
+
+- Frontend: projectdir.sh_
+- Extensions: ``projectdir-*.inc.sh``
+- YAML store backend: projectdir-meta_ (Python)
 
 Definitions
 ------------
@@ -74,13 +78,12 @@ pd
         b: exit pd-meta bg process
 
   States
-
-    check
-    scm
-    deps
-    test
-    build
-    install
+    | check
+    | scm
+    | deps
+    | test
+    | build
+    | install
 
   Subcommands
     pd status
@@ -184,4 +187,5 @@ pd
       for each prefix.
 
 
-
+.. _projectdir.sh: ./projectdir.sh
+.. _projectdir-meta: ./projectdir-meta
