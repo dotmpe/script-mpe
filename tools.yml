@@ -1,6 +1,7 @@
 tools:
 
   jsonwidget:
+    id: jsonwidget
     installer: pip
     bin:
       - jsonedit
@@ -15,6 +16,7 @@ tools:
 
 
   todotxt-machine:
+    id: todotxt-machine
     bin: True
     installer: pip
     description: |
@@ -26,6 +28,7 @@ tools:
       https://github.com/AnthonyDiGirolamo/todotxt-machine
 
   json-spec:
+    id: json-spec
     bin: jsonspec
     installer: pip
     post-install:
@@ -41,6 +44,7 @@ tools:
 
   # TODO: would want to use basher, but cannot use gist url. Only GH package.
   membash:
+    id: membash
     bin: membash
     src: membash.sh
     installer: git
@@ -48,6 +52,7 @@ tools:
     
 
   jolt:
+    id: jolt
     bin: jolt
     installer: basher
     description: "Transforms for JSON (Java)"
