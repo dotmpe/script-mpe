@@ -67,7 +67,7 @@ do
       ;;
 
     noop )
-        note "Mepty Build! ($1)" 1
+        note "Empty Build! ($1)" 0
       ;;
 
     * )
