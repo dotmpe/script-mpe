@@ -46,7 +46,7 @@ init
   cd $TMPDIR
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "$TMPDIR" = "${lines[@]}" || {
+  test "$TMPDIR" = "${lines[*]}" || {
     diag "TMPDIR:'${TMPDIR}'"
     diag "BATS_TMPDIR:'${BATS_TMPDIR}'"
     fail "Lines: '${lines[*]}'"
