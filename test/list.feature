@@ -10,6 +10,7 @@ Feature: list
     And `stderr` contains the pattern "No\ such\ command"
     And `status` should not be '0'
 
+  @skip.travis
   Scenario: print names in group
     Given the current project,
     When the user runs "lst names local"

@@ -27,7 +27,7 @@ test_shell()
 
 test_features()
 {
-  behat --tags '~@todo&&~@skip'
+  behat --tags '~@todo&&~@skip&&~@skip.travis'
 }
 
 
