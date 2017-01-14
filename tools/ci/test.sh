@@ -1,7 +1,12 @@
 #!/bin/sh
 
+set -e
+
 test ! -d build || rm -rf build
 mkdir -vp build
+
+# FIXME: cleanup
+
 
 run_spec()
 {
@@ -50,6 +55,10 @@ test -e "$failed" && {
   unset failed
   exit 1
 }
+
+
+
+# FIXME: cleanup
 exit 0
 
 
@@ -73,10 +82,10 @@ SRC_PREFIX=$HOME/build PREFIX=$HOME/.local \
 
 ./htd version
 ./htd help
+./box help
 
 htd version
 box version
-
 
 #export Build_Deps_Default_Paths=1
 #./install-dependencies.sh test
@@ -94,32 +103,33 @@ export PYTHONPATH=$PYTHONPATH:$HOME/lib/py
 
 mkdir -vp ./build
 
-test -n "$SUITE" && {{
-  SPECS=
-  for SPEC in $SUITE
-  do
-    SPECS="$SPECS ./test/$SPEC-spec.bats"
-  done
-}} || test -n "$SPEC" && {{
-  SPECS="./test/$SPEC-spec.bats"
-}} || {{
-  SPECS=./test/*-spec.bats
-}}
 
-bats $SPECS || exit 0 > ./build/test-results.tap
 
-export PATH=$PATH:$HOME/usr/bin/
-bats --version
 
-rm -rf $HOME/bin
-ln -s $WORKSPACE $HOME/bin
-export PATH=$PATH:$HOME/bin/
-#export PYTHONPATH=$PYTHONPATH:$HOME/lib/py
-export JTB_HOME=$HOME/build/jtb
+test_bats()
+{
+  test -n "$SUITE" && {{
+    SPECS=
+    for SPEC in $SUITE
+    do
+      SPECS="$SPECS ./test/$SPEC-spec.bats"
+    done
+  }} || test -n "$SPEC" && {{
+    SPECS="./test/$SPEC-spec.bats"
+  }} || {{
+    SPECS=./test/*-spec.bats
+  }}
 
-export PREFIX=$WORKSPACE
-export TRAVIS_SKIP=1
-export JENKINS_SKIP=1
-./box help
-bash -c './test/{bats-tests}-spec.bats'
+  bats $SPECS || exit 0 > ./build/bats-test-results.tap
+}
+
+
+test_features()
+{
+  ./bin/behat --tags '~@todo&&~@skip'
+}
+
+
+test_shell
+test_features
 

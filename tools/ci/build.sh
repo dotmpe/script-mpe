@@ -30,10 +30,6 @@ do
     test* )
         #./configure.sh && make build test
         . ./tools/ci/test.sh
-
-        # XXX: cleanup, verify exit of above script (everything again):
-        bats ./test/*-spec.bats
-        ./bin/behat --tags '~@todo&&~@skip'
       ;;
 
     dev )
@@ -49,9 +45,10 @@ do
         #./match.sh -h help
         #./match.sh -s var-names
 
-        #bats
-        ./projectdir.sh test bats-specs bats
+        # TODO: cleanup. Pd requires user-conf.
+        #./projectdir.sh test bats-specs bats
         #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
+
 
         #./matchbox.py help
         #./libcmd_stacked.py -h
