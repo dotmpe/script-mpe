@@ -106,7 +106,7 @@ mkdir -vp ./build
 
 
 
-test_bats()
+test_shell()
 {
   test -n "$SUITE" && {{
     SPECS=
