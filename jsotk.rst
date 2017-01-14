@@ -28,10 +28,10 @@ Usage::
   jsotk objectpath <json-fn> '$.*[@.main is not None]'
 
 There is also local background process support, usable with `socat` which
-is implemented in `projectdir.sh` `meta` command. Having a persistent
+is implemented in http:./projectdir.sh `meta` command. Having a persistent
 process while looping over results in shell scripts may improve performance.
 
-See docstrings in http:jsotk.py for further help, or run with ``-h``.
+See docstrings in http:./jsotk.py for further help, or run with ``-h``.
 This file for notes, test descriptions.
 
 

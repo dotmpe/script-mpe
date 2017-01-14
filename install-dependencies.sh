@@ -169,7 +169,7 @@ install_script()
 
 main_entry()
 {
-  test -n "$1" || set -- 'all'
+  test -n "$1" || set -- all
 
   case "$1" in all|project|git )
       git --version >/dev/null || {
