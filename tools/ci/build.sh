@@ -2,10 +2,9 @@
 
 set -ex
 
-# entry-point for Travis build
-echo "entry-point for Travis build"
+# entry-point for CI build phase
+echo "entry-point for CI build phase"
 
-Build_Deps_Default_Paths=1 ./install-dependencies.sh '*'
 
 # FIXME: "Something wrong with pd/std__help"
 #projectdir.sh help
@@ -15,8 +14,6 @@ export PATH=$PATH:/usr/local/bin
 export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/site-packages
 export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
 
-echo "*PATH* env:"
-env | grep PATH
 
 jsotk.py from-args foo=bar
 jsotk.py objectpath \
@@ -32,16 +29,24 @@ htd install json-spec
 
 
 . ./tools/sh/env.sh
-. ./tools/ci/test.sh
 
 
-# XXX: cleanup, verify exit of above script (everything again):
-bats ./test/*-spec.bats
-./bin/behat --tags '~@todo&&~@skip'
+# Start build per env
 
+test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
+GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
+BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
+        | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
 
-exit 0
-# FIXME: ci build per env
+echo "Branch Names: $BRANCH_NAMES"
+case "$BRANCH_NAMES" in
+  # NOTE: Skip build on git-annex branches
+  *annex* ) exit 0
+    ;;
+  gh-pages )
+      ENV=jekyll
+    ;;
+esac
 
 
 case "$ENV" in
@@ -58,52 +63,61 @@ case "$ENV" in
       }
     ;;
 
-   test* | dev* )
-       #./configure.sh && make build test
-     ;;
+  test* )
 
-   * )
-       env
+      #./configure.sh && make build test
+      . ./tools/ci/test.sh
 
-       # XXX: Skip build on git-annex branches
-       test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
-       GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
-       BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
-         | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
-       echo "Branch Names: $BRANCH_NAMES"
-       case "$BRANCH_NAMES" in "*annex*" ) exit 0 ;; esac
+      # XXX: cleanup, verify exit of above script (everything again):
+      bats ./test/*-spec.bats
+      ./bin/behat --tags '~@todo&&~@skip'
+    ;;
 
-       echo "TRAVIS_SKIP=$TRAVIS_SKIP"
-       echo "ENV=$ENV"
-       echo "Build dir: $(pwd)"
+  dev )
 
-       . ./util.sh
-       . ./main.lib.sh
-       main_debug
+      echo "TRAVIS_SKIP=$TRAVIS_SKIP"
+      echo "ENV=$ENV"
+      echo "Build dir: $(pwd)"
 
-       #./box-instance x foo bar
-       #./box-instance y
+      . ./util.sh
+      . ./main.lib.sh
+      main_debug
 
-       #./match.sh help
-       #./match.sh -h
-       #./match.sh -h help
-       #./match.sh -s var-names
+      #./box-instance x foo bar
+      #./box-instance y
+
+      #./match.sh help
+      #./match.sh -h
+      #./match.sh -h help
+      #./match.sh -s var-names
 #
-       #bats
-       ./projectdir.sh test bats-specs bats
-       #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
+      #bats
+      ./projectdir.sh test bats-specs bats
+      #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
 
-       #./matchbox.py help
-       #./libcmd_stacked.py -h
-       #./radical.py --help
-       #./radical.py -vv -h
+      #./matchbox.py help
+      #./libcmd_stacked.py -h
+      #./radical.py --help
+      #./radical.py -vv -h
 
-       ./matchbox.py
+      ./matchbox.py
 
-       ./basename-reg --help
-       #./basename-reg ffnnec.py
-       #./mimereg ffnenc.py
-     ;;
+      ./basename-reg --help
+      #./basename-reg ffnnec.py
+      #./mimereg ffnenc.py
+    ;;
+
+  jekyll )
+      bundle exec jekyll build
+    ;;
+
+  * )
+      echo "Build Env error"
+      env
+
+      echo "Unknown ENV '$ENV' (commit $TRAVIS_COMMIT, branches $BRANCH_NAMES)"
+      exit 1
+    ;;
 
 esac
 

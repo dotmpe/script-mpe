@@ -15,36 +15,21 @@ addons:
 
 install:
   - echo "phase Travis install"
-  - pip install --upgrade --user -r requirements.txt
-  - pip install --upgrade --user -r test-requirements.txt
-  - npm install parse-torrent lodash
-  - "source ./install-dependencies.sh && install_bats"
-  - "source ./install-dependencies.sh && install_mkdoc"
-  - "source ./install-dependencies.sh && install_pylib"
-  - "source ./install-dependencies.sh && install_script"
-  - "source ./install-dependencies.sh && install_docopt"
-  - pip install --user nose-parameterized
-  - mkdir -vp ~/.local/{bin,lib,share}
   - 'curl -sS https://getcomposer.org/installer | php -- --install-dir=$HOME/.local/bin --filename=composer'
+  - . ./tools/ci/install.sh
   - ~/.local/bin/composer --version
   - composer install
   - touch $HOME/.basename-reg.yaml
 
 before_script:
   - echo "phase Travis before-script"
-  - whoami
-  - hostname
-  - box version && box -V
-  - vc.sh help
-  - radical.py --help
-  - jsotk.py -h
-  - htd help
+  - . ./tools/ci/pre-run.sh
   - ~/.local/bin/composer --version
   - ./bin/behat --version
 
 script:
-- echo "phase Travis script"
-- . ./tools/ci/build.sh
+  - echo "phase Travis (test) script"
+  - . ./tools/ci/build.sh
 
 env:
   global:
