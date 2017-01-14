@@ -238,7 +238,7 @@ main_entry()
 
   case "$1" in all|php|composer)
       test -x "$(which composer)" \
-        || install_mkdoc || return $?
+        || install_composer || return $?
     ;; esac
 
   echo "OK. All pre-requisites for '$1' checked"
