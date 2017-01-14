@@ -1,5 +1,7 @@
 # git-versioning main: script-mpe
 
+# Package should have only one main, see jsotk for query
+
 - type: application/vnd.dotmpe.project
   main: script-mpe
   id: script-mpe
@@ -10,6 +12,9 @@
   vendor: dotmpe
   distribution: public
   license: GPL
+
+  gh-pages:
+    theme: jekyll-theme-minimal
 
   pd-meta:
     run:

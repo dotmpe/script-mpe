@@ -9,6 +9,7 @@ package_environment_development__2=BOREAS_SKIP=1
 package_environment_development__3=DANDY_SKIP=1
 package_environment_development__4=VS1_SKIP=1
 package_environments__0=development
+package_gh_pages_theme=jekyll-theme-minimal
 package_id=script-mpe
 package_license=GPL
 package_main=script-mpe
