@@ -143,12 +143,19 @@ pd-meta
     document
       Name of a local file serving as central storage for project tasks.
 
+    ignore
+      sentinel
+        TODO: ignore lines by pattern
+      glob
+        TODO: ignore files by pathname glob
 
   docs
     Metadata for document (wiki/specs/manual/license) tracking per project.
 
     tags
-      A list of tags used throughout the code to link to other documents.
+      A list of tags used throughout the literal data to link to other
+      documents.
+
 
   trackers
     A list of objects to represent an tracker, ie. an index of tracked

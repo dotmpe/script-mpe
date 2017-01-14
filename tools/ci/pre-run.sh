@@ -13,7 +13,12 @@ env | grep PATH
 
 
 echo "Pre-flight check.."
+
 # Basicly if these don't run dont bother testing/building/publishing/...:
+
+composer --version
+behat --version
+
 box version && box -V
 vc.sh help
 radical.py --help

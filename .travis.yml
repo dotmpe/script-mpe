@@ -15,17 +15,11 @@ addons:
 
 install:
   - echo "phase Travis install"
-  - 'curl -sS https://getcomposer.org/installer | php -- --install-dir=$HOME/.local/bin --filename=composer'
   - . ./tools/ci/install.sh
-  - ~/.local/bin/composer --version
-  - composer install
-  - touch $HOME/.basename-reg.yaml
 
 before_script:
   - echo "phase Travis before-script"
   - . ./tools/ci/pre-run.sh
-  - ~/.local/bin/composer --version
-  - ./bin/behat --version
 
 script:
   - echo "phase Travis (test) script"
@@ -37,7 +31,7 @@ env:
     - TRAVIS_SKIP=1
     - TEST_ENV=travis
     - UCONFDIR=$HOME/etc
-    - PATH=$PATH:$HOME/bin:$HOME/usr/bin:$HOME/.local/bin/
+    - PATH=$PATH:$HOME/bin:$HOME/bin/bin:$HOME/usr/bin:$HOME/.local/bin/
     - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
     - Build_Deps_Default_Paths=1
   matrix:
