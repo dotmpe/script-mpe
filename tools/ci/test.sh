@@ -108,20 +108,18 @@ test -n "$SUITE" && {{
 
 bats $SPECS || exit 0 > ./build/test-results.tap
 
+export PATH=$PATH:$HOME/usr/bin/
+bats --version
 
+rm -rf $HOME/bin
+ln -s $WORKSPACE $HOME/bin
+export PATH=$PATH:$HOME/bin/
+#export PYTHONPATH=$PYTHONPATH:$HOME/lib/py
+export JTB_HOME=$HOME/build/jtb
 
-            export PATH=$PATH:$HOME/usr/bin/
-            bats --version
-
-            rm -rf $HOME/bin
-            ln -s $WORKSPACE $HOME/bin
-            export PATH=$PATH:$HOME/bin/
-            #export PYTHONPATH=$PYTHONPATH:$HOME/lib/py
-            export JTB_HOME=$HOME/build/jtb
-
-            export PREFIX=$WORKSPACE
-            export TRAVIS_SKIP=1
-            export JENKINS_SKIP=1
-            ./box help
-            bash -c './test/{bats-tests}-spec.bats'
+export PREFIX=$WORKSPACE
+export TRAVIS_SKIP=1
+export JENKINS_SKIP=1
+./box help
+bash -c './test/{bats-tests}-spec.bats'
 

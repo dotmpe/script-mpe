@@ -37,8 +37,10 @@ env:
       #export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
     - Build_Deps_Default_Paths=1
   matrix:
-    - ENV=dev
-#- ENV=production
+    #- ENV=dev
+    - ENV=jekyll
+    - ENV=testing
+    #- ENV=production
 
 branches:
   not: []
