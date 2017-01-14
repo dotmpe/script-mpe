@@ -63,6 +63,8 @@ do
         #./mimereg ffnenc.py
 
         python sh_switch.py
+
+        lst names local
       ;;
 
     jekyll )
