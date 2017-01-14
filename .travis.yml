@@ -31,12 +31,13 @@ env:
     - TRAVIS_SKIP=1
     - TEST_ENV=travis
     - UCONFDIR=$HOME/etc
-    - PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/usr/bin:$HOME/.local/bin/
+    - PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
     - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
+      #export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/site-packages
+      #export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
     - Build_Deps_Default_Paths=1
   matrix:
-  - ENV= 
-#- ENV=testing
+    - ENV=dev
 #- ENV=production
 
 branches:
