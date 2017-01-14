@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -61,6 +61,8 @@ do
         ./basename-reg --help
         #./basename-reg ffnnec.py
         #./mimereg ffnenc.py
+
+        python sh_switch.py
       ;;
 
     jekyll )

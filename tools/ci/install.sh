@@ -1,9 +1,13 @@
 #!/bin/bash
 
-set -ex
+set -e
 
-# entry-point for CI install phase
-echo "entry-point for CI install phase"
+. ./tools/sh/env.sh
+. ./util.sh
+. ./main.lib.sh
+
+note "entry-point for CI install phase"
+
 
 mkdir -vp ~/.local/{bin,lib,share}
 
