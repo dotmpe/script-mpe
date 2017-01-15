@@ -36,35 +36,34 @@ do
     dev )
         main_debug
 
+        htd script || noope
+
         # FIXME: pd alias
         #pd version
         projectdir.sh version || noop
-        ./projectdir.sh version || noop
+        #./projectdir.sh version || noop
 
-        #./gtasks
-        #./box-instance x foo bar
-        #./box-instance y
+        # FIXME: "Something wrong with pd/std__help"
+        #projectdir.sh help
 
-        #./match.sh help
-        #./match.sh -h
-        #./match.sh -h help
-        #./match.sh -s var-names
+        echo "box-instance"
+        ./box-instance x foo bar || noop
+        ./box-instance y || noop
+
+        echo "Gtasks"
+        ./gtasks || noop
+
 
         # TODO: cleanup. Pd requires user-conf.
         #./projectdir.sh test bats-specs bats
         #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
 
-        #./matchbox.py help
-        #./libcmd_stacked.py -h
-        #./radical.py --help
-        #./radical.py -vv -h
-        ./matchbox.py
-        ./basename-reg --help
         #./basename-reg ffnnec.py
         #./mimereg ffnenc.py
 
+        echo "lst names local"
         #892.2 https://travis-ci.org/dotmpe/script-mpe/jobs/191996789
-        lst names local
+        lst names local || noop
         # [lst.bash:names] Warning: No 'watch' backend
         # [lst.bash:names] Resolved ignores to '.bzrignore etc:droppable.globs
         # etc:purgeable.globs .gitignore .git/info/exclude'

@@ -23,4 +23,5 @@ pip install --user nose-parameterized
 test -e $HOME/.basename-reg.yaml ||
   touch $HOME/.basename-reg.yaml
 
+htd install json-spec
 

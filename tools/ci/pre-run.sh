@@ -3,34 +3,35 @@
 . ./tools/sh/env.sh
 
 # entry-point for CI pre-test phase, to do preflight checks, some verbose debugging
-echo "entry-point for CI pre-test phase"
+note "entry-point for CI pre-test phase"
 
 
-whoami
-hostname
+note "User: $( whoami )"
+note "Host: $( hostname )"
 
-echo "*PATH* env:"
+note "*PATH* env:"
 env | grep PATH
 
-echo TERM=$TERM
+note "TERM=$TERM"
+note "TRAVIS_SKIP=$TRAVIS_SKIP"
+note "ENV=$ENV"
+note "Build dir: $(pwd)"
 
-echo "TRAVIS_SKIP=$TRAVIS_SKIP"
-echo "ENV=$ENV"
-echo "Build dir: $(pwd)"
 
-
-echo "Pre-flight check.."
+note "Pre-flight check.."
 
 # Basicly if these don't run dont bother testing/building/publishing/...:
 
+# External commands
 composer --version
 behat --version
 bats --version
 
+# Local commands should be on PATH and working OK
 box version && box -V
-box help
+box help && box -h && box -h stat
 htd version && htd -V
-htd help && htd -h
+htd help && htd -h && htd -h help
 vc.sh version
 vc.sh help
 radical.py --version
@@ -39,22 +40,33 @@ json.py version && jsotk.py -V
 jsotk.py --help
 sh_switch.py -V
 sh_switch.py --help
+match.sh help && match.sh -h && match.sh -h help
+matchbox.py help
+libcmd_stacked.py -h
+radical.py --help && radical.py -vv -h
+basename-reg --help
 
+# Local scripts should be the same, but anyway try a few..
 ./box version
 ./htd version
 ./jsotk.py -V
 ./sh_switch.py -V
+./match.sh help && ./match.sh -h && ./match.sh -h help
 
 
-# FIXME: "Something wrong with pd/std__help"
-#projectdir.sh help
+# More specific scripts that either the build depends on, are are wanted to keep
+# working.
+# Just in case some parts are not tested properly (yet) make sure they run..
 
 jsotk.py from-args foo=bar
 jsotk.py objectpath \
-      $HOME/bin/test/var/jsotk/2.yaml \
-      '$.*[@.main is not None]'
-
-#htd script
+              $HOME/bin/test/var/jsotk/2.yaml \
+              '$.*[@.main is not None]'
 htd tools
-htd install json-spec
+
+matchbox.py
+
+match.sh -s var-names
+
+# Other commands in build #dev phase.
 
