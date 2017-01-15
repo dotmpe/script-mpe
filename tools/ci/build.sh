@@ -39,7 +39,7 @@ do
         # TODO: Pd requires user-conf.
         (
           pd version || noop
-        #  projectdir.sh version || noop
+          projectdir.sh version || noop
         #  ./projectdir.sh version || noop
         )
         #note "Pd help:"
@@ -50,16 +50,16 @@ do
         #./projectdir.sh test bats-specs bats
 
         note "box-instance:"
-        ./box-instance x foo bar || noop
-        ./box-instance y || noop
+        ./box-instance x foo bar
+        ./box-instance y
 
         # TODO install again? note "gtasks:"
         #./gtasks || noop
 
         note "Htd script:"
         (
-          htd script || noop
-        )
+          htd script
+        ) && stderr ok "Htd script" || noop
 
         note "Pd/Make test:"
         #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
@@ -70,17 +70,17 @@ do
         note "basename-reg:"
         (
           ./basename-reg ffnnec.py
-        )
+        ) || noop
         note "mimereg:"
         (
           ./mimereg ffnenc.py
-        )
+        ) || noop
 
         note "lst names local:"
         #892.2 https://travis-ci.org/dotmpe/script-mpe/jobs/191996789
         (
-          lst names local || noop
-        )
+          lst names local
+        ) || noop
         # [lst.bash:names] Warning: No 'watch' backend
         # [lst.bash:names] Resolved ignores to '.bzrignore etc:droppable.globs
         # etc:purgeable.globs .gitignore .git/info/exclude'
