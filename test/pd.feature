@@ -1,4 +1,5 @@
 
+
 Feature: pd
 
 
@@ -12,6 +13,5 @@ Feature: pd
     Then `output` contains the pattern "Usage:"
     And `stderr` contains the pattern "No\ such\ command"
     And `status` should be '1'
-
 
 

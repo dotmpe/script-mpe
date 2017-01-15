@@ -50,17 +50,17 @@ class FeatureContext extends BehatContext
   }
 
   /**
-   * @When /^the user runs:$/
+   * @When /^the user runs:(\.+)?$/
    */
-  public function theUserRunsMultiline(PyStringNode $command)
+  public function theUserRunsMultiline($withErrror, PyStringNode $command)
   {
-    $this->theUserRuns((string) $command);
+    $this->theUserRuns((string) $command, $withErrror);
   }
 
   /**
-   * @When /^the user runs "([^"]*)"(.*)?$/
+   * @When /^the user runs "([^"]*)"(\.+)?$/
    */
-  public function theUserRuns($command, $withErrror)
+  public function theUserRuns($command, $withErrror='')
   {
     $stderr = '.stderr'; # FIXME: proper session file
     exec((string) "$command 2>$stderr", $output, $return_var);
