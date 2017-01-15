@@ -32,4 +32,3 @@ Feature: a std. CLI tool
       | cmd |
 
 
-

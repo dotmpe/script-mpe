@@ -36,8 +36,10 @@ do
     dev )
         main_debug
 
-        #./gtasks
+        # FIXME: pd alias
+        pd version
 
+        #./gtasks
         #./box-instance x foo bar
         #./box-instance y
 
@@ -50,23 +52,17 @@ do
         #./projectdir.sh test bats-specs bats
         #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
 
-
         #./matchbox.py help
         #./libcmd_stacked.py -h
         #./radical.py --help
         #./radical.py -vv -h
-
         ./matchbox.py
-
         ./basename-reg --help
         #./basename-reg ffnnec.py
         #./mimereg ffnenc.py
 
-        # pd feature sh-switch
-        python sh_switch.py
-
         #892.2 https://travis-ci.org/dotmpe/script-mpe/jobs/191996789
-        #lst names local
+        lst names local
         # [lst.bash:names] Warning: No 'watch' backend
         # [lst.bash:names] Resolved ignores to '.bzrignore etc:droppable.globs
         # etc:purgeable.globs .gitignore .git/info/exclude'
