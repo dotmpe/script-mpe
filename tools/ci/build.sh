@@ -29,41 +29,58 @@ do
       ;;
 
     test* )
-        #./configure.sh && make build test
         . ./tools/ci/test.sh
       ;;
 
-    dev )
-        main_debug
+    dev ) main_debug
 
-        htd script || noop
-
+        note "Pd version:"
         # FIXME: pd alias
-        #pd version
-        projectdir.sh version || noop
-        #./projectdir.sh version || noop
-
+        # TODO: Pd requires user-conf.
+        (
+          pd version || noop
+        #  projectdir.sh version || noop
+        #  ./projectdir.sh version || noop
+        )
+        #note "Pd help:"
         # FIXME: "Something wrong with pd/std__help"
-        #projectdir.sh help
+        #(
+        #  ./projectdir.sh help || noop
+        #)
+        #./projectdir.sh test bats-specs bats
 
-        echo "box-instance"
+        note "box-instance:"
         ./box-instance x foo bar || noop
         ./box-instance y || noop
 
-        echo "Gtasks"
-        ./gtasks || noop
+        # TODO install again? note "gtasks:"
+        #./gtasks || noop
 
+        note "Htd script:"
+        (
+          htd script || noop
+        )
 
-        # TODO: cleanup. Pd requires user-conf.
-        #./projectdir.sh test bats-specs bats
+        note "Pd/Make test:"
         #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
+        (
+          ./configure.sh && make build test
+        ) || noop
 
-        #./basename-reg ffnnec.py
-        #./mimereg ffnenc.py
+        note "basename-reg:"
+        (
+          ./basename-reg ffnnec.py
+        )
+        note "mimereg:"
+        (
+          ./mimereg ffnenc.py
+        )
 
-        echo "lst names local"
+        note "lst names local:"
         #892.2 https://travis-ci.org/dotmpe/script-mpe/jobs/191996789
-        lst names local || noop
+        (
+          lst names local || noop
+        )
         # [lst.bash:names] Warning: No 'watch' backend
         # [lst.bash:names] Resolved ignores to '.bzrignore etc:droppable.globs
         # etc:purgeable.globs .gitignore .git/info/exclude'

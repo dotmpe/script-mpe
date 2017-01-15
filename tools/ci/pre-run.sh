@@ -54,9 +54,9 @@ basename-reg --help
 ./match.sh help && ./match.sh -h && ./match.sh -h help
 
 
-# More specific scripts that either the build depends on, are are wanted to keep
-# working.
-# Just in case some parts are not tested properly (yet) make sure they run..
+# More specific scripts that either the build depends on, are are wanted for
+# sure. Just in case some parts are not tested properly (yet) make sure they
+# run at least.
 
 jsotk.py from-args foo=bar
 jsotk.py objectpath \
