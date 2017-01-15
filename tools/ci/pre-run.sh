@@ -28,15 +28,22 @@ behat --version
 bats --version
 
 box version && box -V
-htd version
+box help
+htd version && htd -V
+htd help && htd -h
+vc.sh version
 vc.sh help
+radical.py --version
 radical.py --help
-jsotk.py -h
-htd help
+json.py version && jsotk.py -V
+jsotk.py --help
+sh_switch.py -V
+sh_switch.py --help
 
+./box version
 ./htd version
-./htd help
-./box help
+./jsotk.py -V
+./sh_switch.py -V
 
 
 # FIXME: "Something wrong with pd/std__help"

@@ -37,7 +37,9 @@ do
         main_debug
 
         # FIXME: pd alias
-        pd version
+        #pd version
+        projectdir.sh version || noop
+        ./projectdir.sh version || noop
 
         #./gtasks
         #./box-instance x foo bar
