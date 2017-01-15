@@ -36,7 +36,7 @@ do
     dev )
         main_debug
 
-        htd script || noope
+        htd script || noop
 
         # FIXME: pd alias
         #pd version
