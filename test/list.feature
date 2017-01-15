@@ -3,6 +3,7 @@ Feature: list
   Scenario: print version
     When the user runs "lst version"
     Then `output` contains the pattern "script-mpe\/[0-9A-Za-z\._-]*"
+    And `status` should be '0'
 
   Scenario: no such command
     When the user runs "lst foo"...
@@ -20,6 +21,7 @@ Feature: list
 \.htdignore-purge
 \.htdignore-drop
 """
+    And `status` should be '0'
 
   @skip
   Scenario: print names in group
@@ -36,7 +38,6 @@ Feature: list
 .build/
 .bzr/
 .cllct/
-.composer.lock
 .conf/
 .coverage/
 .git/
@@ -51,10 +52,12 @@ node_modules/
 public/components/
 vendor/
 """
+    And `status` should be '0'
 
   @skip
   Scenario: print names in group
     Given the current project,
     When the user runs "lst local names"
     Then `output` should be empty.
+    And `status` should be '0'
 

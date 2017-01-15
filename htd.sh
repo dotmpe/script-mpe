@@ -4836,6 +4836,30 @@ htd__gpg_export()
 }
 
 
+htd__bdd_args()
+{
+  for x in *.py *.sh test/*.feature test/bootstrap/*.php
+  do 
+    printf -- "-w $x "
+  done
+}
+
+htd__bdd()
+{
+  test -n "$1" && {
+    set -- test/$1.feature 
+    nodemon -x "./vendor/.bin/behat $1" \
+      --format=progress \
+      -C $(htd__bdd_args)
+  } || {
+    set -- test/
+    nodemon -x "./vendor/.bin/behat $1" \
+      --format=progress \
+      $(htd__bdd_args)
+  }
+  # --format=failed \
+} 
+
 
 # util
 

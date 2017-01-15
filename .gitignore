@@ -3,6 +3,7 @@
 *.py[co]
 *.pyc
 composer.lock
+.composer.lock
 bin
 *DS_Store
 *~*

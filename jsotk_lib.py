@@ -1,5 +1,6 @@
 from __future__ import print_function
 import re
+import sys
 
 from fnmatch import fnmatch
 from res import js
@@ -358,8 +359,17 @@ def load_data(infmt, infile, ctx):
         raise Exception("No data from file %s (%s)" % ( infile, infmt ))
     return data
 
-def stdout_data(outfmt, data, outfile, ctx):
-    return writers[ outfmt ]( data, outfile, ctx )
+def stdout_data(data, ctx, outfmt=None, outf=None):
+    if not outfmt:
+        outfmt = ctx.opts.flags.output_format
+    if not outf:
+        if ctx.out:
+            outf = ctx.out
+        else:
+            outf = get_dest(ctx)
+    if not outf:
+        outf = sys.stdout
+    writers[ outfmt ]( data, outf, ctx )
 
 
 def parse_json(value):
@@ -543,6 +553,12 @@ def open_file(fpathname, defio='out', mode='r', ctx=None):
         except IOError, e:
             raise Exception, "Unable to open %s for %s" % (fpathname, mode)
 
+def get_out_dest(ctx):
+    outfile = None
+    if 'destfile' in ctx.opts.args and ctx.opts.args.destfile:
+        outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
+    return outfile
+
 def get_src_dest(ctx):
     infile, outfile = None, None
     if 'srcfile' in ctx.opts.args and ctx.opts.args.srcfile:
@@ -574,15 +590,18 @@ def get_format_for_fileext(fn, io='out'):
         if fn.endswith( ext ):
             return fmt
 
-def get_dest(ctx, mode):
-    if ctx.opts.flags.detect_format:
-        set_format('output', 'dest', ctx.opts)
-    updatefile = None
-    if 'destfile' in ctx.opts.args and ctx.opts.args.destfile:
-        assert ctx.opts.args.destfile != '-'
-        updatefile = open_file(
-                ctx.opts.args.destfile, defio=None, mode=mode, ctx=ctx)
-    return updatefile
+
+# cli subcmd args handling
+
+def get_dest(ctx, mode, key='dest', section='args'):
+    outfile = None
+    if 'detect_format' in ctx.opts.flags and ctx.opts.flags.detect_format:
+        set_format('output', key, ctx.opts)
+    settings = getattr(ctx.opts, section)
+    if key+'file' in settings and settings[key+'file']:
+        assert settings[key+'file'] != '-'
+        outfile = open_file(settings[key+'file'], defio=None, mode=mode, ctx=ctx)
+    return outfile
 
 def get_src_dest_defaults(ctx):
     if ctx.opts.flags.detect_format:
@@ -595,6 +614,7 @@ def get_src_dest_defaults(ctx):
         if not infile:
             infile = ctx['in']
     return infile, outfile
+
 
 
 def deep_update(dicts, ctx):

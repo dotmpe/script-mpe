@@ -23,4 +23,9 @@ Feature: Htd
   @todo
   Scenario: shows open resources
 
+  @todo
+  Scenario: bdd
+
+    # http://superuser.com/questions/181517/how-to-execute-a-command-whenever-a-file-changes
+
 

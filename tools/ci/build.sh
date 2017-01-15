@@ -62,6 +62,7 @@ do
         #./basename-reg ffnnec.py
         #./mimereg ffnenc.py
 
+        # pd feature sh-switch
         python sh_switch.py
 
         #892.2 https://travis-ci.org/dotmpe/script-mpe/jobs/191996789
