@@ -78,6 +78,7 @@ do
       ;;
 
     noop )
+        # TODO: make sure nothing, or as little as possible has been installed
         note "Empty Build! ($1)" 0
       ;;
 

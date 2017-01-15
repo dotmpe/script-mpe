@@ -11,7 +11,7 @@ Feature: pd
     When the user runs "pd foo"...
     Then `output` contains the pattern "Usage:"
     And `stderr` contains the pattern "No\ such\ command"
-    And `status` should not be '0'
+    And `status` should be '1'
 
 
 
