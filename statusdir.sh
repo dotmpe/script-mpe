@@ -41,7 +41,7 @@ statusdir_load()
     . $scriptdir/statusdir_$sd_be.sh
   }
 
-  $sd_be ping
+  # FIXME: membash does not support ping $sd_be ping
 }
 
 statusdir_unload()

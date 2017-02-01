@@ -703,6 +703,10 @@ vc__stat()
 }
 # TODO: alias
 vc_als__status=stat
+vc__status()
+{
+  vc__stat "$@"
+}
 
 
 vc__bits()
@@ -723,7 +727,6 @@ vc_run__ps1=x
 vc_spc__ps1="ps1"
 vc__ps1()
 {
-  test -n "$gtd" || { pwd; return; }
   c="$(__vc_status "$(pwd)" || return $?)"
   echo "$c"
 }
