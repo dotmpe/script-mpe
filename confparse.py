@@ -32,69 +32,64 @@ from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
 
 try:
-    import syck
-    yaml_load = syck.load
-    yaml_dump = syck.dump
+    import ruamel
+    from ruamel import yaml
+
+    def process_scalar(self):
+        if self.analysis is None:
+            self.analysis = self.analyze_scalar(self.event.value)
+        if self.style is None:
+            self.style = self.choose_scalar_style()
+        split = (not self.simple_key_context)
+        # VVVVVVVVVVVVVVVVVVVV added
+        if split:  # not a key
+            is_string = True
+            if self.event.value and self.event.value[0].isdigit():
+                is_string = False
+            if ':' not in self.event.value:
+                is_string = False
+            # insert extra tests for scalars that should not be ?
+            if is_string:
+                self.style = "'"
+        # ^^^^^^^^^^^^^^^^^^^^
+        # if self.analysis.multiline and split    \
+        #         and (not self.style or self.style in '\'\"'):
+        #     self.write_indent()
+        if self.style == '"':
+            self.write_double_quoted(self.analysis.scalar, split)
+        elif self.style == '\'':
+            self.write_single_quoted(self.analysis.scalar, split)
+        elif self.style == '>':
+            self.write_folded(self.analysis.scalar)
+        elif self.style == '|':
+            self.write_literal(self.analysis.scalar)
+        else:
+            self.write_plain(self.analysis.scalar, split)
+        self.analysis = None
+        self.style = None
+        if self.event.comment:
+            self.write_post_comment(self.event)
+
+    def yaml_load(*args, **kwds):
+        kwds.update(dict(
+            Loader=ruamel.yaml.RoundTripLoader,
+            preserve_quotes=True
+        ))
+        return ruamel.yaml.load(*args, **kwds)
+
+    def yaml_dump(*args, **kwds):
+        dd = ruamel.yaml.RoundTripDumper
+        dd.process_scalar = process_scalar
+        kwds.update(dict(
+            Dumper=dd
+        ))
+        return ruamel.yaml.dump(*args, **kwds)
+
+    yaml_safe_dump = yaml_dump
+
+
 except ImportError, e:
-    try:
-        import ruamel
-        from ruamel import yaml
-
-        def process_scalar(self):
-            if self.analysis is None:
-                self.analysis = self.analyze_scalar(self.event.value)
-            if self.style is None:
-                self.style = self.choose_scalar_style()
-            split = (not self.simple_key_context)
-            # VVVVVVVVVVVVVVVVVVVV added
-            if split:  # not a key
-                is_string = True
-                if self.event.value and self.event.value[0].isdigit():
-                    is_string = False
-                if ':' not in self.event.value:
-                    is_string = False
-                # insert extra tests for scalars that should not be ?
-                if is_string:
-                    self.style = "'"
-            # ^^^^^^^^^^^^^^^^^^^^
-            # if self.analysis.multiline and split    \
-            #         and (not self.style or self.style in '\'\"'):
-            #     self.write_indent()
-            if self.style == '"':
-                self.write_double_quoted(self.analysis.scalar, split)
-            elif self.style == '\'':
-                self.write_single_quoted(self.analysis.scalar, split)
-            elif self.style == '>':
-                self.write_folded(self.analysis.scalar)
-            elif self.style == '|':
-                self.write_literal(self.analysis.scalar)
-            else:
-                self.write_plain(self.analysis.scalar, split)
-            self.analysis = None
-            self.style = None
-            if self.event.comment:
-                self.write_post_comment(self.event)
-
-        def yaml_load(*args, **kwds):
-            kwds.update(dict(
-                Loader=ruamel.yaml.RoundTripLoader,
-                preserve_quotes=True
-            ))
-            return ruamel.yaml.load(*args, **kwds)
-
-        def yaml_dump(*args, **kwds):
-            dd = ruamel.yaml.RoundTripDumper
-            dd.process_scalar = process_scalar
-            kwds.update(dict(
-                Dumper=dd
-            ))
-            return ruamel.yaml.dump(*args, **kwds)
-
-        yaml_safe_dump = yaml_dump
-
-
-    except ImportError, e:
-        print >>sys.stderr, "confparse.py: no YAML parser"
+    print >>sys.stderr, "confparse.py: no YAML parser"
 # XXX: see also res/js.py
 
 _ = None

@@ -14,16 +14,20 @@ import jsotk, jsotk_lib
 
 
 class AbstractKV:
-    """These test are common to the two line-based key-value formats. """
+
+    """
+    These test are common to the two line-based key-value formats,
+    and test the AbstractKVParser method `set_kv`.
+    """
 
     Parser = None
 
 
     key_types_testdata = [
         ( 1, 'foo', dict ),
-        ( 1, 'foo123', dict ),
-        ( 1, '123', dict ),
-        ( 1, '123foo', dict ),
+        ( 2, 'foo123', dict ),
+        ( 3, '123', dict ),
+        ( 4, '123foo', dict ),
     ]
 
     def abstract_scan_key_type(self, testnr, key, data_type ):
@@ -112,11 +116,28 @@ class JsotkPathKVParserTest(unittest.TestCase, AbstractKV):
     Parser = jsotk_lib.PathKVParser
 
 
+    @parameterized.expand([
+        ( 1, {}, '', '', '', False, {'':''} ),
+        ( 2, {}, 'foo/bar', '', '', False, {'foo':{'bar':''}} ),
+        ( 3, {}, 'foo[]', '', '', False, {'foo':['']}),
+        ( 3, {}, 'foo[3]', '', '', False, {'foo':[None, None, '']}),
+        # FIXME: ( 3, {}, 'foo[]/attr', '', None, True, {'foo':[{'attr':''}]}),
+    ])
+    def test_1_set(self, testnr, seed, key, value, default, values_as_json, expected):
+        parser = self.Parser(seed=seed)
+        parser.set(key, value, default=default, values_as_json=values_as_json)
+        self.assertEquals(parser.data, expected)
+
+
     key_types_testdata = AbstractKV.key_types_testdata + [
-        ( 2, 'foo[]', list ),
-        ( 3, '[]', list ),
-        ( 4, 'foo[1]', list ),
-        ( 5, '[1]', list ),
+        ( 5, 'foo[]', list ),
+        ( 6, '[]', list ),
+        ( 7, 'foo[1]', list ),
+        ( 8, '[1]', list ),
+        ( 9, 'foo[]', list ),
+        ( 10, 'foo[3]', list ),
+        ( 11, 'foo[]/att', dict ),
+        ( 12, 'foo[7]/att', dict ),
     ]
 
     @parameterized.expand(key_types_testdata)
@@ -163,7 +184,7 @@ class JsotkTest(unittest.TestCase):
 
         infile = StringIO('{"foo":[{"bar":null}]}')
         ctx = confparse.Values(dict(
-            opts=util.get_opts(jsotk.__doc__, argv=['path', '', pathexpr])
+            opts=util.get_opts(jsotk.__usage__, argv=['path', '', pathexpr])
         ))
 
         self.assertEquals( ctx.opts.args.pathexpr, pathexpr )

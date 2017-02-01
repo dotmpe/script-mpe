@@ -21,3 +21,4 @@ test -n "$SCRIPTPATH" || {
 # Now include script to source other utils
 . $scriptdir/util.sh
 
+# Id: script-mpe/0.0.3-dev tools/sh/init.sh

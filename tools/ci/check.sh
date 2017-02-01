@@ -3,7 +3,7 @@
 . ./tools/sh/env.sh
 
 # entry-point for CI pre-test phase, to do preflight checks, some verbose debugging
-note "entry-point for CI pre-test phase"
+note "entry-point for CI pre-test / check phase"
 
 
 note "User: $( whoami )"
@@ -58,15 +58,25 @@ basename-reg --help
 # sure. Just in case some parts are not tested properly (yet) make sure they
 # run at least.
 
+note "jsotk"
 jsotk.py from-args foo=bar
 jsotk.py objectpath \
               $HOME/bin/test/var/jsotk/2.yaml \
               '$.*[@.main is not None]'
+
+note "Htd tools"
 htd tools
 
+note "matchbox.py default"
 matchbox.py
 
+note "match -s var-names"
 match.sh -s var-names
+
+note "box-instance:"
+box-instance x foo bar
+box-instance y
+
 
 # Other commands in build #dev phase.
 

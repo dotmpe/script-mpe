@@ -34,4 +34,7 @@ todo.py
 topic.py
 vc.py
 sh_switch.py
-jsotk
+jsotk.py
+tools/sh/tags.sh
+tools/sh/init.sh
+tools/sh/env.sh

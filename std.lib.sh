@@ -254,7 +254,7 @@ stderr()
 {
   test -z "$4" || {
     echo "Surplus arguments '$4'"
-    exit 123
+    exit 200
   }
   # XXX seems ie grep strips colors anyway?
   [ -n "$stdout_type" ] || stdout_type=$stdio_2_type
@@ -306,7 +306,7 @@ std_exit()
 {
   test -z "$2" || {
     echo "Surplus arguments '$2'"
-    exit 123
+    exit 200
   }
   test "$1" != "0" -a -z "$1" && return 1 || exit $1
 }

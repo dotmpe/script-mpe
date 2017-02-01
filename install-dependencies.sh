@@ -104,8 +104,6 @@ install_mkdoc()
   ln -s $PREFIX/share/mkdoc/Mkdoc-full.mk Makefile
 }
 
-# expecting cwd to be ~/build/dotmpe/script-mpe/ but asking anyway
-
 install_pylib()
 {
   # for travis container build:
@@ -194,6 +192,7 @@ main_entry()
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
       pip install --user setuptools objectpath ruamel.yaml \
         || exit $?
+      pip install -r test-requirements.txt
     ;; esac
 
   case "$1" in all|build|test|sh-test|bats )
@@ -221,8 +220,8 @@ main_entry()
     ;; esac
 
   case "$1" in all|mkdoc)
-      test -e Makefile \
-        || install_mkdoc || return $?
+      test -e Makefile || \
+        install_mkdoc || return $?
     ;; esac
 
   case "$1" in all|pylib)
@@ -234,6 +233,7 @@ main_entry()
     ;; esac
 
   case "$1" in all|project|git|git-lfs )
+      # TODO: install_git_lfs
     ;; esac
 
   case "$1" in all|php|composer)

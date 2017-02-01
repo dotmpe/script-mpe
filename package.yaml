@@ -13,20 +13,20 @@
 
   pd-meta:
     run:
-      behat: "./bin/behat:--tags:~@skip"
-      behat-defs: "./bin/behat:-dl"
+      behat: "./vendor/.bin/behat--tags:~@skip"
+      behat-defs: "./vendor/.bin/behat:-dl"
 
       # NOTE: behat cannot display outline only
-      behat-specs: "./bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip"
+      behat-specs: "./vendor/.bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip"
 
       # XXX: this would be nice, and is one way to do file watching for BDD
       behat-watch: "nodemon -x './vendor/.bin/behat test/$1.feature' -w test/bootstrap/FeatureContext.php -w test/$1.feature -w ./$1.*"
 
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
-    check: "htd:gitflow-check-doc :verbose=1:vchk :bats:specs ./bin/behat:--dry-run:--no-multiline :git:status"
+    check: "htd:gitflow-check-doc :verbose=1:vchk :bats:specs behat:--dry-run:--no-multiline :git:status"
     # TODO: check for /tmp usage, force TMPDIR use
-    test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats ./bin/behat:--tags:~@skip"
+    test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats ./vendor/.bin/behat:--tags:~@skip"
     # TODO: run tests at VM/... if available
     build: ":vagrant:tools/ci/vbox"
     #build: ":vagrant:tools/ci/vbox:ubuntu"

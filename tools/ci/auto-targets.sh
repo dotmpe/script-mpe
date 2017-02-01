@@ -1,4 +1,5 @@
 
+
 test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
 BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
@@ -20,9 +21,11 @@ test -n "$ENV" || {
   esac
 }
 
+
 test -n "$ENV"  || {
   error "CI Env Error: '$ENV' (commit $TRAVIS_COMMIT, branches $BRANCH_NAMES)" 1
 }
+
 
 set -- "$ENV"
 

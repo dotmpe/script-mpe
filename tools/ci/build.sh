@@ -49,10 +49,6 @@ do
         #)
         #./projectdir.sh test bats-specs bats
 
-        note "box-instance:"
-        ./box-instance x foo bar
-        ./box-instance y
-
         # TODO install again? note "gtasks:"
         #./gtasks || noop
 

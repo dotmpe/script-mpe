@@ -17,10 +17,10 @@ Feature: list
     When the user runs "lst names local"
     Then `output` contains the patterns:
     """
-\.htdignore-clean
-\.htdignore-purge
-\.htdignore-drop
-"""
+    \.htdignore-clean
+    \.htdignore-purge
+    \.htdignore-drop
+    """
     And `status` should be '0'
 
   @skip
@@ -29,29 +29,29 @@ Feature: list
     When the user runs "lst globs names"
     Then `output` should match:
     """
-*.cuthd
-*.meta
-*.py[co]
-*.sw[po]
-*DS_Store
-*~*
-.build/
-.bzr/
-.cllct/
-.conf/
-.coverage/
-.git/
-.gitignore-*.regex
-.htdignore-*.regex
-.meta/
-.redo/
-.svn/
-.vagrant/
-bower_components/
-node_modules/
-public/components/
-vendor/
-"""
+    *.cuthd
+    *.meta
+    *.py[co]
+    *.sw[po]
+    *DS_Store
+    *~*
+    .build/
+    .bzr/
+    .cllct/
+    .conf/
+    .coverage/
+    .git/
+    .gitignore-*.regex
+    .htdignore-*.regex
+    .meta/
+    .redo/
+    .svn/
+    .vagrant/
+    bower_components/
+    node_modules/
+    public/components/
+    vendor/
+    """
     And `status` should be '0'
 
   @skip

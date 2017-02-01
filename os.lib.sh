@@ -3,6 +3,11 @@
 
 # OS: files, paths
 
+# Combined dirname/basename to replace .ext
+basepath()
+{
+	echo "$(dirname $1)/$(basename $1 $2)$3"
+}
 
 short()
 {

@@ -13,7 +13,7 @@ def get_opts(docstr, meta={}, version=None, argv=None):
     """
     Get docopt dict, and set argv and flags from get_optvalues.
     """
-    if not argv:
+    if argv == None:
         argv = sys.argv[1:]
     pattern, collected = docopt(docstr, argv, version=version,
             return_spec=True)

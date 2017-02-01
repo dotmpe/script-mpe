@@ -5,6 +5,8 @@ test -n "$scriptdir" || scriptdir=$(dirname $(dirname $(dirname $0)))
 test -n "$verbose" || verbose=true
 test -n "$exit" || exit=true
 
+lname=script-mpe
+
 type lib_load 2> /dev/null 1> /dev/null || . $scriptdir/util.sh load-ext
 
 lib_load sys os std str
@@ -16,24 +18,24 @@ test -n "$Check_All_Files" || Check_All_Files=0
 test -n "$Check_All_Tags" || Check_All_Tags=0
 
 test -z "$1" && {
-	trueish "$Check_All_Files" && {
-		check_files="*"
-	} || {
-		# Only go over staged changes
-		check_files="$(git diff --name-only --cached)"
-		test -n "$check_files" && {
-		  note "Set check-files to GIT modified files.."
+  trueish "$Check_All_Files" && {
+    check_files="*"
+  } || {
+    # Only go over staged changes
+    check_files="$(git diff --name-only --cached)"
+    test -n "$check_files" && {
+      note "Set check-files to GIT modified files.."
     } || {
-		  note "Cant find modified files, setting to all files"
-		  check_files="*"
+      note "Cant find modified files, setting to all files"
+      check_files="*"
     }
-	}
+  }
 } || {
-	check_files="$@"
+  check_files="$@"
 }
 
 trueish "$Check_All_Tags" && {
-  test -n "$abort_on_regex" || abort_on_regex='TODO\|FIXME\|XXX\|NOTE' # tasks:no-check
+  test -n "$abort_on_regex" || abort_on_regex='TODO\|FIXME\|XXX' # tasks:no-check
 } || {
   test -n "$abort_on_regex" || abort_on_regex='\<XXX\>' # tasks:no-check
 }
@@ -42,9 +44,9 @@ trueish "$Check_All_Tags" && {
 # TODO: should move script into pd or lst, once excludes are loaded
 grep -nsrI \
     $abort_on_regex \
+    --exclude-dir 'build' \
     --exclude-dir jjb \
     --exclude-dir 'vendor' \
-    --exclude-dir 'build' \
     --exclude '*.tmpl' \
     --exclude '*.sw[aop]' \
     --exclude '*~' \
@@ -54,7 +56,8 @@ grep -nsrI \
     --exclude '.package.sh' \
     --exclude '.package.json' \
     $check_files \
-  | grep -v '\<tasks\>.\<no\>.\<check\>' \
+  | grep -Ev '\<'"$lname"'\>.\<no[-]?check\>' \
+  | grep -Ev '\<tasks\>.\<no[-]?check\>' \
   | grep -v '\<tasks\>.\<ignore\>' \
   | {
     trueish "$verbose" && { tee $out; } || { cat - > $out; }
@@ -77,3 +80,4 @@ test $max -ge $cruft && {
 
 trueish "$exit" && exit $ret || exit 0
 
+# Id: script-mpe/0.0.3-dev tools/sh/tags.sh

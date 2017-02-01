@@ -4,8 +4,25 @@ import sys
 
 from fnmatch import fnmatch
 from res import js
-from confparse import yaml_load, yaml_safe_dump
+from confparse import yaml_safe_dump
 from pydoc import locate
+
+
+import ruamel.yaml
+
+def yaml_load(*args, **kwds):
+    # XXX: cleanup, hack for JJB content
+    class Loader(ruamel.yaml.SafeLoader):
+    #class Loader(ruamel.yaml.RoundTripLoader):
+        def let_raw_include_through(self, node):
+            return None#self.construct_mapping(node)#, ruamel.yaml.comments.CommentedMap())
+    #Loader.add_multi_constructor(u'!include-raw:', Loader.let_raw_include_through)
+    Loader.add_constructor(u'!include-raw:', Loader.let_raw_include_through)
+    kwds.update(dict(
+        Loader=Loader,
+        preserve_quotes=True
+    ))
+    return ruamel.yaml.load(*args, **kwds)
 
 
 re_non_escaped = re.compile('[\[\]\$%:<>;|\ ]')
@@ -105,6 +122,7 @@ class AbstractKVParser(object):
             if self.__class__.contains_list(key):
                 skey, rest, idx = self.__class__.parse_list_key(key)
 
+                #print("sk %s - %s" % ( skey, d))
                 if skey:
                     if skey not in d:
                         d[skey] = []
@@ -114,6 +132,7 @@ class AbstractKVParser(object):
                     while idx >= len(d):
                         d.append( None )
 
+                #print("sk2 %s - %s - %s - %s" % ( rest, idx, value, d))
                 if rest:
                     self.set( rest, value, d )
 
@@ -142,6 +161,7 @@ class AbstractKVParser(object):
 
     def set_path( self, path, value ):
         assert isinstance(path, list), "Path must be a list"
+        #print(self.data)
         d = self.data
         while path:
             k = path.pop(0)
@@ -152,12 +172,13 @@ class AbstractKVParser(object):
                 di = []
             else:
                 di = {}
-
+            #print("k, di  value -- %s=%r  %s" % (k, di, value))
             if path:
                 k = self.set( k, None, d, di )
             else:
                 k = self.set( k, value, d )
             if path:
+                #assert k in d, ( k, type(k), d )
                 d = d[k]
 
     def get( self, key, d=None):
@@ -771,5 +792,9 @@ def maptype(typestr):
         return locate(typemap[typestr])
     return locate(typestr)
 
+
+def set_default_output_format(ctx, fmt):
+    if '-O' not in ctx.opts.argv and '--output-format' not in ctx.opts.argv:
+        ctx.opts.flags.output_format = fmt
 
 

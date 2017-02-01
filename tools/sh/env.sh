@@ -46,3 +46,5 @@ case "$shopts" in
     esac
   ;;
 esac
+
+# Id: script-mpe/0.0.3-dev tools/sh/env.sh

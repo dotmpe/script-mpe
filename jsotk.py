@@ -128,7 +128,6 @@ Dev
 import types
 from StringIO import StringIO
 
-from docopt import docopt
 from objectpath import Tree
 
 

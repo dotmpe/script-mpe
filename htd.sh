@@ -966,12 +966,13 @@ htd__alias()
 # TODO: maintain symbolic dates in files, absolute and relative (Yesterday, Saturday, 2015-12-11 )
 htd__edit_today()
 {
-  { test -n "$HTDIR" && test -d "$HTDIR" ; } \
-    || error "HTDIR empty or missing: $HTDIR" 1
+  # XXX: remove
+  #{ test -n "$HTDIR" && test -d "$HTDIR" ; } \
+  #  || error "HTDIR empty or missing: $HTDIR" 1
   test -n "$EXT" || EXT=.rst
   local pwd=$(pwd) arg=$1
 
-  cd $HTDIR
+  #cd $HTDIR
 
   test -n "$1" || set -- journal/
 
@@ -1008,31 +1009,38 @@ htd__edit_today()
 
   # Open of dir causes default formatted filename+header created
   test -d "$1" && {
-    note "Editing $1"
-    #git add $1/[0-9]*-[0-9][0-9]-[0-9][0-9].rst
-    htd__today "$1"
-    today=$(realpath $1/today.rst)
-    test -s "$today" || {
-      title="$(date_fmt "" '%A %G.%V')"
-      htd_rst_doc_create_update "$today" "$title"
+    {
+      note "Editing $1"
+      #git add $1/[0-9]*-[0-9][0-9]-[0-9][0-9].rst
+      htd__today "$1"
+      today=$(realpath $1/today.rst)
+      test -s "$today" || {
+        title="$(date_fmt "" '%A %G.%V')"
+        htd_rst_doc_create_update "$today" "$title"
+      }
+      # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
+      FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
+      htd_edit_and_update $(realpath $FILES)
+    } || {
+      error "err $1/ $?" 1
     }
-    # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
-    FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
-    htd_edit_and_update $(realpath $FILES)
-
   # Open of archive file cause day entry added
   } || {
-    local Y=%Y MSEP=- M=%m DSEP=- D=%d r=
-    local date_fmt="$Y$MSEP$M$DSEP$D"
-    local \
-      today="$(date_fmt "" $date_fmt)"
+    {
+      local Y=%Y MSEP=- M=%m DSEP=- D=%d r=
+      local date_fmt="$Y$MSEP$M$DSEP$D"
+      local \
+        today="$(date_fmt "" $date_fmt)"
 
-    grep -qF $today $1 || {
-      printf "$today\n  - \n\n" >> $1
+      grep -qF $today $1 || {
+        printf "$today\n  - \n\n" >> $1
+      }
+
+      $EDITOR $1
+      git add $1
+    } || {
+      error "err file $?" 1
     }
-
-    $EDITOR $1
-    git add $1
   }
 }
 htd_als__vt=edit_today

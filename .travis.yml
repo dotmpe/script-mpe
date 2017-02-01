@@ -13,16 +13,16 @@ addons:
 # - rhash
 # - pytz
 
+before_install:
+  - . ./tools/ci/init.sh
+
 install:
-  - echo "phase Travis install"
   - . ./tools/ci/install.sh
 
 before_script:
-  - echo "phase Travis before-script"
-  - . ./tools/ci/pre-run.sh
+  - . ./tools/ci/check.sh
 
 script:
-  - echo "phase Travis (test) script"
   - . ./tools/ci/build.sh
 # FIXME:  - . ./tools/ci/test.sh
 
@@ -44,12 +44,13 @@ env:
     #- ENV=production
 
 branches:
-  not: []
+  only: []
   #only:
     #  - master
     #  - '/^test.*$/'
     #  - '/^dev.*$/'
     #  - '/^[0-9]*\.[0-9]*\.[0-9]*/'
+  not: []
 
 #deploy:
 #  provider: releases

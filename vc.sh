@@ -483,7 +483,7 @@ __vc_status()
 		short="${short%$sub}"
 		echo "$short" $(__vc_git_flags $realcwd "[git:%s $rev]")$sub
 
-	else if [ "$bzr" ]; then
+	else if [ -n "$bzr" ]; then
 		#if [ "$bzr" = "." ];then bzr="./"; fi
 		realbzr="$(cd "$bzr"; pwd -P)"
 		realbzr="${realbzr%/.bzr}"

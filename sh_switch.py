@@ -2,11 +2,14 @@
 """
 sh-switch
 =========
-Parse switch statements from Sh scripts.
+Parse switch statements from Sh scripts
+------------------------------------------
 
 :Created: 2016-06-16
 :Updated: 2017-01-14
 
+
+- Quotes are included in the expression, since Sh can have both.
 
 """
 __version__ = '0.0.3-dev' # script-mpe
@@ -14,7 +17,8 @@ __usage__ = """
 sh-switch - Parse switch statements from Sh scripts
 
 Usage:
-    sh-switch [options] dump
+    sh-switch [options] dump <dest>...
+    sh-switch [options] sh-cases <var> <dest>...
     sh-switch [options] test-examples
     sh-switch [-V|--version|version]
 
@@ -22,10 +26,6 @@ Options:
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -p, --pretty  Pretty output formatting.
-  -I <format>, --input-format <format>
-                Override input format. See Formats_.
-                TODO: default is to autodetect from filename
-                if given, or set to [default: json].
   -O <format>, --output-format <format>
                 Override output format. See Formats_.
                 TODO: default is to autodetect from filename
@@ -164,10 +164,9 @@ class SwitchReader:
         "Yield ( <startchar>, <startline> )  ( <endchar>, <endline> ) "
         for start, end in self.read_switches():
             yield start[0:2], end[0:2]
-            #print 'Switch', start[0:2], end[0:2]
 
     def get_all_sets(self):
-        """Build nested dicts, with test expressions at the uneven levels
+        """TODO: Build nested dicts, with test expressions at the uneven levels
         and possible match groups at the even levels. """
         sets = self.get_raw_sets()
         return sets
@@ -186,16 +185,19 @@ class SwitchReader:
             sets.append( dict([ (switch_expr, it) ]) )
         return sets
 
-    def read_all(self):
+    def get_sh_var_expr(self, varname):
+        """
+        Return case groups with all possible expressions of given varname.
+        """
+        rsets = self.get_raw_sets()
+        for case_esac in rsets:
+            kexpr = case_esac.keys()[0]
+            if kexpr.strip('"$') == varname:
+                return self.get_sh_cases(case_esac[kexpr])
 
-        shsrc = open( self.filename ).read()
-        for start, end in self.read_switches():
-            switch_expr = start[-1].test_expr.strip(' \n;')
-            it = [
-                (k.strip(' \n;'), v.strip(' \n;')) for k, v in start[-1].case_exprs.items()
-            ]
-            #case_expr_map = dict(it)
-            sets.append( dict([ (switch_expr, it) ]) )
+    def get_sh_cases(self, cases):
+        return [ v for c in cases for v in c.split('|') ]
+
 
 
 # Command utils
@@ -204,13 +206,21 @@ class SwitchReader:
 # Subcommand handlers
 
 def H_dump(ctx):
-    for sh_fn in ctx.opts.args:
+    for sh_fn in ctx.opts.args.dest:
         reader = SwitchReader( sh_fn )
         jsotk_lib.stdout_data( reader.get_raw_sets(), ctx )
 
+def H_sh_cases(ctx):
+    "Cases for varname"
+    jsotk_lib.set_default_output_format(ctx, 'lines')
+    for sh_fn in ctx.opts.args.dest:
+        reader = SwitchReader( sh_fn )
+        data = reader.get_sh_var_expr(ctx.opts.args.var)
+        jsotk_lib.stdout_data( data, ctx )
 
 def H_test_examples(ctx):
-    ctx.opts.args = [
+    jsotk_lib.set_default_output_format(ctx, 'yaml')
+    ctx.opts.args.dest = [
         'tools/ci/build.sh',
         'test/var/sh-src-1.sh',
         'test/var/sh-src-3.sh'
