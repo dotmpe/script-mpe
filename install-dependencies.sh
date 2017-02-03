@@ -17,6 +17,8 @@ test -z "$Build_Deps_Default_Paths" || {
       && PREFIX=/usr/local/ \
       || PREFIX=$HOME/.local
   }
+
+  echo "Setting default paths: SRC_PREFIX=$SRC_PREFIX PREFIX=$PREFIX" >&2
 }
 
 test -n "$sudo" || sudo=
@@ -30,12 +32,12 @@ test -w /usr/local || {
 
 
 test -n "$SRC_PREFIX" || {
-  echo "Not sure where checkout"
+  echo "Not sure where to checkout (SRC_PREFIX missing)" >&2
   exit 1
 }
 
 test -n "$PREFIX" || {
-  echo "Not sure where to install"
+  echo "Not sure where to install (PREFIX missing)" >&2
   exit 1
 }
 
@@ -67,7 +69,7 @@ install_composer()
   }
   ~/.local/bin/composer --version
   test -x "$(which composer)" || {
-    echo "Composer is present but not found on PATH"
+    echo "Composer is installed but not found on PATH! Aborted. " >&2
     return 1
   }
   composer install

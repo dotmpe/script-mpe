@@ -366,6 +366,7 @@ htd__help_commands()
   echo '  git-remote [repo]                List all names remotely, or give the SSH url for given repo. '
   echo '  git-init-remote [repo]           Initialze remote bare repo if local path is GIT project'
   echo '  git-remote-info                  Show current ~/.conf/git-remotes/* vars.'
+  echo '  git-files [REPO...] GLOB...      Look for file (pattern) in repositories'
   echo ''
   echo 'Working tree utils'
   echo '  check-names [. [<tags>]]         Check names in path, according to tags.'
