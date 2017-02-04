@@ -32,6 +32,7 @@ before_script:
   - . ./tools/ci/check.sh
 
 script:
+  - apt-get install python-dev
   - . ./tools/ci/build.sh
 # FIXME:  - . ./tools/ci/test.sh
 
