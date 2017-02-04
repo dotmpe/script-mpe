@@ -86,7 +86,7 @@ I=1
 echo "1..24" > $TEST_RESULTS
 
 # start with essential tests
-for spec in helper util-lib str std os match vc main box-lib box-cmd box
+for spec in helper util-lib str std os match vc-lib vc main box-lib box-cmd box
 do
   run_spec $spec
   I=$(( $I + 1 ))
@@ -94,7 +94,10 @@ done
 
 # in no particular order
 test ! -e $failed || rm $failed
-for spec in statusdir htd basename-reg dckr diskdoc esop jsotk-py libcmd_stacked matchbox meta mimereg pd radical
+for spec in statusdir htd basename-reg dckr diskdoc esop \
+  sh sh-switch rsr edl finfo \
+  jsotk-py libcmd_stacked mimereg radical \
+  matchbox meta pd
 do
   run_spec $spec
   I=$(( $I + 1 ))
