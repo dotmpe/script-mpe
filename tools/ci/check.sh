@@ -28,9 +28,11 @@ note "Pre-flight check.."
 composer --version
 behat --version
 bats --version
-
 realpath --version
-realpath "$(pwd)"
+basher --version
+
+~/.basher/bin/tap-to-junit-xml --version
+tap-to-junit-xml --version
 
 # Local commands should be on PATH and working OK
 note "Box:" && box version && box -V
