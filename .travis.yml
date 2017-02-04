@@ -25,12 +25,10 @@ addons:
 before_install:
   - pwd && pwd -P
   - whoami
+  - env | grep -i 'shippable\|travis\|ci'
   - . ./tools/ci/init.sh
 
 install:
-  - test "$(whoami)" = "travis" || {
-      apt-get update &&
-      apt-get install php python-dev ; }
   - . ./tools/ci/install.sh
 
 before_script:

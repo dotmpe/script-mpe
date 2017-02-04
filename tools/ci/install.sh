@@ -8,6 +8,10 @@ set -e
 
 note "entry-point for CI install phase"
 
+test "$(whoami)" = "travis" || {
+  apt-get update &&
+  apt-get install php5 python-dev
+}
 
 apt-get remove python-six
 
