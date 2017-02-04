@@ -32,8 +32,8 @@ realpath --version
 basher help
 
 trueish "$SHIPPABLE" && {
-  ~/.basher/cellar/bin/tap-to-junit-xml --help || printf ""
-  tap-to-junit-xml --help || printf ""
+  ~/.basher/cellar/bin/tap-to-junit-xml --help || test $? -eq 1
+  tap-to-junit-xml --help || test $? -eq 1
 }
 
 # Local commands should be on PATH and working OK
