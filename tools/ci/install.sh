@@ -17,7 +17,8 @@ test "$(whoami)" = "travis" || {
 #  apt-get remove python-six
 #}
 ./install-dependencies.sh pip
-pip install -U six=1.10.0
+pip install -U six
+#@1.10.0
 
 pip install packaging appdirs
 pip install --upgrade --user -r requirements.txt
