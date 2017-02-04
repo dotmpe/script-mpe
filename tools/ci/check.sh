@@ -31,7 +31,6 @@ bats --version
 realpath --version
 basher help
 
-cpan install XML::Generator
 ~/.basher/cellar/bin/tap-to-junit-xml --help || printf ""
 tap-to-junit-xml --help || printf ""
 
