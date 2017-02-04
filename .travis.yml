@@ -38,6 +38,11 @@ script:
   - . ./tools/ci/build.sh
 
 env:
+  matrix:
+    - ENV=noop
+    - ENV=dev
+    - ENV=testing
+    # TODO: - ENV=production
   global:
     - CS=dark
     - TRAVIS_SKIP=1
@@ -45,15 +50,8 @@ env:
     - UCONFDIR=$HOME/etc
     - PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
     - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
-      #export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/site-packages
-      #export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
     - TEST_RESULTS=shippable/testresults/test.tap
     - Build_Deps_Default_Paths=1
-  matrix:
-    - ENV=noop
-    - ENV=dev
-    - ENV=testing
-    #- ENV=production
 
 branches:
   only: []
@@ -74,5 +72,4 @@ branches:
 #    condition: $ENV = production
 #
 #
-
 

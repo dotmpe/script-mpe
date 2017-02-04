@@ -13,9 +13,11 @@ test "$(whoami)" = "travis" || {
   apt-get install php5 python-dev
 }
 
-apt-get remove python-six
-
+#test "$SHIPPABLE" = "true" || {
+#  apt-get remove python-six
+#}
 ./install-dependencies.sh pip
+pip upgrade six=1.10.0
 
 pip install packaging appdirs
 pip install --upgrade --user -r requirements.txt

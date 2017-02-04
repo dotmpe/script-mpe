@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 . ./tools/sh/env.sh
 
 # entry-point for CI pre-test phase, to do preflight checks, some verbose debugging
