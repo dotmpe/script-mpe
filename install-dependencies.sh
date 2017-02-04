@@ -254,8 +254,9 @@ main_entry()
       test -x "$(which gem)" ||
         error "ruby/gemfiles required" 1
       ruby -v
+      gem --version
       test -x "$(which travis)" ||
-    	gem install travis -v 1.8.6 --no-rdoc --no-ri
+    	${sudo} gem install travis -v 1.8.6 --no-rdoc --no-ri
     ;; esac
 
   echo "OK. All pre-requisites for '$1' checked"
