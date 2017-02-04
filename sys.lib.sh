@@ -11,11 +11,8 @@ sys_load()
 {
   test -n "$SCR_SYS_SH" ||  {
     test -n "$SHELL" &&
-      SCR_SYS_SH="$(basename "$SHELL")" || {
-
-      env | grep -i 'sh'
-      SCR_SYS_SH=bash
-    }
+    SCR_SYS_SH="$(basename "$SHELL")" ||
+    SCR_SYS_SH=bash
   }
 
   test -n "$TMPDIR" && {
