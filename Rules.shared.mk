@@ -15,44 +15,46 @@ init:
 		scriptname=tools:init; \
 		. ./tools/sh/init.sh; \
 		. $$scriptdir/tools/sh/env.sh; \
-    . $$scriptdir/tools/ci/parts/init.sh
+		. $$scriptdir/tools/ci/parts/init.sh
 
 install_$d:
 	@\
 		scriptname=tools:install; \
 		. ./tools/sh/init.sh; \
 		. $$scriptdir/tools/sh/env.sh; \
-    . $$scriptdir/tools/ci/parts/install.sh
+		. $$scriptdir/tools/ci/parts/install.sh
 
 build_$d:
 	@\
 		. ./tools/sh/init.sh; \
 		. $$scriptdir/tools/sh/env.sh; \
-    . $$scriptdir/tools/ci/parts/build.sh
+		. $$scriptdir/tools/ci/parts/build.sh
 
 check-env:
 	@\
 		. ./tools/sh/init.sh; \
 		. $$scriptdir/tools/sh/env.sh; \
-    . $$scriptdir/tools/ci/check-env.sh
+		. $$scriptdir/tools/ci/check-env.sh
 
 check:
 	@\
 		. ./tools/sh/init.sh; \
 		. $$scriptdir/tools/sh/env.sh; \
-    . $$scriptdir/tools/ci/parts/check.sh
+		. $$scriptdir/tools/ci/parts/check.sh
 
 
-# check/list build envs for job
+# check/list build envs for job(s)
+ci-list: ENV := development
 ci-list:
 	@\
 		scriptdir="$$(pwd -P)"; \
-		. ./tools/sh/list.sh $$(ENV)
+		. ./tools/sh/list.sh $(ENV)
 
-# run job
+# run job(s)
+ci-test: ENV := development
 ci-test:
 	@\
 		scriptdir="$$(pwd -P)"; \
-		. ./tools/sh/run.sh $$(ENV)
+		. ./tools/sh/run.sh $(ENV)
 
 

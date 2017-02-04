@@ -12,4 +12,5 @@ test -n "$RUN_INIT" || RUN_INIT=$(
 . $RUN_INIT ||
   error "run env init for '$1'" 1
 
+note "Entry"
 

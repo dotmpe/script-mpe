@@ -40,6 +40,16 @@ req_vars ENV || export ENV=development
 req_vars Build_Deps_Default_Paths || export Build_Deps_Default_Paths=1
 req_vars sudo || export sudo=sudo
 
+req_vars TEST_FEATURES || export TEST_FEATURES=
+req_vars TEST_COMPONENTS || export TEST_COMPONENTS=
+  
+req_vars APT_PACKAGES || export APT_PACKAGES=
+
+#    	nodejs npm \
+#      	python-dev \
+#        realpath uuid-runtime moreutils curl php5-cli
+
+
 ### Env of build job parameterisation
 
 

@@ -33,7 +33,7 @@ do
         . ./tools/ci/test.sh
       ;;
 
-    dev ) main_debug
+    dev* ) main_debug
 
         note "Pd version:"
         # FIXME: pd alias
