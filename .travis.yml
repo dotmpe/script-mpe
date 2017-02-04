@@ -45,7 +45,7 @@ env:
     - TRAVIS_SKIP=1
     - TEST_ENV=travis
     - UCONFDIR=$HOME/etc
-    - PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
+    - PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
     - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
     - TEST_RESULTS=shippable/testresults/test.tap
     - Build_Deps_Default_Paths=1

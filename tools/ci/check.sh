@@ -29,10 +29,11 @@ composer --version
 behat --version
 bats --version
 realpath --version
-basher --version
+basher version
 
-~/.basher/bin/tap-to-junit-xml --version
-tap-to-junit-xml --version
+cpan install XML::Generator
+~/.basher/bin/tap-to-junit-xml --help
+tap-to-junit-xml --help
 
 # Local commands should be on PATH and working OK
 note "Box:" && box version && box -V
