@@ -10,3 +10,4 @@ sqlalchemy
 docutils
 xattr
 pbPlist
+six
