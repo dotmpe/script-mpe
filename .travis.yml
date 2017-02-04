@@ -1,3 +1,4 @@
+language: bash
 #language: python
 #
 #python:
@@ -18,6 +19,8 @@ addons:
       - moreutils
       - curl
       - php5-cli
+      - posh
+      - dash
 # not allowed:
 # - rhash
 # - pytz
@@ -32,12 +35,18 @@ before_script:
   - . ./tools/ci/check.sh
 
 script:
-  - ./tools/ci/build.sh
+  - $TEST_SHELL ./tools/ci/build.sh
 
+matrix:
+  include:
+    - env: TEST_SHELL=posh
+    - env: TEST_SHELL=dash
+    - env: TEST_SHELL=bash
+    - env: TEST_SHELL=sh
 env:
   matrix:
-    - ENV=noop
-    - ENV=dev
+    #- ENV=noop
+    #- ENV=dev
     - ENV=testing
     # TODO: - ENV=production
   global:

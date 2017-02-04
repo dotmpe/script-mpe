@@ -1278,7 +1278,6 @@ pd_load()
   sys_load
   str_load
 
-
   test -n "$pd" || pd=.projects.yaml
 
   test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR
@@ -1304,7 +1303,10 @@ pd_load()
 
   test -n "$pd_session_id" || pd_session_id=$(get_uuid)
 
+  SCR_SYS_SH=bash-sh 
+  
   # Selective per-subcmd init
+  info "Loading '$subcmd': $(try_value "${subcmd}" load | sed 's/./&\ /g')"
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
 
@@ -1374,8 +1376,8 @@ pd_load()
 
         test -n "$pd_root" && {
           # expect Pd Context; setup IO paths (req. y)
-          req_vars pd pd_cid pd_realpath pd_root \
-            || error "Projectdoc context expected" 1
+          req_vars pd pd_cid pd_realpath pd_root || error \
+            "Projectdoc context expected ($pd; $pd_cid; $pd_realpath; $pd_root)" 1
 
           io_id=-${pd_cid}-${subcmd}-${pd_session_id}
         } || {

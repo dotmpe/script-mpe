@@ -24,7 +24,10 @@ note "Pre-flight check.."
 
 # Basicly if these don't run dont bother testing/building/publishing/...:
 
-# External commands
+bash --version
+dash --version
+posh --version
+
 composer --version
 behat --version
 bats --version
