@@ -32,7 +32,7 @@ before_script:
   - . ./tools/ci/check.sh
 
 script:
-  - . ./tools/ci/build.sh
+  - ./tools/ci/build.sh
 
 env:
   matrix:
