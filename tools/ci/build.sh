@@ -40,7 +40,7 @@ do
         (
           pd version || noop
           projectdir.sh version || noop
-        #  ./projectdir.sh version || noop
+          ./projectdir.sh version || noop
         )
         #note "Pd help:"
         # FIXME: "Something wrong with pd/std__help"
@@ -55,7 +55,7 @@ do
         note "Htd script:"
         (
           htd script
-        ) && stderr ok "Htd script" || noop
+        ) && note "ok" || noop
 
         note "Pd/Make test:"
         #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
