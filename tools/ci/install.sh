@@ -10,15 +10,11 @@ note "entry-point for CI install phase"
 
 test "$(whoami)" = "travis" || {
   apt-get update &&
-  apt-get install php5 python-dev
+  apt-get install python-dev realpath uuid-runtime moreutils curl php5-cli
 }
 
-#test "$SHIPPABLE" = "true" || {
-#  apt-get remove python-six
-#}
 ./install-dependencies.sh pip
 pip install -U six
-#@1.10.0
 
 pip install packaging appdirs
 pip install --upgrade --user -r requirements.txt

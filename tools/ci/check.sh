@@ -29,6 +29,9 @@ composer --version
 behat --version
 bats --version
 
+realpath
+realpath "$(pwd)"
+
 # Local commands should be on PATH and working OK
 box version && box -V
 box help && box -h && box -h stat
