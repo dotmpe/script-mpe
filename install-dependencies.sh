@@ -254,7 +254,7 @@ main_entry()
   echo "OK. All pre-requisites for '$1' checked"
 }
 
-test "$(basename $0)" = "install-dependencies.sh" && {
+test "$(basename "$0")" = "install-dependencies.sh" && {
   test -n "$1" || set -- all
   while test -n "$1"
   do

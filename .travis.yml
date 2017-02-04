@@ -36,7 +36,6 @@ before_script:
 
 script:
   - . ./tools/ci/build.sh
-# FIXME:  - . ./tools/ci/test.sh
 
 env:
   global:

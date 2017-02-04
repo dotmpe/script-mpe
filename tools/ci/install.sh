@@ -27,5 +27,5 @@ npm install parse-torrent lodash
 
 pip install --user nose-parameterized
 
-htd install json-spec
+# FIXME: htd install json-spec
 
