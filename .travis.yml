@@ -26,9 +26,6 @@ before_install:
   - . ./tools/ci/init.sh
 
 install:
-  - apt-cache search six
-  - apt-get remove python-six
-  - pip install packaging appdirs
   - test "$(whoami)" = "travis" || {
       apt-get update &&
       apt-get install python-dev ; }
