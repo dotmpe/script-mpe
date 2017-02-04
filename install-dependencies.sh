@@ -187,7 +187,7 @@ main_entry()
 {
   test -n "$1" || set -- all
 
-  case "$1" in all|project|git )
+  case "$1" in all|project|git|pip )
       git --version >/dev/null || {
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
       which pip >/dev/null || {
