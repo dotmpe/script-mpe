@@ -33,7 +33,7 @@ basher help
 
 trueish "$SHIPPABLE" && {
   perl ~/.basher/cellar/bin/tap-to-junit-xml --help || test $? -eq 1
-  perl tap-to-junit-xml --help || test $? -eq 1
+  perl $(which tap-to-junit-xml) --help || test $? -eq 1
 }
 
 # Local commands should be on PATH and working OK

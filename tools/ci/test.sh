@@ -102,7 +102,7 @@ done
 
 
 test "$SHIPPABLE" != "true" ||
-  perl tap-to-junit-xml --input $TEST_RESULTS \
+  perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
     --output $(dirname $TEST_RESULTS)/$(basename $TEST_RESULTS .tap).xml
 
 
