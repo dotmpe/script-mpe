@@ -45,6 +45,7 @@ env:
     - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
       #export PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/site-packages
       #export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
+    - TEST_RESULTS=shippable/testresults/test.tap
     - Build_Deps_Default_Paths=1
   matrix:
     - ENV=noop

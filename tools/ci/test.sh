@@ -37,13 +37,13 @@ run_spec()
   ( bats --tap test/$spec-spec.bats || R=$? ) | sed 's/^/    /g' > $tmp 2>&1
   test $R -eq 0 && {
     echo "ok $I $spec "
-    echo "ok $I $spec " >> $rs
+    echo "ok $I $spec " >> $TEST_RESULTS
   } || {
     echo "not ok $I $spec (returned $R)"
-    echo "not ok $I $spec (returned $R)" >> $rs
+    echo "not ok $I $spec (returned $R)" >> $TEST_RESULTS
     echo $spec >> $failed
   }
-  cat $tmp >> $rs
+  cat $tmp >> $TEST_RESULTS
 }
 
 
@@ -79,11 +79,11 @@ test -n "$Build_Deps_Default_Paths" || {
 
 
 tmp=/tmp/test-results.tap
-rs=build/test-results.tap
+test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results.tap
 failed=/tmp/failed
 
 I=1
-echo "1..24" > $rs
+echo "1..24" > $TEST_RESULTS
 
 # start with essential tests
 for spec in helper util-lib str std os match vc main box-lib box-cmd box
@@ -108,6 +108,8 @@ test -e "$failed" && {
   exit 1
 }
 
+tap-to-junit-xml $TEST_RESULTS $(dirname $TEST_RESULTS)/$(basename $TEST_RESULTS .tap).xml
+
 # FIXME: test everything eventually. But for now only require specific specs
 # above.
 test_shell || {
@@ -115,5 +117,4 @@ test_shell || {
 }
 
 test_features
-
 

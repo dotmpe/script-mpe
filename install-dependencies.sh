@@ -243,6 +243,8 @@ main_entry()
         || install_composer || return $?
     ;; esac
 
+  basher install jmason/tap-to-junit-xml
+
   echo "OK. All pre-requisites for '$1' checked"
 }
 
