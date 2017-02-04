@@ -119,5 +119,10 @@ test_shell || {
   warn "Complete test set failed"
 }
 
+test "$SHIPPABLE" != "true" || {
+  perl $(which tap-to-junit-xml) --input ./build/bats-test-results.tap \
+    --output shippable/testresults/complete-suite.xml
+}
+
 test_features
 
