@@ -248,8 +248,6 @@ main_entry()
   case "$1" in all|basher|test)
       test -d ~/.basher ||
         git clone https://github.com/basherpm/basher.git ~/.basher/
-      test -x "$(which tap-to-junit-xml)" ||
-        basher install jmason/tap-to-junit-xml
     ;; esac
 
 
