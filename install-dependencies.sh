@@ -81,7 +81,6 @@ install_docopt()
   git clone https://github.com/dotmpe/docopt-mpe.git $SRC_PREFIX/docopt-mpe
   ( cd $SRC_PREFIX/docopt-mpe \
     git checkout 0.6.x
-    $pref pip install -U appdirs packaging
     $pref python ./setup.py install $install_f
   )
 }
@@ -194,10 +193,10 @@ main_entry()
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
       which pip >/dev/null || {
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
-      pip install $pip_flags setuptools objectpath ruamel.yaml \
-        || exit $?
-      pip install --upgrade $pip_flags -r requirements.txt
-      pip install $pip_flags -r test-requirements.txt
+      $pref pip install -U $pip_flags appdirs packaging setuptools
+      $pref pip install -U $pip_flags objectpath ruamel.yaml
+      $pref pip install -U $pip_flags -r requirements.txt
+      $pref pip install -U $pip_flags -r test-requirements.txt
     ;; esac
 
   case "$1" in all|build|test|sh-test|bats )
