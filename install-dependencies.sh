@@ -25,10 +25,8 @@ test -n "$sudo" || sudo=
 test -z "$sudo" || pref="sudo $pref"
 test -z "$dry_run" || pref="echo $pref"
 
-test -w /usr/local || {
-  test -n "$sudo" || pip_flags=--user
-  test -n "$sudo" || py_setup_f="--user"
-}
+#test -n "$sudo" || pip_flags=--user
+#test -n "$sudo" || py_setup_f="--user"
 
 
 test -n "$SRC_PREFIX" || {

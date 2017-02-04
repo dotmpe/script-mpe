@@ -27,24 +27,25 @@ addons:
 # - pytz
 
 before_install:
-  - . ./tools/ci/init.sh
+  - . ./tools/sh/init.sh
+  - . ./tools/sh/env.sh
+  - . ./tools/ci/parts/init.sh
 
 install:
-  - . ./tools/ci/install.sh
+  - . ./tools/ci/parts/install.sh
 
 before_script:
-  - . ./tools/ci/check.sh
+  - . ./tools/ci/parts/check.sh
 
 script:
-  - $TEST_SHELL ./tools/ci/build.sh
+  - $TEST_SHELL ./tools/ci/parts/build.sh
 
 matrix:
   include:
-    #- env: ENV=testing TEST_SHELL=posh
-    #- env: ENV=testing TEST_SHELL=dash
-    #- env: ENV=testing TEST_SHELL=bash
-    #- env: ENV=testing TEST_SHELL=sh
-    - env: ENV=noop TEST_SHELL=sh
+    #- env: TEST_ENV=testing TEST_SHELL=posh
+    #- env: TEST_ENV=testing TEST_SHELL=dash
+    #- env: TEST_ENV=testing TEST_SHELL=bash
+    - env: TEST_ENV=testing TEST_SHELL=sh
 env:
   matrix:
     #- ENV=noop
@@ -52,7 +53,9 @@ env:
     #- ENV=testing
     # TODO: - ENV=production
   global:
+    - ENV=
     - CS=dark
+    - sudo=
     - TRAVIS_SKIP=1
     - TEST_ENV=travis
     - UCONFDIR=$HOME/etc
