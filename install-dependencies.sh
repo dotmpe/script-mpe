@@ -243,7 +243,11 @@ main_entry()
         || install_composer || return $?
     ;; esac
 
-  basher install jmason/tap-to-junit-xml
+  test -d ~/.basher ||
+    git clone git@github.com:basherpm/basher.git ~/.basher/
+
+  test -x "$(which tap-to-junit-xml)" ||
+    basher install jmason/tap-to-junit-xml
 
   echo "OK. All pre-requisites for '$1' checked"
 }
