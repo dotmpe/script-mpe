@@ -29,7 +29,7 @@ composer --version
 behat --version
 bats --version
 
-realpath
+realpath --version
 realpath "$(pwd)"
 
 # Local commands should be on PATH and working OK
