@@ -108,7 +108,8 @@ test -e "$failed" && {
   exit 1
 }
 
-tap-to-junit-xml $TEST_RESULTS $(dirname $TEST_RESULTS)/$(basename $TEST_RESULTS .tap).xml
+test "$SHIPPABLE" != "true" ||
+  tap-to-junit-xml $TEST_RESULTS $(dirname $TEST_RESULTS)/$(basename $TEST_RESULTS .tap).xml
 
 # FIXME: test everything eventually. But for now only require specific specs
 # above.
