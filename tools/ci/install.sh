@@ -13,18 +13,9 @@ test "$(whoami)" = "travis" || {
   apt-get install python-dev realpath uuid-runtime moreutils curl php5-cli
 }
 
-./install-dependencies.sh pip
-pip install -U six
-
-pip install packaging appdirs
-pip install --upgrade --user -r requirements.txt
-pip install --upgrade --user -r test-requirements.txt
-
-npm install parse-torrent lodash
-
 ./install-dependencies.sh all
 
-pip install --user nose-parameterized
+npm install parse-torrent lodash
 
 # FIXME: htd install json-spec
 

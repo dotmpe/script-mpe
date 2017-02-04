@@ -192,9 +192,10 @@ main_entry()
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
       which pip >/dev/null || {
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
-      pip install --user setuptools objectpath ruamel.yaml \
+      pip install $pip_flags setuptools objectpath ruamel.yaml \
         || exit $?
-      pip install -r test-requirements.txt
+      pip install --upgrade $pip_flags -r requirements.txt
+      pip install $pip_flags -r test-requirements.txt
     ;; esac
 
   case "$1" in all|build|test|sh-test|bats )
