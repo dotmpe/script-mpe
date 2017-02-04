@@ -26,7 +26,7 @@ before_install:
   - . ./tools/ci/init.sh
 
 install:
-  - pip install packaging
+  - pip install packaging appdirs
   - test "$(whoami)" = "travis" || {
       apt-get update &&
       apt-get install python-dev ; }
