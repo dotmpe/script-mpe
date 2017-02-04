@@ -26,6 +26,8 @@ before_install:
   - . ./tools/ci/init.sh
 
 install:
+  - apt-cache search six
+  - apt-get uninstall six
   - pip install packaging appdirs
   - test "$(whoami)" = "travis" || {
       apt-get update &&
