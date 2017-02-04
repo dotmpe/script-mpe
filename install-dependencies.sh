@@ -244,7 +244,7 @@ main_entry()
     ;; esac
 
   test -d ~/.basher ||
-    git clone git@github.com:basherpm/basher.git ~/.basher/
+    git clone https://github.com/basherpm/basher.git ~/.basher/
 
   test -x "$(which tap-to-junit-xml)" ||
     basher install jmason/tap-to-junit-xml
