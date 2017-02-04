@@ -18,7 +18,8 @@ init()
   }
   lib=$scriptdir
 
-  . $lib/main.lib.sh
+  . $lib/main.lib.sh load-ext
+  lib_load sys str std
   main_init
 
   test -n "$TMPDIR" || error TMPDIR 1
@@ -31,6 +32,8 @@ init()
 
   ## XXX does this overwrite bats load?
   #. main.init.sh
+
+  export verbosity=
 }
 
 

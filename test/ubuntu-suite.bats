@@ -5,7 +5,7 @@
 
   cd tools/ci/vbox
 
-  vagrant ssh ubuntu -c whoami || skip "Ubuntu VM missing"
+  vagrant ssh ubuntu -c whoami || skip "Ubuntu VM missing (cd tools/ci/vbox && vagrant up)"
 
   # FIXME: helper needs env. should provision tools/ci/vbox for this
   for name in helper std str main util-lib meta sh vc box box-lib

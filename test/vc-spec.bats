@@ -6,6 +6,11 @@ base=vc.sh
 init
 
 
+setup()
+{
+  SCR_SYS_SH=bash-sh
+}
+
 @test "$bin no arguments no-op" {
   run $bin
   test $status -eq 0

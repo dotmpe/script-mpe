@@ -53,7 +53,7 @@ tasks_init()
   . $scriptdir/box.init.sh
   box_run_sh_test
   #. $scriptdir/htd.lib.sh
-  . $scriptdir/main.lib.sh
+  . $scriptdir/main.lib.sh load-ext
   . $scriptdir/main.init.sh
   . $scriptdir/meta.lib.sh
   . $scriptdir/box.lib.sh

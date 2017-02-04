@@ -82,7 +82,7 @@ esop_init()
   export SCRIPTPATH=$scriptdir
   . $scriptdir/util.sh
   util_init
-  . $scriptdir/main.lib.sh
+  . $scriptdir/main.lib.sh load-ext
   . $scriptdir/std.lib.sh
   . $scriptdir/str.lib.sh
   . $scriptdir/util.sh

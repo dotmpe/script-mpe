@@ -15,7 +15,7 @@ source $lib/str.lib.sh
 @test "${bin}" "No arguments: default action is ..." {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 1
-  fnmatch "box-instance*No command given*" "${lines[*]}"
+  fnmatch "*box-instance*No command given*" "${lines[*]}"
 
   test -n "$SHELL"
   run $SHELL "$BATS_TEST_DESCRIPTION"
@@ -24,7 +24,7 @@ source $lib/str.lib.sh
 
   run sh "$BATS_TEST_DESCRIPTION"
   test ${status} -eq 1
-  fnmatch "box-instance*No command given*" "${lines[*]}"
+  fnmatch "*box-instance*No command given*" "${lines[*]}"
 
   run bash "$BATS_TEST_DESCRIPTION"
   test ${status} -eq 5

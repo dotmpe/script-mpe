@@ -1,6 +1,6 @@
 #!/bin/sh
 box__source=$_
-# Box: create namespaced script commands 
+# Box: create namespaced script commands
 
 # Id: script-mpe/0.0.3-dev box.sh
 
@@ -466,7 +466,7 @@ box_init()
   . $scriptdir/str.lib.sh
   . $scriptdir/util.sh
   box_run_sh_test
-  . $scriptdir/main.lib.sh
+  . $scriptdir/main.lib.sh load-ext
   . $scriptdir/main.init.sh
   # -- box box init sentinel --
 }

@@ -14,7 +14,7 @@ BOX_INIT=1
 
 @test "$lib/main incr x (amount): increments var x, output is clean" {
 
-  var_isset x && test -z "Unexpected x= var in env" || noop
+  var_isset x && fail "Unexpected 'x' var in env (x=$x)" || noop
 
   incr x 3
   test $? -eq 0
@@ -32,7 +32,7 @@ BOX_INIT=1
 
 @test "$lib/main incr-c: increments var c, output is clean" {
 
-  var_isset c && test -z "Unexpected c= var in env" || noop
+  var_isset c && fail "Unecpected 'c' var in env (c=$c)" || noop
 
   incr_c
   test $? -eq 0
@@ -143,7 +143,9 @@ BOX_INIT=1
 
 @test "$lib/main get-cmd-func-name sets local ${1}_func from internal vars" {
 
-  var_isset test_name && test -z "Unexpected test_name= var in env" || noop
+  var_isset test_name && 
+    fail "Unexpected test_name= var in env ('$test_name')" ||
+    noop
   check_skipped_envs || TODO "envs $envs: implement for env"
 }
 

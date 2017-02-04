@@ -2,13 +2,8 @@
 
 set -e
 
+
 # Main: CLI helpers; init/run func as subcmd
-
-
-main_load()
-{
-  lib_load sys str std
-}
 
 
 # Count arguments consumed
@@ -510,9 +505,12 @@ main_init()
   stdio_type 1 $$
   stdio_type 2 $$
 
+  #stderr info "Verbosity $verbosity"
   var_isset verbosity || verbosity=6
 
   #test -n "$scsep" || scsep=__
+
+  return 0
 }
 
 box_src_lib()
@@ -718,6 +716,5 @@ stat_key()
   mkvid "$(pwd)"
   export $1_key="$hnid:${base}-${subcmd}:$vid"
 }
-
 
 

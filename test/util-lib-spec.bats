@@ -120,27 +120,83 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
 # util / Var Isset
 
-@test "$lib/util var-isset detects vars correctly if empty, wether local or not" {
+@test "$lib/util var-isset detects vars correctly even if empty" {
 
-    foo_bar=
-    run var_isset foo_bar || test
+  ( 
+    env | grep -v '^[A-Z0-9_]*=' | grep '\<foo_bar='
+  ) && fail "unexpected" || echo ""
+  var_isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
 
-    local foo_bar_baz=
-    run var_isset foo_bar_baz || test
+  run var_isset foo_bar
+  test $status -eq 1 || fail "2. Unexpected foo_bar set ($status)"
 
-    local r=0
-    unset foo_bar_baz
-    run var_isset foo_bar_baz && test || { r=$?; noop; }
-    test $r -eq 1
-    # .. && test || .. should be equiv. but.. sanity checking once in a while..
-    #test $status -eq 1
+  # FIXME: must bats always be running as Bash
+  test "$(basename $SHELL)" = "sh" || skip "Sh: $SHELL"
 
-    unset foo_bar
-    export foo_bar=
-    run var_isset foo_bar || test
+  foo_bar=
+  run var_isset foo_bar
+  test $status -eq 0 || fail "3. Expected foo_bar set ($status)"
+  unset foo_bar
+  run var_isset foo_bar
+  test $status -eq 1 || fail "4. Unexpected foo_bar set ($status)"
+}
 
-    unset foo_bar
-    run var_isset foo_bar && test || noop
+@test "$lib/util var-isset detects vars correctly even if empty (sh wrapper)" {
+
+  ./test.sh var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)" || echo
+
+  run ./test.sh var-isset foo_bar
+  test $status -eq 1 || fail "2. Unexpected foo_bar set ($status; pwd $(pwd); out ${lines[*]})"
+
+  run sh -c "foo_bar= ./test.sh var-isset foo_bar"
+  test $status -eq 0 || fail "3. Expected foo_bar set ($status; out ${lines[*]})"
+}
+
+
+@test "$lib/util var-isset detects vars correctly even if empty (bash wrapper)" {
+
+  local scriptdir="$(pwd)"
+  ./test.bash var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
+
+  run ./test.bash var-isset foo_bar
+  test $status -eq 1 || fail "2. Unexpected foo_bar set ($status; pwd $(pwd); out ${lines[*]})"
+  run bash -c "foo_bar= ./test.bash var-isset foo_bar"
+  test $status -eq 0 || fail "3. Expected foo_bar set ($status; out ${lines[*]})"
+}
+
+
+@test "$lib/util var-isset detects vars correctly even if empty, exported" {
+  var_isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
+  run var_isset foo_bar
+  test $status -eq 1 || fail "2. Unexpected foo_bar set ($status)"
+  export foo_bar=
+  run var_isset foo_bar
+  test $status -eq 0 || fail "3. Expected foo_bar set ($status)"
+  unset foo_bar
+  run var_isset foo_bar
+  test $status -eq 1 || fail "4. Unexpected foo_bar set ($status)"
+  export foo_bar=
+  run var_isset foo_bar
+  test $status -eq 0 || fail "5. Expected foo_bar set ($status)"
+  unset foo_bar
+  run var_isset foo_bar
+  test $status -eq 1 || fail "6. Unexpected foo_bar set ($status)"
+}
+
+@test "$lib/util var-isset detects vars correctly even if empty, local declaration" {
+
+  # FIXME: must bats always be running as Bash
+  test "$(basename $SHELL)" = "sh" || skip "Sh: $SHELL"
+
+  local foo_bar_baz=
+  run var_isset foo_bar_baz 
+  test $status -eq 0 || fail "Expected foo_bar_baz set ($status)"
+
+  unset foo_bar_baz
+  run var_isset foo_bar_baz
+  test $status -eq 1 || fail "Unexpected foo_bar_baz ($status)"
+
+  unset foo_bar
 }
 
 

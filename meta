@@ -88,7 +88,7 @@ meta__annex_update_video()
 {
   test -n "$1" || error "Expected path" 1
 
-  while test "$#" -gt 0
+  while test -n "$1"
   do
     meta__video_info "$1"
 
@@ -114,14 +114,14 @@ meta__main()
 
   case "$base" in $scriptname )
 
-      local subcmd_def=info \
-        subcmd_pref= subcmd_suf= \
-        subcmd_func_pref=${base}__ subcmd_func_suf=
+        local subcmd_def=info \
+          subcmd_pref= subcmd_suf= \
+          subcmd_func_pref=${base}__ subcmd_func_suf=
 
-      meta_lib
+        meta_lib
 
-      # Execute
-      run_subcmd "$@"
+        # Execute
+        run_subcmd "$@"
       ;;
 
   esac
@@ -165,5 +165,4 @@ meta_load()
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
   meta__main "$@"
 fi
-
 

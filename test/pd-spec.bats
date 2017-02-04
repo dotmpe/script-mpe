@@ -65,7 +65,7 @@ EOF
 @test "${bin} show" "" {
 
   run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
+  test $status -eq 0 || fail "1 Out($status): ${lines[*]}"
 
   test ${#lines[@]} -gt 25
   fnmatch "*repositories:*" "${lines[*]}"
@@ -123,7 +123,7 @@ cleanup_tmpd()
   } > .pd-check
 
   run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
+  test $status -eq 0 || fail "1 Out($status): ${lines[*]}"
   rm .pd-check
 
   test ${#lines[@]} -eq 2 \
@@ -149,7 +149,7 @@ cleanup_tmpd()
   diag "tmpd=$tmpd"
   
   run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
+  test $status -eq 0 || fail "1 Out($status): ${lines[*]}"
 
   test ${#lines[@]} -eq 1 \
     || fail "${#lines[@]} Out: ${lines[*]}"
