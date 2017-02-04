@@ -26,8 +26,10 @@ before_install:
   - . ./tools/ci/init.sh
 
 install:
-  - apt-get update
-  - apt-get install python-dev
+  - pip install packaging
+  - test "$(whoami)" = "travis" || {
+      apt-get update &&
+      apt-get install python -dev ; }
   - . ./tools/ci/install.sh
 
 before_script:
