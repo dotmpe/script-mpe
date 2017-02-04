@@ -26,6 +26,7 @@ before_install:
   - . ./tools/ci/init.sh
 
 install:
+  - apt-get update
   - apt-get install python-dev
   - . ./tools/ci/install.sh
 
