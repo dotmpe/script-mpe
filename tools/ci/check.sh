@@ -31,8 +31,10 @@ bats --version
 realpath --version
 basher help
 
-~/.basher/cellar/bin/tap-to-junit-xml --help || printf ""
-tap-to-junit-xml --help || printf ""
+trueish "$SHIPPABLE" && {
+  ~/.basher/cellar/bin/tap-to-junit-xml --help || printf ""
+  tap-to-junit-xml --help || printf ""
+}
 
 # Local commands should be on PATH and working OK
 note "Box"
