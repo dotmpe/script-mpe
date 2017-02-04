@@ -23,12 +23,14 @@ addons:
 # - pytz
 
 before_install:
+  - pwd && pwd -P
+  - whoami
   - . ./tools/ci/init.sh
 
 install:
   - test "$(whoami)" = "travis" || {
       apt-get update &&
-      apt-get install python-dev ; }
+      apt-get install php python-dev ; }
   - . ./tools/ci/install.sh
 
 before_script:
