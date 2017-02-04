@@ -55,7 +55,7 @@ installed()
         done
 
         count=$(statusdir.sh get htd:installed:$1:$2)
-        test test -n "$count" -a 0 -ne $count || return 1
+        test -n "$count" -a 0 -ne $count || return 1
 
         return 0;
       ;;
