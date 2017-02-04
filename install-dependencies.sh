@@ -245,11 +245,18 @@ main_entry()
         || install_composer || return $?
     ;; esac
 
-  case "$1" in all|basher|test)
+  case "$1" in all|basher|test )
       test -d ~/.basher ||
         git clone https://github.com/basherpm/basher.git ~/.basher/
     ;; esac
 
+  case "$1" in travis|test )
+      test -x "$(which gem)" ||
+        error "ruby/gemfiles required" 1
+      ruby -v
+      test -x "$(which travis)" ||
+    	gem install travis -v 1.8.6 --no-rdoc --no-ri
+    ;; esac
 
   echo "OK. All pre-requisites for '$1' checked"
 }
