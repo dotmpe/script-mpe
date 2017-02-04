@@ -25,8 +25,8 @@ note "Pre-flight check.."
 # Basicly if these don't run dont bother testing/building/publishing/...:
 
 bash --version
-dash --version
-posh --version
+test -x "$(which dash)"
+test -x "$(which posh)"
 
 composer --version
 behat --version

@@ -26,6 +26,7 @@ endif
 #
 #      ------------ -- 
 
+
 ifeq ($(shell hostname -s),simza)
 TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d 
 #test_usr_$d 
@@ -162,6 +163,7 @@ test_schema_$d:
 	@yaml2json schema/base.yml > schema/base.json
 	@$(ll) OK $@ "now validating schema/base..."
 	@jsonschema schema/base.json
+
 
 ###    SQL Alchemy repository schema control
 #
