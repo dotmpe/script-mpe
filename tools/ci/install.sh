@@ -18,7 +18,9 @@ test "$(whoami)" = "travis" || {
 test "$(whoami)" = "travis" || {
   trueish "$SHIPPABLE" && {
     apt-get install perl
-    cpan install XML::Generator
+    # Retry..
+    cpan install XML::Generator ||
+      cpan install XML::Generator
   }
 }
 
