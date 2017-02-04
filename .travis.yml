@@ -27,7 +27,7 @@ before_install:
 
 install:
   - apt-cache search six
-  - apt-get uninstall six
+  - apt-get remove python-six
   - pip install packaging appdirs
   - test "$(whoami)" = "travis" || {
       apt-get update &&
