@@ -29,7 +29,7 @@ install:
   - pip install packaging
   - test "$(whoami)" = "travis" || {
       apt-get update &&
-      apt-get install python -dev ; }
+      apt-get install python-dev ; }
   - . ./tools/ci/install.sh
 
 before_script:
