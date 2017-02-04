@@ -33,23 +33,23 @@ realpath --version
 realpath "$(pwd)"
 
 # Local commands should be on PATH and working OK
-box version && box -V
-box help && box -h && box -h stat
-htd version && htd -V
-htd help && htd -h && htd -h help
-vc.sh version
-vc.sh help
-radical.py --version
-radical.py --help
-json.py version && jsotk.py -V
-jsotk.py --help
-sh_switch.py -V
-sh_switch.py --help
-match.sh help && match.sh -h && match.sh -h help
-matchbox.py help
-libcmd_stacked.py -h
-radical.py --help && radical.py -vv -h
-basename-reg --help
+note "Box:" && box version && box -V
+note "Box:" && box help && box -h && box -h stat
+note "Htd:" && htd version && htd -V
+note "Htd:" && htd help && htd -h && htd -h help
+note "Vc:" && vc.sh version
+note "Vc:" && vc.sh help
+note "Rad:" && radical.py --version
+note "Rad:" && radical.py --help
+note "Rad:" && radical.py --help && radical.py -vv -h
+note "jsotk.py:" && jsotk.py version && jsotk.py -V
+note "jsotk.py:" && jsotk.py --help
+note "sh-switch" && sh_switch.py -V
+note "sh-switch" && sh_switch.py --help
+note "match" && match.sh help && match.sh -h && match.sh -h help
+note "matchbox" && matchbox.py help
+note "libcmd-stacked" && libcmd_stacked.py -h
+note "basename-reg" && basename-reg --help
 
 # Local scripts should be the same, but anyway try a few..
 ./box version
