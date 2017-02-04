@@ -39,10 +39,11 @@ script:
 
 matrix:
   include:
-    - env: ENV=testing TEST_SHELL=posh
-    - env: ENV=testing TEST_SHELL=dash
-    - env: ENV=testing TEST_SHELL=bash
-    - env: ENV=testing TEST_SHELL=sh
+    #- env: ENV=testing TEST_SHELL=posh
+    #- env: ENV=testing TEST_SHELL=dash
+    #- env: ENV=testing TEST_SHELL=bash
+    #- env: ENV=testing TEST_SHELL=sh
+    - env: ENV=noop TEST_SHELL=sh
 env:
   matrix:
     #- ENV=noop

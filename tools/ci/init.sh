@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/dash
 
 . ./tools/sh/env.sh
 . ./util.sh
@@ -18,7 +18,10 @@ env | grep -i 'shippable\|travis\|ci'
 
 mkdir -vp ~/.local/{bin,lib,share}
 mkdir -vp shippable/{testresults,codecoverage}
+test -d shippable/codecoverage
 
 test -e $HOME/.basename-reg.yaml ||
   touch $HOME/.basename-reg.yaml
+
+test "$ENV" != "noop" || travis cancel $TRAVIS_BUILD_NUMBER
 
