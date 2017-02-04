@@ -12,21 +12,23 @@ TRGT += build_$d
 
 init:
 	@\
+		scriptname=tools:init; \
 		. ./tools/sh/init.sh; \
 		. $$scriptdir/tools/sh/env.sh; \
-    . $$scriptdir/tools/ci/init.sh
+    . $$scriptdir/tools/ci/parts/init.sh
 
 install_$d:
 	@\
+		scriptname=tools:install; \
 		. ./tools/sh/init.sh; \
 		. $$scriptdir/tools/sh/env.sh; \
-    . $$scriptdir/tools/ci/install.sh
+    . $$scriptdir/tools/ci/parts/install.sh
 
 build_$d:
 	@\
 		. ./tools/sh/init.sh; \
 		. $$scriptdir/tools/sh/env.sh; \
-    . $$scriptdir/tools/ci/build.sh
+    . $$scriptdir/tools/ci/parts/build.sh
 
 check-env:
 	@\
@@ -38,7 +40,7 @@ check:
 	@\
 		. ./tools/sh/init.sh; \
 		. $$scriptdir/tools/sh/env.sh; \
-    . $$scriptdir/tools/ci/check.sh
+    . $$scriptdir/tools/ci/parts/check.sh
 
 
 # check/list build envs for job

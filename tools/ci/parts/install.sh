@@ -2,15 +2,15 @@
 
 set -e
 
-. ./tools/sh/env.sh
-. ./util.sh
-. ./main.lib.sh
+note "Entry for CI install phase"
 
-note "entry-point for CI install phase"
 
 test "$(whoami)" = "travis" || {
-  apt-get update &&
-  apt-get install python-dev realpath uuid-runtime moreutils curl php5-cli
+
+  test -x "$(which apt-get)" && {
+    apt-get update &&
+    apt-get install python-dev realpath uuid-runtime moreutils curl php5-cli
+  }
 }
 
 ./install-dependencies.sh all
@@ -28,4 +28,6 @@ test "$(whoami)" = "travis" || {
 npm install parse-torrent lodash
 
 # FIXME: htd install json-spec
+
+note "Done"
 

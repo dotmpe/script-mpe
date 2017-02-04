@@ -27,6 +27,7 @@ addons:
 
 before_install:
   - . ./tools/sh/init.sh
+  - . ./tools/sh/env.sh
   - . ./tools/ci/parts/init.sh
 
 install:
@@ -51,7 +52,9 @@ env:
     #- ENV=testing
     # TODO: - ENV=production
   global:
+    - ENV=
     - CS=dark
+    - sudo=
     - TRAVIS_SKIP=1
     - TEST_ENV=travis
     - UCONFDIR=$HOME/etc

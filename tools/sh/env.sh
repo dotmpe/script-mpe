@@ -27,23 +27,18 @@ case "$shopts"
 esac
 
 
-req_var scriptdir
-req_var SCRIPTPATH
-req_var LIB
+req_vars scriptdir || error "scriptdir = $scriptdir" 1
+req_vars SCRIPTPATH || error "SCRIPTPATH" 1
+req_vars LIB || error "LIB" 1
 
 
 ### Start of build job parameterisation
 
-req_var DEBUG || DEBUG=
-req_var ENV || ENV=development
+req_vars DEBUG || export DEBUG=
+req_vars ENV || export ENV=development
 
-
-
-
-
-
-
-
+req_vars Build_Deps_Default_Paths || export Build_Deps_Default_Paths=1
+req_vars sudo || export sudo=sudo
 
 ### Env of build job parameterisation
 

@@ -2,7 +2,7 @@
 
 # Must be started from project root.
 # Import minimal setup and shell util functions.
-test -n "$scriptdir" || scriptdir="$(pwd -P)"
+test -n "$scriptdir" || export scriptdir="$(pwd -P)"
 
 # if not provided, auto-setup env
 # assuming execution starts in script dir (project root)
@@ -23,7 +23,6 @@ test -n "$SCRIPTPATH" || {
 
 # Now include script and run util_init to source other utils
 . $scriptdir/util.sh
-
 
 req_vars RUN_FLOW || RUN_FLOW=./tools/ci/flow.sh
 
