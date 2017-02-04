@@ -6,7 +6,7 @@
 # Combined dirname/basename to replace .ext
 basepath()
 {
-	echo "$(dirname $1)/$(basename $1 $2)$3"
+	echo "$(dirname "$1")/$(basename "$1" "$2")$3"
 }
 
 short()
@@ -23,7 +23,7 @@ basenames()
   test -e "$1" || fnmatch ".*" "$1" && { ext=$1; shift; }
   while test -n "$1"
   do
-    basename $1 $ext
+    basename "$1" "$ext"
     shift
   done
 }
@@ -171,7 +171,7 @@ go_to_directory()
   while true
   do
     test -e "$1" && break
-    go_to_before=$(basename $(pwd))/$go_to_before
+    go_to_before=$(basename "$(pwd)")/$go_to_before
     test "$(pwd)" = "/" && break
     cd ..
   done

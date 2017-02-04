@@ -476,7 +476,7 @@ __vc_status()
 
 			realgitdir="$(cd "$git"; pwd -P)"
 			rev="$(cd $realcwd; git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-			realgit="$(basename $realgitdir)"
+			realgit="$(basename "$realgitdir")"
 			sub="${realcwd##$realgit}"
 		}
 
@@ -534,7 +534,7 @@ __vc_screen ()
 		} || {
 			realgitdir="$(cd "$git"; pwd -P)"
 			rev="$(git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-			realgit="$(basename $realgitdir)"
+			realgit="$(basename "$realgitdir")"
 			sub="${realcwd##$realgit}"
 		}
 		echo $(basename "$realcwd") $(__vc_git_flags $git "[git:%s $rev]")
@@ -822,7 +822,7 @@ vc__gh() {
   test -n "$1" || error "Need repo name argument" 1
   str_match "$1" "[^/]*" && {
     repo=dotmpe/$1; prefix=$1; } || {
-    repo=$1; prefix=$(basename $1); }
+    repo=$1; prefix=$(basename "$1"); }
   shift 1
   test -n "$1" && prefix=$1/$prefix
   giturl=git@github.com:$repo.git
@@ -1250,7 +1250,7 @@ vc__regenerate()
   info "Adding other git-ignore files"
   for x in .gitignore-* $HOME/.gitignore*-global
   do
-    test "$(basename $x .regex)" = "$(basename $x)" || continue
+    test "$(basename "$x" .regex)" = "$(basename "$x")" || continue
     test -e $x || continue
     fnmatch "$x: text/*" "$(file --mime $x)" || continue
     echo "# Source: $x" >> $excludes

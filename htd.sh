@@ -174,7 +174,7 @@ htd_load()
         test -n "$package_id" && {
           note "Found package '$package_id'"
         } || {
-          package_id="$(basename $(realpath .))"
+          package_id="$(basename "$(realpath .)")"
           note "Using package ID '$package_id'"
         }
       ;;
@@ -539,8 +539,8 @@ htd__edit_main()
   locate_name ;
   [ -n "$fn" ] || error "expected $scriptname?" 1
   files="$files $fn \
-    $(dirname $fn)/$(basename $fn).lib.sh \
-    $(dirname $fn)/$(basename $fn).rst \
+    $(dirname $fn)/$(basename "$fn").lib.sh \
+    $(dirname $fn)/$(basename "$fn").rst \
     $(dirname $fn)/*.lib.sh"
   test "$EDITOR" = "vim" && {
     # Two vertical panes, with h-split in the right
@@ -1416,7 +1416,7 @@ htd__todotxt_edit()
 
     test -n "$ttxtm_fn" || error ttxtm_fn 12
 
-    ttxtm_done_fn=./$(dirname $ttxtm_fn)/$(basename $ttxtm_fn .ttxtm)-done.ttxtm
+    ttxtm_done_fn=./$(dirname $ttxtm_fn)/$(basename "$ttxtm_fn" .ttxtm)-done.ttxtm
   }
 
   for fn in $ttxtm_fn $ttxtm_done_fn
@@ -1556,7 +1556,7 @@ htd__build_todo_list()
   test -n "$2" || {
     test -s .app-id \
         && set -- "$1" "$(cat .app-id)" \
-        || set -- "$2" "$(basename $(pwd))"
+        || set -- "$2" "$(basename "$(pwd)")"
   }
 
   { for tag in FIXME TODO NOTE XXX # tasks:no-check
@@ -1813,7 +1813,7 @@ htd__git_init_remote()
 {
   test -n "$HTD_GIT_REMOTE" || error "No HTD_GIT_REMOTE" 1
   source_git_remote
-  [ -n "$1" ] && repo="$1" || repo="$(basename $(pwd))"
+  [ -n "$1" ] && repo="$1" || repo="$(basename "$(pwd)")"
   test -n "$repo" || error "Missing project ID" 1
 
   ssh_cmd="mkdir -v $remote_dir/$repo.git"
@@ -3415,7 +3415,7 @@ htd__getxl()
 {
   fnmatch '*.xml' $1 && set -- "$1" "$1"
   fnmatch '*.rst' $1 && {
-    test -n "$2" || set -- "$1" "$(setup_tmpd)/$(basename $1 .rst).xml"
+    test -n "$2" || set -- "$1" "$(setup_tmpd)/$(basename "$1" .rst).xml"
     $rst2xml $1 > "$2"
     echo $2
   }
@@ -4305,7 +4305,7 @@ htd__srv_list()
   do
     test -h $srv || continue
     target="$(readlink $srv)"
-    name="$(basename $srv -local)"
+    name="$(basename "$srv" -local)"
     depth=$(htd__path_depth "$target")
 
     case "$1" in
@@ -4411,7 +4411,7 @@ htd__ls_volumes()
         echo $volume/* | tr ' ' '\n' | while read vroot
         do
           test -n "$vroot" || continue
-          vdir=$(basename $vroot)
+          vdir=$(basename "$vroot")
           echo $SRVS lost+found | grep -q $vdir || {
             warn "Unkown volume dir $vdir" 1
           }
@@ -4558,7 +4558,7 @@ htd__munin_export()
 
   for name in $4/*/*.rrd
   do
-    basename $name .rrd
+    basename "$name" .rrd
     continue
     rrdtool xport --json \
             DEF:out1=$1:42:AVERAGE \
@@ -4919,7 +4919,7 @@ htd_edit_and_update()
 
 htd_main()
 {
-  local scriptname=htd base=$(basename $0 .sh) \
+  local scriptname=htd base=$(basename "$0" .sh) \
     scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
     subcmd= failed=
   

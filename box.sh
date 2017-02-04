@@ -432,8 +432,8 @@ box__log_demo()
 
 box_main()
 {
-  local scriptname=box base=$(basename $0 .sh) \
-    scriptdir="$(cd $(dirname $0); pwd -P)"
+  local scriptname=box base=$(basename "$0" .sh) \
+    scriptdir="$(cd $(dirname "$0"); pwd -P)"
 
   box_init || return 0
 
