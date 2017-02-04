@@ -23,5 +23,3 @@ test -d shippable/codecoverage
 test -e $HOME/.basename-reg.yaml ||
   touch $HOME/.basename-reg.yaml
 
-test "$ENV" != "noop" || travis cancel $TRAVIS_BUILD_NUMBER
-

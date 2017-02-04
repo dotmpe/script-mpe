@@ -5,13 +5,6 @@ shopts=$-
 set +x
 set -e
 
-# Must be started from project root.
-# Import minimal setup and shell util functions.
-test -n "$scriptdir" || scriptdir="$(pwd -P)"
-
-. $scriptdir/tools/sh/init.sh
-
-
 # Restore shell -e opt
 case "$shopts"
 
@@ -32,6 +25,28 @@ case "$shopts"
     ;;
 
 esac
+
+
+req_var scriptdir
+req_var SCRIPTPATH
+req_var LIB
+
+
+### Start of build job parameterisation
+
+req_var DEBUG || DEBUG=
+req_var ENV || ENV=development
+
+
+
+
+
+
+
+
+
+### Env of build job parameterisation
+
 
 # Restore shell -x opt
 case "$shopts" in

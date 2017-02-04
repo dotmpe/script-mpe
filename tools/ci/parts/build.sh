@@ -2,9 +2,10 @@
 
 set -e
 
+# Initialize env
+. $scriptdir/tools/sh/init.sh
 . ./tools/sh/env.sh
-. ./util.sh
-. ./main.lib.sh
+. $scriptdir/main.lib.sh
 
 note "entry-point for CI build phase"
 
