@@ -23,9 +23,6 @@ addons:
 # - pytz
 
 before_install:
-  - pwd && pwd -P
-  - whoami
-  - env | grep -i 'shippable\|travis\|ci'
   - . ./tools/ci/init.sh
 
 install:
