@@ -32,8 +32,8 @@ realpath --version
 basher help
 
 cpan install XML::Generator
-~/.basher/bin/tap-to-junit-xml --help
-tap-to-junit-xml --help
+~/.basher/cellar/bin/tap-to-junit-xml --help || printf ""
+tap-to-junit-xml --help || printf ""
 
 # Local commands should be on PATH and working OK
 note "Box"

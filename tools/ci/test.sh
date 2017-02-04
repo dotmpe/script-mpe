@@ -101,9 +101,9 @@ do
 done
 
 
-echo PATH=$PATH
 test "$SHIPPABLE" != "true" ||
-  tap-to-junit-xml $TEST_RESULTS $(dirname $TEST_RESULTS)/$(basename $TEST_RESULTS .tap).xml
+  tap-to-junit-xml --input $TEST_RESULTS \
+    --output $(dirname $TEST_RESULTS)/$(basename $TEST_RESULTS .tap).xml
 
 
 test -e "$failed" && {
