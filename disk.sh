@@ -390,10 +390,7 @@ disk_init()
   . $scriptdir/box.init.sh
   . $scriptdir/box.lib.sh
   box_run_sh_test
-  . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
-  #. $scriptdir/vc.sh load-ext
-  lib_load htd meta box date doc table disk remote match
+  lib_load main htd meta box date doc table disk remote match
   test -n "$verbosity" || verbosity=6
   # -- disk box init sentinel --
 }

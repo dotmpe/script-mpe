@@ -581,7 +581,6 @@ diskdoc_init()
   lib_load box main
   . $scriptdir/box.init.sh
   box_run_sh_test
-  . $scriptdir/main.init.sh
   #while test $# -gt 0
   #do
   #  case "$1" in

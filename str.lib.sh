@@ -170,6 +170,14 @@ expr_substr()
 # Set env for str.lib.sh
 str_load()
 {
+  case "$(uname)" in
+      Darwin )
+          expr=bash-substr ;;
+      Linux )
+          expr=sh-substr ;;
+      * )
+          error "Unable to init expr" 1;;
+  esac
 
   test -n "$ext_groupglob" || {
     test "$(echo {foo,bar}-{el,baz})" != "{foo,bar}-{el,baz}" \

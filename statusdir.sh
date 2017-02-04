@@ -279,7 +279,6 @@ statusdir__init()
   util_init
   . $scriptdir/box.init.sh
   box_run_sh_test
-  . $scriptdir/main.init.sh
   lib_load main box date
   # -- statusdir box init sentinel --
 }

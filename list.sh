@@ -237,7 +237,6 @@ lst_init()
   lib_load box main
   . $scriptdir/box.init.sh
   box_run_sh_test
-  . $scriptdir/main.init.sh
   # -- lst box init sentinel --
 }
 

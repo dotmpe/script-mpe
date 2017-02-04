@@ -108,7 +108,8 @@ test -e "$failed" && {
   exit 1
 }
 
-# TODO: test everything eventually. But for now only require specific specs
+# FIXME: test everything eventually. But for now only require specific specs
+# above.
 test_shell || {
   warn "Complete test set failed"
 }

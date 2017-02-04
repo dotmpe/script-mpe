@@ -96,7 +96,6 @@ rst_init()
   . $scriptdir/box.lib.sh
   box_run_sh_test
   . $scriptdir/main.lib.sh load-ext
-  . $scriptdir/main.init.sh
   # -- rst box init sentinel --
 }
 

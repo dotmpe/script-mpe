@@ -102,15 +102,7 @@ redmine_init()
   . $scriptdir/match.lib.sh
   . $scriptdir/box.init.sh
   box_run_sh_test
-  #. $scriptdir/htd.lib.sh
-  . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
-  . $scriptdir/meta.lib.sh
-  . $scriptdir/box.lib.sh
-  . $scriptdir/date.lib.sh
-  . $scriptdir/doc.lib.sh
-  . $scriptdir/table.lib.sh
-  lib_load remote
+  lib_load main meta box data doc table remote
   # -- redmine box init sentinel --
 }
 

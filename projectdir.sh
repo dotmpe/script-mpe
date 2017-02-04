@@ -1357,7 +1357,8 @@ pd_load()
     y )
         # look for Pd Yaml and set env: pd_prefix, pd_realpath, pd_root
         # including socket path, to check for running Bg metadata proc
-        test -n "$pd_root" || pd_finddoc $pd
+        req_vars pd
+        test -n "$pd_root" || pd_finddoc
       ;;
 
     f )
@@ -1500,7 +1501,6 @@ pd_init()
   . $scriptdir/box.init.sh
   lib_load box
   box_run_sh_test
-  . $scriptdir/main.init.sh
   # -- pd box init sentinel --
   test -n "$verbosity" && note "Verbosity at $verbosity" || verbosity=6
 }

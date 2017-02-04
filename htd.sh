@@ -4984,10 +4984,7 @@ htd_init()
   . $scriptdir/match.lib.sh
   . $scriptdir/box.init.sh
   box_run_sh_test
-  . $scriptdir/htd.lib.sh
-  . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
-  lib_load htd meta box date doc table disk remote ignores
+  lib_load htd main meta box date doc table disk remote ignores
   # -- htd box init sentinel --
 }
 

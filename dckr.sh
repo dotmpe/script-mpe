@@ -155,7 +155,7 @@ dckr__init()
   dckr_c && {
     note "Already running $dckr_name: $dckr_c"
   }
-  
+
   dckr_c -a && {
     dckr_start
   } || {
@@ -173,14 +173,14 @@ dckr__script()
     && source ./vars.sh script $@
 
   # args: 1: override dckr (image) name
-  dckr_name_argv 
+  dckr_name_argv
 
   test -n "$dckr_f" || dckr_f=-td
 
   dckr_c && {
     note "Already running $dckr_name: $dckr_c"
   }
-  
+
   dckr_c -a && {
     dckr_start
   } || {
@@ -219,7 +219,7 @@ dckr__register()
 {
   test -n "$UCONFDIR" || error "UCONFDIR" 1
 
-  test -n "$proj_dir" || proj_dir="$HOME/project/$1" 
+  test -n "$proj_dir" || proj_dir="$HOME/project/$1"
   test -d "$proj_dir" || error "no checkout $1" 1
 
   req_prog_meta "$1"
@@ -374,7 +374,7 @@ dckr__run_munin()
 {
   image_name=scalingo-munin-server
   dckr_name=${hostname}-munin-server
-  dckr_run 
+  dckr_run
 }
 
 
@@ -628,7 +628,7 @@ dckr__machine_ip_update()
       ;;
   esac
   grep -q '^'$docker_machine_ip'\ *'$docker_domain'$' /etc/hosts && {
-    note "IP for '$1' ($docker_domain) still '$docker_machine_ip'"  
+    note "IP for '$1' ($docker_domain) still '$docker_machine_ip'"
     return 0
   } || {
     sudo sed -i.bak 's/^[0-9\.]*\ \ *'$docker_domain'$/'$docker_machine_ip'   '$docker_domain'/' /etc/hosts \
@@ -644,7 +644,7 @@ dckr__machines_nfs()
   local updated=/tmp/dckr-machines-nfs-$(htd uuid)
   while test -n "$1"
   do
-    test "$(docker-machine status $1)" = "Running" || { 
+    test "$(docker-machine status $1)" = "Running" || {
       note "Cannot updated offline box '$1'"; shift; continue; }
     note "Updating NFS for '$1' ..."
     docker-machine-nfs "$1" \
@@ -693,7 +693,7 @@ dckr__machines()
     rm $updated
     warn "Updates found: $machines"
     # XXX: maybe better check with u-c before removing, not needed for now
-    # see also sudoers rules 
+    # see also sudoers rules
     test ! -e /etc/exports || sudo rm /etc/exports
     #test -e /etc/exports || sudo touch /etc/exports
   }
@@ -717,7 +717,7 @@ dckr__cleanup_all()
       docker rm -v $dckr_cs
     }
   }
-			
+
 	log "Scanning for untagged images..."
 	images="$( docker images --no-trunc | grep '<none>' | awk '{ print $3 }' )"
 	test -z "$images" || {
@@ -725,7 +725,7 @@ dckr__cleanup_all()
     read confirm
     trueish "$confirm" && {
       docker rmi $images
-    } || warn "Skipped rmi" 
+    } || warn "Skipped rmi"
   }
 
   log "Scanning for old volumes..."
@@ -825,11 +825,11 @@ dckr_c()
   test -n "$2" && {
     local name="$2" tag=
     test -z "$3" || name=$2:$3
-    dckr_c=$(${sudo}docker ps $ps_f --format='{{.ID}} {{.Image}}' | 
+    dckr_c=$(${sudo}docker ps $ps_f --format='{{.ID}} {{.Image}}' |
         grep '\ '$name'$' | cut -f1 -d' ')
   } || {
     req_vars dckr_name
-    dckr_c=$(${sudo}docker ps $ps_f --format='{{.ID}} {{.Names}}' | 
+    dckr_c=$(${sudo}docker ps $ps_f --format='{{.ID}} {{.Names}}' |
         grep '\ '$dckr_name'$' | cut -f1 -d' ')
   }
   test -n "$dckr_c" || return 1
@@ -1107,12 +1107,8 @@ dckr_init()
   . $scriptdir/util.sh
   util_init
   . $scriptdir/box.init.sh
-  . $scriptdir/box.lib.sh
+  lib_load main box projectdir
   box_run_sh_test
-  . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
-  . $scriptdir/util.sh
-  . $scriptdir/projectdir.lib.sh
 }
 
 dckr_lib()
