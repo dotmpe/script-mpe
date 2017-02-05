@@ -74,6 +74,9 @@ do case "$BUILD_STEP" in
         SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
 
         test "$SHIPPABLE" != "true" ||
+          which tap-to-junit-xml
+          echo $(which tap-to-junit-xml) --input $TEST_RESULTS \
+            --output $(basepath $TEST_RESULTS .tap .xml)
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
             --output $(basepath $TEST_RESULTS .tap .xml)
 
@@ -87,11 +90,15 @@ do case "$BUILD_STEP" in
 
         #test_features
 
-        test -e "$failed" && {
-          echo "Failed: $(echo $(cat $failed))"
-          rm $failed
+        test -z "$failed" -o ! -e "$failed" && {
+          r=0
+          test ! -s "$failed" || {
+            echo "Failed: $(echo $(cat $failed))"
+            rm $failed
+            r=1
+          }
           unset failed
-          exit 1
+          exit $r
         }
 
       ;;
