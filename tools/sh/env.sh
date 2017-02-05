@@ -109,7 +109,7 @@ req_vars INSTALL_DEPS || {
   export INSTALL_DEPS
 }
 req_vars APT_PACKAGES || export APT_PACKAGES="nodejs\
- python-dev\
+ perl python-dev\
  realpath uuid-runtime moreutils curl php5-cli"
 # not o shippable: npm
 
