@@ -1,9 +1,6 @@
 #!/bin/sh
 
-note "Entry for CI build phase"
-
-#test -n "$1" || set -- $BUILD_STEPS
-#while test -n "$1"; do case "$1" in
+note "Entry for CI build phase: '$BUILD_STEPS'"
 
 for BUILD_STEP in $BUILD_STEPS
 do case "$BUILD_STEP" in
@@ -75,7 +72,9 @@ do case "$BUILD_STEP" in
 
         test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-speqs.tap
         #SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
-        SUITE="$REQ_SPECS" test_shell > $TEST_RESULTS
+        (
+          SUITE="$REQ_SPECS" test_shell > $TEST_RESULTS
+        ) || noop
         wc -l $TEST_RESULTS
 
         test "$SHIPPABLE" != "true" || {
