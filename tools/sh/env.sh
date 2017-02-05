@@ -108,11 +108,9 @@ req_vars INSTALL_DEPS || {
   INSTALL_DEPS=" basher "
   export INSTALL_DEPS
 }
-req_vars APT_PACKAGES || export APT_PACKAGES=
-
-#    	nodejs npm \
-#      	python-dev \
-#        realpath uuid-runtime moreutils curl php5-cli
+req_vars APT_PACKAGES || export APT_PACKAGES="nodejs npm\
+ python-dev\
+ realpath uuid-runtime moreutils curl php5-cli"
 
 test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 
