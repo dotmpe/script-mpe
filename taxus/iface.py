@@ -159,6 +159,7 @@ class IScraperRegistry(Interface):
         dict struct containing named func,url pairs
     """)
 
+
 class IRelationalModel(Interface): pass
 
 class INode(IRelationalModel): pass
