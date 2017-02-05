@@ -28,17 +28,21 @@ addons:
 # - pytz
 
 before_install:
+  -	scriptname=before-install
   - . ./tools/sh/init.sh
   - . ./tools/sh/env.sh
   - . ./tools/ci/parts/init.sh
 
 install:
+  -	scriptname=install
   - . ./tools/ci/parts/install.sh
 
 before_script:
+  -	scriptname=before-script
   - . ./tools/ci/parts/check.sh
 
 script:
+  -	scriptname=script
   - $TEST_SHELL ./tools/ci/parts/build.sh
 
 matrix:
