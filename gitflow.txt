@@ -8,6 +8,8 @@ master
       - dev
     features/radical
       - dev
+    features/travis-local
+      .. 
   tests/bugs/1-radical-regression
     - master
 

@@ -248,13 +248,35 @@ main_entry()
         git clone https://github.com/basherpm/basher.git ~/.basher/
     ;; esac
 
+  case "$1" in ruby )
+      #$sudo apt-get install zlib1g-dev build-essential libssl-dev libreadline-dev libyaml-dev libsqlite3-dev sqlite3 libxml2 libxml2-dev libxslt-dev gawk libgdbm-dev libncurses5-dev automake libtool bison libffi-dev nodejs
+      type rvm >/dev/null 2>&1 || 
+	curl -sSL https://get.rvm.io | bash -s stable --ruby
+      source ~/.rvm/scripts/rvm
+      (
+        ruby -v
+	rvm install ruby-2.2.2
+        rvm --default use 2.2.2
+	rvm rubygems current
+      	gem install bundler --no-rdoc --no-ri
+        bundle --version
+        gem --version
+      ) || error "ruby" 1
+    ;; esac
+
   case "$1" in travis|test )
-      test -x "$(which gem)" ||
-        error "ruby/gemfiles required" 1
+      source ~/.rvm/scripts/rvm
       ruby -v
       gem --version
-      test -x "$(which travis)" ||
-    	${sudo} gem install travis -v 1.8.6 --no-rdoc --no-ri
+      test -x "$(which travis)" || {
+        gem install travis -v 1.8.6 --no-rdoc
+      }
+      test -e ~/.travis/travis-build/ || {
+        gem install --no-rdoc coder activesupport jwt hashr
+	basher install travis-ci/travis-build
+	ln -s ~/.basher/cellar/packages/travis-ci/travis-build ~/.travis/travis-build
+	bundle install --gemfile ~/.travis/travis-build/Gemfile
+      }
     ;; esac
 
   echo "OK. All pre-requisites for '$1' checked"
