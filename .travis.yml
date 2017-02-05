@@ -46,7 +46,7 @@ script:
 
 matrix:
   include:
-    - env: TEST_ENV=testing TEST_SHELL=posh
+    #- env: TEST_ENV=testing TEST_SHELL=posh
     - env: TEST_ENV=testing TEST_SHELL=dash
     #- env: TEST_ENV=testing TEST_SHELL=bash
     - env: TEST_ENV=testing TEST_SHELL=sh
