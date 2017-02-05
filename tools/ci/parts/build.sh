@@ -1,39 +1,11 @@
 #!/bin/sh
 
-set -e
+note "Entry for CI build phase"
 
-# Initialize env
-. $scriptdir/tools/sh/init.sh
-. ./tools/sh/env.sh
-. $scriptdir/main.lib.sh
+test -n "$1" || set -- $BUILD_STEPS
+while test -n "$1"; do case "$1" in
 
-note "entry-point for CI build phase"
-
-
-# Start build per env
-test -n "$1" || . ./tools/ci/auto-targets.sh
-
-while test -n "$1"
-do
-  case "$1" in
-
-     production )
-        # XXX: work in progress. project has only dev or ENV= builds
-        #./configure.sh /usr/local && sudo ENV=$ENV ./install.sh && make test build
-        DESCRIBE="$(git describe --tags)"
-        grep '^'$DESCRIBE'$' ChangeLog.rst && {
-          echo "TODO: get log, tag"
-          exit 1
-        } || {
-          echo "Not a release: missing change-log entry $DESCRIBE: grep $DESCRIBE ChangeLog.rst)"
-        }
-      ;;
-
-    test* )
-        . ./tools/ci/test.sh
-      ;;
-
-    dev* ) main_debug
+    dev ) lib_load main; main_debug
 
         note "Pd version:"
         # FIXME: pd alias
@@ -88,18 +60,53 @@ do
         bundle exec jekyll build
       ;;
 
+    test )
+        lib_load build
+
+        ## start with essential tests
+
+        failed=build/test-results-failed.list
+
+        test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-speqs.tap
+        SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
+
+        test "$SHIPPABLE" != "true" ||
+          perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
+            --output $(basepath $TEST_RESULTS .tap .xml)
+
+        ## Other tests
+        #failed=build/test-results-dev.list
+        #test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-speqs.tap
+        #SUITE=$TEST_SPECS test_shell "$TEST_SHELL bats"
+        #test "$SHIPPABLE" != "true" ||
+        #  perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
+        #    --output $(basepath $TEST_RESULTS .tap .xml)
+
+        #test_features
+
+        test -e "$failed" && {
+          echo "Failed: $(echo $(cat $failed))"
+          rm $failed
+          unset failed
+          exit 1
+        }
+
+      ;;
+
     noop )
         # TODO: make sure nothing, or as little as possible has been installed
-        note "Empty Build! ($1)" 0
+        note "Empty step ($1)" 0
       ;;
 
     * )
-        error "Unknown build '$1'" 1
+        error "Unknown step '$1'" 1
       ;;
 
   esac
 
-  note "Build '$1' done"
-
+  note "Step '$1' done"
   shift 1
 done
+
+note "Done"
+
