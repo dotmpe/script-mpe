@@ -2,8 +2,11 @@
 
 note "Entry for CI build phase"
 
-test -n "$1" || set -- $BUILD_STEPS
-while test -n "$1"; do case "$1" in
+#test -n "$1" || set -- $BUILD_STEPS
+#while test -n "$1"; do case "$1" in
+
+for BUILD_STEP in $BUILD_STEP
+do case "$BUILD_STEP" in
 
     dev ) lib_load main; main_debug
 
@@ -95,16 +98,16 @@ while test -n "$1"; do case "$1" in
 
     noop )
         # TODO: make sure nothing, or as little as possible has been installed
-        note "Empty step ($1)" 0
+        note "Empty step ($BUILD_STEP)" 0
       ;;
 
     * )
-        error "Unknown step '$1'" 1
+        error "Unknown step '$BUILD_STEP'" 1
       ;;
 
   esac
 
-  note "Step '$1' done"
+  note "Step '$BUILD_STEP' done"
   shift 1
 done
 
