@@ -159,7 +159,7 @@ init
     dandy|travis|jenkins|precise64 )
         test "$stdio_1_type" = "f" ;;
     * )
-        diag "TODO: check for pd PID file ($stdio_0_type) $(current_test_env)"
+        diag "TODO: check for pd PID file ($stdio_1_type) $(current_test_env)"
         #tmpd
         #echo "$stdio_1_type" >>$tmpd/stdio_1_type
         #test "$stdio_1_type" = "p"

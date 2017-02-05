@@ -94,12 +94,12 @@ req_vars TEST_OPTIONS || export TEST_OPTIONS=
 req_vars TEST_SHELL || export TEST_SHELL=sh
 
 req_vars REQ_SPECS || export REQ_SPECS="\
- helper util-lib str std os match vc-lib vc main\
+ helper util-lib str std os match vc-lib main\
  box-lib box-cmd box "
 
 req_vars TEST_SPECS || export TEST_SPECS="\
  statusdir htd basename-reg dckr diskdoc esop \
- sh sh-switch rsr edl finfo \
+ sh sh-switch rsr edl finfo vc \
  jsotk-py libcmd_stacked mimereg radical \
  matchbox meta pd "
 
