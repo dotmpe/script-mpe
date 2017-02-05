@@ -30,12 +30,6 @@ do case "$BUILD_STEP" in
           htd script
         ) && note "ok" || noop
 
-        note "Pd/Make test:"
-        #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
-        (
-          ./configure.sh && make build test
-        ) || noop
-
         note "basename-reg:"
         (
           ./basename-reg ffnnec.py
@@ -70,7 +64,7 @@ do case "$BUILD_STEP" in
 
         failed=build/test-results-failed.list
 
-        test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-speqs.tap
+        test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-specs.tap
         (
           #SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
           SUITE="$REQ_SPECS" test_shell > $TEST_RESULTS
@@ -86,10 +80,13 @@ do case "$BUILD_STEP" in
 
         ## Other tests
         (
-          SUITE="$TEST_SP" test_shell > $TEST_RESULTS
+          SUITE="$TEST_SP" test_shell
         ) || noop
 
-        #test_features
+        # TODO: integrate feature testing
+        (
+          test_features
+        ) || noop
 
         test -z "$failed" -o ! -e "$failed" && {
           r=0
