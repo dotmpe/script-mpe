@@ -99,8 +99,7 @@ do case "$BUILD_STEP" in
             r=1
           }
           unset failed
-          exit $r
-        }
+        } || noop
 
       ;;
 

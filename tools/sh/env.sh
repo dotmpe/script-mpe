@@ -51,8 +51,12 @@ test -n "$ENV" || {
 
     gh-pages ) ENV=jekyll ; BUILD_STEPS=jekyll ;;
     test* ) ENV=testing ; BUILD_STEPS=test ;;
-    dev* ) ENV=development ; BUILD_STEPS=dev ;;
-    * ) ENV=development ; BUILD_STEPS="dev test" ;;
+    dev* )
+        ENV=development ; BUILD_STEPS="dev test"
+      ;;
+    * )
+        ENV=development ; BUILD_STEPS="dev test"
+      ;;
 
   esac
 }
