@@ -43,7 +43,7 @@ before_script:
 
 script:
   - scriptname=script
-  - $TEST_SHELL ./tools/ci/parts/build.sh
+  - ./tools/ci/parts/build.sh
 
 matrix:
   include:
