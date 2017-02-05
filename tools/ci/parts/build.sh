@@ -1,9 +1,6 @@
 #!/bin/sh
 
-note "Entry for CI build phase"
-
-#test -n "$1" || set -- $BUILD_STEPS
-#while test -n "$1"; do case "$1" in
+note "Entry for CI build phase: '$BUILD_STEPS'"
 
 for BUILD_STEP in $BUILD_STEPS
 do case "$BUILD_STEP" in
@@ -63,6 +60,9 @@ do case "$BUILD_STEP" in
         bundle exec jekyll build
       ;;
 
+    test-vbox )
+      ;;
+
     test )
         lib_load build
 
@@ -71,11 +71,19 @@ do case "$BUILD_STEP" in
         failed=build/test-results-failed.list
 
         test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-speqs.tap
-        SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
+        #SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
+        (
+          SUITE="$REQ_SPECS" test_shell > $TEST_RESULTS
+        ) || noop
+        wc -l $TEST_RESULTS
 
-        test "$SHIPPABLE" != "true" ||
+        test "$SHIPPABLE" != "true" || {
+          which tap-to-junit-xml
+          echo $(which tap-to-junit-xml) --input $TEST_RESULTS \
+            --output $(basepath $TEST_RESULTS .tap .xml)
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
             --output $(basepath $TEST_RESULTS .tap .xml)
+        }
 
         ## Other tests
         #failed=build/test-results-dev.list
@@ -87,11 +95,15 @@ do case "$BUILD_STEP" in
 
         #test_features
 
-        test -e "$failed" && {
-          echo "Failed: $(echo $(cat $failed))"
-          rm $failed
+        test -z "$failed" -o ! -e "$failed" && {
+          r=0
+          test ! -s "$failed" || {
+            echo "Failed: $(echo $(cat $failed))"
+            rm $failed
+            r=1
+          }
           unset failed
-          exit 1
+          exit $r
         }
 
       ;;

@@ -37,6 +37,9 @@ req_vars DEBUG || export DEBUG=
 
 ### Start of build job parameterisation
 
+GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
+BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
+        | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
 
 test -n "$ENV" || {
 
@@ -49,6 +52,7 @@ test -n "$ENV" || {
     gh-pages ) ENV=jekyll ; BUILD_STEPS=jekyll ;;
     test* ) ENV=testing ; BUILD_STEPS=test ;;
     dev* ) ENV=development ; BUILD_STEPS=dev ;;
+    * ) ENV=development ; BUILD_STEPS="dev test" ;;
 
   esac
 }
@@ -104,17 +108,13 @@ req_vars INSTALL_DEPS || {
   INSTALL_DEPS=" basher "
   export INSTALL_DEPS
 }
-req_vars APT_PACKAGES || export APT_PACKAGES=
-
-#    	nodejs npm \
-#      	python-dev \
-#        realpath uuid-runtime moreutils curl php5-cli
+req_vars APT_PACKAGES || export APT_PACKAGES="nodejs\
+ perl python-dev\
+ realpath uuid-runtime moreutils curl php5-cli"
+# not o shippable: npm
 
 test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 
-GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
-BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
-        | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
 
 
 

@@ -56,7 +56,7 @@ env:
     # TODO: - ENV=production
     #- TEST_ENV=testing TEST_SHELL=posh
     - TEST_ENV=testing TEST_SHELL=dash
-    #- TEST_ENV=testing TEST_SHELL=bash
+    - TEST_ENV=testing TEST_SHELL=bash
     - TEST_ENV=testing TEST_SHELL=sh
   global:
     - ENV=

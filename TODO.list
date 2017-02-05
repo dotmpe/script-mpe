@@ -416,7 +416,6 @@
 .//test/var/radical-tasks-2.txt:# FIXME:2: Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 .//tools/ci/parts/build.sh:        # FIXME: pd alias
 .//tools/ci/parts/build.sh:        # FIXME: "Something wrong with pd/std__help"
-.//tools/ci/parts/build.sh:        # FIXME: test everything eventually. But for now only require specific specs
 .//tools/ci/parts/install.sh:# FIXME: merge gh-pages into master
 .//tools/ci/parts/install.sh:# FIXME: npm install parse-torrent lodash
 .//tools/ci/parts/install.sh:# FIXME: htd install json-spec
@@ -1775,7 +1774,7 @@
 .//txs.py:                # Ask about each new tag, TODO: or rename, fuzzy match.
 .//vc:# TODO: other SCMs, BZR, HG, SVN (but never need them so..)
 .//vc:  # TODO: list of dirs (checkouts, annexes) to retrieve/store files
-.//vc:	echo '  status             TODO'
+.//vc:  echo '  status             TODO'
 .//vc:  echo 'TODO: consolidate '
 .//vc:# TODO: alias
 .//vc:# TODO: vcflags
@@ -1793,7 +1792,7 @@
 .//vc.rst::sync-mode: TODO: See Pd.
 .//vc.sh:# TODO: other SCMs, BZR, HG, SVN (but never need them so..)
 .//vc.sh:  # TODO: list of dirs (checkouts, annexes) to retrieve/store files
-.//vc.sh:	echo '  status             TODO'
+.//vc.sh:  echo '  status             TODO'
 .//vc.sh:  echo 'TODO: consolidate '
 .//vc.sh:# TODO: alias
 .//vc.sh:# TODO: vcflags
@@ -2678,13 +2677,13 @@
 .//txs.py:        # XXX: why hijack init which is for session init..
 .//txs.py:    # XXX: Interactive part, see lind.
 .//txs.py:                # XXX: path is not initialized yet
-.//vc:	echo '  list-subrepos      XXX: List all repositories below, excluding submodules. '
-.//vc:	echo '  projects           XXX: list remotes in projectdir'
+.//vc:  echo '  list-subrepos      XXX: List all repositories below, excluding submodules. '
+.//vc:  echo '  projects           XXX: list remotes in projectdir'
 .//vc:# XXX this does not work properly, best use it from root of repo
 .//vc:# XXX: takes subdir, and should in case of being in a subdir act the same
 .//vc.rst:    Stash should be empty) XXX: check sync?
-.//vc.sh:	echo '  list-subrepos      XXX: List all repositories below, excluding submodules. '
-.//vc.sh:	echo '  projects           XXX: list remotes in projectdir'
+.//vc.sh:  echo '  list-subrepos      XXX: List all repositories below, excluding submodules. '
+.//vc.sh:  echo '  projects           XXX: list remotes in projectdir'
 .//vc.sh:# XXX this does not work properly, best use it from root of repo
 .//vc.sh:# XXX: takes subdir, and should in case of being in a subdir act the same
 .//vendor/behat/behat/features/bootstrap/FeatureContext.php:        $contents = preg_replace('@time="[0-9.]*"@', 'time="XXX"', file_get_contents($file));
