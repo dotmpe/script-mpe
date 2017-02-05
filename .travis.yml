@@ -27,6 +27,7 @@ addons:
 # - pytz
 
 before_install:
+  - SCR_SYS_SH=bash-sh
   - scriptname="before-install"
   - . ./tools/sh/init.sh
   - . ./tools/sh/env.sh
