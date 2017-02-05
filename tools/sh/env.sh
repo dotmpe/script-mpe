@@ -50,8 +50,9 @@ test -n "$ENV" || {
     *annex* ) exit 0 ;;
 
     gh-pages ) ENV=jekyll ; BUILD_STEPS=jekyll ;;
-    testing ) ENV=development ; BUILD_STEPS=test ;;
-    * ) ENV=development ; BUILD_STEPS=dev ;;
+    test* ) ENV=testing ; BUILD_STEPS=test ;;
+    dev* ) ENV=development ; BUILD_STEPS=dev ;;
+    * ) ENV=development ; BUILD_STEPS="dev test" ;;
 
   esac
 }
@@ -120,6 +121,13 @@ test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 
 
 ### Env of build job parameterisation
+
+
+note "Build Steps: $BUILD_STEPS"
+note "Test Specs: $TEST_SPECS"
+note "Required Specs: $REQ_SPECS"
+
+
 
 
 # Restore shell -x opt
