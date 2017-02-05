@@ -148,19 +148,22 @@ init
   case $(current_test_env) in jenkins )
         test "$stdio_0_type" = "p" ;;
     * )
-        diag "TODO: check for pd PID file ($stdio_0_type)"
+        diag "TODO: check for pd PID file ($stdio_0_type) $(current_test_env)"
         #test "$stdio_0_type" = "t" 
       ;;
   esac
 
   stdio_type 1
   test "$?" = "0"
-  case $(current_test_env) in dandy|travis|jenkins|precise64 )
+  case $(current_test_env) in
+    dandy|travis|jenkins|precise64 )
         test "$stdio_1_type" = "f" ;;
     * )
+        diag "TODO: check for pd PID file ($stdio_1_type) $(current_test_env)"
         #tmpd
         #echo "$stdio_1_type" >>$tmpd/stdio_1_type
-        test "$stdio_1_type" = "p" ;;
+        #test "$stdio_1_type" = "p"
+      ;;
   esac
 
   stdio_type 2

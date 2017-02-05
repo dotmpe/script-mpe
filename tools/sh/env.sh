@@ -49,15 +49,19 @@ test -n "$ENV" || {
     # NOTE: Skip build on git-annex branches
     *annex* ) exit 0 ;;
 
-    gh-pages ) ENV=jekyll ; BUILD_STEPS=jekyll ;;
-    test* ) ENV=testing ; BUILD_STEPS=test ;;
-    dev* ) ENV=development ; BUILD_STEPS=dev ;;
-    * ) ENV=development ; BUILD_STEPS="dev test" ;;
+    gh-pages ) ENV=jekyll ;;
+    test* ) ENV=testing ;;
+    dev* ) ENV=development ;;
+    * ) ENV=development ;;
 
   esac
 }
 
 case "$ENV" in
+
+    jekyll )
+        BUILD_STEPS=jekyll
+      ;;
 
     production )
         DESCRIBE="$(git describe --tags)"
@@ -69,8 +73,16 @@ case "$ENV" in
         }
       ;;
 
+    features/* | development )
+        BUILD_STEPS="dev test"
+      ;;
+
     testing )
-        export BUILD_STEPS=test
+        BUILD_STEPS=test
+      ;;
+
+    * )
+        error "ENV '$ENV'" 1
       ;;
 
 esac
@@ -94,14 +106,14 @@ req_vars TEST_OPTIONS || export TEST_OPTIONS=
 req_vars TEST_SHELL || export TEST_SHELL=sh
 
 req_vars REQ_SPECS || export REQ_SPECS="\
- helper util-lib str std os match vc-lib vc main\
- box-lib box-cmd box "
+ helper util-lib str std os match matchbox vc-lib main\
+ sh box-lib box-cmd box pd-meta esop disk diskdoc"
 
 req_vars TEST_SPECS || export TEST_SPECS="\
- statusdir htd basename-reg dckr diskdoc esop \
- sh sh-switch rsr edl finfo \
+ statusdir htd basename-reg dckr\
+ rsr edl finfo vc \
  jsotk-py libcmd_stacked mimereg radical \
- matchbox meta pd "
+ meta pd "
 
 
 req_vars INSTALL_DEPS || {
