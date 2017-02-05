@@ -30,6 +30,7 @@ open_io_descrs()
   for fd_name in $(try_value outputs) $(try_value inputs)
   do
     fd_num=$(( $fd_num + 1 ))
+    test $fd_num -lt 10 || error "Maximum number of IO descriptors reached" 1
     # TODO: only one descriptor set per proc, incl. subshell. So useless?
     test -e "$io_dev_path/$fd_num" || {
       debug "exec $(eval echo $fd_num\\\>$(eval echo \$$fd_name))"

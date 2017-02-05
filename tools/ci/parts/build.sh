@@ -30,12 +30,6 @@ do case "$BUILD_STEP" in
           htd script
         ) && note "ok" || noop
 
-        note "Pd/Make test:"
-        #( test -n "$PREFIX" && ( ./configure.sh $PREFIX && ENV=$ENV ./install.sh ) || printf "" ) && make test
-        (
-          ./configure.sh && make build test
-        ) || noop
-
         note "basename-reg:"
         (
           ./basename-reg ffnnec.py
@@ -67,10 +61,11 @@ do case "$BUILD_STEP" in
         lib_load build
 
         ## start with essential tests
+        note "Testing '$REQ_SPECS'"
 
         failed=build/test-results-failed.list
 
-        test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-speqs.tap
+        test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-specs.tap
         (
           #SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
           SUITE="$REQ_SPECS" test_shell > $TEST_RESULTS
@@ -85,14 +80,15 @@ do case "$BUILD_STEP" in
         }
 
         ## Other tests
-        #failed=build/test-results-dev.list
-        #test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-speqs.tap
-        #SUITE=$TEST_SPECS test_shell "$TEST_SHELL bats"
-        #test "$SHIPPABLE" != "true" ||
-        #  perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
-        #    --output $(basepath $TEST_RESULTS .tap .xml)
+        note "Testing '$TEST_SPECS'"
+        (
+          SUITE="$TEST_SPECS" test_shell
+        ) || noop
 
-        #test_features
+        # TODO: integrate feature testing
+        (
+          test_features
+        ) || noop
 
         test -z "$failed" -o ! -e "$failed" && {
           r=0
@@ -102,8 +98,7 @@ do case "$BUILD_STEP" in
             r=1
           }
           unset failed
-          exit $r
-        }
+        } || noop
 
       ;;
 
