@@ -20,6 +20,7 @@ test_specs()
 test_shell()
 {
   test -n "$*" || set -- bats
+  local verbosity=4
   note "test-shell '$*' SUITE='$SUITE'"
   test -n "$SUITE" && {
     SPECS="$(test_specs | lines_to_words)"

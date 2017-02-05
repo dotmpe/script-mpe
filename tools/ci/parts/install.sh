@@ -23,11 +23,12 @@ test "$(whoami)" = "travis" || {
 
 test "$(whoami)" = "travis" || {
   trueish "$SHIPPABLE" && {
-    test -x "$(which tap-to-junit-xml)" ||
-      basher install jmason/tap-to-junit-xml
     $sudo apt-get install perl
     cpan reload index
     cpan install XML::Generator
+    test -x "$(which tap-to-junit-xml)" ||
+      basher install jmason/tap-to-junit-xml
+    tap-to-junit-xml --help || noop
   }
 }
 
