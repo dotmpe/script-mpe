@@ -24,6 +24,10 @@ bash --version
 test -x "$(which dash)" || error "No dash" 12
 #test -x "$(which posh)" || error "No posh" 12
 
+falseish "$SHIPPABLE" || {
+  perl --version
+}
+
 composer --version
 behat --version
 bats --version

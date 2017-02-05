@@ -76,10 +76,12 @@ do case "$BUILD_STEP" in
           SUITE="$REQ_SPECS" test_shell > $TEST_RESULTS
         ) || noop
 
-        test "$SHIPPABLE" != "true" || {
+        trueish "$SHIPPABLE" && {
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
             --output $(basepath $TEST_RESULTS .tap .xml)
           wc -l $TEST_RESULTS $(basepath $TEST_RESULTS .tap .xml)
+        } || {
+          wc -l $TEST_RESULTS
         }
 
         ## Other tests
