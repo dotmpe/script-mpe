@@ -5,11 +5,11 @@ meta__source=$_
 
 set -e
 
-version=0.0.0+20150911-0659 # script-mpe
+version=0.0.1 # script-mpe
 
 
 
-meta__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+meta_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 meta_spc__help='-h|help [ID]'
 meta__help()
 {
@@ -20,14 +20,14 @@ meta_als___h=help
 
 
 meta_als___V=version
-meta__man_1_version="Version info"
+meta_man_1__version="Version info"
 meta_spc__version="-V|version"
 meta__version()
 {
   echo "$(cat $PREFIX/bin/.app-id)/$version"
 }
 
-meta__man_1_edit_main="Edit the main script file"
+meta_man_1__edit_main="Edit the main script file"
 meta_spc__edit_main="-E|edit-main"
 meta__edit_main()
 {
@@ -40,7 +40,7 @@ meta_als___E=edit-main
 
 # XXX mediainfo for OSX brew
 
-meta__man_1_info="Print metadata (default command)"
+meta_man_1__info="Print metadata (default command)"
 meta__info()
 {
   test -n "$1" || error "Expected path" 1
@@ -88,7 +88,7 @@ meta__annex_update_video()
 {
   test -n "$1" || error "Expected path" 1
 
-  while test "$#" -gt 0
+  while test -n "$1"
   do
     meta__video_info "$1"
 
@@ -114,14 +114,14 @@ meta__main()
 
   case "$base" in $scriptname )
 
-      local subcmd_def=info \
-        subcmd_pref= subcmd_suf= \
-        subcmd_func_pref=${base}__ subcmd_func_suf=
+        local subcmd_def=info \
+          subcmd_pref= subcmd_suf= \
+          subcmd_func_pref=${base}__ subcmd_func_suf=
 
-      meta_lib
+        meta_lib
 
-      # Execute
-      run_subcmd "$@"
+        # Execute
+        run_subcmd "$@"
       ;;
 
   esac
@@ -137,7 +137,6 @@ meta_init()
   . $scriptdir/box.init.sh
   box_run_sh_test
   . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
   . $scriptdir/box.lib.sh
   . $scriptdir/meta.lib.sh
 }

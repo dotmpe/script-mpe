@@ -5,7 +5,7 @@
 # TODO global temp
 *.py[co]
 *.cuthd
-.*sw[a-p]
+.*sw[ap]
 .gitignore-*.regex
 .htdignore.merged
 .package.sh

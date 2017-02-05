@@ -68,3 +68,4 @@ set palette model RGB functions 0.333333, 0.166667, 0.777778
 set urange [0.909091:1]
 splot cos(u*2*pi)*v, sin(u*2*pi)*v, a+s w pm3d
 unset multiplot
+

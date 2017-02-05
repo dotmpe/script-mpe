@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = '0.0.0'
+__version__ = '0.0.3-dev' # script-mpe
 __db__ = '~/.budget.sqlite'
 __usage__ = """
 budget - simple balance tracking accounting software.
@@ -47,7 +47,7 @@ Options:
     -m --month=MONTH-OF-YEAR
     -y --year=YEAR
 
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
@@ -159,7 +159,7 @@ def cmd_account_rm(settings, name):
 def cmd_month(settings):
 
     """
-    Print balance change per month. 
+    Print balance change per month.
     --first-month --last-month
     """
 
@@ -241,11 +241,11 @@ def cmd_mutation_import(opts, settings):
                 from_account = cache.accounts[accnr]
             assert from_account.account_id, (str(from_account), line, accnr, date, amount, cat)
 
-            # credit account 
+            # credit account
             if not destacc:
                 if cat == 'ba':
                     # payment card checkout
-                    to_account = Account.for_checkout(sa, 
+                    to_account = Account.for_checkout(sa,
                             ACCOUNT_EXPENSES+':ba:'+descr)
                 elif cat == 'ga':
                     # atm withdrawal
@@ -258,7 +258,7 @@ def cmd_mutation_import(opts, settings):
                     print line, date, accnr, amount, cat, descr, descr2
                     assert not destname, (cat, destname, cat)
                     continue
-            # billing account 
+            # billing account
             elif destacc not in cache.accounts:
                 to_account = Account.for_nr(sa, destacc)
                 if not to_account:
@@ -324,7 +324,7 @@ def cmd_balance_verify(settings, sa=None):
             .one() for acc in expenses_acc ]
 
     for i, (sub, (sub_balance,)) in enumerate(zip(expenses_acc, balances)):
-        print i, sub.name, sub.iban or sub.nl_number or sub.nl_p_number, sub_balance 
+        print i, sub.name, sub.iban or sub.nl_number or sub.nl_p_number, sub_balance
 
     return 0
 
@@ -349,13 +349,13 @@ def cmd_balance_commit(settings):
     ia = int(lib.Prompt.raw_input("Which account [0-%i]" % (len(accounts)-1)))
     account = accounts[ia]
     print ia, account
-    
+
     v = float(lib.Prompt.raw_input("Enter the actual balance"))
     correction = v - balance
     print 'Correction: ', balance, correction, balance+correction
 
     d = None
-    while not d: 
+    while not d:
         sd = lib.Prompt.raw_input("Enter a year, month, or full day to enter",
                 datetime.now().strftime('%Y-%m-%d'))
         for fmt in '%Y-%m-%d', '%Y-%m', '%Y':
@@ -412,4 +412,6 @@ if __name__ == '__main__':
     opts = util.get_opts(__usage__, meta=argument_handlers, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
+
+
 

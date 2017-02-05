@@ -18,7 +18,8 @@ init()
   }
   lib=$scriptdir
 
-  . $lib/main.lib.sh
+  . $lib/main.lib.sh load-ext
+  lib_load sys str std
   main_init
 
   test -n "$TMPDIR" || error TMPDIR 1
@@ -31,6 +32,8 @@ init()
 
   ## XXX does this overwrite bats load?
   #. main.init.sh
+
+  export verbosity=
 }
 
 
@@ -44,7 +47,7 @@ current_test_env()
   test -n "$TEST_ENV" \
     && echo $TEST_ENV \
     || case $(hostname -s | tr 'A-Z' 'a-z') in
-      simza | boreas | vs1 | dandy ) hostname -s | tr 'A-Z' 'a-z';;
+      simza | boreas | vs1 | dandy | precise64 ) hostname -s | tr 'A-Z' 'a-z';;
       * ) whoami ;;
     esac
 }
@@ -68,15 +71,33 @@ check_skipped_envs()
   return $skipped
 }
 
+get_key()
+{
+  local key="$(echo "$1" | tr 'a-z._-' 'A-Z___')"
+  fnmatch "[0-9]*" "$key" && key=_$key
+  echo $key
+}
+
 # Returns successful if given key is not marked as skipped in the env
 # Specifically return 1 for not-skipped, unless $1_SKIP evaluates to non-empty.
 is_skipped()
 {
-  local key="$(echo "$1" | tr 'a-z._-' 'A-Z___')"
-  local skipped="$(echo $(eval echo \$${key}_SKIP))"
+  local skipped="$(echo $(eval echo \$$(get_key "$1")_SKIP))"
   test -n "$skipped" && return
   return 1
 }
+
+trueish()
+{
+  test -n "$1" || return 1
+  case "$1" in
+		[Oo]n|[Tt]rue|[Yyj]|[Yy]es|1)
+      return 0;;
+    * )
+      return 1;;
+  esac
+}
+
 
 
 ### Misc. helper functions
@@ -113,7 +134,7 @@ tmpf()
 
 tmpd()
 {
-  tmpd=$BATS_TMPDIR/bats-tempd-$(uuidgen)
+  tmpd=$BATS_TMPDIR/bats-tempd-$(get_uuid)
   test -d "$tmpd" && rm -rf $tmpd
   mkdir -vp $tmpd
 }
@@ -127,5 +148,11 @@ file_equal()
 
 noop()
 {
-  printf ""
+  set --
 }
+
+fnmatch()
+{
+  case "$2" in $1 ) return 0 ;; *) return 1 ;; esac
+}
+

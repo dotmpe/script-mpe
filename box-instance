@@ -5,7 +5,7 @@ set -e
 
 
 
-version=0.0.0+20150911-0659 # script-mpe
+version=0.0.1 # script-mpe
 
 
 box_instance_man_1__version="Version info"
@@ -62,7 +62,7 @@ box_instance_main()
 
 box_instance_init()
 {
-  . $scriptdir/main.lib.sh
+  . $scriptdir/main.lib.sh load-ext
   . $scriptdir/std.lib.sh
   . $scriptdir/str.lib.sh
   . $scriptdir/util.sh
@@ -132,4 +132,6 @@ case "$0" in "" ) ;; "-"* ) ;; * )
     box_instance_main "$@" || exit $?
   ;; esac
 ;; esac
+
+
 

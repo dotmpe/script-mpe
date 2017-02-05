@@ -9,7 +9,7 @@ TODO: print path relative to current dir
 
 """
 __description__ = "folder - "
-__version__ = '0.0.0'
+__version__ = '0.0.3-dev' # script-mpe
 __db__ = '~/.folder.sqlite'
 __usage__ = """
 Usage:
@@ -23,7 +23,7 @@ Options:
                   SQLAlchemy DB URL [default: %s]
 
 Other flags:
-    -h --help     Show this usage description. 
+    -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 """ % ( __db__, __version__ )
@@ -55,7 +55,7 @@ def print_Folder(folder):
                 folder.root,
 
                 str(folder.date_added).replace(' ', 'T'),
-                str(folder.last_updated).replace(' ', 'T'),
+                str(folder.date_updated).replace(' ', 'T'),
                 str(folder.date_deleted).replace(' ', 'T')
             )
         )
@@ -69,7 +69,7 @@ def cmd_info(settings):
             ( "Tables in schema", ", ".join(metadata.tables.keys()) ),
     ):
         log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
-    # if pwd in Projectdir, Volumedir or Homedir 
+    # if pwd in Projectdir, Volumedir or Homedir
     # display relative path for output nodes
 
 def cmd_list(settings):
@@ -102,9 +102,9 @@ def cmd_group(ID, SUB, settings):
 
     taxus.ORMMixin.init('folder', settings.dbref)
     sa = Folder.start_session('folder', settings.dbref)
-    root = Folder.get_instance(ID, 'folder')
+    root = Folder.fetch_instance(ID, 'folder')
     for subid in SUB:
-        sub = Folder.get_instance(subid, 'folder')
+        sub = Folder.fetch_instance(subid, 'folder')
         sub.partOf_id = ID
         # XXX abstract using some kind of master store iface
         sa.add(node)
@@ -116,7 +116,7 @@ def cmd_ungroup(SUB, settings):
     """
     sa = Folder.start_session('folder', settings.dbref)
     for subid in SUB:
-        sub = Folder.get_instance(subid, 'folder')
+        sub = Folder.fetch_instance(subid, 'folder')
         node.partOf_id = None
         sa.add(node)
     sa.commit()
@@ -163,6 +163,7 @@ if __name__ == '__main__':
     opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
+
 
 
 

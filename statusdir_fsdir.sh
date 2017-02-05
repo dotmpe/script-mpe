@@ -20,6 +20,9 @@ fsdir()
     del )
         rm "$p/$2"
       ;;
+    ping )
+        test -e $p && echo $p
+      ;;
     * )
         echo "Error $0: $1 ($2)"
         exit 101

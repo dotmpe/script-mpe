@@ -159,7 +159,7 @@ class IBookmark(IRelationalModel): pass
 class IProgram(Interface): pass
 
 def programModelResolver(*args):
-    print 'programModelResolver', args
+    print('programModelResolver', args)
 
 gsm.registerAdapter(
     programModelResolver, [IProgram], IRelationalModel, '')
@@ -171,7 +171,7 @@ def registerAdapter(adapterClass, sifaces=[], tiface=None):
         sifaces = [adapterClass.__used_for__]
         assert sifaces
     if not tiface:
-        tiface = implementedBy(adapterClass).interfaces().next()
+        tiface = next(implementedBy(adapterClass).interfaces())
     registry.register(sifaces, tiface, '', adapterClass)
 
 def hook( provided, o ):
@@ -186,7 +186,8 @@ def hook( provided, o ):
     if not adapter:
         import sys
         #libcmd.err("Could not adapt %s:%s > %s",  o , adapted, provided)
-        print >>sys.stderr, "Could not adapt %s:%s > %s" %( o , adapted, provided)
+        sys.stderr.write("Could not adapt %s:%s > %s" %( o , adapted, provided),
+                "\n")
     assert adapter, (provided, o)
     return adapter( o )
 

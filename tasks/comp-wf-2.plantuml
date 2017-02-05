@@ -1,0 +1,37 @@
+@startuml
+
+
+frame "cli.py regex $TODO_re" as cli_rx {
+}
+
+frame "cli.py numbering --after" as cli_nr {
+}
+
+
+folder "<project>" {
+
+  file "<DOC>" as DOC {
+  }
+  file "<SRC>" as SRC {
+  }
+
+  file "ToDo.edl" as ToDo_edl {
+    
+    component "<XTLGrepRef>" as xtlgrepref {
+    }
+    component "<XTLRef>" as xtlref {
+    }
+  }
+
+}
+
+
+
+cli_rx -> cli_nr : spans
+cli_nr -> DOC : update
+note bottom of cli_nr {
+  Insert index numbers
+}
+
+
+@enduml

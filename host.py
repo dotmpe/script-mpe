@@ -2,7 +2,7 @@
 """host -
 :created: 2015-06-29
 """
-__version__ = '0.0.0'
+__version__ = '0.0.3-dev' # script-mpe
 __db__ = '~/.taxus-code.sqlite'
 __rc__ = '~/.domain.rc'
 __usage__ = """
@@ -48,7 +48,7 @@ def cmd_init(settings):
     record = Host.fetch(filters=(Host.name == name,), sa=sa, exists=False)
     if not record:
         host = Host(name=name, date_added=datetime.now(),
-                last_updated=datetime.now())
+                date_updated=datetime.now())
         sa.add(host)
         sa.commit()
         log.std('{bwhite}Added host %s record{default}', name)
@@ -99,4 +99,5 @@ if __name__ == '__main__':
     opts = util.get_opts(__doc__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
+
 

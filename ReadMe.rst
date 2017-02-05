@@ -1,40 +1,64 @@
 script.mpe
 ==========
-:Version: 0.0.0-dev
+:Version: 0.0.3-dev
+:Updated: 2016-11-19
+
 
 Build-status
-    .. image:: https://secure.travis-ci.org/dotmpe/git-versioning.png?branch=test
-      :target: https://travis-ci.org/dotmpe/git-versioning
+    .. BUG: cannot add ?branch= without Du/rSt2html breaking
+    .. image:: https://secure.travis-ci.org/dotmpe/script-mpe.svg
+      :width: 89
+      :target: https://travis-ci.org/dotmpe/script-mpe
       :alt: Build
 
-Stats
-    .. image:: http://img.shields.io/badge/github-stats-ff5500.svg
-      :target: http://githubstats.com/dotmpe/script-mpe
-      :alt: GitHub Stats
+Issues
+    .. image:: https://img.shields.io/github/issues/dotmpe/script-mpe.svg
+      :target: http://githubstats.com/dotmpe/script-mpe/issues
+      :alt: GitHub issues
 
 
 Various tools and ongoing experiments that have not yet deserved their own
 project.
 
-Test
-    ::
+
+
+Quickstart
+-----------
+Prerequisites
+  User-Conf_
+    - Not required. But as for the shell tooling, this may contain
+      some context.
+
+::
+
+  git@github.com:dotmpe/google-chrome-htdocs.git
+
+
+.. _user-conf: https://github.com/dotmpe/user-conf
+
+
+
+Testing
+--------
+::
 
        ./test/*-spec.bats
 
 See also `.travis.yml`.
 
 
-
 Other documents
 ---------------
 - `Change Log <ChangeLog.rst>`_
-- `Branche and Directory Docs <doc/package.rst>`_
+- `Bugs <Bugs.rst>`_
+- `Documentation <doc/>`_
 
 
 Dev
 ---
+- Maybe look at dispatch_ a bit, a run-subcmd handler in 48 lines Bash.
 
-- XXX: maybe look to replace lots of main.lib.sh with dispatch_
 
 .. _dispatch: https://github.com/Mosai/workshop/blob/master/doc/dispatch.md
+
 

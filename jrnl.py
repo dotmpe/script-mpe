@@ -18,6 +18,9 @@ Model
             - gregorian
 
 """
+__description__ = "journal - "
+__version__ = '0.0.2-dev' # script-mpe
+#__db__ = '~/.journal.sqlite'
 import os
 import libcmd
 
@@ -38,9 +41,9 @@ class Jrnl(rsr.Rsr):
     NAME = os.path.splitext(os.path.basename(__file__))[0]
     assert NAME == 'jrnl'
     DEFAULT_RC = 'cllct.rc'
-    DEPENDS = { 
+    DEPENDS = {
             'jrnl_session': [ 'rsr_session' ],
-            'jrnl_info': [ 'jrnl_session' ] 
+            'jrnl_info': [ 'jrnl_session' ]
         }
     DEFAULT = [ 'jrnl_info' ]
 
@@ -68,4 +71,5 @@ class Jrnl(rsr.Rsr):
 
 if __name__ == '__main__':
     Jrnl.main()
+
 

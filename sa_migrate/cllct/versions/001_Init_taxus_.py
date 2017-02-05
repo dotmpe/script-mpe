@@ -180,3 +180,4 @@ def downgrade(migrate_engine):
 	for table in tables:
 		table.drop()
 
+

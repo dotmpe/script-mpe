@@ -201,11 +201,7 @@ daemonize_init()
   . $scriptdir/box.init.sh
   . $scriptdir/util.sh
   box_run_sh_test
-  . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
-  . $scriptdir/box.lib.sh
-  . $scriptdir/date.lib.sh
-  . $scriptdir/darwin.lib.sh
+  lib_load main box darwin
   # -- daemonize box init sentinel --
 }
 
@@ -229,4 +225,5 @@ case "$0" in "" ) ;; "-*" ) ;; * )
   daemonize__init "$@"
       ;;
 esac
+
 

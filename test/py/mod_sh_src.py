@@ -9,7 +9,6 @@ from script_mpe import sh_switch
 
 class ShSwitchTest(unittest.TestCase):
 
-
     @parameterized.expand([
         ( "test/var/sh-src-1.sh", [
                 ( ( 1, 2 ), ( 118, 9 ) ),
@@ -21,6 +20,9 @@ class ShSwitchTest(unittest.TestCase):
             ] ),
     ])
     def test_sh_src_switch_get_offsets(self, shfilename, expected_ranges ):
+        """
+        get_offsets should return start and end pos of the case/esac
+        """
         self.reader = sh_switch.SwitchReader( shfilename )
         offsets = list(self.reader.get_offsets())
         for start, end in offsets:

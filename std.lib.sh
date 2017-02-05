@@ -1,6 +1,8 @@
 #!/bin/sh
 
 
+# std: logging and dealing with the shell's stdio decriptors
+
 io_dev_path()
 {
   case "$uname" in
@@ -117,24 +119,24 @@ stdio_type()
   case $TERM in
 
     *256color )
-      LOG_TERM=256
-      ncolors=$(tput colors)
-      # FIXME echo -e something going on with BSD sh?
-      echo="echo -e"
+        LOG_TERM=256
+        ncolors=$(tput colors)
+        # FIXME echo -e something going on with BSD sh?
+        echo="echo -e"
       ;;
 
     xterm* | ansi | linux )
-      LOG_TERM=16
-      ncolors=$(tput -T xterm colors)
+        LOG_TERM=16
+        ncolors=$(tput -T xterm colors)
       ;;
 
-    dumb )
-      LOG_TERM=bw
+    dumb | '' )
+        LOG_TERM=bw
       ;;
 
     * )
-      LOG_TERM=bw
-      echo "[std.sh] Other term: '$TERM'"
+        LOG_TERM=bw
+        echo "[std.sh] Other term: '$TERM'"
       ;;
 
   esac
@@ -149,7 +151,7 @@ stdio_type()
     norm="$(tput sgr0)"
 
     test -n "$verbosity" && {
-      test $verbosity -ge 7 && echo "${drgrey}colors: ${grey}$ncolors${norm}"
+      test $verbosity -ge 7 && echo "[$base:$subcmd:std.lib] ${drgrey}colors: ${grey}$ncolors${norm}"
     }
 
     if test $ncolors -ge 256; then
@@ -211,6 +213,7 @@ log_256()
   printf "$1\n"
 }
 
+# deprecate
 err()
 {
   test -z "$3" || {
@@ -251,7 +254,7 @@ stderr()
 {
   test -z "$4" || {
     echo "Surplus arguments '$4'"
-    exit 123
+    exit 200
   }
   # XXX seems ie grep strips colors anyway?
   [ -n "$stdout_type" ] || stdout_type=$stdio_2_type
@@ -303,7 +306,7 @@ std_exit()
 {
   test -z "$2" || {
     echo "Surplus arguments '$2'"
-    exit 123
+    exit 200
   }
   test "$1" != "0" -a -z "$1" && return 1 || exit $1
 }

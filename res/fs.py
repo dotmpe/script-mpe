@@ -1,8 +1,11 @@
+from datetime import datetime
 from fnmatch import fnmatch
 import os
 from os.path import join
 import re
 import stat
+import xattr
+import pbPlist
 
 import zope.interface
 
@@ -19,7 +22,6 @@ class INode(object):
 
     """
     Represents an inode on the filesystem.
-    Not to be confused with the Node interface.
     """
 
     zope.interface.implements(iface.Node)
@@ -81,6 +83,35 @@ class INode(object):
             if not rs:
                 return False
         return True
+
+    @classmethod
+    def stat(self, path):
+        if not isinstance(path, basestring) and hasattr(path, 'path'):
+            path = path.path
+        st = os.stat(path)
+        d = {
+                'date_accessed': datetime.fromtimestamp(st.st_atime),
+                'date_modified': datetime.fromtimestamp(st.st_mtime),
+                'extended_attributes': get_fs_xattr(path),
+                'date_metadata_update': None,
+                'date_created': None
+            }
+        if os.uname() in ( 'Linux', 'Darwin' ):
+            d['date_metadata_update'] = datetime.fromtimestamp(st.st_ctime)
+        elif os.uname() in ( 'Windows', ):
+            d['date_created'] = datetime.fromtimestamp(st.st_ctime)
+        return d
+
+
+def get_fs_xattr(fn):
+    x = {}
+    for attr in xattr.listxattr(fn):
+        value = xattr.getxattr(fn, attr)
+        if value.startswith('bplist'):
+            x[attr] = pbPlist.PBPlist(value)
+        else:
+            x[attr] = value
+    return x
 
 
 def __register__():
@@ -597,4 +628,5 @@ class StatCache:
     @classmethod
     def issocket( Klass, path ):
         return Klass.ismode( path, 'issocket' )
+
 

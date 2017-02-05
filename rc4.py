@@ -54,3 +54,4 @@ if __name__ == '__main__':
     #print ('data',data,'rc4',crypted)
     print crypted
 
+

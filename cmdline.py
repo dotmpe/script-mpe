@@ -7,10 +7,10 @@ import re
 
 import zope.interface
 
-import res
-import confparse
-import log
-import libcmd
+from script_mpe import res
+from script_mpe import confparse
+from script_mpe import log
+from script_mpe import libcmd
 
 
 
@@ -34,8 +34,8 @@ class Cmd(libcmd.StackedCommand):
             )
 
     def stat(self, prog, settings):
-        print self.__class__.__name__, 'stat'
-        print prog, settings
+        print(self.__class__.__name__, 'stat')
+        print(prog, settings)
 
     def symlink_tree(self, target_path, opts=None, *source_paths):
         """
@@ -105,16 +105,18 @@ class Cmd(libcmd.StackedCommand):
         :system-test: 9
         """
 
-        print 'target', target_path
-        print 'source', source_paths
+        print('target', target_path)
+        print('source', source_paths)
 
         for source in source_paths:
-            print source
+            print(source)
             for path in res.fs.Dir.walk( source ):
                 # assert real-path never in target path
-                print "\t", path
+                print("\t", path)
 
 
 if __name__ == '__main__':
     # simple
     Cmd.main()
+
+

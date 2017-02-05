@@ -62,3 +62,4 @@ do
   echo -n .
   sleep $period
 done
+

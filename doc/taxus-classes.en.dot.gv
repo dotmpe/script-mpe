@@ -1,0 +1,119 @@
+digraph "doc_taxus_classes_en_dot" {
+	graph [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+    pad = 1
+	]
+	node [
+		fontsize = "15"
+		fontname = "Bitstream Vera Sans"
+		shape = "record"
+		style = "solid"
+		color = "grey"
+	]
+	edge [
+		fontsize = "14"
+		fontname = "Bitstream Vera Sans"
+		style = "dotted"
+		weight = "4"
+	]
+
+	"core.Node" ; //-> SQLBase ;
+	"core.ID" ; //-> SQLBase ;
+
+  "core.GroupNode" -> "core.Node" ;
+  "core.Folder" -> "core.GroupNode" ;
+  "core.Space" -> "core.ID" ;
+
+  "core.Name" -> "core.Node" ;
+  "core.Scheme" -> "core.Name" ;
+  "core.Protocol" -> "core.Scheme" ;
+
+  "core.Tag" -> "core.Name" ;
+  "core.Topic" -> "core.Tag" ;
+  "core.Document" -> "core.Node" ;
+
+//	"checksum.ChecksumDigest" ; //-> SQLBase ;
+//  "checksum.SHA1Digest" -> "checksum.ChecksumDigest" ;
+//  "checksum.MD5Digest" -> "checksum.ChecksumDigest" ;
+
+  "fs.INode" -> "core.Name" ;
+
+  "fs.Special" -> "fs.INode" ;
+  "fs.Device" -> "fs.Special" ;
+  "fs.FIFO" -> "fs.Special" ;
+  "fs.Socket" -> "fs.Special" ;
+
+  "fs.Dir" -> "fs.INode" ;
+  "fs.File" -> "fs.INode" ;
+  "fs.Symlink" -> "fs.INode" ;
+
+  "fs.Mount" -> "fs.Dir" ;
+
+  "fs.Disk" -> "core.Name" ;
+
+
+//  "web.CachedContent" -> "fs.INode" ;
+  "web.Status" -> "core.Node" ;
+  "web.Resource" -> "core.Node" ;
+  "web.Invariant" -> "web.Resource" ;
+  "web.Variant" -> "web.Resource" ;
+
+  "semweb.Description" -> "core.Node" ;
+  "generic.Comment" -> "semweb.Description" ;
+
+  "net.Domain" -> "core.Name" ;
+  "net.Host" -> "net.Domain" ;
+  "net.Locator" -> "core.ID" ;
+
+  "model.Namespace" -> "web.Variant" ;
+  "model.Relocated" -> "web.Resource" ;
+  "model.Volume" -> "core.Scheme" ;
+  "model.Bookmark" -> "core.Node" ;
+  "model.Workset" -> "web.Resource" ;
+//	"model.Token" ; //-> SQLBase ;
+
+  "media.Mediatype" -> "core.Name" [] ;
+  "media.MediatypeParameter" -> "core.Name" [] ;
+  //"media.Genre" -> "core.Name" [] ;
+  "media.Mediameta" -> "core.Node" [] ;
+
+  "htd.TNode" -> "core.Document" ;
+  "htd.JournalNode" -> "htd.TNode" ;
+
+
+  edge [ style="normal" ] ;
+
+  "core.Node" -> "core.Space" [ label="space" ];
+  "core.GroupNode" -> "core.Node" [ label="subnodes" ];
+  "core.Folder" -> "core.Name" [ label=title ] ;
+  "core.Document" -> "media.Mediameta" [ label=mediameta ] ;
+
+ // "fs.INode" -> "net.Host" [ label="host" ];
+  "net.Host" -> "net.Domain" [ label="domain" ];
+//  "fs.INode" -> "net.Locator" [ label="locators" ];
+
+  "htd.TNode" -> "core.Tag" [ label="tags" ];
+  "htd.TNode" -> "core.Topic" [ label="topics" ];
+
+  "media.Mediatype" -> "core.Name" [ label=mime ] ;
+  "media.Mediatype" -> "media.Mediatype" [ label=subtypes ] ;
+
+  "media.Mediameta" -> "checksum.Checksumdigest" [ label=checksums ] ;
+  "media.Mediameta" -> "media.Mediatype" [ label=mediatype ] ;
+  "media.Mediameta" -> "media.MediatypeParameter" [ label="mediatype-parameters" ] ;
+  //"media.Mediameta" -> "media.Genre" [ label=genres ] ;
+
+  "model.Workset" -> "net.Locator" [ label=refs ] ;
+//  "model.Token" -> "net.Locator" [ label=refs ] ;
+
+//  "net.Locator" -> "checksum.Checksumdigest" [ label=ref_md5 ] ;
+//  "net.Locator" -> "checksum.Checksumdigest" [ label=checksums ] ;
+  "net.Locator" -> "core.Domain" [ label=domain ] ;
+
+  "web.Resource" -> "web.Status" [ label=status ] ;
+  "web.Resource" -> "net.Locator" [ label=location ] ;
+//  "web.Invariant" -> "web.CachedContent" [ label=content ] ;
+}
+

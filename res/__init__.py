@@ -14,12 +14,13 @@ TODO:
 - Content-* properties
 """
 
-#from fs import File, Dir
-from mime import MIMEHeader
+from fs import File, Dir
+from mimemsg import MIMEHeader
 from metafile import Metafile, Metadir, Meta, SHA1Sum
 from jrnl import Journal
 from vc import Repo
 from ws import Workspace, Homedir, Workdir, Volumedir
 
 import iface
+
 

@@ -8,6 +8,7 @@ belong there anymore.
 TODO: handle language tags
 TODO: handle encoding tags
 """
+from __future__ import print_function
 import os
 import sys
 import optparse
@@ -96,16 +97,16 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
                     mimespec = settings.mime_xref[ mime ]
                     ext = mimespec[0][0]
                 else:
-                    print >>sys.stderr, "No x-ref for MIME", mime
+                    sys.stderr.write("No x-ref for MIME %s\n" % mime)
                     ext = None
                 if opts.media_type or opts.print_descr:
                     descr = lib.get_format_description_sub(path)
 
             if ext:
                 if fext != ext:
-                    print >>sys.stderr, "Warning filename-extension %r does not match registered %r" % ( fext, ext)
+                    sys.stderr.write("Warning filename-extension %r does not match registered %r\n" % ( fext, ext))
             else:
-                print >>sys.stderr, "Default extension!", path
+                sys.stderr.write("Default extension! %s\n" % path)
                 ext = 'bin'
 
             # format and output
@@ -120,11 +121,11 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
             elif opts.print_ext:
                 line = ext
             if not opts.quiet and opts.print_path:
-                print path+':', 
-            print line
+                print(path+':', end=" ")
+            print(line)
 
     def _old_scan(self, tag, settings=None):
-        print tag
+        print(tag)
         settings = confparse.Values(settings)
         tags = [tag]
         for t in tags:
@@ -132,19 +133,19 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
                 i = tags.index(t)
                 tags.remove(t)
                 tags = tags[:i] + settings.ext_map[t] + tags[i+1:]
-        print tags
+        print(tags)
 
     def list_extensions(self, prog, settings):
         "List all (registered) extensions"
         settings = confparse.Values(settings)
         for x in settings.mime_ext_reg:
-            print x
+            print(x)
 
     def list_mediatypes(self, settings):
         "List all (global) mediatypes"
         settings = confparse.Values(settings)
         for x in settings.mime_xref:
-            print x
+            print(x)
 
     @classmethod
     def get_optspec(klass, inherit):
@@ -211,3 +212,4 @@ if __name__ == '__main__':
 
 
 """
+

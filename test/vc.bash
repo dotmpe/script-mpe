@@ -8,7 +8,11 @@ setup_clean_git()
   git init
   touch .gitignore
   git add .
-  git ci -m Init
+
+  git config --global user.email "dev+travis@dotmpe.com"
+  git config --global user.name "Travis"
+
+  git commit -m Init
 }
 
 

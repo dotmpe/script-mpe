@@ -1,12 +1,14 @@
-sudo: false
+#language: bash
+#language: python
 
-install:
-- "source ./install-dependencies.sh && install_bats"
-- "source ./install-dependencies.sh && install_mkdoc"
-- "source ./install-dependencies.sh && install_pylib"
-- "source ./install-dependencies.sh && install_script"
-- "source ./install-dependencies.sh && install_docopt"
-- pip install --user nose-parameterized
+#python:
+#  - "2.6"
+#  - "2.7"
+#  - "3.2"
+#  #- "3.3"
+#  #- "3.4"
+#  #- "3.7"
+#  #- "nightly"
 
 addons:
   apt:
@@ -14,38 +16,68 @@ addons:
       - tree
       - realpath
       - uuid-runtime
+      - moreutils
+      - curl
+      - php5-cli
+      - posh
+      - dash
+      - ruby-bundler
 # not allowed:
 # - rhash
 # - pytz
 
-before_script: []
+before_install:
+  - SCR_SYS_SH=bash-sh
+  - scriptname="before-install"
+  - . ./tools/sh/init.sh
+  - . ./tools/sh/env.sh
+  - . ./tools/ci/parts/init.sh
+
+install:
+  - scriptname=install
+  - . ./tools/ci/parts/install.sh
+
+before_script:
+  - scriptname="before-script"
+  - . ./tools/ci/parts/check.sh
 
 script:
-- 'make -k test'
-#- . ./tools/ci/build.sh
-# verify exit of above script (everything again):
-- bats ./test/*-spec.bats
+  - scriptname=script
+  - . ./tools/ci/parts/build.sh
+
+matrix:
+  include: []
 
 env:
+  matrix:
+    #- ENV=noop
+    #- ENV=dev
+    #- ENV=testing
+    # TODO: - ENV=production
+    #- TEST_ENV=testing TEST_SHELL=posh
+    - TEST_ENV=testing TEST_SHELL=dash
+    - TEST_ENV=testing TEST_SHELL=bash
+    - TEST_ENV=testing TEST_SHELL=sh
   global:
+    - ENV=
     - CS=dark
+    - sudo=
     - TRAVIS_SKIP=1
     - TEST_ENV=travis
     - UCONFDIR=$HOME/etc
-    - PATH=$PATH:$HOME/bin:$HOME/usr/bin:$HOME/.local/bin/
+    - PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
     - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
+    - TEST_RESULTS=shippable/testresults/test.tap
     - Build_Deps_Default_Paths=1
-  matrix:
-  - ENV= 
-#- ENV=testing
-#- ENV=production
 
 branches:
-  only:
+  only: []
+  #only:
     #  - master
     #  - '/^test.*$/'
     #  - '/^dev.*$/'
     #  - '/^[0-9]*\.[0-9]*\.[0-9]*/'
+  not: []
 
 #deploy:
 #  provider: releases
@@ -55,5 +87,4 @@ branches:
 #    repo: dotmpe/script.mpe
 #    tags: true
 #    condition: $ENV = production
-#
-#
+

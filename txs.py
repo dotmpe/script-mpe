@@ -2,9 +2,7 @@
 """
 libcmd+taxus (SQLAlchemy) session
 
-XXX:
-    taxus should do basic storage model
-    rsr ("resourcer") builds on taxus to explore res.meta further
+FIXME: txs
 """
 import os, stat, sys
 from os import sep
@@ -20,7 +18,7 @@ import log
 import res
 from libname import Namespace#, Name
 from libcmdng import Targets, Arguments, Keywords, Options,\
-    Target 
+    Target
 import taxus.checksum
 import taxus.core
 import taxus.fs
@@ -30,7 +28,6 @@ import taxus.model
 import taxus.net
 import taxus.semweb
 import taxus.web
-# XXX
 from taxus import SessionMixin, \
         Node, GroupNode, \
         INode, Dir, \
@@ -39,6 +36,8 @@ from taxus import SessionMixin, \
 from taxus.util import current_hostname
 #from taxus.iface import gsm, IReferenceResolver
 
+
+import cmdline2
 
 
 class LocalPathResolver(object):
@@ -72,7 +71,7 @@ class LocalPathResolver(object):
             pass
 
         return INode(local_path=path, host=self.host)
-# XXX: why hijack init which is for session init..
+        # XXX: why hijack init which is for session init..
         assert False
 
         if not opts.init:
@@ -154,9 +153,14 @@ def host_find(args, sa=None):
     except NoResultFound, e:
         return
     return node
-          
 
-#@Target.register(NS, 'session', 'cmd:options')
+
+NS = Namespace.register(
+        prefix='txs',
+        uriref='http://project.dotmpe.com/script/#/txs'
+    )
+
+@Target.register(NS, 'session', 'cmd:options')
 def txs_session(prog=None, sa=None, opts=None, settings=None):
     # default SA session
     dbref = opts.dbref
@@ -197,7 +201,7 @@ def txs_session(prog=None, sa=None, opts=None, settings=None):
     log.info("On %s", host)
     yield Keywords(sa=sa, ur=urlresolver)
 
-#@Target.register(NS, 'pwd', 'txs:session')
+@Target.register(NS, 'pwd', 'txs:session')
 def txs_pwd(prog=None, sa=None, ur=None, opts=None, settings=None):
     log.debug("{bblack}txs{bwhite}:pwd{default}")
     cwd = os.path.abspath(os.getcwd())
@@ -205,18 +209,18 @@ def txs_pwd(prog=None, sa=None, ur=None, opts=None, settings=None):
     yield pwd
     yield Keywords(pwd=pwd)
 
-#@Target.register(NS, 'ls', 'txs:pwd')
+@Target.register(NS, 'ls', 'txs:pwd')
 def txs_ls(pwd=None, ur=None, opts=None):
     log.debug("{bblack}txs{bwhite}:ls{default}")
     node = ur.getDir(pwd, opts)
     if isinstance(node, basestring):
         print "Dir", node
     else:
-        print node.local_path
+        print 'txt: path:', node.local_path
         for rs in res.Dir.walk_tree_interactive(node.local_path):
-            print rs
+            print 'txs: walk: rs:', rs
 
-#@Target.register(NS, 'run', 'txs:session')
+@Target.register(NS, 'run', 'txs:session')
 def txs_run(sa=None, ur=None, opts=None, settings=None):
     log.debug("{bblack}txs{bwhite}:run{default}")
     # XXX: Interactive part, see lind.
@@ -250,7 +254,7 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
                     log.note(tag)
                 except NoResultFound, e:
                     log.note(e)
-                # Ask about each new tag, TODO: or rename, fuzzy match.      
+                # Ask about each new tag, TODO: or rename, fuzzy match.
                 if tagstr not in tags:
                     type = raw_input('%s%s%s:?' % (
                         log.palette['yellow'], tagstr,

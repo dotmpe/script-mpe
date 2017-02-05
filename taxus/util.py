@@ -2,18 +2,19 @@ import os
 import socket
 import types
 import re
+from datetime import datetime
 
 import zope.interface
 
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.ext import declarative
 from sqlalchemy.ext.declarative import api
 from sqlalchemy.orm.exc import NoResultFound
 
 import taxus
 from script_mpe import log
-from init import class_registry, SqlBase, get_session
-import iface
+from .init import class_registry, SqlBase, get_session
+from . import iface
 
 
 
@@ -23,15 +24,15 @@ class SessionMixin(object):
     sessions = {}
 
     @staticmethod
-    def get_session(name='default', dbref=None, init=False):
+    def get_session(name='default', dbref=None, init=False, SqlBase=SqlBase):
         if name not in SessionMixin.sessions:
             assert dbref, "session does not exists: %s" % name
-            session = get_session(dbref, init)
+            session = get_session(dbref, init, metadata=SqlBase.metadata)
             #assert session.engine, "new session has no engine"
             SessionMixin.sessions[name] = session
         else:
             session = SessionMixin.sessions[name]
-            #assert session.engine, "existing session does not have engine"
+            assert session.engine, "existing session does not have engine"
         return session
 
 
@@ -110,17 +111,6 @@ class ScriptMixin(SessionMixin):
 class RecordMixin(object):
 
     @classmethod
-    def get_instance(Klass, nid, session='default', sa=None):
-
-        """
-        """
-
-        if not sa:
-            sa = Klass.get_session(session)
-        q = sa.query(Klass).filter(Klass.__tablename__ + '.id == ' + nid)
-        return q.one()
-
-    @classmethod
     def fetch(Klass, filters=(), query=(), session='default', sa=None, exists=True):
 
         """
@@ -142,12 +132,44 @@ class RecordMixin(object):
 
         try:
             rs = q.one()
-        except NoResultFound, e:
+        except NoResultFound as e:
             if exists:
                 log.err("No results for %s.fetch(%r)", Klass.__name__, filters)
                 raise e
 
         return rs
+
+    @classmethod
+    def fetch_instance(Klass, nid, session='default', sa=None):
+
+        """
+        """
+
+        if not sa:
+            sa = Klass.get_session(session)
+        q = sa.query(Klass).filter(Klass.__tablename__ + '.id' == nid)
+        return q.one()
+
+    @classmethod
+    def get_instance(Klass, _session='default', _sa=None, _fetch=True, **match_attrs):
+        filters = []
+        for attr in match_attrs:
+            #filters.append( text(Klass.__name__+'.'+attr+" = %r" % match_attrs[attr]) )
+            filters.append( getattr(Klass, attr) == match_attrs[attr] )
+
+        rec = None
+        if _fetch:
+            rec = Klass.fetch(filters, sa=_sa, session=_session, exists=False)
+
+        if not rec:
+            # FIXME: proper init per type, ie INode a/c/mtime
+            for attr in 'date_updated', 'date_added':
+                if attr not in match_attrs or not match_attrs[attr]:
+                    match_attrs[attr] = datetime.now()
+
+            rec = Klass(**match_attrs)
+
+        return rec
 
     @classmethod
     def find(Klass, _sa=None, _session='default', _exists=False, **keys):
@@ -201,7 +223,7 @@ class RecordMixin(object):
         if not sa:
             sa = Klass.get_session(session)
         q = sa.query(Klass)
-        if not filters and isinstance(filters, types.NoneType):
+        if not filters and isinstance(filters, type(None)):
             if hasattr(Klass, 'default_filters'):
                 filters = Klass.default_filters()
         if filters:
@@ -209,7 +231,7 @@ class RecordMixin(object):
                 q = q.filter(f)
         try:
             return q.all()
-        except Exception, e:
+        except Exception as e:
             log.err("Error executing .all: %s", e)
             return []
 
@@ -230,11 +252,11 @@ class RecordMixin(object):
         return hex(id(self))
 # XXX: is it possible to get the values in the primary key..
         #for colname in self.metadata.tables[self.__tablename__].primary_key.columns:
-        print dir(self.metadata.tables[self.__tablename__].primary_key.columns)
-        print self.metadata.tables[self.__tablename__].primary_key
-        print self.metadata.tables[self.__tablename__].c
+        print(dir(self.metadata.tables[self.__tablename__].primary_key.columns))
+        print(self.metadata.tables[self.__tablename__].primary_key)
+        print(self.metadata.tables[self.__tablename__].c)
 
-        print dir(self)
+        print(dir(self))
         return self.columns['id']
 
     registry = {}
@@ -275,7 +297,7 @@ class RecordMixin(object):
         """
         Root = Klass.root_type()
         if not Root.registry:
-            for key, model in SqlBase._decl_class_registry.items():
+            for key, model in list(SqlBase._decl_class_registry.items()):
                 if not hasattr(model, '__mapper_args__'):
                     continue
                 if 'polymorphic_identity' not in model.__mapper_args__:
@@ -359,7 +381,7 @@ def prompt_choice_with_input(promptstr, choices):
     for c in choices:
         i += 1
         promptstr += "\n%i. %s" % (i, c)
-    x = raw_input(promptstr+'\n')
+    x = input(promptstr+'\n')
     if x.isdigit():
         return choices[int(x)-1]
     elif x:
@@ -370,7 +392,7 @@ def get_hostname():
     host = socket.gethostname().split('.').pop(0)
     getfqdn = socket.getfqdn()
     if getfqdn.split('.').pop(0) != host:
-        print "Hostname does not match (sub)domain: %s (%s)"%(host, getfqdn)
+        print("Hostname does not match (sub)domain: %s (%s)"%(host, getfqdn))
         #err("Hostname does not match (sub)domain: %s (%s)", host, getfqdn)
     return host
 
@@ -410,10 +432,10 @@ def current_hostname(initialize=False, interactive=False):
             if hostname:
                 try:
                     nameinfo((hostname, 80))
-                except Exception, e:
-                    print 'Warning: Cannot resolve FQDN', e
+                except Exception as e:
+                    print('Warning: Cannot resolve FQDN', e)
                 open(hostname_file, 'w+').write(hostname)
-                print "Stored %s in %s" % (hostname, hostname_file)
+                print("Stored %s in %s" % (hostname, hostname_file))
                 break
     return hostname
 
@@ -433,10 +455,10 @@ def nameinfo(addr):
     try:
         DNSCache[ addr ] = socket.getaddrinfo(
             addr[ 0 ], addr[ 1 ], socket.AF_INET, socket.SOCK_STREAM )
-    except Exception, e:
+    except Exception as e:
         raise DNSLookupException(addr, e)
 
-    print DNSCache[ addr ][ 0 ]
+    print(DNSCache[ addr ][ 0 ])
 
     family, socktype, proto, canonname, sockaddr = DNSCache[ addr ][ 0 ]
 

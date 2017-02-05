@@ -387,6 +387,8 @@ def c_check_names(*tags):
     and fail for paths that match a tagged template not listed on argv.
     """
     load_templates()
+    unmatched = 0
+    failed = 0
     matchbox = {}
     for name in templates:
         regex = name_regex(templates[name])
@@ -412,11 +414,20 @@ def c_check_names(*tags):
             if not invalid:
                 if not passed:
                     print "No match for", line
+                    unmatched += 1
                 else:
                     print 'OK', ','.join(passed), line
             else:
                 print 'INVALID', ','.join(invalid), ','.join(passed), line
-
+                failed += 1
+    if unmatched or failed:
+        if not failed:
+            print "# Errors: %i unmatched" % ( unmatched, )
+        elif not unmatched:
+            print "# Errors: %i invalid" % ( failed )
+        else:
+            print "# Errors: %i unmatched, %i invalid" % ( unmatched, failed )
+        return 4
 
 ### Readers/Writers
 
@@ -457,4 +468,5 @@ if __name__ == '__main__':
         cmdname = 'c_'+argv.pop(0).replace('-', '_')
     load_vars()
     sys.exit(locals()[cmdname](*argv))
+
 

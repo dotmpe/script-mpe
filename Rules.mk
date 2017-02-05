@@ -1,4 +1,4 @@
-# Id: script-mpe/0.0.0-dev Rules.mk
+# Id: script-mpe/0.0.3-dev Rules.mk
 #
 # Non recursive make, partial rule file. See github mkdocs.
 include                $(MK_SHARE)Core/Main.dirstack.mk
@@ -7,7 +7,7 @@ MK                  += $/Rules.mk
 #      ------------ -- 
 
 
-VERSION= 0.0.0-dev# script-mpe
+VERSION= 0.0.3-dev# script-mpe
 
 $(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 
@@ -25,6 +25,7 @@ endif
 ###    Test targets
 #
 #      ------------ -- 
+
 
 ifeq ($(shell hostname -s),simza)
 TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d 
@@ -162,6 +163,7 @@ test_schema_$d:
 	@yaml2json schema/base.yml > schema/base.json
 	@$(ll) OK $@ "now validating schema/base..."
 	@jsonschema schema/base.json
+
 
 ###    SQL Alchemy repository schema control
 #
@@ -316,3 +318,4 @@ INSTALL += symlinks
 #
 include                $(MK_SHARE)Core/Main.dirstack-pop.mk
 # vim:noet:
+

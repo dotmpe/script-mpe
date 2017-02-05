@@ -5,10 +5,10 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime, Enum
 from sqlalchemy.orm import relationship, backref
 
-import core
-import net
-from init import SqlBase
-from util import ORMMixin
+from . import core
+from . import net
+from .init import SqlBase
+from .util import ORMMixin
 
 
 

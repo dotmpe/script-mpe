@@ -3,7 +3,7 @@ match_src=$_
 
 set -e
 
-match_version=0.0.0-dev # script-mpe
+match_version=0.0.3-dev # script-mpe
 
 
 
@@ -174,8 +174,7 @@ match_lib()
   util_init
   . $scriptdir/box.init.sh
   box_run_sh_test
-  . $scriptdir/main.lib.sh "$@"
-  . $scriptdir/main.init.sh
+  . $scriptdir/main.lib.sh load-ext
   # -- match box init sentinel --
 }
 
@@ -213,3 +212,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   ;;
 
 esac
+

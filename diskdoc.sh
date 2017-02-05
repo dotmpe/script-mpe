@@ -11,7 +11,7 @@ diskdoc__edit()
     "$@"
 }
 
-diskdoc_run__meta=y
+diskdoc_load__meta=y
 # Defer to python script for YAML parsing
 diskdoc__meta()
 {
@@ -51,7 +51,7 @@ diskdoc__meta_sq()
   diskdoc__meta "$@" >/dev/null || return $?
 }
 
-diskdoc_run__status=ybf
+diskdoc_load__status=ybf
 # Run over known prefixes and present status indicators
 diskdoc__status()
 {
@@ -64,9 +64,10 @@ diskdoc__status()
     #test -d "$prefix" || continue
     #diskdoc__clean $prefix || touch $failed
   done
+  rm_failed
 }
 
-diskdoc_run__check=ybf
+diskdoc_load__check=ybf
 # Check with remote refs
 diskdoc__check()
 {
@@ -78,6 +79,7 @@ diskdoc__check()
     test -d "$prefix" || continue
     diskdoc sync $prefix || touch $failed
   done
+  rm_failed
 }
 
 diskdoc__clean()
@@ -124,9 +126,9 @@ diskdoc__disable_clean()
   done
 }
 
-# Add/remove repos, udiskdocate remotes at first level. git only.
-diskdoc_run__udiskdocate=yfb
-diskdoc__udiskdocate()
+# Add/remove repos, update remotes at first level. git only.
+diskdoc_load__update=yfb
+diskdoc__update()
 {
   test -n "$1" || set -- "*"
 
@@ -150,7 +152,7 @@ diskdoc__udiskdocate()
           && continue \
           || {
 
-          diskdoc__meta udiskdocate-repo $prefix disabled=true \
+          diskdoc__meta update-repo $prefix disabled=true \
             && note "Disabled $prefix" \
             || touch $failed
         }
@@ -181,13 +183,13 @@ diskdoc__udiskdocate()
         touch $failed
       }
 
-      # Udiskdocate existing, add newly found repos to metadata
+      # Update existing, add newly found repos to metadata
 
       diskdoc__meta_sq get-repo $prefix && {
-        diskdoc__meta udiskdocate-repo $prefix $props \
-          && note "Udiskdocated metadata for $prefix" \
+        diskdoc__meta update-repo $prefix $props \
+          && note "Updated metadata for $prefix" \
           || { r=$?; test $r -eq 42 && info "Metadata up-to-date for $prefix" \
-            || { warn "Error udiskdocating $prefix with '$props'"
+            || { warn "Error updating $prefix with '$props'"
               touch $failed
             } }
       } || {
@@ -201,10 +203,11 @@ diskdoc__udiskdocate()
 
     shift
   done
+  rm_failed
 }
 
-diskdoc_run__find=y
-diskdoc_spc_find='[<path>|<localname> [<project>]]'
+diskdoc_load__find=y
+diskdoc_spc__find='[<path>|<localname> [<project>]]'
 diskdoc__find()
 {
   test -z "$3" || error "Surplus arguments: $3" 1
@@ -219,14 +222,14 @@ diskdoc__find()
   }
 }
 
-diskdoc_run__list_prefixes=y
+diskdoc_load__list_prefixes=y
 diskdoc__list_prefixes()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
   diskdoc__meta list-disks "$1"
 }
 
-diskdoc_run__compile_ignores=y
+diskdoc_load__compile_ignores=y
 diskdoc__compile_ignores()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
@@ -241,8 +244,8 @@ diskdoc__compile_ignores()
 }
 
 # prepare Pd var, failedfn
-diskdoc_run__sync=yf
-# Udiskdocate remotes and check refs
+diskdoc_load__sync=yf
+# Update remotes and check refs
 diskdoc__sync()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -329,10 +332,11 @@ diskdoc__sync()
   done
 
   # XXX: look into git config for this: git for-each-ref --format="%(refname:short) %(upstream:short)" refs/heads
+  rm_failed
 }
 
 # Assert checkout exists, or reinitialize from Pd document.
-diskdoc_run__enable=y
+diskdoc_load__enable=y
 diskdoc__enable()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -349,7 +353,7 @@ diskdoc__enable()
   diskdoc__init $1
 }
 
-diskdoc_run__init=y
+diskdoc_load__init=y
 diskdoc__init()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -358,12 +362,12 @@ diskdoc__init()
   diskdoc__set_remotes $1
   cwd=$(pwd)
   cd $1
-  git submodule udiskdocate --init --recursive
+  git submodule update --init --recursive
   cd $cwd
 }
 
 # Set the remotes from metadata
-diskdoc_run__set_remotes=y
+diskdoc_load__set_remotes=y
 diskdoc__set_remotes()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -398,7 +402,7 @@ no_act()
 
 
 # Disable prefix. Remove checkout if clean.
-diskdoc_run__disable=y
+diskdoc_load__disable=y
 diskdoc__disable()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -435,7 +439,7 @@ diskdoc__disable()
 }
 
 
-diskdoc_run__add=y
+diskdoc_load__add=y
 diskdoc__add()
 {
   test -n "$1" || error "expected GIT URL" 1
@@ -446,7 +450,7 @@ diskdoc__add()
 }
 
 
-diskdoc_run__ids=y
+diskdoc_load__ids=y
 diskdoc__ids()
 {
   sudo blkid | while read devicer uuidr typer partuuidr
@@ -469,34 +473,26 @@ diskdoc__ids()
 # ----
 
 
-#diskdoc__usage()
-#{
-#  echo 'Usage: '
-#  echo "  $scriptname.sh <cmd> [<args>..]"
-#}
-#
-#diskdoc__help()
-#{
-#  diskdoc__usage
-#  echo 'Functions: '
-#  echo '  status                           List abbreviated status strings for all repos'
-#  echo ''
-#  echo '  help                             print this help listing.'
-#  # XXX _init is bodged, std__help diskdoc "$@"
-#}
-
-diskdoc__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+diskdoc_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+diskdoc_load__help=f
 diskdoc_spc__help='-h|help [ID]'
 diskdoc__help()
 {
-  #std__help diskdoc "$@"
   choice_global=1 std__help "$@"
+  rm_failed || return
 }
 diskdoc_als___h=help
 
+
+
 diskdoc_load()
 {
-  for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
+  test -n "$diskdoc_session_id" || diskdoc_session_id=$(get_uuid)
+
+  sys_load
+  str_load
+
+  for x in $(try_value "${subcmd}" "" load | sed 's/./&\ /g')
   do case "$x" in
 
       y )
@@ -525,12 +521,11 @@ diskdoc_load()
       f )
         # Preset name to subcmd failed file placeholder
         req_vars base subcmd
-        test -n "$diskdoc" && {
-          req_vars p
-          failed=/tmp/${base}-$p-$subcmd.failed
-        } || {
-          failed=/tmp/${base}-$subcmd.failed
-        }
+        # Preset name to subcmd failed file placeholder
+        # include realpath of projectdoc (p)
+        test -n "$pd" && {
+          export failed=$(setup_tmpf .failed -$p-$subcmd-$diskdoc_session_id)
+        } || failed=$(setup_tmpf .failed -$subcmd-$diskdoc_session_id )
         ;;
 
       b )
@@ -556,33 +551,36 @@ diskdoc_load()
 
 diskdoc_unload()
 {
+  local unload_ret=0
+
   for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
   do case "$x" in
       y )
-        test -z "$sock" || {
-          diskdoc_meta_bg_teardown
-          unset bgd sock
-        }
+          test -z "$sock" || {
+            diskdoc_meta_bg_teardown
+            unset bgd sock
+          }
+        ;;
+      f )
+          clean_failed || unload_ret=1
         ;;
   esac; done
-  unset subcmd subcmd_pref \
-          def_subcmd func_exists func
 
-  test -z "$failed" -o ! -e "$failed" || {
-    rm $failed
-    unset failed
-    return 1
-  }
+  note "unload_ret=$unload_ret"
+
+  unset subcmd subcmd_pref \
+          diskdoc_default def_subcmd func_exists func \
+          failed diskdoc_session_id
+
+  return $unload_ret
 }
 
 diskdoc_init()
 {
   local __load_lib=1
+  lib_load box main
   . $scriptdir/box.init.sh
-  . $scriptdir/box.lib.sh
   box_run_sh_test
-  . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
   #while test $# -gt 0
   #do
   #  case "$1" in
@@ -593,9 +591,6 @@ diskdoc_init()
   #  esac
   #done
   #. $scriptdir/diskdoc.inc.sh "$@"
-  . $scriptdir/date.lib.sh
-  . $scriptdir/match.lib.sh
-  . $scriptdir/vc.sh load-ext
   test -n "$verbosity" || verbosity=6
   # -- diskdoc box init sentinel --
 }
@@ -603,8 +598,8 @@ diskdoc_init()
 diskdoc_lib()
 {
   local __load_lib=1
-  . ~/bin/util.sh
-  . ~/bin/box.lib.sh
+  lib_load date match
+  . $scriptdir/vc.sh load-ext
   # -- diskdoc box lib sentinel --
 }
 
@@ -622,6 +617,7 @@ diskdoc_main()
 
         # invoke with function name first argument,
         local scsep=__ bgd= \
+          diskdoc_session_id= \
           subcmd_pref=${scriptalias} \
           diskdoc_default=status \
           func_exists= \
@@ -635,18 +631,8 @@ diskdoc_main()
         diskdoc_init "$@" || error "init failed" $?
         shift $c
 
-        diskdoc_lib || exit $?
-        run_subcmd "$@" || exit $?
-
-        #try_subcmd && {
-        #  diskdoc_lib
-        #  box_src_lib diskdoc
-        #  shift 1
-        #  diskdoc_load $subcmd "$@" || return
-        #  $func "$@" || r=$?
-        #  diskdoc_unload
-        #  exit $r
-        #}
+        diskdoc_lib || error diskdoc-lib $?
+        run_subcmd "$@" || error "run-subcmd:$*" $?
 
       ;;
 
@@ -661,7 +647,7 @@ diskdoc_main()
 case "$0" in "" ) ;; "-*" ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
+  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux?
   # fix using another mechanism:
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
@@ -671,5 +657,6 @@ case "$0" in "" ) ;; "-*" ) ;; * )
 
   esac ;;
 esac
+
 
 

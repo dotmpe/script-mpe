@@ -1,17 +1,27 @@
 #!/usr/bin/env python
 """
-Javascript Object toolkit.
+jsotk
+=====
+Javascript Object toolkit
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :created: 2015-12-28
 :updated: 2016-05-21
 
+
+"""
+from __future__ import print_function
+
+__version__ = '0.0.3-dev' # script-mpe
+__usage__ = """
+jsotk - Javascript Object toolkit
+
 Usage:
-    jsotk [options] path [--is-new] [--is-null] [--is-list] [--is-obj] \
+    jsotk [options] path [--is-new] [--is-null] [--is-list] [--is-obj]
             [--is-int] [--is-str] [--is-bool] <srcfile> <pathexpr>
     jsotk [options] objectpath <srcfile> <expr>
     jsotk [options] keys <srcfile> <pathexpr>
     jsotk [options] items <srcfile> <pathexpr>
-    jsotk [options] [dump] [<srcfile> [<destfile]]
     jsotk [options] (json2yaml|yaml2json) [<srcfile> [<destfile>]]
     jsotk [options] (from-kv|to-kv) [<srcfile> [<destfile>]]
     jsotk [options] (from-flat-kv|to-flat-kv) [<srcfile> [<destfile>]]
@@ -21,6 +31,8 @@ Usage:
     jsotk [options] merge <destfile> <srcfiles>...
     jsotk [options] update <destfile> [<srcfiles>...]
     jsotk [options] update-from-args <srcfiles> <kv-args> <destfile>
+    jsotk (version|-V|--version)
+    jsotk [options] [dump] [<srcfile> [<destfile]]
     jsotk --background [options]
 
 
@@ -71,6 +83,8 @@ Options:
 
                 If no ADDRESS or JSOTK_SOCKET is found the invocation is
                 executed normally
+  -V, --version
+                Print version
 
 Formats
 -------
@@ -91,11 +105,12 @@ pkv
 fkv (o)
     Like pkv, but this is even more restrictive in key characters, keys
     can only contain [A-Za-Z_][A-Za-z0-9_]+ and everything else is lost.
-    Example::
+    Still the (example at pkv) above can be represented, for example::
 
         path_to__1_item=value-for-object-path
         path_to__2=append-item-value
 
+    Double underscores are used to separate path elements.
 py (o)
     Given one or more results, output as python value.
 lines (o)
@@ -113,7 +128,6 @@ Dev
 import types
 from StringIO import StringIO
 
-from docopt import docopt
 from objectpath import Tree
 
 
@@ -135,7 +149,7 @@ def H_dump(ctx, write=True):
     infile, outfile = get_src_dest_defaults(ctx)
     data = load_data( ctx.opts.flags.input_format, infile, ctx )
     if write:
-        return stdout_data( ctx.opts.flags.output_format, data, outfile, ctx )
+        return stdout_data( data, ctx, outf=outfile )
     else:
         return data
 
@@ -199,7 +213,7 @@ def H_merge(ctx, write=True):
 
     if write:
         outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
-        return stdout_data( ctx.opts.flags.output_format, data, outfile, ctx )
+        return stdout_data( data, ctx, outf=outfile )
     else:
         return data
 
@@ -221,12 +235,12 @@ def H_update(ctx):
         deep_update([data, mdata], ctx)
 
     updatefile = get_dest(ctx, 'w+')
-    return stdout_data( ctx.opts.flags.output_format, data, updatefile, ctx )
+    return stdout_data( data, ctx, outf=updatefile )
 
 
 def H_update_from_args(ctx):
     pass
-    # TODO
+    # TODO jsotk update-from-args
     #reader = PathKVParser(rootkey=args[0])
     #reader.scan_kv_args(ctx.opts.args.kv_args)
 
@@ -248,8 +262,9 @@ def H_path(ctx):
     try:
         data = data_at_path(ctx, infile)
         infile.close()
-    except:
+    except (Exception) as e:
         if not ctx.opts.flags.is_new:
+            sys.stderr.write("Error: getting %r: %r" % ( ctx.opts.args.pathexpr, e ))
             return 1
 
     res = [ ]
@@ -269,7 +284,7 @@ def H_path(ctx):
         res = [ 0 ]
 
     if not ctx.opts.flags.quiet:
-        res += [ stdout_data( ctx.opts.flags.output_format, data, outfile, ctx ) ]
+        res += [ stdout_data( data, ctx, outf=outfile ) ]
 
     return max(res)
 
@@ -284,9 +299,9 @@ def H_keys(ctx):
     if not data:
         return 1
     if isinstance(data, dict):
-        return stdout_data( ctx.opts.flags.output_format, data.keys(), outfile, ctx )
+        return stdout_data( data.keys(), ctx, outf=outfile )
     elif isinstance(data, list):
-        return stdout_data( ctx.opts.flags.output_format, range(0, len(data)), outfile, ctx )
+        return stdout_data( range(0, len(data)), ctx, outf=outfile )
     else:
         raise ValueError, "Unhandled type %s" % type(data)
 
@@ -301,11 +316,11 @@ def H_items(ctx):
         return 1
     if isinstance(data, list):
         for item in data:
-            stdout_data( ctx.opts.flags.output_format, item, outfile, ctx )
+            stdout_data( item, ctx, outf=outfile )
     elif isinstance(data, dict):
         for key, value in data.items():
             subdata = { key: value }
-            stdout_data( ctx.opts.flags.output_format, subdata, outfile, ctx )
+            stdout_data( subdata, ctx, outf=outfile )
     else:
         raise ValueError, "Unhandled type %s" % type(data)
 
@@ -313,15 +328,18 @@ def H_items(ctx):
 
 def H_objectpath(ctx):
     infile, outfile = get_src_dest_defaults(ctx)
-    q = Tree(load_data( ctx.opts.flags.input_format, infile, ctx ) )
+    data = load_data( ctx.opts.flags.input_format, infile, ctx )
+    assert data
+    q = Tree(data)
+    assert q.data
     o = q.execute( ctx.opts.args.expr )
     if isinstance(o, types.GeneratorType):
         for s in o:
-            v = stdout_data( ctx.opts.flags.output_format, s, outfile, ctx )
+            v = stdout_data( s, ctx, outf=outfile )
             if v:
                 return v
     else:
-        return stdout_data( ctx.opts.flags.output_format, o, outfile, ctx )
+        return stdout_data( o, ctx, outf=outfile )
 
 
 
@@ -361,7 +379,7 @@ def H_from_args(ctx):
     args = ctx.opts.args.kv_args
     reader = PathKVParser(rootkey=args[0])
     reader.scan_kv_args(args)
-    return stdout_data( ctx.opts.flags.output_format, reader.data, ctx.out, ctx )
+    return stdout_data( reader.data, ctx )
 
 def H_from_kv(ctx):
     ctx.opts.flags.input_format = 'pkv'
@@ -376,7 +394,7 @@ def H_from_flat_args(ctx):
     args = ctx.opts.args.fkv_args
     reader = FlatKVParser(rootkey=args[0])
     reader.scan_kv_args(args)
-    return stdout_data( ctx.opts.flags.output_format, reader.data, ctx.out, ctx )
+    return stdout_data( reader.data, ctx )
 
 def H_from_flat_kv(ctx):
     ctx.opts.flags.input_format = 'fkv'
@@ -387,6 +405,9 @@ def H_to_flat_kv(ctx):
     return H_dump(ctx)
 
 
+
+def H_version(ctx):
+    print('script-mpe/'+__version__)
 
 
 
@@ -440,7 +461,7 @@ def main(func, ctx):
 
     elif 'exit' == ctx.opts.cmds[0]:
         # Exit background process
-        print >>ctx.err, "No background process at %s" % ctx.opts.flags.address
+        ctx.err.write("No background process at %s\n" % ctx.opts.flags.address)
         return 1
 
     else:
@@ -448,10 +469,11 @@ def main(func, ctx):
         return handlers[func](ctx)
 
 
+
 if __name__ == '__main__':
     import sys, os
     ctx = confparse.Values(dict(
-        usage=__doc__,
+        usage=__usage__,
         path_exists=os.path.exists,
         sep=confparse.Values(dict(
             line=os.linesep
@@ -459,9 +481,11 @@ if __name__ == '__main__':
         out=sys.stdout,
         inp=sys.stdin,
         err=sys.stderr,
-        opts=util.get_opts(__doc__)
+        opts=util.get_opts(__usage__)
     ))
     ctx['in'] = ctx['inp']
+    if ctx.opts.flags.version:
+        ctx.opts.cmds = ['version']
     if not ctx.opts.cmds:
         ctx.opts.cmds = ['dump']
     if ctx.opts.flags.no_detect_format:
@@ -475,8 +499,7 @@ if __name__ == '__main__':
         if not ctx.opts.flags.quiet:
             import traceback
             tb = traceback.format_exc()
-            print tb
-            print 'Unexpected Error:', err
+            print(tb)
+            print('Unexpected Error:', err)
         sys.exit(1)
-
 

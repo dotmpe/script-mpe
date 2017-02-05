@@ -2,13 +2,8 @@
 
 set -e
 
+
 # Main: CLI helpers; init/run func as subcmd
-
-
-main_load()
-{
-  lib_load sys str std
-}
 
 
 # Count arguments consumed
@@ -62,12 +57,6 @@ try_local()
   test -z "$1" || set -- " :$1" "$2" "$3"
   test -z "$2" || set -- "$1" "$2" "$3:"
   echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
-}
-
-try_local_var()
-{
-  local name=$(try_local "$@")
-  var_isset $name || return $?
 }
 
 try_value()
@@ -149,11 +138,13 @@ get_subcmd_func()
 # Set and see if $func exists
 try_subcmd()
 {
-  test -z "$1" || {
-    get_subcmd_args "$@" || {
-      error "parsing args" $?
-    }
-  }
+  #test -z "$1" || {
+  #  get_subcmd_args "$@" || {
+  #    error "parsing args" $?
+  #  }
+  #}
+  test -z "$subcmd" && subcmd=$1
+
   get_subcmd_func || {
     e=$?
     test -z "$subcmd" && {
@@ -174,7 +165,7 @@ try_subcmd()
 }
 
 
-std__man_1_help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+std_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 std_spc__help='-h|help [ID]'
 std_als___h=help
 std__help()
@@ -184,8 +175,8 @@ std__help()
   test -z "$1" && {
 
     # Generic help (no args)
-    try_exec_func ${box_prefix}__usage $1 || std__usage $1
-    try_exec_func ${box_prefix}__commands || std__commands
+    try_exec_func ${box_prefix}__usage $1 || { std__usage $1; echo ; }
+    try_exec_func ${box_prefix}__commands || { std__commands; echo ; }
     try_exec_func ${box_prefix}__docs || noop
 
   } || {
@@ -250,16 +241,18 @@ std__commands()
       } || continue
     }
 
-    local subcmd_func_pref=${base}__
-    #echo "file=$file local-file=$local-file 0=$0"
+    local subcmd_func_pref=${base}_
+    #echo "file=$file local-file=$local_file 0=$0"
+
     if trueish "$cont"; then continue; fi
     #echo "line=$line subcmd_func_pref=$subcmd_func_pref cont=$cont"
 
-    func=$(echo $line | grep '^'${subcmd_func_pref} | sed 's/()//')
+    func=$(echo $line | grep '^'${subcmd_func_pref}_ | sed 's/()//')
     test -n "$func" || continue
 
-    func_name="$(echo "$func"| sed 's/'${subcmd_func_pref}'//')"
+    func_name="$(echo "$func"| sed 's/'${subcmd_func_pref}'_//')"
     spc=
+
     if test "$(expr_substr "$func_name" 1 7)" = "local__"
     then
       lcwd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\1/' | tr '_' '-')"
@@ -267,10 +260,10 @@ std__commands()
       test -n "$lcmd" || lcmd="-"
       #spc="* $lcmd ($lcwd)"
       spc="* $lcmd "
-      descr="$(eval echo "\$${subcmd_func_pref}man_1_$func_name")"
+      descr="$(eval echo "\$${subcmd_func_pref}man_1__$func_name")"
     else
-      spc="$(eval echo "\$${subcmd_func_pref}spc_$func_name")"
-      descr="$(eval echo "\$${subcmd_func_pref}man_1_$func_name")"
+      spc="$(eval echo "\$${subcmd_func_pref}spc__$func_name")"
+      descr="$(eval echo "\$${subcmd_func_pref}man_1__$func_name")"
     fi
     test -n "$spc" || spc=$(echo $func_name | tr '_' '-' )
     test -n "$descr" || {
@@ -278,13 +271,18 @@ std__commands()
         descr="$(func_comment $subcmd_func_pref$func_name $file)"
       } || noop
     }
-    printf "  %-25s  %-50s\n" "$spc" "$descr"
+
+    test ${#spc} -gt 20 && {
+      printf "  %-18s\n                      %-50s\n" "$spc" "$descr"
+    } || {
+      printf "  %-18s  %-50s\n" "$spc" "$descr"
+    }
   done
 }
 
 
 std_als___V=version
-std__man_1_version="Version info"
+std_man_1__version="Version info"
 std_spc__version="-V|version"
 std__version()
 {
@@ -384,9 +382,9 @@ get_subcmd_args()
       break
       ;;
 
-    --* )
-      error "no long options $1" 1
-      ;;
+    #--* )
+    #  error "no long options $1" 1
+    #  ;;
 
     -* )
 
@@ -507,9 +505,12 @@ main_init()
   stdio_type 1 $$
   stdio_type 2 $$
 
+  #stderr info "Verbosity $verbosity"
   var_isset verbosity || verbosity=6
 
   #test -n "$scsep" || scsep=__
+
+  return 0
 }
 
 box_src_lib()
@@ -647,24 +648,21 @@ run_subcmd()
   # Execute and exit
 
   $subcmd_func "$@" && {
-
-    main_unload $box_prefix || {
-      error "Command $subcmd failed (unload: $?)" 4
+    prev_subcmd=$subcmd
+    main_unload $box_prefix && noop || {
+      error "Command $prev_subcmd failed ($?)" 4
     }
+
   } || {
     e=$?
+    prev_subcmd=$subcmd
     main_unload $box_prefix
-    error "Command $subcmd returned $e" 3
+    error "Command $prev_subcmd returned $e" 3
   }
 
   test -z "$dry_run" \
     && info "$subcmd completed normally" 0 \
     || info "$subcmd dry-drun completed" 0
-}
-
-req_htdir()
-{
-  test -n "$HTDIR" -a -d "$HTDIR" || return 1
 }
 
 
@@ -692,26 +690,6 @@ daemon()
 #}
 
 
-# Given $failed pointing to a path, cleanup after a run, observing
-# any notices and returning 1 for failures.
-clean_failed()
-{
-  test -z "$failed" -o ! -e "$failed" && return || {
-    test -n "$1" || set -- "Failed: "
-    test -s "$failed" && {
-      count="$(sort -u $failed | wc -l | awk '{print $1}')"
-      test "$count" -gt 2 && {
-        warn "$1 $(echo $(sort -u $failed | head -n 3 )) and $(( $count - 3 )) more"
-        rotate-file $failed .failed
-      } || {
-        warn "$1 $(echo $(sort -u $failed))"
-      }
-    }
-    test ! -e "$failed" || rm $failed
-    unset failed
-    return 1
-  }
-}
 
 # TODO: retrieve leading/trailing X lines, truncate to Y length
 abbrev_content()
@@ -719,33 +697,9 @@ abbrev_content()
   echo
 }
 
-# remove named paths from env context; set status vars for line-count and
-# truncated contents; XXX: deprecates clean_failed
-clean_io_lists()
-{
-  local count= path=
-  while test -n "$1"
-  do
-    count=0 path="$(eval echo \$$1)"
-    test -s "$path" && {
-      count="$(count_lines $path)"
-      test $count -gt 2 && {
-        eval ${1}_abbrev="'$(echo $(sort -u $path | head -n 3 )) and $(( $count - 3 )) more'"
-        #rotate-file $failed .failed
-      } || {
-        eval ${1}_abbrev="'$(echo $(sort -u $path | lines_to_words ))'"
-        #rm $1
-      }
-    }
-    test ! -e $path || rm $path
-    eval ${1}_count="$count"
-    export ${1}_count ${1}_abbrev
-    shift
-  done
-}
 
 
-# Return path in metadata index
+# Return path in statusdir metadata index
 setup_stat()
 {
   test -n "$1" || set -- .json "$2" "$3"

@@ -121,7 +121,7 @@ import re
 import socket
 import sys
 
-import yaml
+import ruamel.yaml as yaml
 
 import confparse
 
@@ -520,3 +520,4 @@ Local domain check
 if __name__ == '__main__':
     reload()
     main()
+

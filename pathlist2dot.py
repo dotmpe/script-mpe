@@ -209,3 +209,4 @@ for pathfile in args:
     if schema['title'] == pathfile:
         schema['title'] = None
 
+

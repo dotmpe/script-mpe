@@ -8,3 +8,4 @@ if __name__ == '__main__':
 #    main(url='sqlite:///%s' % os.path.join( pathdir, '.cllct/db.sqlite' ), 
 #            debug='False', repository='sa_schema/cllct')
 
+

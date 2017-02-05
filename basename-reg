@@ -38,7 +38,7 @@ import os
 import optparse
 import inspect
 
-import yaml
+import ruamel.yaml as yaml
 
 import log
 import lib
@@ -444,3 +444,5 @@ emitter['layer'] = "%(layer.i)i. %(layer.mime_header)s)"
 emitter['file'] = "%(basename)s $(layer)s", dict( layer = 'reduce:layers' )
 emitter.emit('file', basename=..., layers=[ ... ])
 """
+
+

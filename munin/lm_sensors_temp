@@ -64,3 +64,4 @@ done
 #TEMP1_CRIT=`echo $DATA | grep 'temp1_crit' | sed 's/^.*temp1_crit:\ \([0-9\\.]*\).*$/\1/'`
 #echo "temp1.value $TEMP1"
 #echo "temp1.critical $TEMP1_CRIT"
+

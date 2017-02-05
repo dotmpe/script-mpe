@@ -1,9 +1,28 @@
+from __future__ import print_function
 import re
+import sys
 
 from fnmatch import fnmatch
 from res import js
-from confparse import yaml_load, yaml_safe_dump
+from confparse import yaml_safe_dump
 from pydoc import locate
+
+
+import ruamel.yaml
+
+def yaml_load(*args, **kwds):
+    # XXX: cleanup, hack for JJB content
+    class Loader(ruamel.yaml.SafeLoader):
+    #class Loader(ruamel.yaml.RoundTripLoader):
+        def let_raw_include_through(self, node):
+            return None#self.construct_mapping(node)#, ruamel.yaml.comments.CommentedMap())
+    #Loader.add_multi_constructor(u'!include-raw:', Loader.let_raw_include_through)
+    Loader.add_constructor(u'!include-raw:', Loader.let_raw_include_through)
+    kwds.update(dict(
+        Loader=Loader,
+        preserve_quotes=True
+    ))
+    return ruamel.yaml.load(*args, **kwds)
 
 
 re_non_escaped = re.compile('[\[\]\$%:<>;|\ ]')
@@ -28,7 +47,14 @@ class AbstractKVParser(object):
         "Initialize root (self.data) to correct data type: dict or list"
         if '/' in key:
             key = key.split('/')[0]
-        self.data = FlatKVParser.get_data_instance(key)
+        if self.__class__.contains_root_list(key):
+            skey, rest, idx = self.__class__.parse_list_key(key)
+            if skey:
+                self.data = {}
+            else:
+                self.data = []
+        else:
+            self.data = {}
 
     def scan(self, fh):
         " Parse from file, listing one kv each line. "
@@ -58,7 +84,7 @@ class AbstractKVParser(object):
             self.set_kv(arg)
 
     def set_kv(self, kv):
-        " Split kv to key and value, the the first '=' occurence. "
+        " Split kv to key and value, on the first '=' occurence. "
         if '=' not in kv: return
         pos = kv.index('=')
         key, value = kv[:pos].strip(), kv[pos+1:].strip()
@@ -93,25 +119,32 @@ class AbstractKVParser(object):
         if '/' in key:
             self.set_path(key.split('/'), value)
         else:
-            di = self.__class__.get_data_instance(key)
-            if isinstance(di, list):
-                pos = key.index('[')
+            if self.__class__.contains_list(key):
+                skey, rest, idx = self.__class__.parse_list_key(key)
 
-                if key[:pos] not in d:
-                    d[key[:pos]] = di
+                #print("sk %s - %s" % ( skey, d))
+                if skey:
+                    if skey not in d:
+                        d[skey] = []
+                    d = d[skey]
 
-                if len(key) > pos+2:
-                    idx = int(key[pos+1:-1])
+                if isinstance(idx, int):
+                    while idx >= len(d):
+                        d.append( None )
 
-                    while len(d[key[:pos]]) <= idx:
-                        d[key[:pos]].append(None)
-
-                    d[key[:pos]][idx] = value
+                #print("sk2 %s - %s - %s - %s" % ( rest, idx, value, d))
+                if rest:
+                    self.set( rest, value, d )
 
                 else:
-                    d[key[:pos]].append( value )
+                    if isinstance(idx, int):
+                        d[idx] = value
 
-                return key[:pos]
+                    else:
+                        d.append( value )
+
+                    return idx
+
             else:
                 if value is None and default is not None:
                     if key not in d:
@@ -128,15 +161,24 @@ class AbstractKVParser(object):
 
     def set_path( self, path, value ):
         assert isinstance(path, list), "Path must be a list"
+        #print(self.data)
         d = self.data
         while path:
             k = path.pop(0)
-            di = self.__class__.get_data_instance(k)
+            if self.__class__.contains_list(k):
+                skey, rest, idx = self.__class__.parse_list_key(k)
+
+            if self.__class__.contains_root_list(k):
+                di = []
+            else:
+                di = {}
+            #print("k, di  value -- %s=%r  %s" % (k, di, value))
             if path:
                 k = self.set( k, None, d, di )
             else:
                 k = self.set( k, value, d )
             if path:
+                #assert k in d, ( k, type(k), d )
                 d = d[k]
 
     def get( self, key, d=None):
@@ -182,20 +224,98 @@ class AbstractKVParser(object):
 class PathKVParser(AbstractKVParser):
 
     @staticmethod
+    def contains_list(key):
+        return key.endswith(']')
+
+    @staticmethod
+    def contains_root_list(key):
+        return key.startswith('[')
+
+    @staticmethod
+    def parse_list_key(key):
+        idx = None
+        assert '[' in key, key
+        ps = key.index('[')
+        pe = key.index(']')
+        idx = key[ps+1:pe]
+        if idx:
+            idx = int(idx)-1
+        return key[:ps], key[pe+1:], idx
+
+    @staticmethod
     def get_data_instance(key):
         if fnmatch(key, '*[[0-9]]') or fnmatch(key, '*[]'):
             return []
         else:
             return {}
 
+    @staticmethod
+    def get_list_index(key):
+
+        pos = key.index('[')
+        idx = None
+
+        if len(key) > pos+2:
+            idx = int(key[pos+1:-1])-1
+
+        return key[:pos], idx
+
+
+
 class FlatKVParser(AbstractKVParser):
 
     @staticmethod
+    def contains_list(key):
+        if '__' in key:
+            last = key.split('__')[-1]
+            return not last or last.isdigit()
+
+    @staticmethod
+    def contains_root_list(key):
+        return key.startswith('__')
+
+    @staticmethod
+    def parse_list_key(key):
+        idx = None
+        p = key.index('__')
+        rest = key[p+2:]
+        if rest:
+            if '__' in rest:
+                p2 = key.index('__')
+                if rest[:p2].isdigit():
+                    idx = int(rest[:p2])-1
+                    rest = rest[p2+2:]
+            elif rest.isdigit():
+                idx = int(rest)-1
+        return key[:p], rest, idx
+
+
+    @staticmethod
     def get_data_instance(key):
-        if fnmatch(key, '*__[0-9]*') or fnmatch(key, '*__*'):
+        if fnmatch(key, '*__[0-9]*') or fnmatch(key, '*__'):
             return []
         else:
             return {}
+
+    @staticmethod
+    def get_root_data_instance(key):
+        if '/' in key:
+            key = key.split('/')[0]
+        if '__' in key and key.split('__')[0]:
+            return key.split('__')[0]
+        return FlatKVParser.get_data_instance(key)
+
+    @staticmethod
+    def get_list_index(key):
+
+        pos = key.index('__')
+        idx = None
+
+        if len(key) > pos+2:
+            idx = int(key[pos+2:])
+
+        return key[:pos], idx
+
 
 
 
@@ -260,8 +380,17 @@ def load_data(infmt, infile, ctx):
         raise Exception("No data from file %s (%s)" % ( infile, infmt ))
     return data
 
-def stdout_data(outfmt, data, outfile, ctx):
-    return writers[ outfmt ]( data, outfile, ctx )
+def stdout_data(data, ctx, outfmt=None, outf=None):
+    if not outfmt:
+        outfmt = ctx.opts.flags.output_format
+    if not outf:
+        if ctx.out:
+            outf = ctx.out
+        else:
+            outf = get_dest(ctx)
+    if not outf:
+        outf = sys.stdout
+    writers[ outfmt ]( data, outf, ctx )
 
 
 def parse_json(value):
@@ -331,7 +460,7 @@ readers = dict(
 def write(writer, data, file, ctx):
     if ctx.opts.flags.no_indices:
         writer.write_indices = False
-    file.write(writer.serialize(data, ctx.opts.flags.output_prefix))
+    file.write(writer.serialize(data, ctx.opts.flags.output_prefix)+"\n")
 
 def output_prefix(data, opts):
     if opts.flags.output_prefix:
@@ -358,10 +487,10 @@ def json_writer(data, file, ctx):
         kwds.update(dict(indent=2))
     data = output_prefix(data, ctx.opts)
     if not data and ctx.opts.flags.empty_null:
-        print >>file
+        file.write('\n')
     else:
         file.write(js.dumps(data, **kwds))
-    print >>file
+    file.write('\n')
 
 def yaml_writer(data, file, ctx):
     kwds = {}
@@ -369,24 +498,35 @@ def yaml_writer(data, file, ctx):
         kwds.update(dict(default_flow_style=False))
     data = output_prefix(data, ctx.opts)
     if not data and ctx.opts.flags.empty_null:
-        print >>file
+        file.write('\n')
     else:
         yaml_safe_dump(data, file, **kwds)
 
 def py_writer(data, file, ctx):
     if not data and ctx.opts.flags.empty_null:
-        print >>file
+        file.write('\n')
     else:
-        print >>file, str(data)
+        file.write(str(data)+"\n")
 
 def lines_writer(data, file, ctx):
+    "Given a list, string format items line-by-line. "
     if not data:
         return
     if not isinstance(data, (tuple, list)):
         data = [ data ]
     # XXX: seems object returns objects sometimes? assert isinstance(data, (tuple, list)), data
     for item in data:
-        print >>file, item
+        file.write('%s\n' % item)
+
+def table_writer(data, file, ctx):
+    "Given nested list of rows/columns, string format row/cols to lines of tab-separated cells. "
+    if not data:
+        return
+    if not isinstance(data, (tuple, list)):
+        data = [ data ]
+    for item in data:
+        file.write('%s\n' % '\t'.join([ str(i) for i in item]))
+
 
 # FIXME: lazy loading writers, do something better to have optional imports
 def xml_writer(data, file, ctx):
@@ -401,6 +541,7 @@ writers = dict(
         fkv=fkv_writer,
         py=py_writer,
         lines=lines_writer,
+        table=table_writer,
         xml=xml_writer
     )
 
@@ -433,6 +574,12 @@ def open_file(fpathname, defio='out', mode='r', ctx=None):
         except IOError, e:
             raise Exception, "Unable to open %s for %s" % (fpathname, mode)
 
+def get_out_dest(ctx):
+    outfile = None
+    if 'destfile' in ctx.opts.args and ctx.opts.args.destfile:
+        outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
+    return outfile
+
 def get_src_dest(ctx):
     infile, outfile = None, None
     if 'srcfile' in ctx.opts.args and ctx.opts.args.srcfile:
@@ -464,15 +611,18 @@ def get_format_for_fileext(fn, io='out'):
         if fn.endswith( ext ):
             return fmt
 
-def get_dest(ctx, mode):
-    if ctx.opts.flags.detect_format:
-        set_format('output', 'dest', ctx.opts)
-    updatefile = None
-    if 'destfile' in ctx.opts.args and ctx.opts.args.destfile:
-        assert ctx.opts.args.destfile != '-'
-        updatefile = open_file(
-                ctx.opts.args.destfile, defio=None, mode=mode, ctx=ctx)
-    return updatefile
+
+# cli subcmd args handling
+
+def get_dest(ctx, mode, key='dest', section='args'):
+    outfile = None
+    if 'detect_format' in ctx.opts.flags and ctx.opts.flags.detect_format:
+        set_format('output', key, ctx.opts)
+    settings = getattr(ctx.opts, section)
+    if key+'file' in settings and settings[key+'file']:
+        assert settings[key+'file'] != '-'
+        outfile = open_file(settings[key+'file'], defio=None, mode=mode, ctx=ctx)
+    return outfile
 
 def get_src_dest_defaults(ctx):
     if ctx.opts.flags.detect_format:
@@ -485,6 +635,7 @@ def get_src_dest_defaults(ctx):
         if not infile:
             infile = ctx['in']
     return infile, outfile
+
 
 
 def deep_update(dicts, ctx):
@@ -585,9 +736,11 @@ def data_at_path(ctx, infile):
         return l
     while len(path_el):
         b = path_el.pop(0)
-        if b not in l:
-            raise KeyError, b
-        l = l[b]
+        if isinstance(PathKVParser.get_data_instance(b), list):
+            b = int(b[1:-1])
+            l = l[b]
+        else:
+            l = l[b]
     return l
 
 
@@ -638,5 +791,10 @@ def maptype(typestr):
     if typestr in typemap:
         return locate(typemap[typestr])
     return locate(typestr)
+
+
+def set_default_output_format(ctx, fmt):
+    if '-O' not in ctx.opts.argv and '--output-format' not in ctx.opts.argv:
+        ctx.opts.flags.output_format = fmt
 
 

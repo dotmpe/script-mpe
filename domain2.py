@@ -17,7 +17,7 @@ TODO: fully initialize settings for host without editing config by hand
 TODO: should record network domain names, use this with ifaces.
 FQDN are not used really, except to put the last known network/IP.
 """
-__version__ = '0.0.0'
+__version__ = '0.0.3-dev' # script-mpe
 __db__ = '~/.domain.sqlite'
 __rc__ = '~/.domain.rc'
 __usage__ = """
@@ -349,4 +349,5 @@ if __name__ == '__main__':
     opts = util.get_opts(__doc__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
+
 

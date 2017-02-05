@@ -11,16 +11,12 @@ set -e
 
 lib_load()
 {
-  test -n "$1" || set -- sys os std str src
+  test -n "$1" || set -- sys os std stdio str src
   while test -n "$1"
   do
-    . $scriptdir/$1.lib.sh
+    . $scriptdir/$1.lib.sh load-ext
     shift
   done
-
-  #. $scriptdir/match.sh
-  #. $scriptdir/doc.lib.sh
-  #. $scriptdir/table.lib.sh
 }
 
 util_init()

@@ -85,6 +85,7 @@ pd_bats_files_args()
 
       local retry=$(setup_tmpf .retry "$subcmd-$PWD")
       test -e "$retry" && {
+        debug "Retry file: $retry"
         note "Using targets from retry file ($(count_lines $retry))"
         cat $retry | sed 's/^bats://g'
         rm $retry
@@ -224,9 +225,12 @@ pd_stat__bats_count=bats/count
 pd_load__bats=iIa
 pd__bats()
 {
+  local argc=$# curarg=0
   for x in $@
   do
+    incr curarg
     {
+      echo "# Bats $curarg of $argc ($x)"
       verbosity=6 bats $x \
         || echo "bats:$x" >>$failed
     } | bats-color.sh
@@ -240,5 +244,6 @@ pd__bats()
   return 0
 }
 pd_defargs__bats=pd_bats_files_args
+
 
 

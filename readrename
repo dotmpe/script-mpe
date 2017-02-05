@@ -21,3 +21,4 @@ while not ok:
     print 'Going to rename %r to %r' % (filename, newfilename)
     ok = Prompt.ask('Ok?')
 #os.rename(filename, newfilename)
+

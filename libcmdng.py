@@ -89,6 +89,7 @@ Class overview:
         ..
 
 """
+from __future__ import print_function
 import sys
 import inspect
 import optparse
@@ -121,7 +122,7 @@ class OptionParser(optparse.OptionParser):
         encoding = self._get_encoding(file)
         file.write(self.format_help().encode(encoding, "replace"))
         log.info("%s options", len(self.option_list))
-        print >> file
+        file.write("\n")
         self.print_targets(fl=file)
 
     @property
@@ -130,16 +131,16 @@ class OptionParser(optparse.OptionParser):
         Instance property for convenience.
         """
         if not self._targets:
-            self._targets = Target.instances.keys()
+            self._targets = list(Target.instances.keys())
             self._targets.sort()
         return self._targets
 
     def print_targets(self, fl=None):
         targets = self.targets
-        print >>fl, "Targets: "
+        fl.write("Targets: \n")
         for target in targets:
-            print >>fl, '  -', target
-        print >>fl, len(targets), 'targets'
+            fl.write('  -', target, "\n")
+        fl.write(len(targets), 'targets\n')
 
 
 class Handler(object):
@@ -371,7 +372,7 @@ class ExecGraph(object):
         else:
             # Use given node as command instance
             if not force and node.key in self.commands:
-                raise KeyError, "Key exists: %s" % node.key
+                raise KeyError("Key exists: %s" % node.key)
             self.commands[node.key] = node
         return self.commands[node]
 
@@ -522,7 +523,7 @@ class ExecGraph(object):
         if self.pointer >= 0 and self.pointer < len(self.execlist):
             return self.execlist[self.pointer]
 
-    def __nonzero__(self):
+    def __bool__(self):
         return not self.finished()
 
     def finished(self):
@@ -814,4 +815,5 @@ class TargetResolver(object):
             ret_kwds['args'] = args
 
         return ret_kwds
+
 

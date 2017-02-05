@@ -1,7 +1,13 @@
 Features
 ________
 :Created: 2016-03-27
+:Updated: 2016-10-10
 
+Some thoughts and notes on script-mpe features; documentatin and automation.
+Mostly ToDo, epic-style text. See http:index for a temporary listing to all
+documented parts in script-mpe.
+
+----
 
 Did some experimental writeups on feature or behaviour driven test cases.
 
@@ -228,5 +234,6 @@ Dev
   Making some notes in projectdir.rst and htd.rst.
   Also maybe some stuff from htd rules/components should be consolidated at some point
   to clean things up.
+
 
 

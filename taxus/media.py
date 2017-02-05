@@ -4,50 +4,44 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship, backref
 
-import core
-import init
-import checksum
+from . import core
+from . import init
+from . import checksum
 
 
-class Mediatype(core.Node):
-    
+
+class Mediatype(core.Name):
+
     """
     Categorizes the transport and or storage format of a datastream.
-    MIME classes all types in several major types.
+    MIME classes all types in several major types, with numerous minor types.
     """
-    
+
     __tablename__ = 'mediatypes'
     __mapper_args__ = {'polymorphic_identity': 'mediatype'}
 
-    mt_id = Column('id', ForeignKey('nodes.id'), primary_key=True)
-
-    mime_id = Column(Integer, ForeignKey('names.id'))
-    mime = relationship(core.Name, primaryjoin=mime_id==core.Name.name_id)
+    mt_id = Column('id', ForeignKey('names.id'), primary_key=True)
 
 
-class Mediaformat(core.Name):
+class MediatypeParameter(core.Name):
 
     """
-    For many types of media there are variations in format.
-    Ie. written media come as books or essays. 
+    A media type may be parameterized by charset, encodings or formatting.
     """
-    
-    __tablename__ = 'mediaformats'
-    __mapper_args__ = {'polymorphic_identity': 'mediaformat'}
 
-    mf_id = Column('id', ForeignKey('names.id'), primary_key=True)
+    __tablename__ = 'mediatype-parameters'
+    __mapper_args__ = {'polymorphic_identity': 'mediatype-parameter'}
+
+    mtp_id = Column('id', ForeignKey('names.id'), primary_key=True)
 
 
-    #container_type_id = Column(Integer, ForeignKey('mediatypes.id'))
 
-#Mediatype.subtypes = relationship(Mediatype, Mediatype.container_type_id==Mediatype.mt_id)
+class Genre(core.Name):
 
-class Genre(core.Node):
-    
     __tablename__ = 'genres'
     __mapper_args__ = {'polymorphic_identity': 'genre'}
 
-    genre_id = Column('id', ForeignKey('nodes.id'), primary_key=True)
+    genre_id = Column('id', ForeignKey('names.id'), primary_key=True)
 
 
 mediameta_checksum_table = Table('mediameta_checksum', init.SqlBase.metadata,
@@ -65,7 +59,7 @@ class Mediameta(core.Node):
     """
     Metadata for certain distributions, releases, episodes, volumes, etc.
     """
-    
+
     __tablename__ = 'mm'
     __mapper_args__ = {'polymorphic_identity': 'mediameta'}
 
@@ -79,12 +73,14 @@ class Mediameta(core.Node):
     mediatype = relationship(Mediatype,
             primaryjoin=mediatype_id==Mediatype.mt_id)
 
-    mediaformat_id = Column(Integer, ForeignKey('mediaformats.id'))
-    mediaformat = relationship(Mediaformat,
-            primaryjoin=mediaformat_id==Mediaformat.mf_id)
-
-    genres = relationship(Genre, secondary=mediameta_genre_table)
-
+    # TODO: paramaters
+    #mediaformat_id = Column(Integer, ForeignKey('mediaformats.id'))
+    #mediaformat = relationship(Mediaformat,
+    #        primaryjoin=mediaformat_id==Mediaformat.mf_id)
 
 
-models = [ Mediaformat, Mediatype, Genre, Mediameta ]
+    #genres = relationship(Genre, secondary=mediameta_genre_table)
+
+
+
+models = [ Mediatype, MediatypeParameter, Genre, Mediameta ]

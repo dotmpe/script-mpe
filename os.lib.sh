@@ -3,6 +3,11 @@
 
 # OS: files, paths
 
+# Combined dirname/basename to replace .ext
+basepath()
+{
+	echo "$(dirname "$1")/$(basename "$1" "$2")$3"
+}
 
 short()
 {
@@ -18,7 +23,7 @@ basenames()
   test -e "$1" || fnmatch ".*" "$1" && { ext=$1; shift; }
   while test -n "$1"
   do
-    basename $1 $ext
+    basename "$1" "$ext"
     shift
   done
 }
@@ -166,7 +171,7 @@ go_to_directory()
   while true
   do
     test -e "$1" && break
-    go_to_before=$(basename $(pwd))/$go_to_before
+    go_to_before=$(basename "$(pwd)")/$go_to_before
     test "$(pwd)" = "/" && break
     cd ..
   done
@@ -181,6 +186,7 @@ get_targets()
   # Assume
   find $1 -type l | while read link
   do
+    test -e "$link" || continue
     target=$(readlink $link)
     normalize_relative $(dirname $link)/$target
   done | sort -u
@@ -205,6 +211,19 @@ count_words()
     while test -n "$1"
     do
       wc -w $1 | awk '{print $1}'
+      shift
+    done
+  } || {
+    wc -w | awk '{print $1}'
+  }
+}
+
+count_chars()
+{
+  test -n "$1" && {
+    while test -n "$1"
+    do
+      wc -c $1 | awk '{print $1}'
       shift
     done
   } || {
@@ -282,4 +301,28 @@ get_uuid()
 #  } || set --
 #}
 
+test_dir()
+{
+	test -d "$1" || {
+		err "No such dir: $1"
+		return 1
+	}
+}
+
+test_file()
+{
+	test -f "$1" || {
+		err "No such file: $1"
+		return 1
+	}
+}
+
+# strip-trailing-dash
+strip_trail()
+{
+  fnmatch "*/" "$1" && {
+    echo "$1" | sed 's/\/$//'
+  } ||
+    echo "$1"
+}
 

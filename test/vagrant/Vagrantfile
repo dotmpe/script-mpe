@@ -1,0 +1,144 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# This is sandbox vagrant from user-conf-mpe (private). 
+# See how far it goes as testing bed for script-mpe.
+Vagrant.configure("2") do |config|
+
+  # The most common configuration options are documented and commented below.
+  # For a complete reference, please see the online documentation at
+  # https://docs.vagrantup.com.
+
+  # Every Vagrant development environment requires a box. You can search for
+  # boxes at https://atlas.hashicorp.com/search.
+  config.vm.box = "ubuntu/trusty64"
+
+  #config.vm.network :forwarded_port, guest: 22, host: 2222, id: "ssh", disabled: true
+  config.vm.network :forwarded_port, guest: 22, host: 1026, auto_correct: true
+
+  config.vm.hostname = "trusty64-sandbox-mpe"
+
+  config.vm.provider :virtualbox do |vb|
+    vb.name = 'script-mpe-test-spec.trusty64-sandbox-mpe'
+  end
+
+  config.vm.provider "virtualbox" do |v|
+    v.gui = false
+    v.memory = 512
+    v.cpus = 2
+    v.customize ["modifyvm", :id, "--cpuexecutioncap", "50"]
+  end
+
+  # Create a private network, which allows host-only access to the machine
+  # using a specific IP.
+  config.vm.network "private_network", ip: "192.168.33.10"
+
+  # Create a public network, which generally matched to bridged network.
+  # Bridged networks make the machine appear as another physical device on
+  # your network.
+  #config.vm.network "public_network", :bridge => ENV['bridge_interface']
+
+  #config.vm.synced_folder "/srv/project-local", "/home/vagrant/project"
+  config.vm.synced_folder "/srv/htdocs-local", "/home/vagrant/htdocs"
+
+  # Define a Vagrant Push strategy for pushing to Atlas. Other push strategies
+  # such as FTP and Heroku are also available. See the documentation at
+  # https://docs.vagrantup.com/v2/push/atlas.html for more information.
+  # config.push.define "atlas" do |push|
+  #   push.app = "YOUR_ATLAS_USERNAME/YOUR_APPLICATION_NAME"
+  # end
+
+  config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "/home/vagrant/.ssh/id_rsa.pub"
+  config.vm.provision "file", source: "~/.ssh/id_rsa", destination: "/home/vagrant/.ssh/id_rsa"
+  config.vm.provision "file", source: "~/.ssh/brix-id_rsa.pub", destination: "/home/vagrant/.ssh/brix-id_rsa.pub"
+
+  config.vm.provision "shell", inline: <<-SHELL
+
+    set -e
+
+    apt-get update
+    apt-get install -y \
+      sudo vim git uuid-runtime tree tidy pv curl wget build-essential \
+      python-dev python-yaml graphviz \
+      nodejs npm python-docutils git-annex
+    apt-get autoclean
+    apt-get autoremove
+
+    npm install -g npm
+    npm cache clean -f
+    npm install -g n
+    n stable
+
+    version="$(cd /usr/local/n/versions/node/; echo * | tr ' ' '\n' | sort -rn | head -n 1)"
+    test -e /usr/bin/node || ln -sf /usr/local/n/versions/node/$version/bin/node /usr/bin/node 
+
+    npm install -g redmine-cli
+
+    test -h /srv/htdocs-local || ln -s /home/vagrant/htdocs /srv/htdocs-local
+    test -h /srv/project-local || ln -s /home/vagrant/project /srv/project-local
+    test -h /srv/project-mpe || ln -s /srv/project-local /srv/project-mpe
+
+    for name in pseudoxml html xml odt txt latex xetex s5 man odt_prepstyles
+    do
+      test -h "/usr/bin/rst2$name.py" || ln -s /usr/bin/rst2$name /usr/bin/rst2$name.py
+    done
+
+    which pip >/dev/null || { cd /tmp/ && { test -e get-pip.py || wget https://bootstrap.pypa.io/get-pip.py; } && python get-pip.py; }
+    pip uninstall -y zope.interface || printf ""
+    pip install -r requirements.txt
+    pip install -r test-requirements.txt
+
+    echo "Provisioned as: $(whoami), ($SHELL, $TERM)"
+  SHELL
+
+
+  $script = <<-SCRIPT
+
+    set -e
+
+    test -e ~/.ssh/vagrant-id.pub || {
+      cp ~/.ssh/authorized_keys ~/.ssh/vagrant-id.pub
+    }
+    cat ~/.ssh/id_rsa.pub ~/.ssh/brix-id_rsa.pub ~/.ssh/vagrant-id.pub > ~/.ssh/authorized_keys
+
+
+    test -e ~/bin || {
+      ssh-keyscan github.com >> ~/.ssh/known_hosts
+      git clone git@github.com:dotmpe/script-mpe ~/bin
+    }
+    cd ~/bin/;git pull
+
+    test -e ~/.conf || {
+      ssh-keyscan ssh.pcextreme.nl >> ~/.ssh/known_hosts
+      git clone dotmpe-com@ssh.pcextreme.nl:domains/dotmpe.com/htdocs/git/conf-mpe.git ~/.conf
+    }
+    cd ~/.conf/;git pull
+
+
+    sudo sh -c "cp /home/vagrant/.ssh/id_* /home/vagrant/.ssh/known_* /root/.ssh/"
+    sudo npm install -g coffee-script
+    sudo npm install -g dotmpe/node-sitefile\#f_gv
+
+    mkdir -vp ~/project
+
+    cd ~/.conf
+    git pull origin master
+    test -e install/$(hostname).u-c || ./script/user-conf/init.sh
+    rm -rf ~/.bashrc ~/.bash_logout
+    ./script/user-conf/update.sh 
+
+
+
+    alias pd=~/bin/projectdir.sh
+    export PATH=~/.conf/path/Generic:~/bin/:$PATH
+    export PYTHONPATH=~/lib/py:$PYTHONPATH
+
+    cd ~/project
+    #projectdir.sh enable ....
+
+
+    echo "Provisioned as: $(whoami), ($SHELL, $TERM)"
+  SCRIPT
+  config.vm.provision "shell", inline: $script, privileged: false
+
+end

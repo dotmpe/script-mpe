@@ -10,8 +10,8 @@ import zope.interface
 
 import log
 from confparse import yaml_load, Values
-import iface
-import out
+from . import iface
+from . import out
 
 
 # class-registry maps model name to type.
@@ -20,16 +20,20 @@ class_registry = {}
 SqlBase = declarative_base(class_registry=class_registry)
 
 
-@event.listens_for(Engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
-    """
-    XXX on connect, assume is SQLite and > 3.6.19
-    """
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+def register_sqlite_connection_event():
+    @event.listens_for(Engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        """
+        On connect, assume is SQLite and > 3.6.19
+        """
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
 
 def get_session(dbref, initialize=False, metadata=SqlBase.metadata):
+    if dbref.startswith('sqlite'):
+        register_sqlite_connection_event()
     engine = create_engine(dbref)#, encoding='utf8')
     #engine.raw_connection().connection.text_factory = unicode
     metadata.bind = engine
@@ -48,7 +52,7 @@ def get_session(dbref, initialize=False, metadata=SqlBase.metadata):
 
 def configure_components():
     zope.interface.classImplements(str, iface.IPrimitive)
-    zope.interface.classImplements(unicode, iface.IPrimitive)
+    zope.interface.classImplements(str, iface.IPrimitive)
     zope.interface.classImplements(int, iface.IPrimitive)
     #zope.interface.classImplements(dict, IPrimitive)
     zope.interface.classImplements(list, iface.IPrimitive)
@@ -87,7 +91,7 @@ def default(key, d, default=None):
 
 def deep_update(obj, *sources):
     for source in sources:
-        for attr in source.keys():
+        for attr in list(source.keys()):
             v = source[attr]
             if isinstance(v, dict):
                 dest = obj[attr]
@@ -135,7 +139,7 @@ def extract_orm(meta, sql_base=None):
             model_mixins = list(extract_listed_names(model.mixins))
             for named in model_mixins:
                 assert named['name'] in sql_base.registry, (
-                        "No mixin named %s" % named, sql_base.registry.keys())
+                        "No mixin named %s" % named, list(sql_base.registry.keys()))
                 mixin = sql_base.registry[named['name']].copy(True)
                 for k in ("name", "type"):
                     del mixin[k]
@@ -163,7 +167,7 @@ def extract_orm(meta, sql_base=None):
             yield type(model_meta['name'], extends, type_dict)
 
             assert model.name in sql_base._decl_class_registry, (model.name,
-                    sql_base._decl_class_registry.keys())
+                    list(sql_base._decl_class_registry.keys()))
 
 
 def extract_model(model_meta, sql_base):
@@ -283,7 +287,7 @@ def extract_listed_named(meta_list, force=True):
     if isList:
         pass#k = list(pluck('name', meta_list))
     else:
-        k = meta_list.keys()
+        k = list(meta_list.keys())
         #k.reverse() # XXX test, dict traverse reverse source-order
     for named in meta_list:
         if not isList:
@@ -303,14 +307,14 @@ def extract_listed_names(meta_list, sep=' ,', force=True):
     Accept list or dict meta_list list extract_listed_named, but pre-parse
     if simple string is passed.
     """
-    if isinstance(meta_list, basestring):
+    if isinstance(meta_list, str):
         raw = meta_list
         seps = list(sep)
         while seps[:-1]:
             raw = raw.replace(seps.pop(0), seps[-1])
         for name in raw.split(seps[-1]):
             yield dict(name=name)
-    elif isinstance(meta_list[2], basestring):
+    elif isinstance(meta_list, list) and len(meta_list) > 2 and isinstance(meta_list[2], str):
         for name in meta_list:
             yield dict(name=name)
     else:

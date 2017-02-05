@@ -21,7 +21,7 @@ except ImportError, e:
     pass
 
 import lib
-from libcmd import TargetResolver
+from libcmdng import TargetResolver
 import cmdline
 import txs
 import lind
@@ -37,4 +37,5 @@ import htdocs
 if __name__ == '__main__':
 
     TargetResolver().main(['cmd:options'])
+
 

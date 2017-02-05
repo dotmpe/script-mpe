@@ -1,9 +1,10 @@
 # git-versioning main: script-mpe
 
-- type: application/x-project-mpe
+- type: application/vnd.dotmpe.project
   main: script-mpe
   id: script-mpe
-  version: 0.0.0-dev # script-mpe
+
+  version: 0.0.3-dev # script-mpe
   environments: [ 'development' ]
 
   vendor: dotmpe
@@ -11,11 +12,34 @@
   license: GPL
 
   pd-meta:
+    run:
+      behat: "./vendor/.bin/behat--tags:~@skip"
+      behat-defs: "./vendor/.bin/behat:-dl"
+
+      # NOTE: behat cannot display outline only
+      behat-specs: "./vendor/.bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip"
+
+      # XXX: this would be nice, and is one way to do file watching for BDD
+      behat-watch: "nodemon -x './vendor/.bin/behat test/$1.feature' -w test/bootstrap/FeatureContext.php -w test/$1.feature -w ./$1.*"
+
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
-    check: "-verbose=false:./tools/sh/tags.sh :vchk :bats:specs :git:status"
+    check: "htd:gitflow-check-doc :verbose=1:vchk :bats:specs behat:--dry-run:--no-multiline :git:status"
     # TODO: check for /tmp usage, force TMPDIR use
-    test: ":vchk sh:python:test/main.py :bats:specs :bats"
+    test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats ./vendor/.bin/behat:--tags:~@skip"
+    # TODO: run tests at VM/... if available
+    build: ":vagrant:tools/ci/vbox"
+    #build: ":vagrant:tools/ci/vbox:ubuntu"
+
+    tasks:
+      document: tasks.ttxtm
+
+      tags:
+        - TODO # tasks:no-check
+        - XXX # tasks:no-check
+        - FIXME # tasks:no-check
+        - BUG # tasks:no-check
+        - NOTE # tasks:no-check
 
     git-hooks:
       pre-commit: ./tools/git-hooks/pre-commit.sh
@@ -31,4 +55,15 @@
     - BOREAS_SKIP=1
     - DANDY_SKIP=1
     - VS1_SKIP=1
+
+  prefixes: {} # See ~/.cllct.rc finfo
+
+  # For make data/*: or move to cllct.rc
+  data:
+    finfo:
+      handlers: # TODO: map to taxus.core.Node annotated/dynamic properties
+        - last_updated:mtime
+        - last_seen:atime
+        # taxus.web.Invariant.mediatype
+        - mime_type:lib...
 

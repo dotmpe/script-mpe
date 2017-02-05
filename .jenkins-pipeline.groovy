@@ -1,4 +1,7 @@
 
+// TODO: pipeline experiments, cleanup. See .Jenkinsfile for actual scripts.
+
+
 // Track each component individually
 def success = []
 def unstable = []
@@ -79,4 +82,6 @@ def finalize_component(cname, err, nok) {
 }
 def finalize(ok, nok, err) {
 }
+
+
 

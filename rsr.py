@@ -4,6 +4,7 @@ Filesystem metadata & management routines.
 
 See Resourcer.rst
 """
+from __future__ import print_function
 from datetime import datetime
 from glob import glob
 import os
@@ -17,7 +18,7 @@ import confparse
 import res
 from res.session import Session
 import taxus
-from taxus import SessionMixin, Node, Name, Tag
+from taxus import SessionMixin, Node, Name, Tag, SqlBase, get_session
 
 import sys
 import os
@@ -92,7 +93,7 @@ def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
     log.debug("{bblack}rsr{bwhite}:update-volume{default}")
     i = 0
     for path in res.Metafile.walk(prog.pwd):
-        print path
+        print(path)
         i += 1
         new, updated = False, False
         metafile = res.Metafile(path)
@@ -117,11 +118,11 @@ def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
             #    log.note("Overwriting previous metafile at %s", metafile.path)
             metafile.write()
             for k in metafile.data:
-                print '\t'+k+':', metafile.data[k]
-            print '\tSize: ', lib.human_readable_bytesize(
-                metafile.data['Content-Length'], suffix_as_separator=True)
+                print('\t'+k+':', metafile.data[k])
+            print('\tSize: ', lib.human_readable_bytesize(
+                metafile.data['Content-Length'], suffix_as_separator=True))
         else:
-            print '\tOK'
+            print('\tOK')
     volume.store.sync()
 
 #@Target.register(NS, 'meta', 'rsr:volume')
@@ -303,6 +304,9 @@ class Rsr(libcmd.StackedCommand):
 
     def rsr_session(self, prog, volume, workspace, homedir, opts):
         """
+        TODO: get an Metadir session; lock (and later sync) an file/db.
+        Move current db setup to new txs.
+
         Determine context, and from there get the session/dbref to initialize an
         SQLAlchemy session.
         The context depends on the current working directory, and defaults to
@@ -311,7 +315,7 @@ class Rsr(libcmd.StackedCommand):
         session = Session.init(prog.pwd, opts.session)
         log.note('Session: %s', session)
 
-        if session.context:
+        if session.context and confparse.haspath(session.context, 'data.repository.root_dir'):
             prog.session = session
             yield dict(context=session.context)
             log.note('Context: %s', session.context)
@@ -321,18 +325,26 @@ class Rsr(libcmd.StackedCommand):
             repo_root = 'sa_migrate'
 
         # SA session
-        #dbref = session.context.settings.dbref
-        #dbref = opts.dbref
         repo_path = os.path.join(repo_root, opts.repo)
 
-        from sa_migrate import custom
-        config = custom.read(repo_path)
-        repo_opts = custom.migrate_opts(repo_path, config)
-        dbref = repo_opts['url']
+        if os.path.exists(repo_path):
+            log.info("Reading SA migrate config for repo %r" % repo_path)
+            # hard coded module name, root dir for local repos
+            from sa_migrate import custom
+            config = custom.read(repo_path)
+            log.info("Reading SA migrate config from %r" % config)
+            repo_opts = custom.migrate_opts(repo_path, config)
+            dbref = repo_opts['url']
+        else:
+            dbref = opts.dbref
+
         log.note('DBRef: %s', dbref)
+
         if opts.init_db:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
-        sa = SessionMixin.get_session(opts.session, dbref, opts.init_db)
+        sa = SessionMixin.get_session(opts.session, dbref, opts.init_db,
+                SqlBase=SqlBase)
+
         yield dict(sa=sa)
 
     def rsr_nodes(self, sa, *args):
@@ -345,7 +357,7 @@ class Rsr(libcmd.StackedCommand):
             if not node:
                 log.warn("No entry for %s:%s", typehint, nodeid)
                 continue
-            print node.ntype, node.name
+            print(node.ntype, node.name)
             nodes.append(node)
         yield dict(nodes=nodes)
 
@@ -360,7 +372,7 @@ class Rsr(libcmd.StackedCommand):
         if 'node' in self.globaldict and self.globaldict.node:
             log.info("Auto commit: %s", opts.rsr_auto_commit)
             log.info("%s", self.globaldict.node)
-        print >>sys.stderr, 'rsr-info: see notice log (-vvv) '
+        sys.stderr.write('rsr-info: see notice log (-vvv)\n')
 
     def deref(self, ref, sa):
         """
@@ -426,7 +438,7 @@ class Rsr(libcmd.StackedCommand):
         """
         Assure Group with `name` exists (or any subtype).
         """
-        assert path and isinstance( path, basestring )
+        assert path and isinstance( path, str )
         if sep in path:
             elems = path.split(sep)
             # Yield element strings
@@ -483,10 +495,10 @@ class Rsr(libcmd.StackedCommand):
 
     def rsr_show(self, ref_or_node, sa ):
         "Print a single node from name or path reference. "
-        if isinstance( ref_or_node, basestring ):
+        if isinstance( ref_or_node, str ):
             nodetype, localpart = self.deref(ref_or_node, sa)
             node = Node.find(( Node.name == localpart, ))
-            print node
+            print(node)
 
     def rsr_list(self, groupnode, volume=None, sa=None):
         "List all nodes, or nodes listed in group node"
@@ -499,33 +511,33 @@ class Rsr(libcmd.StackedCommand):
             groupnode = os.path.basename( realnode )
             group = GroupNode.find(( Node.name == groupnode, ))
             assert group
-            print group.name
+            print(group.name)
             for subnode in group.subnodes:
-                print '\t', subnode.name
+                print('\t', subnode.name)
         else:
             ns = sa.query(Node).all()
             # XXX idem as erlier, some mappings in adapter
             fields = 'node_id', 'ntype', 'name',
             # XXX should need a table formatter here
-            print '#', ', '.join(fields)
+            print('#', ', '.join(fields))
             for n in ns:
                 for f in fields:
                     v = getattr(n, f)
-                    if isinstance( v, unicode ):
+                    if isinstance( v, str ):
                         v = v.encode('utf-8')
-                    print v,
-                print
+                    print(v, end=' ')
+                print()
 
     def rsr_list_groups(self, sa=None):
         "List all group nodes"
         gns = sa.query(GroupNode).all()
         fields = 'node_id', 'name', 'subnodes'
         if gns:
-            print '#', ', '.join(fields)
+            print('#', ', '.join(fields))
             for n in gns:
                 for f in fields:
-                    print getattr(n, f),
-                print
+                    print(getattr(n, f), end=' ')
+                print()
         else:
             log.warn("No entries")
 
@@ -574,7 +586,7 @@ class Rsr(libcmd.StackedCommand):
             self.execute( 'rsr_node_recurse', dict( group=group  ) )
 
     def rsr_node_recurse(self, sa, group, lvl=0):
-        print lvl * '  ', group.name
+        print(lvl * '  ', group.name)
         for sub in group.subnodes:
             self.rsr_node_recurse(sa, sub, lvl=lvl+1)
 
@@ -585,26 +597,25 @@ class Rsr(libcmd.StackedCommand):
             i += 1
             assert repo.rtype
             assert repo.path
-            print repo.rtype, repo.path,
+            print(repo.rtype, repo.path, end=' ')
             if repo.uri:
-                print repo.uri
+                print(repo.uri)
             else:
-                print
+                print()
 
     def rsr_show_metafile(self, path):
         #metafile = res.Metafile(path)
         import res.metafile
         metafile = res.metafile.MetafileFile(path)
-	#from pprint import pformat
-	print pformat(metafile.data)
+        #from pprint import pformat
+        print(pformat(metafile.data))
 
     def rsr_show_sha1sum_hexdigest(self, path):
         import res.metafile
         metafile = res.metafile.MetafileFile(path)
-	print metafile.get_sha1sum()
+        print(metafile.get_sha1sum())
 
 
 if __name__ == '__main__':
     Rsr.main()
-
 

@@ -1,0 +1,66 @@
+digraph "doc_python_target_handlers" {
+	graph [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+    pad = 1
+	]
+	node [
+		fontsize = "15"
+		fontname = "Bitstream Vera Sans"
+		shape = "record"
+		style = "solid"
+		color = "grey"
+	]
+	edge [
+		fontsize = "14"
+		fontname = "Bitstream Vera Sans"
+		style = "dotted"
+		weight = "4"
+	]
+
+//	"cmd:main" -> "cmd:argv" ;
+//
+//	"txs:session" -> "cmd:main" ;
+//
+//	"txs:pwd" -> "txs:session" ;
+//	"txs:ls" -> "txs:session" ;
+//	"txs:run" -> "txs:session" ;
+//
+//  "rsr2:workspace" -> "cmd:main" ;
+//  "rsr2:volume" -> "rsr2:workspace" ;
+//
+//  "rsr:add" -> "rsr2:volume" ;
+//  "rsr:status" -> "rsr2:volume" ;
+//  "rsr:update-volume" -> "rsr2:volume" ;
+//  "rsr:update-metafiles" -> "rsr2:volume" ;
+//  "rsr:meta" -> "rsr2:volume" ;
+//
+//  "lnd:tag" -> "txs:pwd" ;
+
+
+  "libcmd:set_commands" -> "'static_args', 'parse_options', 'load_config', 'prepare_output', 'set_commands'" ;
+
+  "rsr:volume" -> "libcmd:set_commands" ;
+  "rsr:workspace" -> "rsr:volume" ;
+  "rsr:homedir" -> "rsr:workspace" ;
+  "rsr:session" -> "rsr:homedir" ;
+  "rsr:show-metafile" -> "libcmd:set_commands" ;
+  "rsr:show-sha1sum-hexdigest" -> "libcmd:set_commands" ;
+  "rsr:info" -> "rsr:session" ;
+  "rsr:show" -> "rsr:session" ;
+  "rsr:assert" -> "rsr:session" ;
+  "rsr:assert-group" -> "rsr:session" ;
+  "rsr:assert-group-path" -> "rsr:session" ;
+  "rsr:commit" -> "rsr:session" ;
+  "rsr:remove" -> "rsr:session" ;
+  "rsr:list" -> "rsr:session" ;
+  "rsr:list-groups" -> "rsr:session" ;
+  "rsr:nodes" -> "rsr:session" ;
+  "rsr:tree" -> "rsr:session" ;
+  "rsr:update" -> "rsr:session" ;
+  "rsr:repo-update" -> "rsr:session" ;
+
+
+  edge [ style="normal" ] ;
+}

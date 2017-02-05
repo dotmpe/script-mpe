@@ -4,10 +4,10 @@ pd_src="$_"
 
 set -e
 
-version=0.0.0+20150911-0659 # script-mpe
+version=0.0.3-dev # script-mpe
 
 
-pd__man_1_version="Version info"
+pd_man_1__version="Version info"
 pd__version()
 {
   echo "$(cat $scriptdir/.app-id)/$version"
@@ -15,19 +15,22 @@ pd__version()
 pd_als__V=version
 
 
+pd_man_1__edit="Edit script-files, append ARGS to EDITOR arguments. "
+pd_spc__edit="edit [ARGS]"
 pd__edit()
 {
   $EDITOR \
     $0 \
     $scriptdir/projectdir*sh \
     $scriptdir/projectdir-meta \
+    $scriptdir/meta.lib.sh \
     "$@"
 }
 pd_als___e=edit
 
 
 pd_load__meta=y
-# Defer to python script for YAML parsing
+pd_man_1__meta="Defer a command to the python script for YAML parsing"
 pd__meta()
 {
   test -n "$1" || set -- --background
@@ -62,20 +65,22 @@ pd__meta()
   $scriptdir/projectdir-meta -f $pd "$@" || return $?
 }
 
-# silent/quit; TODO should be able to replace with -sq
+pd_man_1__meta_sq="double silent/quiet; TODO should be able to replace with -sq"
 pd__meta_sq()
 {
   pd__meta "$@" >/dev/null || return $?
 }
 
 
-pd_spc__status='[ PREFIX | [:]TARGET ]...'
-# List prefixes and their state(s)
+pd_man_1__status="List prefixes and their state(s)"
+pd_spc__status='st|stat|status [ PREFIX | [:]TARGET ]...'
 pd__status()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   info "Pd targets requested: $*"
   info "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
+
+  test -s "$options" || format_yaml=1
 
   # XXX: fetching the state requires all branches to have status/result set.
   #pd__meta update-states
@@ -88,29 +93,40 @@ pd__status()
       note "Not a checkout path at $checkout"
       continue
     }
-    note "pd-prefix=$pd_prefix ($CWD)"
-    {
-      # XXX: hack to format Pdoc status into something readable
-      pd_fetch_status "$pd_prefix" \
-        | jsotk.py -I yaml -O pkv - | tr '=' ' ' | while read var stat
-      do
-        test "$var" = "None" && continue
-        test "$stat" = "None" && continue
-        test $stat -eq 0 || {
-          echo "$pd_prefix" >> $failed
-          warn "$pd_prefix: $(echo $var | cut -c8-)"
-          #warn "$pd_prefix: $var"
-        }
-      done
 
-    } || echo "pd:status:$pd_prefix" >>$failed
+    note "pd-prefix=$pd_prefix ($CWD)"
+
+    trueish "$format_yaml" && {
+
+      {
+        # Read from tree, note status != 0 as failures.
+        pd_fetch_status "$pd_prefix" | read_nix_style_file \
+          | jsotk.py -I yaml -O pkv - | read_nix_style_file | tr '=' ' ' | while read var stat
+        do
+          test "$var" = "None" && continue
+          test "$stat" = "None" && continue
+          test "$stat" -eq 0 || {
+            echo "$pd_prefix" >> $failed
+            warn "$pd_prefix: $(echo $var | cut -c8-)"
+            #warn "$pd_prefix: $var"
+          }
+        done
+
+      } || echo "pd:status:$pd_prefix" >>$failed
+
+    }
+
+    trueish "$format_stm_yaml" && {
+      note "TODO"
+    }
 
   done < $prefixes
 
   cd $pd_realdir
 }
-pd_load__status=yiIap
+pd_load__status=yiIaop
 pd_defargs__status=pd_registered_prefix_target_args
+pd_optsv__status=pd_options_v
 pd_als__stat=status
 pd_als__st=status
 
@@ -213,11 +229,17 @@ pd__clean()
 {
   local R=0
 
+  test -n "$1" || error "Prefix expected" 1
   test -z "$2" || pd_meta_clean_mode="$2"
   test -n "$pd_meta_clean_mode" \
     || pd_meta_clean_mode="$( pd__meta clean-mode "$1" )"
 
-  info "Checkout: $checkout, Clean Mode: $pd_meta_clean_mode"
+  info "Checkout: $1, Clean Mode: $pd_meta_clean_mode"
+
+  pd_auto_clean "$1" || {
+    error "Auto-clean failure for checkout '$1'"
+    return 1
+  }
 
   pd_clean "$1" || R=$?;
 
@@ -247,7 +269,8 @@ pd__clean()
   esac
 }
 
-# drop clean checkouts and disable repository
+
+pd_man_1__disable_clean="drop clean checkouts and disable repository"
 pd__disable_clean()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
@@ -272,7 +295,7 @@ pd__disable_clean()
 }
 
 
-# Regenerate local package metadata files and scripts
+pd_man_1__regenerate="Regenerate local package metadata files and scripts"
 pd_load__regenerate=dfP
 #pd_load__regenerate=yfip
 pd__regenerate()
@@ -288,12 +311,15 @@ pd__regenerate()
 }
 
 
-# Given existing checkouts upate local scripts and then projdoc
+pd_man_1__update="Given existing checkouts upate local scripts and then projdoc"
 pd_load__update=yfP
 pd__update()
 {
+  test -n "$1" || set -- .
   set -- "$(normalize_relative "$pd_prefix/$1")"
   local cwd=$(pwd)
+
+  note "Regenerating in $1"
 
   exec 3>$failed
   ( cd $1 && pd_regenerate "$1" )
@@ -310,11 +336,11 @@ pd__update()
   } || {
 
     note "Adding prefix $1"
-    pd__add_new $1
+    pd__add_new $1 $(cd "$cwd/$1"; vc.sh remotes sh)
   }
 }
 
-# Add/remove repos, update remotes at first level. git only.
+pd_man_1__updatE_all="Add/remove repos, update remotes at first level. git only."
 pd_load__update_all=yfb
 pd__update_all()
 {
@@ -387,6 +413,27 @@ pd__list_prefixes()
   pd__meta list-prefixes "$1" || return
 }
 
+pd__list()
+{
+  pd__meta list-prefixes | read_nix_style_file | while read prefix
+  do
+    echo $prefix
+    # TODO: echo table; id name main envs..
+  done
+}
+
+pd__list_all()
+{
+  test -d "$UCONF/project/" || error list-all-UCONF 1
+  local pd=
+  {
+    for pd in $UCONF/project/*/*.y*ml
+    do
+      pd__meta list-prefixes
+    done
+  } | sort -u
+}
+
 pd_load__compile_ignores=y
 pd__compile_ignores()
 {
@@ -407,7 +454,7 @@ pd_load__sync=yf
 pd__sync()
 {
   test -n "$1" || error "prefix argument expected" 1
-  remotes=/tmp/pd--sync-$(uuidgen)
+  remotes=/tmp/pd--sync-$(get_uuid)
   prefix=$1
 
   shift 1
@@ -552,6 +599,7 @@ pd__enable()
     done
   } || {
     test -z "$2" || error "Surplus arguments: $2" 1
+    set -- "$(strip_trail=1 normalize_relative "$1")"
     pd__meta_sq get-repo $1 || error "No repo for $1" 1
     pd__meta -sq enabled $1 || pd__meta -q enable $1 || return
     test -d $1 || {
@@ -559,7 +607,9 @@ pd__enable()
       test -n "$upstream" || upstream=origin
       uri="$(pd__meta get-uri "$1" $upstream)"
       test -n "$uri" || error "No uri for $1 $upstream" 1
-      git clone $uri --origin $upstream $1 || error "Cloning $uri" 1
+      branch=$(jsotk path "$pd" repositories/"$1"/default -Opy 2>/dev/null || echo master)
+      git clone $uri --origin $upstream --branch $branch $1 \
+        || error "Cloning $uri ($upstream/$branch)" 1
     }
     pd__init $1 || return
   }
@@ -583,6 +633,7 @@ pd_load__init=yfP
 pd__init()
 {
   test -n "$1" || error "prefix argument expected" 1
+  test -d "$1" || error "No checkout for $1" 1
   test -z "$2" || error "Surplus arguments: $2" 1
   pd__meta_sq get-repo $1 || error "No repo for $1" 1
 
@@ -685,8 +736,7 @@ pd__disable()
   test ! -d "$1" && {
     info "No checkout, nothing to do"
   } || {
-    note "Found checkout, getting status.. (Clean-Mode: $(pd__meta clean-mode $1))"
-
+    note "Found checkout, running pd-clean..."
     pd__clean $1 || return $?
 
     choice_sync_dismiss=1 \
@@ -725,8 +775,19 @@ pd__add()
     test -z "$2" || set -- "origin" "$2" "$3"
   }
 
-  # Check URL arg, add/update a repo remote if given
-  test -z "$2" || props="remote_$1=$2"
+  # Check URL arg
+  test -n "$2" && {
+    # add/update a repo remote if arg given
+    props="remote_$1=$2"
+  } || {
+    # Or fill out all remotes
+    props="$(verbosity=0 ; cd $3 && vc remotes sh)"
+  }
+
+  note "Prefix: $3"
+  note "Repo: $2"
+  note "Remote: $1"
+  note "Properties: $props"
 
   pd__meta_sq get-repo "$3" 1>/dev/null || {
     pd__meta update-repo "$3" $props
@@ -748,7 +809,7 @@ pd__add_new()
 
   # Concat props as k/v, and sort into unique mapping later; last value wins
   # FIXME: where ar the defaults: host and user defined, and project defined.
-  props="clean=tracked sync=true $@"
+  props="clean=tracked sync=true $props"
 
   info "New repo $prefix, props='$(echo $props)'"
 
@@ -823,21 +884,25 @@ pd__copy()
 {
   test -n "$1" || error "expected hostname" 1
   test -n "$2" || error "expected prefix" 1
+  test -n "$hostname" || error "expected env hostname" 1
+  for host in $hostname $1
+  do
+    test -d ~/.conf/project/$host || \
+        error "No dir for host $host" 1
+    test -e ~/.conf/project/$1/projects.yaml || \
+        error "No projectdoc for host $1" 1
+  done
+  test "$hostname" != "$1" || error "You ARE at host '$2'" 1
 
-  test -d ~/.conf/project/$1 || \
-      error "No dir for host $1" 1
-  test -e ~/.conf/project/$1/projects.yaml || \
-      error "No projectdoc for host $1" 1
 
-  test -n "$hostname"
   $scriptdir/$scriptname.sh meta -sq get-repo "$2" \
     && error "Prefix '$2' already exists at $hostname" 1 || noop
 
-  test "$hostname" != "$1" || error "You ARE at host '$2'" 1
   pd=~/.conf/project/$1/projects.yaml \
     $scriptdir/$scriptname.sh meta dump $2 \
     | tail -n +2 - \
-    >> ~/.conf/project/$hostname/.projects.yaml
+    >> ~/.conf/project/$hostname/projects.yaml \
+    && note "Copied $2 from $1 to $hostname projects YAML"
 }
 
 
@@ -870,13 +935,14 @@ pd__run()
     do
       fnmatch ":*" "$1" && target=$(echo "$1" | cut -c2- ) || target=$1
 
+      test -n .package.sh || error package 31
+
       #note "1=$1 target=$target"
 
       #record_env_keys pd-target pd-run pd-subcmd pd-env
       #pd_debug start $target pd-target pd_prefix
 
       (
-        test -n .package.sh || error package 31
         export $(pd__env)
         subcmd="$subcmd $pd_prefix#$target" \
           pd_run $1 && {
@@ -903,8 +969,11 @@ pd__run_suite()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || error "Suite name expected" 1
+  local suite_name=$1
+  shift
+  # TODO: handle prefixes
   test -z "$2" || error surplus-args 1
-  pd_run_suite $1 $(pd__ls_targets $1 2>/dev/null) || return $?
+  pd_run_suite $1 $(pd__ls_targets $1 2>/dev/null)
 }
 
 
@@ -916,7 +985,7 @@ pd__test()
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || set -- $(pd__ls_targets test 2>/dev/null)
   info "Tests to run ($pd_prefixes): $*"
-  pd_run_suite test "$@" || return $?
+  pd_run_suite test "$@"
 }
 
 
@@ -936,13 +1005,44 @@ pd__check_all()
 
 
 pd_load__check=yiIap
-pd_defargs__check=pd_prefix_target_args
+pd_defargs__check=pd_registered_prefix_target_args
 pd__check()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || set -- $(pd__ls_targets check 2>/dev/null)
   info "Checks to run ($pd_prefixes): $*"
-  pd_run_suite check "$@" || return $?
+  pd_run_suite check "$@"
+}
+
+
+pd_load__build=yiIap
+pd_defargs__build=pd_registered_prefix_target_args
+pd__build()
+{
+  test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
+  test -n "$1" || set -- $(pd__ls_targets build 2>/dev/null)
+  info "Checks to run ($pd_prefixes): $*"
+  pd_run_suite build "$@" || return $?
+}
+
+
+pd_load__tasks=yiIap
+pd_defargs__tasks=pd_registered_prefix_target_args
+pd__tasks()
+{
+  test -n "$pd_prefixes" -o \( -n "$pd_prefix" -a -n "$pd_root" \) \
+    || error "Projectdoc context expected" 1
+  test -n "$1" || set -- $(pd__ls_targets tasks 2>/dev/null)
+  info "Checks to run ($pd_prefixes): $*"
+  pd_run_suite tasks "$@" || return $?
+
+  #local r=0 suite=tasks
+  ## TODO: pd tasks
+  #echo "sh:pwd" >$arguments
+  #subcmd=$suite:run pd__run || r=$?
+  #test -s "$errored" -o -s "$failed" && r=1
+  #pd_update_records status/$suite=$r $pd_prefixes
+  #return $r
 }
 
 
@@ -1076,6 +1176,49 @@ pd_defargs__ls_auto_targets=pd_named_set_args
 pd_load__ls_auto_targets=diap
 
 
+# List all paths; -dfl or with --tasks filters
+pd_load__list_paths=iO
+pd__list_paths()
+{
+  opt_args "$@"
+  set -- "$(cat $arguments)"
+  req_cdir_arg "$@"
+  shift 1; test -z "$@" || error surplus-arguments 1
+  local find_ignores="$(find_ignores $IGNORE_GLOBFILE) $(pd__list_paths_opts)"
+  # FIXME: some nice way to get these added in certain contexts
+  find_ignores="-path \"*/.git\" -prune $find_ignores "
+  find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
+  find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
+
+  debug "Find ignores: $find_ignores"
+  eval find $path $find_ignores -o -path . -o -print
+}
+pd__list_paths_opts()
+{
+  while read option; do case "$option" in
+      -d ) echo "-o -not -type d " ;;
+      -f ) echo "-o -not -type f " ;;
+      -l ) echo "-o -not -type l " ;;
+      --src )
+          echo " -o -not -type f "
+        ;;
+      --tasks )
+          for tag in no-tasks shadow-tasks
+          do
+            meta_attribute tagged $tag | while read glob
+            do
+              glob_to_find_prune "$glob"
+            done
+          done
+          echo " -o -not -type f "
+        ;;
+      * ) echo "$option " ;;
+    esac
+  done < $options
+}
+
+
+
 pd_spc__loc='SRC-FILE...'
 # Count non-empty, non-comment lines from files
 pd__loc()
@@ -1084,7 +1227,19 @@ pd__loc()
   do
     read_nix_style_file "$1"
     shift
-  done | count_lines
+  done | line_count
+}
+
+
+pd_load__src_report=iO
+pd__src_report()
+{
+  pd__list_paths . --src | while read path
+  do
+    test -e "$path" || continue
+    echo $path chars=$(count_chars $path) lines=$(count_lines $path)
+    # src_loc="$(line_count $path)"
+  done
 }
 
 
@@ -1108,18 +1263,20 @@ pd__help()
 }
 
 # Setup for subcmd; move some of this to box.lib.sh eventually
+pd_preload()
+{
+  CWD=$(pwd -P)
+  test -n "$EDITOR" || EDITOR=nano
+  #test -n "$P" || PATH=$CWD:$PATH
+  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  test -n "$uname" || uname=$(uname)
+  test -n "$HTD_ETC" || HTD_ETC="$(pd_init_etc | head -n 1)"
+}
+
 pd_load()
 {
-  test -n "$EDITOR" || EDITOR=nano
-  CWD=$(pwd -P)
-  #test -n "$P" || PATH=$CWD:$PATH
-  test -n "$hostname" || hostname=$(hostname -s)
-  test -n "$uname" || uname=$(uname)
-
-
   sys_load
   str_load
-
 
   test -n "$pd" || pd=.projects.yaml
 
@@ -1128,16 +1285,28 @@ pd_load()
   test -n "$PD_TMPDIR" || PD_TMPDIR=$(setup_tmpd $base)
   test -n "$PD_TMPDIR" -a -d "$PD_TMPDIR" || error "PD_TMPDIR load" 1
 
+  test -n "$UCONF" || {
+    test -e $HOME/.conf \
+      && UCONF=$HOME/.conf \
+      || error env-UCONF 1
+  }
   # FIXME: test with this enabled
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
 
-  pd_inputs="arguments prefixes"
-  pd_outputs="passed skipped error failed"
+  ignores_load
+  test -n "$PD_IGNORE" -a -e "$PD_IGNORE" || error "expected $base ignore dotfile" 1
+  lst_init_ignores
 
-  test -n "$pd_session_id" || pd_session_id=$(uuidgen)
+  pd_inputs="arguments prefixes options"
+  pd_outputs="passed skipped errored failed"
 
-  # Per subcmd init
+  test -n "$pd_session_id" || pd_session_id=$(get_uuid)
+
+  SCR_SYS_SH=bash-sh 
+  
+  # Selective per-subcmd init
+  info "Loading '$subcmd': $(try_value "${subcmd}" load | sed 's/./&\ /g')"
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
 
@@ -1149,23 +1318,28 @@ pd_load()
 
         local pref=
         for pref in $pd_prefixes; do
-          update_package "$pref" || continue
+          pd__meta_sq get-repo "$pref" && update_package "$pref" || continue
         done
         unset pref
       ;;
 
     P )
-        update_package "$pd_prefix" || { r=$?
-          test  $r -eq 1 || error "update_package" $r
-          continue
+        pd__meta_sq get-repo "$pd_prefix" && {
+
+          update_package "$pd_prefix" || { r=$?
+            test  $r -eq 1 || error "update_package" $r
+            continue
+          }
         }
 
-        eval $(cat $pd_root/$pd_prefix/.package.sh)
+        test -e $pd_root/$pd_prefix/.package.sh \
+          && eval $(cat $pd_root/$pd_prefix/.package.sh)
 
         test -n "$package_id" && {
           note "Found package '$package_id'"
         } || {
-          error "package_id" 1
+          trueish "$require_prefixes" && error "package_id" 1
+
           package_id="$(basename $(realpath $pd_prefix))"
           note "Using package ID '$package_id'"
         }
@@ -1175,7 +1349,7 @@ pd_load()
         #test -n "$pd_root" \
         test -e "$pd" || unset pd
         test -n "$pd_prefix" || pd_prefix=.
-        pd_realpath= pd_root=. pd_realdir=$(pwd -P) 
+        pd_realpath= pd_root=. pd_realdir=$(pwd -P)
 
         #test "$pd_prefix" = "." || {
         #  test ! -e $pd_prefix || cd $pd_prefix
@@ -1185,7 +1359,8 @@ pd_load()
     y )
         # look for Pd Yaml and set env: pd_prefix, pd_realpath, pd_root
         # including socket path, to check for running Bg metadata proc
-        test -n "$pd_root" || pd_finddoc $pd
+        req_vars pd
+        test -n "$pd_root" || pd_finddoc
       ;;
 
     f )
@@ -1197,10 +1372,12 @@ pd_load()
       ;;
 
     i )
+        # TODO: replace below with setup_io_paths, but rename pd_in/outputs frst
+
         test -n "$pd_root" && {
           # expect Pd Context; setup IO paths (req. y)
-          req_vars pd pd_cid pd_realpath pd_root \
-            || error "Projectdoc context expected" 1
+          req_vars pd pd_cid pd_realpath pd_root || error \
+            "Projectdoc context expected ($pd; $pd_cid; $pd_realpath; $pd_root)" 1
 
           io_id=-${pd_cid}-${subcmd}-${pd_session_id}
         } || {
@@ -1244,6 +1421,13 @@ pd_load()
         pd_default_args "$pd_default_args" "$@"
       ;;
 
+    o )
+        local pd_optsv="$(eval echo "\"\$$(try_local $subcmd optsv)\"")"
+        test -s "$options" && {
+          $pd_optsv
+        } || noop
+      ;;
+
     g )
         # Set default args based on file glob(s), or expand short-hand arguments
         # by looking through the globs for existing paths
@@ -1251,8 +1435,7 @@ pd_load()
         pd_globstar_search "$pd_trgtglob" "$@"
       ;;
 
-    esac
-  done
+  esac; done
 
   local tdy="$(try_value "${subcmd}" today)"
   test -z "$tdy" || {
@@ -1270,30 +1453,30 @@ pd_unload()
 
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
-      F )
-          exec 6<&-
-        ;;
-      i ) # remove named IO buffer files; set status vars
-          clean_io_lists $pd_inputs $pd_outputs
-          pd_report $pd_inputs $pd_outputs || subcmd_result=$?
-        ;;
-      I )
-          local fd_num=2
-          for fd_name in $pd_outputs $pd_inputs
-          do
-            fd_num=$(( $fd_num + 1 ))
-            #eval echo $fd_num\\\<\\\&-
-            eval exec $fd_num\<\&-
-          done
-          eval unset $pd_inputs $pd_outputs
-          unset pd_inputs pd_outputs
-        ;;
-      y )
-          test -z "$pd_sock" || {
-            pd_meta_bg_teardown
-            unset bgd pd_sock
-          }
-        ;;
+    F )
+        exec 6<&-
+      ;;
+    i ) # remove named IO buffer files; set status vars
+        clean_io_lists $pd_inputs $pd_outputs
+        std_io_report $pd_outputs || subcmd_result=$?
+      ;;
+    I )
+        local fd_num=2
+        for fd_name in $pd_outputs $pd_inputs
+        do
+          fd_num=$(( $fd_num + 1 ))
+          #eval echo $fd_num\\\<\\\&-
+          eval exec $fd_num\<\&-
+        done
+        eval unset $pd_inputs $pd_outputs
+        unset pd_inputs pd_outputs
+      ;;
+    y )
+        test -z "$pd_sock" || {
+          pd_meta_bg_teardown
+          unset bgd pd_sock
+        }
+      ;;
   esac; done
 
   test -n "$PD_TMPDIR" || error "PD_TMPDIR unload" 1
@@ -1303,7 +1486,8 @@ pd_unload()
 
   unset subcmd subcmd_pref \
           def_subcmd func_exists func \
-          PD_TMPDIR
+          PD_TMPDIR \
+          pd_session_id
 
   return $subcmd_result
 }
@@ -1313,13 +1497,23 @@ pd_init()
   test -z "$scriptdir" || return 13
   scriptdir="$(dirname "$(realpath "$0")")"
   export SCRIPTPATH=$scriptdir
+  pd_preload || exit $?
   . $scriptdir/util.sh load-ext
-  lib_load sys os std str src main meta
+  lib_load sys os std stdio str src main meta
   . $scriptdir/box.init.sh
+  lib_load box
   box_run_sh_test
-  . $scriptdir/main.init.sh
   # -- pd box init sentinel --
-  test -n "$verbosity" || verbosity=6
+  test -n "$verbosity" && note "Verbosity at $verbosity" || verbosity=6
+}
+
+pd_init_etc()
+{
+  test ! -e etc/htd || echo etc
+  test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
+  test ! -e $HOME/bin/etc/htd || echo $HOME/bin/etc
+  #XXX: test ! -e .conf || echo .conf
+  #test ! -e $UCONFDIR/htd || echo $UCONFDIR
 }
 
 pd_lib()
@@ -1327,9 +1521,9 @@ pd_lib()
   test -z "$__load_lib" || return 14
   local __load_lib=1
   test -n "$scriptdir" || return 12
-  lib_load box match date doc table
+  lib_load box meta list match date doc table ignores
   . $scriptdir/vc.sh load-ext
-  . $scriptdir/projectdir.inc.sh "$@"
+  . $scriptdir/projectdir.lib.sh "$@"
   . $scriptdir/projectdir-bats.inc.sh
   . $scriptdir/projectdir-fs.inc.sh
   . $scriptdir/projectdir-git.inc.sh
@@ -1338,6 +1532,7 @@ pd_lib()
   . $scriptdir/projectdir-npm.inc.sh
   . $scriptdir/projectdir-make.inc.sh
   . $scriptdir/projectdir-lizard.inc.sh
+  . $scriptdir/projectdir-vagrant.inc.sh
   # -- pd box lib sentinel --
 }
 
@@ -1413,4 +1608,5 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   esac ;;
 esac
+
 

@@ -20,13 +20,28 @@ statusdir_load()
   test -n "$sd_tmp_dir" || sd_tmp_dir=$(setup_tmpd $base)
   test -n "$sd_tmp_dir" -a -d "$sd_tmp_dir" || error "sd_tmp_dir load" 1
 
-  # Load backend
-  test -n "$sd_be" || { which membash 2>&1 >/dev/null && sd_be=membash; }
+
+  # Detect backend
+
+  test -n "$sd_be" || {
+    which redis-cli 2>&1 >/dev/null &&
+      redis-cli ping 2>&1 >/dev/null &&
+        sd_be=redis
+  }
+
+  test -n "$sd_be" || {
+    which membash 2>&1 >/dev/null && sd_be=membash
+  }
+
+  # Set default be
   test -n "$sd_be" || sd_be=fsdir
 
+  # Load backend
   test ! -e "$scriptdir/statusdir_$sd_be.sh" || {
     . $scriptdir/statusdir_$sd_be.sh
   }
+
+  # FIXME: membash does not support ping $sd_be ping
 }
 
 statusdir_unload()
@@ -78,7 +93,7 @@ statusdir__assert()
       path=$STATUSDIR_ROOT/$1
     ;;
     * )
-      path=$STATUSDIR_ROOT/bases/$2/$1
+      path=$STATUSDIR_ROOT/$2/$1
     ;;
   esac
   path=$(normalize_relative $path)
@@ -105,7 +120,7 @@ statusdir__assert_dir()
 {
   test -n "$STATUSDIR_ROOT" || return 14
   tree="$(echo "$@" | tr ' ' '/')"
-  path=$STATUSDIR_ROOT"index/"$tree
+  path=$STATUSDIR_ROOT$tree
   mkdir -vp $(dirname $path)
   echo $path
 }
@@ -129,6 +144,28 @@ statusdir__file()
   esac
   echo $STATUSDIR_ROOT"index/$tree"
 }
+
+# Create and cat properties file ($format $1)
+statusdir__properties()
+{
+  (
+    props=$(statusdir__file "$1.properties")
+    # XXX: initialize file sd_be=properties
+    #statusdir.sh assert-
+
+    test -n "$format" || format=properties
+    case "$format" in
+      properties )
+          cat $props
+        ;;
+      sh )
+          properties2sh $props
+        ;;
+    esac
+  )
+}
+
+
 
 # XXX
 
@@ -211,7 +248,6 @@ statusdir__decr()
 }
 
 
-
 ### Main
 
 statusdir__main()
@@ -243,11 +279,7 @@ statusdir__init()
   util_init
   . $scriptdir/box.init.sh
   box_run_sh_test
-  . $scriptdir/htd.lib.sh
-  . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
-  . $scriptdir/box.lib.sh
-  . $scriptdir/date.lib.sh
+  lib_load main box date
   # -- statusdir box init sentinel --
 }
 

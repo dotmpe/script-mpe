@@ -38,3 +38,4 @@ send "Q\n"
 HERE
 
 c_rehash ~/.certs/
+
