@@ -61,6 +61,7 @@ do case "$BUILD_STEP" in
         lib_load build
 
         ## start with essential tests
+        note "Testing '$REQ_SPECS'"
 
         failed=build/test-results-failed.list
 
@@ -79,8 +80,9 @@ do case "$BUILD_STEP" in
         }
 
         ## Other tests
+        note "Testing '$TEST_SPECS'"
         (
-          SUITE="$TEST_SP" test_shell
+          SUITE="$TEST_SPECS" test_shell
         ) || noop
 
         # TODO: integrate feature testing
