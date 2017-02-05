@@ -9,15 +9,20 @@ build_matrix()
 }
 
 
+test_specs()
+{
+  for SPEC in $SUITE
+    do
+      test ! -e ./test/$SPEC-spec.bats || echo ./test/$SPEC-spec.bats
+  done
+}
+
 test_shell()
 {
   test -n "$*" || set -- bats
   note "test-shell '$*' SUITE='$SUITE'"
   test -n "$SUITE" && {
-    SPECS="$(echo $(for SPEC in $SUITE
-      do
-        test ! -e ./test/$SPEC-spec.bats || echo ./test/$SPEC-spec.bats
-      done ))"
+    SPECS="$(test_specs | lines_to_words)"
   } || {
     test -n "$SPEC" && {
       SPECS="./test/$SPEC-spec.bats"
@@ -25,7 +30,10 @@ test_shell()
       SPECS=./test/*-spec.bats
     }
   }
-  $@ $SPECS || return $? > $TEST_RESULTS
+  note "test-shell '$*' SPECS='$SPECS'"
+  ( $@ $SPECS || return $? ) > $TEST_RESULTS
+  wc -l $TEST_RESULTS
+  note "Done"
 }
 
 run_spec()
