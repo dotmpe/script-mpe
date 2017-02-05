@@ -72,15 +72,17 @@ do case "$BUILD_STEP" in
 
         test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-speqs.tap
         (
-          SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
-          #SUITE="$REQ_SPECS" test_shell > $TEST_RESULTS
+          #SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
+          SUITE="$REQ_SPECS" test_shell > $TEST_RESULTS
         ) || noop
 
-        test "$SHIPPABLE" != "true" || {
+        trueish "$SHIPPABLE" && {
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
             --output $(basepath $TEST_RESULTS .tap .xml)
+          wc -l $TEST_RESULTS $(basepath $TEST_RESULTS .tap .xml)
+        } || {
+          wc -l $TEST_RESULTS
         }
-        wc -l $TEST_RESULTS $(basepath $TEST_RESULTS .tap .xml)
 
         ## Other tests
         #failed=build/test-results-dev.list
