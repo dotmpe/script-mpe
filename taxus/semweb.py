@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship, backref
 
-import core
+from . import core
 
 
 class Description(core.Node):
@@ -44,4 +44,6 @@ class Formula:
     statements = ()
 #
 
+
+models = [ Description ]
 

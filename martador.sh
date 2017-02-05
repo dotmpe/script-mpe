@@ -14,5 +14,14 @@ case "$1" in
 		sudo /usr/sbin/pm-hibernate
 		;;
 
+	"system-reboot" )
+		sudo reboot
+		;;
+
+	"system-shutdown" )
+		sudo shutdown -h now
+		;;
+
 esac
+
 

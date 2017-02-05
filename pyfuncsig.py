@@ -22,3 +22,4 @@ def test(a1, a2, kwd=None, *args, **kwds):
 test('arg1', 'arg2', 'kwd', 'arg3', 'arg4', a=9, b=2)
 test(None, None, notkwd='C', kwd='B')
 
+

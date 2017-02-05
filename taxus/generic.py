@@ -2,8 +2,8 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship, backref
 
-import core
-import semweb
+from . import core
+from . import semweb
 
 
 class Comment(semweb.Description):
@@ -19,4 +19,5 @@ class Comment(semweb.Description):
     comment = Column(Text)
 
 
+models = [ Comment ]
 

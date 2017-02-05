@@ -1,0 +1,16 @@
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vm.synced_folder "../../../", "/vagrant"
+
+  config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "/home/vagrant/.ssh/id_rsa.pub"
+  config.vm.provision "file", source: "~/.ssh/id_rsa", destination: "/home/vagrant/.ssh/id_rsa"
+
+  config.vm.define :ubuntu do |ubuntu|
+    ubuntu.vm.box = "hashicorp/precise64"
+    ubuntu.vm.provision "shell", path: "provision_ubuntu.sh", run: "always"
+    ubuntu.vm.provision "shell", path: "provision_user_config.sh", privileged: false, run: "always"
+  end
+
+end

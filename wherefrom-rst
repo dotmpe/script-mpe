@@ -1,0 +1,112 @@
+#!/bin/sh
+set -e
+
+# Copyright (c) 2012 Jake Petroules. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# ChangeLog
+#  - Hacked to output rSt.
+
+
+USAGE="Print Mac OS WhereFrom attribute for given files in rSt format.\n
+Usage: `basename $0` [-h] [-F=localname] [-P=folder] files\n
+\n
+\t-h\tDisplay this help\n
+\t-F\tProvide key to use for filename ('localname'). \n
+\t-P\tProvide key to use for parent directory ('folder'). \n"
+# filename fieldname
+PREFIX='localname'
+# path fieldname
+PPREFIX='folder'
+# Apple plist-from-xattr fields for kMDItemWhereFroms
+PREFIXES=(url via)
+
+xattr=xattr-2.7
+
+# Parse options
+while getopts hfn OPT; do
+    case "$OPT" in
+        h)
+            echo $USAGE
+            exit 0
+            ;;
+        f)
+            shift 1
+            FORCE_RECORD=`shift 1`
+            ;;
+        F)
+            shift 1
+            PREFIX=`shift 1`
+            ;;
+        P)
+            shift 1
+            PPREFIX=`shift 1`
+            ;;
+        \?)
+            echo $USAGE >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Remove options parsed
+#shift `expr $OPTIND - 1`
+
+# Need at least one filename
+if [ $# -eq 0 ] ; then
+    echo $USAGE >&2
+    exit 1
+fi
+
+# Display output
+for file in "$@"
+do
+	if [ -z "`$xattr "$file" | grep com.apple.metadata:kMDItemWhereFroms`" ];
+	then 
+    test -n "$FORCE_RECORD" || continue
+	fi
+
+	path=`dirname "$file"`
+	base=`basename "$file"`
+	if [ "$base" != "$file" ]; then
+		path=`cd $path;pwd -P`
+	else
+		path=`pwd -P`
+	fi
+	echo ":$PPREFIX: $path"
+	echo ":$PREFIX: $base"
+
+	i=0
+	#$xattr -p com.apple.metadata:kMDItemWhereFroms "$file" | xxd -r -p | plutil -convert xml1 -o - - | xmllint --xpath "/plist/array/string/text()" -
+	$xattr -p com.apple.metadata:kMDItemWhereFroms "$file" \
+		| xxd -r -p \
+		| plutil -convert xml1 -o - - \
+		| grep string | sed 's/^.*<string>\(.*\)<\/string>.*/\1/' \
+		| while read line; do echo :${PREFIXES[$i]}: $line; i=`expr $i + 1`; done
+
+	dob_ts=`stat -f %B "$file"`
+	dob=`date -r $dob_ts +"%Y-%m-%dT%H:%M:%SZ"`
+	echo ":first-seen: $dob"
+
+	test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+	echo ":host: $hostname"
+done

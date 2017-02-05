@@ -1,0 +1,10 @@
+#[submodule "munin/rsyslog"]
+#	path = munin/rsyslog
+#	url = git@github.com:dotmpe/munin-plugins.git
+
+#	url = git@github.com:jonschipp/munin-plugins.git
+[submodule "thirdparty/macos-wherefrom"]
+	path = thirdparty/macos-wherefrom
+  url = https://github.com/jakepetroules/wherefrom.git
+
+

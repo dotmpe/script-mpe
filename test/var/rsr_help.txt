@@ -1,0 +1,68 @@
+Usage: rsr.py [options] paths 
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -C, --command         Action (default: ['rsr_info']).
+  -c NAME, --config=NAME
+                        Run time configuration. This is loaded after parsing
+                        command line options, non-default option values wil
+                        override persisted values (see --update-config)
+                        (default: cllct.rc).
+  -U, --update-config   Write back configuration after updating the settings
+                        with non-default option values.  This will lose any
+                        formatting and comments in the serialized
+                        configuration.
+  -K ID, --config-key=ID
+                        Settings root node for run time configuration.
+                        (default: rsr).
+  -i, --interactive     Allows commands to run extra heuristics, e.g. for
+                        selection and entry that needs user supervision.
+                        Normally all options should be explicitly given or the
+                        command fails. This allows instead to use a readlineUI
+                        during execution.
+  --continue, --non-interactive
+                        Never prompt user, solve and continue or raise error.
+  -L level, --message-level=level
+                        Increase chatter by lowering message threshold.
+                        Overriden by --quiet or --verbose. Levels are 0--7
+                        (debug--emergency) with default of 2 (notice). Others
+                        1:info, 3:warning, 4:error, 5:alert, and 6:critical.
+  -v, --verbose         Increase chatter by lowering message threshold.
+                        Overriden by --quiet or --message-level.
+  -q, --quiet           Turn off informal message (level<4) and prompts
+                        (--interactive).
+  -d URI, --dbref=URI   A URI formatted relational DB access description
+                        (SQLAlchemy implementation). Ex:
+                        `sqlite:///taxus.sqlite`, `mysql://taxus-
+                        user@localhost/taxus`. The default value
+                        (sqlite:////Users/berend/.cllct/db.sqlite) may be
+                        overwritten by configuration and/or command line
+                        option.
+  --repo=NAME           Set data repository
+  --session=NAME        Session determines working tree root
+  --auto-commit         target
+  -Q, --query           TODO
+  --init-db             Create database
+  --init-volume         (Re)set volume Id
+  --init-workspace      (Re)set workspace Id
+  --info                Log some session statistics and info
+  --show-metafile       
+  --show-sha1sum-hexdigest
+  --volume              Load volume configuration and return instance.
+  --assert              Add Node.
+  --assert-group        Add Group-node.
+  --remove              Drop Node.
+  --commit              Commit changes to SQL
+  --nodes               Print existing nodes.
+  --set-root-bool                set bool = true         where
+                        count(jt.node_id) == 0             jt.group_id
+                        core.groupnode_node_table            update().values(
+                        )
+  --update              
+  --repo-update         TODO: move to vc, for walk see dev_treemap or re-
+                        think-use Dir.walk
+  -l, --list            List all nodes, or nodes listed in group node
+  -t, --tree            Print a tree of nodes as nested lists
+  --list-groups         List all group nodes
+  --show                Print Node.

@@ -10,14 +10,14 @@ Python abstraction of 'timeEdition' database.
 
 Introduction
 -------------
-Monitor time spent on work. Every time record is assigned a customer, project 
+Monitor time spent on work. Every time record is assigned a customer, project
 and task ID. The database is initialized by timeEdition, which provides a GUI
-to easily toggle the clock on a customer/project/task. It only allows export to 
+to easily toggle the clock on a customer/project/task. It only allows export to
 CSV, iCal and XML though so there is no integration with any issue tracking.
 
 - 'task' is a generic description from a set that may be specific to a project
   but by default is a copy of a default list.
-- there is no tracking of one single specific task, ie. an issue ID.  
+- there is no tracking of one single specific task, ie. an issue ID.
 - though there is a description attribute for each work log entry.
 - there is no on-the-fly switching of client/project/task, the GUI is disabled
   during record. That is somewhat of a shortcoming. Also the record overview is
@@ -52,10 +52,10 @@ Record
  * task:Task
  * comments:Text
 
-Task 
+Task
  * name:String(255)
  * rate:Float
- 
+
 """
 import os
 import optparse
@@ -68,7 +68,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
 import confparse
-from libcmd import Cmd, err
+from cmdline import Cmd
+from libcmd import err
 
 SqlBase = declarative_base()
 
@@ -139,7 +140,7 @@ Project.tasks = relationship(Task, secondary=projectTask, backref='projects')
 def get_session(dbref, initialize=False):
     engine = create_engine(dbref)
     if initialize:
-        # Issue CREATE's 
+        # Issue CREATE's
         SqlBase.metadata.create_all(engine)
     session = sessionmaker(bind=engine)()
     return session

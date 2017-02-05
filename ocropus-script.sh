@@ -7,3 +7,4 @@ do
 	ocrocmd $f > $hocr_dir/$fn.html
 done;
 
+

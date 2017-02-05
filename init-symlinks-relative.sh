@@ -2,14 +2,8 @@
 
 [ -n "$VERBOSE" ] || VERBOSE=0
 
-log() # 1:message 2:level 
-{
-	echo $1
-return
-	level=$2
-	[ -z "$level" ] && level=0;
-	[ $level -le $VERBOSE ] && echo "$1"
-}
+[ -n "$BOX_MPE_LIB" ] || exit 5
+. $BOX_MPE_LIB/std.inc.sh
 
 [ -z "$FORCE_DELETE" ] && FORCE_DELETE=0
 
@@ -222,4 +216,5 @@ main()
 
 # Run only if scriptname matches (allow other script to include this one)
 [ "$(basename $0)" = "init-symlinks-relative.sh" ] && main $*
+
 

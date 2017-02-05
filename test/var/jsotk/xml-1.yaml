@@ -1,0 +1,13 @@
+_:
+- _:
+  - '#text': list
+  - '#text': with
+  - '#text': items
+  - _:
+    - _:
+      - _name: subs
+      _name: _4
+    _name: _3
+  _name: _2
+_1: bar
+_name: foo

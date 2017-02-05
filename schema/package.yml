@@ -1,0 +1,85 @@
+
+id: "http://dotmpe.com/project/script/schema/package#"
+
+description:
+type: array
+items:
+  allOf:
+
+    - type: object
+      properties:
+        type:
+          type: string
+        main:
+          type: string
+        id:
+          type: string
+        version:
+          type: string
+        environments:
+          type: array
+          items: 
+            type: string
+
+        pd-meta:
+          type: object
+          properties:
+            init:
+              description: |
+                See also ``[]init``, but this holds the parsed cmd and other
+                settings/preferences.
+            check:
+              description: |
+                See also ``[]check``, idem ditto as init.
+            build:
+              description: |
+                See also ``[]build``, idem ditto as init.
+            test:
+              description: |
+                See also ``[]test``, idem ditto as init.
+  
+      required:
+        - type
+        - id
+
+    - type: object
+      properties:
+        init:
+          type: string
+          description: |
+            Shell script to further initialize a project after checkout has been (re)enabled.
+            Re-run as long as it returns continue err code.
+
+    - type: object
+      properties:
+        check:
+          type: string
+          description: |
+            Shell script executed to perform a cursory, quick lookup of project weather.
+
+    - type: object
+      properties:
+        test:
+          type: string
+          description: |
+            Shell script executed to determine test status code, and identify passed/failed/errored tests.
+
+    - type: object
+      properties:
+        tasks:
+          type: string
+          description: |
+            The shell command executed to determine the status code and a report 
+            of the tasks of a project.
+
+            Nothing further is specified as of yet, but in the future some
+            protocol requirements will be added on the meaning of the output.
+
+    - type: object
+      properties:
+        build:
+          type: string
+          description: |
+            Build scripts.
+
+

@@ -1,0 +1,46 @@
+schema:
+    name: "taxus.core"
+    schema-version: 0.1
+    description: "Taxus core provides some abstract and concrete generic basetypes."
+    models:
+        Basic:
+            version: 0.1
+            type: Abstract
+            fields:
+                id:
+                    name: id
+                    type: Integer
+                    len: 11
+                    required: true
+                date_added:
+                    name: date_added
+                    type: DateTime
+                    required: true
+                date_updated:
+                    name: date_updated
+                    type: DateTime
+                deleted:
+                    name: deleted
+                    type: Boolean
+                date_deleted:
+                    name: date_deleted
+                    type: DateTime
+        Named:
+            type: Abstract
+            extends: Basic
+            fields:
+                name:
+                    name: name
+                    type: String
+                    len: 255
+                    required: true
+        Described:
+            type: Abstract
+            extends: Named
+            fields:
+                description:
+                    name: description
+                    type: Text
+
+
+

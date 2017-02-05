@@ -9,25 +9,35 @@
  
 # set the internal field spereator to line break, so that we can iterate easily over the verify-pack output
 IFS=$'\n';
- 
+
+test -z "$1" && cnt=10 || cnt=$1
+
 # list all objects including their size, sort by size, take top 10
-objects=`git verify-pack -v .git/objects/pack/pack-*.idx | grep -v chain | sort -k3nr | head`
- 
+objects=`git verify-pack -v .git/objects/pack/pack-*.idx | grep '^[a-f0-9]\{40\}' | grep -v chain | sort -k3nr | head -n$cnt`
+
 echo "All sizes are in kB's. The pack column is the size of the object, compressed, inside the pack file."
  
 output="size,pack,SHA,location"
 for y in $objects
 do
     # extract the size in bytes
-    size=$((`echo $y | cut -f 5 -d ' '`/1024))
+    size=$(echo $y | cut -f 5 -d ' ')
+    test -n "$size" || {
+        echo "error geting size from $y: $size"
+        exit 1
+    }
+    #size_k=$((  $size / 1024 ))
+    size_k=$(python -c "print \"%.3f\" % ( $size.0 / 2014 )")
     # extract the compressed size in bytes
-    compressedSize=$((`echo $y | cut -f 6 -d ' '`/1024))
+    compressedSize=$(echo $y | cut -f 6 -d ' ')
+    compressedSize_k=$(python -c "print \"%.3f\" % ( $compressedSize.0 / 2014 )")
     # extract the SHA
     sha=`echo $y | cut -f 1 -d ' '`
     # find the objects location in the repository tree
     other=`git rev-list --all --objects | grep $sha`
     #lineBreak=`echo -e "\n"`
-    output="${output}\n${size},${compressedSize},${other}"
+    output="${output}\n${size_k},${compressedSize_k},${other}"
 done
  
 echo -e $output | column -t -s ', '
+

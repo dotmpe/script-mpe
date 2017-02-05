@@ -1,7 +1,7 @@
 #!/bin/env python
 #
 # An output colorizer for syslog.
-# 
+#
 import sys
 import os
 
@@ -20,14 +20,14 @@ c12="\x1b[0;1;32m" #
 c03="\x1b[0;0;33m" # yellow
 c13="\x1b[0;1;33m" #
 c04="\x1b[0;0;34m" # blue
-c14="\x1b[0;1;34m" # 
+c14="\x1b[0;1;34m" #
 c05="\x1b[0;0;35m" # magenta/purple
-c15="\x1b[0;1;35m" # 
+c15="\x1b[0;1;35m" #
 c06="\x1b[0;0;36m" # cyan/light blue
-c16="\x1b[0;1;36m" # 
+c16="\x1b[0;1;36m" #
 
 c07="\x1b[0;0;37m" # white
-c17="\x1b[0;1;37m" # 
+c17="\x1b[0;1;37m" #
 
 
 palette = {}
@@ -40,8 +40,9 @@ error1 = "c00,TS,c10,PRI,c05,HOSTNAME,c11,msg,c00"
 level_templates = {
     'emerg':  "c11,TS,c05, ,HOSTNAME, ,FAC,.,c11,LVL, ,c01,msg,c00",
     'alert':  "c13,TS,c05, ,HOSTNAME, ,FAC,.,c11,LVL, ,c07,msg,c00",
-    'crit':   "c13,TS,c05, ,HOSTNAME, ,FAC,.,c11,LVL, ,c07,msg,c00",
-    'err':      "c03,TS,c05, ,HOSTNAME, ,FAC,.,c01,LVL, ,c07,msg,c00",
+#    'crit':   "c13,TS,c05, ,HOSTNAME, ,FAC,.,c11,LVL, ,c07,msg,c00",
+    'crit':   "TS, ,HOSTNAME, ,FAC,.,LVL, ,msg",
+    'err':    "c03,TS,c05, ,HOSTNAME, ,FAC,.,c01,LVL, ,c07,msg,c00",
     'warn':   "c03,TS,c05, ,HOSTNAME, ,FAC,.,c03,LVL, ,c07,msg,c00",
     'notice': "c07,TS,c05, ,HOSTNAME, ,FAC,.,c07,LVL, ,c07,msg,c00",
     'info':   "c07,TS,c05, ,HOSTNAME, ,FAC,.,c10,LVL, ,c07,msg,c00",
@@ -54,7 +55,7 @@ def _format(fields):
     fields['FAC'] = facility
     fields['LVL'] = level
     template = "".join(map(
-            "%%(%s)s".__mod__, 
+            "%%(%s)s".__mod__,
             level_templates[level].split(",")
         ))
     fields.update(palette)
@@ -87,7 +88,7 @@ palette = dict(
     black='\x1b[0;30m', # black/d-gray
     bblack='\x1b[1;30m', # bold black/d-gray
     red='\x1b[0;31m', # red
-    bred='\x1b[1;31m', # 
+    bred='\x1b[1;31m', #
     green='\x1b[0;32m', # green
     bgreen='\x1b[1;32m', # green
     yellow='\x1b[0;33m', # orange
@@ -97,17 +98,21 @@ palette = dict(
     magenta='\x1b[0;35m', # magenta
     bmagenta='\x1b[1;35m',
     cyan='\x1b[0;36m', # cyan
-    bcyan='\x1b[1;36m', 
+    bcyan='\x1b[1;36m',
     white='\x1b[0;37m', # white/l-gray
     bwhite='\x1b[1;37m', # bright white
 )
 
-def format_line(msg):
+def format_str(msg):
     for k in palette:
         msg = msg.replace('{%s}' % k, palette[k])
     return msg
 
+def std(msg, *args):
+    print format_str(msg % args)
+
 category = 4
+#category = 7
 strict = False
 
 def log(level, msg, *args):
@@ -144,7 +149,7 @@ def log(level, msg, *args):
             return
     if level in title:
         msg = title[level] +': '+ msg
-    msg = format_line(msg)
+    msg = format_str(msg + '{default}')
     # XXX: nicer to put in __repr/str__
     args = list(args)
     import zope.interface
@@ -169,9 +174,7 @@ note =  lambda x,*y: log(NOTE,  x, *y)
 info =  lambda x,*y: log(INFO,  x, *y)
 debug = lambda x,*y: log(DEBUG, x, *y)
 
-if __name__ == '__main__':
-    import sys
-    #main(*sys.argv[1:])
+def test():
 
     log(EMERG, "Test test {green}test{default}")
     log(ALERT, "Test test {green}test{default}")
@@ -181,5 +184,11 @@ if __name__ == '__main__':
     log(NOTE, "Test test {green}test{default}")
     log(INFO, "Test test {green}test{default}")
     log(DEBUG, "Test test {green}test{default}")
+
+
+if __name__ == '__main__':
+    import sys
+    #main(*sys.argv[1:])
+    test()
 
 

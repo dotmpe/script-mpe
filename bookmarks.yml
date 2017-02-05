@@ -1,0 +1,54 @@
+schema:
+    version: 0.1
+
+    models:
+        Domain:
+            version: 0.1
+            implements: taxus.core.Named
+            tablename: "domains"
+            fields: []
+            indices: []
+            relationships:
+                - name: domain_nodes
+                  from: Domain.domain_id
+                  to: Node.node_id
+                  type: one-to-one
+        Locator:
+            version: 0.1
+            implements: taxus.core.Basic
+            tablename: "lctrs"
+            fields:
+                global_id:
+                    name: global_id
+                    type: String
+                    len: 255
+            relationships:
+                - name: locator_nodes
+                  from: Locator.id
+                  to: Node.id
+                  type: one-to-one
+
+        Bookmark:
+            mixins: taxus.core.Basic
+            tablename: 'bm'
+            fields:
+                - name: extended
+                - name: public
+                - name: tags
+                - name: ref_id
+                - name: ref
+                  type: relate
+                  relationship: bookmarks_locator
+            relationships:
+                - name: bookmark_nodes
+                  from: Bookmark.bm_id
+                  to: Node.node_id
+                  type: one-to-one
+                - name: bookmarks_locator 
+                  from: Bookmark.ref_id
+                  to: Locator.lctr_id
+                  type: many-to-one
+
+
+
+

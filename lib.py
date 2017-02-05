@@ -1,3 +1,4 @@
+from __future__ import print_function
 import datetime
 import getpass
 import optparse
@@ -20,7 +21,7 @@ from script_mpe import log
 #
 #settings = confparse.load_path(*config)
 #"Static, persisted settings."
-    
+
 hostname = socket.gethostname()
 username = getpass.getuser()
 
@@ -55,7 +56,7 @@ def cmd(cmd, *args):
 
 def get_checksum_sub(path, checksum_name='sha1'):
     """
-    Utitilize OS <checksum_name>sum command which is likely more 
+    Utitilize OS <checksum_name>sum command which is likely more
     efficient than reading in files in native Python.
 
     Returns the hexadecimal encoded digest directly.
@@ -78,9 +79,19 @@ def get_format_description_sub(path):
     format_descr = cmd("file -bs %r", path).strip()
     return format_descr
 
+uname = cmd("uname -s").strip()
 def get_mediatype_sub(path):
-    mediatypespec = cmd("xdg-mime query filetype %r", path).strip()
-    #mediatypespec = cmd("file -bsi %r", path).strip()
+    if uname == 'Linux':
+        try:
+            mediatypespec = cmd("xdg-mime query filetype %r", path).strip()
+        except Exception as e:
+            mediatypespec = cmd("file -bsi %r", path).strip()
+    elif uname == 'Darwin':
+        mediatypespec = cmd("file -bsI %r", path).strip()
+    else:
+        mediatypespec = cmd("file -bsi %r", path).strip()
+        assert not True, uname
+
     return mediatypespec
 
 def remote_proc(host, cmd):
@@ -165,7 +176,7 @@ cn = class_name
 
 
 if __name__ == '__main__':
-    print get_sha1sum_sub("volume.py");
+    print(get_sha1sum_sub("volume.py"));
 
     for f in sys.argv:
         if not os.path.exists(f):
@@ -174,7 +185,7 @@ if __name__ == '__main__':
                 ('c',os.path.getctime(f)),
                 ('a',os.path.getatime(f)),
                 ('m',os.path.getmtime(f)),):
-            print n, timestamp_to_datetime(ts), f
+            print(n, timestamp_to_datetime(ts), f)
 
 
 
@@ -229,8 +240,8 @@ class Prompt(object):
         yes, no = list(yes_no)
         assert yes.isupper() or no.isupper()
         #v = raw_input('%s [%s] ' % (question, yes_no))
-        print '%s [%s] ' % (question, yes_no)
-        v = getch()
+        print('%s [%s] ' % (question, yes_no))
+        v = getch().strip()
         if not v:
             if yes.isupper():
                 v = yes
@@ -242,7 +253,7 @@ class Prompt(object):
 
     @classmethod
     def raw_input(clss, prompt, default=None):
-        v = raw_input('%s [%s] ' % (prompt, default))
+        v = input('%s [%s] ' % (prompt, default))
         if v:
             return v
         elif default:
@@ -250,9 +261,12 @@ class Prompt(object):
 
     @staticmethod
     def input(prompt, prefill=''):
+        """
+        FIXME: this does not work on Darwin, even with brew readline-6.2.4?
+        """
         readline.set_startup_hook(lambda: readline.insert_text(prefill))
         try:
-            return raw_input(prompt)
+            return input(prompt)
         finally:
             readline.set_startup_hook()
 
@@ -270,25 +284,26 @@ class Prompt(object):
 
     @classmethod
     def query(clss, question, options=[]):
-        assert options and isinstance(options, list)
+        assert options
+        options = list(options)
         origopts = list(options)
         opts = clss.create_choice(options)
         while True:
-            print log.format_line('{green}%s {blue}%s {bwhite}[{white}%s{bwhite}]{default} or [?help] ' %
-                    (question, ','.join(options), opts))
+            print(log.format_str('{green}%s {blue}%s {bwhite}[{white}%s{bwhite}]{default} or [?help] ' %
+                    (question, ','.join(options), opts)))
 #            v = sys.stdin.read(1)
             v = getch()
             #v = raw_input(
-            #        log.format_line('{green}%s {bwhite}[{bblack}%s{bwhite}]{default} or [?help] ') 
+            #        log.format_str('{green}%s {bwhite}[{bblack}%s{bwhite}]{default} or [?help] ')
             #        % (question, opts)).strip()
             if not v.strip(): # FIXME: have to only strip whitespace, not ctl?
                 v = opts[0]
             if v == 'help'  or v in '?h':
-                print ("Choose from %s. Default is %r, use --recurse option to "
-                    "override. ") % (', '.join(options), options[0])
+                print(("Choose from %s. Default is %r, use --recurse option to "
+                    "override. ") % (', '.join(options), options[0]))
             if v.upper() in opts.upper():
                 choice = opts.upper().index(v.upper())
-                print 'Answer:', origopts[choice].title()
+                print('Answer:', origopts[choice].title())
                 return choice
 
 

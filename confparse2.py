@@ -2,7 +2,7 @@
 """
 import types
 
-import yaml
+import ruamel.yaml as yaml
 
 import lib
 
@@ -66,7 +66,7 @@ class Object(Base):
     def copy(self):
         keys = [k for k in self.__dict__.keys() if not k.startswith('_')]
         items = [ (k,getattr(self, k)) for k in keys ]
-        return dict([ 
+        return dict([
             ( k, v.copy() ) if hasattr(v, 'copy') else ( k, v )
             for k, v in items ])
 
@@ -137,4 +137,5 @@ def obj_dic(d, name='obj_dic', super_=None):
 
 
 #o = obj_dic({'test':'foo'})
+
 

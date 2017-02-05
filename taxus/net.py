@@ -1,36 +1,64 @@
+from datetime import datetime
+
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship, backref
 
-import lib
-from init import SqlBase
-from util import SessionMixin
-import core
-import util
-import iface
-import checksum
+from script_mpe import lib
+from .init import SqlBase
+from .util import current_hostname
+from . import core
+from . import util
+from . import iface
+from . import checksum
 
 
-class Host(core.Node):
+class Domain(core.Name):
+
     """
     """
+
+    __tablename__ = 'domains'
+    __mapper_args__ = {'polymorphic_identity': 'domain'}
+
+    domain_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
+
+
+class Host(Domain):
+
+    """
+    """
+
     __tablename__ = 'hosts'
     __mapper_args__ = {'polymorphic_identity': 'host'}
 
-    host_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    host_id = Column('id', Integer, ForeignKey('domains.id'), primary_key=True)
 
     @classmethod
-    def current(Klass, session):
+    def current(Klass, sa=None, session='default'):
         hostname_ = current_hostname()
-        return Klass.find((Klass.name == hostname_,))
+        return Klass.fetch(filters=(Klass.name == hostname_,), sa=sa, session=session)
+
+    @classmethod
+    def init(Klass, sa=None, session='default'):
+        host = Klass.current(sa=sa, session=session)
+        if host:
+            return host
+        if not sa:
+            sa = Klass.get_session(session=session)
+        hostname = current_hostname(initialize=True)
+        host = Klass(name = hostname, date_added=datetime.now())
+        sa.add(host)
+        sa.commit()
+        return host
 
     @property
     def netpath(self):
         return "//%s" % self.name
 
     def __str__(self):
-        return "Host %s" % ( self.hostname )
+        return "Host %s" % ( self.name )
 
     def __repr__(self):
         return "<Host at % with %r>" % ( hex(id(self)), self.hostname )
@@ -42,7 +70,7 @@ class Host(core.Node):
 #    Column('host_idb', ForeignKey('hosts.id'))
 #)
 # mapping table for ChecksumDigest Locator
-locators_checksum = Table('locators_checksum', SqlBase.metadata,
+locators_checksums = Table('locators_checksums', SqlBase.metadata,
     Column('locators_ida', ForeignKey('ids_lctr.id')),
     Column('chk_idb', ForeignKey('chks.id'))
 )
@@ -55,37 +83,15 @@ locators_tags = Table('locators_tags', SqlBase.metadata,
 class Locator(core.ID):
 
     """
-    A global identifier for retrieval of remote content.
-    
-    Maybe based on DNS and route, script or filename for HTTP etc.
-    For file based descriptors may be registered domain and filename, 
-    but also IP and variants on netpath, even inode number lookups.
+    A global identifier for retrieval of local or remote content.
 
-    Not just variant notations but "seeping through" of the filesystem
-    organization used in locators is what introduces difficult forms of
-    ambiguity. Possibly too in this index, not sure, practice would need to
-    prove.
+    Regular known schema are tied to protocols, ie. http, ftp, .. gopher.
+    Some more specific to applications, ie. wrt. mediafiles or distributed, P2P
+    content.
 
-    The reference should follow URL syntax, not URN or otherwise.
-    FIXME: There is some issue as to lctr-ref length. Would 255 be enough? 
-    Perhaps if rogue web-content where entered into the
-    system is properly contained.
-
-    sameAs
-        Incorporates sameAs to indicate references which contain parametrization
-        and are a variant or more specific form of another references,
-        but essentially the same 'resource'. Note that references may point to other
-        'things' than files or HTTP resources.
-
-        A misleading example may be HTTP URLs which are path + query, even more a
-        fragment. This can be misleading as URL routing is part of the web
-        application framework and may serve other requirements than resource
-        parametrization, and further parametrization may occur at other places
-        (Headers, cookies, embedded, etc.). 
-        
-        The Locator sameAs allows comparison on references,
-        comparison of the dereferenced objects belongs on other Taxus objects that
-        refer to the Locator table.
+    Use htdocs: scheme to standardize adressing of Taxus et al.
+    core.Scheme and subtypes are used to manage instances of protocols,
+    and other htdocs sub-schemes.
     """
     zope.interface.implements(iface.IID)
 
@@ -94,17 +100,11 @@ class Locator(core.ID):
 
     lctr_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
 
-    date_added = Column(DateTime, index=True, nullable=False)
-    deleted = Column(Boolean, index=True, default=False)
-    date_deleted = Column(DateTime)
+    # TODO: shortID if length >32
 
     ref_md5_id = Column(Integer, ForeignKey('chks_md5.id'))
     ref_md5 = relationship(checksum.MD5Digest, primaryjoin=ref_md5_id==checksum.MD5Digest.md5_id)
     "A checksum for the complete reference, XXX to use while shortref missing? "
-
-    #ref = Column(String(255), index=True, unique=True)
-    # XXX: varchar(255) would be much too small for many (web) URL locators 
-    ref = Column(Text(2048), index=True, unique=True)
 
     @property
     def scheme(self):
@@ -119,10 +119,11 @@ class Locator(core.ID):
         if scheme: # remove scheme
             assert ref.startswith(scheme+':'), ref
             ref = ref[len(scheme)+1:]
-        # FIXME:
+        # FIXME: return bare path of Locator?
         if self.host:
-            if ref.startswith("//"): # remove netpath 
-                ref = ref[2+len(self.host):]
+            if ref.startswith("//"): # remove netpath
+                assert ref.startswith('//'+self.host.name)
+                ref = ref[2+len(self.host.name):]
             return ref
         else:
             assert ref.startswith('//'), ref
@@ -133,16 +134,17 @@ class Locator(core.ID):
             else:
                 assert not "No path", ref
 
-#    checksum = relationship('ChecksumDigest', secondary=locators_checksum,
-#        backref='locations')
-#    tags = relationship('Tag', secondary=locators_tags,
-#        backref='locations')
-    host_id = Column(Integer, ForeignKey('hosts.id'))
-    host = relationship('Host', primaryjoin="Locator.host_id==Host.host_id",
+    checksums = relationship('ChecksumDigest', secondary=locators_checksums,
+        backref='locations')
+
+    domain_id = Column(Integer, ForeignKey('domains.id'))
+    domain = relationship('Host', primaryjoin="Locator.domain_id==Host.domain_id",
         backref='locations')
 
     def __str__(self):
         return "%s %r" % (lib.cn(self), self.ref or self.global_id)
 
 
-
+models = [
+        Domain, Host, Locator
+    ]

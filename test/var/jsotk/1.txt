@@ -1,0 +1,5 @@
+foo/1=bar
+foo/2[]=list
+foo/2[]=with
+foo/2[]=items
+foo/3/1=subs

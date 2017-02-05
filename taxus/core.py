@@ -1,56 +1,74 @@
 """
-Docs are in __init__
+Docs are in taxus/__init__
 """
+from datetime import datetime
+
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 #from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship, backref
 
-import iface
-from init import SqlBase
-from util import SessionMixin
+from . import iface
+from .init import SqlBase
+from .util import ORMMixin
 
-import lib
-import log
+from script_mpe import lib, log
 
 
 
 
 # mapping table for Node *-* Node
-nodes_nodes = Table('nodes_nodes', SqlBase.metadata,
-    Column('nodes_ida', Integer, ForeignKey('nodes.id'), nullable=False),
-    Column('nodes_idb', Integer, ForeignKey('nodes.id'), nullable=False),
-    Column('nodes_idc', Integer, ForeignKey('nodes.id'))
-)
+#nodes_nodes = Table('nodes_nodes', SqlBase.metadata,
+#    Column('nodes_ida', Integer, ForeignKey('nodes.id'), nullable=False),
+#    Column('nodes_idb', Integer, ForeignKey('nodes.id'), nullable=False),
+#    Column('nodes_idc', Integer, ForeignKey('nodes.id'))
+#)
 
-
-
-
-class Node(SqlBase, SessionMixin):
+class Node(SqlBase, ORMMixin):
 
     """
-    Provide lookup on numeric ID, name (non-unique) and standard dates.
+    Provide lookup on numeric ID, and standard dates.
     """
 
     zope.interface.implements(iface.Node)
 
     __tablename__ = 'nodes'
+
+    # Numeric ID
     node_id = Column('id', Integer, primary_key=True)
 
-    ntype = Column(String(50), nullable=False)
+    # Node type
+    ntype = Column(String(36), nullable=False, default="node")
     __mapper_args__ = {'polymorphic_on': ntype,
             'polymorphic_identity': 'node'}
-    
-    #name = Column(String(255), nullable=True)
-    name = Column(String(255), nullable=False, index=True, unique=True)
-    
-    #space_id = Column(Integer, ForeignKey('nodes.id'))
-    #space = relationship('Node', backref='children', remote_side='Node.id')
-    
-    date_added = Column(DateTime, index=True, nullable=False)
+
+    space_id = Column(Integer, ForeignKey('spaces.id'))
+    space = relationship(
+            'Space',
+            #primaryjoin='Node.space_id == Space.space_id'
+            backref='children',
+#            remote_side='spaces.id',
+#            foreign_keys=[space_id]
+        )
+
     deleted = Column(Boolean, index=True, default=False)
+
+    date_added = Column(DateTime, index=True, nullable=False)
     date_deleted = Column(DateTime)
+    date_updated = Column(DateTime, index=True, nullable=False)
+
+    def init_defaults(self):
+        if not self.date_added:
+            self.date_updated = self.date_added = datetime.now()
+        elif not self.date_updated:
+            self.date_updated = datetime.now()
+
+    @classmethod
+    def default_filters(Klass):
+        return (
+            ( Klass.deleted == False ),
+        )
 
     def __repr__(self):
         return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.name)
@@ -73,14 +91,30 @@ class GroupNode(Node):
     """
 
     __tablename__ = 'groupnodes'
-    __mapper_args__ = {'polymorphic_identity': 'groupnode'}
+    __mapper_args__ = {'polymorphic_identity': 'group'}
     group_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
-    subnodes = relationship(Node, secondary=groupnode_node_table)
+    subnodes = relationship(Node, secondary=groupnode_node_table, backref='supernode')
     root = Column(Boolean)
 
 
-class ID(SqlBase, SessionMixin):
+class Folder(GroupNode):
+
+    """
+    A group-node with a shared title?
+    """
+
+    __tablename__ = 'folders'
+
+    __mapper_args__ = {'polymorphic_identity': 'folder'}
+    folder_id = Column('id', Integer, ForeignKey('groupnodes.id'), primary_key=True)
+
+    title_id = Column(Integer, ForeignKey('names.id'))
+    title = relationship('Name', primaryjoin='Folder.title_id==Name.name_id')
+
+
+
+class ID(SqlBase, ORMMixin):
 
     """
     A global system identifier.
@@ -96,45 +130,79 @@ class ID(SqlBase, SessionMixin):
 
     global_id = Column(String(255), index=True, unique=True, nullable=False)
     """
-    With regard to x-db deployment, not using string ID as or in primary key 
+    With regard to x-db deployment, not using string ID as or in primary key
     for table, even while that makes sense to me.
     """
 
     date_added = Column(DateTime, index=True, nullable=False)
+    date_updated = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
+
+    def init_defaults(self):
+        if not self.date_added:
+            self.date_updated = self.date_added = datetime.now()
+        elif not self.date_updated:
+            self.date_updated = datetime.now()
 
     def __repr__(self):
         return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.global_id)
 
 
+class Space(ID):
+
+    """
+    Spaces segment the Nodeverse.
+
+    An abstraction to deal with segmented storage (ie. different databases,
+    hosts).
+    """
+
+    __tablename__ = 'spaces'
+
+    __mapper_args__ = {'polymorphic_identity': 'space'}
+
+    space_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
+
+    #host = Column(String)
+    #storage_uri = Column(String)
+    classes = Column(String)
+
+
+
 class Name(Node):
 
     """
-    A local unique identifier.
+    A local unique name; title or human identifier.
     """
-
     __tablename__ = 'names'
     __mapper_args__ = {'polymorphic_identity': 'name'}
     name_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
-#    name_id = Column('id', Integer, primary_key=True)
+    # Unique node Name (String ID)
+    name = Column(String(255), nullable=False, index=True, unique=True)
 
-#    nametype = Column(String(50), nullable=False)
-#    __mapper_args__ = {'polymorphic_on': nametype, 
-#            'polymorphic_identity': 'name'}
-#
-#    name = Column(String(255), index=True, unique=True)
-#
-#    date_added = Column(DateTime, index=True, nullable=False)
-#    deleted = Column(Boolean, index=True, default=False)
-#    date_deleted = Column(DateTime)
-#
-#    def __str__(self):
-#        return "%s at %s having %r" % (lib.cn(self), self.taxus_id(), self.name)
-#
-#    def __repr__(self):
-#        return "<%s at %s with %r>" % (lib.cn(self), hex(id(self)), self.name)
+    # XXX: contexts?
+
+
+class Scheme(Name):
+
+    """
+    Reserved names for Locator schemes.
+    """
+    __tablename__ = 'schemes'
+    __mapper_args__ = {'polymorphic_identity': 'scheme-name'}
+    scheme_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
+
+
+class Protocol(Scheme):
+
+    """
+    Reserved names for Locator schemes.
+    """
+    __tablename__ = 'protocols'
+    __mapper_args__ = {'polymorphic_identity': 'protocol-name'}
+    protocol_id = Column('id', Integer, ForeignKey('schemes.id'), primary_key=True)
 
 
 class Tag(Name):
@@ -150,23 +218,20 @@ class Tag(Name):
 
     tag_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
 
-    #name = Column(String(255), unique=True, nullable=True)
-    #sid = Column(String(255), nullable=True)
-    # XXX: perhaps add separate table for Tag.namespace attribute
-#    namespaces = relationship('Namespace', secondary=tag_namespace_table,
-#        backref='tags')
+    # XXX: namespaces?
 
+tags_freq = Table('names_tags_stat', SqlBase.metadata,
+        Column('tag_id', ForeignKey('names_tag.id'), primary_key=True),
+        Column('node_type', String(36), primary_key=True),
+        Column('frequency', Integer)
+)
 
 class Topic(Tag):
+
     """
     A topic describes a subject; a theme, issue or matter, regarding something
-    else. 
-    XXX: It is the first of a level abstraction for other elementary types like
-    inodes or document elements.
-    For now, it is a succinct name on the Tag supertype, with an additional
-    Text field for further specification.
-    
-    XXX: a basic type indicator to toggle between a thing or an idea.
+    else.
+
     Names are given in singular form, a text field codes the plural for UI use.
     """
     __tablename__ = 'names_topic'
@@ -180,7 +245,6 @@ class Topic(Tag):
     thing = Column(Boolean)
     plural = Column(String)
 
-    # TODO backref from locators of this topic
     # TODO hierarchical relation
 
 
@@ -190,24 +254,22 @@ doc_root_element_table = Table('doc_root_element', SqlBase.metadata,
 )
 
 class Document(Node):
+
     """
-    After INode and Resource, the most abstract representation of a (file-based) 
-    resource in taxus.
-    A document comprises a set of elements in an unspecified further structure.
+    Document is an (invariant?) instance for a resource with a unique title,
+    and one specific location. Probably with a htdocs:volume: scheme
 
-    Systems may allow muxing or demuxing a document from or resp. to its
-    elements, Ie. the document object is interchangable by the set of its
-    elements (although Node attributes may not be accounted for).
-
-    sameAs
-        Incorporates sameAs from N3 to indicate references that may have
-        different access protocols but result in the same object
-        (properties/actions)?
+    XXX: see htd.TNode.
     """
     __tablename__ = 'docs'
     __mapper_args__ = {'polymorphic_identity': 'doc'}
+
     doc_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-#    elements = relationship('Element', secondary=doc_root_element_table)
+
+    title_id = Column('title_id', Integer, ForeignKey('names.id'))
+    title = relationship(Name, primaryjoin='Document.title_id==Name.name_id')
+
+    #elements = relationship('Element', secondary=doc_root_element_table)
 
 
 #class ReCoDoc(Document):
@@ -218,7 +280,7 @@ class Document(Node):
 #    Some may be canonical, or ambigious, generic or very specific, etc.
 #    It forces serialization and a way to look at the resource as a single
 #    stream with discrete, nested elements (iow. XML with either some DOMesque
-#    interface or serial access interface). 
+#    interface or serial access interface).
 #
 #    TODO: It implements sameAs to indicate ...
 #    """
@@ -259,4 +321,15 @@ class Document(Node):
 
 
 
+models = [
+
+        Node, Space,
+
+        GroupNode,
+
+        Document,
+        ID,
+        Name, Tag, Topic
+
+    ]
 

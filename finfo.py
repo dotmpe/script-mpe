@@ -1,76 +1,186 @@
 #!/usr/bin/env python
-"""
+"""Walk paths according to excludes, print paths and/or attributes.
+
+TODO:
+- auto name disks/mount points
+- inherited exclude rules
+- any number of named pathsets
+- exclude rule tags per contexts
+
+Make context specific, but dont accept path arguments "outside"::
+
+    finfo.py [options] PATH myexec
+    finfo.py [options] PATH=. my-file-in-path
+    finfo.py [options] [PWD] my-local-file
+
+    finfo.py [options] DIR=~/mydir my/path/in/dir
+    finfo.py [options] HTDOCS personal/journal
+
+Iow. no absolute paths, relative paths, symlinks going elsewhere, etc;
+all path arguments parse to (canonical) named root.
+
 TODO: Keep catalog of file format descriptions for local paths
-XXX: Verify valid extensions for format. 
+XXX: Verify valid extensions for format.
 XXX: Keep complete resource description
+
+----
+
+2011 stuff:
 
 Schema
 ------
-::
+``taxus.media``
+  Mediameta:Node
+    * checksums:List<ChecksumDigest>
+    * mediatype:Mediatype
+    * mediaformat:Mediaformat
+    * genres:List<Genre>
 
-   FileInfo
-    * inode:INode
-    * description:FileDescription
+  Mediatype:Node
+    * mime:Name
 
-   FileDescription
-    * description:String(255)
+  MediatypeParameter:None
+    * localName:Str
+    * default:
 
-TODO: add files to global index manually.
-TODO: map manualy added paths elements to GroupNode, relative paths? entered paths are
-  important, watch out for bash globbing.
-TODO: some checksums for my precious media. Could use sums somehow to tie..
-TODO: tagging? or not. 
+  Genre:Node
+    ..
+
+  Mediaformat:Name
+    ..
+
+``taxus.web``
+  CachedContent:INode
+    * cid:String
+    * size:Int
+    * charset:String
+    * partial:Boolean
+    * etag:String
+    * expires:DateTime
+    * encodings:String
+  Status
+    * http_code:Int
+  Resource:Node
+    * status:STatus
+    * location:Locator
+    * last_access/modified/update
+    * allow:String
+  Invariant:Resource
+    * content:CachedContent
+    * language:String
+    * mediatype:String
+  Variant:Resource
+    ..
+
+[2016-10-11] Adding simpler docopts-mpe based frontend.
 """
+__description__ = "finfo - walk paths, using ignore dotfiles, get attributes"
+__version__ = '0.0.2-dev' # script-mpe
+__db__ = '~/.finfo.sqlite'
+__usage__ = """
+Usage:
+  finfo.py [options] [--env name=VAR]... [--name name=VAR]... (CTX|FILE...|DIR...)
+  finfo.py -h|--help
+  finfo.py --version
+
+Options:
+    --auto-prefix
+                  Look for prefix per given argument.
+    --update
+                  Update records.
+    -d REF --dbref=REF
+                  SQLAlchemy DB URL [default: %s]
+    -n name=PATH --name name=PATH[:PATH]
+                  Define a name with path(set), to look for existing paths
+                  and/or replace prefix common path prefixes with 'name:'.
+
+    -e VAR=name --env VAR=name
+                  Bind env 'VAR' to named set 'name'. If env isset overrides any
+                  named set (see --name).
+                  [default: PWD=pwd] (and PWD evaluates to .)
+    --names-only
+                  Print prefix with names only, instead of record report.
+    -f --files
+                  Return files only.
+    -d --directories
+                  Return directories only.
+    -r --recurse
+                  Recurse
+    --config NAME
+                  Config [default: cllct.rc]
+    --documents
+                  Return document type files only.
+    --filter INCLUDE...
+                  ..
+
+Other flags:
+    -v            Increase verbosity.
+    -h --help     Show this usage description. For a command and argument
+                  description use the command 'help'.
+    --version     Show version (%s).
+
+""" % ( __db__, __version__, )
 import os
 from datetime import datetime
+from pprint import pprint, pformat
+import re
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
                         ForeignKey, Table, Index, DateTime, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
 
+import confparse
 import lib
-import log
 import libcmd
+import log
 import res.fs
+import res.metafile
+import res.persistence
+import rsr
 import taxus.core
-import taxus.media
-import taxus.model
-import taxus.web
-import taxus.semweb
-import taxus.net
-import taxus.generic
 import taxus.checksum
 import taxus.fs
+import taxus.generic
+import taxus.htd
+import taxus.media
+import taxus.model
+import taxus.net
+import taxus.semweb
+import taxus.web
+import util
+
 from taxus.core import Node, Name
-from taxus.media import Mediatype, Mediaformat, Genre, Mediameta
-from txs import TaxusFe
+from taxus.media import Mediatype, MediatypeParameter, Genre, Mediameta
+from taxus.fs import INode, Dir, File, Mount
+from taxus.init import SqlBase, get_session
+from taxus.htd import TNode
+#from txs import Txs
+
+models = [
+        Mediatype,
+        INode,
+        Dir,
+        File,
+        Mount,
+        TNode
+    ]
 
 
-"""
-class FileDescription(Node):
-    __tablename__ = 'filedescription'
-    __mapper_args__ = {'polymorphic_identity': 'filedescription'}
+default_filters = [
+            re.compile('^[^\.(git|svn|bzr|build)]$')
+        ]
 
-    filedescription_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-    description = Column(String(255), unique=True)
+doc_exts = "doc docx pdf tex latex troff man rst md txt".split(' ')
+doc_filters = [
+            re.compile('^.*\.(%s)$' % '|'.join(doc_exts))
+        ]
 
-ass FileInfo(Node):
-    __tablename__ = 'fileinfo'
-    __mapper_args__ = {'polymorphic_identity': 'filedescription'}
-    fileinfo_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
-    inode_id = Column('inode_id', ForeignKey('inodes.id'))
-    inode = relationship(INode, primaryjoin= inode_id == INode.inode_id )
+class FileInfoApp(rsr.Rsr):
 
-    description_id = Column(ForeignKey('filedescription.id'), index=True)
-    description = relationship(FileDescription, 
-            primaryjoin=description_id == FileDescription.filedescription_id)
-"""
-
-class FileInfoApp(TaxusFe):
-
-    NAME = os.path.splitext(os.path.basename(__file__))[0]
+    NAME = 'mm'
+    PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
 
 #    DB_PATH = os.path.expanduser('~/.fileinfo.db')
 #    DEFAULT_DB = "sqlite:///%s" % DB_PATH
@@ -78,8 +188,8 @@ class FileInfoApp(TaxusFe):
     DEFAULT_CONFIG_KEY = NAME
 
 #    TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['file_info']
-    #NONTRANSIENT_OPTS = Cmd.NONTRANSIENT_OPTS 
-    DEFAULT_ACTION = 'file_info'
+    #NONTRANSIENT_OPTS = Cmd.NONTRANSIENT_OPTS
+    DEFAULT = ['file_info']
 
     DEPENDS = {
             'file_info': ['txs_session'],
@@ -93,30 +203,31 @@ class FileInfoApp(TaxusFe):
         }
 
     @classmethod
-    def get_optspec(Klass, inherit):
+    def get_optspec(Klass, inheritor):
+        p = inheritor.get_prefixer(Klass)
         return (
-                (('--file-info',), libcmd.cmddict(help="Default command. ")),
-                (('--name-and-categorize',), libcmd.cmddict(
+                p(('--file-info',), libcmd.cmddict(help="Default command. ")),
+                p(('--name-and-categorize',), libcmd.cmddict(
                     help="Need either --interactive, or --name, --mediatype and "
                         " --mediaformat. Optionally provide one or more --genre's. "
                 )),
-                (('--mm-stats',), libcmd.cmddict(help="Print media stats. ")),
-                (('--list-mtype',), libcmd.cmddict(help="List all mediatypes. ")),
-                (('--list-mformat',), libcmd.cmddict(help="List all media formats. ")),
-                (('--add-mtype',), libcmd.cmddict(help="Add a new mediatype. ")),
-                (('--add-mformats',), libcmd.cmddict(help="Add a new media format(s). ")),
-                (('--add-genre',), libcmd.cmddict(help="Add a new media genre. ")),
+                p(('--stats',), libcmd.cmddict(help="Print media stats. ")),
+                p(('--list-mtype',), libcmd.cmddict(help="List all mediatypes. ")),
+                p(('--list-mformat',), libcmd.cmddict(help="List all media formats. ")),
+                p(('--add-mtype',), libcmd.cmddict(help="Add a new mediatype. ")),
+                p(('--add-mformats',), libcmd.cmddict(help="Add a new media format(s). ")),
+                p(('--add-genre',), libcmd.cmddict(help="Add a new media genre. ")),
 
-                (('--name',), dict(
+                p(('--name',), dict(
                     type='str'
                 )),
-                (('--mtype',), dict(
+                p(('--mtype',), dict(
                     type='str'
                 )),
-                (('--mformat',), dict(
+                p(('--mformat',), dict(
                     type='str'
                 )),
-                (('--genres',), dict(
+                p(('--genres',), dict(
                     action='append',
                     default=[],
                     type='str'
@@ -124,7 +235,7 @@ class FileInfoApp(TaxusFe):
                # (('-d', '--dbref'), {'default':self.DEFAULT_DB, 'metavar':'DB'}),
             )
 
-    def list_mformat(self, sa=None):
+    def list_mformat(self, sa):
         mfs = sa.query(Mediaformat).all()
         for mf in mfs:
             print mf
@@ -150,8 +261,8 @@ class FileInfoApp(TaxusFe):
         Add one or more new mediatypes.
         """
         assert mtype, "First argument 'mtype' required. "
-        mt = sa.query( Mediatype, Name )\
-                .filter( Name.name == mtype )\
+        mt = sa.query( Mediatype )\
+                .filter( Mediatype.name == mtype )\
                 .all()
         if mt:
             mt = mt[0]
@@ -189,7 +300,7 @@ class FileInfoApp(TaxusFe):
         sa.commit()
 
 # TODO: adding Mediameta for files
-    def name_and_categorize(self, opts=None, sa=None, 
+    def name_and_categorize(self, opts=None, sa=None,
             name=None, mtype=None, mformat=None, genres=None, *paths):
         if len(paths) > 1:
             assert opts.interactive
@@ -208,7 +319,7 @@ class FileInfoApp(TaxusFe):
                         if 'mf' in ret ].pop()
                 mm.mediaformat = mf
             if genres:
-                mm.genres = [ ret['genre'] 
+                mm.genres = [ ret['genre']
                         for ret in self.add_genre( genre, None, opts=opts, sa=sa )
                         if 'genre' in ret ]
             sa.add(mm)
@@ -225,6 +336,308 @@ class FileInfoApp(TaxusFe):
                 print
 
 
+varname = re.compile('^\$[A-Z0-9a-z]+$')
+
+def search_path(paths, ctx):
+    """Yield directories. Process JSON-path references from list `paths`. """
+    for root_dir in paths:
+        if root_dir.startswith('#prefixes/'):
+            # Process symbolic rc references
+            prefref = root_dir[10:]
+            if ':' in prefref:
+                prefref, num = prefref.split(':')
+                yield ctx.prefixes.map_[prefref][int(num)]
+            else:
+                for ref_root in search_path(ctx.prefixes.map_[prefref], ctx):
+                    yield ref_root
+        else:
+            yield root_dir
+
+def find_local(name, search):
+    """
+    Traverse prefixes in list `search`, yields where `name` exists.
+    Yield load is tuple `prefix`, `full-file-path`, `full-dir-path`
+    """
+    for prefix in search:
+        path = os.path.join(prefix, name)
+        if os.path.exists(path):
+            if os.path.isdir(path):
+                return prefix, None, name
+            else:
+                return prefix, name, os.path.dirname(name) or '.'
+
+def find_prefixes(path, ctx):
+    for prefix, pathrefs in ctx.prefixes.map_.items():
+        for prefpath in pathrefs:
+            if path.startswith('#prefixes/'):
+                prefref = prefpath[10:]
+                prefpath = ctx.prefixes.map_[prefref]
+
+        if path.startswith( prefpath ):
+            yield prefix
+
+
+
+def main(argv, doc=__doc__, usage=__usage__):
+
+    """
+    Execute using docopt-mpe options.
+
+        prog [opts] [CTX] ( FILE... | DIR... )
+
+    """
+
+    # Process environment
+    db = os.getenv( 'FINFO_DB', __db__ )
+    if db is not __db__:
+        usage = usage.replace(__db__, db)
+
+    ctx = confparse.Values(dict(
+        opts = util.get_opts(doc + usage, version=get_version(), argv=argv[1:])
+    ))
+    ctx.opts.flags.dbref = taxus.ScriptMixin.assert_dbref(ctx.opts.flags.dbref)
+    # Load configuration
+    ctx.config_file = list(confparse.expand_config_path(ctx.opts.flags.config)).pop()
+    ctx.settings = settings = confparse.load_path(ctx.config_file)
+    # Load SA session
+    ctx.sa = get_session(ctx.opts.flags.dbref)
+
+    # DEBUG: pprint(ctx.settings.todict())
+
+    # Process arguments
+    dirs = []
+    # Shift paths from ctx arg
+    if ctx.opts.args.CTX and os.path.exists(ctx.opts.args.CTX):
+        ctx.opts.args.FILE.append(ctx.opts.args.CTX)
+        ctx.opts.args.CTX = None
+
+    # Sort out dirs from files
+    for arg in ctx.opts.args.FILE:
+        if os.path.isdir(arg):
+            ctx.opts.args.FILE.remove(arg)
+            dirs.append(arg)
+        elif os.path.isfile(arg):
+            pass
+        else:
+            log.note("Unhandled path %r" % arg)
+    ctx.opts.args.DIR = dirs
+
+    # Set default path context
+    if ctx.opts.flags.name:
+        assert not ctx.opts.args.CTX
+        ctx.opts.args.CTX = ctx.opts.flags.name
+
+    elif not ctx.opts.args.CTX:
+        ctx.opts.args.CTX = 'current'
+
+
+    # XXX: create prefixes object on context
+    ctx.prefixes = confparse.Values(dict(
+        map= settings.finfo['prefix-map'],
+        env={},
+        map_={}
+    ))
+    if 'homedir' not in ctx.prefixes.map:
+        ctx.prefixes.map['homedir'] = 'HOME=%s' % os.path.expanduser('~')
+    if 'current' not in ctx.prefixes.map:
+        ctx.prefixes.map['current'] = '$PWD:$HOME'
+    if 'pwd' not in ctx.prefixes.map:
+        ctx.prefixes.map['pwd'] = 'PWD=%s' % os.path.abspath('.')
+
+    for prefix, path in ctx.prefixes.map.items():
+        if '=' in path:
+            envvar, path = path.split('=')
+            if envvar in ctx.prefixes.env:
+                assert ctx.prefixes.env[envvar] == prefix, (
+                        ctx.prefixes.env[envvar], prefix )
+            ctx.prefixes.env[envvar] = prefix
+
+    # Pre-pocess binds from env flags
+
+    if not isinstance(ctx.opts.flags.env, list):
+        ctx.opts.flags.env = [ ctx.opts.flags.env ]
+
+    for env_map in ctx.opts.flags.env:
+        envvar, prefix = env_map.split('=')
+        if envvar in ctx.prefixes.env:
+            assert prefix == ctx.prefixes.env[envvar]
+        else:
+            ctx.prefixes.env[envvar] = prefix
+
+        envvalue = os.getenv(envvar, None)
+        if envvalue:
+            ctx.prefixes.map[prefix] = "%s=%s" % ( envvar, envvalue )
+            #ctx.prefixes.map_[prefix] = envvalue.split(':')
+
+    # Post-process prefixes after passed flags, and resolve all values
+    for prefix, spec in ctx.prefixes.map.items():
+        if '=' in spec:
+            envvar, spec = spec.split('=')
+            if envvar in ctx.prefixes.env:
+                assert ctx.prefixes.env[envvar] == prefix, (
+                        ctx.prefixes.env[envvar], prefix )
+            ctx.prefixes.env[envvar] = prefix
+
+        specs = spec.split(':')
+        set_ = []
+
+        for idx, path in enumerate(specs):
+            path = os.path.expanduser(path)
+            if varname.match(path):
+                refpref = ctx.prefixes.env[path[1:]]
+                #refpath = ctx.prefixes.map[]
+                path = '#prefixes/'+refpref
+
+            elif '$' in path:
+                pass
+            #else:
+            #    path = '#prefixes/'+prefix+':'+str(idx)
+
+            set_.append(path)
+
+        ctx.prefixes.map_[prefix] = set_
+
+    ctx.pathrefs = ctx.prefixes.map_[ctx.opts.args.CTX]
+
+    #DEBUG:
+    #print ctx.opts.todict()
+    #print pformat(ctx.prefixes.todict())
+    #print pformat(ctx.pathrefs)
+
+    # Get filter arguments, order most significant first
+    # Preprocess filter spec strings, compile to regex
+
+    if 'INCLUDE' not in ctx.opts.args:
+        ctx.opts.args.INCLUDE = []
+    if 'INCLUDE_PATH' not in ctx.opts.args:
+        ctx.opts.args.INCLUDE_PATH = []
+
+    if not ctx.opts.args.INCLUDE:
+        ctx.opts.args.INCLUDE = default_filters
+    if ctx.opts.flags.documents:
+        ctx.opts.args.INCLUDE = doc_filters + ctx.opts.args.INCLUDE
+    for idx, filter in enumerate(ctx.opts.args.INCLUDE):
+        if isinstance(filter, str):
+            print 'new filter', filter
+            ctx.opts.args.INCLUDE[idx] = fnmatch.translating(filter)
+
+    # Resolve FILE/DIR arguments
+    files, dirs = [], []
+    for arg in ctx.opts.args.FILE + ctx.opts.args.DIR:
+        r = find_local(arg, search_path(ctx.pathrefs, ctx))
+        if not r: continue
+        prefix, file, dir = r
+        if not dir:
+            raise Exception("No path for %s" % arg)
+        elif file:
+            files.append((prefix, file))
+        else:
+            dirs.append((prefix, dir))
+
+    print("Resolved arguments to %s dirs, %s files" % ( len(dirs), len(files) ))
+
+    # XXX: if not ctx.opts.flags.directories:
+
+    if ctx.opts.flags.recurse:
+        # Resolve all dirs to file lists
+        for p, d in dirs:
+            for top, path_dirs, path_files in os.walk(os.path.join(p, d)):
+                for path_dir in list(path_dirs):
+                    for filter in ctx.opts.args.INCLUDE_PATH:
+                        if not filter.match(os.path.basename(path_dir)):
+                            path_dirs.remove(path_dir)
+                            break
+
+                if top.startswith('./'):
+                    top = top[2:]
+
+                for path_file in list(path_files):
+                    filter = None
+                    for filter in ctx.opts.args.INCLUDE:
+                        if filter.match(os.path.basename(path_file)):
+                            break
+                        else:
+                            continue
+                    if not filter.match(os.path.basename(path_file)):
+                        path_files.remove(path_file)
+                    if path_file not in path_files:
+                        continue
+                    files.append((p, os.path.join(top, path_file)))
+
+    print("Continue with %s files" % len(files))
+
+    mfadapter = None
+    res.persistence.PersistedMetaObject.stores['metafile'] = mfadapter
+
+
+    prefix = None
+    for p, f in files:
+
+        if ctx.opts.flags.auto_prefix:
+
+            prefixes = find_prefixes(p, ctx)
+            assert prefixes # FIXME: how come only use first??
+            prefix = prefixes.next()
+            assert len(ctx.prefixes.map_[prefix]) == 1, prefix
+            name = f[len(ctx.prefixes.map_[prefix][0])+1:]
+
+        else:
+            prefix = ctx.opts.args.CTX
+            name = f[len(p)+1:]
+
+        ref = prefix+':'+name
+
+        if ctx.opts.flags.names_only:
+            print ref
+
+        else:
+            # TODO: get INode through context? Also add mediatype & parameters
+            # resolver. But needs access to finfo ctx..
+
+            records = ctx.sa.query(taxus.INode).filter(
+                    taxus.INode.name.like("%%:%s" % name)).all()
+            if not records:
+                record = taxus.INode.get_instance(name=ref, _sa=ctx.sa,
+                        _fetch=False)
+            elif len(records) > 1:
+                raise Exception("Multiple path ID matches %r" % name)
+            else:
+                record = records[0]
+
+            # GNU/Linux: -bi = --brief --mime
+            # Darwin/BSD: -bI = --brief --mime
+            #mediatype = lib.cmd('file --brief --mime "%s"', path).strip()
+            # XXX: see basename-reg?
+
+            #if ctx.opts.flags.update == True:
+
+            # TODO: repopulate metadata;
+
+            mf = res.metafile.Metafile(f)
+
+            assert mf.date_accessed
+            record.date_accessed = mf.date_accessed
+            assert mf.date_modified
+            record.date_modified = mf.date_modified
+
+            if not record.node_id:
+                ctx.sa.add(record)
+
+            print record, record.date_updated, record.date_modified
+            #sys.exit()
+
+            if ctx.opts.flags.update:
+                ctx.sa.commit()
+
+
+
+def get_version():
+    return 'finfo.mpe/%s' % __version__
+
+
 if __name__ == '__main__':
-    FileInfoApp.main()
+    #FileInfoApp.main()
+    import sys
+    #sys.setrecursionlimit(100)
+    sys.exit(main(sys.argv))
 

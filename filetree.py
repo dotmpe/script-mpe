@@ -40,7 +40,7 @@ class FSTopicTreeFe(libcmd.StackedCommand):
             )
 
     DEPENDS = dict(
-        run_fstree = ['cmd_options']
+        run_fstree = ['load_config']
         )
 
     def run_fstree(self, opts=None):
@@ -50,6 +50,7 @@ class FSTopicTreeFe(libcmd.StackedCommand):
 if __name__ == '__main__':
 
     FSTopicTreeFe.main()
+
 
 
 

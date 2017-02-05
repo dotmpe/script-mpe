@@ -3,11 +3,11 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship, backref
 
-from init import SqlBase
-from util import SessionMixin
-import core
-import net
-import web
+from .init import SqlBase
+from .util import ORMMixin
+from . import core
+from . import net
+from . import web
 
 
 class QName():
@@ -16,13 +16,13 @@ class QName():
 
 class Namespace(web.Variant):
     """
-    A set of unique names. 
+    A set of unique names.
 
     The namespace at a minimum has an system identifier,
     which may refer to one or more global identifiers.
 
     XXX: A collection of anything? What.
-    See Tag, a namespace constituting distinct tag types. 
+    See Tag, a namespace constituting distinct tag types.
     But also code, objects.
     XXX: there is no mux/demux (yet) so subclassing variant does not mean much, but anyway.
     XXX: Being a variant, the canonical URL, may be used as identifier, may be
@@ -57,33 +57,39 @@ class Relocated(web.Resource):
     temporary = Column(Boolean)
 
 
-class Volume(web.Resource):
-
-    # XXX: merge with res.Volume
+class Volume(core.Scheme):
 
     """
-    A particular storage of serialized entities, 
-    as in a local filesystem tree or a blob store.
+    A packaged collection of resources. A particular storage of serialized
+    entities, as in a local filesystem (disk partition) or a blob store.
+
+    Volumes can be nested. TODO: express some types of nesting, ie. SCM, TAR,
+    other compositions.
+
+    Each volume may have its own local name access method, or not?
+
+    E.g. consider ``volume-16-4-boreas-brix:htdocs/main.rst`` or
+    ``htdocs-16-4-boreas-brix:main``. Both identify the index for Htdocs.
     """
 
     __tablename__ = 'volumes'
-    __mapper_args__ = {'polymorphic_identity': 'resource:volume'}
+    __mapper_args__ = {'polymorphic_identity': 'volume-name'}
 
-    volume_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
+    volume_id = Column('id', Integer, ForeignKey('schemes.id'), primary_key=True)
 
     #type_id = Column(Integer, ForeignKey('classes.id'))
     #store = relation(StorageClass, primaryjoin=type_id==StorageClass.id)
 
-    node_id = Column(Integer, ForeignKey('nodes.id'))
+    root_node_id = Column(Integer, ForeignKey('nodes.id'))
     root = relationship(core.Node, backref='volumes',
-            primaryjoin=node_id == core.Node.node_id)
+            primaryjoin=root_node_id == core.Node.node_id)
 
 
 class Bookmark(core.Node):
 
     """
     A textual annotation with a short and long descriptive label,
-    a sequence of tags, the regular set of dates, 
+    a sequence of tags, the regular set of dates,
     """
 
     __tablename__ = 'bm'
@@ -102,14 +108,11 @@ class Bookmark(core.Node):
     tags = Column(Text(10240))
     "Comma-separated list of all tags. "
 
-    #sup_id = Column(Integer, ForeignKey('bm.id'))
-#Bookmark.sup = relationship(Bookmark, primaryjoin=Bookmark.bm_id == Bookmark.sup_id)
-
 
 workset_locator_table = Table('workset_locator', SqlBase.metadata,
     Column('left_id', Integer, ForeignKey('ws.id'), primary_key=True),
     Column('right_id', Integer, ForeignKey('ids_lctr.id'), primary_key=True),
-#    mysql_engine='InnoDB', 
+#    mysql_engine='InnoDB',
 #    mysql_charset='utf8'
 )
 
@@ -137,7 +140,7 @@ token_locator_table = Table('token_locator', SqlBase.metadata,
 
 
 
-class Token(SqlBase, SessionMixin):
+class Token(SqlBase, ORMMixin):
 
     """
     A large-value variant on Tag, perhaps should make this a typetree.
@@ -150,4 +153,8 @@ class Token(SqlBase, SessionMixin):
 
     value = Column(Text(65535), index=True, nullable=True, unique=True)
     refs = relationship(net.Locator, secondary=token_locator_table)
+
+
+models = [ Namespace, Relocated, Volume, Bookmark, Workset, Token ]
+
 

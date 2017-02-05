@@ -59,3 +59,4 @@ SQL_ENTRY_TAG_1`; do
     name=${line#*|}
     createSymlink $path/$name $path/$TAGNAME/$name
 done
+

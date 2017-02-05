@@ -126,6 +126,7 @@ def csv_reader(csvfile, fields, unique_fields=False, unique_records=True, opts=F
 					new = newnew
 		# yield if new (changed or unique) and everything if not tracking
 		if new or not seen:
+			# one last check to see wether we understood the input data
 			if destacc == '0000000000':
 				if cat == 'ba':
 					pass# betaalautomaat
@@ -141,7 +142,6 @@ def csv_reader(csvfile, fields, unique_fields=False, unique_records=True, opts=F
 					assert False, (destacc, destname, cat, row)
 			else:
 				assert cat in ('ma', 'ba', 'ga', 'cb', 'id', 'db', 'bg', 'ac', 'ei'), cat
-
 			vs = [ locals()[n] for n in fields ]
 			if unique_fields and seen:
 				vc = [ locals()[n] for n in unique_fields ]
@@ -149,63 +149,6 @@ def csv_reader(csvfile, fields, unique_fields=False, unique_records=True, opts=F
 					n = unique_fields[i]
 					seen[n].append(v)
 			yield tuple(vs)
-
-def import_accounts_from_file(sa, csvfile, opts):
-	reader = csv_reader(csvfile, ['destacc', 'destname'], unique_fields=['destacc'])
-	for destacc, destname in reader :
-		if destacc == '0000000000' or destacc == '':
-			#print "Ignored non account", destacc, destname
-			continue
-		accounts = sa.query(Account).filter(Account.account_number == destacc ).all()
-		if accounts: # got one already
-			continue
-		# TODO: must set account type
-		newAcc = Account(
-				account_number=destacc, 
-				account_name = destname,
-				account_type = 'Expenses')
-		sa.add(newAcc)
-		sa.commit()
-		print destacc, destname
-		print sa.query(Account).filter(Account.account_name == destname ).all()
-	pass
-
-def detect_source_account(accnr, sa, opts):
-	accounts = sa.query(Account).filter(Account.account_number == accnr ).all()
-	if accounts:
-		return accounts[0]
-
-def import_mutations_from_file(sa, csvfile, opts):
-	reader = csv_reader(csvfile, [ 'line', 'date', 'accnr', 'amount', 'destacc', 'cat',
-		'destname', 'descr', 'descr2' ])
-	for line, date, accnr, amount, destacc, cat, destname, descr, descr2 in reader:
-
-		account = detect_source_account(accnr, sa, opts)
-		if not account:
-#			print "'From' account unknown", accnr
-			continue
-
-		accounts = sa.query(Account).filter( Account.account_number == destacc ).all()
-		if not accounts:
-#			print "'To' account unknown", line, destacc, cat, destname, descr, descr2
-			continue
-		destaccount = accounts[0]
-
-		category = ''
-
-		#print csvfile, line, accnr, amount, destacc
-		m = Mutation(from_account=account, to_account=destaccount,
-				amount=amount, category=category)
-
-def import_from_file(sa, csvfile, opts):
-	# XXX: can only do one at a time while global mutations is used
-	#import_accounts_from_file(sa, csvfile, opts)
-	import_mutations_from_file(sa, csvfile, opts)
-
-def import_from_files(opts, *args):
-	for csvfile in args:
-		print '# Importing', csvfile
-		import_from_file(opts._sa, csvfile, opts)
 
 def print_sum_from_file(csvfile, opts):
 	line = 0
@@ -267,11 +210,6 @@ def print_gnu_cash_import_csv(csvfile, description_delimiter='\n', opts=None):
 		out = dt, debet and amount or "", not debet and amount or "", destacc, destname, d
 		print ",".join( map(lambda x: '"%s"' % x, out) )
 
-def list_accounts(opts):
-	accounts = opts._sa.query(Account).all()
-	for account in accounts:
-		print account.account_id, account
-
 def set_account_category(opts, account, category=None):
 	# account must exist
 	if isinstance(account, basestring):
@@ -308,20 +246,6 @@ def organize(opts, account=None, category=None):
 		for account in accounts:
 			print account
 			set_account_category(opts, account)
-	
-def drop_account(opts, account):
-	sa = get_session(opts.dbref)	
-	acc = sa.query(Account).filter(Account.account_number == account).one()
-	sa.delete(acc)
-	sa.commit()
-	print "Dropped account", account, acc
-
-def reset_db(opts):
-	dbfile = os.path.expanduser(opts.dbrefname)
-	if os.path.exists(dbfile):
-		os.remove(dbfile)
-		print 'Deleted myLedger database'
-	get_session(opts.dbref, True)	
 
 def main():
 	import sys
@@ -365,12 +289,6 @@ def main():
 			settings.end_balance = float(o[1])
 		elif '--print-mutations-csv' in o:
 			cmd, cargs = 'print_sum_from_files', [settings, ] + args
-		# 
-		elif '--import' in o:
-			cmd, cargs = 'import_from_files', [settings, ] + args
-		# DB commands
-		elif '--reset-db' in o:
-			cmd, cargs = 'reset_db', (settings, ) 
 		# Account commands
 		elif '--import-accounts' in o:
 			sa = get_session(opts.dbref)
@@ -379,8 +297,6 @@ def main():
 			return
 		elif '--organize' in o:
 			cmd, cargs = 'organize', [settings, ] + args
-		elif '--list-accounts' in o:
-			cmd, cargs = 'list_accounts', (settings, )
 		elif '--delete-account' in o:
 			cmd, cargs = 'drop_account', [settings, ] + args
 
@@ -390,6 +306,5 @@ def main():
 		print >>sys.stderr, "Command not found. "
 		return -1
 
-if __name__ == '__main__':
-	main()
+
 

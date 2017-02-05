@@ -19,3 +19,4 @@ get_file torrent-list \
 	| grep '\<Sum\>' \
 	| awk '{print "downrate.value "$(NF)"\nuprate.value "$(NF-1)}'
 
+

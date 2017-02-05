@@ -2,8 +2,8 @@ import os
 import shelve
 import sys
 
+from res import Volumedir
 from res.fs import Dir
-from treemap import find_volume
 
 
 def normalize( rootdir, path ):
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     size_threshold = 14 * 1024 ** 6
 
     path = argv.pop()
-    voldir = find_volume( path )
+    voldir = Volumedir.find(path)
     store = Store( voldir )
 
     w_opts = Dir.walk_opts
@@ -46,5 +46,6 @@ if __name__ == '__main__':
                 store.shelve[ first20 ] = [ p ]
             else:
                 assert p in store.shelve[ first20 ]
+
 
 

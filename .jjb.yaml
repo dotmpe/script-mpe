@@ -1,0 +1,70 @@
+
+# Simple Jenkins job definition for use with Jenkins Job Builder
+# Complex jobs using templates in .jtb.yaml.
+
+- project:
+    name: 'script-mpe'
+    version: 0.0.3-dev # script-mpe
+    file: .jjb.yaml
+
+    jobs:
+      - '{name}-pipeline'
+
+
+- job-templates:
+    name: '{name}-pipeline'
+
+    display-name: 'script.mpe [dev]'
+
+    description: |
+      <p>Testing Script.mpe in Jenkins CI Pipeline. </p>
+      <p>
+      TODO: Experimental. Proper test/build in .travis.yml and/or .jtb.yml.
+      </p>
+
+      <p>This defines a single flow-definition project (workflow-job plugin).
+      It cannot run wrappers, builders or publishers directly,
+      but provides a more integrated build process using a Groovy formatted
+      pipeline DSL script called 'Jenkinsfile'. </p>
+
+      <p>TODO: it should be able to call wrappers, test that. Build other jobs, 
+      OK. No disable or restrict-node, but can use DSL for that. OK.
+      What about builders, and publishers. And the integration of those 
+      with Jenkins (esp. test results, but also static analysis and reporting).
+      E.g. build-name and description setter. </p>
+
+    enabled: false
+
+    project-type: workflow
+
+    parameters:
+    - hidden:
+        name: SCRIPT_MPE_VERSION
+        default: '{version}'
+    - hidden:
+        name: SCRIPT_MPE_JJB_FILE
+        default: '{file}'
+    - bool:
+        name: DEBUG
+        value: false
+
+    triggers:
+    - pollscm:
+        cron: "*/1 * * * *" 
+
+    dsl:
+      script-name: .Jenkinsfile
+
+      scm:
+      - git:
+          url: https://github.com/dotmpe/script.mpe.git
+          branches:
+            - origin/dev
+          local-branch: dev
+          skip-tag: true
+          wipe-workspace: true
+
+
+
+
+

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+rst2xml.py $1 | awk '{gsub(/<[^>]*>/,"\n")};1'
+
+

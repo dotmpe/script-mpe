@@ -29,3 +29,4 @@ echo ln -s $S/$D/$F $f
 [ -e "$f" ] || exit 31
 
 exit 0
+

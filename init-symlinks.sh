@@ -4,7 +4,8 @@ LOG=~/project/mkdoc/usr/share/mkdoc/Core/log.sh
 
 check_hosted() # hostnames ...
 {
-	case `hostname -s` in "$@" )
+	test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+	case "$hostname" in "$@" )
 			return 0
 		;;
 	esac
@@ -89,3 +90,4 @@ done
 if test "$F" != "-"; then
 	exec 0<&6 6<&- # restore stdin and close fd#6
 fi
+

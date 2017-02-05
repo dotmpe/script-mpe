@@ -25,3 +25,4 @@ if __name__ == '__main__':
             print scrambled
             print gftp_descrable_password(scrambled)
  
+

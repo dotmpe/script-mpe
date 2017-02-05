@@ -1,0 +1,11 @@
+- type: first-type
+  manifest: [ 1 ]
+- type: second-type
+- type: third-type
+  main: third-type
+  manifest: [ 1, 2 ,3 ]
+- type: fourth-type
+- type: fifth-type
+  packs:
+  - manifest: [ 2,4,5 ]
+  - manifest: [ 5 ]

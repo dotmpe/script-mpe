@@ -1,0 +1,68 @@
+digraph "doc_rsr_classes_en_dot" {
+	graph [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+    pad = 1
+	]
+	node [
+		fontsize = "15"
+		fontname = "Bitstream Vera Sans"
+		shape = "record"
+		style = "solid"
+		color = "grey"
+	]
+	edge [
+		fontsize = "14"
+		fontname = "Bitstream Vera Sans"
+		style = "dotted"
+		weight = "4"
+	]
+
+	"persistence.UpgradedPickle" ;
+	"persistence.Object" -> "persistence.UpgradedPickle";
+	//"persistence.Object" -> "object";
+	"persistence.PersistedMetaObject" -> "persistence.Object" ;
+
+	"mimemsg.MIMEHeader" -> "persistence.PersistedMetaObject" ;
+
+	"fs.INode" ;
+	"fs.File" -> "fs.INode" ;
+	"fs.Dir" -> "fs.INode" ;
+	"fs.CharacterDevice" -> "fs.INode" ;
+	"fs.BlockDevice" -> "fs.INode" ;
+	"fs.SymbolicLink" -> "fs.INode" ;
+	"fs.FIFO" -> "fs.INode" ;
+	"fs.Socket" -> "fs.INode" ;
+
+	//"metafile.MetaProperty" ;
+	//"metafile.MetaContentLocationProperty" -> "metafile.MetaProperty" ;
+
+	//"metafile.MetaResolver" ;
+	//"metafile.SHA1Sum" ;
+	"metafile.Metafile" -> "persistence.PersistedMetaObject" ;
+	"metafile.MetafileFile" ;
+	"metafile.Metadir" ;
+	//"metafile.Meta" ;
+
+	"ws.Workspace" -> "metafile.Metadir" ;
+	"ws.Homedir" -> "ws.Workspace" ;
+	"ws.Workdir" -> "ws.Workspace" ;
+	"ws.Volumedir" -> "ws.Workspace" ;
+
+	"jrnl.Journal" -> "metafile.Metadir" ;
+
+  "vc.Repo" ;
+
+  edge [ style="normal" ] ;
+
+  "metafile.Metafile" -> "fs.INode" [ label="factory(path)" ];
+  "metafile.Metafile" -> "metafile.Metadir" [ label="context" ];
+  "metafile.MetafileFile" -> "metafile.Metafile" [ label="... TODO" ];
+
+  //"metafile.Meta" -> "metafile.Metafile" [ label="" ];
+  //"metafile.Meta" -> "metafile.MetafileFile" [ label="" ];
+  //"metafile.Meta" -> "metafile.MetaResolver" [ label="" ];
+}
+
+
