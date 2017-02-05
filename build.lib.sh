@@ -31,9 +31,7 @@ test_shell()
     }
   }
   note "test-shell '$*' SPECS='$SPECS'"
-  ( eval $@ $SPECS || return $? ) > $TEST_RESULTS
-  wc -l $TEST_RESULTS
-  note "Done"
+  eval $@ $SPECS
 }
 
 run_spec()
