@@ -1,11 +1,7 @@
 #!/bin/sh
 
-set -xe
-
-. ./tools/sh/env.sh
-
 # entry-point for CI pre-test phase, to do preflight checks, some verbose debugging
-note "entry-point for CI pre-test / check phase"
+note "Entry for CI pre-test / check phase"
 
 
 note "User: $( whoami )"
@@ -26,7 +22,7 @@ note "Pre-flight check.."
 
 bash --version
 test -x "$(which dash)" || error "No dash" 12
-test -x "$(which posh)" || error "No posh" 12
+#test -x "$(which posh)" || error "No posh" 12
 
 composer --version
 behat --version
@@ -111,3 +107,4 @@ box-instance y
 
 # Other commands in build #dev phase.
 
+note "Done"

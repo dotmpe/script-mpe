@@ -8,12 +8,12 @@ note "Entry for CI install phase"
 test "$(whoami)" = "travis" || {
 
   test -x "$(which apt-get)" && {
-    test -z "$APT_PACKAGES" || 
+    test -z "$APT_PACKAGES" ||
     {
       {
         $sudo apt-get update &&
         $sudo apt-get install $APT_PACKAGES
-  
+
       } || error "Error installing APT packages" 1
     }
   }
@@ -30,6 +30,11 @@ test "$(whoami)" = "travis" || {
     cpan install XML::Generator
   }
 }
+
+
+# FIXME: merge gh-pages into master
+#bundle install
+
 
 # FIXME: npm install parse-torrent lodash
 

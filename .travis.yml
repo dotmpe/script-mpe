@@ -27,31 +27,37 @@ addons:
 # - pytz
 
 before_install:
+  - SCR_SYS_SH=bash-sh
+  - scriptname="before-install"
   - . ./tools/sh/init.sh
   - . ./tools/sh/env.sh
   - . ./tools/ci/parts/init.sh
 
 install:
+  - scriptname=install
   - . ./tools/ci/parts/install.sh
 
 before_script:
+  - scriptname="before-script"
   - . ./tools/ci/parts/check.sh
 
 script:
-  - $TEST_SHELL ./tools/ci/parts/build.sh
+  - scriptname=script
+  - . ./tools/ci/parts/build.sh
 
 matrix:
-  include:
-    #- env: TEST_ENV=testing TEST_SHELL=posh
-    #- env: TEST_ENV=testing TEST_SHELL=dash
-    #- env: TEST_ENV=testing TEST_SHELL=bash
-    - env: TEST_ENV=testing TEST_SHELL=sh
+  include: []
+
 env:
   matrix:
     #- ENV=noop
     #- ENV=dev
     #- ENV=testing
     # TODO: - ENV=production
+    #- TEST_ENV=testing TEST_SHELL=posh
+    - TEST_ENV=testing TEST_SHELL=dash
+    #- TEST_ENV=testing TEST_SHELL=bash
+    - TEST_ENV=testing TEST_SHELL=sh
   global:
     - ENV=
     - CS=dark
@@ -81,6 +87,4 @@ branches:
 #    repo: dotmpe/script.mpe
 #    tags: true
 #    condition: $ENV = production
-#
-#
 

@@ -15,6 +15,8 @@ pwd && pwd -P
 whoami
 ( env | grep -i 'shippable\|travis\|ci' ) || noop
 
+test ! -d build || rm -rf build
+mkdir -vp build
 
 mkdir -vp ~/.local/{bin,lib,share}
 
@@ -23,7 +25,7 @@ falseish "$SHIPPABLE" || {
   test -d shippable/codecoverage
 }
 
-fnmatch "* basename-reg *" "$TEST_FEATURES" && {
+fnmatch "* basename-reg *" "$TEST_COMPONENTS" && {
   test -e $HOME/.basename-reg.yaml ||
     touch $HOME/.basename-reg.yaml
 }
