@@ -1,11 +1,5 @@
 #!/bin/sh
 
-set -e
-
-. ./tools/sh/env.sh
-. ./util.sh
-. ./main.lib.sh
-
 
 
 test_shell()
