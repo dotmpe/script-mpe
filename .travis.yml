@@ -54,10 +54,10 @@ env:
     #- ENV=dev
     #- ENV=testing
     # TODO: - ENV=production
-    #- env: TEST_ENV=testing TEST_SHELL=posh
-    - env: TEST_ENV=testing TEST_SHELL=dash
-    #- env: TEST_ENV=testing TEST_SHELL=bash
-    - env: TEST_ENV=testing TEST_SHELL=sh
+    #- TEST_ENV=testing TEST_SHELL=posh
+    - TEST_ENV=testing TEST_SHELL=dash
+    #- TEST_ENV=testing TEST_SHELL=bash
+    - TEST_ENV=testing TEST_SHELL=sh
   global:
     - ENV=
     - CS=dark
