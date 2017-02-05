@@ -5,7 +5,7 @@ note "Entry for CI build phase"
 #test -n "$1" || set -- $BUILD_STEPS
 #while test -n "$1"; do case "$1" in
 
-for BUILD_STEP in $BUILD_STEP
+for BUILD_STEP in $BUILD_STEPS
 do case "$BUILD_STEP" in
 
     dev ) lib_load main; main_debug
