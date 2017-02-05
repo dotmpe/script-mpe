@@ -79,8 +79,8 @@ do case "$BUILD_STEP" in
         test "$SHIPPABLE" != "true" || {
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
             --output $(basepath $TEST_RESULTS .tap .xml)
+          wc -l $TEST_RESULTS $(basepath $TEST_RESULTS .tap .xml)
         }
-        wc -l $TEST_RESULTS $(basepath $TEST_RESULTS .tap .xml)
 
         ## Other tests
         #failed=build/test-results-dev.list
