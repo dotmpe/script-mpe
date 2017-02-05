@@ -22,6 +22,7 @@ addons:
       - php5-cli
       - posh
       - dash
+      - ruby-bundler
 # not allowed:
 # - rhash
 # - pytz
