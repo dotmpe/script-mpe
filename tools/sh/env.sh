@@ -37,6 +37,9 @@ req_vars DEBUG || export DEBUG=
 
 ### Start of build job parameterisation
 
+GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
+BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
+        | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
 
 test -n "$ENV" || {
 
@@ -112,9 +115,6 @@ req_vars APT_PACKAGES || export APT_PACKAGES=
 
 test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 
-GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
-BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
-        | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
 
 
 
