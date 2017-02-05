@@ -49,19 +49,19 @@ test -n "$ENV" || {
     # NOTE: Skip build on git-annex branches
     *annex* ) exit 0 ;;
 
-    gh-pages ) ENV=jekyll ; BUILD_STEPS=jekyll ;;
-    test* ) ENV=testing ; BUILD_STEPS=test ;;
-    dev* )
-        ENV=development ; BUILD_STEPS="dev test"
-      ;;
-    * )
-        ENV=development ; BUILD_STEPS="dev test"
-      ;;
+    gh-pages ) ENV=jekyll ;;
+    test* ) ENV=testing ;;
+    dev* ) ENV=development ;;
+    * ) ENV=development ;;
 
   esac
 }
 
 case "$ENV" in
+
+    jekyll )
+        BUILD_STEPS=jekyll
+      ;;
 
     production )
         DESCRIBE="$(git describe --tags)"
@@ -73,8 +73,16 @@ case "$ENV" in
         }
       ;;
 
+    features/* | development )
+        BUILD_STEPS="dev test"
+      ;;
+
     testing )
-        export BUILD_STEPS=test
+        BUILD_STEPS=test
+      ;;
+
+    * )
+        error "ENV '$ENV'" 1
       ;;
 
 esac
