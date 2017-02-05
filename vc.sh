@@ -459,8 +459,8 @@ __vc_status()
 
   if [ -n "$git" ]; then
 
-    test "$(echo $g/refs/heads/*)" != "$g/refs/heads/*" || {
-      echo "(git:unborn)"
+    test "$(echo $git/refs/heads/*)" != "$git/refs/heads/*" || {
+      echo "$realcwd (git:unborn)"
       return
     }
 
@@ -523,8 +523,8 @@ __vc_screen ()
   local git=$(__vc_gitdir "$1")
   if [ "$git" ]; then
 
-    test "$(echo $g/refs/heads/*)" != "$g/refs/heads/*" || {
-      echo "$(pwd) (git:unborn)"
+    test "$(echo $git/refs/heads/*)" != "$git/refs/heads/*" || {
+      echo "$realcwd (git:unborn)"
       return
     }
     realroot="$(git rev-parse --show-toplevel)"
