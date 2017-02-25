@@ -8,7 +8,7 @@ routes:
   _pu: 'plantuml:**/*.plantuml'
   coverage/python: static:coverage_html_report
   vendor/:package.:format: http.vendor:cdn.json
-  media/script/client.js: coffee:sitefile/client.coffee
+  media/script/client.js: coffee:Sitefile/client.coffee
   npm/packages: static:{,sitefile:}node_modules/
   '': redir:ReadMe
 

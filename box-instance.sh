@@ -5,7 +5,7 @@ set -e
 
 
 
-version=0.0.1 # script-mpe
+version=0.0.3-dev # script-mpe
 
 
 box_instance_man_1__version="Version info"
@@ -45,11 +45,11 @@ box_instance_main()
   local \
       scriptname=box-instance \
       base="$(basename $0 ".sh")" \
-      scriptdir="$(cd $(dirname $0); pwd -P)" \
+      scriptpath="$(cd $(dirname $0); pwd -P)" \
       failed=
   case "$base" in
     $scriptname )
-      local scriptdir="$(dirname $0)"
+      local scriptpath="$(dirname $0)"
       box_instance_init || return $?
       run_subcmd "$@" || return $?
       ;;
@@ -62,11 +62,11 @@ box_instance_main()
 
 box_instance_init()
 {
-  . $scriptdir/main.lib.sh load-ext
-  . $scriptdir/std.lib.sh
-  . $scriptdir/str.lib.sh
-  . $scriptdir/util.sh
-  . $scriptdir/box.init.sh
+  . $scriptpath/main.lib.sh load-ext
+  . $scriptpath/std.lib.sh
+  . $scriptpath/str.lib.sh
+  . $scriptpath/util.sh
+  . $scriptpath/box.init.sh
   box_run_sh_test
   # -- box_instance box init sentinel --
 }
@@ -74,7 +74,7 @@ box_instance_init()
 box_instance_load()
 {
   local __load_lib=1
-  . $scriptdir/match.sh load-ext
+  . $scriptpath/match.sh load-ext
   # -- box_instance box load sentinel --
 
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
@@ -123,15 +123,10 @@ box_instance_unload()
 }
 
 
-
-
-
 case "$0" in "" ) ;; "-"* ) ;; * )
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
     box_instance_main "$@" || exit $?
   ;; esac
 ;; esac
-
-
 

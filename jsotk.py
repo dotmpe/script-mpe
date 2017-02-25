@@ -264,7 +264,9 @@ def H_path(ctx):
         infile.close()
     except (Exception) as e:
         if not ctx.opts.flags.is_new:
-            sys.stderr.write("Error: getting %r: %r" % ( ctx.opts.args.pathexpr, e ))
+            if not ctx.opts.flags.quiet:
+                sys.stderr.write("Error: getting %r: %r" % (
+                    ctx.opts.args.pathexpr, e ))
             return 1
 
     res = [ ]

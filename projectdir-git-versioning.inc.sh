@@ -27,7 +27,7 @@ pd__git_versioning()
   mismatches="$(grep 'Version.mismatch' $vchk | count_lines )"
   values="$values matches=$(grep 'Version.match' $vchk | count_lines )"
   values="$values mismatches=$mismatches"
-  test $mismatches -eq 0 || {
+  test -n "$mismatches" -a $mismatches -eq 0 || {
     result=1
     grep 'Version.mismatch' $vchk \
       | sed 's/Version.mismatch.in./pd:vchk:/' >$failed

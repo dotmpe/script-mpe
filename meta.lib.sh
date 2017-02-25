@@ -60,7 +60,7 @@ update_package_sh()
   test $metaf -ot $metash \
     || {
 
-    # Format Sh script/vars from local package file
+    # Format Sh script/vars from local package
     note "Regenerating $metash from $metaf.."
 
     # Format Sh default env settings

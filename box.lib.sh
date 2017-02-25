@@ -3,6 +3,7 @@
 
 box_load()
 {
+  test -n "$BOX_DIR" || error "expected BOX-DIR env" 1
   test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
@@ -201,25 +202,6 @@ box_init_args()
   } || {
     script_name="${hostname}"
   }
-}
-
-# echo value of varname $1 on stdout if non empty
-test_out()
-{
-  test -n "$1" || error test_out 1
-  local val="$(echo $(eval echo "\$$1"))"
-  test -z "$val" || eval echo "\\$val"
-}
-
-list_functions()
-{
-  test -n "$1" || set -- $0
-  for file in $*
-  do
-    test_out list_functions_head
-    grep '^[A-Za-z0-9_\/-]*()$' $file
-    test_out list_functions_tail
-  done
 }
 
 box_list_libs()

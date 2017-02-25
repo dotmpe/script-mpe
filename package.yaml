@@ -5,12 +5,27 @@
   id: script-mpe
 
   version: 0.0.3-dev # script-mpe
-  environments: [ 'development' ]
+  env: # alias for 'environments'
+    - dev
 
   vendor: dotmpe
   distribution: public
   license: GPL
 
+  scripts:
+    check:
+      - htd.sh gitflow-check-doc
+      - verbose=1 git-versioning check
+      - projectdir.sh run :bats:specs
+      - ./vendor/.bin/behat --dry-run --no-multiline
+      - projectdir.sh run :git:status
+    test:
+      - verbose=1 git-versioning check
+      - python test/main.py
+      - projectdir.sh run :bats:specs
+      - bats
+    build:
+      - vagrant tools/ci/vbox
   pd-meta:
     run:
       behat: "./vendor/.bin/behat--tags:~@skip"
@@ -24,7 +39,7 @@
 
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
-    check: "htd:gitflow-check-doc :verbose=1:vchk :bats:specs behat:--dry-run:--no-multiline :git:status"
+    check: "htd.sh:gitflow-check-doc :verbose=1:vchk :bats:specs ./vendor/.bin/behat:--dry-run:--no-multiline :git:status"
     # TODO: check for /tmp usage, force TMPDIR use
     test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats ./vendor/.bin/behat:--tags:~@skip"
     # TODO: run tests at VM/... if available
@@ -57,6 +72,13 @@
     - VS1_SKIP=1
 
   prefixes: {} # See ~/.cllct.rc finfo
+
+  scripts:
+    env: ./config/tools/env.sh $ENV $NAME $TAG
+    init:
+    test: pd test
+    check: pd check
+    build: pd build
 
   # For make data/*: or move to cllct.rc
   data:

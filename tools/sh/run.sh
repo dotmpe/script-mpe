@@ -1,7 +1,7 @@
 #!/bin/sh
 
 scriptname=ci:run
-. $scriptdir/tools/sh/run.inc.sh "$@"
+. $scriptpath/tools/sh/run.inc.sh "$@"
 lib_load build
 
 build_matrix | while read params

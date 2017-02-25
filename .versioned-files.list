@@ -32,9 +32,12 @@ tasks.py
 todo-meta.py
 todo.py
 topic.py
-vc.py
+vc-meta.py
 sh_switch.py
 jsotk.py
 tools/sh/tags.sh
 tools/sh/init.sh
 tools/sh/env.sh
+util.sh
+box-instance.sh
+script-bats.sh

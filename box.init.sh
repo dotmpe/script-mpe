@@ -12,7 +12,7 @@ test -n "$BOX_BIN_DIR" || {
   test -d $BOX_BIN_DIR || mkdir -vp $BOX_BIN_DIR
 }
 
-test -n "$scriptdir"
+test -n "$scriptpath"
 
 test -z "$BOX_INIT" && BOX_INIT=1 || error "unexpected re-init" 1
 
@@ -25,6 +25,4 @@ box_run_sh_test()
     return 0
   }
 }
-
-
 

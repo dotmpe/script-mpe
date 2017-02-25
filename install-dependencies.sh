@@ -2,6 +2,9 @@
 
 set -e
 
+.  $(dirname $0)/util.sh load-ext
+lib_load
+
 test -z "$Build_Debug" || set -x
 
 test -z "$Build_Deps_Default_Paths" || {
@@ -18,34 +21,32 @@ test -z "$Build_Deps_Default_Paths" || {
       || PREFIX=$HOME/.local
   }
 
-  echo "Setting default paths: SRC_PREFIX=$SRC_PREFIX PREFIX=$PREFIX" >&2
+  note "Setting default paths: SRC_PREFIX=$SRC_PREFIX PREFIX=$PREFIX"
 }
 
 test -n "$sudo" || sudo=
 test -z "$sudo" || pref="sudo $pref"
 test -z "$dry_run" || pref="echo $pref"
 
-#test -n "$sudo" || pip_flags=--user
-#test -n "$sudo" || py_setup_f="--user"
-
-
-test -n "$SRC_PREFIX" || {
-  echo "Not sure where to checkout (SRC_PREFIX missing)" >&2
-  exit 1
+test -w /usr/local || {
+  test -n "$sudo" || pip_flags=--user
+  test -n "$sudo" || py_setup_f="--user"
 }
 
-test -n "$PREFIX" || {
-  echo "Not sure where to install (PREFIX missing)" >&2
-  exit 1
-}
+test -n "$SRC_PREFIX" ||
+  error "Not sure where checkout" 1
+
+test -n "$PREFIX" ||
+  error "Not sure where to install" 1
 
 test -d $SRC_PREFIX || ${pref} mkdir -vp $SRC_PREFIX
 test -d $PREFIX || ${pref} mkdir -vp $PREFIX
 
 
+
 install_bats()
 {
-  echo "Installing bats"
+  note "Installing bats"
   test -n "$BATS_BRANCH" || BATS_BRANCH=master
   test -n "$BATS_REPO" || BATS_REPO=https://github.com/dotmpe/bats.git
   test -n "$BATS_BRANCH" || BATS_BRANCH=master
@@ -70,7 +71,16 @@ install_composer()
     echo "Composer is installed but not found on PATH! Aborted. " >&2
     return 1
   }
-  composer install
+  test -e composer.json && {
+    test -e composer.lock && {
+      composer update
+    } || {
+      rm -rf vendor || noop
+      composer install
+    }
+  } || {
+    warn "No composer.json"
+  }
 }
 
 install_docopt()
@@ -78,9 +88,8 @@ install_docopt()
   test -n "$install_f" || install_f="$py_setup_f"
   git clone https://github.com/dotmpe/docopt-mpe.git $SRC_PREFIX/docopt-mpe
   ( cd $SRC_PREFIX/docopt-mpe \
-    git checkout 0.6.x
-    $pref python ./setup.py install $install_f
-  )
+      && git checkout 0.6.x \
+      && $pref python ./setup.py install $install_f )
 }
 
 install_git_versioning()
@@ -152,12 +161,12 @@ install_apenwarr_redo()
 
     which basher 2>/dev/null >&2 && {
 
-      basher install apenwarr/redo
-    } || {
+      basher install apenwarr/redo ||
+          error "install apenwarr/redo" $?
 
-      echo "Need basher to install apenwarr/redo locally" >&2
-      return 1
-    }
+    } ||
+
+      error "Need basher to install apenwarr/redo locally" 1
   }
 }
 

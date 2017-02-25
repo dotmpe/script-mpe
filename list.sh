@@ -10,7 +10,7 @@ version=0.0.3-dev # script-mpe
 lst_man_1__version="Version info"
 lst__version()
 {
-  echo "$(cat $scriptdir/.app-id)/$version"
+  echo "$(cat $scriptpath/.app-id)/$version"
 }
 lst_als__V=version
 
@@ -19,7 +19,7 @@ lst__edit()
 {
   $EDITOR \
     $0 \
-    $scriptdir/list*sh \
+    $scriptpath/list*sh \
     "$@"
 }
 lst_als___e=edit
@@ -202,21 +202,24 @@ lst__list_paths_opts()
 
 lst_main()
 {
-  local scriptname=lst base=$(basename $0 .sh) \
-    scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
+  local \
+    scriptname=list \
+    scriptalias=lst \
+    base=$(basename $0 .sh) \
+    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
     failed=
 
   test -n "$verbosity" || verbosity=5
 
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh
   util_init
 
   lst_init || exit $?
 
   case "$base" in
 
-    $scriptname )
+    $scriptname | $scriptalias )
 
         test -n "$1" || set -- list
 
@@ -233,9 +236,9 @@ lst_main()
 
 lst_init()
 {
-  test -n "$scriptdir"
+  test -n "$scriptpath"
   lib_load box main
-  . $scriptdir/box.init.sh
+  . $scriptpath/box.init.sh
   box_run_sh_test
   # -- lst box init sentinel --
 }

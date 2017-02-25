@@ -3,9 +3,9 @@
 #export verbosity=6
 #load helper
 
-test -z "$PREFIX" && scriptdir=. || scriptdir=$PREFIX
+test -z "$PREFIX" && scriptpath=. || scriptpath=$PREFIX
 
-lib=$scriptdir/str.lib
+lib=$scriptpath/str.lib
 
 fnames="$(grep '^[a-zA-Z0-9_]*()' $lib.sh | tr -s '()\n' ' ')"
 for fname in $fnames
@@ -25,7 +25,7 @@ done
 
 setup()
 {
-  . $scriptdir/util.sh load-ext
+  . $scriptpath/util.sh load-ext
   lib_load sys os std str match
   str_load
 }

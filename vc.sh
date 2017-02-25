@@ -22,17 +22,11 @@ vc_load()
   test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
   test -n "$uname" || uname=$(uname)
 
-  . $scriptdir/util.sh load-ext
-
-  lib_load os sys std str main match
-
-  sys_load
-  str_load
+  lib_load sys os std stdio str src match main
 
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
   gtd="$(__vc_gitdir "$cwd")"
-
 
   test -n "$vc_clean_gl" || {
     test -e .gitignore-clean \
@@ -253,7 +247,7 @@ homepath()
     str_replace_start "$1" "$HOME" "~"
 }
 
-# Flags legenda:
+# Vars legenda:
 #
 # __vc_git_flags : cbwisur
 # c: ''|'BARE:'
@@ -424,7 +418,7 @@ __vc_git_flags()
     if [ -n "${2-}" ]; then
       printf "$2" "$c$x${b##refs/heads/}$w$i$s$u$r"
     else
-      printf " (%s)" "$c$x${b##refs/heads/}$w$i$s$u$r"
+      printf "(%s)" "$c$x${b##refs/heads/}$w$i$s$u$r"
     fi
 
     cd $cwd
@@ -715,10 +709,9 @@ vc__bits()
 }
 
 
-# TODO: vcflags
-vc__gitflags()
+vc__flags()
 {
-  __vc_git_flags "$@" || return $?
+  echo "git:$(__vc_git_flags "$@" || return $?)"
 }
 
 
@@ -855,8 +848,8 @@ vc__gh() {
 vc__largest_objects()
 {
   test -n "$1" || set -- 10
-  test -n "$scriptdir" || error scriptdir 1
-  $scriptdir/git-largest-objects.sh $1
+  test -n "$scriptpath" || error scriptpath 1
+  $scriptpath/git-largest-objects.sh $1
 }
 
 # list commits for object sha1
@@ -1469,12 +1462,12 @@ vc_main()
 
   case "$base" in $scriptname )
 
-        test -n "$scriptdir" || \
-            scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
+        test -n "$scriptpath" || \
+            scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
             pwd=$(pwd -P) ppwd=$(pwd) spwd=.
 
-        export SCRIPTPATH=$scriptdir
-        . $scriptdir/util.sh
+        export SCRIPTPATH=$scriptpath
+        . $scriptpath/util.sh load-ext
 
         test -n "$verbosity" || verbosity=5
 

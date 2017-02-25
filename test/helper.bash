@@ -1,3 +1,28 @@
+#!/bin/bash
+
+
+type stdfail >/dev/null 2>&1 || {
+  stdfail()
+  {
+    test -n "$1" || set -- "Unexpected. Status"
+    fail "$1: $status, output(${#lines[@]}) is '${lines[*]}'"
+  }
+}
+
+type test_ok_empty >/dev/null 2>&1 || {
+  test_ok_empty()
+  {
+    test ${status} -eq 0 && test -z "${lines[*]}"
+  }
+}
+
+type test_ok_nonempty >/dev/null 2>&1 || {
+  test_ok_nonempty()
+  {
+    test ${status} -eq 0 && test -n "${lines[*]}" && fnmatch "$1" "${lines[*]}"
+  }
+}
+
 
 # Set env and other per-specfile init
 test_init()
@@ -5,7 +30,7 @@ test_init()
   test -n "$base" || exit 12
   test -n "$hostname" || hostname=$(hostname -s | tr 'A-Z' 'a-z')
   test -n "$uname" || uname=$(uname)
-  test -n "$scriptdir" || scriptdir=$(pwd -P)
+  test -n "$scriptpath" || scriptpath=$(pwd -P)
 }
 
 init()
@@ -14,9 +39,9 @@ init()
   . ./tools/sh/init.sh
 
   test -x $base && {
-    bin=$scriptdir/$base
+    bin=$scriptpath/$base
   }
-  lib=$scriptdir
+  lib=$scriptpath
 
   . $lib/main.lib.sh load-ext
   lib_load sys str std
@@ -91,7 +116,7 @@ trueish()
 {
   test -n "$1" || return 1
   case "$1" in
-		[Oo]n|[Tt]rue|[Yyj]|[Yy]es|1)
+    [Oo]n|[Tt]rue|[Yyj]|[Yy]es|1)
       return 0;;
     * )
       return 1;;

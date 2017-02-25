@@ -70,7 +70,7 @@ redmine__db_stats()
 redmine_main()
 {
   local scriptname=redmine base=$(basename $0 .sh) verbosity=5 \
-    scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
+    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
     failed=
 
   redmine_init || exit $?
@@ -95,12 +95,12 @@ redmine_main()
 redmine_init()
 {
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
-  test -n "$scriptdir"
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  test -n "$scriptpath"
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh
   util_init
-  . $scriptdir/match.lib.sh
-  . $scriptdir/box.init.sh
+  . $scriptpath/match.lib.sh
+  . $scriptpath/box.init.sh
   box_run_sh_test
   lib_load main meta box data doc table remote
   # -- redmine box init sentinel --
@@ -109,7 +109,7 @@ redmine_init()
 redmine_lib()
 {
   local __load_lib=1
-  . $scriptdir/match.sh load-ext
+  . $scriptpath/match.sh load-ext
   # -- redmine box lib sentinel --
   set --
 }

@@ -228,6 +228,7 @@ def get_one_prefix(pdhdata, ctx):
 def prefix_match(prefix, match, opts):
     """Match path <prefix> with root-path or pattern <match> """
     if match:
+        # Match glob or prefix
         if opts.flags.glob:
             return fnmatch( prefix, match )
         else:
@@ -235,6 +236,7 @@ def prefix_match(prefix, match, opts):
 
         return False
     else:
+        # No prefix is match all
         return True
 
 

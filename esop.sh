@@ -12,7 +12,7 @@ esop_man_1__version="Version info" # TODO: rewrite std__help to use try_value
 esop_man_1__version="Version info"
 esop__version()
 {
-  echo "$(cat $scriptdir/.app-id)/$version"
+  echo "$(cat $scriptpath/.app-id)/$version"
 }
 esop_als__V=version
 
@@ -64,7 +64,7 @@ esop_main()
   local \
       scriptname=esop \
       base="$(basename $0 ".sh")" \
-      scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
   case "$base" in
     $scriptname )
       esop_init || return $?
@@ -79,14 +79,11 @@ esop_main()
 
 esop_init()
 {
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh load-ext
   util_init
-  . $scriptdir/main.lib.sh load-ext
-  . $scriptdir/std.lib.sh
-  . $scriptdir/str.lib.sh
-  . $scriptdir/util.sh
-  . $scriptdir/box.init.sh
+  . $scriptpath/box.init.sh
+  lib_load main
   box_run_sh_test
   # -- esop box init sentinel --
 }
@@ -94,7 +91,7 @@ esop_init()
 esop_load()
 {
   local __load_lib=1
-  . $scriptdir/match.sh load-ext
+  . $scriptpath/match.sh load-ext
   # -- esop box load sentinel --
 }
 

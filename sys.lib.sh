@@ -25,7 +25,7 @@ sys_load()
   } || {
     test -d /tmp || error "No /tmp" 1
     export TMPDIR=/tmp
-    info "TMPDIR=$TMPDIR"
+    info "TMPDIR=$TMPDIR (should be in shell profile)"
   }
 }
 
@@ -99,7 +99,7 @@ var_isset()
 
     bash )
         # Bash: https://www.cyberciti.biz/faq/linux-unix-howto-check-if-bash-variable-defined-not/
-        $scriptdir/tools/sh/var-isset.bash "$1" || return 1
+        $scriptpath/tools/sh/var-isset.bash "$1" || return 1
       ;;
 
     * )
@@ -126,29 +126,45 @@ noop()
   #echo -n # echo nothing
   #printf "" # id. if echo -n incompatible (Darwin)
   set -- # clear arguments (XXX set nothing?)
-	#return # since we're in a function
+  #return # since we're in a function
 }
 
+# Error unless non-empty and true-ish
 trueish()
 {
   test -n "$1" || return 1
   case "$1" in
-		[Oo]n|[Tt]rue|[Yyj]|[Yy]es|1)
+    [Oo]n|[Tt]rue|[Yyj]|[Yy]es|1)
       return 0;;
     * )
       return 1;;
   esac
 }
 
+# No error on empty or value unless matches trueish
+not_trueish()
+{
+  test -n "$1" || return 0
+  trueish "$1" && return 1 || return 0
+}
+
+# Error unless non-empty and falseish
 falseish()
 {
   test -n "$1" || return 1
   case "$1" in
-		[Oo]ff|[Ff]alse|[Nn]|[Nn]o|0)
+    [Oo]ff|[Ff]alse|[Nn]|[Nn]o|0)
       return 0;;
     * )
       return 1;;
   esac
+}
+
+# Error on empty or other falseish, but not other values
+not_falseish()
+{
+  test -n "$1" || return 1
+  falseish "$1" && return 1 || return 0
 }
 
 cmd_exists()
@@ -177,6 +193,25 @@ try_var()
   local value="$(eval echo "\$$1")"
   test -n "$value" || return 1
   echo $value
+}
+
+# echo value of varname $1 on stdout if non empty
+test_out()
+{
+  test -n "$1" || error test_out 1
+  local val="$(echo $(eval echo "\$$1"))"
+  test -z "$val" || eval echo "\\$val"
+}
+
+list_functions()
+{
+  test -n "$1" || set -- $0
+  for file in $*
+  do
+    test_out list_functions_head
+    grep '^[A-Za-z0-9_\/-]*()$' $file
+    test_out list_functions_tail
+  done
 }
 
 create_ram_disk()
@@ -239,11 +274,19 @@ setup_tmpf()
   echo $3/$2$1
 }
 
-# confirm PROMPT [varname=choice_confirm]
-confirm()
+# sys-confirm PROMPT ; {choice_confirm}
+sys_prompt()
 {
   echo $1
   read choice_confirm
+}
+
+# sys-confirm PROMPT
+sys_confirm()
+{
+  local choice_confirm=
+  sys_prompt "$1"
+  trueish "$choice_confirm"
 }
 
 mkrlink()

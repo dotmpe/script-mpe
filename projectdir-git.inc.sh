@@ -46,7 +46,7 @@ pd__git_status()
 
     2 )
         cruft_lines="$(echo $(echo "$cruft" | wc -l))"
-        test $verbosity -gt 6 \
+        test -n "$verbosity" -a $verbosity -gt 6 \
           && {
             warn "Crufty: $(vc__stat "$1"):"
             printf "$cruft\n"

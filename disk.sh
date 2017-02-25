@@ -387,8 +387,8 @@ disk_unload()
 disk_init()
 {
   local __load_lib=1
-  . $scriptdir/box.init.sh
-  . $scriptdir/box.lib.sh
+  . $scriptpath/box.init.sh
+  . $scriptpath/box.lib.sh
   box_run_sh_test
   lib_load main htd meta box date doc table disk remote match
   test -n "$verbosity" || verbosity=6
@@ -409,7 +409,7 @@ disk_lib()
 disk_main()
 {
   local scriptname=disk base=$(basename $0 .sh) \
-    subcmd=$1 scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+    subcmd=$1 scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
 
   case "$base" in
 
@@ -424,8 +424,8 @@ disk_main()
           sock= \
           c=0
 
-				export SCRIPTPATH=$scriptdir
-        . $scriptdir/util.sh
+				export SCRIPTPATH=$scriptpath
+        . $scriptpath/util.sh
         util_init
         disk_init "$@" || error "init failed" $?
         shift $c
