@@ -1,4 +1,9 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
 VAGRANTFILE_API_VERSION = "2"
+
+VBOX_HOSTNAME = ENV['VBOX_HOSTNAME'] ||= 'dotmpe'
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
@@ -7,10 +12,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "/home/vagrant/.ssh/id_rsa.pub"
   config.vm.provision "file", source: "~/.ssh/id_rsa", destination: "/home/vagrant/.ssh/id_rsa"
 
-  config.vm.define :ubuntu do |ubuntu|
+  config.vm.define :ci_ubuntu_precise64 do |ubuntu|
     ubuntu.vm.box = "hashicorp/precise64"
     ubuntu.vm.provision "shell", path: "provision_ubuntu.sh", run: "always"
     ubuntu.vm.provision "shell", path: "provision_user_config.sh", privileged: false, run: "always"
+  end
+
+  config.vm.hostname = "ci-vbox-precise64.script-mpe.#{VBOX_HOSTNAME}"
+
+  config.vm.provider "virtualbox" do |v|
+    v.name = "script-mpe.ci-vbox-precise64.#{VBOX_HOSTNAME}"
+    v.gui = false
   end
 
 end

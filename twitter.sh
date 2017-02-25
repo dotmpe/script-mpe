@@ -7,6 +7,10 @@ set -e
 
 
 
+
+
+# Script subcmd's funcs and vars
+
 twitter__meta()
 {
   twitter-meta.py "$@"
@@ -49,14 +53,31 @@ pretty_object()
 }
 
 
-### Main
 
+# Generic subcmd's
+
+twitter_man_1__help="Usage help. "
+twitter_spc__help="-h|help"
+twitter_als___h=help
+twitter__help()
+{
+  test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  choice_global=1 std__help "$@"
+}
+
+
+
+
+# Script main functions
 
 twitter_main()
 {
-  local scriptname=twitter base=$(basename $0 .sh) verbosity=5 \
-    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-    failed=
+  local \
+      scriptname=twitter \
+      base=$(basename $0 .sh) \
+      verbosity=5 \
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
+      failed=
 
   twitter_init || exit $?
 
@@ -77,6 +98,7 @@ twitter_main()
   esac
 }
 
+# FIXME: Pre-bootstrap init
 twitter_init()
 {
   test -n "$scriptpath"
@@ -97,6 +119,7 @@ twitter_init()
   # -- twitter box init sentinel --
 }
 
+# FIXME: 2nd boostrap init
 twitter_lib()
 {
   local __load_lib=1
@@ -105,13 +128,16 @@ twitter_lib()
   set --
 }
 
+
+# Main entry - bootstrap script if requested
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
-    twitter_main "$@"
-  ;; esac
-;; esac
+      twitter_main "$@"
+    ;;
+  esac ;;
+esac
 
 # Id: script-mpe/0.0.3-dev twitter.sh

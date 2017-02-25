@@ -4,35 +4,14 @@ disk__source=$_
 
 set -e
 
-### User commands
 
 
-disk_man_1__help="Usage help. "
-disk_spc__help="-h|help"
-disk_als___h=help
-disk__help()
-{
-  test -z "$dry_run" || note " ** DRY-RUN ** " 0
-  choice_global=1 std__help "$@"
-}
+version=0.0.3-dev # script-mpe
 
 
-disk_man_1__edit="Edit $base script file plus arguments. "
-disk_spc__edit="-e|edit \[<file>..]"
-disk__edit()
-{
-  $EDITOR \
-    $0 \
-    $(which disk.sh) \
-    $(dirname $(which disk.sh))/disk.lib.sh \
-    $(dirname $(which disk.sh))/disk.rst \
-    $(which diskdoc.sh) \
-    $(which diskdoc.py) \
-    $(dirname $(which disk.sh))/test/disk-*.* \
-    "$@"
-}
-disk_als___e=edit
+# Script subcmd's funcs and vars
 
+# See $scriptname help to get started
 
 disk_man_1__status="Print some information on currently mounted disks/partitions. "
 disk__status()
@@ -346,8 +325,104 @@ disk__update_all()
 
 
 
+# Generic subcmd's
+
+disk_man_1__help="Usage help. "
+disk_spc__help="-h|help"
+disk_als___h=help
+disk__help()
+{
+  test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  choice_global=1 std__help "$@"
+}
+
+
+disk_man_1__edit="Edit $base script file plus arguments. "
+disk_spc__edit="-e|edit \[<file>..]"
+disk__edit()
+{
+  $EDITOR \
+    $0 \
+    $(which disk.sh) \
+    $(dirname $(which disk.sh))/disk.lib.sh \
+    $(dirname $(which disk.sh))/disk.rst \
+    $(which diskdoc.sh) \
+    $(which diskdoc.py) \
+    $(dirname $(which disk.sh))/test/disk-*.* \
+    "$@"
+}
+disk_als___e=edit
+
+
+
+# Script main functions
+
+disk_main()
+{
+  local \
+      scriptname=disk \
+      base=$(basename $0 .sh) \
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
+      subcmd=$1
+
+  case "$base" in
+
+    $scriptname )
+
+        # invoke with function name first argument,
+        local scsep=__ bgd= \
+          subcmd_pref=${scriptalias} \
+          disk_default=status \
+          func_exists= \
+          func= \
+          sock= \
+          c=0
+
+				export SCRIPTPATH=$scriptpath
+        . $scriptpath/util.sh
+        util_init
+        disk_init "$@" || error "init failed" $?
+        shift $c
+
+        disk_lib || exit $?
+        run_subcmd "$@" || exit $?
+      ;;
+
+    * )
+        echo "$scriptname: not a frontend for $base" >&2
+        exit 1
+      ;;
+
+  esac
+}
+
+### Main init, libs
+
+# FIXME: Pre-bootstrap init
+disk_init()
+{
+  local __load_lib=1
+  . $scriptpath/box.init.sh
+  . $scriptpath/box.lib.sh
+  box_run_sh_test
+  lib_load main htd meta box date doc table disk remote match
+  test -n "$verbosity" || verbosity=6
+  # -- disk box init sentinel --
+}
+
+# FIXME: 2nd boostrap init
+disk_lib()
+{
+  local __load_lib=1
+  . ~/bin/util.sh
+  . ~/bin/box.lib.sh
+  # -- disk box lib sentinel --
+}
+
+
 ### Subcmd init, deinit
 
+# Pre-exec: post subcmd-boostrap init
 disk_load()
 {
   test -n "$uname" || uname=$(uname)
@@ -382,79 +457,17 @@ disk_unload()
 }
 
 
-### Main init, libs
-
-disk_init()
-{
-  local __load_lib=1
-  . $scriptpath/box.init.sh
-  . $scriptpath/box.lib.sh
-  box_run_sh_test
-  lib_load main htd meta box date doc table disk remote match
-  test -n "$verbosity" || verbosity=6
-  # -- disk box init sentinel --
-}
-
-disk_lib()
-{
-  local __load_lib=1
-  . ~/bin/util.sh
-  . ~/bin/box.lib.sh
-  # -- disk box lib sentinel --
-}
-
-
-### Main
-
-disk_main()
-{
-  local scriptname=disk base=$(basename $0 .sh) \
-    subcmd=$1 scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
-
-  case "$base" in
-
-    $scriptname )
-
-        # invoke with function name first argument,
-        local scsep=__ bgd= \
-          subcmd_pref=${scriptalias} \
-          disk_default=status \
-          func_exists= \
-          func= \
-          sock= \
-          c=0
-
-				export SCRIPTPATH=$scriptpath
-        . $scriptpath/util.sh
-        util_init
-        disk_init "$@" || error "init failed" $?
-        shift $c
-
-        disk_lib || exit $?
-        run_subcmd "$@" || exit $?
-      ;;
-
-    * )
-      echo "Not a frontend for $base ($scriptname)"
-      exit 1
-      ;;
-
-  esac
-}
-
-case "$0" in "" ) ;; "-*" ) ;; * )
+# Main entry - bootstrap script if requested
+case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
+  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux?
   # fix using another mechanism:
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
-
       disk_main "$@"
     ;;
-
   esac ;;
 esac
 
-
-
+# Id: script-mpe/0.0.3-dev disk.sh

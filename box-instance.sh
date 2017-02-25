@@ -1,5 +1,6 @@
 #!/bin/sh
-box_instance_src="$_"
+# Created: 2016-04-09
+box_instance__source="$_"
 
 set -e
 
@@ -8,13 +9,7 @@ set -e
 version=0.0.3-dev # script-mpe
 
 
-box_instance_man_1__version="Version info"
-box_instance__version()
-{
-  echo "script-mpe/$version"
-}
-box_instance_als__V=version
-
+# Script subcmd's funcs and vars
 
 box_instance_man_1__x=abc
 box_instance_load__x=f
@@ -40,6 +35,37 @@ box_instance__y()
   }
 }
 
+
+# Generic subcmd's
+
+box_instance_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+box_instance_load__help=f
+box_instance_spc__help='-h|help [ID]'
+box_instance__help()
+{
+  choice_global=1 std__help "$@"
+  rm_failed || return
+}
+box_instance_als___h=help
+
+
+box_instance_man_1__version="Version info"
+box_instance__version()
+{
+  echo "script-mpe/$version"
+}
+box_instance_als__V=version
+
+
+box_instance__edit()
+{
+  $EDITOR $0 $(which box_instance.py) "$@"
+}
+
+
+
+# Script main functions
+
 box_instance_main()
 {
   local \
@@ -49,7 +75,6 @@ box_instance_main()
       failed=
   case "$base" in
     $scriptname )
-      local scriptpath="$(dirname $0)"
       box_instance_init || return $?
       run_subcmd "$@" || return $?
       ;;
@@ -60,8 +85,11 @@ box_instance_main()
   esac
 }
 
+# FIXME: Pre-bootstrap init
 box_instance_init()
 {
+  export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
+
   . $scriptpath/main.lib.sh load-ext
   . $scriptpath/std.lib.sh
   . $scriptpath/str.lib.sh
@@ -71,6 +99,7 @@ box_instance_init()
   # -- box_instance box init sentinel --
 }
 
+# Pre-exec: post subcmd-boostrap init
 box_instance_load()
 {
   local __load_lib=1
@@ -123,10 +152,11 @@ box_instance_unload()
 }
 
 
+# Main entry - bootstrap script if requested
 case "$0" in "" ) ;; "-"* ) ;; * )
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
-    box_instance_main "$@" || exit $?
-  ;; esac
-;; esac
+      box_instance_main "$@" || exit $? ;;
+  esac ;;
+esac
 

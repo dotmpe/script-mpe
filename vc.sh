@@ -9,75 +9,11 @@ vc_src="$_"
 set -e
 
 
+
 version=0.0.3-dev # script-mpe
 
 
-vc_load()
-{
-  local __load_lib=1 cwd="$(pwd)"
-
-  # FIXME: sh autocompletion
-  #. ~/.conf/bash/git-completion.bash
-
-  test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
-  test -n "$uname" || uname=$(uname)
-
-  lib_load sys os std stdio str src match main
-
-  statusdir.sh assert vc_status > /dev/null || error vc_status 1
-
-  gtd="$(__vc_gitdir "$cwd")"
-
-  test -n "$vc_clean_gl" || {
-    test -e .gitignore-clean \
-      && export vc_clean_gl=.gitignore-clean
-    test -e ~/.gitignore-clean-global \
-      && export vc_clean_gl="$vc_clean_gl $HOME/.gitignore-clean-global"
-  }
-  test -n "$vc_temp_gl" || {
-    test -e .gitignore-temp \
-      && export vc_temp_gl=.gitignore-temp
-    test -e ~/.gitignore-temp-global \
-      && export vc_temp_gl="$vc_temp_gl $HOME/.gitignore-temp-global"
-  }
-
-  # TODO: list of dirs (checkouts, annexes) to retrieve/store files
-  test -n "$UNVERSIONED_FILES" || {
-    #test -e /srv/annex-local
-    UNVERSIONED_FILES=$( for dir in /srv/backup-local /srv/archive-local \
-        /srv/archive-old-local /srv/htdocs-local; do
-      test -e $dir && echo "$dir" || continue; done )
-  }
-
-  # Look at run flags for subcmd
-  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
-  do
-    debug "${base} load ${subcmd} $x"
-    case "$x" in
-
-    f )
-        # Preset name to subcmd failed file placeholder
-        failed=$(setup_tmpf .failed)
-      ;;
-
-    C )
-        # Return cached value. Validate based on timestamp.
-        C= c=
-        C_exptime=$(try_value ${subcmd} C_exptime)
-        C_validate="$(try_value ${subcmd} C_validate)"
-        stat_key C >/dev/null
-        C="$(statusdir.sh get $C_key)"
-        C_mtime=
-        c_mtime=$(eval $C_validate 2>/dev/null)
-        ( test -n "$c_mtime" && C_cached $c_mtime ) && {
-          echo $C
-          debug "cached"
-          exit 0
-        } || debug "cache:$?"
-      ;;
-    esac
-  done
-}
+# Script subcmd's funcs and vars
 
 C_cached()
 {
@@ -85,27 +21,6 @@ C_cached()
   C_mtime=$(statusdir.sh get $C_key:time || return $?)
   test -n "$C_mtime" || return 2
   test $C_mtime -ge $c_mtime || return 3
-}
-
-vc_unload()
-{
-  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
-  do
-    debug "${base} unload ${subcmd} $x"
-    case "$x" in
-
-    C )
-        # Update cached value
-        test -z "$c" || {
-          test "$C" = "$c" \
-            || {
-              statusdir.sh set $C_key "$c" $exptime 2>&1 >/dev/null
-              statusdir.sh set $C_key:time $c_mtime $C_exptime 2>&1 >/dev/null
-            }
-          }
-      ;;
-  esac; done
-  clean_failed
 }
 
 
@@ -363,9 +278,8 @@ __vc_git_flags()
           git describe --exact-match HEAD ;;
         esac 2>/dev/null)" ||
 
-        b="$(cut -c1-7 "$g/HEAD" 2>/dev/null)..." ||
-        b="unknown"
-        b="($b)"
+        b="$(cut -c1-11 "$g/HEAD" 2>/dev/null)" || b="unknown"
+        # XXX b="($b)"
       }
     fi
 
@@ -1482,7 +1396,9 @@ vc__annex_local()
 # ----
 
 
-### Main
+
+
+# Script main functions
 
 vc_main()
 {
@@ -1534,6 +1450,96 @@ vc_main()
 }
 
 
+vc_load()
+{
+  local __load_lib=1 cwd="$(pwd)"
+
+  # FIXME: sh autocompletion
+  #. ~/.conf/bash/git-completion.bash
+
+  test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
+  test -n "$uname" || uname=$(uname)
+
+  lib_load sys os std stdio str src match main
+
+  statusdir.sh assert vc_status > /dev/null || error vc_status 1
+
+  gtd="$(__vc_gitdir "$cwd")"
+
+  test -n "$vc_clean_gl" || {
+    test -e .gitignore-clean \
+      && export vc_clean_gl=.gitignore-clean
+    test -e ~/.gitignore-clean-global \
+      && export vc_clean_gl="$vc_clean_gl $HOME/.gitignore-clean-global"
+  }
+  test -n "$vc_temp_gl" || {
+    test -e .gitignore-temp \
+      && export vc_temp_gl=.gitignore-temp
+    test -e ~/.gitignore-temp-global \
+      && export vc_temp_gl="$vc_temp_gl $HOME/.gitignore-temp-global"
+  }
+
+  # TODO: list of dirs (checkouts, annexes) to retrieve/store files
+  test -n "$UNVERSIONED_FILES" || {
+    #test -e /srv/annex-local
+    UNVERSIONED_FILES=$( for dir in /srv/backup-local /srv/archive-local \
+        /srv/archive-old-local /srv/htdocs-local; do
+      test -e $dir && echo "$dir" || continue; done )
+  }
+
+  # Look at run flags for subcmd
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  do
+    debug "${base} load ${subcmd} $x"
+    case "$x" in
+
+    f )
+        # Preset name to subcmd failed file placeholder
+        failed=$(setup_tmpf .failed)
+      ;;
+
+    C )
+        # Return cached value. Validate based on timestamp.
+        C= c=
+        C_exptime=$(try_value ${subcmd} C_exptime)
+        C_validate="$(try_value ${subcmd} C_validate)"
+        stat_key C >/dev/null
+        C="$(statusdir.sh get $C_key)"
+        C_mtime=
+        c_mtime=$(eval $C_validate 2>/dev/null)
+        ( test -n "$c_mtime" && C_cached $c_mtime ) && {
+          echo $C
+          debug "cached"
+          exit 0
+        } || debug "cache:$?"
+      ;;
+    esac
+  done
+}
+
+# Post-exec: subcmd and script deinit
+vc_unload()
+{
+  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  do
+    debug "${base} unload ${subcmd} $x"
+    case "$x" in
+
+    C )
+        # Update cached value
+        test -z "$c" || {
+          test "$C" = "$c" \
+            || {
+              statusdir.sh set $C_key "$c" $exptime 2>&1 >/dev/null
+              statusdir.sh set $C_key:time $c_mtime $C_exptime 2>&1 >/dev/null
+            }
+          }
+      ;;
+  esac; done
+  clean_failed
+}
+
+
 # Ignore login console interpreter
 case "$0" in "" ) ;; "-"* ) ;; * )
 
@@ -1544,8 +1550,9 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   # fix using another mechanism:
   test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-
+  case "$1" in
+    load-ext ) ;;
+    * )
         vc_main "$@"
       ;;
 

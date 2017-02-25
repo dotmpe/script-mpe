@@ -2,7 +2,6 @@
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
-# Id: script-mpe/0.0.3-dev htd.sh
 
 htd_src=$_
 test -z "$__load_lib" || set -- "load-ext"
@@ -680,17 +679,22 @@ htd__status()
 {
   test -n "$failed" || error failed 1
 
+  stderr note "local-names: "
   # Check local names
   {
     htd check-names ||
       echo "htd:check-names" >>$failed
   } | tail -n 1
 
+  stderr note "current-paths: "
   # See open paths below cwd using lsof
   htd__current_paths
 
   # Create list of open files, and show differences on subsequent calls
   #htd__open_paths
+
+  note "Open-paths SCM status: "
+
   # Check open gits
   htd__open_paths | while read path
   do
@@ -708,6 +712,7 @@ htd__status()
   #htd__recent_paths
   #htd__active
 
+  stderr note "text-paths for main-docs: "
   # Check main document elements
   {
     test ! -d "$HTD_JRNL" ||
@@ -5030,8 +5035,9 @@ htd_edit_and_update()
 }
 
 
-### Main
 
+
+# Script main functions
 
 htd_main()
 {
@@ -5090,6 +5096,7 @@ htd_init_etc()
   info "Set htd-etc to '$*'"
 }
 
+# FIXME: Pre-bootstrap init
 htd_init()
 {
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
@@ -5121,3 +5128,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   ;; esac
 ;; esac
 
+# Id: script-mpe/0.0.3-dev htd.sh

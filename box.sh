@@ -6,38 +6,12 @@ box__source=$_
 
 set -e
 
+
+
 version=0.0.3-dev # script-mpe
 
 
-### User commands
-
-box_man_1__commands="List all commands"
-box__commands()
-{
-  choice_global=1 std__commands
-}
-# FIXME: non-flag subcmd aliases
-box__als_c=commands
-
-
-# TODO: get a proper opt parser and do something like this:
-box_man_1__help="Box: Generic: Help
-
-  -h|help [<id>]      Print usage info, abbreviated command list and documentation
-                      reference. Use 'help help', 'docs' or 'help docs' for
-                      extended output. "
-box__help()
-{
-  choice_global=1 std__help $*
-}
-
-# XXX compile these from human readable cl-option docstring, provide bash
-#   auto-completion. Need to work out man5 and man7 stuff still. Save lot of
-#   clutter.
-box_man_1__help="Echo a combined usage, commands and docs"
-box_spc__help="-h|help [<id>]"
-box_als___h="help"
-
+# Script subcmd's funcs and vars
 
 box_man_1__stat="Stat local host script file"
 box_spc_stat="-S|stat"
@@ -425,10 +399,38 @@ box__log_demo()
 
 
 
-### main.lib.sh / Box
+# Generic subcmd's
+
+# TODO: get a proper opt parser and do something like this:
+box_man_1__help="Box: Generic: Help
+
+  -h|help [<id>]      Print usage info, abbreviated command list and documentation
+                      reference. Use 'help help', 'docs' or 'help docs' for
+                      extended output. "
+box__help()
+{
+  choice_global=1 std__help $*
+}
+# XXX compile these from human readable cl-option docstring, provide bash
+#   auto-completion. Need to work out man5 and man7 stuff still. Save lot of
+#   clutter.
+box_man_1__help="Echo a combined usage, commands and docs"
+box_spc__help="-h|help [<id>]"
+box_als___h="help"
 
 
-### Main
+box_man_1__commands="List all commands"
+box__commands()
+{
+  choice_global=1 std__commands
+}
+# FIXME: non-flag subcmd aliases
+box__als_c=commands
+
+
+
+
+# Script main functions
 
 box_main()
 {
@@ -449,17 +451,18 @@ box_main()
       ;;
 
     * )
-      error "not a frontend for $base"
+        error "not a frontend for $base"
       ;;
   esac
 }
 
+# FIXME: Pre-bootstrap init
 box_init()
 {
   test -z "$BOX_INIT" || return 1
   export SCRIPTPATH=$scriptpath
   . $scriptpath/util.sh load-ext
-  util_init
+  lib_load
   . $scriptpath/box.init.sh
   . $scriptpath/box.lib.sh "$@"
   lib_load main
@@ -469,11 +472,13 @@ box_init()
 
 box_lib()
 {
-  # -- box box lib sentinel --
   debug "Using $LOG_TERM log output"
+  # -- box box lib sentinel --
   set --
 }
 
+
+# Pre-exec: post subcmd-boostrap init
 box_load()
 {
   test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
@@ -485,12 +490,17 @@ box_load()
   set --
 }
 
+# Main entry - bootstrap script if requested
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
+
   # Ignore 'load-ext' sub-command
-  case "$1" in load-ext ) ;; * )
-    box_main "$@"
-  ;; esac
-;; esac
+  case "$1" in
+    load-ext ) ;;
+    * )
+      box_main "$@" ;;
 
+  esac ;;
+esac
 
+# Id: script-mpe/0.0.3-dev box.sh

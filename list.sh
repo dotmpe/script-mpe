@@ -1,29 +1,17 @@
 #!/bin/sh
 # Created: 2015-12-14
-lst_src="$_"
+lst__src="$_"
 
 set -e
+
+
 
 version=0.0.3-dev # script-mpe
 
 
-lst_man_1__version="Version info"
-lst__version()
-{
-  echo "$(cat $scriptpath/.app-id)/$version"
-}
-lst_als__V=version
+# Script subcmd's funcs and vars
 
-
-lst__edit()
-{
-  $EDITOR \
-    $0 \
-    $scriptpath/list*sh \
-    "$@"
-}
-lst_als___e=edit
-
+# See $scriptname help to get started
 
 lst_man_1__names="List names for groups"
 lst_spc__names="GROUP.."
@@ -195,19 +183,36 @@ lst__list_paths_opts()
 }
 
 
+lst_man_1__version="Version info"
+lst__version()
+{
+  echo "$(cat $scriptpath/.app-id)/$version"
+}
+lst_als__V=version
 
 
-### Main
+lst__edit()
+{
+  $EDITOR \
+    $0 \
+    $scriptpath/list*sh \
+    "$@"
+}
+lst_als___e=edit
 
+
+
+
+# Script main functions
 
 lst_main()
 {
   local \
-    scriptname=list \
-    scriptalias=lst \
-    base=$(basename $0 .sh) \
-    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-    failed=
+      scriptname=list \
+      scriptalias=lst \
+      base=$(basename $0 .sh) \
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
+      failed=
 
   test -n "$verbosity" || verbosity=5
 
@@ -234,6 +239,7 @@ lst_main()
   esac
 }
 
+# FIXME: Pre-bootstrap init
 lst_init()
 {
   test -n "$scriptpath"
@@ -243,6 +249,7 @@ lst_init()
   # -- lst box init sentinel --
 }
 
+# FIXME: 2nd boostrap init
 lst_lib()
 {
   local __load_lib=1
@@ -253,13 +260,15 @@ lst_lib()
   set --
 }
 
+
+# Main entry - bootstrap script if requested
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
-    lst_main "$@"
-  ;; esac
-;; esac
-
+      lst_main "$@"
+    ;;
+  esac ;;
+esac
 

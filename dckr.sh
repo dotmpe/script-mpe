@@ -3,20 +3,12 @@ dckr__source=$_
 
 set -e
 
+
+
 version=0.0.3-dev # script-mpe
 
 
-
-dckr_man_1__edit_main="Edit main scriptfiles. "
-dckr_spc__edit_main="-E|edit-main"
-dckr__edit_main()
-{
-  locate_name $scriptname || exit "Cannot find $scriptname"
-  note "Invoking $EDITOR $fn"
-  $EDITOR $fn
-}
-dckr_als___E=edit-main
-
+# Script subcmd's funcs and vars
 
 dckr_man_1__edit_local="Edit project files. "
 dckr_spc__edit_main="-e|edit-local"
@@ -1076,10 +1068,41 @@ test ! -e $DCKR_CONF/local.sh || {
 
 
 
+# Generic subcmd's
+
+dckr_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+dckr_load__help=f
+dckr_spc__help='-h|help [ID]'
+dckr__help()
+{
+  choice_global=1 std__help "$@"
+  rm_failed || return
+}
+dckr_als___h=help
 
 
-### Main
+dckr_man_1__version="Version info" # TODO: rewrite std__help to use try_value
+dckr_man_1__version="Version info"
+dckr__version()
+{
+  echo "$(cat $scriptpath/.app-id)/$version"
+}
+dckr_als__V=version
 
+
+dckr_man_1__edit_main="Edit main scriptfiles. "
+dckr_spc__edit_main="-E|edit-main"
+dckr__edit_main()
+{
+  locate_name $scriptname || exit "Cannot find $scriptname"
+  note "Invoking $EDITOR $fn"
+  $EDITOR $fn
+}
+dckr_als___E=edit-main
+
+
+
+# Script main functions
 
 dckr_main()
 {
@@ -1099,16 +1122,18 @@ dckr_main()
   esac
 }
 
+# FIXME: Pre-bootstrap init
 dckr_init()
 {
   test -z "$BOX_INIT" || return 1
   test -n "$scriptpath"
   export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh
-  util_init
+  . $scriptpath/util.sh load-ext
+  lib_load
   . $scriptpath/box.init.sh
   lib_load main box projectdir
   box_run_sh_test
+  # -- dckr box init sentinel --
 }
 
 dckr_lib()
@@ -1117,6 +1142,8 @@ dckr_lib()
   set --
 }
 
+
+# Pre-exec: post subcmd-boostrap init
 dckr_load()
 {
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
@@ -1134,11 +1161,17 @@ dckr_load()
   set --
 }
 
+# Main entry - bootstrap script if requested
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
-  # Ignore 'load-ext' sub-command
-  case "$1" in load-ext ) ;; * )
-    dckr_main "$@"
-  ;; esac
-;; esac
 
+  # Ignore 'load-ext' sub-command
+  case "$1" in
+    load-ext ) ;;
+    * )
+      dckr_main "$@" ;;
+
+  esac ;;
+esac
+
+# Id: script-mpe/0.0.3-dev dckr.sh

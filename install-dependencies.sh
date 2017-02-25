@@ -2,8 +2,8 @@
 
 set -e
 
-.  $(dirname $0)/util.sh load-ext
-lib_load
+.  $(dirname $0)/util.sh boot
+
 
 test -z "$Build_Debug" || set -x
 

@@ -40,6 +40,10 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in
     load-* ) ;; # External include, do nothing
+    boot )
+        scriptpath="$(dirname "$0")"
+        lib_load
+      ;;
 
     * ) # Setup SCRIPTPATH and include other scripts
 

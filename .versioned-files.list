@@ -14,6 +14,8 @@ box.sh
 vc.sh
 rst.sh
 esop.sh
+disk.sh
+diskdoc.sh
 projectdir.sh
 twitter.sh
 list.sh
@@ -28,6 +30,7 @@ host.py
 node.py
 project.py
 redmine_meta.py
+tasks.sh
 tasks.py
 todo-meta.py
 todo.py
@@ -41,3 +44,5 @@ tools/sh/env.sh
 util.sh
 box-instance.sh
 script-bats.sh
+vagrant-sh.sh
+meta-sh.sh
