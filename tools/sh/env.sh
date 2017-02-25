@@ -66,7 +66,7 @@ test -n "$ENV_NAME" || {
   esac
 }
 
-case "$ENV" in
+case "$ENV_NAME" in
 
     jekyll )
         BUILD_STEPS=jekyll
@@ -91,7 +91,7 @@ case "$ENV" in
       ;;
 
     * )
-        error "ENV '$ENV'" 1
+        error "ENV '$ENV_NAME'" 1
       ;;
 
 esac
