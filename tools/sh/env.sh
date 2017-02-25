@@ -26,10 +26,10 @@ case "$shopts"
 
 esac
 
-req_vars scriptname || error "scriptname" 1
-req_vars scriptpath || error "scriptpath" 1
-req_vars SCRIPTPATH || error "SCRIPTPATH" 1
-req_vars LIB || error "LIB" 1
+req_vars scriptname || error "scriptname=$scriptname" 1
+req_vars scriptpath || error "scriptpath=$scriptpath" 1
+req_vars SCRIPTPATH || error "SCRIPTPATH=$SCRIPTPATH" 1
+req_vars LIB || error "LIB=$LIB" 1
 
 req_vars verbosity || export verbosity=7
 req_vars DEBUG || export DEBUG=
@@ -82,7 +82,7 @@ case "$ENV_NAME" in
         }
       ;;
 
-    features/* | development )
+    features/* | dev* )
         BUILD_STEPS="dev test"
       ;;
 
@@ -96,8 +96,7 @@ case "$ENV_NAME" in
 
 esac
 
-req_vars Build_Deps_Default_Paths ||
-  export Build_Deps_Default_Paths=1
+req_vars Build_Deps_Default_Paths || export Build_Deps_Default_Paths=1
 req_vars sudo || export sudo=sudo
 
 req_vars RUN_INIT || export RUN_INIT=

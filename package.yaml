@@ -12,20 +12,6 @@
   distribution: public
   license: GPL
 
-  scripts:
-    check:
-      - htd.sh gitflow-check-doc
-      - verbose=1 git-versioning check
-      - projectdir.sh run :bats:specs
-      - ./vendor/.bin/behat --dry-run --no-multiline
-      - projectdir.sh run :git:status
-    test:
-      - verbose=1 git-versioning check
-      - python test/main.py
-      - projectdir.sh run :bats:specs
-      - bats
-    build:
-      - vagrant tools/ci/vbox
   pd-meta:
     run:
       behat: "./vendor/.bin/behat--tags:~@skip"
@@ -76,9 +62,50 @@
   scripts:
     env: ./config/tools/env.sh $ENV $NAME $TAG
     init:
-    test: pd test
-    check: pd check
-    build: pd build
+      # NOTE: somehow bash matching is needed, seems 'type' is not behaving as
+      # expected from a bourne shell
+      - export SCR_SYS_SH=bash-sh
+      - scriptname="init"
+      - . ./tools/sh/init.sh
+      - . ./tools/sh/env.sh
+      - . ./tools/ci/parts/init.sh
+    #check: pd check
+    check:
+      - htd.sh gitflow-check-doc
+      - verbose=1 git-versioning check
+      - projectdir.sh run :bats:specs
+      - ./vendor/.bin/behat --dry-run --no-multiline
+      - projectdir.sh run :git:status
+      - export SCR_SYS_SH=bash-sh
+      - scriptname="check-includes"
+      - . ./tools/sh/init.sh
+      - . ./tools/sh/env.sh
+      - . ./tools/ci/parts/init.sh
+      - . ./tools/ci/check-env.sh
+    install:
+      - export SCR_SYS_SH=bash-sh
+      - scriptname="before-install"
+      - . ./tools/sh/init.sh
+      - . ./tools/sh/env.sh
+      - . ./tools/ci/parts/init.sh
+      - scriptname=install
+      - . ./tools/ci/parts/install.sh
+    #test: pd test
+    test:
+      - verbose=1 git-versioning check
+      - python test/main.py
+      - projectdir.sh run :bats:specs
+      - bats
+    #build: pd build
+    build:
+      - export SCR_SYS_SH=bash-sh
+      - scriptname="init"
+      - . ./tools/sh/init.sh
+      - . ./tools/sh/env.sh
+      - . ./tools/ci/parts/init.sh
+      #- vagrant tools/ci/vbox
+      - scriptname=script
+      - . ./tools/ci/parts/build.sh
 
   # For make data/*: or move to cllct.rc
   data:

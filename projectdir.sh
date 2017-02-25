@@ -1548,7 +1548,7 @@ pd_init()
   . $scriptpath/util.sh load-ext
   lib_load sys os std stdio str src main meta
   . $scriptpath/box.init.sh
-  lib_load box
+  lib_load box package
   box_run_sh_test
   # -- pd box init sentinel --
   test -n "$verbosity" && note "Verbosity at $verbosity" || verbosity=6

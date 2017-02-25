@@ -46,3 +46,5 @@ box-instance.sh
 script-bats.sh
 vagrant-sh.sh
 meta-sh.sh
+package.lib.sh
+meta.lib.sh

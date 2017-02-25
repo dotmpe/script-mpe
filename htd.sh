@@ -2392,41 +2392,48 @@ htd_man_1__run="Run scripts from package"
 htd_run__run=f
 htd__run()
 {
-  local metaf=
   test -n "$1" || set -- scripts
-  update_package
-  test -e .package.main || error "package.main missing" 1
 
-  jsotk.py -sq path --is-new .package.main scripts/$1 && {
+  # Update local package
+  local metaf=
+  update_package
+
+  # With no arguments or name 'scripts' list script names,
+  # Or no matching scripts returns 1
+  jsotk.py -sq path --is-new $PACKMETA_JS_MAIN scripts/$1 && {
     test "$1" = "scripts" || {
-      error "No obj scripts/$1" ; return; }
+      error "No obj scripts/$1" ; return 1; }
 
     trueish "$verbose_no_exec" && {
-      echo jsotk.py keys -O lines .package.main scripts
+      echo jsotk.py keys -O lines $PACKMETA_JS_MAIN scripts
       return
     }
-
     # NOTE: default run is scripts command
     htd__run_names
     return $?
   }
 
-  {
-    jsotk.py path -O lines .package.main scripts/$1 || {
-      error "error getting lines for '$1'"
-      return 1
-    }
-  } | sponge | while read scriptline
-  do
-    not_trueish "$verbose_no_exec" || {
-      note "Scriptline: '$scriptline'"
-      continue
-    }
-    ( eval "$scriptline" ) \
-    &&
-      continue || error "At line '$scriptline'" $?
+  # TODO: Get additional env spec
+  #test -n "$ENV_NAME" || ENV_NAME=$(package_default_env)
+  #ENV_X="$(package_sh_env "$ENV_NAME" $PACKMETA_JS_MAIN)"
 
-  done
+  # Execute script-lines
+  (
+    SCRIPTPATH=
+    unset Build_Deps_Default_Paths
+    package_sh_script "$1" | while read scriptline
+    do
+      not_trueish "$verbose_no_exec" || {
+        note "Scriptline: '$scriptline'"
+        continue
+      }
+      {
+        eval "$scriptline"
+      } &&
+        continue || error "At line '$scriptline'" $?
+
+    done
+  )
 }
 
 htd_man_1__list_run="list lines for package script"
@@ -5106,7 +5113,7 @@ htd_init()
   lib_load
   . $scriptpath/box.init.sh
   box_run_sh_test
-  lib_load htd meta box date doc table disk remote ignores
+  lib_load htd meta box date doc table disk remote ignores package
   # -- htd box init sentinel --
 }
 
