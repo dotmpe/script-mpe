@@ -25,7 +25,7 @@ sys_load()
   } || {
     test -d /tmp || error "No /tmp" 1
     export TMPDIR=/tmp
-    $scriptpath/std.lib.sh info "TMPDIR=$TMPDIR (should be in shell profile)"
+    sh $scriptpath/std.lib.sh info "TMPDIR=$TMPDIR (should be in shell profile)"
   }
 }
 

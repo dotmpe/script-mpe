@@ -418,15 +418,19 @@ __vc_git_flags()
     test -f "$g" && {
       g=$(dirname $g)/$(cat .git | cut -d ' ' -f 2)
     }
+
+    # TODO: move to extended escription cmd
+    #x="; $(git count-objects -H | sed 's/objects/obj/' )"
+
     if [ -d $g/annex ]; then
-      #x="(annex:$(echo $(du -hs $g/annex/objects|cut -f1)))$c"
-      x="(annex)$c"
+      #x="$x; annex: $(echo $(du -hs $g/annex/objects|cut -f1)))"
+      x="$x annex"
     fi
 
     if [ -n "${2-}" ]; then
-      printf "$2" "$c$x${b##refs/heads/}$w$i$s$u$r"
+      printf "$2" "$c${b##refs/heads/}$w$i$s$u$r$x"
     else
-      printf "(%s)" "$c$x${b##refs/heads/}$w$i$s$u$r"
+      printf "(%s)" "$c${b##refs/heads/}$w$i$s$u$r$x"
     fi
 
     cd $cwd
