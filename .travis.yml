@@ -39,6 +39,9 @@ install:
 
 before_script:
   - scriptname="before-script"
+  - . ./tools/sh/init.sh
+  - . ./tools/sh/env.sh
+  - . ./tools/ci/parts/init.sh
   - . ./tools/ci/parts/check.sh
 
 script:
