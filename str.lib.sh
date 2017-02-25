@@ -219,6 +219,7 @@ var2tags()
   done)
 }
 
+# Read properties file and re-escape for shell
 properties2sh()
 {
   awk 'BEGIN { FS = "=" } ;
@@ -227,6 +228,47 @@ properties2sh()
       print $1"="$2 }' $1
 }
 
+# write line or header+line with key/value pairs (sh, csv, tab, or json format)
+# varsfmt FMT [VARNAMES...]
+varsfmt()
+{
+  # set default format
+  test -n "$1" && {
+      FMT="$(str_upper "$1")"
+    } || {
+      FMT=TAB
+    }
+  shift || error "Arguments expected" 1
+  set -- "$@"
+
+  # Output line (or header + line) for varnames/-values
+  case "$FMT" in
+    CSV|TAB )        printf "# $*\n" ;;
+    JS* )            printf "{" ;;
+  esac
+  while test -n "$1"
+  do
+    case "$FMT" in
+      SH )           printf -- "$1=\"$(eval echo "\$$1")\"" ;;
+      CSV )          printf -- "\"$(eval echo "\$$1")\"" ;;
+      # FIXME: yaml inline is only opt. also shld have fixed-wdth tab
+      YAML|JS* )     printf -- "\"$1\":\"$(eval echo "\$$1")\"" ;;
+      TAB )          printf -- "$(eval echo "\$$1")" ;;
+    esac
+    test -n "$2" && {
+      case "$FMT" in
+        CSV|JS* )    printf "," ;;
+        SH )         printf " " ;;
+        TAB )        printf "\t" ;;
+      esac
+    } || noop
+    shift
+  done
+  case "$FMT" in
+    JS* )            printf "}\n" ;;
+    * )              printf "\n" ;;
+  esac
+}
 
 # Echo element in a field-separated string the hard way. Fetches one prefix
 # at a time to 1. keep the function adn regex simple enough while 2. allow

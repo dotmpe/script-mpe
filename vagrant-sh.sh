@@ -13,15 +13,47 @@ version=0.0.3-dev # script-mpe
 
 # See $scriptname help to get started
 
+vagrant_sh_man_1__list="List cached info about Vagrant instances"
 vagrant_sh__list()
 {
   stderr info "Listing running vagrant instances ($ vagrant global-status)"
+  vagrant_sh__list_raw |
+  while read ID NAME PROVIDER STATE DIRECTORY
+  do
+    $LOG header1 "$PROVIDER:$ID" "$NAME: $STATE " "$DIRECTORY"
+  done
+}
+
+vagrant_sh_spc__list_raw='list-raw [GLOB [FMT]]'
+vagrant_sh__list_raw()
+{
+  check_argc 2
+  test -n "$2" && set -- "$1" "$(str_upper "$2")" || set -- "$1" TAB
+  vagrant global-status | tail -n +3 |
+    while read ID NAME PROVIDER STATE DIRECTORY
+    do
+      # NOTE: no warning on bugs, ignore non table lines
+      test -d "$DIRECTORY" || continue
+      # NOTE: output col/cell
+      # FIXME: want global counter for row too
+      varsfmt "$2" ID NAME PROVIDER STATE DIRECTORY
+    done
+}
+
+vagrant_sh_man_1__details="List actual info about Vagrant instances"
+vagrant_sh__details()
+{
+  stderr info "Getting details for running vagrant instances ($ cd DIR && vagrant status)"
   vagrant global-status | tail -n +3 |
   while read ID NAME PROVIDER STATE DIRECTORY
   do
     # NOTE: no warning on bugs, ignore non table lines
     test -d "$DIRECTORY" || continue
-    $LOG header1 "$PROVIDER:$ID" "$NAME: $STATE " "$DIRECTORY"
+    (
+      cd $DIRECTORY
+      pwd -P
+      vagrant status | tail -n +3
+    )
   done
 }
 
@@ -32,8 +64,11 @@ vagrant_sh_man_1__help="Usage help. "
 vagrant_sh_spc__help="-h|help"
 vagrant_sh__help()
 {
-  test -z "$dry_run" || note " ** DRY-RUN ** " 0
-  choice_global=1 std__help "$@"
+  test -z "$dry_run" || stderr note " ** DRY-RUN ** " 0
+  (
+    base=vagrant_sh \
+      choice_global=1 std__help "$@"
+  )
 }
 vagrant_sh_als___h=help
 
@@ -51,9 +86,6 @@ vagrant_sh__edit()
   $EDITOR $0 $(which $base.py) "$@"
 }
 vagrant_sh_als___e=edit
-
-
-
 
 
 # Script main functions
@@ -141,7 +173,6 @@ vagrant_sh_unload()
 
   return $unload_ret
 }
-
 
 
 # Main entry - bootstrap script if requested

@@ -46,7 +46,14 @@ fixed_table_hd()
 {
   local tab=$1 cutf=$(dirname $1)/$(basename $1 .tab).cuthd
   #fixed_table_hd_offsets "$@"
-  test $cutf -nt $1 || fixed_table_hd_cuts "$@" >$cutf
+
+  # Assemble COLID CUTFLAG table
+  test $cutf -nt $1 || {
+    { echo "# COLVAR CUTFLAG"
+      fixed_table_hd_cuts "$@"
+    } >$cutf
+  }
+  # Walk over rows, columns and assemble Sh vars, include raw-src in $line
   cat $tab | grep -v '^\s*\(#.*\)\?$' | while read line
   do
     cat $cutf | grep -v '^\s*\(#.*\)\?$' | while read col args

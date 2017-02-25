@@ -63,13 +63,19 @@ require_fs_casematch()
   cd "$CWD"
 }
 
-
+# Sh var-based increment
 incr()
 {
   local incr_amount
   test -n "$2" && incr_amount=$2 || incr_amount=1
   v=$(eval echo \$$1)
   export $1=$(( $v + $incr_amount ))
+}
+
+# TODO: file-based (or statusdir?) based increment
+fincr()
+{
+  set --
 }
 
 getidx()
