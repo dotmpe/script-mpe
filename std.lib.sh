@@ -338,6 +338,7 @@ note()
   std_v 5 || std_exit $2 || return 0
   stderr "Notice" "$1" $2
 }
+# FIXME: core tool name
 info()
 {
   std_v 6 || std_exit $2 || return 0

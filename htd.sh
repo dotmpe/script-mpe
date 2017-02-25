@@ -694,12 +694,11 @@ htd__status()
   # Check open gits
   htd__open_paths | while read path
   do
-    test -d $path/.git || {
+    test -e $path/.git || {
       ~/project/mkdoc/usr/share/mkdoc/Core/log.sh \
               "header3" "$path" ""
       continue
     }
-
     ~/project/mkdoc/usr/share/mkdoc/Core/log.sh \
             "header3" "$path" "" "$( cd $path && vc.sh flags )"
     #$scriptpath/std.lib.sh ok "$path"

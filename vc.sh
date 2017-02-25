@@ -270,6 +270,18 @@ __vc_bzrdir()
   )
 }
 
+__vc_scmdir()
+{
+  __vc_gitdir "$1" || {
+    __vc_bzrdir "$1" || {
+      __vc_svndir "$1" || {
+        __vc_hgdir "$1" ||
+          error "SCM-dir" 1
+      }
+    }
+  }
+}
+
 # __vc_gitdir accepts 0 or 1 arguments (i.e., location)
 # echo absolute location of .git repo, return
 # be silent otherwise
@@ -305,19 +317,15 @@ __vc_git_codir()
 # returns text to add to bash PS1 prompt (includes branch name)
 __vc_git_flags()
 {
-  local pwd="$(pwd)"
-  #local g="$1"
-  #[ -n "$g" ] ||
-  g="$(__vc_gitdir "$pwd")"
+  test -n "$1" || set -- "$(pwd)"
+  g="$(__vc_gitdir "$1")"
   if [ -e "$g" ]
   then
-
     test "$(echo $g/refs/heads/*)" != "$g/refs/heads/*" || {
       echo "(git:unborn)"
       return
     }
-
-    cd $pwd
+    cd $1
     local r
     local b
     if [ -f "$g/rebase-merge/interactive" ]; then
@@ -711,7 +719,25 @@ vc__bits()
 
 vc__flags()
 {
-  echo "git:$(__vc_git_flags "$@" || return $?)"
+  test -n "$1" || set -- "$(pwd)"
+  scmdir="$(basename "$(__vc_scmdir "$1")")"
+  case "$scmdir" in
+    .git )
+        echo "$scmdir$(__vc_git_flags "$1" || return $?)"
+      ;;
+    .bzr )
+        echo "$scmdir$(__vc_bzr_flags "$1" || return $?)"
+      ;;
+    .svn )
+        echo "$scmdir$(__vc_svn_flags "$1" || return $?)"
+      ;;
+    .hg )
+        echo "$scmdir$(__vc_hg_flags "$1" || return $?)"
+      ;;
+    * )
+        error "$scmdir" 1
+      ;;
+  esac
 }
 
 
