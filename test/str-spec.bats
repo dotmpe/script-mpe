@@ -70,3 +70,44 @@ func=str_replace
   test "${element}" = "A" || fail "${element}"
 }
 
+
+@test "expr-substr - Should fail if not initialized" {
+
+  expr_old=$expr
+  
+  expr=illegal-value 
+  run expr_substr "FOO" 1 3
+  test ${status} -ne 0 || fail "Should not pass illegal setting"
+
+  str_load
+  run expr_substr "FOO" 1 3
+  test ${status} -eq 0 || fail "Should pass after str-load"
+
+  expr=illegal-value 
+  util_init
+  run expr_substr "FOO" 1 3
+  test ${status} -eq 0 || fail "Should pass after util-init"
+}
+
+
+@test "$lib expr_substr: should slice simple string " {
+
+  func_exists expr_substr
+  test -n "$expr" || fail "expr failed to init"
+  test "$(expr_substr "testFOObar" 1 4)" = "test"
+  test "$(expr_substr "testFOObar" 5 3)" = "FOO"
+  test "$(expr_substr "testFOObar" 8 3)" = "bar"
+  test "$(expr_substr "testFOObar" 1 10)" = "testFOObar"
+}
+
+
+@test "$lib expr_substr: should slice with leading hyphen" {
+
+  func_exists expr_substr
+  test -n "$expr" || fail "expr failed to init"
+  test "$(expr_substr "-E" 1 2)" = "-E"
+  test "$(expr_substr "---" 1 1)" = "-"
+  test "$(expr_substr "---" 1 2)" = "--"
+  test "$(expr_substr "---" 1 3)" = "---"
+}
+

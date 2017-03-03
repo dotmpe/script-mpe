@@ -1,15 +1,11 @@
 #!/usr/bin/env bats
 
-base=htd
+base=os.lib
 load helper
 init
-source $lib/util.sh
-source $lib/str.lib.sh
 
 
-version=0.0.3-dev # script-mpe
-
-@test "$bin normalize-relative" {
+@test "htd normalize-relative" {
 
   check_skipped_envs travis jenkins || \
     skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
@@ -19,9 +15,9 @@ version=0.0.3-dev # script-mpe
   test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/.')" = 'Foo/Bar'
   test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/./')" = 'Foo/Bar/'
 
-#  run $BATS_TEST_DESCRIPTION 'Foo/Bar/../'
-#  test ${status} -eq 0
-#  test "${lines[*]}" = 'Foo/' || fail "Out: ${lines[*]}"
+  run $BATS_TEST_DESCRIPTION 'Foo/Bar/../'
+  test ${status} -eq 0
+  test "${lines[*]}" = 'Foo/' || fail "Out: ${lines[*]}"
 
   test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/../')" = 'Foo/'
   test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/..')" = 'Foo'
@@ -38,7 +34,8 @@ version=0.0.3-dev # script-mpe
   test "$($BATS_TEST_DESCRIPTION ./)" = "./"
 }
 
-@test "$bin read-file-lines-while (default)" {
+
+@test "$lib/$base read-file-lines-while (default)" {
   read_file_lines_while test/var/nix_comments.txt || r=$?
   test "$line_number" = "5" || {
     diag "Line_Number: ${line_number}"
@@ -48,7 +45,8 @@ version=0.0.3-dev # script-mpe
   test -z "$r"
 }
 
-@test "$bin read-file-lines-while (negative)" {
+
+@test "$lib/$base read-file-lines-while (negative)" {
   testf=test/var/nix_comments.txt
   r=; read_file_lines_while $testf \
     'echo "$line" | grep -q "not-in-file"' || r=$?
@@ -56,7 +54,8 @@ version=0.0.3-dev # script-mpe
   test -z "$r" -a "$r" != "0"
 }
 
-@test "$bin read-file-lines-while header comments" {
+
+@test "$lib/$base read-file-lines-while header comments" {
   testf=test/var/nix_comments.txt
   r=; read_file_lines_while $testf \
     'echo "$line" | grep -qE "^\s*#.*$"' || r=$?
@@ -72,3 +71,41 @@ version=0.0.3-dev # script-mpe
 }
 
 
+@test "$lib line_count: " {
+  tmpd
+  out=$tmpd/line_count
+
+  printf "1\n2\n3\n4" >$out
+  test "$(wc -l $out|awk '{print $1}')" = "3"
+  test "$(line_count $out)" = "4"
+
+  printf "1\n2\n3\n4\n" >$out
+  test "$(wc -l $out|awk '{print $1}')" = "4"
+  test "$(line_count $out)" = "4"
+
+  #uname=$(uname -s)
+  #printf "1\r" >$out
+  #test -n "$(line_count $out)"
+}
+
+
+@test "$lib filesize" {
+  tmpd
+  out=$tmpd/filesize
+  printf "1\n2\n3\n4" >$out
+  test -n "$(filesize "$out")" || bail
+  diag "$(filesize "$out")"
+  test $(filesize "$out") -eq 7
+}
+
+
+@test "$lib get_uuid" {
+
+  func_exists get_uuid
+  run get_uuid
+  test $status -eq 0
+  test -n "${lines[*]}"
+}
+
+
+# Id: script-mpe/0.0.3-dev test/os-lib-spec.bats

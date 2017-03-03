@@ -23,6 +23,8 @@ vagrant_sh__list()
     $LOG header1 "$PROVIDER:$ID" "$NAME: $STATE " "$DIRECTORY"
   done
 }
+vagrant_sh__global_status=list
+
 
 vagrant_sh_spc__list_raw='list-raw [GLOB [FMT]]'
 vagrant_sh__list_raw()
@@ -36,26 +38,59 @@ vagrant_sh__list_raw()
       test -d "$DIRECTORY" || continue
       # NOTE: output col/cell
       # FIXME: want global counter for row too
-      varsfmt "$2" ID NAME PROVIDER STATE DIRECTORY
+      varsfmt "$2" ID NAME PROVIDER STATE DIRECTORY | grep -v '^#'
     done
 }
 
-vagrant_sh_man_1__details="List actual info about Vagrant instances"
-vagrant_sh__details()
+
+vagrant_sh_man_1__info="Update local instance and show details"
+vagrant_sh__info()
+{
+  test -z "$1" && {
+    vagrant status | tail -n +3
+  } || {
+    vagrant status | grep "^$1"
+  }
+}
+
+
+vagrant_sh_man_1__info_raw="Update and give parsed details"
+vagrant_sh__info_raw()
+{
+  test -n "$1"
+  test -n "$2" && set -- "$1" "$(str_upper "$2")" || set -- "$1" TAB
+  local NAME= STATUS= PROVIDER=
+  vagrant_sh__info "$1" | while read NAME STATUS qprov
+  do
+    PROVIDER="$(echo "$qprov"|tr -d '()' )"
+    DIRECTORY=$(pwd)
+    RDIRECTORY=$(pwd -P)
+    # TODO: set counter and only output header once or very X rows
+    varsfmt "$2" NAME STATUS PROVIDER DIRECTORY RDIRECTORY | grep -v '^#'
+  done
+}
+
+
+vagrant_sh_man_1__list_info="Update and list actual info about Vagrant instances"
+vagrant_sh__list_info()
 {
   stderr info "Getting details for running vagrant instances ($ cd DIR && vagrant status)"
-  vagrant global-status | tail -n +3 |
-  while read ID NAME PROVIDER STATE DIRECTORY
+  vagrant_sh__list_raw "$1" SH | grep -v '^#' |
+  while read lvars
   do
-    # NOTE: no warning on bugs, ignore non table lines
-    test -d "$DIRECTORY" || continue
     (
+      eval local $lvars
+      test -e "$DIRECTORY" || { warn "missing dir '$DIRECTORY'"
+        continue
+      }
       cd $DIRECTORY
-      pwd -P
-      vagrant status | tail -n +3
+      vagrant_sh__info_raw "$NAME"
     )
   done
 }
+vagrant_sh_als__details=list-info
+vagrant_sh_als__update=list-info
+
 
 
 # Generic subcmd's
@@ -70,7 +105,9 @@ vagrant_sh__help()
       choice_global=1 std__help "$@"
   )
 }
-vagrant_sh_als___h=help
+#vagrant_sh_als__h=help
+# FIXME:
+#vagrant_sh_als__help=help
 
 
 vagrant_sh_man_1__version="Version info"
@@ -164,8 +201,6 @@ vagrant_sh_unload()
   #esac; done
 
   clean_failed || unload_ret=$?
-
-  env | grep -i 'vagrant'
 
   unset subcmd subcmd_pref \
           def_subcmd func_exists func \

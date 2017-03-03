@@ -3,12 +3,12 @@ package.yaml
 Rules.mk
 match.sh
 test/htd-spec.bats
-test/os-spec.bats
+test/os-lib-spec.bats
 test/diskdoc-spec.bats
 test/meta-spec.bats
 .jjb.yaml
 .jtb.yml
-dckr.sh
+docker-sh.sh
 htd.sh
 box.sh
 vc.sh

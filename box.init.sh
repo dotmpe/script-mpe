@@ -12,7 +12,7 @@ test -n "$BOX_BIN_DIR" || {
   test -d $BOX_BIN_DIR || mkdir -vp $BOX_BIN_DIR
 }
 
-test -n "$scriptpath"
+test -n "$scriptpath" || error "box.init: scriptpath missing" 1
 
 test -z "$BOX_INIT" && BOX_INIT=1 || error "unexpected re-init" 1
 

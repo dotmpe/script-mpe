@@ -46,6 +46,7 @@ req_bin()
   }
 }
 
+# arg-vars
 # Echo arguments as sh vars (use with local, export, etc)
 arg_vars()
 {
@@ -68,6 +69,7 @@ arg_vars()
   }
 }
 
+
 # Same as arg_vars but with usage, and debug verbosity
 argv_vars()
 {
@@ -86,6 +88,7 @@ argv_vars()
     )"
 }
 
+
 # Abort on surplus arguments
 check_argc()
 {
@@ -93,4 +96,20 @@ check_argc()
   local value="$(eval echo \$$argi)"
   test -z "$value" || error "surplus arguments (expected $1): '$value'" 1
 }
+
+
+req_path_arg()
+{
+	test -n "$1" || error "path or file argument expected" 1
+	test -e "$1" || error "not a path '$1'" 1
+}
+
+req_cdir_arg()
+{
+  test -n "$1"  && path="$1"  || path=.
+  test -d "$path" || {
+    error "Must pass directory" 1
+  }
+}
+
 

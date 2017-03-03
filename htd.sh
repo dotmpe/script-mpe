@@ -2396,7 +2396,7 @@ htd__run()
 
   # Update local package
   local metaf=
-  update_package
+  update_package || return $?
 
   # With no arguments or name 'scripts' list script names,
   # Or no matching scripts returns 1
@@ -2419,12 +2419,16 @@ htd__run()
 
   # Execute script-lines
   (
+    run_scriptname="$1"
+    shift
     SCRIPTPATH=
     unset Build_Deps_Default_Paths
-    package_sh_script "$1" | while read scriptline
+    package_sh_script "$run_scriptname" | while read scriptline
     do
-      not_trueish "$verbose_no_exec" || {
-        note "Scriptline: '$scriptline'"
+      not_trueish "$verbose_no_exec" && {
+        stderr info "Scriptline: '$scriptline'"
+      } || {
+        stderr note "Scriptline: '$scriptline'"
         continue
       }
       {
@@ -2432,6 +2436,8 @@ htd__run()
       } &&
         continue || error "At line '$scriptline'" $?
 
+      # NOTE: execute scriptline with args only once
+      set --
     done
   )
 }
