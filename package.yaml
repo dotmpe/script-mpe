@@ -95,7 +95,7 @@
       - verbose=1 git-versioning check
       - python test/main.py
       - projectdir.sh run :bats:specs
-      - bats
+      - bats test/*-spec.bats
     #build: pd build
     build:
       - export SCR_SYS_SH=bash-sh

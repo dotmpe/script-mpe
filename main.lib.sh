@@ -52,6 +52,7 @@ echo_help()
 try_local()
 {
   test -n "$2" -o -n "$1" || return
+  # XXX: box-*
   test -n "$box_prefix" || box_prefix=$(mkvid $base ; echo $vid)
   test -n "$3" || set -- "$1" "$2" "$box_prefix"
   test -z "$1" || set -- " :$1" "$2" "$3"
@@ -361,7 +362,6 @@ parse_box_subcmd_opts()
 
     [?] )
       #echo "Error $o"
-      #print >&2 "Usage: $0 [-s] [-d seplist] file ..."
       return 2
       ;;
 
@@ -511,13 +511,6 @@ main_init()
   #test -n "$scsep" || scsep=__
 
   return 0
-}
-
-box_src_lib()
-{
-  box_src="$(dry_run= box_list_libs $0 $1 | while read src path args; \
-    do eval echo $path; done)"
-  box_lib="$box_src"
 }
 
 
