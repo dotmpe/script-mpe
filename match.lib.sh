@@ -24,9 +24,9 @@ match_load_table()
 {
   test -n "$1" || set -- book
 
-  match_load_defs $scriptdir/table.$1
+  match_load_defs $scriptpath/table.$1
 
-  test "$scriptdir" = "$(cd "$(pwd)"; pwd -P)" || {
+  test "$scriptpath" = "$(cd "$(pwd)"; pwd -P)" || {
     test -s "$(pwd)/table.$1" && {
       match_load_defs "$(pwd)/table.$1" \
         || error "Error loading ./table.$1" 1

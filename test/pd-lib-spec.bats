@@ -5,9 +5,11 @@ base=pd-lib
 load main.inc
 
 init
-source $lib/util.sh
-source $lib/main.lib.sh
-
+setup()
+{
+  source $lib/util.sh
+  source $lib/main.lib.sh
+}
 
 @test "load Pd core+ext scripts" {
 
@@ -31,17 +33,15 @@ setup()
 }
 
 @test "pd - finddoc" {
-
-  pd=.projects.yaml
-  run pd_finddoc
   (
-    test $status -eq 0
-    fnmatch "*Pd prefix: *, realdir: $HOME Before: */*" "${lines[*]}"
-  ) || {
-    diag "Status: $status"
-    diag "Out: ${lines[*]}"
-    fail "finddoc"
-  }
+    pd=.projects.yaml
+    export verbosity=7
+    run pd_finddoc
+    {
+      test $status -eq 0 &&
+      fnmatch "*Pd prefix: *, realdir: $HOME Before: */*" "${lines[*]}"
+    }
+  ) || stdfail
 }
 
 

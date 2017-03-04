@@ -2,20 +2,21 @@
 
 # Must be started from project root.
 # Import minimal setup and shell util functions.
-test -n "$scriptdir" || export scriptdir="$(pwd -P)"
+test -n "$scriptpath" || export scriptpath="$(pwd -P)"
 
 # if not provided, auto-setup env
 # assuming execution starts in script dir (project root)
 test -n "$SCRIPTPATH" || {
 
   test -n "$LIB" || {
-    test -n "$scriptdir" &&
-      LIB=$scriptdir ||
+    test -n "$scriptpath" &&
+      LIB=$scriptpath ||
       LIB=$(cd $(dirname $(dirname $0)); pwd -P )
+    test -n "$LIB" || exit 99
     export LIB
   }
-  #test -n "$LIB" || export LIB="$( test -n "$scriptdir" &&
-  #    echo $scriptdir || ( cd $(dirname $(dirname $0)); pwd -P ))"
+  #test -n "$LIB" || export LIB="$( test -n "$scriptpath" &&
+  #    echo $scriptpath || ( cd $(dirname $(dirname $0)); pwd -P ))"
 
 	#export SCRIPTPATH="$( case "$LIB" in /* ) echo $LIB ;; * )
   #    echo $(cd "$LIB"; pwd -P)
@@ -30,7 +31,7 @@ test -n "$SCRIPTPATH" || {
 }
 
 # Now include script and run util_init to source other utils
-. $scriptdir/util.sh
+. $scriptpath/util.sh
 
 
 # Id: script-mpe/0.0.3-dev tools/sh/init.sh

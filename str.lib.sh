@@ -1,5 +1,37 @@
 #!/bin/sh
 
+set -e
+
+
+
+# Set env for str.lib.sh
+str_load()
+{
+  case "$(uname)" in
+      Darwin )
+          expr=bash-substr ;;
+      Linux )
+          expr=sh-substr ;;
+      * )
+          error "Unable to init expr" 1;;
+  esac
+
+  test -n "$ext_groupglob" || {
+    test "$(echo {foo,bar}-{el,baz})" != "{foo,bar}-{el,baz}" \
+          && ext_groupglob=1 \
+          || ext_groupglob=0
+    # FIXME: part of [vc.bash:ps1] so need to fix/disable verbosity
+    #debug "Initialized ext_groupglob=$ext_groupglob"
+  }
+
+  test -n "$ext_sh_sub" || ext_sh_sub=0
+
+  #      echo "${1/$2/$3}" ... =
+  #        && ext_sh_sub=1 \
+  #        || ext_sh_sub=0
+  #  #debug "Initialized ext_sh_sub=$ext_sh_sub"
+  #}
+}
 
 # ID for simple strings without special characters
 mkid()
@@ -8,13 +40,14 @@ mkid()
   id=$(printf -- "$1" | tr -sc 'A-Za-z0-9\/:_-' '-' )
 }
 
-# to filter strings to valid id
+# to filter strings to variable id name
 mkvid()
 {
   test -n "$1" || error "mkvid argument expected" 1
 	vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
 	# Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
 }
+
 mkcid()
 {
   test -n "$1" || error "mkcid argument expected" 1
@@ -167,35 +200,6 @@ expr_substr()
 }
 
 
-# Set env for str.lib.sh
-str_load()
-{
-  case "$(uname)" in
-      Darwin )
-          expr=bash-substr ;;
-      Linux )
-          expr=sh-substr ;;
-      * )
-          error "Unable to init expr" 1;;
-  esac
-
-  test -n "$ext_groupglob" || {
-    test "$(echo {foo,bar}-{el,baz})" != "{foo,bar}-{el,baz}" \
-          && ext_groupglob=1 \
-          || ext_groupglob=0
-    # FIXME: part of [vc.bash:ps1] so need to fix/disable verbosity
-    #debug "Initialized ext_groupglob=$ext_groupglob"
-  }
-
-  test -n "$ext_sh_sub" || ext_sh_sub=0
-
-  #      echo "${1/$2/$3}" ... =
-  #        && ext_sh_sub=1 \
-  #        || ext_sh_sub=0
-  #  #debug "Initialized ext_sh_sub=$ext_sh_sub"
-  #}
-}
-
 # Try to turn given variable names into a more "terse", human readble string seq
 var2tags()
 {
@@ -216,6 +220,7 @@ var2tags()
   done)
 }
 
+# Read properties file and re-escape for shell
 properties2sh()
 {
   awk 'BEGIN { FS = "=" } ;
@@ -224,6 +229,47 @@ properties2sh()
       print $1"="$2 }' $1
 }
 
+# write line or header+line with key/value pairs (sh, csv, tab, or json format)
+# varsfmt FMT [VARNAMES...]
+varsfmt()
+{
+  # set default format
+  test -n "$1" && {
+      FMT="$(str_upper "$1")"
+    } || {
+      FMT=TAB
+    }
+  shift || error "Arguments expected" 1
+  set -- "$@"
+
+  # Output line (or header + line) for varnames/-values
+  case "$FMT" in
+    CSV|TAB )        printf "# $*\n" ;;
+    JS* )            printf "{" ;;
+  esac
+  while test -n "$1"
+  do
+    case "$FMT" in
+      SH )           printf -- "$1=\"$(eval echo "\$$1")\"" ;;
+      CSV )          printf -- "\"$(eval echo "\$$1")\"" ;;
+      # FIXME: yaml inline is only opt. also shld have fixed-wdth tab
+      YAML|JS* )     printf -- "\"$1\":\"$(eval echo "\$$1")\"" ;;
+      TAB )          printf -- "$(eval echo "\$$1")" ;;
+    esac
+    test -n "$2" && {
+      case "$FMT" in
+        CSV|JS* )    printf "," ;;
+        SH )         printf " " ;;
+        TAB )        printf "\t" ;;
+      esac
+    } || noop
+    shift
+  done
+  case "$FMT" in
+    JS* )            printf "}\n" ;;
+    * )              printf "\n" ;;
+  esac
+}
 
 # Echo element in a field-separated string the hard way. Fetches one prefix
 # at a time to 1. keep the function adn regex simple enough while 2. allow

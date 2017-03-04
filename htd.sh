@@ -2,7 +2,6 @@
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
-# Id: script-mpe/0.0.3-dev htd.sh
 
 htd_src=$_
 test -z "$__load_lib" || set -- "load-ext"
@@ -29,6 +28,7 @@ htd_load()
   test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE=$CWD/tools.yml
   test -n "$HTD_TOOLSDIR" || HTD_TOOLSDIR=$HOME/.htd-tools
   test -n "$HTD_JRNL" || HTD_JRNL=personal/journal
+  test -n "$FIRSTTAB" || export FIRSTTAB=50
 
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
@@ -325,8 +325,9 @@ htd_usage()
   echo "  $scriptname <cmd> [<args>..]"
   echo ""
   echo "Possible commands are listed by help-commands or commands. "
-  echo "The former is hard-coded and more document but possibly stale,"
-  echo "the later long listing is generated en-passant from the source documents. "
+  echo "The former is hard-coded and more documented but possibly stale."
+  echo "The latter long listing is generated en-passant from the source"
+  echo "documents, and the parsing maybe buggy. "
 }
 htd__help_commands()
 {
@@ -488,6 +489,7 @@ htd__help()
   }
 }
 htd_als___h=help
+htd_als____help=help
 
 
 htd_man_1__version="Version info"
@@ -635,7 +637,7 @@ htd_als___F=find-doc
 
 htd__volumes()
 {
-  htd__srv_list
+  TODO "list as ansi/txt htd__srv_list"
 }
 
 
@@ -676,20 +678,40 @@ htd__status()
 {
   test -n "$failed" || error failed 1
 
+  stderr note "local-names: "
   # Check local names
   {
     htd check-names ||
       echo "htd:check-names" >>$failed
   } | tail -n 1
 
-  # Check open paths
+  stderr note "current-paths: "
+  # See open paths below cwd using lsof
   htd__current_paths
-  htd__open_paths | wc -l
+
+  # Create list of open files, and show differences on subsequent calls
+  #htd__open_paths
+
+  note "Open-paths SCM status: "
+
+  # Check open gits
+  htd__open_paths | while read path
+  do
+    test -e $path/.git || {
+      ~/project/mkdoc/usr/share/mkdoc/Core/log.sh \
+              "header3" "$path" ""
+      continue
+    }
+    ~/project/mkdoc/usr/share/mkdoc/Core/log.sh \
+            "header3" "$path" "" "$( cd $path && vc.sh flags )"
+    #$scriptpath/std.lib.sh ok "$path"
+  done
 
   # FIXME: maybe something in status backend on open resource etc.
   #htd__recent_paths
   #htd__active
 
+  stderr note "text-paths for main-docs: "
   # Check main document elements
   {
     test ! -d "$HTD_JRNL" ||
@@ -755,7 +777,7 @@ htd__context()
 
 
 htd_man_1__script="Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping of
-  scriptnames to script lines. "
+  scriptnames to script lines. See Htd run and run-names for package scripts. "
 htd_spc__script="script"
 htd_run__script=pSmr
 htd_S__script=\$package_id
@@ -767,24 +789,52 @@ htd__script()
   test $status -ot $HTD_TOOLSFILE \
     && statusdir.sh reset $status
 
+  # FIXME: statusdir tools script listing
+  rm $status
   # Regenerate status data for this script if not available
   statusdir.sh exists $status || {
+    scripts="$( jsotk.py keys -O lines $HTD_TOOLSFILE tools )"
 
-    scripts="$(
-      jsotk.py objectpath $HTD_TOOLSFILE '$..*[@.scripts]' \
-        | jsotk.py --line-input merge - - \
-        | jsotk.py -O lines keys - '/' )"
-    for script in $scripts
+    for toolid in $scripts
     do
-      note "Scriptlines for '$script': "
-      jsotk.py objectpath -O lines $HTD_TOOLSFILE '$..*[@.scripts."'$script'"]' \
-        | while read scriptline
-        do
-          note "'$scriptline'"
-          #echo "script/$script/lines[]=$scriptline" 1>&5
-          echo "$script[]=$scriptline" 1>&5
-        done
-      #echo "scripts[]="$script 1>&5
+      note "Scriptlines for '$toolid': "
+
+      jsotk.py -q path --is-str $HTD_TOOLSFILE tools/$toolid && {
+        scriptline="$(jsotk.py path -O py $HTD_TOOLSFILE "tools/$toolid")"
+        note "Line: '$scriptline'"
+        echo "tools/$toolid/scripts/$toolid[]=$scriptline" 1>&5
+        echo "scripts[]="$toolid 1>&5
+        continue
+      }
+
+      # If object, our tool can either be a required package a named script
+      # using oner And/or incidentally be the same name for an executable.
+      (
+        jsotk.py -q path --is-obj $HTD_TOOLSFILE tools/$toolid ||
+        jsotk.py -q path --is-new $HTD_TOOLSFILE tools/$toolid
+      ) && {
+
+        jsotk.py objectpath -O lines $HTD_TOOLSFILE '$..*[@.scripts."'$toolid'"]' \
+          | while read scriptline
+          do
+            note "Line: '$scriptline'"
+            echo "tools/$toolid/scripts/$toolid[]=$scriptline" 1>&5
+          done
+
+        #echo "scripts[]="$toolid 1>&5
+        continue
+      }
+
+      jsotk.py -q path --is-list $HTD_TOOLSFILE tools/$toolid && {
+        jsotk.py items -O py $HTD_TOOLSFILE "tools/$toolid" \
+          | while read scriptline
+          do
+            note "Line: '$scriptline'"
+            echo "tools/$toolid/scripts/$toolid[]=$scriptline" 1>&5
+          done
+        echo "scripts[]="$toolid 1>&5
+        continue
+      }
     done
   }
 
@@ -1393,7 +1443,7 @@ htd__todotxt_edit()
     } && {
       local metaf=package.yaml
       local package_id=$( jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
-        | jsotk -O py path - "id" )
+        | jsotk.py -O py path - "id" )
 
       # Set ext. ttxtm file for project
       ttxtm_fn=$UCONFDIR/todotxtm/project/$package_id.ttxtm
@@ -1974,14 +2024,15 @@ htd__gitflow_check_doc()
   test -n "$failed" || error failed 1
   test -z "$2" || error surplus-args 2
   set -- "$(htd__gitflow_doc "$1")"
+  exec 6>$failed
   vc.sh list-all-branches | while read branch
   do
     match_grep_pattern_test "$branch" || return 12
-    grep -q "\\s*$p_\\s*$" $1 || {
-      error "Expected '$branch' in $1"
-    }
+    grep -q "\\s*$p_\\s*$" $1 || failed "$1: expected '$branch'"
   done
-  stderr ok "All branches found $1"
+  exec 6<&-
+  test -s "$failed" || rm "$failed"
+  stderr ok "All branches found in '$1'"
 }
 
 htd_als__gitflow_check=gitflow-check-doc
@@ -2328,11 +2379,101 @@ htd__commit()
   echo -e
 }
 
-htd_man_1__run="Resolve and execute scripts. Separate multiple scripts with --. "
+htd_man_1__run_names="List script names in package"
+htd_run__run_names=f
+htd__run_names()
+{
+  update_package
+  jsotk.py keys -O lines .package.main scripts
+}
+
+htd_man_1__run_dir="List package script names and lines"
+htd_run_dir__run_dir=f
+htd__run_dir()
+{
+  htd__run_names | while read name
+  do
+    printf -- "$name\n"
+    verbose_no_exec=1 htd__run $name
+  done
+}
+
+
+htd_man_1__run="Run scripts from package"
 htd_run__run=f
 htd__run()
 {
-  echo
+  test -n "$1" || set -- scripts
+
+  # Update local package
+  local metaf=
+  update_package || return $?
+
+  # With no arguments or name 'scripts' list script names,
+  # Or no matching scripts returns 1
+  jsotk.py -sq path --is-new $PACKMETA_JS_MAIN scripts/$1 && {
+    test "$1" = "scripts" || {
+      error "No obj scripts/$1" ; return 1; }
+
+    trueish "$verbose_no_exec" && {
+      echo jsotk.py keys -O lines $PACKMETA_JS_MAIN scripts
+      return
+    }
+
+    # NOTE: default run
+    htd__run_dir
+    return $?
+  }
+
+  {
+    jsotk.py path -O lines .package.main scripts/$1 || {
+      error "error getting lines for '$1'"
+      return 1
+    }
+  } | sponge | while read scriptline
+  do
+    not_trueish "$verbose_no_exec" || {
+      printf -- "\t$scriptline\n"
+      continue
+    }
+    info "Scriptline: '$scriptline'"
+    ( eval "$scriptline" ) \
+    &&
+      continue || error "At line '$scriptline'" $?
+  done
+
+  # Execute script-lines
+  (
+    run_scriptname="$1"
+    shift
+    SCRIPTPATH=
+    unset Build_Deps_Default_Paths
+    package_sh_script "$run_scriptname" | while read scriptline
+    do
+      not_trueish "$verbose_no_exec" && {
+        stderr info "Scriptline: '$scriptline'"
+      } || {
+        stderr note "Scriptline: '$scriptline'"
+        continue
+      }
+      {
+        eval "$scriptline"
+      } &&
+        continue || error "At line '$scriptline'" $?
+
+      # NOTE: execute scriptline with args only once
+      set --
+    done
+  )
+}
+
+
+htd_man_1__list_run="list lines for package script"
+htd_list_run__list_run=f
+htd__list_run()
+{
+  verbose_no_exec=1 \
+    htd__run "$@"
 }
 
 htd__show_rules()
@@ -3260,7 +3401,7 @@ htd__reader_update()
   for remote in .git/refs/remotes/*
   do
     name="$(basename "$remote")"
-    younger_than "$remote" _1HOUR && {
+    newer_than "$remote" _1HOUR && {
       info "Remote $name is up-to-date"
     } || {
       note "Remote $name is too old, syncing"
@@ -3444,8 +3585,8 @@ htd__tpaths()
 
     {
       case "$xsl_ver" in
-        1 ) htd__xproc "$xml" $scriptdir/rst-terms2path.xsl ;;
-        2 ) htd__xproc2 "$xml" $scriptdir/rst-terms2path-2.xsl ;;
+        1 ) htd__xproc "$xml" $scriptpath/rst-terms2path.xsl ;;
+        2 ) htd__xproc2 "$xml" $scriptpath/rst-terms2path-2.xsl ;;
         * ) error "xsl-ver '$xsl_ver'" 1 ;;
       esac
     } | grep -Ev '^(#.*|\s*)$' \
@@ -3492,8 +3633,8 @@ htd__tpath_raw()
   local xml=$(htd__getxl $1)
 
   case "$xsl_ver" in
-    1 ) htd__xproc "$xml" $scriptdir/rst-terms2path.xsl ;;
-    2 ) htd__xproc2 "$xml" $scriptdir/rst-terms2path-2.xsl ;;
+    1 ) htd__xproc "$xml" $scriptpath/rst-terms2path.xsl ;;
+    2 ) htd__xproc2 "$xml" $scriptpath/rst-terms2path-2.xsl ;;
     * ) error "xsl-ver '$xsl_ver'" 1 ;;
   esac
 }
@@ -3679,7 +3820,8 @@ htd__active()
 }
 
 
-# List open paths under given or current dir. Dumps lsof without cmd, pid etc.
+htd_man_1__current_paths='
+  List open paths under given or current dir. Dumps lsof without cmd, pid etc.'
 htd__current_paths()
 {
   test -n "$1" || set -- "$(pwd -P)"
@@ -3690,6 +3832,9 @@ htd__current_paths()
 htd_als__lsof=current-paths
 
 
+htd_man_1__open_paths='Create list of open files, and show differences on
+  subsequent calls. '
+htd_spc__open_paths="open-paths ['\\<sh\\|bash\\>']"
 htd__open_paths()
 {
   test -n "$1" || set -- '\<sh\|bash\>'
@@ -3702,7 +3847,7 @@ htd__open_paths()
   # But keep only non-root, and sh or bash lines, throttle update of cached file
   # by 10s period.
   {
-    test -e "$lsof" && younger_than $lsof 10
+    test -e "$lsof" && newer_than $lsof 10
   } || {
     lsof +c 15 -u $(whoami) -a -d cwd \
       | eval "grep '^$1'" \
@@ -3743,6 +3888,7 @@ htd__open_paths()
   cat $lsof_paths
 }
 htd_als__of=open-paths
+htd_als__open_files=open-paths
 
 
 # List paths newer than recent-paths setting
@@ -4305,6 +4451,10 @@ htd__srv_list()
     test -h $srv || continue
     target="$(readlink $srv)"
     name="$(basename "$srv" -local)"
+    test -e "$target" || {
+      stderr warn "Missing path '$target'"
+      continue
+    }
     depth=$(htd__path_depth "$target")
 
     case "$1" in
@@ -4314,7 +4464,7 @@ htd__srv_list()
             case "$target" in
               /mnt*|/media*|/Volumes* )
 
-                  echo "$TRGT [ shape=box3d, label=\"$(basename "$target")\" ] ;"
+                  echo "$TRGT [ shape=box3d, label=\"$(basename "$target")\" ] ; // 1.1"
                   echo "$NAME [ shape=tab, label=\"$name\" ] ;"
 
                   DISK="$(cd /srv; disk id $target)"
@@ -4322,12 +4472,13 @@ htd__srv_list()
                   #TRGT_P=$(mkvid "$(dirname "$target")";echo $vid)
                   #echo "$TRGT_P [ shape=plaintext, label=\"$(dirname $target)\" ] ;"
 
-                  echo "$TRGT -> $DISK ; "
+                  test -z "$DISK" ||
+                    echo "$TRGT -> $DISK ; // 1.3 "
                   echo "$NAME -> $TRGT ; "
                   #[ label=\"$(basename "$target")\" ] ;"
                 ;;
               *)
-                  echo "$NAME [ shape=folder, label=\"$name\"] ;"
+                  echo "$NAME [ shape=folder, label=\"$name\"] ; // 2.1"
                   test $depth -eq 1 && {
 
                     TRGT_P=$(mkvid "$(dirname "$target")";echo $vid)
@@ -4865,7 +5016,17 @@ htd__bdd()
       --format=progress \
       $(htd__bdd_args)
   }
-  # --format=failed \
+}
+
+
+htd__clean_osx()
+{
+  sys_confirm "Continue to remove Caches? [yes/no]" || return 1
+  (
+    sudo rm -rf ~/Library/Caches/*/*
+    #/Library/Caches/*/*
+  ) && stderr ok "Deleted contents of {~,}/Library/Caches" ||
+    error "Failure removing contents of {~,}/Library/Caches"
 }
 
 
@@ -4913,13 +5074,14 @@ htd_edit_and_update()
 }
 
 
-### Main
 
+
+# Script main functions
 
 htd_main()
 {
   local scriptname=htd base=$(basename "$0" .sh) \
-    scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
+    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
     subcmd= failed=
 
   htd_init || exit $?
@@ -4973,24 +5135,24 @@ htd_init_etc()
   info "Set htd-etc to '$*'"
 }
 
+# FIXME: Pre-bootstrap init
 htd_init()
 {
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
-  test -n "$scriptdir"
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
-  util_init
-  . $scriptdir/match.lib.sh
-  . $scriptdir/box.init.sh
+  test -n "$scriptpath"
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh load-ext
+  lib_load
+  . $scriptpath/box.init.sh
   box_run_sh_test
-  lib_load htd main meta box date doc table disk remote ignores
+  lib_load htd meta box date doc table disk remote ignores package
   # -- htd box init sentinel --
 }
 
 htd_lib()
 {
   local __load_lib=1
-  . $scriptdir/match.sh load-ext
+  . $scriptpath/match.sh load-ext
   lib_load list ignores
   # -- htd box lib sentinel --
   set --
@@ -5005,3 +5167,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   ;; esac
 ;; esac
 
+# Id: script-mpe/0.0.3-dev htd.sh

@@ -26,10 +26,10 @@ case "$shopts"
 
 esac
 
-req_vars scriptname || error "scriptname" 1
-req_vars scriptdir || error "scriptdir" 1
-req_vars SCRIPTPATH || error "SCRIPTPATH" 1
-req_vars LIB || error "LIB" 1
+req_vars scriptname || error "scriptname=$scriptname" 1
+req_vars scriptpath || error "scriptpath=$scriptpath" 1
+req_vars SCRIPTPATH || error "SCRIPTPATH=$SCRIPTPATH" 1
+req_vars LIB || error "LIB=$LIB" 1
 
 req_vars verbosity || export verbosity=7
 req_vars DEBUG || export DEBUG=
@@ -41,7 +41,16 @@ GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
 BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
         | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
 
-test -n "$ENV" || {
+
+## Per-env settings
+
+case "$ENV_NAME" in dev ) ;; *|dev?* )
+			echo "Warning: No env '$ENV_NAME', overriding to 'dev'" >&2
+			export ENV_NAME=dev
+		;;
+esac
+
+test -n "$ENV_NAME" || {
 
   note "Branch Names: $BRANCH_NAMES"
   case "$BRANCH_NAMES" in
@@ -49,15 +58,15 @@ test -n "$ENV" || {
     # NOTE: Skip build on git-annex branches
     *annex* ) exit 0 ;;
 
-    gh-pages ) ENV=jekyll ;;
-    test* ) ENV=testing ;;
-    dev* ) ENV=development ;;
-    * ) ENV=development ;;
+    gh-pages ) ENV_NAME=jekyll ;;
+    test* ) ENV_NAME=testing ;;
+    dev* ) ENV_NAME=development ;;
+    * ) ENV_NAME=development ;;
 
   esac
 }
 
-case "$ENV" in
+case "$ENV_NAME" in
 
     jekyll )
         BUILD_STEPS=jekyll
@@ -73,7 +82,7 @@ case "$ENV" in
         }
       ;;
 
-    features/* | development )
+    features/* | dev* )
         BUILD_STEPS="dev test"
       ;;
 
@@ -82,13 +91,12 @@ case "$ENV" in
       ;;
 
     * )
-        error "ENV '$ENV'" 1
+        error "ENV '$ENV_NAME'" 1
       ;;
 
 esac
 
-req_vars Build_Deps_Default_Paths ||
-  export Build_Deps_Default_Paths=1
+req_vars Build_Deps_Default_Paths || export Build_Deps_Default_Paths=1
 req_vars sudo || export sudo=sudo
 
 req_vars RUN_INIT || export RUN_INIT=

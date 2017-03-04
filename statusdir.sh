@@ -37,8 +37,8 @@ statusdir_load()
   test -n "$sd_be" || sd_be=fsdir
 
   # Load backend
-  test ! -e "$scriptdir/statusdir_$sd_be.sh" || {
-    . $scriptdir/statusdir_$sd_be.sh
+  test ! -e "$scriptpath/statusdir_$sd_be.sh" || {
+    . $scriptpath/statusdir_$sd_be.sh
   }
 
   # FIXME: membash does not support ping $sd_be ping
@@ -253,7 +253,7 @@ statusdir__decr()
 statusdir__main()
 {
   local scriptname=statusdir base=$(basename $0 .sh) verbosity=5 \
-    scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
+    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
     sd_be= \
     sd_tmpdir=
 
@@ -273,11 +273,11 @@ statusdir__main()
 
 statusdir__init()
 {
-  test -n "$scriptdir"
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
-  util_init
-  . $scriptdir/box.init.sh
+  test -n "$scriptpath"
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh load-ext
+  lib_load
+  . $scriptpath/box.init.sh
   box_run_sh_test
   lib_load main box date
   # -- statusdir box init sentinel --

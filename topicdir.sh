@@ -78,8 +78,10 @@ td__help()
 td__lib()
 {
   local __load_lib=1
-  . ~/bin/std.lib.sh
+  . ~/bin/std.lib.sh load-ext
+  std_load
   . ~/bin/match.sh load-ext
+  match_load
   . ~/bin/vc.sh load-ext
 }
 

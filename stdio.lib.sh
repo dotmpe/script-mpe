@@ -3,6 +3,12 @@
 # stdio.lib.sh: additional io for shell scripts
 
 
+stdio_load()
+{
+  return 0
+}
+
+
 # setup-io-paths: helper names all temp. IO files (setup_tmpf)
 # args: PREFIX
 setup_io_paths()
@@ -123,6 +129,7 @@ passed()
   test -n "$1" && {
     test -z "$2" || error "passed '$2': surplus args" 1
     echo "$1" >&3
+    stderr ok "$1"
   } || {
     cat >&3
   }
@@ -132,7 +139,8 @@ skipped()
   test -n "$1" && {
     test -z "$2" || error "skipped '$2': surplus args" 1
     echo "$1" >&4
-  } || {
+    stderr skip "$1"
+  } ||  {
     cat >&4
   }
 }
@@ -141,6 +149,7 @@ errored()
   test -n "$1" && {
     test -z "$2" || error "errored '$2': surplus args" 1
     echo "$1" >&5
+    stderr error "$1"
   } || {
     cat >&5
   }
@@ -150,6 +159,7 @@ failed()
   test -n "$1" && {
     test -z "$2" || error "failed '$2': surplus args" 1
     echo "$1" >&6
+    stderr fail "$1"
   } || {
     cat >&6
   }

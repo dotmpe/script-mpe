@@ -6,6 +6,12 @@ set -e
 # Main: CLI helpers; init/run func as subcmd
 
 
+main_load()
+{
+  return 0
+}
+
+
 # Count arguments consumed
 incr_c()
 {
@@ -52,6 +58,7 @@ echo_help()
 try_local()
 {
   test -n "$2" -o -n "$1" || return
+  # XXX: box-*
   test -n "$box_prefix" || box_prefix=$(mkvid $base ; echo $vid)
   test -n "$3" || set -- "$1" "$2" "$box_prefix"
   test -z "$1" || set -- " :$1" "$2" "$3"
@@ -286,9 +293,9 @@ std_man_1__version="Version info"
 std_spc__version="-V|version"
 std__version()
 {
-	test -n "$scriptdir" || exit 156
+	test -n "$scriptpath" || exit 156
 	test -n "$version" || exit 157
-  echo "$(cat $scriptdir/.app-id)/$version"
+  echo "$(cat $scriptpath/.app-id)/$version"
 }
 
 
@@ -361,7 +368,6 @@ parse_box_subcmd_opts()
 
     [?] )
       #echo "Error $o"
-      #print >&2 "Usage: $0 [-s] [-d seplist] file ..."
       return 2
       ;;
 
@@ -513,16 +519,9 @@ main_init()
   return 0
 }
 
-box_src_lib()
-{
-  box_src="$(dry_run= box_list_libs $0 $1 | while read src path args; \
-    do eval echo $path; done)"
-  box_lib="$box_src"
-}
-
 
 # Run any load routines
-main_load()
+load_subcmd()
 {
   test -n "$1" || error "main-load argument expected" 1
   local r=
@@ -638,7 +637,7 @@ run_subcmd()
     }
   }
 
-  main_load $box_prefix || return $?
+  load_subcmd $box_prefix || return $?
   debug "$base loaded"
 
   test -z "$dry_run" \

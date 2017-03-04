@@ -1,5 +1,6 @@
 #!/bin/sh
-esop_src="$_"
+# Created: 2016-03-28
+esop__source="$_"
 
 set -e
 
@@ -8,14 +9,9 @@ set -e
 version=0.0.3-dev # script-mpe
 
 
-esop_man_1__version="Version info" # TODO: rewrite std__help to use try_value
-esop_man_1__version="Version info"
-esop__version()
-{
-  echo "$(cat $scriptdir/.app-id)/$version"
-}
-esop_als__V=version
+# Script subcmd's funcs and vars
 
+# See $scriptname help to get started
 
 esop_run__run=f
 esop__run()
@@ -59,50 +55,115 @@ esop__run()
 }
 
 
+# Generic subcmd's
+
+esop_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+esop_load__help=f
+esop_spc__help='-h|help [ID]'
+esop__help()
+{
+  test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  choice_global=1 std__help "$@"
+  rm_failed || return
+}
+esop_als___h=help
+
+
+esop_man_1__version="Version info"
+esop__version()
+{
+  echo "script-mpe:$scriptname/$version"
+}
+esop_als__V=version
+
+
+esop__edit()
+{
+  $EDITOR $0 $(which $base.py) "$@"
+}
+esop_als___e=edit
+
+
+
+# Script main functions
+
 esop_main()
 {
   local \
       scriptname=esop \
       base="$(basename $0 ".sh")" \
-      scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
+      failed=
   case "$base" in
     $scriptname )
       esop_init || return $?
       run_subcmd "$@" || return $?
       ;;
     * )
-      echo "$scriptname: not a frontend for $base"
-      exit 1
+        echo "$scriptname: not a frontend for $base" >&2
+        exit 1
       ;;
   esac
 }
 
+# FIXME: Pre-bootstrap init
 esop_init()
 {
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
-  util_init
-  . $scriptdir/main.lib.sh load-ext
-  . $scriptdir/std.lib.sh
-  . $scriptdir/str.lib.sh
-  . $scriptdir/util.sh
-  . $scriptdir/box.init.sh
+  export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh load-ext
+  lib_load
+  . $scriptpath/box.init.sh
+  lib_load main
   box_run_sh_test
   # -- esop box init sentinel --
 }
 
-esop_load()
+# FIXME
+esop_lib()
 {
-  local __load_lib=1
-  . $scriptdir/match.sh load-ext
-  # -- esop box load sentinel --
+  # -- box box lib sentinel --
+  set --
 }
 
 
-case "$0" in "" ) ;; "-"* ) ;; * )
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-    esop_main "$@" || exit $?
-  ;; esac
-;; esac
+# Pre-exec: post subcmd-boostrap init
+esop_load()
+{
+  # -- esop box load sentinel --
+  set --
+}
 
+# Post-exec: subcmd and script deinit
+tasks_unload()
+{
+  local unload_ret=0
+
+  #for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
+  #do case "$x" in
+  # ....
+  #esac; done
+
+  unset subcmd subcmd_pref \
+          def_subcmd func_exists func \
+          failed
+
+  return $unload_ret
+}
+
+
+
+# Main entry - bootstrap script if requested
+# Use hyphen to ignore source exec in login shell
+case "$0" in "" ) ;; "-"* ) ;; * )
+
+  # Ignore 'load-ext' sub-command
+  case "$1" in
+    load-ext ) ;;
+    * )
+      esop_main "$@" ;;
+
+  esac ;;
+esac
+
+# Id: script-mpe/0.0.3-dev esop.sh

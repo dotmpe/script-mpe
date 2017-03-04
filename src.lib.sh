@@ -32,9 +32,11 @@ $1
 w" | ed $file_name $tmpf
 }
 
+# Replace entire line using Sed ( FILE:LINE | ( FILE LINE ) ) INSERT
 file_replace_at()
 {
   test -n "$*" || error "arguments required" 1
+  test -z "$4" || error "too many arguments" 1
 
   local file_name= line_number=
 
@@ -77,12 +79,17 @@ file_insert_where_before()
   file_insert_at $2:$line_number "$3"
 }
 
+# Remove leading lines, so that total lines matches LINES
 truncate_trailing_lines()
 {
   test -n "$1" || error "FILE expected" 1
   test -n "$2" || error "LINES expected" 1
   test $2 -gt 0 || error "LINES > 0 expected" 1
   local lines=$(line_count "$1")
+  test $lines > $2 || {
+    error "File contains less than $2 lines"
+    return
+  }
   cp $1 $1.tmp
   tail -n $2 $1.tmp
   head -n +$(( $lines - $2 )) $1.tmp > $1

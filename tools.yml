@@ -1,3 +1,7 @@
+
+id: "#"
+description: Named prerequisite packages and metadata on provisioning. See tools.rst
+
 tools:
 
   jsonwidget:
@@ -42,6 +46,9 @@ tools:
       jsonspec-validate:
         - jsonspec validate --document-json $1 --schema-json $2
 
+  jsonspec-validate:
+    dep: json-spec
+
   # TODO: would want to use basher, but cannot use gist url. Only GH package.
   membash:
     id: membash
@@ -60,5 +67,4 @@ tools:
     - cd ~/.basher/cellar/packages/bazaarvoice/jolt/
     - git pull
     - mvn clean package
-
 
