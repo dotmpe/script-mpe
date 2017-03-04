@@ -1364,6 +1364,24 @@ htd__shutdown()
 #  run_cmd dandy 'sudo shutdown -h now'
 }
 
+
+htd__ssh()
+{
+  case "$1" in
+    vdckr )
+        cd ~/.conf/dckr/ubuntu-trusty64-docker/
+        vagrant ssh || vagrant up
+        vagrant ssh
+      ;;
+    vdckr-mpe )
+        cd ~/.conf/dckr/ubuntu-trusty64-docker-mpe/
+        vagrant ssh || vagrant up
+        vagrant ssh
+      ;;
+  esac
+}
+
+
 # Simply list ARP-table, may want something better like arp-scan or an nmap
 # script
 htd__mac()
