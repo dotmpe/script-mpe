@@ -2376,12 +2376,23 @@ htd__commit()
   echo -e
 }
 
-htd_man_1__run_names="Run scripts from package"
+htd_man_1__run_names="List script names in package"
 htd_run__run_names=f
 htd__run_names()
 {
   update_package
   jsotk.py keys -O lines .package.main scripts
+}
+
+htd_man_1__run_dir="List package script names and lines"
+htd_run_dir__run_dir=f
+htd__run_dir()
+{
+  htd__run_names | while read name
+  do
+    printf -- "$name\n"
+    verbose_no_exec=1 htd__run $name
+  done
 }
 
 htd_man_1__run="Run scripts from package"
@@ -2402,8 +2413,8 @@ htd__run()
       return
     }
 
-    # NOTE: default run is scripts command
-    htd__run_names
+    # NOTE: default run
+    htd__run_dir
     return $?
   }
 
@@ -2415,9 +2426,10 @@ htd__run()
   } | sponge | while read scriptline
   do
     not_trueish "$verbose_no_exec" || {
-      note "Scriptline: '$scriptline'"
+      printf -- "\t$scriptline\n"
       continue
     }
+    info "Scriptline: '$scriptline'"
     ( eval "$scriptline" ) \
     &&
       continue || error "At line '$scriptline'" $?

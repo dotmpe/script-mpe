@@ -405,6 +405,7 @@ EOM
   }
 }
 
+
 @test "$bin archive-path journal/" "non-zero exit" {
   tmpd
   cd $tmpd
@@ -438,5 +439,30 @@ EOM
   }
 }
 
+
+@test "$bin run - runs subcmd run-dir" {
+  run $bin run
+  test_ok_nonempty || stdfail
+}
+
+
+@test "$bin run-names - list script names" {
+  run $bin run-names
+  { test_ok_nonempty &&
+    fnmatch *" check "* " ${lines[*]} " &&
+    fnmatch *" build "* " ${lines[*]} " &&
+    fnmatch *" test "* " ${lines[*]} "
+  } || stdfail
+}
+
+
+@test "$bin run-dir - gives script outline (list indented script names and lines)" {
+  run $bin run-dir
+  { test_ok_nonempty &&
+    fnmatch *" check "* " ${lines[*]} " &&
+    fnmatch *" build "* " ${lines[*]} " &&
+    fnmatch *" test "* " ${lines[*]} "
+  } || stdfail
+}
 
 
