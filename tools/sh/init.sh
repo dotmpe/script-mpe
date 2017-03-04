@@ -32,6 +32,7 @@ test -n "$SCRIPTPATH" || {
 
 # Now include script and run util_init to source other utils
 . $scriptpath/util.sh
+lib_load projectenv env-deps
 
 
 # Id: script-mpe/0.0.3-dev tools/sh/init.sh

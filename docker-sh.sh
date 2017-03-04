@@ -1109,6 +1109,7 @@ docker_sh__edit_local()
   $EDITOR $docker_sh_local $fn
 }
 docker_sh_als___e=edit-local
+docker_sh_als__edit=edit-local
 
 
 docker_sh_man_1__alias="Show bash aliases for this script."
@@ -1179,7 +1180,7 @@ docker_sh_load()
 
   test -n "$DCKR_UCONF" || DCKR_UCONF=$UCONFDIR/dckr
   test -n "$DCKR_VOL" || DCKR_VOL=/srv/docker-volumes-local/
-  test -n "$DCKR_CONF" || DCKR_CONF=$DCKR_SRV/config
+  test -n "$DCKR_CONF" || DCKR_CONF=$DCKR_VOL/config
   test -e "$DCKR_UCONF" || error "Missing docker user config dir $DCKR_UCONF" 1
   test -e "$DCKR_CONF" || error "Missing docker config dir $DCKR_CONF" 1
   test -e "$DCKR_VOL" || error "Missing docker volumes dir $DCKR_VOL" 1

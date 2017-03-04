@@ -5,11 +5,12 @@ base=script.js
 
 init
 
-source $lib/util.sh load-ext
-lib_load str std sys
+#source $lib/util.sh load-ext
+#lib_load str std sys
 
 
 @test "${bin} - No arguments / default action" {
+  require_env node
   run $bin
   test ${status} -eq 1
   fnmatch "*script.js*missing <command>*" "${lines[*]}" ||
@@ -17,9 +18,10 @@ lib_load str std sys
 }
 
 @test "${bin} - stream key, values" {
+  require_env node
   run $bin leveldb stream ./mydb
   {
-    test ${status} -eq 0
+    test ${status} -eq 0 &&
     rm -rf ./mydb
   } || {
     fail "Out: ${lines[*]}"

@@ -75,7 +75,7 @@
       - htd.sh gitflow-check-doc
       - verbose=1 git-versioning check
       - projectdir.sh run :bats:specs
-      - ./vendor/.bin/behat --dry-run --no-multiline
+      #- ./vendor/.bin/behat --dry-run --no-multiline
       - projectdir.sh run :git:status
       - export SCR_SYS_SH=bash-sh
       - scriptname="check-includes"
@@ -108,6 +108,17 @@
       - scriptname=script
       - . ./tools/ci/parts/build.sh
 
+    # FIXME package scripts with raw YAML text blocks
+    #test-features: "
+    #  test -x \\\"$(which behave)\\\" &&
+    #      behave --tags '~@todo' --tags ~skip -k test/feature ||
+    #        ./vendor/.bin/behat--tags:~@skip "
+    # test-features: |
+    #   test -x "$(behave)" &&
+    #       behave --tags '~@todo' --tags ~skip -k test/feature ||
+    #         ./vendor/.bin/behat--tags:~@skip
+
+
   # For make data/*: or move to cllct.rc
   data:
     finfo:
@@ -116,16 +127,4 @@
         - last_seen:atime
         # taxus.web.Invariant.mediatype
         - mime_type:lib...
-
-  scripts:
-    test-features: "
-      test -x \\\"$(which behave)\\\" &&
-          behave --tags '~@todo' --tags ~skip -k test/feature ||
-            ./vendor/.bin/behat--tags:~@skip "
-
-    # FIXME package scripts with raw YAML text blocks
-    # test-features: |
-    #   test -x "$(behave)" &&
-    #       behave --tags '~@todo' --tags ~skip -k test/feature ||
-    #         ./vendor/.bin/behat--tags:~@skip
 

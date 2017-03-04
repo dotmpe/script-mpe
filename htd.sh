@@ -2031,8 +2031,10 @@ htd__gitflow_check_doc()
     grep -q "\\s*$p_\\s*$" $1 || failed "$1: expected '$branch'"
   done
   exec 6<&-
-  test -s "$failed" || rm "$failed"
-  stderr ok "All branches found in '$1'"
+  test -s "$failed" || {
+    rm "$failed"
+    stderr ok "All branches found in '$1'"
+  }
 }
 
 htd_als__gitflow_check=gitflow-check-doc
@@ -2425,23 +2427,6 @@ htd__run()
     return $?
   }
 
-  {
-    jsotk.py path -O lines .package.main scripts/$1 || {
-      error "error getting lines for '$1'"
-      return 1
-    }
-  } | sponge | while read scriptline
-  do
-    not_trueish "$verbose_no_exec" || {
-      printf -- "\t$scriptline\n"
-      continue
-    }
-    info "Scriptline: '$scriptline'"
-    ( eval "$scriptline" ) \
-    &&
-      continue || error "At line '$scriptline'" $?
-  done
-
   # Execute script-lines
   (
     run_scriptname="$1"
@@ -2453,7 +2438,7 @@ htd__run()
       not_trueish "$verbose_no_exec" && {
         stderr info "Scriptline: '$scriptline'"
       } || {
-        stderr note "Scriptline: '$scriptline'"
+        printf -- "\t$scriptline\n"
         continue
       }
       {
@@ -2465,6 +2450,8 @@ htd__run()
       set --
     done
   )
+
+  stderr ok $1
 }
 
 
