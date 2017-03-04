@@ -24,7 +24,8 @@
 
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
-    check: "htd:gitflow-check-doc :verbose=1:vchk :bats:specs behat:--dry-run:--no-multiline :git:status"
+    check: "htd:gitflow-check-doc :verbose=1:vchk :bats:specs"
+    #./vendor/.bin/behat:--dry-run:--no-multiline :git:status"
     # TODO: check for /tmp usage, force TMPDIR use
     test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats ./vendor/.bin/behat:--tags:~@skip"
     # TODO: run tests at VM/... if available
@@ -66,4 +67,16 @@
         - last_seen:atime
         # taxus.web.Invariant.mediatype
         - mime_type:lib...
+
+  scripts:
+    test-features: "
+      test -x \\\"$(which behave)\\\" &&
+          behave --tags '~@todo' --tags ~skip -k test/feature ||
+            ./vendor/.bin/behat--tags:~@skip "
+
+    # FIXME package scripts with raw YAML text blocks
+    # test-features: |
+    #   test -x "$(behave)" &&
+    #       behave --tags '~@todo' --tags ~skip -k test/feature ||
+    #         ./vendor/.bin/behat--tags:~@skip
 

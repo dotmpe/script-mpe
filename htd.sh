@@ -33,7 +33,7 @@ htd_load()
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
 
-  req_htdir
+  req_htdir || stderr error "HTDIR required ($HTDIR)" 1
 
   test -e .package.sh && . .package.sh
 
@@ -61,7 +61,6 @@ htd_load()
   _1HR_AGO=+%y%m%d0000
   _15MIN_AGO=+%y%m%d0000
   _5MIN_AGO=+%y%m%d0000
-
 
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname="$(uname -s)"
@@ -95,7 +94,7 @@ htd_load()
   }
 
   which rst2xml 1>/dev/null && rst2xml=$(which rst2xml) || {
-    which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) || 
+    which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) ||
       warn "No rst2xml"
   }
 
@@ -262,7 +261,7 @@ htd_unload()
 
 htd_load_ignores()
 {
-  # Initialize one HTD_IGNORE file. 
+  # Initialize one HTD_IGNORE file.
   ignores_load
   test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" \
     || error "expected $base ignore dotfile" 1
@@ -678,7 +677,7 @@ htd__status()
   test -n "$failed" || error failed 1
 
   # Check local names
-  { 
+  {
     htd check-names ||
       echo "htd:check-names" >>$failed
   } | tail -n 1
@@ -693,7 +692,7 @@ htd__status()
 
   # Check main document elements
   {
-    test ! -d "$HTD_JRNL" || 
+    test ! -d "$HTD_JRNL" ||
       EXT=$DOC_EXT htd__archive_path $HTD_JRNL
     htd__main_doc_paths "$1"
   } | while read tag path
@@ -1066,8 +1065,8 @@ htd__archive_path()
     test -n "$M" || M=-%m
     test -n "$D" || D=-%d
     #test -n "$EXT" || EXT=.rst
-    test -d "$1" && 
-      ARCHIVE_DIR=$1/ || 
+    test -d "$1" &&
+      ARCHIVE_DIR=$1/ ||
       ARCHIVE_DIR=$(dirname $1)/
     ARCHIVE_BASE=$1$Y
     ARCHIVE_ITEM=$M$D$EXT
@@ -1162,7 +1161,7 @@ htd__main_doc_paths()
   local candidates="$(htd_main_files)"
   test -n "$1" && {
     fnmatch "* $1$DOC_EXT *" " $candidates " &&
-      set -- $1$DOC_EXT || 
+      set -- $1$DOC_EXT ||
         error "Not a main-doc $1"
 
   } || set -- "$candidates"
@@ -1993,7 +1992,7 @@ htd__gitflow_status()
   note "TODO: see gitflow-check"
   defs gitflow.txt | \
     tree_to_table  | \
-    while read base branch 
+    while read base branch
     do
       git cherry $base $branch | wc -l
     done
@@ -2818,7 +2817,7 @@ htd__ck_validate()
       done
     } || {
       # Chec entire current $CK table
-      ${CK}sum -c table.$CK 
+      ${CK}sum -c table.$CK
     }
   }
   stderr ok "Validated files from table.$CK"
@@ -3702,7 +3701,7 @@ htd__open_paths()
   # Get open paths for user, bound to CWD of processes, and with 15 COMMAND chars
   # But keep only non-root, and sh or bash lines, throttle update of cached file
   # by 10s period.
-  { 
+  {
     test -e "$lsof" && younger_than $lsof 10
   } || {
     lsof +c 15 -u $(whoami) -a -d cwd \
@@ -4309,7 +4308,7 @@ htd__srv_list()
     depth=$(htd__path_depth "$target")
 
     case "$1" in
-        DOT ) 
+        DOT )
             NAME=$(mkvid "$name"; echo $vid)
             TRGT=$(mkvid "$target"; echo $vid)
             case "$target" in
@@ -4848,7 +4847,7 @@ htd__gpg_export()
 htd__bdd_args()
 {
   for x in *.py *.sh test/*.feature test/bootstrap/*.php
-  do 
+  do
     printf -- "-w $x "
   done
 }
@@ -4856,7 +4855,7 @@ htd__bdd_args()
 htd__bdd()
 {
   test -n "$1" && {
-    set -- test/$1.feature 
+    set -- test/$1.feature
     nodemon -x "./vendor/.bin/behat $1" \
       --format=progress \
       -C $(htd__bdd_args)
@@ -4867,7 +4866,7 @@ htd__bdd()
       $(htd__bdd_args)
   }
   # --format=failed \
-} 
+}
 
 
 # util
@@ -4922,7 +4921,7 @@ htd_main()
   local scriptname=htd base=$(basename "$0" .sh) \
     scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
     subcmd= failed=
-  
+
   htd_init || exit $?
 
   case "$base" in

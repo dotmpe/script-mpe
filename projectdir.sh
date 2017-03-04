@@ -1278,6 +1278,8 @@ pd_load()
   sys_load
   str_load
 
+  test -x "$(which sponge)" || warn "dep 'sponge' missing, install 'moreutils'"
+
   test -n "$pd" || pd=.projects.yaml
 
   test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR
@@ -1303,8 +1305,8 @@ pd_load()
 
   test -n "$pd_session_id" || pd_session_id=$(get_uuid)
 
-  SCR_SYS_SH=bash-sh 
-  
+  SCR_SYS_SH=bash-sh
+
   # Selective per-subcmd init
   info "Loading '$subcmd': $(try_value "${subcmd}" load | sed 's/./&\ /g')"
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
