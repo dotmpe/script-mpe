@@ -9,6 +9,13 @@ type stdfail >/dev/null 2>&1 || {
   }
 }
 
+type pass >/dev/null 2>&1 || {
+  pass() # a noop() variant..
+  {
+    return 0
+  }
+}
+
 type test_ok_empty >/dev/null 2>&1 || {
   test_ok_empty()
   {
@@ -19,7 +26,9 @@ type test_ok_empty >/dev/null 2>&1 || {
 type test_ok_nonempty >/dev/null 2>&1 || {
   test_ok_nonempty()
   {
-    test ${status} -eq 0 && test -n "${lines[*]}" && fnmatch "$1" "${lines[*]}"
+    test ${status} -eq 0 && test -n "${lines[*]}" && {
+      test -z "$1" || fnmatch "$1" "${lines[*]}"
+    }
   }
 }
 

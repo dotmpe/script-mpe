@@ -2380,13 +2380,25 @@ htd__commit()
   echo -e
 }
 
-htd_man_1__run_names="Run scripts from package"
+htd_man_1__run_names="List script names in package"
 htd_run__run_names=f
 htd__run_names()
 {
   update_package
   jsotk.py keys -O lines .package.main scripts
 }
+
+htd_man_1__run_dir="List package script names and lines"
+htd_run_dir__run_dir=f
+htd__run_dir()
+{
+  htd__run_names | while read name
+  do
+    printf -- "$name\n"
+    verbose_no_exec=1 htd__run $name
+  done
+}
+
 
 htd_man_1__run="Run scripts from package"
 htd_run__run=f
@@ -2408,14 +2420,28 @@ htd__run()
       echo jsotk.py keys -O lines $PACKMETA_JS_MAIN scripts
       return
     }
-    # NOTE: default run is scripts command
-    htd__run_names
+
+    # NOTE: default run
+    htd__run_dir
     return $?
   }
 
-  # TODO: Get additional env spec
-  #test -n "$ENV_NAME" || ENV_NAME=$(package_default_env)
-  #ENV_X="$(package_sh_env "$ENV_NAME" $PACKMETA_JS_MAIN)"
+  {
+    jsotk.py path -O lines .package.main scripts/$1 || {
+      error "error getting lines for '$1'"
+      return 1
+    }
+  } | sponge | while read scriptline
+  do
+    not_trueish "$verbose_no_exec" || {
+      printf -- "\t$scriptline\n"
+      continue
+    }
+    info "Scriptline: '$scriptline'"
+    ( eval "$scriptline" ) \
+    &&
+      continue || error "At line '$scriptline'" $?
+  done
 
   # Execute script-lines
   (
@@ -2441,6 +2467,7 @@ htd__run()
     done
   )
 }
+
 
 htd_man_1__list_run="list lines for package script"
 htd_list_run__list_run=f
