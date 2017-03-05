@@ -33,8 +33,6 @@ htd_load()
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
 
-  req_htdir || stderr error "HTDIR required ($HTDIR)" 1
-
   test -e .package.sh && . .package.sh
 
   go_to_directory .projects.yaml && {
@@ -157,6 +155,9 @@ htd_load()
       ;;
     f ) # failed: set/cleanup failed varname
         export failed=$(setup_tmpf .failed)
+      ;;
+    H )
+        req_htdir || stderr error "HTDIR required ($HTDIR)" 1
       ;;
     i ) # io-setup: set all io varnames
         setup_io_paths -$subcmd-${htd_session_id}
@@ -5150,6 +5151,7 @@ htd_init()
   lib_load
   . $scriptpath/box.init.sh
   box_run_sh_test
+  export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta box date doc table disk remote ignores package
   # -- htd box init sentinel --
 }
