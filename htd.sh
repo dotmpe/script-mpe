@@ -564,6 +564,17 @@ htd_spc__edit="-e|edit <id>"
 htd__edit()
 {
   test -n "$1" || error "search term expected" 1
+  case "$1" in
+    # NEW
+    sandbox-jenkins-mpe | sandbox-mpe-new )
+        cd ~/.conf/vagrant/sandbox-trusty64-jenkins-mpe
+        vim Vagrantfile
+      ;;
+    treebox-new )
+        cd ~/.conf/vagrant/
+        vim Vagrantfile
+      ;;
+  esac
   doc_path_args
   find_paths="$(doc_find_name "$1")"
   grep_paths="$(doc_grep_content "$1")"
@@ -1369,14 +1380,29 @@ htd__shutdown()
 htd__ssh()
 {
   case "$1" in
-    vdckr )
-        cd ~/.conf/dckr/ubuntu-trusty64-docker/
-        vagrant ssh || vagrant up
+    # NEW
+    sandbox-jenkins-mpe | sandbox-new )
+        cd ~/.conf/vagrant/sandbox-trusty64-jenkins-mpe
+        vagrant up --provision
         vagrant ssh
       ;;
-    vdckr-mpe )
+
+    # TODO: move to vagrants
+    sandbox | sandbox-mpe | vdckr | vdckr-mpe )
         cd ~/.conf/dckr/ubuntu-trusty64-docker-mpe/
-        vagrant ssh || vagrant up
+        vagrant up
+        vagrant ssh
+      ;;
+
+    # OLD vagrants
+    treebox | treebox-precise | treebox-mpe )
+        cd ~/.conf/vagrant/treebox-hashicorp-precise-mpe
+        vagrant up
+        vagrant ssh
+      ;;
+    trusty )
+        cd ~/.conf/vagrant/ubuntu-trusty64
+        vagrant up
         vagrant ssh
       ;;
   esac
