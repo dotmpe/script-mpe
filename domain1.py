@@ -121,6 +121,7 @@ import re
 import socket
 import sys
 
+import ruamel.yaml
 import ruamel.yaml as yaml
 
 import confparse

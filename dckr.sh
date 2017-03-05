@@ -679,7 +679,7 @@ dckr__machines()
   do
     test "$(docker-machine status $1)" = "Running" || { shift; continue; }
     note "Updating '$1' ..."
-    dckr machine-ip-update $1 || {
+    dckr.sh machine-ip-update $1 || {
       case "$R" in 1 ) return 1;; 2 ) echo $1>$updated ;; esac
     }
     grep -qF $(docker-machine ip $1) /etc/exports || {
@@ -699,7 +699,7 @@ dckr__machines()
   }
   test -e "/etc/exports" || {
     note "Updating NFS for all running machines" #'$machines'"
-    dckr machines-nfs $machines || return 1
+    dckr.sh machines-nfs $machines || return 1
     return 2
   }
 }
@@ -914,7 +914,7 @@ dckr_redock()
 
   echo "$dckr_name proc: "
   ${sudo}docker ps -a | grep '\<'$dckr_name'\>'
-  dckr ip $dckr_name
+  dckr.sh ip $dckr_name
 }
 
 dckr_rebuild()
@@ -1083,7 +1083,7 @@ test ! -e $DCKR_CONF/local.sh || {
 
 dckr_main()
 {
-  test -n "$scriptdir" || scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+  test -n "$scriptpath" || scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
   dckr_init || return 0
 
   local scriptname=dckr base=$(basename $0 .sh) verbosity=5
@@ -1102,11 +1102,11 @@ dckr_main()
 dckr_init()
 {
   test -z "$BOX_INIT" || return 1
-  test -n "$scriptdir"
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  test -n "$scriptpath"
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh
   util_init
-  . $scriptdir/box.init.sh
+  . $scriptpath/box.init.sh
   lib_load main box projectdir
   box_run_sh_test
 }

@@ -32,3 +32,4 @@ vendor/
 # Jekyll dir:
 _site
 Gemfile.lock
+.features.tab

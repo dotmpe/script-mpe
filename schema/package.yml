@@ -1,7 +1,7 @@
 
 id: "http://dotmpe.com/project/script/schema/package#"
-
-description:
+$schema: http://json-schema.org/draft-04/schema#
+description: JSON based schema for package.yml
 type: array
 items:
   allOf:

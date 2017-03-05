@@ -55,7 +55,7 @@ pretty_object()
 twitter_main()
 {
   local scriptname=twitter base=$(basename $0 .sh) verbosity=5 \
-    scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
+    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
     failed=
 
   twitter_init || exit $?
@@ -79,20 +79,20 @@ twitter_main()
 
 twitter_init()
 {
-  test -n "$scriptdir"
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  test -n "$scriptpath"
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh
   util_init
-  . $scriptdir/match.lib.sh
-  . $scriptdir/box.init.sh
+  . $scriptpath/match.lib.sh
+  . $scriptpath/box.init.sh
   box_run_sh_test
-  #. $scriptdir/htd.lib.sh
-  . $scriptdir/main.lib.sh load-ext
-  . $scriptdir/meta.lib.sh
-  . $scriptdir/box.lib.sh
-  . $scriptdir/date.lib.sh
-  . $scriptdir/doc.lib.sh
-  . $scriptdir/table.lib.sh
+  #. $scriptpath/htd.lib.sh
+  . $scriptpath/main.lib.sh load-ext
+  . $scriptpath/meta.lib.sh
+  . $scriptpath/box.lib.sh
+  . $scriptpath/date.lib.sh
+  . $scriptpath/doc.lib.sh
+  . $scriptpath/table.lib.sh
   lib_load remote
   # -- twitter box init sentinel --
 }
@@ -100,7 +100,7 @@ twitter_init()
 twitter_lib()
 {
   local __load_lib=1
-  . $scriptdir/match.sh load-ext
+  . $scriptpath/match.sh load-ext
   # -- twitter box lib sentinel --
   set --
 }

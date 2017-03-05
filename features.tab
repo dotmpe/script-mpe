@@ -1,56 +1,64 @@
-# ID                       CAT   TYPE           DOC REF               PREREQ
+# ID                       CAT       TYPE           DOC REF               PREREQ
 
-language                   0     ComLang
-sh                         0.1   Shell
-py                         0.2   Python
-rb                         0.3   Ruby
-mk                         0.4   Makefile
-js                         0.5   NodeJS
-php                        0.6   PHP
-pl                         0.7   Perl
+# 0: script languages
+language                   0         ComLang
+sh                         0.1       Shell
+py                         0.2       Python
+rb                         0.3       Ruby
+mk                         0.4       Makefile
+js                         0.5       NodeJS
+php                        0.6       PHP
+pl                         0.7       Perl
 
-# ID                       CAT   TYPE           DOC REF               PREREQ
+# ID                       CAT       TYPE           DOC REF               PREREQ
 
-prereq                     7
-composer                   7.1                                        0.6
-bats                       7.2                                        0.1
-basher                     7.3                                        0.1
-pip                        7.4                                        0.2
-cpan                       7.5                                        0.7
-pkg                        7.6   Packages
-pkg.apt                    7.6.1
-pkg.apk                    7.6.2
-pkg.npm                    7.6.3
-npm                        7.7                                        0.5
-gem                        7.8                                        0.3
-behat                      7.1.1                                      7.1
-behave                     7.4.1                                      7.4
-pl-xml-generator           7.5.1 XML::Generator                       7.5
-tap-to-junit-xml           7.3.1                                      7.5.1 7.3 
+# 1: components under test
 
-# ID                       CAT   TYPE           DOC REF               PREREQ
+# 1.1: shell components under test
+helper                     1.1.1                                          0.1
+util-lib                   1.1.2                                          0.1
+str                        1.1.3                                          0.1
+std                        1.1.4                                          0.1
+os                         1.1.5                                          0.1
+match                      1.1.6                                          0.1
+vc-lib                     1.1.7                                          0.1
+vc                         1.1.8                                          0.1
+main                       1.1.9                                          0.1
+box-lib                    1.1.10                                         0.1
+box-cmd                    1.1.11                                         0.1
+box                        1.1.12                                         0.1
+statusdir                  1.1.13      
 
-helper                     1.1                                        0.1
-util-lib                   1.2                                        0.1
-str                        1.3                                        0.1
-std                        1.4                                        0.1
-os                         1.5                                        0.1
-match                      1.6                                        0.1
-vc-lib                     1.7                                        0.1
-vc                         1.8                                        0.1
-main                       1.9                                        0.1
-box-lib                    1.10                                       0.1
-box-cmd                    1.11                                       0.1
-box                        1.12                                       0.1
+# ID                       CAT       TYPE           DOC REF               PREREQ
 
-# ID                       CAT   TYPE           DOC REF               PREREQ
+# 1.2: python components under test
+basename-reg               1.2.1                                          0.1,0.2 
+radical                    1.2.2                                          0.1,0.2
+jsotk                      1.2.3                                          0.1,0.2
+sh_switch                  1.2.4                                          0.1,0.2
+sh_branch                  1.2.5                                          0.1,0.2
+matchbox                   1.2.6                                          0.1,0.2
 
-basename-reg               2.1                                        0.1 0.2 
-radical                    2.2                                        0.1 0.2
-jsotk                      2.3                                        0.1 0.2
-sh_switch                  2.4                                        0.1 0.2
-sh_branch                  2.5                                        0.1 0.2
-matchbox                   2.6                                        0.1 0.2
+# ID                       CAT       TYPE           DOC REF               PREREQ
 
-# ID                       CAT   TYPE           DOC REF               PREREQ
+# 3: external scripts, commands
+composer                   3.1                                            0.6
+behat                      3.1.1                                          3.1
+bats                       3.2                                            0.1
+basher                     3.3                                            0.1
+pip                        3.4                                            0.2
+behave                     3.4.1                                          7.4
+cpan                       3.5                                            0.7
+pkg                        3.6       OSPackages
+pkg.apt                    3.6.1
+pkg.apk                    3.6.2
+pkg.npm                    3.6.3                                          
+npm                        3.7                                            0.5
+gem                        3.8                                            0.3
 
+# ID                       CAT       TYPE           DOC REF               PREREQ
+
+pl-xml-generator           3.5.1                                          3.5
+tap-to-junit-xml           3.3.1                                          3.3
+
+# ID                       CAT       TYPE           DOC REF               PREREQ

@@ -20,7 +20,7 @@ tasks__list()
 tasks_main()
 {
   local scriptname=tasks base=$(basename $0 .sh) verbosity=5 \
-    scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
+    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
     failed=
 
   tasks_init || exit $?
@@ -45,14 +45,14 @@ tasks_main()
 tasks_init()
 {
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
-  test -n "$scriptdir"
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  test -n "$scriptpath"
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh
   util_init
-  . $scriptdir/match.lib.sh
-  . $scriptdir/box.init.sh
+  . $scriptpath/match.lib.sh
+  . $scriptpath/box.init.sh
   box_run_sh_test
-  #. $scriptdir/htd.lib.sh
+  #. $scriptpath/htd.lib.sh
   lib_load main meta box data doc table remote
   # -- tasks box init sentinel --
 }
@@ -60,7 +60,7 @@ tasks_init()
 tasks_lib()
 {
   local __load_lib=1
-  . $scriptdir/match.sh load-ext
+  . $scriptpath/match.sh load-ext
   # -- tasks box lib sentinel --
   set --
 }

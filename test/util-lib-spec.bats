@@ -62,7 +62,7 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
 @test "$lib try_exec_func (bash) on existing function" {
 
-  run bash -c 'scriptdir='$lib' && source '$lib'/util.sh && \
+  run bash -c 'scriptpath='$lib' && source '$lib'/util.sh && \
     source '$lib'/test/main.inc.bash && try_exec_func mytest_function'
   diag "Output: ${lines[0]}"
   test "${lines[0]}" = "mytest"
@@ -71,7 +71,7 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
 @test "$lib try_exec_func (bash) on non-existing function" {
 
-  run bash -c 'scriptdir='$lib' && source '$lib'/util.sh && try_exec_func no_such_function'
+  run bash -c 'scriptpath='$lib' && source '$lib'/util.sh && try_exec_func no_such_function'
   test "" = "${lines[*]}"
   test $status -eq 1
 
@@ -82,7 +82,7 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
 @test "$lib try_exec_func (sh) on existing function" {
 
-  run sh -c 'TERM=dumb && scriptdir='$lib' && . '$lib'/util.sh && \
+  run sh -c 'TERM=dumb && scriptpath='$lib' && . '$lib'/util.sh && \
     . '$lib'/test/main.inc.bash && try_exec_func mytest_function'
   test -n "${lines[*]}" || diag "${lines[*]}"
   test "${lines[0]}" = "mytest"
@@ -91,7 +91,7 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
 @test "$lib try_exec_func (sh) on non-existing function" {
 
-  run sh -c 'TERM=dumb && scriptdir='$lib' && . '$lib'/util.sh && try_exec_func no_such_function'
+  run sh -c 'TERM=dumb && scriptpath='$lib' && . '$lib'/util.sh && try_exec_func no_such_function'
   test -n "${lines[*]}" || diag "${lines[*]}"
   test "" = "${lines[*]}"
 
@@ -143,24 +143,26 @@ test_inc_sh=". $(echo $test_inc | sed 's/\ / \&\& . /g')"
 
 @test "$lib/util var-isset detects vars correctly even if empty (sh wrapper)" {
 
-  ./test.sh var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)" || echo
+  ./test/util-lib-spec.sh var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)" || echo
 
-  run ./test.sh var-isset foo_bar
-  test $status -eq 1 || fail "2. Unexpected foo_bar set ($status; pwd $(pwd); out ${lines[*]})"
+  run ./test/util-lib-spec.sh var-isset foo_bar
+  test $status -eq 1 || 
+    fail "2. Unexpected foo_bar set ($status; pwd $(pwd); out ${lines[*]})"
 
-  run sh -c "foo_bar= ./test.sh var-isset foo_bar"
+  run sh -c "foo_bar= ./test/util-lib-spec.sh var-isset foo_bar"
   test $status -eq 0 || fail "3. Expected foo_bar set ($status; out ${lines[*]})"
 }
 
 
 @test "$lib/util var-isset detects vars correctly even if empty (bash wrapper)" {
 
-  local scriptdir="$(pwd)"
-  ./test.bash var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
+  local scriptpath="$(pwd)"
+  ./test/util-lib-spec.bash var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
 
-  run ./test.bash var-isset foo_bar
-  test $status -eq 1 || fail "2. Unexpected foo_bar set ($status; pwd $(pwd); out ${lines[*]})"
-  run bash -c "foo_bar= ./test.bash var-isset foo_bar"
+  run ./test/util-lib-spec.bash var-isset foo_bar
+  test $status -eq 1 ||
+    fail "2. Unexpected foo_bar set ($status; pwd $(pwd); out ${lines[*]})"
+  run bash -c "foo_bar= ./test/util-lib-spec.bash var-isset foo_bar"
   test $status -eq 0 || fail "3. Expected foo_bar set ($status; out ${lines[*]})"
 }
 

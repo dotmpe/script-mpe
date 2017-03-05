@@ -433,7 +433,7 @@ box__log_demo()
 box_main()
 {
   local scriptname=box base=$(basename "$0" .sh) \
-    scriptdir="$(cd $(dirname "$0"); pwd -P)"
+    scriptpath="$(cd $(dirname "$0"); pwd -P)"
 
   box_init || return 0
 
@@ -457,16 +457,13 @@ box_main()
 box_init()
 {
   test -z "$BOX_INIT" || return 1
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh load-ext
   util_init
-  . $scriptdir/box.init.sh
-  . $scriptdir/box.lib.sh "$@"
-  . $scriptdir/std.lib.sh
-  . $scriptdir/str.lib.sh
-  . $scriptdir/util.sh
+  . $scriptpath/box.init.sh
+  . $scriptpath/box.lib.sh "$@"
+  lib_load main
   box_run_sh_test
-  . $scriptdir/main.lib.sh load-ext
   # -- box box init sentinel --
 }
 
@@ -495,6 +492,5 @@ case "$0" in "" ) ;; "-"* ) ;; * )
     box_main "$@"
   ;; esac
 ;; esac
-
 
 

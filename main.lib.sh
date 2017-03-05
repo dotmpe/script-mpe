@@ -286,9 +286,9 @@ std_man_1__version="Version info"
 std_spc__version="-V|version"
 std__version()
 {
-	test -n "$scriptdir" || exit 156
+	test -n "$scriptpath" || exit 156
 	test -n "$version" || exit 157
-  echo "$(cat $scriptdir/.app-id)/$version"
+  echo "$(cat $scriptpath/.app-id)/$version"
 }
 
 
@@ -522,7 +522,7 @@ box_src_lib()
 
 
 # Run any load routines
-main_load()
+load_subcmd()
 {
   test -n "$1" || error "main-load argument expected" 1
   local r=
@@ -638,7 +638,7 @@ run_subcmd()
     }
   }
 
-  main_load $box_prefix || return $?
+  load_subcmd $box_prefix || return $?
   debug "$base loaded"
 
   test -z "$dry_run" \

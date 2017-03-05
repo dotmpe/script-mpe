@@ -112,7 +112,7 @@ diskdoc__disable_clean()
     test ! -d $prefix || {
       cd $pwd/$prefix
       git diff --quiet && {
-        test -z "$(vc ufx)" && {
+        test -z "$(vc.sh ufx)" && {
           warn "TODO remove $prefix if synced"
           # XXX need to fetch remotes, compare local branches
           #diskdoc__meta list-push-remotes $prefix | while read remote
@@ -177,7 +177,7 @@ diskdoc__update()
         props="annex=true"
       }
 
-      props="$props $(verbosity=0;cd $prefix;echo "$(vc remotes sh)")"
+      props="$props $(verbosity=0;cd $prefix;echo "$(vc.sh remotes sh)")"
       test -n "$props" || {
         error "No remotes for $prefix"
         touch $failed
@@ -259,7 +259,7 @@ diskdoc__sync()
 
   test -d .git || error "Not a standalone .git: $prefix" 1
 
-  test -e .git/FETCH_HEAD && younger_than .git/FETCH_HEAD $PD_SYNC_AGE && {
+  test -e .git/FETCH_HEAD && newer_than .git/FETCH_HEAD $PD_SYNC_AGE && {
     return
   }
 
@@ -578,8 +578,8 @@ diskdoc_unload()
 diskdoc_init()
 {
   local __load_lib=1
+  . $scriptpath/box.init.sh
   lib_load box main
-  . $scriptdir/box.init.sh
   box_run_sh_test
   #while test $# -gt 0
   #do
@@ -590,7 +590,7 @@ diskdoc_init()
   #        shift;;
   #  esac
   #done
-  #. $scriptdir/diskdoc.inc.sh "$@"
+  #. $scriptpath/diskdoc.inc.sh "$@"
   test -n "$verbosity" || verbosity=6
   # -- diskdoc box init sentinel --
 }
@@ -599,7 +599,7 @@ diskdoc_lib()
 {
   local __load_lib=1
   lib_load date match
-  . $scriptdir/vc.sh load-ext
+  . $scriptpath/vc.sh load-ext
   # -- diskdoc box lib sentinel --
 }
 
@@ -609,7 +609,7 @@ diskdoc_lib()
 diskdoc_main()
 {
   local scriptname=diskdoc base=$(basename $0 .sh) \
-    subcmd=$1 scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+    subcmd=$1 scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
 
   case "$base" in
 
@@ -625,8 +625,8 @@ diskdoc_main()
           sock= \
           c=0
 
-				export SCRIPTPATH=$scriptdir
-        . $scriptdir/util.sh
+				export SCRIPTPATH=$scriptpath
+        . $scriptpath/util.sh
         util_init
         diskdoc_init "$@" || error "init failed" $?
         shift $c

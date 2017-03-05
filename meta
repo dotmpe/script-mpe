@@ -107,7 +107,7 @@ meta__annex_update_video()
 
 meta__main()
 {
-  local scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+  local scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
   meta_init || return 0
 
   local scriptname=meta base=$(basename $0 .sh) verbosity=5
@@ -130,15 +130,15 @@ meta__main()
 meta_init()
 {
   test -z "$BOX_INIT" || return 1
-  test -n "$scriptdir"
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  test -n "$scriptpath"
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh
   util_init
-  . $scriptdir/box.init.sh
+  . $scriptpath/box.init.sh
   box_run_sh_test
-  . $scriptdir/main.lib.sh
-  . $scriptdir/box.lib.sh
-  . $scriptdir/meta.lib.sh
+  . $scriptpath/main.lib.sh
+  . $scriptpath/box.lib.sh
+  . $scriptpath/meta.lib.sh
 }
 
 meta_lib()

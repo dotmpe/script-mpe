@@ -118,10 +118,10 @@ generate_git_hooks()
     package_pd_meta_git_hooks_pre_commit_script="set -e ; pd run $package_pd_meta_check"
   }
 
-	for script in $GIT_HOOK_NAMES
-	do
-		t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
-		test -n "$t" || continue
+  for script in $GIT_HOOK_NAMES
+  do
+    t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
+    test -n "$t" || continue
     test -e "$t" -a "$t" -nt ".package.sh" || {
       s=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_')_script)
       test -n "$s" || {
@@ -139,26 +139,26 @@ generate_git_hooks()
 
 install_git_hooks()
 {
-	for script in $GIT_HOOK_NAMES
-	do
-		t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
-		test -n "$t" || continue
-		l=.git/hooks/$script
-		test ! -e "$l" || {
-			test -h $l && {
-				test "$(readlink $l)" = "../../$t" && continue || {
-					rm $l
-				}
-			} ||	{
-				echo "Git hook exists and is not a symlink: $l"
-				continue
-			}
-		}
+  for script in $GIT_HOOK_NAMES
+  do
+    t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
+    test -n "$t" || continue
+    l=.git/hooks/$script
+    test ! -e "$l" || {
+      test -h $l && {
+        test "$(readlink $l)" = "../../$t" && continue || {
+          rm $l
+        }
+      } ||  {
+        echo "Git hook exists and is not a symlink: $l"
+        continue
+      }
+    }
     test -d .git || error $(pwd)/.git 1
     mkdir -p .git/hooks
-		( cd .git/hooks; ln -s ../../$t $script )
+    ( cd .git/hooks; ln -s ../../$t $script )
     echo "Installed GIT hook symlink: $script -> $t"
-	done
+  done
 }
 
 pd_regenerate()

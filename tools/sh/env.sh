@@ -27,7 +27,7 @@ case "$shopts"
 esac
 
 req_vars scriptname || error "scriptname" 1
-req_vars scriptdir || error "scriptdir" 1
+req_vars scriptpath || error "scriptpath" 1
 req_vars SCRIPTPATH || error "SCRIPTPATH" 1
 req_vars LIB || error "LIB" 1
 

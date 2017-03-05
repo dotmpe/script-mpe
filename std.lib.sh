@@ -62,6 +62,7 @@ get_stdio_type()
   esac
 }
 
+# TODO: probably also deprecate, see stderr. Maybe other tuil for this func.
 # stdio type detect - return char t(erminal) f(ile) p(ipe; or named-pipe, ie. FIFO)
 # On Linux, uses /proc/PID/fd/NR: Usage: stdio_type NR PID
 # On OSX/Darwin uses /dev/fd/NR: Usage: stdio_type NR
@@ -213,9 +214,10 @@ log_256()
   printf "$1\n"
 }
 
-# deprecate
+# TODO: deprecate: use stderr or error
 err()
 {
+  warn "err() is deprecated, see stderr()"
   test -z "$3" || {
     echo "Surplus arguments '$3'"
     exit 123
@@ -225,12 +227,10 @@ err()
 }
 
 # Normal log uses log_$TERM
-# 1:fd 2:str 3:exit
+# 1:str 2:exit
 log()
 {
-  test -n "$1" || return
-  #test -n "$2" || return 1
-  #test -n "$1" || set -- 1 "$@"
+  test -n "$1" || exit 201
   test -n "$stdout_type" || stdout_type="$stdio_1_type"
   test -n "$stdout_type" || stdout_type=t
 
@@ -238,26 +238,27 @@ log()
     && key="$scriptname.$(basename "$SHELL")" \
     || key="$scriptname.(sh)"
 
-  case $stdout_type in t )
+  case $stdout_type in
+    t )
         test -n "$subcmd" && key=${key}${bb}:${bk}${subcmd}
         log_$LOG_TERM "${bb}[${bk}${key}${bb}] ${norm}$1"
-        ;;
+      ;;
 
-      p|f )
+    p|f )
         test -n "$subcmd" && key=${key}${bb}:${bk}${subcmd}
         log_$LOG_TERM "${bb}# [${bk}${key}${bb}] ${norm}$1"
-        ;;
+      ;;
   esac
 }
 
 stderr()
 {
   test -z "$4" || {
-    echo "Surplus arguments '$4'"
+    echo "Surplus arguments '$4'" >&2
     exit 200
   }
   # XXX seems ie grep strips colors anyway?
-  [ -n "$stdout_type" ] || stdout_type=$stdio_2_type
+  test -n "$stdout_type" || stdout_type=$stdio_2_type
   case "$(echo $1 | tr 'A-Z' 'a-z')" in
 
     crit*)
@@ -265,12 +266,11 @@ stderr()
         test "$CS" = "light" \
           && crit_label_c="\033[38;5;226;48;5;249m" \
           || crit_label_c="${ylw}"
-
         log "${bld}${crit_label_c}$1${norm}${blackb}: ${bnrml}$2${norm}" 1>&2 ;;
     err*)
         bb=${red}; bk=$grey
         log "${bld}${red}$1${blackb}: ${norm}${bnrml}$2${norm}" 1>&2 ;;
-    warn*)
+    warn*|fail*)
         bb=${dylw}; bk=$grey
         test "$CS" = "light" \
             && warning_label_c="\033[38;5;255;48;5;220m"\
@@ -281,16 +281,18 @@ stderr()
     info )
         bb=${blue}; bk=$grey
         log "${grey}$2${norm}" 1>&2 ;;
-
-    ok )
+    ok|pass* )
         bb=${grn}; bk=$grey
         log "${nrml}$2${norm}" 1>&2 ;;
     * )
         bb=${drgrey} ; bk=$dgrey
-        log "${grey}$2" $3 1>&2 ;;
+        log "${grey}$2" 1>&2 ;;
 
   esac
-  [ -z "$3" ] || exit $3
+  test -z "$3" || {
+    echo "stderr exiting $3" >&2
+    exit $3
+  }
 }
 
 # std-v <level>
@@ -305,7 +307,7 @@ std_v()
 std_exit()
 {
   test -z "$2" || {
-    echo "Surplus arguments '$2'"
+    echo "std-exit: Surplus arguments '$2'"
     exit 200
   }
   test "$1" != "0" -a -z "$1" && return 1 || exit $1
@@ -399,4 +401,38 @@ capture_and_clear()
   clear_lines $lines
   echo Captured $lines lines
 }
+
+
+
+# Main
+
+case "$0" in "" ) ;; "-"* ) ;; * )
+  test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
+  test -n "$verbosity" || verbosity=5
+  test -z "$__load_lib" || set -- "load-ext"
+  case "$1" in
+
+    load-ext ) ;; # External include, do nothing
+
+    ok )
+        stderr ok "$2" $3
+      ;;
+
+    error )
+        error "$2" $3
+      ;;
+
+    load )
+        test -n "$scriptpath" || scriptpath="$(dirname "$0")"
+      ;;
+
+    '' ) ;;
+
+    * ) # Setup SCRIPTPATH and include other scripts
+        echo "Ignored $scriptname argument(s) $0: $*" 1>&2
+      ;;
+
+  esac
+
+;; esac
 
