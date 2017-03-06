@@ -131,7 +131,7 @@ noop()
   #. /dev/null # source empty file
   #echo -n # echo nothing
   #printf "" # id. if echo -n incompatible (Darwin)
-  set -- # clear arguments (XXX set nothing?)
+  set -- # clear arguments
   #return # since we're in a function
 }
 

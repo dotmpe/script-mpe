@@ -6,6 +6,15 @@ set -e
 # Main: CLI helpers; init/run func as subcmd
 
 
+type noop >/dev/null 2>&1 || {
+  # No-Op(eration) see sys.lib
+  noop()
+  {
+    set -- # clear arguments
+  }
+}
+
+
 main_load()
 {
   return 0
