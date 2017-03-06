@@ -41,7 +41,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   case "$1" in
     load-* ) ;; # External include, do nothing
     boot )
-        scriptpath="$(dirname "$0")"
+        test -n "$scriptpath" || scriptpath="$(dirname "$0")"
         lib_load
       ;;
 

@@ -6,6 +6,16 @@
 # nb. functions cannot access/change arguments of calling shell.
 
 
+# Verbose test + return status
+
+test_exists()
+{
+  test -e "$1" || {
+    error "No such file or path: $1"
+    return 1
+  }
+}
+
 test_dir()
 {
   test -d "$1" || {
@@ -30,23 +40,8 @@ test_glob()
   done
 }
 
-# Find an executable script on path. Try with and without extension, in that
-# order. Default extension: .phar
-req_bin()
-{
-  test -n "$2" || set -- "$1" ".phar"
-  test -x "$(which $1$2)" && {
-    export $1_bin=$1$2
-  } || {
-    test -x "$(which $1)" && {
-      export $1_bin=$1
-    } || {
-      error "Executable $1 required" 1
-    }
-  }
-}
 
-# arg-vars
+# arg-vars VARNAMES VALUES...
 # Echo arguments as sh vars (use with local, export, etc)
 arg_vars()
 {
@@ -89,6 +84,9 @@ argv_vars()
 }
 
 
+# Exit on error
+
+
 # Abort on surplus arguments
 check_argc()
 {
@@ -98,18 +96,67 @@ check_argc()
 }
 
 
+# Find an executable script on path. Try with and without extension, in that
+# order. Default extension: .phar
+req_bin()
+{
+  test -n "$2" || set -- "$1" ".phar"
+  test -x "$(which $1$2)" && {
+    export $1_bin=$1$2
+  } || {
+    test -x "$(which $1)" && {
+      export $1_bin=$1
+    } || {
+      error "Executable $1 required" 1
+    }
+  }
+}
+
+
 req_path_arg()
 {
 	test -n "$1" || error "path or file argument expected" 1
 	test -e "$1" || error "not a path '$1'" 1
 }
 
+
 req_cdir_arg()
 {
   test -n "$1"  && path="$1"  || path=.
   test -d "$path" || {
-    error "Must pass directory" 1
+    error "directory argument expected" 1
   }
 }
 
+
+req_file_env()
+{
+  while test $# -gt 0
+  do
+    value="$(eval echo "\$$1")"
+    test -n "$value" || {
+      error "file env '$1' expected but missing or empty ($?)" 1
+    }
+    test -f "$value" || {
+      error "no such file for env '$1': $value" 1
+    }
+    shift
+  done
+}
+
+
+req_dir_env()
+{
+  while test $# -gt 0
+  do
+    value="$(eval echo "\$$1")"
+    test -n "$value" || {
+      error "directory env '$1' expected but missing or empty ($?)" 1
+    }
+    test -d "$value" || {
+      error "no such directory for env '$1': $value" 1
+    }
+    shift
+  done
+}
 

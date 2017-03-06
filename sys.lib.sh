@@ -280,18 +280,21 @@ setup_tmpf()
   echo $3/$2$1
 }
 
-# sys-confirm PROMPT ; {choice_confirm}
+# sys-prompt PROMPT [VAR=choice_confirm]
 sys_prompt()
 {
+  test -n "$1" || error "sys-prompt: arg expected" 1
+  test -n "$2" || set -- "$1" choice_confirm
+  test -z "$3" || error "surplus-args '$3'" 1
   echo $1
-  read choice_confirm
+  read $2
 }
 
 # sys-confirm PROMPT
 sys_confirm()
 {
   local choice_confirm=
-  sys_prompt "$1"
+  sys_prompt "$1" choice_confirm
   trueish "$choice_confirm"
 }
 

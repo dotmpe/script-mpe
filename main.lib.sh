@@ -293,8 +293,8 @@ std__version()
 }
 
 
-# Find shell script location with or without extension
-# 1:basename:scriptname
+# Find shell script location with or without extension.
+# locate-name [ NAME || $scriptname ]
 # :fn
 locate_name()
 {

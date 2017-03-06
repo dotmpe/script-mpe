@@ -311,6 +311,7 @@ htd__fsck()
 
 htd__make()
 {
+  req_dir_env HTDIR
   cd $HTDIR && make $*
 }
 htd_als__mk=make
@@ -503,6 +504,7 @@ htd_als___V=version
 
 htd__home()
 {
+  req_dir_env HTDIR
   echo $HTDIR
 }
 
@@ -553,7 +555,7 @@ htd__edit_main()
       -c :bn \
       -c "'"wincmd h"'
   }
-  printf "$evoke $files"
+  printf "$(tput bold)$(tput setaf 0)$evoke $files$(tput sgr0)\n"
   bash -c "$evoke $files"
 }
 htd_als___E=edit-main
@@ -993,6 +995,7 @@ htd__ns_resources()
 # Run a sys-* target in the main htdocs dir.
 htd__make_sys()
 {
+  req_dir_env HTDIR
   cd $HTDIR
   for x in $*
   do
@@ -1189,7 +1192,8 @@ htd__edit_note()
 {
   test -n "$1" || error "ID expected" 1
   test -n "$2" || error "tags expected" 1
-  test -z "" || error "surplus arguments" 1
+  test -z "$3" || error "surplus arguments" 1
+  req_dir_env HTDIR
 
   id="$(printf "$1" | tr -cs 'A-Za-z0-9' '-')"
   #id="$(echo "$1" | sed 's/[^A-Za-z0-9]*/-/g')"
@@ -1199,7 +1203,7 @@ htd__edit_note()
   fnmatch "* rst *" " $2 " || set -- "$1" "$2 rst"
   ext="$(printf "$(echo $2)" | tr -cs 'A-Za-z0-9_-' '.')"
 
-  note=~/htdocs/note/$id.$ext
+  note=$HTDIR/note/$id.$ext
   htd_rst_doc_create_update $note "$1"
   htd_edit_and_update $note
 }
@@ -1238,8 +1242,10 @@ htd__main_doc()
 {
   # Find first standard main document
   test -n "$1" || set -- "$(htd__main_doc_paths "$1"|read tag path)"
+  # Or set default
   test -n "$1" || set -- main$DOC_EXT
 
+  # Open edit session, discard unchanged generated file
   local cksum=
   htd_rst_doc_create_update $1
   htd_edit_and_update $files $(htd_main_files|cut -d' ' -f2)
@@ -1377,14 +1383,28 @@ htd__shutdown()
 }
 
 
+htd__ssh_vagrant()
+{
+  test -d ~/.conf/vagrant/$1 || error "No vagrant '$1'" 1
+  cd ~/.conf/vagrant/$1
+  vagrant up --provision || {
+    warn "Provision error $?. See htd edit to review Vagrantfile. "
+    sys_confirm "Continue with SSH connection?" ||
+        note abort 1
+  }
+  vagrant ssh
+}
+
+
 htd__ssh()
 {
   case "$1" in
     # NEW
     sandbox-jenkins-mpe | sandbox-new )
-        cd ~/.conf/vagrant/sandbox-trusty64-jenkins-mpe
-        vagrant up --provision
-        vagrant ssh
+        id=sandbox-trusty64-jenkins-mpe
+        shift
+        set -- $id "$@"
+        htd__ssh_vagrant "$1"
       ;;
 
     # TODO: move to vagrants
@@ -3161,6 +3181,7 @@ htd__mux()
 
 htd__tmux_prive()
 {
+  req_dir_env HTDIR
   test -n "$1" || set -- "*"
   cd
   case "$1" in init|"*" )
@@ -3170,7 +3191,7 @@ htd__tmux_prive()
   }
   tmux list-windows -t Prive | grep -q HtD || {
     tmux new-window -t Prive -n HtD
-    tmux send-keys -t Prive:HtD "cd ~/htdocs/; htd today $HTD_JRNL;git st" enter
+    tmux send-keys -t Prive:HtD "cd $HTDIR; htd today $HTD_JRNL;git st" enter
     tmux send-keys -t Prive:HtD "git add -u;git add dev/ personal/*.rst
     $HTD_JRNL/2*.rst sysadmin/*.rst *.rst;git st" enter
     note "Initialized 'HtD' window"
@@ -3322,6 +3343,7 @@ htd__tmux_work()
 
 htd__tmux_srv()
 {
+  req_dir_env HTDIR
   cd /srv
   tmux has-session -t Srv >/dev/null || {
     htd__tmux_init Srv
@@ -3329,7 +3351,7 @@ htd__tmux_srv()
   }
   tmux list-windows -t Srv | grep -q HtD-Sf || {
     tmux new-window -t Srv -n HtD-Sf
-    tmux send-keys -t Srv:HtD-Sf "cd ~/htdocs/; sitefile" enter
+    tmux send-keys -t Srv:HtD-Sf "cd $HTDIR; sitefile" enter
   }
   tmux list-windows -t Srv | grep -q BrX-Sf || {
     tmux new-window -t Srv -n BrX-Sf
@@ -3464,9 +3486,8 @@ htd__reader_update()
 htd_man_1__test="Project test in HTDIR"
 htd__test()
 {
-  test -n "$HTDIR" || error HTDIR 1
-  cd $HTDIR || error HTDIR 2
-  projectdir.sh test
+  req_dir_env HTDIR
+  cd $HTDIR && projectdir.sh test
 }
 htd_als___t=test
 
@@ -3482,6 +3503,7 @@ htd_als___T=edit-test
 htd_man_1__inventory="All inventories"
 htd__inventory()
 {
+  req_dir_env HTDIR
   test -e "$HTDIR/personal/inventory/$1.rst" && {
     set -- "personal/inventory/$1.rst" "$@"
   } || {
@@ -3760,7 +3782,7 @@ EOM
 
 htd__check_disks()
 {
-  test -d $HTDIR || error "No HTDIR" 1
+  req_dir_env HTDIR
   cd $HTDIR
   list_host_disks | while read label path id eol
   do
@@ -4792,6 +4814,7 @@ htd_man_1__finfo="Touch document metadata for htdocs:$HTDIR"
 htd_spc__finfo="finfo DIR"
 htd__finfo()
 {
+  req_dir_env HTDIR
   for dir in $@
   do
     finfo.py --recurse --documents --env htdocs=HTDIR $dir \
