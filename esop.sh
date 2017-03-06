@@ -144,13 +144,14 @@ tasks_unload()
   # ....
   #esac; done
 
+  clean_failed || unload_ret=$?
+
   unset subcmd subcmd_pref \
           def_subcmd func_exists func \
           failed
 
   return $unload_ret
 }
-
 
 
 # Main entry - bootstrap script if requested

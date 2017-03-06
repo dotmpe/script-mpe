@@ -85,6 +85,7 @@ meta_sh_spc__help='-h|help [ID]'
 meta_sh__help()
 {
   #std__help meta_sh "$@"
+  base=meta_sh \
   choice_global=1 std__help "$@"
 }
 meta_sh_als___h=help
@@ -118,7 +119,7 @@ meta_sh__main()
   local scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
   meta_sh_init || return 0
 
-  local scriptname=meta_sh base=$(basename $0 .sh) verbosity=5
+  local scriptname=meta-sh base=$(basename $0 .sh) verbosity=5
 
   case "$base" in $scriptname )
 
@@ -145,7 +146,7 @@ meta_sh_init()
   lib_load
   . $scriptpath/box.init.sh
   box_run_sh_test
-  lib_load main box meta-sh
+  lib_load main box meta
 }
 
 # FIXME: 2nd boostrap init
@@ -171,7 +172,7 @@ meta_sh_load()
 }
 
 # Post-exec: subcmd and script deinit
-vagrant_sh_unload()
+meta_sh_unload()
 {
   local unload_ret=0
 
@@ -185,7 +186,7 @@ vagrant_sh_unload()
 
   clean_failed || unload_ret=$?
 
-  env | grep -i 'vagrant'
+  env | grep -i 'meta'
 
   unset subcmd subcmd_pref \
           def_subcmd func_exists func \
@@ -207,7 +208,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   case "$1" in
     load-ext ) ;;
     * )
-      vagrant_sh_main "$@" ;;
+      meta_sh__main "$@" ;;
 
   esac ;;
 esac

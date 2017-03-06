@@ -43,7 +43,7 @@ init
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
-  fnmatch "*Usage: * dckr -h|help \[ID]*" "${lines[*]}" # usage info on out
+  fnmatch "*Usage: * docker?sh -h|help \[ID]*" "${lines[*]}" # usage info on out
   fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
 }
 
@@ -52,7 +52,7 @@ init
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
-  fnmatch "*Usage: * dckr -h|help \[ID]*" "${lines[*]}" # usage info on out
+  fnmatch "*Usage: * docker?sh -h|help \[ID]*" "${lines[*]}" # usage info on out
   echo "${lines[*]}" |grep 'Error:' && test -z "errors in output" || noop
   fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
 }

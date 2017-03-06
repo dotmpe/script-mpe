@@ -52,7 +52,8 @@ version=0.0.3-dev # script-mpe
 
   esac
 
-  run bash -c "_test() { $BATS_TEST_DESCRIPTION 2>/dev/null; } ; HTDIR= && _test"
+  TODO "fix rest of test"
+  run bash -c "_test() { $BATS_TEST_DESCRIPTION 2>/dev/null; } ; export HTDIR= && _test"
   test "${lines[*]}" = "$(echo ~/public_html)"
 
   case "$(current_test_env)" in

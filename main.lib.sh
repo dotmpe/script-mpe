@@ -6,6 +6,12 @@ set -e
 # Main: CLI helpers; init/run func as subcmd
 
 
+main_load()
+{
+  return 0
+}
+
+
 # Count arguments consumed
 incr_c()
 {

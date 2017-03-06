@@ -14,7 +14,9 @@ note "Entry for CI pre-install / init phase"
 note "PWD: $(pwd && pwd -P)"
 note "Whoami: $( whoami )"
 
-note "CI Env: $( env | grep -i 'shippable\|travis\|ci' ) || noop)"
+note "CI Env: $({ env | grep -i 'shippable\|travis\|ci'; } || noop)"
+
+note "Build Env: $( build_params )"
 
 
 test -z "$BUILD_ID" || {

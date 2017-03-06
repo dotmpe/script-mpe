@@ -1421,6 +1421,8 @@ vc_main()
             failed= \
             ext_sh_sub=
 
+        lib_load str match main std stdio sys os src
+
         type $func >/dev/null 2>&1 && {
           shift 1
           vc_load || return
@@ -1459,8 +1461,6 @@ vc_load()
 
   test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
   test -n "$uname" || uname=$(uname)
-
-  lib_load sys os std stdio str src match main
 
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
@@ -1549,14 +1549,13 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   # maybe Darwin/BSD sh is relaying to bash instead?
 
   # fix using another mechanism:
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in
-    load-ext ) ;;
-    * )
-        vc_main "$@"
-      ;;
-
-  esac ;;
+  test -n "$__load_lib" || {
+    case "$1" in
+      load-ext ) ;;
+      * )
+          vc_main "$@"
+        ;;
+    esac; } ;;
 
 esac
 

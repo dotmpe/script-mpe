@@ -1325,6 +1325,8 @@ pd_load()
   sys_load
   str_load
 
+  test -x "$(which sponge)" || warn "dep 'sponge' missing, install 'moreutils'"
+
   test -n "$pd" || pd=.projects.yaml
 
   test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR

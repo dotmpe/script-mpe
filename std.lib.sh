@@ -407,33 +407,35 @@ capture_and_clear()
 
 # Main
 
-case "$0" in "" ) ;; "-"* ) ;; * )
-  test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
-  test -n "$verbosity" || verbosity=5
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in
+test -n "$__load_lib" || {
 
-    load-ext ) ;; # External include, do nothing
+  case "$0" in "" ) ;; "-"* ) ;; * )
+    test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
+    test -n "$verbosity" || verbosity=5
+    case "$1" in
 
-    ok )
-        stderr ok "$2" $3
-      ;;
+      load-ext ) ;; # External include, do nothing
 
-    error )
-        error "$2" $3
-      ;;
+      ok )
+          stderr ok "$2" $3
+        ;;
 
-    load )
-        test -n "$scriptpath" || scriptpath="$(dirname "$0")"
-      ;;
+      error )
+          error "$2" $3
+        ;;
 
-    '' ) ;;
+      load )
+          test -n "$scriptpath" || scriptpath="$(dirname "$0")"
+        ;;
 
-    * ) # Setup SCRIPTPATH and include other scripts
-        echo "Ignored $scriptname argument(s) $0: $*" 1>&2
-      ;;
+      '' ) ;;
 
-  esac
+      * ) # Setup SCRIPTPATH and include other scripts
+          echo "Ignored $scriptname argument(s) $0: $*" 1>&2
+        ;;
 
-;; esac
+    esac
 
+  ;; esac
+
+}

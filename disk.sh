@@ -14,6 +14,7 @@ version=0.0.3-dev # script-mpe
 # See $scriptname help to get started
 
 disk_man_1__status="Print some information on currently mounted disks/partitions. "
+disk_load__status=R
 disk__status()
 {
   disk__list_local | grep -Ev '^\s*(#.*|\s*)$' | while\
@@ -40,10 +41,10 @@ disk__status()
           test -n "$mount" \
             && {
               info "[$disk_id_] ${grn}$num_.$vol_idx${grey}: ${bnrml}$vol_id${grey} ($vsize ${bnrml}$vusg%% ${grey}$fstype $vol_dev)"
-              test -e $mount/.volumes.sh \
-                || warn "Missing catalog at $mount"
+              test -e "$mount/.volumes.s"h \
+                || warn "Missing catalog at '$mount'"
             } || {
-              fnmatch "* extended partition table *" " $(sudo file -sL $vol_dev) " && {
+              fnmatch "* extended partition table *" " $($dev_pref file -sL $vol_dev) " && {
                 info "[$disk_id_] $num_.$vol_idx: extended table ($fstype $vol_dev)"
               } || info "[$disk_id_] ${ylw}$num_.$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
             }
@@ -55,6 +56,7 @@ disk__status()
 
 disk_man_1__id="Print the disk ID of a given device or path. "
 disk_spc__id="id [PATH|MOUNT|DEV]"
+disk_load__id=R
 disk__id()
 {
   test -b "$1" || {
@@ -261,9 +263,6 @@ Sort of wizard, check/init vol(s) interactively for current disks
 "
 disk__check_all()
 {
-  #note "Got r00t?"
-  #sudo printf ""
-
   disk_list | while read dev
   do
     # Get disk meta
@@ -430,6 +429,9 @@ disk_load()
   test -n "$hostname" || hostname=$(hostname)
   test -n "$domainname" || domainname=$(domainname)
 
+  test -x "/sbin/parted" || error "parted required" 1
+  test -x "/sbin/fdisk" || error "fdisk required" 1
+
   test -n "$DISK_CATALOG" || export DISK_CATALOG=$HOME/.diskdoc
   #test -n "$DISK_VOL_DIR" || export DISK_VOL_DIR=/srv
 
@@ -437,8 +439,29 @@ disk_load()
   mkdir -p $DISK_CATALOG/disk
   mkdir -p $DISK_CATALOG/volume
 
-  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  export mnt_pref="sudo " dev_pref=
+
+  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
+
+      R ) # Device read access
+          ( for device in $(disk_list)
+          do
+            test -r "$device" && {
+              stder ok "Read/Write at $device"
+            } || {
+              warn "User has no read-access to $device disk device"
+              exit 1
+            }
+          done
+          ) || {
+            export dev_pref="sudo"
+            sudo echo >/dev/null || {
+              note "Got r00t? (need sudo for /dev/* read-access)"
+              sudo printf "Got it."
+            }
+          }
+        ;;
 
       f )
           failed=$(setup_tmpf .failed)
@@ -447,6 +470,10 @@ disk_load()
     esac
   done
 
+  #export dev_pref="sudo"
+  export fdisk="$dev_pref /sbin/fdisk"
+  export parted="$dev_pref /sbin/parted"
+  export blkid="$dev_pref /sbin/blkid"
 }
 
 disk_unload()

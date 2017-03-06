@@ -33,8 +33,6 @@ htd_load()
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
 
-  req_htdir
-
   test -e .package.sh && . .package.sh
 
   go_to_directory .projects.yaml && {
@@ -61,7 +59,6 @@ htd_load()
   _1HR_AGO=+%y%m%d0000
   _15MIN_AGO=+%y%m%d0000
   _5MIN_AGO=+%y%m%d0000
-
 
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname="$(uname -s)"
@@ -158,6 +155,9 @@ htd_load()
       ;;
     f ) # failed: set/cleanup failed varname
         export failed=$(setup_tmpf .failed)
+      ;;
+    H )
+        req_htdir || stderr error "HTDIR required ($HTDIR)" 1
       ;;
     i ) # io-setup: set all io varnames
         setup_io_paths -$subcmd-${htd_session_id}
@@ -2096,8 +2096,10 @@ htd__gitflow_check_doc()
     grep -q "\\s*$p_\\s*$" $1 || failed "$1: expected '$branch'"
   done
   exec 6<&-
-  test -s "$failed" || rm "$failed"
-  stderr ok "All branches found in '$1'"
+  test -s "$failed" || {
+    rm "$failed"
+    stderr ok "All branches found in '$1'"
+  }
 }
 
 htd_als__gitflow_check=gitflow-check-doc
@@ -2490,23 +2492,6 @@ htd__run()
     return $?
   }
 
-  {
-    jsotk.py path -O lines .package.main scripts/$1 || {
-      error "error getting lines for '$1'"
-      return 1
-    }
-  } | sponge | while read scriptline
-  do
-    not_trueish "$verbose_no_exec" || {
-      printf -- "\t$scriptline\n"
-      continue
-    }
-    info "Scriptline: '$scriptline'"
-    ( eval "$scriptline" ) \
-    &&
-      continue || error "At line '$scriptline'" $?
-  done
-
   # Execute script-lines
   (
     run_scriptname="$1"
@@ -2518,7 +2503,7 @@ htd__run()
       not_trueish "$verbose_no_exec" && {
         stderr info "Scriptline: '$scriptline'"
       } || {
-        stderr note "Scriptline: '$scriptline'"
+        printf -- "\t$scriptline\n"
         continue
       }
       {
@@ -2530,6 +2515,8 @@ htd__run()
       set --
     done
   )
+
+  stderr ok $1
 }
 
 
@@ -5213,6 +5200,7 @@ htd_init()
   lib_load
   . $scriptpath/box.init.sh
   box_run_sh_test
+  export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta box date doc table disk remote ignores package
   # -- htd box init sentinel --
 }

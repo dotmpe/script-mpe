@@ -2,10 +2,32 @@
 
 
 
+req_fdisk()
+{
+  test -n "$fdisk" -a -x "/sbin/fdisk" || {
+    error "$1: missing fdisk" 1
+    return
+  }
+}
+
+
+req_parted()
+{
+  test -n "$parted" -a -x "/sbin/parted" || {
+    error "$1: missing parted" 1
+    return
+  }
+}
+
+
 disk_fdisk_id()
 {
   {
-    sudo fdisk -l $1 || return $?
+    req_fdisk disk-fdisk-id || return
+    $fdisk -l $1 || {
+      error "disk-fdisk-id at '$1'"
+      return $?
+    }
   } | grep Disk.identifier | sed 's/^Disk.identifier: //'
 }
 
@@ -28,12 +50,18 @@ disk_id()
   esac
 }
 
+
+
 disk_model()
 {
   case "$(uname)" in
     Linux )
+        req_parted disk-model || return
         {
-          sudo parted -s $1 print || return $?
+          $parted -s $1 print || {
+            error "disk-model at '$1'"
+            return $?
+          }
         } | grep Model: | sed 's/^Model: //'
       ;;
     Darwin )
@@ -51,8 +79,12 @@ disk_size()
 {
   case "$(uname)" in
     Linux )
+        req_parted disk-size || return
         {
-          sudo parted -s $1 print || return $?
+          $parted -s $1 print || {
+            error "disk-size at '$1'"
+            return $?
+          }
         } | grep Disk.*: | sed 's/^Disk[^:]*: //'
       ;;
     Darwin )
@@ -66,8 +98,12 @@ disk_tabletype()
 {
   case "$(uname)" in
     Linux )
+        req_parted disk-tabletype || return
         {
-          sudo parted -s $1 print || return $?
+          $parted -s $1 print || {
+            error "disk-tabletype at '$1'"
+            return $?
+          }
         } | grep Partition.Table: | sed 's/^Partition.Table: //'
       ;;
     Darwin )
@@ -135,8 +171,8 @@ disk_list()
 disk_list_part_local()
 {
   local glob=
-  #test -n "$1" || error no-disk-list-part-local-args 1
-  test -z "$2" || error surpluss-disk-list-part-args 1
+  test -n "$1" || error no-disk-list-part-local-args 1
+  test -z "$2" || error "disk-list-part-local surplus args '$2'" 1
   case "$(uname)" in
     Linux )
         test -z "$1" && glob=/dev/sd*[a-z]*[0-9] \
@@ -158,7 +194,7 @@ disk_list_part_local()
 disk_partition_type()
 {
   test -z "$1" || local dev=$1
-  sudo blkid -o value -s TYPE $dev \
+  $blkid -o value -s TYPE $dev \
     || return $?
   # Or parse sudo file -Ls $dev
 }
@@ -201,7 +237,7 @@ mount_tmp()
 {
   test -n "$1" || error "Device or disk-id required" 1
   tmpd
-  sudo mount $1 $tmpd || return $?
+  $mnt_pref mount $1 $tmpd || return $?
   note "Mounted $1 at $tmpd"
   export tmp_mnt=$tmpd
 }

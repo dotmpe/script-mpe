@@ -45,9 +45,9 @@ BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
 ## Per-env settings
 
 case "$ENV_NAME" in dev ) ;; *|dev?* )
-			echo "Warning: No env '$ENV_NAME', overriding to 'dev'" >&2
-			export ENV_NAME=dev
-		;;
+      echo "Warning: No env '$ENV_NAME', overriding to 'dev'" >&2
+      export ENV_NAME=dev
+    ;;
 esac
 
 test -n "$ENV_NAME" || {
@@ -96,8 +96,40 @@ case "$ENV_NAME" in
 
 esac
 
+
+
+## Defaults
+
+# Sh
+test -n "$Env_Param_Re" || export Env_Param_Re='^\(ENV\|ENV_NAME\|NAME\|TAG\|ENV_.*\)='
+test -n "$Job_Param_Re" ||
+  export Job_Param_Re='^\(Project\|Jenkins\|Build\|Job\)_'
+test -n "$Build_Debug" ||       export Build_Debug=
+test -n "$Build_Offline" ||       export Build_Offline=
+test -n "$Dry_Run" ||           export Dry_Run=
+
+# install-dependencies
+#test -n "$Build_Deps_Default_Paths" || export Build_Deps_Default_Paths=1
 req_vars Build_Deps_Default_Paths || export Build_Deps_Default_Paths=1
-req_vars sudo || export sudo=sudo
+req_vars sudo || export sudo=
+
+
+# BATS tests dependencies
+
+test -n "$ProjectEnv_Requirements" ||
+  export ProjectEnv_Requirements="bats bats-specs docutils"
+test -n "$ProjectTest_BATS_Specs" || export ProjectTest_BATS_Specs="tests/bats/{,*-}spec.bats"
+
+test -z "$Build_Offline" && {
+  export projectenv_dep_web=1
+} || {
+  export projectenv_dep_web=0
+}
+
+test -n "$Jenkins_Skip" || {
+  test "$(whoami)" != jenkins || export Jenkins_Skip=1
+}
+
 
 req_vars RUN_INIT || export RUN_INIT=
 req_vars RUN_FLOW || export RUN_FLOW=

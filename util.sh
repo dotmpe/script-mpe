@@ -11,19 +11,19 @@ set -e
 
 lib_load()
 {
-	local f_lib_load=
-	test -n "$__load_lib" || local __load_lib=1
-  test -n "$1" || set -- sys os std stdio str src match main argv
-	while test -n "$1"
-	do
-		. $scriptpath/$1.lib.sh load-ext
-		f_lib_load=$(printf "${1}" | tr -Cs 'A-Za-z0-9_' '_')_load
-		# func_exists, then call
-		type ${f_lib_load} 2> /dev/null 1> /dev/null && {
-			${f_lib_load}
-		}
-		shift
-	done
+  local f_lib_load=
+  test -n "$__load_lib" || local __load_lib=1
+  test -n "$1" || set -- str sys os std stdio src match main argv
+  while test -n "$1"
+  do
+    . $scriptpath/$1.lib.sh load-ext
+    f_lib_load=$(printf "${1}" | tr -Cs 'A-Za-z0-9_' '_')_load
+    # func_exists, then call
+    type ${f_lib_load} 2> /dev/null 1> /dev/null && {
+      ${f_lib_load}
+    }
+    shift
+  done
 }
 
 util_init()

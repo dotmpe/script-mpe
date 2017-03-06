@@ -294,9 +294,10 @@ statusdir__lib()
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-    statusdir__main "$@"
-  ;; esac
+  test -n "$__load_lib" || {
+    case "$1" in load-ext ) ;; * )
+      statusdir__main "$@"
+    ;; esac
+  }
 ;; esac
 

@@ -3,6 +3,12 @@
 # stdio.lib.sh: additional io for shell scripts
 
 
+stdio_load()
+{
+  return 0
+}
+
+
 # setup-io-paths: helper names all temp. IO files (setup_tmpf)
 # args: PREFIX
 setup_io_paths()
