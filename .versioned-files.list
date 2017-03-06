@@ -2,6 +2,10 @@ ReadMe.rst
 package.yaml
 Rules.mk
 match.sh
+test/util-lib-spec.bats
+test/str-lib-spec.bats
+test/sys-lib-spec.bats
+test/std-lib-spec.bats
 test/htd-spec.bats
 test/os-lib-spec.bats
 test/diskdoc-spec.bats

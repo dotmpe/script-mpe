@@ -209,3 +209,4 @@ init
   #test ${status} -eq 0
 }
 
+# Id: script-mpe/0.0.3-dev test/std-lib-spec.bats
