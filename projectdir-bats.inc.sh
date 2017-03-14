@@ -162,14 +162,10 @@ pd__bats_specs()
   local file_count=0 test_count=0
   for arg in $@
   do
-    local tests="$( { verbosity=0; bats-exec-test -l "$arg" || {
-      errored "$subcmd:$arg";
-    };} | lines_to_words )"
-    test -z "$tests" || {
-      incr file_count
-      echo $tests | words_to_lines | sed 's#^#'$subcmd:$arg':#' >$passed
-      incr test_count $(echo "$tests" | count_words)
-    }
+    tests="$(bats -c "$arg" || errored "$subcmd:$arg")"
+    incr file_count
+    incr test_count $tests
+    bats -l names $arg | words_to_lines | sed 's#^#'$subcmd:$arg':#' >$passed
   done
   test $test_count -gt 0 \
     && {
