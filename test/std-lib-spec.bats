@@ -199,14 +199,5 @@ init
 #  test "$stdio_0_type" = "p"
 }
 
-@test "${lib}/${base} - function should ..." {
-  check_skipped_envs || \
-    TODO "envs $envs: implement lib (test) for env"
-  #run function args
-  #echo ${status} > /tmp/1
-  #echo "${lines[*]}" >> /tmp/1
-  #echo "${#lines[@]}" >> /tmp/1
-  #test ${status} -eq 0
-}
 
 # Id: script-mpe/0.0.3-dev test/std-lib-spec.bats

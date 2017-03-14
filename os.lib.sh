@@ -3,6 +3,12 @@
 
 # OS: files, paths
 
+os_load()
+{
+  test -n "$uname" || export uname="$(uname)"
+}
+
+
 # Combined dirname/basename to replace .ext
 pathname()
 {

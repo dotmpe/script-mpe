@@ -386,9 +386,9 @@ class EmbeddedIssue:
         dspan = tuple([ x+1 for x in self.description_span ])
         scei_id = self.srcdoc.source_name
         if full:
-            cspan = tuple([ x+1 for x in self.comment_char_span ])
+            # XXX: cspan = tuple([ x+1 for x in self.comment_char_span ])
             scei_id += ":%s-%s;lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
-                    dspan + self.line_span + ( self.comment_flavour, ) + self.char_span )
+                    dspan + tuple(self.line_span) + ( self.comment_flavour, ) + tuple(self.char_span) )
         else:
             scei_id += ":%s-%s" % dspan
         return scei_id
@@ -416,10 +416,10 @@ class EmbeddedIssue:
                     cmt.comment_flavour, \
                     repr(cmt.raw), \
                     repr(cmt.descr) ])),
-            'raw2': lambda cmt, data: [
+            'raw2': lambda cmt, data: " ".join([
                 "%s '%s' <%s> %s" %(
                     tag, tag.raw, tag.canonical(data), cmt
-                ) for tag in cmt.tags ]
+                ) for tag in cmt.tags ])
         }
 
 
@@ -948,6 +948,8 @@ def get_peek(source):
     except Exception, e:
         log.debug("get-peek: %s", e)
 
+
+# XXX: old
 def find_files_with_tag(session, matchbox, paths):
 
     """
@@ -1070,7 +1072,7 @@ class Radical(rsr.Rsr):
     DEPENDS = dict(
             rdc_init = [ 'rsr_session' ],
             rdc_run_embedded_issue_scan = [
-                'rdc_init', 'rsr_session', 'prepare_output' ],
+                'rdc_init', 'rdc_paths', 'rsr_session', 'prepare_output' ],
             rdc_list_flavours = [ 'rdc_init', 'load_config', 'prepare_output' ],
             rdc_list_scans = [ 'load_config', 'prepare_output' ],
             rdc_info = [ 'rdc_init' ]
@@ -1094,8 +1096,16 @@ class Radical(rsr.Rsr):
 
                 # -f PATTERN   Include only matching files.
 
-                p(('-F', '--add-flavour'),{ 'action': 'callback', 'callback': append_comment_scan,
-                    'help': "Scan for these comment flavours only, by default all known fla." }),
+                p(('--input',),{
+                    'metavar': 'FILE',
+                    'dest': 'input',
+                    'help': "Read path arguments from file (or '-' for stdin)." }),
+
+                p(('-F', '--add-flavour'),{
+                    'action': 'callback',
+                    'callback': append_comment_scan,
+                    'help': "Scan for these comment flavours only, iso. all "
+                        +"known flavours." }),
 
                 p(('--list-flavours',), libcmd.cmddict(inheritor.NAME)),
                 p(('--list-scans',), libcmd.cmddict(inheritor.NAME)),
@@ -1146,10 +1156,22 @@ class Radical(rsr.Rsr):
             print
         return
 
+    def rdc_paths(self, opts=None, *paths):
+        if paths:
+            paths = list(paths)
+        else:
+            paths = []
+        if opts.input:
+            if opts.input == '-':
+                paths += [ l.strip() for l in sys.stdin.readlines() ]
+            else:
+                paths += open(opts.input).readlines()
+        yield dict( paths=paths )
+
     def rdc_init(self, prog=None):
         global rc
         rc = self.rc
-        # start db session
+        # XXX: start db session, see rsr-session
         #dbsession = get_session(self.rc.dbref)
         #yield dict( dbsession=dbsession )
 
@@ -1184,14 +1206,14 @@ class Radical(rsr.Rsr):
 
             yield source
 
-    def rdc_run_embedded_issue_scan(self, sa, issue_format=None, opts=None, *paths):
+    def rdc_run_embedded_issue_scan(self, sa, issue_format=None, opts=None,
+            paths=[]):
 
         """
         Main function: scan multiple sources and print/log embedded issues
         found.
         """
-
-        if not paths: paths=['.']
+        assert paths, opts
 
         # TODO: make ascii peek optional, charset configurable
         # TODO: implement contexts, ref per source
@@ -1202,6 +1224,10 @@ class Radical(rsr.Rsr):
         matchbox = compile_rdc_matchbox(rc)
 
         taskdocs = {}
+
+        # TODO: old clean/rewrite functions
+        # iterate paths
+        #for embedded in find_files_with_tag(sa, matchbox, paths):
 
         for source in source_iter:
             data = open(source).read()
@@ -1227,40 +1253,23 @@ class Radical(rsr.Rsr):
                 if not cmt:
                     continue
 
-                # XXX
                 srcdoc.scei.append(cmt)
+                self.rdc_issue(cmt, data, issue_format=issue_format)
 
-                if opts.quiet:
-                    issue_format = 'id'
-
-                print EmbeddedIssue.formats[issue_format](cmt, data)
-        return
-
-        # TODO: old clean/rewrite functions
-
-        # iterate paths
-        for embedded in find_files_with_tag(sa, matchbox, paths):
-
-            if embedded.tag_id:
+            #if embedded.tag_id:
                 #if embedded.tag_id == NEED_ID:
-                    yield dict(issues=[ embedded ])
-                    try:
-                        if issue_format:
-                            print EmbeddedIssueOld.formats[issue_format](embedded)
-                        log.note('Embedded Issue %r', (embedded.file_name, \
-                                embedded.tag_name, embedded.tag_id, \
-                                embedded.comment_span, embedded.comment_lines, \
-                                embedded.description, embedded.comment_flavour))
-                    except Exception, e:
-                        log.err(e)
                     #new_id = service.new_issue(embedded.tag_name, embedded.description)
                     #embedded.set_new_id(new_id)
                     #service.update_issue(embedded.tag_name, embedded.tag_id,
                     #        embedded.description)
-            else:
-                assert False
-                pass
             #embedded.store(dbsession)
+
+    def rdc_issue(self, cmt, data, issue_format='id'):
+        if issue_format not in EmbeddedIssue.formats:
+            raise Exception("Unknown format '%r', %s" % (issue_format,
+                EmbeddedIssue.formats.keys()))
+        out = EmbeddedIssue.formats[issue_format](cmt, data)
+        print re.sub('[\r\n]', '', out)
 
     def rdc_info(self, prog, sa):
         print 'Radical info', prog, sa

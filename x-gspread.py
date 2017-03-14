@@ -1,3 +1,4 @@
+# ENV-NAME: gspread-boreas
 import os
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -9,6 +10,14 @@ GSPREAD_SHEET_TITLE = os.getenv('GSPREAD_SHEET_TITLE')
 #GSPREAD_WORKSHEET_TITLE = ''
 GSPREAD_WORKSHEET_RANGE = os.getenv('GSPREAD_WORKSHEET_RANGE')
 
+if not GSPREAD_CREDS_JSON:
+    raise Exception("GSPREAD_CREDS_JSON")
+
+if not GSPREAD_SHEET_TITLE:
+    raise Exception("GSPREAD_SHEET_TITLE")
+
+if not GSPREAD_WORKSHEET_RANGE:
+    raise Exception("GSPREAD_WORKSHEET_RANGE")
 
 scope = ['https://spreadsheets.google.com/feeds']
 

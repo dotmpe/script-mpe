@@ -64,7 +64,8 @@ opt_args()
 }
 
 
-# Deprecated. Given $failed pointing to a path, cleanup after a run, observing
+# clean-failed - Deprecated.
+# Given $failed pointing to a path, cleanup after a run, observing
 # any notices and returning 1 for failures.
 clean_failed()
 {

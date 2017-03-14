@@ -29,6 +29,7 @@ htd_load()
   test -n "$HTD_TOOLSDIR" || HTD_TOOLSDIR=$HOME/.htd-tools
   test -n "$HTD_JRNL" || HTD_JRNL=personal/journal
   test -n "$FIRSTTAB" || export FIRSTTAB=50
+  test -n "$LOG" || export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
 
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
@@ -1457,10 +1458,11 @@ htd__tasks()
   mkdir -vp $(dirname "$comments")
   (
     { test -e .git && git ls-files || pd list-paths --tasks; } \
-      | xargs radical.py run-embedded-issue-scan \
-        --issue-format full-sh > $comments
+      | radical.py run-embedded-issue-scan \
+        --input - --issue-format full-sh > $comments
   ) || error "Could not update $comments" 1
   wc -l $comments
+  exit 123
   tasks.py -v -s $pd_meta_tasks_slug read-issues \
     -g $comments -t $pd_meta_tasks_document \
       || error "Could not update $pd_meta_tasks_document" 1
@@ -2375,6 +2377,7 @@ htd__record()
 
 ## Annex:
 
+htd_spc__save='save [ ( [PREFIX/]ID ) | PATHNAME [DESTPATH] ]'
 # Save refs (download locators if not present) to prefix,
 # building a full path for each ref from the prefix+ids+filetags.
 # $ save "[<prefix>/]<id>" <refs>...
@@ -2384,8 +2387,26 @@ htd__record()
 # <prefix>
 htd__save()
 {
-  htd__save_tags "$1"
-  htd__save_url "$@"
+  # TODO: fix the old save URL setup
+  case "$1" in
+    http*|magnet*|mailto* )
+        htd__save_tags "$1"
+        htd__save_url "$@"
+      ;;
+    * )
+        req_file_arg "$1"
+        test -n "$2" -o -d "$2" || error "expected directory argument '$2'" 1
+        test -- "$1" "$bp/$bn"
+        note "TODO: set target to journal, or cabinet"
+        exit 1
+        local bp="$(dirname "$1")" bn="$(basename "$1")"
+        echo cp $1 $2/$bp/$bn
+        echo "# See-Also: $new_ctxid $bp/$bn" >>$1
+        htd_rewrite_comment Id From $2/$bp/$bn
+        echo "# See-Also: $ctxid $bp/$bn" >>$2/$bp/$bn
+        local new_ctxid=""
+      ;;
+  esac
 }
 
 htd__save_tags()

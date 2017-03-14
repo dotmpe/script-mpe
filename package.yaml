@@ -94,6 +94,7 @@
     #test: pd test
     test:
       - verbose=1 git-versioning check
+      - ENV_NAME=gspread-boreas . ~/.conf/bash/env && python x-gspread.py
       - python test/main.py
       - projectdir.sh run :bats:specs
       - bats test/*-spec.bats

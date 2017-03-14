@@ -11,6 +11,11 @@ routes:
   media/script/client.js: coffee:Sitefile/client.coffee
   npm/packages: static:{,sitefile:}node_modules/
   '': redir:ReadMe
+  # Catch all other filenames and serve static
+  #_static: static:*.*
+  #_stc1: static:treemap/*.html
+  #treemap/1: static:treemap/1.html
+  #treemap/2: static:treemap/2.html
 
 options:
   global:

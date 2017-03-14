@@ -48,6 +48,7 @@ rect {
 		.attr("x", function(d) { return x(d.x); })
 		.attr("y", function(d) { return y(d.y); })
 		.attr("width", function(d) { return x(d.dx); })
+    :qa
 		.attr("height", function(d) { return y(d.dy); })
 		.attr("fill", function(d) { return color((d.children ? d : d.parent).key); })
 		.on("click", clicked);

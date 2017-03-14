@@ -115,17 +115,27 @@ req_bin()
 
 req_path_arg()
 {
-	test -n "$1" || error "path or file argument expected" 1
-	test -e "$1" || error "not a path '$1'" 1
+	test -n "$1" -a -e "$1" || error "path or file argument expected: '$1'" 1
 }
 
 
+req_file_arg()
+{
+	test -n "$1" -a -f "$1" || error "file argument expected: '$1'" 1
+}
+
+
+req_dir_arg()
+{
+  test -n "$1" -a -d "$1" || error "directory argument expected: '$1'" 1
+}
+
+
+# same as req-dir-arg but set argument to var 'path' also
 req_cdir_arg()
 {
   test -n "$1"  && path="$1"  || path=.
-  test -d "$path" || {
-    error "directory argument expected" 1
-  }
+  req_dir_arg "$1"
 }
 
 

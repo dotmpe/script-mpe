@@ -1283,6 +1283,94 @@ vc__annex_local()
 }
 
 
+# Check wether the literal ref exists (named branches with refs/heads/, or remotes with
+# refs/remote/<remote>/ prefix)
+vc__git_ref_exists()
+{
+	git show-ref --verify -q "$1" || return $?
+}
+
+# Check for local or remote branch name
+vc__git_branch_exists()
+{
+	vc__git_ref_exists "refs/heads/$upstream" && return
+	vc__git_ref_exists "refs/remotes/$upstream" && return
+	return 1
+}
+
+# List branches
+vc__git_branches()
+{
+	#git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
+	git for-each-ref --format='%(refname:short)' refs/heads
+}
+
+# Run over UP/DOWN-stream branchname pairs and show info:
+# - wether branches have diverged
+# - how many commits each has
+# - for feature branches wether they are merged upstream and can be deleted
+vc__gitflow()
+{
+	case "$1" in
+		check|chk )
+				test -z "$3" || error "surplus argument '$3'" 1
+				test -n "$2" || set -- "$1" gitflow.tab
+				test -e "$2" || error "missing gitflow file" 1
+				note "Reading from '$2'"
+				read_nix_style_file "$2" | while read upstream downstream isfeature
+				do
+					test -n "$upstream" -a -n "$downstream" || continue
+					test -n "$upstream" || error "Missing upstream $downstream"
+					test -n "$downstream" || error "Missing downstream $upstream"
+					test -n "$isfeature" || isfeature=true
+
+					vc__git_branch_exists "refs/heads/$upstream" || {
+						error "$non_branch_err '$upstream $downstream $isfeature'" &&
+							continue
+					}
+
+					vc__git_branch_exists "refs/heads/$downstream" || {
+						error "$non_branch_err '$upstream $downstream $isfeature'" &&
+							continue
+					}
+
+					new_at_up=$(echo $(git log --oneline $downstream..$upstream | wc -l))
+					new_at_down=$(echo $(git log --oneline $upstream..$downstream | wc -l))
+					m="$(git merge-base $upstream $downstream)"
+
+					test "$m" = "$(git rev-parse $upstream)" -o "$m" = "$(git rev-parse $downstream)" && {
+						echo "ok: $upstream - $downstream"
+					} || {
+						echo "diverged: $upstream .. $downstream"
+					}
+					test $new_at_down -eq 0 && {
+						trueish "$isfeature" && {
+							echo "downstream '$downstream' has no commits and could be removed"
+						} || noop
+					} ||
+						echo "$new_at_down commits '$upstream' <- '$downstream' "
+
+					test $new_at_up -eq 0 ||
+						echo "$new_at_up commits '$upstream' -> '$downstream' "
+				done
+				for branch in $(vc__git_branches)
+				do
+					grep -qF "$branch" "$2" ||
+						error "Missing gitflow for '$branch'"
+				done
+			;;
+		* )
+				error "? '$1'"
+			;;
+	esac
+}
+vc__gf()
+{
+  vc__gitflow "$@"
+}
+vc_als__gf=gitflow
+
+
 
 # TODO: add other backup commands, like htd backup. modelled after brixadmin
 # unversioned-files.
