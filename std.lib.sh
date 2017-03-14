@@ -290,7 +290,6 @@ stderr()
 
   esac
   test -z "$3" || {
-    echo "stderr exiting $3" >&2
     exit $3
   }
 }
@@ -310,7 +309,11 @@ std_exit()
     echo "std-exit: Surplus arguments '$2'"
     exit 200
   }
-  test "$1" != "0" -a -z "$1" && return 1 || exit $1
+  test "$1" != "0" -a -z "$1" && return 1 || {
+    test -z "$verbosity" -a $verbosity -ge 5 &&
+      echo "std-exit $3" >&2
+    exit $1
+  }
 }
 
 emerg()
