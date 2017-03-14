@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """:created: 2016-09-10
 
-Read and sync between tasks.ttxt and todo.list.
-tasks.ttxt is formatted as todo.txt. todo.list is compatible with
-``grep -Hn`` output, or with Radical full-sh format.
+TODO: Read and sync between tasks.ttxtm and todo.list.
+tasks.ttxtm is formatted as todo.txt. todo.list is compatible with
+``grep -Hn`` output, and with Radical full-sh format.
 
     <file> ':' <line> ': ' <matched>
 
@@ -29,7 +29,7 @@ Objects
 """
 __description__ = "tasks - time ordered, grouped tasks"
 __version__ = '0.0.3-dev' # script-mpe
-__tasks_file__ = 'tasks.ttxt'
+__tasks_file__ = 'tasks.ttxtm'
 __grep_file__ = 'todo.list'
 __usage__ = """
 Usage:

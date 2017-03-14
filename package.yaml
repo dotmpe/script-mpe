@@ -97,7 +97,7 @@
       - ENV_NAME=gspread-boreas . ~/.conf/bash/env && python x-gspread.py
       - python test/main.py
       - projectdir.sh run :bats:specs
-      - bats test/*-spec.bats
+      - bats test/*-spec.bats | bats-color.sh
     #build: pd build
     build:
       - export SCR_SYS_SH=bash-sh

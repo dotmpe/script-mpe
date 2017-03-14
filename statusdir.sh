@@ -40,8 +40,6 @@ statusdir_load()
   test ! -e "$scriptpath/statusdir_$sd_be.sh" || {
     . $scriptpath/statusdir_$sd_be.sh
   }
-
-  # FIXME: membash does not support ping $sd_be ping
 }
 
 statusdir_unload()
@@ -62,10 +60,25 @@ statusdir__root()
 }
 
 
-statusdir__be()
+statusdir__backend()
 {
   echo $sd_be
 }
+statusdir_als__be=backend
+
+
+statusdir__backends()
+{
+  for bn in $scriptpath/statusdir_*.sh
+  do
+    sd_be_name=
+    . $bn
+    test -n "$sd_be_name" || error "Backend name expected ($(basename "$bn"))"
+    $sd_be_name ping && note "$sd_be_name OK" || warn "No $sd_be_name backend"
+  done
+}
+statusdir_als__bes=backends
+
 
 statusdir__reset()
 {

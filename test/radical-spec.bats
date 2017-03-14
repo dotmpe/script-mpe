@@ -62,10 +62,6 @@ init
 	local t=test/var/radical-tasks-1.txt
   for fmt in full-id raw2 todo.txt raw id full-sh
   do
-    case $fmt in raw2|todo.txt )
-        diag "FIXME: '$fmt'"; continue
-      ;;
-    esac
     run ${bin} -q --issue-format $fmt $t
     test_ok_nonempty || stdfail $fmt
   done
@@ -83,18 +79,78 @@ init
 	local t=test/var/radical-tasks-1.txt
 
 	run ${bin} -q --issue-format full-sh $t
-  test "${lines[0]}" = ":test/var/radical-tasks-1.txt:3-3:4-67::::TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit." || stdfail 1
+  { test $status -eq 0 &&
+    test "${lines[0]}" = ":test/var/radical-tasks-1.txt:3-3:4-67::::TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n" &&
+    test ${#lines[@]} -eq 1
+  } || stdfail 1:full-sh
  
 	run ${bin} -q --issue-format id $t
-  test "${lines[0]}" = "test/var/radical-tasks-1.txt:4-67" || stdfail 2
+  { test $status -eq 0 &&
+    test "${lines[0]}" = "test/var/radical-tasks-1.txt:4-67" &&
+    test ${#lines[@]} -eq 1
+  } || stdfail 2:id
 
 	run ${bin} -q --issue-format full-id $t
-	test "${lines[0]}" = "test/var/radical-tasks-1.txt:4-67;lines=2-2;flavour=unix_generic;comment=4-67" || stdfail 3
+  { test $status -eq 0 &&
+    test "${lines[0]}" = "test/var/radical-tasks-1.txt:4-67;lines=2-2;flavour=unix_generic;comment=4-67" &&
+    test ${#lines[@]} -eq 1
+	} || stdfail 3:full-id
+
+	run ${bin} -q --issue-format todo.txt $t
+  { test $status -eq 0 &&
+    test "${lines[0]}" = "TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit.  +test/var/radical-tasks-1.txt line:3-3 char:4-67" &&
+    test ${#lines[@]} -eq 1
+	} || stdfail 4:todo.txt
 }
 
-@test "${bin} test/var/radical-tasks-2.txt" {
 
-  TODO
+@test "${bin} test/var/radical-tasks-2.txt" {
+	local t=test/var/radical-tasks-2.txt
+
+	run ${bin} -q --issue-format full-sh $t
+  { test $status -eq 0 &&
+    test ${#lines[@]} -eq 1
+  } || stdfail 1:full-sh
+ 
+	run ${bin} -q --issue-format id $t
+  { test $status -eq 0 &&
+    test ${#lines[@]} -eq 1
+  } || stdfail 2:id
+
+	run ${bin} -q --issue-format full-id $t
+  { test $status -eq 0 &&
+    test ${#lines[@]} -eq 1
+	} || stdfail 3:full-id
+
+	run ${bin} -q --issue-format todo.txt $t
+  { test $status -eq 0 &&
+    test ${#lines[@]} -eq 1
+	} || stdfail 4:todo.txt
+}
+
+
+@test "${bin} test/var/radical-tasks-4.txt" {
+	local t=test/var/radical-tasks-4.txt
+
+	run ${bin} -q --issue-format full-sh $t
+  { test $status -eq 0 &&
+    test ${#lines[@]} -eq 4
+  } || stdfail 1:full-sh
+ 
+	run ${bin} -q --issue-format id $t
+  { test $status -eq 0 &&
+    test ${#lines[@]} -eq 4
+  } || stdfail 2:id
+
+	run ${bin} -q --issue-format full-id $t
+  { test $status -eq 0 &&
+    test ${#lines[@]} -eq 4
+	} || stdfail 3:full-id
+
+	run ${bin} -q --issue-format todo.txt $t
+  { test $status -eq 0 &&
+    test ${#lines[@]} -eq 4
+	} || stdfail 4:todo.txt
 }
 
 

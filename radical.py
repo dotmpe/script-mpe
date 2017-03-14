@@ -395,7 +395,6 @@ class EmbeddedIssue:
 
 
     formats = {
-            'todo.txt': lambda cmt, data: "",
             'id': lambda cmt, data: cmt.scei_id(False),
             'full-id': lambda cmt, data: cmt.scei_id(),
             'full-sh': lambda cmt, data: ":".join(
@@ -408,15 +407,22 @@ class EmbeddedIssue:
                     '', # line-offset-descr-span
                     '', # cmnt-span
                     '', # line-offset-cmnt-span
-                    cmt.descr
+                    repr(cmt.descr)[1:-1]
                 ])),
+            'todo.txt': lambda cmt, data: " ".join([
+                    # FIXME: cleanup & parsing in EmbeddedIssue re.sub(r'\s+', ' ', cmt.descr),
+                    re.sub(r'\s+', ' ', cmt.raw),
+                    '+'+cmt.srcdoc.source_name,
+                    "line:%i-%i" % tuple([ x+1 for x in cmt.line_span ]),
+                    "char:%i-%i" % tuple([ x+1 for x in cmt.description_span ])
+                ]),
             'raw': lambda cmt, data: " ".join(
                 map(str, [ cmt.srcdoc.source_name,
                     cmt.line_span, \
                     cmt.comment_flavour, \
                     repr(cmt.raw), \
                     repr(cmt.descr) ])),
-            'raw2': lambda cmt, data: " ".join([
+            'raw2': lambda cmt, data: " ".join([ cmt.comment_flavour ] + [
                 "%s '%s' <%s> %s" %(
                     tag, tag.raw, tag.canonical(data), cmt
                 ) for tag in cmt.tags ])
@@ -1269,7 +1275,8 @@ class Radical(rsr.Rsr):
             raise Exception("Unknown format '%r', %s" % (issue_format,
                 EmbeddedIssue.formats.keys()))
         out = EmbeddedIssue.formats[issue_format](cmt, data)
-        print re.sub('[\r\n]', '', out)
+        assert not re.match('[\r\n]', out)
+        print out
 
     def rdc_info(self, prog, sa):
         print 'Radical info', prog, sa
@@ -1279,5 +1286,4 @@ class Radical(rsr.Rsr):
 
 if __name__ == '__main__':
     Radical.main()
-
 
