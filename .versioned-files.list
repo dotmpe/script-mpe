@@ -34,6 +34,7 @@ host.py
 node.py
 project.py
 redmine_meta.py
+topics.sh
 tasks.sh
 tasks.py
 todo-meta.py

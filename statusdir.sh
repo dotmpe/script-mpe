@@ -45,8 +45,9 @@ statusdir_load()
 statusdir_unload()
 {
   test -n "$sd_tmp_dir" || error "sd_tmp_dir unload" 1
-  test "$(echo $sd_tmp_dir/*)" = "$sd_tmp_dir/*" \
-    || warn "Leaving temp files $(echo $sd_tmp_dir/*)"
+  # XXX: quick check for cruft. Is triggering on empty directories.
+  #test "$(echo $sd_tmp_dir/*)" = "$sd_tmp_dir/*" \
+  #  || warn "Leaving temp files in $sd_tmp_dir: $(echo $sd_tmp_dir/*)"
   unset sd_be sd_tmp_dir
 }
 

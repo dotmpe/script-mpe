@@ -35,23 +35,24 @@ util_init()
 }
 
 
-case "$0" in "" ) ;; "-"* ) ;; * )
+case "$0" in
+  "-"*|"" ) ;;
+  * )
 
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in
-    load-* ) ;; # External include, do nothing
-    boot )
-        test -n "$scriptpath" || scriptpath="$(dirname "$0")"
-        lib_load
-      ;;
+      test -z "$__load_lib" || set -- "load-ext"
+      case "$1" in
+        load-* ) ;; # External include, do nothing
+        boot )
+            test -n "$scriptpath" || scriptpath="$(dirname "$0")"
+            lib_load
+          ;;
+        * ) # Setup SCRIPTPATH and include other scripts
 
-    * ) # Setup SCRIPTPATH and include other scripts
-
-        test -n "$scriptpath"
-        lib_load
-
-  ;; esac
-
-;; esac
+            test -n "$scriptpath"
+            lib_load
+          ;;
+      esac
+    ;;
+esac
 
 # Id: script-mpe/0.0.3-dev util.sh

@@ -1453,20 +1453,22 @@ htd__tasks()
     test -n "$id" \
       && pd_meta_tasks_slug="$(printf -- "$id" | tr 'a-z' 'A-Z' | tr -sc 'A-Z0-9_-' '-')"
   }
-  test -n "$pd_meta_tasks_slug" || error "Project slug required" 1
   local comments=$(setup_tmpf .comments)
   mkdir -vp $(dirname "$comments")
   (
     { test -e .git && git ls-files || pd list-paths --tasks; } \
-      | radical.py run-embedded-issue-scan \
-        --input - --issue-format full-sh > $comments
+      | radical.py --input - --issue-format full-sh > $comments
   ) || error "Could not update $comments" 1
-  wc -l $comments
-  exit 123
-  tasks.py -v -s $pd_meta_tasks_slug read-issues \
-    -g $comments -t $pd_meta_tasks_document \
-      || error "Could not update $pd_meta_tasks_document" 1
-  note "OK. $(count_lines $pd_meta_tasks_document) open tasks"
+
+  test -z "$pd_meta_tasks_slug" && {
+    warn "Slug required to update store ($comments)"
+  } ||  {
+    wc -l $comments
+    tasks.py -v -s $pd_meta_tasks_slug read-issues \
+      -g $comments -t $pd_meta_tasks_document \
+        || error "Could not update $pd_meta_tasks_document" 1
+    note "OK. $(count_lines $pd_meta_tasks_document) open tasks"
+  }
 }
 
 htd__todo()
@@ -5104,6 +5106,13 @@ htd__clean_osx()
   ) && stderr ok "Deleted contents of {~,}/Library/Caches" ||
     error "Failure removing contents of {~,}/Library/Caches"
 }
+
+
+htd__list_functions()
+{
+  list_functions "$1"
+}
+
 
 
 # util

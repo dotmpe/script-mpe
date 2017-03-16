@@ -154,7 +154,7 @@ box_instance_unload()
 
 # Main entry - bootstrap script if requested
 case "$0" in "" ) ;; "-"* ) ;; * )
-  test -z "$__load_lib" || set -- "load-ext"
+  # XXX: cleanup test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
       box_instance_main "$@" || exit $? ;;
   esac ;;

@@ -2,7 +2,7 @@
 """:created: 2014-09-07
 :updated: 2014-10-12
 
-TODO figure out model. look at folder.py first.
+TODO figure out model. look at folder.py too
 TODO: create all nodes; name, description, hierarchy and dump/load json/xml
     most dirs in tree ~/htdocs/
     headings in ~/htdocs/personal/journal/*.rst
@@ -143,5 +143,4 @@ if __name__ == '__main__':
     opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
 

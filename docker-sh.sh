@@ -1061,7 +1061,7 @@ docker_sh__help()
     choice_global=1 \
       std__help "$@"
   )
-  rm_failed || return
+  rm_failed || return 0
 }
 #docker_sh_als___h=help
 
@@ -1133,6 +1133,7 @@ docker_sh_main()
   docker_sh_init || return 0
 
   local scriptname=docker-sh alias=dckr base=$(basename $0 .sh) verbosity=5
+  local failed=
 
   case "$base" in $scriptname | $alias )
 
@@ -1189,6 +1190,16 @@ docker_sh_load()
   docker_sh_c_pref="${hostname}-"
 
   test -n "$EDITOR" || EDITOR=vim
+  local flags="$(try_value "${subcmd}" load | sed 's/./&\ /g')"
+  for x in $flags
+  do case "$x" in
+
+    f ) # failed: set/cleanup failed varname
+        export failed=$(setup_tmpf .failed)
+      ;;
+
+    esac
+  done
 
   # -- dckr-sh box load sentinel --
   set --
@@ -1199,19 +1210,16 @@ docker_sh_unload()
 {
   local unload_ret=0
 
-  #for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
-  #do case "$x" in
-  # ....
-  #    f )
-  #        clean_failed || unload_ret=1
-  #      ;;
-  #esac; done
-
-  clean_failed || unload_ret=$?
+  for x in $(try_value "${subcmd}" "" load | sed 's/./&\ /g')
+  do case "$x" in
+      f )
+          clean_failed || unload_ret=1
+          unset failed
+        ;;
+  esac; done
 
   unset subcmd subcmd_pref \
-          def_subcmd func_exists func \
-          failed
+          def_subcmd func_exists func
 
   return $unload_ret
 }

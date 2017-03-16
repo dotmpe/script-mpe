@@ -159,8 +159,7 @@ tasks_unload()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  case "$1" in
-    load-ext ) ;;
+  case "$1" in load-ext ) ;;
     * )
       esop_main "$@" ;;
 

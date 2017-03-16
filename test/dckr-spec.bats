@@ -19,10 +19,11 @@ init
 @test "${bin} -h" {
   test -n "$DCKR_VOL" || skip "DCKR_VOL not set"
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  fnmatch "*Usage:*" "${lines[*]}" # usage info on out
+  { test ${status} -eq 0 &&
+    fnmatch "*Usage:*" "${lines[*]}" && # usage info on out
 #  fnmatch "*Commands:*" "${lines[*]}" # detailed usage on out
-  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+    { fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop; }
+  } || stdfail
 }
 
 @test "${bin} help" {

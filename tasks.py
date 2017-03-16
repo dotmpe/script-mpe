@@ -35,39 +35,42 @@ __usage__ = """
 Usage:
   tasks.py [options] info
   tasks.py [options] read-issues
+  tasks.py [options] update-list [TODOLIST]
+  tasks.py [options] parse-list [TODOLIST]
   tasks.py help
   tasks.py -h|--help
   tasks.py --version
 
 Options:
-    -t FILE --tasks-file=FILE
-                  Document with ``todo.txt`` formatted tickets [default: %s].
-    -g FILE --grep-file=FILE
-                  Result file with line references and single line descriptions
-                  parsed from source [default: %s].
+  -t FILE --tasks-file=FILE
+                Document with ``todo.txt`` formatted tickets [default: %s].
+  -g FILE --grep-file=FILE
+                Result file with line references and single line descriptions
+                parsed from source [default: %s].
+  -s SLUG --project-slug=SLUG
+                Project name Id slug, used to match existing issues with
+                comments. Defaults to current directory reformatted in all
+                capitals and with non alphanumeric characters removed.
+  -S SEP --key-sep=SEP
+                Separator [default: -].
+  -k TYPE --key-type=TYPE
+                Mode to create new issue tags, 'number': append count+1 or
+                'hex': append random hex ID, to project slug.
+                [default: hex]
+  -K LEN --key-arg=LEN
+                Argument to create new issue tags: length of hex or offset
+                for number [default: 5].
+  -v            Increase verbosity.
+  --verbosity VALUE
+                Set verbosity.
+  -h --help     Show this usage description.
+                For a command and argument description use the command 'help'.
+  -V --version     Show version (%s)
 
-    -s SLUG --project-slug=SLUG
-                  Project name Id slug, used to match existing issues with
-                  comments. Defaults to current directory reformatted in all
-                  capitals and with non alphanumeric characters removed.
-    -k TYPE --key-type=TYPE
-                  Mode to create new issue tags, 'number': append count+1 or
-                  'hex': append random hex ID, to project slug.
-                  [default: hex]
-    -K LEN --key-arg=LEN
-                  Argument to create new issue tags: length of hex or offset
-                  for number.
-                  [default: 5]
-    -S SEP --key-sep=SEP
-                  Separator [default: -]
+Defaults:
+    (Would want to set defaults, but see docopt#36)
 
-Other flags:
-    -v
-    --verbosity VALUE
-                  Increase verbosity.
-    -h --help     Show this usage description.
-                  For a command and argument description use the command 'help'.
-    --version     Show version (%s).
+    TODOLIST      [default: to/do.list]
 
 """ % ( __tasks_file__, __grep_file__, __version__ )
 from datetime import datetime
@@ -78,6 +81,7 @@ from pprint import pformat
 
 import log
 import util
+import res
 
 
 grep_nH_rs = re.compile('^([^:\ ]+):([0-9]+):\ (.*)$')
@@ -222,6 +226,16 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
         else:
             log.info("Existing issue for comment: %s" % comment)
             pass # TODO: check, update from changed comment
+
+
+def cmd_parse_list(settings, opts, TODOLIST):#='to/do.list'):
+    """
+    """
+    # FIXME: defaults
+    if not TODOLIST:
+        TODOLIST = 'to/do.list'
+    prsr = res.TodoListParser()
+    prsr.parse(TODOLIST)
 
 
 ### Transform cmd_ function names to nested dict

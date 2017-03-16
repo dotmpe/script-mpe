@@ -347,7 +347,7 @@ __vc_git_flags()
       printf "(%s)" "$c${b##refs/heads/}$w$i$s$u$r$x"
     fi
 
-    cd $cwd
+    cd "$cwd"
   fi
 }
 
@@ -370,7 +370,7 @@ __vc_status()
 
   local pwd="$(pwd)"
 
-  realcwd="$(cd $1; pwd -P)"
+  realcwd="$(cd "$1"; pwd -P)"
   short="$(homepath "$1")"
   test -n "$short" || err "homepath" 1
 
@@ -384,11 +384,11 @@ __vc_status()
       return
     }
 
-    checkoutdir="$(cd $realcwd; git rev-parse --show-toplevel)"
+    checkoutdir="$(cd "$realcwd"; git rev-parse --show-toplevel)"
 
     [ -n "$checkoutdir" ] && {
 
-      rev="$(cd $realcwd; git show "$checkoutdir" | grep '^commit' \
+      rev="$(cd "$realcwd"; git show "$checkoutdir" | grep '^commit' \
         | sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
       sub="${realcwd##$checkoutdir}"
 
@@ -426,9 +426,9 @@ __vc_status()
   #  if [ -n "$s" ]; then s=" ${s}"; fi;
   #  echo "$short$PSEP [svn:r$r$s]$sub"
   else
-    echo $short
+    echo "$short"
   fi;fi;
-  cd $cwd
+  cd "$cwd"
 }
 
 __vc_screen ()
@@ -893,14 +893,14 @@ vc__untracked_files()
   vc__list_submodules | while read prefix
   do
     smpath=$ppwd/$prefix
-    cd $smpath
+    cd "$smpath"
     ppwd=$smpath spwd=$spwd/$prefix \
       vc__excluded \
           | grep -Ev '^\s*(#.*|\s*)$' \
           | sed 's#^#'"$prefix"'/#'
   done
 
-  cd $ppwd
+  cd "$ppwd"
 }
 
 # List untracked paths. Unversioned files excluding ignored/excluded
@@ -916,13 +916,13 @@ vc__unversioned_files()
   vc__list_submodules | while read prefix
   do
     smpath=$ppwd/$prefix
-    cd $smpath
+    cd "$smpath"
     ppwd=$smpath spwd=$spwd/$prefix \
       vc__unversioned_files | grep -Ev '^\s*(#.*|\s*)$' \
           | sed 's#^#'"$prefix"/'#'
   done
 
-  cd $ppwd
+  cd "$ppwd"
 }
 
 # List (untracked) cleanable files
@@ -1059,7 +1059,7 @@ vc__grep_file()
   for checkout in $3
   do
     (
-      cd $cwd/$checkout
+      cd "$cwd/$checkout"
       for b in HEAD $(git ls-remote . refs/heads/* | cut -f 2)
       do
         git show $b:$filename | grep -q "$2" && echo "$checkout $b"
@@ -1083,9 +1083,9 @@ vc__list_subrepos()
   basedir="$(dirname "$(__vc_gitdir "$1")")"
   test -n "$1" || set -- "."
 
-  cd $basedir
+  cd "$basedir"
   vc__list_prefixes > $repfixes
-  cd $cwd
+  cd "$cwd"
 
   find $1 -iname .git | while read path
   do
@@ -1124,7 +1124,7 @@ vc__projects()
         echo "${dir}_${remote}=$url" >> $pwd/projects.sh
       }
     done
-    cd $cwd
+    cd "$cwd"
   done
 }
 
@@ -1146,17 +1146,17 @@ vc__remotes()
 vc__list_local_branches()
 {
   local pwd=$(pwd)
-  test -z "$1" || cd $1
+  test -z "$1" || cd "$1"
   # use git output, replace asterix and spaces
   git branch --list | sed -E 's/\*|[[:space:]]//g'
-  test -z "$1" || cd $pwd
+  test -z "$1" || cd "$pwd"
 }
 
 # instead of git -a sort into unqiue branche names
 vc__list_all_branches()
 {
   local pwd=$(pwd)
-  test -z "$1" || cd $1
+  test -z "$1" || cd "$1"
   # use git output, replace asterix and spaces
   # NOTE: hardcoded annex branch ignore
   # And HEAD. Not sure if git-branch has an option to
@@ -1166,7 +1166,7 @@ vc__list_all_branches()
     sed -E 's/\*|[[:space:]]//g' | \
     sed -E 's/^remotes\/[^\/]*\///g' | \
     sort -u
-  test -z "$1" || cd $pwd
+  test -z "$1" || cd "$pwd"
 }
 
 # regenerate .git/info/exclude
@@ -1438,7 +1438,7 @@ vc_als__gf=gitflow
 #  pwd=$(pwd)
 #  cd $UNVERSIONED_FILES/..
 #  git annex unlock ./$project || error "projdir" 1
-#  cd $pwd
+#  cd "$pwd"
 #
 #  git ls-files --others "$1" | while read p
 #  do

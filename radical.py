@@ -244,6 +244,11 @@ class IssueTracker(Base):
 
 
 class TagInstance(object):
+
+    """
+    Represent a matched tag in a source document.
+    """
+
     def __init__(self, source, slug, char_span):
         self.source = source
         self.slug = slug
@@ -764,10 +769,11 @@ def clean_comment(scan, data):
     return data
 
 
-class Parser:
+class SEIParser:
     """
-    TODO: parse/cache comments from source. Map between tag and comment specs.
-    Keep context.
+    - Parse comments from source.
+    - Map between tag and comment spans.
+    - Keep context.
     """
     def __init__(self, session, matchbox, source_name, context, data, lines):
         self.session = session
@@ -779,7 +785,7 @@ class Parser:
         self.srcdoc = SrcDoc( self.source_name, len(self.lines), self.data )
 
     def find_tags(self):
-        "scan for tags. return entire tag spec"
+        "Scan for tags. return TagInstance"
         for tagname in rc.tags:
             for tag_match in self.matchbox[tagname].finditer(self.data):
                 tag_span = tag_match.start(), tag_match.end()
@@ -1219,7 +1225,8 @@ class Radical(rsr.Rsr):
         Main function: scan multiple sources and print/log embedded issues
         found.
         """
-        assert paths, opts
+        if not paths:
+            raise Exception("Pathname argument(s) expected")
 
         # TODO: make ascii peek optional, charset configurable
         # TODO: implement contexts, ref per source
@@ -1243,7 +1250,7 @@ class Radical(rsr.Rsr):
             srcdoc = SrcDoc( source, len(lines), data )
             taskdocs[source] = srcdoc
 
-            parser = Parser(sa, matchbox, source, context, data, lines)
+            parser = SEIParser(sa, matchbox, source, context, data, lines)
 
             for tag in parser.find_tags():
 

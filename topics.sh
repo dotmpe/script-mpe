@@ -1,6 +1,6 @@
 #!/bin/sh
 
-tasks_src=$_
+topics_src=$_
 test -z "$__load_lib" || set -- "load-ext"
 
 set -e
@@ -14,74 +14,55 @@ version=0.0.3-dev # script-mpe
 
 # See $scriptname help to get started
 
-tasks__list()
+topics__list()
 {
-  echo TODO: google, redmine, local target, todotxtmachine
+  echo TODO: topics list
 }
 
 
-tasks__update()
-{
-  req_vars HTDIR
-
-  cp $HTDIR/to/do.list $HTDIR/to/do.list.ro
-  cat $HTDIR/to/do.list.ro | while read id descr
-  do
-    case "$id" in
-      [-*+] ) # list-item:
-
-        ;;
-      . ) # class?
-        ;;
-      "#" ) # id or comment.. srcid?
-        ;;
-    esac
-    echo "$id"
-  done
-}
 
 
 # Generic subcmd's
 
-tasks_man_1__help="Usage help. "
-tasks_spc__help="-h|help"
-tasks__help()
+topics_man_1__help="Usage help. "
+topics_spc__help="-h|help"
+topics__help()
 {
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
   choice_global=1 std__help "$@"
 }
-tasks_als___h=help
+topics_als___h=help
 
 
-tasks_man_1__version="Version info"
-tasks__version()
+topics_man_1__version="Version info"
+topics__version()
 {
   echo "script-mpe:$scriptname/$version"
 }
-tasks_als__V=version
+topics_als__V=version
 
 
-tasks__edit()
+topics__edit()
 {
   $EDITOR $0 $(which $base.py) "$@"
 }
-tasks_als___e=edit
+topics_als___e=edit
 
 
 
 
 # Script main functions
 
-tasks_main()
+topics_main()
 {
   local
-      scriptname=tasks \
+      scriptname=topics \
       base=$(basename $0 .sh) \
       verbosity=5 \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
     failed=
 
-  tasks_init || exit $?
+  topics_init || exit $?
 
   case "$base" in
 
@@ -89,7 +70,7 @@ tasks_main()
 
         test -n "$1" || set -- list
 
-        tasks_lib || exit $?
+        topics_lib || exit $?
         run_subcmd "$@" || exit $?
       ;;
 
@@ -101,7 +82,7 @@ tasks_main()
 }
 
 # FIXME: Pre-bootstrap init
-tasks_init()
+topics_init()
 {
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
   test -n "$scriptpath"
@@ -113,15 +94,15 @@ tasks_init()
   box_run_sh_test
   #. $scriptpath/htd.lib.sh
   lib_load main meta box date doc table remote
-  # -- tasks box init sentinel --
+  # -- topics box init sentinel --
 }
 
 # FIXME: 2nd boostrap init
-tasks_lib()
+topics_lib()
 {
   local __load_lib=1
   . $scriptpath/match.sh load-ext
-  # -- tasks box lib sentinel --
+  # -- topics box lib sentinel --
   set --
 }
 
@@ -129,14 +110,14 @@ tasks_lib()
 ### Subcmd init, deinit
 
 # Pre-exec: post subcmd-boostrap init
-tasks_load()
+topics_load()
 {
-  # -- tasks box lib sentinel --
+  # -- topics box lib sentinel --
   set --
 }
 
 # Post-exec: subcmd and script deinit
-tasks_unload()
+topics_unload()
 {
   local unload_ret=0
 
@@ -144,7 +125,7 @@ tasks_unload()
   do case "$x" in
       y )
           test -z "$sock" || {
-            tasks_meta_bg_teardown
+            topics_meta_bg_teardown
             unset bgd sock
           }
         ;;
@@ -154,8 +135,8 @@ tasks_unload()
   esac; done
 
   unset subcmd subcmd_pref \
-          tasks_default def_subcmd func_exists func \
-          failed tasks_session_id
+          topics_default def_subcmd func_exists func \
+          failed topics_session_id
 
   return $unload_ret
 }
@@ -171,9 +152,9 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   # fix using another mechanism:
   # XXX: cleanup test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
-      tasks_main "$@" ;;
+      topics_main "$@" ;;
 
   esac ;;
 esac
 
-# Id: script-mpe/0.0.3-dev tasks.sh
+# Id: script-mpe/0.0.3-dev topics.sh
