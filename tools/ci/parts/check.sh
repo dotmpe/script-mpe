@@ -105,8 +105,8 @@ note "match -s var-names"
 match.sh -s var-names
 
 note "box-instance:"
-box-instance x foo bar
-box-instance y
+box-instance.sh x foo bar
+box-instance.sh y
 
 
 # Other commands in build #dev phase.
