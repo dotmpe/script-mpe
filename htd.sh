@@ -1459,7 +1459,6 @@ htd__tasks()
     { test -e .git && git ls-files || pd list-paths --tasks; } \
       | radical.py --input - --issue-format full-sh > $comments
   ) || error "Could not update $comments" 1
-
   test -z "$pd_meta_tasks_slug" && {
     warn "Slug required to update store ($comments)"
   } ||  {

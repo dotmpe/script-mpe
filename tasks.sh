@@ -23,13 +23,11 @@ tasks__list()
 tasks__update()
 {
   req_vars HTDIR
-
   cp $HTDIR/to/do.list $HTDIR/to/do.list.ro
   cat $HTDIR/to/do.list.ro | while read id descr
   do
     case "$id" in
       [-*+] ) # list-item:
-
         ;;
       . ) # class?
         ;;
