@@ -13,4 +13,5 @@ six
 sqlalchemy
 twisted
 uriref
+shortuuid
 xattr
