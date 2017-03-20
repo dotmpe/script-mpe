@@ -2,6 +2,7 @@ docutils
 setuptools 
 pytz
 ruamel.yaml
+hashids
 #objectpath
 git+https://github.com/hackerhelmut/ObjectPath.git
 zope.component
