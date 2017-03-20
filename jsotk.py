@@ -32,6 +32,7 @@ Usage:
     jsotk [options] update <destfile> [<srcfiles>...]
     jsotk [options] update-from-args <srcfiles> <kv-args> <destfile>
     jsotk (version|-V|--version)
+    jsotk (help|-h|--help)
     jsotk [options] [dump] [<srcfile> [<destfile]]
     jsotk --background [options]
 
@@ -75,12 +76,12 @@ Options:
                 The address that the socket server will be listening on for a
                 backgrounded process. This defaults to JSOTK_SOCKET, and
                 creates one if '--background' is requested. [default: /tmp/jsotk-serv.sock]
-
+                .
                 If the socket exists, any command invocation is relayed to the
                 "server" instance, and the result output and return code
                 returned to client. This python client process is less efficient
                 as using a socket client from a shell script.
-
+                .
                 If no ADDRESS or JSOTK_SOCKET is found the invocation is
                 executed normally
   -V, --version
@@ -474,6 +475,8 @@ def main(func, ctx):
 
 if __name__ == '__main__':
     import sys, os
+    if sys.argv[-1] == 'help':
+        sys.argv[-1] = '--help'
     ctx = confparse.Values(dict(
         usage=__usage__,
         path_exists=os.path.exists,

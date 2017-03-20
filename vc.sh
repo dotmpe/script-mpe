@@ -139,7 +139,8 @@ vc__version()
 {
   echo $version
 }
-vc___v() { c__version; }
+vc___V() { vc__version; }
+vc____version() { vc__version; }
 
 
 vc__edit()

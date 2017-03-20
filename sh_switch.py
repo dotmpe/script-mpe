@@ -21,6 +21,7 @@ Usage:
     sh-switch [options] sh-cases <var> <dest>...
     sh-switch [options] test-examples
     sh-switch [-V|--version|version]
+    sh-switch [-h|--help|help]
 
 Options:
   -q, --quiet   Quiet operations
@@ -261,6 +262,8 @@ def main(ctx):
 
 if __name__ == '__main__':
     import sys, os
+    if sys.argv[-1] == 'help':
+        sys.argv[-1] = '--help'
     ctx = confparse.Values(dict(
         usage=__usage__,
         path_exists=os.path.exists,

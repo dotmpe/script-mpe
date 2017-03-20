@@ -34,8 +34,9 @@
     #build: ":vagrant:tools/ci/vbox:ubuntu"
 
     tasks:
-      document: tasks.ttxtm
-
+      document: todo.txt
+      grep: ./tools/sh/tags.sh
+      grep-filter: ./tools/sh/tags-filter.sh
       tags:
         - TODO # tasks:no-check
         - XXX # tasks:no-check

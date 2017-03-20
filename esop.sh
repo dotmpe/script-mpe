@@ -74,7 +74,8 @@ esop__version()
 {
   echo "script-mpe:$scriptname/$version"
 }
-esop_als__V=version
+#esop_als___V=version
+#esop_als____version=version
 
 
 esop__edit()

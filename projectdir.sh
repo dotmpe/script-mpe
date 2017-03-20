@@ -12,7 +12,8 @@ pd__version()
 {
   echo "$(cat $scriptpath/.app-id)/$version"
 }
-pd_als__V=version
+#pd_als___V=version
+pd_als____version=version
 
 
 pd_man_1__edit="Edit script-files, append ARGS to EDITOR arguments. "

@@ -50,11 +50,11 @@ init
 
   run std_exit 1
   test ${status} -eq 0
-  test "exit 1 ok" = "${lines[*]}"
+  test "exit 1 ok" = "${lines[*]}" || stdfail
 
   run std_exit 0
   test ${status} -eq 0
-  test "exit 0 ok" = "${lines[*]}"
+  test "exit 0 ok" = "${lines[*]}" || stdfail
 }
 
 

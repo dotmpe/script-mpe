@@ -49,6 +49,7 @@ tasks__help()
   choice_global=1 std__help "$@"
 }
 tasks_als___h=help
+tasks_als____help=help
 
 
 tasks_man_1__version="Version info"
@@ -56,7 +57,8 @@ tasks__version()
 {
   echo "script-mpe:$scriptname/$version"
 }
-tasks_als__V=version
+tasks_als___V=version
+tasks_als____version=version
 
 
 tasks__edit()

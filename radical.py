@@ -14,9 +14,9 @@ enhancements.
 However, only one problem can be solved at a time. It will be required
 to defer newly encountered (sub)problems to a later time.
 
-This program allows to track comments TODO, FIXME, XXX or even ISSUE:MyId
-kind of tags in source code. This local database could be kept in sync with
-centralized issue and worklog trackers. [rad-ignore]
+This program allows to track comments with TODO, FIXME, XXX .. tasks.ignore
+or TAG:MyId kind of tags in source code. This local database could be kept
+in sync with centralized issue and worklog trackers. [rad-ignore]
 
 For example, a new issue may simply be created by a text embedded in a
 *comment*, such as::
@@ -188,9 +188,9 @@ TODO: domain structure::
     * description:Text
 
 """
-# TODO:1: Integrate gate content stream
-# TODO:2: Extend supported comment styles
-# TODO:3: Scan for other literals, recognize language constructs.
+# TODO: Integrate gate content stream
+# TODO: Extend supported comment styles
+# TODO: Scan for other literals, recognize language constructs.
 
 import traceback
 import optparse, os, re, sys
@@ -364,6 +364,7 @@ class EmbeddedIssue:
         self.comment_flavour = comment_flavour
         self.inline = inline
         self.tags = tags
+        self.validate()
 
     def __str__(self):
         # NOTE: 0-index ranges/spans in ID
@@ -372,18 +373,22 @@ class EmbeddedIssue:
 
     @property
     def line_span(self):
+        assert self.comment_line_span, self
         return [ i + 1 for i in self.comment_line_span ]
 
     @property
     def char_span(self):
+        assert self.comment_char_span, self
         return [ i + 1 for i in self.comment_char_span ]
 
     @property
     def raw(self):
+        assert self.comment_char_span, self
         return self.srcdoc.data[slice(*self.comment_char_span)]
 
     @property
     def descr(self):
+        assert self.description_span, self
         return self.srcdoc.data[slice(*self.description_span)]
 
     def scei_id(self, full=True):
@@ -407,19 +412,24 @@ class EmbeddedIssue:
                     '',
                     cmt.srcdoc.source_name,
                     # NOTE: 0 to 1-indexed, and add spans for Sh
-                    "%i-%i" % tuple([ x+1 for x in cmt.line_span ]),
-                    "%i-%i" % tuple([ x+1 for x in cmt.description_span ]),
+                    "%i-%i" % tuple(cmt.line_span),
+                    "%i-%i" % tuple(cmt.description_span),
                     '', # line-offset-descr-span
                     '', # cmnt-span
                     '', # line-offset-cmnt-span
-                    repr(cmt.descr)[1:-1]
+                    ' '+repr(cmt.descr)[1:-1]
                 ])),
+            'grep': lambda cmt, data: ":".join([
+                    cmt.srcdoc.source_name,
+                    "%i" % cmt.line_span[0],
+                    ' '+repr(cmt.descr)[1:-1]
+                ]),
             'todo.txt': lambda cmt, data: " ".join([
                     # FIXME: cleanup & parsing in EmbeddedIssue re.sub(r'\s+', ' ', cmt.descr),
                     re.sub(r'\s+', ' ', cmt.raw),
                     '+'+cmt.srcdoc.source_name,
-                    "line:%i-%i" % tuple([ x+1 for x in cmt.line_span ]),
-                    "char:%i-%i" % tuple([ x+1 for x in cmt.description_span ])
+                    "line:%i-%i" % tuple(cmt.line_span),
+                    "char:%i-%i" % tuple(cmt.description_span)
                 ]),
             'raw': lambda cmt, data: " ".join(
                 map(str, [ cmt.srcdoc.source_name,
@@ -432,6 +442,25 @@ class EmbeddedIssue:
                     tag, tag.raw, tag.canonical(data), cmt
                 ) for tag in cmt.tags ])
         }
+
+    def validate(self):
+        assert self.line_span or self.char_span
+        if self.char_span:
+            assert (
+                isinstance(self.char_span, list) and len(self.char_span) == 2
+            )
+            assert (
+                isinstance(self.char_span[0], int) and
+                isinstance(self.char_span[1], int)
+            )
+        if self.line_span:
+            assert (
+                isinstance(self.line_span, list) and len(self.line_span) == 2
+            )
+            assert (
+                isinstance(self.line_span[0], int) and
+                isinstance(self.line_span[1], int)
+            )
 
 
 class EmbeddedIssueOld:
@@ -1180,12 +1209,17 @@ class Radical(rsr.Rsr):
                 paths += open(opts.input).readlines()
         yield dict( paths=paths )
 
-    def rdc_init(self, prog=None):
+    def rdc_init(self, prog=None, issue_format=None):
+        # FIXME: do away with global config in radical
         global rc
         rc = self.rc
         # XXX: start db session, see rsr-session
         #dbsession = get_session(self.rc.dbref)
         #yield dict( dbsession=dbsession )
+
+        if issue_format not in EmbeddedIssue.formats:
+            raise Exception("Unknown format '%r', %s" % (issue_format,
+                EmbeddedIssue.formats.keys()))
 
         # get backend service
         services = confparse.Values({})
@@ -1281,6 +1315,7 @@ class Radical(rsr.Rsr):
         if issue_format not in EmbeddedIssue.formats:
             raise Exception("Unknown format '%r', %s" % (issue_format,
                 EmbeddedIssue.formats.keys()))
+        cmt.validate()
         out = EmbeddedIssue.formats[issue_format](cmt, data)
         assert not re.match('[\r\n]', out)
         print out

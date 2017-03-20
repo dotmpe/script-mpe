@@ -10,4 +10,5 @@ sqlalchemy
 docutils
 xattr
 pbPlist
+redis
 six

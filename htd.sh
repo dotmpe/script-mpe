@@ -500,7 +500,8 @@ htd__version()
 {
   echo "$package_id/$version"
 }
-htd_als___V=version
+#htd_als___V=version
+htd_als____version=version
 
 
 htd__home()
@@ -1439,34 +1440,104 @@ htd__mac()
 
 # Current tasks
 
-# Update todo/tasks/plan document from local tasks
+task_opts()
+{
+  for opt in "$@"
+  do
+    # Turn option --My-Setting=... into variable My_Setting=... etc.
+    case "$opt" in
+      --*=* )
+          eval $(echo "$opt" | cut -c3- | tr '-' '_')
+        ;;
+      --* )
+          eval $(echo "$opt" | cut -c3- | tr '-' '_')=1
+        ;;
+    esac
+  done
+}
+
+htd_man_1__tasks="Update todo/tasks/plan document from local tasks"
 htd_run__tasks=i
+htd_spc__tasks='tasks [ --interactive ] [ --Check-All-Tags ] [ --Check-All-Files ]'
 htd__tasks()
 {
   local $(package_sh \
     id \
     pd_meta_tasks_slug \
     pd_meta_tasks_document || error "Missing package.sh var(s)" 1 )
-
+  task_opts "$@"
   test -n "$pd_meta_tasks_document" || pd_meta_tasks_document=tasks.ttxtm
   test -n "$pd_meta_tasks_slug" || {
     test -n "$id" \
       && pd_meta_tasks_slug="$(printf -- "$id" | tr 'a-z' 'A-Z' | tr -sc 'A-Z0-9_-' '-')"
   }
-  local comments=$(setup_tmpf .comments)
-  mkdir -vp $(dirname "$comments")
-  (
-    { test -e .git && git ls-files || pd list-paths --tasks; } \
-      | radical.py --input - --issue-format full-sh > $comments
-  ) || error "Could not update $comments" 1
+  note "Scanning tasks.. ($(var2tags id pd_meta_tasks_slug pd_meta_tasks_document))"
+  local grep_Hn=$(setup_tmpf .grep_Hn)
+  mkdir -vp $(dirname "$grep_Hn")
+  { htd__tasks_local > $grep_Hn
+  } || error "Could not update $grep_Hn" 1
   test -z "$pd_meta_tasks_slug" && {
-    warn "Slug required to update store ($comments)"
+    warn "Slug required to update store ($grep_Hn)"
   } ||  {
-    wc -l $comments
-    tasks.py -v -s $pd_meta_tasks_slug read-issues \
-      -g $comments -t $pd_meta_tasks_document \
+    note "Updating tasks document.. ($(var2tags verbose interactive))"
+    tasks_flags="$(
+      falseish "$verbose" || printf -- " -v "; 
+      falseish "$interactive" || printf -- " -i "; 
+    )"
+    # FIXME: select tasks backend
+    be_opt="-t $pd_meta_tasks_document --link-all"
+    #be_opt="--redis"
+    tasks.py $tasks_flags -s $pd_meta_tasks_slug read-issues \
+      --must-exist -g $grep_Hn $be_opt \
         || error "Could not update $pd_meta_tasks_document" 1
     note "OK. $(count_lines $pd_meta_tasks_document) open tasks"
+  }
+}
+
+htd_man_1__tasks_grep="Use Htd's built-in todo grep list command to get local tasks. "
+htd_spc__tasks_grep='tasks-grep [ --Check-All-Tags] [ --Check-All-Files]'
+htd__tasks_grep()
+{
+	local out=$(setup_tmpf .out)
+  task_opts "$@"
+	trueish "$Check_All_Tags" && {
+    test -n "$abort_on_regex" || abort_on_regex='\<\(TODO\|FIXME\|XXX\)\>' # tasks:no-check
+	} || {
+		test -n "$abort_on_regex" || abort_on_regex='\<XXX\>' # tasks:no-check
+	}
+	test -e .git && src_grep="git grep -nI" || src_grep="grep -nsrI \
+      --exclude '*.html' "
+	# Use local settings to filter grep output, or set default
+  local $(package_sh id pd_meta_tasks_grep_filter)
+  test -n "$pd_meta_tasks_grep_filter" ||
+    pd_meta_tasks_grep_filter="grep -v '\<tasks\>.\<ignore\>'"
+  note "Grepping.. ($(var2tags Check_All_Tags Check_All_Files abort_on_regex pd_meta_tasks_grep_filter))"
+	$src_grep \
+    $abort_on_regex \
+  | $pd_meta_tasks_grep_filter \
+  | while IFS=: read srcname linenr comment
+  do
+    grep -q '\<tasks\>.\<ignore\>.\<file\>' $srcname ||
+    # Preserve quotes so cannot use echo/printf w/o escaping. Use raw cat.
+    { cat <<EOM
+$srcname:$linenr: $comment
+EOM
+    }
+  done
+}
+
+htd_man_1__tasks_local="Use the preferred local way of creating the local todo grep list"
+htd_spc__tasks_local='tasks-local [ --Check-All-Tags] [ --Check-All-Files]'
+htd__tasks_local()
+{
+  local $(package_sh id pd_meta_tasks_grep)
+  task_opts "$@"
+  test -n "$pd_meta_tasks_grep" && {
+    Check_All_Tags=1 Check_All_Files=1  \
+    $pd_meta_tasks_grep 
+    return 0
+  } || { 
+		htd__tasks_grep
   }
 }
 
@@ -3845,8 +3916,8 @@ gcal_tab_ids()
 htd__events()
 {
   test -n "$2" || set -- "$1" "days=3"
-
-  cat ~/.conf/google/cals.tab | while read calId summary
+  gcal.py --version || return
+  read_nix_style_file ~/.conf/google/cals.tab | while read calId summary
   do
     note "Upcoming events for '$summary'"
     gcal.py list-upcoming 7 $calId "$2" 2>/dev/null
@@ -4937,7 +5008,7 @@ htd_optsv__backup=htd_backup_opts
 
 htd_man_1__pack_create="Create archive for dir with ck manifest"
 htd_man_1__pack_verify="Verify archive with manifest, see that all files in dir are there"
-htd_man_1__pack_check="Check file (w. checksum) TODO:dir with archive manifest"
+htd_man_1__pack_check="Check file (w. checksum) TODO: dir with archive manifest"
 htd_run__pack=i
 htd__pack()
 {

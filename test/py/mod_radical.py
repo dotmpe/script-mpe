@@ -1,3 +1,4 @@
+# tasks-ignore-file
 import unittest
 import re
 
@@ -24,7 +25,6 @@ class RadicalTestCase(unittest.TestCase):
             comment_scan = STD_COMMENT_SCAN,
             comment_flavours = STD_COMMENT_SCAN.keys()
         ))
-        # FIXME: do away with global config in radical
         radical.rc = self.rc
         self.mb = compile_rdc_matchbox(self.rc)
 
@@ -188,8 +188,6 @@ class RadicalTestCase(unittest.TestCase):
                     idx, source, len(tags), len(expected) ) )
 
 
-    # XXX: old unittests, stubs
-
     @parameterized.expand([
         ( 1, 'FOO', ( 0, 0, 4 )),
         ( 2, '  FOO', ( 0, 0, 6 )),
@@ -242,6 +240,8 @@ class RadicalTestCase(unittest.TestCase):
         self.assertEquals( data[slice(*descr_span)].strip('\n '), 'TODO comment' )
         self.assertEquals( data[slice(*descr_span)].strip('/*\n '), 'TODO comment' )
 
+
+    # XXX: old unittests, stubs
 
     @parameterized.expand([
         #( 1, 'radical-test1.txt', [

@@ -347,7 +347,8 @@ box__run()
 
 
 box_man_1__="Default: (local) run"
-box__als__c=run
+box_als__c=run
+
 
 
 box_man_1__complete="Testing bash complete with sh compatible script."

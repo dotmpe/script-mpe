@@ -1,3 +1,4 @@
+import os
 import re
 import base64
 
@@ -10,23 +11,27 @@ import shortuuid
 
 hashids = Hashids(salt="this is my salt")
 
-scheme = re.compile('[A-Za-z_][A-Za-z0-9_-]+')
-numpath = re.compile('[0-9]+(\.[0-9]+)*\.?')
+tag_c = 'A-Za-z0-9_-'
+tag_seps = '/:_.-'
+included_sep_c = ':;\.\/\-\+_'
+excluded_c = ',;\-'
+
+value_c = 'A-Za-z0-9%s' % included_sep_c
+prefixed_tag_c = value_c
+meta_tag_c = value_c
+
+rx_issue_id = '\s*\\b%s([0-9a-z\/\:_\.-]+[\:\s]+)\ *'
+
+re_scheme = re.compile('[A-Za-z_][A-Za-z0-9_-]+')
+re_numpath = re.compile('[0-9]+(\.[0-9]+)*\.?')
 
 
-priorities = {
-        'A': '',
-        'B': '',
-        'C': '',
-        'D': '',
-        'E': '',
-        'F': ''
-}
 seitag_todotxt_map = {
-    'FIXME': '(C)',
-    'TODO': '(D)',
-    'XXX': '(F)'
+    'FIXME': '(C)', # tasks-ignore
+    'TODO': '(D)', # tasks-ignore
+    'XXX': '(F)' # tasks-ignore
 }
+
 class Task(object):
     def __init__(self):
         self.id = None
@@ -35,19 +40,8 @@ class Task(object):
         self.description = None
 
 
-class TodoTxtParser(object):
-    def __init__(self):
-        pass
-
-    def parse(self, fn):
-        for todo in open( fn ).readlines():
-            self.parse_todo(todo)
-
-    def parse_todo(self, todotxtitem):
-        print todotxtitem
-
-
 class TodoListParser(object):
+    "XXX: alt. syntax to TODOtxt?"
     def __init__(self):
         self.list = {}
 
@@ -69,11 +63,11 @@ class TodoListParser(object):
             if not item.strip():
                 return
             fields = item.split(' ')
-            if scheme.match(fields[0]):
+            if re_scheme.match(fields[0]):
                 uri = fields[0]
                 print uriref.URIRef(uri)
                 #print base64.b64encode(uri)
-            elif numpath.match(fields[0]):
+            elif re_numpath.match(fields[0]):
                 nums = map(int, fields[0].strip('.').split('.'))
                 id = hashids.encode(*nums)
                 numbers = hashids.decode(id)
@@ -82,4 +76,60 @@ class TodoListParser(object):
             else:
                 raise Exception("Unrecognized ID: %r" % fields[0])
 
+
+default_redis = dict(host='localhost', port=6379, db=0)
+
+class RedisSEIStore(object):
+    """
+    Keys::
+
+        <prefix><sep><tag><sep>'length'
+        <prefix><sep><tag_id><sep>'text'
+        <prefix><sep><tag_id><sep>'comments' a set with all comment-ids
+
+    """
+    def __init__(self, tracker_tag, prefix='', sep='-',
+            tag_id_pattern='%()s%(key_sep)s%()s', key_sep=':',
+            server=default_redis):
+        self.prefix = prefix
+        self.key_sep = key_sep
+        self.tag = tracker_tag
+        self.sep = sep
+        self.tag_id_format = "%s"+self.sep+"%i"
+        self.tag_id_pattern = re.compile("%s%s[0-9]+" % ( self.tag, self.sep ))
+        self.r = redis.StrictRedis(**server)
+    def key_for(self, *args):
+        args = list(args)
+        if self.prefix:
+            args = [ self.prefix ]+args
+        return self.key_sep.join(args)
+    def tag_id_for(self, key):
+        """Remove prefix, then match with tag-id pattern to return without any
+        key suffix parts."""
+        m = self.tag_id_pattern.match( self.key[len(self.prefix+self.key_sep):] )
+        return key[slice(*m.span())]
+    def init(self):
+        self.r[self.key_for('length')] = 0
+    def __len__(self):
+        k = self.key_for('length')
+        return self.r.get(k)
+    def __contains__(self, tag_id):
+        k = self.key_for(tag_id, 'text')
+        return self.r.exists(k)
+    def __iter__(self):
+        m = self.key_for(self.tag+'*')
+        for key in self.r.scan_iter(m):
+            yield key
+    def find_link(self, comment_id):
+        k = self.key_for('comment', comment_id)
+        p = self.key_for(self.tag+'*:comments')
+        for m in self.r.scan_iter(p):
+            if list(self.r.sscan(m, k)):
+                yield self.issue_tag_for(self, m)
+    def new_issue(self, text):
+        nr = self.r.incr(self.key_for('length'))
+        return self.tag_id_format % ( self.tag, nr )
+    def new_comment(self, issue_id, tag, id_len=9):
+        newid = base64.urlsafe_b64encode(os.urandom(id_len))
+        return "%s:%s" % ( tag, newid )
 

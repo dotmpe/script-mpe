@@ -262,7 +262,7 @@ class Values(dict):
             for key in defaults:
                 self.initialize(key, defaults[key])
         self.__dict__['initialized'] = True
-        #TODO:self.updated = False
+        #TODO: self.updated = False
 
     def append(self, k, **default):
         """

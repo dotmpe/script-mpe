@@ -15,7 +15,13 @@ Options:
   -s, --strict  Strict operations
   -S --secret CLIENT_SECRET_FILE
                 JSON formatted credentials.
-
+  --help
+                Show help
+  --version
+                Show version
+"""
+"""
+FIXME: gcal auth
 from tools.argparser for argparse.ArgumentParser
 gcal.py [-h] [--auth_host_name AUTH_HOST_NAME]
 [--noauth_local_webserver]
@@ -49,9 +55,19 @@ flags = confparse.Values(dict(
 
 #SCOPES = 'https://www.googleapis.com/auth/calendar.readonly'
 SCOPES = 'https://www.googleapis.com/auth/calendar'
-CLIENT_SECRET_FILE = 'client_secret.json'
-APPLICATION_NAME = 'Google Calendar API Python Quickstart'
+
+# XXX: cleanup
+#CLIENT_SECRET_FILE = 'client_secret.json'
+#CLIENT_SECRET_FILE = os.getenv('GSPREAD_CREDS_JSON')
+
 CRED_FILE = os.path.expanduser('~/.credentials/script-gcal.json')
+CRED_FILE = "/usr/local/lib/python2.7/site-packages/gtasks/credentials.json"
+CRED_FILE = "/Users/berend/.local/etc/simza-script-d2efacfe6f41.json"
+if not os.path.exists(CRED_FILE):
+    raise Exception("Missing CRED_FILE=%r" % CRED_FILE)
+
+
+APPLICATION_NAME = 'Google Calendar API Python Quickstart'
 
 
 def get_credentials(app_name, secret_file, credential_path, scopes):
@@ -198,11 +214,11 @@ if __name__ == '__main__':
     opts = util.get_opts(__doc__)
     if not opts.cmds:
         opts.cmds = ['list']
-    if not opts.flags.secret:
-        if 'GCAL_JSON_SECRET_FILE' in os.environ:
-            opts.flags.secret = os.environ['GCAL_JSON_SECRET_FILE']
-        else:
-            opts.flags.secret = CLIENT_SECRET_FILE
+    #if not opts.flags.secret:
+    #    if 'GCAL_JSON_SECRET_FILE' in os.environ:
+    #        opts.flags.secret = os.environ['GCAL_JSON_SECRET_FILE']
+    #    else:
+    #        opts.flags.secret = CLIENT_SECRET_FILE
     sys.exit( main( opts.cmds[0], opts ) )
 
 

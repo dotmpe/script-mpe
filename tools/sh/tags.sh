@@ -25,7 +25,7 @@ test -z "$1" && {
     check_files="*"
   } || {
     # Only go over staged changes
-    check_files="$(git diff --name-only --cached)"
+    check_files="$(git diff --name-only --cached --diff-filter=ACMR)"
     test -n "$check_files" && {
       note "Set check-files to GIT modified files.."
     } || {
@@ -37,16 +37,16 @@ test -z "$1" && {
   check_files="$@"
 }
 
+# TODO: compile this regex
 trueish "$Check_All_Tags" && {
-  test -n "$abort_on_regex" || abort_on_regex='TODO\|FIXME\|XXX' # tasks:no-check
+  test -n "$abort_on_regex" || abort_on_regex='\<\(SCRIPT-MPE\|TODO\|FIXME\|XXX\)\>' # tasks:no-check
 } || {
   test -n "$abort_on_regex" || abort_on_regex='\<XXX\>' # tasks:no-check
 }
 
-# ignore lines with tasks.no.check at the end
-# TODO: should move script into pd or lst, once excludes are loaded
-grep -nsrI \
-    $abort_on_regex \
+# TODO: should move exclude params into pd or lst, once handled ok
+test -e .git && \
+  src_grep="git grep -n" || src_grep="grep -nsrI \
     --exclude-dir 'build' \
     --exclude-dir jjb \
     --exclude-dir 'vendor' \
@@ -58,11 +58,14 @@ grep -nsrI \
     --exclude 'TODO.list' \
     --exclude '.package.sh' \
     --exclude '.package.json' \
+  "
+
+$src_grep \
+    $abort_on_regex \
     $check_files \
-  | grep -Ev '\<'"$lname"'\>.\<no[-]?check\>' \
-  | grep -Ev '\<tasks\>.\<no[-]?check\>' \
-  | grep -v '\<tasks\>.\<ignore\>' \
-  | {
+  | . ./tools/sh/tags-filter.sh \
+	| \
+  {
     trueish "$verbose" && { tee $out; } || { cat - > $out; }
   }
 

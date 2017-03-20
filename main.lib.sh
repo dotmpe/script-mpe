@@ -35,7 +35,11 @@ try_help()
   local b=
   for b in "" std
   do
-    try_value $2 man_$1 $b || continue
+    help="$( try_value $2 man_$1 $b || continue )"
+    test -n "$help" || continue
+    spec="$( try_value $2 spc $b || printf "" )"
+    test -n "$spec" || spec="$2"
+    printf -- "$ $base $2\n\t$help\nUsage:\n\t$base $spec\n"
     return
   done
   return 1

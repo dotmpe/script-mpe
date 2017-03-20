@@ -115,7 +115,8 @@ vagrant_sh__version()
 {
   echo "script-mpe:$scriptname/$version"
 }
-vagrant_sh_als__V=version
+#vagrant_sh_als___V=version
+#vagrant_sh_als____version=version
 
 
 vagrant_sh__edit()

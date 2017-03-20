@@ -16,7 +16,7 @@ version=0.0.3-dev # script-mpe
 
 @test "$bin help" "Lists commands" {
   run $BATS_TEST_DESCRIPTION
-  { test $status != 0 &&
+  { test $status -eq 0 &&
     # Output must at least be usage lines + nr of functions (12)
     test "${#lines[@]}" -gt 8
   } || stdfail
