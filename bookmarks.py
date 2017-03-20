@@ -14,7 +14,7 @@
 :updated: 2014-08-26
 """
 __description__ = "bookmarks - "
-__version__ = '0.0.3-dev' # script-mpe
+__version__ = '0.0.3' # script-mpe
 __db__ = '~/.bookmarks.sqlite'
 __usage__ = """
 Usage:

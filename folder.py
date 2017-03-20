@@ -9,7 +9,7 @@ TODO: print path relative to current dir
 
 """
 __description__ = "folder - "
-__version__ = '0.0.3-dev' # script-mpe
+__version__ = '0.0.3' # script-mpe
 __db__ = '~/.folder.sqlite'
 __usage__ = """
 Usage:

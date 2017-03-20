@@ -9,7 +9,7 @@ Work with models across databases, synchronize base types through master
 database.
 """
 __description__ = "cllct - "
-__version__ = '0.0.3-dev' # script-mpe
+__version__ = '0.0.3' # script-mpe
 __db__ = '~/.cllct.sqlite'
 __usage__ = """
 Usage:

@@ -1,5 +1,6 @@
 ReadMe.rst
 package.yaml
+package.json
 Rules.mk
 match.sh
 test/util-lib-spec.bats

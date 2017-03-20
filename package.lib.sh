@@ -195,4 +195,4 @@ package_sh_script()
 }
 
 
-# Id: script-mpe/0.0.3-dev package.lib.sh
+# Id: script-mpe/0.0.3 package.lib.sh

@@ -108,4 +108,4 @@ init
 }
 
 
-# Id: script-mpe/0.0.3-dev test/os-lib-spec.bats
+# Id: script-mpe/0.0.3 test/os-lib-spec.bats

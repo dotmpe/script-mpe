@@ -2,13 +2,13 @@
 box__source=$_
 # Box: create namespaced script commands
 
-# Id: script-mpe/0.0.3-dev box.sh
+# Id: script-mpe/0.0.3 box.sh
 
 set -e
 
 
 
-version=0.0.3-dev # script-mpe
+version=0.0.3 # script-mpe
 
 
 # Script subcmd's funcs and vars
@@ -503,4 +503,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   esac ;;
 esac
 
-# Id: script-mpe/0.0.3-dev box.sh
+# Id: script-mpe/0.0.3 box.sh

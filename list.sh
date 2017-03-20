@@ -6,7 +6,7 @@ set -e
 
 
 
-version=0.0.3-dev # script-mpe
+version=0.0.3 # script-mpe
 
 
 # Script subcmd's funcs and vars

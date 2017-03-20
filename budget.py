@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = '0.0.3-dev' # script-mpe
+__version__ = '0.0.3' # script-mpe
 __db__ = '~/.budget.sqlite'
 __usage__ = """
 budget - simple balance tracking accounting software.

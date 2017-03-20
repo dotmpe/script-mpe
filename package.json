@@ -1,7 +1,7 @@
 {
   "name": "script-mpe",
-  "version": "0.0.3-dev",
-  "description": "script.mpe ========== :Version: 0.0.3-dev :Updated: 2016-11-19",
+  "version": "0.0.3",
+  "description": "script.mpe",
   "main": "script.js",
   "directories": {
     "doc": "doc",

@@ -5,7 +5,7 @@ set -e
 
 
 
-version=0.0.3-dev # script-mpe
+version=0.0.3 # script-mpe
 
 
 script_bats_man_1__version="Version info"

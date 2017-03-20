@@ -12,7 +12,7 @@ Javascript Object toolkit
 """
 from __future__ import print_function
 
-__version__ = '0.0.3-dev' # script-mpe
+__version__ = '0.0.3' # script-mpe
 __usage__ = """
 jsotk - Javascript Object toolkit
 

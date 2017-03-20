@@ -28,7 +28,7 @@ Objects
         - line|line_range|outer_range|inner_range
 """
 __description__ = "tasks - time ordered, grouped tasks"
-__version__ = '0.0.3-dev' # script-mpe
+__version__ = '0.0.3' # script-mpe
 __tasks_file__ = 'tasks.ttxtm'
 __grep_file__ = 'TODO.list'
 __to_do_list__ = 'to/do.list'

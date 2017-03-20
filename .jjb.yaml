@@ -4,7 +4,7 @@
 
 - project:
     name: 'script-mpe'
-    version: 0.0.3-dev # script-mpe
+    version: 0.0.3 # script-mpe
     file: .jjb.yaml
 
     jobs:

@@ -12,7 +12,7 @@ Parse switch statements from Sh scripts
 - Quotes are included in the expression, since Sh can have both.
 
 """
-__version__ = '0.0.3-dev' # script-mpe
+__version__ = '0.0.3' # script-mpe
 __usage__ = """
 sh-switch - Parse switch statements from Sh scripts
 

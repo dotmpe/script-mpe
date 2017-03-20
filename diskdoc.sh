@@ -6,7 +6,7 @@ set -e
 
 
 
-version=0.0.3-dev # script-mpe
+version=0.0.3 # script-mpe
 
 
 # Script subcmd's funcs and vars
@@ -697,4 +697,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   esac ;;
 esac
 
-# Id: script-mpe/0.0.3-dev diskdoc.sh
+# Id: script-mpe/0.0.3 diskdoc.sh
