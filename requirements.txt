@@ -1,3 +1,4 @@
+docutils
 setuptools 
 pytz
 ruamel.yaml
@@ -5,10 +6,10 @@ ruamel.yaml
 git+https://github.com/hackerhelmut/ObjectPath.git
 zope.component
 zope.interface 
-twisted
-sqlalchemy
-docutils
-xattr
 pbPlist
 redis
 six
+sqlalchemy
+twisted
+uriref
+xattr
