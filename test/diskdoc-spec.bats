@@ -5,7 +5,7 @@ load helper
 init
 
 
-version=0.0.3 # script-mpe
+version=0.0.4-dev # script-mpe
 
 @test "${bin}" "No arguments: default action is status" {
   test "$uname" != Darwin || skip "Diskdoc env not available for BSD/Darwin"

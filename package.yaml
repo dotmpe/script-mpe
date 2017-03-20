@@ -4,7 +4,7 @@
   main: script-mpe
   id: script-mpe
 
-  version: 0.0.3 # script-mpe
+  version: 0.0.4-dev # script-mpe
   env: # alias for 'environments'
     - dev
 

@@ -55,4 +55,4 @@ case "$0" in
     ;;
 esac
 
-# Id: script-mpe/0.0.3 util.sh
+# Id: script-mpe/0.0.4-dev util.sh

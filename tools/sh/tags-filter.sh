@@ -15,4 +15,4 @@ $srcname:$linenr: $comment
 EOM
   }
 done
-# Id: script-mpe/0.0.3 tools/sh/tags-filter.sh
+# Id: script-mpe/0.0.4-dev tools/sh/tags-filter.sh

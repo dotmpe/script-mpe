@@ -67,4 +67,4 @@ meta_attribute()
 }
 
 
-# Id: script-mpe/0.0.3 meta.lib.sh
+# Id: script-mpe/0.0.4-dev meta.lib.sh

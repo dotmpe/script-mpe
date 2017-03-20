@@ -5,7 +5,7 @@
 TODO: experiment with nodes from other DBs. Sync to and from master.
 """
 __description__ = "node - "
-__version__ = '0.0.3' # script-mpe
+__version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.node.sqlite'
 __usage__ = """
 Usage:

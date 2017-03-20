@@ -1,5 +1,6 @@
 ReadMe.rst
 package.yaml
+.package.sh
 package.json
 Rules.mk
 match.sh

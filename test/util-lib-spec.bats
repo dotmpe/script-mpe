@@ -39,4 +39,4 @@ init
   test "${lines[0]}" = "bash: no_such_function: command not found"
 }
 
-# Id: script-mpe/0.0.3 test/util-lib-spec.bats
+# Id: script-mpe/0.0.4-dev test/util-lib-spec.bats

@@ -3,7 +3,7 @@ c_rst__source="$_ $0 $@"
 
 set -e
 
-version=0.0.3 # script-mpe
+version=0.0.4-dev # script-mpe
 
 
 ### User commands

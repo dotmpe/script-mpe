@@ -35,4 +35,4 @@ test -n "$SCRIPTPATH" || {
 lib_load projectenv env-deps
 
 
-# Id: script-mpe/0.0.3 tools/sh/init.sh
+# Id: script-mpe/0.0.4-dev tools/sh/init.sh

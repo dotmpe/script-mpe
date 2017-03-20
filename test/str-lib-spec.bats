@@ -111,4 +111,4 @@ func=str_replace
   test "$(expr_substr "---" 1 3)" = "---"
 }
 
-# Id: script-mpe/0.0.3 test/str-lib-spec.bats
+# Id: script-mpe/0.0.4-dev test/str-lib-spec.bats

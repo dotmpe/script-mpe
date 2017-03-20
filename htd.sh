@@ -8,7 +8,7 @@ test -z "$__load_lib" || set -- "load-ext"
 
 set -e
 
-version=0.0.3 # script-mpe
+version=0.0.4-dev # script-mpe
 
 
 htd__inputs="arguments prefixes options"
@@ -5323,4 +5323,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   ;; esac
 ;; esac
 
-# Id: script-mpe/0.0.3 htd.sh
+# Id: script-mpe/0.0.4-dev htd.sh
