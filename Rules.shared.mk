@@ -15,40 +15,40 @@ init:
 		SCR_SYS_SH=bash-sh; \
 		scriptname=tools:init; \
 		. ./tools/sh/init.sh; \
-		. $$scriptdir/tools/sh/env.sh; \
-		. $$scriptdir/tools/ci/parts/init.sh
+		. $$scriptpath/tools/sh/env.sh; \
+		. $$scriptpath/tools/ci/parts/init.sh
 
 install_$d:
 	@\
 		SCR_SYS_SH=bash-sh; \
 		scriptname=tools:install; \
 		. ./tools/sh/init.sh; \
-		. $$scriptdir/tools/sh/env.sh; \
-		. $$scriptdir/tools/ci/parts/install.sh
+		. $$scriptpath/tools/sh/env.sh; \
+		. $$scriptpath/tools/ci/parts/install.sh
 
 build_$d:
 	@\
 		SCR_SYS_SH=bash-sh; \
 		scriptname=tools:build; \
 		. ./tools/sh/init.sh; \
-		. $$scriptdir/tools/sh/env.sh; \
-		. $$scriptdir/tools/ci/parts/build.sh
+		. $$scriptpath/tools/sh/env.sh; \
+		. $$scriptpath/tools/ci/parts/build.sh
 
 check-env:
 	@\
 		SCR_SYS_SH=bash-sh; \
 		scriptname=tools:check-env; \
 		. ./tools/sh/init.sh; \
-		. $$scriptdir/tools/sh/env.sh; \
-		. $$scriptdir/tools/ci/check-env.sh
+		. $$scriptpath/tools/sh/env.sh; \
+		. $$scriptpath/tools/ci/check-env.sh
 
 check:
 	@\
 		SCR_SYS_SH=bash-sh; \
 		scriptname=tools:check; \
 		. ./tools/sh/init.sh; \
-		. $$scriptdir/tools/sh/env.sh; \
-		$$TEST_SHELL . $$scriptdir/tools/ci/parts/check.sh
+		. $$scriptpath/tools/sh/env.sh; \
+		$$TEST_SHELL . $$scriptpath/tools/ci/parts/check.sh
 
 
 # check/list build envs for job(s)
@@ -56,7 +56,7 @@ ci-list: ENV := development
 ci-list:
 	@\
 		SCR_SYS_SH=bash-sh; \
-		scriptdir="$$(pwd -P)"; \
+		scriptpath="$$(pwd -P)"; \
 		. ./tools/sh/list.sh $(ENV)
 
 # run job(s)
@@ -64,7 +64,7 @@ ci-test: ENV := development
 ci-test:
 	@\
 		SCR_SYS_SH=bash-sh; \
-		scriptdir="$$(pwd -P)"; \
+		scriptpath="$$(pwd -P)"; \
 		. ./tools/sh/run.sh $(ENV)
 
 

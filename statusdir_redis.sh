@@ -3,24 +3,26 @@
 set -e
 
 
+sd_be_name=redis
+
 redis()
 {
   case "$1" in
 
     get )
-        redis-cli get "$1"
+        redis-cli get "$2" || return
       ;;
     set )
-        redis-cli set "$1" "$3"
+        redis-cli set "$2" "$4" || return
       ;;
     incr )
-        redis-cli incr "$1"
+        redis-cli incr "$2" || return
       ;;
     del )
-        redis-cli del "$1"
+        redis-cli del "$2" || return
       ;;
     ping )
-        redis-cli ping 2>&1 >/dev/null
+        redis-cli ping 2>&1 >/dev/null || return
       ;;
     * )
         echo "Error $0: $1 ($2)"

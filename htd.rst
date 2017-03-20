@@ -65,6 +65,42 @@ htd
   volumes
     ..
 
+
+  TODO:
+    - rename edit -> edit-local
+    - edit-main -> edit
+
+  -e|edit [ID]
+    Requires search id argument.
+    TODO: Without argument, set to local ctx files.
+    Opens the EDITOR for the files.
+
+  -E|edit-main [ID]
+    Sets arguments to the main Htd script files.
+    TODO: Without argument, set to main local source and or document files.
+    Opens the EDITOR for the files.
+
+  main-doc|md
+    Find and edit (default htd action)
+
+  edit-today|vt
+    ..
+  edit-note
+    ..
+  edit-note-nl|nnl
+    ..
+  edit-note-en|nen
+    ..
+  (todotxt edit)|tte|todotxt-edit
+    ..
+  edit-rules
+    ..
+  edit-test
+    ..
+  inventory|inventory-electronics ID
+    edit inventory main or ID
+
+
 htd rule-target
   - annotate :case
   - extend

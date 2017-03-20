@@ -61,8 +61,12 @@ BOX_INIT=1
 
 @test "$lib/main try_help" {
   base=cmd
+  cmd_spc__sub="sub|-b ARG"
   cmd_man_1__sub="Bar"
-  test "$(try_help 1 sub)" = "Bar"
+  run try_help 1 sub
+  test_ok_nonempty || stdfail 
+  test "${lines[*]}" = "$ cmd sub 	Bar Usage: 	cmd sub|-b ARG"
+  test "${lines[*]}" = "$ $base sub 	$cmd_man_1__sub Usage: 	$base $cmd_spc__sub"
 }
 
 

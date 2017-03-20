@@ -296,17 +296,10 @@ $(BUILD)pd-make-states.sh: $(SRC) Rules.mk
 
 TRGT += TODO.list
 
-IGNORE := coverage_html_report ReadMe.rst Rules.mk '*.html' '*.xml' TODO.list
-IGNORE_F := $(addprefix --exclude ,$(IGNORE))
 todo: TODO.list
 TODO.list: $/
-	@-\
-		$(ll) file_target $@ "Grepping for" $<;\
-		grep -rI $(IGNORE_F) 'FIXME' $< > $@;\
-		echo >> $@;\
-		grep -rI $(IGNORE_F) 'TODO' $< >> $@;\
-		echo >> $@;\
-		grep -rI $(IGNORE_F) 'XXX' $< >> $@
+	@Check_All_Tags=1 Check_All_Files=1 ./tools/sh/tags.sh > $@
+	@echo "# tasks-ignore-file" >> $@
 	@#radical.py -vvvvv > $@
 	@$(ll) file_ok $@ 
 

@@ -28,7 +28,13 @@ class TreeNodeDict(dict):
     XXX: would be nice to manage type for leafs somehow, perhaps using visitor
     """
 
+    """
+    zope.interface.implements(res_iface.Node)
     zope.interface.implements(res_iface.ITree)
+    """
+    zope.interface.implements([
+        res_iface.ITree, iface.Node
+    ])
 
     ATTR_PREFIX = '@'
     "static config for attribute prefix"
@@ -63,13 +69,16 @@ class TreeNodeDict(dict):
             else:
                 yield key.nodeid
 
+    def getlocalname(self):
+        return self.__name__
+
     def getid(self):
-        # FIXME: return first 'key'
+        " FIXME: return first 'key' "
         for key in self.getkeys():
             return key
 
     def getnodetype(self):
-        # FIXME: return first 'key'
+        # FIXME: return first 'key' class
         for key in self.getkeys():
             return key.__class__
 

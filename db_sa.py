@@ -21,8 +21,6 @@ Options:
     --database-tables
                   Implies --all-tables, but reload metadata from database
                   Iow. this shows the actual schema in case of mismatch.
-
-Other flags:
     -v
     --verbosity VALUE
                   Increase verbosity.

@@ -4,7 +4,6 @@ load helper
 base=box.lib
 
 init
-source $lib/util.sh
 source $lib/$base.sh
 test_lib=$lib/test/main.inc
 
@@ -64,14 +63,21 @@ test_lib=$lib/test/main.inc
 }
 
 
-@test "${lib}/${base} - function should ..." {
-
-  check_skipped_envs || \
-    TODO "envs $envs: implement lib (test) for env"
-
-  test -n "${status}" || test -z "run it first!"
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
-  test "${#lines[@]}" = "0" # lines of output (stderr+stderr)
+@test "${lib}/${base} box-list-libs" {
+  run box_list_libs box.sh box
+  { test ${status} -eq 0 &&
+    test "${lines[*]}" = "  debug \"Using \$LOG_TERM log output\""
+  } || stdfail
 }
+
+
+@test "${lib}/${base} box-src-lib" {
+  skip FIXME
+  run box_src_lib box.sh box
+  diag "${lines[*]}"
+  { test ${status} -eq 0 &&
+    test -z "${lines[*]}" # empty output
+  } || stdfail
+}
+
 

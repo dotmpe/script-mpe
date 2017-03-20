@@ -2,7 +2,7 @@ Resources [rsr] - python command line file manager
 
 related to Taxus - python relational storage
 
-TODO: reinvent rsr using script libs
+SCRIPT-MPE-3: reinvent rsr using script libs
 	- x-meta screenscraper required some universal resource loader
 	  for python which resulted in rsr.
 	  Project stalled while difficult or intricate laborious tasks where not finished

@@ -1,14 +1,15 @@
 from __future__ import print_function
 import re
 import sys
+import shlex
 
 from fnmatch import fnmatch
 from res import js
 from confparse import yaml_safe_dump
 from pydoc import locate
 
-
 import ruamel.yaml
+
 
 def yaml_load(*args, **kwds):
     # XXX: cleanup, hack for JJB content
@@ -23,6 +24,21 @@ def yaml_load(*args, **kwds):
         preserve_quotes=True
     ))
     return ruamel.yaml.load(*args, **kwds)
+
+
+re_pathsplit = re.compile(r'''((?:[^/"']|"[^"]*"|'[^']*')+)''')
+
+def path_key_split(key):
+    r = []
+    for x in re_pathsplit.split(key):
+        if x.strip('/'):
+            r.append(x.strip("\"'"))
+    return r
+
+def is_path(key):
+    m = re_pathsplit.match(key)
+    if m:
+        return m.groups()[0] != key
 
 
 re_non_escaped = re.compile('[\[\]\$%:<>;|\ ]')
@@ -45,8 +61,7 @@ class AbstractKVParser(object):
 
     def scan_root_type(self, key):
         "Initialize root (self.data) to correct data type: dict or list"
-        if '/' in key:
-            key = key.split('/')[0]
+        key = path_key_split(key)[0]
         if self.__class__.contains_root_list(key):
             skey, rest, idx = self.__class__.parse_list_key(key)
             if skey:
@@ -116,8 +131,8 @@ class AbstractKVParser(object):
 
         if d is None:
             d = self.data
-        if '/' in key:
-            self.set_path(key.split('/'), value)
+        if is_path(key):
+            self.set_path(path_key_split(key), value)
         else:
             if self.__class__.contains_list(key):
                 skey, rest, idx = self.__class__.parse_list_key(key)
@@ -299,8 +314,8 @@ class FlatKVParser(AbstractKVParser):
 
     @staticmethod
     def get_root_data_instance(key):
-        if '/' in key:
-            key = key.split('/')[0]
+        if is_path(key):
+            key = path_key_split(key)[0]
         if '__' in key and key.split('__')[0]:
             return key.split('__')[0]
         return FlatKVParser.get_data_instance(key)
@@ -621,7 +636,7 @@ def get_dest(ctx, mode, key='dest', section='args'):
     settings = getattr(ctx.opts, section)
     if key+'file' in settings and settings[key+'file']:
         assert settings[key+'file'] != '-'
-        outfile = open_file(settings[key+'file'], defio=None, mode=mode, ctx=ctx)
+        outfile = open_file(settings[key+'file'], defio=key, mode=mode, ctx=ctx)
     return outfile
 
 def get_src_dest_defaults(ctx):
@@ -635,7 +650,6 @@ def get_src_dest_defaults(ctx):
         if not infile:
             infile = ctx['in']
     return infile, outfile
-
 
 
 def deep_update(dicts, ctx):
@@ -731,7 +745,7 @@ def data_at_path(ctx, infile):
     if not infile:
         infile, outfile = get_src_dest_defaults(ctx)
     l = load_data( ctx.opts.flags.input_format, infile, ctx )
-    path_el = ctx.opts.args.pathexpr.split('/')
+    path_el = path_key_split(ctx.opts.args.pathexpr)
     if not ctx.opts.args.pathexpr or path_el[0] == '':
         return l
     while len(path_el):
@@ -752,7 +766,7 @@ def data_check_path(ctx, infile):
 
     parser = PathKVParser(data)
 
-    path_el = ctx.opts.args.pathexpr.split('/')
+    path_el = path_key_split(ctx.opts.args.pathexpr)
     if not ctx.opts.args.pathexpr or path_el[0] == '':
         return False
 

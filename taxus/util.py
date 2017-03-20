@@ -32,7 +32,7 @@ class SessionMixin(object):
             SessionMixin.sessions[name] = session
         else:
             session = SessionMixin.sessions[name]
-            assert session.engine, "existing session does not have engine"
+            # XXX: assert session.engine, "existing session does not have engine"
         return session
 
 

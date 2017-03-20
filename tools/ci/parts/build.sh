@@ -57,6 +57,9 @@ do case "$BUILD_STEP" in
     test-vbox )
       ;;
 
+    test-feature )
+      ;;
+
     test )
         lib_load build
 
@@ -118,3 +121,4 @@ done
 
 note "Done"
 
+# Id: script-mpe

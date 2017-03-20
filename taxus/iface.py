@@ -198,8 +198,8 @@ def hook( provided, o ):
     if not adapter:
         import sys
         #libcmd.err("Could not adapt %s:%s > %s",  o , adapted, provided)
-        sys.stderr.write("Could not adapt %s:%s > %s" %( o , adapted, provided),
-                "\n")
+        sys.stderr.write("Could not adapt %s:%s > %s\n" %( o , adapted,
+            provided))
     assert adapter, (provided, o)
     return adapter( o )
 

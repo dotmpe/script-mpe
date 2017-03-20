@@ -1,10 +1,11 @@
+# tasks-ignore-file
 import unittest
 import re
 
 from nose_parameterized import parameterized
 
 from script_mpe import confparse, radical
-from script_mpe.radical import compile_rdc_matchbox, Parser, DEFAULT_TAGS, \
+from script_mpe.radical import compile_rdc_matchbox, SEIParser, DEFAULT_TAGS, \
         find_tagged_comments, get_tagged_comment, get_lines, STD_COMMENT_SCAN,\
         at_line
 
@@ -24,7 +25,6 @@ class RadicalTestCase(unittest.TestCase):
             comment_scan = STD_COMMENT_SCAN,
             comment_flavours = STD_COMMENT_SCAN.keys()
         ))
-        # FIXME: do away with global config in radical
         radical.rc = self.rc
         self.mb = compile_rdc_matchbox(self.rc)
 
@@ -92,16 +92,16 @@ class RadicalTestCase(unittest.TestCase):
           ( '<TagInstance TODO test/var/radical-tasks-4.txt#c773-780>', ' TODO: ' ),
         ] ),
     ])
-    def test_2_Parser_find_tags(self, testnr, source, expected):
+    def test_2_SEIParser_find_tags(self, testnr, source, expected):
         """
-        radical.Parser.find_tags
+        radical.SEIParser.find_tags
             - should return all expected TagInstances.
         """
         data = open(source).read()
         lines = data.split('\n')
         if lines[-1] == '':
             lines.pop()
-        parser = Parser(None, self.mb, source, '', data, lines)
+        parser = SEIParser(None, self.mb, source, '', data, lines)
         tags = list(parser.find_tags())
         for idx, ( tagrepr, result ) in enumerate(expected):
             self.assert_( str(tags[idx]) == expected[idx][0], "%i: %s not found" % (
@@ -155,12 +155,12 @@ class RadicalTestCase(unittest.TestCase):
             ( '<EmbeddedIssue unix_generic 774-853 15-15>', (), (773, 853), '', '' ),
         ] ),
     ])
-    def test_Parser_for_tag(self, testnr, source, expected):
+    def test_SEIParser_for_tag(self, testnr, source, expected):
         data = open(source).read()
         lines = data.split('\n')
         if lines[-1] == '':
             lines.pop()
-        parser = Parser(None, self.mb, source, '', data, lines)
+        parser = SEIParser(None, self.mb, source, '', data, lines)
         tags = list(parser.find_tags())
         for idx, ( ei_str, lspan, dspan, raw, descr ) in enumerate(expected):
             tag = tags[idx]
@@ -187,8 +187,6 @@ class RadicalTestCase(unittest.TestCase):
                 "%i: Missing comment tests for %r, %i != %i " % (
                     idx, source, len(tags), len(expected) ) )
 
-
-    # XXX: old unittests, stubs
 
     @parameterized.expand([
         ( 1, 'FOO', ( 0, 0, 4 )),
@@ -242,6 +240,8 @@ class RadicalTestCase(unittest.TestCase):
         self.assertEquals( data[slice(*descr_span)].strip('\n '), 'TODO comment' )
         self.assertEquals( data[slice(*descr_span)].strip('/*\n '), 'TODO comment' )
 
+
+    # XXX: old unittests, stubs
 
     @parameterized.expand([
         #( 1, 'radical-test1.txt', [

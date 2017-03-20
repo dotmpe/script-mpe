@@ -18,7 +18,60 @@ Feature: a std. CLI tool
     And `status` should be '0'
 
   Examples:
-      | cmd |
+      | cmd              |
+      # FIXME: not all commands handle --version 
+      #| box.sh           |
+      #| box-instance.sh  |
+      #| disk.sh          |
+      #| docker-sh.sh     |
+      #| graphviz.sh      |
+      #| esop.sh          |
+      | htd.sh           |
+      | jsotk.py         |
+      #| list.sh          |
+      #| match.sh         |
+      #| meta-sh.sh       |
+      | projectdir.sh    |
+      #| rst.sh           | 
+      | sh_switch.py     |
+      #| tasks.sh         | 
+      #| topics.sh        | 
+      #| twitter.sh       |
+      #| vagrant-sh.sh    |
+      | vc.sh            | 
+
+
+  Scenario Outline: prints usage help
+
+    #When the user runs "<cmd> --help"
+    #Then `status` should be '0'
+
+    When the user runs "<cmd> -h"
+    Then `status` should be '0'
+
+    When the user runs "<cmd> help"
+    Then `status` should be '0'
+
+  Examples:
+      | cmd              |
+      | box.sh           |
+      | box-instance.sh  |
+      #| disk.sh          |
+      | docker-sh.sh     |
+      #| graphviz.sh      |
+      | htd.sh           |
+      | jsotk.py         |
+      #| list.sh          |
+      | meta-sh.sh       |
+      | match.sh         |
+      #| projectdir.sh    |
+      | rst.sh           | 
+      | sh_switch.py     |
+      | tasks.sh         | 
+      | twitter.sh       |
+      | topics.sh        | 
+      | vagrant-sh.sh    |
+      #| vc.sh            | 
 
 
   Scenario Outline: handles "no such command" situations
@@ -29,6 +82,24 @@ Feature: a std. CLI tool
     And `status` should not be '0'
 
   Examples:
-      | cmd |
+      | cmd              |
+      | box.sh           |
+      | box-instance.sh  |
+      | disk.sh          |
+      | docker-sh.sh     |
+      | esop.sh          |
+      | graphviz.sh      |
+      | htd.sh           |
+      | list.sh          |
+      | meta-sh.sh       |
+      | match.sh         |
+      | projectdir.sh    |
+      | rst.sh           | 
+      | sh_switch.py     |
+      | tasks.sh         | 
+      | topics.sh        | 
+      | twitter.sh       |
+      | vagrant-sh.sh    |
+      | vc.sh            |
 
 
