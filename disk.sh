@@ -4,37 +4,17 @@ disk__source=$_
 
 set -e
 
-### User commands
 
 
-disk_man_1__help="Usage help. "
-disk_spc__help="-h|help"
-disk_als___h=help
-disk__help()
-{
-  test -z "$dry_run" || note " ** DRY-RUN ** " 0
-  choice_global=1 std__help "$@"
-}
+version=0.0.3-dev # script-mpe
 
 
-disk_man_1__edit="Edit $base script file plus arguments. "
-disk_spc__edit="-e|edit \[<file>..]"
-disk__edit()
-{
-  $EDITOR \
-    $0 \
-    $(which disk.sh) \
-    $(dirname $(which disk.sh))/disk.lib.sh \
-    $(dirname $(which disk.sh))/disk.rst \
-    $(which diskdoc.sh) \
-    $(which diskdoc.py) \
-    $(dirname $(which disk.sh))/test/disk-*.* \
-    "$@"
-}
-disk_als___e=edit
+# Script subcmd's funcs and vars
 
+# See $scriptname help to get started
 
 disk_man_1__status="Print some information on currently mounted disks/partitions. "
+disk_load__status=R
 disk__status()
 {
   disk__list_local | grep -Ev '^\s*(#.*|\s*)$' | while\
@@ -61,10 +41,10 @@ disk__status()
           test -n "$mount" \
             && {
               info "[$disk_id_] ${grn}$num_.$vol_idx${grey}: ${bnrml}$vol_id${grey} ($vsize ${bnrml}$vusg%% ${grey}$fstype $vol_dev)"
-              test -e $mount/.volumes.sh \
-                || warn "Missing catalog at $mount"
+              test -e "$mount/.volumes.s"h \
+                || warn "Missing catalog at '$mount'"
             } || {
-              fnmatch "* extended partition table *" " $(sudo file -sL $vol_dev) " && {
+              fnmatch "* extended partition table *" " $($dev_pref file -sL $vol_dev) " && {
                 info "[$disk_id_] $num_.$vol_idx: extended table ($fstype $vol_dev)"
               } || info "[$disk_id_] ${ylw}$num_.$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
             }
@@ -76,6 +56,7 @@ disk__status()
 
 disk_man_1__id="Print the disk ID of a given device or path. "
 disk_spc__id="id [PATH|MOUNT|DEV]"
+disk_load__id=R
 disk__id()
 {
   test -b "$1" || {
@@ -282,9 +263,6 @@ Sort of wizard, check/init vol(s) interactively for current disks
 "
 disk__check_all()
 {
-  #note "Got r00t?"
-  #sudo printf ""
-
   disk_list | while read dev
   do
     # Get disk meta
@@ -346,70 +324,45 @@ disk__update_all()
 
 
 
-### Subcmd init, deinit
+# Generic subcmd's
 
-disk_load()
+disk_man_1__help="Usage help. "
+disk_spc__help="-h|help"
+disk_als___h=help
+disk__help()
 {
-  test -n "$uname" || uname=$(uname)
-  test -n "$whoami" || whoami=$(whoami)
-  test -n "$hostname" || hostname=$(hostname)
-  test -n "$domainname" || domainname=$(domainname)
-
-  test -n "$DISK_CATALOG" || export DISK_CATALOG=$HOME/.diskdoc
-  #test -n "$DISK_VOL_DIR" || export DISK_VOL_DIR=/srv
-
-  test -d "$DISK_CATALOG" || mkdir -p $DISK_CATALOG
-  mkdir -p $DISK_CATALOG/disk
-  mkdir -p $DISK_CATALOG/volume
-
-  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
-  do case "$x" in
-
-      f )
-          failed=$(setup_tmpf .failed)
-        ;;
-
-    esac
-  done
-
-}
-
-disk_unload()
-{
-  clean_failed
-  unset subcmd_pref \
-          def_subcmd func_exists func
+  test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  choice_global=1 std__help "$@"
 }
 
 
-### Main init, libs
-
-disk_init()
+disk_man_1__edit="Edit $base script file plus arguments. "
+disk_spc__edit="-e|edit \[<file>..]"
+disk__edit()
 {
-  local __load_lib=1
-  . $scriptdir/box.init.sh
-  . $scriptdir/box.lib.sh
-  box_run_sh_test
-  lib_load main htd meta box date doc table disk remote match
-  test -n "$verbosity" || verbosity=6
-  # -- disk box init sentinel --
+  $EDITOR \
+    $0 \
+    $(which disk.sh) \
+    $(dirname $(which disk.sh))/disk.lib.sh \
+    $(dirname $(which disk.sh))/disk.rst \
+    $(which diskdoc.sh) \
+    $(which diskdoc.py) \
+    $(dirname $(which disk.sh))/test/disk-*.* \
+    "$@"
 }
-
-disk_lib()
-{
-  local __load_lib=1
-  . ~/bin/util.sh
-  . ~/bin/box.lib.sh
-  # -- disk box lib sentinel --
-}
+disk_als___e=edit
 
 
-### Main
+
+# Script main functions
 
 disk_main()
 {
-  local scriptname=disk base=$(basename $0 .sh) \
-    subcmd=$1 scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+  local \
+      scriptname=disk \
+      base=$(basename $0 .sh) \
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
+      subcmd=$1
 
   case "$base" in
 
@@ -424,8 +377,8 @@ disk_main()
           sock= \
           c=0
 
-				export SCRIPTPATH=$scriptdir
-        . $scriptdir/util.sh
+				export SCRIPTPATH=$scriptpath
+        . $scriptpath/util.sh
         util_init
         disk_init "$@" || error "init failed" $?
         shift $c
@@ -435,26 +388,113 @@ disk_main()
       ;;
 
     * )
-      echo "Not a frontend for $base ($scriptname)"
-      exit 1
+        echo "$scriptname: not a frontend for $base" >&2
+        exit 1
       ;;
 
   esac
 }
 
-case "$0" in "" ) ;; "-*" ) ;; * )
+### Main init, libs
+
+# FIXME: Pre-bootstrap init
+disk_init()
+{
+  local __load_lib=1
+  . $scriptpath/box.init.sh
+  . $scriptpath/box.lib.sh
+  box_run_sh_test
+  lib_load main htd meta box date doc table disk remote match
+  test -n "$verbosity" || verbosity=6
+  # -- disk box init sentinel --
+}
+
+# FIXME: 2nd boostrap init
+disk_lib()
+{
+  local __load_lib=1
+  . ~/bin/util.sh
+  . ~/bin/box.lib.sh
+  # -- disk box lib sentinel --
+}
+
+
+### Subcmd init, deinit
+
+# Pre-exec: post subcmd-boostrap init
+disk_load()
+{
+  test -n "$uname" || uname=$(uname)
+  test -n "$whoami" || whoami=$(whoami)
+  test -n "$hostname" || hostname=$(hostname)
+  test -n "$domainname" || domainname=$(domainname)
+
+  test -x "/sbin/parted" || error "parted required" 1
+  test -x "/sbin/fdisk" || error "fdisk required" 1
+
+  test -n "$DISK_CATALOG" || export DISK_CATALOG=$HOME/.diskdoc
+  #test -n "$DISK_VOL_DIR" || export DISK_VOL_DIR=/srv
+
+  test -d "$DISK_CATALOG" || mkdir -p $DISK_CATALOG
+  mkdir -p $DISK_CATALOG/disk
+  mkdir -p $DISK_CATALOG/volume
+
+  export mnt_pref="sudo " dev_pref=
+
+  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
+  do case "$x" in
+
+      R ) # Device read access
+          ( for device in $(disk_list)
+          do
+            test -r "$device" && {
+              stder ok "Read/Write at $device"
+            } || {
+              warn "User has no read-access to $device disk device"
+              exit 1
+            }
+          done
+          ) || {
+            export dev_pref="sudo"
+            sudo echo >/dev/null || {
+              note "Got r00t? (need sudo for /dev/* read-access)"
+              sudo printf "Got it."
+            }
+          }
+        ;;
+
+      f )
+          failed=$(setup_tmpf .failed)
+        ;;
+
+    esac
+  done
+
+  #export dev_pref="sudo"
+  export fdisk="$dev_pref /sbin/fdisk"
+  export parted="$dev_pref /sbin/parted"
+  export blkid="$dev_pref /sbin/blkid"
+}
+
+disk_unload()
+{
+  clean_failed
+  unset subcmd_pref \
+          def_subcmd func_exists func
+}
+
+
+# Main entry - bootstrap script if requested
+case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
+  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux?
   # fix using another mechanism:
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
-
       disk_main "$@"
     ;;
-
   esac ;;
 esac
 
-
-
+# Id: script-mpe/0.0.3-dev disk.sh

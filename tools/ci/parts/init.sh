@@ -11,12 +11,21 @@ note "Entry for CI pre-install / init phase"
 # This is also like the classic software ./configure.sh stage.
 
 
-pwd && pwd -P
-whoami
-( env | grep -i 'shippable\|travis\|ci' ) || noop
+note "PWD: $(pwd && pwd -P)"
+note "Whoami: $( whoami )"
 
-test ! -d build || rm -rf build
-mkdir -vp build
+note "CI Env: $({ env | grep -i 'shippable\|travis\|ci'; } || noop)"
+
+note "Build Env: $( build_params )"
+
+
+test -z "$BUILD_ID" || {
+  test ! -d build || {
+    rm -rf build
+    note "Cleaned build/"
+  }
+  mkdir -vp build
+}
 
 mkdir -vp ~/.local/{bin,lib,share}
 

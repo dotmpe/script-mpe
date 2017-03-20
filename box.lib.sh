@@ -3,6 +3,7 @@
 
 box_load()
 {
+  test -n "$BOX_DIR" || error "box-load: expected BOX-DIR env" 1
   test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
@@ -13,7 +14,7 @@ box_load()
   test -n "$box_name" || box_name=$hostname
 
   test -e "$BOX_DIR/bin/$box_name" \
-    && box_file="$BOX_DIR/bin/$box_name"
+    && box_file="$BOX_DIR/bin/$box_name" || noop
 }
 
 box_docs()
@@ -21,6 +22,7 @@ box_docs()
   noop
   #echo 'Docs:'
 }
+
 
 ### Util functions
 
@@ -144,6 +146,7 @@ box_grep()
   test -n "$where_line" || return 1
 }
 
+# box-script-insert-point FILE SUBCMD PROPERTY BOX-PREFIX
 # Return line-nr before function
 box_script_insert_point()
 {
@@ -152,7 +155,7 @@ box_script_insert_point()
   local subcmd_func=$(try_local "$@")
   local where_line= line_number= p='^'${subcmd_func}'()$'
   box_grep "$p" "$grep_file" || {
-    error "invalid $subcmd_func ($grep_file)" 1
+    error "box-script-insert-point: invalid $subcmd_func ($grep_file)" 1
   }
   echo $line_number
 }
@@ -161,7 +164,7 @@ box_sentinel_indent()
 {
   local where_line= line_number=
   box_grep $1 $2 || {
-    error "invalid sentinel $1 ($2)" 1
+    error "box-sentinel-indent: invalid sentinel $1 ($2)" 1
   }
   echo "$where_line"
 }
@@ -179,11 +182,11 @@ box_name_args()
 
 box_run_cwd()
 {
-  test -n "$1" || error "req name" 1
-  test -n "$2" || error "req cmd" 1
+  test -n "$1" || error "box-run-cwd: req name" 1
+  test -n "$2" || error "box-run-cwd: req cmd" 1
   local func=$(echo $func_pref$1__$2 | tr '/-' '__')
   local tcwd=$1
-  test -d $tcwd || error "no dir $tcwd" 1
+  test -d $tcwd || error "box-run-cwd: no dir $tcwd" 1
   shift 2
   cd $tcwd
   $func "$*"
@@ -203,32 +206,13 @@ box_init_args()
   }
 }
 
-# echo value of varname $1 on stdout if non empty
-test_out()
-{
-  test -n "$1" || error test_out 1
-  local val="$(echo $(eval echo "\$$1"))"
-  test -z "$val" || eval echo "\\$val"
-}
-
-list_functions()
-{
-  test -n "$1" || set -- $0
-  for file in $*
-  do
-    test_out list_functions_head
-    grep '^[A-Za-z0-9_\/-]*()$' $file
-    test_out list_functions_tail
-  done
-}
-
 box_list_libs()
 {
   test -n "$1" || set -- "$0" "$(basename "$0")"
   test -n "$2" || set -- "$1" "$(basename "$1")"
 
   test -e "$1" || {
-    error "no script $1"
+    error "box-list-libs: no script $1"
     return 1
   }
 
@@ -236,13 +220,14 @@ box_list_libs()
     line_offset="$(box_script_insert_point $1 "" lib $2)" \
     sentinel_grep=".*#.--.${2}.box.lib.sentinel.--"
 
-  test -n "$line_offset" || error "line_offset empty for $1 lib $2" 1
+  test -n "$line_offset" || error "box-list-libs: line_offset empty for '$1' lib '$2'" 1
 
   box_grep $sentinel_grep $1
   local line_diff=$(( $line_number - $line_offset - 2 ))
 
-  test -n "$line_diff" || error "line_diff empty" 1
-  fnmatch "-*" "$line_diff" && error "negative line_diff: $line_diff" 1 || noop
+  test -n "$line_diff" || error "box-list-libs: line_diff empty" 1
+  fnmatch "-*" "$line_diff" &&
+    error "box-list-libs: negative line_diff: $line_diff" 1 || noop
 
   test -z "$dry_run" || {
     debug "named_script='$1'"
@@ -264,13 +249,14 @@ box_list_libs()
 
 box_init()
 {
-  test -n "$UCONF" || error UCONF 1
+  test -n "$UCONF" || error "box-init: UCONF" 1
   cd $UCONF
 }
 
+
 box_update()
 {
-  test -n "$UCONF" || error UCONF 1
+  test -n "$UCONF" || error "box-update: UCONF" 1
   cd $UCONF
 
   test -n "$box_host" || box_host=$hostname
@@ -286,20 +272,15 @@ box_update()
 }
 
 
-req_path_arg()
+box_src_lib()
 {
-	test -n "$1" || error "path or file argument expected" 1
-	test -e "$1" || error "not a path '$1'" 1
+  test -n "$*" || set -- "$0" "$1"
+  box_src="$(dry_run= box_list_libs "$@" | while read src path args; \
+    do
+      fnmatch "  source " "$src" || {
+        fnmatch "  . " "$src" && continue;
+      }
+      eval echo "$path"; done)"
+  box_lib="$box_src"
 }
-
-req_cdir_arg()
-{
-  test -n "$1"  && path="$1"  || path=.
-  test -d "$path" || {
-    error "Must pass directory" 1
-  }
-}
-
-
-
 

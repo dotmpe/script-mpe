@@ -4,12 +4,10 @@ load helper
 base=projectdir-meta
 
 init
-
 setup()
 {
-. $lib/util.sh
+  . $lib/util.sh
 }
-
 
 @test "${bin}" "default no-args" {
   run $BATS_TEST_DESCRIPTION

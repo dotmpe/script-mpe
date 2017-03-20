@@ -52,7 +52,8 @@ version=0.0.3-dev # script-mpe
 
   esac
 
-  run bash -c "_test() { $BATS_TEST_DESCRIPTION 2>/dev/null; } ; HTDIR= && _test"
+  TODO "fix rest of test"
+  run bash -c "_test() { $BATS_TEST_DESCRIPTION 2>/dev/null; } ; export HTDIR= && _test"
   test "${lines[*]}" = "$(echo ~/public_html)"
 
   case "$(current_test_env)" in
@@ -405,6 +406,7 @@ EOM
   }
 }
 
+
 @test "$bin archive-path journal/" "non-zero exit" {
   tmpd
   cd $tmpd
@@ -438,5 +440,30 @@ EOM
   }
 }
 
+
+@test "$bin run - runs subcmd run-dir" {
+  run $bin run
+  test_ok_nonempty || stdfail
+}
+
+
+@test "$bin run-names - list script names" {
+  run $bin run-names
+  { test_ok_nonempty &&
+    fnmatch *" check "* " ${lines[*]} " &&
+    fnmatch *" build "* " ${lines[*]} " &&
+    fnmatch *" test "* " ${lines[*]} "
+  } || stdfail
+}
+
+
+@test "$bin run-dir - gives script outline (list indented script names and lines)" {
+  run $bin run-dir
+  { test_ok_nonempty &&
+    fnmatch *" check "* " ${lines[*]} " &&
+    fnmatch *" build "* " ${lines[*]} " &&
+    fnmatch *" test "* " ${lines[*]} "
+  } || stdfail
+}
 
 

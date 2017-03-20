@@ -487,11 +487,11 @@ class SimpleCommand(object):
         by the result adapter.
 
         Currently the 'first:' prefix determines that the first named
-        keywords is to be `return`\ 'ed. XXX It should offer various
+        keywords is to be `return`\ 'ed. XXX: It should offer various
         methods of filter and either generate, return or be silent.
 
         """
-        #log.debug("SimpleCommand.execute %s %s", handler_name, update)
+        log.debug("SimpleCommand.execute %s %s", handler_name, update)
         if update:
             self.globaldict.update(update)
         handler = getattr( self, handler_name )

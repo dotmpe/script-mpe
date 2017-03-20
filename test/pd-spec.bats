@@ -66,10 +66,11 @@ EOF
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0 || fail "1 Out($status): ${lines[*]}"
-
-  test ${#lines[@]} -gt 25
-  fnmatch "*repositories:*" "${lines[*]}"
-  fnmatch "*package: * main: *" "${lines[*]}"
+  {
+    test ${#lines[@]} -gt 25 &&
+    fnmatch "*repositories:*" "${lines[*]}" &&
+    fnmatch "*package: * main: *" "${lines[*]}"
+  } || stdfail
 }
 
 

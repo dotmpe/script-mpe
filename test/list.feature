@@ -1,12 +1,12 @@
 Feature: list
 
   Scenario: print version
-    When the user runs "lst version"
+    When the user runs "list.sh version"
     Then `output` contains the pattern "script-mpe\/[0-9A-Za-z\._-]*"
     And `status` should be '0'
 
   Scenario: no such command
-    When the user runs "lst foo"...
+    When the user runs "list.sh foo"...
     Then `output` contains the pattern "Usage:"
     And `stderr` contains the pattern "No\ such\ command"
     And `status` should not be '0'
@@ -14,7 +14,7 @@ Feature: list
   @skip.travis
   Scenario: print names in group
     Given the current project,
-    When the user runs "lst names local"
+    When the user runs "list.sh names local"
     Then `output` contains the patterns:
     """
     \.htdignore-clean
@@ -26,7 +26,7 @@ Feature: list
   @skip
   Scenario: print names in group
     Given the current project,
-    When the user runs "lst globs names"
+    When the user runs "list.sh globs names"
     Then `output` should match:
     """
     *.cuthd
@@ -57,7 +57,7 @@ Feature: list
   @skip
   Scenario: print names in group
     Given the current project,
-    When the user runs "lst local names"
+    When the user runs "list.sh local names"
     Then `output` should be empty.
     And `status` should be '0'
 

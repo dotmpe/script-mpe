@@ -44,7 +44,6 @@ Options:
   -G, --global  Use global enabled status, instead of per host.
   -a, --all     List all prefixes
   -l, --local   List all prefixes
-
   -H NAME, --host NAME
                 Hostname to use for current entries.
 
@@ -228,6 +227,7 @@ def get_one_prefix(pdhdata, ctx):
 def prefix_match(prefix, match, opts):
     """Match path <prefix> with root-path or pattern <match> """
     if match:
+        # Match glob or prefix
         if opts.flags.glob:
             return fnmatch( prefix, match )
         else:
@@ -235,6 +235,7 @@ def prefix_match(prefix, match, opts):
 
         return False
     else:
+        # No prefix is match all
         return True
 
 

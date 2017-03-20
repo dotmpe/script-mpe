@@ -3,17 +3,34 @@
 
 # OS: files, paths
 
-# Combined dirname/basename to replace .ext
-basepath()
+os_load()
 {
-	echo "$(dirname "$1")/$(basename "$1" "$2")$3"
+  test -n "$uname" || export uname="$(uname)"
+}
+
+
+# Combined dirname/basename to replace .ext
+pathname()
+{
+  echo "$(dirname "$1")/$(basename "$1" "$2")$3"
+}
+
+# Cumulative dirname, return the root directory of the path
+basedir()
+{
+  # Recursively. FIXME: a string op. may be faster
+  while fnmatch "*/*" "$1"
+  do
+    set -- "$(dirname "$1")"
+    test "$1" != "/" || break
+  done
 }
 
 short()
 {
   test -n "$1" || set -- "$(pwd)"
   # XXX maybe replace python script sometime
-  $scriptdir/short-pwd.py -1 "$1"
+  $scriptpath/short-pwd.py -1 "$1"
 }
 
 # Get basename for each path: [ .EXT ] PATHS...
@@ -123,11 +140,14 @@ split_multipath()
 # XXX: this one support leading whitespace but others in ~/bin/*.sh do not
 read_nix_style_file()
 {
-  cat $@ | grep -Ev '^\s*(#.*|\s*)$' || return 1
+  test -n "$1" || return 1
+  test -z "$2" || error "read-nix-style-file: surplus arguments '$2'" 1
+  cat "$1" | grep -Ev '^\s*(#.*|\s*)$' || return 1
 }
 
 read_if_exists()
 {
+  test -n "$1" || return 1
   read_nix_style_file $@ 2>/dev/null || return 1
 }
 
@@ -300,22 +320,6 @@ get_uuid()
 #    test "$(popd)" = "$CWDIR"
 #  } || set --
 #}
-
-test_dir()
-{
-	test -d "$1" || {
-		err "No such dir: $1"
-		return 1
-	}
-}
-
-test_file()
-{
-	test -f "$1" || {
-		err "No such file: $1"
-		return 1
-	}
-}
 
 # strip-trailing-dash
 strip_trail()

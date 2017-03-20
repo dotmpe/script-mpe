@@ -11,3 +11,17 @@ master
   tests/bugs/1-radical-regression
     - master
 
+
+dev_confparse_hier
+dev_munin
+dev_scraper
+dev_statusdir
+dev_taxus
+dev_treemap
+dev_treemap_tmp
+f_sh_parseopts
+features/travis-local
+gh-pages
+
+master2014
+

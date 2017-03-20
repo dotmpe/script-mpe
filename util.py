@@ -2,7 +2,7 @@ import sys
 import inspect
 from pprint import pformat
 
-from docopt import docopt
+import docopt
 
 import confparse
 import log
@@ -15,7 +15,7 @@ def get_opts(docstr, meta={}, version=None, argv=None):
     """
     if argv == None:
         argv = sys.argv[1:]
-    pattern, collected = docopt(docstr, argv, version=version,
+    pattern, collected = docopt.docopt(docstr, argv, version=version,
             return_spec=True)
     opts = confparse.Values()
     opts.argv = argv

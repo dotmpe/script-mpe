@@ -2,14 +2,16 @@
 # Created: 2016-02-22
 diskdoc__source=$_
 
+set -e
 
-diskdoc__edit()
-{
-  $EDITOR \
-    $0 \
-    $(which diskdoc.py) \
-    "$@"
-}
+
+
+version=0.0.3-dev # script-mpe
+
+
+# Script subcmd's funcs and vars
+
+# See $scriptname help to get started
 
 diskdoc_load__meta=y
 # Defer to python script for YAML parsing
@@ -51,6 +53,7 @@ diskdoc__meta_sq()
   diskdoc__meta "$@" >/dev/null || return $?
 }
 
+
 diskdoc_load__status=ybf
 # Run over known prefixes and present status indicators
 diskdoc__status()
@@ -67,6 +70,7 @@ diskdoc__status()
   rm_failed
 }
 
+
 diskdoc_load__check=ybf
 # Check with remote refs
 diskdoc__check()
@@ -81,6 +85,7 @@ diskdoc__check()
   done
   rm_failed
 }
+
 
 diskdoc__clean()
 {
@@ -102,6 +107,7 @@ diskdoc__clean()
   esac
 }
 
+
 # drop clean checkouts and disable repository
 diskdoc__disable_clean()
 {
@@ -112,7 +118,7 @@ diskdoc__disable_clean()
     test ! -d $prefix || {
       cd $pwd/$prefix
       git diff --quiet && {
-        test -z "$(vc ufx)" && {
+        test -z "$(vc.sh ufx)" && {
           warn "TODO remove $prefix if synced"
           # XXX need to fetch remotes, compare local branches
           #diskdoc__meta list-push-remotes $prefix | while read remote
@@ -125,6 +131,7 @@ diskdoc__disable_clean()
     }
   done
 }
+
 
 # Add/remove repos, update remotes at first level. git only.
 diskdoc_load__update=yfb
@@ -177,7 +184,7 @@ diskdoc__update()
         props="annex=true"
       }
 
-      props="$props $(verbosity=0;cd $prefix;echo "$(vc remotes sh)")"
+      props="$props $(verbosity=0;cd $prefix;echo "$(vc.sh remotes sh)")"
       test -n "$props" || {
         error "No remotes for $prefix"
         touch $failed
@@ -206,6 +213,7 @@ diskdoc__update()
   rm_failed
 }
 
+
 diskdoc_load__find=y
 diskdoc_spc__find='[<path>|<localname> [<project>]]'
 diskdoc__find()
@@ -222,12 +230,14 @@ diskdoc__find()
   }
 }
 
+
 diskdoc_load__list_prefixes=y
 diskdoc__list_prefixes()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
   diskdoc__meta list-disks "$1"
 }
+
 
 diskdoc_load__compile_ignores=y
 diskdoc__compile_ignores()
@@ -242,6 +252,7 @@ diskdoc__compile_ignores()
     echo $prefix
   done
 }
+
 
 # prepare Pd var, failedfn
 diskdoc_load__sync=yf
@@ -259,7 +270,7 @@ diskdoc__sync()
 
   test -d .git || error "Not a standalone .git: $prefix" 1
 
-  test -e .git/FETCH_HEAD && younger_than .git/FETCH_HEAD $PD_SYNC_AGE && {
+  test -e .git/FETCH_HEAD && newer_than .git/FETCH_HEAD $PD_SYNC_AGE && {
     return
   }
 
@@ -470,8 +481,7 @@ diskdoc__ids()
 }
 
 
-# ----
-
+# Generic subcmd's
 
 diskdoc_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
 diskdoc_load__help=f
@@ -484,7 +494,102 @@ diskdoc__help()
 diskdoc_als___h=help
 
 
+diskdoc_man_1__version="Version info"
+diskdoc__version()
+{
+  echo "script-mpe/$version"
+}
+diskdoc_als__V=version
 
+
+diskdoc__edit()
+{
+  $EDITOR \
+    $0 \
+    $(which diskdoc.py) \
+    "$@"
+}
+
+
+
+# Script main functions
+
+diskdoc_main()
+{
+  local \
+      scriptname=diskdoc \
+      base=$(basename $0 .sh) \
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
+      subcmd=$1
+
+  case "$base" in
+
+    $scriptname )
+
+        # invoke with function name first argument,
+        local scsep=__ bgd= \
+          diskdoc_session_id= \
+          subcmd_pref=${scriptalias} \
+          diskdoc_default=status \
+          func_exists= \
+          func= \
+          sock= \
+          c=0
+
+				export SCRIPTPATH=$scriptpath
+        . $scriptpath/util.sh
+        util_init
+        diskdoc_init "$@" || error "init failed" $?
+        shift $c
+
+        diskdoc_lib || error diskdoc-lib $?
+        run_subcmd "$@" || error "run-subcmd:$*" $?
+
+      ;;
+
+    * )
+      echo "$scriptname: not a frontend for $base"
+      exit 1
+      ;;
+
+  esac
+}
+
+# FIXME: Pre-bootstrap init
+diskdoc_init()
+{
+  local __load_lib=1
+  . $scriptpath/box.init.sh
+  lib_load box main
+  box_run_sh_test
+  #while test $# -gt 0
+  #do
+  #  case "$1" in
+  #      -v )
+  #        verbosity=$(( $verbosity + 1 ))
+  #        incr_c
+  #        shift;;
+  #  esac
+  #done
+  #. $scriptpath/diskdoc.inc.sh "$@"
+  test -n "$verbosity" || verbosity=6
+  # -- diskdoc box init sentinel --
+}
+
+# FIXME: 2nd boostrap init
+diskdoc_lib()
+{
+  local __load_lib=1
+  lib_load date match
+  . $scriptpath/vc.sh load-ext
+  # -- diskdoc box lib sentinel --
+  set --
+}
+
+
+### Subcmd init, deinit
+
+# Pre-exec: post subcmd-boostrap init
 diskdoc_load()
 {
   test -n "$diskdoc_session_id" || diskdoc_session_id=$(get_uuid)
@@ -549,6 +654,7 @@ diskdoc_load()
   uname=$(uname)
 }
 
+# Post-exec: subcmd and script deinit
 diskdoc_unload()
 {
   local unload_ret=0
@@ -575,88 +681,20 @@ diskdoc_unload()
   return $unload_ret
 }
 
-diskdoc_init()
-{
-  local __load_lib=1
-  lib_load box main
-  . $scriptdir/box.init.sh
-  box_run_sh_test
-  #while test $# -gt 0
-  #do
-  #  case "$1" in
-  #      -v )
-  #        verbosity=$(( $verbosity + 1 ))
-  #        incr_c
-  #        shift;;
-  #  esac
-  #done
-  #. $scriptdir/diskdoc.inc.sh "$@"
-  test -n "$verbosity" || verbosity=6
-  # -- diskdoc box init sentinel --
-}
 
-diskdoc_lib()
-{
-  local __load_lib=1
-  lib_load date match
-  . $scriptdir/vc.sh load-ext
-  # -- diskdoc box lib sentinel --
-}
-
-
-### Main
-
-diskdoc_main()
-{
-  local scriptname=diskdoc base=$(basename $0 .sh) \
-    subcmd=$1 scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
-
-  case "$base" in
-
-    $scriptname )
-
-        # invoke with function name first argument,
-        local scsep=__ bgd= \
-          diskdoc_session_id= \
-          subcmd_pref=${scriptalias} \
-          diskdoc_default=status \
-          func_exists= \
-          func= \
-          sock= \
-          c=0
-
-				export SCRIPTPATH=$scriptdir
-        . $scriptdir/util.sh
-        util_init
-        diskdoc_init "$@" || error "init failed" $?
-        shift $c
-
-        diskdoc_lib || error diskdoc-lib $?
-        run_subcmd "$@" || error "run-subcmd:$*" $?
-
-      ;;
-
-    * )
-      echo "Not a frontend for $base ($scriptname)"
-      exit 1
-      ;;
-
-  esac
-}
-
-case "$0" in "" ) ;; "-*" ) ;; * )
+# Main entry - bootstrap script if requested
+case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
   # NOTE: arguments to source are working on Darwin 10.8.5, not Linux?
   # fix using another mechanism:
   test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-
-      diskdoc_main "$@"
-    ;;
+  case "$1" in
+    load-ext ) ;;
+    * )
+      diskdoc_main "$@" ;;
 
   esac ;;
 esac
 
-
-
+# Id: script-mpe/0.0.3-dev diskdoc.sh
