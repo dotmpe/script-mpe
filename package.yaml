@@ -35,6 +35,7 @@
 
     tasks:
       document: todo.txt
+      done: .done.txt
       grep: ./tools/sh/tags.sh
       grep-filter: ./tools/sh/tags-filter.sh
       tags:

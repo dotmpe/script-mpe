@@ -1459,6 +1459,7 @@ htd__mac()
   arp -a
 }
 
+
 # Current tasks
 
 htd_man_1__tasks="Update todo/tasks/plan document from local tasks"
@@ -1546,7 +1547,7 @@ htd_opts_tasks_grep()
 
 
 htd_man_1__tasks_local="Use the preferred local way of creating the local todo grep list"
-htd_spc__tasks_local='tasks-local [ --Check-All-Tags] [ --Check-All-Files]'
+htd_spc__tasks_local='tasks-local [ --Check-All-Tags ] [ --Check-All-Files ]'
 htd_run__tasks_local=iAo
 htd__tasks_local()
 {
@@ -1569,7 +1570,10 @@ htd_opts_tasks_local()
 
 htd__todo()
 {
-  htd__todotxt edit
+  test -n "$*" || error "unexpected arguments" 1
+  local $(package_sh \
+    id pd_meta_tasks_document pd_meta_tasks_done)
+  echo htd__todotxt edit $pd_meta_tasks_document $pd_meta_tasks_done
 }
 
 
@@ -1577,75 +1581,22 @@ htd__todo()
 htd_als__tte=todotxt-edit
 htd__todotxt_edit()
 {
-  test -n "$UCONFDIR" || error UCONFDIR 12
-  test -n "$hostname" || error hostname 12
-  #test -n "$domain" || error domain 12
-
-  var_isset ttxtm_fn || local ttxtm_fn= ttxtm_done_fn=
-
-  ttxtm_fn=.todo.ttxtm ttxtm_done_fn=.done.ttxtm
-
-  trueish "$choice_local" && {
-    touch $ttxtm_fn $ttxtm_done_fn
-  } || {
-    ttxtm_fn=
-    ttxtm_done_fn=
-  }
-
-  #trueish "$choice_global" && ttxtm_fn=$UCONFDIR/todotxtm/global.ttxtm
-  #trueish "$choice_host" && ttxtm_fn=$UCONFDIR/todotxtm/$hostname.ttxtm
-  #trueish "$choice_domain" && ttxtm_fn=$UCONFDIR/todotxtm/$domain.ttxtm
-
-  mkcid "$(pwd)"
-  local id=$cid
-
-  #trueish "$choice_ext" && ttxtm_fn=$UCONFDIR/todotxtm/$hostname-$id.ttxtm
-
-  test -n "$ttxtm_fn" -o ! -e "$ttxtm_fn" && {
-
-    # Set filenames from project
-    {
-      { test -z "$choice_package" || trueish "$choice_package"; } && test -e package.yaml
-    } && {
-      local metaf=package.yaml
-      local package_id=$( jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' \
-        | jsotk.py -O py path - "id" )
-
-      # Set ext. ttxtm file for project
-      ttxtm_fn=$UCONFDIR/todotxtm/project/$package_id.ttxtm
-      ttxtm_done_fn=$UCONFDIR/todotxtm/project/$package_id-done.ttxtm
-
-    } || {
-
-      # Or, look for host/path
-      test -n "$ttxtm_fn" -a -e "$ttxtm_fn" || {
-        ttxtm_fn=$( \
-          for fn in $UCONFDIR/todotxtm/$hostname$id.ttxtm \
-            $UCONFDIR/todotxtm/$hostname.ttxtm \
-            $UCONFDIR/todotxtm/global.ttxtm
-          do
-            test -e "$fn" && { echo $fn; break; }
-          done )
-      }
-    }
-
-    test -n "$ttxtm_fn" || error ttxtm_fn 12
-
-    ttxtm_done_fn=./$(dirname $ttxtm_fn)/$(basename "$ttxtm_fn" .ttxtm)-done.ttxtm
-  }
-
-  for fn in $ttxtm_fn $ttxtm_done_fn
+  test -n "$1" || set -- .todo.ttxtm "$@"
+  test -n "$2" || set -- "$1" .done.ttxtm
+  # Set ext. ttxtm file for project
+  #ttxtm_fn=$UCONFDIR/todotxtm/project/$package_id.ttxtm
+  #ttxtm_done_fn=$UCONFDIR/todotxtm/project/$package_id-done.ttxtm
+  for fn in $1 $2
   do
-    test -n "$fn" || continue
     test -e $fn || {
       test -z "$(dirname $fn)" || mkdir -vp $(dirname $fn)
       touch $fn
     }
   done
-
-  todotxt-machine $ttxtm_fn $ttxtm_done_fn
+  todotxt-machine $1 $2
 }
 #htd_run__todo=o
+
 
 htd__todotxt()
 {
@@ -2126,6 +2077,7 @@ htd__git_list()
 
 # List or look for files
 # htd git-files [ REPO... -- ] GLOB...
+htd_run__git_files=ia
 htd__git_files()
 {
   local pat="$(compile_glob $(lines_to_words $arguments.glob))"
@@ -2137,7 +2089,6 @@ htd__git_files()
       | sed 's#^#'"$repo"':HEAD/#' | grep "$pat"
   done
 }
-htd_run__git_files=ia
 htd_argsv__git_files=arg-groups-r
 htd_arg_groups__git_files="repo glob"
 htd_defargs_repo__git_files=/src/*.git
@@ -2202,9 +2153,8 @@ htd__gitflow_check_doc()
     stderr ok "All branches found in '$1'"
   }
 }
-
 htd_als__gitflow_check=gitflow-check-doc
-htd_als__gitflow=gitflow-status
+
 
 htd__gitflow_status()
 {
@@ -2216,12 +2166,15 @@ htd__gitflow_status()
       git cherry $base $branch | wc -l
     done
 }
+htd_als__gitflow=gitflow-status
+
 
 htd_spc__source_lines='source-lines FILE [ START [ END ]]'
 htd__source_lines()
 {
   source_lines "$@"
 }
+
 
 htd_man_1__expand_source_line='
   Replace the source line with the contents of the sourced script'
@@ -2231,6 +2184,7 @@ htd__expand_source_line()
   expand_source_line "$@"
 }
 
+
 htd_man_1__copy_paste_function='
   Remove function from source and place in seperately sourced file'
 htd__copy_paste_function()
@@ -2239,6 +2193,7 @@ htd__copy_paste_function()
   copy_paste_function "$2" "$1"
   note "Moved function $2 to $cp"
 }
+
 
 htd_man_1__diff_function='
   Compare single function from Sh script, to manually sync/update related
@@ -2364,6 +2319,7 @@ htd__check_files()
 
 }
 
+
 htd_git_rename()
 {
   $PREFIX/bin/matchbox.py rename "$1" "$2" |
@@ -2374,11 +2330,13 @@ htd_git_rename()
   done
 }
 
+
 htd__rename_test()
 {
   cmd_pref="echo"
   htd__rename $@
 }
+
 
 htd__rename()
 {
@@ -2625,8 +2583,9 @@ htd__run_names()
   jsotk.py keys -O lines .package.main scripts
 }
 
+
 htd_man_1__run_dir="List package script names and lines"
-htd_run_dir__run_dir=f
+htd_run__run_dir=f
 htd__run_dir()
 {
   htd__run_names | while read name
@@ -5118,6 +5077,7 @@ htd__init_backup_repo()
 
 
 # Copy/move all given file args to backup repo
+htd_run__backup=iAoP
 htd__backup()
 {
   local act= bu_act_lbl= bu_act=
@@ -5192,7 +5152,6 @@ htd__backup()
     }
   }
 }
-htd_run__backup=iAoP
 htd_pre__backup=htd_backup_prereq
 htd_argsv__backup=htd_backup_args
 htd_optsv__backup=htd_backup_opts
@@ -5371,6 +5330,7 @@ htd__clean_osx()
 
 
 htd_spc__list_functions='list-functions [ --list-functions-scriptname=1 ]'
+htd_run__list_functions=iAo
 htd__list_functions()
 {
   test -z "$2" || { # Turn on scriptname prefix if more than one file is given
@@ -5378,7 +5338,6 @@ htd__list_functions()
   }
   list_functions "$@"
 }
-htd_run__list_functions=iAo
 htd_argsv__list_functions=opt_args
 htd_optsv__list_functions=htd_opts_list_functions
 htd_opts_list_functions()
