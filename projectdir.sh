@@ -1318,7 +1318,7 @@ pd_preload()
   #test -n "$P" || PATH=$CWD:$PATH
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname=$(uname)
-  test -n "$HTD_ETC" || HTD_ETC="$(pd_init_etc | head -n 1)"
+  test -n "$SCRIPT_ETC" || SCRIPT_ETC="$(pd_init_etc | head -n 1)"
 }
 
 pd_load()

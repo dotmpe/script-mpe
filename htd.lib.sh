@@ -160,16 +160,32 @@ tools_json()
     || jsotk.py yaml2json $HTD_TOOLSFILE ./tools.json
 }
 
+define_var_from_opt()
+{
+  case "$1" in
+    --*=* )
+        eval $(echo "$1" | cut -c3- | tr '-' '_')
+      ;;
+    --* )
+        eval $(echo "$1" | cut -c3- | tr '-' '_')=1
+      ;;
+  esac
+}
+
 htd_options_v()
 {
-  set -- "$(cat $options)"
+  set -- $(lines_to_words $options)
   while test -n "$1"
   do
     case "$1" in
       --yaml ) format_yaml=1 ;;
       --interactive ) choice_interactive=1 ;;
       --non-interactive ) choice_interactive=0 ;;
-      * ) error "unknown option '$1'" 1 ;;
+      * ) trueish "$define_all" && {
+          define_var_from_opt "$1"
+        } || {
+          error "unknown option '$1'" 1
+        };;
     esac
     shift
   done
@@ -247,5 +263,23 @@ htd_main_files()
   done
 }
 
-
+# Build a table of paths to env-varnames, to rebuild/shorten paths using variable names
+htd_topic_names_index()
+{
+  test -n "$1" || set -- pathnames.tab
+  { test -n "$UCONFDIR" -a -s "$UCONFDIR/$1" && {
+    local tmpsh=$(setup_tmpf .topic-names-index.sh)
+    { echo 'cat <<EOM'
+      read_nix_style_file "$UCONFDIR/$1"
+      echo 'EOM'
+    } > $tmpsh
+    $SHELL $tmpsh
+    rm $tmpsh
+  } || { cat <<EOM
+/ ROOT
+$HOME/ HOME
+EOM
+    }
+  } | uniq
+}
 

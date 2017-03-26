@@ -15,7 +15,7 @@ lst_preload()
   test -n "$archive_dt_strf" || archive_dt_strf=%Y-%M-%dT%H:%m:%S
   test -n "$lst_base" || lst_base=htd
 
-  test -n "$HTD_ETC" || HTD_ETC="$(lst_init_etc | head -n 1)"
+  test -n "$SCRIPT_ETC" || SCRIPT_ETC="$(lst_init_etc | head -n 1)"
 }
 
 lst_load()
@@ -175,5 +175,4 @@ htd_find_path_locals()
     path=$(dirname $path)
   done
 }
-
 

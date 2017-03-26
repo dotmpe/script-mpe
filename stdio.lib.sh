@@ -55,15 +55,6 @@ close_io_descrs()
   done
 }
 
-# opt-args: helper to filter options for arguments
-opt_args()
-{
-  for arg in $@
-  do fnmatch "-*" "$arg" && echo "$arg" >>$options || echo $arg >>$arguments
-  done
-}
-
-
 # clean-failed - Deprecated.
 # Given $failed pointing to a path, cleanup after a run, observing
 # any notices and returning 1 for failures.

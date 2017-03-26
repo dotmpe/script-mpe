@@ -24,6 +24,14 @@ redis()
     ping )
         redis-cli ping 2>&1 >/dev/null || return
       ;;
+    list )
+        test -n "$2" || set -- "$1" 0
+        redis-cli scan "$2" || return
+      ;;
+    x|be|raw )
+        shift 1
+        redis-cli --raw "$@" || return
+      ;;
     * )
         echo "Error $0: $1 ($2)"
         exit 101

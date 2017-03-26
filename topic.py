@@ -23,8 +23,8 @@ Usage:
 Options:
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
-
-Other flags:
+    --no-commit   .
+    --commit      [default: true].
     -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
@@ -85,9 +85,11 @@ def cmd_list(settings):
     out.finish()
 
 def cmd_new(NAME, REF, settings):
+    sa = Topic.get_session('default', settings.dbref)
+    about = Topic.byName(REF)
     #store = Topic.start_master_session()
     #print store
-    #topic = store.Topic.byName(NAME)
+    #topic = store.Topic.byName(REF)
     #if topic:
     #    pass
     #else:
@@ -95,16 +97,19 @@ def cmd_new(NAME, REF, settings):
     #    store.commit()
     #reporter.stdout.Topic(topic)
     # XXX: old
-    sa = Topic.get_session('default', settings.dbref)
     topic = Topic.byName(NAME)
     if topic:
         log.std("Found existing topic %s, created %s", topic.name,
                 topic.date_added)
     else:
-        topic = Topic(name=NAME)
+        if about:
+            topic = Topic(name=NAME, about_id=about.topic_id)
+        else:
+            topic = Topic(name=NAME)
         topic.init_defaults()
         sa.add(topic)
-        sa.commit()
+        if settings.commit:
+            sa.commit()
         log.std("Added new topic %s", topic.name)
     reporter.stdout.Topic(topic)
 
@@ -132,6 +137,7 @@ def main(opts):
 
     settings = opts.flags
     opts.default = 'info'
+    if opts.flags.no_commit: opts.flags.commit = False
     return util.run_commands(commands, settings, opts)
 
 def get_version():

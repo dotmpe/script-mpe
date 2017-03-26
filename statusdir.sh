@@ -75,29 +75,14 @@ statusdir__backends()
     sd_be_name=
     . $bn
     test -n "$sd_be_name" || error "Backend name expected ($(basename "$bn"))"
-    $sd_be_name ping && note "$sd_be_name OK" || warn "No $sd_be_name backend"
+    $sd_be_name ping && note "$sd_be_name found" || warn "No $sd_be_name backend"
   done
 }
 statusdir_als__bes=backends
 
 
-statusdir__reset()
-{
-  test ! -e $1 || { rm $1 || return $?; }
-}
-
-statusdir__exists()
-{
-  test -s $1 || return $?
-}
-
-statusdir__dump()
-{
-  test ! -e $1 || cat $1
-}
-
-# echos path. Default index is 'default'.
-# assert <path-expr> [<index-name-id>]
+statusdir_man_1__assert="echos path. Default index is 'default'."
+statusdir_spc__assert="assert <path-expr> [<index-name-id>]"
 statusdir__assert()
 {
   test -n "$STATUSDIR_ROOT" || error "STATUSDIR_ROOT" 1
@@ -261,21 +246,65 @@ statusdir__decr()
   $sd_be decr $1 $2 || return $?
 }
 
+statusdir__list()
+{
+  $sd_be list "$@"
+}
+
+statusdir__be()
+{
+  test -n "$1" || error "cmd expected" 1
+  $sd_be x "$@"
+}
+
+
+# Generic subcmd's
+
+statusdir_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+statusdir_load__help=f
+statusdir_spc__help='-h|help [ID]'
+statusdir__help()
+{
+  test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  choice_global=1 std__help "$@"
+  rm_failed || return
+}
+statusdir_als___h=help
+
+
+statusdir_man_1__version="Version info"
+statusdir__version()
+{
+  echo "script-mpe:$scriptname/$version"
+}
+#statusdir_als___V=version
+#statusdir_als____version=version
+
+
+statusdir__edit()
+{
+  $EDITOR $0 $(which $base.sh) "$@"
+}
+statusdir_als___e=edit
+
+
+
+# Script main functions
 
 ### Main
 
-statusdir__main()
+statusdir_main()
 {
   local scriptname=statusdir base=$(basename $0 .sh) verbosity=5 \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
     sd_be= \
     sd_tmpdir=
 
-  statusdir__init || exit $?
+  statusdir_init || exit $?
 
   case "$base" in $scriptname )
 
-        statusdir__lib || exit $?
+        statusdir_lib || exit $?
         run_subcmd "$@" || exit $?
       ;;
 
@@ -285,7 +314,7 @@ statusdir__main()
   esac
 }
 
-statusdir__init()
+statusdir_init()
 {
   test -n "$scriptpath"
   export SCRIPTPATH=$scriptpath
@@ -297,7 +326,7 @@ statusdir__init()
   # -- statusdir box init sentinel --
 }
 
-statusdir__lib()
+statusdir_lib()
 {
   test -z "$__load_lib" || return 14
   local __load_lib=1
@@ -310,7 +339,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   test -n "$__load_lib" || {
     case "$1" in load-ext ) ;; * )
-      statusdir__main "$@"
+      statusdir_main "$@"
     ;; esac
   }
 ;; esac

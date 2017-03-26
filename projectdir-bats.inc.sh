@@ -229,7 +229,7 @@ pd__bats()
       echo "# Bats $curarg of $argc ($x)"
       verbosity=6 bats $x \
         || echo "bats:$x" >>$failed
-    } | bats-color.sh
+    } | script-bats.sh colorize
   done
 
   test -s "$failed" && {

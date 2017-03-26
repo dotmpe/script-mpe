@@ -1,6 +1,6 @@
 ReadMe.rst
 package.yaml
-.package.sh
+# FIXME: check its up to date before commit.. .package.sh
 package.json
 Rules.mk
 match.sh
@@ -56,3 +56,4 @@ vagrant-sh.sh
 meta-sh.sh
 package.lib.sh
 meta.lib.sh
+script-sh.sh

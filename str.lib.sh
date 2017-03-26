@@ -286,4 +286,20 @@ resolve_prefix_element()
   echo "$2" | sed "s/^\\([^$3]*\\)$3.*$/\\1/"
 }
 
+column_layout()
+{
+  test -n "$colw" || local colw=22
+  local cols=$(( $(tput cols) / $colw ))
+  while read line
+  do
+    printf -- "$line\t"
+    for i in $(seq $(( $cols - 1 )) )
+    do
+      read line
+      printf -- "$line\t"
+    done
+    printf "\n"
+  done |
+    column -t
+}
 

@@ -19,17 +19,19 @@ htd_load()
   # -- htd box load insert sentinel --
   test -n "$EDITOR" || EDITOR=vim
   test -n "$DOC_EXT" || DOC_EXT=.rst
+  test -n "$DOC_EXTS" || DOC_EXTS=".rst .md .txt"
   test -n "$HTD_GIT_REMOTE" || HTD_GIT_REMOTE=default
   test -n "$CWD" || CWD=$(pwd)
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
   test -n "$TMPDIR" || TMPDIR=/tmp/
   test -n "$HTDIR" || HTDIR=$HOME/public_html
-  test -n "$HTD_ETC" || HTD_ETC=$(htd_init_etc|head -n 1)
+  test -n "$SCRIPT_ETC" || SCRIPT_ETC=$(htd_init_etc|head -n 1)
   test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE=$CWD/tools.yml
   test -n "$HTD_TOOLSDIR" || HTD_TOOLSDIR=$HOME/.htd-tools
   test -n "$HTD_JRNL" || HTD_JRNL=personal/journal
   test -n "$FIRSTTAB" || export FIRSTTAB=50
-  test -n "$LOG" || export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
+  test -n "$LOG" ||
+    export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
 
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
@@ -44,6 +46,7 @@ htd_load()
     cd $CWD
   }
 
+  # XXX:
   #test -e
   #grep -qF $PROJECT':'  ../.projects.yaml || {
   #  warn "No such project prefix $PROJECT"
@@ -238,7 +241,7 @@ htd_unload()
 
     r )
         # Report on scriptnames and associated script-lines provided in $HTD_TOOLSFILE
-        statusdir.sh dump $report | jsotk.py -O yaml --pretty dump -
+        cat $report | jsotk.py -O yaml --pretty dump -
       ;;
 
   esac; done
@@ -544,10 +547,13 @@ htd__edit_main()
   local evoke= files="$@"
   locate_name ;
   [ -n "$fn" ] || error "expected $scriptname?" 1
-  files="$files $fn \
-    $(dirname $fn)/$(basename "$fn").lib.sh \
-    $(dirname $fn)/$(basename "$fn").rst \
-    $(dirname $fn)/*.lib.sh"
+  files="$files $fn $(columnize=false htd__ls_main_files | lines_to_words )"
+  # XXX:
+  #libs_n_docs="\
+  #  $(dirname $fn)/$(basename "$fn").lib.sh \
+  #  $(dirname $fn)/$(basename "$fn").rst \
+  #  $(dirname $fn)/*.lib.sh"
+
   test "$EDITOR" = "vim" && {
     # Two vertical panes, with h-split in the right
     evoke="vim -O2 \
@@ -561,6 +567,23 @@ htd__edit_main()
   bash -c "$evoke $files"
 }
 htd_als___E=edit-main
+
+
+htd__ls_main_files()
+{
+  var_isset columnize || columnize=1
+  {
+    for scr in $scriptpath/*.sh
+    do
+      fnmatch "*.inc.sh" "$scr" && continue
+      fnmatch "*.lib.sh" "$scr" && continue
+      test -x "$scr" || continue
+      basename $scr
+    done
+  } | {
+    trueish "$columnize" && column_layout || cat
+  }
+}
 
 
 htd_man_1__edit="Edit a local file, or abort"
@@ -714,12 +737,10 @@ htd__status()
   htd__open_paths | while read path
   do
     test -e $path/.git || {
-      ~/project/mkdoc/usr/share/mkdoc/Core/log.sh \
-              "header3" "$path" ""
+      $LOG "header3" "$path" ""
       continue
     }
-    ~/project/mkdoc/usr/share/mkdoc/Core/log.sh \
-            "header3" "$path" "" "$( cd $path && vc.sh flags )"
+    $LOG "header3" "$path" "" "$( cd $path && vc.sh flags )"
     #$scriptpath/std.lib.sh ok "$path"
   done
 
@@ -803,12 +824,12 @@ htd__script()
 
   # Force regeneration for stale data
   test $status -ot $HTD_TOOLSFILE \
-    && statusdir.sh reset $status
+    && { rm $status || noop; }
 
   # FIXME: statusdir tools script listing
   rm $status
   # Regenerate status data for this script if not available
-  statusdir.sh exists $status || {
+  test -s $status || {
     scripts="$( jsotk.py keys -O lines $HTD_TOOLSFILE tools )"
 
     for toolid in $scripts
@@ -1440,32 +1461,15 @@ htd__mac()
 
 # Current tasks
 
-task_opts()
-{
-  for opt in "$@"
-  do
-    # Turn option --My-Setting=... into variable My_Setting=... etc.
-    case "$opt" in
-      --*=* )
-          eval $(echo "$opt" | cut -c3- | tr '-' '_')
-        ;;
-      --* )
-          eval $(echo "$opt" | cut -c3- | tr '-' '_')=1
-        ;;
-    esac
-  done
-}
-
 htd_man_1__tasks="Update todo/tasks/plan document from local tasks"
-htd_run__tasks=i
 htd_spc__tasks='tasks [ --interactive ] [ --Check-All-Tags ] [ --Check-All-Files ]'
+htd_run__tasks=iAo
 htd__tasks()
 {
   local $(package_sh \
     id \
     pd_meta_tasks_slug \
     pd_meta_tasks_document || error "Missing package.sh var(s)" 1 )
-  task_opts "$@"
   test -n "$pd_meta_tasks_document" || pd_meta_tasks_document=tasks.ttxtm
   test -n "$pd_meta_tasks_slug" || {
     test -n "$id" \
@@ -1481,8 +1485,8 @@ htd__tasks()
   } ||  {
     note "Updating tasks document.. ($(var2tags verbose interactive))"
     tasks_flags="$(
-      falseish "$verbose" || printf -- " -v "; 
-      falseish "$interactive" || printf -- " -i "; 
+      falseish "$verbose" || printf -- " -v ";
+      falseish "$interactive" || printf -- " -i ";
     )"
     # FIXME: select tasks backend
     be_opt="-t $pd_meta_tasks_document --link-all"
@@ -1493,9 +1497,17 @@ htd__tasks()
     note "OK. $(count_lines $pd_meta_tasks_document) open tasks"
   }
 }
+htd_argsv__tasks=opt_args
+htd_optsv__tasks=htd_opts_tasks
+htd_opts_tasks()
+{
+  define_all=1 htd_options_v "$@"
+}
+
 
 htd_man_1__tasks_grep="Use Htd's built-in todo grep list command to get local tasks. "
 htd_spc__tasks_grep='tasks-grep [ --Check-All-Tags] [ --Check-All-Files]'
+htd_run__tasks_grep=iAo
 htd__tasks_grep()
 {
 	local out=$(setup_tmpf .out)
@@ -1525,26 +1537,41 @@ EOM
     }
   done
 }
+htd_argsv__tasks_grep=opt_args
+htd_optsv__tasks_grep=htd_opts_tasks_grep
+htd_opts_tasks_grep()
+{
+  define_all=1 htd_options_v "$@"
+}
+
 
 htd_man_1__tasks_local="Use the preferred local way of creating the local todo grep list"
 htd_spc__tasks_local='tasks-local [ --Check-All-Tags] [ --Check-All-Files]'
+htd_run__tasks_local=iAo
 htd__tasks_local()
 {
   local $(package_sh id pd_meta_tasks_grep)
-  task_opts "$@"
   test -n "$pd_meta_tasks_grep" && {
     Check_All_Tags=1 Check_All_Files=1  \
-    $pd_meta_tasks_grep 
+    $pd_meta_tasks_grep
     return 0
-  } || { 
+  } || {
 		htd__tasks_grep
   }
 }
+htd_argsv__tasks_local=opt_args
+htd_optsv__tasks_local=htd_opts_tasks_local
+htd_opts_tasks_local()
+{
+  define_all=1 htd_options_v "$@"
+}
+
 
 htd__todo()
 {
   htd__todotxt edit
 }
+
 
 # Edit local/new task descriptions
 htd_als__tte=todotxt-edit
@@ -2147,7 +2174,7 @@ htd__gitflow_doc()
 {
   test -n "$1" || set -- gitflow
   test -e "$1" || {
-    for ext in .rst .txt
+    for ext in $DOC_EXTS
     do
       test -e $1$ext || continue
       set -- $1$ext; break
@@ -2167,7 +2194,7 @@ htd__gitflow_check_doc()
   vc.sh list-all-branches | while read branch
   do
     match_grep_pattern_test "$branch" || return 12
-    grep -q "\\s*$p_\\s*$" $1 || failed "$1: expected '$branch'"
+    grep -qE "\<$p_\>" $1 || failed "$1: expected '$branch'"
   done
   exec 6<&-
   test -s "$failed" || {
@@ -2181,7 +2208,7 @@ htd_als__gitflow=gitflow-status
 
 htd__gitflow_status()
 {
-  note "TODO: see gitflow-check"
+  note "TODO: see gitflow-check-doc"
   defs gitflow.txt | \
     tree_to_table  | \
     while read base branch
@@ -2189,6 +2216,57 @@ htd__gitflow_status()
       git cherry $base $branch | wc -l
     done
 }
+
+htd_spc__source_lines='source-lines FILE [ START [ END ]]'
+htd__source_lines()
+{
+  source_lines "$@"
+}
+
+htd_man_1__expand_source_line='
+  Replace the source line with the contents of the sourced script'
+htd_spc__expand_source_line='expand-source-line FILE LINENR'
+htd__expand_source_line()
+{
+  expand_source_line "$@"
+}
+
+htd_man_1__copy_paste_function='
+  Remove function from source and place in seperately sourced file'
+htd__copy_paste_function()
+{
+  test -f "$1" -a -n "$2" -a -z "$3" || error "usage: FILE FUNC" 1
+  copy_paste_function "$2" "$1"
+  note "Moved function $2 to $cp"
+}
+
+htd_man_1__diff_function='
+  Compare single function from Sh script, to manually sync/update related
+  functions in different files/directories '
+htd_spc___diff_function="diff-func(tion) FILE1 FUNC1 DIR[FILE2 [FUNC2]] "
+htd__diff_function()
+{
+  test -n "$1" -a -n "$2" -a -n "$3" || error "usage: $htd_spc___diff_function" 1
+  test -n "$4" || {
+    test -d "$3" -o -f "$3" || error "usage: $htd_spc___diff_function" 1
+    test -f "$3" && {
+      set -- "$1" "$2" "$3" "$2"
+    } || {
+      set -- "$1" "$2" "$3/$1" "$2"
+    }
+  }
+  test -f "$1" -a -f "$3" || error "usage: $htd_spc___diff_function" 1
+  cp_board= copy_paste_function "$2" "$1" || error "copy-paste-function 1" $?
+  src1_line=$start_line
+  src1=$cp
+  cp_board= copy_paste_function "$4" "$3" || error "copy-paste-function 2" $?
+  src2_line=$start_line
+  src2=$cp
+  vimdiff $src1 $src2 || error "vimdiff, leaving unexpanded source lines" $?
+  expand_source_line $1 $src1_line || error "expand-source-line 1" $?
+  expand_source_line $3 $src2_line || error "expand-source-line 2" $?
+}
+htd_als__diff_func=diff-function
 
 
 # indexing, cleaning
@@ -2602,14 +2680,14 @@ htd__run()
       {
         eval "$scriptline"
       } &&
-        continue || error "At line '$scriptline'" $?
+        continue || error "At line '$scriptline' for '$1'" $?
 
       # NOTE: execute scriptline with args only once
       set --
     done
   )
 
-  stderr ok $1
+  trueish "$verbose_no_exec" && return || stderr ok "$1 OK"
 }
 
 
@@ -3967,6 +4045,29 @@ htd__active()
 }
 
 
+# TODO: open routine ...
+htd__open()
+{
+  test -n "$1" && {
+    stderr warn TODO 1 # tasks-ignore
+  } || {
+    htd__open_paths || return
+  }
+}
+
+
+htd_man_1__open_paths='List open paths for user (beloning to shell processes only)'
+htd__open_paths()
+{
+  # BUG: lsof -Fn  on OSX/Darwin ie behaving really badly, looks buggy.
+  # So awk for paths
+  lsof \
+    +c 15 \
+    -c '/^(bash|sh|ssh|dash|zsh)$/x' \
+    -u $(whoami) -a -d cwd | tail -n +2 | awk '{print $9}' | sort -u
+}
+
+
 htd_man_1__current_paths='
   List open paths under given or current dir. Dumps lsof without cmd, pid etc.'
 htd__current_paths()
@@ -3974,35 +4075,29 @@ htd__current_paths()
   test -n "$1" || set -- "$(pwd -P)"
   note "Listing open paths under $1"
   # print only pid and path name, keep name
-  lsof -Fn +D $1 | tail -n +2 | grep -v '^p' | cut -c2- | sort -u
+  lsof -F n +D $1 | tail -n +2 | grep -v '^p' | cut -c2- | sort -u
 }
-htd_als__lsof=current-paths
+htd_als__lsof=current
 
 
-htd_man_1__open_paths='Create list of open files, and show differences on
+htd_man_1__open_paths_diff='Create list of open files, and show differences on
   subsequent calls. '
-htd_spc__open_paths="open-paths ['\\<sh\\|bash\\>']"
-htd__open_paths()
+htd_spc__open_paths_diff="open-paths-diff"
+htd__open_paths_diff()
 {
-  test -n "$1" || set -- '\<sh\|bash\>'
-
   export lsof=$(statusdir.sh assert-dir htd/open-paths.lsof)
   export lsof_paths=$lsof.paths
   export lsof_paths_ck=$lsof_paths.sha1
 
-  # Get open paths for user, bound to CWD of processes, and with 15 COMMAND chars
+  # Get open paths for user, include only CWD, and with 15 COMMAND chars
   # But keep only non-root, and sh or bash lines, throttle update of cached file
   # by 10s period.
   {
     test -e "$lsof" && newer_than $lsof 10
   } || {
-    lsof +c 15 -u $(whoami) -a -d cwd \
-      | eval "grep '^$1'" \
-      | grep -v '\ \/$' \
-      | tail -n +2 >$lsof
+    htd__open_paths >$lsof
 
     debug "Updated $lsof"
-
     info "Commands: $(echo $(
         sed 's/\ .*$//' $lsof | sort -u
       ))"
@@ -4045,6 +4140,103 @@ htd__recent_paths()
   note "Listing active paths under $1"
   dateref=$(statusdir.sh file recent-paths)
   find $1 -newer $dateref
+}
+
+
+req_prefix_names_index()
+{
+  test -n "$1" || set -- pathnames.tab
+  test -n "$index" || export index=$(setup_tmpf .index)
+  test -s "$index" -a "$index" -nt "$UCONF/$1" || {
+    htd_topic_names_index "$1" > $index
+  }
+}
+
+# Run path-prefix-name for all paths from htd-open.
+htd__prefix_names()
+{
+  local index=
+  req_prefix_names_index
+  test -s "$index"
+  { test -n "$1" && {
+    read_nix_style_file "$1" || return
+  } || {
+      htd__open || return
+  };} | while read path
+  do
+    htd__prefix_name "$path"
+  done
+}
+
+
+# Return prefix:<localpath> after scanning paths-topic-names
+htd__prefix_name()
+{
+  local index=
+  req_prefix_names_index
+  test -s "$index"
+  local path="$1"
+  # Find deepest named prefix
+  while true
+  do
+    # Travel to root, break on match
+    grep -qF "$1 " $index && break || set -- "$(dirname "$1")"
+    test "$1" != "/" || break
+  done
+  # Get first name for path
+  local prefix_name="$( grep -F "$1 " $index | head -n 1 | awk '{print $2}' )"
+  fnmatch "*/" "$1" || set -- "$1/"
+  # offset on furter for `cut`
+  set -- "$1+"
+  echo "$prefix_name:$(echo "$path" | cut -c${#1}- )"
+}
+
+
+# Print user or default prefix-name lookup table
+htd__path_prefix_names()
+{
+  local index=
+  req_prefix_names_index
+  test -s "$index"
+  cat $index
+  note "OK, $(count_lines "$index") rules"
+}
+
+
+htd__list_prefixes()
+{
+  echo
+  (
+    sd_be=redis
+    statusdir.sh be smembers htd:prefixes:names | while read prefix
+    do
+      val="$(eval echo \$$prefix)"
+      test -n "$val" &&
+        printf -- "$prefix <$val>\n" || printf -- "$prefix\n"
+      statusdir.sh be smembers htd:prefix:$prefix:paths | while read localpath
+      do
+        test -n "$localpath" || localpath="''"
+        printf -- "  - $localpath\n"
+      done
+      echo
+    done
+  )
+}
+
+
+htd__update_prefixes()
+{
+  (
+    sd_be=redis
+
+    htd__prefix_names | while IFS=':' read prefix localpath
+    do
+      statusdir.sh be sadd htd:prefixes:names "$prefix"
+      test -n "$localpath" || continue
+      statusdir.sh be sadd htd:prefix:$prefix:paths $localpath
+      echo $prefix:$localpath
+    done
+  )
 }
 
 
@@ -5020,7 +5212,7 @@ htd__pack()
   case "$1" in
 
     create )
-  test -d "$2" || error "No such dir '$2'" 3
+        test -d "$2" || error "No such dir '$2'" 3
         test ! -e "$3" || error "archive already exists '$3'" 3
         test -n "$CK" || CK=sha1
         test "$CK" != "ck" || error "TODO ck sums" 1
@@ -5178,11 +5370,99 @@ htd__clean_osx()
 }
 
 
+htd_spc__list_functions='list-functions [ --list-functions-scriptname=1 ]'
 htd__list_functions()
 {
-  list_functions "$1"
+  test -z "$2" || { # Turn on scriptname prefix if more than one file is given
+    var_isset list_functions_scriptname || list_functions_scriptname=1
+  }
+  list_functions "$@"
+}
+htd_run__list_functions=iAo
+htd_argsv__list_functions=opt_args
+htd_optsv__list_functions=htd_opts_list_functions
+htd_opts_list_functions()
+{
+  define_all=1 htd_options_v "$@"
+}
+htd_als__list_func=list-functions
+htd_als__ls_func=list-functions
+
+
+htd__new_functions()
+{
+  filter=A htd__diff_functions "$@"
 }
 
+
+htd__removed_functions()
+{
+  filter=D htd__diff_functions "$@"
+}
+htd_als__deleted_functions=removed-functions
+
+
+htd_man_1__diff_functions='
+  Compare function names in script, show changes
+'
+htd__diff_functions()
+{
+  local version2=$2 version1=$1
+  shift 2
+  test -n "$1" || set -- "$(echo $scriptpath/*.sh)"
+  test -n "$filter" || filter=A
+  tmplistcur=$(setup_tmpf .func-list)
+  tmplistprev=$(setup_tmpf .func-list-old)
+  test -n "$version2" || version2=HEAD^
+  {
+    cd $scriptpath
+    for name in $@
+    do
+      fnmatch "/*" "$name" &&
+        name=$(echo "$name" | cut -c$(( 2 + ${#scriptpath} ))-)
+      git show $version2:$name | list_functions - |
+        sed 's/\(\w*\)()/\1/' | sort -u > $tmplistprev
+      test -n "$version1" && {
+        note "Lising new fuctions at $version1 since $version2 in $name"
+        git show $version1:$name | list_functions - |
+          sed 's/\(\w*\)()/\1/' | sort -u > $tmplistcur
+      } || {
+        note "Lising new fuctions since $version2 in $name"
+        list_functions $name | sed 's/\(\w*\)()/\1/' | sort -u > $tmplistcur
+      }
+      case "$filter" in
+        U ) comm_f=" -1 -2 " ;;
+        A ) comm_f=" -2 -3 " ;;
+        D ) comm_f=" -1 -3 " ;;
+        * ) comm_f=" " ;;
+      esac
+      comm $comm_f $tmplistcur $tmplistprev
+    done
+  }
+}
+
+
+htd__vcard2n3()
+{
+  swap_dir=/home/berend/project/w3c-swap/swap.mpe/
+  PYTHONPATH=$swap_dir:$PYTHONPATH $swap_dir/pim/vcard2n3.py $*
+}
+
+
+# this acts as a remote diff program, accepting two files and displaying
+# a diff for them.  Zero, one, or both files can be remote.  File paths
+# must be in a format `scp` understands: [[user@]host:]file
+htd__rsdiff()
+{
+  f1=/tmp/rdiff.1
+  f2=/tmp/rdiff.2
+  scp $1 $f1
+  scp $2 $f2
+  if [ -f $f1 -a -f $f2 ]; then
+    vimdiff -b $f1 $f2
+  fi
+  rm -f $f1 $f2
+}
 
 
 # util

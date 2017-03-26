@@ -8,6 +8,11 @@ pwd=$(cd .;pwd -P)
 
 version=0.0.4-dev # script-mpe
 
+setup() {
+  scriptname=test-$base
+  . $ENV
+}
+
 @test "$bin no arguments no-op" {
   skip "Default command is $EDITOR now"
   run $bin
@@ -466,4 +471,38 @@ EOM
   } || stdfail
 }
 
+
+@test "$bin open" {
+  require_env lsof
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin open-paths" {
+  require_env lsof
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin current-paths" {
+  require_env lsof
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin prefix-names" {
+  require_env lsof
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin prefix-name-find" {
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin path-prefix-names" {
+  run $bin path-prefix-names
+  test_ok_nonempty || stdfail
+}
 

@@ -54,6 +54,15 @@ init()
 
   . $lib/main.lib.sh load-ext
   lib_load sys str std
+
+  # init script env
+  test -n "$ENV_NAME" || {
+    export SCR_SYS_SH=bash-sh
+    export ENV_NAME=testing
+    export ENV=./tools/sh/env.sh
+  }
+
+  # older script-mpe init
   main_init
 
   test -n "$TMPDIR" || error TMPDIR 1

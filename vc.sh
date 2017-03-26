@@ -1107,6 +1107,7 @@ vc__list_subrepos()
 #    config remote.$remote.url  ; done'
 }
 
+
 vc__projects()
 {
   test -f projects.sh || touch projects.sh
@@ -1169,6 +1170,53 @@ vc__list_all_branches()
     sort -u
   test -z "$1" || cd "$pwd"
 }
+
+# List branches
+vc__branch_refs()
+{
+	test -n "$1" || error "branch name required" 1
+	local ret= failed=
+	git show-ref --verify -q "refs/heads/$1" && { echo "refs/heads/$1" ; ret=0 ; } || { ret=1; }
+	test -n "$2" && {
+    test "$2" != "*" || set -- "$(git remote)"
+  } || set -- "$@" origin
+  local branch="$1";
+  shift
+	while test -n "$1"
+  do
+    git show-ref --verify -q "refs/remotes/$1/$branch" && {
+      echo "refs/remotes/$1/$branch"
+    } || {
+      test "$r" = "0" -o "$r" = "2" || r=2
+    }
+    shift
+  done
+  return $r
+}
+
+# List branches
+vc__branches()
+{
+	#git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
+	git for-each-ref --format='%(refname:short)' refs/heads
+}
+
+# Check wether the literal ref exists, ie:
+# - named branches: refs/heads/*
+# - remote branches: refs/remote/<remote>/*
+vc__ref_exists()
+{
+	git show-ref --verify -q "$1" || return $?
+}
+
+# Check wether branch name exists somewhere
+vc__branch_exists()
+{
+	vc__ref_exists "refs/heads/$1" && return
+	vc__ref_exists "refs/remotes/$1" && return
+	return 1
+}
+
 
 # regenerate .git/info/exclude
 # NOTE: a duplication is happening, but not no recursion, only one. As

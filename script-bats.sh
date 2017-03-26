@@ -92,6 +92,13 @@ script_bats__features()
 
 }
 
+# Colorize BATS-style TAP output
+script_bats__colorize()
+{
+  # TODO: rename to libexec/
+  $scriptpath/bats-color.sh
+}
+
 
 # Main
 

@@ -108,17 +108,7 @@ box_add_function()
   fnmatch "*:[0-9]*" $2 && {
 
     info "Inserting funtion $1"
-
-    file_insert_at $2 "$(cat <<-EOF
-$1()
-{
-$3
-}
-
-EOF
-)
-"
-
+    add_function "$1" "$2" "$3"
   } || {
 
     info "Appending funtion $1 for $2"

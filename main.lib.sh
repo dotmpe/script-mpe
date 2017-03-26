@@ -291,7 +291,7 @@ std__commands()
         descr="$(func_comment $subcmd_func_pref$func_name $file)"
       } || noop
     }
-
+    test -n "$descr" || descr=".." #  TODO: $func_name description"
     test ${#spc} -gt 20 && {
       printf "  %-18s\n                      %-50s\n" "$spc" "$descr"
     } || {

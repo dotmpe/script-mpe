@@ -13,7 +13,6 @@ basename-reg.py:358:                             # XXX: should have loop while f
 basename-reg.py:373:                         # XXX
 basename-reg.py:392: TODO: test
 basename-reg.py:436: XXX some normalization on the tags is shown too
-bats-color.sh:19:     s/^([notk]* [0-9]* # )(TODO)( (.*))(.*)/\033[1;30m1\033[0;36m2\033[1;37m3\033[0;37m4/g
 bookmarks.py:139:                 p(('--export',), libcmd.cmddict(help="TODO: bm export")),
 bookmarks.py:211:             yield dict( err="XXX Missed ref" )
 bookmarks.py:217:                 # XXX: start local to bean dict

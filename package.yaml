@@ -62,7 +62,7 @@
   prefixes: {} # See ~/.cllct.rc finfo
 
   scripts:
-    env: ./config/tools/env.sh $ENV $NAME $TAG
+    env: ./tools/sh/env.sh
     init:
       # NOTE: somehow bash matching is needed, seems 'type' is not behaving as
       # expected from a bourne shell
@@ -98,7 +98,7 @@
       - ENV_NAME=gspread-boreas . ~/.conf/bash/env && python x-gspread.py
       - python test/main.py
       - projectdir.sh run :bats:specs
-      - bats test/*-spec.bats | bats-color.sh
+      - bats test/*-spec.bats | script-bats.sh colorize
     #build: pd build
     build:
       - export SCR_SYS_SH=bash-sh

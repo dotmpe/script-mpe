@@ -209,17 +209,6 @@ test_out()
   test -z "$val" || eval echo "\\$val"
 }
 
-list_functions()
-{
-  test -n "$1" || set -- $0
-  for file in $*
-  do
-    test_out list_functions_head
-    grep '^[A-Za-z0-9_\/-]*()$' $file
-    test_out list_functions_tail
-  done
-}
-
 create_ram_disk()
 {
   test -n "$1" || error "Name expected" 1

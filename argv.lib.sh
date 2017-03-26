@@ -170,3 +170,11 @@ req_dir_env()
   done
 }
 
+# opt-args: helper to filter options for arguments
+opt_args()
+{
+  for arg in $@
+  do fnmatch "-*" "$arg" && echo "$arg" >>$options || echo $arg >>$arguments
+  done
+}
+

@@ -42,7 +42,7 @@ esop__run()
 
     '*' | bats )
         export $(hostname -s | tr 'A-Z.-' 'a-z__')_SKIP=1
-        { ./test/*-spec.bats || echo $1>>$failed; } | bats-color.sh
+        { ./test/*-spec.bats || echo $1>>$failed; } | script-bats.sh colorize
         #for x in ./test/*-spec.bats;
         #do
         #  bats $x || echo $x >> $failed
