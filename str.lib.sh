@@ -33,28 +33,41 @@ str_load()
   #}
 }
 
-# ID for simple strings without special characters
+# Web-like ID for simple strings, input can be any series of characters.
+# c='\.\\\/:_' mkid STR
+# Output has alphanumerics, periods, hyphen, underscore, colon and back-/fwd dash
+# Allowed non-hyhen/alphanumeric ouput chars is customized with env 'c'
 mkid()
 {
   test -n "$1" || error "mkid argument expected" 1
-  id=$(printf -- "$1" | tr -sc 'A-Za-z0-9\/:_-' '-' )
+  var_isset c || c='\.\\\/:_'
+  id=$(printf -- "$1" | tr -sc 'A-Za-z0-9'$c'-' '-' )
 }
 
-# to filter strings to variable id name
+# Variable-like ID for any series of chars, only alphanumerics and underscore
+# mkvid STR
 mkvid()
 {
   test -n "$1" || error "mkvid argument expected" 1
-	vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
-	# Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
+  vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
+  # Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
 }
 
-mkcid()
+# A lower- or upper-case mkid variant with only alphanumerics and hypens.
+# upper= mkcid STR
+# Produces ID's for env vars or maybe a issue tracker system.
+# TODO: introduce a snake+camel case variant for Pretty-Tags or Build_Vars?
+# For real pretty would want lookup for abbrev. Too complex so another function.
+mksid()
 {
   test -n "$1" || error "mkcid argument expected" 1
-  cid=$(printf -- "$1" | tr 'A-Z' 'a-z' | tr -sc 'a-z0-9' '-')
-  #  cid=$(echo "$1" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9-]/-/g')
+  var_isset c || c=_
+  trueish "$upper" &&
+    sid=$(mkid "$(printf -- "$1" | tr 'a-z' 'A-Z')"; echo "$id" ) ||
+      sid=$(mkid "$(printf -- "$1" | tr 'A-Z' 'a-z')"; echo "$id" )
 }
 
+# A either args or stdin STR to lower-case pipeline element
 str_upper()
 {
   test -n "$1" \
@@ -62,6 +75,7 @@ str_upper()
     || { cat - | tr 'a-z' 'A-Z'; }
 }
 
+# Counter-part to str-upper
 str_lower()
 {
   test -n "$1" \
@@ -69,27 +83,10 @@ str_lower()
     || { cat - | tr 'A-Z' 'a-z'; }
 }
 
+# XXX: deprecate in favor of fnmatch/case X in Y expressions?
 str_match()
 {
-	expr "$1" : "$2" >/dev/null 2>&1 || return 1
-}
-
-str_contains()
-{
-	test -n "$uname" || exit 214
-	case "$uname" in
-        "" )
-            err "No uname set" 1
-            ;;
-		Linux )
-			test 0 -lt $(expr index "$1" "/") || return 1
-			;;
-		Darwin )
-			err "TODO" 1
-			echo expr "$1" : "$2"
-			expr "$1" : "$2"
-			;;
-	esac
+  expr "$1" : "$2" >/dev/null 2>&1 || return 1
 }
 
 str_replace_start()
@@ -205,18 +202,9 @@ var2tags()
 {
   echo $(for varname in $@
   do
-    local value="$(eval echo "\$$varname")" \
-      pretty_var=$(echo $varname | tr '_' '-')
+    local value="$(eval printf \"\$$varname\")"
     test -n "$value" || continue
-    falseish "$value" && {
-      printf "!$pretty_var "
-    } || {
-      trueish "$value" && {
-        printf "$pretty_var "
-      } || {
-        printf "$pretty_var=\"$value\" "
-      }
-    }
+    pretty_print_var "$varname" "$value"
   done)
 }
 

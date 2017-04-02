@@ -34,10 +34,15 @@
     #build: ":vagrant:tools/ci/vbox:ubuntu"
 
     tasks:
+      default:
+        - "@Dev +script-mpe +htdocs-mpe"
       document: todo.txt
       done: .done.txt
       grep: ./tools/sh/tags.sh
       grep-filter: ./tools/sh/tags-filter.sh
+      coops:
+        - HTD # tasks:no-check
+        - NODE-SITEFILE # tasks:no-check
       tags:
         - TODO # tasks:no-check
         - XXX # tasks:no-check
@@ -110,7 +115,6 @@
       #- vagrant tools/ci/vbox
       - scriptname=script
       - . ./tools/ci/parts/build.sh
-
     # FIXME package scripts with raw YAML text blocks
     #test-features: "
     #  test -x \\\"$(which behave)\\\" &&
@@ -120,7 +124,10 @@
     #   test -x "$(behave)" &&
     #       behave --tags '~@todo' --tags ~skip -k test/feature ||
     #         ./vendor/.bin/behat--tags:~@skip
-
+    tasks-list:
+      - 'tasks.py -t todo.txt list-issues'
+    tasks-update:
+      - 'htd tasks --Check-All-Tags --Check-All-Files'
 
   # For make data/*: or move to cllct.rc
   data:

@@ -47,18 +47,15 @@ Testing
 See also `.travis.yml`.
 
 
+
 Other documents
 ---------------
 - `Change Log <ChangeLog.rst>`_
 - `Bugs <Bugs.rst>`_
-- `Documentation <doc/>`_
+- `Dev Docs <doc/dev.rst>`_
+- `Other Documentation <doc/>`_
 
-
-Dev
----
-- Maybe look at dispatch_ a bit, a run-subcmd handler in 48 lines Bash.
 
 
 .. _dispatch: https://github.com/Mosai/workshop/blob/master/doc/dispatch.md
-
 

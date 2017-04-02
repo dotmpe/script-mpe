@@ -32,6 +32,20 @@ setup()
 
 
 
+func=mkid
+input="foo:/bar/el_baz.ext"
+
+@test "$lib $func with some special web chars, input is output" {
+  mkid "$input"
+  test "$id" = "$input"
+}
+
+@test "$lib $func with no special chars, all are collapsed to '-' " {
+  c= mkid "$input"
+  test "$id" = "foo-bar-el-baz-ext" || fail "$id"
+}
+
+
 
 func=mkvid
 

@@ -14,11 +14,22 @@ version=0.0.4-dev # script-mpe
 
 # See $scriptname help to get started
 
-topics__list()
+topics__stats()
 {
-  echo TODO: topics list
+  db_sa.py stats topic
 }
 
+
+topics__info()
+{
+  topic.py info
+}
+
+
+topics__list()
+{
+  topic.py list
+}
 
 
 

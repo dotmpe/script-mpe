@@ -1,2 +1,26 @@
-2017-03-19 SCRIPT-MPE-2: Synchronize SEI from src comments to a backend _r:urXpKnr2S9P1 XXX:z8VNFm3e tasks.py work in progress
-TODO: keep per repo. src_name:vc.rst src_line:34 _id:TODO
+(D) 2012-04-29 SCRIPT-MPE-3: reinvent rsr using script libs scr_name:Resourcer.rst
+(E) 2016-07-16 SCRIPT-MPE-1: TODO advanced rules: src_name:htd.rst
+(B) 2017-03-19 SCRIPT-MPE-2: Synchronize SEI from src comments to a backend. It should bould be possible to rebuild the DB from source, or strip the source of all comments and rebuild from DB. Initial work in +script-mpe Radical.py, but continue in HTD-1  _r:urXpKnr2S9P1 XXX:z8VNFm3e tasks.py work in progress
+(D) 2017-03-22 HTD-1: TODO introduce and update Pdoc open state. Put in redis with day to live. Watch files too? Ignore SCM.. blocks:HTD-2,SCRIPT-MPE-4 project handling +script-mpe @be/redmine @Dev @be/gtasks
+(C) 2017-03-26 HTD-2: TODO migrate tasks +script-mpe SCRIPT-MPE-2 scrape issues from src TODO: migrate tagged issues between files in htd todo. TODO: use pd-meta to determine open state, files blockedBy:HTD-1
+2017-03-20 @Dev +todotxt-machine use apps to process and finalize issues. Audit.
+(E) 2017-03-20 @Dev +script-mpe archive completed todo's somehow
+(D) 2017-03-20 @Dev +script-mpe let ``htd open`` by default list the open entities, and implement specifically for projects. Keep state in statusdir/redis.
+2017-03-20 TODO keep per repo. src_name:vc.rst src_line:34 _id:TODO
+(C) 2017-03-26 SCRIPT-MPE-4: htd.sh jrnl-times TODO: list-days TODO: list-weeks TODO: cut down on events. e.g. put in 15min or 30min bins. Add hyperlinks for sf site. And create whole-day event for days w. journal entry without specific times blockedBy:HTD-1
+2017-03-26 @Dev +script-mpe lastfm-to-cal SCRIPT-MPE-4
+2017-03-26 @Dev +script-mpe picture-calendar SCRIPT-MPE-4
+2017-03-31 SCRIPT-MPE-5: TODO use projectenv.lib iso. test/helper.bash
+2017-03-31 SCRIPT-MPE-6: TODO deprecate most of helper.bash, restructure
+2017-03-20 @Dev +script-mpe +node-sitefile look at some nice way to diagram `htd gf`. Can use version tags for a nice ordered top-down view. Associate named branches, features and other tags left and right.
+(D) 2017-03-20 HTD-3: record topics DB @Dev +script-mpe let Htd capture `Topic <define:my-topic>`_ references to persist/reinitialize topic index from source @topics
+. @Dev Record node topics using +script-mpe tasks:update @cron @topics
+x 2017-03-26 (D) @Dev 2017-03-25 +script-mpe ``htd jrnl-times to-cal`` entered all jrnl entry times for 2016 and 2017 into calendar. Need to redo it after solving the new TODO's at SCRIPT-MPE-4
++script-mpe amanda, invidia, esop
++script-mpe htd open/close? up/down? Rules. @refine
++script-mpe pd enable unpack tgz @Dev
++Radical SQL (SCEI)
+@Dev +script-mpe diskdoc @Darwin
+@Dev htd.sh interact with tmux.py open/close default or pre-defined sessions per project @tmux +node-sitefile
++Esop - test runner
+# vim:ft=todo:

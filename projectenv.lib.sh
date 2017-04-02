@@ -25,6 +25,7 @@ project_env_bin()
 }
 
 
+# FIXME: unused SCRIPT-MPE-5 projectenv.lib.sh
 # Given a variable holding the environments requirements,
 # expand that string to include all dependencies. Meanwhile looking for env
 # settings, functions or files and exporting projectenv_dep_<id>=... where found.
@@ -104,6 +105,7 @@ provided_by_env()
   return 1
 }
 
+# TODO: expand-dep is unused except by prepare-env SCRIPT-MPE-5
 # Look for additional prerequisites given deps list
 expand_deps()
 {
@@ -117,6 +119,7 @@ expand_deps()
   done
 }
 
+# TODO: expand-deps is unused except by expand-dep, prepare-env SCRIPT-MPE-5
 # recursive
 expand_dep()
 {
@@ -142,6 +145,7 @@ build_params()
 }
 
 
+# TODO: build-error unused except by unittest SCRIPT-MPE-5
 build_error()
 {
   echo "$1" >> $build_errors

@@ -1,9 +1,10 @@
 #!/bin/sh
 set -e
-test -n "$lname"
+# XXX: cleanup
+#test -n "$lname"
+#  | grep -Ev '\<'"$lname"'\>.\<no[-]?check\>' \
 grep -v '\<TODO\>\.\<txt\>' \
   | grep -v '\<TODO\>\.\<list\>' \
-  | grep -Ev '\<'"$lname"'\>.\<no[-]?check\>' \
   | grep -Ev '\<tasks\>.\<no[-]?check\>' \
   | grep -v '\<tasks\>.\<ignore\>' \
   | while IFS=: read srcname linenr comment

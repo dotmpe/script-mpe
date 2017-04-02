@@ -506,3 +506,15 @@ EOM
   test_ok_nonempty || stdfail
 }
 
+
+@test "$bin topics-list" {
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+
+@test "$bin package" {
+  run $bin package
+  test_ok_nonempty || stdfail
+}
+

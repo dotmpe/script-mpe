@@ -9,10 +9,37 @@ os_load()
 }
 
 
-# Combined dirname/basename to replace .ext
+# Combined dirname/basename to replace .ext(s)
+# pathname PATH EXT...
 pathname()
 {
-  echo "$(dirname "$1")/$(basename "$1" "$2")$3"
+  local name="$1" dirname="$(dirname "$1")"
+  shift 1
+  for ext in $@
+  do
+    name="$(basename "$name" "$ext")"
+  done
+  test -n "$dirname" -a "$dirname" != "." && {
+    echo "$dirname/$name"
+  } || {
+    echo "$name"
+  }
+}
+
+pathnames()
+{
+  test -n "$exts" || exit 40
+  test -n "$*" && {
+    for path in "$@"
+    do
+      pathname "$@" $exts
+    done
+  } || {
+    { cat - | while read path
+      do pathname "$path" $exts
+      done
+    }
+  }
 }
 
 # Cumulative dirname, return the root directory of the path
@@ -69,8 +96,6 @@ filemtime()
   esac
 }
 
-
-#
 normalize_relative()
 {
   OIFS=$IFS
@@ -330,3 +355,62 @@ strip_trail()
     echo "$1"
 }
 
+# if not exists, create directories and touch file for each given path arg
+assert_files()
+{
+  for fn in $@
+  do
+    test -n "$fn" || continue
+    test -e $fn || {
+      test -z "$(dirname $fn)" || mkdir -vp $(dirname $fn)
+      touch $fn
+    }
+  done
+}
+
+lock_files()
+{
+  local id=$1
+  shift
+  info "Reserving resources for session $id"
+  for f in $@
+  do
+    test -e "$f.lock" && {
+      lock="$(head -n 1 $f.lock | awk '{print $1}')"
+      test "$lock" = "$id" && echo $f ||
+        warn "Ignored existing lock $lock for $f"
+    } || {
+      assert_files $f
+      echo $f && echo $id > $f.lock
+    }
+  done
+}
+
+unlock_files()
+{
+  local id=$1 lock=
+  shift
+  info "Releasing resources from session $id"
+  for f in $@
+  do
+    test -e "$f.lock" && {
+      lock="$(head -n 1 $f.lock | awk '{print $1}')"
+      test "$lock" = "$id" && {
+        rm $f.lock
+        test -e "$f" || continue
+        echo $f
+      }
+    } || continue
+  done
+}
+
+verify_lock()
+{
+  local id=$1
+  shift
+  for f in $@
+  do
+    test -e "$f.lock" || return 2
+    test "$(head -n 1 $f.lock | awk '{print $1}')" = "$id" || return 1
+  done
+}

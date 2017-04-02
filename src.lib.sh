@@ -28,13 +28,13 @@ file_insert_at()
   test -n "$*" || error "nothing to insert" 1
 
   # use ed-script to insert second file into first at line
-  note "Inserting at $file_name:$line_number"
+  stderr info "Inserting at $file_name:$line_number"
   echo "${line_number}a
 $1
 .
-w" | ed $file_name
-# XXX: $tmpf
+w" | ed -s $file_name
 }
+
 
 # Replace entire line using Sed
 file_replace_at_spc=" ( FILE:LINE | ( FILE LINE ) ) INSERT "
@@ -63,6 +63,7 @@ file_replace_at()
   sed $line_number's/.*/'$1'/' $file_name
 }
 
+
 # 1:where-grep 2:file-path
 file_where_grep()
 {
@@ -74,11 +75,13 @@ file_where_grep()
   test -n "$2" || echo $line_number
 }
 
+
 file_where_before()
 {
   file_where_grep "$@"
   line_number=$(( $line_number - 1 ))
 }
+
 
 # 1:where-grep 2:file-path 3:content
 file_insert_where_before()
@@ -92,6 +95,7 @@ file_insert_where_before()
   }
   file_insert_at $2:$line_number "$3"
 }
+
 
 # Truncate whole, trailing or middle lines of file.
 # file-truncate-lines 1:file [2:start_line=0 [3:end_line=]]
@@ -114,6 +118,7 @@ file_truncate_lines()
   }
 }
 
+
 # Remove leading lines, so that total lines matches LINES
 # TODO: rename to truncate-leading-lines
 truncate_trailing_lines()
@@ -131,6 +136,7 @@ truncate_trailing_lines()
   head -n +$(( $lines - $2 )) $1.tmp > $1
   rm $1.tmp
 }
+
 
 # find '<func>()' line and see if its preceeded by a comment. Return comment text.
 func_comment()
@@ -154,11 +160,13 @@ func_comment()
   } || noop
 }
 
+
 header_comment()
 {
   read_file_lines_while "$1" 'echo "$line" | grep -qE "^\s*#.*$"' || return $?
   export last_comment_line=$line_number
 }
+
 
 # Echo exact contents of the #-commented file header, or return 1
 # backup-header-comment file [suffix-or-abs-path]
@@ -171,6 +179,7 @@ backup_header_comment()
   # find last line of header, add output to backup
   header_comment "$1" > "$backup_file" || return $?
 }
+
 
 list_functions()
 {
@@ -186,44 +195,53 @@ list_functions()
   done
 }
 
+
 source_lines()
 {
   test -f "$1"
   test -n "$2" && start_line=$2 || start_line=0
-  test -z "$3" || end_line=$3
-  test -z "$4" || span_lines=$4
-  test -n "$end_line" || end_line=$(count_lines $1)
-  test -n "$span_lines" || span_lines=$(( $end_line - $start_line ))
-  note "Source-lines: $start_line-$end_line ($span_lines lines)"
+  end_line=$3
+  span_lines=$4
+  test -n "$span_lines" || {
+    test -n "$end_line" ||
+      end_line=$(count_lines "$1")
+    span_lines=$(( $end_line - $start_line ))
+  }
   tail -n +$start_line $1 | head -n $span_lines
 }
+
 
 expand_source_line()
 {
   test -f "$1" || error "expand_source_line file '$1'" 1
   test -n "$2" || error "expand_source_line line" 1
-  srcfile="$(source_lines "$1" "$2" "" 1 | awk '{print $2}')"
+  local srcfile="$(source_lines "$1" "$2" "" 1 | awk '{print $2}')"
   test -f "$srcfile" || error "src-file $*: '$srcfile'" 1
   file_truncate_lines "$1" "$(( $2 - 1 ))" "$(( $2 ))"
   file_insert_at $1:$(( $2 - 1 )) "$(cat $srcfile )"
-  note "Replaced line with resolved src of '$srcfile'"
+  trueish "$keep_source" || rm $srcfile
+  info "Replaced line with resolved src of '$srcfile'"
 }
+
 
 function_linenumber() {
   test -n "$1" -a -e "$2" || error "function-linenumber FUNC FILE" 1
   file_where_grep "^$1()\(\ {\)\?$" "$2"
+  test -n "$line_number" || return 1
 }
+
 
 function_linerange()
 {
   test -n "$1" -a -e "$2" || error "function-linerange FUNC FILE" 1
-  function_linenumber "$@"
+  function_linenumber "$@" || return
   start_line=$line_number
   span_lines=$(
       tail -n +$start_line "$2" | grep -n '^}' | head -n 1 | sed 's/^\([0-9]*\):\(.*\)$/\1/'
     )
   end_line=$(( $start_line + $span_lines ))
 }
+
 
 insert_function()
 {
@@ -238,15 +256,25 @@ EOF
   ) "
 }
 
+
+copy_function()
+{
+  test -n "$1" -a -f "$2" || error "copy-function FUNC FILE" 1
+  function_linerange "$@" || return
+  #test -n "$span_lines" ||
+  span_lines=$(( $end_line - $start_line ))
+  tail -n +$start_line $2 | head -n $span_lines
+}
+
+
 cut_function()
 {
   test -n "$1" -a -f "$2" || error "cut-function FUNC FILE" 1
-  function_linerange "$@"
-  test -n "$span_lines" || span_lines=$(( $end_line - $start_line ))
-  note "cut-func $2 $start_line $end_line ($span_lines)"
-  tail -n +$start_line $2 | head -n $span_lines
+  copy_function "$@"
   file_truncate_lines "$2" "$(( $start_line - 1 ))" "$(( $end_line - 1 ))"
+  info "cut-func removed $2 $start_line $end_line ($span_lines)"
 }
+
 
 setup_temp_src()
 {
@@ -254,19 +282,28 @@ setup_temp_src()
   setup_tmpf "$@" "$UCONFDIR/temp-src"
 }
 
-# Isolate function into separate, temporary file. But keep source-script
-# working.
+
+# Isolate function into separate, temporary file.
+# Either copy-only, or replace with source line to new external script.
 copy_paste_function()
 {
   test -n "$1" -a -f "$2" || return
   test -n "$cp_board" || cp_board="$(get_uuid)"
+  debug "copy_paste_function '$1' '$2' "
+  var_isset copy_only || copy_only=1
   cp=$(setup_temp_src .copy-paste $cp_board)
-  function_linenumber "$@"
+  function_linenumber "$@" || return
   at_line=$(( $line_number - 1 ))
-  cut_function $1 $2 > $cp
-  file_insert_at $2:$at_line "$(cat <<-EOF
+  trueish "$copy_only" && {
+    copy_function $1 $2 > $cp
+    info "copy-only ok"
+  } || {
+    cut_function $1 $2 > $cp
+    file_insert_at $2:$at_line "$(cat <<-EOF
 . $cp
 EOF
-  ) "
+    ) "
+    info "copy-paste ok"
+  }
 }
 

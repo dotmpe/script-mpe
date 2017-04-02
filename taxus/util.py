@@ -24,6 +24,10 @@ class SessionMixin(object):
     sessions = {}
 
     @staticmethod
+    def has_session(name='default'):
+        return name in SessionMixin.sessions
+
+    @staticmethod
     def get_session(name='default', dbref=None, init=False, SqlBase=SqlBase):
         if name not in SessionMixin.sessions:
             assert dbref, "session does not exists: %s" % name

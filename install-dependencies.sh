@@ -195,9 +195,12 @@ main_entry()
 {
   test -n "$1" || set -- all
 
-  case "$1" in all|project|git|pip )
+  case "$1" in all|project|git )
       git --version >/dev/null || {
         echo "Sorry, GIT is a pre-requisite"; exit 1; }
+    ;; esac
+
+  case "$1" in all|pip|python )
       which pip >/dev/null || {
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
       $pref pip install -U $pip_flags appdirs packaging setuptools

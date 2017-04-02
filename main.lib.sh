@@ -38,8 +38,11 @@ try_help()
     help="$( try_value $2 man_$1 $b || continue )"
     test -n "$help" || continue
     spec="$( try_value $2 spc $b || printf "" )"
-    test -n "$spec" || spec="$2"
-    printf -- "$ $base $2\n\t$help\nUsage:\n\t$base $spec\n"
+    test -n "$spec" && {
+      printf -- "$ $base $2\n\t$help\nUsage:\n\t$(eval echo "\"$base $spec\"")\n"
+    } || {
+      printf -- "$ $base $2\n\t$help\n"
+    }
     return
   done
   return 1
@@ -81,9 +84,9 @@ try_local()
 
 try_value()
 {
-  local value="$(eval echo "\$$(try_local "$@")")"
+  local value="$(eval echo "\"\$$(try_local "$@")\"")"
   test -n "$value" || return 1
-  echo $value
+  echo "$value"
 }
 
 try_local_var()
@@ -202,8 +205,11 @@ std__help()
   } || {
 
     # Specific help (subcmd, maybe file-format other doc, or a TODO: group arg)
-    echo "Usage: "
-    echo "  $base $(try_spec $1) "
+    spc="$(try_spec $1)"
+    test -n "$spc" && {
+      echo "Usage: "
+      echo "  $base $spc"
+    }
     printf "Help '$1': "
     echo_help "$1" || error "no help '$1'"
   }
@@ -351,6 +357,24 @@ get_cmd_alias()
 
 #  local func_pref="$(eval echo \$${1}_func_pref)"
 #  export ${1}_alias=$(eval echo \$${func_pref}als
+}
+
+main_options_v()
+{
+  while test -n "$1"
+  do
+    case "$1" in
+      --yaml ) format_yaml=1 ;;
+      --interactive ) choice_interactive=1 ;;
+      --non-interactive ) choice_interactive=0 ;;
+      * ) trueish "$define_all" && {
+          define_var_from_opt "$1"
+        } || {
+          error "unknown option '$1'" 1
+        };;
+    esac
+    shift
+  done
 }
 
 parse_box_subcmd_opts()

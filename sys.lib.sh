@@ -130,8 +130,8 @@ noop()
 {
   #. /dev/null # source empty file
   #echo -n # echo nothing
-  #printf "" # id. if echo -n incompatible (Darwin)
-  set -- # clear arguments
+  #printf "" # id. if echo -n incompatible
+  set -- # clear arguments to this function
   #return # since we're in a function
 }
 
@@ -292,5 +292,30 @@ mkrlink()
   # TODO: find shortest relative path
   printf "Linking "
   ln -vs $(basename $1) $2
+}
+
+pretty_print_var()
+{
+  var_isset kvsep || kvsep='='
+  pretty_var="$(printf -- "$1" | tr -s '_' '-')"
+  falseish "$2" && {
+    printf "!$pretty_var\n"
+  } || {
+    trueish "$2" && {
+      printf "$pretty_var\n"
+    } || {
+      value="$(printf -- "$2" | sed 's/\ /\\ /g')"
+      printf "$pretty_var$kvsep$value\n"
+    }
+  }
+}
+
+print_var()
+{
+  printf -- "$2" | grep -Eq "[\ \"\']" && {
+    printf -- "$1=\"$2\"\n"
+  } || {
+    printf -- "$1=$2\n"
+  }
 }
 

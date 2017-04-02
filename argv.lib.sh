@@ -91,6 +91,7 @@ argv_vars()
 check_argc()
 {
   local argi=$(( $1 + 1 ))
+  shift
   local value="$(eval echo \$$argi)"
   test -z "$value" || error "surplus arguments (expected $1): '$value'" 1
 }
@@ -170,11 +171,28 @@ req_dir_env()
   done
 }
 
-# opt-args: helper to filter options for arguments
+
+# opt-args: all argv are filtered into $options or else $arguments
 opt_args()
 {
   for arg in $@
   do fnmatch "-*" "$arg" && echo "$arg" >>$options || echo $arg >>$arguments
   done
+}
+
+
+define_var_from_opt()
+{
+  case "$1" in
+    --*=* )
+        eval $(echo "$1" | cut -c3- | tr '-' '_')
+      ;;
+    --no-* )
+        eval $(echo "$1" | cut -c6- | tr '-' '_')=0
+      ;;
+    --* )
+        eval $(echo "$1" | cut -c3- | tr '-' '_')=1
+      ;;
+  esac
 }
 

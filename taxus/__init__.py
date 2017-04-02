@@ -190,6 +190,7 @@ from .net import *
 from .code import *
 from .fs import *
 from .fslayout import *
+from .web import *
 from .model import Namespace, Relocated, Volume, Bookmark
 from .htd import TNode, JournalEntry
 

@@ -1,9 +1,12 @@
+
+.. figure:: bookmarks.svg
+
 This uses the rsr/taxus database to store/dump data related to bookmarks.
 
 It uses several 'datastores' to establish pluggable import and export sources
-from the local database. 
+from the local database.
 The default action is ``sync: local`` to import new and changed bookmarks
-from the remote source once it changes. 
+from the remote source once it changes.
 
 FIXME: sync only supports local and remote
 

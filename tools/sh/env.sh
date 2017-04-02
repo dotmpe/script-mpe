@@ -46,7 +46,7 @@ project_env_bin node npm lsof
 
 ## Per-env settings
 
-case "$ENV_NAME" in dev ) ;; *|dev?* )
+case "$ENV_NAME" in dev|testing ) ;; *|dev?* )
       echo "Warning: No env '$ENV_NAME', overriding to 'dev'" >&2
       export ENV_NAME=dev
     ;;

@@ -272,17 +272,17 @@ pd_finddoc()
   pd_prefix="$(normalize_relative "$go_to_before")"
 
   # Build path name based on real Pd path
-  mkcid "$pd_realpath"
-  fnmatch "*/*" "$cid" && error "Illegal chars cid='$cid'" 11
+  mksid "$pd_realpath"
+  fnmatch "*/*" "$sid" && error "Illegal chars sid='$sid'" 11
 
-  p="$cid"
+  p="$sid"
   sock=/tmp/pd-$p-serv.sock
 
-  pd_cid=$cid
-  pd_sock=/tmp/pd-${pd_cid}-serv.sock
+  pd_sid=$sid
+  pd_sock=/tmp/pd-${pd_sid}-serv.sock
 
   debug "Pd prefix: $pd_prefix, realdir: $pd_realdir Before: $go_to_before"
-  unset cid
+  unset sid
 }
 
 

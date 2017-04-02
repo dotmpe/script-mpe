@@ -160,37 +160,6 @@ tools_json()
     || jsotk.py yaml2json $HTD_TOOLSFILE ./tools.json
 }
 
-define_var_from_opt()
-{
-  case "$1" in
-    --*=* )
-        eval $(echo "$1" | cut -c3- | tr '-' '_')
-      ;;
-    --* )
-        eval $(echo "$1" | cut -c3- | tr '-' '_')=1
-      ;;
-  esac
-}
-
-htd_options_v()
-{
-  set -- $(lines_to_words $options)
-  while test -n "$1"
-  do
-    case "$1" in
-      --yaml ) format_yaml=1 ;;
-      --interactive ) choice_interactive=1 ;;
-      --non-interactive ) choice_interactive=0 ;;
-      * ) trueish "$define_all" && {
-          define_var_from_opt "$1"
-        } || {
-          error "unknown option '$1'" 1
-        };;
-    esac
-    shift
-  done
-}
-
 htd_report()
 {
   # leave htd_report_result to "highest" set value (where 1 is highest)
@@ -281,5 +250,79 @@ $HOME/ HOME
 EOM
     }
   } | uniq
+}
+
+htd_migrate_tasks()
+{
+  info "Migrating tags: '$tags'"
+  echo "$tags" | words_to_lines | while read tag
+  do
+    test -n "$tag" || continue
+    case "$tag" in
+      +* | @* )
+          note "Migrating prj/ctx: $tag"
+          buffer=$(htd__tasks_buffers $tag | head -n  1)
+          test -s "$buffer" || continue
+          cp $1 $1.tmp
+          {
+            # Get tasks lines from buffer to main doc, remove tag and re-add at end
+            grep -Ev '^\s*(#.*|\s*)$' $buffer |
+              sed 's/^\ *'"$tag"'\ //g' |
+                sed 's/\ '"$tag"'\ *$//g' |
+                  sed 's/\ '"$tag"'\ / /g' |
+                    sed 's/$/ '"$tag"'/g'
+            # Insert above as-is at existing content
+            cat $1.tmp
+          } > $1
+          rm $1.tmp
+        ;;
+      * ) error "? '$?'"
+        ;;
+      # XXX: cleanup
+      @be.src )
+          # NOTE: src-backend needs to keep tag-id before migrating. See #2
+          #SEI_TAGS=
+          #grep -F $tag $SEI_TAG
+          noop
+        ;;
+      @be.* )
+          #note "Checking: $tag"
+          #htd__tasks_buffers $tag
+          noop
+        ;;
+    esac
+  done
+}
+
+htd_remigrate_tasks()
+{
+  test -n "$1"  || error todo-document 1
+  note "Remigrating tags: '$tags'"
+  echo "$tags" | words_to_lines | while read tag
+  do
+    test -n "$tag" || continue
+    case "$tag" in
+      +* | @* )
+          note "Remigrating prj/ctx: $tag"
+          buffer=$(htd__tasks_buffers $tag | head -n  1)
+          # Get task lines with tag, move to buffer without tag
+          grep -F "$tag" $1 |
+            sed 's/^\ *'"$tag"'\ //g' |
+              sed 's/\ '"$tag"'\ *$//g' |
+                sed 's/\ '"$tag"'\ / /g' > $buffer
+          echo '# vim:ft=todo.txt' >>$buffer
+          # Remove task lines with tag from main-doc
+          grep -vF "$tag" $1 | sponge $1
+        ;;
+      * ) error "? '$?'"
+        ;;
+      # XXX: cleanup
+      @be.* )
+          #note "Committing: $tag"
+          #htd__tasks_buffers $tag
+          noop
+        ;;
+    esac
+  done
 }
 

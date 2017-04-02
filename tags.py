@@ -2,6 +2,8 @@
 """
 Anydbm tag index.
 
+TODO: deprecate move functionality to db_sa.py based store
+
 Usage:
     tags [options] insert <tag> [<label>]
     tags [options] drop <tag>

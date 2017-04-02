@@ -63,7 +63,7 @@ class Reporter(object):
 
     Some methods:
         low-level: write, writeln
-        high-level: 
+        high-level:
             handlerType, handlerName:  sub, format, arg
 
             print_paragraph
@@ -81,7 +81,7 @@ class Reporter(object):
                 finish_list
             print_usage
 
-    Initial state: 
+    Initial state:
 
     """
 
@@ -112,7 +112,7 @@ class Reporter(object):
         for k in self.data:
             print "%s" % k
             for k2 in self.data[k]:
-                print "  "+self.titles[k2] 
+                print "  "+self.titles[k2]
                 for i in self.data[k][k2]:
                     print "      - " + ( self.tpls[k2] % i )
 
@@ -147,7 +147,7 @@ class Reporter(object):
 class AbstractOutputState(object):
 
     """
-    Baseclass for output states. 
+    Baseclass for output states.
     Output states are started from a parent state, the context.
 
     The state registry tracks the new states that a state type may spawn.
@@ -204,7 +204,7 @@ class states(object):
                     }),
                     'strong': (TxtStrongInline, {
                     }),
-                    # 
+                    #
                     'pull-out': (TxtStrongInline, {
                     }),
                     # inline roles
@@ -240,13 +240,16 @@ class stdout(object):
     class register(object):
         """
         Add a new object formatter.
-        Can support any context types it likes (but should fail explicitly), 
+        Can support any context types it likes (but should fail explicitly),
         Reporter will gracefully recover for most standard contexts.
         """
         def __init__(self, *args, **kwds):
             #assert Klass.__name___ not in formatters
             self.Klasses = args
-            self.key = args[0].className()
+            if 'key' in kwds and kwds['key']:
+                self.key = kwds['key']
+            else:
+                self.key = args[0].className()
             self.handler = None
             setattr(stdout, self.key, self)
 

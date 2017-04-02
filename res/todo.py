@@ -7,7 +7,7 @@ import task
 
 
 
-class TodoTxtTask(object):
+class TodoTxtTaskParser(object):
 
     """
     Split up todo.txt line into parts, and clean-up description.
@@ -34,6 +34,8 @@ class TodoTxtTask(object):
             if not hasattr(self, f):
                 setattr(self, f, None)
         self.text = t
+        a = self.attrs
+        self.tags = list(task.parse_tags(" %s ." % raw))
     def parse_priority(self, t):
         m = self.prio_prefix_r.match(t)
         if m:
@@ -120,7 +122,15 @@ class TodoTxtTask(object):
         if self.hold:
             t += ' [WAIT]'
         return t
-
+    def get_id(self):
+        return self.attrs['_id']
+    id = property(get_id)
+    def __repr__(self):
+        return str(self)
+    def __str__(self):
+        return "TodoTxtTask:%s" % ( self.id )
+        return "TodoTxtTask:%s;%s;%s;%s;<#%x>" % ( self.id, self.doc_id, self.issue_id,
+                self.src_id, hash(self) )
 
 class TodoTxtParser(object):
     """
@@ -132,11 +142,16 @@ class TodoTxtParser(object):
         self.tags = tags
         self.dirty = []
         self.issues = {}
+        # TODO: SCRIPT-MPE:2 should really not be using docid. And srcid needs to be
+        # improved better.
+        self.doc_ids = {}
+        self.src_ids = {}
+        self.tag_ids = {}
     def commit(self):
         for k in self.dirty:
             ttt = self[k]
             txt = ttt.todotxt()
-            # TODO replace doc line, and also have format for src line
+            # TODO: SCRIPT-MPE:2 replace doc line, and also have format for src line
             # for now append to storage doc only
             if ttt.doc_id:
                 fn = ttt.attrs['doc_name']
@@ -153,14 +168,23 @@ class TodoTxtParser(object):
             ttt = self.parse(todoraw, doc_name=fn, doc_line=line)
             yield ttt
     def parse(self, todotxtitem, id_len=9, **attrs):
-        ttt = TodoTxtTask( todotxtitem, **attrs )
+        ttt = TodoTxtTaskParser( todotxtitem, **attrs )
         if ttt.issue_id: tid = ttt.issue_id
         elif ttt.src_id: tid = ttt.src_id
         elif ttt.doc_id: tid = ttt.doc_id
         else: tid = base64.urlsafe_b64encode(os.urandom(id_len))
         self[tid] = ttt
         ttt.attrs['_id'] = tid
+        if ttt.doc_id:
+            self.doc_ids[ttt.doc_id] = tid
+        self.src_ids[ttt.src_id] = tid
+        for tag in ttt.tags:
+            if tag not in self.tag_ids:
+                self.tag_ids[tag] = []
+            self.tag_ids[tag].append( tid )
         return ttt
+    def __iter__(self):
+        return iter(self.issues)
     def __contains__(self, key):
         return key in self.issues
     def __getitem__(self, key):
@@ -176,4 +200,13 @@ class TodoTxtParser(object):
         if text:
             self[issue_id].text += ' '+text
         return newid
+    def tagid_exists(self, tagid):
+        if tagid in self:
+            return True
+        elif tagid in self.src_ids:
+            return True
+        elif tagid in self.doc_ids:
+            return True
+        elif tagid in self.tag_ids:
+            return True
 

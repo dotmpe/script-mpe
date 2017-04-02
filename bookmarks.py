@@ -71,7 +71,7 @@ from res import Volumedir
 from res.util import ISO_8601_DATETIME
 from taxus import init as model
 from taxus.init import SqlBase, get_session
-from taxus.core import Node, Name, Tag
+from taxus.core import ID, Node, Name, Tag
 from taxus.net import Locator, Domain
 from taxus.model import Bookmark
 

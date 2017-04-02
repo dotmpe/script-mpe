@@ -1359,40 +1359,15 @@ pd_load()
   info "Loading '$subcmd': $(try_value "${subcmd}" load | sed 's/./&\ /g')"
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
-
-    p ) # Load/Update package meta at prefix; should imply y or d
-
-        test -n "$prefixes" -a -s "$prefixes" \
-          && pd_prefixes="$(cat $prefixes | words_to_lines )" \
-          || pd_prefixes=$pd_prefix
-
-        local pref=
-        for pref in $pd_prefixes; do
-          pd__meta_sq get-repo "$pref" && update_package "$pref" || continue
-        done
-        unset pref
+    a )
+        # Set default args or filter. Value can be literal or function.
+        local pd_default_args="$(eval echo "\"\$$(try_local $subcmd defargs)\"")"
+        pd_default_args "$pd_default_args" "$@"
       ;;
 
-    P )
-        pd__meta_sq get-repo "$pd_prefix" && {
-
-          update_package "$pd_prefix" || { r=$?
-            test  $r -eq 1 || error "update_package" $r
-            continue
-          }
-        }
-
-        test -e $pd_root/$pd_prefix/.package.sh \
-          && eval $(cat $pd_root/$pd_prefix/.package.sh)
-
-        test -n "$package_id" && {
-          note "Found package '$package_id'"
-        } || {
-          trueish "$require_prefixes" && error "package_id" 1
-
-          package_id="$(basename $(realpath $pd_prefix))"
-          note "Using package ID '$package_id'"
-        }
+    b )
+        # run metadata server in background for subcmd
+        pd_meta_bg_setup
       ;;
 
     d ) # XXX: Stub for no Pd context?
@@ -1406,19 +1381,33 @@ pd_load()
         #}
       ;;
 
-    y )
-        # look for Pd Yaml and set env: pd_prefix, pd_realpath, pd_root
-        # including socket path, to check for running Bg metadata proc
-        req_vars pd
-        test -n "$pd_root" || pd_finddoc
-      ;;
-
     f )
         # Preset name to subcmd failed file placeholder
         # include realpath of projectdoc (p)
         test -n "$pd" && {
           export failed=$(setup_tmpf .failed -$pd_cid-$subcmd-$pd_session_id)
         } || failed=$(setup_tmpf .failed -$subcmd-$pd_session_id )
+      ;;
+
+    g )
+        # Set default args based on file glob(s), or expand short-hand arguments
+        # by looking through the globs for existing paths
+        pd_trgtglob="$(eval echo "\"\$$(try_local $subcmd trgtglob)\"")"
+        pd_globstar_search "$pd_trgtglob" "$@"
+      ;;
+
+    I ) # setup IO descriptors (requires i before)
+        req_vars pd pd_cid pd_realpath pd_root $pd_inputs $pd_outputs
+        local fd_num=2 io_dev_path=$(io_dev_path)
+        for fd_name in $pd_outputs $pd_inputs
+        do
+          fd_num=$(( $fd_num + 1 ))
+          # TODO: only one descriptor set per proc, incl. subshell. So useless?
+          test -e "$io_dev_path/$fd_num" || {
+            debug "exec $(eval echo $fd_num\\\>$(eval echo \$$fd_name))"
+            eval exec $fd_num\>$(eval echo \$$fd_name)
+          }
+        done
       ;;
 
     i )
@@ -1446,31 +1435,6 @@ pd_load()
         export $pd_inputs $pd_outputs
       ;;
 
-    I ) # setup IO descriptors (requires i before)
-        req_vars pd pd_cid pd_realpath pd_root $pd_inputs $pd_outputs
-        local fd_num=2 io_dev_path=$(io_dev_path)
-        for fd_name in $pd_outputs $pd_inputs
-        do
-          fd_num=$(( $fd_num + 1 ))
-          # TODO: only one descriptor set per proc, incl. subshell. So useless?
-          test -e "$io_dev_path/$fd_num" || {
-            debug "exec $(eval echo $fd_num\\\>$(eval echo \$$fd_name))"
-            eval exec $fd_num\>$(eval echo \$$fd_name)
-          }
-        done
-      ;;
-
-    b )
-        # run metadata server in background for subcmd
-        pd_meta_bg_setup
-      ;;
-
-    a )
-        # Set default args or filter. Value can be literal or function.
-        local pd_default_args="$(eval echo "\"\$$(try_local $subcmd defargs)\"")"
-        pd_default_args "$pd_default_args" "$@"
-      ;;
-
     o )
         local pd_optsv="$(eval echo "\"\$$(try_local $subcmd optsv)\"")"
         test -s "$options" && {
@@ -1478,11 +1442,45 @@ pd_load()
         } || noop
       ;;
 
-    g )
-        # Set default args based on file glob(s), or expand short-hand arguments
-        # by looking through the globs for existing paths
-        pd_trgtglob="$(eval echo "\"\$$(try_local $subcmd trgtglob)\"")"
-        pd_globstar_search "$pd_trgtglob" "$@"
+    P )
+        pd__meta_sq get-repo "$pd_prefix" && {
+          update_package "$pd_prefix" || { r=$?
+            test  $r -eq 1 || error "update_package" $r
+            continue
+          }
+        }
+
+        test -e $pd_root/$pd_prefix/.package.sh \
+          && eval $(cat $pd_root/$pd_prefix/.package.sh)
+
+        test -n "$package_id" && {
+          note "Found package '$package_id'"
+        } || {
+          trueish "$require_prefixes" && error "package_id" 1
+
+          package_id="$(basename $(realpath $pd_prefix))"
+          note "Using package ID '$package_id'"
+        }
+      ;;
+
+    p ) # Load/Update package meta at prefix; should imply y or d
+
+        test -n "$prefixes" -a -s "$prefixes" \
+          && pd_prefixes="$(cat $prefixes | words_to_lines )" \
+          || pd_prefixes=$pd_prefix
+
+        local pref=
+        for pref in $pd_prefixes; do
+          pd__meta_sq get-repo "$pref" && update_package "$pref" || continue
+        done
+        unset pref
+      ;;
+
+    y )
+        # look for Pd Yaml and set env: pd_prefix, pd_realpath, pd_root
+        # including socket path, to check for running Bg metadata proc
+        req_vars pd
+        test -n "$pd_root" || pd_finddoc
       ;;
 
   esac; done
@@ -1506,10 +1504,6 @@ pd_unload()
     F )
         exec 6<&-
       ;;
-    i ) # remove named IO buffer files; set status vars
-        clean_io_lists $pd_inputs $pd_outputs
-        std_io_report $pd_outputs || subcmd_result=$?
-      ;;
     I )
         local fd_num=2
         for fd_name in $pd_outputs $pd_inputs
@@ -1520,6 +1514,10 @@ pd_unload()
         done
         eval unset $pd_inputs $pd_outputs
         unset pd_inputs pd_outputs
+      ;;
+    i ) # remove named IO buffer files; set status vars
+        clean_io_lists $pd_inputs $pd_outputs
+        std_io_report $pd_outputs || subcmd_result=$?
       ;;
     y )
         test -z "$pd_sock" || {

@@ -151,20 +151,40 @@ update_package()
 }
 
 
+# Given local .package.sh exists, see about and export some requested key-values.
+# map=[ PREF[:SUB ] ] package-sh KEYS
+# The env 'map' is a mapping consisting of the prefix to match and strip,
+# with an optional subtitution key for the prefix. The rest of the arguments
+# are the keys which are passed through as value declarations on stdout.
+# Non-existant keys or empty values are passed over silently.
 package_sh()
 {
-  update_package || return $?
+  # Set or use mapping from env
+  test -n "$map" || map=package_
+  fnmatch "*:*" "$map" && {
+    prefix="$(printf "$map" | cut -d ':' -f 1)"
+    sub="$(printf "$map" | cut -d ':' -f 2)"
+  } || {
+    prefix="$map"
+    sub=
+  }
+  # Check/update package metadata
+  test -e package.yaml && {
+    update_package || return $?
+  }
   test -e .package.sh || error package.sh 1
+  # NOTE: Always be carefull about accidentally introducing newlines, will give
+  # hard-to-debug syntax failures here or in the local evaluation
   (
-    eval $(cat .package.sh | sed 's/^package_//g')
-
+    # Evalute matched vars in a subshell, and step over arguments
+    eval "$(read_nix_style_file .package.sh | grep '^'"$prefix" | sed 's/^'"$prefix"'/'"$sub"'/g')"
     while test -n "$1"
     do
       key=$1
-      value="$(eval echo "\$$1")"
+      value="$(eval printf -- \"\$$1\")"
       shift
       test -n "$value" || continue
-      echo "$key=$value"
+      print_var "$key" "$value"
     done
   )
 }
@@ -182,6 +202,7 @@ package_sh_env()
 }
 
 
+# XXX: iso. using .package.sh read lines from JSON
 # package-sh-script SCRIPTNAME [JSOTKFILE]
 package_sh_script()
 {
@@ -192,6 +213,30 @@ package_sh_script()
     error "error getting lines for '$1'"
     return 1
   }
+}
+
+
+# package-sh-list PACKAGE-SH LIST-KEY
+package_sh_list()
+{
+  test -n "$1" || set -- .package.sh
+  test -n "$2" || error package_sh_list:list-key 1
+  test -n "$show_index" || show_index=0
+  test -n "$show_item" || show_item=1
+  read_nix_style_file $1 | grep '^package_'"$2" |
+    sed 's/^package_'"$2"'__\([0-9]*\)/\1/g' |
+    while IFS='=' read index item
+    do
+      echo \
+        $(trueish "$show_index" && echo $index) \
+        $(trueish "$show_item" && echo $item)
+    done
+}
+
+
+package_sh_list_exists()
+{
+  test -n "$(eval echo "\$package_${1}__0")"
 }
 
 
