@@ -32,7 +32,7 @@ pathnames()
   test -n "$*" && {
     for path in "$@"
     do
-      pathname "$@" $exts
+      pathname "$path" $exts
     done
   } || {
     { cat - | while read path
@@ -60,16 +60,43 @@ short()
   $scriptpath/short-pwd.py -1 "$1"
 }
 
-# Get basename for each path: [ .EXT ] PATHS...
+# [exts=] basenames [ .EXTS ] PATH...
+# Get basename(s) for all given exts of each path. The first argument is handled
+# dynamically. Unless exts env is provided, if first argument is not an existing
+# and starts with a period '.' it is used as the value for exts.
 basenames()
 {
-  local ext=
-  test -e "$1" || fnmatch ".*" "$1" && { ext=$1; shift; }
+  test -n "$exts" || {
+    test -e "$1" || fnmatch ".*" "$1" && { exts="$1"; shift; }
+  }
   while test -n "$1"
   do
-    basename "$1" "$ext"
+    name="$1"
     shift
+    for ext in $exts
+    do
+      name="$(basename "$name" "$ext")"
+    done
+    echo "$name"
   done
+}
+
+filenamext()
+{
+  while test -n "$1"; do
+    echo "$1" | sed 's/^.*\.\([^\.]*\)$/\1/'
+  shift; done
+}
+
+fileisext()
+{
+  local f="$1" ext=$(filenamext "$1"); shift
+  test -n "$*" || return
+  test -n "$ext" || return
+  for mext in $@
+  do test ".$ext" = "$mext" && return 0
+  done
+  return 1
 }
 
 filesize()
@@ -372,7 +399,7 @@ lock_files()
 {
   local id=$1
   shift
-  info "Reserving resources for session $id"
+  info "Reserving resources for session $id ($*)"
   for f in $@
   do
     test -e "$f.lock" && {
@@ -390,7 +417,7 @@ unlock_files()
 {
   local id=$1 lock=
   shift
-  info "Releasing resources from session $id"
+  info "Releasing resources from session $id ($*)"
   for f in $@
   do
     test -e "$f.lock" && {

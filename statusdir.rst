@@ -1,5 +1,18 @@
+.. include:: .default.rst
+
+Statusdir - lightweight wrapper for key-value storage
+=====================================================
 
 
+Design
+-------
+- Regular string storage with some profiles of encoding and byte-safety.
+- Numeric values. Incremented.
+- TODO: manage volatility. Insist on clean indices.
+- Some JSOTK (json/yaml) support maybe, for fallback where above fails with a
+  backend. Or for layering more complex indices.
+
+----
 
 statusdir.sh
 

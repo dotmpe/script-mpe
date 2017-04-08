@@ -252,6 +252,47 @@ EOM
   } | uniq
 }
 
+# migrate lines matching tag to to another file, removing the tag
+# htd-move-tagged-and-untag-lines SRC DEST TAG
+htd_move_tagged_and_untag_lines()
+{
+  test -e "$1" || error src 1
+  test -n "$2" -a -d "$(dirname "$2")" || error dest 1
+  test -n "$3" || error tag 1
+  test -z "$4" || error surplus 1
+  # Get task lines with tag, move to buffer without tag
+  grep -F "$3" $1 |
+    sed 's/^\ *'"$3"'\ //g' |
+      sed 's/\ '"$3"'\ *$//g' |
+        sed 's/\ '"$3"'\ / /g' > $2
+  # echo '# vim:ft=todo.txt' >>$buffer
+  # Remove task lines with tag from main-doc
+  grep -vF "$3" $1 | sponge $1
+}
+
+# migrate lines to another file, ensuring tag by strip and re-add
+htd_move_and_retag_lines()
+{
+  test -e "$1" || error src 1
+  test -n "$2" -a -d "$(dirname "$2")" || error dest 1
+  test -n "$3" || error tag 1
+  test -z "$4" || error surplus 1
+  test -e "$2" || touch $2
+  cp $2 $2.tmp
+  {
+    # Get tasks lines from buffer to main doc, remove tag and re-add at end
+    grep -Ev '^\s*(#.*|\s*)$' $1 |
+      sed 's/^\ *'"$3"'\ //g' |
+        sed 's/\ '"$3"'\ *$//g' |
+          sed 's/\ '"$3"'\ / /g' |
+            sed 's/$/ '"$3"'/g'
+    # Insert above existing content
+    cat $2.tmp
+  } > $2
+  echo > $1
+  rm $2.tmp
+}
+
 htd_migrate_tasks()
 {
   info "Migrating tags: '$tags'"
@@ -261,20 +302,10 @@ htd_migrate_tasks()
     case "$tag" in
       +* | @* )
           note "Migrating prj/ctx: $tag"
-          buffer=$(htd__tasks_buffers $tag | head -n  1)
+          buffer=$(htd__tasks_buffers $tag | head -n 1 )
+          fileisext "$buffer" $TASK_EXTS || continue
           test -s "$buffer" || continue
-          cp $1 $1.tmp
-          {
-            # Get tasks lines from buffer to main doc, remove tag and re-add at end
-            grep -Ev '^\s*(#.*|\s*)$' $buffer |
-              sed 's/^\ *'"$tag"'\ //g' |
-                sed 's/\ '"$tag"'\ *$//g' |
-                  sed 's/\ '"$tag"'\ / /g' |
-                    sed 's/$/ '"$tag"'/g'
-            # Insert above as-is at existing content
-            cat $1.tmp
-          } > $1
-          rm $1.tmp
+          htd_move_and_retag_lines "$buffer" "$1" "$tag"
         ;;
       * ) error "? '$?'"
         ;;
@@ -305,14 +336,8 @@ htd_remigrate_tasks()
       +* | @* )
           note "Remigrating prj/ctx: $tag"
           buffer=$(htd__tasks_buffers $tag | head -n  1)
-          # Get task lines with tag, move to buffer without tag
-          grep -F "$tag" $1 |
-            sed 's/^\ *'"$tag"'\ //g' |
-              sed 's/\ '"$tag"'\ *$//g' |
-                sed 's/\ '"$tag"'\ / /g' > $buffer
-          echo '# vim:ft=todo.txt' >>$buffer
-          # Remove task lines with tag from main-doc
-          grep -vF "$tag" $1 | sponge $1
+          fileisext "$buffer" $TASK_EXTS || continue
+          htd_move_tagged_and_untag_lines "$1" "$buffer" "$tag"
         ;;
       * ) error "? '$?'"
         ;;

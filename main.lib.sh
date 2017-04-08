@@ -354,9 +354,6 @@ get_cmd_alias()
 {
   try_local_var $1_alias $(echo "$2" | tr '-' '_') als \
     || try_local_var $1_alias $(echo "$2" | tr '-' '_') als std
-
-#  local func_pref="$(eval echo \$${1}_func_pref)"
-#  export ${1}_alias=$(eval echo \$${func_pref}als
 }
 
 main_options_v()
@@ -713,17 +710,6 @@ daemon()
     }
   done
 }
-
-#trueish()
-#{
-#  test -n "$1" || return 1
-#  case "$1" in
-#		[Oo]n|[Tt]rue|[Yy]es|1)
-#      return 0;;
-#    * )
-#      return 1;;
-#  esac
-#}
 
 
 

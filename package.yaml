@@ -12,6 +12,14 @@
   distribution: public
   license: GPL
 
+  lists:
+    default: "@Task @Dev +script-mpe +htdocs-mpe"
+    main: "@be.topic" # get the .list of topics for htdocs
+    index: "@be.src.files" # get the .list of names for htdocs
+    to:
+      do: "@Task"
+      src: "@be.src +htdocs-mpe" # get the .list of sei for htdocs
+
   pd-meta:
     run:
       behat: "./vendor/.bin/behat--tags:~@skip"
@@ -34,8 +42,6 @@
     #build: ":vagrant:tools/ci/vbox:ubuntu"
 
     tasks:
-      default:
-        - "@Dev +script-mpe +htdocs-mpe"
       document: todo.txt
       done: .done.txt
       grep: ./tools/sh/tags.sh

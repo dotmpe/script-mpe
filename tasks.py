@@ -407,7 +407,9 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
                 failed.append(comment)
             log.warn("No issue link for %r" % ( comment, ) )
     issues.dirty = [ i.issue_id for i in created + updated ]
-    issues.commit()
+    print len(issues), 'Issues'
+    print len(issues.dirty), 'Dirty'
+    #issues.commit()
 
 def cmd_parse_list(settings, opts, TODOLIST):#='to/do.list'):
     """

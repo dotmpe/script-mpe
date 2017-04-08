@@ -37,11 +37,13 @@ node.py
 project.py
 redmine_meta.py
 topics.sh
+topic.py
 tasks.sh
 tasks.py
+tag.py
 todo-meta.py
 todo.py
-topic.py
+db.py
 vc-meta.py
 sh_switch.py
 jsotk.py

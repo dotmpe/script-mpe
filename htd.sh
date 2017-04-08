@@ -24,8 +24,8 @@ htd_load()
   }
   test -n "$DOC_EXT" || DOC_EXT=.rst
   test -n "$DOC_EXTS" || DOC_EXTS=".rst .md .txt"
-  test -n "$TASK_EXT" || DOC_EXTS="ttxtm"
-  test -n "$TASK_EXTS" || DOC_EXTS=".ttxtm .list .txt"
+  test -n "$TASK_EXT" || TASK_EXT="ttxtm"
+  test -n "$TASK_EXTS" || TASK_EXTS=".ttxtm .list .txt"
   test -n "$HTD_GIT_REMOTE" || HTD_GIT_REMOTE=default
   test -n "$CWD" || CWD=$(pwd)
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
@@ -43,6 +43,8 @@ htd_load()
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
 
   test -e .package.sh && . .package.sh
+
+  projectdirs="$(echo ~/project ~/work/*/tree)"
 
   go_to_directory .projects.yaml && {
     cd $CWD
@@ -588,6 +590,7 @@ htd__info()
   log "Ignored paths:         '$HTD_IGNORE' [HTD_IGNORE]"
 }
 
+
 htd__expand()
 {
   test -n "$1" || return 1
@@ -630,7 +633,7 @@ htd__edit_main()
   bash -c "$evoke $files"
 }
 htd_run__edit_main=iAO
-htd_als___E=edit-main
+htd_als___XE=edit-main
 
 
 htd__ls_main_files()
@@ -650,8 +653,8 @@ htd__ls_main_files()
 }
 
 
-htd_man_1__edit="Edit a local file, or abort"
-htd_spc__edit="-e|edit <id>"
+htd_man_1__edit_local="Edit an existing local file, or abort. "
+htd_spc__edit_local="-e|edit <id>"
 htd__edit()
 {
   test -n "$1" || error "search term expected" 1
@@ -669,11 +672,13 @@ htd__edit()
   doc_path_args
   find_paths="$(doc_find_name "$1")"
   grep_paths="$(doc_grep_content "$1")"
+
   test -n "$find_paths" -o -n "$grep_paths" \
     || error "Nothing found to edit" 1
   $EDITOR $find_paths $grep_paths
 }
-htd_als___e=edit
+htd_als__edit=edit-local
+htd_als___e=edit-local
 
 
 htd_man_1__find="Find file by name, or abort.
@@ -1188,7 +1193,7 @@ htd__edit_today()
     }
   }
 }
-htd_als__vt=edit_today
+htd_als__vt=edit-today
 
 
 # TODO consolidate with today, split into days/week/ or something
@@ -1299,6 +1304,7 @@ htd__edit_note_en()
 }
 htd_als__nen=edit-note-en
 
+
 # Print existing candidates to use as main document
 htd__main_doc_paths()
 {
@@ -1316,20 +1322,20 @@ htd__main_doc_paths()
 }
 
 # Edit first candidates or set to main$DOC_EXT
-htd__main_doc()
+htd__main_doc_edit()
 {
   # Find first standard main document
-  test -n "$1" || set -- "$(htd__main_doc_paths "$1"|read tag path)"
+  test -n "$1" || set -- "$(htd__main_doc_paths "$1"|{ read tag path;echo $path; })"
   # Or set default
   test -n "$1" || set -- main$DOC_EXT
 
   # Open edit session, discard unchanged generated file
   local cksum=
   htd_rst_doc_create_update $1
-  htd_edit_and_update $files $(htd_main_files|cut -d' ' -f2)
-
+  htd_edit_and_update $1
 }
-htd_als__md=main-doc
+htd_als__md=main-doc-edit
+htd_als___E=main-doc-edit
 
 
 
@@ -1503,7 +1509,58 @@ htd__ssh()
         vagrant up
         vagrant ssh
       ;;
+
+    # TODO: harbour aliases in private space shomehow
+    dandy-home )     htd ssh dandy "cd ~/ && bash -i " ;;
+    dandy-conf )     htd ssh dandy "cd ~/.conf && bash -i " ;;
+    dandy-bin )      htd ssh dandy "cd ~/bin && bash -i " ;;
+    dandy-htd )      htd ssh dandy "cd ~/htdocs && bash -i " ;;
+
+    # @Home
+    * )
+        # NOTE: By default expect htd wol call to work instantly.
+        test -n "$retries" || retries=1
+        ret=0
+        htd__detect_ping $1 || {
+          while true
+          do
+            test $retries -gt 0 ||
+              stderr warn "Unable to contact '$1' in allotted retries" 1
+            note "Trying to wake up $1.."
+            htd wake $1
+            retries=$(( $retries - 1 ))
+            sleep 7
+            htd__detect_ping $1 && break
+          done
+        }
+        test -n "$2" &&
+          note "Host '$1' is online, trying command '$2'.." ||
+          note "Host '$1' is online, trying ssh connect.."
+        ssh -t $1 "$2" || ret=$?
+        test -n "$2" && {
+          test -z "$ret" -o "$ret" = "0" &&
+            note "Command $1: '$2' completed OK" ||
+            error "Command $1: '$2' failed exiting $ret" 2
+        } || {
+          test -z "$ret" -o "$ret" = "0" &&
+            note "SSH connection to '$1' completed and closed" ||
+            error "SSH connection to '$1' exited $ret" 1
+        }
+      ;;
+    * )
+        error "No remote $1"
+      ;;
   esac
+}
+
+
+htd_man_1__detect='Detect host using ping at IP'
+htd_als__detect=detect-ping
+
+htd_man_1__detect_ping=$htd_als__detect
+htd__detect_ping()
+{
+  ping -qt 1 -c 1 $1 >/dev/null || return $?
 }
 
 
@@ -1559,6 +1616,8 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
 
     htd tasks scan|grep|local|edit|buffers|hub
     htd tasks tags[-{project,context}]
+
+  See tasks-hub for more local functions.
 '
 
 htd_man_1__tasks_scan="Update todo/tasks/plan document from local tasks"
@@ -1575,10 +1634,10 @@ htd__tasks_scan()
   test -z "$todo_slug" && {
     warn "Slug required to update store for $grep_Hn ($todo_document)"
   } ||  {
-    note "Updating tasks document.. ($todo_document $(var2tags verbose interactive))"
+    note "Updating tasks document.. ($todo_document $(var2tags verbose choice_interactive))"
     tasks_flags="$(
       falseish "$verbose" || printf -- " -v ";
-      falseish "$interactive" || printf -- " -i ";
+      falseish "$choice_interactive" || printf -- " -i ";
     )"
     # FIXME: select tasks backend
     be_opt="-t $todo_document --link-all"
@@ -1650,9 +1709,9 @@ htd_spc__tasks_edit="tasks-edit TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ]
 # This reproduces most of the essential todotxt-edit code, b/c before migrating
 # we need exclusive access to update the files anyway.
 htd_env__tasks_edit='
-  id=$htd_session_id
+  id=$htd_session_id migrate=1 remigrate=1
   todo_slug= todo_document= todo_done=
-  tags= buffers= add_files= locks=
+  tags= projects= contexts= buffers= add_files= locks=
   colw=32
 '
 htd__tasks_edit()
@@ -1662,7 +1721,8 @@ htd__tasks_edit()
   set -- "$todo_document" "$todo_done"
   info "2.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # TODO: If locked import principle tasks to main
-  htd_migrate_tasks "$1" "$2"
+  trueish "$migrate" &&
+    htd_migrate_tasks "$1" "$2"
   info "2.3. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # Edit todo and done file
   $TODOTXT_EDITOR "$1" "$2"
@@ -1672,33 +1732,58 @@ htd__tasks_edit()
   #note "Acquired additional locks ($(basenames ".list" $newlocks | lines_to_words))"
   # TODO: Consolidate all tasks to proper project/context files
   info "2.6. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  htd_remigrate_tasks "$1" "$2"
+  trueish "$remigrate" &&
+    htd_remigrate_tasks "$1" "$2"
   # XXX: where does @Dev +script-mpe go, split up? refer principle tickets?
   htd__tasks_session_end "$1" "$2"
 }
 htd_run__tasks_edit=eA
 htd_argsv__tasks_edit=htd_argsv__tasks_session_start
+htd_als__edit_tasks=tasks-edit
 
 
 htd_man_1__tasks_hub='Given a tasks-hub directory, either get tasks, tags or
   additional settings ie. backends, indices, cardinality.
   
-  htd tasks-hub be
-  htd tasks-hub tags
-  htd tasks-hub tagged
+    htd tasks-hub be
+    htd tasks-hub tags
+    htd tasks-hub tagged
 
 '
+htd_man_1__tasks_hub_init='Figure out identity for buffer lists'
 htd_man_1__tasks_hub_be='List the backend scripts'
 htd_man_1__tasks_hub_tags='List tags for which buffers exist'
-htd_man_1__tasks_hub_tagged='Find all tags wether ctx/prj and make sorted unique list'
+htd_man_1__tasks_hub_tagged='Lists unique tags from items in lists, or any
+  matching line in a hub leaf. '
 htd_env__tasks_hub='projects=1 contexts=1'
 htd_spc__tasks_hub='tasks-hub [ (be|tags|tagged) [ ARGS... ] ]'
-htd_spc__tasks_hub_tags='tasks-hub tagged [ --no-projects | --no-contexts ] '
+htd_spc__tasks_hub_taggged='tasks-hub tagged [ --all | --lists | --endpoints ] [ --no-projects | --no-contexts ] '
 htd__tasks_hub()
 {
   test -n "$1" || set -- be
-  htd_tasks_load init $subcmd $1
+  htd_tasks_load init $subcmd
   case "$1" in
+    init )
+  contexts=0 htd__tasks_hub tags | tr -d '+' | while read proj
+  do 
+    for d in $projectdirs ; do test -d "$d/$proj" || continue
+      (
+        local todo_document=
+        cd $d/$proj
+        test -e todo.txt && todo_document=todo.txt || {
+          update_package
+          eval $(map=pd_meta_tasks_:todo_ package_sh id todo_document)
+        }
+        (
+        test -n "$todo_document" || warn "no doc ($proj)" 1
+        test -e $todo_document || warn "doc missing ($proj/$todo_document)" 1
+        ) || continue
+        note "Doc for $proj: $todo_document"
+        htd__tasks_tags $todo_document
+      )
+    done
+  done
+  ;;
     be )
         note "Listing local backend configs"
         for be in $tasks_hub/*.sh
@@ -1713,21 +1798,23 @@ htd__tasks_hub()
       ;;
     tags )
         trueish "$contexts" && {
-        test "$(echo $tasks_hub/do-at-*.list)" = "$tasks_hub/do-at-*.list" &&
+        test "$(echo $tasks_hub/do-at-*.*)" = "$tasks_hub/do-at-*.*" &&
           warn "No contexts" ||
-        for task_list in $tasks_hub/do-at-*.list
+        for task_list in $tasks_hub/do-at-*.*
         do
-          echo "@$(basename "$task_list" .list | cut -c7-)"
+          echo "@$(basenames "$TASK_EXTS .sh" "$task_list" | cut -c7-)"
         done; }
         trueish "$projects" && {
         test "$(echo $tasks_hub/do-in-*.list)" = "$tasks_hub/do-in-*.list" &&
           warn "No projects" ||
         for task_list in $tasks_hub/do-in-*.list
         do
-          echo "+$(basename "$task_list" .list | cut -c7-)"
+          echo "+$(basenames "$TASK_EXTS .sh" "$task_list" | cut -c7-)"
+          #echo "+$(basename "$task_list" .list | cut -c7-)"
         done; }
       ;;
     tagged )
+      # TODO: switch file selection liek in tags above
         test "$(echo $tasks_hub/*.*)" = "$tasks_hub/*.*" &&
           warn "No files to look for tags" ||
             htd__todotxt_tags $tasks_hub/*.*
@@ -1735,7 +1822,39 @@ htd__tasks_hub()
     * ) error "? '$*'" ;;
   esac
 }
-htd_run__tasks_hub=eAO
+htd_run__tasks_hub=eiAO
+
+
+# TODO: introduce htd proc LIST
+  # Lists are files with lines treated as items with rules applied.
+  # Each list is associated with its own unique context(s)
+  # If the context corresponds to a script it is used to manage the item.
+  # Each lifecycle event can be hooked and trigger a reaction by the context.
+  # By setting a default certain rules are always inherited.
+  # The default list however is todo, or to/do. Also see, buy, fix, whatever.
+  # Items remain in their list, and are considered dirty or uncommitted until
+  # they have a context tag added. Setting a context rule for a list allows
+  # to indicate a required context choice, to migrate items to the
+  # appropiate list, and to note items that have no context.
+  # With a dynamic context, automatic or interactive handling and cleanup is 
+  # possible for various sorts of items: tasks, reminders, references,
+  # reports, etc. On the other hand it is also possible to generate lists,
+  # filter, etc. E.g. directories, issues, packages, bookmarks, emails,
+  # name it. Having the list-item formet here helps to integrate with e.g.
+  # node-sitefile. Next; start thinking in structured tags, topics.
+  # And then add support for containment, nesting, grouping.
+
+htd__tasks_process()
+{
+  projects=0 htd__tasks_hub tags | tr -d '@' | while read ctx
+  do
+    echo arg ctx: $ctx
+  done
+}
+htd_run__tasks_process=A
+htd_argsv__tasks_process=htd_argsv__tasks_session_start
+htd_als__tasks_proc=tasks-process
+htd_als__process_tasks=tasks-process
 
 
 # Given a list of tags, turn these into task storage backends. One path
@@ -1756,10 +1875,12 @@ htd__tasks_buffers()
       +* ) prj=$(echo $tag | cut -c2- )
           echo to/do-in-$prj.list
           echo cabinet/done-in-$prj.list 
+          echo to/do-in-$prj.sh
         ;;
       @* ) ctx=$(echo $tag | cut -c2- )
           echo to/do-at-$ctx.list
           echo cabinet/done-at-$ctx.list 
+          echo to/do-at-$ctx.sh
         ;;
       * ) error "'$tag'?" 1 ;;
     esac
@@ -1782,6 +1903,69 @@ htd__tasks_tags()
 }
 
 
+htd_man_1__tasks_session_start=''
+htd_spc__tasks_session_start="tasks-session-start TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ] [ ADDITIONAL-PATHS ]"
+htd_env__tasks_session_start="$htd_env__tasks_edit"
+htd__tasks_session_start()
+{
+  info "3.1. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  set -- $todo_document $todo_done
+  assert_files $1 $2
+  # Accumulate tasks, to find additional files for locking
+  tags="$(htd__todotxt_tags "$1" "$2" | lines_to_words ) $tags"
+  note "Tags: ($(echo "$tags" | count_words 
+    )) $(echo "$tags" )"
+  info "3.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  # Get paths to all files, add todo/done buffer files per tag
+  buffers="$(htd__tasks_buffers $tags )"
+  # Lock main files todo/done and additional-paths
+  locks="$(lock_files $id "$@" $buffers $add_files | lines_to_words )"
+  { exts="$TASK_EXTS" pathnames $locks ; echo; } | column_layout
+  # Fail now if main todo/done files are not included in locks
+  verify_lock $id $1 $2 || {
+    released="$(unlock_files $id $@ $buffers | lines_to_words )"
+    error "Unable to lock main files: $1 $2" 1
+  }
+  note "Acquired locks ($(echo "$locks" | count_words ))"
+}
+htd_run__tasks_session_start=eiA
+htd_argsv__tasks_session_start()
+{
+  info "1.1. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  htd_tasks_load
+  test -n "$*" || return 0
+  while test $# -gt 0 ; do case "$1" in 
+      '+'* ) tags="$tags $1" ; projects="$projects $1" ; shift ;;
+      '@'* ) tags="$tags $1" ; contexts="$contexts $1" ; shift ;;
+      '-'* ) define_var_from_opt "$1" ; shift ;;
+      * )
+          # Override doc/done with args 1,2. 
+          not_falseish "$override_doc" || { override_doc=1 ; test -z "$1" ||
+            todo_document="$1" ; shift ; continue ; }
+          not_falseish "$override_doc" || { override_done=1 ; test -z "$1" ||
+            todo_done="$1" ; shift ; continue ; }
+          add_files="$add_files $1" ; shift
+        ;;
+  esac ; done
+  info "1.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+}
+
+htd__tasks_session_end()
+{
+  info "6.1 Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  # clean empty buffers
+  for f in $buffers
+  do test -s "$f" -o ! -e "$f" || rm "$f"; done
+  info "Cleaned empty buffers"
+  test ! -e "$todo_document" -o -s "$todo_document" || rm "$todo_document"
+  test ! -e "$todo_done" -o -s "$todo_done" || rm "$todo_done"
+  # release all locks
+  released="$(unlock_files $id "$1" "$2" $buffers | lines_to_words )"
+  note "Released locks ($(echo "$released" | count_words ))"
+  { exts="$TASK_EXTS" pathnames $released ; echo; } | column_layout
+}
+
+
 htd__tasks__src__exists()
 {
   test -n "$2" || {
@@ -1789,7 +1973,6 @@ htd__tasks__src__exists()
   }
   echo grep -srIq $1 $all $TASK_DIR/
 }
-
 htd__tasks__src__add()
 {
   new_id=$(htd rndstr < /dev/tty)
@@ -1799,18 +1982,12 @@ htd__tasks__src__add()
   done
   echo $new_id
 }
-
 htd__tasks__src__remove()
 {
   echo
 }
-
-
 htd__tasks()
 {
-  # Get paths to all files, add todo/done buffer files per tag
-  #local buffer_files="$(htd__tasks_buffers $tags | lines_to_words )"
-
   case "$1" in
     be.src )
         mkvid "$2" ; cmid=$vid
@@ -1828,82 +2005,9 @@ htd__tasks()
         . ./to/$ctxid.sh ; shift 2
         htd__tasks__${beid}__${cmid} "$@"
       ;;
-    "" ) shift 1; htd__tasks_scan "$@" ;;
+    "" ) shift || noop ; htd__tasks_scan "$@" ;;
     * ) act="$1"; shift 1; htd__tasks_$act "$@" ;;
   esac
-}
-
-
-htd_man_1__tasks_session_start=''
-htd_spc__tasks_session_start="tasks-session-start TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ] [ ADDITIONAL-PATHS ]"
-htd_env__tasks_session_start="$htd_env__tasks_edit"
-htd__tasks_session_start()
-{
-  info "3.1. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  set -- $todo_document $todo_done
-  assert_files $1 $2
-  # Accumulate tasks, to find additional files for locking
-  tags="$(htd__todotxt_tags "$1" "$2" | lines_to_words ) $tags"
-  note "Tags: ($(echo "$tags" | count_words 
-    )) $(echo "$tags" )"
-  info "3.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  # Get paths to all files, add todo/done buffer files per tag
-  buffers="$(htd__tasks_buffers $tags )"
-  # Lock main files todo/done and additional-paths
-  locks="$(lock_files $id "$@" "$buffers" $add_files | lines_to_words )"
-  { exts="$TASK_EXTS" pathnames $locks ; echo; } | column_layout
-  # Fail now if main todo/done files are not included in locks
-  verify_lock $id $1 $2 || {
-    released="$(unlock_files $id $@ $buffers | lines_to_words )"
-    error "Unable to lock main files: $1 $2" 1
-  }
-  note "Acquired locks ($(echo "$@" "$buffers" | count_words ))"
-}
-htd_run__tasks_session_start=eiA
-htd_argsv__tasks_session_start()
-{
-  info "1.1. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  htd_tasks_load
-  test -n "$*" || return 0
-  # TODO: rewrite to fit with seq-parser
-  #opt_args "$@"
-  #set -- "$(cat $arguments)"
-  info "Args '$*'"
-  # Override doc/done with args 1,2. 
-  test -z "$1" || todo_document="$1" ; shift 1 || return 0
-  test -z "$1" || todo_done="$1" ; shift 1 || return 0
-  info "1.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  # Additional tags to open buffer files for, and lock into session
-  tag_args()
-  {
-    for t in $@
-    do case "$t" in '+'*|'@'* ) printf -- "$t " ;;
-    esac; done
-  }
-  tags="$( tag_args "$@" )"
-  info "1.3. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  # Additional files to lock
-  nontag_args()
-  {
-    for t in $@
-    do case "$t" in '+'*|'@'* ) ;; * ) printf -- "$t " ;;
-    esac; done
-  }
-  add_files="$( nontag_args "$@" )"
-  info "1.4. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-}
-
-htd__tasks_session_end()
-{
-  info "6.1 Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  # clean empty buffers
-  for f in $buffers
-  do test -s "$f" -o ! -e "$f" || rm "$f"; done
-  info "Cleaned empty buffers"
-  # release all locks
-  released="$(unlock_files $id "$1" "$2" $buffers | lines_to_words )"
-  note "Released locks ($(echo "$1" "$2" $buffers | count_words ))"
-  { exts="$TASK_EXTS" pathnames $released ; echo; } | column_layout
 }
 
 # Load from pd-meta.tasks.{document,done} [ todo_slug todo-document todo-done ]
@@ -1916,7 +2020,8 @@ htd_tasks_load()
   eval $(map=package_pd_meta_tasks_:todo_ package_sh todo_document todo_done  \
     todo_slug )
   test -n "$todo_document" || todo_document=todo.$TASK_EXT
-  test -n "$todo_done" || todo_done=$(pathname "$todo_document" $TASK_EXTS)-done.$TASK_EXT
+  test -n "$todo_done" || 
+    todo_done=$(pathname "$todo_document" $TASK_EXTS)-done.$TASK_EXT
   test -n "$todo_slug" || {
     local $(map=package_ package_sh  id  )
     test -n "$id" && {
@@ -1926,7 +2031,7 @@ htd_tasks_load()
   }
   test -n "$todo_slug" || error todo-slug 1
   ;;
-    tasks-hub )
+    tasks-hub | tasks-process )
   test -e "./to" && tasks_hub=./to
   test -n "$tasks_hub" ||
     tasks_hub=$(map=package_pd_meta_ package_sh tasks_hub)
@@ -1946,10 +2051,11 @@ htd_tasks_load()
     tasks_coops="$(package_sh_list .package.sh pd_meta_tasks_coops \
       | lines_to_words )"
   ;;
-    be.* )
+    be* | proc* )
   ;;
     * ) error "load? '$1'" ;; esac ; shift ; done
 }
+
 
 
 htd_man_1__todo='Edit and mange todo.txt/done files.
@@ -2048,14 +2154,15 @@ htd__todotxt()
 }
 
 
+# The simplest tag (prj/ctx) scanner. Any non-zero argument is grepped for
+# tags. Returns a unique sorted list. See tasks-hub 
 htd__todotxt_tags()
 {
-  # TODO: update/match with tag, project index
   while test -n "$1"; do
     test -s "$1" && {
       {
-        grep -o '\(^\|\s\)+[^\ ]*' $1 | words_to_lines
-        grep -o '\(^\|\s\)@[^\ ]*' $1 | words_to_lines
+        grep -o '\(^\|\s\)+[A-Za-z0-9_][^\ ]*' $1 | words_to_lines
+        grep -o '\(^\|\s\)@[A-Za-z0-9_][^\ ]*' $1 | words_to_lines
       } | sort -u
     }
   shift; done | sort -u | read_nix_style_file -
@@ -2157,7 +2264,6 @@ htd__build_todo_list()
 
       done
   done; } | todo-meta.py import -
-
 }
 
 
@@ -3144,21 +3250,8 @@ htd__save()
   esac
 }
 
-htd__save_tags()
-{
-  set -- $@
-  while test -n "$1"
-  do
-    tags.py get "$1" || tags.py insert "$1"
-    shift 1
-  done
-}
 
-htd__tags()
-{
-  test -n "$1" || set -- "*"
-  tags.py find "$1"
-}
+htd_run__tags=tags
 
 
 htd__save_url()
@@ -3367,13 +3460,6 @@ htd__list_run()
 htd_run__list_run=iAO
 
 
-htd__show_rules()
-{
-  htd_host_arg
-  cat $htd_rules
-}
-
-
 # htdoc rules development documentation in htdocs:Dev/Shell/Rules.rst
 # pick up with config:rules/comp.json and build `htd comp` aggregate metadata
 # and update statemachines.
@@ -3401,7 +3487,6 @@ htd__run_rules()
   fixed_table_hd $htd_rules CMD RT TARGETS CWD | while read vars
   do
     eval local "$vars"
-    #echo "CMD=$CMD RT=$RT TARGETS=$TARGETS"
     for target in $TARGETS
     do
       case "$target" in
@@ -3412,10 +3497,15 @@ htd__run_rules()
           ;;
         @* ) continue ;;
       esac
-      # XXX: figuring out what/how rules to run
       htd__rule_target $target || note "TODO run '$CMD' for $target ($CWD)"
     done
   done
+}
+
+htd__show_rules()
+{
+  htd_host_arg
+  cat $htd_rules
 }
 
 htd__edit_rules()
@@ -3454,10 +3544,40 @@ htd__rule_target()
   esac
 }
 
-htd__add_rule()
+htd_man_1__process='Process each item in list.
+  name.list
+  to/see.list
+  @Task
+  +proj:id.path
+  @be.path
+'
+htd_spc__process='process [ LIST [ TAG.. [ --add ] | --any ]'
+htd_env__process='
+  todo_slug= todo_document= todo_done=
+'
+htd__process()
 {
-  set --
+  tags="$(htd__tasks_tags "$@" | lines_to_words ) $tags"
+  note "Tags: '$tags'"
+  htd__tasks_buffers $tags | grep '\.sh$' | while read scr
+  do
+    test -e "$scr" || continue
+    test -x "$scr" || { warn "Disabled: $scr"; continue; }
+  done
+  for tag in $tags
+  do
+    scr="$(htd__tasks_buffers "$tag" | grep '\.sh$' | head -n 1)"
+    test -n "$scr" -a -e "$scr" || continue
+    test -x "$scr" || { warn "Disabled: $scr"; continue; }
+    echo tag=$tag scr=$scr
+    #grep $tag'\>' $todo_document | $scr
+    # htd_tasks__at_Tasks process line
+    continue
+  done
 }
+htd_run__process=eA
+htd_argsv__process=htd_argsv__tasks_session_start
+htd_als__proc=process
 
 
 # parse path and annex metadata using given path
@@ -6370,8 +6490,8 @@ htd_optsv()
   while test -n "$1"
   do
     case "$1" in
-      -S* )          search="$(echo "$1" | cut -c3-)";;
-      * ) define_all=1 main_options_v "$@";;
+      -S* ) search="$(echo "$1" | cut -c3-)" ;;
+      * ) define_all=1 main_options_v "$1" ;;
     esac
     shift
   done

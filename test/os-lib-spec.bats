@@ -108,4 +108,24 @@ init
 }
 
 
+@test "$lib basename" {
+
+  func_exists basenames
+  run basenames .foo bar.foo
+  { test_ok_nonempty && test "${lines[0]}" = "bar"
+  } || stdfail 1
+  run basenames ".foo .u-c .t" bar.t.u-c.foo
+  { test_ok_nonempty && test "${lines[0]}" = "bar"
+  } || stdfail 2
+  run basenames ".t .u-c .foo" bar.t.u-c.foo
+  { test_ok_nonempty && test "${lines[0]}" = "bar.t.u-c"
+  } || stdfail 3
+  run basenames ".tar .u-c .bz2 .gz" bar.u-c.tar foo.tar.bz2 baz.txt.gz
+  { test_ok_nonempty && test "${lines[0]}" = "bar" &&
+    test "${lines[1]}" = "foo.tar" &&
+    test "${lines[2]}" = "baz.txt"
+  } || stdfail 4.0
+}
+
+
 # Id: script-mpe/0.0.4-dev test/os-lib-spec.bats

@@ -24,13 +24,13 @@ statusdir_load()
   # Detect backend
 
   test -n "$sd_be" || {
-    which redis-cli 2>&1 >/dev/null &&
-      redis-cli ping 2>&1 >/dev/null &&
+    which redis-cli >/dev/null 2>&1 &&
+      redis-cli ping >/dev/null 2>&1 &&
         sd_be=redis
   }
 
   test -n "$sd_be" || {
-    which membash 2>&1 >/dev/null && sd_be=membash
+    which membash >/dev/null 2>&1 && sd_be=membash
   }
 
   # Set default be

@@ -183,6 +183,8 @@ class TodoTxtParser(object):
                 self.tag_ids[tag] = []
             self.tag_ids[tag].append( tid )
         return ttt
+    def __len__(self):
+        return len(self.issues.keys())
     def __iter__(self):
         return iter(self.issues)
     def __contains__(self, key):

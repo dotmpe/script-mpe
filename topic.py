@@ -39,7 +39,6 @@ Options:
     --no-commit   .
     --commit      [default: true].
     -h --help     Show this usage description.
-                  For a command and argument description use the command 'help'.
     --version     Show version (%s).
 """ % ( __db__, __version__ )
 
@@ -286,6 +285,17 @@ def cmd_x_mp(settings):
 
     session.close()
     Base.metadata.drop_all(metadata.bind)
+
+
+"""
+TODO: create item list from index, and vice versa unid:FEGl time:17:43Z
+
+1. Parse list, like todo.txt
+2. Keep db_sa SQLite
+    1. Init db from list
+    2. Update existing db from list
+"""
+
 
 
 ### Transform cmd_ function names to nested dict

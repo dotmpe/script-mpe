@@ -1,0 +1,21 @@
+
+.. Structure:
+.. - htd main-doc to lead to main document paths
+.. - want better support to refer to topics in other paths, list, query, migrate
+..
+.. For development phase, document features in files with three sections before the first root divider (in addition to the initial section level following the document title/sub):
+.. 1. Plan: planned functionality.
+.. 2. Dev: current or immediate implementation developments
+.. 3. Issues: known issues with the existing implementation
+.. 4. Spec: Outline local components and link to test
+.. Misc. sections included only as appendix but not structured into current
+
+.. Possibly manual as fifth or just chunk into appendices.
+
+.. _Statusdir: /statusdir.rst
+.. _Topics: /topics.rst
+.. _Package: /package.rst
+.. _Pd: /projectdir.rst
+.. _Tasks: /tasks.rst
+.. _Htd: /htd.rst
+

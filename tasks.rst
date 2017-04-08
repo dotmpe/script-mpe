@@ -1,5 +1,45 @@
+.. include:: .default.rst
 
-The tasks document is a collection of tickets/calls/todos/... lists.
+Tasks
+========
+:created:
+
+
+TODO.txt lists boil down to a format for line-based indexed items.
+
+A tasks document is a collection of tickets/calls/todos/...
+Of task lists with names, and per item contexts, project homes...
+
+Building prototype commands within ``htd tasks`` command and lib namespace.
+
+
+Plan
+-----
+Initial backend support. Local, but also gtasks, redmine.
+Sync dev with main Htd_ plans.
+
+First backend specifically for tasks is 'Track' `trc` which is intended to do the TAG-Id like things that radical.py was also started for years ago. But this time for a possible htd proc namespace.
+
+Also coined for backend is 'Source' `src` to access comments combined with possibly a Tag-Id, or another such format.
+
+TODO: list
+
+Dev
+-----
+htd tasks.hub be.trc
+  ..
+
+Issues
+------
+
+
+Spec
+-----
+.. If possible, link to test results
+
+----
+
+.. See .default for document structures
 
 ----
 
