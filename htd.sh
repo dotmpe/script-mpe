@@ -1048,39 +1048,32 @@ htd__test_find_path_locals()
     echo path_locals=$path_locals
 }
 
+
 # List root IDs
 htd__list_local_ns()
 {
-  fixed_table_hd $ns_tab ID PATH CMD | while read vars
+  fixed_table_hd $ns_tab SID GROUPID| while read vars
   do
     eval local "$vars"
-    echo $ID
+    echo $SID
   done
 }
 
-# XXX: List matching tags
+# TODO: List namespaces matching query
 htd_spc__ns_names='ns-names [<path>|<localname> [<ns>]]'
 htd__ns_names()
 {
   test -z "$3" || error "Surplus arguments: $3" 1
-  fixed_table_hd $ns_tab ID CMD_PATH CMD | while read vars
+  fixed_table_hd $ns_tab SID GROUPID | while read vars
   do
     eval local "$vars"
-    test -n "$2" && {
-      echo 2=$2
-      test "$2" = "$ID" || continue
-    }
+    note "FIXME: $SID eval local var from pathnames.tab"
+    continue
     cd $CMD_PATH
     note "In '$ID' ($CMD_PATH)"
     eval $CMD "$1"
     cd $CWD
   done
-}
-
-# TODO: List resources containing tag
-htd__ns_resources()
-{
-  set --
 }
 
 
@@ -5072,7 +5065,7 @@ htd__path_prefix_names()
   local index=
   req_prefix_names_index
   test -s "$index"
-  cat $index
+  cat $index | sed 's/^[^\#]/'$(hostname -s)':&/g'
   note "OK, $(count_lines "$index") rules"
 }
 
@@ -6376,6 +6369,29 @@ htd__rsdiff()
     vimdiff -b $f1 $f2
   fi
   rm -f $f1 $f2
+}
+
+
+htd__crypto()
+{
+  cr_m=crypto/main.tab
+  test -e $cr_m || error cr-m 1
+  test -n "$1" || set -- init
+  c_tab() { fixed_table_hd $cr_m Lvl VolumeId Prefix Contexts ; }
+  case "$1" in
+    init )
+        c_tab | while read vars
+        do eval $vars
+          test -n "$Prefix" || continue
+          test -e "$Prefix" || { warn "Missing path '$Prefix'"; continue; }
+          test -d "$Prefix" || { warn "Non-dir '$Prefix'"; continue; }
+          Prefix_Real=$(cd "$(dirname "$Prefix")"; pwd -P)/$(basename "$Prefix")
+          mountpoint -q "$Prefix_Real" || { warn "Non-mount '$Prefix'"; continue; }
+          Contexts=...
+          note "$Level: $VolumeId ($Contexts at $Prefix)"
+        done
+      ;;
+  esac
 }
 
 
