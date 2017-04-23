@@ -42,7 +42,9 @@ htd_load()
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
 
-  test -e .package.sh && . .package.sh
+  test -e .package.sh && {
+    . ./.package.sh
+  }
 
   projectdirs="$(echo ~/project ~/work/*/tree)"
 
@@ -6372,23 +6374,33 @@ htd__rsdiff()
 }
 
 
+htd__crypto_volumes()
+{
+  for x in /srv/volume-[0-9]*
+  do
+    test -d $x/crypto || continue
+    echo $x/crypto
+  done
+}
+
+htd__crypto_volume_find()
+{
+  while test $# -gt 0
+  do
+    htd__crypto_volumes | while read volume
+    do
+      test -e "$volume/$1" || continue
+      echo "$volume/$1"
+      break
+    done
+    shift
+  done
+}
+
 htd__crypto()
 {
-  disk_list
-  echo "----------"
-  disk_list | while read dev
-  do
-    disk_local "$dev" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C
-  done
-  return
-  echo "----------"
-  disk_list | while read dev
-  do
-    disk_list_part_local $dev
-  done
-  echo "----------"
-  return
-  cr_m=crypto/main.tab
+  cr_m=$HTDIR/crypto/main.tab
+  test -e $cr_m || cr_m=~/.local/etc/crypto-bootstrap.tab
   test -e $cr_m || error cr-m-tab 1
   test -n "$1" || set -- init
   c_tab() { fixed_table_hd $cr_m Lvl VolumeId Prefix Contexts ; }
@@ -6397,10 +6409,23 @@ htd__crypto()
         c_tab | while read vars
         do eval $vars
           test -n "$Prefix" || continue
-          test -e "$Prefix" || { warn "Missing path '$Prefix'"; continue; }
+          test -e "$Prefix" || { 
+            test -d "$(dirname "$Prefix")" || {
+              warn "Missing path '$Prefix'"; continue;
+            }
+            mkdir -p "$Prefix"
+          }
           test -d "$Prefix" || { warn "Non-dir '$Prefix'"; continue; }
           Prefix_Real=$(cd "$(dirname "$Prefix")"; pwd -P)/$(basename "$Prefix")
-          mountpoint -q "$Prefix_Real" || { warn "Non-mount '$Prefix'"; continue; }
+          mountpoint -q "$Prefix_Real" || { 
+            htd__crypto_init "$Lvl" "$VolumeId" "$Prefix_Real" "$Contexts" || {
+              warn "Mount failed"
+              continue
+            }
+          }
+          mountpoint -q "$Prefix_Real" || { 
+            warn "Non-mount '$Prefix'"; continue; 
+          }
           Contexts=...
           note "$Level: $VolumeId ($Contexts at $Prefix)"
         done
@@ -6409,15 +6434,43 @@ htd__crypto()
 }
 htd_run__crypto=f
 
+htd__crypto_init()
+{
+  local device=$(htd__crypto_volume_find "$2.vc")
+  test -n "$device" || {
+    error "No volume found for '$2'"
+    return 1
+  }
+  . ~/.local/etc/crypto.sh
+  test -n "$(eval echo \$$2)" || {
+    error "No key for $1"
+    return 1
+  }
+  eval echo "\$$2" | \
+    sudo veracrypt --non-interactive --stdin -v $device $3
+}
+
+htd__crypto_unmount()
+{
+  local device=$(htd__crypto_volume_find "$1.vc")
+  sudo veracrypt -d $device
+  note "Unmounted volume '$1' ($device)"
+}
+
 htd__crypto_vc_init()
 {
-  test -n "$1" || set -- Untitled0002
+  test -n "$1" || set -- Untitled0002 "$2"
   test -n "$2" || error passwd-var-expected 1
-  test -n "$size" || size=10M
+  test -n "$3" || set -- "$1" "$2" "10M"
   eval echo "\$$2" | \
     sudo veracrypt --non-interactive --stdin \
       --create $1.vc --hash sha512 --encryption aes \
-      --filesystem exFat --size $size --volume-type=normal
+      --filesystem exFat --size $3 --volume-type=normal
+  mkdir /tmp/$(basename $1)
+  sudo chown $(whoami):$(whoami) $1.vc
+  eval echo "\$$2" | \
+    sudo veracrypt --non-interactive --stdin \
+      -v $1.vc /tmp/$(basename "$1")
 }
 
 

@@ -169,8 +169,8 @@ disk__local()
         #\ || echo "disk:local:$1" >>$failed
         shift
       done
-    } #| sort -n
-  } #| column -tc 3
+    } | sort -n
+  } | column -tc 3
 }
 disk_load__local=f
 
@@ -414,7 +414,7 @@ disk_main()
       scriptname=disk \
       base=$(basename $0 .sh) \
       scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-      subcmd=$1
+      subcmd=
 
   case "$base" in
 
