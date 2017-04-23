@@ -59,3 +59,4 @@ meta-sh.sh
 package.lib.sh
 meta.lib.sh
 script-sh.sh
+darwin.py

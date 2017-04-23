@@ -6421,6 +6421,23 @@ htd__crypto_vc_init()
 }
 
 
+htd__darwin_profile()
+{
+  local grep="$1"
+  system_profiler -listDataTypes | while read dtype
+  do
+    test -n "$grep" &&  {
+      system_profiler $dtype | eval grep "$grep" &&
+        echo "$dtype for $grep" ||
+        noop
+    } || {
+      system_profiler $dtype
+    }
+  done
+}
+
+
+
 # util
 
 htd_rst_doc_create_update()

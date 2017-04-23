@@ -8,9 +8,6 @@ disk_run()
   test -n "$hostname" || hostname=$(hostname)
   test -n "$domainname" || domainname=$(domainname)
 
-  test -x "/sbin/parted" || error "parted required" 1
-  test -x "/sbin/fdisk" || error "fdisk required" 1
-
   test -n "$DISK_CATALOG" || export DISK_CATALOG=$HOME/.diskdoc
   #test -n "$DISK_VOL_DIR" || export DISK_VOL_DIR=/srv
 
@@ -62,9 +59,33 @@ disk_id()
           | cut -d '=' -f 2
       ;;
     Darwin )
+        local bsd_name=$(basename $1) xml=
+
+        xml=$(darwin_profile_xml "SPSerialATADataType")
+        device_serial=$(darwin.py spserialata-disk $xml $bsd_name device_serial)
+        test -z "$device_serial" || {
+          echo $device_serial; return
+        }
+
+        xml=$(darwin_profile_xml "SPUSBDataType")
+        serial_num=$(darwin.py spusb-disk $xml $bsd_name serial_num)
+        test -z "$serial_num" || {
+          echo $serial_num; return
+        }
+
+        # XXX: unfortunately, RAM disks have no device..
+        #xml=$(darwin_profile_xml "SPStorageDataType")
+        #serial_num=$(darwin.py spstorage-disk $xml $bsd_name serial_num)
+        #test -z "$serial_num" || {
+        #  echo $serial_num; return
+        #}
+
+
+        error "unkown disk $bsd_name"
+        return
+
         # FIXME: this only works with one disk, would need to parse XML plist
-        local b=$(basename $1)
-        system_profiler SPSerialATADataType | grep -qv $b || {
+        system_profiler SPSerialATADataType | grep -qv $bsd_name || {
           error "Parse SPSerialATADataType plist" 1
         }
         echo $(system_profiler SPSerialATADataType | grep Serial.Number \
@@ -140,6 +161,7 @@ disk_tabletype()
 
 disk_local_inner()
 {
+  local disk=$1; shift
   while test -n "$1"
   do
     case $(str_lower $1) in
@@ -159,15 +181,16 @@ disk_local_inner()
 #NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT
 disk_local()
 {
-  local disk=$1
-  #failed=$(setup_tmpf .failed)
-  shift
-  echo $(disk_local_inner "$@" || echo "disk-local:$disk:$1">>$failed)
+  test -n "$1" || error disk-local 1
+  echo $(disk_local_inner "$@" || {
+    return 1
+    echo "disk-local:$1:$2">>$failed
+  })
+
   test ! -e "$failed" -o -s "$failed" && return 1 || return 0
   # XXX:
-  echo $first $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) \
-    $(disk_tabletype $1) $(find_mount $1 | count_words)
-
+  #echo $first $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) \
+  #  $(disk_tabletype $1) $(find_mount $1 | count_words)
 }
 
 # List local online disks (mounted or not)
@@ -319,14 +342,15 @@ copy_fs()
 
 disk_info()
 {
+  test -n "$1" || error "disk-info disk-device" 1
   test -d "$DISK_CATALOG" || error "Missing catalog env" 1
   test -n "$2" || set -- "$1" "prefix"
   test -e "$DISK_CATALOG/disk/$1.sh" || {
     # Find ID for device if given iso. ID
-    set -- $(disk_id $1) $2
+    test -z "$(disk_id $1)" || set -- "$(disk_id "$1")" "$2"
   }
   test -e "$DISK_CATALOG/disk/$1.sh" \
-    || { error "No such known disk $1"; return 1; }
+    || { error "No such known disk '$1'"; return 1; }
   . $DISK_CATALOG/disk/$1.sh
   eval echo \$$2
 }

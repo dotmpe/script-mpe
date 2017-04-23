@@ -60,3 +60,44 @@ start_launchd_service()
 }
 
 
+darwin_profile_xml()
+{
+  local xml=$(setup_tmpf .xml) datatype=$1; shift
+  system_profiler $datatype -xml > $xml
+  echo $xml
+}
+
+darwin_profile_tab()
+{
+  local xml=$(darwin_profile_xml "$@"); shift
+  darwin.py plist-items $xml "$@"
+  rm $xml
+}
+
+darwin_profile_dump()
+{
+  local xml=$(darwin_profile_xml "$@"); shift
+  darwin.py plist-dump $xml
+}
+
+darwin_disk_table()
+{
+  #darwin_profile_tab SPStorageDataType mount_point bsd_name volume_uuid file_system
+  xml=$(darwin_profile_xml "SPStorageDataType")
+  darwin.py plist-dump $xml
+  #darwin.py spstorage-disk $xml mount_point bsd_name volume_uuid file_system
+  return
+
+  # List data on main SATA disk(s)
+  xml=$(darwin_profile_xml "SPSerialATADataType")
+  echo '#SPSerialATADataTypel: bsd-name device-serial size-in-bytes device-model'
+  darwin.py spserialata-disk $xml disk0 bsd_name device_serial size_in_bytes device_model
+  #darwin.py spserialata-disk-part $xml mount_point bsd_name volume_uuid size_in_bytes _name
+  echo
+
+  # List data on USB disk(s)
+  #xml=$(darwin_profile_xml "SPUSBDataType")
+  #echo '#SPUSBDataType: bsd-name serial-num size-in-bytes manufacturer vendor-id product-id'
+  #darwin.py spusb-disk $xml disk8 bsd_name serial_num size_in_bytes manufacturer vendor_id product_id
+}
+

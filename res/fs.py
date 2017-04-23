@@ -108,7 +108,7 @@ def get_fs_xattr(fn):
     for attr in xattr.listxattr(fn):
         value = xattr.getxattr(fn, attr)
         if value.startswith('bplist'):
-            x[attr] = pbPlist.PBPlist(value)
+            x[attr] = pbPlist.pbPlist.PBPlist(value)
         else:
             x[attr] = value
     return x

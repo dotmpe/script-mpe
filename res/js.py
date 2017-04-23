@@ -34,6 +34,7 @@ try:
     dumps = json_.dumps
     load = json_.load
     dump = json_.dump
+    parse = loads
 
 except Exception, e:
     pass#log.warn("Failed loading json %r", e)

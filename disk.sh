@@ -71,7 +71,7 @@ disk__status()
   cat $list | sort -n
   rm $list
 }
-disk_load__status=Ro
+disk_load__status=Rfo
 disk_outf__status="unknown uncataloged swap ext volume disk list"
 
 
@@ -147,11 +147,13 @@ disk__prefix()
   disk_info $1 prefix
 }
 
+
 disk_man_1__info="Get single attribute from catalog disk record by DISK_ID KEY"
 disk__info()
 {
   disk_info "$@"
 }
+
 
 disk_man_1__local="Show disk info TODO: test this works at every platform"
 disk__local()
@@ -167,10 +169,11 @@ disk__local()
         #\ || echo "disk:local:$1" >>$failed
         shift
       done
-    } | sort -n
-  } | column -tc 3
+    } #| sort -n
+  } #| column -tc 3
 }
 disk_load__local=f
+
 
 disk_man_1__list_local="Tabulate disk info for local disks (e.g. from /dev/)"
 disk_spc__list_local=list-local
@@ -179,10 +182,37 @@ disk__list_local()
   disk__local || return && echo "# Disks at $(hostname), $(datetime_iso)"
 }
 disk_load__list_local=f
-#disk__list_local()
-#{
-#  disk_list
-#}
+
+
+disk__x_local()
+{
+  darwin_disk_table
+  return
+  test -n "$1" || set -- $(disk_list)
+  while test $# -gt 0
+  do
+    test -n "$1" || continue
+    echo 1=$1
+    disk_local "$1" DISK_ID
+    shift
+  done
+  return
+  #disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C
+  for disk in $(disk_list)
+  do
+    system_profiler SPSerialATADataType | grep -q $(basename $disk)'\>' && {
+      echo SerialATA disk=$disk
+    } || {
+      grep -q $(basename $disk)'\>' $darwin_disk_tab && {
+        echo SPStorageDataType disk=$disk
+      } ||
+        stderr warn "Not in system-profiler db: $disk"
+      continue
+    }
+  done
+}
+disk_load__x_local=f
+
 disk_man_1__list_part_local="Print info for local partitions"
 disk__list_part_local()
 {
@@ -426,7 +456,7 @@ disk_init()
   . $scriptpath/box.init.sh
   . $scriptpath/box.lib.sh
   box_run_sh_test
-  lib_load main htd meta box date doc table disk remote match
+  lib_load main htd meta box date doc table disk darwin remote match
   test -n "$verbosity" || verbosity=6
   # -- disk box init sentinel --
 }
@@ -447,6 +477,8 @@ disk_lib()
 disk_load()
 {
   disk_run
+  #test -x "/sbin/parted" || error "parted required" 1
+  #test -x "/sbin/fdisk" || error "fdisk required" 1
   test -n "$disk_session_id" || disk_session_id=$(get_uuid)
   disk__inputs="arguments options"
   disk__outputs="errored failed"
