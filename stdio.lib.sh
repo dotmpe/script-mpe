@@ -17,14 +17,10 @@ setup_io_paths()
   fnmatch "*/*" "$1" && error "Illegal chars" 12
   for io_name in $(try_value inputs) $(try_value outputs)
   do
-    # TODO: test conditional set to allow user-override, but should audit
-    # for recursive calls (ie. shell vars inheritance)
-    #test -n "$(eval echo \$$io_name)" || {
-      tmpname=$(setup_tmpf .$io_name $1)
-      touch $tmpname
-      eval $io_name=$tmpname
-      unset tmpname io_name
-    #}
+    tmpname=$(setup_tmpf .$io_name $1)
+    touch $tmpname
+    eval $io_name=$tmpname
+    unset tmpname io_name
   done
 }
 

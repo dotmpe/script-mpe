@@ -278,7 +278,7 @@ htd_unload()
 
     i ) # remove named IO buffer files; set status vars
         clean_io_lists $htd__inputs $htd__outputs
-        htd_report $htd__inputs $htd__outputs || subcmd_result=$?
+        htd_report $htd__inputs $htd__outputs || unload_ret=$?
       ;;
 
     P )
@@ -5634,8 +5634,8 @@ htd__srv()
 # Update disk volume catalog, and reinitialize service links
 htd__srv_init()
 {
-  disk check-all || {
-    disk update-all || {
+  disk.sh check-all || {
+    disk.sh update-all || {
       error "Failed updating volumes catalog and links"
     }
   }
@@ -5673,7 +5673,7 @@ htd__srv_list()
                   echo "$TRGT [ shape=box3d, label=\"$(basename "$target")\" ] ; // 1.1"
                   echo "$NAME [ shape=tab, label=\"$name\" ] ;"
 
-                  DISK="$(cd /srv; disk id $target)"
+                  DISK="$(cd /srv; disk.sh id $target)"
 
                   #TRGT_P=$(mkvid "$(dirname "$target")";echo $vid)
                   #echo "$TRGT_P [ shape=plaintext, label=\"$(dirname $target)\" ] ;"
@@ -5746,12 +5746,12 @@ SRVS="archive archive-old scm-git src annex www-data cabinet htdocs shared \
 # Go over local disk to see if volume links are there
 htd__ls_volumes()
 {
-  disk list-local | while read disk
+  disk.sh list-local | while read disk
   do
-    prefix=$(disk prefix $disk 2>/dev/null)
+    prefix=$(disk.sh prefix $disk 2>/dev/null)
     test -n "$prefix" || error "No prefix found" 1
 
-    disk_index=$(disk info $disk disk_index 2>/dev/null)
+    disk_index=$(disk.sh info $disk disk_index 2>/dev/null)
 
     for volume in /mnt/$prefix-*
     do
@@ -6374,8 +6374,22 @@ htd__rsdiff()
 
 htd__crypto()
 {
+  disk_list
+  echo "----------"
+  disk_list | while read dev
+  do
+    disk_local "$dev" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C
+  done
+  return
+  echo "----------"
+  disk_list | while read dev
+  do
+    disk_list_part_local $dev
+  done
+  echo "----------"
+  return
   cr_m=crypto/main.tab
-  test -e $cr_m || error cr-m 1
+  test -e $cr_m || error cr-m-tab 1
   test -n "$1" || set -- init
   c_tab() { fixed_table_hd $cr_m Lvl VolumeId Prefix Contexts ; }
   case "$1" in
@@ -6392,6 +6406,18 @@ htd__crypto()
         done
       ;;
   esac
+}
+htd_run__crypto=f
+
+htd__crypto_vc_init()
+{
+  test -n "$1" || set -- Untitled0002
+  test -n "$2" || error passwd-var-expected 1
+  test -n "$size" || size=10M
+  eval echo "\$$2" | \
+    sudo veracrypt --non-interactive --stdin \
+      --create $1.vc --hash sha512 --encryption aes \
+      --filesystem exFat --size $size --volume-type=normal
 }
 
 
@@ -6525,6 +6551,7 @@ htd_init()
   box_run_sh_test
   export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta box date doc table disk remote ignores package
+  disk_run
   # -- htd box init sentinel --
 }
 

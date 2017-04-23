@@ -1,6 +1,29 @@
 #!/bin/sh
 
 
+disk_run()
+{
+  test -n "$uname" || uname=$(uname)
+  test -n "$whoami" || whoami=$(whoami)
+  test -n "$hostname" || hostname=$(hostname)
+  test -n "$domainname" || domainname=$(domainname)
+
+  test -x "/sbin/parted" || error "parted required" 1
+  test -x "/sbin/fdisk" || error "fdisk required" 1
+
+  test -n "$DISK_CATALOG" || export DISK_CATALOG=$HOME/.diskdoc
+  #test -n "$DISK_VOL_DIR" || export DISK_VOL_DIR=/srv
+
+  test -d "$DISK_CATALOG" || mkdir -p $DISK_CATALOG
+  mkdir -p $DISK_CATALOG/disk
+  mkdir -p $DISK_CATALOG/volume
+
+  export mnt_pref="sudo " dev_pref=
+  case "$(groups)" in *" disk "* ) ;; * ) export dev_pref="sudo";; esac
+  export fdisk="$dev_pref /sbin/fdisk"
+  export parted="$dev_pref /sbin/parted"
+  export blkid="$dev_pref /sbin/blkid"
+}
 
 req_fdisk()
 {
@@ -136,12 +159,11 @@ disk_local_inner()
 #NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT
 disk_local()
 {
-  local disk=$1 failed=$(setup_tmpf .failed)
+  local disk=$1
+  #failed=$(setup_tmpf .failed)
   shift
-  echo $(disk_local_inner "$@" || echo "disk-local:$1:$2">>$failed)
-
+  echo $(disk_local_inner "$@" || echo "disk-local:$disk:$1">>$failed)
   test ! -e "$failed" -o -s "$failed" && return 1 || return 0
-
   # XXX:
   echo $first $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) \
     $(disk_tabletype $1) $(find_mount $1 | count_words)
@@ -258,7 +280,8 @@ find_mount()
   test -n "$1" || error "Device or disk-id required" 1
   test -z "$2" || error "surplus arguments '$2'" 1
   {
-    mount | grep '^'$1 | cut -d ' ' -f 3
+    # NOTE: docker adds a mount for the same device already mounted, first line ..
+    mount | grep '^'$1 | head -n 1 | cut -d ' ' -f 3
   } || return $?
 }
 
@@ -296,6 +319,7 @@ copy_fs()
 
 disk_info()
 {
+  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
   test -n "$2" || set -- "$1" "prefix"
   test -e "$DISK_CATALOG/disk/$1.sh" || {
     # Find ID for device if given iso. ID
@@ -310,6 +334,7 @@ disk_info()
 # volume id is "{disk-id}-{partition-index}"
 disk_vol_info()
 {
+  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
   test -n "$2" || set -- "$1" "id"
   #test -e "$DISK_CATALOG/volume/$1.sh" || {
   #  # Find ID for device if given iso. ID
@@ -323,6 +348,7 @@ disk_vol_info()
 
 disk_catalog_put_disk()
 {
+  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
   test -n "$disk_id" || error "disk-id not set" 1
   test -n "$volumes_main_id" || error "volumes-main-id not set" 1
   {
@@ -374,6 +400,7 @@ disk_catalog_volumes_check()
 
 disk_catalog_update()
 {
+  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
   test -n "$1" || error "disk-catalog-update volumes-sh expected" 1
   #eval $(sed 's/volumes_main_//g' $1)
   #test -n "$id" || error "Volumes doc '$1' missing id" 1
@@ -407,6 +434,7 @@ disk_catalog_update()
 
 disk_catalog_update_volume()
 {
+  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
   test -e "$DISK_CATALOG/volume/$disk_id-$volumes_main_part_index.sh" \
     && {
       part_id="$volumes_main_part_id"
@@ -426,7 +454,7 @@ disk_catalog_import()
     error "No metafile $1"
     return 1
   }
-  test -n "$DISK_CATALOG" || error "DISK_CATALOG not set" 1
+  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
   (
     disk_catalog_update "$1" || return $?
     disk_catalog_update_volume "$1" || return $?
@@ -434,8 +462,35 @@ disk_catalog_import()
   info "Imported '$1'"
 }
 
+disk_report()
+{
+  # leave disk_report_result to "highest" set value (where 1 is highest)
+  disk_report_result=0
 
+  while test -n "$1"
+  do
+    case "$1" in
 
+      unknown )     test $unknown_count -eq 0     || stderr warn "            Unkown: ${bnrml}$unknown_count${grey}  ($unknown_abbrev)" ;;
+      uncataloged ) test $uncataloged_count -eq 0 || stderr warn "       Uncataloged: ${bnrml}$uncataloged_count${grey}  ($uncataloged_abbrev)" ;;
 
+      ext )         test $ext_count -eq 0         || stderr info "         Extended tables: ${bnrml}$ext_count${grey}  ($ext_abbrev)" ;;
+      swap )        test $swap_count -eq 0        || stderr info "                    Swap: ${bnrml}$swap_count${grey}  ($swap_abbrev)" ;;
+      volume )      test $volume_count -eq 0      || stderr note "                 ${grn}Volumes: ${bnrml}$volume_count${grey}  ($volume_abbrev)" ;;
+      disk )        test $disk_count -eq 0        || stderr note "             Disks total: ${bnrml}$disk_count${grey}  ($disk_abbrev)" ;;
 
+      list )        test $list_count -eq 0        || stderr note "           Entries total: ${bnrml}$list_count${grey}"
+
+        ;;
+
+      * )
+          error "Unknown disk report '$1'" 1
+        ;;
+
+    esac
+    shift
+  done
+
+  return $disk_report_result
+}
 

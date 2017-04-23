@@ -14,45 +14,66 @@ version=0.0.4-dev # script-mpe
 # See $scriptname help to get started
 
 disk_man_1__status="Print some information on currently mounted disks/partitions. "
-disk_load__status=R
 disk__status()
 {
+  stderr info "Compiling status table on mounted volumes.."
   disk__list_local | grep -Ev '^\s*(#.*|\s*)$' | while\
     read num dev disk_id disk_model size table_type
   do
     disk_id_=$(printf "%-19s\n" $disk_id)
     num_=$(printf "%4s\n" $num)
     test -e $dev || error "No such device? $dev" 1
+    echo "$dev" >>$disk
     mnts="$(echo $(find_mount $dev))"
     stderr ok "${grey}[$disk_id_] Disk #$num: $(echo $mnts | count_words) known partition(s) (${nrml}$size ${grey}$dev)"
     disk_list_part_local $dev | while read vol_dev
     do
       test -e "$vol_dev" || error "No such volume device '$vol_dev'" 1
       mount=$(find_mount $vol_dev)
-      # FIXME: shomehow fstype is not showing up. Also, want part size/free
       fstype="$(disk_partition_type "$vol_dev")"
       vol_idx=$(echo $vol_dev | sed -E 's/^.*([0-9]+)$/\1/')
       vol_id="$(disk_vol_info $disk_id-$vol_idx 2>/dev/null)"
       vsize=$(disk_partition_size $vol_dev)
       vusg=$(disk_partition_usage $vol_dev)
       case "$fstype" in
-        swap* ) info "[$disk_id_] $num_.$vol_idx: swap space ($fstype $vol_dev)" ;;
+        swap* )
+          info "[$disk_id_] $num_.$vol_idx: swap space ($vsize $vusg%% $fstype $vol_dev)"
+          echo "$vol_dev" >>$swap
+          echo "$num.$vol_idx: $vol_dev swap $vsize $vusg ($fstype) [$disk_id]" >>$list
+          ;;
         * )
           test -n "$mount" \
             && {
               info "[$disk_id_] ${grn}$num_.$vol_idx${grey}: ${bnrml}$vol_id${grey} ($vsize ${bnrml}$vusg%% ${grey}$fstype $vol_dev)"
-              test -e "$mount/.volumes.s"h \
-                || warn "Missing catalog at '$mount'"
+              test -e "$mount/.volumes.sh" && {
+                echo "$vol_dev" >>$volume
+                echo "$num.$vol_idx: $vol_id: $vol_dev $vsize $vusg ($fstype) [$disk_id]" >>$list
+              } || {
+                warn "Missing catalog at '$mount'"
+                echo "$vol_dev" >>$uncataloged
+              }
             } || {
               fnmatch "* extended partition table *" " $($dev_pref file -sL $vol_dev) " && {
                 info "[$disk_id_] $num_.$vol_idx: extended table ($fstype $vol_dev)"
-              } || info "[$disk_id_] ${ylw}$num_.$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
+                echo "$vol_dev" >>$ext
+                echo "$num.$vol_idx: $vol_dev extended table [$disk_id]" >>$list
+              } || {
+                info "[$disk_id_] ${ylw}$num_.$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
+                echo "$vol_dev" >>$unknown
+                echo "$num.$vol_idx: $vol_dev unrecognized ($vsize $fstype) [$disk_id]" >>$list
+              }
             }
           ;;
       esac
     done
   done
+  stderr info "Raw partition entries:"
+  cat $list | sort -n
+  rm $list
 }
+disk_load__status=Ro
+disk_outf__status="unknown uncataloged swap ext volume disk list"
+
 
 disk_man_1__id="Print the disk ID of a given device or path. "
 disk_spc__id="id [PATH|MOUNT|DEV]"
@@ -139,16 +160,17 @@ disk__local()
   {
     echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
     {
-      while test -n "$1"
+      while test $# -gt 0
       do
-        disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C \
-          || echo "disk:local:$1" >>$failed
+        test -n "$1" || continue
+        disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C
+        #\ || echo "disk:local:$1" >>$failed
         shift
       done
     } | sort -n
   } | column -tc 3
 }
-disk_run__local=f
+disk_load__local=f
 
 disk_man_1__list_local="Tabulate disk info for local disks (e.g. from /dev/)"
 disk_spc__list_local=list-local
@@ -156,15 +178,15 @@ disk__list_local()
 {
   disk__local || return && echo "# Disks at $(hostname), $(datetime_iso)"
 }
-disk_run__list_local=f
+disk_load__list_local=f
 #disk__list_local()
 #{
 #  disk_list
 #}
-disk_man_1__list_local="Print info for local partitions"
+disk_man_1__list_part_local="Print info for local partitions"
 disk__list_part_local()
 {
-  disk_list_part_local
+  disk_list_part_local "$@"
 }
 
 disk_man_1__list="Tabulate disks, and where they are (from catalog)"
@@ -424,33 +446,20 @@ disk_lib()
 # Pre-exec: post subcmd-boostrap init
 disk_load()
 {
-  test -n "$uname" || uname=$(uname)
-  test -n "$whoami" || whoami=$(whoami)
-  test -n "$hostname" || hostname=$(hostname)
-  test -n "$domainname" || domainname=$(domainname)
-
-  test -x "/sbin/parted" || error "parted required" 1
-  test -x "/sbin/fdisk" || error "fdisk required" 1
-
-  test -n "$DISK_CATALOG" || export DISK_CATALOG=$HOME/.diskdoc
-  #test -n "$DISK_VOL_DIR" || export DISK_VOL_DIR=/srv
-
-  test -d "$DISK_CATALOG" || mkdir -p $DISK_CATALOG
-  mkdir -p $DISK_CATALOG/disk
-  mkdir -p $DISK_CATALOG/volume
-
-  export mnt_pref="sudo " dev_pref=
-
+  disk_run
+  test -n "$disk_session_id" || disk_session_id=$(get_uuid)
+  disk__inputs="arguments options"
+  disk__outputs="errored failed"
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
 
-      R ) # Device read access
+    R ) # Device read access
+        test -n "$dev_pref" || {
           ( for device in $(disk_list)
           do
             test -r "$device" && {
-              stder ok "Read/Write at $device"
+              stderr ok "Read/Write at $device"
             } || {
-              warn "User has no read-access to $device disk device"
               exit 1
             }
           done
@@ -461,26 +470,53 @@ disk_load()
               sudo printf "Got it."
             }
           }
-        ;;
+        }
+      ;;
 
-      f )
-          failed=$(setup_tmpf .failed)
-        ;;
+    f )
+        failed=$(setup_tmpf .failed)
+      ;;
+
+    i ) # io-setup: set all requested io varnames with temp.paths
+        setup_io_paths $subcmd-${disk_session_id}
+        export $disk__inputs $disk__outputs
+      ;;
+
+    o ) #
+        local subcmd_outf="$(eval echo "\$$(try_local $subcmd outf)")"
+        test -n "$subcmd_outf" || error "List of output names expected" 1
+        disk__inputs= disk__outputs="$subcmd_outf" \
+          setup_io_paths $subcmd-${disk_session_id}
+        export $subcmd_outf
+      ;;
 
     esac
   done
-
-  #export dev_pref="sudo"
-  export fdisk="$dev_pref /sbin/fdisk"
-  export parted="$dev_pref /sbin/parted"
-  export blkid="$dev_pref /sbin/blkid"
 }
 
 disk_unload()
 {
-  clean_failed
+  local unload_ret=0
+  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
+  do case "$x" in
+
+    i ) # remove named IO buffer files; set status vars
+        clean_io_lists $disk__inputs $disk__outputs
+        disk_report $disk__inputs $disk__outputs || subcmd_result=$?
+      ;;
+
+    o ) # idem. but for subcmd
+        local subcmd_outf="$(eval echo "\$$(try_local $subcmd outf)")"
+        test -n "$subcmd_outf" || error "List of output names expected" 1
+        clean_io_lists $subcmd_outf
+        disk_report $subcmd_outf || subcmd_result=$?
+      ;;
+
+  esac; done
+  clean_failed || unload_ret=1
   unset subcmd_pref \
           def_subcmd func_exists func
+  return $unload_ret
 }
 
 

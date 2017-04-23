@@ -202,6 +202,7 @@ htd_report()
         ;;
 
       * )
+          error "Unknown $base report '$1'" 1
         ;;
 
     esac
