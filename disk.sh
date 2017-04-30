@@ -192,7 +192,6 @@ disk__x_local()
   while test $# -gt 0
   do
     test -n "$1" || continue
-    echo 1=$1
     disk_local "$1" DISK_ID
     shift
   done

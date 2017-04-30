@@ -40,3 +40,8 @@ redis()
 }
 
 
+statusdir_redis_lib_load()
+{
+  redis ping || error "no redis server" 1
+}
+

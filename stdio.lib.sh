@@ -3,7 +3,7 @@
 # stdio.lib.sh: additional io for shell scripts
 
 
-stdio_load()
+stdio_lib_load()
 {
   return 0
 }
@@ -94,11 +94,20 @@ clean_io_lists()
     count=0 path="$(eval echo \$$1)"
     test -s "$path" && {
       count="$(count_lines $path)"
+      # Create appropiate human readable abbreviated string for failures stream
+      # FIXME:clean-io-lists output cleaning
+      #eval ${1}_abbrev="fail"
+      #eval ${1}_abbrev="'$(tail -n 1 $path ) and $(( $count - 1 )) more'"
       test $count -gt 2 && {
-        eval ${1}_abbrev="'$(echo $(sort -u $path | head -n 3 )) and $(( $count - 3 )) more'"
+        export ${1}_abbrev="$(tail -n 1 $path )) and $(( $count - 1 )) more"
+        #eval ${1}_abbrev="'$(tail -n 1 $path )) and $(( $count - 1 )) more'"
         #rotate-file $failed .failed
       } || {
-        eval ${1}_abbrev="'$(echo $(sort -u $path | lines_to_words ))'"
+        #echo eval ${1}_abbrev="'$(echo $(sort -u $path | lines_to_words ))'"
+        #cat $path
+        #eval ${1}_abbrev="'$(tail -n 1 $path )'"
+        export ${1}_abbrev="$(tail -n 1 $path )"
+        #cat $path | lines_to_words )"
         #rm $1
       }
     }

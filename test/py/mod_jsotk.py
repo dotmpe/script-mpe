@@ -8,7 +8,7 @@ from nose_parameterized import parameterized
 
 import deep_eq
 from script_mpe import confparse
-from script_mpe import util
+from script_mpe import script_util
 import jsotk, jsotk_lib
 
 
@@ -184,7 +184,7 @@ class JsotkTest(unittest.TestCase):
 
         infile = StringIO('{"foo":[{"bar":null}]}')
         ctx = confparse.Values(dict(
-            opts=util.get_opts(jsotk.__usage__, argv=['path', '', pathexpr])
+            opts=script_util.get_opts(jsotk.__usage__, argv=['path', '', pathexpr])
         ))
 
         self.assertEquals( ctx.opts.args.pathexpr, pathexpr )

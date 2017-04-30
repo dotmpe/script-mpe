@@ -678,7 +678,10 @@ def deep_update(dicts, ctx):
                 elif isinstance(data[k], list):
                     data[k] = deep_union( [ data[k], v ], ctx )
                 else:
-                    if not isinstance(data[k], type(v)):
+                    if ( not isinstance(data[k], type(v)) and not (
+                        isinstance(data[k], basestring) and
+                        isinstance(v, basestring)
+                    )):
                         raise ValueError, "Expected %s but got %s" % (
                                 type(data[k]), type(v))
                     data[k] = v
@@ -741,10 +744,12 @@ def deep_union(lists, ctx):
     return data
 
 
-def data_at_path(ctx, infile):
-    if not infile:
-        infile, outfile = get_src_dest_defaults(ctx)
-    l = load_data( ctx.opts.flags.input_format, infile, ctx )
+def data_at_path(ctx, infile=None, data=None):
+    if not data:
+        if not infile:
+            infile, outfile = get_src_dest_defaults(ctx)
+        data = load_data( ctx.opts.flags.input_format, infile, ctx )
+    l = data
     path_el = path_key_split(ctx.opts.args.pathexpr)
     if not ctx.opts.args.pathexpr or path_el[0] == '':
         return l

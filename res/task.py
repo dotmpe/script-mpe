@@ -51,7 +51,11 @@ class Task(object):
 
 
 class TodoListParser(object):
+    """
     "XXX: alt. syntax to TODOtxt? (res/todo.py)"
+
+    """
+
     def __init__(self):
         self.list = {}
 

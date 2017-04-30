@@ -34,8 +34,8 @@ import os
 from datetime import datetime
 
 import log
-import util
-from util import cmd_help
+import script_util
+from script_util import cmd_help
 from taxus import Node, Host, ScriptMixin
 from domain2 import init_host
 
@@ -71,8 +71,8 @@ def cmd_test_init(settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = script_util.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = script_util.cmd_help
 
 ### Util functions to run above functions from cmdline
 
@@ -84,11 +84,11 @@ def main(opts):
 
     #settings = opts.flags
     opts.flags.configPath = os.path.expanduser(opts.flags.config)
-    settings = util.init_config(opts.flags.configPath, dict(
+    settings = script_util.init_config(opts.flags.configPath, dict(
             nodes = {}, interfaces = {}, domain = {}
         ), opts.flags)
     opts.default = 'info'
-    return util.run_commands(commands, settings, opts)
+    return script_util.run_commands(commands, settings, opts)
 
 def get_version():
     return 'taxus-host-py.mpe/%s' % __version__
@@ -96,7 +96,7 @@ def get_version():
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__doc__, version=get_version())
+    opts = script_util.get_opts(__doc__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
 

@@ -10,6 +10,7 @@ Intialize SQlite from schema, and inspect or maintain.
 
 Usage:
   db.py [options] (info|show|init|reset|stats|describe) [<schema>]
+  db.py list MODEL [<schema>] [ID]
   db.py help
   db.py -h|--help
   db.py --version
@@ -50,7 +51,7 @@ from sqlalchemy.schema import CreateTable
 import sadisplay
 
 import log
-import util
+import script_util
 import reporter
 import taxus
 from taxus.init import SqlBase
@@ -146,6 +147,17 @@ def cmd_info(settings):
     ):
         log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
 
+def cmd_list(MODEL, ID, settings):
+    sa = schema.get_session(settings.dbref, metadata=metadata)
+    Model = getattr(schema, MODEL)
+    Model.sessions['default'] = sa
+    if ID:
+        m = sa.query(Model).filter(Model.id==ID).all()
+        print m
+    else:
+        for it in Model.all():
+            print it
+
 def cmd_show(settings):
     for name, table in metadata.tables.items():
         log.std('{green}%s{default}: {bwhite}%s{default}',
@@ -189,8 +201,8 @@ def cmd_describe(settings, opts):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = script_util.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = script_util.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -202,7 +214,7 @@ def main(opts):
     """
 
     settings = opts.flags
-    return util.run_commands(commands, settings, opts)
+    return script_util.run_commands(commands, settings, opts)
 
 def get_version():
     return 'db_sa.mpe/%s' % __version__
@@ -210,7 +222,7 @@ def get_version():
 if __name__ == '__main__':
     import sys
 
-    opts = util.get_opts(__usage__, version=get_version())
+    opts = script_util.get_opts(__usage__, version=get_version())
 
     # Override dbref setting from schema
     if opts.flags.v or opts.flags.verbosity:

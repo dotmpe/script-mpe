@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship, backref
 
 from .init import SqlBase
 from .util import ORMMixin
+from .mixin import CardMixin
 from . import core
 from . import net
 from . import web
@@ -85,7 +86,7 @@ class Volume(core.Scheme):
             primaryjoin=root_node_id == core.Node.node_id)
 
 
-class Bookmark(core.Node):
+class Bookmark(SqlBase, CardMixin, ORMMixin):#core.Node):
 
     """
     A textual annotation with a short and long descriptive label,
@@ -93,19 +94,20 @@ class Bookmark(core.Node):
     """
 
     __tablename__ = 'bm'
-#    __table_args__ = {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'}
-    __mapper_args__ = {'polymorphic_identity': 'bookmark'}
-
-    bm_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    #__table_args__ = {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'}
+    #__mapper_args__ = {'polymorphic_identity': 'bookmark'}
+    #bm_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    bm_id = Column('id', Integer, primary_key=True)
 
     ref_id = Column(Integer, ForeignKey('ids_lctr.id'))
     ref = relationship(net.Locator, primaryjoin=net.Locator.lctr_id==ref_id)
 
-    extended = Column(Text(65535))#, index=True)
+    #extended = Column(Text(65535))#, index=True)
+    extended = Column(Text)#, index=True)
     "Textual annotation of the referenced resource. "
     public = Column(Boolean(), index=True)
     "Private or public. "
-    tags = Column(Text(10240))
+    tags = Column(Text)# XXX: text param NA for postgres (10240))
     "Comma-separated list of all tags. "
 
 
@@ -151,7 +153,7 @@ class Token(SqlBase, ORMMixin):
 
     token_id = Column('id', Integer, primary_key=True)
 
-    value = Column(Text(65535), index=True, nullable=True, unique=True)
+    value = Column(Text, index=True, nullable=True, unique=True)
     refs = relationship(net.Locator, secondary=token_locator_table)
 
 

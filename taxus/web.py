@@ -17,7 +17,7 @@ class CachedContent(fs.INode):
     Complete header information should be mantained when a CachedContent record is created.
     """
 
-    __tablename__ = 'cnt'
+    __tablename__ = 'ccnt'
     __mapper_args__ = {'polymorphic_identity': 'inode:cached-resource'}
 
     content_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
@@ -103,9 +103,9 @@ class Invariant(Resource):
 
     invariant_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
 
-    content_id = Column(Integer, ForeignKey('cnt.cid'), index=True)
+    content_id = Column(Integer, ForeignKey('ccnt.id'), index=True)
     content = relationship(CachedContent,
-            primaryjoin=content_id==CachedContent.cid)
+            primaryjoin=content_id==CachedContent.content_id)
     "A specification of the contents. "
 
     # RFC 2616 headers

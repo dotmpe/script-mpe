@@ -16,10 +16,12 @@
 __description__ = "bookmarks - "
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.bookmarks.sqlite'
+chrome_bookmarks_path= '~/Library/Application Support/Google/Chrome/Default/Bookmarks'
 __usage__ = """
 Usage:
   bookmarks.py [options] dlcs (parse|import FILE|export)
-  bookmarks.py [options] chrome (all|groups)
+  bookmarks.py [options] chrome (all|roots|groups) [--group-name NAME]...
+  bookmarks.py [options] html (tree|groups) HTML
   bookmarks.py [options] stats
   bookmarks.py [options] (tag|href|domain) [NAME]
   bookmarks.py -h|--help
@@ -40,14 +42,23 @@ Options:
     -s SESSION --session-name SESSION
                   should be bookmarks [default: default].
     -v            Increase verbosity.
-
-Other flags:
+    --chrome-bookmarks-path PATH
+                  [default: %s]
+    --chrome-bookmarks-root GROUP
+                  [default: bookmark_bar]
+    --group-name NAME
+                  Group name [default: bookmark_bar other]
+    --output-format FMT
+                  json, repr [default: rst]
+    --no-commit   .
+    --commit      [default: true].
+    --verbose     ..
+    --quiet       ..
     -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
-
-""" % ( __db__, __version__, )
+""" % ( __db__, chrome_bookmarks_path, __version__, )
 from datetime import datetime
 import os
 import re
@@ -58,9 +69,11 @@ from urlparse import urlparse
 #import zope.component
 from pydelicious import dlcs_parse_xml
 
+import BeautifulSoup
+
 import log
 import confparse
-import util
+import script_util
 import libcmd
 import rsr
 import taxus.iface
@@ -153,7 +166,6 @@ class bookmarks(rsr.Rsr):
                 p(('--tags',), dict( default=None, type="str" )),
                 p(('--ref-md5',), dict( action='store_true',
                     default=False, help="Calculate MD5 for new locators. " )),
-
             )
 
     def stats(self, prog=None, opts=None, sa=None):
@@ -532,51 +544,48 @@ def cmd_dlcs_import(opts, settings):
     log.std("Tracking %i tags", tags)
     sa.commit()
 
+def cmd_html_groups(HTML, settings):
+    data = open(HTML)
+    soup = BeautifulSoup.RobustHTMLParser(data)
+    res.bm.html_soup_formatters[of](soup, settings.output_format, False)
+
+def cmd_html_tree(HTML, settings):
+    data = open(HTML)
+    soup = BeautifulSoup.RobustHTMLParser(data)
+    print res.bm.html_soup_formatters[settings.output_format](soup)
+
 
 def cmd_chrome_all(settings):
-    """
-    Bookmarks and groups from Chrome JSON.
-    """
-    fn = os.path.expanduser(
-            '~/Library/Application Support/Google/Chrome/Default/Bookmarks')
+    "List Chrome bookmarks (from JSON) in different formats"
+    fn = os.path.expanduser(settings.chrome_bookmarks_path)
     bms = confparse.Values(res.js.load(open(fn)))
-    print 'checksum', bms.checksum
-    print 'version', bms.version
-    bookmark_bar = confparse.Values(bms.roots['bookmark_bar'])
-    def p(bm, i=1):
-        print i*'  ', '-', '`'+bm.name, 'url' in bm and '<'+bm.url+'>`_' or '`'
-        if 'children' in bm and bm.children:
-            for sb in bm.children:
-                p(confparse.Values(sb), i+1)
-    p(bookmark_bar)
-    other = confparse.Values(bms.roots['other'])
-    p(other)
+    # BUG: doopt 0.6.2. should split repeatable opt vals
+    if not isinstance(settings.group_name, list):
+        settings.group_name = settings.group_name.split(' ')
+    for group_name in settings.group_name:
+        group = confparse.Values(bms.roots[group_name])
+        res.bm.moz_json_printer[settings.output_format](group)
 
-g_cnt = 0
 def cmd_chrome_groups(settings):
-    """
-    Groups from Chrome bookmarks
-    """
-    fn = os.path.expanduser(
-            '~/Library/Application Support/Google/Chrome/Default/Bookmarks')
+    "List Chrome bookmarks folders only (from JSON) in different formats"
+    fn = os.path.expanduser(settings.chrome_bookmarks_path)
     bms = confparse.Values(res.js.load(open(fn)))
-    bookmark_bar = confparse.Values(bms.roots['bookmark_bar'])
+    groups = bms.roots.keys()
+    of = settings.output_format
+    if of == 'json':
+        print(res.js.dumps(dict(
+            version=bms.version,
+            checksum=bms.checksum,
+            groups=groups
+        )))
+    else:
+        for group_name in groups:
+            print(group_name)
 
-    def p(bm, i=1):
-        global g_cnt
-        if 'url' in bm:
-            return
-        g_cnt += 1
-        print i*'  ', '-', '`'+bm.name
-        if 'children' in bm and bm.children:
-            for sb in bm.children:
-                p(confparse.Values(sb), i+1)
-    p(bookmark_bar)
-    print 'Subtotal', g_cnt
 
-    other = confparse.Values(bms.roots['other'])
-    p(other)
-    print 'Total', g_cnt
+def cmd_html_check(HTML, settings):
+    print HTML
+
 
 def cmd_stats(settings):
     sa = get_session(settings.dbref)
@@ -623,8 +632,8 @@ def cmd_domain(NAME, settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = script_util.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = script_util.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -636,7 +645,9 @@ def main(opts):
     """
 
     settings = opts.flags
-    return util.run_commands(commands, settings, opts)
+    opts.flags.commit = not opts.flags.no_commit
+    opts.flags.verbose = not opts.flags.quiet
+    return script_util.run_commands(commands, settings, opts)
 
 def get_version():
     return 'bookmarks.mpe/%s' % __version__
@@ -644,11 +655,13 @@ def get_version():
 if __name__ == '__main__':
     #bookmarks.main()
     import sys
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
     db = os.getenv( 'BOOKMARKS_DB', __db__ )
     # TODO : vdir = Volumedir.find()
     if db is not __db__:
         __usage__ = __usage__.replace(__db__, db)
-    opts = util.get_opts(__doc__ + __usage__, version=get_version())
+    opts = script_util.get_opts(__doc__ + __usage__, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
 

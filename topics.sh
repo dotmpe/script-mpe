@@ -32,6 +32,14 @@ topics__list()
 }
 
 
+topics__read_list()
+{
+  # [2017-04-17] experimental setup to read items into outline hierarchy
+  export LIST_DB=$TOPIC_DB
+  list.py read-list hier.txt @Topic
+}
+
+
 
 # Generic subcmd's
 
@@ -123,6 +131,7 @@ topics_lib()
 # Pre-exec: post subcmd-boostrap init
 topics_load()
 {
+  export TOPIC_DB=postgres://localhost:5432
   # -- topics box lib sentinel --
   set --
 }

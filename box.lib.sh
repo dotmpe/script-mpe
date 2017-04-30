@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-box_load()
+box_lib_load()
 {
   test -n "$BOX_DIR" || error "box-load: expected BOX-DIR env" 1
   test -d "$BOX_DIR" || mkdir -vp $BOX_DIR

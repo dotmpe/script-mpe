@@ -15,9 +15,9 @@ bin
 .git/
 .jira
 .meta/
-.package.json
-.package.main
-.package.sh
+.package*.json
+.package*.main
+.package*.sh
 .redo/
 .svn/
 .vagrant/
@@ -33,3 +33,4 @@ vendor/
 _site
 Gemfile.lock
 .features.tab
+.htd

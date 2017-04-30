@@ -29,8 +29,10 @@ Usage:
     jsotk [options] from-flat-args <fkv-args>...
     jsotk [options] merge-one <srcfile> <srcfile2> [<destfile>]
     jsotk [options] merge <destfile> <srcfiles>...
+    jsotk [options] append <destfile> <pathexpr> [<srcfiles>...]
     jsotk [options] update <destfile> [<srcfiles>...]
     jsotk [options] update-from-args <srcfiles> <kv-args> <destfile>
+    jsotk [options] update-at <destfile> <expr> [<srcfiles>...]
     jsotk (version|-V|--version)
     jsotk (help|-h|--help)
     jsotk [options] [dump] [<srcfile> [<destfile]]
@@ -132,7 +134,7 @@ from StringIO import StringIO
 from objectpath import Tree
 
 
-import util, confparse
+import script_util, confparse
 from jsotk_lib import PathKVParser, FlatKVParser, \
         load_data, stdout_data, readers, open_file, \
         get_src_dest_defaults, set_format, get_format_for_fileext, \
@@ -219,6 +221,22 @@ def H_merge(ctx, write=True):
         return data
 
 
+def H_append(ctx):
+    "Add srcfiles as items to list. Optionally provide pathexpr to list. "
+    if not ctx.opts.args.srcfiles:
+        return
+    appendfile = get_dest(ctx, 'r')
+    data = l = load_data( ctx.opts.flags.output_format, appendfile, ctx )
+    if ctx.opts.args.pathexpr:
+        l = data_at_path(ctx, None, data)
+    for src in ctx.opts.args.srcfiles:
+        fmt = get_format_for_fileext(src) or ctx.opts.flags.input_format
+        mdata = load_data( fmt, open_file( src, 'in', ctx=ctx ), ctx )
+        l.append(mdata)
+    updatefile = get_dest(ctx, 'w+')
+    return stdout_data( data, ctx, outf=updatefile )
+
+
 def H_update(ctx):
     "Update srcfile from stdin. Write to destfile or stdout. "
 
@@ -240,10 +258,38 @@ def H_update(ctx):
 
 
 def H_update_from_args(ctx):
+    print('TODO')
     pass
     # TODO jsotk update-from-args
     #reader = PathKVParser(rootkey=args[0])
     #reader.scan_kv_args(ctx.opts.args.kv_args)
+
+
+def H_update_at(ctx):
+    """Update object at path, using data read from srcfile(s)"""
+    if not ctx.opts.args.srcfiles:
+        return
+    updatefile = get_dest(ctx, 'r')
+    data = o = load_data( ctx.opts.flags.output_format, updatefile, ctx )
+    #if ctx.opts.args.pathexpr:
+        #o = data_at_path(ctx, None, data)
+    if ctx.opts.args.expr:
+        q = Tree(data)
+        assert q.data
+        o = q.execute( ctx.opts.args.expr )
+    if isinstance(o, types.GeneratorType):
+        r = list(o)
+        assert len(r) == 1, r
+        o = r[0]
+        #r = [ stdout_data( s, ctx, outf=sys.stdout) for s in o ]
+        #print(r)
+    for src in ctx.opts.args.srcfiles:
+        fmt = get_format_for_fileext(src) or ctx.opts.flags.input_format
+        mdata = load_data( fmt, open_file( src, 'in', ctx=ctx ), ctx )
+        deep_update([o, mdata], ctx)
+    updatefile = get_dest(ctx, 'w+')
+    return stdout_data( data, ctx, outf=updatefile )
+
 
 
 # Ad-hoc designed path query
@@ -429,7 +475,7 @@ def prerun(ctx, cmdline):
     global doc_cache
 
     argv = cmdline.split(' ')
-    ctx.opts = util.get_opts(ctx.usage, argv=argv)
+    ctx.opts = script_util.get_opts(ctx.usage, argv=argv)
 
     #if not pdhdata:
     #    pdhdata = yaml_load(open(ctx.opts.flags.file))
@@ -486,7 +532,7 @@ if __name__ == '__main__':
         out=sys.stdout,
         inp=sys.stdin,
         err=sys.stderr,
-        opts=util.get_opts(__usage__)
+        opts=script_util.get_opts(__usage__)
     ))
     ctx['in'] = ctx['inp']
     if ctx.opts.flags.version:

@@ -7,7 +7,7 @@ set -e
 
 
 
-sys_load()
+sys_lib_load()
 {
   test -n "$SCR_SYS_SH" ||  {
     test -n "$SHELL" &&
@@ -312,6 +312,13 @@ pretty_print_var()
 
 print_var()
 {
+  case "$2" in
+    *'"'*|*" "*|*"'"* )
+      printf -- "$1=\"$2\"\n" ;;
+    * )
+      printf -- "$1=$2\n" ;;
+  esac
+  return # XXX
   printf -- "$2" | grep -Eq "[\ \"\']" && {
     printf -- "$1=\"$2\"\n"
   } || {

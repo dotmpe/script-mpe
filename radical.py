@@ -202,7 +202,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
-#from cllct.osutil import parse_argv_split
+#from cllct.osscript_util import parse_argv_split
 
 import log
 import confparse

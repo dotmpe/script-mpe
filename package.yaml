@@ -1,5 +1,6 @@
 # git-versioning main: script-mpe
 
+
 - type: application/vnd.dotmpe.project
   main: script-mpe
   id: script-mpe
@@ -107,7 +108,7 @@
     #test: pd test
     test:
       - verbose=1 git-versioning check
-      - ENV_NAME=gspread-boreas . ~/.conf/bash/env && python x-gspread.py
+      - ENV_NAME=gspread-boreas . ~/.conf/bash/env.sh $ENV_NAME && python x-gspread.py
       - python test/main.py
       - projectdir.sh run :bats:specs
       - bats test/*-spec.bats | script-bats.sh colorize
@@ -143,4 +144,33 @@
         - last_seen:atime
         # taxus.web.Invariant.mediatype
         - mime_type:lib...
+
+
+
+- vagrant_scripts: &vagrant_scripts
+    info:
+     - echo VBOX_DOMAIN=$VBOX_DOMAIN VBOX_LOCAL=$VBOX_LOCAL
+     - vagrant status
+    init:
+     - vagrant up --provision
+    start:
+     - vagrant start
+    status:
+     - vagrant status
+    ssh:
+     - vagrant ssh </dev/tty
+    save:
+     - vagrant suspend
+    upgrade: 
+     - vagrant halt && vagrant up --provision
+    deinit:
+     - vagrant destroy -f
+
+
+- type: application/vnd.dotmpe.environment
+  id: script-mpe-test-vbox
+  cwd: 'test/vagrant'
+  env: '. ./env.sh'
+  scripts:
+    <<: *vagrant_scripts
 

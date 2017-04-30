@@ -190,8 +190,14 @@ define_var_from_opt()
     --no-* )
         eval $(echo "$1" | cut -c6- | tr '-' '_')=0
       ;;
+    -*=* )
+        eval $(echo "$1" | cut -c2- | tr '-' '_')
+      ;;
     --* )
         eval $(echo "$1" | cut -c3- | tr '-' '_')=1
+      ;;
+    -* )
+        eval $(echo "$1" | cut -c2- | tr '-' '_')=1
       ;;
   esac
 }

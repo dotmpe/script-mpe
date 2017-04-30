@@ -32,7 +32,7 @@ import sys
 import anydbm
 # XXX: See also ``import shelve``
 
-from script_mpe import util
+from script_mpe import script_util
 
 
 def get_any_session(opts):
@@ -59,7 +59,7 @@ def H_dump(db, opts):
 
 ### Transform H_ function names to nested dict
 
-handlers = util.get_cmd_handlers_2(globals(), 'H_')
+handlers = script_util.get_cmd_handlers_2(globals(), 'H_')
 
 
 ### Main
@@ -77,7 +77,7 @@ def get_version():
     return 'db.mpe/%s' % __version__
 
 if __name__ == '__main__':
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = script_util.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit( main( opts.cmds[0], opts ) )
-    opts = util.get_opts(__doc__)
+    opts = script_util.get_opts(__doc__)
 

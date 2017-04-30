@@ -3,7 +3,7 @@
 set -e
 
 
-projectenv_load()
+projectenv_lib_load()
 {
   test -n "$build_errors" ||
     export build_errors=build/$scriptname.failed

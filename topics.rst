@@ -30,6 +30,12 @@ topic
     topic new "Personal" 1
     topic new "Notes" 1
 
+  [2017-04-17] trying to build an extensible parser, for outlines again::
+
+    topic.py read-list test.txt
+    topic.py read-list --apply-context Outline hier.txt
+    topic.py write-list hier.txt @Outline
+
 
 Issues
 ------

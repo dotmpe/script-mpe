@@ -4,16 +4,27 @@
 # Deal with package metadata files
 
 
-package_load()
+package_lib_load()
 {
-  # FIXME: properly initalize and use, but deal with non-CWD pack too
-  PACKMETA=package.yaml
-  PACKMETA_BN=$(package_basename)
-  PACKMETA_JSON=.$PACKMETA_BN.json
-  #PACKMETA_JS_MAIN=.$PACKMETA_BN.main.json
-  #PACKMETA_SH_MAIN=.$PACKMETA_BN.main.sh
-  PACKMETA_JS_MAIN=.$PACKMETA_BN.main
-  PACKMETA_SH_MAIN=.$PACKMETA_BN.sh
+  test -n "$1" || set -- .
+  PACKMETA="$(cd "$1" && echo package.y*ml | cut -f1 -d' ')"
+  test -e "$1/$PACKMETA" && {
+    test -n "$package_id" && {
+      PACKMETA_BN="$(package_basename)-${package_id}"
+    } || {
+      # Default is main
+      package_id=$(
+        jsotk.py -I yaml -O py objectpath $1/$PACKMETA '$.*[@.main is not None].main'
+      )
+      note "Set main '$package_id' from $1/package"
+      PACKMETA_BN="$(package_basename)"
+    }
+    #PACKMETA_JSON=$1/.$PACKMETA_BN.json
+    PACKMETA_JS_MAIN=$1/.$PACKMETA_BN.main.json
+    PACKMETA_SH=$1/.$PACKMETA_BN.sh
+
+    export package_id PACKMETA PACKMETA_BN PACKMETA_JS_MAIN PACKMETA_SH
+  }
 }
 
 
@@ -27,10 +38,10 @@ package_basename()
 update_package_json()
 {
   test -n "$1" || set -- ./
-  test -n "$metajs" || local metajs=$1/.package.json
+  test -n "$metajs" || local metajs=$PACKMETA_JSON
   metajs=$(normalize_relative "$metajs")
-  test $metaf -ot $metajs \
-    || {
+  test $metaf -ot $metajs ||
+  {
     debug "$metaf is newer than $metajs"
     note "Regenerating $metajs from $metaf.."
     jsotk.py yaml2json $metaf $metajs \
@@ -55,14 +66,9 @@ jsotk_package_sh_defaults()
 # Easy access for shell to package.yml/json: convert to Sh vars.
 update_package_sh()
 {
-  test -n "$1" || set -- ./
-  test -z "$2" || error "Surplus arguments '$*'" 1
-  # XXX:
-  #shopt -s extglob
-  #fnmatch "+([A-ZA-z0-9./])" "$1" || error "Illegal format '$*'" 1
-
-  test -n "$metash" || metash=$1/.package.sh
-  test -n "$metamain" || metamain=$1/.package.main
+  test -n "$1" -a -d "$1" || error "update-package-sh dir '$1'" 21
+  test -n "$metash" || metash=$PACKMETA_SH
+  test -n "$metamain" || metamain=$PACKMETA_JS_MAIN
   metash=$(normalize_relative "$metash")
   test $metaf -ot $metash \
     || {
@@ -75,20 +81,20 @@ update_package_sh()
       test ! -e $metash || rm $metash
     }; } | sort -u > $metash
 
-    grep -q Exception $metash && rm $metash
-    test -s "$metash" || rm $metash
-
-    test -e "$metaf" || return
+    test -s "$metash" && {
+      grep -q Exception $metash && rm $metash
+    } || rm $metash
 
     # Format main block
-    { jsotk.py -I yaml objectpath $metaf '$.*[@.main is not None]' || {
-      warn "Failed reading package main from $1 ($?)"
+
+    { jsotk.py -I yaml objectpath $metaf '$.*[@.id is "'$package_id'"]' || {
+      warn "Failed reading package '$package_id' from $1 ($?)"
       rm $metamain
       return 17
     }; }  > $metamain
 
     test -s "$metamain" || {
-      warn "Failed reading package main from $1"
+      warn "Failed reading package main from $1 ($package_id)"
       rm $metamain
       return 16
     }
@@ -102,19 +108,32 @@ update_package_sh()
 }
 
 
+package_file()
+{
+  test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
+  metaf=$(normalize_relative "$metaf")
+  test -e "$metaf" || return 1
+}
+
+
+# Allow for a sole .package.sh file to be used iso. full package.yml
+# In this case create a YAML elsewhere
 update_temp_package()
 {
-  test -n "$pd" || error pd 21
-  test -n "$ppwd" || ppwd=$(cd $1; pwd)
+  return 1
+  test -n "$pdoc" || error pdoc 21
+  test -n "$ppwd" || ppwd=$(cd $1 && pwd)
+
   mkvid "$ppwd"
   metaf=$(setup_tmpf .yml "-meta-$vid")
-  test -e $metaf || touch $metaf $pd
+  test -e $metaf || touch $metaf $pdoc
   #test -e "$metaf" && return || {
-    metash=$1/.package.sh
-    test -e $metaf -a $metaf -nt $pd || {
+    metash=$1/$metaf_SH
+    test -e $metaf -a $metaf -nt $pdoc || {
       pd__meta package $1 > $metaf
     }
   #}
+  export PACKMETA=$metaf
 }
 
 
@@ -122,21 +141,20 @@ update_temp_package()
 # package.yaml exists, try to extract one temp package YAML from Pdoc.
 update_package()
 {
-  test -n "$1" || set -- .
-  test -d "$1" || error "update-package dir '$1'" 21
-  test -z "$2" || error "update-package args '$*'" 22
-  test -n "$ppwd" || ppwd=$(cd $1; pwd)
-  test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
-  metaf=$(normalize_relative "$metaf")
+  test -n "$1" -a -d "$1" || error "update-package dir '$1'" 21
+  test -z "$2" || error "update-package surplus args '$2'" 22
 
-  test -e "$metaf" || {
+  local metaf= metash= metamain=
+  test -n "$ppwd" || ppwd=$(cd $1; pwd)
+
+  package_file "$1" || {
     update_temp_package "$1" || { r=$?
       rm $metaf
       error update_temp_package-$r
       return 23
     }
   }
-  test -e "$metaf" || error "metaf='$metaf'" 34
+  test -e "$1/$PACKMETA" || error "no such file ($(pwd)) PACKMETA='$PACKMETA'" 34
 
   # Package.sh is used by other scripts
   update_package_sh "$1" || {
@@ -159,6 +177,7 @@ update_package()
 # Non-existant keys or empty values are passed over silently.
 package_sh()
 {
+  test -n "$1" || error "package-sh keys expected" 1
   # Set or use mapping from env
   test -n "$map" || map=package_
   fnmatch "*:*" "$map" && {
@@ -169,24 +188,11 @@ package_sh()
     sub=
   }
   # Check/update package metadata
-  test -e package.yaml && {
-    update_package || return $?
+  test -e $PACKMETA && {
+    update_package $(pwd -P) || return $?
   }
-  test -e .package.sh || error package.sh 1
-  # NOTE: Always be carefull about accidentally introducing newlines, will give
-  # hard-to-debug syntax failures here or in the local evaluation
-  (
-    # Evalute matched vars in a subshell, and step over arguments
-    eval "$(read_nix_style_file .package.sh | grep '^'"$prefix" | sed 's/^'"$prefix"'/'"$sub"'/g')"
-    while test -n "$1"
-    do
-      key=$1
-      value="$(eval printf -- \"\$$1\")"
-      shift
-      test -n "$value" || continue
-      print_var "$key" "$value"
-    done
-  )
+  test -e $PACKMETA_SH || error $PACKMETA_SH 1
+  property "$PACKMETA_SH" "$prefix" "$sub" "$@"
 }
 
 
@@ -219,7 +225,7 @@ package_sh_script()
 # package-sh-list PACKAGE-SH LIST-KEY
 package_sh_list()
 {
-  test -n "$1" || set -- .package.sh
+  test -n "$1" || set -- $PACKMETA_SH
   test -n "$2" || error package_sh_list:list-key 1
   test -n "$show_index" || show_index=0
   test -n "$show_item" || show_item=1

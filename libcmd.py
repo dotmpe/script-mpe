@@ -407,7 +407,7 @@ class SimpleCommand(object):
         Returns a tuple of the parser and option-values instances,
         and a list left-over arguments.
         """
-        # TODO: rewrite to cllct.osutil once that is packaged
+        # TODO: rewrite to cllct.osscript_util once that is packaged
         parser = optparse.OptionParser(usage, version=version)
 
         optnames = []

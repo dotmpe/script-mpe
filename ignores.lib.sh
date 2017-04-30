@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ignores_load()
+ignores_lib_load()
 {
   test -n "$1" || set -- $base
   test -n "$2" || set -- $1 $(str_upper $1)

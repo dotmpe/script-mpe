@@ -186,6 +186,7 @@ from . import semweb
 from .init import SqlBase
 from .util import SessionMixin, ScriptMixin, ORMMixin, get_session
 from .core import *
+from .hier import *
 from .net import *
 from .code import *
 from .fs import *

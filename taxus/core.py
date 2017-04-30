@@ -9,8 +9,6 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
 #from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship, backref, remote, foreign
 from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy.sql.expression import cast
-from sqlalchemy.dialects.postgresql import ARRAY
 
 
 from . import iface
@@ -272,56 +270,9 @@ class Topic(SqlBase, CardMixin, ORMMixin):
                 for c in self.subs.values()
             ])
 
-
-class MaterializedPath(SqlBase, ORMMixin):
-    """
-
-    http://docs.sqlalchemy.org/en/latest/_modules/examples/materialized_paths/materialized_paths.html
-    FIXME: postgres only
-    """
-    __tablename__ = "paths"
-
-    id = Column(Integer, primary_key=True, autoincrement=False)
-    path = Column(String(500), nullable=False, index=True)
-
-    # To find the descendants of this node, we look for nodes whose path
-    # starts with this node's path.
-    descendants = relationship(
-        "MaterializedPath", viewonly=True, order_by=path,
-        primaryjoin=remote(foreign(path)).like(path.concat(".%")))
-
-    # Finding the ancestors is a little bit trickier. We need to create a fake
-    # secondary table since this behaves like a many-to-many join.
-    secondary = select([
-        id.label("id"),
-        func.unnest(cast(func.string_to_array(
-            func.regexp_replace(path, r"\.?\d+$", ""), "."),
-            ARRAY(Integer))).label("ancestor_id")
-    ]).alias()
-    ancestors = relationship("MaterializedPath", viewonly=True, secondary=secondary,
-                             primaryjoin=id == secondary.c.id,
-                             secondaryjoin=secondary.c.ancestor_id == id,
-                             order_by=path)
-
-    @property
-    def depth(self):
-        return len(self.path.split(".")) - 1
-
-    def __repr__(self):
-        return "MaterializedPath(id={})".format(self.id)
-
-    def __str__(self):
-        root_depth = self.depth
-        s = [str(self.id)]
-        s.extend(((n.depth - root_depth) * "  " + str(n.id))
-                 for n in self.descendants)
-        return "\n".join(s)
-
-    def move_to(self, new_parent):
-        new_path = new_parent.path + "." + str(self.id)
-        for n in self.descendants:
-            n.path = new_path + n.path[len(self.path):]
-        self.path = new_path
+    @classmethod
+    def proc_context(clss, item):
+        print 'TODO: Topic.proc_context', item
 
 
 doc_root_element_table = Table('doc_root_element', SqlBase.metadata,

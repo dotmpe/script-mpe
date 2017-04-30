@@ -3,7 +3,7 @@
 
 # OS: files, paths
 
-os_load()
+os_lib_load()
 {
   test -n "$uname" || export uname="$(uname)"
 }

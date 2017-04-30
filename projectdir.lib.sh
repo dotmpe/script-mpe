@@ -13,7 +13,7 @@ pd_meta_bg_setup()
     pd__meta &
     while test ! -e $pd_sock
     do note "Waiting for server.." ; sleep 1 ; done
-    info "Backgrounded pd-meta for $pd (PID $!)"
+    info "Backgrounded pd-meta for $pdoc (PID $!)"
   }
 }
 
@@ -261,12 +261,12 @@ pd_list_upstream()
 pd_finddoc()
 {
   # set/check for Pd for subcmd
-  go_to_directory $pd || return $?
-  test -e "$pd" || error "No projects file $pd" 1
+  go_to_directory $pdoc || return $?
+  test -e "$pdoc" || error "No projects file $pdoc" 1
 
-  pd_root="$(dirname "$pd")"
+  pd_root="$(dirname "$pdoc")"
   pd_realdir="$(realpath "$pd_root")"
-  pd_realpath="$(realpath "$pd")"
+  pd_realpath="$(realpath "$pdoc")"
 
   # Relative path to previous dir where cmd was called
   pd_prefix="$(normalize_relative "$go_to_before")"
@@ -278,6 +278,7 @@ pd_finddoc()
   p="$sid"
   sock=/tmp/pd-$p-serv.sock
 
+  pd=$pd_realdir/$pd_prefix
   pd_sid=$sid
   pd_sock=/tmp/pd-${pd_sid}-serv.sock
 
@@ -296,7 +297,7 @@ pd_update_record()
 {
   test -n "$1" || error "pd-update-record key-pref" 1
   test -n "$2" || error "pd-update-record key-values" 1
-  test -e "$pd" || error "pd-update-record Pd" 1
+  test -e "$pdoc" || error "pd-update-record Pd" 1
 
   local path=$1; shift; local values="$*"
 
@@ -307,7 +308,7 @@ pd_update_record()
         continue
       }
       echo $path/$1; shift; done
-  } | jsotk.py -I pkv --pretty update $pd - || return $?
+  } | jsotk.py -I pkv --pretty update $pdoc - || return $?
 
   debug "Updated Pd: $path{$values}"
 }
@@ -822,7 +823,7 @@ pd_run()
               pd_update_record $key_pref/status/$record_key $states \
                 || error "Failed updating $key_pref/status/$record_key" 11
             } || {
-              jsotk.py -q path --is-new --is-int $pd $key_pref/status/$record_key \
+              jsotk.py -q path --is-new --is-int $pdoc $key_pref/status/$record_key \
                 || record_key=$record_key/result
               pd_update_record $key_pref/status $record_key=$result \
                 || error "Failed updating $key_pref/status/$record_key" 12
@@ -886,5 +887,22 @@ pd_find_ignores()
   find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
 }
 
+
+pd_new_package()
+{
+  { cat <<EOM
+
+- type: application/vnd.dotmpe.project
+  main: local/$(basename $pd_prefix)
+  id: local/$(basename $pd_prefix)
+  scripts:
+    status: pd status
+    test: pd test
+    pd-update: pd update
+    pd-show: pd show
+
+EOM
+  } > $1/package.yml
+}
 
 

@@ -32,26 +32,28 @@ htd_load()
   test -n "$TMPDIR" || TMPDIR=/tmp/
   test -n "$HTDIR" || HTDIR=$HOME/public_html
   test -n "$SCRIPT_ETC" || SCRIPT_ETC=$(htd_init_etc|head -n 1)
-  test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE=$CWD/tools.yml
+  test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE="$CWD"/tools.yml
   test -n "$HTD_TOOLSDIR" || HTD_TOOLSDIR=$HOME/.htd-tools
   test -n "$HTD_JRNL" || HTD_JRNL=personal/journal
   test -n "$FIRSTTAB" || export FIRSTTAB=50
   test -n "$LOG" ||
     export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
+  test -n "$HTD_SERVTAB" || export HTD_SERVTAB=$UCONFDIR/htd-services.tab
 
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
 
-  test -e .package.sh && . .package.sh
+  #test -e .package.sh && . .package.sh
+  #echo xxx1.package_id=$package_id
 
   projectdirs="$(echo ~/project ~/work/*/tree)"
 
   go_to_directory .projects.yaml && {
-    cd $CWD
+    cd "$CWD"
     # $go_to_before
     #PROJECT="$(basename $(pwd))"
   } || {
-    cd $CWD
+    cd "$CWD"
   }
 
   # XXX:
@@ -96,8 +98,8 @@ htd_load()
     }
   }
 
-  htd_rules=~/.conf/rules/$hostname.tab
-  ns_tab=$HOME/.conf/namespace/$hostname.tab
+  htd_rules=$UCONFDIR/rules/$hostname.tab
+  ns_tab=$UCONFDIR/namespace/$hostname.tab
 
   which tmux 1>/dev/null || {
     export PATH=/usr/local/bin:$PATH
@@ -125,7 +127,7 @@ htd_load()
         local htd_subcmd_argsv=$(try_local $subcmd argsv)
         func_exists $htd_subcmd_argsv || {
           htd_subcmd_argsv="$(eval echo "\$$htd_subcmd_argsv")"
-          # std. behaviour is a simmple for over the arguments that sorts 
+          # std. behaviour is a simmple for over the arguments that sorts
           # '-' (hyphen) prefixed words into $options, others into $arguments.
           test -n "$htd_subcmd_argsv" || htd_subcmd_argsv=opt_args
         }
@@ -225,8 +227,10 @@ htd_load()
       ;;
 
     p )
-        test -e package.yaml && update_package
-        test -e .package.sh && . .package.sh
+        pwd="$(pwd -P)"
+        package_file $pwd && update_package $pwd
+        package_lib_load "$pwd"
+        test -e "$PACKMETA_SH" && . $PACKMETA_SH
         test -n "$package_id" && {
           note "Found package '$package_id'"
         } || {
@@ -278,7 +282,7 @@ htd_unload()
 
     i ) # remove named IO buffer files; set status vars
         clean_io_lists $htd__inputs $htd__outputs
-        htd_report $htd__inputs $htd__outputs || unload_ret=$?
+        htd_report $htd__outputs || unload_ret=$?
       ;;
 
     P )
@@ -620,7 +624,7 @@ htd__edit_main()
   test -z "$search" ||
     evoke="$evoke -c \"/$search\""
   # Two vertical panes (O2), with additional h-split in the right
-  #evoke="$evoke -O2 
+  #evoke="$evoke -O2
   evoke="$evoke \
     -c :vsplit \
     -c \":wincmd l\" \
@@ -661,11 +665,11 @@ htd__edit()
   case "$1" in
     # NEW
     sandbox-jenkins-mpe | sandbox-mpe-new )
-        cd ~/.conf/vagrant/sandbox-trusty64-jenkins-mpe
+        cd $UCONFDIR/vagrant/sandbox-trusty64-jenkins-mpe
         vim Vagrantfile
       ;;
     treebox-new )
-        cd ~/.conf/vagrant/
+        cd $UCONFDIR/vagrant/
         vim Vagrantfile
       ;;
   esac
@@ -961,7 +965,7 @@ htd_spc__tools="tools <tool-id>.."
 htd__tools()
 {
   (
-    cd $HOME/.conf
+    cd $UCONFDIR
     test -e $HTD_TOOLSFILE
     tools_json || return $?
     test -n "$1" || set -- $(echo $(jsotk.py -O lines keys tools.json tools))
@@ -1449,21 +1453,32 @@ htd__wake()
   }
 }
 
+
 htd_spc__shutdown='shutdown [ HOST [ USER ]]'
 htd__shutdown()
 {
-  echo
-  # Boreas
-  #sudo umount /Volumes/WDElements-USB-2T-3-1T7
-  #run_cmd vs1 'shutdown -h now'
-#  run_cmd dandy 'sudo shutdown -h now'
+  test -n "$1" || error host 1
+  test -n "$2" || {
+    test -e $UCONFDIR/disk/$hostname-$1.user && {
+      set -- "$1" "$(head -n 1 $UCONFDIR/disk/$hostname-$1.user )"
+    }
+  }
+  # Unmount remote disks from local mounts
+  test -e $UCONFDIR/disk/$hostname-$1.list && {
+    note "Unmounting from local.."
+    mounts="$(read_nix_style_file $UCONFDIR/disk/$hostname-$1.list | lines_to_words)"
+    sudo umount "$mounts"
+  }
+  ssh_req $1 $2 &&
+  run_cmd "$1" 'sudo shutdown -h +1' &&
+  note "Remote shutdown triggered: $1"
 }
 
 
 htd__ssh_vagrant()
 {
-  test -d ~/.conf/vagrant/$1 || error "No vagrant '$1'" 1
-  cd ~/.conf/vagrant/$1
+  test -d $UCONFDIR/vagrant/$1 || error "No vagrant '$1'" 1
+  cd $UCONFDIR/vagrant/$1
   vagrant up --provision || {
     warn "Provision error $?. See htd edit to review Vagrantfile. "
     sys_confirm "Continue with SSH connection?" ||
@@ -1486,19 +1501,19 @@ htd__ssh()
 
     # TODO: move to vagrants
     sandbox | sandbox-mpe | vdckr | vdckr-mpe )
-        cd ~/.conf/dckr/ubuntu-trusty64-docker-mpe/
+        cd $UCONFDIR/dckr/ubuntu-trusty64-docker-mpe/
         vagrant up
         vagrant ssh
       ;;
 
     # OLD vagrants
     treebox | treebox-precise | treebox-mpe )
-        cd ~/.conf/vagrant/treebox-hashicorp-precise-mpe
+        cd $UCONFDIR/vagrant/treebox-hashicorp-precise-mpe
         vagrant up
         vagrant ssh
       ;;
     trusty )
-        cd ~/.conf/vagrant/ubuntu-trusty64
+        cd $UCONFDIR/vagrant/ubuntu-trusty64
         vagrant up
         vagrant ssh
       ;;
@@ -1511,8 +1526,8 @@ htd__ssh()
 
     # @Home
     * )
-        # NOTE: By default expect htd wol call to work instantly.
-        test -n "$retries" || retries=1
+        # Try for minimally a minute to wake/contact remote
+        test -n "$retries" || retries=6
         ret=0
         htd__detect_ping $1 || {
           while true
@@ -1520,15 +1535,17 @@ htd__ssh()
             test $retries -gt 0 ||
               stderr warn "Unable to contact '$1' in allotted retries" 1
             note "Trying to wake up $1.."
-            htd wake $1
+            htd wake $1 || error "wol error $?" 1
             retries=$(( $retries - 1 ))
-            sleep 7
+            sleep 10
+            stderr info "Testing ping to '$1'..."
             htd__detect_ping $1 && break
           done
         }
         test -n "$2" &&
           note "Host '$1' is online, trying command '$2'.." ||
           note "Host '$1' is online, trying ssh connect.."
+
         ssh -t $1 "$2" || ret=$?
         test -n "$2" && {
           test -z "$ret" -o "$ret" = "0" &&
@@ -1540,6 +1557,7 @@ htd__ssh()
             error "SSH connection to '$1' exited $ret" 1
         }
       ;;
+
     * )
         error "No remote $1"
       ;;
@@ -1587,7 +1605,7 @@ htd__new_object()
 # Current tasks
 
 htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
-  
+
   Print package pd-meta tags setting using:
 
     htd package pd-meta tags
@@ -1599,7 +1617,7 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
   The first two arguments TODO/DONE.TXT default to tags-document and tags-done.
   Other commands in this group:
 
-    htd tasks-scan 
+    htd tasks-scan
     htd tasks-grep
     htd tasks-local
     htd tasks-edit
@@ -1617,8 +1635,7 @@ htd_man_1__tasks_scan="Update todo/tasks/plan document from local tasks"
 htd_spc__tasks_scan='tasks-scan [ --interactive ] [ --Check-All-Tags ] [ --Check-All-Files ]'
 htd__tasks_scan()
 {
-  update_package
-  htd_tasks_load 
+  htd_tasks_load
   note "Scanning tasks.. ($(var2tags  todo_slug todo_document todo_done ))"
   local grep_Hn=$(setup_tmpf .grep-Hn)
   mkdir -vp $(dirname "$grep_Hn")
@@ -1737,7 +1754,7 @@ htd_als__edit_tasks=tasks-edit
 
 htd_man_1__tasks_hub='Given a tasks-hub directory, either get tasks, tags or
   additional settings ie. backends, indices, cardinality.
-  
+
     htd tasks-hub be
     htd tasks-hub tags
     htd tasks-hub tagged
@@ -1758,13 +1775,12 @@ htd__tasks_hub()
   case "$1" in
     init )
   contexts=0 htd__tasks_hub tags | tr -d '+' | while read proj
-  do 
+  do
     for d in $projectdirs ; do test -d "$d/$proj" || continue
       (
         local todo_document=
         cd $d/$proj
         test -e todo.txt && todo_document=todo.txt || {
-          update_package
           eval $(map=pd_meta_tasks_:todo_ package_sh id todo_document)
         }
         (
@@ -1829,7 +1845,7 @@ htd_run__tasks_hub=eiAO
   # they have a context tag added. Setting a context rule for a list allows
   # to indicate a required context choice, to migrate items to the
   # appropiate list, and to note items that have no context.
-  # With a dynamic context, automatic or interactive handling and cleanup is 
+  # With a dynamic context, automatic or interactive handling and cleanup is
   # possible for various sorts of items: tasks, reminders, references,
   # reports, etc. On the other hand it is also possible to generate lists,
   # filter, etc. E.g. directories, issues, packages, bookmarks, emails,
@@ -1867,12 +1883,12 @@ htd__tasks_buffers()
         ;;
       +* ) prj=$(echo $tag | cut -c2- )
           echo to/do-in-$prj.list
-          echo cabinet/done-in-$prj.list 
+          echo cabinet/done-in-$prj.list
           echo to/do-in-$prj.sh
         ;;
       @* ) ctx=$(echo $tag | cut -c2- )
           echo to/do-at-$ctx.list
-          echo cabinet/done-at-$ctx.list 
+          echo cabinet/done-at-$ctx.list
           echo to/do-at-$ctx.sh
         ;;
       * ) error "'$tag'?" 1 ;;
@@ -1906,7 +1922,7 @@ htd__tasks_session_start()
   assert_files $1 $2
   # Accumulate tasks, to find additional files for locking
   tags="$(htd__todotxt_tags "$1" "$2" | lines_to_words ) $tags"
-  note "Tags: ($(echo "$tags" | count_words 
+  note "Tags: ($(echo "$tags" | count_words
     )) $(echo "$tags" )"
   info "3.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # Get paths to all files, add todo/done buffer files per tag
@@ -1927,12 +1943,12 @@ htd_argsv__tasks_session_start()
   info "1.1. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   htd_tasks_load
   test -n "$*" || return 0
-  while test $# -gt 0 ; do case "$1" in 
+  while test $# -gt 0 ; do case "$1" in
       '+'* ) tags="$tags $1" ; projects="$projects $1" ; shift ;;
       '@'* ) tags="$tags $1" ; contexts="$contexts $1" ; shift ;;
       '-'* ) define_var_from_opt "$1" ; shift ;;
       * )
-          # Override doc/done with args 1,2. 
+          # Override doc/done with args 1,2.
           not_falseish "$override_doc" || { override_doc=1 ; test -z "$1" ||
             todo_document="$1" ; shift ; continue ; }
           not_falseish "$override_doc" || { override_done=1 ; test -z "$1" ||
@@ -1962,7 +1978,7 @@ htd__tasks_session_end()
 htd__tasks__src__exists()
 {
   test -n "$2" || {
-    echo    
+    echo
   }
   echo grep -srIq $1 $all $TASK_DIR/
 }
@@ -1992,7 +2008,7 @@ htd__tasks()
         test -n "$be" || error "No default tasks backend" 1
         c= mksid "$1" ; ctxid=$sid
         test -e ./to/$sid.sh || error "No tasks backend '$1' ($be)" 1
-        . ./to/$ctxid.sh ; 
+        . ./to/$ctxid.sh ;
         mkvid "$be" ; beid=$vid
         mkvid "$2" ; cmid=$vid
         . ./to/$ctxid.sh ; shift 2
@@ -2013,7 +2029,7 @@ htd_tasks_load()
   eval $(map=package_pd_meta_tasks_:todo_ package_sh todo_document todo_done  \
     todo_slug )
   test -n "$todo_document" || todo_document=todo.$TASK_EXT
-  test -n "$todo_done" || 
+  test -n "$todo_done" ||
     todo_done=$(pathname "$todo_document" $TASK_EXTS)-done.$TASK_EXT
   test -n "$todo_slug" || {
     local $(map=package_ package_sh  id  )
@@ -2076,9 +2092,9 @@ htd_als__todo=tasks-edit
 htd_man_1__todotxt_edit='
   Edit task descriptions. Files do not need to exist. First two files default to
   todot.txt and .done.txt and will be created. "
-  
-  This locks/unlocks all given files before starting the $TODOTXT_EDITOR, which 
-  gets to edit only the first two arguments. The use is to aqcuire exclusive 
+
+  This locks/unlocks all given files before starting the $TODOTXT_EDITOR, which
+  gets to edit only the first two arguments. The use is to aqcuire exclusive
   read-write on todo.txt tasks which are included in other files. See htd tasks
   for actually managing tasks spread over mutiple files.
 '
@@ -2148,7 +2164,7 @@ htd__todotxt()
 
 
 # The simplest tag (prj/ctx) scanner. Any non-zero argument is grepped for
-# tags. Returns a unique sorted list. See tasks-hub 
+# tags. Returns a unique sorted list. See tasks-hub
 htd__todotxt_tags()
 {
   while test -n "$1"; do
@@ -2462,7 +2478,7 @@ htd__urls()
 source_git_remote()
 {
   test -n "$1" || set -- "$HTD_GIT_REMOTE"
-  . ~/.conf/git-remotes/$1.sh \
+  . $UCONFDIR/git-remotes/$1.sh \
       || error "Missing 1=$1 script" 1
 }
 
@@ -2612,17 +2628,59 @@ htd_defargs_repo__git_files=/src/*.git
 
 
 #
+htd_man_1__git_grep='Run git-grep for every given repository, passing arguments
+to git-grep. With `-c` interprets argument as shell command first, and passes
+ouput as argument. Defaults to `git rev-list --all` output per repo.
+If env `repos` is provided it is used iso. stdin.
+Without any arguments it defaults to scanning all repos for "git.grep".'
+htd_spc__git_grep='REPO... | htd git-grep [ PAT | --grep=PATH ] [ --dir=DIR ] [ -c REPO-CMD ]
+'
 htd__git_grep()
 {
-  test -n "$1" || set -- $(echo /src/*.git)
-  test -n "$grep" || grep=TODO
-  {
-    for repo in $@
+  cat $arguments
+  set -- "$(cat $arguments)"
+  test -n "$grep" || { test -n "$1" && { grep="$1"; shift; } || grep=git.grep; }
+  test -n "$grep_args" -o -n "$grep_eval" || {
+    trueish "$C" && {
+      test -n "$1" && {
+        grep_eval="$1"; shift; } ||
+        grep_eval='$(git rev-list --all)';
+    } || {
+      test -n "$1" && { grep_args="$1"; shift; } || grep_args=master
+    }
+  }
+  note "Running ($(var2tags grep C grep_eval grep_args repos dir))"
+
+  htd_x__git_grep | { while read repo
     do
-      ( cd $repo && echo $repo && git grep $grep $(git rev-list --all) )
+      echo "Repo: $repo"
+      test -n "$grep_eval" && {
+        cd $repo
+        eval git --no-pager grep $grep $grep_eval || continue
+      } || {
+        cd $repo
+        git grep $grep_args || continue
+      }
     done
-  } | less
+  }
+  #| less
 }
+htd_x__git_grep()
+{
+  test -n "$repos" && {
+    echo "$repos"
+  } || { test -n "$dir" && {
+      for repo in $dir/*.git
+      do
+        echo $repo
+      done
+      noop
+    } || {
+      cat -
+    }
+  }
+}
+htd_run__git_grep=iAO
 
 
 htd__git_features()
@@ -2734,7 +2792,7 @@ htd__diff_function()
     error "usage: $htd_spc___diff_function" 23
   }
   var_isset quiet || quiet=false
-  var_isset sync || { 
+  var_isset sync || {
     trueish "$quiet" && sync=false || sync=true
   }
   var_isset edit || edit=$sync
@@ -3058,7 +3116,7 @@ htd__recommit()
   }
   current_branch=$( git name-rev --name-only HEAD )
   {
-    git add -u && 
+    git add -u &&
       git ci --amend --reset-author &&
         git push $(git config branch.${current_branch}.remote) $current_branch
   }
@@ -3067,16 +3125,16 @@ htd__recommit()
 
 
 htd_man_1__push_commit="Commit modified files and push to default remote. "
-htd_spc__push_commit='(pci|push-commit) 
-    [ [ --id ID ] [ --amend ] [ --all | --no-update ] ] 
+htd_spc__push_commit='(pci|push-commit)
+    [ [ --id ID ] [ --amend ] [ --all | --no-update ] ]
     [ --no-push | [ --any ] [ --every ] ]                 MSG [REMOTES]
 '
 htd__push_commit()
 {
-  # Argument handling 
+  # Argument handling
   # FIXME: could do away with half of sucmd code with better dependent env defaults
   {
-    trueish "$verbose" || trueish "$DEBUG" 
+    trueish "$verbose" || trueish "$DEBUG"
   } &&
     note "id=$id update=$update amend=$amend all=$all push=$push any=$any every=$every"
   # FIXME: losing quotation marks!!
@@ -3285,15 +3343,17 @@ htd_man_1__package="
 
 htd__package()
 {
+  #test -z "$1" || export package_id=$1
+  package_lib_load 
   test -n "$1" && {
     # Turn args into var-ids
     extra() { for k in $@; do mkvid "$k"; printf -- "$vid "; done; }
     lookup() {
-      . ./.package.sh
+      . $PACKMETA_SH
       # See if lists are requested, and defer
       for k in $@; do
         package_sh_list_exists "$k" || continue
-        package_sh_list .package.sh $k
+        package_sh_list $PACKMETA_SH $k
         shift
       done
       test -z "$*" ||
@@ -3302,9 +3362,9 @@ htd__package()
     echo "$(lookup $(extra "$@"))"
 
   } || {
-    read_nix_style_file .package.sh | while IFS='=' read key value
+    read_nix_style_file $PACKMETA_SH | while IFS='=' read key value
     do
-      eval $LOG header2 "$(kvsep=' ' pretty_print_var "$key" "$(eval echo $value)")"
+      eval $LOG header2 "$(kvsep=' ' pretty_print_var "$key" "$value")"
     done
   }
 }
@@ -3371,13 +3431,12 @@ htd_man_1__run_names="List script names in package"
 htd_run__run_names=f
 htd__run_names()
 {
-  update_package
-  jsotk.py keys -O lines .package.main scripts
+  jsotk.py keys -O lines $PACKMETA_JS_MAIN scripts
 }
 
 
 htd_man_1__run_dir="List package script names and lines"
-htd_run__run_dir=f
+htd_run__run_dir=fp
 htd__run_dir()
 {
   htd__run_names | while read name
@@ -3395,7 +3454,8 @@ htd__run()
 
   # Update local package
   local metaf=
-  update_package || return $?
+
+  . $PACKMETA_SH
 
   # With no arguments or name 'scripts' list script names,
   # Or no matching scripts returns 1
@@ -3419,29 +3479,39 @@ htd__run()
     shift
     SCRIPTPATH=
     unset Build_Deps_Default_Paths
+    ln=0
+
+    test -z "$package_cwd" || {
+      note "Moving to '$package_cwd'"
+      cd $package_cwd
+    }
+    test -z "$package_env" || {
+      eval $package_env
+    }
     package_sh_script "$run_scriptname" | while read scriptline
     do
+      export ln=$(( $ln + 1 ))
       not_trueish "$verbose_no_exec" && {
         stderr info "Scriptline: '$scriptline'"
       } || {
         printf -- "\t$scriptline\n"
         continue
       }
-      {
+      (
+
         eval "$scriptline"
-      } &&
-        continue || {
-          echo "$1: '$scriptline'" >> $failed
-          error "At line '$scriptline' for '$1'" $?
+
+      ) && continue || {
+          echo "$run_scriptname:$ln: '$scriptline'" >> $failed
+          error "At line $ln '$scriptline' for '$run_scriptname'" $?
         }
       # NOTE: execute scriptline with args only once
       set --
     done
   )
-
-  trueish "$verbose_no_exec" && return || stderr ok "$1 OK"
+  trueish "$verbose_no_exec" && return || stderr notice "'$1' completed"
 }
-htd_run__run=iAO
+htd_run__run=iAOp
 
 
 htd_man_1__list_run="list lines for package script"
@@ -4119,6 +4189,7 @@ htd__mux()
   tmuxinator start $1 $2 $3
 }
 
+
 htd__tmux_prive()
 {
   req_dir_env HTDIR
@@ -4387,7 +4458,7 @@ htd__tmux()
       try_exec_func "$func" || return $?
 
     } || {
-      test -e "$HOME/.conf/tmuxinator/$fname.yml" && {
+      test -e "$UCONFDIR/tmuxinator/$fname.yml" && {
         note "Starting tmuxinator '$1' config"
         htd__mux $1 &
       } || {
@@ -4777,7 +4848,7 @@ htd__events()
 {
   test -n "$2" || set -- "$1" "days=3"
   gcal.py --version || return
-  read_nix_style_file ~/.conf/google/cals.tab | while read calId summary
+  read_nix_style_file $UCONFDIR/google/cals.tab | while read calId summary
   do
     note "Upcoming events for '$summary'"
     gcal.py list-upcoming 7 $calId "$2" 2>/dev/null
@@ -4820,7 +4891,7 @@ htd__jrnl_times()
 
     list-tri* | list-triune )
         for p in personal/journal/today.rst personal/journal/tomorrow.rst \
-          personal/journal/yesterday.rst 
+          personal/journal/yesterday.rst
         do
           # Prefix date (from real filename), and (symbolic) filename
           htd__jrnl_times list-day $p |
@@ -5072,7 +5143,6 @@ htd__path_prefix_names()
 
 htd__list_prefixes()
 {
-  echo
   (
     sd_be=redis
     statusdir.sh be smembers htd:prefixes:names | while read prefix
@@ -5104,6 +5174,52 @@ htd__update_prefixes()
       echo $prefix:$localpath
     done
   )
+}
+
+
+htd__services_list()
+{
+  test -e "$HTD_SERVTAB" || error "No services table" 1
+  fixed_table_hd $HTD_SERVTAB UNID TYPE EXP CTX | while read vars
+  do
+    eval local "$vars"
+    DIR=$(echo "$CTX" | awk '{print $1}')
+    HTD_SERV_ENV="${CTX:${#DIR}}"
+    DIR=$(eval echo "$DIR")
+    cd $DIR || {
+      error "service $UNID dir missing: '$DIR'"
+      continue
+    }
+    htd__service status "$UNID" "$TYPE" "$DIR" && {
+      test -z "$EXP" -o "$EXP" = "0" &&
+        stderr OK "OK $TYPE $htd_serv_stat_msg [$DIR] ($UNID) "  ||
+        warn "Unexpected state 0 for $TYPE [$DIR] ($UNID)"
+    } || { E=$?
+      test "$E" -eq "$EXP" && {
+        stderr note "Ingored non-zero state $EXP for $TYPE [$DIR] ($UNID)"
+      } ||
+        stderr fail "Failed $TYPE err $E $htd_serv_stat_msg [$DIR] ($UNID) "
+    }
+  done
+}
+
+htd__service()
+{
+  test -n "$1" || set -- list
+  test -n "$htd_serv_update" || export htd_serv_update=1
+  case "$1" in
+    info | list | reload ) ;;
+    status | install | init | start | stop | restart | deinit | uninstall )
+        shift
+        htd_service_exists "$@" || {
+          trueish "$htd_serv_update" && {
+            htd_service_update_record "$@"
+          } || 
+            return 1
+        }
+        htd_service_status "$@" || return
+      ;;
+  esac
 }
 
 
@@ -6438,6 +6554,19 @@ htd__darwin_profile()
 
 
 
+htd__exif()
+{
+  exiftool -DateTimeOriginal \
+      -ImageDescription -ImageSize \
+      -Rating -RatingPercent \
+      -ImageID -ImageUniqueID -ImageIDNumber \
+      -Copyright -CopyrightStatus \
+      -Make -Model -MakeAndModel -Software -DateTime \
+      -UserComment  \
+    "$@"
+}
+
+
 # util
 
 htd_rst_doc_create_update()
@@ -6566,8 +6695,10 @@ htd_init()
   lib_load
   . $scriptpath/box.init.sh
   box_run_sh_test
-  export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
-  lib_load htd meta box date doc table disk remote ignores package
+  #export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
+  lib_load htd meta list
+  lib_load box date doc table disk remote ignores package service
+  . $scriptpath/vagrant-sh.sh load-ext
   disk_run
   # -- htd box init sentinel --
 }

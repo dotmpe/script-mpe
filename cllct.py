@@ -38,7 +38,7 @@ import re
 from glob import glob
 
 import log
-import util
+import script_util
 import reporter
 from taxus.init import SqlBase, get_session
 from taxus.util import ORMMixin, current_hostname
@@ -171,8 +171,8 @@ def cmd_sync(SCHEMA, settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = script_util.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = script_util.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -190,14 +190,14 @@ def main(opts):
 
     opts.default = 'info'
 
-    return util.run_commands(commands, settings, opts)
+    return script_util.run_commands(commands, settings, opts)
 
 def get_version():
     return 'cllct.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = script_util.get_opts(__description__ + '\n' + __usage__, version=get_version())
     if opts.flags.schema:
         schema = __import__(os.path.splitext(opts.flags.schema)[0])
         metadata = schema.SqlBase.metadata

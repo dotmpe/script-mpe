@@ -20,7 +20,6 @@ statusdir_load()
   test -n "$sd_tmp_dir" || sd_tmp_dir=$(setup_tmpd $base)
   test -n "$sd_tmp_dir" -a -d "$sd_tmp_dir" || error "sd_tmp_dir load" 1
 
-
   # Detect backend
 
   test -n "$sd_be" || {
@@ -37,9 +36,7 @@ statusdir_load()
   test -n "$sd_be" || sd_be=fsdir
 
   # Load backend
-  test ! -e "$scriptpath/statusdir_$sd_be.sh" || {
-    . $scriptpath/statusdir_$sd_be.sh
-  }
+  lib_load statusdir-$sd_be
 }
 
 statusdir_unload()
@@ -296,8 +293,7 @@ statusdir_als___e=edit
 statusdir_main()
 {
   local scriptname=statusdir base=$(basename $0 .sh) verbosity=5 \
-    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-    sd_be= \
+    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" subcmd= \
     sd_tmpdir=
 
   statusdir_init || exit $?

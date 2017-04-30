@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """:created: 2014-09-07
-:updated: 2014-10-12
+:updated: 2017-04-16
 
 TODO figure out model. look at folder.py too
 TODO: create all nodes; name, description, hierarchy and dump/load json/xml
@@ -20,6 +20,7 @@ __usage__ = """
 Usage:
   topic.py [options] [info|list]
   topic.py [options] (name|tag|topic|host|domain) [NAME]
+  topic.py [options] read-list LIST
   topic.py [options] new NAME [REF]
   topic.py [options] get REF
   topic.py [options] get-name NAME
@@ -27,11 +28,18 @@ Usage:
   topic.py [options] x-dump
   topic.py [options] x-tree
   topic.py [options] x-mp
+  topic.py [options] x-al
   topic.py [options] bulk-add [PATHS...|-]
   topic.py -h|--help
   topic.py --version
 
 Options:
+    --output-format FMT
+                  json, repr
+    --provider KEY=SPEC...
+                  Initialize projects or contexts API.
+    --apply-tag TAGSPEC...
+                  Apply given tags to each item in file.
     --paths
                   TODO: replace with --format=paths
     -d REF --dbref=REF
@@ -47,13 +55,14 @@ import os
 import re
 
 import log
-import util
+import script_util
 import reporter
 from taxus.init import SqlBase, get_session
 from taxus import \
     Node, Name, Tag, Topic, Folder, GroupNode, \
-    ID, Space, MaterializedPath, \
+    ID, Space, MaterializedPath, AdjacencyList, \
     ScriptMixin
+import res.list
 
 from sqlalchemy.orm import joinedload_all
 
@@ -160,7 +169,6 @@ def cmd_x_dump(settings):
         reporter.stdout.Topic(t)
 	reporter.out.write(t.dump())
 
-
 def cmd_bulk_add(settings):
     import sys
     sa = Topic.get_session('default', settings.dbref)
@@ -178,6 +186,17 @@ def cmd_bulk_add(settings):
             print(i)
         print(p)
     sa.commit()
+
+
+def cmd_read_list(LIST, settings):
+    """Read items, resolving issues interactively and making sure items are
+    committed to any backends. """
+    res.list.parse(LIST, settings)
+
+def cmd_write_list(LIST, PROVIDERS, settings):
+    """Retrieve all items from given backens and write to list file. """
+    for provider in PROVIDERS:
+        res.list.write(LIST, provider, settings)
 
 
 def cmd_x_tree(settings):
@@ -283,8 +302,67 @@ def cmd_x_mp(settings):
     print("find the ancestors of 10")
     print([n.id for n in session.query(MaterializedPath).get(10).ancestors])
 
+    session.commit()
     session.close()
-    Base.metadata.drop_all(metadata.bind)
+    #SqlBase.metadata.drop_all(SqlBase.metadata.bind)
+
+
+def cmd_x_al(settings):
+    session = AdjacencyList.get_session('default', settings.dbref)
+
+    def msg(msg, *args):
+        msg = msg % args
+        print("\n\n\n" + "-" * len(msg.split("\n")[0]))
+        print(msg)
+        print("-" * len(msg.split("\n")[0]))
+
+    node = AdjacencyList('rootnode')
+    AdjacencyList('node1', parent=node)
+    AdjacencyList('node3', parent=node)
+
+    node2 = AdjacencyList('node2')
+    AdjacencyList('subnode1', parent=node2)
+    node.children['node2'] = node2
+    AdjacencyList('subnode2', parent=node.children['node2'])
+
+    msg("Created new tree structure:\n%s", node.dump())
+
+    msg("flush + commit:")
+
+    session.add(node)
+    session.commit()
+
+    msg("Tree After Save:\n %s", node.dump())
+
+    AdjacencyList('node4', parent=node)
+    AdjacencyList('subnode3', parent=node.children['node4'])
+    AdjacencyList('subnode4', parent=node.children['node4'])
+    AdjacencyList('subsubnode1', parent=node.children['node4'].children['subnode3'])
+
+    # remove node1 from the parent, which will trigger a delete
+    # via the delete-orphan cascade.
+    del node.children['node1']
+
+    msg("Removed node1.  flush + commit:")
+    session.commit()
+
+    msg("Tree after save:\n %s", node.dump())
+
+    msg("Emptying out the session entirely, selecting tree on root, using "
+        "eager loading to join four levels deep.")
+    session.expunge_all()
+    node = session.query(AdjacencyList).\
+        options(joinedload_all("children", "children",
+                               "children", "children")).\
+        filter(AdjacencyList.name == "rootnode").\
+        first()
+
+    msg("Full Tree:\n%s", node.dump())
+
+    msg("Marking root node as deleted, flush + commit:")
+
+    session.delete(node)
+    session.commit()
 
 
 """
@@ -300,8 +378,8 @@ TODO: create item list from index, and vice versa unid:FEGl time:17:43Z
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = script_util.get_cmd_handlers_2(globals(), 'cmd_')
+commands['help'] = script_util.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -314,15 +392,18 @@ def main(opts):
 
     settings = opts.flags
     opts.default = 'info'
-    if opts.flags.no_commit: opts.flags.commit = False
-    return util.run_commands(commands, settings, opts)
+    opts.flags.commit = not opts.flags.no_commit
+    return script_util.run_commands(commands, settings, opts)
 
 def get_version():
     return 'topic.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+    opts = script_util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts.flags.dbref = os.getenv('TOPIC_DB', opts.flags.dbref)
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
 

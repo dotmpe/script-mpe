@@ -13,14 +13,14 @@ version=0.0.4-dev # script-mpe
 
 # See $scriptname help to get started
 
-vagrant_sh_man_1__list="List cached info about Vagrant instances"
+vagrant_sh_man_1__list="Global list: cached info about every Vagrant instance"
 vagrant_sh__list()
 {
-  stderr info "Listing running vagrant instances ($ vagrant global-status)"
+  stderr info "Listing vagrant instances ($ vagrant global-status)"
   vagrant_sh__list_raw |
-  while read ID NAME PROVIDER STATE DIRECTORY
+  while read ID NAME PROVIDER STATE DIRECTORY PROVIDER_ID METADIR
   do
-    $LOG header1 "$PROVIDER:$ID" "$NAME: $STATE " "$DIRECTORY"
+    $LOG header1 "$PROVIDER:$ID" "$NAME ($PROVIDER_ID): $STATE" "$DIRECTORY"
   done
 }
 vagrant_sh__global_status=list
@@ -36,9 +36,13 @@ vagrant_sh__list_raw()
     do
       # NOTE: no warning on bugs, ignore non table lines
       test -d "$DIRECTORY" || continue
+      export METADIR="$DIRECTORY/.vagrant/machines/$NAME/$PROVIDER/"
+      test -e "$METADIR/id" && {
+        PROVIDER_ID="$(cat $METADIR/id)"
+      } || warn "No ID found for $PROVIDER provider of $NAME"
       # NOTE: output col/cell
       # FIXME: want global counter for row too
-      varsfmt "$2" ID NAME PROVIDER STATE DIRECTORY | grep -v '^#'
+      varsfmt "$2" ID NAME PROVIDER STATE DIRECTORY PROVIDER_ID METADIR | grep -v '^#'
     done
 }
 
@@ -54,7 +58,29 @@ vagrant_sh__info()
 }
 
 
-vagrant_sh_man_1__info_raw="Update and give parsed details"
+vagrant_sh_man_1__status="Update local instance and show details"
+vagrant_sh__status()
+{
+  test -n "$1" || set -- default
+  local vgrnt_stat_="$(vagrant status | grep "^$1\ .*([a-z\ ]*)$" | sed 's/^'$1'\ *//')"
+  vgrnt_stat=
+  vgrnt_stat_msg=
+  test -n "$vgrnt_stat_" || return 10
+  vgrnt_provider="$(echo "$vgrnt_stat_" | sed 's/.*(\(.*\))$/\1/')"
+  vgrnt_stat_msg="$(echo "$vgrnt_stat_" | sed 's/\ *(.*)$//')"
+  case "$vgrnt_stat_msg" in
+    saved ) export vgrnt_stat=3 ;;
+    "not created" ) export vgrnt_stat=2 ;;
+    running ) export vgrnt_stat=0 ;;
+    * ) export vgrnt_stat=9 ;;
+  esac
+  echo $vgrnt_stat_msg
+  return $vgrnt_stat
+}
+
+
+vagrant_sh_man_1__info_raw="Update cache and give parsed details for local VM"
+vagrant_sh_spc__info_raw=" GREP [ FMT ] "
 vagrant_sh__info_raw()
 {
   test -n "$1"
@@ -65,8 +91,15 @@ vagrant_sh__info_raw()
     PROVIDER="$(echo "$qprov"|tr -d '()' )"
     DIRECTORY=$(pwd)
     RDIRECTORY=$(pwd -P)
+    # NOTE: pick some local vars per VM
+    test -z "$PROVIDER_ID" || {
+      VBoxManage showvminfo $PROVIDER_ID --machinereadable
+      eval $(VBoxManage showvminfo $PROVIDER_ID --machinereadable)
+      lvars="name group ostype"
+    }
     # TODO: set counter and only output header once or very X rows
-    varsfmt "$2" NAME STATUS PROVIDER DIRECTORY RDIRECTORY | grep -v '^#'
+    varsfmt "$2" NAME STATUS PROVIDER DIRECTORY RDIRECTORY \
+      $lvars | grep -v '^#'
   done
 }
 
@@ -75,8 +108,7 @@ vagrant_sh_man_1__list_info="Update and list actual info about Vagrant instances
 vagrant_sh__list_info()
 {
   stderr info "Getting details for running vagrant instances ($ cd DIR && vagrant status)"
-  vagrant_sh__list_raw "$1" SH | grep -v '^#' |
-  while read lvars
+  vagrant_sh__list_raw "$1" SH | grep -v '^#' | while read lvars
   do
     (
       eval local $lvars
@@ -85,11 +117,35 @@ vagrant_sh__list_info()
       }
       cd $DIRECTORY
       vagrant_sh__info_raw "$NAME"
+      echo name=$name ostype=$ostype groups=$groups
     )
   done
 }
 vagrant_sh_als__details=list-info
 vagrant_sh_als__update=list-info
+
+
+vagrant_sh__synced_folders()
+{
+  vagrant_sh__list_raw |
+  while read ID NAME PROVIDER STATE DIRECTORY PROVIDER_ID METADIR
+  do
+    PROVIDER_SFJSON="$METADIR/synced_folders"
+    test -e "$PROVIDER_SFJSON" || {
+      $LOG warn "$PROVIDER:$PROVIDER_ID" "No synced-folders data for $NAME ($ID) state: $STATE" "$DIRECTORY"
+      continue
+    }
+    #$LOG header1 "$PROVIDER:$PROVIDER_ID" "$NAME ($ID) state: $STATE" "$DIRECTORY"
+    rsync="$(jsotk keys -O lines $PROVIDER_SFJSON rsync)"
+    provider="$(jsotk keys -O lines $PROVIDER_SFJSON $PROVIDER)"
+    for path in $rsync; do $LOG header1 "$PROVIDER:$PROVIDER_ID" "$NAME ($STATE) rsync: $path"
+    done
+    for path in $provider; do $LOG header1 "$PROVIDER:$PROVIDER_ID" "$NAME ($STATE) $PROVIDER: $path"
+    done
+    #note "Folders: $(var2tags rsync $PROVIDER)"
+    #$LOG header1 "$PROVIDER:$PROVIDER_ID" "$(var2tags rsync $PROVIDER)" "$DIRECTORY"
+  done
+}
 
 
 
@@ -184,6 +240,8 @@ vagrant_sh_lib()
 # Pre-exec: post subcmd-boostrap init
 vagrant_sh_load()
 {
+  test -n "$VAGRANT_HOME" || error "Expected VAGRANT_HOME env" 1
+  test -n "$VAGRANT_NAME" || export VAGRANT_NAME=default
   # -- vagrant-sh box lib sentinel --
   set --
 }

@@ -17,7 +17,7 @@ lib_load()
   while test -n "$1"
   do
     . $scriptpath/$1.lib.sh load-ext
-    f_lib_load=$(printf "${1}" | tr -Cs 'A-Za-z0-9_' '_')_load
+    f_lib_load=$(printf "${1}" | tr -Cs 'A-Za-z0-9_' '_')_lib_load
     # func_exists, then call
     type ${f_lib_load} 2> /dev/null 1> /dev/null && {
       ${f_lib_load}

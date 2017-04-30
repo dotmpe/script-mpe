@@ -84,20 +84,26 @@ darwin_disk_table()
 {
   #darwin_profile_tab SPStorageDataType mount_point bsd_name volume_uuid file_system
   xml=$(darwin_profile_xml "SPStorageDataType")
-  darwin.py plist-dump $xml
-  #darwin.py spstorage-disk $xml mount_point bsd_name volume_uuid file_system
-  return
+  #darwin.py plist-dump $xml
+  darwin.py spstorage-disk $xml "" mount_point bsd_name volume_uuid file_system
 
-  # List data on main SATA disk(s)
+  for disk in disk0 disk1 disk2 disk3 disk4 disk5 disk6 disk7 disk8
+  do
+    #echo $disk
+    darwin.py spstorage-disk $xml $disk bsd_name volume_uuid file_system
+  done
+
+  ## List data on main SATA disk(s)
   xml=$(darwin_profile_xml "SPSerialATADataType")
-  echo '#SPSerialATADataTypel: bsd-name device-serial size-in-bytes device-model'
-  darwin.py spserialata-disk $xml disk0 bsd_name device_serial size_in_bytes device_model
+  ##echo '#SPSerialATADataTypel: bsd-name device-serial size-in-bytes device-model'
+  darwin.py spserialata-disk $xml "" bsd_name device_serial size_in_bytes device_model
   #darwin.py spserialata-disk-part $xml mount_point bsd_name volume_uuid size_in_bytes _name
-  echo
 
-  # List data on USB disk(s)
-  #xml=$(darwin_profile_xml "SPUSBDataType")
+  ## List data on USB disk(s)
+  xml=$(darwin_profile_xml "SPUSBDataType")
   #echo '#SPUSBDataType: bsd-name serial-num size-in-bytes manufacturer vendor-id product-id'
-  #darwin.py spusb-disk $xml disk8 bsd_name serial_num size_in_bytes manufacturer vendor_id product_id
+  darwin.py spusb-disk $xml "" bsd_name serial_num size_in_bytes manufacturer vendor_id product_id
+
+  echo
 }
 

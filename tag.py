@@ -66,7 +66,7 @@ import shelve
 import re
 from fnmatch import fnmatch
 
-from script_mpe import util
+from script_mpe import script_util
 
 from taxus.init import SqlBase, get_session
 from taxus import \
@@ -95,8 +95,8 @@ See topic.py
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = script_util.get_cmd_handlers_2(globals(), 'cmd_')
+commands['help'] = script_util.cmd_help
 
 
 ### Main
@@ -116,13 +116,13 @@ def main(func=None, opts=None):
         assert db, "Not a DB: %s " % opts.flags.dbref
         settings.db = db
 
-    return util.run_commands(commands, settings, opts)
+    return script_util.run_commands(commands, settings, opts)
 
 
 def get_version():
     return 'tag.mpe/%s' % __version__
 
 if __name__ == '__main__':
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = script_util.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit( main( opts.cmds[0], opts ) )
 

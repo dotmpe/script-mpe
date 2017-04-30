@@ -62,7 +62,7 @@ def cmd_spserialata_disk(PLIST, DISK, KEY, settings):
         for disk in adapter['_items']:
             if 'bsd_name' not in disk or not disk['bsd_name']:
                 continue
-            if DISK and device['bsd_name'] != DISK:
+            if DISK and disk['bsd_name'] != DISK:
                 continue
             #plst_dump(disk)
             for k in KEY:
@@ -72,7 +72,8 @@ def cmd_spserialata_disk(PLIST, DISK, KEY, settings):
                     print "",
             print
             return
-    return 1
+    if DISK:
+        return 1
 
 
 def cmd_spserialata_disk_part(PLIST, KEY, settings):
@@ -95,10 +96,9 @@ def cmd_spusb_disk(PLIST, DISK, KEY, settings):
     Find USB device with BSD disk name.
     """
     plst = pbPlist.pbPlist.PBPlist(PLIST)
-    #plst_dump(plst.root[0])
-    for item in plst.root[0]['_items']:
-        for device in item['_items']:
-            if 'bsd_name' not in device or device['bsd_name']:
+    for disk in plst.root[0]['_items']:
+        for device in disk['_items']:
+            if 'bsd_name' not in device or not device['bsd_name']:
                 continue
             if DISK and device['bsd_name'] != DISK:
                 continue
@@ -110,7 +110,9 @@ def cmd_spusb_disk(PLIST, DISK, KEY, settings):
                     print "",
             print
             return
-    return 1
+    if DISK:
+        return 1
+
 
 def cmd_spusb_disk_part(PLIST, KEY, settings):
     plst = pbPlist.pbPlist.PBPlist(PLIST)
@@ -139,6 +141,8 @@ def cmd_spstorage_disk(PLIST, DISK, KEY, settings):
             else:
                 print "",
         print
+    if DISK:
+        return 1
 
 
 

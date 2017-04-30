@@ -5,7 +5,7 @@ set -e
 
 
 # Set env for str.lib.sh
-str_load()
+str_lib_load()
 {
   case "$(uname)" in
       Darwin )
@@ -208,13 +208,61 @@ var2tags()
   done)
 }
 
-# Read properties file and re-escape for shell
+# Read properties file and re-format (like mkvid) for shell use
 properties2sh()
 {
-  awk 'BEGIN { FS = "=" } ;
-      { if (NF<2) next;
-      gsub(/[^a-z0-9]/,"_",$1) ;
-      print $1"="$2 }' $1
+  # NOTE: AWK oneliner to transforms keys for '=' separated kv list, leaving the
+  # value exactly as is.
+  awk '{ st = index($0,"=") ;
+      key = substr($0,0,st-1) ;
+      gsub(/[^a-z0-9]/,"_",key) ;
+      print key "=" substr($0,st+1) }' $1
+
+  # NOTE: This works but it splits at every equals sign
+  #awk 'BEGIN { FS = "=" } ;
+  #    { if (NF<2) next;
+  #    gsub(/[^a-z0-9]/,"_",$1) ;
+  #    print $1"="$2 }' $1
+}
+
+# Take some Propertiesfile compatible lines, strip/map the keys prefix and
+# reformat them as mkvid for use in shell script export/eval/...
+sh_properties()
+{
+  test -n "$1" || error "sh-properties expects args: '$*'" 1
+  test -e "$props" || error "sh-properties file" 1
+  # NOTE: Always be carefull about accidentally introducing newlines, will give
+  # hard-to-debug syntax failures here or in the local evaluation
+  read_nix_style_file $1 | grep '^'"$2" | sed 's/^'"$2"'/'"$3"'/g' | properties2sh -
+}
+
+# A simple string based key-value lookup with some leniency and translation convenience
+# property PREFIX SUBST KEYS...
+property()
+{
+  test -n "$1" || error "property expects props: '$*'" 1
+  local props="$1" prefix="$2" subst="$3" vid=
+  local tmpf=$(setup_tmpf)
+  sh_properties "$1" "$2" "$3" > $tmpf
+  shift 3
+  test -z "$subst" || mkvid "$subst"
+  (
+    . $tmpf
+    rm $tmpf
+    while test -n "$1"
+    do
+      local __key= __value=
+      test -n "$vid" && __key=${vid}_$1 || __key=$1
+      __value="$(eval printf -- \"\$$__key\")"
+#      __value="$(cat <<EOM
+#\$$__key
+#EOM
+#      )"
+      shift
+      test -n "$__value" || continue
+      print_var "$__key" "$__value"
+    done
+  )
 }
 
 # write line or header+line with key/value pairs (sh, csv, tab, or json format)

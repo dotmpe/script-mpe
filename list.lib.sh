@@ -6,6 +6,11 @@ lst__inputs="arguments options paths files"
 lst__outputs="passed skipped errored failed"
 
 
+list_lib_load()
+{
+  lst_preload
+}
+
 lst_preload()
 {
   CWD=$(pwd -P)
@@ -20,9 +25,8 @@ lst_preload()
 
 lst_load()
 {
-
-  sys_load
-  str_load
+  sys_lib_load
+  str_lib_load
 
   # NOTE: single session per proc. nothing sticky.
   test -n "$lst_session_id" || lst_session_id=$(get_uuid)

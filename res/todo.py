@@ -1,13 +1,16 @@
+"""
+File parser for todo.txt format.
+"""
 import re
 import os
 import base64
 
 # local
 import task
+import txt
 
 
-
-class TodoTxtTaskParser(object):
+class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
 
     """
     Split up todo.txt line into parts, and clean-up description.
@@ -27,31 +30,13 @@ class TodoTxtTaskParser(object):
     issue_id_r = re.compile(r"%s([%s]+):%s" % (start_c, task.meta_tag_c, end_c))
 
     def __init__(self, raw, **attrs):
-        self._raw = t = raw.strip()
-        self.attrs = attrs
-        for f in self.fields:
-            t = getattr(self, 'parse_'+f)( t )
-            if not hasattr(self, f):
-                setattr(self, f, None)
-        self.text = t
+        super(TodoTxtTaskParser, self).__init__(raw, **attrs)
         a = self.attrs
         self.tags = list(task.parse_tags(" %s ." % raw))
     def parse_priority(self, t):
         m = self.prio_prefix_r.match(t)
         if m:
             self.priority = m.group(1)
-            return t[sum(m.span()):]
-        return t
-    def parse_creation_date(self, t):
-        m = self.dt_r.match(t)
-        if m:
-            self.creation_date = m.group(1)
-            return t[sum(m.span()):]
-        return t
-    def parse_completion_date(self, t):
-        m = self.dt_r.match(t)
-        if m:
-            self.completion_date = m.group(1)
             return t[sum(m.span()):]
         return t
     def parse_projects(self, t):
@@ -158,15 +143,6 @@ class TodoTxtParser(object):
             else:
                 fn = self.doc_name
             open(fn, 'a+').write(txt+'\n')
-    def load(self, fn):
-        line = 0
-        self.doc_name = fn
-        for todoraw in open( fn ).readlines():
-            line += 1
-            todoraw_ = todoraw.strip()
-            if not todoraw_ or todoraw_[0] == '#': continue
-            ttt = self.parse(todoraw, doc_name=fn, doc_line=line)
-            yield ttt
     def parse(self, todotxtitem, id_len=9, **attrs):
         ttt = TodoTxtTaskParser( todotxtitem, **attrs )
         if ttt.issue_id: tid = ttt.issue_id

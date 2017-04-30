@@ -39,6 +39,12 @@ class SessionMixin(object):
             # XXX: assert session.engine, "existing session does not have engine"
         return session
 
+    def add_self_to_session(self, name='default'):
+        sa = self.__class__.get_session(name)
+        if hasattr(self, 'init_defaults'):
+            self.init_defaults()
+        sa.add(self)
+
 
 class ScriptModelFacade(object):
 
