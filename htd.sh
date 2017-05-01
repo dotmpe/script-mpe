@@ -5202,6 +5202,8 @@ htd__services_list()
     }
   done
 }
+htd_als__list_services=services-list
+
 
 htd__service()
 {
