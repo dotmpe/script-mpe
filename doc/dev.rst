@@ -8,6 +8,8 @@ Issues
 ------
 v0.0.3-3-g39b5e59 1143 lines of todo.txt
 
+TODO: Vagrant, here or in uconf setup testbed
+
 Bugs
 ~~~~~
 1. Regression in radical.py::

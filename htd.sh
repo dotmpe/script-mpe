@@ -5195,7 +5195,7 @@ htd__services_list()
         stderr OK "OK $TYPE $htd_serv_stat_msg [$DIR] ($UNID) "  ||
         warn "Unexpected state 0 for $TYPE [$DIR] ($UNID)"
     } || { E=$?
-      test "$E" -eq "$EXP" && {
+      test "$E" = "$EXP" && {
         stderr note "Ingored non-zero state $EXP for $TYPE [$DIR] ($UNID)"
       } ||
         stderr fail "Failed $TYPE err $E $htd_serv_stat_msg [$DIR] ($UNID) "
