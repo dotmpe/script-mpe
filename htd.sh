@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/bin/bash
+
+#FIXME: !/bin/sh
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
