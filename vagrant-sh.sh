@@ -274,6 +274,7 @@ vagrant_sh_unload()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
+  test -z "$__load_lib" || set -- "load-ext"
   case "$1" in
     load-ext ) ;;
     * )

@@ -6749,7 +6749,7 @@ htd_init()
   #export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta list
   lib_load box date doc table disk remote ignores package service
-  . $scriptpath/vagrant-sh.sh load-ext
+  __load_lib=1 . $scriptpath/vagrant-sh.sh load-ext
   disk_run
   # -- htd box init sentinel --
 }
