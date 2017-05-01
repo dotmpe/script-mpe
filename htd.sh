@@ -8,6 +8,7 @@
 htd_src=$_
 test -z "$__load_lib" || set -- "load-ext"
 
+set -o posix
 set -e
 
 version=0.0.4-dev # script-mpe
