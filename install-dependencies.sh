@@ -42,6 +42,7 @@ test -n "$SRC_PREFIX" ||
 test -n "$PREFIX" ||
   stderr "Not sure where to install (PREFIX missing)" 1
 
+
 test -d $SRC_PREFIX || ${pref} mkdir -vp $SRC_PREFIX
 test -d $PREFIX || ${pref} mkdir -vp $PREFIX
 
