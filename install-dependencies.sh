@@ -2,8 +2,11 @@
 
 set -e
 
-.  $(dirname $0)/util.sh boot
-
+stderr()
+{
+  echo "$log_pref$1" >&2
+  test -z "$2" || exit $2
+}
 
 test -z "$Build_Debug" || set -x
 
@@ -34,10 +37,10 @@ test -w /usr/local || {
 }
 
 test -n "$SRC_PREFIX" ||
-  stderr "Not sure where checkout" 1
+  stderr "Not sure where to checkout (SRC_PREFIX missing)" 1
 
 test -n "$PREFIX" ||
-  stderr "Not sure where to install" 1
+  stderr "Not sure where to install (PREFIX missing)" 1
 
 test -d $SRC_PREFIX || ${pref} mkdir -vp $SRC_PREFIX
 test -d $PREFIX || ${pref} mkdir -vp $PREFIX
@@ -49,7 +52,6 @@ install_bats()
   stderr "Installing bats"
   test -n "$BATS_BRANCH" || BATS_BRANCH=master
   test -n "$BATS_REPO" || BATS_REPO=https://github.com/dotmpe/bats.git
-  test -n "$BATS_BRANCH" || BATS_BRANCH=master
   test -d $SRC_PREFIX/bats || {
     git clone $BATS_REPO $SRC_PREFIX/bats || return $?
   }
@@ -62,25 +64,24 @@ install_bats()
 
 install_composer()
 {
-  test -e ~/.local/bin/composer || {
-    curl -sS https://getcomposer.org/installer |
-      php -- --install-dir=$HOME/.local/bin --filename=composer
+  test -e $PREFIX/bin/composer || {
+    curl -sSf https://getcomposer.org/installer |
+      php -- --install-dir=$PREFIX/bin --filename=composer
   }
-  ~/.local/bin/composer --version
-  test -x "$(which composer)" || {
-    echo "Composer is installed but not found on PATH! Aborted. " >&2
-    return 1
-  }
-  test -e composer.json && {
-    test -e composer.lock && {
-      composer update
-    } || {
-      rm -rf vendor || noop
-      composer install
-    }
-  } || {
-    stderr "No composer.json"
-  }
+  $PREFIX/bin/composer --version
+  ( export PATH=$PATH:$PREFIX/bin
+    test -x "$(which composer)" ||
+      stderr "Composer installed to $PREFIX but not found on PATH! Aborting. " 1
+    test -e composer.json && {
+      test -e composer.lock && {
+        composer update
+      } || {
+        rm -rf vendor || noop
+        composer install
+      }
+    } ||
+      stderr "No composer.json"
+  )
 }
 
 install_docopt()
@@ -192,8 +193,9 @@ install_script()
 main_entry()
 {
   test -n "$1" || set -- all
+  main_load
 
-  case "$1" in all|project|git )
+  case "$1" in all|project|test|git )
       git --version >/dev/null ||
         stderr "Sorry, GIT is a pre-requisite" 1
     ;; esac
@@ -209,26 +211,28 @@ main_entry()
 
   case "$1" in all|build|test|sh-test|bats )
       test -x "$(which bats)" || { install_bats || return $?; }
-      PATH=$PATH:$PREFIX/bin bats --version
+      PATH=$PATH:$PREFIX/bin bats --version ||
+        stderr "BATS install to $PREFIX failed" 1
     ;; esac
 
-  case "$1" in all|dev|build|check|test|git-versioning )
+  case "$1" in php|composer )
+      test -x "$(which composer)" \
+        || install_composer || return $?
+    ;; esac
+
+  case "$1" in dev|build|check|test|git-versioning )
       test -x "$(which git-versioning)" || {
         install_git_versioning || return $?; }
     ;; esac
 
-  case "$1" in all|python|project|docopt)
+  case "$1" in all|python|project|docopt )
       # Using import seems more robust than scanning pip list
       python -c 'import docopt' || { install_docopt || return $?; }
     ;; esac
 
-  case "$1" in npm|redmine|tasks)
-      npm install -g redmine-cli || return $?
-    ;; esac
-
-  case "$1" in redo )
-      # TODO: fix for other python versions
-      install_apenwarr_redo || return $?
+  case "$1" in all|basher|test )
+      test -d ~/.basher ||
+        git clone https://github.com/basherpm/basher.git ~/.basher/
     ;; esac
 
   case "$1" in all|mkdoc)
@@ -244,18 +248,17 @@ main_entry()
       install_script || return $?
     ;; esac
 
+  case "$1" in npm|redmine|tasks)
+      npm install -g redmine-cli || return $?
+    ;; esac
+
   case "$1" in all|project|git|git-lfs )
       # TODO: install_git_lfs
     ;; esac
 
-  case "$1" in all|php|composer)
-      test -x "$(which composer)" \
-        || install_composer || return $?
-    ;; esac
-
-  case "$1" in all|basher|test )
-      test -d ~/.basher ||
-        git clone https://github.com/basherpm/basher.git ~/.basher/
+  case "$1" in redo )
+      # TODO: fix for other python versions
+      install_apenwarr_redo || return $?
     ;; esac
 
   case "$1" in travis|test )
