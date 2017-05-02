@@ -21,7 +21,7 @@ test -z "$Build_Deps_Default_Paths" || {
       || PREFIX=$HOME/.local
   }
 
-  note "Setting default paths: SRC_PREFIX=$SRC_PREFIX PREFIX=$PREFIX"
+  stderr "Setting default paths: SRC_PREFIX=$SRC_PREFIX PREFIX=$PREFIX"
 }
 
 test -n "$sudo" || sudo=
@@ -34,10 +34,10 @@ test -w /usr/local || {
 }
 
 test -n "$SRC_PREFIX" ||
-  error "Not sure where checkout" 1
+  stderr "Not sure where checkout" 1
 
 test -n "$PREFIX" ||
-  error "Not sure where to install" 1
+  stderr "Not sure where to install" 1
 
 test -d $SRC_PREFIX || ${pref} mkdir -vp $SRC_PREFIX
 test -d $PREFIX || ${pref} mkdir -vp $PREFIX
@@ -46,7 +46,7 @@ test -d $PREFIX || ${pref} mkdir -vp $PREFIX
 
 install_bats()
 {
-  note "Installing bats"
+  stderr "Installing bats"
   test -n "$BATS_BRANCH" || BATS_BRANCH=master
   test -n "$BATS_REPO" || BATS_REPO=https://github.com/dotmpe/bats.git
   test -n "$BATS_BRANCH" || BATS_BRANCH=master
@@ -79,7 +79,7 @@ install_composer()
       composer install
     }
   } || {
-    warn "No composer.json"
+    stderr "No composer.json"
   }
 }
 
@@ -101,7 +101,7 @@ install_git_versioning()
 install_mkdoc()
 {
   test -n "$MKDOC_BRANCH" || MKDOC_BRANCH=master
-  echo "Installing mkdoc ($MKDOC_BRANCH)"
+  stderr "Installing mkdoc ($MKDOC_BRANCH)"
   (
     cd $SRC_PREFIX
     test -e mkdoc ||
@@ -162,11 +162,11 @@ install_apenwarr_redo()
     which basher 2>/dev/null >&2 && {
 
       basher install apenwarr/redo ||
-          error "install apenwarr/redo" $?
+          stderr "install apenwarr/redo" $?
 
     } ||
 
-      error "Need basher to install apenwarr/redo locally" 1
+      stderr "Need basher to install apenwarr/redo locally" 1
   }
 }
 
@@ -174,7 +174,7 @@ install_git_lfs()
 {
   # XXX: for debian only, and requires sudo
   test -n "$sudo" || {
-    error "sudo required for GIT lfs"
+    stderr "sudo required for GIT lfs"
     return 1
   }
   curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
@@ -186,8 +186,6 @@ install_script()
 {
   cwd=$(pwd)
   test -e $HOME/bin || ln -s $cwd $HOME/bin
-  echo "install-script pwd=$cwd"
-  echo "install-script bats=$(which bats)"
 }
 
 
@@ -196,11 +194,11 @@ main_entry()
   test -n "$1" || set -- all
 
   case "$1" in all|project|git )
-      git --version >/dev/null || {
-        echo "Sorry, GIT is a pre-requisite"; exit 1; }
+      git --version >/dev/null ||
+        stderr "Sorry, GIT is a pre-requisite" 1
     ;; esac
 
-  case "$1" in all|pip|python )
+  case "$1" in pip|python )
       which pip >/dev/null || {
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
       $pref pip install -U $pip_flags appdirs packaging setuptools
@@ -262,18 +260,30 @@ main_entry()
 
   case "$1" in travis|test )
       test -x "$(which gem)" ||
-        error "ruby/gemfiles required" 1
+        stderr "ruby/gemfiles required" 1
       ruby -v
       gem --version
       test -x "$(which travis)" ||
     	${sudo} gem install travis -v 1.8.6 --no-rdoc --no-ri
     ;; esac
 
-  echo "OK. All pre-requisites for '$1' checked"
+  stderr "OK. All pre-requisites for '$1' checked"
 }
 
-test "$(basename "$0")" = "install-dependencies.sh" && {
-  test -n "$1" || set -- all
+main_load()
+{
+  #test -x "$(which tput)" && ...
+  log_pref="[install-dependencies] "
+  stderr "Loaded"
+}
+
+
+{
+  test "$(basename "$0")" = "install-dependencies.sh" ||
+  test "$(basename "$0")" = "bash" ||
+    stderr "0: '$0' *: $*" 1
+} && {
+  test -n "$1" -o "$1" = "-" || set -- all
   while test -n "$1"
   do
     main_entry "$1" || exit $?
