@@ -155,7 +155,7 @@ statusdir__properties()
           cat $props
         ;;
       sh )
-          properties2sh $props
+          read_nix_style_file $props | properties2sh -
         ;;
     esac
   )
