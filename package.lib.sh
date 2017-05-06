@@ -9,15 +9,18 @@ package_lib_load()
   test -n "$1" || set -- .
   PACKMETA="$(cd "$1" && echo package.y*ml | cut -f1 -d' ')"
   test -e "$1/$PACKMETA" && {
-    test -n "$package_id" && {
-      PACKMETA_BN="$(package_basename)-${package_id}"
-    } || {
-      # Default is main
-      package_id=$(
-        jsotk.py -I yaml -O py objectpath $1/$PACKMETA '$.*[@.main is not None].main'
-      )
+    # Default is main
+    default_package_id=$(
+      jsotk.py -I yaml -O py objectpath $1/$PACKMETA '$.*[@.main is not None].main'
+    )
+    test -n "$package_id" || {
       note "Set main '$package_id' from $1/package"
+      package_id="$default_package_id"
+    }
+    test "$package_id" = "$default_package_id" && {
       PACKMETA_BN="$(package_basename)"
+    } || {
+      PACKMETA_BN="$(package_basename)-${package_id}"
     }
     #PACKMETA_JSON=$1/.$PACKMETA_BN.json
     PACKMETA_JS_MAIN=$1/.$PACKMETA_BN.main.json

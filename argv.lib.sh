@@ -185,13 +185,17 @@ define_var_from_opt()
 {
   case "$1" in
     --*=* )
-        eval $(echo "$1" | cut -c3- | tr '-' '_')
+        key="$(str_strip_rx '=.*$' "$(echo "$1" | cut -c3-)")"
+        value="$(str_strip_rx '^[^=]*=' "$1")"
+        eval $(echo "$key" | tr '-' '_')="$value"
       ;;
     --no-* )
         eval $(echo "$1" | cut -c6- | tr '-' '_')=0
       ;;
     -*=* )
-        eval $(echo "$1" | cut -c2- | tr '-' '_')
+        key="$(str_strip_rx '=.*$' "$(echo "$1" | cut -c2-)")"
+        value="$(str_strip_rx '^[^=]*=' "$1")"
+        eval $(echo "$key" | tr '-' '_')="$value"
       ;;
     --* )
         eval $(echo "$1" | cut -c3- | tr '-' '_')=1

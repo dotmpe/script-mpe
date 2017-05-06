@@ -1,4 +1,6 @@
 
+# Multiple sections but only one main
+# All have an ID, but only type: project requires ID
 
 - type: application/vnd.dotmpe.project
   main: script-mpe-test-1-a

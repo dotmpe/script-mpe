@@ -440,6 +440,7 @@ htd__help_commands()
   echo '  git-init-remote [repo]           Initialze remote bare repo if local path is GIT project'
   echo '  git-remote-info                  Show current ~/.conf/git-remotes/* vars.'
   echo '  git-files [REPO...] GLOB...      Look for file (pattern) in repositories'
+  echo '  git-grep                         See htd help git-grep'
   echo ''
   echo 'Working tree utils'
   echo '  check-names [. [<tags>]]         Check names in path, according to tags.'
@@ -2632,54 +2633,65 @@ htd_defargs_repo__git_files=/src/*.git
 
 #
 htd_man_1__git_grep='Run git-grep for every given repository, passing arguments
-to git-grep. With `-c` interprets argument as shell command first, and passes
-ouput as argument. Defaults to `git rev-list --all` output per repo.
-If env `repos` is provided it is used iso. stdin.
+to git-grep. With `-C` interprets argument as shell command first, and passes
+ouput as argument(s) to `git grep`. Defaults to `git rev-list --all` output
+(which is no pre-run but per exec. repo). If env `repos` is provided it is used
+iso. stdin. Or if `dir` is provided, each "*.git" path beneath that is used.
+Else uses the arguments. If stdin is attach to the terminal, `dir=/src` is set.
 Without any arguments it defaults to scanning all repos for "git.grep".'
-htd_spc__git_grep='REPO... | htd git-grep [ PAT | --grep=PATH ] [ --dir=DIR ] [ -c REPO-CMD ]
-'
+htd_spc__git_grep='git-grep [ -C=REPO-CMD ] [ RX | --grep= ] [ GREP-ARGS | --grep-args= ] [ --dir=DIR | REPOS... ] '
 htd__git_grep()
 {
-  cat $arguments
-  set -- "$(cat $arguments)"
+  set -- $(cat $arguments)
   test -n "$grep" || { test -n "$1" && { grep="$1"; shift; } || grep=git.grep; }
   test -n "$grep_args" -o -n "$grep_eval" || {
     trueish "$C" && {
       test -n "$1" && {
         grep_eval="$1"; shift; } ||
-        grep_eval='$(git rev-list --all)';
+          grep_eval='$(git rev-list --all)';
     } || {
       test -n "$1" && { grep_args="$1"; shift; } || grep_args=master
     }
   }
-  note "Running ($(var2tags grep C grep_eval grep_args repos dir))"
-
-  htd_x__git_grep | { while read repo
+  test "f" = "$stdio_0_type" -o -n "$repos" -o -n "$1" || dir=/src/
+  note "Running ($(var2tags grep C grep_eval grep_args repos dir stdio_0_type))"
+  htd_x__git_grep "$@" | { while read repo
     do
-      echo "Repo: $repo"
-      test -n "$grep_eval" && {
-        cd $repo
-        eval git --no-pager grep $grep $grep_eval || continue
-      } || {
-        cd $repo
-        git grep $grep_args || continue
-      }
+      {
+        info "$repo:"
+        cd $repo || continue
+        test -n "$grep_eval" && {
+          eval git --no-pager grep -il $grep $grep_eval || continue
+        } || {
+          git --no-pager grep -il $grep $grep_args || continue
+        }
+      } | sed 's#^.*#'$repo'\:&#'
     done
   }
   #| less
+  note "Done ($(var2tags grep C grep_eval grep_args repos dir))"
 }
 htd_x__git_grep()
 {
   test -n "$repos" && {
-    echo "$repos"
+    debug "Repos: '$repos'"
+    echo "$repos" | words_to_lines
   } || { test -n "$dir" && {
       for repo in $dir/*.git
-      do
-        echo $repo
-      done
+        do
+          echo $repo
+        done
       noop
-    } || {
-      cat -
+    } || { test -n "$1" && {
+        while test $# -gt 0
+        do
+          echo "$1"
+          shift
+        done
+        noop
+      } || {
+        cat -
+      }
     }
   }
 }

@@ -135,8 +135,13 @@ str_replace()
         match_grep_pattern_test "$2"
         local find=$p_
         match_grep_pattern_test "$3"
-        echo "$1" | sed "s/$find/$p_/g"
+        echo "$1" | sed "s/$find/$p_/"
     }
+}
+
+str_strip_rx()
+{
+  echo "$2" | sed "s/$1//"
 }
 
 # x-platform regex match since Bash/BSD test wont chooche on older osx
