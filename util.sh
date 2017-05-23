@@ -29,9 +29,9 @@ lib_load()
 util_init()
 {
   lib_load
-  #sys_load
-  #str_load
-  #std_load
+  #sys_lib_load
+  #str_lib_load
+  #std_lib_load
 }
 
 

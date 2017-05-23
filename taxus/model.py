@@ -102,7 +102,9 @@ class Bookmark(SqlBase, CardMixin, ORMMixin):#core.Node):
     ref_id = Column(Integer, ForeignKey('ids_lctr.id'))
     ref = relationship(net.Locator, primaryjoin=net.Locator.lctr_id==ref_id)
 
+    name = Column(String(255))
     #extended = Column(Text(65535))#, index=True)
+
     extended = Column(Text)#, index=True)
     "Textual annotation of the referenced resource. "
     public = Column(Boolean(), index=True)

@@ -20,7 +20,6 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
     fields = ("completed priority creation_date completion_date"\
         " projects contexts attrs hold issue_id").split(" ")
     prio_prefix_r = re.compile("^\s*\(([A-F])\)\ |$")
-    dt_r = re.compile("^\s*([0-9]{4}-[0-9]{2}-[0-9]{2})\ |$")
     start_c = r'(^|\W)'
     end_c = r'(?=\ |$|[%s])' % task.excluded_c
     prj_r = re.compile(r"%s\+([%s]+)%s" % (start_c, task.prefixed_tag_c, end_c))
@@ -31,29 +30,29 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
 
     def __init__(self, raw, **attrs):
         super(TodoTxtTaskParser, self).__init__(raw, **attrs)
-        a = self.attrs
         self.tags = list(task.parse_tags(" %s ." % raw))
-    def parse_priority(self, t):
+    def parse_priority(self, t, attr):
         m = self.prio_prefix_r.match(t)
+        setattr(self, 'priority', None)
         if m:
             self.priority = m.group(1)
             return t[sum(m.span()):]
         return t
-    def parse_projects(self, t):
+    def parse_projects(self, t, attr):
         p = []
         for m in self.prj_r.finditer(t):
             if not m or not m.group(2): continue
             p.append(m.group(2))
         self.projects = p
         return t
-    def parse_contexts(self, t):
+    def parse_contexts(self, t, attr):
         c = []
         for m in self.ctx_r.finditer(t):
             if not m or not m.group(2): continue
             c.append(m.group(2))
         self.contexts = c
         return t
-    def parse_attrs(self, t):
+    def parse_attrs(self, t, attr):
         a = {}
         for m in self.meta_r.finditer(t):
             if not m or not m.group(2): continue
@@ -63,17 +62,18 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
     def serialize_attrs(self):
         return " ".join([ "%s:%s" % i for i in self.attrs.items() ])
     attrs_str = property(serialize_attrs, parse_attrs)
-    def parse_hold(self, t):
+    def parse_hold(self, t, attr):
         self.hold = t.endswith("[WAIT]")
         if self.hold:
             return t[:-6]
         return t
-    def parse_completed(self, t):
-        self.completed = t.startswith("x ")
-        if self.completed:
+    def parse_completed(self, t, attr):
+        v = t.startswith("x ")
+        setattr(self, attr, v)
+        if v:
             return t[2:]
         return t
-    def parse_issue_id(self, t):
+    def parse_issue_id(self, t, attr):
         m = self.issue_id_r.match(t)
         if m and m.group(2):
             self.issue_id = m.group(2)
@@ -143,9 +143,15 @@ class TodoTxtParser(object):
             else:
                 fn = self.doc_name
             open(fn, 'a+').write(txt+'\n')
+    def load(self, fn):
+        for i, l in enumerate(open(fn).readlines()):
+            yield self.parse(l, src_name=fn, src_line=i+1)
     def parse(self, todotxtitem, id_len=9, **attrs):
         ttt = TodoTxtTaskParser( todotxtitem, **attrs )
-        if ttt.issue_id: tid = ttt.issue_id
+        if hasattr(ttt, 'issue_id'):
+            tid = ttt.issue_id
+        elif hasattr(ttt, 'item_id'):
+            tid = ttt.item_id
         elif ttt.src_id: tid = ttt.src_id
         elif ttt.doc_id: tid = ttt.doc_id
         else: tid = base64.urlsafe_b64encode(os.urandom(id_len))

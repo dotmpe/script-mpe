@@ -87,7 +87,7 @@ See also db.py
 """
 
 """
-TODO: create item list from index, and vice versa unid:FEGl time:17:43Z
+TODO: create item list from index, and vice versa uid:FEGl time:17:43Z
 See topic.py
 """
 

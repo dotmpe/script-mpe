@@ -352,3 +352,25 @@ htd_remigrate_tasks()
   done
 }
 
+
+# htd-archive-path-format DIR FMT
+htd_archive_path_format()
+{
+  test -d "$1" || error htd-archive-path-format 1
+  fnmatch "*/" "$1" || set -- "$(strip_trail $1)"
+  # Default pattern: "$1/%Y-%m-%d"
+  test -n "$ARCHIVE_FMT" || {
+    test -n "$Y" || Y=/%Y
+    test -n "$M" || M=-%m
+    test -n "$D" || D=-%d
+    # XXX test -n "$EXT" || EXT=.rst
+    #ARCHIVE_BASE=$1$Y
+    #ARCHIVE_ITEM=$M$D$EXT
+    ARCHIVE_FMT=$Y$M$D$EXT
+  }
+  test -n "$2" || set -- "$1" "$ARCHIVE_FMT"
+  f=$1/$2
+  echo $1/$2
+}
+
+

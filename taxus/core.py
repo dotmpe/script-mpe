@@ -36,14 +36,15 @@ class Node(SqlBase, CardMixin, ORMMixin):
 
     __tablename__ = 'nodes'
 
-    # Numeric ID
-    node_id = Column('id', Integer, primary_key=True)
-
     # Node type
     ntype = Column(String(36), nullable=False, default="node")
     __mapper_args__ = {'polymorphic_on': ntype,
             'polymorphic_identity': 'node'}
 
+    # Numeric ID
+    node_id = Column('id', Integer, primary_key=True)
+
+    # Context ID
     space_id = Column(Integer, ForeignKey('spaces.id'))
     space = relationship(
             'Space',
@@ -60,10 +61,10 @@ class Node(SqlBase, CardMixin, ORMMixin):
         )
 
     def __repr__(self):
-        return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.name)
+        return "<%s at %s for %r>" % (lib.cn(self), hex(id(self)), self.node_id)
 
     def __str__(self):
-        return "%s for %r" % (lib.cn(self), self.name)
+        return "%s for %r" % (lib.cn(self), self.node_id)
 
 
 groupnode_node_table = Table('groupnode_node', SqlBase.metadata,
@@ -106,7 +107,7 @@ class Folder(GroupNode):
 class ID(SqlBase, CardMixin, ORMMixin):
 
     """
-    A global system identifier.
+    A global system identifier stored in varchar(255)
     """
 
     zope.interface.implements(iface.IID)

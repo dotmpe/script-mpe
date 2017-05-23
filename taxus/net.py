@@ -100,7 +100,7 @@ class Locator(core.ID):
 
     lctr_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
 
-    # TODO: shortID if length >32
+    ref = Column(Text)
 
     ref_md5_id = Column(Integer, ForeignKey('chks_md5.id'))
     ref_md5 = relationship(checksum.MD5Digest, primaryjoin=ref_md5_id==checksum.MD5Digest.md5_id)

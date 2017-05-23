@@ -3,6 +3,7 @@ sitefile: 0.0.4-dev
 
 port: 4500
 routes: 
+  static: static:./
   _du: 'du:**/*.rst'
   _gv: 'gv:**/*.gv'
   _pu: 'plantuml:**/*.plantuml'

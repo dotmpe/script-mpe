@@ -58,13 +58,14 @@ tasks__trc_list()
   info "Grep: '$tag_grep'"
   info "Sed: '$tag_sed'"
   info "Hub: '$tasks_hub'"
-  info "Docs: '$tasks_docs'"
+  info "Slug: '$todo_slug'"
+  info "Docs: '$todo_document  $todo_done'"
   # Run grep/sed
   test -n "$tag_sed" && {
-    eval "grep -nHsrI '$tag_grep' $tasks_hub $tasks_docs" |
+    eval "grep -nHsrI '$tag_grep' $tasks_hub $todo_document $todo_done" |
       eval "sed -E '$tag_sed' "
   } || {
-    eval "grep -nHsrI '$tag_grep' $tasks_hub $tasks_docs" || return $?
+    eval "grep -nHsrI '$tag_grep' $tasks_hub $todo_document $todo_done" || return $?
   }
 }
 

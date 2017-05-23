@@ -14,8 +14,8 @@ package_lib_load()
       jsotk.py -I yaml -O py objectpath $1/$PACKMETA '$.*[@.main is not None].main'
     )
     test -n "$package_id" || {
-      note "Set main '$package_id' from $1/package"
       package_id="$default_package_id"
+      note "Set main '$package_id' from $1/package default"
     }
     test "$package_id" = "$default_package_id" && {
       PACKMETA_BN="$(package_basename)"

@@ -514,7 +514,7 @@ disk_load()
       ;;
 
     o ) #
-        local subcmd_outf="$(eval echo "\$$(try_local $subcmd outf)")"
+        local subcmd_outf="$(eval echo "\$$(echo_local $subcmd outf)")"
         test -n "$subcmd_outf" || error "List of output names expected" 1
         disk__inputs= disk__outputs="$subcmd_outf" \
           setup_io_paths $subcmd-${disk_session_id}
@@ -537,7 +537,7 @@ disk_unload()
       ;;
 
     o ) # idem. but for subcmd
-        local subcmd_outf="$(eval echo "\$$(try_local $subcmd outf)")"
+        local subcmd_outf="$(eval echo "\$$(echo_local $subcmd outf)")"
         test -n "$subcmd_outf" || error "List of output names expected" 1
         clean_io_lists $subcmd_outf
         disk_report $subcmd_outf || subcmd_result=$?

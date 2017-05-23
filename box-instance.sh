@@ -130,7 +130,7 @@ box_instance_load()
   hostname=$(hostname -s)
   uname=$(uname)
 
-  str_load
+  str_lib_load
 }
 
 box_instance_unload()

@@ -1,5 +1,11 @@
 
-# header char offset
+# Deal with simple whitespace formatted tables
+
+
+# fixed-table-hd-offset HD FIRSTHD TAB
+# Returns header char offset given header key, first header key and file-name.
+# The first header key's offset is set to 0 regardless of its real displacement.
+# For subsequent fields the exact columns to the left is printed.
 fixed_table_hd_offset()
 {
   test -n "$1" || set -- HD "$2" "$3"
@@ -13,6 +19,9 @@ fixed_table_hd_offset()
   sed 's/^\(.*\)'$1'.*/\1/g' | wc -c) - 1 ))
 }
 
+# fixed_table_hd_offsets TAB HD...
+# Given file with tabulated header and a list of header keys, print all
+# field/column offsets.
 fixed_table_hd_offsets()
 {
   local tab=$1 fc=$2
@@ -24,6 +33,8 @@ fixed_table_hd_offsets()
     done
 }
 
+# Create a file with arguments for the posix `cut` command, to split each
+# tabulated line into its separate column fields.
 fixed_table_hd_cuts()
 {
   local tab=$1 fc=$2 offset= lc= old_offset=
@@ -41,22 +52,55 @@ fixed_table_hd_cuts()
     echo "$lc -c$(( $old_offset + 1 ))-"
 }
 
-# print single line of var declarations for each record in table file
+fixed_table_cuts()
+{
+  local colh=$1 dsp=$2
+  shift 2
+  while test ${#@} -gt 0
+  do
+    test -n "$old_offset" && {
+      echo "$colh -c$(( $old_offset + 1 ))-$dsp"
+    }
+    old_offset=$dsp
+    colh=$1
+    dsp=$2
+    shift 2
+  done
+  echo "$colh -c$(( $old_offset + 1 ))-"
+}
+
+# Find first unix-y comment-line and use as table headers
 fixed_table_hd()
 {
-  local tab=$1 cutf=$(dirname $1)/$(basename $1 .tab).cuthd
-  #fixed_table_hd_offsets "$@"
+  test -s "$1" -a -z "$2" ||
+		error "fixed-table-hd only one non-zero file argument expected ('$*')" 1
+  echo $(grep -m 1 '^#' "$1" | sed 's/^#//g')
+}
 
-  # Assemble COLID CUTFLAG table
-  test $cutf -nt $1 || {
-    { echo "# COLVAR CUTFLAG"
-      fixed_table_hd_cuts "$@"
-    } >$cutf
+# Given `cut` arguments file for the file, read each line and fields.
+# Prints a single line of var declarations for each record/line in table file.
+# Passing an existing `cut` arguments file allows to read tables w/o header,
+# e.g. to parse record lines stripped from comments on stdin.
+fixed_table()
+{
+  test -e "$1" || error "fixed-table Table file expected" 1
+  local tab="$1" cutf=
+  test -n "$2" -a -e "$2" && cutf="$2" || {
+    # Get headers from first comment if not given
+    test -n "$2" || set -- "$1" $(fixed_table_hd "$1")
+    # Assemble COLID CUTFLAG table (if missing or stale)
+    cutf="$(dirname "$1")/$(basename "$1" .tab).cuthd"
+    test -e "$cutf" -a "$cutf" -nt "$1" || {
+      { echo "# COLVAR CUTFLAG"
+        fixed_table_hd_cuts "$@"
+      } >$cutf
+    }
   }
+
   # Walk over rows, columns and assemble Sh vars, include raw-src in $line
-  cat $tab | grep -v '^\s*\(#.*\)\?$' | while read line
+  cat "$tab" | grep -v '^\s*\(#.*\)\?$' | while read line
   do
-    cat $cutf | grep -v '^\s*\(#.*\)\?$' | while read col args
+    cat "$cutf" | grep -v '^\s*\(#.*\)\?$' | while read col args
       do
         printf " $col=\"$(echo $(echo "$line" | cut $args))\" "
       done

@@ -142,7 +142,7 @@ box_script_insert_point()
 {
   local subcmd_func= grep_file=$1
   shift
-  local subcmd_func=$(try_local "$@")
+  local subcmd_func=$(echo_local "$@")
   local where_line= line_number= p='^'${subcmd_func}'()$'
   box_grep "$p" "$grep_file" || {
     error "box-script-insert-point: invalid $subcmd_func ($grep_file)" 1

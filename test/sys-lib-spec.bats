@@ -13,8 +13,9 @@ load main.inc
 @test "$lib/${base} try_exec_func on existing function" {
 
   run try_exec_func mytest_function
-  test $status -eq 0
-  test "${lines[0]}" = "mytest"
+  { test $status -eq 0 &&
+    fnmatch "*'mytest_function'*mytest*" "${lines[*]}"
+  } || stdfail
 }
 
 @test "$lib/${base} try_exec_func on non-existing function" {
@@ -28,35 +29,43 @@ load main.inc
   run bash -c 'scriptpath='$lib' && source '$lib'/util.sh && \
     source '$lib'/test/main.inc.bash && try_exec_func mytest_function'
   diag "Output: ${lines[0]}"
-  test "${lines[0]}" = "mytest"
-  test $status -eq 0
+  {
+    test $status -eq 0 &&
+    fnmatch "*'mytest_function'*mytest*" "${lines[*]}"
+  } || stdfail
 }
 
 @test "$lib/${base} try_exec_func (bash) on non-existing function" {
 
   run bash -c 'scriptpath='$lib' && source '$lib'/util.sh && try_exec_func no_such_function'
-  test "" = "${lines[*]}"
-  test $status -eq 1
+  {
+    test "" = "${lines[*]}" &&
+    test $status -eq 1
+  } || stdfail 1
 
   run bash -c 'type no_such_function'
-  test "bash: line 0: type: no_such_function: not found" = "${lines[0]}"
-  test $status -eq 1
+  {
+    test "bash: line 0: type: no_such_function: not found" = "${lines[0]}" &&
+    test $status -eq 1
+  } || stdfail 2
 }
 
 @test "$lib/${base} try_exec_func (sh) on existing function" {
 
   run sh -c 'TERM=dumb && scriptpath='$lib' && . '$lib'/util.sh && \
     . '$lib'/test/main.inc.bash && try_exec_func mytest_function'
-  test -n "${lines[*]}" || diag "${lines[*]}"
-  test "${lines[0]}" = "mytest"
-  test $status -eq 0
+  {
+    test -n "${lines[*]}" &&
+    test "${lines[0]}" = "mytest" &&
+    test $status -eq 0
+  } || stdfail
 }
 
 @test "$lib/${base} try_exec_func (sh) on non-existing function" {
 
   run sh -c 'TERM=dumb && scriptpath='$lib' && . '$lib'/util.sh && try_exec_func no_such_function'
   test -n "${lines[*]}" || diag "${lines[*]}"
-  test "" = "${lines[*]}"
+  test "" = "${lines[*]}" || stdfail 1
 
   case "$(uname)" in
     Darwin )

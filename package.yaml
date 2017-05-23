@@ -146,6 +146,11 @@
         - mime_type:lib...
 
 
+- type: application/vnd.dotmpe.symlinks
+  id: script-mpe-symlinks
+  file: .symlinks.tab
+  attrs: SRC DEST
+
 
 - vagrant_scripts: &vagrant_scripts
     info:

@@ -1,6 +1,6 @@
 2017-04-03 TODO: deprecate move functionality to db_sa.py based store +script-mpe uid:h2U_MT git:b7fc8a7f src_name:tag.py ~berend+dev.mpe
 # no dbm compatibility layer here. Removed ``tag.py``, started ``db.py`` [h2U_MT]
-2017-04-08 TODO: create item list from index, and vice versa unid:FEGl time:17:43Z
+2017-04-08 TODO: create item list from index, and vice versa uid:FEGl time:17:43Z
 # Moving tag list to topic list, and using Taxus backed ``tags.py`` iso old ``tag.py ~/.tags-script.db`` [h2U_MT] [17:43Z]
 (D) 2012-04-29 SCRIPT-MPE-3: reinvent rsr using script libs scr_name:Resourcer.rst
 (E) 2016-07-16 SCRIPT-MPE-1: TODO advanced rules: src_name:htd.rst

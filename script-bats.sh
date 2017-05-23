@@ -76,7 +76,7 @@ script_bats__check_prefix()
 script_bats__update_tab()
 {
   rm .features.tab || noop
-  fixed_table_hd features.tab ID CAT TYPE DOC_REF PREREQ | while read vars
+  fixed_table features.tab ID CAT TYPE DOC_REF PREREQ | while read vars
   do
     echo "$vars" >> .features.tab
   done

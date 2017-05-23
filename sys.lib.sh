@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Sys: lower level Sh helpers; dealing with vars, functions, and other shell
+# Sys: lower level Sh helpers; dealing with vars, functions, env and other shell
 # ideosyncracities
 
 set -e
@@ -188,6 +188,7 @@ func_exists()
 try_exec_func()
 {
   test -n "$1" || return 97
+  debug "try-exec-func '$1'"
   func_exists $1 || return $?
   local func=$1
   shift 1
@@ -253,7 +254,7 @@ setup_tmpd()
 
 # Return path to new file in temp. dir. with ${base}- as filename prefix,
 # .out suffix and subcmd with uuid as middle part.
-# setup-tmp [ext [unid [(RAM_)TMPDIR]]]
+# setup-tmp [ext [uuid [(RAM_)TMPDIR]]]
 setup_tmpf()
 {
   test -n "$1" || set -- .out "$2" "$3"
@@ -287,13 +288,6 @@ sys_confirm()
   trueish "$choice_confirm"
 }
 
-mkrlink()
-{
-  # TODO: find shortest relative path
-  printf "Linking "
-  ln -vs $(basename $1) $2
-}
-
 pretty_print_var()
 {
   var_isset kvsep || kvsep='='
@@ -324,5 +318,29 @@ print_var()
   } || {
     printf -- "$1=$2\n"
   }
+}
+
+# lookup-paths Lists individual paths in lookup path env var (ie. PATH or CLASSPATH)
+# VAR-NAME
+lookup_path_list()
+{
+  test -n "$1" || error "lookup-path varname expected" 1
+  eval echo "\$$1" | tr ':' '\n'
+}
+
+# lookup-path List existing local paths going over paths from lookup in VAR-NAME
+# VAR-NAME LOCAL-PATH
+# lookup-test: command to test for existing local path, defaults to test -e
+# lookup-first: boolean setting to stop after first success
+lookup_path()
+{
+  test -n "$lookup_test" || lookup_test="test -e"
+  lookup_path_list $1 | while read _PATH
+  do
+    eval $lookup_test "$_PATH/$2" && {
+      echo "$_PATH/$2"
+      trueish "$lookup_first" && return 0 || continue
+    } || continue
+  done
 }
 

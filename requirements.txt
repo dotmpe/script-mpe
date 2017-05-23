@@ -15,3 +15,4 @@ twisted
 uriref
 shortuuid
 xattr
+#py-mhash@1.2 malloc problems

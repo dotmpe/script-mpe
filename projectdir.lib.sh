@@ -341,7 +341,7 @@ pd_register()
   while test -n "$1"
   do
     fnmatch "*$1*" "$pd_sets" || pd_sets="$pd_sets $1"
-    registry="$(try_local sets $1)"
+    registry="$(echo_local sets $1)"
     eval export $registry="\"\$$registry $mod\""
     shift
   done
@@ -519,7 +519,7 @@ pd_autodetect()
 
     for target in $targets; do
 
-      func=$(try_local $target-autoconfig $1)
+      func=$(echo_local $target-autoconfig $1)
       try_func $func || continue
 
       (
@@ -754,12 +754,12 @@ pd_run()
           # Resolve aliases
           while true
           do
-            als=$(try_local $comp als)
+            als=$(echo_local $comp als)
             var_isset $als || break
             comp=$(try_value $comp als)
           done
 
-          func=$(try_local $comp "")
+          func=$(echo_local $comp "")
 
           comp_idx=$(( $comp_idx + 1 ))
           ncomp="$(echo "$1" | cut -d ':' -f $comp_idx)"
@@ -768,7 +768,7 @@ pd_run()
           }
 
           try_func "$func" && {
-            try_func $(try_local $comp:$ncomp "") || break
+            try_func $(echo_local $comp:$ncomp "") || break
           }
 
           comp="$comp:$ncomp"
@@ -793,7 +793,7 @@ pd_run()
           unset verbosity
           subcmd="$pd_prefix#$comp"
 
-          record_key="$(eval echo "\"\$$(try_local "$comp" stat)\"")"
+          record_key="$(eval echo "\"\$$(echo_local "$comp" stat)\"")"
           test -n "$record_key" \
             || record_key=$(printf "$comp" | tr -c 'a-zA-Z0-9-' '/')
           states= values=

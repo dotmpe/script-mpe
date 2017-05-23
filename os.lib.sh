@@ -234,6 +234,7 @@ read_file_lines_while()
 
 
 # Change cwd to parent dir with file $1, leave go_to_before var in env.
+#
 go_to_directory()
 {
   test -n "$1" || error "Missing filename arg" 1
@@ -251,6 +252,7 @@ go_to_directory()
   test -e "$1" || return 1
 }
 
+
 # Resolve all symlinks in subtree, return a list with targets
 get_targets()
 {
@@ -263,6 +265,7 @@ get_targets()
     normalize_relative $(dirname $link)/$target
   done | sort -u
 }
+
 
 count_lines()
 {
@@ -317,6 +320,7 @@ line_count()
   echo $lc
 }
 
+
 xsed_rewrite()
 {
     case "$uname" in
@@ -324,6 +328,7 @@ xsed_rewrite()
         Linux ) sed "$@";;
     esac
 }
+
 
 get_uuid()
 {
@@ -373,6 +378,7 @@ get_uuid()
 #  } || set --
 #}
 
+
 # strip-trailing-dash
 strip_trail()
 {
@@ -381,6 +387,7 @@ strip_trail()
   } ||
     echo "$1"
 }
+
 
 # if not exists, create directories and touch file for each given path arg
 assert_files()
@@ -394,6 +401,7 @@ assert_files()
     }
   done
 }
+
 
 lock_files()
 {
@@ -441,3 +449,14 @@ verify_lock()
     test "$(head -n 1 $f.lock | awk '{print $1}')" = "$id" || return 1
   done
 }
+
+
+mkrlink()
+{
+  # TODO: find shortest relative path
+  printf "Linking "
+  ln -vs $(basename $1) $2
+}
+
+
+

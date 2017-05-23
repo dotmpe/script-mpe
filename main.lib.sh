@@ -15,12 +15,6 @@ type noop >/dev/null 2>&1 || {
 }
 
 
-main_load()
-{
-  return 0
-}
-
-
 # Count arguments consumed
 incr_c()
 {
@@ -69,9 +63,9 @@ echo_help()
   return 1
 }
 
-# try_local subcmd [property [base]]
+# echo_local subcmd [property [base]]
 # echos variable or function name
-try_local()
+echo_local()
 {
   test -n "$2" -o -n "$1" || return
   # XXX: box-*
@@ -84,7 +78,7 @@ try_local()
 
 try_value()
 {
-  local value="$(eval echo "\"\$$(try_local "$@")\"")"
+  local value="$(eval echo "\"\$$(echo_local "$@")\"")"
   test -n "$value" || return 1
   echo "$value"
 }
@@ -92,7 +86,7 @@ try_value()
 try_local_var()
 {
   test -n "$1" || error "var" 1
-  local value="$(eval echo "\$$(try_local "$2" "$3" "$4")")"
+  local value="$(eval echo "\$$(echo_local "$2" "$3" "$4")")"
   test -n "$value" && {
     export $1="$value"
   } || return $?
@@ -119,7 +113,9 @@ try_func()
 
 try_local_func()
 {
-  try_func $(try_local "$@") || return $?
+  test -n "$DEBUG" ||
+    debug "try-local-func '$*' ($(echo_local "$@"))"
+  try_func $(echo_local "$@") || return $?
 }
 
 get_subcmd_func()
@@ -131,16 +127,13 @@ get_subcmd_func()
     }
     set -- "$subcmd"
   }
-  #test -n "$subcmd" || error "get-subcmd-func $subcmd" 1
-
-  # Look in local and std namespace
+  test -n "$1" || error "get-subcmd-func $subcmd" 1
 
   local subcmd_default= b=
-
-  for b in "" std
+  for b in $base std
   do
+    # Look for subcmd ($1) in each namespaces
     set -- "$1" "" "$b"
-
     try_local_func "$@" || {
       # Try command alias
       try_local_var cmd_als $1 als $b
@@ -151,10 +144,11 @@ get_subcmd_func()
     }
 
     try_local_func "$@" && {
-      subcmd_func="$(try_local "$@")"
+      subcmd_func="$(echo_local "$@")"
       return
     }
   done
+  return 1
 }
 
 
@@ -179,7 +173,7 @@ try_subcmd()
         ( try_local_func usage || try_local_func usage '' std ) && {
           $func_name
         }
-        error "No such command: $subcmd" 1
+        error "No such command: $subcmd ($func_name)" 1
       } || {
         error "Command $subcmd returned $e" $e
       }
@@ -591,7 +585,7 @@ main_unload()
   for b in "$1" "std"
   do
     try_local_func "" "unload" "$b" && {
-      $(try_local "" unload $b) || return $?
+      $(echo_local "" unload $b) || return $?
     } || continue
     return
   done
@@ -643,6 +637,7 @@ run_subcmd()
     stdio_0_type= stdio_1_type= stdio_2_type=
 
   main_init
+
 
   #func_exists ${base}_parse_subcmd_args
 

@@ -38,16 +38,14 @@ htd_load()
   test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE="$CWD"/tools.yml
   test -n "$HTD_TOOLSDIR" || HTD_TOOLSDIR=$HOME/.htd-tools
   test -n "$HTD_JRNL" || HTD_JRNL=personal/journal
+  test -n "$HTD_EXT" || HTD_EXT=~/htdocs:~/bin
+  test -n "$HTD_SERVTAB" || export HTD_SERVTAB=$UCONFDIR/htd-services.tab
+  test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
+  test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
   test -n "$FIRSTTAB" || export FIRSTTAB=50
   test -n "$LOG" ||
     export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
-  test -n "$HTD_SERVTAB" || export HTD_SERVTAB=$UCONFDIR/htd-services.tab
-
-  test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
-  test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
-
-  #test -e .package.sh && . .package.sh
-  #echo xxx1.package_id=$package_id
+  test -n "$CABINET_DIR" || export CABINET_DIR=cabinet
 
   projectdirs="$(echo ~/project ~/work/*/tree)"
 
@@ -114,7 +112,6 @@ htd_load()
   }
 
   test -n "$htd_session_id" || htd_session_id=$(htd__uuid)
-  test -n "$choice_interactive" || choice_interactive=1
 
   # Process subcmd 'run' flags, single letter code triggers load/unload actions.
   # Sequence matters. Actions are predefined, or supplied using another subcmd
@@ -127,7 +124,7 @@ htd_load()
     A ) # 'argsv' callback gets subcmd arguments, defaults to opt_arg.
     # Underlying code usually expects env arguments and options set. Maybe others.
     # See 'i'. And htd_inputs/_outputs env.
-        local htd_subcmd_argsv=$(try_local $subcmd argsv)
+        local htd_subcmd_argsv=$(echo_local $subcmd argsv)
         func_exists $htd_subcmd_argsv || {
           htd_subcmd_argsv="$(eval echo "\$$htd_subcmd_argsv")"
           # std. behaviour is a simmple for over the arguments that sorts
@@ -138,13 +135,13 @@ htd_load()
       ;;
 
     a ) # trigger 'argsv' attr. as argument-process-code
-        local htd_args_handler="$(eval echo "\$$(try_local $subcmd argsv)")"
+        local htd_args_handler="$(eval echo "\$$(echo_local $subcmd argsv)")"
         case "$htd_args_handler" in
 
           arg-groups* ) # Read in '--' separated argument groups, ltr/rtl
             test "$htd_args_handler" = arg-groups-r && dir=rtl || dir=ltr
 
-            local htd_arg_groups="$(eval echo "\$$(try_local $subcmd arg-groups)")"
+            local htd_arg_groups="$(eval echo "\$$(echo_local $subcmd arg-groups)")"
 
             # To read groups from the end instead,
             test $dir = ltr \
@@ -162,7 +159,7 @@ htd_load()
                 shift
 
               test -s $arguments.$groups || {
-                local htd_defargs="$(eval echo "\$$(try_local $subcmd defargs-$group)")"
+                local htd_defargs="$(eval echo "\$$(echo_local $subcmd defargs-$group)")"
                 test -z "$htd_defargs" \
                   || { echo $htd_defargs | words_to_lines >>$arguments.$group; }
               }
@@ -214,18 +211,18 @@ htd_load()
       ;;
 
     O ) # 'optsv' callback is expected to process $options from input(s)
-        local htd_subcmd_optsv=$(try_local $subcmd optsv)
+        local htd_subcmd_optsv=$(echo_local $subcmd optsv)
         func_exists $htd_subcmd_optsv || {
           htd_subcmd_optsv="$(eval echo "\"\$$htd_subcmd_optsv\"")"
           test -n "$htd_subcmd_optsv" || htd_subcmd_optsv=htd_optsv
         }
-        test -s "$options" && {
-          $htd_subcmd_optsv
+        test -e "$options" && {
+          $htd_subcmd_optsv "$(cat $options)"
         } || noop
       ;;
 
     P )
-        local prereq_func="$(eval echo "\"\$$(try_local $subcmd pre)\"")"
+        local prereq_func="$(eval echo "\"\$$(echo_local $subcmd pre)\"")"
         test -z "$prereq_func" || $prereq_func $subcmd
       ;;
 
@@ -289,7 +286,7 @@ htd_unload()
       ;;
 
     P )
-        local postreq_func="$(eval echo "\"\$$(try_local $subcmd post)\"")"
+        local postreq_func="$(eval echo "\"\$$(echo_local $subcmd post)\"")"
         test -z "$postreq_func" || $postreq_func $subcmd
       ;;
 
@@ -1060,7 +1057,7 @@ htd__test_find_path_locals()
 # List root IDs
 htd__list_local_ns()
 {
-  fixed_table_hd $ns_tab SID GROUPID| while read vars
+  fixed_table $ns_tab SID GROUPID| while read vars
   do
     eval local "$vars"
     echo $SID
@@ -1072,7 +1069,7 @@ htd_spc__ns_names='ns-names [<path>|<localname> [<ns>]]'
 htd__ns_names()
 {
   test -z "$3" || error "Surplus arguments: $3" 1
-  fixed_table_hd $ns_tab SID GROUPID | while read vars
+  fixed_table $ns_tab SID GROUPID | while read vars
   do
     eval local "$vars"
     note "FIXME: $SID eval local var from pathnames.tab"
@@ -1197,6 +1194,7 @@ htd__edit_today()
 htd_als__vt=edit-today
 
 
+htd_spec__archive_path='archive-path DIR '
 # TODO consolidate with today, split into days/week/ or something
 htd__archive_path()
 {
@@ -1523,10 +1521,10 @@ htd__ssh()
       ;;
 
     # TODO: harbour aliases in private space shomehow
-    dandy-home )     htd ssh dandy "cd ~/ && bash -i " ;;
-    dandy-conf )     htd ssh dandy "cd ~/.conf && bash -i " ;;
-    dandy-bin )      htd ssh dandy "cd ~/bin && bash -i " ;;
-    dandy-htd )      htd ssh dandy "cd ~/htdocs && bash -i " ;;
+    dandy-home )     htd ssh dandy "export CS=$CS; cd ~/ && bash -i " ;;
+    dandy-conf )     htd ssh dandy "export CS=$CS; cd ~/.conf && bash -i " ;;
+    dandy-bin )      htd ssh dandy "export CS=$CS; cd ~/bin && bash -i " ;;
+    dandy-htd )      htd ssh dandy "export CS=$CS; cd ~/htdocs && bash -i " ;;
 
     # @Home
     * )
@@ -1550,7 +1548,7 @@ htd__ssh()
           note "Host '$1' is online, trying command '$2'.." ||
           note "Host '$1' is online, trying ssh connect.."
 
-        ssh -t $1 "$2" || ret=$?
+        ssh -t $1 "export CS=$CS; $2" || ret=$?
         test -n "$2" && {
           test -z "$ret" -o "$ret" = "0" &&
             note "Command $1: '$2' completed OK" ||
@@ -1662,7 +1660,7 @@ htd__tasks_scan()
     note "OK. $(read_nix_style_file $todo_document | count_lines) task lines"
   }
 }
-htd_run__tasks_scan=iAO
+htd_run__tasks_scan=iAOp
 
 
 htd_man_1__tasks_grep="Use Htd's built-in todo grep list command to get local
@@ -1670,23 +1668,23 @@ htd_man_1__tasks_grep="Use Htd's built-in todo grep list command to get local
 htd_spc__tasks_grep='tasks-grep [ --tasks-grep-expr | --Check-All-Tags] [ --Check-All-Files]'
 htd__tasks_grep()
 {
-	local out=$(setup_tmpf .out)
-	# NOTE: not using tags from metadata yet, need to build expression for tags
-	trueish "$Check_All_Tags" && {
+  local out=$(setup_tmpf .out)
+  # NOTE: not using tags from metadata yet, need to build expression for tags
+  trueish "$Check_All_Tags" && {
     test -n "$tasks_grep_expr" ||
       tasks_grep_expr='\<\(TODO\|FIXME\|XXX\)\>' # tasks:no-check
-	} || {
-		test -n "$tasks_grep_expr" || tasks_grep_expr='\<XXX\>' # tasks:no-check
-	}
-	test -e .git && src_grep="git grep -nI" || src_grep="grep -nsrI \
+  } || {
+    test -n "$tasks_grep_expr" || tasks_grep_expr='\<XXX\>' # tasks:no-check
+  }
+  test -e .git && src_grep="git grep -nI" || src_grep="grep -nsrI \
       --exclude '*.html' "
-	# Use local settings to filter grep output, or set default
+  # Use local settings to filter grep output, or set default
   local $(package_sh id pd_meta_tasks_grep_filter)
   test -n "$pd_meta_tasks_grep_filter" ||
     pd_meta_tasks_grep_filter="eval grep -v '\\<tasks\\>.\\<ignore\\>'"
   note "Grepping.. ($(var2tags \
     Check_All_Tags Check_All_Files tasks_grep_expr pd_meta_tasks_grep_filter))"
-	$src_grep \
+  $src_grep \
     $tasks_grep_expr \
   | $pd_meta_tasks_grep_filter \
   | while IFS=: read srcname linenr comment
@@ -1712,7 +1710,7 @@ htd__tasks_local()
     $htd_tasks_grep
     return 0
   } || {
-		htd__tasks_grep
+    htd__tasks_grep
   }
 }
 htd_run__tasks_local=iAO
@@ -1785,7 +1783,7 @@ htd__tasks_hub()
         local todo_document=
         cd $d/$proj
         test -e todo.txt && todo_document=todo.txt || {
-          eval $(map=pd_meta_tasks_:todo_ package_sh id todo_document)
+          eval $(map=pd_meta_tasks_:todo_ package_sh id document)
         }
         (
         test -n "$todo_document" || warn "no doc ($proj)" 1
@@ -1832,10 +1830,10 @@ htd__tasks_hub()
           warn "No files to look for tags" ||
             htd__todotxt_tags $tasks_hub/*.*
       ;;
-    * ) error "? '$*'" ;;
+    * ) error "tasks-hub? '$*'" ;;
   esac
 }
-htd_run__tasks_hub=eiAO
+htd_run__tasks_hub=eiAOp
 
 
 # TODO: introduce htd proc LIST
@@ -1895,7 +1893,7 @@ htd__tasks_buffers()
           echo cabinet/done-at-$ctx.list
           echo to/do-at-$ctx.sh
         ;;
-      * ) error "'$tag'?" 1 ;;
+      * ) error "tasks-buffers '$tag'?" 1 ;;
     esac
   done
 }
@@ -2030,8 +2028,7 @@ htd_tasks_load()
   while test -n "$1"
   do case "$1" in
     init )
-  eval $(map=package_pd_meta_tasks_:todo_ package_sh todo_document todo_done  \
-    todo_slug )
+  eval $(map=package_pd_meta_tasks_:todo_ package_sh document done slug )
   test -n "$todo_document" || todo_document=todo.$TASK_EXT
   test -n "$todo_done" ||
     todo_done=$(pathname "$todo_document" $TASK_EXTS)-done.$TASK_EXT
@@ -2047,26 +2044,26 @@ htd_tasks_load()
     tasks-hub | tasks-process )
   test -e "./to" && tasks_hub=./to
   test -n "$tasks_hub" ||
-    tasks_hub=$(map=package_pd_meta_ package_sh tasks_hub)
+    tasks_hub=$(map=package_pd_meta_ package_sh hub)
   test -n "$tasks_hub" || error tasks-hub 1
   test ! -e "./to" -o "$tasks_hub" = "./to" ||
     error "hub ./to left behind" 1
   ;;
     tags )
-  local $(map=package_pd_meta_ package_sh tasks_tags)
+  local $(map=package_pd_meta_ package_sh tags)
   test -n "$tasks_tags" ||
     tasks_tags="$(package_sh_list .package.sh pd_meta_tasks_tags \
       | lines_to_words )"
   ;;
     coops )
-  local $(map=package_pd_meta_ package_sh tasks_coops)
+  local $(map=package_pd_meta_ package_sh coops)
   test -n "$tasks_coops" ||
     tasks_coops="$(package_sh_list .package.sh pd_meta_tasks_coops \
       | lines_to_words )"
   ;;
     be* | proc* )
   ;;
-    * ) error "load? '$1'" ;; esac ; shift ; done
+    * ) error "tasks-load '$1'?" ;; esac ; shift ; done
 }
 
 
@@ -2622,7 +2619,7 @@ htd__git_files()
   do
     cd $repo || continue
     # NOTE: only lists files at HEAD branch
-    git ls-tree --full-tree -r HEAD | cut -d "	" -f 2 \
+    git ls-tree --full-tree -r HEAD | cut -d "  " -f 2 \
       | sed 's#^#'"$repo"':HEAD/#' | grep "$pat"
   done
 }
@@ -3252,12 +3249,40 @@ htd_run__push_commit_all=iIAO
 htd_als__pcia=push-commit-all
 
 
+htd__archive_init()
+{
+  test -d "$CABINET_DIR" || {
+    trueish "$interactive" || {
+      sys_confirm "No local cabinet exists, created it? [yes/no]" || {
+        warn "Cabinet folder missing ($CABINET_DIR)" 1 
+      }
+      mkdir -vp $CABINET_DIR
+    }
+  }
+  return 1
+}
+
 # Move path to archive path in htdocs cabinet
-# XXX: see backup.
+# XXX: see backup, archive-path
 # $ archive [<prefix>]/[<datepath>]/[<id>] <refs>...
+htd_spc__archive='archive REFS..'
+htd_env__archive='
+  foo=
+'
 htd__archive()
 {
-  test -n "$1" || error "ID expected"
+  test -d "$CABINET_DIR" || htd__archive_init
+  test -n "$1" || warn "expected references to backup" 1
+  while test $# -gt 0
+  do
+    htd_archive_path_format $CABINET_DIR $1
+    shift 
+  done
+}
+htd_run__archive=ieAO
+htd_argsv__archive()
+{
+  opt_args "$@"
 }
 
 
@@ -3317,7 +3342,31 @@ htd__save()
 }
 
 
-htd_run__tags=tags
+htd__tags()
+{
+  test -n "$DBFILE" || DBFILE=~/.bookmarks.sqlite
+echo
+  sqlite3 $DBFILE <<SQL
+    SELECT n2.\`name\`, n1.\`id\` FROM names n2, nodes n1
+    JOIN names ON n2.id = n1.id ;
+SQL
+echo $?
+echo
+  exit $?
+  sqlite3 $DBFILE <<SQL
+    SELECT * FROM names_tag ;
+SQL
+  sqlite3 $DBFILE <<SQL
+    SELECT nodes.\`id\`, names.\`name\`
+    FROM
+      names_tag,
+      names,
+      nodes
+    JOIN names_tag ON names.id = names_tag.id
+    JOIN names ON nodes.id = names.id ;
+SQL
+#  ORDER BY p.time DESC;
+}
 
 
 htd__save_url()
@@ -3359,7 +3408,7 @@ htd_man_1__package="
 htd__package()
 {
   #test -z "$1" || export package_id=$1
-  package_lib_load 
+  package_lib_load
   test -n "$1" && {
     # Turn args into var-ids
     extra() { for k in $@; do mkvid "$k"; printf -- "$vid "; done; }
@@ -3391,7 +3440,7 @@ htd__topics_list()
 {
   cd $HTDIR
   local $(map=package_pd_meta_ext_topics_:topics_list_ \
-    package_sh  topics_list_id  topics_list_roots )
+    package_sh  id  roots )
   test -n "$topics_list_id" || error topic-list-id 1
   test -n "$topics_list_roots" || error topic-list-roots 1
   # TODO: topics personal/ web/ domain?
@@ -3562,7 +3611,7 @@ htd__run_rules()
   htd__period_status_files
   test -z "$DEBUG" \
     || fixed_table_hd_offsets $htd_rules CMD RT TARGETS CWD
-  fixed_table_hd $htd_rules CMD RT TARGETS CWD | while read vars
+  fixed_table $htd_rules CMD RT TARGETS CWD | while read vars
   do
     eval local "$vars"
     for target in $TARGETS
@@ -3622,6 +3671,50 @@ htd__rule_target()
   esac
 }
 
+
+htd_man_1__storage=''
+htd_spc__storage='storage TAG ACTION'
+htd__storage()
+{
+  test -n "$2" || set -- "$1" process
+  eval $(package_sh id lists_default)
+  test -n "$*" || { set -- $lists_default; note "Setting default tag args '$*'"; }
+  while test $# -gt 0
+  do
+    local scr= cb= be=
+    htd__get_backend "$1" store/ $2 || {
+      stderr debug "Skipping non-storage '$1'"; shift 2; continue; }
+    note "Processing for '$1':"; $cb ; shift 2
+  done
+}
+htd_run__storage=Ap
+htd_argsv__storage=htd_argsv__tasks_session_start
+
+
+htd__get_backend()
+{
+  test -n "$2" || set -- "$1" "store/" "$3"
+  test -n "$3" || set -- "$1" "$2" "stat"
+  case "$1" in
+    @* ) ctx=$(echo "$1" | cut -c2- ) ; be=at-$ctx
+      ;;
+    +* ) ctx=$(echo "$1" | cut -c2- ) ; be=in-$ctx
+      ;;
+    * ) error "get-backend '$1'?" 1 ;;
+  esac
+  mksid $be
+  scr=$( htd__extensions $2$sid )
+  test -n "$scr" || return 1
+  mkvid ${be}__${3} ; cb=${vid} ; . $scr ; func_exists $cb
+}
+
+
+htd__extensions()
+{
+  lookup_test="test -x" lookup_path HTD_EXT $1.sh
+}
+
+
 htd_man_1__process='Process each item in list.
   name.list
   to/see.list
@@ -3647,6 +3740,7 @@ htd__process()
     scr="$(htd__tasks_buffers "$tag" | grep '\.sh$' | head -n 1)"
     test -n "$scr" -a -e "$scr" || continue
     test -x "$scr" || { warn "Disabled: $scr"; continue; }
+
     echo tag=$tag scr=$scr
     #grep $tag'\>' $todo_document | $scr
     # htd_tasks__at_Tasks process line
@@ -4205,73 +4299,98 @@ htd__mux()
 }
 
 
+htd_man_1__tmux_sockets='List sockets of tmux servers. Each server is a separate
+env with sessions and windows. '
+htd__tmux_sockets()
+{
+  test -n "$1" || set NAME
+  {
+    lsof -U | grep '^tmux'
+  } | {
+      case "$1" in
+      COMMAND ) awk '{print $1}' ;;
+      PID ) awk '{print $2}' ;;
+      USER ) awk '{print $3}' ;;
+      FD ) awk '{print $4}' ;;
+      TYPE ) awk '{print $5}' ;;
+      DEVICE ) awk '{print $6}' ;;
+      #NODE ) awk '{print $8}' ;;
+      NAME )
+          awk '{print $8}'
+          awk '{print $9}'
+        ;;
+    esac
+  }
+}
+
+
+htd__tmux_list_sessions()
+{
+  test -n "$1" || set -- $(htd__tmux_sockets) 
+  while test $# -gt 0
+  do
+    test -e "$1" && {
+      note "Listing for '$1'"
+      tmux -S "$1" list-sessions
+    } || {
+      error "Given socket does not exists: '$1'"
+    }
+    shift
+  done
+}
+
+
+tmux_env_req()
+{
+  test -n "$TMUX_TMPDIR" || export TMUX_TMPDIR=/opt/tmux-socket
+  mkdir -vp $TMUX_TMPDIR
+  test -n "$TMUX_SOCK" || {
+    test -n "$TMUX_SOCK_NAME" || export TMUX_SOCK_NAME=default
+    export TMUX_SOCK=/opt/tmux-socket/tmux-$(id -u)/$TMUX_SOCK_NAME
+    falseish "$1" || {
+      test -S  "$TMUX_SOCK" || 
+        error "No tmux socket $TMUX_SOCK_NAME (at '$TMUX_SOCK')" 1
+    }
+  }
+  #tmux="tmux -S \"$TMUX_SOCK\""
+  tmux="tmux -S $TMUX_SOCK "
+}
+
+
 htd__tmux_prive()
 {
   req_dir_env HTDIR
+  test -n "$TMUX_SOCK" || tmux_env_req
   test -n "$1" || set -- "*"
   cd
   case "$1" in init|"*" )
-  tmux has-session -t Prive >/dev/null || {
+  $tmux has-session -t Prive >/dev/null || {
     htd__tmux_init Prive
-    tmux send-keys -t Prive:1 "cd;simza test" enter
+    $tmux send-keys -t Prive:1 "cd;simza test" enter
   }
-  tmux list-windows -t Prive | grep -q HtD || {
-    tmux new-window -t Prive -n HtD
-    tmux send-keys -t Prive:HtD "cd $HTDIR; htd today $HTD_JRNL;git st" enter
-    tmux send-keys -t Prive:HtD "git add -u;git add dev/ personal/*.rst
+  $tmux list-windows -t Prive | grep -q HtD || {
+    $tmux new-window -t Prive -n HtD
+    $tmux send-keys -t Prive:HtD "cd $HTDIR; htd today $HTD_JRNL;git st" enter
+    $tmux send-keys -t Prive:HtD "git add -u;git add dev/ personal/*.rst
     $HTD_JRNL/2*.rst sysadmin/*.rst *.rst;git st" enter
     note "Initialized 'HtD' window"
   }
-  tmux list-windows -t Prive | grep -q '\ conf' || {
-    tmux new-window -t Prive -n conf
-    tmux send-keys -t Prive:conf "cd ~/.conf;git st" enter
+  $tmux list-windows -t Prive | grep -q '\ conf' || {
+    $tmux new-window -t Prive -n conf
+    $tmux send-keys -t Prive:conf "cd ~/.conf;git st" enter
     note "Initialized 'conf' window"
   }
-  tmux list-windows -t Prive | grep -q Bin || {
-    tmux new-window -t Prive -n Bin
-    tmux send-keys -t Prive:Bin "cd ~/bin;git st" enter
+  $tmux list-windows -t Prive | grep -q Bin || {
+    $tmux new-window -t Prive -n Bin
+    $tmux send-keys -t Prive:Bin "cd ~/bin;git st" enter
     note "Initialized 'Bin' window"
-  }
-  ;; esac
-
-  case "$1" in ino )
-  tmux list-windows -t Prive | grep -q Ino || {
-    tmux new-window -t Prive -n Ino
-    tmux send-keys -t Prive:Ino "cd ~/project/arduino-docs;git st" enter
-    note "Initialized 'Ino' window"
-  }
-  ;; esac
-
-  case "$1" in eagle )
-  tmux list-windows -t Prive | grep -q EAGLE || {
-    tmux new-window -t Prive -n EAGLE
-    tmux send-keys -t Prive:EAGLE "cd ~/project/Eagle-mpe;git st" enter
-    note "Initialized 'EAGLE' window"
-  }
-  ;; esac
-  #tmux list-windows -t Prive | grep -q Loci || {
-  #  tmux new-window -t Prive -n Loci
-  #  tmux send-keys -t Prive:Loci "cd ~/project/node-loci;git st" enter
-  #}
-  case "$1" in sf )
-  tmux list-windows -t Prive | grep -q Sf || {
-    tmux new-window -t Prive -n Sf
-    tmux send-keys -t Prive:Sf "cd ~/project/node-sitefile;git st" enter
-    note "Initialized SiteFile [Sf] window"
-  }
-  ;; esac
-
-  case "$1" in docs )
-  tmux list-windows -t Prive | grep -q Docs || {
-    tmux new-window -t Prive -n Docs
-    tmux send-keys -t Prive:Docs "cd ~/Documents/;git st" enter
-    note "Initialized Documents window"
   }
   ;; esac
 }
 
 htd__tmux_work()
 {
+  test -n "$TMUX_SOCK" || tmux_env_req 0
   test -n "$1" || set -- "*"
   cd ~/work/brix
 
@@ -4279,28 +4398,28 @@ htd__tmux_work()
 
   case "$1" in init|"*" )
 
-  tmux has-session -t Work >/dev/null || htd__tmux_init Work bash
+  $tmux has-session -t Work >/dev/null || htd__tmux_init Work bash
   sleep 2
 
   # Make sure Log window is on and first window (swapping some windows if
   # needed, maybe better way it to start server by hand instead of usign new-session?)
 
-  tmux list-windows -t Work | grep -q Log || {
+  $tmux list-windows -t Work | grep -q Log || {
     # No log, new session, need to clean up first window, add one first to keep session
-    tmux new-window -t Work -n temporary
-    tmux kill-window -t Work:1
+    $tmux new-window -t Work -n temporary
+    $tmux kill-window -t Work:1
   }
   sleep 1
 
-  tmux list-windows -t Work | grep -q '1:\ Log' || {
-    tmux new-window -t Work -n Log
-    tmux send-keys -t Work:Log "cd ~/work/brix/;htd today log" enter
-    tmux send-keys -t Work:Log "(cd log;git add -u;git add 20*.rst; git st)" enter
+  $tmux list-windows -t Work | grep -q '1:\ Log' || {
+    $tmux new-window -t Work -n Log
+    $tmux send-keys -t Work:Log "cd ~/work/brix/;htd today log" enter
+    $tmux send-keys -t Work:Log "(cd log;git add -u;git add 20*.rst; git st)" enter
   }
   sleep 1
 
-  tmux list-windows -t Work | grep -q temporary && {
-    tmux kill-window -t Work:temporary
+  $tmux list-windows -t Work | grep -q temporary && {
+    $tmux kill-window -t Work:temporary
   } || noop
 
   ;; esac
@@ -4309,16 +4428,16 @@ htd__tmux_work()
   ### Add other windows
 
   case "$1" in tree|"*" )
-  tmux list-windows -t Work | grep -q Tree || {
-    tmux new-window -t Work -n Tree
-    tmux send-keys -t Work:Tree "cd ~/work/brix/" enter "make status" enter
+  $tmux list-windows -t Work | grep -q Tree || {
+    $tmux new-window -t Work -n Tree
+    $tmux send-keys -t Work:Tree "cd ~/work/brix/" enter "make status" enter
     note "Initialized Tree window"
   }
   ;; esac
   case "$1" in cln|"*" )
-  tmux list-windows -t Work | grep -q Cleaning || {
-    tmux new-window -t Work -n TreeCln
-    tmux send-keys -t Work:TreeCln "cd /Volumes/Simza/WorkCleaning/brix" enter "make status" enter
+  $tmux list-windows -t Work | grep -q Cleaning || {
+    $tmux new-window -t Work -n TreeCln
+    $tmux send-keys -t Work:TreeCln "cd /Volumes/Simza/WorkCleaning/brix" enter "make status" enter
     note "Initialized TreeCln window"
   }
   ;; esac
@@ -4337,19 +4456,19 @@ htd__tmux_work()
   ;; esac
 
   case "$1" in studio|"*" )
-  tmux list-windows -t Work | grep -q BrxStd || {
-    tmux new-window -t Work -n BrxStd
-    tmux send-keys -t Work:BrxStd "cd /Volumes/Simza/WorkCleaning/brix/tree/brixcloud-studio-testing" enter "git st" enter
+  $tmux list-windows -t Work | grep -q BrxStd || {
+    $tmux new-window -t Work -n BrxStd
+    $tmux send-keys -t Work:BrxStd "cd /Volumes/Simza/WorkCleaning/brix/tree/brixcloud-studio-testing" enter "git st" enter
     note "Initialized BrxStd window"
   }
-  tmux list-windows -t Work | grep -q BrxStdT || {
-    tmux new-window -t Work -n BrxStdT
-    tmux send-keys -t Work:BrxStdT "cd /Volumes/Simza/WorkCleaning/brix/tree/brixcloud-studio-testing2;ls -la" enter
+  $tmux list-windows -t Work | grep -q BrxStdT || {
+    $tmux new-window -t Work -n BrxStdT
+    $tmux send-keys -t Work:BrxStdT "cd /Volumes/Simza/WorkCleaning/brix/tree/brixcloud-studio-testing2;ls -la" enter
     note "Initialized BrxStdT window"
   }
-  tmux list-windows -t Work | grep -q BrxStdSkl || {
-    tmux new-window -t Work -n BrxStdSkl
-    tmux send-keys -t Work:BrxStdSkl "cd ~/work/brix/tree/brixcloud-studio-skeleton" enter "git st" enter
+  $tmux list-windows -t Work | grep -q BrxStdSkl || {
+    $tmux new-window -t Work -n BrxStdSkl
+    $tmux send-keys -t Work:BrxStdSkl "cd ~/work/brix/tree/brixcloud-studio-skeleton" enter "git st" enter
     note "Initialized BrxStdSkl window"
   }
   ;; esac
@@ -4358,45 +4477,49 @@ htd__tmux_work()
   ### Clients
 
   case "$1" in sw|stein*|steinweg )
-  tmux list-windows -t Work | grep -q Sw || {
-    tmux new-window -t Work -n Sw
+  $tmux list-windows -t Work | grep -q Sw || {
+    $tmux new-window -t Work -n Sw
     # TODO
-    tmux send-keys -t Work:Sw "cd /Volumes/Simza/work/brix/tree/steinweg" enter "git st" enter
+    $tmux send-keys -t Work:Sw "cd /Volumes/Simza/work/brix/tree/steinweg" enter "git st" enter
     note "Initialized Sw window"
   }
   ;; esac
 }
 
+
 htd__tmux_srv()
 {
+  test -n "$TMUX_SOCK" || tmux_env_req 0
   req_dir_env HTDIR
   cd /srv
-  tmux has-session -t Srv >/dev/null || {
+  $tmux has-session -t Srv >/dev/null || {
     htd__tmux_init Srv
-    tmux send-keys -t Srv:bash "cd ~/.conf; ./script/update.sh" enter
+    $tmux send-keys -t Srv:bash "cd ~/.conf; ./script/update.sh" enter
   }
-  tmux list-windows -t Srv | grep -q HtD-Sf || {
-    tmux new-window -t Srv -n HtD-Sf
-    tmux send-keys -t Srv:HtD-Sf "cd $HTDIR; sitefile" enter
+  $tmux list-windows -t Srv | grep -q HtD-Sf || {
+    $tmux new-window -t Srv -n HtD-Sf
+    $tmux send-keys -t Srv:HtD-Sf "cd $HTDIR; sitefile" enter
   }
-  tmux list-windows -t Srv | grep -q BrX-Sf || {
-    tmux new-window -t Srv -n BrX-Sf
-    tmux send-keys -t Srv:BrX-Sf "cd ~/work/brix/; sitefile" enter
+  $tmux list-windows -t Srv | grep -q BrX-Sf || {
+    $tmux new-window -t Srv -n BrX-Sf
+    $tmux send-keys -t Srv:BrX-Sf "cd ~/work/brix/; sitefile" enter
   }
-  tmux list-windows -t Srv | grep -q X-Tw || {
-    tmux new-window -t Srv -n X-Tw
-    tmux send-keys -t Srv:X-Tw "cd ~/project/x-tiddlywiki; tiddlywiki x-tiddlywiki --server" enter
+  $tmux list-windows -t Srv | grep -q X-Tw || {
+    $tmux new-window -t Srv -n X-Tw
+    $tmux send-keys -t Srv:X-Tw "cd ~/project/x-tiddlywiki; tiddlywiki x-tiddlywiki --server" enter
   }
-  tmux list-windows -t Srv | grep -q Loci || {
-    tmux new-window -t Srv -n Loci
-    tmux send-keys -t Srv:Loci "cd ~/project/node-loci; npm start" enter
+  $tmux list-windows -t Srv | grep -q Loci || {
+    $tmux new-window -t Srv -n Loci
+    $tmux send-keys -t Srv:Loci "cd ~/project/node-loci; npm start" enter
   }
 }
 
 
+# Shortcut to create window, if not exists
 # htd tmux-winit SESSION WINDOW DIR CMD
 htd__tmux_winit()
 {
+  test -n "$TMUX_SOCK" || tmux_env_req 0
   ## Parse args
   test -n "$1" || error "Session <arg1> required" 1
   test -n "$2" || error "Window <arg2> required" 1
@@ -4408,7 +4531,7 @@ htd__tmux_winit()
       Prive )
         set -- "$1" "$2" "~/project/$2" ;;
       * )
-        error "Cannot setup working-dir for window '$1:$2'" 1 ;;
+        warn "Cannot setup working-dir for window '$1:$2'" ;;
     esac
   }
   test -d "$3" || error "Expected <arg3> to be directory '$3'" 1
@@ -4416,14 +4539,15 @@ htd__tmux_winit()
     set -- "$1" "$2" "$3" "git fetch --all && status"
   }
 
-  tmux list-windows -t $1 | grep -q $2 && {
+  $tmux list-windows -t $1 | grep -q $2 && {
     note "Window '$1:$2' already initialized"
   } || {
-    tmux new-window -t $1 -n $2
-    tmux send-keys -t $1:$2 "cd $3" enter "$4" enter
+    $tmux new-window -t $1 -n $2
+    $tmux send-keys -t $1:$2 "cd $3" enter "$4" enter
     note "Initialized '$1:$2' window"
   }
 }
+
 
 htd__tmux_init()
 {
@@ -4431,16 +4555,14 @@ htd__tmux_init()
   test -n "$2" || set -- "$1" "bash"
   #'reattach-to-user-namespace -l /bin/bash'"
   test -z "$3" || error "surplus arguments: '$3'" 1
-
-  test -n "$TMUX_TMPDIR" || TMUX_TMPDIR=/opt/tmux-socket
-  mkdir -vp $TMUX_TMPDIR
+  test -n "$TMUX_SOCK" || tmux_env_req 0
   out=$(setup_tmpd)/htd-tmux-init-$$
 
-  tmux has-session -t "$1" >/dev/null 2>&1 && {
+  $tmux has-session -t "$1" >/dev/null 2>&1 && {
     logger "Session $1 exists" 0
     note "Session $1 exists" 0
   } || {
-    tmux new-session -dP -s "$1" "$2" && {
+    $tmux new-session -dP -s "$1" "$2" && {
     #>/dev/null 2>&1 && {
       note "started new session '$1'"
       logger "started new session '$1'"
@@ -4452,20 +4574,24 @@ htd__tmux_init()
   }
 }
 
+
 # Start tmux, tmuxinator or htd-tmux with given names
 htd__tmux()
 {
+  test -n "$TMUX_SOCK" || tmux_env_req 0
+
+  $tmux set-environment -g CS $CS
+
   while test -n "$1"
   do
     func="htd__tmux_$(echo $1 | tr 'A-Z' 'a-z')"
     fname="$(echo "$1" | tr 'A-Z' 'a-z')"
 
-    tmux has-session -t $1 >/dev/null 2>&1 && {
+    $tmux has-session -t $1 >/dev/null 2>&1 && {
       info "Session $1 exists"
       shift
       continue
     }
-
     func_exists "$func" && {
 
       # Look for init subcmd to setup windows
@@ -4473,7 +4599,7 @@ htd__tmux()
       try_exec_func "$func" || return $?
 
     } || {
-      test -e "$UCONFDIR/tmuxinator/$fname.yml" && {
+      test -f "$UCONFDIR/tmuxinator/$fname.yml" && {
         note "Starting tmuxinator '$1' config"
         htd__mux $1 &
       } || {
@@ -4484,8 +4610,26 @@ htd__tmux()
     shift
   done
 
-  test -n "$TMUX" || tmux attach
+  test -n "$CS_CUR" ||
+    $tmux set-environment -g CS $CS_CUR
+
+  test -n "$TMUX" || $tmux attach
 }
+
+
+htd__tmux_light()
+{
+  #tmux -S /opt/tmux-socket/boreas-brix-light-term new-session -s Brix
+  test -n "$1" || set -- Brix "$2" "$3"
+  test -n "$2" || set -- "$1" 0    "$3"
+  test -n "$3" || set -- "$1" "$2" ~/work
+  export TMUX_SOCK_NAME=boreas-brix-light-term
+  # FIXME: env to tmux session
+  export CS_CUR=$CS
+  export CS=light
+  htd__tmux_winit "$@"
+}
+
 
 htd__reader_update()
 {
@@ -4508,6 +4652,7 @@ htd__reader_update()
       test -e "$l" || rm "$l"
   done
 }
+
 
 htd_man_1__test="Project test in HTDIR"
 htd__test()
@@ -5099,14 +5244,14 @@ htd__recent_paths()
 req_prefix_names_index()
 {
   test -n "$1" || set -- pathnames.tab
-  test -n "$index" || export index=$(setup_tmpf .index)
+  test -n "$index" || export index=$(setup_tmpf .prefix-names-index)
   test -s "$index" -a "$index" -nt "$UCONF/$1" || {
     htd_topic_names_index "$1" > $index
   }
 }
 
 # Run path-prefix-name for all paths from htd-open.
-htd__prefix_names()
+htd__prefixes()
 {
   local index=
   req_prefix_names_index
@@ -5119,6 +5264,18 @@ htd__prefix_names()
   do
     htd__prefix_name "$path"
   done
+  rm $index
+}
+
+
+# List prefix varnames
+htd__prefix_names()
+{
+  local index=
+  req_prefix_names_index
+  test -s "$index"
+  read_nix_style_file $index | awk '{print $2}' | uniq
+  rm $index
 }
 
 
@@ -5181,7 +5338,7 @@ htd__update_prefixes()
   (
     sd_be=redis
 
-    htd__prefix_names | while IFS=':' read prefix localpath
+    htd__prefixes | while IFS=':' read prefix localpath
     do
       statusdir.sh be sadd htd:prefixes:names "$prefix"
       test -n "$localpath" || continue
@@ -5195,7 +5352,7 @@ htd__update_prefixes()
 htd__services_list()
 {
   test -e "$HTD_SERVTAB" || error "No services table" 1
-  fixed_table_hd $HTD_SERVTAB UNID TYPE EXP CTX | while read vars
+  fixed_table $HTD_SERVTAB UNID TYPE EXP CTX | while read vars
   do
     eval local "$vars"
     DIR=$(echo "$CTX" | awk '{print $1}')
@@ -5231,7 +5388,7 @@ htd__service()
         htd_service_exists "$@" || {
           trueish "$htd_serv_update" && {
             htd_service_update_record "$@"
-          } || 
+          } ||
             return 1
         }
         htd_service_status "$@" || return
@@ -6298,7 +6455,6 @@ htd_backup_args()
 
 htd_backup_opts()
 {
-  set -- "$(cat $options)"
   while test -n "$1"
   do
     case "$1" in
@@ -6534,13 +6690,13 @@ htd__crypto()
   test -e $cr_m || cr_m=~/.local/etc/crypto-bootstrap.tab
   test -e $cr_m || error cr-m-tab 1
   test -n "$1" || set -- init
-  c_tab() { fixed_table_hd $cr_m Lvl VolumeId Prefix Contexts ; }
+  c_tab() { fixed_table $cr_m Lvl VolumeId Prefix Contexts ; }
   case "$1" in
     init )
         c_tab | while read vars
         do eval $vars
           test -n "$Prefix" || continue
-          test -e "$Prefix" || { 
+          test -e "$Prefix" || {
             test -d "$(dirname "$Prefix")" || {
               warn "Missing path '$Prefix'"; continue;
             }
@@ -6548,14 +6704,14 @@ htd__crypto()
           }
           test -d "$Prefix" || { warn "Non-dir '$Prefix'"; continue; }
           Prefix_Real=$(cd "$(dirname "$Prefix")"; pwd -P)/$(basename "$Prefix")
-          mountpoint -q "$Prefix_Real" || { 
+          mountpoint -q "$Prefix_Real" || {
             htd__crypto_init "$Lvl" "$VolumeId" "$Prefix_Real" "$Contexts" || {
               warn "Mount failed"
               continue
             }
           }
-          mountpoint -q "$Prefix_Real" || { 
-            warn "Non-mount '$Prefix'"; continue; 
+          mountpoint -q "$Prefix_Real" || {
+            warn "Non-mount '$Prefix'"; continue;
           }
           Contexts=...
           note "$Level: $VolumeId ($Contexts at $Prefix)"
@@ -6635,6 +6791,79 @@ htd__exif()
 }
 
 
+# Advanced init-symlinks script with multiple modes and attributes
+htd_spc__checkout='checkout ID-or-TABLE'
+htd_env__checkout='
+  symlinks_id=script-mpe-symlinks
+  symlinks_attrs= symlinks_file=
+'
+htd__checkout()
+{
+  #set -- $(cat $arguments)
+  test -e "$1" && fn="$1" || fn="$symlinks_file"
+  test -x "$fn" && table_f=- || table_f="$fn"
+
+  info "2.2. Env: $(var2tags id symlinks_fn table_f )"
+  test "$table_f" = "-" && {
+    # TODO: either generate table
+    #alternatively generate table dynamically? 
+    exit 44 #. $fn
+  } || {
+    test -e "$table_f" || error "No such table '$table_f'" 1
+    fixed_table $table_f $symlinks_attrs | while read vars
+    do
+      eval "$vars"
+      test -e "$DEST" && {
+        test "$(readlink $SRC)" = "$DEST" && {
+          stderr ok "OK: $DEST"
+          continue
+        }
+        test -h "$DEST" && rm $DEST
+      }
+      test -e "$DEST" && {
+        error "Path exists '$DEST'"
+        continue
+      }
+      ln -s $SRC $DEST
+    done
+  }
+}
+htd_run__checkout=ieOAp
+htd_argsv__checkout()
+{
+  (
+    package_id=$symlinks_id
+    package_file && update_package
+  )
+  package_id=$symlinks_id package_lib_load
+  eval $(map=package_:symlinks_ package_sh id file attrs)
+  test -n "$symlinks_attrs" || symlinks_attrs="SRC DEST"
+  info "2.1. Env: $(var2tags package_id symlinks_id symlinks_attrs)"
+}
+
+
+htd_man_1__date_shift='Adjust mtime forward or back by number of hours, or other
+unit if specified'
+htd__date_shift()
+{
+  test -e "$1" || error "date-shift $1"
+  case "$uname" in
+    Linux )
+        test -n "$2" || set -- "$1" '-1 day'
+        touch -r "$1" -d $2 "$1"
+      ;;
+    Darwin )
+        test -n "$2" || set -- "$1" '-1day'
+        # '013007' 1hr30m07sec fwd
+        #touch --time=mtime -r "$1" -A $2 "$1"
+        touch -r "$1" -A $2 "$1"
+      ;;
+  esac
+}
+htd_als__rshift=date-shift
+
+
+
 # util
 
 htd_rst_doc_create_update()
@@ -6695,10 +6924,13 @@ htd_main()
 
     $scriptname )
 
-        test -n "$1" || set -- main-doc
+        test -n "$1" || set -- main-doc-edit
 
         #htd_lib || exit $?
         #run_subcmd "$@" || exit $?
+
+        main_init
+        export stdio_0_type stdio_1_type stdio_2_type
 
         htd_lib "$@" || error htd-lib $?
 
@@ -6751,6 +6983,17 @@ htd_optsv()
     esac
     shift
   done
+
+  test -n "$choice_interactive" || {
+    # By default look at TERM
+    test -z "$TERM" || {
+      # may want to look at stdio t(ty) vs. f(ile) and p(ipe)
+      # here we trigger by non-tty stderr
+      test "$stdio_2_type" = "t" &&
+        choice_interactive=1 || choice_interactive=0
+      export choice_interactive
+    }
+  }
 }
 
 # FIXME: Pre-bootstrap init

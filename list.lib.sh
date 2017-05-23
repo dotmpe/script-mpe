@@ -53,7 +53,7 @@ lst_load()
       ;;
 
     I ) # setup IO descriptors (requires i before)
-        req_vars $(try_local outputs) $(try_local inputs)
+        req_vars $(echo_local outputs) $(echo_local inputs)
         local fd_num=2 io_dev_path=$(io_dev_path)
         open_io_descrs
       ;;
@@ -84,7 +84,7 @@ lst_unload()
     I ) # Named io is numbered starting with outputs and at index 3
         local fd_num=2
         close_io_descrs
-        eval unset $(try_local inputs) $(try_local outputs)
+        eval unset $(echo_local inputs) $(echo_local outputs)
       ;;
   esac; done
 
@@ -160,7 +160,7 @@ htd_grep_excludes()
   grep_excludes="--exclude-dir \"*/.svn\" $grep_excludes"
 }
 
-# return paths for names that exist along given path
+# return paths for names that exist rootward along given dirpath
 htd_find_path_locals()
 {
   local name path stop_at

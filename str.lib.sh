@@ -257,7 +257,7 @@ property()
     while test -n "$1"
     do
       local __key= __value=
-      test -n "$vid" && __key=${vid}_$1 || __key=$1
+      test -n "$vid" && __key=${vid}$1 || __key=$1
       __value="$(eval printf -- \"\$$__key\")"
 #      __value="$(cat <<EOM
 #\$$__key

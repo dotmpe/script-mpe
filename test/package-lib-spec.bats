@@ -15,7 +15,7 @@ setup()
 
 @test "${lib}/${base} - lib loads" {
 
-  func_exists package_load
+  func_exists package_lib_load
   func_exists package_basename
   func_exists update_package_json
   func_exists jsotk_package_sh_defaults
@@ -64,7 +64,7 @@ setup()
 
   cd test/var/package/0
   unset package_id
-  package_load
+  package_lib_load
   run package_sh id
   test_ok_nonempty "*id=script-mpe-test-0" || stdfail 1
 
@@ -75,18 +75,18 @@ setup()
   cd test/var/package/1
 
   unset package_id
-  package_load
+  package_lib_load
   run package_sh id key
   test_ok_nonempty "*id=script-mpe-test-1-a key=foo" || stdfail 2
 
   export package_id=script-mpe-test-1-b
-  package_load
+  package_lib_load
   run package_sh id key
   test_ok_nonempty "*id=script-mpe-test-1-b key=bar" || stdfail 3
 
   # XXX: also allows non-typed entries but don't rely on this?
   export package_id=other
-  package_load
+  package_lib_load
   run package_sh id key
   test_ok_nonempty "*id=other key=baz" || stdfail 4
 }

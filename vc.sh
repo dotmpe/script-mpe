@@ -34,8 +34,9 @@ vc__commands()
 {
   echo 'Commands'
   echo '  status             TODO'
-  echo 'TODO: consolidate '
-  echo '  ls-gitroots        List all GIT checkouts (roots only) below the current dir.'
+  echo '  ls-trees           Find all SCM checkouts below the current dir '
+  echo '                     (roots only, set recurse to list nested checkous).'
+  echo '  ls-nontree         Find any path not included in a checkout. '
   echo '  list-submodules    '
   echo '  list-prefixes      '
   echo '  list-subrepos      XXX: List all repositories below, excluding submodules. '
@@ -567,7 +568,6 @@ __vc_gitrepo()
         git config remote.$remote.url | sed -E '
           s/^.*:([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+)(\.git)?$/\1\/\2/'
       ;;
-
     * )
         error "Illegal vc gitrepo method '$1'" 1
       ;;
@@ -577,29 +577,65 @@ __vc_gitrepo()
 
 list_gitpaths()
 {
-  d=$1
-  [ -n "$d" ] || d=.
-  note "Starting find in '$d', this may take a bit initially.."
-  find $d -iname .git -not -ipath '*.git/*' | while read gitpath mode
-  do
-    test -n "$gitpath" -a "$gitpath" != ./.git \
-      && echo $gitpath
-  done
+  test -n "$1" && d=$1 || d=.
+  find $d -type d -iname .git -print -prune
 }
 
-vc_ls_gitroots()
+# List checkouts below dir. Normally stops at any SCM root, unless recurse=true
+vc__ls_trees()
 {
-  list_gitpaths $1 | while read gitpath
-  do dirname $gitpath
-  done
+  test -n "$1" || set -- .
+  trueish "$recurse" && {
+    # NOTE: This recurse causes SVN to yield just about every dir below it
+    find $1 \
+      -type d -a \( \
+        -iname '*.svn*' -prune -o \
+        -iname '*.bzr*' -prune -o \
+        -iname '*.git*' -prune -o \
+        -iname '*.hg*'  -prune \
+      \) -o -type d -a \( \
+        -exec test -d "{}/.bzr" \; -o \
+        -exec test -d "{}/.git" \; -o \
+        -exec test -d "{}/.hg" \; -o \
+        -exec test -d "{}/.svn" \; \
+      \) -a -print
+  } || {
+    find $1 \
+      -type d -a \( \
+        -iname '*.svn*' -prune -o \
+        -iname '*.bzr*' -prune -o \
+        -iname '*.git*' -prune -o \
+        -iname '*.hg*'  -prune \
+      \) -o -type d -a \( \
+        -exec test -d "{}/.bzr" \; -prune -o \
+        -exec test -d "{}/.git" \; -prune -o \
+        -exec test -d "{}/.hg" \;  -prune  -o \
+        -exec test -d "{}/.svn" \; -prune \
+      \) -a -print
+  }
 }
 
-vc_ls_errors()
+# List paths not included in a checkout. Usefull to find and deal wti hstray files
+vc__ls_nontree()
+{
+  find $d \
+    -type d -a \( \
+      -iname '*.svn*' -prune -o \
+      -iname '*.bzr*' -prune -o \
+      -iname '*.git*' -prune -o \
+      -iname '*.hg*'  -prune -o \
+      -exec test -d "{}/.bzr" \; -prune -o \
+      -exec test -d "{}/.git" \; -prune -o \
+      -exec test -d "{}/.hg" \;  -prune  -o \
+      -exec test -d "{}/.svn" \; -prune \
+    \) -a -prune -o -print
+}
+
+vc__ls_errors()
 {
   list_gitpaths $1 | while read gitpath
   do
-    [ -d "$gitpath" ] && {
-      git_info $gitpath > /dev/null || {
+    { ( cd "$(dirname $gitpath)" && git status > /dev/null ) || {
         error "in info from $gitpath, see previous."
       }
     } || {

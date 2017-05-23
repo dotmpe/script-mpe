@@ -6,10 +6,11 @@ __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.list.sqlite'
 __usage__ = """
 Usage:
-  list.py [options] write-list LIST PROVIDERS...
-  list.py [options] read-list LIST PROVIDERS...
+  list.py [options] read-list LIST [ PROVIDERS... ]
   list.py [options] load-list LIST
   list.py [options] sync-list LIST
+  list.py [options] write-list LIST [ PROVIDERS... ]
+  list.py [options] update-list LIST
   list.py [options] x-rewrite-html-tree-id LIST
   list.py -h|--help
   list.py --version
@@ -50,13 +51,34 @@ import res.task
 
 
 def cmd_load_list(LIST, settings):
-    """Read items, updating backends where found. """
-    res.list.parse(LIST, settings)
+    """Load items"""
+    prsr, items = res.list.parse(LIST, settings)
+    # XXX: sanity checks here iso. real unit tests
+    for i in items:
+        assert i.item_id in prsr.records
+    assert not 'TODO', "load items to where? ..."
 
 def cmd_sync_list(LIST, settings):
     """Update list for items found in a backend"""
-    res.list.parse(LIST, settings)
+    prsr, items = res.list.parse(LIST, settings)
+    # XXX: sanity checks here iso. real unit tests
+    for i in items:
+        assert i.item_id in prsr.records
+    assert not 'TODO', "update providers..."
 
+def cmd_update_list(LIST, settings):
+    """Update items with values from stdin"""
+    prsr, items = res.list.parse(LIST, settings)
+    prsr2, updates = res.list.parse(sys.stdin, settings)
+    # XXX: sanity checks here iso. real unit tests
+    for i in items:
+        assert i.item_id in prsr.records
+    for i in updates:
+        assert i.item_id in prsr2.records
+        if i.item_id not in prsr.records:
+            prsr.handle_id(i, i.item_id)
+    w = res.list.ListTxtWriter(prsr)
+    w.write(LIST)
 
 def load_be_schema(settings):
     "Load schema and look for SQLAlchemy model names matching apply-contexts"
@@ -131,9 +153,10 @@ def main(opts):
     Execute command.
     """
 
-    settings = opts.flags
     opts.default = 'info'
     opts.flags.commit = not opts.flags.no_commit
+    settings = opts.flags
+    settings.apply_contexts = []
     return script_util.run_commands(commands, settings, opts)
 
 def get_version():

@@ -35,9 +35,8 @@ class ListItemTxtParser(
         txt.AbstractRecordIdStrategy,
         txt.AbstractRecordReferenceStrategy
 ):
-    fields = (
-            'sections', 'refs', 'contexts', 'projects', 'cites', 'hrefs', 'id',
-        )
+    fields = ("sections refs contexts projects cites hrefs "
+        "date:creation_date date:deleted_date id:item_id").split(' ')
     def __init__(self, raw, **attrs):
         super(ListItemTxtParser, self).__init__(raw, **attrs)
 
@@ -66,6 +65,13 @@ def parse(listfile, list_settings):
             else:
                 print(str(i))
     return items, l
+
+
+class ListTxtWriter(txt.AbstractTxtListWriter):
+    fields_append = ("contexts projects cites ").split(' ')
+    def serialize_field_id(self, value):
+        return "%s:" % value
+
 
 def write(listfile, provider_spec):
     """

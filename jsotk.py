@@ -320,6 +320,7 @@ def H_path(ctx):
 
     for tp in "new list obj int str bool".split(" "):
         if ctx.opts.flags["is_%s" % tp]:
+            # FIXME: print(maptype(tp))
             if tp == "new":
                 infile, outfile = get_src_dest_defaults(ctx)
                 if not data and data_check_path(ctx, infile):

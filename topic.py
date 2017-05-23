@@ -366,7 +366,7 @@ def cmd_x_al(settings):
 
 
 """
-TODO: create item list from index, and vice versa unid:FEGl time:17:43Z
+TODO: create item list from index, and vice versa uid:FEGl time:17:43Z
 
 1. Parse list, like todo.txt
 2. Keep db_sa SQLite
