@@ -74,7 +74,23 @@ fixed_table_hd()
 {
   test -s "$1" -a -z "$2" ||
 		error "fixed-table-hd only one non-zero file argument expected ('$*')" 1
-  echo $(grep -m 1 '^#' "$1" | sed 's/^#//g')
+  grep -m 1 '^#' "$1" | sed 's/^#//g'
+}
+
+fixed_table_hd_ids()
+{
+  echo $( fixed_table_hd "$1" )
+}
+
+
+fixed_table_cuthd()
+{
+  cutf="$(dirname "$1")/$(basename "$1" .tab).cuthd"
+  test -e "$cutf" -a "$cutf" -nt "$1" || {
+    { echo "# COLVAR CUTFLAG"
+      fixed_table_hd_cuts "$@"
+    } >$cutf
+  }
 }
 
 # Given `cut` arguments file for the file, read each line and fields.
@@ -87,16 +103,10 @@ fixed_table()
   local tab="$1" cutf=
   test -n "$2" -a -e "$2" && cutf="$2" || {
     # Get headers from first comment if not given
-    test -n "$2" || set -- "$1" $(fixed_table_hd "$1")
+    test -n "$2" || set -- "$1" $(fixed_table_hd_ids "$1")
     # Assemble COLID CUTFLAG table (if missing or stale)
-    cutf="$(dirname "$1")/$(basename "$1" .tab).cuthd"
-    test -e "$cutf" -a "$cutf" -nt "$1" || {
-      { echo "# COLVAR CUTFLAG"
-        fixed_table_hd_cuts "$@"
-      } >$cutf
-    }
+    fixed_table_cuthd "$@"
   }
-
   # Walk over rows, columns and assemble Sh vars, include raw-src in $line
   cat "$tab" | grep -v '^\s*\(#.*\)\?$' | while read line
   do

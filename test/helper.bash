@@ -70,7 +70,9 @@ init()
   lib_load sys str std
 
   # init script env
-  test -n "$ENV_NAME" || {
+  test -n "$ENV_NAME" && {
+    test -n "$ENV" || error "Expected ENV profile for $ENV_NAME" 1
+  } || {
     export SCR_SYS_SH=bash-sh
     export ENV_NAME=testing
     export ENV=./tools/sh/env.sh

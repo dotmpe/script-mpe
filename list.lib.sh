@@ -38,7 +38,7 @@ lst_load()
     }
 
   # build ignore pattern file
-  ignores_load $lst_base
+  ignores_lib_load $lst_base
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
     error "expected $lst_base ignore dotfile" 1
   lst_init_ignores

@@ -195,7 +195,26 @@ package_sh()
     update_package $(pwd -P) || return $?
   }
   test -e $PACKMETA_SH || error $PACKMETA_SH 1
+  # Use util from str.lib to get the keys from the properties file
   property "$PACKMETA_SH" "$prefix" "$sub" "$@"
+}
+
+
+package_get_key() # Dir Package-Id Property
+{
+  test -d "$1" || error "dir expected" 1
+  local dir="$1" package_id="$2"
+  shift 2
+  cd "$dir"
+  # Check/update package metadata
+  test -e $PACKMETA && {
+    update_package $(pwd -P) || return $?
+  }
+  while test $# -gt 0
+  do
+    echo jsotk.py objectpath $PACKMETA '$.*[@.id is "'$package_id'"].'$1
+    shift
+  done
 }
 
 

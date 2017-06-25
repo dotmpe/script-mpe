@@ -1,17 +1,9 @@
 Feature: list
 
-  Scenario: print version
-    When the user runs "list.sh version"?
-    Then `output` contains the pattern "mpe"
-    Then `output` matches the pattern "^script-mpe\/[0-9A-Za-z\._-]*$"
-    And `status` should be '0'
+  # Use-Case level scenarios
 
-  Scenario: no such command
-    When the user runs "list.sh foo"...
-    Then `output` contains the pattern "Usage:"
-    And `stderr` contains the pattern "No\ such\ command"
-    And `status` should not be '0'
-
+  # Plumbing tests
+#
   @skip
   @travis
   Scenario: print names in group
@@ -91,6 +83,21 @@ Feature: list
     2008-09-02 4: el baz 2
     Id-5:
     """
+
+
+  # Generic CLI command conformance
+
+  Scenario: print version
+    When the user runs "list.sh version"?
+    Then `output` contains the pattern "mpe"
+    Then `output` matches the pattern "^script-mpe\/[0-9A-Za-z\._-]*$"
+    And `status` should be '0'
+
+  Scenario: no such command
+    When the user runs "list.sh foo"...
+    Then `output` contains the pattern "Usage:"
+    And `stderr` contains the pattern "No\ such\ command"
+    And `status` should not be '0'
 
 
 

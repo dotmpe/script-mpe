@@ -93,8 +93,6 @@ setup() {
 }
 
 @test "$bin check-names filenames with table.{vars,names}" {
-  skip "FIXME htd check-names"
-
   run ${bin} check-names 256colors2.pl
   #test "${lines[1]}" = "# Loaded $HOME/bin/table.vars"
   #test "${lines[2]}" = "No match for 256colors2.pl"
@@ -116,8 +114,8 @@ setup() {
   export verbosity=5
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "${lines[0]}" = "script-mpe/$version" ||
-    fail "Expected script-mpe/$version" 
+  test "${lines[0]}" = "htdocs-mpe/$version" ||
+    fail "Expected htdocs-mpe/$version" 
 }
 
 @test "$bin today" 8 {
@@ -377,7 +375,7 @@ EOM
   run $BATS_TEST_DESCRIPTION
   dl=$tmpd/journal/today.rst
   {
-    test ${status} -eq 0
+    test ${status} -eq 0 &&
     test -h "$dl"
     # FIXME: test "$(readlink $dl)" = 2016/12/30.rst
   } || {
@@ -411,8 +409,8 @@ EOM
   run $BATS_TEST_DESCRIPTION
   dl=$tmpd/cabinet/today
   {
-    test ${status} -eq 0
-    test -h "$dl"
+    test ${status} -eq 0 &&
+    test -h "$dl" &&
     test "$(readlink $dl)" = 2016/12/30
   } || {
     diag "Output: ${lines[*]}"
@@ -467,13 +465,19 @@ EOM
   test_ok_nonempty || stdfail
 }
 
+@test "$bin prefixes" {
+  require_env lsof
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
 @test "$bin prefix-names" {
   require_env lsof
   run $BATS_TEST_DESCRIPTION
   test_ok_nonempty || stdfail
 }
 
-@test "$bin prefix-name-find" {
+@test "$bin prefix-name" {
   run $BATS_TEST_DESCRIPTION
   test_ok_nonempty || stdfail
 }

@@ -344,3 +344,19 @@ lookup_path()
   done
 }
 
+
+# Return 1 if env was provided, or 0 if default was set
+default_env() # VAR-NAME DEFAULT-VALUE
+{
+  test -n "$1" -a -n "$2" -a $# -eq 2 || error "default-env requires two args" 1
+  local vid= sid=
+  upper=1 mkvid "$1"
+  mksid "$1"
+  test -n "$(eval echo \$$vid)" || {
+    debug "No $sid env, using '$2'"
+    export $vid="$2"
+    return 0
+  }
+  return 1
+}
+

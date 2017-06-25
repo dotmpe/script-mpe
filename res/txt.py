@@ -248,7 +248,6 @@ class AbstractTxtListParser(object):
     def parse(self, txtitem, **attrs):
         return self.item_parser( txtitem, parser=self, **attrs )
 
-
 class AbstractIdStrategy(AbstractTxtListParser):
     """
     By providing a 'records' attribute on the container, allow indexed access to
@@ -284,6 +283,15 @@ class AbstractIdStrategy(AbstractTxtListParser):
     def handle_ref(self, item, refid):
         assert ( refid in self.records or refid in self.references ), "Invalid reference: %s" % refid
         return refid
+    def find_url(self, href, all=False):
+        r = []
+        for I, i in self.records.items():
+            if i.hrefs and href in i.hrefs:
+                if all:
+                    r.append(i)
+                else:
+                    return i
+        return r
 
 
 

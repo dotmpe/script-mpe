@@ -49,6 +49,14 @@ mkid()
 mkvid()
 {
   test -n "$1" || error "mkvid argument expected" 1
+  trueish "$upper" && {
+    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'a-z' 'A-Z')
+    return
+  }
+  falseish "$upper" && {
+    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'A-Z' 'a-z')
+    return
+  }
   vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
   # Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
 }
@@ -62,9 +70,14 @@ mksid()
 {
   test -n "$1" || error "mkcid argument expected" 1
   var_isset c || c=_
-  trueish "$upper" &&
-    sid=$(mkid "$(printf -- "$1" | tr 'a-z' 'A-Z')"; echo "$id" ) ||
-      sid=$(mkid "$(printf -- "$1" | tr 'A-Z' 'a-z')"; echo "$id" )
+  test -n "$upper" && {
+    trueish "$upper" &&
+      mkid "$(printf -- "$1" | tr 'a-z' 'A-Z')"
+    falseish "$upper" &&
+      mkid "$(printf -- "$1" | tr 'A-Z' 'a-z')"
+  } ||
+    mkid "$(printf -- "$1" )"
+  sid="$id"
 }
 
 # A either args or stdin STR to lower-case pipeline element

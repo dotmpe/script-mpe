@@ -26,6 +26,8 @@ Options:
                   Apply given tags to each item in file.
     --paths
                   TODO: replace with --format=paths
+    --match
+                  [default: item-id,hrefs,attr:unid]
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
     --no-commit   .
@@ -38,6 +40,7 @@ Options:
 import os
 import sys
 import re
+import base64
 
 import confparse
 import log
@@ -66,17 +69,68 @@ def cmd_sync_list(LIST, settings):
         assert i.item_id in prsr.records
     assert not 'TODO', "update providers..."
 
-def cmd_update_list(LIST, settings):
-    """Update items with values from stdin"""
+def cmd_update_list(LIST, settings, opts):
+    """
+    Update list with entries from stdin. This does not actually merge records,
+    but checks that each input matches an existing list entry, or else appends
+    one. Actual update modes to list entry fields are limited to ignore other
+    data from input, or append input values iow. effectively merge matched
+    items, or replace mode to overwrite existing entries with matches from input.
+
+    Matching occurs on the record-id, urls and 'unid' attribute fields by
+    default (see --match). Each item however is registered by its ID, updates
+    without one will get appended with a blank id. The hrefs and unid matching
+    serves to match with existing records, and apply the update mode instead.
+
+    In ``--strict`` mode, Id mismatches, ie. two different Id's causes a new
+    entry to be added regardless. (Existing ID's prefixed with _blank are
+    regarded as blank and local only thus always overwritable if refs are kept
+    consistent.)
+
+    Manual merging may be required when duplicate field values are undesired.
+
+    Use ``--force`` to override ID's from input, to merge based on match fields.
+    Iow. require match field values to be unique. Conflicts with ``strict`` mode.
+
+    TODO: list.py update-list work out above details
+    """
     prsr, items = res.list.parse(LIST, settings)
     prsr2, updates = res.list.parse(sys.stdin, settings)
-    # XXX: sanity checks here iso. real unit tests
-    for i in items:
-        assert i.item_id in prsr.records
-    for i in updates:
-        assert i.item_id in prsr2.records
-        if i.item_id not in prsr.records:
-            prsr.handle_id(i, i.item_id)
+    opts.flags.match = opts.flags.split(',')
+    new = {}
+    # Modes to match items on input with LIST entries
+    if 'item-id' in opts.flags.match:
+        for u in updates:
+            if not u.item_id:
+                u.item_id = '_blank'+base64.urlsafe_b64encode(os.urandom(11))
+            else:
+                assert u.item_id in prsr2.records
+            if u.item_id not in prsr.records:
+                new[u.item_id] = u
+    if 'hrefs' in opts.flags.match:
+        for u in updates:
+            if not u.hrefs: continue
+            for href in u.hrefs:
+                r = prsr.find_url(href)
+                if r:
+                    if u.item_id in new:
+                        del new[u.item_id]
+                else:
+                    new[u.item_id] = u
+                    break
+    for m in opts.flags.match:
+        if m .startswith('attr'):
+            a = m[5:]
+            for u in updates:
+                if a not in u.attrs: continue
+                for r in items:
+                    if a not in r.attrs: continue
+                    if u.attrs[a] == r.attrs[a]: break
+                if not r or a not in r.attrs or u.attrs[a] != r.attrs[a]:
+                    new.append(u)
+    for u in new:
+        prsr.handle_id(u, u.item_id)
+    # Rewrite file
     w = res.list.ListTxtWriter(prsr)
     w.write(LIST)
 

@@ -3,6 +3,7 @@
 """
 __description__ = "journal - "
 __version__ = '0.0.4-dev' # script-mpe
+__db__ = '~/.journal.sqlite'
 __usage__ = """
 Usage:
     journal.py [options] [ LIST ]
@@ -22,6 +23,11 @@ import os
 import script_util
 import res.jrnl
 
+from taxus.init import SqlBase, get_session
+from taxus import Node, Topic
+from res import Journal
+
+models = [ Node, Topic, Journal ]
 
 
 def cmd_journal_rw(LIST, opts, settings):

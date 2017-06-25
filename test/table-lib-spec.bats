@@ -13,7 +13,7 @@ setup()
 }
 
 
-@test "$bin - fixed_table_hd_offset returns column offset given headers" {
+@test "$base - fixed_table_hd_offset: returns column offset given headers" {
 
   cd $pwd
   #. $lib/htd load-ext
@@ -23,25 +23,36 @@ setup()
   echo "#CMD FOO BAR BAZ BAM" >$htd_rules
 
   run fixed_table_hd_offset CMD CMD $htd_rules
-  test $status -eq 0
-  test "${lines[*]}" = "0"
+  { test $status -eq 0 &&
+    test "${lines[*]}" = "0"
+  } || stdfail
 
   run fixed_table_hd_offset FOO CMD $htd_rules
-  test $status -eq 0
-  test "${lines[*]}" = "5"
+  { test $status -eq 0 &&
+    test "${lines[*]}" = "5"
+  } || stdfail
 
   run fixed_table_hd_offset BAR CMD $htd_rules
-  test $status -eq 0
-  test "${lines[*]}" = "9"
+  { test $status -eq 0 &&
+    test "${lines[*]}" = "9"
+  } || stdfail
 }
 
-@test "fixed-table-hd: returns fields from first comment-line" {
+@test "$base - fixed-table-hd-ids: returns fields from first comment-line" {
+  run fixed_table_hd_ids test/var/table-1.tab
+  { test $status -eq 0 &&
+    test "${lines[*]}" = "FOO BAR BAZ"
+  } || stdfail
+}
+
+@test "$base - fixed-table-hd: returns fields from first comment-line" {
   run fixed_table_hd test/var/table-1.tab
-  test $status -eq 0
-  test "${lines[*]}" = "FOO BAR BAZ"
+  { test $status -eq 0 &&
+    test "$(echo ${lines[*]})" = "FOO BAR BAZ"
+  } || stdfail
 }
 
-@test "fixed-table: reads preformatted, named columns to rows of values" {
+@test "$base - fixed-table: reads preformatted, named columns to rows of values" {
   run fixed_table test/var/table-1.tab FOO BAR BAZ
   {
     test $status -eq 0 &&

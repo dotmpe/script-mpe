@@ -10,7 +10,7 @@ load main.inc
 
 # util / Try-Exec
 
-@test "$lib/${base} try_exec_func on existing function" {
+@test "${base} - try_exec_func on existing function" {
 
   run try_exec_func mytest_function
   { test $status -eq 0 &&
@@ -18,13 +18,13 @@ load main.inc
   } || stdfail
 }
 
-@test "$lib/${base} try_exec_func on non-existing function" {
+@test "${base} - try_exec_func on non-existing function" {
 
   run try_exec_func no_such_function
   test $status -eq 1
 }
 
-@test "$lib/${base} try_exec_func (bash) on existing function" {
+@test "${base} - try_exec_func (bash) on existing function" {
 
   run bash -c 'scriptpath='$lib' && source '$lib'/util.sh && \
     source '$lib'/test/main.inc.bash && try_exec_func mytest_function'
@@ -35,14 +35,23 @@ load main.inc
   } || stdfail
 }
 
-@test "$lib/${base} try_exec_func (bash) on non-existing function" {
+@test "${base} - try_exec_func (bash) on non-existing function" {
 
+  export verbosity=6
   run bash -c 'scriptpath='$lib' && source '$lib'/util.sh && try_exec_func no_such_function'
   {
     test "" = "${lines[*]}" &&
     test $status -eq 1
-  } || stdfail 1
+  } || stdfail 1.1
 
+  export verbosity=7
+  run bash -c 'scriptpath='$lib' && source '$lib'/util.sh && try_exec_func no_such_function'
+  {
+    fnmatch "*try-exec-func 'no_such_function'*" "${lines[*]}" &&
+    test $status -eq 1
+  } || stdfail 1.2
+
+  export verbosity=6
   run bash -c 'type no_such_function'
   {
     test "bash: line 0: type: no_such_function: not found" = "${lines[0]}" &&
@@ -50,8 +59,9 @@ load main.inc
   } || stdfail 2
 }
 
-@test "$lib/${base} try_exec_func (sh) on existing function" {
+@test "${base} - try_exec_func (sh) on existing function" {
 
+  export verbosity=5
   run sh -c 'TERM=dumb && scriptpath='$lib' && . '$lib'/util.sh && \
     . '$lib'/test/main.inc.bash && try_exec_func mytest_function'
   {
@@ -61,10 +71,11 @@ load main.inc
   } || stdfail
 }
 
-@test "$lib/${base} try_exec_func (sh) on non-existing function" {
+@test "${base} - try_exec_func (sh) on non-existing function" {
+
+  export verbosity=5
 
   run sh -c 'TERM=dumb && scriptpath='$lib' && . '$lib'/util.sh && try_exec_func no_such_function'
-  test -n "${lines[*]}" || diag "${lines[*]}"
   test "" = "${lines[*]}" || stdfail 1
 
   case "$(uname)" in
@@ -89,9 +100,10 @@ load main.inc
   esac
 }
 
+
 # util / Var Isset
 
-@test "$lib/$base var-isset detects vars correctly even if empty" {
+@test "${base} - var-isset detects vars correctly even if empty" {
 
   ( 
     env | grep -v '^[A-Z0-9_]*=' | grep '\<foo_bar='
@@ -112,7 +124,7 @@ load main.inc
   test $status -eq 1 || fail "4. Unexpected foo_bar set ($status)"
 }
 
-@test "$lib/$base var-isset detects vars correctly even if empty (sh wrapper)" {
+@test "${base} - var-isset detects vars correctly even if empty (sh wrapper)" {
 
   ./test/util-lib-spec.sh var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)" || echo
 
@@ -125,7 +137,7 @@ load main.inc
 }
 
 
-@test "$lib/$base var-isset detects vars correctly even if empty (bash wrapper)" {
+@test "${base} - var-isset detects vars correctly even if empty (bash wrapper)" {
 
   local scriptpath="$(pwd)"
   ./test/util-lib-spec.bash var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
@@ -138,7 +150,7 @@ load main.inc
 }
 
 
-@test "$lib/$base var-isset detects vars correctly even if empty, exported" {
+@test "${base} - var-isset detects vars correctly even if empty, exported" {
   var_isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
   run var_isset foo_bar
   test $status -eq 1 || fail "2. Unexpected foo_bar set ($status)"
@@ -156,7 +168,7 @@ load main.inc
   test $status -eq 1 || fail "6. Unexpected foo_bar set ($status)"
 }
 
-@test "$lib/$base var-isset detects vars correctly even if empty, local declaration" {
+@test "${base} - var-isset detects vars correctly even if empty, local declaration" {
 
   # FIXME: must bats always be running as Bash
   test "$(basename $SHELL)" = "sh" || skip "Sh: $SHELL"
@@ -173,7 +185,7 @@ load main.inc
 }
 
 
-@test "$lib/${base} noop" {
+@test "${base} - noop" {
 
   func_exists noop
   run noop
@@ -183,7 +195,7 @@ load main.inc
 
 
 # FIXME: this is far to slow
-@test "$lib/${base} short" {
+@test "${base} - short" {
   check_skipped_envs travis || skip "Nothing much to test anyway"
 
   func_exists short

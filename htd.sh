@@ -20,7 +20,7 @@ htd__outputs="passed skipped error failed"
 htd_load()
 {
   # -- htd box load insert sentinel --
-  test -n "$EDITOR" || EDITOR=vim
+  default_env EDITOR vim || debug "Using EDITOR '$EDITOR'"
   test -n "$TODOTXT_EDITOR" || {
     test -x "$(which todotxt-machine)" &&
       TODOTXT_EDITOR=todotxt-machine || TODOTXT_EDITOR=$EDITOR
@@ -29,23 +29,37 @@ htd_load()
   test -n "$DOC_EXTS" || DOC_EXTS=".rst .md .txt"
   test -n "$TASK_EXT" || TASK_EXT="ttxtm"
   test -n "$TASK_EXTS" || TASK_EXTS=".ttxtm .list .txt"
-  test -n "$HTD_GIT_REMOTE" || HTD_GIT_REMOTE=default
-  test -n "$CWD" || CWD=$(pwd)
-  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
-  test -n "$TMPDIR" || TMPDIR=/tmp/
-  test -n "$HTDIR" || HTDIR=$HOME/public_html
-  test -n "$SCRIPT_ETC" || SCRIPT_ETC=$(htd_init_etc|head -n 1)
-  test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE="$CWD"/tools.yml
-  test -n "$HTD_TOOLSDIR" || HTD_TOOLSDIR=$HOME/.htd-tools
-  test -n "$HTD_JRNL" || HTD_JRNL=personal/journal
-  test -n "$HTD_EXT" || HTD_EXT=~/htdocs:~/bin
-  test -n "$HTD_SERVTAB" || export HTD_SERVTAB=$UCONFDIR/htd-services.tab
-  test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
-  test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
+  default_env CWD "$(pwd)" || debug "Using CWD '$CWD'"
+  default_env UCONFDIR "$HOME/.conf/" || debug "Using UCONFDIR '$UCONFDIR'"
+  default_env TMPDIR "/tmp/" || debug "Using TMPDIR '$TMPDIR'"
+  default_env HTDIR "$HOME/public_html" || debug "Using HTDIR '$HTDIR'"
   test -n "$FIRSTTAB" || export FIRSTTAB=50
   test -n "$LOG" ||
     export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
-  test -n "$CABINET_DIR" || export CABINET_DIR=cabinet
+  default_env Script-Etc "$( htd_init_etc|head -n 1 )" ||
+    debug "Using Script-Etc '$SCRIPT_ETC'" 
+  test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE="$CWD"/tools.yml
+  test -n "$HTD_TOOLSDIR" || HTD_TOOLSDIR=$HOME/.htd-tools
+  default_env Jrnl-Dir "personal/journal" || debug "Using Jrnl-Dir '$JRNL_DIR'"
+  default_env Htd-GIT-Remote "$HTD_GIT_REMOTE" ||
+    debug "Using Htd-GIT-Remote name '$HTD_GIT_REMOTE'"
+  default_env Htd-Ext ~/htdocs:~/bin ||
+    debug "Using Htd-Ext dirs '$HTD_EXT'"
+  default_env Htd-ServTab $UCONFDIR/htd-services.tab ||
+    debug "Using Htd-ServTab table file '$HTD_SERVTAB'"
+  default_env Cabinet-Dir "cabinet" || debug "Using Cabinet-Dir '$CABINET_DIR'"
+
+  test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
+  test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
+
+  # Set default env to differentiate tmux server sockets based on, this allows
+  # distict CS env for tmux sessions
+  default_env Htd-TMux-Env "hostname CS"
+  # Initial session/window vars
+  default_env Htd-TMux-Default-Session "Htd"
+  default_env Htd-TMux-Default-Cmd "$SHELL"
+  default_env Htd-TMux-Default-Window "$(basename $SHELL)"
+
 
   projectdirs="$(echo ~/project ~/work/*/tree)"
 
@@ -331,7 +345,7 @@ htd_unload()
 htd_load_ignores()
 {
   # Initialize one HTD_IGNORE file.
-  ignores_load
+  ignores_lib_load
   test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" \
     || error "expected $base ignore dotfile" 1
 
@@ -789,7 +803,7 @@ htd_run__status=fSm
 htd_load__status=""
 htd__status()
 {
-  test -n "$failed" || error failed 1
+  test -n "$failed" || error "status: failed exists" 1
 
   stderr note "local-names: "
   # Check local names
@@ -825,8 +839,8 @@ htd__status()
   stderr note "text-paths for main-docs: "
   # Check main document elements
   {
-    test ! -d "$HTD_JRNL" ||
-      EXT=$DOC_EXT htd__archive_path $HTD_JRNL
+    test ! -d "$JRNL_DIR" ||
+      EXT=$DOC_EXT htd__archive_path $JRNL_DIR
     htd__main_doc_paths "$1"
   } | while read tag path
   do
@@ -1127,7 +1141,7 @@ htd__edit_today()
   fnmatch "*/" "$1" && {
 
     case "$1" in *journal* )
-      set -- $HTD_JRNL
+      set -- $JRNL_DIR
     ;; esac
 
     test -e "$1" || \
@@ -1194,7 +1208,7 @@ htd__edit_today()
 htd_als__vt=edit-today
 
 
-htd_spec__archive_path='archive-path DIR '
+htd_spec__archive_path='archive-path DIR PATHS..'
 # TODO consolidate with today, split into days/week/ or something
 htd__archive_path()
 {
@@ -1233,6 +1247,7 @@ htd__archive_path()
 }
 # declare locals for unset
 htd_vars__archive_path="Y M D EXT ARCHIVE_BASE ARCHIVE_ITEM datep target_path"
+
 
 # update yesterday, today and tomorrow links
 htd__today()
@@ -2908,6 +2923,7 @@ htd__diff_sh_lib()
 htd_run__diff_sh_lib=iAO
 
 
+
 # indexing, cleaning
 
 htd_name_precaution() {
@@ -4288,6 +4304,7 @@ htd__mp3_validate()
   done
 }
 
+
 htd__mux()
 {
   test -n "$1" || set -- "docker-"
@@ -4338,207 +4355,133 @@ htd__tmux_list_sessions()
     shift
   done
 }
+htd_als__tmux_list=tmux-list-sessions
+htd_als__tmux_sessions=tmux-list-sessions
+
+
+htd_man_1__tmux_session_list_windows='List window names for current 
+socket/session. Note these may be empty, but alternate formats can be provided, 
+ie. "#{window_index}". '
+htd_spc__tmux_session_list_windows='tmux-session-list-windows [ - | MATCH ] [ FMT ]'
+htd__tmux_session_list_windows()
+{
+  test -n "$1" || set -- "$HTD_TMUX_DEFAULT_SESSION"
+  test -n "$3" || set -- "$1" "$2" "#{window_name}"
+  test -z "$4" || error "Surplus arguments '$4'" 1
+  tmux_env_req 0
+  $tmux list-windows -t "$1" -F "$3" | {
+    case "$2" in
+      "" )
+          while read name
+          do
+            note "Window: $name"
+          done
+        ;;
+      "-" ) cat ;;
+      * )
+          eval grep -q "'^$2$'"
+        ;;
+    esac
+  }
+}
+htd_als__tmux_windows=tmux-session-list-windows
+htd_als__tmux_session_windows=tmux-session-list-windows
 
 
 tmux_env_req()
 {
-  test -n "$TMUX_TMPDIR" || export TMUX_TMPDIR=/opt/tmux-socket
-  mkdir -vp $TMUX_TMPDIR
-  test -n "$TMUX_SOCK" || {
-    test -n "$TMUX_SOCK_NAME" || export TMUX_SOCK_NAME=default
-    export TMUX_SOCK=/opt/tmux-socket/tmux-$(id -u)/$TMUX_SOCK_NAME
+  default_env TMux-SDir /opt/tmux-socket
+  test -n "$TMUX_SOCK" && {
+    debug "Using TMux-Sock env '$TMUX_SOCK'"
+  } || {
+    test -d "$TMUX_SDIR" || mkdir -vp $TMUX_SDIR
+    # NOTE: By default have one server per host. Add Htd-TMux-Env var-names
+    # for distinct servers based on currnet shell environment.
+    default_env Htd-TMux-Env hostname
+    TMUX_SOCK_NAME="htd$( for v in $HTD_TMUX_ENV; do eval printf -- \"-\$$v\"; done )"
+    export TMUX_SOCK=$TMUX_SDIR/tmux-$(id -u)/$TMUX_SOCK_NAME
     falseish "$1" || {
       test -S  "$TMUX_SOCK" || 
         error "No tmux socket $TMUX_SOCK_NAME (at '$TMUX_SOCK')" 1
     }
+    debug "Set TMux-Sock env '$TMUX_SOCK'"
   }
-  #tmux="tmux -S \"$TMUX_SOCK\""
   tmux="tmux -S $TMUX_SOCK "
 }
 
 
-htd__tmux_prive()
+
+htd_man_1__tmux_get='Look for session/window with current selected server and
+attach. The default name arguments may dependent on the env, or default to 
+Htd/bash. Set TMUX_SOCK or HTD_TMUX_ENV+env to select another server, refer to
+tmux-env doc.'
+htd_spc__tmux_get='tmux get [SESSION-NAME [WINDOW-NAME [CMD]]]'
+htd__tmux_get()
 {
-  req_dir_env HTDIR
-  test -n "$TMUX_SOCK" || tmux_env_req
-  test -n "$1" || set -- "*"
-  cd
-  case "$1" in init|"*" )
-  $tmux has-session -t Prive >/dev/null || {
-    htd__tmux_init Prive
-    $tmux send-keys -t Prive:1 "cd;simza test" enter
+  test -n "$1" || set -- "$HTD_TMUX_DEFAULT_SESSION" "$2" "$3"
+  test -n "$2" || set -- "$1" "$HTD_TMUX_DEFAULT_WINDOW" "$3"
+  test -n "$2" || set -- "$1" "$2" "$HTD_TMUX_DEFAULT_CMD"
+  test -z "$4" || error "Surplus arguments '$4'" 1
+  tmux_env_req 0
+
+  # Look for running server with session name
+  {
+    test -e "$TMUX_SOCK" && 
+    $tmux has-session -t "$1" >/dev/null 2>&1
+  } && {
+    info "Session '$1' exists"
+    # See if window is there with session
+    htd__tmux_session_list_windows "$1" "$2" && {
+      info "Window '$2' exists with session '$1'"
+    } || {
+      $tmux new-window -t "$1" -n "$2" "$3"
+      info "Created window '$2' with session '$1'"
+    }
+  } || {
+    # Else start server/session and with initial window
+    eval $tmux new-session -d -s "$1" -n "$2" "$3" && {
+      note "started new session '$1'"
+      logger "Started new session '$1'"
+    } || {
+      warn "Failed starting session '$1' ($?)"
+      logger "Failed starting session '$1' ($?)"
+    }
+    # Copy env to new session
+    for var in TMUX_SOCK $HTD_TMUX_ENV
+    do
+      $tmux set-environment -g $var "$(eval printf -- \"\$$var\")"
+    done
   }
-  $tmux list-windows -t Prive | grep -q HtD || {
-    $tmux new-window -t Prive -n HtD
-    $tmux send-keys -t Prive:HtD "cd $HTDIR; htd today $HTD_JRNL;git st" enter
-    $tmux send-keys -t Prive:HtD "git add -u;git add dev/ personal/*.rst
-    $HTD_JRNL/2*.rst sysadmin/*.rst *.rst;git st" enter
-    note "Initialized 'HtD' window"
+  test -n "$TMUX" || {
+    note "Attaching to session '$1'"
+    $tmux attach
   }
-  $tmux list-windows -t Prive | grep -q '\ conf' || {
-    $tmux new-window -t Prive -n conf
-    $tmux send-keys -t Prive:conf "cd ~/.conf;git st" enter
-    note "Initialized 'conf' window"
-  }
-  $tmux list-windows -t Prive | grep -q Bin || {
-    $tmux new-window -t Prive -n Bin
-    $tmux send-keys -t Prive:Bin "cd ~/bin;git st" enter
-    note "Initialized 'Bin' window"
-  }
-  ;; esac
 }
 
-htd__tmux_work()
-{
-  test -n "$TMUX_SOCK" || tmux_env_req 0
-  test -n "$1" || set -- "*"
-  cd ~/work/brix
-
-  ### Make sure Work session is registered with tmux server
-
-  case "$1" in init|"*" )
-
-  $tmux has-session -t Work >/dev/null || htd__tmux_init Work bash
-  sleep 2
-
-  # Make sure Log window is on and first window (swapping some windows if
-  # needed, maybe better way it to start server by hand instead of usign new-session?)
-
-  $tmux list-windows -t Work | grep -q Log || {
-    # No log, new session, need to clean up first window, add one first to keep session
-    $tmux new-window -t Work -n temporary
-    $tmux kill-window -t Work:1
-  }
-  sleep 1
-
-  $tmux list-windows -t Work | grep -q '1:\ Log' || {
-    $tmux new-window -t Work -n Log
-    $tmux send-keys -t Work:Log "cd ~/work/brix/;htd today log" enter
-    $tmux send-keys -t Work:Log "(cd log;git add -u;git add 20*.rst; git st)" enter
-  }
-  sleep 1
-
-  $tmux list-windows -t Work | grep -q temporary && {
-    $tmux kill-window -t Work:temporary
-  } || noop
-
-  ;; esac
-
-
-  ### Add other windows
-
-  case "$1" in tree|"*" )
-  $tmux list-windows -t Work | grep -q Tree || {
-    $tmux new-window -t Work -n Tree
-    $tmux send-keys -t Work:Tree "cd ~/work/brix/" enter "make status" enter
-    note "Initialized Tree window"
-  }
-  ;; esac
-  case "$1" in cln|"*" )
-  $tmux list-windows -t Work | grep -q Cleaning || {
-    $tmux new-window -t Work -n TreeCln
-    $tmux send-keys -t Work:TreeCln "cd /Volumes/Simza/WorkCleaning/brix" enter "make status" enter
-    note "Initialized TreeCln window"
-  }
-  ;; esac
-  case "$1" in jenkins )
-      htd tmux-winit Work Jnk ~/work/brix/Jenkins \
-        "(cd jenkins-ci-config && git fetch --all && git status); (cd userContent && git fetch --all && git status)"
-  ;; esac
-  case "$1" in dev-doc )
-      htd tmux-winit Work DvD ~/work/brix/tree/dev-doc
-  ;; esac
-  case "$1" in skel* )
-      htd tmux-winit Work Skl ~/work/brix/tree/project-skeleton-ng
-  ;; esac
-  case "$1" in mango|"*" )
-      htd tmux-winit Work MngB /Volumes/Simza/WorkCleaning/brix/tree/mango-builds
-  ;; esac
-
-  case "$1" in studio|"*" )
-  $tmux list-windows -t Work | grep -q BrxStd || {
-    $tmux new-window -t Work -n BrxStd
-    $tmux send-keys -t Work:BrxStd "cd /Volumes/Simza/WorkCleaning/brix/tree/brixcloud-studio-testing" enter "git st" enter
-    note "Initialized BrxStd window"
-  }
-  $tmux list-windows -t Work | grep -q BrxStdT || {
-    $tmux new-window -t Work -n BrxStdT
-    $tmux send-keys -t Work:BrxStdT "cd /Volumes/Simza/WorkCleaning/brix/tree/brixcloud-studio-testing2;ls -la" enter
-    note "Initialized BrxStdT window"
-  }
-  $tmux list-windows -t Work | grep -q BrxStdSkl || {
-    $tmux new-window -t Work -n BrxStdSkl
-    $tmux send-keys -t Work:BrxStdSkl "cd ~/work/brix/tree/brixcloud-studio-skeleton" enter "git st" enter
-    note "Initialized BrxStdSkl window"
-  }
-  ;; esac
-
-
-  ### Clients
-
-  case "$1" in sw|stein*|steinweg )
-  $tmux list-windows -t Work | grep -q Sw || {
-    $tmux new-window -t Work -n Sw
-    # TODO
-    $tmux send-keys -t Work:Sw "cd /Volumes/Simza/work/brix/tree/steinweg" enter "git st" enter
-    note "Initialized Sw window"
-  }
-  ;; esac
-}
-
-
-htd__tmux_srv()
-{
-  test -n "$TMUX_SOCK" || tmux_env_req 0
-  req_dir_env HTDIR
-  cd /srv
-  $tmux has-session -t Srv >/dev/null || {
-    htd__tmux_init Srv
-    $tmux send-keys -t Srv:bash "cd ~/.conf; ./script/update.sh" enter
-  }
-  $tmux list-windows -t Srv | grep -q HtD-Sf || {
-    $tmux new-window -t Srv -n HtD-Sf
-    $tmux send-keys -t Srv:HtD-Sf "cd $HTDIR; sitefile" enter
-  }
-  $tmux list-windows -t Srv | grep -q BrX-Sf || {
-    $tmux new-window -t Srv -n BrX-Sf
-    $tmux send-keys -t Srv:BrX-Sf "cd ~/work/brix/; sitefile" enter
-  }
-  $tmux list-windows -t Srv | grep -q X-Tw || {
-    $tmux new-window -t Srv -n X-Tw
-    $tmux send-keys -t Srv:X-Tw "cd ~/project/x-tiddlywiki; tiddlywiki x-tiddlywiki --server" enter
-  }
-  $tmux list-windows -t Srv | grep -q Loci || {
-    $tmux new-window -t Srv -n Loci
-    $tmux send-keys -t Srv:Loci "cd ~/project/node-loci; npm start" enter
-  }
-}
 
 
 # Shortcut to create window, if not exists
 # htd tmux-winit SESSION WINDOW DIR CMD
 htd__tmux_winit()
 {
-  test -n "$TMUX_SOCK" || tmux_env_req 0
+  tmux_env_req 0
   ## Parse args
   test -n "$1" || error "Session <arg1> required" 1
   test -n "$2" || error "Window <arg2> required" 1
+  # set window working dir
+  test -e $UCONFDIR/script/htd/tmux-init.sh &&
+    . $UCONFDIR/script/htd/tmux-init.sh || error TODO 1
   test -n "$3" || {
-    # set working dir
-    case "$1" in
-      Work )
-        set -- "$1" "$2" "~/work/brix/tree/$2" ;;
-      Prive )
-        set -- "$1" "$2" "~/project/$2" ;;
-      * )
-        warn "Cannot setup working-dir for window '$1:$2'" ;;
-    esac
+    set -- "$@" "$(htd_uconf__tmux_init_cwd "$@")"
   }
   test -d "$3" || error "Expected <arg3> to be directory '$3'" 1
   test -n "$4" || {
-    set -- "$1" "$2" "$3" "git fetch --all && status"
+    # TODO: depending on context may also want to update or something different
+    set -- "$1" "$2" "$3" "htd status"
   }
-
+  $tmux list-sessions | grep -q '\<'$1'\>' || {
+    error "No session '$1'" 1
+  }
   $tmux list-windows -t $1 | grep -q $2 && {
     note "Window '$1:$2' already initialized"
   } || {
@@ -4553,82 +4496,103 @@ htd__tmux_init()
 {
   test -n "$1" || error "session name required" 1
   test -n "$2" || set -- "$1" "bash"
-  #'reattach-to-user-namespace -l /bin/bash'"
-  test -z "$3" || error "surplus arguments: '$3'" 1
-  test -n "$TMUX_SOCK" || tmux_env_req 0
+  test -z "$4" || error "surplus arguments: '$4'" 1
+  tmux_env_req 0
+  # set window working dir
+  test -e $UCONFDIR/script/htd/tmux-init.sh &&
+    . $UCONFDIR/script/htd/tmux-init.sh || error TODO 1
+  test -n "$3" || {
+    set -- "$@" "$(htd_uconf__tmux_init_cwd "$@")"
+  }
   out=$(setup_tmpd)/htd-tmux-init-$$
-
   $tmux has-session -t "$1" >/dev/null 2>&1 && {
-    logger "Session $1 exists" 0
-    note "Session $1 exists" 0
+    logger "Session $1 exists" 
+    note "Session $1 exists" 
   } || {
     $tmux new-session -dP -s "$1" "$2" && {
     #>/dev/null 2>&1 && {
       note "started new session '$1'"
       logger "started new session '$1'"
     } || {
-      logger "Failed starting session ($?) ($out):"
+      warn "Failed starting session '$1' ($?) ($out):"
+      logger "Failed starting session '$1' ($?) ($out):"
       printf "Cat ($out) "
     }
-    #rm $out
+    test ! -e "$out" || rm $out 
   }
 }
 
 
-# Start tmux, tmuxinator or htd-tmux with given names
+htd_man_1__tmux='Unless tmux is running, a new tmux session, based on the 
+current environment.
+
+Untmux is running with an environment matching the current, attach. Different
+tmux environments are managed by using seperate sockets per session.
+
+Start tmux, tmuxinator or htd-tmux with given names.
+TODO: first deal with getting a server and session. Maybe later per window
+management.
+'
+htd_spc__tmux=
 htd__tmux()
 {
-  test -n "$TMUX_SOCK" || tmux_env_req 0
+  tmux_env_req 0
+  test -n "$1" || set -- get
 
-  $tmux set-environment -g CS $CS
+  case "$1" in
+    * ) local c=$1; shift; htd__tmux_$c "$@" || return ;;
+  esac
 
-  while test -n "$1"
-  do
-    func="htd__tmux_$(echo $1 | tr 'A-Z' 'a-z')"
-    fname="$(echo "$1" | tr 'A-Z' 'a-z')"
+  #while test -n "$1"
+  #do
+  #  func="htd__tmux_$(echo $1 | tr 'A-Z' 'a-z')"
+  #  fname="$(echo "$1" | tr 'A-Z' 'a-z')"
 
-    $tmux has-session -t $1 >/dev/null 2>&1 && {
-      info "Session $1 exists"
-      shift
-      continue
-    }
-    func_exists "$func" && {
+  #  $tmux has-session -t $1 >/dev/null 2>&1 && {
+  #    info "Session $1 exists"
+  #    shift
+  #    continue
+  #  }
 
-      # Look for init subcmd to setup windows
-      note "Starting htd TMUX $1 (tmux-$fname) init"
-      try_exec_func "$func" || return $?
+  #  func_exists "$func" && {
 
-    } || {
-      test -f "$UCONFDIR/tmuxinator/$fname.yml" && {
-        note "Starting tmuxinator '$1' config"
-        htd__mux $1 &
-      } || {
-        note "Starting htd-tmux '$1' config"
-        htd__tmux_init $1
-      }
-    }
-    shift
-  done
+  #    # Look for init subcmd to setup windows
+  #    note "Starting Htd-TMux $1 (tmux-$fname) init"
+  #    try_exec_func "$func" || return $?
 
-  test -n "$CS_CUR" ||
-    $tmux set-environment -g CS $CS_CUR
+  #  } || {
+  #    test -f "$UCONFDIR/tmuxinator/$fname.yml" && {
+  #      note "Starting tmuxinator '$1' config"
+  #      htd__mux $1 &
+  #    } || {
+  #      note "Starting Htd-TMux '$1' config"
+  #      htd__tmux_init $1
+  #    }
+  #  }
+  #  shift
+  #done
 
-  test -n "$TMUX" || $tmux attach
 }
 
 
-htd__tmux_light()
+# Find a server with session name and CS env tag, and get a window
+htd__tmux_cs()
 {
-  #tmux -S /opt/tmux-socket/boreas-brix-light-term new-session -s Brix
-  test -n "$1" || set -- Brix "$2" "$3"
+  test -n "$1" || set -- Htd-$CS "$2" "$3"
   test -n "$2" || set -- "$1" 0    "$3"
   test -n "$3" || set -- "$1" "$2" ~/work
-  export TMUX_SOCK_NAME=boreas-brix-light-term
-  # FIXME: env to tmux session
-  export CS_CUR=$CS
-  export CS=light
-  htd__tmux_winit "$@"
+  (
+    # TODO: hostname, session/socket tags
+    export TMUX_SOCK_NAME=boreas-$1-term
+    tmux_env_req 0
+    htd__tmux_init "$1" "$SHELL" "$3"
+    htd__tmux_winit "$@"
+    $tmux set-environment -g CS $CS
+    test -n "$TMUX" || $tmux attach
+  )
 }
+
+# send.keys simza test
 
 
 htd__reader_update()
@@ -5253,7 +5217,7 @@ req_prefix_names_index()
 # Run path-prefix-name for all paths from htd-open.
 htd__prefixes()
 {
-  local index=
+  test -n "$index" || local index=
   req_prefix_names_index
   test -s "$index"
   { test -n "$1" && {
@@ -5271,10 +5235,12 @@ htd__prefixes()
 # List prefix varnames
 htd__prefix_names()
 {
-  local index=
+  test -n "$index" || local index=
   req_prefix_names_index
   test -s "$index"
-  read_nix_style_file $index | awk '{print $2}' | uniq
+  #read_nix_style_file $index | awk '{print $2}' | uniq
+  ls -la $index
+  cat $index
   rm $index
 }
 
@@ -5282,7 +5248,7 @@ htd__prefix_names()
 # Return prefix:<localpath> after scanning paths-topic-names
 htd__prefix_name()
 {
-  local index=
+  test -n "$index" || local index=
   req_prefix_names_index
   test -s "$index"
   local path="$1"
@@ -5298,14 +5264,18 @@ htd__prefix_name()
   fnmatch "*/" "$1" || set -- "$1/"
   # offset on furter for `cut`
   set -- "$1+"
-  echo "$prefix_name:$(echo "$path" | cut -c${#1}- )"
+  local v="$( echo "$path" | cut -c${#1}- )"
+  test -n "$v" || {
+    test "$prefix_name" == ROOT && v=/
+  }
+  echo "$prefix_name:$v"
 }
 
 
 # Print user or default prefix-name lookup table
 htd__path_prefix_names()
 {
-  local index=
+  test -n "$index" || local index=
   req_prefix_names_index
   test -s "$index"
   cat $index | sed 's/^[^\#]/'$(hostname -s)':&/g'
@@ -5315,19 +5285,49 @@ htd__path_prefix_names()
 
 htd__list_prefixes()
 {
+  test -n "$out_fmt" || out_fmt=plain
   (
     sd_be=redis
     statusdir.sh be smembers htd:prefixes:names | while read prefix
     do
-      val="$(eval echo \$$prefix)"
-      test -n "$val" &&
-        printf -- "$prefix <$val>\n" || printf -- "$prefix\n"
+      test -n "$(echo $prefix)" &&
+        val="$(eval echo \"\$$prefix\")" || {
+          prefix=ROOT
+          val=/
+        }
+      test -n "$val" && {
+        case "$out_fmt" in
+          plain|text|txt )
+              printf -- "$prefix <$val>\n" || printf -- "$prefix\n"
+            ;;
+          rst|restructuredtext )
+              printf -- "\`$prefix <$val>\`_\n" || printf -- "$prefix\n"
+            ;;
+          yaml|yml )
+              printf -- "$prefix <$val>:\n" || printf -- "$prefix:\n"
+            ;;
+        esac
+      }
       statusdir.sh be smembers htd:prefix:$prefix:paths | while read localpath
       do
-        test -n "$localpath" || localpath="''"
-        printf -- "  - $localpath\n"
+        case "$out_fmt" in
+          plain|text|txt|rst )
+              test -z "$localpath" &&
+                printf -- "  ..\n" ||
+                printf -- "  - $localpath\n"
+            ;;
+          yaml|yml )
+              test -z "$localpath" &&
+                printf -- "  []\n" ||
+                printf -- "  - '$localpath'\n"
+            ;;
+        esac
       done
-      echo
+      case "$out_fmt" in
+        plain|text|txt )
+            echo
+          ;;
+      esac
     done
   )
 }
@@ -5341,7 +5341,8 @@ htd__update_prefixes()
     htd__prefixes | while IFS=':' read prefix localpath
     do
       statusdir.sh be sadd htd:prefixes:names "$prefix"
-      test -n "$localpath" || continue
+      echo prefix=$prefix localpath=$localpath
+      test -n "$prefix" -a -n "$localpath" || continue
       statusdir.sh be sadd htd:prefix:$prefix:paths $localpath
       echo $prefix:$localpath
     done
@@ -5349,9 +5350,10 @@ htd__update_prefixes()
 }
 
 
-htd__services_list()
+htd__service_list()
 {
-  test -e "$HTD_SERVTAB" || error "No services table" 1
+  test -n "$service_cmd" || service_cmd=status
+  htd_service_env_req
   fixed_table $HTD_SERVTAB UNID TYPE EXP CTX | while read vars
   do
     eval local "$vars"
@@ -5362,7 +5364,27 @@ htd__services_list()
       error "service $UNID dir missing: '$DIR'"
       continue
     }
-    htd__service status "$UNID" "$TYPE" "$DIR" && {
+    # XXX: interpret recorded
+    trueish "$update" || {
+      # XXX: nicely formatted stdout $UNID $TYPE $DIR ...
+      test -z "$HTD_SERV_ENV" || eval $HTD_SERV_ENV
+      # NOTE: Get a bit nicer name. 
+      # FIXME: would want package metadata. req. new code getting type specific
+      # metadata. Not sure yet where to group it.. services, environment. 
+      #package_get_key "$DIR" $package_id label name id
+      upper=1 mkvid "$TYPE"
+      NAME=$(eval echo \$${vid}_NAME)
+      echo "$UNID: $NAME @$TYPE $(htd_service_status_info "$TYPE" "$EXP") <$DIR>"
+      continue
+    }
+    # XXX: interpret current results 
+    test "$service_cmd" = status || {
+      htd__service $service_cmd "$UNID" "$TYPE" "$DIR" ||
+        warn "'$service_cmd' returned $?" 1
+      continue
+    } 
+    # XXX: update
+    htd__service $service_cmd "$UNID" "$TYPE" "$DIR" && {
       test -z "$EXP" -o "$EXP" = "0" &&
         stderr OK "OK $TYPE $htd_serv_stat_msg [$DIR] ($UNID) "  ||
         warn "Unexpected state 0 for $TYPE [$DIR] ($UNID)"
@@ -5374,17 +5396,32 @@ htd__services_list()
     }
   done
 }
-htd_als__list_services=services-list
+htd_als__list_services=service-list
 
 
-htd__service()
+htd__service() # Cmd [ Sid [ Type [ Dir ]]]
 {
   test -n "$1" || set -- list
   test -n "$htd_serv_update" || export htd_serv_update=1
   case "$1" in
-    info | list | reload ) ;;
+    info | record )
+        test -z "$3" -a -z "$4"
+        test -n "$2" && {
+          htd_service_record "$2"
+        } || {
+          echo
+        }
+      ;;
+    reload ) ;;
     status | install | init | start | stop | restart | deinit | uninstall )
         shift
+        CTX=$(htd_service_attr "$1" CTX )
+        DIR=$(echo "$CTX" | awk '{print $1}')
+        HTD_SERV_ENV="${CTX:${#DIR}}"
+        DIR=$(eval echo $DIR)
+        test -n "$2" -a -n "$3" || {
+          set -- $1 $( htd_service_attr "$1" TYPE ) "$DIR"
+        }
         htd_service_exists "$@" || {
           trueish "$htd_serv_update" && {
             htd_service_update_record "$@"
@@ -5392,6 +5429,14 @@ htd__service()
             return 1
         }
         htd_service_status "$@" || return
+        htd_service_update "$@"
+      ;;
+    list ) test -z "$2" -a -z "$3" -a -z "$4" ; 
+        echo "#$(fixed_table_hd "$HTD_SERVTAB")"
+        update=0 service_cmd=info htd__service_list
+      ;;
+    list-info ) test -z "$2" -a -z "$3" -a -z "$4" ;
+        update=1 service_cmd=status htd__service_list
       ;;
   esac
 }
@@ -6916,15 +6961,21 @@ htd_main()
 {
   local scriptname=htd base=$(basename "$0" .sh) \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-    subcmd= failed=
+    package_id= \
+    subcmd= failed= cmd_als=
 
   htd_init || exit $?
 
   case "$base" in
 
     $scriptname )
-
-        test -n "$1" || set -- main-doc-edit
+        test -n "$1" || {
+          test "$stdio_0_type" = "t" && {
+            set -- main-doc-edit
+          } || {
+            set -- status
+          }
+        }
 
         #htd_lib || exit $?
         #run_subcmd "$@" || exit $?
@@ -6969,7 +7020,6 @@ htd_init_etc()
   test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
   #XXX: test ! -e .conf || echo .conf
   #test ! -e $UCONFDIR/htd || echo $UCONFDIR
-  info "Set htd-etc to '$*'"
 }
 
 htd_optsv()
