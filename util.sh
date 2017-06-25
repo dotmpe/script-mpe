@@ -11,12 +11,18 @@ set -e
 
 lib_load()
 {
-  local f_lib_load=
+  local f_lib_load= f_lib_path=
   test -n "$__load_lib" || local __load_lib=1
   test -n "$1" || set -- str sys os std stdio src match main argv
   while test -n "$1"
   do
-    . $scriptpath/$1.lib.sh load-ext
+    f_lib_path="$( echo "$SCRIPTPATH" | tr ':' '\n' | while read scriptpath
+      do
+        test -e "$scriptpath/$1.lib.sh" || continue
+        echo "$scriptpath/$1.lib.sh"
+      done)"
+    test -n "$f_lib_path" || error "No path for lib '$1'" 1
+    . $f_lib_path load-ext
     f_lib_load=$(printf "${1}" | tr -Cs 'A-Za-z0-9_' '_')_lib_load
     # func_exists, then call
     type ${f_lib_load} 2> /dev/null 1> /dev/null && {
@@ -26,29 +32,41 @@ lib_load()
   done
 }
 
+util_boot()
+{
+  test "$(basename "$(dirname "$0")")" = "bin" && {
+    export scriptpath="$HOME/bin"
+  } || {
+    export scriptpath="$(dirname "$0")"
+  }
+}
+
 util_init()
 {
+	export SCRIPTPATH="$HOME/bin"
+	test -n "$scriptpath" -a "$scriptpath" = "$SCRIPTPATH" ||
+      export SCRIPTPATH="$scriptpath:$SCRIPTPATH"
   lib_load
-  #sys_lib_load
-  #str_lib_load
-  #std_lib_load
 }
 
 
 case "$0" in
   "-"*|"" ) ;;
   * )
-
-      test -z "$__load_lib" || set -- "load-ext"
-      case "$1" in
+      test -n "$f_lib_load" || {
+        case "$__load_mode" in
+          # Setup SCRIPTPATH and include other scripts
+          boot|main )
+              util_boot "$@"
+            ;;
+        esac
+        test -n "$SCRIPTPATH" || {
+          util_init
+        }
+      }
+      case "$__load_mode" in
         load-* ) ;; # External include, do nothing
         boot )
-            test -n "$scriptpath" || scriptpath="$(dirname "$0")"
-            lib_load
-          ;;
-        * ) # Setup SCRIPTPATH and include other scripts
-
-            test -n "$scriptpath"
             lib_load
           ;;
       esac

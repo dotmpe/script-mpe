@@ -37,7 +37,7 @@ htd_load()
   test -n "$LOG" ||
     export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
   default_env Script-Etc "$( htd_init_etc|head -n 1 )" ||
-    debug "Using Script-Etc '$SCRIPT_ETC'" 
+    debug "Using Script-Etc '$SCRIPT_ETC'"
   test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE="$CWD"/tools.yml
   test -n "$HTD_TOOLSDIR" || HTD_TOOLSDIR=$HOME/.htd-tools
   default_env Jrnl-Dir "personal/journal" || debug "Using Jrnl-Dir '$JRNL_DIR'"
@@ -3270,7 +3270,7 @@ htd__archive_init()
   test -d "$CABINET_DIR" || {
     trueish "$interactive" || {
       sys_confirm "No local cabinet exists, created it? [yes/no]" || {
-        warn "Cabinet folder missing ($CABINET_DIR)" 1 
+        warn "Cabinet folder missing ($CABINET_DIR)" 1
       }
       mkdir -vp $CABINET_DIR
     }
@@ -3292,7 +3292,7 @@ htd__archive()
   while test $# -gt 0
   do
     htd_archive_path_format $CABINET_DIR $1
-    shift 
+    shift
   done
 }
 htd_run__archive=ieAO
@@ -4343,7 +4343,7 @@ htd__tmux_sockets()
 
 htd__tmux_list_sessions()
 {
-  test -n "$1" || set -- $(htd__tmux_sockets) 
+  test -n "$1" || set -- $(htd__tmux_sockets)
   while test $# -gt 0
   do
     test -e "$1" && {
@@ -4359,8 +4359,8 @@ htd_als__tmux_list=tmux-list-sessions
 htd_als__tmux_sessions=tmux-list-sessions
 
 
-htd_man_1__tmux_session_list_windows='List window names for current 
-socket/session. Note these may be empty, but alternate formats can be provided, 
+htd_man_1__tmux_session_list_windows='List window names for current
+socket/session. Note these may be empty, but alternate formats can be provided,
 ie. "#{window_index}". '
 htd_spc__tmux_session_list_windows='tmux-session-list-windows [ - | MATCH ] [ FMT ]'
 htd__tmux_session_list_windows()
@@ -4401,7 +4401,7 @@ tmux_env_req()
     TMUX_SOCK_NAME="htd$( for v in $HTD_TMUX_ENV; do eval printf -- \"-\$$v\"; done )"
     export TMUX_SOCK=$TMUX_SDIR/tmux-$(id -u)/$TMUX_SOCK_NAME
     falseish "$1" || {
-      test -S  "$TMUX_SOCK" || 
+      test -S  "$TMUX_SOCK" ||
         error "No tmux socket $TMUX_SOCK_NAME (at '$TMUX_SOCK')" 1
     }
     debug "Set TMux-Sock env '$TMUX_SOCK'"
@@ -4412,7 +4412,7 @@ tmux_env_req()
 
 
 htd_man_1__tmux_get='Look for session/window with current selected server and
-attach. The default name arguments may dependent on the env, or default to 
+attach. The default name arguments may dependent on the env, or default to
 Htd/bash. Set TMUX_SOCK or HTD_TMUX_ENV+env to select another server, refer to
 tmux-env doc.'
 htd_spc__tmux_get='tmux get [SESSION-NAME [WINDOW-NAME [CMD]]]'
@@ -4426,7 +4426,7 @@ htd__tmux_get()
 
   # Look for running server with session name
   {
-    test -e "$TMUX_SOCK" && 
+    test -e "$TMUX_SOCK" &&
     $tmux has-session -t "$1" >/dev/null 2>&1
   } && {
     info "Session '$1' exists"
@@ -4506,8 +4506,8 @@ htd__tmux_init()
   }
   out=$(setup_tmpd)/htd-tmux-init-$$
   $tmux has-session -t "$1" >/dev/null 2>&1 && {
-    logger "Session $1 exists" 
-    note "Session $1 exists" 
+    logger "Session $1 exists"
+    note "Session $1 exists"
   } || {
     $tmux new-session -dP -s "$1" "$2" && {
     #>/dev/null 2>&1 && {
@@ -4518,12 +4518,12 @@ htd__tmux_init()
       logger "Failed starting session '$1' ($?) ($out):"
       printf "Cat ($out) "
     }
-    test ! -e "$out" || rm $out 
+    test ! -e "$out" || rm $out
   }
 }
 
 
-htd_man_1__tmux='Unless tmux is running, a new tmux session, based on the 
+htd_man_1__tmux='Unless tmux is running, a new tmux session, based on the
 current environment.
 
 Untmux is running with an environment matching the current, attach. Different
@@ -5142,6 +5142,12 @@ htd__current_paths()
 htd_als__lsof=current
 
 
+htd__x_lsof()
+{
+  lsof
+}
+
+
 htd_man_1__open_paths_diff='Create list of open files, and show differences on
   subsequent calls. '
 htd_spc__open_paths_diff="open-paths-diff"
@@ -5368,21 +5374,21 @@ htd__service_list()
     trueish "$update" || {
       # XXX: nicely formatted stdout $UNID $TYPE $DIR ...
       test -z "$HTD_SERV_ENV" || eval $HTD_SERV_ENV
-      # NOTE: Get a bit nicer name. 
+      # NOTE: Get a bit nicer name.
       # FIXME: would want package metadata. req. new code getting type specific
-      # metadata. Not sure yet where to group it.. services, environment. 
+      # metadata. Not sure yet where to group it.. services, environment.
       #package_get_key "$DIR" $package_id label name id
       upper=1 mkvid "$TYPE"
       NAME=$(eval echo \$${vid}_NAME)
       echo "$UNID: $NAME @$TYPE $(htd_service_status_info "$TYPE" "$EXP") <$DIR>"
       continue
     }
-    # XXX: interpret current results 
+    # XXX: interpret current results
     test "$service_cmd" = status || {
       htd__service $service_cmd "$UNID" "$TYPE" "$DIR" ||
         warn "'$service_cmd' returned $?" 1
       continue
-    } 
+    }
     # XXX: update
     htd__service $service_cmd "$UNID" "$TYPE" "$DIR" && {
       test -z "$EXP" -o "$EXP" = "0" &&
@@ -5431,7 +5437,7 @@ htd__service() # Cmd [ Sid [ Type [ Dir ]]]
         htd_service_status "$@" || return
         htd_service_update "$@"
       ;;
-    list ) test -z "$2" -a -z "$3" -a -z "$4" ; 
+    list ) test -z "$2" -a -z "$3" -a -z "$4" ;
         echo "#$(fixed_table_hd "$HTD_SERVTAB")"
         update=0 service_cmd=info htd__service_list
       ;;
@@ -6851,7 +6857,7 @@ htd__checkout()
   info "2.2. Env: $(var2tags id symlinks_fn table_f )"
   test "$table_f" = "-" && {
     # TODO: either generate table
-    #alternatively generate table dynamically? 
+    #alternatively generate table dynamically?
     exit 44 #. $fn
   } || {
     test -e "$table_f" || error "No such table '$table_f'" 1

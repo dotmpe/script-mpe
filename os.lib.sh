@@ -81,11 +81,16 @@ basenames()
   done
 }
 
-filenamext()
+filenamext() # for each argument, echo just the filename-extension suffix
 {
   while test -n "$1"; do
     echo "$1" | sed 's/^.*\.\([^\.]*\)$/\1/'
   shift; done
+}
+
+filestripext()
+{
+  basename "$1" ".$(filenamext "$1")"
 }
 
 fileisext()
@@ -234,7 +239,6 @@ read_file_lines_while()
 
 
 # Change cwd to parent dir with file $1, leave go_to_before var in env.
-#
 go_to_directory()
 {
   test -n "$1" || error "Missing filename arg" 1
@@ -252,7 +256,6 @@ go_to_directory()
   test -e "$1" || return 1
 }
 
-
 # Resolve all symlinks in subtree, return a list with targets
 get_targets()
 {
@@ -265,7 +268,6 @@ get_targets()
     normalize_relative $(dirname $link)/$target
   done | sort -u
 }
-
 
 count_lines()
 {
@@ -320,7 +322,6 @@ line_count()
   echo $lc
 }
 
-
 xsed_rewrite()
 {
     case "$uname" in
@@ -328,7 +329,6 @@ xsed_rewrite()
         Linux ) sed "$@";;
     esac
 }
-
 
 get_uuid()
 {
@@ -378,7 +378,6 @@ get_uuid()
 #  } || set --
 #}
 
-
 # strip-trailing-dash
 strip_trail()
 {
@@ -387,7 +386,6 @@ strip_trail()
   } ||
     echo "$1"
 }
-
 
 # if not exists, create directories and touch file for each given path arg
 assert_files()
@@ -401,7 +399,6 @@ assert_files()
     }
   done
 }
-
 
 lock_files()
 {
