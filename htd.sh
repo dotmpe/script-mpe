@@ -60,6 +60,7 @@ htd_load()
   default_env Htd-TMux-Default-Cmd "$SHELL"
   default_env Htd-TMux-Default-Window "$(basename $SHELL)"
 
+  default_env Couch-URL http://sandbox-3:5984
 
   projectdirs="$(echo ~/project ~/work/*/tree)"
 
