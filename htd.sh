@@ -2751,9 +2751,11 @@ htd__gitflow_check_doc()
     grep -qE "\<$p_\>" $1 || failed "$1: expected '$branch'"
   done
   exec 6<&-
-  test -s "$failed" || {
+  test -s "$failed" && {
+    stderr failed "missing some branch references in '$1'"
+  } || {
     rm "$failed"
-    stderr ok "All branches found in '$1'"
+    stderr ok "checked for and found references for all branches in '$1'"
   }
 }
 htd_als__gitflow_check=gitflow-check-doc
