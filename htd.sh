@@ -788,7 +788,11 @@ htd_als___F=find-doc
 
 htd__volumes()
 {
-  TODO "list as ansi/txt htd__srv_list"
+  case "$1" in
+    list )
+        htd__ls_volumes
+      ;;
+  esac
 }
 
 
@@ -6346,16 +6350,18 @@ htd__srv_init()
 # Volumes for services
 
 htd_man_1__srv_list="Print info to stdout, one line per symlink in /srv"
-htd_spc__srv_list="src-list [DOT]"
+htd_spc__srv_list="src-list"
 htd__srv_list()
 {
+  upper=0 default_env out-fmt plain
+  out_fmt="$(echo $out_fmt | str_upper)"
   test -n "$verbosity" -a $verbosity -gt 5 || verbosity=6
-  set -- "$(echo $1 | str_upper)"
-  case "$1" in
+  case "$out_fmt" in
       DOT )  echo "digraph htd__srv_list { rankdir=RL; ";; esac
   for srv in /srv/*
   do
     test -h $srv || continue
+    cd /srv/
     target="$(readlink $srv)"
     name="$(basename "$srv" -local)"
     test -e "$target" || {
@@ -6364,7 +6370,7 @@ htd__srv_list()
     }
     depth=$(htd__path_depth "$target")
 
-    case "$1" in
+    case "$out_fmt" in
         DOT )
             NAME=$(mkvid "$name"; echo $vid)
             TRGT=$(mkvid "$target"; echo $vid)
@@ -6421,8 +6427,9 @@ htd__srv_list()
           } ;;
 
     esac
+
   done
-  case "$1" in
+  case "$out_fmt" in
       DOT )  echo "} // digraph htd__srv_list";; esac
 }
 
@@ -6444,13 +6451,17 @@ SRVS="archive archive-old scm-git src annex www-data cabinet htdocs shared \
   docker"
 # TODO: use service names from disk catalog
 
+
 # Go over local disk to see if volume links are there
 htd__ls_volumes()
 {
   disk.sh list-local | while read disk
   do
     prefix=$(disk.sh prefix $disk 2>/dev/null)
-    test -n "$prefix" || error "No prefix found" 1
+    test -n "$prefix" || {
+      warn "No prefix found for <$disk>"
+      continue
+    }
 
     disk_index=$(disk.sh info $disk disk_index 2>/dev/null)
 
@@ -6511,6 +6522,8 @@ htd__ls_volumes()
 
   done
 }
+htd_als__list_volumes=ls-volumes
+
 
 htd__munin_ls()
 {

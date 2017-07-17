@@ -270,19 +270,21 @@ disk__list()
     echo "#NUM DISK_ID HOST PREFIX"
     for disk in $DISK_CATALOG/disk/*.sh
     do
-
       . $disk
+      test -n "$disk_id" || {
+        warn "Missing ID for <$disk> catalog entry <$prefix> '$description'"
+        continue
+      }
 
       # Find device and check
       dev=$(disk__get_by_id $disk_id)
-
       printf "$disk_index. $disk_id $host $prefix\n"
-      unset host disk_id disk_index prefix volumes
-
+      unset host disk_id disk_index prefix volumes description
     done
   } | sort -n | column -tc 3
   echo "# Catalog at $(hostname):$DISK_CATALOG, $(datetime_iso)"
 }
+
 
 disk_man_1__enable="TODO"
 disk__enable()
