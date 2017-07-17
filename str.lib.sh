@@ -31,6 +31,9 @@ str_lib_load()
   #        || ext_sh_sub=0
   #  #debug "Initialized ext_sh_sub=$ext_sh_sub"
   #}
+
+  test -x "$(which php)" &&
+    bin_php=1 || bin_php=0
 }
 
 # Web-like ID for simple strings, input can be any series of characters.
@@ -134,6 +137,15 @@ str_replace_back()
         echo "$1" | sed "s/$find$/$p_/g"
     }
 }
+
+
+# Trim end off Str by Len chars
+str_trim_end() # Str Len [Start]
+{
+  test -n "$3" || set -- "$1" "$2" 1
+  echo "$1" | cut -c$3-$(( ${#1} - $2 ))
+}
+
 
 str_replace()
 {
@@ -356,4 +368,22 @@ column_layout()
   done |
     column -t
 }
+
+str_title()
+{
+  # Other ideas to test as ucwords:
+  # https://stackoverflow.com/questions/12420317/first-character-of-a-variable-in-a-shell-script-to-uppercase
+  trueish "$bin_php" && {
+    trueish "$first_word_only" &&
+      php -r "echo ucfirst('$1');" ||
+      php -r "echo ucwords('$1');"
+  } || {
+    trueish "$first_word_only" && {
+      echo "$1" | awk '{ print toupper(substr($0, 1, 1)) substr($0, 2) }'
+    } || {
+      first_word_only=1 str_title "$(echo "$1" | tr ' ' '\n')" | tr '\n' ' '
+    }
+  }
+}
+
 

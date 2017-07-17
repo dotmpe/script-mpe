@@ -97,6 +97,10 @@ fixed_table_cuthd()
 # Prints a single line of var declarations for each record/line in table file.
 # Passing an existing `cut` arguments file allows to read tables w/o header,
 # e.g. to parse record lines stripped from comments on stdin.
+# Note: trouble is many shell regulars (ps, lsof) have an addiitional alignment
+# on the headers that precludes using the standard header parsing provided here
+# and makes providing `cut` arguments based on the header row more cumbersome.
+# See htd proc.
 fixed_table()
 {
   test -e "$1" || error "fixed-table Table file expected" 1
@@ -107,14 +111,17 @@ fixed_table()
     # Assemble COLID CUTFLAG table (if missing or stale)
     fixed_table_cuthd "$@"
   }
+  # expand contained code, var references on eval
+  upper=0 default_env expand 1
+  trueish "$expand" && _q='\\"' || _q="\\'"
   # Walk over rows, columns and assemble Sh vars, include raw-src in $line
   cat "$tab" | grep -v '^\s*\(#.*\)\?$' | while read line
   do
     cat "$cutf" | grep -v '^\s*\(#.*\)\?$' | while read col args
       do
-        printf " $col=\"$(echo $(echo "$line" | cut $args))\" "
+        printf " $col=$_q$(echo $(echo "$line" | cut $args) | sed 's/[%]/&/g')$_q "
       done
-      printf " line=\"$line\" "
+      printf " line=$_q$(echo $line | sed 's/[%]/&/g')$_q "
       echo
   done
 }

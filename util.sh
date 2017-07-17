@@ -9,6 +9,18 @@ set -e
 # Description.
 
 
+lib_path_exists()
+{
+  test -e "$1/$2.lib.sh" || return 1
+  echo "$1/$2.lib.sh"
+}
+
+lib_path()
+{
+  test -n "$2" || set -- "$1" SCRIPTPATH
+  lookup_test=lib_path_exists lookup_path $2 "$1"
+}
+
 lib_load()
 {
   local f_lib_load= f_lib_path=
@@ -16,6 +28,8 @@ lib_load()
   test -n "$1" || set -- str sys os std stdio src match main argv
   while test -n "$1"
   do
+    # Note: the equiv. code using sys.lib.sh is above, but since it is not
+    # loaded yet keep it written out using plain shell.
     f_lib_path="$( echo "$SCRIPTPATH" | tr ':' '\n' | while read scriptpath
       do
         test -e "$scriptpath/$1.lib.sh" || continue

@@ -39,12 +39,14 @@ lst_load()
 
   # build ignore pattern file
   ignores_lib_load $lst_base
+
+  IGNORE_GLOBFILE=$(eval echo \"\$$(str_upper "$base")_IGNORE\")
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
     error "expected $lst_base ignore dotfile" 1
   lst_init_ignores
 
   # Selective per-subcmd init
-  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
+  for x in $(try_value "${subcmd}" load lst | sed 's/./&\ /g')
   do case "$x" in
 
     i ) # setup io files
@@ -52,11 +54,11 @@ lst_load()
         export $lst__inputs $lst__outputs
       ;;
 
-    I ) # setup IO descriptors (requires i before)
-        req_vars $(echo_local outputs) $(echo_local inputs)
-        local fd_num=2 io_dev_path=$(io_dev_path)
-        open_io_descrs
-      ;;
+    #I ) # setup IO descriptors (requires i before)
+    #    req_vars $(echo_local outputs) $(echo_local inputs)
+    #    local fd_num=2 io_dev_path=$(io_dev_path)
+    #    open_io_descrs
+    #  ;;
 
   esac; done
 }

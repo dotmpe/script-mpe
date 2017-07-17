@@ -25,6 +25,7 @@ pathname()
     echo "$name"
   }
 }
+# basepath: see pathname as alt. to basename for ext stripping
 
 pathnames()
 {
@@ -451,8 +452,7 @@ verify_lock()
 mkrlink()
 {
   # TODO: find shortest relative path
-  printf "Linking "
-  ln -vs $(basename $1) $2
+  ln -vs "$(basename "$1")" "$2"
 }
 
 

@@ -1,7 +1,14 @@
 #!/usr/bin/env sitefile
 sitefile: 0.0.4-dev
-
 port: 4500
+upstream:
+  - 'http://localhost:2000'
+  - 'http://localhost:2001'
+  - 'http://localhost:2006'
+packages: 
+  - 'sitefile/context.coffee'
+  - 'cors.coffee'
+  #- 'metadata.coffee'
 routes: 
   static: static:./
   _du: 'du:**/*.rst'

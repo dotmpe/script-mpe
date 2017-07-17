@@ -1,4 +1,6 @@
-Feature: list
+Feature: list handles the listing of local names, and sets of names using glob patterns
+
+  Background: 
 
   # Use-Case level scenarios
 

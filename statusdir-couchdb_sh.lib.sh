@@ -8,7 +8,6 @@ sd_be_name=couchdb_sh
 couchdb_sh()
 {
   case "$1" in
-
     get )
         {
           curl -sSf $COUCH_URL/$COUCH_DB/$2 |
@@ -16,17 +15,25 @@ couchdb_sh()
         } || return $?
       ;;
     set )
-        echo "$COUCH_URL/$COUCH_DB/$2"
+        test -n "$json_data" || json_data='{"'$COUCH_SD_VKEY'": "'$4'"}'
+        rev=$(curl -sSf $COUCH_URL/$COUCH_DB/$2 | jq  ._rev || printf "")
+        test -n "$rev" &&
         {
           curl -X PUT -sSf $COUCH_URL/$COUCH_DB/$2 \
-            -d '{"'$COUCH_SD_VKEY'": "'$4'"}'
-        } || return $?
+            -H If-Match:$rev \
+            -d "$json_data" || return $?
+        } || {
+          curl -X PUT -sSf $COUCH_URL/$COUCH_DB/$2 \
+            -d "$json_data" || return $?
+        }
       ;;
     incr )
         error TODO 1
       ;;
-    del )
-        error TODO 1
+    del|delete )
+        rev=$(curl -sSf $COUCH_URL/$COUCH_DB/$2 | jq  ._rev)
+        test -z "$rev" ||
+        curl -X DELETE -sSf $COUCH_URL/$COUCH_DB/$2 -H If-Match:$rev || return $?
       ;;
     ping )
         error TODO 1

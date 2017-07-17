@@ -8,19 +8,20 @@ ignores_lib_load()
   test -n "$SCRIPT_ETC" -a -e "$SCRIPT_ETC" || error "SCRIPT-ETC '$SCRIPT_ETC'" 2
 
   local varname=$(echo $2 | tr '-' '_')_IGNORE fname=.${1}ignore
-  test -n "$IGNORE_GLOBFILE" \
-    && fname=$IGNORE_GLOBFILE \
-    || IGNORE_GLOBFILE=$fname
 
-  test -n "$(eval echo "\$$varname")" || eval $varname=$fname
+  test -n "$IGNORE_GLOBFILE" \
+      && fname=$IGNORE_GLOBFILE \
+      || IGNORE_GLOBFILE=$fname
+
+  test -n "$(eval echo \"\$$varname\")" || eval $varname=$fname
   local value="$(eval echo "\$$varname")"
+
   test -e "$value" || {
     value=$(setup_tmpf $fname)
     eval $varname=$value
-    IGNORE_GLOBFILE=$value
     touch $value
   }
-  export $varname IGNORE_GLOBFILE
+  export $varname
 }
 
 ignores_group_names()

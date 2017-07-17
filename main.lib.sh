@@ -69,7 +69,7 @@ echo_local()
 {
   test -n "$2" -o -n "$1" || return
   # XXX: box-*
-  test -n "$box_prefix" || box_prefix=$(mkvid $base ; echo $vid)
+  test -n "$box_prefix" || box_prefix=$(upper=0 mkvid $base  && echo $vid)
   test -n "$3" || set -- "$1" "$2" "$box_prefix"
   test -z "$1" || set -- " :$1" "$2" "$3"
   test -z "$2" || set -- "$1" "$2" "$3:"
@@ -222,7 +222,12 @@ std__usage()
 
 std__commands()
 {
-  test -n "$1" || set -- "$0" "$box_lib"
+  test -n "$1" || set -- "$1" "$@"
+  test -n "$2" || {
+    locate_name $base
+    box_lib "$fn"
+    test -n "$box_lib" && set -- "$0" "$box_lib"
+  }
 
   # group commands per file, using sentinal line to mark next file
   local list_functions_head="# file=\$file"
@@ -317,12 +322,12 @@ std__version()
 # :fn
 locate_name()
 {
-  local name=
-  [ -n "$1" ] && name=$1 || name=$scriptname
-  [ -n "$name" ] || error "script name required" 1
-  fn=$(which $name)
-  [ -n "$fn" ] || fn=$(which $name.sh)
-  [ -n "$fn" ] || return 1
+  test -n "$1" || set -- "$scriptname" "$2"
+  test -n "$2" || set -- "$1" .sh
+  test -n "$1" || error "locate-name: script name required" 1
+  fn="$(which "$1")"
+  test -n "$fn" || fn="$(which "$1$2")"
+  test -n "$fn" && export fn || return 1
 }
 
 parse_subcmd_valid_flags()

@@ -4,8 +4,18 @@ load helper
 base=box.lib
 
 init
-source $lib/$base.sh
-test_lib=$lib/test/main.inc
+
+
+setup() {
+  test_lib=$lib/test/main.inc
+  . ./util.sh load-ext
+  lib_load os sys str std src
+  . $lib/box.init.sh
+  lib_load box
+  # XXX: I think this breaks BATS: bash -o posix && box_run_sh_test
+  #bash -o posix
+  #box_run_sh_test
+}
 
 
 @test "${lib}/${base} - box-script-insert-point should return the line before std script functions" {
@@ -71,13 +81,9 @@ test_lib=$lib/test/main.inc
 }
 
 
-@test "${lib}/${base} box-src-lib" {
-  skip FIXME
-  run box_src_lib box.sh box
-  diag "${lines[*]}"
-  { test ${status} -eq 0 &&
-    test -z "${lines[*]}" # empty output
-  } || stdfail
-}
+@test "${lib}/${base} box-lib" {
 
+  run box_lib box.sh box
+  test_ok_empty 1
+}
 

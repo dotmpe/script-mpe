@@ -1632,7 +1632,7 @@ pd_main()
 
           #record_env_keys pd-subcmd pd-env
 
-          box_src_lib pdoc
+          box_lib $0 $scriptalias
           shift 1
 
           pd_load "$@" || error "pd_load" $?

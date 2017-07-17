@@ -357,13 +357,27 @@ debug()
 std_demo()
 {
   scriptname=std cmd=demo
+  echo
   log "Log line"
   error "Foo bar"
   warn "Foo bar"
   note "Foo bar"
   info "Foo bar"
   debug "Foo bar"
-
+  echo
+  stderr log "Log line"
+  stderr error "Foo bar"
+  stderr warn "Foo bar"
+  stderr note "Foo bar"
+  stderr info "Foo bar"
+  stderr debug "Foo bar"
+  echo
+  stderr ok "Foo bar"
+  stderr pass "Foo bar"
+  stderr fail "Foo bar"
+  stderr failed "Foo bar"
+  stderr skipped "Foo bar"
+  echo
   for x in emerg crit error warn note info debug
     do
       $x "testing $x out"
@@ -419,19 +433,15 @@ test -n "$__load_lib" || {
 
       load-ext ) ;; # External include, do nothing
 
-      ok )
-          stderr ok "$2" $3
-        ;;
-
-      error )
-          error "$2" $3
-        ;;
-
       load )
           test -n "$scriptpath" || scriptpath="$(dirname "$0")"
         ;;
 
-      '' ) ;;
+      error ) error "$2" $3 ;;
+      ok|warn|note|info|emerg|crit ) l=$1; shift ; stderr $l "$@" ;;
+      demo ) std_demo ;;
+
+      '' ) ;; # Ignore empty sh call
 
       * ) # Setup SCRIPTPATH and include other scripts
           echo "Ignored $scriptname argument(s) $0: $*" 1>&2

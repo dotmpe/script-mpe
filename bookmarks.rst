@@ -1,7 +1,7 @@
 
 .. figure:: bookmarks.svg
 
-This uses the rsr/taxus database to store/dump data related to bookmarks.
+TODO This uses the rsr/taxus database to store/dump data related to bookmarks.
 
 It uses several 'datastores' to establish pluggable import and export sources
 from the local database.

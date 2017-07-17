@@ -97,6 +97,31 @@ file_insert_where_before()
 }
 
 
+# Split file at line in two base on match, discard matched line
+split_file_where_grep()
+{
+  local line_number= tmpf=
+  test -e "$2" || {
+    test "$2" = "-" || error "file-path or input arg required" 1
+    tmpf="$(setup_tmpf .split-file-where-grep-$(uuidgen))"
+    cat - > $tmpf
+    set -- "$1" "$tmpf" "$3" "$4"
+  }
+  test -e "$2" || error "expected $2" 2
+  file_where_grep "$1" "$2"
+  test -n "$line_number" && {
+    head -n +$(( $line_number - 2 )) "$2" >$3
+    tail -n +$(( $line_number + 1 )) "$2" >$4
+    rm "$2"
+  } || {
+    cat "$2" > "$3"
+    rm "$2"
+    return 1
+  }
+  test -z "$tmpf" -o ! -e "$tmpf" || rm "$tmpf"
+}
+
+
 # Truncate whole, trailing or middle lines of file.
 # file-truncate-lines 1:file [2:start_line=0 [3:end_line=]]
 file_truncate_lines()
@@ -170,7 +195,7 @@ header_comment()
 
 # Echo exact contents of the #-commented file header, or return 1
 # backup-header-comment file [suffix-or-abs-path]
-backup_header_comment()
+backup_header_comment() # Src-File [.header]
 {
   test -n "$2" || set -- "$1" ".header"
   fnmatch "/*" "$2" \
@@ -181,14 +206,14 @@ backup_header_comment()
 }
 
 
-list_functions()
+list_functions() # Sh-Files...
 {
   test -n "$1" || set -- $0
   for file in $*
   do
     test_out list_functions_head
     trueish "$list_functions_scriptname" && {
-      grep '^[A-Za-z0-9_\/-]*()$' $file | sed "s#^#$file: #"
+      grep '^[A-Za-z0-9_\/-]*()$' $file | sed "s#^#$file #"
     } ||
       grep '^[A-Za-z0-9_\/-]*()$' $file
     test_out list_functions_tail
@@ -196,22 +221,27 @@ list_functions()
 }
 
 
-source_lines()
+# Return span of lines from Src, starting output at Start-Line and ending
+# Span-Lines later. Span-Lines = End-Line - Start-Line. If no end is given,
+# then Src must a file and the end is set the file length. Start is set to 0
+# if empty. TODO: cleanup and manage start-line, end-line, span-lines env code.
+#
+source_lines() # Src Start-Line End-Line [Span-Lines]
 {
   test -f "$1"
   test -n "$2" && start_line=$2 || start_line=0
-  end_line=$3
-  span_lines=$4
-  test -n "$span_lines" || {
+  test -n "$Span_Lines" || Span_Lines=$4
+  test -n "$Span_Lines" || {
+    end_line=$3
     test -n "$end_line" ||
       end_line=$(count_lines "$1")
-    span_lines=$(( $end_line - $start_line ))
+    Span_Lines=$(( $end_line - $start_line ))
   }
-  tail -n +$start_line $1 | head -n $span_lines
+  tail -n +$start_line $1 | head -n $Span_Lines
 }
 
 
-expand_source_line()
+expand_source_line() # Src-File
 {
   test -f "$1" || error "expand_source_line file '$1'" 1
   test -n "$2" || error "expand_source_line line" 1

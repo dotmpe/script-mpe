@@ -35,8 +35,15 @@ type test_ok_nonempty >/dev/null 2>&1 || {
 type test_nok_nonempty >/dev/null 2>&1 || {
   test_nok_nonempty()
   {
-    test ${status} -ne 0 && test -n "${lines[*]}" && {
-      test -z "$1" || fnmatch "$1" "${lines[*]}"
+    test ${status} -ne 0 &&
+    test -n "${lines[*]}" && {
+      test -z "$1" || {
+        case "$1" in
+          "[0-9]"* ) test "${#lines[*]}" = "$1"  || return $? ;;
+          * ) case "${lines[*]}" in "$1" ) ;; * ) return 1 ;; esac
+            ;;
+        esac
+      }
     }
   }
 }

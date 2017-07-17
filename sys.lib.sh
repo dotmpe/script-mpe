@@ -38,24 +38,24 @@ require_fs_casematch()
   }
   test -e ".fs-casematch" || {
     test -e ".fs-nocasematch" && {
-      warn "Case-insensitive fs '$1' detected!"
+      sh $scriptpath/std.lib.sh warn "Case-insensitive fs '$1' detected!"
     } || {
 
       echo 'ok' > abc
       echo 'notok' > ABC
       test "$(echo $( cat abc ABC))" = "ok notok" && {
-        debug "Case-sensitive fs '$1' OK"
+        sh $scriptpath/std.lib.sh debug "Case-sensitive fs '$1' OK"
         rm abc ABC || noop
         touch .fs-casematch
       } || {
         test "$(echo $( cat abc ABC))" = "notok notok" && {
           rm abc || noop
-          warn "Case-insensitive fs '$1' detected!"
+          sh $scriptpath/std.lib.sh warn "Case-insensitive fs '$1' detected!"
           touch .fs-nocasematch
         } || {
           rm abc ABC || noop
           cd "$CWD"
-          error "Unknown error" 1
+          sh $scriptpath/std.lib.sh error "Unknown error" 1
         }
       }
     }
@@ -334,23 +334,30 @@ lookup_path_list()
 # lookup-first: boolean setting to stop after first success
 lookup_path()
 {
-  test -n "$lookup_test" || lookup_test="test -e"
+  test -n "$lookup_test" || lookup_test="test_exists"
   lookup_path_list $1 | while read _PATH
   do
-    eval $lookup_test "$_PATH/$2" && {
-      echo "$_PATH/$2"
+    eval $lookup_test "$_PATH" "$2" && {
       trueish "$lookup_first" && return 0 || continue
     } || continue
   done
 }
 
+# A simple default helper for lookup-path
+test_exists()
+{
+  test -e "$1/$2" && echo "$1/$2" || return 1
+}
 
 # Return 1 if env was provided, or 0 if default was set
 default_env() # VAR-NAME DEFAULT-VALUE
 {
   test -n "$1" -a -n "$2" -a $# -eq 2 || error "default-env requires two args" 1
   local vid= sid=
-  upper=1 mkvid "$1"
+  trueish "$title" && upper= || {
+    test -n "$upper" || upper=1
+  }
+  mkvid "$1"
   mksid "$1"
   test -n "$(eval echo \$$vid)" || {
     debug "No $sid env, using '$2'"
@@ -358,5 +365,21 @@ default_env() # VAR-NAME DEFAULT-VALUE
     return 0
   }
   return 1
+}
+
+
+get_kv_k() # Key-Value-Str
+{
+  echo "$1" | cut -d'=' -f1
+}
+
+get_kv_v() # Key-Value-Str [Env-Prefix [Key-Str]]
+{
+  test -n "$3" || set -- "$1" "$2" "$(get_kv_k "$1")"
+  fnmatch "*=*" "$1" && {
+    eval echo \"$(expr_substr "$1" "$(( 2 + ${#3} ))" "$(( ${#1} - ${#3}  ))")\"
+  } || {
+    eval echo \"\$$2$3\"
+  }
 }
 

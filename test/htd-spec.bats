@@ -499,3 +499,33 @@ EOM
   test_ok_nonempty || stdfail
 }
 
+
+@test "$bin filter-functions" {
+
+    export verbosity=5
+
+    run $BATS_TEST_DESCRIPTION "grp=\(box\|htd\)* run=[a-z].*" htd
+    #diag "lines=${#lines[*]}"
+    # FIXME: find definition and update test_ok_nonempty 70 || stdfail 1-default
+    test_ok_nonempty || stdfail 1-default
+
+    export Inclusive_Filter=1
+    run $BATS_TEST_DESCRIPTION "grp=box-src spc=..*" htd
+    { test_ok_nonempty && 
+      fnmatch "* list-functions *" " ${lines[*]} " &&
+      fnmatch "* filter-functions *" " ${lines[*]} " &&
+      fnmatch "* checkout *" " ${lines[*]} "
+    } || stdfail 2-inclusive
+
+    export Inclusive_Filter=0
+    run $BATS_TEST_DESCRIPTION "grp=box-src spc=..*" htd
+    { test_ok_nonempty && 
+      fnmatch "* list-functions *" " ${lines[*]} " &&
+      fnmatch "* filter-functions *" " ${lines[*]} " && {
+        fnmatch "* crypto *" " ${lines[*]} " && return 1 || noop
+      } && {
+        fnmatch "* checkout *" " ${lines[*]} " && return 1 || noop
+      }
+    } || stdfail 3-exclusive
+}
+

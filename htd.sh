@@ -52,6 +52,10 @@ htd_load()
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
 
+  default_env Htd-BuildDir .build
+  test -d "$HTD_BUILDDIR" || mkdir -p $HTD_BUILDDIR
+  export B=$HTD_BUILDDIR
+
   # Set default env to differentiate tmux server sockets based on, this allows
   # distict CS env for tmux sessions
   default_env Htd-TMux-Env "hostname CS"
@@ -132,7 +136,8 @@ htd_load()
   # Sequence matters. Actions are predefined, or supplied using another subcmd
   # attribute. Action callbacks can be a first class function, or a literal
   # function name.
-  local flags="$(try_value "${subcmd}" run | sed 's/./&\ /g')"
+  local flags="$(try_value "${subcmd}" run htd | sed 's/./&\ /g')"
+  test -z "$flags" || stderr debug "Flags for '$subcmd': $flags"
   for x in $flags
   do case "$x" in
 
@@ -186,7 +191,7 @@ htd_load()
       ;; # /argv-handler
 
     e ) # env: default/clear for env
-        local htd_subcmd_env=$(try_value $subcmd env)
+        local htd_subcmd_env=$(try_value $subcmd env htd)
         test -n "$htd_subcmd_env" ||
           error "run 'e': $subcmd env attr is empty" 1
         eval $htd_subcmd_env
@@ -215,6 +220,7 @@ htd_load()
       ;;
 
     i ) # io-setup: set all requested io varnames with temp.paths
+        stderr debug "Exporting inputs '$(try_value inputs)' and outputs '$(try_value outputs)'"
         setup_io_paths -$subcmd-${htd_session_id}
         export $htd__inputs $htd__outputs
       ;;
@@ -256,7 +262,7 @@ htd_load()
 
     S )
         # Get a path to a storage blob, associated with the current base+subcmd
-        S=$(try_value "${subcmd}" S)
+        S=$(try_value "${subcmd}" S htd)
         test -n "$S" \
           && status=$(setup_stat .json "" ${subcmd}-$(eval echo $S)) \
           || status=$(setup_stat .json)
@@ -271,7 +277,7 @@ htd_load()
   done
 
   # load extensions via load/unload function
-  for ext in $(try_value "${subcmd}" load)
+  for ext in $(try_value "${subcmd}" load htd)
   do
     htd_load_$ext || warn "Exception during loading $subcmd $ext"
   done
@@ -280,7 +286,7 @@ htd_load()
 htd_unload()
 {
   local unload_ret=0
-  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
+  for x in $(try_value "${subcmd}" run htd | sed 's/./&\ /g')
   do case "$x" in
 
     I )
@@ -327,7 +333,7 @@ htd_unload()
 
   clean_failed || unload_ret=1
 
-  for var in $(try_value "${subcmd}" vars)
+  for var in $(try_value "${subcmd}" vars htd)
   do
     eval unset $var
   done
@@ -349,7 +355,8 @@ htd_load_ignores()
   ignores_lib_load
   test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" \
     || error "expected $base ignore dotfile" 1
-
+  wc -l $HTD_IGNORE
+  exit 123
   lst_init_ignores
   lst_init_ignores .names
   #match_load_table vars
@@ -554,10 +561,26 @@ htd__help_files()
   echo 'See dckr for container commands and vc for GIT related. '
 }
 
+
 htd_man_1__commands="List all commands"
 htd__commands()
 {
   choice_global= choice_all=true std__commands
+}
+
+htd__libs_raw()
+{
+  locate_name $base
+  note "Raw lib routine listing for '$fn' script"
+  dry_run= box_list_libs "$fn"
+}
+
+htd__libs()
+{
+  locate_name $base
+  note "Script: '$fn'"
+  box_lib "$fn"
+  note "Libs: '$box_lib'"
 }
 
 
@@ -621,13 +644,13 @@ htd__expand()
 }
 
 
-htd_man_1__edit_main="Edit the main script file(s)"
+htd_man_1__edit_main="Edit the main script file(s), and add arguments"
 htd_spc__edit_main="-E|edit-main [ --search REGEX ] [ID-or-PATHS]"
 htd__edit_main()
 {
   local evoke= files="$(cat $arguments)"
-  locate_name ;
-  [ -n "$fn" ] || error "expected $scriptname?" 1
+  locate_name || return 1
+  vim_swap "$(realpath "$fn")" || error "swap file exists for '$fn'" 2
   files="$files $fn $(columnize=false htd__ls_main_files | lines_to_words )"
   # XXX:
   #libs_n_docs="\
@@ -658,7 +681,7 @@ htd_als___XE=edit-main
 
 htd__ls_main_files()
 {
-  var_isset columnize || columnize=1
+  default_env columnize 1
   {
     for scr in $scriptpath/*.sh
     do
@@ -976,47 +999,68 @@ htd__script()
   report=$status
 }
 
-htd_man_1__tools="Scan wether given binaries are installed. "
-htd_spc__tools="tools <tool-id>.."
+htd_man_1__tools='Tools manages simple installation scripts from YAML and is
+  usable to keep scripts in a semi-portable way, that do not fit anywhere else.
+
+  It works from a metadata document that is a single bag of IDs mapped to
+  objects, whose schema is described in schema/tools.yml. It can be used to keep
+  multiple records for the same binary, providing alternate installations for
+  the same tools.
+
+'
+htd_spc__tools="tools (<action> [<args>...])"
 htd__tools()
 {
-  (
-    cd $UCONFDIR
-    test -e $HTD_TOOLSFILE
-    tools_json || return $?
-    test -n "$1" || set -- $(echo $(jsotk.py -O lines keys tools.json tools))
-    echo "tools:"
-    while test -n "$1"
-    do
-      installed tools.json "$1" \
-        && echo "- $1 (installed)" \
-        || echo "- $1"
-      shift
-    done
-  )
+  tools_json || return 1
+  test -n "$1" || set -- status
+
+  case "$1" in
+    install ) shift ;                         htd__install "$@" ;;
+    uninstall ) shift ;                       htd__uninstall "$@" ;;
+    list-local | installed | status ) shift ; htd__installed "$@" ;;
+    outline-doc ) shift ;                     htd__tools_outline "$@" ;;
+    validate-doc | validate ) shift ;         htd__tools_validate "$@" ;;
+    * ) error "No such tools subcommand '$1'" 1 ;;
+  esac
 }
+htd_grp__tools=htd-tools
+
+htd__installed()
+{
+  tools_json || return 1 ; upper=0 default_env out-fmt tty
+  test -n "$1" || set -- $(tools_list) ; test -n "$*" || return 2 ;
+  test "$out_fmt" = "yml" && echo "tools:" ; while test -n "$1"
+  do
+    installed $B/tools.json "$1" && {
+      note "Tool '$1' is present"
+      test "$out_fmt" = "yml" && printf "  $1:\n    installed: true\n" || noop
+    } || {
+      test "$out_fmt" = "yml" && printf "  $1:\n    installed: false\n" || noop
+    }
+    shift
+  done
+}
+htd_grp__installed=htd-tools
 
 htd_man_1__install=""
 htd_spc__install="install [TOOL...]"
 htd__install()
 {
-  tools_json || return $?
-  local verbosity=6
-  while test -n "$1"
+  tools_json || return 1 ; local verbosity=6 ; while test -n "$1"
   do
-    install_bin tools.json $1 \
+    install_bin $B/tools.json $1 \
       && info "Tool $1 is installed" \
-      || info "Tool $1 error: $?"
+      || info "Tool $1 install error: $?"
     shift
   done
 }
+htd_grp__install=htd-tools
+
 htd__uninstall()
 {
-  tools_json || return $?
-  local verbosity=6
-  while test -n "$1"
+  tools_json || return 1 ; local verbosity=6 ; while test -n "$1"
   do
-    uninstall_bin tools.json "$1" \
+    uninstall_bin $B/tools.json "$1" \
       && info "Tool $1 is not installed" \
       || { r=$?;
         test $r -eq 1 \
@@ -1026,11 +1070,48 @@ htd__uninstall()
     shift
   done
 }
-htd__installed()
+htd_grp__uninstall=htd-tools
+
+htd__tools_validate()
 {
-  tools_json || return $?
-  installed tools.json "$1" && note "Tool '$1' is present"
+  tools_json || return 1
+  tools_json_schema || return 1
+  # Note: it seems the patternProperties in schema may or may not be fouling up
+  # the results. Going to venture to outline based format first before returning
+  # to which JSON schema spec/validator supports what.
+  jsonschema -i $B/tools.json $B/tools-schema.json &&
+      stderr ok "jsonschema" || stderr warn "jsonschema"
+  jsonspec validate --document-file $B/tools.json \
+    --schema-file $B/tools-schema.json &&
+      stderr ok "jsonspec" || stderr warn "jsonspec"
 }
+htd_grp__tools_validate=htd-tools
+
+htd_man_1__tools_outline='Transform tools.json into an outline compatible
+format.
+'
+htd__tools_outline()
+{
+  rm $B/tools.json
+  tools_json || return 1
+  out_fmt=yml htd__installed | jsotk update --pretty -Iyaml $B/tools.json -
+  { cat <<EOM
+{ "id": "$(htd__prefix_name "$(pwd -P)")/tools.yml",
+  "hostname": "$hostname", "updated": ""
+}
+EOM
+} | jsotk update -Ijson --pretty $B/tools.json -
+  { cat <<EOM
+{
+  "pretty": true, "doc": $(cat $B/tools.json)
+}
+EOM
+} > $B/tools-outline-pug-options.json
+  pug -E xml --out $B/ \
+    -O $B/tools-outline-pug-options.json var/tpl/pug/tools-outline.pug
+}
+htd_grp__tools_outline=htd-tools
+
 
 htd__man_5__htdignore_merged='Exclude rules used by `htd find|edit|count`, compiled from other sources using ``htd init-ignores``. '
 
@@ -1179,7 +1260,7 @@ htd__edit_today()
       today=$(realpath $1/today.rst)
       test -s "$today" || {
         title="$(date_fmt "" '%A %G.%V')"
-        htd_rst_doc_create_update "$today" "$title"
+        htd_rst_doc_create_update "$today" "$title" created default-rst
       }
       # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
       FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
@@ -1207,6 +1288,26 @@ htd__edit_today()
   }
 }
 htd_als__vt=edit-today
+
+
+htd__edit_week()
+{
+  {
+    note "Editing $1"
+    htd__today "$1"
+    today=$(realpath $1/today.rst)
+    test -s "$today" || {
+      title="$(date_fmt "" '%A %G.%V')"
+      htd_rst_doc_create_update "$today" "$title" created default-rst
+    }
+    #FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
+    htd_edit_and_update $1 #$(realpath $FILES)
+  } || {
+    error "err $1/ $?" 1
+  }
+}
+htd_als__vw=edit-week
+htd_als__ew=edit-week
 
 
 htd_spec__archive_path='archive-path DIR PATHS..'
@@ -1251,17 +1352,18 @@ htd_vars__archive_path="Y M D EXT ARCHIVE_BASE ARCHIVE_ITEM datep target_path"
 
 
 # update yesterday, today and tomorrow links
-htd__today()
+htd__today() # Jrnl-Dir MSep
 {
-  test -n "$1" || set -- "$(pwd)/journal" "$2" "$3" "$4"
-  test -n "$2" || set -- "$1" "-" "$3" "$4"
+  test -n "$1" || set -- "$(pwd)/$JRNL_DIR" "$2" "$3" "$4"
+  test -n "$2" || set -- "$1" "/" "$3" "$4"
   test -n "$3" || set -- "$1" "$2" "-" "$4"
-  test -n "$4" || set -- "$1" "$2" "$3" "/"
+  test -n "$4" || set -- "$1" "$2" "$3" "-"
   test -d "$1" || error "Dir $1 must exist" 1
-  fnmatch "*/" "$1" || set -- "$1/"
+  set -- "$(strip_trail "$1")" "$2" "$3" "$4"
 
   # Append pattern to given dir path arguments
-  local YSEP=/ Y=%Y MSEP=- M=%m DSEP=- D=%d r=$1$YSEP
+  local YSEP=/ Y=%Y MSEP=- M=%m DSEP=- D=%d
+  local r=$1$YSEP
   test -n "$EXT" || EXT=.rst
   set -- "$1$YSEP$Y$MSEP$M$DSEP$D$EXT"
 
@@ -1281,7 +1383,37 @@ htd__today()
 htd_als__week=this-week
 htd__this_week()
 {
-  echo
+  test -n "$1" || set -- "$(pwd)/log" "$2"
+  test -n "$2" || set -- "$1" "/"
+  test -d "$1" || error "Dir $1 must exist" 1
+  set -- "$(strip_trail "$1")" "$2"
+
+  # Append pattern to given dir path arguments
+  default_env W %Yw%V
+  default_env WSEP /
+  local r=$1$WSEP
+  default_env EXT .rst
+  set -- "$1$WSEP$W$EXT"
+
+  datelink "" "$1" ${r}week$EXT
+  datelink "-7d" "$1" "${r}last-week$EXT"
+  datelink "+7d" "$1" "${r}next-week$EXT"
+}
+
+htd__edit_week()
+{
+  test -n "$1" || set -- log
+  note "Editing $1"
+  #git add $1/[0-9]*-[0-9][0-9]-[0-9][0-9].rst
+  htd__this_week "$1"
+  week=$(realpath $1/week.rst)
+  test -s "$week" || {
+    title="$(date_fmt "" '%G.%V')"
+    htd_rst_doc_create_update "$week" "$title" week created default-rst
+  }
+  # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
+  FILES=$(bash -c "echo $1/{week,last-week,next-week}$EXT")
+  htd_edit_and_update $(realpath $FILES)
 }
 
 
@@ -1302,7 +1434,7 @@ htd__edit_note()
   ext="$(printf "$(echo $2)" | tr -cs 'A-Za-z0-9_-' '.')"
 
   note=$HTDIR/note/$id.$ext
-  htd_rst_doc_create_update $note "$1"
+  htd_rst_doc_create_update $note "$1" created default-rst
   htd_edit_and_update $note
 }
 htd_als__edit_note=n
@@ -1346,7 +1478,8 @@ htd__main_doc_edit()
 
   # Open edit session, discard unchanged generated file
   local cksum=
-  htd_rst_doc_create_update $1
+  title="$(str_title "$(basename "$(pwd -P)")")"
+  htd_rst_doc_create_update $1 "$title" created default-rst
   htd_edit_and_update $1
 }
 htd_als__md=main-doc-edit
@@ -1900,14 +2033,21 @@ htd__tasks_buffers()
           echo to/be-$be.sh
         ;;
       +* ) prj=$(echo $tag | cut -c2- )
+          echo to/do-in-$prj.lst
+          echo cabinet/done-in-$prj.lst
           echo to/do-in-$prj.list
           echo cabinet/done-in-$prj.list
           echo to/do-in-$prj.sh
         ;;
       @* ) ctx=$(echo $tag | cut -c2- )
+          echo to/do-at-$ctx.lst
+          echo cabinet/done-at-$ctx.lst
           echo to/do-at-$ctx.list
           echo cabinet/done-at-$ctx.list
           echo to/do-at-$ctx.sh
+          echo store/at-$ctx.sh
+          echo store/at-$ctx.yml
+          echo store/at-$ctx.yaml
         ;;
       * ) error "tasks-buffers '$tag'?" 1 ;;
     esac
@@ -2805,12 +2945,12 @@ htd_man_1__diff_function='
   Compare single function from Sh script, to manually sync/update related
   functions in different files/directories. Normally runs vimdiff on a synced
   file. But quiet instead exists, and copy-only does not modify the script. '
-htd_spc___diff_function="diff-func(tion) [ --quiet ] [ --copy-only ] [ --no-edit ] FILE1 FUNC1 DIR[FILE2 [FUNC2]] "
+htd_spc__diff_function="diff-func(tion) [ --quiet ] [ --copy-only ] [ --no-edit ] FILE1 FUNC1 DIR[FILE2 [FUNC2]] "
 htd__diff_function()
 {
-  test -n "$1" -a -n "$2" -a -n "$3" || error "usage: $htd_spc___diff_function" 21
+  test -n "$1" -a -n "$2" -a -n "$3" || error "usage: $htd_spc__diff_function" 21
   test -n "$4" || {
-    test -d "$3" -o -f "$3" || error "usage: $htd_spc___diff_function" 22
+    test -d "$3" -o -f "$3" || error "usage: $htd_spc__diff_function" 22
     test -f "$3" && {
       set -- "$1" "$2" "$3" "$2"
     } || {
@@ -2819,7 +2959,7 @@ htd__diff_function()
   }
   test -f "$1" -a -f "$3" || {
     stderr error "Missing files '$1' or '$3'"
-    error "usage: $htd_spc___diff_function" 23
+    error "usage: $htd_spc__diff_function" 23
   }
   var_isset quiet || quiet=false
   var_isset sync || {
@@ -3083,6 +3223,7 @@ htd__check_names()
   } | matchbox.py check-names $valid_tags
 }
 
+
 htd__fix_names()
 {
   local path_regex names_tables names_table
@@ -3285,9 +3426,6 @@ htd__archive_init()
 # XXX: see backup, archive-path
 # $ archive [<prefix>]/[<datepath>]/[<id>] <refs>...
 htd_spc__archive='archive REFS..'
-htd_env__archive='
-  foo=
-'
 htd__archive()
 {
   test -d "$CABINET_DIR" || htd__archive_init
@@ -3430,8 +3568,8 @@ htd__package()
   package_lib_load
   test -n "$1" && {
     # Turn args into var-ids
-    extra() { for k in $@; do mkvid "$k"; printf -- "$vid "; done; }
-    lookup() {
+    _p_extra() { for k in $@; do mkvid "$k"; printf -- "$vid "; done; }
+    _p_lookup() {
       . $PACKMETA_SH
       # See if lists are requested, and defer
       for k in $@; do
@@ -3442,7 +3580,7 @@ htd__package()
       test -z "$*" ||
         map=package_ package_sh "$@"
     }
-    echo "$(lookup $(extra "$@"))"
+    echo "$(_p_lookup $(_p_extra "$@"))"
 
   } || {
     read_nix_style_file $PACKMETA_SH | while IFS='=' read key value
@@ -3625,34 +3763,65 @@ htd__period_status_files()
   ls -la $(statusdir.sh file period hourly)
 }
 
+
+# Run either when arguments given match a targets, or if any of the linked
+# targets needs regeneration.
+# Targets should resolve to a path, and optionally a maximum age which defaults
+# to 0.
+#
+
 htd__run_rules()
 {
-  htd__period_status_files
+  test -z "$1" || local htd_rules=$1
+  shift
+  # htd__period_status_files || return
   test -z "$DEBUG" \
     || fixed_table_hd_offsets $htd_rules CMD RT TARGETS CWD
   fixed_table $htd_rules CMD RT TARGETS CWD | while read vars
   do
     eval local "$vars"
-    for target in $TARGETS
-    do
-      case "$target" in
-        p:* )
-            test -e "$(statusdir.sh file period ${target#*:})" && {
-              echo "TODO 'cd $CWD;"$CMD"' for $target"
-            } || error "Missing period for $target"
-          ;;
-        @* ) continue ;;
-      esac
-      htd__rule_target $target || note "TODO run '$CMD' for $target ($CWD)"
-    done
+    target_files= targets= max_age=
+    echo TARGETS=$TARGETS
+    # TODO: to run rules, first get metadata for path, like max-age
+    # In this case, metadata like ck-names might provide if matched with a
+    # proper datatype schema
+    htd__tasks_buffers $TARGET "$@" | while read buffer
+    do test -e "$buffer" || continue; done
+
+    #targets="$(htd__prefix_expand $TARGETS "$@")"
+    #are_newer_than "$targets" $max_age && continue
+
+    #sets_overlap "$TARGETS" "$target_files" || continue
+    #for target in $targets ; do case "$target" in
+
+    #    p:* )
+    #        #test -e "$(statusdir.sh file period ${target#*:})" && {
+    #        #  echo "TODO 'cd $CWD;"$CMD"' for $target"
+    #        #} || error "Missing period for $target"
+    #      ;;
+
+    #    @* ) echo "TODO: run at context $target"; continue ;;
+
+    #  esac
+    #done
+    #echo "CMD='$CMD' RT='$RT' TARGETS='$TARGETS' CWD='$CWD'"
+    #htd__rule_target $target || note "TODO run '$CMD' for $target ($CWD)"
   done
 }
 
 htd__show_rules()
 {
   htd_host_arg
-  cat $htd_rules
+  upper=0 default_env out-fmt plain
+  case "$out_fmt" in
+    txt|plain|text ) cat $htd_rules ;;
+    csv ) out_fmt=csv htd__table_reformat "$htd_rules" ;;
+    yml ) out_fmt=yml htd__table_reformat "$htd_rules" ;;
+    json ) out_fmt=json htd__table_reformat "$htd_rules" ;;
+    * ) error "Unknown format '$out_fmt'" 1 ;;
+  esac
 }
+htd_als__rules=show-rules
 
 htd__edit_rules()
 {
@@ -3688,6 +3857,60 @@ htd__rule_target()
       ;;
 
   esac
+}
+
+
+htd__tab2csv()
+{
+  out_fmt=csv htd__table_reformat "$1"
+}
+
+htd__tab2json()
+{
+  out_fmt=json htd__table_reformat "$1"
+}
+
+htd__tab2yaml()
+{
+  out_fmt=yml htd__table_reformat "$1"
+}
+
+htd_als__tab_out=table-reformat
+htd__table_reformat()
+{
+  local fields="$(fixed_table_hd_ids "$1")"
+  upper=0 default_env out-fmt json
+  test "$out_fmt" = "csv" && { echo "#"$fields | tr ' ' ',' ; }
+  fixed_table "$1" | while read vars
+  do
+    set -- $fields ; eval $vars ; case "$out_fmt" in
+
+      yml|yaml|json )
+          printf -- "- "
+          while test $# -gt 1
+          do
+            eval printf -- \"$1: \'\$$1\'\\n\ \ \"
+            shift
+          done
+          eval printf -- \"$1: \'\$$1\'\\n\"
+          shift
+        ;;
+
+      csv )
+          while test $# -gt 1
+          do
+            eval printf -- \"\$$1',"'
+            shift
+          done
+          eval printf -- \"\$$1'\\n"'
+          shift
+        ;;
+
+      * ) error "Unknown format '$out_fmt'" 1 ;;
+    esac
+  done | {
+    test "$out_fmt" = "json" && jsotk -Iyaml -Ojson - || cat -
+  }
 }
 
 
@@ -3817,6 +4040,7 @@ htd__name_tags_all()
     error "Req dir arg" 1
   }
 }
+htd_grp__name_tags_all=htd-meta
 
 
 htd_spc__update_checksums="update-checksums [TABLE_EXT]..."
@@ -3835,6 +4059,7 @@ htd__update_checksums()
     note "Update $CK table done"
   done
 }
+htd_grp__update_checksums=htd-meta
 
 
 # Checksums
@@ -3862,6 +4087,7 @@ ck_write()
 }
 
 htd_spc__ck="ck TAB [PATH|.]"
+htd_grp__ck=htd-meta
 htd__ck()
 {
   test -n "$1" || error "Need table to update" 1
@@ -3899,6 +4125,7 @@ htd__ck()
   note "Updated CK table '$table'"
 }
 
+htd_grp__ck_init=htd-meta
 htd__ck_init()
 {
   test -n "$ck_tab" || ck_tab=table
@@ -3913,6 +4140,7 @@ htd__ck_init()
 htd__man_5_table_ck="Table of CK checksum, filesize and path"
 htd__man_5_table_sha1="Table of SHA1 checksum and path"
 htd__man_5_table_md5="Table of MD5 checksum and path"
+htd_grp__ck_table=htd-meta
 # Either check table for path, or iterate all entries. Echoes checksum, two spaces and a path
 htd__ck_table()
 {
@@ -3957,6 +4185,7 @@ htd__ck_table()
 
 htd_man_1__ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
 htd_spc__ck_table_subtree="ck-tabke-subtree $ck_arg_spec <path>"
+htd_grp__ck_table_subtree=htd-meta
 htd__ck_table_subtree()
 {
   ck_arg "$1"
@@ -4092,6 +4321,7 @@ ck_update_find()
 }
 
 
+htd_grp__ck_update=htd-meta
 # find all files, check their names, size and checksum
 htd__ck_update()
 {
@@ -4125,6 +4355,7 @@ htd__ck_update()
   test -z "$1" || error "Aborted on missing path '$1'" 1
 }
 
+htd_grp__ck_drop=htd-meta
 htd__ck_drop()
 {
   ck_write "$1"
@@ -4139,6 +4370,7 @@ htd__ck_drop()
   rm table.$CK.tmp
 }
 
+htd_grp__ck_validate=htd-meta
 htd_spc__ck_validate="ck-validate $ck_arg_spec [FILE..]"
 htd__ck_validate()
 {
@@ -4168,7 +4400,6 @@ htd__ck_validate()
 }
 
 # check file size and cksum
-htd_spc__cksum="cksum [<table-file>]"
 htd__cksum()
 {
   test -n "$1"  && T=$1  || T=table.ck
@@ -4182,6 +4413,8 @@ htd__cksum()
     note "$p cks ok"
   done
 }
+htd_spc__cksum="cksum [<table-file>]"
+htd_grp__cksum=htd-meta
 
 # Drop non-existant paths from table, copy to .missing
 htd__ck_prune()
@@ -4199,6 +4432,7 @@ htd__ck_prune()
     }
   done
 }
+htd_grp__ck_prune=htd-meta
 
 # Read checksums from *.{sha1,md5,ck}{,sum}
 htd__ck_consolidate()
@@ -4210,6 +4444,7 @@ htd__ck_consolidate()
     echo "$p"
   done
 }
+htd_grp__ck_consolidate=htd-meta
 
 # try to find files from .missing, or put them in .gone
 # XXX: htd_man_1__ck_clean="Iterate checksum table, check for duplicates, normalize paths"
@@ -4231,6 +4466,7 @@ htd__ck_clean()
   done
   echo 'TODO rewrite ck table path'
 }
+htd_grp__ck_clean=htd-meta
 
 # TODO consolidate meta
 htd__ck_metafile()
@@ -4262,6 +4498,8 @@ htd__ck_metafile()
 
   done
 }
+htd_grp__ck_metafile=htd-meta
+
 
 # validate torrent
 htd__ck_torrent()
@@ -4290,6 +4528,7 @@ htd__ck_torrent()
   done
   test "$dir" != "." && popd > /dev/null
 }
+htd_grp__ck_torrent=htd-media
 
 
 # xxx find corrupt files: .mp3
@@ -4306,6 +4545,7 @@ htd__mp3_validate()
     mp3val "$p"
   done
 }
+htd_grp__mp3_validate=htd-media
 
 
 htd__mux()
@@ -4317,6 +4557,7 @@ htd__mux()
   note "tmuxinator start $1 $2 $3"
   tmuxinator start $1 $2 $3
 }
+htd_grp__mux=tmux
 
 
 htd_man_1__tmux_sockets='List sockets of tmux servers. Each server is a separate
@@ -4342,6 +4583,7 @@ htd__tmux_sockets()
     esac
   }
 }
+htd_grp__tmux_sockets=tmux
 
 
 htd__tmux_list_sessions()
@@ -4360,6 +4602,7 @@ htd__tmux_list_sessions()
 }
 htd_als__tmux_list=tmux-list-sessions
 htd_als__tmux_sessions=tmux-list-sessions
+htd_grp__tmux_list_sessions=tmux
 
 
 htd_man_1__tmux_session_list_windows='List window names for current
@@ -4389,6 +4632,7 @@ htd__tmux_session_list_windows()
 }
 htd_als__tmux_windows=tmux-session-list-windows
 htd_als__tmux_session_windows=tmux-session-list-windows
+htd_grp__tmux_session_list_windows=tmux
 
 
 tmux_env_req()
@@ -4430,20 +4674,23 @@ htd__tmux_get()
   # Look for running server with session name
   {
     test -e "$TMUX_SOCK" &&
-    $tmux has-session -t "$1" >/dev/null 2>&1
+      $tmux has-session -t "$1" >/dev/null 2>&1
   } && {
     info "Session '$1' exists"
+    logger "Session '$1' exists"
     # See if window is there with session
     htd__tmux_session_list_windows "$1" "$2" && {
       info "Window '$2' exists with session '$1'"
+      logger "Window '$2' exists with session '$1'"
     } || {
       $tmux new-window -t "$1" -n "$2" "$3"
       info "Created window '$2' with session '$1'"
+      logger "Created window '$2' with session '$1'"
     }
   } || {
     # Else start server/session and with initial window
     eval $tmux new-session -d -s "$1" -n "$2" "$3" && {
-      note "started new session '$1'"
+      note "Started new session '$1'"
       logger "Started new session '$1'"
     } || {
       warn "Failed starting session '$1' ($?)"
@@ -4460,6 +4707,7 @@ htd__tmux_get()
     $tmux attach
   }
 }
+htd_grp__tmux_get=tmux
 
 
 
@@ -4493,6 +4741,7 @@ htd__tmux_winit()
     note "Initialized '$1:$2' window"
   }
 }
+htd_grp__tmux_winit=tmux
 
 
 htd__tmux_init()
@@ -4524,6 +4773,7 @@ htd__tmux_init()
     test ! -e "$out" || rm $out
   }
 }
+htd_grp__tmux_init=tmux
 
 
 htd_man_1__tmux='Unless tmux is running, a new tmux session, based on the
@@ -4576,6 +4826,7 @@ htd__tmux()
   #done
 
 }
+htd_grp__tmux=tmux
 
 
 # Find a server with session name and CS env tag, and get a window
@@ -4594,8 +4845,8 @@ htd__tmux_cs()
     test -n "$TMUX" || $tmux attach
   )
 }
+htd_grp__tmux_cs=tmux
 
-# send.keys simza test
 
 
 htd__reader_update()
@@ -4621,24 +4872,26 @@ htd__reader_update()
 }
 
 
-htd_man_1__test="Project test in HTDIR"
+htd_man_1__test="Run PDir tests in HTDIR"
 htd__test()
 {
   req_dir_env HTDIR
   cd $HTDIR && projectdir.sh test
 }
 htd_als___t=test
+htd_grp__edit_test=htd-project
 
 
-htd_man_1__edit_test="edit-tests"
+htd_man_1__edit_test="Edit all BATS spec-files (test/*-spec.bats)"
 htd__edit_test()
 {
   $EDITOR ./test/*-spec.bats
 }
 htd_als___T=edit-test
+htd_grp__edit_test=htd-doc
 
 
-htd_man_1__inventory="All inventories"
+htd_man_1__inventory="Edit all inventories"
 htd__inventory()
 {
   req_dir_env HTDIR
@@ -4651,6 +4904,8 @@ htd__inventory()
   htd_edit_and_update $@
 }
 htd_als__inv=inventory
+htd_grp__inventory=htd-doc
+
 
 htd_man_1__inventory_elecronics="Electr(on)ics inventory"
 htd__inventory_electronics()
@@ -4662,6 +4917,7 @@ htd__inventory_electronics()
   htd_edit_and_update $@
 }
 htd_als__inv_elec=inventory-electronics
+htd_grp__inventory_electronics=htd-doc
 
 
 htd__disk_id()
@@ -5110,6 +5366,34 @@ htd__active()
 }
 
 
+htd__ps()
+{
+  upper=0 default_env out-fmt yaml
+  default_env pretty 1
+  test -n "$1" || set -- $$
+  # Cannot parse the headers for fixed-table, other than try sort them out into
+  # left and right aligned columns and try to go from there, ie. hardcoding at
+  # least half of the set and sniffing the first data row. But even then it
+  # still makes it ambigious to parse columns containing whitespace, which
+  # ps by default seems to delegate to the last column.
+  # So instead, ignore whitespace and make a special case of CMD too, and
+  # simply add other values using one subshell each.
+  ps -o \
+  'sess,sig,sigmask,pri,uid,gid,pid,ppid,cpu,%mem,time,etime,nice,state,tty,command'\
+    "$1" | tail -n +2 |
+  while read sess sig sigmask pri uid gid pid ppid cpu mempc time etime nice state tty cmd
+  do { test "$tty" = "??" && tty= ; cat <<EOM
+{"SID": "$sess", "UID": $uid, "GID": $gid, "PID": $pid, "PPID": $ppid, "tty": "$tty", "CPU": $cpu, "MEM": $mempc, "lstart": "$(ps -olstart "$1" | tail -n +2)", "nice": "$nice", "cputime": "$time", "state": "$state", "ELAPSED": "$etime", "CMD": "$cmd", "CWD":"$( lsof -p "$1" | grep cwd | awk '{print $9}')", "priority": $pri, "pending": "$sig", "blocking": "$sigmask"}
+EOM
+    }
+  done | {
+    test "$out_fmt" = "yaml" && jsotk json2yaml --pretty - || {
+      trueish "$PRETTY" && jsotk dump --pretty - || cat -
+    }
+  }
+}
+
+
 # TODO: open routine ...
 htd__open()
 {
@@ -5227,17 +5511,46 @@ req_prefix_names_index()
 htd__prefixes()
 {
   test -n "$index" || local index=
-  req_prefix_names_index
-  test -s "$index"
-  { test -n "$1" && {
-    read_nix_style_file "$1" || return
-  } || {
-      htd__open || return
-  };} | while read path
-  do
-    htd__prefix_name "$path"
-  done
+  test -s "$index" || req_prefix_names_index
+  test -n "$1" || set -- op
+  case "$*" in
+    list | names )
+        htd__prefix_names
+      ;;
+    all-paths | tree )
+        htd__list_prefixes
+      ;;
+    table )
+        htd__path_prefix_names
+      ;;
+    name" *" )
+        htd__prefix_name "$2"
+      ;;
+    op | open-files | "read-lines "* )
+        { test -n "$2" && {
+          read_nix_style_file "$2" || return
+        } || {
+            htd__open || return
+        };} | while read path
+        do
+          htd__prefix_name "$path"
+        done
+      ;;
+  esac
   rm $index
+}
+
+
+htd__prefix_expand()
+{
+  test -n "$1" || error "Prefix-Path-Arg expected" 1
+  {
+    test "$1" = "-" && { cat - ; shift ; }
+    for a in "$@" ; do echo "$a" ; done
+  } | tr ':' ' ' | while read prefix lname
+  do
+    echo "$(eval echo \"\$$prefix\")/$lname"
+  done
 }
 
 
@@ -5245,12 +5558,8 @@ htd__prefixes()
 htd__prefix_names()
 {
   test -n "$index" || local index=
-  req_prefix_names_index
-  test -s "$index"
-  #read_nix_style_file $index | awk '{print $2}' | uniq
-  ls -la $index
-  cat $index
-  rm $index
+  test -s "$index" || req_prefix_names_index
+  read_nix_style_file $index | awk '{print $2}' | uniq
 }
 
 
@@ -5258,15 +5567,19 @@ htd__prefix_names()
 htd__prefix_name()
 {
   test -n "$index" || local index=
-  req_prefix_names_index
-  test -s "$index"
+  test -s "$index" || req_prefix_names_index
+  fnmatch "/*" "$path" || set -- "$(pwd -P)/$1"
+  fnmatch "*/" "$path" || {
+    test -e "$1" -a -d "$1" && set -- "$1/"
+  }
   local path="$1"
   # Find deepest named prefix
   while true
   do
     # Travel to root, break on match
-    grep -qF "$1 " $index && break || set -- "$(dirname "$1")"
-    test "$1" != "/" || break
+    grep -qF "$1 " "$index" && break || set -- "$(dirname "$1")/"
+    test "$1" != "//" && continue || set -- /
+    break
   done
   # Get first name for path
   local prefix_name="$( grep -F "$1 " $index | head -n 1 | awk '{print $2}' )"
@@ -5295,29 +5608,36 @@ htd__path_prefix_names()
 htd__list_prefixes()
 {
   test -n "$out_fmt" || out_fmt=plain
+  test -n "$sd_be" || sd_be=redis
   (
-    sd_be=redis
-    statusdir.sh be smembers htd:prefixes:names | while read prefix
+    case "$sd_be" in
+      redis ) statusdir.sh be smembers htd:prefixes:names ;;
+      couchdb_sh ) warn todo 1 ;;
+      * ) warn "not supported statusdir backend '$sd_be' " 1 ;;
+    esac | while read prefix
     do
       test -n "$(echo $prefix)" &&
-        val="$(eval echo \"\$$prefix\")" || {
-          prefix=ROOT
-          val=/
-        }
-      test -n "$val" && {
-        case "$out_fmt" in
-          plain|text|txt )
+        local val="$(eval echo \"\$$prefix\")" ||
+        local prefix=ROOT val=/
+      case "$out_fmt" in
+        plain|text|txt )
+            test -n "$val" &&
               printf -- "$prefix <$val>\n" || printf -- "$prefix\n"
-            ;;
-          rst|restructuredtext )
+          ;;
+        rst|restructuredtext )
+            test -n "$val" &&
               printf -- "\`$prefix <$val>\`_\n" || printf -- "$prefix\n"
-            ;;
-          yaml|yml )
-              printf -- "$prefix <$val>:\n" || printf -- "$prefix:\n"
-            ;;
-        esac
-      }
-      statusdir.sh be smembers htd:prefix:$prefix:paths | while read localpath
+          ;;
+        yaml|yml )
+            test -n "$val" &&
+              printf -- "- prefix: $prefix\n  value: $val\n  paths:" ||
+              printf -- "- prefix: $prefix\n  paths:"
+          ;;
+      esac
+      case "$sd_be" in
+        redis ) statusdir.sh be smembers htd:prefix:$prefix:paths ;;
+        * ) warn "not supported statusdir backend '$sd_be' " 1 ;;
+      esac | while read localpath
       do
         case "$out_fmt" in
           plain|text|txt|rst )
@@ -5327,16 +5647,12 @@ htd__list_prefixes()
             ;;
           yaml|yml )
               test -z "$localpath" &&
-                printf -- "  []\n" ||
-                printf -- "  - '$localpath'\n"
+                printf -- " []" ||
+                printf -- "\n  - '$localpath'"
             ;;
         esac
       done
-      case "$out_fmt" in
-        plain|text|txt )
-            echo
-          ;;
-      esac
+      case "$out_fmt" in yaml|yml|plain|text|txt|rst ) echo ;; esac
     done
   )
 }
@@ -5349,16 +5665,42 @@ htd__update_prefixes()
 
     htd__prefixes | while IFS=':' read prefix localpath
     do
-      statusdir.sh be sadd htd:prefixes:names "$prefix"
-      echo prefix=$prefix localpath=$localpath
       test -n "$prefix" -a -n "$localpath" || continue
-      statusdir.sh be sadd htd:prefix:$prefix:paths $localpath
+
+      statusdir.sh be sadd htd:prefixes:names "$prefix" >/dev/null &&
+        stderr ok "Added '$prefix' to prefixes" ||
+        error "Adding '$prefix' to prefixes " 1
+      statusdir.sh be sadd htd:prefix:$prefix:paths $localpath >/dev/null &&
+        stderr ok "Added '$localpath' to prefix '$prefix'" ||
+        error "Adding '$localpath' to prefix '$prefix' " 1
       echo $prefix:$localpath
+
     done
+		COUCH_DB=htd sd_be=couchdb_sh \
+		statusdir.sh del htd:$hostname:prefixes
+    {
+      printf -- "_id: 'htd:$hostname:prefixes'\n"
+      #printf -- "fields: type: ""'\n"
+      printf -- "type: 'application/vnd.wtwta.htd.prefixes'\n"
+      printf -- "prefixes:\n"
+      out_fmt=yml htd__list_prefixes
+    } |
+		jsotk yaml2json |
+      curl -X POST -sSf $COUCH_URL/$COUCH_DB/ \
+        -H "Content-Type: application/json" \
+        -d @- && note "Submitted to couchdb" || {
+					error "Sumitting to couchdb"
+					return 1
+				}
+		  #COUCH_DB=htd sd_be=couchdb_sh \
+		  #  statusdir.sh set ""
   )
 }
 
 
+htd_man_1__service_list='
+List servtab entries, optionally updating
+'
 htd__service_list()
 {
   test -n "$service_cmd" || service_cmd=status
@@ -5452,7 +5794,7 @@ htd__service() # Cmd [ Sid [ Type [ Dir ]]]
 
 
 # Scan for bashims in given file or current dir
-htd__spc__bashisms="bashism [DIR]"
+htd_spc__bashisms="bashism [DIR]"
 htd__bashisms()
 {
   test -n "$1" || set -- "."
@@ -5800,52 +6142,67 @@ htd__colorize()
   case "$1" in
 
     - )
+        set -- $(setup_tmpd)/htd-vim-colorize.out
+        #{ cat - > $1 ; }
+        #exec 0<&-
+        #  -R -E -s  \
+        vim \
+          -c "syntax on" \
+          -c "AnsiEsc" \
+          -c "w! $1" \
+          -c "let g:html_no_progress=1" \
+          -c "let g:html_number_lines = 0" \
+          -c "let g:html_use_css = 1" \
+          -c "let g:use_xhtml = 1" \
+          -c "let g:html_use_encoding = 'utf-8'" \
+          -c "TOhtml" \
+          -c "wqa!" \
+          -
 
-      set -- $(setup_tmpd)/htd-vim-colorize.out
-      #{ cat - > $1 ; }
-      #exec 0<&-
-
-      #  -R -E -s  \
-      vim \
-        -c "syntax on" \
-        -c "AnsiEsc" \
-        -c "w! $1" \
-        -c "let g:html_no_progress=1" \
-        -c "let g:html_number_lines = 0" \
-        -c "let g:html_use_css = 1" \
-        -c "let g:use_xhtml = 1" \
-        -c "let g:html_use_encoding = 'utf-8'" \
-        -c "TOhtml" \
-        -c "wqa!" \
-        -
-
-      open $1.xhtml
-
-      rm $(setup_tmpd)/htd-vim-colorize* $(setup_tmpd)/.htd-vim-colorize*
+        open $1.xhtml
+        rm $(setup_tmpd)/htd-vim-colorize* $(setup_tmpd)/.htd-vim-colorize*
       ;;
 
     * )
-      test -e "$1" || error "no file $1" 1
-      #  -E -s \
-      # -R -E -s  \
-      vim \
-        -c "syntax on" \
-        -c "AnsiEsc" \
-        -c "let g:html_no_progress=1" \
-        -c "let g:html_number_lines = 0" \
-        -c "let g:html_use_css = 1" \
-        -c "let g:use_xhtml = 1" \
-        -c "let g:html_use_encoding = 'utf-8'" \
-        -c "TOhtml" \
-        -c "wqa!" \
-        "$1"
-      open $1.xhtml
-      rm $1.xhtml
+        test -e "$1" || error "no file '$1'" 1
+        local output="$B/$(htd__prefix_name "$1").xhtml"
+        {
+          trueish "$keep_build" && test -e "$output" -a "$output" -nt "$1"
+        } && note "Existing build is up-to-date <$output>" || {
+          vim_swap "$1" || error "swap file exists '$1'" 2
+          mkdir -p "$(dirname "$output")"
+          #  -E -s \
+          # -R -E -s  \
+          # FIXME: use colorize for converting ANSI dumps to HTML
+          # -c "AnsiEsc" \
+          vim \
+            -c "syntax on" \
+            -c "colorscheme mustang" \
+            -c "let g:html_no_progress=1" \
+            -c "let g:html_number_lines = 0" \
+            -c "let g:html_use_css = 1" \
+            -c "let g:use_xhtml = 1" \
+            -c "let g:html_use_encoding = 'utf-8'" \
+            -c "TOhtml" \
+            -c "wqa!" \
+            "$1"
+          mv "$1.xhtml" "$output"
+          note "Written to <$output>"
+        }
+        trueish "$open" && open "$output" || echo " $output"
+        trueish "$keep_build" || rm "$output"
       ;;
 
   esac
 }
 
+vim_swap()
+{
+  local swp="$(dirname "$1")/.$(basename "$1").swp"
+  test ! -e "$swp" || {
+    trueish "$remove_swap" && rm $swp || return 1
+  }
+}
 
 
 htd__say()
@@ -6598,34 +6955,64 @@ htd__pathnames()
 }
 
 
+
+# Shell script source
+
+
+htd_man_1__src_info=
+htd_grp__src_info=box-src
+htd__src_info()
+{
+  test -n "$1" || set -- $0
+  for src in $@
+  do
+    $LOG file_warn $(htd__prefix_name $src) "Listing info.."
+    $LOG header "Box Source"
+    $LOG header2 "Functions" $(htd__list_functions "$@" | count_lines)
+    $LOG header3 "Lines" $(count_lines "$@")
+    $LOG file_ok $(htd__prefix_name $src)
+  done
+  $LOG done $subcmd
+}
+
+
+htd_man_1__list_functions='
+List all function declaration lines found in given source, or current executing
+script.
+'
 htd_spc__list_functions='(ls-func|list-func(tions)) [ --(no-)list-functions-scriptname ]'
 htd_run__list_functions=iAO
+htd_grp__list_functions=box-src
 htd__list_functions()
 {
-  test -z "$2" || { # Turn on scriptname prefix if more than one file is given
+  test -z "$2" || {
+    # Turn on scriptname output prefix if more than one file is given
     var_isset list_functions_scriptname || list_functions_scriptname=1
   }
   list_functions "$@"
 }
 htd_als__list_func=list-functions
+htd_als__ls_functions=list-functions
 htd_als__ls_func=list-functions
 
 
-htd_man_1__list_field_attr='List all box.sh/main.lib.sh style fields of the file'
-htd_spc__list_field_attr='list-field-attr [FILE]'
-htd__list_field_attr()
+# Note: initial try at parsing out attr
+htd_man_1__list_function_attr='List all box functions with their attribute
+key-names. By default set FILE to executing script (ie. htd). '
+htd_spc__list_function_attr='list-function-attr [FILE]'
+htd__list_function_attr()
 {
   test -n "$1" || set -- $0
   for f in $@
   do
-    grep '^[a-z][0-9a-z_]*__[0-9a-z_]*()$' $f | sed 's/()$//g' |
+    grep '^[a-z][0-9a-z_]*__[0-9a-z_]*().*$' $f | sed 's/().*$//g' |
       grep -v 'optsv' | grep -v 'argsv' | sort -u |
       while read subcmd_func
     do
       base=$(echo $subcmd_func | sed 's/__.*$//g')
-      field=$(echo $subcmd_func | sed 's/^.*__//g')
-      printf -- "  $(echo $field | tr '_' '-')\n"
-      eval grep "'^${base}_.*__${field}\\(\\(=.*\\)\\|()\\)$'" $f |
+      function=$(echo $subcmd_func | sed 's/^.*__//g')
+      printf -- "  $(echo $function | tr '_' '-')\n"
+      eval grep "'^${base}_.*__${function}\\(\\(=.*\\)\\|()\\)$'" $f |
       sed -E 's/(=|\().*$//g' |
       while read attr_field
       do
@@ -6637,24 +7024,227 @@ htd__list_field_attr()
     done
   done
 }
+htd_grp__list_function_attr=box-src
 
 
-htd__new_functions()
+htd_man_1__list_function_groups='List distinct values for "grp" attribute. '
+htd_spc__list_function_groups='list-function-groups [ Src-Files... ]'
+htd__list_function_groups()
+{
+  test -n "$1" || set -- "$0"
+  for src in "$@"
+  do
+    grep '^[a-z][0-9a-z_]*_grp__[a-z][0-9a-z_]*=.*' $src | sed 's/^.*=//g'
+  done | uniq
+}
+
+
+htd_man_1__filter_functions='
+  Find and list all function and attribute declarations from Src-Files,
+  filtering by one or more key=regex inclusively or exclusively. Output is
+  normally a list of function names (out_fmt=names), or else all declaration
+  lines (out_fmt=src).
+
+  In inclusive mode one big grep-for is build from the filters and execution is
+  done on each src with the accumulated result rewritten to unique function
+  names, if requested (out-fmt=names).
+
+  For exclusive mode, a grep for each filter is executed seperately against each
+  source. With filter the resulting function-keys set is narrowed down, with
+  then the resulting function keys being listed as is (out-fmt=names) or grepped
+  from the source (out-fmt=src).
+
+  Depending on the output format requested, more processing is done. The
+  simplest format is names, followed by src. All other formats list beside the
+  script-name, also the attributes values. However as some attributes may be
+  multiline, they require additional source lookup to output.
+
+  Other supported formats besides names and src are csv, json and yaml/yml.
+  Each of these sources the source script and dereferences the required
+  attribute values. '
+
+htd_spc__filter_functions='filter-functions Attr-Filter [Src-Files...]'
+htd__filter_functions() # Attr-Filter [Src-Files...]
+{
+  upper=0 default_env out-fmt names
+  title=1 default_env Inclusive-Filter 1
+  # With no filter env, use first argument or set default
+  test -n "$Attr_Filter" || {
+    test -n "$1" || { shift; set -- grp=box-src "$@"; }
+    Attr_Filter="$1"
+  }
+  shift # first arg is ignored unless Attr_Filter is empty
+  debug "Filtering functions from '$*' ($(var2tags Attr_Filter Inclusive_Filter ))"
+  # sort out the keys from the filter into Filters, and export filter_$key env
+  Filters=
+  for kv in $Attr_Filter ; do
+    k=$(get_kv_k "$kv") ; v=$(get_kv_v "$kv" filter_ $k)
+    export filter_$k="$v" Filters="$Filters $k"
+  done
+  # Assemble grep args (inclusive mode) or grep-pattern lines (exclusive mode)
+  Grep_For="$(
+      for filter in $Filters
+      do
+        trueish "$Inclusive_Filter" && printf -- "-e "
+        printf -- "'^[a-z_]*_${filter}__.*=$(eval echo \"\$filter_${filter}\")' "
+      done
+    )"
+  # Output function names to file, adding all declaration lines (inclusive mode)
+  # or filtering out non-matching function-names (exclusive mode)
+  local outf=$(setup_tmpf .out-$out_fmt-tmp)
+  for src in "$@"
+  do
+    test -n "$src" || continue
+    local func_keys=$(setup_tmpf .func-keys)
+    {
+      trueish "$Inclusive_Filter" && {
+        eval grep $Grep_For $src |
+
+          case "$out_fmt" in names )
+              sed 's/^[a-z][a-z0-9_]*__\([^=(]*\).*$/\1/' ;;
+          * )
+              sed 's/^[a-z][a-z0-9_]*__\([^=(]*\).*$/\1/' > $func_keys
+              eval grep "$( while read func_key ; do
+                  printf -- "-e '^[a-z_]*__$func_key[=(].*' " ; done < $func_keys
+                )" "$@"
+            ;;
+          esac
+      } || {
+        local src_lines=$(setup_tmpf .src-lines)
+        grep  '^[a-z][a-z0-9_]*__.*[=(].*' "$src" > $src_lines
+        for Grep_Rx in $Grep_For
+        do
+          mv $src_lines $src_lines.tmp
+          eval grep $Grep_Rx $src | sed 's/^[a-z][a-z0-9_]*__\([^=(]*\).*$/\1/' > $func_keys
+          test -s "$func_keys" || {
+            warn "No matches for $Grep_Rx '$src'"
+            return 1
+          }
+          # Remove functions declarations from src-lines where no matching func-keys
+          eval grep "$( while read func_key ; do
+              printf -- "-e '^[a-z][a-z0-9_]*__$func_key[=(].*' " ; done < $func_keys
+            )" $src_lines.tmp > $src_lines
+          rm $src_lines.tmp
+        done
+
+        case "$out_fmt" in
+          names ) sed 's/^[a-z][a-z0-9_]*__\([^=(]*\).*$/\1/' $src_lines ;;
+          * ) test -s "$src_lines" &&
+              cat $src_lines || warn "Nothing found for '$src'"
+            ;;
+        esac
+      }
+    } | sed 's/^.*/'$src' &/'
+  done > $outf
+  test -s "$outf" && {
+    cat $outf | htd_filter_functions_output
+  } || {
+    rm $outf
+    return 1
+  }
+  rm $outf
+}
+htd_grp__filter_functions=box-src
+htd_filter_functions_output()
+{
+
+  case "$out_fmt" in
+    names ) tr '_' '-'  | uniq ;;
+    src ) cat - ;;
+    * ) cat - |
+        sed 's/\([^\ ]*\)\ \([a-z][a-z0-9_]*\)__\([^(]*\)().*/\1 \3/g' |
+        sed 's/\([^\ ]*\)\ \([a-z][a-z0-9_]*\)__\([^=]*\)=\(.*\)/\1 \3 \2 \4/g' |
+        while read script_name func_name func_attr func_attr_value
+        do # XXX: I whish I could replace this loop with a sed/awk/perl oneliner
+          test -n "$func_attr_value" || {
+            echo "$script_name $func_name" ; continue
+          }
+          echo "$script_name $func_name $(
+              dsp=$(( ${#script_name} + 2 ))
+              expr_substr "$func_attr" $dsp  $(( 1 + ${#func_attr} - $dsp ))
+            ) $func_attr_value"
+        done | sort -u | {
+          case "$out_fmt" in
+            csv )      htd_filter_functions_output_csv || return $? ;;
+            yaml|yml ) htd_filter_functions_output_yaml || return $? ;;
+            json )     htd_filter_functions_output_yaml | jsotk yaml2json - ||
+              return $? ;;
+          esac
+        }
+      ;;
+  esac
+}
+htd_filter_functions_output_csv()
+{
+  local current_script=
+  echo "# Script-Name, Func-Key, Func-Attr-Key, Func-Attr-Value"
+  while read script_name func_key func_attr_key func_attr_value
+  do
+    test -n "$func_attr_value" || {
+      test "$script_name" = "$current_script" || {
+        export __load_lib=1
+        source $script_name
+        current_script=$script_name
+      }
+      continue
+    }
+    upper=0 mkvid "$script_name"
+    value="$( eval echo \"\$${vid}_${func_attr_key}__${func_key}\" )"
+    fnmatch "*\n*\n*" "$value" &&
+      value="$( echo "$value" | sed 's/$/\\n/g' | tr -d '\n' )"
+    echo "$script_name,$func_key,$func_attr_key,\"$value\""
+  done
+}
+htd_filter_functions_output_yaml()
+{
+  local current_script=
+  while read script_name func_key func_attr_key func_attr_value
+  do
+    test "$script_name" = "$current_script" || {
+      export __load_lib=1
+      source $script_name
+      echo "type: application/vnd.org.wtwta.box-instance"
+      echo "script-name: $script_name"
+      echo "command-functions:"
+      current_script=$script_name
+    }
+    test -n "$func_attr_value" || {
+      echo "  - subcmd: $(echo $func_key | tr '_' '-')"
+      continue
+    }
+    upper=0 mkvid "$script_name"
+    value="$( eval echo \"\$${vid}_${func_attr_key}__${func_key}\" )"
+    fnmatch "*\n*\n*" "$value" && {
+      value="$(echo "$value" | jsotk encode -)"
+			# FIXME: htd filter-functions out-fmt=yaml could use pretty multilines
+      echo "    $(echo $func_attr_key | tr '_' '-'): $value"
+    } || {
+			echo   "    $(echo $func_attr_key | tr '_' '-'): '$value'"
+    }
+  done
+}
+
+
+htd_grp__list_functions_added=box-src
+htd__list_functions_added()
 {
   filter=A htd__diff_function_names "$@"
 }
+htd_als__new_functions=list-functions-added
 
 
-htd__removed_functions()
+htd_grp__list_functions_removed=box-src
+htd__list_functions_removed()
 {
   filter=D htd__diff_function_names "$@"
 }
-htd_als__deleted_functions=removed-functions
+htd_als__deleted_functions=list-functions-removed
 
 
 htd_man_1__diff_function_names='
   Compare function names in script, show changes
 '
+htd_grp__diff_function_names=box-src
 htd__diff_function_names()
 {
   local version2=$2 version1=$1
@@ -6918,26 +7508,136 @@ htd_als__rshift=date-shift
 
 
 
+htd__couchdb()
+{
+	cd ~/bin && htd__couchdb_htd_scripts || return $?
+	cd ~/hdocs && htd__couchdb_htd_tiddlers || return $?
+}
+
+
+htd__couchdb_htd_tiddlers()
+{
+  COUCH_DB=tw
+  mkdir -vp build/tiddlers
+  find . \
+    -not -ipath '*static*' \
+    -not -ipath '*build*' \
+    -not -ipath '*node_modules*' \
+    -type f -iname '*.rst' | while read rst_doc
+  do
+    tiddler_id="$( echo $rst_doc | cut -c3-$(( ${#rst_doc} - 4 )) )"
+
+
+    # Note: does not have the titles format=mediawiki mt=text/vnd.tiddlywiki
+    format=html mt=text/html
+
+    tiddler_file=build/tiddlers/${tiddler_id}.$format
+    mkdir -vp $(dirname $tiddler_file)
+    pandoc -t $format "$rst_doc" > $tiddler_file
+
+    wc -l $tiddler_file
+
+    git ls-files --error-unmatch "$rst_doc" >/dev/null && {
+      ctime=$(git log --diff-filter=A --format='%ct' -- $rst_doc)
+      created=$(date \
+        -r $ctime \
+        +"%Y%m%d%H%M%S000")
+      mtime=$(git log --diff-filter=M --format='%ct' -- $rst_doc | head -n 1)
+      test -n "$mtime" && {
+        modified=$(date \
+          -r $mtime \
+          +"%Y%m%d%H%M%S000")
+      } || modified=$created
+    } || {
+      #htd_doc_ctime "$rst_doc"
+      #htd_doc_mtime "$rst_doc"
+      modified=$(date \
+        -r $(filemtime "$rst_doc") \
+        +"%Y%m%d%H%M%S000")
+      created="$modified"
+    }
+
+    tiddler_jsonfile=build/tiddlers/${tiddler_id}.json
+    { cat <<EOM
+    { "_id": "$tiddler_id", "fields":{
+        "created": "$created",
+        "modified": "$modified",
+        "title": "$tiddler_id",
+        "text": $(jsotk encode $tiddler_file),
+        "tags": [],
+        "type": "$mt"
+    } }
+EOM
+    } > $tiddler_jsonfile
+
+    curl -X POST -sSf $COUCH_URL/$COUCH_DB/ \
+       -H "Content-Type: application/json" \
+      -d @$tiddler_jsonfile
+
+  done
+}
+
+# enter function listings and settings into JSON blobs per src
+htd__couchdb_htd_scripts()
+{
+  local src= grp=
+  test -n "$*" || set -- htd
+  # *.lib.sh
+  groups="$( htd__list_function_groups "$@" | lines_to_words )"
+  export verbosity=4 DEBUG=
+  for src in "$@"
+  do
+    for grp in $groups
+    do
+      out_fmt=json \
+      Inclusive_Filter=0 \
+      Attr_Filter= \
+        htd__filter_functions "grp=$grp" $src || {
+          warn "Error getting 'grp=$grp' for <$src>"
+          return 1
+        }
+    done
+  done
+}
+
+
+
 # util
 
 htd_rst_doc_create_update()
 {
   test -n "$1" || error htd-rst-doc-create-update 12
-  test -s "$1" && {
+  local outf=$1 title=$2 ; shift 2
+  test -s "$outf" && {
     updated=":\1pdated: $(date +%Y-%m-%d)"
-    grep -qi '^\:[Uu]pdated\:.*$' $1 && {
-      sed -i.bak 's/^\:\([Uu]\)pdated\:.*$/'"$updated"'/g' $1
+    grep -qi '^\:[Uu]pdated\:.*$' $outf && {
+      sed -i.bak 's/^\:\([Uu]\)pdated\:.*$/'"$updated"'/g' $outf
     } || {
       warn "Cannot update 'updated' field."
     }
   } || {
-    test -n "$2" || set -- "$1" "$(basename "$(dirname "$(realpath "$1")")")"
-    echo "$2" > $1
-    echo "$2" | tr -C '\n' '=' >> $1
-    echo ":created: $(date +%Y-%m-%d)" >> $1
-    echo ":updated: $(date +%Y-%m-%d)" >> $1
-    echo  >> $1
-    export cksum="$(md5sum $1 | cut -f 1 -d ' ')"
+    test -n "$title" || set -- "$outf" "$(basename "$(dirname "$(realpath "$outf")")")"
+    echo "$title" > $outf
+    echo "$title" | tr -C '\n' '=' >> $outf
+    while test -n "$1"
+    do case "$1" in
+      created )  echo ":created: $(date +%Y-%m-%d)" >> $outf ;;
+      updated )  echo ":updated: $(date +%Y-%m-%d)" >> $outf ;;
+      week )     echo ":period: " >> $outf ;;
+      default-rst )
+          test -e .default.rst && {
+            fnmatch "/*" "$outf" &&
+              # FIXME: get common basepath and build rel if abs given
+              includedir="$(pwd -P)" ||
+                includedir="$(dirname $outf | sed 's/[^/]*/../g')"
+            {
+              echo ; echo ; echo ".. include:: $includedir/.default.rst"
+            } >> $outf
+          }
+        ;;
+    esac; shift; done
+    echo  >> $outf
+    export cksum="$(md5sum $outf | cut -f 1 -d ' ')"
     export cksums="$cksums $cksum"
   }
 }
@@ -6995,11 +7695,9 @@ htd_main()
         htd_lib "$@" || error htd-lib $?
 
         try_subcmd "$@" && {
-
-          #record_env_keys htd-subcmd htd-env
-
-          box_src_lib htd || error "box-src-lib htd" 1
           shift 1
+          #record_env_keys htd-subcmd htd-env
+          box_lib htd || error "box-src-lib $scriptname" 1
 
           htd_load "$@" || error "htd-load" $?
 
@@ -7060,6 +7758,7 @@ htd_init()
 {
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
   test -n "$scriptpath"
+  local __load_lib=1
   export SCRIPTPATH=$scriptpath
   . $scriptpath/util.sh load-ext
   lib_load
@@ -7068,7 +7767,7 @@ htd_init()
   #export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta list
   lib_load box date doc table disk remote ignores package service
-  __load_lib=1 . $scriptpath/vagrant-sh.sh load-ext
+  . $scriptpath/vagrant-sh.sh load-ext
   disk_run
   # -- htd box init sentinel --
 }

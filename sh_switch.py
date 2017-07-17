@@ -6,8 +6,7 @@ Parse switch statements from Sh scripts
 ------------------------------------------
 
 :Created: 2016-06-16
-:Updated: 2017-01-14
-
+:Updated: 2017-07-09
 
 - Quotes are included in the expression, since Sh can have both.
 
