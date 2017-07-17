@@ -1581,8 +1581,8 @@ vc_main()
       ;;
 
     * )
-      echo "VC is not a frontend for $base ($scriptname)" 2>&1
-      exit 1
+        echo "VC is not a frontend for $base ($scriptname)" 2>&1
+        exit 1
       ;;
 
   esac
@@ -1679,20 +1679,14 @@ vc_unload()
 
 # Ignore login console interpreter
 case "$0" in "" ) ;; "-"* ) ;; * )
+  test -n "$f_lib_load" || {
+    __load_mode=main . ~/bin/util.sh
+    test "$1" = "$__load_mode" ||
+      set -- "$__load_mode" "$@"
 
-  # Ignore 'load-ext' sub-command
-
-  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux. But it
-  # maybe Darwin/BSD sh is relaying to bash instead?
-
-  # fix using another mechanism:
-  test -n "$__load_lib" || {
     case "$1" in
-      load-ext ) ;;
-      * )
-          vc_main "$@"
-        ;;
-    esac; } ;;
+      main ) shift ; vc_main "$@" ;;
+    esac
 
+  } ;;
 esac
-

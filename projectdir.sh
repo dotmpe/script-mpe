@@ -1589,7 +1589,7 @@ pd_lib()
   local __load_lib=1
   test -n "$scriptpath" || return 12
   lib_load box meta list match date doc table ignores
-  . $scriptpath/vc.sh load-ext
+  f_lib_load=1 . $scriptpath/vc.sh
   . $scriptpath/projectdir.lib.sh "$@"
   . $scriptpath/projectdir-bats.inc.sh
   . $scriptpath/projectdir-fs.inc.sh

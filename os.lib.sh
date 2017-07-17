@@ -81,11 +81,16 @@ basenames()
   done
 }
 
-filenamext()
+filenamext() # for each argument, echo just the filename-extension suffix
 {
   while test -n "$1"; do
     echo "$1" | sed 's/^.*\.\([^\.]*\)$/\1/'
   shift; done
+}
+
+filestripext()
+{
+  basename "$1" ".$(filenamext "$1")"
 }
 
 fileisext()

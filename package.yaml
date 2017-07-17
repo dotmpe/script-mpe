@@ -112,6 +112,7 @@
       - python test/main.py
       - projectdir.sh run :bats:specs
       - bats test/*-spec.bats | script-bats.sh colorize
+      - ./x-test.sh version
     #build: pd build
     build:
       - export SCR_SYS_SH=bash-sh

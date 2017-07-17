@@ -6756,10 +6756,7 @@ htd_optsv()
 # FIXME: Pre-bootstrap init
 htd_init()
 {
-  # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
-  test -n "$scriptpath"
-  export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh load-ext
+  . $scriptpath/util.sh load-ext || return $?
   lib_load
   . $scriptpath/box.init.sh
   box_run_sh_test
