@@ -93,8 +93,6 @@ setup() {
 }
 
 @test "$bin check-names filenames with table.{vars,names}" {
-  skip "FIXME htd check-names"
-
   run ${bin} check-names 256colors2.pl
   #test "${lines[1]}" = "# Loaded $HOME/bin/table.vars"
   #test "${lines[2]}" = "No match for 256colors2.pl"
@@ -116,8 +114,8 @@ setup() {
   export verbosity=5
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "${lines[0]}" = "script-mpe/$version" ||
-    fail "Expected script-mpe/$version" 
+  test "${lines[0]}" = "htdocs-mpe/$version" ||
+    fail "Expected htdocs-mpe/$version" 
 }
 
 @test "$bin today" 8 {
@@ -333,29 +331,6 @@ EOM
 }
 
 
-@test "$bin - fixed_table_hd_offset " {
-
-  cd $pwd
-
-  . $lib/htd load-ext
-  . $lib/table.lib.sh
-
-  htd_rules=$BATS_TMPDIR/htd-rules.tab
-  echo "#CMD FOO BAR BAZ BAM" >$htd_rules
-
-  run fixed_table_hd_offset CMD CMD $htd_rules
-  test $status -eq 0
-  test "${lines[@]}" = "0"
-
-  run fixed_table_hd_offset FOO CMD $htd_rules
-  test $status -eq 0
-  test "${lines[@]}" = "5"
-
-  run fixed_table_hd_offset BAR CMD $htd_rules
-  test $status -eq 0
-  test "${lines[@]}" = "9"
-}
-
 @test "$bin check-disks" {
   test "$(uname)" = "Linux" && skip "check-disks Linux"
   case "$hostname" in boreas* ) skip "Boreas";; esac
@@ -400,7 +375,7 @@ EOM
   run $BATS_TEST_DESCRIPTION
   dl=$tmpd/journal/today.rst
   {
-    test ${status} -eq 0
+    test ${status} -eq 0 &&
     test -h "$dl"
     # FIXME: test "$(readlink $dl)" = 2016/12/30.rst
   } || {
@@ -434,8 +409,8 @@ EOM
   run $BATS_TEST_DESCRIPTION
   dl=$tmpd/cabinet/today
   {
-    test ${status} -eq 0
-    test -h "$dl"
+    test ${status} -eq 0 &&
+    test -h "$dl" &&
     test "$(readlink $dl)" = 2016/12/30
   } || {
     diag "Output: ${lines[*]}"
@@ -490,13 +465,19 @@ EOM
   test_ok_nonempty || stdfail
 }
 
+@test "$bin prefixes" {
+  require_env lsof
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
 @test "$bin prefix-names" {
   require_env lsof
   run $BATS_TEST_DESCRIPTION
   test_ok_nonempty || stdfail
 }
 
-@test "$bin prefix-name-find" {
+@test "$bin prefix-name" {
   run $BATS_TEST_DESCRIPTION
   test_ok_nonempty || stdfail
 }
@@ -516,5 +497,35 @@ EOM
 @test "$bin package" {
   run $bin package
   test_ok_nonempty || stdfail
+}
+
+
+@test "$bin filter-functions" {
+
+    export verbosity=5
+
+    run $BATS_TEST_DESCRIPTION "grp=\(box\|htd\)* run=[a-z].*" htd
+    #diag "lines=${#lines[*]}"
+    # FIXME: find definition and update test_ok_nonempty 70 || stdfail 1-default
+    test_ok_nonempty || stdfail 1-default
+
+    export Inclusive_Filter=1
+    run $BATS_TEST_DESCRIPTION "grp=box-src spc=..*" htd
+    { test_ok_nonempty && 
+      fnmatch "* list-functions *" " ${lines[*]} " &&
+      fnmatch "* filter-functions *" " ${lines[*]} " &&
+      fnmatch "* checkout *" " ${lines[*]} "
+    } || stdfail 2-inclusive
+
+    export Inclusive_Filter=0
+    run $BATS_TEST_DESCRIPTION "grp=box-src spc=..*" htd
+    { test_ok_nonempty && 
+      fnmatch "* list-functions *" " ${lines[*]} " &&
+      fnmatch "* filter-functions *" " ${lines[*]} " && {
+        fnmatch "* crypto *" " ${lines[*]} " && return 1 || noop
+      } && {
+        fnmatch "* checkout *" " ${lines[*]} " && return 1 || noop
+      }
+    } || stdfail 3-exclusive
 }
 

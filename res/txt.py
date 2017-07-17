@@ -1,13 +1,14 @@
 import re
+from collections import OrderedDict
 
 from script_mpe import log
 
 import task
 
 
+
+
 class AbstractTxtLineParser(object):
-    """
-    """
     fields = ()
     def __init__(self, raw, parser=None, **attrs):
         super(AbstractTxtLineParser, self).__init__()
@@ -17,10 +18,26 @@ class AbstractTxtLineParser(object):
         self.parser = parser
         # Parse fields
         for f in self.fields:
-            t = getattr(self, 'parse_'+f)( t )
-            if not hasattr(self, f):
-                setattr(self, f, None)
+            t = self.run_field_parse(t, *f.split(':'))
         self.text = t
+    def run_field_parse(self, text, method, attr=None):
+        if not attr:
+            attr = method
+        text = getattr(self, 'parse_'+method)( text, attr )
+        if hasattr(self.parser, 'handle_'+method):
+            v = getattr(self, attr, None)
+            getattr(self.parser, 'handle_'+method)(self, v, attr)
+        #if not getattr(self, attr, None):
+        #    setattr(self, attr, None)
+        return text
+    def list_field_types(self):
+        return [
+            f.split(':')[0] for f in self.fields
+        ]
+    def list_field_names(self):
+        return [
+            f.split(':')[-1] for f in self.fields
+        ]
     def todict(self):
         d = dict(
                 attrs=self.attrs,
@@ -41,7 +58,7 @@ class AbstractTxtSegmentedRecordParser(AbstractTxtLineParser):
     def __init__(self, raw, **attrs):
         self.sections = {}
         super(AbstractTxtSegmentedRecordParser, self).__init__(raw, **attrs)
-    def parse_sections(self, t):
+    def parse_sections(self, t, tag=None):
         for sk_m in self.section_key_re.finditer(t):
             k = sk_m.group(2)
             if k not in self.sections:
@@ -66,6 +83,7 @@ class AbstractTxtRecordParser(AbstractTxtLineParser):
     end_c = r'(?=\ |$|[%s])' % task.excluded_c
     project_re = re.compile(r"%s\+([%s]+)%s" % (start_c, task.prefixed_tag_c, end_c))
     context_re = re.compile(r"%s@([%s]+)%s" % (start_c, task.prefixed_tag_c, end_c))
+    dt_r = re.compile("^\s*([0-9]{4}-[0-9]{2}-[0-9]{2})\ |$")
     def __init__(self, raw, **attrs):
         self.cites = []
         self.hrefs = []
@@ -74,15 +92,15 @@ class AbstractTxtRecordParser(AbstractTxtLineParser):
         self.contexts = []
         self.projects = []
         super(AbstractTxtRecordParser, self).__init__(raw, **attrs)
-    def parse_hrefs(self, t):
+    def parse_hrefs(self, t, tag):
         for href_m in self.href_re.finditer(t):
-            href = self.parser.handle_href(href_m.group(1))
+            href = self.parser.handle_href(self, href_m.group(1))
             self.hrefs.append(href)
         return t
-    def parse_cites(self, t):
+    def parse_cites(self, t, tag):
         cl = []
         for cite_m in self.cite_re.finditer(t):
-            cite = self.parser.handle_cite(cite_m.group(1))
+            cite = self.parser.handle_cite(self, cite_m.group(1))
             self.cites.append(cite)
             cl.append(cite_m.span())
         cl.sort()
@@ -90,12 +108,12 @@ class AbstractTxtRecordParser(AbstractTxtLineParser):
         for sp in cl:
             t = t[:sp[0]]+t[sp[1]:]
         return t
-    def parse_projects(self, t):
+    def parse_projects(self, t, tag):
         c = []
         cl = []
         for m in self.project_re.finditer(t):
             if not m or not m.group(2): continue
-            project = self.parser.handle_project(m.group(2))
+            project = self.parser.handle_project(self, m.group(2))
             self.projects.append(project)
             cl.append(m.span())
         cl.sort()
@@ -104,12 +122,12 @@ class AbstractTxtRecordParser(AbstractTxtLineParser):
             t = t[:sp[0]]+t[sp[1]:]
         self.projects = c
         return t
-    def parse_contexts(self, t):
+    def parse_contexts(self, t, tag):
         c = []
         cl = []
         for m in self.context_re.finditer(t):
             if not m or not m.group(2): continue
-            context = self.parser.handle_context(m.group(2))
+            context = self.parser.handle_context(self, m.group(2))
             self.contexts.append(context)
             cl.append(m.span())
         cl.sort()
@@ -118,7 +136,7 @@ class AbstractTxtRecordParser(AbstractTxtLineParser):
             t = t[:sp[0]]+t[sp[1]:]
         self.contexts = c
         return t
-    def parse_state(self, t):
+    def parse_state(self, t, tag):
         #self.parser.handle_state
         if t.startswith("d "):
             self.state = 'completed'
@@ -126,13 +144,21 @@ class AbstractTxtRecordParser(AbstractTxtLineParser):
         elif self.creation_date:
             self.state = 'created'
         return t
-    def parse_creation_date(self, t):
+    def parse_date(self, t, tag='date'):
+        m = self.dt_r.match(t)
+        if m:
+            setattr(self, tag, m.group(1))
+            return t[sum(m.span()):]
+        else:
+            setattr(self, tag, None)
+        return t
+    def parse_creation_date(self, t, tag):
         m = self.dt_r.match(t)
         if m:
             self.creation_date = m.group(1)
             return t[sum(m.span()):]
         return t
-    def parse_completion_date(self, t):
+    def parse_completion_date(self, t, tag):
         m = self.dt_r.match(t)
         if m:
             self.completion_date = m.group(1)
@@ -145,26 +171,32 @@ class AbstractRecordIdStrategy(AbstractTxtLineParser):
     Mixing for records to retrieve Id, working together with AbstractIdStrategy
     iface on container.
     """
+    key_re = re.compile(r"(^|\W|\ )([%s]+):(\ |$)" % (
+        task.meta_tag_c ))
     def __init__(self, raw, **attrs):
-        self.record_id = None
         super(AbstractRecordIdStrategy, self).__init__(raw, **attrs)
-        if self.record_id:
-            self.parser.init_id(self)
-    def parse_id(self, t):
-        if not self.sections:
-            return t
-        # First section is id for item
-        id_dsp = min([dsp for dsp, wid in self.sections.values()])
-        for key, (dsp, wid) in self.sections.items():
-            if id_dsp == dsp:
-                self.record_id = key
+    def parse_id(self, t, tag):
+        if self.sections:
+            # First section is id for item
+            id_dsp = min([dsp for dsp, wid in self.sections.values()])
+            for key, (dsp, wid) in self.sections.items():
+                if id_dsp == dsp:
+                    setattr(self, tag, key)
+        else:
+            m = self.key_re.match(t)
+            if m:
+                setattr(self, tag, m.group(2))
+                return t[sum(m.span()):]
+            else:
+                print 'Missing ID', t
         return t
+
 
 class AbstractRecordReferenceStrategy(AbstractTxtLineParser):
     def __init__(self, raw, **attrs):
-        self.references = {}
+        self.refs = {}
         super(AbstractRecordReferenceStrategy, self).__init__(raw, **attrs)
-    def parse_refs(self, txt):
+    def parse_refs(self, txt, tag):
         return txt
 
 
@@ -196,20 +228,25 @@ class AbstractTxtListParser(object):
     def load_file(self, fn):
         "Parse items from a file, yielding %s instances"
         line = 0
-        self.doc_name = fn
-        for itraw_str in open( fn ).readlines():
+        if hasattr(fn, 'read'):
+            self.doc_name = fn.name
+            lines = fn.readlines()
+        else:
+            self.doc_name = fn
+            lines = open( fn ).readlines()
+        for itraw_str in lines:
             itraw = itraw_str.decode('utf-8')
             line += 1
             itraw_ = itraw.strip()
             if not itraw_ or itraw_[0] == '#': continue
             it = self.parse(itraw, doc_name=fn, doc_line=line)
+            #self.load(it)
             for ctx in self.apply_contexts:
                 if ctx not in it.contexts:
                     it.contexts.append(ctx)
             yield it
     def parse(self, txtitem, **attrs):
         return self.item_parser( txtitem, parser=self, **attrs )
-
 
 class AbstractIdStrategy(AbstractTxtListParser):
     """
@@ -218,28 +255,75 @@ class AbstractIdStrategy(AbstractTxtListParser):
     """
     item_parser= AbstractRecordIdStrategy
     def __init__(self, record_cites=False, **kwds):
-        self.records = {}
+        self.records = OrderedDict()
         self.references = {}
         self.record_cites = record_cites
         super(AbstractIdStrategy, self).__init__(**kwds)
+    def items(self):
+        return self.records.values()
     def init_id(self, record):
         self.records[record.record_id] = record
     # TODO: no on-init ctx/prj/ref/cite handling yet. see AbstractTxtListParser.proc
-    def handle_context(self, ctx):
-        print self.__class__.__name__, 'handle_context', ctx
+    def handle_id(self, item, sid, attr=None):
+        assert not sid in self.records, sid
+        self.records[sid] = item
+        return sid
+    def handle_context(self, item, ctx, attr=None):
         return ctx
-    def handle_project(self, project):
+    def handle_project(self, item, project, attr=None):
         return project
-    def handle_href(self, href):
+    def handle_href(self, item, href, attr=None):
         return href
-    def handle_cite(self, cite):
+    def handle_cite(self, item, cite, attr=None):
         if self.record_cites:
             self.references[cite] = None
         else:
             assert ( cite in self.records or cite in self.references ), "Invalid citation: %s" % cite
         return cite
-    def handle_ref(self, refid):
+    def handle_ref(self, item, refid):
         assert ( refid in self.records or refid in self.references ), "Invalid reference: %s" % refid
         return refid
+    def find_url(self, href, all=False):
+        r = []
+        for I, i in self.records.items():
+            if i.hrefs and href in i.hrefs:
+                if all:
+                    r.append(i)
+                else:
+                    return i
+        return r
+
+
+
+class AbstractTxtListWriter(object):
+    fields_append = ()
+    def __init__(self, parser):
+        self.parser = parser
+    def serialize_field(self, item, name, tag=None):
+        if not tag:
+            tag = name
+        value = getattr(item, tag)
+        if hasattr(self, 'serialize_field_'+name):
+            return getattr(self, 'serialize_field_'+name)(value)
+        else:
+            if value:
+                return str(value)
+            return ''
+    def serialize(self, item):
+        values = [ item.text ]
+        values = [ self.serialize_field(item, *f.split(':'))
+                for f in self.parser.item_parser.fields
+                if f not in self.fields_append ] + values
+        values += [ self.serialize_field(item, *f.split(':'))
+                for f in self.parser.item_parser.fields
+                if f in self.fields_append ]
+        return " ".join([ v for v in values if v ])
+    def write(self, fn, items=None):
+        fp = open( fn, 'w+' )
+        if not items:
+            items = self.parser.items()
+        for it in items:
+            fp.write( self.serialize(it)+'\n' )
+        fp.close()
 
 

@@ -100,7 +100,6 @@ pd__status()
 
   # Set default option
   test -s "$options" || format_yaml=1
-
   # XXX: fetching the state requires all branches to have status/result set.
   #pd__meta update-states
   # TODO: also export for monitoring
@@ -112,9 +111,7 @@ pd__status()
       note "Not a checkout path at $checkout"
       continue
     }
-
     note "pd-prefix=$pd_prefix ($CWD)"
-
     trueish "$format_yaml" && {
 
       {
@@ -134,13 +131,11 @@ pd__status()
       } || echo "pd:status:$pd_prefix" >>$failed
 
     }
-
     trueish "$format_stm_yaml" && {
       note "TODO"
     }
 
   done < $prefixes
-
   cd $pd_realdir
 }
 pd_load__status=yiIaop
@@ -1380,7 +1375,7 @@ pd_load()
   do case "$x" in
     a )
         # Set default args or filter. Value can be literal or function.
-        local pd_default_args="$(eval echo "\"\$$(try_local $subcmd defargs)\"")"
+        local pd_default_args="$(eval echo "\"\$$(echo_local $subcmd defargs)\"")"
         pd_default_args "$pd_default_args" "$@"
       ;;
 
@@ -1411,7 +1406,7 @@ pd_load()
     g )
         # Set default args based on file glob(s), or expand short-hand arguments
         # by looking through the globs for existing paths
-        pd_trgtglob="$(eval echo "\"\$$(try_local $subcmd trgtglob)\"")"
+        pd_trgtglob="$(eval echo "\"\$$(echo_local $subcmd trgtglob)\"")"
         pd_globstar_search "$pd_trgtglob" "$@"
       ;;
 
@@ -1455,7 +1450,7 @@ pd_load()
       ;;
 
     o )
-        local pd_optsv="$(eval echo "\"\$$(try_local $subcmd optsv)\"")"
+        local pd_optsv="$(eval echo "\"\$$(echo_local $subcmd optsv)\"")"
         test -s "$options" && {
           $pd_optsv
         } || noop
@@ -1637,7 +1632,7 @@ pd_main()
 
           #record_env_keys pd-subcmd pd-env
 
-          box_src_lib pdoc
+          box_lib $0 $scriptalias
           shift 1
 
           pd_load "$@" || error "pd_load" $?

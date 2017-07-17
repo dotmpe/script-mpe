@@ -212,7 +212,52 @@ disk__x_local()
 }
 disk_load__x_local=f
 
-disk_man_1__list_part_local="Print info for local partitions"
+
+disk_man_1__list_local_mounts='Print info for local partitions (using mount).
+  Formats:
+    list - only UUID each line
+'
+disk__list_local_mounts()
+{
+  local unknown_vols=$(setup_tmpf .unknown-vols)
+  test -n "$out_fmt" || local out_fmt=list
+  case "$out_fmt" in
+    csv )
+        echo '# Partition-Id, Disk-Index, Disk-Id, Partition-Index, Hostname, Mount-Point'
+      ;;
+  esac
+  disk__list_mount_paths | while read mp
+  do
+    test -e $mp/.volumes.sh || {
+      echo "$mp" >$unknown_vols
+      warn "Unknown volume mounted at '$mp'"
+      continue
+    }
+    (
+      . $mp/.volumes.sh
+      trueish "$choice_interactive" &&
+        note "$volumes_main_part_id: $volumes_main_disk_index. ($volumes_main_disk_id) $volumes_main_part_index. at '$mp'"
+      case "$out_fmt" in
+        csv )
+            echo "$volumes_main_part_id,$volumes_main_disk_index,$volumes_main_disk_id,$volumes_main_part_index,$hostname,$mp"
+          ;;
+        list )
+            echo "$volumes_main_part_id"
+          ;;
+      esac
+    )
+  done
+  test -s "$unknown_vols" -o -n "$choice_strict" || return 1
+}
+
+
+disk_man_1__list_mount_paths="List mounted paths (scanned from mount)"
+disk__list_mount_paths()
+{
+  mount | grep '\ on\ ' | sed 's/.*\ on\ //g' | awk '{print $1}' | sort -u
+}
+
+disk_man_1__list_part_local="Print info for local partitions (from /dev/*)"
 disk__list_part_local()
 {
   disk_list_part_local "$@"
@@ -238,7 +283,6 @@ disk__list()
   } | sort -n | column -tc 3
   echo "# Catalog at $(hostname):$DISK_CATALOG, $(datetime_iso)"
 }
-
 
 disk_man_1__enable="TODO"
 disk__enable()
@@ -481,6 +525,18 @@ disk_load()
   test -n "$disk_session_id" || disk_session_id=$(get_uuid)
   disk__inputs="arguments options"
   disk__outputs="errored failed"
+
+  test -n "$choice_interactive" || {
+    # By default look at TERM
+    test -z "$TERM" || {
+      # may want to look at stdio t(ty) vs. f(ile) and p(ipe)
+      # here we trigger by non-tty stderr
+      test "$stdio_2_type" = "t" &&
+        choice_interactive=1 || choice_interactive=0
+      export choice_interactive
+    }
+  }
+
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
 
@@ -514,7 +570,7 @@ disk_load()
       ;;
 
     o ) #
-        local subcmd_outf="$(eval echo "\$$(try_local $subcmd outf)")"
+        local subcmd_outf="$(eval echo "\$$(echo_local $subcmd outf)")"
         test -n "$subcmd_outf" || error "List of output names expected" 1
         disk__inputs= disk__outputs="$subcmd_outf" \
           setup_io_paths $subcmd-${disk_session_id}
@@ -537,7 +593,7 @@ disk_unload()
       ;;
 
     o ) # idem. but for subcmd
-        local subcmd_outf="$(eval echo "\$$(try_local $subcmd outf)")"
+        local subcmd_outf="$(eval echo "\$$(echo_local $subcmd outf)")"
         test -n "$subcmd_outf" || error "List of output names expected" 1
         clean_io_lists $subcmd_outf
         disk_report $subcmd_outf || subcmd_result=$?

@@ -185,7 +185,7 @@ script_sh_main()
         script_sh_lib "$@" || error script-sh-lib $?
 
         try_subcmd "$@" && {
-          box_src_lib script-sh || error "box-src-lib script-sh" 1
+          box_lib script-sh || error "box-src-lib script-sh" 1
           shift 1
           script_sh_load "$@" || error "script-sh-load" $?
           var_isset verbosity || local verbosity=5

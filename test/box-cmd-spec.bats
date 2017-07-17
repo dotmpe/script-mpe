@@ -110,7 +110,7 @@ source $lib/str.lib.sh
 @test "${bin} help y " {
   run $BATS_TEST_DESCRIPTION
   { test ${status} -eq 0 &&
-    fnmatch "*Usage:*" "${lines[*]}"
+    fnmatch "*no help*'y'*" "${lines[*]}"
   } || stdfail
 }
 

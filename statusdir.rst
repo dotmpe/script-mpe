@@ -12,6 +12,11 @@ Design
 - Some JSOTK (json/yaml) support maybe, for fallback where above fails with a
   backend. Or for layering more complex indices.
 
+
+::
+
+  sd_be=redis statusdir.sh be flushall
+
 ----
 
 statusdir.sh

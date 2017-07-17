@@ -1,7 +1,7 @@
 script.mpe
 ==========
 :Version: 0.0.4-dev
-:Updated: 2017-04-10
+:Updated: 2017-05-20
 
 
 Build-status
@@ -46,6 +46,18 @@ Testing
 
 See also `.travis.yml`.
 
+
+Documentation
+-------------
+Install sitefile::
+
+  npm install sitefile
+  cd .../script-mpe
+  sitefile
+
+Surf to sitefile service, default is `localhost:4500`__.
+
+.. __: http://localhost:4500
 
 
 Other documents

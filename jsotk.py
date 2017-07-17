@@ -33,6 +33,7 @@ Usage:
     jsotk [options] update <destfile> [<srcfiles>...]
     jsotk [options] update-from-args <srcfiles> <kv-args> <destfile>
     jsotk [options] update-at <destfile> <expr> [<srcfiles>...]
+    jsotk [options] encode <srcfile>
     jsotk (version|-V|--version)
     jsotk (help|-h|--help)
     jsotk [options] [dump] [<srcfile> [<destfile]]
@@ -139,6 +140,7 @@ from jsotk_lib import PathKVParser, FlatKVParser, \
         load_data, stdout_data, readers, open_file, \
         get_src_dest_defaults, set_format, get_format_for_fileext, \
         get_dest, get_src_dest, \
+        json_writer, \
         deep_union, deep_update, data_at_path, data_check_path, maptype
 
 
@@ -291,6 +293,17 @@ def H_update_at(ctx):
     return stdout_data( data, ctx, outf=updatefile )
 
 
+def H_encode(ctx):
+    srcfile = ctx.opts.args.srcfile
+    if srcfile == '-':
+        src = sys.stdin
+    else:
+        src = open(srcfile)
+    data = src.read()
+    json_writer(data, sys.stdout, ctx)
+    #print(ctx.opts.args.srcfile)
+
+
 
 # Ad-hoc designed path query
 
@@ -320,6 +333,7 @@ def H_path(ctx):
 
     for tp in "new list obj int str bool".split(" "):
         if ctx.opts.flags["is_%s" % tp]:
+            # FIXME: print(maptype(tp))
             if tp == "new":
                 infile, outfile = get_src_dest_defaults(ctx)
                 if not data and data_check_path(ctx, infile):

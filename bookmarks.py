@@ -531,12 +531,13 @@ def cmd_dlcs_import(opts, settings):
         if not re.match('[A-Za-z0-9-]+', tag):
             log.std("Non-std tag %s", tag)
         if freq >= tagOffset:
+            # Store tags only if count exceeds offset
             tags += 1
-            t = Node.fetch((Node.name == tag,), exists=False)
+            t = Name.fetch((Name.name == tag,), exists=False)
             if not t:
                 t = Tag(name=tag)
                 t.init_defaults()
-                log.std("new: %s", t)
+                log.std("new tag %r for %r", t, tag)
                 sa.add(t)
             # store frequencies
             # TODO tags_freq

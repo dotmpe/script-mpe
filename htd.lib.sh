@@ -41,8 +41,8 @@ installed()
 
   case "$bin" in
     "["*"]" )
-
-        statusdir.sh set "htd:installed:$1:$2" 0 180
+        local k="htd:installed:$1:$2"
+        stderr ok "$sd_be($k): $(statusdir.sh set "$k" 0 180)"
 
         # Or a list of names
         jsotk.py -O py items $1 tools/$2/bin | while read bin_
@@ -155,10 +155,26 @@ uninstall_bin()
 
 tools_json()
 {
-  test -e $HTD_TOOLSFILE
-  test $HTD_TOOLSFILE -ot ./tools.json \
-    || jsotk.py yaml2json $HTD_TOOLSFILE ./tools.json
+  test -e $HTD_TOOLSFILE || return $?
+  test $HTD_TOOLSFILE -ot $B/tools.json \
+    || jsotk.py yaml2json $HTD_TOOLSFILE $B/tools.json
 }
+
+tools_json_schema()
+{
+  default_env Htd-ToolsSchemaFile ~/bin/schema/tools.yml
+  test -e $HTD_TOOLSSCHEMAFILE || return $?
+  test $HTD_TOOLSSCHEMAFILE -ot $B/tools-schema.json \
+    || jsotk.py yaml2json $HTD_TOOLSSCHEMAFILE $B/tools-schema.json
+}
+
+tools_list()
+{
+  echo $(
+      jsotk.py -O lines keys $B/tools.json tools || return $?
+    )
+}
+
 
 htd_report()
 {
@@ -350,5 +366,37 @@ htd_remigrate_tasks()
         ;;
     esac
   done
+}
+
+
+# htd-archive-path-format DIR FMT
+htd_archive_path_format()
+{
+  test -d "$1" || error htd-archive-path-format 1
+  fnmatch "*/" "$1" || set -- "$(strip_trail $1)"
+  # Default pattern: "$1/%Y-%m-%d"
+  test -n "$ARCHIVE_FMT" || {
+    test -n "$Y" || Y=/%Y
+    test -n "$M" || M=-%m
+    test -n "$D" || D=-%d
+    # XXX test -n "$EXT" || EXT=.rst
+    #ARCHIVE_BASE=$1$Y
+    #ARCHIVE_ITEM=$M$D$EXT
+    ARCHIVE_FMT=$Y$M$D$EXT
+  }
+  test -n "$2" || set -- "$1" "$ARCHIVE_FMT"
+  f=$1/$2
+  echo $1/$2
+}
+
+
+htd_doc_ctime()
+{
+  grep -i '^:Created:\ [0-9:-]*$' $1 | awk '{print $2}'
+}
+
+htd_doc_mtime()
+{
+  grep -i '^:Updated:\ [0-9:-]*$' $1 | awk '{print $2}'
 }
 

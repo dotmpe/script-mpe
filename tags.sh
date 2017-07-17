@@ -87,9 +87,9 @@ tags_main()
   local
       scriptname=tags \
       base=$(basename $0 .sh) \
-      verbosity=5 \
-    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-    failed=
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
+      failed=
+  test -n "$verbosity" || verbosity=5
 
   tags_init || exit $?
 

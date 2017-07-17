@@ -31,6 +31,9 @@ str_lib_load()
   #        || ext_sh_sub=0
   #  #debug "Initialized ext_sh_sub=$ext_sh_sub"
   #}
+
+  test -x "$(which php)" &&
+    bin_php=1 || bin_php=0
 }
 
 # Web-like ID for simple strings, input can be any series of characters.
@@ -49,6 +52,14 @@ mkid()
 mkvid()
 {
   test -n "$1" || error "mkvid argument expected" 1
+  trueish "$upper" && {
+    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'a-z' 'A-Z')
+    return
+  }
+  falseish "$upper" && {
+    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'A-Z' 'a-z')
+    return
+  }
   vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
   # Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
 }
@@ -62,9 +73,14 @@ mksid()
 {
   test -n "$1" || error "mkcid argument expected" 1
   var_isset c || c=_
-  trueish "$upper" &&
-    sid=$(mkid "$(printf -- "$1" | tr 'a-z' 'A-Z')"; echo "$id" ) ||
-      sid=$(mkid "$(printf -- "$1" | tr 'A-Z' 'a-z')"; echo "$id" )
+  test -n "$upper" && {
+    trueish "$upper" &&
+      mkid "$(printf -- "$1" | tr 'a-z' 'A-Z')"
+    falseish "$upper" &&
+      mkid "$(printf -- "$1" | tr 'A-Z' 'a-z')"
+  } ||
+    mkid "$(printf -- "$1" )"
+  sid="$id"
 }
 
 # A either args or stdin STR to lower-case pipeline element
@@ -121,6 +137,15 @@ str_replace_back()
         echo "$1" | sed "s/$find$/$p_/g"
     }
 }
+
+
+# Trim end off Str by Len chars
+str_trim_end() # Str Len [Start]
+{
+  test -n "$3" || set -- "$1" "$2" 1
+  echo "$1" | cut -c$3-$(( ${#1} - $2 ))
+}
+
 
 str_replace()
 {
@@ -257,7 +282,7 @@ property()
     while test -n "$1"
     do
       local __key= __value=
-      test -n "$vid" && __key=${vid}_$1 || __key=$1
+      test -n "$vid" && __key=${vid}$1 || __key=$1
       __value="$(eval printf -- \"\$$__key\")"
 #      __value="$(cat <<EOM
 #\$$__key
@@ -343,4 +368,22 @@ column_layout()
   done |
     column -t
 }
+
+str_title()
+{
+  # Other ideas to test as ucwords:
+  # https://stackoverflow.com/questions/12420317/first-character-of-a-variable-in-a-shell-script-to-uppercase
+  trueish "$bin_php" && {
+    trueish "$first_word_only" &&
+      php -r "echo ucfirst('$1');" ||
+      php -r "echo ucwords('$1');"
+  } || {
+    trueish "$first_word_only" && {
+      echo "$1" | awk '{ print toupper(substr($0, 1, 1)) substr($0, 2) }'
+    } || {
+      first_word_only=1 str_title "$(echo "$1" | tr ' ' '\n')" | tr '\n' ' '
+    }
+  }
+}
+
 

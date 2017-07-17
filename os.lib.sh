@@ -25,6 +25,7 @@ pathname()
     echo "$name"
   }
 }
+# basepath: see pathname as alt. to basename for ext stripping
 
 pathnames()
 {
@@ -446,3 +447,13 @@ verify_lock()
     test "$(head -n 1 $f.lock | awk '{print $1}')" = "$id" || return 1
   done
 }
+
+
+mkrlink()
+{
+  # TODO: find shortest relative path
+  ln -vs "$(basename "$1")" "$2"
+}
+
+
+

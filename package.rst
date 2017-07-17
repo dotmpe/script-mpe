@@ -10,6 +10,7 @@ may conform to the schema::
   type: <mediatype>
   id: <main-id>
 
+TODO: perhaps allow 'packages' or '<prefix>.{type,package}' schemes for root mapping iso. lists.
 
 Usage
 -----

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Sys: lower level Sh helpers; dealing with vars, functions, and other shell
+# Sys: lower level Sh helpers; dealing with vars, functions, env and other shell
 # ideosyncracities
 
 set -e
@@ -38,24 +38,24 @@ require_fs_casematch()
   }
   test -e ".fs-casematch" || {
     test -e ".fs-nocasematch" && {
-      warn "Case-insensitive fs '$1' detected!"
+      sh $scriptpath/std.lib.sh warn "Case-insensitive fs '$1' detected!"
     } || {
 
       echo 'ok' > abc
       echo 'notok' > ABC
       test "$(echo $( cat abc ABC))" = "ok notok" && {
-        debug "Case-sensitive fs '$1' OK"
+        sh $scriptpath/std.lib.sh debug "Case-sensitive fs '$1' OK"
         rm abc ABC || noop
         touch .fs-casematch
       } || {
         test "$(echo $( cat abc ABC))" = "notok notok" && {
           rm abc || noop
-          warn "Case-insensitive fs '$1' detected!"
+          sh $scriptpath/std.lib.sh warn "Case-insensitive fs '$1' detected!"
           touch .fs-nocasematch
         } || {
           rm abc ABC || noop
           cd "$CWD"
-          error "Unknown error" 1
+          sh $scriptpath/std.lib.sh error "Unknown error" 1
         }
       }
     }
@@ -188,6 +188,7 @@ func_exists()
 try_exec_func()
 {
   test -n "$1" || return 97
+  debug "try-exec-func '$1'"
   func_exists $1 || return $?
   local func=$1
   shift 1
@@ -253,7 +254,7 @@ setup_tmpd()
 
 # Return path to new file in temp. dir. with ${base}- as filename prefix,
 # .out suffix and subcmd with uuid as middle part.
-# setup-tmp [ext [unid [(RAM_)TMPDIR]]]
+# setup-tmp [ext [uuid [(RAM_)TMPDIR]]]
 setup_tmpf()
 {
   test -n "$1" || set -- .out "$2" "$3"
@@ -287,13 +288,6 @@ sys_confirm()
   trueish "$choice_confirm"
 }
 
-mkrlink()
-{
-  # TODO: find shortest relative path
-  printf "Linking "
-  ln -vs $(basename $1) $2
-}
-
 pretty_print_var()
 {
   var_isset kvsep || kvsep='='
@@ -323,6 +317,69 @@ print_var()
     printf -- "$1=\"$2\"\n"
   } || {
     printf -- "$1=$2\n"
+  }
+}
+
+# lookup-paths Lists individual paths in lookup path env var (ie. PATH or CLASSPATH)
+# VAR-NAME
+lookup_path_list()
+{
+  test -n "$1" || error "lookup-path varname expected" 1
+  eval echo "\$$1" | tr ':' '\n'
+}
+
+# lookup-path List existing local paths going over paths from lookup in VAR-NAME
+# VAR-NAME LOCAL-PATH
+# lookup-test: command to test for existing local path, defaults to test -e
+# lookup-first: boolean setting to stop after first success
+lookup_path()
+{
+  test -n "$lookup_test" || lookup_test="test_exists"
+  lookup_path_list $1 | while read _PATH
+  do
+    eval $lookup_test "$_PATH" "$2" && {
+      trueish "$lookup_first" && return 0 || continue
+    } || continue
+  done
+}
+
+# A simple default helper for lookup-path
+test_exists()
+{
+  test -e "$1/$2" && echo "$1/$2" || return 1
+}
+
+# Return 1 if env was provided, or 0 if default was set
+default_env() # VAR-NAME DEFAULT-VALUE
+{
+  test -n "$1" -a -n "$2" -a $# -eq 2 || error "default-env requires two args" 1
+  local vid= sid=
+  trueish "$title" && upper= || {
+    test -n "$upper" || upper=1
+  }
+  mkvid "$1"
+  mksid "$1"
+  test -n "$(eval echo \$$vid)" || {
+    debug "No $sid env, using '$2'"
+    export $vid="$2"
+    return 0
+  }
+  return 1
+}
+
+
+get_kv_k() # Key-Value-Str
+{
+  echo "$1" | cut -d'=' -f1
+}
+
+get_kv_v() # Key-Value-Str [Env-Prefix [Key-Str]]
+{
+  test -n "$3" || set -- "$1" "$2" "$(get_kv_k "$1")"
+  fnmatch "*=*" "$1" && {
+    eval echo \"$(expr_substr "$1" "$(( 2 + ${#3} ))" "$(( ${#1} - ${#3}  ))")\"
+  } || {
+    eval echo \"\$$2$3\"
   }
 }
 
