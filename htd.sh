@@ -6332,9 +6332,90 @@ htd_als__depth=path-depth
 # (Re)init service volume links (srv-init) and get (repo) state (srv-stat)
 htd__srv()
 {
-  htd__srv_init "$@" || return $?
-  htd__srv_stat "$@" || return $?
+  case "$1" in
+
+    find-volumes ) shift
+      # List volumes for existing volume path
+        htd__srv find-volume-paths "$1" | cut -d'/' -f3 | sort -u
+      ;;
+
+    list-service-container-names ) shift
+        htd__srv list-service-container-instances | sed '
+            s/^\(.*\)-[0-9]*-[0-9]*-[a-z]*-[a-z]*$/\1/g
+            s/^\(.*\)-local$/\1/g
+          ' | sort -u
+      ;;
+
+    list-service-container-instances ) shift
+      # List existing volume path symlinks
+        echo /srv/* | tr ' ' '\n' | cut -d'/' -f3 | sort -u | grep -v volume
+      ;;
+
+    find-volume-paths ) shift
+      # List existing volume paths (absolute paths). 
+        for p in /srv/volume-[0-9]*-[0-9]*-*-*/
+        do
+          htd__name_exists "$p" "$1" || continue
+          echo "$p$name"
+        done
+      ;;
+
+    find-container-volumes ) shift
+      # Additionally to find-volume-paths, go over every service container,
+      # not just the roots. 
+        for p in /srv/*/
+        do
+          htd__name_exists "$p" "$1" || continue
+          echo "$p$name"
+        done
+      ;;
+
+    check ) shift
+      # For all local services, we want symlinks to any matching volume path
+        htd__srv  list-service-container-names | while read name
+        do
+          #htd__srv find-volumes "$name"
+          htd__srv find-container-volumes "$name"
+          #htd__srv find-volume-paths "$name"
+
+          # TODO: find out which disk volume is on, create name and see if the
+          # symlink is there. check target maybe.
+        done
+      ;;
+
+    list ) shift
+        test -n "$1" && {
+          htd__srv list-volumes "$1"
+          htd__srv find-volumes "$1"
+        } || {
+          htd__srv_list || return $?
+        }
+      ;;
+
+    update ) shift
+        htd__srv_init "$@" || return $?
+        htd__srv_stat "$@" || return $?
+      ;;
+
+    * ) error "'$1'?" 1 ;;
+
+  esac
 }
+
+# check for both 'lower-case' sid and Title Case dir name.
+htd__name_exists() # DIR NAME
+{
+  name="$2"
+  test -e "$1/$2" && return
+  upper=0 mksid "$2"
+  name="$sid"
+  test -e "$1/$sid" && return
+  upper= mksid "$(str_title "$2")"
+  name="$sid"
+  test -e "$1/$sid" && return
+  return 1
+}
+
 
 # Update disk volume catalog, and reinitialize service links
 htd__srv_init()
@@ -6350,7 +6431,7 @@ htd__srv_init()
 # Volumes for services
 
 htd_man_1__srv_list="Print info to stdout, one line per symlink in /srv"
-htd_spc__srv_list="src-list"
+htd_spc__srv_list="out_fmt= srv-list"
 htd__srv_list()
 {
   upper=0 default_env out-fmt plain
