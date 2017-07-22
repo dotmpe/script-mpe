@@ -10,6 +10,7 @@ Usage:
   darwin.py [options] spserialata-disk PLIST DISK KEY...
   darwin.py [options] spserialata-disk-part PLIST KEY...
   darwin.py [options] spstorage-disk PLIST DISK KEY...
+  darwin.py [options] spstorage-disk-for-volume PLIST DISK
   darwin.py [options] spstorage-disk-part PLIST KEY...
   darwin.py [options] spusb-disk PLIST DISK KEY...
   darwin.py [options] spusb-disk-part PLIST KEY...
@@ -128,8 +129,23 @@ def cmd_spusb_disk_part(PLIST, KEY, settings):
             print
 
 
+def cmd_spstorage_disk_for_volume(PLIST, DISK, KEY, settings):
+    plst = pbPlist.pbPlist.PBPlist(PLIST)
+    #plst_dump(plst.root[0])
+    for storage in plst.root[0]['_items']:
+        if 'com.apple.corestorage.pv' not in storage or not storage['com.apple.corestorage.pv']:
+            continue
+        if 'bsd_name' not in storage or not storage['bsd_name']:
+            continue
+        if DISK and storage['bsd_name'] != DISK:
+            continue
+        print storage['com.apple.corestorage.pv'][0]['_name']
+        continue
+
+
 def cmd_spstorage_disk(PLIST, DISK, KEY, settings):
     plst = pbPlist.pbPlist.PBPlist(PLIST)
+    #plst_dump(plst.root[0])
     for storage in plst.root[0]['_items']:
         if 'bsd_name' not in storage or not storage['bsd_name']:
             continue

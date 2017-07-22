@@ -73,13 +73,14 @@ disk_id()
           echo $serial_num; return
         }
 
-        # XXX: unfortunately, RAM disks have no device..
-        #xml=$(darwin_profile_xml "SPStorageDataType")
-        #serial_num=$(darwin.py spstorage-disk $xml $bsd_name serial_num)
-        #test -z "$serial_num" || {
-        #  echo $serial_num; return
-        #}
+        xml=$(darwin_profile_xml "SPStorageDataType")
+        serial_num=$(darwin.py spstorage-disk $xml $bsd_name serial_num)
+        test -z "$serial_num" || {
+          echo $serial_num; return
+        }
 
+        # Unfortunately need to dig trough volume group/mapping setup here.
+        # Rather going to skip device ID and move to volumes directly.
 
         error "unkown disk $bsd_name"
         return
