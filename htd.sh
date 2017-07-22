@@ -34,8 +34,7 @@ htd_load()
   default_env TMPDIR "/tmp/" || debug "Using TMPDIR '$TMPDIR'"
   default_env HTDIR "$HOME/public_html" || debug "Using HTDIR '$HTDIR'"
   test -n "$FIRSTTAB" || export FIRSTTAB=50
-  test -n "$LOG" ||
-    export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
+  test -n "$LOG" || export LOG=$scriptpath/log.sh
   default_env Script-Etc "$( htd_init_etc|head -n 1 )" ||
     debug "Using Script-Etc '$SCRIPT_ETC'"
   test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE="$CWD"/tools.yml
@@ -6352,7 +6351,7 @@ htd__srv()
       ;;
 
     find-volume-paths ) shift
-      # List existing volume paths (absolute paths). 
+      # List existing volume paths (absolute paths).
         for p in /srv/volume-[0-9]*-[0-9]*-*-*/
         do
           htd__name_exists "$p" "$1" || continue
@@ -6362,7 +6361,7 @@ htd__srv()
 
     find-container-volumes ) shift
       # Additionally to find-volume-paths, go over every service container,
-      # not just the roots. 
+      # not just the roots.
         for p in /srv/*/
         do
           htd__name_exists "$p" "$1" || continue
