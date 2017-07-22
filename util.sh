@@ -78,6 +78,7 @@ util_init()
       exit 106
     }
   }
+  test -n "$LOG" || export LOG=$scriptpath/log.sh
 
   lib_load
 }
