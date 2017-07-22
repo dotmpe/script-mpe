@@ -109,24 +109,28 @@ vc__help()
 {
   echo "$base/$version - Reports on SCM state, build short description. "
   echo
-  vc_usage
-  echo
-  echo "Default command: "
-  echo "  $scriptname (print-all) [PATH...]"
-  echo
-  echo "For example to be embedded in PS1: "
-  echo "  $scriptname ps1"
-  echo
-  echo "Tokens:"
-  echo "  *      modified"
-  echo "  +      stage"
-  echo "  $      stash"
-  echo "  ~      untracked"
-  echo "  #      no HEAD"
-  echo "  GIT_DIR!:  "
-  echo "  BARE:  "
-  echo ''
-  vc__docs
+  test -z "$1" && {
+    vc_usage
+    echo
+    echo "Default command: "
+    echo "  $scriptname (print-all) [PATH...]"
+    echo
+    echo "For example to be embedded in PS1: "
+    echo "  $scriptname ps1"
+    echo
+    echo "Tokens:"
+    echo "  *      modified"
+    echo "  +      stage"
+    echo "  $      stash"
+    echo "  ~      untracked"
+    echo "  #      no HEAD"
+    echo "  GIT_DIR!:  "
+    echo "  BARE:  "
+    echo ''
+    vc__docs
+  } || {
+    echo_help $1
+  }
 }
 
 vc__docs()

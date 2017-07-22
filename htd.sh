@@ -7694,6 +7694,27 @@ htd__couchdb_htd_scripts()
   done
 }
 
+#f0720d16cd6bb61319a08aafbf97a1352537ac61
+
+#02/92/80b80c532636930b43ecd92dafaa04fd7bd1644ff7b077ac4959f7883a98
+#029280b80c532636930b43ecd92dafaa04fd7bd1644ff7b077ac4959f7883a98
+
+htd__lfs_files()
+{
+  test -e .gitattributes || return
+  x=$HOME/project/docker-git-lfs-test-server/lfs-test-server-darwin-amd64/lfs-content
+  grep filter=lfs .gitattributes |
+  while read glob f d m s
+  do
+    for p in $glob
+    do
+      h=$(shasum -a 256 $p | awk '{print $1}')
+      r="$( echo $h | cut -c1-2 )/$( echo $h | cut -c3-4 )/$( echo $h | cut -c5- )"
+
+      echo $p $r
+    done
+  done
+}
 
 
 # util
