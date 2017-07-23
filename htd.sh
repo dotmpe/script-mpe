@@ -34,7 +34,7 @@ htd_load()
   default_env TMPDIR "/tmp/" || debug "Using TMPDIR '$TMPDIR'"
   default_env HTDIR "$HOME/public_html" || debug "Using HTDIR '$HTDIR'"
   test -n "$FIRSTTAB" || export FIRSTTAB=50
-  test -n "$LOG" || export LOG=$scriptpath/log.sh
+  test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
   default_env Script-Etc "$( htd_init_etc|head -n 1 )" ||
     debug "Using Script-Etc '$SCRIPT_ETC'"
   test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE="$CWD"/tools.yml

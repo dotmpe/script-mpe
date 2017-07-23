@@ -314,7 +314,7 @@ statusdir_init()
 {
   test -n "$scriptpath"
   export SCRIPTPATH=$scriptpath
-  test -n "$LOG" || export LOG=$scriptpath/log.sh
+  test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
   . $scriptpath/util.sh load-ext
   lib_load
   . $scriptpath/box.init.sh

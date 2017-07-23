@@ -7,8 +7,12 @@ init
 . $lib/util.sh
 
 
-@test "${lib}/${base} - lib loads" {
+setup()
+{
   lib_load argv
+}
+
+@test "${lib}/${base} - lib loads" {
   func_exists test_exists
   func_exists test_dir
   func_exists test_file
@@ -39,6 +43,6 @@ init
   run check_argc 1 "foo"
   test_ok_empty || stdfail 1
   run check_argc 1 "foo" "bar"
-  test_nok_nonempty "*surplus arg*" || stdfail 2
+  test_nok_nonempty *"surplus arg"* || stdfail 2
 }
 

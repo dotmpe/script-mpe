@@ -39,8 +39,10 @@ type test_nok_nonempty >/dev/null 2>&1 || {
     test -n "${lines[*]}" && {
       test -z "$1" || {
         case "$1" in
+          # Test line-count if number given
           "[0-9]"* ) test "${#lines[*]}" = "$1"  || return $? ;;
-          * ) case "${lines[*]}" in "$1" ) ;; * ) return 1 ;; esac
+          # Test line-glob-match otherwise
+          * ) case "${lines[*]}" in $1 ) ;; * ) return 1 ;; esac
             ;;
         esac
       }

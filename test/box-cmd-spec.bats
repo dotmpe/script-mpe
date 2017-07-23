@@ -6,29 +6,27 @@ base=box-instance.sh
 init
 
 source $lib/util.sh
-source $lib/std.lib.sh
-source $lib/str.lib.sh
 
 
 @test "${bin}" "No arguments: default action is ..." {
   run $BATS_TEST_DESCRIPTION
   { test ${status} -eq 1 &&
-    fnmatch "*box-instance*No command given*" "${lines[*]}"
-  } || stdfail
+    fnmatch *"box-instance"*"No command given"* "${lines[*]}"
+  } || stdfail 1
 
-  test -n "$SHELL"
+  test -n "$SHELL" || fail "SHELL env expected"
   run $SHELL "$BATS_TEST_DESCRIPTION"
   { test ${status} -eq 5 &&
-    fnmatch "*box-instance*Error:*please use sh, or bash -o 'posix'*" "${lines[*]}"
-  } || stdfail
+    fnmatch *"box-instance"*"Error"*"please use sh, or bash -o 'posix'"* "${lines[*]}"
+  } || stdfail 2
 
   run sh "$BATS_TEST_DESCRIPTION"
   { test ${status} -eq 1 &&
     fnmatch "*box-instance*No command given*" "${lines[*]}"
-  } || stdfail
+  } || stdfail 3
 
   run bash "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 5 || stdfail
+  test ${status} -eq 5 || stdfail 4
 }
 
 @test ". ${bin}" {
