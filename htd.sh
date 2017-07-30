@@ -600,6 +600,24 @@ htd_als___h=help
 htd_als____help=help
 
 
+htd_man_1__output_formats='List output formats for sub-command'
+htd_spc__output_formats='output-formats|of [SUBCMD]'
+htd_als__Of=output-formats
+htd__output_formats()
+{
+  test -n "$1" || set -- table-reformat
+  {
+    try_func $(echo_local "$@" "" htd) && 
+      output_formats="$(try_value "$1" of htd )" &&
+        test -n "$output_formats"
+  } && {
+    echo $output_formats | tr ' ' '\n'
+  } || {
+    error "No sub-command or output formats for '$1'" 1
+  }
+}
+
+
 htd_man_1__version="Version info"
 htd__version()
 {
@@ -2917,10 +2935,76 @@ htd__gitflow_status()
 htd_als__gitflow=gitflow-status
 
 
-htd_spc__source_lines='source-lines FILE [ START [ END ]]'
-htd__source_lines()
+htd_man_1__source='Generic sub-commands dealing with source-code. For Shell
+specific routines see also `function`.
+
+  source lines FILE [ START [ END ]]        Copy (output) from line to end-line.
+'
+htd__source()
 {
-  source_lines "$@"
+  test -n "$1" || set -- copy
+  case "$1" in
+    lines ) shift
+        test -e "$1" || error "file expected '$1'" 1
+        source_lines "$@" || return $?
+      ;;
+    copy ) shift
+        htd__source lines "$3" "$1" "" "$2"
+      ;;
+    copy-where ) shift
+        copy_where "$@"
+      ;;
+    cut-where ) shift
+        cut_where "$@" || return $?
+      ;;
+    copy-paste ) shift
+        test -z "$4" && cp_board=htd-source || cp=$4
+        copy_only=false \
+        copy_paste "$1" "$2" "$3" || return $?
+        test -n "$4" || echo $cp
+      ;;
+    diff-where | sync-where ) shift
+        diff_where "$@" || return $?
+      ;;
+    where-grep ) shift
+        file_where_grep "$@" || return $?
+        echo $line_number
+      ;;
+    where-grep-tail ) shift
+        file_where_grep_tail "$@" || return $?
+        echo $line_number
+      ;;
+    expand-sentinel ) shift
+        where_line="$(grep -nF "# htd source copy-paste: $2" "$1")"
+        line_number=$(echo "$where_line" | sed 's/^\([0-9]*\):\(.*\)$/\1/')
+        test -n "$line_number" || return $?
+        expand_sentinel_line "$1" $line_number || return $?
+      ;;
+    * ) error "'$1'?" 1
+      ;;
+  esac
+}
+
+
+
+htd__function()
+{
+  test -n "$1" || set -- copy
+  case "$1" in
+    copy ) shift
+        copy_function "$@" || return $?
+      ;;
+    start-line ) shift
+        function_linenumber "$@" || return $?
+        echo $line_number
+      ;;
+    range ) shift
+        function_linerange "$@" || return $?
+        echo $start_line $span_lines $end_line
+      ;;
+    * ) error "'$1'?" 1
+      ;;
+  esac
 }
 
 
@@ -2947,7 +3031,11 @@ htd__copy_paste_function()
 htd_man_1__diff_function='
   Compare single function from Sh script, to manually sync/update related
   functions in different files/directories. Normally runs vimdiff on a synced
-  file. But quiet instead exists, and copy-only does not modify the script. '
+  file. But quiet instead exists, and copy-only does not modify the source
+  script but only shows the diff.  Normally (!copy-only) the two functions are
+  replaced by a source command to their temporary file used for comparison, iow.
+  during editing the script remains fully functional.
+'
 htd_spc__diff_function="diff-func(tion) [ --quiet ] [ --copy-only ] [ --no-edit ] FILE1 FUNC1 DIR[FILE2 [FUNC2]] "
 htd__diff_function()
 {
@@ -3013,6 +3101,10 @@ htd_run__diff_function=iAO
 htd_als__diff_func=diff-function
 
 
+htd_man_1__sync_function='Compare Sh functions using vimdiff. See diff-function,
+this command uses:
+  quiet=false copy-only=false edit=true diff-function $@
+'
 htd__sync_function()
 {
   export quiet=false copy_only=false edit=true
@@ -3747,9 +3839,193 @@ htd__list_run()
 htd_run__list_run=iAO
 
 
+htd_man_1__rules='
+  edit
+    Edit the HtD rules file.
+  show
+    Resolve and show HtD rules with Id, Cwd and proper Ctx.
+  status
+    Show Id and last status for each rule.
+  run
+  xrun [ Target-Grep [ Cmd-Grep ] ]
+    Evalute all rules and update status and targets. Rule selection arguments
+    like `each`. 
+  (list [ Target-Grep [ Cmd-Grep ] ])
+    Resolve rules and list IDs generated from the command, working dir and context.
+  env
+  each [ Target-Grep [ Cmd-Grep ] ]
+    Parse rules to key/values, filter on values using given Grep patterns.
+  id
+  env-id
+  parse-ctx
+  eval-ctx
+'
+htd__rules()
+{
+  test -n "$htd_chatter" || htd_chatter=$verbosity
+  test -n "$htd_rule_chatter" || htd_rule_chatter=3
+  test -n "$1" || set -- table
+  case "$1" in
+    edit )                        htd__edit_rules || return  ;;
+    table ) shift ;               raw=true htd__show_rules "$@" || return  ;;
+    show ) shift ;                htd__show_rules "$@" || return  ;;
+    status ) shift ;              htd__period_status_files "$@" || return ;;
+    run ) shift ;                 htd__run_rules "$@" || return ;;
+    ids ) shift ;                 htd__rules foreach "$1" "$2" id || return ;;
+    foreach ) shift
+        test -n "$*" || set -- 'local\>' "" id
+        htd__rules each "$1" "$2" | while read vars
+        do
+          local package_id= ENV_NAME= htd_rule_id=
+          line= row_nr= CMD= RT= TARGETS= CWD= CTX=
+          eval "$vars"
+          htd__rules pre-proc "$vars" || continue
+          htd__rules "$3" "$vars" ||
+            error "Running '$3' for $row_nr: '$line' ($?)"
+          continue
+        done
+      ;;
+    each ) shift
+        # TODO: use optparse instead test -z "$1" || local htd_rules=$1 ; shift
+        fixed_table $htd_rules CMD RT TARGETS CTX | {
+          case " $* " in
+            " "[0-9]" "|" "[0-9]*[0-9]" " ) grep "row_nr=$1\>" - ;;
+            * ) { test -n "$2" &&
+                  grep '^.*\ CMD=\\".*'"$2"'.*\\"\ \ RT=.*$' - || cat -
+              } | { test -n "$1" &&
+                  grep '^.*\ TARGETS=\\".*'"$1"'.*\\"\ \ CTX=.*$' - || cat -
+              } ;;
+          esac
+        }
+      ;;
+    id ) shift
+        case " $* " in
+          " "[0-9]" "|" "[0-9]*[0-9]" " )
+              vars="$(eval echo "$(htd__rules each $1)")"
+              line= row_nr= CMD= RT= TARGETS= CWD= CTX=
+              set -- "$vars"
+              eval export "$@"
+              verbosity=$htd_chatter
+              htd__rules parse-ctx "$*" || return
+              local package_id= ENV_NAME= htd_rule_id=
+              htd__rules eval-ctx "$vars" || return
+            ;;
+          *" CMD="* ) # from given vars
+              line= row_nr= CMD= RT= TARGETS= CWD= CTX=
+              vars="$@"
+              verbosity=$htd_rule_chatter eval export "$vars"
+              verbosity=$htd_chatter
+            ;;
+          * ) # Cmd Ret Targets Ctx
+              line= row_nr= CMD="$1" RT="$2" TARGETS="$3" CWD="$4" CTX="$5"
+              vars="CMD=\"$1\" RT=\"$2\" TARGETS=\"$3\" CWD=\"$4\" CTX=\"$5\""
+            ;;
+        esac
+        test -z "$DEBUG" ||
+          note "$row_nr: CMD='$CMD' RET='$RT' CWD='$CWD' CTX='$CTX'"
+        htd__rules env-id || return
+      ;;
+    env-id ) shift
+        test -n "$htd_rule_id" || { local sid=
+          test -n "$package_id" && {
+              mksid "$CWD $package_id $CMD"
+            } || {
+              test -n "$ENV_NAME" && {
+                mksid "$CWD $ENV_NAME $CMD"
+              } || {
+                mksid "$CWD $CMD"
+              }
+            }
+            htd_rule_id=$sid
+          }
+          echo $htd_rule_id
+      ;;
+    parse-ctx ) shift
+        test -n "$CTX" || {
+          ctx_var="$(echo "$vars" | sed 's/^.*CTX="\([^"]*\)".*$/\1/')"
+          warn "Setting CWD to root, given empty '$ctx_var' env. "
+          CTX=/
+        }
+        CWD=$(echo $CTX | cut -f1 -d' ')
+        test -d "$CWD" && CTX=$(echo $CTX | cut -c$(( ${#CWD} + 1 ))- ) || CWD=
+      ;;
+    eval-ctx ) shift
+        test -n "$CTX" -a -n "$CWD" -a \( \
+          -n "$package_id" -o -n "$htd_rule_id" -o "$ENV_NAME" \
+        \) || {
+          # TODO: alternative profile locations, config/tools/env.sh,
+          # .local/etc , ~/.conf
+          test -e "$HOME/.local/etc/profile.sh" && CTX="$CTX . $HOME/.local/etc/profile.sh"
+        }
+        test -n "$CTX" && {
+          verbosity=$htd_rule_chatter eval $CTX
+          verbosity=$htd_chatter
+        }
+        test -n "$CWD" || {
+          ctx_var="$(echo "$*" | sed 's/^.*CTX="\([^"]*\)".*$/\1/')' env"
+          warn "Setting CWD to root, given '$ctx_var' ctx"
+          CWD=/
+        }
+      ;;
+    update ) shift
+        test -n "$3" || set -- "$1" "$2" 86400
+        note "TODO record $1: $2 $3"
+      ;;
+    pre-proc ) shift
+        htd__rules parse-ctx "$vars" || {
+          error "Parsing ctx at $row_nr: $ctx" && continue ; }
+        htd__rules eval-ctx "$vars" || {
+          error "Evaluating ctx at $row_nr: $ctx" && continue ; }
+        # Get Id for rule
+        htd_rule_id=$(htd__rules env-id "$vars")
+        test -n "$htd_rule_id" || {
+          error "No ID for $row_nr: '$line'" && continue ; }
+        return 0
+
+        # TODO: to run rules, first get metadata for path, like max-age
+        # In this case, metadata like ck-names might provide if matched with a
+        # proper datatype chema
+        htd__tasks_buffers $TARGET "$@" | while read buffer
+        do test -e "$buffer" || continue; echo "$buffer"; done
+
+        target_files= targets= max_age=
+        #targets="$(htd__prefix_expand $TARGETS "$@")"
+        #are_newer_than "$targets" $max_age && continue
+        #sets_overlap "$TARGETS" "$target_files" || continue
+        #for target in $targets ; do case "$target" in
+
+        #    p:* )
+        #        #test -e "$(statusdir.sh file period ${target#*:})" && {
+        #        #  echo "TODO 'cd $CWD;"$CMD"' for $target"
+        #        #} || error "Missing period for $target"
+        #      ;;
+
+        #    @* ) echo "TODO: run at context $target"; continue ;;
+
+        #  esac
+        #done
+        test -z "$DEBUG" ||
+          $LOG ok pre-proc "CMD=$CMD RT=$RT TARGETS=$TARGETS CWD=$CWD CTX=$CTX"
+      ;;
+    * ) error "'$1'? 'rules $*'"
+      ;;
+  esac
+}
+htd_grp__rules=htd-rules
+#htd_als__edit_rules='rules edit'
+htd__edit_rules()
+{
+  $EDITOR $htd_rules
+}
+htd_grp__edit_rules=htd-rules
+#htd_als__id_rules='rules id'
+#htd_als__env_rules='rules id'
+
+
 # htdoc rules development documentation in htdocs:Dev/Shell/Rules.rst
 # pick up with config:rules/comp.json and build `htd comp` aggregate metadata
 # and update statemachines.
+#
 htd__period_status_files()
 {
   touch -t $(date %H%M) $(statusdir.sh file period 1min)
@@ -3765,6 +4041,7 @@ htd__period_status_files()
   ls -la $(statusdir.sh file period 5min)
   ls -la $(statusdir.sh file period hourly)
 }
+htd_grp__period_status_files=htd-rules
 
 
 # Run either when arguments given match a targets, or if any of the linked
@@ -3772,64 +4049,98 @@ htd__period_status_files()
 # Targets should resolve to a path, and optionally a maximum age which defaults
 # to 0.
 #
-
+htd__run_rule()
+{
+  line= row_nr= CMD= RT= TARGETS= CWD= CTX=
+  local package_id= ENV_NAME= htd_rule_id= vars="$1"
+  eval local "$1"
+  htd__rules pre-proc "$var" || {
+    error "Parsing ctx at $row_nr: $ctx" && continue ; }
+  note "Running '$htd_rule_id'..."
+  R=0 ; {
+    cd $CWD # Home if empty
+    htd__rules eval-ctx || { error "Evaluating $ctx" && continue ; }
+    test -n "$CMD" || { error "Command required" && continue; }
+    test -n "$CWD" || { error "Working dir required" && continue; }
+    #test -n "$ENV_NAME" || { error "Env profile required" && continue; }
+    cd $CWD
+    note "Executing command.."
+    $CMD
+  } || { R=$?
+    test "$R" = "$RT" || warn "Unexpected return from rule exec ($R)"
+  }
+  test "$RT" = "0" || {
+    test "$R" = "$RT" && 
+      note "Non-zero exit ignored by rule ($R)" ||
+        warn "Unexpected result $R, expected $RT"
+  }
+  htd__rules update $htd_rule_id $R ||
+    note "TODO run '$CMD' for $target ($CWD)"
+}
 htd__run_rules()
 {
-  test -z "$1" || local htd_rules=$1
-  shift
-  # htd__period_status_files || return
-  test -z "$DEBUG" \
-    || fixed_table_hd_offsets $htd_rules CMD RT TARGETS CWD
-  fixed_table $htd_rules CMD RT TARGETS CWD | while read vars
-  do
-    eval local "$vars"
-    target_files= targets= max_age=
-    echo TARGETS=$TARGETS
-    # TODO: to run rules, first get metadata for path, like max-age
-    # In this case, metadata like ck-names might provide if matched with a
-    # proper datatype schema
-    htd__tasks_buffers $TARGET "$@" | while read buffer
-    do test -e "$buffer" || continue; done
-
-    #targets="$(htd__prefix_expand $TARGETS "$@")"
-    #are_newer_than "$targets" $max_age && continue
-
-    #sets_overlap "$TARGETS" "$target_files" || continue
-    #for target in $targets ; do case "$target" in
-
-    #    p:* )
-    #        #test -e "$(statusdir.sh file period ${target#*:})" && {
-    #        #  echo "TODO 'cd $CWD;"$CMD"' for $target"
-    #        #} || error "Missing period for $target"
-    #      ;;
-
-    #    @* ) echo "TODO: run at context $target"; continue ;;
-
-    #  esac
-    #done
-    #echo "CMD='$CMD' RT='$RT' TARGETS='$TARGETS' CWD='$CWD'"
-    #htd__rule_target $target || note "TODO run '$CMD' for $target ($CWD)"
+  test -n "$1" || set -- '@local\>'
+  htd__rules each "$1" "$2" | while read vars ; do
+    htd__run_rule "$vars"
+    continue
   done
 }
+htd_grp__run_rules=htd-rules
+
 
 htd__show_rules()
 {
-  htd_host_arg
+  # TODO use optparse htd_host_arg
   upper=0 default_env out-fmt plain
-  case "$out_fmt" in
-    txt|plain|text ) cat $htd_rules ;;
-    csv ) out_fmt=csv htd__table_reformat "$htd_rules" ;;
-    yml ) out_fmt=yml htd__table_reformat "$htd_rules" ;;
-    json ) out_fmt=json htd__table_reformat "$htd_rules" ;;
-    * ) error "Unknown format '$out_fmt'" 1 ;;
-  esac
+  upper=0 default_env raw false
+  trueish "$raw" && {
+    test -z "$*" || error "Raw mode does not accept filter arguments" 1
+    local cutf= fields="$(fixed_table_hd_ids "$htd_rules")"
+    fixed_table_cuthd "$htd_rules" "$fields"
+    cat $htd_rules | case "$out_fmt" in
+      txt|plain|text ) cat - ;;
+      csv )       out_fmt=csv   htd__table_reformat - ;;
+      yml|yaml )  out_fmt=yml   htd__table_reformat - ;;
+      json )      out_fmt=json  htd__table_reformat - ;;
+      * ) error "Unknown format '$out_fmt'" 1 ;;
+    esac
+  } || {
+    local fields="Id Nr CMD RT TARGETS CWD CTX line"
+    test "$out_fmt" = "csv" && { echo "#"$fields | tr ' ' ',' ; }
+    htd__rules each "$@" | while read vars
+    do
+      line= row_nr= CMD= RT= TARGETS= CWD= CTX=
+      local package_id= ENV_NAME= htd_rule_id=
+      {
+        eval local "$vars" && htd__rules pre-proc "$var"
+      } || {
+        error "Resolving context at $row_nr ($?)" && continue
+      }
+      case "$out_fmt" in
+        txt|plain|text ) printf \
+            "$htd_rule_id: $CMD <$CWD> [$CTX] ($RT) $TARGETS <$htd_rules:$row_nr>\n"
+          ;;
+        csv ) printf \
+            "$htd_rule_id,$row_nr,\"$CMD\",$RT,\"$TARGETS\",\"$CWD\",\"$CTX\",\"$line\"\n"
+          ;;
+        yml|yaml ) printf -- "- nr: $row_nr\n  id: $htd_rule_id\n"\
+"  CMD: \"$CMD\"\n  RT: $RT\n  CWD: \"$CWD\"\n  CTX: \"$CTX\"\n"\
+"  TARGETS: \"$TARGETS\"\n  line: \"$line\"\n"
+          ;;
+        json ) test $row_nr -eq 1 && printf "[" || printf ",\n"
+          printf "{ \"id\": \"$htd_rule_id\", \"nr\": $row_nr,"\
+" \"CMD\": \"$CMD\", \"RT\": $RT, \"TARGETS\": \"$TARGETS\","\
+" \"CWD\": \"$CWD\", \"CTX\": \"$CTX\", \"line\": \"$line\" }"
+          ;;
+        * ) error "Unknown format '$out_fmt'" 1 ;;
+      esac
+    done
+    test "$out_fmt" = "json" && { echo "]" ; } || noop
+  }
 }
-htd_als__rules=show-rules
+htd_of__show_rules='plain csv yaml json'
+htd_grp__show_rules=htd-rules
 
-htd__edit_rules()
-{
-  $EDITOR $htd_rules $0
-}
 
 # arg: 1:target
 # ret: 2: has run but failed or incomplete, 1: not run, 0: run was ok
@@ -3861,60 +4172,7 @@ htd__rule_target()
 
   esac
 }
-
-
-htd__tab2csv()
-{
-  out_fmt=csv htd__table_reformat "$1"
-}
-
-htd__tab2json()
-{
-  out_fmt=json htd__table_reformat "$1"
-}
-
-htd__tab2yaml()
-{
-  out_fmt=yml htd__table_reformat "$1"
-}
-
-htd_als__tab_out=table-reformat
-htd__table_reformat()
-{
-  local fields="$(fixed_table_hd_ids "$1")"
-  upper=0 default_env out-fmt json
-  test "$out_fmt" = "csv" && { echo "#"$fields | tr ' ' ',' ; }
-  fixed_table "$1" | while read vars
-  do
-    set -- $fields ; eval $vars ; case "$out_fmt" in
-
-      yml|yaml|json )
-          printf -- "- "
-          while test $# -gt 1
-          do
-            eval printf -- \"$1: \'\$$1\'\\n\ \ \"
-            shift
-          done
-          eval printf -- \"$1: \'\$$1\'\\n\"
-          shift
-        ;;
-
-      csv )
-          while test $# -gt 1
-          do
-            eval printf -- \"\$$1',"'
-            shift
-          done
-          eval printf -- \"\$$1'\\n"'
-          shift
-        ;;
-
-      * ) error "Unknown format '$out_fmt'" 1 ;;
-    esac
-  done | {
-    test "$out_fmt" = "json" && jsotk -Iyaml -Ojson - || cat -
-  }
-}
+htd_grp__rule_traget=htd-rules
 
 
 htd_man_1__storage=''
@@ -3934,6 +4192,7 @@ htd__storage()
 }
 htd_run__storage=Ap
 htd_argsv__storage=htd_argsv__tasks_session_start
+htd_grp__storage=htd-rules
 
 
 htd__get_backend()
@@ -3952,12 +4211,14 @@ htd__get_backend()
   test -n "$scr" || return 1
   mkvid ${be}__${3} ; cb=${vid} ; . $scr ; func_exists $cb
 }
+htd_grp__get_backend=htd-rules
 
 
 htd__extensions()
 {
   lookup_test="test -x" lookup_path HTD_EXT $1.sh
 }
+htd_grp__process=htd-rules
 
 
 htd_man_1__process='Process each item in list.
@@ -3995,6 +4256,78 @@ htd__process()
 htd_run__process=eA
 htd_argsv__process=htd_argsv__tasks_session_start
 htd_als__proc=process
+htd_grp__process=htd-proc
+
+
+htd__tab2csv()
+{
+  out_fmt=csv htd__table_reformat "$1"
+}
+
+htd__tab2json()
+{
+  out_fmt=json htd__table_reformat "$1"
+}
+
+htd__tab2yaml()
+{
+  out_fmt=yml htd__table_reformat "$1"
+}
+
+htd_als__tab_out=table-reformat
+htd_of__table_reformat="csv yaml json"
+htd__table_reformat()
+{
+  test -n "$1" || set -- -
+  test -n "$fields" || {
+    test "$1" != "-" || error "file needed to determine header fields" 1
+    local fields="$(fixed_table_hd_ids "$1")"
+  }
+  test -n "$cutf" || fixed_table_cuthd "$1" "$fields" 
+  upper=0 default_env out-fmt json
+  test "$out_fmt" = "csv" && { echo "#"$fields | tr ' ' ',' ; }
+  fixed_table "$1" $cutf | while read vars
+  do
+    set -- $fields ; eval $vars ; case "$out_fmt" in
+      yml|yaml|json )
+          printf -- "- "
+          while test $# -gt 1
+          do
+            eval printf -- \"$1: \'\$$1\'\\n\ \ \"
+            shift
+          done
+          eval printf -- \"$1: \'\$$1\'\\n\"
+          shift
+        ;;
+
+      csv )
+          while test $# -gt 1
+          do
+            eval printf -- \"\$$1',"'
+            shift
+          done
+          eval printf -- \"\$$1'\\n"'
+          shift
+        ;;
+
+      * ) error "Unknown format '$out_fmt'" 1 ;;
+    esac
+  done | {
+    test "$out_fmt" = "json" && jsotk -Iyaml -Ojson - || cat -
+  }
+}
+
+htd__table()
+{
+  test -n "$1" || set -- list
+  case "$1" in
+    list ) shift ;
+      ;;
+    reformat ) shift;   htd__table_reformat "$@" || return ;;
+    * ) error "'$1'? 'table $*'"
+      ;;
+  esac
+}
 
 
 # parse path and annex metadata using given path
@@ -5516,22 +5849,25 @@ htd__prefixes()
   test -n "$index" || local index=
   test -s "$index" || req_prefix_names_index
   test -n "$1" || set -- op
-  case "$*" in
-    list | names )
-        htd__prefix_names
+  case "$1" in
+
+    list | names )            htd__prefix_names || return ;;
+    all-paths | tree )        htd__list_prefixes || return ;;
+    table )                   htd__path_prefix_names || return ;;
+    name ) shift ;           htd__prefix_name "$1" || return ;;
+    expand ) shift ;         htd__prefix_expand "$1" || return ;;
+    check ) shift
+        htd__prefix_names | while read name
+        do
+            mkvid "$name"
+            val="$( eval echo \"\$$vid\" )"
+            test -n "$val" || warn "No env for $name"
+        done
       ;;
-    all-paths | tree )
-        htd__list_prefixes
-      ;;
-    table )
-        htd__path_prefix_names
-      ;;
-    name" *" )
-        htd__prefix_name "$2"
-      ;;
-    op | open-files | "read-lines "* )
-        { test -n "$2" && {
-          read_nix_style_file "$2" || return
+
+    op | open-files | read-lines ) shift
+        { test -n "$1" && {
+          read_nix_style_file "$1" || return
         } || {
             htd__open || return
         };} | while read path
@@ -5541,19 +5877,6 @@ htd__prefixes()
       ;;
   esac
   rm $index
-}
-
-
-htd__prefix_expand()
-{
-  test -n "$1" || error "Prefix-Path-Arg expected" 1
-  {
-    test "$1" = "-" && { cat - ; shift ; }
-    for a in "$@" ; do echo "$a" ; done
-  } | tr ':' ' ' | while read prefix lname
-  do
-    echo "$(eval echo \"\$$prefix\")/$lname"
-  done
 }
 
 
@@ -5594,6 +5917,19 @@ htd__prefix_name()
     test "$prefix_name" == ROOT && v=/
   }
   echo "$prefix_name:$v"
+}
+
+
+htd__prefix_expand()
+{
+  test -n "$1" || error "Prefix-Path-Arg expected" 1
+  {
+    test "$1" = "-" && { cat - ; shift ; }
+    for a in "$@" ; do echo "$a" ; done
+  } | tr ':' ' ' | while read prefix lname
+  do
+    echo "$(eval echo \"\$$prefix\")/$lname"
+  done
 }
 
 
@@ -7714,6 +8050,18 @@ htd__lfs_files()
     done
   done
 }
+
+
+htd__up()
+{
+  test -n "$1" || set -- ping
+  case "$1" in
+    ping )
+        ansible all -m ping
+      ;;
+  esac
+}
+
 
 
 # util

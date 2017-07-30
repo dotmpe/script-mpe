@@ -44,7 +44,14 @@ if (opts['<command>'] === 'leveldb') {
   } else if (opts['<args>'][0] === 'stream') {
 
     var dbpath = expand_shell(getdefault(ldopts, '<db>', './mydb'));
-    var db = levelup(dbpath)
+    var db;
+    try {
+      db = levelup(dbpath)
+    } catch (e) {
+      console.error(e);
+      console.error("Failed opening DB at "+dbpath);
+      process.exit(1);
+    }
 
 		db.createReadStream()
 			.on('data', function (data) {

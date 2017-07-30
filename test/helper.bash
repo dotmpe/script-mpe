@@ -76,7 +76,7 @@ init()
   lib=$scriptpath
 
   . $lib/main.lib.sh load-ext
-  lib_load sys str std
+  lib_load os sys str std
 
   # init script env
   test -n "$ENV_NAME" && {

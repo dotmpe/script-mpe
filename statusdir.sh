@@ -292,7 +292,8 @@ statusdir_als___e=edit
 
 statusdir_main()
 {
-  local scriptname=statusdir base=$(basename $0 .sh) verbosity=5 \
+  test -n "$verbosity" || verbosity=5
+  local scriptname=statusdir base=$(basename $0 .sh) verbosity=$verbosity \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" subcmd= \
     sd_tmpdir=
 

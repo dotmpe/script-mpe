@@ -103,11 +103,12 @@ fixed_table_cuthd()
 # See htd proc.
 fixed_table()
 {
-  test -e "$1" || error "fixed-table Table file expected" 1
+  test -e "$1" -o "$1" = "-" || error "fixed-table Table file expected" 1
   local tab="$1" cutf=
   test -n "$2" -a -e "$2" && cutf="$2" || {
+    test -n "$fields" || fields="$(fixed_table_hd_ids "$1")"
     # Get headers from first comment if not given
-    test -n "$2" || set -- "$1" $(fixed_table_hd_ids "$1")
+    test -n "$2" || set -- "$1" "$fields"
     # Assemble COLID CUTFLAG table (if missing or stale)
     fixed_table_cuthd "$@"
   }
@@ -115,12 +116,15 @@ fixed_table()
   upper=0 default_env expand 1
   trueish "$expand" && _q='\\"' || _q="\\'"
   # Walk over rows, columns and assemble Sh vars, include raw-src in $line
+  local row_nr=0
   cat "$tab" | grep -v '^\s*\(#.*\)\?$' | while read line
   do
+    row_nr=$(( $row_nr + 1 ))
     cat "$cutf" | grep -v '^\s*\(#.*\)\?$' | while read col args
       do
         printf " $col=$_q$(echo $(echo "$line" | cut $args) | sed 's/[%]/&/g')$_q "
       done
+      printf " row_nr=$row_nr "
       printf " line=$_q$(echo $line | sed 's/[%]/&/g')$_q "
       echo
   done

@@ -27,6 +27,8 @@ file_insert_at()
   test -n "$1" || error "content expected" 1
   test -n "$*" || error "nothing to insert" 1
 
+  # Note: this loses trailing blank lines
+  # XXX: should not have ed period command in text?
   # use ed-script to insert second file into first at line
   stderr info "Inserting at $file_name:$line_number"
   echo "${line_number}a
@@ -69,10 +71,22 @@ file_where_grep()
 {
   test -n "$1" || error "where-grep arg required" 1
   test -e "$2" -o "$2" = "-" || error "file-path or input arg required" 1
-  #test -e "$2" || set -- "$1"
-  where_line=$(grep -n "$@")
+  where_line="$(grep -n "$@" | head -n 1)"
   line_number=$(echo "$where_line" | sed 's/^\([0-9]*\):\(.*\)$/\1/')
-  test -n "$2" || echo $line_number
+}
+
+file_where_grep_tail()
+{
+  test -n "$1" || error "where-grep arg required" 1
+  test -e "$2" || error "file expected '$1'" 1
+  test -n "$3" && {
+    # Grep starting at line offset
+    test -e "$2" || error "Cannot buffer on pipe" 1
+    where_line=$(tail -n +$3 "$2" | grep -n "$1" | head -n 1 )
+    line_number=$(echo "$where_line" | sed 's/^\([0-9]*\):\(.*\)$/\1/')
+  } || {
+    file_where_grep "$1" "$2"
+  }
 }
 
 
@@ -163,6 +177,38 @@ truncate_trailing_lines()
 }
 
 
+# Like copy-function, but a generic variant working with explicit numbers or
+# grep regexes to determine the span to copy.
+copy_where() # Where Span Src-File
+{
+  test -n "$1" -a -f "$3" || error "copy-where Where/Line Where/Span Src-File" 1
+  case "$1" in [0-9]|[0-9]*[0-9] ) start_line=$1 ;; * )
+      file_where_grep "$1" "$3" || return $?
+      start_line=$line_number
+    ;;
+  esac
+  case "$2" in [0-9]|[0-9]*[0-9] ) span_lines=$2 ;; * )
+      file_where_grep "$2" "$3" || return $?
+      span_lines=$(( $line_number - $start_line ))
+    ;;
+  esac
+  end_line=$(( $start_line + $span_lines ))
+  test $span_lines -gt 0 && {
+    tail -n +$start_line $3 | head -n $span_lines
+  }
+}
+
+
+# Like cut-function, but a generic version like copy-where is for copy-function.
+cut_where() # Where Span Src-File
+{
+  test -n "$1" -a -f "$3" || error "cut-where Where/Line Where/Span Src-File" 1
+  # Get start/span/end line numbers and remove
+  copy_where "$@"
+  file_truncate_lines "$3" "$(( $start_line - 1 ))" "$(( $end_line - 1 ))"
+}
+
+
 # find '<func>()' line and see if its preceeded by a comment. Return comment text.
 func_comment()
 {
@@ -240,7 +286,9 @@ source_lines() # Src Start-Line End-Line [Span-Lines]
   tail -n +$start_line $1 | head -n $Span_Lines
 }
 
-
+# Given a shell script line with a source command to a relative or absolute
+# path (w/o shell vars or subshells), replace that line with the actual contents
+# of the sourced file.
 expand_source_line() # Src-File
 {
   test -f "$1" || error "expand_source_line file '$1'" 1
@@ -254,14 +302,17 @@ expand_source_line() # Src-File
 }
 
 
-function_linenumber() {
+# Set line-number to start-line-number of Sh function
+function_linenumber() # Func-Name File-Path
+{
   test -n "$1" -a -e "$2" || error "function-linenumber FUNC FILE" 1
   file_where_grep "^$1()\(\ {\)\?$" "$2"
   test -n "$line_number" || return 1
 }
 
 
-function_linerange()
+# Set start-line, end-line and span-lines for Sh function ( end = start + span )
+function_linerange() # Func-Name Script-File
 {
   test -n "$1" -a -e "$2" || error "function-linerange FUNC FILE" 1
   function_linenumber "$@" || return
@@ -273,7 +324,7 @@ function_linerange()
 }
 
 
-insert_function()
+insert_function() # Func-Name Script-File Func-Code
 {
   test -n "$1" -a -e "$2" -a -n "$3" || error "insert-function FUNC FILE FCODE" 1
   file_insert_at $2 "$(cat <<-EOF
@@ -287,11 +338,11 @@ EOF
 }
 
 
-copy_function()
+# Output the function, including envelope
+copy_function() # Func-Name Script-File
 {
   test -n "$1" -a -f "$2" || error "copy-function FUNC FILE" 1
   function_linerange "$@" || return
-  #test -n "$span_lines" ||
   span_lines=$(( $end_line - $start_line ))
   tail -n +$start_line $2 | head -n $span_lines
 }
@@ -300,6 +351,7 @@ copy_function()
 cut_function()
 {
   test -n "$1" -a -f "$2" || error "cut-function FUNC FILE" 1
+  # Get start/span/end line numbers and remove
   copy_function "$@"
   file_truncate_lines "$2" "$(( $start_line - 1 ))" "$(( $end_line - 1 ))"
   info "cut-func removed $2 $start_line $end_line ($span_lines)"
@@ -314,26 +366,78 @@ setup_temp_src()
 
 
 # Isolate function into separate, temporary file.
-# Either copy-only, or replace with source line to new external script.
-copy_paste_function()
+# Either copy-only, or replaces code with source line to new external script.
+copy_paste_function() # Func-Name Src-File
 {
-  test -n "$1" -a -f "$2" || return
-  test -n "$cp_board" || cp_board="$(get_uuid)"
+  test -n "$1" -a -f "$2" || return $?
   debug "copy_paste_function '$1' '$2' "
   var_isset copy_only || copy_only=1
-  cp=$(setup_temp_src .copy-paste $cp_board)
+  test -n "$cp" || {
+    test -n "$cp_board" || cp_board="$(get_uuid)"
+    cp=$(setup_temp_src .copy-paste-function.sh $cp_board)
+  }
   function_linenumber "$@" || return
   at_line=$(( $line_number - 1 ))
   trueish "$copy_only" && {
     copy_function $1 $2 > $cp
-    info "copy-only ok"
+    info "copy-only (function) ok"
   } || {
     cut_function $1 $2 > $cp
     file_insert_at $2:$at_line "$(cat <<-EOF
 . $cp
 EOF
     ) "
+    info "copy-paste-function ok"
+  }
+}
+
+
+copy_paste() # Where/Line Where/Span Src-File
+{
+  test -n "$1" -a -e "$3" || return $?
+  ext=yaml
+  debug "copy_paste '$1' '$2' "
+  var_isset copy_only || copy_only=1
+  test -n "$cp" || {
+    test -n "$cp_board" || cp_board="$(get_uuid)"
+    cp=$(setup_temp_src .copy-paste.$ext $cp_board)
+  }
+  case "$1" in [0-9]|[0-9]*[0-9] ) line_number=$1 ;; * )
+      file_where_grep "$1" "$3" || return $?
+      test -n "$line_number" || return 1
+    ;;
+  esac
+  at_line=$(( $line_number - 1 ))
+  trueish "$copy_only" && {
+    copy_where $1 $2 $3 > $cp
+    info "copy-only ok"
+  } || {
+    cut_where $1 $2 $3 > $cp
+    file_insert_at $3:$at_line "$(cat <<-EOF
+# htd source copy-paste: $cp
+EOF
+    )"
     info "copy-paste ok"
   }
 }
 
+expand_sentinel_line() # Src-File Line-Number
+{
+  test -f "$1" || error "expand_source_line file '$1'" 1
+  test -n "$2" || error "expand_source_line line" 1
+
+  local srcfile="$(source_lines "$1" "$2" "" 1 | cut -c26- )"
+  test -f "$srcfile" || error "src-file $*: '$srcfile'" 1
+
+  file_truncate_lines "$1" "$(( $2 - 1 ))" "$(( $2 ))"
+  file_insert_at $1:$(( $2 - 1 )) "$(cat $srcfile )"
+  trueish "$keep_source" || rm $srcfile
+  info "Replaced line with resolved src of '$srcfile'"
+}
+
+
+diff_where() # Where/Line Where/Span Src-File
+{
+  test -n "$1" -a -f "$3" || return $?
+  echo
+}
