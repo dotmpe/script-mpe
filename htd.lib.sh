@@ -400,3 +400,20 @@ htd_doc_mtime()
   grep -i '^:Updated:\ [0-9:-]*$' $1 | awk '{print $2}'
 }
 
+
+htd_output_format_q()
+{
+  test -z "$q" || return
+  test -n "$of" || error "of env" 1
+  test -z "$out_f" -o -n "$f" || error "f env" 1
+  case "$out_fmt" in
+    list ) test -n "$out_f" && q=0.9 || q=0.5 ;;
+    csv | tab )
+        test -n "$out_f" && q=0.9 || q=0.5
+      ;;
+    json ) q=1.0 ;;
+    yaml ) q=1.2 ;;
+    txt | rst ) q=1.1 ;;
+  esac
+}
+

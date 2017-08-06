@@ -369,14 +369,18 @@ pd_list_io_num_name_types()
 # Debug env keys
 record_env_keys()
 {
-  test -n "$1" || error record_env_keys 1
-
+  test -n "$pd_session_id" || error "pd_session_id expected" 1
+  test -n "$1" || error "record_env_keys name expected" 1
   mkdir -p /tmp/env-keys
+
   { env; set; local; } \
     | sed 's/=.*$//' \
     | tr -d '\t ' \
     | sort -u > /tmp/env-keys/.tmp
+}
 
+record_env_keys_diff()
+{
   test -n "$2" && {
     new=$1; shift;
 

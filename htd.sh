@@ -600,14 +600,43 @@ htd_als___h=help
 htd_als____help=help
 
 
-htd_man_1__output_formats='List output formats for sub-command'
-htd_spc__output_formats='output-formats|of [SUBCMD]'
-htd_als__Of=output-formats
+htd_man_1__output_formats='List output formats for sub-command. The format is a
+tag that refers to the formatting on stdout of data or responses to invocations
+of the subcommand::
+
+    out_fmt=<fmt> htd <subcmd> <args>...
+
+For each output format a quality factor may be specified, to indicate levels of
+*increased* or *degraded* representation. The application of this value is
+similar to the source-quality attribute in HTTP TCN (RFC 2295), except that this
+raw value is not normalized to =<1.0.
+
+In general, the value is used to weigh rendering quality and should not take
+into account delay or load. Here, default values of 0.9 are used, because the
+shell scripts at themselves make too little guarantee of encoding and other
+precision. Values above 1.0 are permitted to indicate preferred, enhanced or
+richer representations.
+
+No current But no effort is made to 
+
+htd_output_format_q 
+
+the `ofq` attribute 
+'
+htd_spc__output_formats='output-formats|OF [SUBCMD]'
+htd_als___OF=output-formats
+htd_of__output_formats='list csv tab json'
+htd_f__output_formats='fmt q'
+htd_ofq__output_formats='htd_output_formats_q'
 htd__output_formats()
 {
   test -n "$1" || set -- table-reformat
+  # First resolve real command name if given an alias
+  als="$(try_value "$1" als htd )"
+  test -z "$als" || set -- "$als"
   {
-    try_func $(echo_local "$@" "" htd) && 
+    # Retrieve and test for output-formats and quality factor
+    try_func $(echo_local "$1" "" htd) && 
       output_formats="$(try_value "$1" of htd )" &&
         test -n "$output_formats"
   } && {
@@ -665,7 +694,7 @@ htd_man_1__edit_main="Edit the main script file(s), and add arguments"
 htd_spc__edit_main="-E|edit-main [ --search REGEX ] [ID-or-PATHS]"
 htd__edit_main()
 {
-  local evoke= files="$(cat $arguments)"
+  local evoke= files="$(cat $arguments)" fn=
   locate_name || return 1
   vim_swap "$(realpath "$fn")" || error "swap file exists for '$fn'" 2
   files="$files $fn $(columnize=false htd__ls_main_files | lines_to_words )"
@@ -1046,6 +1075,7 @@ htd__tools()
 }
 htd_grp__tools=htd-tools
 
+htd_of__installed='yml'
 htd__installed()
 {
   tools_json || return 1 ; upper=0 default_env out-fmt tty
@@ -1737,14 +1767,36 @@ htd__ssh()
 }
 
 
-htd_man_1__detect='Detect host using ping at IP'
-htd_als__detect=detect-ping
-
-htd_man_1__detect_ping=$htd_als__detect
-htd__detect_ping()
+htd_man_1__up='Test all given hosts are online and answering'
+htd__up()
 {
-  ping -qt 1 -c 1 $1 >/dev/null || return $?
+  test -n "$1" || set -- ping
+  case "$1" in
+
+    ping ) shift ; htd__detect_ping "$@" || return $? ;;
+
+    aping|ansping ) shift ;
+        test -z "$*" || stderr error "No arguments expected" 1
+        ansible all -m ping || return $?
+      ;;
+
+    * ) error "'$1'? (htd up $*)" 1 ;;
+  esac
 }
+htd_run__up=f
+htd_als__detect=up
+
+htd_man_1__detect_ping='Test all given hosts are online, answering to PING'
+htd__detect_ping() # Hosts...
+{
+  while test $# -gt 0
+  do
+    ping -qt 1 -c 1 $1 >/dev/null &&
+      stderr ok "$1" || echo htd:$subcmd:detect-ping:$1 >$failed
+    shift
+  done
+}
+htd_run__detect_ping=f
 
 
 # Simply list ARP-table, may want something better like arp-scan or an nmap
@@ -2987,6 +3039,7 @@ htd__source()
 
 
 
+htd_man_1__function='Operate on specific functions in Sh scripts. '
 htd__function()
 {
   test -n "$1" || set -- copy
@@ -4917,7 +4970,7 @@ htd__tmux_sockets()
           awk '{print $9}'
         ;;
     esac
-  }
+  } | sort -u
 }
 htd_grp__tmux_sockets=tmux
 
@@ -5112,7 +5165,26 @@ htd__tmux_init()
 htd_grp__tmux_init=tmux
 
 
-htd_man_1__tmux='Unless tmux is running, a new tmux session, based on the
+# Find a server with session name and CS env tag, and get a window
+htd__tmux_cs()
+{
+  test -n "$1" || set -- Htd-$CS "$2" "$3"
+  test -n "$2" || set -- "$1" 0    "$3"
+  test -n "$3" || set -- "$1" "$2" ~/work
+  (
+    # TODO: hostname, session/socket tags
+    export TMUX_SOCK_NAME=boreas-$1-term
+    tmux_env_req 0
+    htd__tmux_init "$1" "$SHELL" "$3"
+    htd__tmux_winit "$@"
+    $tmux set-environment -g CS $CS
+    test -n "$TMUX" || $tmux attach
+  )
+}
+htd_grp__tmux_cs=tmux
+
+
+htd_man_1__tmux='Unless tmux is running, get a new tmux session, based on the
 current environment.
 
 Untmux is running with an environment matching the current, attach. Different
@@ -5129,7 +5201,10 @@ htd__tmux()
   test -n "$1" || set -- get
 
   case "$1" in
-    * ) local c=$1; shift; htd__tmux_$c "$@" || return ;;
+    list | sockets ) shift ; htd__tmux_sockets "$@" || return ;;
+    list-sessions ) shift ; htd__tmux_list_sessions "$@" || return ;;
+    list-windows ) shift ; htd__tmux_session_list_windows "$@" || return ;;
+    * ) local c=$1; shift ; htd__tmux_$c "$@" || return ;;
   esac
 
   #while test -n "$1"
@@ -5163,25 +5238,6 @@ htd__tmux()
 
 }
 htd_grp__tmux=tmux
-
-
-# Find a server with session name and CS env tag, and get a window
-htd__tmux_cs()
-{
-  test -n "$1" || set -- Htd-$CS "$2" "$3"
-  test -n "$2" || set -- "$1" 0    "$3"
-  test -n "$3" || set -- "$1" "$2" ~/work
-  (
-    # TODO: hostname, session/socket tags
-    export TMUX_SOCK_NAME=boreas-$1-term
-    tmux_env_req 0
-    htd__tmux_init "$1" "$SHELL" "$3"
-    htd__tmux_winit "$@"
-    $tmux set-environment -g CS $CS
-    test -n "$TMUX" || $tmux attach
-  )
-}
-htd_grp__tmux_cs=tmux
 
 
 
@@ -5702,6 +5758,14 @@ htd__active()
 }
 
 
+htd__port()
+{
+  case "$uname" in
+    Darwin ) lsof -i :$1 || return ;;
+    Linux ) netstat -an $1 || return ;;
+  esac
+}
+
 htd__ps()
 {
   upper=0 default_env out-fmt yaml
@@ -5728,6 +5792,7 @@ EOM
     }
   }
 }
+htd_of__ps='yaml json'
 
 
 # TODO: open routine ...
@@ -5751,6 +5816,7 @@ htd__open_paths()
     -c '/^(bash|sh|ssh|dash|zsh)$/x' \
     -u $(whoami) -a -d cwd | tail -n +2 | awk '{print $9}' | sort -u
 }
+htd_of__open_paths='list'
 
 
 htd_man_1__current_paths='
@@ -5944,11 +6010,13 @@ htd__path_prefix_names()
 }
 
 
+htd_of__list_prefixes='plain text txt rst yaml yml json'
 htd__list_prefixes()
 {
   test -n "$out_fmt" || out_fmt=plain
   test -n "$sd_be" || sd_be=redis
   (
+    case "$out_fmt" in json ) printf "[" ;; esac
     case "$sd_be" in
       redis ) statusdir.sh be smembers htd:prefixes:names ;;
       couchdb_sh ) warn todo 1 ;;
@@ -5972,12 +6040,17 @@ htd__list_prefixes()
               printf -- "- prefix: $prefix\n  value: $val\n  paths:" ||
               printf -- "- prefix: $prefix\n  paths:"
           ;;
+        json ) test -z "$val" &&
+            printf "{ \"name\": \"$prefix\", \"subs\": [" ||
+            printf "{ \"name\": \"$prefix\", \"path\": \"$val\", \"subs\": ["
+          ;;
       esac
       case "$sd_be" in
         redis ) statusdir.sh be smembers htd:prefix:$prefix:paths ;;
         * ) warn "not supported statusdir backend '$sd_be' " 1 ;;
       esac | while read localpath
       do
+        test -n "$localpath" || continue
         case "$out_fmt" in
           plain|text|txt|rst )
               test -z "$localpath" &&
@@ -5989,12 +6062,19 @@ htd__list_prefixes()
                 printf -- " []" ||
                 printf -- "\n  - '$localpath'"
             ;;
+          json ) printf "\"$localpath\"," ;;
         esac
       done
-      case "$out_fmt" in yaml|yml|plain|text|txt|rst ) echo ;; esac
+      case "$out_fmt" in yaml|yml|plain|text|txt|rst ) echo ;;
+        json ) printf "]}," ;;
+      esac
     done
-  )
+    case "$out_fmt" in json ) printf "]" ;; esac
+  ) | {
+    test "$out_fmt" = "json" && sed 's/,\]/\]/g' || cat -
+  }
 }
+htd_als__prefixes_list=list-prefixes
 
 
 htd__update_prefixes()
@@ -6015,8 +6095,8 @@ htd__update_prefixes()
       echo $prefix:$localpath
 
     done
-		COUCH_DB=htd sd_be=couchdb_sh \
-		statusdir.sh del htd:$hostname:prefixes
+    COUCH_DB=htd sd_be=couchdb_sh \
+    statusdir.sh del htd:$hostname:prefixes
     {
       printf -- "_id: 'htd:$hostname:prefixes'\n"
       #printf -- "fields: type: ""'\n"
@@ -6024,22 +6104,24 @@ htd__update_prefixes()
       printf -- "prefixes:\n"
       out_fmt=yml htd__list_prefixes
     } |
-		jsotk yaml2json |
+    jsotk yaml2json |
       curl -X POST -sSf $COUCH_URL/$COUCH_DB/ \
         -H "Content-Type: application/json" \
         -d @- && note "Submitted to couchdb" || {
-					error "Sumitting to couchdb"
-					return 1
-				}
-		  #COUCH_DB=htd sd_be=couchdb_sh \
-		  #  statusdir.sh set ""
+          error "Sumitting to couchdb"
+          return 1
+        }
+      #COUCH_DB=htd sd_be=couchdb_sh \
+      #  statusdir.sh set ""
   )
 }
+htd_als__prefixes_update=update-prefixes
 
 
 htd_man_1__service_list='
 List servtab entries, optionally updating
 '
+htd_of__service_list='text txt list plain'
 htd__service_list()
 {
   test -n "$service_cmd" || service_cmd=status
@@ -6767,6 +6849,7 @@ htd__srv_init()
 
 htd_man_1__srv_list="Print info to stdout, one line per symlink in /srv"
 htd_spc__srv_list="out_fmt= srv-list"
+htd_of__srv_list='DOT'
 htd__srv_list()
 {
   upper=0 default_env out-fmt plain
@@ -7395,13 +7478,69 @@ htd__src_info()
   test -n "$1" || set -- $0
   for src in $@
   do
-    $LOG file_warn $(htd__prefix_name $src) "Listing info.."
+    src_id=$(htd__prefix_name $src)
+    $LOG file_warn $src_id "Listing info.."
     $LOG header "Box Source"
     $LOG header2 "Functions" $(htd__list_functions "$@" | count_lines)
     $LOG header3 "Lines" $(count_lines "$@")
-    $LOG file_ok $(htd__prefix_name $src)
+    $LOG file_ok $srC_id
   done
   $LOG done $subcmd
+}
+
+
+htd_man_1__functions='List functions, group, filter, and use `source` to get
+source-code info. '
+htd__functions()
+{
+  test -n "$1" || set -- copy
+  case "$1" in
+
+    list-functions|list-func|ls-functions|ls-func ) shift
+        htd__list_functions "$@"
+      ;;
+    list-function-attr ) shift ; htd__list_function_attr "$@" ;;
+    list-function-group ) shift ; htd__list_function_group "$@" ;;
+    filter-functions ) shift ; htd__filter_functions "$@" ;;
+    diff-function-names ) shift ; htd__diff_function_names "$@" ;;
+    list-functions-added|new-functions ) shift
+        htd__list_functions_added "$@"
+      ;;
+    list-functions-removed|deleted-functions ) shift
+        htd__list_functions_removed "$@"
+      ;;
+
+    ranges ) shift
+        test -n "$2" && multiple_srcs=1 || multiple_srcs=0
+        htd__list_functions "$@" | while read a1 a2 ; do
+          test -n "$a1" -o -n "$a2" || continue
+          test -n "$a2" && { f=$a2; s=$a1; } || { f=$a1; s=$1; }
+          f="$(echo $f | tr -d '()')" ; upper=0 mkvid "$f"
+          r="$(eval scrow regex --rx-multiline --fmt range \
+            "$s" "'^$vid\\(\\).*((?<!\\n\\})\\n.*)*\\n\\}'")"
+          trueish "$multiple_srcs" && echo "$s $f $r" || echo "$f $r"
+        done
+      ;;
+
+    filter-ranges ) shift
+        test -n "$3" && multiple_srcs=1 || multiple_srcs=0
+        upper=0 default_env out-fmt xtl
+        out_fmt=names htd__filter_functions "$@" | while read a1 a2
+        do
+          test -n "$a1" -o -n "$a2" || continue
+          test -n "$a2" && { f=$a2; s=$a1; } || { f=$a1; s=$2; }
+          upper=0 mkvid "htd__$(echo $f | tr -d '()')"
+          r="$( eval scrow regex --rx-multiline --fmt $out_fmt \
+            "$s" "'^$vid\\(\\).*((?<!\\n\\})\\n.*)*\\n\\}'")"
+          test -n "$r" || { warn "No range for $s $f"; continue; }
+          case "$out_fmt" in xtl ) echo $r ;;
+            * ) trueish "$multiple_srcs" && echo "$s $f $r" || echo "$f $r" ;;
+          esac
+        done
+      ;;
+
+    * ) error "'$1'?" 1 ;;
+  esac
 }
 
 
@@ -7442,8 +7581,7 @@ htd__list_function_attr()
       function=$(echo $subcmd_func | sed 's/^.*__//g')
       printf -- "  $(echo $function | tr '_' '-')\n"
       eval grep "'^${base}_.*__${function}\\(\\(=.*\\)\\|()\\)$'" $f |
-      sed -E 's/(=|\().*$//g' |
-      while read attr_field
+        sed -E 's/(=|\().*$//g' | while read attr_field
       do
         printf -- "   - $(echo $attr_field |
           cut -c1-$(( ${#attr_field} - ${#field} - 2 )) |
@@ -7512,8 +7650,7 @@ htd__filter_functions() # Attr-Filter [Src-Files...]
   done
   # Assemble grep args (inclusive mode) or grep-pattern lines (exclusive mode)
   Grep_For="$(
-      for filter in $Filters
-      do
+      for filter in $Filters ; do test -n "$filter" || continue
         trueish "$Inclusive_Filter" && printf -- "-e "
         printf -- "'^[a-z_]*_${filter}__.*=$(eval echo \"\$filter_${filter}\")' "
       done
@@ -7563,7 +7700,7 @@ htd__filter_functions() # Attr-Filter [Src-Files...]
             ;;
         esac
       }
-    } | sed 's/^.*/'$src' &/'
+    } | sed 's#^.*#'$src' &#'
   done > $outf
   test -s "$outf" && {
     cat $outf | htd_filter_functions_output
@@ -7645,10 +7782,10 @@ htd_filter_functions_output_yaml()
     value="$( eval echo \"\$${vid}_${func_attr_key}__${func_key}\" )"
     fnmatch "*\n*\n*" "$value" && {
       value="$(echo "$value" | jsotk encode -)"
-			# FIXME: htd filter-functions out-fmt=yaml could use pretty multilines
+      # FIXME: htd filter-functions out-fmt=yaml could use pretty multilines
       echo "    $(echo $func_attr_key | tr '_' '-'): $value"
     } || {
-			echo   "    $(echo $func_attr_key | tr '_' '-'): '$value'"
+      echo   "    $(echo $func_attr_key | tr '_' '-'): '$value'"
     }
   done
 }
@@ -7709,6 +7846,7 @@ htd__diff_function_names()
     done
   }
 }
+
 
 
 htd__vcard2n3()
@@ -7939,8 +8077,8 @@ htd_als__rshift=date-shift
 
 htd__couchdb()
 {
-	cd ~/bin && htd__couchdb_htd_scripts || return $?
-	cd ~/hdocs && htd__couchdb_htd_tiddlers || return $?
+  cd ~/bin && htd__couchdb_htd_scripts || return $?
+  cd ~/hdocs && htd__couchdb_htd_tiddlers || return $?
 }
 
 
@@ -8052,16 +8190,15 @@ htd__lfs_files()
 }
 
 
-htd__up()
+htd__env_local()
 {
-  test -n "$1" || set -- ping
-  case "$1" in
-    ping )
-        ansible all -m ping
-      ;;
-  esac
+  { env && local; } | sed 's/=.*$//' | grep -v '^_$' | sort -u
 }
 
+htd__env()
+{
+  env | sed 's/=.*$//' | grep -v '^_$' | sort -u
+}
 
 
 # util

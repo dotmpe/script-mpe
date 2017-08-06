@@ -26,8 +26,23 @@ statusdir.sh
     - test ${status} -eq 0
     - fnmatch "*statusdir <cmd> *" "${lines[*]}"
 
-
   sd root
+    ..
   sd assert-state
+    ..
+
+
+  sd list
+    ..
+  sd get
+    ..
+  sd set
+    ..
+  sd del
+    ..
+  sd incr
+    ..
+  sd decr
+    ..
 
 

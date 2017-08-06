@@ -299,7 +299,7 @@ statusdir_main()
 
   statusdir_init || exit $?
 
-  case "$base" in $scriptname )
+  case "$base" in $scriptname | sd )
 
         statusdir_lib || exit $?
         run_subcmd "$@" || exit $?

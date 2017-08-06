@@ -104,10 +104,10 @@ script_sh__colorize_pstree()
                 ;;
             *-p" "* )
                 pid="$(echo "$@" | sed -E 's/^.*-p\ ([0-9]+).*$/\1/')"
+                echo pid=$pid
                 word='s/'$pid'/\\033[31m&\\033[0m/g'
                 ;;
         esac
-
         echo "$(cat /tmp/pstree | sed -E '
 s/^([\ [:punct:]]+)\ ([0-9]+)\ ([A-Za-z0-9_]+)/\\033[34m\1\ \\033[33m\2\ \\033[32m\3\ \\033[0m/g
           s/=([[:graph:]]+)/=\\033[0;32m\1\\033[0m/g
