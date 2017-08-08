@@ -194,14 +194,14 @@ class FileInfoApp(rsr.Rsr):
     DEFAULT = ['file_info']
 
     DEPENDS = {
-            'file_info': ['txs_session'],
-            'name_and_categorize': ['txs_session'],
-            'mm_stats': ['txs_session'],
-            'list_mtype': ['txs_session'],
-            'list_mformat': ['txs_session'],
-            'add_genre': ['txs_session'],
-            'add_mtype': ['txs_session'],
-            'add_mformats': ['txs_session']
+            'file_info': ['rsr_session'],
+            'name_and_categorize': ['rsr_session'],
+            'mm_stats': ['rsr_session'],
+            'list_mtype': ['rsr_session'],
+            'list_mformat': ['rsr_session'],
+            'add_genre': ['rsr_session'],
+            'add_mtype': ['rsr_session'],
+            'add_mformats': ['rsr_session']
         }
 
     @classmethod
