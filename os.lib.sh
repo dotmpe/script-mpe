@@ -105,28 +105,52 @@ fileisext()
   return 1
 }
 
+filemtype()
+{
+  while test $# -gt 0
+  do
+    case "$uname" in
+      Darwin )
+          file -bI "$1" || return 1
+        ;;
+      Linux )
+          file -bi "$1" || return 1
+        ;;
+      * ) error "filemtype: $uname?" 1 ;;
+    esac; shift
+  done
+}
+
 filesize()
 {
-  case "$uname" in
-    Darwin )
-      stat -L -f '%z' "$1" || return 1
-      ;;
-    Linux )
-      stat -L -c '%s' "$1" || return 1
-      ;;
-  esac
+  while test $# -gt 0
+  do
+    case "$uname" in
+      Darwin )
+          stat -L -f '%z' "$1" || return 1
+        ;;
+      Linux )
+          stat -L -c '%s' "$1" || return 1
+        ;;
+      * ) error "filesize: $1?" 1 ;;
+    esac; shift
+  done
 }
 
 filemtime()
 {
-  case "$uname" in
-    Darwin )
-      stat -L -f '%m' "$1" || return 1
-      ;;
-    Linux )
-      stat -L -c '%Y' "$1" || return 1
-      ;;
-  esac
+  while test $# -gt 0
+  do
+    case "$uname" in
+      Darwin )
+          stat -L -f '%m' "$1" || return 1
+        ;;
+      Linux )
+          stat -L -c '%Y' "$1" || return 1
+        ;;
+      * ) error "filemtime: $1?" 1 ;;
+    esac; shift
+  done
 }
 
 normalize_relative()
@@ -313,7 +337,7 @@ count_chars()
 line_count()
 {
   test -s "$1" || return 42
-  test $(filesize $1) -gt 0 || return 43
+  test $(filesize "$1") -gt 0 || return 43
   lc="$(echo $(od -An -tc -j $(( $(filesize $1) - 1 )) $1))"
   case "$lc" in "\n" ) ;;
     "\r" ) error "POSIX line-end required" 1 ;;
@@ -454,6 +478,4 @@ mkrlink()
   # TODO: find shortest relative path
   ln -vs "$(basename "$1")" "$2"
 }
-
-
 

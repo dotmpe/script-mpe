@@ -3165,14 +3165,15 @@ htd__sync_function()
 htd_run__sync_function=iAO
 
 
-htd_man_1__diff_functions="See diff-function for options"
+htd_man_1__diff_functions="List all functions in FILE, and compare with FILE|DIR"
 htd__diff_functions()
 {
-  test -n "$1" || error "diff-functions FILE DIR" 1
+  test -n "$1" || error "diff-functions FILE FILE|DIR" 1
   test -n "$2" || set -- "$1" $scriptpath
-  test -d "$2" || error "Directory expected '$2'" 1
+  test -e "$2" || error "Directory or file to compare to expected '$2'" 1
+  test -f "$2" || set -- "$1" "$2/$1"
+  test -e "$2" || error "Unable to get remote side for '$1'" 1
   test -z "$3" || error "surplus arguments: '$3'" 1
-  test -e "$2/$1" || return 2
   htd__list_functions $1 |
         sed 's/\(\w*\)()/\1/' | sort -u | while read func
   do
@@ -3898,13 +3899,12 @@ htd_man_1__rules='
     Resolve and show HtD rules with Id, Cwd and proper Ctx.
   status
     Show Id and last status for each rule.
-  run
-  xrun [ Target-Grep [ Cmd-Grep ] ]
+  run [ Target-Grep [ Cmd-Grep ] ]
     Evalute all rules and update status and targets. Rule selection arguments
     like `each`. 
-  (list [ Target-Grep [ Cmd-Grep ] ])
+  ids [ Target-Grep [ Cmd-Grep ] ]
     Resolve rules and list IDs generated from the command, working dir and context.
-  env
+  foreach 
   each [ Target-Grep [ Cmd-Grep ] ]
     Parse rules to key/values, filter on values using given Grep patterns.
   id
@@ -3918,6 +3918,7 @@ htd__rules()
   test -n "$htd_rule_chatter" || htd_rule_chatter=3
   test -n "$1" || set -- table
   case "$1" in
+
     edit )                        htd__edit_rules || return  ;;
     table ) shift ;               raw=true htd__show_rules "$@" || return  ;;
     show ) shift ;                htd__show_rules "$@" || return  ;;
@@ -4019,10 +4020,7 @@ htd__rules()
           CWD=/
         }
       ;;
-    update ) shift
-        test -n "$3" || set -- "$1" "$2" 86400
-        note "TODO record $1: $2 $3"
-      ;;
+
     pre-proc ) shift
         htd__rules parse-ctx "$vars" || {
           error "Parsing ctx at $row_nr: $ctx" && continue ; }
@@ -4059,6 +4057,25 @@ htd__rules()
         test -z "$DEBUG" ||
           $LOG ok pre-proc "CMD=$CMD RT=$RT TARGETS=$TARGETS CWD=$CWD CTX=$CTX"
       ;;
+
+    update | post-proc ) shift
+        test -n "$3" || set -- "$1" "$2" 86400
+        # TODO: place record in each context. Or rather let backends do what
+        # they want with the ret/stdout/stderr.
+        note "targets: '$TARGETS'"
+        for target in $TARGETS
+        do
+          scr="$(htd__tasks_buffers "$target" | grep '\.sh$' | head -n 1)"
+          test -n "$scr" ||
+              error "Error lookuping backend for target '$target'" 1
+          test -x "$scr" || { warn "Disabled: $scr"; continue; }
+          note "$target($scr): Status $RT, $CMD $CWD $CTX"
+        done
+        note "TODO record $1: $2 $3"
+        #test -e "$stdout" -o -e "$stderr" ||
+        #note "Done: $(filesize $stdout $stderr) $(filemtype $stdout $stderr)"
+      ;;
+
     * ) error "'$1'? 'rules $*'"
       ;;
   esac
@@ -4109,15 +4126,15 @@ htd__run_rule()
   htd__rules pre-proc "$var" || {
     error "Parsing ctx at $row_nr: $ctx" && continue ; }
   note "Running '$htd_rule_id'..."
+  local stdout=$(setup_tmpf .stdout) stderr=$(setup_tmpf .stderr)
   R=0 ; {
     cd $CWD # Home if empty
     htd__rules eval-ctx || { error "Evaluating $ctx" && continue ; }
     test -n "$CMD" || { error "Command required" && continue; }
     test -n "$CWD" || { error "Working dir required" && continue; }
     #test -n "$ENV_NAME" || { error "Env profile required" && continue; }
-    cd $CWD
     note "Executing command.."
-    $CMD
+    ( cd $CWD && $CMD 2>$stderr >$stdout )
   } || { R=$?
     test "$R" = "$RT" || warn "Unexpected return from rule exec ($R)"
   }
@@ -4126,9 +4143,11 @@ htd__run_rule()
       note "Non-zero exit ignored by rule ($R)" ||
         warn "Unexpected result $R, expected $RT"
   }
-  htd__rules update $htd_rule_id $R ||
-    note "TODO run '$CMD' for $target ($CWD)"
+  htd__rules post-proc $htd_rule_id $R
+  rm $stdout $stderr 2>/dev/null
+  return $R
 }
+
 htd__run_rules()
 {
   test -n "$1" || set -- '@local\>'
@@ -7887,6 +7906,7 @@ htd__crypto_volume_find()
   do
     htd__crypto_volumes | while read volume
     do
+      echo "$volume/$1"
       test -e "$volume/$1" || continue
       echo "$volume/$1"
     done
@@ -7898,13 +7918,11 @@ htd_man_1__crypto='
   list         Show local volumes with crypto folder
   find         Find local crypto volume with specific volume Id.
   find-all     Show all volume Ids found on local volume paths.
-  check        
+  check        See if htd crypto is good to go
 '
 htd__crypto()
 {
   test -n "$1" || set -- check
-
-  /Applications/VeraCrypt.app//Contents/MacOS/VeraCrypt
   # TODO: use crypto source or something
   cr_m=$HTDIR/crypto/main.tab
   test -e $cr_m || cr_m=~/.local/etc/crypto-bootstrap.tab
@@ -7912,16 +7930,15 @@ htd__crypto()
 
     list ) htd__crypto_volumes || return ;;
     find ) htd__crypto_volume_find "$@" || return ;;
-    find-all ) htd__crypto_volumes | while read v
-      do
-        for p in $v/*.vc ; do basename $p .vc ; done
+    list-ids|find-all ) echo "#Volume-Id,File-Size"; htd__crypto_volumes | while read v
+      do for p in $v/*.vc ; do echo "$(basename $p .vc) $(filesize "$p")" ; done
       done ;;
 
     check )
       test -x "$(which veracrypt)" || error "VeraCrypt exec missing" 1
       test -e $cr_m || error cr-m-tab 1
       veracrypt --version || return ;;
-
+    
     mount-all ) htd__crypto_mount_all || return ;;
     mount ) htd__crypto_mount "$@" || return ;;
     unmount ) htd__crypto_unmount "$@" || return ;;
