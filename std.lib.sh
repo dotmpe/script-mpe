@@ -137,14 +137,14 @@ stdio_type()
 
     * )
         LOG_TERM=bw
-        echo "[std.sh] Other term: '$TERM'"
+        echo "[std.sh] Other term: '$TERM'" >&2
       ;;
 
   esac
 
   if test -n "$ncolors" && test $ncolors -ge 8; then
 
-    test -z "$debug" || echo "ncolors=$ncolors"
+    test -z "$debug" || echo "ncolors=$ncolors" >&2
 
     bld="$(tput bold)"
     underline="$(tput smul)"
@@ -152,7 +152,8 @@ stdio_type()
     norm="$(tput sgr0)"
 
     test -n "$verbosity" && {
-      test $verbosity -ge 7 && echo "[$base:$subcmd:std.lib] ${drgrey}colors: ${grey}$ncolors${norm}"
+      test $verbosity -ge 7 &&
+        echo "[$base:$subcmd:std.lib] ${drgrey}colors: ${grey}$ncolors${norm}" >&2
     }
 
     if test $ncolors -ge 256; then
@@ -306,7 +307,7 @@ std_v()
 std_exit()
 {
   test -z "$2" || {
-    echo "std-exit: Surplus arguments '$2'"
+    echo "std-exit: Surplus arguments '$2'" >&2
     exit 200
   }
   test "$1" != "0" -a -z "$1" && return 1 || {
@@ -417,7 +418,7 @@ capture_and_clear()
   fold -s -w $cols $tmpf.tmp > $tmpf
   lines=$(wc -l $tmpf | awk '{print $1}')
   clear_lines $lines
-  echo Captured $lines lines
+  echo Captured $lines lines >&2
 }
 
 
