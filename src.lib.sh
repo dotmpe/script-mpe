@@ -268,9 +268,13 @@ list_functions() # Sh-Files...
 
 
 # Return span of lines from Src, starting output at Start-Line and ending
-# Span-Lines later. Span-Lines = End-Line - Start-Line. If no end is given,
-# then Src must a file and the end is set the file length. Start is set to 0
-# if empty. TODO: cleanup and manage start-line, end-line, span-lines env code.
+# Span-Lines later, or at before End-Line.
+#
+#   Span-Lines = End-Line - Start-Line.
+#
+# If no end is given, then Src must a file and the end is set to the file
+# length. Start is set to 0 if empty.
+# TODO: cleanup and manage start-line, end-line, span-lines env code.
 #
 source_lines() # Src Start-Line End-Line [Span-Lines]
 {
@@ -284,6 +288,11 @@ source_lines() # Src Start-Line End-Line [Span-Lines]
     Span_Lines=$(( $end_line - $start_line ))
   }
   tail -n +$start_line $1 | head -n $Span_Lines
+}
+
+source_line()
+{
+  source_lines "$1" "$2" "$(( $2 + 1 ))"
 }
 
 # Given a shell script line with a source command to a relative or absolute

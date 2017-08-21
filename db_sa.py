@@ -11,6 +11,7 @@ Intialize SQlite from schema, and inspect or maintain.
 Usage:
   db.py [options] (info|show|init|reset|stats|describe) [<schema>]
   db.py list MODEL [<schema>] [ID]
+  db.py export <schema> JSON
   db.py help
   db.py -h|--help
   db.py --version
@@ -199,6 +200,15 @@ def cmd_describe(settings, opts):
         return 1
 
 
+def cmd_export(settings, opts):
+    global metadata
+    sa = schema.get_session(settings.dbref, metadata=metadata)
+    for m in schema.models:
+        print m
+        # sa.query
+
+
+
 ### Transform cmd_ function names to nested dict
 
 commands = script_util.get_cmd_handlers(globals(), 'cmd_')
@@ -253,6 +263,4 @@ if __name__ == '__main__':
         opts.output=sys.stdout
 
     sys.exit(main(opts))
-
-
 

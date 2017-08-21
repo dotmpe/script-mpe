@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
@@ -10,39 +12,6 @@ from . import core
 from . import net
 from . import web
 
-
-class QName():
-    pass#ns = ...
-
-
-class Namespace(web.Variant):
-    """
-    A set of unique names.
-
-    The namespace at a minimum has an system identifier,
-    which may refer to one or more global identifiers.
-
-    XXX: A collection of anything? What.
-    See Tag, a namespace constituting distinct tag types.
-    But also code, objects.
-    XXX: there is no mux/demux (yet) so subclassing variant does not mean much, but anyway.
-    XXX: Being a variant, the canonical URL, may be used as identifier, may be
-    stored at related Invariant record. some consideration needs to go there
-    """
-    __tablename__ = 'ns'
-    __mapper_args__ = {'polymorphic_identity': 'resource:variant:namespace'}
-
-    namespace_id = Column('id', Integer, ForeignKey('vres.id'), primary_key=True)
-
-    # tags = *Tag; see relationship in tag_namespace_table
-
-    # FIXME: where does the prefix go
-
-#class BoundNamespace(ID):
-#    __tablename__ = 'ns_bid'
-#    __mapper_args__ = {'polymorphic_identity': 'id:namespace'}
-#
-#    prefix = Column(String(255), unique=True)
 
 
 class Relocated(web.Resource):
@@ -86,7 +55,7 @@ class Volume(core.Scheme):
             primaryjoin=root_node_id == core.Node.node_id)
 
 
-class Bookmark(SqlBase, CardMixin, ORMMixin):#core.Node):
+class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
 
     """
     A textual annotation with a short and long descriptive label,
@@ -94,16 +63,13 @@ class Bookmark(SqlBase, CardMixin, ORMMixin):#core.Node):
     """
 
     __tablename__ = 'bm'
-    #__table_args__ = {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'}
-    #__mapper_args__ = {'polymorphic_identity': 'bookmark'}
-    #bm_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-    bm_id = Column('id', Integer, primary_key=True)
+    __mapper_args__ = {'polymorphic_identity': 'resource:bookmark'}
+    bm_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
 
-    ref_id = Column(Integer, ForeignKey('ids_lctr.id'))
-    ref = relationship(net.Locator, primaryjoin=net.Locator.lctr_id==ref_id)
+    #ref_id = Column(Integer, ForeignKey('ids_lctr.id'))
+    #ref = relationship(net.Locator, primaryjoin=net.Locator.lctr_id==ref_id)
 
     name = Column(String(255))
-    #extended = Column(Text(65535))#, index=True)
 
     extended = Column(Text)#, index=True)
     "Textual annotation of the referenced resource. "
@@ -112,6 +78,47 @@ class Bookmark(SqlBase, CardMixin, ORMMixin):#core.Node):
     tags = Column(Text)# XXX: text param NA for postgres (10240))
     "Comma-separated list of all tags. "
 
+    @classmethod
+    def keys(klass):
+        return web.Resource.keys() + 'name extended public tags'.split(' ')
+
+    def to_dict(self):
+        d = dict(href=self.location.href())
+        k = self.__class__.keys() + 'deleted date_added date_deleted date_updated'.split(' ')
+        for p in k:
+            d[p] = getattr(self, p)
+        d['tags'] = d['tags'].split(', ')
+        return d
+
+    def update_from(self, **doc):
+        data = self.__class__.dict_from_doc(**doc)
+        updated = False
+        for k in data:
+            if getattr(self, k) != data[k]:
+                setattr(self, k, data[k])
+                updated = True
+        return updated
+
+    @classmethod
+    def dict_from_doc(klass, **doc):
+        if not doc['location']:
+            raise Error("TODO")
+        opts = dict(location=doc['location'])
+        for k in klass.keys():
+            if k in doc:
+                opts[k] = doc[k]
+            if k == 'tags':
+                opts[k] = ", ".join(opts[k])
+            if isinstance(opts[k], datetime):
+                opts[k] = datetime.strptime(opts[k], ISO_8601_DATETIME)
+        return opts
+
+    @classmethod
+    def from_dict(klass, **doc):
+        opts = klass.dict_from_doc(**doc)
+        return klass( **opts )
+
+
 
 workset_locator_table = Table('workset_locator', SqlBase.metadata,
     Column('left_id', Integer, ForeignKey('ws.id'), primary_key=True),
@@ -119,7 +126,6 @@ workset_locator_table = Table('workset_locator', SqlBase.metadata,
 #    mysql_engine='InnoDB',
 #    mysql_charset='utf8'
 )
-
 
 class Workset(web.Resource):
 
@@ -137,28 +143,9 @@ class Workset(web.Resource):
     refs = relationship(net.Locator, secondary=workset_locator_table)
 
 
-token_locator_table = Table('token_locator', SqlBase.metadata,
-    Column('left_id', Integer, ForeignKey('stk.id'), primary_key=True),
-    Column('right_id', Integer, ForeignKey('ids_lctr.id'), primary_key=True),
-)
 
 
 
-class Token(SqlBase, ORMMixin):
-
-    """
-    A large-value variant on Tag, perhaps should make this a typetree.
-    """
-
-    __tablename__ = 'stk'
-    __mapper_args__ = {'polymorphic_identity': 'meta:security-token'}
-
-    token_id = Column('id', Integer, primary_key=True)
-
-    value = Column(Text, index=True, nullable=True, unique=True)
-    refs = relationship(net.Locator, secondary=token_locator_table)
-
-
-models = [ Namespace, Relocated, Volume, Bookmark, Workset, Token ]
+models = [ Relocated, Volume, Bookmark, Workset ]
 
 

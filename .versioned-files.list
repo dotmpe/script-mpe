@@ -60,4 +60,4 @@ package.lib.sh
 meta.lib.sh
 script-sh.sh
 darwin.py
-test.sh
+txt.py

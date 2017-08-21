@@ -11,7 +11,6 @@ from sqlalchemy.ext import declarative
 from sqlalchemy.ext.declarative import api
 from sqlalchemy.orm.exc import NoResultFound
 
-import taxus
 from script_mpe import log
 from .init import class_registry, SqlBase, get_session
 from . import iface
@@ -113,7 +112,7 @@ class ScriptMixin(SessionMixin):
 
     @staticmethod
     def assert_dbref(ref):
-        if not re.match(r'^[a-z][a-z]*://', ref):
+        if not re.match(r'^[a-z_][a-z0-9_+-]*://', ref):
             ref = 'sqlite:///' + os.path.expanduser(ref)
         return ref
 

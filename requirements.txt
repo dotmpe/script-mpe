@@ -16,3 +16,6 @@ uriref
 shortuuid
 xattr
 #py-mhash@1.2 malloc problems
+couchdb
+wheezy.template
+mysql-connector==2.1.6

@@ -4,6 +4,7 @@ File parser for todo.txt format.
 import re
 import os
 import base64
+from UserDict import UserDict
 
 # local
 import task
@@ -56,7 +57,11 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
         a = {}
         for m in self.meta_r.finditer(t):
             if not m or not m.group(2): continue
-            a[m.group(2)] = m.group(3)
+            v = m.group(3)
+            if v.isdigit():
+                v = int(v)
+            a[m.group(2)] = v
+
         self.attrs.update(a)
         return self.meta_r.sub('', t)
     def serialize_attrs(self):
@@ -117,7 +122,8 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
         return "TodoTxtTask:%s;%s;%s;%s;<#%x>" % ( self.id, self.doc_id, self.issue_id,
                 self.src_id, hash(self) )
 
-class TodoTxtParser(object):
+
+class TodoTxtParser(UserDict):
     """
     Arguments:
         tags

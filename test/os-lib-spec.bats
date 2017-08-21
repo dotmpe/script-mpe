@@ -75,17 +75,16 @@ init
   tmpd
   out=$tmpd/line_count
 
-  printf "1\n2\n3\n4" >$out
+  printf "a\nb\nc\nd" >$out
   test "$(wc -l $out|awk '{print $1}')" = "3"
   test "$(line_count $out)" = "4"
 
-  printf "1\n2\n3\n4\n" >$out
+  printf "a\nb\nc\nd\n" >$out
   test "$(wc -l $out|awk '{print $1}')" = "4"
   test "$(line_count $out)" = "4"
 
-  #uname=$(uname -s)
-  #printf "1\r" >$out
-  #test -n "$(line_count $out)"
+  echo abc >$out
+  test "$(line_count $out)" = "1"
 }
 
 
@@ -94,7 +93,7 @@ init
   out=$tmpd/filesize
   printf "1\n2\n3\n4" >$out
   test -n "$(filesize "$out")" || bail
-  diag "$(filesize "$out")"
+  diag "Filesize: $(filesize "$out")"
   test $(filesize "$out") -eq 7
 }
 

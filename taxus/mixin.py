@@ -11,6 +11,10 @@ class CardMixin(object):
     date_deleted = Column(DateTime)
     date_updated = Column(DateTime, index=True, nullable=False)
 
+    def delete(self):
+        self.deleted = True
+        self.date_deleted = datetime.now()
+
     def init_defaults(self):
         if not self.date_added:
             self.date_updated = self.date_added = datetime.now()

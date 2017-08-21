@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-""":created: 2017-05-08
+""":created: 2017-08-19
 """
-__description__ = "journal - "
+__description__ = "txt - "
 __version__ = '0.0.4-dev' # script-mpe
-__db__ = '~/.journal.sqlite'
+#__db__ = '~/.txt.sqlite'
 __usage__ = """
 Usage:
-    journal.py [options] [ LIST ]
-    journal.py -h|--help
-    journal.py --version
+    txt.py [options] meta-to-json LIST
+    txt.py -h|--help
+    txt.py --version
 
 Options:
     --verbose     ..
@@ -21,29 +21,20 @@ Options:
 import os
 
 import script_util
-import res.jrnl
+import res.txt
+import res.todo
+import res.js
+#from taxus.init import SqlBase, get_session
+#from taxus import Node, Topic
 
-from taxus.init import SqlBase, get_session
-from taxus import Node, Topic
-from res import Journal
-
-models = [ Node, Topic, Journal ]
-
-
-def cmd_journal_couch(PATH, opts, settings):
-    jrnl = Journal.find(PATH)
+#models = [ Node, Topic, Journal ]
 
 
-
-def cmd_journal_rw(LIST, opts, settings):
-    entries = res.jrnl.JournalTxtManifestParser()
-    if LIST:
-        assert os.path.exists(LIST), LIST
-        list(entries.load_file(LIST))
-    for k in entries:
-        print k,
-        print entries[k]
-
+def cmd_meta_to_json(LIST, opts, settings):
+    prsr = res.todo.TodoTxtParser()
+    list(prsr.load(LIST))
+    for k in prsr:
+        print res.js.dumps(prsr[k].attrs)
 
 
 ### Transform cmd_ function names to nested dict
@@ -61,11 +52,11 @@ def main(opts):
     """
 
     settings = opts.flags
-    opts.default = 'journal-rw'
+    opts.default = 'meta-to-json'
     return script_util.run_commands(commands, settings, opts)
 
 def get_version():
-    return 'journal.mpe/%s' % __version__
+    return 'txt.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys

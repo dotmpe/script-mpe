@@ -1467,6 +1467,96 @@ htd__edit_week()
 }
 
 
+htd_man_1__jrnl='
+    TODO: status check update
+    list [Prefix=2...]
+        List entries with prefix, use current year if empty. Set to * for
+        listing everything.
+    entries
+        XXX: resolve metadata
+'
+htd__jrnl()
+{
+  test -n "$1" || set -- status
+  case "$1" in
+
+    status )
+      ;;
+
+    check )
+      ;;
+
+    update ) shift
+        test -n "$1" || set -- $JRNL_DIR/entries.list
+        htd__jrnl list '*' |
+            htd__jrnl entries |
+            htd__jrnl ids > $1.tmp
+
+        c=$(count_lines "$1")
+        enum_nix_style_file $1.tmp | while read n id line
+        do
+          printf -- "$id: $line idx:$n "
+          test $n -gt 1 && {
+            printf -- " prev:$(source_line $1.tmp $(( $n - l )) ) "
+          }                                                 
+          test $n -lt $c && {                                 
+            printf -- " next:$(source_line $1.tmp $(( $n + 1 )) ) "
+          }
+          echo
+        done > $1
+
+        rm $1.tmp
+      ;;
+
+    entries ) shift
+        JRNL_ENTRY_G="[0-9][0-9][0-9][0-9]?[0-9][0-9]?[0-9][0-9].*"
+        while read id l
+        do
+          fnmatch $JRNL_ENTRY_G "$id" || continue
+          echo "$id $l"
+        done
+      ;;
+
+    ids ) shift
+        while read p
+        do echo "$( basename "$p" .rst )"
+        done
+      ;;
+
+    list ) shift
+        test -n "$1" || set -- $(date +'%Y')
+        w=$(( ${#JRNL_DIR} + 2 ))
+        for p in $JRNL_DIR/$1*.rst
+        do
+          test -f "$p" && {
+            echo "$p" | cut -c$w-
+            continue
+          }
+          test -h "$p" && {
+            echo "$(echo "$p" | cut -c$w-) -> $(readlink "$p")"
+          } || {
+            warn "$p"
+          }
+        done
+      ;;
+
+    to-couch ) shift
+        test -n "$1" || set -- $JRNL_DIR/entries.list
+        htd__txt to-json "$1"
+      ;;
+
+    * ) error "'$1'? 'htd jrnl $*'" 1 ;;
+  esac
+}
+
+htd_of__jrnl_json='json-stream'
+htd__jrnl_json()
+{
+  test -n "$1" || set -- $JRNL_DIR/entries.list
+  htd__txt to-json "$1"
+}
+
+
 # TODO: use with edit-local
 htd__edit_note()
 {
@@ -1689,6 +1779,7 @@ htd__ssh_vagrant()
 }
 
 
+htd_run__ssh=f
 htd__ssh()
 {
   case "$1" in
@@ -1738,7 +1829,7 @@ htd__ssh()
             note "Trying to wake up $1.."
             htd wake $1 || error "wol error $?" 1
             retries=$(( $retries - 1 ))
-            sleep 10
+            sleep 16
             stderr info "Testing ping to '$1'..."
             htd__detect_ping $1 && break
           done
@@ -1788,12 +1879,14 @@ htd_als__detect=up
 htd_man_1__detect_ping='Test all given hosts are online, answering to PING'
 htd__detect_ping() # Hosts...
 {
+  test -n "$failed" || error "detect-ping expects failed env" 1
   while test $# -gt 0
   do
     ping -qt 1 -c 1 $1 >/dev/null &&
-      stderr ok "$1" || echo htd:$subcmd:detect-ping:$1 >$failed
+      stderr ok "$1" || echo "htd:$subcmd:detect-ping:$1" >$failed
     shift
   done
+  test ! -s "$failed"
 }
 htd_run__detect_ping=f
 
@@ -1822,6 +1915,34 @@ htd__new_object()
 {
   cat
   htd__random_str
+}
+
+
+# todo.txt/list.txt util
+
+htd__txt()
+{
+  test -n "$1" || set --
+  case "$1" in
+
+    to-json ) shift
+        txt.py meta-to-json "$1"
+      ;;
+
+    number | enumerate ) shift
+        offset=0
+        for list in "$@"
+        do
+          enum_nix_style_file "$list" | while read num line
+          do
+            echo "$(( $offset + $num )) $line"
+          done
+          offset=$(( $offset + $(line_count "$list" ) ))
+        done
+      ;;
+
+    * ) error "'$1'? 'htd txt $*'" 1 ;;
+  esac
 }
 
 
@@ -5673,11 +5794,23 @@ htd__current_events()
 }
 
 
+htd_man_1__jrnl_times='
+    list-day PATH
+        List times found in log-entry at PATH.
+    list-tri*
+        List times for +/- 1 day (by alias).
+    list-days TODO
+    list-weeks TODO
+    list-dir Date-Prefix
+    TODO: list (-1) (+1) (dir|days|weeks)
+    to-cal
+'
 htd__jrnl_times()
 {
   cd $HTDIR
   htd__today personal/journal
   case "$1" in
+
     list-day )
         test -e $2 && sed -n 's/.*\[\([0-9]*:[0-9]*\)\].*/\1/gp' $2
       ;;

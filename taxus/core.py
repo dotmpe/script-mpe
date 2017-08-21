@@ -116,7 +116,7 @@ class ID(SqlBase, CardMixin, ORMMixin):
     id_id = Column('id', Integer, primary_key=True)
 
     idtype = Column(String(50), nullable=False)
-    __mapper_args__ = {'polymorphic_on': idtype}
+    __mapper_args__ = {'polymorphic_on': idtype, 'polymorphic_identity': 'id' }
 
     global_id = Column(String(255), index=True, unique=True, nullable=False)
 
@@ -140,7 +140,7 @@ class Space(ID):
     space_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
 
     #backend_id = ...
-    classes = Column(String)
+    classes = Column(String(255))
 
 
 class Scheme(Space):
@@ -208,21 +208,12 @@ topic_tag = Table('topic_tag', SqlBase.metadata,
 
 class Topic(SqlBase, CardMixin, ORMMixin):
 
-    """
-    A topic describes a subject; a theme, issue or matter, regarding something
-    else.
-
-    Names are given in singular form, a text field codes the plural for UI use.
-    """
     __tablename__ = 'names_topic'
-    #__mapper_args__ = {'polymorphic_identity': 'topic'}
-    #topic_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
     topic_id = Column('id', Integer, primary_key=True)
 
     name = Column(String(255), nullable=False, index=True, unique=True)
-
-    tag_id = Column(Integer, ForeignKey('names_tag.id'))
-    tag = relationship(Tag, secondary=topic_tag, backref='topics')
+    #tag_id = Column(Integer, ForeignKey('names_tag.id'))
+    #tag = relationship(Tag, secondary=topic_tag, backref='topics')
 
     super_id = Column(Integer, ForeignKey('names_topic.id'))
     subs = relationship("Topic",
@@ -232,9 +223,11 @@ class Topic(SqlBase, CardMixin, ORMMixin):
     )
 
     # some plain metadata
-    explanation = Column(Text)
+    explanation = Column(Text(65535))
+    location = Column(Boolean)
     thing = Column(Boolean)
-    plural = Column(String)
+    event = Column(Boolean)
+    plural = Column(String(255))
 
     def __init__(self, name, super=None):
         self.name = name

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "indexeddb-js": "0.0.14",
+    "know-your-http-well": "^0.5.0",
     "leveldown": "^1.7.2",
     "levelup": "^1.3.3",
     "lodash": "^4.17.4",

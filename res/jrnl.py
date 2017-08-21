@@ -22,4 +22,20 @@ class Journal(Metadir):
     DOTID = 'journal'
 
 
+class JournalDir(object):
+
+    DEFAULT_DIR = 'log'
+
+    @staticmethod
+    def find(class_, path=None):
+        if not path:
+            path = class_.DEFAULT_DIR
+        assert os.path.exists(path), path
+        return class_(path)
+
+    def __init__(self, path):
+        self.path = path
+
+    def entries(self):
+        pass
 
