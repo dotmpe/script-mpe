@@ -1559,11 +1559,12 @@ pd_init()
   test -z "$scriptpath" || return 13
   scriptpath="$(dirname "$(realpath "$0")")"
   export SCRIPTPATH=$scriptpath
+  test -n "$LOG" || export LOG=$scriptpath/log.sh
   pd_preload || exit $?
-  . $scriptpath/util.sh load-ext
-  lib_load sys os std stdio str src main meta
+  _lib_load=1 . $scriptpath/util.sh load-ext
+  lib_load str sys os std stdio src match main argv
   . $scriptpath/box.init.sh
-  lib_load box package
+  lib_load meta box package
   box_run_sh_test
   # -- pd box init sentinel --
   test -n "$verbosity" && note "Verbosity at $verbosity" || verbosity=6

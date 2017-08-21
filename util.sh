@@ -23,7 +23,7 @@ lib_path()
 
 lib_load()
 {
-  test -n "$LOG" || return 102
+  test -n "$LOG" || exit 102
   local f_lib_load= f_lib_path=
   test -n "$__load_lib" || local __load_lib=1
   test -n "$1" || set -- str sys os std stdio src match main argv
