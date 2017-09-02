@@ -87,6 +87,11 @@ Options:
                 .
                 If no ADDRESS or JSOTK_SOCKET is found the invocation is
                 executed normally
+  --objects
+                Mode for table writer.
+  --columns C
+                Select specific columns to output.
+  --no-head     Do not print header/column line at start.
   -V, --version
                 Print version
 
@@ -96,7 +101,7 @@ json (i/o)
     ..
 yaml (i/o)
     ..
-pkv
+pkv (i/o)
     Parse syntax like::
 
         path/to[1]/item=value-for-object-path
@@ -106,7 +111,7 @@ pkv
 
         {"path": {"to": [ {"item": "value-for-object-path"}, "append-item-value" ] } }
 
-fkv (o)
+fkv (i/o)
     Like pkv, but this is even more restrictive in key characters, keys
     can only contain [A-Za-Z_][A-Za-z0-9_]+ and everything else is lost.
     Still the (example at pkv) above can be represented, for example::
@@ -117,8 +122,16 @@ fkv (o)
     Double underscores are used to separate path elements.
 py (o)
     Given one or more results, output as python value.
-lines (o)
+lines|list (o)
     Given a list result, simply output items line by line.
+table (o)
+    ..
+xml (i/o)
+    ..
+properties (i)
+    ..
+ini (i)
+    ..
 
 Dev
 ----
