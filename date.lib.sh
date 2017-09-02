@@ -2,6 +2,7 @@
 
 
 # Age in seconds
+_1MIN=60
 _5MIN=300
 _1HOUR=3600
 _3HOUR=10800

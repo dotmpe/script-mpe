@@ -667,7 +667,7 @@ run_subcmd()
     test -z "$subcmd" && {
       error 'No command given' 1
     } || {
-      error "No such command: $subcmd" 2
+      error "No such command: $subcmd ($base)" 2
     }
   }
 
