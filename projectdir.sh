@@ -120,7 +120,7 @@ pd__status()
           jsotk.py -I yaml -O pkv - | 
           tr '=' ' ' | while read var stat
         do
-          test "$var" = "None" && continue
+          test -n "$var" -a "$var" != "None" || continue
           test "$stat" = "None" && continue
           test "$stat" = "0" || {
             echo "$pd_prefix" >> $failed
@@ -989,7 +989,7 @@ pd__run_suite()
   shift
   # TODO: handle prefixes
   test -z "$2" || error surplus-args 1
-  pd_run_suite $1 $(pd__ls_targets $1 2>/dev/null)
+  pd_run_suite $suite_name $(pd__ls_targets $1 2>/dev/null)
 }
 
 
@@ -1086,18 +1086,17 @@ pd__show()
       }
 
       local metaf=
-      update_package "$1" || {
-        note "No local package data for '$1'"
-      } && {
-
-        test -n "$metaf" || error metaf 1
-        test -e "$metaf" || error $metaf 1
+      update_package "$1" && {
+        test -n "$metaf" || error "metaf" 1
+        test -e "$metaf" || error "metaf: $metaf" 1
 
         jsotk.py --output-prefix package -I yaml -O yaml --pretty objectpath \
           $metaf '$.*[@.main is not None]' || {
 
             error "decoding '$metaf' " 1
         }
+      } || { r=$?
+        note "No local package data for '$1'"
       }
     }
 

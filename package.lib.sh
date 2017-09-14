@@ -147,7 +147,8 @@ update_package()
   test -n "$1" -a -d "$1" || error "update-package dir '$1'" 21
   test -z "$2" || error "update-package surplus args '$2'" 22
 
-  local metaf= metash= metamain=
+  metaf=
+  local metash= metamain=
   test -n "$ppwd" || ppwd=$(cd $1; pwd)
 
   package_file "$1" || { metaf=

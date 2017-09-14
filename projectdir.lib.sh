@@ -867,6 +867,7 @@ pd_run()
 
 pd_run_suite()
 {
+  test -n "$1" || error "pd-run-suite: Suite ID expected" 1
   local r=0 suite=$1; shift
   echo "$@" >$arguments
   subcmd=$suite:run pd__run || return $?
