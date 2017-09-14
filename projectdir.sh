@@ -100,10 +100,10 @@ pd__status()
 
   # Set default option
   test -s "$options" || format_yaml=1
+
   # XXX: fetching the state requires all branches to have status/result set.
   #pd__meta update-states
   # TODO: also export for monitoring
-
   while read pd_prefix
   do
     test -f "$checkout" -o -h "$checkout" && {
@@ -116,15 +116,15 @@ pd__status()
 
       {
         # Read from tree, note status != 0 as failures.
-        pd_fetch_status "$pd_prefix" | read_nix_style_file \
-          | jsotk.py -I yaml -O pkv - | read_nix_style_file | tr '=' ' ' | while read var stat
+        pd_fetch_status "$pd_prefix" | 
+          jsotk.py -I yaml -O pkv - | 
+          tr '=' ' ' | while read var stat
         do
           test "$var" = "None" && continue
           test "$stat" = "None" && continue
-          test "$stat" -eq 0 || {
+          test "$stat" = "0" || {
             echo "$pd_prefix" >> $failed
             warn "$pd_prefix: $(echo $var | cut -c8-)"
-            #warn "$pd_prefix: $var"
           }
         done
 
@@ -1357,9 +1357,12 @@ pd_load()
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
 
-  ignores_lib_load
-  test -n "$PD_IGNORE" -a -e "$PD_IGNORE" || error "expected $base ignore dotfile" 1
-  lst_init_ignores
+  ignores_lib_load $lst_base
+  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
+    test -n "$PD_IGNORE" -a -e "$PD_IGNORE" ||
+        error "expected $base ignore dotfile (PD_IGNORE)" 1
+    lst_init_ignores
+  }
 
   pd_inputs="arguments prefixes options"
   pd_outputs="passed skipped errored failed"
@@ -1429,7 +1432,7 @@ pd_load()
 
         test -n "$pd_root" && {
           # expect Pd Context; setup IO paths (req. y)
-          req_vars pdoc pd_cid pd_realpath pd_root || error \
+          req_vars pdoc pd_cid pd_realpath || error \
             "Projectdoc context expected ($pdoc; $pd_cid; $pd_realpath; $pd_root)" 1
 
           io_id=-${pd_cid}-${subcmd}-${pd_session_id}
@@ -1672,4 +1675,4 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   esac ;;
 esac
 
-
+# Id: script-mpe/0.0.4-dev projectdir.sh

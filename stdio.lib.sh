@@ -99,7 +99,7 @@ clean_io_lists()
       #eval ${1}_abbrev="fail"
       #eval ${1}_abbrev="'$(tail -n 1 $path ) and $(( $count - 1 )) more'"
       test $count -gt 2 && {
-        export ${1}_abbrev="$(tail -n 1 $path )) and $(( $count - 1 )) more"
+        export ${1}_abbrev="$(tail -n 1 $path ) and $(( $count - 1 )) more"
         #eval ${1}_abbrev="'$(tail -n 1 $path )) and $(( $count - 1 )) more'"
         #rotate-file $failed .failed
       } || {

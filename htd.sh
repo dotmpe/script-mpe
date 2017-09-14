@@ -3573,7 +3573,7 @@ htd_spc__push_commit='(pci|push-commit)
 htd__push_commit()
 {
   # Argument handling
-  # FIXME: could do away with half of sucmd code with better dependent env defaults
+  # FIXME: could do away with half of subcmd code with better dependent env defaults
   {
     trueish "$verbose" || trueish "$DEBUG"
   } &&
@@ -8266,7 +8266,7 @@ htd__couchdb()
 htd__couchdb_htd_tiddlers()
 {
   COUCH_DB=tw
-  mkdir -vp build/tiddlers
+  mkdir -vp $HTD_BUILDDIR/tiddlers
   find . \
     -not -ipath '*static*' \
     -not -ipath '*build*' \
@@ -8279,7 +8279,7 @@ htd__couchdb_htd_tiddlers()
     # Note: does not have the titles format=mediawiki mt=text/vnd.tiddlywiki
     format=html mt=text/html
 
-    tiddler_file=build/tiddlers/${tiddler_id}.$format
+    tiddler_file=$HTD_BUILDDIR/tiddlers/${tiddler_id}.$format
     mkdir -vp $(dirname $tiddler_file)
     pandoc -t $format "$rst_doc" > $tiddler_file
 
@@ -8305,7 +8305,7 @@ htd__couchdb_htd_tiddlers()
       created="$modified"
     }
 
-    tiddler_jsonfile=build/tiddlers/${tiddler_id}.json
+    tiddler_jsonfile=$HTD_BUILDDIR/tiddlers/${tiddler_id}.json
     { cat <<EOM
     { "_id": "$tiddler_id", "fields":{
         "created": "$created",

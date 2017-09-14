@@ -1,4 +1,3 @@
-
 .. Structure:
 .. - htd main-doc to lead to main document paths
 .. - want better support to refer to topics in other paths, list, query, migrate
@@ -19,3 +18,7 @@
 .. _Tasks: /tasks.rst
 .. _Htd: /htd.rst
 
+.. role:: live-code(code)
+   :class: sf-mf sf-code
+.. role:: sh(live-code)
+   :class: sf-mf sf-code mf-sh-cmd

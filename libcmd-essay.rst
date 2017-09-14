@@ -1,17 +1,21 @@
 :created: 2014-01-16
-:updated: 2015-05-26
+:updated: 2015-05-26 2017-09-04
 
+- <https://stackoverflow.com/questions/2461702/why-is-ioc-di-not-common-in-python>
+- <https://pypi.python.org/pypi/dependency_injector/>
+
+----
 
 libcmd.SimpleCommand
 libcmd.StackedCommand
 
-- No shared session/runtime; either run as rsr, or taxus, or cmdline. 
+- No shared session/runtime; either run as rsr, or taxus, or cmdline.
   Ie. only access to inherited namespaces.
 
 libcmdng
 
-- registries for names (commands, options), specifications 
-  etc. 
+- registries for names (commands, options), specifications
+  etc.
 
 
 ---

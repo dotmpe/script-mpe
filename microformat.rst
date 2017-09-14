@@ -1,6 +1,6 @@
-.. header::
-
-   microformats
+Microformats
+============
+.. include:: .default.rst
 
 .. footer::
 
@@ -88,7 +88,42 @@ HTML
       Work in progress of moving some Sf-Htd app/htd to Sitefile.
       And most of all unified sf/main and app/sf-v0.
 
+
 -----
+
+Microformats
+    Live code
+        Live code is inline executable code, such as that in Jupyter.
+
+        - `Radical <radical.rst>`__
+        - `Sitefile Text Feature <//localhost:7011/doc/feature-text>`_
+
+
+- If the user runs:
+
+  .. class:: sf-mf sf-code mf-sh-cmd
+
+  ::
+
+    echo foo
+
+  .. class:: sf-mf sf-code mf-sh-cmd
+
+  ::
+
+    whoami && pwd && hostname
+
+
+- Lorem ipsum dolor sit amet, consectetaur adipisicing elit, sed do eiusmod
+  tempor incididunt ut labore et dolore magna aliqua. :sh:`pd status`.
+  Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+  aliquip ex ea commodo consequat. :sh:`whoami && pwd && hostname`.
+  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore
+  eu fugiat nulla pariatur.
+  :sh:`magnet.py "http://www.viking-z.org/index.htm" ~/htdocs/personal/journal/today.rst`.
+  Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia
+  deserunt mollit anim id est laborum.
+
 
 Refs
 --------------------------------

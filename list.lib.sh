@@ -40,10 +40,10 @@ lst_load()
   # build ignore pattern file
   ignores_lib_load $lst_base
 
-  IGNORE_GLOBFILE=$(eval echo \"\$$(str_upper "$base")_IGNORE\")
-  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
-    error "expected $lst_base ignore dotfile" 1
-  lst_init_ignores
+  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
+    IGNORE_GLOBFILE=$(eval echo \"\$$(str_upper "$base")_IGNORE\")
+    lst_init_ignores
+  }
 
   # Selective per-subcmd init
   for x in $(try_value "${subcmd}" load lst | sed 's/./&\ /g')
@@ -103,8 +103,10 @@ lst_unload()
 # Update IGNORE_GLOBFILE lines
 lst_init_ignores()
 {
-  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" \
-    || error "expected existing IGNORE_GLOBFILE ($IGNORE_GLOBFILE)" 1
+  # XXX: there's no unload, no way to warn about temp file being left
+  # so instead for now insist there is a safe place to keep this file.
+  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
+       error "lst:init-ignores: expected $lst_base ignore dotfile ($IGNORE_GLOBFILE)" 1
 
   local suf=$1
   {

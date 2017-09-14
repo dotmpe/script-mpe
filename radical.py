@@ -366,6 +366,13 @@ class EmbeddedIssue:
         self.tags = tags
         self.validate()
 
+    def to_dict(self):
+        return {
+        }
+
+    def __cmp__(self):
+        pass
+
     def __str__(self):
         # NOTE: 0-index ranges/spans in ID
         return "<EmbeddedIssue %s %i-%i %i-%i>" % ( ( self.comment_flavour,
@@ -461,6 +468,26 @@ class EmbeddedIssue:
                 isinstance(self.line_span[0], int) and
                 isinstance(self.line_span[1], int)
             )
+
+    def store(self, tag, services):
+
+        """
+        Add or update tracker.
+        """
+
+        # TODO: print('tags', self.tags)
+        if tag.slug in services:
+            tracker = services[tag.slug]
+
+            refId = tag.canonical(self.srcdoc.data)
+            if refId == tag.slug:
+                issue = tracker.new(refId, self.to_dict())
+            else:
+                issue = tracker.get(refId)
+                #if description != self.description
+                #tracker.update(tag.slug, refId, description)
+
+            #print('srv', tag.slug, refId, services[tag.slug])
 
 
 class EmbeddedIssueOld:
@@ -1253,7 +1280,7 @@ class Radical(rsr.Rsr):
             yield source
 
     def rdc_run_embedded_issue_scan(self, sa, issue_format=None, opts=None,
-            paths=[]):
+            services=None, paths=[]):
 
         """
         Main function: scan multiple sources and print/log embedded issues
@@ -1286,8 +1313,10 @@ class Radical(rsr.Rsr):
 
             parser = SEIParser(sa, matchbox, source, context, data, lines)
 
+            # Run over TagInstances
             for tag in parser.find_tags():
 
+                # Get EmbeddedIssue instance for tag
                 try:
                     cmt = parser.for_tag(tag)
                 except (Exception) as e:
@@ -1301,13 +1330,19 @@ class Radical(rsr.Rsr):
                     continue
 
                 srcdoc.scei.append(cmt)
-                self.rdc_issue(cmt, data, issue_format=issue_format)
+
+                # Print requested format to stdout
+                if not opts.quiet:
+                    self.rdc_issue(cmt, data, issue_format=issue_format)
+
+                # Process comment with tracker service(s)
+                cmt.store(tag, services)
 
             #if embedded.tag_id:
-                #if embedded.tag_id == NEED_ID:
-                    #new_id = service.new_issue(embedded.tag_name, embedded.description)
+            #    if embedded.tag_id == NEED_ID:
+            #        new_id = tracker.new(embedded.tag_name, embedded.description)
                     #embedded.set_new_id(new_id)
-                    #service.update_issue(embedded.tag_name, embedded.tag_id,
+                    #tracker.update_issue(embedded.tag_name, embedded.tag_id,
                     #        embedded.description)
             #embedded.store(dbsession)
 

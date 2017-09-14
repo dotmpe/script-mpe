@@ -150,9 +150,9 @@ update_package()
   local metaf= metash= metamain=
   test -n "$ppwd" || ppwd=$(cd $1; pwd)
 
-  package_file "$1" || {
+  package_file "$1" || { metaf=
     update_temp_package "$1" || { r=$?
-      rm $metaf
+      test ! -e $metaf || rm $metaf
       error update_temp_package-$r
       return 23
     }
