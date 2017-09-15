@@ -649,10 +649,12 @@ htd__output_formats()
 htd_man_1__version="Version info"
 htd__version()
 {
-  echo "$package_id/$version"
+  echo "$scriptname/$version"
+  #echo "$package_id/$version"
 }
 #htd_als___V=version
 htd_als____version=version
+htd_run__version=p
 
 
 htd__home()

@@ -352,7 +352,7 @@ test_exists()
 # Return 1 if env was provided, or 0 if default was set
 default_env() # VAR-NAME DEFAULT-VALUE
 {
-  test -n "$1" -a -n "$2" -a $# -eq 2 || error "default-env requires two args" 1
+  test -n "$1" -a $# -eq 2 || error "default-env requires two args ($*)" 1
   local vid= sid=
   trueish "$title" && upper= || {
     test -n "$upper" || upper=1
