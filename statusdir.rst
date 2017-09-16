@@ -44,5 +44,3 @@ statusdir.sh
     ..
   sd decr
     ..
-
-

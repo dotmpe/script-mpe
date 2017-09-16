@@ -368,6 +368,19 @@ class EmbeddedIssue:
 
     def to_dict(self):
         return {
+            'srcdoc': {
+                'name': self.srcdoc.source_name,
+                'lines': self.srcdoc.line_count
+            },
+            'description': {
+                'span': list(self.description_span)
+            },
+            'comment': {
+                'char-span': list(self.comment_char_span),
+                'line-span': list(self.comment_line_span),
+                'flavour': self.comment_flavour.replace('_', '-')
+            },
+            'inline': self.inline, 'tags': self.tags
         }
 
     def __cmp__(self):
@@ -401,13 +414,13 @@ class EmbeddedIssue:
     def scei_id(self, full=True):
         # NOTE: turn ranges from 0-index into 1-indexed (lines, chars, etc)
         dspan = tuple([ x+1 for x in self.description_span ])
-        scei_id = self.srcdoc.source_name
+        docname = self.srcdoc.source_name
         if full:
             # XXX: cspan = tuple([ x+1 for x in self.comment_char_span ])
-            scei_id += ":%s-%s;lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
+            scei_id = docname+":%s-%s;lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
                     dspan + tuple(self.line_span) + ( self.comment_flavour, ) + tuple(self.char_span) )
         else:
-            scei_id += ":%s-%s" % dspan
+            scei_id = docname+":%s-%s" % dspan
         return scei_id
 
 
@@ -472,22 +485,25 @@ class EmbeddedIssue:
     def store(self, tag, services):
 
         """
-        Add or update tracker.
+        Add or update tracker for current issue.
         """
 
         # TODO: print('tags', self.tags)
         if tag.slug in services:
             tracker = services[tag.slug]
 
+            # Cleanup the SEI's Id, ie. normalize our tag-id
             refId = tag.canonical(self.srcdoc.data)
-            if refId == tag.slug:
-                issue = tracker.new(refId, self.to_dict())
-            else:
-                issue = tracker.get(refId)
-                #if description != self.description
-                #tracker.update(tag.slug, refId, description)
 
-            #print('srv', tag.slug, refId, services[tag.slug])
+            s = self.to_dict()
+            # Find issue based on Tag-Id
+            if refId == tag.slug:
+                issue = tracker.new(refId, s)
+            else:
+                issue = tracker.globalize(refId, s)
+                tracker.update(tag.slug, refId, s)
+
+            print refId, issue
 
 
 class EmbeddedIssueOld:
@@ -1296,7 +1312,6 @@ class Radical(rsr.Rsr):
 
         # pre-compile patterns XXX: per context
         matchbox = compile_rdc_matchbox(rc)
-
         taskdocs = {}
 
         # TODO: old clean/rewrite functions
@@ -1338,14 +1353,6 @@ class Radical(rsr.Rsr):
                 # Process comment with tracker service(s)
                 cmt.store(tag, services)
 
-            #if embedded.tag_id:
-            #    if embedded.tag_id == NEED_ID:
-            #        new_id = tracker.new(embedded.tag_name, embedded.description)
-                    #embedded.set_new_id(new_id)
-                    #tracker.update_issue(embedded.tag_name, embedded.tag_id,
-                    #        embedded.description)
-            #embedded.store(dbsession)
-
     def rdc_issue(self, cmt, data, issue_format='id'):
         if issue_format not in EmbeddedIssue.formats:
             raise Exception("Unknown format '%r', %s" % (issue_format,
@@ -1363,4 +1370,3 @@ class Radical(rsr.Rsr):
 
 if __name__ == '__main__':
     Radical.main()
-
