@@ -1,6 +1,46 @@
 pipeline:
-  frontend:
-    image: node:6
+  utils:
+    image: bvberkum/ubuntu-treebox
+    volumes:
+     - ${PWD}/tools/ssh/config:/home/treebox/.ssh/config
+    environment:
+     - ENV=
+     - TEST_ENV=testing TEST_SHELL=sh
+     - CS=dark
+     - sudo=sudo
+     - TRAVIS_SKIP=1
+     - TEST_ENV=travis
+     - UCONFDIR=$HOME/etc
+     - Build_Deps_Default_Paths=1
+     - TEST_RESULTS=shippable/testresults/test.tap
+     - DEBIAN_FRONTEND=noninteractive
+     - LOG=./log.sh
+     - TMPDIR=/tmp
+     - verbosity=5
     commands:
-      - npm install
-      - npm test
+     - export USER=treebox
+     - export HOME=/home/treebox
+     - export PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/
+     - echo PATH=$PATH
+     #- export PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
+     - sudo apt-get update
+     - sudo apt-get install -qqy tidy pv php7.0-cli php-dom posh dash ruby-bundler python-dev python-yaml libffi-dev ntpdate moreutils
+     - SCR_SYS_SH=bash-sh
+     - scriptname="before-install"
+     - . ./tools/sh/init.sh
+     - . ./tools/sh/env.sh
+     - . ./tools/ci/parts/init.sh
+     - scriptname=install
+     - mkdir /home/treebox/build
+     - . ./tools/ci/parts/install.sh
+     - scriptname="before-script"
+     - echo PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
+     - . ./tools/ci/parts/check.sh
+     - scriptname=script
+     - . ./tools/ci/parts/build.sh
+
+#  frontend:
+#    image: node:6
+#    commands:
+#      - npm install
+#      - npm test

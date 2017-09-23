@@ -19,7 +19,7 @@ project_env_bin()
   for id in $@
   do
     key=bin_$(printf -- "$id" | tr '-' '_')
-    test -z "${!key}" && bin=$id || bin=${!key}
+    test -z "$(eval echo \$$key)" && bin=$id || bin="$(eval echo \$$key)"
     export projectenv_dep_$id=$( test -x "$(which $bin)" && echo 1 || echo 0 )
   done
 }

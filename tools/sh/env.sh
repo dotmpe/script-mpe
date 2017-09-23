@@ -44,6 +44,8 @@ BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
 project_env_bin node npm lsof
 
 
+
+
 ## Per-env settings
 
 case "$ENV_NAME" in dev|testing ) ;; *|dev?* )
@@ -164,14 +166,17 @@ req_vars INSTALL_DEPS || {
   INSTALL_DEPS=" basher "
   export INSTALL_DEPS
 }
-req_vars APT_PACKAGES || export APT_PACKAGES="nodejs\
- perl python-dev\
- realpath uuid-runtime moreutils curl php5-cli"
+
+{
+  test "$USER" != "travis" && not_falseish "$SHIPPABLE" 
+} && {
+  req_vars APT_PACKAGES || export APT_PACKAGES="nodejs \
+    perl python-dev \
+    realpath uuid-runtime moreutils curl php5-cli"
+}
 # not o shippable: npm
 
 test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
-
-
 
 
 

@@ -5,6 +5,7 @@ set -e
 note "Entry for CI install phase"
 
 
+echo APT_PACKAGES=$APT_PACKAGES
 test "$(whoami)" = "travis" || {
 
   test -x "$(which apt-get)" && {
@@ -19,10 +20,10 @@ test "$(whoami)" = "travis" || {
   }
 }
 
-./install-dependencies.sh all
+./install-dependencies.sh all pip php
 
 test "$(whoami)" = "travis" || {
-  trueish "$SHIPPABLE" && {
+  not_falseish "$SHIPPABLE" && {
     $sudo apt-get install perl
     cpan reload index
     cpan install XML::Generator
@@ -42,4 +43,3 @@ test "$(whoami)" = "travis" || {
 # FIXME: htd install json-spec
 
 note "Done"
-
