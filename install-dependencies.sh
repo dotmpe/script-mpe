@@ -102,6 +102,12 @@ install_git_versioning()
   ( cd $SRC_PREFIX/git-versioning && ./configure.sh $PREFIX && ENV=production ./install.sh )
 }
 
+install_git_lfs()
+{
+  curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+  $sudo apt-get install git-lfs
+}
+
 install_mkdoc()
 {
   test -n "$MKDOC_BRANCH" || MKDOC_BRANCH=master
@@ -221,6 +227,10 @@ main_entry()
   case "$1" in php|composer )
       test -x "$(which composer)" \
         || install_composer || return $?
+    ;; esac
+
+  case "$1" in dev|git|git-lfs )
+      git lfs || { install_git_lfs || return $?; }
     ;; esac
 
   case "$1" in dev|build|check|test|git-versioning )

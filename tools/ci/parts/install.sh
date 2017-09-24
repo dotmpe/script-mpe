@@ -20,7 +20,7 @@ test "$(whoami)" = "travis" || {
   }
 }
 
-./install-dependencies.sh all pip php
+./install-dependencies.sh all pip php dev
 
 test "$(whoami)" = "travis" || {
   not_falseish "$SHIPPABLE" && {

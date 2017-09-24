@@ -1,11 +1,10 @@
 Feature: list handles the listing of local names, and sets of names using glob patterns
 
-  Background: 
+  Background:
 
   # Use-Case level scenarios
 
   # Plumbing tests
-#
   @skip
   @travis
   Scenario: print names in group

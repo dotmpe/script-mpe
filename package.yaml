@@ -108,11 +108,12 @@
     #test: pd test
     test:
       - verbose=1 git-versioning check
-      - ENV_NAME=gspread-boreas . ~/.conf/bash/env.sh $ENV_NAME && python x-gspread.py
       - python test/main.py
       - projectdir.sh run :bats:specs
       - bats test/*-spec.bats | script-bats.sh colorize
       - ./x-test.sh version
+    test-user:
+      - ENV_NAME=gspread-boreas . ~/.conf/bash/env.sh $ENV_NAME && python x-gspread.py
     #build: pd build
     build:
       - export SCR_SYS_SH=bash-sh
@@ -132,10 +133,29 @@
     #   test -x "$(behave)" &&
     #       behave --tags '~@todo' --tags ~skip -k test/feature ||
     #         ./vendor/.bin/behat--tags:~@skip
+
     tasks-list:
       - 'tasks.py -t todo.txt list-issues'
     tasks-update:
       - 'htd tasks --Check-All-Tags --Check-All-Files'
+
+    build-docker:
+      - '( cd tools/ci/build && drone exec )'
+      - docker tag ubuntu-user-script:build freyr/ubuntu-user-script:build
+      - docker push freyr/ubuntu-user-script:build
+      - docker rmi ubuntu-user-script:build localhost:5000/ubuntu-user-script:build
+    test-docker:
+      - drone exec
+
+    test2:
+      - docker run --rm \
+           -v $PWD:/home/treebox/bin --workdir /home/treebox/bin \
+           -e LOG=/srv/docker-volumes-local/user-script/log.sh \
+           -e USER=treebox \
+           -e TMPDIR=/tmp \
+           -e HOME=/home/treebox \
+           localhost:5000/ubuntu-user-script:build \
+           'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
 
   # For make data/*: or move to cllct.rc
   data:

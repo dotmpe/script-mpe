@@ -3,56 +3,26 @@ workspace:
     path: docker-volumes-local/user-script
 
 pipeline:
-
   build:
-    image: bvberkum/ubuntu-treebox:zesty
-    volumes:
-     - ${PWD}/tools/ssh/config:/home/treebox/.ssh/config
-     - ${HOME}/.basename-reg.yaml:/home/treebox/.basename-reg.yaml
+    image: localhost:5000/ubuntu-user-script:build
+    #image: freyr/ubuntu-user-script:build
     environment:
-     - ENV=
-     - TEST_ENV=testing TEST_SHELL=sh
-     - CS=dark
-     - sudo=sudo
-     - TRAVIS_SKIP=1
-     - TEST_ENV=travis
-     - UCONFDIR=$HOME/etc
-     - Build_Deps_Default_Paths=1
-     - TEST_RESULTS=shippable/testresults/test.tap
-     - DEBIAN_FRONTEND=noninteractive
-     - LOG=./log.sh
+    # - ENV=
+    # - TEST_ENV=testing TEST_SHELL=sh
+    # - LOG=./log.sh
      - TMPDIR=/tmp
+    # - CS=dark
      - verbosity=5
-    commands:
-     - export USER=treebox
-     - export HOME=/home/treebox
-     - DEBIAN_FRONTEND=noninteractive;
-       sudo apt-get update -qqy && sudo apt-get install -qqy
-             tidy pv
-             php7.0-cli php-dom
-             ruby-bundler
-             python-dev python-yaml python-tox
-             libffi-dev ntpdate && sudo rm -rf /var/cache/apt/*
-
-  hackyhack:
-    image: bvberkum/alpine-docker:edge
-    volumes:
-     - /var/run/docker.sock:/var/run/docker.sock
-    commands:
-     - docker commit drone_step_0 ubuntu-user-script:build
-     - docker tag ubuntu-user-script:build localhost:5000/ubuntu-user-script:build
-     - docker push localhost:5000/ubuntu-user-script:build
-     #- docker tag ubuntu-user-script:build freyr/ubuntu-user-script:build
-     #- docker push freyr/ubuntu-user-script:build
-     - docker rmi ubuntu-user-script:build localhost:5000/ubuntu-user-script:build
-
-  build:
-    #image: localhost:5000/ubuntu-user-script:build
-    image: freyr/ubuntu-user-script:build
+    # - sudo=sudo
+    # - UCONFDIR=$HOME/etc
+    # - Build_Deps_Default_Paths=1
+    # - TEST_RESULTS=shippable/testresults/test.tap
+    # - DEBIAN_FRONTEND=noninteractive
     volumes:
      - ${PWD}/tools/ssh/config:/home/treebox/.ssh/config
      - ${HOME}/.basename-reg.yaml:/home/treebox/.basename-reg.yaml
     commands:
+     - export LOG=/srv/docker-volumes-local/user-script/log.sh
      - export USER=treebox
      - export HOME=/home/treebox
      - echo PATH=$PATH
@@ -60,18 +30,12 @@ pipeline:
      #- export PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
      - echo PATH=$PATH
      - SCR_SYS_SH=bash-sh
-     - scriptname="before-install"
-     - . ./tools/sh/init.sh
-     - . ./tools/sh/env.sh
-     - . ./tools/ci/parts/init.sh
-     - scriptname=install
-     - mkdir /home/treebox/build
-     - . ./tools/ci/parts/install.sh
-     - scriptname="before-script"
-     - echo PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
-     - . ./tools/ci/parts/check.sh
-     - scriptname=script
-     - . ./tools/ci/parts/build.sh
+     - scriptname="before-script";
+       . ./tools/sh/init.sh ;
+       . ./tools/sh/env.sh ;
+       . ./tools/ci/parts/check.sh
+     - scriptname=script;
+       . ./tools/ci/parts/build.sh
 
 #  frontend:
 #    image: node:6
