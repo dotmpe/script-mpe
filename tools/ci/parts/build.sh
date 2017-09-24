@@ -69,12 +69,15 @@ do case "$BUILD_STEP" in
         failed=build/test-results-failed.list
 
         test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-specs.tap
+        test -d "$(dirname "$TEST_RESULTS")" ||
+          mkdir -vp "$(dirname "$TEST_RESULTS")"
+  
         (
           #SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
           SUITE="$REQ_SPECS" test_shell > $TEST_RESULTS
         ) || noop
 
-        trueish "$SHIPPABLE" && {
+        not_falseish "$SHIPPABLE" && {
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
             --output $(basepath $TEST_RESULTS .tap .xml)
           wc -l $TEST_RESULTS $(basepath $TEST_RESULTS .tap .xml)

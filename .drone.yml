@@ -1,8 +1,14 @@
+workspace:
+    base: /srv
+    path: docker-volumes-local/user-script
+
 pipeline:
-  utils:
-    image: bvberkum/ubuntu-treebox
+
+  build:
+    image: bvberkum/ubuntu-treebox:zesty
     volumes:
      - ${PWD}/tools/ssh/config:/home/treebox/.ssh/config
+     - ${HOME}/.basename-reg.yaml:/home/treebox/.basename-reg.yaml
     environment:
      - ENV=
      - TEST_ENV=testing TEST_SHELL=sh
@@ -20,11 +26,39 @@ pipeline:
     commands:
      - export USER=treebox
      - export HOME=/home/treebox
-     - export PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/
+     - DEBIAN_FRONTEND=noninteractive;
+       sudo apt-get update -qqy && sudo apt-get install -qqy
+             tidy pv
+             php7.0-cli php-dom
+             ruby-bundler
+             python-dev python-yaml python-tox
+             libffi-dev ntpdate && sudo rm -rf /var/cache/apt/*
+
+  hackyhack:
+    image: bvberkum/alpine-docker:edge
+    volumes:
+     - /var/run/docker.sock:/var/run/docker.sock
+    commands:
+     - docker commit drone_step_0 ubuntu-user-script:build
+     - docker tag ubuntu-user-script:build localhost:5000/ubuntu-user-script:build
+     - docker push localhost:5000/ubuntu-user-script:build
+     #- docker tag ubuntu-user-script:build freyr/ubuntu-user-script:build
+     #- docker push freyr/ubuntu-user-script:build
+     - docker rmi ubuntu-user-script:build localhost:5000/ubuntu-user-script:build
+
+  build:
+    #image: localhost:5000/ubuntu-user-script:build
+    image: freyr/ubuntu-user-script:build
+    volumes:
+     - ${PWD}/tools/ssh/config:/home/treebox/.ssh/config
+     - ${HOME}/.basename-reg.yaml:/home/treebox/.basename-reg.yaml
+    commands:
+     - export USER=treebox
+     - export HOME=/home/treebox
      - echo PATH=$PATH
+     - export PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/
      #- export PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
-     - sudo apt-get update
-     - sudo apt-get install -qqy tidy pv php7.0-cli php-dom posh dash ruby-bundler python-dev python-yaml libffi-dev ntpdate moreutils
+     - echo PATH=$PATH
      - SCR_SYS_SH=bash-sh
      - scriptname="before-install"
      - . ./tools/sh/init.sh

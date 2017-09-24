@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 # entry-point for CI pre-test phase, to do preflight checks, some verbose debugging
 note "Entry for CI pre-test / check phase"
@@ -24,7 +25,7 @@ bash --version
 test -x "$(which dash)" || error "No dash" 12
 #test -x "$(which posh)" || error "No posh" 12
 
-falseish "$SHIPPABLE" || {
+not_trueish "$SHIPPABLE" || {
   perl --version
 }
 
@@ -34,7 +35,7 @@ bats --version
 realpath --version
 basher help
 
-trueish "$SHIPPABLE" && {
+not_falseish "$SHIPPABLE" && {
   perl ~/.basher/cellar/bin/tap-to-junit-xml --help || test $? -eq 1
   perl $(which tap-to-junit-xml) --help || test $? -eq 1
 }
