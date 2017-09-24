@@ -3919,7 +3919,7 @@ htd__topics_persist()
 
 
 
-htd_man_1__run_names="List script names in package"
+htd_man_1__run_names="List local package script names"
 htd_run__run_names=f
 htd__run_names()
 {
@@ -3927,7 +3927,7 @@ htd__run_names()
 }
 
 
-htd_man_1__run_dir="List package script names and lines"
+htd_man_1__run_dir="List local package script names and lines"
 htd_run__run_dir=fp
 htd__run_dir()
 {
@@ -3936,6 +3936,15 @@ htd__run_dir()
     printf -- "$name\n"
     verbose_no_exec=1 htd__run $name
   done
+}
+
+
+htd_man_1__ls="List local package names"
+htd_run__ls=f
+htd__ls()
+{
+  PACKMETA="$(cd "$1" && echo package.y*ml | cut -f1 -d' ')"
+  jsotk.py -I yaml -O py objectpath $PACKMETA '$.*[@.id is not None].id'
 }
 
 
@@ -6689,19 +6698,6 @@ htd__git_status()
 {
   git -c color.status=always status
 }
-
-htd__ls()
-{
-  case "$uname" in
-    Darwin )
-      CLICOLOR_FORCE=1 ls $1
-    ;;
-    Linux )
-      ls --colors=yes $1
-    ;;
-  esac
-}
-
 
 # XXX: to-html of vim-syntax highlited files. But what about ANSI in and out?
 # Also, this does not seem to take colorscheme values?
