@@ -147,6 +147,9 @@
     test-docker:
       - drone exec
 
+    install-gv:
+      - sudo Build_Deps_Default_Paths=1 SRC_PREFIX=/src PREFIX=/usr/local ./install-dependencies.sh git-versioning && rm -rf /src/git-versioning
+
     test2:
       - docker run --rm \
            -v $PWD:/home/treebox/bin --workdir /home/treebox/bin \
