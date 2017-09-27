@@ -41,7 +41,7 @@ import datetime
 from datetime import timedelta
 from datetime import datetime
 
-from script_mpe import util
+from script_mpe import script_util
 import confparse
 
 
@@ -211,7 +211,7 @@ def main(func=None, opts=None):
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__doc__)
+    opts = script_util.get_opts(__doc__)
     if not opts.cmds:
         opts.cmds = ['list']
     #if not opts.flags.secret:

@@ -75,17 +75,16 @@ init
   tmpd
   out=$tmpd/line_count
 
-  printf "1\n2\n3\n4" >$out
+  printf "a\nb\nc\nd" >$out
   test "$(wc -l $out|awk '{print $1}')" = "3"
   test "$(line_count $out)" = "4"
 
-  printf "1\n2\n3\n4\n" >$out
+  printf "a\nb\nc\nd\n" >$out
   test "$(wc -l $out|awk '{print $1}')" = "4"
   test "$(line_count $out)" = "4"
 
-  #uname=$(uname -s)
-  #printf "1\r" >$out
-  #test -n "$(line_count $out)"
+  echo abc >$out
+  test "$(line_count $out)" = "1"
 }
 
 
@@ -94,7 +93,7 @@ init
   out=$tmpd/filesize
   printf "1\n2\n3\n4" >$out
   test -n "$(filesize "$out")" || bail
-  diag "$(filesize "$out")"
+  diag "Filesize: $(filesize "$out")"
   test $(filesize "$out") -eq 7
 }
 
@@ -105,6 +104,26 @@ init
   run get_uuid
   test $status -eq 0
   test -n "${lines[*]}"
+}
+
+
+@test "$lib basename" {
+
+  func_exists basenames
+  run basenames .foo bar.foo
+  { test_ok_nonempty && test "${lines[0]}" = "bar"
+  } || stdfail 1
+  run basenames ".foo .u-c .t" bar.t.u-c.foo
+  { test_ok_nonempty && test "${lines[0]}" = "bar"
+  } || stdfail 2
+  run basenames ".t .u-c .foo" bar.t.u-c.foo
+  { test_ok_nonempty && test "${lines[0]}" = "bar.t.u-c"
+  } || stdfail 3
+  run basenames ".tar .u-c .bz2 .gz" bar.u-c.tar foo.tar.bz2 baz.txt.gz
+  { test_ok_nonempty && test "${lines[0]}" = "bar" &&
+    test "${lines[1]}" = "foo.tar" &&
+    test "${lines[2]}" = "baz.txt"
+  } || stdfail 4.0
 }
 
 

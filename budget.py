@@ -61,7 +61,7 @@ from sqlalchemy import func
 
 import lib
 import log
-import util
+import script_util
 import confparse
 import taxus
 from myLedger import SqlBase, metadata, get_session, \
@@ -384,7 +384,7 @@ def cmd_balance_commit(settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
+commands = script_util.get_cmd_handlers(globals(), 'cmd_')
 
 
 ### Util functions to run above functions from cmdline
@@ -397,7 +397,7 @@ def main(opts):
 
     settings = opts.flags
     opts.default = ['balance', 'verify']
-    return util.run_commands(commands, settings, opts)
+    return script_util.run_commands(commands, settings, opts)
 
 def get_version():
     return 'budget.mpe/%s' % __version__
@@ -409,7 +409,7 @@ argument_handlers = {
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__usage__, meta=argument_handlers, version=get_version())
+    opts = script_util.get_opts(__usage__, meta=argument_handlers, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
 

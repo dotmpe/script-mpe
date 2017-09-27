@@ -202,7 +202,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
-#from cllct.osutil import parse_argv_split
+#from cllct.osscript_util import parse_argv_split
 
 import log
 import confparse
@@ -366,6 +366,26 @@ class EmbeddedIssue:
         self.tags = tags
         self.validate()
 
+    def to_dict(self):
+        return {
+            'srcdoc': {
+                'name': self.srcdoc.source_name,
+                'lines': self.srcdoc.line_count
+            },
+            'description': {
+                'span': list(self.description_span)
+            },
+            'comment': {
+                'char-span': list(self.comment_char_span),
+                'line-span': list(self.comment_line_span),
+                'flavour': self.comment_flavour.replace('_', '-')
+            },
+            'inline': self.inline, 'tags': self.tags
+        }
+
+    def __cmp__(self):
+        pass
+
     def __str__(self):
         # NOTE: 0-index ranges/spans in ID
         return "<EmbeddedIssue %s %i-%i %i-%i>" % ( ( self.comment_flavour,
@@ -394,13 +414,13 @@ class EmbeddedIssue:
     def scei_id(self, full=True):
         # NOTE: turn ranges from 0-index into 1-indexed (lines, chars, etc)
         dspan = tuple([ x+1 for x in self.description_span ])
-        scei_id = self.srcdoc.source_name
+        docname = self.srcdoc.source_name
         if full:
             # XXX: cspan = tuple([ x+1 for x in self.comment_char_span ])
-            scei_id += ":%s-%s;lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
+            scei_id = docname+":%s-%s;lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
                     dspan + tuple(self.line_span) + ( self.comment_flavour, ) + tuple(self.char_span) )
         else:
-            scei_id += ":%s-%s" % dspan
+            scei_id = docname+":%s-%s" % dspan
         return scei_id
 
 
@@ -461,6 +481,29 @@ class EmbeddedIssue:
                 isinstance(self.line_span[0], int) and
                 isinstance(self.line_span[1], int)
             )
+
+    def store(self, tag, services):
+
+        """
+        Add or update tracker for current issue.
+        """
+
+        # TODO: print('tags', self.tags)
+        if tag.slug in services:
+            tracker = services[tag.slug]
+
+            # Cleanup the SEI's Id, ie. normalize our tag-id
+            refId = tag.canonical(self.srcdoc.data)
+
+            s = self.to_dict()
+            # Find issue based on Tag-Id
+            if refId == tag.slug:
+                issue = tracker.new(refId, s)
+            else:
+                issue = tracker.globalize(refId, s)
+                tracker.update(tag.slug, refId, s)
+
+            print refId, issue
 
 
 class EmbeddedIssueOld:
@@ -1253,7 +1296,7 @@ class Radical(rsr.Rsr):
             yield source
 
     def rdc_run_embedded_issue_scan(self, sa, issue_format=None, opts=None,
-            paths=[]):
+            services=None, paths=[]):
 
         """
         Main function: scan multiple sources and print/log embedded issues
@@ -1269,7 +1312,6 @@ class Radical(rsr.Rsr):
 
         # pre-compile patterns XXX: per context
         matchbox = compile_rdc_matchbox(rc)
-
         taskdocs = {}
 
         # TODO: old clean/rewrite functions
@@ -1286,8 +1328,10 @@ class Radical(rsr.Rsr):
 
             parser = SEIParser(sa, matchbox, source, context, data, lines)
 
+            # Run over TagInstances
             for tag in parser.find_tags():
 
+                # Get EmbeddedIssue instance for tag
                 try:
                     cmt = parser.for_tag(tag)
                 except (Exception) as e:
@@ -1301,15 +1345,13 @@ class Radical(rsr.Rsr):
                     continue
 
                 srcdoc.scei.append(cmt)
-                self.rdc_issue(cmt, data, issue_format=issue_format)
 
-            #if embedded.tag_id:
-                #if embedded.tag_id == NEED_ID:
-                    #new_id = service.new_issue(embedded.tag_name, embedded.description)
-                    #embedded.set_new_id(new_id)
-                    #service.update_issue(embedded.tag_name, embedded.tag_id,
-                    #        embedded.description)
-            #embedded.store(dbsession)
+                # Print requested format to stdout
+                if not opts.quiet:
+                    self.rdc_issue(cmt, data, issue_format=issue_format)
+
+                # Process comment with tracker service(s)
+                cmt.store(tag, services)
 
     def rdc_issue(self, cmt, data, issue_format='id'):
         if issue_format not in EmbeddedIssue.formats:
@@ -1328,4 +1370,3 @@ class Radical(rsr.Rsr):
 
 if __name__ == '__main__':
     Radical.main()
-

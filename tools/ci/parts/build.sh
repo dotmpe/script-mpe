@@ -7,14 +7,6 @@ do case "$BUILD_STEP" in
 
     dev ) lib_load main; main_debug
 
-        note "Pd version:"
-        # FIXME: pd alias
-        # TODO: Pd requires user-conf.
-        (
-          pd version || noop
-          projectdir.sh version || noop
-          ./projectdir.sh version || noop
-        )
         #note "Pd help:"
         # FIXME: "Something wrong with pd/std__help"
         #(
@@ -25,25 +17,20 @@ do case "$BUILD_STEP" in
         # TODO install again? note "gtasks:"
         #./gtasks || noop
 
-        note "Htd script:"
-        (
-          htd script
-        ) && note "ok" || noop
+        #note "Htd script:"
+        #htd script
 
-        note "basename-reg:"
-        (
-          ./basename-reg ffnnec.py
-        ) || noop
+        #note "basename-reg:"
+        #./basename-reg ffnnec.py
+
         note "mimereg:"
-        (
-          ./mimereg ffnenc.py
-        ) || noop
+        ( 
+           ./mimereg ffnenc.py
+        ) || printf ""
 
-        note "lst names local:"
+        #note "lst names local:"
         #892.2 https://travis-ci.org/dotmpe/script-mpe/jobs/191996789
-        (
-          lst names local
-        ) || noop
+        #lst names local
         # [lst.bash:names] Warning: No 'watch' backend
         # [lst.bash:names] Resolved ignores to '.bzrignore etc:droppable.globs
         # etc:purgeable.globs .gitignore .git/info/exclude'
@@ -69,12 +56,15 @@ do case "$BUILD_STEP" in
         failed=build/test-results-failed.list
 
         test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-specs.tap
+        test -d "$(dirname "$TEST_RESULTS")" ||
+          mkdir -vp "$(dirname "$TEST_RESULTS")"
+  
         (
           #SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
           SUITE="$REQ_SPECS" test_shell > $TEST_RESULTS
         ) || noop
 
-        trueish "$SHIPPABLE" && {
+        not_falseish "$SHIPPABLE" && {
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
             --output $(basepath $TEST_RESULTS .tap .xml)
           wc -l $TEST_RESULTS $(basepath $TEST_RESULTS .tap .xml)

@@ -91,9 +91,8 @@ box_instance_init()
   export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
 
   . $scriptpath/main.lib.sh load-ext
-  . $scriptpath/std.lib.sh
-  . $scriptpath/str.lib.sh
-  . $scriptpath/util.sh
+  . $scriptpath/util.sh load-ext
+  lib_load std str sys
   . $scriptpath/box.init.sh
   box_run_sh_test
   # -- box_instance box init sentinel --
@@ -130,7 +129,7 @@ box_instance_load()
   hostname=$(hostname -s)
   uname=$(uname)
 
-  str_load
+  str_lib_load
 }
 
 box_instance_unload()

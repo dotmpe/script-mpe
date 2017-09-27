@@ -12,26 +12,29 @@ test -n "$SCRIPTPATH" || {
     test -n "$scriptpath" &&
       LIB=$scriptpath ||
       LIB=$(cd $(dirname $(dirname $0)); pwd -P )
-    test -n "$LIB" || exit 99
+    test -n "$LIB" || {
+      echo "Missing LIB" >&2; exit 99
+    }
     export LIB
   }
   #test -n "$LIB" || export LIB="$( test -n "$scriptpath" &&
   #    echo $scriptpath || ( cd $(dirname $(dirname $0)); pwd -P ))"
 
-	#export SCRIPTPATH="$( case "$LIB" in /* ) echo $LIB ;; * )
+  #export SCRIPTPATH="$( case "$LIB" in /* ) echo $LIB ;; * )
   #    echo $(cd "$LIB"; pwd -P)
   #  ;; esac )"
 
-	SCRIPTPATH=$LIB
-	# get absolute path for scripts lib dir if LIB is relative
-	case "$LIB" in /* ) ;; * )
-		SCRIPTPATH="$(cd "$LIB"; pwd -P)"
-	;;esac
-	export SCRIPTPATH
+  SCRIPTPATH=$LIB
+  # get absolute path for scripts lib dir if LIB is relative
+  case "$LIB" in /* ) ;; * )
+    SCRIPTPATH="$(cd "$LIB"; pwd -P)"
+  ;;esac
+  export SCRIPTPATH
 }
 
 # Now include script and run util_init to source other utils
 . $scriptpath/util.sh
+lib_load
 lib_load projectenv env-deps
 
 

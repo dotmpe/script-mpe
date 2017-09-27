@@ -7,7 +7,8 @@ from sqlalchemy.orm import relationship, backref
 
 from script_mpe import lib
 from .init import SqlBase
-from .util import current_hostname
+from .util import ORMMixin, current_hostname
+from .mixin import CardMixin
 from . import core
 from . import util
 from . import iface
@@ -80,7 +81,8 @@ locators_tags = Table('locators_tags', SqlBase.metadata,
     Column('tags_idb', ForeignKey('names_tag.id'))
 )
 
-class Locator(core.ID):
+#class Locator(core.ID):
+class Locator(SqlBase, CardMixin, ORMMixin):
 
     """
     A global identifier for retrieval of local or remote content.
@@ -96,15 +98,10 @@ class Locator(core.ID):
     zope.interface.implements(iface.IID)
 
     __tablename__ = 'ids_lctr'
-    __mapper_args__ = {'polymorphic_identity': 'id_lctr'}
+    lctr_id = Column('id', Integer, primary_key=True)
 
-    lctr_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
-
-    # TODO: shortID if length >32
-
-    ref_md5_id = Column(Integer, ForeignKey('chks_md5.id'))
-    ref_md5 = relationship(checksum.MD5Digest, primaryjoin=ref_md5_id==checksum.MD5Digest.md5_id)
-    "A checksum for the complete reference, XXX to use while shortref missing? "
+    idtype = Column(String(50), nullable=False)
+    __mapper_args__ = {'polymorphic_on': idtype, 'polymorphic_identity': 'id:locator'}
 
     @property
     def scheme(self):
@@ -141,10 +138,74 @@ class Locator(core.ID):
     domain = relationship('Host', primaryjoin="Locator.domain_id==Host.domain_id",
         backref='locations')
 
+    ref_md5_id = Column(Integer, ForeignKey('chks_md5.id'))
+    ref_md5 = relationship(checksum.MD5Digest, primaryjoin=ref_md5_id==checksum.MD5Digest.md5_id)
+    "A checksum for the complete reference, XXX to use while shortref missing? "
+
+    ref_sha1_id = Column(Integer, ForeignKey('chks_sha1.id'))
+    ref_sha1 = relationship(checksum.SHA1Digest, primaryjoin=ref_sha1_id==checksum.SHA1Digest.sha1_id)
+    "A checksum for the complete reference, XXX to use while shortref missing? "
+
     def __str__(self):
-        return "%s %r" % (lib.cn(self), self.ref or self.global_id)
+        return "%s %r" % (lib.cn(self), self.ref or self.href())
+
+    @property
+    def href(self):
+        return self.ref
+
+    @classmethod
+    def keys(klass):
+        return 'status last_seen'.split(' ')
+
+    def to_dict(self):
+        d = dict(href=self.ref)
+        k = self.__class__.keys() + 'deleted date_added date_deleted date_updated'.split(' ')
+        for p in k:
+            d[p] = getattr(self, p)
+        return d
+
+
+class URL(Locator):
+
+    __tablename__ = 'ids_lctr_url'
+    __mapper_args__ = {'polymorphic_identity': 'id:locator:url'}
+
+    url_id = Column('id', Integer, ForeignKey('ids_lctr.id'), primary_key=True)
+
+    ref = Column(Text)
+
+    def href(self):
+        return self.ref
+
+    @classmethod
+    def from_dict(klass, **kwds):
+        "Forget instance"
+        self.ref = kwds.href
+        del kwds.href
+
+
+
+token_locator_table = Table('token_locator', SqlBase.metadata,
+    Column('left_id', Integer, ForeignKey('stk.id'), primary_key=True),
+    Column('right_id', Integer, ForeignKey('ids_lctr.id'), primary_key=True),
+)
+
+
+class Token(util.SqlBase, util.ORMMixin):
+
+    """
+    A large-value variant on Tag, perhaps should make this a typetree.
+    """
+
+    __tablename__ = 'stk'
+    __mapper_args__ = {'polymorphic_identity': 'meta:security-token'}
+
+    token_id = Column('id', Integer, primary_key=True)
+
+    value = Column(Text(65535), nullable=True)
+    refs = relationship(Locator, secondary=token_locator_table)
 
 
 models = [
-        Domain, Host, Locator
+        Domain, Host, Locator, Token
     ]

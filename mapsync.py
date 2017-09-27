@@ -469,7 +469,7 @@ def init(map_id):
 
     fatal('todo: init')
 
-# util
+# script_util
 
 def info(v, *args):
     msg = "mapsync: %s" % v

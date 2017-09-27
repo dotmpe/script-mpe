@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """
-matchbox - a (file)naming utility based on regular expressions.
+matchbox - a (file)naming script_utility based on regular expressions.
 
-A filename cleaning and reformatting utility. See matchbox.rst.
+A filename cleaning and reformatting script_utility. See matchbox.rst.
 """
 import inspect
 import sys

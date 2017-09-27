@@ -14,11 +14,30 @@ version=0.0.4-dev # script-mpe
 
 # See $scriptname help to get started
 
-topics__list()
+topics__stats()
 {
-  echo TODO: topics list
+  db_sa.py stats topic
 }
 
+
+topics__info()
+{
+  topic.py info
+}
+
+
+topics__list()
+{
+  topic.py list
+}
+
+
+topics__read_list()
+{
+  # [2017-04-17] experimental setup to read items into outline hierarchy
+  export LIST_DB=$TOPIC_DB
+  list.py read-list hier.txt @Topic
+}
 
 
 
@@ -112,6 +131,7 @@ topics_lib()
 # Pre-exec: post subcmd-boostrap init
 topics_load()
 {
+  export TOPIC_DB=postgres://localhost:5432
   # -- topics box lib sentinel --
   set --
 }

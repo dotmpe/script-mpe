@@ -1,14 +1,13 @@
-language: bash
-#language: python
+language: python
 
-#python:
-#  - "2.6"
-#  - "2.7"
-#  - "3.2"
-#  #- "3.3"
-#  #- "3.4"
-#  #- "3.7"
-#  #- "nightly"
+python:
+  - "2.7"
+  #- "3.2"
+  - "3.6"
+  #- "3.6-dev"
+  - "3.7"
+  #- "3.7-dev"
+  #- "nightly"
 
 addons:
   apt:
@@ -19,6 +18,7 @@ addons:
       - moreutils
       - curl
       - php5-cli
+      - php-dom
       - posh
       - dash
       - ruby-bundler
@@ -27,7 +27,7 @@ addons:
 # - pytz
 
 before_install:
-  - SCR_SYS_SH=bash-sh
+  - export SCR_SYS_SH=bash-sh
   - scriptname="before-install"
   - . ./tools/sh/init.sh
   - . ./tools/sh/env.sh
@@ -47,10 +47,11 @@ before_script:
 script:
   - scriptname=script
   - . ./tools/ci/parts/build.sh
+#- whoami && pwd -P && uname -a && hostname -f && env
 
-matrix:
-  include: []
-
+#matrix:
+#  include: []
+#
 env:
   matrix:
     #- ENV=noop
@@ -68,19 +69,18 @@ env:
     - TRAVIS_SKIP=1
     - TEST_ENV=travis
     - UCONFDIR=$HOME/etc
-    - PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
-    - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
+    - PATH=$PATH:$PWD:$PWD/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
     - TEST_RESULTS=shippable/testresults/test.tap
     - Build_Deps_Default_Paths=1
+    - LOG=$PWD/log.sh
+    - PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python2.7/site-packages:$HOME/bin:$HOME/lib/py
 
 branches:
-  only: []
-  #only:
-    #  - master
-    #  - '/^test.*$/'
-    #  - '/^dev.*$/'
-    #  - '/^[0-9]*\.[0-9]*\.[0-9]*/'
-  not: []
+  only:
+    - master
+    - '/^test.*$/'
+    - '/^dev.*$/'
+    - '/^[0-9]*\.[0-9]*\.[0-9]*/'
 
 #deploy:
 #  provider: releases

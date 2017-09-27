@@ -29,8 +29,11 @@ Usage:
     jsotk [options] from-flat-args <fkv-args>...
     jsotk [options] merge-one <srcfile> <srcfile2> [<destfile>]
     jsotk [options] merge <destfile> <srcfiles>...
+    jsotk [options] append <destfile> <pathexpr> [<srcfiles>...]
     jsotk [options] update <destfile> [<srcfiles>...]
     jsotk [options] update-from-args <srcfiles> <kv-args> <destfile>
+    jsotk [options] update-at <destfile> <expr> [<srcfiles>...]
+    jsotk [options] encode <srcfile>
     jsotk (version|-V|--version)
     jsotk (help|-h|--help)
     jsotk [options] [dump] [<srcfile> [<destfile]]
@@ -84,6 +87,11 @@ Options:
                 .
                 If no ADDRESS or JSOTK_SOCKET is found the invocation is
                 executed normally
+  --objects
+                Mode for table writer.
+  --columns C
+                Select specific columns to output.
+  --no-head     Do not print header/column line at start.
   -V, --version
                 Print version
 
@@ -93,7 +101,7 @@ json (i/o)
     ..
 yaml (i/o)
     ..
-pkv
+pkv (i/o)
     Parse syntax like::
 
         path/to[1]/item=value-for-object-path
@@ -103,7 +111,7 @@ pkv
 
         {"path": {"to": [ {"item": "value-for-object-path"}, "append-item-value" ] } }
 
-fkv (o)
+fkv (i/o)
     Like pkv, but this is even more restrictive in key characters, keys
     can only contain [A-Za-Z_][A-Za-z0-9_]+ and everything else is lost.
     Still the (example at pkv) above can be represented, for example::
@@ -114,8 +122,16 @@ fkv (o)
     Double underscores are used to separate path elements.
 py (o)
     Given one or more results, output as python value.
-lines (o)
+lines|list (o)
     Given a list result, simply output items line by line.
+table (o)
+    ..
+xml (i/o)
+    ..
+properties (i)
+    ..
+ini (i)
+    ..
 
 Dev
 ----
@@ -132,11 +148,12 @@ from StringIO import StringIO
 from objectpath import Tree
 
 
-import util, confparse
+import script_util, confparse
 from jsotk_lib import PathKVParser, FlatKVParser, \
         load_data, stdout_data, readers, open_file, \
         get_src_dest_defaults, set_format, get_format_for_fileext, \
         get_dest, get_src_dest, \
+        json_writer, \
         deep_union, deep_update, data_at_path, data_check_path, maptype
 
 
@@ -219,6 +236,22 @@ def H_merge(ctx, write=True):
         return data
 
 
+def H_append(ctx):
+    "Add srcfiles as items to list. Optionally provide pathexpr to list. "
+    if not ctx.opts.args.srcfiles:
+        return
+    appendfile = get_dest(ctx, 'r')
+    data = l = load_data( ctx.opts.flags.output_format, appendfile, ctx )
+    if ctx.opts.args.pathexpr:
+        l = data_at_path(ctx, None, data)
+    for src in ctx.opts.args.srcfiles:
+        fmt = get_format_for_fileext(src) or ctx.opts.flags.input_format
+        mdata = load_data( fmt, open_file( src, 'in', ctx=ctx ), ctx )
+        l.append(mdata)
+    updatefile = get_dest(ctx, 'w+')
+    return stdout_data( data, ctx, outf=updatefile )
+
+
 def H_update(ctx):
     "Update srcfile from stdin. Write to destfile or stdout. "
 
@@ -240,10 +273,49 @@ def H_update(ctx):
 
 
 def H_update_from_args(ctx):
+    print('TODO')
     pass
     # TODO jsotk update-from-args
     #reader = PathKVParser(rootkey=args[0])
     #reader.scan_kv_args(ctx.opts.args.kv_args)
+
+
+def H_update_at(ctx):
+    """Update object at path, using data read from srcfile(s)"""
+    if not ctx.opts.args.srcfiles:
+        return
+    updatefile = get_dest(ctx, 'r')
+    data = o = load_data( ctx.opts.flags.output_format, updatefile, ctx )
+    #if ctx.opts.args.pathexpr:
+        #o = data_at_path(ctx, None, data)
+    if ctx.opts.args.expr:
+        q = Tree(data)
+        assert q.data
+        o = q.execute( ctx.opts.args.expr )
+    if isinstance(o, types.GeneratorType):
+        r = list(o)
+        assert len(r) == 1, r
+        o = r[0]
+        #r = [ stdout_data( s, ctx, outf=sys.stdout) for s in o ]
+        #print(r)
+    for src in ctx.opts.args.srcfiles:
+        fmt = get_format_for_fileext(src) or ctx.opts.flags.input_format
+        mdata = load_data( fmt, open_file( src, 'in', ctx=ctx ), ctx )
+        deep_update([o, mdata], ctx)
+    updatefile = get_dest(ctx, 'w+')
+    return stdout_data( data, ctx, outf=updatefile )
+
+
+def H_encode(ctx):
+    srcfile = ctx.opts.args.srcfile
+    if srcfile == '-':
+        src = sys.stdin
+    else:
+        src = open(srcfile)
+    data = src.read()
+    json_writer(data, sys.stdout, ctx)
+    #print(ctx.opts.args.srcfile)
+
 
 
 # Ad-hoc designed path query
@@ -274,6 +346,7 @@ def H_path(ctx):
 
     for tp in "new list obj int str bool".split(" "):
         if ctx.opts.flags["is_%s" % tp]:
+            # FIXME: print(maptype(tp))
             if tp == "new":
                 infile, outfile = get_src_dest_defaults(ctx)
                 if not data and data_check_path(ctx, infile):
@@ -429,7 +502,7 @@ def prerun(ctx, cmdline):
     global doc_cache
 
     argv = cmdline.split(' ')
-    ctx.opts = util.get_opts(ctx.usage, argv=argv)
+    ctx.opts = script_util.get_opts(ctx.usage, argv=argv)
 
     #if not pdhdata:
     #    pdhdata = yaml_load(open(ctx.opts.flags.file))
@@ -486,7 +559,7 @@ if __name__ == '__main__':
         out=sys.stdout,
         inp=sys.stdin,
         err=sys.stderr,
-        opts=util.get_opts(__usage__)
+        opts=script_util.get_opts(__usage__)
     ))
     ctx['in'] = ctx['inp']
     if ctx.opts.flags.version:

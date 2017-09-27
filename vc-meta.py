@@ -29,7 +29,7 @@ import re
 from docopt import docopt
 
 from . import libcmd
-from . import util
+from . import script_util
 from . import rsr
 from . import log
 
@@ -107,8 +107,8 @@ def cmd_info():
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = script_util.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = script_util.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -120,11 +120,11 @@ def main(opts):
     """
 
     opts.flags.configPath = os.path.expanduser(opts.flags.config)
-    settings = util.init_config(opts.flags.configPath, dict(
+    settings = script_util.init_config(opts.flags.configPath, dict(
             nodes = {}, interfaces = {}, domain = {}
         ), opts.flags)
 
-    return util.run_commands(commands, settings, opts)
+    return script_util.run_commands(commands, settings, opts)
 
 def get_version():
     return 'vc.mpe/%s' % __version__
@@ -132,7 +132,7 @@ def get_version():
 if __name__ == '__main__':
     #VC.main()
     import sys
-    opts = util.get_opts(__doc__, version=get_version())
+    opts = script_util.get_opts(__doc__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
 

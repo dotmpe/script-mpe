@@ -22,8 +22,8 @@ try:
 except:
     pass
 
-from docutils.core import publish_doctree
-from docutils import nodes
+from docscript_utils.core import publish_doctree
+from docscript_utils import nodes
 
 
 class TestSpecVisitor(nodes.SparseNodeVisitor):

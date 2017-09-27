@@ -5,6 +5,7 @@ shopts=$-
 set +x
 set -e
 
+
 # Restore shell -e opt
 case "$shopts"
 
@@ -29,7 +30,7 @@ esac
 req_vars scriptname || error "scriptname=$scriptname" 1
 req_vars scriptpath || error "scriptpath=$scriptpath" 1
 req_vars SCRIPTPATH || error "SCRIPTPATH=$SCRIPTPATH" 1
-req_vars LIB || error "LIB=$LIB" 1
+#req_vars LIB || error "LIB=$LIB" 1
 
 req_vars verbosity || export verbosity=7
 req_vars DEBUG || export DEBUG=
@@ -41,10 +42,14 @@ GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
 BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
         | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
 
+project_env_bin node npm lsof
+
+
+
 
 ## Per-env settings
 
-case "$ENV_NAME" in dev ) ;; *|dev?* )
+case "$ENV_NAME" in dev|testing ) ;; *|dev?* )
       echo "Warning: No env '$ENV_NAME', overriding to 'dev'" >&2
       export ENV_NAME=dev
     ;;
@@ -101,12 +106,14 @@ esac
 ## Defaults
 
 # Sh
-test -n "$Env_Param_Re" || export Env_Param_Re='^\(ENV\|ENV_NAME\|NAME\|TAG\|ENV_.*\)='
-test -n "$Job_Param_Re" ||
-  export Job_Param_Re='^\(Project\|Jenkins\|Build\|Job\)_'
 test -n "$Build_Debug" ||       export Build_Debug=
 test -n "$Build_Offline" ||       export Build_Offline=
 test -n "$Dry_Run" ||           export Dry_Run=
+
+# Sh (projectenv.lib)
+test -n "$Env_Param_Re" || export Env_Param_Re='^\(ENV\|ENV_NAME\|NAME\|TAG\|ENV_.*\)='
+test -n "$Job_Param_Re" ||
+  export Job_Param_Re='^\(Project\|Jenkins\|Build\|Job\)_'
 
 # install-dependencies
 #test -n "$Build_Deps_Default_Paths" || export Build_Deps_Default_Paths=1
@@ -116,8 +123,8 @@ req_vars sudo || export sudo=
 
 # BATS tests dependencies
 
-test -n "$ProjectEnv_Requirements" ||
-  export ProjectEnv_Requirements="bats bats-specs docutils"
+test -n "$Project_Env_Requirements" ||
+  export Project_Env_Requirements="bats bats-specs docutils lsof"
 test -n "$ProjectTest_BATS_Specs" || export ProjectTest_BATS_Specs="tests/bats/{,*-}spec.bats"
 
 test -z "$Build_Offline" && {
@@ -145,29 +152,32 @@ req_vars TEST_OPTIONS || export TEST_OPTIONS=
 
 req_vars TEST_SHELL || export TEST_SHELL=sh
 
-req_vars REQ_SPECS || export REQ_SPECS="\
- helper util-lib str std os match matchbox vc-lib main\
- sh box-lib box-cmd box pd-meta esop disk diskdoc"
+req_vars REQ_SPECS || 
+  export REQ_SPECS="helper util-lib str std os match matchbox vc-lib main"\
+" sh box-lib box-cmd box pd-meta esop disk diskdoc"
 
-req_vars TEST_SPECS || export TEST_SPECS="\
- statusdir htd basename-reg dckr\
- rsr edl finfo vc \
- jsotk-py libcmd_stacked mimereg radical \
- meta pd "
+req_vars TEST_SPECS || \
+  export TEST_SPECS="statusdir htd basename-reg dckr"\
+" rsr edl finfo vc"\
+" jsotk-py libcmd_stacked mimereg radical"\
+" meta pd"
 
 
 req_vars INSTALL_DEPS || {
   INSTALL_DEPS=" basher "
   export INSTALL_DEPS
 }
-req_vars APT_PACKAGES || export APT_PACKAGES="nodejs\
- perl python-dev\
- realpath uuid-runtime moreutils curl php5-cli"
+
+{
+  test "$USER" != "travis" && not_falseish "$SHIPPABLE" 
+} && {
+  req_vars APT_PACKAGES || export APT_PACKAGES="nodejs"\
+" perl python-dev"\
+" realpath uuid-runtime moreutils curl php5-cli"
+}
 # not o shippable: npm
 
 test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
-
-
 
 
 

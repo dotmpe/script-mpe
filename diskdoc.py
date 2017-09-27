@@ -48,7 +48,7 @@ from docopt import docopt
 import uuid
 from deep_eq import deep_eq
 
-from script_mpe import util, confparse
+from script_mpe import script_util, confparse
 from script_mpe.res import js
 from script_mpe.confparse import yaml_load, yaml_safe_dump
 
@@ -157,7 +157,7 @@ def prerun(ctx, cmdline):
     global diskdata
 
     argv = cmdline.split(' ')
-    ctx.opts = util.get_opts(ctx.usage, argv=argv)
+    ctx.opts = script_util.get_opts(ctx.usage, argv=argv)
 
     if not diskdata:
         diskdata = yaml_load(open(ctx.opts.flags.file))
@@ -208,7 +208,7 @@ if __name__ == '__main__':
         out=sys.stdout,
         err=sys.stderr,
         inp=sys.stdin,
-        opts=util.get_opts(__doc__)
+        opts=script_util.get_opts(__doc__)
     ))
     sys.exit( main( ctx ) )
 

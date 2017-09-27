@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<opml xmlns:ext="#">
+  <head>
+    <title>HOME:bin/tools Tools Outline</title>
+  </head>
+  <body>
+    <outline text="HOME:bin/tools" type="htd:tools-doc" ext:rel="" ext:href="">
+      <outline text="Named prerequisite packages and metadata on provisioning. See tools.rst" type="description"></outline>
+      <outline text="tools" type="htd:package-map">
+        <outline text="todotxt-machine" type="htd:tools:pip">
+          <outline text="Python+Urwid plain text todo keeper. Nice client.
+Just the features needed for editing a single TODO list.
+Has projects, contexts, filters, priorities A-F.
+And some keys: due:&lt;YYYY-M-D&gt;
+
+https://github.com/AnthonyDiGirolamo/todotxt-machine
+" type="description"></outline>
+        </outline>
+        <outline text="jolt" type="htd:tools:basher">
+          <outline text="Transforms for JSON (Java)" type="description"></outline>
+          <outline text="jolt" type="htd:tools:bin"></outline>
+          <outline text="post-install" type="htd:tools:script">
+            <outline text="cd ~/.basher/cellar/packages/bazaarvoice/jolt/" type="htd:tools:script-line"></outline>
+            <outline text="git pull" type="htd:tools:script-line"></outline>
+            <outline text="mvn clean package" type="htd:tools:script-line"></outline>
+          </outline>
+        </outline>
+        <outline text="membash" type="htd:tools:git" ext:href="https://gist.github.com/dotmpe/045284c6522b1c24a3b5a56352d273e5">
+          <outline type="description"></outline>
+          <outline text="membash" type="htd:tools:bin"></outline>
+        </outline>
+        <outline text="jsonwidget" type="htd:tools:pip">
+          <outline text="Generate forms from JSON schema with Python+Urwid.
+Does not work out of the box, it seems.
+No SCM. Around 2010.
+
+https://pypi.python.org/pypi/jsonwidget/
+http://blog.robla.net/2010/jsonwidget-python/
+" type="description"></outline>
+          <outline text="jsonedit" type="htd:tools:bin"></outline>
+          <outline text="jsonaddress" type="htd:tools:bin"></outline>
+        </outline>
+        <outline text="jsonspec-validate" type="htd:tools:alias">
+          <outline type="description"></outline>
+          <outline text="jsonspec-validate" type="htd:tools:bin"></outline>
+        </outline>
+        <outline text="json-spec" type="htd:tools:pip">
+          <outline type="description"></outline>
+          <outline text="jsonspec" type="htd:tools:bin"></outline>
+          <outline text="post-install" type="htd:tools:script">
+            <outline text="test -w /usr/local/bin &amp;&amp; PREFIX=/usr/local || PREFIX=~/.local" type="htd:tools:script-line"></outline>
+            <outline text="echo '#!/bin/sh' &gt; $PREFIX/jsonspec" type="htd:tools:script-line"></outline>
+            <outline text="echo 'python $(python -c &quot;import jsonspec;print jsonspec.__path__[0]&quot;)/cli.py $@ || exit $?' &gt;&gt; $PREFIX/bin/jsonspec" type="htd:tools:script-line"></outline>
+            <outline text="chmod +x $PREFIX/bin/jsonspec" type="htd:tools:script-line"></outline>
+          </outline>
+          <outline text="post-uninstall" type="htd:tools:script">
+            <outline text="test -w /usr/local/bin &amp;&amp; rm /usr/local/bin/jsonspec || rm ~/.local/bin/jsonspec" type="htd:tools:script-line"></outline>
+          </outline>
+          <outline text="jsonspec-validate" type="htd:tools:script">
+            <outline text="jsonspec validate --document-json $1 --schema-json $2" type="htd:tools:script-line"></outline>
+          </outline>
+        </outline>
+      </outline>
+    </outline>
+  </body>
+</opml>

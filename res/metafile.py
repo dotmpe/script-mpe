@@ -541,8 +541,8 @@ class MetafileFile(object): # XXX: Metalink syntax
 class Metadir(object):
 
     """
-    Find like metafile, except this checks if a dotname is a dotted directory,
-    and wether some ID file exists in there.
+    Find like metafile, except this checks if a dotname is a dot-directory,
+    and if some ID file exists in there.
     """
 
     # XXX used as class variuables..

@@ -6,6 +6,11 @@ lst__inputs="arguments options paths files"
 lst__outputs="passed skipped errored failed"
 
 
+list_lib_load()
+{
+  lst_preload
+}
+
 lst_preload()
 {
   CWD=$(pwd -P)
@@ -15,14 +20,13 @@ lst_preload()
   test -n "$archive_dt_strf" || archive_dt_strf=%Y-%M-%dT%H:%m:%S
   test -n "$lst_base" || lst_base=htd
 
-  test -n "$HTD_ETC" || HTD_ETC="$(lst_init_etc | head -n 1)"
+  test -n "$SCRIPT_ETC" || SCRIPT_ETC="$(lst_init_etc | head -n 1)"
 }
 
 lst_load()
 {
-
-  sys_load
-  str_load
+  sys_lib_load
+  str_lib_load
 
   # NOTE: single session per proc. nothing sticky.
   test -n "$lst_session_id" || lst_session_id=$(get_uuid)
@@ -34,13 +38,15 @@ lst_load()
     }
 
   # build ignore pattern file
-  ignores_load $lst_base
-  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
-    error "expected $lst_base ignore dotfile" 1
-  lst_init_ignores
+  ignores_lib_load $lst_base
+
+  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
+    IGNORE_GLOBFILE=$(eval echo \"\$$(str_upper "$base")_IGNORE\")
+    lst_init_ignores
+  }
 
   # Selective per-subcmd init
-  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
+  for x in $(try_value "${subcmd}" load lst | sed 's/./&\ /g')
   do case "$x" in
 
     i ) # setup io files
@@ -48,11 +54,11 @@ lst_load()
         export $lst__inputs $lst__outputs
       ;;
 
-    I ) # setup IO descriptors (requires i before)
-        req_vars $(try_local outputs) $(try_local inputs)
-        local fd_num=2 io_dev_path=$(io_dev_path)
-        open_io_descrs
-      ;;
+    #I ) # setup IO descriptors (requires i before)
+    #    req_vars $(echo_local outputs) $(echo_local inputs)
+    #    local fd_num=2 io_dev_path=$(io_dev_path)
+    #    open_io_descrs
+    #  ;;
 
   esac; done
 }
@@ -63,7 +69,7 @@ lst_init_etc()
   test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
   #XXX: test ! -e .conf || echo .conf
   #test ! -e $UCONFDIR/htd || echo $UCONFDIR
-  info "Set htd-etc to '$*'"
+  #info "Set htd-etc to '$*'"
 }
 
 
@@ -80,7 +86,7 @@ lst_unload()
     I ) # Named io is numbered starting with outputs and at index 3
         local fd_num=2
         close_io_descrs
-        eval unset $(try_local inputs) $(try_local outputs)
+        eval unset $(echo_local inputs) $(echo_local outputs)
       ;;
   esac; done
 
@@ -97,8 +103,10 @@ lst_unload()
 # Update IGNORE_GLOBFILE lines
 lst_init_ignores()
 {
-  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" \
-    || error "expected existing IGNORE_GLOBFILE ($IGNORE_GLOBFILE)" 1
+  # XXX: there's no unload, no way to warn about temp file being left
+  # so instead for now insist there is a safe place to keep this file.
+  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
+       error "lst:init-ignores: expected $lst_base ignore dotfile ($IGNORE_GLOBFILE)" 1
 
   local suf=$1
   {
@@ -156,7 +164,7 @@ htd_grep_excludes()
   grep_excludes="--exclude-dir \"*/.svn\" $grep_excludes"
 }
 
-# return paths for names that exist along given path
+# return paths for names that exist rootward along given dirpath
 htd_find_path_locals()
 {
   local name path stop_at
@@ -175,5 +183,4 @@ htd_find_path_locals()
     path=$(dirname $path)
   done
 }
-
 

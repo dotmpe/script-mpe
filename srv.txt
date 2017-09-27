@@ -1,0 +1,20 @@
+
+srv: An SQL schema and LIST processor for Service Containers path:/srv
+
+volume: stores identified by physical and virtual Id @DiskVolumes [srv]
+
+backup: one per store @Service [srv]
+
+backup-local: @Service.Alias [backup] <target:backup-11-3-boreas-brix>
+
+annex:        container name for all GIT annex checkouts in the system   @Service [srv]
+src:          container name for all project source packages and/or checkouts in the system   @Service [srv]
+git:          container name for all GIT bare repositories in the system  @Service [srv]
+project:      container name for primary personal project directory  @Service [srv]
+conf:         container name for personal root dotfile repo checkout   @Service [srv]
+public_html:  container name for personal public hypertext  @Service [srv]
+archive-1:    aka archive-old the container name for the old file GIT Annex  @Service [srv]
+archive-2:    container name for a newer GIT Annex  @Service [srv]
+
+
+# vim:ft=todo:

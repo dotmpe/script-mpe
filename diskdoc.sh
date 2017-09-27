@@ -594,8 +594,8 @@ diskdoc_load()
 {
   test -n "$diskdoc_session_id" || diskdoc_session_id=$(get_uuid)
 
-  sys_load
-  str_load
+  sys_lib_load
+  str_lib_load
 
   for x in $(try_value "${subcmd}" "" load | sed 's/./&\ /g')
   do case "$x" in

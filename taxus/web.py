@@ -3,6 +3,9 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime
 from sqlalchemy.orm import relationship, backref
 
+from .init import SqlBase
+from .util import ORMMixin
+from .mixin import CardMixin
 from . import core
 from . import net
 from . import fs
@@ -17,7 +20,7 @@ class CachedContent(fs.INode):
     Complete header information should be mantained when a CachedContent record is created.
     """
 
-    __tablename__ = 'cnt'
+    __tablename__ = 'ccnt'
     __mapper_args__ = {'polymorphic_identity': 'inode:cached-resource'}
 
     content_id = Column('id', Integer, ForeignKey('inodes.id'), primary_key=True)
@@ -34,7 +37,7 @@ class CachedContent(fs.INode):
     encodings = Column(String(255))
 
 
-class Status(core.Node):
+class Status(SqlBase, CardMixin, ORMMixin):
 
     """
     Made this a node so it can be annotated, and perhaps expanded in the future
@@ -42,17 +45,18 @@ class Status(core.Node):
     """
 
     __tablename__ = "status"
-    __mapper_args__ = {'polymorphic_identity': 'status'}
+    status_id = Column('id', Integer, primary_key=True)
 
-    status_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    code = Column(Integer, unique=True)
+    phrase = Column(String(255), index=True)
+    description = Column(Text(65535))
 
-    http_code = Column(Integer, unique=True)
+    # Relation to definition (protocol-spec/section)
+    ref_id = Column(Integer, ForeignKey('ids_lctr_localname.id'))
+    ref = relationship('Localname', primaryjoin='Localname.localname_id==Status.ref_id')
 
-    #ref = Column(Integer, ForeignKey('nodes.id'))
-    #description = Column(Text, index=True)
 
-
-class Resource(core.Node):
+class Resource(SqlBase, CardMixin, ORMMixin):
 
     """
     A generic resource description. A (web) document.
@@ -67,10 +71,7 @@ class Resource(core.Node):
     __tablename__ = 'res'
     __mapper_args__ = {'polymorphic_identity': 'resource'}
 
-    resource_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-
-    status_id = Column(ForeignKey('status.http_code'), index=True)
-    status = relationship(Status, primaryjoin=status_id == Status.http_code)
+    resource_id = Column('id', Integer, primary_key=True)
 
     locator_id = Column(ForeignKey('ids_lctr.id'), index=True)
     location = relationship(net.Locator, primaryjoin=locator_id == net.Locator.lctr_id)
@@ -80,11 +81,22 @@ class Resource(core.Node):
     last_modified = Column(DateTime)
     last_update = Column(DateTime)
 
+    #status_id = Column(ForeignKey('status.id'), index=True)
+    #status = relationship(Status, primaryjoin=status_id == Status.status_id)
+    status = Column(Integer)
+
     # RFC 2616 headers
     allow = Column(String(255))
 
     # extension_headers  = Column(String())
 
+    @property
+    def href(self):
+        return self.location.href()
+
+    @classmethod
+    def keys(klass):
+        return 'last_access last_modified last_update status'.split(' ')
 
 
 class Invariant(Resource):
@@ -103,9 +115,9 @@ class Invariant(Resource):
 
     invariant_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
 
-    content_id = Column(Integer, ForeignKey('cnt.cid'), index=True)
+    content_id = Column(Integer, ForeignKey('ccnt.id'), index=True)
     content = relationship(CachedContent,
-            primaryjoin=content_id==CachedContent.cid)
+            primaryjoin=content_id==CachedContent.content_id)
     "A specification of the contents. "
 
     # RFC 2616 headers
@@ -134,4 +146,17 @@ class Variant(Resource):
     # descriptions - many-to-may to Description.variants
 
 
-models = [ CachedContent, Status, Resource, Variant, Invariant ]
+class RemoteCachedResource(Resource):
+
+    __tablename__ = 'rcres'
+    __mapper_args__ = {'polymorphic_identity': 'resource:cached'}
+
+    remotecachedresource_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
+
+    # Relation to cache service
+    rcres_type_id = Column(Integer, ForeignKey('ns.id'))
+    rcres_type = relationship('Namespace', primaryjoin='Namespace.namespace_id==RemoteCachedResource.rcres_type_id')
+
+
+models = [ CachedContent, Status, Resource, Variant, Invariant,
+        RemoteCachedResource ]

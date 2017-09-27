@@ -112,7 +112,7 @@ tasks_init()
   . $scriptpath/box.init.sh
   box_run_sh_test
   #. $scriptpath/htd.lib.sh
-  lib_load main meta box date doc table remote
+  lib_load main meta box date doc table remote tasks
   # -- tasks box init sentinel --
 }
 

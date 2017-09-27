@@ -80,6 +80,8 @@ __db__ = '~/.finfo.sqlite'
 __usage__ = """
 Usage:
   finfo.py [options] [--env name=VAR]... [--name name=VAR]... (CTX|FILE...|DIR...)
+  finfo.py --show-info
+  finfo.py --list-prefixes
   finfo.py -h|--help
   finfo.py --version
 
@@ -93,7 +95,6 @@ Options:
     -n name=PATH --name name=PATH[:PATH]
                   Define a name with path(set), to look for existing paths
                   and/or replace prefix common path prefixes with 'name:'.
-
     -e VAR=name --env VAR=name
                   Bind env 'VAR' to named set 'name'. If env isset overrides any
                   named set (see --name).
@@ -112,6 +113,7 @@ Options:
                   Return document type files only.
     --filter INCLUDE...
                   ..
+    --show-info   ..
 
 Other flags:
     -v            Increase verbosity.
@@ -148,7 +150,7 @@ import taxus.model
 import taxus.net
 import taxus.semweb
 import taxus.web
-import util
+import script_util
 
 from taxus.core import Node, Name
 from taxus.media import Mediatype, MediatypeParameter, Genre, Mediameta
@@ -192,14 +194,14 @@ class FileInfoApp(rsr.Rsr):
     DEFAULT = ['file_info']
 
     DEPENDS = {
-            'file_info': ['txs_session'],
-            'name_and_categorize': ['txs_session'],
-            'mm_stats': ['txs_session'],
-            'list_mtype': ['txs_session'],
-            'list_mformat': ['txs_session'],
-            'add_genre': ['txs_session'],
-            'add_mtype': ['txs_session'],
-            'add_mformats': ['txs_session']
+            'file_info': ['rsr_session'],
+            'name_and_categorize': ['rsr_session'],
+            'mm_stats': ['rsr_session'],
+            'list_mtype': ['rsr_session'],
+            'list_mformat': ['rsr_session'],
+            'add_genre': ['rsr_session'],
+            'add_mtype': ['rsr_session'],
+            'add_mformats': ['rsr_session']
         }
 
     @classmethod
@@ -393,7 +395,7 @@ def main(argv, doc=__doc__, usage=__usage__):
         usage = usage.replace(__db__, db)
 
     ctx = confparse.Values(dict(
-        opts = util.get_opts(doc + usage, version=get_version(), argv=argv[1:])
+        opts = script_util.get_opts(doc + usage, version=get_version(), argv=argv[1:])
     ))
     ctx.opts.flags.dbref = taxus.ScriptMixin.assert_dbref(ctx.opts.flags.dbref)
     # Load configuration
@@ -402,7 +404,12 @@ def main(argv, doc=__doc__, usage=__usage__):
     # Load SA session
     ctx.sa = get_session(ctx.opts.flags.dbref)
 
-    # DEBUG: pprint(ctx.settings.todict())
+    if ctx.opts.flags.show_info:
+        print ctx.opts.flags.dbref
+        print ctx.config_file
+        return
+    # DEBUG:
+    #pprint(ctx.settings.todict())
 
     # Process arguments
     dirs = []
@@ -636,8 +643,13 @@ def get_version():
 
 
 if __name__ == '__main__':
-    #FileInfoApp.main()
     import sys
-    #sys.setrecursionlimit(100)
-    sys.exit(main(sys.argv))
+    sys.setrecursionlimit(100)
+    base=os.path.basename(sys.argv[0])
+    if base == 'finfo.py':
+        sys.exit(main(sys.argv))
+    elif base == 'finfo-app.py':
+        app = FileInfoApp.main()
+    else:
+        raise Exception(base+'?')
 

@@ -1,4 +1,4 @@
-# PyXML 
+# PyXML
 from xml.parsers.xmlproc.dtdparser import DTDParser
 # TODO: dtd parser
 # XXX figure out how to get schema for given documen
@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     parser = DTDParser()
     parser.set_dtd_consumer(dh)
-    print parser.feed(open('docutils.dtd').read())
+    print parser.feed(open('docscript_utils.dtd').read())
     print parser
     print parser.flush()
     print parser

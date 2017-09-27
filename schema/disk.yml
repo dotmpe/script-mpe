@@ -1,0 +1,56 @@
+
+id: "http://dotmpe.com/project/script/schema/disk#"
+$schema: http://json-schema.org/draft-04/schema#
+description: 
+
+anyOf:
+  - { "$ref": "#/definitions/schemaDisk" }
+  - { "$ref": "#/definitions/schemaVolume" }
+
+definitions:
+  schemaVolume:
+    type: object
+    additionalProperties: false
+    required:
+      - Id
+      - Index
+      - Disk-Id
+      - Prefix
+    properties:
+      Id:
+        type: string
+      Index:
+        type: number
+      Disk-Index:
+        type: number
+      Partition-Index:
+        type: number
+      Prefix:
+        type: string
+      Description:
+        type: string
+      Is-Local:
+        type: boolean
+  schemaDisk:
+    type: object
+    additionalProperties: false
+    required:
+      - Id
+      - Index
+      - Prefix
+    properties:
+      Id:
+        type: string
+      Index:
+        type: number
+      Prefix:
+        type: string
+      Description:
+        type: string
+      Old-Id's:
+        items: string
+      Host:
+        type: string
+  lsofCLISchema:
+    type: object
+

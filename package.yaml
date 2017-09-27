@@ -1,5 +1,6 @@
 # git-versioning main: script-mpe
 
+
 - type: application/vnd.dotmpe.project
   main: script-mpe
   id: script-mpe
@@ -11,6 +12,14 @@
   vendor: dotmpe
   distribution: public
   license: GPL
+
+  lists:
+    default: "@Task @Dev +script-mpe +htdocs-mpe"
+    main: "@be.topic" # get the .list of topics for htdocs
+    index: "@be.src.files" # get the .list of names for htdocs
+    to:
+      do: "@Task"
+      src: "@be.src +htdocs-mpe" # get the .list of sei for htdocs
 
   pd-meta:
     run:
@@ -35,8 +44,12 @@
 
     tasks:
       document: todo.txt
+      done: .done.txt
       grep: ./tools/sh/tags.sh
       grep-filter: ./tools/sh/tags-filter.sh
+      coops:
+        - HTD # tasks:no-check
+        - NODE-SITEFILE # tasks:no-check
       tags:
         - TODO # tasks:no-check
         - XXX # tasks:no-check
@@ -62,11 +75,11 @@
   prefixes: {} # See ~/.cllct.rc finfo
 
   scripts:
-    env: ./config/tools/env.sh $ENV $NAME $TAG
+    env: ./tools/sh/env.sh
     init:
       # NOTE: somehow bash matching is needed, seems 'type' is not behaving as
       # expected from a bourne shell
-      - export SCR_SYS_SH=bash-sh
+      #- export SCR_SYS_SH=bash-sh
       - scriptname="init"
       - . ./tools/sh/init.sh
       - . ./tools/sh/env.sh
@@ -95,10 +108,12 @@
     #test: pd test
     test:
       - verbose=1 git-versioning check
-      - ENV_NAME=gspread-boreas . ~/.conf/bash/env && python x-gspread.py
       - python test/main.py
       - projectdir.sh run :bats:specs
-      - bats test/*-spec.bats | bats-color.sh
+      - bats test/*-spec.bats | script-bats.sh colorize
+      - ./x-test.sh version
+    test-user:
+      - ENV_NAME=gspread-boreas . ~/.conf/bash/env.sh $ENV_NAME && python x-gspread.py
     #build: pd build
     build:
       - export SCR_SYS_SH=bash-sh
@@ -109,7 +124,6 @@
       #- vagrant tools/ci/vbox
       - scriptname=script
       - . ./tools/ci/parts/build.sh
-
     # FIXME package scripts with raw YAML text blocks
     #test-features: "
     #  test -x \\\"$(which behave)\\\" &&
@@ -120,6 +134,31 @@
     #       behave --tags '~@todo' --tags ~skip -k test/feature ||
     #         ./vendor/.bin/behat--tags:~@skip
 
+    tasks-list:
+      - 'tasks.py -t todo.txt list-issues'
+    tasks-update:
+      - 'htd tasks --Check-All-Tags --Check-All-Files'
+
+    build-docker:
+      - '( cd tools/ci/build && drone exec )'
+      - docker tag ubuntu-user-script:build freyr/ubuntu-user-script:build
+      - docker push freyr/ubuntu-user-script:build
+      - docker rmi ubuntu-user-script:build localhost:5000/ubuntu-user-script:build
+    test-docker:
+      - drone exec
+
+    install-gv:
+      - sudo Build_Deps_Default_Paths=1 SRC_PREFIX=/src PREFIX=/usr/local ./install-dependencies.sh git-versioning && rm -rf /src/git-versioning
+
+    test2:
+      - docker run --rm \
+           -v $PWD:/home/treebox/bin --workdir /home/treebox/bin \
+           -e LOG=/srv/docker-volumes-local/user-script/log.sh \
+           -e USER=treebox \
+           -e TMPDIR=/tmp \
+           -e HOME=/home/treebox \
+           localhost:5000/ubuntu-user-script:build \
+           'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
 
   # For make data/*: or move to cllct.rc
   data:
@@ -129,4 +168,38 @@
         - last_seen:atime
         # taxus.web.Invariant.mediatype
         - mime_type:lib...
+
+
+- type: application/vnd.dotmpe.symlinks
+  id: script-mpe-symlinks
+  file: .symlinks.tab
+  attrs: SRC DEST
+
+
+- vagrant_scripts: &vagrant_scripts
+    info:
+     - echo VBOX_DOMAIN=$VBOX_DOMAIN VBOX_LOCAL=$VBOX_LOCAL
+     - vagrant status
+    init:
+     - vagrant up --provision
+    start:
+     - vagrant start
+    status:
+     - vagrant status
+    ssh:
+     - vagrant ssh </dev/tty
+    save:
+     - vagrant suspend
+    upgrade: 
+     - vagrant halt && vagrant up --provision
+    deinit:
+     - vagrant destroy -f
+
+
+- type: application/vnd.dotmpe.environment
+  id: script-mpe-test-vbox
+  cwd: 'test/vagrant'
+  env: '. ./env.sh'
+  scripts:
+    <<: *vagrant_scripts
 

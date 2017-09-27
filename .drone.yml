@@ -1,0 +1,44 @@
+workspace:
+    base: /srv
+    path: docker-volumes-local/user-script
+
+pipeline:
+  build:
+    image: localhost:5000/ubuntu-user-script:build
+    #image: freyr/ubuntu-user-script:build
+    environment:
+    # - ENV=
+    # - TEST_ENV=testing TEST_SHELL=sh
+    # - LOG=./log.sh
+     - TMPDIR=/tmp
+    # - CS=dark
+     - verbosity=5
+    # - sudo=sudo
+    # - UCONFDIR=$HOME/etc
+    # - Build_Deps_Default_Paths=1
+    # - TEST_RESULTS=shippable/testresults/test.tap
+    # - DEBIAN_FRONTEND=noninteractive
+    volumes:
+     - ${PWD}/tools/ssh/config:/home/treebox/.ssh/config
+     - ${HOME}/.basename-reg.yaml:/home/treebox/.basename-reg.yaml
+    commands:
+     - export LOG=/srv/docker-volumes-local/user-script/log.sh
+     - export USER=treebox
+     - export HOME=/home/treebox
+     - echo PATH=$PATH
+     - export PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/
+     #- export PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
+     - echo PATH=$PATH
+     - SCR_SYS_SH=bash-sh
+     - scriptname="before-script";
+       . ./tools/sh/init.sh ;
+       . ./tools/sh/env.sh ;
+       . ./tools/ci/parts/check.sh
+     - scriptname=script;
+       . ./tools/ci/parts/build.sh
+
+#  frontend:
+#    image: node:6
+#    commands:
+#      - npm install
+#      - npm test

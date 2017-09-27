@@ -243,8 +243,8 @@ lst_main()
 lst_init()
 {
   test -n "$scriptpath"
-  lib_load box main
   . $scriptpath/box.init.sh
+  lib_load box main
   box_run_sh_test
   # -- lst box init sentinel --
 }

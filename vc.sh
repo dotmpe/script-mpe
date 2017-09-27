@@ -34,8 +34,9 @@ vc__commands()
 {
   echo 'Commands'
   echo '  status             TODO'
-  echo 'TODO: consolidate '
-  echo '  ls-gitroots        List all GIT checkouts (roots only) below the current dir.'
+  echo '  ls-trees           Find all SCM checkouts below the current dir '
+  echo '                     (roots only, set recurse to list nested checkous).'
+  echo '  ls-nontree         Find any path not included in a checkout. '
   echo '  list-submodules    '
   echo '  list-prefixes      '
   echo '  list-subrepos      XXX: List all repositories below, excluding submodules. '
@@ -108,24 +109,28 @@ vc__help()
 {
   echo "$base/$version - Reports on SCM state, build short description. "
   echo
-  vc_usage
-  echo
-  echo "Default command: "
-  echo "  $scriptname (print-all) [PATH...]"
-  echo
-  echo "For example to be embedded in PS1: "
-  echo "  $scriptname ps1"
-  echo
-  echo "Tokens:"
-  echo "  *      modified"
-  echo "  +      stage"
-  echo "  $      stash"
-  echo "  ~      untracked"
-  echo "  #      no HEAD"
-  echo "  GIT_DIR!:  "
-  echo "  BARE:  "
-  echo ''
-  vc__docs
+  test -z "$1" && {
+    vc_usage
+    echo
+    echo "Default command: "
+    echo "  $scriptname (print-all) [PATH...]"
+    echo
+    echo "For example to be embedded in PS1: "
+    echo "  $scriptname ps1"
+    echo
+    echo "Tokens:"
+    echo "  *      modified"
+    echo "  +      stage"
+    echo "  $      stash"
+    echo "  ~      untracked"
+    echo "  #      no HEAD"
+    echo "  GIT_DIR!:  "
+    echo "  BARE:  "
+    echo ''
+    vc__docs
+  } || {
+    echo_help $1
+  }
 }
 
 vc__docs()
@@ -567,7 +572,6 @@ __vc_gitrepo()
         git config remote.$remote.url | sed -E '
           s/^.*:([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+)(\.git)?$/\1\/\2/'
       ;;
-
     * )
         error "Illegal vc gitrepo method '$1'" 1
       ;;
@@ -577,29 +581,65 @@ __vc_gitrepo()
 
 list_gitpaths()
 {
-  d=$1
-  [ -n "$d" ] || d=.
-  note "Starting find in '$d', this may take a bit initially.."
-  find $d -iname .git -not -ipath '*.git/*' | while read gitpath mode
-  do
-    test -n "$gitpath" -a "$gitpath" != ./.git \
-      && echo $gitpath
-  done
+  test -n "$1" && d=$1 || d=.
+  find $d -type d -iname .git -print -prune
 }
 
-vc_ls_gitroots()
+# List checkouts below dir. Normally stops at any SCM root, unless recurse=true
+vc__ls_trees()
 {
-  list_gitpaths $1 | while read gitpath
-  do dirname $gitpath
-  done
+  test -n "$1" || set -- .
+  trueish "$recurse" && {
+    # NOTE: This recurse causes SVN to yield just about every dir below it
+    find $1 \
+      -type d -a \( \
+        -iname '*.svn*' -prune -o \
+        -iname '*.bzr*' -prune -o \
+        -iname '*.git*' -prune -o \
+        -iname '*.hg*'  -prune \
+      \) -o -type d -a \( \
+        -exec test -d "{}/.bzr" \; -o \
+        -exec test -d "{}/.git" \; -o \
+        -exec test -d "{}/.hg" \; -o \
+        -exec test -d "{}/.svn" \; \
+      \) -a -print
+  } || {
+    find $1 \
+      -type d -a \( \
+        -iname '*.svn*' -prune -o \
+        -iname '*.bzr*' -prune -o \
+        -iname '*.git*' -prune -o \
+        -iname '*.hg*'  -prune \
+      \) -o -type d -a \( \
+        -exec test -d "{}/.bzr" \; -prune -o \
+        -exec test -d "{}/.git" \; -prune -o \
+        -exec test -d "{}/.hg" \;  -prune  -o \
+        -exec test -d "{}/.svn" \; -prune \
+      \) -a -print
+  }
 }
 
-vc_ls_errors()
+# List paths not included in a checkout. Usefull to find and deal wti hstray files
+vc__ls_nontree()
+{
+  find $d \
+    -type d -a \( \
+      -iname '*.svn*' -prune -o \
+      -iname '*.bzr*' -prune -o \
+      -iname '*.git*' -prune -o \
+      -iname '*.hg*'  -prune -o \
+      -exec test -d "{}/.bzr" \; -prune -o \
+      -exec test -d "{}/.git" \; -prune -o \
+      -exec test -d "{}/.hg" \;  -prune  -o \
+      -exec test -d "{}/.svn" \; -prune \
+    \) -a -prune -o -print
+}
+
+vc__ls_errors()
 {
   list_gitpaths $1 | while read gitpath
   do
-    [ -d "$gitpath" ] && {
-      git_info $gitpath > /dev/null || {
+    { ( cd "$(dirname $gitpath)" && git status > /dev/null ) || {
         error "in info from $gitpath, see previous."
       }
     } || {
@@ -1107,6 +1147,7 @@ vc__list_subrepos()
 #    config remote.$remote.url  ; done'
 }
 
+
 vc__projects()
 {
   test -f projects.sh || touch projects.sh
@@ -1169,6 +1210,53 @@ vc__list_all_branches()
     sort -u
   test -z "$1" || cd "$pwd"
 }
+
+# List branches
+vc__branch_refs()
+{
+	test -n "$1" || error "branch name required" 1
+	local ret= failed=
+	git show-ref --verify -q "refs/heads/$1" && { echo "refs/heads/$1" ; ret=0 ; } || { ret=1; }
+	test -n "$2" && {
+    test "$2" != "*" || set -- "$(git remote)"
+  } || set -- "$@" origin
+  local branch="$1";
+  shift
+	while test -n "$1"
+  do
+    git show-ref --verify -q "refs/remotes/$1/$branch" && {
+      echo "refs/remotes/$1/$branch"
+    } || {
+      test "$r" = "0" -o "$r" = "2" || r=2
+    }
+    shift
+  done
+  return $r
+}
+
+# List branches
+vc__branches()
+{
+	#git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
+	git for-each-ref --format='%(refname:short)' refs/heads
+}
+
+# Check wether the literal ref exists, ie:
+# - named branches: refs/heads/*
+# - remote branches: refs/remote/<remote>/*
+vc__ref_exists()
+{
+	git show-ref --verify -q "$1" || return $?
+}
+
+# Check wether branch name exists somewhere
+vc__branch_exists()
+{
+	vc__ref_exists "refs/heads/$1" && return
+	vc__ref_exists "refs/remotes/$1" && return
+	return 1
+}
+
 
 # regenerate .git/info/exclude
 # NOTE: a duplication is happening, but not no recursion, only one. As
@@ -1502,6 +1590,7 @@ vc_main()
             pwd=$(pwd -P) ppwd=$(pwd) spwd=.
 
         export SCRIPTPATH=$scriptpath
+        test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
         . $scriptpath/util.sh load-ext
 
         test -n "$verbosity" || verbosity=5
@@ -1533,8 +1622,8 @@ vc_main()
       ;;
 
     * )
-      echo "VC is not a frontend for $base ($scriptname)" 2>&1
-      exit 1
+        echo "VC is not a frontend for $base ($scriptname)" 2>&1
+        exit 1
       ;;
 
   esac
@@ -1631,20 +1720,14 @@ vc_unload()
 
 # Ignore login console interpreter
 case "$0" in "" ) ;; "-"* ) ;; * )
+  test -n "$f_lib_load" || {
+    __load_mode=main . ~/bin/util.sh
+    test "$1" = "$__load_mode" ||
+      set -- "$__load_mode" "$@"
 
-  # Ignore 'load-ext' sub-command
-
-  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux. But it
-  # maybe Darwin/BSD sh is relaying to bash instead?
-
-  # fix using another mechanism:
-  test -n "$__load_lib" || {
     case "$1" in
-      load-ext ) ;;
-      * )
-          vc_main "$@"
-        ;;
-    esac; } ;;
+      main ) shift ; vc_main "$@" ;;
+    esac
 
+  } ;;
 esac
-

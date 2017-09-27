@@ -14,9 +14,11 @@ note "Entry for CI pre-install / init phase"
 note "PWD: $(pwd && pwd -P)"
 note "Whoami: $( whoami )"
 
-note "CI Env: $({ env | grep -i 'shippable\|travis\|ci'; } || noop)"
+note "CI Env:"
+{ env | grep -i 'shippable\|travis\|ci' | sed 's/^/	/' >&2; } || noop
 
-note "Build Env: $( build_params )"
+note "Build Env:"
+build_params | sed 's/^/	/' >&2
 
 
 test -z "$BUILD_ID" || {
@@ -27,16 +29,16 @@ test -z "$BUILD_ID" || {
   mkdir -vp build
 }
 
-mkdir -vp ~/.local/{bin,lib,share}
+( mkdir -vp ~/.local && cd ~/.local/ && mkdir -vp  bin lib share )
 
-falseish "$SHIPPABLE" || {
+not_trueish "$SHIPPABLE" || {
   mkdir -vp shippable/{testresults,codecoverage}
   test -d shippable/codecoverage
 }
 
 fnmatch "* basename-reg *" "$TEST_COMPONENTS" && {
-  test -e $HOME/.basename-reg.yaml ||
-    touch $HOME/.basename-reg.yaml
+  test -e ~/.basename-reg.yaml ||
+    touch ~/.basename-reg.yaml
 }
 
 

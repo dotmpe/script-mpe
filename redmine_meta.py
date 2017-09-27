@@ -25,7 +25,7 @@ Dependencies:
       ..
 
 """ % ( __db__, __version__ )
-from script_mpe import util, log
+from script_mpe import script_util, log
 from script_mpe import redmine_schema as rdm
 from script_mpe.redmine_schema import get_session
 
@@ -178,7 +178,7 @@ def cmd_home_doc(settings, opts):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers_2(globals(), 'cmd_')
+commands = script_util.get_cmd_handlers_2(globals(), 'cmd_')
 
 
 
@@ -192,7 +192,7 @@ def main(opts):
 
     settings = opts.flags
     opts.default = ['info']
-    return util.run_commands(commands, settings, opts)
+    return script_util.run_commands(commands, settings, opts)
 
 def get_version():
     return 'redmine-meta.mpe/%s' % __version__
@@ -203,7 +203,7 @@ argument_handlers = {
 if __name__ == '__main__':
 
     import sys
-    opts = util.get_opts(__usage__, meta=argument_handlers, version=get_version())
+    opts = script_util.get_opts(__usage__, meta=argument_handlers, version=get_version())
     opts.flags.dbref = opts.flags.dbref
     sys.exit(main(opts))
 
