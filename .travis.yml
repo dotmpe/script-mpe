@@ -74,13 +74,11 @@ env:
     - Build_Deps_Default_Paths=1
 
 branches:
-  only: []
-  #only:
-    #  - master
-    #  - '/^test.*$/'
-    #  - '/^dev.*$/'
-    #  - '/^[0-9]*\.[0-9]*\.[0-9]*/'
-  not: []
+  only:
+    - master
+    - '/^test.*$/'
+    - '/^dev.*$/'
+    - '/^[0-9]*\.[0-9]*\.[0-9]*/'
 
 #deploy:
 #  provider: releases
