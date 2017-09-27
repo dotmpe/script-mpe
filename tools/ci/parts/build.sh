@@ -24,7 +24,9 @@ do case "$BUILD_STEP" in
         #./basename-reg ffnnec.py
 
         note "mimereg:"
-        ./mimereg ffnenc.py
+        ( 
+           ./mimereg ffnenc.py
+        ) || printf ""
 
         #note "lst names local:"
         #892.2 https://travis-ci.org/dotmpe/script-mpe/jobs/191996789
