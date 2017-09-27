@@ -33,8 +33,11 @@ test -n "$SCRIPTPATH" || {
 }
 
 # Now include script and run util_init to source other utils
+echo 1
 . $scriptpath/util.sh
+echo 2
 lib_load
+echo 3
 lib_load projectenv env-deps
 
 
