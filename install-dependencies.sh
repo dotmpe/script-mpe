@@ -31,10 +31,12 @@ test -n "$sudo" || sudo=
 test -z "$sudo" || pref="sudo $pref"
 test -z "$dry_run" || pref="echo $pref"
 
-test -w /usr/local || {
-  test -n "$sudo" || pip_flags=--user
-  test -n "$sudo" || py_setup_f="--user"
-}
+# FIXME: --user not working on Travis in virtual env
+# Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
+#test -w /usr/local || {
+#  test -n "$sudo" || pip_flags=--user
+#  test -n "$sudo" || py_setup_f=--user
+#}
 
 test -n "$SRC_PREFIX" ||
   stderr "Not sure where to checkout (SRC_PREFIX missing)" 1
