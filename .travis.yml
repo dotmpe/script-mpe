@@ -68,7 +68,7 @@ env:
     - TRAVIS_SKIP=1
     - TEST_ENV=travis
     - UCONFDIR=$HOME/etc
-    - PATH=$PATH:$HOME/bin:$PWD/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
+    - PATH=$PATH:$PWD:$PWD/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
     - TEST_RESULTS=shippable/testresults/test.tap
     - Build_Deps_Default_Paths=1
     - LOG=$PWD/log.sh
