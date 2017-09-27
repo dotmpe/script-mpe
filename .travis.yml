@@ -18,10 +18,10 @@ addons:
       - moreutils
       - curl
       - php5-cli
-      - php-dom
       - posh
       - dash
       - ruby-bundler
+#- php5-dom
 # not allowed:
 # - rhash
 # - pytz
