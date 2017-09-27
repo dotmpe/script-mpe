@@ -1,77 +1,78 @@
-language: nix
-#language: python
-
-#python:
-#  - "2.6"
-#  - "2.7"
-#  - "3.2"
-#  #- "3.3"
-#  #- "3.4"
-#  #- "3.7"
-#  #- "nightly"
-
-addons:
-  apt:
-    packages:
-      - tree
-      - realpath
-      - uuid-runtime
-      - moreutils
-      - curl
-      - php5-cli
-      - posh
-      - dash
-      - ruby-bundler
-# not allowed:
-# - rhash
-# - pytz
-
-before_install:
-  - SCR_SYS_SH=bash-sh
-  - scriptname="before-install"
-  - . ./tools/sh/init.sh
-  - . ./tools/sh/env.sh
-  - . ./tools/ci/parts/init.sh
-
-install:
-  - scriptname=install
-  - . ./tools/ci/parts/install.sh
-
-before_script:
-  - scriptname="before-script"
-  - . ./tools/sh/init.sh
-  - . ./tools/sh/env.sh
-  - . ./tools/ci/parts/init.sh
-  - . ./tools/ci/parts/check.sh
-
+language: python
 script:
-  - scriptname=script
-  - . ./tools/ci/parts/build.sh
-
-matrix:
-  include: []
-
-env:
-  matrix:
-    #- ENV=noop
-    #- ENV=dev
-    #- ENV=testing
-    # TODO: - ENV=production
-    #- TEST_ENV=testing TEST_SHELL=posh
-    #- TEST_ENV=testing TEST_SHELL=dash
-    #- TEST_ENV=testing TEST_SHELL=bash
-    - TEST_ENV=testing TEST_SHELL=sh
-  global:
-    - ENV=
-    - CS=dark
-    - sudo=
-    - TRAVIS_SKIP=1
-    - TEST_ENV=travis
-    - UCONFDIR=$HOME/etc
-    - PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
-    - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
-    - TEST_RESULTS=shippable/testresults/test.tap
-    - Build_Deps_Default_Paths=1
+- whoami && pwd -P && uname -a && hostname -f && env
+#
+##python:
+##  - "2.6"
+##  - "2.7"
+##  - "3.2"
+##  #- "3.3"
+##  #- "3.4"
+##  #- "3.7"
+##  #- "nightly"
+#
+#addons:
+#  apt:
+#    packages:
+#      - tree
+#      - realpath
+#      - uuid-runtime
+#      - moreutils
+#      - curl
+#      - php5-cli
+#      - posh
+#      - dash
+#      - ruby-bundler
+## not allowed:
+## - rhash
+## - pytz
+#
+#before_install:
+#  - SCR_SYS_SH=bash-sh
+#  - scriptname="before-install"
+#  - . ./tools/sh/init.sh
+#  - . ./tools/sh/env.sh
+#  - . ./tools/ci/parts/init.sh
+#
+#install:
+#  - scriptname=install
+#  - . ./tools/ci/parts/install.sh
+#
+#before_script:
+#  - scriptname="before-script"
+#  - . ./tools/sh/init.sh
+#  - . ./tools/sh/env.sh
+#  - . ./tools/ci/parts/init.sh
+#  - . ./tools/ci/parts/check.sh
+#
+#script:
+#  - scriptname=script
+#  - . ./tools/ci/parts/build.sh
+#
+#matrix:
+#  include: []
+#
+#env:
+#  matrix:
+#    #- ENV=noop
+#    #- ENV=dev
+#    #- ENV=testing
+#    # TODO: - ENV=production
+#    #- TEST_ENV=testing TEST_SHELL=posh
+#    #- TEST_ENV=testing TEST_SHELL=dash
+#    #- TEST_ENV=testing TEST_SHELL=bash
+#    - TEST_ENV=testing TEST_SHELL=sh
+#  global:
+#    - ENV=
+#    - CS=dark
+#    - sudo=
+#    - TRAVIS_SKIP=1
+#    - TEST_ENV=travis
+#    - UCONFDIR=$HOME/etc
+#    - PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
+#    - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
+#    - TEST_RESULTS=shippable/testresults/test.tap
+#    - Build_Deps_Default_Paths=1
 
 branches:
   only:
