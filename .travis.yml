@@ -18,6 +18,7 @@ addons:
       - moreutils
       - curl
       - php5-cli
+      - php-dom
       - posh
       - dash
       - ruby-bundler

@@ -80,7 +80,9 @@ init()
 
   # init script env
   test -n "$ENV_NAME" && {
-    test -n "$ENV" || error "Expected ENV profile for $ENV_NAME" 1
+    # TODO: require (prim.) source file for env
+    # test -n "$ENV" || error "Expected ENV profile for $ENV_NAME" 1
+    printf -- " "
   } || {
     export SCR_SYS_SH=bash-sh
     export ENV_NAME=testing
