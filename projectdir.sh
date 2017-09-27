@@ -1356,7 +1356,7 @@ pd_load()
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
 
-  ignores_lib_load $lst_base
+  ignores_lib_load $lst_base || error "pd-load: failed loading ignores.lib" 1
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
     test -n "$PD_IGNORE" -a -e "$PD_IGNORE" ||
         error "expected $base ignore dotfile (PD_IGNORE)" 1
@@ -1365,6 +1365,7 @@ pd_load()
 
   pd_inputs="arguments prefixes options"
   pd_outputs="passed skipped errored failed"
+
 
   pd_cid=pd-cid
   test -n "$pd_session_id" || pd_session_id=$(get_uuid)
@@ -1499,7 +1500,7 @@ pd_load()
         test -n "$pd_root" || pd_finddoc
       ;;
 
-  esac; done
+  esac; stderr debug "'$x' done"; done
 
   local tdy="$(try_value "${subcmd}" today)"
   test -z "$tdy" || {

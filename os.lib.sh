@@ -17,12 +17,12 @@ pathname()
   shift 1
   for ext in $@
   do
-    name="$(basename "$name" "$ext")"
+    name="./$(basename "$name" "$ext")"
   done
   test -n "$dirname" -a "$dirname" != "." && {
-    echo "$dirname/$name"
+    printf -- "$dirname/$name\n"
   } || {
-    echo "$name"
+    printf -- "$name\n"
   }
 }
 # basepath: see pathname as alt. to basename for ext stripping
@@ -52,6 +52,11 @@ basedir()
     set -- "$(dirname "$1")"
     test "$1" != "/" || break
   done
+}
+
+dotname()
+{
+  echo $(dirname "$1")/.$(basename "$1")
 }
 
 short()

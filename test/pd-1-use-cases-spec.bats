@@ -30,17 +30,17 @@ repositories:
     sync: false
     clean: untracked
   user-conf:
-    default: dev
+    default: sandbox
     disabled: true
     remotes:
-      origin: https://github.com/dotmpe/user-conf.git
+      origin: https://github.com/bvberkum/user-conf.git
     sync: true
     clean: untracked
   script-mpe:
     default: dev
     disabled: true
     remotes:
-      origin: https://github.com/dotmpe/script-mpe.git
+      origin: https://github.com/bvberkum/script-mpe.git
     sync: true
     clean: untracked
 EOF
@@ -97,6 +97,5 @@ EOF
 @test "Pd use-case 4: add a new prefix from existing checkout" {
   TODO "$BATS_TEST_DESCRIPTION"
 }
-
 
 # vim:ft=bash:
