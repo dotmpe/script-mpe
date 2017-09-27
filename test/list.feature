@@ -5,8 +5,8 @@ Feature: list handles the listing of local names, and sets of names using glob p
   # Use-Case level scenarios
 
   # Plumbing tests
-  @skip
-  @travis
+
+  @skip @travis
   Scenario: print names in group
     Given the current project,
     When the user runs "list.sh names local"...

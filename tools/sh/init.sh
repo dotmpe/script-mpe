@@ -12,7 +12,9 @@ test -n "$SCRIPTPATH" || {
     test -n "$scriptpath" &&
       LIB=$scriptpath ||
       LIB=$(cd $(dirname $(dirname $0)); pwd -P )
-    test -n "$LIB" || exit 99
+    test -n "$LIB" || {
+      echo "Missing LIB" >&2; exit 99
+    }
     export LIB
   }
   #test -n "$LIB" || export LIB="$( test -n "$scriptpath" &&
