@@ -72,6 +72,10 @@ install_composer()
       php -- --install-dir=$PREFIX/bin --filename=composer
   }
   $PREFIX/bin/composer --version
+}
+
+composer_install()
+{
   ( export PATH=$PATH:$PREFIX/bin
     test -x "$(which composer)" ||
       stderr "Composer installed to $PREFIX but not found on PATH! Aborting. " 1
@@ -225,8 +229,12 @@ main_entry()
     ;; esac
 
   case "$1" in php|composer )
-      test -x "$(which composer)" \
-        || install_composer || return $?
+      test -x "$(which composer)" || {
+        install_composer || return $?
+      }
+      test ! -e composer.json || {
+        composer_install || return $?
+      }
     ;; esac
 
   case "$1" in dev|git|git-lfs )

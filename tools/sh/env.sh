@@ -5,6 +5,7 @@ shopts=$-
 set +x
 set -e
 
+
 # Restore shell -e opt
 case "$shopts"
 

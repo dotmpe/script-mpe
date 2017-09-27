@@ -80,8 +80,6 @@
       # NOTE: somehow bash matching is needed, seems 'type' is not behaving as
       # expected from a bourne shell
       #- export SCR_SYS_SH=bash-sh
-      - SCR_SYS_SH=sh
-      - echo SCR_SYS_SH=$SCR_SYS_SH
       - scriptname="init"
       - . ./tools/sh/init.sh
       - . ./tools/sh/env.sh
