@@ -2,7 +2,7 @@ language: python
 
 python:
   - "2.7"
-  - "3.2"
+  #- "3.2"
   #- "3.6"
   #- "3.6-dev"
   #- "3.7"
@@ -72,6 +72,7 @@ env:
     - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
     - TEST_RESULTS=shippable/testresults/test.tap
     - Build_Deps_Default_Paths=1
+    - LOG=$PWD/log.sh
 
 branches:
   only:

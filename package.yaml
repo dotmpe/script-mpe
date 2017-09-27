@@ -79,7 +79,11 @@
     init:
       # NOTE: somehow bash matching is needed, seems 'type' is not behaving as
       # expected from a bourne shell
-      - export SCR_SYS_SH=bash-sh
+      #- export SCR_SYS_SH=bash-sh
+      - echo LOG=$LOG
+      - echo SCR_SYS_SH=$SCR_SYS_SH
+      - export SCR_SYS_SH=sh
+      - echo SCR_SYS_SH=$SCR_SYS_SH
       - scriptname="init"
       - . ./tools/sh/init.sh
       - . ./tools/sh/env.sh
