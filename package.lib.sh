@@ -86,25 +86,31 @@ update_package_sh()
 
     test -s "$metash" && {
       grep -q Exception $metash && rm $metash
-    } || rm $metash
+    } || {
+      test -z "$metash" -o ! -e "$metash" ||
+        rm $metash
+    }
 
     # Format main block
 
     { jsotk.py -I yaml objectpath $metaf '$.*[@.id is "'$package_id'"]' || {
       warn "Failed reading package '$package_id' from $1 ($?)"
-      rm $metamain
+      test -z "$metamain" -o ! -e "$metamain" ||
+        rm $metamain
       return 17
     }; }  > $metamain
 
     test -s "$metamain" || {
       warn "Failed reading package main from $1 ($package_id)"
-      rm $metamain
+      test -z "$metamain" -o ! -e "$metamain" ||
+        rm $metamain
       return 16
     }
 
     jsotk.py --output-prefix=package to-flat-kv $metamain | sort -u >> $metash || {
       warn "Failed writing package Sh from $1 ($?)"
-      rm $metash
+      test -z "$metash" -o ! -e "$metash" ||
+        rm $metash
       return 15
     }
   }
@@ -123,7 +129,6 @@ package_file()
 # In this case create a YAML elsewhere
 update_temp_package()
 {
-  return 1
   test -n "$pdoc" || error pdoc 21
   test -n "$ppwd" || ppwd=$(cd $1 && pwd)
 
@@ -151,14 +156,14 @@ update_package()
   local metash= metamain=
   test -n "$ppwd" || ppwd=$(cd $1; pwd)
 
-  package_file "$1" || { metaf=
+  package_file "$1" || {
     update_temp_package "$1" || { r=$?
-      test ! -e $metaf || rm $metaf
-      error update_temp_package-$r
+      test -z "$metaf" -o ! -e $metaf || rm $metaf
+      error "update-temp-package: no '$metaf' for '$1'"
       return 23
     }
   }
-  test -e "$1/$PACKMETA" || error "no such file ($(pwd)) PACKMETA='$PACKMETA'" 34
+  test -e "$metaf" || error "no such file ($(pwd), $1) PACKMETA='$PACKMETA'" 34
 
   # Package.sh is used by other scripts
   update_package_sh "$1" || {

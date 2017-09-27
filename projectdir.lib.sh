@@ -545,7 +545,7 @@ pd_prefix_args()
 {
   test -n "$1" || set -- $(cat $arguments | lines_to_words )
   printf "" >$arguments
-  pd_prefix_filter_args "$@"
+  pd_prefix_filter_args $@
   test ! -s "$arguments" || {
     error "Illegal arguments $(cat $arguments | lines_to_words)" 1
   }
@@ -569,7 +569,7 @@ pd_prefix_filter_args()
 
   while test -n "$1"
   do
-    for expanded_arg in $go_to_before/$1
+    for expanded_arg in $(echo $go_to_before/$1)
     do
       test -d "$expanded_arg" || {
         test -e "$expanded_arg" || echo "$expanded_arg" >>$arguments
@@ -586,12 +586,13 @@ pd_prefix_filter_args()
 # Filter out options and states from any given prefixes, or check enabled
 pd_registered_prefix_target_args()
 {
-  set -- $(while test -n "$1"
-  do
-    #case "$1" in --registered ) ;; esac
-    fnmatch "-*" "$1" && echo "$1" >>$options || printf "\"$1\" "
-    shift
-  done)
+# FIXME: quoting possible?
+  #set -- $(while test -n "$1"
+  #do
+  #  #case "$1" in --registered ) ;; esac
+  #  fnmatch "-*" "$1" && echo "$1" >>$options || printf "\"$1\" "
+  #  shift
+  #done)
   test -n "$choice_reg" || choice_reg=1
   pd_prefix_target_args "$@" || return $?
 }
@@ -611,6 +612,7 @@ pd_prefix_target_args()
     shift
   done
 
+  stderr debug "choice-reg: $choice_reg"
   trueish "$choice_reg" && {
 
     # Mixin enabled prefixes with existing dirs for default args,
