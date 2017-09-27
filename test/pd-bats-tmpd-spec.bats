@@ -14,6 +14,7 @@ setup()
   tmpd
   cd $tmpd
   diag "tmpd=$tmpd"
+  export verbosity=4
 }
 teardown()
 {
@@ -25,8 +26,6 @@ teardown()
   mkdir test
   touch test/{foo,bar,baz}-spec.bats
 
-  export verbosity=0
-
   run $BATS_TEST_DESCRIPTION
   { test ${status} -eq 0 &&
     test ${#lines[@]} -ge 3
@@ -36,10 +35,10 @@ teardown()
   touch test/sub/{foo2,bar2}-spec.bats
 
   export pd_trgtglob="test/sub/*-spec.bats test/*-spec.bats"
-  { verbosity=5 run $BATS_TEST_DESCRIPTION 
-  } || {
+  run $BATS_TEST_DESCRIPTION 
+  {
     test ${status} -eq 0 &&
-    test ${#lines[@]} -eq 5
+    test ${#lines[@]} -ge 5
   } || stdfail 2
 
   rm -rf $tmpd
@@ -50,8 +49,8 @@ teardown()
   mkdir test
   touch test/{foo,bar,baz}-spec.bats
 
-  { verbosity=5 run $BATS_TEST_DESCRIPTION 
-  } || {
+  run $BATS_TEST_DESCRIPTION 
+  {
     test ${status} -eq 0 &&
     test ${#lines[@]} -eq 3 &&
     test bar = "${lines[0]}" &&
@@ -62,20 +61,19 @@ teardown()
   mkdir test/sub
   touch test/sub/{foo2,bar2}-spec.bats
 
-  export pd_trgtglob="test/sub/*-spec.bats test/*-spec.bats"
-  { verbosity=5 run $BATS_TEST_DESCRIPTION 
-  } || {
+  run $BATS_TEST_DESCRIPTION 
+  {
     test ${status} -eq 0 &&
-    test ${#lines[@]} -ge 3 &&
-    test bar2 = "${lines[0]}" &&
-    test foo2 = "${lines[1]}"
+    test ${#lines[@]} -eq 3 &&
+    test bar = "${lines[0]}" &&
+    test baz = "${lines[1]}"
   } || stdfail 2
   
-  { verbosity=5 run $BATS_TEST_DESCRIPTION 
-  } || {
-    test ${#lines[@]} -eq 2 &&
-    test bar2 = "${lines[0]}" &&
-    test bar = "${lines[1]}"
+  export pd_trgtglob="test/sub/*-spec.bats test/*-spec.bats"
+  run $BATS_TEST_DESCRIPTION 
+  {
+    test ${#lines[@]} -eq 5 &&
+    test "bar2 foo2 bar baz foo" = "${lines[*]}"
   } || stdfail 3
 }
 

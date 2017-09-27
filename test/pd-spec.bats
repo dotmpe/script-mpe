@@ -123,7 +123,9 @@ cleanup_tmpd()
     echo :bats-specs
   } > .pd-check
 
-  run $BATS_TEST_DESCRIPTION
+  { verbosity=5 run $BATS_TEST_DESCRIPTION
+  }
+  
   test $status -eq 0 || fail "1 Out($status): ${lines[*]}"
   rm .pd-check
 
@@ -234,4 +236,4 @@ cleanup_tmpd()
   cleanup_tmpd
 }
 
-
+# vim:ft=bash:

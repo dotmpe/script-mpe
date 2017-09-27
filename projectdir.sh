@@ -1500,7 +1500,7 @@ pd_load()
         test -n "$pd_root" || pd_finddoc
       ;;
 
-  esac; stderr debug "'$x' done"; done
+  esac; debug "'$x' done"; done
 
   local tdy="$(try_value "${subcmd}" today)"
   test -z "$tdy" || {
