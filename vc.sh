@@ -1624,7 +1624,7 @@ vc__conflicts()
         test -f "$1" && local filename=$1 || error "Filename expected" 1
         grep -n '^=======$' $filename | cut -d ':' -f 1 | while read middle_lnr
         do
-          vc__conflicts -find-for-marker "$filename" $middle_lnr
+          vc__conflicts -find-for-marker "$filename" $middle_lnr || continue
           vc__conflicts -stat-for-marker-env
         done
       ;;
@@ -1634,13 +1634,14 @@ vc__conflicts()
         note "Conflicts in $filename"
         grep -n '^=======$' $filename | cut -d ':' -f 1 | while read middle_lnr
         do
-          source=true vc__conflicts show-for-marker "$filename" $middle_lnr
+          source=true vc__conflicts show-for-marker "$filename" $middle_lnr ||
+            continue
         done
       ;;
 
     show-for-marker ) shift
         test -f "$1" && local filename=$1 || error "Filename expected" 1
-        vc__conflicts -find-for-marker "$@"
+        vc__conflicts -find-for-marker "$@" || return
         vc__conflicts -show-for-marker-env
       ;;
 
@@ -1661,14 +1662,16 @@ vc__conflicts()
           } || {
 
             # dont cross another conflict-marker
-            source_line $filename $line | grep -q '^=======$' &&
+            source_line $filename $line |
+              grep -q '^\(=======\|>>>>>>>.*\)$' &&
               break
 
             line=$(( $line - 1 ))
           }
         done
 
-        test -n "$start" || continue
+        test -n "$start" ||
+          return 1
 
         end= filelen=$(count_lines $filename)
         line=$(( $2 + 1 ))
@@ -1680,7 +1683,8 @@ vc__conflicts()
           } || {
 
             # dont cross another conflict-marker
-            source_line $filename $line | grep -q '^=======$' &&
+            source_line $filename $line |
+              grep -q '^\(=======\|<<<<<<<.*\)$' &&
               break
 
             line=$(( $line + 1 ))
