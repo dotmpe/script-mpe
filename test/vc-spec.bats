@@ -139,5 +139,29 @@ setup()
   shopt -u extglob
 }
 
+@test "$bin conflicts diff-file test/var/conflict-test.txt" {
+  export quiet=1 
+  run $BATS_TEST_DESCRIPTION
+  { test_ok_nonempty &&
+      test ${#lines[*]} -eq 13
+  } || stdfail
+}
+
+@test "$bin conflicts stat-file test/var/conflict-test.txt" {
+  export quiet=1 
+  run $BATS_TEST_DESCRIPTION
+  { test_ok_nonempty &&
+      test ${#lines[*]} -eq 4
+  } || stdfail
+}
+
+@test "$bin conflicts count-file test/var/conflict-test.txt" {
+  run $BATS_TEST_DESCRIPTION
+  { 
+    test_ok_nonempty &&
+      test ${#lines[*]} -eq 1 &&
+        test "${lines[*]}" = "5"
+  } || stdfail
+}
 
 # vim:ft=sh:

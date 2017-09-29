@@ -6914,6 +6914,7 @@ htd_man_1__srv='(Re)init service volume links (srv-init) and get (repo) state (s
 '
 htd__srv()
 {
+  test -n "$1" || set -- list
   case "$1" in
 
     find-volumes ) shift

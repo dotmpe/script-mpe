@@ -1,0 +1,42 @@
+
+<<<<<<< Local
+
+Some local change
+
+=======
+
+Some remote change
+
+>>>>>>> Remote
+
+
+<<<<<<< Local
+Another thing
+=======
+Changed twice
+>>>>>>> Remote
+
+
+This is not a conflict marker, but maybe a title underline.
+
+Title
+=======
+It is counted as conflict by the 'count' sub-command.
+
+Other occurences of the start and end markers, <<<<<<< and >>>>>>>, should
+have none or minimal effect. Unless ofcourse old merge-conflicts are committed,
+and nested. But that mess is beyond the scope of this gist. The following stray
+marker also cause count to react, but not the diff/stat routines.
+
+>>>>>>>
+
+=======
+
+=======
+
+<<<<<<<
+
+>>>>>>>
+
+<<<<<<<
+

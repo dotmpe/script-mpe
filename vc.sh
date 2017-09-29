@@ -1569,6 +1569,151 @@ vc_als__gf=gitflow
 
 
 
+vc_man_1__conflicts='Show current merge conflicts
+
+    list | ls
+      List conflicted filenames (using GIT diff)
+    diff
+      List source lines for each current merge conflict (all files).
+    stat | stats
+      List start/end line and total lines for merge conflicts (all files).
+    diff-file [filename]
+      Print source lines of all conflicts in file to stdout.
+    stat-file [filename]
+      Print start/end and other numbers per conflict found in file to stdout.
+    show-for-marker <filename> <marker-line-nr>
+      Show source lines at stdout, and stats on stderr.
+      Set env `source=false` to silence.
+'
+vc__conflicts()
+{
+  test -n "$1" || set -- list
+  case "$1" in
+
+    list|ls )
+        git diff --name-only --diff-filter=U
+      ;;
+
+    stat|stats )
+        vc__conflicts list | while read filename
+        do
+          vc__conflicts stat-file $filename
+        done
+      ;;
+
+    diff )
+        vc__conflicts list | while read filename
+        do
+          vc__conflicts diff-file $filename
+        done
+      ;;
+
+    count ) shift
+        vc__conflicts list | while read filename
+        do
+          note "$filename: $( vc__conflicts count-file $filename ) conflicts"
+        done
+      ;;
+
+    count-file ) shift
+        test -f "$1" && local filename=$1 || error "Filename expected" 1
+        grep -n '^=======$' $filename | count_lines
+      ;;
+
+    stat-file ) shift
+        test -f "$1" && local filename=$1 || error "Filename expected" 1
+        grep -n '^=======$' $filename | cut -d ':' -f 1 | while read middle_lnr
+        do
+          vc__conflicts -find-for-marker "$filename" $middle_lnr
+          vc__conflicts -stat-for-marker-env
+        done
+      ;;
+
+    diff-file ) shift
+        test -f "$1" && local filename=$1 || error "Filename expected" 1
+        note "Conflicts in $filename"
+        grep -n '^=======$' $filename | cut -d ':' -f 1 | while read middle_lnr
+        do
+          source=true vc__conflicts show-for-marker "$filename" $middle_lnr
+        done
+      ;;
+
+    show-for-marker ) shift
+        test -f "$1" && local filename=$1 || error "Filename expected" 1
+        vc__conflicts -find-for-marker "$@"
+        vc__conflicts -show-for-marker-env
+      ;;
+
+    -find-for-marker ) shift
+        # NOTE: Use the middle marker as starting point, this may give
+        # problems in a few cases just warn and continue if no start/end
+        # is found beyond/before the previous/next end/start marker line.
+
+        test -f "$1" && local filename=$1 || error "Filename expected" 1
+        test -n "$2" || error "Marker line expected" 1
+        start= line=$(( $2 - 1 ))
+
+        while test $line -gt 0
+        do
+          source_line $filename $line | grep -q '^<<<<<<<.*$' && {
+            start=$line
+            break
+          } || {
+
+            # dont cross another conflict-marker
+            source_line $filename $line | grep -q '^=======$' &&
+              break
+
+            line=$(( $line - 1 ))
+          }
+        done
+
+        test -n "$start" || continue
+
+        end= filelen=$(count_lines $filename)
+        line=$(( $2 + 1 ))
+        while test $line -le $filelen
+        do
+          source_line $filename $line | grep -q '^>>>>>>>.*' && {
+            end=$(( $line + 1 ))
+            break
+          } || {
+
+            # dont cross another conflict-marker
+            source_line $filename $line | grep -q '^=======$' &&
+              break
+
+            line=$(( $line + 1 ))
+          }
+        done
+
+        test -n "$end" || {
+          warn "Start/Middle but no end found at $filename:$2 (start: $1)"
+          return 1
+        }
+      ;;
+
+    -show-for-marker-env )
+        test -n "$diff" || local diff=/tmp/vc-conflicts.$(get_uuid)
+        { source_lines $filename $start $end ||
+            error "source'ing source from $filename $start-$end" 1
+        } | { trueish "$source" &&
+                { tee $diff || error "tee'ing $diff" 1; } ||
+                { cat > $diff; }
+        }
+        note "$filename: $start - $end ($middle_lnr): $( count_lines $diff ) lines"
+      ;;
+
+    -stat-for-marker-env )
+        local diff=/tmp/vc-conflicts.$(get_uuid)
+        source=false vc__conflicts -show-for-marker-env
+        echo "$filename:$start-$end:middle=$middle_lnr:line_count=$( count_lines $diff )"
+      ;;
+
+    * ) error "? '$1'" 1 ;;
+  esac
+}
+
 
 # ----
 
