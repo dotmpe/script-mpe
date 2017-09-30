@@ -3,9 +3,10 @@
 load helper
 base=projectdir.sh
 
-init
-. $lib/util.sh
-
+setup() {
+  init
+  . $lib/util.sh
+}
 
 @test "${bin}" "0.1.1.1 default no-args" {
   case $(current_test_env) in travis )

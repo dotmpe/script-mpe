@@ -3,11 +3,11 @@
 load helper
 load vc
 base=vc.sh
-init
 
 
 setup()
 {
+  init
   SCR_SYS_SH=bash-sh
 }
 

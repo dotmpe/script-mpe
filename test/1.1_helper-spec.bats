@@ -2,7 +2,12 @@
 
 base=test/helper.bash
 load helper
-init
+
+
+setup()
+{
+  init
+}
 
 
 @test "${lib}/${base} - is_skipped: returns 0 if ENV_SKIP=1 or 1, no output" {

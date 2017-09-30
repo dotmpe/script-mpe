@@ -3,9 +3,9 @@
 load helper
 base=projectdir-meta
 
-init
 setup()
 {
+  init
   . $lib/util.sh
 }
 
