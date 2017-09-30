@@ -79,7 +79,8 @@ update_package_sh()
   test -n "$metamain" || metamain=$PACKMETA_JS_MAIN
   metash=$(normalize_relative "$metash")
   test ! -e "$metash" -o -f "$metash" || {
-    error "metash file: $metash" 1
+    error "metash file: $metash"
+    return 1
   }
   test $metaf -ot $metash \
     || {
@@ -180,10 +181,8 @@ update_package()
   test -e "$metaf" || error "no such file ($(pwd), $1) PACKMETA='$PACKMETA'" 34
 
   # Package.sh is used by other scripts
-  update_package_sh "$1" || {
-    r=$?
-    grep -q Exception $metash && rm $metash
-    return $r
+  update_package_sh "$1" || { r=$?
+    grep -q Exception $metash && rm $metash ; return $r
   }
 
   # .package.json is not used, its a direct convert of te entire YAML doc.

@@ -5,6 +5,7 @@ base=pd-lib
 load main.inc
 
 init
+
 setup()
 {
   source $lib/util.sh
@@ -44,4 +45,4 @@ setup()
   ) || stdfail
 }
 
-
+# vim:ft=bash:
