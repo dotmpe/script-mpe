@@ -57,7 +57,7 @@
 
       scm:
       - git:
-          url: https://github.com/dotmpe/script.mpe.git
+          url: https://github.com/bvberkum/script.mpe.git
           branches:
             - origin/dev
           local-branch: dev

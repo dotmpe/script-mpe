@@ -31,10 +31,10 @@ Prerequisites
 
 ::
 
-  git@github.com:dotmpe/google-chrome-htdocs.git
+  git@github.com:bvberkum/google-chrome-htdocs.git
 
 
-.. _user-conf: https://github.com/dotmpe/user-conf
+.. _user-conf: https://github.com/bvberkum/user-conf
 
 
 

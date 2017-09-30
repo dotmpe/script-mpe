@@ -93,7 +93,7 @@ case "$subcmd" in
 
   git-versioning-install )
     $0 docker-exec-ti \
-      'test -x "$(which git-versioning)" || ( mkdir -vp $HOME/build && git clone https://github.com/dotmpe/git-versioning.git $HOME/build/ && cd $HOME/build/git-versioning && make install )' \
+      'test -x "$(which git-versioning)" || ( mkdir -vp $HOME/build && git clone https://github.com/bvberkum/git-versioning.git $HOME/build/ && cd $HOME/build/git-versioning && make install )' \
           || r=$? ;;
 
   git-versioning-upgrade )
