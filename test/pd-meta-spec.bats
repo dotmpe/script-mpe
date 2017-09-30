@@ -3,10 +3,12 @@
 load helper
 base=projectdir-meta
 
+init
+
 setup()
 {
-  init
-  . $lib/util.sh
+  . ./tools/sh/init.sh
+  lib_load projectenv env-deps
 }
 
 @test "${bin}" "default no-args" {

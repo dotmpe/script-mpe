@@ -8,7 +8,7 @@ test -n "$scriptpath" || export scriptpath="$(pwd -P)"
 # assuming execution starts in script dir (project root)
 test -n "$SCRIPTPATH" || {
 
-  test -n "$LIB" || {
+  test -n "$LIB" && echo LIB=$LIB || {
     test -n "$scriptpath" &&
       LIB=$scriptpath ||
       LIB=$(cd $(dirname $(dirname $0)); pwd -P )
@@ -33,9 +33,7 @@ test -n "$SCRIPTPATH" || {
 }
 
 # Now include script and run util_init to source other utils
-. $scriptpath/util.sh
-lib_load
-lib_load projectenv env-deps
+#f_lib_load=tools-sh-init . $scriptpath/util.sh load-ext
 
 
 # Id: script-mpe/0.0.4-dev tools/sh/init.sh

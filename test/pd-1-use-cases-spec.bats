@@ -3,10 +3,10 @@
 load helper
 base=projectdir.sh
 
+init
 
 setup()
 {
-  init
   . $lib/util.sh
 
   pd=$(pwd)/projectdir.sh \

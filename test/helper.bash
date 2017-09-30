@@ -68,15 +68,16 @@ hostname_init()
 init()
 {
   test_init
-  . ./tools/sh/init.sh
 
   test -x $base && {
     bin=$scriptpath/$base
   }
   lib=$scriptpath
 
-  . $lib/main.lib.sh load-ext
-  lib_load os sys str std
+  f_lib_load=test-helper . $scriptpath/util.sh load-ext
+  lib_load os sys str std main
+
+  return # FIXME: cleanup rest
 
   # init script env
   test -n "$ENV_NAME" && {
@@ -90,7 +91,7 @@ init()
   }
 
   # older script-mpe init
-  main_init
+  #main_init
 
   test -n "$TMPDIR" || error TMPDIR 1
 

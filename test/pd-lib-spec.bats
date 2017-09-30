@@ -4,10 +4,10 @@ load helper
 base=pd-lib
 load main.inc
 
+init
 
 setup()
 {
-  init
   . ${lib}/projectdir.lib.sh load-ext
   util_init
 }
