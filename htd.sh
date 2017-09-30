@@ -6895,13 +6895,29 @@ htd__path_depth()
 htd_als__depth=path-depth
 
 
-# (Re)init service volume links (srv-init) and get (repo) state (srv-stat)
+htd_man_1__srv='(Re)init service volume links (srv-init) and get (repo) state (srv-stat)
+
+  find-volumes
+      List volume names, optionally given existing volume path.
+  list-service-container-names
+      List service-container names
+  list-service-container-instances
+      List unique service-containers (FIXME: ignore local..)
+  find-volume-paths
+      List existing volume paths (absolute paths)
+  find-container-volumes
+      List container paths (absolute paths)
+  check
+  list
+  update
+
+'
 htd__srv()
 {
+  test -n "$1" || set -- list
   case "$1" in
 
     find-volumes ) shift
-      # List volumes for existing volume path
         htd__srv find-volume-paths "$1" | cut -d'/' -f3 | sort -u
       ;;
 
@@ -6918,7 +6934,6 @@ htd__srv()
       ;;
 
     find-volume-paths ) shift
-      # List existing volume paths (absolute paths).
         for p in /srv/volume-[0-9]*-[0-9]*-*-*/
         do
           htd__name_exists "$p" "$1" || continue
