@@ -74,7 +74,7 @@ init()
   }
   lib=$scriptpath
 
-  f_lib_load=test-helper . $scriptpath/util.sh load-ext
+  __load_mode=load-ext . $scriptpath/util.sh
   lib_load os sys str std main
 
   return # FIXME: cleanup rest
