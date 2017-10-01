@@ -3,8 +3,8 @@
 load helper
 load vc
 base=vc.sh
-init
 
+init
 
 setup()
 {

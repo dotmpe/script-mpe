@@ -388,8 +388,8 @@ std_demo()
 # experiment rewriting console output
 clear_lines()
 {
-  count=$1
-  [ -n "$count" ] || count=0
+  local count=$1
+  test -n "$count" || count=0
 
   while [ "$count" -gt -1 ]
   do

@@ -3,10 +3,11 @@
 load helper
 load vc
 base=vc.sh
+
 init
 
-
-setup() {
+setup()
+{
   . ./$base load-ext
   . ./util.sh load-ext
   lib_load os sys str std match

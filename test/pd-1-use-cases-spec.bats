@@ -4,11 +4,11 @@ load helper
 base=projectdir.sh
 
 init
-. $lib/util.sh
-
 
 setup()
 {
+  . $lib/util.sh
+
   pd=$(pwd)/projectdir.sh \
   testid="$(echo $BATS_TEST_DESCRIPTION | cut -f 1 -d ' ')"
   setup_projdir

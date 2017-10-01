@@ -68,7 +68,7 @@ clean_failed()
       }
     }
     test ! -e "$failed" || rm $failed
-    unset failed
+    unset failed count
     return 1
   }
 }
@@ -217,7 +217,6 @@ std_errored_rule()
     }
 }
 
-
 std_io_report()
 {
   local std_io_report_result=0
@@ -227,5 +226,3 @@ std_io_report()
   done
   return $std_io_report_result
 }
-
-

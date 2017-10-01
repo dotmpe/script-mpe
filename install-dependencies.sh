@@ -56,7 +56,7 @@ install_bats()
 {
   stderr "Installing bats"
   test -n "$BATS_BRANCH" || BATS_BRANCH=master
-  test -n "$BATS_REPO" || BATS_REPO=https://github.com/dotmpe/bats.git
+  test -n "$BATS_REPO" || BATS_REPO=https://github.com/bvberkum/bats.git
   test -d $SRC_PREFIX/bats || {
     git clone $BATS_REPO $SRC_PREFIX/bats || return $?
   }
@@ -96,7 +96,7 @@ composer_install()
 install_docopt()
 {
   test -n "$install_f" || install_f="$py_setup_f"
-  git clone https://github.com/dotmpe/docopt-mpe.git $SRC_PREFIX/docopt-mpe
+  git clone https://github.com/bvberkum/docopt-mpe.git $SRC_PREFIX/docopt-mpe
   ( cd $SRC_PREFIX/docopt-mpe \
       && git checkout 0.6.x \
       && $pref python ./setup.py install $install_f )
@@ -104,7 +104,7 @@ install_docopt()
 
 install_git_versioning()
 {
-  git clone https://github.com/dotmpe/git-versioning.git $SRC_PREFIX/git-versioning
+  git clone https://github.com/bvberkum/git-versioning.git $SRC_PREFIX/git-versioning
   ( cd $SRC_PREFIX/git-versioning && ./configure.sh $PREFIX && ENV=production ./install.sh )
 }
 
@@ -121,7 +121,7 @@ install_mkdoc()
   (
     cd $SRC_PREFIX
     test -e mkdoc ||
-      git clone https://github.com/dotmpe/mkdoc.git
+      git clone https://github.com/bvberkum/mkdoc.git
     cd mkdoc
     git checkout $MKDOC_BRANCH
     ./configure $PREFIX && ./install.sh

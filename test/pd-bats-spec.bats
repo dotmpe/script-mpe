@@ -4,8 +4,11 @@ load helper
 base="projectdir.sh"
 
 init
-. $lib/util.sh
 
+setup()
+{
+  . $lib/util.sh
+}
 
 # Static, local tests for projectdir-bats.inc.sh
 

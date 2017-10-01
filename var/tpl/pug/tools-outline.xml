@@ -25,7 +25,7 @@ https://github.com/AnthonyDiGirolamo/todotxt-machine
             <outline text="mvn clean package" type="htd:tools:script-line"></outline>
           </outline>
         </outline>
-        <outline text="membash" type="htd:tools:git" ext:href="https://gist.github.com/dotmpe/045284c6522b1c24a3b5a56352d273e5">
+        <outline text="membash" type="htd:tools:git" ext:href="https://gist.github.com/bvberkum/045284c6522b1c24a3b5a56352d273e5">
           <outline type="description"></outline>
           <outline text="membash" type="htd:tools:bin"></outline>
         </outline>

@@ -2,6 +2,7 @@
 
 base=test/helper.bash
 load helper
+
 init
 
 
@@ -58,3 +59,4 @@ init
     test "${status}" = 1 || test -z "Should have set {ENV}_SKIP=1 for proper test! do it now. "
 }
 
+# vim:ft=sh:

@@ -4,9 +4,11 @@ load helper
 base=projectdir.sh
 
 init
-. $lib/util.sh
 
-
+setup()
+{
+  . $lib/util.sh
+}
 
 test_args_shift_1()
 {
