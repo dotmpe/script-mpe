@@ -10,7 +10,7 @@ version=0.0.4-dev # script-mpe
 
 setup() {
   scriptname=test-$base
-  . $ENV
+  #. $ENV
 }
 
 @test "$bin no arguments no-op" {
@@ -118,7 +118,7 @@ setup() {
     fail "Expected htdocs-mpe/$version" 
 }
 
-@test "$bin today" 8 {
+@test "$bin today" {
 
   cd $BATS_TMPDIR
 
@@ -159,7 +159,7 @@ setup() {
 }
 
 
-@test "$bin tpaths" "prints paths to definition-list terms" {
+@test "$bin tpaths - prints paths to definition-list terms" {
 
   cd $BATS_TMPDIR
 
@@ -180,24 +180,24 @@ EOM
 } > test.rst
 
   _test() {
-    $BATS_TEST_DESCRIPTION $@ 2>/dev/null
+    $bin tpaths $@ 2>/dev/null
   }
   run _test test.rst
 
   test $status -eq 0 || fail "Output: ${lines[*]}"
 
-  check_skipped_envs travis || \
-    skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
+  check_skipped_envs travis ||
+    skip "'$bin $tpaths' not running at Linux (Travis)"
 
   test "${lines[0]}" = "/Dev/Software" || fail "Output: ${lines[*]}"
-#skip "TODO: fixme tpaths is failing"
+  #skip "TODO: fixme tpaths is failing"
   test "${lines[1]}" = "/Dev/Hardware" || fail "Output: ${lines[*]}"
   test "${lines[2]}" = "/Personal/Topic" || fail "Output: ${lines[*]}"
   test "${lines[3]}" = "/Public/Note" || fail "Output: ${lines[*]}"
 }
 
 
-@test "$bin tpaths" "prints paths to definition-list terms with special characters" {
+@test "$bin tpaths - prints paths to definition-list terms with special characters" {
 
   test "$(uname)" = "Linux" && skip "Fix XSLT v2 at Linux"
 
@@ -222,14 +222,14 @@ EOM
 
   export xsl_ver=2 
   _test() {
-    $BATS_TEST_DESCRIPTION $@ 2>/dev/null
+    $bin tpaths $@ 2>/dev/null
   }
   run _test test.rst
 
   test $status -eq 0 || fail "Output: ${lines[*]}"
 
   check_skipped_envs travis || \
-    skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
+    skip "'$bin tpaths' not running at Linux (Travis)"
 
   test "${lines[0]}" = "/Dev/Software" \
     || fail "Output: ${lines[*]}"
@@ -239,7 +239,7 @@ EOM
   test "${lines[3]}" = "/Public/Note"
 }
 
-@test "$bin tpath-raw" "prints paths to definition-list terms" {
+@test "$bin tpath-raw - prints paths to definition-list terms" {
 
   cd $BATS_TMPDIR
   {
@@ -257,10 +257,10 @@ Public
 EOM
 } > test.rst
 
-  run $BATS_TEST_DESCRIPTION test.rst
+  run $bin tpath-raw test.rst
 
   check_skipped_envs travis || \
-    skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
+    skip "'$tpath-raw' not testing at Linux (Travis)"
 
   l=$(( ${#lines[*]} - 1 ))
   diag "${lines[$l]}"
@@ -269,7 +269,7 @@ EOM
 }
 
 
-@test "$bin tpath-raw" "prints paths to definition-list terms" {
+@test "$bin tpath-raw - prints paths to definition-list terms" {
 
   cd $BATS_TMPDIR
   {
@@ -287,10 +287,10 @@ Public
 EOM
 } > test.rst
 
-  run $BATS_TEST_DESCRIPTION test.rst
+  run $bin tpath-raw test.rst
 
   check_skipped_envs travis || \
-    skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
+    skip "'$bin tpath-raw' not testing at Linux (Travis)"
 
   l=$(( ${#lines[*]} - 1 ))
   test "${lines[$l]}" = '/Dev/../Home/Shop/../Living/../../Public/Topic/../..' \
@@ -298,7 +298,7 @@ EOM
 }
 
 
-@test "$bin tpath-raw" "v2 prints paths to definition-list terms with spaces and other chars" {
+@test "$bin tpath-raw - v2 prints paths to definition-list terms with spaces and other chars" {
 
   test "$(uname)" = "Linux" && skip "Fix XSLT v2 at Linux"
 
@@ -320,10 +320,10 @@ EOM
 } > test.rst
 
   export xsl_ver=2 
-  run $BATS_TEST_DESCRIPTION test.rst
+  run $bin tpath-raw test.rst
 
   check_skipped_envs travis || \
-    skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
+    skip "'$bin tpath-raw' not testing at Linux (Travis)"
 
   l=$(( ${#lines[*]} - 1 ))
   diag "Lines: ${lines[*]}"
@@ -387,7 +387,7 @@ EOM
 }
 
 
-@test "$bin archive-path journal/" "non-zero exit" {
+@test "$bin archive-path journal/" {
   tmpd
   cd $tmpd
   run $BATS_TEST_DESCRIPTION
@@ -400,7 +400,7 @@ EOM
 
 # Adjusted for cabinet
 #   cabinet/today -> cabinet/%Y/%d/%m
-@test "$bin archive-path cabinet" "EXT= M=/%m D=/%d" {
+@test "$bin archive-path cabinet" {
   skip 'TODO: fix archive basename link'
   tmpd
   mkdir -p $tmpd/cabinet
@@ -528,4 +528,3 @@ EOM
       }
     } || stdfail 3-exclusive
 }
-
