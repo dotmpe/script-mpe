@@ -45,7 +45,7 @@ from twisted.internet.defer import Deferred
 from twisted.internet.endpoints import UNIXClientEndpoint
 from twisted.internet import reactor
 
-from script_mpe import script_util
+from script_mpe import libcmd_docopt
 from script_mpe.confparse import Values
 
 
@@ -185,7 +185,7 @@ def prerun(ctx, cmdline):
     """
 
     argv = cmdline.split(' ')
-    ctx.opts = script_util.get_opts(ctx.usage, argv=argv)
+    ctx.opts = libcmd_docopt.get_opts(ctx.usage, argv=argv)
 
 def postrun(ctx):
 
@@ -221,6 +221,3 @@ def serve(ctx, handlers, prerun=prerun, postrun=postrun):
 
     port = reactor.listenUNIX(address.path, serverFactory)
     reactor.run()
-
-
-

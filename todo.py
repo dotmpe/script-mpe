@@ -72,7 +72,7 @@ import hashlib
 from pprint import pformat
 
 import log
-import script_util
+import libcmd_docopt
 from taxus import Node
 from taxus.util import ORMMixin, ScriptMixin, get_session
 from res import js
@@ -342,8 +342,8 @@ def cmd_ungroup(ID, settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = script_util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = script_util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -357,15 +357,13 @@ def main(opts):
     settings = opts.flags
     values = opts.args
 
-    return script_util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'todo.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = script_util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-

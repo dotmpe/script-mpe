@@ -40,7 +40,7 @@ import shlex
 
 from docopt import docopt
 
-import script_util, confparse, jsotk_lib
+import libcmd_docopt, confparse, jsotk_lib
 
 
 
@@ -200,7 +200,7 @@ class SwitchReader:
 
 
 
-# Command script_utils
+# Command libcmd_docopts
 
 
 # Subcommand handlers
@@ -272,7 +272,7 @@ if __name__ == '__main__':
         out=sys.stdout,
         inp=sys.stdin,
         err=sys.stderr,
-        opts=script_util.get_opts(__usage__)
+        opts=libcmd_docopt.get_opts(__usage__)
     ))
     try:
         sys.exit( main( ctx ) )
@@ -283,4 +283,3 @@ if __name__ == '__main__':
             print(tb)
             print('Unexpected Error:', err)
         sys.exit(1)
-

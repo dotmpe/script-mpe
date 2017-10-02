@@ -52,7 +52,7 @@ from sqlalchemy.schema import CreateTable
 import sadisplay
 
 import log
-import script_util
+import libcmd_docopt
 import reporter
 import taxus
 from taxus.init import SqlBase
@@ -211,8 +211,8 @@ def cmd_export(settings, opts):
 
 ### Transform cmd_ function names to nested dict
 
-commands = script_util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = script_util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -224,7 +224,7 @@ def main(opts):
     """
 
     settings = opts.flags
-    return script_util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'db_sa.mpe/%s' % __version__
@@ -232,7 +232,7 @@ def get_version():
 if __name__ == '__main__':
     import sys
 
-    opts = script_util.get_opts(__usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__usage__, version=get_version())
 
     # Override dbref setting from schema
     if opts.flags.v or opts.flags.verbosity:
@@ -263,4 +263,3 @@ if __name__ == '__main__':
         opts.output=sys.stdout
 
     sys.exit(main(opts))
-

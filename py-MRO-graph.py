@@ -98,7 +98,7 @@ def testHierarchy(**options):
     class A(B,C): pass
     return MROgraph(A,M,**options)
 
-from docscript_utils.nodes import *
+from doclibcmd_docopts.nodes import *
 def main():
     class Node_(Node, object): pass
     docnodes = (
@@ -124,5 +124,4 @@ if __name__=="__main__":
     #main()
 
 #</MROgraph.py>
-# vim:setlocal expandtab:
-
+# vim:et:

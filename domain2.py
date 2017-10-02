@@ -72,7 +72,7 @@ from rsrlib.plug.net import get_hostname, get_gateway, get_default_route
 #    return socket.gethostname().split('.').pop(0)
 
 import log
-import script_util
+import libcmd_docopt
 import res
 import domain
 import domain as domainmod
@@ -91,7 +91,7 @@ def get_current_host(settings):
     """
     Scan settings.nodes for UNID and return host.
     """
-    unid, name = fsscript_util.read_idfile(hostIdFile)
+    unid, name = fslibcmd_docopt.read_idfile(hostIdFile)
     # XXX to use an UNID, or SID.. Rather have ser. nrs anyway.
     for sid, host in settings.nodes.items():
         if 'unid' in host and host['unid'] == unid:
@@ -164,7 +164,7 @@ def init_domain(settings):
         keyFile = os.path.expanduser('~/.ssh/id_dsa.pub')
     if not os.path.exists(keyFile):
         raise Exception("No SSH keyfile")
-    pubkeylines = fsscript_util.read_unix(keyFile)
+    pubkeylines = fslibcmd_docopt.read_unix(keyFile)
     assert len(pubkeylines) == 1, pubkeylines
     keytype, key, localId = pubkeylines.pop().split(' ')
     user, domain = localId.split('@')
@@ -319,8 +319,8 @@ def cmd_olddetect(settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = script_util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = script_util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -333,21 +333,19 @@ def main(opts):
 
     #config = confparse.expand_config_path('domain.rc')
     opts.flags.configPath = os.path.expanduser(opts.flags.config)
-    settings = script_util.init_config(opts.flags.configPath, dict(
+    settings = libcmd_docopt.init_config(opts.flags.configPath, dict(
             nodes = {}, interfaces = {}, domain = {}
         ), opts.flags)
 
     opts.default = 'info'
 
-    return script_util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'domain.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = script_util.get_opts(__doc__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__doc__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-

@@ -1573,7 +1573,7 @@ vc_man_1__conflicts='Show current merge conflicts
 
     list | ls
       List conflicted filenames (using GIT diff)
-    diff
+    shoft | diff
       List source lines for each current merge conflict (all files).
     stat | stats
       List start/end line and total lines for merge conflicts (all files).
@@ -1601,10 +1601,10 @@ vc__conflicts()
         done
       ;;
 
-    diff )
+    show|diff )
         vc__conflicts list | while read filename
         do
-          vc__conflicts diff-file $filename
+          vc__conflicts -show-lines-for-file $filename
         done
       ;;
 
@@ -1629,7 +1629,7 @@ vc__conflicts()
         done
       ;;
 
-    diff-file ) shift
+    show-file | diff-file | -show-lines-for-file ) shift
         test -f "$1" && local filename=$1 || error "Filename expected" 1
         note "Conflicts in $filename"
         grep -n '^=======$' $filename | cut -d ':' -f 1 | while read middle_lnr

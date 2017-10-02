@@ -42,9 +42,9 @@ import re
 from datetime import datetime
 
 import rsr
-import script_util
+import libcmd_docopt
 import log
-from script_util import cmd_help
+from libcmd_docopt import cmd_help
 from taxus import Node, Topic, Host, Project, VersionControl, ScriptMixin
 from taxus.init import SqlBase, get_session
 from res import Workdir, Repo
@@ -159,8 +159,8 @@ def cmd_list(settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = script_util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = script_util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -173,7 +173,7 @@ def main(opts):
 
     settings = opts.flags
     opts.default = 'info'
-    return script_util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'project.mpe/%s' % __version__
@@ -181,8 +181,6 @@ def get_version():
 
 if __name__ == '__main__':
     import sys
-    opts = script_util.get_opts(__doc__, version=get_version())
+    opts = libcmd_docopt.get_opts(__doc__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-

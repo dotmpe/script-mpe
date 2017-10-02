@@ -20,7 +20,7 @@ Options:
 
 import os
 
-import script_util
+import libcmd_docopt
 import res.txt
 import res.todo
 import res.js
@@ -39,8 +39,8 @@ def cmd_meta_to_json(LIST, opts, settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = script_util.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = script_util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -53,7 +53,7 @@ def main(opts):
 
     settings = opts.flags
     opts.default = 'meta-to-json'
-    return script_util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'txt.mpe/%s' % __version__
@@ -62,6 +62,5 @@ if __name__ == '__main__':
     import sys
     reload(sys)
     sys.setdefaultencoding('utf-8')
-    opts = script_util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit(main(opts))
-
