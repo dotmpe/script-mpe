@@ -26,7 +26,7 @@ test -n "$SCRIPTPATH" || {
 
   SCRIPTPATH=$LIB
   # get absolute path for scripts lib dir if LIB is relative
-  case "$LIB" in /* ) ;; * )
+  case "$LIB" in "/"* ) ;; * )
     SCRIPTPATH="$(cd "$LIB"; pwd -P)"
   ;;esac
   export SCRIPTPATH
