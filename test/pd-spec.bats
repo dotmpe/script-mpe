@@ -5,27 +5,27 @@ base=projectdir.sh
 
 init
 
-setup() {
+setup()
+{
   . $lib/util.sh
 }
 
+
 @test "${bin}" "0.1.1.1 default no-args" {
-  case $(current_test_env) in travis )
-      TODO "$BATS_TEST_DESCRIPTION at travis";;
+  case "$(current_test_env)" in
+      travis ) TODO "$BATS_TEST_DESCRIPTION at travis";;
   esac
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 1
 }
-
 
 @test "${bin} help" "0.1.1.2"  {
   skip "Something wrong with pd/std__help"
 
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
-  fnmatch "*$base <cmd> *" "${lines[*]}"
+  fnmatch *"$base <cmd> "* "${lines[*]}"
 }
-
 
 @test "${bin} regenerate" "0.1.4. - generates pre-commit hook from a .package.sh" {
 
