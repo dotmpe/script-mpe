@@ -31,7 +31,7 @@ import hashlib
 
 from script_mpe import log
 from script_mpe import confparse
-from script_mpe import script_util
+from script_mpe import libcmd_docopt
 from script_mpe import taxus
 from script_mpe import libcmd
 from script_mpe.res import Volumedir
@@ -87,8 +87,8 @@ def cmd_stats(settings, opts):
 
 ### Transform cmd_ function names to nested dict
 
-commands = script_util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = script_util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -102,7 +102,7 @@ def main(opts):
     settings = opts.flags
     opts.flags.commit = not opts.flags.no_commit
     opts.flags.verbose = not opts.flags.quiet
-    return script_util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'photos.mpe/%s' % __version__
@@ -116,8 +116,6 @@ if __name__ == '__main__':
     # TODO : vdir = Volumedir.find()
     if db is not __db__:
         __usage__ = __usage__.replace(__db__, db)
-    opts = script_util.get_opts(__doc__ + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__doc__ + __usage__, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-

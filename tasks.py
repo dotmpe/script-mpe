@@ -125,7 +125,7 @@ from pprint import pformat
 
 from lib import Prompt
 import log
-import script_util
+import libcmd_docopt
 import res
 
 
@@ -423,8 +423,8 @@ def cmd_parse_list(settings, opts, TODOLIST):#='to/do.list'):
 
 ### Transform cmd_ function names to nested dict
 
-commands = script_util.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = script_util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -438,17 +438,16 @@ def main(opts):
     settings = opts.flags
     values = opts.args
 
-    return script_util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'tasks.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = script_util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     if opts.flags.v or opts.flags.verbosity:
         log.category = 6
     if not opts.flags.project_slug:
         opts.flags.project_slug = get_project_slug(os.path.basename(os.getcwd()))
     sys.exit(main(opts))
-

@@ -150,7 +150,7 @@ import taxus.model
 import taxus.net
 import taxus.semweb
 import taxus.web
-import script_util
+import libcmd_docopt
 
 from taxus.core import Node, Name
 from taxus.media import Mediatype, MediatypeParameter, Genre, Mediameta
@@ -395,7 +395,7 @@ def main(argv, doc=__doc__, usage=__usage__):
         usage = usage.replace(__db__, db)
 
     ctx = confparse.Values(dict(
-        opts = script_util.get_opts(doc + usage, version=get_version(), argv=argv[1:])
+        opts = libcmd_docopt.get_opts(doc + usage, version=get_version(), argv=argv[1:])
     ))
     ctx.opts.flags.dbref = taxus.ScriptMixin.assert_dbref(ctx.opts.flags.dbref)
     # Load configuration
@@ -652,4 +652,3 @@ if __name__ == '__main__':
         app = FileInfoApp.main()
     else:
         raise Exception(base+'?')
-

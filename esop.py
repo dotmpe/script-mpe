@@ -22,8 +22,8 @@ try:
 except:
     pass
 
-from docscript_utils.core import publish_doctree
-from docscript_utils import nodes
+from doclibcmd_docopts.core import publish_doctree
+from doclibcmd_docopts import nodes
 
 
 class TestSpecVisitor(nodes.SparseNodeVisitor):
@@ -67,5 +67,3 @@ if __name__ == '__main__':
     v.apply()
 
     print("Store %s" % ( v.store, ))
-
-

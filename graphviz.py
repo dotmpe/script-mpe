@@ -44,7 +44,7 @@ import os
 #import uuid
 #from deep_eq import deep_eq
 
-from script_mpe import script_util, confparse
+from script_mpe import libcmd_docopt, confparse
 
 import pydot
 
@@ -159,7 +159,7 @@ def prerun(ctx, cmdline):
     global graph
 
     argv = cmdline.split(' ')
-    ctx.opts = script_util.get_opts(ctx.usage, argv=argv)
+    ctx.opts = libcmd_docopt.get_opts(ctx.usage, argv=argv)
 
     if ctx.opts.cmds[0] in ( 'exit', ):
         return []
@@ -222,11 +222,9 @@ if __name__ == '__main__':
         out=sys.stdout,
         err=sys.stderr,
         inp=sys.stdin,
-        opts=script_util.get_opts(__doc__),
+        opts=libcmd_docopt.get_opts(__doc__),
         dirty=False
     ))
     if ctx.opts.cmds and ( ctx.opts.cmds[0] in ( 'background', 'bg' )):
         ctx.opts.flags.background = True
     sys.exit( main( ctx ) )
-
-

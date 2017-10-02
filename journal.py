@@ -20,7 +20,7 @@ Options:
 
 import os
 
-import script_util
+import libcmd_docopt
 import res.jrnl
 
 from taxus.init import SqlBase, get_session
@@ -45,11 +45,40 @@ def cmd_journal_rw(LIST, opts, settings):
         print entries[k]
 
 
+def cmd_couchdb_log():
+    """
+    TODO: keep an audit type log, with path references.
+
+    Query:
+
+        journal couchlog --date today # list entries
+        journal couchlog --path [<prefix>:]/<path>
+
+        journal couchlog --current # list all paths marked as local working setup
+        journal couchlog --latest # list paths marked as latest available
+        journal couchlog --dev # list paths marked as local dev
+
+        deleted, moved, copied
+
+    Update:
+
+        journal couchlog --current <path>
+        journal couchlog --latest <path>
+        journal couchlog -m "Imported to boreas SQL" <path>
+
+    Data:
+        message:
+        markers: current/latest
+        state: dev/deleted/copy
+        paths: [..]
+        datestamp:
+    """
+
 
 ### Transform cmd_ function names to nested dict
 
-commands = script_util.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = script_util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -62,7 +91,7 @@ def main(opts):
 
     settings = opts.flags
     opts.default = 'journal-rw'
-    return script_util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'journal.mpe/%s' % __version__
@@ -71,6 +100,5 @@ if __name__ == '__main__':
     import sys
     reload(sys)
     sys.setdefaultencoding('utf-8')
-    opts = script_util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit(main(opts))
-

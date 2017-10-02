@@ -142,7 +142,7 @@ from StringIO import StringIO
 
 
 import uriref
-import script_util
+import libcmd_docopt
 
 from confparse import yaml_load, yaml_safe_dump
 
@@ -505,8 +505,8 @@ resolvers['urn:btih'] = lambda data, info, path: rhash(path, 'btih')
 
 ### Transform cmd_ function names to nested dict
 
-commands = script_util.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = script_util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -520,7 +520,7 @@ def main(rc, opts):
     settings = opts.flags
     opts.default = 'magnet-rw'
     opts.flags.verbose = not opts.flags.quiet
-    return script_util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'magnet/%s' % __version__
@@ -533,5 +533,5 @@ if __name__ == '__main__':
         rc = {}
     else:
         rc = {}
-    opts = script_util.get_opts(__doc__ + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__doc__ + __usage__, version=get_version())
     sys.exit(main(rc, opts))

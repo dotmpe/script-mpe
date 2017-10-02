@@ -50,7 +50,7 @@ from docopt import docopt
 import uuid
 from deep_eq import deep_eq
 
-from script_mpe import script_util, confparse
+from script_mpe import libcmd_docopt, confparse
 from script_mpe.res import js
 from script_mpe.confparse import yaml_load, yaml_safe_dump
 
@@ -177,7 +177,7 @@ def prerun(ctx, cmdline):
     global diskdata
 
     argv = cmdline.split(' ')
-    ctx.opts = script_util.get_opts(ctx.usage, argv=argv)
+    ctx.opts = libcmd_docopt.get_opts(ctx.usage, argv=argv)
 
     if not diskdata:
         diskdata = yaml_load(open(ctx.opts.flags.file))
@@ -223,7 +223,7 @@ def main(ctx):
 
 if __name__ == '__main__':
     import sys
-    opts = script_util.get_opts(__doc__)
+    opts = libcmd_docopt.get_opts(__doc__)
     ctx = confparse.Values(dict(
         usage=__doc__,
         out=sys.stdout,

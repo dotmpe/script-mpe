@@ -40,8 +40,7 @@ if __name__ == '__main__':
 
     parser = DTDParser()
     parser.set_dtd_consumer(dh)
-    print parser.feed(open('docscript_utils.dtd').read())
+    print parser.feed(open('doclibcmd_docopts.dtd').read())
     print parser
     print parser.flush()
     print parser
-

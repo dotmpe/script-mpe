@@ -45,7 +45,7 @@ import BeautifulSoup
 
 import log
 import confparse
-import script_util
+import libcmd_docopt
 import libcmd
 import rsr
 import taxus.iface
@@ -96,8 +96,8 @@ def cmd_list(NAME, settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = script_util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = script_util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -111,7 +111,7 @@ def main(opts):
     settings = opts.flags
     opts.flags.commit = not opts.flags.no_commit
     opts.flags.verbose = not opts.flags.quiet
-    return script_util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'bookmarks.mpe/%s' % __version__
@@ -125,8 +125,6 @@ if __name__ == '__main__':
     # TODO : vdir = Volumedir.find()
     if db is not __db__:
         __usage__ = __usage__.replace(__db__, db)
-    opts = script_util.get_opts(__doc__ + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__doc__ + __usage__, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-

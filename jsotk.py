@@ -148,7 +148,7 @@ from StringIO import StringIO
 from objectpath import Tree
 
 
-import script_util, confparse
+import libcmd_docopt, confparse
 from jsotk_lib import PathKVParser, FlatKVParser, \
         load_data, stdout_data, readers, open_file, \
         get_src_dest_defaults, set_format, get_format_for_fileext, \
@@ -502,7 +502,7 @@ def prerun(ctx, cmdline):
     global doc_cache
 
     argv = cmdline.split(' ')
-    ctx.opts = script_util.get_opts(ctx.usage, argv=argv)
+    ctx.opts = libcmd_docopt.get_opts(ctx.usage, argv=argv)
 
     #if not pdhdata:
     #    pdhdata = yaml_load(open(ctx.opts.flags.file))
@@ -559,7 +559,7 @@ if __name__ == '__main__':
         out=sys.stdout,
         inp=sys.stdin,
         err=sys.stderr,
-        opts=script_util.get_opts(__usage__)
+        opts=libcmd_docopt.get_opts(__usage__)
     ))
     ctx['in'] = ctx['inp']
     if ctx.opts.flags.version:
@@ -580,4 +580,3 @@ if __name__ == '__main__':
             print(tb)
             print('Unexpected Error:', err)
         sys.exit(1)
-

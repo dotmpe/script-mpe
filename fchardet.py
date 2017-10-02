@@ -5,7 +5,7 @@ Usage: %(scriptname)s [files | ... ] [--help]
 
 """
 import chardet
-#from cllct.osscript_util import dumb_parse_opt
+#from cllct.oslibcmd_docopt import dumb_parse_opt
 
 
 def main(*files):
@@ -26,5 +26,3 @@ if __name__ == '__main__':
 #    if 'help' in opts:
 #        print >>sys.stderr, __doc__ % locals()
 #    else:
-
-

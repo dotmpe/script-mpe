@@ -32,7 +32,7 @@ import sys
 import anydbm
 # XXX: See also ``import shelve``
 
-from script_mpe import script_util
+from script_mpe import libcmd_docopt
 
 
 def get_any_session(opts):
@@ -59,7 +59,7 @@ def H_dump(db, opts):
 
 ### Transform H_ function names to nested dict
 
-handlers = script_util.get_cmd_handlers_2(globals(), 'H_')
+handlers = libcmd_docopt.get_cmd_handlers_2(globals(), 'H_')
 
 
 ### Main
@@ -77,7 +77,6 @@ def get_version():
     return 'db.mpe/%s' % __version__
 
 if __name__ == '__main__':
-    opts = script_util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit( main( opts.cmds[0], opts ) )
-    opts = script_util.get_opts(__doc__)
-
+    opts = libcmd_docopt.get_opts(__doc__)

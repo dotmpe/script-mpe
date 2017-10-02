@@ -25,7 +25,7 @@ Each result list is printed to output according to a given format.
 Ideas:
     - implement filters based on given tag spec.
 
-.. __: http://www.opengroup.org/onlinepubs/009695399/script_utilities/find.html
+.. __: http://www.opengroup.org/onlinepubs/009695399/libcmd_docoptities/find.html
 """
 import os, sys, re, datetime, optparse
 
@@ -240,5 +240,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-

@@ -44,7 +44,7 @@ import base64
 
 import confparse
 import log
-import script_util
+import libcmd_docopt
 from taxus.init import SqlBase, get_session
 from taxus import Node, Name, ID, Topic, Outline, \
         ScriptMixin
@@ -195,8 +195,8 @@ def cmd_x_rewrite_html_tree_id(LIST, settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = script_util.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = script_util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -211,7 +211,7 @@ def main(opts):
     opts.flags.commit = not opts.flags.no_commit
     settings = opts.flags
     settings.apply_contexts = []
-    return script_util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'list.mpe/%s' % __version__
@@ -220,8 +220,7 @@ if __name__ == '__main__':
     import sys
     reload(sys)
     sys.setdefaultencoding('utf-8')
-    opts = script_util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = os.getenv('LIST_DB', opts.flags.dbref)
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-

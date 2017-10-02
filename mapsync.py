@@ -469,7 +469,7 @@ def init(map_id):
 
     fatal('todo: init')
 
-# script_util
+# libcmd_docopt
 
 def info(v, *args):
     msg = "mapsync: %s" % v
@@ -545,5 +545,3 @@ if __name__ == '__main__':
     reload()
     main()
 #    settings.commit()
-
-
