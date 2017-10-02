@@ -2926,25 +2926,26 @@ htd__git_drop_remote()
 # Warn about missing src or project
 htd__git_missing()
 {
+  test -d /srv/project-local || error "missing local project folder" 1
+  test -d /srv/git-local || error "missing local git folder" 1
+
   htd__git_remote | while read repo
   do
-    test -e /src/$repo.git \
-      || warn "No src $repo" & continue
-
-    test -e /srv/project-local/$repo \
-      || warn "No checkout $repo"
-
+    test -e /srv/git-local/$repo.git || warn "No src $repo" & continue
+    test -e /srv/project-local/$repo || warn "No checkout $repo"
   done
 }
 
 # Create local bare in /src/
 htd__git_init_src()
 {
+  test -d /srv/git-local || error "missing local git folder" 1
+
   htd__git_remote | while read repo
   do
     fnmatch "*annex*" "$repo" && continue
-    test -e /src/$repo.git || {
-      git clone --bare $(htd git-remote $repo) /src/$repo.git
+    test -e /srv/git-local/$repo.git || {
+      git clone --bare $(htd git-remote $repo) /srv/git-local/$repo.git
     }
   done
 }
@@ -5462,6 +5463,34 @@ htd_als__inv_elec=inventory-electronics
 htd_grp__inventory_electronics=htd-doc
 
 
+
+htd__disk()
+{
+  test -e /proc || error "proc required" 1
+  case "$1" in
+
+    -partitions ) shift
+	tail -n +3 /proc/partitions | awk '{print $'$1'}'
+      ;;
+
+    -mounts )
+        cat /proc/mounts | cut -d ' ' -f 2
+      ;;
+
+    -tab )
+        sudo file -s /var/lib/docker/aufs
+	tail -n +3 /proc/partitions | while read major minor blocks dev_node
+	do
+	  echo $dev_node
+	  sudo file -s /dev/$dev_node
+	  grep '^/dev/'$dev_node /proc/mounts
+	done
+      ;;
+
+    * ) error "? 'disk $*'" 1 ;;
+  esac
+}
+
 htd__disk_id()
 {
   test -n "$1" || error "Disk expected" 1
@@ -6895,15 +6924,15 @@ htd__path_depth()
 htd_als__depth=path-depth
 
 
-htd_man_1__srv='(Re)init service volume links (srv-init) and get (repo) state (srv-stat)
+htd_man_1__srv='Manage service container symlinks and dirs.
 
-  find-volumes
-      List volume names, optionally given existing volume path.
-  list-service-container-names
+  find-volumes | volumes
+      List fully qualified volume names. Optionally filter given existing volume path.
+  -names
       List service-container names
-  list-service-container-instances
+  -instances
       List unique service-containers (FIXME: ignore local..)
-  find-volume-paths
+  -paths
       List existing volume paths (absolute paths)
   find-container-volumes
       List container paths (absolute paths)
@@ -6917,23 +6946,11 @@ htd__srv()
   test -n "$1" || set -- list
   case "$1" in
 
-    find-volumes ) shift
-        htd__srv find-volume-paths "$1" | cut -d'/' -f3 | sort -u
+    -cnames ) shift
+        echo /srv/* | tr ' ' '\n' | cut -d'/' -f3 | sort -u
       ;;
 
-    list-service-container-names ) shift
-        htd__srv list-service-container-instances | sed '
-            s/^\(.*\)-[0-9]*-[0-9]*-[a-z]*-[a-z]*$/\1/g
-            s/^\(.*\)-local$/\1/g
-          ' | sort -u
-      ;;
-
-    list-service-container-instances ) shift
-      # List existing volume path symlinks
-        echo /srv/* | tr ' ' '\n' | cut -d'/' -f3 | sort -u | grep -v volume
-      ;;
-
-    find-volume-paths ) shift
+    -vpaths ) shift
         for p in /srv/volume-[0-9]*-[0-9]*-*-*/
         do
           htd__name_exists "$p" "$1" || continue
@@ -6941,9 +6958,25 @@ htd__srv()
         done
       ;;
 
+    -names ) shift
+        htd__srv -instances | sed '
+            s/^\(.*\)-[0-9]*-[0-9]*-[a-z]*-[a-z]*$/\1/g
+            s/^\(.*\)-local$/\1/g
+          ' | sort -u
+      ;;
+
+    -instances ) shift
+	htd__srv -cnames |
+          grep -v '^\(\(.*-local\)\|volume-\([0-9]*-[0-9]*-.*\)\)$'
+      ;;
+
+    find-volumes | volumes ) shift
+        htd__srv -vpaths "$1" | cut -d'/' -f3 | sort -u
+      ;;
+
     find-container-volumes ) shift
-      # Additionally to find-volume-paths, go over every service container,
-      # not just the roots.
+        # Additionally to -paths, go over every service container,
+        # not just the roots.
         for p in /srv/*/
         do
           htd__name_exists "$p" "$1" || continue
@@ -6952,12 +6985,13 @@ htd__srv()
       ;;
 
     check ) shift
-      # For all local services, we want symlinks to any matching volume path
-        htd__srv  list-service-container-names | while read name
+        # For all local services, we want symlinks to any matching volume path
+        htd__srv -names | while read name
         do
+          test -n "$name" || error "name" 1
           #htd__srv find-volumes "$name"
           htd__srv find-container-volumes "$name"
-          #htd__srv find-volume-paths "$name"
+          #htd__srv -paths "$name"
 
           # TODO: find out which disk volume is on, create name and see if the
           # symlink is there. check target maybe.
@@ -6974,8 +7008,16 @@ htd__srv()
       ;;
 
     update ) shift
-        htd__srv_init "$@" || return $?
-        htd__srv_stat "$@" || return $?
+        htd__srv init "$@" || return $?
+      ;;
+
+    init ) shift
+        # Update disk volume catalog, and reinitialize service links
+        disk.sh check-all || {
+          disk.sh update-all || {
+            error "Failed updating volumes catalog and links"
+          }
+        }
       ;;
 
     * ) error "'$1'?" 1 ;;
@@ -6995,17 +7037,6 @@ htd__name_exists() # DIR NAME
   name="$sid"
   test -e "$1/$sid" && return
   return 1
-}
-
-
-# Update disk volume catalog, and reinitialize service links
-htd__srv_init()
-{
-  disk.sh check-all || {
-    disk.sh update-all || {
-      error "Failed updating volumes catalog and links"
-    }
-  }
 }
 
 
@@ -7094,19 +7125,6 @@ htd__srv_list()
   done
   case "$out_fmt" in
       DOT )  echo "} // digraph htd__srv_list";; esac
-}
-
-htd__srv_stat()
-{
-  # TODO: manage volume's repo's
-  note "TODO: Local volume repositories all OK"
-}
-
-
-# Update volume repositories
-htd__srv_update()
-{
-  note "TODO: Local volume repositories all updated"
 }
 
 # services list
