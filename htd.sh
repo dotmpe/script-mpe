@@ -8455,6 +8455,7 @@ htd_man_1__ips='
 '
 htd__ips()
 {
+  fnmatch *" root "* " $(groups) " || sudo="sudo "
   case "$1" in
 
       --block-ips ) shift
@@ -8468,7 +8469,7 @@ htd__ips()
         ;;
 
       -grep-auth-log ) # get IP's to block from auth.log
-          grep ':\ Failed\ password' /var/log/auth.log |
+          ${sudo}grep ':\ Failed\ password' /var/log/auth.log |
             sed 's/.*from\ \([0-9\.]*\)\ .*/\1/g' |
             sort -u
         ;;
@@ -8476,7 +8477,6 @@ htd__ips()
 
       --init-blacklist )
           test -x "$(which ipset)" || error ipset 1
-
           ${sudo}ipset create blacklist hash:ip hashsize 4096
 
           # Set up iptables rules. Match with blacklist and drop traffic
