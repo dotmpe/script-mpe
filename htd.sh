@@ -8447,7 +8447,7 @@ htd_man_1__ips='
     --unblock-ips
     -grep-auth-log
     --init-blacklist
-    --init-blacklist
+    --deinit-blacklist
     --blacklist-ips
     -list
     -table
@@ -8480,6 +8480,11 @@ htd__ips()
           # Set up iptables rules. Match with blacklist and drop traffic
           ${sudo}iptables -I INPUT -m set --match-set blacklist src -j DROP
           ${sudo}iptables -I FORWARD -m set --match-set blacklist src -j DROP
+        ;;
+
+      --deinit-blacklist )
+          test -x "$(which ipset)" || error ipset 1
+          ${sudo}ipset destroy blacklist
         ;;
 
       --blacklist-ips ) shift
