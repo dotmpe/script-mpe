@@ -8442,6 +8442,50 @@ htd__vim_get_runtime()
 }
 
 
+htd__ips()
+{
+  test -n "$1" || set -- -init
+  case "$1" in
+
+      --block-ips ) 
+          for ip in "$@" ; do
+              iptables -I INPUT -s $ip -j DROP ; done
+        ;;
+
+      --unblock-ips ) 
+          for ip in "$@" ; do
+              iptables -D INPUT -s $ip -j DROP ; done
+        ;;
+
+      -init-from-aut-log ) # get IP's to block from auth.log
+          grep ':\ Failed\ password' /var/log/auth.log |
+            sed 's/.*from\ \([0-9\.]*\)\ .*/\1/g' |
+            sort -u
+        ;;
+
+      -init-blacklist )
+          test -x "$(which ipset)" || error ipset 1
+          ipset create blacklist hash:ip hashsize 4096
+          # Set up iptables rules. Match with blacklist and drop traffic
+          iptables -I INPUT -m set --match-set blacklist src -j DROP
+          iptables -I FORWARD -m set --match-set blacklist src -j DROP
+        ;;
+
+      --blacklist-ips )
+          for ip in "$@" ; do
+              ipset add blacklist $ip; done
+        ;;
+
+      -list ) iptables -L
+        ;;
+
+      * ) error "? 'ips $*'" 1
+        ;;
+  esac
+
+}
+
+
 # util
 
 htd_rst_doc_create_update()
