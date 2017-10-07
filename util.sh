@@ -21,6 +21,7 @@ lib_path()
   lookup_test=lib_path_exists lookup_path $2 "$1"
 }
 
+# Lookup and load sh-lib on SCRIPTPATH
 lib_load()
 {
   test -n "$LOG" || exit 102
@@ -39,7 +40,7 @@ lib_load()
     test -n "$f_lib_path" || $LOG error "No path for lib '$1'" 1
     . $f_lib_path load-ext
     f_lib_load=$(printf -- "${1}" | tr -Cs 'A-Za-z0-9_' '_')_lib_load
-    # func_exists, then call
+    # again, func_exists is in sys.lib.sh. But inline here:
     type ${f_lib_load} 2> /dev/null 1> /dev/null && {
       ${f_lib_load}
     }
