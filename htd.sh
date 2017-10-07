@@ -8471,11 +8471,11 @@ htd__ips()
         ;;
 
       init-wlist-iptable ) shift
-			iptables -P FORWARD DROP # we aren't a router
-			iptables -A INPUT -m state --state INVALID -j DROP
-			iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-			iptables -A INPUT -i lo -j ACCEPT
-			iptables -P INPUT DROP # Drop everything we don't accept
+			${sudo}iptables -P FORWARD DROP # we aren't a router
+			${sudo}iptables -A INPUT -m state --state INVALID -j DROP
+			${sudo}iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+			${sudo}iptables -A INPUT -i lo -j ACCEPT
+			${sudo}iptables -P INPUT DROP # Drop everything we don't accept
         ;;
 
       init-blist ) shift
