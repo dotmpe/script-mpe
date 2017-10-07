@@ -8458,6 +8458,42 @@ htd__ips()
   fnmatch *" root "* " $(groups) " || sudo="sudo "
   case "$1" in
 
+      init-wlist ) shift
+			set -e
+			wlist=allowed-ips.list
+			wc -l $wlist
+            htd__ips init-wlist-iptable
+            read_nix_style_file $wlist |
+			while read ip
+			do
+			  ${sudo}iptables -A INPUT -s ${ip} -j ACCEPT
+			done
+        ;;
+
+      init-wlist-iptable ) shift
+			iptables -P FORWARD DROP # we aren't a router
+			iptables -A INPUT -m state --state INVALID -j DROP
+			iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+			iptables -A INPUT -i lo -j ACCEPT
+			iptables -P INPUT DROP # Drop everything we don't accept
+        ;;
+
+      init-blist ) shift
+			blist=banned-ips.list
+			wc -l $blist
+			{
+			  cat $blist
+			  htd ips -grep-auth-log
+			} | sort -u >$blist
+			wc -l $blist
+			htd ips --init-blacklist
+            read_nix_style_file $blist |
+			while read ip
+			do
+			  ${sudo}ipset add blacklist $ip
+			done
+        ;;
+
       --block-ips ) shift
           for ip in "$@" ; do
               ${sudo}iptables -I INPUT -s $ip -j DROP ; done
@@ -8485,7 +8521,7 @@ htd__ips()
           #${sudo}iptables -A INPUT -m set --match-set blacklist src -j DROP
           ${sudo}iptables -A INPUT -m set --match-set blacklist src -j DROP ||
               warn "Failed setting blacklist for INPUT src"
-          ${sudo}iptables -I FORWARD -m set --match-set blacklist src -j DROP ||
+          ${sudo}iptables -A FORWARD -m set --match-set blacklist src -j DROP ||
               warn "Failed setting blacklist for FORWARD src"
           #${sudo}iptables -I INPUT -m set --match-set IPBlock src,dst -j Drop
         ;;
