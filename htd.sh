@@ -8476,10 +8476,15 @@ htd__ips()
 
       --init-blacklist )
           test -x "$(which ipset)" || error ipset 1
+
           ${sudo}ipset create blacklist hash:ip hashsize 4096
+
           # Set up iptables rules. Match with blacklist and drop traffic
-          ${sudo}iptables -I INPUT -m set --match-set blacklist src -j DROP
-          ${sudo}iptables -I FORWARD -m set --match-set blacklist src -j DROP
+          ${sudo}iptables -I INPUT -m set --match-set blacklist src -j DROP ||
+              warn "Failed setting blacklist for INPUT src"
+          ${sudo}iptables -I FORWARD -m set --match-set blacklist src -j DROP ||
+              warn "Failed setting blacklist for FORWARD src"
+          #${sudo}iptables -I INPUT -m set --match-set IPBlock src,dst -j Drop
         ;;
 
       --deinit-blacklist )
