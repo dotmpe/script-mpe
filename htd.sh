@@ -8444,7 +8444,6 @@ htd__vim_get_runtime()
 
 htd__ips()
 {
-  test -n "$1" || set -- -init
   case "$1" in
 
       --block-ips ) shift
