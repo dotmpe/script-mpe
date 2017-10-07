@@ -8447,17 +8447,17 @@ htd__ips()
   test -n "$1" || set -- -init
   case "$1" in
 
-      --block-ips ) 
+      --block-ips ) shift
           for ip in "$@" ; do
               ${sudo}iptables -I INPUT -s $ip -j DROP ; done
         ;;
 
-      --unblock-ips ) 
+      --unblock-ips ) shift
           for ip in "$@" ; do
               ${sudo}iptables -D INPUT -s $ip -j DROP ; done
         ;;
 
-      -init-from-auth-log ) # get IP's to block from auth.log
+      -grep-auth-log ) # get IP's to block from auth.log
           grep ':\ Failed\ password' /var/log/auth.log |
             sed 's/.*from\ \([0-9\.]*\)\ .*/\1/g' |
             sort -u
@@ -8472,7 +8472,7 @@ htd__ips()
           ${sudo}iptables -I FORWARD -m set --match-set blacklist src -j DROP
         ;;
 
-      --blacklist-ips )
+      --blacklist-ips ) shift
           for ip in "$@" ; do ${sudo}ipset add blacklist $ip; done
         ;;
 
@@ -8484,7 +8484,7 @@ htd__ips()
         ;;
 
       --add-blacklist )
-          htd__ips -grep-auth | while read ip;
+          htd__ips -grep-auth-log | while read ip;
           do
             ${sudo}ipset add blacklist $ip
           done
