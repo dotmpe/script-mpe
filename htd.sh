@@ -3162,7 +3162,15 @@ htd__source()
 
 
 
-htd_man_1__function='Operate on specific functions in Sh scripts. '
+htd_man_1__function='Operate on specific functions in Sh scripts.
+
+   copy FUNC FILE
+     Retrieves function-range and echo function including envelope.
+   start-line
+     Retrieve line-number for function.
+   range
+     Retrieve start- and end-line-number for function.
+'
 htd__function()
 {
   test -n "$1" || set -- copy
@@ -3184,8 +3192,12 @@ htd__function()
 }
 
 
-htd_man_1__expand_source_line='
-  Replace the source line with the contents of the sourced script'
+htd_man_1__expand_source_line='Replace a source line with the contents of the sourced script
+  
+This must be pointed to a line with format: 
+
+  .\ (P<sourced-file>.*)
+'
 htd_spc__expand_source_line='expand-source-line FILE LINENR'
 htd__expand_source_line()
 {
@@ -3209,8 +3221,11 @@ htd_man_1__diff_function='
   functions in different files/directories. Normally runs vimdiff on a synced
   file. But quiet instead exists, and copy-only does not modify the source
   script but only shows the diff.  Normally (!copy-only) the two functions are
-  replaced by a source command to their temporary file used for comparison, iow.
-  during editing the script remains fully functional.
+  replaced by a source command to their temporary file used for comparison, 
+  so that during editing the script remains fully functional.
+
+  But meanwhile the both function versions are conveniently in separate files,
+  for vimdiff or other comparison/sync tool.
 '
 htd_spc__diff_function="diff-func(tion) [ --quiet ] [ --copy-only ] [ --no-edit ] FILE1 FUNC1 DIR[FILE2 [FUNC2]] "
 htd__diff_function()
@@ -3265,7 +3280,7 @@ htd__diff_function()
   }
   trueish "$quiet" || {
     diff -bqr $src1 $src2 >/dev/null 2>&1 &&
-    stderr ok "synced '$*'" ||
+    stderr debug "synced '$*'" ||
     stderr warn "not in sync '$*'"
   }
   trueish "$copy_only" || {
@@ -3289,28 +3304,36 @@ htd__sync_function()
 htd_run__sync_function=iAO
 
 
-htd_man_1__diff_functions="List all functions in FILE, and compare with FILE|DIR"
+htd_man_1__diff_functions="List all functions in FILE, and compare with FILE|DIR
+
+See diff-function for behaviour.
+"
 htd__diff_functions()
 {
   test -n "$1" || error "diff-functions FILE FILE|DIR" 1
   test -n "$2" || set -- "$1" $scriptpath
   test -e "$2" || error "Directory or file to compare to expected '$2'" 1
   test -f "$2" || set -- "$1" "$2/$1"
-  test -e "$2" || error "Unable to get remote side for '$1'" 1
+  test -e "$2" || { error "Unable to get remote side for '$1'"; return 1; }
   test -z "$3" || error "surplus arguments: '$3'" 1
   htd__list_functions $1 |
         sed 's/\(\w*\)()/\1/' | sort -u | while read func
   do
-    grep -bqr "^$func()" $2/$1 || {
+    grep -bqr "^$func()" $1 || {
       warn "No function $func in $2"
       continue
     }
-    htd__diff_function "$1" "$func" $2/$1
+    htd__diff_function "$1" "$func" $1
   done
 }
 htd_run__diff_functions=iAO
 
 
+htd_man_1__sync_functions='List and compare functions.
+
+Direct diff-function to be verbose, cut functions into separate files, use
+editor for sync and then restore both functions at original location.
+'
 htd__sync_functions()
 {
   export quiet=false copy_only=false edit=true
@@ -3332,7 +3355,7 @@ htd__diff_sh_lib()
   for lib in *.lib.sh
   do
     note "Lib: $lib"
-    htd__diff_functions $lib $1
+    htd__diff_functions $lib $1 || continue
   done
 }
 htd_run__diff_sh_lib=iAO

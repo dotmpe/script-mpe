@@ -193,7 +193,7 @@ __vc_bzrdir()
 
 __vc_scmdir()
 {
-  __vc_gitdir "$1" || {
+  vc_gitdir "$1" || {
     __vc_bzrdir "$1" || {
       __vc_svndir "$1" || {
         __vc_hgdir "$1" ||
@@ -203,26 +203,12 @@ __vc_scmdir()
   }
 }
 
-# __vc_gitdir accepts 0 or 1 arguments (i.e., location)
-# echo absolute location of .git repo, return
-# be silent otherwise
-__vc_gitdir()
-{
-  test -n "$1" || set -- $(pwd -P)
-  test -d "$1/.git" && {
-    echo "$1/.git"
-  } || (
-    cd "$1" || return 2
-    git rev-parse --git-dir 2>/dev/null || return 1
-  )
-}
-
 # checkout dir
 # for regular checkouts, the parent dir
 # for modules, one level + prefix levels higher
 __vc_git_codir()
 {
-  git="$(__vc_gitdir "$1")"
+  git="$(vc_gitdir "$1")"
 
   fnmatch "*/.git" "$git" \
     || while true
@@ -239,7 +225,7 @@ __vc_git_codir()
 __vc_git_flags()
 {
   test -n "$1" || set -- "$(pwd)"
-  g="$(__vc_gitdir "$1")"
+  g="$(vc_gitdir "$1")"
   if [ -e "$g" ]
   then
     test "$(echo $g/refs/heads/*)" != "$g/refs/heads/*" || {
@@ -380,7 +366,7 @@ __vc_status()
   short="$(homepath "$1")"
   test -n "$short" || err "homepath" 1
 
-  local git="$(__vc_gitdir "$realcwd")"
+  local git="$(vc_gitdir "$realcwd")"
   local bzr=$(__vc_bzrdir "$realcwd")
 
   if [ -n "$git" ]; then
@@ -446,7 +432,7 @@ __vc_screen ()
   realcwd="$(pwd -P)"
   short=$(homepath "$1")
 
-  local git=$(__vc_gitdir "$1")
+  local git=$(vc_gitdir "$1")
   if [ "$git" ]; then
 
     test "$(echo $git/refs/heads/*)" != "$git/refs/heads/*" || {
@@ -473,7 +459,7 @@ __vc_screen ()
 __vc_pull ()
 {
   cd "$1"
-  local git=$(__vc_gitdir)
+  local git=$(vc_gitdir)
   local bzr=$(__vc_bzrdir)
   if [ "$git" ]; then
     git pull;
@@ -487,7 +473,7 @@ __vc_pull ()
 __vc_push ()
 {
   cd "$1"
-  local git=$(__vc_gitdir)
+  local git=$(vc_gitdir)
   local bzr=$(__vc_bzrdir)
   if [ "$git" ]; then
     git push origin master;
@@ -643,7 +629,7 @@ vc__ls_errors()
         error "in info from $gitpath, see previous."
       }
     } || {
-      gitdir=$(__vc_gitdir $(dirname $gitpath))
+      gitdir=$(vc_gitdir $(dirname $gitpath))
       echo $gitdir | grep -v '.git\/modules' > /dev/null && {
         # files should be gitlinks for submodules
         warn "for  $gitpath, see previous. Broken gitlink?"
@@ -1121,7 +1107,7 @@ vc__list_prefixes()
 vc__list_subrepos()
 {
   local cwd=$(pwd) prefixes=$(setup_tmpf .prefixes)
-  basedir="$(dirname "$(__vc_gitdir "$1")")"
+  basedir="$(dirname "$(vc_gitdir "$1")")"
   test -n "$1" || set -- "."
 
   cd "$basedir"
@@ -1748,7 +1734,7 @@ vc_main()
             failed= \
             ext_sh_sub=
 
-        lib_load str match main std stdio sys os src
+        lib_load str match main std stdio sys os src vc
 
         type $func >/dev/null 2>&1 && {
           shift 1
@@ -1791,7 +1777,7 @@ vc_load()
 
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
-  gtd="$(__vc_gitdir "$cwd")"
+  gtd="$(vc_gitdir "$cwd")"
 
   test -n "$vc_clean_gl" || {
     test -e .gitignore-clean \

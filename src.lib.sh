@@ -432,8 +432,8 @@ EOF
 
 expand_sentinel_line() # Src-File Line-Number
 {
-  test -f "$1" || error "expand_source_line file '$1'" 1
-  test -n "$2" || error "expand_source_line line" 1
+  test -f "$1" || error "expand_sentinel_line file '$1'" 1
+  test -n "$2" || error "expand_sentinel_line line" 1
 
   local srcfile="$(source_lines "$1" "$2" "" 1 | cut -c26- )"
   test -f "$srcfile" || error "src-file $*: '$srcfile'" 1
