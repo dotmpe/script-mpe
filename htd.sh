@@ -8457,13 +8457,14 @@ htd__ips()
               iptables -D INPUT -s $ip -j DROP ; done
         ;;
 
-      -init-from-aut-log ) # get IP's to block from auth.log
+      -init-from-auth-log ) # get IP's to block from auth.log
           grep ':\ Failed\ password' /var/log/auth.log |
             sed 's/.*from\ \([0-9\.]*\)\ .*/\1/g' |
             sort -u
         ;;
 
-      -init-blacklist )
+
+      --init-blacklist )
           test -x "$(which ipset)" || error ipset 1
           ipset create blacklist hash:ip hashsize 4096
           # Set up iptables rules. Match with blacklist and drop traffic
@@ -8472,17 +8473,27 @@ htd__ips()
         ;;
 
       --blacklist-ips )
-          for ip in "$@" ; do
-              ipset add blacklist $ip; done
+          for ip in "$@" ; do ipset add blacklist $ip; done
         ;;
 
-      -list ) iptables -L
+      -list ) shift ; test -n "$1" || set -- blacklist
+          ipset list $blacklist | tail -n +8
         ;;
+
+      -table ) iptables -L
+        ;;
+
+      --add-blacklist )
+          htd__ips -grep-auth | while read ip;
+          do
+            ipset add blacklist $ip
+          done
+        ;;
+
 
       * ) error "? 'ips $*'" 1
         ;;
   esac
-
 }
 
 
