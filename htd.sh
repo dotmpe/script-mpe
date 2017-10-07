@@ -8451,7 +8451,7 @@ htd_man_1__ips='
     --blacklist-ips
     -list
     -table
-    --add-blacklist
+    --blacklist
 '
 htd__ips()
 {
@@ -8469,7 +8469,9 @@ htd__ips()
         ;;
 
       -grep-auth-log ) # get IP's to block from auth.log
-          ${sudo}grep ':\ Failed\ password' /var/log/auth.log |
+          ${sudo}grep \
+              ':\ Failed\ password\ for [a-z0-9]*\ from [0-9\.]*\ port\ ' \
+              /var/log/auth.log |
             sed 's/.*from\ \([0-9\.]*\)\ .*/\1/g' |
             sort -u
         ;;
@@ -8481,7 +8483,7 @@ htd__ips()
 
           # Set up iptables rules. Match with blacklist and drop traffic
           ${sudo}iptables -I INPUT -m set --match-set blacklist src -j DROP ||
-              warn "Failed setting blacklist for INPUT src"
+              warn "Failed setting blackludst for INPUT src"
           ${sudo}iptables -I FORWARD -m set --match-set blacklist src -j DROP ||
               warn "Failed setting blacklist for FORWARD src"
           #${sudo}iptables -I INPUT -m set --match-set IPBlock src,dst -j Drop
