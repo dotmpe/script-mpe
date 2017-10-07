@@ -8442,6 +8442,17 @@ htd__vim_get_runtime()
 }
 
 
+htd_man_1__ips='
+    --block-ips
+    --unblock-ips
+    -grep-auth-log
+    --init-blacklist
+    --init-blacklist
+    --blacklist-ips
+    -list
+    -table
+    --add-blacklist
+'
 htd__ips()
 {
   case "$1" in
@@ -8482,7 +8493,7 @@ htd__ips()
       -table ) ${sudo}iptables -L
         ;;
 
-      --add-blacklist )
+      --blacklist )
           htd__ips -grep-auth-log | while read ip;
           do
             ${sudo}ipset add blacklist $ip
