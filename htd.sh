@@ -8449,12 +8449,12 @@ htd__ips()
 
       --block-ips ) 
           for ip in "$@" ; do
-              iptables -I INPUT -s $ip -j DROP ; done
+              ${sudo}iptables -I INPUT -s $ip -j DROP ; done
         ;;
 
       --unblock-ips ) 
           for ip in "$@" ; do
-              iptables -D INPUT -s $ip -j DROP ; done
+              ${sudo}iptables -D INPUT -s $ip -j DROP ; done
         ;;
 
       -init-from-auth-log ) # get IP's to block from auth.log
@@ -8466,27 +8466,27 @@ htd__ips()
 
       --init-blacklist )
           test -x "$(which ipset)" || error ipset 1
-          ipset create blacklist hash:ip hashsize 4096
+          ${sudo}ipset create blacklist hash:ip hashsize 4096
           # Set up iptables rules. Match with blacklist and drop traffic
-          iptables -I INPUT -m set --match-set blacklist src -j DROP
-          iptables -I FORWARD -m set --match-set blacklist src -j DROP
+          ${sudo}iptables -I INPUT -m set --match-set blacklist src -j DROP
+          ${sudo}iptables -I FORWARD -m set --match-set blacklist src -j DROP
         ;;
 
       --blacklist-ips )
-          for ip in "$@" ; do ipset add blacklist $ip; done
+          for ip in "$@" ; do ${sudo}ipset add blacklist $ip; done
         ;;
 
       -list ) shift ; test -n "$1" || set -- blacklist
-          ipset list $blacklist | tail -n +8
+          ${sudo}ipset list $blacklist | tail -n +8
         ;;
 
-      -table ) iptables -L
+      -table ) ${sudo}iptables -L
         ;;
 
       --add-blacklist )
           htd__ips -grep-auth | while read ip;
           do
-            ipset add blacklist $ip
+            ${sudo}ipset add blacklist $ip
           done
         ;;
 
