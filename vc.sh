@@ -1722,6 +1722,20 @@ vc__checkout()
 }
 
 
+vc__sync()
+{
+  git branch --list | sed -E 's/\*|[[:space:]]//g' | while read branch ; do
+    git remote | while read remote ; do
+      git rebase $remote $branch && {
+        git push $remote $branch
+      } || {
+        warn "Rebase on $remote/$branch failed"
+      }
+    done
+  done
+}
+
+
 # ----
 
 
