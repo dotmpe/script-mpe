@@ -1176,7 +1176,7 @@ vc__list_local_branches()
   local pwd=$(pwd)
   test -z "$1" || cd "$1"
   # use git output, replace asterix and spaces
-  git branch --list | sed -E 's/\*|[[:space:]]//g'
+  git show-ref --heads | cut -c53-
   test -z "$1" || cd "$pwd"
 }
 
@@ -1724,8 +1724,11 @@ vc__checkout()
 
 vc__sync()
 {
-  git branch --list | sed -E 's/\*|[[:space:]]//g' | while read branch ; do
+  local current_branch="$(git rev-parse --abbrev-ref HEAD)"
+  git show-ref --heads | cut -c53- | while read branch ; do
     git remote | while read remote ; do
+      git checkout $branch ||
+        warn "Checkout $branch failed" 1
       git rebase $remote $branch && {
         git push $remote $branch
       } || {
@@ -1733,6 +1736,7 @@ vc__sync()
       }
     done
   done
+  git checkout $current_branch
 }
 
 
