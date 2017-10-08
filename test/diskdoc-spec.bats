@@ -3,65 +3,62 @@
 base=diskdoc.sh
 load helper
 init
-#pwd=$(cd .;pwd -P)
 
 
-version=0.0.3-dev # script-mpe
+version=0.0.4-dev # script-mpe
 
 @test "${bin}" "No arguments: default action is status" {
-  test "$uname" != Darwin || skip Darwin
+  test "$uname" != Darwin || skip "Diskdoc env not available for BSD/Darwin"
   run $bin
-  test $status -eq 0
+  test_ok_nonempty || stdfail
 }
 
 @test "$bin help" "Lists commands" {
   run $BATS_TEST_DESCRIPTION
-  test $status -eq 0 \
-    || { diag "Output: ${lines[*]}"; fail "Status: ${status}"; }
   # Output must at least be usage lines + nr of functions
-  test "${#lines[@]}" -gt 8
+  { test $status -eq 0 &&
+    test "${#lines[@]}" -gt 8
+  } || stdfail
 }
 
 @test ". ${bin}" {
   run sh -c "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 1
-  fnmatch "Not a frontend for sh*" "${lines[*]}"
+  { test ${status} -eq 1 &&
+    fnmatch "diskdoc: not a frontend for sh*" "${lines[*]}"
+  } || stdfail 1
 
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 1
-  fnmatch "Not a frontend for bats-exec-test*" "${lines[*]}"
+  { test ${status} -eq 1 &&
+    fnmatch "diskdoc: not a frontend for bats-exec-test*" "${lines[*]}"
+  } || stdfail 2
 }
 
 @test ". ${bin} load-ext" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
+  test_ok_empty || stdfail
 }
 
 @test "source ${bin}" {
-  run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 1
-  fnmatch "Not a frontend for bats-exec-test*" "${lines[*]}"
   run bash -c "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 1
-  fnmatch "Not a frontend for bash*" "${lines[*]}"
+  { test ${status} -eq 1 &&
+    fnmatch "diskdoc: not a frontend for bash*" "${lines[*]}"
+  } || stdfail 2
+  run $BATS_TEST_DESCRIPTION
+  { test ${status} -eq 1 &&
+    fnmatch "diskdoc: not a frontend for bats-exec-test*" "${lines[*]}"
+  } || stdfail 1
 }
 
 @test "source ${bin} load-ext" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
+  test_ok_empty || stdfail
 }
-
 
 @test "${bin} -vv -n help" {
-  #skip "envs: envs=$envs FIXME is hardcoded in test/helper.bash current_test_env"
-  #check_skipped_envs || TODO "envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -n "${lines[*]}" # non-empty output
-  test ${#lines[@]} -gt 4  # lines of output (stdout+stderr)
+  { test ${status} -eq 0 &&
+    test -n "${lines[*]}" && # non-empty output
+    test ${#lines[@]} -gt 4  # lines of output (stdout+stderr)
+  } || stdfail
 }
-
-
 

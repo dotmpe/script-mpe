@@ -7,7 +7,7 @@ For each comment a record with a generated ID and digest is kept.
 Comments without ID may match by identity to an existing record,
 or are inserted as new records.
 
-The identity is determined by SHA1 sum. Each record is stored once, 
+The identity is determined by SHA1 sum. Each record is stored once,
 ie. all recorded digests are distinct, unique values. The same restriction
 applies to the numeric ID.
 
@@ -73,12 +73,14 @@ def comment(dbsession, comment, numid=None):
         return new_comment.numid
 
 
-def new_issue(tag, description):
-# TODO
-    print ('New', tag, description,)
+def get(iid): pass
 
-def update_issue(tag, iid, description):
+def new(tag, o):
 # TODO
-    print ('Updated', tag, iid, description,)
+    print ('New', tag, o,)
+
+def update(tag, iid, o):
+# TODO
+    print ('Updated', tag, iid, o)
 
 

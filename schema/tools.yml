@@ -1,0 +1,78 @@
+
+id: "http://dotmpe.com/project/script/schema/tools#"
+$schema: http://json-schema.org/draft-04/schema#
+description: JSON based schema for tools.yml
+type: object
+
+additionalProperties: false
+required:
+  - tools
+
+properties:
+  id:
+    type: string
+    description: Alphanumeric
+  name:
+    type: string
+    description: Label or title
+  $schema:
+    $stype: string
+  description:
+    type: string
+  tools:
+    type: object
+    minProperties: 1
+    patternProperties:
+      "^[A-Za-z0-9\\._%\\+-]+@[A-Za-z0-9\\.-]+\\.[A-Za-z]{2,6}$": 
+        description: The tools key normally corresponds with the Id attribute, and either indicates a package available with the specified installer, or a standalone, named script embedded.
+        oneOf:
+          - type: string
+          - type: array
+            items: [ type: string ]
+          - type: object
+            additionalProperties: false
+            properties:
+              id:
+                description: Should not be different from the tools key, see description for more info.
+                type: string
+              installer:
+                description: A short ID for the package manager. If present then there should be no default script for this tool, and if the bin attribute is present and true it is inferred to be the same as the tool key.
+                type: string
+              dep:
+                description: Depend on another tool-id
+                oneOf:
+                  - type: string
+                  - type: array
+                    items: [ type: string ]
+              src:
+                description: Work in progress; experimental; a name for the script to be generated.
+                type: string
+              description:
+                type: string
+              bin:
+                description: For packages this identifies the executable that are installed (to PATH). 
+                oneOf:
+                  - type: string
+                  - type: array
+                    items: [ type: string ]
+              post-install:
+                description: experimental; see htd.sh tools
+                oneOf:
+                  - type: string
+                  - type: array
+                    items: [ type: string ]
+              post-uninstall:
+                description: experimental; see htd.sh tools
+                oneOf:
+                  - type: string
+                  - type: array
+                    items: [ type: string ]
+              script:
+                minProperties: 1
+                patternProperties:
+                  "^[A-Za-z0-9\\._%\\+-]+@[A-Za-z0-9\\.-]+\\.[A-Za-z]{2,6}$": 
+                    oneOf:
+                      - type: string
+                      - type: array
+                        items: [ type: string ]
+

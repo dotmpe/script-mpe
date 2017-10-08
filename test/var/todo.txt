@@ -1,0 +1,6 @@
+2017-03-19 X-TRCK-999: setup testing for gizmo _r:S7ysso8rHesr src_name:test/py/mod_todotxt.py
+(A) 2017-03-19 X-TRCK-1001: rewrite +jelly layer to +peanut, improve @coverage
+(D) clean up old code XXX-jybtyDKFdOCC XXX-ZnV3whzhLzOM XXX-KSPpSK8SiElJ
+(F) foo meta:bar meta2:x some.thing:value other/thing:value +AnotherPrefTag @DifferentPrefTag
++prj1 +prj2 +prj3 +prj4
+@ctx-1 @ctx2 @ctx3 @ctx4

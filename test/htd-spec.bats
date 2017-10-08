@@ -6,7 +6,12 @@ init
 pwd=$(cd .;pwd -P)
 
 
-version=0.0.3-dev # script-mpe
+version=0.0.4-dev # script-mpe
+
+setup() {
+  scriptname=test-$base
+  #. $ENV
+}
 
 @test "$bin no arguments no-op" {
   skip "Default command is $EDITOR now"
@@ -52,7 +57,8 @@ version=0.0.3-dev # script-mpe
 
   esac
 
-  run bash -c "_test() { $BATS_TEST_DESCRIPTION 2>/dev/null; } ; HTDIR= && _test"
+  TODO "fix rest of test"
+  run bash -c "_test() { $BATS_TEST_DESCRIPTION 2>/dev/null; } ; export HTDIR= && _test"
   test "${lines[*]}" = "$(echo ~/public_html)"
 
   case "$(current_test_env)" in
@@ -87,8 +93,6 @@ version=0.0.3-dev # script-mpe
 }
 
 @test "$bin check-names filenames with table.{vars,names}" {
-  skip "FIXME htd check-names"
-
   run ${bin} check-names 256colors2.pl
   #test "${lines[1]}" = "# Loaded $HOME/bin/table.vars"
   #test "${lines[2]}" = "No match for 256colors2.pl"
@@ -110,11 +114,11 @@ version=0.0.3-dev # script-mpe
   export verbosity=5
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "${lines[0]}" = "script-mpe/$version" ||
-    fail "Expected script-mpe/$version" 
+  test "${lines[0]}" = "htdocs-mpe/$version" ||
+    fail "Expected htdocs-mpe/$version" 
 }
 
-@test "$bin today" 8 {
+@test "$bin today" {
 
   cd $BATS_TMPDIR
 
@@ -155,7 +159,7 @@ version=0.0.3-dev # script-mpe
 }
 
 
-@test "$bin tpaths" "prints paths to definition-list terms" {
+@test "$bin tpaths - prints paths to definition-list terms" {
 
   cd $BATS_TMPDIR
 
@@ -176,24 +180,24 @@ EOM
 } > test.rst
 
   _test() {
-    $BATS_TEST_DESCRIPTION $@ 2>/dev/null
+    $bin tpaths $@ 2>/dev/null
   }
   run _test test.rst
 
   test $status -eq 0 || fail "Output: ${lines[*]}"
 
-  check_skipped_envs travis || \
-    skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
+  check_skipped_envs travis ||
+    skip "'$bin $tpaths' not running at Linux (Travis)"
 
   test "${lines[0]}" = "/Dev/Software" || fail "Output: ${lines[*]}"
-#skip "TODO: fixme tpaths is failing"
+  #skip "TODO: fixme tpaths is failing"
   test "${lines[1]}" = "/Dev/Hardware" || fail "Output: ${lines[*]}"
   test "${lines[2]}" = "/Personal/Topic" || fail "Output: ${lines[*]}"
   test "${lines[3]}" = "/Public/Note" || fail "Output: ${lines[*]}"
 }
 
 
-@test "$bin tpaths" "prints paths to definition-list terms with special characters" {
+@test "$bin tpaths - prints paths to definition-list terms with special characters" {
 
   test "$(uname)" = "Linux" && skip "Fix XSLT v2 at Linux"
 
@@ -218,14 +222,14 @@ EOM
 
   export xsl_ver=2 
   _test() {
-    $BATS_TEST_DESCRIPTION $@ 2>/dev/null
+    $bin tpaths $@ 2>/dev/null
   }
   run _test test.rst
 
   test $status -eq 0 || fail "Output: ${lines[*]}"
 
   check_skipped_envs travis || \
-    skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
+    skip "'$bin tpaths' not running at Linux (Travis)"
 
   test "${lines[0]}" = "/Dev/Software" \
     || fail "Output: ${lines[*]}"
@@ -235,7 +239,7 @@ EOM
   test "${lines[3]}" = "/Public/Note"
 }
 
-@test "$bin tpath-raw" "prints paths to definition-list terms" {
+@test "$bin tpath-raw - prints paths to definition-list terms" {
 
   cd $BATS_TMPDIR
   {
@@ -253,10 +257,10 @@ Public
 EOM
 } > test.rst
 
-  run $BATS_TEST_DESCRIPTION test.rst
+  run $bin tpath-raw test.rst
 
   check_skipped_envs travis || \
-    skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
+    skip "'$tpath-raw' not testing at Linux (Travis)"
 
   l=$(( ${#lines[*]} - 1 ))
   diag "${lines[$l]}"
@@ -265,7 +269,7 @@ EOM
 }
 
 
-@test "$bin tpath-raw" "prints paths to definition-list terms" {
+@test "$bin tpath-raw - prints paths to definition-list terms" {
 
   cd $BATS_TMPDIR
   {
@@ -283,10 +287,10 @@ Public
 EOM
 } > test.rst
 
-  run $BATS_TEST_DESCRIPTION test.rst
+  run $bin tpath-raw test.rst
 
   check_skipped_envs travis || \
-    skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
+    skip "'$bin tpath-raw' not testing at Linux (Travis)"
 
   l=$(( ${#lines[*]} - 1 ))
   test "${lines[$l]}" = '/Dev/../Home/Shop/../Living/../../Public/Topic/../..' \
@@ -294,7 +298,7 @@ EOM
 }
 
 
-@test "$bin tpath-raw" "v2 prints paths to definition-list terms with spaces and other chars" {
+@test "$bin tpath-raw - v2 prints paths to definition-list terms with spaces and other chars" {
 
   test "$(uname)" = "Linux" && skip "Fix XSLT v2 at Linux"
 
@@ -316,39 +320,16 @@ EOM
 } > test.rst
 
   export xsl_ver=2 
-  run $BATS_TEST_DESCRIPTION test.rst
+  run $bin tpath-raw test.rst
 
   check_skipped_envs travis || \
-    skip "$BATS_TEST_DESCRIPTION not testing at Linux (Travis)"
+    skip "'$bin tpath-raw' not testing at Linux (Travis)"
 
   l=$(( ${#lines[*]} - 1 ))
   diag "Lines: ${lines[*]}"
   test "${lines[$l]}" = '/"Soft Dev"/../Home/Shop/"Electric Tools"/../../"Living Room"/../../Public/"Topic Note"/../..'
 }
 
-
-@test "$bin - fixed_table_hd_offset " {
-
-  cd $pwd
-
-  . $lib/htd load-ext
-  . $lib/table.lib.sh
-
-  htd_rules=$BATS_TMPDIR/htd-rules.tab
-  echo "#CMD FOO BAR BAZ BAM" >$htd_rules
-
-  run fixed_table_hd_offset CMD CMD $htd_rules
-  test $status -eq 0
-  test "${lines[@]}" = "0"
-
-  run fixed_table_hd_offset FOO CMD $htd_rules
-  test $status -eq 0
-  test "${lines[@]}" = "5"
-
-  run fixed_table_hd_offset BAR CMD $htd_rules
-  test $status -eq 0
-  test "${lines[@]}" = "9"
-}
 
 @test "$bin check-disks" {
   test "$(uname)" = "Linux" && skip "check-disks Linux"
@@ -394,7 +375,7 @@ EOM
   run $BATS_TEST_DESCRIPTION
   dl=$tmpd/journal/today.rst
   {
-    test ${status} -eq 0
+    test ${status} -eq 0 &&
     test -h "$dl"
     # FIXME: test "$(readlink $dl)" = 2016/12/30.rst
   } || {
@@ -405,7 +386,8 @@ EOM
   }
 }
 
-@test "$bin archive-path journal/" "non-zero exit" {
+
+@test "$bin archive-path journal/" {
   tmpd
   cd $tmpd
   run $BATS_TEST_DESCRIPTION
@@ -418,7 +400,7 @@ EOM
 
 # Adjusted for cabinet
 #   cabinet/today -> cabinet/%Y/%d/%m
-@test "$bin archive-path cabinet" "EXT= M=/%m D=/%d" {
+@test "$bin archive-path cabinet" {
   skip 'TODO: fix archive basename link'
   tmpd
   mkdir -p $tmpd/cabinet
@@ -427,8 +409,8 @@ EOM
   run $BATS_TEST_DESCRIPTION
   dl=$tmpd/cabinet/today
   {
-    test ${status} -eq 0
-    test -h "$dl"
+    test ${status} -eq 0 &&
+    test -h "$dl" &&
     test "$(readlink $dl)" = 2016/12/30
   } || {
     diag "Output: ${lines[*]}"
@@ -439,4 +421,110 @@ EOM
 }
 
 
+@test "$bin run - runs subcmd run-dir" {
+  run $bin run
+  test_ok_nonempty || stdfail
+}
 
+
+@test "$bin run-names - list script names" {
+  run $bin run-names
+  { test_ok_nonempty &&
+    fnmatch *" check "* " ${lines[*]} " &&
+    fnmatch *" build "* " ${lines[*]} " &&
+    fnmatch *" test "* " ${lines[*]} "
+  } || stdfail
+}
+
+
+@test "$bin run-dir - gives script outline (list indented script names and lines)" {
+  run $bin run-dir
+  { test_ok_nonempty &&
+    fnmatch *" check "* " ${lines[*]} " &&
+    fnmatch *" build "* " ${lines[*]} " &&
+    fnmatch *" test "* " ${lines[*]} "
+  } || stdfail
+}
+
+
+@test "$bin open" {
+  require_env lsof
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin open-paths" {
+  require_env lsof
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin current-paths" {
+  require_env lsof
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin prefixes" {
+  require_env lsof
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin prefix-names" {
+  require_env lsof
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin prefix-name" {
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin path-prefix-names" {
+  run $bin path-prefix-names
+  test_ok_nonempty || stdfail
+}
+
+
+@test "$bin topics-list" {
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
+
+
+@test "$bin package" {
+  run $bin package
+  test_ok_nonempty || stdfail
+}
+
+
+@test "$bin filter-functions" {
+
+    export verbosity=5
+
+    run $BATS_TEST_DESCRIPTION "grp=\(box\|htd\)* run=[a-z].*" htd
+    #diag "lines=${#lines[*]}"
+    # FIXME: find definition and update test_ok_nonempty 70 || stdfail 1-default
+    test_ok_nonempty || stdfail 1-default
+
+    export Inclusive_Filter=1
+    run $BATS_TEST_DESCRIPTION "grp=box-src spc=..*" htd
+    { test_ok_nonempty && 
+      fnmatch "* list-functions *" " ${lines[*]} " &&
+      fnmatch "* filter-functions *" " ${lines[*]} " &&
+      fnmatch "* checkout *" " ${lines[*]} "
+    } || stdfail 2-inclusive
+
+    export Inclusive_Filter=0
+    run $BATS_TEST_DESCRIPTION "grp=box-src spc=..*" htd
+    { test_ok_nonempty && 
+      fnmatch "* list-functions *" " ${lines[*]} " &&
+      fnmatch "* filter-functions *" " ${lines[*]} " && {
+        fnmatch "* crypto *" " ${lines[*]} " && return 1 || noop
+      } && {
+        fnmatch "* checkout *" " ${lines[*]} " && return 1 || noop
+      }
+    } || stdfail 3-exclusive
+}

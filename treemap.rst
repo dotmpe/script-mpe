@@ -8,19 +8,19 @@ There is no interaction.
 
 .. raw:: html
 
-        <iframe src="treemap.html" marginwidth="0" marginheight="0" scrolling="no"></iframe>
+        <iframe src="treemap/1.html" marginwidth="0" marginheight="0" scrolling="no"></iframe>
 
 ----
 
 Another treemap-like diagram shows another representation of the filetree in JSON as a navigable, top-down tree structure.
-It does seem to render something, but the JSONs are different: 
+It does seem to render something, but the JSONs are different:
 `JSON </project-treemap.json>`_
-http://bl.ocks.org/mbostock/raw/1005873/readme.json 
+http://bl.ocks.org/mbostock/raw/1005873/readme.json
 Borrowed from <http://bl.ocks.org/mbostock/1005873>.
 
 .. raw:: html
 
-        <iframe src="treemap2.html" marginwidth="0" marginheight="0" scrolling="no"></iframe>
+        <iframe src="treemap/2.html" marginwidth="0" marginheight="0" scrolling="no"></iframe>
 
 ----
 

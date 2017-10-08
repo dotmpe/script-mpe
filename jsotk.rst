@@ -3,29 +3,44 @@ Jsotk
 Javascript Object toolkit
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Load, query, transform JSON/YAML data to and from (Bourne) Shell.
+Load, query, transform JSON/YAML data on the command line.
 
 Features in a nutshel:
-  Auto detects YAML or JSON output.
-  Has ObjectPath_ and other retrieval commands. And updates or outputs
-  plain JSON/YAML elements.
+  - Detects YAML or JSON output, convert, pretty print.
+  - Update using data provided from shell, query for parts, merge, prefix.
+  - Provides ObjectPath_ and other retrieval commands.
+
 
 Usage::
 
+  # e.g. pretty print JSON as YAML
   <some-json-output> | jsotk -O yaml --pretty -
+
+  # Default subcommand is 'dump', shortcuts for dump:
 
   jsotk json2yaml [--pretty] [SRC [DEST]]
   jsotk yaml2json [--pretty] [SRC [DEST]]
+
+  # Print data at path as Python formatted obj
+  jsotk.py -O py path $1 tools/$2/bin
+
+  # Find objects in list with 'main' attribute. File can be JSON or YAML, uses
+  # extension auto detection.
+  jsotk objectpath <fn> '$.*[@.main is not None]'
+
+  # Update data using simple shell constructs
+  echo key=val | jsotk update SRC DEST
+  # TODO: jsotk update-from-args SRC DEST
 
   # Print data as Shell usable variables declarations
   eval $(jsotk.py -O fkv path tools.yml tools/jsonwidget --output-prefix jsonwidget)
   echo $jsonwidget_bin
 
-  # Print data at path as Python formatted obj
-  jsotk.py -O py path $1 tools/$2/bin
+FIXME::
 
-  # Find objects in list with 'main' attribute
-  jsotk objectpath <json-fn> '$.*[@.main is not None]'
+  echo xyz/abc[1]/attr=val | jsotk from-kv -
+  echo xyz_abc__1_attr=val | jsotk from-flat-kv -
+
 
 There is also local background process support, usable with `socat` which
 is implemented in projectdir_.sh `meta` command. Having a persistent

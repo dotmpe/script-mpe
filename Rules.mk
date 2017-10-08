@@ -1,4 +1,4 @@
-# Id: script-mpe/0.0.3-dev Rules.mk
+# Id: script-mpe/0.0.4-dev Rules.mk
 #
 # Non recursive make, partial rule file. See github mkdocs.
 include                $(MK_SHARE)Core/Main.dirstack.mk
@@ -7,7 +7,7 @@ MK                  += $/Rules.mk
 #      ------------ -- 
 
 
-VERSION= 0.0.3-dev# script-mpe
+VERSION= 0.0.4-dev# script-mpe
 
 $(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 
@@ -25,6 +25,7 @@ endif
 ###    Test targets
 #
 #      ------------ -- 
+
 
 ifeq ($(shell hostname -s),simza)
 TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d 
@@ -163,6 +164,7 @@ test_schema_$d:
 	@$(ll) OK $@ "now validating schema/base..."
 	@jsonschema schema/base.json
 
+
 ###    SQL Alchemy repository schema control
 #
 #      ------------ -- 
@@ -294,17 +296,10 @@ $(BUILD)pd-make-states.sh: $(SRC) Rules.mk
 
 TRGT += TODO.list
 
-IGNORE := coverage_html_report ReadMe.rst Rules.mk '*.html' '*.xml' TODO.list
-IGNORE_F := $(addprefix --exclude ,$(IGNORE))
 todo: TODO.list
 TODO.list: $/
-	@-\
-		$(ll) file_target $@ "Grepping for" $<;\
-		grep -rI $(IGNORE_F) 'FIXME' $< > $@;\
-		echo >> $@;\
-		grep -rI $(IGNORE_F) 'TODO' $< >> $@;\
-		echo >> $@;\
-		grep -rI $(IGNORE_F) 'XXX' $< >> $@
+	@Check_All_Tags=1 Check_All_Files=1 ./tools/sh/tags.sh > $@
+	@echo "# tasks-ignore-file" >> $@
 	@#radical.py -vvvvv > $@
 	@$(ll) file_ok $@ 
 

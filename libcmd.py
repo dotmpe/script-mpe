@@ -407,7 +407,7 @@ class SimpleCommand(object):
         Returns a tuple of the parser and option-values instances,
         and a list left-over arguments.
         """
-        # TODO: rewrite to cllct.osutil once that is packaged
+        # TODO: rewrite to cllct.oslibcmd_docopt once that is packaged
         parser = optparse.OptionParser(usage, version=version)
 
         optnames = []
@@ -487,11 +487,11 @@ class SimpleCommand(object):
         by the result adapter.
 
         Currently the 'first:' prefix determines that the first named
-        keywords is to be `return`\ 'ed. XXX It should offer various
+        keywords is to be `return`\ 'ed. XXX: It should offer various
         methods of filter and either generate, return or be silent.
 
         """
-        #log.debug("SimpleCommand.execute %s %s", handler_name, update)
+        log.debug("SimpleCommand.execute %s %s", handler_name, update)
         if update:
             self.globaldict.update(update)
         handler = getattr( self, handler_name )
@@ -970,8 +970,6 @@ class StackedCommand(SimpleCommand):
         return False
 
 
-
-
 if __name__ == '__main__':
     if StackedCommand.NAME == 'libcmd_stacked':
         StackedCommand.NAME = 'libcmd'
@@ -979,5 +977,3 @@ if __name__ == '__main__':
         StackedCommand.main()
     else:
         SimpleCommand.main()
-
-

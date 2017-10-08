@@ -284,6 +284,9 @@ class Prompt(object):
 
     @classmethod
     def query(clss, question, options=[]):
+        """
+            Prompt.query( "What shall it be?", [ "Nothing", "Everything", "eLse" ] )
+        """
         assert options
         options = list(options)
         origopts = list(options)
@@ -299,11 +302,9 @@ class Prompt(object):
             if not v.strip(): # FIXME: have to only strip whitespace, not ctl?
                 v = opts[0]
             if v == 'help'  or v in '?h':
-                print(("Choose from %s. Default is %r, use --recurse option to "
-                    "override. ") % (', '.join(options), options[0]))
+                print(log.format_str(("{default}Choose from %s{default}. Default is %r{default}, use --recurse option to override. ") % (', '.join(options), options[0])))
             if v.upper() in opts.upper():
                 choice = opts.upper().index(v.upper())
                 print('Answer:', origopts[choice].title())
                 return choice
-
 

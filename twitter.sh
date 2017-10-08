@@ -7,6 +7,10 @@ set -e
 
 
 
+
+
+# Script subcmd's funcs and vars
+
 twitter__meta()
 {
   twitter-meta.py "$@"
@@ -49,14 +53,31 @@ pretty_object()
 }
 
 
-### Main
 
+# Generic subcmd's
+
+twitter_man_1__help="Usage help. "
+twitter_spc__help="-h|help"
+twitter_als___h=help
+twitter__help()
+{
+  test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  choice_global=1 std__help "$@"
+}
+
+
+
+
+# Script main functions
 
 twitter_main()
 {
-  local scriptname=twitter base=$(basename $0 .sh) verbosity=5 \
-    scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
-    failed=
+  local \
+      scriptname=twitter \
+      base=$(basename $0 .sh) \
+      verbosity=5 \
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
+      failed=
 
   twitter_init || exit $?
 
@@ -77,42 +98,46 @@ twitter_main()
   esac
 }
 
+# FIXME: Pre-bootstrap init
 twitter_init()
 {
-  test -n "$scriptdir"
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  test -n "$scriptpath"
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh
   util_init
-  . $scriptdir/match.lib.sh
-  . $scriptdir/box.init.sh
+  . $scriptpath/match.lib.sh
+  . $scriptpath/box.init.sh
   box_run_sh_test
-  #. $scriptdir/htd.lib.sh
-  . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
-  . $scriptdir/meta.lib.sh
-  . $scriptdir/box.lib.sh
-  . $scriptdir/date.lib.sh
-  . $scriptdir/doc.lib.sh
-  . $scriptdir/table.lib.sh
+  #. $scriptpath/htd.lib.sh
+  . $scriptpath/main.lib.sh load-ext
+  . $scriptpath/meta.lib.sh
+  . $scriptpath/box.lib.sh
+  . $scriptpath/date.lib.sh
+  . $scriptpath/doc.lib.sh
+  . $scriptpath/table.lib.sh
   lib_load remote
   # -- twitter box init sentinel --
 }
 
+# FIXME: 2nd boostrap init
 twitter_lib()
 {
   local __load_lib=1
-  . $scriptdir/match.sh load-ext
+  . $scriptpath/match.sh load-ext
   # -- twitter box lib sentinel --
   set --
 }
 
+
+# Main entry - bootstrap script if requested
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
-    twitter_main "$@"
-  ;; esac
-;; esac
+      twitter_main "$@"
+    ;;
+  esac ;;
+esac
 
-# Id: script-mpe/0.0.3-dev twitter.sh
+# Id: script-mpe/0.0.4-dev twitter.sh

@@ -2,7 +2,7 @@
 """:created: 2015-11-30
 """
 __description__ = "todo-meta - todo document proc"
-__version__ = '0.0.3-dev' # script-mpe
+__version__ = '0.0.4-dev' # script-mpe
 __usage__ = """
 Usage:
   todo-meta.py [options] info
@@ -20,7 +20,7 @@ Other flags:
 """ % ( __version__ )
 from pprint import pformat
 
-import util
+import libcmd_docopt
 
 
 
@@ -76,8 +76,8 @@ def cmd_import(opts):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -91,13 +91,12 @@ def main(opts):
     settings = opts.flags
     values = opts.args
 
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'todo-meta.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit(main(opts))
-

@@ -10,6 +10,7 @@ may conform to the schema::
   type: <mediatype>
   id: <main-id>
 
+TODO: perhaps allow 'packages' or '<prefix>.{type,package}' schemes for root mapping iso. lists.
 
 Usage
 -----
@@ -137,11 +138,25 @@ pd-meta
       Possibly only to identify local code, or also to usually to associate code
       blocks with issue/ticket/time tracker records.
 
+      TODO: A list of objects to further specificy backend of tag?
+      See ie. jnk/userContent.git
+
+    document
+      Name of a local file serving as central storage for project tasks.
+
+    ignore
+      sentinel
+        TODO: ignore lines by pattern
+      glob
+        TODO: ignore files by pathname glob
+
   docs
     Metadata for document (wiki/specs/manual/license) tracking per project.
 
     tags
-      A list of tags used throughout the code to link to other documents.
+      A list of tags used throughout the literal data to link to other
+      documents.
+
 
   trackers
     A list of objects to represent an tracker, ie. an index of tracked

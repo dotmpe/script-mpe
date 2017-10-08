@@ -3,7 +3,7 @@ c_rst__source="$_ $0 $@"
 
 set -e
 
-version=0.0.3-dev # script-mpe
+version=0.0.4-dev # script-mpe
 
 
 ### User commands
@@ -76,7 +76,7 @@ c_rst_als___V=version
 
 rst_main()
 {
-  local scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+  local scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
   rst_init || return 0
   local scriptname=rst base=$(basename $0 .sh) dirname=$(dirname $0)
   case "$base" in $scriptname )
@@ -89,14 +89,13 @@ rst_main()
 rst_init()
 {
   test -z "$BOX_INIT" || return 1
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh
   util_init
-  . $scriptdir/box.init.sh
-  . $scriptdir/box.lib.sh
+  . $scriptpath/box.init.sh
+  . $scriptpath/box.lib.sh
   box_run_sh_test
-  . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
+  . $scriptpath/main.lib.sh load-ext
   # -- rst box init sentinel --
 }
 

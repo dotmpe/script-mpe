@@ -22,8 +22,9 @@ test -n "$device_id" || device_id=disk-id
 
 @test "${bin} help" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  fnmatch "*Usage:*disk <cmd> *" "${lines[*]}"
+  { test ${status} -eq 0 &&
+    fnmatch "*disk.sh*Usage*:*disk <cmd> *" "${lines[*]}"
+  } || stdfail
 }
 
 @test "${bin} list" {

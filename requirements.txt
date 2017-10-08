@@ -1,12 +1,21 @@
+docutils
 setuptools 
 pytz
 ruamel.yaml
+hashids
 #objectpath
 git+https://github.com/hackerhelmut/ObjectPath.git
 zope.component
 zope.interface 
-twisted
-sqlalchemy
-docutils
-xattr
 pbPlist
+redis
+six
+sqlalchemy
+twisted
+uriref
+shortuuid
+xattr
+#py-mhash@1.2 malloc problems
+couchdb
+wheezy.template
+mysql-connector==2.1.6

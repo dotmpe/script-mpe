@@ -3,52 +3,161 @@
 
 # OS: files, paths
 
+os_lib_load()
+{
+  test -n "$uname" || export uname="$(uname)"
+}
+
+
+# Combined dirname/basename to replace .ext(s)
+# pathname PATH EXT...
+pathname()
+{
+  local name="$1" dirname="$(dirname "$1")"
+  shift 1
+  for ext in $@
+  do
+    name="./$(basename "$name" "$ext")"
+  done
+  test -n "$dirname" -a "$dirname" != "." && {
+    printf -- "$dirname/$name\n"
+  } || {
+    printf -- "$name\n"
+  }
+}
+# basepath: see pathname as alt. to basename for ext stripping
+
+pathnames()
+{
+  test -n "$exts" || exit 40
+  test -n "$*" && {
+    for path in "$@"
+    do
+      pathname "$path" $exts
+    done
+  } || {
+    { cat - | while read path
+      do pathname "$path" $exts
+      done
+    }
+  }
+}
+
+# Cumulative dirname, return the root directory of the path
+basedir()
+{
+  # Recursively. FIXME: a string op. may be faster
+  while fnmatch "*/*" "$1"
+  do
+    set -- "$(dirname "$1")"
+    test "$1" != "/" || break
+  done
+}
+
+dotname()
+{
+  echo $(dirname "$1")/.$(basename "$1")
+}
 
 short()
 {
   test -n "$1" || set -- "$(pwd)"
   # XXX maybe replace python script sometime
-  $scriptdir/short-pwd.py -1 "$1"
+  $scriptpath/short-pwd.py -1 "$1"
 }
 
-# Get basename for each path: [ .EXT ] PATHS...
+# [exts=] basenames [ .EXTS ] PATH...
+# Get basename(s) for all given exts of each path. The first argument is handled
+# dynamically. Unless exts env is provided, if first argument is not an existing
+# and starts with a period '.' it is used as the value for exts.
 basenames()
 {
-  local ext=
-  test -e "$1" || fnmatch ".*" "$1" && { ext=$1; shift; }
+  test -n "$exts" || {
+    test -e "$1" || fnmatch ".*" "$1" && { exts="$1"; shift; }
+  }
   while test -n "$1"
   do
-    basename $1 $ext
+    name="$1"
     shift
+    for ext in $exts
+    do
+      name="$(basename "$name" "$ext")"
+    done
+    echo "$name"
+  done
+}
+
+filenamext() # for each argument, echo just the filename-extension suffix
+{
+  while test -n "$1"; do
+    echo "$1" | sed 's/^.*\.\([^\.]*\)$/\1/'
+  shift; done
+}
+
+filestripext()
+{
+  basename "$1" ".$(filenamext "$1")"
+}
+
+fileisext()
+{
+  local f="$1" ext=$(filenamext "$1"); shift
+  test -n "$*" || return
+  test -n "$ext" || return
+  for mext in $@
+  do test ".$ext" = "$mext" && return 0
+  done
+  return 1
+}
+
+filemtype()
+{
+  while test $# -gt 0
+  do
+    case "$uname" in
+      Darwin )
+          file -bI "$1" || return 1
+        ;;
+      Linux )
+          file -bi "$1" || return 1
+        ;;
+      * ) error "filemtype: $uname?" 1 ;;
+    esac; shift
   done
 }
 
 filesize()
 {
-  case "$uname" in
-    Darwin )
-      stat -L -f '%z' "$1" || return 1
-      ;;
-    Linux )
-      stat -L -c '%s' "$1" || return 1
-      ;;
-  esac
+  while test $# -gt 0
+  do
+    case "$uname" in
+      Darwin )
+          stat -L -f '%z' "$1" || return 1
+        ;;
+      Linux )
+          stat -L -c '%s' "$1" || return 1
+        ;;
+      * ) error "filesize: $1?" 1 ;;
+    esac; shift
+  done
 }
 
 filemtime()
 {
-  case "$uname" in
-    Darwin )
-      stat -L -f '%m' "$1" || return 1
-      ;;
-    Linux )
-      stat -L -c '%Y' "$1" || return 1
-      ;;
-  esac
+  while test $# -gt 0
+  do
+    case "$uname" in
+      Darwin )
+          stat -L -f '%m' "$1" || return 1
+        ;;
+      Linux )
+          stat -L -c '%Y' "$1" || return 1
+        ;;
+      * ) error "filemtime: $1?" 1 ;;
+    esac; shift
+  done
 }
 
-
-#
 normalize_relative()
 {
   OIFS=$IFS
@@ -118,11 +227,19 @@ split_multipath()
 # XXX: this one support leading whitespace but others in ~/bin/*.sh do not
 read_nix_style_file()
 {
-  cat $@ | grep -Ev '^\s*(#.*|\s*)$' || return 1
+  test -n "$1" || return 1
+  test -z "$2" || error "read-nix-style-file: surplus arguments '$2'" 1
+  cat $cat_f "$1" | grep -Ev '^\s*(#.*|\s*)$' || return 1
+}
+
+enum_nix_style_file()
+{
+  cat_f=-n read_nix_style_file "$@" || return
 }
 
 read_if_exists()
 {
+  test -n "$1" || return 1
   read_nix_style_file $@ 2>/dev/null || return 1
 }
 
@@ -166,7 +283,7 @@ go_to_directory()
   while true
   do
     test -e "$1" && break
-    go_to_before=$(basename $(pwd))/$go_to_before
+    go_to_before=$(basename "$(pwd)")/$go_to_before
     test "$(pwd)" = "/" && break
     cd ..
   done
@@ -230,7 +347,7 @@ count_chars()
 line_count()
 {
   test -s "$1" || return 42
-  test $(filesize $1) -gt 0 || return 43
+  test $(filesize "$1") -gt 0 || return 43
   lc="$(echo $(od -An -tc -j $(( $(filesize $1) - 1 )) $1))"
   case "$lc" in "\n" ) ;;
     "\r" ) error "POSIX line-end required" 1 ;;
@@ -296,22 +413,6 @@ get_uuid()
 #  } || set --
 #}
 
-test_dir()
-{
-	test -d "$1" || {
-		err "No such dir: $1"
-		return 1
-	}
-}
-
-test_file()
-{
-	test -f "$1" || {
-		err "No such file: $1"
-		return 1
-	}
-}
-
 # strip-trailing-dash
 strip_trail()
 {
@@ -319,5 +420,72 @@ strip_trail()
     echo "$1" | sed 's/\/$//'
   } ||
     echo "$1"
+}
+
+# if not exists, create directories and touch file for each given path arg
+assert_files()
+{
+  for fn in $@
+  do
+    test -n "$fn" || continue
+    test -e $fn || {
+      test -z "$(dirname $fn)" || mkdir -vp $(dirname $fn)
+      touch $fn
+    }
+  done
+}
+
+lock_files()
+{
+  local id=$1
+  shift
+  info "Reserving resources for session $id ($*)"
+  for f in $@
+  do
+    test -e "$f.lock" && {
+      lock="$(head -n 1 $f.lock | awk '{print $1}')"
+      test "$lock" = "$id" && echo $f ||
+        warn "Ignored existing lock $lock for $f"
+    } || {
+      assert_files $f
+      echo $f && echo $id > $f.lock
+    }
+  done
+}
+
+unlock_files()
+{
+  local id=$1 lock=
+  shift
+  info "Releasing resources from session $id ($*)"
+  for f in $@
+  do
+    test -e "$f.lock" && {
+      lock="$(head -n 1 $f.lock | awk '{print $1}')"
+      test "$lock" = "$id" && {
+        rm $f.lock
+        test -e "$f" || continue
+        echo $f
+      }
+    } || continue
+  done
+}
+
+verify_lock()
+{
+  local id=$1
+  shift
+  for f in $@
+  do
+    test -e "$f.lock" || return 2
+    test "$(head -n 1 $f.lock | awk '{print $1}')" = "$id" || return 1
+  done
+}
+
+
+mkrlink()
+{
+  # TODO: find shortest relative path
+  ln -vs "$(basename "$1")" "$2"
 }
 

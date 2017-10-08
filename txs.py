@@ -4,6 +4,7 @@ libcmd+taxus (SQLAlchemy) session
 
 FIXME: txs
 """
+
 import os, stat, sys
 from os import sep
 import re, anydbm
@@ -18,7 +19,7 @@ import log
 import res
 from libname import Namespace#, Name
 from libcmdng import Targets, Arguments, Keywords, Options,\
-    Target
+    Target, TargetResolver
 import taxus.checksum
 import taxus.core
 import taxus.fs
@@ -272,4 +273,12 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
             yield path
 
 
+
+
+def oldmain():
+    #print TargetResolver().main(['vol:find-volume'])
+    TargetResolver().main(['cmd:options'])
+
+if __name__ == '__main__':
+    oldmain()
 

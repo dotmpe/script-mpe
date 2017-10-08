@@ -41,8 +41,8 @@ installed()
 
   case "$bin" in
     "["*"]" )
-
-        statusdir.sh set "htd:installed:$1:$2" 0 180
+        local k="htd:installed:$1:$2"
+        stderr ok "$sd_be($k): $(statusdir.sh set "$k" 0 180)"
 
         # Or a list of names
         jsotk.py -O py items $1 tools/$2/bin | while read bin_
@@ -55,7 +55,7 @@ installed()
         done
 
         count=$(statusdir.sh get htd:installed:$1:$2)
-        test 0 -ne $count || return 1
+        test -n "$count" -a 0 -ne $count || return 1
 
         return 0;
       ;;
@@ -155,25 +155,26 @@ uninstall_bin()
 
 tools_json()
 {
-  test -e $HTD_TOOLSFILE
-  test $HTD_TOOLSFILE -ot ./tools.json \
-    || jsotk.py yaml2json $HTD_TOOLSFILE ./tools.json
+  test -e $HTD_TOOLSFILE || return $?
+  test $HTD_TOOLSFILE -ot $B/tools.json \
+    || jsotk.py yaml2json $HTD_TOOLSFILE $B/tools.json
 }
 
-htd_options_v()
+tools_json_schema()
 {
-  set -- "$(cat $options)"
-  while test -n "$1"
-  do
-    case "$1" in
-      --yaml ) format_yaml=1 ;;
-      --interactive ) choice_interactive=1 ;;
-      --non-interactive ) choice_interactive=0 ;;
-      * ) error "unknown option '$1'" 1 ;;
-    esac
-    shift
-  done
+  default_env Htd-ToolsSchemaFile ~/bin/schema/tools.yml
+  test -e $HTD_TOOLSSCHEMAFILE || return $?
+  test $HTD_TOOLSSCHEMAFILE -ot $B/tools-schema.json \
+    || jsotk.py yaml2json $HTD_TOOLSSCHEMAFILE $B/tools-schema.json
 }
+
+tools_list()
+{
+  echo $(
+      jsotk.py -O lines keys $B/tools.json tools || return $?
+    )
+}
+
 
 htd_report()
 {
@@ -217,6 +218,7 @@ htd_report()
         ;;
 
       * )
+          error "Unknown $base report '$1'" 1
         ;;
 
     esac
@@ -247,5 +249,171 @@ htd_main_files()
   done
 }
 
+# Build a table of paths to env-varnames, to rebuild/shorten paths using variable names
+htd_topic_names_index()
+{
+  test -n "$1" || set -- pathnames.tab
+  { test -n "$UCONFDIR" -a -s "$UCONFDIR/$1" && {
+    local tmpsh=$(setup_tmpf .topic-names-index.sh)
+    { echo 'cat <<EOM'
+      read_nix_style_file "$UCONFDIR/$1"
+      echo 'EOM'
+    } > $tmpsh
+    $SHELL $tmpsh
+    rm $tmpsh
+  } || { cat <<EOM
+/ ROOT
+$HOME/ HOME
+EOM
+    }
+  } | uniq
+}
 
+# migrate lines matching tag to to another file, removing the tag
+# htd-move-tagged-and-untag-lines SRC DEST TAG
+htd_move_tagged_and_untag_lines()
+{
+  test -e "$1" || error src 1
+  test -n "$2" -a -d "$(dirname "$2")" || error dest 1
+  test -n "$3" || error tag 1
+  test -z "$4" || error surplus 1
+  # Get task lines with tag, move to buffer without tag
+  grep -F "$3" $1 |
+    sed 's/^\ *'"$3"'\ //g' |
+      sed 's/\ '"$3"'\ *$//g' |
+        sed 's/\ '"$3"'\ / /g' > $2
+  # echo '# vim:ft=todo.txt' >>$buffer
+  # Remove task lines with tag from main-doc
+  grep -vF "$3" $1 | sponge $1
+}
+
+# migrate lines to another file, ensuring tag by strip and re-add
+htd_move_and_retag_lines()
+{
+  test -e "$1" || error src 1
+  test -n "$2" -a -d "$(dirname "$2")" || error dest 1
+  test -n "$3" || error tag 1
+  test -z "$4" || error surplus 1
+  test -e "$2" || touch $2
+  cp $2 $2.tmp
+  {
+    # Get tasks lines from buffer to main doc, remove tag and re-add at end
+    grep -Ev '^\s*(#.*|\s*)$' $1 |
+      sed 's/^\ *'"$3"'\ //g' |
+        sed 's/\ '"$3"'\ *$//g' |
+          sed 's/\ '"$3"'\ / /g' |
+            sed 's/$/ '"$3"'/g'
+    # Insert above existing content
+    cat $2.tmp
+  } > $2
+  echo > $1
+  rm $2.tmp
+}
+
+htd_migrate_tasks()
+{
+  info "Migrating tags: '$tags'"
+  echo "$tags" | words_to_lines | while read tag
+  do
+    test -n "$tag" || continue
+    case "$tag" in
+      +* | @* )
+          note "Migrating prj/ctx: $tag"
+          buffer=$(htd__tasks_buffers $tag | head -n 1 )
+          fileisext "$buffer" $TASK_EXTS || continue
+          test -s "$buffer" || continue
+          htd_move_and_retag_lines "$buffer" "$1" "$tag"
+        ;;
+      * ) error "? '$?'"
+        ;;
+      # XXX: cleanup
+      @be.src )
+          # NOTE: src-backend needs to keep tag-id before migrating. See #2
+          #SEI_TAGS=
+          #grep -F $tag $SEI_TAG
+          noop
+        ;;
+      @be.* )
+          #note "Checking: $tag"
+          #htd__tasks_buffers $tag
+          noop
+        ;;
+    esac
+  done
+}
+
+htd_remigrate_tasks()
+{
+  test -n "$1"  || error todo-document 1
+  note "Remigrating tags: '$tags'"
+  echo "$tags" | words_to_lines | while read tag
+  do
+    test -n "$tag" || continue
+    case "$tag" in
+      +* | @* )
+          note "Remigrating prj/ctx: $tag"
+          buffer=$(htd__tasks_buffers $tag | head -n  1)
+          fileisext "$buffer" $TASK_EXTS || continue
+          htd_move_tagged_and_untag_lines "$1" "$buffer" "$tag"
+        ;;
+      * ) error "? '$?'"
+        ;;
+      # XXX: cleanup
+      @be.* )
+          #note "Committing: $tag"
+          #htd__tasks_buffers $tag
+          noop
+        ;;
+    esac
+  done
+}
+
+
+# htd-archive-path-format DIR FMT
+htd_archive_path_format()
+{
+  test -d "$1" || error htd-archive-path-format 1
+  fnmatch "*/" "$1" || set -- "$(strip_trail $1)"
+  # Default pattern: "$1/%Y-%m-%d"
+  test -n "$ARCHIVE_FMT" || {
+    test -n "$Y" || Y=/%Y
+    test -n "$M" || M=-%m
+    test -n "$D" || D=-%d
+    # XXX test -n "$EXT" || EXT=.rst
+    #ARCHIVE_BASE=$1$Y
+    #ARCHIVE_ITEM=$M$D$EXT
+    ARCHIVE_FMT=$Y$M$D$EXT
+  }
+  test -n "$2" || set -- "$1" "$ARCHIVE_FMT"
+  f=$1/$2
+  echo $1/$2
+}
+
+
+htd_doc_ctime()
+{
+  grep -i '^:Created:\ [0-9:-]*$' $1 | awk '{print $2}'
+}
+
+htd_doc_mtime()
+{
+  grep -i '^:Updated:\ [0-9:-]*$' $1 | awk '{print $2}'
+}
+
+
+htd_output_format_q()
+{
+  test -z "$q" || return
+  test -n "$of" || error "of env" 1
+  test -z "$out_f" -o -n "$f" || error "f env" 1
+  case "$out_fmt" in
+    list ) test -n "$out_f" && q=0.9 || q=0.5 ;;
+    csv | tab )
+        test -n "$out_f" && q=0.9 || q=0.5
+      ;;
+    json ) q=1.0 ;;
+    yaml ) q=1.2 ;;
+    txt | rst ) q=1.1 ;;
+  esac
+}
 

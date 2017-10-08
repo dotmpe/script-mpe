@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """
-matchbox - a (file)naming utility based on regular expressions.
+matchbox - a (file)naming libcmd_docoptity based on regular expressions.
 
-A filename cleaning and reformatting utility. See matchbox.rst.
+A filename cleaning and reformatting libcmd_docoptity. See matchbox.rst.
 """
 import inspect
 import sys
@@ -468,5 +468,3 @@ if __name__ == '__main__':
         cmdname = 'c_'+argv.pop(0).replace('-', '_')
     load_vars()
     sys.exit(locals()[cmdname](*argv))
-
-

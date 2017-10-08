@@ -47,4 +47,10 @@ init
 }
 
 
+
+@test "${bin} list" {
+  require_env couchdb
+  run statusdir.sh 
+}
+
 # vim:ft=sh:

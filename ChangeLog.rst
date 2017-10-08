@@ -33,5 +33,8 @@ Change Log
   - Refactoring Taxus schema for finfo.py.
   - 251 tests, 0 failures, 29 todo, 22 skipped (Boreas)
   - 251 tests, 0 failures, 29 todo, 23 skipped (dandy)
-  - See Bugs.rst
+
+(0.0.4)
+  ..
+
 

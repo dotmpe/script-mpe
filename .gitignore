@@ -3,6 +3,7 @@
 *.py[co]
 *.pyc
 composer.lock
+.composer.lock
 bin
 *DS_Store
 *~*
@@ -14,9 +15,9 @@ bin
 .git/
 .jira
 .meta/
-.package.json
-.package.main
-.package.sh
+.package*.json
+.package*.main
+.package*.sh
 .redo/
 .svn/
 .vagrant/
@@ -28,3 +29,9 @@ node_modules/
 public/components/
 tools.json
 vendor/
+# Jekyll dir:
+_site
+Gemfile.lock
+.features.tab
+.htd
+Makefile

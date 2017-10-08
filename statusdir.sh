@@ -20,35 +20,31 @@ statusdir_load()
   test -n "$sd_tmp_dir" || sd_tmp_dir=$(setup_tmpd $base)
   test -n "$sd_tmp_dir" -a -d "$sd_tmp_dir" || error "sd_tmp_dir load" 1
 
-
   # Detect backend
 
   test -n "$sd_be" || {
-    which redis-cli 2>&1 >/dev/null &&
-      redis-cli ping 2>&1 >/dev/null &&
+    which redis-cli >/dev/null 2>&1 &&
+      redis-cli ping >/dev/null 2>&1 &&
         sd_be=redis
   }
 
   test -n "$sd_be" || {
-    which membash 2>&1 >/dev/null && sd_be=membash
+    which membash >/dev/null 2>&1 && sd_be=membash
   }
 
   # Set default be
   test -n "$sd_be" || sd_be=fsdir
 
   # Load backend
-  test ! -e "$scriptdir/statusdir_$sd_be.sh" || {
-    . $scriptdir/statusdir_$sd_be.sh
-  }
-
-  $sd_be ping
+  lib_load statusdir-$sd_be
 }
 
 statusdir_unload()
 {
   test -n "$sd_tmp_dir" || error "sd_tmp_dir unload" 1
-  test "$(echo $sd_tmp_dir/*)" = "$sd_tmp_dir/*" \
-    || warn "Leaving temp files $(echo $sd_tmp_dir/*)"
+  # XXX: quick check for cruft. Is triggering on empty directories.
+  #test "$(echo $sd_tmp_dir/*)" = "$sd_tmp_dir/*" \
+  #  || warn "Leaving temp files in $sd_tmp_dir: $(echo $sd_tmp_dir/*)"
   unset sd_be sd_tmp_dir
 }
 
@@ -62,28 +58,28 @@ statusdir__root()
 }
 
 
-statusdir__be()
+statusdir__backend()
 {
   echo $sd_be
 }
+statusdir_als__be=backend
 
-statusdir__reset()
+
+statusdir__backends()
 {
-  test ! -e $1 || { rm $1 || return $?; }
+  for bn in $scriptpath/statusdir_*.sh
+  do
+    sd_be_name=
+    . $bn
+    test -n "$sd_be_name" || error "Backend name expected ($(basename "$bn"))"
+    $sd_be_name ping && note "$sd_be_name found" || warn "No $sd_be_name backend"
+  done
 }
+statusdir_als__bes=backends
 
-statusdir__exists()
-{
-  test -s $1 || return $?
-}
 
-statusdir__dump()
-{
-  test ! -e $1 || cat $1
-}
-
-# echos path. Default index is 'default'.
-# assert <path-expr> [<index-name-id>]
+statusdir_man_1__assert="echos path. Default index is 'default'."
+statusdir_spc__assert="assert <path-expr> [<index-name-id>]"
 statusdir__assert()
 {
   test -n "$STATUSDIR_ROOT" || error "STATUSDIR_ROOT" 1
@@ -159,7 +155,7 @@ statusdir__properties()
           cat $props
         ;;
       sh )
-          properties2sh $props
+          read_nix_style_file $props | properties2sh -
         ;;
     esac
   )
@@ -247,21 +243,65 @@ statusdir__decr()
   $sd_be decr $1 $2 || return $?
 }
 
+statusdir__list()
+{
+  $sd_be list "$@"
+}
+
+statusdir__be()
+{
+  test -n "$1" || error "cmd expected" 1
+  $sd_be x "$@"
+}
+
+
+# Generic subcmd's
+
+statusdir_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
+statusdir_load__help=f
+statusdir_spc__help='-h|help [ID]'
+statusdir__help()
+{
+  test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  choice_global=1 std__help "$@"
+  rm_failed || return
+}
+statusdir_als___h=help
+
+
+statusdir_man_1__version="Version info"
+statusdir__version()
+{
+  echo "script-mpe:$scriptname/$version"
+}
+#statusdir_als___V=version
+#statusdir_als____version=version
+
+
+statusdir__edit()
+{
+  $EDITOR $0 $(which $base.sh) "$@"
+}
+statusdir_als___e=edit
+
+
+
+# Script main functions
 
 ### Main
 
-statusdir__main()
+statusdir_main()
 {
-  local scriptname=statusdir base=$(basename $0 .sh) verbosity=5 \
-    scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
-    sd_be= \
+  test -n "$verbosity" || verbosity=5
+  local scriptname=statusdir base=$(basename $0 .sh) verbosity=$verbosity \
+    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" subcmd= \
     sd_tmpdir=
 
-  statusdir__init || exit $?
+  statusdir_init || exit $?
 
-  case "$base" in $scriptname )
+  case "$base" in $scriptname | sd )
 
-        statusdir__lib || exit $?
+        statusdir_lib || exit $?
         run_subcmd "$@" || exit $?
       ;;
 
@@ -271,20 +311,20 @@ statusdir__main()
   esac
 }
 
-statusdir__init()
+statusdir_init()
 {
-  test -n "$scriptdir"
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
-  util_init
-  . $scriptdir/box.init.sh
+  test -n "$scriptpath"
+  export SCRIPTPATH=$scriptpath
+  test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
+  . $scriptpath/util.sh load-ext
+  lib_load
+  . $scriptpath/box.init.sh
   box_run_sh_test
-  . $scriptdir/main.init.sh
   lib_load main box date
   # -- statusdir box init sentinel --
 }
 
-statusdir__lib()
+statusdir_lib()
 {
   test -z "$__load_lib" || return 14
   local __load_lib=1
@@ -295,9 +335,10 @@ statusdir__lib()
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-    statusdir__main "$@"
-  ;; esac
+  test -n "$__load_lib" || {
+    case "$1" in load-ext ) ;; * )
+      statusdir_main "$@"
+    ;; esac
+  }
 ;; esac
 

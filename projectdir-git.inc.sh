@@ -4,8 +4,9 @@ pd_register git init check sync test
 
 pd_init__git_autoconfig()
 {
-  test -d .git && echo :git:hooks
   return 0
+  # TODO: pd run git:clean
+  test -d .git && echo :git:hooks
 }
 
 pd_check__git_autoconfig()
@@ -16,8 +17,10 @@ pd_check__git_autoconfig()
 
 pd_test__git_autoconfig()
 {
-  test -d .git && echo :git:clean
+  test -d .git && echo :git:status
   return 0
+  # TODO: pd run git:clean
+  test -d .git && echo :git:clean
 }
 
 
@@ -43,7 +46,7 @@ pd__git_status()
 
     2 )
         cruft_lines="$(echo $(echo "$cruft" | wc -l))"
-        test $verbosity -gt 6 \
+        test -n "$verbosity" -a $verbosity -gt 6 \
           && {
             warn "Crufty: $(vc__stat "$1"):"
             printf "$cruft\n"

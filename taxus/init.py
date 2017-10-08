@@ -8,8 +8,8 @@ from sqlalchemy.engine import Engine
 
 import zope.interface
 
-import log
-from confparse import yaml_load, Values
+from script_mpe import log
+from script_mpe.confparse import yaml_load, Values
 from . import iface
 from . import out
 
@@ -109,26 +109,26 @@ def deep_update(obj, *sources):
 
 ### metadata to SA model unmarshalling
 
-def extract_schema(meta):
+def extract_schema(gen_meta_ctx):
     """
         TODO Simplify models subtree to JSON schema..
     """
-    #assert meta['schema']['version']  ==  0.1
+    #assert gen_meta_ctx['schema']['version']  ==  0.1
 
-def extract_orm(meta, sql_base=None):
+def extract_orm(gen_meta_ctx, sql_base=None):
 
     """
     Run over all models. TODO Extract metadata to construct SA ORM types.
     """
 
-    #assert meta['schema']['version']  ==  0.1
+    #assert gen_meta_ctx['schema']['version']  ==  0.1
     if not sql_base:
         sql_base = declarative_base()
         sql_base.registry = {}
         yield sql_base
     else:
         assert sql_base.registry
-    models = list(extract_listed_named(meta['schema']['models']))
+    models = list(extract_listed_named(gen_meta_ctx['schema']['models']))
     for model_meta in models:
         model = extract_model(model_meta, sql_base=sql_base)
         sql_base.registry[model.name] = model
@@ -276,12 +276,10 @@ def extract_field(model, indices, relations, field_meta):
 
 def extract_listed_named(meta_list, force=True):
     """
-    Accept either dict or list, generate dicts
-    that are assured to have a name property. In case of
-    passing a dict in this name is copied over from meta_list
-    if needed, or forced to be equal to the key.
-    In case meta_list is an actual list already, name should
-    be given.
+    Accept either dict or list, generate dicts that are assured to have a name
+    property. In case of passing a dict in this name is copied over from
+    meta_list if needed, or forced to be equal to the key.
+    In case meta_list is an actual list already, name should be given.
     """
     isList = isinstance( meta_list, list )
     if isList:

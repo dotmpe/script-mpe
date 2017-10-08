@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = '0.0.3-dev' # script-mpe
+__version__ = '0.0.4-dev' # script-mpe
 __db__ = 'postgresql+psycopg2://redmine:password@localhost:15432/redmine_production'
 __usage__ = """
 redmine-meta - Read data from Redmine database.
@@ -25,7 +25,7 @@ Dependencies:
       ..
 
 """ % ( __db__, __version__ )
-from script_mpe import util, log
+from script_mpe import libcmd_docopt, log
 from script_mpe import redmine_schema as rdm
 from script_mpe.redmine_schema import get_session
 
@@ -178,7 +178,7 @@ def cmd_home_doc(settings, opts):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers_2(globals(), 'cmd_')
+commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
 
 
 
@@ -192,7 +192,7 @@ def main(opts):
 
     settings = opts.flags
     opts.default = ['info']
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'redmine-meta.mpe/%s' % __version__
@@ -203,8 +203,6 @@ argument_handlers = {
 if __name__ == '__main__':
 
     import sys
-    opts = util.get_opts(__usage__, meta=argument_handlers, version=get_version())
+    opts = libcmd_docopt.get_opts(__usage__, meta=argument_handlers, version=get_version())
     opts.flags.dbref = opts.flags.dbref
     sys.exit(main(opts))
-
-

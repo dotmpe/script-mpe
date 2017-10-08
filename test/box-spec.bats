@@ -1,69 +1,58 @@
 #!/usr/bin/env bats
-
+  
 base=box
 load helper
 init
-source $lib/util.sh
-pwd=$(cd .;pwd -P)
 
+setup()
+{
+  source $lib/util.sh
+  pwd=$(cd .;pwd -P)
 
-usage_line_1="${base}.sh Bash/Shell script helper"
-usage_line_2="Usage:"
-usage_line_3="  ${base} <cmd> [<args>..]"
-
+  usage_line_1="${base}.sh Bash/Shell script helper"
+  usage_line_2="Usage:"
+  usage_line_3="  ${base} <cmd> [<args>..]"
+}
 
 @test "$bin no arguments no-op" {
 
-  check_skipped_envs travis || skip "FIXME broken after main.lib.sh rewrite"
+  # XXX: check_skipped_envs travis || skip "FIXME broken after main.lib.sh rewrite"
 
-  #echo "${lines[*]}" > /tmp/1
-  #echo "${#lines[@]}" >> /tmp/1
-
+  test -n "${bin}"
   tmpd
-  #tmp=$(cd $tmpd/;pwd -P)
-  #run bash -c 'cd '$tmp'/ && '$pwd/${bin}
+
+  ENV_NAME="$(current_test_env)"
+  # XXX: cleanup
+  #case "$ENV_NAME" in
+  #    vs1 ) idx=0 num=4 ;;
+  #    simza ) idx=1 num=8 ;;
+  #    travis ) idx=0 num=8 ;;
+  #    * ) idx=0 num=4 ;;
+  #esac
+
   run $bin
-  lines_to_file $tmpd/1
-  echo "env $(current_test_env)" >> $tmpd/1
-  echo "status $status" >> $tmpd/1
-  echo "lines ${#lines[@]}" >> $tmpd/1
-  test $status -eq 1
-  return
 
-  case "$(current_test_env)" in
-      vs1 ) idx=0 num=4 ;;
-      simza ) idx=1 num=8 ;;
-      travis ) idx=0 num=8 ;;
-      * ) idx=0 num=8 ;;
-  esac
-
-  # TODO: Meh.. test [[ "${lines[0]}" =~ "No.script.for" ]]
-  #fnmatch "*No local script for*" "${lines[$idx]}" || test
-  #skip "FIXME ${bin} should default to run, currently it doesnt"
-  echo "${lines[$idx]}" | grep No.local.script.for || test
-  test "${#lines[@]}" = "$num"
+  { test $status -eq 1 && fnmatch "*No command given*" "${lines[*]}"
+  } || stdfail "$ENV_NAME, status"
 }
 
 @test "${bin} help" {
+  test -n "${bin}"
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  fnmatch "*Usage:*" "${lines[*]}" # usage info on out
-# FIXME:  fnmatch "*Commands:*" "${lines[*]}" # detailed usage on out
-  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+  { test ${status} -eq 0 && fnmatch "*Usage:*" "${lines[*]}" &&
+    ( fnmatch "*Error:*" "${lines[*]}" && return 1 || return 0 )
+  } || stdfail
+  # FIXME:  fnmatch "*Commands:*" "${lines[*]}" # detailed usage on out
 }
 
 @test "${bin} -h" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  fnmatch "*Usage:*" "${lines[*]}" # usage info on out
-# FIXME:  fnmatch "*Commands:*" "${lines[*]}" # detailed usage on out
-  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+  { test ${status} -eq 0 && fnmatch "*Usage:*" "${lines[*]}" &&
+    ( fnmatch "*Error:*" "${lines[*]}" && return 1 || return 0 )
+  } || stdfail
 }
 
 @test "${bin} -h help" {
-  #is_skipped pd && skip "FIXME specs not working OK" || printf ""
-  #check_skipped_envs simza || skip "FIXME $envs: not running on $env"
-
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
@@ -72,25 +61,21 @@ usage_line_3="  ${base} <cmd> [<args>..]"
 }
 
 @test "${bin} check-install" {
-  skip "while rewriting main routines"
-  check_skipped_envs travis || skip "FIXME $envs: not running on $env"
+  skip "FIXME"
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
 }
 
 @test "${bin} -i" {
   skip "FIXME"
-  tmpd
-  tmpf=$tmpd/bats-test-spec-foo/bar/3/baz_4
-  #tmpf
-  mkdir -vp $tmpf
-  pushd $tmpf
-  expect=_tmp_bats_test_spec_foo_bar_3_baz_4
-#  run $BATS_TEST_DESCRIPTION
-  popd
-#  test $status -eq 0
-#  test "${#lines[@]}" = "8"
-#test -e ""
+  tmpd; testd=$tmpd/bats-test-spec-foo/bar/3/baz_4
+  mkdir -vp $testd
+  (
+    cd $testd
+    expect=_tmp_bats_test_spec_foo_bar_3_baz_4
+    run $BATS_TEST_DESCRIPTION
+  )
+  { test $status -eq 0 && test "${#lines[@]}" = "8"; } || stdfail
 }
 
 # Dry Runs go successfully

@@ -4,6 +4,10 @@ Rationale
 
     This document accompanies a Python program.
 
+
+.. figure:: todo.svg
+
+
 Task tracking can be a complex use case.
 Its complexity but also its usefulness depends on the amount
 and of inter-task relations.

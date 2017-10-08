@@ -1,0 +1,9 @@
+
+# Multiple sections, one main, is also ID. Otherwise 'default'.
+
+- type: application/vnd.dotmpe.project
+  main: True
+
+- type: application/vnd.dotmpe.project
+  id: another
+

@@ -20,6 +20,10 @@ from metafile import Metafile, Metadir, Meta, SHA1Sum
 from jrnl import Journal
 from vc import Repo
 from ws import Workspace, Homedir, Workdir, Volumedir
+import task
+from task import Task, TodoListParser, RedisSEIStore
+import todo
+from todo import TodoTxtParser
 
 import iface
 

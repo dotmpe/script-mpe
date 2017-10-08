@@ -1,0 +1,40 @@
+doctype xml
+
+opml(xmlns:ext="#")
+  head
+    title #{doc.id} Tools Outline
+  body
+    outline(text=doc.id, type="htd:tools-doc", ext:rel="" ext:href="")
+      outline(text=doc.description, type="description")
+      outline(text="tools", type="htd:package-map")
+        each tool, id in doc.tools
+          unless tool.id
+            - tool.id = id
+          unless tool.bin
+            - tool.bin = tool.id
+          unless tool.installer
+            - tool.installer = 'alias'
+          - ext = {}
+          if tool.url
+            - ext['ext:href'] = tool.url
+          outline(text=tool.id, type="htd:tools:"+tool.installer)&attributes(ext)
+            outline(text=tool.description, type="description")
+            if "string" === typeof(tool.bin)
+              outline(text=tool.bin, type="htd:tools:bin")
+            else
+              each bin in tool.bin
+                outline(text=bin, type="htd:tools:bin")
+            if tool['post-install']
+              outline(text="post-install", type="htd:tools:script")
+                each line in tool['post-install']
+                  outline(text=line, type="htd:tools:script-line")
+            if tool['post-uninstall']
+              outline(text="post-uninstall", type="htd:tools:script")
+                each line in tool['post-uninstall']
+                  outline(text=line, type="htd:tools:script-line")
+            if tool.scripts
+              each script, script_id in tool.scripts
+                outline(text=script_id, type="htd:tools:script")
+                  each line in script
+                    outline(text=line, type="htd:tools:script-line")
+

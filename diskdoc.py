@@ -27,16 +27,18 @@ Options:
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -g, --glob    Change from root prefix matching to glob matching.
-
-  --ignore-fstype TYPES
+  --exclude-mount MOUNT
+  --include-mount MOUNT
+  --exclude-device DEVICE
+  --include-device DEVICE
+                Filter by device node, exclude devices not in list.
+  --include-fstype TYPES
+  --exclude-fstype TYPES
                 Default behaviour is to ignore given types.
                 [default: proc sysfs rootfs cgroup mqueue tmpfs pstore fusectl devpts devtmpfs autofs hugetlbfs securityfs rpc_pipefs fuseblk debugfs]
   --include-fstype TYPES
                 Override ignore-fstype, and ignore every filesystem type not in
                 given list. [default: ]
-
-Schema:
-
 """
 import os
 import re
@@ -48,7 +50,7 @@ from docopt import docopt
 import uuid
 from deep_eq import deep_eq
 
-from script_mpe import util, confparse
+from script_mpe import libcmd_docopt, confparse
 from script_mpe.res import js
 from script_mpe.confparse import yaml_load, yaml_safe_dump
 
@@ -74,15 +76,23 @@ def readtab_attr(tabfile, attr):
         mtab_lines_attr.append(confparse.Values(fieldmap))
     return mtab_lines_attr
 
-def mtab_attr():
-    """
-    Parse mtab file and return list of ojects with attribute access.
-    """
-    return readtab_attr('/etc/mtab', "device mount fstype mntattr dump fsck")
+"""
+Parse file and return list of ojects with attribute access.
+"""
+readtab_attr_presets = dict(
+  mtab=( '/etc/mtab', "device mount fstype mntattr dump fsck" ),
+  mounts=( '/proc/mounts', "device mount fstype mntattr dump fsck" ),
+  partitions=( '/proc/partitions', "major minor blocks device_node" )
+)
 
 def mtab_ignored(line, ctx):
-    """
-    """
+
+    if ctx.filters.exclude_mount and line.mount in ctx.filters.ignores:
+        return True
+
+    if ctx.filters.devices and line.device not in ctx.filters.devices:
+        return True
+
     if ctx.opts.flags.include_fstype:
         include_fstypes = ctx.opts.flags.include_fstype.split(' ')
         return line.fstype not in include_fstypes
@@ -95,16 +105,26 @@ def mtab_ignored(line, ctx):
 def H_disks(diskdata, ctx):
 
     """
+    Lists locally mounted media. Normally this only includes mounts from a local device
+    node.
+
     TODO: Iterate locally mounted media, get mount entry from catalog by device.
     Get media entry from catalog.
     Check catalog entries.
     """
 
-    for line in mtab_attr():
-        if mtab_ignored(line, ctx):
+    ctx.sources.partitions = readtab_attr(*readtab_attr_presets['partitions'])
+
+    if not ctx.flags.include_devices and not ctx.flags.exclude_devices:
+       ctx.flags.include_devices = [ "/dev/%s" % l.device_node for l in ctx.sources.partitions ]
+    if not ctx.flags.include_types and not ctx.flags.exclude_types:
+    	opts.flags.exclude_types = ['/var/lib/docker/aufs']
+
+    ctx.sources.mtab = readtab_attr(*readtab_attr_presets['mtab'])
+
+    for line in ctx.sources.mtab:
+        if mtab_ignored( line, ctx ):
             continue
-
-
         print line.mount, line.device, line.fstype
 
 
@@ -157,7 +177,7 @@ def prerun(ctx, cmdline):
     global diskdata
 
     argv = cmdline.split(' ')
-    ctx.opts = util.get_opts(ctx.usage, argv=argv)
+    ctx.opts = libcmd_docopt.get_opts(ctx.usage, argv=argv)
 
     if not diskdata:
         diskdata = yaml_load(open(ctx.opts.flags.file))
@@ -203,14 +223,18 @@ def main(ctx):
 
 if __name__ == '__main__':
     import sys
+    opts = libcmd_docopt.get_opts(__doc__)
     ctx = confparse.Values(dict(
         usage=__doc__,
         out=sys.stdout,
         err=sys.stderr,
         inp=sys.stdin,
-        opts=util.get_opts(__doc__)
+        opts=opts,
+        sources=confparse.Values(),
+        filters=confparse.Values(dict(
+          devices=[],
+          includes=[],
+          ignores=[]
+        ))
     ))
     sys.exit( main( ctx ) )
-
-
-

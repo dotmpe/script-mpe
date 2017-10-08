@@ -9,7 +9,7 @@ TODO: print path relative to current dir
 
 """
 __description__ = "folder - "
-__version__ = '0.0.3-dev' # script-mpe
+__version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.folder.sqlite'
 __usage__ = """
 Usage:
@@ -33,7 +33,7 @@ import os
 import re
 
 import log
-import util
+import libcmd_docopt
 import taxus
 from taxus.init import SqlBase, get_session
 from taxus import \
@@ -139,8 +139,8 @@ def cmd_rename(SRC, DEST):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -153,17 +153,13 @@ def main(opts):
 
     settings = opts.flags
     opts.default = 'info'
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'folder.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-
-
-

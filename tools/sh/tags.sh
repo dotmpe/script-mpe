@@ -1,11 +1,16 @@
 #!/bin/sh
+
+# Scan for emmbedded tags and comments
+
 set -e
 scriptname=tools/sh/tags
-test -n "$scriptdir" || scriptdir=$(dirname $(dirname $(dirname $0)))
+test -n "$scriptpath" || scriptpath=$(dirname $(dirname $(dirname $0)))
 test -n "$verbose" || verbose=true
 test -n "$exit" || exit=true
 
-type lib_load 2> /dev/null 1> /dev/null || . $scriptdir/util.sh load-ext
+lname=script-mpe
+
+type lib_load 2> /dev/null 1> /dev/null || . $scriptpath/util.sh load-ext
 
 lib_load sys os std str
 out=$(setup_tmpf .out)
@@ -16,35 +21,35 @@ test -n "$Check_All_Files" || Check_All_Files=0
 test -n "$Check_All_Tags" || Check_All_Tags=0
 
 test -z "$1" && {
-	trueish "$Check_All_Files" && {
-		check_files="*"
-	} || {
-		# Only go over staged changes
-		check_files="$(git diff --name-only --cached)"
-		test -n "$check_files" && {
-		  note "Set check-files to GIT modified files.."
+  trueish "$Check_All_Files" && {
+    check_files="*"
+  } || {
+    # Only go over staged changes
+    check_files="$(git diff --name-only --cached --diff-filter=ACMR)"
+    test -n "$check_files" && {
+      note "Set check-files to GIT modified files.."
     } || {
-		  note "Cant find modified files, setting to all files"
-		  check_files="*"
+      note "Cant find modified files, setting to all files"
+      check_files="*"
     }
-	}
+  }
 } || {
-	check_files="$@"
+  check_files="$@"
 }
 
+# TODO: compile this regex
 trueish "$Check_All_Tags" && {
-  test -n "$abort_on_regex" || abort_on_regex='TODO\|FIXME\|XXX\|NOTE' # tasks:no-check
+  test -n "$tasks_grep_expr" || tasks_grep_expr='\<\(SCRIPT-MPE\|TODO\|FIXME\|XXX\)\>' # tasks:no-check
 } || {
-  test -n "$abort_on_regex" || abort_on_regex='\<XXX\>' # tasks:no-check
+  test -n "$tasks_grep_expr" || tasks_grep_expr='\<XXX\>' # tasks:no-check
 }
 
-# ignore lines with tasks.no.check at the end
-# TODO: should move script into pd or lst, once excludes are loaded
-grep -nsrI \
-    $abort_on_regex \
+# TODO: should move exclude params into pd or lst, once handled ok
+test -e .git && \
+  src_grep="git grep -n" || src_grep="grep -nsrI \
+    --exclude-dir 'build' \
     --exclude-dir jjb \
     --exclude-dir 'vendor' \
-    --exclude-dir 'build' \
     --exclude '*.tmpl' \
     --exclude '*.sw[aop]' \
     --exclude '*~' \
@@ -53,10 +58,14 @@ grep -nsrI \
     --exclude 'TODO.list' \
     --exclude '.package.sh' \
     --exclude '.package.json' \
+  "
+
+$src_grep \
+    $tasks_grep_expr \
     $check_files \
-  | grep -v '\<tasks\>.\<no\>.\<check\>' \
-  | grep -v '\<tasks\>.\<ignore\>' \
-  | {
+  | . ./tools/sh/tags-filter.sh \
+	| \
+  {
     trueish "$verbose" && { tee $out; } || { cat - > $out; }
   }
 
@@ -77,3 +86,4 @@ test $max -ge $cruft && {
 
 trueish "$exit" && exit $ret || exit 0
 
+# Id: script-mpe/0.0.4-dev tools/sh/tags.sh

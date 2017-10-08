@@ -14,9 +14,9 @@ enhancements.
 However, only one problem can be solved at a time. It will be required
 to defer newly encountered (sub)problems to a later time.
 
-This program allows to track comments TODO, FIXME, XXX or even ISSUE:MyId
-kind of tags in source code. This local database could be kept in sync with
-centralized issue and worklog trackers. [rad-ignore]
+This program allows to track comments with TODO, FIXME, XXX .. tasks.ignore
+or TAG:MyId kind of tags in source code. This local database could be kept
+in sync with centralized issue and worklog trackers. [rad-ignore]
 
 For example, a new issue may simply be created by a text embedded in a
 *comment*, such as::
@@ -188,9 +188,9 @@ TODO: domain structure::
     * description:Text
 
 """
-# TODO:1: Integrate gate content stream
-# TODO:2: Extend supported comment styles
-# TODO:3: Scan for other literals, recognize language constructs.
+# TODO: Integrate gate content stream
+# TODO: Extend supported comment styles
+# TODO: Scan for other literals, recognize language constructs.
 
 import traceback
 import optparse, os, re, sys
@@ -202,7 +202,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
-#from cllct.osutil import parse_argv_split
+#from cllct.oslibcmd_docopt import parse_argv_split
 
 import log
 import confparse
@@ -244,6 +244,11 @@ class IssueTracker(Base):
 
 
 class TagInstance(object):
+
+    """
+    Represent a matched tag in a source document.
+    """
+
     def __init__(self, source, slug, char_span):
         self.source = source
         self.slug = slug
@@ -359,6 +364,27 @@ class EmbeddedIssue:
         self.comment_flavour = comment_flavour
         self.inline = inline
         self.tags = tags
+        self.validate()
+
+    def to_dict(self):
+        return {
+            'srcdoc': {
+                'name': self.srcdoc.source_name,
+                'lines': self.srcdoc.line_count
+            },
+            'description': {
+                'span': list(self.description_span)
+            },
+            'comment': {
+                'char-span': list(self.comment_char_span),
+                'line-span': list(self.comment_line_span),
+                'flavour': self.comment_flavour.replace('_', '-')
+            },
+            'inline': self.inline, 'tags': self.tags
+        }
+
+    def __cmp__(self):
+        pass
 
     def __str__(self):
         # NOTE: 0-index ranges/spans in ID
@@ -367,35 +393,38 @@ class EmbeddedIssue:
 
     @property
     def line_span(self):
+        assert self.comment_line_span, self
         return [ i + 1 for i in self.comment_line_span ]
 
     @property
     def char_span(self):
+        assert self.comment_char_span, self
         return [ i + 1 for i in self.comment_char_span ]
 
     @property
     def raw(self):
+        assert self.comment_char_span, self
         return self.srcdoc.data[slice(*self.comment_char_span)]
 
     @property
     def descr(self):
+        assert self.description_span, self
         return self.srcdoc.data[slice(*self.description_span)]
 
     def scei_id(self, full=True):
         # NOTE: turn ranges from 0-index into 1-indexed (lines, chars, etc)
         dspan = tuple([ x+1 for x in self.description_span ])
-        scei_id = self.srcdoc.source_name
+        docname = self.srcdoc.source_name
         if full:
-            cspan = tuple([ x+1 for x in self.comment_char_span ])
-            scei_id += ":%s-%s;lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
-                    dspan + self.line_span + ( self.comment_flavour, ) + self.char_span )
+            # XXX: cspan = tuple([ x+1 for x in self.comment_char_span ])
+            scei_id = docname+":%s-%s;lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
+                    dspan + tuple(self.line_span) + ( self.comment_flavour, ) + tuple(self.char_span) )
         else:
-            scei_id += ":%s-%s" % dspan
+            scei_id = docname+":%s-%s" % dspan
         return scei_id
 
 
     formats = {
-            'todo.txt': lambda cmt, data: "",
             'id': lambda cmt, data: cmt.scei_id(False),
             'full-id': lambda cmt, data: cmt.scei_id(),
             'full-sh': lambda cmt, data: ":".join(
@@ -403,24 +432,78 @@ class EmbeddedIssue:
                     '',
                     cmt.srcdoc.source_name,
                     # NOTE: 0 to 1-indexed, and add spans for Sh
-                    "%i-%i" % tuple([ x+1 for x in cmt.line_span ]),
-                    "%i-%i" % tuple([ x+1 for x in cmt.description_span ]),
+                    "%i-%i" % tuple(cmt.line_span),
+                    "%i-%i" % tuple(cmt.description_span),
                     '', # line-offset-descr-span
                     '', # cmnt-span
                     '', # line-offset-cmnt-span
-                    cmt.descr
+                    ' '+repr(cmt.descr)[1:-1]
                 ])),
+            'grep': lambda cmt, data: ":".join([
+                    cmt.srcdoc.source_name,
+                    "%i" % cmt.line_span[0],
+                    ' '+repr(cmt.descr)[1:-1]
+                ]),
+            'todo.txt': lambda cmt, data: " ".join([
+                    # FIXME: cleanup & parsing in EmbeddedIssue re.sub(r'\s+', ' ', cmt.descr),
+                    re.sub(r'\s+', ' ', cmt.raw),
+                    '+'+cmt.srcdoc.source_name,
+                    "line:%i-%i" % tuple(cmt.line_span),
+                    "char:%i-%i" % tuple(cmt.description_span)
+                ]),
             'raw': lambda cmt, data: " ".join(
                 map(str, [ cmt.srcdoc.source_name,
                     cmt.line_span, \
                     cmt.comment_flavour, \
                     repr(cmt.raw), \
                     repr(cmt.descr) ])),
-            'raw2': lambda cmt, data: [
+            'raw2': lambda cmt, data: " ".join([ cmt.comment_flavour ] + [
                 "%s '%s' <%s> %s" %(
                     tag, tag.raw, tag.canonical(data), cmt
-                ) for tag in cmt.tags ]
+                ) for tag in cmt.tags ])
         }
+
+    def validate(self):
+        assert self.line_span or self.char_span
+        if self.char_span:
+            assert (
+                isinstance(self.char_span, list) and len(self.char_span) == 2
+            )
+            assert (
+                isinstance(self.char_span[0], int) and
+                isinstance(self.char_span[1], int)
+            )
+        if self.line_span:
+            assert (
+                isinstance(self.line_span, list) and len(self.line_span) == 2
+            )
+            assert (
+                isinstance(self.line_span[0], int) and
+                isinstance(self.line_span[1], int)
+            )
+
+    def store(self, tag, services):
+
+        """
+        Add or update tracker for current issue.
+        """
+
+        # TODO: print('tags', self.tags)
+        if tag.slug in services:
+            tracker = services[tag.slug]
+
+            # Cleanup the SEI's Id, ie. normalize our tag-id
+            refId = tag.canonical(self.srcdoc.data)
+
+            s = self.to_dict()
+            # Find issue based on Tag-Id
+            if refId == tag.slug:
+                issue = tracker.new(refId, s)
+            else:
+                issue = tracker.globalize(refId, s)
+                tracker.update(tag.slug, refId, s)
+
+            print refId, issue
 
 
 class EmbeddedIssueOld:
@@ -758,10 +841,11 @@ def clean_comment(scan, data):
     return data
 
 
-class Parser:
+class SEIParser:
     """
-    TODO: parse/cache comments from source. Map between tag and comment specs.
-    Keep context.
+    - Parse comments from source.
+    - Map between tag and comment spans.
+    - Keep context.
     """
     def __init__(self, session, matchbox, source_name, context, data, lines):
         self.session = session
@@ -773,7 +857,7 @@ class Parser:
         self.srcdoc = SrcDoc( self.source_name, len(self.lines), self.data )
 
     def find_tags(self):
-        "scan for tags. return entire tag spec"
+        "Scan for tags. return TagInstance"
         for tagname in rc.tags:
             for tag_match in self.matchbox[tagname].finditer(self.data):
                 tag_span = tag_match.start(), tag_match.end()
@@ -948,6 +1032,8 @@ def get_peek(source):
     except Exception, e:
         log.debug("get-peek: %s", e)
 
+
+# XXX: old
 def find_files_with_tag(session, matchbox, paths):
 
     """
@@ -1070,7 +1156,7 @@ class Radical(rsr.Rsr):
     DEPENDS = dict(
             rdc_init = [ 'rsr_session' ],
             rdc_run_embedded_issue_scan = [
-                'rdc_init', 'rsr_session', 'prepare_output' ],
+                'rdc_init', 'rdc_paths', 'rsr_session', 'prepare_output' ],
             rdc_list_flavours = [ 'rdc_init', 'load_config', 'prepare_output' ],
             rdc_list_scans = [ 'load_config', 'prepare_output' ],
             rdc_info = [ 'rdc_init' ]
@@ -1094,8 +1180,16 @@ class Radical(rsr.Rsr):
 
                 # -f PATTERN   Include only matching files.
 
-                p(('-F', '--add-flavour'),{ 'action': 'callback', 'callback': append_comment_scan,
-                    'help': "Scan for these comment flavours only, by default all known fla." }),
+                p(('--input',),{
+                    'metavar': 'FILE',
+                    'dest': 'input',
+                    'help': "Read path arguments from file (or '-' for stdin)." }),
+
+                p(('-F', '--add-flavour'),{
+                    'action': 'callback',
+                    'callback': append_comment_scan,
+                    'help': "Scan for these comment flavours only, iso. all "
+                        +"known flavours." }),
 
                 p(('--list-flavours',), libcmd.cmddict(inheritor.NAME)),
                 p(('--list-scans',), libcmd.cmddict(inheritor.NAME)),
@@ -1146,12 +1240,29 @@ class Radical(rsr.Rsr):
             print
         return
 
-    def rdc_init(self, prog=None):
+    def rdc_paths(self, opts=None, *paths):
+        if paths:
+            paths = list(paths)
+        else:
+            paths = []
+        if opts.input:
+            if opts.input == '-':
+                paths += [ l.strip() for l in sys.stdin.readlines() ]
+            else:
+                paths += open(opts.input).readlines()
+        yield dict( paths=paths )
+
+    def rdc_init(self, prog=None, issue_format=None):
+        # FIXME: do away with global config in radical
         global rc
         rc = self.rc
-        # start db session
+        # XXX: start db session, see rsr-session
         #dbsession = get_session(self.rc.dbref)
         #yield dict( dbsession=dbsession )
+
+        if issue_format not in EmbeddedIssue.formats:
+            raise Exception("Unknown format '%r', %s" % (issue_format,
+                EmbeddedIssue.formats.keys()))
 
         # get backend service
         services = confparse.Values({})
@@ -1184,14 +1295,15 @@ class Radical(rsr.Rsr):
 
             yield source
 
-    def rdc_run_embedded_issue_scan(self, sa, issue_format=None, opts=None, *paths):
+    def rdc_run_embedded_issue_scan(self, sa, issue_format=None, opts=None,
+            services=None, paths=[]):
 
         """
         Main function: scan multiple sources and print/log embedded issues
         found.
         """
-
-        if not paths: paths=['.']
+        if not paths:
+            raise Exception("Pathname argument(s) expected")
 
         # TODO: make ascii peek optional, charset configurable
         # TODO: implement contexts, ref per source
@@ -1200,8 +1312,11 @@ class Radical(rsr.Rsr):
 
         # pre-compile patterns XXX: per context
         matchbox = compile_rdc_matchbox(rc)
-
         taskdocs = {}
+
+        # TODO: old clean/rewrite functions
+        # iterate paths
+        #for embedded in find_files_with_tag(sa, matchbox, paths):
 
         for source in source_iter:
             data = open(source).read()
@@ -1211,10 +1326,12 @@ class Radical(rsr.Rsr):
             srcdoc = SrcDoc( source, len(lines), data )
             taskdocs[source] = srcdoc
 
-            parser = Parser(sa, matchbox, source, context, data, lines)
+            parser = SEIParser(sa, matchbox, source, context, data, lines)
 
+            # Run over TagInstances
             for tag in parser.find_tags():
 
+                # Get EmbeddedIssue instance for tag
                 try:
                     cmt = parser.for_tag(tag)
                 except (Exception) as e:
@@ -1227,40 +1344,23 @@ class Radical(rsr.Rsr):
                 if not cmt:
                     continue
 
-                # XXX
                 srcdoc.scei.append(cmt)
 
-                if opts.quiet:
-                    issue_format = 'id'
+                # Print requested format to stdout
+                if not opts.quiet:
+                    self.rdc_issue(cmt, data, issue_format=issue_format)
 
-                print EmbeddedIssue.formats[issue_format](cmt, data)
-        return
+                # Process comment with tracker service(s)
+                cmt.store(tag, services)
 
-        # TODO: old clean/rewrite functions
-
-        # iterate paths
-        for embedded in find_files_with_tag(sa, matchbox, paths):
-
-            if embedded.tag_id:
-                #if embedded.tag_id == NEED_ID:
-                    yield dict(issues=[ embedded ])
-                    try:
-                        if issue_format:
-                            print EmbeddedIssueOld.formats[issue_format](embedded)
-                        log.note('Embedded Issue %r', (embedded.file_name, \
-                                embedded.tag_name, embedded.tag_id, \
-                                embedded.comment_span, embedded.comment_lines, \
-                                embedded.description, embedded.comment_flavour))
-                    except Exception, e:
-                        log.err(e)
-                    #new_id = service.new_issue(embedded.tag_name, embedded.description)
-                    #embedded.set_new_id(new_id)
-                    #service.update_issue(embedded.tag_name, embedded.tag_id,
-                    #        embedded.description)
-            else:
-                assert False
-                pass
-            #embedded.store(dbsession)
+    def rdc_issue(self, cmt, data, issue_format='id'):
+        if issue_format not in EmbeddedIssue.formats:
+            raise Exception("Unknown format '%r', %s" % (issue_format,
+                EmbeddedIssue.formats.keys()))
+        cmt.validate()
+        out = EmbeddedIssue.formats[issue_format](cmt, data)
+        assert not re.match('[\r\n]', out)
+        print out
 
     def rdc_info(self, prog, sa):
         print 'Radical info', prog, sa
@@ -1270,5 +1370,3 @@ class Radical(rsr.Rsr):
 
 if __name__ == '__main__':
     Radical.main()
-
-

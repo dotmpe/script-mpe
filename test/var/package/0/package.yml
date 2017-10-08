@@ -1,0 +1,7 @@
+
+# One main section, and matches ID
+
+- type: application/vnd.dotmpe.project
+  main: script-mpe-test-0
+  id: script-mpe-test-0
+

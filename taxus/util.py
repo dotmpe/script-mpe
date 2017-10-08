@@ -11,7 +11,6 @@ from sqlalchemy.ext import declarative
 from sqlalchemy.ext.declarative import api
 from sqlalchemy.orm.exc import NoResultFound
 
-import taxus
 from script_mpe import log
 from .init import class_registry, SqlBase, get_session
 from . import iface
@@ -24,6 +23,10 @@ class SessionMixin(object):
     sessions = {}
 
     @staticmethod
+    def has_session(name='default'):
+        return name in SessionMixin.sessions
+
+    @staticmethod
     def get_session(name='default', dbref=None, init=False, SqlBase=SqlBase):
         if name not in SessionMixin.sessions:
             assert dbref, "session does not exists: %s" % name
@@ -32,8 +35,14 @@ class SessionMixin(object):
             SessionMixin.sessions[name] = session
         else:
             session = SessionMixin.sessions[name]
-            assert session.engine, "existing session does not have engine"
+            # XXX: assert session.engine, "existing session does not have engine"
         return session
+
+    def add_self_to_session(self, name='default'):
+        sa = self.__class__.get_session(name)
+        if hasattr(self, 'init_defaults'):
+            self.init_defaults()
+        sa.add(self)
 
 
 class ScriptModelFacade(object):
@@ -103,7 +112,7 @@ class ScriptMixin(SessionMixin):
 
     @staticmethod
     def assert_dbref(ref):
-        if not re.match(r'^[a-z][a-z]*://', ref):
+        if not re.match(r'^[a-z_][a-z0-9_+-]*://', ref):
             ref = 'sqlite:///' + os.path.expanduser(ref)
         return ref
 

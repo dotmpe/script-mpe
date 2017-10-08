@@ -30,7 +30,7 @@ from pprint import pprint
 import lib
 import confparse
 import taxus
-import util
+import libcmd_docopt
 from libname import Namespace, Name
 from libcmdng import Targets, Arguments, Keywords, Options,\
     Target, TargetResolver
@@ -63,10 +63,8 @@ def find_volume(opts=None, pwd=None):
 
 
 def oldmain():
-    # XXX:
-
+    # XXX: cleanup all oldmain
     import txs, cmdline
-
     print TargetResolver().main(['vol:find-volume'])
     #TargetResolver().main(['cmd:options'])
 
@@ -81,7 +79,7 @@ def main(argv, doc=__doc__, usage=__usage__):
     db = os.getenv( 'VOLUME_DB', __db__ )
     if db is not __db__:
         usage = usage.replace(__db__, db)
-    opts = util.get_opts(doc + usage, version=get_version(), argv=argv[1:])
+    opts = libcmd_docopt.get_opts(doc + usage, version=get_version(), argv=argv[1:])
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
 
     # Load configuration
@@ -104,4 +102,3 @@ def get_version():
 if __name__ == '__main__':
     oldmain()
     #sys.exit(main(sys.argv))
-

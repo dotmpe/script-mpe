@@ -22,7 +22,7 @@ import oauth2client
 from oauth2client import client
 from oauth2client import tools
 
-from script_mpe import util
+from script_mpe import libcmd_docopt
 import confparse
 
 
@@ -109,7 +109,7 @@ def main(func=None, opts=None):
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__doc__)
+    opts = libcmd_docopt.get_opts(__doc__)
     if not opts.cmds:
         opts.cmds = ['list']
     if not opts.flags.secret:
@@ -118,6 +118,3 @@ if __name__ == '__main__':
         else:
             opts.flags.secret = CLIENT_SECRET_FILE
     sys.exit( main( opts.cmds[0], opts ) )
-
-
-

@@ -13,7 +13,7 @@ pd_meta_bg_setup()
     pd__meta &
     while test ! -e $pd_sock
     do note "Waiting for server.." ; sleep 1 ; done
-    info "Backgrounded pd-meta for $pd (PID $!)"
+    info "Backgrounded pd-meta for $pdoc (PID $!)"
   }
 }
 
@@ -118,10 +118,10 @@ generate_git_hooks()
     package_pd_meta_git_hooks_pre_commit_script="set -e ; pd run $package_pd_meta_check"
   }
 
-	for script in $GIT_HOOK_NAMES
-	do
-		t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
-		test -n "$t" || continue
+  for script in $GIT_HOOK_NAMES
+  do
+    t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
+    test -n "$t" || continue
     test -e "$t" -a "$t" -nt ".package.sh" || {
       s=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_')_script)
       test -n "$s" || {
@@ -139,26 +139,26 @@ generate_git_hooks()
 
 install_git_hooks()
 {
-	for script in $GIT_HOOK_NAMES
-	do
-		t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
-		test -n "$t" || continue
-		l=.git/hooks/$script
-		test ! -e "$l" || {
-			test -h $l && {
-				test "$(readlink $l)" = "../../$t" && continue || {
-					rm $l
-				}
-			} ||	{
-				echo "Git hook exists and is not a symlink: $l"
-				continue
-			}
-		}
+  for script in $GIT_HOOK_NAMES
+  do
+    t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
+    test -n "$t" || continue
+    l=.git/hooks/$script
+    test ! -e "$l" || {
+      test -h $l && {
+        test "$(readlink $l)" = "../../$t" && continue || {
+          rm $l
+        }
+      } ||  {
+        echo "Git hook exists and is not a symlink: $l"
+        continue
+      }
+    }
     test -d .git || error $(pwd)/.git 1
     mkdir -p .git/hooks
-		( cd .git/hooks; ln -s ../../$t $script )
+    ( cd .git/hooks; ln -s ../../$t $script )
     echo "Installed GIT hook symlink: $script -> $t"
-	done
+  done
 }
 
 pd_regenerate()
@@ -261,28 +261,29 @@ pd_list_upstream()
 pd_finddoc()
 {
   # set/check for Pd for subcmd
-  go_to_directory $pd || return $?
-  test -e "$pd" || error "No projects file $pd" 1
+  go_to_directory $pdoc || return $?
+  test -e "$pdoc" || error "No projects file $pdoc" 1
 
-  pd_root="$(dirname "$pd")"
+  pd_root="$(dirname "$pdoc")"
   pd_realdir="$(realpath "$pd_root")"
-  pd_realpath="$(realpath "$pd")"
+  pd_realpath="$(realpath "$pdoc")"
 
   # Relative path to previous dir where cmd was called
   pd_prefix="$(normalize_relative "$go_to_before")"
 
   # Build path name based on real Pd path
-  mkcid "$pd_realpath"
-  fnmatch "*/*" "$cid" && error "Illegal chars cid='$cid'" 11
+  mksid "$pd_realpath"
+  fnmatch "*/*" "$sid" && error "Illegal chars sid='$sid'" 11
 
-  p="$cid"
+  p="$sid"
   sock=/tmp/pd-$p-serv.sock
 
-  pd_cid=$cid
-  pd_sock=/tmp/pd-${pd_cid}-serv.sock
+  pd=$pd_realdir/$pd_prefix
+  pd_sid=$sid
+  pd_sock=/tmp/pd-${pd_sid}-serv.sock
 
   debug "Pd prefix: $pd_prefix, realdir: $pd_realdir Before: $go_to_before"
-  unset cid
+  unset sid
 }
 
 
@@ -296,7 +297,7 @@ pd_update_record()
 {
   test -n "$1" || error "pd-update-record key-pref" 1
   test -n "$2" || error "pd-update-record key-values" 1
-  test -e "$pd" || error "pd-update-record Pd" 1
+  test -e "$pdoc" || error "pd-update-record Pd" 1
 
   local path=$1; shift; local values="$*"
 
@@ -307,7 +308,7 @@ pd_update_record()
         continue
       }
       echo $path/$1; shift; done
-  } | jsotk.py -I pkv --pretty update $pd - || return $?
+  } | jsotk.py -I pkv --pretty update $pdoc - || return $?
 
   debug "Updated Pd: $path{$values}"
 }
@@ -340,7 +341,7 @@ pd_register()
   while test -n "$1"
   do
     fnmatch "*$1*" "$pd_sets" || pd_sets="$pd_sets $1"
-    registry="$(try_local sets $1)"
+    registry="$(echo_local sets $1)"
     eval export $registry="\"\$$registry $mod\""
     shift
   done
@@ -368,14 +369,18 @@ pd_list_io_num_name_types()
 # Debug env keys
 record_env_keys()
 {
-  test -n "$1" || error record_env_keys 1
-
+  test -n "$pd_session_id" || error "pd_session_id expected" 1
+  test -n "$1" || error "record_env_keys name expected" 1
   mkdir -p /tmp/env-keys
+
   { env; set; local; } \
     | sed 's/=.*$//' \
     | tr -d '\t ' \
     | sort -u > /tmp/env-keys/.tmp
+}
 
+record_env_keys_diff()
+{
   test -n "$2" && {
     new=$1; shift;
 
@@ -518,7 +523,7 @@ pd_autodetect()
 
     for target in $targets; do
 
-      func=$(try_local $target-autoconfig $1)
+      func=$(echo_local $target-autoconfig $1)
       try_func $func || continue
 
       (
@@ -540,7 +545,7 @@ pd_prefix_args()
 {
   test -n "$1" || set -- $(cat $arguments | lines_to_words )
   printf "" >$arguments
-  pd_prefix_filter_args "$@"
+  pd_prefix_filter_args $@
   test ! -s "$arguments" || {
     error "Illegal arguments $(cat $arguments | lines_to_words)" 1
   }
@@ -564,7 +569,7 @@ pd_prefix_filter_args()
 
   while test -n "$1"
   do
-    for expanded_arg in $go_to_before/$1
+    for expanded_arg in $(echo $go_to_before/$1)
     do
       test -d "$expanded_arg" || {
         test -e "$expanded_arg" || echo "$expanded_arg" >>$arguments
@@ -581,12 +586,13 @@ pd_prefix_filter_args()
 # Filter out options and states from any given prefixes, or check enabled
 pd_registered_prefix_target_args()
 {
-  set -- $(while test -n "$1"
-  do
-    #case "$1" in --registered ) ;; esac
-    fnmatch "-*" "$1" && echo "$1" >>$options || printf "\"$1\" "
-    shift
-  done)
+# FIXME: quoting possible?
+  #set -- $(while test -n "$1"
+  #do
+  #  #case "$1" in --registered ) ;; esac
+  #  fnmatch "-*" "$1" && echo "$1" >>$options || printf "\"$1\" "
+  #  shift
+  #done)
   test -n "$choice_reg" || choice_reg=1
   pd_prefix_target_args "$@" || return $?
 }
@@ -606,6 +612,7 @@ pd_prefix_target_args()
     shift
   done
 
+  stderr debug "choice-reg: $choice_reg"
   trueish "$choice_reg" && {
 
     # Mixin enabled prefixes with existing dirs for default args,
@@ -753,12 +760,12 @@ pd_run()
           # Resolve aliases
           while true
           do
-            als=$(try_local $comp als)
+            als=$(echo_local $comp als)
             var_isset $als || break
             comp=$(try_value $comp als)
           done
 
-          func=$(try_local $comp "")
+          func=$(echo_local $comp "")
 
           comp_idx=$(( $comp_idx + 1 ))
           ncomp="$(echo "$1" | cut -d ':' -f $comp_idx)"
@@ -767,7 +774,7 @@ pd_run()
           }
 
           try_func "$func" && {
-            try_func $(try_local $comp:$ncomp "") || break
+            try_func $(echo_local $comp:$ncomp "") || break
           }
 
           comp="$comp:$ncomp"
@@ -792,7 +799,7 @@ pd_run()
           unset verbosity
           subcmd="$pd_prefix#$comp"
 
-          record_key="$(eval echo "\"\$$(try_local "$comp" stat)\"")"
+          record_key="$(eval echo "\"\$$(echo_local "$comp" stat)\"")"
           test -n "$record_key" \
             || record_key=$(printf "$comp" | tr -c 'a-zA-Z0-9-' '/')
           states= values=
@@ -822,7 +829,7 @@ pd_run()
               pd_update_record $key_pref/status/$record_key $states \
                 || error "Failed updating $key_pref/status/$record_key" 11
             } || {
-              jsotk.py -q path --is-new --is-int $pd $key_pref/status/$record_key \
+              jsotk.py -q path --is-new --is-int $pdoc $key_pref/status/$record_key \
                 || record_key=$record_key/result
               pd_update_record $key_pref/status $record_key=$result \
                 || error "Failed updating $key_pref/status/$record_key" 12
@@ -862,6 +869,7 @@ pd_run()
 
 pd_run_suite()
 {
+  test -n "$1" || error "pd-run-suite: Suite ID expected" 1
   local r=0 suite=$1; shift
   echo "$@" >$arguments
   subcmd=$suite:run pd__run || return $?
@@ -886,5 +894,22 @@ pd_find_ignores()
   find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
 }
 
+
+pd_new_package()
+{
+  { cat <<EOM
+
+- type: application/vnd.dotmpe.project
+  main: local/$(basename $pd_prefix)
+  id: local/$(basename $pd_prefix)
+  scripts:
+    status: pd status
+    test: pd test
+    pd-update: pd update
+    pd-show: pd show
+
+EOM
+  } > $1/package.yml
+}
 
 

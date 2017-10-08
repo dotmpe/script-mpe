@@ -7,7 +7,7 @@ Author: M. Simionato
 E-mail: mis6@pitt.edu
 Date: August 2003
 License: Python-like
-Requires: Python 2.3, dot, standard Unix tools  
+Requires: Python 2.3, dot, standard Unix tools
 """
 
 import os,itertools
@@ -15,13 +15,13 @@ import os,itertools
 PSVIEWER='gv'     # you may change these with
 PNGVIEWER='kview' # your preferred viewers
 PSFONT='Times'    # you may change these too
-PNGFONT='Courier' # on my system PNGFONT=Times does not work 
+PNGFONT='Courier' # on my system PNGFONT=Times does not work
 
 def if_(cond,e1,e2=''):
-    "Ternary operator would be" 
+    "Ternary operator would be"
     if cond: return e1
     else: return e2
- 
+
 def MRO(cls):
     "Returns the MRO of cls as a text"
     out=["MRO of %s:" % cls.__name__]
@@ -32,7 +32,7 @@ def MRO(cls):
         if type(c) is not type: s+="[%s]" % type(c).__name__
         out.append(s)
     return '\n'.join(out)
-      
+
 class MROgraph(object):
     def __init__(self,*classes,**options):
         "Generates the MRO graph of a set of given classes."
@@ -42,7 +42,7 @@ class MROgraph(object):
         caption=options.get('caption',False)
         setup=options.get('setup','')
         name,dotformat=os.path.splitext(filename)
-        format=dotformat[1:] 
+        format=dotformat[1:]
         fontopt="fontname="+if_(format=='ps',PSFONT,PNGFONT)
         nodeopt=' node [%s];\n' % fontopt
         edgeopt=' edge [%s];\n' % fontopt
@@ -74,7 +74,7 @@ class MROgraph(object):
             number=if_(self.labels,"%s-" % mroindex)
             label='label="%s"' % (number+name)
             option=if_(issubclass(cls,type), # if cls is a metaclass
-                       '[%s]' % label, 
+                       '[%s]' % label,
                        '[shape=box,%s]' % label)
             yield(' %s %s;\n' % (name,option))
             if type(c) is not type: # c has a custom metaclass
@@ -98,7 +98,7 @@ def testHierarchy(**options):
     class A(B,C): pass
     return MROgraph(A,M,**options)
 
-from docutils.nodes import *
+from doclibcmd_docopts.nodes import *
 def main():
     class Node_(Node, object): pass
     docnodes = (
@@ -106,23 +106,22 @@ def main():
             # Mixins
             Resolvable, BackLinkable,
             # Element categories
-            Root, Titular, PreBibliographic, Invisible, Bibliographic, Structural, Body, 
+            Root, Titular, PreBibliographic, Invisible, Bibliographic, Structural, Body,
             General, Sequential, Admonition, Special,
 
             document,
             title, subtitle, rubric,
 
             emphasis, strong, literal, reference, footnote_reference, citation_reference, substitution_reference, title_reference, abbreviation, acronym, superscript, subscript,
-            image, 
+            image,
             inline, problematic, generated
 
     )
     MROgraph(*docnodes)
 
-if __name__=="__main__": 
+if __name__=="__main__":
     testHierarchy() # generates a postscript diagram of A and M hierarchies
     #main()
 
 #</MROgraph.py>
-# vim:setlocal expandtab:
-
+# vim:et:
