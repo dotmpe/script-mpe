@@ -5493,7 +5493,7 @@ htd__disk()
   case "$1" in
 
     -partitions ) shift
-	tail -n +3 /proc/partitions | awk '{print $'$1'}'
+  tail -n +3 /proc/partitions | awk '{print $'$1'}'
       ;;
 
     -mounts )
@@ -5502,12 +5502,12 @@ htd__disk()
 
     -tab )
         sudo file -s /var/lib/docker/aufs
-	tail -n +3 /proc/partitions | while read major minor blocks dev_node
-	do
-	  echo $dev_node
-	  sudo file -s /dev/$dev_node
-	  grep '^/dev/'$dev_node /proc/mounts
-	done
+  tail -n +3 /proc/partitions | while read major minor blocks dev_node
+  do
+    echo $dev_node
+    sudo file -s /dev/$dev_node
+    grep '^/dev/'$dev_node /proc/mounts
+  done
       ;;
 
     * ) error "? 'disk $*'" 1 ;;
@@ -6989,7 +6989,7 @@ htd__srv()
       ;;
 
     -instances ) shift
-	htd__srv -cnames |
+  htd__srv -cnames |
           grep -v '^\(\(.*-local\)\|volume-\([0-9]*-[0-9]*-.*\)\)$'
       ;;
 
@@ -8310,9 +8310,14 @@ htd_als__rshift=date-shift
 
 
 
+htd_man__couchdb='Stuff couchdb
+  couchdb htd-scripts
+  couchdb htd-tiddlers
+'
 htd__couchdb()
 {
-  cd ~/bin && htd__couchdb_htd_scripts || return $?
+  # XXX: experiment parsing Sh. Need to address bugs and refactor lots
+  #cd ~/bin && htd__couchdb_htd_scripts || return $?
   cd ~/hdocs && htd__couchdb_htd_tiddlers || return $?
 }
 
@@ -8385,13 +8390,13 @@ htd__couchdb_htd_scripts()
   local src= grp=
   test -n "$*" || set -- htd
   # *.lib.sh
+  upper=0 default_env out-fmt names
   groups="$( htd__list_function_groups "$@" | lines_to_words )"
   export verbosity=4 DEBUG=
   for src in "$@"
   do
     for grp in $groups
     do
-      out_fmt=json \
       Inclusive_Filter=0 \
       Attr_Filter= \
         htd__filter_functions "grp=$grp" $src || {
@@ -8451,7 +8456,8 @@ htd_man_1__ips='
     --blacklist-ips
     -list
     -table
-    --blacklist
+    --blacklist-ssh-password
+      Use iptables to block IPs with password SSH login attempts.
 '
 htd__ips()
 {
@@ -8459,39 +8465,46 @@ htd__ips()
   case "$1" in
 
       init-wlist ) shift
-			set -e
-			wlist=allowed-ips.list
-			wc -l $wlist
-            htd__ips init-wlist-iptable
-            read_nix_style_file $wlist |
-			while read ip
-			do
-			  ${sudo}iptables -A INPUT -s ${ip} -j ACCEPT
-			done
+          set -e
+          wlist=allowed-ips.list
+          wc -l $wlist
+          htd__ips init-wlist-iptable
+          read_nix_style_file $wlist |
+          while read ip
+          do
+            ${sudo}iptables -A INPUT -s ${ip} -j ACCEPT
+          done
         ;;
 
       init-wlist-iptable ) shift
-			${sudo}iptables -P FORWARD DROP # we aren't a router
-			${sudo}iptables -A INPUT -m state --state INVALID -j DROP
-			${sudo}iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-			${sudo}iptables -A INPUT -i lo -j ACCEPT
-			${sudo}iptables -P INPUT DROP # Drop everything we don't accept
+          ${sudo}iptables -P FORWARD DROP # we aren't a router
+          ${sudo}iptables -A INPUT -m state --state INVALID -j DROP
+          ${sudo}iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+          ${sudo}iptables -A INPUT -i lo -j ACCEPT
+
+          # Allow private nets
+          ${sudo}iptables -A INPUT -s 10.0.0.0/8      -j ACCEPT
+          ${sudo}iptables -A INPUT -s 172.16.0.0/12   -j ACCEPT
+          ${sudo}iptables -A INPUT -s 192.168.0.0/16  -j ACCEPT
+          #${sudo}iptables -A INPUT -s ${ip} -j ACCEPT
+
+          ${sudo}iptables -P INPUT DROP # Drop everything we don't accept
         ;;
 
       init-blist ) shift
-			blist=banned-ips.list
-			wc -l $blist
-			{
-			  cat $blist
-			  htd ips -grep-auth-log
-			} | sort -u >$blist
-			wc -l $blist
-			htd ips --init-blacklist
-            read_nix_style_file $blist |
-			while read ip
-			do
-			  ${sudo}ipset add blacklist $ip
-			done
+          blist=banned-ips.list
+          wc -l $blist
+          {
+            cat $blist
+            htd ips -grep-auth-log
+          } | sort -u >$blist
+          wc -l $blist
+          htd ips --init-blacklist
+                read_nix_style_file $blist |
+          while read ip
+          do
+            ${sudo}ipset add blacklist $ip
+          done
         ;;
 
       --block-ips ) shift

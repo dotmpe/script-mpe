@@ -27,7 +27,7 @@ lib_load()
   test -n "$LOG" || exit 102
   local f_lib_load= f_lib_path=
   test -n "$__load_lib" || local __load_lib=1
-  test -n "$1" || set -- str sys os std stdio src match main argv
+  test -n "$1" || set -- str sys os std stdio src match main argv vc
   while test -n "$1"
   do
     # Note: the equiv. code using sys.lib.sh is above, but since it is not

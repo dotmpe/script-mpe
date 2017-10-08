@@ -7,6 +7,10 @@ __db__ = '~/.journal.sqlite'
 __usage__ = """
 Usage:
     journal.py [options] [ LIST ]
+    journal.py couchlog --date DATE
+    journal.py couchlog --path PATH
+    journal.py couchlog [--current|--latest|--dev] [PATH]
+
     journal.py -h|--help
     journal.py --version
 
@@ -27,12 +31,14 @@ from taxus.init import SqlBase, get_session
 from taxus import Node, Topic
 from res import Journal
 
+import couchdb
+
+
 models = [ Node, Topic, Journal ]
 
 
 def cmd_journal_couch(PATH, opts, settings):
     jrnl = Journal.find(PATH)
-
 
 
 def cmd_journal_rw(LIST, opts, settings):
@@ -45,14 +51,14 @@ def cmd_journal_rw(LIST, opts, settings):
         print entries[k]
 
 
-def cmd_couchdb_log():
+def cmd_couchlog(opts, settings):
     """
     TODO: keep an audit type log, with path references.
 
     Query:
 
         journal couchlog --date today # list entries
-        journal couchlog --path [<prefix>:]/<path>
+        journal couchlog --path [<prefix>:]/<path> # show entry
 
         journal couchlog --current # list all paths marked as local working setup
         journal couchlog --latest # list paths marked as latest available
@@ -73,6 +79,13 @@ def cmd_couchdb_log():
         paths: [..]
         datestamp:
     """
+    server = couchdb.client.Server('http://sandbox:5984/')
+    opts.flags.couchdb = 'the-registry'
+    db = server[opts.flags.couchdb]
+
+    #if opts.flags.date
+    #if opts.flags.path
+    #if opts.arguments.path
 
 
 ### Transform cmd_ function names to nested dict

@@ -1175,9 +1175,7 @@ docker_sh_lib()
 docker_sh_load()
 {
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
-  test -n "$DCKR_SRV" || DCKR_SRV=/srv/docker-local
   test -e "$UCONFDIR" || error "Missing user config dir $UCONF" 1
-  test -e "$DCKR_SRV" || error "Missing docker server storage dir $DCKR_SRV" 1
 
   test -n "$DCKR_UCONF" || DCKR_UCONF=$UCONFDIR/dckr
   test -n "$DCKR_VOL" || DCKR_VOL=/srv/docker-volumes-local/
