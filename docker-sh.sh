@@ -684,7 +684,7 @@ docker_sh__vbox()
 docker_sh_p_ctx()
 {
   docker_sh_arg_psh $1 defaults
-  test -e "$HOME/project/$1/package.yml"
+  test -e "$HOME/project/$1/package.yml" || return
   req_proj_meta
   jsotk_package_sh_defaults $proj_meta  > $psh
 }
