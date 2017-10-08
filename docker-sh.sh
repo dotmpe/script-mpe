@@ -530,7 +530,8 @@ docker_sh__mysql()
   case "$1" in
 
     list )
-        ${dckr} ps | grep mysql
+        ${dckr} ps | grep mysql ||
+           warn "no mysql isntances" 1
       ;;
 
     --run )
