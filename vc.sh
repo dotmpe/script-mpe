@@ -1729,7 +1729,7 @@ vc__sync()
       git rebase $remote $branch && {
         git push $remote $branch
       } || {
-        warn "Rebase on $remote/$branch failed"
+        warn "Rebase on $remote/$branch failed" 1
       }
     done
   done
