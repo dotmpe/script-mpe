@@ -315,42 +315,6 @@ docker_sh__init_sickbeard()
     -v /etc/localtime:/etc/localtime:ro
 }
 
-docker_sh__reset_munin()
-{
-  docker_sh_f_argv $@
-  image_name=munin
-  docker_sh_name=${pref}munin
-  docker_sh_stop && docker_sh_rm
-}
-
-docker_sh__init_munin()
-{
-  docker_sh_f_argv $@
-  image_name=scalingo-munin-server
-  docker_sh_name=${hostname}-munin-server
-  test -d ~/project/docker-munin-server || {
-    cd ~/project; pd enable docker-munin-server || return 1
-  }
-  cd ~/project/docker-munin-server
-  docker_sh_build && docker_sh_stop && \
-    docker_sh_rm && docker_sh__run_munin
-}
-
-docker_sh__stop_munin()
-{
-  image_name=scalingo-munin-server
-  docker_sh_name=${hostname}-munin-server
-  docker_sh_stop
-}
-
-docker_sh__run_munin()
-{
-  image_name=scalingo-munin-server
-  docker_sh_name=${hostname}-munin-server
-  docker_sh_run
-}
-
-
 docker_sh__reset_sandbox()
 {
   docker_sh_f_argv $@
@@ -509,7 +473,8 @@ docker_sh__init_dev()
   docker_sh_run
 }
 
-# OpenWRT
+
+# OpenWRT compile tool-chain
 
 # could import from tar
 docker_sh__import_openwrt()
@@ -539,6 +504,8 @@ docker_sh__build_openwrt()
     -u builder
 }
 
+
+# Project tooling
 
 docker_sh__init_gitlab_docker()
 {
@@ -584,98 +551,7 @@ docker_sh__init_redmine()
   docker-compose up
 }
 
-# Setup correct IP's in host
-# exit 1 on error, 2 on updated, 0 on no-op
-docker_sh__machine_ip_update()
-{
-  test -n "$1" || set -- "dev"
-  test "$(docker-machine status $1)" = "Running" \
-    || note "Not running: docker machine $1" 1
-  docker_machine_ip=$(docker-machine ip $1)
-  case "$1" in
-    prod )
-      docker_domain=docker.simza.lan
-      ;;
-    * )
-      docker_domain=docker-$1.simza.lan
-      ;;
-  esac
-  grep -q '^'$docker_machine_ip'\ *'$docker_domain'$' /etc/hosts && {
-    note "IP for '$1' ($docker_domain) still '$docker_machine_ip'"
-    return 0
-  } || {
-    sudo sed -i.bak 's/^[0-9\.]*\ \ *'$docker_domain'$/'$docker_machine_ip'   '$docker_domain'/' /etc/hosts \
-      && warn "Updated IP ($docker_machine_ip) for '$1' ($docker_domain)" 2 \
-      || error "Unable to upate IP ($docker_machine_ip) for '$1' ($docker_domain)" 1
-  }
-}
 
-# Add NFS export entry for docker share
-docker_sh__machines_nfs()
-{
-  test -n "$1" || set -- $(docker-machine ls -q)
-  local updated=/tmp/dckr-machines-nfs-$(htd uuid)
-  while test -n "$1"
-  do
-    test "$(docker-machine status $1)" = "Running" || {
-      note "Cannot updated offline box '$1'"; shift; continue; }
-    note "Updating NFS for '$1' ..."
-    docker-machine-nfs "$1" \
-        --shared-folder=$DCKR_VOL \
-        --shared-folder=$HOME \
-        --shared-folder=/opt/ \
-        --shared-folder=/Volumes/Simza/project \
-        --nfs-config="-alldirs -mapall=501:20" \
-        --force \
-      && note "Reinitialized NFS for '$1'" \
-      || { note "Error in NFS init for '$1'"; echo $1>$updated; } \
-
-        #--nfs-config="-maproot=0 -alldirs -mapall=\$(id -u):\$(id -g)"
-
-    shift
-  done
-  test ! -e "$updated" || {
-    machines="$(echo "$(cat $updated)")"
-    rm $updated
-    error "Failures on (some) machines: $machines" 1
-  }
-}
-
-# return 1 on error, 2 on updated, 0 on no-op
-docker_sh__machines()
-{
-  test -n "$1" || set -- $(docker-machine ls -q)
-  local updated=/tmp/dckr-machines-ip-updated-$(htd uuid)
-  test ! -e "$updated" || rm $updated
-  test -e /etc/exports || sudo touch /etc/exports
-  while test -n "$1"
-  do
-    test "$(docker-machine status $1)" = "Running" || { shift; continue; }
-    note "Updating '$1' ..."
-    docker-sh.sh machine-ip-update $1 || {
-      case "$R" in 1 ) return 1;; 2 ) echo $1>$updated ;; esac
-    }
-    grep -qF $(docker-machine ip $1) /etc/exports || {
-      echo "$1">$updated
-    }
-    shift
-  done
-  test ! -e "$updated" || {
-    cat $updated
-    machines="$(echo "$(cat $updated)")"
-    rm $updated
-    warn "Updates found: $machines"
-    # XXX: maybe better check with u-c before removing, not needed for now
-    # see also sudoers rules
-    test ! -e /etc/exports || sudo rm /etc/exports
-    #test -e /etc/exports || sudo touch /etc/exports
-  }
-  test -e "/etc/exports" || {
-    note "Updating NFS for all running machines" #'$machines'"
-    docker-sh.sh machines-nfs $machines || return 1
-    return 2
-  }
-}
 
 docker_sh__cleanup_all()
 {
@@ -721,27 +597,12 @@ docker_sh__cleanup_all()
     trueish "$confirm" || warn "Cancelled" 1
   } || return
 
-  # Remove volumes not mounted in running containers
-  test -n "$DOCKER_MACHINE_NAME" && {
+  volumes=$( test -s "$mount" && \
+    sudo find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d \
+      | grep -vFf $mounts || \
+    sudo find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d )
 
-    volumes=$( test -s "$mount" && \
-      docker-machine ssh dev \
-        sudo find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d \
-        | grep -vFf $mounts || \
-      docker-machine ssh dev \
-        sudo find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d )
-
-    docker-machine ssh dev sudo rm -rf $volumes
-
-  } || {
-
-    volumes=$( test -s "$mount" && \
-      sudo find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d \
-        | grep -vFf $mounts || \
-      sudo find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d )
-
-    sudo rm -rf $volumes
-  }
+  sudo rm -rf $volumes
 
   used_space_after="$(df --sync --output=used / | tail -n 1)"
 
