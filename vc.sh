@@ -1200,15 +1200,15 @@ vc__list_all_branches()
 # List branches
 vc__branch_refs()
 {
-	test -n "$1" || error "branch name required" 1
-	local ret= failed=
-	git show-ref --verify -q "refs/heads/$1" && { echo "refs/heads/$1" ; ret=0 ; } || { ret=1; }
-	test -n "$2" && {
+  test -n "$1" || error "branch name required" 1
+  local ret= failed=
+  git show-ref --verify -q "refs/heads/$1" && { echo "refs/heads/$1" ; ret=0 ; } || { ret=1; }
+  test -n "$2" && {
     test "$2" != "*" || set -- "$(git remote)"
   } || set -- "$@" origin
   local branch="$1";
   shift
-	while test -n "$1"
+  while test -n "$1"
   do
     git show-ref --verify -q "refs/remotes/$1/$branch" && {
       echo "refs/remotes/$1/$branch"
@@ -1223,8 +1223,8 @@ vc__branch_refs()
 # List branches
 vc__branches()
 {
-	#git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
-	git for-each-ref --format='%(refname:short)' refs/heads
+  #git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
+  git for-each-ref --format='%(refname:short)' refs/heads
 }
 
 # Check wether the literal ref exists, ie:
@@ -1232,15 +1232,15 @@ vc__branches()
 # - remote branches: refs/remote/<remote>/*
 vc__ref_exists()
 {
-	git show-ref --verify -q "$1" || return $?
+  git show-ref --verify -q "$1" || return $?
 }
 
 # Check wether branch name exists somewhere
 vc__branch_exists()
 {
-	vc__ref_exists "refs/heads/$1" && return
-	vc__ref_exists "refs/remotes/$1" && return
-	return 1
+  vc__ref_exists "refs/heads/$1" && return
+  vc__ref_exists "refs/remotes/$1" && return
+  return 1
 }
 
 
@@ -1362,22 +1362,22 @@ vc__annex_local()
 # refs/remote/<remote>/ prefix)
 vc__git_ref_exists()
 {
-	git show-ref --verify -q "$1" || return $?
+  git show-ref --verify -q "$1" || return $?
 }
 
 # Check for local or remote branch name
 vc__git_branch_exists()
 {
-	vc__git_ref_exists "refs/heads/$upstream" && return
-	vc__git_ref_exists "refs/remotes/$upstream" && return
-	return 1
+  vc__git_ref_exists "refs/heads/$upstream" && return
+  vc__git_ref_exists "refs/remotes/$upstream" && return
+  return 1
 }
 
 # List branches
 vc__git_branches()
 {
-	#git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
-	git for-each-ref --format='%(refname:short)' refs/heads
+  #git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
+  git for-each-ref --format='%(refname:short)' refs/heads
 }
 
 # Run over UP/DOWN-stream branchname pairs and show info:
@@ -1386,58 +1386,58 @@ vc__git_branches()
 # - for feature branches wether they are merged upstream and can be deleted
 vc__gitflow()
 {
-	case "$1" in
-		check|chk )
-				test -z "$3" || error "surplus argument '$3'" 1
-				test -n "$2" || set -- "$1" gitflow.tab
-				test -e "$2" || error "missing gitflow file" 1
-				note "Reading from '$2'"
-				read_nix_style_file "$2" | while read upstream downstream isfeature
-				do
-					test -n "$upstream" -a -n "$downstream" || continue
-					test -n "$upstream" || error "Missing upstream $downstream"
-					test -n "$downstream" || error "Missing downstream $upstream"
-					test -n "$isfeature" || isfeature=true
+  case "$1" in
+    check|chk )
+        test -z "$3" || error "surplus argument '$3'" 1
+        test -n "$2" || set -- "$1" gitflow.tab
+        test -e "$2" || error "missing gitflow file" 1
+        note "Reading from '$2'"
+        read_nix_style_file "$2" | while read upstream downstream isfeature
+        do
+          test -n "$upstream" -a -n "$downstream" || continue
+          test -n "$upstream" || error "Missing upstream $downstream"
+          test -n "$downstream" || error "Missing downstream $upstream"
+          test -n "$isfeature" || isfeature=true
 
-					vc__git_branch_exists "refs/heads/$upstream" || {
-						error "$non_branch_err '$upstream $downstream $isfeature'" &&
-							continue
-					}
+          vc__git_branch_exists "refs/heads/$upstream" || {
+            error "$non_branch_err '$upstream $downstream $isfeature'" &&
+              continue
+          }
 
-					vc__git_branch_exists "refs/heads/$downstream" || {
-						error "$non_branch_err '$upstream $downstream $isfeature'" &&
-							continue
-					}
+          vc__git_branch_exists "refs/heads/$downstream" || {
+            error "$non_branch_err '$upstream $downstream $isfeature'" &&
+              continue
+          }
 
-					new_at_up=$(echo $(git log --oneline $downstream..$upstream | wc -l))
-					new_at_down=$(echo $(git log --oneline $upstream..$downstream | wc -l))
-					m="$(git merge-base $upstream $downstream)"
+          new_at_up=$(echo $(git log --oneline $downstream..$upstream | wc -l))
+          new_at_down=$(echo $(git log --oneline $upstream..$downstream | wc -l))
+          m="$(git merge-base $upstream $downstream)"
 
-					test "$m" = "$(git rev-parse $upstream)" -o "$m" = "$(git rev-parse $downstream)" && {
-						echo "ok: $upstream - $downstream"
-					} || {
-						echo "diverged: $upstream .. $downstream"
-					}
-					test $new_at_down -eq 0 && {
-						trueish "$isfeature" && {
-							echo "downstream '$downstream' has no commits and could be removed"
-						} || noop
-					} ||
-						echo "$new_at_down commits '$upstream' <- '$downstream' "
+          test "$m" = "$(git rev-parse $upstream)" -o "$m" = "$(git rev-parse $downstream)" && {
+            echo "ok: $upstream - $downstream"
+          } || {
+            echo "diverged: $upstream .. $downstream"
+          }
+          test $new_at_down -eq 0 && {
+            trueish "$isfeature" && {
+              echo "downstream '$downstream' has no commits and could be removed"
+            } || noop
+          } ||
+            echo "$new_at_down commits '$upstream' <- '$downstream' "
 
-					test $new_at_up -eq 0 ||
-						echo "$new_at_up commits '$upstream' -> '$downstream' "
-				done
-				for branch in $(vc__git_branches)
-				do
-					grep -qF "$branch" "$2" ||
-						error "Missing gitflow for '$branch'"
-				done
-			;;
-		* )
-				error "? '$1'"
-			;;
-	esac
+          test $new_at_up -eq 0 ||
+            echo "$new_at_up commits '$upstream' -> '$downstream' "
+        done
+        for branch in $(vc__git_branches)
+        do
+          grep -qF "$branch" "$2" ||
+            error "Missing gitflow for '$branch'"
+        done
+      ;;
+    * )
+        error "? '$1'"
+      ;;
+  esac
 }
 vc__gf()
 {
@@ -1707,25 +1707,17 @@ vc__conflicts()
 
 vc__checkout()
 {
-  test -n "$act" || act=update
+  test -n "$vc_sync" || vc_sync=0
   test -d "$vc_dir" && note "Running SCM $act for '$vc_dir'" || error vc-dir 1
   (
     test "$(pwd -P)" = "$vc_dir" || cd $vc_dir
-	test -n "$1" || set -- "$(git rev-parse --abbrev-ref HEAD)" "$2"
-	test -n "$2" || set -- "$1" "$vc_rt_def"
-	case "$act" in
-
-      update )
-          git checkout "$1" || return $?
-          git pull "$2" "$1" || return $?
-        ;;
-
-      sync )
-          git checkout "$1" || return $?
-          git pull "$2" "$1" || return $?
-          git push "$2" "$1" || return $?
-        ;;
-    esac
+    test -n "$1" || set -- "$(git rev-parse --abbrev-ref HEAD)" "$2"
+    test -n "$2" || set -- "$1" "$vc_rt_def"
+    git checkout "$1" || return $?
+    git pull "$2" "$1" || return $?
+    trueish "$vc_sync" && {
+      git push "$2" "$1" || return $?
+    }
   )
 }
 

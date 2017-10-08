@@ -541,7 +541,7 @@ docker_sh__mysql()
           --env MYSQL_ROOT_PASSWORD=$db_root_passwd \
           --env MYSQL_USER=$db_user \
           --env MYSQL_PASSWORD=$db_user_passwd \
-			  || return $?
+        || return $?
       ;;
 
     --open-root-tcp )
@@ -551,8 +551,8 @@ GRANT ALL PRIVILEGES ON *.* TO root@'%' IDENTIFIED BY "$db_root_passwd";
 FLUSH PRIVILEGES;
 EOM
          } | docker exec -i \
-         	       $docker_name \
-         	       mysql --password="$db_root_passwd" || return $?
+                  $docker_name \
+                  mysql --password="$db_root_passwd" || return $?
       ;;
 
     init )
@@ -619,9 +619,9 @@ docker_sh__cleanup_all()
 {
   used_space_before="$(df --sync --output=used / | tail -n 1)"
 
-	log "Scanning for dead containers..."
-	containers="$( docker ps --filter status=dead --filter status=exited -aq )"
-	test -z "$docker_sh_cs" || {
+  log "Scanning for dead containers..."
+  containers="$( docker ps --filter status=dead --filter status=exited -aq )"
+  test -z "$docker_sh_cs" || {
     log "Ready to remove dead, exited containers? : $docker_sh_cs"
     read confirm
     trueish "$confirm" && {
@@ -629,9 +629,9 @@ docker_sh__cleanup_all()
     }
   }
 
-	log "Scanning for untagged images..."
-	images="$( docker images --no-trunc | grep '<none>' | awk '{ print $3 }' )"
-	test -z "$images" || {
+  log "Scanning for untagged images..."
+  images="$( docker images --no-trunc | grep '<none>' | awk '{ print $3 }' )"
+  test -z "$images" || {
     log "Ready to remove images? : $images"
     read confirm
     trueish "$confirm" && {
