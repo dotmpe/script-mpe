@@ -1155,6 +1155,7 @@ docker_sh_init()
   test -z "$BOX_INIT" || return 1
   test -n "$scriptpath"
   export SCRIPTPATH=$scriptpath
+  test -w /var/run/docker.sock || sudo="sudo "
   . $scriptpath/util.sh load-ext
   lib_load
   . $scriptpath/box.init.sh
