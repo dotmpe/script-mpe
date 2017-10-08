@@ -385,13 +385,24 @@ get_kv_v() # Key-Value-Str [Env-Prefix [Key-Str]]
 
 
 # Source profile if it exists, or create one using given default and current env
+# The result should be whatever is defined in an existing profile, the current env and whatever
+# defaults where provided. If the file exists, the processing costs should be minimal, and mostly 
+# determined by the profile file.
+# This means the env var validation is left to the profile script, and the profile script is only
+# written if a value for every var is provided. No other schema validation.
 req_profile() # Name Vars...
 {
-  test -e "~/.local/$1.sh" && {
-    . "~/.local/$1.sh" ||
-        error "Error sourcing '$1' profile" 1
+  test -n "$SCR_ETC" -a -w "$SCR_ETC" || error "Scr-Etc '$SCR_ETC'" 1
+  local name=$1 ; shift
+
+  test -e "$SCR_ETC/${name}.sh" && {
+    # NOTE: only simply scalars, no quoting, whitespace etc.
+    eval $* ||
+        error "Error evaluating defaults '$*'" 1
+    . "$SCR_ETC/${name}.sh" ||
+        error "Error sourcing '${name}' profile" 1
   } || {
-    name=$1; shift ; {
+    {
       while test $# -gt 0
       do
           fnmatch *"="* "$1" && {
@@ -403,7 +414,9 @@ req_profile() # Name Vars...
           }
           test -n "$value" || stderr error "Missing '$var' value" 1
           printf -- "$var=\"$value\"\n"
+          shift
       done
-    } > "~/.local/$name.sh"
+    } > "$SCR_ETC/${name}-temp.sh"
+    mv "$SCR_ETC/${name}-temp.sh" "$SCR_ETC/$name.sh"
   }
 }

@@ -505,11 +505,16 @@ docker_sh__build_openwrt()
 }
 
 
+rnd_passwd()
+{
+  test -n "$1" || set -- 11
+  cat /dev/urandom | tr -cd 'a-z0-9' | head -c $1
+}
+
 
 # MySQL
 docker_sh__mysql()
 {
-  # Use 
   req_profile dckr-mysql \
       db_ext_port=3306 \
       docker_name=$(whoami)-mysql \
@@ -518,20 +523,28 @@ docker_sh__mysql()
       db_user_passwd=$(whoami) \
       db_root_passwd= \
       image_name=mysql/mysql-server:latest
-  #test -n "$db_ext_port" || db_ext_port=3306
-  #test -n "$docker_name" || docker_name=$(whoami)-mysql
-  #test -n "$db_name" || db_name=data
-  #test -n "$db_user" || db_user=$(whoami)
-  #test -n "$db_user_passwd" || db_user_passwd=$(whoami)
-  #test -n "$db_root_passwd" || db_root_passwd=
-  #test -n "$image_name" || image_name=mysql/mysql-server:latest
+
+  test -n "$db_user_passwd" || {
+     export db_user_passwd=$(rnd_passwd 8)
+     stderr note "Set random 8-char password for user '$db_user': '$db_user_passwd' (given only once)"
+  }
+  
+  test -n "$db_root_passwd" || {
+     export db_root_passwd=$(rnd_passwd 16)
+     stderr note "Set random 16-char password for root: '$db_root_passwd' (given only once)"
+  }
 
   test -n "$1" || set -- list
   case "$1" in
 
     list )
         ${dckr} ps | grep mysql ||
-           warn "no mysql isntances" 1
+           warn "no mysql instances" 1
+      ;;
+
+    status )
+        ${dckr} inspect -f '{{.State.Running}}' $docker_name || 
+           stderr warn "Not running: '$docker_name'" 1
       ;;
 
     --run )
@@ -550,14 +563,40 @@ docker_sh__mysql()
 GRANT ALL PRIVILEGES ON *.* TO root@'%' IDENTIFIED BY "$db_root_passwd";
 FLUSH PRIVILEGES;
 EOM
-         } | docker exec -i \
+         } | ${dckr} exec -i \
                   $docker_name \
                   mysql --password="$db_root_passwd" || return $?
       ;;
 
+    --wait )
+        printf -- "Waiting for mysql.."
+        until ${dckr} exec -i $docker_name mysql -hlocalhost -P$db_ext_port \
+          -uroot -p"$db_root_passwd" -e "show databases"
+        do printf "."
+          sleep 2
+        done 2> /dev/null
+        printf -- "\nmysql ready at $ENV_NAME\n"
+      ;;
+
+    test )
+         echo "SHOW TABLES;" | ${dckr} exec -i $docker_name \
+           mysql $db_name -u"$db_user" -p"$db_user_passwd" || return $?
+      ;;
+
+    test-local )
+         echo "SHOW TABLES;" |
+           mysql $db_name -h$hostname -P$db_ext_port -u"$db_user" -p"$db_user_passwd" || return $?
+      ;;
+
+    deinit )
+         ${dckr} rm -f $docker_name
+      ;;
+
     init )
         docker_sh__mysql --run || return $?
+        docker_sh__mysql --wait || return $?
         docker_sh__mysql --open-root-tcp || return $?
+        docker_sh__mysql --test || return $?
       ;;
 
     * ) stderr error "? 'mysql $*'" 1
@@ -1111,7 +1150,7 @@ docker_sh_load()
   test -e "$DCKR_CONF" || error "Missing docker config dir $DCKR_CONF" 1
   test -e "$DCKR_VOL" || error "Missing docker volumes dir $DCKR_VOL" 1
 
-  test -n "$SCRIPT_ETC" || export SCRIPT_ETC=$HOME/.local/etc
+  test -n "$SCR_ETC" || export SCR_ETC=$HOME/.local/etc
 
   hostname="$(hostname -s | tr 'A-Z.-' 'a-z__')"
   docker_sh_c_pref="${hostname}-"
