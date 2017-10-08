@@ -1705,6 +1705,31 @@ vc__conflicts()
 }
 
 
+vc__checkout()
+{
+  test -n "$act" || act=update
+  test -d "$vc_dir" && note "Running SCM $act for '$vc_dir'" || error vc-dir 1
+  (
+    test "$(pwd -P)" = "$vc_dir" || cd $vc_dir
+	test -n "$1" || set -- "$(git rev-parse --abbrev-ref HEAD)" "$2"
+	test -n "$2" || set -- "$1" "$vc_rt_def"
+	case "$act" in
+
+      update )
+          git checkout "$1" || return $?
+          git pull "$2" "$1" || return $?
+        ;;
+
+      sync )
+          git checkout "$1" || return $?
+          git pull "$2" "$1" || return $?
+          git push "$2" "$1" || return $?
+        ;;
+    esac
+  )
+}
+
+
 # ----
 
 
@@ -1774,6 +1799,9 @@ vc_load()
 
   test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
   test -n "$uname" || uname=$(uname)
+
+  test -n "$vc_dir" || vc_dir=$scriptpath
+  test -n "$vc_rt_def" || vc_rt_def=origin
 
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
