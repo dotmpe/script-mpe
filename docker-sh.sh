@@ -16,11 +16,11 @@ docker_sh__ps()
   docker_sh_p_ctx "$@"
   ${sudo}docker ps
 }
-docker_sh__list_info=ps
-docker_sh__details=ps
-docker_sh__update=ps
-docker_sh__list=ps
-docker_sh__global_status=ps
+docker_sh_als__list_info=ps
+docker_sh_als__details=ps
+docker_sh_als__update=ps
+docker_sh_als__list=ps
+docker_sh_als__global_status=ps
 
 
 docker_sh_man_1__stop="Stop container for image. "
@@ -1077,7 +1077,7 @@ docker_sh_als__V=version
 
 docker_sh__commands()
 {
-  echo " list|global-status            "
+  echo " ps|list-info|details|update|list|global-status            "
   echo " details|update|list-info      "
   echo ""
   echo " init        Prepare project, env"
