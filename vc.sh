@@ -1724,13 +1724,17 @@ vc__checkout()
 
 vc__sync()
 {
+  test -n "$vc_rebase" || vc_rebase=0
+  test -n "$vc_force" || vc_force=0
+  trueish "$vc_rebase" && update=rebase || update=pull
+  trueish "$vc_force" %% push_f=-f || push_f=
   local current_branch="$(git rev-parse --abbrev-ref HEAD)"
   git show-ref --heads | cut -c53- | while read branch ; do
     git remote | while read remote ; do
       git checkout $branch ||
         warn "Checkout $branch failed" 1
-      git rebase $remote $branch && {
-        git push $remote $branch
+      git $update $remote $branch && {
+        git push $push_f $remote $branch
       } || {
         warn "Rebase on $remote/$branch failed" 1
       }
