@@ -66,7 +66,7 @@ docker_sh_man_1__c="Get container ID"
 docker_sh_spc__c="c <image-name>"
 docker_sh__c()
 {
-  docker_sh_name=dandy-jenkins-server
+  docker_name=dandy-jenkins-server
   docker_sh_c "$@" || return $?
   echo $docker_sh_c
 }
@@ -78,10 +78,10 @@ docker_sh__ip()
   test -n "$1" && {
     docker_sh_ip $1
   } || {
-    docker_sh_names | while read docker_sh_name
+    docker_sh_names | while read docker_name
     do
-      ip=$(docker_sh_ip $docker_sh_name)
-      test -z "$ip" || echo "$ip  $docker_sh_name "
+      ip=$(docker_sh_ip $docker_name)
+      test -z "$ip" || echo "$ip  $docker_name "
     done
   }
 }
@@ -126,7 +126,7 @@ docker_sh__init()
   }
 
   docker_sh_c && {
-    note "Already running $docker_sh_name: $docker_sh_c"
+    note "Already running $docker_name: $docker_sh_c"
   }
 
   docker_sh_c -a && {
@@ -151,7 +151,7 @@ docker_sh__script()
   test -n "$docker_sh_f" || docker_sh_f=-td
 
   docker_sh_c && {
-    note "Already running $docker_sh_name: $docker_sh_c"
+    note "Already running $docker_name: $docker_sh_c"
   }
 
   docker_sh_c -a && {
@@ -165,25 +165,25 @@ docker_sh__script()
     test -e "$1" && {
       docker_sh_script=$1
     } || {
-      test -n "$docker_sh_cmd" && {
+      test -n "$docker_cmd" && {
         srcdir=/tmp
         docker_sh_script=dckr-script.sh
-        echo "$docker_sh_cmd" > $srcdir/$docker_sh_script
+        echo "$docker_cmd" > $srcdir/$docker_sh_script
         chmod +x $srcdir/$docker_sh_script
       }  || error "No script or cmd" 1
     }
   }
 
-  echo ${sudo}docker cp $srcdir/$docker_sh_script "$docker_sh_name":/tmp/$docker_sh_script
-  ${sudo}docker cp $srcdir/$docker_sh_script $docker_sh_name:/tmp/$docker_sh_script
-  echo ${sudo}docker exec -ti $docker_sh_name /tmp/$docker_sh_script
+  echo ${sudo}docker cp $srcdir/$docker_sh_script "$docker_name":/tmp/$docker_sh_script
+  ${sudo}docker cp $srcdir/$docker_sh_script $docker_name:/tmp/$docker_sh_script
+  echo ${sudo}docker exec -ti $docker_name /tmp/$docker_sh_script
 }
 
 docker_sh__exec()
 {
   test -z "$1" || image_name="$1"
-  test -z "$2" || docker_sh_cmd="$@"
-  ${sudo}docker exec -ti "$image_name" "$docker_sh_cmd"
+  test -z "$2" || docker_cmd="$@"
+  ${sudo}docker exec -ti "$image_name" "$docker_cmd"
 }
 
 docker_sh_man_1__register="Register a project with dckr build package metadata. "
@@ -218,7 +218,7 @@ docker_sh__run()
   local docker_sh_f=-dt
   docker_sh_load_psh "$1" run || error "Loading dckr run script" 1
   docker_sh_run || return $?
-  note "New container for $image_name running ($docker_sh_name, $docker_sh_c)"
+  note "New container for $image_name running ($docker_name, $docker_sh_c)"
 }
 
 docker_sh__reset()
@@ -248,7 +248,7 @@ docker_sh_man_1__shipyard_init="Deploy Shipyard at 8080"
 docker_sh__shipyard_init()
 {
   note "Initializing VS1 Shipyard"
-  local docker_sh_name=shipyard-rethinkdb
+  local docker_name=shipyard-rethinkdb
   docker_sh_p && {
     printf "Shipyard at vs1:8080 running from IP "
     docker_sh_ip
@@ -260,9 +260,9 @@ docker_sh__shipyard_init()
 docker_sh_man_1__shipyard_init_old="Shutdown and boot shipard at 8001"
 docker_sh__shipyard_init_old()
 {
-  for docker_sh_name in shipyard shipyard-rethinkdb-data shipyard-rethinkdb
+  for docker_name in shipyard shipyard-rethinkdb-data shipyard-rethinkdb
   do
-    docker_sh_stop && docker_sh_rm || error "Error destroying $docker_sh_name" 1
+    docker_sh_stop && docker_sh_rm || error "Error destroying $docker_name" 1
   done
 
   ${sudo}docker run -it -d -l \
@@ -304,7 +304,7 @@ docker_sh__init_sickbeard()
 {
   docker_sh_f_argv $@
   image_name=sickbeard
-  docker_sh_name=${pref}sickbeard
+  docker_name=${pref}sickbeard
   cd ~/project/docker-sickbeard
   docker_sh_build && \
   docker_sh_rm && \
@@ -319,7 +319,7 @@ docker_sh__reset_sandbox()
 {
   docker_sh_f_argv $@
   image_name=sandbox
-  docker_sh_name=${pref}sandbox
+  docker_name=${pref}sandbox
   docker_sh_stop && docker_sh_rm
 }
 
@@ -327,7 +327,7 @@ docker_sh__init_sandbox()
 {
   docker_sh_f_argv $@
   image_name=sandbox-mpe:latest
-  docker_sh_name=${pref}sandbox
+  docker_name=${pref}sandbox
   cd ~/project/docker-sandbox
   git co master
   docker_sh_build && \
@@ -342,7 +342,7 @@ docker_sh__init_weather()
 {
   docker_sh_f_argv $@
   image_name=weather-mpe
-  docker_sh_name=${pref}weather
+  docker_name=${pref}weather
   cd ~/project/docker-sandbox
   git co docker-weather
   docker_sh_build && \
@@ -358,7 +358,7 @@ docker_sh__init_graphite()
 {
   docker_sh_f_argv $@
   image_name=dotmpe/collectd-graphite
-  docker_sh_name=${pref}x_graphite
+  docker_name=${pref}x_graphite
   cd ~/project/docker-graphite
   docker_sh_build && \
   docker_sh_rm && \
@@ -372,7 +372,7 @@ docker_sh__init_haproxy()
 {
   docker_sh_f_argv $@
   image_name=haproxy:1.5
-  docker_sh_name=${pref}x_haproxy
+  docker_name=${pref}x_haproxy
   docker_sh_rm && \
   docker_sh_run \
     -v $DCKR_VOL/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro \
@@ -411,7 +411,7 @@ docker_sh__init_dns()
 {
   docker_sh_f_argv $@
   image_name=quay.io/jpillora/dnsmasq-gui:latest
-  docker_sh_name=${pref}dns
+  docker_name=${pref}dns
   cd ~/project/docker-dnsmasq
   docker_sh_build && \
   docker_sh_rm && \
@@ -448,7 +448,7 @@ docker_sh__init_jessie()
 {
   docker_sh_f_argv $@
   image_name=debian:jessie
-  docker_sh_name=${pref}jessie
+  docker_name=${pref}jessie
   docker_sh_rm && \
   docker_sh_run
 }
@@ -457,7 +457,7 @@ docker_sh__init_ubuntu()
 {
   docker_sh_f_argv $@
   image_name=ubuntu:14.04
-  docker_sh_name=${pref}ubuntu
+  docker_name=${pref}ubuntu
   docker_sh_rm && \
   docker_sh_run
 }
@@ -466,7 +466,7 @@ docker_sh__init_dev()
 {
   docker_sh_f_argv $@
   image_name=docker-dev
-  docker_sh_name=${pref}dev
+  docker_name=${pref}dev
   cd ~/project/docker-dev
   docker_sh_build && \
   docker_sh_rm && \
@@ -487,7 +487,7 @@ docker_sh__import_openwrt()
 docker_sh__config_openwrt()
 {
   image_name=jessie-openwrt
-  docker_sh_cmd="make -C /src/openwrt/openwrt menuconfig"
+  docker_cmd="make -C /src/openwrt/openwrt menuconfig"
   docker_sh_f="-ti"
   docker_sh_run \
     -v /src/openwrt:/src/openwrt \
@@ -497,11 +497,63 @@ docker_sh__config_openwrt()
 docker_sh__build_openwrt()
 {
   image_name=jessie-openwrt
-  docker_sh_cmd="make -C /src/openwrt/openwrt -j3"
+  docker_cmd="make -C /src/openwrt/openwrt -j3"
   docker_sh_f="-ti"
   docker_sh_run \
     -v /src/openwrt:/src/openwrt \
     -u builder
+}
+
+
+
+# MySQL
+docker_sh__mysql()
+{
+  test -n "$db_ext_port" || db_ext_port=3306
+  test -n "$docker_name" || docker_name=$(whoami)-mysql
+  test -n "$db_name" || db_name=data
+  test -n "$db_user" || db_user=$(whoami)
+  test -n "$db_user_passwd" || db_user_passwd=$(whoami)
+  test -n "$db_root_passwd" || db_root_passwd=
+  test -n "$image_name" || image_name=mysql/mysql-server:latest
+
+  test -n "$1" || set -- list
+  case "$1" in
+
+    list )
+        ${dckr} ps | grep mysql
+      ;;
+
+    --run )
+        docker_sh_run \
+          -p $db_ext_port:3306 \
+          --env MYSQL_DATABASE=$db_name \
+          --env MYSQL_ROOT_PASSWORD=$db_root_passwd \
+          --env MYSQL_USER=$db_user \
+          --env MYSQL_PASSWORD=$db_user_passwd \
+			  || return $?
+      ;;
+
+    --open-root-tcp )
+         # Open up root account for non-localhost connections
+         { cat <<EOM
+GRANT ALL PRIVILEGES ON *.* TO root@'%' IDENTIFIED BY "$db_root_passwd";
+FLUSH PRIVILEGES;
+EOM
+         } | docker exec -i \
+         	       $docker_name \
+         	       mysql --password="$db_root_passwd" || return $?
+      ;;
+
+    init )
+        docker_sh__mysql --run || return $?
+        docker_sh__mysql --open-root-tcp || return $?
+      ;;
+
+    * ) stderr error "? 'mysql $*'" 1
+      ;;
+
+  esac
 }
 
 
@@ -511,7 +563,7 @@ docker_sh__init_gitlab_docker()
 {
   docker_sh_f_argv $@
   image_name=sameersbn/gitlab:latest
-  docker_sh_name=${pref}gitlab
+  docker_name=${pref}gitlab
   #docker pull sameersbn/gitlab:latest
   docker_sh_run \
     -p 8011:8080 \
@@ -662,9 +714,9 @@ docker_sh_c()
     docker_sh_c=$(${sudo}docker ps $ps_f --format='{{.ID}} {{.Image}}' |
         grep '\ '$name'$' | cut -f1 -d' ')
   } || {
-    req_vars docker_sh_name
+    req_vars docker_name
     docker_sh_c=$(${sudo}docker ps $ps_f --format='{{.ID}} {{.Names}}' |
-        grep '\ '$docker_sh_name'$' | cut -f1 -d' ')
+        grep '\ '$docker_name'$' | cut -f1 -d' ')
   }
   test -n "$docker_sh_c" || return 1
 }
@@ -672,7 +724,7 @@ docker_sh_c()
 # Return true if running
 docker_sh_p()
 {
-  ${sudo}docker ps | grep -q '\<'$docker_sh_name'\>' || return 1
+  ${sudo}docker ps | grep -q '\<'$docker_name'\>' || return 1
 }
 
 docker_sh_load_psh()
@@ -734,21 +786,21 @@ docker_sh_man_1_redock=\
 docker_sh_spc_redock='redock <image-name> <dckr-name> [<tag>=latest]'
 docker_sh_redock()
 {
-  local reset= image_name= docker_sh_name= tag=
+  local reset= image_name= docker_name= tag=
 
   docker_sh_rebuild "$@"
 
   # Run if needed and stat
-  ${sudo}docker ps -a | grep -q '\<'$docker_sh_name'\>' && {
-    test -z "$reset" || error "still running? $docker_sh_name" 3
+  ${sudo}docker ps -a | grep -q '\<'$docker_name'\>' && {
+    test -z "$reset" || error "still running? $docker_name" 3
   } || {
-    ${sudo}docker run -dt --name $docker_sh_name \
+    ${sudo}docker run -dt --name $docker_name \
       $image_name:${tag}
   }
 
-  echo "$docker_sh_name proc: "
-  ${sudo}docker ps -a | grep '\<'$docker_sh_name'\>'
-  docker-sh.sh ip $docker_sh_name
+  echo "$docker_name proc: "
+  ${sudo}docker ps -a | grep '\<'$docker_name'\>'
+  docker-sh.sh ip $docker_name
 }
 
 docker_sh_rebuild()
@@ -771,7 +823,7 @@ docker_sh_run()
   test -n "$docker_sh_f" || docker_sh_f=-dt
 
   # pass container env script if set, or exists in default location
-  test -n "$docker_sh_env" || docker_sh_env=$DCKR_UCONF/$docker_sh_name-env.sh
+  test -n "$docker_sh_env" || docker_sh_env=$DCKR_UCONF/$docker_name-env.sh
   test -e "$docker_sh_env" && \
     docker_sh_f="$docker_sh_f --env-file $docker_sh_env"
   test -e "$proj_dir/env.sh" && \
@@ -781,16 +833,16 @@ docker_sh_run()
   test -z "$docker_sh_hostname" || \
     docker_sh_f="$docker_sh_f --hostname $docker_sh_hostname"
 
-  test -n "$docker_sh_name" || error docker_sh_name 1
+  test -n "$docker_name" || error docker_name 1
 
   ${sudo}docker run $docker_sh_f $@ \
-    --name $docker_sh_name \
-    --env DCKR_NAME=$docker_sh_name \
+    --name $docker_name \
+    --env DCKR_NAME=$docker_name \
     --env DCKR_IMAGE=$image_name \
-    --env DCKR_CMD="$docker_sh_cmd" \
+    --env DCKR_CMD="$docker_cmd" \
     $docker_sh_argv \
     $image_name \
-    $docker_sh_cmd
+    $docker_cmd
 
   return $?
 }
@@ -809,7 +861,7 @@ docker_sh_stop()
     ${sudo}docker stop $docker_sh_c
     return
   }
-  test -z "$docker_sh_name" && {
+  test -z "$docker_name" && {
     test -z "$image_name" || {
       info "Looking for running container by image-name $image_name:"
       docker_sh_c
@@ -818,9 +870,9 @@ docker_sh_stop()
     }
   } || {
     # check for container with name and remove
-    ${sudo}docker ps | grep -q '\<'$docker_sh_name'\>' && {
-      info "Stopping container by container-name $docker_sh_name:"
-      ${sudo}docker stop $docker_sh_name
+    ${sudo}docker ps | grep -q '\<'$docker_name'\>' && {
+      info "Stopping container by container-name $docker_name:"
+      ${sudo}docker stop $docker_name
     } || noop
   }
 }
@@ -833,7 +885,7 @@ docker_sh_rm()
     ${sudo}docker rm $docker_sh_c
     return
   }
-  test -z "$docker_sh_name" && {
+  test -z "$docker_name" && {
     test -z "$image_name" || {
       debug "Looking for container by image-name $image_name:"
       docker_sh_c -a
@@ -842,9 +894,9 @@ docker_sh_rm()
     }
   } || {
     # check for container with name and remove
-    ${sudo}docker ps -a | grep -q '\<'$docker_sh_name'\>' && {
-      info "Removing container by container-name $docker_sh_name:"
-      ${sudo}docker rm $docker_sh_name
+    ${sudo}docker ps -a | grep -q '\<'$docker_name'\>' && {
+      info "Removing container by container-name $docker_name:"
+      ${sudo}docker rm $docker_name
     } || noop
   }
 }
@@ -857,13 +909,13 @@ docker_sh_names()
 docker_sh_ip()
 {
   test -n "$1" || set -- $docker_sh_c
-  test -n "$1" || set -- $docker_sh_name
+  test -n "$1" || set -- $docker_name
   test -n "$1" || error "dckr-ip: container required" 1
   ${sudo}docker inspect --format '{{ .NetworkSettings.IPAddress }}' $1 \
     || error "docker IP inspect on $1 failed" 1
 }
 
-# gobble up flags and set $docker_sh_f, and/or set and return $docker_sh_cmd upon first arg.
+# gobble up flags and set $docker_sh_f, and/or set and return $docker_cmd upon first arg.
 # $c is the amount of arguments consumed
 docker_sh_f_argv()
 {
@@ -874,7 +926,7 @@ docker_sh_f_argv()
       test "${1:0:1}" = "-" && {
         docker_sh_f="$docker_sh_f $1"
       } || {
-        docker_sh_cmd="$1"
+        docker_cmd="$1"
         c=$(( $c + 1 ))
         return
       }
@@ -887,11 +939,11 @@ docker_sh_name_argv()
 {
   test -z "$1" && {
     # dont override without CLI args, only set
-    test -n "$docker_sh_name" && return 1;
+    test -n "$docker_name" && return 1;
   }
   test -z "$1" && name=$(basename $(pwd)) || name=$1
-  docker_sh_name=${pref}${name}
-_ test -n "$1" || info "Using dir for dckr-name: $docker_sh_name"
+  docker_name=${pref}${name}
+_ test -n "$1" || info "Using dir for dckr-name: $docker_name"
 }
 
 docker_sh_image_argv()
@@ -1016,7 +1068,10 @@ docker_sh_init()
   test -z "$BOX_INIT" || return 1
   test -n "$scriptpath"
   export SCRIPTPATH=$scriptpath
-  test -w /var/run/docker.sock || sudo="sudo "
+  test -e /var/run/docker.sock -a -x "$(which docker)" && {
+    test -w /var/run/docker.sock || sudo="sudo "
+    dckr=${sudo}docker
+  }
   . $scriptpath/util.sh load-ext
   lib_load
   . $scriptpath/box.init.sh
