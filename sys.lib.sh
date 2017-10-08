@@ -383,3 +383,27 @@ get_kv_v() # Key-Value-Str [Env-Prefix [Key-Str]]
   }
 }
 
+
+# Source profile if it exists, or create one using given default and current env
+req_profile() # Name Vars...
+{
+  test -e "~/.local/$1.sh" && {
+    . "~/.local/$1.sh" ||
+        error "Error sourcing '$1' profile" 1
+  } || {
+    name=$1; shift ; {
+      while test $# -gt 0
+      do
+          fnmatch *"="* "$1" && {
+            var=$(echo "$1" | cut -f 1 -d '=')
+            value=$(echo "$1" | sed 's/^[^=]*=//g')
+          } || {
+            var=$1
+            value="$(eval echo \"\$$var\")"
+          }
+          test -n "$value" || stderr error "Missing '$var' value" 1
+          printf -- "$var=\"$value\"\n"
+      done
+    } > "~/.local/$name.sh"
+  }
+}

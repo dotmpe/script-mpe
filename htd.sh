@@ -8430,16 +8430,32 @@ htd__lfs_files()
 }
 
 
-htd__env_local()
-{
-  { env && local; } | sed 's/=.*$//' | grep -v '^_$' | sort -u
-}
-
+htd_man_1__env='
+  list-local
+  list
+'
 htd__env()
 {
-  env | sed 's/=.*$//' | grep -v '^_$' | sort -u
-}
+  test -n "$1" || set -- list-local
+  case "$1" in
 
+    list-local-vars )
+        { env && local; } | sed 's/=.*$//' | grep -v '^_$' | sort -u
+      ;;
+
+    list-vars )
+        env | sed 's/=.*$//' | grep -v '^_$' | sort -u
+      ;;
+
+    names )
+        #echo ~/.local/etc/* /etc/* /private/etc/* | tr ' ' '\0' | xargs -0 basename
+        echo ~/.local/etc/* | tr ' ' '\0' | xargs -0 basename
+      ;;
+
+    * )
+      ;;
+  esac
+}
 
 htd__vim_get_runtime()
 {

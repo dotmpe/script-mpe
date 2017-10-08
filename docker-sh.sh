@@ -509,13 +509,22 @@ docker_sh__build_openwrt()
 # MySQL
 docker_sh__mysql()
 {
-  test -n "$db_ext_port" || db_ext_port=3306
-  test -n "$docker_name" || docker_name=$(whoami)-mysql
-  test -n "$db_name" || db_name=data
-  test -n "$db_user" || db_user=$(whoami)
-  test -n "$db_user_passwd" || db_user_passwd=$(whoami)
-  test -n "$db_root_passwd" || db_root_passwd=
-  test -n "$image_name" || image_name=mysql/mysql-server:latest
+  # Use 
+  req_profile dckr-mysql \
+      db_ext_port=3306 \
+      docker_name=$(whoami)-mysql \
+      db_name=data \
+      db_user=$(whoami) \
+      db_user_passwd=$(whoami) \
+      db_root_passwd= \
+      image_name=mysql/mysql-server:latest
+  #test -n "$db_ext_port" || db_ext_port=3306
+  #test -n "$docker_name" || docker_name=$(whoami)-mysql
+  #test -n "$db_name" || db_name=data
+  #test -n "$db_user" || db_user=$(whoami)
+  #test -n "$db_user_passwd" || db_user_passwd=$(whoami)
+  #test -n "$db_root_passwd" || db_root_passwd=
+  #test -n "$image_name" || image_name=mysql/mysql-server:latest
 
   test -n "$1" || set -- list
   case "$1" in
@@ -1100,6 +1109,8 @@ docker_sh_load()
   test -e "$DCKR_UCONF" || error "Missing docker user config dir $DCKR_UCONF" 1
   test -e "$DCKR_CONF" || error "Missing docker config dir $DCKR_CONF" 1
   test -e "$DCKR_VOL" || error "Missing docker volumes dir $DCKR_VOL" 1
+
+  test -n "$SCRIPT_ETC" || export SCRIPT_ETC=$HOME/.local/etc
 
   hostname="$(hostname -s | tr 'A-Z.-' 'a-z__')"
   docker_sh_c_pref="${hostname}-"
