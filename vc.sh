@@ -1722,6 +1722,14 @@ vc__checkout()
 }
 
 
+vc__cleanup_local()
+{
+  git show-ref --heads | cut -c53- | while read branch ; do
+    grep -f "$branch" gitflow.tab ||
+        git branch -d $branch
+  done
+}
+
 vc__sync()
 {
   test -n "$vc_rebase" || vc_rebase=0
