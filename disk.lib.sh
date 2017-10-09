@@ -282,7 +282,8 @@ find_partition_ids()
 mount_tmp()
 {
   test -n "$1" || error "Device or disk-id required" 1
-  tmpd
+  test -n "$2" || set -- "$1" 1
+  tmpd=$(setup_tmpd disk/$2)
   $mnt_pref mount $1 $tmpd || return $?
   note "Mounted $1 at $tmpd"
   export tmp_mnt=$tmpd

@@ -1005,7 +1005,7 @@ vc__annex_unused()
 
 vc__annex_show_unused()
 {
-  c_annex_unused | while read num key
+  vc__annex_unused | while read num key
   do
     echo "GIT log for '$key'"
     git log --stat -S"$key"
@@ -1016,7 +1016,7 @@ vc__annex_clear_unused()
 {
   test -z "$1" && {
     local cnt
-    cnt="$(c_annex_unused | tail -n 1 | cut -f 1 -d ' ')"
+    cnt="$(vc_annex_unused | tail -n 1 | cut -f 1 -d ' ')"
     vc__annex_unused | while read num key
     do
       echo $num $key

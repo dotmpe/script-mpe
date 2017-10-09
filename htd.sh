@@ -833,11 +833,97 @@ htd__find_doc()
 htd_als___F=find-doc
 
 
-htd__volumes()
+htd_man_1__volume='
+  list
+  -foreach | -foreach-eval
+  info [Vol-Id]
+  check
+  --check [Vol-Id]
+'
+htd__volume()
 {
+  test -n "$1" || set -- list
   case "$1" in
+
     list )
-        htd__ls_volumes
+        # FIXME: htd__ls_volumes
+        htd__volume -foreach "htd__volume info"
+      ;;
+
+    info ) shift; test -n "$1" || set -- $vol_id
+      ;;
+
+    check )
+        htd__volume -foreach "htd__volume --check"
+      ;;
+
+    --check ) shift; test -n "$1" || set -- $vol_id
+        cd /srv/$1
+        test -e .volumes.sh || error "Unkown disk for $1" 1
+        . ./.volumes.sh
+
+        test "$volumes_main_prefix" = "$prefix" \
+          || error "Prefix mismatch '$volumes_main_prefix' != '$prefix' ($1)" 1
+
+        # Check for unknown dir-names in volume root
+        test -n "$volumes_main_export_all" || volumes_main_export_all=1
+        trueish "$volumes_main_export_all" && {
+          echo ./* | tr ' ' '\n' | while read vroot
+          do
+            test -n "$vroot" || continue
+            vdir=$(basename "$vroot")
+            # Continue unless root-dir name is not in list
+            echo $SRVS lost+found | grep -q $vdir || {
+              warn "Unkown volume dir '$vdir'" 1
+            }
+          done
+        }
+
+        # TODO: check all aliases, and all mapping aliases
+        test -n "$volumes_main_aliases__1" \
+          || error "Expected one aliases ($1)"
+        test -e "/srv/$volumes_main_aliases__1"  || {
+          error "Missing volume alias '$volumes_main_aliases__1' ($1)" 1
+        }
+
+        # Go over known services
+        for srv_name in $SRVS
+        do
+          test -e $1/$srv_name && {
+
+            t=/srv/$srv_name-local
+            test -e "$t" || warn "Missing $t ($1/$srv_name)"
+
+            # TODO: check for global id as well
+            #t=/srv/$srv-${disk_idx}-${part_idx}-$(hostname -s)-$domain
+            #test -e "$t" || warn "Missing $t ($1/$srv)"
+          }
+        done
+
+        stderr ok "Volume: $volumes_main_disk_index.$volumes_main_part_index $volumes_main_id ($1)"
+        unset srv_name \
+          volumes_main_prefix \
+          volumes_main_aliases__1 \
+          volumes_main_export_all
+      ;;
+
+    -foreach ) shift
+        htd__srv volumes | while read vol_id
+        do
+          stderr debug "Foreach volume: $vol_id"
+          trueish "$do_eval" && {
+            eval $1 || return
+          } || {
+            $1 || return
+          }
+        done
+      ;;
+
+    -foreach-eval ) shift
+        do_eval=1 htd__volume -foreach "$@" || return
+      ;;
+
+    * ) stderr error "? 'volume $*'" 1
       ;;
   esac
 }
@@ -6989,7 +7075,7 @@ htd__srv()
       ;;
 
     -instances ) shift
-  htd__srv -cnames |
+        htd__srv -cnames |
           grep -v '^\(\(.*-local\)\|volume-\([0-9]*-[0-9]*-.*\)\)$'
       ;;
 
@@ -7007,13 +7093,21 @@ htd__srv()
         done
       ;;
 
+    assert-container-volume ) shift
+        test -e $1/.htd/srv.id || {
+          mkdir -vp $1/.htd
+          echo $1 $(cd $1 && pwd -P)
+          #$1/.htd/srv.id
+        }
+      ;;
+
     check ) shift
         # For all local services, we want symlinks to any matching volume path
         htd__srv -names | while read name
         do
           test -n "$name" || error "name" 1
+
           #htd__srv find-volumes "$name"
-          htd__srv find-container-volumes "$name"
           #htd__srv -paths "$name"
 
           # TODO: find out which disk volume is on, create name and see if the
@@ -7151,79 +7245,40 @@ htd__srv_list()
 }
 
 # services list
-SRVS="archive archive-old scm-git src annex www-data cabinet htdocs shared \
-  docker"
+SRVS="archive archive-old git src annex www-data cabinet htdocs shared \
+  docker-volumes"
 # TODO: use service names from disk catalog
 
 
 # Go over local disk to see if volume links are there
 htd__ls_volumes()
 {
-  disk.sh list-local | while read disk
+  local vol_disk_map=$TMPDIR/htd-ls-volumes.vol_disk_map
+  stderr debug $vol_disk_map
+  test $vol_disk_map -nt /srv/ || {
+    ls -la /srv/volume-[0-9]* | tr '/' ' ' | cut -d ' ' -f 12,16 > $vol_disk_map
+  }
+
+  disk.sh local-devices | while read diskdev
   do
-    prefix=$(disk.sh prefix $disk 2>/dev/null)
+    prefix=$(disk.sh prefix $diskdev 2>/dev/null)
     test -n "$prefix" || {
-      warn "No prefix found for <$disk>"
+      warn "No prefix found for <$diskdev>"
       continue
     }
 
-    disk_index=$(disk.sh info $disk disk_index 2>/dev/null)
+    disk_index=$(disk.sh info $diskdev disk_index 2>/dev/null)
 
-    for volume in /mnt/$prefix-*
+    for disk_volume in /mnt/$prefix-*
     do
-      test -e $volume/.volumes.sh || continue
-      . $volume/.volumes.sh
-      test "$volumes_main_prefix" = "$prefix" \
-        || error "Prefix mismatch '$volumes_main_prefix' != '$prefix' ($volume)" 1
-
-
-      # Check for unknown service roots
-      test -n "$volumes_main_export_all" || volumes_main_export_all=1
-      trueish "$volumes_main_export_all" && {
-        echo $volume/* | tr ' ' '\n' | while read vroot
-        do
-          test -n "$vroot" || continue
-          vdir=$(basename "$vroot")
-          echo $SRVS lost+found | grep -q $vdir || {
-            warn "Unkown volume dir $vdir" 1
-          }
-        done
-      }
-
-      # TODO: check all aliases, and all mapping aliases
-      test -n "$volumes_main_aliases__1" \
-        || error "Expected one aliases ($volume)"
-
-      test -e "/srv/$volumes_main_aliases__1"  || {
-        error "Missing volume alias '$volumes_main_aliases__1' ($volume)" 1
-      }
-
-      # Go over known services
-      for srv in $SRVS
-      do
-        test -e $volume/$srv && {
-
-          t=/srv/$srv-local
-          test -e "$t" || warn "Missing $t ($volume/$srv)"
-
-          # TODO: check for global id as well
-          #t=/srv/$srv-${disk_idx}-${part_idx}-$(hostname -s)-$domain
-          #test -e "$t" || warn "Missing $t ($volume/$srv)"
-
-        }
-      done
-
-      note "Volumes OK: $disk_index.$part_index $volume"
-
-      unset srv \
-        volumes_main_prefix \
-        volumes_main_aliases__1 \
-        volumes_main_export_all
-
+      part_prefix=$(basename $disk_volume)
+      vol_id=$( grep "$part_prefix$" $vol_disk_map | cut -f1 -d' ')
+      htd__volume --check $vol_id &&
+        info "Partition '$part_prefix', volume '$vol_id'" ||
+        warn "Partition '$part_prefix', volume '$vol_id'"
     done
 
-    note "Disk OK: $disk_index. $prefix"
-
+    stderr ok "Disk: $disk_index. $prefix"
   done
 }
 htd_als__list_volumes=ls-volumes
@@ -7384,7 +7439,7 @@ htd__finfo()
 htd__init_backup_repo()
 {
   test ! -e "/srv/backup-local" \
-    || error "Local backup annex exists (/srv/backup-local)" 1
+    || stderr ok "Local backup annex exists (/srv/backup-local)" 0
 
   test -n "$1" && {
     test -d "$1" || error "Dir expected" 1

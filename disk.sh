@@ -184,6 +184,12 @@ disk__list_local()
 disk_load__list_local=f
 
 
+disk__local_devices()
+{
+  disk_list
+}
+
+
 disk__x_local()
 {
   darwin_disk_table
@@ -326,7 +332,7 @@ disk_man_1__mount_tmp="Temporarily mount given device. "
 disk_spc__mount_tmp="mount-tmp DEV"
 disk__mount_tmp()
 {
-  mount_tmp "$1"
+  mount_tmp "$@"
 }
 
 

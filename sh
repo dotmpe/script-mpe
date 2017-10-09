@@ -1,6 +1,12 @@
-
 set -e
 
+for pc in $(seq 1 100); do
+  printf -- "$pc%%\033[0K\r"
+  sleep .2
+done
+echo
+
+exit 0
 
 scrow regex --rx-multiline --fmt xtl \
             "htd.sh" '^htd__rule_target\(\).*((?<!\n\})\n.*)*\n\}'
