@@ -179,30 +179,6 @@ homepath()
 # u: '~'
 #
 
-__vc_bzrdir()
-{
-  local cwd="$(pwd)"
-  (
-    cd "$1"
-    root=$(bzr info 2> /dev/null | grep 'branch root')
-    if [ -n "$root" ]; then
-      echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
-    fi
-  )
-}
-
-__vc_scmdir()
-{
-  vc_gitdir "$1" || {
-    __vc_bzrdir "$1" || {
-      __vc_svndir "$1" || {
-        __vc_hgdir "$1" ||
-          error "SCM-dir" 1
-      }
-    }
-  }
-}
-
 # checkout dir
 # for regular checkouts, the parent dir
 # for modules, one level + prefix levels higher
@@ -367,7 +343,7 @@ __vc_status()
   test -n "$short" || err "homepath" 1
 
   local git="$(vc_gitdir "$realcwd")"
-  local bzr=$(__vc_bzrdir "$realcwd")
+  local bzr=$(vc_bzrdir "$realcwd")
 
   if [ -n "$git" ]; then
 
@@ -460,7 +436,7 @@ __vc_pull ()
 {
   cd "$1"
   local git=$(vc_gitdir)
-  local bzr=$(__vc_bzrdir)
+  local bzr=$(vc_bzrdir)
   if [ "$git" ]; then
     git pull;
   else if [ "$bzr" ]; then
@@ -474,7 +450,7 @@ __vc_push ()
 {
   cd "$1"
   local git=$(vc_gitdir)
-  local bzr=$(__vc_bzrdir)
+  local bzr=$(vc_bzrdir)
   if [ "$git" ]; then
     git push origin master;
   else if [ "$bzr" ]; then
@@ -665,7 +641,7 @@ vc__bits()
 vc__flags()
 {
   test -n "$1" || set -- "$(pwd)"
-  scmdir="$(basename "$(__vc_scmdir "$1")")"
+  scmdir="$(basename "$(vc_scmdir "$1")")"
   case "$scmdir" in
     .git )
         echo "$scmdir$(__vc_git_flags "$1" || return $?)"
@@ -767,18 +743,9 @@ vc__prompt_command()
 vc__list_submodules()
 {
   test -n "$spwd" || error spwd-12 12
-  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
-  do
-    smpath=$ppwd/$prefix
-    test -e $smpath/.git || {
-      warn "Not a submodule checkout '$prefix' ($spwd/$prefix)"
-      continue
-    }
-    note "Submodule '$prefix' ($spwd/$prefix)"
-    echo "$prefix"
-  done
-  #git submodule | cut -d ' ' -f 2
+  vc_git_submodules
 }
+
 
 vc_man_1__gh="Clone from Github to subdir, adding as submodule if already in checkout. "
 vc_spc__gh="gh <repo> [<prefix>]"
@@ -912,22 +879,10 @@ vc__excluded() { vc__untracked_files "$@"; }
 vc__untracked_files()
 {
   test -z "$1" || error "unexpected arguments" 1
-  test -n "$spwd" || error spwd-13 13
 
-  # list paths not in git (including ignores)
-  git ls-files --others --dir || return $?
-
-  vc__list_submodules | while read prefix
-  do
-    smpath=$ppwd/$prefix
-    cd "$smpath"
-    ppwd=$smpath spwd=$spwd/$prefix \
-      vc__excluded \
-          | grep -Ev '^\s*(#.*|\s*)$' \
-          | sed 's#^#'"$prefix"'/#'
-  done
-
-  cd "$ppwd"
+  local scm= scmdir=
+  vc_getscm
+  vc_untracked
 }
 
 # List untracked paths. Unversioned files excluding ignored/excluded
@@ -935,21 +890,10 @@ vc__uf() { vc__unversioned_files "$@"; }
 vc__unversioned_files()
 {
   test -z "$1" || error "unexpected arguments" 1
-  test -n "$spwd" || error spwd-14 14
 
-  # list cruft (not versioned and not ignored)
-  git ls-files --others --exclude-standard || return $?
-
-  vc__list_submodules | while read prefix
-  do
-    smpath=$ppwd/$prefix
-    cd "$smpath"
-    ppwd=$smpath spwd=$spwd/$prefix \
-      vc__unversioned_files | grep -Ev '^\s*(#.*|\s*)$' \
-          | sed 's#^#'"$prefix"/'#'
-  done
-
-  cd "$ppwd"
+  local scm= scmdir=
+  vc_getscm
+  vc_unversioned
 }
 
 # List (untracked) cleanable files
@@ -1722,6 +1666,7 @@ vc__checkout()
 }
 
 
+vc_man_1__cleanup_local='Remove local branches not in gitflow'
 vc__cleanup_local()
 {
   git show-ref --heads | cut -c53- | while read branch ; do

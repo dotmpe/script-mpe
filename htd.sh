@@ -349,12 +349,10 @@ htd_unload()
 
 htd_load_ignores()
 {
-  # Initialize one HTD_IGNORE file.
+  # Initialize one IGNORE_GLOBFILE file.
   ignores_lib_load
-  test -n "$HTD_IGNORE" -a -e "$HTD_IGNORE" \
-    || error "expected $base ignore dotfile" 1
-  wc -l $HTD_IGNORE
-  exit 123
+  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
+      error "expected $base ignore dotfile" 1
   lst_init_ignores
   lst_init_ignores .names
   #match_load_table vars
@@ -677,16 +675,16 @@ htd__info()
   log "Minimum filesize:      '$(( $MIN_SIZE / 1024 ))'"
   log "Editor:                '$EDITOR' [EDITOR]"
   log "Default GIT remote:    '$HTD_GIT_REMOTE' [HTD_GIT_REMOTE]"
-  log "Ignored paths:         '$HTD_IGNORE' [HTD_IGNORE]"
+  log "Ignored paths:         '$IGNORE_GLOBFILE' [IGNORE_GLOBFILE]"
 }
 
 
 htd__expand()
 {
   test -n "$1" || return 1
-  for x in $1
+  for x in $@
   do
-    test -e "$x" && echo $x
+    test -e "$x" && echo "$x"
   done
 }
 
@@ -782,7 +780,7 @@ htd__find()
   test -z "$2" || error "surplus argumets '$2'" 1
 
   note "Compiling ignores..."
-  local find_ignores="$(find_ignores $HTD_IGNORE)"
+  local find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
 
   note "Looking in all volumes"
   for v in /srv/volume-[0-9]*-[0-9]*
@@ -880,6 +878,13 @@ htd__status()
 {
   test -n "$failed" || error "status: failed exists" 1
 
+  local pwd=$(pwd -P) ppwd=$(pwd) spwd=. scm= scmdir=
+  vc_getscm && {
+    cd "$(dirname "$scmdir")"
+    vc_clean "$(vc_dir)"
+  }
+}
+htd__status_update() { # TODO: cleanup
   stderr note "local-names: "
   # Check local names
   {
@@ -6446,11 +6451,43 @@ htd__bashisms()
   }
 }
 
+htd_clean_scm()
+{
+  vc_getscm "$1" && {
+    note "Found SCM in $1"
+    ( cd "$1" && 
+    vc_clean )
+  }
+}
+
+htd_clean_unpacked_dir()
+{
+  test -d "$1" || return
+
+  for archive in $(htd__expand $1.{zip,tar{.gz,.bz2}})
+  do
+    htd__clean_unpacked "$archive"
+  done
+}
+
 htd__clean()
 {
-  test -n "$UCONFDIR" || error "No UCONFDIR" 1
-  test -e $UCONFDIR/script/clean.sh || error "No clean script in UCONFDIR" 1
-  $UCONFDIR/script/clean.sh || return $?
+  test -n "$1" || set -- .
+  note "Checking $1.."
+
+  local pwd=$(pwd -P) ppwd=$(pwd) spwd=. scm= scmdir=
+
+  htd_clean_scm "$1"
+
+  for localpath in $1/*
+  do
+    test -d "$localpath" && {
+
+      htd_clean_unpacked_dir "$localpath"
+
+      #htd__clean "$localpath"
+    }
+  done
 }
 
 htd_man_1__clean_unpacked="Given archive, look for existing, possibly unpacked (direct) neighbour dirs

@@ -273,7 +273,7 @@ read_file_lines_while()
 }
 
 
-# Change cwd to parent dir with file $1, leave go_to_before var in env.
+# Change cwd to parent dir with existing local path element (dir/file/..) $1, leave go_to_before var in env.
 go_to_directory()
 {
   test -n "$1" || error "Missing filename arg" 1

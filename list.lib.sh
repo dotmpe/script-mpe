@@ -183,4 +183,3 @@ htd_find_path_locals()
     path=$(dirname $path)
   done
 }
-
