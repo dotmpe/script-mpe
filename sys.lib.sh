@@ -255,7 +255,7 @@ setup_tmpd()
 # Return path to new file in temp. dir. with ${base}- as filename prefix,
 # .out suffix and subcmd with uuid as middle part.
 # setup-tmp [ext [uuid [(RAM_)TMPDIR]]]
-setup_tmpf()
+setup_tmpf() # [Ext [UUID [TMPDIR]]]
 {
   test -n "$1" || set -- .out "$2" "$3"
   test -n "$2" || set -- $1 $(get_uuid) "$3"
@@ -325,28 +325,21 @@ print_var()
 lookup_path_list()
 {
   test -n "$1" || error "lookup-path varname expected" 1
-  eval echo "\$$1" | tr ':' '\n'
+  eval echo \"\$$1\" | tr ':' '\n'
 }
 
-# lookup-path List existing local paths going over paths from lookup in VAR-NAME
-# VAR-NAME LOCAL-PATH
+# lookup-path List existing local paths going over ':' separated dir paths in VAR-NAME
 # lookup-test: command to test for existing local path, defaults to test -e
 # lookup-first: boolean setting to stop after first success
-lookup_path()
+lookup_path() # VAR-NAME LOCAL-PATH
 {
   test -n "$lookup_test" || lookup_test="test_exists"
   lookup_path_list $1 | while read _PATH
   do
-    eval $lookup_test "$_PATH" "$2" && {
+    eval $lookup_test \""$_PATH"\" \""$2"\" && {
       trueish "$lookup_first" && return 0 || continue
     } || continue
   done
-}
-
-# A simple default helper for lookup-path
-test_exists()
-{
-  test -e "$1/$2" && echo "$1/$2" || return 1
 }
 
 # Return 1 if env was provided, or 0 if default was set
@@ -386,7 +379,7 @@ get_kv_v() # Key-Value-Str [Env-Prefix [Key-Str]]
 
 # Source profile if it exists, or create one using given default and current env
 # The result should be whatever is defined in an existing profile, the current env and whatever
-# defaults where provided. If the file exists, the processing costs should be minimal, and mostly 
+# defaults where provided. If the file exists, the processing costs should be minimal, and mostly
 # determined by the profile file.
 # This means the env var validation is left to the profile script, and the profile script is only
 # written if a value for every var is provided. No other schema validation.

@@ -15,7 +15,8 @@ lib_path_exists()
   echo "$1/$2.lib.sh"
 }
 
-lib_path()
+# Echo every occurence of *.lib.sh on SCRIPTPATH
+lib_path() # local-name path-var-name
 {
   test -n "$2" || set -- "$1" SCRIPTPATH
   lookup_test=lib_path_exists lookup_path $2 "$1"

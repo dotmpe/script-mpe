@@ -16,6 +16,7 @@
 __description__ = "bookmarks - "
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.bookmarks2.sqlite'
+__couch__ = 'http://localhost:5984/the-registry'
 chrome_bookmarks_path= '~/Library/Application Support/Google/Chrome/Default/Bookmarks'
 __usage__ = """
 Usage:
@@ -26,6 +27,7 @@ Usage:
   bookmarks.py [options] (tag|href|domain) [NAME]
   bookmarks.py [options] list [NAME]
   bookmarks.py [options] couchdb (sync|update) [NAME]
+  bookmarks.py [options] couchdb (add|update|remove|sync|update) URL [ TITLE [ TAGS... ] ]
   bookmarks.py [options] check [NAME]
   bookmarks.py [options] webarchive [NAME]
   bookmarks.py -h|--help
@@ -34,6 +36,8 @@ Usage:
 Options:
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
+    --couch=REF
+                  Couch DB URL [default: %s]
     --tag-offset INT
                   Set import frequency-offset to exclude certain one-to-many
                   relations if the usage is below given value.
@@ -72,7 +76,7 @@ Options:
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
-""" % ( __db__, chrome_bookmarks_path, __version__, )
+""" % ( __db__, __couch__, chrome_bookmarks_path, __version__, )
 from datetime import datetime, timedelta
 import os
 import re
@@ -910,7 +914,7 @@ def cmd_couchdb_update(settings):
     Update SQL DB Bookmark records from CouchDB.
     """
     sa = Bookmark.get_session(settings.session_name, settings.dbref)
-    server = couchdb.client.Server('http://sandbox:5984/')
+    server = couchdb.client.Server(settings.couch)
     db = server['the-registry']
     for href in db:
         doc = db[href]
@@ -1007,10 +1011,25 @@ def cmd_couchdb_sync(NAME, opts, settings):
     print '%i updated' % len(updates)
 
 
+def cmd_couchdb_add(URL, TITLE, TAGS, settings):
+    """
+    """
+    ref, dbname = settings.couch.rsplit('/', 1)
+    server = couchdb.client.Server(ref)
+    print ref, server, dbname, URL, TITLE, TAGS
+    db = server[dbname]
+    print ref, server, dbname, db
+    db[URL] = {
+      'type': 'bookmark',
+      'href': URL,
+      'tags': TAGS
+    }
+
 """
 TODO: sync shaarli either from SQL or couch.
 
 Also google/firefox bookmarks, chrome outliner.
+"""
 
 from shaarli_client.client import ShaarliV1Client, InvalidEndpointParameters
 
@@ -1025,7 +1044,6 @@ def cmd_shaarli_sync(NAME, opts, settings):
     Update Shaarli bookmark-type documents from SQL.
     """
 
-"""
 
 ### Transform cmd_ function names to nested dict
 
@@ -1055,10 +1073,14 @@ if __name__ == '__main__':
     reload(sys)
     sys.setdefaultencoding('utf-8')
     db = os.getenv( 'BOOKMARKS_DB', __db__ )
+    couch = os.getenv( 'COUCH_DB', __couch__ )
     # TODO : vdir = Volumedir.find()
     if db is not __db__:
         __usage__ = __usage__.replace(__db__, db)
+    if couch is not __couch__:
+        __usage__ = __usage__.replace(__couch__, couch)
     opts = libcmd_docopt.get_opts(__doc__ + __usage__, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     log.std("Connecting to %s", opts.flags.dbref)
+    log.std("Connecting to %s", opts.flags.couch)
     sys.exit(main(opts))

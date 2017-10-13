@@ -285,10 +285,10 @@ std__commands()
       test -n "$lcmd" || lcmd="-"
       #spc="* $lcmd ($lcwd)"
       spc="* $lcmd "
-      descr="$(eval echo "\$${subcmd_func_pref}man_1__$func_name")"
+      descr="$(eval echo \"\$${subcmd_func_pref}man_1__$func_name\")"
     else
-      spc="$(eval echo "\$${subcmd_func_pref}spc__$func_name")"
-      descr="$(eval echo "\$${subcmd_func_pref}man_1__$func_name")"
+      spc="$(eval echo \"\$${subcmd_func_pref}spc__$func_name\")"
+      descr="$(eval echo \"\$${subcmd_func_pref}man_1__$func_name\")"
     fi
     test -n "$spc" || spc=$(echo $func_name | tr '_' '-' )
     test -n "$descr" || {
@@ -297,6 +297,8 @@ std__commands()
       } || noop
     }
     test -n "$descr" || descr=".." #  TODO: $func_name description"
+	fnmatch *?"\n"?* "$descr" &&
+	    descr="$(printf -- "$descr" | head -n 1)"
     test ${#spc} -gt 20 && {
       printf "  %-18s\n                      %-50s\n" "$spc" "$descr"
     } || {
@@ -738,5 +740,3 @@ stat_key()
   mkvid "$(pwd)"
   export $1_key="$hnid:${base}-${subcmd}:$vid"
 }
-
-

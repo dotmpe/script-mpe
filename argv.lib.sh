@@ -8,11 +8,16 @@
 
 # Verbose test + return status
 
+# Also simple default helper for lookup-path
 test_exists()
 {
-  test -e "$1" || {
-    error "No such file or path: $1"
-    return 1
+  test -z "$2" && {
+    test -e "$1" || {
+      error "No such file or path: $1"
+      return 1
+    }
+  } || {
+    test -e "$1/$2" && echo "$1/$2" || return 1
   }
 }
 

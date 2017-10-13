@@ -37,18 +37,19 @@ import couchdb
 models = [ Node, Topic, Journal ]
 
 
-def cmd_journal_couch(PATH, opts, settings):
-    jrnl = Journal.find(PATH)
-
-
 def cmd_journal_rw(LIST, opts, settings):
     entries = res.jrnl.JournalTxtManifestParser()
+    print entries
     if LIST:
         assert os.path.exists(LIST), LIST
         list(entries.load_file(LIST))
-    for k in entries:
+    for k in entries.be:
         print k,
         print entries[k]
+
+
+def cmd_journal_couch(PATH, opts, settings):
+    jrnl = Journal.find(PATH)
 
 
 def cmd_couchlog(opts, settings):

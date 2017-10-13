@@ -771,8 +771,8 @@ htd_als___e=edit-local
 
 htd_man_1__find="Find file by name, or abort.
 
-Searches every integrated source for a filename: volumes, repositories,
-archives. See 'search' for looking inside files. "
+See also 'git-grep' and 'content' to search based on content.
+"
 htd_spc__find="-f|find <id>"
 htd__find()
 {
@@ -782,8 +782,12 @@ htd__find()
   note "Compiling ignores..."
   local find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
 
-  note "Looking in all volumes"
-  for v in /srv/volume-[0-9]*-[0-9]*
+  test -n "$FINDPATH" || {
+    note "Looking in all volumes"
+    FINDPATH=$(echo /srv/volume-[0-9]*-[0-9]* | tr ' ' ':')
+  }
+
+  lookup_path_list FINDPATH | while read v
   do
     vr="$(cd "$v"; pwd -P)"
     note "Looking in $v ($vr)..."
@@ -1406,6 +1410,7 @@ htd__archive_path()
 }
 # declare locals for unset
 htd_vars__archive_path="Y M D EXT ARCHIVE_BASE ARCHIVE_ITEM datep target_path"
+htd_grp__archive_path=cabinet
 
 
 # update yesterday, today and tomorrow links
@@ -1435,6 +1440,7 @@ htd__today() # Jrnl-Dir MSep
     datelink "$tag" "$1" "${r}$tag$EXT"
   done
 }
+htd_grp__today=cabinet
 
 
 htd_als__week=this-week
@@ -1456,6 +1462,7 @@ htd__this_week()
   datelink "-7d" "$1" "${r}last-week$EXT"
   datelink "+7d" "$1" "${r}next-week$EXT"
 }
+htd_grp__this_week=cabinet
 
 htd__edit_week()
 {
@@ -1472,25 +1479,27 @@ htd__edit_week()
   FILES=$(bash -c "echo $1/{week,last-week,next-week}$EXT")
   htd_edit_and_update $(realpath $FILES)
 }
+htd_grp__edit_week=cabinet
 
 
-htd_man_1__jrnl='
-    TODO: status check update
-    list [Prefix=2...]
-        List entries with prefix, use current year if empty. Set to * for
-        listing everything.
-    entries
-        XXX: resolve metadata
-'
+htd_man_1__jrnl="Handle rSt log entries at archive formatted paths
+
+TODO: status check update
+  list [ Prefix=2... ]
+      List entries with prefix, use current year if empty. Set to * for
+      listing everything.
+  entries
+      XXX: resolve metadata
+"
 htd__jrnl()
 {
   test -n "$1" || set -- status
   case "$1" in
 
-    status )
+    status ) note "TODO: '$*'"
       ;;
 
-    check )
+    check ) note "TODO: '$*'"
       ;;
 
     update ) shift
@@ -1555,6 +1564,7 @@ htd__jrnl()
     * ) error "'$1'? 'htd jrnl $*'" 1 ;;
   esac
 }
+htd_grp__jrnl=cabinet
 
 htd_of__jrnl_json='json-stream'
 htd__jrnl_json()
@@ -1562,6 +1572,7 @@ htd__jrnl_json()
   test -n "$1" || set -- $JRNL_DIR/entries.list
   htd__txt to-json "$1"
 }
+htd_grp__jrnl_json=cabinet
 
 
 # TODO: use with edit-local
@@ -1584,19 +1595,24 @@ htd__edit_note()
   htd_rst_doc_create_update $note "$1" created default-rst
   htd_edit_and_update $note
 }
-htd_als__edit_note=n
+htd_als__n=edit-note
+htd_grp__edit_note=cabinet
+
 
 htd__edit_note_nl()
 {
   htd__edit_note "$1" "$2 nl" || return $?
 }
 htd_als__nnl=edit-note-nl
+htd_grp__edit_note_nl=cabinet
+
 
 htd__edit_note_en()
 {
   htd__edit_note "$1" "$2 en" || return $?
 }
 htd_als__nen=edit-note-en
+htd_grp__edit_note_en=cabinet
 
 
 # Print existing candidates to use as main document
@@ -1614,6 +1630,8 @@ htd__main_doc_paths()
     set -- "$x"; break; done
   echo "$(basename "$1" $DOC_EXT) $1"
 }
+htd_grp__main_doc_paths=cabinet
+
 
 # Edit first candidates or set to main$DOC_EXT
 htd__main_doc_edit()
@@ -1631,6 +1649,7 @@ htd__main_doc_edit()
 }
 htd_als__md=main-doc-edit
 htd_als___E=main-doc-edit
+htd_grp__main_doc_edit=cabinet
 
 
 
@@ -1648,6 +1667,7 @@ htd__vbox()
     test -n "$uuid" || error "No such vbox VM '$name'" 1
   }
 }
+htd_grp__vbox=vm
 
 htd__vbox_start()
 {
@@ -1657,6 +1677,7 @@ htd__vbox_start()
       || error "Headless-start of VM $name" 1 \
       && log "Headless-start of VM $name completed successfully"
 }
+htd_grp__vbox_start=vm
 
 htd__vbox_start_console()
 {
@@ -1666,6 +1687,7 @@ htd__vbox_start_console()
       || error "Console-start of VM $name" 1 \
       && log "Console-start of VM $name completed successfully"
 }
+htd_grp__vbox_start_console=vm
 
 htd__vbox_reset()
 {
@@ -1675,6 +1697,7 @@ htd__vbox_reset()
       || error "Reset of VM $name" 1 \
       && log "Reset of VM $name completed successfully"
 }
+htd_grp__vbox_start_reset=vm
 
 htd__vbox_stop()
 {
@@ -1684,6 +1707,7 @@ htd__vbox_stop()
       || error "Power-off of VM $name" 1 \
       && log "Power-off of VM $name completed successfully"
 }
+htd_grp__vbox_stop=vm
 
 htd__vbox_suspend()
 {
@@ -1693,6 +1717,7 @@ htd__vbox_suspend()
       || error "Save-state of VM $name" 1 \
       && log "Save-state of VM $name completed successfully"
 }
+htd_grp__vbox_suspend=vm
 
 htd__vbox_list()
 {
@@ -1704,11 +1729,13 @@ htd__vbox_list()
   cat $vbox_names | \
     grep -Ev '^\s*(#.*|\s*)$'
 }
+htd_grp__vbox_list=vm
 
 htd__vbox_running()
 {
   VBoxManage list runningvms
 }
+htd_grp__vbox_running=vm
 
 htd__vbox_info()
 {
@@ -1721,6 +1748,7 @@ htd__vbox_info()
       do log "Showing $sub"; VBoxManage list $sub; done
   }
 }
+htd_grp__vbox_info=vm
 
 htd__vbox_gp()
 {
@@ -1728,6 +1756,7 @@ htd__vbox_gp()
   VBoxManage guestproperty enumerate ${uuid}
   #VBoxManage guestproperty get ${uuid} "/VirtualBox/GuestInfo/Net/0/V4/IP"
 }
+htd_grp__vbox_gp=vm
 
 
 # Wake a remote host using its ethernet address
@@ -1737,6 +1766,8 @@ htd__wol_list_hosts()
   cat $wol_hwaddr
   error "Expected hostname argument" 2
 }
+htd_grp__wol_list_hosts=box
+
 htd__wake()
 {
   host=$1
@@ -1750,6 +1781,7 @@ htd__wake()
     echo ":WOL Host: \`$host <$hwaddr>\`_"
   }
 }
+htd_grp__wake=box
 
 
 htd_spc__shutdown='shutdown [ HOST [ USER ]]'
@@ -1771,6 +1803,7 @@ htd__shutdown()
   run_cmd "$1" 'sudo shutdown -h +1' &&
   note "Remote shutdown triggered: $1"
 }
+htd_grp__shutdown=box
 
 
 htd__ssh_vagrant()
@@ -1862,6 +1895,7 @@ htd__ssh()
       ;;
   esac
 }
+htd_grp__ssh=box
 
 
 htd_man_1__up='Test all given hosts are online and answering'
@@ -1882,6 +1916,8 @@ htd__up()
 }
 htd_run__up=f
 htd_als__detect=up
+htd_grp__up=box
+
 
 htd_man_1__detect_ping='Test all given hosts are online, answering to PING'
 htd__detect_ping() # Hosts...
@@ -1896,6 +1932,7 @@ htd__detect_ping() # Hosts...
   test ! -s "$failed"
 }
 htd_run__detect_ping=f
+htd_grp__detect_ping=box
 
 
 # Simply list ARP-table, may want something better like arp-scan or an nmap
@@ -1904,6 +1941,7 @@ htd__mac()
 {
   arp -a
 }
+htd_grp__mac=box
 
 
 htd_man_1__random_str="Print a web/url-save case-sensitive Id of length. It is
@@ -1916,6 +1954,7 @@ htd__random_str()
   test -n "$1" || set -- 12
   python -c "import os, base64;print base64.urlsafe_b64encode(os.urandom($1))"
 }
+htd_grp__random_str=box
 
 
 htd__new_object()
@@ -2010,6 +2049,7 @@ htd__tasks_scan()
   }
 }
 htd_run__tasks_scan=iAOp
+htd_grp__tasks_scan=tasks
 
 
 htd_man_1__tasks_grep="Use Htd's built-in todo grep list command to get local
@@ -2047,6 +2087,7 @@ EOM
   done
 }
 htd_run__tasks_grep=iAO
+htd_grp__tasks_grep=tasks
 
 
 htd_man_1__tasks_local="Use the preferred local way of creating the local todo grep list"
@@ -2063,6 +2104,7 @@ htd__tasks_local()
   }
 }
 htd_run__tasks_local=iAO
+htd_grp__tasks_local=tasks
 
 
 htd_man_1__tasks_edit='Invoke htd todotxt-edit for local package'
@@ -2101,6 +2143,7 @@ htd__tasks_edit()
 htd_run__tasks_edit=eA
 htd_argsv__tasks_edit=htd_argsv__tasks_session_start
 htd_als__edit_tasks=tasks-edit
+htd_grp__tasks_edit=tasks
 
 
 htd_man_1__tasks_hub='Given a tasks-hub directory, either get tasks, tags or
@@ -2183,6 +2226,7 @@ htd__tasks_hub()
   esac
 }
 htd_run__tasks_hub=eiAOp
+htd_grp__tasks_hub=tasks
 
 
 # TODO: introduce htd proc LIST
@@ -2215,6 +2259,7 @@ htd_run__tasks_process=A
 htd_argsv__tasks_process=htd_argsv__tasks_session_start
 htd_als__tasks_proc=tasks-process
 htd_als__process_tasks=tasks-process
+htd_grp__tasks_process=tasks
 
 
 # Given a list of tags, turn these into task storage backends. One path
@@ -2253,6 +2298,7 @@ htd__tasks_buffers()
     esac
   done
 }
+htd_grp__tasks_buffers=tasks
 
 
 htd_man_1__tasks_tags="Show tags for files. Files do not need to exist. First
@@ -2268,6 +2314,7 @@ htd__tasks_tags()
   note "Tags for <$*>"
   htd__todotxt_tags "$@"
 }
+htd_grp__tasks_tags=tasks
 
 
 htd_man_1__tasks_session_start=''
@@ -2316,6 +2363,7 @@ htd_argsv__tasks_session_start()
   esac ; done
   info "1.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
 }
+htd_grp__tasks_session_start=tasks
 
 htd__tasks_session_end()
 {
@@ -2331,6 +2379,7 @@ htd__tasks_session_end()
   note "Released locks ($(echo "$released" | count_words ))"
   { exts="$TASK_EXTS" pathnames $released ; echo; } | column_layout
 }
+htd_grp__tasks_session_end=tasks
 
 
 htd__tasks__src__exists()
@@ -2376,6 +2425,7 @@ htd__tasks()
     * ) act="$1"; shift 1; htd__tasks_$act "$@" ;;
   esac
 }
+htd_grp__tasks=tasks
 
 # Load from pd-meta.tasks.{document,done} [ todo_slug todo-document todo-done ]
 htd_tasks_load()
@@ -2966,8 +3016,8 @@ htd__git_list()
   done
 }
 
-# List or look for files
-# htd git-files [ REPO... -- ] GLOB...
+htd_man_1__git_files='List or look for files'
+htd_spc__git_files='git-files [ REPO... -- ] GLOB...'
 htd_run__git_files=ia
 htd__git_files()
 {
@@ -3050,6 +3100,27 @@ htd_x__git_grep()
   }
 }
 htd_run__git_grep=iAO
+
+
+htd_man_1__file='Look for name and content at path; then store and cleanup.
+
+Given path, find matching from storage using name, or content. On match, compare
+and remove path if in sync.
+'
+htd__file()
+{
+  # Search for by name
+  echo TODO track htd__find "$localpath"
+
+  # Search for by other lookup
+  echo TODO track htd__content "$localpath"
+}
+
+
+htd__content()
+{
+  note "TODO: go over some ordered CONTENTPATH to look for local names.."
+}
 
 
 htd__git_features()
@@ -3385,7 +3456,18 @@ htd__test_name()
 
 htd__find_empty()
 {
-  eval find . $find_ignores -o -size 0 -a -print
+  test -n "$1" || set -- .
+  test -d "$1" || error "Dir expected '$?'" 1
+  test -n "$find_ignores" || find_ignores="-iname .git -prune"
+  eval find $1 $find_ignores -o -size 0 -a -print
+}
+
+htd__find_empty_dirs()
+{
+  test -n "$1" || set -- .
+  test -d "$1" || error "Dir expected '$?'" 1
+  test -n "$find_ignores" || find_ignores="-iname .git -prune"
+  eval find $1 $find_ignores -o -empty -a -type d -a -print
 }
 
 htd__find_largest()
@@ -3721,6 +3803,8 @@ htd__archive_init()
   }
   return 1
 }
+htd_grp__archive_init=cabinet
+
 
 # Move path to archive path in htdocs cabinet
 # XXX: see backup, archive-path
@@ -3736,6 +3820,7 @@ htd__archive()
     shift
   done
 }
+htd_grp__archive=cabinet
 htd_run__archive=ieAO
 htd_argsv__archive()
 {
@@ -3797,6 +3882,7 @@ htd__save()
       ;;
   esac
 }
+htd_grp__save=annex
 
 
 htd__tags()
@@ -3839,6 +3925,8 @@ htd__save_url()
   test ! -e "$2" || error "File already exists: $2" 1
   git annex addurl "$1" --file "$2"
 }
+htd_grp__save_url=annex
+
 
 htd__save_ref()
 {
@@ -3848,20 +3936,14 @@ htd__save_ref()
   shift 1
   for ref in "$@"
   do
-    echo $ref
+    echo TODO: save $ref
   done
 }
-
-htd__commit()
-{
-  echo -e
-}
+htd_grp__save_ref=annex
 
 
-htd_man_1__package="
-  Pretty print the Sh package settings. See package.rst.
-"
-
+htd_man_1__package='Pretty print the Sh package settings. See package.rst.
+'
 htd__package()
 {
   #test -z "$1" || export package_id=$1
@@ -4241,13 +4323,13 @@ htd__rules()
       ;;
   esac
 }
-htd_grp__rules=htd-rules
+htd_grp__rules=rules
 #htd_als__edit_rules='rules edit'
 htd__edit_rules()
 {
   $EDITOR $htd_rules
 }
-htd_grp__edit_rules=htd-rules
+htd_grp__edit_rules=rules
 #htd_als__id_rules='rules id'
 #htd_als__env_rules='rules id'
 
@@ -4271,7 +4353,7 @@ htd__period_status_files()
   ls -la $(statusdir.sh file period 5min)
   ls -la $(statusdir.sh file period hourly)
 }
-htd_grp__period_status_files=htd-rules
+htd_grp__period_status_files=rules
 
 
 # Run either when arguments given match a targets, or if any of the linked
@@ -4317,7 +4399,7 @@ htd__run_rules()
     continue
   done
 }
-htd_grp__run_rules=htd-rules
+htd_grp__run_rules=rules
 
 
 htd__show_rules()
@@ -4371,7 +4453,7 @@ htd__show_rules()
   }
 }
 htd_of__show_rules='plain csv yaml json'
-htd_grp__show_rules=htd-rules
+htd_grp__show_rules=rules
 
 
 # arg: 1:target
@@ -4404,7 +4486,7 @@ htd__rule_target()
 
   esac
 }
-htd_grp__rule_traget=htd-rules
+htd_grp__rule_target=rules
 
 
 htd_man_1__storage=''
@@ -4424,7 +4506,7 @@ htd__storage()
 }
 htd_run__storage=Ap
 htd_argsv__storage=htd_argsv__tasks_session_start
-htd_grp__storage=htd-rules
+htd_grp__storage=rules
 
 
 htd__get_backend()
@@ -4443,14 +4525,14 @@ htd__get_backend()
   test -n "$scr" || return 1
   mkvid ${be}__${3} ; cb=${vid} ; . $scr ; func_exists $cb
 }
-htd_grp__get_backend=htd-rules
+htd_grp__get_backend=rules
 
 
 htd__extensions()
 {
   lookup_test="test -x" lookup_path HTD_EXT $1.sh
 }
-htd_grp__process=htd-rules
+htd_grp__process=rules
 
 
 htd_man_1__process='Process each item in list.
@@ -4488,7 +4570,7 @@ htd__process()
 htd_run__process=eA
 htd_argsv__process=htd_argsv__tasks_session_start
 htd_als__proc=process
-htd_grp__process=htd-proc
+htd_grp__process=proc
 
 
 htd__tab2csv()
@@ -4608,7 +4690,7 @@ htd__name_tags_all()
     error "Req dir arg" 1
   }
 }
-htd_grp__name_tags_all=htd-meta
+htd_grp__name_tags_all=meta
 
 
 htd_spc__update_checksums="update-checksums [TABLE_EXT]..."
@@ -4627,7 +4709,7 @@ htd__update_checksums()
     note "Update $CK table done"
   done
 }
-htd_grp__update_checksums=htd-meta
+htd_grp__update_checksums=meta
 
 
 # Checksums
@@ -4655,7 +4737,7 @@ ck_write()
 }
 
 htd_spc__ck="ck TAB [PATH|.]"
-htd_grp__ck=htd-meta
+htd_grp__ck=meta
 htd__ck()
 {
   test -n "$1" || error "Need table to update" 1
@@ -4693,7 +4775,7 @@ htd__ck()
   note "Updated CK table '$table'"
 }
 
-htd_grp__ck_init=htd-meta
+htd_grp__ck_init=meta
 htd__ck_init()
 {
   test -n "$ck_tab" || ck_tab=table
@@ -4708,7 +4790,7 @@ htd__ck_init()
 htd__man_5_table_ck="Table of CK checksum, filesize and path"
 htd__man_5_table_sha1="Table of SHA1 checksum and path"
 htd__man_5_table_md5="Table of MD5 checksum and path"
-htd_grp__ck_table=htd-meta
+htd_grp__ck_table=meta
 # Either check table for path, or iterate all entries. Echoes checksum, two spaces and a path
 htd__ck_table()
 {
@@ -4753,7 +4835,7 @@ htd__ck_table()
 
 htd_man_1__ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
 htd_spc__ck_table_subtree="ck-tabke-subtree $ck_arg_spec <path>"
-htd_grp__ck_table_subtree=htd-meta
+htd_grp__ck_table_subtree=meta
 htd__ck_table_subtree()
 {
   ck_arg "$1"
@@ -4889,7 +4971,7 @@ ck_update_find()
 }
 
 
-htd_grp__ck_update=htd-meta
+htd_grp__ck_update=meta
 # find all files, check their names, size and checksum
 htd__ck_update()
 {
@@ -4923,7 +5005,7 @@ htd__ck_update()
   test -z "$1" || error "Aborted on missing path '$1'" 1
 }
 
-htd_grp__ck_drop=htd-meta
+htd_grp__ck_drop=meta
 htd__ck_drop()
 {
   ck_write "$1"
@@ -4938,7 +5020,7 @@ htd__ck_drop()
   rm table.$CK.tmp
 }
 
-htd_grp__ck_validate=htd-meta
+htd_grp__ck_validate=meta
 htd_spc__ck_validate="ck-validate $ck_arg_spec [FILE..]"
 htd__ck_validate()
 {
@@ -4982,7 +5064,7 @@ htd__cksum()
   done
 }
 htd_spc__cksum="cksum [<table-file>]"
-htd_grp__cksum=htd-meta
+htd_grp__cksum=meta
 
 # Drop non-existant paths from table, copy to .missing
 htd__ck_prune()
@@ -5000,7 +5082,7 @@ htd__ck_prune()
     }
   done
 }
-htd_grp__ck_prune=htd-meta
+htd_grp__ck_prune=meta
 
 # Read checksums from *.{sha1,md5,ck}{,sum}
 htd__ck_consolidate()
@@ -5012,7 +5094,7 @@ htd__ck_consolidate()
     echo "$p"
   done
 }
-htd_grp__ck_consolidate=htd-meta
+htd_grp__ck_consolidate=meta
 
 # try to find files from .missing, or put them in .gone
 # XXX: htd_man_1__ck_clean="Iterate checksum table, check for duplicates, normalize paths"
@@ -5034,7 +5116,7 @@ htd__ck_clean()
   done
   echo 'TODO rewrite ck table path'
 }
-htd_grp__ck_clean=htd-meta
+htd_grp__ck_clean=meta
 
 # TODO consolidate meta
 htd__ck_metafile()
@@ -5066,7 +5148,7 @@ htd__ck_metafile()
 
   done
 }
-htd_grp__ck_metafile=htd-meta
+htd_grp__ck_metafile=meta
 
 
 # validate torrent
@@ -5096,7 +5178,7 @@ htd__ck_torrent()
   done
   test "$dir" != "." && popd > /dev/null
 }
-htd_grp__ck_torrent=htd-media
+htd_grp__ck_torrent=media
 
 
 # xxx find corrupt files: .mp3
@@ -5113,7 +5195,7 @@ htd__mp3_validate()
     mp3val "$p"
   done
 }
-htd_grp__mp3_validate=htd-media
+htd_grp__mp3_validate=media
 
 
 htd__mux()
@@ -5450,7 +5532,7 @@ htd__test()
   cd $HTDIR && projectdir.sh test
 }
 htd_als___t=test
-htd_grp__edit_test=htd-project
+htd_grp__edit_test=projects
 
 
 htd_man_1__edit_test="Edit all BATS spec-files (test/*-spec.bats)"
@@ -5459,7 +5541,7 @@ htd__edit_test()
   $EDITOR ./test/*-spec.bats
 }
 htd_als___T=edit-test
-htd_grp__edit_test=htd-doc
+htd_grp__edit_test=cabinet
 
 
 htd_man_1__inventory="Edit all inventories"
@@ -5475,7 +5557,7 @@ htd__inventory()
   htd_edit_and_update $@
 }
 htd_als__inv=inventory
-htd_grp__inventory=htd-doc
+htd_grp__inventory=cabinet
 
 
 htd_man_1__inventory_elecronics="Electr(on)ics inventory"
@@ -5488,7 +5570,7 @@ htd__inventory_electronics()
   htd_edit_and_update $@
 }
 htd_als__inv_elec=inventory-electronics
-htd_grp__inventory_electronics=htd-doc
+htd_grp__inventory_electronics=cabinet
 
 
 
@@ -5985,6 +6067,7 @@ htd__port()
   esac
 }
 
+
 htd__ps()
 {
   upper=0 default_env out-fmt yaml
@@ -6451,6 +6534,7 @@ htd__bashisms()
   }
 }
 
+
 htd_clean_scm()
 {
   vc_getscm "$1" && {
@@ -6460,20 +6544,20 @@ htd_clean_scm()
   }
 }
 
-htd_clean_unpacked_dir()
-{
-  test -d "$1" || return
 
-  for archive in $(htd__expand $1.{zip,tar{.gz,.bz2}})
-  do
-    htd__clean_unpacked "$archive"
-  done
-}
+htd_man_1__clean='Look for things to clean-up in given directory
 
+TODO: in sequence:
+- check (clean/sync) SCM dir, keep bare repo in /srv/$scm-local
+- existing archive: check unpacked and cleanup unmodified files
+- finally (on archive itself, other files left),
+  use `htd find` to find existing copies and de-dupe
+'
 htd__clean()
 {
   test -n "$1" || set -- .
-  note "Checking $1.."
+  test -d "$1" || error "Dir expected '$?'" 1
+  note "Checking $1 for things to cleanup.."
 
   local pwd=$(pwd -P) ppwd=$(pwd) spwd=. scm= scmdir=
 
@@ -6481,17 +6565,56 @@ htd__clean()
 
   for localpath in $1/*
   do
+    case "$localpath" in
+
+      *.zip )
+            htd__clean_unpacked "$localpath"
+          ;;
+
+      *.tar | *.tar.bz2 | *.tar.gz )
+          ;;
+
+      *.7z )
+          ;;
+    esac
+  done
+
+  for localpath in $1/*
+  do
+    test -f "$localpath" && {
+
+      htd__file "$localpath"
+    }
+  done
+
+  # Recurse
+  for localpath in $1/*
+  do
     test -d "$localpath" && {
 
-      htd_clean_unpacked_dir "$localpath"
-
-      #htd__clean "$localpath"
+      htd__clean "$localpath"
     }
+  done
+
+  htd__clean_empty_dirs
+}
+htd_grp__clean=box
+
+htd__clean_empty_dirs()
+{
+  htd__find_empty_dirs "$1" | while read p
+  do
+    rmdir -p "$p" 2>/dev/null
   done
 }
 
-htd_man_1__clean_unpacked="Given archive, look for existing, possibly unpacked (direct) neighbour dirs
-interactively delete, compare, or skip"
+
+htd_man_1__clean_unpacked="Given archive, look for unpacked files in the "\
+"neighbourhood. Interactively delete, compare, or skip.
+
+"
+htd_spc__clean_unpacked='clean-unpacked Archive [Dir]'
+htd_env__clean_unpacked='P'
 htd__clean_unpacked()
 {
   test -n "$1" || error "archive" 1
@@ -6503,55 +6626,58 @@ htd__clean_unpacked()
     test -h "$1" && {
       warn "skipped broken symlink '$1'"
       return 1
-    } || error "No archive '$1'" 2
+    } || error "Not a file or symlink: '$1'" 2
   }
+  local  archive="$(basename "$1")" dir="$(dirname "$1")"
+  # Resolve symbolic parts:
+  set -- "$(cd "$dir"; pwd -P)/$archive" "$2"
 
-  local  archive="$(basename "$1")"
-
-  set -- "$(cd "$(dirname "$1")"; pwd -P)/$archive" "$2"
-
-  local oldwd="$(pwd)" dirty="$(statusdir.sh file htd clean-unpacked)"
+  local oldwd="$(pwd)" \
+      cnt=$(setup_tmpf .cnt) \
+      cleanup=$(setup_tmpf .cleanup) \
+      dirty=$(setup_tmpf .dirty)
+  test ! -e "$cleanup" || rm "$cleanup"
   test ! -e "$dirty" || rm "$dirty"
+  test -n "$P" || {
+
+    # Default lookup path: current dir, and dir with archive basename name
+    P="$2"
+    archive_dir="$(archive_basename "$1")"
+    test -e "$2/$archive_dir" && P="$P:$2/$archive_dir"
+  }
 
   cd "$2"
-
-  # scenario 1: look for archive-basename as dir (ie. unzip, some friendlier unpackers--Darwin, Gnome maybe)
-  local dir="$(archive_basename "$1")"
-  test -d "$dir" && {
-
+  note "Checking for unpacked from '$1'.."
+  #trueish "$strict" && {
+    # Check all files based on checksum, find any dirty ones
     archive_update "$1" && {
-      test -z "$dry_run" && {
-        error "rm -rf $dir"
+      not_trueish "$dry_run" && {
+        test ! -s "$cleanup" || {
+          cat $cleanup | while read p
+          do rm "$p"; done;
+          note "Cleaned $(count_lines $cleanup) unpacked files from $1"
+          rm $cleanup
+        }
       } || {
-        note "looking clean $1 (** DRY-RUN **) "
+        note "All looking clean $1 (** DRY-RUN **) "
       }
-    } || {
-      note "Possibly unpacked basedir '$dir' (from $1)"
-      touch $dirty
     }
+  #} || {
+  #  echo TODO: go about a bit more quickly archive_cleanup "$1"
+  #}
 
-  } || {
-
-    # scenario 2: look root dirs from archive
-    archive_list "$1" crc32 name | sed 's/^\([^\/]*\).*$/\1/' | sort -u | while read path
-    do
-      test -e "$path" && {
-        note "Possibly unpacked path '$path' (from $1)"
-        touch $dirty
-      } || {
-        debug "No dir $(pwd)/$path"
-        continue
-      }
-    done
-
-  }
+  unset P
 
   cd "$oldwd"
-
   test ! -e "$dirty" && stderr ok "$1" || warn "Crufty $1" 1
 }
+htd_grp__clean_unpacked=archives
 
-# given archive, note unpacked files
+
+htd_man_1__note_unpacked='Given archive, note unpacked files.
+
+List archive contents, and look for existing files.
+'
 htd__note_unpacked()
 {
   test -n "$1" || error "archive" 1
@@ -6591,6 +6717,8 @@ htd__note_unpacked()
 
   test ! -e "$dirty" && info "OK $1" || warn "Crufty $1" 1
 }
+htd_grp__note_unpacked=archives
+
 
 # given archive, note files out of sync
 htd__test_unpacked()
@@ -6623,144 +6751,15 @@ htd__test_unpacked()
 
   test -z "$dirty" && info "OK $1" || warn "Crufty $1" 1
 }
+htd_grp__test_unpacked=archives
 
-archive_basename()
-{
-  test -n "$1" || error "archive-basename:1" 1
-  case "$1" in
-    *.zip )
-      basename "$1" .zip
-      ;;
-    * )
-      error "archive-basename ext: '$1'" 1
-  esac
-}
-
-archive_list()
-{
-  test -n "$1" || error "archive-list:1" 1
-  case "$1" in
-    *.zip )
-      unzip -l "$1" | read_unzip_list
-      ;;
-    * )
-      error "archive-list ext: '$1'" 1
-  esac
-}
-
-read_unzip_list()
-{
-  oldIFS=$IFS
-  IFS=\n
-  read
-  read headers
-  # see fixed_table_hd_offset; dont bother with 0-index correction here
-  # XXX: expr still helps to strip ws even with IFS off..? [Darwin]
-  offset=$(( $(printf "$headers" | sed 's/^\(.*\)'Name'.*/\1/g' | wc -c) - 0 ))
-  read
-  while read line
-  do
-    case $line in " "*---- | " "*[0-9]*" files" ) continue ;; esac
-    #printf "line='$line'\n"
-    printf -- "%s" "$line" | cut -c$offset-
-  done
-  IFS=$oldIFS
-}
-
-# TODO: update/list files out of sync
-# XXX: best way seems to use CRC (from -lv output at Darwin)
-archive_update()
-{
-  test -n "$1" || error "archive-update:1" 1
-  local dirty="$(statusdir.sh file htd archive-update dirty)" \
-    cnt="$(statusdir.sh file htd archive-update count)"
-  test ! -e "$dirty" || rm "$dirty"
-  printf 0 >$cnt
-  case "$1" in
-    *.zip )
-      unzip -lv "$1" | read_unzip_verbose_list | while read line
-      do
-        length="$(echo $line | cut -d\  -f 1)"
-        crc32="$(echo  $line | cut -d\  -f 7)"
-        name="$(echo   $line | cut -d\  -f 8)"
-        debug "$name ($crc32, $length)"
-        printf $(( $(cat "$cnt") + 1 )) > $cnt
-        test -e "$name" && {
-          test "$(filesize "$name")" = "$length" && {
-            test "$(crc32 "$name")" = "$crc32" && {
-              #stderr ok "$name ($1)"
-              continue
-            } || {
-              warn "CRC-error $name ($1)" 1
-              touch $dirty
-            }
-          } || {
-            warn "Size mismatch $name ($1)" 1
-            touch $dirty
-          }
-        }
-      done
-      ;;
-    * )
-      error "archive-list ect: '$1'" 1
-  esac
-  c=$(cat $cnt)
-  test ! -e "$dirty" && stderr ok "$1 ($c files)" || warn "Dirty $1" 1
-}
 
 htd__archive_list()
 {
   archive_verbose_list "$@"
 }
+htd_grp__archive_list=archives
 
-# echo request fields
-archive_verbose_list()
-{
-  test -n "$1" || error "archive-verbose-list:1" 1
-  local f=$1
-  shift 1
-  test -n "$1" || error "archive-verbose-list:fields" 1
-  fields="$(for x in "$@"; do printf "\$$x "; done)"
-  case "$f" in
-
-    *.zip )
-        unzip -lv "$f" | read_unzip_verbose_list | while read line
-        do
-          length="$(echo $line | cut -d\  -f 1)"
-          method="$(echo $line | cut -d\  -f 2)"
-          size="$(echo $line   | cut -d\  -f 3)"
-          ratio="$(echo $line  | cut -d\  -f 4)"
-          date="$(echo  $line  | cut -d\  -f 5)"
-          time="$(echo  $line  | cut -d\  -f 6)"
-          crc32="$(echo  $line | cut -d\  -f 7)"
-          name="$(echo   $line | cut -d\  -f 8)"
-          eval echo $fields
-        done
-      ;;
-
-    * )
-      error "archive-list ect: '$1'" 1
-
-  esac
-}
-
-read_unzip_verbose_list()
-{
-  oldIFS=$IFS
-  IFS=\n
-  read # 'Archive:'
-  read hds # headers
-  read cols # separator
-  # Lines
-  while read line
-  do
-    fnmatch *----* "$line" && break || noop
-    printf -- "%s\n" "$line"
-  done
-  read cols # separator
-  read # totals
-  IFS=$oldIFS
-}
 
 
 htd__export_docker_env()
@@ -7379,17 +7378,35 @@ htd__munin_export()
 
 
 
+htd_man_1__count_lines='Count lines in file(s)'
+htd_spc__count_lines='count-lines FILE [FILE..]'
 htd__count_lines()
 {
   count_lines "$@"
 }
 
 
+htd_man_1__count_files='Count files under dir(s)'
+htd_spc__count_files='count-files DIR [DIR..]'
+htd__count_files()
+{
+  for p in "$@"
+  do
+    test -d "$p" || {
+      continue
+    }
+    note "$p: $(find $p -type f | wc -l)"
+  done
+}
+
+
+htd_man_1__find_broken_symlinks='Find broken symlinks'
 htd__find_broken_symlinks()
 {
   find . -type l -xtype l
 }
 
+htd_man_1__find_skip_broken_symlinks='Find except broken symlinks'
 htd__find_skip_broken_symlinks()
 {
   find . -type l -exec file {} + | grep -v broken
@@ -7417,7 +7434,7 @@ htd__finfo()
 }
 
 
-# Initialize local backup annex and symlinks
+htd_man_1__init_backup_repo='Initialize local backup annex and symlinks'
 htd__init_backup_repo()
 {
   test ! -e "/srv/backup-local" \
@@ -8559,12 +8576,16 @@ htd__ips()
               ${sudo}iptables -D INPUT -s $ip -j DROP ; done
         ;;
 
+      -grep-auth-log-ips ) # get IP's to block from auth.log
+          htd__ips -grep-auth-log |
+            sed 's/.*from\ \([0-9\.]*\)\ .*/\1/g' |
+            sort -u
+        ;;
+
       -grep-auth-log ) # get IP's to block from auth.log
           ${sudo}grep \
               ':\ Failed\ password\ for [a-z0-9]*\ from [0-9\.]*\ port\ ' \
-              /var/log/auth.log |
-            sed 's/.*from\ \([0-9\.]*\)\ .*/\1/g' |
-            sort -u
+              /var/log/auth.log
         ;;
 
 
@@ -8776,7 +8797,7 @@ htd_init()
   box_run_sh_test
   #export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta list
-  lib_load box date doc table disk remote ignores package service
+  lib_load box date doc table disk remote ignores package service archive
   . $scriptpath/vagrant-sh.sh load-ext
   disk_run
   # -- htd box init sentinel --
