@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Relink symbolic links using regular expressions.
 """
+from __future__ import print_function
 import os
 import sys
 import re
@@ -11,50 +12,50 @@ expressions.
 Usage: % relink [options] match replace [- | links...]
 
 Options:
-    -n  
-        No-act, only print the shell equivalent of the link command that would be 
+    -n
+        No-act, only print the shell equivalent of the link command that would be
         performed
     -v
         Verbose.
-    --shell-commands  
-        Same as no-act, but also print the shell equivalent of the unlink command 
-        that is normally performed.        
+    --shell-commands
+        Same as no-act, but also print the shell equivalent of the unlink command
+        that is normally performed.
 
 """
 def relink(link, target, ntarget):
     global verbose
 
     if verbose:
-        print "Relinking <%s> (%s)" % (link, target)
+        print("Relinking <%s> (%s)" % (link, target))
 
     linkdir = os.path.dirname(link)
     if linkdir and linkdir != os.getcwd():
         try:
             if linkdir != os.getcwd():
                 if noact_pr_shell:
-                    print 'cd "%s"' % linkdir
+                    print('cd "%s"' % linkdir)
                 os.chdir(linkdir)
-        except IOError, e:
-            print >>sys.stderr, "Unable to change to directory for link <%s>, skipping rename..." % link
+        except IOError as e:
+            print("Unable to change to directory for link <%s>, skipping rename..." % link, file=sys.stderr)
             return
 
     linkname = os.path.basename(link)
     if noact:
         if noact_pr_shell:
-            print 'rm "%s"' % linkname
-            print 'ln -s "%s" "%s"' % (ntarget, linkname)
+            print('rm "%s"' % linkname)
+            print('ln -s "%s" "%s"' % (ntarget, linkname))
         else:
-            print "Rewrite target <%s> to <%s>" % (target, ntarget)
+            print("Rewrite target <%s> to <%s>" % (target, ntarget))
     else:
         try:
             os.unlink(linkname)
-        except IOError, e:    
-            print >>sys.stderr, "Unable to unlink <%s>, skipping rename..." % link
+        except IOError as e:
+            print("Unable to unlink <%s>, skipping rename..." % link, file=sys.stderr)
             return
         try:
             os.symlink(ntarget, linkname)
-        except IOError, e:    
-            print >>sys.stderr, "Link <%s> to renamed target <%s> failed!\n!!! Lost link <%s> (%s)" % (link, ntarget, link, target)
+        except IOError as e:
+            print("Link <%s> to renamed target <%s> failed!\n!!! Lost link <%s> (%s)" % (link, ntarget, link, target), file=sys.stderr)
             return
 
 
@@ -87,16 +88,16 @@ find = re.compile(find)
 
 pwd = os.getcwd()
 if verbose:
-    print "# In directory %s" % pwd
+    print("# In directory %s" % pwd)
 
-# parse links, 1st pass    
-_links = []    
+# parse links, 1st pass
+_links = []
 for link in links:
     link = link.strip(seps)
-    if not link or not os.path.islink(link):    
+    if not link or not os.path.islink(link):
         continue
 
-    link = os.path.abspath(link)    
+    link = os.path.abspath(link)
     linkdir = os.path.dirname(link)
     os.chdir(linkdir)
     target = os.path.abspath(os.readlink(link))
@@ -114,21 +115,16 @@ for link, target in links:
     elif find.search(target):
         m = find.search(target)
         if len(m.groups()) > 1:
-            print >>sys.stderr, "Search pattern should match either single group or entire target path. "
+            print("Search pattern should match either single group or entire target path. ", file=sys.stderr)
             continue
 
         ntarget = find.sub(replace, target, count=1)
         relink(link, target, ntarget)
 
     elif verbose:
-        print >>sys.stderr, 'Unmatched link target for <%s>, target was <%s>' % (link, target)
+        print('Unmatched link target for <%s>, target was <%s>' % (link, target), file=sys.stderr)
 
 if pwd and pwd != os.getcwd():
     if noact_pr_shell:
-        print 'cd ', pwd 
+        print('cd ', pwd)
     os.chdir(pwd)
-
-
-
-
-

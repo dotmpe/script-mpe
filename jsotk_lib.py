@@ -167,10 +167,10 @@ class AbstractKVParser(object):
                 else:
                     if isinstance(key, int):
                         if not isinstance(d, list):
-                            raise TypeError, "%s is not a list: %r" % (key, d)
+                            raise TypeError( "%s is not a list: %r" % (key, d) )
                     else:
                         if not isinstance(d, dict):
-                            raise TypeError, "%s is not a dict: %r" % (key, d)
+                            raise TypeError( "%s is not a dict: %r" % (key, d) )
                     d[key] = value
                 return key
 
@@ -203,7 +203,7 @@ class AbstractKVParser(object):
 
         if isinstance(d, list):
             if not isinstance(d, list):
-                raise TypeError, "%s is not a list: %r" % (key, d)
+                raise TypeError("%s is not a list: %r" % (key, d))
 
             if '[' not in key:
                 raise TypeError("Expected key with index, not %r" % key)
@@ -225,14 +225,14 @@ class AbstractKVParser(object):
 
         else:
             if not isinstance(d, dict):
-                raise TypeError, "%s is not a dict: %r" % (key, d)
+                raise TypeError("%s is not a dict: %r" % (key, d))
             return d[key]
 
 
     @staticmethod
     def get_data_instance(key):
         "Get data container instance based on key pattern"
-        raise NotImplementedError
+        raise NotImplementedError()
         return None
 
 
@@ -610,8 +610,8 @@ def open_file(fpathname, defio='out', mode='r', ctx=None):
     else:
         try:
             return open(fpathname, mode)
-        except IOError, e:
-            raise Exception, "Unable to open %s for %s" % (fpathname, mode)
+        except IOError as e:
+            raise Exception("Unable to open %s for %s" % (fpathname, mode))
 
 def get_out_dest(ctx):
     outfile = None
@@ -688,14 +688,14 @@ def deep_update(dicts, ctx):
     while len(dicts) > 1:
         mdata = dicts.pop(1)
         if not isinstance(mdata, dict):
-            raise ValueError, "Expected %s but got %s" % (
-                    type(data), type(mdata))
+            raise ValueError("Expected %s but got %s" % (
+                    type(data), type(mdata)))
         for k, v in mdata.iteritems():
             if k in data:
                 if isinstance(data[k], dict):
                     try:
                         deep_update( [ data[k], v ], ctx )
-                    except ValueError, e:
+                    except ValueError as e:
                         raise Exception("Error updating %s (%r) with %r" % (
                                 k, data[k], v
                             ), e)
@@ -706,8 +706,8 @@ def deep_update(dicts, ctx):
                         isinstance(data[k], basestring) and
                         isinstance(v, basestring)
                     )):
-                        raise ValueError, "Expected %s but got %s" % (
-                                type(data[k]), type(v))
+                        raise ValueError("Expected %s but got %s" % (
+                                type(data[k]), type(v)))
                     data[k] = v
             else:
                 data[k] = v
@@ -741,8 +741,8 @@ def deep_union(lists, ctx):
     while len(lists) > 1:
         mdata = lists.pop(1)
         if not isinstance(mdata, list):
-            raise ValueError, "Expected %s but got %s" % (
-                    type(data), type(mdata))
+            raise ValueError( "Expected %s but got %s" % (
+                    type(data), type(mdata)))
         for i, v in enumerate(mdata):
             if ctx.opts.flags.list_update:
                 while len(data)-1 < i:
@@ -752,7 +752,7 @@ def deep_union(lists, ctx):
                     if isinstance(data[i], dict):
                         try:
                             v = deep_update([data[i], v], ctx )
-                        except ValueError, e:
+                        except ValueError as e:
                             raise Exception("Error updating %s (%r) with %r" % (
                                     i, data[i], v
                                 ), e)
@@ -809,9 +809,9 @@ def data_check_path(ctx, infile):
                 key = path_el.pop(0)
                 dt = parser.get( key, d=dt )
                 path = '/'.join(path, key )
-    except TypeError, e:
+    except TypeError as e:
         return False
-    except (KeyError, IndexError), e:
+    except (KeyError, IndexError) as e:
         pass
 
     return True
@@ -819,7 +819,7 @@ def data_check_path(ctx, infile):
     while len(path_el):
         b = path_el.pop(0)
         if b not in l:
-            raise KeyError, b
+            raise KeyError(b)
         l = l[b]
     return l
 

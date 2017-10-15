@@ -135,7 +135,7 @@ htd_load()
   # attribute. Action callbacks can be a first class function, or a literal
   # function name.
   local flags="$(try_value "${subcmd}" run htd | sed 's/./&\ /g')"
-  test -z "$flags" || stderr debug "Flags for '$subcmd': $flags"
+  test -z "$flags" -o -z "$DEBUG" || stderr debug "Flags for '$subcmd': $flags"
   for x in $flags
   do case "$x" in
 
@@ -647,8 +647,7 @@ htd__output_formats()
 htd_man_1__version="Version info"
 htd__version()
 {
-  echo "$scriptname/$version"
-  #echo "$package_id/$version"
+  echo "$package_id/$version ($scriptname)"
 }
 #htd_als___V=version
 htd_als____version=version

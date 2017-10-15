@@ -37,6 +37,7 @@ Options:
 See projectdir-meta for context schema.
 """
 
+from __future__ import print_function
 import os
 #from fnmatch import fnmatch
 #from pprint import pformat
@@ -68,31 +69,31 @@ def kv_to_dict( *kwdargs ):
 
 def H_dump(graph, ctx):
     graphstr = graph.to_string()
-    print graphstr
+    print(graphstr)
 
 
 def H_print_info(graph, ctx):
-    print 'Opts'
-    print '  Flags'
-    print '    Socket', ctx.opts.flags.address
-    print '    File', ctx.opts.flags.file
+    print('Opts')
+    print('  Flags')
+    print('    Socket', ctx.opts.flags.address)
+    print('    File', ctx.opts.flags.file)
     if graph:
-        print 'Graph'
-        print '  Edges',
-        print graph.get_edge_list()
+        print('Graph')
+        print('  Edges', end='')
+        print(graph.get_edge_list())
         #print graph.get_edges()
-        print '  Nodes',
-        print graph.get_node_list()
+        print('  Nodes', end='')
+        print(graph.get_node_list())
         #print graph.get_nodes()
-        print '  Subgraphs',
-        print graph.get_subgraph_list()
+        print('  Subgraphs', end='')
+        print(graph.get_subgraph_list())
 
 
 def H_print_graph_path(graph, ctx):
-    print ctx.opts.flags.file
+    print(ctx.opts.flags.file)
 
 def H_print_socket_name(graph, ctx):
-    print ctx.opts.flags.address
+    print(ctx.opts.flags.address)
 
 
 def H_add_edge(g, ctx):
@@ -111,10 +112,10 @@ def H_get_node(g, ctx):
     node = graph.get_node(name)
     if isinstance(node, list) and len(node) == 0:
         if not ctx.opts.flags.quiet:
-            print >>ctx.err, "No node", name
+            print("No node", name, file=ctx.err)
         if ctx.opts.flags.strict or not ctx.opts.flags.quiet:
             return 1
-    print node
+    print(node)
 
 def H_add_node(g, ctx):
     attr = kv_to_dict(*ctx.opts.args.ATTRS)
@@ -137,7 +138,7 @@ def H_get_node_attr(g, ctx):
     name = ctx.opts.args.NODE
     node = g.get_node(name)
     attr = ctx.opts.args.ATTR
-    print node.get(attr)
+    print(node.get(attr))
 
 
 def H_set_simplify(g, ctx):
@@ -175,13 +176,13 @@ def postrun(ctx, ret):
 
     if ctx.opts.flags.dump:
         graphstr = graph.to_string()
-        print graphstr
+        print(graphstr)
 
     if graph and not ret and not ctx.opts.flags.no_commit:
         if ctx.dirty:
             graphstr = graph.to_string()
             open(ctx.opts.flags.file, 'w+').write( graphstr )
-            print >>ctx.err, 'Saved to', ctx.opts.flags.file
+            print('Saved to', ctx.opts.flags.file, file=ctx.err)
         del graph
 
 
@@ -202,7 +203,7 @@ def main(ctx):
         return background.query(ctx)
 
     elif 'exit' == ctx.opts.cmds[0]:
-        print >>ctx.err, \
+        print(\, file=ctx.err)
             "No background process at %s" % ctx.opts.flags.address
         return 1
 

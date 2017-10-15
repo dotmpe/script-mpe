@@ -27,6 +27,7 @@ Options:
     --version     Show version (%s).
 
 """ % ( __db__, __version__ )
+from __future__ import print_function
 import os
 import sys
 import anydbm
@@ -54,7 +55,7 @@ def H_dump(db, opts):
     Dump db key, values
     """
     for k in db.keys():
-        print k, db[k]
+        print(k, db[k])
 
 
 ### Transform H_ function names to nested dict

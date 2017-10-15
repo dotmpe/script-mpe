@@ -27,6 +27,7 @@ Ideas:
 
 .. __: http://www.opengroup.org/onlinepubs/009695399/libcmd_docoptities/find.html
 """
+from __future__ import print_function
 import os, sys, re, datetime, optparse
 
 
@@ -139,7 +140,7 @@ class ResultPrinter:
         return self.separator.join(fields)
 
     def flush(self):
-        print self.format(self.__format)
+        print(self.format(self.__format))
 
     def format(self, format):
         out = []

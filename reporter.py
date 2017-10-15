@@ -3,6 +3,7 @@ zope.interfaces based output components.
 this is for adapting objects to CLI printouts, possibly simple reporting.
 XXX: see log, taxus_out for older model.
 """
+from __future__ import print_function
 import sys
 import zope.interface
 #from zope.interface.interface import adapter_hooks
@@ -110,23 +111,23 @@ class Reporter(object):
 
     def flush(self):
         for k in self.data:
-            print "%s" % k
+            print("%s" % k)
             for k2 in self.data[k]:
-                print "  "+self.titles[k2]
+                print("  "+self.titles[k2])
                 for i in self.data[k][k2]:
-                    print "      - " + ( self.tpls[k2] % i )
+                    print("      - " + ( self.tpls[k2] % i ))
 
     def ensure_blankline(self):
         pass
     def write(self, data):
         self.out.write(log.format_str(data))
     def writeln(self):
-        print >>self.out, log.format_str(data)
+        print(log.format_str(data), file=self.out)
 
     def __getattr__(self, name):
         hType, hName = name.split('_', 1)
 
-        print hType, hName
+        print(hType, hName)
 
     def get_context_path(self):
         return 'rst', 'paragraph'

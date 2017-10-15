@@ -7,6 +7,7 @@ find date and subject line in file,
 symlink to message from current dir,
 using date and subject line for name.
 """
+from __future__ import print_function
 import sys
 import os
 import re
@@ -34,11 +35,11 @@ for line in lines:
     subjmatch = re.search("^Subject\:\ (.*)$", msg, re.MULTILINE)
     datelmatch = re.search("^Date\:\ (.*)$", msg, re.MULTILINE)
     if not datelmatch:
-        print "Could not find date line in %s for '%s'" % (path, grep)
+        print("Could not find date line in %s for '%s'" % (path, grep))
     else:
         fn += datelmatch.group(1) + ' -'
     if not subjmatch:
-        print "Could not find subject line in %s for '%s'" % (path, grep)
+        print("Could not find subject line in %s for '%s'" % (path, grep))
     else:
         fn += ' ' + subjmatch.group(1)
 
@@ -46,7 +47,5 @@ for line in lines:
     while os.path.exists(fn):
         fn = subjmatch.group(1) + '.%u' % nr
         nr += 1
-    print " * ('%s', <%s>) msglink> <./%s>" % (grep, path, fn)
+    print(" * ('%s', <%s>) msglink> <./%s>" % (grep, path, fn))
     os.symlink(path, './%s' % fn)
-
-

@@ -2,6 +2,7 @@
 """
 Give a file count for every directory below current path.
 """
+from __future__ import print_function
 import os, sys
 
 dir_length = {}
@@ -31,12 +32,10 @@ for root in dir_length.keys():
     count = dir_length[root]
     if count not in sorted:
         sorted[count] = []
-    sorted[count].append(root)    
+    sorted[count].append(root)
 
 values = sorted.keys()
 values.sort()
 width = len(str(values[-1])) + 1
 for count in values:
-    print ("%#0"+str(width)+"s\t%s") % (count, ("\n"+(width*' ')+"\t").join(sorted[count]))
-
-
+    print(("%#0"+str(width)+"s\t%s") % (count, ("\n"+(width*' ')+"\t").join(sorted[count])))

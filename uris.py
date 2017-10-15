@@ -29,6 +29,7 @@ Options:
     --version     Show version (%s).
 
 """ % ( __db__, __version__, )
+from __future__ import print_function
 from datetime import datetime, timedelta
 import os
 import re
@@ -91,7 +92,7 @@ def cmd_list(NAME, settings):
         out = tpl.render
 
     for l in rs:
-        print out( l.to_dict() )
+        print(out( l.to_dict() ))
 
 
 ### Transform cmd_ function names to nested dict

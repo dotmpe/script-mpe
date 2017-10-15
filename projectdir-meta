@@ -133,6 +133,7 @@ Schema:
         named, virtual targets defined in DSL
 
 """
+from __future__ import print_function
 import os
 from fnmatch import fnmatch
 from pprint import pformat

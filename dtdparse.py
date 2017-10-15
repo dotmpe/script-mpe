@@ -1,3 +1,4 @@
+from __future__ import print_function
 # PyXML
 from xml.parsers.xmlproc.dtdparser import DTDParser
 # TODO: dtd parser
@@ -6,9 +7,9 @@ from xml.parsers.xmlproc.dtdparser import DTDParser
 
 class DTDHandler(object):
     def new_external_pe(self, name, pubid, sysid):
-        print 'new_external_pe', name, pubid, sysid
+        print('new_external_pe', name, pubid, sysid)
     def new_parameter_entity(self, name, val):
-        print 'new_parameter_entity', name, val
+        print('new_parameter_entity', name, val)
     def reset(self):
         pass
     def resolve_pe(self, name):
@@ -40,7 +41,7 @@ if __name__ == '__main__':
 
     parser = DTDParser()
     parser.set_dtd_consumer(dh)
-    print parser.feed(open('doclibcmd_docopts.dtd').read())
-    print parser
-    print parser.flush()
-    print parser
+    print(parser.feed(open('doclibcmd_docopts.dtd').read()))
+    print(parser)
+    print(parser.flush())
+    print(parser)

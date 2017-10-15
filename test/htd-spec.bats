@@ -111,11 +111,11 @@ setup() {
 
 @test "$bin version" {
   check_skipped_envs travis || skip "$BATS_TEST_DESCRIPTION not running at Travis CI"
-  export verbosity=5
+  export verbosity=0
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "${lines[0]}" = "htdocs-mpe/$version" ||
-    fail "Expected htdocs-mpe/$version" 
+  test "${lines[0]}" = "script-mpe/$version (htd)" ||
+    fail "Expected script-mpe/$version" 
 }
 
 @test "$bin today" {

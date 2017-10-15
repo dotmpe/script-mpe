@@ -117,6 +117,7 @@ Defaults:
     TODOLIST      [default: %s]
 
 """ % ( __tasks_file__, __grep_file__, __version__, __to_do_list__ )
+from __future__ import print_function
 from datetime import datetime
 import os
 import re
@@ -181,7 +182,7 @@ class Comment:
     def try_cid(self, sep=None, ret=None):
         try:
             return self.get_cid(sep=sep)
-        except AttributeError, e:
+        except AttributeError as e:
             return ret
     comment_id = property(try_cid)
 
@@ -196,7 +197,7 @@ class Comment:
     def try_eiid(self, sep=None, ret=None):
         try:
             return self.get_eiid(sep=sep)
-        except AttributeError, e:
+        except AttributeError as e:
             return ret
     issue_id = property(try_eiid)
 
@@ -326,8 +327,8 @@ def cmd_list_issues(settings, opts, tasks_file):
         raise Exception("Backend required, an empty %s file will do" %
                 settings.tasks_file )
     for k in issues:
-        print k,
-        print issues[k]
+        print(k,)
+        print(issues[k])
 
 
 def cmd_read_issues(settings, opts, tasks_file, grep_file):
@@ -368,10 +369,10 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
                     comment.store(issues)
                 elif settings.interactive:
                     log.note(msg)
-                    print comment
+                    print(comment)
                     qopts = "Recreate Clear".split(' ')
                     q = Prompt.query("Recreate issue ID from comment or, clear Id?", qopts)
-                    print q
+                    print(q)
                     if q is 'Recreate':
                         comment.store(issues)
                         created.append(comment)
@@ -384,7 +385,7 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
             continue
 
         if comment.comment_id:
-            print list( issues.find_link(comment.comment_id) )
+            print(list( issues.find_link(comment.comment_id) ))
             #log.info("Existing issue for comment: %s" % comment)
             #updated.append(comment)
             # TODO: check, update from changed comment
@@ -398,7 +399,7 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
                 continue
             if settings.interactive:
                 log.note(msg)
-                print comment
+                print(comment)
                 if Prompt.ask("Create issue from comment?", yes_no='Yn'):
                     comment.store(issues)
                     created.append(comment)
@@ -407,8 +408,8 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
                 failed.append(comment)
             log.warn("No issue link for %r" % ( comment, ) )
     issues.dirty = [ i.issue_id for i in created + updated ]
-    print len(issues), 'Issues'
-    print len(issues.dirty), 'Dirty'
+    print(len(issues), 'Issues')
+    print(len(issues.dirty), 'Dirty')
     #issues.commit()
 
 def cmd_parse_list(settings, opts, TODOLIST):#='to/do.list'):

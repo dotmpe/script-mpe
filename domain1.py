@@ -114,6 +114,7 @@ domain:
         facio: {}
         usr: {}
 """
+from __future__ import print_function
 import datetime
 import os
 from pprint import pformat
@@ -131,7 +132,7 @@ config = list(confparse.expand_config_path('domain.rc'))
 "Configuration filename."
 assert config, "Missing domain.rc"
 if len(config)> 1:
-	print "XXX multiple rc", config
+	print("XXX multiple rc", config)
 settings = confparse.load_path(config[0])
 "Static, persisted settings."
 
@@ -158,7 +159,7 @@ def reload():
         settings.dynamic.append('nodes')
 
 def err(msg, *args):
-    print >>sys.stderr, msg % args
+    print(msg % args, file=sys.stderr)
 
 def hex_mask_to_dotquad(h):
     if h.startswith('0x'):
@@ -268,7 +269,7 @@ def get_mac(addr):
     a = get_dest_info(addr)
     try:
         return a.next()[3]
-    except StopIteration, e:
+    except StopIteration as e:
         return
 
 
@@ -282,12 +283,12 @@ def assert_node(host, mac):
         settings.node[host.lower()] = node
         settings.commit()
         reload()
-        print 'Added new node: `%s <%s>`_' % (host, mac)
+        print('Added new node: `%s <%s>`_' % (host, mac))
 
 def _old_2():
     global settings
     if mac not in settings.node:
-        print """
+        print(""")
 Unknown Interface
 -----------------
 Found an unknown node: %s.
@@ -298,7 +299,7 @@ But if this node is mobile, it may belong to more than one network.
         v = raw_input("Mobile? [yN] ")
         if v != None or v.lower() != 'n':
             pass #
-        print """
+        print(""")
 Enter an ID for this network. If the network ID alreay
 exists, the interface will be listed in the nodes for this network. Otherwise a
 new network is created.
@@ -317,7 +318,7 @@ new network is created.
         settings.commit()
         settings = settings.reload()
 
-        print 'Added new node: %s' % mac
+        print('Added new node: %s' % mac)
 
 def _old_1(host):
     if host not in settings.node:
@@ -331,7 +332,7 @@ def _old_1(host):
         assert isinstance(settings.copy()['domain']['brix']['brixmaster'],
                 dict), pformat(settings.copy()['domain']['brix'])
         assert not isinstance(settings.copy()['domain']['brix']['brixmaster'], confparse.Values)
-        print 'Adding', host, node
+        print('Adding', host, node)
         #settings.commit()
         #settings = settings.reload()
 
@@ -350,39 +351,39 @@ def info():
 
     # print some stuff
     hostname = get_hostname()
-    print "On node:", hostname
+    print("On node:", hostname)
     gateway = get_gateway()
-    print 'Internet gateway: '
+    print('Internet gateway: ')
     default_routes = get_default_route()
     for gateway in default_routes:
-        print '\t-', gateway,
+        print('\t-', gateway,)
         m = get_mac(gateway)
         if not m:
-            print '(invalid)'
+            print('(invalid)')
             continue
         else:
             try:
                 gateway_node = socket.gethostbyaddr(gateway)[0]
-            except socket.herror, e:
-                print '(invalid: %s)' % e
+            except socket.herror as e:
+                print('(invalid: %s)' % e)
                 continue
-            print gateway_node, "[ether %s]" % m
+            print(gateway_node, "[ether %s]" % m)
 
     for gateway in default_routes:
         m = get_mac(gateway)
         if m:
             try:
                 gateway_node = socket.gethostbyaddr(gateway)[0]
-            except socket.herror, e:
-                print >>sys.stderr, e
+            except socket.herror as e:
+                print(e, file=sys.stderr)
                 continue
             if gateway_node not in settings.node:
-                print "New gateway: %s" % gateway_node,
+                print("New gateway: %s" % gateway_node,)
                 node = {
                         'mac': m,
                         'ip': gateway,
                     }
-                print node
+                print(node)
                 v = raw_input('Insert node? [n] ')
                 if 'y' in v:
                     gw_domain = None
@@ -422,15 +423,15 @@ def info():
     fqdn, aliases, addresses = socket.gethostbyname_ex(getfqdn)
     #print socket.gethostbyname_ex(hostname)
     #assert (fqdn, aliases, addresses) == socket.gethostbyname_ex(hostname)
-    print "Full address:", fqdn
-    print "Host aliases:"
+    print("Full address:", fqdn)
+    print("Host aliases:")
     for alias in aliases:
-        print '\t-', alias
-    print "IP addresses:"
+        print('\t-', alias)
+    print("IP addresses:")
     for address in addresses:
-        print '\t-', address,
+        print('\t-', address,)
         if address in network:
-            print network[address]
+            print(network[address])
         else:
             print
 
@@ -491,25 +492,25 @@ def main():
     """
     global settings
 
-    print """
+    print(""")
 Local domain check
 ==================
 :Date: %s """ % datetime.datetime.now().isoformat()
 
     host, addr, mac = get_current_node()
-    print ':Host: `%s <%s>`' % (host, mac)
+    print(':Host: `%s <%s>`' % (host, mac))
 
     gateway, gateway_mac, gateway_addr = get_gateway()
-    print ':Gateway: `%s <%s>`' % (gateway, gateway_mac)
+    print(':Gateway: `%s <%s>`' % (gateway, gateway_mac))
 
     network_id = settings.nodes[gateway_mac]
     network = network_name(network_id)
 
-    print ':Network:', network
+    print(':Network:', network)
 
     if not gateway:
         err("No internet uplink. ")
-        print host, 'local'
+        print(host, 'local')
     else:
         pass#print host, gateway
 
@@ -521,4 +522,3 @@ Local domain check
 if __name__ == '__main__':
     reload()
     main()
-

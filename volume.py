@@ -23,6 +23,7 @@ Other flags:
     --version     Show version (%s).
 
 """ % ( __db__, __version__, )
+from __future__ import print_function
 import os
 import sys
 from pprint import pprint
@@ -50,7 +51,7 @@ Options.register(NS,
 @Target.register(NS, 'find-volume', 'txs:pwd')
 def find_volume(opts=None, pwd=None):
     vdb = None
-    print list(confparse.find_config_path("git", pwd.location.path))
+    print(list(confparse.find_config_path("git", pwd.location.path)))
     for path in confparse.find_config_path("cllct", pwd.location.path):
         vdb = os.path.join(path, 'volume.db')
         if os.path.exists(vdb):
@@ -58,14 +59,14 @@ def find_volume(opts=None, pwd=None):
     if not vdb:
         if opts.init:
             pass
-    print vdb
+    print(vdb)
     yield vdb
 
 
 def oldmain():
     # XXX: cleanup all oldmain
     import txs, cmdline
-    print TargetResolver().main(['vol:find-volume'])
+    print(TargetResolver().main(['vol:find-volume']))
     #TargetResolver().main(['cmd:options'])
 
 
@@ -89,10 +90,10 @@ def main(argv, doc=__doc__, usage=__usage__):
     pprint(settings.todict())
     print
     for v, p in settings.volume.items():
-        print v, p
+        print(v, p)
     print
     for v, s in settings.volumes.items():
-        print v, s
+        print(v, s)
 
 
 def get_version():

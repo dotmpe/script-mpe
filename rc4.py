@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 #
 #       RC4, ARC4, ARCFOUR algorithm
 #
@@ -9,12 +10,12 @@
 #       it under the terms of the GNU General Public License as published by
 #       the Free Software Foundation; either version 2 of the License, or
 #       (at your option) any later version.
-#       
+#
 #       This program is distributed in the hope that it will be useful,
 #       but WITHOUT ANY WARRANTY; without even the implied warranty of
 #       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #       GNU General Public License for more details.
-#       
+#
 #       You should have received a copy of the GNU General Public License
 #       along with this program; if not, write to the Free Software
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
@@ -35,7 +36,7 @@ def rc4crypt(data, key):
         y = (y + box[x]) % 256
         box[x], box[y] = box[y], box[x]
         out.append(chr(ord(char) ^ box[(box[x] + box[y]) % 256]))
-    
+
     return ''.join(out)
 
 if __name__ == '__main__':
@@ -43,8 +44,8 @@ if __name__ == '__main__':
     args = sys.argv[1:]
     if not args:
         sys.exit(6)
-    name = args.pop()    
-    import os    
+    name = args.pop()
+    import os
     if not os.path.exists(name):
         sys.exit(5)
     from getpass import getpass
@@ -52,6 +53,4 @@ if __name__ == '__main__':
     data = open(name).read()
     crypted = rc4crypt(data, passwd)
     #print ('data',data,'rc4',crypted)
-    print crypted
-
-
+    print(crypted)

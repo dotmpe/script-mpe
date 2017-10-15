@@ -129,6 +129,7 @@ W.o. ``--no-be`` does not try to invoke a save-to-context for the generated
 magnet. Otherwise open files and add the generated magnet as a reference.
 
 """ % ( __version__, )
+from __future__ import print_function
 from datetime import datetime
 import hashlib
 import sys
@@ -159,8 +160,8 @@ def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
         URI = FILE
         FILE = None
     if not opts.flags.quiet and opts.flags.debug:
-        print >>sys.stderr, 'FILE', FILE
-        print >>sys.stderr, 'URI', URI
+        print('FILE', FILE, file=sys.stderr)
+        print('URI', URI, file=sys.stderr)
     ARGS_ =  XS + AS + DN + XT
     XS, AS, DN, XT = [], [], [], []
     REFS_, TOPICS_ = [], []
@@ -181,15 +182,15 @@ def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
     if opts.flags['xt']:
         XT += opts.flags['xt']
     if not opts.flags.quiet and opts.flags.debug:
-        print >>sys.stderr, 'CTX', CTX
-        print >>sys.stderr, 'DN', DN
+        print('CTX', CTX, file=sys.stderr)
+        print('DN', DN, file=sys.stderr)
     if not opts.flags.no_add_dn:
         for a in ARGS_:
             if os.path.exists(os.path.dirname(os.path.expanduser(a))):
                 CTX.append(a)
                 continue
             if a.startswith(os.sep):
-                print >>sys.stderr, ("Warning, arg %r looks it may be a " % a
+                print(("Warning, arg %r looks it may be a " % a, file=sys.stderr)
                     +"local path for context, but its directory path does not "
                     +"exist so the value will ignored")
             m = uriref.absoluteURI.match(a)
@@ -207,7 +208,7 @@ def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
                     else:
                         DN.append(os.path.basename(a))
     if not opts.flags.quiet and opts.flags.debug:
-        print >>sys.stderr, 'DN', DN
+        print('DN', DN, file=sys.stderr)
     if not opts.flags.no_add_xt:
         XT += TOPICS_
     if not opts.flags.no_add_xs:
@@ -233,10 +234,10 @@ def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
             DN.append(urllib.quote(bn))
 
     if opts.flags.debug:
-        print >>sys.stderr, 'DN', DN
-        print >>sys.stderr, 'XS', XS
-        print >>sys.stderr, 'AS', AS
-        print >>sys.stderr, 'XT', XT
+        print('DN', DN, file=sys.stderr)
+        print('XS', XS, file=sys.stderr)
+        print('AS', AS, file=sys.stderr)
+        print('XT', XT, file=sys.stderr)
 
     query = {}
 
@@ -253,7 +254,7 @@ def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
     info = urlinfo.info()
     status = urlinfo.getcode()
     if status and status is not 200:
-        print >>sys.stderr, 'HTTP status', status
+        print('HTTP status', status, file=sys.stderr)
         return status/100
     data = urlinfo.read()
     fn = tempfile.mkstemp()[1]
@@ -267,7 +268,7 @@ def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
 
     for xt_c in opts.flags.xt_type:
         if xt_c not in resolvers:
-            print "No resolver %r" % xt_c
+            print("No resolver %r" % xt_c)
             continue
         XT.append( xt_c +':'+ resolvers[ xt_c ]( data, info, fn ) )
 
@@ -330,7 +331,7 @@ def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
                 be.save()
 
     # Output
-    print magnet_uri
+    print(magnet_uri)
 
 
 # NOTE: crude pastandalone impl. See res.txt for ideas to cleanup.
@@ -480,7 +481,7 @@ for algo in hashlib.algorithms:
 lt = None
 try:
   import libtorrent as lt
-except ImportError, e:
+except ImportError as e:
   pass
 
 if lt:

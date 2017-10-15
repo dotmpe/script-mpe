@@ -17,7 +17,7 @@ Issues:
 try:
     import coverage
     coverage.process_startup()
-except ImportError, e:
+except ImportError as e:
     pass
 
 import lib
@@ -37,5 +37,3 @@ import htdocs
 if __name__ == '__main__':
 
     TargetResolver().main(['cmd:options'])
-
-

@@ -31,6 +31,7 @@ Other flags:
 
 """ % ( __version__ )
 import os
+from __future__ import print_function
 from pprint import pformat
 
 import libcmd_docopt
@@ -84,7 +85,7 @@ def get_args(opts):
 def cmd_info(opts):
     """
     """
-    print commands.keys()
+    print(commands.keys())
     #print pformat(opts.todict())
     for methodName in dir(opts.api):
         attr = getattr(opts.api, methodName)
@@ -179,7 +180,7 @@ def cmd_lists_destroy(opts):
 
 
 def cmd_check_rate_limit(opts):
-    print opts.api.CheckRateLimit(opts.args.url)
+    print(opts.api.CheckRateLimit(opts.args.url))
 
 
 ### Transform cmd_ function names to nested dict

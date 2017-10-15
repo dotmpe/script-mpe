@@ -26,6 +26,7 @@ File Changelog
 
 """
 
+from __future__ import print_function
 import hashlib
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
@@ -69,7 +70,7 @@ def comment(dbsession, comment, numid=None):
         # no match, insert
         new_comment = Comment(comment=comment, comment_hash=comment_hash)
         session.add(new_comment)
-        print new_comment.numid
+        print(new_comment.numid)
         return new_comment.numid
 
 
@@ -77,10 +78,8 @@ def get(iid): pass
 
 def new(tag, o):
 # TODO
-    print ('New', tag, o,)
+    print('New', tag, o, end='')
 
 def update(tag, iid, o):
 # TODO
-    print ('Updated', tag, iid, o)
-
-
+    print('Updated', tag, iid, o)

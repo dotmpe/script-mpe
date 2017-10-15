@@ -40,6 +40,7 @@ Options:
                 Override ignore-fstype, and ignore every filesystem type not in
                 given list. [default: ]
 """
+from __future__ import print_function
 import os
 import re
 from fnmatch import fnmatch
@@ -125,7 +126,7 @@ def H_disks(diskdata, ctx):
     for line in ctx.sources.mtab:
         if mtab_ignored( line, ctx ):
             continue
-        print line.mount, line.device, line.fstype
+        print(line.mount, line.device, line.fstype)
 
 
 def H_list_disks(diskdata, ctx):
@@ -142,13 +143,13 @@ def H_list_disks(diskdata, ctx):
     #print 'Devices', devices
 
     for id, attr in diskdata['catalog']['media'].items():
-        print 'Disk', id
+        print('Disk', id)
         # TODO: print when mounted
         for part in attr['partitions']:
             size = part['size']
 
             if 'UUID' not in part:
-                print '  Incomplete data for', size
+                print('  Incomplete data for', size)
                 continue
             if part['UUID'] not in devices:
                 continue
@@ -157,9 +158,9 @@ def H_list_disks(diskdata, ctx):
             device = subprocess.check_output(['realpath', device]).strip()
 
             if device in mounts:
-                print '  Mounted:', size, device
+                print('  Mounted:', size, device)
             else:
-                print '  Available:', size, device
+                print('  Available:', size, device)
 
 
     #yaml_commit(diskdata, ctx)
@@ -211,7 +212,7 @@ def main(ctx):
         localbg = __import__('local-bg')
         return localbg.query(ctx)
     elif 'exit' == ctx.opts.cmds[0]:
-        print >>ctx.err, "No background process at %s" % ctx.opts.flags.address
+        print("No background process at %s" % ctx.opts.flags.address, file=ctx.err)
         return 1
     else:
         diskdoc = os.path.expanduser(ctx.opts.flags.file)

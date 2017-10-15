@@ -25,6 +25,7 @@ Dependencies:
       ..
 
 """ % ( __db__, __version__ )
+from __future__ import print_function
 from script_mpe import libcmd_docopt, log
 from script_mpe import redmine_schema as rdm
 from script_mpe.redmine_schema import get_session
@@ -51,9 +52,9 @@ def cmd_projects(settings):
     v = sa.query(rdm.Project).count()
     # TODO: filter project; age, public
     log.info('{green}%s{default}: {bwhite}%s{default}', l, v)
-    print '# ID PARENT NAME'
+    print('# ID PARENT NAME')
     for p in sa.query(rdm.Project).all():
-        print p.id, p.parent_id or '-', p.name
+        print(p.id, p.parent_id or '-', p.name)
 
 
 def cmd_issues(settings):
@@ -70,11 +71,11 @@ def cmd_issues(settings):
     print('# ID PARENT_ID ROOT_ID SUBJECT ')
     #print('# ID PARENT_ID ROOT_ID PRIO SUBJECT ')
     for i in sa.query(rdm.Issue).all():
-        print i.id,
+        print(i.id,)
         for k in i.parent_id, i.root_id:
-            print k or '-',
+            print(k or '-',)
         #print i.priority_id or '-', i.subject
-        print i.subject
+        print(i.subject)
 
 
 def cmd_custom_fields(settings):
@@ -89,21 +90,21 @@ def cmd_custom_fields(settings):
     v = sa.query(rdm.CustomField).count()
     log.info('{green}%s{default}: {bwhite}%s{default}', l, v)
     for rs in sa.query(rdm.CustomField).all():
-        print rs.id, rs.type
-        print "  Name:", rs.name
+        print(rs.id, rs.type)
+        print("  Name:", rs.name)
         if rs.possible_values: # yaml value
-            print "  Possible values: "
+            print("  Possible values: ")
             for x in rs.possible_values.split('\n'):
                 if x == '---': continue
-                print "  ",x
+                print("  ",x)
         if rs.description:
-            print "  Description:"
-            print "   ", rs.description.replace('\n', '\n    ')
+            print("  Description:")
+            print("   ", rs.description.replace('\n', '\n    '))
 
 
 def cmd_print_db_ref(settings):
     "Print DB after parsing settings. "
-    print settings.dbref
+    print(settings.dbref)
 
 
 def cmd_run_indexer(settings):
@@ -120,7 +121,7 @@ def cmd_run_indexer(settings):
 
         index_mode = idx_cf_v.value
         if index_mode:
-            print '# TODO index project, index_mode'
+            print('# TODO index project, index_mode')
 
     #index_current_cf = get_custom_field('Index Method', sa)
 
@@ -169,9 +170,9 @@ def cmd_home_doc(settings, opts):
         url = url.replace('%value%', home_doc_cf_v.value)
         url = url.replace('%id%', str(issue.id))
 
-        print url, issue.subject
+        print(url, issue.subject)
     else:
-        print url_pattern
+        print(url_pattern)
 
 
 

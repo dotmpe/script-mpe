@@ -13,6 +13,7 @@
 
 :updated: 2014-08-26
 """
+from __future__ import print_function
 __description__ = "bookmarks - "
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.bookmarks2.sqlite'
@@ -206,10 +207,10 @@ class bookmarks(rsr.Rsr):
         if not bms:
             log.warn("No entries")
         else:
-            print '#', ', '.join(fields)
+            print('#', ', '.join(fields))
             for bm in bms:
                 for f in fields:
-                    print getattr(bm, f),
+                    print(getattr(bm, f),)
                 print
 
     def assert_locator(self, sa=None, href=None, opts=None):
@@ -285,10 +286,10 @@ class bookmarks(rsr.Rsr):
         # XXX idem as erlier, some mappings in adapter
         fields = 'lctr_id', 'global_id', 'ref_md5', 'date_added', 'deleted', 'ref'
         # XXX should need a table formatter here
-        print '#', ', '.join(fields)
+        print('#', ', '.join(fields))
         for lctr in lctrs:
             for f in fields:
-                print getattr(lctr, f),
+                print(getattr(lctr, f),)
             print
 
     def add_lctr_ref_md5(self, opts=None, sa=None, *refs):
@@ -355,7 +356,7 @@ class bookmarks(rsr.Rsr):
                         roots.append(node)
             # TODO: store groups, but need to start at the root, sort out struct
             # XXX should need a tree formatter here
-            print 'Groups'
+            print('Groups')
             for nid, node in nodes.items():
                 #print repr(node['title']),
                 if 'parent' in node:
@@ -365,9 +366,9 @@ class bookmarks(rsr.Rsr):
                 else:
                     self.rsr_add_group( node['title'], None,
                             sa=sa, opts=opts )
-            print 'Roots'
+            print('Roots')
             for root in roots:
-                print root['id'], root['title']
+                print(root['id'], root['title'])
 
     def dlcs_post_read(self, p):
         from pydelicious import dlcs_parse_xml
@@ -377,7 +378,7 @@ class bookmarks(rsr.Rsr):
 
     def dlcs_post_test(self, p):
         bm = self.execute( 'dlcs_post_read', dict( p=p) , 'all-key:href' )
-        print p, len(bm)
+        print(p, len(bm))
 
     def dlcs_post_test2(self, p):
         pass
@@ -419,11 +420,11 @@ class bookmarks(rsr.Rsr):
                     tag.subnodes.append( bm )
                     sa.add( tag )
         for tag in grouptags:
-            print 'Tag', tag.name
+            print('Tag', tag.name)
             for node in tag.subnodes:
-                print node.node_id, node.name,
+                print(node.node_id, node.name,)
                 if hasattr(node, 'ref'):
-                    print node.ref
+                    print(node.ref)
                 else:
                     print
 
@@ -570,7 +571,7 @@ def cmd_html_groups(HTML, settings):
 def cmd_html_tree(HTML, settings):
     data = open(HTML)
     soup = BeautifulSoup.RobustHTMLParser(data)
-    print res.bm.html_soup_formatters[settings.output_format](soup)
+    print(res.bm.html_soup_formatters[settings.output_format](soup))
 
 
 def cmd_chrome_all(settings):
@@ -602,7 +603,7 @@ def cmd_chrome_groups(settings):
 
 
 def cmd_html_check(HTML, settings):
-    print HTML
+    print(HTML)
 
 
 def cmd_stats(settings):
@@ -626,7 +627,7 @@ def cmd_href(NAME, settings):
     if not rs:
         log.std("Nothing")
     for r in rs:
-        print r.ref
+        print(r.ref)
 
 
 def cmd_tag(NAME, settings):
@@ -639,7 +640,7 @@ def cmd_tag(NAME, settings):
     if not rs:
         log.std("Nothing")
     for r in rs:
-        print r.name
+        print(r.name)
 
 
 def cmd_domain(NAME, settings):
@@ -652,7 +653,7 @@ def cmd_domain(NAME, settings):
     if not rs:
         log.std("Nothing")
     for r in rs:
-        print r.name
+        print(r.name)
 
 
 def cmd_list(NAME, settings):
@@ -678,7 +679,7 @@ def cmd_list(NAME, settings):
         out = tpl.render
 
     for bm in rs:
-        print bm.to_dict()
+        print(bm.to_dict())
         #print out( bm.to_dict() )
 
 
@@ -775,36 +776,36 @@ def cmd_check(NAME, settings):
         f.append( Resource.deleted!=True )
 
     rs = Resource.all(f)
-    print '%i URL\'s to check' % len(rs)
+    print('%i URL\'s to check' % len(rs))
 
     for i, r in enumerate(rs):
         ref = r.location.href()
-        print i, r.status, r.deleted, r.last_access, ref
+        print(i, r.status, r.deleted, r.last_access, ref)
         if i > 0 and ( i % 10 ) == 0:
             sa.commit()
-            print 'committed at %s items, %i to go' % ( i, len(rs)-i )
+            print('committed at %s items, %i to go' % ( i, len(rs)-i ))
 
         try:
             urlinfo = urllib2.urlopen(ref, timeout=9)
-        except urllib2.HTTPError, e:
+        except urllib2.HTTPError as e:
             r.status = e.code
             if e.code in delete:
                 r.delete()
             sa.add(r)
             continue
-        except urllib2.URLError, e:
+        except urllib2.URLError as e:
             r.status = -2
             if 0 in delete or -1 in delete:
                 r.delete()
             sa.add(r)
             continue
-        except Exception, e:
-            print e, ref
+        except Exception as e:
+            print(e, ref)
             r.status = -1
             if 0 in delete or -1 in delete:
                 r.delete()
             sa.add(r)
-            print 0, ref
+            print(0, ref)
             continue
 
         info = urlinfo.info()
@@ -812,7 +813,7 @@ def cmd_check(NAME, settings):
         if r.status == None or status != r.status:
             r.status = status
             sa.add(r)
-            print status, ref
+            print(status, ref)
 
         if status == 200:
             r.last_access = datetime.now()
@@ -902,7 +903,7 @@ def cmd_webarchive(NAME, settings):
             sa.delete(r)
             #sa.commit()
 
-            print 'TODO %s' % lctr.href()
+            print('TODO %s' % lctr.href())
 
     log.std("Found %i instances", i)
     #sa.commit()
@@ -998,17 +999,17 @@ def cmd_couchdb_sync(NAME, opts, settings):
                 db.update([c])
                 updates.append(c)
                 if opts.flags.verbose:
-                    print 'updated %s' % ref
+                    print('updated %s' % ref)
         else:
             del d['href']
             db[ref] = d
             new.append(d)
             if opts.flags.verbose:
-                print 'new %s' % ref
+                print('new %s' % ref)
 
-    print '%i items' % len(rs)
-    print '%i new' % len(new)
-    print '%i updated' % len(updates)
+    print('%i items' % len(rs))
+    print('%i new' % len(new))
+    print('%i updated' % len(updates))
 
 
 def cmd_couchdb_add(URL, TITLE, TAGS, settings):
@@ -1016,9 +1017,9 @@ def cmd_couchdb_add(URL, TITLE, TAGS, settings):
     """
     ref, dbname = settings.couch.rsplit('/', 1)
     server = couchdb.client.Server(ref)
-    print ref, server, dbname, URL, TITLE, TAGS
+    print(ref, server, dbname, URL, TITLE, TAGS)
     db = server[dbname]
-    print ref, server, dbname, db
+    print(ref, server, dbname, db)
     db[URL] = {
       'type': 'bookmark',
       'href': URL,

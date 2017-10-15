@@ -55,6 +55,7 @@ Options
 
 """
 
+from __future__ import print_function
 import datetime
 import getpass
 import optparse
@@ -109,7 +110,7 @@ def get_last_mtime(path, ignore_versioned=True):
                 p = os.path.join(root, d)
                 if is_versioned(p):
                     if settings.verbose:
-                        print 'ignored', p
+                        print('ignored', p)
                     rmdirs.append(d)
             for d in rmdirs:
                 dirs.remove(d)
@@ -185,7 +186,7 @@ def rsync(*flags):
         errresp = "Error: "+ errresp.strip()
         raise Exception(errresp)
     info('rsync %s', " ".join(args) )
-    print proc.stdout.read()
+    print(proc.stdout.read())
     info('rsync done')
 
 def remote_copy(src, trgt):
@@ -200,7 +201,7 @@ def remote_copy(src, trgt):
         errresp = "Error: "+ errresp.replace('scp: ', host).strip()
         raise Exception(errresp)
     info(" ".join(args))
-    print proc.stdout.read()
+    print(proc.stdout.read())
     info('scp -pq done')
 
 class Map:
@@ -381,10 +382,10 @@ def sync(map_id, do_sync=True):
     sync_from = None
     if not out_of_sync:
         if not new_paths:
-            print "mapsync: nothing to sync"
+            print("mapsync: nothing to sync")
             return
     elif len(out_of_sync) > 1:
-        print "mapsync: multiple sides out of sync"
+        print("mapsync: multiple sides out of sync")
         raise Exception("n-way merge not supported")
     else:
         sync_from = out_of_sync[0]
@@ -475,13 +476,13 @@ def info(v, *args):
     msg = "mapsync: %s" % v
     if args:
         msg = msg % args
-    print msg
+    print(msg)
 
 def err(v, *args):
     msg = "mapsync: error: %s" % v
     if args:
         msg = msg % args
-    print >> sys.stderr, msg
+    print(msg, file= sys.stderr)
 
 def fatal(v, *args):
     err(v, *args)

@@ -1,5 +1,6 @@
 """
 """
+from __future__ import print_function
 import types
 
 import ruamel.yaml as yaml
@@ -79,7 +80,7 @@ class PropertyValue(Base):
         super(PropertyValue, self).__init__()#k, super_)
 
     def __getattr__(self, obj, objtype=None):
-        print '<getattr', self, obj, objtype, '>'
+        print('<getattr', self, obj, objtype, '>')
 
     def __get__(self, obj, objtype=None):
 #        print '<get', self, obj, objtype, '>'
@@ -137,5 +138,3 @@ def obj_dic(d, name='obj_dic', super_=None):
 
 
 #o = obj_dic({'test':'foo'})
-
-

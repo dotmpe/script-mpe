@@ -11,6 +11,7 @@ Parse switch statements from Sh scripts
 - Quotes are included in the expression, since Sh can have both.
 
 """
+from __future__ import print_function
 __version__ = '0.0.4-dev' # script-mpe
 __usage__ = """
 sh-switch - Parse switch statements from Sh scripts
@@ -227,12 +228,12 @@ def H_test_examples(ctx):
     ]
     H_dump(ctx)
 
-    #print list(reader.get_offsets())
+    #print(list(reader.get_offsets()))
     #reader.get_keys_at_levels()
     #reader.read_all()
 
 def H_version(ctx):
-    print 'script-mpe/'+__version__
+    print('script-mpe/'+__version__)
 
 
 

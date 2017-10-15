@@ -26,5 +26,3 @@ import todo
 from todo import TodoTxtParser
 
 import iface
-
-

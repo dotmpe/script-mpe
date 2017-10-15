@@ -24,6 +24,7 @@ Options:
     --version     Show version (%s).
 
 """ % ( __db__, __version__, )
+from __future__ import print_function
 from datetime import datetime
 import os
 import re
@@ -53,8 +54,8 @@ SqlBase = model.SqlBase
 def img_exif_load(img):
     try:
         return piexif.load(IMG)
-    except ValueError, e:
-        print >>sys.stderr, "Failing reading exif for %s" % IMG
+    except ValueError as e:
+        print("Failing reading exif for %s" % IMG, file=sys.stderr)
     return False
 
 def img_unid(img, exif=None):
@@ -81,7 +82,7 @@ def cmd_update(IMG, opts, settings):
 
 
 def cmd_stats(settings, opts):
-    print 'TODO'
+    print('TODO')
 
 
 

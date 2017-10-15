@@ -18,6 +18,7 @@ Other flags:
     --version     Show version (%s).
 
 """ % ( __version__ )
+from __future__ import print_function
 from pprint import pformat
 
 import libcmd_docopt
@@ -29,7 +30,7 @@ import libcmd_docopt
 def cmd_info(opts):
     """
     """
-    print pformat(opts.todict())
+    print(pformat(opts.todict()))
 
 
 def cmd_import(opts):
@@ -64,7 +65,7 @@ def cmd_import(opts):
         file, line = line[:p], line[p+1:]
         p = line.index(':')
         linenr, line = line[:p], line[p+1:]
-        print pformat(dict(
+        print(pformat(dict()
            basedir=basedir,
            local_ctx_id=local_ctx_id,
            file=file,

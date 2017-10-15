@@ -3,9 +3,9 @@ language: python
 python:
   - "2.7"
   #- "3.2"
-  - "3.6"
+  #- "3.6"
   #- "3.6-dev"
-  - "3.7"
+  #- "3.7"
   #- "3.7-dev"
   #- "nightly"
 
@@ -39,39 +39,21 @@ install:
 
 before_script:
   - scriptname="before-script"
-  - . ./tools/sh/init.sh
-  - . ./tools/sh/env.sh
-  - . ./tools/ci/parts/init.sh
   - . ./tools/ci/parts/check.sh
 
 script:
   - scriptname=script
   - . ./tools/ci/parts/build.sh
-#- whoami && pwd -P && uname -a && hostname -f && env
 
 after_script:
-  - test -x "$(which tap-json)" || npm install -g tap-json
-  - cat $BUILD_RESULTS | tap-json > $BUILD_RESULTS.json
-  - test -e node_modules/nano || npm install nano
-  - CI_BUILD_RESULTS=$BUILD_RESULTS.json \
-    CI_DB_HOST="$CI_DB_HOST" \
-    CI_DB_INFO="$CI_DB_INFO" \
-    CI_DB_NAME='build-log' \
-    CI_DB_KEY="$TRAVIS_REPO_SLUG" \
-      node ./tools/update-couchdb-testlog.js
+  - scriptname=after-script
+  - . ./tools/ci/parts/publish.sh
 
 #matrix:
 #  include: []
 #
 env:
   matrix:
-    #- ENV=noop
-    #- ENV=dev
-    #- ENV=testing
-    # TODO: - ENV=production
-    #- TEST_ENV=testing TEST_SHELL=posh
-    #- TEST_ENV=testing TEST_SHELL=dash
-    #- TEST_ENV=testing TEST_SHELL=bash
     - TEST_ENV=testing TEST_SHELL=sh
   global:
     - ENV=
@@ -101,4 +83,3 @@ branches:
 #    repo: dotmpe/script.mpe
 #    tags: true
 #    condition: $ENV = production
-

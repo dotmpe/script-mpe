@@ -2,6 +2,7 @@
 #
 # An output colorizer for syslog.
 #
+from __future__ import print_function
 import sys
 import os
 
@@ -73,9 +74,9 @@ def main(logfifo):
         logline = logfp.readline().strip()
         try:
             fields = dict(map(_split,logline.split(';')))
-            print _format(fields)
-        except Exception, e:
-            print logline
+            print(_format(fields))
+        except Exception as e:
+            print(logline)
 
 # xxx: new logger code may 2012
 # syslog compat. levels
@@ -109,7 +110,7 @@ def format_str(msg):
     return msg
 
 def std(msg, *args):
-    print format_str(msg % args)
+    print(format_str(msg % args))
 
 category = 4
 #category = 7
@@ -163,7 +164,7 @@ def log(level, msg, *args):
                 args[i] = taxus.iface.IFormatted(a).toString()
             else:
                 args[i] = str(a)
-    print >>sys.stderr, msg % tuple(args)
+    print(msg % tuple(args), file=sys.stderr)
 
 emerg = lambda x,*y: log(EMERG, x, *y)
 alert = lambda x,*y: log(ALERT, x, *y)
@@ -190,5 +191,3 @@ if __name__ == '__main__':
     import sys
     #main(*sys.argv[1:])
     test()
-
-

@@ -61,3 +61,4 @@ meta.lib.sh
 script-sh.sh
 darwin.py
 txt.py
+tools/update-couchdb-testlog.js

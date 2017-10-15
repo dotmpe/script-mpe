@@ -1,4 +1,5 @@
 # ENV-NAME: gspread-boreas
+from __future__ import print_function
 import os
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -34,8 +35,7 @@ sheet = sheets.sheet1
 
 # Fetch changelog
 cell_list = sheet.range(GSPREAD_WORKSHEET_RANGE)
-print cell_list
+print(cell_list)
 
 for x in cell_list:
-    print x, type(x)
-
+    print(x, type(x))

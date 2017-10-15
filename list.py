@@ -37,6 +37,7 @@ Options:
     -h --help     Show this usage description.
     --version     Show version (%s).
 """ % ( __db__, __version__ )
+from __future__ import print_function
 import os
 import sys
 import re
@@ -190,7 +191,7 @@ def cmd_x_rewrite_html_tree_id(LIST, settings):
         if len(id_indent) > len(stack):
             if key:
                 stack.append(key)
-        print line
+        print(line)
 
 
 ### Transform cmd_ function names to nested dict

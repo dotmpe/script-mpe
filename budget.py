@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.budget.sqlite'
 __usage__ = """
@@ -108,8 +109,8 @@ def cmd_db_stats(settings):
     """
 
     sa = get_session(settings.dbref)
-    print "Accounts:", sa.query(Account).count()
-    print "Mutations:", sa.query(Mutation).count()
+    print("Accounts:", sa.query(Account).count())
+    print("Mutations:", sa.query(Mutation).count())
 
 
 def cmd_db_reset(settings):
@@ -131,12 +132,12 @@ def cmd_account_show(settings):
     sa = get_session(settings.dbref)
     accid = int(opts['<name>'])
     for acc in sa.query(Account).filter(Account.account_id==accid).all():
-        print "\t".join(map(str,(acc.account_id, acc.name, acc.iban)))
+        print("\t".join(map(str,(acc.account_id, acc.name, acc.iban))))
 
 def cmd_account_list(settings):
     sa = get_session(settings.dbref)
     for acc in sa.query(Account).all():
-        print "\t".join(map(str,(acc.account_id, acc.name)))
+        print("\t".join(map(str,(acc.account_id, acc.name))))
 
 def cmd_account_add(props, settings, name):
     sa = get_session(settings.dbref)
@@ -146,7 +147,7 @@ def cmd_account_add(props, settings, name):
     log.std("Added account %s", name)
 
 def cmd_account_update(settings):
-    print 'TODO account-update'
+    print('TODO account-update')
 
 def cmd_account_rm(settings, name):
     sa = get_session(settings.dbref)
@@ -169,7 +170,7 @@ def cmd_month(settings):
             if 'first_month' in settings and settings.first_month else datetime.now()
     end = settings.last_month \
             if 'last_month' in settings and settings.last_month else datetime.now()
-    print '# Range: ', start.year, start.month, '--', end.year, end.month
+    print('# Range: ', start.year, start.month, '--', end.year, end.month)
 
     balance = 0
     last3 = Simplemovingaverage(3)
@@ -177,7 +178,7 @@ def cmd_month(settings):
     last12 = Simplemovingaverage(12)
     last24 = Simplemovingaverage(24)
 
-    print '# year, change, amount, balance, avg6, avg12'
+    print('# year, change, amount, balance, avg6, avg12')
     for year in range(start.year, end.year+1):
         if year == start.year and year == end.year:
             months = range(start.month, end.month+1)
@@ -196,7 +197,7 @@ def cmd_month(settings):
                 avg6 = last6(amount)
                 avg12 = last12(amount)
                 avg24 = last24(amount)
-                print ("%(year)04i-%(month)02i "\
+                print(("%(year)04i-%(month)02i "\)
                     "%(balance)9.2f EUR "\
                     "%(amount)9.2f "\
                     "%(avg3)9.2f "\
@@ -255,7 +256,7 @@ def cmd_mutation_import(opts, settings):
                     # debet interest
                     to_account = Account.for_name_type(sa, ACCOUNT_ACCOUNTING)
                 else:
-                    print line, date, accnr, amount, cat, descr, descr2
+                    print(line, date, accnr, amount, cat, descr, descr2)
                     assert not destname, (cat, destname, cat)
                     continue
             # billing account
@@ -301,10 +302,10 @@ def cmd_mutation_list(settings, opts):
                 Mutation.from_account == accid or
                 Mutation.to_account == accid
                 ).all():
-            print m.mut_id, m.year, m.from_account, m.to_account, m.amount
+            print(m.mut_id, m.year, m.from_account, m.to_account, m.amount)
     else:
         for m in sa.query(Mutation).all():
-            print m.mut_id, m.year, m.from_account, m.to_account, m.amount
+            print(m.mut_id, m.year, m.from_account, m.to_account, m.amount)
 
     return 0
 
@@ -324,14 +325,14 @@ def cmd_balance_verify(settings, sa=None):
             .one() for acc in expenses_acc ]
 
     for i, (sub, (sub_balance,)) in enumerate(zip(expenses_acc, balances)):
-        print i, sub.name, sub.iban or sub.nl_number or sub.nl_p_number, sub_balance
+        print(i, sub.name, sub.iban or sub.nl_number or sub.nl_p_number, sub_balance)
 
     return 0
 
 def cmd_corrections(settings):
     sa = get_session(settings.dbref)
     for rs in sa.query( Mutation ).filter( Mutation.category == 'sb' ).all():
-        print rs
+        print(rs)
 
 def cmd_balance_commit(settings):
 
@@ -348,11 +349,11 @@ def cmd_balance_commit(settings):
 
     ia = int(lib.Prompt.raw_input("Which account [0-%i]" % (len(accounts)-1)))
     account = accounts[ia]
-    print ia, account
+    print(ia, account)
 
     v = float(lib.Prompt.raw_input("Enter the actual balance"))
     correction = v - balance
-    print 'Correction: ', balance, correction, balance+correction
+    print('Correction: ', balance, correction, balance+correction)
 
     d = None
     while not d:
@@ -373,7 +374,7 @@ def cmd_balance_commit(settings):
             day=d.day, month=d.month, year=d.year,
             description="Correction/starting balance"
     )
-    print c
+    print(c)
     if lib.Prompt.ask("Commit?"):
         sa.add(c)
         sa.commit()

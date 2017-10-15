@@ -20,6 +20,7 @@ Options:
     --version     Show version (%s).
 """ % ( __version__ )
 
+from __future__ import print_function
 import datetime
 import os
 import re
@@ -44,15 +45,15 @@ def cmd_plist_items(PLIST, KEY, settings):
     i = 0
     for item in plst.root[0]['_items']:
         i += 1
-        print i,
+        print(i,end='')
         for k in KEY:
-            print item[k],
-        print
+            print(item[k],end='')
+        print('')
 
 
 def cmd_plist_dump(PLIST, settings):
     plst = pbPlist.pbPlist.PBPlist(PLIST)
-    print len(plst.root)
+    print(len(plst.root))
     plst_dump(plst.root[0])
 
 
@@ -68,9 +69,9 @@ def cmd_spserialata_disk(PLIST, DISK, KEY, settings):
             #plst_dump(disk)
             for k in KEY:
                 if k in disk:
-                    print disk[k],
+                    print(disk[k], end='')
                 else:
-                    print "",
+                    print("", end='')
             print
             return
     if DISK:
@@ -86,9 +87,9 @@ def cmd_spserialata_disk_part(PLIST, KEY, settings):
                 #plst_dump(volume)
                 for k in KEY:
                     if k in volume:
-                        print volume[k],
+                        print(volume[k], end='')
                     else:
-                        print "",
+                        print("", end='')
                 print
 
 
@@ -106,9 +107,9 @@ def cmd_spusb_disk(PLIST, DISK, KEY, settings):
             #plst_dump(device)
             for k in KEY:
                 if k in device:
-                    print device[k],
+                    print(device[k], end='')
                 else:
-                    print "",
+                    print("", end='')
             print
             return
     if DISK:
@@ -123,9 +124,9 @@ def cmd_spusb_disk_part(PLIST, KEY, settings):
             #plst_dump(volume)
             for k in KEY:
                 if k in volume:
-                    print volume[k],
+                    print(volume[k], end='')
                 else:
-                    print "",
+                    print("", end='')
             print
 
 
@@ -139,7 +140,7 @@ def cmd_spstorage_disk_for_volume(PLIST, DISK, KEY, settings):
             continue
         if DISK and storage['bsd_name'] != DISK:
             continue
-        print storage['com.apple.corestorage.pv'][0]['_name']
+        print(storage['com.apple.corestorage.pv'][0]['_name'])
         continue
 
 
@@ -153,9 +154,9 @@ def cmd_spstorage_disk(PLIST, DISK, KEY, settings):
             continue
         for k in KEY:
             if k in storage:
-                print storage[k],
+                print(storage[k], end='')
             else:
-                print "",
+                print("", end='')
         print
     if DISK:
         return 1

@@ -4,6 +4,7 @@
 Schema to ORM.
 Somewhat JSON schema compatible.
 """
+from __future__ import print_function
 import os
 import sys
 
@@ -21,8 +22,8 @@ def load_schema(path):
         schema = yaml_load(open(yml_meta['$schema']))
         jsonschema.validate(yml_meta, schema)
     else:
-        print >>sys.stderr, "No validation for", path
-    print >>sys.stderr, 'Schema loaded:', path
+        print("No validation for", path, file=sys.stderr)
+    print('Schema loaded:', path, file=sys.stderr)
     #schema = extract_schema(yml_meta)
     return list(extract_orm(yml_meta))
 
@@ -30,7 +31,7 @@ def load_schema(path):
 #models = load_schema('taxus.core')
 #models2 = load_schema('bookmarks')
 models = load_schema('schema_test')
-print models
+print(models)
 
 #Base, MyRecord, Extended = models
 
@@ -39,5 +40,3 @@ dbref = ORMMixin.assert_dbref('~/.schema-test.sqlite')
 
 #sa2 = get_session(dbref, metadata=Base.metadata)
 #sa = ORMMixin.get_session('schema_test', dbref)
-
-

@@ -18,6 +18,7 @@ Options:
 
 """ % ( __version__ )
 
+from __future__ import print_function
 import os
 
 import libcmd_docopt
@@ -34,7 +35,7 @@ def cmd_meta_to_json(LIST, opts, settings):
     prsr = res.todo.TodoTxtParser()
     list(prsr.load(LIST))
     for k in prsr:
-        print res.js.dumps(prsr[k].attrs)
+        print(res.js.dumps(prsr[k].attrs))
 
 
 ### Transform cmd_ function names to nested dict

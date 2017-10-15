@@ -27,6 +27,7 @@ Other flags:
     --version     Show version (%s).
 """ % ( __db__, __version__ )
 
+from __future__ import print_function
 from datetime import datetime
 import os
 import re
@@ -69,13 +70,13 @@ def cmd_info(settings):
     try:
         sa = Node.get_session('default', settings.dbref)
         log.std('{magenta} * {bwhite}DB Connection {default}[{green}OK{default}]')
-    except Exception, e:
+    except Exception as e:
         log.std('{magenta} * {bwhite}DB Connection {default}[{red}Error{default}]: %s', e)
 
 def cmd_list(settings):
     sa = Node.get_session('default', settings.dbref)
     for t in Node.all():
-        print t, t.date_added, t.date_updated
+        print(t, t.date_added, t.date_updated)
 
 def cmd_get(REF, settings):
 

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import time
 
 def beats():
@@ -19,4 +20,4 @@ def swatch():
         return "@%06.2f" % (beats())
 
 if __name__=="__main__":
-        print swatch()
+        print(swatch())

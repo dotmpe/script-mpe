@@ -4,6 +4,7 @@ matchbox - a (file)naming libcmd_docoptity based on regular expressions.
 
 A filename cleaning and reformatting libcmd_docoptity. See matchbox.rst.
 """
+from __future__ import print_function
 import inspect
 import sys
 import os
@@ -72,7 +73,7 @@ def load_from_bre(filepath):
         vartable[ varname ] = re.sub(r'\\([\(){}|])', r'\1',
                 re.sub(r'^\\\((.*)\\\)\\\?$', r'\1', regexpat.strip("'")))
 
-    print '# Loaded %s' % filepath
+    print('# Loaded %s' % filepath)
 
 def load_templates(name='table.names'):
     """
@@ -109,7 +110,7 @@ def load_names_from(filepath):
             parts += ['',]
         glob, pattern, tags = parts
         if tags in templates:
-            print >>sys.stderr, "# Duplicate template %s" % tags
+            print("# Duplicate template %s" % tags, file=sys.stderr)
         #tags = tags.split(',')
         #assert tags not in templates, "Duplicate template %s" % tags
         templates[tags] = pattern
@@ -167,13 +168,13 @@ def resolve_seed(path, seed, names):
 
 def c_show():
     "Print name and internal var/name table data"
-    print 'matchbox.py'
-    print 'Var-table:'
-    print pformat(vartable)
-    print 'Templates:'
-    print pformat(templates)
-    print 'Paths:'
-    print pformat(paths)
+    print('matchbox.py')
+    print('Var-table:')
+    print(pformat(vartable))
+    print('Templates:')
+    print(pformat(templates))
+    print('Paths:')
+    print(pformat(paths))
 
 def c_dump():
     """
@@ -200,8 +201,8 @@ def c_help():
     for x in globals():
         c = globals()[x]
         if x.startswith('c_') and callable(c):
-            print "matchbox.py", x[2:].replace('_', '-'), format_f_spec(c)
-            print '   ', c.__doc__.strip()
+            print("matchbox.py", x[2:].replace('_', '-'), format_f_spec(c))
+            print('   ', c.__doc__.strip())
 
 def format_f_spec(func):
     args, varargs, keywords, defaults = inspect.getargspec(func)
@@ -221,7 +222,7 @@ def format_f_spec(func):
 
 def c_name_regex(name_template):
     "Print regex pattern for given name template. "
-    print name_regex(name_template)
+    print(name_regex(name_template))
 
 def c_match_name_vars(name, name_template_or_tag="@NAMEPART.@EXT"):
     """
@@ -234,13 +235,13 @@ def c_match_name_vars(name, name_template_or_tag="@NAMEPART.@EXT"):
         name_template = templates[name_template_or_tag]
     var_names = name_template_opts(name_template)
     regex = name_regex(name_template, var_names)
-    print "# Compiled pattern to '%s'" % regex
+    print("# Compiled pattern to '%s'" % regex)
     regex_r = re.compile(regex)
     rows = []
     if name:
         match = regex_r.match(name)
         if not match:
-            print >> sys.stderr, "Mismatched '%s'" % name
+            print("Mismatched '%s'" % name, file= sys.stderr)
             return 1
         else:
             mdict = match.groupdict()
@@ -270,10 +271,10 @@ def print_tab_cols(fields, rows):
                 widths[idx] = l+1
 
     widths[0] -= 2
-    print '# '+''.join([field.ljust(widths[i]) for i, field in enumerate(fields)])
+    print('# '+''.join([field.ljust(widths[i]) for i, field in enumerate(fields)]))
     widths[0] += 2
     for row in rows:
-        print ''.join([datum.ljust(widths[i]) for i, datum in enumerate(row)])
+        print(''.join([datum.ljust(widths[i]) for i, datum in enumerate(row)]))
 
 
 def c_match_names_vars(name_template_or_tag="@NAMEPART.@EXT"):
@@ -286,8 +287,8 @@ def c_match_names_vars(name_template_or_tag="@NAMEPART.@EXT"):
         name_template = templates[name_template_or_tag]
     var_names = name_template_opts(name_template)
     regex = name_regex(name_template, var_names)
-    print "# Fields: '%s'" % ', '.join(var_names)
-    print "# Compiled pattern to '%s'" % regex
+    print("# Fields: '%s'" % ', '.join(var_names))
+    print("# Compiled pattern to '%s'" % regex)
     regex_r = re.compile(regex)
     while True:
         line = sys.stdin.readline().strip()
@@ -296,10 +297,10 @@ def c_match_names_vars(name_template_or_tag="@NAMEPART.@EXT"):
         if line:
             match = regex_r.match(line)
             if not match:
-                print >> sys.stderr, "Mismatched '%s'" % line
+                print("Mismatched '%s'" % line, file= sys.stderr)
             else:
                 mdict = match.groupdict()
-                print "\t".join([
+                print("\t".join([)
                     mdict[var] if var in mdict else '' for var in var_names
                 ])
 
@@ -314,7 +315,7 @@ def c_rename(from_template, to_template, exists=None, stat=None):
     var_names_to = name_template_opts(to_template)
     var_names_from = name_template_opts(from_template)
     regex_from = name_regex(from_template)
-    print "# Regex from: %s" % regex_from
+    print("# Regex from: %s" % regex_from)
     regex_from_r = re.compile(regex_from)
     for name in var_names_to:
         if name not in var_names_from:
@@ -327,26 +328,26 @@ def c_rename(from_template, to_template, exists=None, stat=None):
     while True:
         line = sys.stdin.readline().strip()
         if line == "\l":
-            print '# (eof) '
+            print('# (eof) ')
             break
         if not line:
-            print '# (blank line) '
+            print('# (blank line) ')
         else:
             match = regex_from_r.match(line)
             if not match:
-                print >> sys.stderr, "Mismatched '%s'" % line
-                print "# (mismatched line '%s') " % line
+                print("Mismatched '%s'" % line, file= sys.stderr)
+                print("# (mismatched line '%s') " % line)
                 continue
             mdict = match.groupdict()
             if stat and exists:
                 # TODO implement other resolvers than local fs
                 if not os.path.exists(line):
-                    print >> sys.stderr, "Cannot stat '%s'" % line
-                    print "# (missing file '%s') " % line
+                    print("Cannot stat '%s'" % line, file= sys.stderr)
+                    print("# (missing file '%s') " % line)
                     continue
                 resolve_seed(line, mdict, var_names_to)
             name_new = name_format(mdict, to_template, names=var_names_to)
-            print line, name_new
+            print(line, name_new)
 
 def c_check_name(line, *tags):
     """
@@ -372,12 +373,12 @@ def c_check_name(line, *tags):
 
     if not invalid:
         if not passed:
-            print "! No match for", line
+            print("! No match for", line)
             return 2
         else:
-            print 'OK', ','.join(passed), line
+            print('OK', ','.join(passed), line)
     else:
-        print 'INVALID', ','.join(invalid), ','.join(passed), line
+        print('INVALID', ','.join(invalid), ','.join(passed), line)
         return 1
 
 
@@ -396,10 +397,10 @@ def c_check_names(*tags):
     while True:
         line = sys.stdin.readline().strip()
         if line == "\l":
-            print '# (eof) '
+            print('# (eof) ')
             break
         if not line:
-            print '# (blank line) '
+            print('# (blank line) ')
             break
         else:
             passed = []
@@ -413,20 +414,20 @@ def c_check_names(*tags):
                         invalid.append(name)
             if not invalid:
                 if not passed:
-                    print "No match for", line
+                    print("No match for", line)
                     unmatched += 1
                 else:
-                    print 'OK', ','.join(passed), line
+                    print('OK', ','.join(passed), line)
             else:
-                print 'INVALID', ','.join(invalid), ','.join(passed), line
+                print('INVALID', ','.join(invalid), ','.join(passed), line)
                 failed += 1
     if unmatched or failed:
         if not failed:
-            print "# Errors: %i unmatched" % ( unmatched, )
+            print("# Errors: %i unmatched" % ( unmatched, ))
         elif not unmatched:
-            print "# Errors: %i invalid" % ( failed )
+            print("# Errors: %i invalid" % ( failed ))
         else:
-            print "# Errors: %i unmatched, %i invalid" % ( unmatched, failed )
+            print("# Errors: %i unmatched, %i invalid" % ( unmatched, failed ))
         return 4
 
 ### Readers/Writers

@@ -65,6 +65,7 @@ Model::
   Would like to create function for local (project specific) todo management.
 
 """ % ( __db__, __version__ )
+from __future__ import print_function
 from datetime import datetime
 import os
 import re
@@ -165,7 +166,7 @@ def print_Task(task):
 
 def indented_tasks(indent, sa, settings, roots):
     for task in roots:
-        print indent,
+        print(indent,)
         print_Task(task)
         indented_tasks(indent+'  ', sa, settings,
             sa.query(Task).filter(Task.partOf_id == task.task_id).all())
@@ -176,7 +177,7 @@ def indented_tasks(indent, sa, settings, roots):
 def cmd_info(settings):
     """
     """
-    print pformat(settings.todict())
+    print(pformat(settings.todict()))
 
 def cmd_list(settings):
     sa = get_session(settings.dbref)

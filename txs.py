@@ -4,6 +4,7 @@ libcmd+taxus (SQLAlchemy) session
 
 FIXME: txs
 """
+from __future__ import print_function
 
 import os, stat, sys
 from os import sep
@@ -68,7 +69,7 @@ class LocalPathResolver(object):
                     .filter(INode.local_path == path)\
                     .filter(Node.ntype == INode.Dir)\
                     .one()
-        except NoResultFound, e:
+        except NoResultFound as e:
             pass
 
         return INode(local_path=path, host=self.host)
@@ -120,7 +121,7 @@ def hostname_find(args, sa=None):
         name = sa\
                 .query(Name)\
                 .filter(Name.name == hostnamestr).one()
-    except NoResultFound, e:
+    except NoResultFound as e:
         name = None
     return name
 
@@ -140,7 +141,7 @@ def host_find(args, sa=None):
             .join('hostname')\
             .filter(Name.name == name).one()
         return host
-    except NoResultFound, e:
+    except NoResultFound as e:
         return
 
     if not isinstance(name, Name):
@@ -151,7 +152,7 @@ def host_find(args, sa=None):
     try:
         node = sa.query(Host)\
                 .filter(Host.hostname == name).one()
-    except NoResultFound, e:
+    except NoResultFound as e:
         return
     return node
 
@@ -215,11 +216,11 @@ def txs_ls(pwd=None, ur=None, opts=None):
     log.debug("{bblack}txs{bwhite}:ls{default}")
     node = ur.getDir(pwd, opts)
     if isinstance(node, basestring):
-        print "Dir", node
+        print("Dir", node)
     else:
-        print 'txt: path:', node.local_path
+        print('txt: path:', node.local_path)
         for rs in res.Dir.walk_tree_interactive(node.local_path):
-            print 'txs: walk: rs:', rs
+            print('txs: walk: rs:', rs)
 
 @Target.register(NS, 'run', 'txs:session')
 def txs_run(sa=None, ur=None, opts=None, settings=None):
@@ -253,7 +254,7 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
                 try:
                     tag = sa.query(Tag).filter(Tag.name == tagstr).one()
                     log.note(tag)
-                except NoResultFound, e:
+                except NoResultFound as e:
                     log.note(e)
                 # Ask about each new tag, TODO: or rename, fuzzy match.
                 if tagstr not in tags:
@@ -265,7 +266,7 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
             log.info(pathstr)
             #log.info(''.join( [ "{bwhite} %s:{green}%s{default}" % (tag, name)
             #    for tag in parts if tag in tags] ))
-    except KeyboardInterrupt, e:
+    except KeyboardInterrupt as e:
         log.note(e)
         pass
     if results:
@@ -281,4 +282,3 @@ def oldmain():
 
 if __name__ == '__main__':
     oldmain()
-

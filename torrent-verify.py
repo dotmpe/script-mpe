@@ -2,6 +2,7 @@
 """
 http://stackoverflow.com/questions/2572521/extract-the-sha1-hash-from-a-torrent-file
 """
+from __future__ import print_function
 import sys, os, hashlib, StringIO, bencode
 
 def pieces_generator(info):
@@ -11,7 +12,7 @@ def pieces_generator(info):
         piece = ""
         for file_info in info['files']:
             path = os.sep.join([info['name']] + file_info['path'])
-            print path
+            print(path)
             # XXX: all files must exist, with missing files pieces overlapping
             #    fileboundaries cannot be validated.
             # It would be nice to validate specific files only, or tolerate
@@ -29,7 +30,7 @@ def pieces_generator(info):
             yield piece
     else: # yield pieces from a single file torrent
         path = info['name']
-        print path
+        print(path)
         sfile = open(path.decode('UTF-8'), "rb")
         while True:
             piece = sfile.read(piece_length)
@@ -49,13 +50,13 @@ def main(torrentfile_path):
     metainfo = bencode.bdecode(torrent_file.read())
     info = metainfo['info']
     if 'files' in info:
-        print 'info/files', info['files']
-    print 'info/piece length', info['piece length']
-    print 'info/name', info['name']
+        print('info/files', info['files'])
+    print('info/piece length', info['piece length'])
+    print('info/name', info['name'])
     #btih = hashlib.sha1(info).hexdigest()
     #print "magnet:?xt=urn:btih:%s" % btih
     pieces = StringIO.StringIO(info['pieces'])
-    print len(info['pieces'])/20, "pieces, piece length:",info['piece length']
+    print(len(info['pieces'])/20, "pieces, piece length:",info['piece length'])
     # Iterate through pieces
     for piece in pieces_generator(info):
         # Compare piece hash with expected hash

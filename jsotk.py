@@ -219,15 +219,15 @@ def H_merge(ctx, write=True):
         if not data:
             data = type(mdata)()
         elif not isinstance(mdata, type(data)):
-            raise ValueError, "Srcsfiles must have same root type. "\
+            raise ValueError( "Srcsfiles must have same root type. "\
                     "Expected %s, but found %s (%s)" % (
-                            type(data), type(mdata), srcfile )
+                            type(data), type(mdata), srcfile ) )
         if isinstance(data, dict):
             deep_update([data, mdata], ctx)
         elif isinstance(data, list):
             data = deep_union([data, mdata], ctx)
         else:
-            raise ValueError, data
+            raise ValueError(data)
 
     if write:
         outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
@@ -379,7 +379,7 @@ def H_keys(ctx):
     elif isinstance(data, list):
         return stdout_data( range(0, len(data)), ctx, outf=outfile )
     else:
-        raise ValueError, "Unhandled type %s" % type(data)
+        raise ValueError("Unhandled type %s" % type(data))
 
 def H_items(ctx):
     "Output for every key or item in object at path"
@@ -398,7 +398,7 @@ def H_items(ctx):
             subdata = { key: value }
             stdout_data( subdata, ctx, outf=outfile )
     else:
-        raise ValueError, "Unhandled type %s" % type(data)
+        raise ValueError("Unhandled type %s" % type(data))
 
 
 

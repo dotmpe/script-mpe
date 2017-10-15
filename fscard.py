@@ -3,6 +3,7 @@
 FIXME: sync taxus to (or from?) local indices,
     and/or maintain simple local indices without taxus.
 """
+from __future__ import print_function
 import hashlib
 import os
 import shelve
@@ -35,12 +36,12 @@ if __name__ == '__main__':
 
     fscard_dbref = list(confparse.find_config_path( 'fscard', path=path, suffixes=['.db']))
     if not fscard_dbref:
-        print "No fscard file"
+        print("No fscard file")
         sys.exit(1)
     shelve = shelve.open( fscard_dbref[0], 'r' )
 
     for k in shelve:
-        print k, shelve.get(k)
+        print(k, shelve.get(k))
     sys.exit(0)
 
     sitefiles = list(
@@ -67,8 +68,8 @@ if __name__ == '__main__':
         # custom filters:
         exists=None, # 1 , -1 for exclusive exists; or 0 for either
         # None for include, False for exclude, True for exclusive:
-        dirs=None, 
-        files=None, 
+        dirs=None,
+        files=None,
         symlinks=None,
         links=None,
         pipes=None,
@@ -89,6 +90,4 @@ if __name__ == '__main__':
             #    assert k in shelve
 
             cnt += 1
-    print cnt
-
-
+    print(cnt)

@@ -37,6 +37,7 @@ Other flags:
 """ % ( __db__, __version__ )
 __doc__ += __usage__
 
+from __future__ import print_function
 import os
 import re
 from datetime import datetime

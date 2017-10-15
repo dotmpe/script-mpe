@@ -1,6 +1,7 @@
 """
 Simple command-line program setup with docopt.
 """
+from __future__ import print_function
 import sys
 import inspect
 from pprint import pformat
@@ -186,17 +187,17 @@ def cmd_help():
     cmds = sys.modules['__main__'].commands
     for c, cmd in cmds.items():
         if isinstance(cmd, dict):
-            print log.format_str("{blue}%s{default}" % c)
+            print(log.format_str("{blue}%s{default}" % c))
             for sc, scmd in cmd.items():
-                print log.format_str("  {bblue}%s{default}" % (sc))
+                print(log.format_str("  {bblue}%s{default}" % (sc)))
                 doc = scmd.__doc__ and ' '.join(map(str.strip,
                         scmd.__doc__.split('\n'))) or '..'
-                print log.format_str("    {bwhite}%s{default}" % doc)
+                print(log.format_str("    {bwhite}%s{default}" % doc))
         else:
-            print log.format_str("{bblue}%s{default}" % c)
+            print(log.format_str("{bblue}%s{default}" % c))
             doc = cmd.__doc__ and ' '.join(map(str.strip,
                     cmd.__doc__.split('\n'))) or '..'
-            print log.format_str("    {bwhite}%s{default}" % doc)
+            print(log.format_str("    {bwhite}%s{default}" % doc))
 
 def init_config(path, defaults={}, overrides={}, persist=[]):
 

@@ -30,6 +30,7 @@ Other flags:
 """ % ( __rc__, __db__, __version__ )
 __doc__ += __usage__
 
+from __future__ import print_function
 import os
 from datetime import datetime
 
@@ -54,18 +55,18 @@ def cmd_init(settings):
         log.std('{bwhite}Added host %s record{default}', name)
     else:
         host = record
-    print 'host at', host_dict.path(), ':', host
+    print('host at', host_dict.path(), ':', host)
 
 def cmd_list(settings):
     sa = Host.get_session('default', settings.dbref)
     for h in sa.query(Host).all():
-        print h
+        print(h)
 
 def cmd_test_init(settings):
     sa = Host.get_session('default', settings.dbref)
     host_dict = init_host(settings)
     name = host_dict['name']
-    print Host.fetch(filters=(Host.name == name,), sa=sa, exists=False)
+    print(Host.fetch(filters=(Host.name == name,), sa=sa, exists=False))
     #print Host.init(sa=sa)
 
 

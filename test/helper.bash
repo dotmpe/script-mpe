@@ -1,6 +1,43 @@
 #!/bin/bash
 
 
+# Add fallbacks for non-std BATS functions
+
+type fail >/dev/null 2>&1 || {
+  fail()
+  {
+    test -z "$1" || echo "Reason: $1" >> $BATS_OUT
+    exit 1
+  }
+}
+
+type diag >/dev/null 2>&1 || {
+  # Note: without failing test, output will not show up in std Bats install
+  diag()
+  {
+    BATS_TEST_DIAGNOSTICS=1
+    echo "$1" >>"$BATS_OUT"
+  }
+}
+
+type TODO >/dev/null 2>&1 || { # tasks:no-check
+  TODO() # tasks:no-check
+  {
+    test -n "$TODO_IS_FAILURE" && {
+      ( 
+          test -z "$1" &&
+              "TODO ($BATS_TEST_DESCRIPTION)" || echo "TODO: $1"  # tasks:no-check
+      )>> $BATS_OUT
+      exit 1
+    } || {
+      # Treat as skip
+      BATS_TEST_TODO=${1:-1}
+      BATS_TEST_COMPLETED=1
+      exit 0
+    }
+  }
+}
+
 type stdfail >/dev/null 2>&1 || {
   stdfail()
   {

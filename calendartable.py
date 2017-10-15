@@ -12,6 +12,7 @@ XXX: CSV convertors/tools?
 XXX: ~dotmpe/archive/3/cabinet/2010/09/sunset-sundown.txt
 
 """
+from __future__ import print_function
 from icalendar import Calendar, Event
 from datetime import datetime
 from icalendar import UTC # timezone
@@ -19,18 +20,18 @@ from icalendar import UTC # timezone
 
 
 if __name__ == '__main__':
-    import sys 
+    import sys
 
     # XXX: prolly dont do this but add conversion to CSV
     #colrow_layout = 'month', 'day'
-    line_offset = 6, 2 
+    line_offset = 6, 2
     colrow_offset = 3, 1
     cell_values = 'dtstart', 'dtend'
     IFS=' '
 
     column_width = len(cell_values)
     now = datetime.now(UTC)
-    
+
     cal = Calendar()
     #cal.add('prodid', '-//My calendar product//mxm.dk//')
     #cal.add('version', '2.0')
@@ -67,8 +68,5 @@ if __name__ == '__main__':
                 #event.add('priority', 5)
                 cal.add_component(event)
 
-    print cal.as_string()
-    #f = open('example.ics', 'wb').write(cal.as_string()) 
-
-
-
+    print(cal.as_string())
+    #f = open('example.ics', 'wb').write(cal.as_string())

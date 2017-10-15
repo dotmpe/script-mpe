@@ -5,6 +5,7 @@ Return the most recent file.
 By defaults checks the creation (ie. status update) time.
 Using modification time (--mtime) is possible.
 """
+from __future__ import print_function
 import os
 import sys
 from lib import is_versioned
@@ -53,10 +54,9 @@ def main():
                     if latest < timestamp:
                         latest = timestamp
             if print_ts:
-                print latest, paths[latest]
+                print(latest, paths[latest])
             else:
-                print paths[latest]
+                print(paths[latest])
 
 if __name__ == '__main__':
     main()
-

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import re
 
 # comments
@@ -11,14 +12,14 @@ def bashlex_parse(src):
   src, srcr = sub2('\n', src.strip())
   #sub3 = re.compile(r'(?<![{\(])(\s*\n\s*)+', re.M).subn
   #src, srcr = sub3(';', src.strip())
-  print src
+  print(src)
   #src = """
   #test -n "$scriptpath" || export scriptpath="$(pwd -P)"
   #""".strip()
   import bashlex
   parts = bashlex.parse(src)
   for ast in parts:
-    print ast.dump()
+    print(ast.dump())
 
 def shlex_parse(fn):
   import shlex

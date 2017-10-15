@@ -13,6 +13,7 @@ Options:
                 JSON formatted credentials.
 
 """
+from __future__ import print_function
 import httplib2
 import os
 from pprint import pprint, pformat
@@ -77,7 +78,7 @@ def kwargs(*args):
 
 def H_list(service, opts):
     r = service.volumes().list(q=opts.args.q).execute()
-    print 'Books for "%s"' % opts.args.q, len(r['items'])
+    print('Books for "%s"' % opts.args.q, len(r['items']))
     #print r.keys()
 
     for i in r['items']:
@@ -88,11 +89,11 @@ def H_list(service, opts):
         #print vi.keys()
 
         if 'subtitle' in vi:
-            print v.id, vi.publisher, vi.title, vi.subtitle, \
-                vi.publishedDate, vi.language
+            print(v.id, vi.publisher, vi.title, vi.subtitle, \
+                vi.publishedDate, vi.language)
         else:
-            print v.id, vi.publisher, vi.title, \
-                vi.publishedDate, vi.language
+            print(v.id, vi.publisher, vi.title, \
+                vi.publishedDate, vi.language)
 
 
 

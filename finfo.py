@@ -122,6 +122,7 @@ Other flags:
     --version     Show version (%s).
 
 """ % ( __db__, __version__, )
+from __future__ import print_function
 import os
 from datetime import datetime
 from pprint import pprint, pformat
@@ -240,12 +241,12 @@ class FileInfoApp(rsr.Rsr):
     def list_mformat(self, sa):
         mfs = sa.query(Mediaformat).all()
         for mf in mfs:
-            print mf
+            print(mf)
 
     def list_mtype(self, sa=None):
         mms = sa.query(Mediatype).all()
         for mm in mms:
-            print mm
+            print(mm)
 
     def mm_stats(self, sa=None):
         mfs = sa.query(Mediaformat).count()
@@ -294,7 +295,7 @@ class FileInfoApp(rsr.Rsr):
                 continue
             if opts.interactive: # XXX: add_mformats interactive
                 mfs = Mediaformat.search(name=fmt)
-                print 'TODO', mfs
+                print('TODO', mfs)
             mf = Mediaformat( name=fmt, date_added=datetime.now() )
             log.info('New format %s', mf)
             sa.add(mf)
@@ -308,7 +309,7 @@ class FileInfoApp(rsr.Rsr):
             assert opts.interactive
             for path in paths:
                 for subpath in res.fs.Dir.walk(paths, opts):#dict(recurse=True)):
-                    print subpath
+                    print(subpath)
         elif not opts.interactive:
             path = paths[0]
             mm = Mediameta(name=name)
@@ -333,8 +334,8 @@ class FileInfoApp(rsr.Rsr):
             for p in res.fs.Dir.walk(p):
                 format_description = lib.cmd('file -bs "%s"', p).strip()
                 mediatype = lib.cmd('file -bi "%s"', p).strip()
-                print ':path:', p, format_description
-                print ':mt:', mediatype
+                print(':path:', p, format_description)
+                print(':mt:', mediatype)
                 print
 
 
@@ -405,8 +406,8 @@ def main(argv, doc=__doc__, usage=__usage__):
     ctx.sa = get_session(ctx.opts.flags.dbref)
 
     if ctx.opts.flags.show_info:
-        print ctx.opts.flags.dbref
-        print ctx.config_file
+        print(ctx.opts.flags.dbref)
+        print(ctx.config_file)
         return
     # DEBUG:
     #pprint(ctx.settings.todict())
@@ -525,7 +526,7 @@ def main(argv, doc=__doc__, usage=__usage__):
         ctx.opts.args.INCLUDE = doc_filters + ctx.opts.args.INCLUDE
     for idx, filter in enumerate(ctx.opts.args.INCLUDE):
         if isinstance(filter, str):
-            print 'new filter', filter
+            print('new filter', filter)
             ctx.opts.args.INCLUDE[idx] = fnmatch.translating(filter)
 
     # Resolve FILE/DIR arguments
@@ -595,7 +596,7 @@ def main(argv, doc=__doc__, usage=__usage__):
         ref = prefix+':'+name
 
         if ctx.opts.flags.names_only:
-            print ref
+            print(ref)
 
         else:
             # TODO: get INode through context? Also add mediatype & parameters
@@ -630,7 +631,7 @@ def main(argv, doc=__doc__, usage=__usage__):
             if not record.node_id:
                 ctx.sa.add(record)
 
-            print record, record.date_updated, record.date_modified
+            print(record, record.date_updated, record.date_modified)
             #sys.exit()
 
             if ctx.opts.flags.update:

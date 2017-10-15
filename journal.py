@@ -22,6 +22,7 @@ Options:
 
 """ % ( __version__ )
 
+from __future__ import print_function
 import os
 
 import libcmd_docopt
@@ -39,13 +40,13 @@ models = [ Node, Topic, Journal ]
 
 def cmd_journal_rw(LIST, opts, settings):
     entries = res.jrnl.JournalTxtManifestParser()
-    print entries
+    print(entries)
     if LIST:
         assert os.path.exists(LIST), LIST
         list(entries.load_file(LIST))
     for k in entries.be:
-        print k,
-        print entries[k]
+        print(k, end='')
+        print(entries[k])
 
 
 def cmd_journal_couch(PATH, opts, settings):

@@ -28,6 +28,7 @@ gcal.py [-h] [--auth_host_name AUTH_HOST_NAME]
 [--auth_host_port [AUTH_HOST_PORT [AUTH_HOST_PORT...]]]
 [--logging_level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
 """
+from __future__ import print_function
 import httplib2
 import os
 from pprint import pprint, pformat
@@ -115,7 +116,7 @@ def H_list(service, opts):
 
     for i in r['items']:
         id = i['id']
-        print id, pformat(service.calendarList().get(calendarId=id).execute())
+        print(id, pformat(service.calendarList().get(calendarId=id).execute()))
 
 
 def H_insert_calendar(service, opts):
@@ -130,10 +131,10 @@ def H_insert_calendar(service, opts):
         elif v.isdigit():
             kwds[k] = int(v)
 
-    print service.calendars().insert(body=kwds).execute()
+    print(service.calendars().insert(body=kwds).execute())
 
 def H_delete_calendar(service, opts):
-    print service.calendars().delete(calendarId=opts.args.calId).execute()
+    print(service.calendars().delete(calendarId=opts.args.calId).execute())
 
 
 def H_happening_now(service, opts):
@@ -159,7 +160,7 @@ def H_happening_now(service, opts):
         return 1
     for event in events:
         start = event['start'].get('dateTime', event['start'].get('date'))
-        print start, event['summary']
+        print(start, event['summary'])
 
 
 def H_list_upcoming(service, opts):
@@ -173,7 +174,7 @@ def H_list_upcoming(service, opts):
 
     now = datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
     later = ( datetime.utcnow() + timedelta(**tdargs) ).isoformat() + 'Z'
-    print now, later
+    print(now, later)
 
     eventsResult = service.events().list(
         calendarId=opts.args.calId,

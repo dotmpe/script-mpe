@@ -2,6 +2,7 @@
 TODO: categorize accounts.
 XXX: prolly rewrite year/month to generic period, perhaps scrap accbalances
 """
+from __future__ import print_function
 import os
 import re
 from datetime import datetime
@@ -69,7 +70,7 @@ class Account(SqlBase, ORMMixin):
         elif valid_iban(account_number):
             self.iban = account_number
         else:
-            print 'Unknown account number:', account_number
+            print('Unknown account number:', account_number)
             return False
 
     @classmethod
@@ -127,7 +128,7 @@ class Account(SqlBase, ORMMixin):
                                 int(account_number[-9:]) ).all()
         else:
             assert account_number
-            print 'Unknown account number:', account_number
+            print('Unknown account number:', account_number)
             return
 
         if len(acc_rs) == 1:
@@ -168,7 +169,7 @@ def get_session(dbref, initialize=False, metadata=SqlBase.metadata):
     metadata.bind = engine
     if initialize:
         metadata.create_all()  # issue DDL create
-        print 'Updated myLedger schema'
+        print('Updated myLedger schema')
     session = sessionmaker(bind=engine)()
     return session
 
@@ -215,6 +216,3 @@ class Simplemovingaverage():
             average = sum( stream ) / streamlength
 
         return average
-
-
-

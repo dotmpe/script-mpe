@@ -32,6 +32,7 @@ Other flags:
     --version     Show version (%s).
 """ % ( __db__, __version__ )
 
+from __future__ import print_function
 from datetime import datetime
 import os
 import re
@@ -77,7 +78,7 @@ def cmd_info(settings):
     try:
         sa = Node.get_session('default', settings.dbref)
         log.std('{magenta} * {bwhite}DB Connection {default}[{green}OK{default}]')
-    except Exception, e:
+    except Exception as e:
         log.std('{magenta} * {bwhite}DB Connection {default}[{red}Error{default}]: %s', e)
 
 def cmd_init(settings):
@@ -128,7 +129,7 @@ def cmd_get(REF, settings):
     #print Node.byKey(dict(cllct_id=REF))
     #print Node.byName(REF)
     Root, nid = Node.init_ref(REF)
-    print Root.fetch_instance(nid, sa=sa)
+    print(Root.fetch_instance(nid, sa=sa))
 
 def cmd_new(NAME, settings):
     sa = Node.get_session('default', settings.dbref)
@@ -155,12 +156,12 @@ def cmd_status(SCHEMA, settings):
     store.init()
 
     for session in Node.sessions:
-        print session
+        print(session)
         for model in schema.models:
             try:
-                print model, model.date_id(None, session)
-            except Exception, e:
-                print e
+                print(model, model.date_id(None, session))
+            except Exception as e:
+                print(e)
 
 
 def cmd_sync(SCHEMA, settings):

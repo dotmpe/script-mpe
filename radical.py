@@ -191,6 +191,7 @@ TODO: domain structure::
 # TODO: Integrate gate content stream
 # TODO: Extend supported comment styles
 # TODO: Scan for other literals, recognize language constructs.
+from __future__ import print_function
 
 import traceback
 import optparse, os, re, sys
@@ -503,7 +504,7 @@ class EmbeddedIssue:
                 issue = tracker.globalize(refId, s)
                 tracker.update(tag.slug, refId, s)
 
-            print refId, issue
+            print(refId, issue)
 
 
 class EmbeddedIssueOld:
@@ -1019,7 +1020,7 @@ def plain_text_flavor(peek, source):
     try:
         peek.decode('ascii')
         return True
-    except UnicodeDecodeError, e:
+    except UnicodeDecodeError as e:
         pass
 
 def get_peek(source):
@@ -1029,7 +1030,7 @@ def get_peek(source):
         if filesize < 1024:
             bytes = filesize
         return open(source).read(bytes)
-    except Exception, e:
+    except Exception as e:
         log.debug("get-peek: %s", e)
 
 
@@ -1050,7 +1051,7 @@ def find_files_with_tag(session, matchbox, paths):
 
         try:
             tag_generator = find_tagged_comments(session, matchbox, source, data)
-        except Exception, e:
+        except Exception as e:
             log.err("Find: %s", e)
             traceback.print_exc()
             tag_generator = None
@@ -1059,9 +1060,9 @@ def find_files_with_tag(session, matchbox, paths):
             try:
                 tag = tag_generator.next()
                 yield tag
-            except StopIteration, e:
+            except StopIteration as e:
                 tag_generator = None
-            except Exception, e:
+            except Exception as e:
                 log.err("Find: %s", e)
                 traceback.print_exc()
 
@@ -1071,7 +1072,7 @@ def get_service(t):
 
 # Optparse callbacks
 def append_comment_scan(option, value, parser):
-    print "TODO comment_scan", (option, value, parser)
+    print("TODO comment_scan", (option, value, parser))
     pass
 
 
@@ -1218,25 +1219,25 @@ class Radical(rsr.Rsr):
 
     def rdc_list_flavours(self, args=None, opts=None):
         for flavour in self.rc.comment_scan:
-            print "%s:\n\tstart:\t%s" % ((flavour,)+
+            print("%s:\n\tstart:\t%s" % ((flavour,)+)
                     tuple(self.rc.comment_scan[flavour][:1]))
             if len(self.rc.comment_scan[flavour]) > 1:
-                print "\tend:\t%s" % self.rc.comment_scan[flavour][1]
+                print("\tend:\t%s" % self.rc.comment_scan[flavour][1])
             print
         return
 
     def rdc_list_scans(self, args, opts):
         for tag in self.rc.tags:
-            print "%s:" % (tag)
+            print("%s:" % (tag))
             if self.rc.tags[tag]:
                 if len(self.rc.tags[tag]) > 0:
-                    print "\tmatch:\t%s" % (self.rc.tags[tag][0] % tag)
+                    print("\tmatch:\t%s" % (self.rc.tags[tag][0] % tag))
                 if len(self.rc.tags[tag]) > 1:
-                    print "\tformat:\t%s" % self.rc.tags[tag][1]
+                    print("\tformat:\t%s" % self.rc.tags[tag][1])
                 if len(self.rc.tags[tag]) > 2:
-                    print "\tindex:\t%s" % self.rc.tags[tag][2]
+                    print("\tindex:\t%s" % self.rc.tags[tag][2])
             else:
-                print "\tmatch:\t(%s)" % tag
+                print("\tmatch:\t(%s)" % tag)
             print
         return
 
@@ -1360,12 +1361,12 @@ class Radical(rsr.Rsr):
         cmt.validate()
         out = EmbeddedIssue.formats[issue_format](cmt, data)
         assert not re.match('[\r\n]', out)
-        print out
+        print(out)
 
     def rdc_info(self, prog, sa):
-        print 'Radical info', prog, sa
+        print('Radical info', prog, sa)
         r = self.execute('rdc_run_embedded_issue_scan')
-        print r
+        print(r)
 
 
 if __name__ == '__main__':

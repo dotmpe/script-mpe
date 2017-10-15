@@ -38,6 +38,7 @@ Options:
     --version     Show version (%s).
 
 """ % ( __db__, __version__ )
+from __future__ import print_function
 from datetime import datetime
 import os
 import re
@@ -97,7 +98,7 @@ def cmd_reset(settings):
     Drop all tables and recreate schema.
     """
     schema.get_session(settings.dbref, metadata=metadata)
-    print "Tables in schema:", ", ".join(metadata.tables.keys())
+    print("Tables in schema:", ", ".join(metadata.tables.keys()))
     if not settings.yes:
         x = raw_input("This will destroy all data? [yN] ")
         if not x or x not in 'Yy':
@@ -119,7 +120,7 @@ def cmd_stats(settings, opts):
             try:
                 log.std("{blue}%s{default}: {bwhite}%s{default}",
                         t, sa.query(metadata.tables[t].count().alias("cnt")).all()[0][0])
-            except Exception, e:
+            except Exception as e:
                 log.err("Count failed for %s: %s", t, e)
         log.std("%i tables, done.", len(metadata.tables))
     else:
@@ -134,7 +135,7 @@ def cmd_stats(settings, opts):
             try:
                 log.std("{blue}%s{default}: {bwhite}%s{default}",
                         m.__name__, sa.query(m).count())
-            except Exception, e:
+            except Exception as e:
                 log.err("Count failed for %s: %s", m, e)
         log.std("%i models, done.", len(models))
 
@@ -154,10 +155,10 @@ def cmd_list(MODEL, ID, settings):
     Model.sessions['default'] = sa
     if ID:
         m = sa.query(Model).filter(Model.id==ID).all()
-        print m
+        print(m)
     else:
         for it in Model.all():
-            print it
+            print(it)
 
 def cmd_show(settings):
     for name, table in metadata.tables.items():
@@ -204,7 +205,7 @@ def cmd_export(settings, opts):
     global metadata
     sa = schema.get_session(settings.dbref, metadata=metadata)
     for m in schema.models:
-        print m
+        print(m)
         # sa.query
 
 

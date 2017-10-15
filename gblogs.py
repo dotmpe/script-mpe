@@ -13,6 +13,7 @@ Options:
                 JSON formatted credentials.
 
 """
+from __future__ import print_function
 import httplib2
 import os
 from pprint import pprint, pformat
@@ -78,12 +79,12 @@ def kwargs(*args):
 def H_list(service, opts):
 
     r = service.blogs().listByUser(userId='self').execute()
-    print r.keys()
+    print(r.keys())
 
     for i in r['items']:
         b = confparse.Values(i)
-        print i.keys()
-        print b.url, b.name
+        print(i.keys())
+        print(b.url, b.name)
 
 
 

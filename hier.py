@@ -145,7 +145,7 @@ def cmd_info(settings):
         try:
             log.std("  {blue}%s{default}: {bwhite}%s{default}",
                     t, sa.query(metadata.tables[t].count()).all()[0][0])
-        except Exception, e:
+        except Exception as e:
             log.err("Count failed for %s: %s", t, e)
 
     # peak memory usage (bytes on OS X, kilobytes on Linux)
