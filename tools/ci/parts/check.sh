@@ -60,3 +60,4 @@ note "box-instance:"
 # Other commands in build #dev phase.
 
 note "Done"
+# Id: script-mpe/0.0.4-dev tools/ci/parts/check.sh

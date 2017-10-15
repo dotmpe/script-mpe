@@ -844,6 +844,22 @@ htd__volumes()
 }
 
 
+htd_man_1__copy='Copy script from other project. '
+htd_spc__copy='copy Sub-To-Script [ From-Project-Checkout ]'
+htd__copy() # Sub-To-Script [ From-Project-Checkout ]
+{
+  test -n "$2" || set -- "$1" $HOME/bin
+  test -e "$2/$1" || {
+    error "No Src $1 at $2" 1
+  }
+  local dir="$(dirname "$1")"
+  test -z "$dir" || mkdir -vp $dir
+  cp $2/$1 $1
+  xsed_rewrite 's/Id:/From:/g' $1
+  echo TODO: git-versioning add $1
+}
+
+
 htd_man_1__pd_init="TODO: Shortcut for pd init"
 htd_spc__pd_init="pd-init"
 htd_run__pd_init=fSm
@@ -994,10 +1010,12 @@ htd__project()
         htd__project exists "$1" && {
           warn "Project '$1' already exists"
         } || true
+
         ( cd "$1"
           htd__git_init_remote &&
           pd add . &&
-          pd update .
+          pd update . &&
+          htd__git_init_version
         ) || return 1
       ;;
 
@@ -3042,6 +3060,38 @@ htd__git_drop_remote()
   ssh_cmd="rm -rf $remote_dir/$repo.git"
   ssh -q $remote_user@$remote_host "$ssh_cmd"
   log "OK, $repo no longer exists"
+}
+
+htd__git_init_version()
+{
+  local readme="$(echo [Rr][Ee][Aa][Dd][Mm][Ee]"."*)"
+
+  test -n "$readme" && {
+    fnmatch "* *" "$readme" && { # Multiple files
+      warn "Multiple Read-Me's ($readme)"
+    } ||
+      note "Found Read-Me ($readme)"
+
+  } || {
+    readme=README.md
+    {
+      echo "Version: 0.0.1-dev" 
+    } >$readme
+    note "Created Read-Me ($readme)"
+  }
+
+  grep -i '\<version\>[\ :=]*[0-9][0-9a-zA-Z_\+\-\.]*' $readme >/dev/null && {
+
+    test -e .versioned-files.list ||
+      echo "$readme" >.versioned-files.list
+  } || {
+
+    warn "no verdoc, TODO: consult scm"
+  }
+
+  # TODO: gitflow etc.
+  git describe ||
+    error "No GIT description, tags expected" 1
 }
 
 
