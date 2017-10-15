@@ -43,4 +43,3 @@ fnmatch "* basename-reg *" "$TEST_COMPONENTS" && {
 
 
 note "Done"
-

@@ -27,6 +27,7 @@ lib_load()
 {
   test -n "$LOG" || exit 102
   local f_lib_load= f_lib_path=
+  # __load_lib: true if inside util.sh:lib-load
   test -n "$__load_lib" || local __load_lib=1
   test -n "$1" || set -- str sys os std stdio src match main argv vc
   while test -n "$1"
@@ -60,10 +61,6 @@ util_boot()
     test -n "$1" || set -- "$__load_mode"
   }
 
-  #test \( -n "$SCRIPTPATH" -o -n "$scriptpath" \) -a -z "$__load_boot" || {
-  #  echo "[~/bin/util.sh] Initializing '$__load_boot' SCRIPTPATH ($*)" >&2
-  #}
-
   export SCRIPTPATH="$(dirname "$0"):$HOME/bin"
 }
 
@@ -89,23 +86,32 @@ util_init()
 case "$0" in
   "-"*|"" ) ;;
   * )
-      test -n "$f_lib_load" || {
+
+      test -n "$f_lib_load" && {
+        # never
+        echo "util.sh assert failed: f-lib-load is set" >&2
+
+      } || {
+
         case "$__load_mode" in
+
           # Setup SCRIPTPATH and include other scripts
           boot|main )
               util_boot "$@"
             ;;
+
         esac
         test -n "$SCRIPTPATH" || {
           util_init
         }
+
+        case "$__load_mode" in
+          load-* ) ;; # External include, do nothing
+          boot )
+              lib_load
+            ;;
+        esac
       }
-      case "$__load_mode" in
-        load-* ) ;; # External include, do nothing
-        boot )
-            lib_load
-          ;;
-      esac
     ;;
 esac
 
