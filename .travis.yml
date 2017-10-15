@@ -49,6 +49,17 @@ script:
   - . ./tools/ci/parts/build.sh
 #- whoami && pwd -P && uname -a && hostname -f && env
 
+after_script:
+  - test -x "$(which tap-json)" || npm install -g tap-json
+  - cat $BUILD_RESULTS | tap-json > $BUILD_RESULTS.json
+  - test -e node_modules/nano || npm install nano
+  - CI_BUILD_RESULTS=$BUILD_RESULTS.json \
+    CI_DB_HOST="$CI_DB_HOST" \
+    CI_DB_INFO="$CI_DB_INFO" \
+    CI_DB_NAME='build-log' \
+    CI_DB_KEY="$TRAVIS_REPO_SLUG" \
+      node ./tools/update-couchdb-testlog.js
+
 #matrix:
 #  include: []
 #
