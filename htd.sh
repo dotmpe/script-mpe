@@ -984,6 +984,64 @@ htd__context()
 }
 
 
+htd__project()
+{
+  test -n "$1" || set -- info
+  test -e /srv/project-local || error "project-local missing" 1
+  case "$1" in
+
+    new ) shift ; test -n "$1" || set -- "$(pwd)"
+        htd__project exists "$1" && {
+          warn "Project '$1' already exists"
+        } || true
+        ( cd "$1"
+          htd__git_init_remote &&
+          pd add . &&
+          pd update .
+        ) || return 1
+      ;;
+
+    exists ) shift ; test -n "$1" || set -- "$(pwd)"
+        test -d "$1" || error "Project directory missing '$1'" 1
+        local name="$(basename "$1")"
+        test -e "/srv/project-local/$name" || {
+          warn "Not a local project: '$name'"
+          return 1
+        }
+      ;;
+
+    scm ) shift ; test -n "$1" || set -- "$(pwd)"
+        test -d "$1" || error "Project directory missing '$1'" 1
+        local name="$(basename "$1")"
+        (
+          cd "$1"
+          vc_getscm || return 1
+
+          # TODO: add remotes, either
+          # bare personal project /srv/<scm>-*/<project>.<scm>
+          # annex checkout /srv/annex-*/<project>
+          # checkout at /src/<site>/<user>/<project> and /srv/project-local
+          echo "/srv/$scm-"*"/$name.$scm" | tr ' ' '\n' | while read p ; do
+            test -e "$p" || continue
+            echo TODO: check for remote $p
+          done
+        )
+      ;;
+
+    check ) shift ; test -n "$1" || set -- "$(pwd)"
+        test -d "$1" || error "Directory expected '$1'" 1
+        htd__srv check-volume "$1" || return 1
+        htd__project exists "$1" || return 1
+        htd__project scm "$1" || return 1
+      ;;
+
+    * ) error "? 'project $*'" 1
+      ;;
+  esac
+}
+
+
+
 htd_man_1__script="Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping of
   scriptnames to script lines. See Htd run and run-names for package scripts. "
 htd_spc__script="script"
@@ -2914,49 +2972,61 @@ htd__git_remote()
   }
 }
 
-htd__git_init_remote()
+htd__git_init_remote() # [ Repo ]
 {
   test -n "$HTD_GIT_REMOTE" || error "No HTD_GIT_REMOTE" 1
   source_git_remote
   [ -n "$1" ] && repo="$1" || repo="$(basename "$(pwd)")"
+
   test -n "$repo" || error "Missing project ID" 1
-
-  ssh_cmd="mkdir -v $remote_dir/$repo.git"
-  ssh $remote_user@$remote_host "$ssh_cmd"
-
   [ -e .git ] || error "No .git directory, stopping remote init" 0
+
+
+  # Create local repo if needed
+
+  BARE=/srv/git-local/$repo.git
+  [ -d $BARE ] || {
+      log "Creating temp. bare clone"
+      git clone --bare . $BARE
+    }
+
+
+  # Remote repo, idem ditto
 
   htd__git_remote $repo >> /dev/null
   test -n "$scp_url" || error "No scp_url" 1
 
-  BARE=../$repo.git
-  TMP_BARE=1
-  [ -d $BARE ] && TMP_BARE= || {
-    [ -d /src/$repo.git ] && {
-      TMP_BARE=
-      BARE=/src/$repo.git
+  ssh_cmd="mkdir -v $remote_dir/$repo.git"
+  ssh $remote_user@$remote_host "$ssh_cmd" && {
+
+    log "Syning new bare repo to $scp_url"
+    rsync -azu $BARE/ $scp_url
+
+  } || {
+
+    warn "Remote exists, adding as remote '$HTD_GIT_REMOTE'"
+  }
+
+
+  # Initialise remotes for checkout
+
+  {
+    echo $HTD_GIT_REMOTE $scp_url
+    echo local $BARE
+    echo $hostname $hostname.zt:$BARE
+  } | while read rt rurl
+  do
+    url="$(git config --get remote.${rt}.url)"
+    test -n "$url" && {
+      test "$rurl" = "$url" || {
+        warn "Local remote '$rt' does not match '$rurl'"
+      }
     } || {
-      log "Creating temp. bare clone"
-      git clone --bare . $BARE
+      git remote add $rt $rurl
+      git fetch $rt
+      log "Added remote $rt $rurl"
     }
-  }
-
-  [ -n "$TMP_BARE" ] || {
-    log "Using existing bare repository to init remote: $BARE"
-  }
-
-  log "Syning new bare repo to $scp_url"
-  rsync -azu $BARE/ $scp_url
-  [ -n "$TMP_BARE" ] && {
-    log "Deleting temp. bare clone ($BARE)"
-    rm -rf $BARE
-  }
-
-  log "Adding new remote, and fetching remote refs"
-  git remote add $HTD_GIT_REMOTE $scp_url
-  git fetch $HTD_GIT_REMOTE
-
-  log "Added remote $HTD_GIT_REMOTE $scp_url"
+  done
 }
 
 htd__git_drop_remote()
@@ -6990,10 +7060,15 @@ htd_man_1__srv='Manage service container symlinks and dirs.
       List service-container names
   -instances
       List unique service-containers (FIXME: ignore local..)
-  -paths
-      List existing volume paths (absolute paths)
+  -vpaths [SUB]
+      List all existing volume paths, or existing SUB paths (all absolute, with sym. parts)
+  -disks [SUB]
+      List all existing volume-ids with mount-point, or existing SUB paths.
+      See -vpaths, except this returns disk/part index and `pwd -P` for each dir.
   find-container-volumes
       List container paths (absolute paths)
+  check-volume Dir
+      Verify Dir as either service-container or entry in one.
   check
   list
   update
@@ -7009,10 +7084,15 @@ htd__srv()
       ;;
 
     -vpaths ) shift
-        for p in /srv/volume-[0-9]*-[0-9]*-*-*/
-        do
+        for p in /srv/volume-[0-9]*-[0-9]*-*-*/ ; do
           htd__name_exists "$p" "$1" || continue
           echo "$p$name"
+        done
+      ;;
+
+    -disks ) shift
+        htd__srv -vpaths "$1" | while read vp ; do 
+          echo $(echo "$vp" | cut -d '-' -f 2-3 | tr '-' ' ') $(cd "$vp" && pwd -P)
         done
       ;;
 
@@ -7024,7 +7104,7 @@ htd__srv()
       ;;
 
     -instances ) shift
-  htd__srv -cnames |
+        htd__srv -cnames |
           grep -v '^\(\(.*-local\)\|volume-\([0-9]*-[0-9]*-.*\)\)$'
       ;;
 
@@ -7040,6 +7120,52 @@ htd__srv()
           htd__name_exists "$p" "$1" || continue
           echo "$p$name"
         done
+      ;;
+
+    check-volume ) shift ; test -n "$1" || error "Directory expected" 1
+        test -d "$1" || error "Directory expected '$1'" 1
+        local name="$(basename "$1")"
+
+        # 1. Check that disk for given directory is also known as a volume ID
+
+        # Match absdir with mount-point, get partition/disk index
+        local abs="$(absdir "$1")"
+        # NOTE: match with volume by looking for mount-point prefix
+        local dvid=$( htd__srv -disks | while read di pi dp ; do 
+            test "$dp" = "/" && p_= || match_grep_pattern_test "$dp";
+            echo "$1" | grep -q "^$p_\/.*" && { echo $di-$pi ; break ; } || continue
+          done )
+
+        #  Get mount-point from volume ID
+        local vp="$(echo "/srv/volume-$dvid-"*)"
+        local mp="$(absdir "$vp")"
+        test -e "$vp" -a -n "$dvid" -a -e "$mp" ||
+            error "Missing volume-link for dir '$1'" 1
+
+        # 2. Check that directory is either a service container, or directly
+        #    below one. Warn, or fail in strict-mode.
+
+        # NOTE: look for absdir among realpaths of /srv/{*,*/*}
+       
+        test "$abs" = "$mp" && {
+          true # /srv/volume-*
+        } || {
+
+          # Look for each SUB element, expect a $name-$dvid symbol
+          local sub="$(echo "$abs" | cut -c$(( 1 + ${#mp} ))-)"
+          for n in $(echo "$sub" | tr '/' ' ') ; do
+            test "$n" = "srv" && continue
+            nl="$(echo "/srv/$n-$dvid-"*)"
+            test -e "$nl" && continue || {
+              # Stop on the last element, or warn
+              test "$n" = "$name" && break || {
+                warn "missing $nl for $n"
+              }
+            }
+          done
+        }
+
+        # 3. Unless silent, warn if volume is not local, or exit in strict-mode
       ;;
 
     check ) shift

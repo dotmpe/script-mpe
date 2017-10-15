@@ -8,6 +8,11 @@ os_lib_load()
   test -n "$uname" || export uname="$(uname)"
 }
 
+absdir()
+{
+  # NOTE: somehow my Linux pwd makes a symbolic path to root into //bin.
+  ( cd "$1" && pwd -P | tr -s '/' '/' )
+}
 
 # Combined dirname/basename to replace .ext(s)
 # pathname PATH EXT...
