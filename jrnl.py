@@ -21,6 +21,7 @@ Model
 __description__ = "journal - "
 __version__ = '0.0.2-dev' # script-mpe
 #__db__ = '~/.journal.sqlite'
+from __future__ import print_function
 import os
 import libcmd
 
@@ -57,19 +58,17 @@ class Jrnl(rsr.Rsr):
                 )
 
     def jrnl_session(self, prog, opts, sa, volume, workspace):
-        print volume.guid
+        print(volume.guid)
         return
         journal = Journal()
         journal = Journal.find(prog.pwd)
         journal.fetch_from_session(sa)
-        print journal
+        print(journal)
         yield dict(journal=journal)
 
     def jrnl_info(self, journal, *args):
-        print 'Journal info:', self, journal, args
+        print('Journal info:', self, journal, args)
 
 
 if __name__ == '__main__':
     Jrnl.main()
-
-

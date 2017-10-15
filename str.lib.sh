@@ -5,7 +5,7 @@ set -e
 
 
 # Set env for str.lib.sh
-str_load()
+str_lib_load()
 {
   case "$(uname)" in
       Darwin )
@@ -31,30 +31,59 @@ str_load()
   #        || ext_sh_sub=0
   #  #debug "Initialized ext_sh_sub=$ext_sh_sub"
   #}
+
+  test -x "$(which php)" &&
+    bin_php=1 || bin_php=0
 }
 
-# ID for simple strings without special characters
+# Web-like ID for simple strings, input can be any series of characters.
+# c='\.\\\/:_' mkid STR
+# Output has alphanumerics, periods, hyphen, underscore, colon and back-/fwd dash
+# Allowed non-hyhen/alphanumeric ouput chars is customized with env 'c'
 mkid()
 {
   test -n "$1" || error "mkid argument expected" 1
-  id=$(printf -- "$1" | tr -sc 'A-Za-z0-9\/:_-' '-' )
+  var_isset c || c='\.\\\/:_'
+  id=$(printf -- "$1" | tr -sc 'A-Za-z0-9'$c'-' '-' )
 }
 
-# to filter strings to variable id name
+# Variable-like ID for any series of chars, only alphanumerics and underscore
+# mkvid STR
 mkvid()
 {
   test -n "$1" || error "mkvid argument expected" 1
-	vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
-	# Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
+  trueish "$upper" && {
+    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'a-z' 'A-Z')
+    return
+  }
+  falseish "$upper" && {
+    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'A-Z' 'a-z')
+    return
+  }
+  vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
+  # Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
 }
 
-mkcid()
+# A lower- or upper-case mkid variant with only alphanumerics and hypens.
+# upper= mkcid STR
+# Produces ID's for env vars or maybe a issue tracker system.
+# TODO: introduce a snake+camel case variant for Pretty-Tags or Build_Vars?
+# For real pretty would want lookup for abbrev. Too complex so another function.
+mksid()
 {
   test -n "$1" || error "mkcid argument expected" 1
-  cid=$(printf -- "$1" | tr 'A-Z' 'a-z' | tr -sc 'a-z0-9' '-')
-  #  cid=$(echo "$1" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9-]/-/g')
+  var_isset c || c=_
+  test -n "$upper" && {
+    trueish "$upper" &&
+      mkid "$(printf -- "$1" | tr 'a-z' 'A-Z')"
+    falseish "$upper" &&
+      mkid "$(printf -- "$1" | tr 'A-Z' 'a-z')"
+  } ||
+    mkid "$(printf -- "$1" )"
+  sid="$id"
 }
 
+# A either args or stdin STR to lower-case pipeline element
 str_upper()
 {
   test -n "$1" \
@@ -62,6 +91,7 @@ str_upper()
     || { cat - | tr 'a-z' 'A-Z'; }
 }
 
+# Counter-part to str-upper
 str_lower()
 {
   test -n "$1" \
@@ -69,27 +99,10 @@ str_lower()
     || { cat - | tr 'A-Z' 'a-z'; }
 }
 
+# XXX: deprecate in favor of fnmatch/case X in Y expressions?
 str_match()
 {
-	expr "$1" : "$2" >/dev/null 2>&1 || return 1
-}
-
-str_contains()
-{
-	test -n "$uname" || exit 214
-	case "$uname" in
-        "" )
-            err "No uname set" 1
-            ;;
-		Linux )
-			test 0 -lt $(expr index "$1" "/") || return 1
-			;;
-		Darwin )
-			err "TODO" 1
-			echo expr "$1" : "$2"
-			expr "$1" : "$2"
-			;;
-	esac
+  expr "$1" : "$2" >/dev/null 2>&1 || return 1
 }
 
 str_replace_start()
@@ -125,6 +138,15 @@ str_replace_back()
     }
 }
 
+
+# Trim end off Str by Len chars
+str_trim_end() # Str Len [Start]
+{
+  test -n "$3" || set -- "$1" "$2" 1
+  echo "$1" | cut -c$3-$(( ${#1} - $2 ))
+}
+
+
 str_replace()
 {
     test -n "$1" || err "replace-subject" 1
@@ -138,8 +160,13 @@ str_replace()
         match_grep_pattern_test "$2"
         local find=$p_
         match_grep_pattern_test "$3"
-        echo "$1" | sed "s/$find/$p_/g"
+        echo "$1" | sed "s/$find/$p_/"
     }
+}
+
+str_strip_rx()
+{
+  echo "$2" | sed "s/$1//"
 }
 
 # x-platform regex match since Bash/BSD test wont chooche on older osx
@@ -205,28 +232,67 @@ var2tags()
 {
   echo $(for varname in $@
   do
-    local value="$(eval echo "\$$varname")" \
-      pretty_var=$(echo $varname | tr '_' '-')
+    local value="$(eval printf \"\$$varname\")"
     test -n "$value" || continue
-    falseish "$value" && {
-      printf "!$pretty_var "
-    } || {
-      trueish "$value" && {
-        printf "$pretty_var "
-      } || {
-        printf "$pretty_var=\"$value\" "
-      }
-    }
+    pretty_print_var "$varname" "$value"
   done)
 }
 
-# Read properties file and re-escape for shell
+# Read properties file and re-format (like mkvid) for shell use
 properties2sh()
 {
-  awk 'BEGIN { FS = "=" } ;
-      { if (NF<2) next;
-      gsub(/[^a-z0-9]/,"_",$1) ;
-      print $1"="$2 }' $1
+  # NOTE: AWK oneliner to transforms keys for '=' separated kv list, leaving the
+  # value exactly as is.
+  awk '{ st = index($0,"=") ;
+      key = substr($0,0,st-1) ;
+      gsub(/[^a-z0-9]/,"_",key) ;
+      print key "=" substr($0,st+1) }' $1
+
+  # NOTE: This works but it splits at every equals sign
+  #awk 'BEGIN { FS = "=" } ;
+  #    { if (NF<2) next;
+  #    gsub(/[^a-z0-9]/,"_",$1) ;
+  #    print $1"="$2 }' $1
+}
+
+# Take some Propertiesfile compatible lines, strip/map the keys prefix and
+# reformat them as mkvid for use in shell script export/eval/...
+sh_properties()
+{
+  test -n "$1" || error "sh-properties expects args: '$*'" 1
+  test -e "$2" || error "sh-properties file" 1
+  # NOTE: Always be carefull about accidentally introducing newlines, will give
+  # hard-to-debug syntax failures here or in the local evaluation
+  read_nix_style_file $1 | grep '^'"$2" | sed 's/^'"$2"'/'"$3"'/g' | properties2sh -
+}
+
+# A simple string based key-value lookup with some leniency and translation convenience
+# property PREFIX SUBST KEYS...
+property()
+{
+  test -n "$1" || error "property expects props: '$*'" 1
+  local props="$1" prefix="$2" subst="$3" vid=
+  local tmpf=$(setup_tmpf)
+  sh_properties "$1" "$2" "$3" > $tmpf
+  shift 3
+  test -z "$subst" || mkvid "$subst"
+  (
+    . $tmpf
+    rm $tmpf
+    while test -n "$1"
+    do
+      local __key= __value=
+      test -n "$vid" && __key=${vid}$1 || __key=$1
+      __value="$(eval printf -- \"\$$__key\")"
+#      __value="$(cat <<EOM
+#\$$__key
+#EOM
+#      )"
+      shift
+      test -n "$__value" || continue
+      print_var "$__key" "$__value"
+    done
+  )
 }
 
 # write line or header+line with key/value pairs (sh, csv, tab, or json format)
@@ -286,4 +352,36 @@ resolve_prefix_element()
   echo "$2" | sed "s/^\\([^$3]*\\)$3.*$/\\1/"
 }
 
+column_layout()
+{
+  test -n "$colw" || local colw=22
+  local cols=$(( $(tput cols) / $colw ))
+  while read line
+  do
+    printf -- "$line\t"
+    for i in $(seq $(( $cols - 1 )) )
+    do
+      read line
+      printf -- "$line\t"
+    done
+    printf "\n"
+  done |
+    column -t
+}
 
+str_title()
+{
+  # Other ideas to test as ucwords:
+  # https://stackoverflow.com/questions/12420317/first-character-of-a-variable-in-a-shell-script-to-uppercase
+  trueish "$bin_php" && {
+    trueish "$first_word_only" &&
+      php -r "echo ucfirst('$1');" ||
+      php -r "echo ucwords('$1');"
+  } || {
+    trueish "$first_word_only" && {
+      echo "$1" | awk '{ print toupper(substr($0, 1, 1)) substr($0, 2) }'
+    } || {
+      first_word_only=1 str_title "$(echo "$1" | tr ' ' '\n')" | tr '\n' ' '
+    }
+  }
+}

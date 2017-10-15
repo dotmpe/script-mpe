@@ -101,7 +101,7 @@ gv_init()
 
   uname=$(uname)
 
-  box_src_lib gv
+  box_lib gv
 }
 
 # Init stage 1: Preload libraries
@@ -189,6 +189,5 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   esac ;;
 esac
-
 
 

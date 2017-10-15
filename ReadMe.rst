@@ -1,7 +1,7 @@
 script.mpe
 ==========
 :Version: 0.0.4-dev
-:Updated: 2017-03-20
+:Updated: 2017-10-11
 
 
 Build-status
@@ -31,10 +31,10 @@ Prerequisites
 
 ::
 
-  git@github.com:dotmpe/google-chrome-htdocs.git
+  git@github.com:bvberkum/google-chrome-htdocs.git
 
 
-.. _user-conf: https://github.com/dotmpe/user-conf
+.. _user-conf: https://github.com/bvberkum/user-conf
 
 
 
@@ -47,18 +47,27 @@ Testing
 See also `.travis.yml`.
 
 
+Documentation
+-------------
+Install sitefile::
+
+  npm install sitefile
+  cd .../script-mpe
+  sitefile
+
+Surf to sitefile service, default is `localhost:4500`__.
+
+.. __: http://localhost:4500
+
+
 Other documents
 ---------------
 - `Change Log <ChangeLog.rst>`_
 - `Bugs <Bugs.rst>`_
-- `Documentation <doc/>`_
+- `Dev Docs <doc/dev.rst>`_
+- `Other Documentation <doc/>`_
 
-
-Dev
----
-- Maybe look at dispatch_ a bit, a run-subcmd handler in 48 lines Bash.
 
 
 .. _dispatch: https://github.com/Mosai/workshop/blob/master/doc/dispatch.md
-
 

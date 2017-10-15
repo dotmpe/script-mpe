@@ -34,8 +34,9 @@ vc__commands()
 {
   echo 'Commands'
   echo '  status             TODO'
-  echo 'TODO: consolidate '
-  echo '  ls-gitroots        List all GIT checkouts (roots only) below the current dir.'
+  echo '  ls-trees           Find all SCM checkouts below the current dir '
+  echo '                     (roots only, set recurse to list nested checkous).'
+  echo '  ls-nontree         Find any path not included in a checkout. '
   echo '  list-submodules    '
   echo '  list-prefixes      '
   echo '  list-subrepos      XXX: List all repositories below, excluding submodules. '
@@ -108,24 +109,28 @@ vc__help()
 {
   echo "$base/$version - Reports on SCM state, build short description. "
   echo
-  vc_usage
-  echo
-  echo "Default command: "
-  echo "  $scriptname (print-all) [PATH...]"
-  echo
-  echo "For example to be embedded in PS1: "
-  echo "  $scriptname ps1"
-  echo
-  echo "Tokens:"
-  echo "  *      modified"
-  echo "  +      stage"
-  echo "  $      stash"
-  echo "  ~      untracked"
-  echo "  #      no HEAD"
-  echo "  GIT_DIR!:  "
-  echo "  BARE:  "
-  echo ''
-  vc__docs
+  test -z "$1" && {
+    vc_usage
+    echo
+    echo "Default command: "
+    echo "  $scriptname (print-all) [PATH...]"
+    echo
+    echo "For example to be embedded in PS1: "
+    echo "  $scriptname ps1"
+    echo
+    echo "Tokens:"
+    echo "  *      modified"
+    echo "  +      stage"
+    echo "  $      stash"
+    echo "  ~      untracked"
+    echo "  #      no HEAD"
+    echo "  GIT_DIR!:  "
+    echo "  BARE:  "
+    echo ''
+    vc__docs
+  } || {
+    echo_help $1
+  }
 }
 
 vc__docs()
@@ -174,50 +179,12 @@ homepath()
 # u: '~'
 #
 
-__vc_bzrdir()
-{
-  local cwd="$(pwd)"
-  (
-    cd "$1"
-    root=$(bzr info 2> /dev/null | grep 'branch root')
-    if [ -n "$root" ]; then
-      echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
-    fi
-  )
-}
-
-__vc_scmdir()
-{
-  __vc_gitdir "$1" || {
-    __vc_bzrdir "$1" || {
-      __vc_svndir "$1" || {
-        __vc_hgdir "$1" ||
-          error "SCM-dir" 1
-      }
-    }
-  }
-}
-
-# __vc_gitdir accepts 0 or 1 arguments (i.e., location)
-# echo absolute location of .git repo, return
-# be silent otherwise
-__vc_gitdir()
-{
-  test -n "$1" || set -- $(pwd -P)
-  test -d "$1/.git" && {
-    echo "$1/.git"
-  } || (
-    cd "$1" || return 2
-    git rev-parse --git-dir 2>/dev/null || return 1
-  )
-}
-
 # checkout dir
 # for regular checkouts, the parent dir
 # for modules, one level + prefix levels higher
 __vc_git_codir()
 {
-  git="$(__vc_gitdir "$1")"
+  git="$(vc_gitdir "$1")"
 
   fnmatch "*/.git" "$git" \
     || while true
@@ -234,7 +201,7 @@ __vc_git_codir()
 __vc_git_flags()
 {
   test -n "$1" || set -- "$(pwd)"
-  g="$(__vc_gitdir "$1")"
+  g="$(vc_gitdir "$1")"
   if [ -e "$g" ]
   then
     test "$(echo $g/refs/heads/*)" != "$g/refs/heads/*" || {
@@ -375,8 +342,8 @@ __vc_status()
   short="$(homepath "$1")"
   test -n "$short" || err "homepath" 1
 
-  local git="$(__vc_gitdir "$realcwd")"
-  local bzr=$(__vc_bzrdir "$realcwd")
+  local git="$(vc_gitdir "$realcwd")"
+  local bzr=$(vc_bzrdir "$realcwd")
 
   if [ -n "$git" ]; then
 
@@ -441,7 +408,7 @@ __vc_screen ()
   realcwd="$(pwd -P)"
   short=$(homepath "$1")
 
-  local git=$(__vc_gitdir "$1")
+  local git=$(vc_gitdir "$1")
   if [ "$git" ]; then
 
     test "$(echo $git/refs/heads/*)" != "$git/refs/heads/*" || {
@@ -468,8 +435,8 @@ __vc_screen ()
 __vc_pull ()
 {
   cd "$1"
-  local git=$(__vc_gitdir)
-  local bzr=$(__vc_bzrdir)
+  local git=$(vc_gitdir)
+  local bzr=$(vc_bzrdir)
   if [ "$git" ]; then
     git pull;
   else if [ "$bzr" ]; then
@@ -482,8 +449,8 @@ __vc_pull ()
 __vc_push ()
 {
   cd "$1"
-  local git=$(__vc_gitdir)
-  local bzr=$(__vc_bzrdir)
+  local git=$(vc_gitdir)
+  local bzr=$(vc_bzrdir)
   if [ "$git" ]; then
     git push origin master;
   else if [ "$bzr" ]; then
@@ -567,7 +534,6 @@ __vc_gitrepo()
         git config remote.$remote.url | sed -E '
           s/^.*:([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+)(\.git)?$/\1\/\2/'
       ;;
-
     * )
         error "Illegal vc gitrepo method '$1'" 1
       ;;
@@ -577,33 +543,69 @@ __vc_gitrepo()
 
 list_gitpaths()
 {
-  d=$1
-  [ -n "$d" ] || d=.
-  note "Starting find in '$d', this may take a bit initially.."
-  find $d -iname .git -not -ipath '*.git/*' | while read gitpath mode
-  do
-    test -n "$gitpath" -a "$gitpath" != ./.git \
-      && echo $gitpath
-  done
+  test -n "$1" && d=$1 || d=.
+  find $d -type d -iname .git -print -prune
 }
 
-vc_ls_gitroots()
+# List checkouts below dir. Normally stops at any SCM root, unless recurse=true
+vc__ls_trees()
 {
-  list_gitpaths $1 | while read gitpath
-  do dirname $gitpath
-  done
+  test -n "$1" || set -- .
+  trueish "$recurse" && {
+    # NOTE: This recurse causes SVN to yield just about every dir below it
+    find $1 \
+      -type d -a \( \
+        -iname '*.svn*' -prune -o \
+        -iname '*.bzr*' -prune -o \
+        -iname '*.git*' -prune -o \
+        -iname '*.hg*'  -prune \
+      \) -o -type d -a \( \
+        -exec test -d "{}/.bzr" \; -o \
+        -exec test -d "{}/.git" \; -o \
+        -exec test -d "{}/.hg" \; -o \
+        -exec test -d "{}/.svn" \; \
+      \) -a -print
+  } || {
+    find $1 \
+      -type d -a \( \
+        -iname '*.svn*' -prune -o \
+        -iname '*.bzr*' -prune -o \
+        -iname '*.git*' -prune -o \
+        -iname '*.hg*'  -prune \
+      \) -o -type d -a \( \
+        -exec test -d "{}/.bzr" \; -prune -o \
+        -exec test -d "{}/.git" \; -prune -o \
+        -exec test -d "{}/.hg" \;  -prune  -o \
+        -exec test -d "{}/.svn" \; -prune \
+      \) -a -print
+  }
 }
 
-vc_ls_errors()
+# List paths not included in a checkout. Usefull to find and deal wti hstray files
+vc__ls_nontree()
+{
+  find $d \
+    -type d -a \( \
+      -iname '*.svn*' -prune -o \
+      -iname '*.bzr*' -prune -o \
+      -iname '*.git*' -prune -o \
+      -iname '*.hg*'  -prune -o \
+      -exec test -d "{}/.bzr" \; -prune -o \
+      -exec test -d "{}/.git" \; -prune -o \
+      -exec test -d "{}/.hg" \;  -prune  -o \
+      -exec test -d "{}/.svn" \; -prune \
+    \) -a -prune -o -print
+}
+
+vc__ls_errors()
 {
   list_gitpaths $1 | while read gitpath
   do
-    [ -d "$gitpath" ] && {
-      git_info $gitpath > /dev/null || {
+    { ( cd "$(dirname $gitpath)" && git status > /dev/null ) || {
         error "in info from $gitpath, see previous."
       }
     } || {
-      gitdir=$(__vc_gitdir $(dirname $gitpath))
+      gitdir=$(vc_gitdir $(dirname $gitpath))
       echo $gitdir | grep -v '.git\/modules' > /dev/null && {
         # files should be gitlinks for submodules
         warn "for  $gitpath, see previous. Broken gitlink?"
@@ -639,7 +641,7 @@ vc__bits()
 vc__flags()
 {
   test -n "$1" || set -- "$(pwd)"
-  scmdir="$(basename "$(__vc_scmdir "$1")")"
+  scmdir="$(basename "$(vc_scmdir "$1")")"
   case "$scmdir" in
     .git )
         echo "$scmdir$(__vc_git_flags "$1" || return $?)"
@@ -741,18 +743,9 @@ vc__prompt_command()
 vc__list_submodules()
 {
   test -n "$spwd" || error spwd-12 12
-  git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
-  do
-    smpath=$ppwd/$prefix
-    test -e $smpath/.git || {
-      warn "Not a submodule checkout '$prefix' ($spwd/$prefix)"
-      continue
-    }
-    note "Submodule '$prefix' ($spwd/$prefix)"
-    echo "$prefix"
-  done
-  #git submodule | cut -d ' ' -f 2
+  vc_git_submodules
 }
+
 
 vc_man_1__gh="Clone from Github to subdir, adding as submodule if already in checkout. "
 vc_spc__gh="gh <repo> [<prefix>]"
@@ -886,22 +879,10 @@ vc__excluded() { vc__untracked_files "$@"; }
 vc__untracked_files()
 {
   test -z "$1" || error "unexpected arguments" 1
-  test -n "$spwd" || error spwd-13 13
 
-  # list paths not in git (including ignores)
-  git ls-files --others --dir || return $?
-
-  vc__list_submodules | while read prefix
-  do
-    smpath=$ppwd/$prefix
-    cd "$smpath"
-    ppwd=$smpath spwd=$spwd/$prefix \
-      vc__excluded \
-          | grep -Ev '^\s*(#.*|\s*)$' \
-          | sed 's#^#'"$prefix"'/#'
-  done
-
-  cd "$ppwd"
+  local scm= scmdir=
+  vc_getscm
+  vc_untracked
 }
 
 # List untracked paths. Unversioned files excluding ignored/excluded
@@ -909,21 +890,10 @@ vc__uf() { vc__unversioned_files "$@"; }
 vc__unversioned_files()
 {
   test -z "$1" || error "unexpected arguments" 1
-  test -n "$spwd" || error spwd-14 14
 
-  # list cruft (not versioned and not ignored)
-  git ls-files --others --exclude-standard || return $?
-
-  vc__list_submodules | while read prefix
-  do
-    smpath=$ppwd/$prefix
-    cd "$smpath"
-    ppwd=$smpath spwd=$spwd/$prefix \
-      vc__unversioned_files | grep -Ev '^\s*(#.*|\s*)$' \
-          | sed 's#^#'"$prefix"/'#'
-  done
-
-  cd "$ppwd"
+  local scm= scmdir=
+  vc_getscm
+  vc_unversioned
 }
 
 # List (untracked) cleanable files
@@ -979,7 +949,7 @@ vc__annex_unused()
 
 vc__annex_show_unused()
 {
-  c_annex_unused | while read num key
+  vc__annex_unused | while read num key
   do
     echo "GIT log for '$key'"
     git log --stat -S"$key"
@@ -990,7 +960,7 @@ vc__annex_clear_unused()
 {
   test -z "$1" && {
     local cnt
-    cnt="$(c_annex_unused | tail -n 1 | cut -f 1 -d ' ')"
+    cnt="$(vc_annex_unused | tail -n 1 | cut -f 1 -d ' ')"
     vc__annex_unused | while read num key
     do
       echo $num $key
@@ -1081,7 +1051,7 @@ vc__list_prefixes()
 vc__list_subrepos()
 {
   local cwd=$(pwd) prefixes=$(setup_tmpf .prefixes)
-  basedir="$(dirname "$(__vc_gitdir "$1")")"
+  basedir="$(dirname "$(vc_gitdir "$1")")"
   test -n "$1" || set -- "."
 
   cd "$basedir"
@@ -1106,6 +1076,7 @@ vc__list_subrepos()
 #    git submodule foreach 'for remote in "$(git remote)"; do echo $remote; git
 #    config remote.$remote.url  ; done'
 }
+
 
 vc__projects()
 {
@@ -1149,7 +1120,7 @@ vc__list_local_branches()
   local pwd=$(pwd)
   test -z "$1" || cd "$1"
   # use git output, replace asterix and spaces
-  git branch --list | sed -E 's/\*|[[:space:]]//g'
+  git show-ref --heads | cut -c53-
   test -z "$1" || cd "$pwd"
 }
 
@@ -1169,6 +1140,53 @@ vc__list_all_branches()
     sort -u
   test -z "$1" || cd "$pwd"
 }
+
+# List branches
+vc__branch_refs()
+{
+  test -n "$1" || error "branch name required" 1
+  local ret= failed=
+  git show-ref --verify -q "refs/heads/$1" && { echo "refs/heads/$1" ; ret=0 ; } || { ret=1; }
+  test -n "$2" && {
+    test "$2" != "*" || set -- "$(git remote)"
+  } || set -- "$@" origin
+  local branch="$1";
+  shift
+  while test -n "$1"
+  do
+    git show-ref --verify -q "refs/remotes/$1/$branch" && {
+      echo "refs/remotes/$1/$branch"
+    } || {
+      test "$r" = "0" -o "$r" = "2" || r=2
+    }
+    shift
+  done
+  return $r
+}
+
+# List branches
+vc__branches()
+{
+  #git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
+  git for-each-ref --format='%(refname:short)' refs/heads
+}
+
+# Check wether the literal ref exists, ie:
+# - named branches: refs/heads/*
+# - remote branches: refs/remote/<remote>/*
+vc__ref_exists()
+{
+  git show-ref --verify -q "$1" || return $?
+}
+
+# Check wether branch name exists somewhere
+vc__branch_exists()
+{
+  vc__ref_exists "refs/heads/$1" && return
+  vc__ref_exists "refs/remotes/$1" && return
+  return 1
+}
+
 
 # regenerate .git/info/exclude
 # NOTE: a duplication is happening, but not no recursion, only one. As
@@ -1288,22 +1306,22 @@ vc__annex_local()
 # refs/remote/<remote>/ prefix)
 vc__git_ref_exists()
 {
-	git show-ref --verify -q "$1" || return $?
+  git show-ref --verify -q "$1" || return $?
 }
 
 # Check for local or remote branch name
 vc__git_branch_exists()
 {
-	vc__git_ref_exists "refs/heads/$upstream" && return
-	vc__git_ref_exists "refs/remotes/$upstream" && return
-	return 1
+  vc__git_ref_exists "refs/heads/$upstream" && return
+  vc__git_ref_exists "refs/remotes/$upstream" && return
+  return 1
 }
 
 # List branches
 vc__git_branches()
 {
-	#git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
-	git for-each-ref --format='%(refname:short)' refs/heads
+  #git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
+  git for-each-ref --format='%(refname:short)' refs/heads
 }
 
 # Run over UP/DOWN-stream branchname pairs and show info:
@@ -1312,58 +1330,58 @@ vc__git_branches()
 # - for feature branches wether they are merged upstream and can be deleted
 vc__gitflow()
 {
-	case "$1" in
-		check|chk )
-				test -z "$3" || error "surplus argument '$3'" 1
-				test -n "$2" || set -- "$1" gitflow.tab
-				test -e "$2" || error "missing gitflow file" 1
-				note "Reading from '$2'"
-				read_nix_style_file "$2" | while read upstream downstream isfeature
-				do
-					test -n "$upstream" -a -n "$downstream" || continue
-					test -n "$upstream" || error "Missing upstream $downstream"
-					test -n "$downstream" || error "Missing downstream $upstream"
-					test -n "$isfeature" || isfeature=true
+  case "$1" in
+    check|chk )
+        test -z "$3" || error "surplus argument '$3'" 1
+        test -n "$2" || set -- "$1" gitflow.tab
+        test -e "$2" || error "missing gitflow file" 1
+        note "Reading from '$2'"
+        read_nix_style_file "$2" | while read upstream downstream isfeature
+        do
+          test -n "$upstream" -a -n "$downstream" || continue
+          test -n "$upstream" || error "Missing upstream $downstream"
+          test -n "$downstream" || error "Missing downstream $upstream"
+          test -n "$isfeature" || isfeature=true
 
-					vc__git_branch_exists "refs/heads/$upstream" || {
-						error "$non_branch_err '$upstream $downstream $isfeature'" &&
-							continue
-					}
+          vc__git_branch_exists "refs/heads/$upstream" || {
+            error "$non_branch_err '$upstream $downstream $isfeature'" &&
+              continue
+          }
 
-					vc__git_branch_exists "refs/heads/$downstream" || {
-						error "$non_branch_err '$upstream $downstream $isfeature'" &&
-							continue
-					}
+          vc__git_branch_exists "refs/heads/$downstream" || {
+            error "$non_branch_err '$upstream $downstream $isfeature'" &&
+              continue
+          }
 
-					new_at_up=$(echo $(git log --oneline $downstream..$upstream | wc -l))
-					new_at_down=$(echo $(git log --oneline $upstream..$downstream | wc -l))
-					m="$(git merge-base $upstream $downstream)"
+          new_at_up=$(echo $(git log --oneline $downstream..$upstream | wc -l))
+          new_at_down=$(echo $(git log --oneline $upstream..$downstream | wc -l))
+          m="$(git merge-base $upstream $downstream)"
 
-					test "$m" = "$(git rev-parse $upstream)" -o "$m" = "$(git rev-parse $downstream)" && {
-						echo "ok: $upstream - $downstream"
-					} || {
-						echo "diverged: $upstream .. $downstream"
-					}
-					test $new_at_down -eq 0 && {
-						trueish "$isfeature" && {
-							echo "downstream '$downstream' has no commits and could be removed"
-						} || noop
-					} ||
-						echo "$new_at_down commits '$upstream' <- '$downstream' "
+          test "$m" = "$(git rev-parse $upstream)" -o "$m" = "$(git rev-parse $downstream)" && {
+            echo "ok: $upstream - $downstream"
+          } || {
+            echo "diverged: $upstream .. $downstream"
+          }
+          test $new_at_down -eq 0 && {
+            trueish "$isfeature" && {
+              echo "downstream '$downstream' has no commits and could be removed"
+            } || noop
+          } ||
+            echo "$new_at_down commits '$upstream' <- '$downstream' "
 
-					test $new_at_up -eq 0 ||
-						echo "$new_at_up commits '$upstream' -> '$downstream' "
-				done
-				for branch in $(vc__git_branches)
-				do
-					grep -qF "$branch" "$2" ||
-						error "Missing gitflow for '$branch'"
-				done
-			;;
-		* )
-				error "? '$1'"
-			;;
-	esac
+          test $new_at_up -eq 0 ||
+            echo "$new_at_up commits '$upstream' -> '$downstream' "
+        done
+        for branch in $(vc__git_branches)
+        do
+          grep -qF "$branch" "$2" ||
+            error "Missing gitflow for '$branch'"
+        done
+      ;;
+    * )
+        error "? '$1'"
+      ;;
+  esac
 }
 vc__gf()
 {
@@ -1481,6 +1499,203 @@ vc_als__gf=gitflow
 
 
 
+vc_man_1__conflicts='Show current merge conflicts
+
+    list | ls
+      List conflicted filenames (using GIT diff)
+    shoft | diff
+      List source lines for each current merge conflict (all files).
+    stat | stats
+      List start/end line and total lines for merge conflicts (all files).
+    diff-file [filename]
+      Print source lines of all conflicts in file to stdout.
+    stat-file [filename]
+      Print start/end and other numbers per conflict found in file to stdout.
+    show-for-marker <filename> <marker-line-nr>
+      Show source lines at stdout, and stats on stderr.
+      Set env `source=false` to silence.
+'
+vc__conflicts()
+{
+  test -n "$1" || set -- list
+  case "$1" in
+
+    list|ls )
+        git diff --name-only --diff-filter=U
+      ;;
+
+    stat|stats )
+        vc__conflicts list | while read filename
+        do
+          vc__conflicts stat-file $filename
+        done
+      ;;
+
+    show|diff )
+        vc__conflicts list | while read filename
+        do
+          vc__conflicts -show-lines-for-file $filename
+        done
+      ;;
+
+    count ) shift
+        vc__conflicts list | while read filename
+        do
+          note "$filename: $( vc__conflicts count-file $filename ) conflicts"
+        done
+      ;;
+
+    count-file ) shift
+        test -f "$1" && local filename=$1 || error "Filename expected" 1
+        grep -n '^=======$' $filename | count_lines
+      ;;
+
+    stat-file ) shift
+        test -f "$1" && local filename=$1 || error "Filename expected" 1
+        grep -n '^=======$' $filename | cut -d ':' -f 1 | while read middle_lnr
+        do
+          vc__conflicts -find-for-marker "$filename" $middle_lnr || continue
+          vc__conflicts -stat-for-marker-env
+        done
+      ;;
+
+    show-file | diff-file | -show-lines-for-file ) shift
+        test -f "$1" && local filename=$1 || error "Filename expected" 1
+        note "Conflicts in $filename"
+        grep -n '^=======$' $filename | cut -d ':' -f 1 | while read middle_lnr
+        do
+          source=true vc__conflicts show-for-marker "$filename" $middle_lnr ||
+            continue
+        done
+      ;;
+
+    show-for-marker ) shift
+        test -f "$1" && local filename=$1 || error "Filename expected" 1
+        vc__conflicts -find-for-marker "$@" || return
+        vc__conflicts -show-for-marker-env
+      ;;
+
+    -find-for-marker ) shift
+        # NOTE: Use the middle marker as starting point, this may give
+        # problems in a few cases just warn and continue if no start/end
+        # is found beyond/before the previous/next end/start marker line.
+
+        test -f "$1" && local filename=$1 || error "Filename expected" 1
+        test -n "$2" || error "Marker line expected" 1
+        start= line=$(( $2 - 1 ))
+
+        while test $line -gt 0
+        do
+          source_line $filename $line | grep -q '^<<<<<<<.*$' && {
+            start=$line
+            break
+          } || {
+
+            # dont cross another conflict-marker
+            source_line $filename $line |
+              grep -q '^\(=======\|>>>>>>>.*\)$' &&
+              break
+
+            line=$(( $line - 1 ))
+          }
+        done
+
+        test -n "$start" ||
+          return 1
+
+        end= filelen=$(count_lines $filename)
+        line=$(( $2 + 1 ))
+        while test $line -le $filelen
+        do
+          source_line $filename $line | grep -q '^>>>>>>>.*' && {
+            end=$(( $line + 1 ))
+            break
+          } || {
+
+            # dont cross another conflict-marker
+            source_line $filename $line |
+              grep -q '^\(=======\|<<<<<<<.*\)$' &&
+              break
+
+            line=$(( $line + 1 ))
+          }
+        done
+
+        test -n "$end" || {
+          warn "Start/Middle but no end found at $filename:$2 (start: $1)"
+          return 1
+        }
+      ;;
+
+    -show-for-marker-env )
+        test -n "$diff" || local diff=/tmp/vc-conflicts.$(get_uuid)
+        { source_lines $filename $start $end ||
+            error "source'ing source from $filename $start-$end" 1
+        } | { trueish "$source" &&
+                { tee $diff || error "tee'ing $diff" 1; } ||
+                { cat > $diff; }
+        }
+        note "$filename: $start - $end ($middle_lnr): $( count_lines $diff ) lines"
+      ;;
+
+    -stat-for-marker-env )
+        local diff=/tmp/vc-conflicts.$(get_uuid)
+        source=false vc__conflicts -show-for-marker-env
+        echo "$filename:$start-$end:middle=$middle_lnr:line_count=$( count_lines $diff )"
+      ;;
+
+    * ) error "? '$1'" 1 ;;
+  esac
+}
+
+
+vc__checkout()
+{
+  test -n "$vc_sync" || vc_sync=0
+  test -d "$vc_dir" && note "Running SCM $act for '$vc_dir'" || error vc-dir 1
+  (
+    test "$(pwd -P)" = "$vc_dir" || cd $vc_dir
+    test -n "$1" || set -- "$(git rev-parse --abbrev-ref HEAD)" "$2"
+    test -n "$2" || set -- "$1" "$vc_rt_def"
+    git checkout "$1" || return $?
+    git pull "$2" "$1" || return $?
+    trueish "$vc_sync" && {
+      git push "$2" "$1" || return $?
+    }
+  )
+}
+
+
+vc_man_1__cleanup_local='Remove local branches not in gitflow'
+vc__cleanup_local()
+{
+  git show-ref --heads | cut -c53- | while read branch ; do
+    grep -F "$branch" gitflow.tab ||
+        git branch -d $branch
+  done
+}
+
+vc__sync()
+{
+  test -n "$vc_rebase" || vc_rebase=0
+  test -n "$vc_force" || vc_force=0
+  trueish "$vc_rebase" && update=rebase || update=pull
+  trueish "$vc_force" %% push_f=-f || push_f=
+  local current_branch="$(git rev-parse --abbrev-ref HEAD)"
+  git show-ref --heads | cut -c53- | while read branch ; do
+    git remote | while read remote ; do
+      git checkout $branch ||
+        warn "Checkout $branch failed" 1
+      git $update $remote $branch && {
+        git push $push_f $remote $branch
+      } || {
+        warn "Rebase on $remote/$branch failed" 1
+      }
+    done
+  done
+  git checkout $current_branch
+}
+
 
 # ----
 
@@ -1502,6 +1717,7 @@ vc_main()
             pwd=$(pwd -P) ppwd=$(pwd) spwd=.
 
         export SCRIPTPATH=$scriptpath
+        test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
         . $scriptpath/util.sh load-ext
 
         test -n "$verbosity" || verbosity=5
@@ -1510,7 +1726,7 @@ vc_main()
             failed= \
             ext_sh_sub=
 
-        lib_load str match main std stdio sys os src
+        lib_load str match main std stdio sys os src vc
 
         type $func >/dev/null 2>&1 && {
           shift 1
@@ -1533,8 +1749,8 @@ vc_main()
       ;;
 
     * )
-      echo "VC is not a frontend for $base ($scriptname)" 2>&1
-      exit 1
+        echo "VC is not a frontend for $base ($scriptname)" 2>&1
+        exit 1
       ;;
 
   esac
@@ -1551,9 +1767,12 @@ vc_load()
   test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
   test -n "$uname" || uname=$(uname)
 
+  test -n "$vc_dir" || vc_dir=$scriptpath
+  test -n "$vc_rt_def" || vc_rt_def=origin
+
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
 
-  gtd="$(__vc_gitdir "$cwd")"
+  gtd="$(vc_gitdir "$cwd")"
 
   test -n "$vc_clean_gl" || {
     test -e .gitignore-clean \
@@ -1631,20 +1850,14 @@ vc_unload()
 
 # Ignore login console interpreter
 case "$0" in "" ) ;; "-"* ) ;; * )
+  test -n "$f_lib_load" || {
+    __load_mode=main . ~/bin/util.sh
+    test "$1" = "$__load_mode" ||
+      set -- "$__load_mode" "$@"
 
-  # Ignore 'load-ext' sub-command
-
-  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux. But it
-  # maybe Darwin/BSD sh is relaying to bash instead?
-
-  # fix using another mechanism:
-  test -n "$__load_lib" || {
     case "$1" in
-      load-ext ) ;;
-      * )
-          vc_main "$@"
-        ;;
-    esac; } ;;
+      main ) shift ; vc_main "$@" ;;
+    esac
 
+  } ;;
 esac
-

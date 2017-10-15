@@ -8,7 +8,7 @@ from nose_parameterized import parameterized
 
 import deep_eq
 from script_mpe import confparse
-from script_mpe import util
+from script_mpe import libcmd_docopt
 import jsotk, jsotk_lib
 
 
@@ -184,7 +184,7 @@ class JsotkTest(unittest.TestCase):
 
         infile = StringIO('{"foo":[{"bar":null}]}')
         ctx = confparse.Values(dict(
-            opts=util.get_opts(jsotk.__usage__, argv=['path', '', pathexpr])
+            opts=libcmd_docopt.get_opts(jsotk.__usage__, argv=['path', '', pathexpr])
         ))
 
         self.assertEquals( ctx.opts.args.pathexpr, pathexpr )
@@ -208,4 +208,3 @@ def get_cases():
 
 if __name__ == '__main__':
     unittest.main()
-

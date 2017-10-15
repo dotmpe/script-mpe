@@ -65,6 +65,7 @@ Model::
   Would like to create function for local (project specific) todo management.
 
 """ % ( __db__, __version__ )
+from __future__ import print_function
 from datetime import datetime
 import os
 import re
@@ -72,7 +73,7 @@ import hashlib
 from pprint import pformat
 
 import log
-import util
+import libcmd_docopt
 from taxus import Node
 from taxus.util import ORMMixin, ScriptMixin, get_session
 from res import js
@@ -165,7 +166,7 @@ def print_Task(task):
 
 def indented_tasks(indent, sa, settings, roots):
     for task in roots:
-        print indent,
+        print(indent,)
         print_Task(task)
         indented_tasks(indent+'  ', sa, settings,
             sa.query(Task).filter(Task.partOf_id == task.task_id).all())
@@ -176,7 +177,7 @@ def indented_tasks(indent, sa, settings, roots):
 def cmd_info(settings):
     """
     """
-    print pformat(settings.todict())
+    print(pformat(settings.todict()))
 
 def cmd_list(settings):
     sa = get_session(settings.dbref)
@@ -342,8 +343,8 @@ def cmd_ungroup(ID, settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -357,15 +358,13 @@ def main(opts):
     settings = opts.flags
     values = opts.args
 
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'todo.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-

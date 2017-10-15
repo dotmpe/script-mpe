@@ -3,10 +3,11 @@
 load helper
 load vc
 base=vc.sh
+
 init
 
-
-setup() {
+setup()
+{
   . ./$base load-ext
   . ./util.sh load-ext
   lib_load os sys str std match
@@ -74,11 +75,11 @@ setup() {
   test $status -ne 0 \
     || fail "${status}"
   
-  git remote add origin git@github.com:dotmpe/script-mpe.git
+  git remote add origin git@github.com:bvberkum/script-mpe.git
   run __vc_gitrepo
   test $status -eq 0 \
     || fail "__vc_gitrepo ret ${status}, lines: ${lines[@]}"
-  test "${lines[@]}" = "dotmpe/script-mpe" \
+  test "${lines[@]}" = "bvberkum/script-mpe" \
     || fail "${lines[@]}"
 }
 

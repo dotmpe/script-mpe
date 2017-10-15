@@ -18,9 +18,10 @@ Other flags:
     --version     Show version (%s).
 
 """ % ( __version__ )
+from __future__ import print_function
 from pprint import pformat
 
-import util
+import libcmd_docopt
 
 
 
@@ -29,7 +30,7 @@ import util
 def cmd_info(opts):
     """
     """
-    print pformat(opts.todict())
+    print(pformat(opts.todict()))
 
 
 def cmd_import(opts):
@@ -64,7 +65,7 @@ def cmd_import(opts):
         file, line = line[:p], line[p+1:]
         p = line.index(':')
         linenr, line = line[:p], line[p+1:]
-        print pformat(dict(
+        print(pformat(dict()
            basedir=basedir,
            local_ctx_id=local_ctx_id,
            file=file,
@@ -76,8 +77,8 @@ def cmd_import(opts):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -91,13 +92,12 @@ def main(opts):
     settings = opts.flags
     values = opts.args
 
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'todo-meta.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit(main(opts))
-

@@ -72,7 +72,7 @@ list__mk_targets()
 
 get_nodes()
 {
-  fixed_table_hd $node_tab ID PREFIX CORE BOARD DEFINES
+  fixed_table $node_tab ID PREFIX CORE BOARD DEFINES
 }
 
 # Build/upload image for arg1:nodeid reading from $node_tab

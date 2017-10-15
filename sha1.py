@@ -22,4 +22,3 @@ if __name__ == '__main__':
     path = argv.pop()
     voldir = find_volume( path )
     store = SHA1Store( voldir )
-

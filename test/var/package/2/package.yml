@@ -1,0 +1,7 @@
+
+# No ID and only one section, but main given. Main is used as ID.
+
+- type: application/vnd.dotmpe.project
+  main: this-is-the-id
+
+

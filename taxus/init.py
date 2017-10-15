@@ -8,8 +8,8 @@ from sqlalchemy.engine import Engine
 
 import zope.interface
 
-import log
-from confparse import yaml_load, Values
+from script_mpe import log
+from script_mpe.confparse import yaml_load, Values
 from . import iface
 from . import out
 

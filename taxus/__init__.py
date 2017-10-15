@@ -180,17 +180,21 @@ from . import fs
 from . import fslayout
 from . import generic
 from . import net
+from . import ns
 from . import web
 from . import semweb
 
 from .init import SqlBase
 from .util import SessionMixin, ScriptMixin, ORMMixin, get_session
 from .core import *
+from .hier import *
 from .net import *
+from .ns import *
 from .code import *
 from .fs import *
 from .fslayout import *
-from .model import Namespace, Relocated, Volume, Bookmark
+from .web import *
+from .model import Relocated, Volume, Bookmark
 from .htd import TNode, JournalEntry
 
 

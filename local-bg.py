@@ -35,6 +35,7 @@ API:
         - Use to pass exit code back from client to query method.
 
 """
+from __future__ import print_function
 import os, sys
 
 #from twisted.python.log import startLogging
@@ -45,7 +46,7 @@ from twisted.internet.defer import Deferred
 from twisted.internet.endpoints import UNIXClientEndpoint
 from twisted.internet import reactor
 
-from script_mpe import util
+from script_mpe import libcmd_docopt
 from script_mpe.confparse import Values
 
 
@@ -71,18 +72,18 @@ class QueryProtocol(LineOnlyReceiver):
             self.transport.loseConnection()
 
         elif line == ("? %s" % self.cmd):
-            print >>err, "Command not recognized:", self.cmd
+            print("Command not recognized:", self.cmd, file=err)
             self.factory.ctx.rs = 2
 
         elif line.startswith('! '):
             self.factory.ctx.rs = int(line.split(' ')[2])
 
         elif line.startswith('!! '):
-            print >>err, "Exception running command:", self.cmd
+            print("Exception running command:", self.cmd, file=err)
             self.factory.ctx.rs = 1
 
         else:
-            print line
+            print(line)
 
     def connectionLost(self, reason):
         self.whenDisconnected.callback(None)
@@ -96,7 +97,7 @@ def query(ctx):
     """
 
     if not ctx.opts.argv:
-        print >>ctx.err, "No command %s" % ctx.opts.argv[0]
+        print("No command %s" % ctx.opts.argv[0], file=ctx.err)
         return 1
 
     address = FilePath(ctx.opts.flags.address)
@@ -115,7 +116,7 @@ def query(ctx):
     def succeeded(client):
         return client.whenDisconnected
     def failed(reason):
-        print >>ctx.err, "Could not connect:", reason.getErrorMessage()
+        print("Could not connect:", reason.getErrorMessage(), file=ctx.err)
     def disconnected(ignored):
         reactor.stop()
 
@@ -153,7 +154,7 @@ class ServerProtocol(LineOnlyReceiver):
         ctx.out = Values(dict( write=write ))
 
         if not ctx.opts.cmds:
-            print >>ctx.err, "No subcmd", line
+            print("No subcmd", line, file=ctx.err)
             self.sendLine("? %s" % line)
 
         elif ctx.opts.cmds[0] == 'exit':
@@ -170,7 +171,7 @@ class ServerProtocol(LineOnlyReceiver):
                     self.sendLine("! %s: %i" % (func, r))
                 else:
                     self.sendLine("%s OK" % line)
-            except Exception, e:
+            except Exception as e:
                 self.sendLine("!! %r" % e)
 
         self.transport.loseConnection()
@@ -185,7 +186,7 @@ def prerun(ctx, cmdline):
     """
 
     argv = cmdline.split(' ')
-    ctx.opts = util.get_opts(ctx.usage, argv=argv)
+    ctx.opts = libcmd_docopt.get_opts(ctx.usage, argv=argv)
 
 def postrun(ctx):
 
@@ -221,6 +222,3 @@ def serve(ctx, handlers, prerun=prerun, postrun=postrun):
 
     port = reactor.listenUNIX(address.path, serverFactory)
     reactor.run()
-
-
-

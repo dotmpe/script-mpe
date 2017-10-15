@@ -31,9 +31,10 @@ Other flags:
 
 """ % ( __version__ )
 import os
+from __future__ import print_function
 from pprint import pformat
 
-import util
+import libcmd_docopt
 
 import twitter
 
@@ -84,7 +85,7 @@ def get_args(opts):
 def cmd_info(opts):
     """
     """
-    print commands.keys()
+    print(commands.keys())
     #print pformat(opts.todict())
     for methodName in dir(opts.api):
         attr = getattr(opts.api, methodName)
@@ -179,13 +180,13 @@ def cmd_lists_destroy(opts):
 
 
 def cmd_check_rate_limit(opts):
-    print opts.api.CheckRateLimit(opts.args.url)
+    print(opts.api.CheckRateLimit(opts.args.url))
 
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -201,14 +202,12 @@ def main(opts):
     if opts.flags.cache_timeout != 60:
         opts.api.SetCacheTimeout(opts.flags.cache_timeout)
 
-    return util.run_commands(commands, opts.flags, opts)
+    return libcmd_docopt.run_commands(commands, opts.flags, opts)
 
 def get_version():
     return 'twitter-meta.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit(main(opts))
-
-

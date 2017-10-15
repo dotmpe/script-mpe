@@ -4,21 +4,23 @@ load helper
 base=projectdir-meta
 
 init
+
 setup()
 {
-  . $lib/util.sh
+  . ./tools/sh/init.sh
+  lib_load projectenv env-deps
 }
 
-@test "${bin}" "default no-args" {
-  run $BATS_TEST_DESCRIPTION
+@test "${bin} - default no-args" {
+  run $bin
   test ${status} -eq 1
 }
 
 
 @test "${bin} help" {
-  run $BATS_TEST_DESCRIPTION
+  run $bin help
   test ${status} -eq 1
-  fnmatch "Usage:*" "${lines[*]}"
+  fnmatch "Usage:"* "${lines[*]}"
 }
 
 

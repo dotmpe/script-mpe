@@ -7,7 +7,7 @@ For each comment a record with a generated ID and digest is kept.
 Comments without ID may match by identity to an existing record,
 or are inserted as new records.
 
-The identity is determined by SHA1 sum. Each record is stored once, 
+The identity is determined by SHA1 sum. Each record is stored once,
 ie. all recorded digests are distinct, unique values. The same restriction
 applies to the numeric ID.
 
@@ -26,6 +26,7 @@ File Changelog
 
 """
 
+from __future__ import print_function
 import hashlib
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
@@ -69,16 +70,16 @@ def comment(dbsession, comment, numid=None):
         # no match, insert
         new_comment = Comment(comment=comment, comment_hash=comment_hash)
         session.add(new_comment)
-        print new_comment.numid
+        print(new_comment.numid)
         return new_comment.numid
 
 
-def new_issue(tag, description):
+def get(iid): pass
+
+def new(tag, o):
 # TODO
-    print ('New', tag, description,)
+    print('New', tag, o, end='')
 
-def update_issue(tag, iid, description):
+def update(tag, iid, o):
 # TODO
-    print ('Updated', tag, iid, description,)
-
-
+    print('Updated', tag, iid, o)

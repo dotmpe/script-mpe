@@ -15,12 +15,6 @@ type noop >/dev/null 2>&1 || {
 }
 
 
-main_load()
-{
-  return 0
-}
-
-
 # Count arguments consumed
 incr_c()
 {
@@ -38,8 +32,11 @@ try_help()
     help="$( try_value $2 man_$1 $b || continue )"
     test -n "$help" || continue
     spec="$( try_value $2 spc $b || printf "" )"
-    test -n "$spec" || spec="$2"
-    printf -- "$ $base $2\n\t$help\nUsage:\n\t$base $spec\n"
+    test -n "$spec" && {
+      printf -- "$ $base $2\n\t$help\nUsage:\n\t$(eval echo "\"$base $spec\"")\n"
+    } || {
+      printf -- "$ $base $2\n\t$help\n"
+    }
     return
   done
   return 1
@@ -66,13 +63,13 @@ echo_help()
   return 1
 }
 
-# try_local subcmd [property [base]]
+# echo_local subcmd [property [base]]
 # echos variable or function name
-try_local()
+echo_local()
 {
   test -n "$2" -o -n "$1" || return
   # XXX: box-*
-  test -n "$box_prefix" || box_prefix=$(mkvid $base ; echo $vid)
+  test -n "$box_prefix" || box_prefix=$(upper=0 mkvid $base  && echo $vid)
   test -n "$3" || set -- "$1" "$2" "$box_prefix"
   test -z "$1" || set -- " :$1" "$2" "$3"
   test -z "$2" || set -- "$1" "$2" "$3:"
@@ -81,15 +78,15 @@ try_local()
 
 try_value()
 {
-  local value="$(eval echo "\$$(try_local "$@")")"
+  local value="$(eval echo "\"\$$(echo_local "$@")\"")"
   test -n "$value" || return 1
-  echo $value
+  echo "$value"
 }
 
 try_local_var()
 {
   test -n "$1" || error "var" 1
-  local value="$(eval echo "\$$(try_local "$2" "$3" "$4")")"
+  local value="$(eval echo "\$$(echo_local "$2" "$3" "$4")")"
   test -n "$value" && {
     export $1="$value"
   } || return $?
@@ -116,7 +113,9 @@ try_func()
 
 try_local_func()
 {
-  try_func $(try_local "$@") || return $?
+  test -n "$DEBUG" ||
+    debug "try-local-func '$*' ($(echo_local "$@"))"
+  try_func $(echo_local "$@") || return $?
 }
 
 get_subcmd_func()
@@ -128,16 +127,13 @@ get_subcmd_func()
     }
     set -- "$subcmd"
   }
-  #test -n "$subcmd" || error "get-subcmd-func $subcmd" 1
-
-  # Look in local and std namespace
+  test -n "$1" || error "get-subcmd-func $subcmd" 1
 
   local subcmd_default= b=
-
-  for b in "" std
+  for b in $base std
   do
+    # Look for subcmd ($1) in each namespaces
     set -- "$1" "" "$b"
-
     try_local_func "$@" || {
       # Try command alias
       try_local_var cmd_als $1 als $b
@@ -148,10 +144,11 @@ get_subcmd_func()
     }
 
     try_local_func "$@" && {
-      subcmd_func="$(try_local "$@")"
+      subcmd_func="$(echo_local "$@")"
       return
     }
   done
+  return 1
 }
 
 
@@ -176,7 +173,7 @@ try_subcmd()
         ( try_local_func usage || try_local_func usage '' std ) && {
           $func_name
         }
-        error "No such command: $subcmd" 1
+        error "No such command: $subcmd ($func_name)" 1
       } || {
         error "Command $subcmd returned $e" $e
       }
@@ -202,8 +199,11 @@ std__help()
   } || {
 
     # Specific help (subcmd, maybe file-format other doc, or a TODO: group arg)
-    echo "Usage: "
-    echo "  $base $(try_spec $1) "
+    spc="$(try_spec $1)"
+    test -n "$spc" && {
+      echo "Usage: "
+      echo "  $base $spc"
+    }
     printf "Help '$1': "
     echo_help "$1" || error "no help '$1'"
   }
@@ -222,7 +222,12 @@ std__usage()
 
 std__commands()
 {
-  test -n "$1" || set -- "$0" "$box_lib"
+  test -n "$1" || set -- "$1" "$@"
+  test -n "$2" || {
+    locate_name $base
+    box_lib "$fn"
+    test -n "$box_lib" && set -- "$0" "$box_lib"
+  }
 
   # group commands per file, using sentinal line to mark next file
   local list_functions_head="# file=\$file"
@@ -280,10 +285,10 @@ std__commands()
       test -n "$lcmd" || lcmd="-"
       #spc="* $lcmd ($lcwd)"
       spc="* $lcmd "
-      descr="$(eval echo "\$${subcmd_func_pref}man_1__$func_name")"
+      descr="$(eval echo \"\$${subcmd_func_pref}man_1__$func_name\")"
     else
-      spc="$(eval echo "\$${subcmd_func_pref}spc__$func_name")"
-      descr="$(eval echo "\$${subcmd_func_pref}man_1__$func_name")"
+      spc="$(eval echo \"\$${subcmd_func_pref}spc__$func_name\")"
+      descr="$(eval echo \"\$${subcmd_func_pref}man_1__$func_name\")"
     fi
     test -n "$spc" || spc=$(echo $func_name | tr '_' '-' )
     test -n "$descr" || {
@@ -291,7 +296,9 @@ std__commands()
         descr="$(func_comment $subcmd_func_pref$func_name $file)"
       } || noop
     }
-
+    test -n "$descr" || descr=".." #  TODO: $func_name description"
+	fnmatch *?"\n"?* "$descr" &&
+	    descr="$(printf -- "$descr" | head -n 1)"
     test ${#spc} -gt 20 && {
       printf "  %-18s\n                      %-50s\n" "$spc" "$descr"
     } || {
@@ -317,12 +324,12 @@ std__version()
 # :fn
 locate_name()
 {
-  local name=
-  [ -n "$1" ] && name=$1 || name=$scriptname
-  [ -n "$name" ] || error "script name required" 1
-  fn=$(which $name)
-  [ -n "$fn" ] || fn=$(which $name.sh)
-  [ -n "$fn" ] || return 1
+  test -n "$1" || set -- "$scriptname" "$2"
+  test -n "$2" || set -- "$1" .sh
+  test -n "$1" || error "locate-name: script name required" 1
+  fn="$(which "$1")"
+  test -n "$fn" || fn="$(which "$1$2")"
+  test -n "$fn" && export fn || return 1
 }
 
 parse_subcmd_valid_flags()
@@ -348,9 +355,24 @@ get_cmd_alias()
 {
   try_local_var $1_alias $(echo "$2" | tr '-' '_') als \
     || try_local_var $1_alias $(echo "$2" | tr '-' '_') als std
+}
 
-#  local func_pref="$(eval echo \$${1}_func_pref)"
-#  export ${1}_alias=$(eval echo \$${func_pref}als
+main_options_v()
+{
+  while test -n "$1"
+  do
+    case "$1" in
+      --yaml ) format_yaml=1 ;;
+      --interactive ) choice_interactive=1 ;;
+      --non-interactive ) choice_interactive=0 ;;
+      * ) trueish "$define_all" && {
+          define_var_from_opt "$1"
+        } || {
+          error "unknown option '$1'" 1
+        };;
+    esac
+    shift
+  done
 }
 
 parse_box_subcmd_opts()
@@ -570,7 +592,7 @@ main_unload()
   for b in "$1" "std"
   do
     try_local_func "" "unload" "$b" && {
-      $(try_local "" unload $b) || return $?
+      $(echo_local "" unload $b) || return $?
     } || continue
     return
   done
@@ -623,6 +645,7 @@ run_subcmd()
 
   main_init
 
+
   #func_exists ${base}_parse_subcmd_args
 
   test -n "$box_prefix" || box_prefix=$(mkvid $base; echo $vid)
@@ -646,7 +669,7 @@ run_subcmd()
     test -z "$subcmd" && {
       error 'No command given' 1
     } || {
-      error "No such command: $subcmd" 2
+      error "No such command: $subcmd ($base)" 2
     }
   }
 
@@ -690,17 +713,6 @@ daemon()
   done
 }
 
-#trueish()
-#{
-#  test -n "$1" || return 1
-#  case "$1" in
-#		[Oo]n|[Tt]rue|[Yy]es|1)
-#      return 0;;
-#    * )
-#      return 1;;
-#  esac
-#}
-
 
 
 # TODO: retrieve leading/trailing X lines, truncate to Y length
@@ -728,5 +740,3 @@ stat_key()
   mkvid "$(pwd)"
   export $1_key="$hnid:${base}-${subcmd}:$vid"
 }
-
-

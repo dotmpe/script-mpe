@@ -27,12 +27,13 @@ Other flags:
     --version     Show version (%s).
 """ % ( __db__, __version__ )
 
+from __future__ import print_function
 from datetime import datetime
 import os
 import re
 
 import log
-import util
+import libcmd_docopt
 import reporter
 import taxus
 from taxus.init import SqlBase, get_session
@@ -69,13 +70,13 @@ def cmd_info(settings):
     try:
         sa = Node.get_session('default', settings.dbref)
         log.std('{magenta} * {bwhite}DB Connection {default}[{green}OK{default}]')
-    except Exception, e:
+    except Exception as e:
         log.std('{magenta} * {bwhite}DB Connection {default}[{red}Error{default}]: %s', e)
 
 def cmd_list(settings):
     sa = Node.get_session('default', settings.dbref)
     for t in Node.all():
-        print t, t.date_added, t.date_updated
+        print(t, t.date_added, t.date_updated)
 
 def cmd_get(REF, settings):
 
@@ -103,8 +104,8 @@ def cmd_new(NAME, settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -118,14 +119,14 @@ def main(opts):
     settings = opts.flags
     opts.default = 'info'
 
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'node.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     if opts.flags.schema:
         schema = __import__(os.path.splitext(opts.flags.schema)[0])
         metadata = schema.SqlBase.metadata
@@ -136,6 +137,3 @@ if __name__ == '__main__':
     else:
         opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-
-

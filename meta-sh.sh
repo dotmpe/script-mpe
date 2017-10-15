@@ -84,9 +84,10 @@ meta_sh_man_1__help="Echo a combined usage and command list. With argument, seek
 meta_sh_spc__help='-h|help [ID]'
 meta_sh__help()
 {
-  #std__help meta_sh "$@"
-  base=meta_sh \
-  choice_global=1 std__help "$@"
+  (
+    base=meta_sh \
+      choice_global=1 std__help "$@"
+  )
 }
 meta_sh_als___h=help
 
@@ -117,11 +118,12 @@ meta_sh_als___E=edit-main
 meta_sh__main()
 {
   local scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
-  meta_sh_init || return 0
+  meta_sh_init || return $?
 
   local scriptname=meta-sh base=$(basename $0 .sh) verbosity=5
 
-  case "$base" in $scriptname )
+  case "$base" in
+    $scriptname )
 
         local subcmd_def=info \
           subcmd_pref= subcmd_suf= \
@@ -131,6 +133,11 @@ meta_sh__main()
 
         # Execute
         run_subcmd "$@"
+      ;;
+
+
+    * )
+        error "not a frontend for $base ($scriptname)" 1
       ;;
 
   esac

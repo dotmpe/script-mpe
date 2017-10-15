@@ -2,6 +2,7 @@
 """
 tq - open
 """
+from __future__ import print_function
 import os
 import sys
 
@@ -33,17 +34,12 @@ for ref in edl_d.readlines():
         line_offs_cmnt_span = parse_span(line_offs_cmnt_span)
 
     if descr_span:
-        print 'Description:', data[slice(*[ i-1 for i in descr_span ])]
+        print('Description:', data[slice(*[ i-1 for i in descr_span ])])
     elif line_offs_descr_span:
         pass
     elif cmnt_span:
-        print 'Comment:', data[slice(*[ i-1 for i in descr_span ])]
+        print('Comment:', data[slice(*[ i-1 for i in descr_span ])])
     elif line_offs_cmnt_span:
         pass
     else:
-        print ref
-
-
-
-
-
+        print(ref)

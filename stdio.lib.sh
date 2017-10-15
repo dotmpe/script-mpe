@@ -3,7 +3,7 @@
 # stdio.lib.sh: additional io for shell scripts
 
 
-stdio_load()
+stdio_lib_load()
 {
   return 0
 }
@@ -17,14 +17,10 @@ setup_io_paths()
   fnmatch "*/*" "$1" && error "Illegal chars" 12
   for io_name in $(try_value inputs) $(try_value outputs)
   do
-    # TODO: test conditional set to allow user-override, but should audit
-    # for recursive calls (ie. shell vars inheritance)
-    #test -n "$(eval echo \$$io_name)" || {
-      tmpname=$(setup_tmpf .$io_name $1)
-      touch $tmpname
-      eval $io_name=$tmpname
-      unset tmpname io_name
-    #}
+    tmpname=$(setup_tmpf .$io_name $1)
+    touch $tmpname
+    eval $io_name=$tmpname
+    unset tmpname io_name
   done
 }
 
@@ -55,15 +51,6 @@ close_io_descrs()
   done
 }
 
-# opt-args: helper to filter options for arguments
-opt_args()
-{
-  for arg in $@
-  do fnmatch "-*" "$arg" && echo "$arg" >>$options || echo $arg >>$arguments
-  done
-}
-
-
 # clean-failed - Deprecated.
 # Given $failed pointing to a path, cleanup after a run, observing
 # any notices and returning 1 for failures.
@@ -81,7 +68,7 @@ clean_failed()
       }
     }
     test ! -e "$failed" || rm $failed
-    unset failed
+    unset failed count
     return 1
   }
 }
@@ -107,11 +94,20 @@ clean_io_lists()
     count=0 path="$(eval echo \$$1)"
     test -s "$path" && {
       count="$(count_lines $path)"
+      # Create appropiate human readable abbreviated string for failures stream
+      # FIXME:clean-io-lists output cleaning
+      #eval ${1}_abbrev="fail"
+      #eval ${1}_abbrev="'$(tail -n 1 $path ) and $(( $count - 1 )) more'"
       test $count -gt 2 && {
-        eval ${1}_abbrev="'$(echo $(sort -u $path | head -n 3 )) and $(( $count - 3 )) more'"
+        export ${1}_abbrev="$(tail -n 1 $path ) and $(( $count - 1 )) more"
+        #eval ${1}_abbrev="'$(tail -n 1 $path )) and $(( $count - 1 )) more'"
         #rotate-file $failed .failed
       } || {
-        eval ${1}_abbrev="'$(echo $(sort -u $path | lines_to_words ))'"
+        #echo eval ${1}_abbrev="'$(echo $(sort -u $path | lines_to_words ))'"
+        #cat $path
+        #eval ${1}_abbrev="'$(tail -n 1 $path )'"
+        export ${1}_abbrev="$(tail -n 1 $path )"
+        #cat $path | lines_to_words )"
         #rm $1
       }
     }
@@ -221,7 +217,6 @@ std_errored_rule()
     }
 }
 
-
 std_io_report()
 {
   local std_io_report_result=0
@@ -231,5 +226,3 @@ std_io_report()
   done
   return $std_io_report_result
 }
-
-

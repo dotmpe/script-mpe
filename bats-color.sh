@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Powerline fonts
+# Powerline fonts codepoints for test OK check and NOT-OK cross mark
 #  ✓  ok green/grey
 #  ✗  error red white
 #
@@ -29,4 +29,4 @@ do
 
 done
 
-
+# tasks-ignore-file

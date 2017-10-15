@@ -1,33 +1,35 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# This is sandbox vagrant from user-conf-mpe (private). 
+VBOX_LOCAL = ENV['VBOX_LOCAL'] ||= 'script-mpe-test'
+VBOX_DOMAIN = ENV['VBOX_DOMAIN'] ||= 'local'
+
+# This is sandbox vagrant adapted from user-conf-mpe (private). 
 # See how far it goes as testing bed for script-mpe.
 Vagrant.configure("2") do |config|
 
-  # The most common configuration options are documented and commented below.
-  # For a complete reference, please see the online documentation at
-  # https://docs.vagrantup.com.
-
-  # Every Vagrant development environment requires a box. You can search for
-  # boxes at https://atlas.hashicorp.com/search.
   config.vm.box = "ubuntu/trusty64"
 
-  #config.vm.network :forwarded_port, guest: 22, host: 2222, id: "ssh", disabled: true
-  config.vm.network :forwarded_port, guest: 22, host: 1026, auto_correct: true
+  config.vm.hostname = "#{VBOX_DOMAIN}.#{VBOX_DOMAIN}"
 
-  config.vm.hostname = "trusty64-sandbox-mpe"
-
-  config.vm.provider :virtualbox do |vb|
-    vb.name = 'script-mpe-test-spec.trusty64-sandbox-mpe'
+  config.vm.define "#{VBOX_LOCAL}" do |vbox_local|
   end
 
-  config.vm.provider "virtualbox" do |v|
+  config.vm.provider :virtualbox do |v|
     v.gui = false
+    v.name = "vagrant-vbox-trusty64-script-mpe__#{VBOX_LOCAL}_#{VBOX_DOMAIN}"
+    # Enough for some shell and service testing
     v.memory = 512
     v.cpus = 2
     v.customize ["modifyvm", :id, "--cpuexecutioncap", "50"]
   end
+
+  # Create a forwarded port mapping which allows access to a specific port
+  # within the machine from a port on the host machine. In the example below,
+  # accessing "localhost:8080" will access port 80 on the guest machine.
+  # config.vm.network "forwarded_port", guest: 80, host: 8080
+
+  config.vm.network :forwarded_port, guest: 22, host: 1026, auto_correct: true
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
@@ -37,6 +39,17 @@ Vagrant.configure("2") do |config|
   # Bridged networks make the machine appear as another physical device on
   # your network.
   #config.vm.network "public_network", :bridge => ENV['bridge_interface']
+  config.vm.network "public_network", :bridge => ENV['bridge_interface']
+
+  # Share an additional folder to the guest VM. The first argument is
+  # the path on the host to the actual folder. The second argument is
+  # the path on the guest to mount the folder. And the optional third
+  # argument is a set of non-required options.
+
+  config.vm.synced_folder "~/bin", "/home/vagrant/bin"
+
+  # Local env (tokens, secrets)
+  config.vm.synced_folder "~/.local/etc", "/home/vagrant/.local/etc"
 
   #config.vm.synced_folder "/srv/project-local", "/home/vagrant/project"
   config.vm.synced_folder "/srv/htdocs-local", "/home/vagrant/htdocs"
@@ -48,21 +61,28 @@ Vagrant.configure("2") do |config|
   #   push.app = "YOUR_ATLAS_USERNAME/YOUR_APPLICATION_NAME"
   # end
 
+  # Copy files into VM
   config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "/home/vagrant/.ssh/id_rsa.pub"
   config.vm.provision "file", source: "~/.ssh/id_rsa", destination: "/home/vagrant/.ssh/id_rsa"
-  config.vm.provision "file", source: "~/.ssh/brix-id_rsa.pub", destination: "/home/vagrant/.ssh/brix-id_rsa.pub"
 
+  # Run provisioning scripts, one as root, and then finish as vagrant user
+  #
   config.vm.provision "shell", inline: <<-SHELL
 
-    set -e
+    set -xe
+
+    echo "Updating APT packages.."
+
+    export DEBIAN_FRONTEND=noninteractive
 
     apt-get update
     apt-get install -y \
-      sudo vim git uuid-runtime tree tidy pv curl wget build-essential \
+      sudo vim git uuid-runtime realpath tree tidy pv curl wget build-essential \
       python-dev python-yaml graphviz \
-      nodejs npm python-docutils git-annex
+      nodejs npm python-docutils git-annex \
+      moreutils
     apt-get autoclean
-    apt-get autoremove
+    apt-get autoremove -y
 
     npm install -g npm
     npm cache clean -f
@@ -85,16 +105,19 @@ Vagrant.configure("2") do |config|
 
     which pip >/dev/null || { cd /tmp/ && { test -e get-pip.py || wget https://bootstrap.pypa.io/get-pip.py; } && python get-pip.py; }
     pip uninstall -y zope.interface || printf ""
+
+    cd /home/vagrant/bin
     pip install -r requirements.txt
     pip install -r test-requirements.txt
 
-    echo "Provisioned as: $(whoami), ($SHELL, $TERM)"
+    echo "Provisioned system for: $(whoami), ($SHELL, $TERM)"
   SHELL
 
 
   $script = <<-SCRIPT
 
-    set -e
+    set -xe
+    # User setup script
 
     test -e ~/.ssh/vagrant-id.pub || {
       cp ~/.ssh/authorized_keys ~/.ssh/vagrant-id.pub
@@ -104,9 +127,10 @@ Vagrant.configure("2") do |config|
 
     test -e ~/bin || {
       ssh-keyscan github.com >> ~/.ssh/known_hosts
-      git clone git@github.com:dotmpe/script-mpe ~/bin
+      git clone git@github.com:bvberkum/script-mpe ~/bin
     }
     cd ~/bin/;git pull
+    sudo pip install -r requirements.txt
 
     test -e ~/.conf || {
       ssh-keyscan ssh.pcextreme.nl >> ~/.ssh/known_hosts
@@ -115,29 +139,39 @@ Vagrant.configure("2") do |config|
     cd ~/.conf/;git pull
 
 
-    sudo sh -c "cp /home/vagrant/.ssh/id_* /home/vagrant/.ssh/known_* /root/.ssh/"
-    sudo npm install -g coffee-script
-    sudo npm install -g dotmpe/node-sitefile\#f_gv
 
     mkdir -vp ~/project
 
     cd ~/.conf
     git pull origin master
-    test -e install/$(hostname).u-c || ./script/user-conf/init.sh
+    hostname=sandbox domain=#{VBOX_DOMAIN} ./script/user-conf/init.sh
     rm -rf ~/.bashrc ~/.bash_logout
-    ./script/user-conf/update.sh 
-
 
 
     alias pd=~/bin/projectdir.sh
     export PATH=~/.conf/path/Generic:~/bin/:$PATH
     export PYTHONPATH=~/lib/py:$PYTHONPATH
 
+    ./script/user-conf/update.sh
+
+    Build_Deps_Default_Paths=1 \
+    BASH_SH=1 \
+    ./install-dependencies.sh basher bats composure docopt
+
+
+    cd ~/.conf/project
+    test -e "$(hostname -s)" ||
+      ln -s sandbox/ $(hostname -s)
+
+    #sudo sh -c "cp /home/vagrant/.ssh/id_* /home/vagrant/.ssh/known_* /root/.ssh/"
+    #sudo npm install -g coffee-script
+    #sudo npm install -g bvberkum/node-sitefile\#f_gv
+
     cd ~/project
     #projectdir.sh enable ....
 
 
-    echo "Provisioned as: $(whoami), ($SHELL, $TERM)"
+    echo "Provisioned user for: $(whoami), ($SHELL, $TERM)"
   SCRIPT
   config.vm.provision "shell", inline: $script, privileged: false
 

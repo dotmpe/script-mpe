@@ -57,6 +57,7 @@ Task
  * rate:Float
 
 """
+from __future__ import print_function
 import os
 import optparse
 import sys
@@ -203,9 +204,9 @@ class WorkLog_timeEdition(Cmd):
         v = raw_input("Write new config to %s? [Yn]")
         if not v.strip() or v.lower().strip() == 'y':
             self.settings.commit()
-            print "File rewritten. "
+            print("File rewritten. ")
         else:
-            print "Not writing file. "
+            print("Not writing file. ")
 
     def init(self, dbref=None):
         session = get_session(dbref, initialize=True)
@@ -216,17 +217,15 @@ class WorkLog_timeEdition(Cmd):
         #print list(session.query(Project).all())
         try:
             for task, project, customer in session.query(Task, Project, Customer).all():#join('projects', 'customer').all():
-                print customer.name, '\t\t',project.name, '\t\t',task.name
-        except sqlalchemy.exc.OperationalError, e:
+                print(customer.name, '\t\t',project.name, '\t\t',task.name)
+        except sqlalchemy.exc.OperationalError as e:
             err("Error query DB %s: %s", dbref, e)
             return 1
-        print dbref
+        print(dbref)
 
     def stat(self, *args, **opts):
-        print 'No stats'
+        print('No stats')
 
 if __name__ == '__main__':
     app = WorkLog_timeEdition()
     app.main()
-
-

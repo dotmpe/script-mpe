@@ -30,12 +30,13 @@ Other flags:
 """ % ( __rc__, __db__, __version__ )
 __doc__ += __usage__
 
+from __future__ import print_function
 import os
 from datetime import datetime
 
 import log
-import util
-from util import cmd_help
+import libcmd_docopt
+from libcmd_docopt import cmd_help
 from taxus import Node, Host, ScriptMixin
 from domain2 import init_host
 
@@ -54,25 +55,25 @@ def cmd_init(settings):
         log.std('{bwhite}Added host %s record{default}', name)
     else:
         host = record
-    print 'host at', host_dict.path(), ':', host
+    print('host at', host_dict.path(), ':', host)
 
 def cmd_list(settings):
     sa = Host.get_session('default', settings.dbref)
     for h in sa.query(Host).all():
-        print h
+        print(h)
 
 def cmd_test_init(settings):
     sa = Host.get_session('default', settings.dbref)
     host_dict = init_host(settings)
     name = host_dict['name']
-    print Host.fetch(filters=(Host.name == name,), sa=sa, exists=False)
+    print(Host.fetch(filters=(Host.name == name,), sa=sa, exists=False))
     #print Host.init(sa=sa)
 
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 ### Util functions to run above functions from cmdline
 
@@ -84,11 +85,11 @@ def main(opts):
 
     #settings = opts.flags
     opts.flags.configPath = os.path.expanduser(opts.flags.config)
-    settings = util.init_config(opts.flags.configPath, dict(
+    settings = libcmd_docopt.init_config(opts.flags.configPath, dict(
             nodes = {}, interfaces = {}, domain = {}
         ), opts.flags)
     opts.default = 'info'
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'taxus-host-py.mpe/%s' % __version__
@@ -96,8 +97,6 @@ def get_version():
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__doc__, version=get_version())
+    opts = libcmd_docopt.get_opts(__doc__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-

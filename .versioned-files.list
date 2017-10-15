@@ -1,6 +1,6 @@
 ReadMe.rst
 package.yaml
-.package.sh
+# FIXME: check its up to date before commit.. .package.sh
 package.json
 Rules.mk
 match.sh
@@ -37,11 +37,13 @@ node.py
 project.py
 redmine_meta.py
 topics.sh
+topic.py
 tasks.sh
 tasks.py
+tag.py
 todo-meta.py
 todo.py
-topic.py
+db.py
 vc-meta.py
 sh_switch.py
 jsotk.py
@@ -56,3 +58,7 @@ vagrant-sh.sh
 meta-sh.sh
 package.lib.sh
 meta.lib.sh
+script-sh.sh
+darwin.py
+txt.py
+tools/update-couchdb-testlog.js

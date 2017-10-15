@@ -4,15 +4,16 @@ Simpler Xu tools.
 
 Print one or more ranges from different source documents, regardless of encoding, format.
 
-Both query and fragment notation read. 
+Both query and fragment notation read.
 Byterange only.
 
 Eg. the shebang line of this file:
 
 - snip.py?scrow/0.1&locspec=byterange:0/21
-- snip.py#scrow/0.1,byterange:0:21 
+- snip.py#scrow/0.1,byterange:0:21
 
 """
+from __future__ import print_function
 import os
 import os
 import sys
@@ -40,7 +41,7 @@ if __name__ == '__main__':
     ranges = []
     for range in pointers:
         s, a, p, p2, q, f = urlparse.urlparse(range)
-        
+
         path = p + p2
 
         q = q.split('&')
@@ -49,7 +50,7 @@ if __name__ == '__main__':
             m = re.match('^locspec=([a-z]*range):([0-9]*)/([0-9]*)$', q[1])
             range = [ int(p) for p in m.groups()[1:3] if p.isalnum() ]
             ranges.append((path, m.group(1)) + tuple(range))
-            
+
         f = f.split(',')
         if f and f[0]:
             assert f[0] == PROTO_VERSION
@@ -72,7 +73,7 @@ if __name__ == '__main__':
             offset = os.path.getsize(path)
 
         fl.seek(offset)
-        print fl.read(length)
+        print(fl.read(length))
 
     for fn in fd:
         fd[fn].close()

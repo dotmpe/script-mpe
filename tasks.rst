@@ -1,7 +1,56 @@
+.. include:: .default.rst
 
-The tasks document is a collection of tickets/calls/todos/... lists.
+Tasks
+========
+:created:
+
+
+TODO.txt lists boil down to a format for line-based indexed items.
+
+A tasks document is a collection of tickets/calls/todos/...
+Of task lists with names, and per item contexts, project homes...
+
+Building prototype commands within ``htd tasks`` command and lib namespace.
+
+
+Plan
+-----
+Initial backend support. Local, but also gtasks, redmine.
+Sync dev with main Htd_ plans.
+
+First backend specifically for tasks is 'Track' `trc` which is intended to do the TAG-Id like things that radical.py was also started for years ago. But this time for a possible htd proc namespace.
+
+Also coined for backend is 'Source' `src` to access comments combined with possibly a Tag-Id, or another such format.
+
+TODO: list
+
+Dev
+-----
+htd tasks.hub be.trc
+  ..
+
+Issues
+------
+
+
+Spec
+-----
+.. If possible, link to test results
 
 ----
+
+.. See .default for document structures
+
+----
+
+Syntax
+  - todo.txt vim file in ~/.vim/bundle/todo.txt-vim/syntax/todo.vim
+  - tests in ~/htdocs/to/do.list
+  - verbose syntax description in ~/.vim/bundle/todo.txt-vim/README.rst
+
+  * TODO: get VIM tooling for new Id insertion
+  * TODO: get Sh, VIM tooling for new Object Id generation
+  * TODO: get Sh, VIM tooling for Task migration
 
 Workflow
   .. figure:: tasks/comp-wf-3.svg
@@ -103,19 +152,19 @@ Workflow
 
     Initialize new issue from comment::
 
-      file:123: # TODO: affects gizmo [XYZ-99]
-      (D) #:99 src:file:09af
-      file:123: # TODO:09af affects gizmo [XYZ-99]
+      file:123: # TODO: affects gizmo [XYZ-99]                     # tasks.ignore
+      (D) #:99 src:file:09af                                       # tasks.ignore
+      file:123: # TODO:09af affects gizmo [XYZ-99]                 # tasks.ignore
 
-      file:124: # FIXME: [XYZ-101] get the confabulator going
-      (C) get the confabulator going #:101 src:90fa
-      file:124: # FIXME:90fa [XYZ-101] get the confabulator going
+      file:124: # FIXME: [XYZ-101] get the confabulator going      # tasks.ignore
+      (C) get the confabulator going #:101 src:90fa                # tasks.ignore
+      file:124: # FIXME:90fa [XYZ-101] get the confabulator going  # tasks.ignore
 
     Or refer and add text to existing issue::
 
-      file:200: # XXX: [XYZ-99] maybe move
-      (D) #:99 src:file:123 src:ab12: maybe move
-      file:200: # XXX:ab12 [XYZ-99] maybe move
+      file:200: # XXX: [XYZ-99] maybe move                         # tasks.ignore
+      (D) #:99 src:file:123 src:ab12: maybe move                   # tasks.ignore
+      file:200: # XXX:ab12 [XYZ-99] maybe move                     # tasks.ignore
 
   Processing
     Mass-updates are difficult without at least some configurable behaviours

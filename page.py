@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """page - read specific pages from a file.
 """
+from __future__ import print_function
 import sys, optparse
 
 
@@ -9,10 +10,10 @@ default_separator = '\f'
 
 argv_usage = """%prog [options] [-|file] [pagenr ...]
 
-One file argument is accepted, followed by page numbers. Implicitly this sets 
-the according named options, which may be used directly for an alternative 
+One file argument is accepted, followed by page numbers. Implicitly this sets
+the according named options, which may be used directly for an alternative
 invocation, see ``--help``. However, if there are any arguments the first MUST
-be the filename. This input file defaults to stdin. To request any pages without 
+be the filename. This input file defaults to stdin. To request any pages without
 specifying filename, the named option (``--pages``) must be used.
 """
 argv_options = (
@@ -46,11 +47,8 @@ if __name__ == '__main__':
 
     for page in opts.page_numbers:
         try:
-            print pages[page-1].strip()
+            print(pages[page-1].strip())
             if opts.print_separator:
-                print opts.page_separator
+                print(opts.page_separator)
         except IndexError:
-            print >>sys.stderr, 'No such page: %s' % page
-
-
-
+            print('No such page: %s' % page, file=sys.stderr)

@@ -1,26 +1,27 @@
 #!/bin/sh
 
-ignores_load()
+ignores_lib_load()
 {
   test -n "$1" || set -- $base
   test -n "$2" || set -- $1 $(str_upper $1)
 
-  test -n "$HTD_ETC" -a -e "$HTD_ETC" || error "HTD-ETC" 2
+  test -n "$SCRIPT_ETC" -a -e "$SCRIPT_ETC" || error "SCRIPT-ETC '$SCRIPT_ETC'" 2
 
-  local varname=${2}_IGNORE fname=.${1}ignore
+  local varname=$(echo $2 | tr '-' '_')_IGNORE fname=.${1}ignore
+
   test -n "$IGNORE_GLOBFILE" \
-    && fname=$IGNORE_GLOBFILE \
-    || IGNORE_GLOBFILE=$fname
+      && fname=$IGNORE_GLOBFILE \
+      || IGNORE_GLOBFILE=$fname
 
-  test -n "$(eval echo "\$$varname")" || eval $varname=$fname
+  test -n "$(eval echo \"\$$varname\")" || eval $varname=$fname
   local value="$(eval echo "\$$varname")"
+
   test -e "$value" || {
     value=$(setup_tmpf $fname)
     eval $varname=$value
-    IGNORE_GLOBFILE=$value
     touch $value
   }
-  export $varname IGNORE_GLOBFILE
+  export $varname
 }
 
 ignores_group_names()
@@ -85,7 +86,7 @@ ignores_groups_exist()
 
       etc:* )
             test -e \
-              "$HTD_ETC/htd/list-ignores/$(echo "$1" | cut -c5-)" || {
+              "$SCRIPT_ETC/htd/list-ignores/$(echo "$1" | cut -c5-)" || {
                   shift; continue; }
           ;;
 
@@ -112,7 +113,7 @@ ignores_cat()
 
       etc:* )
           read_if_exists \
-            "$HTD_ETC/htd/list-ignores/$(echo "$1" | cut -c5-)" ||
+            "$SCRIPT_ETC/htd/list-ignores/$(echo "$1" | cut -c5-)" ||
               note "Nothing to read for '$1'" ;;
 
       * )

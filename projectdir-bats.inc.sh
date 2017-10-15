@@ -43,13 +43,13 @@ pd_bats_files_args()
 {
 
   test -n "$pd_trgtglob" \
-    || pd_trgtglob="$(eval echo "\"\$$(try_local "bats-files" glob)\"")"
+    || pd_trgtglob="$(eval echo "\"\$$(echo_local "bats-files" glob)\"")"
 
   {
     test -n "$1" && {
 
       test -n "$pd_trgtpref" \
-        || pd_trgtpref="$(eval echo "\"\$$(try_local "$subcmd" trgtpref)\"")"
+        || pd_trgtpref="$(eval echo "\"\$$(echo_local "$subcmd" trgtpref)\"")"
 
       while test -n "$1"
       do
@@ -114,7 +114,7 @@ pd_load__bats_gnames=iI
 pd__bats_gnames()
 {
   test -n "$pd_trgtglob" \
-    || pd_trgtglob="$(eval echo "\"\$$(try_local bats-files glob)\"")"
+    || pd_trgtglob="$(eval echo "\"\$$(echo_local bats-files glob)\"")"
   pd_globstar_names "$pd_trgtglob" "$@"
 }
 
@@ -229,7 +229,7 @@ pd__bats()
       echo "# Bats $curarg of $argc ($x)"
       verbosity=6 bats $x \
         || echo "bats:$x" >>$failed
-    } | bats-color.sh
+    } | script-bats.sh colorize
   done
 
   test -s "$failed" && {

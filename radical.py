@@ -191,6 +191,7 @@ TODO: domain structure::
 # TODO: Integrate gate content stream
 # TODO: Extend supported comment styles
 # TODO: Scan for other literals, recognize language constructs.
+from __future__ import print_function
 
 import traceback
 import optparse, os, re, sys
@@ -202,7 +203,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
-#from cllct.osutil import parse_argv_split
+#from cllct.oslibcmd_docopt import parse_argv_split
 
 import log
 import confparse
@@ -366,6 +367,26 @@ class EmbeddedIssue:
         self.tags = tags
         self.validate()
 
+    def to_dict(self):
+        return {
+            'srcdoc': {
+                'name': self.srcdoc.source_name,
+                'lines': self.srcdoc.line_count
+            },
+            'description': {
+                'span': list(self.description_span)
+            },
+            'comment': {
+                'char-span': list(self.comment_char_span),
+                'line-span': list(self.comment_line_span),
+                'flavour': self.comment_flavour.replace('_', '-')
+            },
+            'inline': self.inline, 'tags': self.tags
+        }
+
+    def __cmp__(self):
+        pass
+
     def __str__(self):
         # NOTE: 0-index ranges/spans in ID
         return "<EmbeddedIssue %s %i-%i %i-%i>" % ( ( self.comment_flavour,
@@ -394,13 +415,13 @@ class EmbeddedIssue:
     def scei_id(self, full=True):
         # NOTE: turn ranges from 0-index into 1-indexed (lines, chars, etc)
         dspan = tuple([ x+1 for x in self.description_span ])
-        scei_id = self.srcdoc.source_name
+        docname = self.srcdoc.source_name
         if full:
             # XXX: cspan = tuple([ x+1 for x in self.comment_char_span ])
-            scei_id += ":%s-%s;lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
+            scei_id = docname+":%s-%s;lines=%i-%i;flavour=%s;comment=%i-%i" % ( \
                     dspan + tuple(self.line_span) + ( self.comment_flavour, ) + tuple(self.char_span) )
         else:
-            scei_id += ":%s-%s" % dspan
+            scei_id = docname+":%s-%s" % dspan
         return scei_id
 
 
@@ -461,6 +482,29 @@ class EmbeddedIssue:
                 isinstance(self.line_span[0], int) and
                 isinstance(self.line_span[1], int)
             )
+
+    def store(self, tag, services):
+
+        """
+        Add or update tracker for current issue.
+        """
+
+        # TODO: print('tags', self.tags)
+        if tag.slug in services:
+            tracker = services[tag.slug]
+
+            # Cleanup the SEI's Id, ie. normalize our tag-id
+            refId = tag.canonical(self.srcdoc.data)
+
+            s = self.to_dict()
+            # Find issue based on Tag-Id
+            if refId == tag.slug:
+                issue = tracker.new(refId, s)
+            else:
+                issue = tracker.globalize(refId, s)
+                tracker.update(tag.slug, refId, s)
+
+            print(refId, issue)
 
 
 class EmbeddedIssueOld:
@@ -976,7 +1020,7 @@ def plain_text_flavor(peek, source):
     try:
         peek.decode('ascii')
         return True
-    except UnicodeDecodeError, e:
+    except UnicodeDecodeError as e:
         pass
 
 def get_peek(source):
@@ -986,7 +1030,7 @@ def get_peek(source):
         if filesize < 1024:
             bytes = filesize
         return open(source).read(bytes)
-    except Exception, e:
+    except Exception as e:
         log.debug("get-peek: %s", e)
 
 
@@ -1007,7 +1051,7 @@ def find_files_with_tag(session, matchbox, paths):
 
         try:
             tag_generator = find_tagged_comments(session, matchbox, source, data)
-        except Exception, e:
+        except Exception as e:
             log.err("Find: %s", e)
             traceback.print_exc()
             tag_generator = None
@@ -1016,9 +1060,9 @@ def find_files_with_tag(session, matchbox, paths):
             try:
                 tag = tag_generator.next()
                 yield tag
-            except StopIteration, e:
+            except StopIteration as e:
                 tag_generator = None
-            except Exception, e:
+            except Exception as e:
                 log.err("Find: %s", e)
                 traceback.print_exc()
 
@@ -1028,7 +1072,7 @@ def get_service(t):
 
 # Optparse callbacks
 def append_comment_scan(option, value, parser):
-    print "TODO comment_scan", (option, value, parser)
+    print("TODO comment_scan", (option, value, parser))
     pass
 
 
@@ -1175,25 +1219,25 @@ class Radical(rsr.Rsr):
 
     def rdc_list_flavours(self, args=None, opts=None):
         for flavour in self.rc.comment_scan:
-            print "%s:\n\tstart:\t%s" % ((flavour,)+
+            print("%s:\n\tstart:\t%s" % ((flavour,)+)
                     tuple(self.rc.comment_scan[flavour][:1]))
             if len(self.rc.comment_scan[flavour]) > 1:
-                print "\tend:\t%s" % self.rc.comment_scan[flavour][1]
+                print("\tend:\t%s" % self.rc.comment_scan[flavour][1])
             print
         return
 
     def rdc_list_scans(self, args, opts):
         for tag in self.rc.tags:
-            print "%s:" % (tag)
+            print("%s:" % (tag))
             if self.rc.tags[tag]:
                 if len(self.rc.tags[tag]) > 0:
-                    print "\tmatch:\t%s" % (self.rc.tags[tag][0] % tag)
+                    print("\tmatch:\t%s" % (self.rc.tags[tag][0] % tag))
                 if len(self.rc.tags[tag]) > 1:
-                    print "\tformat:\t%s" % self.rc.tags[tag][1]
+                    print("\tformat:\t%s" % self.rc.tags[tag][1])
                 if len(self.rc.tags[tag]) > 2:
-                    print "\tindex:\t%s" % self.rc.tags[tag][2]
+                    print("\tindex:\t%s" % self.rc.tags[tag][2])
             else:
-                print "\tmatch:\t(%s)" % tag
+                print("\tmatch:\t(%s)" % tag)
             print
         return
 
@@ -1253,7 +1297,7 @@ class Radical(rsr.Rsr):
             yield source
 
     def rdc_run_embedded_issue_scan(self, sa, issue_format=None, opts=None,
-            paths=[]):
+            services=None, paths=[]):
 
         """
         Main function: scan multiple sources and print/log embedded issues
@@ -1269,7 +1313,6 @@ class Radical(rsr.Rsr):
 
         # pre-compile patterns XXX: per context
         matchbox = compile_rdc_matchbox(rc)
-
         taskdocs = {}
 
         # TODO: old clean/rewrite functions
@@ -1286,8 +1329,10 @@ class Radical(rsr.Rsr):
 
             parser = SEIParser(sa, matchbox, source, context, data, lines)
 
+            # Run over TagInstances
             for tag in parser.find_tags():
 
+                # Get EmbeddedIssue instance for tag
                 try:
                     cmt = parser.for_tag(tag)
                 except (Exception) as e:
@@ -1301,15 +1346,13 @@ class Radical(rsr.Rsr):
                     continue
 
                 srcdoc.scei.append(cmt)
-                self.rdc_issue(cmt, data, issue_format=issue_format)
 
-            #if embedded.tag_id:
-                #if embedded.tag_id == NEED_ID:
-                    #new_id = service.new_issue(embedded.tag_name, embedded.description)
-                    #embedded.set_new_id(new_id)
-                    #service.update_issue(embedded.tag_name, embedded.tag_id,
-                    #        embedded.description)
-            #embedded.store(dbsession)
+                # Print requested format to stdout
+                if not opts.quiet:
+                    self.rdc_issue(cmt, data, issue_format=issue_format)
+
+                # Process comment with tracker service(s)
+                cmt.store(tag, services)
 
     def rdc_issue(self, cmt, data, issue_format='id'):
         if issue_format not in EmbeddedIssue.formats:
@@ -1318,14 +1361,13 @@ class Radical(rsr.Rsr):
         cmt.validate()
         out = EmbeddedIssue.formats[issue_format](cmt, data)
         assert not re.match('[\r\n]', out)
-        print out
+        print(out)
 
     def rdc_info(self, prog, sa):
-        print 'Radical info', prog, sa
+        print('Radical info', prog, sa)
         r = self.execute('rdc_run_embedded_issue_scan')
-        print r
+        print(r)
 
 
 if __name__ == '__main__':
     Radical.main()
-

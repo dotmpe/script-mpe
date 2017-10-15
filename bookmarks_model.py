@@ -17,7 +17,7 @@ def get_session(dbref, initialize=False, metadata=None):
     metadata.bind = engine
     if initialize:
         log.info("Applying SQL DDL to DB %s..", dbref)
-        metadata.create_all()  # issue DDL create 
+        metadata.create_all()  # issue DDL create
         log.note('Updated schema for %s to %s', dbref, 'X')
     session = sessionmaker(bind=engine)()
     return session
@@ -47,7 +47,7 @@ class Locator(SqlBase, ORMMixin):
     date_deleted = Column(DateTime)
 
 #ref = Column(String(255), index=True, unique=True)
-# XXX: varchar(255) would be much too small for many (web) URL locators 
+# XXX: varchar(255) would be much too small for many (web) URL locators
     ref = Column(Text(2048), index=True, unique=True)
 
     domain_id = Column(Integer, ForeignKey('domains.id'))
@@ -59,7 +59,7 @@ class Bookmark(SqlBase, ORMMixin):
 
     """
     A textual annotation with a short and long descriptive label,
-    a sequence of tags, the regular set of dates, 
+    a sequence of tags, the regular set of dates,
     """
 
     __tablename__ = 'bm'
@@ -84,11 +84,8 @@ class Bookmark(SqlBase, ORMMixin):
 
 
 
-models = [ 
-        Domain, 
-        Locator, 
-        Bookmark 
+models = [
+        Domain,
+        Locator,
+        Bookmark
     ]
-
-
-

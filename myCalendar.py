@@ -3,6 +3,7 @@
 
 TODO: scan for other formats, timestamps or YYYYddmm, perhaps (short)names.
 """
+from __future__ import print_function
 import os
 import re
 from pprint import pformat
@@ -28,7 +29,7 @@ class CalendarFileTree(object):
 
     - There is no further heuristics other than scans for integers of 4, 2 and 2 length,
       separated and in that sequence.
-    - XXX: the singlemindedness of this implementation prevents other uses for 
+    - XXX: the singlemindedness of this implementation prevents other uses for
       numbers of 4 and 2 digits.
 
       - Validation has been added to relieve this somewhat.
@@ -39,7 +40,7 @@ class CalendarFileTree(object):
     """
     def __init__(self, year_start=1900, year_end=2015):
         """
-        Init new tree. 
+        Init new tree.
         Vary year_{start,end} for validation.
         """
         # FIXME: confparse keys are always string...
@@ -68,7 +69,7 @@ class CalendarFileTree(object):
         """
         Scan given (leaf) path for year/month/day tag.
         FIXME implements numeric scans only
-        Upong a year match (or more), the given path is 
+        Upong a year match (or more), the given path is
         validated and added to the tree.
         """
         ypos, year = self.scan_year(path)
@@ -95,7 +96,7 @@ class CalendarFileTree(object):
                 self.scan(subpath)
     def add(self, year, month, day, path):
         """
-        Add path as leaf under year/month/day. 
+        Add path as leaf under year/month/day.
         Year must be set, others may be None.
         This does not validate the values by itself.
         """
@@ -122,8 +123,8 @@ class CalendarFileTree(object):
     def is_date(self, year, month, day):
         try:
             self.validate(year, month, day)
-            return True 
-        except Exception, e:
+            return True
+        except Exception as e:
             return False
     def validate(self, year, month, day):
         """For year see year_{start,end}::
@@ -150,19 +151,19 @@ class calendarCLI(libcmd.SimpleCommand):
     def get_optspec(klass, inherit):
         """
         """
-        return ( 
+        return (
 #            (('-j', '--json'), {
 #                'action': 'store',
-#                'dest': 'out_format', 
+#                'dest': 'out_format',
 #            }),
 #            (('-J', '--jsonxml'), {
 #                'action': 'store',
-#                'dest': 'out_format', 
+#                'dest': 'out_format',
 #            }),
             (('-O', '--output'), {
                 'action': 'store',
-                'default': 'json', 
-                'dest': 'out_format', 
+                'default': 'json',
+                'dest': 'out_format',
             }),
         )
 
@@ -176,23 +177,21 @@ class calendarCLI(libcmd.SimpleCommand):
         """
         cft = CalendarFileTree()
         for p in args:
-            print '# path:', p
+            print('# path:', p)
             if os.path.isdir(p):
                 cft.walk(p)
             else: # must be leaf
                 cft.scan(p)
         tree = cft.tree.copy(True)
         if opts.out_format == 'json':
-            print res.js.dumps(tree)
+            print(res.js.dumps(tree))
         elif opts.out_format == 'jsonxml':
             # FIXME: caltree to xmlnesting?
             sertree = res.primitive.translate_xml_nesting(tree)
-            print res.js.dumps(tree)
+            print(res.js.dumps(tree))
         else:
-            print pformat(tree)
+            print(pformat(tree))
 
 
 if __name__ == '__main__':
     calendarCLI.main()
-
-

@@ -39,9 +39,9 @@ test -z "$1" && {
 
 # TODO: compile this regex
 trueish "$Check_All_Tags" && {
-  test -n "$abort_on_regex" || abort_on_regex='\<\(SCRIPT-MPE\|TODO\|FIXME\|XXX\)\>' # tasks:no-check
+  test -n "$tasks_grep_expr" || tasks_grep_expr='\<\(SCRIPT-MPE\|TODO\|FIXME\|XXX\)\>' # tasks:no-check
 } || {
-  test -n "$abort_on_regex" || abort_on_regex='\<XXX\>' # tasks:no-check
+  test -n "$tasks_grep_expr" || tasks_grep_expr='\<XXX\>' # tasks:no-check
 }
 
 # TODO: should move exclude params into pd or lst, once handled ok
@@ -61,7 +61,7 @@ test -e .git && \
   "
 
 $src_grep \
-    $abort_on_regex \
+    $tasks_grep_expr \
     $check_files \
   | . ./tools/sh/tags-filter.sh \
 	| \

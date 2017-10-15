@@ -1,7 +1,8 @@
-#!/bi
+#!/bin/sh
 
 
 # Age in seconds
+_1MIN=60
 _5MIN=300
 _1HOUR=3600
 _3HOUR=10800
@@ -45,7 +46,9 @@ touch_ts()
 
 # TAGS DTFMT
 # NOTE: BSD date -v style TAG-values are used, translated to GNU date -d
-case "$(uname)" in Darwin )
+case "$(uname)" in
+
+  Darwin )
     date_fmt() {
       tags=$(for tag in $1; do echo "-v $tag"; done)
       date $date_flags $tags +"$2"

@@ -54,11 +54,15 @@ init
 
   func_exists file_where_before
   run file_where_before
-  test $status -eq 1
-  fnmatch "*where-grep required*" "${lines[*]}"
+  {
+    test $status -eq 1 &&
+    fnmatch "*where-grep arg required*" "${lines[*]}"
+  } || stdfail
 
   run file_where_before where
-  test $status -eq 1
-  fnmatch "*file-path required*" "${lines[*]}"
+  {
+    test $status -eq 1 &&
+    fnmatch "*file-path or input arg required*" "${lines[*]}"
+  } || stdfail
 }
 

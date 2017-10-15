@@ -16,6 +16,7 @@ Changelog
       Underlying data is somehting graphlike but with limited associations and
       heuristic implementations.
 """
+from __future__ import print_function
 import os
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
@@ -113,9 +114,9 @@ class workLog(rsr.Rsr):
         }
 
     def tasks(self, opts=None, sa=None):
-        print 'All tickets', sa.query(Ticket).all()
-        print 'Active tickets', sa.query(Ticket)\
-                .filter(Ticket.active == True).all()
+        print('All tickets', sa.query(Ticket).all())
+        print('Active tickets', sa.query(Ticket)\
+                .filter(Ticket.active == True).all())
 
     # TODO: perhaps implement export and update from import while I'm to lazy to
     # implement all of the UI.. maybe. requires demux +
@@ -148,7 +149,7 @@ class workLog(rsr.Rsr):
                 date_added=datetime.now(),
                 #namespace=project_NS
             )
-        print node
+        print(node)
         pass
 
     def project_remove(self, args, opts):

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import lib
 from target import Name, Target, TargetResolver
 
@@ -15,13 +16,13 @@ class Core(TargetResolver):
             'rsr:static2': ['rsr:static'],
         }
     def rsr_static(self):
-        print 'rsr:static'
+        print('rsr:static')
 
     def rsr_static2(self):
         """
         Runs an extension target.
         """
-        print 'rsr:static2'
+        print('rsr:static2')
         yield 'rsr:addon'
 
 
@@ -45,7 +46,7 @@ class Addon(object):
         }
 
     def rsr_addon(self, opts=None):
-        print 'rsr:addon'
+        print('rsr:addon')
 
 Target.register(Addon)
 
@@ -61,19 +62,15 @@ class App(Core):
         }.items())
 
     def rsr_test2(self):
-        print "Test2"
+        print("Test2")
 
 Target.register(App)
 
 
 if __name__ == '__main__':
 
-    print '-------------- Core'
+    print('-------------- Core')
     Core().main()
 
-    print '--------------- App'
+    print('--------------- App')
     App().main()
-
-
-
-

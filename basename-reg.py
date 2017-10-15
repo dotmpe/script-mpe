@@ -2,7 +2,7 @@
 """
 basename-reg: split filename from known extensions
 
-current impl. allows concatenation of var. tags, known and unknown 
+current impl. allows concatenation of var. tags, known and unknown
 
 TODO: should determine which tag identifies current format
 other tags may participate in format, or not
@@ -20,9 +20,9 @@ or tar.gz
 		*ext-type -> enum( archive, compression, format )
 
 	storage:
-		mime-ext-reg: 
+		mime-ext-reg:
 			ext -> mime
-		ext-map: 
+		ext-map:
 			ext -> ext
 		multi:
 			ext -> *ext
@@ -34,6 +34,7 @@ or tar.gz
 
 
 """
+from __future__ import print_function
 import os
 import optparse
 import inspect
@@ -95,7 +96,7 @@ def load_config():
 	fullname = os.path.expanduser(CONFIG)
 	conf = yaml.load(open(fullname))
 	if conf == CONFIG:
-		print "Failed loding config. "
+		print("Failed loding config. ")
 	elif not conf:
 		conf = {}
     #if not conf:
@@ -168,19 +169,19 @@ class BasenameOut:
 			setattr(self, emitter, self.emitter(emitter, fields))
 	def err(self, out):
 		if out:
-			print >> self.stderr, out
+			print(out, file= self.stderr)
 	def emitter(self,emitter, fields):
 		def _emit(*values):
-			mapping = dict(zip( fields, values )) 
+			mapping = dict(zip( fields, values ))
 			if self.opts.print_header:
-				print "#", ", ".join(fields)
+				print("#", ", ".join(fields))
 			if 'exts' in mapping:
 				mapping['exts'] = self.opts.ext_sep.join(mapping['exts'])
 			if 'mimes' in mapping:
 				mapping['mimes'] = self.opts.mime_sep.join(mapping['mimes'])
 			lineout = self.templates[emitter] % mapping
 			if lineout:
-				print >>self.stdout, lineout
+				print(lineout, file=self.stdout)
 		return _emit
 
 
@@ -208,7 +209,7 @@ class Basename(libcmd.SimpleCommand):
     DEFAULT_RC = os.path.expanduser('~/.basename-reg.yaml')
     DEFAULT_CONFIG_KEY = None
     DEFAULT = ['run']
-    
+
     @classmethod
     def get_optspec(Klass, inheritor):
         return (
@@ -235,29 +236,29 @@ class Basename(libcmd.SimpleCommand):
 		"Setting this for other formats has not effect",
 		'default': ','}),
 	(('--quote',), {'help':
-		"The default is to quote all fields. ", 
+		"The default is to quote all fields. ",
 #		'action': 'callback',
 #		'callback': optparse_bool,
 		'default': False
 	}),
 	(('--mime-sep',), {'help':
-		"Set sub-field separator for multi mime types. ", 
+		"Set sub-field separator for multi mime types. ",
 		'default': ' '}),
 	(('--ext-sep',), {'help':
-		"Set sub-field separator for multi extensions. ", 
+		"Set sub-field separator for multi extensions. ",
 		'default': ','}),
 
 	(('-b', '--brief'), {'help':
-		"Reset field list to basename only. ", 
+		"Reset field list to basename only. ",
 		'action': 'store_true',
-		'default': False 
+		'default': False
 		}),
 	(('-m', '--mime'), {'help':
-		"List MIME types. ", 
+		"List MIME types. ",
 		'action': 'store_true',
 		'default': False }),
 	(('-e', '--extension'), {'help':
-		"List extensions. ", 
+		"List extensions. ",
 		'action': 'store_true',
 		'default': False }),
 
@@ -284,7 +285,7 @@ class Basename(libcmd.SimpleCommand):
         store_mime = None
         for a in args:
             n = a
-            # look for names with '.' separated fields 
+            # look for names with '.' separated fields
             if '.' not in a:
                 log.warn('Ignored %s' % a)
                 #out.err('Ignored %s' % a)
@@ -383,7 +384,7 @@ class Basename(libcmd.SimpleCommand):
                         if v:
                             self.rc['mime_ext_reg'][cext] = mime
                             save_config()
-                        print v and 'OK' or 'Cancel'
+                        print(v and 'OK' or 'Cancel')
 
 if __name__ == '__main__':
     Basename.main()
@@ -403,7 +404,7 @@ $ basename-reg -R reg:ext:mime mime
 $ basename-reg -R reg:ext:type type
 
 $ basename-reg --sync-to-wild
-# Update wild-xref index from local 
+# Update wild-xref index from local
 
 """
 """
@@ -444,5 +445,3 @@ emitter['layer'] = "%(layer.i)i. %(layer.mime_header)s)"
 emitter['file'] = "%(basename)s $(layer)s", dict( layer = 'reduce:layers' )
 emitter.emit('file', basename=..., layers=[ ... ])
 """
-
-

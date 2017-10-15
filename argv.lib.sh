@@ -8,11 +8,16 @@
 
 # Verbose test + return status
 
+# Also simple default helper for lookup-path
 test_exists()
 {
-  test -e "$1" || {
-    error "No such file or path: $1"
-    return 1
+  test -z "$2" && {
+    test -e "$1" || {
+      error "No such file or path: $1"
+      return 1
+    }
+  } || {
+    test -e "$1/$2" && echo "$1/$2" || return 1
   }
 }
 
@@ -91,6 +96,7 @@ argv_vars()
 check_argc()
 {
   local argi=$(( $1 + 1 ))
+  shift
   local value="$(eval echo \$$argi)"
   test -z "$value" || error "surplus arguments (expected $1): '$value'" 1
 }
@@ -168,5 +174,40 @@ req_dir_env()
     }
     shift
   done
+}
+
+
+# opt-args: all argv are filtered into $options or else $arguments
+opt_args()
+{
+  for arg in $@
+  do fnmatch "-*" "$arg" && echo "$arg" >>$options || echo $arg >>$arguments
+  done
+}
+
+
+define_var_from_opt()
+{
+  case "$1" in
+    --*=* )
+        key="$(str_strip_rx '=.*$' "$(echo "$1" | cut -c3-)")"
+        value="$(str_strip_rx '^[^=]*=' "$1")"
+        eval $(echo "$key" | tr '-' '_')="$value"
+      ;;
+    --no-* )
+        eval $(echo "$1" | cut -c6- | tr '-' '_')=0
+      ;;
+    -*=* )
+        key="$(str_strip_rx '=.*$' "$(echo "$1" | cut -c2-)")"
+        value="$(str_strip_rx '^[^=]*=' "$1")"
+        eval $(echo "$key" | tr '-' '_')="$value"
+      ;;
+    --* )
+        eval $(echo "$1" | cut -c3- | tr '-' '_')=1
+      ;;
+    -* )
+        eval $(echo "$1" | cut -c2- | tr '-' '_')=1
+      ;;
+  esac
 }
 

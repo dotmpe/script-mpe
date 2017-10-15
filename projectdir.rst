@@ -119,7 +119,7 @@ pd
         ..
       bats
         - dependencies bats
-        - ``./test/*-spec.bats | bats-color.sh``
+        - ``./test/*-spec.bats | script-bats.sh colorize``
       mk-test
         - make test
       git-versioning

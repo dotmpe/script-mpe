@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 from . import rsr
 from .libname import Namespace
 from .libcmdng import Targets, Arguments, Keywords, Options,\

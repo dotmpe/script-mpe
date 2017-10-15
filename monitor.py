@@ -4,6 +4,7 @@ Report updated and modified files in monitored trees.
 
 XXX: integrate with cllct
 """
+from __future__ import print_function
 import os, re, optparse, confparse, itertools
 
 
@@ -31,7 +32,7 @@ def getpath(name, *dirs):
 def getconfig(name, all=False, force=False):
     """Return path to existing config file.
     Set all to return every existing path, not just the first.
-    Set force to touch a non-existing path, either the first (all=False) or 
+    Set force to touch a non-existing path, either the first (all=False) or
     the last (all=True).
     """
     for path in itertools.chain(
@@ -46,7 +47,7 @@ def getconfig(name, all=False, force=False):
     if force:
         mkdirs(os.path.dirname(path))
         os.mknod(path)
-        yield path                
+        yield path
 
 
 def main():
@@ -58,9 +59,8 @@ def main():
     opts, args = prsr.parse_args()
 
     for path in args:
-        print list(getconfig('monitor'))
+        print(list(getconfig('monitor')))
 
 
 if __name__ == '__main__':
     main()
-

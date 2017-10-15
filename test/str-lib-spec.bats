@@ -27,9 +27,23 @@ setup()
 {
   . $scriptpath/util.sh load-ext
   lib_load sys os std str match
-  str_load
+  str_lib_load
 }
 
+
+
+func=mkid
+input="foo:/bar/el_baz.ext"
+
+@test "$lib $func with some special web chars, input is output" {
+  mkid "$input"
+  test "$id" = "$input"
+}
+
+@test "$lib $func with no special chars, all are collapsed to '-' " {
+  c= mkid "$input"
+  test "$id" = "foo-bar-el-baz-ext" || fail "$id"
+}
 
 
 
@@ -79,7 +93,7 @@ func=str_replace
   run expr_substr "FOO" 1 3
   test ${status} -ne 0 || fail "Should not pass illegal setting"
 
-  str_load
+  str_lib_load
   run expr_substr "FOO" 1 3
   test ${status} -eq 0 || fail "Should pass after str-load"
 

@@ -1,10 +1,12 @@
 """
 TODO: cleanup
 """
-from script_mpe.lib import cn
-
+from wheezy.template.engine import Engine
+from wheezy.template.ext.core import CoreExtension
+from wheezy.template.loader import FileLoader
 from zope.interface import implements
 
+from script_mpe.lib import cn
 #import res.iface
 from script_mpe.taxus import iface
 from . import iface
@@ -183,4 +185,10 @@ class NodeSetFormatter(object):
         for node in self.context.nodes:
             strbuf += iface.IFormatted(node).__str__(indent+1) + '\n'
         return strbuf
+
+
+def get_template(name):
+    engine = Engine( loader=FileLoader(['taxus/tpl']), extensions=[ CoreExtension() ] )
+    return engine.get_template(name)
+
 

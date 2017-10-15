@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """cmdline -
 """
+from __future__ import print_function
 import os
 import sys
 import re
@@ -118,5 +119,3 @@ class Cmd(libcmd.StackedCommand):
 if __name__ == '__main__':
     # simple
     Cmd.main()
-
-

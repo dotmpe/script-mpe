@@ -133,6 +133,7 @@ Schema:
         named, virtual targets defined in DSL
 
 """
+from __future__ import print_function
 import os
 from fnmatch import fnmatch
 from pprint import pformat
@@ -141,7 +142,7 @@ from socket import gethostname
 import uuid
 from deep_eq import deep_eq
 
-from script_mpe import util, confparse
+from script_mpe import libcmd_docopt, confparse
 from script_mpe.res import js
 from script_mpe.confparse import yaml_load, yaml_safe_dump, yaml_dump
 
@@ -435,7 +436,7 @@ def H_enable_host(pdhdata, ctx):
 def H_disable_host(pdhdata, ctx):
     if check_state(ctx.opts.cmds[0], pdhdata, ctx):
         assert toggle_state(ctx.opts.cmds[0], pdhdata, ctx), (
-                ctx.opts.cmds[0], 
+                ctx.opts.cmds[0],
                 pdhdata['repositories'].keys(),
                 ctx.opts.args.prefix
             )
@@ -735,7 +736,7 @@ def prerun(ctx, cmdline):
     global pdhdata
 
     argv = cmdline.split(' ')
-    ctx.opts = util.get_opts(ctx.usage, argv=argv)
+    ctx.opts = libcmd_docopt.get_opts(ctx.usage, argv=argv)
 
     if not pdhdata:
         pdhdata = yaml_load(open(ctx.opts.flags.file))
@@ -792,12 +793,10 @@ if __name__ == '__main__':
         out=sys.stdout,
         err=sys.stderr,
         inp=sys.stdin,
-        opts=util.get_opts(__doc__)
+        opts=libcmd_docopt.get_opts(__doc__)
     ))
     if ctx.opts.args.prefix:
         ctx.opts.args.prefix = ctx.opts.args.prefix.strip(os.sep)
     if ctx.opts.args.prefix == '.':
         ctx.opts.args.prefix = None
     sys.exit( main( ctx ) )
-
-

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-box_load()
+box_lib_load()
 {
   test -n "$BOX_DIR" || error "box-load: expected BOX-DIR env" 1
   test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
@@ -108,17 +108,7 @@ box_add_function()
   fnmatch "*:[0-9]*" $2 && {
 
     info "Inserting funtion $1"
-
-    file_insert_at $2 "$(cat <<-EOF
-$1()
-{
-$3
-}
-
-EOF
-)
-"
-
+    add_function "$1" "$2" "$3"
   } || {
 
     info "Appending funtion $1 for $2"
@@ -152,7 +142,7 @@ box_script_insert_point()
 {
   local subcmd_func= grep_file=$1
   shift
-  local subcmd_func=$(try_local "$@")
+  local subcmd_func=$(echo_local "$@")
   local where_line= line_number= p='^'${subcmd_func}'()$'
   box_grep "$p" "$grep_file" || {
     error "box-script-insert-point: invalid $subcmd_func ($grep_file)" 1
@@ -208,13 +198,9 @@ box_init_args()
 
 box_list_libs()
 {
-  test -n "$1" || set -- "$0" "$(basename "$0")"
-  test -n "$2" || set -- "$1" "$(basename "$1")"
-
-  test -e "$1" || {
-    error "box-list-libs: no script $1"
-    return 1
-  }
+  test -n "$1" || set -- "$0" "$2"
+  test -n "$2" || set -- "$1" "$(basename "$1" .sh)"
+  test -e "$1" || set -- "$(which "$1")" "$2"
 
   local \
     line_offset="$(box_script_insert_point $1 "" lib $2)" \
@@ -272,15 +258,23 @@ box_update()
 }
 
 
-box_src_lib()
+# Load the {base}_lib functions content, and parse its lines into paths to
+# included scripts.
+box_lib()
 {
-  test -n "$*" || set -- "$0" "$1"
-  box_src="$(dry_run= box_list_libs "$@" | while read src path args; \
-    do
-      fnmatch "  source " "$src" || {
-        fnmatch "  . " "$src" && continue;
-      }
-      eval echo "$path"; done)"
-  box_lib="$box_src"
+  export box_lib="$(box_lib_src "$@" | lines_to_words )"
+}
+
+#
+box_lib_src()
+{
+  dry_run= box_list_libs "$@" | while read src arg args
+    do case "$src" in
+      . | source ) eval echo $arg ;;
+      lib_load ) for lib in $arg $args ; do
+        eval lookup_test=lib_path_exists lookup_path SCRIPTPATH $lib
+      done ;;
+      * ) ;;
+    esac; done
 }
 

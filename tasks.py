@@ -16,6 +16,8 @@ tasks.ttxtm is formatted as todo.txt. todo.list is compatible with
         ': ' <inner_text>
     ]
 
+TODO: add datetime, modeline and other sentinel comment lines to output.
+
 Objects
     Issue
         - strid
@@ -35,6 +37,7 @@ __to_do_list__ = 'to/do.list'
 __usage__ = """
 Usage:
   tasks.py [options] info
+  tasks.py [-T|--tag TAG]... [options] list-issues
   tasks.py [-T|--tag TAG]... [options] new-scan
   tasks.py [-T|--tag TAG]... [options] read-issues
   tasks.py [options] update-list [TODOLIST]
@@ -114,6 +117,7 @@ Defaults:
     TODOLIST      [default: %s]
 
 """ % ( __tasks_file__, __grep_file__, __version__, __to_do_list__ )
+from __future__ import print_function
 from datetime import datetime
 import os
 import re
@@ -122,7 +126,7 @@ from pprint import pformat
 
 from lib import Prompt
 import log
-import util
+import libcmd_docopt
 import res
 
 
@@ -178,24 +182,24 @@ class Comment:
     def try_cid(self, sep=None, ret=None):
         try:
             return self.get_cid(sep=sep)
-        except AttributeError, e:
+        except AttributeError as e:
             return ret
     comment_id = property(try_cid)
 
-    def get_iid(self, sep=None):
+    def get_eiid(self, sep=None):
         "Issue-Id give a local ID "
         if not sep: sep = self._tag_def_sep
         if self._issue_id and self._src_tag:
             return self._src_tag+sep+self._issue_id
         raise AttributeError("Missing attributes for issue-id: %s%s%s" %
             ( self._src_tag, sep, self._issue_id ))
-    iid = property(get_iid)
-    def try_iid(self, sep=None, ret=None):
+    eiid = property(get_eiid)
+    def try_eiid(self, sep=None, ret=None):
         try:
-            return self.get_iid(sep=sep)
-        except AttributeError, e:
+            return self.get_eiid(sep=sep)
+        except AttributeError as e:
             return ret
-    issue_id = property(try_iid)
+    issue_id = property(try_eiid)
 
     def __repr__(self):
         return "Comment(srcfile=%r, text=%r)" % ( self.srcfile, self.text, )
@@ -222,8 +226,9 @@ class Comment:
 
         Yields instances of `Comment` for given file.
         """
+        default_attr = dict( _tag_def_sep='-' )
         for line in open(file).readlines():
-            attr = {}
+            attr = dict(default_attr)
             srcfile, comment = None, None
             grep_nH_rs_match = grep_nH_rs.match(line)
             if grep_nH_rs_match:
@@ -242,12 +247,13 @@ class Comment:
             if not srcfile:
                 log.warn('No match for %r', line)
                 continue
-
+            raw_comment = comment
+            attr['tags'] = list(res.task.parse_tags(' '+raw_comment+' .'))
             for tag in settings.scan_tags:
-                iid, comment_ = try_parse_issue_id( tag, comment )
-                if iid:
+                eiid, comment_ = try_parse_issue_id( tag, comment )
+                if eiid:
                     comment = comment_
-                    attr['_issue_id'] = iid
+                    attr['_issue_id'] = eiid
                     attr['_src_tag'] = tag
                     break
             yield Comment(srcfile, text=comment, **attr)
@@ -259,7 +265,7 @@ def get_project_slug(name_id):
 
 def try_parse_issue_id(tag, text):
     "Retrieve issue-id usig tag from text. Return id and cleaned text."
-    r = re.compile(res.task.rx_issue_id % tag)
+    r = re.compile(res.task.re_issue_id_match % tag)
     m = r.search(text)
     if m:
         tag = text[slice(*m.span(1))]
@@ -307,6 +313,24 @@ def cmd_info(opts):
         log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
 
 
+def cmd_list_issues(settings, opts, tasks_file):
+    """
+        Parse and list issues from taskdoc.
+    """
+    parse_scan_options(settings, opts) # all tags to settings.scan_tags
+    if settings.redis:
+        issues = parse_redis(settings, opts)
+    elif os.path.exists(tasks_file):
+        issues = res.todo.TodoTxtParser()
+        list(issues.load(tasks_file))
+    else:
+        raise Exception("Backend required, an empty %s file will do" %
+                settings.tasks_file )
+    for k in issues:
+        print(k,)
+        print(issues[k])
+
+
 def cmd_read_issues(settings, opts, tasks_file, grep_file):
     """
         Read matches from grep-list. Parse given tags from the text
@@ -331,18 +355,24 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
         raise Exception("Backend required, an empty %s file will do" %
                 settings.tasks_file )
     for comment in Comment.parse_tag_grep(grep_file, settings):
+        for tagid in comment.tags:
+            # XXX: SCRIPT-MPE-2 skip for found reference, try to get to working flow
+            if tagid in issues:
+                continue
+            elif issues.tagid_exists(tagid):
+                continue
         if comment.issue_id:
-            if comment.iid not in issues:
-                msg = "Unkown issue reference: %s %r" % ( comment.issue_id,
+            if not issues.tagid_exists(comment.eiid):
+                msg = "Unknown issue reference: %s %r" % ( comment.issue_id,
                     comment )
                 if settings.link_given or settings.link_all:
                     comment.store(issues)
                 elif settings.interactive:
                     log.note(msg)
-                    print comment
+                    print(comment)
                     qopts = "Recreate Clear".split(' ')
                     q = Prompt.query("Recreate issue ID from comment or, clear Id?", qopts)
-                    print q
+                    print(q)
                     if q is 'Recreate':
                         comment.store(issues)
                         created.append(comment)
@@ -355,7 +385,7 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
             continue
 
         if comment.comment_id:
-            print list( issues.find_link(comment.comment_id) )
+            print(list( issues.find_link(comment.comment_id) ))
             #log.info("Existing issue for comment: %s" % comment)
             #updated.append(comment)
             # TODO: check, update from changed comment
@@ -369,7 +399,7 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
                 continue
             if settings.interactive:
                 log.note(msg)
-                print comment
+                print(comment)
                 if Prompt.ask("Create issue from comment?", yes_no='Yn'):
                     comment.store(issues)
                     created.append(comment)
@@ -378,7 +408,9 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
                 failed.append(comment)
             log.warn("No issue link for %r" % ( comment, ) )
     issues.dirty = [ i.issue_id for i in created + updated ]
-    issues.commit()
+    print(len(issues), 'Issues')
+    print(len(issues.dirty), 'Dirty')
+    #issues.commit()
 
 def cmd_parse_list(settings, opts, TODOLIST):#='to/do.list'):
     """
@@ -392,8 +424,8 @@ def cmd_parse_list(settings, opts, TODOLIST):#='to/do.list'):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -407,17 +439,16 @@ def main(opts):
     settings = opts.flags
     values = opts.args
 
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'tasks.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     if opts.flags.v or opts.flags.verbosity:
         log.category = 6
     if not opts.flags.project_slug:
         opts.flags.project_slug = get_project_slug(os.path.basename(os.getcwd()))
     sys.exit(main(opts))
-

@@ -1,8 +1,10 @@
+from __future__ import print_function
+
 def gftp_descrable_password(password):
     """gftp password descrambler
- 
+
     This code has been released in the Public Domain by the original author.
- 
+
     """
     if not password.startswith('$'):
         return password
@@ -22,7 +24,5 @@ if __name__ == '__main__':
     for line in lines:
         if line.startswith('password'):
             scrambled= line[9:].strip()
-            print scrambled
-            print gftp_descrable_password(scrambled)
- 
-
+            print(scrambled)
+            print(gftp_descrable_password(scrambled))

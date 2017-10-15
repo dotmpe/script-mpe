@@ -25,9 +25,10 @@ Consider:
 
 TODO: segment configuration into multiple files.
 """
+from __future__ import print_function
 import collections
 import os, inspect, re, shutil, sys, types
-from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
+from os import unlink, removedirs, makedirs, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
 
@@ -88,8 +89,8 @@ try:
     yaml_safe_dump = yaml_dump
 
 
-except ImportError, e:
-    print >>sys.stderr, "confparse.py: no YAML parser"
+except ImportError as e:
+    print("confparse.py: no YAML parser", file=sys.stderr)
 # XXX: see also res/js.py
 
 _ = None
@@ -524,7 +525,7 @@ class YAMLValues(Values):
 
         assert not self.__dict__['parent'], "TODO"
         #self.root().commit()
-        print 'saving settings to',self.source
+        print('saving settings to',self.source)
         mod = self.getsource()
         data = mod.copy(plain=True)
         assert 'volatile' in self
@@ -541,7 +542,7 @@ class YAMLValues(Values):
     def load(cls, path):
         try:
             data = yaml_load(open(path).read())
-        except Exception, e:
+        except Exception as e:
             raise Exception("Parsing %s: %s"%(path, e))
         settings = cls(data, source_file=path, source_key='config_file')
         #if path not in _paths:
@@ -591,7 +592,7 @@ def init_config(name, paths=name_prefixes, default=None):
         assert default, "Not initialized: %s for %s" % (name, paths)
         for path in find_config_path('cllct', paths=paths, suffixes=['','.rc'],
                 prefixes=['.',''],exists=lambda x:True):
-            print "TODO:", path
+            print("TODO:", path)
         rcfile = os.path.expanduser(default)
 
     os.path.mknode(rcfile)
@@ -612,7 +613,7 @@ def load(name, paths=path_prefixes):
         while configs:
             config = configs.next()
             if os.path.exists(config): break
-    except StopIteration, e:
+    except StopIteration as e:
         raise Exception("Unable to find config file for", name, paths)
         #sys.exit(1)
     ext = splitext(config)[1]
@@ -642,7 +643,7 @@ class ValuesFacade(Values):
             config_key=default_config_key):
         try:
             data = yaml_load(open(path).read())
-        except Exception, e:
+        except Exception as e:
             raise Exception("Parsing %s: %s"%(path, e))
         config = Klass(data, source_file=path,
                 source_key=source_key)
@@ -684,4 +685,3 @@ def haspath(obj, attrs):
 if __name__ == '__main__':
     configs = list(expand_config_path('cllct.rc'))
     assert configs == ['/Users/berend/.cllct.rc'], configs
-

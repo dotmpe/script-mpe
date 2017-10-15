@@ -6,7 +6,7 @@
   Main global groups
 
 - Usage: auto-sets dotfile per main.sh frontend, env: IGNORE_GLOBFILE.
-  Load using `ignores_load`, init per `lst_init_ignores [.ext]`.
+  Load using `ignores_lib_load`, init per `lst_init_ignores [.ext]`.
 
 - FIXME: File should not exist but is populated each execution.
   TODO: move execution (in htd, pd) to {base}_load.

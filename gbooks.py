@@ -13,6 +13,7 @@ Options:
                 JSON formatted credentials.
 
 """
+from __future__ import print_function
 import httplib2
 import os
 from pprint import pprint, pformat
@@ -22,7 +23,7 @@ import oauth2client
 from oauth2client import client
 from oauth2client import tools
 
-from script_mpe import util
+from script_mpe import libcmd_docopt
 import confparse
 
 
@@ -77,7 +78,7 @@ def kwargs(*args):
 
 def H_list(service, opts):
     r = service.volumes().list(q=opts.args.q).execute()
-    print 'Books for "%s"' % opts.args.q, len(r['items'])
+    print('Books for "%s"' % opts.args.q, len(r['items']))
     #print r.keys()
 
     for i in r['items']:
@@ -88,11 +89,11 @@ def H_list(service, opts):
         #print vi.keys()
 
         if 'subtitle' in vi:
-            print v.id, vi.publisher, vi.title, vi.subtitle, \
-                vi.publishedDate, vi.language
+            print(v.id, vi.publisher, vi.title, vi.subtitle, \
+                vi.publishedDate, vi.language)
         else:
-            print v.id, vi.publisher, vi.title, \
-                vi.publishedDate, vi.language
+            print(v.id, vi.publisher, vi.title, \
+                vi.publishedDate, vi.language)
 
 
 
@@ -118,7 +119,7 @@ def main(func=None, opts=None):
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__doc__)
+    opts = libcmd_docopt.get_opts(__doc__)
     if not opts.cmds:
         opts.cmds = ['list']
     if not opts.flags.secret:
@@ -127,6 +128,3 @@ if __name__ == '__main__':
         else:
             opts.flags.secret = CLIENT_SECRET_FILE
     sys.exit( main( opts.cmds[0], opts ) )
-
-
-

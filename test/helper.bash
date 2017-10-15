@@ -1,6 +1,43 @@
 #!/bin/bash
 
 
+# Add fallbacks for non-std BATS functions
+
+type fail >/dev/null 2>&1 || {
+  fail()
+  {
+    test -z "$1" || echo "Reason: $1" >> $BATS_OUT
+    exit 1
+  }
+}
+
+type diag >/dev/null 2>&1 || {
+  # Note: without failing test, output will not show up in std Bats install
+  diag()
+  {
+    BATS_TEST_DIAGNOSTICS=1
+    echo "$1" >>"$BATS_OUT"
+  }
+}
+
+type TODO >/dev/null 2>&1 || { # tasks:no-check
+  TODO() # tasks:no-check
+  {
+    test -n "$TODO_IS_FAILURE" && {
+      ( 
+          test -z "$1" &&
+              "TODO ($BATS_TEST_DESCRIPTION)" || echo "TODO: $1"  # tasks:no-check
+      )>> $BATS_OUT
+      exit 1
+    } || {
+      # Treat as skip
+      BATS_TEST_TODO=${1:-1}
+      BATS_TEST_COMPLETED=1
+      exit 0
+    }
+  }
+}
+
 type stdfail >/dev/null 2>&1 || {
   stdfail()
   {
@@ -32,29 +69,66 @@ type test_ok_nonempty >/dev/null 2>&1 || {
   }
 }
 
+type test_nok_nonempty >/dev/null 2>&1 || {
+  test_nok_nonempty()
+  {
+    test ${status} -ne 0 &&
+    test -n "${lines[*]}" && {
+      test -z "$1" || {
+        case "$1" in
+          # Test line-count if number given
+          "[0-9]"* ) test "${#lines[*]}" = "$1"  || return $? ;;
+          # Test line-glob-match otherwise
+          * ) case "${lines[*]}" in $1 ) ;; * ) return 1 ;; esac
+            ;;
+        esac
+      }
+    }
+  }
+}
+
 
 # Set env and other per-specfile init
 test_init()
 {
   test -n "$base" || exit 12
-  test -n "$hostname" || hostname=$(hostname -s | tr 'A-Z' 'a-z')
   test -n "$uname" || uname=$(uname)
   test -n "$scriptpath" || scriptpath=$(pwd -P)
+  hostname_init
+}
+
+hostname_init()
+{
+  hostnameid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
 }
 
 init()
 {
   test_init
-  . ./tools/sh/init.sh
 
   test -x $base && {
     bin=$scriptpath/$base
   }
   lib=$scriptpath
 
-  . $lib/main.lib.sh load-ext
-  lib_load sys str std
-  main_init
+  __load_mode=load-ext . $scriptpath/util.sh
+  lib_load os sys str std main
+
+  return # FIXME: cleanup rest
+
+  # init script env
+  test -n "$ENV_NAME" && {
+    # TODO: require (prim.) source file for env
+    # test -n "$ENV" || error "Expected ENV profile for $ENV_NAME" 1
+    printf -- " "
+  } || {
+    export SCR_SYS_SH=bash-sh
+    export ENV_NAME=testing
+    export ENV=./tools/sh/env.sh
+  }
+
+  # older script-mpe init
+  #main_init
 
   test -n "$TMPDIR" || error TMPDIR 1
 
@@ -72,15 +146,23 @@ init()
 
 
 ### Helpers for conditional tests
-# currently usage is to mark test as skipped or 'TODO' per test case, based on
-# host. Written into the specs itself.
 
-# XXX: Hardcorded list of test envs, for use as is-skipped key
+# TODO: SCRIPT-MPE-2 deprecate in favor of require-env from projectenv.lib
+# Returns successful if given key is not marked as skipped in the env
+# Specifically return 1 for not-skipped, unless $1_SKIP evaluates to non-empty.
+is_skipped()
+{
+  local skipped="$(echo $(eval echo \$$(get_key "$1")_SKIP))"
+  test -n "$skipped" && return
+  return 1
+}
+
+# XXX: SCRIPT-MPE-2 Hardcorded list of test envs, for use as is-skipped key
 current_test_env()
 {
   test -n "$TEST_ENV" \
     && echo $TEST_ENV \
-    || case $(hostname -s | tr 'A-Z' 'a-z') in
+    || case $hostnameid in
       simza | boreas | vs1 | dandy | precise64 ) hostname -s | tr 'A-Z' 'a-z';;
       * ) whoami ;;
     esac
@@ -90,7 +172,6 @@ current_test_env()
 check_skipped_envs()
 {
   test -n "$1" || return 1
-  # XXX hardcoded envs
   local skipped=0
   test -n "$1" || set -- "$(hostname -s | tr 'A-Z_.-' 'a-z___')" "$(whoami)"
   cur_env=$(current_test_env)
@@ -105,20 +186,13 @@ check_skipped_envs()
   return $skipped
 }
 
+# Deprecate many of below too, see str.lib.sh mk*id instead
+
 get_key()
 {
   local key="$(echo "$1" | tr 'a-z._-' 'A-Z___')"
   fnmatch "[0-9]*" "$key" && key=_$key
   echo $key
-}
-
-# Returns successful if given key is not marked as skipped in the env
-# Specifically return 1 for not-skipped, unless $1_SKIP evaluates to non-empty.
-is_skipped()
-{
-  local skipped="$(echo $(eval echo \$$(get_key "$1")_SKIP))"
-  test -n "$skipped" && return
-  return 1
 }
 
 trueish()
@@ -145,6 +219,7 @@ next_temp_file()
 
 lines_to_file()
 {
+  # XXX: cleanup
   echo "status=${status}"
   echo "#lines=${#lines[@]}"
   echo "lines=${lines[*]}"

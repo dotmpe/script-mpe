@@ -56,7 +56,7 @@ def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
                 log.info(''.join( [ "{bwhite} %s:{green}%s{default}" % (tag, name)
                     for tag in path if tag in tags] ))
 
-    except KeyboardInterrupt, e:
+    except KeyboardInterrupt as e:
         log.err(e)
         yield 1
 

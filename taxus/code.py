@@ -1,7 +1,7 @@
 """
 Version Control
 """
-from sqlalchemy import Column, Integer, String, Boolean, Text, \
+from sqlalchemy import Column, Integer, String, Boolean, \
     ForeignKey, Table, Index, DateTime, Enum
 from sqlalchemy.orm import relationship, backref
 
@@ -33,11 +33,12 @@ class VersionControl(SqlBase, ORMMixin):#core.Node):
     #vc_type_id = Column(Integer, ForeignKey('nodes.id'), nullable=False)
     #vc_type = relationship( core.Node, primaryjoin= vc_type_id==core.Node.node_id )
 
-    vc_type = Column(Enum('GIT', 'BazaarNG', 'Mercurial', 'Subversion', 'CVS'),
+    vc_type = Column(Enum('GIT', 'BazaarNG', 'Mercurial', 'Subversion', 'CVS',
+            name='scms'),
             nullable=False)
 
     host_id = Column(Integer, ForeignKey('hosts.id'), nullable=False)
-    host = relationship( net.Host, 
+    host = relationship( net.Host,
             primaryjoin= host_id == net.Host.host_id,
             backref="repositories")
 
@@ -56,11 +57,11 @@ class Project(SqlBase, ORMMixin):
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
 
-    hosts = relationship( net.Host, 
+    hosts = relationship( net.Host,
             secondary=projects_hosts_table,
             backref="projects")
 
-    repositories = relationship( VersionControl, 
+    repositories = relationship( VersionControl,
             secondary=projects_vcs_table,
             backref="projects")
 

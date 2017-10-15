@@ -80,6 +80,8 @@ __db__ = '~/.finfo.sqlite'
 __usage__ = """
 Usage:
   finfo.py [options] [--env name=VAR]... [--name name=VAR]... (CTX|FILE...|DIR...)
+  finfo.py --show-info
+  finfo.py --list-prefixes
   finfo.py -h|--help
   finfo.py --version
 
@@ -93,7 +95,6 @@ Options:
     -n name=PATH --name name=PATH[:PATH]
                   Define a name with path(set), to look for existing paths
                   and/or replace prefix common path prefixes with 'name:'.
-
     -e VAR=name --env VAR=name
                   Bind env 'VAR' to named set 'name'. If env isset overrides any
                   named set (see --name).
@@ -112,6 +113,7 @@ Options:
                   Return document type files only.
     --filter INCLUDE...
                   ..
+    --show-info   ..
 
 Other flags:
     -v            Increase verbosity.
@@ -120,6 +122,7 @@ Other flags:
     --version     Show version (%s).
 
 """ % ( __db__, __version__, )
+from __future__ import print_function
 import os
 from datetime import datetime
 from pprint import pprint, pformat
@@ -148,7 +151,7 @@ import taxus.model
 import taxus.net
 import taxus.semweb
 import taxus.web
-import util
+import libcmd_docopt
 
 from taxus.core import Node, Name
 from taxus.media import Mediatype, MediatypeParameter, Genre, Mediameta
@@ -192,14 +195,14 @@ class FileInfoApp(rsr.Rsr):
     DEFAULT = ['file_info']
 
     DEPENDS = {
-            'file_info': ['txs_session'],
-            'name_and_categorize': ['txs_session'],
-            'mm_stats': ['txs_session'],
-            'list_mtype': ['txs_session'],
-            'list_mformat': ['txs_session'],
-            'add_genre': ['txs_session'],
-            'add_mtype': ['txs_session'],
-            'add_mformats': ['txs_session']
+            'file_info': ['rsr_session'],
+            'name_and_categorize': ['rsr_session'],
+            'mm_stats': ['rsr_session'],
+            'list_mtype': ['rsr_session'],
+            'list_mformat': ['rsr_session'],
+            'add_genre': ['rsr_session'],
+            'add_mtype': ['rsr_session'],
+            'add_mformats': ['rsr_session']
         }
 
     @classmethod
@@ -238,12 +241,12 @@ class FileInfoApp(rsr.Rsr):
     def list_mformat(self, sa):
         mfs = sa.query(Mediaformat).all()
         for mf in mfs:
-            print mf
+            print(mf)
 
     def list_mtype(self, sa=None):
         mms = sa.query(Mediatype).all()
         for mm in mms:
-            print mm
+            print(mm)
 
     def mm_stats(self, sa=None):
         mfs = sa.query(Mediaformat).count()
@@ -292,7 +295,7 @@ class FileInfoApp(rsr.Rsr):
                 continue
             if opts.interactive: # XXX: add_mformats interactive
                 mfs = Mediaformat.search(name=fmt)
-                print 'TODO', mfs
+                print('TODO', mfs)
             mf = Mediaformat( name=fmt, date_added=datetime.now() )
             log.info('New format %s', mf)
             sa.add(mf)
@@ -306,7 +309,7 @@ class FileInfoApp(rsr.Rsr):
             assert opts.interactive
             for path in paths:
                 for subpath in res.fs.Dir.walk(paths, opts):#dict(recurse=True)):
-                    print subpath
+                    print(subpath)
         elif not opts.interactive:
             path = paths[0]
             mm = Mediameta(name=name)
@@ -331,8 +334,8 @@ class FileInfoApp(rsr.Rsr):
             for p in res.fs.Dir.walk(p):
                 format_description = lib.cmd('file -bs "%s"', p).strip()
                 mediatype = lib.cmd('file -bi "%s"', p).strip()
-                print ':path:', p, format_description
-                print ':mt:', mediatype
+                print(':path:', p, format_description)
+                print(':mt:', mediatype)
                 print
 
 
@@ -393,7 +396,7 @@ def main(argv, doc=__doc__, usage=__usage__):
         usage = usage.replace(__db__, db)
 
     ctx = confparse.Values(dict(
-        opts = util.get_opts(doc + usage, version=get_version(), argv=argv[1:])
+        opts = libcmd_docopt.get_opts(doc + usage, version=get_version(), argv=argv[1:])
     ))
     ctx.opts.flags.dbref = taxus.ScriptMixin.assert_dbref(ctx.opts.flags.dbref)
     # Load configuration
@@ -402,7 +405,12 @@ def main(argv, doc=__doc__, usage=__usage__):
     # Load SA session
     ctx.sa = get_session(ctx.opts.flags.dbref)
 
-    # DEBUG: pprint(ctx.settings.todict())
+    if ctx.opts.flags.show_info:
+        print(ctx.opts.flags.dbref)
+        print(ctx.config_file)
+        return
+    # DEBUG:
+    #pprint(ctx.settings.todict())
 
     # Process arguments
     dirs = []
@@ -518,7 +526,7 @@ def main(argv, doc=__doc__, usage=__usage__):
         ctx.opts.args.INCLUDE = doc_filters + ctx.opts.args.INCLUDE
     for idx, filter in enumerate(ctx.opts.args.INCLUDE):
         if isinstance(filter, str):
-            print 'new filter', filter
+            print('new filter', filter)
             ctx.opts.args.INCLUDE[idx] = fnmatch.translating(filter)
 
     # Resolve FILE/DIR arguments
@@ -588,7 +596,7 @@ def main(argv, doc=__doc__, usage=__usage__):
         ref = prefix+':'+name
 
         if ctx.opts.flags.names_only:
-            print ref
+            print(ref)
 
         else:
             # TODO: get INode through context? Also add mediatype & parameters
@@ -623,7 +631,7 @@ def main(argv, doc=__doc__, usage=__usage__):
             if not record.node_id:
                 ctx.sa.add(record)
 
-            print record, record.date_updated, record.date_modified
+            print(record, record.date_updated, record.date_modified)
             #sys.exit()
 
             if ctx.opts.flags.update:
@@ -636,8 +644,12 @@ def get_version():
 
 
 if __name__ == '__main__':
-    #FileInfoApp.main()
     import sys
-    #sys.setrecursionlimit(100)
-    sys.exit(main(sys.argv))
-
+    sys.setrecursionlimit(100)
+    base=os.path.basename(sys.argv[0])
+    if base == 'finfo.py':
+        sys.exit(main(sys.argv))
+    elif base == 'finfo-app.py':
+        app = FileInfoApp.main()
+    else:
+        raise Exception(base+'?')

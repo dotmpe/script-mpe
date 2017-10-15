@@ -45,7 +45,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 import lib
 import log
-import util
+import libcmd_docopt
 from taxus.util import ORMMixin, ScriptMixin, get_session
 
 
@@ -145,7 +145,7 @@ def cmd_info(settings):
         try:
             log.std("  {blue}%s{default}: {bwhite}%s{default}",
                     t, sa.query(metadata.tables[t].count()).all()[0][0])
-        except Exception, e:
+        except Exception as e:
             log.err("Count failed for %s: %s", t, e)
 
     # peak memory usage (bytes on OS X, kilobytes on Linux)
@@ -223,8 +223,8 @@ def cmd_record(settings, opts, TAGS):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -238,7 +238,7 @@ def main(opts):
     settings = opts.flags
     values = opts.args
 
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'hier.mpe/%s' % __version__
@@ -246,8 +246,6 @@ def get_version():
 if __name__ == '__main__':
     import sys
 
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-

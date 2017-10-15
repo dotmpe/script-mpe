@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import sys
 
 #s1, s2, s3, s4 = "Foo", "Bar", "Baz", "spam"
@@ -22,7 +23,7 @@ import sys
 #print "\x1b[34m  34\x1b[0m",
 #print "\x1b[35m  35\x1b[0m",
 #print "\x1b[36m  36\x1b[0m",
-#print "\x1b[37m  37\x1b[0m", 
+#print "\x1b[37m  37\x1b[0m",
 #print "\x1b[38m  38\x1b[0m", " normal"
 #print '  1 ',
 #print "\x1b[1;30m1,30\x1b[0m",
@@ -69,7 +70,7 @@ import sys
 #print "\x1b[5;35m5,35\x1b[0m",
 #print "\x1b[5;36m5,36\x1b[0m",
 #print "\x1b[5;37m5,37\x1b[0m", " blink <150/minute"
-#print '  6 ',    
+#print '  6 ',
 #print "\x1b[6;30m6,30\x1b[0m",
 #print "\x1b[6;31m6,31\x1b[0m",
 #print "\x1b[6;32m6,32\x1b[0m",
@@ -123,7 +124,7 @@ import sys
 #print "\x1b[1;45m1,45\x1b[0m",
 #print "\x1b[1;46m1,46\x1b[0m",
 #print "\x1b[1;47m1,47\x1b[0m"
-#print '  2 ',    
+#print '  2 ',
 #print "\x1b[2;40m2,40\x1b[0m",
 #print "\x1b[2;41m2,41\x1b[0m",
 #print "\x1b[2;42m2,42\x1b[0m",
@@ -133,7 +134,7 @@ import sys
 #print "\x1b[2;46m2,46\x1b[0m",
 #print "\x1b[2;47m2,47\x1b[0m",
 #print "\x1b[2;48m2,48\x1b[0m"
-#print '  3 ',    
+#print '  3 ',
 #print "\x1b[3;40m3,40\x1b[0m",
 #print "\x1b[3;41m3,41\x1b[0m",
 #print "\x1b[3;42m3,42\x1b[0m",
@@ -142,7 +143,7 @@ import sys
 #print "\x1b[3;45m3,45\x1b[0m",
 #print "\x1b[3;46m3,46\x1b[0m",
 #print "\x1b[3;47m3,47\x1b[0m"
-#print '  4 ',    
+#print '  4 ',
 #print "\x1b[4;40m4,40\x1b[0m",
 #print "\x1b[4;41m4,41\x1b[0m",
 #print "\x1b[4;42m4,42\x1b[0m",
@@ -151,7 +152,7 @@ import sys
 #print "\x1b[4;45m4,45\x1b[0m",
 #print "\x1b[4;46m4,46\x1b[0m",
 #print "\x1b[4;47m4,47\x1b[0m"
-#print '  5 ',    
+#print '  5 ',
 #print "\x1b[5;40m5,40\x1b[0m",
 #print "\x1b[5;41m5,41\x1b[0m",
 #print "\x1b[5;42m5,42\x1b[0m",
@@ -160,7 +161,7 @@ import sys
 #print "\x1b[5;45m5,45\x1b[0m",
 #print "\x1b[5;46m5,46\x1b[0m",
 #print "\x1b[5;47m5,47\x1b[0m"
-#print '  6 ',    
+#print '  6 ',
 #print "\x1b[6;40m6,40\x1b[0m",
 #print "\x1b[6;41m6,41\x1b[0m",
 #print "\x1b[6;42m6,4r\x1b[0m",
@@ -169,7 +170,7 @@ import sys
 #print "\x1b[6;45m6,45\x1b[0m",
 #print "\x1b[6;46m6,46\x1b[0m",
 #print "\x1b[6;47m6,47\x1b[0m"
-#print '  7 ',    
+#print '  7 ',
 #print "\x1b[7;40m7,40\x1b[0m",
 #print "\x1b[7;41m7,41\x1b[0m",
 #print "\x1b[7;42m7,42\x1b[0m",
@@ -179,7 +180,7 @@ import sys
 #print "\x1b[7;46m7,46\x1b[0m",
 #print "\x1b[7;47m7,47\x1b[0m",
 #print "\x1b[7;48m7,48\x1b[0m"
-#print '  8 ',    
+#print '  8 ',
 #print "\x1b[8;40m8,40\x1b[0m",
 #print "\x1b[8;41m8,41\x1b[0m",
 #print "\x1b[8;42m8,42\x1b[0m",
@@ -189,7 +190,7 @@ import sys
 #print "\x1b[8;46m8,46\x1b[0m",
 #print "\x1b[8;47m8,47\x1b[0m",
 #print "\x1b[8;48m8,48\x1b[0m"
-#print '  9 ',    
+#print '  9 ',
 #print "\x1b[9;40m9,40\x1b[0m",
 #print "\x1b[9;41m9,41\x1b[0m",
 #print "\x1b[9;42m9,42\x1b[0m",
@@ -212,15 +213,11 @@ STYLES = (0, 20, 'normal'), (1, 21, 'bright'), (2, 22, 'faint'), (3, 23, 'italic
                         (7, 27, 'image negative'),  (8, 29, 'conceal'), (9, 29, 'crossed-out')
 
 for attr in STYLES:
-    print attr[2]
-    print "          ".join(map(str, range(40, 49))), '       < backround / V foreground'
+    print(attr[2])
+    print("          ".join(map(str, range(40, 49))), '       < backround / V foreground')
     for fg in range(30, 39):
         for bg in range(40, 49):
-            print code(attr[0]), code(fg, bg), attr[0], fg, '  ',  code(attr[1]), code(0),
+            print(code(attr[0]), code(fg, bg), attr[0], fg, '  ',  code(attr[1]), code(0),)
         print
 
-print code(0)
-
-
-
-
+print(code(0))

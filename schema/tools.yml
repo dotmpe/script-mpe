@@ -16,16 +16,21 @@ properties:
     type: string
     description: Label or title
   $schema:
-    type: string
+    $stype: string
   description:
     type: string
   tools:
     type: object
+    minProperties: 1
     patternProperties:
       "^[A-Za-z0-9\\._%\\+-]+@[A-Za-z0-9\\.-]+\\.[A-Za-z]{2,6}$": 
         description: The tools key normally corresponds with the Id attribute, and either indicates a package available with the specified installer, or a standalone, named script embedded.
         oneOf:
+          - type: string
+          - type: array
+            items: [ type: string ]
           - type: object
+            additionalProperties: false
             properties:
               id:
                 description: Should not be different from the tools key, see description for more info.
@@ -38,7 +43,7 @@ properties:
                 oneOf:
                   - type: string
                   - type: array
-                    items: string
+                    items: [ type: string ]
               src:
                 description: Work in progress; experimental; a name for the script to be generated.
                 type: string
@@ -49,27 +54,25 @@ properties:
                 oneOf:
                   - type: string
                   - type: array
-                    items: string
+                    items: [ type: string ]
               post-install:
                 description: experimental; see htd.sh tools
                 oneOf:
                   - type: string
                   - type: array
-                    items: string
+                    items: [ type: string ]
               post-uninstall:
                 description: experimental; see htd.sh tools
                 oneOf:
                   - type: string
                   - type: array
-                    items: string
+                    items: [ type: string ]
               script:
+                minProperties: 1
                 patternProperties:
                   "^[A-Za-z0-9\\._%\\+-]+@[A-Za-z0-9\\.-]+\\.[A-Za-z]{2,6}$": 
                     oneOf:
                       - type: string
                       - type: array
-                        items: string
-          - type: array
-            items: string
-          - type: string
+                        items: [ type: string ]
 

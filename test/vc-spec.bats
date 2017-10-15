@@ -3,8 +3,8 @@
 load helper
 load vc
 base=vc.sh
-init
 
+init
 
 setup()
 {
@@ -139,5 +139,31 @@ setup()
   shopt -u extglob
 }
 
+# vc conflicts
+@test "$bin conflicts diff-file test/var/conflict-test.txt" {
+  export verbosity=0
+  run $BATS_TEST_DESCRIPTION
+  { test_ok_nonempty &&
+      test ${#lines[*]} -eq 10
+  } || stdfail
+}
+
+@test "$bin conflicts stat-file test/var/conflict-test.txt" {
+  export verbosity=0
+  run $BATS_TEST_DESCRIPTION
+  { test_ok_nonempty &&
+      test ${#lines[*]} -eq 2
+  } || stdfail
+}
+
+@test "$bin conflicts count-file test/var/conflict-test.txt" {
+  export verbosity=0
+  run $BATS_TEST_DESCRIPTION
+  { 
+    test_ok_nonempty &&
+      test ${#lines[*]} -eq 1 &&
+        test "${lines[*]}" = 9
+  } || stdfail
+}
 
 # vim:ft=sh:

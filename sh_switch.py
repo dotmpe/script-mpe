@@ -6,12 +6,12 @@ Parse switch statements from Sh scripts
 ------------------------------------------
 
 :Created: 2016-06-16
-:Updated: 2017-01-14
-
+:Updated: 2017-07-09
 
 - Quotes are included in the expression, since Sh can have both.
 
 """
+from __future__ import print_function
 __version__ = '0.0.4-dev' # script-mpe
 __usage__ = """
 sh-switch - Parse switch statements from Sh scripts
@@ -41,7 +41,7 @@ import shlex
 
 from docopt import docopt
 
-import util, confparse, jsotk_lib
+import libcmd_docopt, confparse, jsotk_lib
 
 
 
@@ -201,7 +201,7 @@ class SwitchReader:
 
 
 
-# Command utils
+# Command libcmd_docopts
 
 
 # Subcommand handlers
@@ -228,12 +228,12 @@ def H_test_examples(ctx):
     ]
     H_dump(ctx)
 
-    #print list(reader.get_offsets())
+    #print(list(reader.get_offsets()))
     #reader.get_keys_at_levels()
     #reader.read_all()
 
 def H_version(ctx):
-    print 'script-mpe/'+__version__
+    print('script-mpe/'+__version__)
 
 
 
@@ -273,7 +273,7 @@ if __name__ == '__main__':
         out=sys.stdout,
         inp=sys.stdin,
         err=sys.stderr,
-        opts=util.get_opts(__usage__)
+        opts=libcmd_docopt.get_opts(__usage__)
     ))
     try:
         sys.exit( main( ctx ) )
@@ -284,4 +284,3 @@ if __name__ == '__main__':
             print(tb)
             print('Unexpected Error:', err)
         sys.exit(1)
-
