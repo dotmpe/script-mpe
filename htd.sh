@@ -8532,14 +8532,9 @@ htd__ips()
           ${sudo}iptables -A INPUT -m state --state INVALID -j DROP
           ${sudo}iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
           ${sudo}iptables -A INPUT -i lo -j ACCEPT
-          # Allow some private nets
-          ${sudo}iptables -A INPUT -s 10.0.0.0/8      -j ACCEPT
-          # NOTE: the local net
-          ${sudo}iptables -A INPUT -s 172.16.0.0/12   -j ACCEPT
-          ${sudo}iptables -A INPUT -s 192.168.0.0/16  -j ACCEPT
           #${sudo}iptables -A INPUT -s ${ip} -j ACCEPT
 
-          wlist=$HOME/allowed-ips.list
+          wlist=./allowed-ips.list
           wc -l $wlist
           read_nix_style_file $wlist |
           while read ip
@@ -8551,7 +8546,7 @@ htd__ips()
         ;;
 
       init-blist ) shift
-          blist=banned-ips.list
+          blist=./banned-ips.list
           wc -l $blist
           {
             cat $blist
