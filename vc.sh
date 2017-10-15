@@ -1848,16 +1848,11 @@ vc_unload()
 }
 
 
-# Ignore login console interpreter
+# Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
-  test -n "$f_lib_load" || {
-    __load_mode=main . ~/bin/util.sh
-    test "$1" = "$__load_mode" ||
-      set -- "$__load_mode" "$@"
-
-    case "$1" in
-      main ) shift ; vc_main "$@" ;;
-    esac
-
-  } ;;
-esac
+  # Ignore 'load-ext' sub-command
+  test -z "$__load_lib" || set -- "load-ext"
+  case "$1" in load-ext ) ;; * )
+    vc_main "$@"
+  ;; esac
+;; esac

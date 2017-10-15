@@ -101,16 +101,16 @@ case "$0" in
             ;;
 
         esac
-        test -n "$SCRIPTPATH" || {
-          util_init
-        }
-        case "$__load_mode" in
-          load-* ) ;; # External include, do nothing
-          boot )
-              lib_load
-            ;;
-        esac
       }
+      test -n "$SCRIPTPATH" || {
+        util_init
+      }
+      case "$__load_mode" in
+        load-* ) ;; # External include, do nothing
+        boot )
+            lib_load
+          ;;
+      esac
     ;;
 esac
 
