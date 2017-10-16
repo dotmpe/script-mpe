@@ -3457,12 +3457,17 @@ htd__diff_function()
   var_isset copy_only || {
     trueish "$sync" && copy_only=true || copy_only=false
   }
+
   cp_board= copy_paste_function "$2" "$1" || error "copy-paste-function 1" $?
   src1_line=$start_line
   src1=$cp
+  test -e "$cp" || error "copy-paste file '$cp' missing" 1
+
   cp_board= copy_paste_function "$4" "$3" || error "copy-paste-function 2" $?
   src2_line=$start_line
   src2=$cp
+  test -e "$cp" || error "copy-paste file '$cp' missing" 1
+
   trueish "$edit" && {
     diff -bqr $src1 $src2 >/dev/null 2>&1 &&
       stderr ok "nothing to do, '$2' in sync for '$1' $3'" || {
