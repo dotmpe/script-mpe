@@ -366,7 +366,7 @@ xsed_rewrite()
 {
     case "$uname" in
         Darwin ) sed -i.applyBack "$@";;
-        Linux ) sed "$@";;
+        Linux ) sed -i "$@";;
     esac
 }
 

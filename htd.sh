@@ -852,11 +852,22 @@ htd__copy() # Sub-To-Script [ From-Project-Checkout ]
   test -e "$2/$1" || {
     error "No Src $1 at $2" 1
   }
-  local dir="$(dirname "$1")"
-  test -z "$dir" || mkdir -vp $dir
-  cp $2/$1 $1
-  xsed_rewrite 's/Id:/From:/g' $1
-  echo TODO: git-versioning add $1
+  test -e "$1" && {
+
+    vimdiff "$1" "$2/$1" || return $?
+  } || {
+    local dir="$(dirname "$1")"
+    test -z "$dir" || mkdir -vp $dir
+    cp $2/$1 $1
+    xsed_rewrite 's/Id:/From:/g' $1
+    test ! -e .versioned-files.list || {
+      echo "# Id: $(basename "$(pwd)")/" >> $1
+      grep -F "$1" .versioned-files.list ||
+        echo $1 >> .versioned-files.list
+      git-versioning update
+    }
+    $EDITOR $1
+  }
 }
 
 
