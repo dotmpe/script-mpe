@@ -8,6 +8,8 @@ Usage:
     diskdoc.py [options] disks
     diskdoc.py [options] list-disks
     diskdoc.py [options] generate-doc
+    diskdoc.py [options] readtab ID
+    diskdoc.py [options] readout ID
 
 Commands:
     disks
@@ -73,13 +75,20 @@ def readtab(tabdata):
         l.strip().replace('\t','    ') for l in tabdata if
             l.strip() and not l.strip().startswith('#') ] )
 
-def readtab_attr(tabfile, attr):
-    tab_lines_fields = readtab(open(tabfile).readlines())
+def handle_tab_lines(tab_lines_fields, attr):
     tab_lines_attr = []
     for line_fields in tab_lines_fields:
         fieldmap = dict(zip(attr.split(' '), line_fields))
         tab_lines_attr.append(confparse.Values(fieldmap))
     return tab_lines_attr
+
+def readtab_attr(tabfile, attr):
+    tab_lines_fields = readtab(open(tabfile).readlines())
+    return handle_tab_lines( tab_lines_fields, attr )
+
+def readout_attr(cmd, attr):
+    out = subprocess.check_output(cmd).strip().split('\n')
+    return handle_tab_lines( readtab( out ), attr )
 
 """
 Parse file and return list of ojects with attribute access.
@@ -87,23 +96,30 @@ Parse file and return list of ojects with attribute access.
 readtab_attr_presets = dict(
   mtab=( '/etc/mtab', "device mount fstype mntattr dump fsck" ),
   mounts=( '/proc/mounts', "device mount fstype mntattr dump fsck" ),
-  partitions=( '/proc/partitions', "major minor blocks device_node" ),
+  partitions=( '/proc/partitions', "major minor blocks device_node" )
 )
-
-def readout_attr(cmd, attr):
-    out = subprocess.check_output(cmd.split(' ')).strip().split('\n')
-    tab_lines_fields = readtab(out)
-    tab_lines_attr = []
-    for line_fields in out:
-        fieldmap = dict(zip(attr.split(' '), line_fields))
-        tab_lines_attr.append(confparse.Values(fieldmap))
-    return tab_lines_attr
 
 
 readout_attr_presets = dict(
-  darwin_mounts=( 'darwin.lib.sh darwin_mounts', "mount bsd_name vol_uuid fstype_descr" )
+  darwin_lib_mounts=( ['darwin.lib.sh','darwin_mounts'], "mount bsd_name vol_uuid fstype_descr" ),
+  linux_mounts=( ['mount'], "mount bsd_name vol_uuid fstype_descr" ),
+  linux_df=( ['bash', '-c', 'df | sed 1d'], "filesystem _1kblocks used available usePct mount" ),
+  # NOTE: the only difference with -P/--portability seems to be that header
+  # 'Available' is called 'Capacity'
+  linux_df_posix=( ['bash', '-c', 'df -P | sed 1d'], "filesystem _1kblocks used available usePct mount" )
   #darwin_mount_stats=( '/proc/partitions', "" )
 )
+
+def H_readtab(diskdoc, ctx):
+    data = readtab_attr( *readtab_attr_presets[ctx.opts.args.ID] )
+    for it in data:
+        print(it.todict())
+
+def H_readout(diskdoc, ctx):
+    data = readout_attr( *readout_attr_presets[ctx.opts.args.ID] )
+    for it in data:
+        print(it.todict())
+
 
 def mtab_ignored(line, ctx):
 
@@ -135,10 +151,10 @@ def H_disks(diskdata, ctx):
 
     ctx.sources.partitions = readtab_attr(*readtab_attr_presets['partitions'])
 
-    if not ctx.flags.include_devices and not ctx.flags.exclude_devices:
-       ctx.flags.include_devices = [ "/dev/%s" % l.device_node for l in ctx.sources.partitions ]
-    if not ctx.flags.include_types and not ctx.flags.exclude_types:
-    	opts.flags.exclude_types = ['/var/lib/docker/aufs']
+    if not ctx.opts.flags.include_device and not ctx.opts.flags.exclude_device:
+       ctx.opts.flags.include_device = [ "/dev/%s" % l.device_node for l in ctx.sources.partitions ]
+    if not ctx.opts.flags.include_type and not ctx.opts.flags.exclude_type:
+    	opts.flags.exclude_type = ['/var/lib/docker/aufs']
 
     ctx.sources.mtab = readtab_attr(*readtab_attr_presets['mtab'])
 
@@ -155,19 +171,17 @@ def H_list_disks(diskdata, ctx):
     available at localhost.
     """
 
-    #mounts = subprocess.check_output('mount')
-    #print 'Mounts', mounts
-
     devices = []
     if os.uname()[0] == 'Darwin':
-        mounts = readout_attr(*readout_attr_presets['darwin_mounts'])
+        mounts = readout_attr(*readout_attr_presets['darwin_lib_mounts'])
         devices = [ d.vol_uuid for d in mounts ]
     else:
-        devices = subprocess.check_output('find /dev/disk/by-uuid -type l'.split(' '))
+        mounts = subprocess.check_output('mount')
+        devices = subprocess.check_output(
+                'find /dev/disk/by-uuid -type l'.split(' '))
 
     for id, attr in diskdata['catalog']['media'].items():
-        print('Disk {0:s}: {1:s} ({2:s})'.format(
-            id, attr['description'], attr['size']))
+
         # print when mounted
         for part in attr['partitions']:
             size = part['size']
@@ -259,7 +273,7 @@ if __name__ == '__main__':
         out=sys.stdout,
         err=sys.stderr,
         inp=sys.stdin,
-        opts=opts,
+        opts=confparse.Values(opts),
         sources=confparse.Values(),
         filters=confparse.Values(dict(
           devices=[],
