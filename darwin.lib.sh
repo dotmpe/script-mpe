@@ -86,12 +86,19 @@ darwin_profile_dump()
 }
 
 # darwin-mounts: List device, BSD-name, UUID and description of fs-type
-darwin_mounts()
+darwin_bsd_mounts()
 {
   debug "Dumping SPStorageDataType profile"
   #darwin_profile_tab SPStorageDataType mount_point bsd_name volume_uuid file_system
   xml=$(darwin_profile_xml "SPStorageDataType")
   darwin.py spstorage-disk $xml "" mount_point bsd_name volume_uuid file_system
+}
+
+darwin_mounts()
+{
+  darwin_bsd_mounts | while read mp name uuid fs
+  do printf -- "$mp\t/dev/$name\t$uuid\t$fs\n"
+  done
 }
 
 # darwin-mount-stats: combine darwin-mounts with disk-idx/part-idx and df data

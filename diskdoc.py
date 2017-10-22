@@ -52,7 +52,7 @@ import sys, socket
 import os
 import re
 from fnmatch import fnmatch
-from pprint import pformat
+from pprint import pprint, pformat
 import subprocess
 from UserList import UserList
 
@@ -104,12 +104,14 @@ readtab_attr_presets = dict(
 
 
 readout_attr_presets = dict(
-  darwin_lib_mounts=( ['darwin.lib.sh','darwin_mounts'], "mount bsd_name vol_uuid fstype_descr" ),
+  darwin_lib_mounts=( ['darwin.lib.sh','darwin_mounts'], "mount device vol_uuid fstype_descr" ),
   linux_mounts=( ['mount'], "device _ mount _ type opts" ),
   linux_df=( ['bash', '-c', 'df | sed 1d'], "filesystem _1kblocks used available usePct mount" ),
-  # NOTE: the only difference with -P/--portability seems to be that header
-  # 'Available' is called 'Capacity'
-  linux_df_posix=( ['bash', '-c', 'df -P | sed 1d'], "filesystem _1kblocks used available usePct mount" ),
+  linux_df_local=( ['bash', '-c', 'df -l | sed 1d'], "filesystem _1kblocks used available usePct mount" ),
+
+  # NOTE: need to query OS for block size; 1k or 512b
+  df_posix=( ['bash', '-c', 'df -P | sed 1d'], "filesystem blocks used available usePct mount" ),
+
   #darwin_mount_stats=( '/proc/partitions', "" )
 
   # Map device,uuid for all local storage devices
@@ -165,16 +167,20 @@ def fetch_parts_attr(parts, ctx, *attr):
     if not parts:
         return parts
 
-    uuids = None
     for a in attr:
-        if a == 'vol_uuid' and not ( a in parts[0] and parts[0][a] ):
-            uuids = map_udev_uuids()
+        if not ( a in parts[0] and parts[0][a] ):
+            if a == 'device':
+                parts.uuids = map_udev_uuids()
+            elif a == 'vol_uuid':
+                parts.uuids = map_udev_uuids()
 
     for it in parts:
         for a in attr:
             if not ( a in it and it[a]):
+                #if a == 'device':
+                #    it[a] = parts.uuids.to_dev[it['vol_uuid']]
                 if a == 'vol_uuid':
-                    it[a] = uuids.to_uuid[it['device']]
+                    it[a] = parts.uuids.to_uuid[it['device']]
                 else:
                     raise Exception("Cant resolve {0} for partition".format(a))
 
@@ -183,17 +189,16 @@ def fetch_parts_attr(parts, ctx, *attr):
 
 def get_local_parts(ctx, *attr):
     "Get a list of available/mounted local partitions"
-    parts = []
+    parts = UserList()
 
     # Get a list of objects depending on host OS
     if ctx.uname == 'Darwin':
-        mounts = readout_attr(*readout_attr_presets['darwin_lib_mounts'])
-        devices = [ d.vol_uuid for d in mounts ]
+        parts.extend( readout_attr(*readout_attr_presets['darwin_lib_mounts']) )
 
     elif ctx.uname == 'Linux':
-        parts = [ p for p in
+        parts.extend( [ p for p in
                     readout_attr( *readout_attr_presets['linux_mounts'] )
-                if os.path.exists(p.device) ]
+                if os.path.exists(p.device) ] )
 
     else:
         raise Exception("Unknown OS '{0}'".format(ctx.uname))
@@ -228,17 +233,21 @@ def H_disks(diskdata, ctx):
         print(line.mount, line.device, line.fstype)
 
 
-def H_list_disks(diskdata, ctx):
+def get_local_doc(diskdata, ctx):
 
     """
-    XXX: iterate document mounts and media entries and print wether mounted or
-    available at localhost.
+    Query host OS for disk info, the main bits we need is the UUID for the
+    partition devices. Which in udev terms seems to be something different
+    from the partuuid.
+
+    And ofcourse we want at least the the device name or path and/or mount
+    point as lookup too.
     """
 
     # Query OS for local partition info
-    host_parts = dict([
-        ( p.vol_uuid, p ) for p in get_local_parts(ctx, 'vol_uuid') ])
-    part_uuids = [ part.vol_uuid for part in host_parts.values() ]
+    host_parts = dict([ (p.vol_uuid, p) for p in get_local_parts(ctx,
+        'vol_uuid', 'device' ) ])
+    part_uuids = host_parts.keys()
 
     # Go over disks, physical storage media items from catalog.
     # And build a list of local disks and partitions
@@ -248,7 +257,7 @@ def H_list_disks(diskdata, ctx):
 
         for part in disk['partitions']:
             size = part['size']
-            if 'description' in part:
+            if 'description' in part and part['description']:
                 descr = part['description']
             elif 'mount-prefix' in part:
                 descr = part['mount-prefix']
@@ -262,6 +271,7 @@ def H_list_disks(diskdata, ctx):
             # Continue with local partitions only
             if part['UUID'] not in part_uuids:
                 continue
+
             lpart = host_parts[part['UUID']]
             lpart.description = descr
 
@@ -293,11 +303,21 @@ def H_list_disks(diskdata, ctx):
     #yaml_commit(diskdata, ctx)
 
 
+def H_list_disks(diskdata, ctx):
+
+    """
+
+    XXX: iterate document mounts and media entries and print wether mounted or
+    available at localhost.
+    """
+
+    get_local_doc(diskdata, ctx)
+
+
 def H_dump_doc(diskdata, ctx):
     """
     Dump entire document, media and also mounts and other metadata.
     """
-    from pprint import pprint, pformat
     pprint(diskdata)
 
 
@@ -306,8 +326,6 @@ def H_generate_doc(diskdata, ctx):
     Dump media records for requested or local disks.
     TODO: same as lists-disks, generate/update cache storage document here
     """
-    from pprint import pprint, pformat
-    pass
 
 
 handlers = {}
