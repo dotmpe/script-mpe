@@ -7,6 +7,7 @@ Python helper to query/update disk metadatadocument 'disks.yaml'
 Usage:
     diskdoc.py [options] disks
     diskdoc.py [options] list-disks
+    diskdoc.py [options] dump-doc
     diskdoc.py [options] generate-doc
     diskdoc.py [options] readtab ID
     diskdoc.py [options] readout ID
@@ -47,11 +48,13 @@ Options:
                 given list. [default: ]
 """
 from __future__ import print_function
+import sys, socket
 import os
 import re
 from fnmatch import fnmatch
 from pprint import pformat
 import subprocess
+from UserList import UserList
 
 from docopt import docopt
 import uuid
@@ -102,12 +105,18 @@ readtab_attr_presets = dict(
 
 readout_attr_presets = dict(
   darwin_lib_mounts=( ['darwin.lib.sh','darwin_mounts'], "mount bsd_name vol_uuid fstype_descr" ),
-  linux_mounts=( ['mount'], "mount bsd_name vol_uuid fstype_descr" ),
+  linux_mounts=( ['mount'], "device _ mount _ type opts" ),
   linux_df=( ['bash', '-c', 'df | sed 1d'], "filesystem _1kblocks used available usePct mount" ),
   # NOTE: the only difference with -P/--portability seems to be that header
   # 'Available' is called 'Capacity'
-  linux_df_posix=( ['bash', '-c', 'df -P | sed 1d'], "filesystem _1kblocks used available usePct mount" )
+  linux_df_posix=( ['bash', '-c', 'df -P | sed 1d'], "filesystem _1kblocks used available usePct mount" ),
   #darwin_mount_stats=( '/proc/partitions', "" )
+
+  # Map device,uuid for all local storage devices
+  udev_uuid_links=( ['bash', '-c',
+      'find /dev/disk/by-uuid -type l |'
+      ' while read p; do echo "$(basename "$p") $(realpath $p)"; done'
+    ], "uuid device" )
 )
 
 def H_readtab(diskdoc, ctx):
@@ -136,6 +145,61 @@ def mtab_ignored(line, ctx):
         ignore_fstypes = ctx.opts.flags.ignore_fstype.split(' ')
         return line.fstype in ignore_fstypes
 
+
+def map_udev_uuids(forward=True, reverse=False):
+    devices = UserList(readout_attr(*readout_attr_presets['udev_uuid_links']))
+
+    if forward:
+        devices.to_uuid = dict(zip( [ p.device for p in devices ], [
+                p.uuid for p in devices ] ))
+    if reverse:
+        devices.to_dev = dict(zip( [ p.uuid for p in devices ], [
+                p.device for p in devices ] ))
+
+    return devices
+
+
+def fetch_parts_attr(parts, ctx, *attr):
+    "Helper to fetch additional attributes for .. partition "
+
+    if not parts:
+        return parts
+
+    uuids = None
+    for a in attr:
+        if a == 'vol_uuid' and not ( a in parts[0] and parts[0][a] ):
+            uuids = map_udev_uuids()
+
+    for it in parts:
+        for a in attr:
+            if not ( a in it and it[a]):
+                if a == 'vol_uuid':
+                    it[a] = uuids.to_uuid[it['device']]
+                else:
+                    raise Exception("Cant resolve {0} for partition".format(a))
+
+    return parts
+
+
+def get_local_parts(ctx, *attr):
+    "Get a list of available/mounted local partitions"
+    parts = []
+
+    # Get a list of objects depending on host OS
+    if ctx.uname == 'Darwin':
+        mounts = readout_attr(*readout_attr_presets['darwin_lib_mounts'])
+        devices = [ d.vol_uuid for d in mounts ]
+
+    elif ctx.uname == 'Linux':
+        parts = [ p for p in
+                    readout_attr( *readout_attr_presets['linux_mounts'] )
+                if os.path.exists(p.device) ]
+
+    else:
+        raise Exception("Unknown OS '{0}'".format(ctx.uname))
+
+    # Fill in missing attributes, if requested explicitly
+    return fetch_parts_attr(parts, ctx, *attr)
 
 
 def H_disks(diskdata, ctx):
@@ -171,42 +235,78 @@ def H_list_disks(diskdata, ctx):
     available at localhost.
     """
 
-    devices = []
-    if os.uname()[0] == 'Darwin':
-        mounts = readout_attr(*readout_attr_presets['darwin_lib_mounts'])
-        devices = [ d.vol_uuid for d in mounts ]
-    else:
-        mounts = subprocess.check_output('mount')
-        devices = subprocess.check_output(
-                'find /dev/disk/by-uuid -type l'.split(' '))
+    # Query OS for local partition info
+    host_parts = dict([
+        ( p.vol_uuid, p ) for p in get_local_parts(ctx, 'vol_uuid') ])
+    part_uuids = [ part.vol_uuid for part in host_parts.values() ]
 
-    for id, attr in diskdata['catalog']['media'].items():
+    # Go over disks, physical storage media items from catalog.
+    # And build a list of local disks and partitions
+    local_ = {}
+    local_parts = {}
+    for disk_id, disk in diskdata['catalog']['media'].items():
 
-        # print when mounted
-        for part in attr['partitions']:
+        for part in disk['partitions']:
             size = part['size']
+            if 'description' in part:
+                descr = part['description']
+            elif 'mount-prefix' in part:
+                descr = part['mount-prefix']
+            else:
+                descr = size
 
             if 'UUID' not in part:
-                print('  Incomplete data (missing partition uuid) for', size)
+                print('  Incomplete data (missing partition uuid) for', descr)
                 continue
-            if part['UUID'] not in devices:
-                continue
-            device = subprocess.check_output(['realpath',
-                '/dev/disk/by-uuid/'+part['UUID']]).strip()
-            device = subprocess.check_output(['realpath', device]).strip()
 
-            if device in mounts:
-                print('  Mounted:', size, device)
+            # Continue with local partitions only
+            if part['UUID'] not in part_uuids:
+                continue
+            lpart = host_parts[part['UUID']]
+            lpart.description = descr
+
+            if disk_id not in local_:
+                local_[disk_id] = disk
+
+            local_parts[part['UUID']] = lpart
+
+
+    for disk_id, disk in local_.items():
+
+        for part in disk['partitions']:
+            if 'UUID' not in part or part['UUID'] not in local_parts: continue
+            lpart = local_parts[part['UUID']]
+            size = part['size']
+
+            if lpart.mount:
+                assert os.path.exists(lpart.mount)
+                vol_part_leaf = os.path.join(lpart.mount, '.volumes.sh')
+                print('  Mounted:', size, lpart.device, lpart.description,
+                        file=sys.stderr)
+                if not os.path.exists(vol_part_leaf):
+                    print('  Unknown:', size, lpart.device, lpart.description,
+                            file=sys.stderr)
             else:
-                print('  Available:', size, device)
-
+                print('  Available:', size, lpart.device, lpart.description,
+                        file=sys.stderr)
 
     #yaml_commit(diskdata, ctx)
 
 
-def H_generate_doc(diskdata, ctx):
+def H_dump_doc(diskdata, ctx):
+    """
+    Dump entire document, media and also mounts and other metadata.
+    """
     from pprint import pprint, pformat
     pprint(diskdata)
+
+
+def H_generate_doc(diskdata, ctx):
+    """
+    Dump media records for requested or local disks.
+    TODO: same as lists-disks, generate/update cache storage document here
+    """
+    from pprint import pprint, pformat
     pass
 
 
@@ -266,9 +366,10 @@ def main(ctx):
 
 
 if __name__ == '__main__':
-    import sys
     opts = libcmd_docopt.get_opts(__doc__)
     ctx = confparse.Values(dict(
+        uname=os.uname()[0],
+        hostname=socket.gethostname(),
         usage=__doc__,
         out=sys.stdout,
         err=sys.stderr,

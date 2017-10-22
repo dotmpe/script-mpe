@@ -132,6 +132,23 @@ darwin_sata_data()
   #darwin.py spserialata-disk-part $xml mount_point bsd_name volume_uuid size_in_bytes _name
 }
 
+darwin_disk_table()
+{
+  #disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C
+  for disk in $(disk_list)
+  do
+    system_profiler SPSerialATADataType | grep -q $(basename $disk)'\>' && {
+      echo SerialATA disk=$disk
+    } || {
+      grep -q $(basename $disk)'\>' $darwin_disk_tab && {
+        echo SPStorageDataType disk=$disk
+      } ||
+        stderr warn "Not in system-profiler db: $disk"
+      continue
+    }
+  done
+}
+
 darwin_usb_data()
 {
   ## List data on USB disk(s)
