@@ -12,6 +12,7 @@ Parse switch statements from Sh scripts
 
 """
 from __future__ import print_function
+
 __version__ = '0.0.4-dev' # script-mpe
 __usage__ = """
 sh-switch - Parse switch statements from Sh scripts

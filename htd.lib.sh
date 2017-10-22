@@ -1,3 +1,5 @@
+#!/bin/sh
+
 
 htd_relative_path()
 {
@@ -167,6 +169,7 @@ tools_json_schema()
   test $HTD_TOOLSSCHEMAFILE -ot $B/tools-schema.json \
     || jsotk.py yaml2json $HTD_TOOLSSCHEMAFILE $B/tools-schema.json
 }
+
 
 tools_list()
 {

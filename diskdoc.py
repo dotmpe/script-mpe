@@ -7,11 +7,14 @@ Python helper to query/update disk metadatadocument 'disks.yaml'
 Usage:
     diskdoc.py [options] disks
     diskdoc.py [options] list-disks
+    diskdoc.py [options] generate-doc
 
 Commands:
     disks
         Show local disks.
     list-disks
+        ..
+    generate-doc
         ..
 
 Options:
@@ -23,7 +26,8 @@ Options:
   --background  Turns script into socket server. This does not fork, detach
                 or do anything else but enter an infinite server loop.
   -f DOC, --file DOC
-                Give custom path to projectdir document file [default: ~/.conf/disk/mpe.yaml]
+                Give custom path to projectdir document file
+                [default: ~/.conf/disk/mpe.yaml]
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -g, --glob    Change from root prefix matching to glob matching.
@@ -64,18 +68,18 @@ def yaml_commit(diskdata, ctx):
 ws_collapse_re = re.compile('\s+')
 collapse_ws = lambda s:ws_collapse_re.subn(' ', s)[0]
 
-def readtab(tabfile):
-    return map(lambda l:collapse_ws(l).split(' '),
-            [l.strip().replace('\t','    ') for l in open(tabfile).readlines() if
-            l.strip() and not l.strip().startswith('#')])
+def readtab(tabdata):
+    return map(lambda l:collapse_ws(l).split(' '), [
+        l.strip().replace('\t','    ') for l in tabdata if
+            l.strip() and not l.strip().startswith('#') ] )
 
 def readtab_attr(tabfile, attr):
-    mtab_lines_fields = readtab(tabfile)
-    mtab_lines_attr = []
-    for line_fields in mtab_lines_fields:
+    tab_lines_fields = readtab(open(tabfile).readlines())
+    tab_lines_attr = []
+    for line_fields in tab_lines_fields:
         fieldmap = dict(zip(attr.split(' '), line_fields))
-        mtab_lines_attr.append(confparse.Values(fieldmap))
-    return mtab_lines_attr
+        tab_lines_attr.append(confparse.Values(fieldmap))
+    return tab_lines_attr
 
 """
 Parse file and return list of ojects with attribute access.
@@ -83,7 +87,22 @@ Parse file and return list of ojects with attribute access.
 readtab_attr_presets = dict(
   mtab=( '/etc/mtab', "device mount fstype mntattr dump fsck" ),
   mounts=( '/proc/mounts', "device mount fstype mntattr dump fsck" ),
-  partitions=( '/proc/partitions', "major minor blocks device_node" )
+  partitions=( '/proc/partitions', "major minor blocks device_node" ),
+)
+
+def readout_attr(cmd, attr):
+    out = subprocess.check_output(cmd.split(' ')).strip().split('\n')
+    tab_lines_fields = readtab(out)
+    tab_lines_attr = []
+    for line_fields in out:
+        fieldmap = dict(zip(attr.split(' '), line_fields))
+        tab_lines_attr.append(confparse.Values(fieldmap))
+    return tab_lines_attr
+
+
+readout_attr_presets = dict(
+  darwin_mounts=( 'darwin.lib.sh darwin_mounts', "mount bsd_name vol_uuid fstype_descr" )
+  #darwin_mount_stats=( '/proc/partitions', "" )
 )
 
 def mtab_ignored(line, ctx):
@@ -106,8 +125,8 @@ def mtab_ignored(line, ctx):
 def H_disks(diskdata, ctx):
 
     """
-    Lists locally mounted media. Normally this only includes mounts from a local device
-    node.
+    Lists locally mounted media. Normally this only includes mounts from a
+    local device node.
 
     TODO: Iterate locally mounted media, get mount entry from catalog by device.
     Get media entry from catalog.
@@ -136,20 +155,25 @@ def H_list_disks(diskdata, ctx):
     available at localhost.
     """
 
-    mounts = subprocess.check_output('mount')
+    #mounts = subprocess.check_output('mount')
     #print 'Mounts', mounts
 
-    devices = subprocess.check_output('find /dev/disk/by-uuid -type l'.split(' '))
-    #print 'Devices', devices
+    devices = []
+    if os.uname()[0] == 'Darwin':
+        mounts = readout_attr(*readout_attr_presets['darwin_mounts'])
+        devices = [ d.vol_uuid for d in mounts ]
+    else:
+        devices = subprocess.check_output('find /dev/disk/by-uuid -type l'.split(' '))
 
     for id, attr in diskdata['catalog']['media'].items():
-        print('Disk', id)
-        # TODO: print when mounted
+        print('Disk {0:s}: {1:s} ({2:s})'.format(
+            id, attr['description'], attr['size']))
+        # print when mounted
         for part in attr['partitions']:
             size = part['size']
 
             if 'UUID' not in part:
-                print('  Incomplete data for', size)
+                print('  Incomplete data (missing partition uuid) for', size)
                 continue
             if part['UUID'] not in devices:
                 continue
@@ -164,6 +188,12 @@ def H_list_disks(diskdata, ctx):
 
 
     #yaml_commit(diskdata, ctx)
+
+
+def H_generate_doc(diskdata, ctx):
+    from pprint import pprint, pformat
+    pprint(diskdata)
+    pass
 
 
 handlers = {}
@@ -191,17 +221,16 @@ def main(ctx):
     """
     Run command, or start socket server.
 
-    Normally this returns after running a single subcommand.
-    If backgrounded, There is at most one server per projectdir
-    document. The server remains in the working directory,
-    and while running is used to resolve any calls. Iow. subsequent executions
-    turn into UNIX domain socket clients in a transparent way, and the user
-    command invocation is relayed via line-based protocol to the background
-    server isntance.
+    Normally this returns after running a single subcommand. If backgrounded,
+    there is at most one server per projectdir document. The server remains in
+    the working directory, and while running is used to resolve any calls. Iow.
+    subsequent executions turn into UNIX domain socket clients in a transparent
+    way, and the user command invocation is relayed via line-based protocol to
+    the background server isntance.
 
     For projectdir document, which currently is 15-20kb, this setup has a
-    minimal performance boost, while the Pd does not need
-    to be loaded from and committed back to disk on each execution.
+    minimal performance boost, while the Pd does not need to be loaded from and
+    committed back to disk on each execution.
 
     """
 

@@ -1303,6 +1303,39 @@ pd__stashes()
 pd_load__stashes=yp
 
 
+pd_man_1__exists='Path exists as dir with mechanism to handle local names.
+'
+pd__exists()
+{
+  test -z "$2" || error "One dir at a time" 1
+  vc_getscm "$1" && {
+      echo scm=$scm
+      echo scmdir=$scmdir
+      return
+  }
+  # XXX: cleanup
+  #echo choice_known=$choice_known
+  #echo choice_unknown=$choice_unknown
+  #echo "args:'$*'"
+}
+pd_load__exists=iao
+pd_defargs__exists=opt_args
+pd_optsv__exists()
+{
+  while read opt
+  do
+    case "$opt" in
+      --known ) export choice_known=1 ;;
+      --unknown ) export choice_unknown=1 ;;
+      * )
+          main_options_v "$opt"
+        ;;
+    esac
+    shift
+  done
+}
+
+
 # ----
 
 
@@ -1453,10 +1486,11 @@ pd_load()
       ;;
 
     o )
-        local pd_optsv="$(eval echo "\"\$$(echo_local $subcmd optsv)\"")"
+        local pd_optsv="$(echo_local $subcmd optsv)"
+        func_exists $pd_optsv || pd_optsv="$(eval echo "\"\$$pd_optsv\"")"
         test -s "$options" && {
-          $pd_optsv
-        } || noop
+          $pd_optsv < $options
+        } || true
       ;;
 
     P )

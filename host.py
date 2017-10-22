@@ -2,6 +2,8 @@
 """host -
 :created: 2015-06-29
 """
+from __future__ import print_function
+
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.taxus-code.sqlite'
 __rc__ = '~/.domain.rc'
@@ -30,7 +32,6 @@ Other flags:
 """ % ( __rc__, __db__, __version__ )
 __doc__ += __usage__
 
-from __future__ import print_function
 import os
 from datetime import datetime
 

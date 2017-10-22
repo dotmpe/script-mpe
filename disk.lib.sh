@@ -183,12 +183,13 @@ disk_local_inner()
 disk_local()
 {
   test -n "$1" || error disk-local 1
-  echo $(disk_local_inner "$@" || {
-    return 1
+  echo $( disk_local_inner "$@" || {
+    #return 1
     echo "disk-local:$1:$2">>$failed
-  })
+  } )
 
-  test ! -e "$failed" -o -s "$failed" && return 1 || return 0
+  test ! -e "$failed" -o ! -s "$failed" || return 1
+
   # XXX:
   #echo $first $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) \
   #  $(disk_tabletype $1) $(find_mount $1 | count_words)
@@ -206,8 +207,9 @@ disk_list()
       ;;
     Darwin )
         # FIXME: deal with system_profiler plist datatypes
-        echo /dev/disk[0-9] \
-          | tr ' ' '\n'
+        echo /dev/disk[0-9]* |
+            tr ' ' '\n' |
+            grep -v '[0-9]s[0-9]*$'
       ;;
   esac
 }
@@ -520,3 +522,11 @@ disk_report()
   return $disk_report_result
 }
 
+disk_doc()
+{
+{ cat <<EOM
+host: $hostname
+
+EOM
+  } | jsotk yaml2json -
+}

@@ -541,6 +541,18 @@ pd_autodetect()
 }
 
 
+pd_dir_args()
+{
+  test -n "$1" || set -- $(cat $arguments | lines_to_words )
+  printf "" >$arguments
+  for $a in "$@"
+  do
+    test -d "$a" &&
+    printf -- "$a\n" >>$arguments
+  done
+}
+
+
 pd_prefix_args()
 {
   test -n "$1" || set -- $(cat $arguments | lines_to_words )

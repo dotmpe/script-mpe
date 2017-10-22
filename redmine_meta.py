@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = 'postgresql+psycopg2://redmine:password@localhost:15432/redmine_production'
 __usage__ = """
@@ -25,7 +27,7 @@ Dependencies:
       ..
 
 """ % ( __db__, __version__ )
-from __future__ import print_function
+
 from script_mpe import libcmd_docopt, log
 from script_mpe import redmine_schema as rdm
 from script_mpe.redmine_schema import get_session

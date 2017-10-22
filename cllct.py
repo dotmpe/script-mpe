@@ -8,6 +8,7 @@ TODO: manage schemas and datastores.
 Work with models across databases, synchronize base types through master
 database.
 """
+from __future__ import print_function
 __description__ = "cllct - "
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.cllct.sqlite'
@@ -31,8 +32,6 @@ Other flags:
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 """ % ( __db__, __version__ )
-
-from __future__ import print_function
 from datetime import datetime
 import os
 import re

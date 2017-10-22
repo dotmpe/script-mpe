@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """db_sa - DB init/reinit/stats for SQLite, using SQLAlchemy schema
 """
+from __future__ import print_function
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.db.sqlite'
 __usage__ = """
@@ -38,7 +39,6 @@ Options:
     --version     Show version (%s).
 
 """ % ( __db__, __version__ )
-from __future__ import print_function
 from datetime import datetime
 import os
 import re

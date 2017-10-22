@@ -3,6 +3,7 @@
 
 TODO: interface this with Google tasks
 """
+from __future__ import print_function
 __description__ = "todo - time ordered, grouped tasks"
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.todo.sqlite'
@@ -65,7 +66,7 @@ Model::
   Would like to create function for local (project specific) todo management.
 
 """ % ( __db__, __version__ )
-from __future__ import print_function
+
 from datetime import datetime
 import os
 import re

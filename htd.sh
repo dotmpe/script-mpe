@@ -630,16 +630,19 @@ htd__output_formats()
   test -n "$1" || set -- table-reformat
   # First resolve real command name if given an alias
   als="$(try_value "$1" als htd )"
-  test -z "$als" || set -- "$als"
+  test -z "$als" || { shift; set -- "$als" "$@" ; }
   {
-    # Retrieve and test for output-formats and quality factor
-    try_func $(echo_local "$1" "" htd) && 
-      output_formats="$(try_value "$1" of htd )" &&
+    upper= mkvid "$*"
+    # XXX: Retrieve and test for output-formats and quality factor
+    #try_func $(echo_local "$vid" "" htd) && 
+
+      # Print output format attribute value for field $*
+      output_formats="$(try_value "$vid" of htd )" &&
         test -n "$output_formats"
   } && {
     echo $output_formats | tr ' ' '\n'
   } || {
-    error "No sub-command or output formats for '$1'" 1
+    error "No sub-command or output formats for '$*'" 1
   }
 }
 
@@ -900,54 +903,42 @@ htd__pd_check()
 }
 
 
-htd_man_1__status="Short status for current working directory"
-htd_spc__status="status"
+htd_man_1__status='Quick system status
+'
 htd_run__status=fSm
-htd_load__status=""
 htd__status()
 {
   test -n "$failed" || error "status: failed exists" 1
 
-  local pwd=$(pwd -P) ppwd=$(pwd) spwd=. scm= scmdir=
-  vc_getscm && {
-    cd "$(dirname "$scmdir")"
-    vc_clean "$(vc_dir)"
-  }
-}
-htd__status_update() { # TODO: cleanup
-  stderr note "local-names: "
-  # Check local names
-  {
-    htd check-names ||
-      echo "htd:check-names" >>$failed
-  } | tail -n 1
+  # Monitor paths
+  # Using either lsof or update/access time filters with find we can list
+  # files and other paths that a user has/has had in use.
+  # There are plenty of use-cases based on this.
 
-  stderr note "current-paths: "
-  # See open paths below cwd using lsof
-  htd__current_paths
+  # See htd open-paths for local paths, using lsof.
+  # CWD's end up being recorded in prefixes. With these we can get a better
+  # selection of files.
 
-  # Create list of open files, and show differences on subsequent calls
-  #htd__open_paths
-
+  # Which of those are projects
   note "Open-paths SCM status: "
-
-  # Check open gits
-  htd__open_paths | while read path
+  htd__current_cwd | while read p
   do
-    test -e $path/.git || {
-      $LOG "header3" "$path" ""
-      continue
-    }
-    $LOG "header3" "$path" "" "$( cd $path && vc.sh flags )"
-    #$scriptpath/std.lib.sh ok "$path"
+    pd exists "$p" || continue
+    $LOG "header3" "$p" "" "$( cd $p && vc.sh flags )"
   done
+
+  # Projects can still have a large amount of files
+  # opened, or updated recently.
+
+  # Create list of CWD, and show differences on subsequent calls
+  #htd__open_paths_diff
 
   # FIXME: maybe something in status backend on open resource etc.
   #htd__recent_paths
   #htd__active
 
   stderr note "text-paths for main-docs: "
-  # Check main document elements
+  # Check main documents, list topic elements
   {
     test ! -d "$JRNL_DIR" ||
       EXT=$DOC_EXT htd__archive_path $JRNL_DIR
@@ -973,6 +964,27 @@ htd__status_update() { # TODO: cleanup
 }
 htd_als__st=status
 htd_als__stat=status
+
+
+htd_man_1__status_cwd="Short status_cwd for current working directory"
+htd_spc__status_cwd="status-cwd"
+htd_run__status_cwd=fSm
+htd__status_cwd()
+{
+  local pwd=$(pwd -P) ppwd=$(pwd) spwd=. scm= scmdir=
+  vc_getscm && {
+    cd "$(dirname "$scmdir")"
+    vc_clean "$(vc_dir)"
+  }
+
+  stderr note "local-names: "
+  # Check local names
+  {
+    htd check-names ||
+      echo "htd:check-names" >>$failed
+  } | tail -n 1
+}
+
 
 
 htd__volume_status()
@@ -1011,11 +1023,33 @@ htd__context()
 }
 
 
+htd_man_1__project='Local project checkouts
+
+  list
+    ..
+  sync
+    ..
+  update
+    ..
+
+  new
+  exists
+  scm
+  list
+
+'
 htd__project()
 {
   test -n "$1" || set -- info
   test -e /srv/project-local || error "project-local missing" 1
   case "$1" in
+
+    list ) shift
+      ;;
+    sync ) shift
+      ;;
+    update ) shift
+      ;;
 
     new ) shift ; test -n "$1" || set -- "$(pwd)"
         htd__project exists "$1" && {
@@ -1243,7 +1277,7 @@ htd__tools_outline()
   tools_json || return 1
   out_fmt=yml htd__installed | jsotk update --pretty -Iyaml $B/tools.json -
   { cat <<EOM
-{ "id": "$(htd__prefix_name "$(pwd -P)")/tools.yml",
+{ "id": "$(htd_prefix "$(pwd -P)")/tools.yml",
   "hostname": "$hostname", "updated": ""
 }
 EOM
@@ -1701,7 +1735,8 @@ htd_als__nen=edit-note-en
 htd_grp__edit_note_en=cabinet
 
 
-# Print existing candidates to use as main document
+htd_man_1__main_doc_paths='Print candidates for main document
+'
 htd__main_doc_paths()
 {
   local candidates="$(htd_main_files)"
@@ -3167,12 +3202,14 @@ htd_defargs_repo__git_files=/src/*.git
 
 #
 htd_man_1__git_grep='Run git-grep for every given repository, passing arguments
-to git-grep. With `-C` interprets argument as shell command first, and passes
-ouput as argument(s) to `git grep`. Defaults to `git rev-list --all` output
-(which is no pre-run but per exec. repo). If env `repos` is provided it is used
-iso. stdin. Or if `dir` is provided, each "*.git" path beneath that is used.
-Else uses the arguments. If stdin is attach to the terminal, `dir=/src` is set.
-Without any arguments it defaults to scanning all repos for "git.grep".'
+to git-grep.
+
+With `-C` interprets argument as shell command first, and passes ouput as
+argument(s) to `git grep`. Defaults to `git rev-list --all` output (which is no
+pre-run but per exec. repo). If env `repos` is provided it is used iso. stdin.
+Or if `dir` is provided, each "*.git" path beneath that is used. Else uses the
+arguments. If stdin is attach to the terminal, `dir=/src` is set. Without any
+arguments it defaults to scanning all repos for "git.grep".'
 htd_spc__git_grep='git-grep [ -C=REPO-CMD ] [ RX | --grep= ] [ GREP-ARGS | --grep-args= ] [ --dir=DIR | REPOS... ] '
 htd__git_grep()
 {
@@ -3187,7 +3224,7 @@ htd__git_grep()
       test -n "$1" && { grep_args="$1"; shift; } || grep_args=master
     }
   }
-  test "f" = "$stdio_0_type" -o -n "$repos" -o -n "$1" || dir=/src/
+  test "f" = "$stdio_0_type" -o -n "$repos" -o -n "$1" || dir=/srv/git-local
   note "Running ($(var2tags grep C grep_eval grep_args repos dir stdio_0_type))"
   htd_x__git_grep "$@" | { while read repo
     do
@@ -3459,14 +3496,14 @@ htd__diff_function()
   }
 
   cp_board= copy_paste_function "$2" "$1" || error "copy-paste-function 1" $?
-  src1_line=$start_line
-  src1=$cp
-  test -e "$cp" || error "copy-paste file '$cp' missing" 1
+  src1_line=$start_line ; start_line= ; src1=$cp ; cp=
+  test -s "$cp" || error "copy-paste file '$cp' for '$1:$2' missing" 1
 
   cp_board= copy_paste_function "$4" "$3" || error "copy-paste-function 2" $?
-  src2_line=$start_line
-  src2=$cp
-  test -e "$cp" || error "copy-paste file '$cp' missing" 1
+  src2_line=$start_line ; start_line= ; src2=$cp ; cp=
+  test -s "$cp" || error "copy-paste file '$cp' for '$3:$4' missing" 1
+
+  ls -la $src1 $src2
 
   trueish "$edit" && {
     diff -bqr $src1 $src2 >/dev/null 2>&1 &&
@@ -4417,7 +4454,7 @@ htd__rules()
         do test -e "$buffer" || continue; echo "$buffer"; done
 
         target_files= targets= max_age=
-        #targets="$(htd__prefix_expand $TARGETS "$@")"
+        #targets="$(htd_prefix_expand $TARGETS "$@")"
         #are_newer_than "$targets" $max_age && continue
         #sets_overlap "$TARGETS" "$target_files" || continue
         #for target in $targets ; do case "$target" in
@@ -5351,6 +5388,7 @@ htd__tmux_sockets()
 {
   test -n "$1" || set NAME
   {
+    # list unix domain sockets
     lsof -U | grep '^tmux'
   } | {
       case "$1" in
@@ -5709,13 +5747,51 @@ htd_grp__inventory_electronics=cabinet
 
 
 
+htd_man_1__disk='Enumerate disks
+'
 htd__disk()
 {
-  test -e /proc || error "proc required" 1
+  case "$uname" in
+
+    Darwin )
+        case "$1" in
+
+          -info ) shift
+               darwin_disk_info
+            ;;
+
+          -stats ) shift
+               darwin_mount_stats
+            ;;
+
+          -partitions ) shift
+            ;;
+
+          -mounts ) shift
+              darwin_mounts | cut -d ' ' -f 1
+            ;;
+
+          -partition-table ) shift
+               darwin_mounts
+            ;;
+
+        esac
+      ;;
+
+    Linux ) htd__disk_proc "$@" ;;
+
+    * ) error "Unhandled OS '$uname'" 1
+      ;;
+  esac
+}
+
+htd__disk_proc()
+{
+  test -e /proc || error "/proc/* required" 1
   case "$1" in
 
     -partitions ) shift
-  tail -n +3 /proc/partitions | awk '{print $'$1'}'
+        tail -n +3 /proc/partitions | awk '{print $'$1'}'
       ;;
 
     -mounts )
@@ -5724,12 +5800,12 @@ htd__disk()
 
     -tab )
         sudo file -s /var/lib/docker/aufs
-  tail -n +3 /proc/partitions | while read major minor blocks dev_node
-  do
-    echo $dev_node
-    sudo file -s /dev/$dev_node
-    grep '^/dev/'$dev_node /proc/mounts
-  done
+        tail -n +3 /proc/partitions | while read major minor blocks dev_node
+        do
+          echo $dev_node
+          sudo file -s /dev/$dev_node
+          grep '^/dev/'$dev_node /proc/mounts
+        done
       ;;
 
     * ) error "? 'disk $*'" 1 ;;
@@ -5768,7 +5844,7 @@ htd__disks()
 {
   test -n "$rst2xml" || error "rst2xml required" 1
   sudo which parted 1>/dev/null && parted=$(sudo which parted) \
-    || warn "No parted"
+    || warn "No parted" 1
   test -n "$parted" || error "parted required" 1
   DISKS=/dev/sd[a-e]
   for disk in $DISKS
@@ -5789,6 +5865,45 @@ htd__disks()
     echo
   done
   echo
+}
+
+htd_man_1__disk_doc='
+    list
+    list-local
+        See disk.sh
+
+    update
+        XXX: maybe see disk.sh about updating catalog
+    sync
+        Create/update JSON doc, with details of locally available disks.
+    doc
+        Generate JSON doc, with details of locally available disks.
+'
+htd_run__disk_doc=f
+htd__disk_doc()
+{
+  test -n "$1" || set -- list
+  case "$1" in
+
+      list|list-local ) disk.sh $1 || return $? ;;
+
+      update ) ;;
+      sync )  shift
+           disk_list | while read dev
+           do
+             {
+               disk_local "$dev" NUM DISK_ID || continue 
+             } | while read num disk_id
+             do
+               echo "disk_doc '$dev' $num '$disk_id'"
+             done
+           done
+        ;;
+
+      doc ) disk_doc "$@" || return $?
+        ;;
+
+  esac
 }
 
 
@@ -6176,6 +6291,20 @@ htd__jrnl_times()
 }
 
 
+htd_man_1__port='List command, pid, user, etc. for open port'
+htd__port()
+{
+  case "$uname" in
+    Darwin ) ${sudo}lsof -i :$1 || return ;;
+    Linux ) ${sudo}netstat -an $1 || return ;;
+  esac
+}
+
+
+htd__active='
+  files
+    TODO: cache set of user-files
+'
 htd__active()
 {
   test -n "$tdata_fmt" && {
@@ -6194,15 +6323,9 @@ htd__active()
 }
 
 
-htd__port()
-{
-  case "$uname" in
-    Darwin ) lsof -i :$1 || return ;;
-    Linux ) netstat -an $1 || return ;;
-  esac
-}
-
-
+htd_man_1__ps='Using ps, print properties for the given or current process.
+'
+htd_spc__ps='ps PID'
 htd__ps()
 {
   upper=0 default_env out-fmt yaml
@@ -6238,39 +6361,75 @@ htd__open()
   test -n "$1" && {
     stderr warn TODO 1 # tasks-ignore
   } || {
-    htd__open_paths || return
+    htd__current_cwd || return
   }
 }
 
 
-htd_man_1__open_paths='List open paths for user (beloning to shell processes only)'
-htd__open_paths()
+htd_man_1__current_cwd='List open paths for user (beloning to shell processes only)'
+htd__current_cwd()
 {
-  # BUG: lsof -Fn  on OSX/Darwin ie behaving really badly, looks buggy.
-  # So awk for paths
   lsof \
     +c 15 \
     -c '/^(bash|sh|ssh|dash|zsh)$/x' \
     -u $(whoami) -a -d cwd | tail -n +2 | awk '{print $9}' | sort -u
 }
-htd_of__open_paths='list'
+htd_of__current_cwd='list'
+htd_als__current_paths=current-cwd
 
 
-htd_man_1__current_paths='
-  List open paths under given or current dir. Dumps lsof without cmd, pid etc.'
-htd__current_paths()
+htd_man_1__open_paths='Lists names of currently claimed by a process.
+
+    dirs
+        Print directories only
+    files
+        Print directories only
+    paths
+        Print just the directory and fila paths.
+    pid-paths
+        Print process ID, parent process ID, inode and name.
+    info
+        Print process ID, parent process ID, command, offset, inode and name.
+    details
+        Print process ID, parent process ID, command, offset, access mode,
+        lock status, device node, descriptor, inode and name.
+
+Open paths (from lsof), even filtered by user, returns 10k paths on my OSX box.
+It even lists network file connections. For it to get usable, need to limit
+it to known bases.
+
+Also unfortenately, my editor (vim) does not keep the files open, but
+instead the swap file. Making identification just a bit more complicated.
+And finally, query lsof takes quite a long time, making it completely
+unsuited for interactive use.
+
+Because of this, using find -newer is a more efficient way to find paths to 
+user files. As for open directories, htd prefixes records those based on
+current-cwd. Somehow, current-cwd is also significantly faster getting live
+data than open-paths lsof invocations.
+'
+htd__open_paths()
 {
-  test -n "$1" || set -- "$(pwd -P)"
-  note "Listing open paths under $1"
-  # print only pid and path name, keep name
-  lsof -F n +D $1 | tail -n +2 | grep -v '^p' | cut -c2- | sort -u
-}
-htd_als__lsof=current
+  test -n "$1" || set -- "paths" "$2"
+  test_dir "$2" || return $?
+  set -- "$1" "$(cd "$2" && pwd -P)"
+  case "$1" in
 
+    dirs ) shift ; htd__open_paths paths "$1"  | filter_dirs - ;;
+    paths ) shift ; lsof -F n +D "$1" | grep -v '^p' | cut -c2- | sort -u ;;
 
-htd__x_lsof()
-{
-  lsof
+    pid-paths ) shift
+          lsof -F pRin0 +D "$1" | tr '\0' ' '
+        ;;
+
+    info ) shift
+          lsof -F pRcoin0 +D "$1" | tr '\0' ' '
+        ;;
+
+    details ) shift
+          lsof -F pRcoaldfin0 +D "$1" | tr '\0' ' '
+        ;;
+  esac
 }
 
 
@@ -6289,7 +6448,7 @@ htd__open_paths_diff()
   {
     test -e "$lsof" && newer_than $lsof 10
   } || {
-    htd__open_paths >$lsof
+    htd__current_cwd >$lsof
 
     debug "Updated $lsof"
     info "Commands: $(echo $(
@@ -6337,16 +6496,69 @@ htd__recent_paths()
 }
 
 
-req_prefix_names_index()
-{
-  test -n "$1" || set -- pathnames.tab
-  test -n "$index" || export index=$(setup_tmpf .prefix-names-index)
-  test -s "$index" -a "$index" -nt "$UCONF/$1" || {
-    htd_topic_names_index "$1" > $index
-  }
-}
 
-# Run path-prefix-name for all paths from htd-open.
+## Prefixes: named paths, or aliases for base paths
+
+htd_man_1__prefixes='Manage local prefix table and index, or query cache.
+
+  (op|open-files|read-lines)
+    Default command. Pipe htd current-cwd to htd prefixes names. 
+    Set htd_path=1 to get pairs output.
+
+Table
+  list|names
+    List prefix varnames from table.
+  table
+    Print user or default prefix-name lookup table
+
+Index
+  name Path-Name
+    Resolve to real, absolute path and echo <prefix>:<localpath> by scanning
+    prefix index.
+  names (Path-Names..|-)
+    Call name for each line or argument.
+  pairs (Path-Names..|-)
+    Get both path and name for each line or argument.
+  expand (Prefix-Paths..|-)
+    Expand <prefix>:<local-path> back to to absolute path.
+  check
+    ..
+
+Cache
+  all-paths|tree
+    List cached prefixes and paths beneath them. See update-prefixes.
+  update [TTL=60min [<persist=false>]]
+    Update cache, read below.
+
+
+# Cache
+Cache has two parts. An in-memory index, for tracking current prefixes, 
+and the local paths beneath prefixes. And secondary a persisted part, where a
+cumulative tree of all prefixes/paths for a certain period is stored. And where
+individual cards are kept per path, with timestamps.
+
+The in-memory parts are updated every run of `update`. 
+Paths are kept in memory for TTL seconds after they closed, to allow recalling
+them during that time.
+
+If there is a change, the persisted document is not updated. Only until some
+path TTL expires and is dropped from the index is the persisted document updated
+automatically. Otherwise, a persist to secondary storage is only requested by 
+invocation argument. 
+
+Updating the first cache requires checking and possibly changing two lists.
+For the secondary, several JSON documents are created: one with the entire tree
+and current time, and if needed one for each path, setting a new ctime.
+This setup prevents conflicts in distributed stores, but it leaves the task of
+cleaning up old trees and ctimes documents.
+
+
+TODO: track path timestamp, keep for X amount of time in index 
+TODO: clear indices on certain (global) context switches: day, domain
+TODO: check for services, redis is required. couch can be offline for a bit
+TODO: update registry atime/utime once cache elapses?
+
+'
 htd__prefixes()
 {
   test -n "$index" || local index=
@@ -6354,13 +6566,22 @@ htd__prefixes()
   test -n "$1" || set -- op
   case "$1" in
 
-    list | names )            htd__prefix_names || return ;;
-    all-paths | tree )        htd__list_prefixes || return ;;
-    table )                   htd__path_prefix_names || return ;;
-    name ) shift ;           htd__prefix_name "$1" || return ;;
-    expand ) shift ;         htd__prefix_expand "$1" || return ;;
-    check ) shift
-        htd__prefix_names | while read name
+    # Read from cache
+    all-paths | tree )       htd_list_prefixes || return $? ;;
+    update )                 htd_update_prefixes || return $? ;;
+
+    # Read from index
+    list | names )           htd_prefix_names || return $? ;;
+    table )                  htd_path_prefix_names || return $? ;;
+    raw-table ) shift ;      cat $UCONFDIR/pathnames.tab || return $? ;;
+    name ) shift ;           htd_prefix "$1" || return $? ;;
+    names ) shift ;          htd_prefixes "$@" || return $? ;;
+    pairs ) shift ;          htd_path_prefixes "$@" || return $? ;;
+    expand ) shift ;         htd_prefix_expand "$@" || return $? ;;
+
+    check )
+        # Read index and look for env vars
+        htd_prefix_names | while read name
         do
             mkvid "$name"
             val="$( eval echo \"\$$vid\" )"
@@ -6369,191 +6590,40 @@ htd__prefixes()
       ;;
 
     op | open-files | read-lines ) shift
-        { test -n "$1" && {
-          read_nix_style_file "$1" || return
-        } || {
-            htd__open || return
-        };} | while read path
+        htd__current_cwd | htd_prefixes -
+      ;;
+
+    current ) shift
+        htd__current_cwd | htd_path_prefixes - |
+          while IFS=' :' read path prefix localpath
         do
-          htd__prefix_name "$path"
+          trueish "$htd_act" && {
+            older_than $path $_1HOUR && act='-' || act='+'
+          }
+
+          trueish "$htd_path" &&
+              echo "$act $path $prefix:$localpath" ||
+              echo "$act $prefix:$localpath"
         done
       ;;
+
   esac
   rm $index
 }
 
-
-# List prefix varnames
-htd__prefix_names()
-{
-  test -n "$index" || local index=
-  test -s "$index" || req_prefix_names_index
-  read_nix_style_file $index | awk '{print $2}' | uniq
-}
+htd_of__prefixes_list='plain text txt rst yaml yml json'
+# FIXME:
+#htd_als__prefixes_list=prefixes\ list
+#htd_als__list_prefixes=prefixes\ list
 
 
-# Return prefix:<localpath> after scanning paths-topic-names
-htd__prefix_name()
-{
-  test -n "$index" || local index=
-  test -s "$index" || req_prefix_names_index
-  fnmatch "/*" "$path" || set -- "$(pwd -P)/$1"
-  fnmatch "*/" "$path" || {
-    test -e "$1" -a -d "$1" && set -- "$1/"
-  }
-  local path="$1"
-  # Find deepest named prefix
-  while true
-  do
-    # Travel to root, break on match
-    grep -qF "$1 " "$index" && break || set -- "$(dirname "$1")/"
-    test "$1" != "//" && continue || set -- /
-    break
-  done
-  # Get first name for path
-  local prefix_name="$( grep -F "$1 " $index | head -n 1 | awk '{print $2}' )"
-  fnmatch "*/" "$1" || set -- "$1/"
-  # offset on furter for `cut`
-  set -- "$1+"
-  local v="$( echo "$path" | cut -c${#1}- )"
-  test -n "$v" || {
-    test "$prefix_name" == ROOT && v=/
-  }
-  echo "$prefix_name:$v"
-}
+htd_of__prefixes_update='txt rst plain'
+#htd_als__prefixes_update=prefixes\ update
+#htd_als__update_prefixes=prefixes\ update
 
 
-htd__prefix_expand()
-{
-  test -n "$1" || error "Prefix-Path-Arg expected" 1
-  {
-    test "$1" = "-" && { cat - ; shift ; }
-    for a in "$@" ; do echo "$a" ; done
-  } | tr ':' ' ' | while read prefix lname
-  do
-    echo "$(eval echo \"\$$prefix\")/$lname"
-  done
-}
 
-
-# Print user or default prefix-name lookup table
-htd__path_prefix_names()
-{
-  test -n "$index" || local index=
-  req_prefix_names_index
-  test -s "$index"
-  cat $index | sed 's/^[^\#]/'$(hostname -s)':&/g'
-  note "OK, $(count_lines "$index") rules"
-}
-
-
-htd_of__list_prefixes='plain text txt rst yaml yml json'
-htd__list_prefixes()
-{
-  test -n "$out_fmt" || out_fmt=plain
-  test -n "$sd_be" || sd_be=redis
-  (
-    case "$out_fmt" in json ) printf "[" ;; esac
-    case "$sd_be" in
-      redis ) statusdir.sh be smembers htd:prefixes:names ;;
-      couchdb_sh ) warn todo 1 ;;
-      * ) warn "not supported statusdir backend '$sd_be' " 1 ;;
-    esac | while read prefix
-    do
-      test -n "$(echo $prefix)" &&
-        local val="$(eval echo \"\$$prefix\")" ||
-        local prefix=ROOT val=/
-      case "$out_fmt" in
-        plain|text|txt )
-            test -n "$val" &&
-              printf -- "$prefix <$val>\n" || printf -- "$prefix\n"
-          ;;
-        rst|restructuredtext )
-            test -n "$val" &&
-              printf -- "\`$prefix <$val>\`_\n" || printf -- "$prefix\n"
-          ;;
-        yaml|yml )
-            test -n "$val" &&
-              printf -- "- prefix: $prefix\n  value: $val\n  paths:" ||
-              printf -- "- prefix: $prefix\n  paths:"
-          ;;
-        json ) test -z "$val" &&
-            printf "{ \"name\": \"$prefix\", \"subs\": [" ||
-            printf "{ \"name\": \"$prefix\", \"path\": \"$val\", \"subs\": ["
-          ;;
-      esac
-      case "$sd_be" in
-        redis ) statusdir.sh be smembers htd:prefix:$prefix:paths ;;
-        * ) warn "not supported statusdir backend '$sd_be' " 1 ;;
-      esac | while read localpath
-      do
-        test -n "$localpath" || continue
-        case "$out_fmt" in
-          plain|text|txt|rst )
-              test -z "$localpath" &&
-                printf -- "  ..\n" ||
-                printf -- "  - $localpath\n"
-            ;;
-          yaml|yml )
-              test -z "$localpath" &&
-                printf -- " []" ||
-                printf -- "\n  - '$localpath'"
-            ;;
-          json ) printf "\"$localpath\"," ;;
-        esac
-      done
-      case "$out_fmt" in yaml|yml|plain|text|txt|rst ) echo ;;
-        json ) printf "]}," ;;
-      esac
-    done
-    case "$out_fmt" in json ) printf "]" ;; esac
-  ) | {
-    test "$out_fmt" = "json" && sed 's/,\]/\]/g' || cat -
-  }
-}
-htd_als__prefixes_list=list-prefixes
-
-
-htd__update_prefixes()
-{
-  (
-    sd_be=redis
-
-    htd__prefixes | while IFS=':' read prefix localpath
-    do
-      test -n "$prefix" -a -n "$localpath" || continue
-
-      statusdir.sh be sadd htd:prefixes:names "$prefix" >/dev/null &&
-        stderr ok "Added '$prefix' to prefixes" ||
-        error "Adding '$prefix' to prefixes " 1
-      statusdir.sh be sadd htd:prefix:$prefix:paths $localpath >/dev/null &&
-        stderr ok "Added '$localpath' to prefix '$prefix'" ||
-        error "Adding '$localpath' to prefix '$prefix' " 1
-      echo $prefix:$localpath
-
-    done
-    COUCH_DB=htd sd_be=couchdb_sh \
-    statusdir.sh del htd:$hostname:prefixes
-    {
-      printf -- "_id: 'htd:$hostname:prefixes'\n"
-      #printf -- "fields: type: ""'\n"
-      printf -- "type: 'application/vnd.wtwta.htd.prefixes'\n"
-      printf -- "prefixes:\n"
-      out_fmt=yml htd__list_prefixes
-    } |
-    jsotk yaml2json |
-      curl -X POST -sSf $COUCH_URL/$COUCH_DB/ \
-        -H "Content-Type: application/json" \
-        -d @- && note "Submitted to couchdb" || {
-          error "Sumitting to couchdb"
-          return 1
-        }
-      #COUCH_DB=htd sd_be=couchdb_sh \
-      #  statusdir.sh set ""
-  )
-}
-htd_als__prefixes_update=update-prefixes
-
+## Services
 
 htd_man_1__service_list='
 List servtab entries, optionally updating
@@ -6958,7 +7028,7 @@ htd__colorize()
 
     * )
         test -e "$1" || error "no file '$1'" 1
-        local output="$B/$(htd__prefix_name "$1").xhtml"
+        local output="$B/$(htd_prefix "$1").xhtml"
         {
           trueish "$keep_build" && test -e "$output" -a "$output" -nt "$1"
         } && note "Existing build is up-to-date <$output>" || {
@@ -7724,8 +7794,8 @@ htd__backup()
   }
 }
 htd_pre__backup=htd_backup_prereq
-htd_argsv__backup=htd_backup_args
-htd_optsv__backup=htd_backup_opts
+htd_argsv__backup=htd_backup_argsv
+htd_optsv__backup=htd_backup_optsv
 
 
 htd_man_1__pack_create="Create archive for dir with ck manifest"
@@ -7805,7 +7875,6 @@ htd__pack()
   }
 }
 
-
 htd_backup_prereq()
 {
   test -e /srv/backup-local || {
@@ -7820,13 +7889,13 @@ htd_backup_prereq()
   }
 }
 
-htd_backup_args()
+htd_backup_argsv()
 {
   test -n "$*" || error "Nothing to backup?" 1
   opt_args "$@"
 }
 
-htd_backup_opts()
+htd_backup_optsv()
 {
   while test -n "$1"
   do
@@ -7842,7 +7911,7 @@ htd_backup_opts()
       --no-cabinet )
         ;;
       * )
-          htd_options_v "$1"
+          main_options_v "$1"
         ;;
     esac
     shift
@@ -7928,7 +7997,7 @@ htd__src_info()
   test -n "$1" || set -- $0
   for src in $@
   do
-    src_id=$(htd__prefix_name $src)
+    src_id=$(htd_prefix $src)
     $LOG file_warn $src_id "Listing info.."
     $LOG header "Box Source"
     $LOG header2 "Functions" $(htd__list_functions "$@" | count_lines)
@@ -8972,7 +9041,6 @@ htd_optsv()
 # FIXME: Pre-bootstrap init
 htd_init()
 {
-
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
   test -n "$scriptpath"
   local __load_lib=1
@@ -8983,7 +9051,9 @@ htd_init()
   box_run_sh_test
   #export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta list
-  lib_load box date doc table disk remote ignores package service archive
+  lib_load box date doc table disk remote ignores package service archive \
+      prefix
+  case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh load-ext
   disk_run
   # -- htd box init sentinel --

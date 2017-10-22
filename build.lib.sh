@@ -35,26 +35,8 @@ test_shell()
   eval $@ $SPECS
 }
 
-run_spec()
-{
-  test -n "$1" || set -- bats
-  R=0
-  ( $1 --tap test/$spec-spec.bats || R=$? ) | sed 's/^/    /g' > $tmp 2>&1
-  test $R -eq 0 && {
-    echo "ok $I $spec "
-    echo "ok $I $spec " >> $TEST_RESULTS
-  } || {
-    echo "not ok $I $spec (returned $R)"
-    echo "not ok $I $spec (returned $R)" >> $TEST_RESULTS
-    echo $spec >> $failed
-  }
-  cat $tmp >> $TEST_RESULTS
-}
-
 
 test_features()
 {
   behat --tags '~@todo&&~@skip&&~@skip.travis'
 }
-
-

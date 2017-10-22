@@ -74,6 +74,8 @@ Schema
 
 [2016-10-11] Adding simpler docopts-mpe based frontend.
 """
+from __future__ import print_function
+
 __description__ = "finfo - walk paths, using ignore dotfiles, get attributes"
 __version__ = '0.0.2-dev' # script-mpe
 __db__ = '~/.finfo.sqlite'
@@ -122,7 +124,6 @@ Other flags:
     --version     Show version (%s).
 
 """ % ( __db__, __version__, )
-from __future__ import print_function
 import os
 from datetime import datetime
 from pprint import pprint, pformat

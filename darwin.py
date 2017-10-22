@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """:created: 2017-04-23
 """
+from __future__ import print_function
 __description__ = "darwin - "
 __version__ = '0.0.4-dev' # script-mpe
 __usage__ = """
@@ -19,8 +20,6 @@ Options:
     -h --help     Show this usage description.
     --version     Show version (%s).
 """ % ( __version__ )
-
-from __future__ import print_function
 import datetime
 import os
 import re
@@ -31,7 +30,7 @@ from pprint import pprint, pformat
 
 import res.js
 import log
-import util
+import libcmd_docopt
 import reporter
 
 
@@ -154,10 +153,10 @@ def cmd_spstorage_disk(PLIST, DISK, KEY, settings):
             continue
         for k in KEY:
             if k in storage:
-                print(storage[k], end='')
+                print(storage[k], end='\t')
             else:
-                print("", end='')
-        print
+                print("", end='\t')
+        print('')
     if DISK:
         return 1
 
@@ -165,8 +164,8 @@ def cmd_spstorage_disk(PLIST, DISK, KEY, settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -179,13 +178,13 @@ def main(opts):
 
     settings = opts.flags
     #opts.default = 'info'
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'darwin.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit(main(opts))
 

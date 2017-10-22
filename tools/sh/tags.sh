@@ -1,16 +1,16 @@
 #!/bin/sh
+set -e
 
 # Scan for emmbedded tags and comments
 
-set -e
 scriptname=tools/sh/tags
-test -n "$scriptpath" || scriptpath=$(dirname $(dirname $(dirname $0)))
+test -n "$scriptpath" || scriptpath="$(dirname "$(dirname "$(dirname "$0")")")"
 test -n "$verbose" || verbose=true
 test -n "$exit" || exit=true
 
 lname=script-mpe
 
-type lib_load 2> /dev/null 1> /dev/null || . $scriptpath/util.sh load-ext
+type lib_load 2> /dev/null 1> /dev/null || __load=ext . $scriptpath/util.sh
 
 lib_load sys os std str
 out=$(setup_tmpf .out)
@@ -44,9 +44,11 @@ trueish "$Check_All_Tags" && {
   test -n "$tasks_grep_expr" || tasks_grep_expr='\<XXX\>' # tasks:no-check
 }
 
+# match for tags, ignore lines with tasks.no.check at the end
 # TODO: should move exclude params into pd or lst, once handled ok
-test -e .git && \
-  src_grep="git grep -n" || src_grep="grep -nsrI \
+test -e .git &&
+  src_grep="git grep -n" ||
+  src_grep="grep -nsrI \
     --exclude-dir 'build' \
     --exclude-dir jjb \
     --exclude-dir 'vendor' \
@@ -64,8 +66,7 @@ $src_grep \
     $tasks_grep_expr \
     $check_files \
   | . ./tools/sh/tags-filter.sh \
-	| \
-  {
+  | {
     trueish "$verbose" && { tee $out; } || { cat - > $out; }
   }
 

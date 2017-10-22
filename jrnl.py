@@ -18,10 +18,12 @@ Model
             - gregorian
 
 """
+from __future__ import print_function
+
 __description__ = "journal - "
 __version__ = '0.0.2-dev' # script-mpe
 #__db__ = '~/.journal.sqlite'
-from __future__ import print_function
+
 import os
 import libcmd
 

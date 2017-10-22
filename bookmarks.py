@@ -27,8 +27,9 @@ Usage:
   bookmarks.py [options] stats
   bookmarks.py [options] (tag|href|domain) [NAME]
   bookmarks.py [options] list [NAME]
+  bookmarks.py [options] couchdb (stats|list)
   bookmarks.py [options] couchdb (sync|update) [NAME]
-  bookmarks.py [options] couchdb (add|update|remove|sync|update) URL [ TITLE [ TAGS... ] ]
+  bookmarks.py [options] couchdb (add|modify|remove) URL [ TITLE [ TAGS... ] ]
   bookmarks.py [options] check [NAME]
   bookmarks.py [options] webarchive [NAME]
   bookmarks.py -h|--help
@@ -86,6 +87,7 @@ import urllib
 import urllib2
 from urlparse import urlparse
 import uriref
+from pprint import pprint
 
 import couchdb
 #import zope.interface
@@ -827,12 +829,6 @@ def cmd_check(NAME, settings):
     sa.commit()
 
 
-def cmd_couchdb_stats():
-    """
-    """
-    pass
-
-
 def cmd_webarchive(NAME, settings):
     """
     Sort out and rewrite web.archive locators.
@@ -947,11 +943,16 @@ def cmd_couchdb_update(settings):
 
 
 def cmd_couchdb_sync(NAME, opts, settings):
+
     """
     Update CouchDB bookmark-type documents from SQL.
     """
-    server = couchdb.client.Server('http://sandbox:5984/')
-    db = server['the-registry']
+
+    #server = couchdb.client.Server('http://sandbox:5984/')
+    #db = server['the-registry']
+    ref, dbname = settings.couch.rsplit('/', 1)
+    server = couchdb.client.Server(ref)
+    db = server[dbname]
 
     sa = Bookmark.get_session(settings.session_name, settings.dbref)
     if NAME:
@@ -1012,9 +1013,34 @@ def cmd_couchdb_sync(NAME, opts, settings):
     print('%i updated' % len(updates))
 
 
+def cmd_couchdb_stats(settings):
+
+    ref, dbname = settings.couch.rsplit('/', 1)
+    server = couchdb.client.Server(ref)
+
+    stats = server.stats()
+    print('# couchdb-stat current max min mean stddev sum description')
+    for k in stats['couchdb']:
+        print(k, end=' ')
+        for k2 in 'current', 'max', 'min', 'mean', 'stddev', 'sum', 'description':
+            print(stats['couchdb'][k][k2], end=' ')
+        print()
+
+
+def cmd_couchdb_list(settings):
+
+    ref, dbname = settings.couch.rsplit('/', 1)
+    server = couchdb.client.Server(ref)
+
+    db = server[dbname]
+    for _id in db:
+        doc = db[_id]
+        if ( hasattr(doc, 'type') and doc.type == 'bookmark' ) or 'href' in doc:
+            print(doc['href'])
+
+
 def cmd_couchdb_add(URL, TITLE, TAGS, settings):
-    """
-    """
+
     ref, dbname = settings.couch.rsplit('/', 1)
     server = couchdb.client.Server(ref)
     print(ref, server, dbname, URL, TITLE, TAGS)
@@ -1025,6 +1051,7 @@ def cmd_couchdb_add(URL, TITLE, TAGS, settings):
       'href': URL,
       'tags': TAGS
     }
+
 
 """
 TODO: sync shaarli either from SQL or couch.
@@ -1082,6 +1109,7 @@ if __name__ == '__main__':
         __usage__ = __usage__.replace(__couch__, couch)
     opts = libcmd_docopt.get_opts(__doc__ + __usage__, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
-    log.std("Connecting to %s", opts.flags.dbref)
-    log.std("Connecting to %s", opts.flags.couch)
+    # TODO: mask secrets
+    #log.std("Connecting to %s", opts.flags.dbref)
+    #log.std("Connecting to %s", opts.flags.couch)
     sys.exit(main(opts))

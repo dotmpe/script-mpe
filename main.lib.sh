@@ -63,9 +63,10 @@ echo_help()
   return 1
 }
 
-# echo_local subcmd [property [base]]
-# echos variable or function name
-echo_local()
+# Echos variable or function name, for formats:
+# <base>__<field>=.../()
+# <base>_<property>__<field>=.../()
+echo_local() # Subcmd [ Property [ Base ] ]
 {
   test -n "$2" -o -n "$1" || return
   # XXX: box-*
@@ -76,6 +77,7 @@ echo_local()
   echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
 }
 
+# Get echo-local output, and return 1 on empty value
 try_value()
 {
   local value="$(eval echo "\"\$$(echo_local "$@")\"")"
@@ -83,7 +85,8 @@ try_value()
   echo "$value"
 }
 
-try_local_var()
+# Export echo-local to given env var-name
+try_local_var() # Export-Var [ Subcmd [ Property [ Base ] ] ]
 {
   test -n "$1" || error "var" 1
   local value="$(eval echo "\$$(echo_local "$2" "$3" "$4")")"
@@ -92,6 +95,8 @@ try_local_var()
   } || return $?
 }
 
+# Look for the 'spc' property on base/field, used for argument pattern spec.
+# Stop after first value.
 try_spec()
 {
   local b=
@@ -130,19 +135,29 @@ get_subcmd_func()
   test -n "$1" || error "get-subcmd-func $subcmd" 1
 
   local subcmd_default= b=
+  # Try script base, but also std namespace for function
   for b in $base std
   do
-    # Look for subcmd ($1) in each namespaces
+
+    # Look for subcmd ($1) in each namespace (or base, "$3").
+    # $2 (property) is empty, iot. select function itself.
+    # Set try_local_func args, see echo_local for sequence.
     set -- "$1" "" "$b"
+
     try_local_func "$@" || {
+
       # Try command alias
-      try_local_var cmd_als $1 als $b
-      test -z "$cmd_als" || {
-        subcmd=$cmd_als
-        set -- "$(mkvid "$cmd_als";echo $vid)" "" "$b"
+      try_local_var cmd_als $1 als $b && {
+        test -n "$cmd_als" || error oops 1
+        subcmd=$(echo "$cmd_als" | cut -d ' ' -f 1)
+        subcmd_args_pre=$(echo "$cmd_als" | cut -d ' ' -f 2)
+      #test -z "$cmd_als" || {
+        #subcmd=$cmd_als
+        set -- "$(mkvid "$subcmd" && echo $vid)" "" "$b"
       }
     }
 
+    # Break on first existing function
     try_local_func "$@" && {
       subcmd_func="$(echo_local "$@")"
       return
@@ -151,8 +166,7 @@ get_subcmd_func()
   return 1
 }
 
-
-# Set and see if $func exists
+# Set subcmd and see if $func exists
 try_subcmd()
 {
   #test -z "$1" || {

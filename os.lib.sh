@@ -494,3 +494,36 @@ mkrlink()
   ln -vs "$(basename "$1")" "$2"
 }
 
+filter_dirs()
+{
+  test "$1" = "-" && {
+    while read d
+    do
+        test -d "$d" || continue
+        echo "$d"
+    done
+  } || {
+    for d in "$@"
+    do
+        test -d "$d" || continue
+        echo "$d"
+    done
+  }
+}
+
+filter_files()
+{
+  test "$1" = "-" && {
+    while read f
+    do
+        test -f "$f" || continue
+        echo "$f"
+    done
+  } || {
+    for f in "$@"
+    do
+        test -f "$f" || continue
+        echo "$f"
+    done
+  }
+}

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
 """
+from __future__ import print_function
 __description__ = "volume - "
 __version__ = '0.0.2-dev' # script-mpe
 __db__ = '~/.volume.sqlite'
@@ -23,7 +24,6 @@ Other flags:
     --version     Show version (%s).
 
 """ % ( __db__, __version__, )
-from __future__ import print_function
 import os
 import sys
 from pprint import pprint

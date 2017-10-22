@@ -3,6 +3,7 @@
 
 """
 from __future__ import print_function
+
 __description__ = "hier - tag hierarchies"
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.hier.sqlite'
@@ -34,6 +35,7 @@ Other flags:
     --version     Show version (%s).
 
 """ % ( __db__, __version__ )
+
 import os
 import resource
 from pprint import pformat
@@ -219,6 +221,17 @@ def cmd_record(settings, opts, TAGS):
     for raw_tag in TAGS:
         Tag.record(raw_tag, sa, opts)
 
+
+"""
+  hier.py [options] couchdb prefix NAME BASE
+"""
+def cmd_couchdb_prefix(settings, opts, NAME, BASE):
+    """
+    1. If prefix does not exists, add it to the recorded prefixes.
+    2. Find all URLs starting with Base URL, and strip base, add Prefix.
+    3. For existing Prefixes, update their href for those with URLs below
+       Base URL.
+    """
 
 
 ### Transform cmd_ function names to nested dict

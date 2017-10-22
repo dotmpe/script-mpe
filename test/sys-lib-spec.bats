@@ -14,7 +14,7 @@ load main.inc
 
   run try_exec_func mytest_function
   { test $status -eq 0 &&
-    fnmatch "*'mytest_function'*mytest*" "${lines[*]}"
+    fnmatch "mytest" "${lines[*]}"
   } || stdfail
 }
 
@@ -26,26 +26,26 @@ load main.inc
 
 @test "${base} - try_exec_func (bash) on existing function" {
 
-  run bash -c 'scriptpath='$lib' && source '$lib'/util.sh && \
+  run bash -c 'scriptpath='$lib' && __load_mode=boot source '$lib'/util.sh && \
     source '$lib'/test/main.inc.bash && try_exec_func mytest_function'
   diag "Output: ${lines[0]}"
   {
     test $status -eq 0 &&
-    fnmatch "*'mytest_function'*mytest*" "${lines[*]}"
+    fnmatch "mytest" "${lines[*]}"
   } || stdfail
 }
 
 @test "${base} - try_exec_func (bash) on non-existing function" {
 
   export verbosity=6
-  run bash -c 'scriptpath='$lib' && source '$lib'/util.sh && try_exec_func no_such_function'
+  run bash -c 'scriptpath='$lib' && __load_mode=boot source '$lib'/util.sh && try_exec_func no_such_function'
   {
     test "" = "${lines[*]}" &&
     test $status -eq 1
   } || stdfail 1.1
 
   export verbosity=7
-  run bash -c 'scriptpath='$lib' && source '$lib'/util.sh && try_exec_func no_such_function'
+  run bash -c 'scriptpath='$lib' && __load_mode=boot source '$lib'/util.sh && try_exec_func no_such_function'
   {
     fnmatch "*try-exec-func 'no_such_function'*" "${lines[*]}" &&
     test $status -eq 1
@@ -62,7 +62,7 @@ load main.inc
 @test "${base} - try_exec_func (sh) on existing function" {
 
   export verbosity=5
-  run sh -c 'TERM=dumb && scriptpath='$lib' && . '$lib'/util.sh && \
+  run sh -c 'TERM=dumb && scriptpath='$lib' && __load_mode=boot . '$lib'/util.sh && \
     . '$lib'/test/main.inc.bash && try_exec_func mytest_function'
   {
     test -n "${lines[*]}" &&
@@ -75,7 +75,7 @@ load main.inc
 
   export verbosity=5
 
-  run sh -c 'TERM=dumb && scriptpath='$lib' && . '$lib'/util.sh && try_exec_func no_such_function'
+  run sh -c 'TERM=dumb && scriptpath='$lib' && __load_mode=boot . '$lib'/util.sh && try_exec_func no_such_function'
   test "" = "${lines[*]}" || stdfail 1
 
   case "$(uname)" in

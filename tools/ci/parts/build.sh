@@ -24,9 +24,9 @@ do case "$BUILD_STEP" in
         #./basename-reg ffnnec.py
 
         note "mimereg:"
-        ( 
+        (
            ./mimereg ffnenc.py
-        ) || printf ""
+        ) || true
 
         #note "lst names local:"
         #892.2 https://travis-ci.org/dotmpe/script-mpe/jobs/191996789
@@ -50,19 +50,23 @@ do case "$BUILD_STEP" in
     test )
         lib_load build
 
-        ## start with essential tests
-        note "Testing '$REQ_SPECS'"
-
-        failed=build/test-results-failed.list
-
         test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-specs.tap
         test -d "$(dirname "$TEST_RESULTS")" ||
           mkdir -vp "$(dirname "$TEST_RESULTS")"
-  
+
+        failed=build/test-results-failed.list
+
+
+        ## start with essential tests
+        #note "Testing '$REQ_SPECS'"
+
+        #for spec in $REQ_SPECS ; do
+        #  SUITE="$spec" test_shell > $TEST_RESULTS
+        #done
+
         (
-          #SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
-          SUITE="$REQ_SPECS" test_shell > $TEST_RESULTS
-        ) || noop
+          SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
+        ) || touch $failed
 
         not_falseish "$SHIPPABLE" && {
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
@@ -91,8 +95,9 @@ do case "$BUILD_STEP" in
             r=1
           }
           unset failed
-        } || noop
+        } || true
 
+        exit $r
       ;;
 
     noop )
