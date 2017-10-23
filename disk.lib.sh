@@ -17,14 +17,14 @@ disk_run()
 
   export mnt_pref="sudo " dev_pref=
   case "$(groups)" in *" disk "* ) ;; * ) export dev_pref="sudo";; esac
-  export fdisk="$dev_pref /sbin/fdisk"
-  export parted="$dev_pref /sbin/parted"
-  export blkid="$dev_pref /sbin/blkid"
+  export fdisk="$dev_pref $(which fdisk)"
+  export parted="$dev_pref $(which parted)"
+  export blkid="$dev_pref $(which blkid)"
 }
 
 req_fdisk()
 {
-  test -n "$fdisk" -a -x "/sbin/fdisk" || {
+  test -x "$(which fdisk)" || {
     error "$1: missing fdisk" 1
     return
   }
@@ -42,13 +42,23 @@ req_parted()
 
 disk_fdisk_id()
 {
-  {
-    req_fdisk disk-fdisk-id || return
-    $fdisk -l $1 || {
-      error "disk-fdisk-id at '$1'"
-      return $?
-    }
-  } | grep Disk.identifier | sed 's/^Disk.identifier: //'
+  req_fdisk disk-fdisk-id || return
+  case "$uname" in
+
+      Linux )
+            { # List partition table
+              $fdisk -l $1 || {
+                error "disk-fdisk-id at '$1'"
+                return $?
+              }
+            } | grep Disk.identifier | sed 's/^Disk.identifier: //'
+          ;;
+
+      Darwin )
+            # Dump partition table
+              $fdisk -d $1 || return $?
+          ;;
+  esac
 }
 
 disk_id()

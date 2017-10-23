@@ -24,5 +24,6 @@ import task
 from task import Task, TodoListParser, RedisSEIStore
 import todo
 from todo import TodoTxtParser
+from disk import Diskdoc
 
 import iface

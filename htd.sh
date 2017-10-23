@@ -3822,6 +3822,41 @@ htd__resolve()
 }
 
 
+htd_man_1__update='Checkout/update GIT version for this $scriptpath
+
+Without argument, pulls the currently checked out branch. With env `push` turned
+on, it completes syncing with the remote by returning the branch with a push.
+
+If "all" is given as remote, it expands to all remote names.
+'
+htd_env__update='push'
+htd_spc__update='update [<commit-ish> [<remote>...]]'
+htd__update()
+{
+	test -n "$1" ||
+	    set -- "$(cd $scriptpath && git rev-parse --abbrev-ref HEAD)" $@
+	test -n "$2" || set -- "$1" "origin"
+	test "$2" = "all" &&
+		set -- "$1" "$(cd $scriptpath && git remote | tr '\n' ' ')"
+	# Perform checkout, pull and optional push
+	test -n "$push" || push=0
+	(
+		cd $scriptpath
+		local branch=$1 ; shift ; for remote in $@
+		do
+			# Check argument is a valid existing branch on remote
+			git checkout "$branch" &&
+			git show-ref | grep '\/remotes\/' | grep -qF $remote'/'$branch && {
+				git pull "$remote" "$branch"
+				trueish $push && git push "$remote" "$branch" || noop
+			} || {
+				warn "Reference $remote/$branch not found, skipped" 1
+			}
+		done
+	)
+}
+
+
 htd__push()
 {
   test -n "$1" || error "domain ID expected"

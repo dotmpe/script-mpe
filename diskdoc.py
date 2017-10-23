@@ -4,6 +4,13 @@
 
 Python helper to query/update disk metadatadocument 'disks.yaml'
 
+"""
+from __future__ import print_function
+__description__ = "diskdoc - Python helper to query/update disk metadatadocument 'disks.yaml'"
+__version__ = '0.0.4-dev' # script-mpe
+__couch__ = 'http://localhost:5984/the-registry'
+__usage__ = """
+
 Usage:
     diskdoc.py [options] disks
     diskdoc.py [options] list-disks
@@ -11,16 +18,27 @@ Usage:
     diskdoc.py [options] generate-doc
     diskdoc.py [options] readtab ID
     diskdoc.py [options] readout ID
+    diskdoc.py [options] couchdb (stats|list)
+    diskdoc.py --background
+    diskdoc.py -h|--help
+    diskdoc.py --version
 
 Commands:
-    disks
-        Show local disks.
-    list-disks
-        ..
-    generate-doc
-        ..
+  disks
+      Show local disks.
+  list-disks
+      ..
+  dump-doc
+      ..
+  generate-doc
+      ..
+  (readtab|readout) ID
+      Parse configurations for file or command output, dumps
+      named fields/values for each line. For debugging.
 
 Options:
+  --couch=REF
+                Couch DB URL [default: %s]
   --address ADDRESS
                 The address that the socket server will be listening on. If
                 the socket exists, any command invocation is relayed to the
@@ -46,8 +64,12 @@ Options:
   --include-fstype TYPES
                 Override ignore-fstype, and ignore every filesystem type not in
                 given list. [default: ]
-"""
-from __future__ import print_function
+  -q, --quiet   Turn off verbosity.
+  -h --help     Show this usage description.
+                For a command and argument description use the command 'help'.
+  --version     Show version (%s).
+
+""" % ( __couch__, __version__, )
 import sys, socket
 import os
 import re
@@ -61,7 +83,7 @@ import uuid
 from deep_eq import deep_eq
 
 from script_mpe import libcmd_docopt, confparse
-from script_mpe.res import js
+from script_mpe.res import js, Diskdoc
 from script_mpe.confparse import yaml_load, yaml_safe_dump
 
 
@@ -124,12 +146,12 @@ readout_attr_presets = dict(
 def H_readtab(diskdoc, ctx):
     data = readtab_attr( *readtab_attr_presets[ctx.opts.args.ID] )
     for it in data:
-        print(it.todict())
+        js.dumps(it.todict())
 
 def H_readout(diskdoc, ctx):
     data = readout_attr( *readout_attr_presets[ctx.opts.args.ID] )
     for it in data:
-        print(it.todict())
+        js.dumps(it.todict())
 
 
 def mtab_ignored(line, ctx):
@@ -314,11 +336,16 @@ def H_list_disks(diskdata, ctx):
     get_local_doc(diskdata, ctx)
 
 
+def H_couchdb_sync(diskdata, ctx):
+    "Copy / integrate document with CouchDB, TODO: see generate doc?"
+
+
 def H_dump_doc(diskdata, ctx):
     """
     Dump entire document, media and also mounts and other metadata.
+    Output format: JSON.
     """
-    pprint(diskdata)
+    print( js.dumps(diskdata) )
 
 
 def H_generate_doc(diskdata, ctx):
@@ -327,12 +354,20 @@ def H_generate_doc(diskdata, ctx):
     TODO: same as lists-disks, generate/update cache storage document here
     """
 
+    print( js.dumps(diskdata.local_doc()) )
 
-handlers = {}
+
+### Transform H_ function names to nested dict
+
+# XXX: testing libcmd_docopt get_cmd_handlers
+commands = {}
 for k, h in locals().items():
     if not k.startswith('H_'):
         continue
-    handlers[k[2:].replace('_', '-')] = h
+    commands[k[2:].replace('_', '-')] = h
+#commands = libcmd_docopt.get_cmd_handlers(globals(), 'H_')
+#commands['help'] = libcmd_docopt.cmd_help
+
 
 # XXX: no sessions
 diskdata = None
@@ -343,9 +378,11 @@ def prerun(ctx, cmdline):
     ctx.opts = libcmd_docopt.get_opts(ctx.usage, argv=argv)
 
     if not diskdata:
-        diskdata = yaml_load(open(ctx.opts.flags.file))
+        diskdata = Diskdoc.from_user_path(ctx.opts.flags.file)
 
-    return [ diskdata ]
+    opts.diskdata = diskdata
+
+    return []
 
 
 def main(ctx):
@@ -368,27 +405,31 @@ def main(ctx):
 
     if ctx.opts.flags.background:
         localbg = __import__('local-bg')
-        return localbg.serve(ctx, handlers, prerun=prerun)
+        return localbg.serve(ctx, commands, prerun=prerun)
     elif os.path.exists(ctx.opts.flags.address):
         localbg = __import__('local-bg')
         return localbg.query(ctx)
-    elif 'exit' == ctx.opts.cmds[0]:
+    elif ctx.opts.cmds and 'exit' == ctx.opts.cmds[0]:
         print("No background process at %s" % ctx.opts.flags.address, file=ctx.err)
         return 1
     else:
-        diskdoc = os.path.expanduser(ctx.opts.flags.file)
-        diskdata = yaml_load(open(diskdoc))
-        func = ctx.opts.cmds[0]
-        assert func in handlers
-        return handlers[func](diskdata, ctx)
+        opts.diskdata = Diskdoc.from_user_path(ctx.opts.flags.file)
+        #func = ctx.opts.cmds[0]
+        #assert func in commands
+        #return handlers[func](diskdata, ctx)
+        return libcmd_docopt.run_commands(commands, opts.flags, opts)
+
+def get_version():
+    return 'diskdoc/%s' % __version__
 
 
 if __name__ == '__main__':
-    opts = libcmd_docopt.get_opts(__doc__)
+    opts = libcmd_docopt.get_opts(__description__ + __usage__,
+            version=get_version())
     ctx = confparse.Values(dict(
         uname=os.uname()[0],
         hostname=socket.gethostname(),
-        usage=__doc__,
+        usage=__description__ + __usage__,
         out=sys.stdout,
         err=sys.stderr,
         inp=sys.stdin,

@@ -1,9 +1,11 @@
 #!/usr/bin/env python
-"""host -
-:created: 2015-06-29
-"""
 from __future__ import print_function
+"""
+:created: 2015-06-29
 
+"""
+
+__description__ = 'host -'
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.taxus-code.sqlite'
 __rc__ = '~/.domain.rc'

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
 :created: 2013-12-30
+:updated: 2014-08-26
 
 - Import old bookmarks from JSON, XML.
 
@@ -11,15 +12,14 @@
 
     Bookmark
 
-:updated: 2014-08-26
 """
 from __future__ import print_function
-__description__ = "bookmarks - "
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.bookmarks2.sqlite'
 __couch__ = 'http://localhost:5984/the-registry'
 chrome_bookmarks_path= '~/Library/Application Support/Google/Chrome/Default/Bookmarks'
 __usage__ = """
+
 Usage:
   bookmarks.py [options] dlcs (parse|import FILE|export)
   bookmarks.py [options] chrome (all|roots|groups) [--group-name NAME]...
@@ -32,51 +32,52 @@ Usage:
   bookmarks.py [options] couchdb (add|modify|remove) URL [ TITLE [ TAGS... ] ]
   bookmarks.py [options] check [NAME]
   bookmarks.py [options] webarchive [NAME]
+  bookmarks.py --background
   bookmarks.py -h|--help
   bookmarks.py --version
 
 Options:
-    -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: %s]
-    --couch=REF
-                  Couch DB URL [default: %s]
-    --tag-offset INT
-                  Set import frequency-offset to exclude certain one-to-many
-                  relations if the usage is below given value.
-                  This entirely depends on usage.
-                  0 means to import everything [default: -1]
-                  Defaults to hiFreq * 0.1.
-    --domain-offset INT
-                  Typical --*-offset, see before.
-                  Defaults to avgFreq. [default: -1]
-    -s SESSION --session-name SESSION
-                  should be bookmarks [default: default].
-    --chrome-bookmarks-path PATH
-                  [default: %s]
-    --chrome-bookmarks-root GROUP
-                  [default: bookmark_bar]
-    --group-name NAME
-                  Group name [default: bookmark_bar other]
-    --output-format FMT
-                  json, repr [default: rst]
-    --no-commit   .
-    --commit      [default: true].
-    --clear-unknown-keys
-                  Delete unknown keys from CouchDB documents.
-    --deleted
-    --days N
-    --weeks N
-    --status STATUS[,STATUS]
-    --delete STATUS[,STATUS]
-    --delete-error
-    --include-null
-    --ignore-last-seen
-    -v            Increase verbosity.
-    --verbose     Default.
-    -q, --quiet   Turn off verbosity.
-    -h --help     Show this usage description.
-                  For a command and argument description use the command 'help'.
-    --version     Show version (%s).
+  -d REF --dbref=REF
+                SQLAlchemy DB URL [default: %s]
+  --couch=REF
+                Couch DB URL [default: %s]
+  --tag-offset INT
+                Set import frequency-offset to exclude certain one-to-many
+                relations if the usage is below given value.
+                This entirely depends on usage.
+                0 means to import everything [default: -1]
+                Defaults to hiFreq * 0.1.
+  --domain-offset INT
+                Typical --*-offset, see before.
+                Defaults to avgFreq. [default: -1]
+  -s SESSION --session-name SESSION
+                should be bookmarks [default: default].
+  --chrome-bookmarks-path PATH
+                [default: %s]
+  --chrome-bookmarks-root GROUP
+                [default: bookmark_bar]
+  --group-name NAME
+                Group name [default: bookmark_bar other]
+  --output-format FMT
+                json, repr [default: rst]
+  --no-commit   .
+  --commit      [default: true].
+  --clear-unknown-keys
+                Delete unknown keys from CouchDB documents.
+  --deleted
+  --days N
+  --weeks N
+  --status STATUS[,STATUS]
+  --delete STATUS[,STATUS]
+  --delete-error
+  --include-null
+  --ignore-last-seen
+  -v            Increase verbosity.
+  --verbose     Default.
+  -q, --quiet   Turn off verbosity.
+  -h --help     Show this usage description.
+                For a command and argument description use the command 'help'.
+  --version     Show version (%s).
 
 """ % ( __db__, __couch__, chrome_bookmarks_path, __version__, )
 from datetime import datetime, timedelta
@@ -1078,7 +1079,6 @@ def cmd_shaarli_sync(NAME, opts, settings):
 commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
 commands['help'] = libcmd_docopt.cmd_help
 
-
 ### Util functions to run above functions from cmdline
 
 def main(opts):
@@ -1094,6 +1094,7 @@ def main(opts):
 
 def get_version():
     return 'bookmarks.mpe/%s' % __version__
+
 
 if __name__ == '__main__':
     #bookmarks.main()
