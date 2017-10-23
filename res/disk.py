@@ -8,6 +8,12 @@ class Diskdoc(object):
     def __init__(self, data):
         self.data = data
 
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __setitem__(self, key, v):
+        self.data[key] = v
+
     @classmethod
     def from_user_path(Cls, fname):
         "Load and instantiate from YAML doc"

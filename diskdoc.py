@@ -286,12 +286,18 @@ def get_local_doc(diskdata, ctx):
             else:
                 descr = size
 
-            if 'UUID' not in part:
+            UUID = None
+            if 'UUID' in part:
+                UUID = part['UUID']
+            # TODO elif 'Disk-Partition-UUID' in part:
+            #    UUID = part['Disk-Partition-UUID']
+
+            if not UUID:
                 print('  Incomplete data (missing partition uuid) for', descr)
                 continue
 
             # Continue with local partitions only
-            if part['UUID'] not in part_uuids:
+            if UUID not in part_uuids:
                 continue
 
             lpart = host_parts[part['UUID']]
@@ -306,8 +312,11 @@ def get_local_doc(diskdata, ctx):
     for disk_id, disk in local_.items():
 
         for part in disk['partitions']:
-            if 'UUID' not in part or part['UUID'] not in local_parts: continue
-            lpart = local_parts[part['UUID']]
+            UUID = None
+            if 'UUID' in part:
+                UUID = part['UUID']
+            if not UUID or UUID not in local_parts: continue
+            lpart = local_parts[UUID]
             size = part['size']
 
             if lpart.mount:
@@ -413,11 +422,13 @@ def main(ctx):
         print("No background process at %s" % ctx.opts.flags.address, file=ctx.err)
         return 1
     else:
-        opts.diskdata = Diskdoc.from_user_path(ctx.opts.flags.file)
+        settings = opts.flags
+        settings.diskdata = Diskdoc.from_user_path(ctx.opts.flags.file)
+        settings.ctx = ctx
         #func = ctx.opts.cmds[0]
         #assert func in commands
         #return handlers[func](diskdata, ctx)
-        return libcmd_docopt.run_commands(commands, opts.flags, opts)
+        return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'diskdoc/%s' % __version__
