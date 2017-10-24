@@ -116,8 +116,8 @@ pd__status()
 
       {
         # Read from tree, note status != 0 as failures.
-        pd_fetch_status "$pd_prefix" | 
-          jsotk.py -I yaml -O pkv - | 
+        pd_fetch_status "$pd_prefix" |
+          jsotk.py -I yaml -O pkv - |
           tr '=' ' ' | while read var stat
         do
           test -n "$var" -a "$var" != "None" || continue
