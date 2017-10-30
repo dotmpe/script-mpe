@@ -159,7 +159,7 @@ def host_find(args, sa=None):
 
 NS = Namespace.register(
         prefix='txs',
-        uriref='http://project.dotmpe.com/script/#/txs'
+        uriref='http://project.wtwta.org/script/#/txs'
     )
 
 @Target.register(NS, 'session', 'cmd:options')

@@ -40,7 +40,7 @@ from libcmdng import Targets, Arguments, Keywords, Options,\
 
 NS = Namespace.register(
         prefix='vol',
-        uriref='http://project.dotmpe.com/script/#/cmdline.Volume'
+        uriref='http://project.wtwta.org/script/#/cmdline.Volume'
     )
 
 Options.register(NS,

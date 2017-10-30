@@ -5,7 +5,7 @@ from libcmdng import Targets, Arguments, Keywords, Options,\
 
 NS = Namespace.register(
         prefix='cmd',
-        uriref='http://project.dotmpe.com/script/#/cmdline2'
+        uriref='http://project.wtwta.org/script/#/cmdline2'
     )
 
 Options.register(NS)
