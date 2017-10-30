@@ -5,24 +5,25 @@ from __future__ import print_function
 
 __description__ = "journal - "
 __version__ = '0.0.4-dev' # script-mpe
-__db__ = '~/.journal.sqlite'
+__couch__ = 'http://localhost:5984/the-registry'
 __usage__ = """
 Usage:
     journal.py [options] [ LIST ]
     journal.py couchlog --date DATE
-    journal.py couchlog --path PATH
+    journal.py couchlog --path PATH [BITS]
     journal.py couchlog [--current|--latest|--dev] [PATH]
-
     journal.py -h|--help
     journal.py --version
 
 Options:
+    --couch=REF
+                  Couch DB URL [default: %s]
     --verbose     ..
     --quiet       ..
     -h --help     Show this usage description.
     --version     Show version (%s).
 
-""" % ( __version__ )
+""" % ( __couch__, __version__ )
 
 import os
 
@@ -82,9 +83,17 @@ def cmd_couchlog(opts, settings):
         paths: [..]
         datestamp:
     """
-    server = couchdb.client.Server('http://sandbox:5984/')
-    opts.flags.couchdb = 'the-registry'
+
+    ref, dbname = settings.couch.rsplit('/', 1)
+    opts.flags.couchdb = dbname
+    #print(ref, dbname)
+
+    server = couchdb.client.Server(ref)
     db = server[opts.flags.couchdb]
+    print(server, db)
+
+    for it in db:
+        print(it)
 
     #if opts.flags.date
     #if opts.flags.path
@@ -116,5 +125,10 @@ if __name__ == '__main__':
     import sys
     reload(sys)
     sys.setdefaultencoding('utf-8')
+
+    couch = os.getenv( 'COUCH_DB', __couch__ )
+    if couch is not __couch__:
+        __usage__ = __usage__.replace(__couch__, couch)
+
     opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     sys.exit(main(opts))

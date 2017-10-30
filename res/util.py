@@ -22,11 +22,17 @@ def sha1_content_digest_header(filepath):
 def iso8601_datetime_format(time_tuple):
     """
     Format datetime tuple to ISO 8601 format suitable for MIME messages.
+
+    NOTE: can use use datetime().isoformat() on instances.
     """
     return time.strftime(ISO_8601_DATETIME, time_tuple)
+
+def isodatetime(s):
+    """
+    Opposite of datetime().isoformat()
+    """
+    return datetime.strptime(s, ISO_8601_DATETIME)
 
 def last_modified_header(filepath):
     ltime_tuple = time.gmtime(os.path.getmtime(filepath))
     return iso8601_datetime_format(ltime_tuple)
-
-

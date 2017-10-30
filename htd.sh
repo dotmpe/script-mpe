@@ -63,6 +63,14 @@ htd_load()
   default_env Htd-TMux-Default-Cmd "$SHELL"
   default_env Htd-TMux-Default-Window "$(basename $SHELL)"
   default_env Couch-URL http://sandbox-3:5984
+  default_env GitVer-Attr .version-attributes
+  default_env Ns-Name bvberkum
+
+  test -n "$APP_ID" -o ! -e .app-id || read APP_ID < .app-id
+  test -n "$APP_ID" -o ! -e $GITVER_ATTR ||
+      APP_ID="$(get_property $GITVER_ATTR "App-Id")"
+  test -n "$APP_ID" -o ! -e .git ||
+      APP_ID="$(basename "$(git config remote.origin.url)" .git)"
 
   projectdirs="$(echo ~/project ~/work/*/tree)"
 
@@ -94,6 +102,8 @@ htd_load()
 
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname="$(uname -s)"
+  test -n "$architecture" || architecture="$(uname -p)"
+  test -n "$machine_hw" || machine_hw="$(uname -m)"
 
   test "$CWD" = "$(pwd -P)" || warn "current path seems to be aliased ($CWD)"
 
@@ -1046,6 +1056,17 @@ htd__project()
 
     list ) shift
       ;;
+
+    releases ) shift
+          github-release info --user $NS_NAME --repo $APP_ID -j |
+              jq -r '.Releases | to_entries[] as $k | $k.value.tag_name'
+      ;;
+
+    init ) shift
+        # TODO: go from project Id, to namespace and provider
+        #git@github.com:bvberkum/x-docker-hub-build-monitor.git
+      ;;
+
     sync ) shift
       ;;
     update ) shift
@@ -1103,6 +1124,80 @@ htd__project()
   esac
 }
 
+
+htd__go()
+{
+  test -n "$APP_ID" || error "App-Id required" 1
+  test -n "$1" || set -- compile
+  case "$1" in
+
+    c | compile ) shift
+        docker run --rm \
+          -e CGO_ENABLED=true \
+          -e COMPRESS_BINARY=true \
+          -v "$(pwd -P):/src" \
+          centurylink/golang-builder
+        du -hs $APP_ID*
+
+        htd__go exec "$@"
+      ;;
+
+    x | x-compile ) shift
+        test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
+        test -n "$BUILD_GOOS" || BUILD_GOOS="$os"
+        test -n "$BUILD_GOARCH" || {
+            case "$machine_hw" in
+                
+                x86_64 ) BUILD_GOARCH="amd64" ;;
+                * ) BUILD_GOARCH="$architecture" ;;
+            esac
+        }
+        docker run --rm \
+          -e CGO_ENABLED=true \
+          -e COMPRESS_BINARY=true \
+          -e BUILD_GOARCH="$BUILD_GOARCH" \
+          -e BUILD_GOOS="$BUILD_GOOS" \
+          -v "$(pwd -P):/src" \
+          centurylink/golang-builder-cross
+        du -hs $APP_ID*
+
+        test -x "$APP_ID-$os-$BUILD_GOARCH" ||
+            error "Golang x-compile failed to $os/$BUILD_GOARCH" 1
+
+        test ! -e "./$APP_ID" || rm "./$APP_ID"
+        ln -s "$APP_ID-$os-$BUILD_GOARCH" "$APP_ID"
+
+        htd__go exec "$@"
+      ;;
+
+    exec ) shift
+        ./$APP_ID "$@"
+      ;;
+
+    dockerize ) shift
+        test -z "$1" || img_tag=$1
+        test -n "$img_tag" || img_tag=bvberkum/$APP_ID
+		test -e Dockerfile || { { cat <<EOM
+FROM scratch
+COPY $APP_ID /
+ENTRYPOINT ["/$APP_ID"]
+EOM
+		} > Dockerfile; note "Placed default dockerfile"; }
+        docker run --rm \
+          -e CGO_ENABLED=true \
+          -e COMPRESS_BINARY=true \
+          -v "$(pwd -P):/src" \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          centurylink/golang-builder \
+          $img_tag || return $?
+        du -hs $APP_ID*
+        note "Done $img_tag with $APP_ID"
+      ;;
+
+    * ) error "? 'go $*'" 1
+      ;;
+  esac
+}
 
 
 htd_man_1__script="Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping of
@@ -9019,7 +9114,7 @@ htd_main()
           #record_env_keys htd-subcmd htd-env
           box_lib htd || error "box-src-lib $scriptname" 1
 
-          htd_load "$@" || error "htd-load" $?
+          htd_load "$@" || warn "htd-load ($?)"
 
           var_isset verbosity || local verbosity=5
 

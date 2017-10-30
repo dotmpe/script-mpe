@@ -911,7 +911,7 @@ pd_new_package()
 {
   { cat <<EOM
 
-- type: application/vnd.dotmpe.project
+- type: application/vnd.bvberkum.project
   main: local/$(basename $pd_prefix)
   id: local/$(basename $pd_prefix)
   scripts:

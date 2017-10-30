@@ -237,6 +237,7 @@ read_nix_style_file()
   cat $cat_f "$1" | grep -Ev '^\s*(#.*|\s*)$' || return 1
 }
 
+# Number lines from read-nix-style-file
 enum_nix_style_file()
 {
   cat_f=-n read_nix_style_file "$@" || return

@@ -9,7 +9,7 @@ var dbname = process.env.CI_DB_NAME;
 var key = process.env.TRAVIS_REPO_SLUG;
 
 
-console.log("update-couchdb-testlob: DB '"+dbname+"', key: "+key);
+console.log("update-couchdb-testlog: DB '"+dbname+"', key: "+key);
 var server = require('nano')(url);
 var db = server.db.use(dbname);
 var buildkey = key+':'+process.env.TRAVIS_JOB_NUMBER;

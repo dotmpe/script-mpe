@@ -1,9 +1,9 @@
 
 # Multiple sections, one main, is also ID. Otherwise 'default'.
 
-- type: application/vnd.dotmpe.project
+- type: application/vnd.bvberkum.project
   main: True
 
-- type: application/vnd.dotmpe.project
+- type: application/vnd.bvberkum.project
   id: another
 

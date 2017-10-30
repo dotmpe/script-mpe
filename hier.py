@@ -7,6 +7,7 @@ from __future__ import print_function
 __description__ = "hier - tag hierarchies"
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.hier.sqlite'
+__couch__ = 'http://localhost:5984/the-registry'
 __usage__ = """
 Usage:
   hier.py [options] init
@@ -20,6 +21,8 @@ Usage:
 Options:
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
+    --couch=REF
+                  Couch DB URL [default: %s]
     -i FILE --input=FILE
     -o FILE --output=FILE
     --add-prefix=PREFIX
@@ -34,7 +37,7 @@ Other flags:
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
-""" % ( __db__, __version__ )
+""" % ( __db__, __couch__, __version__ )
 
 import os
 import resource
@@ -258,6 +261,10 @@ def get_version():
 
 if __name__ == '__main__':
     import sys
+
+    couch = os.getenv( 'COUCH_DB', __couch__ )
+    if couch is not __couch__:
+        __usage__ = __usage__.replace(__couch__, couch)
 
     opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
