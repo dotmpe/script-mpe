@@ -368,17 +368,14 @@ htd_load_ignores()
   #match_load_table vars
 }
 
+# Set XSL-Ver if empty. 
 htd_load_xsl()
 {
   test -z "$xsl_ver" && {
-    test -x "$(which saxon)" &&
-      xsl_ver=2 ||
-      xsl_ver=1
-  } || {
-    test xsl_ver != 2  ||
-      test -x "$(which saxon)" ||
-        error "Saxon required for XSLT 2.0" 1
+    test -x "$(which saxon)" && xsl_ver=2 || xsl_ver=1
   }
+  test xsl_ver != 2 -o -x "$(which saxon)" ||
+      error "Saxon required for XSLT 2.0" 1
   note "Set XSL proc version=$xsl_ver.0"
 }
 
@@ -1177,12 +1174,12 @@ htd__go()
     dockerize ) shift
         test -z "$1" || img_tag=$1
         test -n "$img_tag" || img_tag=bvberkum/$APP_ID
-		test -e Dockerfile || { { cat <<EOM
+    test -e Dockerfile || { { cat <<EOM
 FROM scratch
 COPY $APP_ID /
 ENTRYPOINT ["/$APP_ID"]
 EOM
-		} > Dockerfile; note "Placed default dockerfile"; }
+    } > Dockerfile; note "Placed default dockerfile"; }
         docker run --rm \
           -e CGO_ENABLED=true \
           -e COMPRESS_BINARY=true \
@@ -3096,38 +3093,58 @@ htd__urls()
   esac
 }
 
-# init or list SSH based remote
 
-source_git_remote()
-{
-  test -n "$1" || set -- "$HTD_GIT_REMOTE"
-  . $UCONFDIR/git-remotes/$1.sh \
-      || error "Missing 1=$1 script" 1
-}
-
-htd__git_remote_info()
-{
-  test -n "$1" || set -- "$HTD_GIT_REMOTE"
-  source_git_remote "$1"
-  echo remote.$1.dir=$remote_dir
-  echo remote.$1.host=$remote_host
-  echo remote.$1.user=$remote_user
-}
+htd_man_1__git_remote='List repos at remote (for SSH), or echo remote URL.
+'
 htd__git_remote()
 {
-  test -n "$2" && {
-    source_git_remote $1; shift 1
-  } || source_git_remote
+  local remote_dir= remote_hostinfo= remote_name=
+  test -n "$*" || set -- "$HTD_GIT_REMOTE"
+  test -e $UCONFDIR/git/remote-dirs/$1.sh && set -- "" "$@"
+  test -z "$1" -a -z "$3" && set -- "list" "$2" "$3"
 
-  [ -z "$1" ] && {
-    # List values for first arguments
-    ssh_cmd="cd $remote_dir; ls | grep '.*.git$' | sed 's/\.git$//g' "
-    ssh $ssh_opts $remote_user@$remote_host "$ssh_cmd"
-  } || {
-    repo=$1
-    #git_url="ssh://$remote_host/~$remote_user/$remote_dir/$repo.git"
-    scp_url="$remote_user@$remote_host:$remote_dir/$repo.git"
-    echo $scp_url
+  test -n "$1" || set -- "url" "$2" "$3"
+  test -n "$2" || set -- "$1" "$HTD_GIT_REMOTE" "$3"
+
+  {
+    test -n "$remote_dir" || {
+      info "Using $NS_NAME for $2 remote vendor path"
+       remote_dir=$NS_NAME
+  	}
+    . $UCONFDIR/git/remote-dirs/$2.sh || error "Missing remote GIT dir script" 1
+
+    case "$1" in
+
+      url )
+            test -n "$3" || error "repo name expected" 1
+            #git_url="ssh://$remote_host/~$remote_user/$remote_dir/$1.git"
+    		echo "$remote_hostinfo:$remote_dir/$3"
+        ;;
+
+      list ) test -z "$3" || error "no filter '$3'" 1
+          # List values for first arguments
+          test -n "$remote_dir" && {
+            ssh_cmd="cd $remote_dir && ls | grep '.*.git$' | sed 's/\.git$//g' "
+            ssh $ssh_opts $remote_hostinfo "$ssh_cmd"
+          } ||
+            error "Not an SSH remote" 1
+        ;;
+
+      info )
+      	  test -n "$3" && {
+    		echo "remote.$2.git.url=$remote_hostinfo:$remote_dir/$3"
+    		echo "remote.$2.scp.url=$remote_hostinfo:$remote_dir/$3.git"
+			echo "remote.$2.dir=$remote_dir/$3.git"
+			echo "remote.$2.hostinfo=$remote_hostinfo"
+		  } || {
+			echo "remote.$2.dir=$remote_dir"
+			echo "remote.$2.hostinfo=$remote_hostinfo"
+	  	  }
+        ;;
+
+      * ) error "'$1'?" 1 ;;
+
+    esac
   }
 }
 
@@ -3928,27 +3945,27 @@ htd_env__update='push'
 htd_spc__update='update [<commit-ish> [<remote>...]]'
 htd__update()
 {
-	test -n "$1" ||
-	    set -- "$(cd $scriptpath && git rev-parse --abbrev-ref HEAD)" $@
-	test -n "$2" || set -- "$1" "origin"
-	test "$2" = "all" &&
-		set -- "$1" "$(cd $scriptpath && git remote | tr '\n' ' ')"
-	# Perform checkout, pull and optional push
-	test -n "$push" || push=0
-	(
-		cd $scriptpath
-		local branch=$1 ; shift ; for remote in $@
-		do
-			# Check argument is a valid existing branch on remote
-			git checkout "$branch" &&
-			git show-ref | grep '\/remotes\/' | grep -qF $remote'/'$branch && {
-				git pull "$remote" "$branch"
-				trueish $push && git push "$remote" "$branch" || noop
-			} || {
-				warn "Reference $remote/$branch not found, skipped" 1
-			}
-		done
-	)
+  test -n "$1" ||
+      set -- "$(cd $scriptpath && git rev-parse --abbrev-ref HEAD)" $@
+  test -n "$2" || set -- "$1" "origin"
+  test "$2" = "all" &&
+    set -- "$1" "$(cd $scriptpath && git remote | tr '\n' ' ')"
+  # Perform checkout, pull and optional push
+  test -n "$push" || push=0
+  (
+    cd $scriptpath
+    local branch=$1 ; shift ; for remote in $@
+    do
+      # Check argument is a valid existing branch on remote
+      git checkout "$branch" &&
+      git show-ref | grep '\/remotes\/' | grep -qF $remote'/'$branch && {
+        git pull "$remote" "$branch"
+        trueish $push && git push "$remote" "$branch" || noop
+      } || {
+        warn "Reference $remote/$branch not found, skipped" 1
+      }
+    done
+  )
 }
 
 
@@ -6084,7 +6101,8 @@ htd__getxl()
   test -e "$2" || error "Need XML repr. for doc '$1'" 1
 }
 
-# List topic paths (nested dl terms) in document paths
+htd_man_1__tpaths='List topic paths (nested dl terms) in document paths
+'
 htd_load__tpaths="xsl"
 htd__tpaths()
 {
@@ -7232,6 +7250,23 @@ htd__say()
       say -v Ting-Ting "$@" ;;
     hong-kong | sar | tc )
       say -v Sin-ji "$@" ;;
+  esac
+}
+
+
+htd_man_1__src='
+'
+htd__src()
+{
+  test -n "$1" || set -- list
+  case "$1" in
+
+    list ) shift
+
+      ;;
+
+    * ) error "'$1'?" 1 ;;
+
   esac
 }
 

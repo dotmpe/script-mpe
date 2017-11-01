@@ -502,29 +502,63 @@ EOM
 
 @test "$bin filter-functions" {
 
-    export verbosity=5
+  export verbosity=5
 
-    run $BATS_TEST_DESCRIPTION "grp=\(box\|htd\)* run=[a-z].*" htd
-    #diag "lines=${#lines[*]}"
-    # FIXME: find definition and update test_ok_nonempty 70 || stdfail 1-default
-    test_ok_nonempty || stdfail 1-default
+  run $BATS_TEST_DESCRIPTION "grp=\(box\|htd\)* run=[a-z].*" htd
+  #diag "lines=${#lines[*]}"
+  # FIXME: find definition and update test_ok_nonempty 70 || stdfail 1-default
+  test_ok_nonempty || stdfail 1-default
 
-    export Inclusive_Filter=1
-    run $BATS_TEST_DESCRIPTION "grp=box-src spc=..*" htd
-    { test_ok_nonempty && 
-      fnmatch "* list-functions *" " ${lines[*]} " &&
-      fnmatch "* filter-functions *" " ${lines[*]} " &&
-      fnmatch "* checkout *" " ${lines[*]} "
-    } || stdfail 2-inclusive
+  export Inclusive_Filter=1
+  run $BATS_TEST_DESCRIPTION "grp=box-src spc=..*" htd
+  { test_ok_nonempty && 
+    fnmatch "* list-functions *" " ${lines[*]} " &&
+    fnmatch "* filter-functions *" " ${lines[*]} " &&
+    fnmatch "* checkout *" " ${lines[*]} "
+  } || stdfail 2-inclusive
 
-    export Inclusive_Filter=0
-    run $BATS_TEST_DESCRIPTION "grp=box-src spc=..*" htd
-    { test_ok_nonempty && 
-      fnmatch "* list-functions *" " ${lines[*]} " &&
-      fnmatch "* filter-functions *" " ${lines[*]} " && {
-        fnmatch "* crypto *" " ${lines[*]} " && return 1 || noop
-      } && {
-        fnmatch "* checkout *" " ${lines[*]} " && return 1 || noop
-      }
-    } || stdfail 3-exclusive
+  export Inclusive_Filter=0
+  run $BATS_TEST_DESCRIPTION "grp=box-src spc=..*" htd
+  { test_ok_nonempty && 
+    fnmatch "* list-functions *" " ${lines[*]} " &&
+    fnmatch "* filter-functions *" " ${lines[*]} " && {
+      fnmatch "* crypto *" " ${lines[*]} " && return 1 || noop
+    } && {
+      fnmatch "* checkout *" " ${lines[*]} " && return 1 || noop
+    }
+  } || stdfail 3-exclusive
+}
+
+@test "$bin git-remote" {
+  run htd git-remote
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin git-remote dotmpe" {
+  # XXX: require_env ssh
+  run htd git-remote dotmpe
+  test_ok_nonempty || stdfail
+}
+
+@test "$bin git-remote dotmpe abc" {
+  export verbosity=0
+  run htd git-remote dotmpe abc
+  { test_ok_nonempty &&
+    test "${lines[*]}" = "dotmpe-com@ssh.pcextreme.nl:domains/dotmpe.com/htdocs/git/abc"
+  } || stdfail
+}
+
+@test "$bin git-remote info dotmpe abc" {
+  run htd git-remote info dotmpe abc
+  { test_ok_nonempty &&
+    fnmatch *"remote.dotmpe.hostinfo=dotmpe-com@ssh.pcextreme.nl"* "${lines[*]}"
+  } || stdfail
+}
+
+@test "$bin git-remote url dotmpe abc" {
+  export verbosity=0
+  run htd git-remote url dotmpe abc
+  { test_ok_nonempty &&
+    test "${lines[*]}" = "dotmpe-com@ssh.pcextreme.nl:domains/dotmpe.com/htdocs/git/abc"
+  } || stdfail
 }

@@ -490,10 +490,6 @@ case "$0" in "" ) ;; "-"* ) ;; * )
           test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
           test -n "$verbosity" || verbosity=5
           export base=$scriptname
-          std_lib_load || {
-            echo "Error loading $scriptname" 1>&2
-            exit 1
-          }
         ;;
 
     esac
