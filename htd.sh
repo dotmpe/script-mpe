@@ -967,6 +967,8 @@ htd__status()
   #( cd ~/project; pd st ) || echo "project" >> $failed
   #( cd /src; pd st ) || echo "src" >> $failed
 
+  htd git-remote stat
+
   test -s "$failed" -o -s "$errored" && stderr ok "htd stat OK" || noop
 }
 htd_als__st=status
@@ -3107,39 +3109,65 @@ htd__git_remote()
   test -n "$2" || set -- "$1" "$HTD_GIT_REMOTE" "$3"
 
   {
+    C=$UCONFDIR/git/remote-dirs/$2.sh
+    test -e "$C" && . $C
+    #|| error "Missing remote GIT dir script" 1
     test -n "$remote_dir" || {
       info "Using $NS_NAME for $2 remote vendor path"
        remote_dir=$NS_NAME
-  	}
-    . $UCONFDIR/git/remote-dirs/$2.sh || error "Missing remote GIT dir script" 1
+    }
 
     case "$1" in
 
+      stat )
+          for rt in github dotmpe wtwta-1
+          do
+            repos=$UCONFDIR/git/remote-dirs/$rt.list
+            { test -e $repos && newer_than $repos $_1DAY
+            } || htd git-remote list $rt > $repos
+            note "$rt: $(count_lines "$repos")"
+          done
+        ;;
+
       url )
-            test -n "$3" || error "repo name expected" 1
-            #git_url="ssh://$remote_host/~$remote_user/$remote_dir/$1.git"
-    		echo "$remote_hostinfo:$remote_dir/$3"
+          test -n "$3" || error "repo name expected" 1
+          #git_url="ssh://$remote_host/~$remote_user/$remote_dir/$1.git"
+          echo "$remote_hostinfo:$remote_dir/$3"
+        ;;
+
+      github-list ) shift; test -n "$1" || error "ns-name" 1
+          repos=$UCONFDIR/git/remote-dirs/$1.json
+          { test -e $repos && newer_than $repos $_1DAY
+          } || curl -sSf "https://api.github.com/users/$NS_NAME/repos?per_page=100" >$repos
+          cat $repos| jq -r 'to_entries[] as $r | $r.value.full_name'
         ;;
 
       list ) test -z "$3" || error "no filter '$3'" 1
           # List values for first arguments
-          test -n "$remote_dir" && {
-            ssh_cmd="cd $remote_dir && ls | grep '.*.git$' | sed 's/\.git$//g' "
-            ssh $ssh_opts $remote_hostinfo "$ssh_cmd"
-          } ||
-            error "Not an SSH remote" 1
+          test -n "$remote_list" && {
+
+            htd__git_remote $remote_list $NS_NAME || return $?
+
+          } || {
+
+            test -n "$remote_dir" && {
+              ssh_cmd="cd $remote_dir && ls | grep '.*.git$' | sed 's/\.git$//g' "
+              ssh $ssh_opts $remote_hostinfo "$ssh_cmd"
+            } ||
+               error "No SSH or list API for GIT remote '$1'" 1
+          }
         ;;
 
       info )
-      	  test -n "$3" && {
-    		echo "remote.$2.git.url=$remote_hostinfo:$remote_dir/$3"
-    		echo "remote.$2.scp.url=$remote_hostinfo:$remote_dir/$3.git"
-			echo "remote.$2.dir=$remote_dir/$3.git"
-			echo "remote.$2.hostinfo=$remote_hostinfo"
-		  } || {
-			echo "remote.$2.dir=$remote_dir"
-			echo "remote.$2.hostinfo=$remote_hostinfo"
-	  	  }
+          test -n "$3" && {
+            echo "remote.$2.git.url=$remote_hostinfo:$remote_dir/$3"
+            echo "remote.$2.scp.url=$remote_hostinfo:$remote_dir/$3.git"
+            echo "remote.$2.dir=$remote_dir/$3.git"
+            echo "remote.$2.hostinfo=$remote_hostinfo"
+          } || {
+            echo "remote.$2.dir=$remote_dir"
+            echo "remote.$2.hostinfo=$remote_hostinfo"
+          }
         ;;
 
       * ) error "'$1'?" 1 ;;
