@@ -2322,11 +2322,14 @@ htd_run__tasks_local=iAO
 htd_grp__tasks_local=tasks
 
 
-htd_man_1__tasks_edit='Invoke htd todotxt-edit for local package'
+htd_man_1__tasks_edit='Invoke htd todotxt-edit for local package
+
+'
 htd_spc__tasks_edit="tasks-edit TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ] [ ADDITIONAL-PATHS ]"
 # This reproduces most of the essential todotxt-edit code, b/c before migrating
 # we need exclusive access to update the files anyway.
 htd_env__tasks_edit='
+  tags=
   id=$htd_session_id migrate=1 remigrate=1
   todo_slug= todo_document= todo_done=
   tags= projects= contexts= buffers= add_files= locks=
@@ -2486,28 +2489,42 @@ htd_spc__tasks_buffers='tasks-buffers [ @Contexts... +Projects... ]'
 htd__tasks_buffers()
 {
   local dir=to/
-  for tag in $@
+  for tag in "$@"
   do
     case "$tag" in
       @be.* ) be=$(echo $tag | cut -c5- )
           echo to/be-$be.sh
         ;;
       +* ) prj=$(echo $tag | cut -c2- )
-          echo to/do-in-$prj.lst
-          echo cabinet/done-in-$prj.lst
+          echo to/do-in-$prj.list
+          echo cabinet/done-in-$prj.list
           echo to/do-in-$prj.list
           echo cabinet/done-in-$prj.list
           echo to/do-in-$prj.sh
         ;;
       @* ) ctx=$(echo $tag | cut -c2- )
-          echo to/do-at-$ctx.lst
-          echo cabinet/done-at-$ctx.lst
+          echo to/do-at-$ctx.list
+          echo cabinet/done-at-$ctx.list
           echo to/do-at-$ctx.list
           echo cabinet/done-at-$ctx.list
           echo to/do-at-$ctx.sh
           echo store/at-$ctx.sh
           echo store/at-$ctx.yml
           echo store/at-$ctx.yaml
+        ;;
+      '*' )
+          echo \
+              to/do-in-*.list \
+              to/do-in-*.sh \
+              to/do-at-*.list \
+              to/do-at-*.sh \
+              cabinet/done-in-*.list \
+              cabinet/done-in-*.sh \
+              cabinet/done-at-*.list \
+              cabinet/done-at-*.sh \
+              store/at-$ctx.sh  | words_to_lines
+          #echo store/at-$ctx.yml
+          #echo store/at-$ctx.yaml
         ;;
       * ) error "tasks-buffers '$tag'?" 1 ;;
     esac
@@ -2532,7 +2549,15 @@ htd__tasks_tags()
 htd_grp__tasks_tags=tasks
 
 
-htd_man_1__tasks_session_start=''
+htd_man_1__tasks_session_start='Starts an editing session for TODO.txt lines.
+
+With no tags given (@ or +) this will not do anything. But for each tag given
+the lines are first migrated from its local buffer (in to/*.list or another
+location) to the TODO.TXT file.
+
+There is the idea to introduce an * or "all" value to accumulate every task,
+but I think that easily becomes overkill.
+'
 htd_spc__tasks_session_start="tasks-session-start TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ] [ ADDITIONAL-PATHS ]"
 htd_env__tasks_session_start="$htd_env__tasks_edit"
 htd__tasks_session_start()
@@ -2591,8 +2616,12 @@ htd__tasks_session_end()
   test ! -e "$todo_done" -o -s "$todo_done" || rm "$todo_done"
   # release all locks
   released="$(unlock_files $id "$1" "$2" $buffers | lines_to_words )"
-  note "Released locks ($(echo "$released" | count_words ))"
-  { exts="$TASK_EXTS" pathnames $released ; echo; } | column_layout
+  test -n "$(echo "$released")" && {
+    note "Released locks ($(echo "$released" | count_words ))"
+    { exts="$TASK_EXTS" pathnames $released ; echo; } | column_layout
+  } || {
+    warn "No locks to release"
+  }
 }
 htd_grp__tasks_session_end=tasks
 
@@ -2691,7 +2720,9 @@ htd_tasks_load()
 
 htd_man_1__todo='Edit and mange todo.txt/done files.
 
-  htd alias todo=tasks-edit
+  todo is an alias for tasks-edit, see help there.
+
+Other commands:
 
   htd todotxt-edit
   htd todotxt-tags
