@@ -18,6 +18,7 @@ __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.bookmarks2.sqlite'
 __couch__ = 'http://localhost:5984/the-registry'
 chrome_bookmarks_path= '~/Library/Application Support/Google/Chrome/Default/Bookmarks'
+chrome_history_path=   '~/Library/Application Support/Google/Chrome/Default/History'
 __usage__ = """
 
 Usage:

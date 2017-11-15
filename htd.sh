@@ -368,7 +368,7 @@ htd_load_ignores()
   #match_load_table vars
 }
 
-# Set XSL-Ver if empty. 
+# Set XSL-Ver if empty.
 htd_load_xsl()
 {
   test -z "$xsl_ver" && {
@@ -621,11 +621,11 @@ shell scripts at themselves make too little guarantee of encoding and other
 precision. Values above 1.0 are permitted to indicate preferred, enhanced or
 richer representations.
 
-No current But no effort is made to 
+No current But no effort is made to
 
-htd_output_format_q 
+htd_output_format_q
 
-the `ofq` attribute 
+the `ofq` attribute
 '
 htd_spc__output_formats='output-formats|OF [SUBCMD]'
 htd_als___OF=output-formats
@@ -641,7 +641,7 @@ htd__output_formats()
   {
     upper= mkvid "$*"
     # XXX: Retrieve and test for output-formats and quality factor
-    #try_func $(echo_local "$vid" "" htd) && 
+    #try_func $(echo_local "$vid" "" htd) &&
 
       # Print output format attribute value for field $*
       output_formats="$(try_value "$vid" of htd )" &&
@@ -1146,7 +1146,7 @@ htd__go()
         test -n "$BUILD_GOOS" || BUILD_GOOS="$os"
         test -n "$BUILD_GOARCH" || {
             case "$machine_hw" in
-                
+
                 x86_64 ) BUILD_GOARCH="amd64" ;;
                 * ) BUILD_GOARCH="$architecture" ;;
             esac
@@ -1728,8 +1728,8 @@ htd__jrnl()
           printf -- "$id: $line idx:$n "
           test $n -gt 1 && {
             printf -- " prev:$(source_line $1.tmp $(( $n - l )) ) "
-          }                                                 
-          test $n -lt $c && {                                 
+          }
+          test $n -lt $c && {
             printf -- " next:$(source_line $1.tmp $(( $n + 1 )) ) "
           }
           echo
@@ -3261,7 +3261,7 @@ htd__git_init_version()
   } || {
     readme=README.md
     {
-      echo "Version: 0.0.1-dev" 
+      echo "Version: 0.0.1-dev"
     } >$readme
     note "Created Read-Me ($readme)"
   }
@@ -3416,6 +3416,11 @@ and remove path if in sync.
 '
 htd__file()
 {
+  filemtime "$1"
+  fmtdate_relative "$(filemtime "$1")"
+
+  file -s "$@"
+
   # Search for by name
   echo TODO track htd__find "$localpath"
 
@@ -3423,6 +3428,10 @@ htd__file()
   echo TODO track htd__content "$localpath"
 }
 
+htd__date()
+{
+  fmtdate_relative "$1"
+}
 
 htd__content()
 {
@@ -3576,8 +3585,8 @@ htd__function()
 
 
 htd_man_1__expand_source_line='Replace a source line with the contents of the sourced script
-  
-This must be pointed to a line with format: 
+
+This must be pointed to a line with format:
 
   .\ (P<sourced-file>.*)
 '
@@ -3604,7 +3613,7 @@ htd_man_1__diff_function='
   functions in different files/directories. Normally runs vimdiff on a synced
   file. But quiet instead exists, and copy-only does not modify the source
   script but only shows the diff.  Normally (!copy-only) the two functions are
-  replaced by a source command to their temporary file used for comparison, 
+  replaced by a source command to their temporary file used for comparison,
   so that during editing the script remains fully functional.
 
   But meanwhile the both function versions are conveniently in separate files,
@@ -4175,12 +4184,6 @@ htd_argsv__archive()
 }
 
 
-htd__file()
-{
-  file -s "$@"
-}
-
-
 htd_man_1__record="Retrieve, update or initalize record(s). "
 htd_spc__record="record [PATH]"
 htd__record()
@@ -4491,10 +4494,10 @@ htd_man_1__rules='
     Show Id and last status for each rule.
   run [ Target-Grep [ Cmd-Grep ] ]
     Evalute all rules and update status and targets. Rule selection arguments
-    like `each`. 
+    like `each`.
   ids [ Target-Grep [ Cmd-Grep ] ]
     Resolve rules and list IDs generated from the command, working dir and context.
-  foreach 
+  foreach
   each [ Target-Grep [ Cmd-Grep ] ]
     Parse rules to key/values, filter on values using given Grep patterns.
   id
@@ -4729,7 +4732,7 @@ htd__run_rule()
     test "$R" = "$RT" || warn "Unexpected return from rule exec ($R)"
   }
   test "$RT" = "0" || {
-    test "$R" = "$RT" && 
+    test "$R" = "$RT" &&
       note "Non-zero exit ignored by rule ($R)" ||
         warn "Unexpected result $R, expected $RT"
   }
@@ -4944,7 +4947,7 @@ htd__table_reformat()
     test "$1" != "-" || error "file needed to determine header fields" 1
     local fields="$(fixed_table_hd_ids "$1")"
   }
-  test -n "$cutf" || fixed_table_cuthd "$1" "$fields" 
+  test -n "$cutf" || fixed_table_cuthd "$1" "$fields"
   upper=0 default_env out-fmt json
   test "$out_fmt" = "csv" && { echo "#"$fields | tr ' ' ',' ; }
   fixed_table "$1" $cutf | while read vars
@@ -6067,7 +6070,7 @@ htd__disk_doc()
            disk_list | while read dev
            do
              {
-               disk_local "$dev" NUM DISK_ID || continue 
+               disk_local "$dev" NUM DISK_ID || continue
              } | while read num disk_id
              do
                echo "disk_doc '$dev' $num '$disk_id'"
@@ -6579,7 +6582,7 @@ instead the swap file. Making identification just a bit more complicated.
 And finally, query lsof takes quite a long time, making it completely
 unsuited for interactive use.
 
-Because of this, using find -newer is a more efficient way to find paths to 
+Because of this, using find -newer is a more efficient way to find paths to
 user files. As for open directories, htd prefixes records those based on
 current-cwd. Somehow, current-cwd is also significantly faster getting live
 data than open-paths lsof invocations.
@@ -6678,7 +6681,7 @@ htd__recent_paths()
 htd_man_1__prefixes='Manage local prefix table and index, or query cache.
 
   (op|open-files|read-lines)
-    Default command. Pipe htd current-cwd to htd prefixes names. 
+    Default command. Pipe htd current-cwd to htd prefixes names.
     Set htd_path=1 to get pairs output.
 
 Table
@@ -6708,19 +6711,19 @@ Cache
 
 
 # Cache
-Cache has two parts. An in-memory index, for tracking current prefixes, 
+Cache has two parts. An in-memory index, for tracking current prefixes,
 and the local paths beneath prefixes. And secondary a persisted part, where a
 cumulative tree of all prefixes/paths for a certain period is stored. And where
 individual cards are kept per path, with timestamps.
 
-The in-memory parts are updated every run of `update`. 
+The in-memory parts are updated every run of `update`.
 Paths are kept in memory for TTL seconds after they closed, to allow recalling
 them during that time.
 
 If there is a change, the persisted document is not updated. Only until some
 path TTL expires and is dropped from the index is the persisted document updated
-automatically. Otherwise, a persist to secondary storage is only requested by 
-invocation argument. 
+automatically. Otherwise, a persist to secondary storage is only requested by
+invocation argument.
 
 Updating the first cache requires checking and possibly changing two lists.
 For the secondary, several JSON documents are created: one with the entire tree
@@ -6729,7 +6732,7 @@ This setup prevents conflicts in distributed stores, but it leaves the task of
 cleaning up old trees and ctimes documents.
 
 
-TODO: track path timestamp, keep for X amount of time in index 
+TODO: track path timestamp, keep for X amount of time in index
 TODO: clear indices on certain (global) context switches: day, domain
 TODO: check for services, redis is required. couch can be offline for a bit
 TODO: update registry atime/utime once cache elapses?
@@ -6920,7 +6923,7 @@ htd_clean_scm()
 {
   vc_getscm "$1" && {
     note "Found SCM in $1"
-    ( cd "$1" && 
+    ( cd "$1" &&
     vc_clean )
   }
 }
@@ -7420,7 +7423,7 @@ htd__srv()
       ;;
 
     -disks ) shift
-        htd__srv -vpaths "$1" | while read vp ; do 
+        htd__srv -vpaths "$1" | while read vp ; do
           echo $(echo "$vp" | cut -d '-' -f 2-3 | tr '-' ' ') $(cd "$vp" && pwd -P)
         done
       ;;
@@ -7460,7 +7463,7 @@ htd__srv()
         # Match absdir with mount-point, get partition/disk index
         local abs="$(absdir "$1")"
         # NOTE: match with volume by looking for mount-point prefix
-        local dvid=$( htd__srv -disks | while read di pi dp ; do 
+        local dvid=$( htd__srv -disks | while read di pi dp ; do
             test "$dp" = "/" && p_= || match_grep_pattern_test "$dp";
             echo "$1" | grep -q "^$p_\/.*" && { echo $di-$pi ; break ; } || continue
           done )
@@ -7475,7 +7478,7 @@ htd__srv()
         #    below one. Warn, or fail in strict-mode.
 
         # NOTE: look for absdir among realpaths of /srv/{*,*/*}
-       
+
         test "$abs" = "$mp" && {
           true # /srv/volume-*
         } || {
@@ -8632,7 +8635,7 @@ htd__crypto()
       test -x "$(which veracrypt)" || error "VeraCrypt exec missing" 1
       test -e $cr_m || error cr-m-tab 1
       veracrypt --version || return ;;
-    
+
     mount-all ) htd__crypto_mount_all || return ;;
     mount ) htd__crypto_mount "$@" || return ;;
     unmount ) htd__crypto_unmount "$@" || return ;;
@@ -9114,7 +9117,6 @@ htd_rst_doc_create_update()
           }
         ;;
     esac; shift; done
-    echo  >> $outf
     export cksum="$(md5sum $outf | cut -f 1 -d ' ')"
     export cksums="$cksums $cksum"
   }
