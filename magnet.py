@@ -192,9 +192,9 @@ def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
                 CTX.append(a)
                 continue
             if a.startswith(os.sep):
-                print(("Warning, arg %r looks it may be a " % a, file=sys.stderr)
+                print("Warning, arg %r looks it may be a " % a,
                     +"local path for context, but its directory path does not "
-                    +"exist so the value will ignored")
+                    +"exist so the value will ignored", file=sys.stderr )
             m = uriref.absoluteURI.match(a)
             if m:
                 if a.startswith('urn:'):
