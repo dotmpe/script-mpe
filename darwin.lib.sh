@@ -105,9 +105,10 @@ darwin_mounts()
 darwin_mount_stats()
 {
   echo "#disk,part,dev,512-blocks,Used,Avail,Capacity,iused,ifree,iusedPct,mp"
-  darwin_mounts | cut -d ' ' -f 1 | while read mp
+  darwin_mounts | cut -d "	" -f 1 | while read mp a
   do
-    test -e $mp/.volumes.sh || {
+    test -z "$a" || error "reading '$mp $a'" 1
+    test -e "$mp/.volumes.sh" || {
       warn "Unregistered disk/volume at mount '$mp'"
       continue
     }
@@ -117,7 +118,7 @@ darwin_mount_stats()
   done
 }
 
-darwin_disk_info()
+darwin_disk_info() # TODO
 {
   xml=$(darwin_profile_xml "SPStorageDataType")
   #for disk in disk0 disk1 disk2 disk3 disk4 disk5 disk6 disk7 disk8

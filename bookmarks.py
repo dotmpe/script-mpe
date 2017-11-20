@@ -35,7 +35,7 @@ Usage:
   bookmarks.py [options] check [NAME]
   bookmarks.py [options] webarchive [NAME]
   bookmarks.py --background
-  bookmarks.py -h|--help
+  bookmarks.py -h|--help|help
   bookmarks.py --version
 
 Options:

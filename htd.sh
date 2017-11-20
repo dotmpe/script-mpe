@@ -2342,8 +2342,7 @@ htd__tasks_edit()
   set -- "$todo_document" "$todo_done"
   info "2.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # TODO: If locked import principle tasks to main
-  trueish "$migrate" &&
-    htd_migrate_tasks "$1" "$2"
+  trueish "$migrate" && htd_migrate_tasks "$1" "$2"
   info "2.3. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # Edit todo and done file
   $TODOTXT_EDITOR "$1" "$2"
@@ -2353,8 +2352,7 @@ htd__tasks_edit()
   #note "Acquired additional locks ($(basenames ".list" $newlocks | lines_to_words))"
   # TODO: Consolidate all tasks to proper project/context files
   info "2.6. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  trueish "$remigrate" &&
-    htd_remigrate_tasks "$1" "$2"
+  trueish "$remigrate" && htd_remigrate_tasks "$1" "$2"
   # XXX: where does @Dev +script-mpe go, split up? refer principle tickets?
   htd__tasks_session_end "$1" "$2"
 }
@@ -5978,6 +5976,11 @@ htd__disk()
 
           -mounts ) shift
               darwin_mounts | cut -d ' ' -f 1
+            ;;
+
+          -bsd-mounts ) shift
+               darwin_profile_xml "SPStorageDataType"
+               #darwin_bsd_mounts
             ;;
 
           -partition-table ) shift

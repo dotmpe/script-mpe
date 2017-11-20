@@ -43,7 +43,7 @@ Options:
                 The address that the socket server will be listening on. If
                 the socket exists, any command invocation is relayed to the
                 server intance, and the result output and return code
-                returned to client. [default: /tmp/pd-serv.sock]
+                returned to client. [default: /var/run/disk-doc-serv.sock]
   --background  Turns script into socket server. This does not fork, detach
                 or do anything else but enter an infinite server loop.
   -f DOC, --file DOC

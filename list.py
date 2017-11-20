@@ -3,7 +3,7 @@
 """
 from __future__ import print_function
 
-__description__ = "list - "
+__description__ = "list - manage lines representing records"
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.list.sqlite'
 __usage__ = """
@@ -14,8 +14,10 @@ Usage:
   list.py [options] write-list LIST [ PROVIDERS... ]
   list.py [options] update-list LIST
   list.py [options] x-rewrite-html-tree-id LIST
-  list.py -h|--help
+  list.py -h|--help|help [CMD]
   list.py --version
+
+See `help` for usage per command.
 
 Options:
     --output-format FMT
@@ -44,6 +46,7 @@ import os
 import sys
 import re
 import base64
+from pprint import pformat
 
 import confparse
 import log
@@ -56,11 +59,18 @@ import res.task
 
 
 
+### Commands
+
+def cmd_info(settings):
+    """Dump settings. """
+    print(pformat(settings.todict()))
+
 def cmd_load_list(LIST, settings):
     """Load items"""
     prsr, items = res.list.parse(LIST, settings)
     # XXX: sanity checks here iso. real unit tests
     for i in items:
+        print(i, repr(i))
         assert i.item_id in prsr.records
     assert not 'TODO', "load items to where? ..."
 
