@@ -3205,6 +3205,22 @@ htd__git_remote()
   }
 }
 
+htd__git_init_local() # [ Repo ]
+{
+  repo="$(basename "$(pwd)")"
+  BARE=/srv/git-local/$NS_NAME/$repo.git
+  [ -d $BARE ] || {
+      log "Creating temp. bare clone"
+      git clone --bare . $BARE
+    }
+  remote="$(git config remote.local.url)"
+  test -n "$remote" && {
+    test "$remote" = $BARE || error "$remote not $BARE" 1
+  } || {
+    git remote add local $BARE
+  }
+}
+
 htd__git_init_remote() # [ Repo ]
 {
   test -n "$HTD_GIT_REMOTE" || error "No HTD_GIT_REMOTE" 1
