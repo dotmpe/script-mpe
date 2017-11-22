@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """:created: 2017-08-19
 """
+from __future__ import print_function
 __description__ = "txt - "
 __version__ = '0.0.4-dev' # script-mpe
 #__db__ = '~/.txt.sqlite'
@@ -17,8 +18,6 @@ Options:
     --version     Show version (%s).
 
 """ % ( __version__ )
-
-from __future__ import print_function
 import os
 
 import libcmd_docopt

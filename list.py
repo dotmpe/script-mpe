@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """:created: 2017-04-17
 """
+from __future__ import print_function
+
 __description__ = "list - "
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.list.sqlite'
@@ -37,7 +39,7 @@ Options:
     -h --help     Show this usage description.
     --version     Show version (%s).
 """ % ( __db__, __version__ )
-from __future__ import print_function
+
 import os
 import sys
 import re

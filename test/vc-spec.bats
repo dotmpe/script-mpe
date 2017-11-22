@@ -9,6 +9,7 @@ init
 setup()
 {
   SCR_SYS_SH=bash-sh
+  lib_load vc
 }
 
 @test "$bin no arguments no-op" {
@@ -48,21 +49,29 @@ setup()
 
 @test "$bin ps1" {
 
+  TMPDIR=$(cd $TMPDIR && pwd -P)
   cd $TMPDIR
+
   run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
-  test "$TMPDIR" = "${lines[*]}" || {
+  { test $status -eq 0 &&
+      test "$TMPDIR" = "${lines[*]}" 
+  } || {
     diag "TMPDIR:'${TMPDIR}'"
     diag "BATS_TMPDIR:'${BATS_TMPDIR}'"
-    fail "Lines: '${lines[*]}'"
+    stdfail
   }
 }
 
 @test "$bin screen" {
+  TMPDIR=$(cd $TMPDIR && pwd -P)
   cd $TMPDIR
   run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
-  test "$TMPDIR" = "${lines[*]}"
+  { test $status -eq 0 && test "$TMPDIR" = "${lines[*]}"
+  } || {
+    diag "TMPDIR:'${TMPDIR}'"
+    diag "BATS_TMPDIR:'${BATS_TMPDIR}'"
+    stdfail
+  }
 }
 
 @test "$bin bits" {

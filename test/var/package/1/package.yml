@@ -2,13 +2,13 @@
 # Multiple sections but only one main
 # All have an ID, but only type: project requires ID
 
-- type: application/vnd.dotmpe.project
-  main: script-mpe-test-1-a
-  id: script-mpe-test-1-a
+- type: application/vnd.bvberkum.project
+  main: script-bvb-test-1-a
+  id: script-bvb-test-1-a
   key: foo
 
-- type: application/vnd.dotmpe.project
-  id: script-mpe-test-1-b
+- type: application/vnd.bvberkum.project
+  id: script-bvb-test-1-b
   key: bar
   key2: bar2
   value: bar3

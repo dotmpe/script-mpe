@@ -3,9 +3,11 @@
 
 """
 from __future__ import print_function
+
 __description__ = "hier - tag hierarchies"
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.hier.sqlite'
+__couch__ = 'http://localhost:5984/the-registry'
 __usage__ = """
 Usage:
   hier.py [options] init
@@ -19,6 +21,8 @@ Usage:
 Options:
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
+    --couch=REF
+                  Couch DB URL [default: %s]
     -i FILE --input=FILE
     -o FILE --output=FILE
     --add-prefix=PREFIX
@@ -33,7 +37,8 @@ Other flags:
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 
-""" % ( __db__, __version__ )
+""" % ( __db__, __couch__, __version__ )
+
 import os
 import resource
 from pprint import pformat
@@ -220,6 +225,17 @@ def cmd_record(settings, opts, TAGS):
         Tag.record(raw_tag, sa, opts)
 
 
+"""
+  hier.py [options] couchdb prefix NAME BASE
+"""
+def cmd_couchdb_prefix(settings, opts, NAME, BASE):
+    """
+    1. If prefix does not exists, add it to the recorded prefixes.
+    2. Find all URLs starting with Base URL, and strip base, add Prefix.
+    3. For existing Prefixes, update their href for those with URLs below
+       Base URL.
+    """
+
 
 ### Transform cmd_ function names to nested dict
 
@@ -245,6 +261,10 @@ def get_version():
 
 if __name__ == '__main__':
     import sys
+
+    couch = os.getenv( 'COUCH_DB', __couch__ )
+    if couch is not __couch__:
+        __usage__ = __usage__.replace(__couch__, couch)
 
     opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)

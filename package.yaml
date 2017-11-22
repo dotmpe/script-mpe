@@ -1,7 +1,7 @@
 # git-versioning main: script-mpe
 
 
-- type: application/vnd.dotmpe.project
+- type: application/vnd.bvberkum.project
   main: script-mpe
   id: script-mpe
 
@@ -9,7 +9,7 @@
   env: # alias for 'environments'
     - dev
 
-  vendor: dotmpe
+  vendor: bvberkum
   distribution: public
   license: GPL
 
@@ -170,7 +170,7 @@
         - mime_type:lib...
 
 
-- type: application/vnd.dotmpe.symlinks
+- type: application/vnd.bvberkum.symlinks
   id: script-mpe-symlinks
   file: .symlinks.tab
   attrs: SRC DEST
@@ -196,7 +196,7 @@
      - vagrant destroy -f
 
 
-- type: application/vnd.dotmpe.environment
+- type: application/vnd.bvberkum.environment
   id: script-mpe-test-vbox
   cwd: 'test/vagrant'
   env: '. ./env.sh'

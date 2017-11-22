@@ -4,6 +4,8 @@
 
 TODO: experiment with nodes from other DBs. Sync to and from master.
 """
+from __future__ import print_function
+
 __description__ = "node - "
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.node.sqlite'
@@ -27,7 +29,6 @@ Other flags:
     --version     Show version (%s).
 """ % ( __db__, __version__ )
 
-from __future__ import print_function
 from datetime import datetime
 import os
 import re

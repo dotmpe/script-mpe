@@ -29,6 +29,8 @@ Objects
         - srcfile
         - line|line_range|outer_range|inner_range
 """
+from __future__ import print_function
+
 __description__ = "tasks - time ordered, grouped tasks"
 __version__ = '0.0.4-dev' # script-mpe
 __tasks_file__ = 'tasks.ttxtm'
@@ -117,7 +119,7 @@ Defaults:
     TODOLIST      [default: %s]
 
 """ % ( __tasks_file__, __grep_file__, __version__, __to_do_list__ )
-from __future__ import print_function
+
 from datetime import datetime
 import os
 import re

@@ -32,21 +32,28 @@ lib_load()
   test -n "$1" || set -- str sys os std stdio src match main argv vc
   while test -n "$1"
   do
-    # Note: the equiv. code using sys.lib.sh is above, but since it is not
-    # loaded yet keep it written out using plain shell.
-    f_lib_path="$( echo "$SCRIPTPATH" | tr ':' '\n' | while read sp
-      do
-        test -e "$sp/$1.lib.sh" || continue
-        echo "$sp/$1.lib.sh"
-        break
-      done)"
-    test -n "$f_lib_path" || { $LOG error "No path for lib '$1'" ; exit 1; }
-    . $f_lib_path
+    lib_id=$(printf -- "${1}" | tr -Cs 'A-Za-z0-9_' '_')
+    f_lib_loaded=$(eval printf -- \"\$${lib_id}_lib_loaded\")
 
-    # again, func_exists is in sys.lib.sh. But inline here:
-    f_lib_load=$(printf -- "${1}" | tr -Cs 'A-Za-z0-9_' '_')_lib_load
-    type ${f_lib_load} 2> /dev/null 1> /dev/null && {
-      ${f_lib_load}
+    test -n "$f_lib_loaded" || {
+
+        # Note: the equiv. code using sys.lib.sh is above, but since it is not
+        # loaded yet keep it written out using plain shell.
+        f_lib_path="$( echo "$SCRIPTPATH" | tr ':' '\n' | while read sp
+          do
+            test -e "$sp/$1.lib.sh" || continue
+            echo "$sp/$1.lib.sh"
+            break
+          done)"
+        test -n "$f_lib_path" || { $LOG error "No path for lib '$1'" ; exit 1; }
+        . $f_lib_path
+
+        # again, func_exists is in sys.lib.sh. But inline here:
+        type ${lib_id}_lib_load  2> /dev/null 1> /dev/null && {
+           ${lib_id}_lib_load || error "in lib-load $1 ($?)" 1
+        }
+
+        eval ${lib_id}_lib_loaded=1
     }
     shift
   done

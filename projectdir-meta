@@ -585,7 +585,7 @@ def H_x_conv(pdhdata, ctx):
                 assert sk != 'enable', 'FIXME'
                 assert sk != 'disable', 'FIXME'
                 r[sk] = sv
-            #if sk in ('origin', 'original', 'brix', 'dotmpe')
+            #if sk in ('origin', 'original', 'brix', 'bvberkum')
         sd['remotes'] = r
         newd['repositories'][k] = sd
     yaml_commit(newd, ctx)
@@ -709,7 +709,7 @@ def H_package(pdhdata, ctx):
         pack_id = pref
 
     pack = [ dict(
-          type='application/vnd.dotmpe.project',
+          type='application/vnd.bvberkum.project',
           main=pack_id,
           id=pack_id
       ) ]

@@ -3,6 +3,8 @@
 :created: 2014-02-26
 :updated: 2015-06-30
 """
+from __future__ import print_function
+
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.taxus-code.sqlite'
 __usage__ = """
@@ -37,7 +39,6 @@ Other flags:
 """ % ( __db__, __version__ )
 __doc__ += __usage__
 
-from __future__ import print_function
 import os
 import re
 from datetime import datetime

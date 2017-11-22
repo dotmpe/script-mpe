@@ -43,3 +43,4 @@ test "$(whoami)" = "travis" || {
 # FIXME: htd install json-spec
 
 note "Done"
+# Id: script-mpe/0.0.4-dev tools/ci/parts/install.sh

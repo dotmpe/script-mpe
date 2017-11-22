@@ -72,24 +72,24 @@ BOX_INIT=1
 
 #@test "$lib/main echo_help" {
 
-@test "$lib/main try_local" {
+@test "$lib/main echo_local" {
   base=
-  test "$(try_local abc)" = "__abc"
-  test "$(try_local abc 123)" = "_123__abc"
-  test "$(try_local abc 123 xyz)" = "xyz_123__abc"
+  test "$(echo_local abc)" = "__abc"
+  test "$(echo_local abc 123)" = "_123__abc"
+  test "$(echo_local abc 123 xyz)" = "xyz_123__abc"
 
-  test "$(try_local "" 123 xyz)" = "xyz_123"
-  test "$(try_local abc "" xyz)" = "xyz__abc"
+  test "$(echo_local "" 123 xyz)" = "xyz_123"
+  test "$(echo_local abc "" xyz)" = "xyz__abc"
 
-  #test "$(try_local "abc123")" = "__abc123"
-  #test "$(try_local "abc123" "_")" = "_abc123"
-  #test "$(try_local "abc123" "" xxx)" = "_xxx__abc123"
-  #test "$(try_local abc123 _ xxx)" = "_xxx_abc123"
+  test "$(echo_local "abc123")" = "__abc123"
+  #test "$(echo_local "abc123" "_")" = "_abc123"
+  #test "$(echo_local "abc123" "" xxx)" = "_xxx__abc123"
+  #test "$(echo_local abc123 _ xxx)" = "_xxx_abc123"
 
-  test "$(try_local b x)" = "_x__b"
+  test "$(echo_local b x)" = "_x__b"
 
   base=cmd
-  test "$(try_local var)" = "cmd__var"
+  test "$(echo_local var)" = "cmd__var"
 }
 
 @test "$lib/main try_value" {

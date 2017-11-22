@@ -259,7 +259,7 @@ properties2sh()
 # reformat them as mkvid for use in shell script export/eval/...
 sh_properties()
 {
-  test -n "$1" || error "sh-properties expects args: '$*'" 1
+  test -n "$*" || error "sh-properties expects args: '$*'" 1
   test -e "$2" || error "sh-properties file" 1
   # NOTE: Always be carefull about accidentally introducing newlines, will give
   # hard-to-debug syntax failures here or in the local evaluation
@@ -293,6 +293,13 @@ property()
       print_var "$__key" "$__value"
     done
   )
+}
+
+# Get from a properties file
+get_property() # Properties-File Key
+{
+  test -e "$1" -a -n "$2" || error "File Key expected" 1
+  grep '^'$2'\ *\(=\|:\).*$' $1 | sed 's/^[^:=]*\ *[:=]\ *//'
 }
 
 # write line or header+line with key/value pairs (sh, csv, tab, or json format)

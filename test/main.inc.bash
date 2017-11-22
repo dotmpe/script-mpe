@@ -31,4 +31,3 @@ mytest_include()
   # -- mytest box include sentinel --
   set --
 }
-

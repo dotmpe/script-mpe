@@ -4,6 +4,7 @@
 setup_clean_git()
 {
   tmpd
+  tmpd=$(cd $tmpd && pwd -P)
   cd $tmpd
   git init
   touch .gitignore
@@ -14,5 +15,3 @@ setup_clean_git()
 
   git commit -m Init
 }
-
-

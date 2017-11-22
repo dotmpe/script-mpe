@@ -94,11 +94,11 @@ pd
         ``package.y?ml``:
           a per project metadata container YAML, containing a list of objects.
           At least one object has an `id`, `type` and `main` attribute,
-          and the type equals `application/vnd.dotmpe.project`.
+          and the type equals `application/vnd.bvberkum.project`.
 
         pd-meta:
           the schema for the records in a Pdoc, or the like-named attributed
-          in a `application/vnd.dotmpe.project` object.
+          in a `application/vnd.bvberkum.project` object.
 
         other:
           with none of the above present, the following local files have a

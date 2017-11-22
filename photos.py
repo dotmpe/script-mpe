@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """
 """
+from __future__ import print_function
+
 __description__ = "photos - "
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.photos.sqlite'
@@ -24,7 +26,7 @@ Options:
     --version     Show version (%s).
 
 """ % ( __db__, __version__, )
-from __future__ import print_function
+
 from datetime import datetime
 import os
 import re

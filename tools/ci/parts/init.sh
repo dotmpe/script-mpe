@@ -43,3 +43,4 @@ fnmatch "* basename-reg *" "$TEST_COMPONENTS" && {
 
 
 note "Done"
+# Id: script-mpe/0.0.4-dev tools/ci/parts/init.sh

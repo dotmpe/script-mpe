@@ -386,7 +386,7 @@ copy_paste_function() # Func-Name Src-File
     cp=$(setup_temp_src .copy-paste-function.sh $cp_board)
   }
   function_linenumber "$@" || return
-  at_line=$(( $line_number - 1 ))
+  local at_line=$(( $line_number - 1 ))
   trueish "$copy_only" && {
     copy_function $1 $2 > $cp
     info "copy-only (function) ok"

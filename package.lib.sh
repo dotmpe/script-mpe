@@ -8,7 +8,7 @@ package_lib_load()
 {
   test -n "$1" || set -- .
   PACKMETA="$(cd "$1" && echo package.y*ml | cut -f1 -d' ')"
-  test -e "$1/$PACKMETA" && {
+  test ! -e "$1/$PACKMETA" || {
     package_lib_set_local "$1"
   }
 }

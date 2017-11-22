@@ -17,6 +17,8 @@ TODO: fully initialize settings for host without editing config by hand
 TODO: should record network domain names, use this with ifaces.
 FQDN are not used really, except to put the last known network/IP.
 """
+from __future__ import print_function
+
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.domain.sqlite'
 __rc__ = '~/.domain.rc'
@@ -56,7 +58,6 @@ nodes
     A registry for all known nodes. Networked boxes list their interfaces,
     and hostname aliases.
 """
-from __future__ import print_function
 
 from datetime import datetime
 import os

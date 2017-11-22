@@ -10,6 +10,8 @@ todos, but is mostly complete and only needs some fine-tuning for specific
 scenario's.
 
 """
+from __future__ import print_function
+
 __description__ = "magnet - "
 __version__ = '0.0.4-dev' # script-mpe
 __usage__= """
@@ -129,7 +131,7 @@ W.o. ``--no-be`` does not try to invoke a save-to-context for the generated
 magnet. Otherwise open files and add the generated magnet as a reference.
 
 """ % ( __version__, )
-from __future__ import print_function
+
 from datetime import datetime
 import hashlib
 import sys

@@ -23,8 +23,6 @@ class Formatters(object):
     types = {}
 
 
-
-
 class PrintedRecordMixin(object):
 
     _formatter = None

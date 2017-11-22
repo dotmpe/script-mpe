@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """:created: 2015-11-30
 """
+from __future__ import print_function
 __description__ = "twitter-meta - twitter document proc"
 __version__ = '0.0.2-dev' # script-mpe
 __usage__ = """
@@ -31,7 +32,6 @@ Other flags:
 
 """ % ( __version__ )
 import os
-from __future__ import print_function
 from pprint import pformat
 
 import libcmd_docopt

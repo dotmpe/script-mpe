@@ -8,6 +8,11 @@ os_lib_load()
   test -n "$uname" || export uname="$(uname)"
 }
 
+absdir()
+{
+  # NOTE: somehow my Linux pwd makes a symbolic path to root into //bin.
+  ( cd "$1" && pwd -P | tr -s '/' '/' )
+}
 
 # Combined dirname/basename to replace .ext(s)
 # pathname PATH EXT...
@@ -232,6 +237,7 @@ read_nix_style_file()
   cat $cat_f "$1" | grep -Ev '^\s*(#.*|\s*)$' || return 1
 }
 
+# Number lines from read-nix-style-file
 enum_nix_style_file()
 {
   cat_f=-n read_nix_style_file "$@" || return
@@ -361,7 +367,7 @@ xsed_rewrite()
 {
     case "$uname" in
         Darwin ) sed -i.applyBack "$@";;
-        Linux ) sed "$@";;
+        Linux ) sed -i "$@";;
     esac
 }
 
@@ -489,3 +495,36 @@ mkrlink()
   ln -vs "$(basename "$1")" "$2"
 }
 
+filter_dirs()
+{
+  test "$1" = "-" && {
+    while read d
+    do
+        test -d "$d" || continue
+        echo "$d"
+    done
+  } || {
+    for d in "$@"
+    do
+        test -d "$d" || continue
+        echo "$d"
+    done
+  }
+}
+
+filter_files()
+{
+  test "$1" = "-" && {
+    while read f
+    do
+        test -f "$f" || continue
+        echo "$f"
+    done
+  } || {
+    for f in "$@"
+    do
+        test -f "$f" || continue
+        echo "$f"
+    done
+  }
+}

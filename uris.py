@@ -3,6 +3,7 @@
 :created: 2017-08-13
 
 """
+from __future__ import print_function
 __description__ = "uris - "
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.bookmarks.sqlite'
@@ -29,7 +30,6 @@ Options:
     --version     Show version (%s).
 
 """ % ( __db__, __version__, )
-from __future__ import print_function
 from datetime import datetime, timedelta
 import os
 import re

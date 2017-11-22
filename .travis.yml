@@ -83,3 +83,5 @@ branches:
 #    repo: dotmpe/script.mpe
 #    tags: true
 #    condition: $ENV = production
+#
+# Id: script-mpe/0.0.4-dev .travis.yml

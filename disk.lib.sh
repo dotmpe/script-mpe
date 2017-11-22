@@ -17,14 +17,14 @@ disk_run()
 
   export mnt_pref="sudo " dev_pref=
   case "$(groups)" in *" disk "* ) ;; * ) export dev_pref="sudo";; esac
-  export fdisk="$dev_pref /sbin/fdisk"
-  export parted="$dev_pref /sbin/parted"
-  export blkid="$dev_pref /sbin/blkid"
+  export fdisk="$dev_pref $(which fdisk)"
+  export parted="$dev_pref $(which parted)"
+  export blkid="$dev_pref $(which blkid)"
 }
 
 req_fdisk()
 {
-  test -n "$fdisk" -a -x "/sbin/fdisk" || {
+  test -x "$(which fdisk)" || {
     error "$1: missing fdisk" 1
     return
   }
@@ -42,13 +42,23 @@ req_parted()
 
 disk_fdisk_id()
 {
-  {
-    req_fdisk disk-fdisk-id || return
-    $fdisk -l $1 || {
-      error "disk-fdisk-id at '$1'"
-      return $?
-    }
-  } | grep Disk.identifier | sed 's/^Disk.identifier: //'
+  req_fdisk disk-fdisk-id || return
+  case "$uname" in
+
+      Linux )
+            { # List partition table
+              $fdisk -l $1 || {
+                error "disk-fdisk-id at '$1'"
+                return $?
+              }
+            } | grep Disk.identifier | sed 's/^Disk.identifier: //'
+          ;;
+
+      Darwin )
+            # Dump partition table
+              $fdisk -d $1 || return $?
+          ;;
+  esac
 }
 
 disk_id()
@@ -183,12 +193,13 @@ disk_local_inner()
 disk_local()
 {
   test -n "$1" || error disk-local 1
-  echo $(disk_local_inner "$@" || {
-    return 1
+  echo $( disk_local_inner "$@" || {
+    #return 1
     echo "disk-local:$1:$2">>$failed
-  })
+  } )
 
-  test ! -e "$failed" -o -s "$failed" && return 1 || return 0
+  test ! -e "$failed" -o ! -s "$failed" || return 1
+
   # XXX:
   #echo $first $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) \
   #  $(disk_tabletype $1) $(find_mount $1 | count_words)
@@ -206,8 +217,9 @@ disk_list()
       ;;
     Darwin )
         # FIXME: deal with system_profiler plist datatypes
-        echo /dev/disk[0-9] \
-          | tr ' ' '\n'
+        echo /dev/disk[0-9]* |
+            tr ' ' '\n' |
+            grep -v '[0-9]s[0-9]*$'
       ;;
   esac
 }
@@ -520,3 +532,11 @@ disk_report()
   return $disk_report_result
 }
 
+disk_doc()
+{
+{ cat <<EOM
+host: $hostname
+
+EOM
+  } | jsotk yaml2json -
+}

@@ -425,31 +425,96 @@ capture_and_clear()
 
 # Main
 
-test -n "$__load_lib" || {
+#test -n "$__load_lib" || {
+#
+#  case "$0" in "" ) ;; "-"* ) ;; * )
+#    test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
+#    test -n "$verbosity" || verbosity=5
+#    case "$1" in
+#
+#      load-ext ) ;; # External include, do nothing
+#
+#      load )
+#          test -n "$scriptpath" || scriptpath="$(dirname "$0")"
+#        ;;
+#
+#      error ) error "$2" $3 ;;
+#      ok|warn|note|info|emerg|crit ) l=$1; shift ; stderr $l "$@" ;;
+#      demo ) std_demo ;;
+#
+#      '' ) ;; # Ignore empty sh call
+#
+#      * ) # Setup SCRIPTPATH and include other scripts
+#          echo "Ignored $scriptname argument(s) $0: $*" 1>&2
+#        ;;
+#
+#    esac
+#
+#  ;; esac
+#
+#}
 
-  case "$0" in "" ) ;; "-"* ) ;; * )
-    test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
-    test -n "$verbosity" || verbosity=5
-    case "$1" in
+case "$0" in "" ) ;; "-"* ) ;; * )
 
-      load-ext ) ;; # External include, do nothing
+  # Do nothing if loaded by lib-load
+  test -n "$__load_lib" || {
 
-      load )
-          test -n "$scriptpath" || scriptpath="$(dirname "$0")"
-        ;;
+    # Otherwise set action with env __load
+    test -n "$__load" || {
 
-      error ) error "$2" $3 ;;
-      ok|warn|note|info|emerg|crit ) l=$1; shift ; stderr $l "$@" ;;
-      demo ) std_demo ;;
+      # Sourced or executed without __load* env.
 
-      '' ) ;; # Ignore empty sh call
+      # If executed, there may be arguments passed. Bourne shell does not
+      # support argument passing to sourced scripts (Bash can and others
+      # probably).
 
-      * ) # Setup SCRIPTPATH and include other scripts
-          echo "Ignored $scriptname argument(s) $0: $*" 1>&2
+      # Here we do some 'detection'
+      case "$1" in
+
+        load|ext|load-ext )
+            __load=ext
+          ;;
+
+        demo | \
+        error | \
+            ok|warn|note|info|emerg|crit )
+            __load=boot
+          ;;
+
+      esac
+    }
+    case "$__load" in
+
+      boot )
+          test -n "$scriptpath" || scriptpath="$(dirname "$0")/script"
+          test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
+          test -n "$verbosity" || verbosity=5
+          export base=$scriptname
+          std_lib_load || {
+            echo "Error loading $scriptname" 1>&2
+            exit 1
+          }
         ;;
 
     esac
+    case "$__load" in
 
-  ;; esac
+      ext ) ;; # External include, do nothing
 
-}
+      boot )
+          case "$1" in
+
+            error ) shift ; error "$@" || exit $? ;;
+            stderr ) shift ; stderr "$@" || exit $? ;;
+            ok|warn|note|info|emerg|crit )
+                stderr "$@" || exit $?
+              ;;
+
+          esac
+        ;;
+
+      * ) echo "Illegal std.lib load action '$__load/$*'" >&2 ; exit 1 ;;
+
+esac ; } ;; esac
+# See also: x-sh-tokens/0.0.1-dev script/std.lib.sh
+# Id: script-mpe/

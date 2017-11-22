@@ -175,7 +175,7 @@ pd-meta
 - TODO: auto-detect pd check, test, init to run.
 - TODO: add --pd-force and/or some prefix option for pd check, test, init to run.
 - FIXME: `application/x-*` is not a valid mediatype [#]_
-  Rename to `application/vnd.dotmpe.project`.
+  Rename to `application/vnd.bvberkum.project`.
 
 .. [#] http://stackoverflow.com/questions/18969938/vendor-mime-types-for-api-versioning
 
@@ -185,7 +185,7 @@ status
   either external or local?
 
   XXX: Convert to STM config?
-    - type: application/vnd.dotmpe.monitor
+    - type: application/vnd.bvberkum.monitor
       static: build/monitor.json
       update:
       - pd status -

@@ -21,9 +21,10 @@ Other flags:
     --version     Show version.
 
 """
+from __future__ import print_function
+
 __version__ = '0.0.4-dev' # script-mpe
 
-from __future__ import print_function
 import os
 import re
 

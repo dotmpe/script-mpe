@@ -192,29 +192,18 @@ disk__local_devices()
 
 disk__x_local()
 {
-  darwin_disk_table
-  return
-  test -n "$1" || set -- $(disk_list)
-  while test $# -gt 0
-  do
-    test -n "$1" || continue
-    disk_local "$1" DISK_ID
-    shift
-  done
-  return
-  #disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C
-  for disk in $(disk_list)
-  do
-    system_profiler SPSerialATADataType | grep -q $(basename $disk)'\>' && {
-      echo SerialATA disk=$disk
-    } || {
-      grep -q $(basename $disk)'\>' $darwin_disk_tab && {
-        echo SPStorageDataType disk=$disk
-      } ||
-        stderr warn "Not in system-profiler db: $disk"
-      continue
-    }
-  done
+  test "$uname" = "Darwin" && {
+    darwin_disk_table
+  } || {
+    test -n "$1" || set -- $(disk_list)
+    while test $# -gt 0
+    do
+      test -n "$1" || continue
+      disk_local "$1" DISK_ID
+      shift
+    done
+    return
+  }
 }
 disk_load__x_local=f
 

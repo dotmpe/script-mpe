@@ -94,7 +94,7 @@ vc_scmdir()
 
 vc_getscm()
 {
-  scmdir=$(vc_dir)
+  scmdir=$(vc_dir "$@")
   test -n "$scmdir" || return 1
   scm=$(basename "$scmdir" | cut -c2-)
 }

@@ -109,7 +109,7 @@ class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
                 opts[k] = doc[k]
             if k == 'tags':
                 opts[k] = ", ".join(opts[k])
-            if isinstance(opts[k], datetime):
+            if k in opts and isinstance(opts[k], datetime):
                 opts[k] = datetime.strptime(opts[k], ISO_8601_DATETIME)
         return opts
 

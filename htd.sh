@@ -63,6 +63,14 @@ htd_load()
   default_env Htd-TMux-Default-Cmd "$SHELL"
   default_env Htd-TMux-Default-Window "$(basename $SHELL)"
   default_env Couch-URL http://sandbox-3:5984
+  default_env GitVer-Attr .version-attributes
+  default_env Ns-Name bvberkum
+
+  test -n "$APP_ID" -o ! -e .app-id || read APP_ID < .app-id
+  test -n "$APP_ID" -o ! -e $GITVER_ATTR ||
+      APP_ID="$(get_property $GITVER_ATTR "App-Id")"
+  test -n "$APP_ID" -o ! -e .git ||
+      APP_ID="$(basename "$(git config remote.origin.url)" .git)"
 
   projectdirs="$(echo ~/project ~/work/*/tree)"
 
@@ -94,6 +102,8 @@ htd_load()
 
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "$uname" || uname="$(uname -s)"
+  test -n "$architecture" || architecture="$(uname -p)"
+  test -n "$machine_hw" || machine_hw="$(uname -m)"
 
   test "$CWD" = "$(pwd -P)" || warn "current path seems to be aliased ($CWD)"
 
@@ -630,16 +640,19 @@ htd__output_formats()
   test -n "$1" || set -- table-reformat
   # First resolve real command name if given an alias
   als="$(try_value "$1" als htd )"
-  test -z "$als" || set -- "$als"
+  test -z "$als" || { shift; set -- "$als" "$@" ; }
   {
-    # Retrieve and test for output-formats and quality factor
-    try_func $(echo_local "$1" "" htd) && 
-      output_formats="$(try_value "$1" of htd )" &&
+    upper= mkvid "$*"
+    # XXX: Retrieve and test for output-formats and quality factor
+    #try_func $(echo_local "$vid" "" htd) && 
+
+      # Print output format attribute value for field $*
+      output_formats="$(try_value "$vid" of htd )" &&
         test -n "$output_formats"
   } && {
     echo $output_formats | tr ' ' '\n'
   } || {
-    error "No sub-command or output formats for '$1'" 1
+    error "No sub-command or output formats for '$*'" 1
   }
 }
 
@@ -844,6 +857,33 @@ htd__volumes()
 }
 
 
+htd_man_1__copy='Copy script from other project. '
+htd_spc__copy='copy Sub-To-Script [ From-Project-Checkout ]'
+htd__copy() # Sub-To-Script [ From-Project-Checkout ]
+{
+  test -n "$2" || set -- "$1" $HOME/bin
+  test -e "$2/$1" || {
+    error "No Src $1 at $2" 1
+  }
+  test -e "$1" && {
+
+    vimdiff "$1" "$2/$1" || return $?
+  } || {
+    local dir="$(dirname "$1")"
+    test -z "$dir" || mkdir -vp $dir
+    cp $2/$1 $1
+    xsed_rewrite 's/Id:/From:/g' $1
+    test ! -e .versioned-files.list || {
+      echo "# Id: $(basename "$(pwd)")/" >> $1
+      grep -F "$1" .versioned-files.list ||
+        echo $1 >> .versioned-files.list
+      git-versioning update
+    }
+    $EDITOR $1
+  }
+}
+
+
 htd_man_1__pd_init="TODO: Shortcut for pd init"
 htd_spc__pd_init="pd-init"
 htd_run__pd_init=fSm
@@ -873,54 +913,42 @@ htd__pd_check()
 }
 
 
-htd_man_1__status="Short status for current working directory"
-htd_spc__status="status"
+htd_man_1__status='Quick system status
+'
 htd_run__status=fSm
-htd_load__status=""
 htd__status()
 {
   test -n "$failed" || error "status: failed exists" 1
 
-  local pwd=$(pwd -P) ppwd=$(pwd) spwd=. scm= scmdir=
-  vc_getscm && {
-    cd "$(dirname "$scmdir")"
-    vc_clean "$(vc_dir)"
-  }
-}
-htd__status_update() { # TODO: cleanup
-  stderr note "local-names: "
-  # Check local names
-  {
-    htd check-names ||
-      echo "htd:check-names" >>$failed
-  } | tail -n 1
+  # Monitor paths
+  # Using either lsof or update/access time filters with find we can list
+  # files and other paths that a user has/has had in use.
+  # There are plenty of use-cases based on this.
 
-  stderr note "current-paths: "
-  # See open paths below cwd using lsof
-  htd__current_paths
+  # See htd open-paths for local paths, using lsof.
+  # CWD's end up being recorded in prefixes. With these we can get a better
+  # selection of files.
 
-  # Create list of open files, and show differences on subsequent calls
-  #htd__open_paths
-
+  # Which of those are projects
   note "Open-paths SCM status: "
-
-  # Check open gits
-  htd__open_paths | while read path
+  htd__current_cwd | while read p
   do
-    test -e $path/.git || {
-      $LOG "header3" "$path" ""
-      continue
-    }
-    $LOG "header3" "$path" "" "$( cd $path && vc.sh flags )"
-    #$scriptpath/std.lib.sh ok "$path"
+    pd exists "$p" || continue
+    $LOG "header3" "$p" "" "$( cd $p && vc.sh flags )"
   done
+
+  # Projects can still have a large amount of files
+  # opened, or updated recently.
+
+  # Create list of CWD, and show differences on subsequent calls
+  #htd__open_paths_diff
 
   # FIXME: maybe something in status backend on open resource etc.
   #htd__recent_paths
   #htd__active
 
   stderr note "text-paths for main-docs: "
-  # Check main document elements
+  # Check main documents, list topic elements
   {
     test ! -d "$JRNL_DIR" ||
       EXT=$DOC_EXT htd__archive_path $JRNL_DIR
@@ -946,6 +974,27 @@ htd__status_update() { # TODO: cleanup
 }
 htd_als__st=status
 htd_als__stat=status
+
+
+htd_man_1__status_cwd="Short status_cwd for current working directory"
+htd_spc__status_cwd="status-cwd"
+htd_run__status_cwd=fSm
+htd__status_cwd()
+{
+  local pwd=$(pwd -P) ppwd=$(pwd) spwd=. scm= scmdir=
+  vc_getscm && {
+    cd "$(dirname "$scmdir")"
+    vc_clean "$(vc_dir)"
+  }
+
+  stderr note "local-names: "
+  # Check local names
+  {
+    htd check-names ||
+      echo "htd:check-names" >>$failed
+  } | tail -n 1
+}
+
 
 
 htd__volume_status()
@@ -981,6 +1030,173 @@ htd__context()
       set -- "$(dirname "$(cd "$p";pwd -P)")" "$(dirname "$p")"
     }
   done
+}
+
+
+htd_man_1__project='Local project checkouts
+
+  list
+    ..
+  sync
+    ..
+  update
+    ..
+
+  new
+  exists
+  scm
+  list
+
+'
+htd__project()
+{
+  test -n "$1" || set -- info
+  test -e /srv/project-local || error "project-local missing" 1
+  case "$1" in
+
+    list ) shift
+      ;;
+
+    releases ) shift
+          github-release info --user $NS_NAME --repo $APP_ID -j |
+              jq -r '.Releases | to_entries[] as $k | $k.value.tag_name'
+      ;;
+
+    init ) shift
+        # TODO: go from project Id, to namespace and provider
+        #git@github.com:bvberkum/x-docker-hub-build-monitor.git
+      ;;
+
+    sync ) shift
+      ;;
+    update ) shift
+      ;;
+
+    new ) shift ; test -n "$1" || set -- "$(pwd)"
+        htd__project exists "$1" && {
+          warn "Project '$1' already exists"
+        } || true
+
+        ( cd "$1"
+          htd__git_init_remote &&
+          pd add . &&
+          pd update . &&
+          htd__git_init_version
+        ) || return 1
+      ;;
+
+    exists ) shift ; test -n "$1" || set -- "$(pwd)"
+        test -d "$1" || error "Project directory missing '$1'" 1
+        local name="$(basename "$1")"
+        test -e "/srv/project-local/$name" || {
+          warn "Not a local project: '$name'"
+          return 1
+        }
+      ;;
+
+    scm ) shift ; test -n "$1" || set -- "$(pwd)"
+        test -d "$1" || error "Project directory missing '$1'" 1
+        local name="$(basename "$1")"
+        (
+          cd "$1"
+          vc_getscm || return 1
+
+          # TODO: add remotes, either
+          # bare personal project /srv/<scm>-*/<project>.<scm>
+          # annex checkout /srv/annex-*/<project>
+          # checkout at /src/<site>/<user>/<project> and /srv/project-local
+          echo "/srv/$scm-"*"/$name.$scm" | tr ' ' '\n' | while read p ; do
+            test -e "$p" || continue
+            echo TODO: check for remote $p
+          done
+        )
+      ;;
+
+    check ) shift ; test -n "$1" || set -- "$(pwd)"
+        test -d "$1" || error "Directory expected '$1'" 1
+        htd__srv check-volume "$1" || return 1
+        htd__project exists "$1" || return 1
+        htd__project scm "$1" || return 1
+      ;;
+
+    * ) error "? 'project $*'" 1
+      ;;
+  esac
+}
+
+
+htd__go()
+{
+  test -n "$APP_ID" || error "App-Id required" 1
+  test -n "$1" || set -- compile
+  case "$1" in
+
+    c | compile ) shift
+        docker run --rm \
+          -e CGO_ENABLED=true \
+          -e COMPRESS_BINARY=true \
+          -v "$(pwd -P):/src" \
+          centurylink/golang-builder
+        du -hs $APP_ID*
+
+        htd__go exec "$@"
+      ;;
+
+    x | x-compile ) shift
+        test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
+        test -n "$BUILD_GOOS" || BUILD_GOOS="$os"
+        test -n "$BUILD_GOARCH" || {
+            case "$machine_hw" in
+                
+                x86_64 ) BUILD_GOARCH="amd64" ;;
+                * ) BUILD_GOARCH="$architecture" ;;
+            esac
+        }
+        docker run --rm \
+          -e CGO_ENABLED=true \
+          -e COMPRESS_BINARY=true \
+          -e BUILD_GOARCH="$BUILD_GOARCH" \
+          -e BUILD_GOOS="$BUILD_GOOS" \
+          -v "$(pwd -P):/src" \
+          centurylink/golang-builder-cross
+        du -hs $APP_ID*
+
+        test -x "$APP_ID-$os-$BUILD_GOARCH" ||
+            error "Golang x-compile failed to $os/$BUILD_GOARCH" 1
+
+        test ! -e "./$APP_ID" || rm "./$APP_ID"
+        ln -s "$APP_ID-$os-$BUILD_GOARCH" "$APP_ID"
+
+        htd__go exec "$@"
+      ;;
+
+    exec ) shift
+        ./$APP_ID "$@"
+      ;;
+
+    dockerize ) shift
+        test -z "$1" || img_tag=$1
+        test -n "$img_tag" || img_tag=bvberkum/$APP_ID
+		test -e Dockerfile || { { cat <<EOM
+FROM scratch
+COPY $APP_ID /
+ENTRYPOINT ["/$APP_ID"]
+EOM
+		} > Dockerfile; note "Placed default dockerfile"; }
+        docker run --rm \
+          -e CGO_ENABLED=true \
+          -e COMPRESS_BINARY=true \
+          -v "$(pwd -P):/src" \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          centurylink/golang-builder \
+          $img_tag || return $?
+        du -hs $APP_ID*
+        note "Done $img_tag with $APP_ID"
+      ;;
+
+    * ) error "? 'go $*'" 1
+      ;;
+  esac
 }
 
 
@@ -1156,7 +1372,7 @@ htd__tools_outline()
   tools_json || return 1
   out_fmt=yml htd__installed | jsotk update --pretty -Iyaml $B/tools.json -
   { cat <<EOM
-{ "id": "$(htd__prefix_name "$(pwd -P)")/tools.yml",
+{ "id": "$(htd_prefix "$(pwd -P)")/tools.yml",
   "hostname": "$hostname", "updated": ""
 }
 EOM
@@ -1614,7 +1830,8 @@ htd_als__nen=edit-note-en
 htd_grp__edit_note_en=cabinet
 
 
-# Print existing candidates to use as main document
+htd_man_1__main_doc_paths='Print candidates for main document
+'
 htd__main_doc_paths()
 {
   local candidates="$(htd_main_files)"
@@ -2914,49 +3131,61 @@ htd__git_remote()
   }
 }
 
-htd__git_init_remote()
+htd__git_init_remote() # [ Repo ]
 {
   test -n "$HTD_GIT_REMOTE" || error "No HTD_GIT_REMOTE" 1
   source_git_remote
   [ -n "$1" ] && repo="$1" || repo="$(basename "$(pwd)")"
+
   test -n "$repo" || error "Missing project ID" 1
-
-  ssh_cmd="mkdir -v $remote_dir/$repo.git"
-  ssh $remote_user@$remote_host "$ssh_cmd"
-
   [ -e .git ] || error "No .git directory, stopping remote init" 0
+
+
+  # Create local repo if needed
+
+  BARE=/srv/git-local/$repo.git
+  [ -d $BARE ] || {
+      log "Creating temp. bare clone"
+      git clone --bare . $BARE
+    }
+
+
+  # Remote repo, idem ditto
 
   htd__git_remote $repo >> /dev/null
   test -n "$scp_url" || error "No scp_url" 1
 
-  BARE=../$repo.git
-  TMP_BARE=1
-  [ -d $BARE ] && TMP_BARE= || {
-    [ -d /src/$repo.git ] && {
-      TMP_BARE=
-      BARE=/src/$repo.git
+  ssh_cmd="mkdir -v $remote_dir/$repo.git"
+  ssh $remote_user@$remote_host "$ssh_cmd" && {
+
+    log "Syning new bare repo to $scp_url"
+    rsync -azu $BARE/ $scp_url
+
+  } || {
+
+    warn "Remote exists, adding as remote '$HTD_GIT_REMOTE'"
+  }
+
+
+  # Initialise remotes for checkout
+
+  {
+    echo $HTD_GIT_REMOTE $scp_url
+    echo local $BARE
+    echo $hostname $hostname.zt:$BARE
+  } | while read rt rurl
+  do
+    url="$(git config --get remote.${rt}.url)"
+    test -n "$url" && {
+      test "$rurl" = "$url" || {
+        warn "Local remote '$rt' does not match '$rurl'"
+      }
     } || {
-      log "Creating temp. bare clone"
-      git clone --bare . $BARE
+      git remote add $rt $rurl
+      git fetch $rt
+      log "Added remote $rt $rurl"
     }
-  }
-
-  [ -n "$TMP_BARE" ] || {
-    log "Using existing bare repository to init remote: $BARE"
-  }
-
-  log "Syning new bare repo to $scp_url"
-  rsync -azu $BARE/ $scp_url
-  [ -n "$TMP_BARE" ] && {
-    log "Deleting temp. bare clone ($BARE)"
-    rm -rf $BARE
-  }
-
-  log "Adding new remote, and fetching remote refs"
-  git remote add $HTD_GIT_REMOTE $scp_url
-  git fetch $HTD_GIT_REMOTE
-
-  log "Added remote $HTD_GIT_REMOTE $scp_url"
+  done
 }
 
 htd__git_drop_remote()
@@ -2972,6 +3201,38 @@ htd__git_drop_remote()
   ssh_cmd="rm -rf $remote_dir/$repo.git"
   ssh -q $remote_user@$remote_host "$ssh_cmd"
   log "OK, $repo no longer exists"
+}
+
+htd__git_init_version()
+{
+  local readme="$(echo [Rr][Ee][Aa][Dd][Mm][Ee]"."*)"
+
+  test -n "$readme" && {
+    fnmatch "* *" "$readme" && { # Multiple files
+      warn "Multiple Read-Me's ($readme)"
+    } ||
+      note "Found Read-Me ($readme)"
+
+  } || {
+    readme=README.md
+    {
+      echo "Version: 0.0.1-dev" 
+    } >$readme
+    note "Created Read-Me ($readme)"
+  }
+
+  grep -i '\<version\>[\ :=]*[0-9][0-9a-zA-Z_\+\-\.]*' $readme >/dev/null && {
+
+    test -e .versioned-files.list ||
+      echo "$readme" >.versioned-files.list
+  } || {
+
+    warn "no verdoc, TODO: consult scm"
+  }
+
+  # TODO: gitflow etc.
+  git describe ||
+    error "No GIT description, tags expected" 1
 }
 
 
@@ -3036,12 +3297,14 @@ htd_defargs_repo__git_files=/src/*.git
 
 #
 htd_man_1__git_grep='Run git-grep for every given repository, passing arguments
-to git-grep. With `-C` interprets argument as shell command first, and passes
-ouput as argument(s) to `git grep`. Defaults to `git rev-list --all` output
-(which is no pre-run but per exec. repo). If env `repos` is provided it is used
-iso. stdin. Or if `dir` is provided, each "*.git" path beneath that is used.
-Else uses the arguments. If stdin is attach to the terminal, `dir=/src` is set.
-Without any arguments it defaults to scanning all repos for "git.grep".'
+to git-grep.
+
+With `-C` interprets argument as shell command first, and passes ouput as
+argument(s) to `git grep`. Defaults to `git rev-list --all` output (which is no
+pre-run but per exec. repo). If env `repos` is provided it is used iso. stdin.
+Or if `dir` is provided, each "*.git" path beneath that is used. Else uses the
+arguments. If stdin is attach to the terminal, `dir=/src` is set. Without any
+arguments it defaults to scanning all repos for "git.grep".'
 htd_spc__git_grep='git-grep [ -C=REPO-CMD ] [ RX | --grep= ] [ GREP-ARGS | --grep-args= ] [ --dir=DIR | REPOS... ] '
 htd__git_grep()
 {
@@ -3056,7 +3319,7 @@ htd__git_grep()
       test -n "$1" && { grep_args="$1"; shift; } || grep_args=master
     }
   }
-  test "f" = "$stdio_0_type" -o -n "$repos" -o -n "$1" || dir=/src/
+  test "f" = "$stdio_0_type" -o -n "$repos" -o -n "$1" || dir=/srv/git-local
   note "Running ($(var2tags grep C grep_eval grep_args repos dir stdio_0_type))"
   htd_x__git_grep "$@" | { while read repo
     do
@@ -3326,12 +3589,17 @@ htd__diff_function()
   var_isset copy_only || {
     trueish "$sync" && copy_only=true || copy_only=false
   }
+
   cp_board= copy_paste_function "$2" "$1" || error "copy-paste-function 1" $?
-  src1_line=$start_line
-  src1=$cp
+  src1_line=$start_line ; start_line= ; src1=$cp ; cp=
+  test -s "$cp" || error "copy-paste file '$cp' for '$1:$2' missing" 1
+
   cp_board= copy_paste_function "$4" "$3" || error "copy-paste-function 2" $?
-  src2_line=$start_line
-  src2=$cp
+  src2_line=$start_line ; start_line= ; src2=$cp ; cp=
+  test -s "$cp" || error "copy-paste file '$cp' for '$3:$4' missing" 1
+
+  ls -la $src1 $src2
+
   trueish "$edit" && {
     diff -bqr $src1 $src2 >/dev/null 2>&1 &&
       stderr ok "nothing to do, '$2' in sync for '$1' $3'" || {
@@ -3646,6 +3914,41 @@ htd_host_arg()
 htd__resolve()
 {
   set --
+}
+
+
+htd_man_1__update='Checkout/update GIT version for this $scriptpath
+
+Without argument, pulls the currently checked out branch. With env `push` turned
+on, it completes syncing with the remote by returning the branch with a push.
+
+If "all" is given as remote, it expands to all remote names.
+'
+htd_env__update='push'
+htd_spc__update='update [<commit-ish> [<remote>...]]'
+htd__update()
+{
+	test -n "$1" ||
+	    set -- "$(cd $scriptpath && git rev-parse --abbrev-ref HEAD)" $@
+	test -n "$2" || set -- "$1" "origin"
+	test "$2" = "all" &&
+		set -- "$1" "$(cd $scriptpath && git remote | tr '\n' ' ')"
+	# Perform checkout, pull and optional push
+	test -n "$push" || push=0
+	(
+		cd $scriptpath
+		local branch=$1 ; shift ; for remote in $@
+		do
+			# Check argument is a valid existing branch on remote
+			git checkout "$branch" &&
+			git show-ref | grep '\/remotes\/' | grep -qF $remote'/'$branch && {
+				git pull "$remote" "$branch"
+				trueish $push && git push "$remote" "$branch" || noop
+			} || {
+				warn "Reference $remote/$branch not found, skipped" 1
+			}
+		done
+	)
 }
 
 
@@ -4281,7 +4584,7 @@ htd__rules()
         do test -e "$buffer" || continue; echo "$buffer"; done
 
         target_files= targets= max_age=
-        #targets="$(htd__prefix_expand $TARGETS "$@")"
+        #targets="$(htd_prefix_expand $TARGETS "$@")"
         #are_newer_than "$targets" $max_age && continue
         #sets_overlap "$TARGETS" "$target_files" || continue
         #for target in $targets ; do case "$target" in
@@ -5215,6 +5518,7 @@ htd__tmux_sockets()
 {
   test -n "$1" || set NAME
   {
+    # list unix domain sockets
     lsof -U | grep '^tmux'
   } | {
       case "$1" in
@@ -5573,13 +5877,51 @@ htd_grp__inventory_electronics=cabinet
 
 
 
+htd_man_1__disk='Enumerate disks
+'
 htd__disk()
 {
-  test -e /proc || error "proc required" 1
+  case "$uname" in
+
+    Darwin )
+        case "$1" in
+
+          -info ) shift
+               darwin_disk_info
+            ;;
+
+          -stats ) shift
+               darwin_mount_stats
+            ;;
+
+          -partitions ) shift
+            ;;
+
+          -mounts ) shift
+              darwin_mounts | cut -d ' ' -f 1
+            ;;
+
+          -partition-table ) shift
+               darwin_mounts
+            ;;
+
+        esac
+      ;;
+
+    Linux ) htd__disk_proc "$@" ;;
+
+    * ) error "Unhandled OS '$uname'" 1
+      ;;
+  esac
+}
+
+htd__disk_proc()
+{
+  test -e /proc || error "/proc/* required" 1
   case "$1" in
 
     -partitions ) shift
-  tail -n +3 /proc/partitions | awk '{print $'$1'}'
+        tail -n +3 /proc/partitions | awk '{print $'$1'}'
       ;;
 
     -mounts )
@@ -5588,12 +5930,12 @@ htd__disk()
 
     -tab )
         sudo file -s /var/lib/docker/aufs
-  tail -n +3 /proc/partitions | while read major minor blocks dev_node
-  do
-    echo $dev_node
-    sudo file -s /dev/$dev_node
-    grep '^/dev/'$dev_node /proc/mounts
-  done
+        tail -n +3 /proc/partitions | while read major minor blocks dev_node
+        do
+          echo $dev_node
+          sudo file -s /dev/$dev_node
+          grep '^/dev/'$dev_node /proc/mounts
+        done
       ;;
 
     * ) error "? 'disk $*'" 1 ;;
@@ -5632,7 +5974,7 @@ htd__disks()
 {
   test -n "$rst2xml" || error "rst2xml required" 1
   sudo which parted 1>/dev/null && parted=$(sudo which parted) \
-    || warn "No parted"
+    || warn "No parted" 1
   test -n "$parted" || error "parted required" 1
   DISKS=/dev/sd[a-e]
   for disk in $DISKS
@@ -5653,6 +5995,45 @@ htd__disks()
     echo
   done
   echo
+}
+
+htd_man_1__disk_doc='
+    list
+    list-local
+        See disk.sh
+
+    update
+        XXX: maybe see disk.sh about updating catalog
+    sync
+        Create/update JSON doc, with details of locally available disks.
+    doc
+        Generate JSON doc, with details of locally available disks.
+'
+htd_run__disk_doc=f
+htd__disk_doc()
+{
+  test -n "$1" || set -- list
+  case "$1" in
+
+      list|list-local ) disk.sh $1 || return $? ;;
+
+      update ) ;;
+      sync )  shift
+           disk_list | while read dev
+           do
+             {
+               disk_local "$dev" NUM DISK_ID || continue 
+             } | while read num disk_id
+             do
+               echo "disk_doc '$dev' $num '$disk_id'"
+             done
+           done
+        ;;
+
+      doc ) disk_doc "$@" || return $?
+        ;;
+
+  esac
 }
 
 
@@ -6040,6 +6421,20 @@ htd__jrnl_times()
 }
 
 
+htd_man_1__port='List command, pid, user, etc. for open port'
+htd__port()
+{
+  case "$uname" in
+    Darwin ) ${sudo}lsof -i :$1 || return ;;
+    Linux ) ${sudo}netstat -an $1 || return ;;
+  esac
+}
+
+
+htd__active='
+  files
+    TODO: cache set of user-files
+'
 htd__active()
 {
   test -n "$tdata_fmt" && {
@@ -6058,15 +6453,9 @@ htd__active()
 }
 
 
-htd__port()
-{
-  case "$uname" in
-    Darwin ) lsof -i :$1 || return ;;
-    Linux ) netstat -an $1 || return ;;
-  esac
-}
-
-
+htd_man_1__ps='Using ps, print properties for the given or current process.
+'
+htd_spc__ps='ps PID'
 htd__ps()
 {
   upper=0 default_env out-fmt yaml
@@ -6102,39 +6491,75 @@ htd__open()
   test -n "$1" && {
     stderr warn TODO 1 # tasks-ignore
   } || {
-    htd__open_paths || return
+    htd__current_cwd || return
   }
 }
 
 
-htd_man_1__open_paths='List open paths for user (beloning to shell processes only)'
-htd__open_paths()
+htd_man_1__current_cwd='List open paths for user (beloning to shell processes only)'
+htd__current_cwd()
 {
-  # BUG: lsof -Fn  on OSX/Darwin ie behaving really badly, looks buggy.
-  # So awk for paths
   lsof \
     +c 15 \
     -c '/^(bash|sh|ssh|dash|zsh)$/x' \
     -u $(whoami) -a -d cwd | tail -n +2 | awk '{print $9}' | sort -u
 }
-htd_of__open_paths='list'
+htd_of__current_cwd='list'
+htd_als__current_paths=current-cwd
 
 
-htd_man_1__current_paths='
-  List open paths under given or current dir. Dumps lsof without cmd, pid etc.'
-htd__current_paths()
+htd_man_1__open_paths='Lists names of currently claimed by a process.
+
+    dirs
+        Print directories only
+    files
+        Print directories only
+    paths
+        Print just the directory and fila paths.
+    pid-paths
+        Print process ID, parent process ID, inode and name.
+    info
+        Print process ID, parent process ID, command, offset, inode and name.
+    details
+        Print process ID, parent process ID, command, offset, access mode,
+        lock status, device node, descriptor, inode and name.
+
+Open paths (from lsof), even filtered by user, returns 10k paths on my OSX box.
+It even lists network file connections. For it to get usable, need to limit
+it to known bases.
+
+Also unfortenately, my editor (vim) does not keep the files open, but
+instead the swap file. Making identification just a bit more complicated.
+And finally, query lsof takes quite a long time, making it completely
+unsuited for interactive use.
+
+Because of this, using find -newer is a more efficient way to find paths to 
+user files. As for open directories, htd prefixes records those based on
+current-cwd. Somehow, current-cwd is also significantly faster getting live
+data than open-paths lsof invocations.
+'
+htd__open_paths()
 {
-  test -n "$1" || set -- "$(pwd -P)"
-  note "Listing open paths under $1"
-  # print only pid and path name, keep name
-  lsof -F n +D $1 | tail -n +2 | grep -v '^p' | cut -c2- | sort -u
-}
-htd_als__lsof=current
+  test -n "$1" || set -- "paths" "$2"
+  test_dir "$2" || return $?
+  set -- "$1" "$(cd "$2" && pwd -P)"
+  case "$1" in
 
+    dirs ) shift ; htd__open_paths paths "$1"  | filter_dirs - ;;
+    paths ) shift ; lsof -F n +D "$1" | grep -v '^p' | cut -c2- | sort -u ;;
 
-htd__x_lsof()
-{
-  lsof
+    pid-paths ) shift
+          lsof -F pRin0 +D "$1" | tr '\0' ' '
+        ;;
+
+    info ) shift
+          lsof -F pRcoin0 +D "$1" | tr '\0' ' '
+        ;;
+
+    details ) shift
+          lsof -F pRcoaldfin0 +D "$1" | tr '\0' ' '
+        ;;
+  esac
 }
 
 
@@ -6153,7 +6578,7 @@ htd__open_paths_diff()
   {
     test -e "$lsof" && newer_than $lsof 10
   } || {
-    htd__open_paths >$lsof
+    htd__current_cwd >$lsof
 
     debug "Updated $lsof"
     info "Commands: $(echo $(
@@ -6201,16 +6626,69 @@ htd__recent_paths()
 }
 
 
-req_prefix_names_index()
-{
-  test -n "$1" || set -- pathnames.tab
-  test -n "$index" || export index=$(setup_tmpf .prefix-names-index)
-  test -s "$index" -a "$index" -nt "$UCONF/$1" || {
-    htd_topic_names_index "$1" > $index
-  }
-}
 
-# Run path-prefix-name for all paths from htd-open.
+## Prefixes: named paths, or aliases for base paths
+
+htd_man_1__prefixes='Manage local prefix table and index, or query cache.
+
+  (op|open-files|read-lines)
+    Default command. Pipe htd current-cwd to htd prefixes names. 
+    Set htd_path=1 to get pairs output.
+
+Table
+  list|names
+    List prefix varnames from table.
+  table
+    Print user or default prefix-name lookup table
+
+Index
+  name Path-Name
+    Resolve to real, absolute path and echo <prefix>:<localpath> by scanning
+    prefix index.
+  names (Path-Names..|-)
+    Call name for each line or argument.
+  pairs (Path-Names..|-)
+    Get both path and name for each line or argument.
+  expand (Prefix-Paths..|-)
+    Expand <prefix>:<local-path> back to to absolute path.
+  check
+    ..
+
+Cache
+  all-paths|tree
+    List cached prefixes and paths beneath them. See update-prefixes.
+  update [TTL=60min [<persist=false>]]
+    Update cache, read below.
+
+
+# Cache
+Cache has two parts. An in-memory index, for tracking current prefixes, 
+and the local paths beneath prefixes. And secondary a persisted part, where a
+cumulative tree of all prefixes/paths for a certain period is stored. And where
+individual cards are kept per path, with timestamps.
+
+The in-memory parts are updated every run of `update`. 
+Paths are kept in memory for TTL seconds after they closed, to allow recalling
+them during that time.
+
+If there is a change, the persisted document is not updated. Only until some
+path TTL expires and is dropped from the index is the persisted document updated
+automatically. Otherwise, a persist to secondary storage is only requested by 
+invocation argument. 
+
+Updating the first cache requires checking and possibly changing two lists.
+For the secondary, several JSON documents are created: one with the entire tree
+and current time, and if needed one for each path, setting a new ctime.
+This setup prevents conflicts in distributed stores, but it leaves the task of
+cleaning up old trees and ctimes documents.
+
+
+TODO: track path timestamp, keep for X amount of time in index 
+TODO: clear indices on certain (global) context switches: day, domain
+TODO: check for services, redis is required. couch can be offline for a bit
+TODO: update registry atime/utime once cache elapses?
+
+'
 htd__prefixes()
 {
   test -n "$index" || local index=
@@ -6218,13 +6696,22 @@ htd__prefixes()
   test -n "$1" || set -- op
   case "$1" in
 
-    list | names )            htd__prefix_names || return ;;
-    all-paths | tree )        htd__list_prefixes || return ;;
-    table )                   htd__path_prefix_names || return ;;
-    name ) shift ;           htd__prefix_name "$1" || return ;;
-    expand ) shift ;         htd__prefix_expand "$1" || return ;;
-    check ) shift
-        htd__prefix_names | while read name
+    # Read from cache
+    all-paths | tree )       htd_list_prefixes || return $? ;;
+    update )                 htd_update_prefixes || return $? ;;
+
+    # Read from index
+    list | names )           htd_prefix_names || return $? ;;
+    table )                  htd_path_prefix_names || return $? ;;
+    raw-table ) shift ;      cat $UCONFDIR/pathnames.tab || return $? ;;
+    name ) shift ;           htd_prefix "$1" || return $? ;;
+    names ) shift ;          htd_prefixes "$@" || return $? ;;
+    pairs ) shift ;          htd_path_prefixes "$@" || return $? ;;
+    expand ) shift ;         htd_prefix_expand "$@" || return $? ;;
+
+    check )
+        # Read index and look for env vars
+        htd_prefix_names | while read name
         do
             mkvid "$name"
             val="$( eval echo \"\$$vid\" )"
@@ -6233,191 +6720,40 @@ htd__prefixes()
       ;;
 
     op | open-files | read-lines ) shift
-        { test -n "$1" && {
-          read_nix_style_file "$1" || return
-        } || {
-            htd__open || return
-        };} | while read path
+        htd__current_cwd | htd_prefixes -
+      ;;
+
+    current ) shift
+        htd__current_cwd | htd_path_prefixes - |
+          while IFS=' :' read path prefix localpath
         do
-          htd__prefix_name "$path"
+          trueish "$htd_act" && {
+            older_than $path $_1HOUR && act='-' || act='+'
+          }
+
+          trueish "$htd_path" &&
+              echo "$act $path $prefix:$localpath" ||
+              echo "$act $prefix:$localpath"
         done
       ;;
+
   esac
   rm $index
 }
 
-
-# List prefix varnames
-htd__prefix_names()
-{
-  test -n "$index" || local index=
-  test -s "$index" || req_prefix_names_index
-  read_nix_style_file $index | awk '{print $2}' | uniq
-}
+htd_of__prefixes_list='plain text txt rst yaml yml json'
+# FIXME:
+#htd_als__prefixes_list=prefixes\ list
+#htd_als__list_prefixes=prefixes\ list
 
 
-# Return prefix:<localpath> after scanning paths-topic-names
-htd__prefix_name()
-{
-  test -n "$index" || local index=
-  test -s "$index" || req_prefix_names_index
-  fnmatch "/*" "$path" || set -- "$(pwd -P)/$1"
-  fnmatch "*/" "$path" || {
-    test -e "$1" -a -d "$1" && set -- "$1/"
-  }
-  local path="$1"
-  # Find deepest named prefix
-  while true
-  do
-    # Travel to root, break on match
-    grep -qF "$1 " "$index" && break || set -- "$(dirname "$1")/"
-    test "$1" != "//" && continue || set -- /
-    break
-  done
-  # Get first name for path
-  local prefix_name="$( grep -F "$1 " $index | head -n 1 | awk '{print $2}' )"
-  fnmatch "*/" "$1" || set -- "$1/"
-  # offset on furter for `cut`
-  set -- "$1+"
-  local v="$( echo "$path" | cut -c${#1}- )"
-  test -n "$v" || {
-    test "$prefix_name" == ROOT && v=/
-  }
-  echo "$prefix_name:$v"
-}
+htd_of__prefixes_update='txt rst plain'
+#htd_als__prefixes_update=prefixes\ update
+#htd_als__update_prefixes=prefixes\ update
 
 
-htd__prefix_expand()
-{
-  test -n "$1" || error "Prefix-Path-Arg expected" 1
-  {
-    test "$1" = "-" && { cat - ; shift ; }
-    for a in "$@" ; do echo "$a" ; done
-  } | tr ':' ' ' | while read prefix lname
-  do
-    echo "$(eval echo \"\$$prefix\")/$lname"
-  done
-}
 
-
-# Print user or default prefix-name lookup table
-htd__path_prefix_names()
-{
-  test -n "$index" || local index=
-  req_prefix_names_index
-  test -s "$index"
-  cat $index | sed 's/^[^\#]/'$(hostname -s)':&/g'
-  note "OK, $(count_lines "$index") rules"
-}
-
-
-htd_of__list_prefixes='plain text txt rst yaml yml json'
-htd__list_prefixes()
-{
-  test -n "$out_fmt" || out_fmt=plain
-  test -n "$sd_be" || sd_be=redis
-  (
-    case "$out_fmt" in json ) printf "[" ;; esac
-    case "$sd_be" in
-      redis ) statusdir.sh be smembers htd:prefixes:names ;;
-      couchdb_sh ) warn todo 1 ;;
-      * ) warn "not supported statusdir backend '$sd_be' " 1 ;;
-    esac | while read prefix
-    do
-      test -n "$(echo $prefix)" &&
-        local val="$(eval echo \"\$$prefix\")" ||
-        local prefix=ROOT val=/
-      case "$out_fmt" in
-        plain|text|txt )
-            test -n "$val" &&
-              printf -- "$prefix <$val>\n" || printf -- "$prefix\n"
-          ;;
-        rst|restructuredtext )
-            test -n "$val" &&
-              printf -- "\`$prefix <$val>\`_\n" || printf -- "$prefix\n"
-          ;;
-        yaml|yml )
-            test -n "$val" &&
-              printf -- "- prefix: $prefix\n  value: $val\n  paths:" ||
-              printf -- "- prefix: $prefix\n  paths:"
-          ;;
-        json ) test -z "$val" &&
-            printf "{ \"name\": \"$prefix\", \"subs\": [" ||
-            printf "{ \"name\": \"$prefix\", \"path\": \"$val\", \"subs\": ["
-          ;;
-      esac
-      case "$sd_be" in
-        redis ) statusdir.sh be smembers htd:prefix:$prefix:paths ;;
-        * ) warn "not supported statusdir backend '$sd_be' " 1 ;;
-      esac | while read localpath
-      do
-        test -n "$localpath" || continue
-        case "$out_fmt" in
-          plain|text|txt|rst )
-              test -z "$localpath" &&
-                printf -- "  ..\n" ||
-                printf -- "  - $localpath\n"
-            ;;
-          yaml|yml )
-              test -z "$localpath" &&
-                printf -- " []" ||
-                printf -- "\n  - '$localpath'"
-            ;;
-          json ) printf "\"$localpath\"," ;;
-        esac
-      done
-      case "$out_fmt" in yaml|yml|plain|text|txt|rst ) echo ;;
-        json ) printf "]}," ;;
-      esac
-    done
-    case "$out_fmt" in json ) printf "]" ;; esac
-  ) | {
-    test "$out_fmt" = "json" && sed 's/,\]/\]/g' || cat -
-  }
-}
-htd_als__prefixes_list=list-prefixes
-
-
-htd__update_prefixes()
-{
-  (
-    sd_be=redis
-
-    htd__prefixes | while IFS=':' read prefix localpath
-    do
-      test -n "$prefix" -a -n "$localpath" || continue
-
-      statusdir.sh be sadd htd:prefixes:names "$prefix" >/dev/null &&
-        stderr ok "Added '$prefix' to prefixes" ||
-        error "Adding '$prefix' to prefixes " 1
-      statusdir.sh be sadd htd:prefix:$prefix:paths $localpath >/dev/null &&
-        stderr ok "Added '$localpath' to prefix '$prefix'" ||
-        error "Adding '$localpath' to prefix '$prefix' " 1
-      echo $prefix:$localpath
-
-    done
-    COUCH_DB=htd sd_be=couchdb_sh \
-    statusdir.sh del htd:$hostname:prefixes
-    {
-      printf -- "_id: 'htd:$hostname:prefixes'\n"
-      #printf -- "fields: type: ""'\n"
-      printf -- "type: 'application/vnd.wtwta.htd.prefixes'\n"
-      printf -- "prefixes:\n"
-      out_fmt=yml htd__list_prefixes
-    } |
-    jsotk yaml2json |
-      curl -X POST -sSf $COUCH_URL/$COUCH_DB/ \
-        -H "Content-Type: application/json" \
-        -d @- && note "Submitted to couchdb" || {
-          error "Sumitting to couchdb"
-          return 1
-        }
-      #COUCH_DB=htd sd_be=couchdb_sh \
-      #  statusdir.sh set ""
-  )
-}
-htd_als__prefixes_update=update-prefixes
-
+## Services
 
 htd_man_1__service_list='
 List servtab entries, optionally updating
@@ -6822,7 +7158,7 @@ htd__colorize()
 
     * )
         test -e "$1" || error "no file '$1'" 1
-        local output="$B/$(htd__prefix_name "$1").xhtml"
+        local output="$B/$(htd_prefix "$1").xhtml"
         {
           trueish "$keep_build" && test -e "$output" -a "$output" -nt "$1"
         } && note "Existing build is up-to-date <$output>" || {
@@ -6990,10 +7326,15 @@ htd_man_1__srv='Manage service container symlinks and dirs.
       List service-container names
   -instances
       List unique service-containers (FIXME: ignore local..)
-  -paths
-      List existing volume paths (absolute paths)
+  -vpaths [SUB]
+      List all existing volume paths, or existing SUB paths (all absolute, with sym. parts)
+  -disks [SUB]
+      List all existing volume-ids with mount-point, or existing SUB paths.
+      See -vpaths, except this returns disk/part index and `pwd -P` for each dir.
   find-container-volumes
       List container paths (absolute paths)
+  check-volume Dir
+      Verify Dir as either service-container or entry in one.
   check
   list
   update
@@ -7009,10 +7350,15 @@ htd__srv()
       ;;
 
     -vpaths ) shift
-        for p in /srv/volume-[0-9]*-[0-9]*-*-*/
-        do
+        for p in /srv/volume-[0-9]*-[0-9]*-*-*/ ; do
           htd__name_exists "$p" "$1" || continue
           echo "$p$name"
+        done
+      ;;
+
+    -disks ) shift
+        htd__srv -vpaths "$1" | while read vp ; do 
+          echo $(echo "$vp" | cut -d '-' -f 2-3 | tr '-' ' ') $(cd "$vp" && pwd -P)
         done
       ;;
 
@@ -7024,7 +7370,7 @@ htd__srv()
       ;;
 
     -instances ) shift
-  htd__srv -cnames |
+        htd__srv -cnames |
           grep -v '^\(\(.*-local\)\|volume-\([0-9]*-[0-9]*-.*\)\)$'
       ;;
 
@@ -7040,6 +7386,52 @@ htd__srv()
           htd__name_exists "$p" "$1" || continue
           echo "$p$name"
         done
+      ;;
+
+    check-volume ) shift ; test -n "$1" || error "Directory expected" 1
+        test -d "$1" || error "Directory expected '$1'" 1
+        local name="$(basename "$1")"
+
+        # 1. Check that disk for given directory is also known as a volume ID
+
+        # Match absdir with mount-point, get partition/disk index
+        local abs="$(absdir "$1")"
+        # NOTE: match with volume by looking for mount-point prefix
+        local dvid=$( htd__srv -disks | while read di pi dp ; do 
+            test "$dp" = "/" && p_= || match_grep_pattern_test "$dp";
+            echo "$1" | grep -q "^$p_\/.*" && { echo $di-$pi ; break ; } || continue
+          done )
+
+        #  Get mount-point from volume ID
+        local vp="$(echo "/srv/volume-$dvid-"*)"
+        local mp="$(absdir "$vp")"
+        test -e "$vp" -a -n "$dvid" -a -e "$mp" ||
+            error "Missing volume-link for dir '$1'" 1
+
+        # 2. Check that directory is either a service container, or directly
+        #    below one. Warn, or fail in strict-mode.
+
+        # NOTE: look for absdir among realpaths of /srv/{*,*/*}
+       
+        test "$abs" = "$mp" && {
+          true # /srv/volume-*
+        } || {
+
+          # Look for each SUB element, expect a $name-$dvid symbol
+          local sub="$(echo "$abs" | cut -c$(( 1 + ${#mp} ))-)"
+          for n in $(echo "$sub" | tr '/' ' ') ; do
+            test "$n" = "srv" && continue
+            nl="$(echo "/srv/$n-$dvid-"*)"
+            test -e "$nl" && continue || {
+              # Stop on the last element, or warn
+              test "$n" = "$name" && break || {
+                warn "missing $nl for $n"
+              }
+            }
+          done
+        }
+
+        # 3. Unless silent, warn if volume is not local, or exit in strict-mode
       ;;
 
     check ) shift
@@ -7532,8 +7924,8 @@ htd__backup()
   }
 }
 htd_pre__backup=htd_backup_prereq
-htd_argsv__backup=htd_backup_args
-htd_optsv__backup=htd_backup_opts
+htd_argsv__backup=htd_backup_argsv
+htd_optsv__backup=htd_backup_optsv
 
 
 htd_man_1__pack_create="Create archive for dir with ck manifest"
@@ -7613,7 +8005,6 @@ htd__pack()
   }
 }
 
-
 htd_backup_prereq()
 {
   test -e /srv/backup-local || {
@@ -7628,13 +8019,13 @@ htd_backup_prereq()
   }
 }
 
-htd_backup_args()
+htd_backup_argsv()
 {
   test -n "$*" || error "Nothing to backup?" 1
   opt_args "$@"
 }
 
-htd_backup_opts()
+htd_backup_optsv()
 {
   while test -n "$1"
   do
@@ -7650,7 +8041,7 @@ htd_backup_opts()
       --no-cabinet )
         ;;
       * )
-          htd_options_v "$1"
+          main_options_v "$1"
         ;;
     esac
     shift
@@ -7736,7 +8127,7 @@ htd__src_info()
   test -n "$1" || set -- $0
   for src in $@
   do
-    src_id=$(htd__prefix_name $src)
+    src_id=$(htd_prefix $src)
     $LOG file_warn $src_id "Listing info.."
     $LOG header "Box Source"
     $LOG header2 "Functions" $(htd__list_functions "$@" | count_lines)
@@ -8723,7 +9114,7 @@ htd_main()
           #record_env_keys htd-subcmd htd-env
           box_lib htd || error "box-src-lib $scriptname" 1
 
-          htd_load "$@" || error "htd-load" $?
+          htd_load "$@" || warn "htd-load ($?)"
 
           var_isset verbosity || local verbosity=5
 
@@ -8780,7 +9171,6 @@ htd_optsv()
 # FIXME: Pre-bootstrap init
 htd_init()
 {
-
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
   test -n "$scriptpath"
   local __load_lib=1
@@ -8791,7 +9181,9 @@ htd_init()
   box_run_sh_test
   #export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta list
-  lib_load box date doc table disk remote ignores package service archive
+  lib_load box date doc table disk remote ignores package service archive \
+      prefix
+  case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh load-ext
   disk_run
   # -- htd box init sentinel --

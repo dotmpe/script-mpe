@@ -71,7 +71,7 @@ init
 }
 
 
-@test "$lib line_count: " {
+@test "$lib/$base line_count" {
   tmpd
   out=$tmpd/line_count
 
@@ -88,7 +88,7 @@ init
 }
 
 
-@test "$lib filesize" {
+@test "$lib/$base filesize" {
   tmpd
   out=$tmpd/filesize
   printf "1\n2\n3\n4" >$out

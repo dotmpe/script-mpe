@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """:created: 2015-11-30
 """
+from __future__ import print_function
+
 __description__ = "todo-meta - todo document proc"
 __version__ = '0.0.4-dev' # script-mpe
 __usage__ = """
@@ -18,7 +20,7 @@ Other flags:
     --version     Show version (%s).
 
 """ % ( __version__ )
-from __future__ import print_function
+
 from pprint import pformat
 
 import libcmd_docopt
