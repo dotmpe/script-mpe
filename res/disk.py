@@ -1,6 +1,6 @@
 import os
 
-from script_mpe.confparse import yaml_load, yaml_safe_dump
+from script_mpe.confparse import yaml_load
 
 
 class Diskdoc(object):

@@ -36,7 +36,7 @@ import reporter
 
 def plst_dump(plst):
     data = eval(repr(plst))
-    confparse.yaml_safe_dump(data, sys.stdout, default_flow_style=False)
+    confparse.yaml_safe_dumps(data, sys.stdout, default_flow_style=False)
 
 
 def cmd_plist_items(PLIST, KEY, settings):

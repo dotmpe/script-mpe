@@ -171,6 +171,8 @@ from sqlalchemy.orm.exc import NoResultFound
 
 # Local
 from . import iface
+from iface import registry as reg, gsm
+
 from . import init
 from . import util
 # Local: model

@@ -155,7 +155,7 @@ from StringIO import StringIO
 import uriref
 import libcmd_docopt
 
-from confparse import yaml_load, yaml_safe_dump
+from confparse import yaml_load, yaml_safe_dumps
 
 mhashlib= None # FIXME: malloc troubs
 #import mhashlib # py-mhash 1.2
@@ -390,7 +390,7 @@ class MAGMA(MagnetFileStore):
         return yaml_load(StringIO(data))['list']
     def serialize(self):
         # FIXME: spec requires double quotes, not single for magnet items
-        return yaml_safe_dump({'list': self.data})
+        return yaml_safe_dumps({'list': self.data})
 class TxtItemList(MagnetFileStore):
     def parse(self, data):
         l = []

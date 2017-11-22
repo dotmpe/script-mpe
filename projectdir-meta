@@ -149,7 +149,7 @@ from deep_eq import deep_eq
 
 from script_mpe import libcmd_docopt, confparse
 from script_mpe.res import js
-from script_mpe.confparse import yaml_load, yaml_safe_dump, yaml_dump
+from script_mpe.confparse import yaml_load, yaml_safe_dumps
 
 try:
     import fuse
@@ -274,7 +274,7 @@ def toggle_state(newstate, pdhdata, ctx):
     state = get_toggle_state(pdhdata['repositories'][prefix])
     if newstate+'d' != state:
         set_toggle_state( pdhdata['repositories'][prefix], newstate+'d' )
-        yaml_safe_dump(pdhdata,
+        yaml_safe_dumps(pdhdata,
                 open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
     return True
 
@@ -301,7 +301,7 @@ def check_host(record, ctx):
     return False
 
 def yaml_commit(pdhdata, ctx):
-    yaml_safe_dump(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+    yaml_safe_dumps(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
 
 def repo_kv_to_dict( kwdargs ):
     new = dict(remotes={})
@@ -561,7 +561,7 @@ def H_list_disabled(pdhdata, ctx):
 
 def H_dump(pdhdata, ctx):
     if 'prefix' not in ctx.opts.args:
-        ctx.out.write(yaml_safe_dump(pdhdata, default_flow_style=False), "\n")
+        ctx.out.write(yaml_safe_dumps(pdhdata, default_flow_style=False), "\n")
     else:
         ctx.out.write("repositories:\n")
         for k in list(pdhdata['repositories'].keys()):
@@ -569,12 +569,12 @@ def H_dump(pdhdata, ctx):
                 continue
             ctx.out.write("  %s:\n" % k)
             v = pdhdata['repositories'][k]
-            ctx.out.write("    "+ yaml_safe_dump(v
+            ctx.out.write("    "+ yaml_safe_dumps(v
                 ).replace( '\n', '\n    ')+"\n")
 
 def H_x_dump(pdhdata, ctx):
     meta = meta_from_projectdir_doc(pdhdata)
-    ctx.out.write(yaml_safe_dump(meta, default_flow_style=False)+"\n")
+    ctx.out.write(yaml_safe_dumps(meta, default_flow_style=False)+"\n")
 
 def H_x_check(pdhdata, ctx):
     for h in handlers:
@@ -632,7 +632,7 @@ def H_status(pdhdata, ctx):
                 return 1
             prefixes += [ k ]
             update_status(v['status'])
-            ctx.out.write("    " + yaml_safe_dump(v['status'], default_flow_style=False).replace( '\n', '\n    ').strip() + "\n")
+            ctx.out.write("    " + yaml_safe_dumps(v['status'], default_flow_style=False).replace( '\n', '\n    ').strip() + "\n")
 
     for k in prefixes:
         ok = ok and v['status']['result'] == 0
@@ -733,7 +733,7 @@ def H_package(pdhdata, ctx):
         if k in pack[0]:
             del pack[0][k]
 
-    ctx.out.write(yaml_safe_dump(pack, default_flow_style=False) + "\n")
+    ctx.out.write(yaml_safe_dumps(pack, default_flow_style=False) + "\n")
 
 
 handlers = {}

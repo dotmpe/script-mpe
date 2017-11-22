@@ -37,6 +37,9 @@ try:
     from ruamel import yaml
 
     def process_scalar(self):
+        """
+        Custom process_scalar attribute for ruamel YAML dumper.
+        """
         if self.analysis is None:
             self.analysis = self.analyze_scalar(self.event.value)
         if self.style is None:
@@ -71,14 +74,36 @@ try:
         if self.event.comment:
             self.write_post_comment(self.event)
 
-    def yaml_load(*args, **kwds):
+    def yaml_loads(*args, **kwds):
+        """
+        Load from stream or text.
+        """
         kwds.update(dict(
             Loader=ruamel.yaml.RoundTripLoader,
             preserve_quotes=True
         ))
         return ruamel.yaml.load(*args, **kwds)
 
-    def yaml_dump(*args, **kwds):
+    def yaml_load(fl, *args, **kwds):
+        if not hasattr(fl, 'read'):
+            assert isinstance(fl, basestring)
+            fp = open(fl, 'r')
+        else:
+            fp = fl
+        return yaml_loads(fp.read(), *args, **kwds)
+
+
+
+    def yaml_dumps(*args, **kwds):
+        """
+        Dump to string, without kwds stream return string.
+
+        Does not set stream, but doesn't forbid it either.
+        Sets Dumper kwds item to ruamel.yaml.RoundTripDumper, using locally
+        defined process_scalar.
+
+        See ruamel.yaml.dump.
+        """
         dd = ruamel.yaml.RoundTripDumper
         dd.process_scalar = process_scalar
         kwds.update(dict(
@@ -86,7 +111,21 @@ try:
         ))
         return ruamel.yaml.dump(*args, **kwds)
 
-    yaml_safe_dump = yaml_dump
+    yaml_safe_dumps = yaml_dumps
+
+
+    def yaml_dump(fl, *args, **kwds):
+        """
+        First argument is file path or stream.
+        """
+        if not hasattr(fl, 'write'):
+            assert isinstance(fl, basestring)
+            fp = open(fl, 'w+')
+        else:
+            fp = fl
+        kwds['stream'] = fp
+        return yaml_dumps(*args, **kwds)
+
 
 
 except ImportError as e:
@@ -227,6 +266,7 @@ class Values(dict):
     Holds configuration settings once loaded.
 
     This is used a lot as a simple attribute-access dict.
+    A bit like optsparse.Values.
     """
 
     default_source_key = 'config_file'
@@ -684,4 +724,9 @@ def haspath(obj, attrs):
 # XXX: testing
 if __name__ == '__main__':
     configs = list(expand_config_path('cllct.rc'))
-    assert configs == ['/Users/berend/.cllct.rc'], configs
+
+    print(yaml_loads("test: 1"))
+
+    print(yaml_load(os.path.expanduser("~/project/.projects.yaml")) )
+
+#    assert configs == ['/Users/berend/.cllct.rc'], configs
