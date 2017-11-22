@@ -84,12 +84,12 @@ from deep_eq import deep_eq
 
 from script_mpe import libcmd_docopt, confparse
 from script_mpe.res import js, Diskdoc
-from script_mpe.confparse import yaml_load, yaml_safe_dump
+from script_mpe.confparse import yaml_load, yaml_safe_dumps
 
 
 
 def yaml_commit(diskdata, ctx):
-    yaml_safe_dump(diskdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+    yaml_safe_dumps(diskdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
 
 
 ws_collapse_re = re.compile('\s+')

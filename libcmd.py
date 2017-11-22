@@ -102,6 +102,10 @@ class ResultFormatter(object):
     def append(self, res):
         pass
 
+    @property
+    def buffered(self):
+        pass
+
     def flush(self):
         pass
 

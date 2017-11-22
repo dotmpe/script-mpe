@@ -14,7 +14,7 @@ from pprint import pformat
 
 from script_mpe.res import js
 from script_mpe.confparse import Values
-from script_mpe.confparse import yaml_load, yaml_safe_dump
+from script_mpe.confparse import yaml_load, yaml_safe_dumps
 
 
 
@@ -449,7 +449,7 @@ def yaml_writer(data, file, opts):
     kwds = {}
     if opts.flags.pretty:
         kwds.update(dict(default_flow_style=False))
-    yaml_safe_dump(data, file, **kwds)
+    yaml_safe_dumps(data, file, **kwds)
 
 writers = dict(
         json=json_writer,

@@ -33,10 +33,12 @@ class Node(Interface): pass
 class INodeSet(Interface):
     nodes = Attribute("The list of nodes. ")
 
-class IPyDict(IPrimitive):
-    pass
+class IPyDict(IPrimitive): pass
+class IPyList(IPrimitive): pass
 
 classImplements(dict, IPyDict)
+classImplements(list, IPyList)
+
 
 # output media types
 class IFormatted(Interface):
@@ -125,13 +127,16 @@ class IPersisted(IResource):
 
 class IReportable(Interface):
     """
-    Interface for reportable objects, adaptable to report instances.
+    TODO: Interface for reportable objects, adaptable to report instances.
     To use with libcmd and reporer.Reporter class.
     """
 
 class IReport(Interface):
     """
-    Interface for report instances.
+    Interface for report instances. Reports are abstractions for streams that
+    are created from objects, results-sets, etc. Wether plain-text or a
+    structured languages.
+
     To use with libcmd and reporer.Reporter class.
     """
     text = Attribute("A text fragment (readonly). ")
@@ -143,12 +148,54 @@ class IReport(Interface):
     line_width_preferred = Attribute("Optionally, indicate preferred line-width. ")
 
 class IReporter(Interface):
-    ""
+    """
+    Channel/output interface for reports.
+    """
     append = Attribute("method for adding subsequent IReportables to report")
+    buffered = Attribute("property")
+    flush = Attribute("method")
+
 
 class IResultAdapter(Interface): pass
 
 class IRelationalModel(Interface): pass
+
+class IValues(Interface):
+    """
+    A dict adapter with attribute-to-index access.
+
+    Shoud offer index access too, unlike optparse.Values.
+    See confparse.Values.
+    """
+
+class IValueObject(Interface):
+    """
+    An object where data is accessed through native python attribtues,
+    ie. regular 'object'-style dot-access notation.
+
+    Unlike IValues this does not give an alternative index access.
+    """
+
+class IJSONLikeData(Interface):
+    """
+    A dict structure with simple JSON types.
+    """
+
+class IJSONLike(Interface):
+    """
+    A IJSONLikeData factory for JSON and YAML.
+    """
+
+    load_json = Attribute("")
+    dump_json = Attribute("")
+    loads_json = Attribute("")
+    dumps_json = Attribute("")
+
+    load_yaml = Attribute("")
+    dump_yaml = Attribute("")
+    loads_yaml = Attribute("")
+    dumps_yaml = Attribute("")
+
 
 class INode(IRelationalModel): pass
 class IGroupNode(IRelationalModel): pass
@@ -191,5 +238,5 @@ def hook( provided, o ):
     assert adapter, (provided, o)
     return adapter( o )
 
+# Install our lookup as the default for <iface>(...) factory invocations.
 adapter_hooks.append(hook)
-

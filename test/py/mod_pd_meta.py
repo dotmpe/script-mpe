@@ -5,7 +5,7 @@ import unittest
 import os, sys
 
 import pd_meta
-from confparse import yaml_load, yaml_safe_dump, Values
+from confparse import yaml_load, yaml_safe_dumps, Values
 from StringIO import StringIO
 
 
@@ -86,7 +86,8 @@ class PdMeta(unittest.TestCase):
             self.ctx.opts = params
             ret = pd_meta.H_clean_mode(self.cmd_clean_mode_data, self.ctx)
             if not ret: ret = 0
-            self.assertEquals( expected[0], ret, ("%s is not %s, for " % (ret, expected[0])) + yaml_safe_dump(params.todict()))
+            self.assertEquals( expected[0], ret, ("%s is not %s, for " % (ret,
+                expected[0])) + yaml_safe_dumps(params.todict()))
             self.assertEquals( self.ctx.out.getvalue().strip(), expected[1] )
 
     def tearDown(self):

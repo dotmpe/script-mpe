@@ -3438,23 +3438,53 @@ htd_x__git_grep()
 htd_run__git_grep=iAO
 
 
-htd_man_1__file='Look for name and content at path; then store and cleanup.
+htd_man_1__file='TODO: Look for name and content at path; then store and cleanup.
+
+    newer-than
+    older-than
+    mtime
+    mtime-readable
+    status
+    info
 
 Given path, find matching from storage using name, or content. On match, compare
 and remove path if in sync.
 '
 htd__file()
 {
-  filemtime "$1"
-  fmtdate_relative "$(filemtime "$1")"
+  test -n "$1" || set -- info
+  
+  case "$1" in
+        
+      newer-than ) shift
+          test -e "$1" || error "htd file new-than file expected '$1'" 1
+          case "$2" in *[0-9] ) ;;
+              * ) set -- "$1" "$(eval echo \"\$_$2\")" ;; esac
+          newer_than "$1" "$2" || return $?
+        ;;
 
-  file -s "$@"
+      older-than ) shift
+          test -e "$1" || error "htd file new-than file expected '$1'" 1
+          case "$2" in *[0-9] ) ;;
+              * ) set -- "$1" "$(eval echo \"\$_$2\")" ;; esac
+          older_than "$1" "$2" || return $?
+        ;;
 
-  # Search for by name
-  echo TODO track htd__find "$localpath"
+      mtime ) filemtime "$2" ;;
+      mtime-readable ) fmtdate_relative "$(filemtime "$2")" ;;
 
-  # Search for by other lookup
-  echo TODO track htd__content "$localpath"
+      status ) shift
+          # Search for by name
+          echo TODO track htd__find "$localpath"
+
+          # Search for by other lookup
+          echo TODO track htd__content "$localpath"
+        ;;
+
+      info ) shift
+          file -s "$2"
+        ;;
+  esac
 }
 
 htd__date()

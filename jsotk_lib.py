@@ -5,7 +5,7 @@ import shlex
 
 from fnmatch import fnmatch
 from res import js
-from confparse import yaml_safe_dump
+from confparse import yaml_safe_dumps
 from pydoc import locate
 
 import ruamel.yaml
@@ -515,7 +515,7 @@ def yaml_writer(data, file, ctx):
     if not data and ctx.opts.flags.empty_null:
         file.write('\n')
     else:
-        yaml_safe_dump(data, file, **kwds)
+        yaml_safe_dumps(data, file, **kwds)
 
 def py_writer(data, file, ctx):
     if not data and ctx.opts.flags.empty_null:
