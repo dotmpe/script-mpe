@@ -5,7 +5,8 @@ realpath
 uuid-runtime
 moreutils
 curl
-php5-cli
+php7.0-cli
+#php5-cli
 posh
 dash
 ruby-bundler
