@@ -10,3 +10,4 @@ php7.0-cli
 posh
 dash
 ruby-bundler
+git-annex
