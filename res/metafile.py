@@ -419,7 +419,7 @@ class MetafileFile(object): # XXX: Metalink syntax
 
     @classmethod
     def find(clss, path, shelve=None):
-        assert shelve, 'TODO'
+        assert not shelve, 'TODO'
         metafile = Metafile.fetch(pathid)
         metafile = Metafile(path)
         metafile.fetch()
@@ -549,6 +549,45 @@ class Metadir(object):
     DOTNAME = 'meta'
     DOTID = 'dir'
 
+    NAME_PREFIXES = confparse.name_prefixes
+    NAME_SUFFIXES = ['.id', '.uuid']
+
+    @classmethod
+    def find_id(clss, *paths):
+        prefixes = clss.NAME_PREFIXES + ( '.'+clss.DOTNAME+'/', )
+        return list(confparse.find_config_path(clss.DOTID,
+            paths=list(paths),
+            prefixes=prefixes,
+            suffixes=clss.NAME_SUFFIXES,
+            filesonly=True
+        ))
+
+    @classmethod
+    def find_meta(clss, *paths):
+        return list(confparse.find_config_path(clss.DOTNAME,
+            paths=list(paths),
+            prefixes=clss.NAME_PREFIXES,
+            suffixes=[''],
+            filesonly=True
+        ))
+
+    @classmethod
+    def fetch(clss, *paths):
+        """
+        Find metadir by searching for markerleaf indicated by Class'
+        DOTID property, using '.' DOTNAME '/' as one of the name prefixes.
+
+        See confparse.find_config_path. This will be searching for the .id
+        extensions.
+
+        Returning Class instance for first path, if any.
+        """
+        configpaths = list(clss.find(*paths))
+        if configpaths:
+            if len(configpaths) > 1:
+                log.warn('Using first config file %s for %s', clss.DOTID, configpaths)
+            return clss(configpaths[0])
+
     def __init__(self, path):
         """
         Like metafile, the path here will be the directory itself,
@@ -556,7 +595,7 @@ class Metadir(object):
         """
         dotext = os.path.splitext( os.path.basename( path ))
         if dotext[0] == self.DOTID:
-            assert dotext[1] == '.id'
+            assert dotext[1] in self.NAME_SUFFIXES
             self.path = os.path.dirname( path )
         else:
             self.path = path
@@ -617,39 +656,6 @@ class Metadir(object):
     def __repr__(self):
         return self.__str__()
 
-    @classmethod
-    def find_id(clss, *paths):
-        prefixes = confparse.name_prefixes + ( '.'+clss.DOTNAME+'/', )
-        return list(confparse.find_config_path(clss.DOTID,
-            paths=list(paths),
-            prefixes=prefixes,
-            suffixes=['.id']
-        ))
-
-    @classmethod
-    def find_meta(clss, *paths):
-        return list(confparse.find_config_path(clss.DOTNAME,
-            paths=list(paths),
-            prefixes=confparse.name_prefixes,
-            suffixes=['']
-        ))
-
-    @classmethod
-    def fetch(clss, *paths):
-        """
-        Find metadir by searching for markerleaf indicated by Class'
-        DOTID property, using '.' DOTNAME '/' as one of the name prefixes.
-
-        See confparse.find_config_path. This will be searching for the .id
-        extensions.
-
-        Returning Class instance for first path, if any.
-        """
-        configpaths = list(clss.find(*paths))
-        if configpaths:
-            if len(configpaths) > 1:
-                log.warn('Using first config file %s for %s', clss.DOTID, configpaths)
-            return clss(configpaths[0])
 
     """ XXX:
 

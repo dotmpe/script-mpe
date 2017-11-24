@@ -24,14 +24,12 @@ Usage:
 TODO: <ref> would be an ID, name or path of a project
 
 Options:
-    -v            Increase verbosity.
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
     -p --props=NAME=VALUE
                   Give additional properties for new records or record updates.
     -y --yes      Force questions asked to yes.
-
-Other flags:
+    -v            Increase verbosity.
     -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
@@ -87,6 +85,9 @@ def cmd_db_stats(settings):
     print("Done", settings.dbref)
 
 def cmd_find(settings):
+    """
+    Default command. TODO: res.ws.Workdir.
+    """
     #sa = get_session(settings.dbref)
     project = Workdir.find()
     print(project)
@@ -98,19 +99,19 @@ def cmd_info(settings):
     name = os.path.basename(pwd)
     workdir = Workdir.find(pwd)
     if not workdir:
-        print("Not in a metadata workdir!")
+        log.stderr("Not in a metadata workdir!")
     rs = Project.search(_sa=sa, name=name)
     if not rs:
-        print("No project found for %r" % name)
+        log.stderr("No project found for %r" % name)
         return 1
     proj=rs[0]
     try:
         hosts = proj.hosts
     except Exception as e:
-        print(settings.dbref, Project.metadata.bind)
-        log.std("Error proj.hosts %s", e)
+        log.stderr(settings.dbref, Project.metadata.bind)
+        log.stderr("Error proj.hosts %s", e)
         hosts = []
-    print(proj.name, hosts, proj.repositories[0].vc_type, proj.date_added)
+    log.std(proj.name, hosts, proj.repositories[0].vc_type, proj.date_added)
 
 
 def cmd_init(settings):
@@ -124,11 +125,11 @@ def cmd_init(settings):
     if projdir:
         if not rs:
         	pass
-        print("Already in existing project!")
-        print(projdir[0])
+        log.stderr("Already in existing project!")
+        log.stderr(projdir[0])
         return 1
     if rs:
-        print("Project with this name already exists")
+        log.stderr("Project with this name already exists")
         return 1
     projdir = Workdir(pwd)
     project = Project(
@@ -144,13 +145,13 @@ def cmd_init(settings):
     sa.add(project)
     sa.commit()
     projdir.init(create=True)
-    print("Created project", name, projdir.metadir_id)
+    log.std("Created project", name, projdir.metadir_id)
 
 def cmd_new():
-    print('project-new')
+    print('TODO: project-new')
 
 def cmd_update():
-    print('project-update')
+    print('TODO: project-update')
 
 def cmd_list(settings):
     sa = Project.get_session('default', settings.dbref)

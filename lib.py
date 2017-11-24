@@ -40,17 +40,20 @@ def is_versioned(dirpath):
         if m:
             return True
 
-def cmd(cmd, *args):
-    proc = subprocess.Popen( cmd % args,
+def cmd(cmd, cwd=None, allowempty=False):
+    if isinstance(cmd, basestring):
+        cmd = [ cmd ]
+    assert isinstance(cmd, list)
+    proc = subprocess.Popen( cmd ,
             shell=True,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            close_fds=True )
+            close_fds=True, cwd=cwd )
     errors = proc.stderr.read()
     if errors or proc.returncode:
         raise Exception(errors)
     value = proc.stdout.read()
-    if not value:# and not nullable:
+    if not value and not allowempty:
         raise Exception("OS invocation %r returned nothing" % cmd)
     return value
 

@@ -184,7 +184,8 @@ def expand_config_path(name, paths=path_prefixes):
 
 
 def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
-        suffixes=name_suffixes, paths=[], exists=os.path.exists):
+        suffixes=name_suffixes, paths=[], exists=os.path.exists,
+        filesonly=False, notdir=False):
 
     """
     Search paths for markerleaf with prefixes/suffixes. Yields only existing
@@ -221,7 +222,7 @@ def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
         cpath = expanded_paths.pop(0)
         for prefix in prefixes:
             for suffix in suffixes:
-                #print (cpath, prefix, suffix,)
+                #print(cpath, 'prefix='+prefix, 'suffix='+suffix, 'marker='+markerleaf)
                 cleaf = markerleaf
                 if not markerleaf.startswith(prefix):
                     cleaf = prefix + markerleaf
@@ -229,6 +230,8 @@ def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
                     cleaf += suffix
                 cleaf = os.path.expanduser(os.path.join(cpath, cleaf))
                 if not exists or exists(cleaf):
+                    if filesonly and not os.path.isfile(cleaf): continue
+                    if notdir and os.path.isdir(cleaf): continue
                     yield cleaf
 
 
@@ -576,12 +579,12 @@ class YAMLValues(Values):
         path = self.source;#__dict__[self.__dict__['source_key']]
         if do_backup:
             backup(path)
-        yaml_dump(data, open(path, 'w+'))
+        yaml_dumps(data, open(path, 'w+'))
 
     @classmethod
     def load(cls, path):
         try:
-            data = yaml_load(open(path).read())
+            data = yaml_load(open(path))
         except Exception as e:
             raise Exception("Parsing %s: %s"%(path, e))
         settings = cls(data, source_file=path, source_key='config_file')

@@ -14,12 +14,16 @@ Usage:
   list.py [options] write-list LIST [ PROVIDERS... ]
   list.py [options] update-list LIST
   list.py [options] x-rewrite-html-tree-id LIST
+  list.py [options] glob GLOBLIST
+  list.py [options] glob-read LIST
   list.py -h|--help|help [CMD]
   list.py --version
 
 See `help` for usage per command.
 
 Options:
+    --filter-unmatched
+                  Reverse normal filter mode, where matched lines are returned.
     --output-format FMT
                   json, repr
     --schema MOD
@@ -47,6 +51,7 @@ import sys
 import re
 import base64
 from pprint import pformat
+from fnmatch import fnmatch
 
 import confparse
 import log
@@ -181,6 +186,40 @@ def cmd_write_list(LIST, PROVIDERS, settings):
         res.list.write(LIST, provider, settings)
 
 
+def run_glob_filter(input, glob_input, settings):
+    globs = [ l.strip() for l in glob_input.readlines() if l.strip() ]
+    def matched(p):
+        for g in globs:
+            if '*' in g or '?' in g or '[' in g:
+                if fnmatch(p, g) or fnmatch(p, '*/'+g) or (
+                    g[-1] is '/' and fnmatch(p, g+'*')
+                ):
+                    return True
+            else:
+                if '/'+g in p or g+'/' in p or p == g:
+                    return True
+    for line in input.readlines():
+        line = line.strip()
+        m = matched(line)
+        if m and not settings.filter_unmatched:
+            print(line)
+        elif not m and settings.filter_unmatched:
+            print(line)
+
+def cmd_glob(GLOBLIST, settings):
+    """
+    Filter lines on stdin by lines from glob-file. Default mode is to
+    return matching lines. Set --filter-unmatched to inverse.
+    """
+    run_glob_filter(sys.stdin, open(GLOBLIST), settings)
+
+def cmd_glob_read(LIST, settings):
+    """
+    Like glob, but read globs from stdin and lines from path on arguments.
+    """
+    run_glob_filter(open(LIST), sys.stdin, settings)
+
+
 re_key = re.compile("[%s]+" % res.task.value_c)
 
 def cmd_x_rewrite_html_tree_id(LIST, settings):
@@ -223,6 +262,9 @@ def main(opts):
     opts.default = 'info'
     opts.flags.commit = not opts.flags.no_commit
     settings = opts.flags
+    settings.stdin = sys.stdin
+    settings.stdout = sys.stdout
+    settings.stderr = sys.stderr
     settings.apply_contexts = []
     return libcmd_docopt.run_commands(commands, settings, opts)
 

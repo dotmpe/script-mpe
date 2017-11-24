@@ -49,6 +49,7 @@ statusdir_unload()
 }
 
 
+statusdir_man_1__root='Echo statusdir store location'
 statusdir__root()
 {
   test -n "$STATUSDIR_ROOT" || return 12
@@ -58,16 +59,10 @@ statusdir__root()
 }
 
 
-statusdir__backend()
-{
-  echo $sd_be
-}
-statusdir_als__be=backend
-
-
+statusdir_man_1__backends='List backends available and online'
 statusdir__backends()
 {
-  for bn in $scriptpath/statusdir_*.sh
+  for bn in $scriptpath/statusdir-*.sh
   do
     sd_be_name=
     . $bn
@@ -76,6 +71,14 @@ statusdir__backends()
   done
 }
 statusdir_als__bes=backends
+
+
+statusdir_man_1__backend="Print current backend's name"
+statusdir__backend()
+{
+  echo $sd_be
+}
+statusdir_als__be=backend
 
 
 statusdir_man_1__assert="echos path. Default index is 'default'."
@@ -267,6 +270,7 @@ statusdir__help()
   rm_failed || return
 }
 statusdir_als___h=help
+statusdir_als__commands=help
 
 
 statusdir_man_1__version="Version info"
@@ -309,6 +313,17 @@ statusdir_main()
         error "not a frontend for $base"
       ;;
   esac
+}
+
+statusdir_usage()
+{
+    cat <<EOM
+statusdir.sh - Wrapper for simple access to memory store and DB services.
+
+Usage:
+    statusdir <cmd> [<args>..]
+
+EOM
 }
 
 statusdir_init()

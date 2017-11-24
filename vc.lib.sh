@@ -47,7 +47,7 @@ vc_issvn()
 
 vc_svndir()
 {
-  ( test -e "$1/.svn" && pwd || return 1 )
+  ( test -e "$1/.svn" && echo $(pwd)/.svn || return 1 )
 }
 
 vc_bzrdir()
@@ -140,6 +140,18 @@ vc_unversioned_git()
   git ls-files --others --exclude-standard --dir || return $?
 }
 
+vc_unversioned_bzr()
+{
+  bzr ls --unknown || return $?
+}
+
+vc_unversioned_svn()
+{
+  {
+    svn status | grep '^?' | sed 's/^?\ *//g'
+  } || return $?
+}
+
 vc_unversioned()
 {
   test -n "$spwd" || error spwd-13 13
@@ -163,16 +175,28 @@ vc_unversioned()
   cd "$ppwd"
 }
 
+vc_untracked_bzr()
+{
+  bzr ls --ignored --unknown || return $?
+}
+
 vc_untracked_git()
 {
   git ls-files --others --dir || return $?
+}
+
+vc_untracked_svn()
+{
+  {
+    svn status --no-ignore | grep '^?' | sed 's/^?\ *//g'
+  } || return $?
 }
 
 vc_untracked()
 {
   test -n "$spwd" || error spwd-13 13
 
-  # list paths not in git (including ignores)
+  # list paths not under version (including ignores)
   vc_untracked_$scm
 
   test "$scm" = "git" && {
@@ -209,8 +233,8 @@ vc_git_submodules()
       warn "Not a submodule checkout '$prefix' ($spwd/$prefix)"
       continue
     }
-    note "Submodule '$prefix' ($spwd/$prefix)"
+    trueish "$quiet" ||
+        note "Submodule '$prefix' ($spwd/$prefix)"
     echo "$prefix"
   done
-  #git submodule | cut -d ' ' -f 2
 }

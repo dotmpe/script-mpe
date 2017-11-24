@@ -4,6 +4,9 @@ description: Named prerequisite packages and metadata on provisioning. See tools
 
 tools:
 
+  gcalcli:
+    installer: pip
+
   jsonwidget:
     id: jsonwidget
     installer: pip

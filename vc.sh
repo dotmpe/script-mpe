@@ -863,7 +863,7 @@ vc__excludes()
 
 vc__excludes_regex()
 {
-  vc__regenerate_stale
+  vc__regenerate_stale || return $?
   globlist_to_regex .git/info/exclude || return $?
 }
 
@@ -881,8 +881,8 @@ vc__untracked_files()
   test -z "$1" || error "unexpected arguments" 1
 
   local scm= scmdir=
-  vc_getscm
-  vc_untracked
+  vc_getscm || return $?
+  vc_untracked || return $?
 }
 
 # List untracked paths. Unversioned files excluding ignored/excluded
@@ -892,8 +892,8 @@ vc__unversioned_files()
   test -z "$1" || error "unexpected arguments" 1
 
   local scm= scmdir=
-  vc_getscm
-  vc_unversioned
+  vc_getscm || return $?
+  vc_unversioned || return $?
 }
 
 # List (untracked) cleanable files
@@ -1216,6 +1216,9 @@ vc__regenerate()
   note "Local excludes successfully regenerated"
 }
 
+
+vc_man_1__regenerate_stale='Regenerate GIT exclude file from user config
+'
 vc__regenerate_stale()
 {
   for gexcl in .gitignore{-{clean,temp},}

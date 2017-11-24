@@ -7940,7 +7940,8 @@ htd__count_files()
 htd_man_1__find_broken_symlinks='Find broken symlinks'
 htd__find_broken_symlinks()
 {
-  find . -type l -xtype l
+  test "$uname" = "Darwin" && find=gfind
+  $find . -type l -xtype l || return $?
 }
 
 htd_man_1__find_skip_broken_symlinks='Find except broken symlinks'

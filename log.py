@@ -112,6 +112,9 @@ def format_str(msg):
 def std(msg, *args):
     print(format_str(msg % args))
 
+def stderr(msg, *args):
+    print(format_str(msg % args), file=sys.stderr)
+
 category = 4
 #category = 7
 strict = False

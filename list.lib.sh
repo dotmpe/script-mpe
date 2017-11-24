@@ -40,7 +40,7 @@ lst_load()
   # build ignore pattern file
   ignores_lib_load $lst_base
 
-  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
+  test ! -e "$IGNORE_GLOBFILE" || {
     IGNORE_GLOBFILE=$(eval echo \"\$$(str_upper "$base")_IGNORE\")
     lst_init_ignores
   }

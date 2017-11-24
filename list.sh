@@ -254,8 +254,8 @@ lst_lib()
 {
   local __load_lib=1
   lib_load meta list
-  lst_preload || exit $?
   lib_load ignores date
+  lst_load
   # -- lst box lib sentinel --
   set --
 }

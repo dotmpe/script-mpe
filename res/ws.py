@@ -5,7 +5,8 @@ import shelve
 from script_mpe import confparse
 
 from persistence import PersistedMetaObject
-from metafile import Metafile, Metadir
+from metafile import Metadir
+from vc import Repo
 
 
 """
@@ -35,7 +36,7 @@ class Workspace(Metadir):
     and a PersistedMetaObject stored in DOTID '.shelve'.
     """
 
-    DOTDIR = 'cllct'
+    DOTNAME = 'cllct'
     DOTID = 'ws'
 
     index_specs = [
@@ -48,6 +49,7 @@ class Workspace(Metadir):
         conf = self.metadirref('yaml')
         if os.path.exists(conf):
             self.settings = confparse.YAMLValues.load(conf)
+            assert isinstance(self.settings, dict), self.settings
         else:
             self.settings = {}
 
@@ -66,7 +68,7 @@ class Workspace(Metadir):
     def init_store(self, truncate=False):
         assert not truncate
         return PersistedMetaObject.get_store(
-                name=Metafile.storage_name, dbref=self.dbref)
+                name=self.storage_name, dbref=self.dbref)
         #return PersistedMetaObject.get_store(name=self.dotdir, dbref=self.dbref, ro=rw)
     # TODO: move this, res.dbm.MetaDirIndex
     def init_indices(self, truncate=False):
@@ -83,9 +85,9 @@ class Workspace(Metadir):
 
     @classmethod
     def find(self, *paths):
-        for idfile in Metadir.find_id(*paths):
+        for idfile in self.find_id(*paths):
             yield os.path.dirname( os.path.dirname( idfile ))
-        for metafile in Metadir.find_meta(*paths):
+        for metafile in self.find_meta(*paths):
             yield os.path.dirname( metafile )
 
 
@@ -100,11 +102,11 @@ class Homedir(Workspace):
     TODO: it shoud be aware of other host having a Homedir for current user.
     """
 
-    DOTID = 'homedir'
+    DOTID = 'home'
 
     # XXX:
     htdocs = None # contains much of the rest of the personal workspace stuff
-    projects = None # specialized workspace for projects..
+    default_projectdir = None # specialized workspace for projects..
 
 
 class Workdir(Workspace):
@@ -114,6 +116,19 @@ class Workdir(Workspace):
     """
 
     DOTID = 'local'
+    projects = [] #
+
+    def find_scmdirs(self):
+        for r in Repo.walk(self.path):
+            print(r)
+
+    def find_untracked(self):
+        for r in Repo.walk_untracked(self.path):
+            print(r)
+
+    def find_excluded(self):
+        for r in Repo.walk_excluded(self.path):
+            print(r)
 
 
 class Volumedir(Workspace):
@@ -126,10 +141,10 @@ class Volumedir(Workspace):
     DOTID = 'vol'
 
     index_specs = [
-                'sparsesum',
-                'sha1sum',
-                'dirs'
-            ]
+            'sparsesum',
+            'sha1sum',
+            'dirs'
+        ]
 
     def pathname(self, name, basedir=None):
         if basedir and basedir.startswith(self.path):
@@ -137,7 +152,3 @@ class Volumedir(Workspace):
         else:
             path = ""
         return os.path.join(path, name)
-
-
-
-
