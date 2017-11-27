@@ -45,8 +45,8 @@ import rsr
 import libcmd_docopt
 import log
 from libcmd_docopt import cmd_help
-from taxus import Node, Topic, Host, Project, VersionControl, ScriptMixin
-from taxus.init import SqlBase, get_session
+from taxus import ScriptMixin, SqlBase, get_session
+from taxus.v0 import Node, Topic, Host, Project, VersionControl
 from res import Workdir, Repo
 
 
@@ -168,6 +168,10 @@ commands['help'] = libcmd_docopt.cmd_help
 
 ### Util functions to run above functions from cmdline
 
+def defaults(opts, init={}):
+    libcmd_docopt.defaults(opts.flags)
+    return init
+
 def main(opts):
 
     """
@@ -184,6 +188,7 @@ def get_version():
 
 if __name__ == '__main__':
     import sys
-    opts = libcmd_docopt.get_opts(__doc__, version=get_version())
+    opts = libcmd_docopt.get_opts(__doc__, version=get_version(),
+            defaults=defaults)
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))

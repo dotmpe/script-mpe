@@ -16,7 +16,7 @@ import confparse
 import log
 
 
-def get_opts(docstr, meta={}, version=None, argv=None):
+def get_opts(docstr, meta={}, version=None, argv=None, defaults=None):
     """
     Get docopt dict, and set argv and flags from get_optvalues.
     """
@@ -27,9 +27,11 @@ def get_opts(docstr, meta={}, version=None, argv=None):
     opts = confparse.Values()
     opts.argv = argv
     parsed = pattern.flat() + collected
-    #assert not ( 'argv' in opts or 'flags' in opts or 'args' in opts),\
-    #        "Dont use 'argv', 'flags' or 'args'. "
     opts.cmds, opts.flags, opts.args = get_optvalues(parsed, meta)
+    if defaults:
+        for k, v in defaults(opts).items():
+            if not hasattr(opts.flags, k) or not getattr(opts.flags, k):
+                setattr(opts.flags, k, v)
     return opts
 
 def get_optvalues(opts, handlers={}):

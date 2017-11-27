@@ -258,22 +258,19 @@ commands['help'] = libcmd_docopt.cmd_help
 
 ### Util functions to run above functions from cmdline
 
-def defaults(opts):
+def defaults(opts, init={}):
     global cmd_default_settings, ctx
     libcmd_docopt.defaults(opts.flags)
-    d = {}
-    d.update(cmd_default_settings)
-    d.update(ctx.settings)
-    d.update(
+    opts.flags.update(cmd_default_settings)
+    opts.flags.update(ctx.settings)
+    opts.flags.update(
         default_input_format = not (
-                '-I' in sys.argv or '--intput-format' in opts.argv ),
+                '-I' in opts.argv or '--intput-format' in opts.argv ),
         default_output_format = not (
-                '-O' in sys.argv or '--output-format' in opts.argv )
+                '-O' in opts.argv or '--output-format' in opts.argv ),
+        dbref = ScriptMixin.assert_dbref(opts.flags['dbref'])
     )
-    for k, v in d.items():
-        if not hasattr(opts.flags, k) or not getattr(opts.flags, k):
-            setattr(opts.flags, k, v)
-    opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
+    return init
 
 def main(opts):
 
@@ -282,7 +279,6 @@ def main(opts):
     """
     global ctx, commands
 
-    defaults(opts)
     ctx.settings = settings = opts.flags
 
     if not settings.no_db:
@@ -302,5 +298,6 @@ if __name__ == '__main__':
     import sys
     argv = sys.argv[1:]
     if not argv: argv = [ 'list' ]
-    opts = libcmd_docopt.get_opts(__doc__, version=get_version(), argv=argv)
+    opts = libcmd_docopt.get_opts(__doc__, version=get_version(), argv=argv,
+            defaults=defaults)
     sys.exit(main(opts))
