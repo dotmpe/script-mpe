@@ -26,7 +26,7 @@ class JournalDir(object):
 
     DEFAULT_DIR = 'log'
 
-    @staticmethod
+    @classmethod
     def find(class_, path=None):
         if not path:
             path = class_.DEFAULT_DIR

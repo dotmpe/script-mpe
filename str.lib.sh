@@ -260,7 +260,7 @@ properties2sh()
 sh_properties()
 {
   test -n "$*" || error "sh-properties expects args: '$*'" 1
-  test -e "$2" || error "sh-properties file" 1
+  test -e "$1" -o "$1" = "-" || error "sh-properties file" 1
   # NOTE: Always be carefull about accidentally introducing newlines, will give
   # hard-to-debug syntax failures here or in the local evaluation
   read_nix_style_file $1 | grep '^'"$2" | sed 's/^'"$2"'/'"$3"'/g' | properties2sh -

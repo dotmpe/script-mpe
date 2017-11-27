@@ -192,4 +192,4 @@ class MaterializedPath(SqlBase, ORMMixin):
 #    Ie. ModifiedPreorder
 #    """
 
-
+models = []

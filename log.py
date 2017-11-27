@@ -109,8 +109,10 @@ def format_str(msg):
         msg = msg.replace('{%s}' % k, palette[k])
     return msg
 
-def std(msg, *args):
+def stdout(msg, *args):
     print(format_str(msg % args))
+
+std = stdout
 
 def stderr(msg, *args):
     print(format_str(msg % args), file=sys.stderr)

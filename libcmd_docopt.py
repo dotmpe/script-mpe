@@ -1,5 +1,9 @@
 """
 Simple command-line program setup with docopt.
+
+Parse options using docopt, use data as a optparse.Values alike.
+And match arguments and options with e.g. command handler function signature
+arguments by name getting for function arguments.
 """
 from __future__ import print_function
 import sys
@@ -10,7 +14,6 @@ import docopt
 
 import confparse
 import log
-
 
 
 def get_opts(docstr, meta={}, version=None, argv=None):
@@ -69,6 +72,9 @@ def get_optvalues(opts, handlers={}):
     return cmds, confparse.Values(flags), confparse.Values(args)
 
 
+select_kwdargs_defaults = dict(
+    kwdarg_aliases={'g':'settings'}
+)
 def select_kwdargs(handler, settings, **override):
 
     """
@@ -79,10 +85,15 @@ def select_kwdargs(handler, settings, **override):
     # get func signature
     func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
             inspect.getargspec(handler)
+    # TODO: see about supporting part of this using better settings
     assert not func_args_var, "Arg. passthrough not supported"
     assert not func_kwds_var, "Kwds. passthrough not supported"
     # Make 'settings' accessible as a whole
     override['settings'] = settings
+    # Resolve aliases before resolving argument values
+    for i, a in enumerate(func_arg_vars):
+        if a in settings.kwdarg_aliases:
+            func_arg_vars[i] = settings.kwdarg_aliases[a]
     # Set values for positional arguments
     if not func_arg_vars:
         func_arg_vars = []
@@ -98,6 +109,8 @@ def select_kwdargs(handler, settings, **override):
     if not func_defaults:
         func_defaults = {}
     for k, v in func_defaults.items():
+        if k in settings.kwdarg_aliases:
+            k = settings.kwdarg_aliases[k]
         if k in override:
             func_defaults[k] = override[k]
         elif k in settings:
@@ -223,3 +236,6 @@ def init_config(path, defaults={}, overrides={}, persist=[]):
             settings.volatile.append(k)
         setattr(settings, k, v)
     return settings
+
+def defaults(values):
+    values.update(select_kwdargs_defaults)

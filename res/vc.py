@@ -125,7 +125,7 @@ class Repo(Dir):
 
     def excluded(self):
         """List both unversioned and ignored"""
-        lines = lib.cmd('quiet=true vc ufx', cwd=self.path, allowempty=True)
+        lines = lib.cmd('verbosity=0 vc ufx', cwd=self.path, allow=[])
         return [ os.path.join(self.path, l) for l in lines.split('\n') if
                 l.strip() ]
 
@@ -135,7 +135,7 @@ class Repo(Dir):
 
     def untracked(self):
         """List unversioned files"""
-        lines = lib.cmd('quiet=true vc uf', cwd=self.path, allowempty=True)
+        lines = lib.cmd('verbosity=0 vc uf', cwd=self.path, allowempty=True)
         return [ os.path.join(self.path, l) for l in lines.split('\n') if
                 l.strip() ]
 

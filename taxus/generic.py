@@ -14,10 +14,9 @@ class Comment(semweb.Description):
     comment_id = Column('id', Integer, ForeignKey('frags.id'), primary_key=True)
 
     annotated_node = Column(Integer, ForeignKey('nodes.id'))
-    node = relationship(core.Node, 
+    node = relationship(core.Node,
             primaryjoin=annotated_node==core.Node.node_id)
     comment = Column(Text)
 
 
 models = [ Comment ]
-

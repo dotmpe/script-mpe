@@ -27,11 +27,10 @@ class SessionMixin(object):
         return name in SessionMixin.sessions
 
     @staticmethod
-    def get_session(name='default', dbref=None, init=False, SqlBase=SqlBase):
+    def get_session(name='default', dbref=None, init=False, metadata=SqlBase.metadata):
         if name not in SessionMixin.sessions:
             assert dbref, "session does not exists: %s" % name
-            session = get_session(dbref, init, metadata=SqlBase.metadata)
-            #assert session.engine, "new session has no engine"
+            session = get_session(dbref, init, metadata=metadata)
             SessionMixin.sessions[name] = session
         else:
             session = SessionMixin.sessions[name]
@@ -296,6 +295,10 @@ class RecordMixin(object):
         return root
 
     @classmethod
+    def model_name(Klass):
+        return Klass.root_type().__name__
+
+    @classmethod
     def init_ref(Klass, ref):
         """
         Return proper type and ID for ref::
@@ -470,5 +473,3 @@ def nameinfo(addr):
     print(DNSCache[ addr ][ 0 ])
 
     family, socktype, proto, canonname, sockaddr = DNSCache[ addr ][ 0 ]
-
-

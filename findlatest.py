@@ -8,7 +8,7 @@ Using modification time (--mtime) is possible.
 from __future__ import print_function
 import os
 import sys
-from lib import is_versioned
+from lib import is_scmdir
 
 
 def main():
@@ -28,14 +28,14 @@ def main():
             assert os.path.isdir(arg), arg
             times = {}
             paths = {}
-            if is_versioned(arg):
+            if is_scmdir(arg):
                 return
             for root, dirs, files in os.walk(arg):
                 for d in dirs:
                     rmdirs = []
                     for d in dirs:
                         p = os.path.join(root, d)
-                        if is_versioned(p):
+                        if is_scmdir(p):
                             rmdirs.append(d)
                     for d in rmdirs:
                         dirs.remove(d)

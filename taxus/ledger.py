@@ -1,24 +1,34 @@
 """
-TODO: categorize accounts.
-XXX: prolly rewrite year/month to generic period, perhaps scrap accbalances
+.. class-uml::
+
+	Account {
+		balance:Integer
+		name:String
+	}
+
+	Mutation {
+		to:Account
+		from:Account
+		amount:Float
+		currency:[EUR]
+		date:Date
+		description:String
+		specification:String
+	}
 """
 from __future__ import print_function
-import os
 import re
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, Boolean, Text, \
-    ForeignKey, Table, Index, DateTime, Date, Float, \
-    create_engine, func
+from sqlalchemy import Column, Integer, Float, String, Boolean, Text, \
+    ForeignKey, Table, Index, DateTime, select, func
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, backref, sessionmaker
 
+from taxus import core
+from taxus.mixin import CardMixin
+from taxus.init import SqlBase
 from taxus.util import ORMMixin
 
-
-SqlBase = declarative_base()
-metadata = SqlBase.metadata
 
 
 
@@ -27,37 +37,42 @@ ACCOUNT_EXPENSES = "Expenses"
 ACCOUNT_ACCOUNTING = "Expenses:Account"
 
 class Account(SqlBase, ORMMixin):
-
-    """
-    """
-
     __tablename__ = 'accs'
-
-    account_id = Column('id', Integer, primary_key=True)
-    balance = Column(Integer) # XXX: related ot blaance
-    name = Column(String)
+    number = Column('number', Integer, primary_key=True)
+    balance = Column(Integer)
+    name = Column(String, unique=True, nullable=True)
     # classifiers? to match transactions
-    nl_p_number = Column(Integer, unique=True, nullable=True)
-    nl_number = Column(Integer, unique=True, nullable=True)
-    iban = Column(String, unique=True, nullable=True)
-
-    account_type = Column('type', String)
-
+    #nl_p_number = Column(Integer, unique=True, nullable=True)
+    #nl_number = Column(Integer, unique=True, nullable=True)
+    #iban = Column(String, unique=True, nullable=True)
+    account_id = Column('id', String, nullable=True)
     date_added = Column(DateTime, index=True, nullable=False)
     date_updated = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
     date_deleted = Column(DateTime)
 
-    def init_defaults(self):
-        if not self.date_added:
-            self.date_updated = self.date_added = datetime.now()
-        elif not self.date_updated:
-            self.date_updated = datetime.now()
+    def init_defaults(self, d):
+        if not 'date_added' in d:
+            d['date_added'] = d['date_updated'] = datetime.now()
+        if not 'date_updated' in d:
+            d['date_updated'] = datetime.now()
+        return d
+
+    def seed_defaults(self, kwds):
+        for k, e in kwds.items():
+            if not getattr(self, k):
+                setattr(self, k, e)
+
+    def seed(self, **kwds):
+        kwds = self.init_defaults(dict(kwds))
+        for k, e in kwds.items():
+            setattr(self, k, e)
+        return self
 
     def __str__(self):
         return "[Account %r #%s %s]" % ( self.name,
                 self.iban or self.nl_number or self.nl_p_number,
-                self.account_type)
+                self.account_id)
 
     def set_nr(self, account_number):
         """
@@ -74,17 +89,17 @@ class Account(SqlBase, ORMMixin):
             return False
 
     @classmethod
-    def for_name_type(klass, session, name, account_type=None):
+    def for_name_id(klass, session, account_nr, account_id=None):
         """
         Return existing or create.
         """
         acc_rs = session.query(Account).filter(
-                Account.account_type == account_type).filter(
-                Account.name == name.strip()).all()
+                Account.account_id == account_id).filter(
+                Account.account_nr == account_nr.strip()).all()
         if acc_rs:
             acc = acc_rs[0]
         else:
-            acc = Account(name=name.strip(), account_type=account_type)
+            acc = Account(account_nr=account_nr.strip(), account_id=account_id)
             acc.init_defaults()
             session.add(acc)
             session.commit()
@@ -92,14 +107,14 @@ class Account(SqlBase, ORMMixin):
 
     @classmethod
     def for_checkout(klass, session, descr):
-        return klass.for_name_type(session, descr, "checkout")
+        return klass.for_name_id(session, descr, "checkout")
 
     @classmethod
     def for_withdrawal(klass, session, descr):
-        return klass.for_name_type(session, descr, "atm")
+        return klass.for_name_id(session, descr, "atm")
 
     @classmethod
-    def for_nr(klass, session, account_number):
+    def for_nr(klass, session, account_number, assert_exists=False):
         """
         XXX only valid for dutch acc nrs.
         """
@@ -128,7 +143,11 @@ class Account(SqlBase, ORMMixin):
                                 int(account_number[-9:]) ).all()
         else:
             assert account_number
-            print('Unknown account number:', account_number)
+            if assert_exists:
+                raise KeyError("No record for account-number %r" %
+                        account_number)
+            else:
+                print('Unknown account number:', account_number)
             return
 
         if len(acc_rs) == 1:
@@ -142,36 +161,48 @@ class Mutation(SqlBase, ORMMixin):
     Temporary? table to hold mutations.
     """
     __tablename__ = 'muts'
+
     mut_id = Column('id', Integer, primary_key=True)
-    year = Column(Integer, nullable=False)
-    month = Column(Integer, nullable=False)
-    day = Column(Integer, nullable=False)
-    from_account = Column(Integer, ForeignKey('accs.id'), nullable=False)
-    to_account = Column(Integer, ForeignKey('accs.id'), nullable=False)
+    date = Column(DateTime, index=True, nullable=False)
+    from_account_nr = Column(Integer, ForeignKey('accs.number'), nullable=False)
+    from_account = relationship(
+            'Account', primaryjoin='Account.number==Mutation.from_account_nr')
+    to_account_nr = Column(Integer, ForeignKey('accs.number'), nullable=False)
+    to_account = relationship(
+            'Account', primaryjoin='Account.number==Mutation.to_account_nr')
     category = Column(String, nullable=False)
+    currency = Column(String(16), nullable=False)
     description = Column(Text)
     amount = Column(Float)
 
     def __str__(self):
         x = []
-        for p in "mut_id year month day amount from_account to_account category description".split(' '):
+        f = ("mut_id date amount currency from_account to_account category"\
+            +" description").split(' ')
+        for p in f:
             x.append(getattr(self, p))
         return " ".join(map(str,x))
 
-models = [
-        Account,
-        Mutation
-    ]
+    @classmethod
+    def forge(Klass, src, ctx, g):
+        init = {}
+        for c in Klass.__table__.columns:
+            if hasattr(src, c.name):
+                init[c.name] = getattr(src, c.name)
 
+        init['from_account'] = ctx.assertaccount(src.from_account_nr)
+        if src.debet_credit is 'C':
+            init['to_account'] = ctx.assertaccount(src.to_account_nr,
+                    _id=ACCOUNT_CREDIT, name=src.to_account_name)
+        else:
+            init['to_account'] = ctx.assertaccount(src.to_account_nr,
+                    _id=ACCOUNT_EXPENSES, name=src.to_account_name)
 
-def get_session(dbref, initialize=False, metadata=SqlBase.metadata):
-    engine = create_engine(dbref)
-    metadata.bind = engine
-    if initialize:
-        metadata.create_all()  # issue DDL create
-        print('Updated myLedger schema')
-    session = sessionmaker(bind=engine)()
-    return session
+        init['description'] = "\t".join([ getattr(src, a) for a in
+                "descr descr2 descr3 descr4".split(' ')
+            ])
+
+        return Klass(**init)
 
 
 # TODO: lookup checksum methods for acc nrs
@@ -187,8 +218,8 @@ def valid_nl_p_number(acc):
 def fetch_expense_balance(settings, sa=None):
     "Return expence accounts and cumulative balance. "
     if not sa:
-        sa = get_session(settings.dbref)
-    expenses_acc = Account.all((Account.name.like(ACCOUNT_CREDIT+'%'),), sa=sa)
+        sa = context.get_session(settings.dbref)
+    expenses_acc = Account.all((Account.name.like(ACCOUNT_EXPENSES+'%'),), sa=sa)
     balance, = sa.query(func.sum(Mutation.amount))\
             .filter( Mutation.from_account.in_([
                 acc.account_id for acc in expenses_acc ]) ).one()
@@ -216,3 +247,13 @@ class Simplemovingaverage():
             average = sum( stream ) / streamlength
 
         return average
+
+models = [
+
+#        INode,
+
+#
+        Account,
+        Mutation,
+        #Simplemovingaverage
+    ]

@@ -30,7 +30,9 @@ import taxus.model
 import taxus.net
 import taxus.semweb
 import taxus.web
-from taxus import SessionMixin, \
+
+from taxus import SessionMixin
+from taxus.v0 import \
         Node, GroupNode, \
         INode, Dir, \
         Name, Tag, \

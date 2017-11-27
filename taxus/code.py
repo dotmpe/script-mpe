@@ -79,5 +79,3 @@ class Project(SqlBase, ORMMixin):
 models = [
         VersionControl, Project
     ]
-
-

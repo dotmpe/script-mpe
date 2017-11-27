@@ -18,7 +18,7 @@ class Description(core.Node):
 
 # XXX to clean
 #    namespace_id = Column(Integer, ForeignKey('ns.id'))
-#    namespace = relationship('Namespace', 
+#    namespace = relationship('Namespace',
 #            primaryjoin='namespace_id==Namespace.namespace_id')
 
 #    variants = relationship('Variant', backref='descriptions',
@@ -27,7 +27,7 @@ class Description(core.Node):
 #= Table('resource_variant', SqlBase.metadata,
 #    Column('res_ida', Integer, ForeignKey('res.id'), primary_key=True),
 #    Column('vres_idb', Integer, ForeignKey('vres.id'), primary_key=True),
-##    mysql_engine='InnoDB', 
+##    mysql_engine='InnoDB',
 ##    mysql_charset='utf8'
 #)
 
@@ -46,4 +46,3 @@ class Formula:
 
 
 models = [ Description ]
-

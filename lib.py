@@ -30,9 +30,9 @@ RSR_NS = 'rsr', 'http://name.wtwta.nl/#/rsr'
 
 # Util functions
 
-rcs_path = re.compile('^.*\/\.(svn|git|bzr)$')
+rcs_path = re.compile('^.*\/\.(svn|git|bzr|hg)$')
 
-def is_versioned(dirpath):
+def is_scmdir(dirpath):
     assert isdir(dirpath), dirpath
     for d in os.listdir(dirpath):
         p = join(dirpath, d)
@@ -40,7 +40,8 @@ def is_versioned(dirpath):
         if m:
             return True
 
-def cmd(cmd, cwd=None, allowempty=False):
+def cmd(cmd, cwd=None, allowempty=False, allowerrors=False, allow=[]):
+    "Simple wrapper for subprocess.Popen"
     if isinstance(cmd, basestring):
         cmd = [ cmd ]
     assert isinstance(cmd, list)
@@ -50,11 +51,13 @@ def cmd(cmd, cwd=None, allowempty=False):
             stdout=subprocess.PIPE,
             close_fds=True, cwd=cwd )
     errors = proc.stderr.read()
-    if errors or proc.returncode:
-        raise Exception(errors)
+    if ( errors and not allowerrors ) or (
+        proc.returncode and proc.returncode not in allow
+    ):
+        raise Exception(errors or "subproc returned %i" % proc.returncode)
     value = proc.stdout.read()
     if not value and not allowempty:
-        raise Exception("OS invocation %r returned nothing" % cmd)
+        raise Exception("subproc %r returned nothing" % cmd)
     return value
 
 def get_checksum_sub(path, checksum_name='sha1'):

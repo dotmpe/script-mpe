@@ -18,7 +18,8 @@ import confparse
 import res
 from res.session import Session
 import taxus
-from taxus import SessionMixin, Node, Name, Tag, SqlBase, get_session
+from taxus import SessionMixin, SqlBase, get_session
+from taxus.v0 import Node, Name, Tag
 
 import sys
 import os
@@ -343,7 +344,7 @@ class Rsr(libcmd.StackedCommand):
         if opts.init_db:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
         sa = SessionMixin.get_session(opts.session, dbref, opts.init_db,
-                SqlBase=SqlBase)
+                metadata=SqlBase.metadata)
 
         yield dict(sa=sa)
 

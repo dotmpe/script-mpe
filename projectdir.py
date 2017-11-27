@@ -27,13 +27,14 @@ __doc__ += __usage__
 import libcmd_docopt
 import log
 from libcmd_docopt import cmd_help
-from taxus import Node, Topic, Host, Project, VersionControl, ScriptMixin
+from taxus import Taxus, v0, ScriptMixin
 from taxus.init import SqlBase, get_session
 from res import Workdir, Repo
+from taxus.v0 import Node, Topic, Host, Project, VersionControl
 
 
 models = [ Project, VersionControl ]
-
+context = Taxus(version='projectdir')
 
 
 def cmd_list(refs, settings):

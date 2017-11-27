@@ -3139,7 +3139,7 @@ htd__git_remote()
 
   {
     C=$UCONFDIR/git/remote-dirs/$2.sh
-    test -e "$C" && . $C
+    test -e "$C" && . $C || error "Missing remote-dir file '$2'" 1
     #|| error "Missing remote GIT dir script" 1
     test -n "$remote_dir" || {
       info "Using $NS_NAME for $2 remote vendor path"
@@ -3175,7 +3175,7 @@ htd__git_remote()
           # List values for first arguments
           test -n "$remote_list" && {
 
-            htd__git_remote $remote_list $NS_NAME || return $?
+            htd__git_remote list $remote_list $NS_NAME || return $?
 
           } || {
 
@@ -3188,15 +3188,21 @@ htd__git_remote()
         ;;
 
       info )
+          test -n "$2" || error "remote name required" 1
           test -n "$3" && {
             echo "remote.$2.git.url=$remote_hostinfo:$remote_dir/$3"
             echo "remote.$2.scp.url=$remote_hostinfo:$remote_dir/$3.git"
-            echo "remote.$2.dir=$remote_dir/$3.git"
+            echo "remote.$2.repo.dir=$remote_dir/$3.git"
             echo "remote.$2.hostinfo=$remote_hostinfo"
           } || {
-            echo "remote.$2.dir=$remote_dir"
+            echo "remote.$2.repo.dir=$remote_dir"
             echo "remote.$2.hostinfo=$remote_hostinfo"
           }
+        ;;
+
+      sh-env ) shift
+          test -n "$3" || set -- "$1" "$2" remote_
+          htd__git_remote info "$1" "$2" | sh_properties - 'remote\.'"$1"'\.' "$3"
         ;;
 
       * ) error "'$1'?" 1 ;;
@@ -3207,60 +3213,53 @@ htd__git_remote()
 
 htd__git_init_local() # [ Repo ]
 {
+  local remote=local
   repo="$(basename "$(pwd)")"
+  [ -n "$repo" ] || error "Missing project ID" 1
+
   BARE=/srv/git-local/$NS_NAME/$repo.git
   [ -d $BARE ] || {
       log "Creating temp. bare clone"
       git clone --bare . $BARE
     }
-  remote="$(git config remote.local.url)"
-  test -n "$remote" && {
-    test "$remote" = $BARE || error "$remote not $BARE" 1
+
+  remote_url="$(git config remote.$remote.url)"
+  test -n "$remote_url" && {
+    test "$remote_url" = $BARE || error "$remote not $BARE" 1
   } || {
-    git remote add local $BARE
+    git remote add $remote $BARE
   }
 }
 
 htd__git_init_remote() # [ Repo ]
 {
-  test -n "$HTD_GIT_REMOTE" || error "No HTD_GIT_REMOTE" 1
-  source_git_remote
-  [ -n "$1" ] && repo="$1" || repo="$(basename "$(pwd)")"
-
-  test -n "$repo" || error "Missing project ID" 1
   [ -e .git ] || error "No .git directory, stopping remote init" 0
-
+  test -n "$HTD_GIT_REMOTE" || error "No HTD_GIT_REMOTE" 1
+  local repo= remote=$HTD_GIT_REMOTE BARE=
 
   # Create local repo if needed
-
-  BARE=/srv/git-local/$repo.git
-  [ -d $BARE ] || {
-      log "Creating temp. bare clone"
-      git clone --bare . $BARE
-    }
-
+  htd__git_init_local
 
   # Remote repo, idem ditto
+  local $(htd__git_remote sh-env "$remote" "$repo")
+  {
+    test -n "$remote_hostinfo" && test -n "$remote_repo_dir"
+  } ||
+    error "Incomplete env" 1
+  
+  
+  ssh_cmd="mkdir -v $remote_repo_dir"
+  ssh $remote_hostinfo "$ssh_cmd" && {
 
-  htd__git_remote $repo >> /dev/null
-  test -n "$scp_url" || error "No scp_url" 1
+    log "Syning new bare repo to $remote_scp_url"
+    rsync -azu $BARE/ $remote_scp_url
 
-  ssh_cmd="mkdir -v $remote_dir/$repo.git"
-  ssh $remote_user@$remote_host "$ssh_cmd" && {
-
-    log "Syning new bare repo to $scp_url"
-    rsync -azu $BARE/ $scp_url
-
-  } || {
-
-    warn "Remote exists, adding as remote '$HTD_GIT_REMOTE'"
-  }
-
+  } ||
+    warn "Remote exists, checking remote '$remote'"
 
   # Initialise remotes for checkout
-
   {
-    echo $HTD_GIT_REMOTE $scp_url
+    echo $remote $remote_scp_url
     echo local $BARE
     echo $hostname $hostname.zt:$BARE
   } | while read rt rurl

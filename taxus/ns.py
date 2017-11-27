@@ -57,4 +57,3 @@ class Namespace(web.Variant):
 
 
 models = [ Namespace, Localname ]
-

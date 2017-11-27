@@ -1072,9 +1072,8 @@ def get_service(t):
 
 # Optparse callbacks
 def append_comment_scan(option, value, parser):
-    print("TODO comment_scan", (option, value, parser))
-    pass
-
+    log.stderr("TODO comment_scan", (option, value, parser))
+    return -1
 
 # Static metadata
 
@@ -1219,8 +1218,8 @@ class Radical(rsr.Rsr):
 
     def rdc_list_flavours(self, args=None, opts=None):
         for flavour in self.rc.comment_scan:
-            print("%s:\n\tstart:\t%s" % ((flavour,)+)
-                    tuple(self.rc.comment_scan[flavour][:1]))
+            print("%s:\n\tstart:\t%s" % ((flavour,)+
+                    tuple(self.rc.comment_scan[flavour][:1])))
             if len(self.rc.comment_scan[flavour]) > 1:
                 print("\tend:\t%s" % self.rc.comment_scan[flavour][1])
             print
@@ -1361,12 +1360,12 @@ class Radical(rsr.Rsr):
         cmt.validate()
         out = EmbeddedIssue.formats[issue_format](cmt, data)
         assert not re.match('[\r\n]', out)
-        print(out)
+        log.stdout(out)
 
     def rdc_info(self, prog, sa):
-        print('Radical info', prog, sa)
+        log.stdout('Radical info', prog, sa)
         r = self.execute('rdc_run_embedded_issue_scan')
-        print(r)
+        log.stdout(r)
 
 
 if __name__ == '__main__':
