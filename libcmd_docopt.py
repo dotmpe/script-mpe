@@ -16,7 +16,12 @@ import confparse
 import log
 
 
-def get_opts(docstr, meta={}, version=None, argv=None, defaults=None):
+def defaults(opts, init={}):
+    global select_kwdargs_defaults
+    opts.flags.update(select_kwdargs_defaults)
+    return init
+
+def get_opts(docstr, meta={}, version=None, argv=None, defaults=defaults):
     """
     Get docopt dict, and set argv and flags from get_optvalues.
     """
@@ -238,6 +243,3 @@ def init_config(path, defaults={}, overrides={}, persist=[]):
             settings.volatile.append(k)
         setattr(settings, k, v)
     return settings
-
-def defaults(values):
-    values.update(select_kwdargs_defaults)

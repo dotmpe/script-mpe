@@ -420,3 +420,11 @@ htd_output_format_q()
   esac
 }
 
+# [remove-swap] vim-swap <file>
+vim_swap()
+{
+  local swp="$(dirname "$1")/.$(basename "$1").swp"
+  test ! -e "$swp" || {
+    trueish "$remove_swap" && rm $swp || return 1
+  }
+}

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""
+from __future__ import print_function
+__doc__ = """
 :created: 2015-12-27
 
 
@@ -28,7 +29,7 @@ gcal.py [-h] [--auth_host_name AUTH_HOST_NAME]
 [--auth_host_port [AUTH_HOST_PORT [AUTH_HOST_PORT...]]]
 [--logging_level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
 """
-from __future__ import print_function
+
 import httplib2
 import os
 from pprint import pprint, pformat
@@ -60,12 +61,12 @@ SCOPES = 'https://www.googleapis.com/auth/calendar'
 # XXX: cleanup
 #CLIENT_SECRET_FILE = 'client_secret.json'
 #CLIENT_SECRET_FILE = os.getenv('GSPREAD_CREDS_JSON')
+CLIENT_SECRET_FILE = "/Users/berend/.local/etc/simza-script-d2efacfe6f41.json"
+#if not os.path.exists(CLIENT_SECRET_FILE):
+#    raise Exception("Missing CLIENT_SECRET_FILE=%r" % CLIENT_SECRET_FILE)
 
-CRED_FILE = os.path.expanduser('~/.credentials/script-gcal.json')
-CRED_FILE = "/usr/local/lib/python2.7/site-packages/gtasks/credentials.json"
-CRED_FILE = "/Users/berend/.local/etc/simza-script-d2efacfe6f41.json"
-if not os.path.exists(CRED_FILE):
-    raise Exception("Missing CRED_FILE=%r" % CRED_FILE)
+CRED_FILE = os.path.expanduser('~/.local/etc/x-gcal-creds.json')
+#CRED_FILE = "/usr/local/lib/python2.7/site-packages/gtasks/credentials.json"
 
 
 APPLICATION_NAME = 'Google Calendar API Python Quickstart'
@@ -84,6 +85,7 @@ def get_credentials(app_name, secret_file, credential_path, scopes):
     store = oauth2client.file.Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:
+    #except oauth2client.clientsecrets.InvalidClientSecretsError:
         flow = client.flow_from_clientsecrets(secret_file, scopes)
         flow.user_agent = app_name
         #credentials = tools.run(flow, store)
@@ -215,9 +217,9 @@ if __name__ == '__main__':
     opts = libcmd_docopt.get_opts(__doc__)
     if not opts.cmds:
         opts.cmds = ['list']
-    #if not opts.flags.secret:
-    #    if 'GCAL_JSON_SECRET_FILE' in os.environ:
-    #        opts.flags.secret = os.environ['GCAL_JSON_SECRET_FILE']
-    #    else:
-    #        opts.flags.secret = CLIENT_SECRET_FILE
+    if not opts.flags.secret:
+        if 'GCAL_JSON_SECRET_FILE' in os.environ:
+            opts.flags.secret = os.environ['GCAL_JSON_SECRET_FILE']
+        else:
+            opts.flags.secret = CLIENT_SECRET_FILE
     sys.exit( main( opts.cmds[0], opts ) )

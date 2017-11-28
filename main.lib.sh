@@ -687,6 +687,8 @@ run_subcmd()
     }
   }
 
+  test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
+
   load_subcmd $box_prefix || return $?
   debug "$base loaded"
 

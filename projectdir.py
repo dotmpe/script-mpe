@@ -89,10 +89,6 @@ commands['help'] = libcmd_docopt.cmd_help
 
 ### Util functions to run above functions from cmdline
 
-def defaults(opts, init={}):
-    libcmd_docopt.defaults(opts.flags)
-    return init
-
 def main(opts):
 
     """
@@ -109,7 +105,6 @@ def get_version():
 
 if __name__ == '__main__':
     import sys
-    opts = libcmd_docopt.get_opts(__doc__,
-            version=get_version(), defaults=defaults)
+    opts = libcmd_docopt.get_opts(__doc__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))

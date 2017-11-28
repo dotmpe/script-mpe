@@ -50,8 +50,10 @@ def cmd(cmd, cwd=None, allowempty=False, allowerrors=False, allow=[]):
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
             close_fds=True, cwd=cwd )
-    errors = proc.stderr.read()
-    if ( errors and not allowerrors ) or (
+    errors = None
+    if not allowerrors:
+        errors = proc.stderr.read()
+    if errors or (
         proc.returncode and proc.returncode not in allow
     ):
         raise Exception(errors or "subproc returned %i" % proc.returncode)

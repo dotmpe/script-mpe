@@ -7317,15 +7317,6 @@ htd__colorize()
   esac
 }
 
-vim_swap()
-{
-  local swp="$(dirname "$1")/.$(basename "$1").swp"
-  test ! -e "$swp" || {
-    trueish "$remove_swap" && rm $swp || return 1
-  }
-}
-
-
 htd__say()
 {
   lang=$1
@@ -9207,7 +9198,7 @@ htd_edit_and_update()
 {
   test -e "$1" || error htd-edit-and-update-file 1
 
-  vim "$@" || return $?
+  $EDITOR "$@" || return $?
 
   new_ck="$(md5sum "$1" | cut -f 1 -d ' ')"
   test "$cksum" = "$new_ck" && {

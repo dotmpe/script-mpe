@@ -57,8 +57,8 @@ import confparse
 import log
 import libcmd_docopt
 from taxus.init import SqlBase, get_session
-from taxus import Node, Name, ID, Topic, Outline, \
-        ScriptMixin
+from taxus.v0 import Node, Name, ID, Topic, Outline
+from taxus import ScriptMixin
 import res.list
 import res.task
 
