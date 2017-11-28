@@ -7994,6 +7994,7 @@ htd__sync()
     do
         git push -q $remote $branch ||
             error "[$dir] git push '$remote $branch' ($?)" 1
+        note "[$dir] $branch in sync with $remote/$branch"
     done
 
     trueish "$isannex" || continue
@@ -8006,6 +8007,7 @@ htd__sync()
         trueish "$(git config --get remote.$remote.annex-ignore)" && continue
         git annex copy -q --to $remote ||
             error "[$dir] git annex copy --to '$remote' ($?)" 1
+        note "[$dir] backup done at $remote"
     done
   done
 }
