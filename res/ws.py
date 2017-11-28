@@ -91,7 +91,41 @@ class Workspace(Metadir):
             yield os.path.dirname( metafile )
 
 
-class Homedir(Workspace):
+class Workdir(Workspace):
+
+    """
+    A user basedir ... ?
+    """
+
+    DOTID = 'local'
+    projects = [] #
+
+    def find_scmdirs(self, cwd=None):
+        if cwd:
+            cwd = os.path.realpath(cwd)
+            assert cwd.startswith(self.path)
+        for r in Repo.walk(self.path):
+            if not cwd or r.startswith(cwd):
+                print(r)
+
+    def find_untracked(self, cwd=None):
+        if cwd:
+            cwd = os.path.realpath(cwd)
+            assert cwd.startswith(self.path)
+        for r in Repo.walk_untracked(self.path):
+            if not cwd or r.startswith(cwd):
+                print(r)
+
+    def find_excluded(self, cwd=None):
+        if cwd:
+            cwd = os.path.realpath(cwd)
+            assert cwd.startswith(self.path)
+        for r in Repo.walk_excluded(self.path):
+            if not cwd or r.startswith(cwd):
+                print(r)
+
+
+class Homedir(Workdir):
 
     """
     The default workspace for a user. If no other workspace type applies, the
@@ -107,28 +141,6 @@ class Homedir(Workspace):
     # XXX:
     htdocs = None # contains much of the rest of the personal workspace stuff
     default_projectdir = None # specialized workspace for projects..
-
-
-class Workdir(Workspace):
-
-    """
-    A generic basedir ... ?
-    """
-
-    DOTID = 'local'
-    projects = [] #
-
-    def find_scmdirs(self):
-        for r in Repo.walk(self.path):
-            print(r)
-
-    def find_untracked(self):
-        for r in Repo.walk_untracked(self.path):
-            print(r)
-
-    def find_excluded(self):
-        for r in Repo.walk_excluded(self.path):
-            print(r)
 
 
 class Volumedir(Workspace):

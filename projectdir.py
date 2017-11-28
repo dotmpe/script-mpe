@@ -29,7 +29,7 @@ import log
 from libcmd_docopt import cmd_help
 from taxus import Taxus, v0, ScriptMixin
 from taxus.init import SqlBase, get_session
-from res import Workdir, Repo
+from res import Workdir, Repo, Homedir
 from taxus.v0 import Node, Topic, Host, Project, VersionControl
 
 
@@ -45,7 +45,7 @@ def cmd_list(refs, settings):
 
     ws = Workdir.fetch()
     if ws:
-        ws.find_scmdirs()
+        ws.find_scmdirs('.')
 
 
 def cmd_find(refs, settings):
@@ -58,20 +58,34 @@ def cmd_find(refs, settings):
     """
 
     ws = Workdir.fetch()
+    if not ws:
+        ws = Homedir.fetch()
+    if not ws:
+        repo = Repo.fetch()
+        if repo:
+            cwd = os.path.realpath('.')
+            assert cwd.startswith(repo.path)
+            if settings.ignored:
+                for p in repo.excluded():
+                    if not cwd or p.startswith(cwd):
+                        print(p)
+            else:
+                for p in repo.untracked():
+                    if not cwd or p.startswith(cwd):
+                        print(p)
+
+        return
+
     if ws:
         if settings.ignored:
-            ws.find_excluded()
+            ws.find_excluded('.')
         else:
-            ws.find_untracked()
+            ws.find_untracked('.')
 
-    else:
-        repo = Repo.fetch()
-        if settings.ignored:
-            for p in repo.excluded():
-                print(p)
-        else:
-            for p in repo.untracked():
-                print(p)
+        return
+
+    log.stderr("Not a workspace or checkout dir")
+    return 1
 
 
 def cmd_stat(refs, settings):

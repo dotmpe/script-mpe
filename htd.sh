@@ -3246,8 +3246,8 @@ htd__git_init_remote() # [ Repo ]
     test -n "$remote_hostinfo" && test -n "$remote_repo_dir"
   } ||
     error "Incomplete env" 1
-  
-  
+
+
   ssh_cmd="mkdir -v $remote_repo_dir"
   ssh $remote_hostinfo "$ssh_cmd" && {
 
@@ -3468,9 +3468,9 @@ and remove path if in sync.
 htd__file()
 {
   test -n "$1" || set -- info
-  
+
   case "$1" in
-        
+
       newer-than ) shift
           test -e "$1" || error "htd file new-than file expected '$1'" 1
           case "$2" in *[0-9] ) ;;
@@ -5926,30 +5926,6 @@ htd__tmux()
 htd_grp__tmux=tmux
 
 
-
-htd__reader_update()
-{
-  cd /Volumes/READER
-
-  for remote in .git/refs/remotes/*
-  do
-    name="$(basename "$remote")"
-    newer_than "$remote" _1HOUR && {
-      info "Remote $name is up-to-date"
-    } || {
-      note "Remote $name is too old, syncing"
-      git annex sync $name && continue || error "sync failed"
-    }
-  done
-
-  note "Removing dead symlinks (annex content elsewhere), for PRS software"
-  find ./ -type l | while read l
-  do
-      test -e "$l" || rm "$l"
-  done
-}
-
-
 htd_man_1__test="Run PDir tests in HTDIR"
 htd__test()
 {
@@ -7958,6 +7934,72 @@ htd__finfo()
   do
     finfo.py --recurse --documents --env htdocs=HTDIR $dir \
       || return $?
+  done
+}
+
+
+htd__reader_update()
+{
+  cd /Volumes/READER
+
+  for remote in $(git remote)
+  do
+    name="$(basename "$remote")"
+    newer_than "$remote" _1HOUR && {
+      info "Remote $name is up-to-date"
+    } || {
+      note "Remote $name is too old, syncing"
+      git annex sync $name && continue || error "sync failed"
+    }
+  done
+
+  note "Removing dead symlinks (annex content elsewhere), for PRS software"
+  find ./ -type l | while read l
+  do
+    test -e "$l" || rm "$l"
+  done
+}
+
+
+htd__sync()
+{
+  local rules=.sync-rules.list
+  test -e "$rules" || {
+    sys_confirm "No local rules, execute all global rules?" || return $?
+    rules=~/.conf/sync-rules.list
+  }
+  read_nix_style_file $rules | while read dir branch remotespec isannex
+  do
+    dir="$(htd prefixes expand "$dir")"
+    cd $dir || error "cd '$dir'" 1
+    test -z "$(git status --porcelain -uno)" || {
+      warn "Ignoring dirty index at '$dir'"
+      continue
+    }
+
+    note "Checking out '$dir' to '$branch'.."
+    git checkout $branch ||
+        error "[$dir] git checkout '$branch' ($?)" 1
+
+    test "$remotespec" != "*" || remotespec="$(git remote)"
+
+    for remote in $remotespec
+    do
+        git pull $remote $branch ||
+            error "[$dir] git pull '$remote $branch' ($?)" 1
+    done
+
+    trueish "$isannex" || continue
+    note "Backing up tracked local files.."
+    git annex sync $remotespec ||
+        error "[$dir] git annex sync '$remotespec' ($?)" 1
+
+    for remote in $remotespec
+    do
+        trueish "$(git config --get remote.$remote.annex-ignore)" && continue
+        git annex copy --to $remote ||
+            error "[$dir] git annex copy --to '$remote' ($?)" 1
+    done
   done
 }
 
