@@ -7977,27 +7977,34 @@ htd__sync()
       continue
     }
 
-    note "Checking out '$dir' to '$branch'.."
-    git checkout $branch ||
-        error "[$dir] git checkout '$branch' ($?)" 1
+    test "$branch" = "$(git rev-parse --abbrev-ref HEAD)" || {
+        note "Checking out '$dir' to '$branch'.."
+        git checkout -q $branch ||
+            error "[$dir] git checkout '$branch' ($?)" 1
+    }
 
     test "$remotespec" != "*" || remotespec="$(git remote)"
 
     for remote in $remotespec
     do
-        git pull $remote $branch ||
+        git pull -q $remote $branch ||
             error "[$dir] git pull '$remote $branch' ($?)" 1
+    done
+    for remote in $remotespec
+    do
+        git push -q $remote $branch ||
+            error "[$dir] git push '$remote $branch' ($?)" 1
     done
 
     trueish "$isannex" || continue
     note "Backing up tracked local files.."
-    git annex sync $remotespec ||
+    git annex sync -q $remotespec ||
         error "[$dir] git annex sync '$remotespec' ($?)" 1
 
     for remote in $remotespec
     do
         trueish "$(git config --get remote.$remote.annex-ignore)" && continue
-        git annex copy --to $remote ||
+        git annex copy -q --to $remote ||
             error "[$dir] git annex copy --to '$remote' ($?)" 1
     done
   done
