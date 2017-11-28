@@ -7968,47 +7968,56 @@ htd__sync()
     sys_confirm "No local rules, execute all global rules?" || return $?
     rules=~/.conf/sync-rules.list
   }
-  read_nix_style_file $rules | while read dir branch remotespec isannex
+  read_nix_style_file $rules | while read dir branch remotespec which
   do
     dir="$(htd prefixes expand "$dir")"
+
     cd $dir || error "cd '$dir'" 1
+    test "$remotespec" != "*" || remotespec="$(git remote | lines_to_words)"
     test -z "$(git status --porcelain -uno)" || {
       warn "Ignoring dirty index at '$dir'"
       continue
     }
+    
+    test "$branch" = "$(git rev-parse --abbrev-ref HEAD)" && {
 
-    test "$branch" = "$(git rev-parse --abbrev-ref HEAD)" || {
-        note "Checking out '$dir' to '$branch'.."
+        note "[$dir] updating '$branch' from '$remotespec'.."
+    } || {
+        note "[$dir] Checking out '$branch' for '$remotespec'.."
         git checkout -q $branch ||
             error "[$dir] git checkout '$branch' ($?)" 1
     }
 
-    test "$remotespec" != "*" || remotespec="$(git remote)"
+    test -z "$which" -o "$which" = "0" -o "$which" = "2" && {
 
-    for remote in $remotespec
-    do
-        git pull -q $remote $branch ||
-            error "[$dir] git pull '$remote $branch' ($?)" 1
-    done
-    for remote in $remotespec
-    do
-        git push -q $remote $branch ||
-            error "[$dir] git push '$remote $branch' ($?)" 1
-        note "[$dir] $branch in sync with $remote/$branch"
-    done
+        for remote in $remotespec
+        do
+            git pull -q $remote $branch ||
+                error "[$dir] git pull '$remote $branch' ($?)" 1
+        done
+        for remote in $remotespec
+        do
+            git push -q $remote $branch ||
+                error "[$dir] git push '$remote $branch' ($?)" 1
+            note "[$dir] $branch in sync with $remote/$branch"
+        done
 
-    trueish "$isannex" || continue
-    note "Backing up tracked local files.."
-    git annex sync -q $remotespec ||
-        error "[$dir] git annex sync '$remotespec' ($?)" 1
+    }
+    test "$which" = "1" -o "$which" = "2" && {
 
-    for remote in $remotespec
-    do
-        trueish "$(git config --get remote.$remote.annex-ignore)" && continue
-        git annex copy -q --to $remote ||
-            error "[$dir] git annex copy --to '$remote' ($?)" 1
-        note "[$dir] backup done at $remote"
-    done
+        note "[$dir] Backing up tracked local files.."
+        git annex sync -q $remotespec ||
+            error "[$dir] git annex sync '$remotespec' ($?)" 1
+
+        for remote in $remotespec
+        do
+            trueish "$(git config --get remote.$remote.annex-ignore)" && continue
+            git annex copy -q --to $remote ||
+                error "[$dir] git annex copy --to '$remote' ($?)" 1
+            note "[$dir] backup done at $remote"
+        done
+    }
+    continue
   done
 }
 
