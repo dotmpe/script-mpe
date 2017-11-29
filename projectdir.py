@@ -24,6 +24,8 @@ Options:
 """ % ( __db__, __version__ )
 __doc__ += __usage__
 
+import os
+
 import libcmd_docopt
 import log
 from libcmd_docopt import cmd_help
