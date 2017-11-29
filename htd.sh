@@ -7992,11 +7992,13 @@ htd__sync()
 
         for remote in $remotespec
         do
+            test "$remote" = "$hostname" && continue
             git pull -q $remote $branch ||
                 error "[$dir] git pull '$remote $branch' ($?)" 1
         done
         for remote in $remotespec
         do
+            test "$remote" = "$hostname" && continue
             git push -q $remote $branch ||
                 error "[$dir] git push '$remote $branch' ($?)" 1
             note "[$dir] $branch in sync with $remote/$branch"
@@ -8011,6 +8013,7 @@ htd__sync()
 
         for remote in $remotespec
         do
+            test "$remote" = "$hostname" && continue
             trueish "$(git config --get remote.$remote.annex-ignore)" && continue
             git annex copy -q --to $remote ||
                 error "[$dir] git annex copy --to '$remote' ($?)" 1
