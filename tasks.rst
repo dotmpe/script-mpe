@@ -4,7 +4,6 @@ Tasks
 ========
 :created:
 
-
 TODO.txt lists boil down to a format for line-based indexed items.
 
 A tasks document is a collection of tickets/calls/todos/...
@@ -12,6 +11,107 @@ Of task lists with names, and per item contexts, project homes...
 
 Building prototype commands within ``htd tasks`` command and lib namespace.
 
+Format
+------
+It is useful to define a common format for plain-text list items. Not just for
+tasks, or todo's.
+
+This is the more or less official basic format for TODO.txt lines, as provided
+by e.g. `todotxt/todotxt <https://github.com/todotxt/todo.txt>`_.
+
+todo.txt::
+
+  (prio) <created> description +project @context due:<date> [WAIT]
+  x (prio) <closed> <created> description +project @context due:<date> [WAIT]
+
+The above organizes tasks on four axis: priority, project, context, and time.
+Projects can be seen as another context. But in reality the project is where you
+may want to keep the original or canonical TODO.txt. Its a matter of where you
+want to keep the lists.
+
+Other metadata can be added as key:values, or maybe TAG's.
+The tag WAIT is given for tickets on hold.
+
+For `todo-txt-machine` it is not problem to deal with common path (element)
+separators ``:/.``. So various naming schemes can be defined to further
+structured projects and contexts. Also routines can use simple prefix matching.
+
+File location can give additional data.
+
+Format extensions
+-----------------
+Some things about TODO.txt are a bit too specific for my taste.
+
+- Use ``<closed>`` as due-date, as long as the ticket is not closed.
+
+  A plain text task format and no standard syntax way to give the date the tasks
+  actually needs to have been done. That bothers me. Also aside from needing
+  translation, the ``due:`` meta field seems like a hack to me. What if I called
+  it `Due`, or `at` or `when`. Its not right to have a format, with position
+  for one or more dates and not plan for one of the essential attributes of
+  your domain model.
+
+- What sort of field is ``[WAIT]`` suposed to be? some form of tag? Again, to
+  seems an inappropiate addition of new syntax to the format. Altough it is
+  nicely readable, so plus there.
+
+  What it does look like is an editor remark or an citation xref. That makes
+  sense to include maybe a note about in the standard.
+
+- Next be more lenient in the values for some fields. E.g.
+- why not allow priorities from AAA-ZZZ, or A.1, etc. This makes sense if some
+  processor is going to work on syncing or processing the task lines. Or even
+  If you want to insert an item in between two priorities.
+
+- Then maybe use a character prefix to signal a hold, wait or impeded state.
+  Allow any single char in front of an item, to signal some user or system
+  defined state.
+
+  Instead of abusing meta fields or inventing other tags, prescribe
+  just a hand full and let people invent their own states whichever way they
+  want.
+
+  Only requires the description to never start with a single char plus space::
+
+    x this item is closed
+    w this one on hold
+    b this one is blocked, by another task
+    ! this one is an impedement because it's stalled / blocking other tasks
+    ? ... make up your own do/cant/want states as needed
+
+  Lets generalize the ``x `` prefix string into someting more generic, and
+  customizable. What it lacks, is readability, and an alternative field could
+  make up for that. In fact I think ``[TAG]`` is the candidate for that. That
+  then leaves just the types of tag/state to predefine, and/or which can be
+  used alternatively.
+
+- Some morefields. One for locations, machine addresses, URL's, URN's, file
+  paths, url paths: ``<scheme:path>`` (use angled brackets). User interfaces
+  may hide the ID's, symbolize them, etc.
+
+  And one field for a basic user link: ``~user``. Simple.
+
+  Again, be as lenient as possible in the allowed characters, to let systems
+  come up with their own spaces of values as fitting for the context.
+
+- Last, but not least, I've been rooting for some structure.. One method that
+  came is the semicolon. The text before marks an ID or title for the text
+  after, and by incrementing the depth a nested structure of sections emerges.
+
+  It needs just the semicolon, and either special status for the period '.'
+  character, or use a no-whitespace title Id rule. For example::
+
+    Main-Title: Subtitle-1:: Blah Subtitle-2:: Foo @Ctx +Project [TAG]
+    Main Title: Subtitle 1:: Blah. Subtitle 2:: Foo. @Ctx +Project [TAG]
+
+  One main section, two subsections. And all tags appended to the item.
+  Once structure is introduced into the system though, it would be interesting
+  to be able to place tags in the sections selectively.
+
+
+I'd digg some standardized processing. But I see the format is too minimal and
+the applications to specialized to realy be concerned about generalized
+backend/sync/processing rules. So lets get on with planning the system.
 
 Plan
 -----
@@ -24,10 +124,32 @@ Also coined for backend is 'Source' `src` to access comments combined with possi
 
 TODO: list
 
+
+
+::
+
+  <pd-root>
+    .projects.yml
+      ..
+
+    <prefix>/<project>
+      todo.txt::
+
+        (B) do this +another-project @laptop @box
+
+Inferred:
+
+- task is associated with +project implicitly.
+
+
 Dev
 -----
 htd tasks.hub be.trc
   ..
+
+
+Tasks
+------
 
 Issues
 ------
@@ -198,41 +320,6 @@ Workflow
      CLI record update/sync pipeline?
 
 
-
-----
-
-todo.txt::
-
-  (prio) <created> description +project @context due:<date> [WAIT]
-
-The above organizes tasks on four axis: priority, project, context, and time.
-Other metadata can be added as key:values, or maybe TAG's.
-The tag WAIT is given for tickets on hold.
-
-For `todo-txt-machine` it is not problem to deal with common path (element)
-separators ``:/.``. So various naming schemes can be defined to further
-structured projects and contexts. Also routines can use simple prefix matching.
-
-File location can give additional data.
-
-::
-
-  <pd-root>
-    .projects.yml
-      ..
-
-    <prefix>/<project>
-      todo.txt::
-
-        (B) do this +another-project @laptop @box
-
-
-Inferred:
-
-- task is associated with +project implicitly.
-
-
-
 Getting tasks from source
 -------------------------
 `radical` handles parsing of tagged comments. But rather than list all tasks
@@ -290,6 +377,3 @@ Sh (line-based) formats::
   <prefix>/<project>:<file>::<comment-char-range>:::
   <prefix>/<project>:<file>:::<line-range>::
   <prefix>/<project>:<file>::::<description-char-range>: <tag>
-
-
-
