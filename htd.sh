@@ -400,6 +400,7 @@ htd__check()
 htd__fsck()
 {
   htd__ck_validate sha1
+  htd__annex_fsck
 }
 
 htd__make()
@@ -7958,6 +7959,33 @@ htd__reader_update()
   do
     test -e "$l" || rm "$l"
   done
+}
+
+
+htd_run__annex_fsck=i
+htd__annex_fsck()
+{
+  local rules=.sync-rules.list
+  test -e "$rules" || {
+    note "No local rules, executing global rules"
+    rules=~/.conf/sync-rules.list
+  }
+  read_nix_style_file $rules | while read dir branch remotespec which
+  do
+    dir="$(htd prefixes expand "$dir")"
+    
+    test "$which" = "1" -o "$which" = "2" && {
+
+        git annex fsck -q && {
+            echo "$dir" >$passed
+        } || {
+            error "[$dir] fsck failure ($?)"
+            echo "$dir" >$failed
+        }
+    }
+  done
+  test -s "$passed" && 
+      note "$(count_lines "$passed") repositories OK" || warn "Nothing to do"
 }
 
 

@@ -59,31 +59,28 @@ def cmd_find(refs, settings):
     Ie. match symlinks.tab entries.
     """
 
+    repo = Repo.fetch()
+    if repo:
+        cwd = os.path.realpath('.')
+        assert cwd.startswith(repo.path)
+        if settings.ignored:
+            for p in repo.excluded():
+                if not cwd or p.startswith(cwd):
+                    print(p)
+        else:
+            for p in repo.untracked():
+                if not cwd or p.startswith(cwd):
+                    print(p)
+        return
+
     ws = Workdir.fetch()
     if not ws:
         ws = Homedir.fetch()
-    if not ws:
-        repo = Repo.fetch()
-        if repo:
-            cwd = os.path.realpath('.')
-            assert cwd.startswith(repo.path)
-            if settings.ignored:
-                for p in repo.excluded():
-                    if not cwd or p.startswith(cwd):
-                        print(p)
-            else:
-                for p in repo.untracked():
-                    if not cwd or p.startswith(cwd):
-                        print(p)
-
-        return
-
     if ws:
         if settings.ignored:
             ws.find_excluded('.')
         else:
             ws.find_untracked('.')
-
         return
 
     log.stderr("Not a workspace or checkout dir")

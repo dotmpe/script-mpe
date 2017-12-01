@@ -683,7 +683,9 @@ def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
 
     #print 'get_tagged_comment', offset, width, 'tag', tag_line, line_offset, line_width, language_keys
 
+    # Comment spans the entire range of chars (for the comments' lines)
     comment_offset, comment_end = -1, -1
+    # Description is sentence part of the comment after the tag(-id).
     description_offset, description_end = -1, -1
     start_line, last_line = -1, -1
     for language_key in language_keys:
@@ -753,6 +755,8 @@ def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
                     comment_end += end.end()
                     break
                 comment_end += len(data) + 1
+                if len(lines) == last_line+1:
+                    break
                 last_line += 1
                 data = lines[last_line]
 
