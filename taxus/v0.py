@@ -192,7 +192,6 @@ from .ns import *
 from .web import *
 from .fslayout import *
 from .model import Relocated, Volume, Bookmark
-from .htd import TNode, JournalEntry
 from .code import *
 from .ledger import *
 

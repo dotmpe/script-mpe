@@ -56,12 +56,10 @@ import log
 import libcmd_docopt
 import reporter
 import taxus
+
 from taxus.init import SqlBase
 from taxus.util import get_session
 
-
-
-models = [ taxus.Space, ]
 
 
 @reporter.stdout.register(Table, [], key='Table')

@@ -281,6 +281,7 @@ htd_move_tagged_and_untag_lines()
   test -n "$3" || error tag 1
   test -z "$4" || error surplus 1
   # Get task lines with tag, move to buffer without tag
+  set -- "$1" "$2" "$(echo $3 | sed 's/[\/]/\\&/g')"
   grep -F "$3" $1 |
     sed 's/^\ *'"$3"'\ //g' |
       sed 's/\ '"$3"'\ *$//g' |
@@ -298,6 +299,7 @@ htd_move_and_retag_lines()
   test -n "$3" || error tag 1
   test -z "$4" || error surplus 1
   test -e "$2" || touch $2
+  set -- "$1" "$2" "$(echo $3 | sed 's/[\/]/\\&/g')"
   cp $2 $2.tmp
   {
     # Get tasks lines from buffer to main doc, remove tag and re-add at end
@@ -320,13 +322,15 @@ htd_migrate_tasks()
   do
     test -n "$tag" || continue
     case "$tag" in
+
       +* | @* )
-          note "Migrating prj/ctx: $tag"
           buffer=$(htd__tasks_buffers $tag | head -n 1 )
           fileisext "$buffer" $TASK_EXTS || continue
           test -s "$buffer" || continue
+          note "Migrating prj/ctx: $tag"
           htd_move_and_retag_lines "$buffer" "$1" "$tag"
         ;;
+
       * ) error "? '$?'"
         ;;
       # XXX: cleanup
@@ -349,24 +353,27 @@ htd_remigrate_tasks()
 {
   test -n "$1"  || error todo-document 1
   note "Remigrating tags: '$tags'"
-  echo "$tags" | words_to_lines | while read tag
-  do
+  echo "$tags" | words_to_lines | while read tag ; do
     test -n "$tag" || continue
     case "$tag" in
+
       +* | @* )
-          note "Remigrating prj/ctx: $tag"
-          buffer=$(htd__tasks_buffers $tag | head -n  1)
+          buffer=$(htd__tasks_buffers "$tag" | head -n 1)
           fileisext "$buffer" $TASK_EXTS || continue
+          note "Remigrating prj/ctx: $tag"
           htd_move_tagged_and_untag_lines "$1" "$buffer" "$tag"
         ;;
+
       * ) error "? '$?'"
         ;;
+
       # XXX: cleanup
       @be.* )
           #note "Committing: $tag"
           #htd__tasks_buffers $tag
           noop
         ;;
+
     esac
   done
 }

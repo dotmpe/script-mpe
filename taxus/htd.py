@@ -26,4 +26,4 @@ class JournalEntry(TNode):
     pass
 
 
-models = []
+models = [TNode, JournalEntry]

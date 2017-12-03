@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 """
-TODO: construct TopicTree from Definition Lists in restructured text. 
+TODO: construct TopicTree from Definition Lists in restructured text.
 See also filetree.
 
 FIXME: move something like a definition parser to elsewhere? something simple
     and lightweight perhaps to fit rsrlib.res,
 """
+from __future__ import print_function
+__db__ = '~/.htdocs.sqlite'
 import os
 
 from dotmpe.du import comp, frontend
@@ -17,9 +19,13 @@ import res.fs
 from libname import Namespace
 import libcmd
 from libcmdng import Targets, Arguments, Keywords, Options,\
-    Target 
+    Target
 import traceback
 
+# XXX: not much CLI (TODO: update, status) but using taxus ORM schema
+from taxus import v0, get_session
+models = v0.models
+SqlBase = v0.SqlBase
 
 
 class Htdocs(libcmd.SimpleCommand):
@@ -30,7 +36,7 @@ class Htdocs(libcmd.SimpleCommand):
 
     DEFAULT = [ 'status' ]
     #DEFAULT_CONFIG_KEY = 'htdocs'
-        
+
     def __init__(self):
         super(Htdocs, self).__init__()
 
@@ -53,4 +59,3 @@ class Htdocs(libcmd.SimpleCommand):
 
 if __name__ == '__main__':
     Htdocs.main()
-

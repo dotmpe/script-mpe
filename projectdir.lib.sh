@@ -1,6 +1,11 @@
 #!/bin/sh
 
 
+no_act()
+{
+  test -n "$dry_run"
+}
+
 # Init Bg service
 pd_meta_bg_setup()
 {

@@ -2223,16 +2223,28 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
   The first two arguments TODO/DONE.TXT default to tags-document and tags-done.
   Other commands in this group:
 
-    htd tasks-scan
-    htd tasks-grep
-    htd tasks-local
-    htd tasks-edit
-    htd tasks-hub
-    htd tasks-buffers
-    htd tasks-tags
-
+    htd tasks grep
+        Run over the source, aggregating tagged comments as "task lines".
+    htd tasks local
+        Run the projects preferred way the aggregate tasks, if none given
+        run `tasks-grep`.
     htd tasks scan|grep|local|edit|buffers|hub
-    htd tasks tags[-{project,context}]
+        Use tasks-local to bring local todo,done.txt documents in sync.
+    htd tasks hub
+        Aside from todor,done.txt, keep task lists files in "./to", dubbed the
+        tasks-hub. See help for specific sub-commands.
+    htd tasks edit
+        Start editor session for todo,done.txt documents. Migrates requested
+        tags to the items from the hub, *and* back again after the session.
+        Every item that has a tag is sorted into an existing or new buffer.
+    htd tasks buffers [ @Context | +project ]
+        Given set of tags, list local paths to buffers.
+        TODO: sort out scripts into tasks-backends
+    htd tasks tags [todo] [done] [file..]
+        List tags found on items in files. Like ``tasks-hub tagged`` except
+        that checks every list in the hub. While this by default uses the local
+        todo.txt/done.txt file, and any filename given as the third and following
+        arguments
 
   See tasks-hub for more local functions.
 '
@@ -2331,31 +2343,32 @@ htd_spc__tasks_edit="tasks-edit TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ]
 # we need exclusive access to update the files anyway.
 htd_env__tasks_edit='
   tags=
-  id=$htd_session_id migrate=1 remigrate=1
+  id=$htd_session_id migrate=${migrate-1} remigrate=${remigrate-1}
   todo_slug= todo_document= todo_done=
   tags= projects= contexts= buffers= add_files= locks=
-  colw=32
+  colw=${colw-32}
 '
 htd__tasks_edit()
 {
-  info "2.1. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  htd__tasks_session_start
-  set -- "$todo_document" "$todo_done"
-  info "2.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  info "2.1. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  htd__tasks_session_start "$todo_document" "$todo_done" "$@"
+  info "2.2. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # TODO: If locked import principle tasks to main
-  trueish "$migrate" && htd_migrate_tasks "$1" "$2"
-  info "2.3. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  trueish "$migrate" && htd_migrate_tasks "$todo_document" "$todo_done" "$@"
   # Edit todo and done file
-  $TODOTXT_EDITOR "$1" "$2"
+  $TODOTXT_EDITOR "$todo_txt" "$todo_done"
   # Relock in case new tags added
   # TODO: diff new locks
   #newlocks="$(lock_files $id "$1" | lines_to_words )"
   #note "Acquired additional locks ($(basenames ".list" $newlocks | lines_to_words))"
   # TODO: Consolidate all tasks to proper project/context files
-  info "2.6. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  trueish "$remigrate" && htd_remigrate_tasks "$1" "$2"
+  info "2.6. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  trueish "$remigrate" && htd_remigrate_tasks "$todo_document" "$todo_done" "$@"
   # XXX: where does @Dev +script-mpe go, split up? refer principle tickets?
-  htd__tasks_session_end "$1" "$2"
+  htd__tasks_session_end "$todo_document" "$todo_done"
 }
 htd_run__tasks_edit=eA
 htd_argsv__tasks_edit=htd_argsv__tasks_session_start
@@ -2366,17 +2379,19 @@ htd_grp__tasks_edit=tasks
 htd_man_1__tasks_hub='Given a tasks-hub directory, either get tasks, tags or
   additional settings ie. backends, indices, cardinality.
 
+    htd tasks-hub init
+        Figure out identity for buffer lists
     htd tasks-hub be
+        List the backend scripts, a hack on context "@be-" prefix..
     htd tasks-hub tags
+        List tags for which local task buffers or backend/proc scripts exists.
+        TODO: only list buffers, list scripts elsewhere. E.g backend
     htd tasks-hub tagged
-
+        Lists the tags, from items in lists
+    htd tasks-hub
 '
-htd_man_1__tasks_hub_init='Figure out identity for buffer lists'
-htd_man_1__tasks_hub_be='List the backend scripts'
 htd_man_1__tasks_hub_tags='List tags for which buffers exist'
-htd_man_1__tasks_hub_tagged='Lists unique tags from items in lists, or any
-  matching line in a hub leaf. '
-htd_env__tasks_hub='projects=1 contexts=1'
+htd_env__tasks_hub='projects=${projects-1} contexts=${contexts-1}'
 htd_spc__tasks_hub='tasks-hub [ (be|tags|tagged) [ ARGS... ] ]'
 htd_spc__tasks_hub_taggged='tasks-hub tagged [ --all | --lists | --endpoints ] [ --no-projects | --no-contexts ] '
 htd__tasks_hub()
@@ -2532,8 +2547,9 @@ htd__tasks_buffers()
 htd_grp__tasks_buffers=tasks
 
 
-htd_man_1__tasks_tags="Show tags for files. Files do not need to exist. First
-  two files will be created. See 'help tasks'. "
+htd_man_1__tasks_tags="Show tags for files. Files do not need to exist, but the
+First two files will be created. "
+htd_spc__tasks_tags='tasks-tags [todo] [done] [file..]'
 htd__tasks_tags()
 {
   test -n "$1" || {
@@ -2561,14 +2577,16 @@ htd_spc__tasks_session_start="tasks-session-start TODO.TXT DONE.TXT [ @PREFIX...
 htd_env__tasks_session_start="$htd_env__tasks_edit"
 htd__tasks_session_start()
 {
-  info "3.1. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  info "3.1. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   set -- $todo_document $todo_done
   assert_files $1 $2
   # Accumulate tasks, to find additional files for locking
   tags="$(htd__todotxt_tags "$1" "$2" | lines_to_words ) $tags"
   note "Tags: ($(echo "$tags" | count_words
     )) $(echo "$tags" )"
-  info "3.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  info "3.2. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # Get paths to all files, add todo/done buffer files per tag
   buffers="$(htd__tasks_buffers $tags )"
   # Lock main files todo/done and additional-paths
@@ -2584,7 +2602,8 @@ htd__tasks_session_start()
 htd_run__tasks_session_start=eiA
 htd_argsv__tasks_session_start()
 {
-  info "1.1. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  info "1.1. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   htd_tasks_load
   test -n "$*" || return 0
   while test $# -gt 0 ; do case "$1" in
@@ -2600,13 +2619,15 @@ htd_argsv__tasks_session_start()
           add_files="$add_files $1" ; shift
         ;;
   esac ; done
-  info "1.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  info "1.2. Env: $(var2tags \
+      id todo_slug todo_document todo_done tags buffers add_files locks colw)"
 }
 htd_grp__tasks_session_start=tasks
 
 htd__tasks_session_end()
 {
-  info "6.1 Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  info "6.1 Env: $(var2tags \
+      id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # clean empty buffers
   for f in $buffers
   do test -s "$f" -o ! -e "$f" || rm "$f"; done
@@ -2616,7 +2637,7 @@ htd__tasks_session_end()
   # release all locks
   released="$(unlock_files $id "$1" "$2" $buffers | lines_to_words )"
   test -n "$(echo "$released")" && {
-    note "Released locks ($(echo "$released" | count_words ))"
+    note "Released locks ($(echo "$released" | count_words )):"
     { exts="$TASK_EXTS" pathnames $released ; echo; } | column_layout
   } || {
     warn "No locks to release"
@@ -2645,14 +2666,18 @@ htd__tasks__src__remove()
 {
   echo
 }
+
+
 htd__tasks()
 {
   case "$1" in
+
     be.src )
         mkvid "$2" ; cmid=$vid
         . ./to/be-src.sh ; shift 2
         htd__tasks__src__${cmid} "$@"
       ;;
+
     be* )
         be=$(printf -- "$1" | cut -c4- )
         test -n "$be" || error "No default tasks backend" 1
@@ -2664,18 +2689,21 @@ htd__tasks()
         . ./to/$ctxid.sh ; shift 2
         htd__tasks__${beid}__${cmid} "$@"
       ;;
+
     "" ) shift || noop ; htd__tasks_scan "$@" ;;
+
     * ) act="$1"; shift 1; htd__tasks_$act "$@" ;;
   esac
 }
 htd_grp__tasks=tasks
 
+
 # Load from pd-meta.tasks.{document,done} [ todo_slug todo-document todo-done ]
 htd_tasks_load()
 {
   test -n "$1" || set -- init
-  while test -n "$1"
-  do case "$1" in
+  while test -n "$1" ; do case "$1" in
+
     init )
   eval $(map=package_pd_meta_tasks_:todo_ package_sh document done slug )
   test -n "$todo_document" || todo_document=todo.$TASK_EXT
@@ -2690,6 +2718,7 @@ htd_tasks_load()
   }
   test -n "$todo_slug" || error todo-slug 1
   ;;
+
     tasks-hub | tasks-process )
   test -e "./to" && tasks_hub=./to
   test -n "$tasks_hub" ||
@@ -2698,23 +2727,26 @@ htd_tasks_load()
   test ! -e "./to" -o "$tasks_hub" = "./to" ||
     error "hub ./to left behind" 1
   ;;
+
     tags )
   local $(map=package_pd_meta_ package_sh tags)
   test -n "$tasks_tags" ||
     tasks_tags="$(package_sh_list .package.sh pd_meta_tasks_tags \
       | lines_to_words )"
   ;;
+
     coops )
   local $(map=package_pd_meta_ package_sh coops)
   test -n "$tasks_coops" ||
     tasks_coops="$(package_sh_list .package.sh pd_meta_tasks_coops \
       | lines_to_words )"
   ;;
+
     be* | proc* )
   ;;
+
     * ) error "tasks-load '$1'?" ;; esac ; shift ; done
 }
-
 
 
 htd_man_1__todo='Edit and mange todo.txt/done files.
@@ -2762,7 +2794,7 @@ htd__todotxt_edit()
   # Lock main files todo/done and additional-paths
   local id=$htd_session_id
   locks="$(lock_files $id "$@" | lines_to_words )"
-  note "Acquired locks"
+  note "Acquired locks:"
   { basenames ".list" $locks ; echo ; } | column_layout
   # Fail now if main todo/done files are not included in locks
   verify_lock $id $1 $2 || {
@@ -4310,8 +4342,19 @@ htd__save()
 htd_grp__save=annex
 
 
+htd_man_1__tags='
+  bookmarks
+
+XXX: see also
+  task-hub
+        List tags for which local task buffers or backend/proc scripts exists.
+'
 htd__tags()
 {
+  test -n "$1" || set -- init
+  case "$1" in
+
+    bookmarks )
   test -n "$DBFILE" || DBFILE=~/.bookmarks.sqlite
 echo
   sqlite3 $DBFILE <<SQL
@@ -4334,6 +4377,10 @@ SQL
     JOIN names ON nodes.id = names.id ;
 SQL
 #  ORDER BY p.time DESC;
+      ;;
+
+    * ) error "tags '$*'?" ;;
+  esac
 }
 
 
@@ -4969,7 +5016,7 @@ htd_man_1__process='Process each item in list.
 '
 htd_spc__process='process [ LIST [ TAG.. [ --add ] | --any ]'
 htd_env__process='
-  todo_slug= todo_document= todo_done=
+  todo_slug=${todo_slug} todo_document=${todo_document} todo_done=${todo_done}
 '
 htd__process()
 {
@@ -7973,7 +8020,7 @@ htd__annex_fsck()
   read_nix_style_file $rules | while read dir branch remotespec which
   do
     dir="$(htd prefixes expand "$dir")"
-    
+
     test "$which" = "1" -o "$which" = "2" && {
 
         git annex fsck -q && {
@@ -7984,7 +8031,7 @@ htd__annex_fsck()
         }
     }
   done
-  test -s "$passed" && 
+  test -s "$passed" &&
       note "$(count_lines "$passed") repositories OK" || warn "Nothing to do"
 }
 
@@ -8006,7 +8053,7 @@ htd__sync()
       warn "Ignoring dirty index at '$dir'"
       continue
     }
-    
+
     test "$branch" = "$(git rev-parse --abbrev-ref HEAD)" && {
 
         note "[$dir] updating '$branch' from '$remotespec'.."
@@ -8912,7 +8959,7 @@ htd__exif()
 # Advanced init-symlinks script with multiple modes and attributes
 htd_spc__checkout='checkout ID-or-TABLE'
 htd_env__checkout='
-  symlinks_id=script-mpe-symlinks
+  symlinks_id=${symlinks_id-script-mpe-symlinks}
   symlinks_attrs= symlinks_file=
 '
 htd__checkout()
@@ -9273,8 +9320,9 @@ htd_rst_doc_create_update()
               # FIXME: get common basepath and build rel if abs given
               includedir="$(pwd -P)" ||
                 includedir="$(dirname $outf | sed 's/[^/]*/../g')"
+            relp="$(realpath --relative-to=$(dirname "$outf") $includedir)"
             {
-              echo ; echo ; echo ".. include:: $includedir/.default.rst"
+              echo ; echo ; echo ".. include:: $relp/.default.rst"
             } >> $outf
           }
         ;;

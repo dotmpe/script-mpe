@@ -42,7 +42,7 @@ Options:
                 [default: ./.projects.yaml]
   --filesystem PATH
                 Run filesystem server and mount at path. A background process
-                must be running t
+                must be running. TODO: no vfs impl. yet.
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -g, --glob    Change from root prefix matching to glob matching.

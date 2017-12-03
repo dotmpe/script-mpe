@@ -25,7 +25,7 @@ newer_than()
   test -e "$1" || error "newer-than expected existing path" 1
   test -n "$2" || error "newer-than expected delta seconds argument" 1
   test -z "$3" || error "newer-than surplus arguments" 1
-  test $(( $(date +%s) - $2 )) -lt $(filemtime $1) && return 0 || return 1
+  test $(( $(date +%s) - $2 )) -lt $(filemtime "$1") && return 0 || return 1
 }
 
 # older-than FILE SECONDS
@@ -35,7 +35,7 @@ older_than()
   test -e "$1" || error "older-than expected existing path" 1
   test -n "$2" || error "older-than expected delta seconds argument" 1
   test -z "$3" || error "older-than surplus arguments" 1
-  test $(( $(date +%s) - $2 )) -gt $(filemtime $1) && return 0 || return 1
+  test $(( $(date +%s) - $2 )) -gt $(filemtime "$1") && return 0 || return 1
 }
 
 # given timestamp, display a friendly X sec/min/hr/days/weeks/months/years ago

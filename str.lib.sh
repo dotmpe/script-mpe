@@ -275,7 +275,7 @@ property()
   local tmpf=$(setup_tmpf)
   sh_properties "$1" "$2" "$3" > $tmpf
   shift 3
-  test -z "$subst" || mkvid "$subst"
+  test -z "$subst" || upper=0 mkvid "$subst"
   (
     . $tmpf
     rm $tmpf
@@ -284,10 +284,6 @@ property()
       local __key= __value=
       test -n "$vid" && __key=${vid}$1 || __key=$1
       __value="$(eval printf -- \"\$$__key\")"
-#      __value="$(cat <<EOM
-#\$$__key
-#EOM
-#      )"
       shift
       test -n "$__value" || continue
       print_var "$__key" "$__value"

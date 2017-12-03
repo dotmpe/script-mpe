@@ -8,9 +8,7 @@ import os
 from sqlalchemy import MetaData
 from sqlalchemy.orm.exc import NoResultFound
 
-import confparse
-import log
-import mod
+from script_mpe import confparse, log, mod
 from . import iface
 from iface import registry as reg, gsm
 from . import init

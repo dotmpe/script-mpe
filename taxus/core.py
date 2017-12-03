@@ -131,6 +131,8 @@ class Space(ID):
 
     An abstraction to deal with segmented storage (ie. different databases,
     hosts).
+
+    NOTE: just storing some specs in this base for now
     """
 
     __tablename__ = 'spaces'
