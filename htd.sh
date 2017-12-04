@@ -257,15 +257,12 @@ htd_load()
 
     p )
         pwd="$(pwd -P)"
-        package_file $pwd && update_package $pwd
-        package_lib_load "$pwd"
-        test -e "$PACKMETA_SH" && . $PACKMETA_SH
-        test -n "$package_id" && {
-          note "Found package '$package_id'"
-        } || {
-          package_id="$(basename "$(realpath .)")"
-          note "Using package ID '$package_id'"
-        }
+        test -e "$PACKMETA" || error "No local package '$PACKMETA'" 1
+
+        package_lib_set_local "$pwd" &&
+            package_file $pwd && update_package $pwd
+
+        test -n "$package_id" && note "Found package '$package_id'"
       ;;
 
     S )
@@ -4414,36 +4411,36 @@ htd__save_ref()
 htd_grp__save_ref=annex
 
 
-htd_man_1__package='Pretty print the Sh package settings. See package.rst.
+htd_man_1__package='
+
+  package list-ids
+     List package IDs from local package metadata file.
+     
+  package urls
+     TODO: List URLs for package.
+
+  package debug
+     Log each Sh package settings.
+
+Plumbing commands dealing with the local project package file. See package.rst.
+These do not auto-update intermediate artefacts, or load a specific package-id
+into env.
 '
+htd_run__package=iAO
 htd__package()
 {
-  #test -z "$1" || export package_id=$1
-  package_lib_load
-  test -n "$1" && {
-    # Turn args into var-ids
-    _p_extra() { for k in $@; do mkvid "$k"; printf -- "$vid "; done; }
-    _p_lookup() {
-      . $PACKMETA_SH
-      # See if lists are requested, and defer
-      for k in $@; do
-        package_sh_list_exists "$k" || continue
-        package_sh_list $PACKMETA_SH $k
-        shift
-      done
-      test -z "$*" ||
-        map=package_ package_sh "$@"
-    }
-    echo "$(_p_lookup $(_p_extra "$@"))"
-
-  } || {
-    read_nix_style_file $PACKMETA_SH | while IFS='=' read key value
-    do
-      eval $LOG header2 "$(kvsep=' ' pretty_print_var "$key" "$value")"
-    done
-  }
+  test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
+  test -n "$1" || set -- debug
+  upper=0 mkvid "$1"
+  shift ; htd_package_$vid "$@" || return $?
 }
-htd_run__package=iAO
+
+htd_man_1__ls="List local package names"
+htd_als__ls=package\ list-ids
+
+htd_man_1__openurl="Open local package URL"
+htd_als__openurl=package\ open-url
+
 
 
 htd_man_1__topics_list='List topics'
@@ -4501,37 +4498,26 @@ htd__topics_persist()
 }
 
 
+htd_man_1__scripts='
 
-htd_man_1__run_names="List local package script names"
-htd_run__run_names=f
-htd__run_names()
+  scripts names
+    List local package script names
+  scripts list
+    List local package script names and lines
+  scripts run NAME
+    Run scripts from package
+
+'
+htd_run__scripts=pf
+htd__scripts()
 {
-  jsotk.py keys -O lines $PACKMETA_JS_MAIN scripts
+  test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
+  test -n "$1" || set -- names
+  local act=$1
+  shift ; htd_scripts_$act "$@" || return $?
 }
 
 
-htd_man_1__run_dir="List local package script names and lines"
-htd_run__run_dir=fp
-htd__run_dir()
-{
-  htd__run_names | while read name
-  do
-    printf -- "$name\n"
-    verbose_no_exec=1 htd__run $name
-  done
-}
-
-
-htd_man_1__ls="List local package names"
-htd_run__ls=f
-htd__ls()
-{
-  PACKMETA="$(cd "$1" && echo package.y*ml | cut -f1 -d' ')"
-  jsotk.py -I yaml -O py objectpath $PACKMETA '$.*[@.id is not None].id'
-}
-
-
-htd_man_1__run="Run scripts from package"
 htd__run()
 {
   test -n "$1" || set -- scripts
@@ -8926,6 +8912,45 @@ htd__crypto_vc_init() # VolumeId Secret Size
 }
 
 
+htd_man_1__vfs='
+    mount NAME PATH CLASS
+      Mount VFS
+    umount NAME
+      Unmount VFS
+    mounted NAME
+      Check for VFS name in mount list
+    running NAME
+      Check for VFS process ID
+    check NAME
+      Run mounted and running check.
+'
+htd__vfs()
+{
+  test -n "$1" || set -- status
+  local verify=1 act=$1
+  shift ; htd_vfs_$act "$@" || return $?
+}
+
+
+htd_run__hoststat=f
+htd__hoststat()
+{
+  test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
+  test -n "$1" || set -- status
+  local act=$1
+  shift ; htd_hoststat_$act "$@" || return $?
+}
+
+
+htd__volumestat()
+{
+  test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
+  test -n "$1" || set -- status
+  local act=$1
+  shift ; htd_volumestat_$act "$@" || return $?
+}
+
+
 htd__darwin_profile()
 {
   local grep="$1"
@@ -9457,7 +9482,7 @@ htd_init()
   #export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta list
   lib_load box date doc table disk remote ignores package service archive \
-      prefix
+      prefix volumestat vfs hoststat scripts
   case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh load-ext
   disk_run

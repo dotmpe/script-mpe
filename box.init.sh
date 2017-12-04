@@ -12,8 +12,8 @@ test -n "$BOX_BIN_DIR" || {
   BOX_BIN_DIR=$UCONFDIR/script/$uname
   test -d $BOX_BIN_DIR || mkdir -vp $BOX_BIN_DIR
 }
-test -n "$scriptpath" || $LOG error "box.init: scriptpath missing" 1
-test -z "$BOX_INIT" && BOX_INIT=1 || $LOG error "unexpected re-init" 1
+test -n "$scriptpath" || $LOG "box.init" error "scriptpath missing" 1
+test -z "$BOX_INIT" && BOX_INIT=1 || $LOG "box.init" error "unexpected re-init" 1
 
 # run-time test since box relies on local vars and bash seems to mess up
 box_run_sh_test()
@@ -24,4 +24,3 @@ box_run_sh_test()
     return 0
   }
 }
-

@@ -13,6 +13,9 @@
   distribution: public
   license: GPL
 
+  urls:
+    license: https://opensource.org/licenses/gpl-license
+
   lists:
     default: "@Task @Dev +script-mpe +htdocs-mpe"
     main: "@be.topic" # get the .list of topics for htdocs
@@ -202,4 +205,3 @@
   env: '. ./env.sh'
   scripts:
     <<: *vagrant_scripts
-
