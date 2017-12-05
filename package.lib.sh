@@ -303,7 +303,7 @@ htd_package_update()
 htd_package_debug()
 {
   #test -z "$1" || export package_id=$1
-  #package_lib_load
+  package_lib_set_local "$(pwd -P)"
   test -n "$1" && {
     # Turn args into var-ids
     _p_extra() { for k in $@; do mkvid "$k"; printf -- "$vid "; done; }
@@ -344,6 +344,20 @@ htd_package_open_url()
   test -n "$url" || error "no url for name '$1'" 1
   note "Opening '$1': <$url>"
   open "$url"
+}
+
+htd_package_remotes_init()
+{
+  package_lib_set_local "$(pwd -P)"
+  test -e "$PACKMETA_JS_MAIN" || error "No '$PACKMETA_JS_MAIN' file" 1
+  vc_getscm
+  jsotk.py path -O pkv "$PACKMETA_JS_MAIN" repositories |
+      tr '=' ' ' | while read remote url
+  do
+    #fnmatch "*.$scm" "$url" || continue
+    htd_repository_url "$remote" "$url" || continue
+    vc_git_update_remote "$remote" "$url"
+  done
 }
 
 # Id: script-mpe/0.0.4-dev package.lib.sh

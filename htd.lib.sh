@@ -435,3 +435,26 @@ vim_swap()
     trueish "$remove_swap" && rm $swp || return 1
   }
 }
+
+
+htd_repository_url() # remote url
+{
+  # Disk on local host
+  fnmatch "$hostname.*" "$1" && {
+
+    # Cancel if repo is local checkout
+    test "$(cd "$2" && pwd -P)" = "$(pwd -P)" && return 1
+
+    # Use URL as is, remove host from remote
+    remote=$(echo $1 | cut -f2 -d'.')
+    return 0
+
+  } || {
+
+    # Add hostname for remote disk
+    { fnmatch "/*" "$2" || fnmatch "~/*" "$2"
+    } || return
+    remote=$(echo $1 | cut -f2 -d'.')
+    url=$(echo $1 | cut -f1 -d'.'):$2
+  }
+}

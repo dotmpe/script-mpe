@@ -12,6 +12,10 @@ volumestat_lib_load()
         voldir=/Volumes
       ;;
 
+    Linux )
+        voldir=/mnt
+      ;;
+
     * ) error "volumestat-lib-load uname=$uname" 1 ;;
 
   esac

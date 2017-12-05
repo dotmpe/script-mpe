@@ -238,3 +238,21 @@ vc_git_submodules()
     echo "$prefix"
   done
 }
+
+# TODO: maybe rename htd_update_remote
+vc_git_update_remote()
+{
+  local remote_url="$(git config --get remote.$1.url)"
+  test -z "$remote_url" && {
+
+    git remote add $1 $2 &&
+        note "Remote '$1' added" || warn "Error adding '$1' remote" 1
+
+  } || {
+
+    test "$2" = "$remote_url" || {
+      git remote set-url $1 $2 &&
+        note "Remote '$1' updated" || warn "Error updating '$1' remote" 1
+    }
+  }
+}

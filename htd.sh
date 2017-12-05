@@ -914,6 +914,16 @@ htd_run__status=fSm
 htd__status()
 {
   test -n "$failed" || error "status: failed exists" 1
+  test -d .git && {
+
+    r=
+    test -d .git/annex && {
+      htd__git_annex_status || r=$?
+    } || {
+      htd__git_status || r=$?
+    }
+    return $r
+  }
 
   # Monitor paths
   # Using either lsof or update/access time filters with find we can list
@@ -993,6 +1003,20 @@ htd__status_cwd()
 }
 
 
+
+htd__git_status()
+{
+  # Forced color output commands
+  git -c color.status=always status
+  du -hs . .git/objects
+}
+
+htd__git_annex_status()
+{
+  git status
+  git annex unused
+  du -hs . .git/objects .git/annex
+}
 
 htd__volume_status()
 {
@@ -7252,13 +7276,6 @@ htd__import_docker_env()
   echo DOCKER_CERT_PATH=$(launchctl getenv DOCKER_CERT_PATH)
 }
 
-
-# Forced color output commands
-
-htd__git_status()
-{
-  git -c color.status=always status
-}
 
 # XXX: to-html of vim-syntax highlited files. But what about ANSI in and out?
 # Also, this does not seem to take colorscheme values?
