@@ -151,9 +151,7 @@ get_subcmd_func()
         test -n "$cmd_als" || error oops 1
         subcmd=$(echo "$cmd_als" | cut -d ' ' -f 1)
         subcmd_args_pre=$(echo "$cmd_als" | cut -d ' ' -f 2)
-      #test -z "$cmd_als" || {
-        #subcmd=$cmd_als
-        set -- "$(mkvid "$subcmd" && echo $vid)" "" "$b"
+        set -- "$(upper=0 mkvid "$subcmd" && echo $vid)" "" "$b"
       }
     }
 

@@ -458,3 +458,21 @@ htd_repository_url() # remote url
     url=$(echo $1 | cut -f1 -d'.'):$2
   }
 }
+
+
+htd_ws_stats_update()
+{
+  local id=$(date +%Y%m%dT%H%M)
+  test -n "$ws_stats" || ws_stats=$workspace/.cllct/stats.yml
+  { cat <<EOM
+stats:
+  $prefix:
+    $1:
+      log:
+      - &$id $2
+      last: *$id
+EOM
+  } | {
+    trueish "$dump" && cat - || jsotk.py -Iyaml --pretty --list-union update $ws_stats -
+  }
+}

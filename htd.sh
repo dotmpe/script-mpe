@@ -62,9 +62,9 @@ htd_load()
   default_env Htd-TMux-Default-Session "Htd"
   default_env Htd-TMux-Default-Cmd "$SHELL"
   default_env Htd-TMux-Default-Window "$(basename $SHELL)"
-  default_env Couch-URL http://sandbox-3:5984
-  default_env GitVer-Attr .version-attributes
-  default_env Ns-Name bvberkum
+  default_env Couch-URL "http://sandbox-3:5984"
+  default_env GitVer-Attr ".version-attributes"
+  default_env Ns-Name "bvberkum"
 
   test -n "$APP_ID" -o ! -e .app-id || read APP_ID < .app-id
   test -n "$APP_ID" -o ! -e $GITVER_ATTR ||
@@ -74,11 +74,13 @@ htd_load()
 
   projectdirs="$(echo ~/project ~/work/*/tree)"
 
-  go_to_directory .projects.yaml && {
+  go_to_directory .cllct/local.id && {
+    workspace=$(pwd -P)
+    prefix="$(normalize_relative "$go_to_before")"
+    $LOG info "htd:load" "Workspace '$workspace' -> Prefix '$prefix'"
     cd "$CWD"
-    # $go_to_before
-    #PROJECT="$(basename $(pwd))"
   } || {
+    $LOG warn "htd:load" "No local workspace"
     cd "$CWD"
   }
 
@@ -908,19 +910,20 @@ htd__pd_check()
 }
 
 
-htd_man_1__status='Quick system status
+htd_man_1__status='Quick context status
 '
 htd_run__status=fSm
 htd__status()
 {
   test -n "$failed" || error "status: failed exists" 1
-  test -d .git && {
+
+  vc_getscm && {
 
     r=
     test -d .git/annex && {
       htd__git_annex_status || r=$?
     } || {
-      htd__git_status || r=$?
+      htd__${scm}_status || r=$?
     }
     return $r
   }
@@ -1003,19 +1006,35 @@ htd__status_cwd()
 }
 
 
-
 htd__git_status()
 {
+  test -n "$scm" || vc_getscm
+  htd_ws_stats_update scm "
+$(vc_stats . "        ")"
+  htd_ws_stats_update disk-usage "
+        scm: $( disk_usage .git )
+        (total): $( disk_usage )
+        (date): $( date_microtime )"
+
   # Forced color output commands
-  git -c color.status=always status
-  du -hs . .git/objects
+  #git -c color.status=always status
+  #du -hs . .git/objects
 }
 
 htd__git_annex_status()
 {
-  git status
-  git annex unused
-  du -hs . .git/objects .git/annex
+  test -n "$scm" || vc_getscm
+  htd_ws_stats_update scm "
+$(vc_stats . "        ")"
+  htd_ws_stats_update disk-usage "
+        annex: $( disk_usage .git/annex)
+        scm: $( disk_usage .git )
+        (total): $( disk_usage )
+        (date): $( date_microtime )"
+
+  #git status
+  #git annex unused
+  #du -hs . .git/objects .git/annex
 }
 
 htd__volume_status()
@@ -1033,6 +1052,7 @@ htd__workdir_status()
   htd__context
   finfo.py --metadir .meta
 }
+
 
 htd_als__metadirs=context
 htd_man_1__context="TODO find packages, .meta dirs"
@@ -4453,7 +4473,6 @@ into env.
 htd_run__package=iAO
 htd__package()
 {
-  test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
   test -n "$1" || set -- debug
   upper=0 mkvid "$1"
   shift ; htd_package_$vid "$@" || return $?
@@ -4535,10 +4554,9 @@ htd_man_1__scripts='
 htd_run__scripts=pf
 htd__scripts()
 {
-  test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
   test -n "$1" || set -- names
-  local act=$1
-  shift ; htd_scripts_$act "$@" || return $?
+  upper=0 mkvid "$1"
+  shift ; htd_scripts_$vid "$@" || return $?
 }
 
 
@@ -5692,241 +5710,6 @@ htd__mux()
 htd_grp__mux=tmux
 
 
-htd_man_1__tmux_sockets='List sockets of tmux servers. Each server is a separate
-env with sessions and windows. '
-htd__tmux_sockets()
-{
-  test -n "$1" || set NAME
-  {
-    # list unix domain sockets
-    lsof -U | grep '^tmux'
-  } | {
-      case "$1" in
-      COMMAND ) awk '{print $1}' ;;
-      PID ) awk '{print $2}' ;;
-      USER ) awk '{print $3}' ;;
-      FD ) awk '{print $4}' ;;
-      TYPE ) awk '{print $5}' ;;
-      DEVICE ) awk '{print $6}' ;;
-      #NODE ) awk '{print $8}' ;;
-      NAME )
-          awk '{print $8}'
-          awk '{print $9}'
-        ;;
-    esac
-  } | sort -u
-}
-htd_grp__tmux_sockets=tmux
-
-
-htd__tmux_list_sessions()
-{
-  test -n "$1" || set -- $(htd__tmux_sockets)
-  while test $# -gt 0
-  do
-    test -e "$1" && {
-      note "Listing for '$1'"
-      tmux -S "$1" list-sessions
-    } || {
-      error "Given socket does not exists: '$1'"
-    }
-    shift
-  done
-}
-htd_als__tmux_list=tmux-list-sessions
-htd_als__tmux_sessions=tmux-list-sessions
-htd_grp__tmux_list_sessions=tmux
-
-
-htd_man_1__tmux_session_list_windows='List window names for current
-socket/session. Note these may be empty, but alternate formats can be provided,
-ie. "#{window_index}". '
-htd_spc__tmux_session_list_windows='tmux-session-list-windows [ - | MATCH ] [ FMT ]'
-htd__tmux_session_list_windows()
-{
-  test -n "$1" || set -- "$HTD_TMUX_DEFAULT_SESSION"
-  test -n "$3" || set -- "$1" "$2" "#{window_name}"
-  test -z "$4" || error "Surplus arguments '$4'" 1
-  tmux_env_req 0
-  $tmux list-windows -t "$1" -F "$3" | {
-    case "$2" in
-      "" )
-          while read name
-          do
-            note "Window: $name"
-          done
-        ;;
-      "-" ) cat ;;
-      * )
-          eval grep -q "'^$2$'"
-        ;;
-    esac
-  }
-}
-htd_als__tmux_windows=tmux-session-list-windows
-htd_als__tmux_session_windows=tmux-session-list-windows
-htd_grp__tmux_session_list_windows=tmux
-
-
-tmux_env_req()
-{
-  default_env TMux-SDir /opt/tmux-socket
-  test -n "$TMUX_SOCK" && {
-    debug "Using TMux-Sock env '$TMUX_SOCK'"
-  } || {
-    test -d "$TMUX_SDIR" || mkdir -vp $TMUX_SDIR
-    # NOTE: By default have one server per host. Add Htd-TMux-Env var-names
-    # for distinct servers based on currnet shell environment.
-    default_env Htd-TMux-Env hostname
-    TMUX_SOCK_NAME="htd$( for v in $HTD_TMUX_ENV; do eval printf -- \"-\$$v\"; done )"
-    export TMUX_SOCK=$TMUX_SDIR/tmux-$(id -u)/$TMUX_SOCK_NAME
-    falseish "$1" || {
-      test -S  "$TMUX_SOCK" ||
-        error "No tmux socket $TMUX_SOCK_NAME (at '$TMUX_SOCK')" 1
-    }
-    debug "Set TMux-Sock env '$TMUX_SOCK'"
-  }
-  tmux="tmux -S $TMUX_SOCK "
-}
-
-
-
-htd_man_1__tmux_get='Look for session/window with current selected server and
-attach. The default name arguments may dependent on the env, or default to
-Htd/bash. Set TMUX_SOCK or HTD_TMUX_ENV+env to select another server, refer to
-tmux-env doc.'
-htd_spc__tmux_get='tmux get [SESSION-NAME [WINDOW-NAME [CMD]]]'
-htd__tmux_get()
-{
-  test -n "$1" || set -- "$HTD_TMUX_DEFAULT_SESSION" "$2" "$3"
-  test -n "$2" || set -- "$1" "$HTD_TMUX_DEFAULT_WINDOW" "$3"
-  test -n "$2" || set -- "$1" "$2" "$HTD_TMUX_DEFAULT_CMD"
-  test -z "$4" || error "Surplus arguments '$4'" 1
-  tmux_env_req 0
-
-  # Look for running server with session name
-  {
-    test -e "$TMUX_SOCK" &&
-      $tmux has-session -t "$1" >/dev/null 2>&1
-  } && {
-    info "Session '$1' exists"
-    logger "Session '$1' exists"
-    # See if window is there with session
-    htd__tmux_session_list_windows "$1" "$2" && {
-      info "Window '$2' exists with session '$1'"
-      logger "Window '$2' exists with session '$1'"
-    } || {
-      $tmux new-window -t "$1" -n "$2" "$3"
-      info "Created window '$2' with session '$1'"
-      logger "Created window '$2' with session '$1'"
-    }
-  } || {
-    # Else start server/session and with initial window
-    eval $tmux new-session -d -s "$1" -n "$2" "$3" && {
-      note "Started new session '$1'"
-      logger "Started new session '$1'"
-    } || {
-      warn "Failed starting session '$1' ($?)"
-      logger "Failed starting session '$1' ($?)"
-    }
-    # Copy env to new session
-    for var in TMUX_SOCK $HTD_TMUX_ENV
-    do
-      $tmux set-environment -g $var "$(eval printf -- \"\$$var\")"
-    done
-  }
-  test -n "$TMUX" || {
-    note "Attaching to session '$1'"
-    $tmux attach
-  }
-}
-htd_grp__tmux_get=tmux
-
-
-
-# Shortcut to create window, if not exists
-# htd tmux-winit SESSION WINDOW DIR CMD
-htd__tmux_winit()
-{
-  tmux_env_req 0
-  ## Parse args
-  test -n "$1" || error "Session <arg1> required" 1
-  test -n "$2" || error "Window <arg2> required" 1
-  # set window working dir
-  test -e $UCONFDIR/script/htd/tmux-init.sh &&
-    . $UCONFDIR/script/htd/tmux-init.sh || error TODO 1
-  test -n "$3" || {
-    set -- "$@" "$(htd_uconf__tmux_init_cwd "$@")"
-  }
-  test -d "$3" || error "Expected <arg3> to be directory '$3'" 1
-  test -n "$4" || {
-    # TODO: depending on context may also want to update or something different
-    set -- "$1" "$2" "$3" "htd status"
-  }
-  $tmux list-sessions | grep -q '\<'$1'\>' || {
-    error "No session '$1'" 1
-  }
-  $tmux list-windows -t $1 | grep -q $2 && {
-    note "Window '$1:$2' already initialized"
-  } || {
-    $tmux new-window -t $1 -n $2
-    $tmux send-keys -t $1:$2 "cd $3" enter "$4" enter
-    note "Initialized '$1:$2' window"
-  }
-}
-htd_grp__tmux_winit=tmux
-
-
-htd__tmux_init()
-{
-  test -n "$1" || error "session name required" 1
-  test -n "$2" || set -- "$1" "bash"
-  test -z "$4" || error "surplus arguments: '$4'" 1
-  tmux_env_req 0
-  # set window working dir
-  test -e $UCONFDIR/script/htd/tmux-init.sh &&
-    . $UCONFDIR/script/htd/tmux-init.sh || error TODO 1
-  test -n "$3" || {
-    set -- "$@" "$(htd_uconf__tmux_init_cwd "$@")"
-  }
-  out=$(setup_tmpd)/htd-tmux-init-$$
-  $tmux has-session -t "$1" >/dev/null 2>&1 && {
-    logger "Session $1 exists"
-    note "Session $1 exists"
-  } || {
-    $tmux new-session -dP -s "$1" "$2" && {
-    #>/dev/null 2>&1 && {
-      note "started new session '$1'"
-      logger "started new session '$1'"
-    } || {
-      warn "Failed starting session '$1' ($?) ($out):"
-      logger "Failed starting session '$1' ($?) ($out):"
-      printf "Cat ($out) "
-    }
-    test ! -e "$out" || rm $out
-  }
-}
-htd_grp__tmux_init=tmux
-
-
-# Find a server with session name and CS env tag, and get a window
-htd__tmux_cs()
-{
-  test -n "$1" || set -- Htd-$CS "$2" "$3"
-  test -n "$2" || set -- "$1" 0    "$3"
-  test -n "$3" || set -- "$1" "$2" ~/work
-  (
-    # TODO: hostname, session/socket tags
-    export TMUX_SOCK_NAME=boreas-$1-term
-    tmux_env_req 0
-    htd__tmux_init "$1" "$SHELL" "$3"
-    htd__tmux_winit "$@"
-    $tmux set-environment -g CS $CS
-    test -n "$TMUX" || $tmux attach
-  )
-}
-htd_grp__tmux_cs=tmux
-
 
 htd_man_1__tmux='Unless tmux is running, get a new tmux session, based on the
 current environment.
@@ -5937,8 +5720,21 @@ tmux environments are managed by using seperate sockets per session.
 Start tmux, tmuxinator or htd-tmux with given names.
 TODO: first deal with getting a server and session. Maybe later per window
 management.
+
+  tmux-sockets
+    List (active) sockets of tmux servers. Each server is a separate env with
+    sessions and windows.
+
+  tmux-session-list-windows [ - | MATCH ] [ FMT ]
+    List window names for current socket/session. Note these may be empty, but
+    alternate formats can be provided, ie. "#{window_index}".
+
+  tmux get [SESSION-NAME [WINDOW-NAME [CMD]]]
+    Look for session/window with current selected server and attach. The
+    default name arguments may dependent on the env, or default to Htd/bash.
+    Set TMUX_SOCK or HTD_TMUX_ENV+env to select another server, refer to
+    tmux-env doc.
 '
-htd_spc__tmux=
 htd__tmux()
 {
   tmux_env_req 0
@@ -5948,7 +5744,7 @@ htd__tmux()
     list | sockets ) shift ; htd__tmux_sockets "$@" || return ;;
     list-sessions ) shift ; htd__tmux_list_sessions "$@" || return ;;
     list-windows ) shift ; htd__tmux_session_list_windows "$@" || return ;;
-    * ) local c=$1; shift ; htd__tmux_$c "$@" || return ;;
+    * ) upper=0 mkvid "$1"; shift ; htd_tmux_$vid "$@" || return ;;
   esac
 
   #while test -n "$1"
@@ -5979,9 +5775,12 @@ htd__tmux()
   #  }
   #  shift
   #done
-
 }
 htd_grp__tmux=tmux
+htd_als__tmux_list=tmux\ list-sessions
+htd_als__tmux_sessions=tmux\ list-sessions
+htd_als__tmux_windows=tmux\ session-list-windows
+htd_als__tmux_session_windows=tmux\ session-list-windows
 
 
 htd_man_1__test="Run PDir tests in HTDIR"
@@ -8952,19 +8751,17 @@ htd__vfs()
 htd_run__hoststat=f
 htd__hoststat()
 {
-  test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
   test -n "$1" || set -- status
-  local act=$1
-  shift ; htd_hoststat_$act "$@" || return $?
+  upper=0 mkvid "$1"
+  shift ; htd_hoststat_$vid "$@" || return $?
 }
 
 
 htd__volumestat()
 {
-  test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
   test -n "$1" || set -- status
-  local act=$1
-  shift ; htd_volumestat_$act "$@" || return $?
+  upper=0 mkvid "$1"
+  shift ; htd_volumestat_$vid "$@" || return $?
 }
 
 
@@ -9499,7 +9296,7 @@ htd_init()
   #export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta list
   lib_load box date doc table disk remote ignores package service archive \
-      prefix volumestat vfs hoststat scripts
+      prefix volumestat vfs hoststat scripts tmux
   case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh load-ext
   disk_run

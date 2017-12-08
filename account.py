@@ -260,7 +260,7 @@ commands['help'] = libcmd_docopt.cmd_help
 
 def defaults(opts, init={}):
     global cmd_default_settings, ctx
-    libcmd_docopt.defaults(opts.flags)
+    libcmd_docopt.defaults(opts)
     opts.flags.update(cmd_default_settings)
     opts.flags.update(ctx.settings)
     opts.flags.update(

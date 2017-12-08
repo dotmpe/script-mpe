@@ -37,7 +37,7 @@ vc_gitdir()
 vc_hgdir()
 {
   test -d "$1" || error "vc-hgdir expected dir argument" 1
-  ( cd "$1" && go_to_directory .hg && pwd || return 1 )
+  ( cd "$1" && go_to_directory .hg && echo $(pwd)/.hg || return 1 )
 }
 
 vc_issvn()
@@ -63,6 +63,8 @@ vc_bzrdir()
   return 1
 }
 
+# NOTE: scanning like this does not allow to nest in different repositories
+# except but one in order.
 vc_dir()
 {
   test -n "$1" || set -- "."
@@ -152,6 +154,11 @@ vc_unversioned_svn()
   } || return $?
 }
 
+vc_untracked_hg()
+{
+  hg status --unknown | cut -c3-
+}
+
 vc_unversioned()
 {
   test -n "$spwd" || error spwd-13 13
@@ -187,9 +194,13 @@ vc_untracked_git()
 
 vc_untracked_svn()
 {
-  {
-    svn status --no-ignore | grep '^?' | sed 's/^?\ *//g'
-  } || return $?
+  { svn status --no-ignore || return $?
+  } | grep '^?' | sed 's/^?\ *//g'
+}
+
+vc_untracked_hg()
+{
+  hg status --ignored --unknown | cut -c3-
 }
 
 vc_untracked()
@@ -207,6 +218,51 @@ vc_untracked()
       cd "$smpath"
       ppwd=$smpath spwd=$spwd/$prefix \
         vc_untracked \
+            | grep -Ev '^\s*(#.*|\s*)$' \
+            | sed 's#^#'"$prefix"'/#'
+    done
+  }
+
+  cd "$ppwd"
+}
+
+vc_tracked_git()
+{
+  git ls-files
+}
+
+vc_tracked_bzr()
+{
+  bzr ls
+}
+
+vc_tracked_svn()
+{
+  { svn list --depth infinity || return $?
+  } | grep '^?' | sed 's/^?\ *//g'
+}
+
+vc_tracked_hg()
+{
+  { hg status --clean --modified --added || return $?
+  } | cut -c3-
+}
+
+vc_tracked()
+{
+  test -n "$spwd" || error spwd-13 13
+
+  # list paths not under version (including ignores)
+  vc_tracked_$scm
+
+  test "$scm" = "git" && {
+
+    vc_git_submodules | while read prefix
+    do
+      smpath=$ppwd/$prefix
+      cd "$smpath"
+      ppwd=$smpath spwd=$spwd/$prefix \
+        vc_tracked_git \
             | grep -Ev '^\s*(#.*|\s*)$' \
             | sed 's#^#'"$prefix"'/#'
     done
@@ -254,5 +310,144 @@ vc_git_update_remote()
       git remote set-url $1 $2 &&
         note "Remote '$1' updated" || warn "Error updating '$1' remote" 1
     }
+  }
+}
+
+
+# __vc_git_flags accepts 0 or 1 arguments (i.e., format string)
+# returns text to add to bash PS1 prompt (includes branch name)
+vc_flags_git()
+{
+  test -n "$1" || set -- "$(pwd)"
+  g="$(vc_gitdir "$1")"
+  test -e "$g" || return
+
+  test "$(echo $g/refs/heads/*)" != "$g/refs/heads/*" || {
+    echo "(git:unborn)"
+    return
+  }
+
+  cd $1
+  local r
+  local b
+  if [ -f "$g/rebase-merge/interactive" ]; then
+    r="|REBASE-i"
+    b="$(cat "$g/rebase-merge/head-name")"
+  elif [ -d "$g/rebase-merge" ]; then
+    r="|REBASE-m"
+    b="$(cat "$g/rebase-merge/head-name")"
+  else
+    if [ -d "$g/rebase-apply" ]; then
+      if [ -f "$g/rebase-apply/rebasing" ]; then
+        r="|REBASE"
+      elif [ -f "$g/rebase-apply/applying" ]; then
+        r="|AM"
+      else
+        r="|AM/REBASE"
+      fi
+    elif [ -f "$g/MERGE_HEAD" ]; then
+      r="|MERGING"
+    elif [ -f "$g/BISECT_LOG" ]; then
+      r="|BISECTING"
+    fi
+
+    b="$(git symbolic-ref HEAD 2>/dev/null)" || {
+
+      b="$(
+      case "${GIT_PS1_DESCRIBE_STYLE-}" in
+      (contains)
+        git describe --contains HEAD ;;
+      (branch)
+        git describe --contains --all HEAD ;;
+      (describe)
+        git describe HEAD ;;
+      (* | default)
+        git describe --exact-match HEAD ;;
+      esac 2>/dev/null)" ||
+
+      b="$(cut -c1-11 "$g/HEAD" 2>/dev/null)" || b="unknown"
+      # XXX b="($b)"
+    }
+  fi
+
+  local w= i= s= u= c=
+
+  if [ "true" = "$(git rev-parse --is-inside-git-dir 2>/dev/null)" ]; then
+    if [ "true" = "$(git rev-parse --is-bare-repository 2>/dev/null)" ]; then
+      c="BARE:"
+    else
+      b="GIT_DIR!"
+    fi
+  elif [ "true" = "$(git rev-parse --is-inside-work-tree 2>/dev/null)" ]; then
+    if [ -n "${GIT_PS1_SHOWDIRTYSTATE-}" ]; then
+
+      if [ "$(git config --bool bash.showDirtyState)" != "false" ]; then
+
+        git diff --no-ext-diff --ignore-submodules \
+          --quiet --exit-code || w='*'
+
+        if git rev-parse --quiet --verify HEAD >/dev/null; then
+
+          git diff-index --cached --quiet \
+            --ignore-submodules HEAD -- || i="+"
+        else
+          i="#"
+        fi
+      fi
+    fi
+    if [ -n "${GIT_PS1_SHOWSTASHSTATE-}" ]; then
+      git rev-parse --verify refs/stash >/dev/null 2>&1 && s="$"
+    fi
+
+    if [ -n "${GIT_PS1_SHOWUNTRACKEDFILES-}" ]; then
+      if [ -n "$(git ls-files --others --exclude-standard)" ]; then
+        u="~"
+      fi
+    fi
+  fi
+
+  repotype="$c"
+  branch="${b##refs/heads/}"
+  modified="$w"
+  staged="$i"
+  stashed="$s"
+  untracked="$u"
+  state="$r"
+
+  x=
+  rg=$g
+  test -f "$g" && {
+    g=$(dirname $g)/$(cat .git | cut -d ' ' -f 2)
+  }
+
+  # TODO: move to extended escription cmd
+  #x="; $(git count-objects -H | sed 's/objects/obj/' )"
+
+  if [ -d $g/annex ]; then
+    #x="$x; annex: $(echo $(du -hs $g/annex/objects|cut -f1)))"
+    x="$x annex"
+  fi
+
+  test -n "${2-}" && fmt="$2" || fmt='(%s%s%s%s%s%s%s%s)'
+  printf "$fmt" "$c" "${b##refs/heads/}" "$w" "$i" "$s" "$u" "$r" "$x"
+
+  cd "$cwd"
+}
+
+vc_stats()
+{
+  test -n "$1" || set -- "." "$2"
+  test -n "$2" || set -- "$1" "  "
+  { cat <<EOM
+$2status-flags: $(vc_flags_${scm} . "%s%s%s%s%s%s%s%s"  )
+$2tracked: $( vc_tracked | count_lines )
+$2unversioned: $( vc_unversioned | count_lines )
+$2untracked:
+$2  cleanable: $( vc ufc | count_lines )
+$2  temporary: $( vc uft | count_lines )
+$2  uncleanable: $( vc ufu | count_lines )
+$2  (total): $( vc_untracked | count_lines )
+$2(date): $( date_microtime )
+EOM
   }
 }

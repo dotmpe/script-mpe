@@ -702,7 +702,7 @@ def deep_update(dicts, ctx):
                 elif isinstance(data[k], list):
                     data[k] = deep_union( [ data[k], v ], ctx )
                 else:
-                    if ( not isinstance(data[k], type(v)) and not (
+                    if not ctx.opts.flags.no_strict_types and ( not isinstance(data[k], type(v)) and not (
                         isinstance(data[k], basestring) and
                         isinstance(v, basestring)
                     )):

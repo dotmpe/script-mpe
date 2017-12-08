@@ -528,3 +528,10 @@ filter_files()
     done
   }
 }
+
+disk_usage()
+{
+  test -n "$1" || set -- "." "$2"
+  test -n "$2" || set -- "$1" "h"
+  du -$2s $1 | awk '{print $1}'
+}

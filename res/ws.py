@@ -3,6 +3,7 @@ import anydbm
 import shelve
 
 from script_mpe import confparse
+from script_mpe.confparse import yaml_load, yaml_dumps
 
 from persistence import PersistedMetaObject
 from metafile import Metadir
@@ -64,6 +65,18 @@ class Workspace(Metadir):
     @property
     def dbref(self):
         return self.metadirref( 'shelve' )
+
+    @property
+    def statsdoc(self):
+        name = self.metadirref( 'yml', 'stats' )
+        if not os.path.exists(name):
+            confparse.yaml_dump(open(name, 'w+'), dict(stats={}))
+        return name
+
+    def relpath(self, pwd='.'):
+        cwd = os.path.normpath(os.path.realpath(pwd))
+        assert cwd.startswith(self.path)
+        return cwd[len(self.path)+1:]
 
     def init_store(self, truncate=False):
         assert not truncate

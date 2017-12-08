@@ -42,7 +42,10 @@ Usage:
 
 Options:
   -q, --quiet   Quiet operations
-  -s, --strict  Strict operations
+  -s, --strict  Strict(er) operations, step over less failure states.
+  --no-strict-types
+                Turn off type checking on updates, ie. overwrite value with
+                different type.
   -p, --pretty  Pretty output formatting.
   -I <format>, --input-format <format>
                 Override input format. See Formats_.

@@ -586,7 +586,7 @@ class Metadir(object):
         if configpaths:
             if len(configpaths) > 1:
                 log.warn('Using first config file %s for %s', clss.DOTID, configpaths)
-            return clss(configpaths[0])
+            return clss(configpaths[0]+'/.'+clss.DOTNAME)
 
     def __init__(self, path):
         """
@@ -602,6 +602,8 @@ class Metadir(object):
         if self.path.endswith(self.DOTNAME) or self.path.endswith(self.DOTNAME+'/'):
             self.path = os.path.dirname( self.path )
             self.prefix = '.'+self.DOTNAME+'/'
+        else:
+            self.prefix = None
         assert self.DOTNAME not in self.path.strip('/').split('/'), self.path
         self.init()
 
