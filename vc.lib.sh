@@ -434,6 +434,11 @@ vc_flags_git()
   cd "$cwd"
 }
 
+vc_git_annex_list()
+{
+  git annex list "$@" | grep '^[_X]*\ ' | sed 's/^[_X]*\ //g'
+}
+
 vc_stats()
 {
   test -n "$1" || set -- "." "$2"
@@ -447,7 +452,13 @@ $2  cleanable: $( vc ufc | count_lines )
 $2  temporary: $( vc uft | count_lines )
 $2  uncleanable: $( vc ufu | count_lines )
 $2  (total): $( vc_untracked | count_lines )
-$2(date): $( date_microtime )
 EOM
   }
+  test -d "$1/.$scm/annex" && {
+    printf "$2annex:\n"
+    printf "$2  files: $( vc_git_annex_list | count_lines )\n"
+    printf "$2  here: $( vc_git_annex_list -i here | count_lines )\n"
+    printf "$2  unused: $( git annex unused | count_lines )\n"
+  }
+  printf "$2(date): $( date_microtime )\n"
 }

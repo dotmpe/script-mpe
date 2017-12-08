@@ -74,6 +74,12 @@ htd_load()
 
   projectdirs="$(echo ~/project ~/work/*/tree)"
 
+  # Find project dir
+  vc_getscm
+  go_to_directory .$scm && {
+    localpath="$(normalize_relative "$go_to_before")"
+  }
+
   go_to_directory .cllct/local.id && {
     workspace=$(pwd -P)
     prefix="$(normalize_relative "$go_to_before")"
@@ -1006,35 +1012,62 @@ htd__status_cwd()
 }
 
 
+htd__update_stats()
+{
+  # Go to project root
+  cd "$workspace/$prefix"
+
+  # Gather counts and sizes for SCM dir
+  { test -n "$scm" || vc_getscm
+  } && {
+
+    htd_ws_stats_update scm "
+$(vc_stats . "        ")"
+
+    test -d "$workspace/$prefix/.$scm/annex" && {
+
+        htd_ws_stats_update disk-usage "
+              annex: $( disk_usage .$scm/annex)
+              scm: $( disk_usage .$scm )
+              (total): $( disk_usage )
+              (date): $( date_microtime )"
+
+      } || {
+
+        htd_ws_stats_update disk-usage "
+              scm: $( disk_usage .$scm )
+              (total): $( disk_usage )
+              (date): $( date_microtime )"
+      }
+
+  } || {
+
+    htd_ws_stats_update disk-usage "
+          (total): $( disk_usage )
+          (date): $( date_microtime )"
+  }
+
+  # Use project metadata for getting more stats
+  package_file "$workspace/$prefix" || return 0
+
+  #TODO: per project static code analysis 
+  #vc tracked-files
+  #vc tracked-files | while read f ; do grep -Ev '^\s\+$' $f ; done | wc -l
+  #vc tracked-files | while read f ; do sort -u $f ; done | sort -u | wc -l
+}
+
 htd__git_status()
 {
-  test -n "$scm" || vc_getscm
-  htd_ws_stats_update scm "
-$(vc_stats . "        ")"
-  htd_ws_stats_update disk-usage "
-        scm: $( disk_usage .git )
-        (total): $( disk_usage )
-        (date): $( date_microtime )"
-
   # Forced color output commands
-  #git -c color.status=always status
-  #du -hs . .git/objects
+  git -c color.status=always status
+  du -hs . .git/objects
 }
 
 htd__git_annex_status()
 {
-  test -n "$scm" || vc_getscm
-  htd_ws_stats_update scm "
-$(vc_stats . "        ")"
-  htd_ws_stats_update disk-usage "
-        annex: $( disk_usage .git/annex)
-        scm: $( disk_usage .git )
-        (total): $( disk_usage )
-        (date): $( date_microtime )"
-
-  #git status
-  #git annex unused
-  #du -hs . .git/objects .git/annex
+  git status
+  git annex unused
+  du -hs . .git/objects .git/annex
 }
 
 htd__volume_status()

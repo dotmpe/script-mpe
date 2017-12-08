@@ -1601,6 +1601,12 @@ vc__stats()
   vc_stats "$@"
 }
 
+
+vc__git_annex_list() # remote..
+{
+  vc_git_annex_list $(for remote in "$@"; do printf -- "-i $remote "; done)
+}
+
 # ----
 
 

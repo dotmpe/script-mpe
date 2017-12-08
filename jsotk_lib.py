@@ -515,6 +515,8 @@ def yaml_writer(data, file, ctx):
     if not data and ctx.opts.flags.empty_null:
         file.write('\n')
     else:
+        if ctx.opts.flags.ignore_aliases:
+            kwds['ignore_aliases'] = True
         yaml_safe_dumps(data, file, **kwds)
 
 def py_writer(data, file, ctx):
@@ -684,14 +686,17 @@ def deep_update(dicts, ctx):
     assert len(dicts) > 1
     assert not isinstance( dicts[0], type(None) )
     assert not isinstance( dicts[1], type(None) )
-    data = dicts[0]
-    while len(dicts) > 1:
-        mdata = dicts.pop(1)
+    data = dicts.pop(0)
+    while len(dicts) > 0:
+        mdata = dicts.pop(0)
         if not isinstance(mdata, dict):
             raise ValueError("Expected %s but got %s" % (
                     type(data), type(mdata)))
         for k, v in mdata.iteritems():
             if k in data:
+                if not v:
+                    data[k] = v
+                    continue
                 if isinstance(data[k], dict):
                     try:
                         deep_update( [ data[k], v ], ctx )
@@ -737,9 +742,9 @@ def deep_union(lists, ctx):
     specific types, or path-expressions.
     """
 
-    data = lists[0]
-    while len(lists) > 1:
-        mdata = lists.pop(1)
+    data = lists.pop(0)
+    while len(lists) > 0:
+        mdata = lists.pop(0)
         if not isinstance(mdata, list):
             raise ValueError( "Expected %s but got %s" % (
                     type(data), type(mdata)))
@@ -839,5 +844,3 @@ def maptype(typestr):
 def set_default_output_format(ctx, fmt):
     if '-O' not in ctx.opts.argv and '--output-format' not in ctx.opts.argv:
         ctx.opts.flags.output_format = fmt
-
-

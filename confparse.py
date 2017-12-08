@@ -36,44 +36,6 @@ try:
     import ruamel
     from ruamel import yaml
 
-    def process_scalar(self):
-        """
-        Custom process_scalar attribute for ruamel YAML dumper.
-        """
-        if self.analysis is None:
-            self.analysis = self.analyze_scalar(self.event.value)
-        if self.style is None:
-            self.style = self.choose_scalar_style()
-        split = (not self.simple_key_context)
-        # VVVVVVVVVVVVVVVVVVVV added
-        if split:  # not a key
-            is_string = True
-            if self.event.value and self.event.value[0].isdigit():
-                is_string = False
-            if ':' not in self.event.value:
-                is_string = False
-            # insert extra tests for scalars that should not be ?
-            if is_string:
-                self.style = "'"
-        # ^^^^^^^^^^^^^^^^^^^^
-        # if self.analysis.multiline and split    \
-        #         and (not self.style or self.style in '\'\"'):
-        #     self.write_indent()
-        if self.style == '"':
-            self.write_double_quoted(self.analysis.scalar, split)
-        elif self.style == '\'':
-            self.write_single_quoted(self.analysis.scalar, split)
-        elif self.style == '>':
-            self.write_folded(self.analysis.scalar)
-        elif self.style == '|':
-            self.write_literal(self.analysis.scalar)
-        else:
-            self.write_plain(self.analysis.scalar, split)
-        self.analysis = None
-        self.style = None
-        if self.event.comment:
-            self.write_post_comment(self.event)
-
     def yaml_loads(*args, **kwds):
         """
         Load from stream or text.
@@ -94,6 +56,52 @@ try:
 
 
 
+    class YamlDumper(ruamel.yaml.RoundTripDumper):
+        _ignore_aliases = False
+
+        def ignore_aliases(self, _data=None):
+            return self._ignore_aliases
+
+        def process_scalar(self):
+            """
+            Custom process_scalar attribute for ruamel YAML dumper.
+            """
+            if self.analysis is None:
+                self.analysis = self.analyze_scalar(self.event.value)
+            if self.style is None:
+                self.style = self.choose_scalar_style()
+            split = (not self.simple_key_context)
+            # VVVVVVVVVVVVVVVVVVVV added
+            if split:  # not a key
+                is_string = True
+                if self.event.value and self.event.value[0].isdigit():
+                    is_string = False
+                if ':' not in self.event.value:
+                    is_string = False
+                # insert extra tests for scalars that should not be ?
+                if is_string:
+                    self.style = "'"
+            # ^^^^^^^^^^^^^^^^^^^^
+            # if self.analysis.multiline and split    \
+            #         and (not self.style or self.style in '\'\"'):
+            #     self.write_indent()
+            if self.style == '"':
+                self.write_double_quoted(self.analysis.scalar, split)
+            elif self.style == '\'':
+                self.write_single_quoted(self.analysis.scalar, split)
+            elif self.style == '>':
+                self.write_folded(self.analysis.scalar)
+            elif self.style == '|':
+                self.write_literal(self.analysis.scalar)
+            else:
+                self.write_plain(self.analysis.scalar, split)
+            self.analysis = None
+            self.style = None
+            if self.event.comment:
+                self.write_post_comment(self.event)
+        def set_ignore_aliases(self, ia):
+            self._ignore_aliases = ia
+
     def yaml_dumps(*args, **kwds):
         """
         Dump to string, without kwds stream return string.
@@ -104,11 +112,13 @@ try:
 
         See ruamel.yaml.dump.
         """
-        dd = ruamel.yaml.RoundTripDumper
-        dd.process_scalar = process_scalar
-        kwds.update(dict(
-            Dumper=dd
-        ))
+        #dd = ruamel.yaml.RoundTripDumper
+        #dd.process_scalar = process_scalar
+        dd = YamlDumper
+        if 'ignore_aliases' in kwds:
+            dd._ignore_aliases = kwds['ignore_aliases']
+            del kwds['ignore_aliases']
+        kwds.update(dict( Dumper=dd ))
         return ruamel.yaml.dump(*args, **kwds)
 
     yaml_safe_dumps = yaml_dumps

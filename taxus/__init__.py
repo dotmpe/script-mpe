@@ -39,7 +39,7 @@ class Taxus(object):
     DEFAULT_SESSION = 'default'
 
 
-    def __init__(self, version='v0', conf=DEFAULT_SETTINGS):
+    def __init__(self, version='taxus.v0', conf=DEFAULT_SETTINGS):
         "Create context for models"
         self.metadata_per_session = {}
         self.models_per_session = {}

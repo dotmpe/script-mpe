@@ -171,13 +171,14 @@ def cmd_stats(settings):
     repo = Repo.fetch()
 
     doc, statsdoc = None, None
-    ws = Workdir.fetch()
-    if ws:
-        statsdoc = ws.statsdoc
-        doc = yaml_load(statsdoc)
-        log.stderr("Loaded doc %r" % statsdoc)
-    else:
-        log.stderr("No workspace, no stats doc")
+    if not g.file:
+        ws = Workdir.fetch()
+        if ws:
+            statsdoc = ws.statsdoc
+            doc = yaml_load(statsdoc)
+            log.stderr("Loaded doc %r" % statsdoc)
+        else:
+            log.stderr("No workspace, no stats doc")
 
     prefix = ws.relpath()
 

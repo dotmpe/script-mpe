@@ -460,9 +460,10 @@ htd_repository_url() # remote url
 }
 
 
+# Update stats file, append entry to log and set as most current value
 htd_ws_stats_update()
 {
-  local id=$(date +%Y%m%dT%H%M)
+  local id=_$($gdate +%Y%m%dT%H%M%S%N)
   test -n "$ws_stats" || ws_stats=$workspace/.cllct/stats.yml
   { cat <<EOM
 stats:
@@ -473,6 +474,16 @@ stats:
       last: *$id
 EOM
   } | {
-    trueish "$dump" && cat - || jsotk.py -Iyaml --pretty --list-union update $ws_stats -
+    trueish "$dump" && cat - || jsotk.py update $ws_stats - \
+        -Iyaml \
+        --list-union \
+        --clear-paths='["stats","'"$prefix"'","'"$1"'","last"]'
   }
+  # NOTE: the way jsotk deep-update/union and ruamel.yaml aliases work it
+  # does not update the log. While during loading the log entry aliases to
+  # 'last'. 'last' is updated first, and so by the time the logs are to be
+  # merged, the only entry is erased, and overwritten with the new 'last' values.
+  # I like how aliases keep the noise down and the information up, so I'd rather
+  # not ditch them. Instead, need to dereference, ie. copy/move data bits before
+  # merges. Introduced --clear-paths, and that makes it work nicely.
 }
