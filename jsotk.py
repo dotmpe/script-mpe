@@ -141,6 +141,18 @@ Dev
   caching needs to be added. jsotk (Sh) frontend is not in use yet.
 - Another improvement may be seeking out SHM filesystem support.
 
+..
+
+  TODO: simplify. Start with good use-case testing and update/merge.. can
+  we not create one command of those. Or change the mode:
+
+  | update src dest dest dest [ or update src src --- dest ]
+  | merge dest src src src [ or merge src src src dest ]
+
+  Ie. update = many dests from one or more src, merge = one or new dest from
+  many src. But both have same behaviour and options to do merge/update/union
+  etc.
+
 """
 import types
 from StringIO import StringIO
@@ -179,7 +191,9 @@ def H_merge_one(ctx):
 
 
 def H_merge(ctx, write=True):
-    """Merge srcfiles into last file. All srcfiles must be same format.
+    """
+    Merge srcfiles into last file. All srcfiles must be same format.
+
     Defaults to src-to-dest noop, iow. '- -' functions identical to
     'dump'.  """
 

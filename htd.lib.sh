@@ -480,10 +480,7 @@ EOM
         --clear-paths='["stats","'"$prefix"'","'"$1"'","last"]'
   }
   # NOTE: the way jsotk deep-update/union and ruamel.yaml aliases work it
-  # does not update the log. While during loading the log entry aliases to
-  # 'last'. 'last' is updated first, and so by the time the logs are to be
-  # merged, the only entry is erased, and overwritten with the new 'last' values.
-  # I like how aliases keep the noise down and the information up, so I'd rather
-  # not ditch them. Instead, need to dereference, ie. copy/move data bits before
-  # merges. Introduced --clear-paths, and that makes it work nicely.
+  # does not update the log properly by union. Unless we clear the reference
+  # first, before it overwrites both last key and log item at once. See jsotk
+  # update tests.
 }
