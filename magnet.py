@@ -24,7 +24,15 @@ Usage:
         [ --no-xt | --xt=XT... ] [ --no-add-xt ] [ --xt-type=XTC... ]
         [ --no-xl ]
         [ --no-uri ]
+        [ --no-ed2k ]
+        [ --no-btih ]
+        [ --no-md5 ]
+        [ --no-sha1 ]
+        [ --no-tiger ]
+        [ --no-gost ]
+        [ --no-aich ]
         [ --no-crc32 ]
+        [ --no-aich ]
         [ --no-be | --init-be ]
 
 Options:
@@ -147,7 +155,7 @@ from StringIO import StringIO
 import uriref
 import libcmd_docopt
 
-from confparse import yaml_load, yaml_safe_dump
+from confparse import yaml_load, yaml_safe_dumps
 
 mhashlib= None # FIXME: malloc troubs
 #import mhashlib # py-mhash 1.2
@@ -192,9 +200,9 @@ def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
                 CTX.append(a)
                 continue
             if a.startswith(os.sep):
-                print(("Warning, arg %r looks it may be a " % a, file=sys.stderr)
+                print("Warning, arg %r looks it may be a " % a,
                     +"local path for context, but its directory path does not "
-                    +"exist so the value will ignored")
+                    +"exist so the value will ignored", file=sys.stderr )
             m = uriref.absoluteURI.match(a)
             if m:
                 if a.startswith('urn:'):
@@ -248,8 +256,11 @@ def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
         opts.flags.xt_type = [
             'urn:sha1',
             'urn:md5',
-            #'urn:btih',
-            'urn:tree:tiger'
+            'urn:btih',
+            'urn:tree:tiger',
+            'urn:aich',
+            'urn:ed2k',
+            'urn:crc32'
         ]
 
     urlinfo = urllib.urlopen(URI)
@@ -265,14 +276,12 @@ def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
     if not opts.flags.no_xl:
         query['xl'] = info['content-length']
 
-    if not opts.flags.no_crc32:
-        query['x.crc32'] = resolvers['urn:crc32'](data, info, fn)
-
     for xt_c in opts.flags.xt_type:
         if xt_c not in resolvers:
             print("No resolver %r" % xt_c)
             continue
-        XT.append( xt_c +':'+ resolvers[ xt_c ]( data, info, fn ) )
+        if not getattr(opts.flags, 'no_%s' % xt_c.split(':')[-1]):
+            XT.append( xt_c +':'+ resolvers[ xt_c ]( data, info, fn ) )
 
     # Prepare topic context backend(s)
     bes = {}
@@ -381,7 +390,7 @@ class MAGMA(MagnetFileStore):
         return yaml_load(StringIO(data))['list']
     def serialize(self):
         # FIXME: spec requires double quotes, not single for magnet items
-        return yaml_safe_dump({'list': self.data})
+        return yaml_safe_dumps({'list': self.data})
 class TxtItemList(MagnetFileStore):
     def parse(self, data):
         l = []

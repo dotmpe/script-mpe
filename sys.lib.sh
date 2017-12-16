@@ -9,6 +9,18 @@ set -e
 
 sys_lib_load()
 {
+  _14MB=14680064
+  _6MB=7397376
+  _5k=5120
+
+  #test -n "$MIN_SIZE" || MIN_SIZE=1
+  test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
+
+  test -n "$uname" || export uname="$(uname -s)"
+  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  test -n "$architecture" || architecture="$(uname -p)"
+  test -n "$machine_hw" || machine_hw="$(uname -m)"
+
   test -n "$SCR_SYS_SH" ||  {
     test -n "$SHELL" &&
     SCR_SYS_SH="$(basename "$SHELL")" ||
@@ -25,7 +37,7 @@ sys_lib_load()
   } || {
     test -d /tmp || error "No /tmp" 1
     export TMPDIR=/tmp
-    sh $scriptpath/std.lib.sh info "TMPDIR=$TMPDIR (should be in shell profile)"
+    $LOG info "$scriptname" "TMPDIR=$TMPDIR (should be in shell profile)" >&2
   }
 }
 
@@ -38,24 +50,24 @@ require_fs_casematch()
   }
   test -e ".fs-casematch" || {
     test -e ".fs-nocasematch" && {
-      sh $scriptpath/std.lib.sh warn "Case-insensitive fs '$1' detected!"
+      $LOG warn "$scriptname" "Case-insensitive fs '$1' detected!" >&2
     } || {
 
       echo 'ok' > abc
       echo 'notok' > ABC
       test "$(echo $( cat abc ABC))" = "ok notok" && {
-        sh $scriptpath/std.lib.sh debug "Case-sensitive fs '$1' OK"
+        $LOG debug "$scriptname" "Case-sensitive fs '$1' OK" >&2
         rm abc ABC || noop
         touch .fs-casematch
       } || {
         test "$(echo $( cat abc ABC))" = "notok notok" && {
           rm abc || noop
-          sh $scriptpath/std.lib.sh warn "Case-insensitive fs '$1' detected!"
+          $LOG warn "$scriptname" "Case-insensitive fs '$1' detected!" >&2
           touch .fs-nocasematch
         } || {
           rm abc ABC || noop
           cd "$CWD"
-          sh $scriptpath/std.lib.sh error "Unknown error" 1
+          $LOG error "$scriptname" "Unknown error" 1 >&2
         }
       }
     }
@@ -105,7 +117,7 @@ var_isset()
 
     bash )
         # Bash: https://www.cyberciti.biz/faq/linux-unix-howto-check-if-bash-variable-defined-not/
-        $scriptpath/tools/sh/var-isset.bash "$1" || return 1
+        $HOME/bin/tools/sh/var-isset.bash "$1" || return 1
       ;;
 
     * )

@@ -193,7 +193,11 @@ disk__local_devices()
 disk__x_local()
 {
   test "$uname" = "Darwin" && {
+
+    #xml=$(darwin_profile_xml "SPUSBDataType")
+    #echo '---------------------------'
     darwin_disk_table
+
   } || {
     test -n "$1" || set -- $(disk_list)
     while test $# -gt 0

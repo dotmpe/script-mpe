@@ -56,7 +56,7 @@ install_bats()
 {
   stderr "Installing bats"
   test -n "$BATS_BRANCH" || BATS_BRANCH=master
-  test -n "$BATS_REPO" || BATS_REPO=https://github.com/bvberkum/bats.git
+  test -n "$BATS_REPO" || BATS_REPO=https://github.com/bats-core/bats-core.git
   test -d $SRC_PREFIX/bats || {
     git clone $BATS_REPO $SRC_PREFIX/bats || return $?
   }
@@ -110,8 +110,14 @@ install_git_versioning()
 
 install_git_lfs()
 {
+  # XXX: for debian only, and requires sudo
+  test -n "$sudo" || {
+    stderr "sudo required for GIT lfs"
+    return 1
+  }
   curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-  $sudo apt-get install git-lfs
+  $pref apt-get install git-lfs
+  # TODO: must be in repo. git lfs install
 }
 
 install_mkdoc()
@@ -186,17 +192,6 @@ install_apenwarr_redo()
   }
 }
 
-install_git_lfs()
-{
-  # XXX: for debian only, and requires sudo
-  test -n "$sudo" || {
-    stderr "sudo required for GIT lfs"
-    return 1
-  }
-  curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-  $pref apt-get install git-lfs
-  # TODO: must be in repo. git lfs install
-}
 
 install_script()
 {

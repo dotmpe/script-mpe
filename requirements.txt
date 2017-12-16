@@ -19,3 +19,7 @@ xattr
 couchdb
 wheezy.template
 mysql-connector==2.1.6
+docopt-mpe
+sadisplay
+BeautifulSoup
+shaarli-client

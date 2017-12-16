@@ -2,7 +2,7 @@
 Version Control
 """
 from sqlalchemy import Column, Integer, String, Boolean, \
-    ForeignKey, Table, Index, DateTime, Enum
+    ForeignKey, Table, Index, DateTime, Enum, or_
 from sqlalchemy.orm import relationship, backref
 
 from . import core
@@ -79,5 +79,3 @@ class Project(SqlBase, ORMMixin):
 models = [
         VersionControl, Project
     ]
-
-

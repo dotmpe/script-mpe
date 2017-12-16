@@ -1,219 +1,269 @@
 #!/usr/bin/env python
 """
-Taxus ORM (SQL) model.
-
-All objects inherit from Node. Each object type is has its own table. Stored
-objects have records in `nodes` and all other 'parent' tables (references via
-foreign-keys). The `nodes` table stores the objects type, meaning there can be
-only one (sub)type for a node record at any time.
-
-Futher the main value of Node is a string, 'name' of at most 255 characters ie.
-easy to fit in common databases string columns.
-This value must be unique.
-
-
-
-TODO: redraw this diagram.
-::
-
-    Node<INode>
-     * id_id:Integer<PrimaryKey>
-     * ntype:String<50,NotNull,Polymorphic>
-     * name:String<255,Null>
-     * date_added:DateTime<Index,NotNull>
-     * deleted:Bool<Index,DefaultOff>
-     * date_deleted:DateTime<Null>
-
-    ID<IID>
-     " A global system identifier.
-     * id_id:Integer<PrimaryKey>
-     * global_id:String<255,Index,Unique,NotNull>
-     * date_added:
-     * deleted:
-     * date_deleted:
-     A
-     |
-    Locator<IID>
-     " A global identifier for retrieval of remote content.
-     * ref:String<2048,Index,Unique>
-     - scheme:String
-     - path:String
-
-to cut down on sparseness, perhaps move ref column to
-other dedicated big-string index type like Token.. meh
-::
-
-    Name<IID>
-     " A local unique identifier.
-     * name:String<index,unique>
-     A
-     |
-    Tag<IID>
-     " a localName, in at least one namespace
-     * namespaces:*Namespace
-     A
-     |
-    Topic<IID>
-     * topic_id:Integer<PrimaryKey>
-     * about_id:Integer<ForeignKey(tag_id)>
-     * thing:Bool
-     * explanation:Text
-     * plural:String
-
-Names may turn out to be different, or the same.
-Different names may be noted as such, ie. given a sense-number using some notation.
-Otherwise; names that are the same, can be aggregated into the same node where possible.
-Ie. in this case Tags that are the same are merged by combining their lists of namespaces
-onto one node record.
-That may not always be feasible.
-Their sense should be the same too.
-Lets hope it finds clarity and not raise semantics.
-
-Older diagram follows.
-
-Inheritance hierarchy and relations::
-
-                         Node:Node
-                          * id:Integer
-                          * ntype:<polymorphic-ID>
-                          * name:String(255)
-                          * date-added
-                          * deleted
-                          * date-deleted
-
-                              A
-                              |
-        .---- .----------- .--^-------. ----------. -----.
-        |     |            |          |            |      |
-        |    Token         |          |            |      |
-        |     * value      |          |            |      |
-        |     * refs       |          |            |      |
-        |                  |          |            |      |
-       INode:Node          |         Status       Host    |
-        * local_path:255   |          * nr         * hostname
-        * size             |          * http_code         |
-        * cum_size         |                              |
-        * host:Host        |          ^                   |
-                           |          |                   |
-          A                |          |                   |
-          |                |          |                   |
-       CachedContent      Resource    |                   |
-        * cid              * status --/                   |
-        * size             * location:Location            |
-        * charset          * last/a/u-time                |
-        * partial          * allowed                      |
-        * expires                                         |
-        * etag             A                              |
-        * encodings        |                              |
-                           |                              |
-        ^                  |                        /--< Description
-        |                  |                        |     * namespace:Namespace
-        |  Invariant ------'-- Variant              |
-        \-- * content      |    * vary              |     A
-            * mediatype    |    * descriptions >----/     |
-            * languages    |                              '-- Comment
-                           |    A                         |    * node:Node
-                           |    |                         |    * comment:Text
-                           |    |                         |
-                           |   Namespace                  '-- ...
-                           |    * prefix:String           * subject
-                           |                              * predicate
-                           '-- Relocated                  * object
-                           |    * redirect:Location
-                           |    * temporary:Bool
-                           |
-                           '-- Bookmark                  Formula
-                                                          * statements
-                           '-- Volume
-                           '-- Workset
-
-          ChecksumDigest
-           * date_added
-           * date_/deleted
-           A
-           |
-     .-----^------.
-     |            |
-    SHA1Digest   MD5Digest
-     * digest     * digest
-
-    ID
-     * id:Integer
-     * date-added
-     * deleted
-     * date-deleted
-
-         A
-         |
-     .---^------.
-     |          |
-     |        Name
-     |         * id
-     |         * name
-     |
-   Locator
-    * id
-    * ref
-    * checksums
-
-
-This schema will make node become large very quickly. Especially as various
-metadata relations between Nodes are recorded in Statements.
-In addition, Statements will probably rather refer to Fragment nodes rather than
-Resource nodes, adding another layer of similar but distinct nodes.
-
-The Description column in the diagram is there to get an idea, while most such
-data should be stored a suitable triple store.
+Taxus ORM (SQLAlchemy)
 """
+from __future__ import print_function
 import os
+import socket
 
+import couchdb
+from sqlalchemy import MetaData
 from sqlalchemy.orm.exc import NoResultFound
 
-# Local
+from script_mpe import confparse, log, mod, datelib
 from . import iface
+from iface import registry as reg, gsm
 from . import init
 from . import util
-# Local: model
-from . import checksum
-from . import core
-from . import fs
-from . import fslayout
-from . import generic
-from . import net
-from . import ns
-from . import web
-from . import semweb
+from . import out
 
 from .init import SqlBase
 from .util import SessionMixin, ScriptMixin, ORMMixin, get_session
-from .core import *
-from .hier import *
-from .net import *
-from .ns import *
-from .code import *
-from .fs import *
-from .fslayout import *
-from .web import *
-from .model import Relocated, Volume, Bookmark
-from .htd import TNode, JournalEntry
 
 
+# TODO: cleanup metadata code, should inherit from and managae multiple
+# SqlBase instances for proper schema segmentation, and handle overlap
 
-models = \
-        checksum.models + \
-        core.models + \
-        fs.models + \
-        model.models + \
-        net.models + \
-        web.models + \
-        generic.models + \
-        semweb.models + \
-        code.models
+#SqlBase = declarative_base()
+
+staticmetadata = SqlBase.metadata
 
 
 class Taxus(object):
 
-    # Extra commands
+    """
+    Helper for list of models and connection.
+    """
+
+    DEFAULT_SETTINGS = dict(
+            yes=False,
+            interactive=True,
+            create_on_init=False,
+            quiet=False,
+            initial_session='default',
+            default_session='default',
+            drop_all=True
+        )
+    DEFAULT_SESSION = 'default'
+
+
+    def __init__(self, version='taxus.v0', conf=DEFAULT_SETTINGS):
+        "Create context for models"
+        self.metadata_per_session = {}
+        self.models_per_session = {}
+        super(Taxus, self).__init__()
+
+        self.uname = os.uname()[0]
+        self.hostname = socket.gethostname()
+
+        # Use settings object iso. many keyword arguments. Set defaults here.
+        g = self.settings = confparse.Values(conf)
+
+        self.session = g.initial_session
+
+        if version: self.load(version)
+
+        self.couches = dict()
+
+    def init(self, metadata=None):
+        g = self.settings
+
+        if g.couch:
+            self.couchdocs(g.couch)
+
+        if not g.no_db:
+            assert g.dbref
+            self.session = 'default'
+            self.setmetadata(metadata)
+            self.init_db(g.dbref)
+
+
+    # CouchDB
+
+    def couchdocs(self, ref):
+        self.couch = ref.rsplit('/', 1)
+        self.docs = self.load_couch(ref)
+
+    def load_couch(self, ref):
+        sref, dbname = ref.rsplit('/', 1)
+        if sref not in self.couches:
+            self.couches[sref] = dict(
+                    server=couchdb.client.Server(sref), db=dict()
+                )
+        self.couches[sref]['db'][dbname] = self.couches[sref]['server'][dbname]
+        return self.couches[sref]['db'][dbname]
+
+    @property
+    def couchconn(self):
+        return self.couches[self.couch[0]]['server']
+
+
+    # SQL Alchemy
+
+    @property
+    def models(self):
+        sid = self.session
+        models = self.models_per_session[sid]
+        if models:
+            return models
+        return []
+
+    @property
+    def metadata(self):
+        sid = self.session
+        return self.metadata_per_session[sid]
+
+    @property
+    def sa_session(self):
+        sid = self.session
+        return SessionMixin.sessions[sid]
+
+    def __getattribute__(self, name):
+        sid = object.__getattribute__(self, 'session')
+        models = object.__getattribute__(self, 'models_per_session')
+        if sid and sid in models:
+            models = models[sid]
+            for m in models:
+                if name is m.model_name():
+                    return m
+        return object.__getattribute__(self, name)
+
+    def setmodels(self, models):
+        self.models_per_session[self.session] = models
+
+    def setmetadata(self, metadata):
+        if not metadata:
+            metadata = staticmetadata
+        self.metadata_per_session[self.session] = metadata
+
+    def load(self, version, session=DEFAULT_SESSION):
+        "Load module's model list"
+        module = mod.load_module('%s' % version)
+        self.setmodels(module.models)
+
+    def init_db(self, dbref, name=DEFAULT_SESSION):
+        "Get connection"
+        g = self.settings
+        if name not in ScriptMixin.sessions:
+            if name not in self.metadata_per_session:
+                raise Exception("No metadata to initialize %s session" % name)
+            ScriptMixin.get_session(name, dbref, g.create_on_init,
+                    self.metadata_per_session[name])
+
+    def create(self, drop_all=None):
+        "Create a tables"
+        g = self.settings
+        if drop_all is None:
+            drop_all = g.drop_all
+        if drop_all:
+            context.metadata.drop_all()
+        self.metadata.create_all()
+        if not g.quiet:
+            if drop_all:
+                log.std("Dropped all tables in metadata, and recreated")
+            else:
+                log.std("Created DB and Tables")
+
+    def reset_metadata(self, name=DEFAULT_SESSION):
+        """
+        Reset metadata for current set of models
+        XXX: what about secondary tables?
+        """
+        metadata = MetaData()
+        if name in SessionMixin.sessions:
+            connection = SessionMixin.sessions[name].connection()
+            metadata.bind = connection.engine
+        self.metadata_per_session[name] = metadata
+        for m in self.models_per_session[name]:
+            m.metadata = metadata
+        return metadata
+
+    def reset(self):
+        "TODO: Re-create DB, prime everything.."
+        g = self.settings
+        if not g.quiet:
+            log.stdout("Tables in schema:"+ ", ".join(self.metadata.tables.keys()))
+        if g.interactive:
+            if not g.yes:
+                x = raw_input("This will destroy all data? [yN] ")
+                if not x or x not in 'Yy':
+                    return 1
+        if g.drop_all:
+            self.metadata.drop_all()
+        else:
+            assert False, "get tables.. drop"
+        self.metadata.create_all()
+        if not g.quiet:
+            log.std("Recreated Tables")
+
+    def reflect(self):
+        g = self.settings
+        self.reset_metadata()
+        self.metadata.reflect()
+
+    def get_records(self, klass, _filters=(), **kwds):
+        g = self.settings
+        if kwds:
+            rs = klass.search(_sa=self.sa_session, _session=g.session_name, **kwds)
+        else:
+            rs = klass.all()
+        if not rs:
+            self.note("Nothing")
+        return rs
+
+    def opts_to_filters(self, klass):
+        filters = ()
+        g = self.settings
+        if g.deleted: filters += ( klass.deleted != True, )
+        if g.added: field='date_added'
+        else: field='date_updated'
+        if g.older_than:
+            until = datelib.shift('-'+g.older_than)
+            filters += klass.before_date( until, field )
+        else:
+            since = datelib.shift('-'+g.max_age)
+            filters += klass.after_date( since, field )
+        return filters
+
+    # Log
+    def note(self, msg, *args, **kwds):
+        g = self.settings
+        if g.quiet:
+            return
+        if 'lvl' in kwds:
+            if g.verbose < kwds['lvl']:
+                return
+        if 'num' in kwds:
+            if not kwds['num'] or ( kwds['num'] % g.interval ) != 0:
+                return
+        log.stderr(msg, *args)
+
+    def out(self, rs, tp='node'):
+        g = self.settings
+        of = g.output_format
+        if of == 'json':
+            def out_( d ):
+                for k in d:
+                    if isinstance(d[k], datetime):
+                        d[k] = d[k].isoformat()
+                return res.js.dumps(d)
+        else:
+            if g.struct_output:
+                tpl = out.get_template("%sdoc.%s" % (tp, of))
+            else:
+                tpl = out.get_template("%s.%s" % (tp, of))
+            out_ = tpl.render
+
+        for bm in rs:
+            if g.struct_output:
+                d = bm.to_struct()
+            else:
+                d = bm.to_dict()
+            print(out_( d ))
+
+
+    # XXX: cleanup old code
+
     def init_host(self, options=None):
         """
         Tie Host to current system. Initialize Host if needed.
@@ -237,34 +287,11 @@ class Taxus(object):
         print(iface.IFormatted(host).__str__())
         return host
 
-    def init_database(self, options=None):
-        dbref = options.dbref
-        print("Applying SQL DDL to DB %s " % dbref)
-        self.session = util.get_session(dbref, initialize=True)
-        return self.session
-
     def find_inode(self, path):
         # FIXME: rwrite to locator?
         inode = INode(local_path=path)
         inode.host = self.find_host()
         return inode
-
-    def query(self, *args, **opts):
-        print('TODO: query:',args)
-        q = self.session.query(Node)
-        return ResultSet(q, q.all())
-
-    subcmd_aliases = {
-            'rm': 'remove',
-            'upd': 'update',
-        }
-
-    def node(self, *args, **opts):
-        subcmd = args[0]
-        while subcmd in subcmd_aliases:
-            subcmd = subcmd_aliases[subcmd]
-        assert subcmd in ('add', 'update', 'remove'), subcmd
-        getattr(self, subcmd)(args[1:], **opts)
 
     def node_add(self, name, **opts):
         "Don't call this directly from CL. "
@@ -308,5 +335,3 @@ class Taxus(object):
                 comment=comment,
                 date_added=datetime.now())
         return node
-
-

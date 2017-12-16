@@ -46,4 +46,3 @@ def get_cases():
 
 if __name__ == '__main__':
     unittest.main()
-

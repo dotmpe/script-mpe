@@ -1,7 +1,8 @@
 Bourne Shell Version Control Wrapper
 ====================================
 
-Deal with SCM checkout directories. GIT.
+Deal with SCM checkout directories. GIT mostly.
+But basics for SVN, Mercurial and Bazaar NG too.
 
 
 UI

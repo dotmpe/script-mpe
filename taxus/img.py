@@ -32,5 +32,4 @@ class Photo(SqlBase, CardMixin, ORMMixin):
     tags = relationship(core.Tag, secondary=photo_tag, backref='photos')
 
 
-
-
+models = [ Photo ]

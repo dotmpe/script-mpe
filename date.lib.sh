@@ -1,15 +1,31 @@
 #!/bin/sh
 
 
-# Age in seconds
-_1MIN=60
-_5MIN=300
-_1HOUR=3600
-_3HOUR=10800
-_6HOUR=64800
-_1DAY=86400
-_1WEEK=604800
+date_lib_load()
+{
+  TODAY=+%y%m%d0000
 
+  # Age in seconds
+  _1MIN=60
+  _5MIN=300
+
+  _1HOUR=3600
+  _3HOUR=10800
+  _6HOUR=64800
+
+  _1DAY=86400
+  _1WEEK=604800
+
+  # Note: what are the proper lengths for month and year? It does not matter that
+  # much if below is only used for fmtdate-relative.
+  _1MONTH=$(( 4 * $_1WEEK ))
+  _1YEAR=$(( 365 * $_1DAY ))
+
+  case "$uname" in
+    Darwin ) gdate=gdate ;;
+    Linux ) Gdate=date ;;
+  esac
+}
 
 # newer-than FILE SECONDS
 newer_than()
@@ -18,7 +34,7 @@ newer_than()
   test -e "$1" || error "newer-than expected existing path" 1
   test -n "$2" || error "newer-than expected delta seconds argument" 1
   test -z "$3" || error "newer-than surplus arguments" 1
-  test $(( $(date +%s) - $2 )) -lt $(filemtime $1) && return 0 || return 1
+  test $(( $(date +%s) - $2 )) -lt $(filemtime "$1") && return 0 || return 1
 }
 
 # older-than FILE SECONDS
@@ -28,7 +44,90 @@ older_than()
   test -e "$1" || error "older-than expected existing path" 1
   test -n "$2" || error "older-than expected delta seconds argument" 1
   test -z "$3" || error "older-than surplus arguments" 1
-  test $(( $(date +%s) - $2 )) -gt $(filemtime $1) && return 0 || return 1
+  test $(( $(date +%s) - $2 )) -gt $(filemtime "$1") && return 0 || return 1
+}
+
+# given timestamp, display a friendly X sec/min/hr/days/weeks/months/years ago
+# message.
+fmtdate_relative() # [ Previous-Timestamp | ""] [Delta]
+{
+	test -n "$2" || set -- "$1" "$(( $(date +%s) - $1 ))"
+	local ts=$1 timed=$2
+
+	if test $timed -gt $_1YEAR
+	then
+
+		if test $timed -lt $(( $_1YEAR + $_1YEAR ))
+		then
+			printf -- "a year ago"
+		else
+			printf -- "over $(( $timed / $_1YEAR )) years ago"
+		fi
+	else
+
+		if test $timed -gt $_1MONTH
+		then
+
+			if test $timed -lt $(( $_1MONTH + $_1MONTH ))
+			then
+				printf -- "a month ago"
+			else
+				printf -- "over $(( $timed / $_1MONTH )) months ago"
+			fi
+		else
+
+			if test $timed -gt $_1WEEK
+			then
+
+				if test $timed -lt $(( $_1WEEK + $_1WEEK ))
+				then
+					printf -- "a week ago"
+				else
+					printf -- "over $(( $timed / $_1WEEK )) weeks ago"
+				fi
+			else
+
+				if test $timed -gt $_1DAY
+				then
+
+					if test $timed -lt $(( $_1DAY + $_1DAY ))
+					then
+						printf -- "a day ago"
+					else
+						printf -- "$(( $timed / $_1DAY )) days ago"
+					fi
+				else
+
+					if test $timed -gt $_1HOUR
+					then
+
+						if test $timed -lt $(( $_1HOUR + $_1HOUR ))
+						then
+							printf -- "an hour ago"
+						else
+							printf -- "$(( $timed / $_1HOUR )) hours ago"
+						fi
+					else
+
+						if test $timed -gt $_1MIN
+						then
+
+							if test $timed -lt $(( $_1MIN + $_1MIN ))
+							then
+								printf -- "a minute ago"
+							else
+								printf -- "$(( $timed / $_1MIN )) minutes ago"
+							fi
+						else
+
+							printf -- "$timed seconds ago"
+
+						fi
+					fi
+				fi
+			fi
+		fi
+	fi
 }
 
 timestamp2touch()
@@ -82,34 +181,20 @@ datelink()
 
 epoch_microtime()
 {
-    case "$uname" in
-        Darwin ) gdate +%s%N ;;
-        Linux ) date +%s%N ;;
-    esac
+  $gdate +%s%N
 }
 
 date_microtime()
 {
-    case "$uname" in
-        Darwin ) gdate +"%Y-%m-%d %H:%M:%S.%N" ;;
-        Linux ) gdate +"%Y-%m-%d %H:%M:%S.%N" ;;
-    esac
+  $gdate +"%Y-%m-%d %H:%M:%S.%N"
 }
 
 date_iso()
 {
-    case "$uname" in
-        Darwin ) gdate --iso ;;
-        Linux ) date --iso ;;
-    esac
+  $gdate --iso
 }
 
 datetime_iso()
 {
-    case "$uname" in
-        Darwin ) gdate --iso=minutes ;;
-        Linux ) date --iso=minutes ;;
-    esac
+  $gdate --iso=minutes
 }
-
-

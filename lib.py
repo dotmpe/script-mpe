@@ -30,9 +30,9 @@ RSR_NS = 'rsr', 'http://name.wtwta.nl/#/rsr'
 
 # Util functions
 
-rcs_path = re.compile('^.*\/\.(svn|git|bzr)$')
+rcs_path = re.compile('^.*\/\.(svn|git|bzr|hg)$')
 
-def is_versioned(dirpath):
+def is_scmdir(dirpath):
     assert isdir(dirpath), dirpath
     for d in os.listdir(dirpath):
         p = join(dirpath, d)
@@ -40,18 +40,26 @@ def is_versioned(dirpath):
         if m:
             return True
 
-def cmd(cmd, *args):
-    proc = subprocess.Popen( cmd % args,
+def cmd(cmd, cwd=None, allowempty=False, allowerrors=False, allow=[]):
+    "Simple wrapper for subprocess.Popen"
+    if isinstance(cmd, basestring):
+        cmd = [ cmd ]
+    assert isinstance(cmd, list)
+    proc = subprocess.Popen( cmd ,
             shell=True,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            close_fds=True )
-    errors = proc.stderr.read()
-    if errors or proc.returncode:
-        raise Exception(errors)
+            close_fds=True, cwd=cwd )
+    errors = None
+    if not allowerrors:
+        errors = proc.stderr.read()
+    if errors or (
+        proc.returncode and proc.returncode not in allow
+    ):
+        raise Exception(errors or "subproc returned %i" % proc.returncode)
     value = proc.stdout.read()
-    if not value:# and not nullable:
-        raise Exception("OS invocation %r returned nothing" % cmd)
+    if not value and not allowempty:
+        raise Exception("subproc %r returned nothing" % cmd)
     return value
 
 def get_checksum_sub(path, checksum_name='sha1'):
@@ -235,7 +243,7 @@ class Prompt(object):
     """
 
     @classmethod
-    def ask(clss, question, yes_no='Yn'):
+    def ask(klass, question, yes_no='Yn'):
         assert len(yes_no) == 2, "Need two choices, a logica true and false, but options don't match: %r" % yes_no
         yes, no = list(yes_no)
         assert yes.isupper() or no.isupper()
@@ -252,7 +260,7 @@ class Prompt(object):
         return v.upper() == yes.upper()
 
     @classmethod
-    def raw_input(clss, prompt, default=None):
+    def raw_input(klass, prompt, default=None):
         v = input('%s [%s] ' % (prompt, default))
         if v:
             return v
@@ -283,14 +291,14 @@ class Prompt(object):
         return opts
 
     @classmethod
-    def query(clss, question, options=[]):
+    def query(klass, question, options=[]):
         """
             Prompt.query( "What shall it be?", [ "Nothing", "Everything", "eLse" ] )
         """
         assert options
         options = list(options)
         origopts = list(options)
-        opts = clss.create_choice(options)
+        opts = klass.create_choice(options)
         while True:
             print(log.format_str('{green}%s {blue}%s {bwhite}[{white}%s{bwhite}]{default} or [?help] ' %
                     (question, ','.join(options), opts)))

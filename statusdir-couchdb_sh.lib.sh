@@ -34,9 +34,9 @@ couchdb_sh()
             curl -X DELETE -sSf $COUCH_URL/$COUCH_DB/$2 -H If-Match:$rev ||
                 return $?
       ;;
-    ping ) error TODO 1
+    ping ) error "TODO couchdb $@"
       ;;
-    list ) error TODO 1
+    list ) error "TODO coucdb $@" 1
       ;;
     x|be|info )
         curl -sSf $COUCH_URL || return

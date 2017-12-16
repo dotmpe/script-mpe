@@ -47,7 +47,7 @@ class Outline(SqlBase, CardMixin, ORMMixin):
         )
 
     @classmethod
-    def proc_context(clss, item):
+    def proc_context(klass, item):
         if item.record_id:
             topic = OulineFolder.get_instance(name=item.record_id)
             if not topic:
@@ -60,7 +60,7 @@ class Outline(SqlBase, CardMixin, ORMMixin):
             group = OutlineFolder.get_instance(name=item.cites[0])
             if item.hrefs:
                 assert len(item.hrefs) == 1, repr(item)
-                sa = clss.get_session()
+                sa = klass.get_session()
                 bm = sa.query(OutlineBookmark).filter(OutlineBookmark.href==item.hrefs[0]).all()
                 if bm:
                     print "Dupe", bm, item.hrefs
@@ -192,4 +192,4 @@ class MaterializedPath(SqlBase, ORMMixin):
 #    Ie. ModifiedPreorder
 #    """
 
-
+models = []

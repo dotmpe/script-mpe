@@ -3,7 +3,7 @@
 adding a date tag.
 
 Take a set of paths and assert that each real location is an archived path.
-Move files and symlink to archive root if needed. 
+Move files and symlink to archive root if needed.
 
 Exceptions are when the files
 are either too old or too large.
@@ -62,9 +62,9 @@ maximum_size = settings.rsr.maximum_size#.getsize('10MB') # 1024**3
 archive_prefix = ""
 
 options_spec = (
-    ('--min-age', { 
+    ('--min-age', {
         'dest': 'minimum_age',
-        'default': minimum_age, 
+        'default': minimum_age,
         'help': "The minimum age to put in the cabinet, %default seconds by default. " }),
     ('--max-age', {'default': maximum_age, 'help':
         "The maximum age to put in the cabinet is usually determined by how "
@@ -148,7 +148,7 @@ def archived(path):
                             part, year, path)
                     month = part
                 else:
-                    if not (0 < int(part) <= 31): 
+                    if not (0 < int(part) <= 31):
                         log(note, "Illegal day number %s for %s-%s <%s>",
                             part, year, month, path)
                     day = part
@@ -182,7 +182,7 @@ def archive(path, root=None, archive_root=None):
     if not root.startswith('.'):
         ro = len(root)
     newpath = os.path.join(
-            archive_root, 
+            archive_root,
             settings.rsr.archive_format
             % date,
             settings.rsr.archive_prefix +
@@ -254,7 +254,7 @@ if __name__ == '__main__':
         else:
             prsr.add_option(a, **k)
     opts, args = prsr.parse_args()
-    
+
     settings.rsr.override(opts)
 
     if not args:
@@ -266,7 +266,3 @@ if __name__ == '__main__':
             log(warn, "Path does not exist: %s", path)
         else:
             archive_recursive(path)
-
-
-
-

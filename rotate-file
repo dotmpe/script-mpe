@@ -35,5 +35,3 @@ main_entry()
 test "$(basename $0)" = "rotate-file" && {
   main_entry $@ || exit $?
 }
-
-

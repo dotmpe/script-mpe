@@ -895,24 +895,26 @@ pd__update_repo()
 }
 
 
-# Copy prefix from other host
-pd__copy()
+# TODO: Copy prefix from other local or remote pdoc
+pd__copy() # HOST PREFIX [ VOLUME ]
 {
   test -n "$1" || error "expected hostname" 1
   test -n "$2" || error "expected prefix" 1
+  test -z "$3" || error "unexpected arg '$3'" 1
   test -n "$hostname" || error "expected env hostname" 1
+
   for host in $hostname $1
   do
-    test -d ~/.conf/project/$host || \
-        error "No dir for host $host" 1
-    test -e ~/.conf/project/$1/projects.yaml || \
-        error "No projectdoc for host $1" 1
+    test -d $PD_CONFDIR/$host || error "No dir for host $host" 1
+    test -e $PD_CONFDIR/$host/$PD_DEFDIR.yaml || \
+        error "No projectdoc for host $host" 1
   done
-  test "$hostname" != "$1" || error "You ARE at host '$2'" 1
+  test "$hostname" != "$1" || error "You ARE at host '$1'" 1
 
 
   $scriptpath/$scriptname.sh meta -sq get-repo "$2" \
     && error "Prefix '$2' already exists at $hostname" 1 || noop
+
 
   pdoc=~/.conf/project/$1/projects.yaml \
     $scriptpath/$scriptname.sh meta dump $2 \
@@ -1308,11 +1310,8 @@ pd_man_1__exists='Path exists as dir with mechanism to handle local names.
 pd__exists()
 {
   test -z "$2" || error "One dir at a time" 1
-  vc_getscm "$1" && {
-      echo scm=$scm
-      echo scmdir=$scmdir
-      return
-  }
+  vc_getscm "$1" || return $?
+  note "Found '$1'"
   # XXX: cleanup
   #echo choice_known=$choice_known
   #echo choice_unknown=$choice_unknown
@@ -1333,6 +1332,70 @@ pd_optsv__exists()
     esac
     shift
   done
+}
+
+
+pd_man_1__doc='
+
+Commands `update`, `check`, `init` etc. are all used for per-prefix tasks. So
+`doc` is reserved for working on the PD_CONFDIR, and tasks related to managing
+pdoc/pdir instances.
+
+    doctor
+        Verify that we can map pdir names to paths.
+'
+
+pd__doc_update_all()
+{
+   for host in $PD_CONFDIR/*/
+   do echo
+   done
+}
+
+pd__doc_update()
+{
+    echo ok
+    logger "update-master ok"
+}
+
+pd__doctor()
+{
+  for hostdir in $PD_CONFDIR/*/
+  do
+    host=$(basename $hostdir)
+    test "$host" = "$hostname" && {
+
+      for pdoc in $hostdir/*.yaml
+      do
+        name=$(basename $pdoc .yaml)-local
+
+        # 1. Path exists (dir or symlink)
+        test -e $PD_VOLDIR/$name-local || {
+            warn "Missing volume for $hostname '$name'"
+        }
+
+        # 2. Local path(s) to pdir below volume can be retrieved
+
+        # 3. host/domain can be retrieved and matches
+        continue
+      done
+
+    } || {
+
+        # Remote volumes
+        echo TODO remote domain host $host
+    }
+  done
+}
+
+
+pd_run__info=p
+pd__info()
+{
+  local
+  echo '-----------------'
+  env
+  echo '-----------------'
 }
 
 
@@ -1373,22 +1436,30 @@ pd_load()
 
   test -x "$(which sponge)" || warn "dep 'sponge' missing, install 'moreutils'"
 
-  test -n "$pdoc" || pdoc=.projects.yaml
-
   test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR
 
   test -n "$PD_TMPDIR" || PD_TMPDIR=$(setup_tmpd $base)
   test -n "$PD_TMPDIR" -a -d "$PD_TMPDIR" || error "PD_TMPDIR load" 1
-
-  test -n "$UCONF" || {
-    test -e $HOME/.conf \
-      && UCONF=$HOME/.conf \
-      || error env-UCONF 1
-  }
   # FIXME: test with this enabled
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
 
+  # Local pdoc name, used by most command to determine pdir
+  test -n "$pdoc" || pdoc=.projects.yaml
+
+  test -n "$UCONF" || {
+    test -e $HOME/.conf && UCONF=$HOME/.conf || error env-UCONF 1
+  }
+
+  # Master dir for per-host pdocs, used by some pdoc management commands
+  test -n "$PD_CONFDIR" || PD_CONFDIR=$UCONF/project
+
+  # Default local project doc/volume
+  test -n "$PD_DEFDIR" || PD_DEFDIR=projects
+
+  # Keep symlinks /srv/*-local to map Pdoc name to local path.
+
+  # FIXME: ignore files for projectdir commands
   ignores_lib_load $lst_base || error "pd-load: failed loading ignores.lib" 1
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
     test -n "$PD_IGNORE" -a -e "$PD_IGNORE" ||
@@ -1396,9 +1467,10 @@ pd_load()
     lst_init_ignores
   }
 
+  ### Finish env setup with per-command flags
+
   pd_inputs="arguments prefixes options"
   pd_outputs="passed skipped errored failed"
-
 
   pd_cid=pd-cid
   test -n "$pd_session_id" || pd_session_id=$(get_uuid)
@@ -1494,6 +1566,7 @@ pd_load()
       ;;
 
     P )
+        package_lib_set_local "$pd_root/$pd_prefix"
         pd__meta_sq get-repo "$pd_prefix" && {
           update_package "$pd_prefix" || { r=$?
             test  $r -eq 1 || error "update_package" $r

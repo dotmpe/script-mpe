@@ -318,4 +318,3 @@ def extract_listed_names(meta_list, sep=' ,', force=True):
     else:
         for named in extract_listed_named(meta_list, force):
             yield named
-

@@ -11,7 +11,7 @@ from . import cmdline2
 
 NS = Namespace.register(
         prefix='rsr',
-        uriref='http://project.dotmpe.com/script/#/cmdline.Resourcer'
+        uriref='http://project.wtwta.org/script/#/cmdline.Resourcer'
     )
 
 Options.register(NS,

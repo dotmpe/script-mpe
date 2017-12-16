@@ -5,7 +5,7 @@ import res
 
 
 tests = (
-    ("sha1sum", res.SHA1Sum, 
+    ("sha1sum", res.SHA1Sum,
     # unparsed source document and parsed structure:
     [
         "9c288c453bebe44d67224b1ffaf650bb7adf4960  us-navy-time.sh",
@@ -37,8 +37,8 @@ def FormatTestGenerator(name, formatter, source, expected):
 def wrap_functions(format_tests):
     for name, formatter, source, data in format_tests:
         for func in FormatTestGenerator(name, formatter, source, data):
-            yield unittest.FunctionTestCase( 
-                    func, 
+            yield unittest.FunctionTestCase(
+                    func,
                     description='Res_FormatTest_'+name)
 
 def get_cases():
@@ -51,5 +51,3 @@ if __name__ == '__main__':
         setattr( sys.modules['__main__'], klass._description, klass )
     # FIXME: how to get cases into unittest.main
     unittest.main()
-
-

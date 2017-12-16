@@ -7,10 +7,8 @@
 package_lib_load()
 {
   test -n "$1" || set -- .
-  PACKMETA="$(cd "$1" && echo package.y*ml | cut -f1 -d' ')"
-  test ! -e "$1/$PACKMETA" || {
-    package_lib_set_local "$1"
-  }
+  # Get first existing file
+  PACKMETA="$(echo "$1"/package.y*ml | cut -f1 -d' ')"
 }
 
 package_lib_set_local()
@@ -19,6 +17,7 @@ package_lib_set_local()
   default_package_id=$(
     jsotk.py -I yaml -O py objectpath $1/$PACKMETA '$.*[@.main is not None].main'
   )
+
   test -n "$package_id" || {
     package_id="$default_package_id"
     note "Set main '$package_id' from $1/package default"
@@ -28,11 +27,25 @@ package_lib_set_local()
   } || {
     PACKMETA_BN="$(package_basename)-${package_id}"
   }
-  #PACKMETA_JSON=$1/.$PACKMETA_BN.json
+  PACKMETA_JSON=$1/.$PACKMETA_BN.json
   PACKMETA_JS_MAIN=$1/.$PACKMETA_BN.main.json
   PACKMETA_SH=$1/.$PACKMETA_BN.sh
 
   export package_id PACKMETA PACKMETA_BN PACKMETA_JS_MAIN PACKMETA_SH
+}
+
+package_file()
+{
+  test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
+  metaf=$(normalize_relative "$metaf")
+  test -e "$metaf" || return 1
+}
+
+
+htd_package_list_ids()
+{
+  test -e "$PACKMETA" || error "No '$PACKMETA' file" 1
+  jsotk.py -I yaml -O py objectpath $PACKMETA '$.*[@.id is not None].id'
 }
 
 
@@ -77,7 +90,9 @@ update_package_sh()
   test -n "$1" -a -d "$1" || error "update-package-sh dir '$1'" 21
   test -n "$metash" || metash=$PACKMETA_SH
   test -n "$metamain" || metamain=$PACKMETA_JS_MAIN
+
   metash=$(normalize_relative "$metash")
+
   test ! -e "$metash" -o -f "$metash" || {
     error "metash file: $metash"
     return 1
@@ -122,14 +137,6 @@ update_package_sh()
       return 15
     }
   }
-}
-
-
-package_file()
-{
-  test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
-  metaf=$(normalize_relative "$metaf")
-  test -e "$metaf" || return 1
 }
 
 
@@ -266,7 +273,7 @@ package_sh_script()
 # package-sh-list PACKAGE-SH LIST-KEY
 package_sh_list()
 {
-  test -n "$1" || set -- $PACKMETA_SH
+  test -n "$1" || set -- $PACKMETA_SH "$2"
   test -n "$2" || error package_sh_list:list-key 1
   test -n "$show_index" || show_index=0
   test -n "$show_item" || show_item=1
@@ -283,8 +290,77 @@ package_sh_list()
 
 package_sh_list_exists()
 {
-  test -n "$(eval echo "\$package_${1}__0")"
+  test -n "$1" || set -- $PACKMETA_SH "$2"
+  test -n "$2" || set -- $1 "scripts"
+  test -n "$(eval echo "\$package_${2}__0")"
 }
 
+
+htd_package_update()
+{
+  test -n "$1" || set -- "$(pwd)"
+  package_lib_set_local "$1" && update_package $1
+}
+
+
+htd_package_debug()
+{
+  #test -z "$1" || export package_id=$1
+  package_lib_set_local "$(pwd -P)"
+  test -n "$1" && {
+    # Turn args into var-ids
+    _p_extra() { for k in $@; do mkvid "$k"; printf -- "$vid "; done; }
+    _p_lookup() {
+      . $PACKMETA_SH
+      # See if lists are requested, and defer
+      for k in $@; do
+        package_sh_list_exists "" "$k" || continue
+        package_sh_list "" $k
+        shift
+      done
+      test -z "$*" ||
+        map=package_ package_sh "$@"
+    }
+    echo "$(_p_lookup $(_p_extra "$@"))"
+
+  } || {
+    read_nix_style_file $PACKMETA_SH | while IFS='=' read key value
+    do
+      eval $LOG header2 "$(kvsep=' ' pretty_print_var "$key" "$value")"
+    done
+  }
+}
+
+htd_package_urls()
+{
+  package_lib_set_local "$(pwd -P)"
+  test -e "$PACKMETA_JS_MAIN" || error "No '$PACKMETA_JS_MAIN' file" 1
+  jsotk.py path -O pkv "$PACKMETA_JS_MAIN" urls
+}
+
+htd_package_open_url()
+{
+  test -n "$1" || error "name expected" 1
+  package_lib_set_local "$(pwd -P)"
+  . $PACKMETA_SH
+  url=$( upper=0 mkvid "$1" && eval echo \$package_urls_$vid )
+  test -n "$url" || error "no url for name '$1'" 1
+  note "Opening '$1': <$url>"
+  open "$url"
+}
+
+htd_package_remotes_init()
+{
+  package_lib_set_local "$(pwd -P)"
+  test -e "$PACKMETA_JS_MAIN" || error "No '$PACKMETA_JS_MAIN' file" 1
+  vc_getscm
+  jsotk.py path -O pkv "$PACKMETA_JS_MAIN" repositories |
+      tr '=' ' ' | while read remote url
+  do
+    #fnmatch "*.$scm" "$url" || continue
+    htd_repository_url "$remote" "$url" || continue
+    vc_git_update_remote "$remote" "$url"
+  done
+}
 
 # Id: script-mpe/0.0.4-dev package.lib.sh

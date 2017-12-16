@@ -30,7 +30,9 @@ import taxus.model
 import taxus.net
 import taxus.semweb
 import taxus.web
-from taxus import SessionMixin, \
+
+from taxus import SessionMixin
+from taxus.v0 import \
         Node, GroupNode, \
         INode, Dir, \
         Name, Tag, \
@@ -159,7 +161,7 @@ def host_find(args, sa=None):
 
 NS = Namespace.register(
         prefix='txs',
-        uriref='http://project.dotmpe.com/script/#/txs'
+        uriref='http://project.wtwta.org/script/#/txs'
     )
 
 @Target.register(NS, 'session', 'cmd:options')

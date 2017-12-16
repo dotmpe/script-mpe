@@ -9,9 +9,11 @@ ignores_lib_load()
 
   local varname=$(echo $2 | tr '-' '_')_IGNORE fname=.${1}ignore
 
-  test -n "$IGNORE_GLOBFILE" \
-      && fname=$IGNORE_GLOBFILE \
-      || IGNORE_GLOBFILE=$fname
+  export IGNORE_GLOBFILE_VAR=$varname
+  export IGNORE_GLOBFILE=$(eval echo \"\$$IGNORE_GLOBFILE_VAR\")
+  test -z "$DEBUG" || {
+    test -n "$IGNORE_GLOBFILE" || warn "No IGNORE_GLOBFILE for $varname set"
+  }
 
   test -n "$(eval echo \"\$$varname\")" || eval $varname=$fname
   local value="$(eval echo "\$$varname")"

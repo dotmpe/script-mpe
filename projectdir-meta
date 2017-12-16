@@ -25,6 +25,7 @@ Usage:
     projectdir-meta [options] x-conv
     projectdir-meta [options] x-check
     projectdir-meta [options] (dump|x-dump) [<prefix>]
+    projectdir-meta --filesystem PATH
     projectdir-meta --background [options]
     projectdir-meta (-h | --help)
 
@@ -33,11 +34,15 @@ Options:
                 The address that the socket server will be listening on. If
                 the socket exists, any command invocation is relayed to the
                 server intance, and the result output and return code
-                returned to client. [default: /tmp/pd-serv.sock]
+                returned to client. [default: /var/run/pd-serv.sock]
   --background  Turns script into socket server. This does not fork, detach
                 or do anything else but enter an infinite server loop.
   -f PD, --file PD
-                Give custom path to projectdir document file [default: ./.projects.yaml]
+                Give custom path to projectdir document file
+                [default: ./.projects.yaml]
+  --filesystem PATH
+                Run filesystem server and mount at path. A background process
+                must be running. TODO: no vfs impl. yet.
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -g, --glob    Change from root prefix matching to glob matching.
@@ -144,7 +149,14 @@ from deep_eq import deep_eq
 
 from script_mpe import libcmd_docopt, confparse
 from script_mpe.res import js
-from script_mpe.confparse import yaml_load, yaml_safe_dump, yaml_dump
+from script_mpe.confparse import yaml_load, yaml_safe_dumps
+
+try:
+    import fuse
+except ImportError:
+    projectdir_vfs = None
+finally:
+    import projectdir_vfs
 
 
 def meta_from_projectdir_doc(data):
@@ -262,7 +274,7 @@ def toggle_state(newstate, pdhdata, ctx):
     state = get_toggle_state(pdhdata['repositories'][prefix])
     if newstate+'d' != state:
         set_toggle_state( pdhdata['repositories'][prefix], newstate+'d' )
-        yaml_safe_dump(pdhdata,
+        yaml_safe_dumps(pdhdata,
                 open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
     return True
 
@@ -289,7 +301,7 @@ def check_host(record, ctx):
     return False
 
 def yaml_commit(pdhdata, ctx):
-    yaml_safe_dump(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+    yaml_safe_dumps(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
 
 def repo_kv_to_dict( kwdargs ):
     new = dict(remotes={})
@@ -549,7 +561,7 @@ def H_list_disabled(pdhdata, ctx):
 
 def H_dump(pdhdata, ctx):
     if 'prefix' not in ctx.opts.args:
-        ctx.out.write(yaml_safe_dump(pdhdata, default_flow_style=False), "\n")
+        ctx.out.write(yaml_safe_dumps(pdhdata, default_flow_style=False), "\n")
     else:
         ctx.out.write("repositories:\n")
         for k in list(pdhdata['repositories'].keys()):
@@ -557,12 +569,12 @@ def H_dump(pdhdata, ctx):
                 continue
             ctx.out.write("  %s:\n" % k)
             v = pdhdata['repositories'][k]
-            ctx.out.write("    "+ yaml_safe_dump(v
+            ctx.out.write("    "+ yaml_safe_dumps(v
                 ).replace( '\n', '\n    ')+"\n")
 
 def H_x_dump(pdhdata, ctx):
     meta = meta_from_projectdir_doc(pdhdata)
-    ctx.out.write(yaml_safe_dump(meta, default_flow_style=False)+"\n")
+    ctx.out.write(yaml_safe_dumps(meta, default_flow_style=False)+"\n")
 
 def H_x_check(pdhdata, ctx):
     for h in handlers:
@@ -620,7 +632,7 @@ def H_status(pdhdata, ctx):
                 return 1
             prefixes += [ k ]
             update_status(v['status'])
-            ctx.out.write("    " + yaml_safe_dump(v['status'], default_flow_style=False).replace( '\n', '\n    ').strip() + "\n")
+            ctx.out.write("    " + yaml_safe_dumps(v['status'], default_flow_style=False).replace( '\n', '\n    ').strip() + "\n")
 
     for k in prefixes:
         ok = ok and v['status']['result'] == 0
@@ -698,6 +710,8 @@ def H_package(pdhdata, ctx):
     Show current package metadata at prefix. Loads and merges .package.sh
     """
     pref = ctx.opts.args.prefix
+    if not pref: return 1
+
     m = pdhdata['repositories'][pref]
 
     lpack = os.path.join(pref, '.package.sh')
@@ -721,7 +735,7 @@ def H_package(pdhdata, ctx):
         if k in pack[0]:
             del pack[0][k]
 
-    ctx.out.write(yaml_safe_dump(pack, default_flow_style=False) + "\n")
+    ctx.out.write(yaml_safe_dumps(pack, default_flow_style=False) + "\n")
 
 
 handlers = {}
@@ -766,7 +780,18 @@ def main(ctx):
     if ctx.opts.flags.background:
         # Start background process
         localbg = __import__('local-bg')
+        if not ctx.opts.flags.quiet:
+            print("Starting background server at", ctx.opts.flags.address)
         return localbg.serve(ctx, handlers, prerun=prerun)
+
+    elif ctx.opts.flags.filesystem:
+        assert projectdir_vfs, "Fuse import error"
+        addr = ctx.opts.flags.address
+        assert os.path.exists(addr), \
+            "Expected socket to background process at %s" % serveraddr
+        localbg = __import__('local-bg')
+        fs = projectdir_vfs.ProjectDirFS(server=addr)
+        FUSE(fs, ctx.opts.flags.filesystem, nothreads=True, foreground=True)
 
     elif os.path.exists(ctx.opts.flags.address):
         # Query background process

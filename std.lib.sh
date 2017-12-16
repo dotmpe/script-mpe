@@ -207,12 +207,12 @@ log_bw()
 
 log_16()
 {
-  printf "$1\n"
+  printf -- "$1\n"
 }
 
 log_256()
 {
-  printf "$1\n"
+  printf -- "$1\n"
 }
 
 # TODO: deprecate: use stderr or error
@@ -490,10 +490,6 @@ case "$0" in "" ) ;; "-"* ) ;; * )
           test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
           test -n "$verbosity" || verbosity=5
           export base=$scriptname
-          std_lib_load || {
-            echo "Error loading $scriptname" 1>&2
-            exit 1
-          }
         ;;
 
     esac

@@ -5,10 +5,10 @@ Javascript Object toolkit
 
 Load, query, transform JSON/YAML data on the command line.
 
-Features in a nutshel:
+Features in a nutshell:
   - Detects YAML or JSON output, convert, pretty print.
-  - Update using data provided from shell, query for parts, merge, prefix.
-  - Provides ObjectPath_ and other retrieval commands.
+  - Get data using simple path expressions, or using ObjectPath_ expression.
+  - Update using data provided from shell, query for parts, merge, clear, move.
 
 
 Usage::
@@ -49,6 +49,28 @@ process while looping over results in shell scripts may improve performance.
 See docstrings in jsotk.py_ for further help, or run with ``-h``.
 This file for notes, test descriptions.
 
+
+Issues
+------
+``jsotk update`` does not obey ``--list-union``.
+    In fact, YAML aliases can get in the way of proper updates.
+
+    Consider the update test cases using fixtures ``test/var/jsotk/5-*.yaml``. The list 'entries' is never merged, since due to the reference the list item is destroyed while 'entry' is being updated::
+
+        mydict:
+          entry: &id1
+            my: data
+          entries:
+          - *id1
+
+        mydict:
+          entry: &id1
+            my: other data
+          entries:
+          - *id1
+
+
+    The solution is to clear ``mydict.entry`` in the destination document, thereby breaking the reference.
 
 Dev
 ---
@@ -117,4 +139,3 @@ jsotk_xml_dom
 .. _jsotk.py: ./jsotk.py
 
 .. _ObjectPath: http://objectpath.org
-

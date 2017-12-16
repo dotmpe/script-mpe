@@ -26,7 +26,8 @@ class AbstractTxtLineParser(object):
         text = getattr(self, 'parse_'+method)( text, attr )
         if hasattr(self.parser, 'handle_'+method):
             v = getattr(self, attr, None)
-            getattr(self.parser, 'handle_'+method)(self, v, attr)
+            if v:
+                getattr(self.parser, 'handle_'+method)(self, v, attr)
         #if not getattr(self, attr, None):
         #    setattr(self, attr, None)
         return text
@@ -183,7 +184,7 @@ class AbstractRecordIdStrategy(AbstractTxtLineParser):
                 if id_dsp == dsp:
                     setattr(self, tag, key)
         else:
-            m = self.key_re.match(t)
+            m = self.key_re.search(t)
             if m:
                 setattr(self, tag, m.group(2))
                 return t[sum(m.span()):]
@@ -265,7 +266,8 @@ class AbstractIdStrategy(AbstractTxtListParser):
         self.records[record.record_id] = record
     # TODO: no on-init ctx/prj/ref/cite handling yet. see AbstractTxtListParser.proc
     def handle_id(self, item, sid, attr=None):
-        assert not sid in self.records, sid
+        assert sid, sid
+        assert sid not in self.records, "Dupe ID: %r" % sid
         self.records[sid] = item
         return sid
     def handle_context(self, item, ctx, attr=None):

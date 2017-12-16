@@ -281,6 +281,7 @@ htd_move_tagged_and_untag_lines()
   test -n "$3" || error tag 1
   test -z "$4" || error surplus 1
   # Get task lines with tag, move to buffer without tag
+  set -- "$1" "$2" "$(echo $3 | sed 's/[\/]/\\&/g')"
   grep -F "$3" $1 |
     sed 's/^\ *'"$3"'\ //g' |
       sed 's/\ '"$3"'\ *$//g' |
@@ -298,6 +299,7 @@ htd_move_and_retag_lines()
   test -n "$3" || error tag 1
   test -z "$4" || error surplus 1
   test -e "$2" || touch $2
+  set -- "$1" "$2" "$(echo $3 | sed 's/[\/]/\\&/g')"
   cp $2 $2.tmp
   {
     # Get tasks lines from buffer to main doc, remove tag and re-add at end
@@ -320,13 +322,15 @@ htd_migrate_tasks()
   do
     test -n "$tag" || continue
     case "$tag" in
+
       +* | @* )
-          note "Migrating prj/ctx: $tag"
           buffer=$(htd__tasks_buffers $tag | head -n 1 )
           fileisext "$buffer" $TASK_EXTS || continue
           test -s "$buffer" || continue
+          note "Migrating prj/ctx: $tag"
           htd_move_and_retag_lines "$buffer" "$1" "$tag"
         ;;
+
       * ) error "? '$?'"
         ;;
       # XXX: cleanup
@@ -349,24 +353,27 @@ htd_remigrate_tasks()
 {
   test -n "$1"  || error todo-document 1
   note "Remigrating tags: '$tags'"
-  echo "$tags" | words_to_lines | while read tag
-  do
+  echo "$tags" | words_to_lines | while read tag ; do
     test -n "$tag" || continue
     case "$tag" in
+
       +* | @* )
-          note "Remigrating prj/ctx: $tag"
-          buffer=$(htd__tasks_buffers $tag | head -n  1)
+          buffer=$(htd__tasks_buffers "$tag" | head -n 1)
           fileisext "$buffer" $TASK_EXTS || continue
+          note "Remigrating prj/ctx: $tag"
           htd_move_tagged_and_untag_lines "$1" "$buffer" "$tag"
         ;;
+
       * ) error "? '$?'"
         ;;
+
       # XXX: cleanup
       @be.* )
           #note "Committing: $tag"
           #htd__tasks_buffers $tag
           noop
         ;;
+
     esac
   done
 }
@@ -420,3 +427,97 @@ htd_output_format_q()
   esac
 }
 
+# [remove-swap] vim-swap <file>
+vim_swap()
+{
+  local swp="$(dirname "$1")/.$(basename "$1").swp"
+  test ! -e "$swp" || {
+    trueish "$remove_swap" && rm $swp || return 1
+  }
+}
+
+
+htd_repository_url() # remote url
+{
+  # Disk on local host
+  fnmatch "$hostname.*" "$1" && {
+
+    # Cancel if repo is local checkout
+    test "$(cd "$2" && pwd -P)" = "$(pwd -P)" && return 1
+
+    # Use URL as is, remove host from remote
+    remote=$(echo $1 | cut -f2 -d'.')
+    return 0
+
+  } || {
+
+    # Add hostname for remote disk
+    { fnmatch "/*" "$2" || fnmatch "~/*" "$2"
+    } || return
+    remote=$(echo $1 | cut -f2 -d'.')
+    url=$(echo $1 | cut -f1 -d'.'):$2
+  }
+}
+
+
+# Update stats file, append entry to log and set as most current value
+htd_ws_stats_update()
+{
+  local id=_$($gdate +%Y%m%dT%H%M%S%N)
+  test -n "$ws_stats" || ws_stats=$workspace/.cllct/stats.yml
+  test -s "$ws_stats" || error "Missing '$ws_stats' doc" 1
+      # jsotk update requires prefixes to exist. Must create index before
+      # updating.
+  { cat <<EOM
+stats:
+  $prefix:
+    $1:
+      log:
+      - &$id $2
+      last: *$id
+EOM
+  } | {
+    trueish "$dump" && cat - || jsotk.py update $ws_stats - \
+        -Iyaml \
+        --list-union \
+        --clear-paths='["stats","'"$prefix"'","'"$1"'","last"]'
+  }
+  # NOTE: the way jsotk deep-update/union and ruamel.yaml aliases work it
+  # does not update the log properly by union. Unless we clear the reference
+  # first, before it overwrites both last key and log item at once. See jsotk
+  # update tests.
+}
+
+htd_ws_stat_init()
+{
+  test -n "$ws_stats" || ws_stats=$workspace/.cllct/stats.yml
+  test -s "$ws_stats" || echo "stats: {}" >$ws_stats
+  {
+    printf -- "stats:\n"
+    while read prefix
+    do
+        printf -- "  $prefix:\n"
+        printf -- "    $1: $2\n"
+    done
+  } | {
+    trueish "$dump" && cat - || jsotk.py merge-one $ws_stats - $ws_stats \
+    -Iyaml -Oyaml --pretty
+  }
+}
+
+htd_ws_stat_update()
+{
+  test -n "$ws_stats" || ws_stats=$workspace/.cllct/stats.yml
+  test -s "$ws_stats" || error "Missing '$ws_stats' doc" 1
+  {
+    printf -- "stats:\n"
+    while read prefix stat
+    do
+      printf -- "  $prefix:\n"
+      printf -- "    $1: \"$stat\"\n"
+    done
+  } | {
+    trueish "$dump" && cat - || jsotk.py merge-one $ws_stats - $ws_stats \
+    -Iyaml -Oyaml --pretty
+  }
+}

@@ -1,19 +1,33 @@
 """
+:created: 2017-10-03
+:updated: 2017-12-09
+
 Simple command-line program setup with docopt.
+
+Parse options using docopt, use data as a optparse.Values alike.
+And match arguments and options with e.g. command handler function signature
+arguments by name getting for function arguments.
 """
 from __future__ import print_function
+import os
 import sys
 import inspect
 from pprint import pformat
+import resource
 
 import docopt
 
+import lib
 import confparse
 import log
 
 
+def defaults(opts, init={}):
+    global select_kwdargs_defaults
+    opts.flags.update(select_kwdargs_defaults)
+    return init
 
-def get_opts(docstr, meta={}, version=None, argv=None):
+def get_opts(docstr, meta={}, version=None, argv=None, defaults=defaults):
     """
     Get docopt dict, and set argv and flags from get_optvalues.
     """
@@ -24,9 +38,11 @@ def get_opts(docstr, meta={}, version=None, argv=None):
     opts = confparse.Values()
     opts.argv = argv
     parsed = pattern.flat() + collected
-    #assert not ( 'argv' in opts or 'flags' in opts or 'args' in opts),\
-    #        "Dont use 'argv', 'flags' or 'args'. "
     opts.cmds, opts.flags, opts.args = get_optvalues(parsed, meta)
+    if defaults:
+        for k, v in defaults(opts).items():
+            if not hasattr(opts.flags, k) or not getattr(opts.flags, k):
+                setattr(opts.flags, k, v)
     return opts
 
 def get_optvalues(opts, handlers={}):
@@ -69,6 +85,9 @@ def get_optvalues(opts, handlers={}):
     return cmds, confparse.Values(flags), confparse.Values(args)
 
 
+select_kwdargs_defaults = dict(
+    kwdarg_aliases={'g':'settings'}
+)
 def select_kwdargs(handler, settings, **override):
 
     """
@@ -79,10 +98,15 @@ def select_kwdargs(handler, settings, **override):
     # get func signature
     func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
             inspect.getargspec(handler)
+    # TODO: see about supporting part of this using better settings
     assert not func_args_var, "Arg. passthrough not supported"
     assert not func_kwds_var, "Kwds. passthrough not supported"
     # Make 'settings' accessible as a whole
     override['settings'] = settings
+    # Resolve aliases before resolving argument values
+    for i, a in enumerate(func_arg_vars):
+        if a in settings.kwdarg_aliases:
+            func_arg_vars[i] = settings.kwdarg_aliases[a]
     # Set values for positional arguments
     if not func_arg_vars:
         func_arg_vars = []
@@ -98,6 +122,8 @@ def select_kwdargs(handler, settings, **override):
     if not func_defaults:
         func_defaults = {}
     for k, v in func_defaults.items():
+        if k in settings.kwdarg_aliases:
+            k = settings.kwdarg_aliases[k]
         if k in override:
             func_defaults[k] = override[k]
         elif k in settings:
@@ -199,6 +225,23 @@ def cmd_help():
                     cmd.__doc__.split('\n'))) or '..'
             print(log.format_str("    {bwhite}%s{default}" % doc))
 
+
+def cmd_memdebug(settings):
+    # peak memory usage (bytes on OS X, kilobytes on Linux)
+    res_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    if os.uname()[0] == 'Linux':
+        res_usage /= 1024; # kilobytes?
+    # XXX: http://stackoverflow.com/questions/938733/total-memory-used-by-python-process
+    #res_usage /= resource.getpagesize()
+
+    db_size = os.path.getsize(os.path.realpath(settings.dbref[10:]))
+    for l, v in (
+            ( 'Storage Size', lib.human_readable_bytesize( db_size ) ),
+            ( 'Resource Usage', lib.human_readable_bytesize(res_usage) ),
+        ):
+            log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
+
+
 def init_config(path, defaults={}, overrides={}, persist=[]):
 
     """
@@ -223,3 +266,10 @@ def init_config(path, defaults={}, overrides={}, persist=[]):
             settings.volatile.append(k)
         setattr(settings, k, v)
     return settings
+
+def static_vars_from_env(usage, *specs):
+    for envname, default in specs:
+        value = os.getenv(envname, default)
+        if value is not default:
+            usage = usage.replace( default, value )
+    return usage

@@ -1,5 +1,5 @@
 
-id: "http://dotmpe.com/project/script/schema/package#"
+id: "http://wtwta.org/project/script/schema/package#"
 $schema: http://json-schema.org/draft-04/schema#
 description: JSON based schema for package.yml
 type: array

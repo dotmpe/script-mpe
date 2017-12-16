@@ -26,3 +26,4 @@ class JournalEntry(TNode):
     pass
 
 
+models = [TNode, JournalEntry]

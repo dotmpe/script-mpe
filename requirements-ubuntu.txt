@@ -1,0 +1,13 @@
+rhash
+tidy
+tree
+realpath
+uuid-runtime
+moreutils
+curl
+php7.0-cli
+#php5-cli
+posh
+dash
+ruby-bundler
+git-annex

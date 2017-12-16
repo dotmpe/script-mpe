@@ -20,6 +20,12 @@ htd__outputs="passed skipped error failed"
 htd_load()
 {
   # -- htd box load insert sentinel --
+
+  default_env CWD "$(pwd)" || debug "Using CWD '$CWD'"
+  test -z "$DEBUG" || {
+    test "$CWD" = "$(pwd -P)" || warn "current path seems to be aliased ($CWD)"
+  }
+
   default_env EDITOR vim || debug "Using EDITOR '$EDITOR'"
   test -n "$TODOTXT_EDITOR" || {
     test -x "$(which todotxt-machine)" &&
@@ -29,7 +35,7 @@ htd_load()
   test -n "$DOC_EXTS" || DOC_EXTS=".rst .md .txt"
   test -n "$TASK_EXT" || TASK_EXT="ttxtm"
   test -n "$TASK_EXTS" || TASK_EXTS=".ttxtm .list .txt"
-  default_env CWD "$(pwd)" || debug "Using CWD '$CWD'"
+
   default_env UCONFDIR "$HOME/.conf/" || debug "Using UCONFDIR '$UCONFDIR'"
   default_env TMPDIR "/tmp/" || debug "Using TMPDIR '$TMPDIR'"
   default_env HTDIR "$HOME/public_html" || debug "Using HTDIR '$HTDIR'"
@@ -62,50 +68,60 @@ htd_load()
   default_env Htd-TMux-Default-Session "Htd"
   default_env Htd-TMux-Default-Cmd "$SHELL"
   default_env Htd-TMux-Default-Window "$(basename $SHELL)"
-  default_env Couch-URL http://sandbox-3:5984
-  default_env GitVer-Attr .version-attributes
-  default_env Ns-Name bvberkum
+  default_env Couch-URL "http://sandbox-3:5984"
+  default_env GitVer-Attr ".version-attributes"
+  default_env Ns-Name "bvberkum"
 
+  # Find project dir
+  vc_getscm
+  go_to_directory .$scm && {
+    # $localpath is the path from the project base-dir to the CWD
+    localpath="$(normalize_relative "$go_to_before")"
+    # Keep an absolute pathref for project dir too for libs not willing to
+    # bother with or specify super-project refs, local name nuances etc.
+    projdir="$(pwd -P)"
+  } || {
+    export localpath= projdir=
+  }
+
+  # Find workspace super-project, and then move back to this script's CWD
+  go_to_directory .cllct/local.id && {
+
+    # Workspace is a directory of projects, or a super project on its own.
+    workspace=$(pwd -P)
+    # Prefix is a relative path from the workspace base to the current projects
+    # checkout. 
+    prefix="$(normalize_relative "$go_to_before")"
+    test -z "$prefix" && error "prefix from go-to-before '$go_to_before'" 1
+    test "$prefix" = "." || {
+
+      # Add a little warning our records are incomplete
+      grep -qF "$prefix"':' .projects.yaml || {
+        warn "No such project prefix '$prefix'"
+      }
+      $LOG info "htd:load" "Workspace '$workspace' -> Prefix '$prefix'" >&2
+      cd "$CWD"
+    }
+  } || {
+    $LOG warn "htd:load" "No local workspace" >&2
+    cd "$CWD"
+  }
+
+  # NOTE: other per-dir or project vars are loaded on a subcommand basis, e.g.
+  # run flag 'p'.
+
+  # TODO: clean up git-versioning app-id
   test -n "$APP_ID" -o ! -e .app-id || read APP_ID < .app-id
   test -n "$APP_ID" -o ! -e $GITVER_ATTR ||
       APP_ID="$(get_property $GITVER_ATTR "App-Id")"
   test -n "$APP_ID" -o ! -e .git ||
-      APP_ID="$(basename "$(git config remote.origin.url)" .git)"
+      APP_ID="$(basename "$(git config remote.$vc_rt_def.url)" .git)"
 
-  projectdirs="$(echo ~/project ~/work/*/tree)"
+  # TODO: go over above default-env and see about project-specific stuff e.g.
+  # builddir and init parameters properly
 
-  go_to_directory .projects.yaml && {
-    cd "$CWD"
-    # $go_to_before
-    #PROJECT="$(basename $(pwd))"
-  } || {
-    cd "$CWD"
-  }
-
-  # XXX:
-  #test -e
-  #grep -qF $PROJECT':'  ../.projects.yaml || {
-  #  warn "No such project prefix $PROJECT"
-  #}
-
-  _14MB=14680064
-  _6MB=7397376
-  _5k=5120
-
-  #test -n "$MIN_SIZE" || MIN_SIZE=1
-  test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
-
-  TODAY=+%y%m%d0000
-  _1HR_AGO=+%y%m%d0000
-  _15MIN_AGO=+%y%m%d0000
-  _5MIN_AGO=+%y%m%d0000
-
-  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
-  test -n "$uname" || uname="$(uname -s)"
-  test -n "$architecture" || architecture="$(uname -p)"
-  test -n "$machine_hw" || machine_hw="$(uname -m)"
-
-  test "$CWD" = "$(pwd -P)" || warn "current path seems to be aliased ($CWD)"
+  # Default locations for user-workspaces
+  projectdirs="$(echo ~/project ~/work/*/)"
 
   test -e table.sha1 && R_C_SHA3="$(cat table.sha1|wc -l)"
 
@@ -255,17 +271,23 @@ htd_load()
         test -z "$prereq_func" || $prereq_func $subcmd
       ;;
 
-    p )
+    p ) # set package file and id, update.
+        # Set to detected PACKMETA file, set main package-id, and verify var
+        # caches are up to date. Don't load vars.
+        # TODO: create var cache per package-id.
+
         pwd="$(pwd -P)"
-        package_file $pwd && update_package $pwd
-        package_lib_load "$pwd"
-        test -e "$PACKMETA_SH" && . $PACKMETA_SH
-        test -n "$package_id" && {
-          note "Found package '$package_id'"
-        } || {
-          package_id="$(basename "$(realpath .)")"
-          note "Using package ID '$package_id'"
-        }
+        test -e "$PACKMETA" || error "No local package '$PACKMETA'" 1
+
+           # package_file $pwd &&
+        package_lib_set_local "$pwd" && update_package $pwd
+        test -n "$package_id" && note "Found package '$package_id'"
+      ;;
+
+    r ) # register package - requires 'p' first. Sets PROJECT Id and manages
+        # cache updates for subcommand data.
+
+        # TODO: query/update stats?
       ;;
 
     S )
@@ -368,17 +390,14 @@ htd_load_ignores()
   #match_load_table vars
 }
 
+# Set XSL-Ver if empty.
 htd_load_xsl()
 {
   test -z "$xsl_ver" && {
-    test -x "$(which saxon)" &&
-      xsl_ver=2 ||
-      xsl_ver=1
-  } || {
-    test xsl_ver != 2  ||
-      test -x "$(which saxon)" ||
-        error "Saxon required for XSLT 2.0" 1
+    test -x "$(which saxon)" && xsl_ver=2 || xsl_ver=1
   }
+  test xsl_ver != 2 -o -x "$(which saxon)" ||
+      error "Saxon required for XSLT 2.0" 1
   note "Set XSL proc version=$xsl_ver.0"
 }
 
@@ -403,6 +422,7 @@ htd__check()
 htd__fsck()
 {
   htd__ck_validate sha1
+  htd__annex_fsck
 }
 
 htd__make()
@@ -624,11 +644,11 @@ shell scripts at themselves make too little guarantee of encoding and other
 precision. Values above 1.0 are permitted to indicate preferred, enhanced or
 richer representations.
 
-No current But no effort is made to 
+No current But no effort is made to
 
-htd_output_format_q 
+htd_output_format_q
 
-the `ofq` attribute 
+the `ofq` attribute
 '
 htd_spc__output_formats='output-formats|OF [SUBCMD]'
 htd_als___OF=output-formats
@@ -644,7 +664,7 @@ htd__output_formats()
   {
     upper= mkvid "$*"
     # XXX: Retrieve and test for output-formats and quality factor
-    #try_func $(echo_local "$vid" "" htd) && 
+    #try_func $(echo_local "$vid" "" htd) &&
 
       # Print output format attribute value for field $*
       output_formats="$(try_value "$vid" of htd )" &&
@@ -673,21 +693,26 @@ htd__home()
   echo $HTDIR
 }
 
-htd__info()
+htd__env_info()
 {
-  echo "env"
-  echo "  CWDIR"
-  echo "    If set, use instead of the current directory for working dir. "
-  echo ""
-  log "Script:                '$(pwd)/$scriptname'"
+  log "Script:                '$scriptname'"
   log "User Config Dir:       '$UCONFDIR' [UCONFDIR]"
   log "User Public HTML Dir:  '$HTDIR' [HTDIR]"
-  log "Current workingdir:    '$CWDIR' [CWDIR]"
   log "Project ID:            '$PROJECT' [PROJECT]"
   log "Minimum filesize:      '$(( $MIN_SIZE / 1024 ))'"
   log "Editor:                '$EDITOR' [EDITOR]"
   log "Default GIT remote:    '$HTD_GIT_REMOTE' [HTD_GIT_REMOTE]"
   log "Ignored paths:         '$IGNORE_GLOBFILE' [IGNORE_GLOBFILE]"
+}
+
+htd__info()
+{
+  test -n "$1" || set -- $(pwd -P)
+  test -z "$2" || error "unexpected args '$2'" 1
+  test -e "$1/$PACKMETA" && {
+    htd_package_update "$1"
+  }
+  vc_info "$1" ""
 }
 
 
@@ -913,51 +938,60 @@ htd__pd_check()
 }
 
 
-htd_man_1__status='Quick system status
+htd_man_1__status='Quick context status
 '
 htd_run__status=fSm
 htd__status()
 {
   test -n "$failed" || error "status: failed exists" 1
 
-  # Monitor paths
-  # Using either lsof or update/access time filters with find we can list
-  # files and other paths that a user has/has had in use.
-  # There are plenty of use-cases based on this.
+  local scm= scmdir=
+  vc_getscm && {
+    vc_status || {
+      error "VC getscm/status returned $?"
+    }
+  } || { # not an checkout
 
-  # See htd open-paths for local paths, using lsof.
-  # CWD's end up being recorded in prefixes. With these we can get a better
-  # selection of files.
+    # Monitor paths
+    # Using either lsof or update/access time filters with find we can list
+    # files and other paths that a user has/has had in use.
+    # There are plenty of use-cases based on this.
 
-  # Which of those are projects
-  note "Open-paths SCM status: "
-  htd__current_cwd | while read p
-  do
-    pd exists "$p" || continue
-    $LOG "header3" "$p" "" "$( cd $p && vc.sh flags )"
-  done
+    # See htd open-paths for local paths, using lsof.
+    # CWD's end up being recorded in prefixes. With these we can get a better
+    # selection of files.
 
-  # Projects can still have a large amount of files
-  # opened, or updated recently.
+    # Which of those are projects
+    note "Open-paths SCM status: "
+    htd__current_cwd | while read p
+    do verbosity=3
+      { test -e "$p" && pd exists "$p"
+      } || continue
+      $LOG "header3" "$p" "$( cd "$p" && vc flags )" "" >&2
+    done
 
-  # Create list of CWD, and show differences on subsequent calls
-  #htd__open_paths_diff
+    # Projects can still have a large amount of files
+    # opened, or updated recently.
 
-  # FIXME: maybe something in status backend on open resource etc.
-  #htd__recent_paths
-  #htd__active
+    # Create list of CWD, and show differences on subsequent calls
+    #htd__open_paths_diff
 
-  stderr note "text-paths for main-docs: "
-  # Check main documents, list topic elements
-  {
-    test ! -d "$JRNL_DIR" ||
-      EXT=$DOC_EXT htd__archive_path $JRNL_DIR
-    htd__main_doc_paths "$1"
-  } | while read tag path
-  do
-    test -e $path || continue
-    htd tpath-raw $path
-  done
+    # FIXME: maybe something in status backend on open resource etc.
+    #htd__recent_paths
+    #htd__active
+
+    stderr note "text-paths for main-docs: "
+    # Check main documents, list topic elements
+    {
+      test ! -d "$JRNL_DIR" || EXT=$DOC_EXT htd__archive_path $JRNL_DIR
+      htd__main_doc_paths "$1"
+    } | while read tag path
+    do
+      test -e "$path" || continue
+      htd tpath-raw "$path" || warn "tpath-raw '$path'..."
+    done
+
+  }
 
   # TODO:
   #  global, local services
@@ -970,7 +1004,9 @@ htd__status()
   #( cd ~/project; pd st ) || echo "project" >> $failed
   #( cd /src; pd st ) || echo "src" >> $failed
 
-  test -s "$failed" -o -s "$errored" && stderr ok "htd stat OK" || noop
+  #htd git-remote stat
+
+  test -s "$failed" -o -s "$errored" && stderr ok "htd stat OK" || true
 }
 htd_als__st=status
 htd_als__stat=status
@@ -996,6 +1032,54 @@ htd__status_cwd()
 }
 
 
+htd_als__update_stats=update-status
+htd__update_status()
+{
+  # Go to project root
+  cd "$workspace/$prefix"
+
+  # Gather counts and sizes for SCM dir
+  { test -n "$scm" || vc_getscm
+  } && {
+
+    htd_ws_stats_update scm "
+$(vc_stats . "        ")" || return 1
+
+    test -d "$workspace/$prefix/.$scm/annex" && {
+
+        htd_ws_stats_update disk-usage "
+              annex: $( disk_usage .$scm/annex)
+              scm: $( disk_usage .$scm )
+              (total): $( disk_usage )
+              (date): $( date_microtime )" || return 1
+
+      } || {
+
+        htd_ws_stats_update disk-usage "
+              scm: $( disk_usage .$scm )
+              (total): $( disk_usage )
+              (date): $( date_microtime )" || return 1
+      }
+
+  } || {
+
+    htd_ws_stats_update disk-usage "
+          (total): $( disk_usage )
+          (date): $( date_microtime )" || return 1
+  }
+
+  # Use project metadata for getting more stats
+  package_file "$workspace/$prefix" || return 0
+
+  # TODO: Per project static code analysis 
+  #package_lib_set_local "."
+  #. $PACKMETA_SH
+
+  #for name in $package_pd_meta_stats
+  #do
+  #  echo $name: $( verbosity=0 htd run $name 2>/dev/null )
+  #done
+}
 
 htd__volume_status()
 {
@@ -1012,6 +1096,7 @@ htd__workdir_status()
   htd__context
   finfo.py --metadir .meta
 }
+
 
 htd_als__metadirs=context
 htd_man_1__context="TODO find packages, .meta dirs"
@@ -1147,7 +1232,7 @@ htd__go()
         test -n "$BUILD_GOOS" || BUILD_GOOS="$os"
         test -n "$BUILD_GOARCH" || {
             case "$machine_hw" in
-                
+
                 x86_64 ) BUILD_GOARCH="amd64" ;;
                 * ) BUILD_GOARCH="$architecture" ;;
             esac
@@ -1177,12 +1262,12 @@ htd__go()
     dockerize ) shift
         test -z "$1" || img_tag=$1
         test -n "$img_tag" || img_tag=bvberkum/$APP_ID
-		test -e Dockerfile || { { cat <<EOM
+    test -e Dockerfile || { { cat <<EOM
 FROM scratch
 COPY $APP_ID /
 ENTRYPOINT ["/$APP_ID"]
 EOM
-		} > Dockerfile; note "Placed default dockerfile"; }
+    } > Dockerfile; note "Placed default dockerfile"; }
         docker run --rm \
           -e CGO_ENABLED=true \
           -e COMPRESS_BINARY=true \
@@ -1729,8 +1814,8 @@ htd__jrnl()
           printf -- "$id: $line idx:$n "
           test $n -gt 1 && {
             printf -- " prev:$(source_line $1.tmp $(( $n - l )) ) "
-          }                                                 
-          test $n -lt $c && {                                 
+          }
+          test $n -lt $c && {
             printf -- " next:$(source_line $1.tmp $(( $n + 1 )) ) "
           }
           echo
@@ -2223,16 +2308,28 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
   The first two arguments TODO/DONE.TXT default to tags-document and tags-done.
   Other commands in this group:
 
-    htd tasks-scan
-    htd tasks-grep
-    htd tasks-local
-    htd tasks-edit
-    htd tasks-hub
-    htd tasks-buffers
-    htd tasks-tags
-
+    htd tasks grep
+        Run over the source, aggregating tagged comments as "task lines".
+    htd tasks local
+        Run the projects preferred way the aggregate tasks, if none given
+        run `tasks-grep`.
     htd tasks scan|grep|local|edit|buffers|hub
-    htd tasks tags[-{project,context}]
+        Use tasks-local to bring local todo,done.txt documents in sync.
+    htd tasks hub
+        Aside from todor,done.txt, keep task lists files in "./to", dubbed the
+        tasks-hub. See help for specific sub-commands.
+    htd tasks edit
+        Start editor session for todo,done.txt documents. Migrates requested
+        tags to the items from the hub, *and* back again after the session.
+        Every item that has a tag is sorted into an existing or new buffer.
+    htd tasks buffers [ @Context | +project ]
+        Given set of tags, list local paths to buffers.
+        TODO: sort out scripts into tasks-backends
+    htd tasks tags [todo] [done] [file..]
+        List tags found on items in files. Like ``tasks-hub tagged`` except
+        that checks every list in the hub. While this by default uses the local
+        todo.txt/done.txt file, and any filename given as the third and following
+        arguments
 
   See tasks-hub for more local functions.
 '
@@ -2323,38 +2420,40 @@ htd_run__tasks_local=iAO
 htd_grp__tasks_local=tasks
 
 
-htd_man_1__tasks_edit='Invoke htd todotxt-edit for local package'
+htd_man_1__tasks_edit='Invoke htd todotxt-edit for local package
+
+'
 htd_spc__tasks_edit="tasks-edit TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ] [ ADDITIONAL-PATHS ]"
 # This reproduces most of the essential todotxt-edit code, b/c before migrating
 # we need exclusive access to update the files anyway.
 htd_env__tasks_edit='
-  id=$htd_session_id migrate=1 remigrate=1
+  tags=
+  id=$htd_session_id migrate=${migrate-1} remigrate=${remigrate-1}
   todo_slug= todo_document= todo_done=
   tags= projects= contexts= buffers= add_files= locks=
-  colw=32
+  colw=${colw-32}
 '
 htd__tasks_edit()
 {
-  info "2.1. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  htd__tasks_session_start
-  set -- "$todo_document" "$todo_done"
-  info "2.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  info "2.1. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  htd__tasks_session_start "$todo_document" "$todo_done" "$@"
+  info "2.2. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # TODO: If locked import principle tasks to main
-  trueish "$migrate" &&
-    htd_migrate_tasks "$1" "$2"
-  info "2.3. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  trueish "$migrate" && htd_migrate_tasks "$todo_document" "$todo_done" "$@"
   # Edit todo and done file
-  $TODOTXT_EDITOR "$1" "$2"
+  $TODOTXT_EDITOR "$todo_txt" "$todo_done"
   # Relock in case new tags added
   # TODO: diff new locks
   #newlocks="$(lock_files $id "$1" | lines_to_words )"
   #note "Acquired additional locks ($(basenames ".list" $newlocks | lines_to_words))"
   # TODO: Consolidate all tasks to proper project/context files
-  info "2.6. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  trueish "$remigrate" &&
-    htd_remigrate_tasks "$1" "$2"
+  info "2.6. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  trueish "$remigrate" && htd_remigrate_tasks "$todo_document" "$todo_done" "$@"
   # XXX: where does @Dev +script-mpe go, split up? refer principle tickets?
-  htd__tasks_session_end "$1" "$2"
+  htd__tasks_session_end "$todo_document" "$todo_done"
 }
 htd_run__tasks_edit=eA
 htd_argsv__tasks_edit=htd_argsv__tasks_session_start
@@ -2365,17 +2464,19 @@ htd_grp__tasks_edit=tasks
 htd_man_1__tasks_hub='Given a tasks-hub directory, either get tasks, tags or
   additional settings ie. backends, indices, cardinality.
 
+    htd tasks-hub init
+        Figure out identity for buffer lists
     htd tasks-hub be
+        List the backend scripts, a hack on context "@be-" prefix..
     htd tasks-hub tags
+        List tags for which local task buffers or backend/proc scripts exists.
+        TODO: only list buffers, list scripts elsewhere. E.g backend
     htd tasks-hub tagged
-
+        Lists the tags, from items in lists
+    htd tasks-hub
 '
-htd_man_1__tasks_hub_init='Figure out identity for buffer lists'
-htd_man_1__tasks_hub_be='List the backend scripts'
 htd_man_1__tasks_hub_tags='List tags for which buffers exist'
-htd_man_1__tasks_hub_tagged='Lists unique tags from items in lists, or any
-  matching line in a hub leaf. '
-htd_env__tasks_hub='projects=1 contexts=1'
+htd_env__tasks_hub='projects=${projects-1} contexts=${contexts-1}'
 htd_spc__tasks_hub='tasks-hub [ (be|tags|tagged) [ ARGS... ] ]'
 htd_spc__tasks_hub_taggged='tasks-hub tagged [ --all | --lists | --endpoints ] [ --no-projects | --no-contexts ] '
 htd__tasks_hub()
@@ -2487,28 +2588,42 @@ htd_spc__tasks_buffers='tasks-buffers [ @Contexts... +Projects... ]'
 htd__tasks_buffers()
 {
   local dir=to/
-  for tag in $@
+  for tag in "$@"
   do
     case "$tag" in
       @be.* ) be=$(echo $tag | cut -c5- )
           echo to/be-$be.sh
         ;;
       +* ) prj=$(echo $tag | cut -c2- )
-          echo to/do-in-$prj.lst
-          echo cabinet/done-in-$prj.lst
+          echo to/do-in-$prj.list
+          echo cabinet/done-in-$prj.list
           echo to/do-in-$prj.list
           echo cabinet/done-in-$prj.list
           echo to/do-in-$prj.sh
         ;;
       @* ) ctx=$(echo $tag | cut -c2- )
-          echo to/do-at-$ctx.lst
-          echo cabinet/done-at-$ctx.lst
+          echo to/do-at-$ctx.list
+          echo cabinet/done-at-$ctx.list
           echo to/do-at-$ctx.list
           echo cabinet/done-at-$ctx.list
           echo to/do-at-$ctx.sh
           echo store/at-$ctx.sh
           echo store/at-$ctx.yml
           echo store/at-$ctx.yaml
+        ;;
+      '*' )
+          echo \
+              to/do-in-*.list \
+              to/do-in-*.sh \
+              to/do-at-*.list \
+              to/do-at-*.sh \
+              cabinet/done-in-*.list \
+              cabinet/done-in-*.sh \
+              cabinet/done-at-*.list \
+              cabinet/done-at-*.sh \
+              store/at-$ctx.sh  | words_to_lines
+          #echo store/at-$ctx.yml
+          #echo store/at-$ctx.yaml
         ;;
       * ) error "tasks-buffers '$tag'?" 1 ;;
     esac
@@ -2517,8 +2632,9 @@ htd__tasks_buffers()
 htd_grp__tasks_buffers=tasks
 
 
-htd_man_1__tasks_tags="Show tags for files. Files do not need to exist. First
-  two files will be created. See 'help tasks'. "
+htd_man_1__tasks_tags="Show tags for files. Files do not need to exist, but the
+First two files will be created. "
+htd_spc__tasks_tags='tasks-tags [todo] [done] [file..]'
 htd__tasks_tags()
 {
   test -n "$1" || {
@@ -2533,19 +2649,29 @@ htd__tasks_tags()
 htd_grp__tasks_tags=tasks
 
 
-htd_man_1__tasks_session_start=''
+htd_man_1__tasks_session_start='Starts an editing session for TODO.txt lines.
+
+With no tags given (@ or +) this will not do anything. But for each tag given
+the lines are first migrated from its local buffer (in to/*.list or another
+location) to the TODO.TXT file.
+
+There is the idea to introduce an * or "all" value to accumulate every task,
+but I think that easily becomes overkill.
+'
 htd_spc__tasks_session_start="tasks-session-start TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ] [ ADDITIONAL-PATHS ]"
 htd_env__tasks_session_start="$htd_env__tasks_edit"
 htd__tasks_session_start()
 {
-  info "3.1. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  info "3.1. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   set -- $todo_document $todo_done
   assert_files $1 $2
   # Accumulate tasks, to find additional files for locking
   tags="$(htd__todotxt_tags "$1" "$2" | lines_to_words ) $tags"
   note "Tags: ($(echo "$tags" | count_words
     )) $(echo "$tags" )"
-  info "3.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  info "3.2. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # Get paths to all files, add todo/done buffer files per tag
   buffers="$(htd__tasks_buffers $tags )"
   # Lock main files todo/done and additional-paths
@@ -2561,7 +2687,8 @@ htd__tasks_session_start()
 htd_run__tasks_session_start=eiA
 htd_argsv__tasks_session_start()
 {
-  info "1.1. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  info "1.1. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   htd_tasks_load
   test -n "$*" || return 0
   while test $# -gt 0 ; do case "$1" in
@@ -2577,13 +2704,15 @@ htd_argsv__tasks_session_start()
           add_files="$add_files $1" ; shift
         ;;
   esac ; done
-  info "1.2. Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  info "1.2. Env: $(var2tags \
+      id todo_slug todo_document todo_done tags buffers add_files locks colw)"
 }
 htd_grp__tasks_session_start=tasks
 
 htd__tasks_session_end()
 {
-  info "6.1 Env: $(var2tags id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  info "6.1 Env: $(var2tags \
+      id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # clean empty buffers
   for f in $buffers
   do test -s "$f" -o ! -e "$f" || rm "$f"; done
@@ -2592,8 +2721,12 @@ htd__tasks_session_end()
   test ! -e "$todo_done" -o -s "$todo_done" || rm "$todo_done"
   # release all locks
   released="$(unlock_files $id "$1" "$2" $buffers | lines_to_words )"
-  note "Released locks ($(echo "$released" | count_words ))"
-  { exts="$TASK_EXTS" pathnames $released ; echo; } | column_layout
+  test -n "$(echo "$released")" && {
+    note "Released locks ($(echo "$released" | count_words )):"
+    { exts="$TASK_EXTS" pathnames $released ; echo; } | column_layout
+  } || {
+    warn "No locks to release"
+  }
 }
 htd_grp__tasks_session_end=tasks
 
@@ -2618,14 +2751,18 @@ htd__tasks__src__remove()
 {
   echo
 }
+
+
 htd__tasks()
 {
   case "$1" in
+
     be.src )
         mkvid "$2" ; cmid=$vid
         . ./to/be-src.sh ; shift 2
         htd__tasks__src__${cmid} "$@"
       ;;
+
     be* )
         be=$(printf -- "$1" | cut -c4- )
         test -n "$be" || error "No default tasks backend" 1
@@ -2637,18 +2774,21 @@ htd__tasks()
         . ./to/$ctxid.sh ; shift 2
         htd__tasks__${beid}__${cmid} "$@"
       ;;
+
     "" ) shift || noop ; htd__tasks_scan "$@" ;;
+
     * ) act="$1"; shift 1; htd__tasks_$act "$@" ;;
   esac
 }
 htd_grp__tasks=tasks
 
+
 # Load from pd-meta.tasks.{document,done} [ todo_slug todo-document todo-done ]
 htd_tasks_load()
 {
   test -n "$1" || set -- init
-  while test -n "$1"
-  do case "$1" in
+  while test -n "$1" ; do case "$1" in
+
     init )
   eval $(map=package_pd_meta_tasks_:todo_ package_sh document done slug )
   test -n "$todo_document" || todo_document=todo.$TASK_EXT
@@ -2663,6 +2803,7 @@ htd_tasks_load()
   }
   test -n "$todo_slug" || error todo-slug 1
   ;;
+
     tasks-hub | tasks-process )
   test -e "./to" && tasks_hub=./to
   test -n "$tasks_hub" ||
@@ -2671,28 +2812,33 @@ htd_tasks_load()
   test ! -e "./to" -o "$tasks_hub" = "./to" ||
     error "hub ./to left behind" 1
   ;;
+
     tags )
   local $(map=package_pd_meta_ package_sh tags)
   test -n "$tasks_tags" ||
     tasks_tags="$(package_sh_list .package.sh pd_meta_tasks_tags \
       | lines_to_words )"
   ;;
+
     coops )
   local $(map=package_pd_meta_ package_sh coops)
   test -n "$tasks_coops" ||
     tasks_coops="$(package_sh_list .package.sh pd_meta_tasks_coops \
       | lines_to_words )"
   ;;
+
     be* | proc* )
   ;;
+
     * ) error "tasks-load '$1'?" ;; esac ; shift ; done
 }
 
 
-
 htd_man_1__todo='Edit and mange todo.txt/done files.
 
-  htd alias todo=tasks-edit
+  todo is an alias for tasks-edit, see help there.
+
+Other commands:
 
   htd todotxt-edit
   htd todotxt-tags
@@ -2733,7 +2879,7 @@ htd__todotxt_edit()
   # Lock main files todo/done and additional-paths
   local id=$htd_session_id
   locks="$(lock_files $id "$@" | lines_to_words )"
-  note "Acquired locks"
+  note "Acquired locks:"
   { basenames ".list" $locks ; echo ; } | column_layout
   # Fail now if main todo/done files are not included in locks
   verify_lock $id $1 $2 || {
@@ -3096,81 +3242,142 @@ htd__urls()
   esac
 }
 
-# init or list SSH based remote
 
-source_git_remote()
-{
-  test -n "$1" || set -- "$HTD_GIT_REMOTE"
-  . $UCONFDIR/git-remotes/$1.sh \
-      || error "Missing 1=$1 script" 1
-}
-
-htd__git_remote_info()
-{
-  test -n "$1" || set -- "$HTD_GIT_REMOTE"
-  source_git_remote "$1"
-  echo remote.$1.dir=$remote_dir
-  echo remote.$1.host=$remote_host
-  echo remote.$1.user=$remote_user
-}
+htd_man_1__git_remote='List repos at remote (for SSH), or echo remote URL.
+'
 htd__git_remote()
 {
-  test -n "$2" && {
-    source_git_remote $1; shift 1
-  } || source_git_remote
+  local remote_dir= remote_hostinfo= remote_name=
+  test -n "$*" || set -- "$HTD_GIT_REMOTE"
+  test -e $UCONFDIR/git/remote-dirs/$1.sh && set -- "" "$@"
+  test -z "$1" -a -z "$3" && set -- "list" "$2" "$3"
 
-  [ -z "$1" ] && {
-    # List values for first arguments
-    ssh_cmd="cd $remote_dir; ls | grep '.*.git$' | sed 's/\.git$//g' "
-    ssh $ssh_opts $remote_user@$remote_host "$ssh_cmd"
-  } || {
-    repo=$1
-    #git_url="ssh://$remote_host/~$remote_user/$remote_dir/$repo.git"
-    scp_url="$remote_user@$remote_host:$remote_dir/$repo.git"
-    echo $scp_url
+  test -n "$1" || set -- "url" "$2" "$3"
+  test -n "$2" || set -- "$1" "$HTD_GIT_REMOTE" "$3"
+
+  {
+    C=$UCONFDIR/git/remote-dirs/$2.sh
+    test -e "$C" && . $C || error "Missing remote-dir file '$2'" 1
+    #|| error "Missing remote GIT dir script" 1
+    test -n "$remote_dir" || {
+      info "Using $NS_NAME for $2 remote vendor path"
+       remote_dir=$NS_NAME
+    }
+
+    case "$1" in
+
+      stat )
+          for rt in github dotmpe wtwta-1
+          do
+            repos=$UCONFDIR/git/remote-dirs/$rt.list
+            { test -e $repos && newer_than $repos $_1DAY
+            } || htd git-remote list $rt > $repos
+            note "$rt: $(count_lines "$repos")"
+          done
+        ;;
+
+      url )
+          test -n "$3" || error "repo name expected" 1
+          #git_url="ssh://$remote_host/~$remote_user/$remote_dir/$1.git"
+          echo "$remote_hostinfo:$remote_dir/$3"
+        ;;
+
+      github-list ) shift; test -n "$1" || error "ns-name" 1
+          repos=$UCONFDIR/git/remote-dirs/$1.json
+          { test -e $repos && newer_than $repos $_1DAY
+          } || curl -sSf "https://api.github.com/users/$NS_NAME/repos?per_page=100" >$repos
+          cat $repos| jq -r 'to_entries[] as $r | $r.value.full_name'
+        ;;
+
+      list ) test -z "$3" || error "no filter '$3'" 1
+          # List values for first arguments
+          test -n "$remote_list" && {
+
+            htd__git_remote list $remote_list $NS_NAME || return $?
+
+          } || {
+
+            test -n "$remote_dir" && {
+              ssh_cmd="cd $remote_dir && ls | grep '.*.git$' | sed 's/\.git$//g' "
+              ssh $ssh_opts $remote_hostinfo "$ssh_cmd"
+            } ||
+               error "No SSH or list API for GIT remote '$1'" 1
+          }
+        ;;
+
+      info )
+          test -n "$2" || error "remote name required" 1
+          test -n "$3" && {
+            echo "remote.$2.git.url=$remote_hostinfo:$remote_dir/$3"
+            echo "remote.$2.scp.url=$remote_hostinfo:$remote_dir/$3.git"
+            echo "remote.$2.repo.dir=$remote_dir/$3.git"
+            echo "remote.$2.hostinfo=$remote_hostinfo"
+          } || {
+            echo "remote.$2.repo.dir=$remote_dir"
+            echo "remote.$2.hostinfo=$remote_hostinfo"
+          }
+        ;;
+
+      sh-env ) shift
+          test -n "$3" || set -- "$1" "$2" remote_
+          htd__git_remote info "$1" "$2" | sh_properties - 'remote\.'"$1"'\.' "$3"
+        ;;
+
+      * ) error "'$1'?" 1 ;;
+
+    esac
   }
 }
 
-htd__git_init_remote() # [ Repo ]
+htd__git_init_local() # [ Repo ]
 {
-  test -n "$HTD_GIT_REMOTE" || error "No HTD_GIT_REMOTE" 1
-  source_git_remote
-  [ -n "$1" ] && repo="$1" || repo="$(basename "$(pwd)")"
+  local remote=local
+  repo="$(basename "$(pwd)")"
+  [ -n "$repo" ] || error "Missing project ID" 1
 
-  test -n "$repo" || error "Missing project ID" 1
-  [ -e .git ] || error "No .git directory, stopping remote init" 0
-
-
-  # Create local repo if needed
-
-  BARE=/srv/git-local/$repo.git
+  BARE=/srv/git-local/$NS_NAME/$repo.git
   [ -d $BARE ] || {
       log "Creating temp. bare clone"
       git clone --bare . $BARE
     }
 
+  remote_url="$(git config remote.$remote.url)"
+  test -n "$remote_url" && {
+    test "$remote_url" = $BARE || error "$remote not $BARE" 1
+  } || {
+    git remote add $remote $BARE
+  }
+}
+
+htd__git_init_remote() # [ Repo ]
+{
+  [ -e .git ] || error "No .git directory, stopping remote init" 0
+  test -n "$HTD_GIT_REMOTE" || error "No HTD_GIT_REMOTE" 1
+  local repo= remote=$HTD_GIT_REMOTE BARE=
+
+  # Create local repo if needed
+  htd__git_init_local
 
   # Remote repo, idem ditto
+  local $(htd__git_remote sh-env "$remote" "$repo")
+  {
+    test -n "$remote_hostinfo" && test -n "$remote_repo_dir"
+  } ||
+    error "Incomplete env" 1
 
-  htd__git_remote $repo >> /dev/null
-  test -n "$scp_url" || error "No scp_url" 1
 
-  ssh_cmd="mkdir -v $remote_dir/$repo.git"
-  ssh $remote_user@$remote_host "$ssh_cmd" && {
+  ssh_cmd="mkdir -v $remote_repo_dir"
+  ssh $remote_hostinfo "$ssh_cmd" && {
 
-    log "Syning new bare repo to $scp_url"
-    rsync -azu $BARE/ $scp_url
+    log "Syning new bare repo to $remote_scp_url"
+    rsync -azu $BARE/ $remote_scp_url
 
-  } || {
-
-    warn "Remote exists, adding as remote '$HTD_GIT_REMOTE'"
-  }
-
+  } ||
+    warn "Remote exists, checking remote '$remote'"
 
   # Initialise remotes for checkout
-
   {
-    echo $HTD_GIT_REMOTE $scp_url
+    echo $remote $remote_scp_url
     echo local $BARE
     echo $hostname $hostname.zt:$BARE
   } | while read rt rurl
@@ -3216,7 +3423,7 @@ htd__git_init_version()
   } || {
     readme=README.md
     {
-      echo "Version: 0.0.1-dev" 
+      echo "Version: 0.0.1-dev"
     } >$readme
     note "Created Read-Me ($readme)"
   }
@@ -3364,20 +3571,59 @@ htd_x__git_grep()
 htd_run__git_grep=iAO
 
 
-htd_man_1__file='Look for name and content at path; then store and cleanup.
+htd_man_1__file='TODO: Look for name and content at path; then store and cleanup.
+
+    newer-than
+    older-than
+    mtime
+    mtime-readable
+    status
+    info
 
 Given path, find matching from storage using name, or content. On match, compare
 and remove path if in sync.
 '
 htd__file()
 {
-  # Search for by name
-  echo TODO track htd__find "$localpath"
+  test -n "$1" || set -- info
 
-  # Search for by other lookup
-  echo TODO track htd__content "$localpath"
+  case "$1" in
+
+      newer-than ) shift
+          test -e "$1" || error "htd file new-than file expected '$1'" 1
+          case "$2" in *[0-9] ) ;;
+              * ) set -- "$1" "$(eval echo \"\$_$2\")" ;; esac
+          newer_than "$1" "$2" || return $?
+        ;;
+
+      older-than ) shift
+          test -e "$1" || error "htd file new-than file expected '$1'" 1
+          case "$2" in *[0-9] ) ;;
+              * ) set -- "$1" "$(eval echo \"\$_$2\")" ;; esac
+          older_than "$1" "$2" || return $?
+        ;;
+
+      mtime ) filemtime "$2" ;;
+      mtime-readable ) fmtdate_relative "$(filemtime "$2")" ;;
+
+      status ) shift
+          # Search for by name
+          echo TODO track htd__find "$localpath"
+
+          # Search for by other lookup
+          echo TODO track htd__content "$localpath"
+        ;;
+
+      info ) shift
+          file -s "$2"
+        ;;
+  esac
 }
 
+htd__date()
+{
+  fmtdate_relative "$1"
+}
 
 htd__content()
 {
@@ -3398,54 +3644,21 @@ htd__features()
   )
 }
 
-htd__gitflow_doc()
-{
-  test -n "$1" || set -- gitflow
-  test -e "$1" || {
-    for ext in $DOC_EXTS
-    do
-      test -e $1$ext || continue
-      set -- $1$ext; break
-    done
-  }
-  test -e $1 || error no-gitflow-doc 2
-  echo $1
-}
 
-htd_run__gitflow_check_doc=f
-htd__gitflow_check_doc()
+htd_man_1__vcflow='
+TODO: see also vc gitflow
+'
+htd_run__vcflow=f
+htd__vcflow()
 {
-  test -n "$failed" || error failed 1
-  test -z "$2" || error surplus-args 2
-  set -- "$(htd__gitflow_doc "$1")"
-  exec 6>$failed
-  vc.sh list-all-branches | while read branch
-  do
-    match_grep_pattern_test "$branch" || return 12
-    grep -qE "\<$p_\>" $1 || failed "$1: expected '$branch'"
-  done
-  exec 6<&-
-  test -s "$failed" && {
-    stderr failed "missing some branch references in '$1'"
-  } || {
-    rm "$failed"
-    stderr ok "checked for and found references for all branches in '$1'"
-  }
+  vcflow_lib_set_local
+  test -n "$1" || set -- status
+  upper=0 mkvid "$1" ; shift
+  htd_vcflow_$vid "$@" || return $?
 }
-htd_als__gitflow_check=gitflow-check-doc
-
-
-htd__gitflow_status()
-{
-  note "TODO: see gitflow-check-doc"
-  defs gitflow.txt | \
-    tree_to_table  | \
-    while read base branch
-    do
-      git cherry $base $branch | wc -l
-    done
-}
-htd_als__gitflow=gitflow-status
+htd_als__gitflow_check_doc=vcflow\ check-doc
+htd_als__gitflow_check=vcflow\ check
+htd_als__gitflow=vcflow\ status
 
 
 htd_man_1__source='Generic sub-commands dealing with source-code. For Shell
@@ -3531,8 +3744,8 @@ htd__function()
 
 
 htd_man_1__expand_source_line='Replace a source line with the contents of the sourced script
-  
-This must be pointed to a line with format: 
+
+This must be pointed to a line with format:
 
   .\ (P<sourced-file>.*)
 '
@@ -3559,7 +3772,7 @@ htd_man_1__diff_function='
   functions in different files/directories. Normally runs vimdiff on a synced
   file. But quiet instead exists, and copy-only does not modify the source
   script but only shows the diff.  Normally (!copy-only) the two functions are
-  replaced by a source command to their temporary file used for comparison, 
+  replaced by a source command to their temporary file used for comparison,
   so that during editing the script remains fully functional.
 
   But meanwhile the both function versions are conveniently in separate files,
@@ -3928,27 +4141,27 @@ htd_env__update='push'
 htd_spc__update='update [<commit-ish> [<remote>...]]'
 htd__update()
 {
-	test -n "$1" ||
-	    set -- "$(cd $scriptpath && git rev-parse --abbrev-ref HEAD)" $@
-	test -n "$2" || set -- "$1" "origin"
-	test "$2" = "all" &&
-		set -- "$1" "$(cd $scriptpath && git remote | tr '\n' ' ')"
-	# Perform checkout, pull and optional push
-	test -n "$push" || push=0
-	(
-		cd $scriptpath
-		local branch=$1 ; shift ; for remote in $@
-		do
-			# Check argument is a valid existing branch on remote
-			git checkout "$branch" &&
-			git show-ref | grep '\/remotes\/' | grep -qF $remote'/'$branch && {
-				git pull "$remote" "$branch"
-				trueish $push && git push "$remote" "$branch" || noop
-			} || {
-				warn "Reference $remote/$branch not found, skipped" 1
-			}
-		done
-	)
+  test -n "$1" ||
+      set -- "$(cd $scriptpath && git rev-parse --abbrev-ref HEAD)" $@
+  test -n "$2" || set -- "$1" "$vc_rt_def"
+  test "$2" = "all" &&
+    set -- "$1" "$(cd $scriptpath && git remote | tr '\n' ' ')"
+  # Perform checkout, pull and optional push
+  test -n "$push" || push=0
+  (
+    cd $scriptpath
+    local branch=$1 ; shift ; for remote in $@
+    do
+      # Check argument is a valid existing branch on remote
+      git checkout "$branch" &&
+      git show-ref | grep '\/remotes\/' | grep -qF $remote'/'$branch && {
+        git pull "$remote" "$branch"
+        trueish $push && git push "$remote" "$branch" || noop
+      } || {
+        warn "Reference $remote/$branch not found, skipped" 1
+      }
+    done
+  )
 }
 
 
@@ -4130,12 +4343,6 @@ htd_argsv__archive()
 }
 
 
-htd__file()
-{
-  file -s "$@"
-}
-
-
 htd_man_1__record="Retrieve, update or initalize record(s). "
 htd_spc__record="record [PATH]"
 htd__record()
@@ -4187,8 +4394,25 @@ htd__save()
 htd_grp__save=annex
 
 
+htd_man_1__tags='
+  bookmarks
+
+XXX: see also
+  task-hub
+        List tags for which local task buffers or backend/proc scripts exists.
+'
 htd__tags()
 {
+  test -n "$1" || set -- bookmarks
+  case "$1" in
+
+    bookmarks ) shift
+        width=$(tput cols)
+        cols=$(( $width / 16 ))
+        bookmarks.py tags "$@" | pr -t -$cols -w $width
+      ;;
+
+    nodes )
   test -n "$DBFILE" || DBFILE=~/.bookmarks.sqlite
 echo
   sqlite3 $DBFILE <<SQL
@@ -4211,6 +4435,10 @@ SQL
     JOIN names ON nodes.id = names.id ;
 SQL
 #  ORDER BY p.time DESC;
+      ;;
+
+    * ) error "tags '$*'?" ;;
+  esac
 }
 
 
@@ -4244,36 +4472,35 @@ htd__save_ref()
 htd_grp__save_ref=annex
 
 
-htd_man_1__package='Pretty print the Sh package settings. See package.rst.
+htd_man_1__package='
+
+  package list-ids
+     List package IDs from local package metadata file.
+     
+  package urls
+     TODO: List URLs for package.
+
+  package debug
+     Log each Sh package settings.
+
+Plumbing commands dealing with the local project package file. See package.rst.
+These do not auto-update intermediate artefacts, or load a specific package-id
+into env.
 '
+htd_run__package=iAO
 htd__package()
 {
-  #test -z "$1" || export package_id=$1
-  package_lib_load
-  test -n "$1" && {
-    # Turn args into var-ids
-    _p_extra() { for k in $@; do mkvid "$k"; printf -- "$vid "; done; }
-    _p_lookup() {
-      . $PACKMETA_SH
-      # See if lists are requested, and defer
-      for k in $@; do
-        package_sh_list_exists "$k" || continue
-        package_sh_list $PACKMETA_SH $k
-        shift
-      done
-      test -z "$*" ||
-        map=package_ package_sh "$@"
-    }
-    echo "$(_p_lookup $(_p_extra "$@"))"
-
-  } || {
-    read_nix_style_file $PACKMETA_SH | while IFS='=' read key value
-    do
-      eval $LOG header2 "$(kvsep=' ' pretty_print_var "$key" "$value")"
-    done
-  }
+  test -n "$1" || set -- debug
+  upper=0 mkvid "$1"
+  shift ; htd_package_$vid "$@" || return $?
 }
-htd_run__package=iAO
+
+htd_man_1__ls="List local package names"
+htd_als__ls=package\ list-ids
+
+htd_man_1__openurl="Open local package URL"
+htd_als__openurl=package\ open-url
+
 
 
 htd_man_1__topics_list='List topics'
@@ -4331,37 +4558,25 @@ htd__topics_persist()
 }
 
 
+htd_man_1__scripts='
 
-htd_man_1__run_names="List local package script names"
-htd_run__run_names=f
-htd__run_names()
+  scripts names
+    List local package script names
+  scripts list
+    List local package script names and lines
+  scripts run NAME
+    Run scripts from package
+
+'
+htd_run__scripts=pf
+htd__scripts()
 {
-  jsotk.py keys -O lines $PACKMETA_JS_MAIN scripts
+  test -n "$1" || set -- names
+  upper=0 mkvid "$1"
+  shift ; htd_scripts_$vid "$@" || return $?
 }
 
 
-htd_man_1__run_dir="List local package script names and lines"
-htd_run__run_dir=fp
-htd__run_dir()
-{
-  htd__run_names | while read name
-  do
-    printf -- "$name\n"
-    verbose_no_exec=1 htd__run $name
-  done
-}
-
-
-htd_man_1__ls="List local package names"
-htd_run__ls=f
-htd__ls()
-{
-  PACKMETA="$(cd "$1" && echo package.y*ml | cut -f1 -d' ')"
-  jsotk.py -I yaml -O py objectpath $PACKMETA '$.*[@.id is not None].id'
-}
-
-
-htd_man_1__run="Run scripts from package"
 htd__run()
 {
   test -n "$1" || set -- scripts
@@ -4446,10 +4661,10 @@ htd_man_1__rules='
     Show Id and last status for each rule.
   run [ Target-Grep [ Cmd-Grep ] ]
     Evalute all rules and update status and targets. Rule selection arguments
-    like `each`. 
+    like `each`.
   ids [ Target-Grep [ Cmd-Grep ] ]
     Resolve rules and list IDs generated from the command, working dir and context.
-  foreach 
+  foreach
   each [ Target-Grep [ Cmd-Grep ] ]
     Parse rules to key/values, filter on values using given Grep patterns.
   id
@@ -4600,7 +4815,7 @@ htd__rules()
         #  esac
         #done
         test -z "$DEBUG" ||
-          $LOG ok pre-proc "CMD=$CMD RT=$RT TARGETS=$TARGETS CWD=$CWD CTX=$CTX"
+          $LOG ok pre-proc "CMD=$CMD RT=$RT TARGETS=$TARGETS CWD=$CWD CTX=$CTX" >&2
       ;;
 
     update | post-proc ) shift
@@ -4684,7 +4899,7 @@ htd__run_rule()
     test "$R" = "$RT" || warn "Unexpected return from rule exec ($R)"
   }
   test "$RT" = "0" || {
-    test "$R" = "$RT" && 
+    test "$R" = "$RT" &&
       note "Non-zero exit ignored by rule ($R)" ||
         warn "Unexpected result $R, expected $RT"
   }
@@ -4846,7 +5061,7 @@ htd_man_1__process='Process each item in list.
 '
 htd_spc__process='process [ LIST [ TAG.. [ --add ] | --any ]'
 htd_env__process='
-  todo_slug= todo_document= todo_done=
+  todo_slug=${todo_slug} todo_document=${todo_document} todo_done=${todo_done}
 '
 htd__process()
 {
@@ -4899,7 +5114,7 @@ htd__table_reformat()
     test "$1" != "-" || error "file needed to determine header fields" 1
     local fields="$(fixed_table_hd_ids "$1")"
   }
-  test -n "$cutf" || fixed_table_cuthd "$1" "$fields" 
+  test -n "$cutf" || fixed_table_cuthd "$1" "$fields"
   upper=0 default_env out-fmt json
   test "$out_fmt" = "csv" && { echo "#"$fields | tr ' ' ',' ; }
   fixed_table "$1" $cutf | while read vars
@@ -5512,241 +5727,6 @@ htd__mux()
 htd_grp__mux=tmux
 
 
-htd_man_1__tmux_sockets='List sockets of tmux servers. Each server is a separate
-env with sessions and windows. '
-htd__tmux_sockets()
-{
-  test -n "$1" || set NAME
-  {
-    # list unix domain sockets
-    lsof -U | grep '^tmux'
-  } | {
-      case "$1" in
-      COMMAND ) awk '{print $1}' ;;
-      PID ) awk '{print $2}' ;;
-      USER ) awk '{print $3}' ;;
-      FD ) awk '{print $4}' ;;
-      TYPE ) awk '{print $5}' ;;
-      DEVICE ) awk '{print $6}' ;;
-      #NODE ) awk '{print $8}' ;;
-      NAME )
-          awk '{print $8}'
-          awk '{print $9}'
-        ;;
-    esac
-  } | sort -u
-}
-htd_grp__tmux_sockets=tmux
-
-
-htd__tmux_list_sessions()
-{
-  test -n "$1" || set -- $(htd__tmux_sockets)
-  while test $# -gt 0
-  do
-    test -e "$1" && {
-      note "Listing for '$1'"
-      tmux -S "$1" list-sessions
-    } || {
-      error "Given socket does not exists: '$1'"
-    }
-    shift
-  done
-}
-htd_als__tmux_list=tmux-list-sessions
-htd_als__tmux_sessions=tmux-list-sessions
-htd_grp__tmux_list_sessions=tmux
-
-
-htd_man_1__tmux_session_list_windows='List window names for current
-socket/session. Note these may be empty, but alternate formats can be provided,
-ie. "#{window_index}". '
-htd_spc__tmux_session_list_windows='tmux-session-list-windows [ - | MATCH ] [ FMT ]'
-htd__tmux_session_list_windows()
-{
-  test -n "$1" || set -- "$HTD_TMUX_DEFAULT_SESSION"
-  test -n "$3" || set -- "$1" "$2" "#{window_name}"
-  test -z "$4" || error "Surplus arguments '$4'" 1
-  tmux_env_req 0
-  $tmux list-windows -t "$1" -F "$3" | {
-    case "$2" in
-      "" )
-          while read name
-          do
-            note "Window: $name"
-          done
-        ;;
-      "-" ) cat ;;
-      * )
-          eval grep -q "'^$2$'"
-        ;;
-    esac
-  }
-}
-htd_als__tmux_windows=tmux-session-list-windows
-htd_als__tmux_session_windows=tmux-session-list-windows
-htd_grp__tmux_session_list_windows=tmux
-
-
-tmux_env_req()
-{
-  default_env TMux-SDir /opt/tmux-socket
-  test -n "$TMUX_SOCK" && {
-    debug "Using TMux-Sock env '$TMUX_SOCK'"
-  } || {
-    test -d "$TMUX_SDIR" || mkdir -vp $TMUX_SDIR
-    # NOTE: By default have one server per host. Add Htd-TMux-Env var-names
-    # for distinct servers based on currnet shell environment.
-    default_env Htd-TMux-Env hostname
-    TMUX_SOCK_NAME="htd$( for v in $HTD_TMUX_ENV; do eval printf -- \"-\$$v\"; done )"
-    export TMUX_SOCK=$TMUX_SDIR/tmux-$(id -u)/$TMUX_SOCK_NAME
-    falseish "$1" || {
-      test -S  "$TMUX_SOCK" ||
-        error "No tmux socket $TMUX_SOCK_NAME (at '$TMUX_SOCK')" 1
-    }
-    debug "Set TMux-Sock env '$TMUX_SOCK'"
-  }
-  tmux="tmux -S $TMUX_SOCK "
-}
-
-
-
-htd_man_1__tmux_get='Look for session/window with current selected server and
-attach. The default name arguments may dependent on the env, or default to
-Htd/bash. Set TMUX_SOCK or HTD_TMUX_ENV+env to select another server, refer to
-tmux-env doc.'
-htd_spc__tmux_get='tmux get [SESSION-NAME [WINDOW-NAME [CMD]]]'
-htd__tmux_get()
-{
-  test -n "$1" || set -- "$HTD_TMUX_DEFAULT_SESSION" "$2" "$3"
-  test -n "$2" || set -- "$1" "$HTD_TMUX_DEFAULT_WINDOW" "$3"
-  test -n "$2" || set -- "$1" "$2" "$HTD_TMUX_DEFAULT_CMD"
-  test -z "$4" || error "Surplus arguments '$4'" 1
-  tmux_env_req 0
-
-  # Look for running server with session name
-  {
-    test -e "$TMUX_SOCK" &&
-      $tmux has-session -t "$1" >/dev/null 2>&1
-  } && {
-    info "Session '$1' exists"
-    logger "Session '$1' exists"
-    # See if window is there with session
-    htd__tmux_session_list_windows "$1" "$2" && {
-      info "Window '$2' exists with session '$1'"
-      logger "Window '$2' exists with session '$1'"
-    } || {
-      $tmux new-window -t "$1" -n "$2" "$3"
-      info "Created window '$2' with session '$1'"
-      logger "Created window '$2' with session '$1'"
-    }
-  } || {
-    # Else start server/session and with initial window
-    eval $tmux new-session -d -s "$1" -n "$2" "$3" && {
-      note "Started new session '$1'"
-      logger "Started new session '$1'"
-    } || {
-      warn "Failed starting session '$1' ($?)"
-      logger "Failed starting session '$1' ($?)"
-    }
-    # Copy env to new session
-    for var in TMUX_SOCK $HTD_TMUX_ENV
-    do
-      $tmux set-environment -g $var "$(eval printf -- \"\$$var\")"
-    done
-  }
-  test -n "$TMUX" || {
-    note "Attaching to session '$1'"
-    $tmux attach
-  }
-}
-htd_grp__tmux_get=tmux
-
-
-
-# Shortcut to create window, if not exists
-# htd tmux-winit SESSION WINDOW DIR CMD
-htd__tmux_winit()
-{
-  tmux_env_req 0
-  ## Parse args
-  test -n "$1" || error "Session <arg1> required" 1
-  test -n "$2" || error "Window <arg2> required" 1
-  # set window working dir
-  test -e $UCONFDIR/script/htd/tmux-init.sh &&
-    . $UCONFDIR/script/htd/tmux-init.sh || error TODO 1
-  test -n "$3" || {
-    set -- "$@" "$(htd_uconf__tmux_init_cwd "$@")"
-  }
-  test -d "$3" || error "Expected <arg3> to be directory '$3'" 1
-  test -n "$4" || {
-    # TODO: depending on context may also want to update or something different
-    set -- "$1" "$2" "$3" "htd status"
-  }
-  $tmux list-sessions | grep -q '\<'$1'\>' || {
-    error "No session '$1'" 1
-  }
-  $tmux list-windows -t $1 | grep -q $2 && {
-    note "Window '$1:$2' already initialized"
-  } || {
-    $tmux new-window -t $1 -n $2
-    $tmux send-keys -t $1:$2 "cd $3" enter "$4" enter
-    note "Initialized '$1:$2' window"
-  }
-}
-htd_grp__tmux_winit=tmux
-
-
-htd__tmux_init()
-{
-  test -n "$1" || error "session name required" 1
-  test -n "$2" || set -- "$1" "bash"
-  test -z "$4" || error "surplus arguments: '$4'" 1
-  tmux_env_req 0
-  # set window working dir
-  test -e $UCONFDIR/script/htd/tmux-init.sh &&
-    . $UCONFDIR/script/htd/tmux-init.sh || error TODO 1
-  test -n "$3" || {
-    set -- "$@" "$(htd_uconf__tmux_init_cwd "$@")"
-  }
-  out=$(setup_tmpd)/htd-tmux-init-$$
-  $tmux has-session -t "$1" >/dev/null 2>&1 && {
-    logger "Session $1 exists"
-    note "Session $1 exists"
-  } || {
-    $tmux new-session -dP -s "$1" "$2" && {
-    #>/dev/null 2>&1 && {
-      note "started new session '$1'"
-      logger "started new session '$1'"
-    } || {
-      warn "Failed starting session '$1' ($?) ($out):"
-      logger "Failed starting session '$1' ($?) ($out):"
-      printf "Cat ($out) "
-    }
-    test ! -e "$out" || rm $out
-  }
-}
-htd_grp__tmux_init=tmux
-
-
-# Find a server with session name and CS env tag, and get a window
-htd__tmux_cs()
-{
-  test -n "$1" || set -- Htd-$CS "$2" "$3"
-  test -n "$2" || set -- "$1" 0    "$3"
-  test -n "$3" || set -- "$1" "$2" ~/work
-  (
-    # TODO: hostname, session/socket tags
-    export TMUX_SOCK_NAME=boreas-$1-term
-    tmux_env_req 0
-    htd__tmux_init "$1" "$SHELL" "$3"
-    htd__tmux_winit "$@"
-    $tmux set-environment -g CS $CS
-    test -n "$TMUX" || $tmux attach
-  )
-}
-htd_grp__tmux_cs=tmux
-
 
 htd_man_1__tmux='Unless tmux is running, get a new tmux session, based on the
 current environment.
@@ -5757,31 +5737,37 @@ tmux environments are managed by using seperate sockets per session.
 Start tmux, tmuxinator or htd-tmux with given names.
 TODO: first deal with getting a server and session. Maybe later per window
 management.
+
+  tmux list-sockets | sockets
+    List (active) sockets of tmux servers. Each server is a separate env with
+    sessions and windows.
+
+  tmux list [ - | MATCH ] [ FMT ]
+    List window names for current socket/session. Note these may be empty, but
+    alternate formats can be provided, ie. "#{window_index}".
+
+  tmux list-windows  [ - | MATCH ] [ FMT ]
+
+  tmux get [SESSION-NAME [WINDOW-NAME [CMD]]]
+    Look for session/window with current selected server and attach. The
+    default name arguments may dependent on the env, or default to Htd/bash.
+    Set TMUX_SOCK or HTD_TMUX_ENV+env to select another server, refer to
+    tmux-env doc.
 '
-htd_spc__tmux=
 htd__tmux()
 {
   tmux_env_req 0
   test -n "$1" || set -- get
 
   case "$1" in
-    list | sockets ) shift ; htd__tmux_sockets "$@" || return ;;
-    list-sessions ) shift ; htd__tmux_list_sessions "$@" || return ;;
-    list-windows ) shift ; htd__tmux_session_list_windows "$@" || return ;;
-    * ) local c=$1; shift ; htd__tmux_$c "$@" || return ;;
+    list-sockets | sockets ) shift ; htd_tmux_sockets "$@" || return ;;
+    list ) shift ; htd_tmux_list_sessions "$@" || return ;;
+    list-windows ) shift ; htd_tmux_session_list_windows "$@" || return ;;
+    * ) upper=0 mkvid "$1"; shift ; htd_tmux_$vid "$@" || return ;;
   esac
 
   #while test -n "$1"
   #do
-  #  func="htd__tmux_$(echo $1 | tr 'A-Z' 'a-z')"
-  #  fname="$(echo "$1" | tr 'A-Z' 'a-z')"
-
-  #  $tmux has-session -t $1 >/dev/null 2>&1 && {
-  #    info "Session $1 exists"
-  #    shift
-  #    continue
-  #  }
-
   #  func_exists "$func" && {
 
   #    # Look for init subcmd to setup windows
@@ -5799,33 +5785,12 @@ htd__tmux()
   #  }
   #  shift
   #done
-
 }
 htd_grp__tmux=tmux
-
-
-
-htd__reader_update()
-{
-  cd /Volumes/READER
-
-  for remote in .git/refs/remotes/*
-  do
-    name="$(basename "$remote")"
-    newer_than "$remote" _1HOUR && {
-      info "Remote $name is up-to-date"
-    } || {
-      note "Remote $name is too old, syncing"
-      git annex sync $name && continue || error "sync failed"
-    }
-  done
-
-  note "Removing dead symlinks (annex content elsewhere), for PRS software"
-  find ./ -type l | while read l
-  do
-      test -e "$l" || rm "$l"
-  done
-}
+htd_als__tmux_list=tmux\ list-sessions
+htd_als__tmux_sessions=tmux\ list-sessions
+htd_als__tmux_windows=tmux\ session-list-windows
+htd_als__tmux_session_windows=tmux\ session-list-windows
 
 
 htd_man_1__test="Run PDir tests in HTDIR"
@@ -5899,6 +5864,11 @@ htd__disk()
 
           -mounts ) shift
               darwin_mounts | cut -d ' ' -f 1
+            ;;
+
+          -bsd-mounts ) shift
+               darwin_profile_xml "SPStorageDataType"
+               #darwin_bsd_mounts
             ;;
 
           -partition-table ) shift
@@ -6022,7 +5992,7 @@ htd__disk_doc()
            disk_list | while read dev
            do
              {
-               disk_local "$dev" NUM DISK_ID || continue 
+               disk_local "$dev" NUM DISK_ID || continue
              } | while read num disk_id
              do
                echo "disk_doc '$dev' $num '$disk_id'"
@@ -6084,7 +6054,8 @@ htd__getxl()
   test -e "$2" || error "Need XML repr. for doc '$1'" 1
 }
 
-# List topic paths (nested dl terms) in document paths
+htd_man_1__tpaths='List topic paths (nested dl terms) in document paths
+'
 htd_load__tpaths="xsl"
 htd__tpaths()
 {
@@ -6187,7 +6158,7 @@ $2
 EOM
     } || {
       test -e "$1" || error "no file for saxon: '$1'" 1
-      saxon $1 $2
+      saxon $1 $2 || return $?
     }
   # remove XML prolog:
   } | cut -c39-
@@ -6533,7 +6504,7 @@ instead the swap file. Making identification just a bit more complicated.
 And finally, query lsof takes quite a long time, making it completely
 unsuited for interactive use.
 
-Because of this, using find -newer is a more efficient way to find paths to 
+Because of this, using find -newer is a more efficient way to find paths to
 user files. As for open directories, htd prefixes records those based on
 current-cwd. Somehow, current-cwd is also significantly faster getting live
 data than open-paths lsof invocations.
@@ -6632,7 +6603,7 @@ htd__recent_paths()
 htd_man_1__prefixes='Manage local prefix table and index, or query cache.
 
   (op|open-files|read-lines)
-    Default command. Pipe htd current-cwd to htd prefixes names. 
+    Default command. Pipe htd current-cwd to htd prefixes names.
     Set htd_path=1 to get pairs output.
 
 Table
@@ -6662,19 +6633,19 @@ Cache
 
 
 # Cache
-Cache has two parts. An in-memory index, for tracking current prefixes, 
+Cache has two parts. An in-memory index, for tracking current prefixes,
 and the local paths beneath prefixes. And secondary a persisted part, where a
 cumulative tree of all prefixes/paths for a certain period is stored. And where
 individual cards are kept per path, with timestamps.
 
-The in-memory parts are updated every run of `update`. 
+The in-memory parts are updated every run of `update`.
 Paths are kept in memory for TTL seconds after they closed, to allow recalling
 them during that time.
 
 If there is a change, the persisted document is not updated. Only until some
 path TTL expires and is dropped from the index is the persisted document updated
-automatically. Otherwise, a persist to secondary storage is only requested by 
-invocation argument. 
+automatically. Otherwise, a persist to secondary storage is only requested by
+invocation argument.
 
 Updating the first cache requires checking and possibly changing two lists.
 For the secondary, several JSON documents are created: one with the entire tree
@@ -6683,7 +6654,7 @@ This setup prevents conflicts in distributed stores, but it leaves the task of
 cleaning up old trees and ctimes documents.
 
 
-TODO: track path timestamp, keep for X amount of time in index 
+TODO: track path timestamp, keep for X amount of time in index
 TODO: clear indices on certain (global) context switches: day, domain
 TODO: check for services, redis is required. couch can be offline for a bit
 TODO: update registry atime/utime once cache elapses?
@@ -6874,7 +6845,7 @@ htd_clean_scm()
 {
   vc_getscm "$1" && {
     note "Found SCM in $1"
-    ( cd "$1" && 
+    ( cd "$1" &&
     vc_clean )
   }
 }
@@ -7115,13 +7086,6 @@ htd__import_docker_env()
 }
 
 
-# Forced color output commands
-
-htd__git_status()
-{
-  git -c color.status=always status
-}
-
 # XXX: to-html of vim-syntax highlited files. But what about ANSI in and out?
 # Also, this does not seem to take colorscheme values?
 # There is also ANSI HTML Adapter https://github.com/theZiz/aha
@@ -7189,15 +7153,6 @@ htd__colorize()
   esac
 }
 
-vim_swap()
-{
-  local swp="$(dirname "$1")/.$(basename "$1").swp"
-  test ! -e "$swp" || {
-    trueish "$remove_swap" && rm $swp || return 1
-  }
-}
-
-
 htd__say()
 {
   lang=$1
@@ -7232,6 +7187,23 @@ htd__say()
       say -v Ting-Ting "$@" ;;
     hong-kong | sar | tc )
       say -v Sin-ji "$@" ;;
+  esac
+}
+
+
+htd_man_1__src='
+'
+htd__src()
+{
+  test -n "$1" || set -- list
+  case "$1" in
+
+    list ) shift
+
+      ;;
+
+    * ) error "'$1'?" 1 ;;
+
   esac
 }
 
@@ -7357,7 +7329,7 @@ htd__srv()
       ;;
 
     -disks ) shift
-        htd__srv -vpaths "$1" | while read vp ; do 
+        htd__srv -vpaths "$1" | while read vp ; do
           echo $(echo "$vp" | cut -d '-' -f 2-3 | tr '-' ' ') $(cd "$vp" && pwd -P)
         done
       ;;
@@ -7397,7 +7369,7 @@ htd__srv()
         # Match absdir with mount-point, get partition/disk index
         local abs="$(absdir "$1")"
         # NOTE: match with volume by looking for mount-point prefix
-        local dvid=$( htd__srv -disks | while read di pi dp ; do 
+        local dvid=$( htd__srv -disks | while read di pi dp ; do
             test "$dp" = "/" && p_= || match_grep_pattern_test "$dp";
             echo "$1" | grep -q "^$p_\/.*" && { echo $di-$pi ; break ; } || continue
           done )
@@ -7412,7 +7384,7 @@ htd__srv()
         #    below one. Warn, or fail in strict-mode.
 
         # NOTE: look for absdir among realpaths of /srv/{*,*/*}
-       
+
         test "$abs" = "$mp" && {
           true # /srv/volume-*
         } || {
@@ -7794,7 +7766,8 @@ htd__count_files()
 htd_man_1__find_broken_symlinks='Find broken symlinks'
 htd__find_broken_symlinks()
 {
-  find . -type l -xtype l
+  test "$uname" = "Darwin" && find=gfind
+  $find . -type l -xtype l || return $?
 }
 
 htd_man_1__find_skip_broken_symlinks='Find except broken symlinks'
@@ -7821,6 +7794,120 @@ htd__finfo()
   do
     finfo.py --recurse --documents --env htdocs=HTDIR $dir \
       || return $?
+  done
+}
+
+
+htd__reader_update()
+{
+  cd /Volumes/READER
+
+  for remote in $(git remote)
+  do
+    name="$(basename "$remote")"
+    newer_than "$remote" _1HOUR && {
+      info "Remote $name is up-to-date"
+    } || {
+      note "Remote $name is too old, syncing"
+      git annex sync $name && continue || error "sync failed"
+    }
+  done
+
+  note "Removing dead symlinks (annex content elsewhere), for PRS software"
+  find ./ -type l | while read l
+  do
+    test -e "$l" || rm "$l"
+  done
+}
+
+
+htd_run__annex_fsck=i
+htd__annex_fsck()
+{
+  local rules=.sync-rules.list
+  test -e "$rules" || {
+    note "No local rules, executing global rules"
+    rules=~/.conf/sync-rules.list
+  }
+  read_nix_style_file $rules | while read dir branch remotespec which
+  do
+    dir="$(htd prefixes expand "$dir")"
+
+    test "$which" = "1" -o "$which" = "2" && {
+
+        git annex fsck -q && {
+            echo "$dir" >$passed
+        } || {
+            error "[$dir] fsck failure ($?)"
+            echo "$dir" >$failed
+        }
+    }
+  done
+  test -s "$passed" &&
+      note "$(count_lines "$passed") repositories OK" || warn "Nothing to do"
+}
+
+
+htd__sync()
+{
+  local rules=.sync-rules.list
+  test -e "$rules" || {
+    sys_confirm "No local rules, execute all global rules?" || return $?
+    rules=~/.conf/sync-rules.list
+  }
+  read_nix_style_file $rules | while read dir branch remotespec which
+  do
+    dir="$(htd prefixes expand "$dir")"
+
+    cd $dir || error "cd '$dir'" 1
+    test "$remotespec" != "*" || remotespec="$(git remote | lines_to_words)"
+    test -z "$(git status --porcelain -uno)" || {
+      warn "Ignoring dirty index at '$dir'"
+      continue
+    }
+
+    test "$branch" = "$(git rev-parse --abbrev-ref HEAD)" && {
+
+        note "[$dir] updating '$branch' from '$remotespec'.."
+    } || {
+        note "[$dir] Checking out '$branch' for '$remotespec'.."
+        git checkout -q $branch ||
+            error "[$dir] git checkout '$branch' ($?)" 1
+    }
+
+    test -z "$which" -o "$which" = "0" -o "$which" = "2" && {
+
+        for remote in $remotespec
+        do
+            test "$remote" = "$hostname" && continue
+            git pull -q $remote $branch ||
+                error "[$dir] git pull '$remote $branch' ($?)" 1
+        done
+        for remote in $remotespec
+        do
+            test "$remote" = "$hostname" && continue
+            git push -q $remote $branch ||
+                error "[$dir] git push '$remote $branch' ($?)" 1
+            note "[$dir] $branch in sync with $remote/$branch"
+        done
+
+    }
+    test "$which" = "1" -o "$which" = "2" && {
+
+        note "[$dir] Backing up tracked local files.."
+        git annex sync -q $remotespec ||
+            error "[$dir] git annex sync '$remotespec' ($?)" 1
+
+        for remote in $remotespec
+        do
+            test "$remote" = "$hostname" && continue
+            trueish "$(git config --get remote.$remote.annex-ignore)" && continue
+            git annex copy -q --to $remote ||
+                error "[$dir] git annex copy --to '$remote' ($?)" 1
+            note "[$dir] backup done at $remote"
+        done
+    }
+    continue
   done
 }
 
@@ -8128,13 +8215,13 @@ htd__src_info()
   for src in $@
   do
     src_id=$(htd_prefix $src)
-    $LOG file_warn $src_id "Listing info.."
-    $LOG header "Box Source"
-    $LOG header2 "Functions" $(htd__list_functions "$@" | count_lines)
-    $LOG header3 "Lines" $(count_lines "$@")
-    $LOG file_ok $srC_id
+    $LOG file_warn $src_id "Listing info.." >&2
+    $LOG header "Box Source" >&2
+    $LOG header2 "Functions" $(htd__list_functions "$@" | count_lines) >&2
+    $LOG header3 "Lines" $(count_lines "$@") >&2
+    $LOG file_ok $srC_id >&2
   done
-  $LOG done $subcmd
+  $LOG done $subcmd >&2
 }
 
 
@@ -8569,7 +8656,7 @@ htd__crypto()
       test -x "$(which veracrypt)" || error "VeraCrypt exec missing" 1
       test -e $cr_m || error cr-m-tab 1
       veracrypt --version || return ;;
-    
+
     mount-all ) htd__crypto_mount_all || return ;;
     mount ) htd__crypto_mount "$@" || return ;;
     unmount ) htd__crypto_unmount "$@" || return ;;
@@ -8651,6 +8738,43 @@ htd__crypto_vc_init() # VolumeId Secret Size
 }
 
 
+htd_man_1__vfs='
+    mount NAME PATH CLASS
+      Mount VFS
+    umount NAME
+      Unmount VFS
+    mounted NAME
+      Check for VFS name in mount list
+    running NAME
+      Check for VFS process ID
+    check NAME
+      Run mounted and running check.
+'
+htd__vfs()
+{
+  test -n "$1" || set -- status
+  local verify=1 act=$1
+  shift ; htd_vfs_$act "$@" || return $?
+}
+
+
+htd_run__hoststat=f
+htd__hoststat()
+{
+  test -n "$1" || set -- status
+  upper=0 mkvid "$1"
+  shift ; htd_hoststat_$vid "$@" || return $?
+}
+
+
+htd__volumestat()
+{
+  test -n "$1" || set -- status
+  upper=0 mkvid "$1"
+  shift ; htd_volumestat_$vid "$@" || return $?
+}
+
+
 htd__darwin_profile()
 {
   local grep="$1"
@@ -8684,7 +8808,7 @@ htd__exif()
 # Advanced init-symlinks script with multiple modes and attributes
 htd_spc__checkout='checkout ID-or-TABLE'
 htd_env__checkout='
-  symlinks_id=script-mpe-symlinks
+  symlinks_id=${symlinks_id-script-mpe-symlinks}
   symlinks_attrs= symlinks_file=
 '
 htd__checkout()
@@ -9045,13 +9169,13 @@ htd_rst_doc_create_update()
               # FIXME: get common basepath and build rel if abs given
               includedir="$(pwd -P)" ||
                 includedir="$(dirname $outf | sed 's/[^/]*/../g')"
+            relp="$(realpath --relative-to=$(dirname "$outf") $includedir)"
             {
-              echo ; echo ; echo ".. include:: $includedir/.default.rst"
+              echo ; echo ; echo ".. include:: $relp/.default.rst"
             } >> $outf
           }
         ;;
     esac; shift; done
-    echo  >> $outf
     export cksum="$(md5sum $outf | cut -f 1 -d ' ')"
     export cksums="$cksums $cksum"
   }
@@ -9062,7 +9186,7 @@ htd_edit_and_update()
 {
   test -e "$1" || error htd-edit-and-update-file 1
 
-  vim "$@" || return $?
+  $EDITOR "$@" || return $?
 
   new_ck="$(md5sum "$1" | cut -f 1 -d ' ')"
   test "$cksum" = "$new_ck" && {
@@ -9114,6 +9238,8 @@ htd_main()
           #record_env_keys htd-subcmd htd-env
           box_lib htd || error "box-src-lib $scriptname" 1
 
+          test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
+
           htd_load "$@" || warn "htd-load ($?)"
 
           var_isset verbosity || local verbosity=5
@@ -9138,8 +9264,7 @@ htd_main()
 
 htd_init_etc()
 {
-  test ! -e etc/htd || echo etc
-  test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
+  lst_init_etc
   #XXX: test ! -e .conf || echo .conf
   #test ! -e $UCONFDIR/htd || echo $UCONFDIR
 }
@@ -9182,7 +9307,7 @@ htd_init()
   #export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta list
   lib_load box date doc table disk remote ignores package service archive \
-      prefix
+      prefix volumestat vfs hoststat scripts tmux vcflow
   case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh load-ext
   disk_run

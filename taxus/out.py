@@ -1,6 +1,8 @@
 """
 TODO: cleanup
 """
+import os
+
 from wheezy.template.engine import Engine
 from wheezy.template.ext.core import CoreExtension
 from wheezy.template.loader import FileLoader
@@ -185,8 +187,8 @@ class NodeSetFormatter(object):
         return strbuf
 
 
+tpl_dir = os.path.join( os.path.dirname(__file__), 'tpl' )
+
 def get_template(name):
-    engine = Engine( loader=FileLoader(['taxus/tpl']), extensions=[ CoreExtension() ] )
+    engine = Engine( loader=FileLoader([tpl_dir]), extensions=[ CoreExtension() ] )
     return engine.get_template(name)
-
-

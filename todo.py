@@ -24,6 +24,11 @@ Usage:
   todo.py -h|--help
   todo.py --version
 
+Commands:
+    info
+        Dump settings
+    list
+
 Options:
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]

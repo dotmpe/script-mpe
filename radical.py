@@ -683,7 +683,9 @@ def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
 
     #print 'get_tagged_comment', offset, width, 'tag', tag_line, line_offset, line_width, language_keys
 
+    # Comment spans the entire range of chars (for the comments' lines)
     comment_offset, comment_end = -1, -1
+    # Description is sentence part of the comment after the tag(-id).
     description_offset, description_end = -1, -1
     start_line, last_line = -1, -1
     for language_key in language_keys:
@@ -753,6 +755,8 @@ def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
                     comment_end += end.end()
                     break
                 comment_end += len(data) + 1
+                if len(lines) == last_line+1:
+                    break
                 last_line += 1
                 data = lines[last_line]
 
@@ -1072,9 +1076,8 @@ def get_service(t):
 
 # Optparse callbacks
 def append_comment_scan(option, value, parser):
-    print("TODO comment_scan", (option, value, parser))
-    pass
-
+    log.stderr("TODO comment_scan", (option, value, parser))
+    return -1
 
 # Static metadata
 
@@ -1219,8 +1222,8 @@ class Radical(rsr.Rsr):
 
     def rdc_list_flavours(self, args=None, opts=None):
         for flavour in self.rc.comment_scan:
-            print("%s:\n\tstart:\t%s" % ((flavour,)+)
-                    tuple(self.rc.comment_scan[flavour][:1]))
+            print("%s:\n\tstart:\t%s" % ((flavour,)+
+                    tuple(self.rc.comment_scan[flavour][:1])))
             if len(self.rc.comment_scan[flavour]) > 1:
                 print("\tend:\t%s" % self.rc.comment_scan[flavour][1])
             print
@@ -1361,12 +1364,12 @@ class Radical(rsr.Rsr):
         cmt.validate()
         out = EmbeddedIssue.formats[issue_format](cmt, data)
         assert not re.match('[\r\n]', out)
-        print(out)
+        log.stdout(out)
 
     def rdc_info(self, prog, sa):
-        print('Radical info', prog, sa)
+        log.stdout('Radical info', prog, sa)
         r = self.execute('rdc_run_embedded_issue_scan')
-        print(r)
+        log.stdout(r)
 
 
 if __name__ == '__main__':

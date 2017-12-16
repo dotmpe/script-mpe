@@ -40,7 +40,7 @@ lst_load()
   # build ignore pattern file
   ignores_lib_load $lst_base
 
-  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
+  test ! -e "$IGNORE_GLOBFILE" || {
     IGNORE_GLOBFILE=$(eval echo \"\$$(str_upper "$base")_IGNORE\")
     lst_init_ignores
   }
@@ -66,7 +66,9 @@ lst_load()
 lst_init_etc()
 {
   test ! -e etc/htd || echo etc
-  test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
+  test -n "$1" || set -- $scriptpath
+  test -n "$1" || set -- $(dirname "$0")
+  test ! -e $1/etc/htd || echo $1/etc
   #XXX: test ! -e .conf || echo .conf
   #test ! -e $UCONFDIR/htd || echo $UCONFDIR
   #info "Set htd-etc to '$*'"

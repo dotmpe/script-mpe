@@ -12,7 +12,7 @@ from libcmdng import Targets, Arguments, Keywords, Options,\
 
 NS = Namespace.register(
     prefix='lnd',
-    uriref='http://project.dotmpe.com/script/#/cmdline.Lind'
+    uriref='http://project.wtwta.org/script/#/cmdline.Lind'
 )
 
 Options.register(NS, )

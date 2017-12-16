@@ -21,4 +21,4 @@ class CardMixin(object):
         elif not self.date_updated:
             self.date_updated = datetime.now()
 
-
+    keys = 'deleted date_added date_deleted date_updated'.split(' ')

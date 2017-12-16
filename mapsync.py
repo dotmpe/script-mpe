@@ -64,7 +64,7 @@ import re
 import socket
 import subprocess
 import sys
-from lib import is_versioned, remote_proc, datetime_to_timestamp, timestamp_to_datetime
+from lib import is_scmdir, remote_proc, datetime_to_timestamp, timestamp_to_datetime
 
 import confparse
 
@@ -99,7 +99,7 @@ def reload():
 
 def get_last_mtime(path, ignore_versioned=True):
     if ignore_versioned:
-        if is_versioned(path):
+        if is_scmdir(path):
             return
     mtimes = []
     for root, dirs, files in os.walk(path):
@@ -107,7 +107,7 @@ def get_last_mtime(path, ignore_versioned=True):
             rmdirs = []
             for d in dirs:
                 p = os.path.join(root, d)
-                if is_versioned(p):
+                if is_scmdir(p):
                     if settings.verbose:
                         print('ignored', p)
                     rmdirs.append(d)

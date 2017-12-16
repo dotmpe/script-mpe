@@ -3,27 +3,14 @@ import anydbm
 import shelve
 
 from script_mpe import confparse
+from script_mpe.confparse import yaml_load, yaml_dumps
 
 from persistence import PersistedMetaObject
-from metafile import Metafile, Metadir
+from metafile import Metadir
+from vc import Repo
 
 
-"""
 
-Registry
-    handler class
-        handler name ->
-
-    Volume
-        rsr:sha1sum
-        rsr:sprssum
-
-    Mediafile
-        rsr:metafile
-        txs:volume
-        txs:workspace
-
-"""
 class Workspace(Metadir):
 
     """
@@ -35,7 +22,7 @@ class Workspace(Metadir):
     and a PersistedMetaObject stored in DOTID '.shelve'.
     """
 
-    DOTDIR = 'cllct'
+    DOTNAME = 'cllct'
     DOTID = 'ws'
 
     index_specs = [
@@ -48,6 +35,7 @@ class Workspace(Metadir):
         conf = self.metadirref('yaml')
         if os.path.exists(conf):
             self.settings = confparse.YAMLValues.load(conf)
+            assert isinstance(self.settings, dict), self.settings
         else:
             self.settings = {}
 
@@ -63,10 +51,44 @@ class Workspace(Metadir):
     def dbref(self):
         return self.metadirref( 'shelve' )
 
+    def get_yaml(self, name, defaults=None):
+        p = self.metadirref( 'yaml', name )
+        if not os.path.exists(p):
+            p = self.metadirref( 'yml', name )
+        if defaults and not os.path.exists(p):
+            confparse.yaml_dump(open(p, 'w+'), defaults)
+        return p
+
+    def load_yaml(self, name, defaults=None):
+        p = self.get_yaml(name, defaults=defaults)
+        return confparse.yaml_load(open(p))
+
+    def yamldoc(self, name, defaults=None):
+        if name.endswith('doc'):
+            a = name
+        else:
+            a = name+'doc'
+        assert not hasattr(self, a), name
+        doc = self.load_yaml(name, defaults=defaults)
+        setattr(self, a, doc)
+
+    def yamlsave(self, name, **kwds):
+        doc = getattr(self, name)
+        p = self.get_yaml(name)
+        confparse.yaml_dump(open(p,'w+'), doc, **kwds)
+
+    def relpath(self, pwd='.'):
+        #cwd = os.path.normpath(os.path.realpath(pwd))
+        # going to have todo something more sophisticated
+        #assert cwd.startswith(self.path), ( pwd, cwd, self.path )
+        cwd = os.path.abspath(os.path.normpath(pwd))
+        assert cwd.startswith(self.path), ( pwd, cwd, self.path )
+        return cwd[len(self.path)+1:]
+
     def init_store(self, truncate=False):
         assert not truncate
         return PersistedMetaObject.get_store(
-                name=Metafile.storage_name, dbref=self.dbref)
+                name=self.storage_name, dbref=self.dbref)
         #return PersistedMetaObject.get_store(name=self.dotdir, dbref=self.dbref, ro=rw)
     # TODO: move this, res.dbm.MetaDirIndex
     def init_indices(self, truncate=False):
@@ -82,14 +104,53 @@ class Workspace(Metadir):
         return confparse.Values(idcs)
 
     @classmethod
-    def find(self, *paths):
-        for idfile in Metadir.find_id(*paths):
+    def find(Klass, *paths):
+        for idfile in Klass.find_id(*paths):
             yield os.path.dirname( os.path.dirname( idfile ))
-        for metafile in Metadir.find_meta(*paths):
+        for metafile in Klass.find_meta(*paths):
             yield os.path.dirname( metafile )
 
 
-class Homedir(Workspace):
+class Workdir(Workspace):
+
+    """
+    A user basedir ... ?
+    """
+
+    DOTID = 'local'
+    projects = [] #
+
+    def find_scmdirs(self, cwd=None, s=False):
+        if cwd:
+            path = os.path.realpath(cwd)
+            assert path.startswith(self.path)
+        else:
+            path = self.path
+        for r in Repo.walk(path, s=s):
+            assert r.startswith(path)
+            if not s: print(r)
+            yield r
+
+    def find_untracked(self, cwd=None, s=False):
+        if cwd:
+            cwd = os.path.realpath(cwd)
+            assert cwd.startswith(self.path)
+        for r in Repo.walk_untracked(self.path, s=s):
+            if not cwd or r.startswith(cwd):
+                if not s: print(r)
+                yield r
+
+    def find_excluded(self, cwd=None, s=False):
+        if cwd:
+            cwd = os.path.realpath(cwd)
+            assert cwd.startswith(self.path)
+        for r in Repo.walk_excluded(self.path, s=s):
+            if not cwd or r.startswith(cwd):
+                if not s: print(r)
+                yield r
+
+
+class Homedir(Workdir):
 
     """
     The default workspace for a user. If no other workspace type applies, the
@@ -100,20 +161,20 @@ class Homedir(Workspace):
     TODO: it shoud be aware of other host having a Homedir for current user.
     """
 
-    DOTID = 'homedir'
+    DOTID = 'home'
 
     # XXX:
     htdocs = None # contains much of the rest of the personal workspace stuff
-    projects = None # specialized workspace for projects..
+    default_projectdir = None # specialized workspace for projects..
 
+    @classmethod
+    def find(klass, *paths):
+        for idfile in klass.find_id(*paths):
+            yield os.path.dirname( os.path.dirname( idfile ))
+        for metafile in klass.find_meta(*paths):
+            yield os.path.dirname( metafile )
+        yield os.path.expanduser('~')
 
-class Workdir(Workspace):
-
-    """
-    A generic basedir ... ?
-    """
-
-    DOTID = 'local'
 
 
 class Volumedir(Workspace):
@@ -126,10 +187,10 @@ class Volumedir(Workspace):
     DOTID = 'vol'
 
     index_specs = [
-                'sparsesum',
-                'sha1sum',
-                'dirs'
-            ]
+            'sparsesum',
+            'sha1sum',
+            'dirs'
+        ]
 
     def pathname(self, name, basedir=None):
         if basedir and basedir.startswith(self.path):
@@ -137,7 +198,3 @@ class Volumedir(Workspace):
         else:
             path = ""
         return os.path.join(path, name)
-
-
-
-

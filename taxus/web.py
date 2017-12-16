@@ -90,13 +90,19 @@ class Resource(SqlBase, CardMixin, ORMMixin):
 
     # extension_headers  = Column(String())
 
+    @classmethod
+    def keys(klass):
+        return CardMixin.keys + \
+            'id location last_access last_modified last_update status'.split(' ')
+
     @property
     def href(self):
         return self.location.href()
 
     @classmethod
     def keys(klass):
-        return 'last_access last_modified last_update status'.split(' ')
+        return CardMixin.keys + \
+                'last_access last_modified last_update status'.split(' ')
 
 
 class Invariant(Resource):

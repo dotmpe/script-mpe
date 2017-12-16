@@ -1,6 +1,11 @@
 #!/bin/sh
 
 
+no_act()
+{
+  test -n "$dry_run"
+}
+
 # Init Bg service
 pd_meta_bg_setup()
 {
@@ -545,7 +550,7 @@ pd_dir_args()
 {
   test -n "$1" || set -- $(cat $arguments | lines_to_words )
   printf "" >$arguments
-  for $a in "$@"
+  for a in "$@"
   do
     test -d "$a" &&
     printf -- "$a\n" >>$arguments

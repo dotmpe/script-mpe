@@ -36,57 +36,106 @@ try:
     import ruamel
     from ruamel import yaml
 
-    def process_scalar(self):
-        if self.analysis is None:
-            self.analysis = self.analyze_scalar(self.event.value)
-        if self.style is None:
-            self.style = self.choose_scalar_style()
-        split = (not self.simple_key_context)
-        # VVVVVVVVVVVVVVVVVVVV added
-        if split:  # not a key
-            is_string = True
-            if self.event.value and self.event.value[0].isdigit():
-                is_string = False
-            if ':' not in self.event.value:
-                is_string = False
-            # insert extra tests for scalars that should not be ?
-            if is_string:
-                self.style = "'"
-        # ^^^^^^^^^^^^^^^^^^^^
-        # if self.analysis.multiline and split    \
-        #         and (not self.style or self.style in '\'\"'):
-        #     self.write_indent()
-        if self.style == '"':
-            self.write_double_quoted(self.analysis.scalar, split)
-        elif self.style == '\'':
-            self.write_single_quoted(self.analysis.scalar, split)
-        elif self.style == '>':
-            self.write_folded(self.analysis.scalar)
-        elif self.style == '|':
-            self.write_literal(self.analysis.scalar)
-        else:
-            self.write_plain(self.analysis.scalar, split)
-        self.analysis = None
-        self.style = None
-        if self.event.comment:
-            self.write_post_comment(self.event)
-
-    def yaml_load(*args, **kwds):
+    def yaml_loads(*args, **kwds):
+        """
+        Load from stream or text.
+        """
         kwds.update(dict(
             Loader=ruamel.yaml.RoundTripLoader,
             preserve_quotes=True
         ))
         return ruamel.yaml.load(*args, **kwds)
 
-    def yaml_dump(*args, **kwds):
-        dd = ruamel.yaml.RoundTripDumper
-        dd.process_scalar = process_scalar
-        kwds.update(dict(
-            Dumper=dd
-        ))
+    def yaml_load(fl, *args, **kwds):
+        if not hasattr(fl, 'read'):
+            assert isinstance(fl, basestring)
+            fp = open(fl, 'r')
+        else:
+            fp = fl
+        return yaml_loads(fp.read(), *args, **kwds)
+
+
+
+    class YamlDumper(ruamel.yaml.RoundTripDumper):
+        _ignore_aliases = False
+
+        def ignore_aliases(self, _data=None):
+            return self._ignore_aliases
+
+        def process_scalar(self):
+            """
+            Custom process_scalar attribute for ruamel YAML dumper.
+            """
+            if self.analysis is None:
+                self.analysis = self.analyze_scalar(self.event.value)
+            if self.style is None:
+                self.style = self.choose_scalar_style()
+            split = (not self.simple_key_context)
+            # VVVVVVVVVVVVVVVVVVVV added
+            if split:  # not a key
+                is_string = True
+                if self.event.value and self.event.value[0].isdigit():
+                    is_string = False
+                if ':' not in self.event.value:
+                    is_string = False
+                # insert extra tests for scalars that should not be ?
+                if is_string:
+                    self.style = "'"
+            # ^^^^^^^^^^^^^^^^^^^^
+            # if self.analysis.multiline and split    \
+            #         and (not self.style or self.style in '\'\"'):
+            #     self.write_indent()
+            if self.style == '"':
+                self.write_double_quoted(self.analysis.scalar, split)
+            elif self.style == '\'':
+                self.write_single_quoted(self.analysis.scalar, split)
+            elif self.style == '>':
+                self.write_folded(self.analysis.scalar)
+            elif self.style == '|':
+                self.write_literal(self.analysis.scalar)
+            else:
+                self.write_plain(self.analysis.scalar, split)
+            self.analysis = None
+            self.style = None
+            if self.event.comment:
+                self.write_post_comment(self.event)
+        def set_ignore_aliases(self, ia):
+            self._ignore_aliases = ia
+
+    def yaml_dumps(*args, **kwds):
+        """
+        Dump to string, without kwds stream return string.
+
+        Does not set stream, but doesn't forbid it either.
+        Sets Dumper kwds item to ruamel.yaml.RoundTripDumper, using locally
+        defined process_scalar.
+
+        See ruamel.yaml.dump.
+        """
+        #dd = ruamel.yaml.RoundTripDumper
+        #dd.process_scalar = process_scalar
+        dd = YamlDumper
+        if 'ignore_aliases' in kwds:
+            dd._ignore_aliases = kwds['ignore_aliases']
+            del kwds['ignore_aliases']
+        kwds.update(dict( Dumper=dd ))
         return ruamel.yaml.dump(*args, **kwds)
 
-    yaml_safe_dump = yaml_dump
+    yaml_safe_dumps = yaml_dumps
+
+
+    def yaml_dump(fl, *args, **kwds):
+        """
+        First argument is file path or stream.
+        """
+        if not hasattr(fl, 'write'):
+            assert isinstance(fl, basestring)
+            fp = open(fl, 'w+')
+        else:
+            fp = fl
+        kwds['stream'] = fp
+        return yaml_dumps(*args, **kwds)
+
 
 
 except ImportError as e:
@@ -145,7 +194,8 @@ def expand_config_path(name, paths=path_prefixes):
 
 
 def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
-        suffixes=name_suffixes, paths=[], exists=os.path.exists):
+        suffixes=name_suffixes, paths=[], exists=os.path.exists,
+        filesonly=False, notdir=False):
 
     """
     Search paths for markerleaf with prefixes/suffixes. Yields only existing
@@ -182,7 +232,7 @@ def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
         cpath = expanded_paths.pop(0)
         for prefix in prefixes:
             for suffix in suffixes:
-                #print (cpath, prefix, suffix,)
+                #print(cpath, 'prefix='+prefix, 'suffix='+suffix, 'marker='+markerleaf)
                 cleaf = markerleaf
                 if not markerleaf.startswith(prefix):
                     cleaf = prefix + markerleaf
@@ -190,6 +240,8 @@ def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
                     cleaf += suffix
                 cleaf = os.path.expanduser(os.path.join(cpath, cleaf))
                 if not exists or exists(cleaf):
+                    if filesonly and not os.path.isfile(cleaf): continue
+                    if notdir and os.path.isdir(cleaf): continue
                     yield cleaf
 
 
@@ -227,6 +279,7 @@ class Values(dict):
     Holds configuration settings once loaded.
 
     This is used a lot as a simple attribute-access dict.
+    A bit like optsparse.Values.
     """
 
     default_source_key = 'config_file'
@@ -536,12 +589,12 @@ class YAMLValues(Values):
         path = self.source;#__dict__[self.__dict__['source_key']]
         if do_backup:
             backup(path)
-        yaml_dump(data, open(path, 'w+'))
+        yaml_dumps(data, open(path, 'w+'))
 
     @classmethod
     def load(cls, path):
         try:
-            data = yaml_load(open(path).read())
+            data = yaml_load(open(path))
         except Exception as e:
             raise Exception("Parsing %s: %s"%(path, e))
         settings = cls(data, source_file=path, source_key='config_file')
@@ -684,4 +737,9 @@ def haspath(obj, attrs):
 # XXX: testing
 if __name__ == '__main__':
     configs = list(expand_config_path('cllct.rc'))
-    assert configs == ['/Users/berend/.cllct.rc'], configs
+
+    print(yaml_loads("test: 1"))
+
+    print(yaml_load(os.path.expanduser("~/project/.projects.yaml")) )
+
+#    assert configs == ['/Users/berend/.cllct.rc'], configs

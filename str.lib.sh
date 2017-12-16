@@ -260,7 +260,7 @@ properties2sh()
 sh_properties()
 {
   test -n "$*" || error "sh-properties expects args: '$*'" 1
-  test -e "$2" || error "sh-properties file" 1
+  test -e "$1" -o "$1" = "-" || error "sh-properties file" 1
   # NOTE: Always be carefull about accidentally introducing newlines, will give
   # hard-to-debug syntax failures here or in the local evaluation
   read_nix_style_file $1 | grep '^'"$2" | sed 's/^'"$2"'/'"$3"'/g' | properties2sh -
@@ -275,7 +275,7 @@ property()
   local tmpf=$(setup_tmpf)
   sh_properties "$1" "$2" "$3" > $tmpf
   shift 3
-  test -z "$subst" || mkvid "$subst"
+  test -z "$subst" || upper=0 mkvid "$subst"
   (
     . $tmpf
     rm $tmpf
@@ -284,10 +284,6 @@ property()
       local __key= __value=
       test -n "$vid" && __key=${vid}$1 || __key=$1
       __value="$(eval printf -- \"\$$__key\")"
-#      __value="$(cat <<EOM
-#\$$__key
-#EOM
-#      )"
       shift
       test -n "$__value" || continue
       print_var "$__key" "$__value"
@@ -359,6 +355,7 @@ resolve_prefix_element()
   echo "$2" | sed "s/^\\([^$3]*\\)$3.*$/\\1/"
 }
 
+# XXX: wouldn't `pr` suffice?
 column_layout()
 {
   test -n "$colw" || local colw=22

@@ -40,28 +40,28 @@ class INode(object):
     nodeid = property( getid )
 
     @classmethod
-    def factory( Klass, path ):
+    def factory( klass, path ):
         """
         Return new INode subclass instance for an existing path.
         """
-        SubKlass = Klass.getsubclass( path )
-        return SubKlass( path )
+        Subklass = klass.getsubclass( path )
+        return Subklass( path )
 
     @classmethod
-    def getsubclass( Klass, path ):
+    def getsubclass( klass, path ):
         """
         Use StatCache to get type name for path,
         then iterate sub-classes and return one that implements that name.
         """
         nodetype = StatCache.getnodetype( path )
         assert nodetype, path
-        for SubClass in Klass.__subclasses__():
+        for SubClass in klass.__subclasses__():
             if SubClass.implements == nodetype:
                 return SubClass
         assert False, nodetype
 
     @classmethod
-    def decode_path( Klass, path, opts ):
+    def decode_path( klass, path, opts ):
         return path
         # XXX: decode from opts.fs_enc
         assert isinstance(path, basestring)
@@ -246,6 +246,7 @@ class Dir(INode):
 
     ignore_paths = (
             '*.git',
+            '*com.docker.docker'
         )
 
     @classmethod
@@ -274,7 +275,7 @@ class Dir(INode):
                 return True
 
     @classmethod
-    def prompt_recurse(clss, opts):
+    def prompt_recurse(klass, opts):
         v = Prompt.query("Recurse dir?", ("Yes", "No", "All"))
         if v is 2:
             opts.recurse = True
@@ -284,26 +285,26 @@ class Dir(INode):
         return False
 
     @classmethod
-    def prompt_ignore(clss, opts):
+    def prompt_ignore(klass, opts):
         v = Prompt.query("Ignore dir?", ["No", "Yes"])
         return v is 1
 
     @classmethod
-    def check_ignored(Klass, filepath, opts):
+    def check_ignored(klass, filepath, opts):
         #if os.path.islink(filepath) or not os.path.isfile(filepath):
         if os.path.islink(filepath) or ( not os.path.isfile(filepath) and not os.path.isdir(filepath)) :
             log.warn("Ignored non-regular path %r", filepath)
             return True
-        elif Klass.ignored(filepath) or File.ignored(filepath):
+        elif klass.ignored(filepath) or File.ignored(filepath):
             log.info("Ignored file %r", filepath)
             return True
 
     @classmethod
-    def check_recurse(Klass, dirpath, opts):
+    def check_recurse(klass, dirpath, opts):
         #if not opts.recurse and not opts.interactive:
         #    return False
         depth = dirpath.strip('/').count('/')
-        if Klass.ignored(dirpath):
+        if klass.ignored(dirpath):
             log.info("Ignored directory %r", dirpath)
             return False
         elif opts.max_depth != -1 and depth+1 >= opts.max_depth:
@@ -313,9 +314,9 @@ class Dir(INode):
             return True
         elif opts.interactive:
             log.info("Interactive walk: %s",dirpath)
-            if Klass.prompt_recurse(opts):
+            if klass.prompt_recurse(opts):
                 return True
-            elif Klass.prompt_ignore(opts):
+            elif klass.prompt_ignore(opts):
                 assert False, "TODO: write new ignores to file"
 
     walk_opts = confparse.Values(dict(
@@ -336,7 +337,7 @@ class Dir(INode):
     ))
 
     @classmethod
-    def walk(Klass, path, opts=walk_opts, filters=(None,None)):
+    def walk(klass, path, opts=walk_opts, filters=(None,None)):
         """
         Build on os.walk, this goes over all directories and other paths
         non-recursively.
@@ -347,7 +348,7 @@ class Dir(INode):
 #        if not opts.descend:
 #            return self.walkRoot( path, opts=opts, filters=filters )
         if not isinstance(opts, confparse.Values):
-            opts_ = confparse.Values(Klass.walk_opts)
+            opts_ = confparse.Values(klass.walk_opts)
             opts_.update(opts)
             opts = opts_
         else:
@@ -384,10 +385,10 @@ class Dir(INode):
                         log.err("Error: reported non existant node %s", dirpath)
                         if node in dirs: dirs.remove(node)
                         continue
-                    elif Klass.check_ignored(dirpath, opts):
+                    elif klass.check_ignored(dirpath, opts):
                         if node in dirs: dirs.remove(node)
                         continue
-                    elif not Klass.check_recurse(dirpath, opts):
+                    elif not klass.check_recurse(dirpath, opts):
                         if node in dirs:
                             dirs.remove(node)
 #                    continue # exception to rule excluded == no yield
@@ -404,7 +405,7 @@ class Dir(INode):
                     except UnicodeDecodeError, e:
                         log.err("Ignored non-ascii filename %s", dirpath)
                         continue
-                    dirpath = Klass.decode_path(dirpath, opts)
+                    dirpath = klass.decode_path(dirpath, opts)
                     yield dirpath
                 for leaf in list(files):
                     filepath = join(root, leaf)
@@ -420,11 +421,11 @@ class Dir(INode):
                         else:
                             files.remove(leaf)
                         continue
-                    elif Klass.check_ignored(filepath, opts):
+                    elif klass.check_ignored(filepath, opts):
                         log.info("Ignored file %r", filepath)
                         files.remove(leaf)
                         continue
-                    filepath = Klass.decode_path(filepath, opts)
+                    filepath = klass.decode_path(filepath, opts)
                     if not opts.files: # XXX other types
                         continue
                     #try:
@@ -435,7 +436,7 @@ class Dir(INode):
                     yield filepath
 
     @classmethod
-    def walkRoot(Klass, path, opts=walk_opts, filters=(None, None)):
+    def walkRoot(klass, path, opts=walk_opts, filters=(None, None)):
         "Walks rootward; ie. dirs only. "
         "Yields dirs rootward along a single path, unless resolve links"
         paths = [path]
@@ -457,7 +458,7 @@ class Dir(INode):
                 elements.pop()
 
     @classmethod
-    def tree( Klass, path, opts, tree=None ):
+    def tree( klass, path, opts, tree=None ):
 # XXX: what to do with complete attribute list etc?
         """
         Given a path name string, uses INode.factory to get an ITree interface to
@@ -484,21 +485,21 @@ class Dir(INode):
         return tree
 
     @classmethod
-    def find_newer(Klass, path, path_or_time):
+    def find_newer(klass, path, path_or_time):
         if StatCache.exists(path_or_time):
             path_or_time = StatCache.getmtime(path_or_time)
         def _isupdated(path):
             return StatCache.getmtime(path) > path_or_time
-        for path in clss.walk(path, filters=[_isupdated]):
+        for path in klass.walk(path, filters=[_isupdated]):
             yield path
 
     @classmethod
-    def find_newer(Klass, path, path_or_time):
+    def find_newer(klass, path, path_or_time):
         if StatCache.exists( path_or_time ):
             path_or_time = StatCache.getmtime(path_or_time)
         def _isupdated(path):
             return StatCache.getmtime(path) > path_or_time
-        for path in clss.walk(path, filters=[_isupdated]):
+        for path in klass.walk(path, filters=[_isupdated]):
             yield path
 
 class CharacterDevice(INode):
@@ -522,7 +523,7 @@ class StatCache:
     """
     path_stats = {}
     @classmethod
-    def init( clss, path ):
+    def init( klass, path ):
         """
         Get stat object and cache, return path.
         """
@@ -530,29 +531,29 @@ class StatCache:
             path = path.encode( 'utf-8' )
         # canonize path
         p = path
-        if path in clss.path_stats:
-            v = clss.path_stats[ path ]
+        if path in klass.path_stats:
+            v = klass.path_stats[ path ]
             if isinstance( v, str ): # shortcut to dirpath (w/ trailing sep)
                 p = v
-                v = clss.path_stats[ p ]
+                v = klass.path_stats[ p ]
         else:
             statv = os.lstat( path )
             if stat.S_ISDIR( statv.st_mode ):
                 # store shortcut to normalized path
                 if path[ -1 ] != os.sep:
                     p = path + os.sep
-                    clss.path_stats[ path ] = p
+                    klass.path_stats[ path ] = p
                 else:
                     p = path
-                    clss.path_stats[ path.rstrip( os.sep ) ] = path
+                    klass.path_stats[ path.rstrip( os.sep ) ] = path
             assert isinstance( p, str )
-            clss.path_stats[ p ] = statv
+            klass.path_stats[ p ] = statv
         assert isinstance( p, str )
         return p.decode( 'utf-8' )
     @classmethod
-    def exists( clss, path ):
+    def exists( klass, path ):
         try:
-            p = clss.init( path )
+            p = klass.init( path )
         except:
             return
         return True
@@ -570,17 +571,17 @@ class StatCache:
     st_ctime
     """
     @classmethod
-    def getinode( clss, path ):
-        p = clss.init( path ).encode( 'utf-8' )
-        return clss.path_stats[ p ].st_ino
+    def getinode( klass, path ):
+        p = klass.init( path ).encode( 'utf-8' )
+        return klass.path_stats[ p ].st_ino
     @classmethod
-    def getsize( clss, path ):
-        p = clss.init( path ).encode( 'utf-8' )
-        return clss.path_stats[ p ].st_size
+    def getsize( klass, path ):
+        p = klass.init( path ).encode( 'utf-8' )
+        return klass.path_stats[ p ].st_size
     @classmethod
-    def getmtime( clss, path ):
-        p = clss.init( path ).encode( 'utf-8' )
-        return clss.path_stats[ p ].st_mtime
+    def getmtime( klass, path ):
+        p = klass.init( path ).encode( 'utf-8' )
+        return klass.path_stats[ p ].st_mtime
 
     modes = {
             'isdir': 'S_ISDIR',
@@ -593,40 +594,40 @@ class StatCache:
         }
 
     @classmethod
-    def ismode( Klass, path, mode ):
-        p = Klass.init( path ).encode( 'utf-8' )
-        modefunc = getattr(stat, Klass.modes[ mode ] )
-        return modefunc( Klass.path_stats[ p ].st_mode )
+    def ismode( klass, path, mode ):
+        p = klass.init( path ).encode( 'utf-8' )
+        modefunc = getattr(stat, klass.modes[ mode ] )
+        return modefunc( klass.path_stats[ p ].st_mode )
 
     @classmethod
-    def getnodetype( Klass, path ):
-        p = Klass.init( path ).encode( 'utf-8' )
-        for x in Klass.modes:
-            modefunc = getattr(stat, Klass.modes[ x ] )
-            if modefunc( Klass.path_stats[ p ].st_mode ):
+    def getnodetype( klass, path ):
+        p = klass.init( path ).encode( 'utf-8' )
+        for x in klass.modes:
+            modefunc = getattr(stat, klass.modes[ x ] )
+            if modefunc( klass.path_stats[ p ].st_mode ):
                 # return mode name
                 return x[2:]
 
     @classmethod
-    def isdir( Klass, path ):
-        return Klass.ismode( path, 'isdir' )
+    def isdir( klass, path ):
+        return klass.ismode( path, 'isdir' )
     @classmethod
-    def ischrdev( Klass, path ):
-        return Klass.ismode( path, 'ischrdev' )
+    def ischrdev( klass, path ):
+        return klass.ismode( path, 'ischrdev' )
     @classmethod
-    def isblkdev( Klass, path ):
-        return Klass.ismode( path, 'isblkdev' )
+    def isblkdev( klass, path ):
+        return klass.ismode( path, 'isblkdev' )
     @classmethod
-    def isfile( Klass, path ):
-        return Klass.ismode( path, 'isfile' )
+    def isfile( klass, path ):
+        return klass.ismode( path, 'isfile' )
     @classmethod
-    def isfifo( Klass, path ):
-        return Klass.ismode( path, 'isfifo' )
+    def isfifo( klass, path ):
+        return klass.ismode( path, 'isfifo' )
     @classmethod
-    def issymlink( Klass, path ):
-        return Klass.ismode( path, 'issymlink' )
+    def issymlink( klass, path ):
+        return klass.ismode( path, 'issymlink' )
     @classmethod
-    def issocket( Klass, path ):
-        return Klass.ismode( path, 'issocket' )
+    def issocket( klass, path ):
+        return klass.ismode( path, 'issocket' )
 
 
