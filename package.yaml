@@ -16,6 +16,14 @@
   urls:
     license: https://opensource.org/licenses/gpl-license
 
+  repositories:
+      bb: git@bitbucket.org:dotmpe-personal/script-mpe
+      dotmpe: dotmpe:~/domains/dotmpe.com/htdocs/git/script-mpe
+      github: git@github.com:bvberkum/script-mpe
+      boreas.16-4: /srv/git-16-4-boreas-brix/bvberkum/script-mpe.git
+      _origin: dotmpe
+      _local: 16-4
+
   lists:
     default: "@Task @Dev +script-mpe +htdocs-mpe"
     main: "@be.topic" # get the .list of topics for htdocs
@@ -25,6 +33,7 @@
       src: "@be.src +htdocs-mpe" # get the .list of sei for htdocs
 
   pd-meta:
+    stats: unique-filelines unique-lines
     run:
       behat: "./vendor/.bin/behat--tags:~@skip"
       behat-defs: "./vendor/.bin/behat:-dl"
@@ -136,6 +145,10 @@
     #   test -x "$(behave)" &&
     #       behave --tags '~@todo' --tags ~skip -k test/feature ||
     #         ./vendor/.bin/behat--tags:~@skip
+    unique-filelines:
+    - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' $f ; done | wc -l
+    unique-lines:
+    - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; sort -u $f ; done | sort -u | wc -l
 
     tasks-list:
       - 'tasks.py -t todo.txt list-issues'

@@ -11,7 +11,9 @@ ignores_lib_load()
 
   export IGNORE_GLOBFILE_VAR=$varname
   export IGNORE_GLOBFILE=$(eval echo \"\$$IGNORE_GLOBFILE_VAR\")
-  test -n "$IGNORE_GLOBFILE" || warn "No IGNORE_GLOBFILE for $varname set"
+  test -z "$DEBUG" || {
+    test -n "$IGNORE_GLOBFILE" || warn "No IGNORE_GLOBFILE for $varname set"
+  }
 
   test -n "$(eval echo \"\$$varname\")" || eval $varname=$fname
   local value="$(eval echo "\$$varname")"

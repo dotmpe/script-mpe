@@ -243,7 +243,7 @@ class Prompt(object):
     """
 
     @classmethod
-    def ask(clss, question, yes_no='Yn'):
+    def ask(klass, question, yes_no='Yn'):
         assert len(yes_no) == 2, "Need two choices, a logica true and false, but options don't match: %r" % yes_no
         yes, no = list(yes_no)
         assert yes.isupper() or no.isupper()
@@ -260,7 +260,7 @@ class Prompt(object):
         return v.upper() == yes.upper()
 
     @classmethod
-    def raw_input(clss, prompt, default=None):
+    def raw_input(klass, prompt, default=None):
         v = input('%s [%s] ' % (prompt, default))
         if v:
             return v
@@ -291,14 +291,14 @@ class Prompt(object):
         return opts
 
     @classmethod
-    def query(clss, question, options=[]):
+    def query(klass, question, options=[]):
         """
             Prompt.query( "What shall it be?", [ "Nothing", "Everything", "eLse" ] )
         """
         assert options
         options = list(options)
         origopts = list(options)
-        opts = clss.create_choice(options)
+        opts = klass.create_choice(options)
         while True:
             print(log.format_str('{green}%s {blue}%s {bwhite}[{white}%s{bwhite}]{default} or [?help] ' %
                     (question, ','.join(options), opts)))

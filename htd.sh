@@ -20,6 +20,12 @@ htd__outputs="passed skipped error failed"
 htd_load()
 {
   # -- htd box load insert sentinel --
+
+  default_env CWD "$(pwd)" || debug "Using CWD '$CWD'"
+  test -z "$DEBUG" || {
+    test "$CWD" = "$(pwd -P)" || warn "current path seems to be aliased ($CWD)"
+  }
+
   default_env EDITOR vim || debug "Using EDITOR '$EDITOR'"
   test -n "$TODOTXT_EDITOR" || {
     test -x "$(which todotxt-machine)" &&
@@ -29,7 +35,7 @@ htd_load()
   test -n "$DOC_EXTS" || DOC_EXTS=".rst .md .txt"
   test -n "$TASK_EXT" || TASK_EXT="ttxtm"
   test -n "$TASK_EXTS" || TASK_EXTS=".ttxtm .list .txt"
-  default_env CWD "$(pwd)" || debug "Using CWD '$CWD'"
+
   default_env UCONFDIR "$HOME/.conf/" || debug "Using UCONFDIR '$UCONFDIR'"
   default_env TMPDIR "/tmp/" || debug "Using TMPDIR '$TMPDIR'"
   default_env HTDIR "$HOME/public_html" || debug "Using HTDIR '$HTDIR'"
@@ -66,54 +72,56 @@ htd_load()
   default_env GitVer-Attr ".version-attributes"
   default_env Ns-Name "bvberkum"
 
+  # Find project dir
+  vc_getscm
+  go_to_directory .$scm && {
+    # $localpath is the path from the project base-dir to the CWD
+    localpath="$(normalize_relative "$go_to_before")"
+    # Keep an absolute pathref for project dir too for libs not willing to
+    # bother with or specify super-project refs, local name nuances etc.
+    projdir="$(pwd -P)"
+  } || {
+    export localpath= projdir=
+  }
+
+  # Find workspace super-project, and then move back to this script's CWD
+  go_to_directory .cllct/local.id && {
+
+    # Workspace is a directory of projects, or a super project on its own.
+    workspace=$(pwd -P)
+    # Prefix is a relative path from the workspace base to the current projects
+    # checkout. 
+    prefix="$(normalize_relative "$go_to_before")"
+    test -z "$prefix" && error "prefix from go-to-before '$go_to_before'" 1
+    test "$prefix" = "." || {
+
+      # Add a little warning our records are incomplete
+      grep -qF "$prefix"':' .projects.yaml || {
+        warn "No such project prefix '$prefix'"
+      }
+      $LOG info "htd:load" "Workspace '$workspace' -> Prefix '$prefix'" >&2
+      cd "$CWD"
+    }
+  } || {
+    $LOG warn "htd:load" "No local workspace" >&2
+    cd "$CWD"
+  }
+
+  # NOTE: other per-dir or project vars are loaded on a subcommand basis, e.g.
+  # run flag 'p'.
+
+  # TODO: clean up git-versioning app-id
   test -n "$APP_ID" -o ! -e .app-id || read APP_ID < .app-id
   test -n "$APP_ID" -o ! -e $GITVER_ATTR ||
       APP_ID="$(get_property $GITVER_ATTR "App-Id")"
   test -n "$APP_ID" -o ! -e .git ||
-      APP_ID="$(basename "$(git config remote.origin.url)" .git)"
+      APP_ID="$(basename "$(git config remote.$vc_rt_def.url)" .git)"
 
-  projectdirs="$(echo ~/project ~/work/*/tree)"
+  # TODO: go over above default-env and see about project-specific stuff e.g.
+  # builddir and init parameters properly
 
-  # Find project dir
-  vc_getscm
-  go_to_directory .$scm && {
-    localpath="$(normalize_relative "$go_to_before")"
-  }
-
-  go_to_directory .cllct/local.id && {
-    workspace=$(pwd -P)
-    prefix="$(normalize_relative "$go_to_before")"
-    $LOG info "htd:load" "Workspace '$workspace' -> Prefix '$prefix'"
-    cd "$CWD"
-  } || {
-    $LOG warn "htd:load" "No local workspace"
-    cd "$CWD"
-  }
-
-  # XXX:
-  #test -e
-  #grep -qF $PROJECT':'  ../.projects.yaml || {
-  #  warn "No such project prefix $PROJECT"
-  #}
-
-  _14MB=14680064
-  _6MB=7397376
-  _5k=5120
-
-  #test -n "$MIN_SIZE" || MIN_SIZE=1
-  test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
-
-  TODAY=+%y%m%d0000
-  _1HR_AGO=+%y%m%d0000
-  _15MIN_AGO=+%y%m%d0000
-  _5MIN_AGO=+%y%m%d0000
-
-  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
-  test -n "$uname" || uname="$(uname -s)"
-  test -n "$architecture" || architecture="$(uname -p)"
-  test -n "$machine_hw" || machine_hw="$(uname -m)"
-
-  test "$CWD" = "$(pwd -P)" || warn "current path seems to be aliased ($CWD)"
+  # Default locations for user-workspaces
+  projectdirs="$(echo ~/project ~/work/*/)"
 
   test -e table.sha1 && R_C_SHA3="$(cat table.sha1|wc -l)"
 
@@ -263,14 +271,23 @@ htd_load()
         test -z "$prereq_func" || $prereq_func $subcmd
       ;;
 
-    p )
+    p ) # set package file and id, update.
+        # Set to detected PACKMETA file, set main package-id, and verify var
+        # caches are up to date. Don't load vars.
+        # TODO: create var cache per package-id.
+
         pwd="$(pwd -P)"
         test -e "$PACKMETA" || error "No local package '$PACKMETA'" 1
 
-        package_lib_set_local "$pwd" &&
-            package_file $pwd && update_package $pwd
-
+           # package_file $pwd &&
+        package_lib_set_local "$pwd" && update_package $pwd
         test -n "$package_id" && note "Found package '$package_id'"
+      ;;
+
+    r ) # register package - requires 'p' first. Sets PROJECT Id and manages
+        # cache updates for subcommand data.
+
+        # TODO: query/update stats?
       ;;
 
     S )
@@ -676,21 +693,26 @@ htd__home()
   echo $HTDIR
 }
 
-htd__info()
+htd__env_info()
 {
-  echo "env"
-  echo "  CWDIR"
-  echo "    If set, use instead of the current directory for working dir. "
-  echo ""
-  log "Script:                '$(pwd)/$scriptname'"
+  log "Script:                '$scriptname'"
   log "User Config Dir:       '$UCONFDIR' [UCONFDIR]"
   log "User Public HTML Dir:  '$HTDIR' [HTDIR]"
-  log "Current workingdir:    '$CWDIR' [CWDIR]"
   log "Project ID:            '$PROJECT' [PROJECT]"
   log "Minimum filesize:      '$(( $MIN_SIZE / 1024 ))'"
   log "Editor:                '$EDITOR' [EDITOR]"
   log "Default GIT remote:    '$HTD_GIT_REMOTE' [HTD_GIT_REMOTE]"
   log "Ignored paths:         '$IGNORE_GLOBFILE' [IGNORE_GLOBFILE]"
+}
+
+htd__info()
+{
+  test -n "$1" || set -- $(pwd -P)
+  test -z "$2" || error "unexpected args '$2'" 1
+  test -e "$1/$PACKMETA" && {
+    htd_package_update "$1"
+  }
+  vc_info "$1" ""
 }
 
 
@@ -923,55 +945,53 @@ htd__status()
 {
   test -n "$failed" || error "status: failed exists" 1
 
+  local scm= scmdir=
   vc_getscm && {
-
-    r=
-    test -d .git/annex && {
-      htd__git_annex_status || r=$?
-    } || {
-      htd__${scm}_status || r=$?
+    vc_status || {
+      error "VC getscm/status returned $?"
     }
-    return $r
+  } || { # not an checkout
+
+    # Monitor paths
+    # Using either lsof or update/access time filters with find we can list
+    # files and other paths that a user has/has had in use.
+    # There are plenty of use-cases based on this.
+
+    # See htd open-paths for local paths, using lsof.
+    # CWD's end up being recorded in prefixes. With these we can get a better
+    # selection of files.
+
+    # Which of those are projects
+    note "Open-paths SCM status: "
+    htd__current_cwd | while read p
+    do verbosity=3
+      { test -e "$p" && pd exists "$p"
+      } || continue
+      $LOG "header3" "$p" "$( cd "$p" && vc flags )" "" >&2
+    done
+
+    # Projects can still have a large amount of files
+    # opened, or updated recently.
+
+    # Create list of CWD, and show differences on subsequent calls
+    #htd__open_paths_diff
+
+    # FIXME: maybe something in status backend on open resource etc.
+    #htd__recent_paths
+    #htd__active
+
+    stderr note "text-paths for main-docs: "
+    # Check main documents, list topic elements
+    {
+      test ! -d "$JRNL_DIR" || EXT=$DOC_EXT htd__archive_path $JRNL_DIR
+      htd__main_doc_paths "$1"
+    } | while read tag path
+    do
+      test -e "$path" || continue
+      htd tpath-raw "$path" || warn "tpath-raw '$path'..."
+    done
+
   }
-
-  # Monitor paths
-  # Using either lsof or update/access time filters with find we can list
-  # files and other paths that a user has/has had in use.
-  # There are plenty of use-cases based on this.
-
-  # See htd open-paths for local paths, using lsof.
-  # CWD's end up being recorded in prefixes. With these we can get a better
-  # selection of files.
-
-  # Which of those are projects
-  note "Open-paths SCM status: "
-  htd__current_cwd | while read p
-  do
-    pd exists "$p" || continue
-    $LOG "header3" "$p" "" "$( cd $p && vc.sh flags )"
-  done
-
-  # Projects can still have a large amount of files
-  # opened, or updated recently.
-
-  # Create list of CWD, and show differences on subsequent calls
-  #htd__open_paths_diff
-
-  # FIXME: maybe something in status backend on open resource etc.
-  #htd__recent_paths
-  #htd__active
-
-  stderr note "text-paths for main-docs: "
-  # Check main documents, list topic elements
-  {
-    test ! -d "$JRNL_DIR" ||
-      EXT=$DOC_EXT htd__archive_path $JRNL_DIR
-    htd__main_doc_paths "$1"
-  } | while read tag path
-  do
-    test -e $path || continue
-    htd tpath-raw $path
-  done
 
   # TODO:
   #  global, local services
@@ -984,9 +1004,9 @@ htd__status()
   #( cd ~/project; pd st ) || echo "project" >> $failed
   #( cd /src; pd st ) || echo "src" >> $failed
 
-  htd git-remote stat
+  #htd git-remote stat
 
-  test -s "$failed" -o -s "$errored" && stderr ok "htd stat OK" || noop
+  test -s "$failed" -o -s "$errored" && stderr ok "htd stat OK" || true
 }
 htd_als__st=status
 htd_als__stat=status
@@ -1012,7 +1032,8 @@ htd__status_cwd()
 }
 
 
-htd__update_stats()
+htd_als__update_stats=update-status
+htd__update_status()
 {
   # Go to project root
   cd "$workspace/$prefix"
@@ -1022,7 +1043,7 @@ htd__update_stats()
   } && {
 
     htd_ws_stats_update scm "
-$(vc_stats . "        ")"
+$(vc_stats . "        ")" || return 1
 
     test -d "$workspace/$prefix/.$scm/annex" && {
 
@@ -1030,44 +1051,34 @@ $(vc_stats . "        ")"
               annex: $( disk_usage .$scm/annex)
               scm: $( disk_usage .$scm )
               (total): $( disk_usage )
-              (date): $( date_microtime )"
+              (date): $( date_microtime )" || return 1
 
       } || {
 
         htd_ws_stats_update disk-usage "
               scm: $( disk_usage .$scm )
               (total): $( disk_usage )
-              (date): $( date_microtime )"
+              (date): $( date_microtime )" || return 1
       }
 
   } || {
 
     htd_ws_stats_update disk-usage "
           (total): $( disk_usage )
-          (date): $( date_microtime )"
+          (date): $( date_microtime )" || return 1
   }
 
   # Use project metadata for getting more stats
   package_file "$workspace/$prefix" || return 0
 
-  #TODO: per project static code analysis 
-  #vc tracked-files
-  #vc tracked-files | while read f ; do grep -Ev '^\s\+$' $f ; done | wc -l
-  #vc tracked-files | while read f ; do sort -u $f ; done | sort -u | wc -l
-}
+  # TODO: Per project static code analysis 
+  #package_lib_set_local "."
+  #. $PACKMETA_SH
 
-htd__git_status()
-{
-  # Forced color output commands
-  git -c color.status=always status
-  du -hs . .git/objects
-}
-
-htd__git_annex_status()
-{
-  git status
-  git annex unused
-  du -hs . .git/objects .git/annex
+  #for name in $package_pd_meta_stats
+  #do
+  #  echo $name: $( verbosity=0 htd run $name 2>/dev/null )
+  #done
 }
 
 htd__volume_status()
@@ -3633,54 +3644,21 @@ htd__features()
   )
 }
 
-htd__gitflow_doc()
-{
-  test -n "$1" || set -- gitflow
-  test -e "$1" || {
-    for ext in $DOC_EXTS
-    do
-      test -e $1$ext || continue
-      set -- $1$ext; break
-    done
-  }
-  test -e $1 || error no-gitflow-doc 2
-  echo $1
-}
 
-htd_run__gitflow_check_doc=f
-htd__gitflow_check_doc()
+htd_man_1__vcflow='
+TODO: see also vc gitflow
+'
+htd_run__vcflow=f
+htd__vcflow()
 {
-  test -n "$failed" || error failed 1
-  test -z "$2" || error surplus-args 2
-  set -- "$(htd__gitflow_doc "$1")"
-  exec 6>$failed
-  vc.sh list-all-branches | while read branch
-  do
-    match_grep_pattern_test "$branch" || return 12
-    grep -qE "\<$p_\>" $1 || failed "$1: expected '$branch'"
-  done
-  exec 6<&-
-  test -s "$failed" && {
-    stderr failed "missing some branch references in '$1'"
-  } || {
-    rm "$failed"
-    stderr ok "checked for and found references for all branches in '$1'"
-  }
+  vcflow_lib_set_local
+  test -n "$1" || set -- status
+  upper=0 mkvid "$1" ; shift
+  htd_vcflow_$vid "$@" || return $?
 }
-htd_als__gitflow_check=gitflow-check-doc
-
-
-htd__gitflow_status()
-{
-  note "TODO: see gitflow-check-doc"
-  defs gitflow.txt | \
-    tree_to_table  | \
-    while read base branch
-    do
-      git cherry $base $branch | wc -l
-    done
-}
-htd_als__gitflow=gitflow-status
+htd_als__gitflow_check_doc=vcflow\ check-doc
+htd_als__gitflow_check=vcflow\ check
+htd_als__gitflow=vcflow\ status
 
 
 htd_man_1__source='Generic sub-commands dealing with source-code. For Shell
@@ -4165,7 +4143,7 @@ htd__update()
 {
   test -n "$1" ||
       set -- "$(cd $scriptpath && git rev-parse --abbrev-ref HEAD)" $@
-  test -n "$2" || set -- "$1" "origin"
+  test -n "$2" || set -- "$1" "$vc_rt_def"
   test "$2" = "all" &&
     set -- "$1" "$(cd $scriptpath && git remote | tr '\n' ' ')"
   # Perform checkout, pull and optional push
@@ -4425,10 +4403,16 @@ XXX: see also
 '
 htd__tags()
 {
-  test -n "$1" || set -- init
+  test -n "$1" || set -- bookmarks
   case "$1" in
 
-    bookmarks )
+    bookmarks ) shift
+        width=$(tput cols)
+        cols=$(( $width / 16 ))
+        bookmarks.py tags "$@" | pr -t -$cols -w $width
+      ;;
+
+    nodes )
   test -n "$DBFILE" || DBFILE=~/.bookmarks.sqlite
 echo
   sqlite3 $DBFILE <<SQL
@@ -4831,7 +4815,7 @@ htd__rules()
         #  esac
         #done
         test -z "$DEBUG" ||
-          $LOG ok pre-proc "CMD=$CMD RT=$RT TARGETS=$TARGETS CWD=$CWD CTX=$CTX"
+          $LOG ok pre-proc "CMD=$CMD RT=$RT TARGETS=$TARGETS CWD=$CWD CTX=$CTX" >&2
       ;;
 
     update | post-proc ) shift
@@ -5754,13 +5738,15 @@ Start tmux, tmuxinator or htd-tmux with given names.
 TODO: first deal with getting a server and session. Maybe later per window
 management.
 
-  tmux-sockets
+  tmux list-sockets | sockets
     List (active) sockets of tmux servers. Each server is a separate env with
     sessions and windows.
 
-  tmux-session-list-windows [ - | MATCH ] [ FMT ]
+  tmux list [ - | MATCH ] [ FMT ]
     List window names for current socket/session. Note these may be empty, but
     alternate formats can be provided, ie. "#{window_index}".
+
+  tmux list-windows  [ - | MATCH ] [ FMT ]
 
   tmux get [SESSION-NAME [WINDOW-NAME [CMD]]]
     Look for session/window with current selected server and attach. The
@@ -5774,23 +5760,14 @@ htd__tmux()
   test -n "$1" || set -- get
 
   case "$1" in
-    list | sockets ) shift ; htd__tmux_sockets "$@" || return ;;
-    list-sessions ) shift ; htd__tmux_list_sessions "$@" || return ;;
-    list-windows ) shift ; htd__tmux_session_list_windows "$@" || return ;;
+    list-sockets | sockets ) shift ; htd_tmux_sockets "$@" || return ;;
+    list ) shift ; htd_tmux_list_sessions "$@" || return ;;
+    list-windows ) shift ; htd_tmux_session_list_windows "$@" || return ;;
     * ) upper=0 mkvid "$1"; shift ; htd_tmux_$vid "$@" || return ;;
   esac
 
   #while test -n "$1"
   #do
-  #  func="htd__tmux_$(echo $1 | tr 'A-Z' 'a-z')"
-  #  fname="$(echo "$1" | tr 'A-Z' 'a-z')"
-
-  #  $tmux has-session -t $1 >/dev/null 2>&1 && {
-  #    info "Session $1 exists"
-  #    shift
-  #    continue
-  #  }
-
   #  func_exists "$func" && {
 
   #    # Look for init subcmd to setup windows
@@ -6181,7 +6158,7 @@ $2
 EOM
     } || {
       test -e "$1" || error "no file for saxon: '$1'" 1
-      saxon $1 $2
+      saxon $1 $2 || return $?
     }
   # remove XML prolog:
   } | cut -c39-
@@ -8238,13 +8215,13 @@ htd__src_info()
   for src in $@
   do
     src_id=$(htd_prefix $src)
-    $LOG file_warn $src_id "Listing info.."
-    $LOG header "Box Source"
-    $LOG header2 "Functions" $(htd__list_functions "$@" | count_lines)
-    $LOG header3 "Lines" $(count_lines "$@")
-    $LOG file_ok $srC_id
+    $LOG file_warn $src_id "Listing info.." >&2
+    $LOG header "Box Source" >&2
+    $LOG header2 "Functions" $(htd__list_functions "$@" | count_lines) >&2
+    $LOG header3 "Lines" $(count_lines "$@") >&2
+    $LOG file_ok $srC_id >&2
   done
-  $LOG done $subcmd
+  $LOG done $subcmd >&2
 }
 
 
@@ -9261,6 +9238,8 @@ htd_main()
           #record_env_keys htd-subcmd htd-env
           box_lib htd || error "box-src-lib $scriptname" 1
 
+          test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
+
           htd_load "$@" || warn "htd-load ($?)"
 
           var_isset verbosity || local verbosity=5
@@ -9285,8 +9264,7 @@ htd_main()
 
 htd_init_etc()
 {
-  test ! -e etc/htd || echo etc
-  test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
+  lst_init_etc
   #XXX: test ! -e .conf || echo .conf
   #test ! -e $UCONFDIR/htd || echo $UCONFDIR
 }
@@ -9329,7 +9307,7 @@ htd_init()
   #export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta list
   lib_load box date doc table disk remote ignores package service archive \
-      prefix volumestat vfs hoststat scripts tmux
+      prefix volumestat vfs hoststat scripts tmux vcflow
   case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh load-ext
   disk_run

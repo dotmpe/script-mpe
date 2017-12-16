@@ -207,12 +207,12 @@ log_bw()
 
 log_16()
 {
-  printf "$1\n"
+  printf -- "$1\n"
 }
 
 log_256()
 {
-  printf "$1\n"
+  printf -- "$1\n"
 }
 
 # TODO: deprecate: use stderr or error

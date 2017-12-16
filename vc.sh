@@ -168,6 +168,18 @@ homepath()
     str_replace_start "$1" "$HOME" "~"
 }
 
+
+vc_git_initialized()
+{
+  test -n "$1" || set -- .git
+  # There should be a head
+  # other checks on .git/refs seem to fail after garbage collect
+  git rev-parse HEAD >/dev/null ||
+  test "$(echo $1/refs/heads/*)" != "$1/refs/heads/*" ||
+  test "$(echo $1/refs/remotes/*/HEAD)" != "$1/refs/remotes/*/HEAD"
+}
+
+
 # Vars legenda:
 #
 # vc_flags_git : cbwisur
@@ -225,7 +237,7 @@ __vc_status()
 
   if [ -n "$git" ]; then
 
-    test "$(echo $git/refs/heads/*)" != "$git/refs/heads/*" || {
+    vc_git_initialized "$git" || {
       echo "$realcwd (git:unborn)"
       return
     }
@@ -289,7 +301,7 @@ __vc_screen ()
   local git=$(vc_gitdir "$1")
   if [ "$git" ]; then
 
-    test "$(echo $git/refs/heads/*)" != "$git/refs/heads/*" || {
+    vc_git_initialized "$git" || {
       echo "$realcwd (git:unborn)"
       return
     }
@@ -503,10 +515,10 @@ vc__stat()
   test -n "$2" || set -- "$1" "%s%s%s%s%s%s%s%s"
   local scm= scmdir=
   vc_getscm "$1"
-  __vc_${scm}_flags "$@" || return $?
+  vc_flags_${scm} "$@" || return $?
 }
 # TODO: alias
-vc_als__status=stat
+#vc_als__status=stat
 vc__status()
 {
   vc__stat "$@"
@@ -1015,20 +1027,14 @@ vc__list_local_branches()
   test -z "$1" || cd "$pwd"
 }
 
-# instead of git -a sort into unqiue branche names
 vc__list_all_branches()
 {
   local pwd=$(pwd)
   test -z "$1" || cd "$1"
-  # use git output, replace asterix and spaces
-  # NOTE: hardcoded annex branch ignore
-  # And HEAD. Not sure if git-branch has an option to
-  git branch --list -a | \
-    grep -v 'HEAD' | \
-    grep -v 'git-annex\|synced\/.*' | \
-    sed -E 's/\*|[[:space:]]//g' | \
-    sed -E 's/^remotes\/[^\/]*\///g' | \
-    sort -u
+  vc_getscm "$1" || return $?
+  # Read branches and strip remote/ prefix (GIT only)
+  vc_branches all | sed 's/^'"$vc_rt_def"'\///g' | sort -u
+  #vc_branches all | while read f ; do basename "$f"; done | sort -u
   test -z "$1" || cd "$pwd"
 }
 
@@ -1055,11 +1061,12 @@ vc__branch_refs()
   return $r
 }
 
-# List branches
+# List branches, both local and remote by default
 vc__branches()
 {
-  #git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
-  git for-each-ref --format='%(refname:short)' refs/heads
+  test -n "$1" || set -- all
+  vc_getscm "$(pwd)" || return $?
+  vc_branches "$@"
 }
 
 # Check wether the literal ref exists, ie:
@@ -1211,12 +1218,6 @@ vc__git_branch_exists()
   return 1
 }
 
-# List branches
-vc__git_branches()
-{
-  #git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
-  git for-each-ref --format='%(refname:short)' refs/heads
-}
 
 # Run over UP/DOWN-stream branchname pairs and show info:
 # - wether branches have diverged
@@ -1266,7 +1267,7 @@ vc__gitflow()
           test $new_at_up -eq 0 ||
             echo "$new_at_up commits '$upstream' -> '$downstream' "
         done
-        for branch in $(vc__git_branches)
+        for branch in $(vc__branches)
         do
           grep -qF "$branch" "$2" ||
             error "Missing gitflow for '$branch'"
@@ -1605,6 +1606,16 @@ vc__stats()
 vc__git_annex_list() # remote..
 {
   vc_git_annex_list $(for remote in "$@"; do printf -- "-i $remote "; done)
+}
+
+
+vc__info()
+{
+  test -n "$1" || set -- "." "$2"
+  test -n "$2" || set -- "$1" "  "
+  local scm= scmdir=
+  vc_getscm "$1" || return $?
+  vc_info "$@"
 }
 
 # ----

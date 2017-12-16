@@ -3,10 +3,21 @@
 set -e
 
 
+#vc_boilerplate_git() { false; }
+#vc_boilerplate_hg() { false; }
+#vc_boilerplate_svn() { false; }
+#vc_boilerplate_bzr() { false; }
+#
+#vc_boilerplate()
+#{
+#  vc_boilerplate_${scm}
+#}
+
 # See if path is in GIT checkout
 vc_isgit()
 {
-  test -e "$1" || error "vc-isgit expected path argument" 1
+  test -e "$1" || error "vc-isgit expected path argument: '$1'" 1
+  test -z "$2" || error "vc-isgit surplus arguments: '$2'" 1
   test -d "$1" || {
     set -- "$(dirname "$1")"
   }
@@ -19,8 +30,8 @@ vc_isgit()
 vc_gitdir()
 {
   test -n "$1" || set -- "."
-  test -d "$1" || error "vc-gitdir expected dir argument" 1
-  test -z "$2" || error "vc-gitdir surplus arguments" 1
+  test -d "$1" || error "vc-gitdir expected dir argument: '$1'" 1
+  test -z "$2" || error "vc-gitdir surplus arguments: '$2'" 1
 
   test -d "$1" || {
     set -- "$(dirname "$1")"
@@ -30,28 +41,34 @@ vc_gitdir()
     echo "$1/.git"
   } || {
     test "$1" = "." || cd $1
-    git rev-parse --git-dir 2>/dev/null
+    repo=$(git rev-parse --git-dir 2>/dev/null)
+    while fnmatch "*/.git/modules*" "$repo"
+    do repo="$(dirname "$repo")" ; done
+    echo $repo
   }
 }
 
 vc_hgdir()
 {
-  test -d "$1" || error "vc-hgdir expected dir argument" 1
+  test -d "$1" || error "vc-hgdir expected dir argument: '$1'" 1
   ( cd "$1" && go_to_directory .hg && echo $(pwd)/.hg || return 1 )
 }
 
 vc_issvn()
 {
+  test -d "$1" || error "vc-issvn expected dir argument: '$1'" 1
   test -e $1/.svn
 }
 
 vc_svndir()
 {
+  test -d "$1" || error "vc-svndir expected dir argument: '$1'" 1
   ( test -e "$1/.svn" && echo $(pwd)/.svn || return 1 )
 }
 
 vc_bzrdir()
 {
+  test -d "$1" || error "vc-bzrdir expected dir argument: '$1'" 1
   local cwd="$(pwd)"
   (
     cd "$1"
@@ -68,6 +85,8 @@ vc_bzrdir()
 vc_dir()
 {
   test -n "$1" || set -- "."
+  test -d "$1" || error "vc-dir expected dir argument: '$1'" 1
+  test -z "$2" || error "vc-dir surplus arguments: '$2'" 1
   vc_gitdir "$1" || {
     vc_bzrdir "$1" || {
       vc_svndir "$1" || {
@@ -80,6 +99,7 @@ vc_dir()
 vc_isscmdir()
 {
   test -n "$1" || set -- "."
+  test -d "$1" || error "vc-isscmdir expected dir argument: '$1'" 1
   vc_isgit "$1" || {
     vc_isbzr "$1" || {
       vc_issvn "$1" || {
@@ -99,6 +119,26 @@ vc_getscm()
   scmdir=$(vc_dir "$@")
   test -n "$scmdir" || return 1
   scm=$(basename "$scmdir" | cut -c2-)
+}
+
+vc_remotes_git()
+{
+  git remote
+}
+
+vc_remotes_bzr()
+{
+  false
+}
+
+vc_remotes_svn()
+{
+  false
+}
+
+vc_remotes_hg()
+{
+  false
 }
 
 vc_gitremote()
@@ -280,6 +320,23 @@ vc_clean()
   )
 }
 
+vc_branches_git()
+{
+	test -n "$1" || set -- refs/heads
+	test "$1" != "all" || set -- refs/heads refs/remotes/$vc_rt_def
+	git for-each-ref --format='%(refname:short)' $@
+}
+vc_branches_hg() { false; }
+vc_branches_svn() { false; }
+vc_branches_bzr() { false; }
+
+# Print branche refs for local or all branches. Only checks primary 'remote'
+# repo, should inspect every remote to find possible non-distributed branches.
+vc_branches()
+{
+  vc_branches_${scm} "$@"
+}
+
 vc_git_submodules()
 {
   git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
@@ -313,6 +370,45 @@ vc_git_update_remote()
   }
 }
 
+vc_diskuse_git()
+{
+  test -d .git/annex && {
+    du -hs . .git/objects .git/annex
+  } || {
+    du -hs . .git/objects .git
+  }
+}
+
+vc_diskuse()
+{
+  test -n "$scm" || vc_getscm
+  vc_diskuse_${scm}
+}
+
+vc_status_git()
+{
+  # Forced color output commands
+  #git -c color.status=always status
+  test -d .git/annex && {
+    git annex unused
+  }
+  vc_git_submodules | while read prefix
+  do
+    # Enabled?
+    test -d "$prefix" || continue
+    echo "$prefix: $(cd "$prefix" && vc status)"
+  done
+  echo "$(vc_flags_${scm})"
+}
+vc_status_hg() { false; }
+vc_status_svn() { false; }
+vc_status_bzr() { false; }
+
+vc_status()
+{
+  vc_diskuse
+  vc_status_${scm}
+}
 
 # __vc_git_flags accepts 0 or 1 arguments (i.e., format string)
 # returns text to add to bash PS1 prompt (includes branch name)
@@ -322,7 +418,7 @@ vc_flags_git()
   g="$(vc_gitdir "$1")"
   test -e "$g" || return
 
-  test "$(echo $g/refs/heads/*)" != "$g/refs/heads/*" || {
+  vc_git_initialized "$g" || {
     echo "(git:unborn)"
     return
   }
@@ -444,7 +540,6 @@ vc_stats()
   test -n "$1" || set -- "." "$2"
   test -n "$2" || set -- "$1" "  "
   { cat <<EOM
-$2status-flags: $(vc_flags_${scm} . "%s%s%s%s%s%s%s%s"  )
 $2tracked: $( vc_tracked | count_lines )
 $2unversioned: $( vc_unversioned | count_lines )
 $2untracked:
@@ -454,11 +549,56 @@ $2  uncleanable: $( vc ufu | count_lines )
 $2  (total): $( vc_untracked | count_lines )
 EOM
   }
+#$2status-flags: $(vc_flags_${scm} . "%s%s%s%s%s%s%s%s"  )
   test -d "$1/.$scm/annex" && {
     printf "$2annex:\n"
     printf "$2  files: $( vc_git_annex_list | count_lines )\n"
     printf "$2  here: $( vc_git_annex_list -i here | count_lines )\n"
     printf "$2  unused: $( git annex unused | count_lines )\n"
   }
+  printf "$2(date): $( date_microtime )\n"
+}
+
+vc_info()
+{
+  test -n "$1" || set -- "." "  "
+  test -n "$PACKMETA_SH" -a -s "$PACKMETA_SH" && {
+
+    note "Sourcing '$PACKMETA_SH'..."
+    . $PACKMETA_SH
+    cat <<EOM
+$2id: $package_id
+$2version: $package_version
+$2vendor: $package_vendor
+$2pd-meta:
+$2  tasks:
+$2    document: $package_pd_meta_tasks_document
+$2    done: $package_pd_meta_tasks_done
+EOM
+
+    test -e "$PACKMETA_JS_MAIN" || error "Expected package main JSON" 1
+    note "Checking '$PACKMETA_JS_MAIN'..."
+    jsotk.py -sq path --is-new $PACKMETA_JS_MAIN 'urls' || {
+      printf "$2urls:\n"
+      htd_package_urls | grep -v '^\s*$' | sed 's/^\([^=]*\)=/'"$2"'  \1: /'
+    }
+  }
+
+  cat <<EOM
+$2status-flags: $(vc_flags_${scm} "$1" "%s%s%s%s%s%s%s%s"  )
+$2default: $package_default_checkout
+$2remotes:
+EOM
+
+  { cd "$1" && vc_remotes_${scm} ; } | while read name
+  do
+    printf -- "$2- name: $name\n"
+    printf "$2  description: $package_description\n"
+    printf "$2  sync: \n"
+    printf "$2  url: $(vc_${scm}remote "$1" $name)\n"
+  done
+
+  # TODO: created, updated, first-commit dates
+
   printf "$2(date): $( date_microtime )\n"
 }

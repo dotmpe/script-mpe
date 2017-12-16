@@ -155,14 +155,12 @@ class Locator(SqlBase, CardMixin, ORMMixin):
 
     @classmethod
     def keys(klass):
-        return 'status last_seen'.split(' ')
+        "Return SQL columns"
+        return CardMixin.keys + 'domain ref_md5 ref_sha1'.split(' ')
 
-    def to_dict(self):
-        d = dict(href=self.ref)
-        k = self.__class__.keys() + 'deleted date_added date_deleted date_updated'.split(' ')
-        for p in k:
-            d[p] = getattr(self, p)
-        return d
+    def to_dict(self, d={}):
+        d.update(dict(href=self.ref))
+        return ORMMixin.to_dict(self, d=d)
 
 
 class URL(Locator):
@@ -171,18 +169,10 @@ class URL(Locator):
     __mapper_args__ = {'polymorphic_identity': 'id:locator:url'}
 
     url_id = Column('id', Integer, ForeignKey('ids_lctr.id'), primary_key=True)
-
     ref = Column(Text)
 
     def href(self):
         return self.ref
-
-    @classmethod
-    def from_dict(klass, **kwds):
-        "Forget instance"
-        self.ref = kwds.href
-        del kwds.href
-
 
 
 token_locator_table = Table('token_locator', SqlBase.metadata,

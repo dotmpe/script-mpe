@@ -64,9 +64,9 @@ class ITree(IHier):
     """
     """
     # added attributes data
-    attributes = Attribute("Object reference to the attributes as IDict")
-    get_attr = Attribute("Wrap IDict.__getitem__. ")
-    set_attr = Attribute("Wrap IDict.__setitem__, and IDict.__delitem__ for None values. ")
+    attributes = Attribute("Object reference to the attributes as IDPyict")
+    get_attr = Attribute("Wrap IDPyict.__getitem__. ")
+    set_attr = Attribute("Wrap IDPyict.__setitem__, and IDPyict.__delitem__ for None values. ")
 
 class ILeaf(Node):
     pass
@@ -111,6 +111,3 @@ class ILocalNodeService(Interface):
 def test():
     from zope.interface.verify import verifyObject
     verifyObject(ITarget, Target())
-
-
-

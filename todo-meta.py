@@ -50,7 +50,6 @@ def cmd_import(opts):
     ::
         <basedir>;<project>#TODO:<id>;<file>:<linenr>: # Comment .. TODO:<id>: blah blah ... comment
 
-
     """
     if opts.args.file == '-':
         import sys

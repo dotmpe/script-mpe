@@ -70,9 +70,10 @@ htd_tmux_init()
 }
 
 
-htd_tmux_sockets()
+# Filter tmux sockets from lsof output, print field requested
+htd_tmux_sockets() # Field
 {
-  test -n "$1" || set NAME
+  test -n "$1" || set -- NAME
   {
     # list unix domain sockets
     lsof -U | grep '^tmux'
@@ -94,7 +95,8 @@ htd_tmux_sockets()
 }
 
 
-htd_tmux_list_sessions()
+# Iterate tmux sockets and query for session list for each
+htd_tmux_list_sessions() # Socket
 {
   test -n "$1" || set -- $(htd_tmux_sockets)
   while test $# -gt 0
@@ -103,16 +105,16 @@ htd_tmux_list_sessions()
       note "Listing for '$1'"
       tmux -S "$1" list-sessions
     } || {
-      error "Given socket does not exists: '$1'"
+      warn "No such socket: '$1', skipped."
     }
     shift
   done
 }
 
 
-htd_tmux_session_list_windows()
+htd_tmux_session_list_windows() # Session [] [Output-Spec]
 {
-  test -n "$1" || set -- "$HTD_TMUX_DEFAULT_SESSION"
+  test -n "$1" || set -- "$HTD_TMUX_DEFAULT_SESSION" "$2" "$3"
   test -n "$3" || set -- "$1" "$2" "#{window_name}"
   test -z "$4" || error "Surplus arguments '$4'" 1
   tmux_env_req 0

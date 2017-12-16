@@ -3,6 +3,8 @@
 
 date_lib_load()
 {
+  TODAY=+%y%m%d0000
+
   # Age in seconds
   _1MIN=60
   _5MIN=300

@@ -5,7 +5,7 @@ import shlex
 
 from fnmatch import fnmatch
 from res import js
-from confparse import yaml_safe_dumps
+from confparse import yaml_dumps
 from pydoc import locate
 
 import ruamel.yaml
@@ -517,7 +517,7 @@ def yaml_writer(data, file, ctx):
     else:
         if ctx.opts.flags.ignore_aliases:
             kwds['ignore_aliases'] = True
-        yaml_safe_dumps(data, file, **kwds)
+        yaml_dumps(data, file, **kwds)
 
 def py_writer(data, file, ctx):
     if not data and ctx.opts.flags.empty_null:

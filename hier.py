@@ -19,28 +19,27 @@ Usage:
   hier.py [options] clear
 
 Options:
-    -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: %s]
-    --couch=REF
-                  Couch DB URL [default: %s]
-    -i FILE --input=FILE
-    -o FILE --output=FILE
-    --add-prefix=PREFIX
-                  Use this context with the provided tags.
-    -I --interactive
-    --force
-    --override-prefix
-                  ..
-
-Other flags:
-    -h --help     Show this usage description.
-                  For a command and argument description use the command 'help'.
-    --version     Show version (%s).
+  -d REF --dbref=REF
+                SQLAlchemy DB URL [default: %s]
+  --no-db       Don't initialize SQL DB connection.
+  --couch=REF
+                Couch DB URL [default: %s]
+  -i FILE --input=FILE
+  -o FILE --output=FILE
+  --add-prefix=PREFIX
+                Use this context with the provided tags.
+  -I --interactive
+  --strict
+  --force
+  --override-prefix
+                ..
+  -h --help     Show this usage description.
+                For a command and argument description use the command 'help'.
+  --version     Show version (%s).
 
 """ % ( __db__, __couch__, __version__ )
 
 import os
-import resource
 from pprint import pformat
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, \
@@ -48,83 +47,27 @@ from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, \
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
-import lib
 import log
 import libcmd_docopt
+from res.ws import Homedir
+from taxus import Taxus
 from taxus.util import ORMMixin, ScriptMixin, get_session
 
-
-SqlBase = declarative_base()
-metadata = SqlBase.metadata
-
-
-# Util
-def clean_tag(s):
-    yield s.strip(' \n\r')
 
 
 ### Object classes
 
-class Tag(ORMMixin, SqlBase):
+from taxus import SqlBase
+metadata = SqlBase.metadata
 
-    """
-    """
+from taxus import v0
+from taxus.v0 import Node, GroupNode, Folder, ID, Space, Name, Tag, Topic
+models = [ Node, GroupNode, Folder, ID, Space, Name, Tag, Topic ]
 
-    __tablename__ = 'tags'
+ctx = Taxus(version='hier')
 
-    tag_id = Column('id', Integer, primary_key=True)
-    name = Column(String(255), unique=True, nullable=False)
-    label = Column(String(255), unique=True, nullable=True)
-    description = Column(Text, nullable=True)
-
-    def __str__(self):
-        if self.label:
-            return "%s %r" % ( self.name, self.label )
-        else:
-            return self.name
-
-    @classmethod
-    def record(cls, raw, sa, opts):
-        def record_inner(name):
-            try:
-                tag = sa.query(Tag).filter(Tag.name == name).one()
-                return tag
-            except:
-                tag_matches = sa.query(Tag).filter(or_(
-                    Tag.name.like('%'+stem+'%') for stem in
-                        clean_tag(name) )).all()
-                if tag_matches and not opts.flags.override_prefix:
-                    opts.flags.interactive
-                    print('Existing match for %s:' % name)
-                    for t in tag_matches:
-                        print(t)
-                    raise ValueError
-                elif not tag_matches or opts.flags.override_prefix:
-                    tag = Tag(name=name)
-                    sa.add(tag)
-                    return tag
-                else: pass
-        if '/' in raw:
-            els = raw.split('/')
-            while els:
-                tag = None
-                print(record_inner(els[0]))
-                els.pop(0)
-        else:
-            print(record_inner(raw))
-        sa.commit()
-
-
-tag_context_table = Table('tag_context', metadata,
-        Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True),
-        Column('ctx_id', Integer, ForeignKey('tags.id'), primary_key=True),
-        Column('role', String(32), nullable=True)
-)
-
-Tag.contexts = relationship('Tag', secondary=tag_context_table,
-            primaryjoin=( Tag.tag_id == tag_context_table.columns.tag_id ),
-            secondaryjoin=( Tag.tag_id == tag_context_table.columns.ctx_id ),
-            backref='contains')
+cmd_default_settings = dict(verbose=1, partial_match=True,
+        session_name='default', print_memory=False)
 
 
 ### Commands
@@ -134,50 +77,40 @@ def cmd_info(settings):
     """
         Verify DB connection is working. Print some settings and storage stats.
     """
+    global ctx
 
     for l, v in (
             ( 'Settings Raw', pformat(settings.todict()) ),
             ( 'DBRef', settings.dbref ),
-
+            ( "Number of tables", len(metadata.tables.keys()) ),
             ( "Tables in schema", ", ".join(metadata.tables.keys()) ),
-            ( "Table lengths", "" ),
     ):
         log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
 
-    sa = get_session(settings.dbref, metadata=metadata)
-
+    empty = []
     for t in metadata.tables:
         try:
-            log.std("  {blue}%s{default}: {bwhite}%s{default}",
-                    t, sa.query(metadata.tables[t].count()).all()[0][0])
+            cnt = ctx.sa_session.query(metadata.tables[t].count()).all()[0][0]
+            if cnt:
+                log.std("  {blue}%s{default}: {bwhite}%s{default}", t, cnt)
+            else:
+                empty.append(t)
         except Exception as e:
             log.err("Count failed for %s: %s", t, e)
 
-    # peak memory usage (bytes on OS X, kilobytes on Linux)
-    res_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    if os.uname()[0] == 'Linux':
-        res_usage /= 1024; # kilobytes?
-    # XXX: http://stackoverflow.com/questions/938733/total-memory-used-by-python-process
-    #res_usage /= resource.getpagesize()
+    if empty:
+        log.warn("Found %i empty tables: %s", len(empty), ', '.join(empty))
 
-    # FIXME: does not use dbref according to settings, may fail/report wrong file
-    db_size = os.path.getsize(os.path.expanduser(__db__))
-
-    for l, v in (
-            ( 'Storage Size', lib.human_readable_bytesize( db_size ) ),
-            ( 'Resource Usage', lib.human_readable_bytesize(res_usage) ),
-        ):
-            log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
-
-    log.std('\n{green}info {bwhite}OK{default}')
+    log.std('{green}info {bwhite}OK{default}')
+    settings.print_memory = True
 
 
 def cmd_list(settings):
     """
         List to root tags.
     """
-    sa = get_session(settings.dbref, metadata=metadata)
-    roots = sa.query(Tag).filter(Tag.contexts == None).all()
+    global ctx
+    roots = ctx.sa_session.query(Tag).filter(Tag.contexts == None).all()
     for root in roots:
         print(root.name)
 
@@ -186,8 +119,8 @@ def cmd_find(settings, LIKE):
     """
         Look for tag.
     """
-    sa = get_session(settings.dbref, metadata=metadata)
-    alikes = sa.query(Tag).filter(Tag.name.like(LIKE)).all()
+    global ctx
+    alikes = ctx.sa_session.query(Tag).filter(Tag.name.like(LIKE)).all()
     for tag in alikes:
         print(tag.name)
 
@@ -204,7 +137,6 @@ def cmd_clear(settings):
         Drop all tables and re-create.
     """
     sa = get_session(settings.dbref, metadata=metadata)
-
     for name, table in metadata.tables.items():
 
         print(table.delete())
@@ -215,14 +147,14 @@ def cmd_clear(settings):
     sa = get_session(settings.dbref, initialize=True, metadata=metadata)
 
 
-def cmd_record(settings, opts, TAGS):
+def cmd_record(TAGS, g):
     """
         Record tags/paths. Report on inconsistencies.
     """
-    sa = get_session(settings.dbref, initialize=True, metadata=metadata)
+    global ctx
     assert TAGS # TODO: read from stdin
     for raw_tag in TAGS:
-        Tag.record(raw_tag, sa, opts)
+        Tag.record(raw_tag, ctx.sa_session, g)
 
 
 """
@@ -241,31 +173,53 @@ def cmd_couchdb_prefix(settings, opts, NAME, BASE):
 
 commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
 commands['help'] = libcmd_docopt.cmd_help
+commands['memdebug'] = libcmd_docopt.cmd_memdebug
 
 
 ### Util functions to run above functions from cmdline
+
+def defaults(opts, init={}):
+    global cmd_default_settings, ctx
+    libcmd_docopt.defaults(opts)
+    opts.flags.update(cmd_default_settings)
+    ctx.settings.update(opts.flags)
+    opts.flags.update(ctx.settings)
+    opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
+    return init
 
 def main(opts):
 
     """
     Execute command.
     """
+    global ctx, commands
 
-    settings = opts.flags
-    values = opts.args
+    ws = Homedir.require()
+    ws.yamldoc('bmsync', defaults=dict(
+            last_sync=None
+        ))
+    ctx.ws = ws
+    ctx.settings = settings = opts.flags
+    # FIXME: want multiple SqlBase's
+    #metadata = SqlBase.metadata = ctx.reset_metadata()
+    ctx.init()#SqlBase.metadata)
 
-    return libcmd_docopt.run_commands(commands, settings, opts)
+    ret = libcmd_docopt.run_commands(commands, settings, opts)
+    if settings.print_memory:
+        libcmd_docopt.cmd_memdebug(settings)
+    return ret
 
 def get_version():
     return 'hier.mpe/%s' % __version__
 
+
 if __name__ == '__main__':
     import sys
 
-    couch = os.getenv( 'COUCH_DB', __couch__ )
-    if couch is not __couch__:
-        __usage__ = __usage__.replace(__couch__, couch)
+    usage = libcmd_docopt.static_vars_from_env(__usage__,
+        ( 'HIER_DB', __db__ ),
+        ( 'COUCH_DB', __couch__ ) )
 
-    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
-    opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + usage,
+            version=get_version(), defaults=defaults)
     sys.exit(main(opts))

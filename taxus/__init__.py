@@ -4,19 +4,27 @@ Taxus ORM (SQLAlchemy)
 """
 from __future__ import print_function
 import os
+import socket
 
+import couchdb
 from sqlalchemy import MetaData
 from sqlalchemy.orm.exc import NoResultFound
 
-from script_mpe import confparse, log, mod
+from script_mpe import confparse, log, mod, datelib
 from . import iface
 from iface import registry as reg, gsm
 from . import init
 from . import util
+from . import out
 
 from .init import SqlBase
 from .util import SessionMixin, ScriptMixin, ORMMixin, get_session
 
+
+# TODO: cleanup metadata code, should inherit from and managae multiple
+# SqlBase instances for proper schema segmentation, and handle overlap
+
+#SqlBase = declarative_base()
 
 staticmetadata = SqlBase.metadata
 
@@ -45,12 +53,52 @@ class Taxus(object):
         self.models_per_session = {}
         super(Taxus, self).__init__()
 
+        self.uname = os.uname()[0]
+        self.hostname = socket.gethostname()
+
         # Use settings object iso. many keyword arguments. Set defaults here.
         g = self.settings = confparse.Values(conf)
 
         self.session = g.initial_session
 
         if version: self.load(version)
+
+        self.couches = dict()
+
+    def init(self, metadata=None):
+        g = self.settings
+
+        if g.couch:
+            self.couchdocs(g.couch)
+
+        if not g.no_db:
+            assert g.dbref
+            self.session = 'default'
+            self.setmetadata(metadata)
+            self.init_db(g.dbref)
+
+
+    # CouchDB
+
+    def couchdocs(self, ref):
+        self.couch = ref.rsplit('/', 1)
+        self.docs = self.load_couch(ref)
+
+    def load_couch(self, ref):
+        sref, dbname = ref.rsplit('/', 1)
+        if sref not in self.couches:
+            self.couches[sref] = dict(
+                    server=couchdb.client.Server(sref), db=dict()
+                )
+        self.couches[sref]['db'][dbname] = self.couches[sref]['server'][dbname]
+        return self.couches[sref]['db'][dbname]
+
+    @property
+    def couchconn(self):
+        return self.couches[self.couch[0]]['server']
+
+
+    # SQL Alchemy
 
     @property
     def models(self):
@@ -93,7 +141,7 @@ class Taxus(object):
         module = mod.load_module('%s' % version)
         self.setmodels(module.models)
 
-    def init(self, dbref, name=DEFAULT_SESSION):
+    def init_db(self, dbref, name=DEFAULT_SESSION):
         "Get connection"
         g = self.settings
         if name not in ScriptMixin.sessions:
@@ -153,7 +201,69 @@ class Taxus(object):
         self.reset_metadata()
         self.metadata.reflect()
 
-    # XXX: cleanup old commands
+    def get_records(self, klass, _filters=(), **kwds):
+        g = self.settings
+        if kwds:
+            rs = klass.search(_sa=self.sa_session, _session=g.session_name, **kwds)
+        else:
+            rs = klass.all()
+        if not rs:
+            self.note("Nothing")
+        return rs
+
+    def opts_to_filters(self, klass):
+        filters = ()
+        g = self.settings
+        if g.deleted: filters += ( klass.deleted != True, )
+        if g.added: field='date_added'
+        else: field='date_updated'
+        if g.older_than:
+            until = datelib.shift('-'+g.older_than)
+            filters += klass.before_date( until, field )
+        else:
+            since = datelib.shift('-'+g.max_age)
+            filters += klass.after_date( since, field )
+        return filters
+
+    # Log
+    def note(self, msg, *args, **kwds):
+        g = self.settings
+        if g.quiet:
+            return
+        if 'lvl' in kwds:
+            if g.verbose < kwds['lvl']:
+                return
+        if 'num' in kwds:
+            if not kwds['num'] or ( kwds['num'] % g.interval ) != 0:
+                return
+        log.stderr(msg, *args)
+
+    def out(self, rs, tp='node'):
+        g = self.settings
+        of = g.output_format
+        if of == 'json':
+            def out_( d ):
+                for k in d:
+                    if isinstance(d[k], datetime):
+                        d[k] = d[k].isoformat()
+                return res.js.dumps(d)
+        else:
+            if g.struct_output:
+                tpl = out.get_template("%sdoc.%s" % (tp, of))
+            else:
+                tpl = out.get_template("%s.%s" % (tp, of))
+            out_ = tpl.render
+
+        for bm in rs:
+            if g.struct_output:
+                d = bm.to_struct()
+            else:
+                d = bm.to_dict()
+            print(out_( d ))
+
+
+    # XXX: cleanup old code
+
     def init_host(self, options=None):
         """
         Tie Host to current system. Initialize Host if needed.

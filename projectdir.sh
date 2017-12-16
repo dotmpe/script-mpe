@@ -1310,11 +1310,8 @@ pd_man_1__exists='Path exists as dir with mechanism to handle local names.
 pd__exists()
 {
   test -z "$2" || error "One dir at a time" 1
-  vc_getscm "$1" && {
-      echo scm=$scm
-      echo scmdir=$scmdir
-      return
-  }
+  vc_getscm "$1" || return $?
+  note "Found '$1'"
   # XXX: cleanup
   #echo choice_known=$choice_known
   #echo choice_unknown=$choice_unknown
@@ -1391,6 +1388,15 @@ pd__doctor()
   done
 }
 
+
+pd_run__info=p
+pd__info()
+{
+  local
+  echo '-----------------'
+  env
+  echo '-----------------'
+}
 
 
 # ----
@@ -1560,6 +1566,7 @@ pd_load()
       ;;
 
     P )
+        package_lib_set_local "$pd_root/$pd_prefix"
         pd__meta_sq get-repo "$pd_prefix" && {
           update_package "$pd_prefix" || { r=$?
             test  $r -eq 1 || error "update_package" $r

@@ -10,22 +10,7 @@ from metafile import Metadir
 from vc import Repo
 
 
-"""
 
-Registry
-    handler class
-        handler name ->
-
-    Volume
-        rsr:sha1sum
-        rsr:sprssum
-
-    Mediafile
-        rsr:metafile
-        txs:volume
-        txs:workspace
-
-"""
 class Workspace(Metadir):
 
     """
@@ -66,16 +51,38 @@ class Workspace(Metadir):
     def dbref(self):
         return self.metadirref( 'shelve' )
 
-    @property
-    def statsdoc(self):
-        name = self.metadirref( 'yml', 'stats' )
-        if not os.path.exists(name):
-            confparse.yaml_dump(open(name, 'w+'), dict(stats={}))
-        return name
+    def get_yaml(self, name, defaults=None):
+        p = self.metadirref( 'yaml', name )
+        if not os.path.exists(p):
+            p = self.metadirref( 'yml', name )
+        if defaults and not os.path.exists(p):
+            confparse.yaml_dump(open(p, 'w+'), defaults)
+        return p
+
+    def load_yaml(self, name, defaults=None):
+        p = self.get_yaml(name, defaults=defaults)
+        return confparse.yaml_load(open(p))
+
+    def yamldoc(self, name, defaults=None):
+        if name.endswith('doc'):
+            a = name
+        else:
+            a = name+'doc'
+        assert not hasattr(self, a), name
+        doc = self.load_yaml(name, defaults=defaults)
+        setattr(self, a, doc)
+
+    def yamlsave(self, name, **kwds):
+        doc = getattr(self, name)
+        p = self.get_yaml(name)
+        confparse.yaml_dump(open(p,'w+'), doc, **kwds)
 
     def relpath(self, pwd='.'):
-        cwd = os.path.normpath(os.path.realpath(pwd))
-        assert cwd.startswith(self.path)
+        #cwd = os.path.normpath(os.path.realpath(pwd))
+        # going to have todo something more sophisticated
+        #assert cwd.startswith(self.path), ( pwd, cwd, self.path )
+        cwd = os.path.abspath(os.path.normpath(pwd))
+        assert cwd.startswith(self.path), ( pwd, cwd, self.path )
         return cwd[len(self.path)+1:]
 
     def init_store(self, truncate=False):
@@ -97,10 +104,10 @@ class Workspace(Metadir):
         return confparse.Values(idcs)
 
     @classmethod
-    def find(self, *paths):
-        for idfile in self.find_id(*paths):
+    def find(Klass, *paths):
+        for idfile in Klass.find_id(*paths):
             yield os.path.dirname( os.path.dirname( idfile ))
-        for metafile in self.find_meta(*paths):
+        for metafile in Klass.find_meta(*paths):
             yield os.path.dirname( metafile )
 
 
@@ -113,29 +120,34 @@ class Workdir(Workspace):
     DOTID = 'local'
     projects = [] #
 
-    def find_scmdirs(self, cwd=None):
+    def find_scmdirs(self, cwd=None, s=False):
         if cwd:
-            cwd = os.path.realpath(cwd)
-            assert cwd.startswith(self.path)
-        for r in Repo.walk(self.path):
-            if not cwd or r.startswith(cwd):
-                print(r)
+            path = os.path.realpath(cwd)
+            assert path.startswith(self.path)
+        else:
+            path = self.path
+        for r in Repo.walk(path, s=s):
+            assert r.startswith(path)
+            if not s: print(r)
+            yield r
 
-    def find_untracked(self, cwd=None):
+    def find_untracked(self, cwd=None, s=False):
         if cwd:
             cwd = os.path.realpath(cwd)
             assert cwd.startswith(self.path)
-        for r in Repo.walk_untracked(self.path):
+        for r in Repo.walk_untracked(self.path, s=s):
             if not cwd or r.startswith(cwd):
-                print(r)
+                if not s: print(r)
+                yield r
 
-    def find_excluded(self, cwd=None):
+    def find_excluded(self, cwd=None, s=False):
         if cwd:
             cwd = os.path.realpath(cwd)
             assert cwd.startswith(self.path)
-        for r in Repo.walk_excluded(self.path):
+        for r in Repo.walk_excluded(self.path, s=s):
             if not cwd or r.startswith(cwd):
-                print(r)
+                if not s: print(r)
+                yield r
 
 
 class Homedir(Workdir):
@@ -154,6 +166,15 @@ class Homedir(Workdir):
     # XXX:
     htdocs = None # contains much of the rest of the personal workspace stuff
     default_projectdir = None # specialized workspace for projects..
+
+    @classmethod
+    def find(klass, *paths):
+        for idfile in klass.find_id(*paths):
+            yield os.path.dirname( os.path.dirname( idfile ))
+        for metafile in klass.find_meta(*paths):
+            yield os.path.dirname( metafile )
+        yield os.path.expanduser('~')
+
 
 
 class Volumedir(Workspace):

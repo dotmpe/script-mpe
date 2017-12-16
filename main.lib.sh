@@ -147,10 +147,13 @@ get_subcmd_func()
     try_local_func "$@" || {
 
       # Try command alias
-      try_local_var cmd_als $1 als $b && {
-        test -n "$cmd_als" || error oops 1
-        subcmd=$(echo "$cmd_als" | cut -d ' ' -f 1)
-        subcmd_args_pre=$(echo "$cmd_als" | cut -d ' ' -f 2)
+      try_local_var subcmd_als $1 als $b && {
+        #$LOG warn "main.lib" "Aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
+        note "main.lib: Aliased '$subcmd' sub-command to '$subcmd_alias'"
+        test -n "$subcmd_als" || error oops 1
+        subcmd=$(echo "$subcmd_als" | cut -d ' ' -f 1)
+        subcmd_args_pre=$(echo "$subcmd_als" | cut -d ' ' -f 2-)
+        #warn "main.lib: new command prefix: '$subcmd $subcmd_args_pre ...'"
         set -- "$(upper=0 mkvid "$subcmd" && echo $vid)" "" "$b"
       }
     }
@@ -510,6 +513,7 @@ get_cmd_func_name()
 
   local cmd_alias="$(eval echo \$${func_pref}als$(echo "_${cmd_name}" | tr '-' '_'))"
   test -z "$cmd_alias" || {
+    $LOG warn "main.lib" "Aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
     cmd_name=$cmd_alias
     export ${1}_alias=$cmd_alias
   }

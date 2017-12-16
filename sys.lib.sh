@@ -9,6 +9,18 @@ set -e
 
 sys_lib_load()
 {
+  _14MB=14680064
+  _6MB=7397376
+  _5k=5120
+
+  #test -n "$MIN_SIZE" || MIN_SIZE=1
+  test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
+
+  test -n "$uname" || export uname="$(uname -s)"
+  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  test -n "$architecture" || architecture="$(uname -p)"
+  test -n "$machine_hw" || machine_hw="$(uname -m)"
+
   test -n "$SCR_SYS_SH" ||  {
     test -n "$SHELL" &&
     SCR_SYS_SH="$(basename "$SHELL")" ||

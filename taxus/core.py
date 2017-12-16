@@ -5,7 +5,7 @@ from datetime import datetime
 
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
-    ForeignKey, Table, Index, DateTime, select, func
+    ForeignKey, Table, Index, DateTime, select, func, or_
 #from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship, backref, remote, foreign
 from sqlalchemy.orm.collections import attribute_mapped_collection
@@ -55,9 +55,9 @@ class Node(SqlBase, CardMixin, ORMMixin):
         )
 
     @classmethod
-    def default_filters(Klass):
+    def default_filters(klass):
         return (
-            ( Klass.deleted == False ),
+            ( klass.deleted == False ),
         )
 
     def __repr__(self):
@@ -191,16 +191,81 @@ class Tag(Name):
 
     tag_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
 
-    namespace_id = Column(Integer, ForeignKey('ns.id'))
-    tag = relationship('Namespace', backref='tags')
+    label = Column(String(255), unique=True, nullable=True)
+    description = Column(Text, nullable=True)
+
+    def __str__(self):
+        if self.label:
+            return "%s %r" % ( self.name, self.label )
+        else:
+            return self.name
+
+    @classmethod
+    def clean_tag(klass, raw):
+        yield raw.strip(' \n\r')
+
+    @classmethod
+    def record(klass, raw, sa, g):
+        def record_inner(name):
+            try:
+                tag = sa.query(Tag).filter(Tag.name == name).one()
+                print('exists')
+            except: pass
+            finally:
+                if not g.strict:
+                    return tag
+                raise Exception("Exact tag match exists '%s'" % tag)
+
+            tag_matches = sa.query(Tag).filter(or_(
+                Tag.name.like('%'+stem+'%') for stem in
+                    klass.clean_tag(name) )).all()
+
+            if tag_matches and not g.override_prefix:
+                g.interactive
+                print('Existing match for %s:' % name)
+                for t in tag_matches:
+                    print(t)
+                raise ValueError
+            elif not tag_matches or g.override_prefix:
+                tag = Tag(name=name)
+                tag.add_self_to_session(name=g.session_name)
+                return tag
+            else: pass
+        if '/' in raw:
+            els = raw.split('/')
+            while els:
+                tag = None
+                print(record_inner(els[0]))
+                els.pop(0)
+        else:
+            print(record_inner(raw))
+        sa.commit()
+
+    # TODO: later migrate tag to topic or other specific scheme, with ns/spec..
+    #namespace_id = Column(Integer, ForeignKey('ns.id'))
+    #tag = relationship('Localname', backref='tags')
 
 
+tag_context_table = Table('tag_context', SqlBase.metadata,
+        Column('tag_id', Integer, ForeignKey('names_tag.id'), primary_key=True),
+        Column('ctx_id', Integer, ForeignKey('names_tag.id'), primary_key=True),
+        Column('role', String(32), nullable=True)
+)
+
+Tag.contexts = relationship('Tag', secondary=tag_context_table,
+            primaryjoin=( Tag.tag_id == tag_context_table.columns.tag_id ),
+            secondaryjoin=( Tag.tag_id == tag_context_table.columns.ctx_id ),
+            backref='contains')
+
+
+# Record accumulated usage statistics for tag
 tags_freq = Table('names_tags_stat', SqlBase.metadata,
         Column('tag_id', ForeignKey('names_tag.id'), primary_key=True),
         Column('node_type', String(36), primary_key=True),
         Column('frequency', Integer)
 )
 
+# TODO: migrate tags to topic
 topic_tag = Table('topic_tag', SqlBase.metadata,
         Column('id', Integer, primary_key=True),
         Column('topic_id', ForeignKey('names_topic.id'), primary_key=True),
@@ -267,7 +332,7 @@ class Topic(SqlBase, CardMixin, ORMMixin):
             ])
 
     @classmethod
-    def proc_context(clss, item):
+    def proc_context(klass, item):
         print 'TODO: Topic.proc_context', item
 
 

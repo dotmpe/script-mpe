@@ -5,7 +5,7 @@
 
 os_lib_load()
 {
-  test -n "$uname" || export uname="$(uname)"
+  test -n "$uname" || export uname="$(uname -s)"
 }
 
 absdir()
@@ -534,4 +534,14 @@ disk_usage()
   test -n "$1" || set -- "." "$2"
   test -n "$2" || set -- "$1" "h"
   du -$2s $1 | awk '{print $1}'
+}
+
+isemptydir()
+{
+  test -d "$1" -a "$(echo $1/*)" = "$1/*"
+}
+
+isnonemptydir()
+{
+  test -d "$1" -a "$(echo $1/*)" != "$1/*"
 }

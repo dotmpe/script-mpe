@@ -244,6 +244,7 @@ def H_merge(ctx, write=True):
             raise ValueError(data)
 
     if write:
+        sys.stderr.write("Writing to %s\n" % ctx.opts.args.destfile)
         outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
         return stdout_data( data, ctx, outf=outfile )
     else:

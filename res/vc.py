@@ -81,10 +81,12 @@ class Repo(Dir):
 
     @classmethod
     def walk(Klass, path, bare=False, max_depth=-1, recursive=False,
-            max_repo_depth=-1):
+            max_repo_depth=-1, s=False):
         # XXX: maybe rewrite to Dir.walk
         """
         Walk all paths, yield basedirs which have version-control metadir.
+        The Repo.repo_type attribute maps the directory names to VCS
+        description, for all the types that this method `walk` can detect.
 
         `max-depth` is -1 default, to disregard path depth and to recurse into
         as many directories as are found.
@@ -102,12 +104,12 @@ class Repo(Dir):
             for node in list(nodes):
                 dirpath = os.path.join(root, node)
                 if not os.path.exists(dirpath):
-                    log.err("Error: reported non existant node %s", dirpath)
+                    if not s: log.err("Error: reported non existant node %s", dirpath)
                     nodes.remove(node)
                     continue
                 depth = dirpath.replace(path,'').strip('/').count('/')
                 if Dir.ignored(dirpath):
-                    log.err("Ignored directory %r", dirpath)
+                    if not s: log.err("Ignored directory %r", dirpath)
                     nodes.remove(node)
                     continue
                 elif max_depth != -1:
@@ -140,7 +142,8 @@ class Repo(Dir):
                 l.strip() ]
 
     @classmethod
-    def walk_untracked(Klass, path, include_excluded=True, ignore_symlinks=True, ignore_basesymlinks=False):
+    def walk_untracked(Klass, path, include_excluded=True, ignore_symlinks=True,
+            ignore_basesymlinks=False, s=False):
         """
         With `untracked` on, instead yield all files not tracked by any VCS.
         If `excluded` is on, return existing files ignored by VCS as well.
@@ -184,7 +187,7 @@ class Repo(Dir):
                         repos.append((root, realpath))
                         continue
                     elif not os.path.exists(realpath):
-                        log.stderr("Warning: broken symlink %s", leafpath)
+                        if not s: log.stderr("Warning: broken symlink %s", leafpath)
                 yield leafpath
 
         repos = sorted(set(repos))
@@ -193,7 +196,7 @@ class Repo(Dir):
             try:
                 repo = Repo(repodir)
             except Exception as e:
-                log.stderr("Error in %s" % repodir + str(e))
+                if not s: log.stderr("Error in %s" % repodir + str(e))
                 continue
             if include_excluded:
                 for p in repo.excluded():

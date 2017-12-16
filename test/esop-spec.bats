@@ -5,9 +5,9 @@ base=esop.sh
 
 init
 
-source $lib/util.sh
-source $lib/std.lib.sh
-source $lib/str.lib.sh
+#source $lib/util.sh
+#source $lib/std.lib.sh
+#source $lib/str.lib.sh
 
 #  echo "${lines[*]}" > /tmp/1
 #  echo "${status}" >> /tmp/1
@@ -95,4 +95,3 @@ source $lib/str.lib.sh
 #  #echo "${#lines[@]}" >> /tmp/1
 #  test ${status} -eq 0
 #}
-

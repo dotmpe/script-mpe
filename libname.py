@@ -24,26 +24,26 @@ class Namespace(object):
     "Static map for preferred prefix name. "
 
     @classmethod
-    def register(clss, prefix, uriref):#, preferred=True, override_preferred=False):
+    def register(klass, prefix, uriref):#, preferred=True, override_preferred=False):
         # fetch or init Ns
-        if uriref in clss.instances:
-            ns = clss.instances[uriref]
+        if uriref in klass.instances:
+            ns = klass.instances[uriref]
             if prefix not in ns.prefixes:
                 ns.prefixes.append(prefix)
         else:
-            ns = clss(prefix, uriref, prefixes=[prefix])
-            clss.instances[uriref] = ns
+            ns = klass(prefix, uriref, prefixes=[prefix])
+            klass.instances[uriref] = ns
         # validate or assert prefix
-        if prefix in clss.prefixes:
-            assert clss.prefixes[prefix] == uriref
+        if prefix in klass.prefixes:
+            assert klass.prefixes[prefix] == uriref
         else:
-            clss.prefixes[prefix] = uriref
+            klass.prefixes[prefix] = uriref
 
         return ns
 
     @classmethod
-    def fetch(clss, prefix):
-        return clss.instances[clss.prefixes[prefix]]
+    def fetch(klass, prefix):
+        return klass.instances[klass.prefixes[prefix]]
 
 
 class Name(object):
@@ -88,7 +88,7 @@ class Name(object):
     "Static map of name, target instances. "
 
     @classmethod
-    def fetch(clss, name, ns=None):
+    def fetch(klass, name, ns=None):
         if isinstance(name, Name):
             return name
         assert isinstance(name, str), name
@@ -100,20 +100,16 @@ class Name(object):
         else:
             assert ns
         n = Name(name, ns)
-        if n.qname not in clss.instances:
-            clss.instances[name] = n
+        if n.qname not in klass.instances:
+            klass.instances[name] = n
         else:
-            n1 = clss.instances[name]
+            n1 = klass.instances[name]
             assert n == n1
         return n
 
     @classmethod
-    def register(clss, **props):
+    def register(klass, **props):
         assert 'prefix' in props
         ns = confparse.Values(props)
-        clss.namespaces[ns.prefix] = ns
+        klass.namespaces[ns.prefix] = ns
         return ns
-
-
-
-

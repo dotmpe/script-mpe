@@ -24,6 +24,7 @@ Usage:
 TODO: <ref> would be an ID, name or path of a project
 
 Options:
+    -f FILE, --file FILE
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
     -p --props=NAME=VALUE
@@ -157,12 +158,12 @@ def cmd_new():
 def cmd_update():
     print('TODO: project-update')
 
-def cmd_list(settings):
-    sa = Project.get_session('default', settings.dbref)
+def cmd_list(g):
+    sa = Project.get_session('default', g.dbref)
     for p in sa.query(Project).all():
         print(p)
 
-def cmd_stats(settings):
+def cmd_stats(g):
     """
     Show latest statistics, or generate new and print.
 
@@ -174,15 +175,15 @@ def cmd_stats(settings):
     if not g.file:
         ws = Workdir.fetch()
         if ws:
+            ws.yamldoc('stats')
             statsdoc = ws.statsdoc
-            doc = yaml_load(statsdoc)
             log.stderr("Loaded doc %r" % statsdoc)
         else:
             log.stderr("No workspace, no stats doc")
 
     prefix = ws.relpath()
 
-    if settings.update_fileext_freq:
+    if g.update_fileext_freq:
         fe = repo.filetype_histogram().items()
         fe.sort(lambda x, y: cmp(x[1], y[1]))
         #fe.reverse()
@@ -196,7 +197,7 @@ def cmd_stats(settings):
             doc['stats'][prefix]['fileext-freq']['last'] = d
             doc['stats'][prefix]['fileext-freq']['log'].append(d)
 
-    if doc is not None and not settings.no_update:
+    if doc is not None and not g.no_update:
         yaml_dumps(doc, stream=open(statsdoc, 'w+'), default_flow_style=True)
         log.stderr("Dumped doc %r" % statsdoc)
 

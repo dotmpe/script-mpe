@@ -57,10 +57,10 @@ class Object(object, UpgradedPickle):
         return self.objectid() in self.store
 
     @classmethod
-    def fetch(clss, object_id, store=None):
+    def fetch(klass, object_id, store=None):
         "Return object from local PMO-store"
         if not store:
-            store = clss.store
+            store = klass.store
         object_id = self.objectid()
         if object_id in self.store:
             return self.store[object_id]
@@ -86,14 +86,14 @@ class PersistedMetaObject(Object):
     "name of default store, to customize per type"
 
     @classmethod
-    def get_store(Klass, name=None, dbref=None, ro=False):
+    def get_store(klass, name=None, dbref=None, ro=False):
         """
         Generic routine to instantiate new stores,
         each session is named and kept in PMO.stores.
         Default is 'rw', and ofcourse one session per name.
         """
         if not name:
-            name = Klass.default_store
+            name = klass.default_store
         if name not in PersistedMetaObject.stores:
             print PersistedMetaObject.stores
             assert dbref, "store does not exists: %s" % name
@@ -108,6 +108,3 @@ class PersistedMetaObject(Object):
         else:
             store = PersistedMetaObject.stores[name]
         return store
-
-
-
