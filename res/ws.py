@@ -10,8 +10,34 @@ from metafile import Metadir
 from vc import Repo
 
 
+class YamlDoc(object):
 
-class Workspace(Metadir):
+    def get_yaml(self, name, defaults=None):
+        raise NotImplementedError()
+
+    def load_yaml(self, name, defaults=None):
+        p = self.get_yaml(name, defaults=defaults)
+        return confparse.yaml_load(open(p))
+
+    def yamldoc(self, name, defaults=None):
+        if name.endswith('doc'):
+            a = name
+        else:
+            a = name+'doc'
+        assert not hasattr(self, a), name
+        doc = self.load_yaml(name, defaults=defaults)
+        setattr(self, a, doc)
+
+    def yamlsave(self, name, **kwds):
+        doc = getattr(self, name)
+        p = self.get_yaml(name)
+        self.save_yaml(p, doc, **kwds)
+
+    def save_yaml(self, p, doc, **kwds):
+        confparse.yaml_dump(open(p,'w+'), doc, **kwds)
+
+
+class Workspace(YamlDoc, Metadir):
 
     """
     Workspaces are containers for specifically structured and tagged
@@ -58,24 +84,6 @@ class Workspace(Metadir):
         if defaults and not os.path.exists(p):
             confparse.yaml_dump(open(p, 'w+'), defaults)
         return p
-
-    def load_yaml(self, name, defaults=None):
-        p = self.get_yaml(name, defaults=defaults)
-        return confparse.yaml_load(open(p))
-
-    def yamldoc(self, name, defaults=None):
-        if name.endswith('doc'):
-            a = name
-        else:
-            a = name+'doc'
-        assert not hasattr(self, a), name
-        doc = self.load_yaml(name, defaults=defaults)
-        setattr(self, a, doc)
-
-    def yamlsave(self, name, **kwds):
-        doc = getattr(self, name)
-        p = self.get_yaml(name)
-        confparse.yaml_dump(open(p,'w+'), doc, **kwds)
 
     def relpath(self, pwd='.'):
         #cwd = os.path.normpath(os.path.realpath(pwd))

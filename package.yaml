@@ -73,7 +73,6 @@
       pre-commit: ./tools/git-hooks/pre-commit.sh
 
     init: "./install-dependencies.sh git:init"
-
     # FIXME: what about git annex pre-commit .
 
   environment:
@@ -96,6 +95,9 @@
       - . ./tools/sh/init.sh
       - . ./tools/sh/env.sh
       - . ./tools/ci/parts/init.sh
+      - htd package update
+      - htd package remotes-init
+      - vc regenerate
     #check: pd check
     check:
       - htd.sh gitflow-check-doc

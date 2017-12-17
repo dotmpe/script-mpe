@@ -410,6 +410,7 @@ htd_als__init=pd-init
 htd_als__update=update-checksums
 #htd_als__check=pd-check
 htd_als__doctor=check
+htd_run__check=i
 htd__check()
 {
   htd__find_empty || stderr ok "No empty files"
@@ -418,7 +419,9 @@ htd__check()
   # TODO run check-files
   # htd check-names
   htd__ck_validate sha1
+  htd__fsck 
 }
+htd_run__fsck=i
 htd__fsck()
 {
   htd__ck_validate sha1
@@ -5890,6 +5893,28 @@ htd__disk_proc()
   test -e /proc || error "/proc/* required" 1
   case "$1" in
 
+    check ) shift
+        sudo blkid /dev/sd* | tr -d ':' | while read dev props
+        do
+          eval $props
+          test -z "$PARTUUID" && {
+            echo $dev no-PARTUUID
+          } || {
+            grep -sr "$PARTUUID" ~/htdocs/sysadmin/disks.rst || {
+              echo $dev $PARTUUID
+            }
+            continue
+          }
+          test -n "$UUID" || {
+            echo $dev no-UUID
+            continue
+          }
+          grep -sr "$UUID" ~/htdocs/sysadmin/disks.rst && continue || {
+            echo $dev $UUID
+          }
+        done
+      ;;
+
     -partitions ) shift
         tail -n +3 /proc/partitions | awk '{print $'$1'}'
       ;;
@@ -7833,7 +7858,7 @@ htd__annex_fsck()
   do
     dir="$(htd prefixes expand "$dir")"
 
-    test "$which" = "1" -o "$which" = "2" && {
+    { cd $dir ; test "$which" = "1" -o "$which" = "2" && {
 
         git annex fsck -q && {
             echo "$dir" >$passed
@@ -7841,12 +7866,11 @@ htd__annex_fsck()
             error "[$dir] fsck failure ($?)"
             echo "$dir" >$failed
         }
-    }
+    } ; }
   done
   test -s "$passed" &&
       note "$(count_lines "$passed") repositories OK" || warn "Nothing to do"
 }
-
 
 htd__sync()
 {
@@ -7875,7 +7899,7 @@ htd__sync()
             error "[$dir] git checkout '$branch' ($?)" 1
     }
 
-    test -z "$which" -o "$which" = "0" -o "$which" = "2" && {
+    test -z "$which" -o "$which" = "0" -o "$which" = "2" && { # GIT
 
         for remote in $remotespec
         do
@@ -7892,7 +7916,7 @@ htd__sync()
         done
 
     }
-    test "$which" = "1" -o "$which" = "2" && {
+    test "$which" = "1" -o "$which" = "2" && { # GIT-Annex
 
         note "[$dir] Backing up tracked local files.."
         git annex sync -q $remotespec ||
