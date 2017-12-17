@@ -24,10 +24,10 @@ from sqlalchemy import Column, Integer, Float, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime, select, func
 from sqlalchemy.orm import relationship
 
-from taxus import core
-from taxus.mixin import CardMixin
-from taxus.init import SqlBase
-from taxus.util import ORMMixin
+from script_mpe.taxus import core
+from script_mpe.taxus.mixin import CardMixin
+from script_mpe.taxus.init import SqlBase
+from script_mpe.taxus.util import ORMMixin
 
 
 

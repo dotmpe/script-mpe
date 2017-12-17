@@ -3,7 +3,7 @@ def load_module(p):
     while names:
         fromlist = []
         if name and name in c:
-            fromlist = [c[name]]
+            fromlist = [name]
         name = names.pop(0)
         path.append(name)
         c[name] = __import__(".".join(path), fromlist=fromlist)
