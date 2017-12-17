@@ -7833,14 +7833,17 @@ htd__annex_fsck()
   do
     dir="$(htd prefixes expand "$dir")"
 
-    test "$which" = "1" -o "$which" = "2" && {
+    {
+      cd "$dir"
+      test "$which" = "1" -o "$which" = "2" && {
 
-        git annex fsck -q && {
-            echo "$dir" >$passed
-        } || {
-            error "[$dir] fsck failure ($?)"
-            echo "$dir" >$failed
-        }
+          git annex fsck -q && {
+              echo "$dir" >$passed
+          } || {
+              error "[$dir] fsck failure ($?)"
+              echo "$dir" >$failed
+          }
+      }
     }
   done
   test -s "$passed" &&
