@@ -109,6 +109,14 @@
       - . ./tools/sh/env.sh
       - . ./tools/ci/parts/init.sh
       - . ./tools/ci/check-env.sh
+    list-rst:
+      - . ~/.pyvenv/du-ext/bin/activate
+      - git ls-files | grep '\.rst$'
+    check-rst:
+      - . ~/.pyvenv/du-ext/bin/activate ; \
+        git ls-files | grep '\.rst$' | while read rst ; do \
+          rst2pseudoxml.py --report=4 --halt=4 --exit-status=2 $rst /dev/null; \
+        done
     install:
       - export SCR_SYS_SH=bash-sh
       - scriptname="before-install"
