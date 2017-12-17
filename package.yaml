@@ -88,6 +88,8 @@
   scripts:
     env: ./tools/sh/env.sh
     init:
+      - test -d ~/.pyvenv/du-ext || virtualenv ~/.pyvenv/du-ext
+      - source ~/.pyvenv/du-ext/bin/activate
       # NOTE: somehow bash matching is needed, seems 'type' is not behaving as
       # expected from a bourne shell
       #- export SCR_SYS_SH=bash-sh
@@ -100,7 +102,7 @@
       - vc regenerate
     #check: pd check
     check:
-      - htd.sh gitflow-check-doc
+      - htd gitflow-check-doc
       - verbose=1 git-versioning check
       - projectdir.sh run :bats:specs
       #- ./vendor/.bin/behat --dry-run --no-multiline
