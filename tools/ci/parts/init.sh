@@ -38,7 +38,7 @@ not_trueish "$SHIPPABLE" || {
 
 fnmatch "* basename-reg *" "$TEST_COMPONENTS" && {
   test -e ~/.basename-reg.yaml ||
-    touch ~/.basename-reg.yaml
+    cp basename-reg.yaml ~/.basename-reg.yaml
 }
 
 
