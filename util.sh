@@ -96,7 +96,8 @@ case "$0" in
 
       test -n "$f_lib_load" && {
         # never
-        echo "util.sh assert failed: f-lib-load is set" >&2
+        echo "util.sh assert failed: f-lib-load is set ($0: $*)" >&2
+        exit 1
 
       } || {
 

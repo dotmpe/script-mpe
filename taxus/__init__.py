@@ -16,6 +16,7 @@ from iface import registry as reg, gsm
 from . import init
 from . import util
 from . import out
+from script_mpe.res.ws import YamlDoc
 
 from .init import SqlBase
 from .util import SessionMixin, ScriptMixin, ORMMixin, get_session
@@ -29,7 +30,7 @@ from .util import SessionMixin, ScriptMixin, ORMMixin, get_session
 staticmetadata = SqlBase.metadata
 
 
-class Taxus(object):
+class Taxus(YamlDoc):
 
     """
     Helper for list of models and connection.
@@ -76,6 +77,12 @@ class Taxus(object):
             self.session = 'default'
             self.setmetadata(metadata)
             self.init_db(g.dbref)
+
+    def get_yaml(self, p, defaults=None):
+        assert os.path.exists(p), p
+        if defaults and not os.path.exists(p):
+            confparse.yaml_dump(open(p, 'w+'), defaults)
+        return p
 
 
     # CouchDB

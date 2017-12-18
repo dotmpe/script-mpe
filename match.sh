@@ -192,23 +192,20 @@ match_init()
   set --
 }
 
-test "$match_src" != "$0" && {
-  set -- load-ext
-}
-case "$1" in "." | "source" )
-  match_src=$2
-  set -- load-ext
-;; esac
+#test "$match_src" != "$0" && {
+#  set -- load-ext
+#}
+#case "$1" in "." | "source" )
+#  match_src=$2
+#  set -- load-ext
+#;; esac
 
 # Ignore login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  case "$1" in load-ext ) ;; * )
-
-    match_main "$@" || exit $? ;;
-
-  esac
-  ;;
-
-esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "$__load_lib" || {
+    match_main "$@" || exit $?
+  }
+;; esac

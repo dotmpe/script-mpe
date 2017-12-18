@@ -274,13 +274,10 @@ vagrant_sh_unload()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in
-    load-ext ) ;;
-    * )
-      vagrant_sh_main "$@" ;;
-
-  esac ;;
-esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "$__load_lib" || {
+    vagrant_sh_main "$@" || exit $?
+  }
+;; esac
 
 # Id: script-mpe/0.0.4-dev vagrant-sh.sh

@@ -23,3 +23,4 @@ docopt-mpe
 sadisplay
 BeautifulSoup
 shaarli-client
+pydelicious
