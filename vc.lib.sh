@@ -410,6 +410,16 @@ vc_status()
   vc_status_${scm}
 }
 
+vc_git_initialized()
+{
+  test -n "$1" || set -- .git
+  # There should be a head
+  # other checks on .git/refs seem to fail after garbage collect
+  git rev-parse HEAD >/dev/null ||
+  test "$(echo $1/refs/heads/*)" != "$1/refs/heads/*" ||
+  test "$(echo $1/refs/remotes/*/HEAD)" != "$1/refs/remotes/*/HEAD"
+}
+
 # __vc_git_flags accepts 0 or 1 arguments (i.e., format string)
 # returns text to add to bash PS1 prompt (includes branch name)
 vc_flags_git()

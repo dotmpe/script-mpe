@@ -169,17 +169,6 @@ homepath()
 }
 
 
-vc_git_initialized()
-{
-  test -n "$1" || set -- .git
-  # There should be a head
-  # other checks on .git/refs seem to fail after garbage collect
-  git rev-parse HEAD >/dev/null ||
-  test "$(echo $1/refs/heads/*)" != "$1/refs/heads/*" ||
-  test "$(echo $1/refs/remotes/*/HEAD)" != "$1/refs/remotes/*/HEAD"
-}
-
-
 # Vars legenda:
 #
 # vc_flags_git : cbwisur
@@ -1106,7 +1095,6 @@ vc__regenerate()
   do
     test "$(basename "$x" .regex)" = "$(basename "$x")" || continue
     test -e $x || continue
-    fnmatch "$x: text/*" "$(file --mime $x)" || continue
     echo "# Source: $x" >> $excludes
     read_nix_style_file $x >> $excludes
   done

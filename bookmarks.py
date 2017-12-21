@@ -1440,7 +1440,7 @@ if __name__ == '__main__':
     reload(sys)
     sys.setdefaultencoding('utf-8')
     usage = libcmd_docopt.static_vars_from_env(__usage__,
-        ( 'PROJECT_DB', __db__ ),
+        ( 'BM_DB', __db__ ),
         ( 'COUCH_DB', __couch__ ) )
     # TODO : vdir = Volumedir.find()
 

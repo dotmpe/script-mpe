@@ -3609,6 +3609,10 @@ htd__file()
       mtime ) filemtime "$2" ;;
       mtime-readable ) fmtdate_relative "$(filemtime "$2")" ;;
 
+      size ) shift
+          filesize "$1"
+        ;;
+
       status ) shift
           # Search for by name
           echo TODO track htd__find "$localpath"
@@ -3619,6 +3623,8 @@ htd__file()
 
       info ) shift
           file -s "$2"
+        ;;
+      * ) error "'$1'?" 1
         ;;
   esac
 }

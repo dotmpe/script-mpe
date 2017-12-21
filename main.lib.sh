@@ -148,8 +148,8 @@ get_subcmd_func()
 
       # Try command alias
       try_local_var subcmd_als $1 als $b && {
-        #$LOG warn "main.lib" "Aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
-        note "main.lib: Aliased '$subcmd' sub-command to '$subcmd_alias'"
+        #$LOG warn "main.lib" "aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
+        note "main.lib: aliased '$subcmd' sub-command to '$subcmd_als'"
         test -n "$subcmd_als" || error oops 1
         subcmd=$(echo "$subcmd_als" | cut -d ' ' -f 1)
         subcmd_args_pre=$(echo "$subcmd_als" | cut -d ' ' -f 2-)
