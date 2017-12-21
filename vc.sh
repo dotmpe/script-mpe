@@ -1627,7 +1627,7 @@ vc_main()
 
         export SCRIPTPATH=$scriptpath
         test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
-        . $scriptpath/util.sh load-ext
+        __load_lib=1 . $scriptpath/util.sh
 
         test -n "$verbosity" || verbosity=5
 
@@ -1760,8 +1760,8 @@ vc_unload()
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-    vc_main "$@"
-  ;; esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "$__load_lib" || {
+    vc_main "$@" || exit $?
+  }
 ;; esac

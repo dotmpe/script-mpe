@@ -91,13 +91,13 @@ uname = cmd("uname -s").strip()
 def get_mediatype_sub(path):
     if uname == 'Linux':
         try:
-            mediatypespec = cmd("xdg-mime query filetype %r", path).strip()
+            mediatypespec = cmd(["xdg-mime query filetype %r" % path]).strip()
         except Exception as e:
-            mediatypespec = cmd("file -bsi %r", path).strip()
+            mediatypespec = cmd(["file -bsi %r" % path]).strip()
     elif uname == 'Darwin':
-        mediatypespec = cmd("file -bsI %r", path).strip()
+        mediatypespec = cmd(["file -bsI %r" % path]).strip()
     else:
-        mediatypespec = cmd("file -bsi %r", path).strip()
+        mediatypespec = cmd(["file -bsi %r" % path]).strip()
         assert not True, uname
 
     return mediatypespec

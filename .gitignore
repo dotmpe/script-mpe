@@ -35,3 +35,4 @@ Gemfile.lock
 .features.tab
 .htd
 Makefile
+*.class

@@ -1,7 +1,5 @@
 #!/bin/sh
-
 tasks_src=$_
-test -z "$__load_lib" || set -- "load-ext"
 
 set -e
 
@@ -167,13 +165,10 @@ tasks_unload()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux?
-  # fix using another mechanism:
-  # XXX: cleanup test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-      tasks_main "$@" ;;
-
-  esac ;;
-esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "$__load_lib" || {
+    tasks_main "$@" || exit $?
+  }
+;; esac
 
 # Id: script-mpe/0.0.4-dev tasks.sh

@@ -265,10 +265,9 @@ lst_lib()
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-      lst_main "$@"
-    ;;
-  esac ;;
+  test "$1" != load-ext || __load_lib=1
+  test -n "$__load_lib" || {
+    lst_main "$@" || exit $?
+  }
+  ;;
 esac
-

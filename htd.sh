@@ -4,9 +4,7 @@
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
-
 htd_src=$_
-test -z "$__load_lib" || set -- "load-ext"
 
 set -o posix
 set -e
@@ -90,7 +88,7 @@ htd_load()
     # Workspace is a directory of projects, or a super project on its own.
     workspace=$(pwd -P)
     # Prefix is a relative path from the workspace base to the current projects
-    # checkout. 
+    # checkout.
     prefix="$(normalize_relative "$go_to_before")"
     test -z "$prefix" && error "prefix from go-to-before '$go_to_before'" 1
     test "$prefix" = "." || {
@@ -419,7 +417,7 @@ htd__check()
   # TODO run check-files
   # htd check-names
   htd__ck_validate sha1
-  htd__fsck 
+  htd__fsck
 }
 htd_run__fsck=i
 htd__fsck()
@@ -1074,7 +1072,7 @@ $(vc_stats . "        ")" || return 1
   # Use project metadata for getting more stats
   package_file "$workspace/$prefix" || return 0
 
-  # TODO: Per project static code analysis 
+  # TODO: Per project static code analysis
   #package_lib_set_local "."
   #. $PACKMETA_SH
 
@@ -4485,7 +4483,7 @@ htd_man_1__package='
 
   package list-ids
      List package IDs from local package metadata file.
-     
+
   package urls
      TODO: List URLs for package.
 
@@ -9330,7 +9328,7 @@ htd_init()
   test -n "$scriptpath"
   local __load_lib=1
   export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh load-ext || return $?
+  . $scriptpath/util.sh || return $?
   lib_load
   . $scriptpath/box.init.sh
   box_run_sh_test
@@ -9339,7 +9337,7 @@ htd_init()
   lib_load box date doc table disk remote ignores package service archive \
       prefix volumestat vfs hoststat scripts tmux vcflow
   case "$uname" in Darwin ) lib_load darwin ;; esac
-  . $scriptpath/vagrant-sh.sh load-ext
+  . $scriptpath/vagrant-sh.sh
   disk_run
   # -- htd box init sentinel --
 }
@@ -9347,7 +9345,7 @@ htd_init()
 htd_lib()
 {
   local __load_lib=1
-  . $scriptpath/match.sh load-ext
+  . $scriptpath/match.sh
   lib_load list ignores
   # -- htd box lib sentinel --
   set --
@@ -9356,10 +9354,10 @@ htd_lib()
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-    htd_main "$@"
-  ;; esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "$__load_lib" || {
+    htd_main "$@" || exit $?
+  }
 ;; esac
 
 # Id: script-mpe/0.0.4-dev htd.sh
