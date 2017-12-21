@@ -7870,7 +7870,6 @@ htd__annex()
                 echo git annex import $tmpd
 
             } || {
-                exit 1
                 git annex import $tmpd
             }
         }
@@ -7912,6 +7911,10 @@ htd__sync()
 {
   local rules=.sync-rules.list
   test -e "$rules" || {
+    test -e .git/annex && {
+      git annex sync
+      return $?
+    }
     sys_confirm "No local rules, execute all global rules?" || return $?
     rules=~/.conf/sync-rules.list
   }
