@@ -7844,6 +7844,38 @@ htd__reader_update()
 }
 
 
+htd__annex()
+{
+  test -n "$1" || error command 1
+  test -n "$2" || error src 1
+  test -n "$3" || error dest 1
+  test -d "$3/.git/annex" || error annex 1
+  test -n "$dry_run" || dry_run=true
+
+  local rsync_flags=avzui tmpd=$(setup_tmpd) act=$1 src=$2 dest=$3 ; shift 3
+
+  falseish "$dry_run" || rsync_flags=${rsync_flags}n
+  case "$act" in
+
+    remote-import ) shift
+        rsync -${rsync_flags} "$src" $tmpd $@
+        {
+            cd "$dest" ; trueish "$dry_run" && {
+                echo git annex import $tmpd
+
+            } || {
+                exit 1
+                git annex import $tmpd
+            }
+        }
+        rm -rf $tmpd
+      ;;
+
+    * ) error "'$act'?" 1 ;;
+
+  esac
+}
+
 htd_run__annex_fsck=i
 htd__annex_fsck()
 {
