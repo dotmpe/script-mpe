@@ -148,7 +148,7 @@ get_subcmd_func()
 
       # Try command alias
       try_local_var subcmd_als $1 als $b && {
-        #$LOG warn "main.lib" "aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
+        #$LOG warn "main.lib" "aliased '$subcmd' sub-command to '$subcmd_als'" >&2
         note "main.lib: aliased '$subcmd' sub-command to '$subcmd_als'"
         test -n "$subcmd_als" || error oops 1
         subcmd=$(echo "$subcmd_als" | cut -d ' ' -f 1)
@@ -446,8 +446,8 @@ get_subcmd_args()
 
       # BUG: -ne wont work, -en will. Should always split flags here.
       get_cmd_alias subcmd "$(expr_substr "$1" 1 2 )"
-      test -n "$subcmd_alias" && {
-        subcmd=$subcmd_alias
+      test -n "$subcmd_als" && {
+        subcmd=$subcmd_als
         flag="$1"
         shift 1
         flags="-$(expr_substr "$flag" 3 ${#flag})"
@@ -513,7 +513,7 @@ get_cmd_func_name()
 
   local cmd_alias="$(eval echo \$${func_pref}als$(echo "_${cmd_name}" | tr '-' '_'))"
   test -z "$cmd_alias" || {
-    $LOG warn "main.lib" "Aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
+    $LOG warn "main.lib" "Aliased '$subcmd' sub-command to '$subcmd_als'" >&2
     cmd_name=$cmd_alias
     export ${1}_alias=$cmd_alias
   }
@@ -638,7 +638,7 @@ main_debug()
 {
   debug "vars:
     cmd=$base args=$*
-    subcmd=$subcmd subcmd_alias=$subcmd_alias subcmd_def=$subcmd_def
+    subcmd=$subcmd subcmd_als=$subcmd_als subcmd_def=$subcmd_def
     script_name=$script_name script_subcmd=$script_subcmd
     subcmd_func=$subcmd_func subcmd_func_pref=$subcmd_func_pref subcmd_func_suf=$subcmd_func_suf
 
@@ -654,13 +654,12 @@ main_debug()
 run_subcmd()
 {
   local e= c=0 box_lib= \
-    subcmd= subcmd_alias= subcmd_func= \
+    subcmd= subcmd_als= subcmd_func= \
     dry_run= silence= choice_force= \
     choice_all= choice_local= choice_global= \
     stdio_0_type= stdio_1_type= stdio_2_type=
 
   main_init
-
 
   #func_exists ${base}_parse_subcmd_args
 
@@ -688,7 +687,6 @@ run_subcmd()
       error "No such command: $subcmd ($base)" 2
     }
   }
-
   test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
 
   load_subcmd $box_prefix || return $?

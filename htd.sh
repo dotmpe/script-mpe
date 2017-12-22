@@ -273,11 +273,9 @@ htd_load()
         # Set to detected PACKMETA file, set main package-id, and verify var
         # caches are up to date. Don't load vars.
         # TODO: create var cache per package-id.
-
         pwd="$(pwd -P)"
         test -e "$PACKMETA" || error "No local package '$PACKMETA'" 1
 
-           # package_file $pwd &&
         package_lib_set_local "$pwd" && update_package $pwd
         test -n "$package_id" && note "Found package '$package_id'"
       ;;
@@ -758,7 +756,7 @@ htd__edit_main()
   printf "$(tput bold)$(tput setaf 0)$evoke $files$(tput sgr0)\n"
   bash -c "$evoke $files"
 }
-htd_run__edit_main=iAO
+htd_run__edit_main=piAO
 htd_als___XE=edit-main
 
 
@@ -1580,28 +1578,16 @@ htd__alias()
 htd__edit_today()
 {
   test -n "$EXT" || EXT=.rst
-  local pwd=$(pwd) arg=$1
-  test -n "$1" || set -- journal/
+  local pwd="$(normalize_relative "$go_to_before")" arg="$1"
+  test -n "$1" || set -- $JRNL_DIR/
+
   fnmatch "*/" "$1" && {
-
-    case "$1" in *journal* )
-      set -- $JRNL_DIR
-    ;; esac
-
-    test -e "$1" || \
-      set -- "$pwd/$1"
-    test -e "$1" || \
-      error "unknown dir $1" 1
+    test -e "$1" || error "unknown dir $1" 1
 
   } || {
-
     # Look for here and in pwd, or create in pwd; if ext matches filename
-
-    test -e "$1" || \
-      set -- "$pwd/$1"
-
-    test -e "$1" || \
-      fnmatch "*.$EXT" "$1"  && touch $1
+    test -e "$1" || set -- "$pwd/$1"
+    test -e "$1" || fnmatch "*.$EXT" "$1"  && touch $1
 
     # Test in htdir with ext
     test -e "$1" || set -- "$arg$EXT"
@@ -1613,10 +1599,10 @@ htd__edit_today()
     test -e "$1" || touch $1
   }
 
+  note "Editing $1"
   # Open of dir causes default formatted filename+header created
   test -d "$1" && {
     {
-      note "Editing $1"
       #git add $1/[0-9]*-[0-9][0-9]-[0-9][0-9].rst
       htd__today "$1"
       today=$(realpath $1/today.rst)
@@ -1630,6 +1616,7 @@ htd__edit_today()
     } || {
       error "err $1/ $?" 1
     }
+
   # Open of archive file cause day entry added
   } || {
     {
@@ -1649,6 +1636,7 @@ htd__edit_today()
     }
   }
 }
+htd_run__edit_today=p
 htd_als__vt=edit-today
 
 
@@ -9301,12 +9289,10 @@ htd_main()
           #record_env_keys htd-subcmd htd-env
           box_lib htd || error "box-src-lib $scriptname" 1
 
-          test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
+          main_debug
 
           htd_load "$@" || warn "htd-load ($?)"
-
           var_isset verbosity || local verbosity=5
-
           test -z "$arguments" -o ! -s "$arguments" || {
             info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
             set -f; set -- $(cat $arguments | lines_to_words) ; set +f
