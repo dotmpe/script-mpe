@@ -7850,30 +7850,69 @@ htd__reader_update()
 }
 
 
+htd_man_1__annex='Extra commands for GIT Annex
+
+  remote-export REMOTE [RSync-Options]
+    Use given remote name as plain export, like annex v6.2 should (but using
+    older annex). See import for rsync-options.
+
+  remote-import REMOTE [RSync-Options]
+    Use given remote name to get rsync info, sync data from remote dir to
+    TMPDIR and call git annex import TMPDIR. Local dir should be the target
+    repo. See import.
+
+  import RSync-Info Checkout-Dir [RSync-Options]
+    Import from any rsync-spec, rsync first if not a local directory.
+    Then call git annex import ... This passes extra arguments as options to
+    rsync, e.g. to use include/exclude patterns.
+'
 htd__annex()
 {
   test -n "$1" || error command 1
-  test -n "$2" || error src 1
-  test -n "$3" || error dest 1
-  test -d "$3/.git/annex" || error annex 1
   test -n "$dry_run" || dry_run=true
 
-  local rsync_flags=avzui tmpd=$(setup_tmpd) act=$1 src=$2 dest=$3 ; shift 3
-
+  local rsync_flags=avzui act=$1 ; shift 1
   falseish "$dry_run" || rsync_flags=${rsync_flags}n
+
   case "$act" in
 
-    remote-import ) shift
-        rsync -${rsync_flags} "$src" $tmpd $@
+    remote-export ) local remote=$1 ; shift
+        test -d "./.git/annex" || error annex 1
+        test -n "$remote" || error remote 1
+        local srcinfo=$(git config --local --get remote.${remote}.annex-rsyncurl)
+        test -n "$srcinfo" || error srcinfo 1
+        rsync -${rsync_flags}L "./" "$srcinfo" "$@" || return $?
+      ;;
+
+    remote-import ) local remote=$1 ; shift
+        test -d "./.git/annex" || error annex 1
+        test -n "$remote" || error remote 1
+        local srcinfo=$(git config --local --get remote.${remote}.annex-rsyncurl)
+        test -n "$srcinfo" || error srcinfo 1
+        htd__annex import $srcinfo/ . "$@" || return $?
+      ;;
+
+    import )
+        test -n "$1" || error src 1
+        test -n "$2" || error dest 1
+        test -d "$2/.git/annex" || error annex 1
+
+        local tmpd=$(setup_tmpd) srcinfo=$1 dest=$2 ; shift 2
+        # See if remote-spec is local path, or else sync. Extra arguments
+        # are used as rsync options (to pass on include/exclude patterns)
+        test -e "$srcinfo" && tmpd=$srcinfo ||
+          rsync -${rsync_flags} "$srcinfo" "$tmpd" "$@"
         {
             cd "$dest" ; trueish "$dry_run" && {
-                echo git annex import $tmpd
+                echo git annex import --deduplicate $tmpd/*
 
             } || {
-                git annex import $tmpd
+                git annex import --deduplicate $tmpd/* ||
+                  warn "import returned $?"
+                git status
             }
         }
-        rm -rf $tmpd
+        test ! -e "$srcinfo" || rm -r $tmpd
       ;;
 
     * ) error "'$act'?" 1 ;;
