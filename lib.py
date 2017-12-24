@@ -175,6 +175,7 @@ def timestamp_to_datetime(timestamp, epoch=EPOCH):
 
     return date
 
+
 def class_name(o):
 #    if hasattr(o, __class__):
 #        o = o.__class__
@@ -316,3 +317,16 @@ class Prompt(object):
                 print('Answer:', origopts[choice].title())
                 return choice
 
+    @classmethod
+    def pick(klass, question, items=[]):
+        while True:
+            print(log.format_str('{green}%s {blue}\n%s\n{bwhite}[{white}select number{bwhite}]{default} ' %
+                    (question, "\n".join([ "%i. %s" %(i+1, v) for i,v in
+                        enumerate(items)]))))
+            v = getch()
+            if not v.strip() or not v.isdigit():
+                continue
+            i = int(v)
+            if i > len(items):
+                continue
+            return items[i-1]

@@ -7,6 +7,7 @@ from fnmatch import fnmatch
 from res import js
 from confparse import yaml_dumps
 from pydoc import locate
+from res.util import obj_serialize_datetime
 
 import ruamel.yaml
 
@@ -501,6 +502,7 @@ def json_writer(data, file, ctx):
     if ctx.opts.flags.pretty:
         kwds.update(dict(indent=2))
     data = output_prefix(data, ctx.opts)
+    data = obj_serialize_datetime(data, ctx)
     if not data and ctx.opts.flags.empty_null:
         file.write('\n')
     else:

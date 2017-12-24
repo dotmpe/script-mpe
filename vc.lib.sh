@@ -3,16 +3,6 @@
 set -e
 
 
-#vc_boilerplate_git() { false; }
-#vc_boilerplate_hg() { false; }
-#vc_boilerplate_svn() { false; }
-#vc_boilerplate_bzr() { false; }
-#
-#vc_boilerplate()
-#{
-#  vc_boilerplate_${scm}
-#}
-
 # See if path is in GIT checkout
 vc_isgit()
 {
@@ -40,11 +30,14 @@ vc_gitdir()
   test -d "$1/.git" && {
     echo "$1/.git"
   } || {
+    local pwd=$(pwd)
     test "$1" = "." || cd $1
     repo=$(git rev-parse --git-dir 2>/dev/null)
     while fnmatch "*/.git/modules*" "$repo"
     do repo="$(dirname "$repo")" ; done
+    test -n "$repo" || return 1
     echo $repo
+    cd $pwd
   }
 }
 
@@ -87,26 +80,22 @@ vc_dir()
   test -n "$1" || set -- "."
   test -d "$1" || error "vc-dir expected dir argument: '$1'" 1
   test -z "$2" || error "vc-dir surplus arguments: '$2'" 1
-  vc_gitdir "$1" || {
-    vc_bzrdir "$1" || {
-      vc_svndir "$1" || {
-        vc_hgdir "$1" || return 1
-      }
-    }
-  }
+  vc_gitdir "$1" && return
+  vc_bzrdir "$1" && return
+  vc_svndir "$1" && return
+  vc_hgdir "$1" && return
+  return 1
 }
 
 vc_isscmdir()
 {
   test -n "$1" || set -- "."
   test -d "$1" || error "vc-isscmdir expected dir argument: '$1'" 1
-  vc_isgit "$1" || {
-    vc_isbzr "$1" || {
-      vc_issvn "$1" || {
-        vc_ishg "$1" || return 1
-      }
-    }
-  }
+  vc_isgit "$1" && return
+  vc_isbzr "$1" && return
+  vc_issvn "$1" && return
+  vc_ishg "$1" && return
+  return 1
 }
 
 vc_scmdir()
@@ -116,7 +105,7 @@ vc_scmdir()
 
 vc_getscm()
 {
-  scmdir=$(vc_dir "$@")
+  scmdir="$(vc_dir "$@")"
   test -n "$scmdir" || return 1
   scm=$(basename "$scmdir" | cut -c2-)
 }
@@ -322,11 +311,20 @@ vc_clean()
 
 vc_branches_git()
 {
-	test -n "$1" || set -- refs/heads
-	test "$1" != "all" || set -- refs/heads refs/remotes/$vc_rt_def
-	git for-each-ref --format='%(refname:short)' $@
+  test -n "$1" || set -- refs/heads
+  test "$1" != "all" || set -- refs/heads refs/remotes/$vc_rt_def
+  git for-each-ref --format='%(refname:short)' $@
 }
-vc_branches_hg() { false; }
+vc_branches_hg()
+{
+  test "$1" != "all" && {
+    hg branches | cut -f1 -d' '
+  } || {
+    # NOTE: remote branches is not as straightforward
+    # <https://stackoverflow.com/questions/4296636/list-remote-branches-in-mercurial/11900786>
+    error "hg-remotes" 1
+  }
+}
 vc_branches_svn() { false; }
 vc_branches_bzr() { false; }
 
@@ -368,6 +366,49 @@ vc_git_update_remote()
         note "Remote '$1' updated" || warn "Error updating '$1' remote" 1
     }
   }
+}
+
+vc_roots_git()
+{
+  git rev-list --max-parents=0 HEAD
+}
+
+vc_roots_hg()
+{
+  vc_branches_hg | while read branch
+  do
+    set -- "$(printf -- "min(branch(%s))" "$branch")"
+    hg log -r "$@"  --template '${node}'
+  done
+}
+
+vc_roots()
+{
+  test -n "$scm" || vc_getscm
+  vc_roots_${scm}
+}
+
+vc_epoch_git()
+{
+  set -- $( git rev-list --max-parents=0 HEAD )
+  git show -s --format=%ct $1
+}
+
+vc_age_git()
+{
+  set -- $( vc_epoch_git )
+  fmtdate_relative "$1" "" "\n"
+}
+
+vc_epoch_hg()
+{
+  hg log -r "min(branch(default))"  --template '{date(date|localdate, "%s")}\n'
+}
+
+vc_age_hg()
+{
+  set -- $( vc_epoch_hg )
+  fmtdate_relative "$1" "" "\n"
 }
 
 vc_diskuse_git()
@@ -559,7 +600,7 @@ $2  uncleanable: $( vc ufu | count_lines )
 $2  (total): $( vc_untracked | count_lines )
 EOM
   }
-#$2status-flags: $(vc_flags_${scm} . "%s%s%s%s%s%s%s%s"  )
+
   test -d "$1/.$scm/annex" && {
     printf "$2annex:\n"
     printf "$2  files: $( vc_git_annex_list | count_lines )\n"
@@ -596,16 +637,24 @@ EOM
 
   cat <<EOM
 $2status-flags: $(vc_flags_${scm} "$1" "%s%s%s%s%s%s%s%s"  )
-$2default: $package_default_checkout
-$2remotes:
+$2type: $scm
+$2age: '$(vc_age_$scm) ($(datetime_iso $(vc_epoch_$scm)))'
+$2default: $package_default
 EOM
 
+  printf -- "$2roots:\n"
+  { cd "$1" && vc_roots_${scm} ; } | while read name
+  do
+    printf -- "$2- $name\n"
+  done
+
+  printf -- "$2remotes:\n"
   { cd "$1" && vc_remotes_${scm} ; } | while read name
   do
-    printf -- "$2- name: $name\n"
-    printf "$2  description: $package_description\n"
-    printf "$2  sync: \n"
-    printf "$2  url: $(vc_${scm}remote "$1" $name)\n"
+    printf -- "$2  $name:\n"
+    printf -- "$2    description: $package_description\n"
+    printf -- "$2    sync: \n"
+    printf -- "$2    url: $(vc_${scm}remote "$1" $name)\n"
   done
 
   # TODO: created, updated, first-commit dates

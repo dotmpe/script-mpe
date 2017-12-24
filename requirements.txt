@@ -1,7 +1,7 @@
 docutils
 setuptools 
 pytz
-ruamel.yaml
+ruamel.yaml<=0.15
 hashids
 #objectpath
 git+https://github.com/hackerhelmut/ObjectPath.git

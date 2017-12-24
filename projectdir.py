@@ -17,9 +17,13 @@ __usage__ = """
 Usage:
   projectdir.py [options] ( list | tab )
   projectdir.py [options] ( stat | update | delete | find | check
+        | show
+        | catalog
         | list-scmdirs
         | find-untracked
         ) [ <refs>... ]
+  projectdir.py sync <doc>
+  projectdir.py validate [ <doc> ]
   projectdir.py -h|--help|help
   projectdir.py --version
 
@@ -31,6 +35,7 @@ Options:
   --pretty-doc    ..
   --ignored
                   Include ignored/excluded files in output.
+  --interactive
   --categorize
   --normalize-remotes
   --couch=REF     Couch DB URL [default: %s]
@@ -56,6 +61,8 @@ from taxus.init import SqlBase, get_session
 from res import Workdir, Repo, Homedir
 from taxus.v0 import Node, Topic, Host, Project, VersionControl
 from datelib import modified_before, older_than
+from pdlib import *
+from jsotk_lib import deep_update
 
 
 ### A few more globals
@@ -64,7 +71,12 @@ models = [ Project, VersionControl ]
 
 ctx = Taxus(version='projectdir')
 
-cmd_default_settings = dict()
+cmd_default_settings = dict(
+        no_strict_types=False,
+        list_update=False,
+        list_update_nodict=True,
+        list_union=True
+    )
 
 
 ### CLI Subcommands
@@ -94,22 +106,96 @@ def cmd_tab(g):
             print('  '+remote['name']+': '+remote['url'])
 
 
-def cmd_update_remotes(ref, g):
-    pass
-
-
-def cmd_update(refs, g):
+def cmd_show(refs, g):
 
     """
-    Without arguments, update for entire workspace.
+    Print records for given prefixes.
+    """
+    global ctx
+    ws = ctx.ws
 
-    Find local SCM dirs, and ensure a pdoc record exists.
-    Record is created from `htd info`.
+    s = g.quiet
+    if not refs:
+        refs = ctx.ws.pdoc['repositories'].keys()
+
+    os.chdir(ws.path)
+    out_ = {}
+    for r in refs:
+        prefix = ws.relpath(r)
+        if prefix not in ctx.ws.pdoc['repositories']:
+            log.stderr("No such prefix %r" % r)
+            if g.strict: return 1
+        if g.strict and not os.path.exists(prefix):
+            log.stderr("Prefix does not exist %r" % r)
+            return 1
+        repo = ctx.ws.pdoc['repositories'][prefix]
+        out_[prefix] = confparse.yaml_flatten(repo)
+
+    confparse.yaml_dump(sys.stdout, out_,
+            ignore_aliases=False,
+            default_flow_style=False)
+
+
+def cmd_sync(doc, g):
+
+    """
+    """
+
+    global ctx
+    ws = ctx.ws
+    updated = False
+
+    for prefix in ctx.ws.pdoc['repositories']:
+        repo = ws.pdoc['repositories'][prefix]
+        print(prefix, repo)
+
+    if updated:
+        ws.yamlsave('pdoc', default_flow_style=not g.pretty_doc)
+
+
+def cmd_validate(doc, g):
+    global ctx
+    if not doc:
+        doc = ctx.ws.get_yaml('pdoc')
+    lib.cmd(["htd", "validate-pdoc", doc])
+
+
+def cmd_catalog(refs, g):
+    global ctx
+    ws = ctx.ws
+    s = g.quiet
+    updated = False
+
+    os.chdir(ws.path)
+    if refs:
+        log.stderr('Filtering on %s' % (', '.join(refs)))
+        pathiter = chain( *[ws.find_scmdirs(ref, s=s) for ref in refs ] )
+    else:
+        pathiter = ws.find_scmdirs(s=s)
+
+    for p in pathiter:
+        if os.path.islink(p): continue
+        prefix = ws.relpath(p)
+        repo = ws.pdoc['repositories'][prefix]
+        updated = catalog(prefix, repo, g)
+
+    if updated:
+        ws.yamlsave('pdoc', default_flow_style=not g.pretty_doc)
+
+
+def cmd_update(refs, opts, g):
+
+    """
+    Without arguments, update for entire workspace. Finds local SCM dirs, and
+    ensure a pdoc record each exists. Record is created or updated from
+    `htd info`. Only prefixes older-than are updated, set to 0 to update all.
     """
     global ctx
     ws = ctx.ws
     s = g.quiet
+    updated = 0
 
+    os.chdir(ws.path)
     if refs:
         log.stderr('Filtering on %s' % (', '.join(refs)))
         pathiter = chain( *[ws.find_scmdirs(ref, s=s) for ref in refs ] )
@@ -127,11 +213,14 @@ def cmd_update(refs, g):
           cmd = "htd info '%s'" % p
           out = lib.cmd(cmd, allowerrors=True)
           data = confparse.yaml_loads(out)
-          ws.pdoc['repositories'][prefix] = data
+          deep_update( [ws.pdoc['repositories'][prefix], data],
+                  confparse.Values(dict(opts=opts)))
 
         if g.categorize:
           # Add type and ID
-          data = ws.pdoc['repositories'][prefix]
+          repo = ws.pdoc['repositories'][prefix]
+          if catalog(prefix, repo, g):
+              updated += 1
 
         if g.normalize_remotes:
           data = ws.pdoc['repositories'][prefix]
@@ -140,9 +229,10 @@ def cmd_update(refs, g):
           for remote in repo['remotes']:
               print(remote['name'], remote['url'])
 
+    ws.yamlsave('pdoc', default_flow_style=not g.pretty_doc,
+        ignore_aliases=True)
     log.stderr("%i prefixes OK (%s old at most)",
             len(ws.pdoc['repositories'].keys()), g.older_than)
-    ws.yamlsave('pdoc', default_flow_style=not g.pretty_doc)
 
 
 def cmd_delete(refs, g):
@@ -168,7 +258,7 @@ def cmd_check(refs, g):
     """
     See that ID and type for projects is set.
 
-    TODO: check with registry too.
+    TODO: check with registry too unless offline.
     """
     global ctx
 
@@ -186,8 +276,10 @@ def cmd_check(refs, g):
         repo = ctx.ws.pdoc['repositories'][r]
         if 'id' in repo and repo['id']:
             if not g.strict or ( 'type' in repo and repo['type']):
-                continue
                 log.stderr("Prefix missing type %r" % r)
+                if not g.strict or ( 'vendor' in repo and repo['vendor']):
+                    log.stderr("Prefix missing vendor %r" % r)
+                continue
         else:
             log.stderr("Prefix missing ID %r" % r)
 

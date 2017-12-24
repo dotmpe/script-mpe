@@ -197,6 +197,7 @@
         # taxus.web.Invariant.mediatype
         - mime_type:lib...
 
+  default: dev
 
 - type: application/vnd.bvberkum.symlinks
   id: script-mpe-symlinks

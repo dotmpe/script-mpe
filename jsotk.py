@@ -56,6 +56,8 @@ Options:
                 TODO: default is to autodetect from filename
                 if given, or set to [default: json].
   --no-indices  [default: false]
+  --serialize-datetime=FMT
+                [default: %Y-%m-%dT%H:%M:%SZ]
   --detect-format
   --no-detect-format
                 Auto-detect input/output format based on file-name extension

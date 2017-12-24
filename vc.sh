@@ -153,7 +153,7 @@ vc__edit()
   [ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
   [ -n "$fn" ] || fn=$(which $scriptname.sh)
   [ -n "$fn" ] || error "Nothing to edit" 1
-  $EDITOR $fn
+  ( __load_lib= $EDITOR $fn )
 }
 vc___e() { vc__edit; }
 
@@ -197,6 +197,12 @@ __vc_git_codir()
   dirname "$git"
 }
 
+
+vc__type()
+{
+  vc_getscm || return $?
+  echo $scm
+}
 
 # Switch the version control system detected for the current directory.
 # (First GIT, then BZR). Then make a pretty info string representing the status
@@ -1007,12 +1013,13 @@ vc__remotes()
   done
 }
 
+vc_als__branches=list-local-branches
 vc__list_local_branches()
 {
   local pwd=$(pwd)
   test -z "$1" || cd "$1"
-  # use git output, replace asterix and spaces
-  git show-ref --heads | cut -c53-
+  vc_getscm "." || return $?
+  vc_branches
   test -z "$1" || cd "$pwd"
 }
 
@@ -1020,7 +1027,7 @@ vc__list_all_branches()
 {
   local pwd=$(pwd)
   test -z "$1" || cd "$1"
-  vc_getscm "$1" || return $?
+  vc_getscm "." || return $?
   # Read branches and strip remote/ prefix (GIT only)
   vc_branches all | sed 's/^'"$vc_rt_def"'\///g' | sort -u
   #vc_branches all | while read f ; do basename "$f"; done | sort -u
@@ -1204,6 +1211,26 @@ vc__git_branch_exists()
   vc__git_ref_exists "refs/heads/$upstream" && return
   vc__git_ref_exists "refs/remotes/$upstream" && return
   return 1
+}
+
+
+vc__roots()
+{
+  vc_rootcommits
+}
+
+
+vc__epoch()
+{
+  vc_getscm || return $?
+  vc_epoch_$scm
+}
+
+
+vc__age()
+{
+  vc_getscm || return $?
+  vc_age_$scm
 }
 
 
@@ -1603,6 +1630,7 @@ vc__info()
   test -n "$2" || set -- "$1" "  "
   local scm= scmdir=
   vc_getscm "$1" || return $?
+  note "scm '$scm'"
   vc_info "$@"
 }
 

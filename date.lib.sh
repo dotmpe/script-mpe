@@ -49,9 +49,10 @@ older_than()
 
 # given timestamp, display a friendly X sec/min/hr/days/weeks/months/years ago
 # message.
-fmtdate_relative() # [ Previous-Timestamp | ""] [Delta]
+fmtdate_relative() # [ Previous-Timestamp | ""] [Delta] [suffix]
 {
-	test -n "$2" || set -- "$1" "$(( $(date +%s) - $1 ))"
+	test -n "$2" || set -- "$1" "$(( $(date +%s) - $1 ))" "$3"
+	test -n "$3" || set -- "$1" "$2" " ago"
 	local ts=$1 timed=$2
 
 	if test $timed -gt $_1YEAR
@@ -59,9 +60,9 @@ fmtdate_relative() # [ Previous-Timestamp | ""] [Delta]
 
 		if test $timed -lt $(( $_1YEAR + $_1YEAR ))
 		then
-			printf -- "a year ago"
+			printf -- "one year$3"
 		else
-			printf -- "over $(( $timed / $_1YEAR )) years ago"
+			printf -- "$(( $timed / $_1YEAR )) years$3"
 		fi
 	else
 
@@ -70,9 +71,9 @@ fmtdate_relative() # [ Previous-Timestamp | ""] [Delta]
 
 			if test $timed -lt $(( $_1MONTH + $_1MONTH ))
 			then
-				printf -- "a month ago"
+				printf -- "a month$3"
 			else
-				printf -- "over $(( $timed / $_1MONTH )) months ago"
+				printf -- "$(( $timed / $_1MONTH )) months$3"
 			fi
 		else
 
@@ -81,9 +82,9 @@ fmtdate_relative() # [ Previous-Timestamp | ""] [Delta]
 
 				if test $timed -lt $(( $_1WEEK + $_1WEEK ))
 				then
-					printf -- "a week ago"
+					printf -- "a week$3"
 				else
-					printf -- "over $(( $timed / $_1WEEK )) weeks ago"
+					printf -- "$(( $timed / $_1WEEK )) weeks$3"
 				fi
 			else
 
@@ -92,9 +93,9 @@ fmtdate_relative() # [ Previous-Timestamp | ""] [Delta]
 
 					if test $timed -lt $(( $_1DAY + $_1DAY ))
 					then
-						printf -- "a day ago"
+						printf -- "a day$3"
 					else
-						printf -- "$(( $timed / $_1DAY )) days ago"
+						printf -- "$(( $timed / $_1DAY )) days$3"
 					fi
 				else
 
@@ -103,9 +104,9 @@ fmtdate_relative() # [ Previous-Timestamp | ""] [Delta]
 
 						if test $timed -lt $(( $_1HOUR + $_1HOUR ))
 						then
-							printf -- "an hour ago"
+							printf -- "an hour$3"
 						else
-							printf -- "$(( $timed / $_1HOUR )) hours ago"
+							printf -- "$(( $timed / $_1HOUR )) hours$3"
 						fi
 					else
 
@@ -114,13 +115,13 @@ fmtdate_relative() # [ Previous-Timestamp | ""] [Delta]
 
 							if test $timed -lt $(( $_1MIN + $_1MIN ))
 							then
-								printf -- "a minute ago"
+								printf -- "a minute$3"
 							else
-								printf -- "$(( $timed / $_1MIN )) minutes ago"
+								printf -- "$(( $timed / $_1MIN )) minutes$3"
 							fi
 						else
 
-							printf -- "$timed seconds ago"
+							printf -- "$timed seconds$3"
 
 						fi
 					fi
@@ -196,5 +197,9 @@ date_iso()
 
 datetime_iso()
 {
-  $gdate --iso=minutes
+  test -n "$1" && {
+    $gdate -d @$1 --iso=minutes || return $?
+  } || {
+    $gdate --iso=minutes || return $?
+  }
 }

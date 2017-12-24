@@ -1,6 +1,7 @@
 import base64
 import os
 import time
+from datetime import datetime
 
 from script_mpe import lib
 from script_mpe.confparse import yaml_load, yaml_dump
@@ -36,3 +37,25 @@ def isodatetime(s):
 def last_modified_header(filepath):
     ltime_tuple = time.gmtime(os.path.getmtime(filepath))
     return iso8601_datetime_format(ltime_tuple)
+
+def obj_serialize_datetime_list(l, ctx):
+    r = []
+    for n, i in enumerate(l):
+      r[n] = obj_serialize_datetime(i, ctx)
+    return r
+
+def obj_serialize_datetime_dict(o, ctx):
+    r = {}
+    for k, v in o.items():
+      r[k] = obj_serialize_datetime(v, ctx)
+    return r
+
+def obj_serialize_datetime(o, ctx):
+    if hasattr(o, 'items'):
+      return obj_serialize_datetime_dict(o, ctx)
+    elif hasattr(o, 'iter'):
+      return obj_serialize_datetime_list(o, ctx)
+    else:
+      if isinstance(o, datetime):
+        o = o.strftime(ctx.opts.flags.serialize_datetime)
+      return o

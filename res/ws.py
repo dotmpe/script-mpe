@@ -134,6 +134,9 @@ class Workdir(Workspace):
             assert path.startswith(self.path)
         else:
             path = self.path
+        if Repo.is_repo(path):
+            yield path
+            return
         for r in Repo.walk(path, s=s):
             assert r.startswith(path)
             if not s: print(r)

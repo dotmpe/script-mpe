@@ -1,4 +1,3 @@
-
 id: "#"
 description: Named prerequisite packages and metadata on provisioning. See tools.rst
 
@@ -70,3 +69,8 @@ tools:
     - git pull
     - mvn clean package
 
+  ajv:
+    installer: npm
+  ajv-cli:
+    installer: npm
+    bin: ajv-cli

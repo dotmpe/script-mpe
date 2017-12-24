@@ -274,10 +274,11 @@ htd_load()
         # caches are up to date. Don't load vars.
         # TODO: create var cache per package-id.
         pwd="$(pwd -P)"
-        test -e "$PACKMETA" || error "No local package '$PACKMETA'" 1
-
-        package_lib_set_local "$pwd" && update_package $pwd
-        test -n "$package_id" && note "Found package '$package_id'"
+        test -e "$PACKMETA" && {
+            #|| error "No local package '$PACKMETA'" 1
+            package_lib_set_local "$pwd" && update_package $pwd
+            test -n "$package_id" && note "Found package '$package_id'"
+        }
       ;;
 
     r ) # register package - requires 'p' first. Sets PROJECT Id and manages
@@ -704,14 +705,14 @@ htd__env_info()
   log "Ignored paths:         '$IGNORE_GLOBFILE' [IGNORE_GLOBFILE]"
 }
 
+htd_run__info=p
 htd__info()
 {
   test -n "$1" || set -- $(pwd -P)
   test -z "$2" || error "unexpected args '$2'" 1
-  test -e "$1/$PACKMETA" && {
-    htd_package_update "$1"
-  }
-  vc_info "$1" ""
+  vc_getscm "$1" || return $?
+  cd "$1"
+  vc_info
 }
 
 
@@ -719,8 +720,7 @@ htd__expand()
 {
   test -n "$1" || return 1
   for x in $@
-  do
-    test -e "$x" && echo "$x"
+  do test -e "$x" && echo "$x"
   done
 }
 
@@ -1284,6 +1284,79 @@ EOM
 }
 
 
+htd__validate()
+{
+  htd_schema_validate "$@"
+}
+
+htd_run__validate_package=p
+htd__validate_package()
+{
+  set -- $scriptpath/schema/package.yml $scriptpath/schema/package.json
+  test $2 -nt $1 || jsotk yaml2json --pretty "$@"
+  htd_schema_validate .package.json "$2"
+}
+
+htd__validate_pdoc()
+{
+  htd_schema_validate "$1" $scriptpath/schema/projectdir.yml
+}
+
+
+htd_man_1__tools='Tools manages simple installation scripts from YAML and is
+usable to keep scripts in a semi-portable way, that do not fit anywhere else.
+
+It works from a metadata document that is a single bag of IDs mapped to
+objects, whose schema is described in schema/tools.yml. It can be used to keep
+multiple records for the same binary, providing alternate installations for
+the same tools.
+
+  install [TOOL...]
+  uninstall [TOOL...]
+  installed [TOOL...]
+  validate
+  outline
+  script
+'
+htd_run__tools=f
+htd_spc__tools="tools (<action> [<args>...])"
+htd__tools()
+{
+  test -n "$1" || set -- list
+  tools_json || return 1
+  upper=0 mkvid "$1"
+  shift ; htd_tools_$vid "$@" || return $?
+}
+htd_grp__tools=htd-tools
+
+# FIXME: htd_als__install="tools install"
+
+htd_of__installed='yml'
+htd_als__installed="tools installed"
+
+htd_man_1__tools_outline='Transform tools.json into an outline compatible
+format.
+'
+htd__tools_outline()
+{
+  rm $B/tools.json
+  out_fmt=yml htd_tools_installed | jsotk update --pretty -Iyaml $B/tools.json -
+  { cat <<EOM
+{ "id": "$(htd_prefix "$(pwd -P)")/tools.yml",
+  "hostname": "$hostname", "updated": ""
+}
+EOM
+} | jsotk update -Ijson --pretty $B/tools.json -
+  { cat <<EOM
+{
+  "pretty": true, "doc": $(cat $B/tools.json)
+}
+EOM
+} > $B/tools-outline-pug-options.json
+  pug -E xml --out $B/ \
+    -O $B/tools-outline-pug-options.json var/tpl/pug/tools-outline.pug
+}
+
 htd_man_1__script="Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping of
   scriptnames to script lines. See Htd run and run-names for package scripts. "
 htd_spc__script="script"
@@ -1291,8 +1364,6 @@ htd_run__script=pSmr
 htd_S__script=\$package_id
 htd__script()
 {
-  tools_json || return $?
-
   # Force regeneration for stale data
   test $status -ot $HTD_TOOLSFILE \
     && { rm $status || noop; }
@@ -1357,120 +1428,6 @@ htd__script()
   #    done
   report=$status
 }
-
-htd_man_1__tools='Tools manages simple installation scripts from YAML and is
-  usable to keep scripts in a semi-portable way, that do not fit anywhere else.
-
-  It works from a metadata document that is a single bag of IDs mapped to
-  objects, whose schema is described in schema/tools.yml. It can be used to keep
-  multiple records for the same binary, providing alternate installations for
-  the same tools.
-
-'
-htd_spc__tools="tools (<action> [<args>...])"
-htd__tools()
-{
-  tools_json || return 1
-  test -n "$1" || set -- status
-
-  case "$1" in
-    install ) shift ;                         htd__install "$@" ;;
-    uninstall ) shift ;                       htd__uninstall "$@" ;;
-    list-local | installed | status ) shift ; htd__installed "$@" ;;
-    outline-doc ) shift ;                     htd__tools_outline "$@" ;;
-    validate-doc | validate ) shift ;         htd__tools_validate "$@" ;;
-    * ) error "No such tools subcommand '$1'" 1 ;;
-  esac
-}
-htd_grp__tools=htd-tools
-
-htd_of__installed='yml'
-htd__installed()
-{
-  tools_json || return 1 ; upper=0 default_env out-fmt tty
-  test -n "$1" || set -- $(tools_list) ; test -n "$*" || return 2 ;
-  test "$out_fmt" = "yml" && echo "tools:" ; while test -n "$1"
-  do
-    installed $B/tools.json "$1" && {
-      note "Tool '$1' is present"
-      test "$out_fmt" = "yml" && printf "  $1:\n    installed: true\n" || noop
-    } || {
-      test "$out_fmt" = "yml" && printf "  $1:\n    installed: false\n" || noop
-    }
-    shift
-  done
-}
-htd_grp__installed=htd-tools
-
-htd_man_1__install=""
-htd_spc__install="install [TOOL...]"
-htd__install()
-{
-  tools_json || return 1 ; local verbosity=6 ; while test -n "$1"
-  do
-    install_bin $B/tools.json $1 \
-      && info "Tool $1 is installed" \
-      || info "Tool $1 install error: $?"
-    shift
-  done
-}
-htd_grp__install=htd-tools
-
-htd__uninstall()
-{
-  tools_json || return 1 ; local verbosity=6 ; while test -n "$1"
-  do
-    uninstall_bin $B/tools.json "$1" \
-      && info "Tool $1 is not installed" \
-      || { r=$?;
-        test $r -eq 1 \
-          && info "Tool $1 uninstalled" \
-          || info "Tool uninstall $1 error: $r" $r
-      }
-    shift
-  done
-}
-htd_grp__uninstall=htd-tools
-
-htd__tools_validate()
-{
-  tools_json || return 1
-  tools_json_schema || return 1
-  # Note: it seems the patternProperties in schema may or may not be fouling up
-  # the results. Going to venture to outline based format first before returning
-  # to which JSON schema spec/validator supports what.
-  jsonschema -i $B/tools.json $B/tools-schema.json &&
-      stderr ok "jsonschema" || stderr warn "jsonschema"
-  jsonspec validate --document-file $B/tools.json \
-    --schema-file $B/tools-schema.json &&
-      stderr ok "jsonspec" || stderr warn "jsonspec"
-}
-htd_grp__tools_validate=htd-tools
-
-htd_man_1__tools_outline='Transform tools.json into an outline compatible
-format.
-'
-htd__tools_outline()
-{
-  rm $B/tools.json
-  tools_json || return 1
-  out_fmt=yml htd__installed | jsotk update --pretty -Iyaml $B/tools.json -
-  { cat <<EOM
-{ "id": "$(htd_prefix "$(pwd -P)")/tools.yml",
-  "hostname": "$hostname", "updated": ""
-}
-EOM
-} | jsotk update -Ijson --pretty $B/tools.json -
-  { cat <<EOM
-{
-  "pretty": true, "doc": $(cat $B/tools.json)
-}
-EOM
-} > $B/tools-outline-pug-options.json
-  pug -E xml --out $B/ \
-    -O $B/tools-outline-pug-options.json var/tpl/pug/tools-outline.pug
-}
-htd_grp__tools_outline=htd-tools
 
 
 htd__man_5__htdignore_merged='Exclude rules used by `htd find|edit|count`, compiled from other sources using ``htd init-ignores``. '
@@ -9356,7 +9313,7 @@ htd_init()
   #export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta list
   lib_load box date doc table disk remote ignores package service archive \
-      prefix volumestat vfs hoststat scripts tmux vcflow
+      prefix volumestat vfs hoststat scripts tmux vcflow tools schema
   case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh
   disk_run

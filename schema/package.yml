@@ -81,5 +81,3 @@ items:
           type: string
           description: |
             Build scripts.
-
-
