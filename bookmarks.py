@@ -149,7 +149,7 @@ from taxus.init import SqlBase, get_session
 
 from taxus.docs import bookmark
 from taxus.core import ID, Node, Name, Tag
-from taxus.net import URL, Locator, Domain
+from taxus.net import Locator, Domain
 from taxus.ns import Namespace, Localname
 from taxus.model import Bookmark
 from taxus.web import Resource, RemoteCachedResource
@@ -221,7 +221,7 @@ class bookmarks(rsr.Rsr):
                 (('--moz-js-group-import',), libcmd.cmddict()),
 
                 (('--add-lctrs',), libcmd.cmddict(
-                    help="Add locator records for given URL's.")),
+                    help="Add locator records for given Locator's.")),
                 (('--add-ref-md5',), libcmd.cmddict(
                     help="Add MD5-refs missing (on all locators). ")),
 
@@ -308,7 +308,7 @@ class bookmarks(rsr.Rsr):
 
 
     def add_lctr_ref_md5(self, opts=None, sa=None, *refs):
-        "Add locator and ref_md5 attr for URLs"
+        "Add locator and ref_md5 attr for Locators"
         if refs:
             if isinstance( refs[0], basestring ):
                 opts.ref_md5 = True
@@ -396,28 +396,28 @@ def cmd_dlcs_import(opts, g):
     """
     importFile = opts.args.FILE
     data = dlcs_parse_xml(open(importFile).read())
-    sa = URL.get_session('default', opts.flags.dbref)
+    sa = Locator.get_session('default', opts.flags.dbref)
     tags_stat = {}
     domains_stat = {}
-    # first pass: validate, track stats and create URL records where missing
+    # first pass: validate, track stats and create Locator records where missing
     for post in data['posts']:
         href = post['href']
         dt = datetime.strptime(post['time'], ISO_8601_DATETIME)
-# validate URL
+# validate Locator
         url = urlparse(href)
         domain = url[1]
         if not domain:
             log.std("Ignored domainless (non-net?) URIRef: %s", href)
             continue
         assert re.match('[a-z0-9]+(\.[a-z0-9]+)*', domain), domain
-# get/init URL
-        lctr = URL.fetch((URL.ref == href,), exists=False)
+# get/init Locator
+        lctr = Locator.fetch((Locator.ref == href,), exists=False)
         if lctr:
             if lctr.date_added != dt:
                 lctr.date_added = dt
                 sa.add(lctr)
         else:
-            lctr = URL(
+            lctr = Locator(
                     ref=href,
                     date_added=datetime.strptime(post['time'], ISO_8601_DATETIME)
                 )
@@ -558,13 +558,14 @@ def cmd_chrome_groups(g):
 def cmd_html_check(HTML, g):
     print(HTML)
 
-def cmd_stats(g): pass
+def cmd_stats(g):
+    cmd_sql_stats(g)
 
 def cmd_sql_stats(g):
     global ctx
     sa = ctx.sa_session
     for stat, label in (
-                (sa.query(Locator).count(), "Number of URLs: %s"),
+                (sa.query(Locator).count(), "Number of Locators: %s"),
                 (sa.query(Bookmark).count(), "Number of bookmarks: %s"),
                 (sa.query(Domain).count(), "Number of domains: %s"),
                 (sa.query(Tag).count(), "Number of tags: %s"),
@@ -643,7 +644,7 @@ def cmd_urls(REF, g, opts):
     global ctx
     sa = ctx.sa_session
     like = '%%%s%%' % REF
-    rs = sa.query(URL).filter(URL.ref.like(like)).all()
+    rs = sa.query(Locator).filter(Locator.ref.like(like)).all()
     for r in rs:
         print(r)
     if REF:
@@ -687,11 +688,11 @@ def cmd_list(NAME, TAGS, g, opts):
 
 
 def cmd_remove(REF, g):
-    "Soft-delete Bookmark and Locator by URL"
+    "Soft-delete Bookmark and Locator by Locator"
     global ctx
     sa = ctx.sa_session
 
-    lctr = sa.query(URL).filter(URL.ref == REF).one()
+    lctr = sa.query(Locator).filter(Locator.ref == REF).one()
     bm = sa.query(Bookmark).filter(Bookmark.location == lctr).one()
 
     bm.delete()
@@ -709,10 +710,10 @@ def cmd_check(NAME, g):
     """
     Update last-seen time.
 
-    Visit the URL for each bookmark, and update the last-seen date if
+    Visit the Locator for each bookmark, and update the last-seen date if
     successful. Options below apply filters and specific actions.
 
-    If no filters are provided, the default is to select URLs not seen in
+    If no filters are provided, the default is to select Locators not seen in
     the last 52 weeks, and all those without status or last-seen fields.
 
     --deleted
@@ -805,7 +806,7 @@ def cmd_check(NAME, g):
         f.append( Resource.deleted!=True )
 
     rs = Resource.all(f)
-    print('%i URL\'s to check' % len(rs))
+    print('%i Locator\'s to check' % len(rs))
 
     for i, r in enumerate(rs):
         ref = r.location.href()
@@ -822,7 +823,7 @@ def cmd_check(NAME, g):
                 r.delete()
             sa.add(r)
             continue
-        except urllib2.URLError as e:
+        except urllib2.LocatorError as e:
             r.status = -2
             if 0 in delete or -1 in delete:
                 r.delete()
@@ -860,7 +861,7 @@ def cmd_check(NAME, g):
 def cmd_assert(REF, NAME, TAGS, g):
 
     """
-    Create an URL record if it does not exist yet.
+    Create an Locator record if it does not exist yet.
 
     If NAME and optionally TAGS is given, create a bookmark too but only
     if it does not exist yet.
@@ -868,9 +869,9 @@ def cmd_assert(REF, NAME, TAGS, g):
 
     sa = Bookmark.get_session(g.session_name, g.dbref)
 
-    lctr = URL.fetch((URL.ref == REF,), exists=False)
+    lctr = Locator.fetch((Locator.ref == REF,), exists=False)
     if not lctr:
-        lctr = URL( ref=REF, date_added=datetime.now() )
+        lctr = Locator( ref=REF, date_added=datetime.now() )
         lctr.init_defaults()
         log.std("new: %s", lctr)
         if not g.dry_run:
@@ -903,7 +904,7 @@ def cmd_show(REF, NAME, TAGS, g):
         filters = ( Bookmark.deleted != True, )
 
     if REF:
-        lctr = sa.query(URL).filter(URL.ref == REF).one()
+        lctr = sa.query(Locator).filter(Locator.ref == REF).one()
         filters += ( Bookmark.location == lctr, )
 
     if TAGS:
@@ -936,9 +937,9 @@ def cmd_webarchive(NAME, g):
     sa = ctx.sa_session
 
     NS_WA = 'http://web.archive.org/web'
-    ns_lctr = URL.fetch((URL.ref == NS_WA,), exists=False)
+    ns_lctr = Locator.fetch((Locator.ref == NS_WA,), exists=False)
     if not ns_lctr:
-        ns_lctr = URL( ref=NS_WA )
+        ns_lctr = Locator( ref=NS_WA )
         ns_lctr.init_defaults()
         sa.add(ns_lctr)
 
@@ -953,9 +954,9 @@ def cmd_webarchive(NAME, g):
         sa.commit()
 
 
-    rs = sa.query(URL).filter(
-            URL.ref.like('%/web.archive.org/web/%'),
-            URL.deleted != True).all()
+    rs = sa.query(Locator).filter(
+            Locator.ref.like('%/web.archive.org/web/%'),
+            Locator.deleted != True).all()
     if not rs: return
     total_records = len(rs)
 
@@ -975,9 +976,9 @@ def cmd_webarchive(NAME, g):
         if not uriref.absoluteURI.match(res_url):
             res_url = 'http://'+res_url
 
-        lctr_new = URL.fetch((URL.ref == res_url,), exists=False)
+        lctr_new = Locator.fetch((Locator.ref == res_url,), exists=False)
         if not lctr_new:
-            lctr_new = URL( ref=res_url )
+            lctr_new = Locator( ref=res_url )
             lctr_new.init_defaults()
             log.std("New: %s", lctr_new.href() )
 
@@ -1065,18 +1066,18 @@ def cmd_couch_list(g):
         print(ls.id, ls.value)
 
 
-def cmd_couch_add(URL, TITLE, TAGS, g):
+def cmd_couch_add(Locator, TITLE, TAGS, g):
     """
     Add record directly to Couch. NOTE: should be using SQL API instead.
     """
     global ctx
-    #[URL] = {
+    #[Locator] = {
     #  'type': 'bookmark',
-    #  'href': URL,
+    #  'href': Locator,
     #  'tags': TAGS
     #}
     assert isinstance(TAGS, list), TAGS
-    bm = bookmark.Bookmark(id=Bookmark.keyid(URL), href=URL, tag_list=TAGS)
+    bm = bookmark.Bookmark(id=Bookmark.keyid(Locator), href=Locator, tag_list=TAGS)
     bm.store(ctx.docs)
 
 
@@ -1097,9 +1098,9 @@ def cmd_sql_couch(g):
         i += 1
         ctx.note("Processing %i of %i", i, total_docs, num=i)
 
-        lctr = URL.fetch((URL.ref == bmdoc.href,), exists=False)
+        lctr = Locator.fetch((Locator.ref == bmdoc.href,), exists=False)
         if not lctr:
-            lctr = URL.forge(bmdoc, g, sa=sa)
+            lctr = Locator.forge(bmdoc, g, sa=sa)
 
         bm = Bookmark.fetch((Bookmark.location == lctr,), exists=False)
         if not bm:

@@ -103,6 +103,8 @@ class Locator(SqlBase, CardMixin, ORMMixin):
     idtype = Column(String(50), nullable=False)
     __mapper_args__ = {'polymorphic_on': idtype, 'polymorphic_identity': 'id:locator'}
 
+    ref = Column(Text)
+
     @property
     def scheme(self):
         ref = self.ref
@@ -162,17 +164,17 @@ class Locator(SqlBase, CardMixin, ORMMixin):
         d.update(dict(href=self.ref))
         return ORMMixin.to_dict(self, d=d)
 
+    @classmethod
+    def from_bm(klass, doc):
+        return dict(ref=doc['href'])
 
-class URL(Locator):
+    def to_bm(self):
+        return dict(href=self.ref)
 
-    __tablename__ = 'ids_lctr_url'
-    __mapper_args__ = {'polymorphic_identity': 'id:locator:url'}
 
-    url_id = Column('id', Integer, ForeignKey('ids_lctr.id'), primary_key=True)
-    ref = Column(Text)
-
-    def href(self):
-        return self.ref
+Locator.doc_schemas = {
+    'taxus.docs.bookmark.Bookmark': (Locator.from_bm, Locator.to_bm)
+}
 
 
 token_locator_table = Table('token_locator', SqlBase.metadata,

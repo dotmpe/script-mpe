@@ -213,8 +213,11 @@ def cmd_update(refs, opts, g):
           cmd = "htd info '%s'" % p
           out = lib.cmd(cmd, allowerrors=True)
           data = confparse.yaml_loads(out)
-          deep_update( [ws.pdoc['repositories'][prefix], data],
-                  confparse.Values(dict(opts=opts)))
+          if prefix in ws.pdoc['repositories']:
+              deep_update( [ws.pdoc['repositories'][prefix], data],
+                      confparse.Values(dict(opts=opts)))
+          else:
+              ws.pdoc['repositories'][prefix] = data
 
         if g.categorize:
           # Add type and ID

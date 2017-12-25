@@ -1,4 +1,3 @@
-
 .. figure:: bookmarks.svg
 
 TODO This uses the rsr/taxus database to store/dump data related to bookmarks.
@@ -26,6 +25,3 @@ Datastores
     :path: ~/htdocs/personal/bookmark/export/dlcs/posts.xml
 
     Parses posts and tags XML dumps.
-
-
-

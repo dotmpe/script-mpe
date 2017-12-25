@@ -399,21 +399,36 @@ class ORMMixin(ScriptMixin, InstanceMixin, ModelMixin):
         "Return SQL columns"
         raise NotImplementedError
 
-    @classmethod
-    def dict_from_doc(klass, *docs):
-        raise NotImplementedError
+
+    doc_schemas = {}
 
     @classmethod
-    def from_dict(klass, *docs, **dockeys):
-        opts = klass.dict_from_doc(*docs)
+    def dict_(klass, doc, **dockeys):
+        """
+        Return the contructor keywods to (re)create a copy of the records
+        """
+        doc_class = type(doc)
+        mod_name = doc_class.__module__ +'.'+ doc_class.__name__
+        if mod_name not in klass.doc_schemas \
+        or len(klass.doc_schemas[mod_name]) < 1 \
+        or not klass.doc_schemas[mod_name][0]:
+            raise KeyError("Expected %s doc to dict" % ( mod_name ))
+
+        return klass.doc_schemas[mod_name][0](doc)
+
+
+    @classmethod
+    def from_(klass, *docs, **dockeys):
+        "Return new instance, getting options from doc"
+        opts = klass.dict_(*docs, **dockeys)
         return klass( **opts )
 
     @classmethod
     def forge(klass, source, settings, sa=None):
-        o = klass.from_dict(source)
+        o = klass.from_(source)
         o.init_defaults()
         if not settings.quiet:
-            log.std("new: %s", lctr)
+            log.std("new: %s", o)
         if not settings.dry_run:
             if not sa:
                 sa = klass.get_session(settings.session_name)

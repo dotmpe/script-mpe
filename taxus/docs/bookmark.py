@@ -16,12 +16,14 @@ class Bookmark(Document):
     date_deleted = DateTimeField()
     date_updated = DateTimeField()
     deleted = BooleanField()
-    extended = TextField()
+
     href = TextField()
     last_access = DateTimeField()
     last_modified = DateTimeField()
     last_update = DateTimeField()
+
     name = TextField()
+    extended = TextField()
     public = BooleanField()
     status = IntegerField()
     tags = ListField(TextField())

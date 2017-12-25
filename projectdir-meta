@@ -49,7 +49,7 @@ Options:
   -g, --glob    Change from root prefix matching to glob matching.
   -G, --global  Use global enabled status, instead of per host.
   -a, --all     List all prefixes
-  -l, --local   List all prefixes
+  -l, --local   List local prefixes
   -H NAME, --host NAME
                 Hostname to use for current entries.
 
