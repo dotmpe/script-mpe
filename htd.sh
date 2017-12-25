@@ -1324,7 +1324,8 @@ htd__tools()
 {
   test -n "$1" || set -- list
   tools_json || return 1
-  upper=0 mkvid "$1"
+  upper=0 mkvid "$1" ||
+      error mkvid $?
   shift ; htd_tools_$vid "$@" || return $?
 }
 htd_grp__tools=htd-tools
