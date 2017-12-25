@@ -66,7 +66,9 @@ lst_load()
 lst_init_etc()
 {
   test ! -e etc/htd || echo etc
-  test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
+  test -n "$1" || set -- $scriptpath
+  test -n "$1" || set -- $(dirname "$0")
+  test ! -e $1/etc/htd || echo $1/etc
   #XXX: test ! -e .conf || echo .conf
   #test ! -e $UCONFDIR/htd || echo $UCONFDIR
   #info "Set htd-etc to '$*'"

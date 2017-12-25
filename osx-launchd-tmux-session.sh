@@ -32,5 +32,3 @@ do
 done
 
 echo "Session $sessionname exited"
-
-

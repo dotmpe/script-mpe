@@ -6,7 +6,9 @@ box_lib_load()
   test -n "$BOX_DIR" || error "box-load: expected BOX-DIR env" 1
   test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
-  test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
+  test -z "$DEBUG" || {
+    test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
+  }
   mkvid $(pwd)
   nid_cwd=$vid
   unset vid

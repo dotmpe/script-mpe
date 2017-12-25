@@ -1,22 +1,31 @@
 #!/bin/sh
 
 
-# Age in seconds
-_1MIN=60
-_5MIN=300
+date_lib_load()
+{
+  TODAY=+%y%m%d0000
 
-_1HOUR=3600
-_3HOUR=10800
-_6HOUR=64800
+  # Age in seconds
+  _1MIN=60
+  _5MIN=300
 
-_1DAY=86400
-_1WEEK=604800
+  _1HOUR=3600
+  _3HOUR=10800
+  _6HOUR=64800
 
-# Note: what are the proper lengths for month and year? It does not matter that
-# much if below is only used for fmtdate-relative.
-_1MONTH=$(( 4 * $_1WEEK ))
-_1YEAR=$(( 365 * $_1DAY ))
+  _1DAY=86400
+  _1WEEK=604800
 
+  # Note: what are the proper lengths for month and year? It does not matter that
+  # much if below is only used for fmtdate-relative.
+  _1MONTH=$(( 4 * $_1WEEK ))
+  _1YEAR=$(( 365 * $_1DAY ))
+
+  case "$uname" in
+    Darwin ) gdate=gdate ;;
+    Linux ) Gdate=date ;;
+  esac
+}
 
 # newer-than FILE SECONDS
 newer_than()
@@ -172,32 +181,20 @@ datelink()
 
 epoch_microtime()
 {
-    case "$uname" in
-        Darwin ) gdate +%s%N ;;
-        Linux ) date +%s%N ;;
-    esac
+  $gdate +%s%N
 }
 
 date_microtime()
 {
-    case "$uname" in
-        Darwin ) gdate +"%Y-%m-%d %H:%M:%S.%N" ;;
-        Linux ) gdate +"%Y-%m-%d %H:%M:%S.%N" ;;
-    esac
+  $gdate +"%Y-%m-%d %H:%M:%S.%N"
 }
 
 date_iso()
 {
-    case "$uname" in
-        Darwin ) gdate --iso ;;
-        Linux ) date --iso ;;
-    esac
+  $gdate --iso
 }
 
 datetime_iso()
 {
-    case "$uname" in
-        Darwin ) gdate --iso=minutes ;;
-        Linux ) date --iso=minutes ;;
-    esac
+  $gdate --iso=minutes
 }

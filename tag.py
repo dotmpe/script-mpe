@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-""":created: 2015-12-28
-:updated: 2014-10-12
-
+"""
+:created: 2017-04-08
+:updated: 2017-12-11
 """
 __description__ = ''
 __version__ = '0.0.4-dev' #script-mpe

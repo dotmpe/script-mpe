@@ -710,6 +710,8 @@ def H_package(pdhdata, ctx):
     Show current package metadata at prefix. Loads and merges .package.sh
     """
     pref = ctx.opts.args.prefix
+    if not pref: return 1
+
     m = pdhdata['repositories'][pref]
 
     lpack = os.path.join(pref, '.package.sh')

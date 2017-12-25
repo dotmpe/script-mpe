@@ -6,7 +6,9 @@ vfs_lib_load()
 {
   export rund=/var/run/htdocs/vfs/
 
-  mkdir -p $rund
+  test -w "$rund" && pref= || pref=sudo
+  $pref mkdir -p $rund
+  test -z "$pref" || $pref chown $(whoami):staff $rund
 }
 
 

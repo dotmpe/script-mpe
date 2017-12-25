@@ -107,7 +107,7 @@ class TxtBmOutline(object):
     """
 
     @classmethod
-    def from_beautifulsoup(clss, s, output_format, print_leafs=True):
+    def from_beautifulsoup(klass, s, output_format, print_leafs=True):
         return '\n'.join( [ '- '+s.title.text, '', ] +
                 TxtBmOutline.bm_html_soup_dl(s, output_format, print_leafs ) )
 
@@ -125,15 +125,15 @@ class TxtBmOutline(object):
     })
 
     @classmethod
-    def format_folder_item(clss, dl, i, **kwds):
-        return clss.format['folder'][kwds['output_format']](dl,i)
+    def format_folder_item(klass, dl, i, **kwds):
+        return klass.format['folder'][kwds['output_format']](dl,i)
 
     @classmethod
-    def format_leaf_item(clss, dl, i, **kwds):
-        return clss.format['leaf'][kwds['output_format']](dl,i)
+    def format_leaf_item(klass, dl, i, **kwds):
+        return klass.format['leaf'][kwds['output_format']](dl,i)
 
     @classmethod
-    def bm_html_soup_item_gen(clss, dl, i=1, **kwds):
+    def bm_html_soup_item_gen(klass, dl, i=1, **kwds):
         """
         Generate lines in requested format for outline tree found in Soup
         element dl.
@@ -142,10 +142,10 @@ class TxtBmOutline(object):
             return
         of = kwds['output_format']
         if dl.h3:
-            yield clss.format_folder_item(dl, i, **kwds)
+            yield klass.format_folder_item(dl, i, **kwds)
         elif dl.a:
             if kwds['print_leafs']:
-                yield clss.format_leaf_item(dl, i, **kwds)
+                yield klass.format_leaf_item(dl, i, **kwds)
         sub = dl.find('dl', recursive=False)
         if sub:
             terms = sub.findAll('dt', recursive=False)
@@ -153,7 +153,7 @@ class TxtBmOutline(object):
                 if of == 'rst':
                     yield ''
             for dt in terms:
-                sl = clss.bm_html_soup_item_gen(dt, i+1, **kwds)
+                sl = klass.bm_html_soup_item_gen(dt, i+1, **kwds)
                 for l in sl:
                     yield l
             if terms:
@@ -161,14 +161,14 @@ class TxtBmOutline(object):
                     yield ''
 
     @classmethod
-    def bm_html_soup_dl(clss, s, output_format, print_leafs):
+    def bm_html_soup_dl(klass, s, output_format, print_leafs):
         """Fromat an plain-text nested list from BeautifulSoup. Returns list of
         lines. """
         subs = s.find('dl', recursive=False)
         ls = []
         if subs:
             for sub in subs:
-                g = clss.bm_html_soup_item_gen(sub, 1,
+                g = klass.bm_html_soup_item_gen(sub, 1,
                         output_format=output_format, print_leafs=print_leafs)
                 if g:
                     ls.extend( list(g) )

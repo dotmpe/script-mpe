@@ -55,7 +55,7 @@ import libcmd_docopt
 import log
 from libcmd_docopt import cmd_help
 from taxus import Taxus, ScriptMixin
-from res import Workdir, Repo, rabomut, ledger
+from res import Homedir, Workdir, Repo, rabomut, ledger
 
 # XXX: import entire schema
 import taxus.v0
@@ -260,8 +260,9 @@ commands['help'] = libcmd_docopt.cmd_help
 
 def defaults(opts, init={}):
     global cmd_default_settings, ctx
-    libcmd_docopt.defaults(opts.flags)
+    libcmd_docopt.defaults(opts)
     opts.flags.update(cmd_default_settings)
+    ctx.settings.update(opts.flags)
     opts.flags.update(ctx.settings)
     opts.flags.update(
         default_input_format = not (
@@ -279,6 +280,7 @@ def main(opts):
     """
     global ctx, commands
 
+    # Can safely replace ctx.settings too since defaults() has integrated it
     ctx.settings = settings = opts.flags
 
     if not settings.no_db:

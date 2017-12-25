@@ -25,5 +25,6 @@ from task import Task, TodoListParser, RedisSEIStore
 import todo
 from todo import TodoTxtParser
 from disk import Diskdoc
+from pfx import Prefixes
 
 import iface

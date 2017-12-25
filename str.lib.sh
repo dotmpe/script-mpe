@@ -355,6 +355,7 @@ resolve_prefix_element()
   echo "$2" | sed "s/^\\([^$3]*\\)$3.*$/\\1/"
 }
 
+# XXX: wouldn't `pr` suffice?
 column_layout()
 {
   test -n "$colw" || local colw=22

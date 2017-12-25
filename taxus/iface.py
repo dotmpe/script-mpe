@@ -14,6 +14,7 @@ from zope.interface import Interface, Attribute, implements, \
         implementedBy, providedBy, classImplements
 from zope.interface.interface import adapter_hooks
 from zope.interface.adapter import AdapterRegistry
+from zope.interface.verify import verifyObject
 from zope.component import \
         getGlobalSiteManager
 
@@ -223,13 +224,16 @@ def registerAdapter(adapterClass, sifaces=[], tiface=None):
 
 def hook( provided, o ):
     global registry
-    if  o  == None:
-        from script_mpe.taxus import out
-        return out.PrimitiveFormatter(None)
+    #if o  == None:
+    #    from script_mpe.taxus import out
+    #    return out.PrimitiveFormatter(None)
+    #print('o', o)
+    #if provided.providedBy(o):
+    #    return o
     adapted = providedBy( o )
-    #libcmd.err("Adapting %s:%s",  o , adapted)
-    adapter = registry.lookup1(
-            adapted, provided, '')
+    #print('provided', provided)
+    print("Adapting %s:%s",  o , adapted)
+    adapter = registry.lookup1( adapted, provided, '')
     if not adapter:
         import sys
         #libcmd.err("Could not adapt %s:%s > %s",  o , adapted, provided)

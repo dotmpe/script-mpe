@@ -34,6 +34,23 @@ API:
     'rs'
         - Use to pass exit code back from client to query method.
 
+
+Design
+-------
+The local-bg module is an experimental setup to 'background' a Python CLI
+script, to benefit from keeping cached and processed data in memory during
+multiple invocations.
+
+Subsequent executions are handled over a UNIX domain socket. The user commands
+are relayed via line-based protocol to the background server instance. The
+protocol is entirely line/text based, and has some overhead to re-interpret the
+result state (or error and message) from the response status line.
+
+Perhaps additional execution time can be shaved of by using a native command
+to execute commands and retrieve data over the socket. E.g projectdir.sh
+utilizes shell scripting with socat, instead of a new python process (loading
+the script and root libs too) just to talk to the backgrounded process.
+
 """
 from __future__ import print_function
 import os, sys

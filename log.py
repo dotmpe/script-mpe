@@ -110,12 +110,18 @@ def format_str(msg):
     return msg
 
 def stdout(msg, *args):
-    print(format_str(msg % args))
+    if args:
+        print(format_str(msg % args))
+    else:
+        print(format_str(msg))
 
 std = stdout
 
 def stderr(msg, *args):
-    print(format_str(msg % args), file=sys.stderr)
+    if args:
+        print(format_str(msg % args), file=sys.stderr)
+    else:
+        print(format_str(msg))
 
 category = 4
 #category = 7

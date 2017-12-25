@@ -458,3 +458,66 @@ htd_repository_url() # remote url
     url=$(echo $1 | cut -f1 -d'.'):$2
   }
 }
+
+
+# Update stats file, append entry to log and set as most current value
+htd_ws_stats_update()
+{
+  local id=_$($gdate +%Y%m%dT%H%M%S%N)
+  test -n "$ws_stats" || ws_stats=$workspace/.cllct/stats.yml
+  test -s "$ws_stats" || error "Missing '$ws_stats' doc" 1
+      # jsotk update requires prefixes to exist. Must create index before
+      # updating.
+  { cat <<EOM
+stats:
+  $prefix:
+    $1:
+      log:
+      - &$id $2
+      last: *$id
+EOM
+  } | {
+    trueish "$dump" && cat - || jsotk.py update $ws_stats - \
+        -Iyaml \
+        --list-union \
+        --clear-paths='["stats","'"$prefix"'","'"$1"'","last"]'
+  }
+  # NOTE: the way jsotk deep-update/union and ruamel.yaml aliases work it
+  # does not update the log properly by union. Unless we clear the reference
+  # first, before it overwrites both last key and log item at once. See jsotk
+  # update tests.
+}
+
+htd_ws_stat_init()
+{
+  test -n "$ws_stats" || ws_stats=$workspace/.cllct/stats.yml
+  test -s "$ws_stats" || echo "stats: {}" >$ws_stats
+  {
+    printf -- "stats:\n"
+    while read prefix
+    do
+        printf -- "  $prefix:\n"
+        printf -- "    $1: $2\n"
+    done
+  } | {
+    trueish "$dump" && cat - || jsotk.py merge-one $ws_stats - $ws_stats \
+    -Iyaml -Oyaml --pretty
+  }
+}
+
+htd_ws_stat_update()
+{
+  test -n "$ws_stats" || ws_stats=$workspace/.cllct/stats.yml
+  test -s "$ws_stats" || error "Missing '$ws_stats' doc" 1
+  {
+    printf -- "stats:\n"
+    while read prefix stat
+    do
+      printf -- "  $prefix:\n"
+      printf -- "    $1: \"$stat\"\n"
+    done
+  } | {
+    trueish "$dump" && cat - || jsotk.py merge-one $ws_stats - $ws_stats \
+    -Iyaml -Oyaml --pretty
+  }
+}

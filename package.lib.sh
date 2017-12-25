@@ -17,6 +17,7 @@ package_lib_set_local()
   default_package_id=$(
     jsotk.py -I yaml -O py objectpath $1/$PACKMETA '$.*[@.main is not None].main'
   )
+
   test -n "$package_id" || {
     package_id="$default_package_id"
     note "Set main '$package_id' from $1/package default"
@@ -89,7 +90,9 @@ update_package_sh()
   test -n "$1" -a -d "$1" || error "update-package-sh dir '$1'" 21
   test -n "$metash" || metash=$PACKMETA_SH
   test -n "$metamain" || metamain=$PACKMETA_JS_MAIN
+
   metash=$(normalize_relative "$metash")
+
   test ! -e "$metash" -o -f "$metash" || {
     error "metash file: $metash"
     return 1
@@ -296,9 +299,9 @@ package_sh_list_exists()
 htd_package_update()
 {
   test -n "$1" || set -- "$(pwd)"
-  package_lib_set_local "$1" &&
-      package_file $1 && update_package $1
+  package_lib_set_local "$1" && update_package $1
 }
+
 
 htd_package_debug()
 {

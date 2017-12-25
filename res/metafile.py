@@ -418,7 +418,7 @@ class MetafileFile(object): # XXX: Metalink syntax
         return os.path.exists(Class.get_metafile(path, basedir))
 
     @classmethod
-    def find(clss, path, shelve=None):
+    def find(klass, path, shelve=None):
         assert not shelve, 'TODO'
         metafile = Metafile.fetch(pathid)
         metafile = Metafile(path)
@@ -553,26 +553,30 @@ class Metadir(object):
     NAME_SUFFIXES = ['.id', '.uuid']
 
     @classmethod
-    def find_id(clss, *paths):
-        prefixes = clss.NAME_PREFIXES + ( '.'+clss.DOTNAME+'/', )
-        return list(confparse.find_config_path(clss.DOTID,
+    def find_id(klass, *paths):
+        prefixes = klass.NAME_PREFIXES + ( '.'+klass.DOTNAME+'/', )
+        return list(confparse.find_config_path(klass.DOTID,
             paths=list(paths),
             prefixes=prefixes,
-            suffixes=clss.NAME_SUFFIXES,
+            suffixes=klass.NAME_SUFFIXES,
             filesonly=True
         ))
 
     @classmethod
-    def find_meta(clss, *paths):
-        return list(confparse.find_config_path(clss.DOTNAME,
+    def find_meta(klass, *paths):
+        return list(confparse.find_config_path(klass.DOTNAME,
             paths=list(paths),
-            prefixes=clss.NAME_PREFIXES,
+            prefixes=klass.NAME_PREFIXES,
             suffixes=[''],
             filesonly=True
         ))
 
     @classmethod
-    def fetch(clss, *paths):
+    def find(klass, *paths):
+        raise NotImplementedError
+
+    @classmethod
+    def fetch(klass, *paths):
         """
         Find metadir by searching for markerleaf indicated by Class'
         DOTID property, using '.' DOTNAME '/' as one of the name prefixes.
@@ -582,11 +586,18 @@ class Metadir(object):
 
         Returning Class instance for first path, if any.
         """
-        configpaths = list(clss.find(*paths))
+        configpaths = list(klass.find(*paths))
         if configpaths:
             if len(configpaths) > 1:
-                log.warn('Using first config file %s for %s', clss.DOTID, configpaths)
-            return clss(configpaths[0])
+                log.warn('Using first config file %s for %s', klass.DOTID, configpaths)
+            return klass(configpaths[0]+'/.'+klass.DOTNAME)
+
+    @classmethod
+    def require(klass, *paths):
+        o = klass.fetch(*paths)
+        if not o:
+            raise Exception("No %s" % klass.__name__)
+        return o
 
     def __init__(self, path):
         """
@@ -602,6 +613,8 @@ class Metadir(object):
         if self.path.endswith(self.DOTNAME) or self.path.endswith(self.DOTNAME+'/'):
             self.path = os.path.dirname( self.path )
             self.prefix = '.'+self.DOTNAME+'/'
+        else:
+            self.prefix = None
         assert self.DOTNAME not in self.path.strip('/').split('/'), self.path
         self.init()
 

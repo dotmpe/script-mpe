@@ -1,4 +1,7 @@
 """
+:created: 2017-10-03
+:updated: 2017-12-09
+
 Simple command-line program setup with docopt.
 
 Parse options using docopt, use data as a optparse.Values alike.
@@ -6,12 +9,15 @@ And match arguments and options with e.g. command handler function signature
 arguments by name getting for function arguments.
 """
 from __future__ import print_function
+import os
 import sys
 import inspect
 from pprint import pformat
+import resource
 
 import docopt
 
+import lib
 import confparse
 import log
 
@@ -219,6 +225,23 @@ def cmd_help():
                     cmd.__doc__.split('\n'))) or '..'
             print(log.format_str("    {bwhite}%s{default}" % doc))
 
+
+def cmd_memdebug(settings):
+    # peak memory usage (bytes on OS X, kilobytes on Linux)
+    res_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    if os.uname()[0] == 'Linux':
+        res_usage /= 1024; # kilobytes?
+    # XXX: http://stackoverflow.com/questions/938733/total-memory-used-by-python-process
+    #res_usage /= resource.getpagesize()
+
+    db_size = os.path.getsize(os.path.realpath(settings.dbref[10:]))
+    for l, v in (
+            ( 'Storage Size', lib.human_readable_bytesize( db_size ) ),
+            ( 'Resource Usage', lib.human_readable_bytesize(res_usage) ),
+        ):
+            log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
+
+
 def init_config(path, defaults={}, overrides={}, persist=[]):
 
     """
@@ -243,3 +266,10 @@ def init_config(path, defaults={}, overrides={}, persist=[]):
             settings.volatile.append(k)
         setattr(settings, k, v)
     return settings
+
+def static_vars_from_env(usage, *specs):
+    for envname, default in specs:
+        value = os.getenv(envname, default)
+        if value is not default:
+            usage = usage.replace( default, value )
+    return usage
