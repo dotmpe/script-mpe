@@ -12,7 +12,6 @@ from __future__ import print_function
 import os
 import sys
 import inspect
-from pprint import pformat
 import resource
 
 import docopt
@@ -119,15 +118,15 @@ def select_kwdargs(handler, settings, **override):
         else:
             func_arg_vars[i] = None
     # Set values for keywords arguments
-    if not func_defaults:
-        func_defaults = {}
-    for k, v in func_defaults.items():
-        if k in settings.kwdarg_aliases:
-            k = settings.kwdarg_aliases[k]
-        if k in override:
-            func_defaults[k] = override[k]
-        elif k in settings:
-            func_defaults[k] = settings[k]
+    #if not func_defaults:
+    func_defaults = {} # XXX: should be tuple of value items
+    #for v in func_defaults:#.items():
+    #    if k in settings.kwdarg_aliases:
+    #        k = settings.kwdarg_aliases[k]
+    #    if k in override:
+    #        func_defaults[k] = override[k]
+    #    elif k in settings:
+    #        func_defaults[k] = settings[k]
     return func_arg_vars, func_defaults
 
 

@@ -49,12 +49,12 @@ note "sh-switch"
 
 note "Htd tools"
 { { htd tools
-} 2>&1 >/dev/null; } || error "htd tools" 1
+} 2>&1 >/dev/null; } || error "htd tools"
 
 note "box-instance:"
 { {
  box-instance.sh x foo bar && box-instance.sh y
-} 2>&1 >/dev/null; } || error "box-instance" 1
+} 2>&1 >/dev/null; } || error "box-instance"
 
 
 # Other commands in build #dev phase.

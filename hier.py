@@ -12,6 +12,7 @@ __usage__ = """
 Usage:
   hier.py [options] init
   hier.py [options] info
+  hier.py [options] stats
   hier.py [options] list
   hier.py [options] find LIKE
   hier.py [options] tree TODO
@@ -40,7 +41,6 @@ Options:
 """ % ( __db__, __couch__, __version__ )
 
 import os
-from pprint import pformat
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, \
         Table, create_engine, or_
@@ -49,6 +49,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 import log
 import libcmd_docopt
+import db_sa
 from res.ws import Homedir
 from taxus import Taxus
 from taxus.util import ORMMixin, ScriptMixin, get_session
@@ -66,43 +67,24 @@ models = [ Node, GroupNode, Folder, ID, Space, Name, Tag, Topic ]
 
 ctx = Taxus(version='hier')
 
-cmd_default_settings = dict(verbose=1, partial_match=True,
-        session_name='default', print_memory=False)
+cmd_default_settings = dict(verbose=1,
+        partial_match=True,
+        session_name='default',
+        print_memory=False,
+        all_tables=True, # FIXME
+        database_tables=False
+    )
 
 
 ### Commands
 
-def cmd_info(settings):
+db_sa.metadata = metadata
+cmd_info = db_sa.cmd_info
 
-    """
-        Verify DB connection is working. Print some settings and storage stats.
-    """
+
+def cmd_stats(g):
     global ctx
-
-    for l, v in (
-            ( 'Settings Raw', pformat(settings.todict()) ),
-            ( 'DBRef', settings.dbref ),
-            ( "Number of tables", len(metadata.tables.keys()) ),
-            ( "Tables in schema", ", ".join(metadata.tables.keys()) ),
-    ):
-        log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
-
-    empty = []
-    for t in metadata.tables:
-        try:
-            cnt = ctx.sa_session.query(metadata.tables[t].count()).all()[0][0]
-            if cnt:
-                log.std("  {blue}%s{default}: {bwhite}%s{default}", t, cnt)
-            else:
-                empty.append(t)
-        except Exception as e:
-            log.err("Count failed for %s: %s", t, e)
-
-    if empty:
-        log.warn("Found %i empty tables: %s", len(empty), ', '.join(empty))
-
-    log.std('{green}info {bwhite}OK{default}')
-    settings.print_memory = True
+    db_sa.cmd_sql_stats(g, sa=ctx.sa_session)
 
 
 def cmd_list(settings):

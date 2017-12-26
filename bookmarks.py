@@ -558,8 +558,6 @@ def cmd_chrome_groups(g):
 def cmd_html_check(HTML, g):
     print(HTML)
 
-def cmd_stats(g):
-    cmd_sql_stats(g)
 
 def cmd_sql_stats(g):
     global ctx

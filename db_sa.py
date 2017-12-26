@@ -45,6 +45,7 @@ import re
 import hashlib
 import inspect
 import codecs
+from pprint import pformat
 
 import zope.interface
 import zope.component
@@ -104,12 +105,13 @@ def cmd_reset(g):
     metadata.drop_all()
     metadata.create_all()
 
-def cmd_stats(g):
+def cmd_sql_stats(g, sa=None):
     """
     Print table record stats.
     """
     global metadata
-    sa = schema.get_session(g.dbref, metadata=metadata)
+    if not sa:
+        sa = schema.get_session(g.dbref, g.session_name, metadata=metadata)
     if g.all_tables or g.database_tables:
         if g.database_tables:
             reload_metadata(g)
@@ -137,15 +139,47 @@ def cmd_stats(g):
                 log.err("Count failed for %s: %s", m, e)
         log.std("%i models, done.", len(models))
 
-def cmd_info(g):
+def cmd_stats(g, sa=None):
+    cmd_sql_stats(g, sa=sa)
+    if g.debug:
+        log.std('{green}info {bwhite}OK{default}')
+        g.print_memory = True
+
+def cmd_info(g, sa=None):
+
+    """
+        Verify DB connection is working. Print some settings and storage stats.
+    """
+    global metadata
+
+    if not sa:
+        sa = get_session(g.dbref, g.session_name)
+
     if g.database_tables:
         reload_metadata(g)
         log.std("{yellow}Loaded tables from DB{default}")
+
     for l, v in (
+            ( 'Settings Raw', pformat(g.todict()) ),
             ( 'DBRef', g.dbref ),
+            ( "Number of tables", len(metadata.tables.keys()) ),
             ( "Tables in schema", ", ".join(metadata.tables.keys()) ),
     ):
         log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
+
+    empty = []
+    for t in metadata.tables:
+        try:
+            cnt = sa.query(metadata.tables[t].count()).all()[0][0]
+            if cnt:
+                log.std("  {blue}%s{default}: {bwhite}%s{default}", t, cnt)
+            else:
+                empty.append(t)
+        except Exception as e:
+            log.err("Count failed for %s: %s", t, e)
+
+    if empty:
+        log.warn("Found %i empty tables: %s", len(empty), ', '.join(empty))
 
 def cmd_list(MODEL, ID, g):
     sa = schema.get_session(g.dbref, metadata=metadata)
