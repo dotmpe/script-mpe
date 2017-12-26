@@ -110,8 +110,8 @@ htd_load()
 
   # TODO: clean up git-versioning app-id
   test -n "$APP_ID" -o ! -e .app-id || read APP_ID < .app-id
-  test -n "$APP_ID" -o ! -e $GITVER_ATTR ||
-      APP_ID="$(get_property $GITVER_ATTR "App-Id")"
+  test -n "$APP_ID" -o ! -e "$GITVER_ATTR" ||
+      APP_ID="$(get_property "$GITVER_ATTR" "App-Id")"
   test -n "$APP_ID" -o ! -e .git ||
       APP_ID="$(basename "$(git config remote.$vc_rt_def.url)" .git)"
 

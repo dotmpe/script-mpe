@@ -294,7 +294,7 @@ property()
 # Get from a properties file
 get_property() # Properties-File Key
 {
-  test -e "$1" -a -n "$2" || error "File Key expected" 1
+  test -e "$1" -a -n "$2" || error "Args 'File Key' expected: '$1' '$2'" 1
   grep '^'$2'\ *\(=\|:\).*$' $1 | sed 's/^[^:=]*\ *[:=]\ *//'
 }
 
