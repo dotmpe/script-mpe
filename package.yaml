@@ -100,6 +100,7 @@
       - htd package update
       - htd package remotes-init
       - vc regenerate
+        # XXX: interactve: python -c 'import nltk; nltk.download()'
     #check: pd check
     check:
       - htd gitflow-check-doc

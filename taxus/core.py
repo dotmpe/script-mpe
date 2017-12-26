@@ -19,13 +19,6 @@ from .util import ORMMixin
 from script_mpe import lib, log
 
 
-# mapping table for Node *-* Node
-#nodes_nodes = Table('nodes_nodes', SqlBase.metadata,
-#    Column('nodes_ida', Integer, ForeignKey('nodes.id'), nullable=False),
-#    Column('nodes_idb', Integer, ForeignKey('nodes.id'), nullable=False),
-#    Column('nodes_idc', Integer, ForeignKey('nodes.id'))
-#)
-
 class Node(SqlBase, CardMixin, ORMMixin):
 
     """
@@ -68,8 +61,8 @@ class Node(SqlBase, CardMixin, ORMMixin):
 
 
 groupnode_node_table = Table('groupnode_node', SqlBase.metadata,
-    Column('groupnode_id', Integer, ForeignKey('groupnodes.id'), primary_key=True),
-    Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True),
+    Column('groupnode_id', Integer, ForeignKey('groupnodes.id'), primary_key=True)
 )
 
 class GroupNode(Node):
@@ -150,6 +143,7 @@ class Scheme(Space):
     """
     Reserved names for Locator schemes.
     """
+
     __tablename__ = 'schemes'
     __mapper_args__ = {'polymorphic_identity': 'scheme-space'}
     scheme_id = Column('id', Integer, ForeignKey('spaces.id'), primary_key=True)
@@ -160,6 +154,7 @@ class Protocol(Scheme):
     """
     Reserved names for Locator schemes.
     """
+
     __tablename__ = 'protocols'
     __mapper_args__ = {'polymorphic_identity': 'protocol-scheme-space'}
     protocol_id = Column('id', Integer, ForeignKey('schemes.id'), primary_key=True)
@@ -168,37 +163,52 @@ class Protocol(Scheme):
 class Name(Node):
 
     """
-    A local unique name; title or human identifier.
+    A local unique unicode string without character restrictions; a title or
+    name or other user-provided identifier.
     """
+
     __tablename__ = 'names'
     __mapper_args__ = {'polymorphic_identity': 'name'}
     name_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
-    # Unique node Name (String ID)
+    # Unique string without character restrictions (aka User-ID-Label)
     name = Column(String(255), nullable=False, index=True, unique=True)
 
 
 class Tag(Name):
 
     """
+    A unique ASCII identifier for Names.
+
     XXX: name unique within some namespace?
+
+    Because tags are unqiue, there is no need for complex keys like in
+    materialized paths pattern. But it requires a complex query to get the path.
+
+    Importing a tag from an existing namespace should get it supernodes as well.
     """
 
     #zope.interface.implements(iface.IID)
 
-    __tablename__ = 'names_tag'
+    __tablename__ = 'tagnames'
     __mapper_args__ = {'polymorphic_identity': 'tag'}
 
     tag_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
 
-    label = Column(String(255), unique=True, nullable=True)
+    # Unqiue, normalized restricted char ASCII string
+    tag = Column(String(255), unique=True, nullable=False)
+
+    # One line defition, title, short description
+    short_description = Column(Text, nullable=True)
+
+    # Full user description
     description = Column(Text, nullable=True)
 
     def __str__(self):
-        if self.label:
-            return "%s %r" % ( self.name, self.label )
+        if self.short_description:
+            return "%s <%s>: %s" % ( self.name, self.tag, self.short_description )
         else:
-            return self.name
+            return "%s <%s>" % ( self.name, self.tag)
 
     @classmethod
     def clean_tag(klass, raw):
@@ -206,12 +216,17 @@ class Tag(Name):
 
     @classmethod
     def record(klass, raw, sa, g):
+        """
+        Create and return. Existing record is error in strict-mode,
+        FIXME: cleanup
+        """
         def record_inner(name):
+            tag = None
             try:
                 tag = sa.query(Tag).filter(Tag.name == name).one()
                 print('exists')
             except: pass
-            finally:
+            if tag:
                 if not g.strict:
                     return tag
                 raise Exception("Exact tag match exists '%s'" % tag)
@@ -220,17 +235,18 @@ class Tag(Name):
                 Tag.name.like('%'+stem+'%') for stem in
                     klass.clean_tag(name) )).all()
 
-            if tag_matches and not g.override_prefix:
+            if tag_matches:# and not g.override_prefix:
+                # TODO
                 g.interactive
                 print('Existing match for %s:' % name)
                 for t in tag_matches:
                     print(t)
                 raise ValueError
-            elif not tag_matches or g.override_prefix:
-                tag = Tag(name=name)
+            else:#if not tag_matches:# or g.override_prefix:
+                tag = Tag(name=name, tag=name)
                 tag.add_self_to_session(name=g.session_name)
                 return tag
-            else: pass
+
         if '/' in raw:
             els = raw.split('/')
             while els:
@@ -246,9 +262,11 @@ class Tag(Name):
     #tag = relationship('Localname', backref='tags')
 
 
+# Populate Tag.context with optionally recorded tag-usage realtions
+
 tag_context_table = Table('tag_context', SqlBase.metadata,
-        Column('tag_id', Integer, ForeignKey('names_tag.id'), primary_key=True),
-        Column('ctx_id', Integer, ForeignKey('names_tag.id'), primary_key=True),
+        Column('tag_id', Integer, ForeignKey('tagnames.id'), primary_key=True),
+        Column('ctx_id', Integer, ForeignKey('tagnames.id'), primary_key=True),
         Column('role', String(32), nullable=True)
 )
 
@@ -258,34 +276,29 @@ Tag.contexts = relationship('Tag', secondary=tag_context_table,
             backref='contains')
 
 
-# Record accumulated usage statistics for tag
+# Record accumulated usage statistics for tag, populate Tag.freq
 tags_freq = Table('names_tags_stat', SqlBase.metadata,
-        Column('tag_id', ForeignKey('names_tag.id'), primary_key=True),
-        Column('node_type', String(36), primary_key=True),
+        Column('tag_id', ForeignKey('tagnames.id'), primary_key=True),
         Column('frequency', Integer)
 )
-
-# TODO: migrate tags to topic
-topic_tag = Table('topic_tag', SqlBase.metadata,
-        Column('id', Integer, primary_key=True),
-        Column('topic_id', ForeignKey('names_topic.id'), primary_key=True),
-        Column('tag_id', ForeignKey('names_tag.id'), primary_key=True)
-    )
+#Tag.freq =
 
 
-class Topic(SqlBase, CardMixin, ORMMixin):
+class Topic(Tag):
 
-    __tablename__ = 'names_topic'
-    topic_id = Column('id', Integer, primary_key=True)
+    """
+    A Name/Tag node with XXX: ex/implicit about relations to path or resource.
+    """
 
-    name = Column(String(255), nullable=False, index=True, unique=True)
-    #tag_id = Column(Integer, ForeignKey('names_tag.id'))
-    #tag = relationship(Tag, secondary=topic_tag, backref='topics')
+    __tablename__ = 'tagnames_topic'
+    __mapper_args__ = {'polymorphic_identity': 'topic'}
+    topic_id = Column('id', Integer, ForeignKey('tagnames.id'), primary_key=True)
 
-    super_id = Column(Integer, ForeignKey('names_topic.id'))
+    super_id = Column(Integer, ForeignKey('tagnames_topic.id'))
     subs = relationship("Topic",
         cascade="all, delete-orphan",
-	backref=backref('super', remote_side=[topic_id]),
+        backref=backref('super', remote_side=[topic_id]),
+        foreign_keys=[super_id],
         collection_class=attribute_mapped_collection('name'),
     )
 

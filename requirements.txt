@@ -25,3 +25,5 @@ sadisplay
 BeautifulSoup
 shaarli-client
 pydelicious
+cherrypy
+nltk

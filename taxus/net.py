@@ -78,8 +78,9 @@ locators_checksums = Table('locators_checksums', SqlBase.metadata,
 # mapping table for Tag [*-*] Locator
 locators_tags = Table('locators_tags', SqlBase.metadata,
     Column('locator_ida', ForeignKey('ids_lctr.id')),
-    Column('tags_idb', ForeignKey('names_tag.id'))
+    Column('tags_idb', ForeignKey('tagnames.id'))
 )
+
 
 #class Locator(core.ID):
 class Locator(SqlBase, CardMixin, ORMMixin):

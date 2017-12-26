@@ -208,21 +208,25 @@ def run_commands(commands, settings, opts):
             if ret: return ret # non-zero exit
 
 
-def cmd_help():
+def cmd_help(CMD):
     cmds = sys.modules['__main__'].commands
-    for c, cmd in cmds.items():
-        if isinstance(cmd, dict):
-            print(log.format_str("{blue}%s{default}" % c))
-            for sc, scmd in cmd.items():
-                print(log.format_str("  {bblue}%s{default}" % (sc)))
-                doc = scmd.__doc__ and ' '.join(map(str.strip,
-                        scmd.__doc__.split('\n'))) or '..'
+    if not CMD:
+        print(sys.modules['__main__'].__doc__)
+        print("Usage:\n  hier.py help [ %s ]" % " | ".join(cmds.keys()))
+    else:
+        for c, cmd in cmds.items():
+            if isinstance(cmd, dict):
+                print(log.format_str("{blue}%s{default}" % c))
+                for sc, scmd in cmd.items():
+                    print(log.format_str("  {bblue}%s{default}" % (sc)))
+                    doc = scmd.__doc__ and ' '.join(map(str.strip,
+                            scmd.__doc__.split('\n'))) or '..'
+                    print(log.format_str("    {bwhite}%s{default}" % doc))
+            else:
+                print(log.format_str("{bblue}%s{default}" % c))
+                doc = cmd.__doc__ and ' '.join(map(str.strip,
+                        cmd.__doc__.split('\n'))) or '..'
                 print(log.format_str("    {bwhite}%s{default}" % doc))
-        else:
-            print(log.format_str("{bblue}%s{default}" % c))
-            doc = cmd.__doc__ and ' '.join(map(str.strip,
-                    cmd.__doc__.split('\n'))) or '..'
-            print(log.format_str("    {bwhite}%s{default}" % doc))
 
 
 def cmd_memdebug(settings):

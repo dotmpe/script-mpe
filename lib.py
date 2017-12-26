@@ -318,15 +318,27 @@ class Prompt(object):
                 return choice
 
     @classmethod
-    def pick(klass, question, items=[]):
+    def pick(klass, question, items=[], num=False):
+        if not question:
+            question = "Select one"
+        instruction = "enter choice (1-%i) and press return" % (len(items))
         while True:
-            print(log.format_str('{green}%s {blue}\n%s\n{bwhite}[{white}select number{bwhite}]{default} ' %
-                    (question, "\n".join([ "%i. %s" %(i+1, v) for i,v in
-                        enumerate(items)]))))
-            v = getch()
-            if not v.strip() or not v.isdigit():
-                continue
+            print(log.format_str('{green}%s {blue}\n%s\n{bwhite}[{white}%s{bwhite}]{default} ' %
+                    (question,  "\n".join([ "%i. %s" %(i+1, v) for i,v in
+                        enumerate(items)]), instruction)))
+            v = ''
+            while True:
+                x = getch()
+                if x == '\r':
+                    break
+                if not x.strip() or not x.isdigit():
+                    x = '' ; break
+                v += x
+                print(v)
+            if not v: continue
             i = int(v)
             if i > len(items):
                 continue
+            if num:
+                return i-1
             return items[i-1]

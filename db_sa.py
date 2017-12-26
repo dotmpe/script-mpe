@@ -13,7 +13,8 @@ Usage:
   db.py [options] (info|show|init|reset|stats|describe) [<schema>]
   db.py list MODEL [<schema>] [ID]
   db.py export <schema> JSON
-  db.py help
+  db.py memdebug [<schema>]
+  db.py help [ CMD ]
   db.py -h|--help
   db.py --version
 
@@ -31,6 +32,8 @@ Options:
     --database-tables
                   Implies --all-tables, but reload metadata from database
                   Iow. this shows the actual schema in case of mismatch.
+    --print-memory
+                  Print memory usage just before program ends.
     -v
     --verbosity VALUE
                   Increase verbosity.
@@ -245,7 +248,10 @@ def cmd_export(g, opts):
 ### Transform cmd_ function names to nested dict
 
 commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = libcmd_docopt.cmd_help
+commands.update(dict(
+        help = libcmd_docopt.cmd_help,
+        memdebug = libcmd_docopt.cmd_memdebug
+))
 
 
 ### Util functions to run above functions from cmdline
@@ -257,7 +263,10 @@ def main(opts):
     """
 
     settings = opts.flags
-    return libcmd_docopt.run_commands(commands, settings, opts)
+    ret = libcmd_docopt.run_commands(commands, settings, opts)
+    if settings.print_memory:
+        libcmd_docopt.cmd_memdebug(settings)
+    return ret
 
 def get_version():
     return 'db_sa.mpe/%s' % __version__
