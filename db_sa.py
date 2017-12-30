@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """db_sa - DB init/reinit/stats for SQLite, using SQLAlchemy schema
+
+:Created: 2014-08-31
 """
 from __future__ import print_function
 __version__ = '0.0.4-dev' # script-mpe
@@ -95,11 +97,13 @@ def cmd_init(g):
     # XXX: update schema..
     metadata.create_all()
 
-def cmd_reset(g):
+def cmd_reset(g, sa=None):
     """
     Drop all tables and recreate schema.
     """
-    schema.get_session(g.dbref, metadata=metadata)
+    global schema, metadata
+    if not sa:
+        sa = schema.get_session(g.dbref, metadata=metadata)
     print("Tables in schema:", ", ".join(metadata.tables.keys()))
     if not g.yes:
         x = raw_input("This will destroy all data? [yN] ")
@@ -114,7 +118,7 @@ def cmd_sql_stats(g, sa=None):
     """
     global metadata
     if not sa:
-        sa = schema.get_session(g.dbref, g.session_name, metadata=metadata)
+        sa = schema.get_session(g.dbref, 'default', metadata=metadata)
     if g.all_tables or g.database_tables:
         if g.database_tables:
             reload_metadata(g)
@@ -148,6 +152,7 @@ def cmd_stats(g, sa=None):
         log.std('{green}info {bwhite}OK{default}')
         g.print_memory = True
 
+
 def cmd_info(g, sa=None):
 
     """
@@ -156,7 +161,7 @@ def cmd_info(g, sa=None):
     global metadata
 
     if not sa:
-        sa = get_session(g.dbref, g.session_name)
+        sa = get_session(g.dbref, 'default')
 
     if g.database_tables:
         reload_metadata(g)
@@ -290,6 +295,8 @@ if __name__ == '__main__':
         schema = sys.modules[__name__]
 
     metadata = schema.SqlBase.metadata
+
+    opts.flags.debug = False
 
     if opts.flags.dbref == __db__:
         if hasattr(schema, '__db__'):

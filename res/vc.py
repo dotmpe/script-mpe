@@ -1,3 +1,10 @@
+"""
+res.vc - find version-control repositories and list contents
+
+Python native scans to detect VC type per dir. Walk using res.fs.Dir and
+ignores defined there. Using `vc` script invocations to get data already
+extracted by a shell script function.
+"""
 import os
 
 from script_mpe import lib, log

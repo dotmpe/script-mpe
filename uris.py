@@ -1,41 +1,59 @@
 #!/usr/bin/env python
 """
-:created: 2017-08-13
+:Created: 2017-08-13
 
+Commands:
+
+  Database:
+    - info | init | stats | clear
 """
 from __future__ import print_function
 __description__ = "uris - "
+__short_description__ = "..."
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.bookmarks.sqlite'
 __usage__ = """
 Usage:
   uris.py [options] list [NAME]
+  uris.py [options] info | init | stats | clear
   uris.py -h|--help
+  uris.py help [CMD]
   uris.py --version
 
 Options:
-    -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: %s]
-    -s SESSION --session-name SESSION
-                  should be bookmarks [default: default].
-    --output-format FMT
-                  json, repr [default: rst]
-    --no-commit   .
-    --commit      [default: true].
-    -v            Increase verbosity.
-    --verbose     Default.
-    -q, --quiet   Turn off verbosity.
-    -h --help     Show this usage description.
-                  For a command and argument description use the command 'help'.
-    --version     Show version (%s).
+  -d REF --dbref=REF
+                SQLAlchemy DB URL [default: %s]
+  -s SESSION --session-name SESSION
+                should be bookmarks [default: default].
+  --output-format FMT
+                json, repr [default: rst]
+  --interactive
+                Prompt to resolve or override certain warnings.
+                XXX: Normally interactive should be enabled if while process has a
+                terminal on stdin and stdout.
+  --batch
+                Overrules `interactive`, exit on errors or strict warnings.
+  --no-commit   .
+  --commit      [default: true].
+  --dry-run
+                Implies `no-commit`.
+  -v            Increase verbosity.
+  --verbose     Default.
+  -q, --quiet   Turn off verbosity.
+  -h --help     Show this usage description.
+                For a command and argument description use the command 'help'.
+  --version     Show version (%s).
 
+See 'help' for manual or per-command usage.
+This is the short usage description '-h/--help'.
 """ % ( __db__, __version__, )
-from datetime import datetime, timedelta
 import os
 import re
+import sys
 import hashlib
 import urllib
 from urlparse import urlparse
+from datetime import datetime, timedelta
 
 import couchdb
 #import zope.interface
@@ -44,29 +62,26 @@ from pydelicious import dlcs_parse_xml
 from sqlalchemy import or_
 import BeautifulSoup
 
-import log
-import confparse
-import libcmd_docopt
-import libcmd
-import rsr
-import taxus.iface
-import res.iface
-import res.js
-import res.bm
-from res import Volumedir
-from res.util import ISO_8601_DATETIME
-from taxus import init as model
-from taxus.init import SqlBase, get_session
-from taxus.core import ID, Node, Name, Tag
-from taxus.net import Locator, Domain
-from taxus.model import Bookmark
+from script_mpe.libhtd import *
+from script_mpe.taxus.v0 import \
+        ID, Node, Name, Tag, \
+        Locator, Domain, \
+        Bookmark
+
 
 
 models = [ Locator, Tag, Domain, Bookmark ]
 
-# were all SQL schema is kept. bound to engine on get_session
-SqlBase = model.SqlBase
+cmd_default_settings = dict(
+        debug=False,
+        verbose=1,
+        all_tables=True,
+        database_tables=False,
+        exact_match=False,
+    )
 
+
+### Commands
 
 
 def cmd_list(NAME, settings):
@@ -95,13 +110,51 @@ def cmd_list(NAME, settings):
         print(out( l.to_dict() ))
 
 
+def cmd_info(settings):
+    for l, v in (
+            ( 'DBRef', settings.dbref ),
+            ( "Tables in schema", ", ".join(SqlBase.metadata.tables.keys()) ),
+    ):
+        log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
+
+
+def cmd_stats(g, sa=None):
+    db_sa.cmd_sql_stats(g, sa=sa)
+    if g.debug:
+        log.std('{green}info {bwhite}OK{default}')
+        g.print_memory = True
+
+
 ### Transform cmd_ function names to nested dict
 
 commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = libcmd_docopt.cmd_help
+commands.update(dict(
+        help = libcmd_docopt.cmd_help,
+        memdebug = libcmd_docopt.cmd_memdebug,
+        info = db_sa.cmd_info,
+        init = db_sa.cmd_init,
+        clear = db_sa.cmd_reset
+))
 
 
 ### Util functions to run above functions from cmdline
+
+def defaults(opts, init={}):
+    global cmd_default_settings
+    libcmd_docopt.defaults(opts)
+    opts.flags.update(cmd_default_settings)
+    opts.flags.update(dict(
+        commit = not opts.flags.no_commit and not opts.flags.dry_run,
+        verbose = opts.flags.quiet and opts.flags.verbose or 1,
+    ))
+    if not opts.flags.interactive:
+        if os.isatty(sys.stdout.fileno()) and os.isatty(sys.stdout.fileno()):
+            opts.flags.interactive = True
+    opts.flags.update(dict(
+        partial_match = not opts.flags.exact_match,
+        dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
+    ))
+    return init
 
 def main(opts):
 
@@ -110,22 +163,21 @@ def main(opts):
     """
 
     settings = opts.flags
-    opts.flags.commit = not opts.flags.no_commit
-    opts.flags.verbose = not opts.flags.quiet
     return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'bookmarks.mpe/%s' % __version__
 
 if __name__ == '__main__':
-    #bookmarks.main()
-    import sys
     reload(sys)
     sys.setdefaultencoding('utf-8')
-    db = os.getenv( 'BOOKMARKS_DB', __db__ )
-    # TODO : vdir = Volumedir.find()
-    if db is not __db__:
-        __usage__ = __usage__.replace(__db__, db)
-    opts = libcmd_docopt.get_opts(__doc__ + __usage__, version=get_version())
-    opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
+    usage = __description__ +'\n\n'+ __short_description__ +'\n'+ \
+            libcmd_docopt.static_vars_from_env(__usage__,
+        ( 'BM_DB', __db__ ) )
+
+    db_sa.schema = sys.modules['__main__']
+    db_sa.metadata = SqlBase.metadata
+
+    opts = libcmd_docopt.get_opts(usage,
+            version=get_version(), defaults=defaults)
     sys.exit(main(opts))

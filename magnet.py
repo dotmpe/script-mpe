@@ -1,6 +1,6 @@
 #!/usr/bin/env  python
 """
-:created: 2017-05-06
+:Created: 2017-05-06
 
 Given a urllib retrievable, concatenate some hashsums and other attributes into
 a magnet URI.

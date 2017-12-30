@@ -38,4 +38,3 @@ class JournalDir(object):
 
     def entries(self):
         pass
-

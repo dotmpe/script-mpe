@@ -235,6 +235,7 @@ log()
   test -n "$stdout_type" || stdout_type="$stdio_1_type"
   test -n "$stdout_type" || stdout_type=t
 
+  local key=
   test -n "$SHELL" \
     && key="$scriptname.$(basename "$SHELL")" \
     || key="$scriptname.(sh)"

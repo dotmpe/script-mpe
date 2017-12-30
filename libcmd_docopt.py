@@ -1,5 +1,5 @@
 """
-:created: 2017-10-03
+:Created: 2017-10-03
 :updated: 2017-12-09
 
 Simple command-line program setup with docopt.

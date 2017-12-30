@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-:created: 2016-01-24
+:Created: 2016-01-24
 
 Python helper to query/update graphviz graph file.
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-""":created: 2016-09-04
-:updated: 2017-12-26
+"""
+:Created: 2016-09-04
+:Updated: 2017-12-26
 
 - Record generic tags, as unicode strings with associated ASCII ID.
 - Track generic added, updated and deleted datetime and state for tags.
@@ -23,6 +24,7 @@ Commands:
 
   Database:
     - info | init | stats | clear
+
 """
 from __future__ import print_function
 
@@ -34,34 +36,49 @@ __db__ = '~/.hier.sqlite'
 __couch__ = 'http://localhost:5984/the-registry'
 __usage__ = """
 Usage:
-  hier.py [options] info | init | stats | clear
   hier.py [options] roots [ LIKE ]
   hier.py [options] ( find | tree | delete ) [ LIKE [ GROUP... ] ]
   hier.py [options] assertall TAGS...
   hier.py [options] assert NAME [ TYPE ]
+  hier.py [options] show [ NAME ] [ TAG ]
   hier.py [options] group ID SUB...
   hier.py [options] ( up | ungroup ) SUB...
   hier.py [options] cp SRC DEST
   hier.py [options] mv SRC... DEST
   hier.py [options] wordnet WORD
-  hier.py [options] clear
-  hier.py help [CMD]
+  hier.py [options] backup
+  hier.py [options] info | init | stats | clear
   hier.py -h|--help
+  hier.py help [CMD]
+  hier.py --version
 
 Options:
-  -d REF --dbref=REF
+  -d REF, --dbref=REF
                 SQLAlchemy DB URL [default: %s] (sh env 'HIER_DB')
   --no-db       Don't initialize SQL DB connection or query DB.
   --couch=REF
                 Couch DB URL [default: %s] (sh env 'COUCH_DB')
+  --auto-commit
   -i FILE --input=FILE
   -o FILE --output=FILE
   --add-prefix=PREFIX
                 Use this context with the provided tags.
+  --names
+                Don't just operate on Tag names but every name, for commands
+                that do not use Tag-specific attributesi, methods or relations.
   --interactive
                 Prompt to resolve or override certain warnings.
                 XXX: Normally interactive should be enabled if while process has a
                 terminal on stdin and stdout.
+  --batch
+                Overrules `interactive`, exit on errors or strict warnings.
+  --commit
+                Commit DB session at the end of the command [default].
+  --no-commit
+                Turn off commit, performs operations on SQL Alchemy ORM objects
+                but does not commit session.
+  --dry-run
+                Implies `no-commit`.
   --recurse
                 Make action recursive.
   --strict
@@ -69,8 +86,6 @@ Options:
   --force
                 Assume yes or override warning. Overrules `interactive` and
                 `strict`.
-  --batch
-                Overrules `interactive`, exit on errors or strict warnings.
   --override-prefix
                 ..
   --print-memory
@@ -79,41 +94,24 @@ Options:
                 For a command and argument description use the command 'help'.
   --version     Show version (%s).
 
-See 'help' for manual or per-command usage.
-This is the short usage description '-h/--help'.
-
+See 'help' for manual or per-command usage. This is '-h/--help' usage listing.
 """ % ( __db__, __couch__, __version__ )
 
 import os
+import sys
 
-from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, \
-        Table, create_engine, or_
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.declarative import declarative_base
-
-import log
-import libcmd_docopt
-import db_sa
-from lib import Prompt
-from libwn import *
-from res.ws import Homedir
-from taxus import Taxus
-from taxus.util import ORMMixin, ScriptMixin, get_session
+from script_mpe.libhtd import *
+from script_mpe.libwn import *
+from script_mpe.taxus.v0 import \
+    SqlBase, Node, Folder, ID, Space, Name, Tag, Topic
 
 
-
-### Object classes
-
-from taxus import SqlBase
-metadata = SqlBase.metadata
-
-from taxus import v0
-from taxus.v0 import Node, GroupNode, Folder, ID, Space, Name, Tag, Topic
-models = [ Node, GroupNode, Folder, ID, Space, Name, Tag, Topic ]
+models = [ Node, Folder, ID, Space, Name, Tag, Topic ]
 
 ctx = Taxus(version='hier')
 
-cmd_default_settings = dict(verbose=1,
+cmd_default_settings = dict( verbose=1,
+        commit=True,
         partial_match=True,
         session_name='default',
         print_memory=False,
@@ -137,20 +135,35 @@ def cmd_roots(LIKE, g):
         print(root.name)
 
 
-def cmd_find(settings, LIKE, GROUP):
+def cmd_find(g, LIKE, GROUP):
     """
         Look for tag by name, everywhere or in group(s).
         With `recurse` option, require group(s) and look over each sub too.
         Use `max-depth` to control maximum recursion level, and `count` or
         `first` to limit results.
     """
-
     global ctx
-    q = ctx.sa_session.query(Tag)
-    if GROUP: q = q.filter(Tag.contexts == GROUP)
-    q = q.filter(Tag.name.like(LIKE))
-    for tag in q.all():
-        print(tag.name)
+    klass = g.names and Name or Tag
+    q = ctx.sa_session.query(klass)
+    if GROUP: q = q.filter(klass.contexts == GROUP)
+    if LIKE: q = q.filter(klass.name.like('%'+LIKE+'%'))
+    for t in q.all():
+        print(t.name)
+
+
+def cmd_show(g, NAME, TAG):
+    """
+        Retrieve one tag and print record, fetching by exact name or tag.
+    """
+    if not ( NAME or TAG ): return 1
+    global ctx
+    klass = g.names and Name or Tag
+    q = ctx.sa_session.query(klass)
+    if TAG: q = q.filter(klass.tag == TAG)
+    elif NAME: q = q.filter(klass.name == NAME)
+    try: tag = q.one()
+    except: return 1
+    print(tag)
 
 
 def cmd_tree(SUB, GROUP, g):
@@ -165,7 +178,6 @@ def cmd_assertall(TAGS, g):
     """
         Record tags/paths. Report on inconsistencies.
     """
-
     global ctx
     assert TAGS # TODO: read from stdin
     for raw_tag in TAGS:
@@ -182,12 +194,14 @@ def cmd_delete(SUB, GROUP, g):
 
 def cmd_wordnet(WORD, g):
     """
-        Import word and all of its hypernyms from wordnet.
+        Import word and all of its hypernyms from wordnet and record as Topics.
     """
     global ctx
-
     if not WORD: return 1
     syn, syns = syn_or_syns(WORD)
+    if not syn and not syns:
+        log.stderr('{yellow}No results{default}')
+        return 1
 
     i = 0
     if not syn:
@@ -195,10 +209,49 @@ def cmd_wordnet(WORD, g):
             log.stderr( "Multiple synonyms, enter an exact word name or "+
                     "enable interactive mode")
             return 1
-        items = [ short_def(s) for s in syns ],
-        i = Prompt.pick(None, items=items, num=True)
+        items = [ short_def(s) for s in syns ]
+        if len(items) > 1:
+            i = Prompt.pick(None, items=items, num=True)
+        else:
+            i = 0
+        syn = syns[i]
 
-    print_short_def(syns[i])
+    nodes = []
+    path = [ (0, syn) ] + list( traverse_hypernyms(syn, d=1) )
+    path.reverse()
+    for i, (d, s) in enumerate(path):
+        print_short_def(s, d=d)
+
+        pos = wn_positions_label[s.pos()]
+        tag_name = wn_sense(s.name(), s)
+
+        n = Topic.byName(name=tag_name, sa=ctx.sa_session)
+        if not n:
+            _id = None
+            if i > 0: _id = nodes[-1].node_id
+            n = Topic.forge(dict(
+                    name=tag_name,
+                    supernode_id=_id,
+                    description=s.definition(),
+                    short_description=s.definition(),
+                ), g, sa=ctx.sa_session)
+
+            log.stdout('{default}imported %s: %s' % (pos, n))
+            if g.auto_commit:
+                ctx.sa_session.commit()
+        nodes.append(n)
+
+    if g.commit:
+        ctx.sa_session.commit()
+
+
+def cmd_backup(g):
+    global ctx
+
+    types = "node name tag topic".split(' ')
+    for n in Node.all():
+        if n.ntype not in types: continue
+        print(n)
 
 
 """
@@ -213,7 +266,6 @@ def cmd_couchdb_prefix(settings, opts, NAME, BASE):
     """
 
 
-db_sa.metadata = metadata
 def cmd_stats(g):
     global ctx
     db_sa.cmd_sql_stats(g, sa=ctx.sa_session)
@@ -239,7 +291,16 @@ def defaults(opts, init={}):
     opts.flags.update(cmd_default_settings)
     ctx.settings.update(opts.flags)
     opts.flags.update(ctx.settings)
-    opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
+    opts.flags.update(dict(
+        dbref = ScriptMixin.assert_dbref(opts.flags.dbref),
+        commit = not opts.flags.no_commit and not opts.flags.dry_run,
+        interactive = not opts.flags.batch,
+        verbose = not opts.flags.quiet
+    ))
+    if not opts.flags.interactive:
+        if os.isatty(sys.stdout.fileno()) and os.isatty(sys.stdout.fileno()):
+            opts.flags.interactive = True
+
     return init
 
 def main(opts):
@@ -269,12 +330,15 @@ def get_version():
 
 
 if __name__ == '__main__':
-    import sys
-
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
     usage = __description__ +'\n\n'+ __short_description__ +'\n'+ \
             libcmd_docopt.static_vars_from_env(__usage__,
         ( 'HIER_DB', __db__ ),
         ( 'COUCH_DB', __couch__ ) )
+
+    db_sa.schema = sys.modules['__main__']
+    db_sa.metadata = SqlBase.metadata
 
     opts = libcmd_docopt.get_opts(usage,
             version=get_version(), defaults=defaults)

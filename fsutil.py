@@ -28,6 +28,3 @@ def read_idfile(path):
     if index:
         unid, title = unid[:index], unid[index+1:]
     return unid, title
-
-
-

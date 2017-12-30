@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+:Craeated: 2014-08-31
+"""
 from __future__ import print_function
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.budget.sqlite'

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 """
+:Created: 2009-09-23
+
+
 TODO Find metadata storage on OS X.
 TODO integrate with libcmd, taxus
 """

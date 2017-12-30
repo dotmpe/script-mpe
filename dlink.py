@@ -1,5 +1,7 @@
 #!/usr/bin/python
 """
+:Created: 2011-03-29
+
 Double link.
 
  $ dlink link-path
@@ -27,7 +29,7 @@ def main():
         count += 1
         backlink = "%s.%s.%i" % (target, 'link', count)
     assert not os.path.islink(backlink)
-    if not link:    
+    if not link:
         link = os.path.join(cwd, os.path.basename(target))
     if not ( os.path.exists(link) or os.path.islink(link)):
         os.symlink(target, link)
@@ -35,4 +37,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

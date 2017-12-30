@@ -365,7 +365,7 @@ class Rsr(libcmd.StackedCommand):
     def rsr_info(self, prog, context, opts, sa, nodes):
         "Log some session statistics and info"
         log.note("SQLAlchemy session: %s", sa)
-        models = taxus.core.ID, Node, Name, Tag, taxus.GroupNode, taxus.INode, taxus.Locator
+        models = taxus.core.ID, Node, Name, Tag, taxus.INode, taxus.Locator
         cnt = {}
         for m in models:
             cnt[m] = sa.query(m).count()
@@ -619,4 +619,3 @@ class Rsr(libcmd.StackedCommand):
 
 if __name__ == '__main__':
     Rsr.main()
-

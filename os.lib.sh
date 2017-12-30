@@ -545,3 +545,21 @@ isnonemptydir()
 {
   test -d "$1" -a "$(echo $1/*)" != "$1/*"
 }
+
+find_one()
+{
+  find_num "$@"
+}
+
+find_num()
+{
+  test -n "$1" -a -n "$2" || error "find-num" 1
+  test -n "$3" || set -- "$@" 1
+  local c=0
+  find "$1" -iname "$2" | while read path
+  do
+      c=$(( $c + 1 ))
+      test $c -le $3 || return 1
+      echo "$path"
+  done
+}

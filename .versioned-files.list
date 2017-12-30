@@ -41,7 +41,6 @@ topics.sh
 topic.py
 tasks.sh
 tasks.py
-tag.py
 todo-meta.py
 todo.py
 db.py

@@ -59,8 +59,8 @@ from libcmd_docopt import cmd_help
 from taxus import Taxus, v0, ScriptMixin
 from taxus.init import SqlBase, get_session
 from res import Workdir, Repo, Homedir
+from res.dt import modified_before, older_than
 from taxus.v0 import Node, Topic, Host, Project, VersionControl
-from datelib import modified_before, older_than
 from pdlib import *
 from jsotk_lib import deep_update
 

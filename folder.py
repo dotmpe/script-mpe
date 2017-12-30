@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-""":created: 2014-09-28
+"""
+:created: 2014-09-28
 :updated: 2014-10-12
 
 TODO: keep open (active) vs. closed (inactive) indicators for groups
-TODO: group other nodes. See GroupNode 1--* Node from taxus.Core.
 TODO: find prelimanary way to represent nodes from other stores
 TODO: print path relative to current dir
 
@@ -93,7 +93,7 @@ def cmd_new(NAME, REF, settings):
     print_Folder(folder)
 
 
-# GroupNode operations
+# FIXME: cleanup GroupNode operations
 
 def cmd_group(ID, SUB, settings):
 

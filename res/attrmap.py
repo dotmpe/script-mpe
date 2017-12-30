@@ -1,3 +1,6 @@
+"""
+TODO: get a better place than res
+"""
 class AttributeMapWrapper(object):
 
     """

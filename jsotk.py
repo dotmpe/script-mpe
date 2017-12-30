@@ -4,8 +4,8 @@ jsotk
 =====
 Javascript Object toolkit
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-:created: 2015-12-28
-:updated: 2017-12-08
+:Created: 2015-12-28
+:Updated: 2017-12-08
 
 
 Read, convert, query or combine YAML or JSON-type data.

@@ -7,6 +7,7 @@ import base64
 from UserDict import UserDict
 
 # local
+import mb
 import task
 import txt
 
@@ -18,16 +19,15 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
     All parts, except projects and contexts are removed.
     The non-std part `issue-id` is a leading tag+':' field.
     """
+
     fields = ("completed priority creation_date completion_date"\
         " projects contexts attrs hold issue_id").split(" ")
     prio_prefix_r = re.compile("^\s*\(([A-F])\)\ |$")
-    start_c = r'(^|\W)'
-    end_c = r'(?=\ |$|[%s])' % task.excluded_c
-    prj_r = re.compile(r"%s\+([%s]+)%s" % (start_c, task.prefixed_tag_c, end_c))
-    ctx_r = re.compile(r"%s@([%s]+)%s" % (start_c, task.prefixed_tag_c, end_c))
-    meta_r = re.compile(r"%s([%s]+):([%s]+)%s" % (start_c,
-        task.meta_tag_c, task.value_c, end_c ))
-    issue_id_r = re.compile(r"%s([%s]+):%s" % (start_c, task.meta_tag_c, end_c))
+    prj_r = re.compile(r"%s\+([%s]+)%s" % (mb.start_c, task.prefixed_tag_c, mb.end_c))
+    ctx_r = re.compile(r"%s@([%s]+)%s" % (mb.start_c, task.prefixed_tag_c, mb.end_c))
+    meta_r = re.compile(r"%s([%s]+):([%s]+)%s" % (mb.start_c,
+        task.meta_tag_c, mb.value_c, mb.end_c ))
+    issue_id_r = re.compile(r"%s([%s]+):%s" % (mb.start_c, task.meta_tag_c, mb.end_c))
 
     def __init__(self, raw, **attrs):
         super(TodoTxtTaskParser, self).__init__(raw, **attrs)
@@ -99,6 +99,7 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
     doc_id = property(get_doc_id)
     def todotxt(self):
         t = self.text
+        """
         if self.creation_date:
             t = self.creation_date+' '+t
         if self.completed:
@@ -107,6 +108,7 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
             t = 'x '+t
         elif self.priority:
             t = "(%s) "+t
+        """
         if self.attrs:
             t += ' '+self.attrs_str
         if self.hold:
@@ -199,4 +201,3 @@ class TodoTxtParser(UserDict):
             return True
         elif tagid in self.tag_ids:
             return True
-

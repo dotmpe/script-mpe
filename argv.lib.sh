@@ -39,10 +39,7 @@ test_file()
 
 test_glob()
 {
-  for x in $1
-  do
-    test -e "$x" || return 1
-  done
+  test "$(echo $1)" = "$1" && return 1 || return 0
 }
 
 

@@ -1,4 +1,5 @@
 """
+:Created: 2012-05-27
 """
 import os, sys, re, anydbm
 
@@ -64,4 +65,3 @@ def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
 if __name__ == '__main__':
     from libcmdng import TargetResolver
     TargetResolver().main(['lnd:tag'])
-

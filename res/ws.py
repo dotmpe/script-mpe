@@ -1,43 +1,45 @@
+"""
+res.ws - work with metadirs as context
+
+Define and manage untracked files, and/or collections of repositories.
+
+XXX: The generic workspace is rooted in .cllct/ws.*id dirs by default.
+Based on Workspace, three more specific types are given which all seem to
+make some sense but need a bit of additional refinement or coordination. This
+is current order of the inheritance ::
+
+  Workspace .cllct/ws.*id
+    Workdir .cllct/local.*id
+      Homedir .cllct/home.*id
+    Volumedir .cllct/vol.*id
+
+Refactoring ideas::
+
+  Workspace .cllct/ws.*id - abstract with basic metadir based tooling
+    Workdir .cllct/local.*id - movable user-dir, maybe overlap with volume-dir
+    Basedir .cllct/home.*id - tracked workspace, sync, etc.
+      Homedir .cllct/home.*id - one per system/user at most
+      Volumedir .cllct/vol.*id - one per either physical or storage partition
+
+Workspace has no restrictions: construction, instance count, cardinality etc.
+Volume dir is tied to certain paths, mount points specifically, and Homedir
+is also prescribed by the host system. Both are basedirs to give them
+access to global state. Workdir should represent an adapter to the current
+or selected basedir, while Basedir maybe is recursive and includes checkouts.
+"""
 import os
 import anydbm
 import shelve
 
-from script_mpe import confparse
-from script_mpe.confparse import yaml_load, yaml_dumps
+from confparse import Values, YAMLValues
 
 from persistence import PersistedMetaObject
 from metafile import Metadir
 from vc import Repo
+from res import AbstractYamlDocs
 
 
-class YamlDoc(object):
-
-    def get_yaml(self, name, defaults=None):
-        raise NotImplementedError()
-
-    def load_yaml(self, name, defaults=None):
-        p = self.get_yaml(name, defaults=defaults)
-        return confparse.yaml_load(open(p))
-
-    def yamldoc(self, name, defaults=None):
-        if name.endswith('doc'):
-            a = name
-        else:
-            a = name+'doc'
-        assert not hasattr(self, a), name
-        doc = self.load_yaml(name, defaults=defaults)
-        setattr(self, a, doc)
-
-    def yamlsave(self, name, **kwds):
-        doc = getattr(self, name)
-        p = self.get_yaml(name)
-        self.save_yaml(p, doc, **kwds)
-
-    def save_yaml(self, p, doc, **kwds):
-        confparse.yaml_dump(open(p,'w+'), doc, **kwds)
-
-
-class Workspace(YamlDoc, Metadir):
+class Workspace(AbstractYamlDocs, Metadir):
 
     """
     Workspaces are containers for specifically structured and tagged
@@ -54,17 +56,6 @@ class Workspace(YamlDoc, Metadir):
     index_specs = [
         ]
 
-    def __init__(self, path):
-        super(Workspace, self).__init__(path)
-        self.store = None
-        self.indices = {}
-        conf = self.metadirref('yaml')
-        if os.path.exists(conf):
-            self.settings = confparse.YAMLValues.load(conf)
-            assert isinstance(self.settings, dict), self.settings
-        else:
-            self.settings = {}
-
     @classmethod
     def get_session(klass, scriptname, scriptversion):
         """
@@ -72,17 +63,31 @@ class Workspace(YamlDoc, Metadir):
             - load modules needed for script, possibly interdepent modules
             - assert data is at the required schema version using migrate
         """
+        raise NotImplementedError()
+
+    def __init__(self, path):
+        super(Workspace, self).__init__(path)
+        self.load_settings()
+
+    def load_settings(self):
+        conf = self.metadirref('yaml')
+        if os.path.exists(conf):
+            self.settings = YAMLValues.load(conf)
+            assert isinstance(self.settings, dict), self.settings
+        else:
+            self.settings = {}
 
     @property
     def dbref(self):
         return self.metadirref( 'shelve' )
 
     def get_yaml(self, name, defaults=None):
+        "Override res.js.AbstractYamlDocs.get_yaml"
         p = self.metadirref( 'yaml', name )
         if not os.path.exists(p):
             p = self.metadirref( 'yml', name )
         if defaults and not os.path.exists(p):
-            confparse.yaml_dump(open(p, 'w+'), defaults)
+            self.save_yaml(p, defaults)
         return p
 
     def relpath(self, pwd='.'):
@@ -109,7 +114,7 @@ class Workspace(YamlDoc, Metadir):
             elif ref.endswith('.shelve'):
                 idx = shelve.open(ref, flag)
             idcs[name] = idx
-        return confparse.Values(idcs)
+        return Values(idcs)
 
     @classmethod
     def find(Klass, *paths):

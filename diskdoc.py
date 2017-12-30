@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-:created: 2016-02-22
+:Created: 2016-02-22
 
 Python helper to query/update disk metadatadocument 'disks.yaml'
 

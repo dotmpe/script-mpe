@@ -198,7 +198,6 @@ class TreeNodeTriple(tuple):
     Triple is id, attributes and subnodes.
     """
 
-
 def translate_xml_nesting(tree):
 
     """
@@ -350,6 +349,3 @@ class DictNodeUpdater(AbstractHierarchicalVisitor, AbstractAdapter):
         print 'visit update %s < %s' %( self.context, node), node.nodeid, node.name
         #print self, 'DictNodeUpdater.visit', node
         return node
-
-
-

@@ -1,10 +1,13 @@
+"""
+"""
+
 import re
 from collections import OrderedDict
 
 from script_mpe import log
 
+import mb
 import task
-
 
 
 
@@ -53,6 +56,7 @@ class AbstractTxtLineParser(object):
     def __repr__(self):
         return "%s(%r)" % ( self.__class__.__name__, self.text )
 
+
 class AbstractTxtSegmentedRecordParser(AbstractTxtLineParser):
     section_key_re = re.compile(r"(^|\W|\ )([%s]+):(\ |$)" % (
         task.meta_tag_c ))
@@ -69,6 +73,7 @@ class AbstractTxtSegmentedRecordParser(AbstractTxtLineParser):
             self.sections[k] = sk_m.span()
         return t
 
+
 class AbstractTxtRecordParser(AbstractTxtLineParser):
     """
     A list-item parser that interacts with local and remote Id strategies
@@ -81,9 +86,11 @@ class AbstractTxtRecordParser(AbstractTxtLineParser):
     cite_re = re.compile(r"\ \[([%s]+)\](\ |$)" % ( task.meta_tag_c ))
     href_re = re.compile(r"\ <([^\ >]+)>(\ |$)")
     start_c = r'(^|\W)'
-    end_c = r'(?=\ |$|[%s])' % task.excluded_c
+    end_c = r'(?=\ |$|[%s])' % mb.excluded_c
     project_re = re.compile(r"%s\+([%s]+)%s" % (start_c, task.prefixed_tag_c, end_c))
     context_re = re.compile(r"%s@([%s]+)%s" % (start_c, task.prefixed_tag_c, end_c))
+    meta_re = re.compile(r"%s([%s]+)\:([%s]+)%s" % (start_c,
+        task.prefixed_tag_c, task.prefixed_tag_c, end_c))
     dt_r = re.compile("^\s*([0-9]{4}-[0-9]{2}-[0-9]{2})\ |$")
     def __init__(self, raw, **attrs):
         self.cites = []
@@ -93,10 +100,28 @@ class AbstractTxtRecordParser(AbstractTxtLineParser):
         self.contexts = []
         self.projects = []
         super(AbstractTxtRecordParser, self).__init__(raw, **attrs)
+    def parse_attrs(self, t, tag):
+        attr, cl = {}, []
+        for meta_m in self.meta_re.finditer(t):
+            k, v = meta_m.group(2), meta_m.group(3)
+            if not meta_m or not (k and v): continue
+            attr[k] = v
+            cl.append(meta_m.span())
+        cl.reverse()
+        attr = self.parser.handle_attr(self, attr)
+        self.attrs.update(attr)
+        for sp in cl:
+            t = t[:sp[0]]+t[sp[1]:]
+        return t
     def parse_hrefs(self, t, tag):
+        cl = []
         for href_m in self.href_re.finditer(t):
             href = self.parser.handle_href(self, href_m.group(1))
             self.hrefs.append(href)
+            cl.append(href_m.span())
+        cl.reverse()
+        for sp in cl:
+            t = t[:sp[0]]+t[sp[1]:]
         return t
     def parse_cites(self, t, tag):
         cl = []
@@ -110,21 +135,18 @@ class AbstractTxtRecordParser(AbstractTxtLineParser):
             t = t[:sp[0]]+t[sp[1]:]
         return t
     def parse_projects(self, t, tag):
-        c = []
         cl = []
-        for m in self.project_re.finditer(t):
-            if not m or not m.group(2): continue
-            project = self.parser.handle_project(self, m.group(2))
+        for proj_m in self.project_re.finditer(t):
+            if not proj_m or not proj_m.group(2): continue
+            project = self.parser.handle_project(self, proj_m.group(2))
             self.projects.append(project)
-            cl.append(m.span())
+            cl.append(proj_m.span())
         cl.sort()
         cl.reverse()
         for sp in cl:
             t = t[:sp[0]]+t[sp[1]:]
-        self.projects = c
         return t
     def parse_contexts(self, t, tag):
-        c = []
         cl = []
         for m in self.context_re.finditer(t):
             if not m or not m.group(2): continue
@@ -135,7 +157,6 @@ class AbstractTxtRecordParser(AbstractTxtLineParser):
         cl.reverse()
         for sp in cl:
             t = t[:sp[0]]+t[sp[1]:]
-        self.contexts = c
         return t
     def parse_state(self, t, tag):
         #self.parser.handle_state
@@ -201,13 +222,37 @@ class AbstractRecordReferenceStrategy(AbstractTxtLineParser):
         return txt
 
 
+
+### List parsers
+
+
 class AbstractTxtListParser(object):
+
+    """
+    The base class for text.list file parsers has methods to parse and process
+    one list of items and deal with parsed instances.
+
+    Parsing is done in
+    sequence by one line-parser instance.
+
+    Two attributes provide per-line or
+    per-item access to parser results: line_contexts and items.
+
+    In addition self.proc is called after parsing and indexing each item,
+    before the itm is yielded to the caller of AbstractTxtListParser.load.
+    """
+
     item_parser = AbstractTxtRecordParser
+    "The line-parser class"
+
+    # Initialize/reset parser
+
     def __init__(self, be={}, apply_contexts=[]):
         assert isinstance(apply_contexts, list), apply_contexts
         super(AbstractTxtListParser, self).__init__()
         self.be = be
         self.apply_contexts = apply_contexts
+
     def proc_backend(self, ctx, it):
         sa_ctx = self.be.sa_contexts[ctx]
         if not hasattr(sa_ctx, 'proc_context'):
@@ -249,12 +294,18 @@ class AbstractTxtListParser(object):
     def parse(self, txtitem, **attrs):
         return self.item_parser( txtitem, parser=self, **attrs )
 
+
+#
+
 class AbstractIdStrategy(AbstractTxtListParser):
+
     """
     By providing a 'records' attribute on the container, allow indexed access to
     items by Id. And for record parsers to check for existing reference.
     """
+
     item_parser= AbstractRecordIdStrategy
+
     def __init__(self, record_cites=False, **kwds):
         self.records = OrderedDict()
         self.references = {}
@@ -274,6 +325,8 @@ class AbstractIdStrategy(AbstractTxtListParser):
         return ctx
     def handle_project(self, item, project, attr=None):
         return project
+    def handle_attr(self, item, a, attr=None):
+        return a
     def handle_href(self, item, href, attr=None):
         return href
     def handle_cite(self, item, cite, attr=None):
@@ -294,7 +347,6 @@ class AbstractIdStrategy(AbstractTxtListParser):
                 else:
                     return i
         return r
-
 
 
 class AbstractTxtListWriter(object):
@@ -327,5 +379,3 @@ class AbstractTxtListWriter(object):
         for it in items:
             fp.write( self.serialize(it)+'\n' )
         fp.close()
-
-

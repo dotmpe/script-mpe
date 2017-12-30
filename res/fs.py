@@ -1,18 +1,21 @@
-from datetime import datetime
-from fnmatch import fnmatch
 import os
 from os.path import join
+from fnmatch import fnmatch
 import re
 import stat
+import time
+from datetime import datetime
+import base64
+
+import zope.interface
 import xattr
 import pbPlist
 
-import zope.interface
-
 from script_mpe import confparse
+from script_mpe import lib
 from script_mpe import log
 from script_mpe.lib import Prompt
-from script_mpe.res import iface
+from script_mpe.res import iface, dt
 
 
 PATH_R = re.compile("[A-Za-z0-9\/\.,\[\]\(\)_-]")
@@ -630,4 +633,16 @@ class StatCache:
     def issocket( klass, path ):
         return klass.ismode( path, 'issocket' )
 
+def md5_content_digest_header(filepath):
+    md5_hexdigest = lib.get_md5sum_sub(filepath)
+    md5_b64encoded = base64.b64encode(md5_hexdigest.decode('hex'))
+    return "MD5=%s" % md5_b64encoded
 
+def sha1_content_digest_header(filepath):
+    sha1_hexdigest = lib.get_sha1sum_sub(filepath)
+    sha1_b64encoded = base64.b64encode(sha1_hexdigest.decode('hex'))
+    return "SHA1=%s" % sha1_b64encoded
+
+def last_modified_header(filepath):
+    ltime_tuple = time.gmtime(os.path.getmtime(filepath))
+    return dt.iso8601_datetime_format(ltime_tuple)

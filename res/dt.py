@@ -1,10 +1,65 @@
 import os
 import re
+import time
 from datetime import datetime, timedelta
 
 
-human_time_period_order = [
-  ]
+ISO_8601_DATETIME = '%Y-%m-%dT%H:%M:%SZ'
+
+
+def iso8601_datetime_format(time_tuple):
+    """
+    Format datetime tuple to ISO 8601 format suitable for MIME messages.
+
+    NOTE: can use use datetime().isoformat() on instances.
+    """
+    return time.strftime(ISO_8601_DATETIME, time_tuple)
+
+def parse_isodatetime(s):
+    """
+    Opposite of datetime().isoformat()
+    """
+    if s[0] == '-':
+        s = str(datetime.now().year)+s[1:]
+    if 'T' in s or ':' in s and '-' in s:
+        fmt = ISO_8601_DATETIME
+    elif '-' in s:
+        l, f = len(s), []
+        if l >= 4: f.append('%Y')
+        if l >= 8: f.append('%m')
+        if l == 10: f.append('%d')
+        fmt = "-".join(f)
+    elif ':' in s:
+        l, f = len(s), []
+        if l >= 2: f.append('%H')
+        if l >= 4: f.append('%S')
+        if l == 6: f.append('%s')
+        fmt = ":".join(f)
+    assert fmt, repr(s)
+    return datetime.strptime(s, fmt)
+
+def obj_serialize_datetime_list(l, ctx):
+    r = []
+    for n, i in enumerate(l):
+      r[n] = obj_serialize_datetime(i, ctx)
+    return r
+
+def obj_serialize_datetime_dict(o, ctx):
+    r = {}
+    for k, v in o.items():
+      r[k] = obj_serialize_datetime(v, ctx)
+    return r
+
+def obj_serialize_datetime(o, ctx):
+    if hasattr(o, 'items'):
+      return obj_serialize_datetime_dict(o, ctx)
+    elif hasattr(o, 'iter'):
+      return obj_serialize_datetime_list(o, ctx)
+    else:
+      if isinstance(o, datetime):
+        o = o.strftime(ctx.opts.flags.serialize_datetime)
+      return o
+
 human_time_period_specs = dict(
    s='sec',
    second='sec',
@@ -46,7 +101,6 @@ def human_time_period(spec, specs=human_time_period_specs):
     if sign:
         return 0-num
     return num
-
 
 def shift(pspec, dt_ref=None):
     if not dt_ref:

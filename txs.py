@@ -33,7 +33,7 @@ import taxus.web
 
 from taxus import SessionMixin
 from taxus.v0 import \
-        Node, GroupNode, \
+        Node, \
         INode, Dir, \
         Name, Tag, \
         Host, Locator

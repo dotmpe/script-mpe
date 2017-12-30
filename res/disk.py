@@ -1,3 +1,6 @@
+"""
+TODO: abstract, consolidate with diskdoc
+"""
 import os
 
 from script_mpe.confparse import yaml_load

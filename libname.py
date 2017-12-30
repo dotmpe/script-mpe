@@ -1,3 +1,6 @@
+"""
+:Created: 2012-06-17
+"""
 import zope.interface
 
 import confparse

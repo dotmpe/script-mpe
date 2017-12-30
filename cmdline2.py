@@ -18,4 +18,3 @@ def cmd_options(prog=None, opts=None):
 if __name__ == '__main__':
     # libcmdng
     TargetResolver().main(['cmd:options'])
-

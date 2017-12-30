@@ -5,9 +5,44 @@
 from __future__ import print_function
 import sys
 import os
+import re
 
 
-CS = os.getenv('CS', 'dark')
+class ScriptOut(object):
+
+    def __init__(self):
+        super(ScriptOut, self).__init__()
+        self.init()
+
+    def init(self):
+        import confparse
+        # TODO: cleanup global state for script logging
+        self.settings = confparse.Values(dict(
+                cs = os.getenv('CS', 'dark'),
+                category = 4,
+                #category = 7,
+                strict = False,
+                formatting_enabled = True,
+            ))
+
+    def format_args(self, args):
+        "Stringify any non-builtins"
+        args = list(args)
+        for i, a in enumerate(args):
+            type_ = type(a)
+            if type_ == getattr( __builtin__, type_.__name__ ):
+                pass
+            else:
+                args[i] = str(a)
+        return args
+
+category = 4
+strict = False
+formatting_enabled = True
+
+# global for scripts that don't do their own logging/output config
+out = ScriptOut()
+
 
 # $template custom,"TS:%timereported%;PRI:%pri%;PRI-text:%PRI-text%;APP:%app-name%;PID:%procid%;MID:%msgid%;HOSTNAME:%hostname%;msg:%msg%;FROMHOST:%FROMHOST%;STRUCTURED-DATA:%STRUCTURED-DATA%\n"
 #
@@ -110,6 +145,9 @@ def format_str(msg):
     return msg
 
 def stdout(msg, *args):
+    global formatting_enabled
+    if not formatting_enabled:
+        msg = re.sub(r'\{[a-z]+\}', '', msg)
     if args:
         print(format_str(msg % args))
     else:
@@ -118,14 +156,14 @@ def stdout(msg, *args):
 std = stdout
 
 def stderr(msg, *args):
+    global formatting_enabled
+    if not formatting_enabled:
+        msg = re.sub(r'\{[a-z]+\}', '', msg)
     if args:
         print(format_str(msg % args), file=sys.stderr)
     else:
         print(format_str(msg))
 
-category = 4
-#category = 7
-strict = False
 
 def log(level, msg, *args):
     """
@@ -140,7 +178,9 @@ def log(level, msg, *args):
   7. Debug.
     """
     assert isinstance(level, int)
-    global category, strict
+    global out, category, formatting_enabled
+    g = out.settings
+
     if not isinstance(msg, (basestring, int, float)):
         msg = str(msg)
     title = {
@@ -161,20 +201,14 @@ def log(level, msg, *args):
             return
     if level in title:
         msg = title[level] +': '+ msg
-    msg = format_str(msg + '{default}')
-    # XXX: nicer to put in __repr/str__
-    args = list(args)
-    import zope.interface
-    import taxus.iface
-    for i, a in enumerate(args):
-        interfaces = list(zope.interface.providedBy(a).interfaces())
-        if isinstance(a, (int,float,str,unicode)):
-            pass
-        else:
-            if interfaces == [taxus.iface.IPrimitive]:
-                args[i] = taxus.iface.IFormatted(a).toString()
-            else:
-                args[i] = str(a)
+    if formatting_enabled:
+        msg = format_str(msg + '{default}')
+    else:
+        msg = re.sub(r'\{[a-z]+\}', '', msg)
+
+    # Turn everything into primitives for str-formatting; num bool & str/uni.
+    args = out.format_args(args)
+
     print(msg % tuple(args), file=sys.stderr)
 
 emerg = lambda x,*y: log(EMERG, x, *y)
@@ -200,5 +234,5 @@ def test():
 
 if __name__ == '__main__':
     import sys
-    #main(*sys.argv[1:])
+    from script_mpe.taxus import out
     test()

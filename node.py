@@ -14,7 +14,9 @@ Usage:
   node.py [options] [info|list]
   node.py [options] get REF
   node.py [options] new NAME
+  node.py [options] info | init | stats | clear
   node.py -h|--help
+  node.py help [CMD]
   node.py --version
 
 Options:
@@ -39,14 +41,14 @@ import reporter
 import taxus
 from taxus.init import SqlBase, get_session
 from taxus import \
-    Node, GroupNode, Name, Tag, Topic
+    Node, Name, Tag, Topic
 
 
 metadata = SqlBase.metadata
 
 
 # used by db_sa
-models = [ Node, GroupNode ]#Name, Tag, Topic ]
+models = [ Node, ]#Name, Tag, Topic ]
 
 @reporter.stdout.register(Node, [])
 def format_Node_item(node):

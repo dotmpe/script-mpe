@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-:created: 2015-12-27
+:Created: 2015-12-27
 
 Usage:
     gbooks [options] [list] <q>

@@ -3,6 +3,7 @@ Docs are in taxus/__init__
 """
 from datetime import datetime
 
+from docutils.nodes import make_id
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime, select, func, or_
@@ -10,16 +11,15 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
 from sqlalchemy.orm import relationship, backref, remote, foreign
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-
 from . import iface
-from .mixin import CardMixin
+from .mixin import CardMixin, groupnode
 from .init import SqlBase
 from .util import ORMMixin
 
 from script_mpe import lib, log
 
 
-class Node(SqlBase, CardMixin, ORMMixin):
+class Node(SqlBase, CardMixin, ORMMixin, object):
 
     """
     Provide lookup on numeric ID, and standard dates.
@@ -60,28 +60,7 @@ class Node(SqlBase, CardMixin, ORMMixin):
         return "%s for %r" % (lib.cn(self), self.node_id)
 
 
-groupnode_node_table = Table('groupnode_node', SqlBase.metadata,
-    Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True),
-    Column('groupnode_id', Integer, ForeignKey('groupnodes.id'), primary_key=True)
-)
-
-class GroupNode(Node):
-
-    """
-    A bit of a stop-gap mechanisms by lack of better containers
-    in the short run.
-    Like the group nodes in outlines and bookmark files.
-    """
-
-    __tablename__ = 'groupnodes'
-    __mapper_args__ = {'polymorphic_identity': 'group'}
-    group_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-
-    subnodes = relationship(Node, secondary=groupnode_node_table, backref='supernode')
-    root = Column(Boolean)
-
-
-class Folder(GroupNode):
+class Folder(Node):
 
     """
     A group-node with a shared title?
@@ -90,11 +69,12 @@ class Folder(GroupNode):
     __tablename__ = 'folders'
 
     __mapper_args__ = {'polymorphic_identity': 'folder'}
-    folder_id = Column('id', Integer, ForeignKey('groupnodes.id'), primary_key=True)
+    folder_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
     title_id = Column(Integer, ForeignKey('names.id'))
     title = relationship('Name', primaryjoin='Folder.title_id==Name.name_id')
 
+groupnode(Folder, name='folder', keyattr='title')
 
 
 class ID(SqlBase, CardMixin, ORMMixin):
@@ -204,11 +184,12 @@ class Tag(Name):
     # Full user description
     description = Column(Text, nullable=True)
 
-    def __str__(self):
-        if self.short_description:
-            return "%s <%s>: %s" % ( self.name, self.tag, self.short_description )
-        else:
-            return "%s <%s>" % ( self.name, self.tag)
+    @classmethod
+    def dict_(klass, doc, **dockeys):
+        r = Name.dict_(doc, **dockeys)
+        if 'tag' not in r:
+            r['tag'] = make_id(r['name'])
+        return r
 
     @classmethod
     def clean_tag(klass, raw):
@@ -257,9 +238,23 @@ class Tag(Name):
             print(record_inner(raw))
         sa.commit()
 
-    # TODO: later migrate tag to topic or other specific scheme, with ns/spec..
-    #namespace_id = Column(Integer, ForeignKey('ns.id'))
-    #tag = relationship('Localname', backref='tags')
+    def __init__(self, name=None):
+        if name:
+            self.name = name
+            self.tag = make_id(self.name)
+        self.init_defaults()
+
+    def __str__(self):
+        if self.short_description:
+            return "%s: %s define:%s" % ( self.name,
+                    self.short_description, self.tag )
+        else:
+            return "%s: %s define:%s" % ( self.name, self.self.tag )
+
+    def init_defaults(self):
+        super(Tag, self).init_defaults()
+        if not self.tag and self.name:
+            self.tag = make_id(self.name)
 
 
 # Populate Tag.context with optionally recorded tag-usage realtions
@@ -294,38 +289,46 @@ class Topic(Tag):
     __mapper_args__ = {'polymorphic_identity': 'topic'}
     topic_id = Column('id', Integer, ForeignKey('tagnames.id'), primary_key=True)
 
-    super_id = Column(Integer, ForeignKey('tagnames_topic.id'))
-    subs = relationship("Topic",
-        cascade="all, delete-orphan",
-        backref=backref('super', remote_side=[topic_id]),
-        foreign_keys=[super_id],
-        collection_class=attribute_mapped_collection('name'),
-    )
+    # some plain metadata..
+    #explanation = Column(Text(65535))
+    #location = Column(Boolean)
+    #thing = Column(Boolean)
+    #event = Column(Boolean)
+    #plural = Column(String(255))
 
-    # some plain metadata
-    explanation = Column(Text(65535))
-    location = Column(Boolean)
-    thing = Column(Boolean)
-    event = Column(Boolean)
-    plural = Column(String(255))
+    @classmethod
+    def proc_context(klass, item):
+        print 'TODO: Topic.proc_context', item
 
-    def __init__(self, name, super=None):
-        self.name = name
-        self.super = super
-        self.init_defaults()
+    def __init__(self, name=None, supernode=None):
+        super(Topic, self).__init__(name)
+        if supernode:
+            self.supernode = supernode
+            self.supernode_id = supernode.node_id
+
+    def __str__(self):
+        if self.supernode:
+            if self.short_description:
+                return "%s: %s about:%s [%s]" % ( self.name,
+                        self.short_description, self.tag, self.supernode.tag )
+            else:
+                return "%s: %s about:%s [%s]" % (
+                        self.name, self.tag, self.supernode.tag)
+        else:
+            return Tag.__str__(self)
 
     def __repr__(self):
-        return "Topic(name=%r, id=%r, super_id=%r)" % (
+        return "Topic(name=%r, id=%r, supernode_id=%r)" % (
             self.name,
             self.topic_id,
-            self.super_id
+            self.supernode_id
         )
 
     def path(self, sep='/'):
         e = [self.name]
         c = self
-        while c.super:
-            c = c.super
+        while c.supernode:
+            c = c.supernode
             e.append(c.name)
         e.reverse()
         return sep.join(e)
@@ -333,7 +336,7 @@ class Topic(Tag):
     def paths(self, sep='/', _indent=0):
         return "\t"*_indent + self.name + sep +"\n"+ "".join([
                 c.paths(_indent=_indent + 1)
-                for c in self.subs.values()
+                for c in self.subnodes.values()
             ])
 
     def dump(self, _indent=0):
@@ -341,12 +344,10 @@ class Topic(Tag):
             "\n" + \
             "".join([
                 c.dump(_indent + 1)
-                for c in self.subs.values()
+                for c in self.subnodes.values()
             ])
 
-    @classmethod
-    def proc_context(klass, item):
-        print 'TODO: Topic.proc_context', item
+groupnode(Topic, keyattr='tag')
 
 
 doc_root_element_table = Table('doc_root_element', SqlBase.metadata,
@@ -425,8 +426,6 @@ class Document(Space):
 models = [
 
         Node, Space,
-
-        GroupNode,
 
         Document,
         ID,

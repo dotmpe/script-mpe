@@ -1,5 +1,15 @@
 #!/usr/bin/env python
-""":created: 2017-04-17
+""":Created: 2017-04-17
+
+Commands:
+  - read-list
+  - load-list
+  - sync-list
+  - write-list
+  - updae-list
+  - x-rewrite-html-tree-id
+  - glob
+  - glob-read
 """
 from __future__ import print_function
 
@@ -16,7 +26,8 @@ Usage:
   list.py [options] x-rewrite-html-tree-id LIST
   list.py [options] glob GLOBLIST
   list.py [options] glob-read LIST
-  list.py -h|--help|help [CMD]
+  list.py -h|--help
+  list.py help [CMD]
   list.py --version
 
 See `help` for usage per command.
@@ -66,28 +77,32 @@ import res.task
 
 ### Commands
 
-def cmd_info(settings):
-    """Dump settings. """
-    print(pformat(settings.todict()))
 
-def cmd_load_list(LIST, settings):
+def cmd_info(g):
+    """Dump g. """
+    print(pformat(g.todict()))
+
+
+def cmd_load_list(LIST, g):
     """Load items"""
-    prsr, items = res.list.parse(LIST, settings)
+    prsr, items = res.list.parse(LIST, g)
     # XXX: sanity checks here iso. real unit tests
     for i in items:
         print(i, repr(i))
         assert i.item_id in prsr.records
     assert not 'TODO', "load items to where? ..."
 
-def cmd_sync_list(LIST, settings):
+
+def cmd_sync_list(LIST, g):
     """Update list for items found in a backend"""
-    prsr, items = res.list.parse(LIST, settings)
+    prsr, items = res.list.parse(LIST, g)
     # XXX: sanity checks here iso. real unit tests
     for i in items:
         assert i.item_id in prsr.records
     assert not 'TODO', "update providers..."
 
-def cmd_update_list(LIST, settings, opts):
+
+def cmd_update_list(LIST, g, opts):
     """
     Update list with entries from stdin. This does not actually merge records,
     but checks that each input matches an existing list entry, or else appends
@@ -112,8 +127,8 @@ def cmd_update_list(LIST, settings, opts):
 
     TODO: list.py update-list work out above details
     """
-    prsr, items = res.list.parse(LIST, settings)
-    prsr2, updates = res.list.parse(sys.stdin, settings)
+    prsr, items = res.list.parse(LIST, g)
+    prsr2, updates = res.list.parse(sys.stdin, g)
     opts.flags.match = opts.flags.split(',')
     new = {}
     # Modes to match items on input with LIST entries
@@ -152,6 +167,7 @@ def cmd_update_list(LIST, settings, opts):
     w = res.list.ListTxtWriter(prsr)
     w.write(LIST)
 
+
 def load_be_schema(settings):
     "Load schema and look for SQLAlchemy model names matching apply-contexts"
     if settings.schema:
@@ -164,26 +180,36 @@ def load_be_schema(settings):
         if n in settings.apply_contexts:
             settings.be.sa_contexts[n] = model
 
-def cmd_read_list(LIST, PROVIDERS, settings):
-    """Read items, resolving issues interactively and making sure items are
-    committed to any backends. """
-    session = ScriptMixin.get_session('default', settings.dbref)
-    settings.be = confparse.Values(dict(sa_contexts=dict()))
-    settings.apply_contexts = [ c[1:] for c in PROVIDERS if c.startswith('@') ]
-    if settings.apply_contexts:
-        load_be_schema(settings)
-        log.std("Applying contexts %r" % settings.apply_contexts)
-    prsr, items = res.list.parse(LIST, settings)
+def cmd_read_list(LIST, PROVIDERS, g):
+    """
+        Read items, resolving issues interactively and making sure items are
+        committed to any backends.
+    """
+    session = ScriptMixin.get_session('default', g.dbref)
+    #g.be = confparse.Values(dict(sa_contexts=dict()))
+
+    #g.apply_contexts = [ c[1:] for c in PROVIDERS if c.startswith('@') ]
+    #if g.apply_contexts:
+    #    load_be_schema(g)
+    #    log.std("Applying contexts %r" % g.apply_contexts)
+
+    prsr, items = res.list.parse(LIST, g)
     prsr.proc( items )
+    for it in items:
+        print(str(it))
+    return
     log.std("Processed %i items" % len(items))
-    if settings.commit:
+    if g.commit:
         session.commit()
         log.std("committed")
 
-def cmd_write_list(LIST, PROVIDERS, settings):
-    """Retrieve all items from given backens and write to list file. """
+
+def cmd_write_list(LIST, PROVIDERS, g):
+    """
+        Retrieve all items from given backens and write to list file.
+    """
     for provider in PROVIDERS:
-        res.list.write(LIST, provider, settings)
+        res.list.write(LIST, provider, g)
 
 
 def run_glob_filter(input, glob_input, settings):
@@ -208,14 +234,15 @@ def run_glob_filter(input, glob_input, settings):
 
 def cmd_glob(GLOBLIST, settings):
     """
-    Filter lines on stdin by lines from glob-file. Default mode is to
-    return matching lines. Set --filter-unmatched to inverse.
+        Filter lines on stdin by lines from glob-file. Default mode is to
+        return matching lines. Set --filter-unmatched to inverse.
     """
     run_glob_filter(sys.stdin, open(GLOBLIST), settings)
 
+
 def cmd_glob_read(LIST, settings):
     """
-    Like glob, but read globs from stdin and lines from path on arguments.
+        Like glob, but read globs from stdin and lines from path on arguments.
     """
     run_glob_filter(open(LIST), sys.stdin, settings)
 

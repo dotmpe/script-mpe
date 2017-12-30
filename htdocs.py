@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """
+:Created: 2013-06-30
+
 TODO: construct TopicTree from Definition Lists in restructured text.
 See also filetree.
 

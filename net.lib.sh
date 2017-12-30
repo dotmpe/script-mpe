@@ -35,3 +35,11 @@ ifaces()
   /sbin/ifconfig -l
 }
 
+# Given file lines have hostnames and aliases. Assume first host on matching
+# line in file is special, public/global/canonical
+canon_host()
+{
+  test -n "$2" || return 1
+  test -n "$1" || set -- /etc/hosts "$2"
+  grep "$2" "$1" | awk '{print $2}'
+}

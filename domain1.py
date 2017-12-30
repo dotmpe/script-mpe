@@ -1,5 +1,6 @@
 #!/usr/bin/python
-"""Local Domain Scan
+"""
+Local Domain Scan
 =================
 Identify local and remote boxes and current network.
 

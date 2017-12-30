@@ -1,3 +1,6 @@
+"""
+:Created: 2011-05-15
+"""
 from __future__ import print_function
 import datetime
 import getpass
@@ -329,13 +332,19 @@ class Prompt(object):
             v = ''
             while True:
                 x = getch()
-                if x == '\r':
+                if x == '\r': # Return
                     break
+                if x == '\x7f': # Backspace
+                    print('\r%s\r'%''.rjust(len(v)),end='')
+                    v = v[:-1]
+                    print(v,end='')
+                    continue
                 if not x.strip() or not x.isdigit():
-                    x = '' ; break
+                    v = '' ; print('\r',end=''); break
                 v += x
-                print(v)
+                print(x,end='')
             if not v: continue
+            print()
             i = int(v)
             if i > len(items):
                 continue

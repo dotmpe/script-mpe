@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-""":created: 2014-10-5
+"""
+:Created: 2014-10-5
 
 script_mpe + taxus
 
@@ -37,13 +38,9 @@ import os
 import re
 from glob import glob
 
-import log
-import libcmd_docopt
-import reporter
-from taxus.init import SqlBase, get_session
-from taxus.util import ORMMixin, current_hostname
-from taxus import \
-    Node, Name, Tag, Topic, \
+from script_mpe.libhtd import *
+from taxus.v0 import \
+    Node, \
     ID, \
     Space
 

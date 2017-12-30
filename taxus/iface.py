@@ -41,17 +41,32 @@ classImplements(dict, IPyDict)
 classImplements(list, IPyList)
 
 
-# output media types
 class IFormatted(Interface):
     """
-    The serialized representation of another object.
+    Can produce or has, an usually single part, serialized representation.
     """
-#class ISerialized(IFormatted):
-#    """
-#    The formatted object of an ISerializable, which may be deserialized.
-#    Otherwise use IFormatted.
-#    """
-# XXX: unused
+
+class ISerialized(IFormatted):
+    """
+    Can in addition deserialize from .
+    """
+
+class IFormatter(Interface):
+    """
+    Base for adapters to or astract class factories of IFormatted.
+    """
+
+class IStreamFormatter(IFormatter
+    """
+    Produce IFormatted for existing file-like stream, by way of rewriter.
+    """
+
+class IObjectFormatter(Interface):
+    """
+    Produce IFormatted for object, by way of adapter.
+    """
+
+
 #class IInteractive(IFormatted):
 #    """
 #    The interactive interface implicates that besides serialization,

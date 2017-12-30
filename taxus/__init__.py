@@ -11,12 +11,14 @@ from sqlalchemy import MetaData
 from sqlalchemy.orm.exc import NoResultFound
 
 from script_mpe import confparse, log, mod, datelib
+from script_mpe.res.ws import YamlDocs
+
 from . import iface
 from iface import registry as reg, gsm
 from . import init
 from . import util
 from . import out
-from script_mpe.res.ws import YamlDoc
+
 
 from .init import SqlBase
 from .util import SessionMixin, ScriptMixin, ORMMixin, get_session
@@ -30,7 +32,7 @@ from .util import SessionMixin, ScriptMixin, ORMMixin, get_session
 staticmetadata = SqlBase.metadata
 
 
-class Taxus(YamlDoc):
+class Taxus(YamlDocs):
 
     """
     Helper for list of models and connection.
@@ -65,6 +67,9 @@ class Taxus(YamlDoc):
         if version: self.load(version)
 
         self.couches = dict()
+
+        # XXX: global state cleanup
+        log.out = out
 
     def init(self, metadata=None):
         g = self.settings

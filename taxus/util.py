@@ -118,6 +118,9 @@ class ScriptMixin(SessionMixin):
 
 class RecordMixin(object):
 
+    def __init__(self):
+        self.init_defaults()
+
     @classmethod
     def fetch(klass, filters=(), query=(), session='default', sa=None, exists=True):
 
@@ -180,7 +183,8 @@ class RecordMixin(object):
         return rec
 
     @classmethod
-    def find(klass, _sa=None, _session='default', _exists=False, **keys):
+    def find(klass, _sa=None, _session='default', _exists=False,
+            _exact_match=True, **keys):
 
         """
         Return one (or none), with python keywords-to-like filters.
@@ -188,7 +192,10 @@ class RecordMixin(object):
 
         filters = []
         for k in keys:
-            filters.append(getattr(klass, k).like("%%%s%%" % keys[k]))
+            if _exact_match:
+                filters.append(getattr(klass, k) == keys[k])
+            else:
+                filters.append(getattr(klass, k).like("%%%s%%" % keys[k]))
         return klass.fetch(filters=tuple(filters), sa=_sa, session=_session,
                 exists=_exists)
 
@@ -205,12 +212,11 @@ class RecordMixin(object):
         """
         Return one or none.
         """
-        return klass.fetch((klass.name == name,), sa=sa, session=session,
-                exists=exists)
+        return klass.find(_sa=sa, _session=session, name=name)
 
     @classmethod
-    def exists(klass, keydict):
-        return klass.fetch(keydict, sa=sa, session=session) != None
+    def exists(klass, _sa=None, _session='default', **q):
+        return klass.find(_sa=_sa, _session=_session, **q) != None
 
     @classmethod
     def last_id(klass, filters=None, session='default', sa=None):
@@ -407,6 +413,13 @@ class ORMMixin(ScriptMixin, InstanceMixin, ModelMixin):
         """
         Return the contructor keywods to (re)create a copy of the records
         """
+        if not doc:
+            return {}
+        if isinstance(doc, dict):
+            if 'type' in doc and doc['type']:
+                pass # XXX: look for transform?
+            return doc
+
         doc_class = type(doc)
         mod_name = doc_class.__module__ +'.'+ doc_class.__name__
         if mod_name not in klass.doc_schemas \
@@ -421,7 +434,10 @@ class ORMMixin(ScriptMixin, InstanceMixin, ModelMixin):
     def from_(klass, *docs, **dockeys):
         "Return new instance, getting options from doc"
         opts = klass.dict_(*docs, **dockeys)
-        return klass( **opts )
+        o = klass()
+        for k, v in opts.items():
+            setattr(o, k, v)
+        return o
 
     @classmethod
     def forge(klass, source, settings, sa=None):

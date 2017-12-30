@@ -52,7 +52,6 @@ def get_session(dbref, initialize=False, metadata=SqlBase.metadata):
 
 def configure_components():
     zope.interface.classImplements(str, iface.IPrimitive)
-    zope.interface.classImplements(str, iface.IPrimitive)
     zope.interface.classImplements(int, iface.IPrimitive)
     #zope.interface.classImplements(dict, IPrimitive)
     zope.interface.classImplements(list, iface.IPrimitive)

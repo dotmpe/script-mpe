@@ -1,4 +1,6 @@
 """
+:Created: 2016-01-24
+
 Background script server in Python, Twisted.
 
 API:

@@ -12,14 +12,14 @@ import re
 from pprint import pformat
 #from optparse import Values
 
-from script_mpe.res import js
+from script_mpe.res import js, mb
 from script_mpe.confparse import Values
 from script_mpe.confparse import yaml_load, yaml_safe_dumps
 
 
 
-escape_meta_re = re.compile(r'(?!\\)([^\\A-Za-z0-9{}(),!@+_])')
-name_var_match_re = re.compile('@([A-Z][A-Z0-9_]*)')
+escape_meta_re = re.compile(mb.escape_meta_re)
+name_var_match_re = re.compile('@(%s)' % mb.simple_varname_re)
 
 def name_template_opts(name_template):
     "Return place holders in name pattern"
@@ -70,7 +70,8 @@ def load_from_bre(filepath):
         # get simple bash regex as python regex
                 # remove escaping
                 # remove optgroup
-        vartable[ varname ] = re.sub(r'\\([\(){}|])', r'\1',
+        vartable[ varname ] = re.sub(
+                r'\\([\(){}|])', r'\1',
                 re.sub(r'^\\\((.*)\\\)\\\?$', r'\1', regexpat.strip("'")))
 
     print('# Loaded %s' % filepath)

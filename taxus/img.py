@@ -8,7 +8,7 @@ from .init import SqlBase
 from .util import ORMMixin
 
 
-
+"""
 photo_topic = Table('topic_photo', SqlBase.metadata,
         Column('id', Integer, primary_key=True),
         Column('photo_id', ForeignKey('photos.id'), primary_key=True),
@@ -21,15 +21,17 @@ photo_tag = Table('photo_tag', SqlBase.metadata,
         Column('tag_id', ForeignKey('names_tag.id'), primary_key=True)
     )
 
-
+"""
 class Photo(SqlBase, CardMixin, ORMMixin):
 
     __tablename__ = 'photos'
 
-    unid = Column(String, primary_key=True)
+    photo_id = Column('id', String, primary_key=True)
 
+"""
     topic = relationship(core.Topic, secondary=photo_topic, backref='photos')
     tags = relationship(core.Tag, secondary=photo_tag, backref='photos')
 
 
+"""
 models = [ Photo ]

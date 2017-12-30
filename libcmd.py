@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""libcmd - a command-line program toolkit based on optparse (XXX: and yaml, zope?)
+"""
+:Created: 2011-06-10
+
+libcmd - a command-line program toolkit based on optparse (XXX: and yaml, zope?)
 
 .. note::
 
@@ -695,7 +698,7 @@ class SimpleCommand(object):
         import taxus.model
         prog.module = (
                 ( iface.INode, taxus.core.Node ),
-                ( iface.IGroupNode, taxus.core.GroupNode ),
+                #( iface.IGroupNode, taxus.core.GroupNode ),
                 ( iface.ILocator, taxus.net.Locator ),
                 ( iface.IBookmark, taxus.model.Bookmark ),
             )

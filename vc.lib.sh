@@ -590,24 +590,35 @@ vc_stats()
 {
   test -n "$1" || set -- "." "$2"
   test -n "$2" || set -- "$1" "  "
-  { cat <<EOM
-$2tracked: $( vc_tracked | count_lines )
-$2unversioned: $( vc_unversioned | count_lines )
-$2untracked:
-$2  cleanable: $( vc ufc | count_lines )
-$2  temporary: $( vc uft | count_lines )
-$2  uncleanable: $( vc ufu | count_lines )
-$2  (total): $( vc_untracked | count_lines )
-EOM
-  }
 
-  test -d "$1/.$scm/annex" && {
-    printf "$2annex:\n"
-    printf "$2  files: $( vc_git_annex_list | count_lines )\n"
-    printf "$2  here: $( vc_git_annex_list -i here | count_lines )\n"
-    printf "$2  unused: $( git annex unused | count_lines )\n"
+  {
+      cd "$1"
+      { cat <<EOM
+$2lines:
+$2  unique-lines: $(
+$2    vc tracked-files | while read f; do test -f "$f" && cat "$f" || continue ; done | LC_ALL=C sort -u | count_lines )
+$2  (total): $(
+$2    vc tracked-files | while read f; do test -f "$f" && cat "$f" || continue ; done | count_lines )
+$2files:
+$2  tracked: $( vc_tracked | count_lines )
+$2  unversioned: $( vc_unversioned | count_lines )
+$2  untracked:
+$2    cleanable: $( vc ufc | count_lines )
+$2    temporary: $( vc uft | count_lines )
+$2    uncleanable: $( vc ufu | count_lines )
+$2    (total): $( vc_untracked | count_lines )
+EOM
+      }
+
+      test -d "$1/.$scm/annex" && {
+        printf "$2  annex:\n"
+        printf "$2    files: $( vc_git_annex_list | count_lines )\n"
+        printf "$2    here: $( vc_git_annex_list -i here | count_lines )\n"
+        printf "$2    unused: $( git annex unused | count_lines )\n"
+      }
+
+      printf "$2(date): $( date_microtime )\n"
   }
-  printf "$2(date): $( date_microtime )\n"
 }
 
 vc_info()

@@ -1,19 +1,25 @@
 #!/usr/bin/env python
 """
-:created: 2013-12-30
-:updated: 2017-12-11
+:Created: 2013-12-30
+:Updated: 2017-12-11
 
 - Import old bookmarks from JSON, XML.
 
-::
+Commands:
+  - list
+  - add | modify | assert | show
+  - remove
+  - tags
+  - urls
+  - sync
 
-    <tag>:GroupNode
-        *<bm>:Bookmark
-
-    Bookmark
-
+  Database:
+    - info | init | stats | clear
 """
 from __future__ import print_function
+
+__description__ = "bookmarks - ..."
+__short_description__ = "..."
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.bookmarks2.sqlite'
 __couch__ = 'http://localhost:5984/the-registry'
@@ -28,7 +34,6 @@ Usage:
   bookmarks.py [-v... options] tags [TAGS...]
   bookmarks.py [-v... options] urls REF
   bookmarks.py [-v... options] sync
-  bookmarks.py [-v... options] stats
   bookmarks.py [-v... options] check [NAME]
   bookmarks.py [-v... options] webarchive [NAME]
   bookmarks.py [-v... options] (tag|href|domain) [NAME]
@@ -39,8 +44,10 @@ Usage:
   bookmarks.py [-v... options] sql (stats|couch)
   bookmarks.py [-v... options] couch (sql|stats|list|update|init)
   bookmarks.py [-v... options] couch (add|modify) REF [ NAME [ TAGS... ] ]
+  bookmarks.py [-v... options] info | init | stats | clear
   bookmarks.py --background
-  bookmarks.py -h|--help|help
+  bookmarks.py -h|--help
+  bookmarks.py help [CMD]
   bookmarks.py --version
 
 Options:
@@ -70,6 +77,12 @@ Options:
                 json, repr [default: rst]
   -i N, --interval N
                 Be verbose at least every N records [default: 100]
+  --interactive
+                Prompt to resolve or override certain warnings.
+                XXX: Normally interactive should be enabled if while process has a
+                terminal on stdin and stdout.
+  --batch
+                Overrules `interactive`, exit on errors or strict warnings.
   --auto-commit N
                 Auto-commit every N records.
   --no-commit   .
@@ -114,45 +127,25 @@ Options:
   -h --help     Show this usage description.
                 For a command and argument description use the command 'help'.
   --version     Show version (%s).
-
 """ % ( __db__, __couch__, chrome_bookmarks_path, __version__, )
-from datetime import datetime, timedelta
 import os
 import re
+import sys
 import hashlib
 import urllib
 import urllib2
 from urlparse import urlparse
-import uriref
-from pprint import pprint
+from datetime import datetime, timedelta
 
-import zope.interface
-#import zope.component
+import uriref
 from pydelicious import dlcs_parse_xml
-from sqlalchemy import or_
 import BeautifulSoup
 
-import datelib
-import log
-import confparse
-import libcmd_docopt
-import libcmd
-import rsr
-import taxus.iface
-import res.iface
-import res.js
-import res.bm
-from res import Volumedir, Homedir, Workdir
-from res.util import isodatetime, ISO_8601_DATETIME
-from taxus import init as model, Taxus, v0, ScriptMixin
-from taxus.init import SqlBase, get_session
-
-from taxus.docs import bookmark
-from taxus.core import ID, Node, Name, Tag
-from taxus.net import Locator, Domain
-from taxus.ns import Namespace, Localname
-from taxus.model import Bookmark
-from taxus.web import Resource, RemoteCachedResource
+from script_mpe.libhtd import *
+from script_mpe.taxus.v0 import \
+    Node, Name, Tag, Topic, Folder, Locator, \
+    ID, Space, MaterializedPath, Domain, Bookmark, \
+    Resource, Namespace, Localname
 
 
 
@@ -161,10 +154,11 @@ tables = []
 
 ctx = Taxus(version='bookmarks')
 
-cmd_default_settings = dict(verbose=1, partial_match=True)
-
-#import bookmarks_model as model
-#from bookmarks_model import Locator, Bookmark
+cmd_default_settings = dict(
+        verbose=1,
+        partial_match=True,
+        strict=True
+    )
 
 
 class bookmarks(rsr.Rsr):
@@ -387,6 +381,7 @@ class bookmarks(rsr.Rsr):
                 print(root['id'], root['title'])
 
 
+### Commands
 
 
 def cmd_dlcs_import(opts, g):
@@ -585,7 +580,9 @@ def cmd_href(NAME, g):
     else:
         rs = Locator.all()
     if not rs:
-        log.std("Nothing")
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
     for r in rs:
         print(r.ref)
 
@@ -598,7 +595,9 @@ def cmd_domain(NAME, g):
     else:
         rs = Domain.all()
     if not rs:
-        log.std("Nothing")
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
     for r in rs:
         print(r.name)
 
@@ -611,7 +610,9 @@ def cmd_tag(NAME, g):
     else:
         rs = Tag.all()
     if not rs:
-        log.std("Nothing")
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
     for r in rs:
         print(r.name)
 
@@ -678,7 +679,9 @@ def cmd_list(NAME, TAGS, g, opts):
     else:
         rs = Bookmark.all()
     if not rs:
-        ctx.note("Nothing")
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
         return
 
     ctx.out(rs, 'bookmark')
@@ -855,7 +858,6 @@ def cmd_check(NAME, g):
     sa.commit()
 
 
-
 def cmd_assert(REF, NAME, TAGS, g):
 
     """
@@ -916,7 +918,9 @@ def cmd_show(REF, NAME, TAGS, g):
     else:
         rs = Bookmark.all()
     if not rs:
-        ctx.note("Nothing")
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
         return
 
     ctx.out(rs, 'bookmark')
@@ -955,7 +959,11 @@ def cmd_webarchive(NAME, g):
     rs = sa.query(Locator).filter(
             Locator.ref.like('%/web.archive.org/web/%'),
             Locator.deleted != True).all()
-    if not rs: return
+    if not rs:
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
+        return
     total_records = len(rs)
 
     i = 0
@@ -1141,7 +1149,11 @@ def cmd_couch_sql(NAME, opts, g):
 
     # Get records to sync
     rs = ctx.get_records(Bookmark, name=NAME)
-    if not rs: return
+    if not rs:
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
+        return
     total_records = len(rs)
     ctx.note('Going to sync %i SQL records to %s...', total_records, ctx.couch[1])
 
@@ -1171,10 +1183,9 @@ def cmd_couch_sql(NAME, opts, g):
 
             # NOTE: not doing anything else than bookmarks
             if bm.type != 'bookmark':
-                print(
+                log.stderr((
                     "Document {0} exists but is not of required type: {1}".format(
-                    href, bm['type']),
-                    file=opts.stderr)
+                    href, bm['type'])))
                 continue
 
             # We can stop right there.
@@ -1246,7 +1257,11 @@ def cmd_couch_update(g):
     if not g.no_db:
         # Starting with records from SQL, check every one with couch
         rs = ctx.get_records(Bookmark)
-        if not rs: return
+        if not rs:
+            log.stdout("{yellow}Nothing found{default}")
+            if g.strict:
+                return 1
+            return
         total_records = len(rs)
         ctx.note('Going to sync %i SQL records to %s...', total_records, ctx.couch[1])
 
@@ -1388,7 +1403,13 @@ def cmd_shaarli_sync(NAME, opts, g):
 ### Transform cmd_ function names to nested dict
 
 commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = libcmd_docopt.cmd_help
+commands.update(dict(
+        help = libcmd_docopt.cmd_help,
+        memdebug = libcmd_docopt.cmd_memdebug,
+        info = db_sa.cmd_info,
+        init = db_sa.cmd_init,
+        clear = db_sa.cmd_reset
+))
 
 
 ### Util functions to run above functions from cmdline
@@ -1401,8 +1422,11 @@ def defaults(opts, init={}):
     opts.flags.update(ctx.settings)
     opts.flags.update(dict(
         commit = not opts.flags.no_commit and not opts.flags.dry_run,
-        verbose = opts.flags.quiet and opts.flags.verbose or 1
+        verbose = opts.flags.quiet and opts.flags.verbose or 1,
     ))
+    if not opts.flags.interactive:
+        if os.isatty(sys.stdout.fileno()) and os.isatty(sys.stdout.fileno()):
+            opts.flags.interactive = True
     opts.flags.update(dict(
         partial_match = not opts.flags.exact_match,
         auto_commit = not opts.flags.no_commit and opts.flags.auto_commit,
@@ -1435,17 +1459,18 @@ def get_version():
 
 
 if __name__ == '__main__':
-    import sys
     reload(sys)
     sys.setdefaultencoding('utf-8')
-    usage = libcmd_docopt.static_vars_from_env(__usage__,
+    usage = __description__ +'\n\n'+ __short_description__ +'\n'+ \
+            libcmd_docopt.static_vars_from_env(__usage__,
         ( 'BM_DB', __db__ ),
         ( 'COUCH_DB', __couch__ ) )
-    # TODO : vdir = Volumedir.find()
 
-    opts = libcmd_docopt.get_opts(usage, version=get_version(),
-            defaults=defaults)
-    opts.stderr = sys.stderr
+    db_sa.schema = sys.modules['__main__']
+    db_sa.metadata = SqlBase.metadata
+
+    opts = libcmd_docopt.get_opts(usage,
+            version=get_version(), defaults=defaults)
     # TODO: mask secrets
     #log.std("Connecting to %s", opts.flags.dbref)
     #log.std("Connecting to %s", opts.flags.couch)

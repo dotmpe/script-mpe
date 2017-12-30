@@ -7,15 +7,18 @@ __version__ = '0.0.4-dev' # script-mpe
 #__db__ = '~/.txt.sqlite'
 __usage__ = """
 Usage:
-    txt.py [options] meta-to-json LIST
+    txt.py [options] todolist LIST
+    txt.py [options] urllist LIST
     txt.py -h|--help
     txt.py --version
 
 Options:
-    --verbose     ..
-    --quiet       ..
-    -h --help     Show this usage description.
-    --version     Show version (%s).
+  -O FMT, --output-format FMT
+                json, json-stream, str, repr [default: str]
+  --verbose     ..
+  --quiet       ..
+  -h --help     Show this usage description.
+  --version     Show version (%s).
 
 """ % ( __version__ )
 import os
@@ -24,17 +27,36 @@ import libcmd_docopt
 import res.txt
 import res.todo
 import res.js
+
+import res.list2
 #from taxus.init import SqlBase, get_session
 #from taxus import Node, Topic
 
 #models = [ Node, Topic, Journal ]
 
 
-def cmd_meta_to_json(LIST, opts, settings):
+def cmd_urllist(LIST, g):
+    prsr = res.list2.URLListParser()
+    list(prsr.load_file(LIST))
+    r = []
+    for line, rawstr, text, it in prsr.items:
+        if g.output_format == 'json-stream':
+            res.js.dumps(it.todict())
+        elif g.output_format == 'repr':
+            print(repr(it))
+        elif g.output_format == 'str':
+            print(str(it))
+        else:
+            r.append(it.todict())
+    if g.output_format == 'json':
+        res.js.dumps(r)
+
+def cmd_todolist(LIST, opts, settings):
     prsr = res.todo.TodoTxtParser()
     list(prsr.load(LIST))
     for k in prsr:
-        print(res.js.dumps(prsr[k].attrs))
+        print(prsr[k].todotxt())
+        #print(res.js.dumps(prsr[k].attrs))
 
 
 ### Transform cmd_ function names to nested dict
@@ -57,6 +79,7 @@ def main(opts):
 
 def get_version():
     return 'txt.mpe/%s' % __version__
+
 
 if __name__ == '__main__':
     import sys

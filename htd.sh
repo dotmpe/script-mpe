@@ -407,24 +407,50 @@ htd_als__init=pd-init
 htd_als__update=update-checksums
 #htd_als__check=pd-check
 htd_als__doctor=check
+
+htd_man_1__check='Run diagnostics from CWD, finish with file-check'
 htd_run__check=i
 htd__check()
 {
-  htd__find_empty || stderr ok "No empty files"
-  htd pd-check
+  # FIXME: fix local htd/pd ignores htd__find_empty && stderr ok "No empty files"
+  htd pd-check && stderr ok "Projectdir checks out"
   # TODO check (some) names htd_name_precaution
-  # TODO run check-files
-  # htd check-names
-  htd__ck_validate sha1
-  htd__fsck
+  #htd check-names && stderr ok "Filenames look good"
+  #htd__check_names
+  # Check file integrity
+  htd__fsck && stderr ok "File integrity check successful"
 }
+
+
+htd_man_1__fsck='Check file contents with locally found checksum manifests
+
+Besides ck-validate and annex-fsck, look for local catalog.yml to validate too.
+'
 htd_run__fsck=i
 htd__fsck()
 {
-  htd__ck_validate sha1
-  htd__annex_fsck
-}
+  # Go over local cksum/filename table files
+  ck_tab='*' htd__ck || return $?
 
+  # Look for catalogdocs, go over any checksums there too
+  ck_run_catalogs || return $?
+
+  test -e .sync-rules.list && {
+
+    # Use sync-rules to mark annex (sub)repos as fsck-enable/disable'd
+    subcmd=annex-fsck htd__annex_fsck
+  } || {
+
+    # Look for and fsck local annex as last step
+    vc_getscm || return
+    test -d "$scmdir/annex" || return
+    git annex fsck .
+  }
+}
+htd_als__file_check=fsck
+
+
+htd_man_1__make='Go to HTDIR, make target arguments'
 htd__make()
 {
   req_dir_env HTDIR
@@ -926,6 +952,7 @@ htd__pd_check()
   local dirs="Desktop Downloads bin .conf"
   for dir in $dirs
   do
+    test -d ~/$dir || { warn "No dir '$dir'" ; continue ; }
     cd ~/$dir
     pd check
   done
@@ -1284,11 +1311,14 @@ EOM
 }
 
 
+htd_man_1__validate='Validate JSON/YAML against JSON-Schema '
+htd_spc__validate='validate DOC [SCHEMA]'
 htd__validate()
 {
   htd_schema_validate "$@"
 }
 
+htd_man_1__validate='Validate local package metadata aginst JSON-Schema '
 htd_run__validate_package=p
 htd__validate_package()
 {
@@ -1297,6 +1327,7 @@ htd__validate_package()
   htd_schema_validate .package.json "$2"
 }
 
+htd_man_1__validate_pdoc='Validate given projectdoc schema. '
 htd__validate_pdoc()
 {
   htd_schema_validate "$1" $scriptpath/schema/projectdir.yml
@@ -3892,7 +3923,7 @@ htd__find_empty()
   test -n "$1" || set -- .
   test -d "$1" || error "Dir expected '$?'" 1
   test -n "$find_ignores" || find_ignores="-iname .git -prune"
-  eval find $1 $find_ignores -o -size 0 -a -print
+  eval find $1 $find_ignores -o -empty -a -print
 }
 
 htd__find_empty_dirs()
@@ -4436,6 +4467,8 @@ htd_man_1__package='
   package debug
      Log each Sh package settings.
 
+  package dir-get-key <Dir> <Package-Id> [<Property>...]
+
 Plumbing commands dealing with the local project package file. See package.rst.
 These do not auto-update intermediate artefacts, or load a specific package-id
 into env.
@@ -4444,8 +4477,9 @@ htd_run__package=iAO
 htd__package()
 {
   test -n "$1" || set -- debug
-  upper=0 mkvid "$1"
-  shift ; htd_package_$vid "$@" || return $?
+  upper=0 mkvid "$1" ; shift ; func=htd_package_$vid
+  func_exists "$func" || func=package_$vid
+  $func "$@" || return $?
 }
 
 htd_man_1__ls="List local package names"
@@ -5182,67 +5216,46 @@ htd__update_checksums()
 htd_grp__update_checksums=meta
 
 
-# Checksums
+# Checksums frontend
 
-ck_arg_spec="[ck|sha1|md5]"
-ck_arg()
-{
-  test -n "$ck_tab" || ck_tab=table
-  test -n "$1"  && CK=$1  || CK=ck
-  test -e $ck_tab.$CK || {
-    error "First argument must be CK table extension, no such table: $ck_tab.$CK" 1
-  }
-  test -r $ck_tab.$CK || {
-    error "Not readable: $ck_tab.$CK" 1
-  }
-  T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
-}
 
-ck_write()
-{
-  ck_arg "$1"
-  test -w $ck_tab.$CK || {
-    error "Not writable: $ck_tab.$CK" 1
-  }
-}
+htd_man_1__ck='Validate given table-ext, ck-files, or default table.$ck-exts set
 
-htd_spc__ck="ck TAB [PATH|.]"
-htd_grp__ck=meta
+Arguments are files with checksums to validate, or basenames and extensions to
+check. With no file given, checks table.*
+'
+htd_spc__ck='ck [ TAB | CK ]...'
 htd__ck()
 {
-  test -n "$1" || error "Need table to update" 1
-  local table=$1 \
-    ck_find_ignores="-name 'manifest.*' -prune \
-      -o -name 'table.ck' -prune \
-      -o -name 'table.sha1' -prune \
-      -o -name 'table.md5' -prune"
-  shift
-  test -n "$1" || error "Need path to update table for " 1
-  test -z "$find_ignores" \
-    && find_ignores="$ck_find_ignores" \
-    || find_ignores="$find_ignores -o $ck_find_ignores"
-
-  while test -n "$1"
-  do
-    test -e "$1" || error "No such path to check: '$1'" 1
-    test -d "$1" && {
-      note "Adding dir '$1'"
-      {
-        eval find "$1" $find_ignores -o -type f -exec ${CK}sum "{}" + || return $?
-      } > $table
-      shift
-      continue
-    }
-    test -f "$1" && {
-      info "Adding one file '$1'"
-      ${CK}sum "$1" > $table
-      shift
-      continue
-    }
-    note "Skipped '$1'"
-    shift
+  local exts=
+  for a in "$@" ; do
+    test -e "$a" && continue
+    exts="$exts $a"
   done
-  note "Updated CK table '$table'"
+
+  #test -n "$1" || set -- main
+  #while test $# -gt 0
+  #do
+  #  test -e "$1" || { shift; continue; }
+
+    #local ck_ext=$(filenamext "$1") ck_tab="$(basename "$1" .$ck_ext)"
+
+    for tab in $(ck_files "." $exts)
+    do
+      test -e "$tab" || continue
+      ck_run $tab || return $?
+    done
+  #  shift
+  #done
+}
+
+htd_man_1__ck_add='Add new entries but dont hash'
+htd_spc__ck_add="ck TAB [PATH|.]"
+htd_grp__ck_add=meta
+htd__ck_add()
+{
+  test -n "$1" || error "Need table to update" 1
+  ck_run_update "$@" || error "ck-update '$1' failed" 1
 }
 
 htd_grp__ck_init=meta
@@ -5326,120 +5339,6 @@ htd__ck_table_subtree()
       echo "$cks  $p"
     done
 }
-
-ck_update_file()
-{
-  ck_write "$CK"
-  test -f "$1" || error "ck-update-file: Not a file '$1'" 1
-  update_file="$1"
-  # FIXME use test name again but must have some testcases
-  # to verify because currently htd_name_precaution is a bit too strict
-  # htd__test_name
-  match_grep_pattern_test "$update_file" > /dev/null || {
-    error "Skipped path with unhandled characters"
-    return
-  }
-  test -r "$update_file" || {
-    error "Skipped unreadable path '$update_file'"
-    return
-  }
-  test -d "$update_file" && {
-    error "Skipped directory path '$update_file'"
-    return
-  }
-  test -L "$update_file" && {
-    BE="$(dirname "$update_file")/$(readlink "$update_file")"
-    test -e "$BE" || {
-      error "Skip dead symlink"
-      return
-    }
-    SZ="$(filesize "$BE")"
-  } || {
-    SZ="$(filesize "$update_file")"
-  }
-  test "$SZ" -ge "$MIN_SIZE" || {
-    # XXX: trueish "$choice_ignore_small" \
-    warn "File too small: $SZ"
-    return
-  }
-  # test localname for SHA1 tag
-  BN="$(basename "$update_file")"
-  # XXX hardcoded to 40-char hexsums ie. sha1
-  HAS_CKS="$(echo "$BN" | grep '\b[0-9a-f]\{40\}\b')"
-  cks="$(echo "$BN" | grep '\b[0-9a-f]\{40\}\b' |
-    sed 's/^.*\([0-9a-f]\{40\}\).*$/\1/g')"
-  # FIXME: normalize relpath
-  test "${update_file:0:2}" = "./" && update_file="${update_file:2}"
-  #EXT="$(echo $BE)"
-
-  test -n "$HAS_CKS" && {
-    htd__ck_table "$CK" "$update_file" > /dev/null && {
-      echo "path found"
-    } || {
-      grep "$cks" table.$CK > /dev/null && {
-        echo "$CK duplicate found or cannot grep path"
-        return
-      }
-      CKS=$(${CK}sum "$update_file" | cut -d' ' -f1)
-      test "$cks" = "$CKS" || {
-        error "${CK}sum $CKS does not match name $cks from $update_file"
-        return
-      }
-      echo "$cks  $update_file" >> table.$CK
-      echo "$cks added"
-      return
-    }
-    return
-  } || {
-    # TODO prepare to rename, keep SHA1 hashtable
-    htd__ck_table "$CK" "$update_file" > /dev/null && {
-      note "Checksum present $update_file"
-    } || {
-      ${CK}sum "$update_file" >> table.$CK
-      note "New checksum $update_file"
-    }
-  }
-}
-
-ck_update_find()
-{
-  info "Reading $T_CK, looking for files '$1'"
-  find_p="$(strip_trail=1 normalize_relative "$1")"
-
-  var_isset failed || {
-    local failed_local=1 failed=$(setup_tmpf .failed)
-    test ! -e $failed || rm $failed
-  }
-
-  local paths=$(setup_tmpf .$subcmd)
-  test ! -e $paths || rm $paths
-
-  ck_update_find_inner()
-  {
-    test -n "$find_ignores" && {
-      eval find "$find_p" $find_ignores -o -type f -print || return $?
-    } || {
-      find "$find_p" -type f -print || return $?
-    }
-  }
-
-  ck_update_find_inner > $paths || {
-    echo "htd:$subcmd:find-inner" >>$failed
-    test ! -e $paths || rm $paths
-  }
-
-  while read p
-  do
-    ck_update_file "$p" || echo "htd:$subcmd:$p" >>$failed
-  done < $paths
-
-  test -s "$failed" \
-    && warn "Failures: $T_CK '$1', $(count_lines $failed) targets" \
-    || stderr ok "$T_CK '$1', $(count_lines $paths) files"
-  rm -rf $paths
-  test -z "$failed" -o ! -e "$failed" || rm $failed
-}
-
 
 htd_grp__ck_update=meta
 # find all files, check their names, size and checksum
@@ -5621,6 +5520,7 @@ htd__ck_metafile()
 htd_grp__ck_metafile=meta
 
 
+
 # validate torrent
 htd__ck_torrent()
 {
@@ -5651,6 +5551,7 @@ htd__ck_torrent()
 htd_grp__ck_torrent=media
 
 
+
 # xxx find corrupt files: .mp3
 htd__mp3_validate()
 {
@@ -5668,6 +5569,7 @@ htd__mp3_validate()
 htd_grp__mp3_validate=media
 
 
+
 htd__mux()
 {
   test -n "$1" || set -- "docker-"
@@ -5678,7 +5580,6 @@ htd__mux()
   tmuxinator start $1 $2 $3
 }
 htd_grp__mux=tmux
-
 
 
 htd_man_1__tmux='Unless tmux is running, get a new tmux session, based on the
@@ -7409,7 +7310,7 @@ htd__srv()
       ;;
 
     init ) shift
-        # Update disk volume catalog, and reinitialize service links
+        # Update disk volume manifest, and reinitialize service links
         disk.sh check-all || {
           disk.sh update-all || {
             error "Failed updating volumes catalog and links"
@@ -7796,7 +7697,7 @@ htd__reader_update()
 }
 
 
-htd_man_1__annex='Extra commands for GIT Annex
+htd_man_1__annex='Extra commands for GIT Annex.
 
   remote-export REMOTE [RSync-Options]
     Use given remote name as plain export, like annex v6.2 should (but using
@@ -7806,6 +7707,12 @@ htd_man_1__annex='Extra commands for GIT Annex
     Use given remote name to get rsync info, sync data from remote dir to
     TMPDIR and call git annex import TMPDIR. Local dir should be the target
     repo. See import.
+
+These commands use a specialremote, provided by GIT Annex. However the remote
+should not be used for regular sync. See `configuring a special remote for tree
+export`__.
+
+.. __: https://git-annex.branchable.com/design/exporting_trees_to_special_remotes/#index1h2
 
   import RSync-Info Checkout-Dir [RSync-Options]
     Import from any rsync-spec, rsync first if not a local directory.
@@ -7817,37 +7724,46 @@ htd__annex()
   test -n "$1" || error command 1
   test -n "$dry_run" || dry_run=true
 
-  local rsync_flags=avzui act=$1 ; shift 1
+  local srcinfo= rsync_flags=avzui act=$1 ; shift 1
   falseish "$dry_run" || rsync_flags=${rsync_flags}n
+
+  get_srcinfo()
+  {
+    srcinfo=$(git config --local --get remote.${remote}.annex-rsyncurl)
+    test -n "$srcinfo" || {
+        package_lib_set_local "."
+        srcinfo=$(package_get_keys urls.${remote})
+    }
+    test -n "$srcinfo" || error "annex remote-export srcinfo ($remote)" 1
+  }
 
   case "$act" in
 
     remote-export ) local remote=$1 ; shift
         test -d "./.git/annex" || error annex 1
         test -n "$remote" || error remote 1
-        local srcinfo=$(git config --local --get remote.${remote}.annex-rsyncurl)
-        test -n "$srcinfo" || error srcinfo 1
+        get_srcinfo
         rsync -${rsync_flags}L "./" "$srcinfo" "$@" || return $?
       ;;
 
     remote-import ) local remote=$1 ; shift
         test -d "./.git/annex" || error annex 1
         test -n "$remote" || error remote 1
-        local srcinfo=$(git config --local --get remote.${remote}.annex-rsyncurl)
-        test -n "$srcinfo" || error srcinfo 1
+        get_srcinfo
         htd__annex import $srcinfo/ . "$@" || return $?
       ;;
 
     import )
         test -n "$1" || error src 1
         test -n "$2" || error dest 1
-        test -d "$2/.git/annex" || error annex 1
+        test -d "$2/.git/annex" || error annex-import 1
 
         local tmpd=$(setup_tmpd) srcinfo=$1 dest=$2 ; shift 2
         # See if remote-spec is local path, or else sync. Extra arguments
         # are used as rsync options (to pass on include/exclude patterns)
         test -e "$srcinfo" && tmpd=$srcinfo ||
           rsync -${rsync_flags} "$srcinfo" "$tmpd" "$@"
+
         {
             cd "$dest" ; trueish "$dry_run" && {
                 echo git annex import --deduplicate $tmpd/*
@@ -9189,6 +9105,25 @@ htd__ips()
 }
 
 
+htd__photos()
+{
+  PHOTOS_FOLDER=/Volumes/Zephyr/photos
+  OSX_PHOTOS="/Volumes/Zephyr/Photos Library.photoslibrary"
+
+  find "$OSX_PHOTOS/Thumbnails" -type f |
+  while read thumb
+  do
+      realpath --relative-to="$OSX_PHOTOS" "$thumb"
+  done
+
+  find "$OSX_PHOTOS/Masters" -type f |
+  while read master
+  do
+      realpath --relative-to="$OSX_PHOTOS" "$master"
+  done
+}
+
+
 # util
 
 htd_rst_doc_create_update()
@@ -9258,7 +9193,7 @@ htd_main()
   local scriptname=htd base=$(basename "$0" .sh) \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
     package_id= \
-    subcmd= failed= cmd_als=
+    subcmd= failed= subcmd_alias=
 
   htd_init || exit $?
 
@@ -9350,10 +9285,9 @@ htd_init()
   lib_load
   . $scriptpath/box.init.sh
   box_run_sh_test
-  #export PACKMETA="$(echo $1/package.y*ml | cut -f1 -d' ')"
   lib_load htd meta list
   lib_load box date doc table disk remote ignores package service archive \
-      prefix volumestat vfs hoststat scripts tmux vcflow tools schema
+      prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck
   case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh
   disk_run

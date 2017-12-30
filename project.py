@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-"""project -
-:created: 2014-02-26
+"""
+:Created: 2014-02-26
 """
 from __future__ import print_function
 
 __version__ = '0.0.4-dev' # script-mpe
+__description__ = "project - ..."
 __db__ = '~/.taxus-code.sqlite'
 __usage__ = """
 

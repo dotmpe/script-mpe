@@ -414,6 +414,7 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
     print(len(issues.dirty), 'Dirty')
     #issues.commit()
 
+
 def cmd_parse_list(settings, opts, TODOLIST):#='to/do.list'):
     """
     """

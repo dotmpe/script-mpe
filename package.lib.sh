@@ -9,16 +9,15 @@ package_lib_load()
   test -n "$1" || set -- .
   # Get first existing file
   PACKMETA="$(echo "$1"/package.y*ml | cut -f1 -d' ')"
+  upper=0 default_env out-fmt py || true
 }
 
 package_lib_set_local()
 {
+  test -n "$1" || error "package.lib load"
   # Default is main
-  default_package_id=$(
-    jsotk.py -I yaml -O py objectpath $1/$PACKMETA '$.*[@.main is not None].main'
-  )
-
-  test -n "$package_id" || {
+  default_package_id=$(package_default_id "$1")
+  test -n "$package_id" -a "$package_id" != "(main)" || {
     package_id="$default_package_id"
     note "Set main '$package_id' from $1/package default"
   }
@@ -32,6 +31,11 @@ package_lib_set_local()
   PACKMETA_SH=$1/.$PACKMETA_BN.sh
 
   export package_id PACKMETA PACKMETA_BN PACKMETA_JS_MAIN PACKMETA_SH
+}
+
+package_default_id()
+{
+  jsotk.py -I yaml -O py objectpath $1/$PACKMETA '$.*[@.main is not None].main'
 }
 
 package_file()
@@ -226,21 +230,31 @@ package_sh()
 }
 
 
-package_get_key() # Dir Package-Id Property
+# Use ObjectPath to get values
+# NOTE: double-quote elements with special chars: my.path."with special".element
+package_get_keys() # Property...
 {
-  test -d "$1" || error "dir expected" 1
-  local dir="$1" package_id="$2"
-  shift 2
-  cd "$dir"
-  # Check/update package metadata
-  test -e $PACKMETA && {
-    update_package $(pwd -P) || return $?
-  }
+  test -n "$out_fmt" || out_fmt=py
   while test $# -gt 0
   do
-    jsotk.py objectpath $PACKMETA '$.*[@.id is "'$package_id'"].'$1
+    jsotk.py objectpath -O${out_fmt} $PACKMETA '$.*[@.id is "'$package_id'"].'$1
     shift
   done
+}
+
+package_dir_get_keys() # Dir Package-Id [Property...]
+{
+  test -d "$1" || error "dir expected" 1
+  local dir="$1" package_id="$2" ; shift 2
+  cd "$dir"
+  {
+    package_lib_set_local "$dir"
+    # Check/update package metadata
+    test -e $PACKMETA && {
+      update_package $(pwd -P) || return $?
+    }
+    package_get_keys "$@"
+  }
 }
 
 
