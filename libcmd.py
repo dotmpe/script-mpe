@@ -386,6 +386,30 @@ class SimpleCommand(object):
             return optnames, attrs
         return add_option_prefix
 
+    @classmethod
+    def main(Klass, argv=None, optionparser=None, result_adapter=None, default_reporter=None):
+
+        self = Klass()
+        self.globaldict = Values(dict(
+            prog=Values(),
+            opts=Values(),
+            args=[] ))
+
+        self.globaldict.prog.handlers = self.BOOTSTRAP
+        for handler_name in self.resolve_handlers():
+            target = handler_name.replace('_', ':', 1)
+            log.debug("%s.main deferring to %s", lib.cn(self), target)
+            self.execute( handler_name )
+            log.info("%s.main returned from %s", lib.cn(self), target)
+
+        return self
+
+    def __init__(self):
+        super(SimpleCommand, self).__init__()
+
+        self.settings = Values()
+        "Global settings, set to Values loaded from config_file. "
+
     def get_optspecs(self):
         """
         Collect all options for the current class if used as Main command.
@@ -446,24 +470,6 @@ class SimpleCommand(object):
                 optsd[name] = v
 
         return parser, optsd, args
-
-    @classmethod
-    def main(Klass, argv=None, optionparser=None, result_adapter=None, default_reporter=None):
-
-        self = Klass()
-        self.globaldict = Values(dict(
-            prog=Values(),
-            opts=Values(),
-            args=[] ))
-
-        self.globaldict.prog.handlers = self.BOOTSTRAP
-        for handler_name in self.resolve_handlers():
-            target = handler_name.replace('_', ':', 1)
-            log.debug("%s.main deferring to %s", lib.cn(self), target)
-            self.execute( handler_name )
-            log.info("%s.main returned from %s", lib.cn(self), target)
-
-        return self
 
     def resolve_handlers( self ):
         """
@@ -634,15 +640,18 @@ class SimpleCommand(object):
         """
         if self.INIT_RC and hasattr(self, self.INIT_RC):
             self.default_rc = getattr(self, self.INIT_RC)(prog, opts)
-	    # FIXME: init default config
-            #print self.DEFAULT_RC, self.DEFAULT_CONFIG_KEY, self.INIT_RC
-            #print opts.config_file, opts.config_key
+        else:
+            self.default_rc = dict()
 
         if 'config_file' not in opts or not opts.config_file:
             self.rc = self.default_rc
             log.err( "Nothing to load configuration from")
 
         else:
+            # FIXME: init default config
+                #print self.DEFAULT_RC, self.DEFAULT_CONFIG_KEY, self.INIT_RC
+                #print opts.config_file, opts.config_key
+
             prog.config_file = self.find_config_file(opts.config_file)
             self.load_config_( prog.config_file, opts )
             yield dict(settings=self.settings)
@@ -671,7 +680,8 @@ class SimpleCommand(object):
 
         if hasattr(settings, config_key):
             self.rc = self.default_rc
-            self.rc.update(getattr(settings, config_key))
+            if getattr(settings, config_key):
+                self.rc.update(getattr(settings, config_key))
             self.rc.update({ k: v for k, v in opts.items() if v })
         else:
             log.warn("Config key %s does not exist in %s" % (config_key,
@@ -843,9 +853,6 @@ class StackedCommand(SimpleCommand):
 
     def __init__(self):
         super(StackedCommand, self).__init__()
-
-        self.settings = Values()
-        "Global settings, set to Values loaded from config_file. "
 
         self.rc = None
         "Runtime settings for this script. "
