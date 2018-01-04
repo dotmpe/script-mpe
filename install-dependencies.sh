@@ -52,6 +52,16 @@ test -d $PREFIX || ${pref} mkdir -vp $PREFIX
 
 
 
+uninstall_bats()
+{
+  stderr "Uninstalling bats"
+  ${pref} rm -rf $PREFIX/bin/bats \
+      $PREFIX/libexec/bats \
+      $PREFIX/share/man/man1/bats* \
+      $PREFIX/share/man/man7/bats*
+}
+
+
 install_bats()
 {
   stderr "Installing bats"
@@ -220,6 +230,7 @@ main_entry()
     ;; esac
 
   case "$1" in bats-force-local )
+      uninstall_bats
       install_bats || return $?
       PATH=$PATH:$PREFIX/bin bats --version ||
         stderr "BATS install to $PREFIX failed" 1
