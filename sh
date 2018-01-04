@@ -1,14 +1,15 @@
 #!/bin/sh
 set -e
 
-projectdir.sh run :bats:specs
 projectdir.sh run :git:status
+#projectdir.sh run :bats:specs
 #vendor/.bin/behat --dry-run --no-multiline
-exit $?
 
-pd status
-pd rules
-pd run-rules ~/.conf/rules/boreas.tab
+htd status
+htd rules
+htd run-rules ~/.conf/rules/boreas.tab
+
+exit $?
 
 #htd filter-functions "run=..*" htd
 #htd filter-functions  "grp=htd-meta spc=..*" htd

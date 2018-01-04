@@ -35,6 +35,7 @@ before_install:
 
 install:
   - scriptname=install
+  - BATS_REPO=https://github.com/bvberkum/bats.git
   - . ./tools/ci/parts/install.sh
 
 before_script:
