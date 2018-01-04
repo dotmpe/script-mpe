@@ -110,24 +110,22 @@ vc_getscm()
   scm=$(basename "$scmdir" | cut -c2-)
 }
 
+vc_fsck_git()
+{
+  # XXX: has no exit-code, only diagnostic output
+  #git --strict fsck
+  git fsck
+}
+
+vc_fsck()
+{
+  test -n "$scm" || vc_getscm
+  vc_fsck_${scm}
+}
+
 vc_remotes_git()
 {
   git remote
-}
-
-vc_remotes_bzr()
-{
-  false
-}
-
-vc_remotes_svn()
-{
-  false
-}
-
-vc_remotes_hg()
-{
-  false
 }
 
 vc_gitremote()

@@ -1243,7 +1243,7 @@ pd__loc()
   do
     read_nix_style_file "$1"
     shift
-  done | line_count
+  done | count_lines
 }
 
 

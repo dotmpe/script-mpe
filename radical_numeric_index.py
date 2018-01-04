@@ -1,6 +1,5 @@
-
 """
-Simple comment storage API. With numeric ID's.
+TODO: Simple comment storage API. With numeric ID's.
 
 For each comment a record with a generated ID and digest is kept.
 
@@ -25,7 +24,6 @@ File Changelog
     Initial version of service component.
 
 """
-
 from __future__ import print_function
 import hashlib
 
@@ -73,13 +71,30 @@ def comment(dbsession, comment, numid=None):
         print(new_comment.numid)
         return new_comment.numid
 
+tracked = 0
+tracker_index = {}
 
-def get(iid): pass
+
+def init(rc, opts):
+    global tracker_index, tracked
+    tracked = 0
+    tracker_index = {}
+
+def lists(tag=None):
+    return tracker_index.keys()
+
+def keep(iid, o):
+    tracker_index[ iid ] = dict( embedded=o )
+
+def globalize(iid, o):
+    global tracker_index, tracked
+
+    if iid not in tracker_index:
+        keep(iid, o)
+    return tracker_index[iid]
 
 def new(tag, o):
-# TODO
     print('New', tag, o, end='')
 
 def update(tag, iid, o):
-# TODO
     print('Updated', tag, iid, o)

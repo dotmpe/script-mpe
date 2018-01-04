@@ -266,7 +266,7 @@ def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
                     yield cleaf
 
 
-class DictDeepUpdate:
+class DictDeepUpdate(object):
 
     @classmethod
     def update_list(Klass, sub, k, v, key_h=None):

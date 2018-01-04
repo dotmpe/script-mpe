@@ -442,9 +442,11 @@ htd__fsck()
   } || {
 
     # Look for and fsck local annex as last step
-    vc_getscm || return
-    test -d "$scmdir/annex" || return
-    git annex fsck .
+    vc_getscm || return 0
+    vc_fsck || return
+    test -d "$scmdir/annex" && {
+        git annex fsck . || return
+    } || true
   }
 }
 htd_als__file_check=fsck
@@ -3934,6 +3936,7 @@ htd__find_empty_dirs()
   eval find $1 $find_ignores -o -empty -a -type d -a -print
 }
 
+htd_als__largest_files=find-largest
 htd__find_largest()
 {
   test -n "$1" || set -- 15
@@ -8939,10 +8942,6 @@ htd__couchdb_htd_scripts()
   done
 }
 
-#f0720d16cd6bb61319a08aafbf97a1352537ac61
-
-#02/92/80b80c532636930b43ecd92dafaa04fd7bd1644ff7b077ac4959f7883a98
-#029280b80c532636930b43ecd92dafaa04fd7bd1644ff7b077ac4959f7883a98
 
 htd__lfs_files()
 {
@@ -9287,7 +9286,7 @@ htd_init()
   box_run_sh_test
   lib_load htd meta list
   lib_load box date doc table disk remote ignores package service archive \
-      prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck
+      prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck net
   case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh
   disk_run

@@ -14,8 +14,7 @@ TreeNode
 import zope
 from zope.component import queryAdapter, getGlobalSiteManager
 
-import log
-import lib
+from script_mpe import log, lib
 from script_mpe.res import iface as res_iface
 from script_mpe.taxus import iface
 
@@ -39,11 +38,11 @@ class TreeNodeDict(dict):
     ATTR_PREFIX = '@'
     "static config for attribute prefix"
 
-    def __init__(self, nameOrObject=None, parent=None, subnodes=[],
+    def __init__(self, nameOrObject=u'TreeNodeDict', parent=None, subnodes=[],
             attributes={}, attr_prefix=ATTR_PREFIX):
         dict.__init__(self)
         if not isinstance(nameOrObject, unicode):
-            assert not isinstance(nameOrObject, str)
+            assert not isinstance(nameOrObject, str), nameOrObject
             self.__name__ = res_iface.IName(nameOrObject)
         else:
             self.__name__ = nameOrObject

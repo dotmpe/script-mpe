@@ -110,8 +110,8 @@ word_diff()
 # TODO: test wether named patterns still exists, and notice any out-of-date testcase
 
 @test "$bin lists var names in name pattern" {
-  source ./match.sh load-ext
-  source ./match.lib.sh
+  __load=ext source ./match.sh
+  __load=ext source ./match.lib.sh
   silent=true
   match_load
   run match__name_pattern_opts ./@NAMEPART.@SHA1_CKS.@EXT

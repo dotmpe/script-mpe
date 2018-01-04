@@ -21,7 +21,10 @@ class RadicalTestCase(unittest.TestCase):
 
     def setUp(self):
         self.rc = confparse.Values(dict(
-            tags = DEFAULT_TAGS,
+            tags = DEFAULT_TAGS.keys(),
+            tag_specs = DEFAULT_TAGS,
+            ignored_tags = [],
+            ignored_scans = {},
             comment_scan = STD_COMMENT_SCAN,
             comment_flavours = STD_COMMENT_SCAN.keys()
         ))
@@ -65,15 +68,20 @@ class RadicalTestCase(unittest.TestCase):
         ( 1, 'radical-test1.txt', [
           [ '<TagInstance FIXME radical-test1.txt#c107-115>', ' FIXME: '    ],
           [ '<TagInstance XXX radical-test1.txt#c161-169>',   ' XXX:2: '    ],
-          [ '<TagInstance XXX radical-test1.txt#c405-412>',   ' XXX 7 '     ],
-          [ '<TagInstance NOTE radical-test1.txt#c6-21>',     ' NOTE Comment\n ' ],
+          [ '<TagInstance XXX radical-test1.txt#c405-410>',   ' XXX '     ],
+          #[ '<TagInstance XXX radical-test1.txt#c405-412>',   ' XXX 7 '     ],
+          [ '<TagInstance NOTE radical-test1.txt#c6-12>',     ' NOTE ' ],
+          #[ '<TagInstance NOTE radical-test1.txt#c6-21>',     ' NOTE \n ' ],
           [ '<TagInstance NOTE radical-test1.txt#c291-298>',  ' NOTE: '     ],
-          [ '<TagInstance NOTE radical-test1.txt#c322-333>',  ' NOTE this ' ],
+          #[ '<TagInstance NOTE radical-test1.txt#c322-333>',  ' NOTE this ' ],
+          [ '<TagInstance NOTE radical-test1.txt#c322-328>',  ' NOTE ' ],
           [ '<TagInstance TEST radical-test1.txt#c70-77>',    ' TEST: '     ],
-          [ '<TagInstance TODO radical-test1.txt#c349-359>',  ' TODO 123 '  ],
+          [ '<TagInstance TODO radical-test1.txt#c349-355>',  ' TODO '  ],
+          #[ '<TagInstance TODO radical-test1.txt#c349-359>',  ' TODO 123 '  ],
           [ '<TagInstance TODO radical-test1.txt#c369-378>',  ' TODO-45 '   ],
-          [ '<TagInstance TODO radical-test1.txt#c388-396>',  None          ],
-          [ '<TagInstance TODO radical-test1.txt#c421-430>',  ' TODO 17 '   ],
+          [ '<TagInstance TODO radical-test1.txt#c388-394>',  None          ],
+          [ '<TagInstance TODO radical-test1.txt#c421-427>',  ' TODO '   ],
+          #[ '<TagInstance TODO radical-test1.txt#c421-430>',  ' TODO 17 '   ],
         ] ),
         ( 2, 'test/var/radical-tasks-1.txt', [
           ( '<TagInstance TODO test/var/radical-tasks-1.txt#c2-9>', ' TODO: ' ),
@@ -102,15 +110,17 @@ class RadicalTestCase(unittest.TestCase):
         if lines[-1] == '':
             lines.pop()
         parser = SEIParser(None, self.mb, source, '', data, lines)
-        tags = list(parser.find_tags())
+        tags = list(parser.find_tags(self.rc))
         for idx, ( tagrepr, result ) in enumerate(expected):
-            self.assert_( str(tags[idx]) == expected[idx][0], "%i: %s not found" % (
-                idx, tags[idx] ) )
+            self.assert_( str(tags[idx]) == expected[idx][0],
+                    "%i: %s, %r not found" % ( idx, tags[idx],
+                        tags[idx].raw(data) ) )
             exp = expected[idx][1]
             if exp:
                 rs = data[slice(*tags[idx].char_span)]
                 self.assertEquals( rs, exp,
-                        "No match at %i: result %r vs. expected %r" % (idx, rs, exp ) )
+                        "No match at %i: result %r vs. expected %r" % (
+                            idx, rs, exp ) )
         self.assertEquals( len(tags), len(expected),
                 "%i: Missing tag tests for %r, %i != %i " % (
                     idx, source, len(tags), len(expected) ) )
@@ -161,11 +171,11 @@ class RadicalTestCase(unittest.TestCase):
         if lines[-1] == '':
             lines.pop()
         parser = SEIParser(None, self.mb, source, '', data, lines)
-        tags = list(parser.find_tags())
+        tags = list(parser.find_tags(self.rc))
         for idx, ( ei_str, lspan, dspan, raw, descr ) in enumerate(expected):
             tag = tags[idx]
             try:
-                ei = parser.for_tag(tag)
+                ei = parser.for_tag(tag, self.mb, self.rc)
             except Exception, err:
                 self.assert_(False, err)
             if ei_str:
@@ -203,7 +213,7 @@ class RadicalTestCase(unittest.TestCase):
         "at_line returns line number and span for a given sub-line char span"
         lines = get_lines(data)
         pos = data.index('FOO')
-        line_number, line_offset, line_width = at_line(pos, 3, data, lines)
+        line_number, line_offset, line_width, linecnt = at_line(pos, 3, data, lines)
         self.assertEquals( line_number, expected[0] )
         self.assertEquals( line_offset, expected[1] )
         self.assertEquals( line_width, expected[2] )
@@ -228,9 +238,10 @@ class RadicalTestCase(unittest.TestCase):
         lines = get_lines(data)
         offset = data.index('TODO')
         width = 4
-        tag_line, line_offset, line_width = at_line(offset, width, data, lines)
+        tag_line, line_offset, line_width, linecnt = at_line(offset, width, data, lines)
         comment_flavour, char_span, descr_span, line_span = get_tagged_comment(
-                offset, width, data, lines, self.rc.comment_flavours, self.mb)
+                offset, width, data, lines, self.rc.comment_flavours,
+                self.rc.ignored_scans, self.mb)
         # Verify test (ever case should have same str result)
         self.assertEquals( data[slice(*expected[1])].strip('/*#\n'), ' TODO comment ' )
         # Actual tests
@@ -283,4 +294,3 @@ def get_cases():
 
 if __name__ == '__main__':
     unittest.main()
-

@@ -44,14 +44,16 @@ Usage:
   bookmarks.py [-v... options] sql (stats|couch)
   bookmarks.py [-v... options] couch (sql|stats|list|update|init)
   bookmarks.py [-v... options] couch (add|modify) REF [ NAME [ TAGS... ] ]
-  bookmarks.py [-v... options] info | init | stats | clear
+  bookmarks.py [-v... options] info | init | stats | clear | memdebug
   bookmarks.py --background
   bookmarks.py -h|--help
   bookmarks.py help [CMD]
   bookmarks.py --version
 
 Options:
-  -d REF --dbref=REF
+  -s SESSION, --session-name SESSION
+                should be bookmarks [default: default].
+  -d REF, --dbref=REF
                 SQLAlchemy DB URL [default: %s]
   --no-db       Don't initialize SQL DB connection.
   --couch=REF
@@ -65,8 +67,6 @@ Options:
   --domain-offset INT
                 Typical --*-offset, see before.
                 Defaults to avgFreq. [default: -1]
-  -s SESSION --session-name SESSION
-                should be bookmarks [default: default].
   --chrome-bookmarks-path PATH
                 [default: %s]
   --chrome-bookmarks-root GROUP
@@ -641,13 +641,14 @@ def cmd_tags(TAGS, g):
 
 def cmd_urls(REF, g, opts):
     global ctx
-    sa = ctx.sa_session
-    like = '%%%s%%' % REF
-    rs = sa.query(Locator).filter(Locator.ref.like(like)).all()
-    for r in rs:
-        print(r)
-    if REF:
-        ctx.note("Found %i matches", len(rs))
+
+    if REF: rs = ctx.Locator.search(ref=REF)
+    else: rs = ctx.Locator.all()
+    if not rs:
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict: return 1
+
+    ctx.lines_out(rs)
 
 
 def _like_val(field, value):

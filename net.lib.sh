@@ -41,5 +41,5 @@ canon_host()
 {
   test -n "$2" || return 1
   test -n "$1" || set -- /etc/hosts "$2"
-  grep "$2" "$1" | awk '{print $2}'
+  grep -q "$2" "$1" | awk '{print $2}'
 }

@@ -46,6 +46,7 @@ Usage:
   hier.py [options] cp SRC DEST
   hier.py [options] mv SRC... DEST
   hier.py [options] wordnet WORD
+  hier.py [options] import LIST
   hier.py [options] backup
   hier.py [options] info | init | stats | clear
   hier.py -h|--help
@@ -112,7 +113,6 @@ ctx = Taxus(version='hier')
 
 cmd_default_settings = dict( verbose=1,
         commit=True,
-        partial_match=True,
         session_name='default',
         print_memory=False,
         all_tables=True, # FIXME
@@ -252,6 +252,17 @@ def cmd_backup(g):
     for n in Node.all():
         if n.ntype not in types: continue
         print(n)
+
+
+def cmd_import(LIST, g):
+    global ctx
+
+    prsr = res.todo.TodoTxtParser()
+    LIST = LIST or 'todo.txt'
+    list(prsr.load(LIST))
+    for k in prsr:
+        # TODO: finish up new todotxt parser
+        print(prsr[k].todict())
 
 
 """

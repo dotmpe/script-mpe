@@ -82,8 +82,7 @@ class INode(object):
         "Return true if all filters match, or false if one or more fails. "
         for fltr in filters:
             # TODO ifgenerator
-            rs = list(fltr(path))
-            if not rs:
+            if not fltr(path):
                 return False
         return True
 
@@ -135,15 +134,18 @@ class File(INode):
     zope.interface.implements(iface.Node, iface.ILeaf)
     implements = 'file'
 
+    ignore_paths = (
+            '*/.Trashes*',
+            '*/.TemporaryItems*',
+            '*/.git',
+        )
+
     ignore_names = (
             '._*',
             '.crdownload',
             '.DS_Store',
-            '*.swp',
-            '*.swo',
-            '*.swn',
+            '*.sw[pon]',
             '*.r[0-9]*[0-9]',
-            '.git*',
             '*.pyc',
             '*~',
             '*.tmp',
@@ -156,24 +158,17 @@ class File(INode):
             '.symlinks'
         )
 
-    ignore_paths = (
-            '.Trashes*',
-            '.TemporaryItems*',
-            '*.git',
-            '.git*',
-        )
-
     @classmethod
     def ignored(klass, path):
         """
         File.ignored checks names and paths of files with ignore patterns.
         """
         for p in klass.ignore_paths:
-            if fnmatch(path, p):
+            if path is p or fnmatch(path, p):
                 return True
         name = os.path.basename(path)
         for p in klass.ignore_names:
-            if fnmatch(name, p):
+            if name is p or fnmatch(name, p):
                 return True
 
 
@@ -213,42 +208,26 @@ class Dir(INode):
     zope.interface.implements(iface.Node, iface.ITree)
     implements = 'dir'
 
-    # ITree -
-    def get_subnodes(self):
-        for name in os.listdir(self.path):
-            # XXX yields relative path INode
-            p = os.path.join( self.path, name )
-            yield INode.factory( p )
-    subnodes = property( get_subnodes )
-    def append(self, node):
-        raise NotImplementedError
-    def remove(self, node):
-        raise NotImplementedError
-
-    def get_attributes(self):
-        return {}
-    attributes = property( get_attributes )
-    def set_attr(self, name, value):
-        raise NotImplementedError
-    def get_attr(self, name):
-        raise NotImplementedError
+    ignore_paths = File.ignore_paths
 
     ignore_names = (
-            '._*',
             '.metadata',
             '.conf',
             'RECYCLER',
             '.TemporaryItems',
             '.Trash*',
-            'cllct',
+            '.build',
+            'build',
             '.cllct',
+            '.git',
+            '.svn',
+            '.hg',
+            '.bzr',
+            '.vim',
+            '.cache',
+            #'vendor',
+            #'node_modules',
             'System Volume Information',
-            '*.bup',
-            '.git*',
-        )
-
-    ignore_paths = (
-            '*.git',
             '*com.docker.docker'
         )
 
@@ -270,11 +249,11 @@ class Dir(INode):
     @classmethod
     def ignored(klass, path):
         for p in klass.ignore_paths:
-            if fnmatch(path, p):
+            if path is p or fnmatch(path, p):
                 return True
         name = os.path.basename(path)
         for p in klass.ignore_names:
-            if fnmatch(name, p):
+            if name is p or fnmatch(name, p):
                 return True
 
     @classmethod
@@ -323,7 +302,7 @@ class Dir(INode):
                 assert False, "TODO: write new ignores to file"
 
     walk_opts = confparse.Values(dict(
-        descend=True, # reverse direction
+        descend=True, # reverse direction, yield roots and then recurse walk
         interactive=False,
         recurse=False,
         max_depth=-1,
@@ -340,7 +319,15 @@ class Dir(INode):
     ))
 
     @classmethod
-    def walk(klass, path, opts=walk_opts, filters=(None,None)):
+    def get_walk_opts(klass, **kwds):
+        opts_ = confparse.Values(klass.walk_opts)
+        if kwds: opts_.update(kwds)
+        if opts_.max_depth > 0: assert opts_.recurse
+        exclusive( opts_, 'dirs files symlinks links pipes blockdevs' )
+        return opts_
+
+    @classmethod
+    def walk(klass, path, opts={}, filters=(None,None)):
         """
         Build on os.walk, this goes over all directories and other paths
         non-recursively.
@@ -348,41 +335,32 @@ class Dir(INode):
         FIXME: could, but does not, yield INode subtype instances.
         XXX: filters, see dev_treemap
         """
-#        if not opts.descend:
-#            return self.walkRoot( path, opts=opts, filters=filters )
-        if not isinstance(opts, confparse.Values):
-            opts_ = confparse.Values(klass.walk_opts)
-            opts_.update(opts)
-            opts = opts_
-        else:
-            opts = confparse.Values(opts.copy())
-        # FIXME: validate/process opts or put filter somewhere
-        if opts.max_depth > 0:
-            assert opts.recurse
-        exclusive( opts, 'dirs files symlinks links pipes blockdevs' )
+        #if not opts.descend:
+        #    return self.walkRoot( path, opts=opts, filters=filters )
+
         assert isinstance(path, basestring), (path, path.__class__)
-        dirpath = None
+        opts = klass.get_walk_opts(**opts)
         file_filters, dir_filters = filters
+
+        dirpath = None
         if not os.path.isdir( path ):
             if opts.exists > -1:
                 log.err("Cannot walk non-dir path with opt.exists. ")
-            else:
+            elif opts.dirs:
                 yield path
         else:
             if opts.dirs and opts.include_root:
                 yield unicode( path, 'utf-8' )
+
             for root, dirs, files in os.walk(path):
                 for node in list(dirs):
-                    if not opts.recurse and not opts.interactive:
+                    if not opts.recurse: # and not opts.interactive:
                         dirs.remove(node)
-                    if not opts.dirs:
-                        continue
                     dirpath = join(root, node)
                     if dir_filters:
                         if not Dir.filter(dirpath, *dir_filters):
                             dirs.remove(node)
                             continue
-                    #dirpath = os.path.join(root, node).replace(path,'').lstrip('/') +'/'
                     depth = pathdepth(dirpath.replace(path, ''))
                     if not os.path.exists(dirpath):
                         log.err("Error: reported non existant node %s", dirpath)
@@ -394,6 +372,8 @@ class Dir(INode):
                     elif not klass.check_recurse(dirpath, opts):
                         if node in dirs:
                             dirs.remove(node)
+                    if not opts.dirs:
+                        continue
 #                    continue # exception to rule excluded == no yield
 # caller can sort out wether they want entries to subpaths at this level
                     assert isinstance(dirpath, basestring)
@@ -410,6 +390,7 @@ class Dir(INode):
                         continue
                     dirpath = klass.decode_path(dirpath, opts)
                     yield dirpath
+
                 for leaf in list(files):
                     filepath = join(root, leaf)
                     if file_filters:
@@ -504,6 +485,27 @@ class Dir(INode):
             return StatCache.getmtime(path) > path_or_time
         for path in klass.walk(path, filters=[_isupdated]):
             yield path
+
+    # ITree -
+    def get_subnodes(self):
+        for name in os.listdir(self.path):
+            # XXX yields relative path INode
+            p = os.path.join( self.path, name )
+            yield INode.factory( p )
+    subnodes = property( get_subnodes )
+    def append(self, node):
+        raise NotImplementedError
+    def remove(self, node):
+        raise NotImplementedError
+
+    def get_attributes(self):
+        return {}
+    attributes = property( get_attributes )
+    def set_attr(self, name, value):
+        raise NotImplementedError
+    def get_attr(self, name):
+        raise NotImplementedError
+
 
 class CharacterDevice(INode):
     implements = 'chardev'

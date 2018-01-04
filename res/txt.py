@@ -49,7 +49,9 @@ class AbstractTxtLineParser(object):
                 _raw=self._raw
             )
         for f in self.fields:
-            d[f] = getattr(self, f)
+            if hasattr(self, f): v = getattr(self, f)
+            else: v = None
+            d[f] = v
         return d
     def __str__(self):
         return self.text

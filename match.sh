@@ -168,7 +168,7 @@ match_main()
 match_lib()
 {
   test -z "$__load_lib" || return 1
-  test -n "$scriptpath"
+  test -n "$scriptpath" || return 1
   export SCRIPTPATH=$scriptpath
   . $scriptpath/util.sh
   util_init

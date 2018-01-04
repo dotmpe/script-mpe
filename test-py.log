@@ -1,0 +1,188 @@
+test_1__0 (mod_attrmap.AttributeMapWrapperTestCase) ... ok
+test_1__1 (mod_attrmap.AttributeMapWrapperTestCase) ... ok
+test_1__2 (mod_attrmap.AttributeMapWrapperTestCase) ... ok
+test_1 (mod_confparse.CPTest2) ... ok
+test_2 (mod_confparse.CPTest2) ... ok
+test_0_init (mod_confparse.CPTest1) ... ok
+test_1_exports (mod_confparse.CPTest1) ... ok
+test_2_load (mod_confparse.CPTest1) ... ok
+test_3_set_string (mod_confparse.CPTest1) ... ok
+test_4_lists (mod_confparse.CPTest1) ... ok
+test_5_copy (mod_confparse.CPTest1) ... ok
+test_6_commit (mod_confparse.CPTest1) ... ok
+test_1_read_dict (mod_confparse2.CP2Test1) ... ok
+test_1_read_dict_int (mod_confparse2.CP2Test1) ... ok
+test_1_read_list (mod_confparse2.CP2Test1) ... ok
+test_2_read_nested (mod_confparse2.CP2Test1) ... ok
+test_write (mod_confparse2.CP2Test1) ... ok
+test_flat_key_value_parser_init_0 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_init_1 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_init_2 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_init_3 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_init_4 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_init_5 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_init_6 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_init_7 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_scan_0 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_scan_1 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_scan_2 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_scan_3 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_scan_4 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_scan_5 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_scan_6 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_scan_7 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_type_scan_0 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_type_scan_1 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_type_scan_2 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_type_scan_3 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_type_scan_4 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_type_scan_5 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_type_scan_6 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_flat_key_value_parser_type_scan_7 (mod_jsotk.JsotkFlatKVParserTest) ... ok
+test_1_set_0 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_1_set_1 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_1_set_2 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_1_set_3 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_init_0 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_init_1 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_init_2 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_init_3 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_init_4 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_init_5 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_init_6 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_init_7 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_init_8 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_init_9 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_scan_0 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_scan_1 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_scan_2 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_scan_3 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_scan_4 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_scan_5 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_scan_6 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_scan_7 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_scan_8 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_scan_9 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_type_scan_0 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_type_scan_1 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_type_scan_10 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_type_scan_11 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_type_scan_2 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_type_scan_3 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_type_scan_4 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_type_scan_5 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_type_scan_6 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_type_scan_7 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_type_scan_8 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_path_key_value_parser_type_scan_9 (mod_jsotk.JsotkPathKVParserTest) ... ok
+test_data_check_path_0 (mod_jsotk.JsotkTest)
+[with testnr=1, pathexpr='baz', expected=True] ... ok
+test_data_check_path_1 (mod_jsotk.JsotkTest)
+[with testnr=2, pathexpr='foo/bar', expected=False] ... ok
+test_data_check_path_2 (mod_jsotk.JsotkTest)
+[with testnr=3, pathexpr='foo[0]/bar', expected=True] ... ok
+test_data_check_path_3 (mod_jsotk.JsotkTest)
+[with testnr=5, pathexpr='baz/bar', expected=True] ... ok
+test_1_cmd_clean_mode (mod_pd_meta.PdMeta) ... ok
+test_1_tag_regex_0 (mod_radical.RadicalTestCase) ... ok
+test_1_tag_regex_1 (mod_radical.RadicalTestCase) ... ok
+test_1_tag_regex_10 (mod_radical.RadicalTestCase) ... ok
+test_1_tag_regex_11 (mod_radical.RadicalTestCase) ... ok
+test_1_tag_regex_12 (mod_radical.RadicalTestCase) ... ok
+test_1_tag_regex_2 (mod_radical.RadicalTestCase) ... ok
+test_1_tag_regex_3 (mod_radical.RadicalTestCase) ... ok
+test_1_tag_regex_4 (mod_radical.RadicalTestCase) ... ok
+test_1_tag_regex_5 (mod_radical.RadicalTestCase) ... ok
+test_1_tag_regex_6 (mod_radical.RadicalTestCase) ... ok
+test_1_tag_regex_7 (mod_radical.RadicalTestCase) ... ok
+test_1_tag_regex_8 (mod_radical.RadicalTestCase) ... ok
+test_1_tag_regex_9 (mod_radical.RadicalTestCase) ... ok
+test_2_SEIParser_find_tags_0 (mod_radical.RadicalTestCase)
+[with testnr=1, source='radical-test1.txt', expected=[['<TagInstance FIXME radical-te...test1.txt#c421-427>', ' TODO ']]] ... ok
+test_2_SEIParser_find_tags_1 (mod_radical.RadicalTestCase)
+[with testnr=2, source='test/var/radical-tasks-1.txt', expected=[('<TagInstance TODO test/var/ra...-tasks-1.txt#c2-9>', ' TODO: ')]] ... ok
+test_2_SEIParser_find_tags_2 (mod_radical.RadicalTestCase)
+[with testnr=3, source='test/var/radical-tasks-2.txt', expected=[('<TagInstance FIXME test/var/r...ks-2.txt#c1-11>', ' FIXME:2: ')]] ... ok
+test_2_SEIParser_find_tags_3 (mod_radical.RadicalTestCase)
+[with testnr=4, source='test/var/radical-tasks-3.txt', expected=[('<TagInstance TODO test/var/ra...asks-3.txt#c68-75>', ' TODO: ')]] ... ok
+test_2_SEIParser_find_tags_4 (mod_radical.RadicalTestCase)
+[with testnr=5, source='test/var/radical-tasks-4.txt', expected=[('<TagInstance TODO test/var/ra...ks-4.txt#c773-780>', ' TODO: ')]] ... ok
+test_3_at_line_0 (mod_radical.RadicalTestCase)
+at_line returns line number and span for a given sub-line char span [with testnr=1, data='FOO', expected=(0, 0, 4)] ... ok
+test_3_at_line_1 (mod_radical.RadicalTestCase)
+at_line returns line number and span for a given sub-line char span [with testnr=2, data='  FOO', expected=(0, 0, 6)] ... ok
+test_3_at_line_2 (mod_radical.RadicalTestCase)
+at_line returns line number and span for a given sub-line char span [with testnr=3, data='\nFOO', expected=(1, 1, 4)] ... ok
+test_3_at_line_3 (mod_radical.RadicalTestCase)
+at_line returns line number and span for a given sub-line char span [with testnr=4, data='\nFOO\n', expected=(1, 1, 4)] ... ok
+test_3_at_line_4 (mod_radical.RadicalTestCase)
+at_line returns line number and span for a given sub-line char span [with testnr=5, data='  \n  FOO\n', expected=(1, 3, 6)] ... ok
+test_3_at_line_5 (mod_radical.RadicalTestCase)
+at_line returns line number and span for a given sub-line char span [with testnr=6, data='lkjlkj lkj\nfoo /** FOO comment */ bar\nqwiefn\n', expected=(1, 11, 27)] ... ok
+test_3_at_line_6 (mod_radical.RadicalTestCase)
+at_line returns line number and span for a given sub-line char span [with testnr=7, data='     \n/**\n FOO comment \n*/\n', expected=(2, 10, 14)] ... ok
+test_3_at_line_7 (mod_radical.RadicalTestCase)
+at_line returns line number and span for a given sub-line char span [with testnr=8, data='// FOO comment', expected=(0, 0, 15)] ... ok
+test_3_at_line_8 (mod_radical.RadicalTestCase)
+at_line returns line number and span for a given sub-line char span [with testnr=9, data='# FOO comment', expected=(0, 0, 14)] ... ok
+test_4_get_tagged_comment_0 (mod_radical.RadicalTestCase) ... ok
+test_4_get_tagged_comment_1 (mod_radical.RadicalTestCase) ... ok
+test_4_get_tagged_comment_2 (mod_radical.RadicalTestCase) ... ok
+test_4_get_tagged_comment_3 (mod_radical.RadicalTestCase) ... ok
+test_4_get_tagged_comment_4 (mod_radical.RadicalTestCase) ... ok
+test_4_get_tagged_comment_5 (mod_radical.RadicalTestCase) ... ok
+test_4_get_tagged_comment_6 (mod_radical.RadicalTestCase) ... ok
+test_4_get_tagged_comment_7 (mod_radical.RadicalTestCase) ... ok
+test_4_get_tagged_comment_8 (mod_radical.RadicalTestCase) ... ok
+test_4_get_tagged_comment_9 (mod_radical.RadicalTestCase) ... ok
+test_SEIParser_for_tag_0 (mod_radical.RadicalTestCase) ... ok
+test_SEIParser_for_tag_1 (mod_radical.RadicalTestCase) ... ok
+test_SEIParser_for_tag_2 (mod_radical.RadicalTestCase) ... ok
+test_SEIParser_for_tag_3 (mod_radical.RadicalTestCase) ... ok
+test_SEIParser_for_tag_4 (mod_radical.RadicalTestCase) ... ok
+unittest.case.FunctionTestCase (test_res_format_0aa970d96eb971303c45b39c0f5ceb7d49383d6b)
+Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (test_res_format_9c288c453bebe44d67224b1ffaf650bb7adf4960)
+Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (test_res_format_a14aa8d3379d07bc09283cf62cae432cc0309a05)
+Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (test_res_format_810b7cbf9d05fd56227ef859f7b715f806d8564c)
+Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (test_res_format_3306a06a042d5e8361288dfa7aca93630d5370e5)
+Res_FormatTest_sha1sum ... ok
+unittest.case.FunctionTestCase (test_res_format_5bf5eae6238afaff0a142da7b6df9a2030ae25d0)
+Res_FormatTest_sha1sum ... ok
+test_fs_iface (mod_res_fs.TestResFs) ... ok
+test_conform (mod_res_primitive.TreeNodeDictTest) ... ok
+test_ifaces (mod_res_primitive.TreeNodeDictTest) ... ok
+test_name (mod_res_primitive.TreeNodeDictTest) ... ok
+test_nodeid (mod_res_primitive.TreeNodeDictTest) ... ok
+test_tree_append (mod_res_primitive.TreeNodeDictTest) ... ok
+test_tree_traverse (mod_res_primitive.TreeNodeDictTest) ... ok
+unittest.case.FunctionTestCase (test_dictnode_fs_populate) ... ok
+unittest.case.FunctionTestCase (test_tree) ... ok
+unittest.case.FunctionTestCase (test_treenodedict) ... ok
+test_sh_src_switch_get_offsets_0_test_var_sh_src_1_sh (mod_sh_src.ShSwitchTest)
+[with shfilename='test/var/sh-src-1.sh', expected_ranges=[((1, 2), (118, 9))]] ... ok
+test_sh_src_switch_get_offsets_1_test_var_sh_src_2_sh (mod_sh_src.ShSwitchTest)
+[with shfilename='test/var/sh-src-2.sh', expected_ranges=[]] ... ok
+test_sh_src_switch_get_offsets_2_test_var_sh_src_3_sh (mod_sh_src.ShSwitchTest)
+[with shfilename='test/var/sh-src-3.sh', expected_ranges=[((66, 6), (167, 13)), ((1, 2), (228, 18))]] ... ok
+test_sh_src_switch_get_raw_sets_0_test_var_sh_src_1_sh (mod_sh_src.ShSwitchTest) ... ok
+test_sh_src_switch_get_raw_sets_1_test_var_sh_src_2_sh (mod_sh_src.ShSwitchTest) ... ok
+test_sh_src_switch_get_raw_sets_2_test_var_sh_src_3_sh (mod_sh_src.ShSwitchTest) ... ok
+test_1_grep_nH_rs_0 (mod_tasks.TasksTestCase)
+tasks regex should split grep -nH lines [with testnr=1, data='vc.rst:39: :sync-mode: TODO: See Pd.\\n', expected=()] ... ok
+test_taxus_schema_basic_commit (mod_taxus_init.TestTaxusInitBasic) ... ok
+test_taxus_schema_basic_load (mod_taxus_init.TestTaxusInitBasic) ... ok
+test_taxus_schema_basic_load (mod_taxus_init.TestTaxusInitExtends) ... ok
+test_taxus_schema_ext_commit (mod_taxus_init.TestTaxusInitExtends) ... ok
+test_1__0 (mod_todotxt.TodoTestCase)
+[with testnr=1, testfn='test/var/todo.txt', expected=()] ... ok
+test_1_fs_tree (mod_treemap.TreemapUnitTest) ... ok
+test_2_fs_sizes_tree (mod_treemap.TreemapUnitTest) ... ok
+
+----------------------------------------------------------------------
+Ran 154 tests in 0.531s
+
+OK

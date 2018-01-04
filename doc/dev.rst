@@ -1,8 +1,23 @@
+Objective
+---------
+Use script engines on host env to build more or less complex (semi) automated setups.
+
+Provide simple user and machine invocation paradigms, and work on regular UNIX host "objects"; files, streams, lines, text-formats, FIFO/named-pipes, descriptors, etc. etc.
+
+Delegate sophisticated user interfaces to specific verticals. Use
+appropiate languages to build programs with complex objects, and handle
+in-memory opeartions and non-file storeage and queries.
+
 
 Design
--------
-- Maybe look at dispatch_ a bit, a run-subcmd handler in 48 lines Bash.
-  But Bash. Meh.
+------
+- shell scripts for user-command frontends, move reusable code to
+  shell function libraries (``*.lib.sh``)
+- (Py) misc. classes (ie. parsers) into ``res``, SQL ORM in ``taxus``,
+  backend ``*.py`` scripts using ``libcmd*``
+
+* Maybe look at dispatch_ a bit, a run-subcmd handler in 48 lines Bash.
+  But Bash.
 
 Issues
 ------
@@ -41,3 +56,4 @@ SCRIPT-MPE-5 TODO: use projectenv.lib iso. test/helper.bash
     - See user-conf for up to date setup, and minimal lib versions.
 
 
+.. _dispatch: https://github.com/Mosai/workshop/blob/master/doc/dispatch.md

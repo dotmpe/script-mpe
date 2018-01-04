@@ -7,6 +7,8 @@ import socket
 import time
 import traceback
 import uuid
+from glob import glob
+from fnmatch import fnmatch
 
 import calendar
 
@@ -586,7 +588,7 @@ class Metadir(object):
 
         Returning Class instance for first path, if any.
         """
-        configpaths = list(klass.find(*paths))
+        configpaths = list(set(klass.find(*paths)))
         if configpaths:
             if len(configpaths) > 1:
                 log.warn('Using first config file %s for %s', klass.DOTID, configpaths)
@@ -604,6 +606,7 @@ class Metadir(object):
         Like metafile, the path here will be the directory itself,
         if it ends with the metadir and id file it, that is stripped.
         """
+        path = os.path.normpath( path )
         dotext = os.path.splitext( os.path.basename( path ))
         if dotext[0] == self.DOTID:
             assert dotext[1] in self.NAME_SUFFIXES
@@ -638,7 +641,7 @@ class Metadir(object):
     def metadir_id(self):
         #if self.exists():
         #    return open(self.id_path).read().strip()
-        return self.__id
+        return self.__id.lower()
 
     def exists(self):
         return os.path.exists(self.id_path)
@@ -647,9 +650,11 @@ class Metadir(object):
         if self.exists() and not reset:
             assert not metadir_id
             self.__id = open(self.id_path).read().strip()
+            if ' ' in self.__id:
+                self.__id, self.__label = self.__id.split(' ')
         elif reset or create:
             if not metadir_id:
-                metadir_id = str(uuid.uuid4())
+                metadir_id = str(uuid.uuid4()).lower()
             assert isinstance(metadir_id, str)
             self.__id = metadir_id
             if not os.path.exists(self.full_path):
@@ -713,6 +718,22 @@ class Metadir(object):
                 setattr(obj, attr, data[attr])
         else:
             setattr(obj, trgt_spec, data)
+
+    # IDir, INode
+    def neighbours(self, name, extensions_only=True):
+        g = "%s.*" % name
+        for p in glob(g):
+            yield p
+
+    def find_names(self, name, basedir=None):
+        g = "%s.*" % name
+        # One filename based filter
+        file_fltrs = [ lambda name: fnmatch(os.path.basename(name), g) ]
+        if basedir: p = os.path.normpath(basedir)
+        else: p = self.path
+        for p in fs.Dir.walk(p, dict(recurse=True, files=True), (file_fltrs, None)):
+            yield p
+
 
 def get_global_attr(handler_spec):
     path = handler_spec.split('.')

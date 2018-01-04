@@ -7,7 +7,7 @@ MK                  += $/Rules.mk
 #      ------------ -- 
 
 
-VERSION= 0.0.4-dev# script-mpe
+VERSION = 0.0.4-dev# script-mpe
 
 $(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 
@@ -39,10 +39,9 @@ STRGT               += $(TEST_$d)
 
 TRGT += libcmdng.html
 
-libcmdng.html: libcmdng.py
-	@$(ll) file_target "$@" "Generating docs for" "$<"
-	@\
-	pydoc -w ./$^
+$Bpydoc/%.html: $/%.py
+	@$(ll) file_target "$@" "Generating pydoc for" "$<"
+	@pydoc -w ./$^
 	@$(ll) file_ok "$@"
 
 test:: $(TEST_$d)
@@ -311,4 +310,3 @@ INSTALL += symlinks
 #
 include                $(MK_SHARE)Core/Main.dirstack-pop.mk
 # vim:noet:
-

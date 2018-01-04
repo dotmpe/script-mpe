@@ -114,5 +114,5 @@ def wn_sense(word, syn):
         word = syn.name()
     name = word.split('.')[0]
     num = int(word.split('.')[2])
-    return "%s(%i)" % (name, num)
+    return "%s#%i" % (name, num)
     # XXX return "%s{blue}({yellow}%i{blue})" % (name, num)

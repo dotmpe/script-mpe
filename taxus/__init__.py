@@ -3,15 +3,19 @@
 Taxus ORM (SQLAlchemy)
 """
 from __future__ import print_function
+import sys
 import os
 import socket
+from datetime import datetime
 
 import couchdb
 from sqlalchemy import MetaData
 from sqlalchemy.orm.exc import NoResultFound
 
 from script_mpe import confparse, log, mod, datelib
-from script_mpe.res.ws import YamlDocs
+from script_mpe import res
+from script_mpe.res.ws import AbstractYamlDocs
+
 
 from . import iface
 from iface import registry as reg, gsm
@@ -32,65 +36,18 @@ from .util import SessionMixin, ScriptMixin, ORMMixin, get_session
 staticmetadata = SqlBase.metadata
 
 
-class Taxus(YamlDocs):
 
-    """
-    Helper for list of models and connection.
-    """
-
-    DEFAULT_SETTINGS = dict(
-            yes=False,
-            interactive=True,
-            create_on_init=False,
-            quiet=False,
-            initial_session='default',
-            default_session='default',
-            drop_all=True
-        )
-    DEFAULT_SESSION = 'default'
-
-
-    def __init__(self, version='taxus.v0', conf=DEFAULT_SETTINGS):
-        "Create context for models"
-        self.metadata_per_session = {}
-        self.models_per_session = {}
-        super(Taxus, self).__init__()
-
-        self.uname = os.uname()[0]
-        self.hostname = socket.gethostname()
-
-        # Use settings object iso. many keyword arguments. Set defaults here.
-        g = self.settings = confparse.Values(conf)
-
-        self.session = g.initial_session
-
-        if version: self.load(version)
-
+class CouchMixin(object):
+    def __init__(self, *args, **kwds):
+        super(CouchMixin, self).__init__()
+        self.couch = None
+        self.docs = None
         self.couches = dict()
-
-        # XXX: global state cleanup
-        log.out = out
 
     def init(self, metadata=None):
         g = self.settings
-
-        if g.couch:
+        if hasattr(g, 'couch') and g.couch:
             self.couchdocs(g.couch)
-
-        if not g.no_db:
-            assert g.dbref
-            self.session = 'default'
-            self.setmetadata(metadata)
-            self.init_db(g.dbref)
-
-    def get_yaml(self, p, defaults=None):
-        assert os.path.exists(p), p
-        if defaults and not os.path.exists(p):
-            confparse.yaml_dump(open(p, 'w+'), defaults)
-        return p
-
-
-    # CouchDB
 
     def couchdocs(self, ref):
         self.couch = ref.rsplit('/', 1)
@@ -108,6 +65,128 @@ class Taxus(YamlDocs):
     @property
     def couchconn(self):
         return self.couches[self.couch[0]]['server']
+
+
+class OutputMixin(object):
+    def __init__(self, *args, **kwds):
+        super(OutputMixin, self).__init__()
+        #log.out = out
+
+    def init(self):
+        self.output_buffer = []
+        #log.out.settings = self.settings
+
+    def note(self, msg, *args, **kwds):
+        g = self.settings
+        if g.quiet:
+            return
+        if 'lvl' in kwds:
+            if g.verbose < kwds['lvl']:
+                return
+        if 'num' in kwds:
+            if not kwds['num'] or ( kwds['num'] % g.interval ) != 0:
+                return
+        log.stderr(msg, *args)
+
+    def lines_out(self, rs, tp='node'):
+        for r in rs:
+            self.out(r, tp=tp)
+
+    def out(self, r, tp='node'):
+        g = self.settings ; of = g.output_format
+        if isinstance(r, dict): d = r
+        else:
+            if g.struct_output: d = r.to_struct()
+            else: d = r.to_dict()
+
+        if of in ( 'json', 'json-stream' ):
+            for k in d:
+                if isinstance(d[k], datetime):
+                    d[k] = d[k].isoformat()
+
+        elif of in ('repr',):
+            d = repr(d)
+        elif of in ('str',):
+            d = str(d)
+
+        self.output_buffer.append(d)
+
+    def flush(self):
+        g = self.settings ; of = g.output_format
+
+        if of == 'json':
+            res.js.dumps(self.output_buffer)
+
+        elif of == 'json-stream':
+            for it in self.output_buffer:
+                print(res.js.dumps(it))
+
+        else:
+            if g.struct_output:
+                tpl = out.get_template("%sdoc.%s" % (g.tp, of))
+            else:
+                tpl = out.get_template("%s.%s" % (g.tp, of))
+            out_ = tpl.render
+
+        self.output_buffer = []
+
+    def __delete__(self):
+        super(AbstractOutput, self).__delete__()
+        if self.output_buffer:
+            self.flush()
+        log.stderr("Flushed")
+
+
+class Taxus(AbstractYamlDocs, OutputMixin, CouchMixin):
+
+    """
+    Helper for list of models and connection.
+    """
+
+    DEFAULT_SETTINGS = dict(
+            yes=False,
+            interactive=True,
+            create_on_init=False,
+            quiet=False,
+            initial_session='default',
+            default_session='default',
+            drop_all=True
+        )
+    DEFAULT_SESSION = 'default'
+
+    def __init__(self, version='taxus.v0', conf=DEFAULT_SETTINGS):
+        "Create context for models"
+        self.metadata_per_session = {}
+        self.models_per_session = {}
+        super(Taxus, self).__init__()
+
+        self.uname = os.uname()[0]
+        self.hostname = socket.gethostname()
+
+        # Use settings object iso. many keyword arguments. Set defaults here.
+        g = self.settings = confparse.Values(conf)
+
+        self.session = g.initial_session
+
+        if version: self.load(version)
+
+    def init(self, metadata=None):
+        g = self.settings
+        #super(Taxus, self).init()
+        OutputMixin.init(self)
+        CouchMixin.init(self)
+
+        if hasattr(g, 'no_db') and not g.no_db:
+            assert g.dbref
+            self.session = 'default'
+            self.setmetadata(metadata)
+            self.init_db(g.dbref)
+
+    def get_yaml(self, p, defaults=None):
+        assert os.path.exists(p), p
+        if defaults and not os.path.exists(p):
+            confparse.yaml_dump(open(p, 'w+'), defaults)
+        return p
 
 
     # SQL Alchemy
@@ -237,43 +316,6 @@ class Taxus(YamlDocs):
             filters += klass.after_date( since, field )
         return filters
 
-    # Log
-    def note(self, msg, *args, **kwds):
-        g = self.settings
-        if g.quiet:
-            return
-        if 'lvl' in kwds:
-            if g.verbose < kwds['lvl']:
-                return
-        if 'num' in kwds:
-            if not kwds['num'] or ( kwds['num'] % g.interval ) != 0:
-                return
-        log.stderr(msg, *args)
-
-    def out(self, rs, tp='node'):
-        g = self.settings
-        of = g.output_format
-        if of == 'json':
-            def out_( d ):
-                for k in d:
-                    if isinstance(d[k], datetime):
-                        d[k] = d[k].isoformat()
-                return res.js.dumps(d)
-        else:
-            if g.struct_output:
-                tpl = out.get_template("%sdoc.%s" % (tp, of))
-            else:
-                tpl = out.get_template("%s.%s" % (tp, of))
-            out_ = tpl.render
-
-        for bm in rs:
-            if g.struct_output:
-                d = bm.to_struct()
-            else:
-                d = bm.to_dict()
-            print(out_( d ))
-
-
     # XXX: cleanup old code
 
     def init_host(self, options=None):
@@ -304,28 +346,6 @@ class Taxus(YamlDocs):
         inode = INode(local_path=path)
         inode.host = self.find_host()
         return inode
-
-    def node_add(self, name, **opts):
-        "Don't call this directly from CL. "
-        s = util.get_session(opts.get('dbref'))
-        node = Node(name=name,
-                date_added=datetime.now())
-        s.add(node)
-        return node
-
-    def node_remove(self, *args, **opts):
-        s = util.get_session(opts.get('dbref'))
-        pass # TODO: node rm
-        return
-        node = None#s.query(Node).
-        node.deleted = True
-        node.date_deleted = datetime.now()
-        s.add(node)
-        s.commit()
-        return node
-
-    def node_update(self, *args, **opts):
-        pass # TODO: node update
 
 #    def namespace_add(self, name, prefix, uri, **opts):
 #        uriref = Locator(ref=uri)

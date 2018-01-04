@@ -312,27 +312,27 @@ get_targets()
 
 count_lines()
 {
-  test -n "$1" && {
+  test -z "$1" -o "$1" = "-" && {
+    wc -l | awk '{print $1}'
+  } || {
     while test -n "$1"
     do
       wc -l $1 | awk '{print $1}'
       shift
     done
-  } || {
-    wc -l | awk '{print $1}'
   }
 }
 
 count_words()
 {
-  test -n "$1" && {
+  test -z "$1" -o "$1" = "-" && {
+    wc -w | awk '{print $1}'
+  } || {
     while test -n "$1"
     do
       wc -w $1 | awk '{print $1}'
       shift
     done
-  } || {
-    wc -w | awk '{print $1}'
   }
 }
 
@@ -553,7 +553,7 @@ find_one()
 
 find_num()
 {
-  test -n "$1" -a -n "$2" || error "find-num" 1
+  test -n "$1" -a -n "$2" || error "find-num '$*'" 1
   test -n "$3" || set -- "$@" 1
   local c=0
   find "$1" -iname "$2" | while read path

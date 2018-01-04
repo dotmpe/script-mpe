@@ -21,17 +21,21 @@ init
   t=test/var/radical-tasks-1.txt
   run ${bin} -q $t
   test_ok_nonempty || stdfail
+  run ${bin} $t
+  test_ok_nonempty || stdfail
+  run ${bin} --issue-format=todo.txt $t
+  test_ok_nonempty || stdfail
 }
 
-@test "${bin} -q radical-test1.txt" {
-  # TODO: cleanup
+@test "${bin} radical-test1.txt" {
+  # TODO: setup user config and cleanup
   #test -e "$HOME/.cllct.rc" || skip "cllct not configured"
   #check_skipped_envs travis || \
   #  TODO "envs $envs: implement for env"
   run $BATS_TEST_DESCRIPTION
   { test ${status} -eq 0 &&
     test -n "${lines[*]}" && # non-empty output
-    test "${#lines[@]}" = "10" # lines of output (stderr+stderr)
+    test "${#lines[@]}" = "9" # lines of output (stderr+stderr)
   } || stdfail
 }
 
@@ -43,7 +47,7 @@ init
   { test ${status} -eq 0 &&
     test -n "${lines[*]}" && # non-empty output
     # 6 'note'-level log lines, three for issues: TODO: fix multiline scanning
-    test "${#lines[@]}" = "12" # lines of output (stderr+stderr)
+    test "${#lines[@]}" = "9" # lines of output (stderr+stderr)
   } || stdfail
 }
 
@@ -60,7 +64,13 @@ init
 
 @test "${bin} - has known output formats: full-id, raw2, todo.txt, raw, id, grep, full-sh" {
   local t=test/var/radical-tasks-1.txt
-  for fmt in full-id raw2 todo.txt raw id full-sh
+
+  run ${bin} --list-formats
+  { test_ok_nonempty &&
+    test "${lines[*]}" = "full-id raw todo.txt raw2 grep null id full-sh" 
+  } || stdfail list-formats
+
+  for fmt in full-id todo.txt raw raw2 id full-sh
   do
     run ${bin} -q --issue-format $fmt $t
     test_ok_nonempty || stdfail $fmt
@@ -80,25 +90,25 @@ init
 
   run ${bin} -q --issue-format full-sh $t
   { test $status -eq 0 &&
-    test "${lines[0]}" = ":test/var/radical-tasks-1.txt:2-2:3-66:::: TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n" &&
+	test "${lines[0]}" = ':test/var/radical-tasks-1.txt:2-2:2-66::::  TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n' &&
     test ${#lines[@]} -eq 1
   } || stdfail 1:full-sh
  
   run ${bin} -q --issue-format grep $t
   { test $status -eq 0 &&
-    test "${lines[0]}" = "test/var/radical-tasks-1.txt:2: TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n" &&
+    test "${lines[0]}" = 'test/var/radical-tasks-1.txt:2:  TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n' &&
     test ${#lines[@]} -eq 1
   } || stdfail 2:grep
  
   run ${bin} -q --issue-format id $t
   { test $status -eq 0 &&
-    test "${lines[0]}" = "test/var/radical-tasks-1.txt:4-67" &&
+    test "${lines[0]}" = "test/var/radical-tasks-1.txt:3-67" &&
     test ${#lines[@]} -eq 1
   } || stdfail 3:id
 
   run ${bin} -q --issue-format full-id $t
   { test $status -eq 0 &&
-    test "${lines[0]}" = "test/var/radical-tasks-1.txt:4-67;lines=2-2;flavour=unix_generic;comment=4-67" &&
+    test "${lines[0]}" = "test/var/radical-tasks-1.txt:3-67;lines=2-2;flavour=unix_generic;comment=4-67" &&
     test ${#lines[@]} -eq 1
   } || stdfail 4:full-id
 

@@ -13,6 +13,9 @@ from script_mpe.confparse import yaml_load, Values
 from . import iface
 from . import out
 
+from script_mpe import res
+from script_mpe.res.d import get_default, default
+
 
 # class-registry maps model name to type.
 # Also accesible with Model._decl_class_registry
@@ -74,38 +77,6 @@ def configure_components():
 
 
 
-def pluck(attr, dicts):
-    for d in dicts:
-        yield attr in d and d[attr] or None
-
-def get_default(key, d, default=None):
-    return key in d and d[key] or default
-
-def default(key, d, default=None):
-    if key in d:
-        return d[key]
-    v = key in d and d[key] or default
-    d[key] = v
-    return v
-
-def deep_update(obj, *sources):
-    for source in sources:
-        for attr in list(source.keys()):
-            v = source[attr]
-            if isinstance(v, dict):
-                dest = obj[attr]
-                deep_update(dest, v)
-            elif isinstance(v, list):
-                if attr not in obj:
-                    obj[attr] = []
-                assert isinstance(obj[attr], list), obj[attr]
-                obj[attr] += v
-            elif attr not in obj or not obj[attr]:
-                obj[attr] = v
-            elif v:
-                raise Exception("Cannot mixin %s = %s. Object already has value %s" % (
-                    attr, v, obj[attr] ))
-
 ### metadata to SA model unmarshalling
 
 def extract_schema(gen_meta_ctx):
@@ -142,7 +113,7 @@ def extract_orm(gen_meta_ctx, sql_base=None):
                 mixin = sql_base.registry[named['name']].copy(True)
                 for k in ("name", "type"):
                     del mixin[k]
-                deep_update(model, mixin)
+                res.d.deep_update(model, mixin)
         model_extends = default('extends', model_meta)
         if model_extends:
             if model_extends not in sql_base._decl_class_registry:

@@ -39,7 +39,7 @@ class TreeNodeDictTest(unittest.TestCase):
         self.assert_( tree.subnodes == [ subnode ], tree.subnodes )
 
     def test_conform(self):
-        tree = primitive.TreeNodeDict(  )
+        tree = primitive.TreeNodeDict()
 
     def test_tree_traverse(self):
         #return # FIXME recursing in test_tree_traverse

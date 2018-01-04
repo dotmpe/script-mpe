@@ -18,7 +18,7 @@ sref_c = '0-9a-z\-'
 # NOTE: tag-c is combined with included-sep-c and stripped from excluded-c
 tag_c = 'A-Za-z0-9_'
 tag_seps = '/:._\-'
-included_sep_c = '\/:;\.\-\+\(\)\[\]_'
+included_sep_c = '\/:;\.\-\+\(\)\[\]_\#'
 excluded_c = ',;\-'
 
 value_c = r'A-Za-z0-9%s' % included_sep_c

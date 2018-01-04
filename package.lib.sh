@@ -14,7 +14,7 @@ package_lib_load()
 
 package_lib_set_local()
 {
-  test -n "$1" || error "package.lib load"
+  test -n "$1" || error "package.lib load" 1
   # Default is main
   default_package_id=$(package_default_id "$1")
   test -n "$package_id" -a "$package_id" != "(main)" || {
@@ -187,7 +187,7 @@ update_package()
       error "update-temp-package: no '$metaf' for '$1'"
       return 23
     }
-    package_lib_set_local
+    package_lib_set_local "$1"
   }
   test -e "$metaf" || error "no such file ($(pwd), $1) PACKMETA='$PACKMETA'" 34
 

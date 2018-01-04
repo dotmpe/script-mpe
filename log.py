@@ -30,7 +30,7 @@ class ScriptOut(object):
         args = list(args)
         for i, a in enumerate(args):
             type_ = type(a)
-            if type_ == getattr( __builtin__, type_.__name__ ):
+            if type_.__name__ in __builtins__:
                 pass
             else:
                 args[i] = str(a)
@@ -143,7 +143,6 @@ def format_str(msg):
     for k in palette:
         msg = msg.replace('{%s}' % k, palette[k])
     return msg
-
 def stdout(msg, *args):
     global formatting_enabled
     if not formatting_enabled:

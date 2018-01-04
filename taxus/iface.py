@@ -56,12 +56,12 @@ class IFormatter(Interface):
     Base for adapters to or astract class factories of IFormatted.
     """
 
-class IStreamFormatter(IFormatter
+class IStreamFormatter(IFormatter):
     """
     Produce IFormatted for existing file-like stream, by way of rewriter.
     """
 
-class IObjectFormatter(Interface):
+class IObjectFormatter(IFormatter):
     """
     Produce IFormatted for object, by way of adapter.
     """

@@ -1,31 +1,14 @@
 """
-orderd or indexed user-data with structure in plain-text files
+res.list - ordered or indexed user-data struct from plain-text files
 
-As such principle goals are
-
-- optional syntax
-- dynamic, local extension of the syntax
-- variation of the interpretation of the syntax
-
-The generic syntax is the same as todo.txt, here the first objective is to
-exploit an additional "markup" to relate hierarchical items::
-
-    ... Tag-Id: ... [Tag-Id] ...
-
-Beyond that some todo.txt code is reproduced, generalized. Basicly it is two
-base classes and a lot of mixins. First one to parse lines, second one to
-parse files of lines.
-
-Concrete classes can configure abstracts bases and mixins using class
-attributes. Simple, but the down-side is this allows to layer fields and create
-undesired coupling.
+See `list` frontend and docs.
 """
 from confparse import Values
 
+import d
 import txt
 import txt2
 import js
-
 
 
 
@@ -50,19 +33,57 @@ class ListTxtParser(txt.AbstractIdStrategy):
         super(ListTxtParser, self).__init__(**kwds)
 
 
+### URL Lists
+
+class URLListItemParser(
+    txt2.AbstractTxtLineParserRegexFields,
+    txt2.AbstractTxtLineParser,
+):
+    fields = (
+        "uriref:url::0",
+        "date:last-modified::0",
+        "date:last-accessed::0",
+        "int:status::0"
+    )
+    #def parse_fields(self, text, *args):
+    #    return text
+
+
+class URLListParser(
+    txt2.AbstractTxtListParser
+):
+    """
+    Usage::
+
+        iter = URLListParser().load(open('mylist.txt'), 'mylist')
+
+    This `res.txt` configuration uses simple item instances and allows for text
+    content in addition to the URL. Also there is no restriction on order
+    between diffent types.
+
+    Providing cardinality allows to track multiple values, and to validate
+    the number of matches or require one. To further restict the format,
+    e.g. reset the fields to match just URL references::
+
+        URLListItemParser.fields = URLListItemParser.fields[0]
+
+    """
+    item_parser = URLListItemParser
+    item_builder = txt2.SimpleTxtLineItem
+
 
 # Module shorcuts
 
-list_settings_default = dict(
+list_parse_defaults = dict(
         verbose=0,
-        item_builder_name=None,
-    # TODO: give access to lookup indices
+        item_builder=None,
+        # TODO: give access to lookup indices
         be=dict(),
         return_parser=False,
         record_cites=True
     )
 
-def parse(listfile, g):
+def parse(listfile, g=None, ):
 
     """
         Parse listfile, either return parser or listitems.
@@ -71,10 +92,10 @@ def parse(listfile, g):
     item-builder, it is used to initialize items which are returned in a list.
     The parser and contexts will be destroyed, unless return_parser is True.
     """
-    if not g: g = Values(list_settings_default)
+    if not g: g = Values(list_parse_defaults)
 
     # Initialize list parser
-    kwds = { k: g[k] for k in ('be', 'apply_contexts') }
+    kwds = dict(d.pick(g, 'be', 'apply_contexts'))
     items = ListTxtParser(**kwds)
     # parse file
     l = list(items.load_file(listfile))

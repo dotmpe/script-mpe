@@ -6,11 +6,11 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime, or_
 from sqlalchemy.orm import relationship, backref
 
+from script_mpe.couch import bookmark
 
 from .init import SqlBase
 from .util import ORMMixin
 from .mixin import CardMixin
-from .docs import bookmark
 from . import core
 from . import net
 from . import web

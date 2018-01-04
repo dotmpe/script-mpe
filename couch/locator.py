@@ -1,7 +1,7 @@
 import zope.interface
 
 from couchdb.mapping import Document, TextField, IntegerField, DateTimeField, \
-    BooleanField, ListField, DictField
+    BooleanField, ListField, DictField, Mapping
 
 from script_mpe.taxus import iface
 
@@ -22,7 +22,7 @@ class Bookmark2(Document):
         date_updated = DateTimeField(),
 
         status = IntegerField(),
-        net = kBooleanField()
+        net = BooleanField()
     ))
 
     name = TextField()

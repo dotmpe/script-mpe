@@ -632,16 +632,20 @@ class SimpleCommand(object):
         and load returning its dict.
         If set but path is non-existant, call self.INIT_RC if exists.
         """
-        if 'config_file' not in opts or not opts.config_file:
-            log.err( "Nothing to load configuration from")
-        else:
+        if self.INIT_RC and hasattr(self, self.INIT_RC):
+            self.default_rc = getattr(self, self.INIT_RC)(prog, opts)
 	    # FIXME: init default config
             #print self.DEFAULT_RC, self.DEFAULT_CONFIG_KEY, self.INIT_RC
             #print opts.config_file, opts.config_key
+
+        if 'config_file' not in opts or not opts.config_file:
+            self.rc = self.default_rc
+            log.err( "Nothing to load configuration from")
+
+        else:
             prog.config_file = self.find_config_file(opts.config_file)
-            #self.main_user_defaults()
             self.load_config_( prog.config_file, opts )
-            yield dict(settings=confparse.Values(self.settings))
+            yield dict(settings=self.settings)
 
     def find_config_file(self, rc):
         rcfile = list(confparse.expand_config_path(rc))
@@ -649,7 +653,6 @@ class SimpleCommand(object):
         if rcfile:
             config_file = rcfile.pop()
         # FIXME :if not config_file:
-
         assert config_file, \
                 "Missing config-file for %s, perhaps use init_config_file" %( rc, )
         assert isinstance(config_file, str), config_file
@@ -663,22 +666,21 @@ class SimpleCommand(object):
         config_key = opts.config_key
         if not config_key:
             self.rc = 'global'
-            self.settings = settings
+            self.settings.update(settings)
             return
 
-        if not hasattr(settings, config_key):
-            if self.INIT_RC and hasattr(self, self.INIT_RC):
-                self.rc = getattr(self, self.INIT_RC)(opts)
-            else:
-                log.warn("Config key %s does not exist in %s" % (config_key,
-                    config_file))
+        if hasattr(settings, config_key):
+            self.rc = self.default_rc
+            self.rc.update(getattr(settings, config_key))
+            self.rc.update({ k: v for k, v in opts.items() if v })
         else:
-            self.rc = getattr(settings, config_key)
+            log.warn("Config key %s does not exist in %s" % (config_key,
+                config_file))
 
         settings.set_source_key('config_file')
         settings.config_file = config_file
         self.config_key = config_key
-        self.settings = settings
+        self.settings.update(settings)
 
     def prepare_output( self, prog, opts ):
 # XXX
@@ -939,6 +941,7 @@ class StackedCommand(SimpleCommand):
         #else:
         #    rc = settings
 
+        assert False, 'TODO update iso reset settings'
         self.settings = settings
         self.rc = rc
 

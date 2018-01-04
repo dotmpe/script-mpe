@@ -31,12 +31,13 @@ import os
 import anydbm
 import shelve
 
-from confparse import Values, YAMLValues
+from script_mpe.confparse import Values, YAMLValues
 
 from persistence import PersistedMetaObject
 from metafile import Metadir
 from vc import Repo
-from res import AbstractYamlDocs
+from js import AbstractYamlDocs
+from fs import Dir
 
 
 class Workspace(AbstractYamlDocs, Metadir):
@@ -90,13 +91,17 @@ class Workspace(AbstractYamlDocs, Metadir):
             self.save_yaml(p, defaults)
         return p
 
-    def relpath(self, pwd='.'):
-        #cwd = os.path.normpath(os.path.realpath(pwd))
-        # going to have todo something more sophisticated
-        #assert cwd.startswith(self.path), ( pwd, cwd, self.path )
-        cwd = os.path.abspath(os.path.normpath(pwd))
-        assert cwd.startswith(self.path), ( pwd, cwd, self.path )
-        return cwd[len(self.path)+1:]
+    def relpath(self, topath='', basepath=None):
+        topath = os.path.normpath(topath)
+        if topath.startswith(os.sep): topath_ = topath
+        else: topath_ = os.path.abspath(topath)
+        if basepath: basepath = os.path.normpath(basepath)
+        else: basepath = self.path
+        assert topath_.startswith(self.path), ( topath, topath_, basepath )
+        # going to have todo something more sophisticated probably
+        return topath_[len(basepath)+1:]
+
+    # XXX: Old PMO stuff
 
     def init_store(self, truncate=False):
         assert not truncate
@@ -132,6 +137,27 @@ class Workdir(Workspace):
 
     DOTID = 'local'
     projects = [] #
+
+    DOC_EXTS = ".rst .md .txt".split(' ')
+
+    def __init__(self, *args, **kwds):
+        super(Workdir, self).__init__(*args, **kwds)
+        self.doc_exts = self.DOC_EXTS
+
+    def find_docs(self, cwd=None, strict=False):
+        if cwd: path = self.relpath(os.path.realpath(cwd))
+        else: path = self.path
+
+        # One filename based filter
+        file_fltrs = [ lambda path: os.path.splitext(path)[1] in self.doc_exts ]
+        # Change to basedir so that pathiter works
+        os.chdir(self.path)
+        # FIXME: exclude patterns per set
+        Dir.ignore_names = Dir.ignore_names + (
+                'requirements*.txt', 'vendor', 'node_modules' )
+        # Return generator
+        for p in Dir.walk(path, dict(recurse=True, files=True), (file_fltrs, None)):
+            yield p
 
     def find_scmdirs(self, cwd=None, s=False):
         if cwd:

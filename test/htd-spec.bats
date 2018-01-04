@@ -528,37 +528,3 @@ EOM
     }
   } || stdfail 3-exclusive
 }
-
-@test "$bin git-remote" {
-  run htd git-remote
-  test_ok_nonempty || stdfail
-}
-
-@test "$bin git-remote dotmpe" {
-  # XXX: require_env ssh
-  run htd git-remote dotmpe
-  test_ok_nonempty || stdfail
-}
-
-@test "$bin git-remote dotmpe abc" {
-  export verbosity=0
-  run htd git-remote dotmpe abc
-  { test_ok_nonempty &&
-    test "${lines[*]}" = "dotmpe-com@ssh.pcextreme.nl:domains/dotmpe.com/htdocs/git/abc"
-  } || stdfail
-}
-
-@test "$bin git-remote info dotmpe abc" {
-  run htd git-remote info dotmpe abc
-  { test_ok_nonempty &&
-    fnmatch *"remote.dotmpe.hostinfo=dotmpe-com@ssh.pcextreme.nl"* "${lines[*]}"
-  } || stdfail
-}
-
-@test "$bin git-remote url dotmpe abc" {
-  export verbosity=0
-  run htd git-remote url dotmpe abc
-  { test_ok_nonempty &&
-    test "${lines[*]}" = "dotmpe-com@ssh.pcextreme.nl:domains/dotmpe.com/htdocs/git/abc"
-  } || stdfail
-}

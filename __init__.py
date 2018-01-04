@@ -1,5 +1,5 @@
 """
-Share on python path under 'script_mpe'
+Root module index for 'script_mpe' package.
 """
 
 import res

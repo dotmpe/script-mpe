@@ -203,7 +203,7 @@ def format_args(args):
     for i, a in enumerate(args):
         #if isinstance(a, (int,float,str,unicode)):
         type_ = type(a)
-        if type_ == getattr( __builtin__, type_.__name__ ):
+        if type_.__name__ in __builtins__:
             pass
         else:
             interfaces = list(zope.interface.providedBy(a).interfaces())

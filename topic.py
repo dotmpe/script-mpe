@@ -58,7 +58,6 @@ Options:
                 Apply given tags to each item in file.
   --paths
                 TODO: replace with --format=paths
-  --exact-match
   -d REF --dbref=REF
                 SQLAlchemy DB URL [default: %s]
   --no-db       Don't initialize SQL DB connection.
@@ -284,7 +283,6 @@ def defaults(opts, init={}):
         if os.isatty(sys.stdout.fileno()) and os.isatty(sys.stdout.fileno()):
             opts.flags.interactive = True
     opts.flags.update(dict(
-        partial_match = not opts.flags.exact_match,
         auto_commit = not opts.flags.no_commit and not opts.flags.no_db,
         dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     ))

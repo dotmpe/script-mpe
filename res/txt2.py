@@ -21,8 +21,11 @@ from UserList import UserList
 import zope.interface
 from zope.interface import Interface, Attribute, implements, classImplements
 
+from script_mpe import log
 import tp
 import dt
+import mb
+import task
 
 
 ### Interfaces with docs for line- and list-parser base
@@ -472,6 +475,8 @@ class AbstractTxtLineParserRegexFields(AbstractTxtLineParserSimpleFieldArgsStrat
         return t
 
 
+
+
 ### Abstract list-parser base
 
 class AbstractTxtListParser(object):
@@ -629,13 +634,14 @@ class SimpleTxtLineItem(object):
     def __str__(self):
         return "%s. %s" %( 1+self._index, self.text or repr(self._raw) )
     def __repr__(self):
-        return "%s(%r)" % ( self.__class__.__name__, self.todict() )
-    def todict(self):
+        return "%s(%r)" % ( self.__class__.__name__, self.to_dict() )
+    def to_dict(self):
         d = dict( text=self.text, _raw=self._raw)
         for k in "doc_name line doc_offset index".split(' '):
             if k in self.ctx:
                 d[k] = self.ctx[k]
         for f in self.parser.field_targets():
+            assert f, f
             d[f] = getattr(self, f)
         return d
 

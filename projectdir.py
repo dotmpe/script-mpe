@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """projectdir -
-:created: 2017-11-23
-:updated: 2017-12-09
+:Created: 2017-11-23
+:Updated: 2017-12-09
 
 TODO: integrate with projectdir-meta, but need to update libs, tooling first.
 Which in turn also requires revising projectdir.sh. Building out while keeping
@@ -299,8 +299,7 @@ def cmd_list_scmdirs(refs, g):
 
     if refs:
         pathiter = chain( *[ctx.ws.find_scmdirs(ref, s=s) for ref in refs ] )
-    else:
-        pathiter = ctx.ws.find_scmdirs(s=s)
+    else: pathiter = ctx.ws.find_scmdirs(s=s)
 
     for p in pathiter:
         if os.path.islink(p): continue
@@ -354,7 +353,13 @@ def cmd_stat(refs, settings):
 ### Transform cmd_ function names to nested dict
 
 commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = libcmd_docopt.cmd_help
+commands.update(dict(
+        help = libcmd_docopt.cmd_help,
+        memdebug = libcmd_docopt.cmd_memdebug,
+        info = db_sa.cmd_info,
+        init = db_sa.cmd_init,
+        clear = db_sa.cmd_reset
+))
 
 
 ### Util functions to run above functions from cmdline
@@ -384,10 +389,11 @@ def main(opts):
             last_sync=None
         ))
     ctx.ws = ws
+
     # Can safely replace ctx.settings too since defaults() has integrated it
     ctx.settings = settings = opts.flags
-    # XXX: opts.default = 'find'
     ctx.init()
+    # XXX: opts.default = 'find'
 
     return libcmd_docopt.run_commands(commands, settings, opts)
 

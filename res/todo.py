@@ -10,6 +10,46 @@ from UserDict import UserDict
 import mb
 import task
 import txt
+import txt2
+
+
+
+### Todo Lists
+
+class TodoListItemParser(
+    txt2.AbstractTxtLineParserRegexFields,
+    txt2.AbstractTxtLineParser,
+):
+    fields = (
+        "sections:sections::0",
+    )
+
+    sections_r = r"(^|\W|\ )([%s]+):(\ |$)" % ( mb.value_c )
+
+    def __init__(self, *args, **kwds):
+        self.field_names.update(dict(
+            sections= (self.sections_r, unicode, 0)
+        ))
+        super(TodoListItemParser, self).__init__(*args, **kwds)
+
+    def parse_fieldargs_sections(self, text, onto, name, descr, *args):
+        t = text
+        for sk_m in self.sections_re.finditer(t):
+            k = sk_m.group(2)
+            if k not in self.sections:
+                log.warn("Duplicate section %s at line %i" % ( k,
+                    self.attrs['doc_line'] ))
+                continue
+            self.sections[k] = sk_m.span()
+        return t
+
+
+class TodoListParser(
+    txt2.AbstractTxtListParser
+):
+    item_parser = TodoListItemParser
+    item_builder = txt2.SimpleTxtLineItem
+
 
 
 class TodoTxtTaskParser(txt.AbstractTxtRecordParser):

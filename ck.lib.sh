@@ -57,23 +57,28 @@ ck_run()
 
 ck_read_catalog()
 {
-  local l=0 basedir="$(dirname "$1")"
+  local l=0 basedir="$(dirname "$1")" fname= name= host=
   eval $( jsotk.py --output-prefix=catalog to-flat-kv "$1" )
 
   while true
   do
-    host="$(eval echo \"\$catalog__${l}_hsot\")"
-    test -z "$host" || {
-        test "$hostname" = "$(canon_host "" $host)" || continue
+    host="$(eval echo \"\$catalog__${l}_host\")"
+    test -z "$host" -o "$hostname" = "$(canon_host '' $host)" || {
+        l=$(( $l + 1)) ; continue
     }
 
-    fname="$(eval echo \"\$catalog__${l}_path\")" name=
+    name="$(eval echo \"\$catalog__${l}_name\")"
+    fname="$(eval echo \"\$catalog__${l}_path\")"
+    test -n "$name" -o -n "$fname" || {
+       # No more entries, either path or name is required
+       return
+    }
+
     test -n "$fname" && name="$(basename "$fname")" || {
-        name="$(eval echo \"\$catalog__${l}_name\")"
-        fname="$(find_one . "$name")"
+        test -n "$name" && fname="$(find_one . "$name")"
     }
     test -n "$fname" -a -e "$fname" || {
-        warn "Missing name/path for entry $l. $name" ; break ; }
+        warn "Missing name/path for entry $l. $name" ; return 1; }
 
     test -f "$fname" && {
       for ck in $( echo $ck_exts | tr '-' '_' )
@@ -86,6 +91,7 @@ ck_read_catalog()
         echo "$key $ck $fname"
       done
     }
+
     l=$(( $l + 1))
   done
 }
@@ -103,6 +109,7 @@ ck_run_catalogs()
       cd "$cwd"
       test -d "$dir" || { warn "Missing dir '$catalog'" ; continue ; }
       test -f "$catalog" || { warn "Missing file '$catalog'" ; continue ; }
+
       cd "$dir"
       ck_read_catalog "$(basename "$catalog")" | {
         while read key ck name ; do
@@ -149,7 +156,7 @@ ck_run_catalogs()
       }
 
       test 0 -eq $? || {
-          error "check failed for '$catalog'"
+          error "failure in '$catalog'"
           return 1
       }
     done

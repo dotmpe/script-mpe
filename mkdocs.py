@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""
+"""
 from __future__ import print_function
 import zope
 
@@ -55,16 +57,18 @@ class mkDoc(libcmd.SimpleCommand):
         B = comp.get_builder_class('dotmpe.du.builder.htdocs')
         #B = comp.get_builder_class('dotmpe.du.builder.dotmpe_v5')
         B.extractor_spec = [ (
-            'dotmpe.du.ext.extractor.reference.Extractor',
-                    'dotmpe.du.ext.extractor.TransientStorage'
-        ), (
-            'dotmpe.du.ext.extractor.htdocs.HtdocsExtractor',
-                    'dotmpe.du.ext.extractor.TransientStorage'
-        ) ]
+                'dotmpe.du.ext.extractor.reference.Extractor',
+                        'dotmpe.du.ext.extractor.TransientStorage'
+            ), (
+                'dotmpe.du.ext.extractor.htdocs.HtdocsExtractor',
+                        'dotmpe.du.ext.extractor.TransientStorage'
+            ) ]
         store_params = {
-            #'HtdocsStorage': ((), dict(dbref=)),
-            'dotmpe.du.ext.extractor.TransientStorage': (( {}, 'results', ), dict()),
-        }
+                #'HtdocsStorage': ((), dict(dbref=)),
+                'dotmpe.du.ext.extractor.TransientStorage': (
+                    ( {}, 'results', ), dict()
+                ),
+            }
         b = B()
         b.prepare_extractors(**store_params)
 
