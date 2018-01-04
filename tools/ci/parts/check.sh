@@ -51,6 +51,10 @@ note "Htd tools"
 { { htd tools
 } 2>&1 >/dev/null; } || error "htd tools"
 
+note "Htd prefixes"
+{ { htd list-prefixes
+} 2>&1 >/dev/null; } || error "htd list-prefixes"
+
 note "box-instance:"
 { {
  box-instance.sh x foo bar && box-instance.sh y

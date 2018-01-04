@@ -6592,14 +6592,12 @@ htd__prefixes()
 }
 
 htd_of__prefixes_list='plain text txt rst yaml yml json'
-# FIXME:
-#htd_als__prefixes_list=prefixes\ list
-#htd_als__list_prefixes=prefixes\ list
-
+htd_als__prefixes_list=prefixes\ list
+htd_als__list_prefixes=prefixes\ list
 
 htd_of__prefixes_update='txt rst plain'
-#htd_als__prefixes_update=prefixes\ update
-#htd_als__update_prefixes=prefixes\ update
+htd_als__prefixes_update=prefixes\ update
+htd_als__update_prefixes=prefixes\ update
 
 
 

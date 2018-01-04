@@ -103,11 +103,11 @@
         # XXX: interactve: python -c 'import nltk; nltk.download()'
     #check: pd check
     check:
-      - htd gitflow-check-doc
-      - verbose=1 git-versioning check
-      - projectdir.sh run :bats:specs
+      - htd vcflow check-doc
+      - verbosity=1 git-versioning check
+      #- projectdir.sh run :bats:specs
       #- ./vendor/.bin/behat --dry-run --no-multiline
-      - projectdir.sh run :git:status
+      #- projectdir.sh run :git:status
       - export SCR_SYS_SH=bash-sh
       - scriptname="check-includes"
       - . ./tools/sh/init.sh

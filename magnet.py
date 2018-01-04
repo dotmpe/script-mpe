@@ -14,6 +14,7 @@ from __future__ import print_function
 
 __description__ = "magnet - "
 __version__ = '0.0.4-dev' # script-mpe
+# FIXME: docopt takes an extreme amount of time processing this
 __usage__= """
 Usage:
     magnet.py [options] [ FILE | URI ] [ CTX ] [ [ XS | AS | DN | XT ]... ]
@@ -166,6 +167,7 @@ def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
     """
 
     # Process arguments
+    FILE = FILE or ''
     if uriref.scheme.match(FILE):
         URI = FILE
         FILE = None
@@ -504,15 +506,18 @@ def rhash(path, name):
     line = subprocess.check_output(cmd)
     line = line.split('  ')
     return line[0]
-resolvers['urn:crc32'] = lambda data, info, path: rhash(path, 'crc32')
-resolvers['urn:tree:tiger'] = lambda data, info, path: rhash(path, 'tiger')
-resolvers['urn:gost'] = lambda data, info, path: rhash(path, 'gost')
-resolvers['urn:aich'] = lambda data, info, path: rhash(path, 'aich')
-resolvers['urn:has160'] = lambda data, info, path: rhash(path, 'has160')
-resolvers['urn:snefru128'] = lambda data, info, path: rhash(path, 'snefru128')
-resolvers['urn:ripemd160'] = lambda data, info, path: rhash(path, 'ripemd160')
-resolvers['urn:ed2k'] = lambda data, info, path: rhash(path, 'ed2k')
-resolvers['urn:btih'] = lambda data, info, path: rhash(path, 'btih')
+resolvers['urn:crc32'] = lambda data, info, path: rhash(path, 'crc32').upper()
+resolvers['urn:tree:tiger'] = lambda data, info, path: rhash(path,
+        'tiger').upper()
+resolvers['urn:gost'] = lambda data, info, path: rhash(path, 'gost').upper()
+resolvers['urn:aich'] = lambda data, info, path: rhash(path, 'aich').upper()
+resolvers['urn:has160'] = lambda data, info, path: rhash(path, 'has160').upper()
+resolvers['urn:snefru128'] = lambda data, info, path: rhash(path,
+        'snefru128').upper()
+resolvers['urn:ripemd160'] = lambda data, info, path: rhash(path,
+        'ripemd160').upper()
+resolvers['urn:ed2k'] = lambda data, info, path: rhash(path, 'ed2k').upper()
+resolvers['urn:btih'] = lambda data, info, path: rhash(path, 'btih').upper()
 
 
 ### Transform cmd_ function names to nested dict
