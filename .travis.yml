@@ -35,7 +35,6 @@ before_install:
 
 install:
   - scriptname=install
-  - BATS_REPO=https://github.com/bvberkum/bats.git
   - . ./tools/ci/parts/install.sh
 
 before_script:
@@ -67,6 +66,7 @@ env:
     - TEST_RESULTS=shippable/testresults/test.tap
     - Build_Deps_Default_Paths=1
     - LOG=$PWD/log.sh
+    - BATS_REPO=https://github.com/bvberkum/bats.git
     - PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python2.7/site-packages:$HOME/bin:$HOME/lib/py
 
 branches:

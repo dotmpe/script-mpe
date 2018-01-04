@@ -11,6 +11,8 @@ version=0.0.4-dev # script-mpe
 setup() {
   scriptname=test-$base
   #. $ENV
+  . ./tools/sh/init.sh
+  lib_load projectenv env-deps
 }
 
 @test "$bin no arguments no-op" {
@@ -464,29 +466,6 @@ EOM
   run $BATS_TEST_DESCRIPTION
   test_ok_nonempty || stdfail
 }
-
-@test "$bin prefixes" {
-  require_env lsof
-  run $BATS_TEST_DESCRIPTION
-  test_ok_nonempty || stdfail
-}
-
-@test "$bin prefix-names" {
-  require_env lsof
-  run $BATS_TEST_DESCRIPTION
-  test_ok_nonempty || stdfail
-}
-
-@test "$bin prefix-name" {
-  run $BATS_TEST_DESCRIPTION
-  test_ok_nonempty || stdfail
-}
-
-@test "$bin path-prefix-names" {
-  run $bin path-prefix-names
-  test_ok_nonempty || stdfail
-}
-
 
 @test "$bin topics-list" {
   run $BATS_TEST_DESCRIPTION

@@ -219,6 +219,12 @@ main_entry()
       $pref pip install -U $pip_flags -r test-requirements.txt
     ;; esac
 
+  case "$1" in bats-force-local )
+      install_bats || return $?
+      PATH=$PATH:$PREFIX/bin bats --version ||
+        stderr "BATS install to $PREFIX failed" 1
+    ;; esac
+
   case "$1" in all|build|test|sh-test|bats )
       test -x "$(which bats)" || { install_bats || return $?; }
       PATH=$PATH:$PREFIX/bin bats --version ||
