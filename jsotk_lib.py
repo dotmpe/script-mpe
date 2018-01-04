@@ -7,7 +7,7 @@ from fnmatch import fnmatch
 from res import js
 from confparse import yaml_dumps
 from pydoc import locate
-from res.util import obj_serialize_datetime
+from res.dt import obj_serialize_datetime
 
 import ruamel.yaml
 

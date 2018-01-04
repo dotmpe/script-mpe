@@ -33,11 +33,11 @@ import shelve
 
 from script_mpe.confparse import Values, YAMLValues
 
-from persistence import PersistedMetaObject
-from metafile import Metadir
-from vc import Repo
-from js import AbstractYamlDocs
-from fs import Dir
+from .persistence import PersistedMetaObject
+from .metafile import Metadir
+from .vc import Repo
+from .js import AbstractYamlDocs
+from .fs import Dir
 
 
 class Workspace(AbstractYamlDocs, Metadir):

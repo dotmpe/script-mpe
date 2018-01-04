@@ -12,8 +12,8 @@ import couchdb
 from sqlalchemy import MetaData
 from sqlalchemy.orm.exc import NoResultFound
 
-from script_mpe import confparse, log, mod, datelib
-from script_mpe import res
+from script_mpe import confparse, log, mod
+from script_mpe.res import dt
 from script_mpe.res.ws import AbstractYamlDocs
 
 
@@ -309,10 +309,10 @@ class Taxus(AbstractYamlDocs, OutputMixin, CouchMixin):
         if g.added: field='date_added'
         else: field='date_updated'
         if g.older_than:
-            until = datelib.shift('-'+g.older_than)
+            until = dt.shift('-'+g.older_than)
             filters += klass.before_date( until, field )
         else:
-            since = datelib.shift('-'+g.max_age)
+            since = dt.shift('-'+g.max_age)
             filters += klass.after_date( since, field )
         return filters
 

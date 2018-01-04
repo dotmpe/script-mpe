@@ -15,8 +15,7 @@ import calendar
 from script_mpe import lib, log, confparse
 from script_mpe.res import fs
 
-import util
-from persistence import PersistedMetaObject
+from .persistence import PersistedMetaObject
 
 
 
@@ -284,8 +283,8 @@ class MetafileFile(object): # XXX: Metalink syntax
         ('X-Content-Description', lib.get_format_description_sub),
         ('Content-Type', lib.get_mediatype_sub),
         ('Content-Length', os.path.getsize),
-        #('Digest', util.md5_content_digest_header),
-        ('Digest', util.sha1_content_digest_header),
+        #('Digest', fs.md5_content_digest_header),
+        ('Digest', fs.sha1_content_digest_header),
         # TODO: Link, Location?
 #            'Content-MD5': lib.get_md5sum_sub,
 # not all instances qualify: the spec only covers the message body, which may be
@@ -348,14 +347,14 @@ class MetafileFile(object): # XXX: Metalink syntax
         if 'X-Last-Modified' in self.data:
             datestr = self.data['X-Last-Modified']
             return calendar.timegm( time.strptime(datestr,
-                util.ISO_8601_DATETIME)[0:6])
+                dt.ISO_8601_DATETIME)[0:6])
 
     @property
     def utime(self):
         if 'X-Last-Update' in self.data:
             datestr = self.data['X-Last-Update']
             return calendar.timegm( time.strptime(datestr,
-                util.ISO_8601_DATETIME)[0:6])
+                dt.ISO_8601_DATETIME)[0:6])
 
     def needs_update(self):
         """
@@ -412,7 +411,7 @@ class MetafileFile(object): # XXX: Metalink syntax
 
     def exists(self):
         #if self.data:# and self.non_zero():
-        #    self.data['X-Last-Seen'] = util.iso8601_datetime_format(now.timetuple())
+        #    self.data['X-Last-Seen'] = dt.iso8601_datetime_format(now.timetuple())
         return self.__class__.has_metafile(self.path, self.basedir)
 
     @classmethod
@@ -469,12 +468,12 @@ class MetafileFile(object): # XXX: Metalink syntax
     def update(self):
         now = datetime.datetime.now()
         if 'X-First-Seen' not in self.data:
-            self.data['X-First-Seen'] = util.iso8601_datetime_format(now.timetuple())
+            self.data['X-First-Seen'] = dt.iso8601_datetime_format(now.timetuple())
         envelope = (
                 #('X-Meta-Checksum', lambda x: self.get_meta_hash()),
-                ('X-Last-Modified', util.last_modified_header),
-                ('X-Last-Update', lambda x: util.iso8601_datetime_format(now.timetuple())),
-                ('X-Last-Seen', lambda x: util.iso8601_datetime_format(now.timetuple())),
+                ('X-Last-Modified', fs.last_modified_header),
+                ('X-Last-Update', lambda x: dt.iso8601_datetime_format(now.timetuple())),
+                ('X-Last-Seen', lambda x: dt.iso8601_datetime_format(now.timetuple())),
             )
         for handlers in self.handlers, envelope:
             for header, handler in handlers:
@@ -504,7 +503,7 @@ class MetafileFile(object): # XXX: Metalink syntax
         now = datetime.datetime.now() # XXX: ctime?
         envelope = {
                 'X-Meta-Checksum': self.get_meta_hash(),
-                'X-Last-Update': util.iso8601_datetime_format(now.timetuple()),
+                'X-Last-Update': dt.iso8601_datetime_format(now.timetuple()),
                 'Location': self.path,
             }
         for key in envelope.keys():

@@ -16,16 +16,16 @@ import res.d
 import res.iface
 import res.js
 import res.list
-import res.list2
 import res.task
 import res.todo
 import res.txt
-from res import mb, d
-from res.d import get_default, default
+import res.txt2
+from .res import mb, d
+from .res.d import get_default, default
 
 from .lib import Prompt
 from .res import Volumedir, Homedir, Workdir
-from .res.util import isodatetime, ISO_8601_DATETIME
+from .res.dt import parse_isodatetime, ISO_8601_DATETIME
 from .res.ws import Homedir
 
 #import couchdb
