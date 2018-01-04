@@ -42,7 +42,7 @@ fnmatch "* basename-reg *" "$TEST_COMPONENTS" && {
 }
 
 
-head -n 40 /usr/local/bin/bats
+head -n 30 /usr/local/bin/bats
 
 note "Done"
 # Id: script-mpe/0.0.4-dev tools/ci/parts/init.sh
