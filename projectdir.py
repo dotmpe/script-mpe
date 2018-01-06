@@ -53,7 +53,7 @@ import os
 from itertools import chain
 from pprint import pprint
 
-from script_mpe import libcmd_docopt, log, taxus, res, lib, confparse, datelib
+from script_mpe import libcmd_docopt, log, taxus, res, lib, confparse, db_sa
 
 from libcmd_docopt import cmd_help
 from taxus import Taxus, v0, ScriptMixin
@@ -90,6 +90,7 @@ def cmd_list(g):
 
     ctx.ws = Workdir.require()
     ctx.ws.yamldoc('pdoc', defaults=dict(repositories={}))
+    log.stderr("{green}Listing SCM dirs...{default}")
     for prefix in ctx.ws.pdoc['repositories']:
         print(prefix)
 
@@ -97,6 +98,7 @@ def cmd_list(g):
 def cmd_tab(g):
     global ctx
     ctx.ws.yamldoc('pdoc', defaults=dict(repositories={}))
+    log.stderr("{green}Tabulating projectdoc to out...{default}")
     for prefix in ctx.ws.pdoc['repositories']:
         repo = ctx.ws.pdoc['repositories'][prefix]
         print(prefix+':')
@@ -118,6 +120,7 @@ def cmd_show(refs, g):
     if not refs:
         refs = ctx.ws.pdoc['repositories'].keys()
 
+    log.stderr("{green}Dumping records for %s...{default}" % ",".join(refs))
     os.chdir(ws.path)
     out_ = {}
     for r in refs:

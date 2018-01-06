@@ -249,16 +249,13 @@ create_ram_disk()
 # setup-tmp [(RAM_)TMPDIR]
 setup_tmpd()
 {
-  test -n "$1" || set -- "$base" "$2"
+  test -n "$1" || set -- "$base-$(get_uuid)" "$2"
+  test -n "$2" -o -z "$RAM_TMPDIR" || set -- "$1" "$RAM_TMPDIR"
+  test -n "$2" -o -z "$TMPDIR" || set -- "$1" "$TMPDIR"
   test -n "$2" || {
-    test -n "$TMPDIR" && set -- "$1" "$TMPDIR" || {
-      test -n "$RAM_TMPDIR" || {
         warn "No RAM tmpdir/No tmpdir settings found"
         test -w "/dev/shm" && RAM_TMPDIR=/dev/shm/tmp
       }
-    }
-    test -n "$RAM_TMPDIR" && set -- "$1" "$RAM_TMPDIR"
-  }
   test -d $2/$1 || mkdir -p $2/$1
   test -n "$2" -a -d "$2" || error "Not a dir: '$2'" 1
   echo "$2/$1"

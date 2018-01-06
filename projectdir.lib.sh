@@ -1,6 +1,22 @@
 #!/bin/sh
 
 
+projectdir_lib_load()
+{
+  . $scriptpath/projectdir-bats.inc.sh
+  . $scriptpath/projectdir-fs.inc.sh
+  . $scriptpath/projectdir-git.inc.sh
+  . $scriptpath/projectdir-git-versioning.inc.sh
+  . $scriptpath/projectdir-grunt.inc.sh
+  . $scriptpath/projectdir-npm.inc.sh
+  . $scriptpath/projectdir-make.inc.sh
+  . $scriptpath/projectdir-lizard.inc.sh
+  . $scriptpath/projectdir-vagrant.inc.sh
+
+  # Local pdoc name, used by most command to determine pdir
+  test -n "$pdoc" || pdoc=.projects.yaml
+}
+
 no_act()
 {
   test -n "$dry_run"
@@ -68,11 +84,11 @@ pd_clean()
 
   test "$pd_meta_clean_mode" = tracked || {
 
-    #cruft="$(cd $1; vc__excluded)"
+    #cruft="$(cd $1; vc.sh excluded)"
 
     test "$pd_meta_clean_mode" = excluded \
-      && cruft="$(cd $1; vc__excluded)" \
-      || cruft="$(cd $1; vc__unversioned_files)"
+      && cruft="$(cd $1; vc.sh excluded)" \
+      || cruft="$(cd $1; vc.sh unversioned-files)"
   }
 
 
@@ -171,7 +187,7 @@ pd_regenerate()
   debug "pd-regenerate pwd=$(pwd) 1=$1"
 
   # Regenerate .git/info/exclude
-  vc__regenerate "$1" || echo "pd-regenerate:$1" 1>&6
+  vc.sh "$1" || echo "pd-regenerate:$1" 1>&6
 
   test ! -e .package.sh || eval $(cat .package.sh)
 
@@ -254,7 +270,7 @@ pd_list_upstream()
     test "$branch" != "*" && {
       echo $remote $branch
     } || {
-      for branch in $(vc__list_local_branches "$prefix")
+      for branch in $(vc.sh list-local-branches "$prefix")
       do
         echo $remote $branch
       done
@@ -266,7 +282,7 @@ pd_list_upstream()
 pd_finddoc()
 {
   # set/check for Pd for subcmd
-  go_to_directory $pdoc || return $?
+  go_to_directory "$pdoc" || return $?
   test -e "$pdoc" || error "No projects file $pdoc" 1
 
   pd_root="$(dirname "$pdoc")"

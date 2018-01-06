@@ -77,7 +77,7 @@ class URLListParser(
 list_parse_defaults = dict(
         verbose=0,
         item_builder=None,
-        # TODO: give access to lookup indices
+        # TODO: 1. give access to lookup indices
         be=dict(),
         return_parser=False,
         record_cites=True

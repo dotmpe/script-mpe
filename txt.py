@@ -74,7 +74,7 @@ def cmd_todolist(LIST, g):
         ctx.out(o)
     ctx.flush()
 
-def cmd_doctree(LIST, DOCS, g):
+def cmd_doctree(LIST, DIR, g):
 
     """
     TODO: assemble cross-format index: docs, python modules, etc.
@@ -82,8 +82,11 @@ def cmd_doctree(LIST, DOCS, g):
 
     global ctx
 
-    LIST = LIST or '-'
-    if not DOCS: DOCS = ['.']
+    if LIST and os.path.isdir(LIST):
+        DIR = LIST
+        LIST = None
+    #LIST = LIST or '-'
+    if not DIR: DIR = ['.']
 
     docid = ctx.ws.id_path + '.catalog'
     if docid in ctx.docs:
@@ -94,7 +97,7 @@ def cmd_doctree(LIST, DOCS, g):
     #catalog = ctx.yamldoc('catalog', defaults=[])
     #catalog = ctx.ws.yamldoc('catalog', defaults=[])
 
-    pathiters = [ ctx.ws.find_docs(ref, strict=g.strict) for ref in DOCS ]
+    pathiters = [ ctx.ws.find_docs(ref, strict=g.strict) for ref in DIR ]
     for path in chain(*pathiters):
 
         basedir = os.path.dirname(path)

@@ -650,7 +650,8 @@ class Metadir(object):
             assert not metadir_id
             self.__id = open(self.id_path).read().strip()
             if ' ' in self.__id:
-                self.__id, self.__label = self.__id.split(' ')
+                p = self.__id.split(' ')
+                self.__id, self.__label = p[:1], " ".join(p[2:])
         elif reset or create:
             if not metadir_id:
                 metadir_id = str(uuid.uuid4()).lower()

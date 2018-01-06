@@ -248,7 +248,10 @@ pd__clean()
   test -n "$pd_meta_clean_mode" \
     || pd_meta_clean_mode="$( pd__meta clean-mode "$1" )"
 
-  info "Checkout: $1, Clean Mode: $pd_meta_clean_mode"
+  local scm= scmdir=
+  vc_getscm "$1"
+
+  info "Checkout at $1 ($scm), Clean Mode: $pd_meta_clean_mode"
 
   pd_auto_clean "$1" || {
     error "Auto-clean failure for checkout '$1'"
@@ -259,20 +262,20 @@ pd__clean()
 
   case "$R" in
     0|"" )
-        info "OK $(vc__stat "$1")"
+        info "OK $(vc_flags_${scm} "$1")"
       ;;
     1 )
-        warn "Dirty: $(vc__stat "$1")"
+        warn "Dirty: $(vc_flags_${scm} "$1")"
         return 1
       ;;
     2 )
         cruft_lines="$(echo $(echo "$cruft" | wc -l))"
         test $verbosity -gt 6 \
           && {
-            warn "Crufty: $(vc__stat "$1"):"
+            warn "Crufty: $(vc_flags_${scm} "$1"):"
             printf "$cruft\n"
           } || {
-            warn "Crufty: $(vc__stat "$1"), $cruft_lines path(s)"
+            warn "Crufty: $(vc_flags_${scm} "$1"), $cruft_lines path(s)"
           }
         return 2
       ;;
@@ -293,8 +296,10 @@ pd__disable_clean()
   do
     test ! -d $prefix || {
       cd $pwd/$prefix
+      local scm= scmdir=
+      vc_getscm || continue
       git diff --quiet && {
-        test -z "$(vc__ufx)" && {
+        test -z "$(vc_untracked)" && {
           warn "TODO remove $prefix if synced"
           # XXX need to fetch remotes, compare local branches
           #pd__meta list-push-remotes $prefix | while read remote
@@ -473,7 +478,7 @@ pd__sync()
   prefix=$1
 
   shift 1
-  test -n "$1" || set -- $(vc__list_local_branches $prefix)
+  test -n "$1" || set -- $(vc.sh list-local-branches $prefix)
   pwd=$(pwd -P)
 
   cd $pwd/$prefix
@@ -659,7 +664,7 @@ pd__init()
     git submodule update --init --recursive
 
     # Regenerate .git/info/exclude
-    vc__regenerate || echo "init:vc-regenerate:$1" >>$failed
+    vc.sh regenerate || echo "init:vc-regenerate:$1" >>$failed
 
     test ! -e .versioned-files.list || {
       echo "git-versioning check" > .git/hooks/pre-commit
@@ -743,15 +748,15 @@ pd__disable()
 
 
   pd__meta_sq disabled "$1" && {
-    info "Already disabled: '$1'"
+    info "Already disabled: prefix '$1' in '$pdoc'"
   } || {
-    pd__meta disable $1 && note "Disabled $1"
+    pd__meta disable $1 && note "Disabled prefix '$1' in '$pdoc'"
   }
 
   test ! -d "$1" && {
-    info "No checkout, nothing to do"
+    info "No dir '$1', nothing to do"
   } || {
-    note "Found checkout, running pd-clean..."
+    note "Found dir at '$1', running pd-clean..."
     pd__clean $1 || return $?
 
     choice_sync_dismiss=1 \
@@ -862,7 +867,7 @@ pd__update_repo()
 
   # scan checkout remotes
 
-  # FIXME: move here props="$props $(verbosity=0;cd $1;echo "$(vc__remotes sh)")"
+  # FIXME: move here props="$props $(verbosity=0;cd $1;echo "$(vc.sh remotes sh)")"
 
   local remotes=
   for remote in $(cd $prefix; git remote)
@@ -1444,9 +1449,6 @@ pd_load()
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
 
-  # Local pdoc name, used by most command to determine pdir
-  test -n "$pdoc" || pdoc=.projects.yaml
-
   test -n "$UCONF" || {
     test -e $HOME/.conf && UCONF=$HOME/.conf || error env-UCONF 1
   }
@@ -1694,18 +1696,7 @@ pd_lib()
   test -z "$__load_lib" || return 14
   local __load_lib=1
   test -n "$scriptpath" || return 12
-  lib_load box meta list match date doc table ignores vc
-  f_lib_load=1 . $scriptpath/vc.sh
-  . $scriptpath/projectdir.lib.sh "$@"
-  . $scriptpath/projectdir-bats.inc.sh
-  . $scriptpath/projectdir-fs.inc.sh
-  . $scriptpath/projectdir-git.inc.sh
-  . $scriptpath/projectdir-git-versioning.inc.sh
-  . $scriptpath/projectdir-grunt.inc.sh
-  . $scriptpath/projectdir-npm.inc.sh
-  . $scriptpath/projectdir-make.inc.sh
-  . $scriptpath/projectdir-lizard.inc.sh
-  . $scriptpath/projectdir-vagrant.inc.sh
+  lib_load box meta list match date doc table ignores vc projectdir
   # -- pd box lib sentinel --
 }
 

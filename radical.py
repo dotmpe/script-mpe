@@ -140,6 +140,9 @@ Changelog
     perhaps looking to store files/comments/tags in SQL with taxus.
 2016-08-27
     Need task scripts for `Pd`. Reviewing.
+2018-01-06
+    Some updates last year while being use to scan for code tasks. Planning
+    for next revision.
 
 Issues
 ------
@@ -156,6 +159,7 @@ Further comments
 - Handles only Unix likebreaks. Could do a lot better con literal parsing,
   perhaps something enfiladic or based on parallel streams.. for now it should
   help this results in some content ranges.
+
 - There are two styles of comments recognized, line and block.
   Some other styles not implemented:
 
@@ -213,6 +217,7 @@ from taxus import Taxus
 from taxus.init import get_session
 import res
 import res.fs
+import res.js
 
 
 # Storage model
@@ -339,10 +344,7 @@ class SrcDoc:
 
 
 class CommentTag:
-    """ TODO: hold some types of tags:
-    TODO-10af
-    TODO-1234
-    BUG:1.2.3-a.b.c+d
+    """ TODO: hold some types of tags
     """
     def __init__(self, slug, id, matchbox):
         self.slug = slug
@@ -461,11 +463,12 @@ class EmbeddedIssue:
                     cmt.comment_flavour, \
                     repr(cmt.raw), \
                     repr(cmt.descr) ])),
-            'null': lambda cmt, data, rc, opts: None,
             'raw2': lambda cmt, data, rc, opts: " ".join([ cmt.comment_flavour ] + [
                 "%s '%s' <%s> %s" %(
                     tag, tag.raw, tag.canonical(data), cmt
                 ) for tag in cmt.tags ])
+            'json-stream': lambda cmt, data, rc, opts: res.js.dumps(cmt.to_dict()),
+            'null': lambda cmt, data, rc, opts: None,
         }
 
     def validate(self):
@@ -653,7 +656,7 @@ def compile_rdc_matchbox(rc):
         pattern = r"(%s)" % tagname
         if rc.tag_specs[tagname]:
             pattern = rc.tag_specs[tagname][0] % tagname
-        matchbox[tagname] = re.compile(pattern)
+        matchbox[tagname] = re.compile(pattern, re.VERBOSE)
 
     for flavour in rc.comment_scan:
         scan = rc.comment_scan[flavour]
@@ -1133,7 +1136,18 @@ STD_COMMENT_SCAN = {
         'c_line': [ '(\/\/)' ]
     }
 # Tag pattern, format and index type
-DEFAULT_TAG_RE = r'\s*\b(%s)(?:[:_-]([A-Za-z0-9:_-]+))?\b[:]?\s+'
+DEFAULT_TAG_RE = r'''
+  (?: ^|\s )
+  (?:
+        (%s) (?:
+              (?: [:\.,_-] )
+            | (?: [\s:\.,_-]* [\s\._0-9-]+ )
+            | (?: [:\.,_-]* [^\ ]+ )
+        )?
+  )
+  (?: $|\s )
+'''
+
 DEFAULT_TAGS = {
     'FIXME': [ DEFAULT_TAG_RE, '%s-%i:', 'todo_txt' ],
     'TEST':  [ DEFAULT_TAG_RE, '%s-%i:', 'todo_txt' ],
@@ -1248,7 +1262,8 @@ class Radical(rsr.Rsr):
                 p(('--list-ignores',), libcmd.cmddict(inheritor.NAME)),
                 p(('--info',), libcmd.cmddict(inheritor.NAME)),
 
-                p(('--issue-format',), {
+                p(('-u', '--issue-format'), {
+                    'metavar': 'FMT',
                     'dest': 'issue_format',
                     'action': 'store',
                     'default': 'full-id',

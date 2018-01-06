@@ -35,6 +35,7 @@ package_lib_set_local()
 
 package_default_id()
 {
+  test -e "$1/$PACKMETA" || error "package-default-id no file '$1/$PACKMETA'" 1
   jsotk.py -I yaml -O py objectpath $1/$PACKMETA '$.*[@.main is not None].main'
 }
 
@@ -48,7 +49,7 @@ package_file()
 
 htd_package_list_ids()
 {
-  test -e "$PACKMETA" || error "No '$PACKMETA' file" 1
+  test -e "$PACKMETA" || error "htd-package-list-ids no file '$PACKMETA'" 1
   jsotk.py -I yaml -O py objectpath $PACKMETA '$.*[@.id is not None].id'
 }
 
@@ -64,6 +65,7 @@ update_package_json()
 {
   test -n "$1" || set -- ./
   test -n "$metajs" || local metajs=$PACKMETA_JSON
+  test -e "$metaf" || error "update-package-json no metaf '$metaf'" 1
   metajs=$(normalize_relative "$metajs")
   test $metaf -ot $metajs ||
   {
@@ -77,6 +79,7 @@ update_package_json()
 
 jsotk_package_sh_defaults()
 {
+  test -e "$1" || error "jsotk-package-sh-defaults no file '$1'" 1
   {
     jsotk.py -I yaml -O fkv objectpath $1 '$..*[@.*.defaults]' \
       || {
@@ -191,8 +194,11 @@ update_package()
   }
   test -e "$metaf" || error "no such file ($(pwd), $1) PACKMETA='$PACKMETA'" 34
 
+  note "Metafile: $metaf ($(pwd), $cwd)"
+
   # Package.sh is used by other scripts
   update_package_sh "$1" || { r=$?
+    test -f "$metash" || return $r
     grep -q Exception $metash && rm $metash ; return $r
   }
 
@@ -221,10 +227,10 @@ package_sh()
     sub=
   }
   # Check/update package metadata
-  test -e $PACKMETA && {
+  test -e "$PACKMETA" && {
     update_package $(pwd -P) || return $?
   }
-  test -e $PACKMETA_SH || error $PACKMETA_SH 1
+  test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || error "package-sh '$PACKMETA_SH'" 1
   # Use util from str.lib to get the keys from the properties file
   property "$PACKMETA_SH" "$prefix" "$sub" "$@"
 }
