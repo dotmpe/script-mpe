@@ -4550,10 +4550,10 @@ htd__topics_persist()
 
 htd_man_1__scripts='
 
-  scripts names
-    List local package script names
-  scripts list
-    List local package script names and lines
+  scripts names [GLOB]
+    List local package script names, optionally filter by glob.
+  scripts list [GLOB]
+    List local package script lines for names
   scripts run NAME
     Run scripts from package
 
@@ -4569,27 +4569,18 @@ htd__scripts()
 
 htd__run()
 {
-  test -n "$1" || set -- scripts
+  jsotk.py -sq path --is-new $PACKMETA_JS_MAIN scripts/$1 &&
+      error "No script '$1'" 1
 
-  # Update local package
-  local metaf=
+  # Evaluate package env
+  test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" ||
+      error "No local package" 1
+  . $PACKMETA_SH || error "Sourcing package Sh" 1
 
-  . $PACKMETA_SH
-
-  # With no arguments or name 'scripts' list script names,
-  # Or no matching scripts returns 1
-  jsotk.py -sq path --is-new $PACKMETA_JS_MAIN scripts/$1 && {
-    test "$1" = "scripts" || {
-      error "No obj scripts/$1" ; return 1; }
-
-    trueish "$verbose_no_exec" && {
-      echo jsotk.py keys -O lines $PACKMETA_JS_MAIN scripts
-      return
-    }
-
-    # NOTE: default run
-    htd__run_dir
-    return $?
+  # List scriptnames
+  test -z "$1" && {
+    htd__scripts names
+    return 1
   }
 
   # Execute script-lines
@@ -4607,18 +4598,24 @@ htd__run()
     test -z "$package_env" || {
       eval $package_env
     }
+
+    note "Starting '$run_scriptname' ($(pwd)) '$*'"
+
     package_sh_script "$run_scriptname" | while read scriptline
     do
       export ln=$(( $ln + 1 ))
+
+      # Header or verbose output
       not_trueish "$verbose_no_exec" && {
         stderr info "Scriptline: '$scriptline'"
       } || {
         printf -- "\t$scriptline\n"
         continue
       }
-      (
 
-        eval "$scriptline"
+      # Execute
+      (
+        eval $scriptline
 
       ) && continue || {
           echo "$run_scriptname:$ln: '$scriptline'" >> $failed
@@ -4628,6 +4625,7 @@ htd__run()
       set --
     done
   )
+  note "Finished '$1' ($(pwd)) '$*'"
   trueish "$verbose_no_exec" && return || stderr notice "'$1' completed"
 }
 htd_run__run=iAOp
@@ -4637,7 +4635,7 @@ htd_man_1__list_run="list lines for package script"
 htd__list_run()
 {
   verbose_no_exec=1 \
-    htd__run "$@"
+    htd__scripts list "$@"
 }
 htd_run__list_run=iAO
 
@@ -9189,8 +9187,10 @@ htd_main()
 {
   local scriptname=htd base=$(basename "$0" .sh) \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-    package_id= \
-    subcmd= failed= subcmd_alias=
+    package_id= package_cwd= package_env= \
+    subcmd= subcmd_alias= subcmd_args_pre= \
+    arguments= prefixes= options= \
+    passed= skipped= error= failed=
 
   htd_init || exit $?
 
@@ -9223,9 +9223,12 @@ htd_main()
           htd_load "$@" || warn "htd-load ($?)"
           var_isset verbosity || local verbosity=5
           test -z "$arguments" -o ! -s "$arguments" || {
+
             info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
             set -f; set -- $(cat $arguments | lines_to_words) ; set +f
           }
+
+          note "htd: $subcmd '$*'"
 
           $subcmd_func "$@" || r=$?
           htd_unload || r=$?
