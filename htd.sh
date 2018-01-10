@@ -901,6 +901,7 @@ htd_als___F=find-doc
 
 htd__volumes()
 {
+  test -n "$1" || set -- list
   case "$1" in
     list )
         htd__ls_volumes
