@@ -10,3 +10,5 @@ function _colorman() {
       "$@"
 }
 function man() { _colorman man "$@"; }
+
+

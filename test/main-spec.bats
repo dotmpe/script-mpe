@@ -14,7 +14,7 @@ BOX_INIT=1
 
 @test "$lib/main incr x (amount): increments var x, output is clean" {
 
-  var_isset x && test -z "Unexpected x= var in env" || noop
+  var_isset x && fail "Unexpected 'x' var in env (x=$x)" || noop
 
   incr x 3
   test $? -eq 0
@@ -32,7 +32,7 @@ BOX_INIT=1
 
 @test "$lib/main incr-c: increments var c, output is clean" {
 
-  var_isset c && test -z "Unexpected c= var in env" || noop
+  var_isset c && fail "Unecpected 'c' var in env (c=$c)" || noop
 
   incr_c
   test $? -eq 0
@@ -61,31 +61,35 @@ BOX_INIT=1
 
 @test "$lib/main try_help" {
   base=cmd
+  cmd_spc__sub="sub|-b ARG"
   cmd_man_1__sub="Bar"
-  test "$(try_help 1 sub)" = "Bar"
+  run try_help 1 sub
+  test_ok_nonempty || stdfail 
+  test "${lines[*]}" = "$ cmd sub 	Bar Usage: 	cmd sub|-b ARG"
+  test "${lines[*]}" = "$ $base sub 	$cmd_man_1__sub Usage: 	$base $cmd_spc__sub"
 }
 
 
 #@test "$lib/main echo_help" {
 
-@test "$lib/main try_local" {
+@test "$lib/main echo_local" {
   base=
-  test "$(try_local abc)" = "__abc"
-  test "$(try_local abc 123)" = "_123__abc"
-  test "$(try_local abc 123 xyz)" = "xyz_123__abc"
+  test "$(echo_local abc)" = "__abc"
+  test "$(echo_local abc 123)" = "_123__abc"
+  test "$(echo_local abc 123 xyz)" = "xyz_123__abc"
 
-  test "$(try_local "" 123 xyz)" = "xyz_123"
-  test "$(try_local abc "" xyz)" = "xyz__abc"
+  test "$(echo_local "" 123 xyz)" = "xyz_123"
+  test "$(echo_local abc "" xyz)" = "xyz__abc"
 
-  #test "$(try_local "abc123")" = "__abc123"
-  #test "$(try_local "abc123" "_")" = "_abc123"
-  #test "$(try_local "abc123" "" xxx)" = "_xxx__abc123"
-  #test "$(try_local abc123 _ xxx)" = "_xxx_abc123"
+  test "$(echo_local "abc123")" = "__abc123"
+  #test "$(echo_local "abc123" "_")" = "_abc123"
+  #test "$(echo_local "abc123" "" xxx)" = "_xxx__abc123"
+  #test "$(echo_local abc123 _ xxx)" = "_xxx_abc123"
 
-  test "$(try_local b x)" = "_x__b"
+  test "$(echo_local b x)" = "_x__b"
 
   base=cmd
-  test "$(try_local var)" = "cmd__var"
+  test "$(echo_local var)" = "cmd__var"
 }
 
 @test "$lib/main try_value" {
@@ -143,7 +147,9 @@ BOX_INIT=1
 
 @test "$lib/main get-cmd-func-name sets local ${1}_func from internal vars" {
 
-  var_isset test_name && test -z "Unexpected test_name= var in env" || noop
+  var_isset test_name && 
+    fail "Unexpected test_name= var in env ('$test_name')" ||
+    noop
   check_skipped_envs || TODO "envs $envs: implement for env"
 }
 

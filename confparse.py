@@ -25,77 +25,143 @@ Consider:
 
 TODO: segment configuration into multiple files.
 """
+from __future__ import print_function
 import collections
 import os, inspect, re, shutil, sys, types
-from os import unlink, removedirs, makedirs, tmpnam, chdir, getcwd
+from os import unlink, removedirs, makedirs, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
 
-try:
-    import syck
-    yaml_load = syck.load
-    yaml_dump = syck.dump
-except ImportError, e:
-    try:
-        import ruamel
-        from ruamel import yaml
-
-        def process_scalar(self):
-            if self.analysis is None:
-                self.analysis = self.analyze_scalar(self.event.value)
-            if self.style is None:
-                self.style = self.choose_scalar_style()
-            split = (not self.simple_key_context)
-            # VVVVVVVVVVVVVVVVVVVV added
-            if split:  # not a key
-                is_string = True
-                if self.event.value and self.event.value[0].isdigit():
-                    is_string = False
-                if ':' not in self.event.value:
-                    is_string = False
-                # insert extra tests for scalars that should not be ?
-                if is_string:
-                    self.style = "'"
-            # ^^^^^^^^^^^^^^^^^^^^
-            # if self.analysis.multiline and split    \
-            #         and (not self.style or self.style in '\'\"'):
-            #     self.write_indent()
-            if self.style == '"':
-                self.write_double_quoted(self.analysis.scalar, split)
-            elif self.style == '\'':
-                self.write_single_quoted(self.analysis.scalar, split)
-            elif self.style == '>':
-                self.write_folded(self.analysis.scalar)
-            elif self.style == '|':
-                self.write_literal(self.analysis.scalar)
-            else:
-                self.write_plain(self.analysis.scalar, split)
-            self.analysis = None
-            self.style = None
-            if self.event.comment:
-                self.write_post_comment(self.event)
-
-        def yaml_load(*args, **kwds):
-            kwds.update(dict(
-                Loader=ruamel.yaml.RoundTripLoader,
-                preserve_quotes=True
-            ))
-            return ruamel.yaml.load(*args, **kwds)
-
-        def yaml_dump(*args, **kwds):
-            dd = ruamel.yaml.RoundTripDumper
-            dd.process_scalar = process_scalar
-            kwds.update(dict(
-                Dumper=dd
-            ))
-            return ruamel.yaml.dump(*args, **kwds)
-
-        yaml_safe_dump = yaml_dump
+import ruamel
+from ruamel import yaml
 
 
-    except ImportError, e:
-        print >>sys.stderr, "confparse.py: no YAML parser"
-# XXX: see also res/js.py
+def yaml_loads(*args, **kwds):
+    """
+    Load from stream or text.
+    """
+    kwds.update(dict(
+        Loader=ruamel.yaml.RoundTripLoader,
+        preserve_quotes=True
+    ))
+    return ruamel.yaml.load(*args, **kwds)
+
+def yaml_load(fl, *args, **kwds):
+    if not hasattr(fl, 'read'):
+        assert isinstance(fl, basestring)
+        fp = open(fl, 'r')
+    else:
+        fp = fl
+    return yaml_loads(fp.read(), *args, **kwds)
+
+
+
+class YamlDumper(ruamel.yaml.RoundTripDumper):
+    _ignore_aliases = False
+
+    def ignore_aliases(self, _data=None):
+        return self._ignore_aliases
+
+    def process_scalar(self):
+        """
+        Custom process_scalar attribute for ruamel YAML dumper.
+        """
+        if self.analysis is None:
+            self.analysis = self.analyze_scalar(self.event.value)
+        if self.style is None:
+            self.style = self.choose_scalar_style()
+        split = (not self.simple_key_context)
+        # VVVVVVVVVVVVVVVVVVVV added
+        if split:  # not a key
+            is_string = True
+            if self.event.value and self.event.value[0].isdigit():
+                is_string = False
+            if ':' not in self.event.value:
+                is_string = False
+            # insert extra tests for scalars that should not be ?
+            if is_string:
+                self.style = "'"
+        # ^^^^^^^^^^^^^^^^^^^^
+        # if self.analysis.multiline and split    \
+        #         and (not self.style or self.style in '\'\"'):
+        #     self.write_indent()
+        if self.style == '"':
+            self.write_double_quoted(self.analysis.scalar, split)
+        elif self.style == '\'':
+            self.write_single_quoted(self.analysis.scalar, split)
+        elif self.style == '>':
+            self.write_folded(self.analysis.scalar)
+        elif self.style == '|':
+            self.write_literal(self.analysis.scalar)
+        else:
+            self.write_plain(self.analysis.scalar, split)
+        self.analysis = None
+        self.style = None
+        if self.event.comment:
+            self.write_post_comment(self.event)
+
+    def set_ignore_aliases(self, ia):
+        self._ignore_aliases = ia
+
+
+def yaml_dumps(*args, **kwds):
+    """
+    Dump to string, without kwds stream return string.
+
+    Does not set stream, but doesn't forbid it either.
+    Sets Dumper kwds item to ruamel.yaml.RoundTripDumper, using locally
+    defined process_scalar.
+
+    See ruamel.yaml.dump.
+    """
+    #dd = ruamel.yaml.RoundTripDumper
+    #dd.process_scalar = process_scalar
+    dd = YamlDumper
+    if 'ignore_aliases' in kwds:
+        dd._ignore_aliases = kwds['ignore_aliases']
+        del kwds['ignore_aliases']
+    kwds.update(dict( Dumper=dd ))
+    return ruamel.yaml.dump(*args, **kwds)
+
+yaml_safe_dumps = yaml_dumps
+
+
+def yaml_dump(fl, *args, **kwds):
+    """
+    First argument is file path or stream.
+    """
+    if not hasattr(fl, 'write'):
+        assert isinstance(fl, basestring)
+        fp = open(fl, 'w+')
+    else:
+        fp = fl
+    kwds['stream'] = fp
+    return yaml_dumps(*args, **kwds)
+
+
+def yaml_flatten_list(l):
+    r = []
+    for n, i in enumerate(l):
+        r[n] = yaml_flatten(i)
+    return r
+
+def yaml_flatten_dict(o):
+    r = {}
+    for k, v in o.items():
+        r[k] = yaml_flatten(v)
+    return r
+
+def yaml_flatten(o):
+    """
+    Reduce ``ruamel.yaml`` types to lists and dicts.
+    """
+    if hasattr(o, 'items'):
+        return yaml_flatten_dict(o)
+    elif hasattr(o, 'iter'):
+        return yaml_flatten_list(o)
+    else:
+        return o
+
 
 _ = None
 "In-mem. settings. "
@@ -149,7 +215,8 @@ def expand_config_path(name, paths=path_prefixes):
 
 
 def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
-        suffixes=name_suffixes, paths=[], exists=os.path.exists):
+        suffixes=name_suffixes, paths=[], exists=os.path.exists,
+        filesonly=False, notdir=False):
 
     """
     Search paths for markerleaf with prefixes/suffixes. Yields only existing
@@ -186,7 +253,7 @@ def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
         cpath = expanded_paths.pop(0)
         for prefix in prefixes:
             for suffix in suffixes:
-                #print (cpath, prefix, suffix,)
+                #print(cpath, 'prefix='+prefix, 'suffix='+suffix, 'marker='+markerleaf)
                 cleaf = markerleaf
                 if not markerleaf.startswith(prefix):
                     cleaf = prefix + markerleaf
@@ -194,10 +261,12 @@ def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
                     cleaf += suffix
                 cleaf = os.path.expanduser(os.path.join(cpath, cleaf))
                 if not exists or exists(cleaf):
+                    if filesonly and not os.path.isfile(cleaf): continue
+                    if notdir and os.path.isdir(cleaf): continue
                     yield cleaf
 
 
-class DictDeepUpdate:
+class DictDeepUpdate(object):
 
     @classmethod
     def update_list(Klass, sub, k, v, key_h=None):
@@ -231,6 +300,7 @@ class Values(dict):
     Holds configuration settings once loaded.
 
     This is used a lot as a simple attribute-access dict.
+    A bit like optsparse.Values.
     """
 
     default_source_key = 'config_file'
@@ -267,7 +337,7 @@ class Values(dict):
             for key in defaults:
                 self.initialize(key, defaults[key])
         self.__dict__['initialized'] = True
-        #TODO:self.updated = False
+        #TODO: self.updated = False
 
     def append(self, k, **default):
         """
@@ -529,7 +599,7 @@ class YAMLValues(Values):
 
         assert not self.__dict__['parent'], "TODO"
         #self.root().commit()
-        print 'saving settings to',self.source
+        print('saving settings to',self.source)
         mod = self.getsource()
         data = mod.copy(plain=True)
         assert 'volatile' in self
@@ -540,13 +610,13 @@ class YAMLValues(Values):
         path = self.source;#__dict__[self.__dict__['source_key']]
         if do_backup:
             backup(path)
-        yaml_dump(data, open(path, 'w+'))
+        yaml_dumps(data, open(path, 'w+'))
 
     @classmethod
     def load(cls, path):
         try:
-            data = yaml_load(open(path).read())
-        except Exception, e:
+            data = yaml_load(open(path))
+        except Exception as e:
             raise Exception("Parsing %s: %s"%(path, e))
         settings = cls(data, source_file=path, source_key='config_file')
         #if path not in _paths:
@@ -596,7 +666,7 @@ def init_config(name, paths=name_prefixes, default=None):
         assert default, "Not initialized: %s for %s" % (name, paths)
         for path in find_config_path('cllct', paths=paths, suffixes=['','.rc'],
                 prefixes=['.',''],exists=lambda x:True):
-            print "TODO:", path
+            print("TODO:", path)
         rcfile = os.path.expanduser(default)
 
     os.path.mknode(rcfile)
@@ -617,7 +687,7 @@ def load(name, paths=path_prefixes):
         while configs:
             config = configs.next()
             if os.path.exists(config): break
-    except StopIteration, e:
+    except StopIteration as e:
         raise Exception("Unable to find config file for", name, paths)
         #sys.exit(1)
     ext = splitext(config)[1]
@@ -647,7 +717,7 @@ class ValuesFacade(Values):
             config_key=default_config_key):
         try:
             data = yaml_load(open(path).read())
-        except Exception, e:
+        except Exception as e:
             raise Exception("Parsing %s: %s"%(path, e))
         config = Klass(data, source_file=path,
                 source_key=source_key)
@@ -675,7 +745,20 @@ def load_all(names, alt_paths=path_prefixes, prefixes=name_prefixes,
 _ = Values()
 
 
+def haspath(obj, attrs):
+    path = attrs.split('.')
+    while path:
+        attr = path.pop(0)
+        if not hasattr(obj, attr):
+            return False
+        obj = getattr(obj, attr)
+    return True
+
+
 # XXX: testing
 if __name__ == '__main__':
     configs = list(expand_config_path('cllct.rc'))
-    assert configs == ['/Users/berend/.cllct.rc'], configs
+
+    print(yaml_loads("test: 1"))
+    print(yaml_load(os.path.expanduser("~/project/.projects.yaml")) )
+#    assert configs == ['/Users/berend/.cllct.rc'], configs

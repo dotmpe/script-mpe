@@ -7,6 +7,10 @@ set -e
 
 
 
+
+
+# Script subcmd's funcs and vars
+
 redmine__custom()
 {
   local custom_fields=$(setup_tmpf -custom_fields.tab)
@@ -64,14 +68,31 @@ redmine__db_stats()
 
 
 
-### Main
 
+# Generic subcmd's
+
+redmine_man_1__help="Usage help. "
+redmine_spc__help="-h|help"
+redmine_als___h=help
+redmine__help()
+{
+  test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  choice_global=1 std__help "$@"
+}
+
+
+
+
+# Script main functions
 
 redmine_main()
 {
-  local scriptname=redmine base=$(basename $0 .sh) verbosity=5 \
-    scriptdir="$(cd "$(dirname "$0")"; pwd -P)" \
-    failed=
+  local \
+      scriptname=redmine \
+      base=$(basename $0 .sh) \
+      verbosity=5 \
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
+      failed=
 
   redmine_init || exit $?
 
@@ -92,36 +113,31 @@ redmine_main()
   esac
 }
 
+# FIXME: Pre-bootstrap init
 redmine_init()
 {
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
-  test -n "$scriptdir"
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  test -n "$scriptpath"
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh
   util_init
-  . $scriptdir/match.lib.sh
-  . $scriptdir/box.init.sh
+  . $scriptpath/match.lib.sh
+  . $scriptpath/box.init.sh
   box_run_sh_test
-  #. $scriptdir/htd.lib.sh
-  . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
-  . $scriptdir/meta.lib.sh
-  . $scriptdir/box.lib.sh
-  . $scriptdir/date.lib.sh
-  . $scriptdir/doc.lib.sh
-  . $scriptdir/table.lib.sh
-  lib_load remote
+  lib_load main meta box date doc table remote
   # -- redmine box init sentinel --
 }
 
+# FIXME: 2nd boostrap init
 redmine_lib()
 {
   local __load_lib=1
-  . $scriptdir/match.sh load-ext
+  . $scriptpath/match.sh load-ext
   # -- redmine box lib sentinel --
   set --
 }
 
+# Pre-exec: post subcmd-boostrap init
 redmine_load()
 {
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
@@ -132,12 +148,14 @@ redmine_load()
 }
 
 
+# Main entry - bootstrap script if requested
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
-    redmine_main "$@"
-  ;; esac
-;; esac
+      redmine_main "$@"
+    ;;
+  esac ;;
+esac
 

@@ -9,40 +9,117 @@ set -e
 # Description.
 
 
+lib_path_exists()
+{
+  test -e "$1/$2.lib.sh" || return 1
+  echo "$1/$2.lib.sh"
+}
+
+# Echo every occurence of *.lib.sh on SCRIPTPATH
+lib_path() # local-name path-var-name
+{
+  test -n "$2" || set -- "$1" SCRIPTPATH
+  lookup_test=lib_path_exists lookup_path $2 "$1"
+}
+
+# Lookup and load sh-lib on SCRIPTPATH
 lib_load()
 {
-  test -n "$1" || set -- sys os std str src
+  test -n "$LOG" || exit 102
+  local f_lib_load= f_lib_path=
+  # __load_lib: true if inside util.sh:lib-load
+  test -n "$__load_lib" || local __load_lib=1
+  test -n "$1" || set -- str sys os std stdio src match main argv vc
   while test -n "$1"
   do
-    . $scriptdir/$1.lib.sh
+    lib_id=$(printf -- "${1}" | tr -Cs 'A-Za-z0-9_' '_')
+    f_lib_loaded=$(eval printf -- \"\$${lib_id}_lib_loaded\")
+
+    test -n "$f_lib_loaded" || {
+
+        # Note: the equiv. code using sys.lib.sh is above, but since it is not
+        # loaded yet keep it written out using plain shell.
+        f_lib_path="$( echo "$SCRIPTPATH" | tr ':' '\n' | while read sp
+          do
+            test -e "$sp/$1.lib.sh" || continue
+            echo "$sp/$1.lib.sh"
+            break
+          done)"
+        test -n "$f_lib_path" || { $LOG error "No path for lib '$1'" ; exit 1; }
+        . $f_lib_path
+
+        # again, func_exists is in sys.lib.sh. But inline here:
+        type ${lib_id}_lib_load  2> /dev/null 1> /dev/null && {
+           ${lib_id}_lib_load || error "in lib-load $1 ($?)" 1
+        }
+
+        eval ${lib_id}_lib_loaded=1
+    }
     shift
   done
+}
 
-  #. $scriptdir/match.sh
-  #. $scriptdir/doc.lib.sh
-  #. $scriptdir/table.lib.sh
+util_boot()
+{
+  test -n "$__load_boot" || {
+    export __load_boot="$(basename "$0" .sh)"
+  }
+  test -z "$__load_mode" -a -n "$1" && {
+    export __load_mode=$1
+  } || {
+    test -n "$1" || set -- "$__load_mode"
+  }
 }
 
 util_init()
 {
+  test -n "$SCRIPTPATH" && {
+    test -n "$scriptpath" || {
+      export scriptpath="$(echo "$SCRIPTPATH" | sed 's/^.*://g')"
+    }
+  } || {
+    test -n "$scriptpath" && {
+      export SCRIPTPATH=$scriptpath
+    } || {
+      exit 106
+    }
+  }
+  test -n "$LOG" || export LOG=$scriptpath/log.sh
+
   lib_load
-  sys_load
-  str_load
 }
 
 
-case "$0" in "" ) ;; "-"* ) ;; * )
+case "$0" in
+  "-"*|"" ) ;;
+  * )
 
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in
-    load-* ) ;; # External include, do nothing
+      test -n "$f_lib_load" && {
+        # never
+        echo "util.sh assert failed: f-lib-load is set ($0: $*)" >&2
+        exit 1
 
-    * ) # Setup SCRIPTPATH and include other scripts
+      } || {
 
-        test -n "$scriptdir"
+        case "$__load_mode" in
+
+          # Setup SCRIPTPATH and include other scripts
+          boot|main )
+              util_boot "$@"
+            ;;
+
+        esac
+      }
+      test -n "$SCRIPTPATH" || {
         util_init
+      }
+      case "$__load_mode" in
+        load-* ) ;; # External include, do nothing
+        boot )
+            lib_load
+          ;;
+      esac
+    ;;
+esac
 
-  ;; esac
-
-;; esac
-
+# Id: script-mpe/0.0.4-dev util.sh

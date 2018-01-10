@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-""":created: 2014-10-5
+"""
+:Created: 2014-10-5
 
 script_mpe + taxus
 
@@ -8,8 +9,9 @@ TODO: manage schemas and datastores.
 Work with models across databases, synchronize base types through master
 database.
 """
+from __future__ import print_function
 __description__ = "cllct - "
-__version__ = '0.0.2-dev' # script-mpe
+__version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.cllct.sqlite'
 __usage__ = """
 Usage:
@@ -31,19 +33,14 @@ Other flags:
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
 """ % ( __db__, __version__ )
-
 from datetime import datetime
 import os
 import re
 from glob import glob
 
-import log
-import util
-import reporter
-from taxus.init import SqlBase, get_session
-from taxus.util import ORMMixin, current_hostname
-from taxus import \
-    Node, Name, Tag, Topic, \
+from script_mpe.libhtd import *
+from taxus.v0 import \
+    Node, \
     ID, \
     Space
 
@@ -61,7 +58,7 @@ def format_Space_item(space):
                 space.classes,
 
                 str(space.date_added).replace(' ', 'T'),
-                str(space.last_updated).replace(' ', 'T'),
+                str(space.date_updated).replace(' ', 'T'),
                 str(space.date_deleted).replace(' ', 'T')
             )
         )
@@ -77,7 +74,7 @@ def cmd_info(settings):
     try:
         sa = Node.get_session('default', settings.dbref)
         log.std('{magenta} * {bwhite}DB Connection {default}[{green}OK{default}]')
-    except Exception, e:
+    except Exception as e:
         log.std('{magenta} * {bwhite}DB Connection {default}[{red}Error{default}]: %s', e)
 
 def cmd_init(settings):
@@ -128,7 +125,7 @@ def cmd_get(REF, settings):
     #print Node.byKey(dict(cllct_id=REF))
     #print Node.byName(REF)
     Root, nid = Node.init_ref(REF)
-    print Root.get_instance(nid, sa=sa)
+    print(Root.fetch_instance(nid, sa=sa))
 
 def cmd_new(NAME, settings):
     sa = Node.get_session('default', settings.dbref)
@@ -155,12 +152,12 @@ def cmd_status(SCHEMA, settings):
     store.init()
 
     for session in Node.sessions:
-        print session
+        print(session)
         for model in schema.models:
             try:
-                print model, model.last_id(None, session)
-            except Exception, e:
-                print e
+                print(model, model.date_id(None, session))
+            except Exception as e:
+                print(e)
 
 
 def cmd_sync(SCHEMA, settings):
@@ -171,8 +168,8 @@ def cmd_sync(SCHEMA, settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -190,14 +187,14 @@ def main(opts):
 
     opts.default = 'info'
 
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'cllct.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     if opts.flags.schema:
         schema = __import__(os.path.splitext(opts.flags.schema)[0])
         metadata = schema.SqlBase.metadata
@@ -206,6 +203,3 @@ if __name__ == '__main__':
         else:
             log.warn("{yellow}Warning: {default}no DB found and none provided.");
     sys.exit(main(opts))
-
-
-

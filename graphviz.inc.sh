@@ -55,7 +55,7 @@ gv__load_subcmd()
   test -n "$subcmd" || subcmd=$def_subcmd
   test -n "$subcmd" || error "no cmd or default" 1
 
-  subcmd_func="$(try_local "$subcmd")"
+  subcmd_func="$(echo_local "$subcmd")"
 
   # Look for <base>_run__<subcmd> variable
   for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
@@ -156,3 +156,4 @@ gv_bg_teardown()
 }
 
 #
+

@@ -2,6 +2,7 @@
 """
 TODO: look at OAuth 1.0 t get at google spreadsheets
 """
+from __future__ import print_function
 import gdata.docs.service
 
 # Create a client class which will make HTTP requests with Google Docs server.
@@ -15,4 +16,4 @@ documents_feed = client.GetDocumentListFeed()
 # Loop through the feed and extract each document entry.
 for document_entry in documents_feed.entry:
   # Display the title of the document on the command line.
-  print document_entry.title.text
+  print(document_entry.title.text)

@@ -1,21 +1,22 @@
 #!/usr/bin/env python
-""":created: 2014-09-28
+"""
+:created: 2014-09-28
 :updated: 2014-10-12
 
 TODO: keep open (active) vs. closed (inactive) indicators for groups
-TODO: group other nodes. See GroupNode 1--* Node from taxus.Core.
 TODO: find prelimanary way to represent nodes from other stores
 TODO: print path relative to current dir
 
 """
 __description__ = "folder - "
-__version__ = '0.0.2-dev' # script-mpe
+__version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.folder.sqlite'
 __usage__ = """
 Usage:
   folder.py [options] [info|list]
   folder.py [options] new NAME [REF]
   folder.py [options] group ID SUB...
+  folder.py [options] up SUB...
   folder.py [options] ungroup SUB...
 
 Options:
@@ -33,7 +34,7 @@ import os
 import re
 
 import log
-import util
+import libcmd_docopt
 import taxus
 from taxus.init import SqlBase, get_session
 from taxus import \
@@ -55,7 +56,7 @@ def print_Folder(folder):
                 folder.root,
 
                 str(folder.date_added).replace(' ', 'T'),
-                str(folder.last_updated).replace(' ', 'T'),
+                str(folder.date_updated).replace(' ', 'T'),
                 str(folder.date_deleted).replace(' ', 'T')
             )
         )
@@ -92,7 +93,7 @@ def cmd_new(NAME, REF, settings):
     print_Folder(folder)
 
 
-# GroupNode operations
+# FIXME: cleanup GroupNode operations
 
 def cmd_group(ID, SUB, settings):
 
@@ -102,9 +103,9 @@ def cmd_group(ID, SUB, settings):
 
     taxus.ORMMixin.init('folder', settings.dbref)
     sa = Folder.start_session('folder', settings.dbref)
-    root = Folder.get_instance(ID, 'folder')
+    root = Folder.fetch_instance(ID, 'folder')
     for subid in SUB:
-        sub = Folder.get_instance(subid, 'folder')
+        sub = Folder.fetch_instance(subid, 'folder')
         sub.partOf_id = ID
         # XXX abstract using some kind of master store iface
         sa.add(node)
@@ -116,7 +117,7 @@ def cmd_ungroup(SUB, settings):
     """
     sa = Folder.start_session('folder', settings.dbref)
     for subid in SUB:
-        sub = Folder.get_instance(subid, 'folder')
+        sub = Folder.fetch_instance(subid, 'folder')
         node.partOf_id = None
         sa.add(node)
     sa.commit()
@@ -139,8 +140,8 @@ def cmd_rename(SRC, DEST):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -153,16 +154,13 @@ def main(opts):
 
     settings = opts.flags
     opts.default = 'info'
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'folder.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-
-

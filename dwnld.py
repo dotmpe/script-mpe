@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 """
+:Created: 2009-09-23
+
+
 TODO Find metadata storage on OS X.
 TODO integrate with libcmd, taxus
 """
+from __future__ import print_function
 import os
 import urllib2
 try:
     from md5 import md5
-except ImportError:    
+except ImportError:
     from hashlib import md5
 
 
@@ -27,7 +31,7 @@ timefmt = '%a, %d %b %Y %H:%M:%S GMT' # http time format
 default_index = '.default'
 query_hash_prefix = '/#refmd5:'
 literal_types = [
-        'text/*', 
+        'text/*',
         'application/xml',
         'application/xhtml+xml'
         ]
@@ -61,7 +65,7 @@ def get_target_path(requri, options):
 
     # (Net)path
     if options.wget_path:
-        if not options.no_domain:    
+        if not options.no_domain:
             p = auth.find('@')
             if p:
                 auth = auth[p+1:]
@@ -96,7 +100,7 @@ def get_target_path(requri, options):
                 copy += 1
             target = target + '.%i' % copy
 
-    return target            
+    return target
 
 
 def mkdirs(path):
@@ -109,18 +113,18 @@ def mkdirs(path):
 
 
 def match_media(mediatype, types=literal_types):
-    print 'TODO: filter'
+    print('TODO: filter')
     return False
 
 
 def scan_text_for_uriref(filename):
-    print 'TODO: recurse'
+    print('TODO: recurse')
     return []
 
 
 def download(uriref, target, options, metafile=None, metaheaders=entity_headers):
 
-    print 'Downloading %s' % uriref
+    print('Downloading %s' % uriref)
     fl = urllib2.urlopen(uriref)
 
     headers = fl.info()
@@ -133,7 +137,7 @@ def download(uriref, target, options, metafile=None, metaheaders=entity_headers)
                     uriref = entity[hd]
                     target = get_target_path( uriref, options )
                     metafile = target + options.metasuffix
-                continue    
+                continue
 
             entity[hd] = headers[hd]
 
@@ -160,7 +164,7 @@ def download(uriref, target, options, metafile=None, metaheaders=entity_headers)
     #os.utime(target, (mtime, mtime))
     #os.utime("%s.head" % target, (mtime, mtime))
 
-    print 'Wrote %s to %s' % (uriref, target)
+    print('Wrote %s to %s' % (uriref, target))
 
     return uriref, target
 
@@ -169,7 +173,7 @@ def fetch(requri, target, options):
 
     if options.name:
         target = os.path.join(options.directory, options.name)
-    
+
     elif not target:
         # automatic path
         target = get_target_path(requri, options)
@@ -203,7 +207,7 @@ if __name__ == '__main__':
 
     # Target location
     parser.add_option('-n', '--name', type='string', help='Save contents under name.')
-    parser.add_option('-d', '--directory', type='string', default=os.curdir, 
+    parser.add_option('-d', '--directory', type='string', default=os.curdir,
             help='Write to file in directory (%default)')
     parser.add_option('-u', '--update-location', action='store_true', help='Adjust '
             'target location once Content-Location header has been received.')
@@ -216,7 +220,7 @@ if __name__ == '__main__':
     # Metadata file
     parser.add_option('-m', '--metadata', action='store_true', help='Store '
             'entity headers as metadata, to pick specific headers use --headers.')
-    parser.add_option('--headers', metavar='STR', action='append', 
+    parser.add_option('--headers', metavar='STR', action='append',
             help='Store these headers into metadata.')
     parser.add_option('--metasuffix', type='string', default=metasuffix,
             help='Suffix to use for metadata file (%default).')
@@ -249,5 +253,3 @@ if __name__ == '__main__':
         requri = fetchuris.pop()
         for ref in fetch(requri, None, options):
             fetchuris.append(ref)
-
-

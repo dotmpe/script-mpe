@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 from . import rsr
 from .libname import Namespace
 from .libcmdng import Targets, Arguments, Keywords, Options,\
@@ -10,7 +11,7 @@ from . import cmdline2
 
 NS = Namespace.register(
         prefix='rsr',
-        uriref='http://project.dotmpe.com/script/#/cmdline.Resourcer'
+        uriref='http://project.wtwta.org/script/#/cmdline.Resourcer'
     )
 
 Options.register(NS,
@@ -70,7 +71,7 @@ def rsr_workspace(prog=None, opts=None):
     yield Keywords(ws=ws, libs=libs)
 
 
-@Target.register(NS, 'volume', 'cmd:options')
+@Target.register(NS, 'volume', 'rsr:workspace')
 def rsr_volume(prog=None, opts=None):
     """
     Find existing volume from current working dir, reset it, or create one in the current
@@ -105,4 +106,5 @@ def rsr_volume(prog=None, opts=None):
 
 if __name__ == '__main__':
     TargetResolver().main(['cmd:options'])
+
 

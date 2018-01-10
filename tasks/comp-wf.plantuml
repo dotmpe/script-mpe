@@ -1,0 +1,55 @@
+@startuml
+
+
+frame "scrow:cli.py regex $TODO_re" as cli_rx {
+}
+
+frame "scrow:cli.py record " as cli_obj {
+}
+
+folder "<project>" {
+
+  database "<record>" as objrec {
+  }
+
+  file "<DOC>" as DOC {
+  }
+
+  file "ToDo.edl" as ToDo_edl {
+    
+    component "<XTLGrepRef>" as xtlgrepref {
+    }
+    component "<XTLRef>" as xtlref {
+    }
+  }
+
+}
+
+
+
+DOC -> cli_rx
+cli_rx -> ToDo_edl
+note bottom of cli_rx {
+  creates spans refs
+  from regex matches
+}
+
+
+cli_rx -> cli_obj : spans
+cli_obj -> objrec : sync records
+cli_obj -> DOC : update
+note top of cli_obj {
+  Update document fields
+}
+
+
+note bottom of DOC
+  Unlike Radical, all files
+  are literal DOC to Scrow
+
+
+  Plain 
+end note
+
+
+@enduml

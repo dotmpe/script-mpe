@@ -1,47 +1,20 @@
+from datetime import datetime
+import hashlib
+
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
-    ForeignKey, Table, Index, DateTime
+    ForeignKey, Table, Index, DateTime, or_
 from sqlalchemy.orm import relationship, backref
+
+from script_mpe.couch import bookmark
 
 from .init import SqlBase
 from .util import ORMMixin
+from .mixin import CardMixin
 from . import core
 from . import net
 from . import web
 
-
-class QName():
-    pass#ns = ...
-
-
-class Namespace(web.Variant):
-    """
-    A set of unique names.
-
-    The namespace at a minimum has an system identifier,
-    which may refer to one or more global identifiers.
-
-    XXX: A collection of anything? What.
-    See Tag, a namespace constituting distinct tag types.
-    But also code, objects.
-    XXX: there is no mux/demux (yet) so subclassing variant does not mean much, but anyway.
-    XXX: Being a variant, the canonical URL, may be used as identifier, may be
-    stored at related Invariant record. some consideration needs to go there
-    """
-    __tablename__ = 'ns'
-    __mapper_args__ = {'polymorphic_identity': 'resource:variant:namespace'}
-
-    namespace_id = Column('id', Integer, ForeignKey('vres.id'), primary_key=True)
-
-    # tags = *Tag; see relationship in tag_namespace_table
-
-    # FIXME: where does the prefix go
-
-#class BoundNamespace(ID):
-#    __tablename__ = 'ns_bid'
-#    __mapper_args__ = {'polymorphic_identity': 'id:namespace'}
-#
-#    prefix = Column(String(255), unique=True)
 
 
 class Relocated(web.Resource):
@@ -57,19 +30,25 @@ class Relocated(web.Resource):
     temporary = Column(Boolean)
 
 
-class Volume(web.Resource):
-
-    # XXX: merge with res.Volume
+class Volume(core.Scheme):
 
     """
-    A particular storage of serialized entities,
-    as in a local filesystem or a blob store.
+    A packaged collection of resources. A particular storage of serialized
+    entities, as in a local filesystem (disk partition) or a blob store.
+
+    Volumes can be nested. TODO: express some types of nesting, ie. SCM, TAR,
+    other compositions.
+
+    Each volume may have its own local name access method, or not?
+
+    E.g. consider ``volume-16-4-boreas-brix:htdocs/main.rst`` or
+    ``htdocs-16-4-boreas-brix:main``. Both identify the index for Htdocs.
     """
 
     __tablename__ = 'volumes'
-    __mapper_args__ = {'polymorphic_identity': 'resource:volume'}
+    __mapper_args__ = {'polymorphic_identity': 'volume-name'}
 
-    volume_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
+    volume_id = Column('id', Integer, ForeignKey('schemes.id'), primary_key=True)
 
     #type_id = Column(Integer, ForeignKey('classes.id'))
     #store = relation(StorageClass, primaryjoin=type_id==StorageClass.id)
@@ -79,7 +58,7 @@ class Volume(web.Resource):
             primaryjoin=root_node_id == core.Node.node_id)
 
 
-class Bookmark(core.Node):
+class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
 
     """
     A textual annotation with a short and long descriptive label,
@@ -87,23 +66,93 @@ class Bookmark(core.Node):
     """
 
     __tablename__ = 'bm'
-#    __table_args__ = {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'}
-    __mapper_args__ = {'polymorphic_identity': 'bookmark'}
+    __mapper_args__ = {'polymorphic_identity': 'resource:bookmark'}
+    bm_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
 
-    bm_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    name = Column(String(255))
 
-    ref_id = Column(Integer, ForeignKey('ids_lctr.id'))
-    ref = relationship(net.Locator, primaryjoin=net.Locator.lctr_id==ref_id)
-
-    extended = Column(Text(65535))#, index=True)
+    extended = Column(Text)#, index=True)
     "Textual annotation of the referenced resource. "
     public = Column(Boolean(), index=True)
     "Private or public. "
-    tags = Column(Text(10240))
+    tags = Column(Text)# XXX: text param NA for postgres (10240))
     "Comma-separated list of all tags. "
 
-    #sup_id = Column(Integer, ForeignKey('bm.id'))
-#Bookmark.sup = relationship(Bookmark, primaryjoin=Bookmark.bm_id == Bookmark.sup_id)
+    @staticmethod
+    def keyid(*a):
+        "Return Couch doc key"
+        return hashlib.sha256(*a).hexdigest()
+
+    @staticmethod
+    def key(o):
+        "Return Couch doc key for object"
+        # TODO: deal with URN's later
+        return Bookmark.keyid(o.href)
+
+    @classmethod
+    def unique_tags(klass, NAME, g, ctx):
+        tags = set()
+        q = ctx.sa_session.query(Bookmark.tags)
+        filters = ()
+        for name in NAME:
+            if g.exact_match:
+                filters += or_(
+                            Bookmark.tags.like('%%, %s, %%' % name),
+                            # TODO: insert spaces to be able to like-match start/end/sa:
+                            Bookmark.tags.like(' %s, %%' % name),
+                            Bookmark.tags.like('%%, %s ' % name),
+                            Bookmark.tags.like(' %s ' % name),
+                        ),
+            else:
+                filters += ( Bookmark.tags.like('%%%s%%' % name), )
+        if filters:
+            q = q.filter(*filters).distinct()
+        rs = q.all()
+        for r in rs:
+            assert isinstance(r.tags, basestring), r.tags
+            tags = tags.union(r.tags.split(', '))
+        return tags
+
+    @classmethod
+    def keys(klass):
+        "Return SQL columns"
+        return web.Resource.keys() + 'name extended public tags'.split(' ')
+
+    def to_doc(self):
+        "Turn record into Couch doc"
+        d = self.to_dict()
+        d.update(dict(
+            type='bookmark',
+            id=Bookmark.key(self)
+        ))
+        return bookmark.Bookmark(**d)
+
+    def to_struct(self, d={}):
+        "Turn into struct for JSON or Couch doc use"
+        d = web.Resource.to_dict(self, d=d)
+        assert isinstance(d['tags'], basestring), d['tags']
+        d.update(dict(
+            location=self.location.to_struct(),
+            tags_list=d['tags'].split(', ')
+        ))
+        return d
+
+    def to_dict(self, d={}):
+        "Turn into flat struct with simple and date/time types only, for JSON or Couch doc use"
+        d = web.Resource.to_dict(self, d=d)
+        assert isinstance(d['tags'], basestring), d['tags']
+        d.update(dict(
+            href=self.location.href(),
+            tags_list=d['tags'].split(', ')
+        ))
+        return d
+
+    def update_from(self, *docs, **kwds):
+        updated = web.Resource.update_from(self, *docs, **kwds)
+        if updated:
+            assert isinstance(self.tags, basestring), self.tags
+            # self.tags = ', '.join( self.tags )
+        return updated
 
 
 workset_locator_table = Table('workset_locator', SqlBase.metadata,
@@ -112,7 +161,6 @@ workset_locator_table = Table('workset_locator', SqlBase.metadata,
 #    mysql_engine='InnoDB',
 #    mysql_charset='utf8'
 )
-
 
 class Workset(web.Resource):
 
@@ -130,28 +178,5 @@ class Workset(web.Resource):
     refs = relationship(net.Locator, secondary=workset_locator_table)
 
 
-token_locator_table = Table('token_locator', SqlBase.metadata,
-    Column('left_id', Integer, ForeignKey('stk.id'), primary_key=True),
-    Column('right_id', Integer, ForeignKey('ids_lctr.id'), primary_key=True),
-)
 
-
-
-class Token(SqlBase, ORMMixin):
-
-    """
-    A large-value variant on Tag, perhaps should make this a typetree.
-    """
-
-    __tablename__ = 'stk'
-    __mapper_args__ = {'polymorphic_identity': 'meta:security-token'}
-
-    token_id = Column('id', Integer, primary_key=True)
-
-    value = Column(Text(65535), index=True, nullable=True, unique=True)
-    refs = relationship(net.Locator, secondary=token_locator_table)
-
-
-models = [ Namespace, Relocated, Volume, Bookmark, Workset, Token ]
-
-
+models = [ Relocated, Volume, Bookmark, Workset ]

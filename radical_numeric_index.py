@@ -1,13 +1,12 @@
-
 """
-Simple comment storage API. With numeric ID's.
+TODO: Simple comment storage API. With numeric ID's.
 
 For each comment a record with a generated ID and digest is kept.
 
 Comments without ID may match by identity to an existing record,
 or are inserted as new records.
 
-The identity is determined by SHA1 sum. Each record is stored once, 
+The identity is determined by SHA1 sum. Each record is stored once,
 ie. all recorded digests are distinct, unique values. The same restriction
 applies to the numeric ID.
 
@@ -25,7 +24,7 @@ File Changelog
     Initial version of service component.
 
 """
-
+from __future__ import print_function
 import hashlib
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
@@ -69,15 +68,33 @@ def comment(dbsession, comment, numid=None):
         # no match, insert
         new_comment = Comment(comment=comment, comment_hash=comment_hash)
         session.add(new_comment)
-        print new_comment.numid
+        print(new_comment.numid)
         return new_comment.numid
 
+tracked = 0
+tracker_index = {}
 
-def new_issue(tag, description):
-# TODO
-    print ('New', tag, description,)
 
-def update_issue(tag, iid, description):
-# TODO
-    print ('Updated', tag, iid, description,)
+def init(rc, opts):
+    global tracker_index, tracked
+    tracked = 0
+    tracker_index = {}
 
+def lists(tag=None):
+    return tracker_index.keys()
+
+def keep(iid, o):
+    tracker_index[ iid ] = dict( embedded=o )
+
+def globalize(iid, o):
+    global tracker_index, tracked
+
+    if iid not in tracker_index:
+        keep(iid, o)
+    return tracker_index[iid]
+
+def new(tag, o):
+    print('New', tag, o, end='')
+
+def update(tag, iid, o):
+    print('Updated', tag, iid, o)

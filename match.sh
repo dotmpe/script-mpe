@@ -3,7 +3,7 @@ match_src=$_
 
 set -e
 
-match_version=0.0.2-dev # script-mpe
+version=0.0.4-dev # script-mpe
 
 
 
@@ -149,8 +149,8 @@ req_arg()
 
 match_main()
 {
-  local scriptname=match base="$(basename "$0" .sh)" verbosity=5 \
-    scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+  local scriptname=match base="$(basename "$0" .sh)" verbosity=4 \
+    scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
 
   match_lib || return $(( $? - 1 ))
 
@@ -168,48 +168,44 @@ match_main()
 match_lib()
 {
   test -z "$__load_lib" || return 1
-  test -n "$scriptdir"
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  test -n "$scriptpath" || return 1
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh
   util_init
-  . $scriptdir/box.init.sh
+  . $scriptpath/box.init.sh
   box_run_sh_test
-  . $scriptdir/main.lib.sh "$@"
-  . $scriptdir/main.init.sh
+  . $scriptpath/main.lib.sh load-ext
   # -- match box init sentinel --
 }
 
 match_init()
 {
   local __load_lib=1
-  test -n "$scriptdir" || return 13
-  . $scriptdir/box.lib.sh "$@"
-  . $scriptdir/match.lib.sh "$@"
-  . $scriptdir/os.lib.sh
-  . $scriptdir/date.lib.sh
-  . $scriptdir/doc.lib.sh
-  . $scriptdir/table.lib.sh
+  test -n "$scriptpath" || return 13
+  . $scriptpath/box.lib.sh "$@"
+  . $scriptpath/match.lib.sh "$@"
+  . $scriptpath/os.lib.sh
+  . $scriptpath/date.lib.sh
+  . $scriptpath/doc.lib.sh
+  . $scriptpath/table.lib.sh
   # -- match box lib sentinel --
   set --
 }
 
-test "$match_src" != "$0" && {
-  set -- load-ext
-}
-case "$1" in "." | "source" )
-  match_src=$2
-  set -- load-ext
-;; esac
+#test "$match_src" != "$0" && {
+#  set -- load-ext
+#}
+#case "$1" in "." | "source" )
+#  match_src=$2
+#  set -- load-ext
+#;; esac
 
 # Ignore login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  case "$1" in load-ext ) ;; * )
-
-    match_main "$@" || exit $? ;;
-
-  esac
-  ;;
-
-esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "$__load_lib" || {
+    match_main "$@" || exit $?
+  }
+;; esac

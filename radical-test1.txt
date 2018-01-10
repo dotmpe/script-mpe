@@ -19,7 +19,8 @@ def func();
 /* TODO 123 foo */
 /** TODO-45 bar */
 /** TODO 6 baz */
-/* TODO 7 baz */
+/* XXX 7 baz */
 /* TODO 17 baz 
 */
+
 

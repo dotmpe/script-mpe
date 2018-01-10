@@ -1,3 +1,6 @@
+"""
+:Created: 2011-05-15
+"""
 from __future__ import print_function
 import datetime
 import getpass
@@ -30,9 +33,9 @@ RSR_NS = 'rsr', 'http://name.wtwta.nl/#/rsr'
 
 # Util functions
 
-rcs_path = re.compile('^.*\/\.(svn|git|bzr)$')
+rcs_path = re.compile('^.*\/\.(svn|git|bzr|hg)$')
 
-def is_versioned(dirpath):
+def is_scmdir(dirpath):
     assert isdir(dirpath), dirpath
     for d in os.listdir(dirpath):
         p = join(dirpath, d)
@@ -40,18 +43,26 @@ def is_versioned(dirpath):
         if m:
             return True
 
-def cmd(cmd, *args):
-    proc = subprocess.Popen( cmd % args,
+def cmd(cmd, cwd=None, allowempty=False, allowerrors=False, allow=[]):
+    "Simple wrapper for subprocess.Popen"
+    if isinstance(cmd, basestring):
+        cmd = [ cmd ]
+    assert isinstance(cmd, list)
+    proc = subprocess.Popen( cmd ,
             shell=True,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            close_fds=True )
-    errors = proc.stderr.read()
-    if errors or proc.returncode:
-        raise Exception(errors)
+            close_fds=True, cwd=cwd )
+    errors = None
+    if not allowerrors:
+        errors = proc.stderr.read()
+    if errors or (
+        proc.returncode and proc.returncode not in allow
+    ):
+        raise Exception(errors or "subproc returned %i" % proc.returncode)
     value = proc.stdout.read()
-    if not value:# and not nullable:
-        raise Exception("OS invocation %r returned nothing" % cmd)
+    if not value and not allowempty:
+        raise Exception("subproc %r returned nothing" % cmd)
     return value
 
 def get_checksum_sub(path, checksum_name='sha1'):
@@ -83,13 +94,13 @@ uname = cmd("uname -s").strip()
 def get_mediatype_sub(path):
     if uname == 'Linux':
         try:
-            mediatypespec = cmd("xdg-mime query filetype %r", path).strip()
+            mediatypespec = cmd(["xdg-mime query filetype %r" % path]).strip()
         except Exception as e:
-            mediatypespec = cmd("file -bsi %r", path).strip()
+            mediatypespec = cmd(["file -bsi %r" % path]).strip()
     elif uname == 'Darwin':
-        mediatypespec = cmd("file -bsI %r", path).strip()
+        mediatypespec = cmd(["file -bsI %r" % path]).strip()
     else:
-        mediatypespec = cmd("file -bsi %r", path).strip()
+        mediatypespec = cmd(["file -bsi %r" % path]).strip()
         assert not True, uname
 
     return mediatypespec
@@ -167,6 +178,7 @@ def timestamp_to_datetime(timestamp, epoch=EPOCH):
 
     return date
 
+
 def class_name(o):
 #    if hasattr(o, __class__):
 #        o = o.__class__
@@ -235,7 +247,7 @@ class Prompt(object):
     """
 
     @classmethod
-    def ask(clss, question, yes_no='Yn'):
+    def ask(klass, question, yes_no='Yn'):
         assert len(yes_no) == 2, "Need two choices, a logica true and false, but options don't match: %r" % yes_no
         yes, no = list(yes_no)
         assert yes.isupper() or no.isupper()
@@ -252,7 +264,7 @@ class Prompt(object):
         return v.upper() == yes.upper()
 
     @classmethod
-    def raw_input(clss, prompt, default=None):
+    def raw_input(klass, prompt, default=None):
         v = input('%s [%s] ' % (prompt, default))
         if v:
             return v
@@ -283,11 +295,14 @@ class Prompt(object):
         return opts
 
     @classmethod
-    def query(clss, question, options=[]):
+    def query(klass, question, options=[]):
+        """
+            Prompt.query( "What shall it be?", [ "Nothing", "Everything", "eLse" ] )
+        """
         assert options
         options = list(options)
         origopts = list(options)
-        opts = clss.create_choice(options)
+        opts = klass.create_choice(options)
         while True:
             print(log.format_str('{green}%s {blue}%s {bwhite}[{white}%s{bwhite}]{default} or [?help] ' %
                     (question, ','.join(options), opts)))
@@ -299,10 +314,40 @@ class Prompt(object):
             if not v.strip(): # FIXME: have to only strip whitespace, not ctl?
                 v = opts[0]
             if v == 'help'  or v in '?h':
-                print(("Choose from %s. Default is %r, use --recurse option to "
-                    "override. ") % (', '.join(options), options[0]))
+                print(log.format_str(("{default}Choose from %s{default}. Default is %r{default}, use --recurse option to override. ") % (', '.join(options), options[0])))
             if v.upper() in opts.upper():
                 choice = opts.upper().index(v.upper())
                 print('Answer:', origopts[choice].title())
                 return choice
 
+    @classmethod
+    def pick(klass, question, items=[], num=False):
+        if not question:
+            question = "Select one"
+        instruction = "enter choice (1-%i) and press return" % (len(items))
+        while True:
+            print(log.format_str('{green}%s {blue}\n%s\n{bwhite}[{white}%s{bwhite}]{default} ' %
+                    (question,  "\n".join([ "%i. %s" %(i+1, v) for i,v in
+                        enumerate(items)]), instruction)))
+            v = ''
+            while True:
+                x = getch()
+                if x == '\r': # Return
+                    break
+                if x == '\x7f': # Backspace
+                    print('\r%s\r'%''.rjust(len(v)),end='')
+                    v = v[:-1]
+                    print(v,end='')
+                    continue
+                if not x.strip() or not x.isdigit():
+                    v = '' ; print('\r',end=''); break
+                v += x
+                print(x,end='')
+            if not v: continue
+            print()
+            i = int(v)
+            if i > len(items):
+                continue
+            if num:
+                return i-1
+            return items[i-1]

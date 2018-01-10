@@ -14,6 +14,7 @@ from zope.interface import Interface, Attribute, implements, \
         implementedBy, providedBy, classImplements
 from zope.interface.interface import adapter_hooks
 from zope.interface.adapter import AdapterRegistry
+from zope.interface.verify import verifyObject
 from zope.component import \
         getGlobalSiteManager
 
@@ -33,22 +34,39 @@ class Node(Interface): pass
 class INodeSet(Interface):
     nodes = Attribute("The list of nodes. ")
 
-class IPyDict(IPrimitive):
-    pass
+class IPyDict(IPrimitive): pass
+class IPyList(IPrimitive): pass
 
 classImplements(dict, IPyDict)
+classImplements(list, IPyList)
 
-# output media types
+
 class IFormatted(Interface):
     """
-    The serialized representation of another object.
+    Can produce or has, an usually single part, serialized representation.
     """
-#class ISerialized(IFormatted):
-#    """
-#    The formatted object of an ISerializable, which may be deserialized.
-#    Otherwise use IFormatted.
-#    """
-# XXX: unused
+
+class ISerialized(IFormatted):
+    """
+    Can in addition deserialize from .
+    """
+
+class IFormatter(Interface):
+    """
+    Base for adapters to or astract class factories of IFormatted.
+    """
+
+class IStreamFormatter(IFormatter):
+    """
+    Produce IFormatted for existing file-like stream, by way of rewriter.
+    """
+
+class IObjectFormatter(IFormatter):
+    """
+    Produce IFormatted for object, by way of adapter.
+    """
+
+
 #class IInteractive(IFormatted):
 #    """
 #    The interactive interface implicates that besides serialization,
@@ -125,13 +143,16 @@ class IPersisted(IResource):
 
 class IReportable(Interface):
     """
-    Interface for reportable objects, adaptable to report instances.
+    TODO: Interface for reportable objects, adaptable to report instances.
     To use with libcmd and reporer.Reporter class.
     """
 
 class IReport(Interface):
     """
-    Interface for report instances.
+    Interface for report instances. Reports are abstractions for streams that
+    are created from objects, results-sets, etc. Wether plain-text or a
+    structured languages.
+
     To use with libcmd and reporer.Reporter class.
     """
     text = Attribute("A text fragment (readonly). ")
@@ -143,12 +164,54 @@ class IReport(Interface):
     line_width_preferred = Attribute("Optionally, indicate preferred line-width. ")
 
 class IReporter(Interface):
-    ""
+    """
+    Channel/output interface for reports.
+    """
     append = Attribute("method for adding subsequent IReportables to report")
+    buffered = Attribute("property")
+    flush = Attribute("method")
+
 
 class IResultAdapter(Interface): pass
 
 class IRelationalModel(Interface): pass
+
+class IValues(Interface):
+    """
+    A dict adapter with attribute-to-index access.
+
+    Shoud offer index access too, unlike optparse.Values.
+    See confparse.Values.
+    """
+
+class IValueObject(Interface):
+    """
+    An object where data is accessed through native python attribtues,
+    ie. regular 'object'-style dot-access notation.
+
+    Unlike IValues this does not give an alternative index access.
+    """
+
+class IJSONLikeData(Interface):
+    """
+    A dict structure with simple JSON types.
+    """
+
+class IJSONLike(Interface):
+    """
+    A IJSONLikeData factory for JSON and YAML.
+    """
+
+    load_json = Attribute("")
+    dump_json = Attribute("")
+    loads_json = Attribute("")
+    dumps_json = Attribute("")
+
+    load_yaml = Attribute("")
+    dump_yaml = Attribute("")
+    loads_yaml = Attribute("")
+    dumps_yaml = Attribute("")
+
 
 class INode(IRelationalModel): pass
 class IGroupNode(IRelationalModel): pass
@@ -176,20 +239,23 @@ def registerAdapter(adapterClass, sifaces=[], tiface=None):
 
 def hook( provided, o ):
     global registry
-    if  o  == None:
-        from script_mpe.taxus import out
-        return out.PrimitiveFormatter(None)
+    #if o  == None:
+    #    from script_mpe.taxus import out
+    #    return out.PrimitiveFormatter(None)
+    #print('o', o)
+    #if provided.providedBy(o):
+    #    return o
     adapted = providedBy( o )
-    #libcmd.err("Adapting %s:%s",  o , adapted)
-    adapter = registry.lookup1(
-            adapted, provided, '')
+    #print('provided', provided)
+    print("Adapting %s:%s",  o , adapted)
+    adapter = registry.lookup1( adapted, provided, '')
     if not adapter:
         import sys
         #libcmd.err("Could not adapt %s:%s > %s",  o , adapted, provided)
-        sys.stderr.write("Could not adapt %s:%s > %s" %( o , adapted, provided),
-                "\n")
+        sys.stderr.write("Could not adapt %s:%s > %s\n" %( o , adapted,
+            provided))
     assert adapter, (provided, o)
     return adapter( o )
 
+# Install our lookup as the default for <iface>(...) factory invocations.
 adapter_hooks.append(hook)
-

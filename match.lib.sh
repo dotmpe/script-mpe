@@ -24,9 +24,9 @@ match_load_table()
 {
   test -n "$1" || set -- book
 
-  match_load_defs $scriptdir/table.$1
+  match_load_defs $scriptpath/table.$1
 
-  test "$scriptdir" = "$(cd "$(pwd)"; pwd -P)" || {
+  test "$scriptpath" = "$(cd "$(pwd)"; pwd -P)" || {
     test -s "$(pwd)/table.$1" && {
       match_load_defs "$(pwd)/table.$1" \
         || error "Error loading ./table.$1" 1
@@ -53,7 +53,7 @@ match_grep_pattern_test()
 {
   p_="$(echo "$1" | sed -E 's/([^A-Za-z0-9{}(),!@+_])/\\\1/g')"
   # test regex
-  echo "$1" | grep "^$p_$" >> /dev/null || {
+  echo "$1" | grep -q "^$p_$" || {
     error "cannot build regex for $1: $p_"
     echo "$p" > invalid.paths
     return 1
@@ -137,4 +137,3 @@ globlist_to_regex()
     shift
   done
 }
-

@@ -5,29 +5,42 @@
 
 Look for metafiles, dump paths with missing sources.
 """
+from __future__ import print_function
 import os
 import sys
 
-from script_mpe.res import Volumedir
-from script_mpe.res.metafile import MetafileFile, Meta
+from script_mpe.res import Volumedir, File, Dir
+from script_mpe.res.metafile import MetafileFile, Meta, Metadir, Metafile
 
 
 
-vdir = Volumedir.find()
+vdir = list(Volumedir.find())
 if not vdir:
-    print "No volume here"
+    print("No volume here")
     sys.exit(1)
 
+meta = Meta(vdir)
+print(meta)
 
-#meta = Meta(vdir)
-for path in sys.argv[1:]:
+if sys.argv[1:]:
 
-    try:
+    for path in sys.argv[1:]:
+
         mff = MetafileFile(path)
-    except Exception, e:
-        print >>sys.stderr, path, e
-        continue
+        try:
+            mff = MetafileFile(path)
+        except Exception as e:
+            print(path, e, file=sys.stderr)
+            continue
 
-    if not os.path.exists(mff.path):
-        print 'Missing', mff.path, mff.data.keys()
+        if not os.path.exists(mff.path):
+            print('Missing', mff.path, mff.data.keys())
 
+else:
+
+    #meta.dir.walk()
+    #for fn in Dir.walk('.'):
+    #    print Metafile(fn)
+    mf = Metafile(File('meta.py'))
+    print(mf)
+    print(mf.atime)

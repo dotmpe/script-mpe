@@ -14,6 +14,7 @@ version 0.1, Oktober 2012
 
 
 """
+from __future__ import print_function
 import os
 import confparse
 import statvfs
@@ -54,81 +55,80 @@ def complexity( data ):
     for key, record in storage.items():
         if record.fs.inodes > max_inodes:
             max_inodes = record.fs.inodes
-    print 'Complexity:', data.fs.inodes * 100 / max_inodes, '%'
+    print('Complexity:', data.fs.inodes * 100 / max_inodes, '%')
 
 def main( ):
     data = confparse.Values(dict(
             version=1
         ))
-    print '='*79
+    print('='*79)
     data.hostid = os.popen2( 'hostid' )[ 1 ].read().strip()
     data.date = datetime.datetime.now().isoformat()
-    print 'Date:', data.date#.isoformat()
-    print 'Host-ID:', data.hostid
+    print('Date:', data.date#.isoformat())
+    print('Host-ID:', data.hostid)
     fssttat = os.statvfs( os.sep )
-    print 'Filesystem:', os.sep
-    print '_'*79
+    print('Filesystem:', os.sep)
+    print('_'*79)
     data.fs = confparse.Values(dict(
         ))
     # finding total inode stats is more involved, block is more simple
-    print fssttat.f_bsize, "preferred blocksize"
-    print fssttat.f_frsize, "fundamental filesystem block"
-    print fssttat.f_blocks, 'blocks (total, in units of f_frsize)'
-    print fssttat.f_bavail, 'available blocks'
+    print(fssttat.f_bsize, "preferred blocksize")
+    print(fssttat.f_frsize, "fundamental filesystem block")
+    print(fssttat.f_blocks, 'blocks (total, in units of f_frsize)')
+    print(fssttat.f_bavail, 'available blocks')
     print
 
     fact = fssttat.f_frsize / 1024
-    print '1k blocks'
-    print 'factor', fact
+    print('1k blocks')
+    print('factor', fact)
     _1kblocks = fssttat.f_blocks*fact
     _1kblocks_free = fssttat.f_bfree*fact
     _1kblocks_avail = fssttat.f_bavail*fact
     _1kblocks_used = ( fssttat.f_blocks - fssttat.f_bavail )*fact
     _1kblocks_used2 = ( fssttat.f_blocks - fssttat.f_bfree )*fact
-    print _1kblocks
-    print _1kblocks_avail, 'available'
-    print _1kblocks_free, 'free?'
+    print(_1kblocks)
+    print(_1kblocks_avail, 'available')
+    print(_1kblocks_free, 'free?')
     #print _1kblocks_used, 'used'
-    print _1kblocks_used2, 'used2'
-    print fssttat.f_bfree*fact, 'free?'
+    print(_1kblocks_used2, 'used2')
+    print(fssttat.f_bfree*fact, 'free?')
     print
-    print human_readable_bytesize(_1kblocks*1024, True, False, 0), 'in blocks'
-    print human_readable_bytesize(_1kblocks_avail*1024, True, False, 0), 'in available blocks'
+    print(human_readable_bytesize(_1kblocks*1024, True, False, 0), 'in blocks')
+    print(human_readable_bytesize(_1kblocks_avail*1024, True, False, 0), 'in available blocks')
     #print human_readable_bytesize(_1kblocks_used*1024, True, False, 0), 'in used blocks'
-    print human_readable_bytesize(_1kblocks_used2*1024, True, False, 0), 'in used2 blocks'
+    print(human_readable_bytesize(_1kblocks_used2*1024, True, False, 0), 'in used2 blocks')
     print
 
     data.fs.inodes = fssttat.f_files
-    print 'INodes', data.fs.inodes
+    print('INodes', data.fs.inodes)
 #    print fssttat.f_favail, 'inodes free' available to non-super user, same as ffree
     data.fs.inodes_used = fssttat.f_files - fssttat.f_ffree
-    print 'INodes-Used:', data.fs.inodes_used
+    print('INodes-Used:', data.fs.inodes_used)
     data.fs.inode_usage = int( round( data.fs.inodes_used * 100.0 / fssttat.f_files ) )
-    print 'INode-Usage:', data.fs.inode_usage, '(%)'
+    print('INode-Usage:', data.fs.inode_usage, '(%)')
     data.fs.inodes_free = fssttat.f_ffree
-    print 'INodes-Free:', data.fs.inodes_free
-    data.fs.inode_availability = int( round( 
+    print('INodes-Free:', data.fs.inodes_free)
+    data.fs.inode_availability = int( round(
         fssttat.f_ffree * 100.0 / fssttat.f_files ) )
-    print 'INode-Availability:', data.fs.inode_availability, '(%)'
-    print '-'*79
-    print '='*79
+    print('INode-Availability:', data.fs.inode_availability, '(%)')
+    print('-'*79)
+    print('='*79)
 #    if bencode:
 #        print bencode.bencode( data.copy() )
 
-    # XXX: get a rating based on several 
+    # XXX: get a rating based on several
     #resource_space
     #resource_count
     complexity( data )
     #resource_memory
     #resource_calc?
-    #resource_ranking( ) 
-    
+    #resource_ranking( )
+
 
 #    print pformat( data.copy() )
 #    print res.js.dumps( data.copy() )
-    
+
 #    print fssttat.f_ffree * 100 / total_nodes
 
 if __name__ == '__main__':
     main()
-

@@ -7,7 +7,7 @@ Relational model:
 path   parent-ref    file-count   disk-usage
 ------ ------------- ------------ ----------------
 
-Additionally beside a short unique ID, 
+Additionally beside a short unique ID,
 the implementation may require indicies to quickly query for all leafs,
 or all roots if possible.
 
@@ -18,6 +18,7 @@ Flat DB model:
 'du:'path  => disk-usage
 
 """
+from __future__ import print_function
 import os
 import anydbm
 
@@ -40,16 +41,14 @@ CDU_KEY = "cdu:%s"
 
 def init(path):
     global db
-    print 'Initializing for', path
+    print('Initializing for', path)
     for root, dirs, files in os.walk(path):
         if not os.path.exists(root):
-            print 'Skipping', root
+            print('Skipping', root)
             continue
         root = os.path.realpath(root)
         db[ FC_KEY % root ] = str(len(files))
-        #print root, files
         disk_usage = str(sum(map(lambda f:_getsize(os.path.join(root,f)), files)))
-        #print root, disk_usage
         db[ DU_KEY % root ] = disk_usage
 
     for root, dirs, files in os.walk(path, False):
@@ -91,19 +90,19 @@ humanreadable = lambda s:[(s % 1024**i and "%.1f"%(s/1024.0**i) or \
 def echo(path):
     global db
     path = os.path.realpath(path)
-    print 'Path:', path
+    print('Path:', path)
     if FC_KEY % path in db:
         if CDU_KEY % path in db:
             v = int(db[CDU_KEY % path])
-            print "Cummulative:", humanreadable(v)
+            print("Cummulative:", humanreadable(v))
         v = int(db[DU_KEY % path])
-        print "Local:", humanreadable(v)
-        print "Local Files:", db[FC_KEY % path]
+        print("Local:", humanreadable(v))
+        print("Local Files:", db[FC_KEY % path])
     #print 'Free space:', humanreadable(free_space(path))
 
 if __name__ == '__main__':
     import sys
-    
+
     db = anydbm.open(os.path.expanduser('~/.x-pytreemap.db'), 'c')
 
     args = sys.argv[1:]
@@ -116,8 +115,7 @@ if __name__ == '__main__':
                 path = '.'
             init(path)
             sys.exit()
-        
+
     echo(path)
 
     db.close()
-    

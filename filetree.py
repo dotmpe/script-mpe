@@ -4,6 +4,7 @@
 - Perhaps temporary name FileMap, FileTopicMap.. etc. See treemap. fstreemap?
   treemap -fs blah..
 """
+from __future__ import print_function
 import libcmd
 
 
@@ -16,7 +17,7 @@ import libcmd
 #    __tablename__ = 'filetrees'
 #    id = Column(Integer, primary_key=True)
 
-#    nodes = 
+#    nodes =
 #    subNodes = relationship('', secondary=locators_checksum,
 #        backref='location')
 #
@@ -44,12 +45,9 @@ class FSTopicTreeFe(libcmd.StackedCommand):
         )
 
     def run_fstree(self, opts=None):
-        print opts
+        print(opts)
 
 
 if __name__ == '__main__':
 
     FSTopicTreeFe.main()
-
-
-

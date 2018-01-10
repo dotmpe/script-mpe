@@ -48,5 +48,3 @@ schema:
                   from: Bookmark.ref_id
                   to: Locator.lctr_id
                   type: many-to-one
-
-

@@ -1,6 +1,8 @@
 #!/bin/sh
 
 
+# std: logging and dealing with the shell's stdio decriptors
+
 io_dev_path()
 {
   case "$uname" in
@@ -60,6 +62,7 @@ get_stdio_type()
   esac
 }
 
+# TODO: probably also deprecate, see stderr. Maybe other tuil for this func.
 # stdio type detect - return char t(erminal) f(ile) p(ipe; or named-pipe, ie. FIFO)
 # On Linux, uses /proc/PID/fd/NR: Usage: stdio_type NR PID
 # On OSX/Darwin uses /dev/fd/NR: Usage: stdio_type NR
@@ -134,14 +137,14 @@ stdio_type()
 
     * )
         LOG_TERM=bw
-        echo "[std.sh] Other term: '$TERM'"
+        echo "[std.sh] Other term: '$TERM'" >&2
       ;;
 
   esac
 
   if test -n "$ncolors" && test $ncolors -ge 8; then
 
-    test -z "$debug" || echo "ncolors=$ncolors"
+    test -z "$debug" || echo "ncolors=$ncolors" >&2
 
     bld="$(tput bold)"
     underline="$(tput smul)"
@@ -149,7 +152,8 @@ stdio_type()
     norm="$(tput sgr0)"
 
     test -n "$verbosity" && {
-      test $verbosity -ge 7 && echo "[$base:$subcmd:std.lib] ${drgrey}colors: ${grey}$ncolors${norm}"
+      test $verbosity -ge 7 &&
+        echo "[$base:$subcmd:std.lib] ${drgrey}colors: ${grey}$ncolors${norm}" >&2
     }
 
     if test $ncolors -ge 256; then
@@ -203,59 +207,60 @@ log_bw()
 
 log_16()
 {
-  printf "$1\n"
+  printf -- "$1\n"
 }
 
 log_256()
 {
-  printf "$1\n"
+  printf -- "$1\n"
 }
 
-# deprecate
+# TODO: deprecate: use stderr or error
 err()
 {
+  warn "err() is deprecated, see stderr()"
   test -z "$3" || {
     echo "Surplus arguments '$3'"
     exit 123
   }
   log "$1" 1>&2
-  [ -z "$2" ] || exit $2
+  test -z "$2" || exit $2
 }
 
 # Normal log uses log_$TERM
-# 1:fd 2:str 3:exit
+# 1:str 2:exit
 log()
 {
-  test -n "$1" || return
-  #test -n "$2" || return 1
-  #test -n "$1" || set -- 1 "$@"
+  test -n "$1" || exit 201
   test -n "$stdout_type" || stdout_type="$stdio_1_type"
   test -n "$stdout_type" || stdout_type=t
 
+  local key=
   test -n "$SHELL" \
     && key="$scriptname.$(basename "$SHELL")" \
     || key="$scriptname.(sh)"
 
-  case $stdout_type in t )
+  case $stdout_type in
+    t )
         test -n "$subcmd" && key=${key}${bb}:${bk}${subcmd}
         log_$LOG_TERM "${bb}[${bk}${key}${bb}] ${norm}$1"
-        ;;
+      ;;
 
-      p|f )
+    p|f )
         test -n "$subcmd" && key=${key}${bb}:${bk}${subcmd}
         log_$LOG_TERM "${bb}# [${bk}${key}${bb}] ${norm}$1"
-        ;;
+      ;;
   esac
 }
 
 stderr()
 {
   test -z "$4" || {
-    echo "Surplus arguments '$4'"
-    exit 123
+    echo "Surplus arguments '$4'" >&2
+    exit 200
   }
   # XXX seems ie grep strips colors anyway?
-  [ -n "$stdout_type" ] || stdout_type=$stdio_2_type
+  test -n "$stdout_type" || stdout_type=$stdio_2_type
   case "$(echo $1 | tr 'A-Z' 'a-z')" in
 
     crit*)
@@ -263,12 +268,11 @@ stderr()
         test "$CS" = "light" \
           && crit_label_c="\033[38;5;226;48;5;249m" \
           || crit_label_c="${ylw}"
-
         log "${bld}${crit_label_c}$1${norm}${blackb}: ${bnrml}$2${norm}" 1>&2 ;;
     err*)
         bb=${red}; bk=$grey
         log "${bld}${red}$1${blackb}: ${norm}${bnrml}$2${norm}" 1>&2 ;;
-    warn*)
+    warn*|fail*)
         bb=${dylw}; bk=$grey
         test "$CS" = "light" \
             && warning_label_c="\033[38;5;255;48;5;220m"\
@@ -279,16 +283,17 @@ stderr()
     info )
         bb=${blue}; bk=$grey
         log "${grey}$2${norm}" 1>&2 ;;
-
-    ok )
+    ok|pass* )
         bb=${grn}; bk=$grey
         log "${nrml}$2${norm}" 1>&2 ;;
     * )
         bb=${drgrey} ; bk=$dgrey
-        log "${grey}$2" $3 1>&2 ;;
+        log "${grey}$2${norm}" 1>&2 ;;
 
   esac
-  [ -z "$3" ] || exit $3
+  test -z "$3" || {
+    exit $3
+  }
 }
 
 # std-v <level>
@@ -303,10 +308,14 @@ std_v()
 std_exit()
 {
   test -z "$2" || {
-    echo "Surplus arguments '$2'"
-    exit 123
+    echo "std-exit: Surplus arguments '$2'" >&2
+    exit 200
   }
-  test "$1" != "0" -a -z "$1" && return 1 || exit $1
+  test "$1" != "0" -a -z "$1" && return 1 || {
+    test -z "$verbosity" -a $verbosity -ge 5 &&
+      echo "std-exit $3" >&2
+    exit $1
+  }
 }
 
 emerg()
@@ -334,6 +343,7 @@ note()
   std_v 5 || std_exit $2 || return 0
   stderr "Notice" "$1" $2
 }
+# FIXME: core tool name
 info()
 {
   std_v 6 || std_exit $2 || return 0
@@ -349,13 +359,27 @@ debug()
 std_demo()
 {
   scriptname=std cmd=demo
+  echo
   log "Log line"
   error "Foo bar"
   warn "Foo bar"
   note "Foo bar"
   info "Foo bar"
   debug "Foo bar"
-
+  echo
+  stderr log "Log line"
+  stderr error "Foo bar"
+  stderr warn "Foo bar"
+  stderr note "Foo bar"
+  stderr info "Foo bar"
+  stderr debug "Foo bar"
+  echo
+  stderr ok "Foo bar"
+  stderr pass "Foo bar"
+  stderr fail "Foo bar"
+  stderr failed "Foo bar"
+  stderr skipped "Foo bar"
+  echo
   for x in emerg crit error warn note info debug
     do
       $x "testing $x out"
@@ -365,8 +389,8 @@ std_demo()
 # experiment rewriting console output
 clear_lines()
 {
-  count=$1
-  [ -n "$count" ] || count=0
+  local count=$1
+  test -n "$count" || count=0
 
   while [ "$count" -gt -1 ]
   do
@@ -395,6 +419,99 @@ capture_and_clear()
   fold -s -w $cols $tmpf.tmp > $tmpf
   lines=$(wc -l $tmpf | awk '{print $1}')
   clear_lines $lines
-  echo Captured $lines lines
+  echo Captured $lines lines >&2
 }
 
+
+
+# Main
+
+#test -n "$__load_lib" || {
+#
+#  case "$0" in "" ) ;; "-"* ) ;; * )
+#    test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
+#    test -n "$verbosity" || verbosity=5
+#    case "$1" in
+#
+#      load-ext ) ;; # External include, do nothing
+#
+#      load )
+#          test -n "$scriptpath" || scriptpath="$(dirname "$0")"
+#        ;;
+#
+#      error ) error "$2" $3 ;;
+#      ok|warn|note|info|emerg|crit ) l=$1; shift ; stderr $l "$@" ;;
+#      demo ) std_demo ;;
+#
+#      '' ) ;; # Ignore empty sh call
+#
+#      * ) # Setup SCRIPTPATH and include other scripts
+#          echo "Ignored $scriptname argument(s) $0: $*" 1>&2
+#        ;;
+#
+#    esac
+#
+#  ;; esac
+#
+#}
+
+case "$0" in "" ) ;; "-"* ) ;; * )
+
+  # Do nothing if loaded by lib-load
+  test -n "$__load_lib" || {
+
+    # Otherwise set action with env __load
+    test -n "$__load" || {
+
+      # Sourced or executed without __load* env.
+
+      # If executed, there may be arguments passed. Bourne shell does not
+      # support argument passing to sourced scripts (Bash can and others
+      # probably).
+
+      # Here we do some 'detection'
+      case "$1" in
+
+        load|ext|load-ext )
+            __load=ext
+          ;;
+
+        demo | \
+        error | \
+            ok|warn|note|info|emerg|crit )
+            __load=boot
+          ;;
+
+      esac
+    }
+    case "$__load" in
+
+      boot )
+          test -n "$scriptpath" || scriptpath="$(dirname "$0")/script"
+          test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
+          test -n "$verbosity" || verbosity=5
+          export base=$scriptname
+        ;;
+
+    esac
+    case "$__load" in
+
+      ext ) ;; # External include, do nothing
+
+      boot )
+          case "$1" in
+
+            error ) shift ; error "$@" || exit $? ;;
+            stderr ) shift ; stderr "$@" || exit $? ;;
+            ok|warn|note|info|emerg|crit )
+                stderr "$@" || exit $?
+              ;;
+
+          esac
+        ;;
+
+      * ) echo "Illegal std.lib load action '$__load/$*'" >&2 ; exit 1 ;;
+
+esac ; } ;; esac
+# See also: x-sh-tokens/0.0.1-dev script/std.lib.sh
+# Id: script-mpe/

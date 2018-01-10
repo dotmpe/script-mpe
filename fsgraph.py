@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """fsgraph - filesystreem tree to DOT graph
 
-2010-11-28 
+2010-11-28
     Preliminary version
 2011-05-15
     Fixed bugs and issues with symbolic links.
 """
+from __future__ import print_function
 from fnmatch import fnmatch
 from itertools import chain
 import os
@@ -53,11 +54,11 @@ def shortnid(path):
 def err(v, *args):
     if args:
         v = v % args
-    print >> sys.stderr, v
+    print(v, file= sys.stderr)
 
 def print_tree(opts, path):
-    print "digraph 123 {"
-    print 'rankdir=LR'
+    print("digraph 123 {")
+    print('rankdir=LR')
     fshier = []
     slinks = []
     brokenlinks = []
@@ -75,50 +76,50 @@ def print_tree(opts, path):
                     target = os.path.join(dirname(subpath), target)
                 targetnid = None
                 if islink(target):
-                    print nid+"[shape=plaintext,color=coral,style=bold,label=\"%s\"]" % basename(subpath)
+                    print(nid+"[shape=plaintext,color=coral,style=bold,label=\"%s\"]" % basename(subpath))
                     targetnid = linknid(target)
-                    print targetnid+"[shape=plaintext,color=coral,label=\"%s\"]" % target
+                    print(targetnid+"[shape=plaintext,color=coral,label=\"%s\"]" % target)
                     slinks.append((nid, targetnid))
                 elif isdir(target):
-                    print nid+"[shape=folder,color=coral,style=bold,label=\"%s\"]" % basename(subpath)
+                    print(nid+"[shape=folder,color=coral,style=bold,label=\"%s\"]" % basename(subpath))
                     targetnid = dirnid(target)
-                    print targetnid+"[shape=folder,color=cornflowerblue,label=\"%s\"]" % target
+                    print(targetnid+"[shape=folder,color=cornflowerblue,label=\"%s\"]" % target)
                     slinks.append((nid, targetnid))
-                elif isfile(target):                    
-                    print nid+"[shape=note,color=coral,style=bold,label=\"%s\"]" % basename(subpath)
+                elif isfile(target):
+                    print(nid+"[shape=note,color=coral,style=bold,label=\"%s\"]" % basename(subpath))
                     targetnid = filenid(target)
-                    print targetnid+"[shape=note,color=darkolivegreen,label=\"%s\"]" % target
+                    print(targetnid+"[shape=note,color=darkolivegreen,label=\"%s\"]" % target)
                     slinks.append((nid, targetnid))
                 else:
                     err("unknown path: %s", target)
                     targetnid = dirnid(target)
-                    print nid+"[color=coral,label=\"%s\"]" % basename(subpath)
-                    print targetnid+"[color=red,label=\"%s\"]" % target
+                    print(nid+"[color=coral,label=\"%s\"]" % basename(subpath))
+                    print(targetnid+"[color=red,label=\"%s\"]" % target)
                     brokenlinks.append((nid, targetnid))
             elif isdir(subpath):
                 nid = dirnid(subpath)
-                print nid+"[shape=folder,color=cornflowerblue,style=bold,label=\"%s\"]" % basename(subpath)
+                print(nid+"[shape=folder,color=cornflowerblue,style=bold,label=\"%s\"]" % basename(subpath))
             elif isfile(subpath):
                 nid = filenid(subpath)
-                print nid+"[shape=note,color=darkolivegreen,label=\"%s\"]" % basename(subpath)
+                print(nid+"[shape=note,color=darkolivegreen,label=\"%s\"]" % basename(subpath))
             else:
                 assert False
             nids[subpath] = nid
             fshier.append((rootnid, nid))
 
-    print "edge[color=cornflowerblue]"
+    print("edge[color=cornflowerblue]")
     for p, s in fshier:
-        print "%s -> %s" % (p, s)
+        print("%s -> %s" % (p, s))
 
-    print "edge[color=coral]"
+    print("edge[color=coral]")
     for p, s in slinks:
-        print "%s -> %s" % (p, s)
+        print("%s -> %s" % (p, s))
 
-    print "edge[color=red]"
+    print("edge[color=red]")
     for p, s in brokenlinks:
-        print "%s -> %s" % (p, s)
+        print("%s -> %s" % (p, s))
 
-    print "}"
+    print("}")
 
 
 ### CLI
@@ -163,9 +164,8 @@ def main():
 def _main():
     try:
         main()
-    except KeyboardInterrupt, e:
-        print >>sys.stderr, "User interrupt"
+    except KeyboardInterrupt as e:
+        print("User interrupt", file=sys.stderr)
 
 if __name__ == '__main__':
     _main()
-

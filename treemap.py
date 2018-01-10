@@ -10,7 +10,9 @@ TODO: store local and cumulative values in TreeMap or FileTreeMap document.
 XXX: started using Document Node in filetree.py
 
 Copyleft, May 2007.  B. van Berkum <berend `at` dotmpe `dot` com>
+Copyleft, March 2017.  B. van Berkum <berend `at` dotmpe `dot` com>
 """
+from __future__ import print_function
 import sys
 from os import listdir, sep
 from os.path import join, isdir, getsize, basename, dirname
@@ -21,7 +23,7 @@ from zope.component import \
         getUtility, queryUtility, createObject
 
 import res.js
-import res.primitive    
+import res.primitive
 
 
 gsm = getGlobalSiteManager()
@@ -34,7 +36,9 @@ class Node(res.primitive.TreeNodeDict):
 def fs_tree( path ):
     """Create a tree of the filesystem using dicts and lists.
 
-    All filesystem nodes are dicts so its easy to add attributes.
+    All filesystem nodes are dicts so its easy to add attributes
+    for other purposes
+
     One key is the filename, the value of this key is None for files,
     and a list of other nodes for directories. Eg::
 
@@ -56,7 +60,7 @@ def fs_tree( path ):
                 try:
                     fn = fn.decode(fs_encoding)
                 except UnicodeDecodeError:
-                    print >>sys.stderr, "corrupt path:", path, fn
+                    print("corrupt path:", path, fn, file=sys.stderr)
                     continue
             # normal ops
             path = join( path, fn )
@@ -96,13 +100,13 @@ def fs_treesize( root, tree, files_as_nodes=True ):
                         csize = getsize(path)
                         node.size = csize
                         size += csize
-                    except Exception, e:
+                    except Exception as e:
                         pass#print >>sys.stderr, "could not get size of %s: %r" % (path, e)
         tree.size = size
 
 
 def usage(msg=0):
-    print """%s
+    print("""%s
 Usage:
     %% treemap.py [opts] directory
 
@@ -111,7 +115,7 @@ Opts:
     -j, -json          Write tree as JSON.
     -J, -jsonxml       Transform tree to more XML like container hierarchy befor writing as JSON.
 
-    """ % sys.modules[__name__].__doc__
+    """ % sys.modules[__name__].__doc__)
     if msg:
         msg = 'error: '+msg
     sys.exit(msg)
@@ -128,7 +132,7 @@ def main():
     argv = list(sys.argv)
 
     treepath = argv.pop()
-    if not basename(treepath): 
+    if not basename(treepath):
         # strip trailing os.sep
         treepath = treepath[:-1]
     assert basename(treepath) and isdir(treepath), \
@@ -147,8 +151,8 @@ def main():
 
     ### Init FileTree and TreeMap
 
-    tree = fs_tree(path)
-    
+    tree = fs_tree(unicode(path))
+
     # zac
 #    nodetree = getUtility(res.iface.IDir).tree( path, opts )
 #    #nodetree = INode( path )
@@ -177,26 +181,24 @@ def main():
 
     ### Output
     if res.js.dumps and ( opts.json and not opts.debug ):
-        print res.js.dumps(tree)
+        print(res.js.dumps(tree))
 
     elif res.js.dumps and ( opts.jsonxml and not opts.debug ):
         tree = res.primitive.translate_xml_nesting(tree)
-        print res.js.dumps(tree)
+        print(res.js.dumps(tree))
 
     else:
         if not res.js.dumps:
-            print >>sys.stderr, 'Error: No JSON writer.'
-        print pformat(tree.deepcopy())
+            print('Error: No JSON writer.', file=sys.stderr)
+        print(pformat(tree.deepcopy()))
         total = float(tree.size)
-        print 'Tree size:'
-        print total, 'B'
-        print total/1024, 'KB'
-        print total/1024**2, 'MB'
-        print total/1024**3, 'GB'
+        print('Tree size:')
+        print(total, 'B')
+        print(total/1024, 'KB')
+        print(total/1024**2, 'MB')
+        print(total/1024**3, 'GB')
 
 
 if __name__ == '__main__':
 
     main()
-
-

@@ -1,9 +1,11 @@
 #!/usr/bin/env python
-"""project -
-:created: 2014-02-26
-:updated: 2015-06-30
 """
-__version__ = '0.0.2-dev' # script-mpe
+:Created: 2014-02-26
+"""
+from __future__ import print_function
+
+__version__ = '0.0.4-dev' # script-mpe
+__description__ = "project - ..."
 __db__ = '~/.taxus-code.sqlite'
 __usage__ = """
 
@@ -11,6 +13,7 @@ Usage:
   project.py [options] ( find <ref>...
                        | info [ <ref>... ]
                        | init [ -p... ]
+                       | stats [ --update-fileext-freq ] [ --no-update ]
                        | list
                        | new -p...
                        | update -p... <ref> )
@@ -22,14 +25,15 @@ Usage:
 TODO: <ref> would be an ID, name or path of a project
 
 Options:
-    -v            Increase verbosity.
+    -f FILE, --file FILE
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
     -p --props=NAME=VALUE
                   Give additional properties for new records or record updates.
     -y --yes      Force questions asked to yes.
-
-Other flags:
+    --no-update
+    --update-fileext-freq
+    -v            Increase verbosity.
     -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
@@ -37,17 +41,19 @@ Other flags:
 """ % ( __db__, __version__ )
 __doc__ += __usage__
 
+from pprint import pprint
 import os
 import re
 from datetime import datetime
 
 import rsr
-import util
+import libcmd_docopt
 import log
-from util import cmd_help
-from taxus import Node, Topic, Host, Project, VersionControl, ScriptMixin
-from taxus.init import SqlBase, get_session
-from res import Workdir, Repo
+from confparse import yaml_load, yaml_dump, yaml_dumps
+from libcmd_docopt import cmd_help
+from taxus import ScriptMixin, SqlBase, get_session
+from taxus.v0 import Node, Topic, Host, Project, VersionControl
+from res import Workspace, Workdir, Repo
 
 
 models = [ Project, VersionControl ]
@@ -85,6 +91,9 @@ def cmd_db_stats(settings):
     print("Done", settings.dbref)
 
 def cmd_find(settings):
+    """
+    Default command. TODO: res.ws.Workdir.
+    """
     #sa = get_session(settings.dbref)
     project = Workdir.find()
     print(project)
@@ -96,37 +105,37 @@ def cmd_info(settings):
     name = os.path.basename(pwd)
     workdir = Workdir.find(pwd)
     if not workdir:
-        print("Not in a metadata workdir!")
+        log.stderr("Not in a metadata workdir!")
     rs = Project.search(_sa=sa, name=name)
     if not rs:
-        print("No project found for %r" % name)
+        log.stderr("No project found for %r" % name)
         return 1
     proj=rs[0]
     try:
         hosts = proj.hosts
     except Exception as e:
-        print(settings.dbref, Project.metadata.bind)
-        log.std("Error proj.hosts %s", e)
+        log.stderr(settings.dbref, Project.metadata.bind)
+        log.stderr("Error proj.hosts %s", e)
         hosts = []
-    print(proj.name, hosts, proj.repositories[0].vc_type, proj.date_added)
+    log.std(proj.name, hosts, proj.repositories[0].vc_type, proj.date_added)
 
 
 def cmd_init(settings):
-    sa = Workspace.get_session('project', __version__)
+    #sa = Workspace.get_session('project', __version__)
     sa = Project.get_session('default', settings.dbref)
     #sa = get_session(settings.dbref)
     pwd = os.getcwd()
     name = os.path.basename(pwd)
-    projdir = Workdir.find(pwd)
+    projdir = Workdir.fetch(pwd)
     rs = Project.search(name=name)
     if projdir:
         if not rs:
         	pass
-        print("Already in existing project!")
-        print(projdir[0])
+        log.stderr("Already in existing project!")
+        log.stderr(projdir[0])
         return 1
     if rs:
-        print("Project with this name already exists")
+        log.stderr("Project with this name already exists")
         return 1
     projdir = Workdir(pwd)
     project = Project(
@@ -142,28 +151,70 @@ def cmd_init(settings):
     sa.add(project)
     sa.commit()
     projdir.init(create=True)
-    print("Created project", name, projdir.metadir_id)
+    log.std("Created project", name, projdir.metadir_id)
 
 def cmd_new():
-    print('project-new')
+    print('TODO: project-new')
 
 def cmd_update():
-    print('project-update')
+    print('TODO: project-update')
 
-def cmd_list(settings):
-    sa = Project.get_session('default', settings.dbref)
+def cmd_list(g):
+    sa = Project.get_session('default', g.dbref)
     for p in sa.query(Project).all():
         print(p)
+
+def cmd_stats(g):
+    """
+    Show latest statistics, or generate new and print.
+
+    Stats are kept in a YAML doc, in a metadir.
+    """
+    repo = Repo.fetch()
+
+    doc, statsdoc = None, None
+    if not g.file:
+        ws = Workdir.fetch()
+        if ws:
+            ws.yamldoc('stats')
+            statsdoc = ws.statsdoc
+            log.stderr("Loaded doc %r" % statsdoc)
+        else:
+            log.stderr("No workspace, no stats doc")
+
+    prefix = ws.relpath()
+
+    if g.update_fileext_freq:
+        fe = repo.filetype_histogram().items()
+        fe.sort(lambda x, y: cmp(x[1], y[1]))
+        #fe.reverse()
+        d = dict( date=datetime.now(), data=dict(fe))
+        pprint(d)
+        if doc:
+            if prefix not in doc['stats']:
+                doc['stats'][prefix] = {}
+            if 'fileext-freq' not in doc['stats'][prefix]:
+                doc['stats'][prefix]['fileext-freq'] = dict(log=[], last={})
+            doc['stats'][prefix]['fileext-freq']['last'] = d
+            doc['stats'][prefix]['fileext-freq']['log'].append(d)
+
+    if doc is not None and not g.no_update:
+        yaml_dumps(doc, stream=open(statsdoc, 'w+'), default_flow_style=True)
+        log.stderr("Dumped doc %r" % statsdoc)
 
 
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
+
+def defaults(opts, init={}):
+    libcmd_docopt.defaults(opts)
+    return init
 
 def main(opts):
 
@@ -173,7 +224,7 @@ def main(opts):
 
     settings = opts.flags
     opts.default = 'info'
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'project.mpe/%s' % __version__
@@ -181,7 +232,7 @@ def get_version():
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__doc__, version=get_version())
+    opts = libcmd_docopt.get_opts(__doc__, version=get_version(),
+            defaults=defaults)
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-

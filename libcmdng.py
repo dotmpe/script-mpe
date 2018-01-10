@@ -202,7 +202,7 @@ class Options(UserDict):
     "A mapping of (meta)variable names to their option definition index. "
 
     @classmethod
-    def register(clss, ns, *options):
+    def register(klass, ns, *options):
 
         """
         Registers a standard list of options, compabible with optparse.
@@ -210,28 +210,28 @@ class Options(UserDict):
 
         for opts, attrdict in options:
 
-            clss.opts.append(opts)
+            klass.opts.append(opts)
 
-            idx = len(clss.attributes)
-            clss.attributes.append(attrdict)
+            idx = len(klass.attributes)
+            klass.attributes.append(attrdict)
 
             for opt in opts:
-                assert opt not in clss.options
-                clss.options[opt] = idx
+                assert opt not in klass.options
+                klass.options[opt] = idx
 
             for key in 'metavar', 'dest':
                 if key in attrdict:
                     varname = attrdict[key]
-                    if varname not in clss.variables:
-                        clss.variables[varname] = []
-                    if idx not in clss.variables[varname]:
-                        clss.variables[varname].append(idx)
+                    if varname not in klass.variables:
+                        klass.variables[varname] = []
+                    if idx not in klass.variables[varname]:
+                        klass.variables[varname].append(idx)
 
     @classmethod
-    def get_options(clss):
+    def get_options(klass):
         option_spec = []
-        for idx, opts in enumerate(clss.opts):
-            attr = clss.attributes[idx]
+        for idx, opts in enumerate(klass.opts):
+            attr = klass.attributes[idx]
             option_spec.append((opts, attr))
         return tuple(option_spec)
 
@@ -563,12 +563,12 @@ class Target(object):
         self.depends = list(depends)
         self.handler = handler
         self.values = values
-        clss = self.__class__
+        klass = self.__class__
         # auto static register
-        if name.qname not in clss.instances:
-            clss.instances[name.qname] = self
+        if name.qname not in klass.instances:
+            klass.instances[name.qname] = self
         else:
-            log.warn("%s already in %s.instances", self, clss)
+            log.warn("%s already in %s.instances", self, klass)
 
     # FIXME: add parameters
     def __repr__(self):
@@ -586,7 +586,7 @@ class Target(object):
     handlers = {}
 
     @classmethod
-    def register(clss, ns, name, *depends):
+    def register(klass, ns, name, *depends):
 
         """
         Decorator to register a function to be used as command handler,
@@ -597,9 +597,9 @@ class Target(object):
                 and Namespace.prefixes[ns.prefix] == ns.uriref
         handler_id = ns.prefix +':'+ name
         handler_name = Name.fetch(handler_id, ns=ns)
-        assert handler_id not in clss.handlers, "Duplicate handler %s" % handler_id
+        assert handler_id not in klass.handlers, "Duplicate handler %s" % handler_id
         def decorate(handler):
-            clss.handlers[handler_id] = clss(
+            klass.handlers[handler_id] = klass(
                     handler_name,
                     depends=depends,
                     handler=handler,
@@ -612,10 +612,10 @@ class Target(object):
     "Mapping of name, target instances. "
 
     @classmethod
-    def fetch(clss, name):
+    def fetch(klass, name):
         assert isinstance(name, Name), name
-        assert name.name in clss.handlers
-        return clss.handlers[name.name]
+        assert name.name in klass.handlers
+        return klass.handlers[name.name]
 
 
 class Command(object):
@@ -815,4 +815,5 @@ class TargetResolver(object):
             ret_kwds['args'] = args
 
         return ret_kwds
+
 

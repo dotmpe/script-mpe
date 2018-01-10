@@ -4,7 +4,7 @@
 
 - project:
     name: 'script-mpe'
-    version: 0.0.2-dev # script-mpe
+    version: 0.0.4-dev # script-mpe
     file: .jjb.yaml
 
     jobs:
@@ -57,12 +57,14 @@
 
       scm:
       - git:
-          url: https://github.com/dotmpe/script.mpe.git
+          url: https://github.com/bvberkum/script.mpe.git
           branches:
             - origin/dev
           local-branch: dev
           skip-tag: true
           wipe-workspace: true
+
+
 
 
 

@@ -24,3 +24,5 @@ function ll() {
   fi
   $GRC `alias ls |awk -F "'" '{print $2}'` -l $color ${1+"$@"}
 }
+
+

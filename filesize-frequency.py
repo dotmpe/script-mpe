@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import os, sys, numpy
 
 
@@ -13,7 +14,7 @@ for line in sys.stdin.readlines():
 
 
 lsizes = len(sizes)
-print lsizes, 'Sizes'
+print(lsizes, 'Sizes')
 
 _1k = 1024
 _4k = 1024 * 4
@@ -29,15 +30,14 @@ labels = "0b 1k 4k 1M 4M 14M 128M 4G 1T".split(' ')
 
 hist, edges = numpy.histogram( sizes, bins=bins )
 
-print len(hist), 'bins'
+print(len(hist), 'bins')
 
-print
+print('')
 
 for i, bin in enumerate(hist):
-    print labels[i], "%.1f" % ((bin * 100.0) / lsizes)
+    print(labels[i], "%.1f" % ((bin * 100.0) / lsizes))
     #print labels[i], len(bin)
 
 
 if __name__ == '__main__':
     pass
-

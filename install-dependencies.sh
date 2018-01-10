@@ -2,6 +2,12 @@
 
 set -e
 
+stderr()
+{
+  echo "$log_pref$1" >&2
+  test -z "$2" || exit $2
+}
+
 test -z "$Build_Debug" || set -x
 
 test -z "$Build_Deps_Default_Paths" || {
@@ -17,79 +23,128 @@ test -z "$Build_Deps_Default_Paths" || {
       && PREFIX=/usr/local/ \
       || PREFIX=$HOME/.local
   }
+
+  stderr "Setting default paths: SRC_PREFIX=$SRC_PREFIX PREFIX=$PREFIX"
 }
 
 test -n "$sudo" || sudo=
 test -z "$sudo" || pref="sudo $pref"
 test -z "$dry_run" || pref="echo $pref"
 
-test -w /usr/local || {
-  test -n "$sudo" || pip_flags=--user
+# FIXME: --user not working on Travis in virtual env
+# Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
+#test -w /usr/local || {
+#  test -n "$sudo" || pip_flags=--user
+#  test -n "$sudo" || py_setup_f=--user
+#}
+
+test -n "$SRC_PREFIX" ||
+  stderr "Not sure where to checkout (SRC_PREFIX missing)" 1
+
+test -n "$PREFIX" ||
+  stderr "Not sure where to install (PREFIX missing)" 1
+
+
+echo SRC_PREFIX=$SRC_PREFIX
+echo PREFIX=$PREFIX
+test -d $SRC_PREFIX || ${pref} mkdir -vp $SRC_PREFIX
+test -d $PREFIX || ${pref} mkdir -vp $PREFIX
+
+
+
+uninstall_bats()
+{
+  stderr "Uninstalling bats"
+  ${pref} rm -rf $PREFIX/bin/bats \
+      $PREFIX/libexec/bats \
+      $PREFIX/share/man/man1/bats* \
+      $PREFIX/share/man/man7/bats*
 }
-
-
-test -n "$SRC_PREFIX" || {
-  echo "Not sure where checkout"
-  exit 1
-}
-
-test -n "$PREFIX" || {
-  echo "Not sure where to install"
-  exit 1
-}
-
-test -d $SRC_PREFIX || ${sudo} mkdir -vp $SRC_PREFIX
-test -d $PREFIX || ${sudo} mkdir -vp $PREFIX
 
 
 install_bats()
 {
-  echo "Installing bats"
-  local pwd=$(pwd)
+  stderr "Installing bats"
   test -n "$BATS_BRANCH" || BATS_BRANCH=master
-  mkdir -vp $SRC_PREFIX
-  cd $SRC_PREFIX
-  test -n "$BATS_REPO" || BATS_REPO=https://github.com/dotmpe/bats.git
-  test -n "$BATS_BRANCH" || BATS_BRANCH=master
-  test -d bats || {
-    git clone $BATS_REPO bats || return $?
+  test -n "$BATS_REPO" || BATS_REPO=https://github.com/bats-core/bats-core.git
+  test -d $SRC_PREFIX/bats || {
+    git clone $BATS_REPO $SRC_PREFIX/bats || return $?
   }
-  cd bats
-  git checkout $BATS_BRANCH
-  ${pref} ./install.sh $PREFIX
-  cd $pwd
+  (
+    cd $SRC_PREFIX/bats
+    git checkout $BATS_BRANCH
+    ${pref} ./install.sh $PREFIX
+  )
 }
 
-install_git_versioning()
+install_composer()
 {
-  git clone https://github.com/dotmpe/git-versioning.git $SRC_PREFIX/git-versioning
-  ( cd $SRC_PREFIX/git-versioning && ./configure.sh $PREFIX && ENV=production ./install.sh )
+  test -e $PREFIX/bin/composer || {
+    curl -sSf https://getcomposer.org/installer |
+      php -- --install-dir=$PREFIX/bin --filename=composer
+  }
+  $PREFIX/bin/composer --version
+}
+
+composer_install()
+{
+  ( export PATH=$PATH:$PREFIX/bin
+    test -x "$(which composer)" ||
+      stderr "Composer installed to $PREFIX but not found on PATH! Aborting. " 1
+    test -e composer.json && {
+      test -e composer.lock && {
+        composer update
+      } || {
+        rm -rf vendor || noop
+        composer install
+      }
+    } ||
+      stderr "No composer.json"
+  )
 }
 
 install_docopt()
 {
-  test -n "$sudo" || install_f="--user"
-  git clone https://github.com/dotmpe/docopt-mpe.git $SRC_PREFIX/docopt-mpe
+  test -n "$install_f" || install_f="$py_setup_f"
+  git clone https://github.com/bvberkum/docopt-mpe.git $SRC_PREFIX/docopt-mpe
   ( cd $SRC_PREFIX/docopt-mpe \
       && git checkout 0.6.x \
       && $pref python ./setup.py install $install_f )
 }
 
-install_mkdoc()
+install_git_versioning()
 {
-  echo "Installing mkdoc"
-  pushd $SRC_PREFIX
-  git clone https://github.com/dotmpe/mkdoc.git
-  cd mkdoc
-  git checkout devel
-  PREFIX=~/usr/ ./configure && ./install.sh
-  popd
-  rm Makefile
-  ln -s ~/usr/share/mkdoc/Mkdoc-full.mk Makefile
-  #make
+  git clone https://github.com/bvberkum/git-versioning.git $SRC_PREFIX/git-versioning
+  ( cd $SRC_PREFIX/git-versioning && ./configure.sh $PREFIX && ENV=production ./install.sh )
 }
 
-# expecting cwd to be ~/build/dotmpe/script-mpe/ but asking anyway
+install_git_lfs()
+{
+  # XXX: for debian only, and requires sudo
+  test -n "$sudo" || {
+    stderr "sudo required for GIT lfs"
+    return 1
+  }
+  curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+  $pref apt-get install git-lfs
+  # TODO: must be in repo. git lfs install
+}
+
+install_mkdoc()
+{
+  test -n "$MKDOC_BRANCH" || MKDOC_BRANCH=master
+  stderr "Installing mkdoc ($MKDOC_BRANCH)"
+  (
+    cd $SRC_PREFIX
+    test -e mkdoc ||
+      git clone https://github.com/bvberkum/mkdoc.git
+    cd mkdoc
+    git checkout $MKDOC_BRANCH
+    ./configure $PREFIX && ./install.sh
+  )
+  rm Makefile || printf ""
+  ln -s $PREFIX/share/mkdoc/Mkdoc-full.mk Makefile
+}
 
 install_pylib()
 {
@@ -138,91 +193,135 @@ install_apenwarr_redo()
 
     which basher 2>/dev/null >&2 && {
 
-      basher install apenwarr/redo
-    } || {
+      basher install apenwarr/redo ||
+          stderr "install apenwarr/redo" $?
 
-      echo "Need basher to install apenwarr/redo locally" >&2
-      return 1
-    }
+    } ||
+
+      stderr "Need basher to install apenwarr/redo locally" 1
   }
 }
 
-install_git_lfs()
-{
-  # XXX: for debian only, and requires sudo
-  test -n "$sudo" || {
-    error "sudo required for GIT lfs"
-    return 1
-  }
-  curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-  $pref apt-get install git-lfs
-  # TODO: must be in repo. git lfs install
-}
 
 install_script()
 {
   cwd=$(pwd)
   test -e $HOME/bin || ln -s $cwd $HOME/bin
-  echo "install-script pwd=$cwd"
-  echo "install-script bats=$(which bats)"
 }
 
 
 main_entry()
 {
-  test -n "$1" || set -- '-'
+  test -n "$1" || set -- all
+  main_load
 
-  case "$1" in '-'|project|git )
-      git --version >/dev/null || {
-        echo "Sorry, GIT is a pre-requisite"; exit 1; }
+  case "$1" in all|project|test|git )
+      git --version >/dev/null ||
+        stderr "Sorry, GIT is a pre-requisite" 1
+    ;; esac
+
+  case "$1" in pip|python )
       which pip >/dev/null || {
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
-      pip install --user setuptools objectpath ruamel.yaml \
-        || exit $?
+      $pref pip install -U $pip_flags appdirs packaging setuptools
+      $pref pip install -U $pip_flags objectpath ruamel.yaml
+      $pref pip install -U $pip_flags -r requirements.txt
+      $pref pip install -U $pip_flags -r test-requirements.txt
     ;; esac
 
-  case "$1" in '-'|build|test|sh-test|bats )
+  case "$1" in bats-force-local )
+      uninstall_bats
+      install_bats || return $?
+      PATH=$PATH:$PREFIX/bin bats --version ||
+        stderr "BATS install to $PREFIX failed" 1
+    ;; esac
+
+  case "$1" in all|build|test|sh-test|bats )
       test -x "$(which bats)" || { install_bats || return $?; }
+      PATH=$PATH:$PREFIX/bin bats --version ||
+        stderr "BATS install to $PREFIX failed" 1
     ;; esac
 
-  case "$1" in '-'|dev|build|check|test|git-versioning )
+  case "$1" in php|composer )
+      test -x "$(which composer)" || {
+        install_composer || return $?
+      }
+      test ! -e composer.json || {
+        composer_install || return $?
+      }
+    ;; esac
+
+  case "$1" in dev|git|git-lfs )
+      git lfs || { install_git_lfs || return $?; }
+    ;; esac
+
+  case "$1" in dev|build|check|test|git-versioning )
       test -x "$(which git-versioning)" || {
         install_git_versioning || return $?; }
     ;; esac
 
-  case "$1" in '-'|python|project|docopt)
+  case "$1" in all|python|project|docopt )
       # Using import seems more robust than scanning pip list
       python -c 'import docopt' || { install_docopt || return $?; }
+    ;; esac
+
+  case "$1" in all|basher|test )
+      test -d ~/.basher ||
+        git clone https://github.com/basherpm/basher.git ~/.basher/
+    ;; esac
+
+  case "$1" in all|mkdoc)
+      test -e Makefile || \
+        install_mkdoc || return $?
+    ;; esac
+
+  case "$1" in all|pylib)
+      install_pylib || return $?
+    ;; esac
+
+  case "$1" in all|script)
+      install_script || return $?
     ;; esac
 
   case "$1" in npm|redmine|tasks)
       npm install -g redmine-cli || return $?
     ;; esac
 
-  case "$1" in '-'|redo )
+  case "$1" in all|project|git|git-lfs )
+      # TODO: install_git_lfs
+    ;; esac
+
+  case "$1" in redo )
       # TODO: fix for other python versions
       install_apenwarr_redo || return $?
     ;; esac
 
-  case "$1" in -|mkdoc)
-      install_mkdoc || return $?
+  case "$1" in travis|test )
+      test -x "$(which gem)" ||
+        stderr "ruby/gemfiles required" 1
+      ruby -v
+      gem --version
+      test -x "$(which travis)" ||
+    	${sudo} gem install travis -v 1.8.6 --no-rdoc --no-ri
     ;; esac
 
-  case "$1" in -|pylib)
-      install_pylib || return $?
-    ;; esac
-
-  case "$1" in -|script)
-      install_script || return $?
-    ;; esac
-
-  case "$1" in '-'|project|git|git-lfs )
-    ;; esac
-
-  echo "OK. All pre-requisites for '$1' checked"
+  stderr "OK. All pre-requisites for '$1' checked"
 }
 
-test "$(basename $0)" = "install-dependencies.sh" && {
+main_load()
+{
+  #test -x "$(which tput)" && ...
+  log_pref="[install-dependencies] "
+  stderr "Loaded"
+}
+
+
+{
+  test "$(basename "$0")" = "install-dependencies.sh" ||
+  test "$(basename "$0")" = "bash" ||
+    stderr "0: '$0' *: $*" 1
+} && {
+  test -n "$1" -o "$1" = "-" || set -- all
   while test -n "$1"
   do
     main_entry "$1" || exit $?

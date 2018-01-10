@@ -5,7 +5,7 @@
 
     Very hacky, perhaps in-memory triple storage could help out for more
     convenient version.
-    
+
 Syntax
     - line-base
     - '#' comment lines
@@ -17,6 +17,7 @@ Syntax
     - [common-node]:path
 
 """
+from __future__ import print_function
 from getopt import getopt
 import os
 import re
@@ -39,7 +40,7 @@ def graph(pathfile,
         ):
 
     lines = [
-            l for l in open(pathfile).readlines() 
+            l for l in open(pathfile).readlines()
             if not l.startswith('#') or not l.strip()
         ]
     coloridx = 0
@@ -126,20 +127,20 @@ def graph(pathfile,
     return template % out
 
 ### Main
-NFO_001 = """   
--h  
+NFO_001 = """
+-h
         Help
 -d file
         Load metadata ('schema' dictionary) from python file.
         Should contain template and color settings.
 -t title
         Override graph/schema title
--c 
+-c
         Merge common nodes (crossing edges)
 """
 
 WRN_001 = "Overriding edge color list with <%s>"
-WRN_002 = "Setting color scheme to <%s>" 
+WRN_002 = "Setting color scheme to <%s>"
 
 ERR_001 = "Failed loading metadata from %s"
 ERR_002 = "File does not exist: %s"
@@ -153,7 +154,7 @@ schema = dict(merge=None,template=None,title=None,colors=None)
 opts, args = getopt(sys.argv[1:],'hd:t:me:')
 
 if '-h' in opts:
-    print >>sys.stderr, NFO_001
+    print(NFO_001, file=sys.stderr)
     sys.exit()
 
 meta = None
@@ -172,7 +173,7 @@ for o, a in opts:
 # Load metadata
 if not meta:
     meta = "pathlist2dot-default-template.py"
-    print >>sys.stderr, WRN_002 % meta
+    print(WRN_002 % meta, file=sys.stderr)
 
 execfile(meta)
 assert schema, ERR_001 % meta
@@ -188,7 +189,7 @@ for o, a in opts:
     elif o == '-e':
         if a:
             if colors:
-                print >>sys.stderr, WRN_001 % a
+                print(WRN_001 % a, file=sys.stderr)
             colors = re.split('\s+', open(a).read())
         elif not colors:
             colors = "green blue purple orange maroon cyan magenta yellow darkgreen "\
@@ -202,10 +203,9 @@ for pathfile in args:
     if 'title' not in schema:
         schema['title'] = pathfile
     try:
-        print graph(pathfile, **schema)
-    except IOError, e:
-        print >>sys.stderr, ERR_003 % (pathfile, e)
+        print(graph(pathfile, **schema))
+    except IOError as e:
+        print(ERR_003 % (pathfile, e), file=sys.stderr)
         sys.exit(-3)
     if schema['title'] == pathfile:
         schema['title'] = None
-

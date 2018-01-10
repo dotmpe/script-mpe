@@ -1,0 +1,25 @@
+@startuml
+
+
+
+folder "<project>" {
+
+  database "<record>" as objrec {
+  }
+
+  file "<DOC>" as DOC {
+  }
+
+  file "ToDo.edl" as ToDo_edl {
+    
+    component "<XTLGrepRef>" as xtlgrepref {
+    }
+    component "<XTLRef>" as xtlref {
+    }
+  }
+
+}
+
+
+
+@enduml

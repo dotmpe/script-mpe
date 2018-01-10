@@ -90,3 +90,4 @@ done
 if test "$F" != "-"; then
 	exec 0<&6 6<&- # restore stdin and close fd#6
 fi
+

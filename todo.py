@@ -1,10 +1,16 @@
 #!/usr/bin/env python
-""":created: 2014-08-31
+"""
+:Created: 2014-08-31
+
+Commands:
+    - info - Dump settings
+    - list
 
 TODO: interface this with Google tasks
 """
+from __future__ import print_function
 __description__ = "todo - time ordered, grouped tasks"
-__version__ = '0.0.2-dev' # script-mpe
+__version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.todo.sqlite'
 __usage__ = """
 Usage:
@@ -28,8 +34,6 @@ Options:
                   SQLAlchemy DB URL [default: %s]
     -i FILE --input=FILE
     -o FILE --output=FILE
-
-Other flags:
     -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
@@ -65,6 +69,7 @@ Model::
   Would like to create function for local (project specific) todo management.
 
 """ % ( __db__, __version__ )
+
 from datetime import datetime
 import os
 import re
@@ -72,7 +77,7 @@ import hashlib
 from pprint import pformat
 
 import log
-import util
+import libcmd_docopt
 from taxus import Node
 from taxus.util import ORMMixin, ScriptMixin, get_session
 from res import js
@@ -165,7 +170,7 @@ def print_Task(task):
 
 def indented_tasks(indent, sa, settings, roots):
     for task in roots:
-        print indent,
+        print(indent,)
         print_Task(task)
         indented_tasks(indent+'  ', sa, settings,
             sa.query(Task).filter(Task.partOf_id == task.task_id).all())
@@ -174,9 +179,7 @@ def indented_tasks(indent, sa, settings, roots):
 ### Commands
 
 def cmd_info(settings):
-    """
-    """
-    print pformat(settings.todict())
+    print(pformat(settings.todict()))
 
 def cmd_list(settings):
     sa = get_session(settings.dbref)
@@ -313,7 +316,6 @@ def cmd_prerequisite(ID, PREREQUISITES, settings):
 def cmd_depends(ID, DEPENDENCIES, settings):
     """
         todo ID requires DEPENDENCIES...
-
     """
     sa = get_session(settings.dbref, metadata=SqlBase.metadata)
     node = Task.byKey(dict(task_id=ID), sa=sa)
@@ -342,8 +344,8 @@ def cmd_ungroup(ID, settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -357,15 +359,13 @@ def main(opts):
     settings = opts.flags
     values = opts.args
 
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'todo.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-

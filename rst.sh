@@ -3,13 +3,13 @@ c_rst__source="$_ $0 $@"
 
 set -e
 
-version=0.0.2-dev # script-mpe
+version=0.0.4-dev # script-mpe
 
 
 ### User commands
 
 
-c_rst__man_1_test="rst test? "
+c_rst_man_1__test="rst test? "
 c_rst__test()
 {
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
@@ -17,7 +17,7 @@ c_rst__test()
 }
 
 
-c_rst__man_1_date="Print date"
+c_rst_man_1__date="Print date"
 c_rst__date()
 {
     echo 1
@@ -62,7 +62,7 @@ c_rst__edit()
 }
 
 
-c_rst__man_1_version="Version info"
+c_rst_man_1__version="Version info"
 c_rst__version()
 {
   echo "box-rst/$version"
@@ -76,7 +76,7 @@ c_rst_als___V=version
 
 rst_main()
 {
-  local scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+  local scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
   rst_init || return 0
   local scriptname=rst base=$(basename $0 .sh) dirname=$(dirname $0)
   case "$base" in $scriptname )
@@ -89,14 +89,13 @@ rst_main()
 rst_init()
 {
   test -z "$BOX_INIT" || return 1
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh
   util_init
-  . $scriptdir/box.init.sh
-  . $scriptdir/box.lib.sh
+  . $scriptpath/box.init.sh
+  . $scriptpath/box.lib.sh
   box_run_sh_test
-  . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
+  . $scriptpath/main.lib.sh load-ext
   # -- rst box init sentinel --
 }
 
@@ -116,4 +115,5 @@ rst_load()
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
   rst_main "$@"
 fi
+
 

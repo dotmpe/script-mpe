@@ -14,8 +14,7 @@ TreeNode
 import zope
 from zope.component import queryAdapter, getGlobalSiteManager
 
-import log
-import lib
+from script_mpe import log, lib
 from script_mpe.res import iface as res_iface
 from script_mpe.taxus import iface
 
@@ -28,16 +27,22 @@ class TreeNodeDict(dict):
     XXX: would be nice to manage type for leafs somehow, perhaps using visitor
     """
 
+    """
+    zope.interface.implements(res_iface.Node)
     zope.interface.implements(res_iface.ITree)
+    """
+    zope.interface.implements([
+        res_iface.ITree, iface.Node
+    ])
 
     ATTR_PREFIX = '@'
     "static config for attribute prefix"
 
-    def __init__(self, nameOrObject=None, parent=None, subnodes=[],
+    def __init__(self, nameOrObject=u'TreeNodeDict', parent=None, subnodes=[],
             attributes={}, attr_prefix=ATTR_PREFIX):
         dict.__init__(self)
         if not isinstance(nameOrObject, unicode):
-            assert not isinstance(nameOrObject, str)
+            assert not isinstance(nameOrObject, str), nameOrObject
             self.__name__ = res_iface.IName(nameOrObject)
         else:
             self.__name__ = nameOrObject
@@ -63,13 +68,16 @@ class TreeNodeDict(dict):
             else:
                 yield key.nodeid
 
+    def getlocalname(self):
+        return self.__name__
+
     def getid(self):
-        # FIXME: return first 'key'
+        " FIXME: return first 'key' "
         for key in self.getkeys():
             return key
 
     def getnodetype(self):
-        # FIXME: return first 'key'
+        # FIXME: return first 'key' class
         for key in self.getkeys():
             return key.__class__
 
@@ -188,7 +196,6 @@ class TreeNodeTriple(tuple):
     TreeNode build on top of tuple. XXX: Unused.
     Triple is id, attributes and subnodes.
     """
-
 
 def translate_xml_nesting(tree):
 
@@ -341,5 +348,3 @@ class DictNodeUpdater(AbstractHierarchicalVisitor, AbstractAdapter):
         print 'visit update %s < %s' %( self.context, node), node.nodeid, node.name
         #print self, 'DictNodeUpdater.visit', node
         return node
-
-

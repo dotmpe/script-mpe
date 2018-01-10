@@ -1,12 +1,13 @@
-sudo: false
+language: python
 
-install:
-- "source ./install-dependencies.sh && install_bats"
-- "source ./install-dependencies.sh && install_mkdoc"
-- "source ./install-dependencies.sh && install_pylib"
-- "source ./install-dependencies.sh && install_script"
-- "source ./install-dependencies.sh && install_docopt"
-- pip install --user nose-parameterized
+python:
+  - "2.7"
+  #- "3.2"
+  #- "3.6"
+  #- "3.6-dev"
+  #- "3.7"
+  #- "3.7-dev"
+  #- "nightly"
 
 addons:
   apt:
@@ -14,37 +15,66 @@ addons:
       - tree
       - realpath
       - uuid-runtime
+      - moreutils
+      - curl
+      - php5-cli
+      - posh
+      - dash
+      - ruby-bundler
+#- php5-dom
 # not allowed:
 # - rhash
 # - pytz
 
-before_script: []
+before_install:
+  - export SCR_SYS_SH=bash-sh
+  - scriptname="before-install"
+  - . ./tools/sh/init.sh
+  - . ./tools/sh/env.sh
+  - . ./tools/ci/parts/init.sh
+
+install:
+  - scriptname=install
+  - . ./tools/ci/parts/install.sh
+
+before_script:
+  - scriptname="before-script"
+  - . ./tools/ci/parts/check.sh
 
 script:
-- . ./tools/ci/build.sh
-# verify exit of above script (everything again):
-- bats ./test/*-spec.bats
+  - scriptname=script
+  - . ./tools/ci/parts/build.sh
 
+after_script:
+  - scriptname=after-script
+  - . ./tools/ci/parts/publish.sh
+
+#matrix:
+#  include: []
+#
 env:
+  matrix:
+    - TEST_ENV=testing TEST_SHELL=sh
   global:
+    - ENV=
     - CS=dark
+    - sudo=
     - TRAVIS_SKIP=1
     - TEST_ENV=travis
     - UCONFDIR=$HOME/etc
-    - PATH=$PATH:$HOME/bin:$HOME/usr/bin:$HOME/.local/bin/
-    - PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
+    - PATH=$PATH:$PWD:$PWD/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
+    - TEST_RESULTS=shippable/testresults/test.tap
     - Build_Deps_Default_Paths=1
-  matrix:
-  - ENV= 
-#- ENV=testing
-#- ENV=production
+    - LOG=$PWD/log.sh
+    - BATS_REPO=https://github.com/bvberkum/bats.git
+    - PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python2.7/site-packages:$HOME/bin:$HOME/lib/py
 
 branches:
   only:
-    #  - master
-    #  - '/^test.*$/'
-    #  - '/^dev.*$/'
-    #  - '/^[0-9]*\.[0-9]*\.[0-9]*/'
+    - master
+    - '/^test.*$/'
+    - '/^dev.*$/'
+    - '/^[0-9]*\.[0-9]*\.[0-9]*/'
 
 #deploy:
 #  provider: releases
@@ -55,4 +85,4 @@ branches:
 #    tags: true
 #    condition: $ENV = production
 #
-#
+# Id: script-mpe/0.0.4-dev .travis.yml

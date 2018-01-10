@@ -1,41 +1,63 @@
 Pd Specs
 ========
 :Created: 2016-01-24
-:Updated: 2016-07-11
+:Updated: 2017-01-14
 
 Pd - unified project checkout handling.
 
+- Frontend: projectdir.sh_
+- Extensions: ``projectdir-*.inc.sh``
+- YAML store backend: projectdir-meta_ (Python script for handing Pdocs)
+- Package_ for generic project metadata.
+
+:FIXME: test wether staged, unstaged changes or stash are recognized as dirt
+   or cruft. Build some tests.
+:FIXME: need to consider submodules dirt/cruft too before disabling parent checkout.
+:TODO: Sub-commands should be documented in projectdir.sh (cq. man sections).
+:TODO: submodule support
+:TODO: annex support
+:TODO: reload bg command.
+:TODO: compile packaged scripts from literate style scripting like below. Package for subcommands, and with relations/decorations, with embedded scripts or to annotated external scripts.
+
+
+- Annotation like this should eliminate scattered metadata files
+  like .pd-test
+  and consolidate the settings into a single definitive document.
+  And sync with local package metadata.
+
+  For now the entry point for this is package.yaml.
+
+  See package_ also for some related TODO's.
+  See below for some sketchups on pd subcommands,
+
+
 Definitions
 ------------
-Projectdir
+Projectdir [Pd]
   - directory of prefixes to checkouts, and with a Projectdoc on path
-Projectdoc
+Projectdoc [Pdoc]
   - metadata file listing prefixes repo/remotes etc.
 Prefix
   - A directory below a Projectdir with package metadata files and/or SCM dirs.
 Target
   - a specification of a command run on a prefix.
-
-projecdir-meta for Projectdoc schema. Package.rst for generic project metadata.
-
-FIXME: test wether staged changes are recognized as dirt. Build some tests.
-FIXME: need to consider submodules dirt/cruft too before disabling parent checkout.
-
-:TODO: Sub-commands should be documented in projectdir.sh (cq. man sections).
-:TODO: submodule support
-:TODO: annex support
-:TODO: reload bg command.
-:TODO: compile packaged scripts from literate style scripting like below. Package for subcomamnds, and with relations/decorations, with embedded scripts or to annotated external scripts.
-
-- Annotation like this should eliminate scattered metadata files
-  like .pd-test
-  and consolidate the settings into a single definitive document.
-
-  For now the entry point for this is package.yaml.
-  See package.rst also for some related TODO's.
-  See below for some sketchups on pd subcommands,
+Cruft
+  - Unrecognized or cleanable, but unignored files. Ie. swap files, cache,
+    build artefacts.
+  - Usually ignored (e.g. gitignores) but when removing checkouts, all files
+    below should be considered.
+Dirt
+  - Uncommitted or unsynchronized SCM elements. Ie. modified, staged, stashed.
+  - Before removing checkouts first always a check and confirmation should
+    be required before purging local unmerged branches, stashed changes,
+    dirty files, etc.
 
 
+SCM (clean/dirty/crufty) handling depends on vc.sh_ script.
+
+
+Components
+------------
 pd
   - annotate ./projectdir.sh
 
@@ -74,13 +96,12 @@ pd
         b: exit pd-meta bg process
 
   States
-
-    check
-    scm
-    deps
-    test
-    build
-    install
+    | check
+    | scm
+    | deps
+    | test
+    | build
+    | install
 
   Subcommands
     pd status
@@ -98,7 +119,7 @@ pd
         ..
       bats
         - dependencies bats
-        - ``./test/*-spec.bats | bats-color.sh``
+        - ``./test/*-spec.bats | script-bats.sh colorize``
       mk-test
         - make test
       git-versioning
@@ -184,3 +205,7 @@ pd
       for each prefix.
 
 
+.. _package: ./package.rst
+.. _projectdir.sh: ./projectdir.sh
+.. _projectdir-meta: ./projectdir-meta
+.. _vc.sh: ./vc.sh

@@ -18,7 +18,8 @@ import confparse
 import res
 from res.session import Session
 import taxus
-from taxus import SessionMixin, Node, Name, Tag
+from taxus import SessionMixin, SqlBase, get_session
+from taxus.v0 import Node, Name, Tag
 
 import sys
 import os
@@ -304,6 +305,9 @@ class Rsr(libcmd.StackedCommand):
 
     def rsr_session(self, prog, volume, workspace, homedir, opts):
         """
+        TODO: get an Metadir session; lock (and later sync) an file/db.
+        Move current db setup to new txs.
+
         Determine context, and from there get the session/dbref to initialize an
         SQLAlchemy session.
         The context depends on the current working directory, and defaults to
@@ -312,7 +316,7 @@ class Rsr(libcmd.StackedCommand):
         session = Session.init(prog.pwd, opts.session)
         log.note('Session: %s', session)
 
-        if session.context:
+        if session.context and confparse.haspath(session.context, 'data.repository.root_dir'):
             prog.session = session
             yield dict(context=session.context)
             log.note('Context: %s', session.context)
@@ -339,7 +343,8 @@ class Rsr(libcmd.StackedCommand):
 
         if opts.init_db:
             log.debug("Initializing SQLAlchemy session for %s", dbref)
-        sa = SessionMixin.get_session(opts.session, dbref, opts.init_db)
+        sa = SessionMixin.get_session(opts.session, dbref, opts.init_db,
+                metadata=SqlBase.metadata)
 
         yield dict(sa=sa)
 
@@ -360,7 +365,7 @@ class Rsr(libcmd.StackedCommand):
     def rsr_info(self, prog, context, opts, sa, nodes):
         "Log some session statistics and info"
         log.note("SQLAlchemy session: %s", sa)
-        models = taxus.core.ID, Node, Name, Tag, taxus.GroupNode, taxus.INode, taxus.Locator
+        models = taxus.core.ID, Node, Name, Tag, taxus.INode, taxus.Locator
         cnt = {}
         for m in models:
             cnt[m] = sa.query(m).count()
@@ -603,16 +608,14 @@ class Rsr(libcmd.StackedCommand):
         #metafile = res.Metafile(path)
         import res.metafile
         metafile = res.metafile.MetafileFile(path)
-	#from pprint import pformat
-	print(pformat(metafile.data))
+        #from pprint import pformat
+        print(pformat(metafile.data))
 
     def rsr_show_sha1sum_hexdigest(self, path):
         import res.metafile
         metafile = res.metafile.MetafileFile(path)
-	print(metafile.get_sha1sum())
+        print(metafile.get_sha1sum())
 
 
 if __name__ == '__main__':
     Rsr.main()
-
-

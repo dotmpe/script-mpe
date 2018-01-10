@@ -10,6 +10,7 @@ may conform to the schema::
   type: <mediatype>
   id: <main-id>
 
+TODO: perhaps allow 'packages' or '<prefix>.{type,package}' schemes for root mapping iso. lists.
 
 Usage
 -----
@@ -23,6 +24,13 @@ project document [Pdoc]).
 See `test/pd-spec <test/pd-spec.rst>`_  for tested specifications.
 Specifically `spec pd/0/1/6 <test/pd-spec#/pd/0/1/6>`_  that describes how the
 scripts interact with the Pdoc, local package metadata and other context.
+
+Sources
+-------
+May want to integrate to some degrees with:
+
+- NPM package.json, PHP Composer JSON, Bower Components JSON
+- Github pages uses ``_config.yml theme`` to set Jekyll GH page generator.
 
 
 Other (optional) attributes
@@ -130,11 +138,25 @@ pd-meta
       Possibly only to identify local code, or also to usually to associate code
       blocks with issue/ticket/time tracker records.
 
+      TODO: A list of objects to further specificy backend of tag?
+      See ie. jnk/userContent.git
+
+    document
+      Name of a local file serving as central storage for project tasks.
+
+    ignore
+      sentinel
+        TODO: ignore lines by pattern
+      glob
+        TODO: ignore files by pathname glob
+
   docs
     Metadata for document (wiki/specs/manual/license) tracking per project.
 
     tags
-      A list of tags used throughout the code to link to other documents.
+      A list of tags used throughout the literal data to link to other
+      documents.
+
 
   trackers
     A list of objects to represent an tracker, ie. an index of tracked
@@ -150,15 +172,20 @@ pd-meta
       ...:
 
 
-TODO: auto-detect pd check, test, init to run.
-TODO: add --pd-force and/or some prefix option for pd check, test, init to run.
+- TODO: auto-detect pd check, test, init to run.
+- TODO: add --pd-force and/or some prefix option for pd check, test, init to run.
+- FIXME: `application/x-*` is not a valid mediatype [#]_
+  Rename to `application/vnd.bvberkum.project`.
+
+.. [#] http://stackoverflow.com/questions/18969938/vendor-mime-types-for-api-versioning
+
 
 status
   TODO: items for weather, health (wall monitors, badges, version tracking),
   either external or local?
 
   XXX: Convert to STM config?
-    - type: application/x-dotmpe-monitor
+    - type: application/vnd.bvberkum.monitor
       static: build/monitor.json
       update:
       - pd status -
@@ -183,4 +210,5 @@ status
 
   And there is publish when uploading to NPM registry.
   stop/start, and restart.
+
 

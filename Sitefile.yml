@@ -1,0 +1,72 @@
+#!/usr/bin/env sitefile
+sitefile: 0.0.4-dev
+port: 4500
+upstream:
+  - 'http://localhost:2000'
+  - 'http://localhost:2001'
+  - 'http://localhost:2006'
+routes: 
+  static: static:./
+  _du: docutils:**/*.rst
+  _gv: graphviz:**/*.gv
+  _pu: plantuml:**/*.plantuml
+  coverage/python: static:coverage_html_report
+  vendor/:package.:format: http.vendor:cdn.json
+  npm/packages: static:{,sitefile:}node_modules/
+  '': redir:ReadMe
+  # Catch all other filenames and serve static
+  #_static: static:*.*
+  #_stc1: static:treemap/*.html
+  #treemap/1: static:treemap/1.html
+  #treemap/2: static:treemap/2.html
+  media/style/default.css: sass:sitefile-lib:style/default.sass
+
+  app/rjs-sf-v0.json: rjs.config:paths=$ref:sitefile:cdn.json#/js/http/packages;shim=$ref:sitefile:cdn-deps.json#/shim;deps=["require-css","cs!sf-v0"];baseUrl=/app;map=$ref:sitefile:cdn-deps.json#/map
+  app/rjs-sf-v0.js: rjs.main:app/rjs-sf-v0.json
+  app/v0: pug:sitefile-client:sf-v0.pug
+  app/: redir:app/v0
+  app: static:sitefile-lib:client
+  'r:app/(.*).sass.css': sass:sitefile-lib:client/
+  'r:app/(.*).pug.html': pug:sitefile-lib:client/
+  'sh/': sh.cmd:#
+options:
+  global:
+    docutils:
+      $ref: '#/options/global/rst2html'
+    rst2html:
+      link_stylesheets: true
+      flags:
+      - "--no-toc-backlinks"
+      $ref: '#/options/global/pug/merge'
+    pug:
+      merge:
+        meta:
+          $ref: '#/defs/app/v0/meta'
+        scripts: [] # $ref: '#/defs/scripts/default'
+        stylesheets:
+          $ref: '#/defs/stylesheets/default'
+        clients:
+          $ref: '#/defs/app/v0/clients'
+  local:
+    app/v0:
+      merge:
+        $ref: '#/options/global/pug/merge'
+defs:
+  stylesheets:
+    default:
+      - url: /vendor/bootstrap.css
+  app:
+    v0:
+      meta:
+        - sitefile.main: 'sitefile'
+        - sitefile-client-modules:
+          - 'cs!sf-v0/storage'
+          - 'cs!sf-v0/page'
+          - 'cs!sf-v0/microformats/live-code'
+          - 'cs!sf-v0/microformats/href-registry'
+          - 'cs!sf-v0/tilda'
+      clients:
+        - type: require-js
+          id: require-js-sitefile-v0-app
+          href: /vendor/require.js
+          main: /app/rjs-sf-v0.js

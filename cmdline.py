@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 """cmdline -
 """
+from __future__ import print_function
 import os
 import sys
 import re
 
 import zope.interface
 
-from . import res
-from . import confparse
-from . import log
-from . import libcmd
+from script_mpe import res
+from script_mpe import confparse
+from script_mpe import log
+from script_mpe import libcmd
 
 
 

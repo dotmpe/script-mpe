@@ -1,7 +1,8 @@
 Bourne Shell Version Control Wrapper
 ====================================
 
-Deal with SCM checkout directories. GIT.
+Deal with SCM checkout directories. GIT mostly.
+But basics for SVN, Mercurial and Bazaar NG too.
 
 
 UI
@@ -86,10 +87,6 @@ Ignores
 
     Extension: vc regenerate rebuilds the local exclude list from .gitignore-*
     files. For .gitignore-{temp,clean} see temporary and cleanable files resp.
-
-
-Rules
------
 
 
 

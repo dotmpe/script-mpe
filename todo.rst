@@ -4,6 +4,13 @@ Rationale
 
     This document accompanies a Python program.
 
+    It is about task relations and ordering. For the todo.txt syntax see
+    tasks.rst
+
+
+.. figure:: todo.svg
+
+
 Task tracking can be a complex use case.
 Its complexity but also its usefulness depends on the amount
 and of inter-task relations.
@@ -238,5 +245,3 @@ A more natural way of organisation would be into folders, see topic.py
 
 `Refs <script.mpe#NOT.E>`_
     ..
-
-

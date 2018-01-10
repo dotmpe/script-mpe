@@ -1,16 +1,16 @@
 #!/usr/bin/env python
-"""cabinet - Search and tag for archived, tagged paths. 
+"""cabinet - Search and tag for archived, tagged paths.
 
 Wrapper around GNU find. Builds complex -iregex patterns.
 Note `POSIX 'find'`__ is incompat (has no iregex or iname, just name).
 
-Cabinet paths are semi-structured paths 
+Cabinet paths are semi-structured paths
 
-Tags are alfanumeric parts of paths, on both sides delimited by non-alfanumeric 
+Tags are alfanumeric parts of paths, on both sides delimited by non-alfanumeric
 characters. These are used for looking op certain types of paths.
 
-Such paths can in addition have up to three archive tags may be present: fully 
-numeric sequences in a hierarchical structure: Year (four digits), Month, and Day 
+Such paths can in addition have up to three archive tags may be present: fully
+numeric sequences in a hierarchical structure: Year (four digits), Month, and Day
 (both two digits).
 
 These may appear in given order only, but only the Year tag is required.
@@ -18,15 +18,16 @@ This is the 'archive Date' of the path, or when it was created/archived while
 any file stat-info indicates its last update. Also collected is the modified
 date of the path from its inode stat info.
 
-The result is a table with fields 
-Each result list is printed to output according to a given format. 
+The result is a table with fields
+Each result list is printed to output according to a given format.
 
 
 Ideas:
     - implement filters based on given tag spec.
 
-.. __: http://www.opengroup.org/onlinepubs/009695399/utilities/find.html
+.. __: http://www.opengroup.org/onlinepubs/009695399/libcmd_docoptities/find.html
 """
+from __future__ import print_function
 import os, sys, re, datetime, optparse
 
 
@@ -120,7 +121,7 @@ class CabinetQuery:
             if m:
                 date = self.date_separator.join(m.groups())
             update = ''
-            if os.path.exists(path):                
+            if os.path.exists(path):
                 update = self.date_separator.join(last_update(path))
             yield date, update, path
 
@@ -132,14 +133,14 @@ class ResultPrinter:
     def __init__(self, results):
         self.results = results
 
-    def set_format(self, name): 
+    def set_format(self, name):
         self.__format = name
 
     def format_line(self, *fields):
         return self.separator.join(fields)
 
     def flush(self):
-        print self.format(self.__format)
+        print(self.format(self.__format))
 
     def format(self, format):
         out = []

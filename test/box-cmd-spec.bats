@@ -1,49 +1,49 @@
 #!/usr/bin/env bats
 
 load helper
-base=box-instance
+base=box-instance.sh
 
 init
 
 source $lib/util.sh
-source $lib/std.lib.sh
-source $lib/str.lib.sh
 
-#  echo "${lines[*]}" > /tmp/1
-#  echo "${status}" >> /tmp/1
 
 @test "${bin}" "No arguments: default action is ..." {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 1
-  fnmatch "box-instance*No command given*" "${lines[*]}"
+  { test ${status} -eq 1 &&
+    fnmatch *"box-instance"*"No command given"* "${lines[*]}"
+  } || stdfail 1
 
-  test -n "$SHELL"
+  test -n "$SHELL" || fail "SHELL env expected"
   run $SHELL "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 5
-  fnmatch "*box-instance*Error:*please use sh, or bash -o 'posix'*" "${lines[*]}"
+  { test ${status} -eq 5 &&
+    fnmatch *"box-instance"*"Error"*"please use sh, or bash -o 'posix'"* "${lines[*]}"
+  } || stdfail 2
 
   run sh "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 1
-  fnmatch "box-instance*No command given*" "${lines[*]}"
+  { test ${status} -eq 1 &&
+    fnmatch "*box-instance*No command given*" "${lines[*]}"
+  } || stdfail 3
 
   run bash "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 5
+  test ${status} -eq 5 || stdfail 4
 }
 
 @test ". ${bin}" {
   run sh -c "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 1
-  fnmatch "box-instance:*not a frontend for sh" "${lines[*]}"
+  { test ${status} -eq 1 &&
+    fnmatch "box-instance:*not a frontend for sh" "${lines[*]}"
+  } || stdfail
 
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 1
-  fnmatch "box-instance:*not a frontend for bats-exec-test" "${lines[*]}"
+  { test ${status} -eq 1 &&
+    fnmatch "box-instance:*not a frontend for bats-exec-test" "${lines[*]}"
+  } || stdfail
 }
 
 @test ". ${bin} load-ext" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
+  test_ok_empty || stdfail
 }
 
 @test "source ${bin}" {
@@ -57,68 +57,68 @@ source $lib/str.lib.sh
 
 @test "source ${bin} load-ext" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
+  test_ok_empty || stdfail
 }
 
 @test "${bin} x" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -ne 0
-  test ! -z "${lines[*]}" # non-empty output
-  fnmatch "*box-instance.*:*x*Error*Arguments expected*" "${lines[*]}"
+  { test ${status} -ne 0 &&
+    fnmatch "*box-instance.*:*x*Error*Arguments expected*" "${lines[*]}"
+  } || stdfail
 }
 
 @test "${bin} x foo bar" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test ! -z "${lines[*]}" # non-empty output
-  fnmatch "*box-instance.*:*x*Running X*" "${lines[*]}"
+  { test ${status} -eq 0 &&
+    fnmatch "*box-instance.*:*x*Running X*" "${lines[*]}"
+  } || stdfail
 }
 
 @test "${bin} x arg spec" {
 
-  source box-instance load-ext
+  source ./box-instance.sh load-ext
   base=box-instance
 
   run try_value x spc
-  test ${status} -eq 0
-  test "${lines[*]}" = "x ARG [ARG..]"
-  test ! -z "${lines[*]}" # non-empty output
+  { test ${status} -eq 0 &&
+    test "${lines[*]}" = "x ARG [ARG..]"
+  } || stdfail
 
   run try_value x man_1
-  test ${status} -eq 0
-  test "${lines[*]}" = "abc"
+  { test ${status} -eq 0 &&
+    test "${lines[*]}" = "abc"
+  } || stdfail
 }
 
 @test "${bin} y" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test ! -z "${lines[*]}" # non-empty output
-  fnmatch "*box-instance.*:*y*Running Y*" "${lines[*]}"
+  { test ${status} -eq 0 &&
+    fnmatch "*box-instance.*:*y*Running Y*" "${lines[*]}"
+  } || stdfail
 }
 
 @test "${bin} help x " {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0 || fail "$status Out: ${lines[*]}"
-  test ! -z "${lines[*]}" # non-empty output
-  fnmatch "*Usage:*" "${lines[*]}"
-  fnmatch "*x*abc*" "${lines[*]}"
+  { test ${status} -eq 0 &&
+    fnmatch "*Usage:*" "${lines[*]}" &&
+    fnmatch "*x*abc*" "${lines[*]}"
+  } || stdfail
 }
 
 @test "${bin} help y " {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test ! -z "${lines[*]}" # non-empty output
-  fnmatch "*Usage:*" "${lines[*]}"
+  { test ${status} -eq 0 &&
+    fnmatch "*no help*'y'*" "${lines[*]}"
+  } || stdfail
 }
 
 @test "${bin} -vv -n help" {
   #skip "envs: envs=$envs FIXME is hardcoded in test/helper.bash current_test_env"
   #check_skipped_envs || TODO "envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -n "${lines[*]}" # non-empty output
-  test ${#lines[@]} -gt 4  # lines of output (stdout+stderr)
+  { test ${status} -eq 0 &&
+    test ${#lines[@]} -gt 4  # lines of output (stdout+stderr)
+  } || stdfail
 }
 
 #@test "${lib}/${base} - function should ..." {

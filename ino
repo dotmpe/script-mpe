@@ -10,7 +10,7 @@ version=0.0.1 # script-mpe
 
 
 ino_als___V=version
-ino__man_1_version="Version info"
+ino_man_1__version="Version info"
 ino_spc__version="-V|version"
 ino__version()
 {
@@ -23,7 +23,7 @@ ino__version()
 node_tab=ino.tab
 
 
-ino__man_1_edit="Edit the main script file"
+ino_man_1__edit="Edit the main script file"
 ino_spc__edit="-E|edit-main"
 ino__edit()
 {
@@ -34,7 +34,7 @@ ino__edit()
 ino_als___e=edit
 
 
-ino__man_1_list_ino="List Arduino versions available in APP_DIR"
+ino_man_1__list_ino="List Arduino versions available in APP_DIR"
 ino__list_ino()
 {
   for path in $APP_DIR/Arduino-*
@@ -45,7 +45,7 @@ ino__list_ino()
 }
 
 
-ino__man_1_switch="Switch to Arduino version"
+ino_man_1__switch="Switch to Arduino version"
 ino__switch()
 {
   test -n "$1" || err "expected version arg" 1
@@ -57,7 +57,7 @@ ino__switch()
 }
 
 
-ino__man_1_list="List sketches"
+ino_man_1__list="List sketches"
 ino__list()
 {
   list__mk_targets Rules.old.mk
@@ -72,7 +72,7 @@ list__mk_targets()
 
 get_nodes()
 {
-  fixed_table_hd $node_tab ID PREFIX CORE BOARD DEFINES
+  fixed_table $node_tab ID PREFIX CORE BOARD DEFINES
 }
 
 # Build/upload image for arg1:nodeid reading from $node_tab
@@ -231,7 +231,7 @@ ino__esp_mcu_init()
 
 ino_main()
 {
-  local scriptdir="$(cd "$(dirname "$0")"; pwd -P)"
+  local scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
   ino_init || return 0
 
   local scriptname=ino base=$(basename $0 .sh) verbosity=5
@@ -251,16 +251,13 @@ ino_main()
 ino_init()
 {
   test -z "$BOX_INIT" || return 1
-  test -n "$scriptdir"
-  export SCRIPTPATH=$scriptdir
-  . $scriptdir/util.sh
+  test -n "$scriptpath"
+  export SCRIPTPATH=$scriptpath
+  . $scriptpath/util.sh
   util_init
-  . $scriptdir/box.init.sh
+  . $scriptpath/box.init.sh
   box_run_sh_test
-  . $scriptdir/main.lib.sh
-  . $scriptdir/main.init.sh
-  . $scriptdir/box.lib.sh
-  . $scriptdir/htd load-ext
+  lib_load main box htd
 }
 
 ino_lib()
@@ -286,4 +283,5 @@ ino_load()
 if [ -n "$0" ] && [ $0 != "-bash" ]; then
   ino_main "$@"
 fi
+
 

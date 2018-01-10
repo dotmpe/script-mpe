@@ -17,7 +17,9 @@ TODO: fully initialize settings for host without editing config by hand
 TODO: should record network domain names, use this with ifaces.
 FQDN are not used really, except to put the last known network/IP.
 """
-__version__ = '0.0.2-dev' # script-mpe
+from __future__ import print_function
+
+__version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.domain.sqlite'
 __rc__ = '~/.domain.rc'
 __usage__ = """
@@ -72,7 +74,7 @@ from rsrlib.plug.net import get_hostname, get_gateway, get_default_route
 #    return socket.gethostname().split('.').pop(0)
 
 import log
-import util
+import libcmd_docopt
 import res
 import domain
 import domain as domainmod
@@ -91,7 +93,7 @@ def get_current_host(settings):
     """
     Scan settings.nodes for UNID and return host.
     """
-    unid, name = fsutil.read_idfile(hostIdFile)
+    unid, name = fslibcmd_docopt.read_idfile(hostIdFile)
     # XXX to use an UNID, or SID.. Rather have ser. nrs anyway.
     for sid, host in settings.nodes.items():
         if 'unid' in host and host['unid'] == unid:
@@ -164,7 +166,7 @@ def init_domain(settings):
         keyFile = os.path.expanduser('~/.ssh/id_dsa.pub')
     if not os.path.exists(keyFile):
         raise Exception("No SSH keyfile")
-    pubkeylines = fsutil.read_unix(keyFile)
+    pubkeylines = fslibcmd_docopt.read_unix(keyFile)
     assert len(pubkeylines) == 1, pubkeylines
     keytype, key, localId = pubkeylines.pop().split(' ')
     user, domain = localId.split('@')
@@ -232,7 +234,7 @@ def cmd_update(settings):
 
     # read host ID file or record node/ifaces
     host = init_host(settings)
-    print 'host', host.path()
+    print('host', host.path())
 
     gateway, mac, gateway_addr = get_gateway(settings)
 
@@ -240,7 +242,7 @@ def cmd_update(settings):
 
     # read SSH pubkey user domain
     #user, domain = init_domain(settings)
-    print 'domain', net.path()
+    print('domain', net.path())
 
     # update host IP's, and update network
     updated = False
@@ -250,7 +252,7 @@ def cmd_update(settings):
             log.err("Missing iface type for HW-addr '%s'" % mac)
             continue
         iface_type = settings.interfaces[mac].type
-        print '\t', iface_type, ip
+        print('\t', iface_type, ip)
         # Keep IP on host
         net_host = host.get('net')
         if iface_type not in net_host:
@@ -276,15 +278,15 @@ def cmd_ipforhost(NAME, settings):
     """
     if NAME:
         d = get_domain(NAME, settings)
-        print d.path()
+        print(d.path())
         for iface, spec in d.copy(True).items():
-            print '\t', iface, spec['ip']
+            print('\t', iface, spec['ip'])
 
 def cmd_net_info(NAME, settings):
     sa = get_session(settings.dbref)
-    print 'net', NAME
+    print('net', NAME)
     for host in sa.query(Host).all():
-        print 'host', host
+        print('host', host)
 
 def cmd_detect(settings):
     """
@@ -314,13 +316,13 @@ def cmd_olddetect(settings):
         domainhost = '.'.join(s)
         d = get_domain(settings, domain, True)
         # print host, IP
-        print d.nodes[host.name.lower()], domainhost, host.name.lower()
+        print(d.nodes[host.name.lower()], domainhost, host.name.lower())
 
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -333,20 +335,19 @@ def main(opts):
 
     #config = confparse.expand_config_path('domain.rc')
     opts.flags.configPath = os.path.expanduser(opts.flags.config)
-    settings = util.init_config(opts.flags.configPath, dict(
+    settings = libcmd_docopt.init_config(opts.flags.configPath, dict(
             nodes = {}, interfaces = {}, domain = {}
         ), opts.flags)
 
     opts.default = 'info'
 
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'domain.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__doc__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__doc__ + '\n' + __usage__, version=get_version())
     opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-

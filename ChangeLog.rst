@@ -28,6 +28,13 @@ Change Log
   Initial version. All test at Boreas and Travis OK.
   Some minor failures at dandy (243 tests, 2 failures, 31 todo, 21 skipped)
 
-(0.0.2)
-  Just testing travis builds.
+0.0.2
+  - Developing Travis builds.
+  - Refactoring Taxus schema for finfo.py.
+  - 251 tests, 0 failures, 29 todo, 22 skipped (Boreas)
+  - 251 tests, 0 failures, 29 todo, 23 skipped (dandy)
+
+(0.0.4)
+  ..
+
 

@@ -1,6 +1,27 @@
 #!/bin/sh
 
 
+projectdir_lib_load()
+{
+  . $scriptpath/projectdir-bats.inc.sh
+  . $scriptpath/projectdir-fs.inc.sh
+  . $scriptpath/projectdir-git.inc.sh
+  . $scriptpath/projectdir-git-versioning.inc.sh
+  . $scriptpath/projectdir-grunt.inc.sh
+  . $scriptpath/projectdir-npm.inc.sh
+  . $scriptpath/projectdir-make.inc.sh
+  . $scriptpath/projectdir-lizard.inc.sh
+  . $scriptpath/projectdir-vagrant.inc.sh
+
+  # Local pdoc name, used by most command to determine pdir
+  test -n "$pdoc" || pdoc=.projects.yaml
+}
+
+no_act()
+{
+  test -n "$dry_run"
+}
+
 # Init Bg service
 pd_meta_bg_setup()
 {
@@ -13,7 +34,7 @@ pd_meta_bg_setup()
     pd__meta &
     while test ! -e $pd_sock
     do note "Waiting for server.." ; sleep 1 ; done
-    info "Backgrounded pd-meta for $pd (PID $!)"
+    info "Backgrounded pd-meta for $pdoc (PID $!)"
   }
 }
 
@@ -29,15 +50,31 @@ pd_meta_bg_teardown()
   }
 }
 
+# TODO: run git clean, with ignore rules adjusted to exclude gitignore-clean
+# TODO: setup some htd/pd clean. Fix htd/pd ignore setup.
+# TODO: rename force_clean to pd_meta_Force_Clean or something.. --force-clean
+pd_auto_clean()
+{
+  debug "Runing Pd auto-clean (Force-Clean: $force_clean)"
+  trueish "$force_clean" && {
+    ( cd $1; git clean -dfx ; git checkout . ; git submodule update --recursive )
+  } || {
+    ( cd $1; git clean -df )
+  }
+}
+
+# Test is checkout is clean according to pd-meta Clean-Mode.
 pd_clean()
 {
-  # Stage one, show just the modified files
-  (cd "$1"; git diff --quiet) || {
+  # Stage one, show just the modified files (always consider mode tracked)
+  (cd "$1"; git diff --quiet) && {
+    info "No modifications found ($1)"
+  } || {
     dirty="$(cd "$1"; git diff --name-only)"
     return 1
   }
 
-  # Stage two, show files after check for repo-clean mode (tracked, untracked, excluded)
+  # Stage two, show other files (consider untracked, excluded)
   test -n "$pd_meta_clean_mode" || pd_meta_clean_mode=untracked
 
   trueish "$choice_strict" \
@@ -47,11 +84,11 @@ pd_clean()
 
   test "$pd_meta_clean_mode" = tracked || {
 
-    #cruft="$(cd $1; vc__excluded)"
+    #cruft="$(cd $1; vc.sh excluded)"
 
     test "$pd_meta_clean_mode" = excluded \
-      && cruft="$(cd $1; vc__excluded)" \
-      || cruft="$(cd $1; vc__unversioned_files)"
+      && cruft="$(cd $1; vc.sh excluded)" \
+      || cruft="$(cd $1; vc.sh unversioned-files)"
   }
 
 
@@ -102,10 +139,10 @@ generate_git_hooks()
     package_pd_meta_git_hooks_pre_commit_script="set -e ; pd run $package_pd_meta_check"
   }
 
-	for script in $GIT_HOOK_NAMES
-	do
-		t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
-		test -n "$t" || continue
+  for script in $GIT_HOOK_NAMES
+  do
+    t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
+    test -n "$t" || continue
     test -e "$t" -a "$t" -nt ".package.sh" || {
       s=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_')_script)
       test -n "$s" || {
@@ -123,26 +160,26 @@ generate_git_hooks()
 
 install_git_hooks()
 {
-	for script in $GIT_HOOK_NAMES
-	do
-		t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
-		test -n "$t" || continue
-		l=.git/hooks/$script
-		test ! -e "$l" || {
-			test -h $l && {
-				test "$(readlink $l)" = "../../$t" && continue || {
-					rm $l
-				}
-			} ||	{
-				echo "Git hook exists and is not a symlink: $l"
-				continue
-			}
-		}
+  for script in $GIT_HOOK_NAMES
+  do
+    t=$(eval echo \$package_pd_meta_git_hooks_$(echo $script|tr '-' '_'))
+    test -n "$t" || continue
+    l=.git/hooks/$script
+    test ! -e "$l" || {
+      test -h $l && {
+        test "$(readlink $l)" = "../../$t" && continue || {
+          rm $l
+        }
+      } ||  {
+        echo "Git hook exists and is not a symlink: $l"
+        continue
+      }
+    }
     test -d .git || error $(pwd)/.git 1
     mkdir -p .git/hooks
-		( cd .git/hooks; ln -s ../../$t $script )
+    ( cd .git/hooks; ln -s ../../$t $script )
     echo "Installed GIT hook symlink: $script -> $t"
-	done
+  done
 }
 
 pd_regenerate()
@@ -150,7 +187,7 @@ pd_regenerate()
   debug "pd-regenerate pwd=$(pwd) 1=$1"
 
   # Regenerate .git/info/exclude
-  vc__regenerate "$1" || echo "pd-regenerate:$1" 1>&6
+  vc.sh "$1" || echo "pd-regenerate:$1" 1>&6
 
   test ! -e .package.sh || eval $(cat .package.sh)
 
@@ -233,7 +270,7 @@ pd_list_upstream()
     test "$branch" != "*" && {
       echo $remote $branch
     } || {
-      for branch in $(vc__list_local_branches "$prefix")
+      for branch in $(vc.sh list-local-branches "$prefix")
       do
         echo $remote $branch
       done
@@ -245,28 +282,29 @@ pd_list_upstream()
 pd_finddoc()
 {
   # set/check for Pd for subcmd
-  go_to_directory $pd || return $?
-  test -e "$pd" || error "No projects file $pd" 1
+  go_to_directory "$pdoc" || return $?
+  test -e "$pdoc" || error "No projects file $pdoc" 1
 
-  pd_root="$(dirname "$pd")"
+  pd_root="$(dirname "$pdoc")"
   pd_realdir="$(realpath "$pd_root")"
-  pd_realpath="$(realpath "$pd")"
+  pd_realpath="$(realpath "$pdoc")"
 
   # Relative path to previous dir where cmd was called
   pd_prefix="$(normalize_relative "$go_to_before")"
 
   # Build path name based on real Pd path
-  mkcid "$pd_realpath"
-  fnmatch "*/*" "$cid" && error "Illegal chars cid='$cid'" 11
+  mksid "$pd_realpath"
+  fnmatch "*/*" "$sid" && error "Illegal chars sid='$sid'" 11
 
-  p="$cid"
+  p="$sid"
   sock=/tmp/pd-$p-serv.sock
 
-  pd_cid=$cid
-  pd_sock=/tmp/pd-${pd_cid}-serv.sock
+  pd=$pd_realdir/$pd_prefix
+  pd_sid=$sid
+  pd_sock=/tmp/pd-${pd_sid}-serv.sock
 
   debug "Pd prefix: $pd_prefix, realdir: $pd_realdir Before: $go_to_before"
-  unset cid
+  unset sid
 }
 
 
@@ -280,7 +318,7 @@ pd_update_record()
 {
   test -n "$1" || error "pd-update-record key-pref" 1
   test -n "$2" || error "pd-update-record key-values" 1
-  test -e "$pd" || error "pd-update-record Pd" 1
+  test -e "$pdoc" || error "pd-update-record Pd" 1
 
   local path=$1; shift; local values="$*"
 
@@ -291,7 +329,7 @@ pd_update_record()
         continue
       }
       echo $path/$1; shift; done
-  } | jsotk.py -I pkv --pretty update $pd - || return $?
+  } | jsotk.py -I pkv --pretty update $pdoc - || return $?
 
   debug "Updated Pd: $path{$values}"
 }
@@ -324,7 +362,7 @@ pd_register()
   while test -n "$1"
   do
     fnmatch "*$1*" "$pd_sets" || pd_sets="$pd_sets $1"
-    registry="$(try_local sets $1)"
+    registry="$(echo_local sets $1)"
     eval export $registry="\"\$$registry $mod\""
     shift
   done
@@ -352,14 +390,18 @@ pd_list_io_num_name_types()
 # Debug env keys
 record_env_keys()
 {
-  test -n "$1" || error record_env_keys 1
-
+  test -n "$pd_session_id" || error "pd_session_id expected" 1
+  test -n "$1" || error "record_env_keys name expected" 1
   mkdir -p /tmp/env-keys
+
   { env; set; local; } \
     | sed 's/=.*$//' \
     | tr -d '\t ' \
     | sort -u > /tmp/env-keys/.tmp
+}
 
+record_env_keys_diff()
+{
   test -n "$2" && {
     new=$1; shift;
 
@@ -393,103 +435,17 @@ pd_debug()
 }
 
 
-pd_report()
-{
-  # leave pd_report_result to "highest" set value (where 1 is highest)
-  pd_report_result=0
 
-  while test -n "$1"
-  do
-    case "$1" in
+# Pd output shortcut
 
-      passed )
-          test $passed_count -gt 0 \
-            && info "Passed ($passed_count): $passed_abbrev"
-        ;;
-
-      skipped )
-          test $skipped_count -gt 0 \
-            && {
-              note "Skipped ($skipped_count): $skipped_abbrev"
-              test $pd_report_result -eq 0 -o $pd_report_result -gt 4 \
-                && pd_report_result=4
-            }
-        ;;
-
-      error )
-          test $error_count -gt 0 \
-            && {
-              error "Errors ($error_count): $error_abbrev"
-              test $pd_report_result -eq 0 -o $pd_report_result -gt 2 \
-                && pd_report_result=2
-            }
-        ;;
-
-      failed )
-          test $failed_count -gt 0 \
-            && {
-              warn "Failed ($failed_count): $failed_abbrev"
-              test $pd_report_result -eq 0 -o $pd_report_result -gt 3 \
-                && pd_report_result=3
-            }
-        ;;
-
-      * )
-        ;;
-
-    esac
-    shift
-  done
-
-  return $pd_report_result
-}
-
-
-# Pd output shortcuts
-
+# XXX: unused
 pd_stdout()
 {
   test -n "$1" && {
-    test -z "$2" || error "passed surplus args" 1
+    test -z "$2" || error "pd-stdout '$2': surplus args" 1
     echo "$1" >&1
   } || {
     cat >&1
-  }
-}
-passed()
-{
-  test -n "$1" && {
-    test -z "$2" || error "passed surplus args" 1
-    echo "$1" >&3
-  } || {
-    cat >&3
-  }
-}
-skipped()
-{
-  test -n "$1" && {
-    test -z "$2" || error "skipped surplus args" 1
-    echo "$1" >&4
-  } || {
-    cat >&4
-  }
-}
-errored()
-{
-  test -n "$1" && {
-    test -z "$2" || error "errored surplus args" 1
-    echo "$1" >&5
-  } || {
-    cat >&5
-  }
-}
-failed()
-{
-  test -n "$1" && {
-    test -z "$2" || error "failed surplus args" 1
-    echo "$1" >&6
-  } || {
-    cat >&6
   }
 }
 
@@ -588,7 +544,7 @@ pd_autodetect()
 
     for target in $targets; do
 
-      func=$(try_local $target-autoconfig $1)
+      func=$(echo_local $target-autoconfig $1)
       try_func $func || continue
 
       (
@@ -606,11 +562,23 @@ pd_autodetect()
 }
 
 
+pd_dir_args()
+{
+  test -n "$1" || set -- $(cat $arguments | lines_to_words )
+  printf "" >$arguments
+  for a in "$@"
+  do
+    test -d "$a" &&
+    printf -- "$a\n" >>$arguments
+  done
+}
+
+
 pd_prefix_args()
 {
   test -n "$1" || set -- $(cat $arguments | lines_to_words )
   printf "" >$arguments
-  pd_prefix_filter_args "$@"
+  pd_prefix_filter_args $@
   test ! -s "$arguments" || {
     error "Illegal arguments $(cat $arguments | lines_to_words)" 1
   }
@@ -634,7 +602,7 @@ pd_prefix_filter_args()
 
   while test -n "$1"
   do
-    for expanded_arg in $go_to_before/$1
+    for expanded_arg in $(echo $go_to_before/$1)
     do
       test -d "$expanded_arg" || {
         test -e "$expanded_arg" || echo "$expanded_arg" >>$arguments
@@ -651,12 +619,13 @@ pd_prefix_filter_args()
 # Filter out options and states from any given prefixes, or check enabled
 pd_registered_prefix_target_args()
 {
-  set -- $(while test -n "$1"
-  do
-    #case "$1" in --registered ) ;; esac
-    fnmatch "-*" "$1" && echo "$1" >>$options || printf "\"$1\" "
-    shift
-  done)
+# FIXME: quoting possible?
+  #set -- $(while test -n "$1"
+  #do
+  #  #case "$1" in --registered ) ;; esac
+  #  fnmatch "-*" "$1" && echo "$1" >>$options || printf "\"$1\" "
+  #  shift
+  #done)
   test -n "$choice_reg" || choice_reg=1
   pd_prefix_target_args "$@" || return $?
 }
@@ -676,6 +645,7 @@ pd_prefix_target_args()
     shift
   done
 
+  stderr debug "choice-reg: $choice_reg"
   trueish "$choice_reg" && {
 
     # Mixin enabled prefixes with existing dirs for default args,
@@ -753,14 +723,14 @@ pd_run()
         note "Ignore ($1)"
         # Ignore return
         # backup $failed
-        mv $error $error.ignore
+        mv $errored $errored.ignore
         mv $failed $failed.ignore
-        touch $failed $error
+        touch $failed $errored
         (
           pd_run $(expr_substr ${1} 2 ${#1}) || noop
           clean_failed "*IGNORED* Failed targets:"
         )
-        mv $error.ignore $error
+        mv $errored.ignore $errored
         mv $failed.ignore $failed
         result=0
       ;;
@@ -768,12 +738,15 @@ pd_run()
     # Shell exec
 
     sh:* )
+        # NOTE: pd run sh automatically accepts env decl. beacuse 's/:/ /g'
         local shcmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
         record_key=$(printf "$1" | cut -d ':' -f 2 )
         info "Running Sh '$shcmd' ($1)"
         (
           unset $pd_inputs $pd_inputs
-          unset verbosity pd_inputs pd_outputs pd_session_id subcmd
+          export \
+            base= func_name= func_exists= subcmd_func= \
+            verbosity= pd_inputs= pd_outputs= pd_session_id= subcmd=
 
           sh -c "$shcmd"
           # XXX:
@@ -798,7 +771,21 @@ pd_run()
     pd:* )
 
         local comp="$(echo "$1" | cut -d ':' -f 2)" ncomp=
-        local comp_idx=2 func= args="$(echo "$1" | cut -c$(( 5 + ${#comp} ))-)"
+        local comp_idx=2 func= args=
+        local comp_env=
+
+        # Phase 1: read env/comp-name from $1
+
+        # Consume env kv's
+        while true
+        do
+          ncomp="$(echo "$1" | cut -d ':' -f $comp_idx)"
+          test -n "$ncomp" || break
+          fnmatch "*=*" "$ncomp" || break
+          comp_env="$comp_env $ncomp"
+          comp_idx=$(( $comp_idx + 1 ))
+          comp="$(echo "$1" | cut -d ':' -f $comp_idx)"
+        done
 
         # Consume components and look for local function
         while true
@@ -806,12 +793,12 @@ pd_run()
           # Resolve aliases
           while true
           do
-            als=$(try_local $comp als)
+            als=$(echo_local $comp als)
             var_isset $als || break
             comp=$(try_value $comp als)
           done
 
-          func=$(try_local $comp "")
+          func=$(echo_local $comp "")
 
           comp_idx=$(( $comp_idx + 1 ))
           ncomp="$(echo "$1" | cut -d ':' -f $comp_idx)"
@@ -820,16 +807,24 @@ pd_run()
           }
 
           try_func "$func" && {
-            try_func $(try_local $comp:$ncomp "") || break
+            try_func $(echo_local $comp:$ncomp "") || break
           }
 
-          args="$(echo "$args" | cut -c$(( 2 + ${#ncomp} ))-)"
           comp="$comp:$ncomp"
 
         done
 
+        test -n "$comp_env" && {
+          args="$(echo "$1" | cut -c$(( 5 + ${#comp_env} + ${#comp} ))-)"
+        } || {
+          args="$(echo "$1" | cut -c$(( 5 + ${#comp} ))-)"
+        }
+
+
+        # Phase 2: exec. comp func in new env
+
         try_func "$func" || {
-          error "No such Pd target '$comp'"; echo "$1" >>$error; return 1
+          error "No such Pd target '$comp'"; echo "$1" >>$errored; return 1
         }
 
         sub_session_id=$(get_uuid)
@@ -837,17 +832,17 @@ pd_run()
           unset verbosity
           subcmd="$pd_prefix#$comp"
 
-          record_key="$(eval echo "\"\$$(try_local "$comp" stat)\"")"
+          record_key="$(eval echo "\"\$$(echo_local "$comp" stat)\"")"
           test -n "$record_key" \
             || record_key=$(printf "$comp" | tr -c 'a-zA-Z0-9-' '/')
           states= values=
 
           local pd_session_id=$sub_session_id
           eval local $(for io_name in $pd_inputs $pd_outputs; do
-            printf -- " $io_name= "; done)
+            printf -- " $io_name= "; done) $comp_env
 
           subcmd=$comp pd_load "$args" || {
-            error "Pd-load failed for '$1'"; echo "$1" >>$error; return 1
+            error "Pd-load failed for '$1'"; echo "$1" >>$errored; return 1
           }
           test -e "$arguments" || {
             test -n "$args" || echo "$args" >$arguments
@@ -867,7 +862,7 @@ pd_run()
               pd_update_record $key_pref/status/$record_key $states \
                 || error "Failed updating $key_pref/status/$record_key" 11
             } || {
-              jsotk.py -q path --is-new --is-int $pd $key_pref/status/$record_key \
+              jsotk.py -q path --is-new --is-int $pdoc $key_pref/status/$record_key \
                 || record_key=$record_key/result
               pd_update_record $key_pref/status $record_key=$result \
                 || error "Failed updating $key_pref/status/$record_key" 12
@@ -898,7 +893,7 @@ pd_run()
 
     * )
         error "No such run target '$1'"
-        echo $1 >>$error
+        echo $1 >>$errored
       ;;
 
   esac
@@ -907,12 +902,47 @@ pd_run()
 
 pd_run_suite()
 {
+  test -n "$1" || error "pd-run-suite: Suite ID expected" 1
   local r=0 suite=$1; shift
   echo "$@" >$arguments
   subcmd=$suite:run pd__run || return $?
-  test -s "$errors" -o -s "$failed" && r=1
+  test -s "$errored" -o -s "$failed" && r=1
   pd_update_records status/$suite=$r $pd_prefixes
   return $r
+}
+
+
+# TODO: duplicate from htd_find_ignores, while further devving
+pd_find_ignores()
+{
+  test -z "$find_ignores" || return
+  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
+    #mv $a.merged $a.tmp
+    #sort -u $a.tmp > $a.merged
+    find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
+  } || warn "Missing or empty IGNORE_GLOBFILE '$IGNORE_GLOBFILE'"
+
+  find_ignores="-path \"*/.git\" -prune $find_ignores "
+  find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
+  find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
+}
+
+
+pd_new_package()
+{
+  { cat <<EOM
+
+- type: application/vnd.bvberkum.project
+  main: local/$(basename $pd_prefix)
+  id: local/$(basename $pd_prefix)
+  scripts:
+    status: pd status
+    test: pd test
+    pd-update: pd update
+    pd-show: pd show
+
+EOM
+  } > $1/package.yml
 }
 
 

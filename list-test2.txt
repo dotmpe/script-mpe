@@ -1,0 +1,4 @@
+ 
+ (A)    2017-11-19              FOO-1:   Test the test prop:val <scheme:id> [cite] @ctx +store REFID-1 OtherId-a0f9b OtherId-1 REF_X Ref_1 REF.X Ref.1
+
+# vim:ft=todo:

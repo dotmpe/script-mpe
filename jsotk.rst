@@ -1,6 +1,76 @@
+Jsotk
+=========
+Javascript Object toolkit
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Jsotk, see docstrings for help.
+Load, query, transform JSON/YAML data on the command line.
+
+Features in a nutshell:
+  - Detects YAML or JSON output, convert, pretty print.
+  - Get data using simple path expressions, or using ObjectPath_ expression.
+  - Update using data provided from shell, query for parts, merge, clear, move.
+
+
+Usage::
+
+  # e.g. pretty print JSON as YAML
+  <some-json-output> | jsotk -O yaml --pretty -
+
+  # Default subcommand is 'dump', shortcuts for dump:
+
+  jsotk json2yaml [--pretty] [SRC [DEST]]
+  jsotk yaml2json [--pretty] [SRC [DEST]]
+
+  # Print data at path as Python formatted obj
+  jsotk.py -O py path $1 tools/$2/bin
+
+  # Find objects in list with 'main' attribute. File can be JSON or YAML, uses
+  # extension auto detection.
+  jsotk objectpath <fn> '$.*[@.main is not None]'
+
+  # Update data using simple shell constructs
+  echo key=val | jsotk update SRC DEST
+  # TODO: jsotk update-from-args SRC DEST
+
+  # Print data as Shell usable variables declarations
+  eval $(jsotk.py -O fkv path tools.yml tools/jsonwidget --output-prefix jsonwidget)
+  echo $jsonwidget_bin
+
+FIXME::
+
+  echo xyz/abc[1]/attr=val | jsotk from-kv -
+  echo xyz_abc__1_attr=val | jsotk from-flat-kv -
+
+
+There is also local background process support, usable with `socat` which
+is implemented in projectdir_.sh `meta` command. Having a persistent
+process while looping over results in shell scripts may improve performance.
+
+See docstrings in jsotk.py_ for further help, or run with ``-h``.
 This file for notes, test descriptions.
+
+
+Issues
+------
+``jsotk update`` does not obey ``--list-union``.
+    In fact, YAML aliases can get in the way of proper updates.
+
+    Consider the update test cases using fixtures ``test/var/jsotk/5-*.yaml``. The list 'entries' is never merged, since due to the reference the list item is destroyed while 'entry' is being updated::
+
+        mydict:
+          entry: &id1
+            my: data
+          entries:
+          - *id1
+
+        mydict:
+          entry: &id1
+            my: other data
+          entries:
+          - *id1
+
+
+    The solution is to clear ``mydict.entry`` in the destination document, thereby breaking the reference.
 
 Dev
 ---
@@ -64,3 +134,8 @@ jsotk_xml_dom
                 leaf2: value2
 
 
+
+.. _projectdir: ./projectdir.rst
+.. _jsotk.py: ./jsotk.py
+
+.. _ObjectPath: http://objectpath.org

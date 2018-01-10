@@ -1,41 +1,78 @@
 # git-versioning main: script-mpe
 
-- type: application/x-project-mpe
+
+- type: application/vnd.bvberkum.project
   main: script-mpe
   id: script-mpe
 
-  version: 0.0.2-dev # script-mpe
-  environments: [ 'development' ]
+  version: 0.0.4-dev # script-mpe
+  env: # alias for 'environments'
+    - dev
 
-  vendor: dotmpe
+  vendor: bvberkum
   distribution: public
   license: GPL
 
+  urls:
+    license: https://opensource.org/licenses/gpl-license
+
+  repositories:
+      bb: git@bitbucket.org:dotmpe-personal/script-mpe
+      dotmpe: dotmpe:~/domains/dotmpe.com/htdocs/git/script-mpe
+      github: git@github.com:bvberkum/script-mpe
+      boreas.16-4: /srv/git-16-4-boreas-brix/bvberkum/script-mpe.git
+      _origin: dotmpe
+      _local: 16-4
+
+  lists:
+    default: "@Task @Dev +script-mpe +htdocs-mpe"
+    main: "@be.topic" # get the .list of topics for htdocs
+    index: "@be.src.files" # get the .list of names for htdocs
+    to:
+      do: "@Task"
+      src: "@be.src +htdocs-mpe" # get the .list of sei for htdocs
+
   pd-meta:
+    stats: unique-filelines unique-lines
+    run:
+      behat: "./vendor/.bin/behat--tags:~@skip"
+      behat-defs: "./vendor/.bin/behat:-dl"
+
+      # NOTE: behat cannot display outline only
+      behat-specs: "./vendor/.bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip"
+
+      # XXX: this would be nice, and is one way to do file watching for BDD
+      behat-watch: "nodemon -x './vendor/.bin/behat test/$1.feature' -w test/bootstrap/FeatureContext.php -w test/$1.feature -w ./$1.*"
+
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
-    check: "-verbose=false:./tools/sh/tags.sh :vchk :bats:specs :git:status"
+    check: "htd:gitflow-check-doc :verbose=1:vchk :bats:specs"
+    #./vendor/.bin/behat:--dry-run:--no-multiline :git:status"
     # TODO: check for /tmp usage, force TMPDIR use
-    test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats"
+    test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats ./vendor/.bin/behat:--tags:~@skip"
     # TODO: run tests at VM/... if available
     build: ":vagrant:tools/ci/vbox"
     #build: ":vagrant:tools/ci/vbox:ubuntu"
 
     tasks:
-      document: tasks.ttxtm
-
+      document: todo.txt
+      done: .done.txt
+      grep: ./tools/sh/tags.sh
+      grep-filter: ./tools/sh/tags-filter.sh
+      coops:
+        - HTD # tasks:no-check
+        - NODE-SITEFILE # tasks:no-check
       tags:
-        - TODO
-        - XXX
-        - FIXME
-        - BUG
-        - NOTE
+        - TODO # tasks:no-check
+        - XXX # tasks:no-check
+        - FIXME # tasks:no-check
+        - BUG # tasks:no-check
+        - NOTE # tasks:no-check
 
     git-hooks:
       pre-commit: ./tools/git-hooks/pre-commit.sh
 
     init: "./install-dependencies.sh git:init"
-
     # FIXME: what about git annex pre-commit .
 
   environment:
@@ -46,3 +83,152 @@
     - DANDY_SKIP=1
     - VS1_SKIP=1
 
+  prefixes: {} # See ~/.cllct.rc finfo
+
+  scripts:
+    env: ./tools/sh/env.sh
+    init:
+      - test -d ~/.pyvenv/du-ext || virtualenv ~/.pyvenv/du-ext
+      - source ~/.pyvenv/du-ext/bin/activate
+      # NOTE: somehow bash matching is needed, seems 'type' is not behaving as
+      # expected from a bourne shell
+      #- export SCR_SYS_SH=bash-sh
+      - scriptname="init"
+      - . ./tools/sh/init.sh
+      - . ./tools/sh/env.sh
+      - . ./tools/ci/parts/init.sh
+      - htd package update
+      - htd package remotes-init
+      - vc regenerate
+        # XXX: interactve: python -c 'import nltk; nltk.download()'
+    #check: pd check
+    check:
+      - htd vcflow check-doc
+      - verbosity=1 git-versioning check
+      #- projectdir.sh run :bats:specs
+      #- ./vendor/.bin/behat --dry-run --no-multiline
+      #- projectdir.sh run :git:status
+      - export SCR_SYS_SH=bash-sh
+      - scriptname="check-includes"
+      - . ./tools/sh/init.sh
+      - . ./tools/sh/env.sh
+      - . ./tools/ci/parts/init.sh
+      - . ./tools/ci/check-env.sh
+    list-rst:
+      - . ~/.pyvenv/du-ext/bin/activate
+      - git ls-files | grep '\.rst$'
+    check-rst:
+      - . ~/.pyvenv/du-ext/bin/activate ; \
+        git ls-files | grep '\.rst$' | while read rst ; do \
+          rst2pseudoxml.py --report=4 --halt=4 --exit-status=2 $rst /dev/null; \
+        done
+    install:
+      - export SCR_SYS_SH=bash-sh
+      - scriptname="before-install"
+      - . ./tools/sh/init.sh
+      - . ./tools/sh/env.sh
+      - . ./tools/ci/parts/init.sh
+      - scriptname=install
+      - . ./tools/ci/parts/install.sh
+    #test: pd test
+    test:
+      - verbose=1 git-versioning check
+      - python test/main.py
+      - projectdir.sh run :bats:specs
+      - bats test/*-spec.bats | script-bats.sh colorize
+      - ./x-test.sh version
+    test-user:
+      - ENV_NAME=gspread-boreas . ~/.conf/bash/env.sh $ENV_NAME && python x-gspread.py
+    #build: pd build
+    build:
+      - export SCR_SYS_SH=bash-sh
+      - scriptname="init"
+      - . ./tools/sh/init.sh
+      - . ./tools/sh/env.sh
+      - . ./tools/ci/parts/init.sh
+      #- vagrant tools/ci/vbox
+      - scriptname=script
+      - . ./tools/ci/parts/build.sh
+    # FIXME package scripts with raw YAML text blocks
+    #test-features: "
+    #  test -x \\\"$(which behave)\\\" &&
+    #      behave --tags '~@todo' --tags ~skip -k test/feature ||
+    #        ./vendor/.bin/behat--tags:~@skip "
+    # test-features: |
+    #   test -x "$(behave)" &&
+    #       behave --tags '~@todo' --tags ~skip -k test/feature ||
+    #         ./vendor/.bin/behat--tags:~@skip
+    unique-filelines:
+    - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' $f ; done | wc -l
+    unique-lines:
+    - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; sort -u $f ; done | sort -u | wc -l
+
+    tasks-list:
+      - 'tasks.py -t todo.txt list-issues'
+    tasks-update:
+      - 'htd tasks --Check-All-Tags --Check-All-Files'
+
+    build-docker:
+      - '( cd tools/ci/build && drone exec )'
+      - docker tag ubuntu-user-script:build freyr/ubuntu-user-script:build
+      - docker push freyr/ubuntu-user-script:build
+      - docker rmi ubuntu-user-script:build localhost:5000/ubuntu-user-script:build
+    test-docker:
+      - drone exec
+
+    install-gv:
+      - sudo Build_Deps_Default_Paths=1 SRC_PREFIX=/src PREFIX=/usr/local ./install-dependencies.sh git-versioning && rm -rf /src/git-versioning
+
+    test2:
+      - docker run --rm \
+           -v $PWD:/home/treebox/bin --workdir /home/treebox/bin \
+           -e LOG=/srv/docker-volumes-local/user-script/log.sh \
+           -e USER=treebox \
+           -e TMPDIR=/tmp \
+           -e HOME=/home/treebox \
+           localhost:5000/ubuntu-user-script:build \
+           'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
+
+  # For make data/*: or move to cllct.rc
+  data:
+    finfo:
+      handlers: # TODO: map to taxus.core.Node annotated/dynamic properties
+        - last_updated:mtime
+        - last_seen:atime
+        # taxus.web.Invariant.mediatype
+        - mime_type:lib...
+
+  default: dev
+
+- type: application/vnd.bvberkum.symlinks
+  id: script-mpe-symlinks
+  file: .symlinks.tab
+  attrs: SRC DEST
+
+
+- vagrant_scripts: &vagrant_scripts
+    info:
+     - echo VBOX_DOMAIN=$VBOX_DOMAIN VBOX_LOCAL=$VBOX_LOCAL
+     - vagrant status
+    init:
+     - vagrant up --provision
+    start:
+     - vagrant start
+    status:
+     - vagrant status
+    ssh:
+     - vagrant ssh </dev/tty
+    save:
+     - vagrant suspend
+    upgrade: 
+     - vagrant halt && vagrant up --provision
+    deinit:
+     - vagrant destroy -f
+
+
+- type: application/vnd.bvberkum.environment
+  id: script-mpe-test-vbox
+  cwd: 'test/vagrant'
+  env: '. ./env.sh'
+  scripts:
+    <<: *vagrant_scripts

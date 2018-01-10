@@ -4,15 +4,19 @@
 
 TODO: experiment with nodes from other DBs. Sync to and from master.
 """
+from __future__ import print_function
+
 __description__ = "node - "
-__version__ = '0.0.2-dev' # script-mpe
+__version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.node.sqlite'
 __usage__ = """
 Usage:
   node.py [options] [info|list]
   node.py [options] get REF
   node.py [options] new NAME
+  node.py [options] info | init | stats | clear
   node.py -h|--help
+  node.py help [CMD]
   node.py --version
 
 Options:
@@ -32,19 +36,19 @@ import os
 import re
 
 import log
-import util
+import libcmd_docopt
 import reporter
 import taxus
 from taxus.init import SqlBase, get_session
 from taxus import \
-    Node, GroupNode, Name, Tag, Topic
+    Node, Name, Tag, Topic
 
 
 metadata = SqlBase.metadata
 
 
 # used by db_sa
-models = [ Node, GroupNode ]#Name, Tag, Topic ]
+models = [ Node, ]#Name, Tag, Topic ]
 
 @reporter.stdout.register(Node, [])
 def format_Node_item(node):
@@ -69,13 +73,13 @@ def cmd_info(settings):
     try:
         sa = Node.get_session('default', settings.dbref)
         log.std('{magenta} * {bwhite}DB Connection {default}[{green}OK{default}]')
-    except Exception, e:
+    except Exception as e:
         log.std('{magenta} * {bwhite}DB Connection {default}[{red}Error{default}]: %s', e)
 
 def cmd_list(settings):
     sa = Node.get_session('default', settings.dbref)
     for t in Node.all():
-        print t, t.date_added, t.last_updated
+        print(t, t.date_added, t.date_updated)
 
 def cmd_get(REF, settings):
 
@@ -86,7 +90,7 @@ def cmd_get(REF, settings):
 
     sa = Node.get_session('default', settings.dbref)
     Root, nid = Node.init_ref(REF)
-    node = Root.get_instance(nid, sa=sa)
+    node = Root.fetch_instance(nid, sa=sa)
     reporter.stdout.Node(node)
 
 def cmd_new(NAME, settings):
@@ -103,8 +107,8 @@ def cmd_new(NAME, settings):
 
 ### Transform cmd_ function names to nested dict
 
-commands = util.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = util.cmd_help
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
 
 
 ### Util functions to run above functions from cmdline
@@ -118,14 +122,14 @@ def main(opts):
     settings = opts.flags
     opts.default = 'info'
 
-    return util.run_commands(commands, settings, opts)
+    return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'node.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = util.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
     if opts.flags.schema:
         schema = __import__(os.path.splitext(opts.flags.schema)[0])
         metadata = schema.SqlBase.metadata
@@ -136,5 +140,3 @@ if __name__ == '__main__':
     else:
         opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))
-
-

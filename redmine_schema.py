@@ -816,3 +816,4 @@ class Workflow(SqlBase):
     field_name = Column(String(30))
     rule = Column(String(30))
 
+

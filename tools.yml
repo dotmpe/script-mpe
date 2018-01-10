@@ -1,6 +1,13 @@
+id: "#"
+description: Named prerequisite packages and metadata on provisioning. See tools.rst
+
 tools:
 
+  gcalcli:
+    installer: pip
+
   jsonwidget:
+    id: jsonwidget
     installer: pip
     bin:
       - jsonedit
@@ -15,6 +22,7 @@ tools:
 
 
   todotxt-machine:
+    id: todotxt-machine
     bin: True
     installer: pip
     description: |
@@ -26,6 +34,7 @@ tools:
       https://github.com/AnthonyDiGirolamo/todotxt-machine
 
   json-spec:
+    id: json-spec
     bin: jsonspec
     installer: pip
     post-install:
@@ -39,15 +48,19 @@ tools:
       jsonspec-validate:
         - jsonspec validate --document-json $1 --schema-json $2
 
+  jsonspec-validate:
+    dep: json-spec
+
   # TODO: would want to use basher, but cannot use gist url. Only GH package.
   membash:
+    id: membash
     bin: membash
     src: membash.sh
     installer: git
-    url: 'https://gist.github.com/dotmpe/045284c6522b1c24a3b5a56352d273e5'
+    url: 'https://gist.github.com/bvberkum/045284c6522b1c24a3b5a56352d273e5'
     
-
   jolt:
+    id: jolt
     bin: jolt
     installer: basher
     description: "Transforms for JSON (Java)"
@@ -56,4 +69,8 @@ tools:
     - git pull
     - mvn clean package
 
-
+  ajv:
+    installer: npm
+  ajv-cli:
+    installer: npm
+    bin: ajv-cli

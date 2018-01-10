@@ -1,0 +1,19 @@
+# SCM
+.git/
+.svn/
+.bzr/
+# Metadata
+.cllct/
+.meta/
+*.meta
+.vagrant/
+.redo/
+.coverage/
+# Std project dirs
+.conf/
+.build/
+# PHP Composer & other packagers std dirs
+vendor/
+node_modules/
+bower_components/
+public/components/

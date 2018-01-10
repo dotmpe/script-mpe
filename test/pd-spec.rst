@@ -30,7 +30,7 @@ pd
 
            - generates pre-commit hook from a .package.sh
 
-              - ${bin} regenerate
+             - ${bin} regenerate
 
            - TODO: consolidates Package metadata (core, pd-meta) into Projectdoc
              (on enable, ci, reload)
@@ -39,7 +39,7 @@ pd
 
         - pd  enables/disables projects
 
-           - pd enable restores disabled project
+          - pd enable restores disabled project
 
         - pd supports several modes of project identification/metadata,
           aided by either/or the filesystem context, the Pdoc, and the package
@@ -81,30 +81,32 @@ pd
         - pd-meta/prefix; corresponds to a checkout in a projectdir relative to a
           projectdocument.
 
-      2. Contexts (documents/filesystem)
+        TODO: use a mimetype, or initially just schema/class/type? ref to
+        1) recognized the root object as .mpe project and 2) validate the entire
+        document.
 
-         FIXME: `application/x-*` is not a valid mediatype [#]_
+     2. Contexts (documents/filesystem)
 
-         Pdir/Pdoc:
-          a per-host directory of prefix to repo path mappings, with data in
-          the `pd-meta` schema recorded in a Pdoc.
+        Pdir/Pdoc:
+         a per-host directory of prefix to repo path mappings, with data in
+         the `pd-meta` schema recorded in a Pdoc.
 
-         ``package.y?ml``:
-           a per project metadata container YAML, containing a list of objects.
-           At least one object has an `id`, `type` and `main` attribute,
-           and the type equals `application/vnd.dotmpe.project`.
+        ``package.y?ml``:
+          a per project metadata container YAML, containing a list of objects.
+          At least one object has an `id`, `type` and `main` attribute,
+          and the type equals `application/vnd.bvberkum.project`.
 
-         pd-meta:
-           the schema for the records in a Pdoc, or the like-named attributed
-           in a `application/vnd.dotmpe.project` object.
+        pd-meta:
+          the schema for the records in a Pdoc, or the like-named attributed
+          in a `application/vnd.bvberkum.project` object.
 
-          other:
-            with none of the above present, the following local files have a
-            special significance
+        other:
+          with none of the above present, the following local files have a
+          special significance
 
-            - .app-id
-            - .pd-check
-            - .pd-test
+          - .app-id
+          - .pd-check
+          - .pd-test
 
 
      meta-spec.bats
@@ -125,6 +127,4 @@ pd
     - argument defaults, shift to 2
     - argument defaults, shift to 3
 
-
-.. [#] http://stackoverflow.com/questions/18969938/vendor-mime-types-for-api-versioning
 

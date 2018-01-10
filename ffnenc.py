@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # via: http://www.howforge.com/fix-incorrect-filename-encoding
+from __future__ import print_function
 import sys
 import os
 from optparse import OptionParser
@@ -28,10 +29,10 @@ class Application:
 
     def verbose(self,message):
         if self.options.verbose:
-            print message
+            print(message)
 
     def error(self,message):
-        print >> sys.stderr,'ERROR: %s' % message
+        print(>> sys.stderr,'ERROR: %s' % message)
 
     def run(self):
         for path in self.args:
@@ -59,7 +60,7 @@ class Application:
         try:
             if not self.options.dryrun:
                 os.rename(src,dest)
-        except OSError,why:
+        except OSError as why:
             self.error(str(why))
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 
-id: "http://dotmpe.com/project/script/schema/package#"
-
-description:
+id: "http://wtwta.org/project/script/schema/package#"
+$schema: http://json-schema.org/draft-04/schema#
+description: JSON based schema for package.yml
 type: array
 items:
   allOf:
@@ -81,5 +81,3 @@ items:
           type: string
           description: |
             Build scripts.
-
-

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import array
 import struct
 import socket
@@ -7,15 +8,15 @@ import fcntl
 SIOCGIFCONF = 0x8912  #define SIOCGIFCONF
 BYTES = 4096          # Simply define the byte size
 
-# get_iface_list function definition 
-# this function will return array of all 'up' interfaces 
+# get_iface_list function definition
+# this function will return array of all 'up' interfaces
 def get_iface_list():
     # create the socket object to get the interface list
     sck = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     # prepare the struct variable
     names = array.array('B', '\0' * BYTES)
-    
+
     # the trick is to get the list from ioctl
     bytelen = struct.unpack('iL', fcntl.ioctl(sck.fileno(), SIOCGIFCONF, struct.pack('iL', BYTES, names.buffer_info()[0])))[0]
 
@@ -57,7 +58,7 @@ def format_ip(addr):
 
 ifs = all_interfaces()
 for i in ifs:
-    print "%12s   %s" % (i[0], format_ip(i[1]))
+    print("%12s   %s" % (i[0], format_ip(i[1])))
 """
 
 
@@ -97,13 +98,13 @@ def localifs():
         var2 = 40
     else:
         raise OSError("Unknown architecture: %s" % arch)
-    print var1, var2
+    print(var1, var2)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     names = array.array('B', '\0' * MAXBYTES)
-    print sock.fileno()
-    print SIOCGIFCONF
-    print struct.pack('iL', MAXBYTES, names.buffer_info()[0])
+    print(sock.fileno())
+    print(SIOCGIFCONF)
+    print(struct.pack('iL', MAXBYTES, names.buffer_info()[0]))
     outbytes = struct.unpack('iL', fcntl.ioctl(
         sock.fileno(),
         SIOCGIFCONF,
@@ -115,4 +116,4 @@ def localifs():
             for i in xrange(0, outbytes, var2)]
 
 
-print localifs()
+print(localifs())

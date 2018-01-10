@@ -1,11 +1,10 @@
 from glob import glob
 import os
 
-import log
-import res
-import metafile 
-import fs
-import session
+from script_mpe import log
+from script_mpe import res
+from . import metafile
+from . import fs
 
 
 def dirscan(globp):
@@ -46,5 +45,6 @@ class Session(object):
         log.debug("Session.init: using context %r" % (self.context,))
         self.kind = kind
         return self
+
 
 

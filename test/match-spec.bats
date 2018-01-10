@@ -55,21 +55,31 @@ init
 
 
 @test "$bin glob matches path" {
+
   run ${bin} -s glob 'test.*' test.name
-  test $status -eq 0
-  test -z "${lines[@]}"
+  { test $status -eq 0 &&
+    test -z "${lines[*]}"
+  } || stdfail 1
+
   run ${bin} -s glob '*.name' test.name
-  test $status -eq 0
-  test -z "${lines[@]}"
+  { test $status -eq 0 &&
+    test -z "${lines[*]}"
+  } || stdfail 2
+
   run ${bin} -s glob '*.*' test.name
-  test $status -eq 0
-  test -z "${lines[@]}"
+  { test $status -eq 0 &&
+    test -z "${lines[*]}"
+  } || stdfail 3
+
   run ${bin} -s glob 'path/.*.ext' path/.name.ext
-  test $status -eq 0
-  test -z "${lines[@]}"
+  { test $status -eq 0 &&
+    test -z "${lines[*]}"
+  } || stdfail 4
+
   run ${bin} -s glob './path/.*.ext' ./path/.name.ext
-  test $status -eq 0
-  test -z "${lines[@]}"
+  { test $status -eq 0 &&
+    test -z "${lines[*]}"
+  } || stdfail 5
 }
 
 word_diff()
@@ -100,8 +110,8 @@ word_diff()
 # TODO: test wether named patterns still exists, and notice any out-of-date testcase
 
 @test "$bin lists var names in name pattern" {
-  source ./match.sh load-ext
-  source ./match.lib.sh
+  __load=ext source ./match.sh
+  __load=ext source ./match.lib.sh
   silent=true
   match_load
   run match__name_pattern_opts ./@NAMEPART.@SHA1_CKS.@EXT

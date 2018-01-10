@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+"""
+from __future__ import print_function
 import zope
 
 import dotmpe.du.comp
@@ -44,8 +47,8 @@ class mkDoc(libcmd.SimpleCommand):
             #dotmpe.du.core.publish( a, reader='mkdoc', parser='rst', writer='formresults' )
             #
             document = builder.build( a, source_class=io.FileInput, reader='mkdoc' )
-            
-                        
+
+
     def status(self, sa=None, *paths):
         """
         Work in progress: run over documents and store extractor results.
@@ -54,16 +57,18 @@ class mkDoc(libcmd.SimpleCommand):
         B = comp.get_builder_class('dotmpe.du.builder.htdocs')
         #B = comp.get_builder_class('dotmpe.du.builder.dotmpe_v5')
         B.extractor_spec = [ (
-            'dotmpe.du.ext.extractor.reference.Extractor',
-                    'dotmpe.du.ext.extractor.TransientStorage'
-        ), (
-            'dotmpe.du.ext.extractor.htdocs.HtdocsExtractor',
-                    'dotmpe.du.ext.extractor.TransientStorage'
-        ) ]
+                'dotmpe.du.ext.extractor.reference.Extractor',
+                        'dotmpe.du.ext.extractor.TransientStorage'
+            ), (
+                'dotmpe.du.ext.extractor.htdocs.HtdocsExtractor',
+                        'dotmpe.du.ext.extractor.TransientStorage'
+            ) ]
         store_params = {
-            #'HtdocsStorage': ((), dict(dbref=)),
-            'dotmpe.du.ext.extractor.TransientStorage': (( {}, 'results', ), dict()),
-        }
+                #'HtdocsStorage': ((), dict(dbref=)),
+                'dotmpe.du.ext.extractor.TransientStorage': (
+                    ( {}, 'results', ), dict()
+                ),
+            }
         b = B()
         b.prepare_extractors(**store_params)
 
@@ -82,7 +87,7 @@ class mkDoc(libcmd.SimpleCommand):
 
         for source in sources:
             document = None
-            print 'source', source
+            print('source', source)
             try:
                 document = b.build(source=open(source).read(), source_id=source)
             except:
@@ -98,15 +103,14 @@ class mkDoc(libcmd.SimpleCommand):
                 log.err('processing %s', source)
                 continue
         ts = b.extractors[0][1]
-        print 'ts.results', ts.results, self
+        print('ts.results', ts.results, self)
             #print b.process(open(source).read())
         #comp.get_builder_class('dotmpe.du.builder.htdocs')
         #print args, frontend.cli_process(args, builder_name='dotmpe.du.builder.mpe')
 
     def update(self, sa=None, *args):
-        print args
+        print(args)
 
 
 if __name__ == '__main__':
     mkDoc.main()
-

@@ -40,6 +40,8 @@ PPREFIX='folder'
 # Apple plist-from-xattr fields for kMDItemWhereFroms
 PREFIXES=(url via)
 
+xattr=xattr-2.7
+
 # Parse options
 while getopts hfn OPT; do
     case "$OPT" in
@@ -78,7 +80,7 @@ fi
 # Display output
 for file in "$@"
 do
-	if [ -z "`xattr "$file" | grep com.apple.metadata:kMDItemWhereFroms`" ];
+	if [ -z "`$xattr "$file" | grep com.apple.metadata:kMDItemWhereFroms`" ];
 	then 
     test -n "$FORCE_RECORD" || continue
 	fi
@@ -94,8 +96,8 @@ do
 	echo ":$PREFIX: $base"
 
 	i=0
-	#xattr -p com.apple.metadata:kMDItemWhereFroms "$file" | xxd -r -p | plutil -convert xml1 -o - - | xmllint --xpath "/plist/array/string/text()" -
-	xattr -p com.apple.metadata:kMDItemWhereFroms "$file" \
+	#$xattr -p com.apple.metadata:kMDItemWhereFroms "$file" | xxd -r -p | plutil -convert xml1 -o - - | xmllint --xpath "/plist/array/string/text()" -
+	$xattr -p com.apple.metadata:kMDItemWhereFroms "$file" \
 		| xxd -r -p \
 		| plutil -convert xml1 -o - - \
 		| grep string | sed 's/^.*<string>\(.*\)<\/string>.*/\1/' \

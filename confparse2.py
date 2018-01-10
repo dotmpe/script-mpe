@@ -1,8 +1,9 @@
 """
 """
+from __future__ import print_function
 import types
 
-import yaml
+import ruamel.yaml as yaml
 
 import lib
 
@@ -66,7 +67,7 @@ class Object(Base):
     def copy(self):
         keys = [k for k in self.__dict__.keys() if not k.startswith('_')]
         items = [ (k,getattr(self, k)) for k in keys ]
-        return dict([ 
+        return dict([
             ( k, v.copy() ) if hasattr(v, 'copy') else ( k, v )
             for k, v in items ])
 
@@ -79,7 +80,7 @@ class PropertyValue(Base):
         super(PropertyValue, self).__init__()#k, super_)
 
     def __getattr__(self, obj, objtype=None):
-        print '<getattr', self, obj, objtype, '>'
+        print('<getattr', self, obj, objtype, '>')
 
     def __get__(self, obj, objtype=None):
 #        print '<get', self, obj, objtype, '>'
@@ -137,4 +138,3 @@ def obj_dic(d, name='obj_dic', super_=None):
 
 
 #o = obj_dic({'test':'foo'})
-

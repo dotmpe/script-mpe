@@ -22,8 +22,9 @@ test -n "$device_id" || device_id=disk-id
 
 @test "${bin} help" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  fnmatch "*Usage:*disk <cmd> *" "${lines[*]}"
+  { test ${status} -eq 0 &&
+    fnmatch "*disk.sh*Usage*:*disk <cmd> *" "${lines[*]}"
+  } || stdfail
 }
 
 @test "${bin} list" {
@@ -57,12 +58,14 @@ test -n "$device_id" || device_id=disk-id
 }
 
 @test "${bin} mount $device_id" {
+  trueish "$test_disk_mount" || skip "Toggled by test_disk_mount"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*mount*Mounted*at*" "${lines[*]}"
 }
 
 @test "${bin} mount-tmp $device_id" {
+  trueish "$test_disk_mount" || skip "Toggled by test_disk_mount"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*mount-tmp*Mounted*at temp*" "${lines[*]}"

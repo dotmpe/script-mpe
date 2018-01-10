@@ -3,6 +3,7 @@ zope.interfaces based output components.
 this is for adapting objects to CLI printouts, possibly simple reporting.
 XXX: see log, taxus_out for older model.
 """
+from __future__ import print_function
 import sys
 import zope.interface
 #from zope.interface.interface import adapter_hooks
@@ -63,7 +64,7 @@ class Reporter(object):
 
     Some methods:
         low-level: write, writeln
-        high-level: 
+        high-level:
             handlerType, handlerName:  sub, format, arg
 
             print_paragraph
@@ -81,7 +82,7 @@ class Reporter(object):
                 finish_list
             print_usage
 
-    Initial state: 
+    Initial state:
 
     """
 
@@ -110,23 +111,23 @@ class Reporter(object):
 
     def flush(self):
         for k in self.data:
-            print "%s" % k
+            print("%s" % k)
             for k2 in self.data[k]:
-                print "  "+self.titles[k2] 
+                print("  "+self.titles[k2])
                 for i in self.data[k][k2]:
-                    print "      - " + ( self.tpls[k2] % i )
+                    print("      - " + ( self.tpls[k2] % i ))
 
     def ensure_blankline(self):
         pass
     def write(self, data):
         self.out.write(log.format_str(data))
     def writeln(self):
-        print >>self.out, log.format_str(data)
+        print(log.format_str(data), file=self.out)
 
     def __getattr__(self, name):
         hType, hName = name.split('_', 1)
 
-        print hType, hName
+        print(hType, hName)
 
     def get_context_path(self):
         return 'rst', 'paragraph'
@@ -147,7 +148,7 @@ class Reporter(object):
 class AbstractOutputState(object):
 
     """
-    Baseclass for output states. 
+    Baseclass for output states.
     Output states are started from a parent state, the context.
 
     The state registry tracks the new states that a state type may spawn.
@@ -204,7 +205,7 @@ class states(object):
                     }),
                     'strong': (TxtStrongInline, {
                     }),
-                    # 
+                    #
                     'pull-out': (TxtStrongInline, {
                     }),
                     # inline roles
@@ -240,13 +241,16 @@ class stdout(object):
     class register(object):
         """
         Add a new object formatter.
-        Can support any context types it likes (but should fail explicitly), 
+        Can support any context types it likes (but should fail explicitly),
         Reporter will gracefully recover for most standard contexts.
         """
         def __init__(self, *args, **kwds):
             #assert Klass.__name___ not in formatters
             self.Klasses = args
-            self.key = args[0].className()
+            if 'key' in kwds and kwds['key']:
+                self.key = kwds['key']
+            else:
+                self.key = args[0].className()
             self.handler = None
             setattr(stdout, self.key, self)
 
@@ -255,5 +259,6 @@ class stdout(object):
                 self.handler = args[0]
             else:
                 self.handler(*args)
+
 
 

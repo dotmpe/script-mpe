@@ -43,13 +43,13 @@ pd_bats_files_args()
 {
 
   test -n "$pd_trgtglob" \
-    || pd_trgtglob="$(eval echo "\"\$$(try_local "bats-files" glob)\"")"
+    || pd_trgtglob="$(eval echo "\"\$$(echo_local "bats-files" glob)\"")"
 
   {
     test -n "$1" && {
 
       test -n "$pd_trgtpref" \
-        || pd_trgtpref="$(eval echo "\"\$$(try_local "$subcmd" trgtpref)\"")"
+        || pd_trgtpref="$(eval echo "\"\$$(echo_local "$subcmd" trgtpref)\"")"
 
       while test -n "$1"
       do
@@ -85,6 +85,7 @@ pd_bats_files_args()
 
       local retry=$(setup_tmpf .retry "$subcmd-$PWD")
       test -e "$retry" && {
+        debug "Retry file: $retry"
         note "Using targets from retry file ($(count_lines $retry))"
         cat $retry | sed 's/^bats://g'
         rm $retry
@@ -113,7 +114,7 @@ pd_load__bats_gnames=iI
 pd__bats_gnames()
 {
   test -n "$pd_trgtglob" \
-    || pd_trgtglob="$(eval echo "\"\$$(try_local bats-files glob)\"")"
+    || pd_trgtglob="$(eval echo "\"\$$(echo_local bats-files glob)\"")"
   pd_globstar_names "$pd_trgtglob" "$@"
 }
 
@@ -161,14 +162,10 @@ pd__bats_specs()
   local file_count=0 test_count=0
   for arg in $@
   do
-    local tests="$( { verbosity=0; bats-exec-test -l "$arg" || {
-      errored "$subcmd:$arg";
-    };} | lines_to_words )"
-    test -z "$tests" || {
-      incr file_count
-      echo $tests | words_to_lines | sed 's#^#'$subcmd:$arg':#' >$passed
-      incr test_count $(echo "$tests" | count_words)
-    }
+    tests="$(bats -c "$arg" || errored "$subcmd:$arg")"
+    incr file_count
+    incr test_count $tests
+    bats -l names $arg | words_to_lines | sed 's#^#'$subcmd:$arg':#' >$passed
   done
   test $test_count -gt 0 \
     && {
@@ -232,7 +229,7 @@ pd__bats()
       echo "# Bats $curarg of $argc ($x)"
       verbosity=6 bats $x \
         || echo "bats:$x" >>$failed
-    } | bats-color.sh
+    } | script-bats.sh colorize
   done
 
   test -s "$failed" && {
@@ -243,5 +240,6 @@ pd__bats()
   return 0
 }
 pd_defargs__bats=pd_bats_files_args
+
 
 

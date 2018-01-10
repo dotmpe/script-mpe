@@ -70,7 +70,4 @@ service = build(serviceName='urlshortener', version='v1', http=http,
 #tasklists = service.tasklists().list().execute()
 #
 #for tasklist in tasklists['items']:
-#  print tasklist['title']
-
-
-
+#  print(tasklist['title'])

@@ -7,7 +7,6 @@ from .util import ORMMixin
 
 from script_mpe import lib
 from . import core
-from . import fs
 
 
 class ChecksumDigest(SqlBase, ORMMixin):

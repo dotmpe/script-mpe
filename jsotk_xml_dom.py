@@ -1,4 +1,6 @@
 """
+:Created: 2016-05-22
+
 XML writer module for Jsotk using minidom (xml.dom.minidom).
 """
 from __future__ import print_function
@@ -168,4 +170,5 @@ def xml_element_start( name, **attr ):
             " ".join( '%s="%s"' % kv for kv in attr.items() ) )
     else:
         return "<%s>" % name
+
 

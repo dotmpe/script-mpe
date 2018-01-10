@@ -7,14 +7,15 @@ from sqlalchemy.orm import relationship, backref
 
 from script_mpe import lib
 from .init import SqlBase
-from .util import current_hostname
+from .util import ORMMixin, current_hostname
+from .mixin import CardMixin
 from . import core
 from . import util
 from . import iface
 from . import checksum
 
 
-class Domain(core.Node):
+class Domain(core.Name):
 
     """
     """
@@ -22,7 +23,7 @@ class Domain(core.Node):
     __tablename__ = 'domains'
     __mapper_args__ = {'polymorphic_identity': 'domain'}
 
-    domain_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
+    domain_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
 
 
 class Host(Domain):
@@ -70,64 +71,40 @@ class Host(Domain):
 #    Column('host_idb', ForeignKey('hosts.id'))
 #)
 # mapping table for ChecksumDigest Locator
-locators_checksum = Table('locators_checksum', SqlBase.metadata,
+locators_checksums = Table('locators_checksums', SqlBase.metadata,
     Column('locators_ida', ForeignKey('ids_lctr.id')),
     Column('chk_idb', ForeignKey('chks.id'))
 )
 # mapping table for Tag [*-*] Locator
 locators_tags = Table('locators_tags', SqlBase.metadata,
     Column('locator_ida', ForeignKey('ids_lctr.id')),
-    Column('tags_idb', ForeignKey('names_tag.id'))
+    Column('tags_idb', ForeignKey('tagnames.id'))
 )
 
-class Locator(core.ID):
+
+#class Locator(core.ID):
+class Locator(SqlBase, CardMixin, ORMMixin):
 
     """
-    A global identifier for retrieval of remote content.
+    A global identifier for retrieval of local or remote content.
 
-    Maybe based on DNS and route, script or filename for HTTP etc.
-    For file based descriptors may be registered domain and filename,
-    but also IP and variants on netpath, even inode number lookups.
+    Regular known schema are tied to protocols, ie. http, ftp, .. gopher.
+    Some more specific to applications, ie. wrt. mediafiles or distributed, P2P
+    content.
 
-    Not just variant notations but "seeping through" of the filesystem
-    organization used in locators is what introduces difficult forms of
-    ambiguity. Possibly too in this index, not sure, practice would need to
-    prove.
-
-    The reference should follow URL syntax, not URN or otherwise.
-    Perhaps if rogue web-content where entered into the
-    system is properly contained.
-
-    sameAs
-        Incorporates sameAs to indicate references which contain parametrization
-        and are a variant or more specific form of another references,
-        but essentially the same 'resource'. Note that references may point to other
-        'things' than files or HTTP resources.
-
-        A misleading example may be HTTP URLs which are path + query, even more a
-        fragment. This can be misleading as URL routing is part of the web
-        application framework and may serve other requirements than resource
-        parametrization, and further parametrization may occur at other places
-        (Headers, cookies, embedded, etc.).
-
-        The Locator sameAs allows comparison on references,
-        comparison of the dereferenced objects belongs on other Taxus objects that
-        refer to the Locator table.
+    Use htdocs: scheme to standardize adressing of Taxus et al.
+    core.Scheme and subtypes are used to manage instances of protocols,
+    and other htdocs sub-schemes.
     """
     zope.interface.implements(iface.IID)
 
     __tablename__ = 'ids_lctr'
-    __mapper_args__ = {'polymorphic_identity': 'id_lctr'}
+    lctr_id = Column('id', Integer, primary_key=True)
 
-    lctr_id = Column('id', Integer, ForeignKey('ids.id'), primary_key=True)
+    idtype = Column(String(50), nullable=False)
+    __mapper_args__ = {'polymorphic_on': idtype, 'polymorphic_identity': 'id:locator'}
 
-    ref_md5_id = Column(Integer, ForeignKey('chks_md5.id'))
-    ref_md5 = relationship(checksum.MD5Digest, primaryjoin=ref_md5_id==checksum.MD5Digest.md5_id)
-    "A checksum for the complete reference, XXX to use while shortref missing? "
-
-    #ref = Column(String(255), index=True, unique=True)
-    # XXX: varchar(255) would be much too small for many (web) URL locators
-    ref = Column(Text(2048), index=True, unique=True)
+    ref = Column(Text)
 
     @property
     def scheme(self):
@@ -157,18 +134,71 @@ class Locator(core.ID):
             else:
                 assert not "No path", ref
 
-#    checksum = relationship('ChecksumDigest', secondary=locators_checksum,
-#        backref='locations')
-#    tags = relationship('Tag', secondary=locators_tags,
-#        backref='locations')
-    host_id = Column(Integer, ForeignKey('hosts.id'))
-    host = relationship('Host', primaryjoin="Locator.host_id==Host.host_id",
+    checksums = relationship('ChecksumDigest', secondary=locators_checksums,
         backref='locations')
 
+    domain_id = Column(Integer, ForeignKey('domains.id'))
+    domain = relationship('Host', primaryjoin="Locator.domain_id==Host.domain_id",
+        backref='locations')
+
+    ref_md5_id = Column(Integer, ForeignKey('chks_md5.id'))
+    ref_md5 = relationship(checksum.MD5Digest, primaryjoin=ref_md5_id==checksum.MD5Digest.md5_id)
+    "A checksum for the complete reference, XXX to use while shortref missing? "
+
+    ref_sha1_id = Column(Integer, ForeignKey('chks_sha1.id'))
+    ref_sha1 = relationship(checksum.SHA1Digest, primaryjoin=ref_sha1_id==checksum.SHA1Digest.sha1_id)
+    "A checksum for the complete reference, XXX to use while shortref missing? "
+
     def __str__(self):
-        return "%s %r" % (lib.cn(self), self.ref or self.global_id)
+        return "%s %r" % (lib.cn(self), self.ref or self.href())
+
+    @property
+    def href(self):
+        return self.ref
+
+    @classmethod
+    def keys(klass):
+        "Return SQL columns"
+        return CardMixin.keys + 'domain ref_md5 ref_sha1'.split(' ')
+
+    def to_dict(self, d={}):
+        d.update(dict(href=self.ref))
+        return ORMMixin.to_dict(self, d=d)
+
+    @classmethod
+    def from_bm(klass, doc):
+        return dict(ref=doc['href'])
+
+    def to_bm(self):
+        return dict(href=self.ref)
+
+
+Locator.doc_schemas = {
+    'taxus.docs.bookmark.Bookmark': (Locator.from_bm, Locator.to_bm)
+}
+
+
+token_locator_table = Table('token_locator', SqlBase.metadata,
+    Column('left_id', Integer, ForeignKey('stk.id'), primary_key=True),
+    Column('right_id', Integer, ForeignKey('ids_lctr.id'), primary_key=True),
+)
+
+
+class Token(util.SqlBase, util.ORMMixin):
+
+    """
+    A large-value variant on Tag, perhaps should make this a typetree.
+    """
+
+    __tablename__ = 'stk'
+    __mapper_args__ = {'polymorphic_identity': 'meta:security-token'}
+
+    token_id = Column('id', Integer, primary_key=True)
+
+    value = Column(Text(65535), nullable=True)
+    refs = relationship(Locator, secondary=token_locator_table)
 
 
 models = [
-        Domain, Host, Locator
+        Domain, Host, Locator, Token
     ]

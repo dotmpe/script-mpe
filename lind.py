@@ -1,18 +1,19 @@
 """
+:Created: 2012-05-27
 """
 import os, sys, re, anydbm
 
 import txs
 import log
 from libname import Namespace, Name
-from libcmd import Targets, Arguments, Keywords, Options,\
-    Target 
+from libcmdng import Targets, Arguments, Keywords, Options,\
+    Target
 
 
 
 NS = Namespace.register(
     prefix='lnd',
-    uriref='http://project.dotmpe.com/script/#/cmdline.Lind'
+    uriref='http://project.wtwta.org/script/#/cmdline.Lind'
 )
 
 Options.register(NS, )
@@ -44,8 +45,8 @@ def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
                         name)
                 path = FS_Path_split(os.path.join(root, name))
                 for tag in path:
-                    yield 
-                    # Ask about each new tag, TODO: or rename, fuzzy match.      
+                    yield
+                    # Ask about each new tag, TODO: or rename, fuzzy match.
                     if tag not in tags:
                         type = raw_input('%s%s%s:?' % (
                             log.palette['yellow'], tag,
@@ -56,8 +57,11 @@ def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
                 log.info(''.join( [ "{bwhite} %s:{green}%s{default}" % (tag, name)
                     for tag in path if tag in tags] ))
 
-    except KeyboardInterrupt, e:
+    except KeyboardInterrupt as e:
         log.err(e)
         yield 1
 
 
+if __name__ == '__main__':
+    from libcmdng import TargetResolver
+    TargetResolver().main(['lnd:tag'])

@@ -1,0 +1,10 @@
+
+id: "http://wtwta.org/project/script/schema/htd#"
+$schema: http://json-schema.org/draft-04/schema#
+description: 
+
+definitions:
+  lsofCLISchema:
+    type: object
+    properties: {}
+

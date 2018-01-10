@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """
+:Created: 2014-02-16
+
 XXX: can I improve htdocs.py, or should that finish first
 
 Model
@@ -18,6 +20,12 @@ Model
             - gregorian
 
 """
+from __future__ import print_function
+
+__description__ = "journal - "
+__version__ = '0.0.2-dev' # script-mpe
+#__db__ = '~/.journal.sqlite'
+
 import os
 import libcmd
 
@@ -38,9 +46,9 @@ class Jrnl(rsr.Rsr):
     NAME = os.path.splitext(os.path.basename(__file__))[0]
     assert NAME == 'jrnl'
     DEFAULT_RC = 'cllct.rc'
-    DEPENDS = { 
+    DEPENDS = {
             'jrnl_session': [ 'rsr_session' ],
-            'jrnl_info': [ 'jrnl_session' ] 
+            'jrnl_info': [ 'jrnl_session' ]
         }
     DEFAULT = [ 'jrnl_info' ]
 
@@ -54,18 +62,17 @@ class Jrnl(rsr.Rsr):
                 )
 
     def jrnl_session(self, prog, opts, sa, volume, workspace):
-        print volume.guid
+        print(volume.guid)
         return
         journal = Journal()
         journal = Journal.find(prog.pwd)
         journal.fetch_from_session(sa)
-        print journal
+        print(journal)
         yield dict(journal=journal)
 
     def jrnl_info(self, journal, *args):
-        print 'Journal info:', self, journal, args
+        print('Journal info:', self, journal, args)
 
 
 if __name__ == '__main__':
     Jrnl.main()
-

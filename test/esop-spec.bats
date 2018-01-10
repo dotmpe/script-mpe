@@ -5,28 +5,30 @@ base=esop.sh
 
 init
 
-source $lib/util.sh
-source $lib/std.lib.sh
-source $lib/str.lib.sh
+#source $lib/util.sh
+#source $lib/std.lib.sh
+#source $lib/str.lib.sh
 
 #  echo "${lines[*]}" > /tmp/1
 #  echo "${status}" >> /tmp/1
 
-@test "${bin}" "No arguments: default action is ..." {
-  run $BATS_TEST_DESCRIPTION
+@test "${bin} - No arguments: default action is ..." {
+  run $bin
   test ${status} -eq 1
-  fnmatch "esop*No command given*" "${lines[*]}"
+  fnmatch "*esop*No command given*" "${lines[*]}" ||
+    fail "1 Out: ${lines[*]}"
 
-  test -n "$SHELL"
-  run $SHELL "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 5
-  fnmatch "*esop*Error:*please use sh, or bash -o 'posix'*" "${lines[*]}"
+  run /bin/bash "$bin"
+  fnmatch "*esop*Error:*please use sh, or bash -o 'posix'*" "${lines[*]}" ||
+    fail "2 Out: ${lines[*]}"
+  test ${status} -eq 5 || fail "2 Out($status): ${lines[*]}"
 
-  run sh "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 1
-  fnmatch "esop*No command given*" "${lines[*]}"
+  run /bin/sh "$bin"
+  test ${status} -eq 1 || fail "3.1 Out: ${lines[*]}"
+  fnmatch "*esop*No command given*" "${lines[*]}" ||
+    fail "3.2 Out($status): ${lines[*]}"
 
-  run bash "$BATS_TEST_DESCRIPTION"
+  run bash "$bin"
   test ${status} -eq 5
 }
 
@@ -93,4 +95,3 @@ source $lib/str.lib.sh
 #  #echo "${#lines[@]}" >> /tmp/1
 #  test ${status} -eq 0
 #}
-
