@@ -372,14 +372,16 @@ htd_package_open_url()
 htd_package_remotes_init()
 {
   package_lib_set_local "$(pwd -P)"
+
   test -e "$PACKMETA_JS_MAIN" || error "No '$PACKMETA_JS_MAIN' file" 1
   vc_getscm
   jsotk.py path -O pkv "$PACKMETA_JS_MAIN" repositories |
       tr '=' ' ' | while read remote url
   do
-    test -n "$remote" -a "$url" || { warn "empty package repo var"; continue; }
+    test -n "$remote" -a -n "$url" || {
+      warn "empty package repo var '$remote $url'"; continue; }
     #fnmatch "*.$scm" "$url" || continue
-    htd_repository_url "$remote" "$(htd expand "$url")" || continue
+    htd_repository_url "$remote" "$url" || continue
     vc_git_update_remote "$remote" "$url"
   done
 }
