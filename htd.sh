@@ -901,6 +901,7 @@ htd_als___F=find-doc
 
 htd__volumes()
 {
+  test -n "$1" || set -- list
   case "$1" in
     list )
         htd__ls_volumes
@@ -7433,7 +7434,7 @@ SRVS="archive archive-old scm-git src annex www-data cabinet htdocs shared \
 # Go over local disk to see if volume links are there
 htd__ls_volumes()
 {
-  disk.sh list-local | while read disk
+  disk.sh local-devices | while read disk
   do
     prefix=$(disk.sh prefix $disk 2>/dev/null)
     test -n "$prefix" || {
@@ -7446,14 +7447,14 @@ htd__ls_volumes()
     for volume in /mnt/$prefix-*
     do
       test -e $volume/.volumes.sh || continue
-      . $volume/.volumes.sh
-      test "$volumes_main_prefix" = "$prefix" \
-        || error "Prefix mismatch '$volumes_main_prefix' != '$prefix' ($volume)" 1
+      eval $(sed 's/^volumes_main_/vol_/' $volume/.volumes.sh)
 
+      test "$vol_prefix" = "$prefix" \
+        || error "Prefix mismatch '$vol_prefix' != '$prefix' ($volume)" 1
 
       # Check for unknown service roots
-      test -n "$volumes_main_export_all" || volumes_main_export_all=1
-      trueish "$volumes_main_export_all" && {
+      test -n "$vol_export_all" || vol_export_all=1
+      trueish "$vol_export_all" && {
         echo $volume/* | tr ' ' '\n' | while read vroot
         do
           test -n "$vroot" || continue
@@ -7465,11 +7466,11 @@ htd__ls_volumes()
       }
 
       # TODO: check all aliases, and all mapping aliases
-      test -n "$volumes_main_aliases__1" \
+      test -n "$vol_aliases__1" \
         || error "Expected one aliases ($volume)"
 
-      test -e "/srv/$volumes_main_aliases__1"  || {
-        error "Missing volume alias '$volumes_main_aliases__1' ($volume)" 1
+      test -e "/srv/$vol_aliases__1"  || {
+        error "Missing volume alias '$vol_aliases__1' ($volume)" 1
       }
 
       # Go over known services
@@ -7487,12 +7488,12 @@ htd__ls_volumes()
         }
       done
 
-      note "Volumes OK: $disk_index.$part_index $volume"
+      note "Volumes OK: $disk_index.$vol_part_index $volume"
 
       unset srv \
-        volumes_main_prefix \
-        volumes_main_aliases__1 \
-        volumes_main_export_all
+        vol_prefix \
+        vol_aliases__1 \
+        vol_export_all
 
     done
 

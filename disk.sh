@@ -30,6 +30,7 @@ disk__status()
     do
       test -e "$vol_dev" || error "No such volume device '$vol_dev'" 1
       mount=$(find_mount $vol_dev)
+      # FIXME: shomehow fstype is not showing up. Also, want part size/free
       fstype="$(disk_partition_type "$vol_dev")"
       vol_idx=$(echo $vol_dev | sed -E 's/^.*([0-9]+)$/\1/')
       vol_id="$(disk_vol_info $disk_id-$vol_idx 2>/dev/null)"
@@ -154,7 +155,6 @@ disk__info()
   disk_info "$@"
 }
 
-
 disk_man_1__local="Show disk info TODO: test this works at every platform"
 disk__local()
 {
@@ -184,6 +184,7 @@ disk__list_local()
 disk_load__list_local=f
 
 
+disk_man_1__list='List local devices'
 disk__local_devices()
 {
   disk_list
@@ -257,6 +258,7 @@ disk__list_mount_paths()
 }
 
 disk_man_1__list_part_local="Print info for local partitions (from /dev/*)"
+
 disk__list_part_local()
 {
   disk_list_part_local "$@"
