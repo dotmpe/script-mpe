@@ -48,7 +48,7 @@ disk__status()
     do
       test -e "$vol_dev" || error "No such volume device '$vol_dev'" 1
       mount=$(find_mount $vol_dev)
-      # FIXME: shomehow fstype is not showing up. Also, want part size/free 
+      # FIXME: shomehow fstype is not showing up. Also, want part size/free
       fstype="$(disk_partition_type "$vol_dev")"
       vol_idx=$(echo $vol_dev | sed -E 's/^.*([0-9]+)$/\1/')
       vol_id="$(disk_vol_info $disk_id-$vol_idx 2>/dev/null)"
@@ -120,6 +120,11 @@ disk__info()
   disk_info "$@"
 }
 
+# List local devices
+disk__list()
+{
+  disk_list
+}
 
 # Show disk info TODO: test this works at every platform
 disk__local()
@@ -149,17 +154,13 @@ disk__list_local()
   } | sort -n | column -tc 3
   echo "# Disks at $(hostname), $(datetime_iso)"
 }
-#disk__list_local()
-#{
-#  disk_list
-#}
 disk__list_part_local()
 {
   disk_list_part_local
 }
 
 # Tabulate disks, and where they are (from catalog)
-disk__list()
+disk__list_entries()
 {
   {
     echo "#NUM DISK_ID HOST PREFIX"
