@@ -47,6 +47,7 @@ test -n "$PREFIX" ||
 
 echo SRC_PREFIX=$SRC_PREFIX
 echo PREFIX=$PREFIX
+echo "install-dependencies: '$*'"
 test -d $SRC_PREFIX || ${pref} mkdir -vp $SRC_PREFIX
 test -d $PREFIX || ${pref} mkdir -vp $PREFIX
 
@@ -230,7 +231,7 @@ main_entry()
     ;; esac
 
   case "$1" in bats-force-local )
-      uninstall_bats
+      uninstall_bats && stderr "BATS uninstall OK" || stderr "BATS uninstall failed ($?)"
       install_bats || return $?
       PATH=$PATH:$PREFIX/bin bats --version ||
         stderr "BATS install to $PREFIX failed" 1

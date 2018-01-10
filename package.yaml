@@ -33,7 +33,6 @@
       src: "@be.src +htdocs-mpe" # get the .list of sei for htdocs
 
   pd-meta:
-    stats: unique-filelines unique-lines
     run:
       behat: "./vendor/.bin/behat--tags:~@skip"
       behat-defs: "./vendor/.bin/behat:-dl"
@@ -43,7 +42,7 @@
 
       # XXX: this would be nice, and is one way to do file watching for BDD
       behat-watch: "nodemon -x './vendor/.bin/behat test/$1.feature' -w test/bootstrap/FeatureContext.php -w test/$1.feature -w ./$1.*"
-
+    stats: unique-filelines unique-lines
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
     check: "htd:gitflow-check-doc :verbose=1:vchk :bats:specs"
@@ -101,6 +100,7 @@
       - htd package remotes-init
       - vc regenerate
         # XXX: interactve: python -c 'import nltk; nltk.download()'
+
     #check: pd check
     check:
       - htd vcflow check-doc
@@ -114,6 +114,7 @@
       - . ./tools/sh/env.sh
       - . ./tools/ci/parts/init.sh
       - . ./tools/ci/check-env.sh
+
     list-rst:
       - . ~/.pyvenv/du-ext/bin/activate
       - git ls-files | grep '\.rst$'
@@ -122,6 +123,7 @@
         git ls-files | grep '\.rst$' | while read rst ; do \
           rst2pseudoxml.py --report=4 --halt=4 --exit-status=2 $rst /dev/null; \
         done
+
     install:
       - export SCR_SYS_SH=bash-sh
       - scriptname="before-install"
@@ -130,15 +132,9 @@
       - . ./tools/ci/parts/init.sh
       - scriptname=install
       - . ./tools/ci/parts/install.sh
-    #test: pd test
-    test:
-      - verbose=1 git-versioning check
-      - python test/main.py
-      - projectdir.sh run :bats:specs
-      - bats test/*-spec.bats | script-bats.sh colorize
-      - ./x-test.sh version
-    test-user:
-      - ENV_NAME=gspread-boreas . ~/.conf/bash/env.sh $ENV_NAME && python x-gspread.py
+    install-gv:
+      - sudo Build_Deps_Default_Paths=1 SRC_PREFIX=/src PREFIX=/usr/local ./install-dependencies.sh git-versioning && rm -rf /src/git-versioning
+
     #build: pd build
     build:
       - export SCR_SYS_SH=bash-sh
@@ -149,15 +145,32 @@
       #- vagrant tools/ci/vbox
       - scriptname=script
       - . ./tools/ci/parts/build.sh
-    # FIXME package scripts with raw YAML text blocks
-    #test-features: "
-    #  test -x \\\"$(which behave)\\\" &&
-    #      behave --tags '~@todo' --tags ~skip -k test/feature ||
-    #        ./vendor/.bin/behat--tags:~@skip "
-    # test-features: |
-    #   test -x "$(behave)" &&
-    #       behave --tags '~@todo' --tags ~skip -k test/feature ||
-    #         ./vendor/.bin/behat--tags:~@skip
+
+    #test: pd test
+    test:
+      - verbose=1 git-versioning check
+      - python test/main.py
+      - projectdir.sh run :bats:specs
+      - bats test/*-spec.bats | script-bats.sh colorize
+      - ./x-test.sh version
+    test-user:
+      - ENV_NAME=gspread-boreas . ~/.conf/bash/env.sh $ENV_NAME && python x-gspread.py
+
+    test-features:
+      - test -x \"$(which behave)\" &&
+           behave --tags '~@todo' --tags '~@skip' -k test/feature ||
+             ./vendor/.bin/behat --tags '~@skip' --tags '~@todo'
+
+    feature-defs:
+      - ./vendor/.bin/behat -dl
+
+    feature-specs:
+      # NOTE: behat cannot display outline only
+      - ./vendor/.bin/behat --dry-run --no-multiline --no-expand --tags ~@todo&&~@skip
+
+    feature-watch:
+      - nodemon -x \"./vendor/.bin/behat test/$1.feature\" -w test/bootstrap/FeatureContext.php -w \"test/$1.feature\" -w \"./$1.*\"
+
     unique-filelines:
     - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' $f ; done | wc -l
     unique-lines:
@@ -176,9 +189,6 @@
     test-docker:
       - drone exec
 
-    install-gv:
-      - sudo Build_Deps_Default_Paths=1 SRC_PREFIX=/src PREFIX=/usr/local ./install-dependencies.sh git-versioning && rm -rf /src/git-versioning
-
     test2:
       - docker run --rm \
            -v $PWD:/home/treebox/bin --workdir /home/treebox/bin \
@@ -188,6 +198,8 @@
            -e HOME=/home/treebox \
            localhost:5000/ubuntu-user-script:build \
            'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
+
+    # End of [0]/scripts
 
   # For make data/*: or move to cllct.rc
   data:

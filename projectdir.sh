@@ -1570,11 +1570,13 @@ pd_load()
     P )
         package_lib_set_local "$pd_root/$pd_prefix"
         pd__meta_sq get-repo "$pd_prefix" && {
+          echo update_package "$pd_prefix"
+
           update_package "$pd_prefix" || { r=$?
             test  $r -eq 1 || error "update_package" $r
             continue
           }
-        }
+        } || warn "No repo for '$pd_prefix'"
 
         test -e $pd_root/$pd_prefix/.package.sh \
           && eval $(cat $pd_root/$pd_prefix/.package.sh)
@@ -1597,7 +1599,8 @@ pd_load()
 
         local pref=
         for pref in $pd_prefixes; do
-          pd__meta_sq get-repo "$pref" && update_package "$pref" || continue
+          pd__meta_sq get-repo "$pref" && update_package "$pref" ||
+              warn "No repo for '$pref'"
         done
         unset pref
       ;;

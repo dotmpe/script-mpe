@@ -466,7 +466,7 @@ class EmbeddedIssue:
             'raw2': lambda cmt, data, rc, opts: " ".join([ cmt.comment_flavour ] + [
                 "%s '%s' <%s> %s" %(
                     tag, tag.raw, tag.canonical(data), cmt
-                ) for tag in cmt.tags ])
+                ) for tag in cmt.tags ]),
             'json-stream': lambda cmt, data, rc, opts: res.js.dumps(cmt.to_dict()),
             'null': lambda cmt, data, rc, opts: None,
         }
