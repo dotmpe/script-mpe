@@ -292,10 +292,10 @@ htd_repository_url() # remote url
   fnmatch "$hostname.*" "$1" && {
 
     # Cancel if repo is local checkout
-    test "$(cd "$2" && pwd -P)" = "$(pwd -P)" && return 1
+    test -n "$2" -a "$(cd $2 && pwd -P)" = "$(pwd -P)" && return 1
 
     # Use URL as is, remove host from remote
-    remote=$(echo $1 | cut -f2 -d'.')
+    remote="$(echo $1 | cut -f2 -d'.')"
     return 0
 
   } || {

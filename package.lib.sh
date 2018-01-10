@@ -377,8 +377,9 @@ htd_package_remotes_init()
   jsotk.py path -O pkv "$PACKMETA_JS_MAIN" repositories |
       tr '=' ' ' | while read remote url
   do
+    test -n "$remote" -a "$url" || { warn "empty package repo var"; continue; }
     #fnmatch "*.$scm" "$url" || continue
-    htd_repository_url "$remote" "$url" || continue
+    htd_repository_url "$remote" "$(htd expand "$url")" || continue
     vc_git_update_remote "$remote" "$url"
   done
 }

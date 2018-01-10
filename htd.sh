@@ -18,6 +18,7 @@ htd__outputs="passed skipped error failed"
 htd_load()
 {
   # -- htd box load insert sentinel --
+  local upper=1
 
   default_env CWD "$(pwd)" || debug "Using CWD '$CWD'"
   test -z "$DEBUG" || {
@@ -56,6 +57,8 @@ htd_load()
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
 
   default_env Htd-BuildDir .build
+  test -n "$HTD_BUILDDIR" || exit 121
+
   test -d "$HTD_BUILDDIR" || mkdir -p $HTD_BUILDDIR
   export B=$HTD_BUILDDIR
 
@@ -746,7 +749,7 @@ htd__info()
 
 htd__expand()
 {
-  test -n "$1" || return 1
+  test -n "$1" || error "arguments expected" 1
   for x in $@
   do test -e "$x" && echo "$x"
   done
@@ -9191,7 +9194,7 @@ htd_main()
   local scriptname=htd base=$(basename "$0" .sh) \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
     package_id= \
-    subcmd= failed= subcmd_alias=
+    subcmd= failed= subcmd_alias= upper=
 
   htd_init || exit $?
 
