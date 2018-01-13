@@ -280,7 +280,7 @@ read_file_lines_while()
 
 
 # Change cwd to parent dir with existing local path element (dir/file/..) $1, leave go_to_before var in env.
-go_to_directory()
+go_to_dir_with()
 {
   test -n "$1" || error "go-to-dir: Missing filename arg" 1
 
@@ -296,6 +296,15 @@ go_to_directory()
 
   test -e "$1" || return 1
 }
+
+
+go_to_dir()
+{
+  test -n "$1" || set -- "."
+  test "$1" = "." || cd "$1"
+  # -o "$(pwd -P)" = "$(cd "$1" && pwd -P)" || cd $1
+}
+
 
 # Resolve all symlinks in subtree, return a list with targets
 get_targets()

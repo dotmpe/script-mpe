@@ -49,6 +49,7 @@ init
 
 
 @test "${bin} list" {
+  lib_load projectenv
   require_env couchdb
   run statusdir.sh 
 }

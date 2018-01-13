@@ -12,7 +12,6 @@ test/std-lib-spec.bats
 test/htd-spec.bats
 test/os-lib-spec.bats
 test/diskdoc-spec.bats
-test/meta-spec.bats
 .jjb.yaml
 .jtb.yml
 docker-sh.sh

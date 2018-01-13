@@ -67,7 +67,7 @@ init
 
   run ${bin} --list-formats
   { test_ok_nonempty &&
-    test "${lines[*]}" = "full-id raw todo.txt raw2 grep null id full-sh" 
+    test "${lines[*]}" = "full-id raw todo.txt raw2 grep json-stream null id full-sh" 
   } || stdfail list-formats
 
   for fmt in full-id todo.txt raw raw2 id full-sh

@@ -96,11 +96,6 @@ func=str_replace
   str_lib_load
   run expr_substr "FOO" 1 3
   test ${status} -eq 0 || fail "Should pass after str-load"
-
-  expr=illegal-value 
-  util_init
-  run expr_substr "FOO" 1 3
-  test ${status} -eq 0 || fail "Should pass after util-init"
 }
 
 

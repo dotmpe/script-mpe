@@ -125,9 +125,7 @@ fixed_table()
         printf " $col=$_q$(echo $(echo "$line" | cut $args) | sed 's/[%]/&/g')$_q "
       done
       printf " row_nr=$row_nr "
-      printf " line=$_q$(echo $line | sed 's/[%]/&/g')$_q "
+      printf " line=$_q$(echo "$line" | sed 's/[%]/&/g')$_q "
       echo
   done
 }
-
-

@@ -18,11 +18,13 @@ htd__outputs="passed skipped error failed"
 htd_load()
 {
   # -- htd box load insert sentinel --
-  local upper=1
+
+  # Default-Env upper-case: shell env constants
+  local upper=1 title=
 
   default_env CWD "$(pwd)" || debug "Using CWD '$CWD'"
-  test -z "$DEBUG" || {
-    test "$CWD" = "$(pwd -P)" || warn "current path seems to be aliased ($CWD)"
+  not_trueish "$DEBUG" || {
+    test "$CWD" = "$(pwd -P)" || warn "Current path seems to be aliased ($CWD)"
   }
 
   default_env EDITOR vim || debug "Using EDITOR '$EDITOR'"
@@ -72,9 +74,24 @@ htd_load()
   default_env GitVer-Attr ".version-attributes"
   default_env Ns-Name "bvberkum"
 
-  # Find project dir
+  # TODO: move env vars to lowercase? or ucfirst case?
+  upper=0 title=
+
+  test -n "$stdio_1_type" -o -n "$stdio_2_type" ||
+      error "stdio lib should be initialized" 1
+
+  # Check stdin/out are t(ty), unless f(file) or p(ipe) set interactive mode
+  test "$stdio_0_type" = "t" -a "$stdio_1_type" = "t" &&
+        interactive_io=1 || interactive_io=0
+  default_env Choice-Interactive $interactive_io
+
+  # Assume a file or pipe on stdin means batch-mode and data-on-input available
+  test "$stdio_0_type" = "t" && has_input=0 || has_input=1
+  default_env Batch-Mode $has_input
+
+  # Get project dir and version-control system name
   vc_getscm
-  go_to_directory .$scm && {
+  go_to_dir_with .$scm && {
     # $localpath is the path from the project base-dir to the CWD
     localpath="$(normalize_relative "$go_to_before")"
     # Keep an absolute pathref for project dir too for libs not willing to
@@ -85,7 +102,7 @@ htd_load()
   }
 
   # Find workspace super-project, and then move back to this script's CWD
-  go_to_directory .cllct/local.id && {
+  go_to_dir_with .cllct/local.id && {
 
     # Workspace is a directory of projects, or a super project on its own.
     workspace=$(pwd -P)
@@ -4299,7 +4316,7 @@ htd_als__pcia=push-commit-all
 htd__archive_init()
 {
   test -d "$CABINET_DIR" || {
-    trueish "$interactive" || {
+    trueish "$choice_interactive" || {
       sys_confirm "No local cabinet exists, created it? [yes/no]" || {
         warn "Cabinet folder missing ($CABINET_DIR)" 1
       }
@@ -9122,6 +9139,28 @@ htd__photos()
 }
 
 
+htd_man_1__ispyvenv='Check wether shell env has Python virtualenv, get prefix
+
+Return 1 if false, or prints the virtualenv prefix. On env choice-interactive
+prints a warning or notice to stderr as well.
+'
+htd__ispyvenv()
+{
+  python -c 'import sys
+if not hasattr(sys, "real_prefix"): sys.exit(1)' && {
+        trueish "$choice_interactive" && warn "No Python virtualenv set"
+        return 1
+    } || {
+        trueish "$choice_interactive" && note "Running with Python virutalenv:"
+        python -c 'import sys
+print sys.prefix'
+        return 0
+    }
+}
+htd_als__pyvenv=ispyvenv
+htd_als__venv=ispyvenv
+
+
 # util
 
 htd_rst_doc_create_update()
@@ -9263,17 +9302,6 @@ htd_optsv()
     esac
     shift
   done
-
-  test -n "$choice_interactive" || {
-    # By default look at TERM
-    test -z "$TERM" || {
-      # may want to look at stdio t(ty) vs. f(ile) and p(ipe)
-      # here we trigger by non-tty stderr
-      test "$stdio_2_type" = "t" &&
-        choice_interactive=1 || choice_interactive=0
-      export choice_interactive
-    }
-  }
 }
 
 # FIXME: Pre-bootstrap init

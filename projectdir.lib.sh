@@ -282,7 +282,7 @@ pd_list_upstream()
 pd_finddoc()
 {
   # set/check for Pd for subcmd
-  go_to_directory "$pdoc" || return $?
+  go_to_dir_with "$pdoc" || return $?
   test -e "$pdoc" || error "No projects file $pdoc" 1
 
   pd_root="$(dirname "$pdoc")"

@@ -193,11 +193,11 @@ meta_sh_unload()
 
   clean_failed || unload_ret=$?
 
-  env | grep -i 'meta'
-
   unset subcmd subcmd_pref \
           def_subcmd func_exists func \
-          failed
+          failed base
+
+  env | grep -i 'meta'
 
   return $unload_ret
 }

@@ -18,13 +18,13 @@ from script_mpe.confparse import yaml_load, yaml_safe_dumps
 
 
 
-escape_meta_re = re.compile(mb.escape_meta_re)
-name_var_match_re = re.compile('@(%s)' % mb.simple_varname_re)
+escape_meta_rx = re.compile(mb.escape_meta_r)
+name_var_match_rx = re.compile('@(%s)' % mb.simple_varname_r)
 
 def name_template_opts(name_template):
     "Return place holders in name pattern"
     return [ varname for varname
-            in name_var_match_re.findall(name_template) ]
+            in name_var_match_rx.findall(name_template) ]
 
 vartable_basic = {}
 vartable = {}
@@ -131,7 +131,7 @@ def name_regex(name_template, var_names=None):
     """
     if not var_names:
         var_names = name_template_opts(name_template)
-    name_regexpat = escape_meta_re.sub(r'\\\1', name_template)
+    name_regexpat = escape_meta_rx.sub(r'\\\1', name_template)
     for name in var_names:
         if name not in vartable:
             raise Exception("No such var: %s" % name)
@@ -301,9 +301,9 @@ def c_match_names_vars(name_template_or_tag="@NAMEPART.@EXT"):
                 print("Mismatched '%s'" % line, file= sys.stderr)
             else:
                 mdict = match.groupdict()
-                print("\t".join([)
+                print("\t".join([
                     mdict[var] if var in mdict else '' for var in var_names
-                ])
+                ]))
 
 def c_rename(from_template, to_template, exists=None, stat=None):
     """Read filenames from lines at stdin, extract fields, reformat name

@@ -11,7 +11,7 @@ vc_isgit()
   test -d "$1" || {
     set -- "$(dirname "$1")"
   }
-  ( cd $1 && go_to_directory .git || return 1 )
+  ( go_to_dir "$1" && go_to_dir_with .git || return 1 )
 }
 
 # __vc_gitdir accepts 0 or 1 arguments (i.e., location)
@@ -31,7 +31,7 @@ vc_gitdir()
     echo "$1/.git"
   } || {
     local pwd=$(pwd)
-    test "$1" = "." || cd $1
+    go_to_dir "$1"
     repo=$(git rev-parse --git-dir 2>/dev/null)
     while fnmatch "*/.git/modules*" "$repo"
     do repo="$(dirname "$repo")" ; done
@@ -44,7 +44,7 @@ vc_gitdir()
 vc_hgdir()
 {
   test -d "$1" || error "vc-hgdir expected dir argument: '$1'" 1
-  ( cd "$1" && go_to_directory .hg && echo $(pwd)/.hg || return 1 )
+  ( cd "$1" && go_to_dir_with .hg && echo $(pwd)/.hg || return 1 )
 }
 
 vc_issvn()
@@ -62,9 +62,8 @@ vc_svndir()
 vc_bzrdir()
 {
   test -d "$1" || error "vc-bzrdir expected dir argument: '$1'" 1
-  local cwd="$(pwd)"
   (
-    cd "$1"
+    go_to_dir "$1"
     root=$(bzr info 2> /dev/null | grep 'branch root')
     if [ -n "$root" ]; then
       echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
@@ -135,7 +134,7 @@ vc_gitremote()
   test -n "$2" || error "vc-gitremote expected remote name" 1
   test -z "$3" || error "vc-gitremote surplus arguments" 1
 
-  cd "$(vc_gitdir "$1")"
+  go_to_dir "$(vc_gitdir "$1")"
   git config --get remote.$2.url
 }
 

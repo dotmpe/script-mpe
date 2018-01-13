@@ -19,7 +19,7 @@ setup()
   test_ok_nonempty || stdfail
 }
 
-@test "$bin prefix-names" {
+@test "$bin prefixes names" {
   require_env lsof
   run $BATS_TEST_DESCRIPTION
   test_ok_nonempty || stdfail

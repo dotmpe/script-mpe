@@ -88,12 +88,10 @@ box_instance_main()
 # FIXME: Pre-bootstrap init
 box_instance_init()
 {
-  export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
-
-  . $scriptpath/main.lib.sh load-ext
-  . $scriptpath/util.sh load-ext
-  lib_load std str sys
+  __load=ext . $scriptpath/util.sh
+  lib_load main std str sys stdio
   . $scriptpath/box.init.sh
+  lib_load box
   box_run_sh_test
   # -- box_instance box init sentinel --
 }
@@ -128,8 +126,6 @@ box_instance_load()
 
   hostname=$(hostname -s)
   uname=$(uname)
-
-  str_lib_load
 }
 
 box_instance_unload()

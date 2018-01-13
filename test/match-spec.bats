@@ -110,16 +110,12 @@ word_diff()
 # TODO: test wether named patterns still exists, and notice any out-of-date testcase
 
 @test "$bin lists var names in name pattern" {
-  __load=ext source ./match.sh
-  __load=ext source ./match.lib.sh
-  silent=true
-  match_load
-  run match__name_pattern_opts ./@NAMEPART.@SHA1_CKS.@EXT
+  run match.sh name-pattern-opts ./@NAMEPART.@SHA1_CKS.@EXT
   {
-    test $status -eq 0
-    test "${lines[0]}" = "EXT"
-    test "${lines[1]}" = "NAMEPART"
-    test "${lines[2]}" = "SHA1_CKS"
+    test $status -eq 0 &&
+    test "${lines[0]}" = "EXT" &&
+    test "${lines[1]}" = "NAMEPART" &&
+    test "${lines[2]}" = "SHA1_CKS" &&
     test "$(echo ${lines[@]})" = "EXT NAMEPART SHA1_CKS"
   } || fail "Unexpected output: '${lines[*]}'"
 }

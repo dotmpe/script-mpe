@@ -28,11 +28,10 @@ setup() {
 }
 
 @test "$bin version" {
-  check_skipped_envs travis || skip "$BATS_TEST_DESCRIPTION not running at Travis CI"
   export verbosity=0
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0
-  test "${lines[0]}" = "script-mpe/$version (htd)" ||
+  test "${lines[1]}" = "script-mpe/$version (htd)" ||
     fail "Expected script-mpe/$version" 
 }
 
@@ -104,10 +103,6 @@ setup() {
 
 @test "$bin check-names filenames with table.{vars,names}" {
   run ${bin} check-names 256colors2.pl
-  #test "${lines[1]}" = "# Loaded $HOME/bin/table.vars"
-  #test "${lines[2]}" = "No match for 256colors2.pl"
-  #test "${lines[3]}" = "# (eof) "
-  #test "${#lines[@]}" = "4"
   test $status -eq 0
   run ${bin} check-names pathlist2dot-default-template.py
   test $status -eq 0

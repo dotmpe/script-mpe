@@ -68,6 +68,7 @@ def cmd_db_init(settings):
     SqlBase.metadata.create_all()
     print("Updated schema", settings.dbref)
 
+
 def cmd_db_reset(settings):
     """
     Drop all tables and recreate schema.
@@ -81,6 +82,7 @@ def cmd_db_reset(settings):
     SqlBase.metadata.create_all()
     print("Done", settings.dbref)
 
+
 def cmd_db_stats(settings):
     """
     Print table record stats.
@@ -90,6 +92,7 @@ def cmd_db_stats(settings):
         print(m.__name__+':', sa.query(m).count())
     print("Done", settings.dbref)
 
+
 def cmd_find(settings):
     """
     Default command. TODO: res.ws.Workdir.
@@ -97,6 +100,7 @@ def cmd_find(settings):
     #sa = get_session(settings.dbref)
     project = Workdir.find()
     print(project)
+
 
 def cmd_info(settings):
     sa = Project.get_session('default', settings.dbref)
@@ -153,16 +157,20 @@ def cmd_init(settings):
     projdir.init(create=True)
     log.std("Created project", name, projdir.metadir_id)
 
+
 def cmd_new():
     print('TODO: project-new')
 
+
 def cmd_update():
     print('TODO: project-update')
+
 
 def cmd_list(g):
     sa = Project.get_session('default', g.dbref)
     for p in sa.query(Project).all():
         print(p)
+
 
 def cmd_stats(g):
     """

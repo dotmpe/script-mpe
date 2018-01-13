@@ -669,10 +669,6 @@ run_subcmd()
     error "parsing args" $?
   }
 
-  #echo subcmd=$subcmd subcmd_func_pref=$subcmd_func_pref
-  #echo base=$base
-  #echo local_prefix=$local_prefix
-
   test $c -gt 0 && shift $c ; c=0
   main_debug $*
 

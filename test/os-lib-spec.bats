@@ -56,6 +56,9 @@ init
 
 
 @test "$lib/$base read-file-lines-while header comments" {
+
+  lib_load src
+
   testf=test/var/nix_comments.txt
   r=; read_file_lines_while $testf \
     'echo "$line" | grep -qE "^\s*#.*$"' || r=$?
