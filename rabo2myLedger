@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""
+:Created: 2014-08-24
+"""
+from __future__ import print_function
+
 
 def print_gnu_cash_import_csv(csvfile, description_delimiter='\n', opts=None):
 	reader = csv.reader(open(csvfile), delimiter=',')
@@ -21,7 +26,7 @@ def print_gnu_cash_import_csv(csvfile, description_delimiter='\n', opts=None):
 			assert False, len(row)
 
 		dt = date[:4] +'-'+ date[4:6] +'-'+ date[6:8]
-		d = description_delimiter.join([ 
+		d = description_delimiter.join([
 			d for d in descr, descr2, descr3, descr4 if d.strip()])
 		debet = DC.upper() == 'D'
 		out = dt, debet and amount or "", not debet and amount or "", destacc, destname, d
@@ -55,7 +60,7 @@ def set_account_category(opts, account, category=None):
 			print("Updated", account)
 
 def organize(opts, account=None, category=None):
-	opts._sa = sa = init.get_session(opts.dbref)	
+	opts._sa = sa = init.get_session(opts.dbref)
 	if account:
 		set_account_category(opts, account, category)
 	else:
@@ -74,7 +79,7 @@ def main():
 		'delete-account',
 		'organize',
 		'reset-db',
-#		'ledger-dbname=', 
+#		'ledger-dbname=',
 #		'ledger-db=',
 		'import',
 		'print-mutations-csv',
@@ -85,13 +90,13 @@ def main():
 		'end-balance=',
 	])
 	settings = confparse.Values(dict(
-		start_date=None, end_date=None, 
+		start_date=None, end_date=None,
 		start_balance=None, end_balance=None
 	))
 	settings.dbrefname = '~/.myLedger.sqlite'
 	settings.dbref = 'sqlite:///%s' % os.path.expanduser(settings.dbrefname)
 	log.stderr("Using dbref %r" % settings.dbrefname)
-	settings._sa = sa = init.get_session(settings.dbref)	
+	settings._sa = sa = init.get_session(settings.dbref)
 	# options should be in sequence, one command at the end
 	cmd, cargs = None, ()
 	for o in opts:

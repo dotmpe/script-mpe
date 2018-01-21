@@ -76,11 +76,10 @@ import re
 import hashlib
 from pprint import pformat
 
-import log
-import libcmd_docopt
-from taxus import Node
-from taxus.util import ORMMixin, ScriptMixin, get_session
-from res import js
+from script_mpe import log, libcmd_docopt
+from script_mpe.taxus.core import Node
+from script_mpe.taxus.util import ORMMixin, ScriptMixin, get_session
+from script_mpe.res import js
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, create_engine
 from sqlalchemy.orm import Session, relationship, backref,\

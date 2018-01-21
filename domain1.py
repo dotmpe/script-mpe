@@ -129,13 +129,14 @@ import ruamel.yaml as yaml
 import confparse
 
 
-config = list(confparse.expand_config_path('domain.rc'))
-"Configuration filename."
-assert config, "Missing domain.rc"
-if len(config)> 1:
-	print("XXX multiple rc", config)
-settings = confparse.load_path(config[0])
-"Static, persisted settings."
+def init():
+    config = list(confparse.expand_config_path('domain.rc'))
+    "Configuration filename."
+    assert config, "Missing domain.rc"
+    if len(config)> 1:
+        print("XXX multiple rc", config)
+    settings = confparse.load_path(config[0])
+    "Static, persisted settings."
 
 def reload():
     global settings
@@ -289,22 +290,22 @@ def assert_node(host, mac):
 def _old_2():
     global settings
     if mac not in settings.node:
-        print(""")
+        print("""
 Unknown Interface
 -----------------
 Found an unknown node: %s.
 
 For most boxes, this interface will be permanently connected to one network.
 But if this node is mobile, it may belong to more than one network.
-""" % (mac,)
+""" % (mac,))
         v = raw_input("Mobile? [yN] ")
         if v != None or v.lower() != 'n':
             pass #
-        print(""")
+        print("""
 Enter an ID for this network. If the network ID alreay
 exists, the interface will be listed in the nodes for this network. Otherwise a
 new network is created.
-"""
+""")
 
         network_id = raw_input("Network ID? [a-z][a-z0-9]*")
         if network_id not in settings.network:
@@ -493,10 +494,10 @@ def main():
     """
     global settings
 
-    print(""")
+    print("""
 Local domain check
 ==================
-:Date: %s """ % datetime.datetime.now().isoformat()
+:Date: %s """ % datetime.datetime.now().isoformat())
 
     host, addr, mac = get_current_node()
     print(':Host: `%s <%s>`' % (host, mac))
@@ -521,5 +522,9 @@ Local domain check
     reload()
 
 if __name__ == '__main__':
+    if '-h' in sys.argv[1:]:
+        print(__doc__)
+        sys.exit(1)
+    init()
     reload()
     main()

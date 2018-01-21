@@ -13,14 +13,18 @@ XXX: ~dotmpe/archive/3/cabinet/2010/09/sunset-sundown.txt
 
 """
 from __future__ import print_function
+from datetime import datetime, tzinfo
+
 from icalendar import Calendar, Event
-from datetime import datetime
-from icalendar import UTC # timezone
 
-
+ISO_8601_DATETIME = '%Y-%m-%dT%H:%M:%SZ'
 
 if __name__ == '__main__':
     import sys
+
+    if '-h' in sys.argv[1:]:
+        print(__doc__)
+        sys.exit(1)
 
     # XXX: prolly dont do this but add conversion to CSV
     #colrow_layout = 'month', 'day'
@@ -30,7 +34,9 @@ if __name__ == '__main__':
     IFS=' '
 
     column_width = len(cell_values)
-    now = datetime.now(UTC)
+    #UTC = tzinfo()#.utcoffset()
+    now = datetime.now()#UTC)
+    #ISO_8601_DATETIME)
 
     cal = Calendar()
     #cal.add('prodid', '-//My calendar product//mxm.dk//')

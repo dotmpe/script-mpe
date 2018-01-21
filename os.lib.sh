@@ -22,7 +22,7 @@ pathname()
   shift 1
   for ext in $@
   do
-    name="./$(basename "$name" "$ext")"
+    name="$(basename "$name" "$ext")"
   done
   test -n "$dirname" -a "$dirname" != "." && {
     printf -- "$dirname/$name\n"
@@ -571,4 +571,12 @@ find_num()
       test $c -le $3 || return 1
       echo "$path"
   done
+}
+
+find_broken_symlinks()
+{
+  test -n "$1" || set -- .
+  #test "$uname" = "Darwin" && find=gfind
+  #$find "$1" -type l -xtype l || return $?
+  find "$1" -type l ! -exec test -e {} \; -print
 }

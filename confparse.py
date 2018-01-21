@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """confparse - persisted metadata
 
 This module stores and loads configuration settings. Once loaded,

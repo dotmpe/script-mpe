@@ -28,10 +28,8 @@ import confparse
 import pbPlist
 from pprint import pprint, pformat
 
-import res.js
-import log
-import libcmd_docopt
-import reporter
+from script_mpe.libhtd import *
+
 
 
 def plst_dump(plst):

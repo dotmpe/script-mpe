@@ -216,7 +216,7 @@ def valid_nl_p_number(acc):
     return re.match('^P[0-9]{7,9}$', acc)
 
 def fetch_expense_balance(settings, sa=None):
-    "Return expence accounts and cumulative balance. "
+    "Return expense accounts and cumulative balance. "
     if not sa:
         sa = context.get_session(settings.dbref)
     expenses_acc = Account.all((Account.name.like(ACCOUNT_EXPENSES+'%'),), sa=sa)
@@ -249,10 +249,7 @@ class Simplemovingaverage():
         return average
 
 models = [
-
-#        INode,
-
-#
+        #INode,
         Account,
         Mutation,
         #Simplemovingaverage

@@ -33,19 +33,21 @@ from datetime import datetime
 import os
 import re
 
-import log
-import libcmd_docopt
-import taxus
-from taxus.init import SqlBase, get_session
-from taxus import \
-    Node, Name, Tag, Folder
+from script_mpe.libhtd import *
+
+#import log
+#import libcmd_docopt
+#import taxus
+#from taxus.init import SqlBase, get_session
+#from taxus import \
+#    Node, Name, Tag, Folder
 
 
 metadata = SqlBase.metadata
 
 
 # used by db_sa
-models = [ Name, Tag, Folder ]
+#models = [ Name, Tag, Folder ]
 
 def print_Folder(folder):
     log.std(

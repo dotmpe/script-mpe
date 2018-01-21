@@ -39,11 +39,6 @@ See projectdir-meta for context schema.
 
 from __future__ import print_function
 import os
-#from fnmatch import fnmatch
-#from pprint import pformat
-
-#import uuid
-#from deep_eq import deep_eq
 
 from script_mpe import libcmd_docopt, confparse
 
@@ -203,8 +198,9 @@ def main(ctx):
         return background.query(ctx)
 
     elif 'exit' == ctx.opts.cmds[0]:
-        print(\, file=ctx.err)
-            "No background process at %s" % ctx.opts.flags.address
+        print(
+            "No background process at %s" % ctx.opts.flags.address,
+            file=ctx.err)
         return 1
 
     else:

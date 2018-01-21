@@ -69,6 +69,12 @@ from lib import is_scmdir, remote_proc, datetime_to_timestamp, timestamp_to_date
 import confparse
 
 
+args = sys.argv[1:]
+if '-h' in args:
+    print(__doc__)
+    sys.exit(0)
+
+
 config = confparse.expand_config_path('cllct.rc')
 "Configuration filename."
 

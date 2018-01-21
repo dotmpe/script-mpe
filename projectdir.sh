@@ -996,7 +996,7 @@ pd__test()
 
 
 pd_load__check_all=ybf
-# Check if setup, with remote refs
+pd_man_1__check_all='Check if setup, with remote refs '
 pd__check_all()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
@@ -1010,6 +1010,7 @@ pd__check_all()
 }
 
 
+pd_man_1__check='Run targets for "check" suite of local project'
 pd_load__check=yiIap
 pd_defargs__check=pd_registered_prefix_target_args
 pd__check()

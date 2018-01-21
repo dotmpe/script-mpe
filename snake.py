@@ -1,11 +1,20 @@
 #!/usr/bin/env python
-# SNAKES GAME
-# Use ARROW KEYS to play, SPACE BAR for pausing/resuming and Esc Key for exiting
+"""
+SNAKES GAME
+
+Use ARROW KEYS to play, SPACE BAR for pausing/resuming and Esc Key for exiting
+"""
 
 from __future__ import print_function
 import curses
 from curses import KEY_RIGHT, KEY_LEFT, KEY_UP, KEY_DOWN
 from random import randint
+
+import sys
+args = sys.argv[1:]
+if '-h' in args:
+    print(__doc__)
+    sys.exit(0)
 
 
 curses.initscr()

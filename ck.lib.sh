@@ -61,6 +61,7 @@ ck_read_catalog()
   local l=0 basedir="$(dirname "$1")" fname= name= host= \
       catalog_sh="$(dotname "$(pathname "$1" .yaml .yml)")"
 
+  # TODO: look for document type, version
   eval $( jsotk.py --output-prefix=catalog to-flat-kv "$1" || exit $? ) ||
     return $?
 
@@ -106,18 +107,18 @@ ck_run_catalogs()
 {
   local cwd=$(pwd) dir= catalog= ret=
 
-  find . -iname 'catalog.y*ml' -not -ipath '*/schema/*' | {
+  htd_catalog_list | {
     while read catalog
     do
       note "Found catalog at '$catalog'"
       dir="$(dirname "$catalog")"
       cd "$cwd"
       test -d "$dir" || { warn "Missing dir '$catalog'" ; continue ; }
-      test -f "$catalog" || { warn "Missing file '$catalog'" ; continue ; }
+      test -f "$catalog.yml" || { warn "Missing file '$catalog'" ; continue ; }
 
       cd "$dir"
       {
-        ck_read_catalog "$(basename "$catalog")"
+        ck_read_catalog "$(basename "$catalog.yml")"
         test 0 -eq $? || { ret=1; break; }
       } | {
         while read key ck name ; do
@@ -127,6 +128,7 @@ ck_run_catalogs()
           test -e "$name" || { error "No file '$name'" ; return 1 ; }
           case "$ck" in
 
+              # Special case for some larger SHA-1
               sha2* | sha3* | sha5* )
                     l=$(echo $ck | cut -c4-)
                     echo "$key  $name" | { r=0
@@ -138,6 +140,7 @@ ck_run_catalogs()
                     }
                   ;;
 
+              # Special case for CK (CRC/Size)
               ck )
                     cks=$(echo "$key" | cut -f 1 -d ' ')
                     sz=$(echo "$key" | cut -f 2 -d ' ')
@@ -148,6 +151,7 @@ ck_run_catalogs()
                     echo "$name: ${ck} OK"
                   ;;
 
+              # Default to generic <ck>sum CLI tools
               * )
                     echo "$key  $name" | { r=0
                         ${ck}sum -s -c - || r=$?
@@ -169,13 +173,9 @@ ck_run_catalogs()
       }
     done
   }
-
-  test 0 -eq $? && {
-    cd "$cwd"
-  } || {
-    cd "$cwd"
-    return 1
-  }
+  test 0 -eq $? || ret=1
+  cd "$cwd"
+  test 0 -eq $ret || return 1
 }
 
 ck_run_update()

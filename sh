@@ -1,5 +1,43 @@
 #!/bin/sh
+
 set -e
+
+
+# FIXME: above seems to be skipping
+for x in ./*.py
+do
+  test -x "$x" || continue
+  bn="$(basename "$x" .py | tr -sc 'A-Za-z0-9_\n' '_' )"
+  
+  # Skip ignored
+  test "1" = "$(eval echo \"\$x_$bn\")" && continue
+
+  ./$x -h >/dev/null 2>&1 || {
+    echo "$x $?"
+  }
+  test ! -e "./-h" || {
+    echo "$x"
+    return 1
+  }
+done
+
+
+DEBUG=1 bats test/py-spec.bats
+
+
+bats test/htd-spec.bats
+
+
+for x in test/*-spec.bats; do bats "$x" && continue ; echo "Failed: $? $x" ; done
+exit $?
+
+
+nok=0 keep_going=
+test -z "$DEBUG" || keep_going=1
+get_py_files
+
+
+exit 0
 
 projectdir.sh run :git:status
 #projectdir.sh run :bats:specs

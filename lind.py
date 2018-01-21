@@ -1,12 +1,12 @@
+#!/usr/bin/env python
 """
 :Created: 2012-05-27
 """
 import os, sys, re, anydbm
 
-import txs
-import log
-from libname import Namespace, Name
-from libcmdng import Targets, Arguments, Keywords, Options,\
+from script_mpe import txs, log
+from script_mpe.libname import Namespace, Name
+from script_mpe.libcmdng import Targets, Arguments, Keywords, Options,\
     Target
 
 
@@ -63,5 +63,10 @@ def lnd_tag(opts=None, sa=None, ur=None, pwd=None):
 
 
 if __name__ == '__main__':
-    from libcmdng import TargetResolver
+    args = sys.argv[1:]
+    if '-h' in args:
+        print(__doc__)
+        sys.exit(0)
+
+    from script_mpe.libcmdng import TargetResolver
     TargetResolver().main(['lnd:tag'])

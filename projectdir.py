@@ -53,16 +53,16 @@ import os
 from itertools import chain
 from pprint import pprint
 
-from script_mpe import libcmd_docopt, log, taxus, res, lib, confparse, db_sa
-
-from libcmd_docopt import cmd_help
-from taxus import Taxus, v0, ScriptMixin
-from taxus.init import SqlBase, get_session
-from res import Workdir, Repo, Homedir
-from res.dt import modified_before, older_than
-from taxus.v0 import Node, Topic, Host, Project, VersionControl
-from pdlib import *
-from jsotk_lib import deep_update
+from script_mpe import libcmd_docopt, log, taxus, res, lib, confparse
+from script_mpe.libcmd_docopt import cmd_help
+from script_mpe.taxus import Taxus, v0, ScriptMixin
+from script_mpe.taxus.init import SqlBase, get_session
+from script_mpe.res import Workdir, Repo, Homedir
+from script_mpe.res.dt import modified_before, older_than
+from script_mpe.taxus.v0 import Node, Topic, Host, Project, VersionControl
+from script_mpe.libhtd import *
+#from script_mpe.pdlib import *
+from script_mpe.jsotk_lib import deep_update
 
 
 ### A few more globals

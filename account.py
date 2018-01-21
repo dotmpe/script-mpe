@@ -51,15 +51,9 @@ import datetime
 from UserDict import UserDict
 from sqlalchemy import MetaData
 
-import libcmd_docopt
-import log
-from libcmd_docopt import cmd_help
-from taxus import Taxus, ScriptMixin
-from res import Homedir, Workdir, Repo, rabomut, ledger
+from script_mpe.libhtd import *
+from script_mpe.taxus import ledger as model
 
-# XXX: import entire schema
-import taxus.v0
-import taxus.ledger as model
 
 
 
@@ -136,7 +130,7 @@ class Ledgers(Taxus):
 
 ### A few more globals
 
-ctx = Ledgers(version='taxus.ledger')
+ctx = Ledgers(version='script_mpe.taxus.ledger')
 
 cmd_default_settings = dict(
         quiet=False,

@@ -27,7 +27,7 @@ Options:
     -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
-"""
+""" % __version__
 import os
 from pprint import pformat, pprint
 

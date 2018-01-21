@@ -1,7 +1,7 @@
-#!/bin/env python
-#
-# An output colorizer for syslog.
-#
+#!/usr/bin/env python
+"""
+An output colorizer for syslog.
+"""
 from __future__ import print_function
 import sys
 import os
@@ -233,5 +233,9 @@ def test():
 
 if __name__ == '__main__':
     import sys
+    args = sys.argv[1:]
+    if '-h' in args:
+        print(__doc__)
+        sys.exit(0)
     from script_mpe.taxus import out
     test()

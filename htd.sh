@@ -427,7 +427,13 @@ htd_als__update=update-checksums
 #htd_als__check=pd-check
 htd_als__doctor=check
 
-htd_man_1__check='Run diagnostics from CWD, finish with file-check'
+htd_man_1__check='Run diagnostics for CWD and system.
+
+
+Check file names
+Check file contents (fsck, cksum)
+
+'
 htd_run__check=i
 htd__check()
 {
@@ -469,15 +475,6 @@ htd__fsck()
   }
 }
 htd_als__file_check=fsck
-
-
-htd_man_1__fsck_catalog='File-check entries from catalog with checksums'
-htd__fsck_catalog()
-{
-  test -n "$1" -a -e "$1" || error "catalog filename arguments expected" 1
-  ck_read_catalog "$1"
-}
-
 
 htd_man_1__make='Go to HTDIR, make target arguments'
 htd__make()
@@ -7686,8 +7683,7 @@ htd__count_files()
 htd_man_1__find_broken_symlinks='Find broken symlinks'
 htd__find_broken_symlinks()
 {
-  test "$uname" = "Darwin" && find=gfind
-  $find . -type l -xtype l || return $?
+  find_broken_symlinks "$@"
 }
 
 htd_man_1__find_skip_broken_symlinks='Find except broken symlinks'
@@ -8297,10 +8293,10 @@ htd_run__list_functions=iAO
 htd_grp__list_functions=box-src
 htd__list_functions()
 {
-  test -z "$2" || {
-    # Turn on scriptname output prefix if more than one file is given
-    var_isset list_functions_scriptname || list_functions_scriptname=1
-  }
+  #test -z "$2" || {
+  #  # Turn on scriptname output prefix if more than one file is given
+  #  var_isset list_functions_scriptname || list_functions_scriptname=1
+  #}
   list_functions "$@"
 }
 htd_als__list_func=list-functions
@@ -9186,6 +9182,28 @@ htd_als__pyvenv=ispyvenv
 htd_als__venv=ispyvenv
 
 
+
+htd_man_1__catalog='Build file manifests
+
+  fsck CATALOG
+    verify file checksums
+  validate CATALOG
+    verify catalog document schema
+  list
+    find catalog documents
+'
+htd__catalog()
+{
+  upper=0 mkvid "$1" ; shift
+  htd_catalog_$vid "$@" || return $?
+}
+
+htd_man_1__catalog_list='Find local catalogs'
+htd_als__catalogs='catalog list'
+htd_man_1__catalog_fsck='File-check entries from catalog with checksums'
+htd_als__fsck_catalog='catalog fsck'
+
+
 # -- htd box insert sentinel --
 
 
@@ -9345,7 +9363,8 @@ htd_init()
   box_run_sh_test
   lib_load htd meta list
   lib_load box date doc table disk remote ignores package service archive \
-      prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck net
+      prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck net \
+      catalog
   case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh
   disk_run

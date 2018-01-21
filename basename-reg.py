@@ -41,10 +41,7 @@ import inspect
 
 import ruamel.yaml as yaml
 
-import log
-import lib
-import confparse
-import libcmd
+from script_mpe.libhtd import *
 
 
 TODO_REG = {

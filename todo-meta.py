@@ -66,13 +66,13 @@ def cmd_import(opts):
         file, line = line[:p], line[p+1:]
         p = line.index(':')
         linenr, line = line[:p], line[p+1:]
-        print(pformat(dict()
+        print(pformat(dict(
            basedir=basedir,
            local_ctx_id=local_ctx_id,
            file=file,
            linenr=linenr,
            line=line
-        ))
+        )))
 
 
 
@@ -100,5 +100,6 @@ def get_version():
 
 if __name__ == '__main__':
     import sys
-    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(
+            __description__ + '\n' + __usage__, version=get_version())
     sys.exit(main(opts))

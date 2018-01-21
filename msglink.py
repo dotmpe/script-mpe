@@ -15,37 +15,42 @@ import re
 
 path = '~/mail/'
 
-grep = sys.argv[1]
-if len(sys.argv)>2:
-    path += sys.argv[2]
+if __name__ == '__main__':
+    if '-h' in sys.argv[1:]:
+        print(__doc__)
+        sys.exit(0)
 
-stdout = os.popen('grep -rl "%s" %s' % (grep, path)) # recursive and filenames only
+    grep = sys.argv[1]
+    if len(sys.argv)>2:
+        path += sys.argv[2]
 
-lines = stdout.readlines()
+    stdout = os.popen('grep -rl "%s" %s' % (grep, path)) # recursive and filenames only
 
-if len(lines) == 0:
-    sys.exit("no results for '%s'" % grep)
+    lines = stdout.readlines()
 
-for line in lines:
+    if len(lines) == 0:
+        sys.exit("no results for '%s'" % grep)
 
-    path = line.strip()
+    for line in lines:
 
-    msg = open(path, 'U').read()
-    fn = ''
-    subjmatch = re.search("^Subject\:\ (.*)$", msg, re.MULTILINE)
-    datelmatch = re.search("^Date\:\ (.*)$", msg, re.MULTILINE)
-    if not datelmatch:
-        print("Could not find date line in %s for '%s'" % (path, grep))
-    else:
-        fn += datelmatch.group(1) + ' -'
-    if not subjmatch:
-        print("Could not find subject line in %s for '%s'" % (path, grep))
-    else:
-        fn += ' ' + subjmatch.group(1)
+        path = line.strip()
 
-    nr = 0
-    while os.path.exists(fn):
-        fn = subjmatch.group(1) + '.%u' % nr
-        nr += 1
-    print(" * ('%s', <%s>) msglink> <./%s>" % (grep, path, fn))
-    os.symlink(path, './%s' % fn)
+        msg = open(path, 'U').read()
+        fn = ''
+        subjmatch = re.search("^Subject\:\ (.*)$", msg, re.MULTILINE)
+        datelmatch = re.search("^Date\:\ (.*)$", msg, re.MULTILINE)
+        if not datelmatch:
+            print("Could not find date line in %s for '%s'" % (path, grep))
+        else:
+            fn += datelmatch.group(1) + ' -'
+        if not subjmatch:
+            print("Could not find subject line in %s for '%s'" % (path, grep))
+        else:
+            fn += ' ' + subjmatch.group(1)
+
+        nr = 0
+        while os.path.exists(fn):
+            fn = subjmatch.group(1) + '.%u' % nr
+            nr += 1
+        print(" * ('%s', <%s>) msglink> <./%s>" % (grep, path, fn))
+        os.symlink(path, './%s' % fn)

@@ -31,9 +31,3 @@ import htdocs
 #from radical import Radical
 #from finfo import FileInfoApp
 
-
-#namespace = 'script-mpe', 'http://name.wtwta.nl/#/rsr'
-
-if __name__ == '__main__':
-
-    TargetResolver().main(['cmd:options'])

@@ -36,3 +36,6 @@ Gemfile.lock
 .htd
 Makefile
 *.class
+schema/*.json
+schema/*.n3
+.cdn.sh

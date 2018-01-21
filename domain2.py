@@ -73,18 +73,12 @@ from rsrlib.plug.net import get_hostname, get_gateway, get_default_route
 #def get_hostname():
 #    return socket.gethostname().split('.').pop(0)
 
-import log
-import libcmd_docopt
-import res
-import domain
-import domain as domainmod
-
-from taxus import Node, Host, Locator, ScriptMixin
-from taxus.init import SqlBase, get_session
+from script_mpe.libhtd import *
+from script_mpe import domain1
 
 
 
-models = [ Node, Host, Locator ]
+#models = [ Node, Host, Locator ]
 
 
 hostIdFile = os.path.expanduser('~/.cllct/host.id')
@@ -246,7 +240,7 @@ def cmd_update(settings):
 
     # update host IP's, and update network
     updated = False
-    for iface, mac, spec in domainmod.inet_ifaces():
+    for iface, mac, spec in domain1.inet_ifaces():
         ip = spec['inet']['ip']
         if mac not in settings.interfaces:
             log.err("Missing iface type for HW-addr '%s'" % mac)

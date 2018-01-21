@@ -1,4 +1,3 @@
-
 from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, \
         Index, Integer, LargeBinary, String, Table, Text, text
 
@@ -815,5 +814,3 @@ class Workflow(SqlBase):
     type = Column(String(30))
     field_name = Column(String(30))
     rule = Column(String(30))
-
-

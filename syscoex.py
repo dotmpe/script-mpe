@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 
 System Complexity
@@ -64,7 +65,7 @@ def main( ):
     print('='*79)
     data.hostid = os.popen2( 'hostid' )[ 1 ].read().strip()
     data.date = datetime.datetime.now().isoformat()
-    print('Date:', data.date#.isoformat())
+    print('Date:', data.date)
     print('Host-ID:', data.hostid)
     fssttat = os.statvfs( os.sep )
     print('Filesystem:', os.sep)

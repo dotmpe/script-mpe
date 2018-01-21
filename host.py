@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-from __future__ import print_function
 """
 :Created: 2015-06-29
 
 """
+from __future__ import print_function
 
 __description__ = 'host -'
 __version__ = '0.0.4-dev' # script-mpe
@@ -37,21 +37,21 @@ __doc__ += __usage__
 import os
 from datetime import datetime
 
-import log
-import libcmd_docopt
-from libcmd_docopt import cmd_help
-from taxus import Node, Host, ScriptMixin
-from domain2 import init_host
+from script_mpe import log
+from script_mpe import libcmd_docopt
+from script_mpe.libcmd_docopt import cmd_help
+from script_mpe.taxus import core, net, ScriptMixin
+from script_mpe.domain2 import init_host
 
 
 
 def cmd_init(settings):
-    sa = Host.get_session('default', settings.dbref)
+    sa = net.Host.get_session('default', settings.dbref)
     host_dict = init_host(settings)
     name = host_dict['name']
-    record = Host.fetch(filters=(Host.name == name,), sa=sa, exists=False)
+    record = net.Host.fetch(filters=(net.Host.name == name,), sa=sa, exists=False)
     if not record:
-        host = Host(name=name, date_added=datetime.now(),
+        host = net.Host(name=name, date_added=datetime.now(),
                 date_updated=datetime.now())
         sa.add(host)
         sa.commit()
@@ -61,16 +61,16 @@ def cmd_init(settings):
     print('host at', host_dict.path(), ':', host)
 
 def cmd_list(settings):
-    sa = Host.get_session('default', settings.dbref)
-    for h in sa.query(Host).all():
+    sa = net.Host.get_session('default', settings.dbref)
+    for h in sa.query(net.Host).all():
         print(h)
 
 def cmd_test_init(settings):
-    sa = Host.get_session('default', settings.dbref)
+    sa = net.Host.get_session('default', settings.dbref)
     host_dict = init_host(settings)
     name = host_dict['name']
-    print(Host.fetch(filters=(Host.name == name,), sa=sa, exists=False))
-    #print Host.init(sa=sa)
+    print(net.Host.fetch(filters=(net.Host.name == name,), sa=sa, exists=False))
+    #print net.Host.init(sa=sa)
 
 
 ### Transform cmd_ function names to nested dict

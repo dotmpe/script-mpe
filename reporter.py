@@ -259,6 +259,3 @@ class stdout(object):
                 self.handler = args[0]
             else:
                 self.handler(*args)
-
-
-

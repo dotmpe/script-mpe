@@ -10,7 +10,9 @@ License: Python-like
 Requires: Python 2.3, dot, standard Unix tools
 """
 
-import os,itertools
+import os, itertools
+from docutils.nodes import *
+
 
 PSVIEWER='gv'     # you may change these with
 PNGVIEWER='kview' # your preferred viewers
@@ -98,7 +100,6 @@ def testHierarchy(**options):
     class A(B,C): pass
     return MROgraph(A,M,**options)
 
-from doclibcmd_docopts.nodes import *
 def main():
     class Node_(Node, object): pass
     docnodes = (
@@ -120,6 +121,11 @@ def main():
     MROgraph(*docnodes)
 
 if __name__=="__main__":
+    args = sys.argv[1:]
+    if '-h' in args:
+        print(__doc__)
+        sys.exit(0)
+
     testHierarchy() # generates a postscript diagram of A and M hierarchies
     #main()
 

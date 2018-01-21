@@ -5,37 +5,47 @@ Give a file count for every directory below current path.
 from __future__ import print_function
 import os, sys
 
-dir_length = {}
 
-for root, dirs, files in os.walk('.'):
+def main(pwd):
+    dir_length = {}
 
-    count = len( dirs + files )
+    for root, dirs, files in os.walk(pwd):
 
-    assert root not in dir_length
-    dir_length[root] = count
+        count = len( dirs + files )
 
-def upward(path):
-    parts = path.split(os.sep)
-    while parts:
-        parts.pop()
-        if parts:
-            yield os.sep.join(parts)
+        assert root not in dir_length
+        dir_length[root] = count
 
-for path in dir_length.keys():
-    for sup in upward(path):
-        if sup not in dir_length:
-            dir_length[sup] = 0
-        dir_length[sup] += dir_length[path]
+    def upward(path):
+        parts = path.split(os.sep)
+        while parts:
+            parts.pop()
+            if parts:
+                yield os.sep.join(parts)
 
-sorted = {}
-for root in dir_length.keys():
-    count = dir_length[root]
-    if count not in sorted:
-        sorted[count] = []
-    sorted[count].append(root)
+    for path in dir_length.keys():
+        for sup in upward(path):
+            if sup not in dir_length:
+                dir_length[sup] = 0
+            dir_length[sup] += dir_length[path]
 
-values = sorted.keys()
-values.sort()
-width = len(str(values[-1])) + 1
-for count in values:
-    print(("%#0"+str(width)+"s\t%s") % (count, ("\n"+(width*' ')+"\t").join(sorted[count])))
+    sorted = {}
+    for root in dir_length.keys():
+        count = dir_length[root]
+        if count not in sorted:
+            sorted[count] = []
+        sorted[count].append(root)
+
+    values = sorted.keys()
+    values.sort()
+    width = len(str(values[-1])) + 1
+    for count in values:
+        print(("%#0"+str(width)+"s\t%s") % (count, ("\n"+(width*' ')+"\t").join(sorted[count])))
+
+
+if __name__ == '__main__':
+    args = sys.argv[1:]
+    if '-h' in args:
+        print(__doc__)
+        sys.exit(0)
+    main( sys.argv[1:] or '.' )

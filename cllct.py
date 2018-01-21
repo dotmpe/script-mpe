@@ -39,7 +39,7 @@ import re
 from glob import glob
 
 from script_mpe.libhtd import *
-from taxus.v0 import \
+from script_mpe.taxus.v0 import \
     Node, \
     ID, \
     Space

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 :Created: 2011-06-10
 
@@ -985,12 +984,3 @@ class StackedCommand(SimpleCommand):
         if self.rc:
             confparse.yaml_dump(self.rc.copy(), sys.stdout)
         return False
-
-
-if __name__ == '__main__':
-    if StackedCommand.NAME == 'libcmd_stacked':
-        StackedCommand.NAME = 'libcmd'
-        StackedCommand.DEFAULT_RC = 'libcmdrc'
-        StackedCommand.main()
-    else:
-        SimpleCommand.main()

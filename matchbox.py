@@ -5,6 +5,21 @@ matchbox - a (file)naming libcmd_docoptity based on regular expressions.
 A filename cleaning and reformatting libcmd_docoptity. See matchbox.rst.
 """
 from __future__ import print_function
+
+__version__ = '0.0.4-dev' # script-mpe
+__usage__ = """
+
+Usage:
+  matchbox.py -h|--help|help
+  matchbox.py --version
+
+Options:
+    -h --help     Show this usage description.
+                  For a command and argument description use the command 'help'.
+    --version     Show version (%s).
+
+""" % ( __version__ )
+
 import inspect
 import sys
 import os
@@ -12,6 +27,7 @@ import re
 from pprint import pformat
 #from optparse import Values
 
+from script_mpe import libcmd_docopt
 from script_mpe.res import js, mb
 from script_mpe.confparse import Values
 from script_mpe.confparse import yaml_load, yaml_safe_dumps
@@ -458,12 +474,32 @@ writers = dict(
     )
 
 
-### Main
+
+### Transform cmd_ function names to nested dict
+
+commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
+commands['help'] = libcmd_docopt.cmd_help
+
+
+### Util functions to run above functions from cmdline
+
+def main(opts):
+    global commands
+    settings = opts.flags
+    return libcmd_docopt.run_commands(commands, settings, opts)
+
+def get_version():
+    global __version__
+    return '%s' % __version__
+
 
 if __name__ == '__main__':
-    # XXX: use docopt for arg parsing maybe later, keep simple for now.
     argv = sys.argv
     scriptname = argv.pop(0)
+    opts = libcmd_docopt.get_opts(__doc__+__usage__, version=get_version(), argv=argv)
+    sys.exit(main(opts))
+
+    # XXX: use docopt for arg parsing maybe later, keep simple for now.
     if not len(argv):
         cmdname = 'c_show'
     else:

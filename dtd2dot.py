@@ -26,6 +26,10 @@ from __future__ import print_function
 
 import os, sys, re
 
+__usage__ = """
+Usage: %(scriptname)s [files | ... ] [-h]
+""" % dict(scriptname=__file__)
+
 
 EN = re.compile('^..ENTITY +% +(\S+)\s+([^>]+).$', re.M)
 EL = re.compile('^..ELEMENT +(\S+) +([^>]+).', re.M)
@@ -136,7 +140,7 @@ def resolve(spec):
     if spec in nodes:
         yield nodes[spec]
     elif EN_REF.match(spec):
-        print(>>sys.stderr,"Unresolved entity: %s" % spec)
+        print("Unresolved entity: %s" % spec, file=sys.stderr)
         n = getgroup()
         nodes[spec] = n
         print('\t%s [label="%s"] ;' % (n,spec))
@@ -194,7 +198,11 @@ def define(name, spec):
         print('\t'+ nodes["%%%s;" % name], '->', subnode)
     #print "\t%s [label=\"%s\"] ;" % (name, name+': '+spec.strip('" '))
 
+
 if __name__ == '__main__':
+    if '-h' in sys.argv[1:]:
+        print(__usage__)
+        sys.exit(1)
 
     fn = sys.argv[-1]
 #'/src/python-doclibcmd_docopts/latest/trunk/doclibcmd_docopts/docs/ref/doclibcmd_docopts.dtd'
@@ -211,7 +219,7 @@ if __name__ == '__main__':
     edge[fontname="Bitstream Vera Sans Mono",color="#4e9a06"];
     ranksep=1.5;
     ranksep=0.5;
-    """ % fn
+    """ % fn)
     #parser = DTDParser()
 
     source = open(fn)
@@ -228,6 +236,6 @@ if __name__ == '__main__':
     #from pprint import pformat
     #print pformat(nodes)
 
-    print(""")
+    print("""
 }
-    """
+    """)

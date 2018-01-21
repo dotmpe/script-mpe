@@ -77,7 +77,7 @@ Schema
 from __future__ import print_function
 
 __description__ = "finfo - walk paths, using ignore dotfiles, get attributes"
-__version__ = '0.0.2-dev' # script-mpe
+__version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.finfo.sqlite'
 __usage__ = """
 Usage:
@@ -134,32 +134,8 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
 
-import confparse
-import lib
-import libcmd
-import log
-import res.fs
-import res.metafile
-import res.persistence
-import rsr
-import taxus.core
-import taxus.checksum
-import taxus.fs
-import taxus.generic
-import taxus.htd
-import taxus.media
-import taxus.model
-import taxus.net
-import taxus.semweb
-import taxus.web
-import libcmd_docopt
+from script_mpe.libhtd import *
 
-from taxus.core import Node, Name
-from taxus.media import Mediatype, MediatypeParameter, Genre, Mediameta
-from taxus.fs import INode, Dir, File, Mount
-from taxus.init import SqlBase, get_session
-from taxus.htd import TNode
-#from txs import Txs
 
 models = [
         Mediatype,

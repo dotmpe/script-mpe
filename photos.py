@@ -62,9 +62,10 @@ import re
 import hashlib
 
 from script_mpe.libhtd import *
+from script_mpe.taxus import core, img
 
 
-models = [ ID, Tag, Topic, Photo ]
+models = [ core.ID, core.Tag, core.Topic, img.Photo ]
 
 ctx = Taxus(version='photos')
 

@@ -27,3 +27,6 @@ shaarli-client
 pydelicious
 cherrypy
 nltk
+icalendar
+pydot
+bencode

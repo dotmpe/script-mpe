@@ -4,8 +4,8 @@ load helper
 
 test_import()
 {
-  python -c "import res"
-  python -c "import taxus"
+  python -c "from script_mpe import res"
+  python -c "from script_mpe import taxus"
 }
 
 @test "test_import" {
@@ -38,4 +38,3 @@ test_import_2()
   $BATS_TEST_DESCRIPTION 1>$tmpf 2>&1
   test -s "$tmpf" && fail "If this fails expected above to fail too. Check bats. " || noop
 }
-

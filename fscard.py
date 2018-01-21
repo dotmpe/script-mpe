@@ -26,9 +26,12 @@ def key( obj ):
 
 
 if __name__ == '__main__':
-
     argv = list( sys.argv )
     script_name = argv.pop(0)
+    if '-h' in argv:
+        print(__doc__)
+        sys.exit()
+
     size_threshold = 14 * 1024 ** 6
 
     if argv: path = argv.pop()

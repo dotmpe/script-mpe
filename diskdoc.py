@@ -82,10 +82,11 @@ from docopt import docopt
 import uuid
 from deep_eq import deep_eq
 
-from script_mpe import libcmd_docopt, confparse, taxus
-from script_mpe.res import js, Diskdoc, Homedir
-from script_mpe.confparse import yaml_load, yaml_safe_dumps
-from taxus import Taxus, v0
+from script_mpe.libhtd import *
+#from script_mpe import libcmd_docopt, confparse, taxus
+#from script_mpe.res import js, Diskdoc, Homedir
+#from script_mpe.confparse import yaml_load, yaml_safe_dumps
+#from taxus import Taxus, v0
 
 
 
@@ -405,6 +406,8 @@ for k, h in locals().items():
 #commands['help'] = libcmd_docopt.cmd_help
 
 
+### Service global(s) and setup/teardown handlers
+
 # XXX: no sessions
 diskdata = None
 def prerun(ctx, cmdline):
@@ -420,6 +423,8 @@ def prerun(ctx, cmdline):
 
     return []
 
+
+### Util functions to run above functions from cmdline
 
 def defaults(opts, init={}):
     global cmd_default_settings, ctx
@@ -466,6 +471,7 @@ def main(ctx):
 
 def get_version():
     return 'diskdoc/%s' % __version__
+
 
 
 if __name__ == '__main__':

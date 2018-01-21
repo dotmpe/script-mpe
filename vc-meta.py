@@ -30,10 +30,11 @@ import re
 
 from docopt import docopt
 
-from . import libcmd
-from . import libcmd_docopt
-from . import rsr
-from . import log
+from script_mpe import libcmd
+from script_mpe import libcmd_docopt
+from script_mpe import rsr
+from script_mpe import log
+from script_mpe.taxus import core
 
 
 class VC(rsr.Rsr):
@@ -47,7 +48,7 @@ class VC(rsr.Rsr):
     """
 
     NAME = os.path.splitext(os.path.basename(__file__))[0]
-    assert NAME == 'vc'
+    # XXXX assert NAME == 'vc'
     DEFAULT_CONFIG_KEY = NAME
     DEPENDS = {
         'vc_repos': [ 'rsr_session' ],
@@ -97,7 +98,7 @@ class VC(rsr.Rsr):
 
 ###
 
-models = [ Node, Topic ]
+models = [ core.Node, core.Topic ]
 
 def cmd_find(settings):
     sa = get_session(settings.dbref)

@@ -19,6 +19,7 @@ Usage:
   txt.py [-v... options] urllist LIST
   txt.py [-v... options] doctree [LIST] [DIR]
   txt.py [-v... options] [ LIST | todolist [LIST] ]
+  txt.py [-v... options] ( fold OUTLINE [LIST] | unfold LIST [OUTLINE] )
   txt.py [-v... options] memdebug
   txt.py -h|--help
   txt.py help [CMD]
@@ -77,6 +78,12 @@ def cmd_todolist(LIST, g):
 def cmd_doctree(LIST, DIR, g):
 
     """
+    Go over files in DIR, looking for all document files.
+
+    Create or update catalog entries for found files. Entries are synced
+    with the workspace catalog, or a new one is created.
+    or TODO: the given LIST.
+
     TODO: assemble cross-format index: docs, python modules, etc.
     """
 
@@ -85,7 +92,6 @@ def cmd_doctree(LIST, DIR, g):
     if LIST and os.path.isdir(LIST):
         DIR = LIST
         LIST = None
-    #LIST = LIST or '-'
     if not DIR: DIR = ['.']
 
     docid = ctx.ws.id_path + '.catalog'
@@ -148,6 +154,18 @@ def cmd_doctree(LIST, DIR, g):
 
     #catalog.store(ctx.docs)
     ctx.flush()
+
+
+### Box fold outline
+
+def cmd_fold(OUTLINE, LIST, g):
+    """
+    Parse nested plain text format.
+    """
+    pass
+
+def cmd_unfold(LIST, OUTLINE, g):
+    pass
 
 
 ### Transform cmd_ function names to nested dict

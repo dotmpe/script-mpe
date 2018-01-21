@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-"""
+"""volume.py
+
 """
 from __future__ import print_function
 __description__ = "volume - "
-__version__ = '0.0.2-dev' # script-mpe
+__version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.volume.sqlite'
 __usage__ = """
 Usage:
@@ -28,12 +29,12 @@ import os
 import sys
 from pprint import pprint
 
-import lib
-import confparse
-import taxus
-import libcmd_docopt
-from libname import Namespace, Name
-from libcmdng import Targets, Arguments, Keywords, Options,\
+from script_mpe import lib
+from script_mpe import confparse
+from script_mpe import taxus
+from script_mpe import libcmd_docopt
+from script_mpe.libname import Namespace, Name
+from script_mpe.libcmdng import Targets, Arguments, Keywords, Options,\
     Target, TargetResolver
 
 
@@ -65,7 +66,7 @@ def find_volume(opts=None, pwd=None):
 
 def oldmain():
     # XXX: cleanup all oldmain
-    import txs, cmdline
+    from script_mpe import txs, cmdline
     print(TargetResolver().main(['vol:find-volume']))
     #TargetResolver().main(['cmd:options'])
 
@@ -101,5 +102,11 @@ def get_version():
 
 
 if __name__ == '__main__':
+    import sys
+    args = sys.argv[1:]
+    if '-h' in args:
+            print(__doc__)
+            sys.exit(0)
+
     oldmain()
     #sys.exit(main(sys.argv))

@@ -10,13 +10,13 @@ from pprint import pformat
 
 import zope
 
-import confparse
-import libcmd
-import res
-import res.js
-import res.primitive
+from script_mpe import confparse
+from script_mpe import libcmd
+from script_mpe import res
+from script_mpe.res import js
+from script_mpe.res import primitive
+from script_mpe.archive import delimiter, illegal
 
-from archive import delimiter, illegal
 
 RE_YEAR = re.compile(r'\b([0-9]{4})\b')
 RE_MONTH = re.compile(r'\b([0-9]{2})\b')

@@ -46,14 +46,14 @@ import os
 import re
 from datetime import datetime
 
-import rsr
-import libcmd_docopt
-import log
-from confparse import yaml_load, yaml_dump, yaml_dumps
-from libcmd_docopt import cmd_help
-from taxus import ScriptMixin, SqlBase, get_session
-from taxus.v0 import Node, Topic, Host, Project, VersionControl
-from res import Workspace, Workdir, Repo
+from script_mpe import rsr
+from script_mpe import libcmd_docopt
+from script_mpe import log
+from script_mpe.confparse import yaml_load, yaml_dump, yaml_dumps
+from script_mpe.libcmd_docopt import cmd_help
+from script_mpe.taxus import ScriptMixin, SqlBase, get_session
+from script_mpe.taxus.v0 import Node, Topic, Host, Project, VersionControl
+from script_mpe.res import Workspace, Workdir, Repo
 
 
 models = [ Project, VersionControl ]

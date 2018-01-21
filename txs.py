@@ -13,35 +13,16 @@ from datetime import datetime
 
 from sqlalchemy.orm.exc import NoResultFound
 
-import confparse
-import lib
-import libcmd
-import log
-import res
-from libname import Namespace#, Name
-from libcmdng import Targets, Arguments, Keywords, Options,\
+from script_mpe.libhtd import *
+from script_mpe.libname import Namespace#, Name
+from script_mpe.libcmdng import Targets, Arguments, Keywords, Options,\
     Target, TargetResolver
-import taxus.checksum
-import taxus.core
-import taxus.fs
-import taxus.generic
-import taxus.media
-import taxus.model
-import taxus.net
-import taxus.semweb
-import taxus.web
-
-from taxus import SessionMixin
-from taxus.v0 import \
+from script_mpe.taxus.v0 import \
         Node, \
         INode, Dir, \
         Name, Tag, \
         Host, Locator
-from taxus.util import current_hostname
-#from taxus.iface import gsm, IReferenceResolver
 
-
-import cmdline2
 
 
 class LocalPathResolver(object):
@@ -283,4 +264,9 @@ def oldmain():
     TargetResolver().main(['cmd:options'])
 
 if __name__ == '__main__':
+    import sys
+    args = sys.argv[1:]
+    if '-h' in args:
+        print(__doc__)
+        sys.exit(0)
     oldmain()

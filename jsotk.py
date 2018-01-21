@@ -524,6 +524,8 @@ for k, h in locals().items():
     handlers[k[2:].replace('_', '-')] = h
 
 
+### Service global(s) and setup/teardown handlers
+
 doc_cache = None
 def prerun(ctx, cmdline):
     global doc_cache
@@ -586,10 +588,8 @@ if __name__ == '__main__':
         opts=libcmd_docopt.get_opts(__usage__)
     ))
     ctx['in'] = ctx['inp']
-    if ctx.opts.flags.version:
-        ctx.opts.cmds = ['version']
-    if not ctx.opts.cmds:
-        ctx.opts.cmds = ['dump']
+    if ctx.opts.flags.version: ctx.opts.cmds = ['version']
+    if not ctx.opts.cmds: ctx.opts.cmds = ['dump']
     if ctx.opts.flags.no_detect_format:
         ctx.opts.flags.detect_format = False
     else:

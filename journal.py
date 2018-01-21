@@ -29,17 +29,15 @@ __doc__ += __usage__
 
 import os
 
-import libcmd_docopt
-import res.jrnl
-
-from taxus.init import SqlBase, get_session
-from taxus.core import Node, Topic
-from res import Journal
-
 import couchdb
 
+from script_mpe import libcmd_docopt
+from script_mpe.res import jrnl, Journal
+from script_mpe.taxus.init import SqlBase, get_session
+from script_mpe.taxus.core import Node, Topic
 
-models = [ Node, Topic, Journal ]
+
+models = [ Node, Topic ]
 
 
 def cmd_journal_rw(LIST, opts, settings):

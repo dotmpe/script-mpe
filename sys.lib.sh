@@ -3,8 +3,6 @@
 # Sys: lower level Sh helpers; dealing with vars, functions, env and other shell
 # ideosyncracities
 
-set -e
-
 
 
 sys_lib_load()
@@ -147,7 +145,7 @@ noop()
   #return # since we're in a function
 }
 
-# Error unless non-empty and true-ish
+# Error unless non-empty and true-ish value
 trueish()
 {
   test -n "$1" || return 1
@@ -329,9 +327,57 @@ print_var()
   }
 }
 
-# lookup-paths Lists individual paths in lookup path env var (ie. PATH or CLASSPATH)
-# VAR-NAME
-lookup_path_list()
+# Add an entry to PATH, see add-env-path-lookup for solution to other env vars
+add_env_path() # Prepend-Value Append-Value
+{
+  test -e "$1" -o -e "$2" || {
+    echo "No such file or directory '$*'" >&2
+    return 1
+  }
+  test -n "$1" && {
+    case "$PATH" in
+      $1:* | *:$1 | *:$1:* ) ;;
+      * ) export PATH=$1:$PATH ;;
+    esac
+  } || {
+    test -n "$2" && {
+      case "$PATH" in
+        $2:* | *:$2 | *:$2:* ) ;;
+        * ) export PATH=$PATH:$2 ;;
+      esac
+    }
+  }
+  #test "$uname" != "Darwin" || {
+  #  launchctl setenv "$1" "$(eval echo "\$$1")" ||
+  #    echo "Darwin setenv '$1' failed ($?)" >&2
+  #}
+}
+
+# Add an entry to colon-separated paths, ie. PATH, CLASSPATH alike lookup paths
+add_env_path_lookup() # Var-Name Prepend-Value Append-Value
+{
+  local val="$(eval echo "\$$1")"
+  test -e "$2" -o -e "$3" || {
+    echo "No such file or directory '$*'" >&2
+    return 1
+  }
+  test -n "$2" && {
+    case "$val" in
+      $2:* | *:$2 | *:$2:* ) ;;
+      * ) test -n "$val" && export $1=$2:$val || export $1=$2;;
+    esac
+  } || {
+    test -n "$3" && {
+      case "$val" in
+        $3:* | *:$3 | *:$3:* ) ;;
+        * ) test -n "$val" && export $1=$val:$3 || export $1=$3;;
+      esac
+    }
+  }
+}
+
+# List individual entries/paths in lookup path env-var (ie. PATH or CLASSPATH)
+lookup_path_list() # VAR-NAME
 {
   test -n "$1" || error "lookup-path varname expected" 1
   eval echo \"\$$1\" | tr ':' '\n'

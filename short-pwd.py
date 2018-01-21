@@ -4,10 +4,17 @@ import sys
 import os
 import math
 
-maxlen = int( sys.argv[1] )
 
-if len(sys.argv) > 2:
+args = sys.argv[1:]
+if '-h' in args or not args:
+    print("Usage: %s [-h] | MAXLEN [PWD]" % __file__)
+    sys.exit(0)
+
+maxlen = int( args.pop(0) )
+
+if args:
     pwd = sys.argv[2].strip()
+    assert not args
 else:
     pwd = os.getcwd()
 home = os.path.expanduser('~')

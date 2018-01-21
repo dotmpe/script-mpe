@@ -209,15 +209,7 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 
 #from cllct.oslibcmd_docopt import parse_argv_split
 
-import log
-import confparse
-import libcmd
-import taxus
-from taxus import Taxus
-from taxus.init import get_session
-import res
-import res.fs
-import res.js
+from script_mpe.libhtd import *
 
 
 # Storage model
@@ -1176,7 +1168,6 @@ tag_match_re = re.compile('[%s]{2,}' % tag_chars)
 # Main
 
 # TODO see bookmarks, basename-reg, mimereg, flesh out Txs
-import rsr
 
 
 class Radical(rsr.Rsr):

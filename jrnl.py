@@ -23,21 +23,19 @@ Model
 from __future__ import print_function
 
 __description__ = "journal - "
-__version__ = '0.0.2-dev' # script-mpe
-#__db__ = '~/.journal.sqlite'
+__version__ = '0.0.4-dev' # script-mpe
 
 import os
-import libcmd
 
-import rsr
-from taxus import Node, Topic
-from res import Journal
+from script_mpe import rsr, libcmd
+from script_mpe.taxus import core
+from script_mpe.res import Journal
 
 
-class Day(Node):
+class Day(core.Node):
     gregorian = ''
 
-class RstDoc(Node):
+class RstDoc(core.Node):
     build = 'standalone'
 
 
@@ -75,4 +73,9 @@ class Jrnl(rsr.Rsr):
 
 
 if __name__ == '__main__':
+    import sys
+    args = sys.argv[1:]
+    if '-h' in args:
+        print(__doc__)
+        sys.exit(0)
     Jrnl.main()

@@ -22,6 +22,7 @@ from iface import registry as reg, gsm
 from . import init
 from . import util
 from . import out
+from ..res import js
 
 
 from .init import SqlBase
@@ -115,11 +116,11 @@ class OutputMixin(object):
         g = self.settings ; of = g.output_format
 
         if of == 'json':
-            res.js.dumps(self.output_buffer)
+            js.dumps(self.output_buffer)
 
         elif of == 'json-stream':
             for it in self.output_buffer:
-                print(res.js.dumps(it))
+                print(js.dumps(it))
 
         else:
             if g.struct_output:

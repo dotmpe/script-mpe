@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-:Craeated: 2014-08-31
+:Created: 2014-08-31
 """
 from __future__ import print_function
 __version__ = '0.0.4-dev' # script-mpe
@@ -63,23 +63,11 @@ from pprint import pformat
 
 from sqlalchemy import func
 
-import lib
-import log
-import libcmd_docopt
-import confparse
-import taxus
-from myLedger import SqlBase, metadata, get_session, \
-        Account, \
-        Mutation, \
-        models,\
-        valid_iban, valid_nl_number, valid_nl_p_number, \
-        fetch_expense_balance, \
-        Simplemovingaverage,\
-        ACCOUNT_CREDIT, ACCOUNT_EXPENSES, ACCOUNT_ACCOUNTING
+from script_mpe.libhtd import *
+from script_mpe.taxus import ledger as model
+from script_mpe.taxus.ledger import *
 from rabo2myLedger import \
-        print_gnu_cash_import_csv, \
-        print_sum_from_files, \
-        csv_reader
+        print_gnu_cash_import_csv
 
 
 
@@ -200,11 +188,11 @@ def cmd_month(settings):
                 avg6 = last6(amount)
                 avg12 = last12(amount)
                 avg24 = last24(amount)
-                print(("%(year)04i-%(month)02i "\)
+                print(("%(year)04i-%(month)02i "\
                     "%(balance)9.2f EUR "\
                     "%(amount)9.2f "\
                     "%(avg3)9.2f "\
-                    "%(avg6)9.2f %(avg12)9.2f %(avg24)9.2f" ) % locals()
+                    "%(avg6)9.2f %(avg12)9.2f %(avg24)9.2f" ) % locals())
                 #print year, month, amount, avg6, avg12, balance
 
 
@@ -225,7 +213,7 @@ def cmd_mutation_import(opts, settings):
         accounts={}, years={}, months={}
     ))
     for csvfile in opts.args.file:
-        reader = csv_reader(csvfile, [
+        reader = rabomut.csvreader(csvfile, [
             'line', 'date', 'accnr', 'amount', 'destacc', 'cat',
             'destname', 'descr', 'descr2' ])
         for line, date, accnr, amount, destacc, cat, destname, descr, descr2 in reader:

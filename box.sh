@@ -402,14 +402,14 @@ box__log_demo()
 }
 
 
-box_man_1__bg='Query, or start instance in/to background
+box_man_1__d='Query, or start instance in/to background
 
 Starts a new box.py, or queries an existing instance via Unix domain
 socket. With no arguments request an instance to run at pd_sock, to be
 backgrounded as helper for script. A simple line protocol is used, the
 quoted command arguments are passed in as line, and some simple str glob
 patterns are used to return/output various result states. '
-box__bg()
+box__d()
 {
   test -n "$1" || set -- --background
   fnmatch "$1" "-*" || {
@@ -421,6 +421,12 @@ box__bg()
   }
   test -n "$box_sock" && set -- --address $box_sock "$@"
   $scriptpath/box.py "$@" || return $?
+}
+
+
+box__specs()
+{
+  htd list-functions "$@" | box__d specs -
 }
 
 

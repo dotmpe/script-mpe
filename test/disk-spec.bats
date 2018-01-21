@@ -11,11 +11,13 @@ test -n "$device_id" || device_id=disk-id
 
 
 @test "${bin}" "default no-args" {
+  skip "FIXME boreas"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
 }
 
 @test "${bin} status" {
+  skip "FIXME boreas"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
 }

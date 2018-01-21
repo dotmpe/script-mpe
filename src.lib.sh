@@ -259,9 +259,9 @@ list_functions() # Sh-Files...
   do
     test_out list_functions_head
     trueish "$list_functions_scriptname" && {
-      grep '^[A-Za-z0-9_\/-]*()$' $file | sed "s#^#$file #"
+      grep '^[A-Za-z0-9_\/-]*().*$' $file | sed "s#^#$file #"
     } ||
-      grep '^[A-Za-z0-9_\/-]*()$' $file
+      grep '^[A-Za-z0-9_\/-]*().*$' $file
     test_out list_functions_tail
   done
 }
