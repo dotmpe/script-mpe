@@ -160,7 +160,7 @@ trueish()
 }
 
 # No error on empty or value unless matches trueish
-not_trueish()
+not_trueish() # falsish or non-empty, ie. cannot anything other than unset or false
 {
   test -n "$1" || return 0
   trueish "$1" && return 1 || return 0
@@ -179,7 +179,7 @@ falseish()
 }
 
 # Error on empty or other falseish, but not other values
-not_falseish()
+not_falseish() # trueish or nonempty, ie. only be unset or trueish
 {
   test -n "$1" || return 1
   falseish "$1" && return 1 || return 0

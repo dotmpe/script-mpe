@@ -77,7 +77,7 @@ htd_load()
   # TODO: move env vars to lowercase? or ucfirst case?
   upper=0 title=
 
-  test -n "$stdio_1_type" -o -n "$stdio_2_type" ||
+  test -n "$stdio_0_type" -a  -n "$stdio_1_type" -a -n "$stdio_2_type" ||
       error "stdio lib should be initialized" 1
 
   # Check stdin/out are t(ty), unless f(file) or p(ipe) set interactive mode
@@ -437,7 +437,7 @@ htd__check()
   #htd check-names && stderr ok "Filenames look good"
   #htd__check_names
   # Check file integrity
-  htd__fsck && stderr ok "File integrity check successful"
+  subcmd=fsck htd__fsck && stderr ok "File integrity check successful"
 }
 
 
@@ -469,6 +469,14 @@ htd__fsck()
   }
 }
 htd_als__file_check=fsck
+
+
+htd_man_1__fsck_catalog='File-check entries from catalog with checksums'
+htd__fsck_catalog()
+{
+  test -n "$1" -a -e "$1" || error "catalog filename arguments expected" 1
+  ck_read_catalog "$1"
+}
 
 
 htd_man_1__make='Go to HTDIR, make target arguments'
@@ -787,9 +795,10 @@ htd__edit_main()
   #  $(dirname $fn)/*.lib.sh"
   test "$EDITOR" = "vim" || error "unsupported '$EDITOR'" 1
   evoke="vim "
+
   # Search in first pane
-  test -z "$search" ||
-    evoke="$evoke -c \"/$search\""
+  test -z "$search" || evoke="$evoke -c \"/$search\""
+
   # Two vertical panes (O2), with additional h-split in the right
   #evoke="$evoke -O2
   evoke="$evoke \
@@ -1065,7 +1074,7 @@ htd_spc__status_cwd="status-cwd"
 htd_run__status_cwd=fSm
 htd__status_cwd()
 {
-  local pwd=$(pwd -P) ppwd=$(pwd) spwd=. scm= scmdir=
+  local pwd="$(pwd -P)" ppwd="$(pwd)" spwd=. scm= scmdir=
   vc_getscm && {
     cd "$(dirname "$scmdir")"
     vc_clean "$(vc_dir)"
@@ -1590,7 +1599,23 @@ htd__edit_today()
 {
   test -n "$EXT" || EXT=.rst
   local pwd="$(normalize_relative "$go_to_before")" arg="$1"
-  test -n "$1" || set -- $JRNL_DIR/
+
+  test -n "$1" || {
+
+    # Evaluate package env if local manifest is found
+    test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
+      . $PACKMETA_SH || error "Sourcing package Sh" 1
+    }
+    test -n "$package_pd_meta_log" && {
+
+      # Default for local project
+      set -- $package_pd_meta_log/
+    } || {
+
+      # Default for Htdir
+      set -- $JRNL_DIR/
+    }
+  }
 
   fnmatch "*/" "$1" && {
     test -e "$1" || error "unknown dir $1" 1
@@ -9148,17 +9173,20 @@ htd__ispyvenv()
 {
   python -c 'import sys
 if not hasattr(sys, "real_prefix"): sys.exit(1)' && {
-        trueish "$choice_interactive" && warn "No Python virtualenv set"
-        return 1
-    } || {
         trueish "$choice_interactive" && note "Running with Python virutalenv:"
         python -c 'import sys
 print sys.prefix'
         return 0
+    } || {
+        trueish "$choice_interactive" && warn "No Python virtualenv set"
+        return 1
     }
 }
 htd_als__pyvenv=ispyvenv
 htd_als__venv=ispyvenv
+
+
+# -- htd box insert sentinel --
 
 
 # util

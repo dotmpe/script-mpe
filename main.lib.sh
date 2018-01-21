@@ -335,13 +335,14 @@ std__version()
 
 
 # Find shell script location with or without extension.
-# locate-name [ NAME || $scriptname ]
+# locate-name [ NAME || $scriptname ] [ .sh ]
 # :fn
 locate_name()
 {
   test -n "$1" || set -- "$scriptname" "$2"
   test -n "$2" || set -- "$1" .sh
   test -n "$1" || error "locate-name: script name required" 1
+  # Test with and without extension, export `fn`
   fn="$(which "$1")"
   test -n "$fn" || fn="$(which "$1$2")"
   test -n "$fn" && export fn || return 1
@@ -751,4 +752,29 @@ stat_key()
   test -n "$1" || set -- stat
   mkvid "$(pwd)"
   export $1_key="$hnid:${base}-${subcmd}:$vid"
+}
+
+# Write/Parse simple line protocol from main_bg instance at main_sock
+main_bg_writeread()
+{
+  printf -- "$@\r\n" | socat -d - "UNIX-CONNECT:$main_sock" \
+    2>&1 | tr "\r" " " | while read line
+  do
+    case "$line" in
+      *" OK " )
+          return
+        ;;
+      "? "* )
+          return 1
+        ;;
+      "!! "* )
+          error "$line"
+          return 1
+        ;;
+      "! "*": "* )
+          return $(echo $line | sed 's/.*://g')
+        ;;
+    esac
+    echo $line
+  done
 }

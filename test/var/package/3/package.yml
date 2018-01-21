@@ -1,9 +1,9 @@
 
 # Multiple sections, one main, is also ID. Otherwise 'default'.
 
-- type: application/vnd.bvberkum.project
+- type: application/vnd.org.wtwta.project
   main: True
 
-- type: application/vnd.bvberkum.project
+- type: application/vnd.org.wtwta.project
   id: another
 

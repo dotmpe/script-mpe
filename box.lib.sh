@@ -280,3 +280,33 @@ box_lib_src()
     esac; done
 }
 
+# Setup instance for script to use as background service
+box_bg_setup()
+{
+  not_trueish "$no_background" && {
+
+    test ! -e "$main_sock" || error "pd meta bg already running" 1
+    $main_bg &
+    PID=$!
+    while test ! -e $main_sock
+    do note "Waiting for server.." ; sleep 1 ; done
+    info "Backgrounded $main_bg (PID $PID)"
+
+  } || {
+    note "Forcing foreground/cleaning up background"
+    test ! -e "$main_sock" || $main_bg exit \
+      || error "Exiting old" $?
+  }
+}
+
+# Close backgrounded service script instance
+box_bg_teardown()
+{
+  test ! -e "$main_sock" || {
+    $main_bg exit
+    while test -e $main_sock
+    do note "Waiting for background shutdown.." ; sleep 1 ; done
+    info "Closed background metadata server"
+    test -z "$no_background" || warn "no-background on while pd-sock existed"
+  }
+}

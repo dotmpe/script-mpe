@@ -254,7 +254,7 @@ __vc_status()
     }
 
     short="${short%$sub}"
-    echo "$short" $(vc_flags_git $realcwd "[git:%s%s%s%s%s%s%s%s $rev]")$sub
+    echo "$short" $(vc_flags_git "$realcwd" "[git:%s%s%s%s%s%s%s%s $rev]")"$sub"
 
   else if [ -n "$bzr" ]; then
     #if [ "$bzr" = "." ];then bzr="./"; fi
@@ -310,7 +310,7 @@ __vc_screen ()
       realgit="$(basename "$realgitdir")"
       sub="${realcwd##$realgit}"
     }
-    echo $(basename "$realcwd") $(vc_flags_git $git "[git:%s%s%s%s%s%s%s%s $rev]")
+    echo $(basename "$realcwd") $(vc_flags_git "$git" "[git:%s%s%s%s%s%s%s%s $rev]")
   else
     echo "$short"
   fi
@@ -582,8 +582,8 @@ vc__mtime()
 
   # Return highest mtime
   (
-    filemtime $1/index
-    filemtime $1/HEAD
+    filemtime "$1"/index
+    filemtime "$1"/HEAD
   ) \
     | awk '$0>x{x=$0};END{print x}'
 }
@@ -602,7 +602,7 @@ vc__flush()
 # print all fuctions/results for paths in arguments
 vc__print_all()
 {
-  for path in $@
+  for path in "$@"
   do
     [ ! -e "$path" ] && continue
     echo vc-status[$path]=\"$(__vc_status "$path")\"
@@ -618,10 +618,10 @@ vc__prompt_command()
 
   # cache response in file
   pwdref="$(echo "$1" | tr '/' '-' )"
-  cache="$(statusdir.sh assert-dir vc prompt-command $pwdref)"
+  cache="$(statusdir.sh assert-dir vc prompt-command "$pwdref")"
 
-  test ! -e "$cache" -o $1/.git -nt "$cache" && {
-    __vc_status $1 > "$cache"
+  test ! -e "$cache" -o "$1"/.git -nt "$cache" && {
+    __vc_status "$1" > "$cache"
   }
 
   cat "$cache"
@@ -637,7 +637,8 @@ vc__list_submodules()
 
 vc_man_1__gh="Clone from Github to subdir, adding as submodule if already in checkout. "
 vc_spc__gh="gh <repo> [<prefix>]"
-vc__gh() {
+vc__gh()
+{
   test -n "$1" || error "Need repo name argument" 1
   str_match "$1" "[^/]*" && {
     repo=dotmpe/$1; prefix=$1; } || {
@@ -666,7 +667,7 @@ vc__gh() {
     }
   } || {
     log "Cloning $giturl to $(pwd)/$prefix.."
-    ${git} clone $giturl $prefix
+    ${git} clone "$giturl" "$prefix"
     log "Cloned $giturl to $(pwd)/$prefix"
   }
 }
@@ -675,7 +676,7 @@ vc__largest_objects()
 {
   test -n "$1" || set -- 10
   test -n "$scriptpath" || error scriptpath 1
-  $scriptpath/git-largest-objects.sh $1
+  $scriptpath/git-largest-objects.sh "$1"
 }
 
 # list commits for object sha1
@@ -876,7 +877,7 @@ vc__annex_clear_unused()
       error 'Cancelled' 1
     }
   } || {
-    git annex move --unused --to $1
+    git annex move --unused --to "$1"
   }
 }
 
@@ -1651,7 +1652,7 @@ vc_main()
 
         test -n "$scriptpath" || \
             scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-            pwd=$(pwd -P) ppwd=$(pwd) spwd=.
+            pwd="$(pwd -P)" ppwd="$(pwd)" spwd=.
 
         export SCRIPTPATH=$scriptpath
         test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh

@@ -37,7 +37,7 @@ vc_gitdir()
     do repo="$(dirname "$repo")" ; done
     test -n "$repo" || return 1
     echo $repo
-    cd $pwd
+    cd "$pwd"
   }
 }
 
@@ -50,7 +50,7 @@ vc_hgdir()
 vc_issvn()
 {
   test -d "$1" || error "vc-issvn expected dir argument: '$1'" 1
-  test -e $1/.svn
+  test -e "$1"/.svn
 }
 
 vc_svndir()
@@ -106,7 +106,7 @@ vc_getscm()
 {
   scmdir="$(vc_dir "$@")"
   test -n "$scmdir" || return 1
-  scm=$(basename "$scmdir" | cut -c2-)
+  scm="$(basename "$scmdir" | cut -c2-)"
 }
 
 vc_fsck_git()
@@ -196,9 +196,9 @@ vc_unversioned()
 
     vc_git_submodules | while read prefix
     do
-      smpath=$ppwd/$prefix
+      smpath="$ppwd/$prefix"
       cd "$smpath"
-      ppwd=$smpath spwd=$spwd/$prefix \
+      ppwd="$smpath" spwd="$spwd/$prefix" \
         vc_unversioned \
             | grep -Ev '^\s*(#.*|\s*)$' \
             | sed 's#^#'"$prefix"'/#'
@@ -240,7 +240,7 @@ vc_untracked()
 
     vc_git_submodules | while read prefix
     do
-      smpath=$ppwd/$prefix
+      smpath="$ppwd/$prefix"
       cd "$smpath"
       ppwd=$smpath spwd=$spwd/$prefix \
         vc_untracked \
@@ -285,9 +285,9 @@ vc_tracked()
 
     vc_git_submodules | while read prefix
     do
-      smpath=$ppwd/$prefix
+      smpath="$ppwd/$prefix"
       cd "$smpath"
-      ppwd=$smpath spwd=$spwd/$prefix \
+      ppwd="$smpath" spwd="$spwd/$prefix" \
         vc_tracked_git \
             | grep -Ev '^\s*(#.*|\s*)$' \
             | sed 's#^#'"$prefix"'/#'
@@ -309,8 +309,8 @@ vc_clean()
 vc_branches_git()
 {
   test -n "$1" || set -- refs/heads
-  test "$1" != "all" || set -- refs/heads refs/remotes/$vc_rt_def
-  git for-each-ref --format='%(refname:short)' $@
+  test "$1" != "all" || set -- refs/heads "refs/remotes/$vc_rt_def"
+  git for-each-ref --format='%(refname:short)' "$@"
 }
 vc_branches_hg()
 {
@@ -353,13 +353,13 @@ vc_git_update_remote()
   local remote_url="$(git config --get remote.$1.url)"
   test -z "$remote_url" && {
 
-    git remote add $1 $2 &&
+    git remote add "$1" "$2" &&
         note "Remote '$1' added" || warn "Error adding '$1' remote" 1
 
   } || {
 
     test "$2" = "$remote_url" || {
-      git remote set-url $1 $2 &&
+      git remote set-url "$1" "$2" &&
         note "Remote '$1' updated" || warn "Error updating '$1' remote" 1
     }
   }
@@ -388,7 +388,7 @@ vc_roots()
 vc_epoch_git()
 {
   set -- $( git rev-list --max-parents=0 HEAD )
-  git show -s --format=%ct $1
+  git show -s --format=%ct "$1"
 }
 
 vc_age_git()
@@ -471,7 +471,7 @@ vc_flags_git()
     return
   }
 
-  cd $1
+  cd "$1"
   local r
   local b
   if [ -f "$g/rebase-merge/interactive" ]; then
@@ -624,7 +624,7 @@ vc_info()
   test -n "$PACKMETA_SH" -a -s "$PACKMETA_SH" && {
 
     note "Sourcing '$PACKMETA_SH'..."
-    . $PACKMETA_SH
+    . "$PACKMETA_SH"
     cat <<EOM
 $2id: $package_id
 $2version: $package_version

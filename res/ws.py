@@ -17,7 +17,7 @@ Refactoring ideas::
 
   Workspace .cllct/ws.*id - abstract with basic metadir based tooling
     Workdir .cllct/local.*id - movable user-dir, maybe overlap with volume-dir
-    Basedir .cllct/home.*id - tracked workspace, sync, etc.
+    Basedir - tracked workspace, sync, etc. defaults to home?
       Homedir .cllct/home.*id - one per system/user at most
       Volumedir .cllct/vol.*id - one per either physical or storage partition
 

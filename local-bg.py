@@ -128,6 +128,8 @@ def query(ctx):
     factory.protocol = QueryProtocol
     factory.quiet = True
     factory.cmd = ' '.join(ctx.opts.argv)
+    # DEBUG:
+    # print('Passthrough command to backend via socket: %r' % factory.cmd, file=sys.stderr)
 
     endpoint = UNIXClientEndpoint(reactor, address.path)
     connected = endpoint.connect(factory)

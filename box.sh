@@ -199,7 +199,7 @@ EOF
 
 # FIXME new script
 
-box__main_1_new="Initialize new script"
+box__main_1_new="Initialize new localscript"
 box_spc_new="-n|new [<name>=$hostname]"
 box__als__n=new
 box__new()
@@ -232,9 +232,12 @@ box_spc_function="-n|function [[<name>=$hostname] <cmd>=run]"
 box__function()
 {
   local name= cmd=run c=0
+  upper=0 default_env scope "box"
+  upper=0 default_env action "insert"
   box_name_args $@
   test -e $script || error "script $name does not exist" 1
   echo TODO add function to script
+  echo "# -- $base $scope $action sentinel"
 }
 box__als__f=function
 
@@ -248,7 +251,7 @@ box__list()
     debug "'$BOX_BIN_DIR/*'"
     info "** DRY RUN ends **" 0
   }
-  info "TODO box list: work in progress"
+  info "TODO box list: get script names for local box command"
   grep -srI ${nid_cwd} $BOX_BIN_DIR/*
 }
 box__als__l=list
@@ -399,6 +402,31 @@ box__log_demo()
 }
 
 
+box_man_1__bg='Query, or start instance in/to background
+
+Starts a new box.py, or queries an existing instance via Unix domain
+socket. With no arguments request an instance to run at pd_sock, to be
+backgrounded as helper for script. A simple line protocol is used, the
+quoted command arguments are passed in as line, and some simple str glob
+patterns are used to return/output various result states. '
+box__bg()
+{
+  test -n "$1" || set -- --background
+  fnmatch "$1" "-*" || {
+    test -x "$(which socat)" -a -e "$box_sock" && {
+
+      main_sock=$box_sock main_bg_writeread "$@"
+      return $?
+    }
+  }
+  test -n "$box_sock" && set -- --address $box_sock "$@"
+  $scriptpath/box.py "$@" || return $?
+}
+
+
+# -- box box insert sentinel --
+
+
 
 # Generic subcmd's
 
@@ -429,6 +457,8 @@ box__commands()
 box__als_c=commands
 
 
+search="htd\ box\ insert\ sentinel"
+
 
 
 # Script main functions
@@ -436,7 +466,10 @@ box__als_c=commands
 box_main()
 {
   local scriptname=box base=$(basename "$0" .sh) \
-    scriptpath="$(cd $(dirname "$0"); pwd -P)"
+      scriptpath="$(cd $(dirname "$0"); pwd -P)" box_sock=
+
+  # FIXME: only one instnce
+  box_sock=/tmp/box-serv.sock
 
   box_init || return 0
 

@@ -22,34 +22,6 @@ no_act()
   test -n "$dry_run"
 }
 
-# Init Bg service
-pd_meta_bg_setup()
-{
-  test -n "$no_background" && {
-    note "Forcing foreground/cleaning up background"
-    test ! -e "$pd_sock" || pd__meta exit \
-      || error "Exiting old" $?
-  } || {
-    test ! -e "$pd_sock" || error "pd meta bg already running" 1
-    pd__meta &
-    while test ! -e $pd_sock
-    do note "Waiting for server.." ; sleep 1 ; done
-    info "Backgrounded pd-meta for $pdoc (PID $!)"
-  }
-}
-
-# Close Bg service
-pd_meta_bg_teardown()
-{
-  test ! -e "$pd_sock" || {
-    pd__meta exit
-    while test -e $pd_sock
-    do note "Waiting for background shutdown.." ; sleep 1 ; done
-    info "Closed background metadata server"
-    test -z "$no_background" || warn "no-background on while pd-sock existed"
-  }
-}
-
 # TODO: run git clean, with ignore rules adjusted to exclude gitignore-clean
 # TODO: setup some htd/pd clean. Fix htd/pd ignore setup.
 # TODO: rename force_clean to pd_meta_Force_Clean or something.. --force-clean
@@ -932,7 +904,7 @@ pd_new_package()
 {
   { cat <<EOM
 
-- type: application/vnd.bvberkum.project
+- type: application/vnd.org.wtwta.project
   main: local/$(basename $pd_prefix)
   id: local/$(basename $pd_prefix)
   scripts:

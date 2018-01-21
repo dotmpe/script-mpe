@@ -48,6 +48,7 @@ pd__new()
 
 
 pd_load__meta=y
+#B
 pd_man_1__meta="Defer a command to the python script for YAML parsing"
 pd__meta()
 {
@@ -56,27 +57,9 @@ pd__meta()
 
   fnmatch "$1" "-*" || {
     test -x "$(which socat)" -a -e "$pd_sock" && {
-      printf -- "$*\r\n" | socat -d - "UNIX-CONNECT:$pd_sock" \
-        2>&1 | tr "\r" " " | while read line
-      do
-        case "$line" in
-          *" OK " )
-              return
-            ;;
-          "? "* )
-              return 1
-            ;;
-          "!! "* )
-              error "$line"
-              return 1
-            ;;
-          "! "*": "* )
-              return $(echo $line | sed 's/.*://g')
-            ;;
-        esac
-        echo $line
-      done
-      return
+
+      main_sock=$pd_sock main_bg_writeread "$@"
+      return $?
     }
   }
   test -n "$pd_sock" && set -- --address $pd_sock "$@"
@@ -1491,7 +1474,12 @@ pd_load()
 
     b )
         # run metadata server in background for subcmd
-        pd_meta_bg_setup
+        main_sock=$pd_sock main_bg=pd__meta box_bg_setup
+      ;;
+
+    B )
+        # test for bg and allow passthrouh, but don't require running instance
+        # and allow for inline executing of command
       ;;
 
     d ) # XXX: Stub for no Pd context?
@@ -1650,7 +1638,7 @@ pd_unload()
       ;;
     y )
         test -z "$pd_sock" || {
-          pd_meta_bg_teardown
+          main_sock=$pd_sock main_bg=pd__meta main_bg_teardown
           unset bgd pd_sock
         }
       ;;

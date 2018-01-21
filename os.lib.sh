@@ -32,7 +32,7 @@ pathname()
 }
 # basepath: see pathname as alt. to basename for ext stripping
 
-pathnames()
+pathnames() # exts=... PATHS
 {
   test -n "$exts" || exit 40
   test -n "$*" && {
@@ -59,9 +59,9 @@ basedir()
   done
 }
 
-dotname()
+dotname() # Path [Ext-to-Strip]
 {
-  echo $(dirname "$1")/.$(basename "$1")
+  echo $(dirname "$1")/.$(basename "$1" "$2")
 }
 
 short()

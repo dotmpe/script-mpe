@@ -1,7 +1,7 @@
 # git-versioning main: script-mpe
 
 
-- type: application/vnd.bvberkum.project
+- type: application/vnd.org.wtwta.project
   main: script-mpe
   id: script-mpe
 
@@ -132,6 +132,11 @@
       - . ./tools/ci/parts/init.sh
       - scriptname=install
       - . ./tools/ci/parts/install.sh
+    install-pyvenv:
+      - test -d ~/.pyvenv/du-ext || virtualenv ~/.pyvenv/du-ext
+      - source ~/.pyvenv/du-ext/bin/activate ; \
+        pip install -r requirements.txt; \
+        pip install -r test-requirements.txt
     install-gv:
       - sudo Build_Deps_Default_Paths=1 SRC_PREFIX=/src PREFIX=/usr/local ./install-dependencies.sh git-versioning && rm -rf /src/git-versioning
 
@@ -212,7 +217,7 @@
 
   default: dev
 
-- type: application/vnd.bvberkum.symlinks
+- type: application/vnd.org.wtwta.symlinks
   id: script-mpe-symlinks
   file: .symlinks.tab
   attrs: SRC DEST
@@ -238,7 +243,7 @@
      - vagrant destroy -f
 
 
-- type: application/vnd.bvberkum.environment
+- type: application/vnd.org.wtwta.environment
   id: script-mpe-test-vbox
   cwd: 'test/vagrant'
   env: '. ./env.sh'

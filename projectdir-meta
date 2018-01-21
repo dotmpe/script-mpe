@@ -743,7 +743,7 @@ def H_package(pdhdata, ctx):
         pack_id = pref
 
     pack = [ dict(
-          type='application/vnd.bvberkum.project',
+          type='application/vnd.org.wtwta.project',
           main=pack_id,
           id=pack_id
       ) ]

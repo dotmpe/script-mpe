@@ -2,12 +2,12 @@
 # Multiple sections but only one main
 # All have an ID, but only type: project requires ID
 
-- type: application/vnd.bvberkum.project
+- type: application/vnd.org.wtwta.project
   main: script-bvb-test-1-a
   id: script-bvb-test-1-a
   key: foo
 
-- type: application/vnd.bvberkum.project
+- type: application/vnd.org.wtwta.project
   id: script-bvb-test-1-b
   key: bar
   key2: bar2

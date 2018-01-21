@@ -55,10 +55,14 @@ ck_run()
   } | sed 's/:\ /: '$ext' /g'
 }
 
+# Read checksums from catalog.yml
 ck_read_catalog()
 {
-  local l=0 basedir="$(dirname "$1")" fname= name= host=
-  eval $( jsotk.py --output-prefix=catalog to-flat-kv "$1" )
+  local l=0 basedir="$(dirname "$1")" fname= name= host= \
+      catalog_sh="$(dotname "$(pathname "$1" .yaml .yml)")"
+
+  eval $( jsotk.py --output-prefix=catalog to-flat-kv "$1" || exit $? ) ||
+    return $?
 
   while true
   do
@@ -71,7 +75,7 @@ ck_read_catalog()
     fname="$(eval echo \"\$catalog__${l}_path\")"
     test -n "$name" -o -n "$fname" || {
        # No more entries, either path or name is required
-       return
+       break
     }
 
     test -n "$fname" && name="$(basename "$fname")" || {
@@ -94,12 +98,13 @@ ck_read_catalog()
 
     l=$(( $l + 1))
   done
+  note "done reading checksums from catalog"
 }
 
 # Check keys from catalog corresponding to known checksum algorithms
 ck_run_catalogs()
 {
-  local cwd=$(pwd) dir=
+  local cwd=$(pwd) dir= catalog= ret=
 
   find . -iname 'catalog.y*ml' -not -ipath '*/schema/*' | {
     while read catalog
@@ -111,7 +116,10 @@ ck_run_catalogs()
       test -f "$catalog" || { warn "Missing file '$catalog'" ; continue ; }
 
       cd "$dir"
-      ck_read_catalog "$(basename "$catalog")" | {
+      {
+        ck_read_catalog "$(basename "$catalog")"
+        test 0 -eq $? || { ret=1; break; }
+      } | {
         while read key ck name ; do
 
           debug "Key: '$key' CK: $ck Name: '$name'"
@@ -155,15 +163,19 @@ ck_run_catalogs()
         done
       }
 
-      test 0 -eq $? || {
-          error "failure in '$catalog'"
-          return 1
+      test 0 -eq $? -a -n "$ret" || {
+        error "failure in '$catalog'"
+        return 1
       }
     done
   }
 
-  test 0 -eq $? || return 1
-  cd "$cwd"
+  test 0 -eq $? && {
+    cd "$cwd"
+  } || {
+    cd "$cwd"
+    return 1
+  }
 }
 
 ck_run_update()
