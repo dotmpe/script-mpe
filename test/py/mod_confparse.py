@@ -8,8 +8,8 @@ import unittest
 from pprint import pformat
 import tempfile
 
-import confparse
-from confparse import expand_config_path, load
+from script_mpe import confparse
+from script_mpe.confparse import expand_config_path, load
 
 
 
@@ -389,4 +389,3 @@ def get_cases():
 
 if __name__ == '__main__':
 	unittest.main()
-

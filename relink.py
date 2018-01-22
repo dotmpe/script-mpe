@@ -62,7 +62,8 @@ def relink(link, target, ntarget):
 seps = ' \n\r\0\t'
 noact, noact_pr_shell = False, False
 if not len(sys.argv)>3 or '-h' in sys.argv or '-?' in sys.argv or '--help' in sys.argv:
-    sys.exit(usage)
+    print(usage)
+    sys.exit(0)
 
 opts = 0
 if '-n' in sys.argv:

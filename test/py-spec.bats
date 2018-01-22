@@ -60,12 +60,15 @@ get_py_files()
     # Skip ignored
     test "1" = "$(eval echo \"\$x_$bn\")" && continue
 
-    ./$x -h >/dev/null 2>&1 || {
-      echo "$x $?"
+    ./$x -h >/dev/null 2>&1 || { r=$?
+
+      # continue still if non-zero matches expected
+      test "$r" = "$(eval echo \"\$r_$bn\")" && continue
+
+      fail "$x $r"
     }
     test ! -e "./-h" || {
-      echo "$x"
-      return 1
+      fail "$x created ./-h"
     }
   done
 
@@ -74,7 +77,7 @@ get_py_files()
   }
 }
 
-# FIXME: seems to be skipping some
+# FIXME: seems to be skipping some cases
 @test "Test all executable python scripts are behaving (II)" {
 
   local nok=0 keep_going=
@@ -83,6 +86,7 @@ get_py_files()
 
     { $x -h || { r=$?
 
+      # continue still if non-zero matches expected
       test "$r" = "$(eval echo \"\$r_$bn\")" && diag "Passed $bn" || {
 
         diag "Failure at '$bn' ($r)"

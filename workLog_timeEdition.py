@@ -68,9 +68,8 @@ import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
-import confparse
-from cmdline import Cmd
-from libcmd import err
+from script_mpe import confparse, log
+from script_mpe.cmdline import Cmd
 
 SqlBase = declarative_base()
 
@@ -158,7 +157,7 @@ class WorkLog_timeEdition(Cmd):
 
     DEFAULT_CONFIG_KEY = NAME
 
-    TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['query']
+    #TRANSIENT_OPTS = Cmd.TRANSIENT_OPTS + ['query']
     DEFAULT_ACTION = 'stat'
 
     def get_opts(self):
@@ -219,7 +218,7 @@ class WorkLog_timeEdition(Cmd):
             for task, project, customer in session.query(Task, Project, Customer).all():#join('projects', 'customer').all():
                 print(customer.name, '\t\t',project.name, '\t\t',task.name)
         except sqlalchemy.exc.OperationalError as e:
-            err("Error query DB %s: %s", dbref, e)
+            log.stderr("Error query DB %s: %s", dbref, e)
             return 1
         print(dbref)
 

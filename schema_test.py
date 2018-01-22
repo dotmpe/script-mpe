@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 :created: 2014-10-19
 
@@ -30,7 +31,7 @@ def load_schema(path):
 if __name__ == '__main__':
     if '-h' in sys.argv[1:]:
         print(__doc__)
-        sys.exit(1)
+        sys.exit(0)
 
     #models = load_schema('taxus.core')
     #models2 = load_schema('bookmarks')
