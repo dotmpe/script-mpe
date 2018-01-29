@@ -1,3 +1,4 @@
+# Cleanable at any point in life? Or include in make clean while keeping gitignore-temp
 /.coverage
 /htmlcov
 node_modules/

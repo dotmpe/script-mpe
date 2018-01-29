@@ -201,6 +201,7 @@ htd_list_prefixes()
 {
   test -n "$out_fmt" || out_fmt=plain
   test -n "$sd_be" || sd_be=redis
+  note "htd prefixes backend: $sd_be"
   (
     case "$out_fmt" in json ) printf "[" ;; esac
     case "$sd_be" in

@@ -7,18 +7,6 @@ A filename cleaning and reformatting libcmd_docoptity. See matchbox.rst.
 from __future__ import print_function
 
 __version__ = '0.0.4-dev' # script-mpe
-__usage__ = """
-
-Usage:
-  matchbox.py -h|--help|help
-  matchbox.py --version
-
-Options:
-    -h --help     Show this usage description.
-                  For a command and argument description use the command 'help'.
-    --version     Show version (%s).
-
-""" % ( __version__ )
 
 import inspect
 import sys
@@ -219,7 +207,8 @@ def c_help():
         c = globals()[x]
         if x.startswith('c_') and callable(c):
             print("matchbox.py", x[2:].replace('_', '-'), format_f_spec(c))
-            print('   ', c.__doc__.strip())
+            if hasattr(c, '__doc__') and c.__doc__:
+                print('   ', c.__doc__.strip())
 
 def format_f_spec(func):
     args, varargs, keywords, defaults = inspect.getargspec(func)
@@ -475,34 +464,26 @@ writers = dict(
 
 
 
-### Transform cmd_ function names to nested dict
-
-commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = libcmd_docopt.cmd_help
-
-
-### Util functions to run above functions from cmdline
-
-def main(opts):
-    global commands
-    settings = opts.flags
-    return libcmd_docopt.run_commands(commands, settings, opts)
-
-def get_version():
+def c_version():
     global __version__
     return '%s' % __version__
 
 
+cmd_aliases = dict(
+    _h='help', __help='help',
+    _v='version', __version='version'
+)
+
 if __name__ == '__main__':
     argv = sys.argv
     scriptname = argv.pop(0)
-    opts = libcmd_docopt.get_opts(__doc__+__usage__, version=get_version(), argv=argv)
-    sys.exit(main(opts))
 
-    # XXX: use docopt for arg parsing maybe later, keep simple for now.
     if not len(argv):
         cmdname = 'c_show'
     else:
-        cmdname = 'c_'+argv.pop(0).replace('-', '_')
+        cid = argv.pop(0).replace('-', '_')
+        while cid in cmd_aliases:
+            cid = cmd_aliases[cid]
+        cmdname = 'c_'+cid
     load_vars()
     sys.exit(locals()[cmdname](*argv))

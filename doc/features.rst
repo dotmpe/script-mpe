@@ -3,9 +3,11 @@ ________
 :Created: 2016-03-27
 :Updated: 2016-10-10
 
-Some thoughts and notes on script-mpe features; documentatin and automation.
+Some thoughts and notes on script-mpe features; documentation and automation.
 Mostly ToDo, epic-style text. See http:index for a temporary listing to all
 documented parts in script-mpe.
+
+TODO: [2018-01-28] Also have a look at apiblueprint.org and perhaps variants
 
 ----
 

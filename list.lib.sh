@@ -110,16 +110,14 @@ lst_init_ignores()
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
        error "lst:init-ignores: expected $lst_base ignore dotfile ($IGNORE_GLOBFILE)" 1
 
-  local suf=$1
-  {
-    test -n "$1" && {
-      shift
-    } || {
+  local suf=$1 ; shift
+
+  test -n "$*" || {
       set -- "$@" global-drop global-purge
       test ! -e .git || set -- "$@" scm
       debug "Set ignores for $base ($IGNORE_GLOBFILE$suf) to '$*'"
     }
-
+  {
     ignores_cat "$@"
   } >> $IGNORE_GLOBFILE$suf
   sort -u $IGNORE_GLOBFILE$suf | sponge $IGNORE_GLOBFILE$suf

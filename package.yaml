@@ -11,10 +11,13 @@
 
   vendor: bvberkum
   distribution: public
-  license: GPL
+  license: GPL-3.0
 
   urls:
-    license: https://opensource.org/licenses/gpl-license
+    license:
+      - https://www.gnu.org/licenses/gpl-3.0.txt
+      - https://choosealicense.com/licenses/gpl-3.0/
+      - https://opensource.org/licenses/gpl-license
 
   repositories:
       bb: git@bitbucket.org:dotmpe-personal/script-mpe
@@ -32,7 +35,13 @@
       do: "@Task"
       src: "@be.src +htdocs-mpe" # get the .list of sei for htdocs
 
+  ext:
+    topics:
+      id: script-mpe-2008a
+    # TODO: group settings per extension package
+
   pd-meta:
+    # TODO: move run/test/build to projects package iso. pd-meta.
     run:
       behat: "./vendor/.bin/behat--tags:~@skip"
       behat-defs: "./vendor/.bin/behat:-dl"

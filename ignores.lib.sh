@@ -42,6 +42,7 @@ ignores_groups()
       purge ) set -- "$@" local-purge global-purge ;;
       clean ) set -- "$@" local-clean global-clean ;;
       drop ) set -- "$@"  local-drop global-drop ;;
+      ignore ) echo ".ignored" ;;
       local ) set -- "$@" local-clean local-purge local-drop ;;
       local-clean )
           echo $IGNORE_GLOBFILE-cleanable
@@ -105,9 +106,10 @@ ignores_groups_exist()
 # Convenient access to glob lists (cat files)
 ignores_cat()
 {
+  local src_a="$*"
   # Resolve arguments
   set -- $(ignores_groups "$@" | lines_to_words )
-  note "Resolved ignores to '$*'"
+  note "Resolved ignores source '$src_a' to files '$*'"
 
   while test -n "$1"
   do
@@ -149,7 +151,7 @@ find_ignores()
     # Translate gitignore lines to find flags
     read_nix_style_file $a | while read glob
       do glob_to_find_prune "$glob"; done
-  done
+  done | grep -Ev '^(#.*|\s*)$'
 }
 
 

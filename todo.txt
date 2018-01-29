@@ -27,3 +27,4 @@ x 2017-03-26 (D) @Dev 2017-03-25 +script-mpe ``htd jrnl-times to-cal`` entered a
 @Dev +script-mpe diskdoc @Darwin
 @Dev htd.sh interact with tmux.py open/close default or pre-defined sessions per project @tmux +node-sitefile
 +Esop - test runner
+2018-01-28  Also have a look at apiblueprint.org and perhaps variants

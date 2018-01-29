@@ -384,3 +384,25 @@ get_jsonfile()
     echo "$2"; return
   }
 }
+
+# Set mode to 0 to inverse action or 1 for normal
+htd_filter() # [type_= expr_= mode_= ] [Path...]
+{
+  act_() {
+    test $mode_ = 1 && {
+      # Filter: echo positive matches
+      echo "$S"
+    } || {
+      not_trueish "$DEBUG" || error "failed at '$type_' '$expr_' '$S'"
+    }
+  }
+  no_act_() {
+    test $mode_ = 0 && {
+      # Filter-out mode: echo negative matches
+      echo "$S"
+    } || {
+      not_trueish "$DEBUG" || error "failed at '$type_' '$expr_' '$S'"
+    }
+  }
+  act=act_ no_act=no_act_ foreach "$@"
+}

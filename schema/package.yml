@@ -27,6 +27,15 @@ items:
           type: date-time
           description: FIXME: jsotk doesnt handle date-time to JSON well
 
+        ext:
+          type: object
+          description: |
+              metadata for any extension, that either does not fit with base
+              'application/vnd.org.wtwta.project' schema or does not wish its
+              own schema or package.yml entry. In addition the ext keys may be
+              used by the project to determine which components or features
+              are available and/or installed, and similar.
+
         pd-meta:
           type: object
           description: Metadata for projectdir/projectdoc.
@@ -35,7 +44,9 @@ items:
               description: Path to logbooks
               type: string
             # XXX: maybe overlay some workflow cycle scripts ids here, but with
-            # non-shell syntax maybe list.txt'ish
+            # non-shell syntax maybe list.txt'ish.
+            # Also need to solve override vs. auto-detection of suite, ie. 
+            # build/init/config/test/check/run/update/status etc. lifecycles
   
       required:
         - type
@@ -146,14 +157,23 @@ items:
           - type: object
             properties:
               tasks:
-                type: string
-                short: Gather tasks
-                description: |
-                  The shell command executed to determine the status code and a report 
-                  of the tasks of a project.
+                document:
+                  type: string
+                done:
+                  type: string
+                coops:
+                  type: array
+                tags:
+                  type: array
+                cmd:
+                  type: string
+                  short: Gather tasks
+                  description: |
+                    The shell command executed to determine the status code and a report 
+                    of the tasks of a project.
 
-                  Nothing further is specified as of yet, but in the future some
-                  protocol requirements will be added on the meaning of the output.
+                    Nothing further is specified as of yet, but in the future some
+                    protocol requirements will be added on the meaning of the output.
 
           - type: object
             properties:

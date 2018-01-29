@@ -6,6 +6,15 @@ catalog_lib_load()
     lib_load ck
 }
 
+htd_catalog_find()
+{
+  htd_catalog_list | while read catalog
+  do
+    grep -qF "$1" $catalog.yml || continue
+    note "Found $1 in $catalog"
+  done
+}
+
 htd_catalog_fsck()
 {
   test -n "$1" -a -e "$1" || error "catalog filename arguments expected" 1

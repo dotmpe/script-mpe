@@ -104,8 +104,7 @@ update_package_sh()
     error "metash file: $metash"
     return 1
   }
-  test $metaf -ot $metash \
-    || {
+  test $metaf -ot $metash || {
 
     # Format Sh script/vars from local package
     note "Regenerating $metash from $metaf.."
@@ -190,11 +189,11 @@ update_package()
       error "update-temp-package: no '$metaf' for '$1'"
       return 23
     }
-    package_lib_set_local "$1"
   }
   test -e "$metaf" || error "no such file ($(pwd), $1) PACKMETA='$PACKMETA'" 34
+  package_lib_set_local "$1"
 
-  note "Metafile: $metaf ($(pwd), $cwd)"
+  info "Metafile: $metaf ($(pwd))"
 
   # Package.sh is used by other scripts
   update_package_sh "$1" || { r=$?

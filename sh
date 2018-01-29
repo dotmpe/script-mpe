@@ -2,20 +2,16 @@
 
 set -e
 
+# https://explainshell.com/explain?cmd=rst2html+--record-dependencies%3DFILE
 
-DEBUG=1 bats test/py-spec.bats
-
-
-bats test/htd-spec.bats
-
-
-for x in test/*-spec.bats; do bats "$x" && continue ; echo "Failed: $? $x" ; done
-exit $?
-
-
-nok=0 keep_going=
-test -z "$DEBUG" || keep_going=1
-get_py_files
+for x in test/*-spec.bats; do
+    bats "$x" && {
+        echo ""
+        continue
+    }
+    echo "Failed: $? $x"
+    echo ""
+done
 
 
 exit 0

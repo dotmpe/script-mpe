@@ -61,6 +61,7 @@ htd_vcflow_check_doc()
 htd_vcflow_status()
 {
   note "TODO: see gitflow-check-doc"
+  return
   defs gitflow.txt | \
     tree_to_table  | \
     while read base branch

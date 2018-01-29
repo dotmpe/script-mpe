@@ -13,8 +13,20 @@ version=0.0.4-dev # script-mpe
 
 # See $scriptname help to get started
 
-lst_man_1__names="List names for groups"
-lst_spc__names="GROUP.."
+lst_man_1__names='List LIST-paths for group-name(s)
+
+Group
+    purge
+    clean
+    drop
+
+    ignore
+    local global
+    scm
+
+See ignores.rst
+'
+lst_spc__names="names GROUP.."
 lst_load__names=iI
 lst__names()
 {
@@ -60,8 +72,7 @@ lst__watch()
   test -n "$2" || set -- "$1" "*" "$3"
 
   # FIXME: write this into load phase
-  lst__watch_${lst_watch_be} "$@" \
-    || return $?
+  lst__watch_${lst_watch_be} "$@" || return $?
 }
 
 lst_spc__watch_fswatch="FILE|DIR [GLOB [CMD]]"

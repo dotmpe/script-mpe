@@ -300,6 +300,14 @@ htd_load()
         }
       ;;
 
+    q )
+        # Evaluate package env
+        test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
+            . $PACKMETA_SH || error "No package Sh" 1
+        } || 
+            error "No local package" 1
+      ;;
+
     r ) # register package - requires 'p' first. Sets PROJECT Id and manages
         # cache updates for subcommand data.
 
@@ -402,7 +410,8 @@ htd_load_ignores()
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
       error "expected $base ignore dotfile" 1
   lst_init_ignores
-  lst_init_ignores .names
+  lst_init_ignores "" ignore
+  #lst_init_ignores .names
   #match_load_table vars
 }
 
@@ -421,27 +430,38 @@ htd_load_xsl()
 
 # Main aliases
 
-htd_als__init=pd-init
 #htd_als__install=install-tool
 htd_als__update=update-checksums
-#htd_als__check=pd-check
 htd_als__doctor=check
 
 htd_man_1__check='Run diagnostics for CWD and system.
 
-
-Check file names
-Check file contents (fsck, cksum)
+- Show tags for which list buffers exist
+- Check file names
+- Check file contents (fsck, cksum)
 
 '
-htd_run__check=i
+htd_run__check=pqi
 htd__check()
 {
-  # FIXME: fix local htd/pd ignores htd__find_empty && stderr ok "No empty files"
-  htd pd-check && stderr ok "Projectdir checks out"
+  test -z "$pd_meta_tasks_document" -a -z "$pd_meta_tasks_done" || {
+
+    note "Open contexts found:"
+    htd tasks-hub tagged
+  }
+  
+  note "Compiling ignores..."
+  subcmd=find-empty htd__find_empty ||
+      stderr warn "Empty paths above" && stderr ok "No empty files"
+
+  # TODO: incorporate global/other projects and get glboal host picture
+  # local dirs="Desktop Downloads bin .conf" ; foreach pd check
+  #pd check && stderr ok "Projectdir checks out"
+
   # TODO check (some) names htd_name_precaution
   #htd check-names && stderr ok "Filenames look good"
   #htd__check_names
+
   # Check file integrity
   subcmd=fsck htd__fsck && stderr ok "File integrity check successful"
 }
@@ -959,36 +979,6 @@ htd__copy() # Sub-To-Script [ From-Project-Checkout ]
     }
     $EDITOR $1
   }
-}
-
-
-htd_man_1__pd_init="TODO: Shortcut for pd init"
-htd_spc__pd_init="pd-init"
-htd_run__pd_init=fSm
-htd__pd_init()
-{
-  echo
-}
-
-
-htd_man_1__pd_check="Shortcut for pd check in several dirs..."
-htd_spc__pd_check="pd-check"
-htd_run__pd_check=fSm
-htd__pd_check()
-{
-  # Home
-  local dirs="Desktop Downloads bin .conf"
-  for dir in $dirs
-  do
-    test -d ~/$dir || { warn "No dir '$dir'" ; continue ; }
-    cd ~/$dir
-    pd check
-  done
-  for dir in htdocs
-  do
-    cd /Volumes/Zephyr/$dir
-    pd check
-  done
 }
 
 
@@ -2319,16 +2309,7 @@ htd__txt()
 
 htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
 
-  Print package pd-meta tags setting using:
-
-    htd package pd-meta tags
-    htd package pd-meta tags-document
-    htd package pd-meta tags-done
-    .. etc,
-
-  See also package.rst docs.
-  The first two arguments TODO/DONE.TXT default to tags-document and tags-done.
-  Other commands in this group:
+  Commands in this group:
 
     htd tasks grep
         Run over the source, aggregating tagged comments as "task lines".
@@ -2354,7 +2335,46 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
         arguments
 
   See tasks-hub for more local functions.
+
+  Print package pd-meta tags setting using:
+
+    htd package pd-meta tags
+    htd package pd-meta tags-document
+    htd package pd-meta tags-done
+    .. etc,
+
+  See also package.rst docs.
+  The first two arguments TODO/DONE.TXT default to tags-document and tags-done.
 '
+htd__tasks()
+{
+  case "$1" in
+
+    be.src )
+        mkvid "$2" ; cmid=$vid
+        . ./to/be-src.sh ; shift 2
+        htd__tasks__src__${cmid} "$@"
+      ;;
+
+    be* )
+        be=$(printf -- "$1" | cut -c4- )
+        test -n "$be" || error "No default tasks backend" 1
+        c= mksid "$1" ; ctxid=$sid
+        test -e ./to/$sid.sh || error "No tasks backend '$1' ($be)" 1
+        . ./to/$ctxid.sh ;
+        mkvid "$be" ; beid=$vid
+        mkvid "$2" ; cmid=$vid
+        . ./to/$ctxid.sh ; shift 2
+        htd__tasks__${beid}__${cmid} "$@"
+      ;;
+
+    "" ) shift || noop ; htd__tasks_scan "$@" ;;
+
+    * ) act="$1"; shift 1; htd__tasks_$act "$@" ;;
+  esac
+}
+htd_grp__tasks=tasks
+
 
 htd_man_1__tasks_scan="Update todo/tasks/plan document from local tasks"
 htd_spc__tasks_scan='tasks-scan [ --interactive ] [ --Check-All-Tags ] [ --Check-All-Files ]'
@@ -2383,7 +2403,7 @@ htd__tasks_scan()
     note "OK. $(read_nix_style_file $todo_document | count_lines) task lines"
   }
 }
-htd_run__tasks_scan=iAOp
+htd_run__tasks_scan=ipqAO
 htd_grp__tasks_scan=tasks
 
 
@@ -2421,7 +2441,7 @@ EOM
     }
   done
 }
-htd_run__tasks_grep=iAO
+htd_run__tasks_grep=ipqAO
 htd_grp__tasks_grep=tasks
 
 
@@ -2438,7 +2458,7 @@ htd__tasks_local()
     htd__tasks_grep
   }
 }
-htd_run__tasks_local=iAO
+htd_run__tasks_local=ipqAO
 htd_grp__tasks_local=tasks
 
 
@@ -2465,7 +2485,7 @@ htd__tasks_edit()
   # TODO: If locked import principle tasks to main
   trueish "$migrate" && htd_migrate_tasks "$todo_document" "$todo_done" "$@"
   # Edit todo and done file
-  $TODOTXT_EDITOR "$todo_txt" "$todo_done"
+  $TODOTXT_EDITOR "$todo_document" "$todo_done"
   # Relock in case new tags added
   # TODO: diff new locks
   #newlocks="$(lock_files $id "$1" | lines_to_words )"
@@ -2477,7 +2497,7 @@ htd__tasks_edit()
   # XXX: where does @Dev +script-mpe go, split up? refer principle tickets?
   htd__tasks_session_end "$todo_document" "$todo_done"
 }
-htd_run__tasks_edit=eA
+htd_run__tasks_edit=epqA
 htd_argsv__tasks_edit=htd_argsv__tasks_session_start
 htd_als__edit_tasks=tasks-edit
 htd_grp__tasks_edit=tasks
@@ -2564,7 +2584,7 @@ htd__tasks_hub()
     * ) error "tasks-hub? '$*'" ;;
   esac
 }
-htd_run__tasks_hub=eiAOp
+htd_run__tasks_hub=epiAO
 htd_grp__tasks_hub=tasks
 
 
@@ -2668,6 +2688,7 @@ htd__tasks_tags()
   note "Tags for <$*>"
   htd__todotxt_tags "$@"
 }
+htd_run__tasks_tags=pqi
 htd_grp__tasks_tags=tasks
 
 
@@ -2688,15 +2709,15 @@ htd__tasks_session_start()
     id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   set -- $todo_document $todo_done
   assert_files $1 $2
-  # Accumulate tasks, to find additional files for locking
+  # Get tags too for current todo/done file, to get additional locks
   tags="$(htd__todotxt_tags "$1" "$2" | lines_to_words ) $tags"
-  note "Tags: ($(echo "$tags" | count_words
+  note "Session-Start Tags: ($(echo "$tags" | count_words
     )) $(echo "$tags" )"
   info "3.2. Env: $(var2tags \
     id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  # Get paths to all files, add todo/done buffer files per tag
+  # Get additional paths to all files, look for todo/done buffer files per tag
   buffers="$(htd__tasks_buffers $tags )"
-  # Lock main files todo/done and additional-paths
+  # Lock files todo/done and additional-paths to buffers
   locks="$(lock_files $id "$@" $buffers $add_files | lines_to_words )"
   { exts="$TASK_EXTS" pathnames $locks ; echo; } | column_layout
   # Fail now if main todo/done files are not included in locks
@@ -2706,12 +2727,12 @@ htd__tasks_session_start()
   }
   note "Acquired locks ($(echo "$locks" | count_words ))"
 }
-htd_run__tasks_session_start=eiA
+htd_run__tasks_session_start=epqiA
 htd_argsv__tasks_session_start()
 {
+  htd_tasks_load
   info "1.1. Env: $(var2tags \
     id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  htd_tasks_load
   test -n "$*" || return 0
   while test $# -gt 0 ; do case "$1" in
       '+'* ) tags="$tags $1" ; projects="$projects $1" ; shift ;;
@@ -2775,36 +2796,6 @@ htd__tasks__src__remove()
 }
 
 
-htd__tasks()
-{
-  case "$1" in
-
-    be.src )
-        mkvid "$2" ; cmid=$vid
-        . ./to/be-src.sh ; shift 2
-        htd__tasks__src__${cmid} "$@"
-      ;;
-
-    be* )
-        be=$(printf -- "$1" | cut -c4- )
-        test -n "$be" || error "No default tasks backend" 1
-        c= mksid "$1" ; ctxid=$sid
-        test -e ./to/$sid.sh || error "No tasks backend '$1' ($be)" 1
-        . ./to/$ctxid.sh ;
-        mkvid "$be" ; beid=$vid
-        mkvid "$2" ; cmid=$vid
-        . ./to/$ctxid.sh ; shift 2
-        htd__tasks__${beid}__${cmid} "$@"
-      ;;
-
-    "" ) shift || noop ; htd__tasks_scan "$@" ;;
-
-    * ) act="$1"; shift 1; htd__tasks_$act "$@" ;;
-  esac
-}
-htd_grp__tasks=tasks
-
-
 # Load from pd-meta.tasks.{document,done} [ todo_slug todo-document todo-done ]
 htd_tasks_load()
 {
@@ -2816,6 +2807,7 @@ htd_tasks_load()
   test -n "$todo_document" || todo_document=todo.$TASK_EXT
   test -n "$todo_done" ||
     todo_done=$(pathname "$todo_document" $TASK_EXTS)-done.$TASK_EXT
+  assert_files $todo_document $todo_done
   test -n "$todo_slug" || {
     local $(map=package_ package_sh  id  )
     test -n "$id" && {
@@ -3265,6 +3257,26 @@ htd__urls()
 }
 
 
+htd_man_1__git='FIXME: cleanup below
+
+    git-remote
+    git-init-local
+    git-init-remote
+    git-drop-remote
+    git-init-version
+    git-missing
+    git-init-src
+    git-list
+    git-files
+    git-grep
+    git-features
+
+See also:
+
+    htd vcflow
+    vc
+'
+
 htd_man_1__git_remote='List repos at remote (for SSH), or echo remote URL.
 '
 htd__git_remote()
@@ -3493,7 +3505,6 @@ htd__git_init_src()
     }
   done
 }
-
 
 htd__git_list()
 {
@@ -3966,7 +3977,7 @@ htd__find_empty()
 {
   test -n "$1" || set -- .
   test -d "$1" || error "Dir expected '$?'" 1
-  test -n "$find_ignores" || find_ignores="-iname .git -prune"
+  local find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
   eval find $1 $find_ignores -o -empty -a -print
 }
 
@@ -3974,7 +3985,7 @@ htd__find_empty_dirs()
 {
   test -n "$1" || set -- .
   test -d "$1" || error "Dir expected '$?'" 1
-  test -n "$find_ignores" || find_ignores="-iname .git -prune"
+  local find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
   eval find $1 $find_ignores -o -empty -a -type d -a -print
 }
 
@@ -4535,59 +4546,19 @@ htd_als__openurl=package\ open-url
 
 
 
-htd_man_1__topics_list='List topics'
-htd__topics_list()
+htd_man_1__topics='List topics'
+htd__topics()
 {
-  cd $HTDIR
-  local $(map=package_pd_meta_ext_topics_:topics_list_ \
-    package_sh  id  roots )
-  test -n "$topics_list_id" || error topic-list-id 1
-  test -n "$topics_list_roots" || error topic-list-roots 1
-  # TODO: topics personal/ web/ domain?
-  find $topics_list_roots | htd pathnames | \
-    grep -v 'Rules\|\/[^A-Z].*$' |
-    grep -v '\.[A-Za-z0-9_-]*$'
+  test -n "$1" || set -- list
+  upper=0 mkvid "$1" ; shift ; func=htd_topics_$vid
+  lib_load topics
+  func_exists "$func" || func=topics_$vid
+  $func "$@" || return $?
 }
-htd_run__topics_list=iAO
+htd_run__topics=iAOpx
 
-
-htd__topics_save()
-{
-  test -n "$1" || error "Document expected" 1
-  test -e "$1" || error "No such document $1" 1
-  htd__tpaths "$1" | while read path
-  do
-    echo
-  done
-}
-
-
-create_topics()
-{
-# TODO: htd create-topics
-#topic get $(basename $1) ||
-#topic get $(basename $1) ||
-  topic new $(basename $1) $(basename $(dirname $1))
-}
-
-
-htd__topics_commit()
-{
-  htd__topics | while read topic_path
-  do
-    topic get $(basename $topic_path) || create_topics $topic_path
-  done
-}
-
-
-htd__topics_persist()
-{
-  while read topic_id topic_name topic_path
-  do
-    mkdir -vp $HTDIR/$topic_path
-    mkdir -vp $HTDIR/$topic_path
-  done
-}
+htd_man_1__list_topics='List topics'
+htd_als__list_topics="topics list"
 
 
 htd_man_1__scripts='
@@ -5096,7 +5067,7 @@ htd_env__process='
 htd__process()
 {
   tags="$(htd__tasks_tags "$@" | lines_to_words ) $tags"
-  note "Tags: '$tags'"
+  note "Process Tags: '$tags'"
   htd__tasks_buffers $tags | grep '\.sh$' | while read scr
   do
     test -e "$scr" || continue
@@ -5114,7 +5085,7 @@ htd__process()
     continue
   done
 }
-htd_run__process=eA
+htd_run__process=epqA
 htd_argsv__process=htd_argsv__tasks_session_start
 htd_als__proc=process
 htd_grp__process=proc
@@ -5991,7 +5962,7 @@ htd__tpaths()
       shift 1
       continue
     }
-    path= rel_leaf= root= xml=$(htd__getxl $1)
+    path= rel_leaf= root= xml="$(htd__getxl "$1")"
 
     # Read multi-leaf paths, and split it up into relative leafs
 
@@ -6029,11 +6000,6 @@ htd__tpaths()
 }
 htd_vars__tpaths="path rel_leaf root xml"
 
-htd__tpath_refs()
-{
-  test -n "$1" || error "document expected" 1
-  test -e "$1" || error "no such document '$1'" 1
-}
 
 htd_load__tpath_raw="xsl"
 htd__tpath_raw()
@@ -6042,7 +6008,7 @@ htd__tpath_raw()
   test -e "$1" || error "no such document '$1'" 1
   test -n "$xsl_ver" || xsl_ver=1
   info "xsl_ver=$xsl_ver"
-  local xml=$(htd__getxl $1)
+  local xml="$(htd__getxl "$1")"
 
   case "$xsl_ver" in
     1 ) htd__xproc "$xml" $scriptpath/rst-terms2path.xsl ;;
@@ -6051,7 +6017,8 @@ htd__tpath_raw()
   esac
 }
 
-# Process XML using XSLT
+
+htd_man_1__xproc='Process XML using xsltproc - XSLT 1.0'
 htd__xproc()
 {
   {
@@ -6067,6 +6034,8 @@ EOM
   } | tail -n +2 | grep -Ev '^(#.*|\s*)$'
 }
 
+
+htd_man_1__xproc2='Process XML using Saxon - XSLT 2.0'
 htd__xproc2()
 {
   {
@@ -9204,6 +9173,95 @@ htd_man_1__catalog_fsck='File-check entries from catalog with checksums'
 htd_als__fsck_catalog='catalog fsck'
 
 
+htd_man_1__foreach='Execute based on match for each argument or line 
+
+Executes "$act" and "$no_act" for each arg or line based on glob, regex, etc.
+These can be function or command names that accept exactly one argument.
+Without arguments (or "-") all input is read from standard-input.
+
+This can be used to reuse a simple function that accepts one argument, into one
+that accepts multiple arguments and/or reads from stdin and provides a way to
+add filters. The defaults are "htd foreach * echo /dev/null -", but three
+arguments are required. Ie. this simply echoes all lines on stdin:
+
+  htd foreach "" "" ""
+
+EXPR may be a glob, regex, command or function, or shell expression.
+To prevent ambiguity, EXPR prefixes set the type ("g:", "r:", "x:" or "e:").
+The default is glob, and no further effort is made ie. to detect existing
+functions or commands. The signatures are:
+
+  g:<glob>
+  r:<regex>
+     Test each arg/line S
+  x:<callback> 
+     Invoke <callback> with each S as argument
+  e:<shell-expression> 
+     Evaluate for each S, without any further arguments
+
+For example scripts see `htd help filter`.
+'
+htd_spc__foreach='foreach EXPR ACT NO_ACT [ - | Subject... ]'
+htd__foreach()
+{
+  local type_= expr_= act="$2" no_act="$3"
+  foreach_setexpr "$1" ; shift 3
+  foreach "$@"
+}
+
+
+htd_man_1__filter='Return matching paths from args or stdin
+
+See `htd foreach` for EXPR and argument handling. Example to get "./*.lib.sh"
+files:
+
+   htd filter "*.lib.sh" *.sh
+   htd filter "r:.*\.lib\.sh$" *.sh
+
+These are just examples, instead of a new command some simple shell glob expansion
+could give the same result. The real power of this routine is that it implements
+the same wether input is arguments or lines on standard input, and can call
+other functions to perform the actual testing. It is not restricted to testing
+on filename/pathname only, and can work on any provided list directly.
+
+List all executable or symlinks in tracked in GIT repository:
+
+   git ls-files | htd filter e:"test -x \"./\$S\""
+   git ls-files | htd filter x:"test -x"
+   git ls-files | htd filter x:"test -h"
+
+As another example emulate GNU `find` selectors based on file descriptor. Using
+functions loaded by `htd`, similar actions are easier to write:
+
+   git ls-files | htd filter-out x:"test -s" # find . -empty -type f
+   git ls-files | htd filter "e:test \$(filesize \"./\$S\") -gt 1024" # +size
+   git ls-files | htd filter "e:older_than \"\$S\" \$_1YEAR" # +time?
+
+NOTE: that because the examples are single-quoted, it prevents any single quote
+in the documentation. While it would make the above examples a bit more readable
+with less escaping. 
+'
+htd_spc__filter='filter EXPR [ - | PATH... ]'
+htd__filter()
+{
+  local type_= expr_= mode_=
+  foreach_setexpr "$1" ; shift
+  mode_=1 htd_filter "$@"
+}
+
+
+htd_man_1__filter_out='Return non-matches for glob, regex or other expression
+
+See `htd help filter`.
+'
+htd_spc__filter_out='filter EXPR [ - | PATH... ]'
+htd__filter_out()
+{
+  local type_= expr_= mode_=
+  foreach_setexpr "$1" ; shift
+  mode_=0 htd_filter "$@"
+}
+
 # -- htd box insert sentinel --
 
 
@@ -9361,8 +9419,8 @@ htd_init()
   lib_load
   . $scriptpath/box.init.sh
   box_run_sh_test
-  lib_load htd meta list
-  lib_load box date doc table disk remote ignores package service archive \
+  lib_load htd meta
+  lib_load box date doc table disk remote package service archive \
       prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck net \
       catalog
   case "$uname" in Darwin ) lib_load darwin ;; esac

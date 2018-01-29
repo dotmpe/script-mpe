@@ -913,16 +913,15 @@ pd__copy() # HOST PREFIX [ VOLUME ]
 
 
 # Run (project) helper commands and track results
-pd_load__run=yiIap
+pd_load__run=yiIapq
 pd_defargs__run=pd_prefix_target_args
 pd_spc__run='run [ PREFIX | [:]TARGET ]...'
 pd__run()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   #record_env_keys pd-run pd-subcmd pd-env
-  info "Pd targets requested: $*"
-  info "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
-
+  note "Pd targets requested: $*"
+  note "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
 
   while read pd_prefix
   do
@@ -930,24 +929,17 @@ pd__run()
     cd $pd_realdir/$pd_prefix
 
     # Iterate targets
-
     set -- $(cat $arguments | lines_to_words )
     test -n "$1" || {
       info "Setting targets to states of 'init' for '$pd_root/$pd_prefix'"
       set -- $(pd__ls_targets init 2>/dev/null)
     }
-
     while test -n "$1"
     do
       fnmatch ":*" "$1" && target=$(echo "$1" | cut -c2- ) || target=$1
 
-      test -n .package.sh || error package 31
-
-      #note "1=$1 target=$target"
-
       #record_env_keys pd-target pd-run pd-subcmd pd-env
       #pd_debug start $target pd-target pd_prefix
-
       (
         export $(pd__env)
         subcmd="$subcmd $pd_prefix#$target" \
@@ -957,14 +949,10 @@ pd__run()
             echo "$pd_prefix#$target" >&5
           }
       )
-
       #pd_debug end $target pd-target pd_prefix
-
       shift
-
     done
   done < $prefixes
-
   cd $pd_realdir
 }
 
@@ -1581,17 +1569,26 @@ pd_load()
       ;;
 
     p ) # Load/Update package meta at prefix; should imply y or d
-
         test -n "$prefixes" -a -s "$prefixes" \
           && pd_prefixes="$(cat $prefixes | words_to_lines )" \
           || pd_prefixes=$pd_prefix
 
+        note "Checking '$pd_prefixes'..."
         local pref=
         for pref in $pd_prefixes; do
-          pd__meta_sq get-repo "$pref" && update_package "$pref" ||
-              warn "No repo for '$pref'"
+          pd__meta_sq get-repo "$pref" && {
+              update_package "$pref" || warn "No repo for '$pref'"
+            }
         done
         unset pref
+      ;;
+
+    q )
+        # Evaluate package env
+        test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
+            . $PACKMETA_SH || error "No package Sh" 1
+        } || 
+            error "No local package" 1
       ;;
 
     y )
@@ -1639,7 +1636,7 @@ pd_unload()
       ;;
     y )
         test -z "$pd_sock" || {
-          main_sock=$pd_sock main_bg=pd__meta main_bg_teardown
+          main_sock=$pd_sock main_bg=pd__meta box_bg_teardown
           unset bgd pd_sock
         }
       ;;
@@ -1689,6 +1686,7 @@ pd_lib()
   local __load_lib=1
   test -n "$scriptpath" || return 12
   lib_load box meta list match date doc table ignores vc projectdir
+  . $scriptpath/vc.sh
   # -- pd box lib sentinel --
 }
 

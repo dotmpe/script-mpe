@@ -10,15 +10,16 @@ os_lib_load()
 
 absdir()
 {
-  # NOTE: somehow my Linux pwd makes a symbolic path to root into //bin.
+  # NOTE: somehow my Linux pwd makes a symbolic path to root into //bin,
+  # using tr to collapse all sequences to one
   ( cd "$1" && pwd -P | tr -s '/' '/' )
 }
 
-# Combined dirname/basename to replace .ext(s)
-# pathname PATH EXT...
-pathname()
+# Combined dirname/basename to remove .ext(s) but return path
+pathname() # PATH EXT...
 {
   local name="$1" dirname="$(dirname "$1")"
+  fnmatch "./*" "$1" && dirname="$(echo "$dirname" | cut -c3-)"
   shift 1
   for ext in $@
   do
@@ -32,7 +33,8 @@ pathname()
 }
 # basepath: see pathname as alt. to basename for ext stripping
 
-pathnames() # exts=... PATHS
+# Simple iterator over pathname
+pathnames() # exts=... [ - | PATHS ]
 {
   test -n "$exts" || exit 40
   test -n "$*" && {
@@ -161,6 +163,41 @@ filemtime()
       * ) error "filemtime: $1?" 1 ;;
     esac; shift
   done
+}
+
+# Split expression type from argument and set envs expr_/type_
+foreach_setexpr() # [Type:]Expression
+{
+  test -n "$1" || set -- '*'
+  expr_="$1"
+  fnmatch "*:*" "$expr_" && {
+    type_="$(echo "$expr_" | cut -c1)"
+    expr_="$(echo "$expr_" | sed 's/^[^:]*://')"
+  } || {
+    type_=g
+  }
+  info "Mode: $type_, Expression: '$expr_'"
+}
+
+# Execute act/no-act based on expression match, function/command or shell statement
+foreach() # [type_= expr_= act= no_act= ] [Subject...]
+{
+  test "$1" != "-" || shift
+  test -n "$act" || act=echo
+  test -n "$no_act" || no_act=/dev/null
+  # Read arguments or lines from stdin
+  { test -n "$*" && { for a in "$@"; do printf -- "$a\n" ; done; } || cat -
+  } | while read S ; do
+  # NOTE: Allow inline comments or processing instructions passthrough
+  fnmatch "#*" "$S" && { echo "$S" ; continue; }
+  # Execute, echo on success or do nothing except print on stdout in debug-type_
+  case "$type_" in
+      g ) fnmatch "$expr_" "$S" ;;
+      r ) echo "$S" | grep -q "$expr_" ;;
+      x ) $expr_ "$S" ;;
+      e ) eval "$expr_" ;;
+      * ) error "foreach-expr-type? '$type_'" 1 ;;
+  esac && $act "$S" || $no_act "$S" ; done
 }
 
 normalize_relative()

@@ -617,8 +617,8 @@ pd_prefix_target_args()
     shift
   done
 
-  stderr debug "choice-reg: $choice_reg"
   trueish "$choice_reg" && {
+    note "Going over enabled prefixes..."
 
     # Mixin enabled prefixes with existing dirs for default args,
     # or scan for any registered prefix args iso stat existing dirs only
@@ -640,6 +640,7 @@ pd_prefix_target_args()
     done
 
   } || {
+    note "Going over prefixes found..."
 
     # Stat only, don't check on (enabled) Pdoc prefixes
 

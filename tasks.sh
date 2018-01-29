@@ -140,12 +140,6 @@ tasks_unload()
 
   for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
   do case "$x" in
-      y )
-          test -z "$sock" || {
-            tasks_meta_bg_teardown
-            unset bgd sock
-          }
-        ;;
       f )
           clean_failed || unload_ret=1
         ;;

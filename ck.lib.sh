@@ -99,14 +99,15 @@ ck_read_catalog()
 
     l=$(( $l + 1))
   done
-  note "done reading checksums from catalog"
+  info "Done reading checksums from catalog '$1'"
 }
 
 # Check keys from catalog corresponding to known checksum algorithms
 ck_run_catalogs()
 {
-  local cwd=$(pwd) dir= catalog= ret=
+  local cwd=$(pwd) dir= catalog= ret=0
 
+  note "Running over catalogs found in '$cwd'..."
   htd_catalog_list | {
     while read catalog
     do
@@ -163,12 +164,15 @@ ck_run_catalogs()
                   ;;
           esac
 
-          test 0 -eq $? || return 1
+          test 0 -eq $? || {
+            return 1
+          }
         done
       }
+      r=$?
 
-      test 0 -eq $? -a -n "$ret" || {
-        error "failure in '$catalog'"
+      test 0 -eq $r -a $ret -eq 0 || {
+        error "failure in '$catalog' ($r, $ret)"
         return 1
       }
     done

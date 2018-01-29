@@ -25,5 +25,5 @@
     "url": "dotmpe-com@ssh.pcextreme.nl:domains/dotmpe.com/htdocs/git/script-mpe"
   },
   "author": "B. van Berkum",
-  "license": "MIT"
+  "license": "GPL-3.0"
 }

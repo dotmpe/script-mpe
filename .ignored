@@ -1,0 +1,2 @@
+# TODO: fix modes of include/exclude, see htd and {ignores,list.lib}.sh
+.default.rst
