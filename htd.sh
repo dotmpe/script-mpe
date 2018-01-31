@@ -161,6 +161,8 @@ htd_load()
 
   htd_rules=$UCONFDIR/rules/$hostname.tab
   ns_tab=$UCONFDIR/namespace/$hostname.tab
+  # Shell template
+  pathnames=$UCONF/pathnames.tab
 
   which tmux 1>/dev/null || {
     export PATH=/usr/local/bin:$PATH
@@ -454,6 +456,22 @@ htd__check()
   subcmd=find-empty htd__find_empty ||
       stderr warn "Empty paths above" && stderr ok "No empty files"
 
+  # Go over named paths, see if there are any checks for its contexts
+  fixed_table $ns_tab SID CONTECTS | while read vars
+  do
+    eval local "$vars"
+    upper=1 mkvid "$SID"
+    echo $vid
+
+  done
+
+  htd_prefix_names | while read prefix_name
+  do
+    base_path="$(eval echo \"\$$prefix_name\")"
+
+    note "$prefix_name: $base_path"
+  done
+
   # TODO: incorporate global/other projects and get glboal host picture
   # local dirs="Desktop Downloads bin .conf" ; foreach pd check
   #pd check && stderr ok "Projectdir checks out"
@@ -692,7 +710,9 @@ htd__help()
     echo 'Other commands: '
     other_cmds
   } || {
-    echo_help $1
+    echo_help $1 || {
+      htd__function help $1 || return $?
+    }
   }
 }
 htd_als___h=help
@@ -3709,9 +3729,14 @@ htd__source()
 {
   test -n "$1" || set -- copy
   case "$1" in
+
     lines ) shift
         test -e "$1" || error "file expected '$1'" 1
         source_lines "$@" || return $?
+      ;;
+    line ) shift
+        test -e "$1" || error "file expected '$1'" 1
+        source_line "$@" || return $?
       ;;
     copy ) shift
         htd__source lines "$3" "$1" "" "$2"
@@ -3728,28 +3753,52 @@ htd__source()
         copy_paste "$1" "$2" "$3" || return $?
         test -n "$4" || echo $cp
       ;;
+
     diff-where | sync-where ) shift
         diff_where "$@" || return $?
       ;;
+
     where-grep ) shift
         file_where_grep "$@" || return $?
         echo $line_number
       ;;
+
+    where-grep-before ) shift
+        file_where_before "$@" || return $?
+        echo $line_number
+      ;;
+
     where-grep-tail ) shift
         file_where_grep_tail "$@" || return $?
         echo $line_number
       ;;
+
+    file-insert-at ) fail TODO ;;
+    file-replace-at ) fail TODO ;;
+    file-insert-where-before ) fail TODO ;;
+    split-file-where-grep ) fail TODO ;;
+    truncate ) fail TODO ;;
+    truncate-lines ) fail TODO ;;
+    # NOTE: see also htd function subcommand
+    func-comment ) fail TODO ;;
+    header-comment ) fail TODO ;;
+    backup-header-comment ) fail TODO ;;
+    list-functions ) fail TODO ;;
+    # And many more in src.lib.sh
+
     expand-sentinel ) shift
         where_line="$(grep -nF "# htd source copy-paste: $2" "$1")"
         line_number=$(echo "$where_line" | sed 's/^\([0-9]*\):\(.*\)$/\1/')
         test -n "$line_number" || return $?
         expand_sentinel_line "$1" $line_number || return $?
       ;;
+
+    expand-source-line ) fail TODO ;;
+
     * ) error "'$1'?" 1
       ;;
   esac
 }
-
 
 
 htd_man_1__function='Operate on specific functions in Sh scripts.
@@ -3765,17 +3814,42 @@ htd__function()
 {
   test -n "$1" || set -- copy
   case "$1" in
+
     copy ) shift
         copy_function "$@" || return $?
       ;;
+
     start-line ) shift
         function_linenumber "$@" || return $?
         echo $line_number
       ;;
+
     range ) shift
         function_linerange "$@" || return $?
         echo $start_line $span_lines $end_line
       ;;
+
+    help ) shift ; local file= grep_line=
+        htd__function comment "$@"
+        test -n "$file" || return 1
+        grep "^$vid " "$file"
+        decl_comment=$( grep "^$vid()" "$file" | sed 's/^[A-Za-z0-9_]*()\ [\ \{\#]*//' )
+        test -n "$decl_comment" || return
+        echo
+        echo "$1( $decl_comment ) # found on $file:$grep_line"
+      ;;
+
+    comment ) shift
+        test -n "$1" || error "name or string-id expected" 1
+        upper= mkvid "$1" ; shift ; set -- "$vid" "$@"
+        test -n "$2" || {
+            set -- "$1" "$(first_match=1 find_functions "$1" $scriptpath/*.sh)"
+        }
+        file="$2"
+        test -n "$2" || error "No shell scripts for '$1'" 1
+        func_comment "$@" || return $?
+      ;;
+
     * ) error "'$1'?" 1
       ;;
   esac
@@ -4514,11 +4588,17 @@ htd_grp__save_ref=annex
 
 htd_man_1__package='
 
-  package list-ids
+  package ls|list-ids
      List package IDs from local package metadata file.
-
+  package update
+     Regenerated main.json and package.sh files (from YAML)
+  package remotes-init
+     Take all repository names/urls directly from YAML, and create remotes or
+     update URL for same in local repository. The remote name and exact
+     remote-url is determined with htd-repository-url (htd.lib.sh).
   package urls
      TODO: List URLs for package.
+  package openurl|open-url [URL]   
 
   package debug
      Log each Sh package settings.
@@ -6562,7 +6642,7 @@ htd__prefixes()
     # Read from index
     list | names )           htd_prefix_names || return $? ;;
     table )                  htd_path_prefix_names || return $? ;;
-    raw-table ) shift ;      cat $UCONFDIR/pathnames.tab || return $? ;;
+    raw-table ) shift ;      cat $pathnames || return $? ;;
     name ) shift ;           htd_prefix "$1" || return $? ;;
     names ) shift ;          htd_prefixes "$@" || return $? ;;
     pairs ) shift ;          htd_path_prefixes "$@" || return $? ;;
@@ -7077,7 +7157,8 @@ htd__say()
 }
 
 
-htd_man_1__src='
+htd_man_1__src='TODO: this is for the src service/directory
+See source for src.lib.sh wrapped as subcommands.
 '
 htd__src()
 {
@@ -7092,6 +7173,7 @@ htd__src()
 
   esac
 }
+htd_run__src=f
 
 
 htd__domain()

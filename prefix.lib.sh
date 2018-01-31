@@ -1,13 +1,34 @@
 #!/bin/sh
 
 
+# Build a table of paths to env-varnames, to rebuild/shorten paths using variable names
+get_pathnames_tab()
+{
+  test -n "$1" || set -- pathnames.tab
+
+  { test -n "$UCONFDIR" -a -s "$UCONFDIR/$1" && {
+    local tmpsh=$(setup_tmpf .topic-names-index.sh)
+    { echo 'cat <<EOM'
+      read_nix_style_file "$UCONFDIR/$1"
+      echo 'EOM'
+    } > $tmpsh
+    $SHELL $tmpsh
+    rm $tmpsh
+  } || { cat <<EOM
+/ ROOT
+$HOME/ HOME
+EOM
+    }
+  } | uniq
+}
+
 # Setup temp-file index for shell env profile, created from pathnames-table
 req_prefix_names_index() # Pathnames-Table
 {
-  test -n "$1" || set -- pathnames.tab
+  test -n "$1" || set -- $pathnames
   test -n "$index" || export index=$(setup_tmpf .prefix-names-index)
   test -s "$index" -a "$index" -nt "$UCONFDIR/$1" || {
-    htd_topic_names_index "$1" > $index
+    get_pathnames_tab "$1" > $index
   }
 }
 
@@ -15,9 +36,9 @@ req_prefix_names_index() # Pathnames-Table
 # List prefix varnames
 htd_prefix_names()
 {
+  # Build from tpl and cat file
   test -n "$index" || local index=
   test -s "$index" || req_prefix_names_index
-
   read_nix_style_file $index | awk '{print $2}' | uniq
 }
 

@@ -101,26 +101,6 @@ htd_main_files()
   done
 }
 
-# Build a table of paths to env-varnames, to rebuild/shorten paths using variable names
-htd_topic_names_index()
-{
-  test -n "$1" || set -- pathnames.tab
-  { test -n "$UCONFDIR" -a -s "$UCONFDIR/$1" && {
-    local tmpsh=$(setup_tmpf .topic-names-index.sh)
-    { echo 'cat <<EOM'
-      read_nix_style_file "$UCONFDIR/$1"
-      echo 'EOM'
-    } > $tmpsh
-    $SHELL $tmpsh
-    rm $tmpsh
-  } || { cat <<EOM
-/ ROOT
-$HOME/ HOME
-EOM
-    }
-  } | uniq
-}
-
 # migrate lines matching tag to to another file, removing the tag
 # htd-move-tagged-and-untag-lines SRC DEST TAG
 htd_move_tagged_and_untag_lines()
@@ -286,6 +266,11 @@ vim_swap()
 }
 
 
+# Remote names with periods ('.') are interpreted as
+# <hostname>.<remote-id>, and their URL's as paths on those remotes.
+# For those on the local host, check if the URL is local path
+# and retun 1, otherwise add the hostname to the path, and
+# remove the hostname from the remote-name to use.
 htd_repository_url() # remote url
 {
   # Disk on local host
@@ -297,6 +282,15 @@ htd_repository_url() # remote url
     # Use URL as is, remove host from remote
     remote="$(echo $1 | cut -f2- -d'.')"
     return 0
+
+  }
+  fnmatch "*.*" "$1" && {
+
+    # Add hostname for remote disk
+    { fnmatch "/*" "$2" || fnmatch "~/*" "$2"
+    } || return
+    remote=$(echo $1 | cut -f2- -d'.')
+    url=$(echo $1 | cut -f1 -d'.'):$2
 
   } || {
 

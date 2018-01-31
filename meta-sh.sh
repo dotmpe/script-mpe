@@ -47,7 +47,7 @@ meta_sh__video_info()
 
   durms="$(mediadurationms "$1")"
   dar="$(mediadisplayaspectratio "$1")"
-  ft="$(filetype "$1")"
+  ft="$(file_mime "$1")"
   res="$(mediaresolution "$1")"
   test -n "$durms" || error "No duration <$1>" 1
   test -n "$res" || error "No resolution <$1>" 1
@@ -68,7 +68,7 @@ meta_sh__annex_update_video()
   do
     meta_sh__video_info "$1"
 
-    annex_md_update filetype $ft "$1"
+    annex_md_update mimetype $ft "$1"
     annex_md_update durationms $durms "$1"
     annex_md_update display_aspectratio $dar "$1"
     annex_md_update resolution $res "$1"
