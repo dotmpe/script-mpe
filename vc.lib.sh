@@ -306,6 +306,35 @@ vc_clean()
   )
 }
 
+vc_branch_git()
+{
+  git rev-parse --abbrev-ref HEAD
+}
+vc_branch_hg()
+{
+  hg identify -b
+}
+vc_branch_svn()
+{
+  url=$(svn info | grep '^Relative URL:') && {
+
+    echo "$url" | cut -c15-
+  } || {
+    url=$(svn info | grep '^URL:') && {
+
+        echo "$url" | cut -c6-
+    } || error "No URL found in 'svn info'" 1
+  }
+}
+vc_branch_bzr() { false; }
+
+# Print checked out branch
+vc_branch()
+{
+  vc_branch_${scm} "$@"
+}
+
+
 vc_branches_git()
 {
   test -n "$1" || set -- refs/heads

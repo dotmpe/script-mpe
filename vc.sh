@@ -1014,6 +1014,15 @@ vc__remotes()
   done
 }
 
+vc__branch()
+{
+  local pwd=$(pwd)
+  test -z "$1" || cd "$1"
+  vc_getscm "." || return $?
+  vc_branch
+  test -z "$1" || cd "$pwd"
+}
+
 vc_als__branches=list-local-branches
 vc__list_local_branches()
 {
