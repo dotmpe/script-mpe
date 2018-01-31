@@ -1638,7 +1638,7 @@ vc__info()
 
 vc__dist()
 {
-  vc__remotes | while read remote
+  vc__remotes | while read remote url
   do
       git push $remote
   done
