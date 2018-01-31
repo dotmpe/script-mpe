@@ -1635,10 +1635,20 @@ vc__info()
   vc_info "$@"
 }
 
+
+vc__dist()
+{
+  vc__remotes | while read remote
+  do
+      git push $remote
+  done
+}
+
+
+# -- vc box insert sentinel --
+
+
 # ----
-
-
-
 
 # Script main functions
 
