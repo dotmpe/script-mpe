@@ -13,6 +13,7 @@ for x in test/*-spec.bats; do
     echo ""
 done
 
+exit $?
 
 exit 0
 

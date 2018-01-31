@@ -49,6 +49,8 @@ after_script:
   - scriptname=after-script
   - . ./tools/ci/parts/publish.sh
 
+#after_success:
+
 #matrix:
 #  include: []
 #
