@@ -29,6 +29,6 @@ htd_catalog_validate()
 
 htd_catalog_list()
 {
-  find . -iname 'catalog.y*ml' -not -ipath '*/schema/*' |
+  find -L . -iname 'catalog.y*ml' -not -ipath '*/schema/*' |
       cut -c3- | exts=".yml .yaml" pathnames
 }
