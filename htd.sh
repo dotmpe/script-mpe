@@ -444,27 +444,47 @@ htd_man_1__check='Run diagnostics for CWD and system.
 
 '
 htd_run__check=pqi
+htd_als__chk=check
 htd__check()
 {
-  test -z "$pd_meta_tasks_document" -a -z "$pd_meta_tasks_done" || {
+  note "Starting 'check'..."
 
-    note "Open contexts found:"
-    htd tasks-hub tagged
+  test -n "$package_pd_meta_tasks_document" -a -n "$package_pd_meta_tasks_done" && {
+    true # TODO ;)
+    echo '---------'
+    map=package_pd_meta_ package_sh tasks_document
+    echo '---------'
+    map=package_pd_meta_ package_sh tasks_document tasks_done
+    echo '---------'
+
+  } || stderr warning "Missing todo/done.txt env"
+
+  map=package_pd_meta_ package_sh hub
+  htd_tasks_load tasks-hub && {
+      info "Looking for open contexts..."
+      htd tasks-hub tagged
   }
-  
-  note "Compiling ignores..."
-  subcmd=find-empty htd__find_empty ||
-      stderr warn "Empty paths above" && stderr ok "No empty files"
+
+  info "Looking for empty files..."
+  subcmd=find-empty htd__find_empty \
+      || stderr ok "No empty files" && stderr warnning "Empty files above"
+
 
   # Go over named paths, see if there are any checks for its contexts
-  fixed_table $ns_tab SID CONTECTS | while read vars
-  do
-    eval local "$vars"
-    upper=1 mkvid "$SID"
-    echo $vid
+  test -e "$ns_tab" && {
 
-  done
+    info "Looking for contexts with 'checks' method..."
+    fixed_table $ns_tab SID CONTECTS | while read vars
+    do
+      eval local "$vars"
+      upper=1 mkvid "$SID"
+      echo $vid
 
+    done
+  } || warn "No namespace table for $hostname"
+
+
+  info "Prefix names"
   htd_prefix_names | while read prefix_name
   do
     base_path="$(eval echo \"\$$prefix_name\")"
@@ -481,6 +501,7 @@ htd__check()
   #htd__check_names
 
   # Check file integrity
+  info "Checking file integrity"
   subcmd=fsck htd__fsck && stderr ok "File integrity check successful"
 }
 
@@ -1540,6 +1561,7 @@ htd__test_find_path_locals()
 # List root IDs
 htd__list_local_ns()
 {
+  test -e "$ns_tab" || warn "No namespace table for $hostname" 1
   fixed_table $ns_tab SID GROUPID| while read vars
   do
     eval local "$vars"
@@ -1552,6 +1574,7 @@ htd_spc__ns_names='ns-names [<path>|<localname> [<ns>]]'
 htd__ns_names()
 {
   test -z "$3" || error "Surplus arguments: $3" 1
+  test -e "$ns_tab" || warn "No namespace table for $hostname" 1
   fixed_table $ns_tab SID GROUPID | while read vars
   do
     eval local "$vars"
@@ -2839,10 +2862,13 @@ htd_tasks_load()
   ;;
 
     tasks-hub | tasks-process )
-  test -e "./to" && tasks_hub=./to
-  test -n "$tasks_hub" ||
-    tasks_hub=$(map=package_pd_meta_ package_sh hub)
-  test -n "$tasks_hub" || error tasks-hub 1
+  test -n "$tasks_hub" || {
+    eval $(map=package_pd_meta_ package_sh tasks_hub)
+  }
+  test -n "$tasks_hub" || {
+    test -e "./to" && tasks_hub=./to
+  }
+  test -n "$tasks_hub" || { error "No tasks-hub env" ; return 1 ; }
   test ! -e "./to" -o "$tasks_hub" = "./to" ||
     error "hub ./to left behind" 1
   ;;
@@ -3308,10 +3334,39 @@ htd__git_remote()
 
   test -n "$1" || set -- "url" "$2" "$3"
   test -n "$2" || set -- "$1" "$HTD_GIT_REMOTE" "$3"
+  test -n "$2" || error "No default remote set" 1
 
   {
+    # See for simple remote vendor name
     C=$UCONFDIR/git/remote-dirs/$2.sh
-    test -e "$C" && . $C || error "Missing remote-dir file '$2'" 1
+    test -e "$C" || { local vendor=
+
+        # See for specific account per vendor
+        grep -l NS_NAME=$2 $UCONFDIR/git/remote-dirs/*.sh | while read remote
+        do
+          test -h "$remote" && continue # ignore account aliases
+          get_property $remote VENDOR
+          vendor=$(get_property $remote VENDOR) || continue
+          test -n "$vendor" || continue
+          set -- "$1" "$2" "$(basename $remote .sh)" "$vendor"
+          stderr ok "account $2 for vendor $4 at file $3"
+
+        done 
+          
+        # FIXME  
+            stderr fail "account $2 for vendor $4 at file $3"
+        test -n "$4" -a -n "$3" &&
+            stderr ok "account $2 for vendor $4 at $3" ||
+            error "Missing any remote-dir file for ns-name '$2'" 1
+        C=$UCONFDIR/git/remote-dirs/$3.sh
+    }
+
+    . $C
+
+    test -n "$VENDOR" || error "Vendor for remote now required" 1
+    test -n "$NS_NAME" || error "Expected NS_NAME still.. really" 1
+    # XXX: swap vendor/basename around..
+    set -- "$1" "$VENDOR" "$(basename $C .sh)" "$NS_NAME"
     #|| error "Missing remote GIT dir script" 1
     test -n "$remote_dir" || {
       info "Using $NS_NAME for $2 remote vendor path"
@@ -3336,11 +3391,29 @@ htd__git_remote()
           echo "$remote_hostinfo:$remote_dir/$3"
         ;;
 
-      github-list ) shift; test -n "$1" || error "ns-name" 1
-          repos=$UCONFDIR/git/remote-dirs/$1.json
+      github-list ) 
+          test -n "$2" || error "vendor-name required" 1
+          test -n "$3" || error "remote-name required" 1
+          test -n "$4" || error "ns-name required" 1
+          test -n "$remote_list" || remote_list=$3.list
+          confd=$UCONFDIR/git/remote-dirs
+          repos=$UCONFDIR/git/remote-dirs/$3.json
+
           { test -e $repos && newer_than $repos $_1DAY
-          } || curl -sSf "https://api.github.com/users/$NS_NAME/repos?per_page=100" >$repos
-          cat $repos| jq -r 'to_entries[] as $r | $r.value.full_name'
+          } && stderr ok "File UCONF:git/remote-dirs/$3.json" || {
+
+            URL="https://api.github.com/users/$4/repos"
+            per_page=100
+            htd_resolve_paged_json $URL per_page page > $repos || return $?
+          }
+  
+          test -e $confd/$remote_list -a $confd/$remote_list -nt $repos && {
+
+            cat $confd/$remote_list || return $?
+          } || {
+            jq -r 'to_entries[] as $r | $r.value.full_name' $repos | tee $confd/$remote_list
+          }
+          wc -l $confd/$remote_list
         ;;
 
       list ) test -z "$3" || error "no filter '$3'" 1
@@ -3833,10 +3906,12 @@ htd__function()
         htd__function comment "$@"
         test -n "$file" || return 1
         grep "^$vid " "$file"
-        decl_comment=$( grep "^$vid()" "$file" | sed 's/^[A-Za-z0-9_]*()\ [\ \{\#]*//' )
-        test -n "$decl_comment" || return
+        decl_comment=$( grep "^$vid()" "$file" | sed 's/^[A-Za-z0-9_]*()[\ \{\#]*//' )
         echo
-        echo "$1( $decl_comment ) # found on $file:$grep_line"
+        test -n "$decl_comment" && {
+            echo "$1( $decl_comment ) # found on $file:$grep_line"
+        } ||
+            echo "$1() # found on $file:$grep_line"
       ;;
 
     comment ) shift
@@ -4051,16 +4126,20 @@ htd__find_empty()
 {
   test -n "$1" || set -- .
   test -d "$1" || error "Dir expected '$?'" 1
+  info "Compiling ignores..."
   local find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
-  eval find $1 $find_ignores -o -empty -a -print
+  test -n "$find_ignores" || fail "Cannot compile find-ignores"
+  eval find $1 -false $find_ignores -o -empty -a -print
 }
 
 htd__find_empty_dirs()
 {
   test -n "$1" || set -- .
   test -d "$1" || error "Dir expected '$?'" 1
+  info "Compiling ignores..."
   local find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
-  eval find $1 $find_ignores -o -empty -a -type d -a -print
+  test -n "$find_ignores" || fail "Cannot compile find-ignores"
+  eval find $1 -false $find_ignores -o -empty -a -type d -a -print
 }
 
 htd_als__largest_files=find-largest

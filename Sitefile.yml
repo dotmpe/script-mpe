@@ -1,10 +1,13 @@
 #!/usr/bin/env sitefile
-sitefile: 0.0.4-dev
+sitefile: 0.0.5-dev
 port: 4500
-upstream:
-  - 'http://localhost:2000'
-  - 'http://localhost:2001'
-  - 'http://localhost:2006'
+upstream: '*'
+#  - 'http://localhost:2000'
+#  - 'http://localhost:2001'
+#  - 'http://localhost:2006'
+#config:
+#  verbose: true
+#  metadata: '/data/meta'
 routes: 
   static: static:./
   _du: docutils:**/*.rst
@@ -16,9 +19,14 @@ routes:
   '': redir:ReadMe
   # Catch all other filenames and serve static
   #_static: static:*.*
-  #_stc1: static:treemap/*.html
-  #treemap/1: static:treemap/1.html
-  #treemap/2: static:treemap/2.html
+
+  # FIXME: glob should not strip or map extension here _stc1: static:treemap/*.html
+  # XXX: no option to strip ext here treemap: static:treemap
+  treemap/1: static:treemap/1.html
+  treemap/1.html: static:treemap/1.html
+  treemap/2: static:treemap/2.html
+  treemap/2.html: static:treemap/2.html
+
   media/style/default.css: sass:sitefile-lib:style/default.sass
 
   app/rjs-sf-v0.json: rjs.config:paths=$ref:sitefile:cdn.json#/js/http/packages;shim=$ref:sitefile:cdn-deps.json#/shim;deps=["require-css","cs!sf-v0"];baseUrl=/app;map=$ref:sitefile:cdn-deps.json#/map

@@ -400,3 +400,44 @@ htd_filter() # [type_= expr_= mode_= ] [Path...]
   }
   act=act_ no_act=no_act_ foreach "$@"
 }
+
+
+# Take an REST url and go request
+htd_resolve_paged_json() # URL Num-Query Page-query
+{
+  test -n "$1" -a "$2" -a "$3" || return 100
+  local tmpd=/tmp/json page= page_size=
+  mkdir -p $tmpd
+  page_size=$(eval echo \$$2)
+  page=$(eval echo \$$3)
+  case "$1" in
+    *'?'* ) ;;
+    * ) set -- "$1?" "$2" "$3" ;;
+  esac
+  test -n "$page" || page=1
+  while true
+  do
+    note "Requesting '$1$2=$page_size&$3=$page'..."
+    out=$tmpd/page-$page.json
+    curl -sSf "$1$2=$page_size&$3=$page" > $out
+    json_list_has_objects "$out" || { rm "$out" ; break; }
+    page=$(( $page + 1 ))
+  done
+
+  test -e "$tmpd/page-1.json" || error "Initial page expected" 1
+
+  count="$( echo $tmpd/page-*.json | count_words )"
+  test "$count" = "1" && {
+      cat $tmpd/page-1.json
+  } || {
+      jsotk merge --pretty $tmpd/page-*.json -
+      #$tmpd/page-*.json cat $tmpd/merged.json
+  }
+  rm -rf $tmpd/
+}
+
+json_list_has_objects()
+{
+  jsotk -sq path $out '0' --is-obj || return
+  #jq -e '.0' $out >>/dev/null || break
+}

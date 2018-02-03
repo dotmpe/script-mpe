@@ -63,6 +63,7 @@
     #build: ":vagrant:tools/ci/vbox:ubuntu"
 
     tasks:
+      hub: ~/htdocs/to
       document: todo.txt
       done: .done.txt
       grep: ./tools/sh/tags.sh

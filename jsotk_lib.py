@@ -786,11 +786,15 @@ def data_at_path(ctx, infile=None, data=None):
         return l
     while len(path_el):
         b = path_el.pop(0)
-        if isinstance(PathKVParser.get_data_instance(b), list):
-            b = int(b[1:-1])
-            l = l[b]
-        else:
-            l = l[b]
+        #print(isinstance(PathKVParser.get_data_instance(b), list))
+        #print('pop',b)
+        #if isinstance(PathKVParser.get_data_instance(b), list):
+        #    b = int(b[1:-1])
+        #    l = l[b]
+        #else:
+        if b.isdigit():
+            b = int(b)
+        l = l[b]
     return l
 
 

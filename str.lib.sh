@@ -261,15 +261,14 @@ properties2sh()
 sh_properties()
 {
   test -n "$*" || error "sh-properties expects args: '$*'" 1
-  test -e "$1" -o "$1" = "-" || error "sh-properties file" 1
+  test -e "$1" -o "$1" = "-" || error "sh-properties file '$1'" 1
   # NOTE: Always be carefull about accidentally introducing newlines, will give
   # hard-to-debug syntax failures here or in the local evaluation
   read_nix_style_file $1 | grep '^'"$2" | sed 's/^'"$2"'/'"$3"'/g' | properties2sh -
 }
 
 # A simple string based key-value lookup with some leniency and translation convenience
-# property PREFIX SUBST KEYS...
-property()
+property() # PROPSFILE PREFIX SUBST KEYS...
 {
   test -n "$1" || error "property expects props: '$*'" 1
   local props="$1" prefix="$2" subst="$3" vid=
