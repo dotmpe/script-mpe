@@ -67,7 +67,8 @@ do case "$BUILD_STEP" in
         echo  SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
 
         (
-          SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
+          #SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
+          SUITE="$REQ_SPECS" test_shell $(which bats)
         ) || touch $failed
 
         test -e "$TEST_RESULTS" || error "Test results expected" 1
