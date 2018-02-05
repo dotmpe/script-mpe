@@ -58,21 +58,28 @@ do case "$BUILD_STEP" in
 
 
         ## start with essential tests
-        #note "Testing '$REQ_SPECS'"
+        note "Testing '$REQ_SPECS'"
 
         #for spec in $REQ_SPECS ; do
         #  SUITE="$spec" test_shell > $TEST_RESULTS
         #done
 
+        echo  SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
+
         (
           SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
         ) || touch $failed
 
+        test -e "$TEST_RESULTS" || error "Test results expected" 1
+
         not_falseish "$SHIPPABLE" && {
+
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
             --output $(basepath $TEST_RESULTS .tap .xml)
           wc -l $TEST_RESULTS $(basepath $TEST_RESULTS .tap .xml)
+
         } || {
+
           wc -l $TEST_RESULTS
         }
 

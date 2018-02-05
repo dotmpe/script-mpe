@@ -129,7 +129,10 @@ vc__help()
     echo ''
     vc__docs
   } || {
-    echo_help $1
+
+    echo_help $1 || {
+      htd function help $1 || return $?
+    }
   }
 }
 

@@ -123,7 +123,7 @@ gitflow_clean_local_features()
   done
 }
 
-gitflow_check()
+htd_vcflow_check()
 {
   test -z "$3" || error "surplus argument(s) '$3'" 1
   test -n "$2" || set -- "$1" gitflow.tab

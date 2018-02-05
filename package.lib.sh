@@ -379,7 +379,7 @@ htd_package_remotes_init()
   do
     test -n "$remote" -a -n "$url" || {
       warn "empty package repo var '$remote $url'"; continue; }
-    #fnmatch "*.$scm" "$url" || continue
+    # XXX: type per repo? fnmatch "*.$scm" "$url" || continue
     htd_repository_url "$remote" "$url" || continue
     vc_git_update_remote "$remote" "$url"
   done

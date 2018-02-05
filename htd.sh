@@ -3323,32 +3323,47 @@ See also:
     vc
 '
 
+htd__git_remote_list_for_ns()
+{
+  grep -l NS_NAME=$1 $UCONFDIR/git/remote-dirs/*.sh
+}
+
 htd_man_1__git_remote='List repos at remote (for SSH), or echo remote URL.
+
+If the argument represents a generic name for a remote account then a file
+exists in ~/.conf/git/git-remote/*.sh with the properties. Else, the argument
+represents one vendor-id or ns-name.
+
+XXX: Action is optional sometimes
 '
+htd_spc__git_remote='git-remote [ Action ] [ Remote-Id | ( Vendor-Id [ Remote-Id ] [ Ns-Name ] ) ]'
 htd__git_remote()
 {
   local remote_dir= remote_hostinfo= remote_name=
+  # Default is to list names at Htd-GIT-Remote env
   test -n "$*" || set -- "$HTD_GIT_REMOTE"
+  # Insert empty arg if first represents remote-dir sh-props file
   test -e $UCONFDIR/git/remote-dirs/$1.sh && set -- "" "$@"
-  test -z "$1" -a -z "$3" && set -- "list" "$2" "$3"
 
-  test -n "$1" || set -- "url" "$2" "$3"
-  test -n "$2" || set -- "$1" "$HTD_GIT_REMOTE" "$3"
-  test -n "$2" || error "No default remote set" 1
+  # Default command to 'list' when remote-id exists and no further args given
+  test -e $UCONFDIR/git/remote-dirs/$2.sh -a -z "$1" && {
+    test -z "$3" && set -- "list" "$2" || set -- url "$2" "$3"
+  }
 
+  note "Args initialized '$*'"
   {
-    # See for simple remote vendor name
     C=$UCONFDIR/git/remote-dirs/$2.sh
+
     test -e "$C" || { local vendor=
 
         # See for specific account per vendor
-        grep -l NS_NAME=$2 $UCONFDIR/git/remote-dirs/*.sh | while read remote
+        htd__git_remote_list_for_ns $2 | while read remote
         do
           test -h "$remote" && continue # ignore account aliases
           get_property $remote VENDOR
           vendor=$(get_property $remote VENDOR) || continue
           test -n "$vendor" || continue
-          set -- "$1" "$2" "$(basename $remote .sh)" "$vendor"
+          #set -- "$1" "$2" "$(basename $remote .sh)" "$vendor"
           stderr ok "account $2 for vendor $4 at file $3"
 
         done 
@@ -3359,20 +3374,25 @@ htd__git_remote()
             stderr ok "account $2 for vendor $4 at $3" ||
             error "Missing any remote-dir file for ns-name '$2'" 1
         C=$UCONFDIR/git/remote-dirs/$3.sh
+        #set -- "$1" "$(basename $C .sh)" "$vendor" "$NS_NAME"
     }
 
     . $C
 
-    test -n "$VENDOR" || error "Vendor for remote now required" 1
-    test -n "$NS_NAME" || error "Expected NS_NAME still.. really" 1
-    # XXX: swap vendor/basename around..
-    set -- "$1" "$VENDOR" "$(basename $C .sh)" "$NS_NAME"
+    test -n "$3" || {
+
+        test -n "$vendor" || error "Vendor for remote now required" 1
+        test -n "$NS_NAME" || error "Expected NS_NAME still.. really" 1
+        #set -- "$1" "$(basename $C .sh)" "$vendor" "$NS_NAME"
+    }
+
     #|| error "Missing remote GIT dir script" 1
     test -n "$remote_dir" || {
       info "Using $NS_NAME for $2 remote vendor path"
        remote_dir=$NS_NAME
     }
 
+    note "Cmd initialized '$*'"
     case "$1" in
 
       stat )
@@ -3599,9 +3619,12 @@ htd__git_init_src()
   done
 }
 
+
+htd_man_1__git_list='List files at remove, or every src repo for current Ns-Name
+'
 htd__git_list()
 {
-  test -n "$1" || set -- $(echo /src/*.git)
+  test -n "$1" || set -- $(echo /src/*/$NS_NAME/*.git)
   for repo in $@
   do
     echo $repo
@@ -4739,6 +4762,11 @@ htd__scripts()
 }
 
 
+htd_man_1__run='Run script from local package.y*ml
+
+See list-run. TODO: alias to scripts
+'
+htd_spc__run='run [SCRIPT-ID [ARGS...]]'
 htd__run()
 {
   jsotk.py -sq path --is-new $PACKMETA_JS_MAIN scripts/$1 &&
@@ -4749,7 +4777,7 @@ htd__run()
       error "No local package" 1
   . $PACKMETA_SH || error "Sourcing package Sh" 1
 
-  # List scriptnames
+  # List scriptnames when no args given
   test -z "$1" && {
     htd__scripts names
     return 1
@@ -9422,6 +9450,38 @@ htd__filter_out()
   foreach_setexpr "$1" ; shift
   mode_=0 htd_filter "$@"
 }
+
+
+htd_man_1__init='Initialize project ID
+
+Look for vendorized dir <vendor>.com/$NS_NAME/<project-id> or get a checkout.
+Link onto prefix in Project-Dir if not there.
+Finish running local htd run init && pd init.
+'
+#htd_spc__init='init [ [Vendor:][Ns-Name][/]Project ]'
+htd_spc__init='init [ Project [Vendor] [Ns-Name] ]'
+htd_run_init=pqi
+htd__init()
+{
+  #test -n "$1" || set -- . TODO: detect from cwd
+  test -n "$2" || {
+
+    test -z "$3" && {
+      # Take first found in lists for all vendors?
+      true
+    } || {
+      true 
+    }
+  }
+  error TODO 1
+  cd ~/project/$pd_prefix
+  htd scripts id-exist init && {
+    htd run init || return $?
+  }
+  #pd init
+}
+
+
 
 # -- htd box insert sentinel --
 

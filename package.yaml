@@ -6,8 +6,14 @@
   id: script-mpe
 
   version: 0.0.4-dev # script-mpe
-  env: # alias for 'environments'
+  environments:
     - dev
+
+  # FIXME: should allow matrices and multiline but package-sh does not handle
+  # that, should write literal scripts to external file
+  #
+  # Global env (for scripts)
+  #env: ./tools/sh/env.sh
 
   vendor: bvberkum
   distribution: public

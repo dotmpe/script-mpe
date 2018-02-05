@@ -29,3 +29,8 @@ htd_scripts_list()
     verbose_no_exec=1 htd__run $name
   done
 }
+
+htd_scripts_id_exist()
+{
+  test "$1" = "$(htd scripts names "$1")"
+}
