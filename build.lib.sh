@@ -39,5 +39,5 @@ test_shell()
 
 test_features()
 {
-  behat --tags '~@todo&&~@skip&&~@skip.travis'
+  ./vendor/.bin/behat --tags '~@todo&&~@skip&&~@skip.travis'
 }
