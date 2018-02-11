@@ -17,6 +17,7 @@
 .. _Pd: /projectdir.rst
 .. _Tasks: /tasks.rst
 .. _Htd: /htd.rst
+.. _`package.y*ml`: ./package.rst
 
 .. role:: live-code(code)
    :class: sf-mf sf-code

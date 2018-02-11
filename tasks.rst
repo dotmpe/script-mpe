@@ -288,6 +288,11 @@ Workflow
       (D) #:99 src:file:123 src:ab12: maybe move                   # tasks.ignore
       file:200: # XXX:ab12 [XYZ-99] maybe move                     # tasks.ignore
 
+    Project ID, or SLUG
+      Essentially a special kind or variation of context tag. It equals a
+      project ID, myabe the same as SLUG or not. For managing projects see
+      `package.y*ml`__
+
   Processing
     Mass-updates are difficult without at least some configurable behaviours
     in forging or mapping issues, and should be applied in a controlled manner.
