@@ -228,8 +228,8 @@ pd__clean()
 
   test -n "$1" || error "Prefix expected" 1
   test -z "$2" || pd_meta_clean_mode="$2"
-  test -n "$pd_meta_clean_mode" \
-    || pd_meta_clean_mode="$( pd__meta clean-mode "$1" )"
+  test -n "$pd_meta_clean_mode" ||
+      pd_meta_clean_mode="$( pd__meta clean-mode "$1" )"
 
   local scm= scmdir=
   vc_getscm "$1"
@@ -453,19 +453,18 @@ pd__compile_ignores()
 
 # prepare Pd var, failedfn
 pd_load__sync=yf
-# Update remotes and check refs
+pd_man_1__sync='Update remotes and check refs
+'
 pd__sync()
 {
   test -n "$1" || error "prefix argument expected" 1
   remotes=/tmp/pd--sync-$(get_uuid)
   prefix=$1
-
   shift 1
   test -n "$1" || set -- $(vc.sh list-local-branches $prefix)
+
   pwd=$(pwd -P)
-
   cd $pwd/$prefix
-
   test -d .git || error "Not a standalone .git: $prefix" 1
 
   test ! -d .git/annex || {
@@ -1391,7 +1390,14 @@ pd__help()
   test -z "$1" && {
     choice_global=1 std__help "$@"
   } || {
-    echo_help $1
+    echo_help $1 || {
+      for func_id in "$1" "${base}__$1" "$base-$1"
+      do
+          htd_function_comment $func_id 2>/dev/null || continue
+          htd_function_help $func_id 2>/dev/null && return 1
+      done
+      error "Got nothing on '$1'" 1
+    }
   }
 }
 
@@ -1587,7 +1593,7 @@ pd_load()
         # Evaluate package env
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
             . $PACKMETA_SH || error "No package Sh" 1
-        } || 
+        } ||
             error "No local package" 1
       ;;
 

@@ -210,11 +210,13 @@ def run_commands(commands, settings, opts):
 
 def cmd_help(CMD):
     cmds = sys.modules['__main__'].commands
-    if not CMD:
-        print(sys.modules['__main__'].__doc__)
-        print("Usage:\n  hier.py help [ %s ]" % " | ".join(cmds.keys()))
+    if CMD and CMD not in cmds:
+        print(sys.modules['__main__'].__doc__.strip())
+        print("\nUsage:\n  hier.py help [ %s ]" % " | ".join(cmds.keys()))
     else:
         for c, cmd in cmds.items():
+            if CMD and c != CMD:
+                continue
             if isinstance(cmd, dict):
                 print(log.format_str("{blue}%s{default}" % c))
                 for sc, scmd in cmd.items():

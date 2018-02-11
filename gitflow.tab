@@ -10,10 +10,12 @@ dev dev_scraper
 dev dev_statusdir
 dev dev_taxus
 dev dev_treemap
-def f_sh_parseopts
-def features/radical
-def features/travis-local
-def gh-pages
+
+dev f_sh_parseopts
+dev features/radical
+dev features/travis-local
+
+# gh-pages
 # git-annex
 # synced/dev
 # synced/git-annex

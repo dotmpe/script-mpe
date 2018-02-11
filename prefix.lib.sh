@@ -6,13 +6,14 @@ get_pathnames_tab()
 {
   test -n "$1" || set -- pathnames.tab
 
-  { test -n "$UCONFDIR" -a -s "$UCONFDIR/$1" && {
+  { test -n "$1" -a -s "$1" && {
     local tmpsh=$(setup_tmpf .topic-names-index.sh)
     { echo 'cat <<EOM'
-      read_nix_style_file "$UCONFDIR/$1"
+      read_nix_style_file "$1"
       echo 'EOM'
     } > $tmpsh
     $SHELL $tmpsh
+    echo $tmpsh
     rm $tmpsh
   } || { cat <<EOM
 / ROOT
@@ -53,7 +54,6 @@ htd_prefix() # Local-Path
   fnmatch "/*" "$1" || set -- "$(pwd -P)/$1"
   # Add '/' for dir path
   fnmatch "*/" "$1" || { test -e "$1" -a -d "$1" && set -- "$1/" ; }
-
   local path="$1"
   # Find deepest named prefix
   while true
@@ -84,14 +84,11 @@ htd_prefixes() # (Local-Path..|-)
   test -n "$index" || local index=
   test -s "$index" || req_prefix_names_index
 
-  { test "$1" = "-" && {
-    while read p ; do echo "$p" ; done
+  test "$1" = "-" && {
+    while read p ; do htd_prefix "$p" ; done
   } || {
-    for p in "$@"; do echo "$p" ; done
-  } ; } | while read p ; do
-
-    htd_prefix "$p"
-  done
+    for p in "$@"; do htd_prefix "$p" ; done
+  }
 }
 
 # Same as htd-prefixes but prefix with original apth

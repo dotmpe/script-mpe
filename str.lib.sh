@@ -283,7 +283,7 @@ property() # PROPSFILE PREFIX SUBST KEYS...
     do
       local __key= __value=
       test -n "$vid" && __key=${vid}$1 || __key=$1
-      __value="$(eval printf -- \"\$$__key\")"
+      __value="$(eval printf -- \'%s\' \"\$$__key\")"
       shift
       test -n "$__value" || continue
       print_var "$__key" "$__value"

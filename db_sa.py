@@ -156,7 +156,7 @@ def cmd_info(g, sa=None):
     global metadata
 
     if not sa:
-        sa = get_session(g.dbref, 'default')
+        sa = schema.get_session(g.dbref, 'default')
 
     if g.database_tables:
         reload_metadata(g)

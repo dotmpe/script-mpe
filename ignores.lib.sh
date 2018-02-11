@@ -144,6 +144,7 @@ glob_to_find_prune()
     sed -E 's/(.*)/ -o -path "*\1*" -prune /g')
 }
 
+# Return find ignore flags for given exclude pattern file
 find_ignores()
 {
   for a in $@
@@ -153,5 +154,3 @@ find_ignores()
       do glob_to_find_prune "$glob"; done
   done | grep -Ev '^(#.*|\s*)$'
 }
-
-

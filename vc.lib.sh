@@ -11,34 +11,43 @@ vc_isgit()
   test -d "$1" || {
     set -- "$(dirname "$1")"
   }
-  ( go_to_dir "$1" && go_to_dir_with .git || return 1 )
+  ( cd "$1" && go_to_dir_with .git || return 1 )
 }
 
-# __vc_gitdir accepts 0 or 1 arguments (i.e., location)
-# echo absolute location of .git repo, return
-# be silent otherwise
+# Echo absolute location of (root) .git repo, be silent otherwise
+# Note this is the repo for the root checkout, not for submodules.
 vc_gitdir()
 {
   test -n "$1" || set -- "."
+  test -e "$1" -a -d "$1" || set -- "$(dirname "$1")"
   test -d "$1" || error "vc-gitdir expected dir argument: '$1'" 1
   test -z "$2" || error "vc-gitdir surplus arguments: '$2'" 1
 
-  test -d "$1" || {
-    set -- "$(dirname "$1")"
-  }
+  local pwd=$(pwd)
+  cd "$1"
+  repo=$(git rev-parse --git-dir 2>/dev/null)
+  while fnmatch "*/.git/modules*" "$repo"
+  do repo="$(dirname "$repo")" ; done
+  test -n "$repo" || return 1
+  echo $repo
+  #repo="$(git rev-parse --show-toplevel)"
+  #echo $repo/.git
+  cd "$pwd"
+}
 
-  test -d "$1/.git" && {
-    echo "$1/.git"
-  } || {
-    local pwd=$(pwd)
-    go_to_dir "$1"
-    repo=$(git rev-parse --git-dir 2>/dev/null)
-    while fnmatch "*/.git/modules*" "$repo"
-    do repo="$(dirname "$repo")" ; done
-    test -n "$repo" || return 1
-    echo $repo
-    cd "$pwd"
-  }
+# Echo the repository dir for current checkout. Gives .git/modules sub-dir
+# for GIT submodules.
+vc_gitrepo()
+{
+  test -n "$1" || set -- "."
+  test -e "$1" -a -f "$1" || set -- "$(dirname "$1")"
+  test -d "$1" || error "vc-gitdir expected dir argument: '$1'" 1
+  test -z "$2" || error "vc-gitdir surplus arguments: '$2'" 1
+
+  local pwd=$(pwd)
+  cd "$1"
+  git rev-parse --git-dir
+  cd "$pwd"
 }
 
 vc_hgdir()
@@ -63,7 +72,7 @@ vc_bzrdir()
 {
   test -d "$1" || error "vc-bzrdir expected dir argument: '$1'" 1
   (
-    go_to_dir "$1"
+    cd "$1"
     root=$(bzr info 2> /dev/null | grep 'branch root')
     if [ -n "$root" ]; then
       echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
@@ -109,6 +118,7 @@ vc_getscm()
   scm="$(basename "$scmdir" | cut -c2-)"
 }
 
+
 vc_fsck_git()
 {
   # XXX: has no exit-code, only diagnostic output
@@ -122,6 +132,7 @@ vc_fsck()
   vc_fsck_${scm}
 }
 
+
 vc_remotes_git()
 {
   git remote
@@ -134,8 +145,11 @@ vc_gitremote()
   test -n "$2" || error "vc-gitremote expected remote name" 1
   test -z "$3" || error "vc-gitremote surplus arguments" 1
 
-  go_to_dir "$(vc_gitdir "$1")"
+  test -n "$1" || set -- "."
+  local pwd=$(pwd)
+  cd "$1"
   git config --get remote.$2.url
+  cd "$pwd"
 }
 
 # Given COPY src and trgt file from user-conf repo,
@@ -163,6 +177,7 @@ vc_gitdiff()
   }
 }
 
+
 vc_unversioned_git()
 {
   git ls-files --others --exclude-standard --dir || return $?
@@ -180,7 +195,7 @@ vc_unversioned_svn()
   } || return $?
 }
 
-vc_untracked_hg()
+vc_unversioned_hg()
 {
   hg status --unknown | cut -c3-
 }
@@ -207,6 +222,7 @@ vc_unversioned()
 
   cd "$ppwd"
 }
+
 
 vc_untracked_bzr()
 {
@@ -251,6 +267,7 @@ vc_untracked()
 
   cd "$ppwd"
 }
+
 
 vc_tracked_git()
 {
@@ -297,6 +314,13 @@ vc_tracked()
   cd "$ppwd"
 }
 
+
+vc_git_annex_list()
+{
+  git annex list "$@" | grep '^[_X]*\ ' | sed 's/^[_X]*\ //g'
+}
+
+
 vc_clean()
 {
   (
@@ -310,10 +334,12 @@ vc_branch_git()
 {
   git rev-parse --abbrev-ref HEAD
 }
+
 vc_branch_hg()
 {
   hg identify -b
 }
+
 vc_branch_svn()
 {
   url=$(svn info | grep '^Relative URL:') && {
@@ -326,6 +352,7 @@ vc_branch_svn()
     } || error "No URL found in 'svn info'" 1
   }
 }
+
 vc_branch_bzr() { false; }
 
 # Print checked out branch
@@ -361,6 +388,7 @@ vc_branches()
   vc_branches_${scm} "$@"
 }
 
+
 vc_git_submodules()
 {
   git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
@@ -375,6 +403,7 @@ vc_git_submodules()
     echo "$prefix"
   done
 }
+
 
 # TODO: maybe rename htd_update_remote
 vc_git_update_remote()
@@ -393,6 +422,7 @@ vc_git_update_remote()
     }
   }
 }
+
 
 vc_roots_git()
 {
@@ -414,16 +444,11 @@ vc_roots()
   vc_roots_${scm}
 }
 
+
 vc_epoch_git()
 {
   set -- $( git rev-list --max-parents=0 HEAD )
   git show -s --format=%ct "$1"
-}
-
-vc_age_git()
-{
-  set -- $( vc_epoch_git )
-  fmtdate_relative "$1" "" "\n"
 }
 
 vc_epoch_hg()
@@ -431,11 +456,19 @@ vc_epoch_hg()
   hg log -r "min(branch(default))"  --template '{date(date|localdate, "%s")}\n'
 }
 
+
+vc_age_git()
+{
+  set -- $( vc_epoch_git )
+  fmtdate_relative "$1" "" "\n"
+}
+
 vc_age_hg()
 {
   set -- $( vc_epoch_hg )
   fmtdate_relative "$1" "" "\n"
 }
+
 
 vc_diskuse_git()
 {
@@ -451,6 +484,7 @@ vc_diskuse()
   test -n "$scm" || vc_getscm
   vc_diskuse_${scm}
 }
+
 
 vc_status_git()
 {
@@ -476,6 +510,7 @@ vc_status()
   vc_diskuse
   vc_status_${scm}
 }
+
 
 vc_git_initialized()
 {
@@ -549,7 +584,7 @@ vc_flags_git()
     if [ "true" = "$(git rev-parse --is-bare-repository 2>/dev/null)" ]; then
       c="BARE:"
     else
-      b="GIT_DIR!"
+      b="DIR!"
     fi
   elif [ "true" = "$(git rev-parse --is-inside-work-tree 2>/dev/null)" ]; then
     if [ -n "${GIT_PS1_SHOWDIRTYSTATE-}" ]; then
@@ -607,45 +642,52 @@ vc_flags_git()
   cd "$cwd"
 }
 
-vc_git_annex_list()
-{
-  git annex list "$@" | grep '^[_X]*\ ' | sed 's/^[_X]*\ //g'
-}
 
-vc_stats()
+# Generate statistics for repository:
+vc_stats() # [ Dir=. [ Initial-Indent="  " ] ]
 {
   test -n "$1" || set -- "." "$2"
   test -n "$2" || set -- "$1" "  "
 
   {
-      cd "$1"
-      { cat <<EOM
+    cd "$1"
+    tracked_files=$( vc_tracked | count_lines )
+    untracked_files=$( vc_unversioned | count_lines )
+    untracked_cleanable=$( vc__unversioned_cleanable_files | count_lines )
+    untracked_temporary=$( vc__unversioned_temporary_files | count_lines )
+    untracked_uncleanable=$( vc__unversioned_uncleanable_files | count_lines )
+    total_untracked_files=$( vc_untracked | count_lines )
+
+    { cat <<EOM
 $2lines:
 $2  unique-lines: $(
-$2    vc tracked-files | while read f; do test -f "$f" && cat "$f" || continue ; done | LC_ALL=C sort -u | count_lines )
+$2    vc_tracked | while read f; do test -f "$f" && cat "$f" || continue ; done | LC_ALL=C sort -u | count_lines )
 $2  (total): $(
-$2    vc tracked-files | while read f; do test -f "$f" && cat "$f" || continue ; done | count_lines )
+$2    vc_tracked | while read f; do test -f "$f" && cat "$f" || continue ; done | count_lines )
 $2files:
-$2  tracked: $( vc_tracked | count_lines )
-$2  unversioned: $( vc_unversioned | count_lines )
+$2  tracked: $tracked_files
 $2  untracked:
-$2    cleanable: $( vc ufc | count_lines )
-$2    temporary: $( vc uft | count_lines )
-$2    uncleanable: $( vc ufu | count_lines )
-$2    (total): $( vc_untracked | count_lines )
+$2    unversioned: $untracked_files
+$2    cleanable: $untracked_cleanable
+$2    temporary: $untracked_temporary
+$2    uncleanable: $untracked_uncleanable
+$2    (total): $total_untracked_files
+$2    (total): $(( $untracked_cleanable + $untracked_temporary + $untracked_uncleanable ))
+$2  (total): $(( $tracked_files + $total_untracked_files ))
 EOM
-      }
+    }
 
-      test -d "$1/.$scm/annex" && {
-        printf "$2  annex:\n"
-        printf "$2    files: $( vc_git_annex_list | count_lines )\n"
-        printf "$2    here: $( vc_git_annex_list -i here | count_lines )\n"
-        printf "$2    unused: $( git annex unused | count_lines )\n"
-      }
+    test -d "$1/.$scm/annex" && {
+      printf "$2  annex:\n"
+      printf "$2    files: $( vc_git_annex_list | count_lines )\n"
+      printf "$2    here: $( vc_git_annex_list -i here | count_lines )\n"
+      printf "$2    unused: $( git annex unused | count_lines )\n"
+    }
 
-      printf "$2(date): $( date_microtime )\n"
+    printf "$2(date): $( date_microtime )\n"
   }
 }
+
 
 vc_info()
 {

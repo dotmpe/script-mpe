@@ -315,16 +315,10 @@ print_var()
 {
   case "$2" in
     *'"'*|*" "*|*"'"* )
-      printf -- "$1=\"$2\"\n" ;;
+      printf -- '%s\n' "$1=\"$2\"" ;;
     * )
-      printf -- "$1=$2\n" ;;
+      printf -- '%s\n' "$1=$2" ;;
   esac
-  return # XXX
-  printf -- "$2" | grep -Eq "[\ \"\']" && {
-    printf -- "$1=\"$2\"\n"
-  } || {
-    printf -- "$1=$2\n"
-  }
 }
 
 # Add an entry to PATH, see add-env-path-lookup for solution to other env vars

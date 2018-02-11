@@ -87,126 +87,6 @@ htd_passed()
   echo "$1" >>$passed
 }
 
-htd_main_files()
-{
-  for x in "" .txt .md .rst
-  do
-    for y in ReadMe main ChangeLog index doc/main docs/main
-    do
-      for z in $y $(str_upper $y) $(str_lower $y)
-      do
-        test -e $z$x && printf "$z$x "
-      done
-    done
-  done
-}
-
-# migrate lines matching tag to to another file, removing the tag
-# htd-move-tagged-and-untag-lines SRC DEST TAG
-htd_move_tagged_and_untag_lines()
-{
-  test -e "$1" || error src 1
-  test -n "$2" -a -d "$(dirname "$2")" || error dest 1
-  test -n "$3" || error tag 1
-  test -z "$4" || error surplus 1
-  # Get task lines with tag, move to buffer without tag
-  set -- "$1" "$2" "$(echo $3 | sed 's/[\/]/\\&/g')"
-  grep -F "$3" $1 |
-    sed 's/^\ *'"$3"'\ //g' |
-      sed 's/\ '"$3"'\ *$//g' |
-        sed 's/\ '"$3"'\ / /g' > $2
-  # echo '# vim:ft=todo.txt' >>$buffer
-  # Remove task lines with tag from main-doc
-  grep -vF "$3" $1 | sponge $1
-}
-
-# migrate lines to another file, ensuring tag by strip and re-add
-htd_move_and_retag_lines()
-{
-  test -e "$1" || error src 1
-  test -n "$2" -a -d "$(dirname "$2")" || error dest 1
-  test -n "$3" || error tag 1
-  test -z "$4" || error surplus 1
-  test -e "$2" || touch $2
-  set -- "$1" "$2" "$(echo $3 | sed 's/[\/]/\\&/g')"
-  cp $2 $2.tmp
-  {
-    # Get tasks lines from buffer to main doc, remove tag and re-add at end
-    grep -Ev '^\s*(#.*|\s*)$' $1 |
-      sed 's/^\ *'"$3"'\ //g' |
-        sed 's/\ '"$3"'\ *$//g' |
-          sed 's/\ '"$3"'\ / /g' |
-            sed 's/$/ '"$3"'/g'
-    # Insert above existing content
-    cat $2.tmp
-  } > $2
-  echo > $1
-  rm $2.tmp
-}
-
-htd_migrate_tasks()
-{
-  info "Migrating tags: '$tags'"
-  echo "$tags" | words_to_lines | while read tag
-  do
-    test -n "$tag" || continue
-    case "$tag" in
-
-      +* | @* )
-          buffer=$(htd__tasks_buffers $tag | head -n 1 )
-          fileisext "$buffer" $TASK_EXTS || continue
-          test -s "$buffer" || continue
-          note "Migrating prj/ctx: $tag"
-          htd_move_and_retag_lines "$buffer" "$1" "$tag"
-        ;;
-
-      * ) error "? '$?'"
-        ;;
-      # XXX: cleanup
-      @be.src )
-          # NOTE: src-backend needs to keep tag-id before migrating. See #2
-          #SEI_TAGS=
-          #grep -F $tag $SEI_TAG
-          noop
-        ;;
-      @be.* )
-          #note "Checking: $tag"
-          #htd__tasks_buffers $tag
-          noop
-        ;;
-    esac
-  done
-}
-
-htd_remigrate_tasks()
-{
-  test -n "$1"  || error todo-document 1
-  note "Remigrating tags: '$tags'"
-  echo "$tags" | words_to_lines | while read tag ; do
-    test -n "$tag" || continue
-    case "$tag" in
-
-      +* | @* )
-          buffer=$(htd__tasks_buffers "$tag" | head -n 1)
-          fileisext "$buffer" $TASK_EXTS || continue
-          note "Remigrating prj/ctx: $tag"
-          htd_move_tagged_and_untag_lines "$1" "$buffer" "$tag"
-        ;;
-
-      * ) error "? '$?'"
-        ;;
-
-      # XXX: cleanup
-      @be.* )
-          #note "Committing: $tag"
-          #htd__tasks_buffers $tag
-          noop
-        ;;
-
-    esac
-  done
-}
-
 
 # htd-archive-path-format DIR FMT
 htd_archive_path_format()
@@ -440,4 +320,29 @@ json_list_has_objects()
 {
   jsotk -sq path $out '0' --is-obj || return
   #jq -e '.0' $out >>/dev/null || break
+}
+
+# Given ID, look for shell script with function
+htd_function_comment() # Func-Name [ Script-Path ]
+{
+  upper= mkvid "$1" ; shift ; set -- "$vid" "$@"
+  test -n "$2" || {
+      # TODO: use SCRIPTPATH
+      set -- "$1" "$(first_match=1 find_functions "$1" $scriptpath/*.sh)"
+  }
+  file="$2"
+  test -n "$2" || { error "No shell scripts for '$1'" ; return 1; }
+  func_comment "$@" || return $?
+}
+
+htd_function_help()
+{
+  test -n "$file" || return 1
+  grep "^$vid " "$file"
+  decl_comment=$( grep "^$vid()" "$file" | sed 's/^[A-Za-z0-9_]*()[\ \{\#]*//' )
+  echo
+  test -n "$decl_comment" && {
+      echo "$1( $decl_comment ) # found on $file:$grep_line"
+  } ||
+      echo "$1() # found on $file:$grep_line"
 }

@@ -68,6 +68,8 @@
     build: ":vagrant:tools/ci/vbox"
     #build: ":vagrant:tools/ci/vbox:ubuntu"
 
+    log: DevLog.rst
+
     tasks:
       hub: ~/htdocs/to
       document: todo.txt

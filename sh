@@ -2,6 +2,27 @@
 
 set -e
 
+
+#htd prefix
+#htd env pathvars
+#htd env dirvars
+#htd env filevars
+#htd env symlinkvars
+
+exit $?
+
+
+test sh-finfo.sqlite ||
+db_sa.py --dbref=sh-finfo.sqlite init
+
+finfo.py --dbref=sh-finfo.sqlite --update 
+
+
+exit $?
+
+hier.py import tags.list
+exit $?
+
 # https://explainshell.com/explain?cmd=rst2html+--record-dependencies%3DFILE
 
 for x in test/*-spec.bats; do

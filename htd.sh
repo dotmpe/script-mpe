@@ -32,8 +32,6 @@ htd_load()
     test -x "$(which todotxt-machine)" &&
       TODOTXT_EDITOR=todotxt-machine || TODOTXT_EDITOR=$EDITOR
   }
-  test -n "$DOC_EXT" || DOC_EXT=.rst
-  test -n "$DOC_EXTS" || DOC_EXTS=".rst .md .txt"
   test -n "$TASK_EXT" || TASK_EXT="ttxtm"
   test -n "$TASK_EXTS" || TASK_EXTS=".ttxtm .list .txt"
 
@@ -161,8 +159,9 @@ htd_load()
 
   htd_rules=$UCONFDIR/rules/$hostname.tab
   ns_tab=$UCONFDIR/namespace/$hostname.tab
+
   # Shell template
-  pathnames=$UCONF/pathnames.tab
+  test -n "$pathnames" || pathnames=$UCONFDIR/pathnames.tab
 
   which tmux 1>/dev/null || {
     export PATH=/usr/local/bin:$PATH
@@ -306,7 +305,7 @@ htd_load()
         # Evaluate package env
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
             . $PACKMETA_SH || error "No package Sh" 1
-        } || 
+        } ||
             error "No local package" 1
       ;;
 
@@ -726,13 +725,19 @@ htd_spc__help="-h|help [<id>]"
 htd__help()
 {
   test -z "$1" && {
-    htd_usage
+    # XXX: using compiled list of help ID since real list gets to long htd_usage
     echo ''
     echo 'Other commands: '
     other_cmds
+    choice_global=1 std__help "$@"
   } || {
     echo_help $1 || {
-      htd__function help $1 || return $?
+      for func_id in "$1" "${base}__$1" "$base-$1"
+      do
+          htd_function_comment $func_id 2>/dev/null || continue
+          htd_function_help $func_id 2>/dev/null && return 1
+      done
+      error "Got nothing on '$1'" 1
     }
   }
 }
@@ -975,14 +980,40 @@ htd_spc__find_doc="-F|find-doc (<path>|<localname> [<project>])"
 htd__find_doc()
 {
   doc_path_args
+  test -n "$1" || return $?
 
   info "Searching files with matching name '$1' ($paths)"
   doc_find_name "$1"
 
-  info "Searching matched content '$1' ($paths)"
-  doc_grep_content "\<$1\>"
+  #info "Searching matched content '$1' ($paths)"
+  #doc_grep_content "\<$1\>"
 }
 htd_als___F=find-doc
+htd_run__find_doc=x
+
+
+# TODO: find doc-files, given local package metadata, rootdirs, and file-extensions
+# XXX: see doc-find-name
+# XXX: replace pwd basename strip with prefix compat routine
+htd_spc__find_docs='find-docs [DIR]'
+htd__find_docs()
+{
+  test -z "$1" || return $?
+  note "IGNORE_GLOBFILE=$IGNORE_GLOBFILE"
+  local find_ignores="-false $(find_ignores $IGNORE_GLOBFILE | tr '\n' ' ')" find_f="-false"
+  for ext in $DOC_EXTS
+  do find_f="$find_f -o -iname '*$ext'"
+  done
+  #doc_path_args
+  local paths=$(pwd)
+  test -n "$1" || set -- $paths
+  match_grep_pattern_test "$(pwd)"
+  {
+    eval "find -L $@ $find_ignores -o \( $find_f \) -a \( -type f -o -type l \) -print"
+  } | grep -v '^'$p_'$' \
+    | sed 's/'$p_'\///'
+}
+htd_run__find_docs=x
 
 
 htd__volumes()
@@ -1620,28 +1651,40 @@ htd__alias()
 }
 
 
-# Open an editor to edit todays log
-# For argument accepts ids for journal names other than the default personal/journal
-# TODO: make file entry for directory, deflist for file
-# TODO: accept multiple arguments, and global ID's for certain log dirs/files
-# TODO: maintain symbolic dates in files, absolute and relative (Yesterday, Saturday, 2015-12-11 )
+htd_man_1__edit_today='Edit todays log, an entry in journal file or dir
+
+If argument is a file, a rSt-formatted date entry is added. For directories
+a new entry file is generated, and symbolic links are updated.
+
+TODO: accept multiple arguments, and global IDs for certain log dirs/files
+TODO: maintain symbolic dates in files, absolute and relative (Yesterday, Saturday, 2015-12-11 )
+TODO: revise to:
+
+- Uses pd-meta.log setting from package, or JRNL_DIR env.
+- Updates symbolic entries and keys
+- Gets editor session
+- Adds date entry or file boilerplate, keeps boilerplate checksum
+- Starts editor
+- Remove unchanged boilerplate (files), or add changed files to GIT
+'
 htd__edit_today()
 {
   test -n "$EXT" || EXT=.rst
   local pwd="$(normalize_relative "$go_to_before")" arg="$1"
 
+  # Evaluate package env if local manifest is found
+  test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
+    #. $PACKMETA_SH || error "Sourcing package Sh" 1
+    eval local $(map=package_pd_meta_: package_sh log log_path log_title \
+        log_entry log_path_ysep log_path_msep log_path_dsep) >/dev/null
+  }
+
   test -n "$1" || {
-
-    # Evaluate package env if local manifest is found
-    test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
-      . $PACKMETA_SH || error "Sourcing package Sh" 1
-    }
+    # If no argument given start looking for standard LOG file/dir path
     test -n "$package_pd_meta_log" && {
-
       # Default for local project
-      set -- $package_pd_meta_log/
+      set -- $package_pd_meta_log
     } || {
-
       # Default for Htdir
       set -- $JRNL_DIR/
     }
@@ -1649,18 +1692,17 @@ htd__edit_today()
 
   fnmatch "*/" "$1" && {
     test -e "$1" || error "unknown dir $1" 1
-
+    jrnldir="$(strip_trail "$1")"
+    shift
+    set -- "$jrnldir" "$@"
   } || {
     # Look for here and in pwd, or create in pwd; if ext matches filename
     test -e "$1" || set -- "$pwd/$1"
-    test -e "$1" || fnmatch "*.$EXT" "$1"  && touch $1
-
+    test -e "$1" || fnmatch "*$EXT" "$1"  && touch $1
     # Test in htdir with ext
     test -e "$1" || set -- "$arg$EXT"
-
     # Test in pwd with ext
     test -e "$1" || set -- "$pwd$1$EXT"
-
     # Create in pwd (with ext)
     test -e "$1" || touch $1
   }
@@ -1669,32 +1711,37 @@ htd__edit_today()
   # Open of dir causes default formatted filename+header created
   test -d "$1" && {
     {
-      #git add $1/[0-9]*-[0-9][0-9]-[0-9][0-9].rst
-      htd__today "$1"
-      today=$(realpath $1/today.rst)
+      # Prepare todays' day-links (including weekday and next/prev week)
+      test -n "$log_path_ysep" || log_path_ysep="/"
+      htd__today "$1" "$log_path_ysep" "$log_path_msep" "$log_path_dsep"
+      # FIXME: need offset dates from file or table with values to initialize docs
+      today=$(realpath "$1${log_path_ysep}today$EXT")
       test -s "$today" || {
-        title="$(date_fmt "" '%A %G.%V')"
-        htd_rst_doc_create_update "$today" "$title" created default-rst
+        test -n "$log_title" || log_title="%A %G.%V"
+        title="$(date_fmt "" "$log_title")"
+        htd_rst_doc_create_update "$today" "$title" title created default-rst
       }
       # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
-      FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
-      htd_edit_and_update $(realpath $FILES)
+      files=$(bash -c "echo $1${log_path_ysep}{today,tomorrow,yesterday}$EXT")
+      # Prepare and edit, but only yesterday/todays/tomorrows' file
+      #for file in $FILES
+      #do
+      #  test -s "$file" || {
+      #    title="$(date_fmt "" '%A %G.%V')"
+      #    htd_rst_doc_create_update "$file" "$title" title created default-rst
+      #  }
+      #done
+      htd_edit_and_update $(realpath $files)
     } || {
-      error "err $1/ $?" 1
+      error "during edit of $1 ($?)" 1
     }
 
-  # Open of archive file cause day entry added
   } || {
+    # Open of archive file cause day entry added
     {
-      local Y=%Y MSEP=- M=%m DSEP=- D=%d r=
-      local date_fmt="$Y$MSEP$M$DSEP$D"
-      local \
-        today="$(date_fmt "" $date_fmt)"
-
-      grep -qF $today $1 || {
-        printf "$today\n  - \n\n" >> $1
-      }
-
+      local date_fmt="%Y${log_path_msep}%m${log_path_dsep}%d"
+      local today="$(date_fmt "" "$date_fmt")"
+      grep -qF $today $1 || printf "$today\n  - \n\n" >> $1
       $EDITOR $1
       git add $1
     } || {
@@ -1768,32 +1815,10 @@ htd_vars__archive_path="Y M D EXT ARCHIVE_BASE ARCHIVE_ITEM datep target_path"
 htd_grp__archive_path=cabinet
 
 
-# update yesterday, today and tomorrow links
-htd__today() # Jrnl-Dir MSep
+# update yesterday, today and tomorrow and all current, prev and next weekday links
+htd__today() # Jrnl-Dir YSep MSep DSep [ Tags... ]
 {
-  test -n "$1" || set -- "$(pwd)/$JRNL_DIR" "$2" "$3" "$4"
-  test -n "$2" || set -- "$1" "/" "$3" "$4"
-  test -n "$3" || set -- "$1" "$2" "-" "$4"
-  test -n "$4" || set -- "$1" "$2" "$3" "-"
-  test -d "$1" || error "Dir $1 must exist" 1
-  set -- "$(strip_trail "$1")" "$2" "$3" "$4"
-
-  # Append pattern to given dir path arguments
-  local YSEP=/ Y=%Y MSEP=- M=%m DSEP=- D=%d
-  local r=$1$YSEP
-  test -n "$EXT" || EXT=.rst
-  set -- "$1$YSEP$Y$MSEP$M$DSEP$D$EXT"
-
-  datelink -1d "$1" ${r}yesterday$EXT
-  datelink "" "$1" ${r}today$EXT
-  datelink +1d "$1" ${r}tomorrow$EXT
-
-  for tag in sunday monday tuesday wednesday thursday friday saturday
-  do
-    datelink "$tag -7d" "$1" "${r}last-$tag$EXT"
-    datelink "$tag +7d" "$1" "${r}next-$tag$EXT"
-    datelink "$tag" "$1" "${r}$tag$EXT"
-  done
+  htd_jrnl_day_links "$@"
 }
 htd_grp__today=cabinet
 
@@ -1974,7 +1999,7 @@ htd_man_1__main_doc_paths='Print candidates for main document
 '
 htd__main_doc_paths()
 {
-  local candidates="$(htd_main_files)"
+  local candidates="$(doc_main_files)"
   test -n "$1" && {
     fnmatch "* $1$DOC_EXT *" " $candidates " &&
       set -- $1$DOC_EXT ||
@@ -3366,9 +3391,9 @@ htd__git_remote()
           #set -- "$1" "$2" "$(basename $remote .sh)" "$vendor"
           stderr ok "account $2 for vendor $4 at file $3"
 
-        done 
-          
-        # FIXME  
+        done
+
+        # FIXME
             stderr fail "account $2 for vendor $4 at file $3"
         test -n "$4" -a -n "$3" &&
             stderr ok "account $2 for vendor $4 at $3" ||
@@ -3411,7 +3436,7 @@ htd__git_remote()
           echo "$remote_hostinfo:$remote_dir/$3"
         ;;
 
-      github-list ) 
+      github-list )
           test -n "$2" || error "vendor-name required" 1
           test -n "$3" || error "remote-name required" 1
           test -n "$4" || error "ns-name required" 1
@@ -3426,7 +3451,7 @@ htd__git_remote()
             per_page=100
             htd_resolve_paged_json $URL per_page page > $repos || return $?
           }
-  
+
           test -e $confd/$remote_list -a $confd/$remote_list -nt $repos && {
 
             cat $confd/$remote_list || return $?
@@ -3490,7 +3515,7 @@ htd__git_init_local() # [ Repo ]
 
   remote_url="$(git config remote.$remote.url)"
   test -n "$remote_url" && {
-    test "$remote_url" = $BARE || error "$remote not $BARE" 1
+    test "$remote_url" = $BARE || error "$remote not $BARE just created" 1
   } || {
     git remote add $remote $BARE
   }
@@ -3724,8 +3749,9 @@ htd_man_1__file='TODO: Look for name and content at path; then store and cleanup
 
     newer-than
     older-than
-    mtime
-    mtime-readable
+    mediatype|mtype
+    modified|mtime
+    mtime-relative
     status
     info
 
@@ -3752,8 +3778,10 @@ htd__file()
           older_than "$1" "$2" || return $?
         ;;
 
-      mtime ) filemtime "$2" ;;
-      mtime-readable ) fmtdate_relative "$(filemtime "$2")" ;;
+      mediatype|mtype ) filemtype "$2" ;;
+
+      modified|mtime ) filemtime "$2" ;;
+      mtime-relative ) fmtdate_relative "$(filemtime "$2")" ;;
 
       size ) shift
           filesize "$1"
@@ -3926,26 +3954,13 @@ htd__function()
       ;;
 
     help ) shift ; local file= grep_line=
-        htd__function comment "$@"
-        test -n "$file" || return 1
-        grep "^$vid " "$file"
-        decl_comment=$( grep "^$vid()" "$file" | sed 's/^[A-Za-z0-9_]*()[\ \{\#]*//' )
-        echo
-        test -n "$decl_comment" && {
-            echo "$1( $decl_comment ) # found on $file:$grep_line"
-        } ||
-            echo "$1() # found on $file:$grep_line"
+        htd_function_comment "$@"
+        htd_function_help
       ;;
 
     comment ) shift
         test -n "$1" || error "name or string-id expected" 1
-        upper= mkvid "$1" ; shift ; set -- "$vid" "$@"
-        test -n "$2" || {
-            set -- "$1" "$(first_match=1 find_functions "$1" $scriptpath/*.sh)"
-        }
-        file="$2"
-        test -n "$2" || error "No shell scripts for '$1'" 1
-        func_comment "$@" || return $?
+        htd_function_comment "$@"
       ;;
 
     * ) error "'$1'?" 1
@@ -4700,7 +4715,7 @@ htd_man_1__package='
      remote-url is determined with htd-repository-url (htd.lib.sh).
   package urls
      TODO: List URLs for package.
-  package openurl|open-url [URL]   
+  package openurl|open-url [URL]
 
   package debug
      Log each Sh package settings.
@@ -5808,6 +5823,13 @@ management.
     default name arguments may dependent on the env, or default to Htd/bash.
     Set TMUX_SOCK or HTD_TMUX_ENV+env to select another server, refer to
     tmux-env doc.
+
+  tmux current | current-session | current-window
+    Show combined, or session name, or window index for current shell window
+
+  tmux show TMux Var-Name
+  tmux stuff Session Window-Nr String
+  tmux send Session Window-Nr Cmd-Line
 '
 htd__tmux()
 {
@@ -5818,9 +5840,21 @@ htd__tmux()
     list-sockets | sockets ) shift ; htd_tmux_sockets "$@" || return ;;
     list ) shift ; htd_tmux_list_sessions "$@" || return ;;
     list-windows ) shift ; htd_tmux_session_list_windows "$@" || return ;;
+    current-session ) shift ; tmux display-message -p '#S' || return ;;
+    current-window ) shift ; tmux display-message -p '#I' || return ;;
+    current ) shift ; tmux display-message -p '#S:#I' || return ;;
+
+    # TODO: find a way to register tmux windows by other than name; PWD, CMD
+    # maybe need to record environment profiles per session
+    show ) shift ; $tmux show-environment "$@" || return ;;
+
+    stuff ) shift ; $tmux send-keys -t $1:$2 "$3" || return ;;
+    send ) shift ; $tmux send-keys -t $1:$2 "$3" enter || return ;;
+
     * ) upper=0 mkvid "$1"; shift ; htd_tmux_$vid "$@" || return ;;
   esac
 
+  # TODO: cleanup old tmux setup
   #while test -n "$1"
   #do
   #  func_exists "$func" && {
@@ -5876,7 +5910,7 @@ htd__inventory()
   } || {
     set -- "personal/inventory/main.rst" "$@"
   }
-  htd_rst_doc_create_update $1
+  htd_rst_doc_create_update $1 "Inventory: $1"
   htd_edit_and_update $@
 }
 htd_als__inv=inventory
@@ -6706,6 +6740,7 @@ Cache
   update [TTL=60min [<persist=false>]]
     Update cache, read below.
 
+See prefix.rst for design and use-cases.
 
 # Cache
 Cache has two parts. An in-memory index, for tracking current prefixes,
@@ -6747,9 +6782,10 @@ htd__prefixes()
     update )                 htd_update_prefixes || return $? ;;
 
     # Read from index
-    list | names )           htd_prefix_names || return $? ;;
+    list )                   htd_prefix_names || return $? ;;
     table )                  htd_path_prefix_names || return $? ;;
     raw-table ) shift ;      cat $pathnames || return $? ;;
+    table-id ) shift ;       echo $pathnames ; test -e "$pathnames" || return $? ;;
     name ) shift ;           htd_prefix "$1" || return $? ;;
     names ) shift ;          htd_prefixes "$@" || return $? ;;
     pairs ) shift ;          htd_path_prefixes "$@" || return $? ;;
@@ -6760,6 +6796,7 @@ htd__prefixes()
         htd_prefix_names | while read name
         do
             mkvid "$name"
+            #val="${!vid}"
             val="$( eval echo \"\$$vid\" )"
             test -n "$val" || warn "No env for $name"
         done
@@ -6786,6 +6823,8 @@ htd__prefixes()
   esac
   rm $index
 }
+
+htd_als__prefix=prefixes
 
 htd_of__prefixes_list='plain text txt rst yaml yml json'
 htd_als__prefixes_list=prefixes\ list
@@ -7980,6 +8019,7 @@ htd__annex()
   esac
 }
 
+
 htd_run__annex_fsck=i
 htd__annex_fsck()
 {
@@ -8006,6 +8046,8 @@ htd__annex_fsck()
       note "$(count_lines "$passed") repositories OK" || warn "Nothing to do"
 }
 
+
+htd_man_1__sync='Go over local or global repo paths for syncing'
 htd__sync()
 {
   local rules=.sync-rules.list
@@ -9156,14 +9198,94 @@ htd__lfs_files()
 }
 
 
-htd__env_local()
-{
-  { env && local; } | sed 's/=.*$//' | grep -v '^_$' | sort -u
-}
+htd__env='Print env var names (local or global)
+
+  all | local | global | tmux
+    List env+local, local, env or tmux vars.
+    Names starting with "_" are filtered out.
+
+  pathnames | paths | pathvars
+    Tries to print names, values, or variable declarations where value is a
+    lookup path. The values must match ``*/*:*/*``. This may include some URLs.
+    Excludes values with only local names, or at least two paths.
+
+  dirnames | dirs | dirvars
+    Print names, values, or variable declarations where value is a directory path.
+
+  filenames | files | filevars
+    Print names, values, or variable declarations where value is a file path.
+
+  symlinknames | symlinks | symlinkvars
+    Print names, values, or variable declarations where value is a symlink path.
+
+  foreach (all|local|global) [FUNC [FMT [OUT]]]
+    Print <OUT>names, <OUT>s or <OUT>vars.
+    By default prints where value is an existing path.
+
+XXX: Doesnt print tmux env. and whatabout launchctl
+'
 
 htd__env()
 {
-  env | sed 's/=.*$//' | grep -v '^_$' | sort -u
+  test -n "$1" || set -- all
+  case "$1" in
+
+    foreach )
+        test -n "$4" -a -n "$5" || set -- "$1" "$2" "$3" vars
+        test -n "$2" || set -- "$1" all "$3" "$4" "$5"
+        test -n "$3" || {
+            _f() { test -e "$2" ; }
+            set -- "$1" "$2" "_f" "$4" "$5"
+        }
+        htd__env $2 | while read varname
+        do
+            V="${!varname}" ; $3 "$varname" "$V" || continue
+            case "$4" in
+                ${5}names ) echo "$varname" ;;
+                ${5}s ) echo "$V" ;;
+                ${5}vars ) echo "$varname=$V" ;;
+            esac
+        done
+          ;;
+
+    pathnames | paths | pathvars ) 
+        _f(){ case "$2" in *[/]*":"*[/]* ) ;; * ) return 1 ;; esac; }
+        htd__env foreach "$2" _f "$1" path
+      ;;
+
+    dirnames | dirs | dirvars ) 
+        _f() { test -d "$2" ; }
+        htd__env foreach "$2" _f "$1" dir
+      ;;
+
+    filenames | files | filevars ) 
+        _f() { test -f "$2" ; }
+        htd__env foreach "$2" _f "$1" file
+      ;;
+
+    symlinknames | symlinks | symlinkvars ) 
+        _f() { test -L "$3" ; }
+        htd__env foreach "$2" _f "$1" symlink
+      ;;
+
+    all ) 
+        { env && local; } | sed 's/=.*$//' | grep -v '^_$' | sort -u
+      ;;
+    global ) 
+        env | sed 's/=.*$//' | grep -v '^_$' | sort -u
+      ;;
+    local ) 
+        local | sed 's/=.*$//' | grep -v '^_$' | sort -u
+      ;;
+
+    #host ) # XXX: tmux, launch/system/init daemon?
+    #  ;;
+    tmux ) # XXX: cant resolve the from shell
+        htx__tmux show local
+      ;;
+    #* ) # XXX: schemes looking at ENV, ENV_NAME
+    #  ;;
+  esac
 }
 
 
@@ -9362,7 +9484,7 @@ htd_man_1__catalog_fsck='File-check entries from catalog with checksums'
 htd_als__fsck_catalog='catalog fsck'
 
 
-htd_man_1__foreach='Execute based on match for each argument or line 
+htd_man_1__foreach='Execute based on match for each argument or line
 
 Executes "$act" and "$no_act" for each arg or line based on glob, regex, etc.
 These can be function or command names that accept exactly one argument.
@@ -9383,9 +9505,9 @@ functions or commands. The signatures are:
   g:<glob>
   r:<regex>
      Test each arg/line S
-  x:<callback> 
+  x:<callback>
      Invoke <callback> with each S as argument
-  e:<shell-expression> 
+  e:<shell-expression>
      Evaluate for each S, without any further arguments
 
 For example scripts see `htd help filter`.
@@ -9428,7 +9550,7 @@ functions loaded by `htd`, similar actions are easier to write:
 
 NOTE: that because the examples are single-quoted, it prevents any single quote
 in the documentation. While it would make the above examples a bit more readable
-with less escaping. 
+with less escaping.
 '
 htd_spc__filter='filter EXPR [ - | PATH... ]'
 htd__filter()
@@ -9470,7 +9592,7 @@ htd__init()
       # Take first found in lists for all vendors?
       true
     } || {
-      true 
+      true
     }
   }
   error TODO 1
@@ -9482,69 +9604,21 @@ htd__init()
 }
 
 
+htd_run__doc=f
+htd__doc()
+{
+  test -n "$1" || set -- main-files
+  upper=0 mkvid "$1"
+  shift ;
+  func_exists ${base}_doc_$vid && cmd=${base}_doc_$vid || {
+    func_exists doc_$vid || error "$vid" 1
+    cmd=doc_$vid
+  }
+  $cmd "$@" || return $?
+}
+
 
 # -- htd box insert sentinel --
-
-
-# util
-
-htd_rst_doc_create_update()
-{
-  test -n "$1" || error htd-rst-doc-create-update 12
-  local outf=$1 title=$2 ; shift 2
-  test -s "$outf" && {
-    updated=":\1pdated: $(date +%Y-%m-%d)"
-    grep -qi '^\:[Uu]pdated\:.*$' $outf && {
-      sed -i.bak 's/^\:\([Uu]\)pdated\:.*$/'"$updated"'/g' $outf
-    } || {
-      warn "Cannot update 'updated' field."
-    }
-  } || {
-    test -n "$title" || set -- "$outf" "$(basename "$(dirname "$(realpath "$outf")")")"
-    echo "$title" > $outf
-    echo "$title" | tr -C '\n' '=' >> $outf
-    while test -n "$1"
-    do case "$1" in
-      created )  echo ":created: $(date +%Y-%m-%d)" >> $outf ;;
-      updated )  echo ":updated: $(date +%Y-%m-%d)" >> $outf ;;
-      week )     echo ":period: " >> $outf ;;
-      default-rst )
-          test -e .default.rst && {
-            fnmatch "/*" "$outf" &&
-              # FIXME: get common basepath and build rel if abs given
-              includedir="$(pwd -P)" ||
-                includedir="$(dirname $outf | sed 's/[^/]*/../g')"
-            relp="$(realpath --relative-to=$(dirname "$outf") $includedir)"
-            {
-              echo ; echo ; echo ".. include:: $relp/.default.rst"
-            } >> $outf
-          }
-        ;;
-    esac; shift; done
-    export cksum="$(md5sum $outf | cut -f 1 -d ' ')"
-    export cksums="$cksums $cksum"
-  }
-}
-
-
-htd_edit_and_update()
-{
-  test -e "$1" || error htd-edit-and-update-file 1
-
-  $EDITOR "$@" || return $?
-
-  new_ck="$(md5sum "$1" | cut -f 1 -d ' ')"
-  test "$cksum" = "$new_ck" && {
-    # Remove unchanged generated file, if not added to git
-    git ls-files --error-unmatch $1 >/dev/null 2>&1 || {
-      rm "$1"
-      note "Removed unchanged generated file ($1)"
-    }
-  } || {
-    git add "$1"
-  }
-}
-
 
 
 
@@ -9629,7 +9703,6 @@ htd_optsv()
   done
 }
 
-# FIXME: Pre-bootstrap init
 htd_init()
 {
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
@@ -9643,7 +9716,7 @@ htd_init()
   lib_load htd meta
   lib_load box date doc table disk remote package service archive \
       prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck net \
-      catalog
+      catalog tasks journal
   case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh
   disk_run

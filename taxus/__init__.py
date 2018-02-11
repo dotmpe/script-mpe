@@ -13,7 +13,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.orm.exc import NoResultFound
 
 from script_mpe import confparse, log, mod
-from script_mpe.res import dt
+from script_mpe.res import dt, js
 from script_mpe.res.ws import AbstractYamlDocs
 
 
@@ -22,7 +22,6 @@ from iface import registry as reg, gsm
 from . import init
 from . import util
 from . import out
-from ..res import js
 
 
 from .init import SqlBase
@@ -47,8 +46,11 @@ class CouchMixin(object):
 
     def init(self, metadata=None):
         g = self.settings
-        if hasattr(g, 'couch') and g.couch:
-            self.couchdocs(g.couch)
+        if not hasattr(g, 'no_db') and g.no_db:
+            pass
+        if not hasattr(g, 'no_couch') and g.no_couch:
+            if hasattr(g, 'couch') and g.couch:
+                self.couchdocs(g.couch)
 
     def couchdocs(self, ref):
         self.couch = ref.rsplit('/', 1)

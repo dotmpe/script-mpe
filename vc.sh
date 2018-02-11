@@ -119,19 +119,24 @@ vc__help()
     echo "  $scriptname ps1"
     echo
     echo "Tokens:"
-    echo "  *      modified"
-    echo "  +      stage"
-    echo "  $      stash"
-    echo "  ~      untracked"
-    echo "  #      no HEAD"
-    echo "  GIT_DIR!:  "
-    echo "  BARE:  "
+    echo "      *     modified"
+    echo "      +     stage"
+    echo "      $     stash"
+    echo "      ~     untracked"
+    echo "      #     no HEAD"
+    echo "   DIR!:    inside checkout metafolder"
+    echo "   BARE:    inside bare repository"
     echo ''
     vc__docs
   } || {
 
     echo_help $1 || {
-      htd function help $1 || return $?
+      for func_id in "$1" "${base}__$1" "$base-$1"
+      do
+          htd_function_comment $func_id 2>/dev/null || continue
+          htd_function_help $func_id 2>/dev/null && return 1
+      done
+      error "Got nothing on '$1'" 1
     }
   }
 }
@@ -160,16 +165,6 @@ vc__edit()
 }
 vc___e() { vc__edit; }
 
-
-### Internal functions
-
-homepath()
-{
-    test -n "$1" || exit 212
-    test -n "$HOME" || exit 213
-  # Bash, BSD Sh?
-    str_replace_start "$1" "$HOME" "~"
-}
 
 
 # Vars legenda:
@@ -227,7 +222,7 @@ __vc_status()
   local pwd="$(pwd)"
 
   realcwd="$(cd "$1"; pwd -P)"
-  short="$(homepath "$1")"
+  short="$(realpath "$1")"
   test -n "$short" || err "homepath" 1
 
   local git="$(vc_gitdir "$realcwd")"
@@ -294,7 +289,7 @@ __vc_screen ()
   test -n "$1" || set -- "$(pwd)"
 
   realcwd="$(pwd -P)"
-  short=$(homepath "$1")
+  short=$(realpath "$1")
 
   local git=$(vc_gitdir "$1")
   if [ "$git" ]; then
@@ -1101,7 +1096,8 @@ vc__branch_exists()
 # items are added again grouped with each source path
 vc__regenerate()
 {
-  local excludes=.git/info/exclude
+  local gitdir="$(vc_gitrepo "$1")"
+  local excludes=$gitdir/info/exclude
 
   test -e $excludes.header || backup_header_comment $excludes
 
@@ -1119,7 +1115,7 @@ vc__regenerate()
     read_nix_style_file $x >> $excludes
   done
 
-  note "Local excludes successfully regenerated"
+  note "Local excludes successfully regenerated <$excludes>"
 }
 
 
@@ -1599,6 +1595,8 @@ vc__cleanup_local()
 }
 
 
+vc_man_1__sync='
+'
 vc__sync()
 {
   test -n "$vc_rebase" || vc_rebase=0
@@ -1621,6 +1619,8 @@ vc__sync()
 }
 
 
+vc_man_1__stats='Count files (tracked, untracked, ignored and subgroups)
+'
 vc__stats()
 {
   test -n "$1" || set -- "." "$2"
@@ -1643,8 +1643,11 @@ vc__info()
   test -n "$2" || set -- "$1" "  "
   local scm= scmdir=
   vc_getscm "$1" || return $?
-  note "scm '$scm'"
+  test -n "$scm" || {
+      note "No checkout at '$1'"
+  }
   vc_info "$@"
+  note "See help for info on status tokens"
 }
 
 

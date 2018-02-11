@@ -335,12 +335,13 @@ go_to_dir_with()
 }
 
 
-go_to_dir()
-{
-  test -n "$1" || set -- "."
-  test "$1" = "." || cd "$1"
-  # -o "$(pwd -P)" = "$(cd "$1" && pwd -P)" || cd $1
-}
+# Go to dir and set OLDPWD, but only if not already there
+#go_to_dir()
+#{
+#  test -n "$1" || set -- "."
+#  test "$1" = "." || cd "$1"
+#  # -o "$(pwd -P)" = "$(cd "$1" && pwd -P)" || cd $1
+#}
 
 
 # Resolve all symlinks in subtree, return a list with targets

@@ -12,9 +12,3 @@ The aim is to be more efficient and precise, and improve best practices.
 For example, a correct setup may be able to rebase (certain) commits and prevent
 merges. Maybe improved checks in hooks can be provided to improve consistency.
 Etc.
-
-
-..
-
-    NOTE: The setup is generic, but for certain functions may be missing still.
-    Only GIT is supported.

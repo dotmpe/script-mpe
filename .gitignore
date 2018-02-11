@@ -4,7 +4,6 @@
 *.pyc
 composer.lock
 .composer.lock
-bin
 *DS_Store
 *~*
 .build/
@@ -26,6 +25,7 @@ bin
 bower_components/
 coverage_html_report/
 node_modules/
+node_modules*/
 public/components/
 tools.json
 vendor/

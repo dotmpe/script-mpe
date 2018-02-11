@@ -37,7 +37,7 @@ __couch__ = 'http://localhost:5984/the-registry'
 __usage__ = """
 Usage:
   hier.py [options] roots [ LIKE ]
-  hier.py [options] ( find | tree | delete ) [ LIKE [ GROUP... ] ]
+  hier.py [options] ( find | tree | delete ) [ LIKES... ]
   hier.py [options] assertall TAGS...
   hier.py [options] assert NAME [ TYPE ]
   hier.py [options] show [ NAME ] [ TAG ]
@@ -59,6 +59,7 @@ Options:
   --no-db       Don't initialize SQL DB connection or query DB.
   --couch=REF
                 Couch DB URL [default: %s] (sh env 'COUCH_DB')
+  --no-couch
   --auto-commit
   -i FILE --input=FILE
   -o FILE --output=FILE
@@ -135,18 +136,23 @@ def cmd_roots(LIKE, g):
         print(root.name)
 
 
-def cmd_find(g, LIKE, GROUP):
+def cmd_find(g, LIKES):
     """
-        Look for tag by name, everywhere or in group(s).
-        With `recurse` option, require group(s) and look over each sub too.
+        List (root) tags, or given argument(s) look for tag by LIKE
+        , everywhere or in
+        group(s).
+
+        FIXME: With `recurse` option, require group(s) and look over each sub too.
         Use `max-depth` to control maximum recursion level, and `count` or
         `first` to limit results.
     """
     global ctx
     klass = g.names and Name or Tag
     q = ctx.sa_session.query(klass)
-    if GROUP: q = q.filter(klass.contexts == GROUP)
-    if LIKE: q = q.filter(klass.name.like('%'+LIKE+'%'))
+    #if opts.flags.recurse:
+    #q = q.filter(Tag.context == None)
+    for LIKE in LIKES:
+        q = q.filter(klass.name.like(LIKE))
     for t in q.all():
         print(t.name)
 
@@ -299,6 +305,8 @@ commands.update(dict(
 def defaults(opts, init={}):
     global cmd_default_settings, ctx
     libcmd_docopt.defaults(opts)
+    if 'help' in opts.cmds:
+        opts.flags.no_db = True
     opts.flags.update(cmd_default_settings)
     ctx.settings.update(opts.flags)
     opts.flags.update(ctx.settings)
