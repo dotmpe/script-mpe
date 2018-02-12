@@ -199,13 +199,17 @@ trueish()
 {
   test -n "$1" || return 1
   case "$1" in
-    [Oo]n|[Tt]rue|[Yyj]|[Yy]es|1)
+    [Oo]n|[Tt]rue|[Yyj]|[Yy]es|1 )
       return 0;;
     * )
       return 1;;
   esac
 }
 
+fnmatch()
+{
+  case "$2" in $1 ) return 0 ;; *) return 1 ;; esac
+}
 
 
 ### Misc. helper functions
@@ -253,15 +257,5 @@ file_equal()
   sum1=$(md5sum $1 | cut -f 1 -d' ')
   sum2=$(md5sum $2 | cut -f 1 -d' ')
   test "$sum1" = "$sum2" || return 1
-}
-
-noop()
-{
-  set --
-}
-
-fnmatch()
-{
-  case "$2" in $1 ) return 0 ;; *) return 1 ;; esac
 }
 
