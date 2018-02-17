@@ -26,12 +26,12 @@
       - https://opensource.org/licenses/gpl-license
 
   repositories:
-      bb: git@bitbucket.org:dotmpe-personal/script-mpe
-      dotmpe: dotmpe:~/domains/dotmpe.com/htdocs/git/script-mpe
-      github: git@github.com:bvberkum/script-mpe
-      boreas.16-4: /srv/git-16-4-boreas-brix/bvberkum/script-mpe.git
-      _origin: dotmpe
-      _local: 16-4
+      bb: git@bitbucket.org:dotmpe-personal/script-mpe.git
+      dotmpe: dotmpe:~/domains/dotmpe.com/htdocs/git/script-mpe.git
+      github: git@github.com:bvberkum/script-mpe.git
+      boreas.16-4-bare: /srv/git-16-4-boreas-brix/bvberkum/script-mpe.git
+      # TODO: package repo name alias _origin: dotmpe
+      #_local: 16-4-bare
 
   lists:
     default: "@Task @Dev +script-mpe +htdocs-mpe"

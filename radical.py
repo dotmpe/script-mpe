@@ -597,7 +597,7 @@ def store_comments(session, data, comment_span, flavour_spec, tagname, matchbox)
 
 # Content data scanning
 
-end_of_description = re.compile('([\.?!](?:\ |$))', re.M + re.S).search
+end_of_description = re.compile('([\.?!](?:\ |$))', re.M | re.S).search
 
 def end_of_line(data):
     pos = 0
@@ -1129,15 +1129,16 @@ STD_COMMENT_SCAN = {
     }
 # Tag pattern, format and index type
 DEFAULT_TAG_RE = r'''
-  (?: ^|\s )
+  (?: ^|\s+ )
   (?:
-        (%s) (?:
+        (%s)
+        (?:
               (?: [:\.,_-] )
             | (?: [\s:\.,_-]* [\s\._0-9-]+ )
             | (?: [:\.,_-]* [^\ ]+ )
         )?
   )
-  (?: $|\s )
+  (?: $|\s+ )
 '''
 
 DEFAULT_TAGS = {

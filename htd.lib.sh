@@ -153,24 +153,27 @@ vim_swap()
 # remove the hostname from the remote-name to use.
 htd_repository_url() # remote url
 {
-  # Disk on local host
-  fnmatch "$hostname.*" "$1" && {
-
-    # Cancel if repo is local checkout (and expand '~')
-    pwd_="$( { cd "$(bash -c "echo $2")" && pwd -P ; } 2>&1 1>/dev/null)"
-    test -e "$2" -a "$pwd_" = "$(pwd -P)" && return 1
-
-    # Use URL as is, remove host from remote
-    remote="$(echo $1 | cut -f2- -d'.')"
-    return 0
-  }
   fnmatch "*.*" "$1" && {
 
-    # Add hostname for remote disk
-    { fnmatch "/*" "$2" || fnmatch "~/*" "$2"
-    } || return
-    remote=$(echo $1 | cut -f2- -d'.')
-    url=$(echo $1 | cut -f1 -d'.'):$2
+    # Disk on local host
+    fnmatch "$hostname.*" "$1" && {
+
+      # Cancel if repo is local checkout (and expand '~')
+      pwd_="$( { cd "$(bash -c "echo $2")" && pwd -P ; } 2>/dev/null)"
+      test -e "$2" -a "$pwd_" = "$(pwd -P)" && return 1
+
+      # Remove host from remote.
+      remote="$(echo $1 | cut -f2- -d'.')"
+      url="$2"
+
+    } || {
+
+      # Add hostname for remote disk
+      { fnmatch "/*" "$2" || fnmatch "~/*" "$2"
+      } || return
+      remote=$(echo $1 | cut -f2- -d'.')
+      url="$(echo $1 | cut -f1 -d'.'):$2"
+    }
 
   } || {
 
@@ -178,7 +181,18 @@ htd_repository_url() # remote url
     { fnmatch "/*" "$2" || fnmatch "~/*" "$2"
     } || return
     remote=$(echo $1 | cut -f2- -d'.')
-    url=$(echo $1 | cut -f1 -d'.'):$2
+    url="$(echo $1 | cut -f1 -d'.'):$2"
+  }
+
+  # Remove .$scm and .../.$scm suffix
+  test -z "$scm" || {
+    fnmatch "*/.$scm" "$url" && {
+      url="$(echo "$url" | cut -c1-$(( ${#url} - 5 )) )"
+    } || {
+      fnmatch "*.$scm" "$url" && {
+        url="$(echo "$url" | cut -c1-$(( ${#url} - 4 )) )"
+      }
+    }
   }
 }
 
@@ -345,4 +359,19 @@ htd_function_help()
       echo "$1( $decl_comment ) # found on $file:$grep_line"
   } ||
       echo "$1() # found on $file:$grep_line"
+}
+
+# Find paths, follow symlinks below, print relative paths.
+htd_find() # Dir [ Namespec ]
+{
+  test -n "$find_match" || find_match="-type f -o -type l"
+  test -n "$find_ignores" || find_ignores="-false $(find_ignores $IGNORE_GLOBFILE)"
+  test -n "$1" || set -- "$(pwd)"
+  match_grep_pattern_test "$1"
+  {
+    test -z "$2" \
+      && eval "find -L $1 $find_ignores -o \( $find_match \) -print" \
+      || eval "find -L $1 $find_ignores -o \( $2 \) -a \( $find_match \) -print"
+  } | grep -v '^'$p_'$' \
+    | sed 's/'$p_'\///'
 }

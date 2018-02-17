@@ -405,8 +405,8 @@ vc_git_submodules()
 }
 
 
-# TODO: maybe rename htd_update_remote
-vc_git_update_remote()
+# Add new remote, or update existing with different URL. Strip .git suffix.
+vc_git_update_remote() # Name URL
 {
   local remote_url="$(git config --get remote.$1.url)"
   test -z "$remote_url" && {

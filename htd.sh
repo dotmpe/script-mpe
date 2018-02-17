@@ -898,27 +898,37 @@ htd__ls_main_files()
 
 htd_man_1__edit_local="Edit an existing local file, or abort. "
 htd_spc__edit_local="-e|edit <id>"
-htd__edit()
+htd__edit_local()
 {
   test -n "$1" || error "search term expected" 1
   case "$1" in
     # NEW
     sandbox-jenkins-mpe | sandbox-mpe-new )
         cd $UCONFDIR/vagrant/sandbox-trusty64-jenkins-mpe
-        vim Vagrantfile
+        $EDITOR Vagrantfile
+        return $?
       ;;
     treebox-new )
         cd $UCONFDIR/vagrant/
-        vim Vagrantfile
+        $EDITOR Vagrantfile
+        return $?
       ;;
   esac
-  doc_path_args
-  find_paths="$(doc_find_name "$1")"
-  grep_paths="$(doc_grep_content "$1")"
+
+  local paths=$(pwd)
+  #doc_path_args
+
+  #find_paths="$(doc_find_name "$1")"
+  #grep_paths="$(doc_grep_content "$1")"
+  grep_paths="$(git grep -l "$1")"
 
   test -n "$find_paths" -o -n "$grep_paths" \
     || error "Nothing found to edit" 1
-  $EDITOR $find_paths $grep_paths
+
+  case "$EDITOR" in
+      vim ) evoke="$evoke -c \"/$1\"" ;;
+  esac
+  eval $EDITOR $evoke $find_paths $grep_paths
 }
 htd_als__edit=edit-local
 htd_als___e=edit-local
@@ -998,20 +1008,7 @@ htd_run__find_doc=x
 htd_spc__find_docs='find-docs [DIR]'
 htd__find_docs()
 {
-  test -z "$1" || return $?
-  note "IGNORE_GLOBFILE=$IGNORE_GLOBFILE"
-  local find_ignores="-false $(find_ignores $IGNORE_GLOBFILE | tr '\n' ' ')" find_f="-false"
-  for ext in $DOC_EXTS
-  do find_f="$find_f -o -iname '*$ext'"
-  done
-  #doc_path_args
-  local paths=$(pwd)
-  test -n "$1" || set -- $paths
-  match_grep_pattern_test "$(pwd)"
-  {
-    eval "find -L $@ $find_ignores -o \( $find_f \) -a \( -type f -o -type l \) -print"
-  } | grep -v '^'$p_'$' \
-    | sed 's/'$p_'\///'
+  doc_find_name "$@"
 }
 htd_run__find_docs=x
 
@@ -3665,15 +3662,18 @@ htd__git_files()
   local pat="$(compile_glob $(lines_to_words $arguments.glob))"
   read_nix_style_file $arguments.repo | while read repo
   do
-    cd $repo || continue
+    cd "$repo" || continue
+    note "repo: $repo"
     # NOTE: only lists files at HEAD branch
-    git ls-tree --full-tree -r HEAD | cut -d "  " -f 2 \
-      | sed 's#^#'"$repo"':HEAD/#' | grep "$pat"
+    git ls-tree --full-tree -r HEAD |
+        awk '{print $NF}' |
+        sed 's#^#'"$repo"':HEAD/#' | grep "$pat"
   done
 }
 htd_argsv__git_files=arg-groups-r
 htd_arg_groups__git_files="repo glob"
-htd_defargs_repo__git_files=/src/*.git
+#htd_defargs_repo__git_files=/src/*/*/*/
+htd_defargs_repo__git_files=/srv/git-local/bvberkum/*.git
 
 
 #
@@ -4794,6 +4794,7 @@ htd__run()
 
   # List scriptnames when no args given
   test -z "$1" && {
+    note "Listing local script IDs:"
     htd__scripts names
     return 1
   }
@@ -4814,7 +4815,7 @@ htd__run()
       eval $package_env
     }
 
-    note "Starting '$run_scriptname' ($(pwd)) '$*'"
+    info "Starting '$run_scriptname' ($(pwd)) '$*'"
 
     package_sh_script "$run_scriptname" | while read scriptline
     do
@@ -4840,7 +4841,6 @@ htd__run()
       set --
     done
   )
-  note "Finished '$1' ($(pwd)) '$*'"
   trueish "$verbose_no_exec" && return || stderr notice "'$1' completed"
 }
 htd_run__run=iAOp
@@ -9248,33 +9248,33 @@ htd__env()
         done
           ;;
 
-    pathnames | paths | pathvars ) 
+    pathnames | paths | pathvars )
         _f(){ case "$2" in *[/]*":"*[/]* ) ;; * ) return 1 ;; esac; }
         htd__env foreach "$2" _f "$1" path
       ;;
 
-    dirnames | dirs | dirvars ) 
+    dirnames | dirs | dirvars )
         _f() { test -d "$2" ; }
         htd__env foreach "$2" _f "$1" dir
       ;;
 
-    filenames | files | filevars ) 
+    filenames | files | filevars )
         _f() { test -f "$2" ; }
         htd__env foreach "$2" _f "$1" file
       ;;
 
-    symlinknames | symlinks | symlinkvars ) 
+    symlinknames | symlinks | symlinkvars )
         _f() { test -L "$3" ; }
         htd__env foreach "$2" _f "$1" symlink
       ;;
 
-    all ) 
+    all )
         { env && local; } | sed 's/=.*$//' | grep -v '^_$' | sort -u
       ;;
-    global ) 
+    global )
         env | sed 's/=.*$//' | grep -v '^_$' | sort -u
       ;;
-    local ) 
+    local )
         local | sed 's/=.*$//' | grep -v '^_$' | sort -u
       ;;
 
@@ -9615,6 +9615,20 @@ htd__doc()
     cmd=doc_$vid
   }
   $cmd "$@" || return $?
+}
+
+
+htd_als__cal=calendar
+htd__calendar()
+{
+  ncal -w
+}
+
+
+htd__whoami()
+{
+  note "Host: $(whoami) ($uname)"
+  note "GIT: $(git config --get user.name)"
 }
 
 

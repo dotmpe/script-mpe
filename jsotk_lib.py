@@ -476,7 +476,8 @@ readers = dict(
 def write(writer, data, file, ctx):
     if ctx.opts.flags.no_indices:
         writer.write_indices = False
-    file.write(writer.serialize(data, ctx.opts.flags.output_prefix)+"\n")
+    file.write(writer.serialize(data, ctx.opts.flags.output_prefix))
+    #+"\n")
 
 def output_prefix(data, opts):
     if opts.flags.output_prefix:
@@ -792,7 +793,7 @@ def data_at_path(ctx, infile=None, data=None):
         #    b = int(b[1:-1])
         #    l = l[b]
         #else:
-        if b.isdigit():
+        if b.isdigit() and b not in l:
             b = int(b)
         l = l[b]
     return l

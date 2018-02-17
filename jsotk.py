@@ -156,11 +156,11 @@ Dev
   etc.
 
 """
-import types
 from StringIO import StringIO
+import traceback
+import types
 
 from objectpath import Tree
-
 
 import libcmd_docopt, confparse
 from jsotk_lib import PathKVParser, FlatKVParser, \
@@ -246,7 +246,8 @@ def H_merge(ctx, write=True):
             raise ValueError(data)
 
     if write:
-        sys.stderr.write("Writing to %s\n" % ctx.opts.args.destfile)
+        if not ctx.opts.flags.quiet:
+            sys.stderr.write("Writing to %s\n" % ctx.opts.args.destfile)
         outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
         return stdout_data( data, ctx, outf=outfile )
     else:
@@ -363,11 +364,13 @@ def H_path(ctx):
     try:
         data = data_at_path(ctx, infile)
         infile.close()
-    except (Exception) as e:
+    except (Exception) as err:
         if not ctx.opts.flags.is_new:
             if not ctx.opts.flags.quiet:
-                sys.stderr.write("Error: getting %r: %r" % (
-                    ctx.opts.args.pathexpr, e ))
+                tb = traceback.format_exc()
+                sys.stderr.write(tb)
+                sys.stderr.write("Error: getting %r: %r\n" % (
+                    ctx.opts.args.pathexpr, err ))
             return 1
 
     res = [ ]
@@ -599,8 +602,7 @@ if __name__ == '__main__':
         sys.exit( main( ctx.opts.cmds[0], ctx ) )
     except Exception as err:
         if not ctx.opts.flags.quiet:
-            import traceback
             tb = traceback.format_exc()
-            print(tb)
-            print('Unexpected Error:', err)
+            sys.stderr.write(tb)
+            sys.stderr.write('Unexpected Error: %s\n' % err)
         sys.exit(1)

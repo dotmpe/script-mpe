@@ -188,7 +188,7 @@ try_subcmd()
         ( try_local_func usage || try_local_func usage '' std ) && {
           $func_name
         }
-        error "No such command: $subcmd ($func_name)" 1
+        error "No such command: $subcmd" 1
       } || {
         error "Command $subcmd returned $e" $e
       }

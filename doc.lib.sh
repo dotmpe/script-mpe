@@ -17,17 +17,17 @@ doc_path_args()
   }
 }
 
-
+# Find document,
 doc_find_name()
 {
-  find_ignores="-false $(find_ignores $IGNORE_GLOBFILE)"
-  match_grep_pattern_test "$(pwd)"
-  {
-    test -z "$1" \
-      && eval "find -L $paths $find_ignores -o \( -type f -o -type l \) -print" \
-      || eval "find -L $paths $find_ignores -o -iname $1 -a \( -type f -o -type l \) -print"
-  } | grep -v '^'$p_'$' \
-    | sed 's/'$p_'\///'
+  info "IGNORE_GLOBFILE=$IGNORE_GLOBFILE"
+  local find_ignores= find_=
+
+  find_ignores="-false $(find_ignores $IGNORE_GLOBFILE | tr '\n' ' ')"
+  find_="-false $(for ext in $DOC_EXTS ; do printf -- " -o -iname '*$ext'" ; done )"
+
+  # XXX: doc_path_args
+  htd_find $(pwd) "$find_"
 }
 
 doc_grep_content()

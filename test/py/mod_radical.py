@@ -39,16 +39,16 @@ class RadicalTestCase(unittest.TestCase):
         ( 4,  'BUG',   '  BUG  ',               '  BUG  ',          ),
         ( 5,  'NOTE',  '  NOTE  ',              '  NOTE  ',         ),
         ( 6,  'TEST',  '  TEST  ',              '  TEST  '          ),
-        ( 7,  'XXX',   '-  XXX  -',             '  XXX  ',          ),
+        ( 7,  'XXX',   '-  XXX  -',             '  XXX  -',          ),
         ( 8,  'XXX',   '-  XXX:1ax0d  -',       '  XXX:1ax0d  ',    ),
         ( 9,  'XXX',   '-  XXX:_a:0d  -',       '  XXX:_a:0d  ',    ),
         ( 10, 'XXX',   '-  XXX:1ax 0d  -',      '  XXX:1ax ',       ),
         ( 11, 'XXX',   '-  XXX:1ax: 0d  -',     '  XXX:1ax: ',      ),
-        ( 12, 'PRJ',   '-  PRJ-09af-2: Foo  -', '  PRJ-09af-2: ',   ),
+        ( 13, 'PRJ',   '-  PRJ-09af-2: Foo  -', '  PRJ-09af-2: ',   ),
         ( 13, 'FIXME', '_ FIXME_af09 _',        ' FIXME_af09 ',     ),
     ])
     def test_1_tag_regex(self, testnr, tag, source, expected):
-        result = re.search(radical.DEFAULT_TAG_RE % tag, source)
+        result = re.search(radical.DEFAULT_TAG_RE % tag, source, re.VERBOSE )
         self.assert_(result, "No result for %s: %s" % ( testnr, tag) )
         matchgroups = result.groups()
 
@@ -68,20 +68,15 @@ class RadicalTestCase(unittest.TestCase):
         ( 1, 'radical-test1.txt', [
           [ '<TagInstance FIXME radical-test1.txt#c107-115>', ' FIXME: '    ],
           [ '<TagInstance XXX radical-test1.txt#c161-169>',   ' XXX:2: '    ],
-          [ '<TagInstance XXX radical-test1.txt#c405-410>',   ' XXX '     ],
-          #[ '<TagInstance XXX radical-test1.txt#c405-412>',   ' XXX 7 '     ],
-          [ '<TagInstance NOTE radical-test1.txt#c6-12>',     ' NOTE ' ],
-          #[ '<TagInstance NOTE radical-test1.txt#c6-21>',     ' NOTE \n ' ],
+          [ '<TagInstance XXX radical-test1.txt#c405-412>',   ' XXX 7 '     ],
+          [ '<TagInstance NOTE radical-test1.txt#c6-12>',     ' NOTE '      ],
           [ '<TagInstance NOTE radical-test1.txt#c291-298>',  ' NOTE: '     ],
-          #[ '<TagInstance NOTE radical-test1.txt#c322-333>',  ' NOTE this ' ],
-          [ '<TagInstance NOTE radical-test1.txt#c322-328>',  ' NOTE ' ],
+          [ '<TagInstance NOTE radical-test1.txt#c322-328>',  ' NOTE '      ],
           [ '<TagInstance TEST radical-test1.txt#c70-77>',    ' TEST: '     ],
-          [ '<TagInstance TODO radical-test1.txt#c349-355>',  ' TODO '  ],
-          #[ '<TagInstance TODO radical-test1.txt#c349-359>',  ' TODO 123 '  ],
+          [ '<TagInstance TODO radical-test1.txt#c349-359>',  ' TODO 123 '  ],
           [ '<TagInstance TODO radical-test1.txt#c369-378>',  ' TODO-45 '   ],
-          [ '<TagInstance TODO radical-test1.txt#c388-394>',  None          ],
-          [ '<TagInstance TODO radical-test1.txt#c421-427>',  ' TODO '   ],
-          #[ '<TagInstance TODO radical-test1.txt#c421-430>',  ' TODO 17 '   ],
+          [ '<TagInstance TODO radical-test1.txt#c388-396>',  ' TODO 6 '    ],
+          [ '<TagInstance TODO radical-test1.txt#c421-430>',  ' TODO 17 '   ],
         ] ),
         ( 2, 'test/var/radical-tasks-1.txt', [
           ( '<TagInstance TODO test/var/radical-tasks-1.txt#c2-9>', ' TODO: ' ),

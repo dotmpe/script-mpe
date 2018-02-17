@@ -250,12 +250,12 @@ setup() {
 
 @test "$bin run - runs subcmd run-dir" {
   run $bin run
-  test_ok_nonempty || stdfail
+  test_nok_nonempty || stdfail
 }
 
 
-@test "$bin run-names - list script names" {
-  run $bin run-names
+@test "$bin scripts names - list script names" {
+  run $bin scripts names
   { test_ok_nonempty &&
     fnmatch *" check "* " ${lines[*]} " &&
     fnmatch *" build "* " ${lines[*]} " &&
@@ -264,7 +264,7 @@ setup() {
 }
 
 
-@test "$bin run-dir - gives script outline (list indented script names and lines)" {
+@test "$bin scripts list - gives script outline (list indented script names and lines)" {
   run $bin run-dir
   { test_ok_nonempty &&
     fnmatch *" check "* " ${lines[*]} " &&
@@ -292,17 +292,15 @@ setup() {
   test_ok_nonempty || stdfail
 }
 
-@test "$bin topics-list" {
-  run $BATS_TEST_DESCRIPTION
+@test "$bin topics list has output, no error" {
+  run $bin topics list
   test_ok_nonempty || stdfail
 }
 
-
-@test "$bin package" {
+@test "$bin package - prints, no error" {
   run $bin package
   test_ok_nonempty || stdfail
 }
-
 
 @test "$bin filter-functions" {
 
