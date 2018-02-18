@@ -1,7 +1,7 @@
 <?php
 
 use Behat\Behat\Context\SnippetAcceptingContext,
-    Behat\Behat\Exception\PendingException,
+    Behat\Behat\Tester\Exception\PendingException,
     Behat\Gherkin\Node\PyStringNode,
     Behat\Gherkin\Node\TableNode;
 
@@ -45,8 +45,9 @@ class FeatureContext implements SnippetAcceptingContext
      * Use trailing period(s) or question-mark to allow non-zero exit status,
      * otherwise fail step.
      *
-     * @When /^the user runs "([^"]*)"(\.+)?$/
-     * @When /^the user executes "([^"]*)"(\.+)?$/
+     * @When /^the user runs `([^`]*)`(\?|\.+)?$/
+     * @When /^the user runs "([^"]*)"(\?|\.+)?$/
+     * @When /^the user executes "([^"]*)"(\?|\.+)?$/
      */
     public function theUserRuns($command, $withErrror='')
     {
@@ -67,8 +68,8 @@ class FeatureContext implements SnippetAcceptingContext
      * otherwise fail step.
      *
      * @see theUserRuns()
-     * @When /^the user runs:(\.*)$/
-     * @When /^the user executes:(\.*)$/
+     * @When /^the user runs:(\?|\.*)$/
+     * @When /^the user executes:(\?|\.*)$/
      */
     public function theUserRunsMultiline($withErrror, PyStringNode $command)
     {
@@ -76,6 +77,22 @@ class FeatureContext implements SnippetAcceptingContext
     }
 
     /**
+     * @Then file :arg1 contains:
+     * @Then file :arg1 should have:
+     * @Then file :arg1 contents should equal:
+     * @Then file :arg1 contents should be equal to:
+     */
+    public function fileShouldHave($arg1, PyStringNode $arg2)
+    {
+        if (!file_exists($arg1)) {
+            throw new Exception("File '$arg1' does not exist");
+        }
+        if (file_get_contents($arg1) != $arg2) {
+            throw new Exception("File '$arg1' contents do not match second argument");
+        }
+    }
+
+    /*
      * @Then /^file "([^"]*)" should be created, and contain the same as "([^"]*)"\.?$/
      * @Then /^"([^"]*)" is created, same contents as "([^"]*)"\.?$/
      */
@@ -108,8 +125,9 @@ class FeatureContext implements SnippetAcceptingContext
     /**
      * Test an attribute of the context with a regex.
      *
-     * @Then /^`([^`]+)` (contains|matches) the pattern '([^"]+)'\.?$/
-     * @Then /^`([^`]+)` (contains|matches) '([^"]+)'\.?$/
+     * @Then `:attr` :mode the pattern :arg1
+     * @Then /^`([^`]+)` (contain|match[es]*) the pattern '([^"]+)'\.?$/
+     * @Then /^`([^`]+)` (contain|match[es]*) '([^"]+)'\.?$/
      */
     public function ctxPropertyPregForPattern($propertyName, $mode, $pattern)
     {
@@ -118,6 +136,7 @@ class FeatureContext implements SnippetAcceptingContext
             throw new Exception("Pattern '$pattern' not found");
         }
     }
+
 
     public function pregForPattern($string, $mode, $pattern) {
         $matches = array();
@@ -134,8 +153,8 @@ class FeatureContext implements SnippetAcceptingContext
     /**
      * Test an attribute of context with every line from patterns as regex.
      *
-     * @Then /^`([^`]+)` (contains|matches) the patterns:$/
-     * @Then /^`([^`]+)` (contains|matches):$/
+     * @Then /^`([^`]+)` ((contain|match)[es]*) the patterns:$/
+     * @Then /^`([^`]+)` ((contain|match)[es]*) patterns:$/
      */
     public function ctxPropertyContainsThePatterns($propertyName, $mode, $patterns)
     {
@@ -146,8 +165,8 @@ class FeatureContext implements SnippetAcceptingContext
     }
 
     /**
-     * @Then /^each `([^`]+)` line (contains|matches) the pattern \'([^\']*)\'$/
-     * @Then /^each `([^`]+)` line (contains|matches) \'([^\']*)\'$/
+     * @Then /^each `([^`]+)` line ((contain|match)[es]*) the pattern \'([^\']*)\'$/
+     * @Then /^each `([^`]+)` line ((contain|match)[es]*) \'([^\']*)\'$/
      */
     public function ctxPropertyLinesEachPreg($propertyName, $mode, $pattern)
     {
@@ -161,8 +180,8 @@ class FeatureContext implements SnippetAcceptingContext
     }
 
     /**
-     * @Then /^each `([^`]+)` line (contains|matches) the patterns:$/
-     * @Then /^each `([^`]+)` line (contains|matches):$/
+     * @Then /^each `([^`]+)` line ((contain|match)[es]*) the patterns:$/
+     * @Then /^each `([^`]+)` line ((contain|match)[es]*):$/
      */
     public function ctxPropertyLinesEachPregMultiline($propertyName, $mode, PyStringNode $pattern_ml)
     {
@@ -172,12 +191,30 @@ class FeatureContext implements SnippetAcceptingContext
         }
     }
 
+
+    /**
+     * @Then `:propertyName` should match ':string'
+     * @Then `:propertyName` should equal ':string'
+     * @Then /^`([^`]+)` should be \'([^\']*)\'$/
+     * @Then /^`([^`]+)` should equal \'([^\']*)\'$/
+     * @Then /^`([^`]+)` equals \'([^\']*)\'$/
+     */
+    public function ctxPropertyShouldEqual($propertyName, $string)
+    {
+        if ("$string" != "{$this->$propertyName}") {
+            throw new Exception(" $propertyName is '{$this->$propertyName}' and does not match '$string'");
+        }
+    }
+
+
     /**
      * Compare given attribute value line-by-line.
      *
+     * @Then `:propertyName` should match:
+     * @Then `:propertyName` should equal:
      * @Then /^`([^`]+)` should be:$/
-     * @Then /^`([^`]+)` should equal:$/
      * @Then /^`([^`]+)` equals:$/
+     * @Then /^`([^`]+)` matches:$/
      */
     public function ctxPropertyShouldEqualMultiline($propertyName, PyStringNode $string)
     {
@@ -195,6 +232,21 @@ class FeatureContext implements SnippetAcceptingContext
         }
     }
 
+
+    /**
+     * @Then `:propertyName` should not match ':string'
+     * @Then `:propertyName` should not equal ':string'
+     * @Then /^`([^`]+)` should not be \'([^\']*)\'$/
+     * @Then /^`([^`]+)` should not equal \'([^\']*)\'$/
+     */
+    public function ctxPropertyShouldNotEqual($propertyName, $string)
+    {
+        if ("$string" == "{$this->$propertyName}") {
+            throw new Exception(" $propertyName is '{$this->$propertyName}' and matches '$string'");
+        }
+    }
+
+
     /**
      * Store a context value for later use by name.
      *
@@ -205,28 +257,6 @@ class FeatureContext implements SnippetAcceptingContext
         $this->$propertyName = $value;
     }
 
-    /**
-     * @Then /^`([^`]+)` should be \'([^\']*)\'$/
-     * @Then /^`([^`]+)` should equal \'([^\']*)\'$/
-     * @Then /^`([^`]+)` equals \'([^\']*)\'$/
-     */
-    public function ctxProperyShouldEqual($propertyName, $string)
-    {
-        if ("$string" != "{$this->$propertyName}") {
-            throw new Exception(" $propertyName is '{$this->$propertyName}' and does not match '$string'");
-        }
-    }
-
-    /**
-     * @Then /^`([^`]+)` should not be \'([^\']*)\'$/
-     * @Then /^`([^`]+)` should not equal \'([^\']*)\'$/
-     */
-    public function ctxPropertyShouldNotEqual($propertyName, $string)
-    {
-        if ("$string" == "{$this->$propertyName}") {
-            throw new Exception(" $propertyName is '{$this->$propertyName}' and matches '$string'");
-        }
-    }
 
     /**
      * @Then /^`([^`]+)` should be empty.?$/
@@ -299,15 +329,55 @@ class FeatureContext implements SnippetAcceptingContext
     }
 
     /**
-     * Fail if file exists or on matching glob spec.
+     * Fail if path does not exists, or on failing match in glob spec.
+     *
+     * @Given file :spec exists
+     * @Given :type path :spec exists
+     * @Given a :type :spec exists
+     * @Given /^that (\w*) paths "([^"]*)" exists $/
+     */
+    public function pathExists($spec, $type='file')
+    {
+        $this->{"pathname_type_${type}"}($spec, True);
+    }
+
+    /**
+     * Fail if path exists, or on matching glob spec.
      *
      * @Given no file :spec exists
+     * @Given no :type path :spec exists
+     * @Given a :type :spec doesn't exist
+     * @Given /^that (\w*) paths "([^"]*)" doesn't exist $/
      */
-    public function noFileExists($spec)
+    public function noPathExists($spec, $type='file')
     {
-        foreach (glob($spec) as $filename) {
-            if (file_exists($filename)) {
-                throw new Exception("File '$filename' exists, it shouldn't");
+        $this->{"pathname_type_${type}"}($spec, False);
+    }
+
+    public function pathname_type_directory($spec, $exists=True) {
+        foreach (glob($spec, GLOB_BRACE|GLOB_NOCHECK) as $pathname) {
+            if ($exists) {
+                if (!is_dir($pathname)) {
+                    throw new Exception("Directory '$pathname' does not exist, it should");
+                }
+            } else {
+                if (is_dir($pathname)) {
+                    throw new Exception("Directory '$pathname' exists, it shouldn't");
+                }
+            }
+        }
+    }
+
+    public function pathname_type_file($spec, $exists=True) {
+        foreach (glob($spec, GLOB_BRACE|GLOB_NOCHECK) as $pathname) {
+            if ($exists) {
+                if (!file_exists($pathname)) {
+                    throw new Exception("File '$pathname' does not exist, it should");
+                }
+            } else {
+                if (file_exists($pathname)) {
+                    throw new Exception("File '$pathname' exists, it shouldn't");
+                }
             }
         }
     }

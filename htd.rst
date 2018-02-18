@@ -65,8 +65,8 @@ htd
     List volumes for local disks, for any services it provides,
     check that a local and global /srv/ path is present.
 
-  init-backup-repo
-    Create local backup annex repo (/srv/backup-local in /srv/annex-local).
+  vc
+    manage checkouts
 
   backup
     Move given path argument(s) to local backup annex repo.
@@ -183,5 +183,3 @@ On Linux, manual pages are divided into sections:
 8. System management commands
 
 From: Linux Programmer's Manual; man7.org
-
-

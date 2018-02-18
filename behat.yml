@@ -3,5 +3,8 @@ default:
     '': %paths.base%/test/bootstrap
   suites:
     default:
+      contexts:
+      - FeatureContext
+      - SrvFeatureContext
       paths:
       - %paths.base%/test/

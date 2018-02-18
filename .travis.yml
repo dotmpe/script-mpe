@@ -27,10 +27,8 @@ addons:
 # - pytz
 
 before_install:
-  - export SCR_SYS_SH=bash-sh
+  - . ./tools/ci/env.sh
   - scriptname="before-install"
-  - . ./tools/sh/init.sh
-  - . ./tools/sh/env.sh
   - . ./tools/ci/parts/init.sh
 
 install:

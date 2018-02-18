@@ -321,15 +321,6 @@ vc_git_annex_list()
 }
 
 
-vc_clean()
-{
-  (
-    trueish "$1" && { vc_unversioned
-    } || { vc_untracked
-    }
-  )
-}
-
 vc_branch_git()
 {
   git rev-parse --abbrev-ref HEAD
@@ -505,10 +496,21 @@ vc_status_hg() { false; }
 vc_status_svn() { false; }
 vc_status_bzr() { false; }
 
+# Report on various checkout/repo state
 vc_status()
 {
   vc_diskuse
   vc_status_${scm}
+}
+
+# Cleanup the checkout, and report on the state
+vc_clean()
+{
+  (
+    trueish "$1" && { vc_unversioned
+    } || { vc_untracked
+    }
+  )
 }
 
 

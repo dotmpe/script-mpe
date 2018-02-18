@@ -13,7 +13,7 @@
   # that, should write literal scripts to external file
   #
   # Global env (for scripts)
-  #env: ./tools/sh/env.sh
+  env: . ./tools/ci/env.sh
 
   vendor: bvberkum
   distribution: public
@@ -103,7 +103,6 @@
   prefixes: {} # See ~/.cllct.rc finfo
 
   scripts:
-    env: ./tools/sh/env.sh
     init:
       - test -d ~/.pyvenv/du-ext || virtualenv ~/.pyvenv/du-ext
       - source ~/.pyvenv/du-ext/bin/activate
@@ -174,22 +173,31 @@
       - bats test/*-spec.bats | script-bats.sh colorize
       - ./x-test.sh version
     test-user:
-      - ENV_NAME=gspread-boreas . ~/.conf/bash/env.sh $ENV_NAME && python x-gspread.py
+      - ENV_NAME=gspread-boreas . ~/.conf/bash/env.sh && python x-gspread.py
 
+    test-feature:
+      - test_any_feature "$@"
     test-features:
-      - test -x \"$(which behave)\" &&
-           behave --tags '~@todo' --tags '~@skip' -k test/feature ||
-             ./vendor/.bin/behat --tags '~@skip' --tags '~@todo'
-
-    feature-defs:
-      - ./vendor/.bin/behat -dl
-
-    feature-specs:
-      # NOTE: behat cannot display outline only
-      - ./vendor/.bin/behat --dry-run --no-multiline --no-expand --tags ~@todo&&~@skip
-
+      - test_any_feature "$@"
     feature-watch:
-      - nodemon -x \"./vendor/.bin/behat test/$1.feature\" -w test/bootstrap/FeatureContext.php -w \"test/$1.feature\" -w \"./$1.*\"
+      - test -n \"$1\" && {
+          test -e \"test/$1.feature\" && {
+              nodemon -x \"$TEST_FEATURE test/$1.feature\"
+                           -w test/bootstrap/FeatureContext.php
+                           -w \"test/$1.feature\" -w \"./$1*sh\" || return $?;
+          } || {
+              nodemon -x \"$TEST_FEATURE $@\"
+                           -w test/bootstrap/FeatureContext.php
+                           -w \"$1\" -w \"./*sh\" || return $?;
+          } ;
+        } || {
+          nodemon -x \"$TEST_FEATURE\"
+                       -w test/bootstrap/FeatureContext.php -w test ; }
+    feature-defs:
+      - $TEST_FEATURE_DEFS
+    feature-specs:
+      # NOTE: behat cannot display outline only, but behave has problems with extended background syntax
+      - $TEST_FEATURE_BIN --dry-run # --no-multiline --no-expand
 
     unique-filelines:
     - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' $f ; done | wc -l

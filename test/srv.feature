@@ -7,10 +7,10 @@ Feature: srv
 
   Scenario: service container lifecycle
 
-    When the user runs ``srv run``
+    When the user runs `srv run`
     Then the known states and current state for the service names are shown
 
-    When the user runs ``list_name=data/srv.txt htd storage Service status``
+    When the user runs `list_name=data/srv.txt htd storage Service status`
     Then the identical data is shown
 
 
@@ -29,7 +29,7 @@ Feature: srv
     Then /srv and LIST are undefined and the DB should not exist
     And schema is present in res/srv.py and store/at-Service*yml
 
-    When the user runs ``srv init``
+    When the user runs `srv init`
     Then the database is created and initialized with current schema
     And views to join/denormalize certain record ID mappings into useful, presentable rows
 
@@ -44,11 +44,11 @@ Feature: srv
 
   Scenario: /srv is reflected to LIST or vice versa
 
-    When the user runs ``srv apply``
-    When the user runs ``htd storage Service apply``
+    When the user runs `srv apply`
+    When the user runs `htd storage Service apply`
     Then the /srv directory is updated from the text entries of LIST tagged `@Service`
 
-    When the user runs ``htd storage Service update``
+    When the user runs `htd storage Service update`
     Then the LIST has `@Service` tagged entries for existing and new service container instances
 
 

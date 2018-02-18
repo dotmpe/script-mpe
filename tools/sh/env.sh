@@ -44,10 +44,33 @@ BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
 
 project_env_bin node npm lsof
 
+test -x "./vendor/.bin/behat" && {
+    TEST_FEATURE_BIN="./vendor/.bin/behat"
+    # Command to run one or all feature tests
+    TEST_FEATURE="$TEST_FEATURE_BIN --tags ~@todo&&~@skip"
+    # Command to print def lines
+    TEST_FEATURE_DEFS="$TEST_FEATURE_BIN -dl"
+} || {
+    test -x "$(which behave)" && {
+        TEST_FEATURE_BIN="behave"
+        TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo' --tags '~@skip' -k test"
+    }
+}
+
+test_any_feature()
+{
+  test -e "test/$1.feature" && {
+
+      $TEST_FEATURE test/$1.feature || return $?;
+
+  } || {
+      $TEST_FEATURE $@ || return $?;
+  } ;
+}
 
 
 
-## Per-env settings
+## Determine ENV
 
 case "$ENV_NAME" in dev|testing ) ;; *|dev?* )
       echo "Warning: No env '$ENV_NAME', overriding to 'dev'" >&2
@@ -70,6 +93,8 @@ test -n "$ENV_NAME" || {
 
   esac
 }
+
+## Per-env settings
 
 case "$ENV_NAME" in
 
@@ -152,7 +177,7 @@ req_vars TEST_OPTIONS || export TEST_OPTIONS=
 
 req_vars TEST_SHELL || export TEST_SHELL=sh
 
-req_vars REQ_SPECS || 
+req_vars REQ_SPECS ||
   export REQ_SPECS="helper util-lib str std os match matchbox vc-lib main"\
 " sh box-lib box-cmd box pd-meta esop disk diskdoc"
 
@@ -169,7 +194,7 @@ req_vars INSTALL_DEPS || {
 }
 
 {
-  test "$USER" != "travis" && not_falseish "$SHIPPABLE" 
+  test "$USER" != "travis" && not_falseish "$SHIPPABLE"
 } && {
   req_vars APT_PACKAGES || export APT_PACKAGES="nodejs"\
 " perl python-dev"\

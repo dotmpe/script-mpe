@@ -29,7 +29,7 @@ lib_load()
   local f_lib_load= f_lib_path=
   # __load_lib: true if inside util.sh:lib-load
   test -n "$__load_lib" || local __load_lib=1
-  test -n "$1" || set -- str sys os std stdio src match main argv vc
+  test -n "$1" || set -- str sys os std stdio src match main argv vc bash
   while test -n "$1"
   do
     lib_id=$(printf -- "${1}" | tr -Cs 'A-Za-z0-9_' '_')

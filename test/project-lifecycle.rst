@@ -1,13 +1,13 @@
 Feature: Project Lifecycle workflow
+  ..
 
-  Background:
-    A collection of steps to represent for the most generic workflow.
-    But it may want some modes/addons.
-    Ie.
+  A collection of steps to represent for the most generic workflow.
+  But it may want some modes/addons.
+  Ie.
 
-    - build+install
-    - build+test+install
-    - create+delete
+  - build+install
+  - build+test+install
+  - create+delete
 
   Scenario: Initialize
     Setup project once.
@@ -34,4 +34,3 @@ Feature: Project Lifecycle workflow
     deployment or finished dev checkout.
   Scenario: Reset project
     Clean everything, make essentials again.
-

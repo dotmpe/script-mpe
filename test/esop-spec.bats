@@ -5,12 +5,6 @@ base=esop.sh
 
 init
 
-#source $lib/util.sh
-#source $lib/std.lib.sh
-#source $lib/str.lib.sh
-
-#  echo "${lines[*]}" > /tmp/1
-#  echo "${status}" >> /tmp/1
 
 @test "${bin} - No arguments: default action is ..." {
   run $bin
@@ -90,8 +84,7 @@ init
 #  check_skipped_envs || \
 #    TODO "envs $envs: implement lib (test) for env"
 #  run function args
-#  #echo ${status} > /tmp/1
-#  #echo "${lines[*]}" >> /tmp/1
-#  #echo "${#lines[@]}" >> /tmp/1
+#  { test_ok_nonempty && fnmatch "* ... * " "${lines[*]}" ; } || stdfail
+#  { test_ok_empty ; } || stdfail
 #  test ${status} -eq 0
 #}

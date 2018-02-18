@@ -1212,7 +1212,12 @@ htd__workdir_status()
 
 
 htd_als__metadirs=context
-htd_man_1__context="TODO find packages, .meta dirs"
+htd_man_1__context='TODO find packages, .meta dirs, DB client/query local-bg
+
+    volume-status
+    project-status
+    workdir-status
+'
 htd__context()
 {
   test -n "$1" || set -- "$(pwd)"
@@ -1231,29 +1236,44 @@ htd__context()
 }
 
 
-htd_man_1__project='Local project checkouts
-
+htd_man_1__projects='Local project checkouts
   list
-    ..
+    TODO
+
+  project-status
+    See htd context
+'
+htd__projects()
+{
+  test -n "$1" || set -- info
+  case "$1" in
+
+    list ) shift
+      ;;
+  esac
+}
+
+
+htd_man_1__project='Project checkouts workingdirs
+
+TODO: another level to checkout management, see projects
+
+  releases
+    List github releases
   sync
     ..
   update
     ..
-
   new
   exists
   scm
-  list
-
+    TODO: init/update repo links
 '
 htd__project()
 {
   test -n "$1" || set -- info
   test -e /srv/project-local || error "project-local missing" 1
   case "$1" in
-
-    list ) shift
-      ;;
 
     releases ) shift
           github-release info --user $NS_NAME --repo $APP_ID -j |
@@ -4812,6 +4832,7 @@ htd__run()
       cd $package_cwd
     }
     test -z "$package_env" || {
+      info "Starting '$run_scriptname' ($(pwd)) '$*'"
       eval $package_env
     }
 
@@ -4823,7 +4844,7 @@ htd__run()
 
       # Header or verbose output
       not_trueish "$verbose_no_exec" && {
-        stderr info "Scriptline: '$scriptline'"
+        info "Scriptline: '$scriptline'"
       } || {
         printf -- "\t$scriptline\n"
         continue

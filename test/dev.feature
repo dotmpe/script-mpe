@@ -1,7 +1,6 @@
 Feature: project deployment, monitoring, standalone dev helpers
 
-  Background:
-    Project-lifecycle needs a few addons.
+  Background: Project-lifecycle needs a few addons.
         
   Scenario: extract and update tasks, issues
     tasks

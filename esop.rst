@@ -1,5 +1,7 @@
 Esop is to be a test runner with some ambitions:
 
+.. _objectives:
+
 - Literal specifications (Gherkin/cucumber style),
   and also literal organization of specs into components.
   With sementic references to other objects.
@@ -15,13 +17,23 @@ Esop is to be a test runner with some ambitions:
 - Management for other paremetrizations: sets (tags, or var bindings),
   matrices (euclidean sets). Maybe validation, but also see ``pd vet`` plans.
 
-
 Name is short for Aesop, the Greek story teller.
+
+Design
+------
+Test runners don't need a lot of verbosity.
+
+Feature-document style testing and Behaviour driven development offer only one
+facet of documentation.
+It is not a place for technical or user documentation.
+
+Literal programming style benefits from an abundance of documentation.
 
 Dev
 ---
 - [2016-08-27] Nothing done yet. Using Bats, TAP reports for testing now.
   With some extensions to Bats (run-at-index/range, TODO, debug).
+- [2018-02-18] Some notes. Looking at literate programming.
 
 - TODO: convert literal format to Bats
 - TODO: capture failed tests from Bats
@@ -32,6 +44,4 @@ Misc.
 -----
 - See also dotmpe/x-go for parser experimenting.
 - May want to ponder Py's shlex for possible source format handling.
-
-
 
