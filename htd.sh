@@ -3705,13 +3705,19 @@ argument(s) to `git grep`. Defaults to `git rev-list --all` output (which is no
 pre-run but per exec. repo). If env `repos` is provided it is used iso. stdin.
 Or if `dir` is provided, each "*.git" path beneath that is used. Else uses the
 arguments. If stdin is attach to the terminal, `dir=/src` is set. Without any
-arguments it defaults to scanning all repos for "git.grep".'
+arguments it defaults to scanning all repos for "git.grep".
+
+TODO: spec is a work in progress.
+'
 htd_spc__git_grep='git-grep [ -C=REPO-CMD ] [ RX | --grep= ] [ GREP-ARGS | --grep-args= ] [ --dir=DIR | REPOS... ] '
+htd_run__git_grep=iAO
 htd__git_grep()
 {
   set -- $(cat $arguments)
   test -n "$grep" || { test -n "$1" && { grep="$1"; shift; } || grep=git.grep; }
-  test -n "$grep_args" -o -n "$grep_eval" || {
+  test -n "$grep_args" -o -n "$grep_eval" && {
+    note "Using env args:'$grep_args' eval:'$grep_eval'"
+  } || {
     trueish "$C" && {
       test -n "$1" && {
         grep_eval="$1"; shift; } ||
@@ -3720,7 +3726,10 @@ htd__git_grep()
       test -n "$1" && { grep_args="$1"; shift; } || grep_args=master
     }
   }
-  test "f" = "$stdio_0_type" -o -n "$repos" -o -n "$1" || dir=/srv/git-local
+
+  test "f" = "$stdio_0_type" -o -n "$repos" -o -n "$1" ||
+      dir=/srv/git-local/bvberkum
+
   note "Running ($(var2tags grep C grep_eval grep_args repos dir stdio_0_type))"
   htd_x__git_grep "$@" | { while read repo
     do
@@ -3728,9 +3737,15 @@ htd__git_grep()
         info "$repo:"
         cd $repo || continue
         test -n "$grep_eval" && {
-          eval git --no-pager grep -il $grep $grep_eval || continue
+          eval git --no-pager grep -il $grep $grep_eval || { r=$?
+            test $r -eq 1 && continue
+            warn "Failure in $repo ($r)"
+          }
         } || {
-          git --no-pager grep -il $grep $grep_args || continue
+          git --no-pager grep -il $grep $grep_args || { r=$?
+            test $r -eq 1 && continue
+            warn "Failure in $repo ($r)"
+          }
         }
       } | sed 's#^.*#'$repo'\:&#'
     done
@@ -3742,8 +3757,9 @@ htd_x__git_grep()
 {
   test -n "$repos" && {
     debug "Repos: '$repos'"
-    echo "$repos" | words_to_lines
-  } || { test -n "$dir" && {
+    echo $repos | words_to_lines
+  } || 
+    { test -n "$dir" && {
       for repo in $dir/*.git
         do
           echo $repo
@@ -3762,7 +3778,6 @@ htd_x__git_grep()
     }
   }
 }
-htd_run__git_grep=iAO
 
 
 htd_man_1__file='TODO: Look for name and content at path; then store and cleanup.

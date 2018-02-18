@@ -152,6 +152,26 @@ htd
   inventory|inventory-electronics ID
     edit inventory main or ID
 
+  git-files
+    ..
+  git-grep
+    Examples::
+
+        verbosity=6 \
+        grep_eval='$(git rev-list --all)' htd git-grep golang-builder --dir=/src/github.com/bvberkum/*
+
+    FIXME: cannot simply pass git-grep args. Dir is also not working::
+
+        htd git-grep golang-builder "dev test master" --dir=/src/github.com/bvberkum/*
+
+    1. argument processing is broken, and 2. what if branches don't exist.
+    Eval is more practical. But grepping every revision is not::
+
+        repos='/src/github.com/bvberkum/*/.git' \
+        grep_eval='$(git br | tr -d '*\n ' ' ') --' \
+            htd git-grep golang-builder
+
+
 
 htd rule-target
   - annotate :case
