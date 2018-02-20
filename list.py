@@ -92,6 +92,7 @@ cmd_default_settings = dict(
         all_tables=True,
         database_tables=False,
         struct_output=False,
+        no_couch=False,
     )
 
 

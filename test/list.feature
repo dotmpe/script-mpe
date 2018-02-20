@@ -1,12 +1,11 @@
 Feature: list handles the listing of local names, and sets of names using glob patterns
 
-  Background:
-
+  #Background:
   # Use-Case level scenarios
 
   # Plumbing tests
-
-  @skip @travis
+  #@skip @travis
+  
   Scenario: print names in group
     Given the current project,
     When the user runs "list.sh names local"...
@@ -18,7 +17,6 @@ Feature: list handles the listing of local names, and sets of names using glob p
     \.htdignore-drop
     """
 
-  @skip
   Scenario: print names in group
     Given the current project,
     When the user runs "list.sh globs names"...
@@ -49,7 +47,6 @@ Feature: list handles the listing of local names, and sets of names using glob p
     """
     And `status` should be '0'
 
-  @skip
   Scenario: print names in group
     Given the current project,
     When the user runs "list.sh local names"

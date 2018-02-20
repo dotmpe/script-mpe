@@ -7,7 +7,7 @@ from script_mpe.libcmdng import Targets, Arguments, Keywords, Options,\
     Target, TargetResolver
 
 # register
-from script_mpe import cmdline2
+from script_mpe import main
 
 
 NS = Namespace.register(

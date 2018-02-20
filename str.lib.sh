@@ -389,3 +389,9 @@ str_title()
     }
   }
 }
+
+# Remove last n chars from stream at stdin
+strip_last_nchars() # Num
+{
+  rev | cut -c $(( 1 + $1 ))- | rev
+}

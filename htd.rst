@@ -168,8 +168,7 @@ htd
     Eval is more practical. But grepping every revision is not::
 
         repos='/src/github.com/bvberkum/*/.git' \
-        grep_eval='$(git br | tr -d '*\n ' ' ') --' \
-            htd git-grep golang-builder
+        grep_eval='$(git br | tr -s "*\n " " ") --' htd git-grep GREP
 
 
 

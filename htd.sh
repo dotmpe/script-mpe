@@ -3708,6 +3708,7 @@ arguments. If stdin is attach to the terminal, `dir=/src` is set. Without any
 arguments it defaults to scanning all repos for "git.grep".
 
 TODO: spec is a work in progress.
+
 '
 htd_spc__git_grep='git-grep [ -C=REPO-CMD ] [ RX | --grep= ] [ GREP-ARGS | --grep-args= ] [ --dir=DIR | REPOS... ] '
 htd_run__git_grep=iAO

@@ -2,6 +2,8 @@
 
 set -e
 
+repos='/src/github.com/bvberkum/*/.git' \
+
 
 #htd prefix
 #htd env pathvars
