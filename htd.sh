@@ -4069,14 +4069,22 @@ htd__diff_function()
     trueish "$sync" && copy_only=true || copy_only=false
   }
 
-  cp_board= copy_paste_function "$2" "$1" || error "copy-paste-function 1 ($?)" $?
+  # Extract both functions to separate file, and source at original scriptline
+  cp_board= copy_paste_function "$2" "$1" || { r=$?
+    error "copy-paste-function 1 ($r)"
+    return $r
+  }
   test -s "$cp" || error "copy-paste file '$cp' for '$1:$2' missing" 1
   src1_line=$start_line ; start_line= ; src1=$cp ; cp=
-
-  cp_board= copy_paste_function "$4" "$3" || error "copy-paste-function 2 ($?)" $?
+  cp_board= copy_paste_function "$4" "$3" || { r=$?
+    expand_source_line $1 $src1_line || error "expand-source-line 1" $?
+    error "copy-paste-function 2 ($r)"
+    return $r
+  }
   test -s "$cp" || error "copy-paste file '$cp' for '$3:$4' missing" 1
   src2_line=$start_line ; start_line= ; src2=$cp ; cp=
 
+  # Edit functions side by side
   trueish "$edit" && {
     diff -bqr $src1 $src2 >/dev/null 2>&1 &&
       stderr ok "nothing to do, '$2' in sync for '$1' $3'" || {
@@ -4103,6 +4111,8 @@ htd__diff_function()
     stderr debug "synced '$*'" ||
     stderr warn "not in sync '$*'"
   }
+
+  # Move functions back to scriptline
   trueish "$copy_only" || {
     expand_source_line $1 $src1_line || error "expand-source-line 1" $?
     expand_source_line $3 $src2_line || error "expand-source-line 2" $?
@@ -4144,7 +4154,7 @@ htd__diff_functions()
       warn "No function $func in $2"
       continue
     }
-    htd__diff_function "$1" "$func" $2
+    htd__diff_function "$1" "$func" $2 || warn "Error on $1 $func $2 ($?)"
   done
 }
 htd_run__diff_functions=iAO

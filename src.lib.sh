@@ -367,7 +367,10 @@ function_linenumber() # Func-Name File-Path
 {
   test -n "$1" -a -e "$2" || error "function-linenumber FUNC FILE" 1
   file_where_grep "^$1()\(\ {\)\?$" "$2"
-  test -n "$line_number" || return 1
+  test -n "$line_number" || {
+    error "No line-nr for '$1' in '$2'"
+    return 1
+  }
 }
 
 
