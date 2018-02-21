@@ -421,6 +421,7 @@ cut_function()
 setup_temp_src()
 {
   test -n "$UCONFDIR" || error "metaf UCONFDIR" 1
+  mkdir -p "$UCONFDIR/temp-src"
   setup_tmpf "$@" "$UCONFDIR/temp-src"
 }
 
@@ -429,12 +430,14 @@ setup_temp_src()
 # Either copy-only, or replaces code with source line to new external script.
 copy_paste_function() # Func-Name Src-File
 {
-  test -n "$1" -a -f "$2" || return $?
+  test -n "$1" -a -f "$2" ||
+      error "copy-paste-function: Func-Name File expected " $?
   debug "copy_paste_function '$1' '$2' "
   var_isset copy_only || copy_only=1
   test -n "$cp" || {
     test -n "$cp_board" || cp_board="$(get_uuid)"
     cp=$(setup_temp_src .copy-paste-function.sh $cp_board)
+    test -n "$cp" || error copy-past-temp-src-required 1
   }
   function_linenumber "$@" || return
   local at_line=$(( $line_number - 1 ))

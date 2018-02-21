@@ -1698,9 +1698,9 @@ htd__edit_today()
 
   test -n "$1" || {
     # If no argument given start looking for standard LOG file/dir path
-    test -n "$package_pd_meta_log" && {
+    test -n "$log" && {
       # Default for local project
-      set -- $package_pd_meta_log
+      set -- $log
     } || {
       # Default for Htdir
       set -- $JRNL_DIR/
@@ -3759,7 +3759,7 @@ htd_x__git_grep()
   test -n "$repos" && {
     debug "Repos: '$repos'"
     echo $repos | words_to_lines
-  } || 
+  } ||
     { test -n "$dir" && {
       for repo in $dir/*.git
         do
@@ -3965,10 +3965,17 @@ htd_man_1__function='Operate on specific functions in Sh scripts.
 
    copy FUNC FILE
      Retrieves function-range and echo function including envelope.
+   copy-paste [ --{,no-}copy-only ] FUNC FILE
+     Remove function from source and place in seperately sourced file
    start-line
      Retrieve line-number for function.
    range
      Retrieve start- and end-line-number for function.
+
+See also
+    sync-func(tion)|diff-func(tion) FILE1 FUNC1 DIR[FILE2 [FUNC2]]
+    sync-functions|diff-functions FILE FILE|DIR
+    diff-sh-lib [DIR=$scriptpath]
 '
 htd__function()
 {
@@ -3999,6 +4006,14 @@ htd__function()
         htd_function_comment "$@"
       ;;
 
+    copy-paste ) shift
+
+        test -f "$2" -a -n "$1" -a -z "$3" || error "usage: FUNC FILE" 1
+        copy_paste_function "$1" "$2"
+        note "Moved function $1 to $cp"
+      ;;
+
+
     * ) error "'$1'?" 1
       ;;
   esac
@@ -4015,17 +4030,6 @@ htd_spc__expand_source_line='expand-source-line FILE LINENR'
 htd__expand_source_line()
 {
   expand_source_line "$@"
-}
-
-
-htd_man_1__copy_paste_function='
-  Remove function from source and place in seperately sourced file'
-htd_spc__copy_paste_function='copy-paste-function [ --{,no-}copy-only ]'
-htd__copy_paste_function()
-{
-  test -f "$1" -a -n "$2" -a -z "$3" || error "usage: FILE FUNC" 1
-  copy_paste_function "$2" "$1"
-  note "Moved function $2 to $cp"
 }
 
 
@@ -4065,15 +4069,13 @@ htd__diff_function()
     trueish "$sync" && copy_only=true || copy_only=false
   }
 
-  cp_board= copy_paste_function "$2" "$1" || error "copy-paste-function 1" $?
-  src1_line=$start_line ; start_line= ; src1=$cp ; cp=
+  cp_board= copy_paste_function "$2" "$1" || error "copy-paste-function 1 ($?)" $?
   test -s "$cp" || error "copy-paste file '$cp' for '$1:$2' missing" 1
+  src1_line=$start_line ; start_line= ; src1=$cp ; cp=
 
-  cp_board= copy_paste_function "$4" "$3" || error "copy-paste-function 2" $?
-  src2_line=$start_line ; start_line= ; src2=$cp ; cp=
+  cp_board= copy_paste_function "$4" "$3" || error "copy-paste-function 2 ($?)" $?
   test -s "$cp" || error "copy-paste file '$cp' for '$3:$4' missing" 1
-
-  ls -la $src1 $src2
+  src2_line=$start_line ; start_line= ; src2=$cp ; cp=
 
   trueish "$edit" && {
     diff -bqr $src1 $src2 >/dev/null 2>&1 &&
@@ -4120,6 +4122,7 @@ htd__sync_function()
   htd__diff_function "$@"
 }
 htd_run__sync_function=iAO
+htd_als__sync_func=sync-function
 
 
 htd_man_1__diff_functions="List all functions in FILE, and compare with FILE|DIR
@@ -4132,7 +4135,7 @@ htd__diff_functions()
   test -n "$2" || set -- "$1" $scriptpath
   test -e "$2" || error "Directory or file to compare to expected '$2'" 1
   test -f "$2" || set -- "$1" "$2/$1"
-  test -e "$2" || { error "Unable to get remote side for '$1'"; return 1; }
+  test -e "$2" || { info "No remote side for '$1'"; return 1; }
   test -z "$3" || error "surplus arguments: '$3'" 1
   htd__list_functions $1 |
         sed 's/\(\w*\)()/\1/' | sort -u | while read func
@@ -4141,7 +4144,7 @@ htd__diff_functions()
       warn "No function $func in $2"
       continue
     }
-    htd__diff_function "$1" "$func" $1
+    htd__diff_function "$1" "$func" $2
   done
 }
 htd_run__diff_functions=iAO
@@ -4161,7 +4164,7 @@ htd_run__sync_functions=iAO
 
 
 htd_man_1__diff_sh_lib='Look for local *.lib files, compare to same file in DIR.
-  See diff-function for options'
+  See diff-functions for options'
 htd_spc__diff_sh_lib='diff-sh-lib [DIR=$scriptpath]'
 htd__diff_sh_lib()
 {
@@ -4173,7 +4176,7 @@ htd__diff_sh_lib()
   for lib in *.lib.sh
   do
     note "Lib: $lib"
-    htd__diff_functions $lib $1 || continue
+    htd__sync_functions $lib $1 || continue
   done
 }
 htd_run__diff_sh_lib=iAO
