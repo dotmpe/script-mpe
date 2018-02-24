@@ -186,6 +186,9 @@ check_skipped_envs()
   return $skipped
 }
 
+# TODO: require-env, prepare-env
+
+
 # Deprecate many of below too, see str.lib.sh mk*id instead
 
 get_key()
@@ -258,4 +261,3 @@ file_equal()
   sum2=$(md5sum $2 | cut -f 1 -d' ')
   test "$sum1" = "$sum2" || return 1
 }
-

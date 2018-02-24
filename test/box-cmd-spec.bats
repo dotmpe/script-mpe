@@ -123,12 +123,16 @@ source $lib/util.sh
 
 #@test "${lib}/${base} - function should ..." {
 #  check_skipped_envs || \
-#    TODO "envs $envs: implement lib (test) for env"
+#    TODO "envs $envs: implement lib (test) for env" # tasks-ignore
+#  diag
 #  run function args
-#  #echo ${status} > /tmp/1
-#  #echo "${lines[*]}" >> /tmp/1
-#  #echo "${#lines[@]}" >> /tmp/1
-#  test ${status} -eq 0
+#  test true || fail
+#  test_ok_empty || stdfail
+#  test_ok_nonempty || stdfail
+#  test_ok_nonempty "*match*" || stdfail
+#  { test_nok_nonempty "*match*" &&
+#    test ${status} -eq 1 &&
+#    fnmatch "*other*" &&
+#    test ${#lines[@]} -eq 3
+#  } || stdfail
 #}
-
-
