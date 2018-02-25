@@ -833,6 +833,27 @@ vc__unversioned_uncleanable_files()
 #vc_load__ufu=f
 #vc_load__unversioned_uncleanable_files=f
 
+vc__modified() { vc__modified_files ; }
+vc__modified_files()
+{
+  test -z "$*" || error "unexpected arguments" 1
+
+  local scm= scmdir=
+  vc_getscm || return $?
+  vc_modified
+}
+
+vc__staged() { vc__staged_files ; }
+vc__staged_files()
+{
+  test -z "$*" || error "unexpected arguments" 1
+
+  local scm= scmdir=
+  vc_getscm || return $?
+  vc_staged
+}
+
+
 
 # Annex diag.
 vc__annex_unused()

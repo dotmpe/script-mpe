@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 #export verbosity=6
-#load helper
+load helper
 
 test -z "$PREFIX" && scriptpath=. || scriptpath=$PREFIX
 
@@ -36,6 +36,9 @@ func=mkid
 input="foo:/bar/el_baz.ext"
 
 @test "$lib $func with some special web chars, input is output" {
+  #run mkid "$input"
+  #test_ok_nonempty "$id"
+  c='\.\\\/:_'
   mkid "$input"
   test "$id" = "$input"
 }

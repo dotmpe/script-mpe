@@ -88,27 +88,6 @@ htd_passed()
 }
 
 
-# htd-archive-path-format DIR FMT
-htd_archive_path_format()
-{
-  test -d "$1" || error htd-archive-path-format 1
-  fnmatch "*/" "$1" || set -- "$(strip_trail $1)"
-  # Default pattern: "$1/%Y-%m-%d"
-  test -n "$ARCHIVE_FMT" || {
-    test -n "$Y" || Y=/%Y
-    test -n "$M" || M=-%m
-    test -n "$D" || D=-%d
-    # XXX test -n "$EXT" || EXT=.rst
-    #ARCHIVE_BASE=$1$Y
-    #ARCHIVE_ITEM=$M$D$EXT
-    ARCHIVE_FMT=$Y$M$D$EXT
-  }
-  test -n "$2" || set -- "$1" "$ARCHIVE_FMT"
-  f=$1/$2
-  echo $1/$2
-}
-
-
 htd_doc_ctime()
 {
   grep -i '^:Created:\ [0-9:-]*$' $1 | awk '{print $2}'
@@ -146,12 +125,13 @@ vim_swap()
 }
 
 
+# Set remote/url env for arguments.
 # Remote names with periods ('.') are interpreted as
 # <hostname>.<remote-id>, and their URL's as paths on those remotes.
 # For those on the local host, check if the URL is local path
 # and retun 1, otherwise add the hostname to the path, and
 # remove the hostname from the remote-name to use.
-htd_repository_url() # remote url
+htd_repository_url() # Remote Url
 {
   fnmatch "*.*" "$1" && {
 

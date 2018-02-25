@@ -44,10 +44,61 @@ BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
 
 project_env_bin node npm lsof
 
+# Run tests for DUT's
+project_test() # [Units...|Comps..]
+{
+  set -- $(project_tests "$@")
+  local failed=/tmp/htd-project-test.failed
+  while test $# -gt 0
+  do
+    case "$1" in
+        *.feature ) $TEST_FEATURE -- "$1" || touch $failed ;;
+        *.bats ) {
+                bats "$1" || touch $failed
+            } | $TAP_COLORIZE ;;
+        *.py ) python "$1" || touch $failed ;;
+    esac
+    shift
+  done
+
+  test -e "$failed" && { rm "$failed" ; return 1 ; }
+  note "Project test completed succesfully"
+}
+
+# Echo test file names
+project_tests() # [Units..|Comps..]
+{
+  test -n "$1" || set -- "*"
+  while test $# -gt 0
+  do
+      any_unit "$1"
+      any_feature "$1"
+      case "$1" in *.py|*.bats|*.feature )
+          test -e "$1" && echo "$1" ;;
+      esac
+    shift
+  done
+}
+
+any_unit()
+{
+  test -n "$1" || set -- "*"
+  while test $# -gt 0
+  do
+    mkvid "$1"
+    for x in test/py/$1.py test/py/mod_$vid.py test/$1-spec.bats test/$1.bats
+    do
+      test -e "$x" && echo $x
+      continue
+    done
+    shift
+  done
+}
+
 test -x "./vendor/.bin/behat" && {
     TEST_FEATURE_BIN="./vendor/.bin/behat"
     # Command to run one or all feature tests
-    TEST_FEATURE="$TEST_FEATURE_BIN --tags ~@todo&&~@skip"
+    TEST_FEATURE="$TEST_FEATURE_BIN --tags ~@todo&&~@skip --suite default"
     # Command to print def lines
     TEST_FEATURE_DEFS="$TEST_FEATURE_BIN -dl"
 } || {
@@ -57,15 +108,64 @@ test -x "./vendor/.bin/behat" && {
     }
 }
 
+TAP_COLORIZE="script-bats.sh colorize"
+
+any_feature()
+{
+  test -n "$1" || set -- "*"
+  while test $# -gt 0
+  do
+    for x in test/$1.feature test/$1-spec.feature
+    do
+      test -e "$x" && echo $x
+      continue
+    done
+    shift
+  done
+}
+
 test_any_feature()
 {
-  test -e "test/$1.feature" && {
-
-      $TEST_FEATURE test/$1.feature || return $?;
+  pwd -P
+  info "Test any feature '$*'"
+  test -n "$1" && {
+    local features="$(any_feature "$@" | tr '\n' ' ')"
+    test -n "$features" || error "getting features '$@'" 1
+    note "Features: $features"
+    $TEST_FEATURE $features || return $?;
 
   } || {
-      $TEST_FEATURE $@ || return $?;
-  } ;
+    $TEST_FEATURE || return $?;
+  }
+}
+
+test_watch()
+{
+  local watch_flags=" -w test/bootstrap/FeatureContext.php "\
+" -w package.yaml -w '*.sh' -w htd "\
+" -w tools/sh/env.sh "
+  local tests="$(project_tests "$@")"
+  test -n "$tests" || error "getting tests '$@'" 1
+  note "Watching files: $(echo $tests | tr '\n' ' ')"
+  watch_flags="$watch_flags $(echo $tests | sed 's/^/-w /g')"
+  #eval nodemon -x \"htd run project-test $(echo $tests | tr '\n' ' ')\" $watch_flags || return $?;
+  note "Watch flags '$watch_flags'"
+  nodemon -x "htd run project-test $(echo $tests | tr '\n' ' ')" $watch_flags || return $?;
+}
+
+feature_watch()
+{
+  watch_flags=" -w test/bootstrap/FeatureContext.php "
+  test -n "$1" && {
+    local features="$(any_feature "$@")"
+    note "Watching files: $features"
+    watch_flags="$watch_flags $(echo $features | sed 's/^/-w \&/')"
+    nodemon -x "$TEST_FEATURE $(echo $features | tr '\n' ' ')" $watch_flags || return $?;
+
+  } || {
+    $TEST_FEATURE || return $?;
+    nodemon -x "$TEST_FEATURE" $watch_flags -w test || return $?;
+  }
 }
 
 

@@ -395,3 +395,21 @@ strip_last_nchars() # Num
 {
   rev | cut -c $(( 1 + $1 ))- | rev
 }
+
+# Join lines in file based on first field
+join_lines() # Src Delim
+{
+  awk '{
+		k=$2
+		for (i=3;i<=NF;i++)
+			k=k " " $i
+		if (! a[$1])
+			a[$1]=k
+		else
+			a[$1]=a[$1] "'"$2"'" k
+	}
+	END{
+		for (i in a)
+			print i "\t" a[i]
+	}' $1
+}

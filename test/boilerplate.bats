@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 base=boilerplate
-load helper
+load init
 init
 #init_bin
 

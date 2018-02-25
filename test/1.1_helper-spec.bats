@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 base=test/helper.bash
-load helper
+load init
 
 init
 

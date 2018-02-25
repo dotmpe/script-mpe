@@ -8,12 +8,13 @@ test -n "$scriptpath" || export scriptpath="$(pwd -P)"
 # assuming execution starts in script dir (project root)
 test -n "$SCRIPTPATH" || {
 
-  test -n "$LIB" && echo LIB=$LIB || {
+  test -n "$LIB" && { test -z "$DEBUG" || echo LIB=$LIB ; } || {
     test -n "$scriptpath" &&
       LIB=$scriptpath ||
       LIB=$(cd $(dirname $(dirname $0)); pwd -P )
     test -n "$LIB" || {
-      echo "Missing LIB" >&2; exit 99
+      test -z "$DEBUG" || echo "Missing LIB" >&2
+      exit 99
     }
     export LIB
   }

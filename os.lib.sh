@@ -94,19 +94,24 @@ basenames()
   done
 }
 
-filenamext() # for each argument, echo just the filename-extension suffix
+# for each argument echo filename-extension suffix (last non-dot name element)
+filenamext() # Name..
 {
   while test -n "$1"; do
     echo "$1" | sed 's/^.*\.\([^\.]*\)$/\1/'
   shift; done
 }
 
-filestripext()
+# Return basename for one file, using filenamext to extract extension.
+# See basenames for multiple args, and pathname to preserve (relative) directory
+# elements for name.
+filestripext() # Name
 {
   basename "$1" ".$(filenamext "$1")"
 }
 
-fileisext()
+# Check wether name has extension, return 0 or 1
+fileisext() # Name Exts..
 {
   local f="$1" ext=$(filenamext "$1"); shift
   test -n "$*" || return
@@ -117,7 +122,8 @@ fileisext()
   return 1
 }
 
-filemtype()
+# Use `file` to get mediatype aka. MIME-type
+filemtype() # File..
 {
   while test $# -gt 0
   do
@@ -133,7 +139,8 @@ filemtype()
   done
 }
 
-filesize()
+# Use `stat` to get size in bytes
+filesize() # File..
 {
   while test $# -gt 0
   do
@@ -149,7 +156,8 @@ filesize()
   done
 }
 
-filemtime()
+# Use `stat` to get modification time
+filemtime() # File..
 {
   while test $# -gt 0
   do

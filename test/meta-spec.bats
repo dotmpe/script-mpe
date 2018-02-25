@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 base=meta-sh.sh
-load helper
+load init
 init
 
 

@@ -167,32 +167,25 @@
 
     #test: pd test
     test:
-      - verbose=1 git-versioning check
-      - python test/main.py
-      - projectdir.sh run :bats:specs
-      - bats test/*-spec.bats | script-bats.sh colorize
-      - ./x-test.sh version
-    test-user:
-      - ENV_NAME=gspread-boreas . ~/.conf/bash/env.sh && python x-gspread.py
-
+      - test -n \"$1\" || { verbose=1 git-versioning check &&
+            projectdir.sh run :bats:specs ; } 
+      - project_test \"$@\"
+    project-test:
+      - project_test \"$@\"
+    list-test:
+      - project_tests \"\$@\"
+    list-tests:
+      - project_tests \"\$@\"
+    watch-test:
+      - test_watch \"\$@\"
+    test-unit:
+      - test_any_unit \"\$@\"
     test-feature:
-      - test_any_feature "$@"
+      - test_any_feature \"\$@\"
     test-features:
-      - test_any_feature "$@"
+      - test_any_feature \"\$@\"
     feature-watch:
-      - test -n \"$1\" && {
-          test -e \"test/$1.feature\" && {
-              nodemon -x \"$TEST_FEATURE test/$1.feature\"
-                           -w test/bootstrap/FeatureContext.php
-                           -w \"test/$1.feature\" -w \"./$1*sh\" || return $?;
-          } || {
-              nodemon -x \"$TEST_FEATURE $@\"
-                           -w test/bootstrap/FeatureContext.php
-                           -w \"$1\" -w \"./*sh\" || return $?;
-          } ;
-        } || {
-          nodemon -x \"$TEST_FEATURE\"
-                       -w test/bootstrap/FeatureContext.php -w test ; }
+      - feature_watch \"\$@\"
     feature-defs:
       - $TEST_FEATURE_DEFS
     feature-specs:

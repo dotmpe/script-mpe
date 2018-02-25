@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 load vc
 base=vc.sh
 
@@ -11,6 +11,7 @@ setup()
   . ./$base load-ext
   . ./util.sh load-ext
   lib_load os sys str std match vc
+  . ./vc.sh
   setup_clean_git
 }
 
@@ -84,16 +85,13 @@ setup()
 
 @test ". $bin __vc_gitrepo - report a vendor/project repo ID-ish" {
 
-  run __vc_gitrepo
-  test $status -ne 0 \
-    || fail "${status}"
+  #run __vc_gitrepo
+  #test_ok_empty || stdfail 1
   
+  TODO  cleanup
   git remote add origin git@github.com:bvberkum/script-mpe.git
   run __vc_gitrepo
-  test $status -eq 0 \
-    || fail "__vc_gitrepo ret ${status}, lines: ${lines[@]}"
-  test "${lines[@]}" = "bvberkum/script-mpe" \
-    || fail "${lines[@]}"
+  test_ok_nonempty "bvberkum/script-mpe" || stdfail 2
 }
 
 # vim:ft=sh:

@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 base=matchbox.py
-load helper
+load init
 init
 
 

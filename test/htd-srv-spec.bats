@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 base=htd
-load helper
+load init
 init
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 base=diskdoc.sh
-load helper
+load init
 init
 
 

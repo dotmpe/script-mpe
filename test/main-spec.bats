@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 base=main
-load helper
+load init
 load main.inc
 
 init

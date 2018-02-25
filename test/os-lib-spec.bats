@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 base=os.lib
-load helper
+load init
 init
 
 

@@ -1,13 +1,20 @@
 #!/usr/bin/env bats
 
-base=basename-reg
+load init
 
-load helper
+base=basename-reg
 init
 
-# TODO configure which fields it outputs
+setup()
+{
+  # TODO configure which fields it outputs
+  test -e "$HOME/.basename-reg.yaml" || touch "$HOME/.basename-reg.yaml"
+}
 
-test -e "$HOME/.basename-reg.yaml" || touch "$HOME/.basename-reg.yaml"
+@test "$bin --help" {
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty || stdfail
+}
 
 @test "$bin ffnenc.py" {
 

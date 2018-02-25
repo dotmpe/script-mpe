@@ -315,6 +315,38 @@ vc_tracked()
 }
 
 
+vc_staged_git()
+{
+  git diff --name-only --cached
+}
+vc_staged_hg() { false; }
+vc_staged_svn() { false; }
+vc_staged_bzr() { false; }
+
+# List staged files
+vc_staged()
+{
+  test -n "$scm" || vc_getscm
+  vc_staged_${scm}
+}
+
+
+vc_modified_git()
+{
+  git ls-files --modified
+}
+vc_modified_hg() { false; }
+vc_modified_svn() { false; }
+vc_modified_bzr() { false; }
+
+# List modified files
+vc_modified()
+{
+  test -n "$scm" || vc_getscm
+  vc_modified_${scm}
+}
+
+
 vc_git_annex_list()
 {
   git annex list "$@" | grep '^[_X]*\ ' | sed 's/^[_X]*\ //g'
@@ -742,3 +774,20 @@ EOM
 
   printf "$2(date): $( date_microtime )\n"
 }
+
+
+# Boilerplate
+#vc_status_git()
+#{
+#    .. get status
+#}
+#vc_status_hg() { false; }
+#vc_status_svn() { false; }
+#vc_status_bzr() { false; }
+#
+## status
+#vc_status()
+#{
+#  test -n "$scm" || vc_getscm
+#  vc_status_${scm}
+#}

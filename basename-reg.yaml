@@ -155,4 +155,8 @@ mime_xref:
   - [vcf]
   - Application
   - Contact Card
+  text/x-web-textile:
+  - [textile]
+  - Document
+  - Textile (markup language)
 mimereg:

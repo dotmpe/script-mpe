@@ -19,6 +19,7 @@ create_topics()
 }
 
 
+# XXX: find local documents, extract topics
 htd_topics_list()
 {
   local find_ignores="$(find_ignores "$IGNORE_GLOBFILE")"

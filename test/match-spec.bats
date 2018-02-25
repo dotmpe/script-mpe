@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 base=match.sh
-load helper
+load init
 init
 . $lib/match.lib.sh
 

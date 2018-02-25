@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
   
 base=magnet.py
-load helper
+load init
 init
 
 

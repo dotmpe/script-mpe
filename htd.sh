@@ -51,11 +51,14 @@ htd_load()
     debug "Using Htd-Ext dirs '$HTD_EXT'"
   default_env Htd-ServTab $UCONFDIR/htd-services.tab ||
     debug "Using Htd-ServTab table file '$HTD_SERVTAB'"
-  default_env Cabinet-Dir "cabinet" || debug "Using Cabinet-Dir '$CABINET_DIR'"
-
+  test -e cabinet && {
+    default_env Cabinet-Dir "$(pwd)/cabinet"
+  } || {
+    default_env Cabinet-Dir "$HTDIR/cabinet"
+  }
+  debug "Using Cabinet-Dir '$CABINET_DIR'"
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
-
   default_env Htd-BuildDir .build
   test -n "$HTD_BUILDDIR" || exit 121
   test -d "$HTD_BUILDDIR" || mkdir -p $HTD_BUILDDIR
@@ -985,15 +988,20 @@ htd__count()
 }
 
 
-htd_man_1__find_doc="Look for document. "
+htd_man_1__find_doc="Look for document.
+
+TODO: get one document
+"
 htd_spc__find_doc="-F|find-doc (<path>|<localname> [<project>])"
 htd__find_doc()
 {
-  doc_path_args
-  test -n "$1" || return $?
+  $package_doc_find "$@"
 
-  info "Searching files with matching name '$1' ($paths)"
-  doc_find_name "$1"
+  #doc_path_args
+  #test -n "$1" || return $?
+
+  #info "Searching files with matching name '$1' ($paths)"
+  #doc_find_name "$1"
 
   #info "Searching matched content '$1' ($paths)"
   #doc_grep_content "\<$1\>"
@@ -1002,15 +1010,19 @@ htd_als___F=find-doc
 htd_run__find_doc=x
 
 
-# TODO: find doc-files, given local package metadata, rootdirs, and file-extensions
-# XXX: see doc-find-name
-# XXX: replace pwd basename strip with prefix compat routine
-htd_spc__find_docs='find-docs [DIR]'
+htd_man_1__find_docs='Find documents
+
+TODO: find doc-files, given local package metadata, rootdirs, and file-extensions
+XXX: see doc-find-name
+XXX: replace pwd basename strip with prefix compat routine
+'
+htd_spc__find_docs='find-docs [] [] [PROJECT]'
 htd__find_docs()
 {
-  doc_find_name "$@"
+  $package_docs_find "$@"
+  #doc_find_name "$@"
 }
-htd_run__find_docs=x
+#htd_run__find_docs=x
 
 
 htd__volumes()
@@ -4586,40 +4598,48 @@ htd_run__push_commit_all=iIAO
 htd_als__pcia=push-commit-all
 
 
-htd__archive_init()
-{
-  test -d "$CABINET_DIR" || {
-    trueish "$choice_interactive" || {
-      sys_confirm "No local cabinet exists, created it? [yes/no]" || {
-        warn "Cabinet folder missing ($CABINET_DIR)" 1
-      }
-      mkdir -vp $CABINET_DIR
-    }
-  }
-  return 1
-}
-htd_grp__archive_init=cabinet
+htd_man_1__archive='Move path to archive path in htdocs cabinet
 
+    <refs>...  =>  [<cabinet-dir>]/[<datepath>]/[<id>...]
 
-# Move path to archive path in htdocs cabinet
-# XXX: see backup, archive-path
-# $ archive [<prefix>]/[<datepath>]/[<id>] <refs>...
+See also backup, archive-path
+'
 htd_spc__archive='archive REFS..'
 htd__archive()
 {
-  test -d "$CABINET_DIR" || htd__archive_init
+  test -d "$CABINET_DIR" || error "Cabinet required <$CABINET_DIR>" 1
   test -n "$1" || warn "expected references to backup" 1
   while test $# -gt 0
   do
-    htd_archive_path_format $CABINET_DIR $1
+    test -d "$1" -o -f "$1" || continue
+    mkdir -p $CABINET_DIR/$(date +%Y/%m/%d)/
+    test -f "$1" && {
+      mv $1 $CABINET_DIR/$(date +%Y/%m/%d)/$1$EXT
+    } || {
+      mv $1 $CABINET_DIR/$(date +%Y/%m/%d)/$1
+    }
     shift
   done
 }
 htd_grp__archive=cabinet
-htd_run__archive=ieAO
+htd_run__archive=iAO
 htd_argsv__archive()
 {
   opt_args "$@"
+}
+
+
+# Move paths into new dir
+htd__mkdir() # Dir Paths...
+{
+  test ! -e "$1" || error new-path 1
+  local destd=$1 ; shift
+  mkdir -p "$destd"
+  while test $# -gt 0
+  do
+    mv $1 $destd/$1
+    shift
+  done
 }
 
 
@@ -4752,7 +4772,7 @@ htd__save_ref()
 htd_grp__save_ref=annex
 
 
-htd_man_1__package='
+htd_man_1__package='Get local (project/workingdir) metadata
 
   package ls|list-ids
      List package IDs from local package metadata file.
@@ -4883,9 +4903,9 @@ htd__run()
       (
         eval $scriptline
 
-      ) && continue || {
+      ) && continue || { r=$?
           echo "$run_scriptname:$ln: '$scriptline'" >> $failed
-          error "At line $ln '$scriptline' for '$run_scriptname'" $?
+          error "At line $ln '$scriptline' for '$run_scriptname' '$*' ($r)" $r
         }
       # NOTE: execute scriptline with args only once
       set --
@@ -5932,14 +5952,16 @@ htd_als__tmux_windows=tmux\ session-list-windows
 htd_als__tmux_session_windows=tmux\ session-list-windows
 
 
-htd_man_1__test="Run PDir tests in HTDIR"
-htd__test()
-{
-  req_dir_env HTDIR
-  cd $HTDIR && projectdir.sh test
-}
+htd_man_1__test='Alias for run test TODO: or pd test'
+htd_als__test="run test"
+#htd_man_1__test="Run PDir tests in HTDIR"
+#htd__test()
+#{
+#  req_dir_env HTDIR
+#  cd $HTDIR && projectdir.sh test
+#}
 htd_als___t=test
-htd_grp__edit_test=projects
+#htd_grp__test=projects
 
 
 htd_man_1__edit_test="Edit all BATS spec-files (test/*-spec.bats)"
@@ -9654,6 +9676,10 @@ htd__init()
 }
 
 
+htd_man_1__docs='Documents'
+htd_run__docs=f
+
+htd_man_1__doc='Document'
 htd_run__doc=f
 htd__doc()
 {
@@ -9679,6 +9705,28 @@ htd__whoami()
 {
   note "Host: $(whoami) ($uname)"
   note "GIT: $(git config --get user.name)"
+}
+
+
+htd_man_1__watch='Alias to local script feature-watch [ARG]'
+htd_als__watch='run feature-watch'
+
+
+htd_man_1__resolve_modified='Helper to move files to GIT stage.
+
+Each basename must test OK. '
+htd__resolve_modified()
+{
+  vc_modified | while read name
+    do
+      basename=$(filestripext "$name");
+      c=_- mkid "$basename";
+      note "$name: $basename: $id";
+      echo "$id $name"
+  done | join_lines - ' ' | while read component files
+  do
+    htd run test $component && git add $files
+  done
 }
 
 
@@ -9734,6 +9782,7 @@ htd_main()
             set -f; set -- $(cat $arguments | lines_to_words) ; set +f
           }
 
+          test -n "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
           $subcmd_func "$@" || r=$?
           htd_unload || r=$?
           exit $r

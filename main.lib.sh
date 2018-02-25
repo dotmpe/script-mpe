@@ -153,7 +153,7 @@ get_subcmd_func()
         test -n "$subcmd_alias" || error oops 1
         subcmd="$(echo "$subcmd_alias" | cut -d ' ' -f 1)"
         subcmd_args_pre="$(echo "$subcmd_alias" | cut -d ' ' -f 2-)"
-        #warn "main.lib: new command prefix: '$subcmd $subcmd_args_pre ...'"
+        #warn "main.lib: alias prefix: '$subcmd' '$subcmd_args_pre ...'"
         set -- "$(upper=0 mkvid "$subcmd" && echo $vid)" "" "$b"
       }
     }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 base=box-instance.sh
 
 init

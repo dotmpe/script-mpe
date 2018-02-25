@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 
 
 @test "package schema" {
