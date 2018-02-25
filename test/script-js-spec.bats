@@ -37,8 +37,8 @@ setup()
 
 @test "${bin} - stream key, values - LevelDB: Tree Outliner" {
 
+  TODO "Requires TO install, and Chrome must not be running"
   require_env $stdpreq Chrome-TO Level_DB
-  # TODO "Requires TO install, and Chrome must not be running"
 
   # https://groups.google.com/forum/#!topic/tabs-outliner-support-group/eKubL9Iw230
   run $bin leveldb stream "$Level_DB"

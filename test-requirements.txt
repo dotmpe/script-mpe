@@ -1,5 +1,5 @@
-virtualenv
-nose-parameterized
-jsonschema
-sqlalchemy-migrate
 behave
+jsonschema
+nose-parameterized
+sqlalchemy-migrate
+virtualenv

@@ -165,19 +165,33 @@
       - scriptname=script
       - . ./tools/ci/parts/build.sh
 
+    # Run main test-suite TODO: work at dependency
     #test: pd test
     test:
-      - test -n \"$1\" || { verbose=1 git-versioning check &&
+      - test -n \"\$1\" || { verbose=1 git-versioning check &&
             projectdir.sh run :bats:specs ; } 
-      - project_test \"$@\"
+      - test -n \"\$1\" || set -- \$REQ_SPECS ; project_test $@
+    # TODO: Run complete test-suite, including WIP
+    test-all:
+      - test -n \"\$1\" || set -- \$REQ_SPECS \$TEST_SPECS ; project_test \$@
+    # Keep testfiles and tested list, and keep running while one or more fails
+    retest:
+        # TODO: restart only after changes
+      - retest
+    # Run unit & component tests
     project-test:
-      - project_test \"$@\"
-    list-test:
+      - project_test \$@
+    tests:
       - project_tests \"\$@\"
+    # List unit & component testfiles
     list-tests:
-      - project_tests \"\$@\"
+      - project_tests \$@
+    # Run and re-run after change
     watch-test:
-      - test_watch \"\$@\"
+      - test_watch \$@
+    # NOTE: the only thing missing with this tools/sh/env test-watch setup is
+    # a replay feature, and keep watching only failing specs. see htd
+    # resolve-modified too.
     test-unit:
       - test_any_unit \"\$@\"
     test-feature:
@@ -191,7 +205,6 @@
     feature-specs:
       # NOTE: behat cannot display outline only, but behave has problems with extended background syntax
       - $TEST_FEATURE_BIN --dry-run # --no-multiline --no-expand
-
     unique-filelines:
     - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' $f ; done | wc -l
     unique-lines:
@@ -258,6 +271,8 @@
     deinit:
      - vagrant destroy -f
 
+  type: application/vnd.org.wtwta.yaml-fragment
+  id: package-vagrant-scripts
 
 - type: application/vnd.org.wtwta.environment
   id: script-mpe-test-vbox

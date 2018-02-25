@@ -1,5 +1,3 @@
-#!/bin/sh
-
 set -e
 
 # Boilerplate env for CI scripts

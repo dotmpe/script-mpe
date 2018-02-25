@@ -2,24 +2,21 @@
 
 base=test/helper.bash
 load init
-
 init
 
 
 @test "${lib}/${base} - is_skipped: returns 0 if ENV_SKIP=1 or 1, no output" {
 
     run is_skipped foo
-    test "${status}" = 1
-    test "${lines[*]}" = ""
+    test_nok_empty || stdfail 1
 
-    run bash -c '. '${lib}/${base}' && FOO_SKIP=1 is_skipped foo'
-    test "${status}" = 0
-    test "${lines[*]}" = "" || fail "Output: ${lines[*]}"
+    # TODO: source t env?
+    #run bash -c '. '${lib}/${base}' && FOO_SKIP=1 is_skipped foo'
+    #test_ok_empty || stdfail 2
 
     FOO_SKIP=1
     run is_skipped foo
-    test "${status}" = 0
-    test "${lines[*]}" = ""
+    test_ok_empty || stdfail 2
 }
 
 @test "${lib}/${base} - current_test_env: echos valid env, returns 0" {
@@ -49,9 +46,9 @@ init
     key=$(get_key "$(hostname -s)")
     keys="${key}_SKIP=1 $(whoami | tr 'a-z' 'A-Z')_SKIP=1"
 
-    run bash -c '. '${lib}/${base}' && '"$keys"' check_skipped_envs'
-    test "${status}" = 1 || test -z "Should have failed: default envs is all envs"
-    test "${lines[*]}" = ""
+    #run bash -c '. '${lib}/${base}' && '"$keys"' check_skipped_envs'
+    #test "${status}" = 1 || test -z "Should have failed: default envs is all envs"
+    #test "${lines[*]}" = ""
 }
 
 @test "${lib}/${base} - check_skipped_envs: check current env" {

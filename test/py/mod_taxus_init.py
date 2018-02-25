@@ -4,9 +4,9 @@ from datetime import datetime
 
 from sqlalchemy.ext.declarative import declarative_base
 
-from confparse import yaml_load
-from taxus.init import extract_orm, get_session
-from taxus.util import ORMMixin
+from script_mpe.confparse import yaml_load
+from script_mpe.taxus.init import extract_orm, get_session
+from script_mpe.taxus.util import ORMMixin
 
 
 def load_schema(path):

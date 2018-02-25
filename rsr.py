@@ -17,7 +17,7 @@ from pprint import pformat
 from script_mpe import lib, log, confparse, libcmd, res, taxus
 from script_mpe.res.session import Session
 from script_mpe.taxus import SessionMixin, SqlBase, get_session
-from script_mpe.taxus.v0 import Node, Name, Tag
+from script_mpe.taxus.v0 import Node, Name, Tag, INode, Locator
 
 
 
@@ -359,7 +359,7 @@ class Rsr(libcmd.StackedCommand):
     def rsr_info(self, prog, context, opts, sa, nodes):
         "Log some session statistics and info"
         log.note("SQLAlchemy session: %s", sa)
-        models = taxus.core.ID, Node, Name, Tag, taxus.INode, taxus.Locator
+        models = taxus.core.ID, Node, Name, Tag, INode, Locator
         cnt = {}
         for m in models:
             cnt[m] = sa.query(m).count()

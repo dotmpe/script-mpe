@@ -6,7 +6,14 @@ load main.inc
 
 init
 
-BOX_INIT=1
+setup()
+{
+  BOX_INIT=1
+  load main.inc
+  export SCR_SYS_SH=
+  sys_lib_load
+}
+
 
 
 # main / Incr-C
@@ -14,7 +21,7 @@ BOX_INIT=1
 
 @test "$lib/main incr x (amount): increments var x, output is clean" {
 
-  var_isset x && fail "Unexpected 'x' var in env (x=$x)" || noop
+  var_isset x && fail "Unexpected 'x' var in env (x=$x)" || true
 
   incr x 3
   test $? -eq 0
@@ -32,7 +39,7 @@ BOX_INIT=1
 
 @test "$lib/main incr-c: increments var c, output is clean" {
 
-  var_isset c && fail "Unecpected 'c' var in env (c=$c)" || noop
+  var_isset c && fail "Unecpected 'c' var in env (c=$c)" || true
 
   incr_c
   test $? -eq 0
@@ -101,7 +108,7 @@ BOX_INIT=1
 }
 
 @test "$lib/main try_local_var" {
-  var_isset myvar1 && test -z 'unexpected myvar1' || noop
+  var_isset myvar1 && test -z 'unexpected myvar1' || true
   base=
   _x__b=123
   try_local_var myvar1 b x
@@ -181,29 +188,29 @@ BOX_INIT=1
 @test "$lib/main should source (functions) without polluting environment (with vars)" {
 
   # check for vars we use
-  var_isset subcmd && test -z "Unexpected subcmd= var in env" || noop
-  var_isset subcmd_name && test -z "Unexpected subcmd_name= var in env" || noop
-  var_isset subcmd_pref && test -z "Unexpected subcmd_pref= var in env" || noop
-  var_isset subcmd_suf && test -z "Unexpected subcmd_suf= var in env" || noop
-  var_isset func && test -z "Unexpected func= var in env" || noop
-  var_isset func_name && test -z "Unexpected func_name= var in env" || noop
-  var_isset func_pref && test -z "Unexpected func_pref= var in env" || noop
-  var_isset func_suf && test -z "Unexpected func_suf= var in env" || noop
-  var_isset base && test -z "Unexpected base= var in env" || noop
-  var_isset scriptname && test -z "Unexpected scriptname= var in env" || noop
-  var_isset script_name && test -z "Unexpected script_name= var in env" || noop
+  var_isset subcmd && test -z "Unexpected subcmd= var in env" || true
+  var_isset subcmd_name && test -z "Unexpected subcmd_name= var in env" || true
+  var_isset subcmd_pref && test -z "Unexpected subcmd_pref= var in env" || true
+  var_isset subcmd_suf && test -z "Unexpected subcmd_suf= var in env" || true
+  var_isset func && test -z "Unexpected func= var in env" || true
+  var_isset func_name && test -z "Unexpected func_name= var in env" || true
+  var_isset func_pref && test -z "Unexpected func_pref= var in env" || true
+  var_isset func_suf && test -z "Unexpected func_suf= var in env" || true
+  var_isset base && test -z "Unexpected base= var in env" || true
+  var_isset scriptname && test -z "Unexpected scriptname= var in env" || true
+  var_isset script_name && test -z "Unexpected script_name= var in env" || true
 
-  var_isset PREFIX && test -z "Unexpected PREFIX= var in env" || noop
-  var_isset SRC_PREFIX && test -z "Unexpected SRC_PREFIX= var in env" || noop
+  var_isset PREFIX && test -z "Unexpected PREFIX= var in env" || true
+  var_isset SRC_PREFIX && test -z "Unexpected SRC_PREFIX= var in env" || true
 
-  var_isset fn && test -z "Unexpected fn= var in env" || noop
-  var_isset name && test -z "Unexpected name= var in env" || noop
-  var_isset flags && test -z "Unexpected flags= var in env" || noop
-  var_isset pref && test -z "Unexpected pref= var in env" || noop
-  var_isset suf && test -z "Unexpected suf= var in env" || noop
-  var_isset verbosity && test -z "Unexpected verbosity= var in env" || noop
-  var_isset silence && test -z "Unexpected silence= var in env" || noop
-  var_isset tag && test -z "Unexpected tag= var in env" || noop
+  var_isset fn && test -z "Unexpected fn= var in env" || true
+  var_isset name && test -z "Unexpected name= var in env" || true
+  var_isset flags && test -z "Unexpected flags= var in env" || true
+  var_isset pref && test -z "Unexpected pref= var in env" || true
+  var_isset suf && test -z "Unexpected suf= var in env" || true
+  var_isset verbosity && test -z "Unexpected verbosity= var in env" || true
+  var_isset silence && test -z "Unexpected silence= var in env" || true
+  var_isset tag && test -z "Unexpected tag= var in env" || true
 }
 
 

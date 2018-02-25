@@ -3,7 +3,7 @@ res.list - ordered or indexed user-data struct from plain-text files
 
 See `list` frontend and docs.
 """
-from confparse import Values
+from script_mpe.confparse import Values
 
 import d
 import txt

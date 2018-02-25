@@ -4,8 +4,12 @@ load init
 base=argv.lib
 
 init
-. $lib/util.sh
+#. $lib/util.sh
 
+setup()
+{
+  lib_load src
+}
 
 @test "$lib/${base} header-comment test/var/nix_comments.txt prints file header comment, exports env" {
   local testf=test/var/nix_comments.txt r=

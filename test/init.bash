@@ -101,57 +101,6 @@ check_skipped_envs()
 # TODO: require-env, prepare-env. Prepare env needs to expand tags to all
 # implied tags, ie. expand-item LIST ID IMPLIED
 
-# Check env for feature tag-id availability. See Mango-builds/tests/bats/ main.rst
-require_env()
-{
-	for dep in "$@"
-	do
-		provided_by_env "$dep" || {
-
-			fnmatch *" $dep "* " $Test_Requirements " && {
-				echo "Required dependency '$dep' missing" >&2
-				return 1
-			} ||
-				skip "'$dep': Not listed in Test-Requirements env '$ENV_NAME')"
-		}
-	done
-}
-
-# Requirements are given as a tag-id that is either:
-#	 an existing path
-#	 if titled, an existing, non-empty env <Name> as-is (first letter is uppercase), or
-#	 if env variable testenv_dep_<name>=1
-#	 a function testenv_dep_<name> that returns 0
-provided_by_env()
-{
-	# File exists
-	test -e "$1" && return || true
-
-	local vid=
-	mkvid "$1"
-
-	# Check for titled Varname value
-	fnmatch "[A-Z]*" "$vid" && {
-		# this is bash indirect expansion, but Bats is bash anyway
-		not_falseish "${!vid}" && return
-	}
-
-	# Other env value provided
-	env_key="testenv_dep_$vid"
-	not_falseish "${!env_key}" && return
-
-	# Function
-	func_key="testenv_$vid"
-	type $func_key >/dev/null 2>&1 && {
-		$func_key
-		return $?
-	}
-
-	return 1
-}
-
-
-
 
 # Deprecate many of below too, see str.lib.sh mk*id instead
 

@@ -21,8 +21,8 @@ sys_lib_load()
 
   test -n "$SCR_SYS_SH" ||  {
     test -n "$SHELL" &&
-    SCR_SYS_SH="$(basename "$SHELL")" ||
-    SCR_SYS_SH=bash
+        SCR_SYS_SH="$(basename "$SHELL")" ||
+        SCR_SYS_SH=bash
   }
 
   test -n "$TMPDIR" && {
@@ -110,7 +110,7 @@ var_isset()
     bash-sh|sh )
         # Aside from declare or typeset in newer reincarnations,
         # in posix or modern Bourne mode this seems to work best:
-        ( set | grep -q '\<'$1'=' ) || return 1
+        ( set | grep -q '\<'"$1"'=' ) || return 1
       ;;
 
     bash )

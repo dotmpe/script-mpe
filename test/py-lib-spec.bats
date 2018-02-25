@@ -17,7 +17,7 @@ test_import()
 
   tmpf
   $BATS_TEST_DESCRIPTION >$tmpf 2>&1
-  test -s "$tmpf" && fail "If this fails expected above to fail too. Check bats. " || noop
+  test -s "$tmpf" && fail "If this fails expected above to fail too. Check bats. " || true
 }
 
 
@@ -36,5 +36,5 @@ test_import_2()
 
   tmpf
   $BATS_TEST_DESCRIPTION 1>$tmpf 2>&1
-  test -s "$tmpf" && fail "If this fails expected above to fail too. Check bats. " || noop
+  test -s "$tmpf" && fail "If this fails expected above to fail too. Check bats. " || true
 }

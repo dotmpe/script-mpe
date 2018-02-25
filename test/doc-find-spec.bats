@@ -31,5 +31,5 @@ setup() { load init; }
     package_doc_find=echo htd find-doc "$@"
   }
   run _Test foo2
-  test_ok_nonempty "*foo2"
+  test_ok_lines "foo2"
 }

@@ -117,6 +117,7 @@ htd_load()
       grep -qF "$prefix"':' .projects.yaml || {
         warn "No such project prefix '$prefix'"
       }
+      test $verbosity -ge 5 &&
       $LOG info "htd:load" "Workspace '$workspace' -> Prefix '$prefix'" >&2
       cd "$CWD"
     }
@@ -265,7 +266,7 @@ htd_load()
       ;;
 
     i ) # io-setup: set all requested io varnames with temp.paths
-        stderr debug "Exporting inputs '$(try_value inputs)' and outputs '$(try_value outputs)'"
+        debug "Exporting inputs '$(try_value inputs)' and outputs '$(try_value outputs)'"
         setup_io_paths -$subcmd-${htd_session_id}
         export $htd__inputs $htd__outputs
       ;;
@@ -4870,8 +4871,6 @@ htd__run()
 
   # Execute script-lines
   (
-    run_scriptname="$1"
-    shift
     SCRIPTPATH=
     unset Build_Deps_Default_Paths
     ln=0
@@ -4881,12 +4880,16 @@ htd__run()
       cd $package_cwd
     }
     test -z "$package_env" || {
-      info "Starting '$run_scriptname' ($(pwd)) '$*'"
       eval $package_env
     }
 
-    info "Starting '$run_scriptname' ($(pwd)) '$*'"
+    # Write scriptlien with expanded vars
+    info "Expanded '$(eval echo \"$@\")'"
+    set -- $(eval echo \"$*\")
+    run_scriptname="$1"
+    shift
 
+    info "Starting '$run_scriptname' ($(pwd)) '$*'"
     package_sh_script "$run_scriptname" | while read scriptline
     do
       export ln=$(( $ln + 1 ))
@@ -4902,7 +4905,6 @@ htd__run()
       # Execute
       (
         eval $scriptline
-
       ) && continue || { r=$?
           echo "$run_scriptname:$ln: '$scriptline'" >> $failed
           error "At line $ln '$scriptline' for '$run_scriptname' '$*' ($r)" $r
@@ -6692,7 +6694,9 @@ data than open-paths lsof invocations.
 '
 htd__open_paths()
 {
+  test -n "$1" -a -n "$2" || set -- "paths" "$1"
   test -n "$1" || set -- "paths" "$2"
+  test -n "$2" || set -- "paths" "."
   test_dir "$2" || return $?
   set -- "$1" "$(cd "$2" && pwd -P)"
   case "$1" in
@@ -8488,15 +8492,22 @@ htd_grp__src_info=box-src
 htd__src_info()
 {
   test -n "$1" || set -- $0
+  local functions=0 lines=0
   for src in $@
   do
     src_id=$(htd_prefix $src)
     $LOG file_warn $src_id "Listing info.." >&2
     $LOG header "Box Source" >&2
-    $LOG header2 "Functions" $(htd__list_functions "$@" | count_lines) >&2
-    $LOG header3 "Lines" $(count_lines "$@") >&2
+    functions_=$(htd__list_functions "$src" | count_lines) 
+    functions=$(( $functions + $functions_ ))
+    $LOG header2 "Functions" $functions_ >&2
+    count=$(count_lines "$src") 
+    lines=$(( $lines + $count ))
+    $LOG header3 "Lines" $count >&2
     $LOG file_ok $srC_id >&2
   done
+  $LOG header2 "Total Functions" $functions >&2
+  $LOG header3 "Total Lines" $lines >&2
   $LOG done $subcmd >&2
 }
 
@@ -8556,9 +8567,10 @@ htd__functions()
 }
 
 
-htd_man_1__list_functions='
+htd_man_1__list_functions='List shell functions in files.
+
 List all function declaration lines found in given source, or current executing
-script.
+script. To match on specific names instead, see find-functions.
 '
 htd_spc__list_functions='(ls-func|list-func(tions)) [ --(no-)list-functions-scriptname ]'
 htd_run__list_functions=iAO
@@ -8574,6 +8586,28 @@ htd__list_functions()
 htd_als__list_func=list-functions
 htd_als__ls_functions=list-functions
 htd_als__ls_func=list-functions
+
+
+htd_man_1__find_functions='List functions matching grep pattern in files
+'
+htd_spc__find_functions='find-functions <grep> <scripts>..'
+htd__find_functions()
+{
+  find_functions "$@"
+}
+htd_grp__find_functions=box-src
+
+
+htd_man_1__find_function='Get function matching grep pattern from files
+'
+htd_spc__find_function='find-function <grep> <scripts>..'
+htd__find_function()
+{
+  func=$(first_match=1 find_function "$@")
+  test -n "$func" || return 1
+  echo "$func"
+}
+htd_grp__find_function=box-src
 
 
 # Note: initial try at parsing out attr
@@ -9714,7 +9748,9 @@ htd_als__watch='run feature-watch'
 
 htd_man_1__resolve_modified='Helper to move files to GIT stage.
 
-Each basename must test OK. '
+Each basename must test OK, then it is staged. 
+TODO: rewrite to infinite loop, that doesnt break until lst watch returns.
+'
 htd__resolve_modified()
 {
   vc_modified | while read name
@@ -9726,6 +9762,36 @@ htd__resolve_modified()
   done | join_lines - ' ' | while read component files
   do
     htd run test $component && git add $files
+  done
+}
+
+
+htd_man_1__components=' '
+htd__components()
+{
+  local spwd=.
+  vc_tracked | while read name
+    do
+      basename=$(filestripext "$name");
+      c=_- mkid "$basename";
+      echo "$id $name"
+  done
+  #| join_lines - ' '
+}
+
+
+htd_man_1__test_all=' '
+htd__test_all()
+{
+  local spwd=.
+  vc_tracked | while read name
+    do
+      basename=$(filestripext "$name");
+      c=_- mkid "$basename";
+      echo "$id $name"
+  done | join_lines - ' ' | while read component files
+  do
+    htd run test $component
   done
 }
 

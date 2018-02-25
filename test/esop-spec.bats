@@ -7,6 +7,7 @@ init
 
 
 @test "${bin} - No arguments: default action is ..." {
+export verbosity=4
   run $bin
   test ${status} -eq 1
   fnmatch "*esop*No command given*" "${lines[*]}" ||
@@ -74,10 +75,13 @@ init
 }
 
 @test "${bin} -vv -n help" {
+  export verbosity=5 # Go to level 7 with -vv
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -n "${lines[*]}" # non-empty output
-  test ${#lines[@]} -gt 4  # lines of output (stdout+stderr)
+  test_ok_lines "*DRY-RUN*" "*esop loaded*" \
+    "*try-exec-func 'esop_load'*" \
+    "*cmd=esop args=" \
+    "*subcmd=help subcmd_alias= subcmd_def=" \
+    || stdfail
 }
 
 #@test "${lib}/${base} - function should ..." {

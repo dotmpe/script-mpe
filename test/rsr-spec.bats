@@ -42,5 +42,3 @@ db_path=/srv/project-mpe/script-mpe/.cllct/cllct_2012.sqlite
   rm -rf $(dirname $db_path)
   #test -n "${lines[*]}" # non-empty output
 }
-
-

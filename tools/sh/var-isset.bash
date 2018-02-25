@@ -9,4 +9,3 @@ var_isset()
 }
 
 var_isset "$@"
-

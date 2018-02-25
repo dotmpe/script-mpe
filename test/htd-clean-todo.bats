@@ -12,7 +12,7 @@ setup()
     cd $tmpd
 
     # Test on collection of downloaded files
-    cp ~/Downloads/*.zip $tmpd
+    cp ~/Downloads/{shadow,mytest,adventure,ESPEasy_R120}.zip $tmpd
 
     # unpack all zips into root except mytest
     mkdir $tmpd/mytest
@@ -30,5 +30,5 @@ setup()
 
   test -e "$tmpd" || skip "No test dir found"
   run htd clean
-  test $status -eq 0
+  test_ok_non_empty || stdfail "Unexpected: $status <$tmpd>"
 }

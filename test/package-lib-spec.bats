@@ -9,7 +9,7 @@ init
 setup()
 {
   . $lib/util.sh
-  lib_load package
+  lib_load package sys
 }
 
 

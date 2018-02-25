@@ -240,7 +240,7 @@ func_comment()
   test -z "$3" || error "surplus arguments: '$3'" 1
 
   # find function line number, or return 1 ending function for no comment
-  grep_line="$(grep -n "^$1()" "$2" | cut -d ':' -f 1)"
+  grep_line="$(grep -n "^\s*$1()" "$2" | cut -d ':' -f 1)"
   case "$grep_line" in [0-9]* ) ;; * ) return 1 ;; esac
 
   lines=$(echo "$grep_line" | count_words)
@@ -299,9 +299,9 @@ list_functions() # Sh-Files...
   do
     test_out list_functions_head
     trueish "$list_functions_scriptname" && {
-      grep '^[A-Za-z0-9_\/-]*().*$' $file | sed "s#^#$file #"
+      grep '^\s*[A-Za-z0-9_\/-]*().*$' $file | sed "s#^#$file #"
     } ||
-      grep '^[A-Za-z0-9_\/-]*().*$' $file
+      grep '^\s*[A-Za-z0-9_\/-]*().*$' $file
     test_out list_functions_tail
   done
 }
@@ -312,7 +312,7 @@ find_functions() # Grep Sh-Files
   falseish "first_match" && first_match=
   for file in $@
   do
-    grep -q '^'"$grep"'().*$' $file || continue
+    grep -q '^\s*'"$grep"'().*$' $file || continue
     echo "$file"
     test -n "$first_match" || break
   done

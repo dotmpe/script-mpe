@@ -25,7 +25,7 @@ items:
             type: string
         created:
           type: date-time
-          description: FIXME: jsotk doesnt handle date-time to JSON well
+          description: "FIXME: jsotk doesnt handle date-time to JSON well"
 
         ext:
           type: object
@@ -55,7 +55,7 @@ items:
     - type: object
       properties:
         scripts:
-          type: string
+          type: object
           short: Project shell scripts
           description: |
             Project scripts. Any string-id name is possible, but some are
@@ -64,118 +64,121 @@ items:
             XXX: require to choose for env to do this in, and revert some of
             the current isolation?
 
-          properties:
-          - type: object
-            properties:
-              init:
-                type: string
-                short: Setup project once.
-                description: |
-                  Runs after a fresh checkout, or after metadata update.
-
-                  Shell script to further initialize a project after checkout
-                  has been (re)enabled. E.g. config and dependent files.
-                  Re-run as long as it returns continue err code. May require
-                  interactive mode to setup.
-
-          properties:
-          - type: object
-            properties:
-              upgrade:
-                type: string
-                short: Get latest version, re-run relevant init parts
-                description: |
-                  XXX: projects may want an auto-update channel, ie. "stable"
-                  etc. here.
-
-          - type: object
-            properties:
-              build:
-                type: string
-                short: Build everything, auto-init if possible
-
-          - type: object
-            properties:
-              install:
-                type: string
-                short: Install build or requirements.
-
-          - type: object
-            properties:
-              test:
-                type: string
-                short: Test stacks.
-                description: |
-                  Shell script executed to determine test status code, and
-                  identify passed/failed/errored tests.
-
-          - type: object
-            properties:
-              check:
-                type: string
-                short: Diagnose or doctor after init/build/test
-                description: |
-                  Shell script executed to perform a cursory, quick lookup of
-                  project "weather", e.g. test/build stats or stack status (from
-                  cache).
-
-          - type: object
-            properties:
-              stats: show
-
-          properties:
-          - type: object
-            properties:
-              update:
-                type: string
-                short: Update stats
-                description: |
-                  For build/test/running states/benchmarks to update their
-                  scores.
-
-                  Ie. may include versioning, new commits at remotes, branch
-                  divergence, or metrics from static code analysis, stack
-                  metrics like usage and latencies. Etc. etc.
-
-          - type: object
-            properties:
-              clean:
-                type: string
-                short: Remove build/test artefacts
-                description:
-                  Undo build/test states.
-                  In strict mode fail if uncleanables are present
-
-          - type: object
-            properties:
-              reset:
-                type: string
-                short: Restart entirely
-                descripts: |
-                    Be even more thorough than clean, and re-run init steps
-
-          - type: object
-            properties:
-              tasks:
-                document:
-                  type: string
-                done:
-                  type: string
-                coops:
-                  type: array
-                tags:
-                  type: array
-                cmd:
-                  type: string
-                  short: Gather tasks
-                  description: |
-                    The shell command executed to determine the status code and a report 
-                    of the tasks of a project.
-
-                    Nothing further is specified as of yet, but in the future some
-                    protocol requirements will be added on the meaning of the output.
-
-          - type: object
-            properties:
-              show: dump configuration/package entry
+#    - type: object
+#      properties:
+#        pd-meta:
+#          type: object
+#          properties:
+#            anyOf:
+#            - type: object
+#              properties:
+#                init:
+#                  type: string
+#                  short: Setup project once.
+#                  description: |
+#                    Runs after a fresh checkout, or after metadata update.
+#
+#                    Shell script to further initialize a project after checkout
+#                    has been (re)enabled. E.g. config and dependent files.
+#                    Re-run as long as it returns continue err code. May require
+#                    interactive mode to setup.
+#
+#            - type: object
+#              properties:
+#                upgrade:
+#                  type: string
+#                  short: Get latest version, re-run relevant init parts
+#                  description: |
+#                    XXX: projects may want an auto-update channel, ie. "stable"
+#                    etc. here.
+#
+#            - type: object
+#              properties:
+#                build:
+#                  type: string
+#                  short: Build everything, auto-init if possible
+#
+#            - type: object
+#              properties:
+#                install:
+#                  type: string
+#                  short: Install build or requirements.
+#
+#            - type: object
+#              properties:
+#                test:
+#                  type: string
+#                  short: Test stacks.
+#                  description: |
+#                    Shell script executed to determine test status code, and
+#                    identify passed/failed/errored tests.
+#
+#            - type: object
+#              properties:
+#                check:
+#                  type: string
+#                  short: Diagnose or doctor after init/build/test
+#                  description: |
+#                    Shell script executed to perform a cursory, quick lookup of
+#                    project "weather", e.g. test/build stats or stack status (from
+#                    cache).
+#
+#            - type: object
+#              properties:
+#                stats: show
+#
+#            - type: object
+#              properties:
+#                update:
+#                  type: string
+#                  short: Update stats
+#                  description: |
+#                    For build/test/running states/benchmarks to update their
+#                    scores.
+#
+#                    Ie. may include versioning, new commits at remotes, branch
+#                    divergence, or metrics from static code analysis, stack
+#                    metrics like usage and latencies. Etc. etc.
+#
+#            - type: object
+#              properties:
+#                clean:
+#                  type: string
+#                  short: Remove build/test artefacts
+#                  description:
+#                    Undo build/test states.
+#                    In strict mode fail if uncleanables are present
+#
+#            - type: object
+#              properties:
+#                reset:
+#                  type: string
+#                  short: Restart entirely
+#                  descripts: |
+#                      Be even more thorough than clean, and re-run init steps
+#
+#            - type: object
+#              properties:
+#                tasks:
+#                  document:
+#                    type: string
+#                  done:
+#                    type: string
+#                  coops:
+#                    type: array
+#                  tags:
+#                    type: array
+#                  cmd:
+#                    type: string
+#                    short: Gather tasks
+#                    description: |
+#                      The shell command executed to determine the status code and a report 
+#                      of the tasks of a project.
+#
+#                      Nothing further is specified as of yet, but in the future some
+#                      protocol requirements will be added on the meaning of the output.
+#
+#            - type: object
+#              properties:
+#                show: dump configuration/package entry
 

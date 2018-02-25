@@ -4,8 +4,8 @@ import unittest
 import os
 
 
-import confparse2
-from confparse2 import obj_dic, obj_lis
+from script_mpe import confparse2
+from script_mpe.confparse2 import obj_dic, obj_lis
 
 
 
@@ -62,8 +62,8 @@ class CP2Test1(unittest.TestCase):
         d.test2 = {'foo': 'bar'}
         self.assertEquals(d.copy(), {'test':'foo','test2':{'foo':'bar'}})
         #self.assertEquals(type(d.test2), d.__class__)
-        #self.assertEquals(type(d.test2), confparse2.PropertyValue)        
-        #self.assertEquals(type(d.test2.foo), confparse2.PropertyValue)        
+        #self.assertEquals(type(d.test2), confparse2.PropertyValue)
+        #self.assertEquals(type(d.test2.foo), confparse2.PropertyValue)
 
     def tearDown(self):
         assert self.pwd == os.getcwd(), (self.pwd, os.getcwd())
@@ -71,10 +71,9 @@ class CP2Test1(unittest.TestCase):
 
 def get_cases():
     return [
-            CP2Test1, 
+            CP2Test1,
         ]
 
 
 if __name__ == '__main__':
     unittest.main()
-

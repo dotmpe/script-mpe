@@ -5,8 +5,6 @@ base=box-instance.sh
 
 init
 
-source $lib/util.sh
-
 
 @test "${bin}" "No arguments: default action is ..." {
   run $BATS_TEST_DESCRIPTION
@@ -68,10 +66,9 @@ source $lib/util.sh
 }
 
 @test "${bin} x foo bar" {
+  export verbosity=5
   run $BATS_TEST_DESCRIPTION
-  { test ${status} -eq 0 &&
-    fnmatch "*box-instance.*:*x*Running X*" "${lines[*]}"
-  } || stdfail
+  test_ok_nonempty "*box-instance.*:*x*Running X*" || stdfail
 }
 
 @test "${bin} x arg spec" {
@@ -91,6 +88,7 @@ source $lib/util.sh
 }
 
 @test "${bin} y" {
+  export verbosity=5
   run $BATS_TEST_DESCRIPTION
   { test ${status} -eq 0 &&
     fnmatch "*box-instance.*:*y*Running Y*" "${lines[*]}"

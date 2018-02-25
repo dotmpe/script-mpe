@@ -62,6 +62,7 @@ esop_load__help=f
 esop_spc__help='-h|help [ID]'
 esop__help()
 {
+  test $verbosity -gt 4 || export verbosity=4
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
   choice_global=1 std__help "$@"
   rm_failed || return

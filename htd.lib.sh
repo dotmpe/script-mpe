@@ -321,8 +321,9 @@ htd_function_comment() # Func-Name [ Script-Path ]
 {
   upper= mkvid "$1" ; shift ; set -- "$vid" "$@"
   test -n "$2" || {
-      # TODO: use SCRIPTPATH
-      set -- "$1" "$(first_match=1 find_functions "$1" $scriptpath/*.sh)"
+    # TODO: use SCRIPTPATH?
+    #set -- "$1" "$(first_match=1 find_functions "$1" $scriptpath/*.sh)"
+    set -- "$1" "$(first_match=1 find_functions "$1" $(git ls-files | grep '\.sh$'))"
   }
   file="$2"
   test -n "$2" || { error "No shell scripts for '$1'" ; return 1; }

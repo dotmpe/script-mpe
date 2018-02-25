@@ -1,37 +1,42 @@
 #!/usr/bin/env bats
 
-base=boilerplate
+base=lst
 load init
 init
-#init_bin
 
 
-@test "${bin} -vv -n help" {
-  skip "reason"
+@test "${base} help" {
+
   run $BATS_TEST_DESCRIPTION
-  test_ok_empty || stdfail
+  test_ok_nonempty
 }
 
-@test "${lib}/${base} - function should ..." {
-  TODO something # tasks-ignore
-  run function args
-  test_ok_nonempty || stdfail
+@test "${base} version" {
+
+  run $BATS_TEST_DESCRIPTION
+  test_ok_nonempty
 }
+
+@test "${base} names" {
+
+  export verbosity=0
+  run $BATS_TEST_DESCRIPTION scm
+  test_ok_lines .bzrignore .git/info/exclude .gitignore || stdfail
+}
+
 
 #@test "${lib}/${base} - function should ..." {
 #  check_skipped_envs || \
 #    TODO "envs $envs: implement lib (test) for env" # tasks-ignore
 #  diag $BATS_TEST_DESCRIPTION
 #  run function args
-#  test true && pass || fail
+#  test true || fail
 #  test_ok_empty || stdfail
-#  test_nok_empty || stdfail
-#  test_nonempty || stdfail
+#  test_ok_nonempty || stdfail
 #  test_ok_nonempty "*match*" || stdfail
 #  { test_nok_nonempty "*match*" &&
 #    test ${status} -eq 1 &&
 #    fnmatch "*other*" &&
 #    test ${#lines[@]} -eq 3
 #  } || stdfail
-#  test_lines, test_ok_lines, test_nok_lines
 #}

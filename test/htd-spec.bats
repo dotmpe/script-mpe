@@ -10,9 +10,15 @@ version=0.0.4-dev # script-mpe
 
 setup() {
   scriptname=test-$base
-  #. $ENV
-  . ./tools/sh/init.sh
-  lib_load projectenv env-deps
+
+  type require_env >/dev/null 2>&1 && {
+    #. $ENV
+    . ./tools/sh/init.sh
+    lib_load projectenv env-deps
+  } || {
+    . ./tools/ci/env.sh
+    project_env_bin node npm lsof
+  }
 }
 
 @test "$bin no arguments no-op" {
@@ -248,9 +254,23 @@ setup() {
 }
 
 
-@test "$bin run - runs subcmd run-dir" {
+@test "$bin run - runs 'scripts names'" {
+  export verbosity=0
+  local tmp=/tmp/htd-script-names-$(uuidgen)
+  local tmp2=/tmp/htd-script-names-$(uuidgen)
+
   run $bin run
-  test_nok_nonempty || stdfail
+  test_nok_nonempty || stdfail 1
+  echo "${lines[@]}" >> $tmp
+
+  run $bin scripts names
+  test_ok_nonempty || stdfail 2
+  echo "${lines[@]}" >> $tmp2
+
+  diff $tmp $tmp2 || {
+    rm $tmp $tmp2
+    fail
+  }
 }
 
 
@@ -265,7 +285,7 @@ setup() {
 
 
 @test "$bin scripts list - gives script outline (list indented script names and lines)" {
-  run $bin run-dir
+  run $bin scripts list
   { test_ok_nonempty &&
     fnmatch *" check "* " ${lines[*]} " &&
     fnmatch *" build "* " ${lines[*]} " &&
@@ -302,33 +322,25 @@ setup() {
   test_ok_nonempty || stdfail
 }
 
-@test "$bin filter-functions" {
+@test "$bin env pathvars" {
+  run $bin env pathvars
+  test_ok_lines "PATH=*" || stdfail
+}
 
-  export verbosity=5
+@test "$bin env dirvars" {
+  run $bin env dirvars
+  test_ok_lines "PWD=*" "TMPDIR=*" || stdfail
+}
 
-  run $BATS_TEST_DESCRIPTION "grp=\(box\|htd\)* run=[a-z].*" htd
-  #diag "lines=${#lines[*]}"
-  # FIXME: find definition and update test_ok_nonempty 70 || stdfail 1-default
-  test_ok_nonempty || stdfail 1-default
+@test "$bin env filevars" {
+  run $BATS_TEST_DESCRIPTION
+  test_ok_lines "SHELL=*" "ENV=*" "LOG=*" || stdfail
+}
 
-  export Inclusive_Filter=1
-  run $BATS_TEST_DESCRIPTION "grp=box-src spc=..*" htd
-  { test_ok_nonempty && 
-    fnmatch "* list-functions *" " ${lines[*]} " &&
-    fnmatch "* filter-functions *" " ${lines[*]} " &&
-    fnmatch "* checkout *" " ${lines[*]} "
-  } || stdfail 2-inclusive
-
-  export Inclusive_Filter=0
-  run $BATS_TEST_DESCRIPTION "grp=box-src spc=..*" htd
-  { test_ok_nonempty && 
-    fnmatch "* list-functions *" " ${lines[*]} " &&
-    fnmatch "* filter-functions *" " ${lines[*]} " && {
-      fnmatch "* crypto *" " ${lines[*]} " && return 1 || noop
-    } && {
-      fnmatch "* checkout *" " ${lines[*]} " && return 1 || noop
-    }
-  } || stdfail 3-exclusive
+@test "$bin env symlinkvars" {
+  export verbosity=0
+  run $BATS_TEST_DESCRIPTION
+  test_ok_empty || stdfail
 }
 
 

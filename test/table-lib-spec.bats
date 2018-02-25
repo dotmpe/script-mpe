@@ -4,7 +4,7 @@ load init
 base=table.lib
 
 init
-. $lib/util.sh
+#. $lib/util.sh
 
 
 setup()

@@ -48,7 +48,7 @@ project_env_bin node npm lsof
 project_test() # [Units...|Comps..]
 {
   set -- $(project_tests "$@")
-  local failed=/tmp/htd-project-test.failed
+  local failed=/tmp/htd-project-test-$(uuidgen).failed
   while test $# -gt 0
   do
     case "$1" in
@@ -77,7 +77,7 @@ project_tests() # [Units..|Comps..]
           test -e "$1" && echo "$1" ;;
       esac
     shift
-  done
+  done | sort -u
 }
 
 any_unit()
@@ -85,8 +85,9 @@ any_unit()
   test -n "$1" || set -- "*"
   while test $# -gt 0
   do
+    c=*_- mkid "$1"
     mkvid "$1"
-    for x in test/py/$1.py test/py/mod_$vid.py test/$1-spec.bats test/$1.bats
+    for x in test/py/$id.py test/py/mod_$vid.py test/$id-lib-spec.bats test/$id-spec.bats test/$id.bats
     do
       test -e "$x" && echo $x
       continue
@@ -115,7 +116,8 @@ any_feature()
   test -n "$1" || set -- "*"
   while test $# -gt 0
   do
-    for x in test/$1.feature test/$1-spec.feature
+    c=_- mkid "$1"
+    for x in test/$id.feature test/$id-lib-spec.feature test/$id-spec.feature
     do
       test -e "$x" && echo $x
       continue
@@ -166,6 +168,37 @@ feature_watch()
     $TEST_FEATURE || return $?;
     nodemon -x "$TEST_FEATURE" $watch_flags -w test || return $?;
   }
+}
+
+retest()
+{
+  test -n "$1" || set -- totest.list "$2"
+  test -n "$2" || set -- "$1" tested.list
+  test -s "$1" || {
+    project_tests | sort -u > $1
+  }
+  while true
+  do
+    # TODO: do-test with lst watch
+    cat "$1" | sponge | while read test
+    do
+        grep -qF "$test" "$2" && continue
+        wc -l "$@"
+        htd run test "$test" && {
+          echo $test >> "$2"
+        } || echo "Failure <$test>"
+    done
+    sleep 1 || return
+    cat "$2" | sort -u > "$2.tmp"
+    diff -q "$1" "$2.tmp" && {
+      note "All tests completed" && rm "$@" "$2.tmp" && break
+    } || {
+      mv "$2.tmp" "$2"
+      sleep 5 &&
+        comm -2 -3 "$2" "$1" &&
+        continue
+    }
+  done
 }
 
 
@@ -230,6 +263,7 @@ esac
 
 ## Defaults
 
+
 # Sh
 test -n "$Build_Debug" ||       export Build_Debug=
 test -n "$Build_Offline" ||       export Build_Offline=
@@ -277,16 +311,18 @@ req_vars TEST_OPTIONS || export TEST_OPTIONS=
 
 req_vars TEST_SHELL || export TEST_SHELL=sh
 
+# Required specs, each of these must test OK
 req_vars REQ_SPECS ||
-  export REQ_SPECS="helper util-lib str std os match matchbox vc-lib main"\
+  export REQ_SPECS="util 1_1-helper"\
+" str sys os std stdio argv bash match matchbox src vc main"\
 " sh box-lib box-cmd box pd-meta esop disk diskdoc"
 
+# Specs for report but not counting in final test-result judgement
 req_vars TEST_SPECS || \
   export TEST_SPECS="statusdir htd basename-reg dckr"\
 " rsr edl finfo vc"\
 " jsotk-py libcmd_stacked mimereg radical"\
 " meta pd"
-
 
 req_vars INSTALL_DEPS || {
   INSTALL_DEPS=" basher "

@@ -3,7 +3,12 @@
 base=os.lib
 load init
 init
+#. $lib/util.sh
 
+setup()
+{
+  lib_load sys
+}
 
 @test "htd normalize-relative" {
 
@@ -11,13 +16,17 @@ init
     skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
 
   test -n "$TERM" || export TERM=dumb
-  
-  test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/.')" = 'Foo/Bar'
+ 
+  run $BATS_TEST_DESCRIPTION 'Foo/Bar/.'
+  test_ok_nonempty '*Foo/Bar' || stdfail 1
+
+  export verbosity=3 
+  run $BATS_TEST_DESCRIPTION 'Foo/Bar/.'
+  test_ok_nonempty 'Foo/Bar' || stdfail 2
   test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/./')" = 'Foo/Bar/'
 
   run $BATS_TEST_DESCRIPTION 'Foo/Bar/../'
-  test ${status} -eq 0
-  test "${lines[*]}" = 'Foo/' || fail "Out: ${lines[*]}"
+  test_ok_nonempty Foo/ || stdfail 3
 
   test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/../')" = 'Foo/'
   test "$($BATS_TEST_DESCRIPTION 'Foo/Bar/..')" = 'Foo'
@@ -127,6 +136,22 @@ init
     test "${lines[1]}" = "foo.tar" &&
     test "${lines[2]}" = "baz.txt"
   } || stdfail 4.0
+}
+
+
+@test "${base} - short" {
+
+  TODO this is far to slow
+
+  func_exists short
+  run short
+  test $status -eq 0 || fail "${lines[*]}"
+
+  fnmatch "$HOME*" "$lib" && {
+    fnmatch "~/*" "${lines[*]}"
+  } || {
+    test "$lib" = "${lines[*]}"
+  }
 }
 
 

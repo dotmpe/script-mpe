@@ -62,8 +62,17 @@ lst__local()
     note "Local lines shown above"
 }
 
-lst_man_1__watch="Watch files for changes"
-lst_spc__watch="FILE|DIR [GLOB [[CMD]]"
+lst_man_1__watch="Watch files for changes
+
+TODO: test, TEST
+
+Executes CMD every time files have changed. Keep running forever regardless
+of CMD result, unless TEST is given.
+TEST is a function name, or for a trueish string reinvoke CMD (on changes)
+only while status was non-zero, and if falseish the opposite; run only while it
+was zero.
+"
+lst_spc__watch="FILE|DIR [ GLOB [ CMD [ TEST ]]]"
 lst_load__watch=iI
 lst__watch()
 {
