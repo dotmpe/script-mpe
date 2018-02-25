@@ -9795,6 +9795,19 @@ htd__test_all()
   done
 }
 
+htd__totest()
+{
+  comm -2 -3 totest.list tested.list
+}
+htd__tested()
+{
+  cat tested.list
+}
+htd__retest()
+{
+  htd run retest
+}
+
 
 # -- htd box insert sentinel --
 
