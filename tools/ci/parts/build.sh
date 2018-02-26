@@ -50,8 +50,6 @@ do case "$BUILD_STEP" in
     test )
         lib_load build
 
-        any_feature "$@" | tr '\n' ' '
-
         ## start with essential tests
         note "Testing required specs '$REQ_SPECS'"
         build_test_init "$REQ_SPECS"

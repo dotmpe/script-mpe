@@ -18,7 +18,8 @@ build_test_init() # Specs...
   # then sort out testfiles into suites based on runner
   local suite=/tmp/htd-build-test-$(uuidgen).list
   echo 0.1
-  project_tests "$SPECS" > $suite
+  project_tests $SPECS > $suite
+  wc -l $suite
   echo 0.2
   test -s "$suite" || error "No specs for '$*'" 1
   echo 0.3
