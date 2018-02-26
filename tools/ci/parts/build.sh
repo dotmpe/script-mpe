@@ -50,21 +50,17 @@ do case "$BUILD_STEP" in
     test )
         lib_load build
 
-        test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-specs.tap
-        test -d "$(dirname "$TEST_RESULTS")" ||
-          mkdir -vp "$(dirname "$TEST_RESULTS")"
-
-        failed=build/test-results-failed.list
-
-
         ## start with essential tests
         note "Testing '$REQ_SPECS'"
-
+        build_test_init "$REQ_SPECS"
         (
-          SUITE="$REQ_SPECS" test_shell $(which bats) | tee $TEST_RESULTS
+          test_shell $(which bats) &&
+          $TEST_FEATURE $BUSINESS_SUITE  &&
+          python $PY_SUITE
         ) || touch $failed
 
         test -e "$TEST_RESULTS" || error "Test results expected" 1
+
         not_falseish "$SHIPPABLE" && {
 
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
@@ -76,26 +72,10 @@ do case "$BUILD_STEP" in
 
         ## Other tests
         note "Testing '$TEST_SPECS'"
+        build_test_init "$REQ_SPECS"
         (
-          SUITE="$TEST_SPECS" test_shell $(which bats)
+          test_shell $(which bats)
         ) || true
-
-        # TODO: integrate feature testing
-        (
-          test_features
-        ) || true
-
-        test -z "$failed" -o ! -e "$failed" && {
-          r=0
-          test ! -s "$failed" || {
-            echo "Failed: $(echo $(cat $failed))"
-            rm $failed
-            r=1
-          }
-          unset failed
-        } || true
-
-        exit $r
       ;;
 
     noop )

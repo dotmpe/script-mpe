@@ -69,7 +69,7 @@ vc__commands()
   echo 'File Patterns'
   echo '  excludes           Patterns to paths kept out of version control '
   echo '                     (unversioned-files [uf]). '
-  echo '  temp-patterns      Patterns to excluded files that will be '
+  echo '  temp-patterns      Patterns to excluded files that will or need to be '
   echo '                     regenerated if removed . '
   echo '  cleanables         Patterns to excluded files that can be cleaned '
   echo '                     but are required while the checkout exists. '
@@ -724,7 +724,10 @@ vc__object_contents()
 
 ## List Exclude Patterns
 
-vc_man_1__excludes="List path ignore patterns"
+vc_man_1__excludes='List path ignore patterns
+
+TODO: see ignores
+'
 vc__excludes()
 {
   # (global) core.excludesfile setting
@@ -1112,7 +1115,7 @@ vc__branch_exists()
 
 
 # regenerate .git/info/exclude
-# NOTE: a duplication is happening, but not no recursion, only one. As
+# NOTE: a duplication is happening, but not no recursion, only once. As
 # accumulated patterns (current contents) is unique listed first, and then all
 # items are added again grouped with each source path
 vc__regenerate()
@@ -1758,9 +1761,9 @@ vc_load()
 
   gtd="$(vc_gitdir "$cwd")"
 
+  # See ignores.rst for info on Global/Purgeable,Cleanable and Droppable
   test -n "$vc_clean_gl" || {
-    test -e .gitignore-clean \
-      && export vc_clean_gl=.gitignore-clean
+    test -e .gitignore-clean && export vc_clean_gl=.gitignore-clean
     test -e ~/.gitignore-clean-global \
       && export vc_clean_gl="$vc_clean_gl $HOME/.gitignore-clean-global"
   }
