@@ -17,8 +17,11 @@ build_test_init() # Specs...
   # NOTE: simply expand filenames from spec first,
   # then sort out testfiles into suites based on runner
   local suite=/tmp/htd-build-test-$(uuidgen).list
+  echo 0.1
   project_tests "$SPECS" > $suite
+  echo 0.2
   test -s "$suite" || error "No specs for '$*'" 1
+  echo 0.3
   BUSINESS_SUITE="$( grep '\.feature$' $suite | lines_to_words )"
   BATS_SUITE="$( grep '\.bats$' $suite | lines_to_words )"
   PY_SUITE="$( grep '\.py$' $suite | lines_to_words )"
@@ -94,7 +97,7 @@ any_unit()
   test -n "$1" || set -- "*"
   while test $# -gt 0
   do
-    c=*_- mkid "$1"
+    c="-_*" mkid "$1"
     mkvid "$1"
     for x in test/py/$id.py test/py/mod_$vid.py test/$id-lib-spec.bats test/$id-spec.bats test/$id.bats
     do
@@ -110,7 +113,7 @@ any_feature()
   test -n "$1" || set -- "*"
   while test $# -gt 0
   do
-    c="-_" mkid "$1"
+    c="-_*" mkid "$1"
     for x in test/$id.feature test/$id-lib-spec.feature test/$id-spec.feature
     do
       test -e "$x" && echo $x

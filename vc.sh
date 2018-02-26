@@ -1679,7 +1679,7 @@ vc__dist()
 {
   vc__remotes | while read remote url
   do
-      git push $remote
+      git push $remote --all
   done
 }
 
