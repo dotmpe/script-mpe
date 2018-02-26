@@ -16,5 +16,4 @@ bash_lib_load()
       return 1
     }
   }
-
 }

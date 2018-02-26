@@ -27,6 +27,7 @@ case "$shopts"
 
 esac
 
+type req_vars >/dev/null 2>&1 || error "sys.lib missing" 1
 req_vars scriptname || error "scriptname=$scriptname" 1
 req_vars scriptpath || error "scriptpath=$scriptpath" 1
 req_vars SCRIPTPATH || error "SCRIPTPATH=$SCRIPTPATH" 1

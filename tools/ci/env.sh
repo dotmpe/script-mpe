@@ -4,7 +4,7 @@ set -e
 
 . ./tools/sh/init.sh
 
-lib_load std str sys projectenv env-deps
+lib_load std str sys bash projectenv env-deps
 
 test -n "$BASH_SH" || error "Need to know shell dist" 1
 test 0 -eq $BASH_SH && {
