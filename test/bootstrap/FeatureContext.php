@@ -141,7 +141,6 @@ class FeatureContext implements SnippetAcceptingContext
         }
     }
 
-
     /**
      * Match string against regular expression.
      * Mode is 'contains' for Match-All for submatches, or 'match' for start-to
@@ -189,7 +188,6 @@ class FeatureContext implements SnippetAcceptingContext
         }
     }
 
-
     /**
      * @Then each `:attr` line :mode the patterns:
      * @Then each `:attr` line :mode:
@@ -217,7 +215,8 @@ class FeatureContext implements SnippetAcceptingContext
         }
     }
 
-    public function ctxPropertyHasLinesMultiline($propertyName, $lines) {
+    public function ctxPropertyHasLinesMultiline($propertyName, $lines)
+    {
         $arr_lines = explode(PHP_EOL, $lines);
         $content = explode(PHP_EOL, $this->$propertyName);
         foreach ($arr_lines as $line) {
@@ -242,13 +241,13 @@ class FeatureContext implements SnippetAcceptingContext
         }
     }
 
-
     /**
      * Compare given attribute value line-by-line for exact match.
      *
      * @Then `:propertyName` should match:
      * @Then `:propertyName` should equal:
      * @Then /^`([^`]+)` should be:$/
+     * @Then /^`([^`]+)` should equal:$/
      * @Then /^`([^`]+)` equals:$/
      * @Then /^`([^`]+)` matches:$/
      */
@@ -270,6 +269,27 @@ class FeatureContext implements SnippetAcceptingContext
 
 
     /**
+     * Store a context value for later use by name.
+     *
+     * @Given /^property "([^"]*)" with value \'([^\']*)\'$/
+     */
+    public function ctxPropertySetting($propertyName, $value)
+    {
+        $this->$propertyName = $value;
+    }
+
+    /**
+     * @Then /^`([^`]+)` should be \'([^\']*)\'$/
+     * @Then /^`([^`]+)` should equal \'([^\']*)\'$/
+     * @Then /^`([^`]+)` equals \'([^\']*)\'$/
+     */
+    public function ctxProperyShouldEqual($propertyName, $string) {
+        if ("$string" != "{$this->$propertyName}") {
+            throw new Exception(" $propertyName is '{$this->$propertyName}' and does not match '$string'");
+        }
+    }
+
+    /**
      * @Then `:propertyName` should not match ':string'
      * @Then `:propertyName` should not equal ':string'
      * @Then /^`([^`]+)` should not be \'([^\']*)\'$/
@@ -280,17 +300,6 @@ class FeatureContext implements SnippetAcceptingContext
         if ("$string" == "{$this->$propertyName}") {
             throw new Exception(" $propertyName is '{$this->$propertyName}' and matches '$string'");
         }
-    }
-
-
-    /**
-     * Store a context value for later use by name.
-     *
-     * @Given /^property "([^"]*)" with value \'([^\']*)\'$/
-     */
-    public function ctxPropertySetting($propertyName, $value)
-    {
-        $this->$propertyName = $value;
     }
 
 
@@ -359,7 +368,7 @@ class FeatureContext implements SnippetAcceptingContext
     {
         foreach (glob($spec) as $filename) {
             if (file_exists($filename)) {
-              unlink($filename);
+                unlink($filename);
             }
         }
     }

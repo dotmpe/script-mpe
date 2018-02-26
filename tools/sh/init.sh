@@ -34,10 +34,7 @@ test -n "$SCRIPTPATH" || {
 }
 
 # Now include script and run util_init to source other utils
-#f_lib_load=tools-sh-init . $scriptpath/util.sh load-ext
-
-__load_mode=boot . ./util.sh
-lib_load projectenv env-deps
+__load_mode=ext . ./util.sh
 
 
 # Id: script-mpe/0.0.4-dev tools/sh/init.sh
