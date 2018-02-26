@@ -49,6 +49,18 @@ after_script:
 
 #after_success:
 
+before_cache:
+  - rm -f $HOME/.cache/pip/log/debug.log
+
+cache:
+  directories:
+     - ./node_modules
+     - ./vendor
+     - $HOME/.local
+     - $HOME/.basher
+     - $HOME/.cache/pip
+     - $HOME/virtualenv
+
 #matrix:
 #  include: []
 #
