@@ -51,12 +51,16 @@ do case "$BUILD_STEP" in
         lib_load build
 
         ## start with essential tests
-        note "Testing '$REQ_SPECS'"
+        note "Testing required specs '$REQ_SPECS'"
         build_test_init "$REQ_SPECS"
+        note "Init done"
         (
           test_shell $(which bats) &&
+          note "Bats shell tests done" &&
           $TEST_FEATURE $BUSINESS_SUITE  &&
-          python $PY_SUITE
+          note "Feature tests done" &&
+          python $PY_SUITE &&
+          note "Python unittests done"
         ) || touch $failed
 
         test -e "$TEST_RESULTS" || error "Test results expected" 1
@@ -70,8 +74,8 @@ do case "$BUILD_STEP" in
           wc -l $TEST_RESULTS
         }
 
-        ## Other tests
-        note "Testing '$TEST_SPECS'"
+        ## Other tests (TODO: complement?)
+        note "Testing all specs '$TEST_SPECS'"
         build_test_init "$REQ_SPECS"
         (
           test_shell $(which bats)
