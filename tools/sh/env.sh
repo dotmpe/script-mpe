@@ -45,18 +45,25 @@ BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
 
 project_env_bin node npm lsof
 
-test -x "./vendor/.bin/behat" && {
+test -n "$TEST_FEATURE_BIN" -o ! -x "./vendor/.bin/behat" ||
     TEST_FEATURE_BIN="./vendor/.bin/behat"
+test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behat)"
+test -n "$TEST_FEATURE_BIN" && {
     # Command to run one or all feature tests
     TEST_FEATURE="$TEST_FEATURE_BIN --tags ~@todo&&~@skip --suite default"
     # XXX: --tags '~@todo&&~@skip&&~@skip.travis'
     # Command to print def lines
     TEST_FEATURE_DEFS="$TEST_FEATURE_BIN -dl"
-} || {
-    test -x "$(which behave)" && {
-        TEST_FEATURE_BIN="behave"
-        TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo' --tags '~@skip' -k test"
-    }
+}
+
+test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behave)"
+test -n "$TEST_FEATURE_BIN" && {
+    TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo' --tags '~@skip' -k test"
+}
+
+test -n "$TEST_FEATURE" || {
+    warn "Nothing to test features"
+    TEST_FEATURE=echo
 }
 
 TAP_COLORIZE="script-bats.sh colorize"

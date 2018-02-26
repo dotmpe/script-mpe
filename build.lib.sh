@@ -16,13 +16,10 @@ build_test_init() # Specs...
 
   # NOTE: simply expand filenames from spec first,
   # then sort out testfiles into suites based on runner
-  local suite=/tmp/htd-build-test-$(uuidgen).list
-  echo 0.1
+  local suite=/tmp/htd-build-test-suite-$(uuidgen).list
   project_tests $SPECS > $suite
   wc -l $suite
-  echo 0.2
   test -s "$suite" || error "No specs for '$*'" 1
-  echo 0.3
   BUSINESS_SUITE="$( grep '\.feature$' $suite | lines_to_words )"
   BATS_SUITE="$( grep '\.bats$' $suite | lines_to_words )"
   PY_SUITE="$( grep '\.py$' $suite | lines_to_words )"
