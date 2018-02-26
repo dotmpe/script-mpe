@@ -27,8 +27,8 @@ addons:
 # - pytz
 
 before_install:
-  - . ./tools/ci/env.sh
   - scriptname="before-install"
+  - . ./tools/ci/env.sh
   - . ./tools/ci/parts/init.sh
 
 install:
