@@ -3803,7 +3803,7 @@ htd__gitrepo()
     return
   }
   info "Running '$*' ($(var2tags grep repos dir stdio_0_type))"
-  
+
   test -n "$dir" || dir=/srv/git-local/$NS_NAME
   test -z "$1" -a "t" != "$stdio_0_type" && set -- -
   test -n "$1" || set -- *.git
@@ -8535,10 +8535,10 @@ htd__src_info()
     src_id=$(htd_prefix $src)
     $LOG file_warn $src_id "Listing info.." >&2
     $LOG header "Box Source" >&2
-    functions_=$(htd__list_functions "$src" | count_lines) 
+    functions_=$(htd__list_functions "$src" | count_lines)
     functions=$(( $functions + $functions_ ))
     $LOG header2 "Functions" $functions_ >&2
-    count=$(count_lines "$src") 
+    count=$(count_lines "$src")
     lines=$(( $lines + $count ))
     $LOG header3 "Lines" $count >&2
     $LOG file_ok $srC_id >&2
@@ -9785,7 +9785,7 @@ htd_als__watch='run feature-watch'
 
 htd_man_1__resolve_modified='Helper to move files to GIT stage.
 
-Each basename must test OK, then it is staged. 
+Each basename must test OK, then it is staged.
 TODO: rewrite to infinite loop, that doesnt break until lst watch returns.
 '
 htd__resolve_modified()
@@ -9793,7 +9793,7 @@ htd__resolve_modified()
   vc_modified | while read name
     do
       basename=$(filestripext "$name");
-      c=_- mkid "$basename";
+      c="-_" mkid "$basename";
       note "$name: $basename: $id";
       echo "$id $name"
   done | join_lines - ' ' | while read component files
@@ -9810,7 +9810,7 @@ htd__components()
   vc_tracked | while read name
     do
       basename=$(filestripext "$name");
-      c=_- mkid "$basename";
+      c="-_" mkid "$basename";
       echo "$id $name"
   done
   #| join_lines - ' '
@@ -9824,7 +9824,7 @@ htd__test_all()
   vc_tracked | while read name
     do
       basename=$(filestripext "$name");
-      c=_- mkid "$basename";
+      c="-_" mkid "$basename";
       echo "$id $name"
   done | join_lines - ' ' | while read component files
   do
