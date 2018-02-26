@@ -272,7 +272,7 @@ def try_parse_issue_id(tag, text):
     if m:
         tag = text[slice(*m.span(1))]
         text = text.replace(text[slice(*m.span())], '')
-        return tag.strip(res.task.tag_seps+' '), text
+        return tag.strip(res.mb.tag_seps+' '), text
     return None, None
 
 

@@ -46,7 +46,9 @@ class FeatureContext implements SnippetAcceptingContext
      * otherwise fail step.
      *
      * @When /^the user runs `([^`]*)`(\?|\.+)?$/
+     * @When /^user runs "([^"]*)"(\?|\.+)?$/
      * @When /^the user runs "([^"]*)"(\?|\.+)?$/
+     * @When /^user executes "([^"]*)"(\?|\.+)?$/
      * @When /^the user executes "([^"]*)"(\?|\.+)?$/
      */
     public function theUserRuns($command, $withErrror='')
@@ -68,7 +70,9 @@ class FeatureContext implements SnippetAcceptingContext
      * otherwise fail step.
      *
      * @see theUserRuns()
+     * @When /^user runs:(\?|\.*)$/
      * @When /^the user runs:(\?|\.*)$/
+     * @When /^user executes:(\?|\.*)$/
      * @When /^the user executes:(\?|\.*)$/
      */
     public function theUserRunsMultiline($withErrror, PyStringNode $command)
@@ -123,10 +127,10 @@ class FeatureContext implements SnippetAcceptingContext
     }
 
     /**
-     * Test an attribute of the context with a regex.
+     * Test an attribute of the context with a regex, fail unless at least one
+     * match.
      *
      * @Then `:attr` :mode the pattern :arg1
-     * @Then /^`([^`]+)` (contain|match[es]*) the pattern '([^"]+)'\.?$/
      * @Then /^`([^`]+)` (contain|match[es]*) '([^"]+)'\.?$/
      */
     public function ctxPropertyPregForPattern($propertyName, $mode, $pattern)
@@ -138,6 +142,11 @@ class FeatureContext implements SnippetAcceptingContext
     }
 
 
+    /**
+     * Match string against regular expression.
+     * Mode is 'contains' for Match-All for submatches, or 'match' for start-to
+     * end.
+     */
     public function pregForPattern($string, $mode, $pattern) {
         $matches = array();
         if (substr($mode, 0, 7) == 'contain') {
@@ -153,10 +162,11 @@ class FeatureContext implements SnippetAcceptingContext
     /**
      * Test an attribute of context with every line from patterns as regex.
      *
+     * @Then `:attr` :mode the patterns:
      * @Then /^`([^`]+)` ((contain|match)[es]*) the patterns:$/
      * @Then /^`([^`]+)` ((contain|match)[es]*) patterns:$/
      */
-    public function ctxPropertyContainsThePatterns($propertyName, $mode, $patterns)
+    public function ctxPropertyContainsThePatterns($propertyName, $mode, PyStringNode $patterns)
     {
         $patterns = explode(PHP_EOL, $patterns);
         foreach ($patterns as $idx => $pattern ) {
@@ -165,7 +175,7 @@ class FeatureContext implements SnippetAcceptingContext
     }
 
     /**
-     * @Then /^each `([^`]+)` line ((contain|match)[es]*) the pattern \'([^\']*)\'$/
+     * @Then each `:attr` line :mode the pattern :pattern
      * @Then /^each `([^`]+)` line ((contain|match)[es]*) \'([^\']*)\'$/
      */
     public function ctxPropertyLinesEachPreg($propertyName, $mode, $pattern)
@@ -179,15 +189,41 @@ class FeatureContext implements SnippetAcceptingContext
         }
     }
 
+
     /**
-     * @Then /^each `([^`]+)` line ((contain|match)[es]*) the patterns:$/
-     * @Then /^each `([^`]+)` line ((contain|match)[es]*):$/
+     * @Then each `:attr` line :mode the patterns:
+     * @Then each `:attr` line :mode:
      */
     public function ctxPropertyLinesEachPregMultiline($propertyName, $mode, PyStringNode $pattern_ml)
     {
         $patterns = explode(PHP_EOL, $pattern_ml);
         foreach ($patterns as $pattern) {
             $this->ctxPropertyLinesEachPreg($propertyName, $mode, $pattern);
+        }
+    }
+
+
+    /**
+     * @Then `:attr` :mode the lines:
+     */
+    public function ctxPropertyLinesMultiline($propertyName, $mode, PyStringNode $lines)
+    {
+        if ($mode == 'contains') {
+            $this->ctxPropertyShouldEqualMultiline($propertyName, $lines);
+        } else if ($mode == 'has') {
+            $this->ctxPropertyHasLinesMultiline($propertyName, $lines);
+        } else {
+            $this->ctxPropertyLinesEachPregMultiline($propertyName, $mode, $lines);
+        }
+    }
+
+    public function ctxPropertyHasLinesMultiline($propertyName, $lines) {
+        $arr_lines = explode(PHP_EOL, $lines);
+        $content = explode(PHP_EOL, $this->$propertyName);
+        foreach ($arr_lines as $line) {
+            if (!in_array($line, $content)) {
+                throw new Exception("Expected '$line' line in $propertyName");
+            }
         }
     }
 
@@ -208,7 +244,7 @@ class FeatureContext implements SnippetAcceptingContext
 
 
     /**
-     * Compare given attribute value line-by-line.
+     * Compare given attribute value line-by-line for exact match.
      *
      * @Then `:propertyName` should match:
      * @Then `:propertyName` should equal:
@@ -379,6 +415,38 @@ class FeatureContext implements SnippetAcceptingContext
                     throw new Exception("File '$pathname' exists, it shouldn't");
                 }
             }
+        }
+    }
+
+    /**
+     * @Then /^`([^`]+)` has( not)? (exactly|more|less)(?: than)?( or equal to)? ([0-9]+) lines$/
+     */
+    public function countFilelines($propertyName, $invert, $mode, $or_equal, $linecount)
+    {
+        $lines_arr = explode(PHP_EOL, $this->$propertyName);
+        array_pop($lines_arr);
+        $lines = count($lines_arr);
+        if ($invert) {
+            $or_equal = !$or_equal;
+            if ($mode == 'more') { $mode = 'less'; }
+            else if ($mode == 'less') { $mode = 'more'; }
+        }
+        if ($mode == 'more') {
+            if ($or_equal and $lines < intval($linecount) or $lines <= intval($linecount)) {
+                throw new Exception("Length was $lines");
+            }
+        }
+        else if ($mode == 'less') {
+            if ($or_equal and $lines > intval($linecount) or $lines >= intval($linecount)) {
+                throw new Exception("Length was $lines");
+            }
+        }
+        else if ($mode == 'exactly') {
+            if ($lines != intval($linecount)) {
+                throw new Exception("Length was $lines");
+            }
+        } else {
+            throw new Exception("Unknown mode '$mode'");
         }
     }
 }

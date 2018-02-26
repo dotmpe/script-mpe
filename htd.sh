@@ -1584,7 +1584,10 @@ htd__script()
 
 htd__man_5__htdignore_merged='Exclude rules used by `htd find|edit|count`, compiled from other sources using ``htd init-ignores``. '
 
-htd_man_1__init_ignores="Write all exclude rules to .htdignores.merged"
+htd_man_1__init_ignores='Write all exclude rules to .htdignores.merged
+
+TODO: see ignores, list and vs.
+'
 htd__init_ignores()
 {
   htd_init_ignores
@@ -2432,6 +2435,7 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
         todo.txt/done.txt file, and any filename given as the third and following
         arguments
 
+  Default: tasks-scan.
   See tasks-hub for more local functions.
 
   Print package pd-meta tags setting using:
@@ -2447,6 +2451,11 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
 htd__tasks()
 {
   case "$1" in
+
+    info )
+        htd_tasks_load
+        note "$(var2tags  todo_slug todo_document todo_done )"
+      ;;
 
     be.src )
         mkvid "$2" ; cmid=$vid
@@ -3710,42 +3719,46 @@ htd_defargs_repo__git_files=/srv/git-local/bvberkum/*.git
 
 
 #
-htd_man_1__git_grep='Run git-grep for every given repository, passing arguments
+htd_man_1__git_grep='Run git-grep for every repository
+
+
+, passing arguments
 to git-grep.
 
 With `-C` interprets argument as shell command first, and passes ouput as
 argument(s) to `git grep`. Defaults to `git rev-list --all` output (which is no
-pre-run but per exec. repo). If env `repos` is provided it is used iso. stdin.
+pre-run but per exec. repo).
+
+
+If env `repos` is provided it is used iso. stdin.
 Or if `dir` is provided, each "*.git" path beneath that is used. Else uses the
-arguments. If stdin is attach to the terminal, `dir=/src` is set. Without any
+arguments.
+
+If stdin is attach to the terminal, `dir=/src` is set. Without any
 arguments it defaults to scanning all repos for "git.grep".
 
-TODO: spec is a work in progress.
-
+TODO: test spec
 '
 htd_spc__git_grep='git-grep [ -C=REPO-CMD ] [ RX | --grep= ] [ GREP-ARGS | --grep-args= ] [ --dir=DIR | REPOS... ] '
 htd_run__git_grep=iAO
 htd__git_grep()
 {
-  set -- $(cat $arguments)
   test -n "$grep" || { test -n "$1" && { grep="$1"; shift; } || grep=git.grep; }
   test -n "$grep_args" -o -n "$grep_eval" && {
     note "Using env args:'$grep_args' eval:'$grep_eval'"
   } || {
     trueish "$C" && {
       test -n "$1" && {
-        grep_eval="$1"; shift; } ||
-          grep_eval='$(git rev-list --all)';
+        grep_eval="$1"; shift
+    } ||
+        grep_eval='$(git rev-list --all)';
     } || {
       test -n "$1" && { grep_args="$1"; shift; } || grep_args=master
     }
   }
 
-  test "f" = "$stdio_0_type" -o -n "$repos" -o -n "$1" ||
-      dir=/srv/git-local/bvberkum
-
-  note "Running ($(var2tags grep C grep_eval grep_args repos dir stdio_0_type))"
-  htd_x__git_grep "$@" | { while read repo
+  note "Running ($(var2tags grep C grep_eval grep_args))"
+  htd__gitrepo "$@" | { while read repo
     do
       {
         info "$repo:"
@@ -3765,31 +3778,55 @@ htd__git_grep()
     done
   }
   #| less
-  note "Done ($(var2tags grep C grep_eval grep_args repos dir))"
+  note "Done ($(var2tags grep C grep_eval grep_args repos))"
 }
-htd_x__git_grep()
+
+htd_man_1__gitrepo='List local GIT repositories
+
+Match globs in dir, unless repos is given literally, paths are passed verbatim.
+This does not check that paths are GIT repositories.
+With no arguments reads stdin for arguments.
+
+Defaults effectively are:
+
+    --dir=/srv/git-local/$NS_NAME *.git``
+    --dir=/srv/git-local/$NS_NAME -
+'
+htd_spc__gitrepo='gitrepo [--repos=] [--dir=] [ GLOBS... | PATHS.. | - ]'
+htd_run__gitrepo=iAO
+htd__gitrepo()
 {
   test -n "$repos" && {
+    test -z "$*" || error no-args-expected 41
     debug "Repos: '$repos'"
     echo $repos | words_to_lines
-  } ||
-    { test -n "$dir" && {
-      for repo in $dir/*.git
-        do
-          echo $repo
-        done
-      noop
-    } || { test -n "$1" && {
-        while test $# -gt 0
-        do
-          echo "$1"
-          shift
-        done
-        noop
+    return
+  }
+  info "Running '$*' ($(var2tags grep repos dir stdio_0_type))"
+  
+  test -n "$dir" || dir=/srv/git-local/$NS_NAME
+  test -z "$1" -a "t" != "$stdio_0_type" && set -- -
+  test -n "$1" || set -- *.git
+
+  trueish "$gitrepo_args_asis" && gitrepo_args_asis=1 || gitrepo_args_asis=0
+
+  { while test $# -gt 0
+    do test "$1" = "-" && cat - || echo "$1"
+        shift
+    done
+  } | {
+
+    while read arg
+    do
+      test "$gitrepo_args_asis" = "1" -a -e "$1" && {
+        echo "$1"
       } || {
-        cat -
+        for repo in $dir/$arg
+          do
+            echo $repo
+          done
       }
-    }
+    done
   }
 }
 

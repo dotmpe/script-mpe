@@ -37,7 +37,8 @@ lst__names()
   }
 }
 
-lst_man_1__globs="List globs (in group)"
+
+lst_man_1__globs="Write globs (in group) to file and output"
 lst_als__list=globs
 lst_spc__globs="[GROUP]"
 lst_load__globs=iI
@@ -48,6 +49,8 @@ lst__globs()
   lst_init_ignores "$ext" local global
   read_nix_style_file $IGNORE_GLOBFILE$ext
 }
+lst_als__init_ignores=globs
+
 
 lst_man_1__local="List globs from local file only, without inherited patterns"
 lst_load__local=iI
