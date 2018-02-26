@@ -43,7 +43,7 @@ prepare_env()
   export $list="$( expand_deps $list | words_to_unique_lines | lines_to_words )"
 
   # Check/cache each
-  try_value "$list"
+  # XXX: try_var "$list"
   export $(for id in $value
     do
       out="$( provided_by_env $id || continue )"

@@ -295,6 +295,29 @@ sys_confirm()
   trueish "$choice_confirm"
 }
 
+# If any of VALUES it not in variable LIST, add it
+assert_list() # LIST VALUES...
+{
+	local to_add= list=$1 items="$(eval echo "\$$1")"
+	shift 1
+	to_add="$( for value in $@;
+		do
+			fnmatch "* $value *" " $items " && continue;
+			echo $value;
+		done )"
+	export $list="$(echo $items $to_add)"
+}
+
+# If ITEM is in items of LIST, add VALUES not already in list
+expand_item() # LIST ITEM VALUES...
+{
+	local to_add= list=$1 item=$2 items="$(eval echo "\$$1")"
+	shift 2
+	fnmatch "* $item *" " $items " && {
+		assert_list $list "$@"
+	} || true
+}
+
 pretty_print_var()
 {
   var_isset kvsep || kvsep='='

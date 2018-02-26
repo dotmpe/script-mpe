@@ -3,6 +3,11 @@
 
 # std: logging and dealing with the shell's stdio decriptors
 
+std_lib_load()
+{
+  test -n "$uname" || export uname="$(uname -s)"
+}
+
 io_dev_path()
 {
   case "$uname" in

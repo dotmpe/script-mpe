@@ -108,7 +108,6 @@
       - source ~/.pyvenv/du-ext/bin/activate
       - scriptname="init"
       - . ./tools/sh/init.sh
-      - lib_load $default_lib projectenv env-deps
       - . ./tools/sh/env.sh
       - . ./tools/ci/parts/init.sh
       - htd package update
