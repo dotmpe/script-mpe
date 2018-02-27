@@ -3484,7 +3484,7 @@ htd__git_remote()
           repos=$UCONFDIR/git/remote-dirs/$3.json
 
           { test -e $repos && newer_than $repos $_1DAY
-          } && stderr ok "File UCONF:git/remote-dirs/$3.json" || {
+          } && stderr ok "File UCONFDIR:git/remote-dirs/$3.json" || {
 
             URL="https://api.github.com/users/$4/repos"
             per_page=100

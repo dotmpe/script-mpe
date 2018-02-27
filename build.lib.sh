@@ -210,8 +210,8 @@ checkout_for_rebuild()
   test -n "$1" -a -n "$2" -a -n "$3" || error checkout_for_rebuild-args 1
   test -z "$4" || error checkout_for_rebuild-args 2
 
-  export BUILD_CAUSE=$TRAVIS_EVENT_TYPE
-  export BUILD_BRANCH=$1
+  test -n "$BUILD_CAUSE" || export BUILD_CAUSE=$TRAVIS_EVENT_TYPE
+  test -n "$BUILD_BRANCH" || export BUILD_BRANCH=$1
 
   checkout_if_newer "$@" && export \
     BUILD_CAUSE=rebuild \

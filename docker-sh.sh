@@ -528,7 +528,7 @@ docker_sh__mysql()
      export db_user_passwd=$(rnd_passwd 8)
      stderr note "Set random 8-char password for user '$db_user': '$db_user_passwd' (given only once)"
   }
-  
+
   test -n "$db_root_passwd" || {
      export db_root_passwd=$(rnd_passwd 16)
      stderr note "Set random 16-char password for root: '$db_root_passwd' (given only once)"
@@ -543,7 +543,7 @@ docker_sh__mysql()
       ;;
 
     status )
-        ${dckr} inspect -f '{{.State.Running}}' $docker_name || 
+        ${dckr} inspect -f '{{.State.Running}}' $docker_name ||
            stderr warn "Not running: '$docker_name'" 1
       ;;
 
@@ -1141,7 +1141,7 @@ docker_sh_lib()
 docker_sh_load()
 {
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
-  test -e "$UCONFDIR" || error "Missing user config dir $UCONF" 1
+  test -e "$UCONFDIR" || error "Missing user config dir $UCONFDIR" 1
 
   test -n "$DCKR_UCONF" || DCKR_UCONF=$UCONFDIR/dckr
   test -n "$DCKR_VOL" || DCKR_VOL=/srv/docker-volumes-local/

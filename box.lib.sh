@@ -237,15 +237,15 @@ box_list_libs()
 
 box_init()
 {
-  test -n "$UCONF" || error "box-init: UCONF" 1
-  cd $UCONF
+  test -n "$UCONFDIR" || error "box-init: UCONFDIR" 1
+  cd $UCONFDIR
 }
 
 
 box_update()
 {
-  test -n "$UCONF" || error "box-update: UCONF" 1
-  cd $UCONF
+  test -n "$UCONFDIR" || error "box-update: UCONFDIR" 1
+  cd $UCONFDIR
 
   test -n "$box_host" || box_host=$hostname
   test -n "$box_user" || box_user=$(whoami)
