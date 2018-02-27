@@ -167,16 +167,10 @@ test -n "$Jenkins_Skip" || {
 
 
 req_vars RUN_INIT || export RUN_INIT=
-req_vars RUN_FLOW || export RUN_FLOW=
-req_vars RUN_OPTIONS || export RUN_OPTIONS=
+#req_vars RUN_FLOW || export RUN_FLOW=
+#req_vars RUN_OPTIONS || export RUN_OPTIONS=
 req_vars BUILD_STEPS || export BUILD_STEPS="\
  dev test "
-
-req_vars TEST_COMPONENTS || export TEST_COMPONENTS="\
- basename-reg "
-
-req_vars TEST_FEATURES || export TEST_FEATURES=
-req_vars TEST_OPTIONS || export TEST_OPTIONS=
 
 req_vars TEST_SHELL || export TEST_SHELL=sh
 
@@ -205,7 +199,7 @@ req_vars INSTALL_DEPS || {
 " perl python-dev"\
 " realpath uuid-runtime moreutils curl php5-cli"
 }
-# not o shippable: npm
+# not on shippable: npm
 
 test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 

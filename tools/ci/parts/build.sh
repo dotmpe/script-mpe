@@ -63,6 +63,8 @@ do case "$BUILD_STEP" in
           note "Python unittests done"
         ) || touch $failed
 
+        grep -qv '^not ok' $TEST_RESULTS || touch $failed
+
         test -e "$TEST_RESULTS" || error "Test results expected" 1
 
         not_falseish "$SHIPPABLE" && {

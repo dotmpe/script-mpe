@@ -36,7 +36,7 @@ not_trueish "$SHIPPABLE" || {
   test -d shippable/codecoverage
 }
 
-fnmatch "* basename-reg *" "$TEST_COMPONENTS" && {
+fnmatch "* basename-reg *" " $TEST_SPECS " && {
   test -e ~/.basename-reg.yaml ||
     cp basename-reg.yaml ~/.basename-reg.yaml
 }
