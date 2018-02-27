@@ -1,5 +1,3 @@
-set -e
-
 # Boilerplate env for CI scripts
 
 . ./tools/sh/init.sh
