@@ -1,9 +1,11 @@
 #!/bin/sh
+echo "0.4.1"
 
 # Must be started from project root.
 # Import minimal setup and shell util functions.
 test -n "$scriptpath" || export scriptpath="$(pwd -P)"
 
+echo "0.4.2"
 # if not provided, auto-setup env
 # assuming execution starts in script dir (project root)
 test -n "$SCRIPTPATH" || {
@@ -33,8 +35,12 @@ test -n "$SCRIPTPATH" || {
   export SCRIPTPATH
 }
 
+echo "0.4.3"
+
 # Now include script and run util_init to source other utils
 __load_mode=ext . ./util.sh
+
+echo "0.4.4"
 
 
 # Id: script-mpe/0.0.4-dev tools/sh/init.sh
