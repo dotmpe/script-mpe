@@ -37,7 +37,7 @@ test_shell()
 {
   test -n "$*" || set -- bats
   local verbosity=4
-  note "test-shell: '$@' '$BATS_SUITE' | tee $TEST_RESULTS"
+  echo "test-shell: '$@' '$BATS_SUITE' | tee $TEST_RESULTS" >&2
   eval $@ $BATS_SUITE | tee $TEST_RESULTS
 }
 
