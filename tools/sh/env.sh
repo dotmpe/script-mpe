@@ -3,7 +3,6 @@
 # Keep current shell settings and mute while preparing env, restore at the end
 shopts=$-
 set +x
-set -e
 
 
 # Restore shell -e opt
