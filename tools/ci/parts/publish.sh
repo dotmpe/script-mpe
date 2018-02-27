@@ -1,6 +1,7 @@
 #!/bin/sh
 # Publish TAP test-results file to CouchDB
 set -xe
+dig +short myip.opendns.com @resolver1.opendns.com || true
 curl -sSf https://$CI_DB_HOST/ || {
   echo "No remote DB, skipped publish" >&2
   exit 0
