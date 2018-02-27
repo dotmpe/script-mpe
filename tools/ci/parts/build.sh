@@ -57,6 +57,7 @@ do case "$BUILD_STEP" in
         (
           test_shell $(which bats) &&
           note "Bats shell tests done" &&
+          note "$TEST_FEATURE '$BUSINESS_SUITE'"  &&
           $TEST_FEATURE $BUSINESS_SUITE  &&
           note "Feature tests done" &&
           python $PY_SUITE &&
