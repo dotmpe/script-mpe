@@ -15,5 +15,5 @@ bash_lib_load()
       echo "Found typeset cmd, expected Bash" >&2
       return 1
     }
-  }
+  } || true
 }

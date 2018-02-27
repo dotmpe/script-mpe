@@ -226,21 +226,6 @@ class FeatureContext implements SnippetAcceptingContext
         }
     }
 
-
-    /**
-     * @Then `:propertyName` should match ':string'
-     * @Then `:propertyName` should equal ':string'
-     * @Then /^`([^`]+)` should be \'([^\']*)\'$/
-     * @Then /^`([^`]+)` should equal \'([^\']*)\'$/
-     * @Then /^`([^`]+)` equals \'([^\']*)\'$/
-     */
-    public function ctxPropertyShouldEqual($propertyName, $string)
-    {
-        if ("$string" != "{$this->$propertyName}") {
-            throw new Exception(" $propertyName is '{$this->$propertyName}' and does not match '$string'");
-        }
-    }
-
     /**
      * Compare given attribute value line-by-line for exact match.
      *
@@ -279,6 +264,8 @@ class FeatureContext implements SnippetAcceptingContext
     }
 
     /**
+     * @Then `:propertyName` should match ':string'
+     * @Then `:propertyName` should equal ':string'
      * @Then /^`([^`]+)` should be \'([^\']*)\'$/
      * @Then /^`([^`]+)` should equal \'([^\']*)\'$/
      * @Then /^`([^`]+)` equals \'([^\']*)\'$/
@@ -301,7 +288,6 @@ class FeatureContext implements SnippetAcceptingContext
             throw new Exception(" $propertyName is '{$this->$propertyName}' and matches '$string'");
         }
     }
-
 
     /**
      * @Then /^`([^`]+)` should be empty.?$/
