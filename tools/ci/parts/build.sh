@@ -8,7 +8,7 @@ do case "$BUILD_STEP" in
     dev ) lib_load main; main_debug
 
         note "Pd help:"
-         FIXME: "Something wrong with pd/std__help"
+        # FIXME: "Something wrong with pd/std__help"
         (
           ./projectdir.sh help || true
         )
