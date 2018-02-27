@@ -8,11 +8,22 @@ do case "$BUILD_STEP" in
     dev ) lib_load main; main_debug
 
         note "Pd help:"
-        # FIXME: "Something wrong with pd/std__help"
         (
           ./projectdir.sh help || true
+          ./projectdir.sh --version || true
+          ./projectdir.sh test bats-specs bats || true
         )
-        ./projectdir.sh test bats-specs bats || true
+
+        note "vagrant-sh"
+        (
+           ./vagrant-sh.sh -h || true
+        )
+
+        note "x-test"
+        (
+           ./x-test.sh -h || true
+           ./x-test.sh --version || true
+        )
 
         note "box"
         (

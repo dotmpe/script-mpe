@@ -32,7 +32,7 @@ for (k in process.env) {
 // Store current build
 db.insert(build, buildkey, function(err) {
   if (err) {
-    console.log(err);
+    console.log(err.statusCode);
     process.exit(1);
   }
 });
@@ -41,7 +41,7 @@ db.insert(build, buildkey, function(err) {
 db.get(key, function( err, buildlog, headers ) {
 
   if (err) {
-    console.log(err);
+    console.log(err.statusCode);
     process.exit(1);
   }
 
