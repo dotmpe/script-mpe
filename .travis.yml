@@ -44,12 +44,6 @@ script:
   - export scriptname=script script_ts="$(date +%s)"
   - . ./tools/ci/parts/build.sh
 
-after_script:
-  - export scriptname=after_script after_script_ts="$(date +%s)"
-  - . ./tools/ci/parts/publish.sh
-
-#after_success:
-
 before_cache:
   - export scriptname=before-cache before_cache_ts="$(date +%s)"
   - rm -f $HOME/.cache/pip/log/debug.log
@@ -63,6 +57,12 @@ before_cache:
 #     - $HOME/.cache/pip
 #     - $HOME/virtualenv
 #     - $HOME/.npm
+
+after_script:
+  - export scriptname=after-script after_script_ts="$(date +%s)"
+  - . ./tools/ci/parts/publish.sh
+
+#after_success:
 
 #matrix:
 #  include: []

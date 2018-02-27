@@ -17,9 +17,28 @@ var server = require('nano')(url);
 var db = server.db.use(dbname);
 var buildkey = key+':'+process.env.TRAVIS_JOB_NUMBER;
 
+var before_install_ts = parseInt(process.env.before_install_ts);
+var install_ts = parseInt(process.env.install_ts);
+var before_script_ts = parseInt(process.env.before_script_ts);
+var script_ts = parseInt(process.env.script_ts);
+var after_script_ts = parseInt(process.env.after_script_ts);
+var before_cache_ts = parseInt(process.env.before_cache_ts);
+
 var results = JSON.parse(fs.readFileSync(process.env.CI_BUILD_RESULTS));
 var build = {
   "env": {},
+  "cause": process.env.BUILD_CAUSE,
+  "times": {
+    "before-install": before_install_ts,
+    "install": install_ts,
+    "before-script": before_script_ts,
+    "script": script_ts,
+    "before-cache": before_cache_ts,
+    "after-script": after_script_ts,
+    "init-duration": script_ts - before_install_ts,
+    "build-duration": before_cache_ts - script_ts,
+    "pre-publish-duration": after_script_ts - before_install_ts
+  },
   "stats": {
     "total": results.stats.asserts,
     "passed": results.stats.passes,
@@ -77,8 +96,10 @@ db.get(key, function( err, buildlog, headers ) {
     "stats": build.stats,
     "cause": process.env.BUILD_CAUSE,
     "times": {
-      "build-internal": parseInt(process.ENV.after_script) - parseInt(process.ENV.before_install_ts)
-    }
+      "init-duration": build.times['init-duration'],
+      "build-duration": build.times['build-duration'],
+      "pre-publish-duration": build.times['pre-publish-duration']
+    },
     "scm": {
       "commits": process.env.BUILD_COMMIT_RANGE,
       "branch": process.env.BUILD_BRANCH,
