@@ -16,12 +16,12 @@ case "$shopts"
         set +e
       } || {
         echo "[$0] Note: Shell will exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
-        set -e
       }
     ;;
 
   * )
       # Turn off again
+      test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" ||
       set +e
     ;;
 
