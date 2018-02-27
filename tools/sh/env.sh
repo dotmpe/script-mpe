@@ -62,8 +62,8 @@ test -n "$TEST_FEATURE_BIN" && {
 }
 
 test -n "$TEST_FEATURE" || {
-    warn "Nothing to test features"
-    TEST_FEATURE=echo
+    error "Nothing to test features"
+    TEST_FEATURE="echo"
 }
 
 TAP_COLORIZE="script-bats.sh colorize"
