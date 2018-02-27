@@ -42,19 +42,6 @@ test_shell()
 }
 
 
-#        test -z "$failed" -o ! -e "$failed" && {
-#          r=0
-#          test ! -s "$failed" || {
-#            echo "Failed: $(echo $(cat $failed))"
-#            rm $failed
-#            r=1
-#          }
-#          unset failed
-#        } || true
-#
-#        exit $r
-
-
 # Run tests for DUT's
 project_test() # [Units...|Comps..]
 {

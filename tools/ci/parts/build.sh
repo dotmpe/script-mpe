@@ -57,7 +57,7 @@ do case "$BUILD_STEP" in
         build_test_init "$REQ_SPECS"
         note "Init done"
         (
-          test_shell $TEST_SHELL $(which bats)|| true
+          test_shell $(which bats)|| true
           note "Bats shell tests done"
           note "$TEST_FEATURE '$BUSINESS_SUITE'"
           $TEST_FEATURE $BUSINESS_SUITE || true
@@ -80,11 +80,24 @@ do case "$BUILD_STEP" in
         }
 
         ## Other tests (TODO: complement?)
-        note "Testing all specs '$TEST_SPECS'"
-        build_test_init "$REQ_SPECS"
-        (
-          test_shell $(which bats)
-        ) || true
+        #note "Testing all specs '$TEST_SPECS'"
+        #build_test_init "$REQ_SPECS"
+        #(
+        #  test_shell $(which bats)
+        #) || true
+
+
+        test -z "$failed" -o ! -e "$failed" && {
+          r=0
+          test ! -s "$failed" || {
+            echo "Failed: $(echo $(cat $failed))"
+            rm $failed
+            r=1
+          }
+          unset failed
+        } || r=0
+
+        exit $r
       ;;
 
     noop )
