@@ -50,6 +50,8 @@ do case "$BUILD_STEP" in
     test )
         lib_load build
 
+        local failed=/tmp/htd-build-test-$(uuidgen).failed
+
         ## start with essential tests
         note "Testing required specs '$REQ_SPECS'"
         build_test_init "$REQ_SPECS"
