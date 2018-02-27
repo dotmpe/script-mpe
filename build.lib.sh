@@ -183,3 +183,26 @@ retest()
     }
   done
 }
+
+# Checkout from given remote if it is ahead
+checkout_for_rebuild()
+{
+  test -n "$1" -a -n "$2" -a -n "$3" || error checkout_for_rebuild-args 1
+  test -z "$4" || error checkout_for_rebuild-args 2
+
+  # Want to trigger on rebuild but cant?
+  # So instead checkout from remote if it is ahead always.
+  # NOTE: same even for retrigger/rebuild "push" = "$TRAVIS_EVENT_TYPE"
+
+  url="$(git config --get remote.$2.url)"
+  test -n "$url" && {
+    test "$url" = "$3" || git remote set-url $2 $3
+  } || git remote add $2 $3
+
+  git fetch $2
+
+  behind=$( git rev-list $1..$2/$1 --count )
+  test $behind -gt 0 && {
+    git checkout --force $2/$TRAVIS_BRANCH
+  }
+}

@@ -21,9 +21,9 @@ var results = JSON.parse(fs.readFileSync(process.env.CI_BUILD_RESULTS));
 var build = {
   "env": {},
   "stats": {
-    //"total": results.stats.asserts,
-    //"passed": results.stats.passes,
-    //"failed": results.stats.failures
+    "total": results.stats.asserts,
+    "passed": results.stats.passes,
+    "failed": results.stats.failures
   },
   "tests": results.asserts
 };
@@ -65,8 +65,8 @@ db.get(key, function( err, buildlog, headers ) {
   buildlog.builds[process.env.TRAVIS_JOB_NUMBER] = {
     "stats": build.stats,
     "scm": {
-      //"commits": process.env.TRAVIS_COMMIT_RANGE,
-      //"branch": process.env.TRAVIS_BRANCH
+      "commits": process.env.TRAVIS_COMMIT_RANGE,
+      "branch": process.env.TRAVIS_BRANCH
     }
   };
 
