@@ -27,7 +27,6 @@ note "Updated branch for rebuild (invalidates env)" || true
 
 # This is also like the classic software ./configure.sh stage.
 
-
 test -z "$BUILD_ID" || {
   test ! -d build || {
     rm -rf build
