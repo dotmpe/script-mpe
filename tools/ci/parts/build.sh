@@ -59,16 +59,17 @@ do case "$BUILD_STEP" in
         build_test_init "$REQ_SPECS"
         note "Init done"
         (
-          test_shell $(which bats)|| true
+          test_shell $(which bats) || touch $failed
           note "Bats shell tests done"
-          $TEST_FEATURE $BUSINESS_SUITE || true
+          $TEST_FEATURE $BUSINESS_SUITE || true # touch $failed
           note "Feature tests done"
-          python $PY_SUITE || true
+          python $PY_SUITE || touch $failed
           note "Python unittests done"
-        ) # || touch $failed
+        )
 
         test -e "$TEST_RESULTS" || error "Test results expected" 1
-        grep '^not\ ok' $TEST_RESULTS && touch $failed
+        grep '^not\ ok' $TEST_RESULTS && touch $failed ||
+            stderr ok "No errors in req-specs"
         not_falseish "$SHIPPABLE" && {
 
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \

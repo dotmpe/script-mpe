@@ -5,11 +5,10 @@ var fs = require('fs');
 
 var url = "https://"+process.env.CI_DB_INFO+"@"+process.env.CI_DB_HOST;
 var dbname = process.env.CI_DB_NAME;
-
 var key = process.env.TRAVIS_REPO_SLUG;
 
-
 console.log("update-couchdb-testlog: DB '"+dbname+"', key: "+key);
+
 var server = require('nano')(url);
 var db = server.db.use(dbname);
 var buildkey = key+':'+process.env.TRAVIS_JOB_NUMBER;
@@ -31,10 +30,20 @@ for (k in process.env) {
 }
 
 // Store current build
-db.insert(build, buildkey);
+db.insert(build, buildkey, function(err) {
+  if (err) {
+    console.log(err);
+    process.exit(1);
+  }
+});
 
 // Set latest build info
 db.get(key, function( err, buildlog, headers ) {
+
+  if (err) {
+    console.log(err);
+    process.exit(1);
+  }
 
   if (!buildlog) {
     buildlog = {"builds": {}};
