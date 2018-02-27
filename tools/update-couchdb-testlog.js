@@ -3,6 +3,10 @@
  */
 var fs = require('fs');
 
+if (!process.env.CI_DB_INFO.trim() && process.env.CI_DB_HOST.trim()) {
+    console.error("DB host and access info requried");
+    process.exit(2);
+}
 var url = "https://"+process.env.CI_DB_INFO+"@"+process.env.CI_DB_HOST;
 var dbname = process.env.CI_DB_NAME;
 var key = process.env.TRAVIS_REPO_SLUG;
@@ -32,7 +36,7 @@ for (k in process.env) {
 // Store current build
 db.insert(build, buildkey, function(err) {
   if (err) {
-    console.log(err.statusCode);
+    console.error(err.statusCode);
     process.exit(1);
   }
 });
@@ -41,7 +45,7 @@ db.insert(build, buildkey, function(err) {
 db.get(key, function( err, buildlog, headers ) {
 
   if (err) {
-    console.log(err.statusCode);
+    console.error(err.statusCode);
     process.exit(1);
   }
 

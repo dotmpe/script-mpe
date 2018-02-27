@@ -98,9 +98,7 @@ do case "$BUILD_STEP" in
         #) || true
 
         test ! -e "$failed" || {
-          test ! -s "$failed" || {
-            echo "Failed: $(echo $(cat $failed))"
-          }
+          test -s "$failed" && error "Failed: $(echo $(cat $failed))" || error "Build failed"
           rm $failed
           unset failed
           return 1
