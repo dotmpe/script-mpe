@@ -2,7 +2,7 @@
 
 # Keep current shell settings and mute while preparing env, restore at the end
 shopts=$-
-set -x
+test -n "$DEBUG" && set -x || set +x
 
 
 # Restore shell -e opt
@@ -25,6 +25,7 @@ case "$shopts"
 
 esac
 
+echo "0.4.3"
 type error >/dev/null 2>&1 || { echo "std.lib missing" >&2 ; exit 1 ; }
 type req_vars >/dev/null 2>&1 || error "sys.lib missing" 1
 req_vars scriptname || error "scriptname=$scriptname" 1
@@ -46,7 +47,7 @@ project_env_bin node npm lsof
 
 test -n "$TEST_FEATURE_BIN" -o ! -x "./vendor/.bin/behat" ||
     TEST_FEATURE_BIN="./vendor/.bin/behat"
-test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behat)"
+test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behat || true)"
 test -n "$TEST_FEATURE_BIN" && {
     # Command to run one or all feature tests
     TEST_FEATURE="$TEST_FEATURE_BIN --tags ~@todo&&~@skip --suite default"
@@ -55,7 +56,7 @@ test -n "$TEST_FEATURE_BIN" && {
     TEST_FEATURE_DEFS="$TEST_FEATURE_BIN -dl"
 }
 
-test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behave)"
+test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behave || true)"
 test -n "$TEST_FEATURE_BIN" && {
     TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo' --tags '~@skip' -k test"
 }
