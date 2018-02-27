@@ -199,9 +199,11 @@ checkout_if_newer()
   git fetch $2
   behind=$( git rev-list $1..$2/$1 --count )
   test $behind -gt 0 && {
-    export BUILD_REMOTE=$2
-    export BUILD_BRANCH_BEHIND=$behind
+    from="$(git rev-parse HEAD)"
     git checkout --force $2/$1
+    to="$(git rev-parse HEAD)"
+    export BUILD_REMOTE=$2 BUILD_BRANCH_BEHIND=$behind \
+        BUILD_COMMIT_RANGE=$from...$to
   }
 }
 
@@ -213,6 +215,7 @@ checkout_for_rebuild()
   test -n "$BUILD_CAUSE" || export BUILD_CAUSE=$TRAVIS_EVENT_TYPE
   test -n "$BUILD_BRANCH" || export BUILD_BRANCH=$1
 
+  export BUILD_COMMIT_RANGE=$TRAVIS_COMMIT_RANGE
   checkout_if_newer "$@" && export \
     BUILD_CAUSE=rebuild \
     BUILD_REBUILD_WITH="$(git describe --always)"

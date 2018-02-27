@@ -75,9 +75,13 @@ db.get(key, function( err, buildlog, headers ) {
   }
   buildlog.builds[process.env.TRAVIS_JOB_NUMBER] = {
     "stats": build.stats,
+    "cause": process.env.BUILD_CAUSE,
+    "times": {
+      "build-internal": parseInt(process.ENV.after_script) - parseInt(process.ENV.before_install_ts)
+    }
     "scm": {
-      "commits": process.env.TRAVIS_COMMIT_RANGE,
-      "branch": process.env.TRAVIS_BRANCH
+      "commits": process.env.BUILD_COMMIT_RANGE,
+      "branch": process.env.BUILD_BRANCH,
     }
   };
 
