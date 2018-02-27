@@ -55,9 +55,11 @@ test -n "$TEST_FEATURE_BIN" && {
     TEST_FEATURE_DEFS="$TEST_FEATURE_BIN -dl"
 }
 
-test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behave || true)"
-test -n "$TEST_FEATURE_BIN" && {
-    TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo' --tags '~@skip' -k test"
+test -n "$TEST_FEATURE" || {
+    test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behave || true)"
+    test -n "$TEST_FEATURE_BIN" && {
+        TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo' --tags '~@skip' -k test"
+    }
 }
 
 test -n "$TEST_FEATURE" || {
