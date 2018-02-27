@@ -29,7 +29,7 @@ addons:
 before_install:
   - export scriptname="before-install" before_install_ts="$(date +%s)"
   - . ./tools/ci/env.sh
-  - . ./tools/ci/parts/init.sh
+  - . ./tools/ci/parts/init.sh || { . ./tools/ci/env.sh ; . ./tools/ci/parts/init.sh ; }
 
 install:
   - export scriptname=install install_ts="$(date +%s)"
