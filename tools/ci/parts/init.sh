@@ -5,6 +5,10 @@
 note "Entry for CI pre-install / init phase"
 
 
+git remote add bitbucket https://dotmpe@bitbucket.org/dotmpe-personal/script-mpe.git
+git checkout bitbucket/$TRAVIS_BRANCH --hard
+
+
 # Basicly if these don't run dont bother with anything,
 # But cannot abort/skip a Travis build without failure, can they?
 

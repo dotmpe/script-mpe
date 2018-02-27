@@ -27,30 +27,30 @@ addons:
 # - pytz
 
 before_install:
-  - scriptname="before-install" ; before_install_ts="$(date +%s)"
+  - export scriptname="before-install" before_install_ts="$(date +%s)"
   - . ./tools/ci/env.sh
   - . ./tools/ci/parts/init.sh
 
 install:
-  - scriptname=install ; ${scriptname}_ts="$(date +%s)"
+  - export scriptname=install install_ts="$(date +%s)"
   - . ./tools/ci/parts/install.sh
 
 before_script:
-  - scriptname="before-script" ; before_script_ts="$(date +%s)"
+  - export scriptname="before-script" before_script_ts="$(date +%s)"
   - . ./tools/ci/parts/check.sh
 
 script:
-  - scriptname=script ; script_ts="$(date +%s)"
+  - export scriptname=script script_ts="$(date +%s)"
   - . ./tools/ci/parts/build.sh
 
 after_script:
-  - scriptname=after_script ; ${scriptname}_ts="$(date +%s)"
+  - export scriptname=after_script after_script_ts="$(date +%s)"
   - . ./tools/ci/parts/publish.sh
 
 #after_success:
 
 before_cache:
-  - scriptname=before_cache ; ${scriptname}_ts="$(date +%s)"
+  - export scriptname=before-cache before_cache_ts="$(date +%s)"
   - rm -f $HOME/.cache/pip/log/debug.log
 
 #cache:
