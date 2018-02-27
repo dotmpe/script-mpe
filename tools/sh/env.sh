@@ -2,8 +2,7 @@
 
 # Keep current shell settings and mute while preparing env, restore at the end
 shopts=$-
-echo "shopts: '$shopts'"
-set +x
+set -x
 
 
 # Restore shell -e opt
@@ -20,9 +19,8 @@ case "$shopts"
     ;;
 
   * )
-      # Turn off again
-      test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" ||
-      set +e
+      # Turn on again
+      test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" || set -e
     ;;
 
 esac
