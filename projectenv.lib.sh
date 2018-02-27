@@ -142,6 +142,7 @@ build_params()
   req_vars Env_Param_Re Job_Param_Re
   env | grep -i "$Env_Param_Re"
   env | grep -i "$Job_Param_Re"
+  env | grep '_ts='
   note "Project_Env_Requirements=$Project_Env_Requirements"
 }
 

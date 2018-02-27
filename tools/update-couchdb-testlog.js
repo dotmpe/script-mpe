@@ -43,7 +43,13 @@ if (!build.env) {
   }
 }
 
-// Store current build
+db.get(buildkey, function(err, rs) {
+  if (!err) {
+    build._rev = rs._rev;
+  }
+});
+
+// Store or update build number
 db.insert(build, buildkey, function(err) {
   if (err) {
     console.error(err.statusCode);
