@@ -64,7 +64,7 @@ test -n "$TEST_FEATURE" || {
 }
 
 test -n "$TEST_FEATURE" || {
-    error "Nothing to test features"
+    error "Nothing to test features with"
     TEST_FEATURE="echo"
 }
 

@@ -17,5 +17,9 @@ CI_BUILD_RESULTS=$TEST_RESULTS.json \
   CI_DB_HOST="$CI_DB_HOST" \
   CI_DB_INFO="$CI_DB_INFO" \
   CI_DB_NAME='build-log' \
-      node ./tools/update-couchdb-testlog.js
+      node ./tools/update-couchdb-testlog.js || {
+
+  echo "Ignored publisher failure" >&2
+  exit 0
+}
 # Id: script-mpe/0.0.4-dev tools/ci/parts/publish.sh

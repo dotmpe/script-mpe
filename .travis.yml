@@ -34,6 +34,7 @@ before_install:
 install:
   - export scriptname=install install_ts="$(date +%s)"
   - . ./tools/ci/parts/install.sh
+  - . ./tools/ci/env.sh
 
 before_script:
   - export scriptname="before-script" before_script_ts="$(date +%s)"

@@ -6,7 +6,7 @@ note "Entry for CI pre-install / init phase"
 
 
 git remote add bitbucket https://dotmpe@bitbucket.org/dotmpe-personal/script-mpe.git
-git checkout bitbucket/$TRAVIS_BRANCH --hard
+git checkout --force bitbucket/$TRAVIS_BRANCH
 
 
 # Basicly if these don't run dont bother with anything,
@@ -17,6 +17,8 @@ git checkout bitbucket/$TRAVIS_BRANCH --hard
 
 note "PWD: $(pwd && pwd -P)"
 note "Whoami: $( whoami )"
+
+env | grep -i even
 
 note "CI Env:"
 { env | grep -i 'shippable\|travis\|ci' | sed 's/^/	/' >&2; } || noop
