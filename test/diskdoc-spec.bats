@@ -8,6 +8,8 @@ init
 version=0.0.4-dev # script-mpe
 
 @test "${bin}" "No arguments: default action is status" {
+  check_skipped_envs travis || skip
+
   test "$uname" != Darwin || skip "Diskdoc env not available for BSD/Darwin"
   run $bin
   test_ok_nonempty || stdfail

@@ -69,7 +69,7 @@ do case "$BUILD_STEP" in
         ) # || touch $failed
 
         test -e "$TEST_RESULTS" || error "Test results expected" 1
-        grep -qv '^not ok' $TEST_RESULTS || touch $failed
+        grep -qv '^not\ ok' $TEST_RESULTS || touch $failed
         not_falseish "$SHIPPABLE" && {
 
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
@@ -86,15 +86,14 @@ do case "$BUILD_STEP" in
         #  test_shell $(which bats)
         #) || true
 
-        test -z "$failed" -o ! -e "$failed" && r=0 || {
-          r=1
+        test ! -e "$failed" || {
           test ! -s "$failed" || {
             echo "Failed: $(echo $(cat $failed))"
           }
           rm $failed
           unset failed
+          return 1
         }
-        exit $r
       ;;
 
     noop )
