@@ -86,16 +86,14 @@ do case "$BUILD_STEP" in
         #  test_shell $(which bats)
         #) || true
 
-        test -z "$failed" -o ! -e "$failed" && {
-          r=0
+        test -z "$failed" -o ! -e "$failed" && r=0 || {
+          r=1
           test ! -s "$failed" || {
             echo "Failed: $(echo $(cat $failed))"
-            rm $failed
-            r=1
           }
+          rm $failed
           unset failed
-        } || r=0
-
+        }
         exit $r
       ;;
 
