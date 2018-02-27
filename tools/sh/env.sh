@@ -143,8 +143,7 @@ test -n "$Dry_Run" ||           export Dry_Run=
 
 # Sh (projectenv.lib)
 test -n "$Env_Param_Re" || export Env_Param_Re='^\(ENV\|ENV_NAME\|NAME\|TAG\|ENV_.*\)='
-test -n "$Job_Param_Re" ||
-  export Job_Param_Re='^\(Project\|Jenkins\|Build\|Job\)_'
+test -n "$Job_Param_Re" || export Job_Param_Re='^\(Project\|Jenkins\|Build\|Job\|Travis\)_'
 
 # install-dependencies
 #test -n "$Build_Deps_Default_Paths" || export Build_Deps_Default_Paths=1

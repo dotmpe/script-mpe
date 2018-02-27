@@ -142,7 +142,7 @@ build_params()
   req_vars Env_Param_Re Job_Param_Re
   env | grep -i "$Env_Param_Re"
   env | grep -i "$Job_Param_Re"
-  note "Box_Env_Requirements=$Box_Env_Requirements"
+  note "Project_Env_Requirements=$Project_Env_Requirements"
 }
 
 
@@ -152,5 +152,3 @@ build_error()
   echo "$1" >> $build_errors
   error "$1"
 }
-
-

@@ -9,6 +9,10 @@ curl -sSf https://$CI_DB_HOST/ || {
   exit 0
 }
 cat $TEST_RESULTS | tap-json > $TEST_RESULTS.json
+PARAMS=/tmp/htd-ci-publish-build-params-$(uuidgen)
+build_params > $PARAMS.env
+any-json --input-format=ini $PARAMS.env $PARAMS.json
+CI_BUILD_ENV="$PARAMS.json" \
 CI_BUILD_RESULTS=$TEST_RESULTS.json \
   CI_DB_HOST="$CI_DB_HOST" \
   CI_DB_INFO="$CI_DB_INFO" \

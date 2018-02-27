@@ -21,15 +21,25 @@ var results = JSON.parse(fs.readFileSync(process.env.CI_BUILD_RESULTS));
 var build = {
   "env": {},
   "stats": {
-    "total": results.stats.asserts,
-    "passed": results.stats.passes,
-    "failed": results.stats.failures
+    //"total": results.stats.asserts,
+    //"passed": results.stats.passes,
+    //"failed": results.stats.failures
   },
   "tests": results.asserts
 };
-for (k in process.env) {
-  if (k.substr(0, 6) == 'TRAVIS') {
-    build.env[k] = process.env[k];
+
+var paramsFile = process.env.CI_BUILD_ENV;
+var env = {};
+if (fs.existsSync(paramsFile)) {
+  build.env = JSON.parse(fs.readFileSync(paramsFile));
+}
+if (!build.env) {
+  for (k in process.env) {
+    for (pref in ['PROJECT','BUILD','JOB','JENKINS','TRAVIS']) {
+      if (k.substr(0, pref.length).upper() == pref) {
+        build.env[k] = process.env[k];
+      }
+    }
   }
 }
 
@@ -55,8 +65,8 @@ db.get(key, function( err, buildlog, headers ) {
   buildlog.builds[process.env.TRAVIS_JOB_NUMBER] = {
     "stats": build.stats,
     "scm": {
-      "commits": process.env.TRAVIS_COMMIT_RANGE,
-      "branch": process.env.TRAVIS_BRANCH
+      //"commits": process.env.TRAVIS_COMMIT_RANGE,
+      //"branch": process.env.TRAVIS_BRANCH
     }
   };
 

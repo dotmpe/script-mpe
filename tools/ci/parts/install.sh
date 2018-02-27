@@ -23,6 +23,7 @@ test "$(whoami)" = "travis" || {
 ./install-dependencies.sh all pip php dev bats-force-local
 
 test -x "$(which tap-json)" || npm install -g tap-json
+test -x "$(which any-json)" || npm install -g any-json
 npm install nano
 
 test "$(whoami)" = "travis" && {

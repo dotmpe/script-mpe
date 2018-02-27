@@ -2,7 +2,6 @@
 
 set -e
 
-
 test sh-finfo.sqlite ||
   db_sa.py --dbref=sh-finfo.sqlite init
 
