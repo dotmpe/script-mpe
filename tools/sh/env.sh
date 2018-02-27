@@ -25,7 +25,6 @@ case "$shopts"
 
 esac
 
-echo "0.4.3"
 type error >/dev/null 2>&1 || { echo "std.lib missing" >&2 ; exit 1 ; }
 type req_vars >/dev/null 2>&1 || error "sys.lib missing" 1
 req_vars scriptname || error "scriptname=$scriptname" 1
@@ -185,13 +184,13 @@ req_vars TEST_SHELL || export TEST_SHELL=sh
 req_vars REQ_SPECS ||
   export REQ_SPECS="util 1_1-helper"\
 " str sys os std stdio argv bash match matchbox src vc main"\
-" sh box-lib box-cmd box pd-meta esop disk diskdoc"
+" sh box-lib box pd-meta esop disk diskdoc"
 
 # Specs for report but not counting in final test-result judgement
 req_vars TEST_SPECS || \
   export TEST_SPECS="statusdir htd basename-reg dckr"\
 " rsr edl finfo vc"\
-" jsotk-py libcmd_stacked mimereg radical"\
+" jsotk-py box-cmd libcmd_stacked mimereg radical"\
 " meta pd"
 
 req_vars INSTALL_DEPS || {
