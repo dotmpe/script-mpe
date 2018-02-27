@@ -16,10 +16,14 @@ note "CI Env:"
 note "Build Env:"
 build_params | sed 's/^/	/' >&2
 
-note "Checkout for rebuild"
+note "Checkout for rebuild..."
 checkout_for_rebuild $TRAVIS_BRANCH \
     bitbucket https://dotmpe@bitbucket.org/dotmpe-personal/script-mpe.git &&
-note "Updated branch for rebuild (invalidates env)" || true
+    note "Updated branch for rebuild (invalidates env)" || note "nope ($?)"
+
+git describe --always
+env | grep '^BUILD_'
+echo '-------------------------------------'
 
 
 # Basicly if these don't run dont bother with anything,

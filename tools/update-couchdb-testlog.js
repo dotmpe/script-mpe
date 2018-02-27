@@ -43,14 +43,19 @@ if (!build.env) {
   }
 }
 
-db.get(buildkey, function(err, rs) {
-  if (!err) {
-    build._rev = rs._rev;
-  }
-});
+db.update = function(obj, key, callback) {
+  var db = this;
+  db.get(key, function (error, existing) {
+    if (!error) {
+      obj._rev = existing._rev;
+      console.log(key, "updating:", obj._rev);
+    }
+    db.insert(obj, key, callback);
+  });
+}
 
 // Store or update build number
-db.insert(build, buildkey, function(err) {
+db.update(build, buildkey, function(err) {
   if (err) {
     console.error(err.statusCode);
     process.exit(1);
@@ -76,7 +81,14 @@ db.get(key, function( err, buildlog, headers ) {
     }
   };
 
-  db.insert( buildlog, key );
+  db.insert( buildlog, key, function(error) {
+
+     if (err) {
+       console.error(err.statusCode);
+       process.exit(1);
+     }
+     console.log("OK, updated", buildkey);
+  });
 });
 
 // Id: script-mpe/0.0.4-dev tools/update-couchdb-testlog.js

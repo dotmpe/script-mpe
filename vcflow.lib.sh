@@ -6,8 +6,8 @@
 # Set default vars
 vcflow_lib_load()
 {
-  test -n "$scm" || { vc_getscm || return 0; }
   test -n "$DOC_EXTS" || DOC_EXTS=".tab .txt"
+  test -n "$scm" || { vc_getscm || return 0; }
 }
 
 # Start env session for specific gitflow file

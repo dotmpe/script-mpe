@@ -1,6 +1,6 @@
 #!/bin/sh
-# Publish TAP test-results file to CouchDB
-set -xe
+# Publish build-report to CouchDB
+set -e
 dig +short myip.opendns.com @resolver1.opendns.com || true
 curl -s https://4.ifcfg.me/
 curl -s http://whatismyip.akamai.com/
@@ -20,6 +20,7 @@ CI_BUILD_RESULTS=$TEST_RESULTS.json \
       node ./tools/update-couchdb-testlog.js || {
 
   echo "Ignored publisher failure" >&2
+  sleep 2
   exit 0
 }
 # Id: script-mpe/0.0.4-dev tools/ci/parts/publish.sh

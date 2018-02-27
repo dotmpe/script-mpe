@@ -184,25 +184,36 @@ retest()
   done
 }
 
-# Checkout from given remote if it is ahead
+# Checkout from given remote if it is ahead, for devops work on branch & CI.
+# Allows to update from amended commit in separate (local/dev) repository,
+# w/o adding new commit and (for some systems) getting a new build number.
+checkout_if_newer()
+{
+  test -n "$1" -a -n "$2" -a -n "$3" || error checkout-if-newer.args 1
+  test -z "$4" || error checkout-if-newer.args 2
+
+  local behind= url="$(git config --get remote.$2.url)"
+  test -n "$url" && {
+    test "$url" = "$3" || git remote set-url $2 $3
+  } || git remote add $2 $3
+  git fetch $2
+  behind=$( git rev-list $1..$2/$1 --count )
+  test $behind -gt 0 && {
+    export BUILD_REMOTE=$2
+    export BUILD_BRANCH_BEHIND=$behind
+    git checkout --force $2/$1
+  }
+}
+
 checkout_for_rebuild()
 {
   test -n "$1" -a -n "$2" -a -n "$3" || error checkout_for_rebuild-args 1
   test -z "$4" || error checkout_for_rebuild-args 2
 
-  # Want to trigger on rebuild but cant?
-  # So instead checkout from remote if it is ahead always.
-  # NOTE: same even for retrigger/rebuild "push" = "$TRAVIS_EVENT_TYPE"
+  export BUILD_CAUSE=$TRAVIS_EVENT_TYPE
+  export BUILD_BRANCH=$1
 
-  url="$(git config --get remote.$2.url)"
-  test -n "$url" && {
-    test "$url" = "$3" || git remote set-url $2 $3
-  } || git remote add $2 $3
-
-  git fetch $2
-
-  behind=$( git rev-list $1..$2/$1 --count )
-  test $behind -gt 0 && {
-    git checkout --force $2/$TRAVIS_BRANCH
-  }
+  checkout_if_newer "$@" && export \
+    BUILD_CAUSE=rebuild \
+    BUILD_REBUILD_WITH="$(git describe --always)"
 }
