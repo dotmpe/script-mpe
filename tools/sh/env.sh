@@ -178,13 +178,13 @@ req_vars TEST_SHELL || export TEST_SHELL=sh
 # Required specs, each of these must test OK
 req_vars REQ_SPECS ||
   export REQ_SPECS="util 1_1-helper"\
-" str sys os std stdio argv bash match matchbox src vc main"\
+" str sys os std stdio argv bash match.lib vc.lib matchbox src main"\
 " sh box-lib pd-meta esop"
 
 # Specs for report but not counting in final test-result judgement
 req_vars TEST_SPECS || \
   export TEST_SPECS="statusdir htd basename-reg dckr"\
-" rsr edl finfo vc"\
+" rsr edl finfo vc match"\
 " jsotk-py box box-cmd libcmd_stacked mimereg radical"\
 " meta pd disk diskdoc"
 

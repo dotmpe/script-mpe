@@ -61,7 +61,6 @@ do case "$BUILD_STEP" in
         (
           test_shell $(which bats)|| true
           note "Bats shell tests done"
-          note "$TEST_FEATURE '$BUSINESS_SUITE'"
           $TEST_FEATURE $BUSINESS_SUITE || true
           note "Feature tests done"
           python $PY_SUITE || true
@@ -70,7 +69,6 @@ do case "$BUILD_STEP" in
 
         test -e "$TEST_RESULTS" || error "Test results expected" 1
         grep '^not\ ok' $TEST_RESULTS && touch $failed
-        grep -qv '^not\ ok' $TEST_RESULTS || touch $failed
         not_falseish "$SHIPPABLE" && {
 
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \

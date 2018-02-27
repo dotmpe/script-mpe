@@ -12,6 +12,7 @@ setup()
 
 @test "htd normalize-relative" {
 
+    TODO "fix at travis"
   check_skipped_envs travis jenkins || \
     skip "$BATS_TEST_DESCRIPTION not running at Linux (Travis)"
 
