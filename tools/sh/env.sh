@@ -170,8 +170,6 @@ test -n "$Jenkins_Skip" || {
 
 
 req_vars RUN_INIT || export RUN_INIT=
-#req_vars RUN_FLOW || export RUN_FLOW=
-#req_vars RUN_OPTIONS || export RUN_OPTIONS=
 req_vars BUILD_STEPS || export BUILD_STEPS="\
  dev test "
 

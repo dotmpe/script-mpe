@@ -69,6 +69,7 @@ do case "$BUILD_STEP" in
         ) # || touch $failed
 
         test -e "$TEST_RESULTS" || error "Test results expected" 1
+        grep '^not\ ok' $TEST_RESULTS && touch $failed
         grep -qv '^not\ ok' $TEST_RESULTS || touch $failed
         not_falseish "$SHIPPABLE" && {
 
