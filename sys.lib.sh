@@ -115,7 +115,7 @@ var_isset()
 
     bash )
         # Bash: https://www.cyberciti.biz/faq/linux-unix-howto-check-if-bash-variable-defined-not/
-        . $scriptpath/tools/sh/var-isset.bash "$1" || return 1
+        $scriptpath/tools/sh/var-isset.bash "$1" || return 1
       ;;
 
     * )

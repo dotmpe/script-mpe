@@ -7,18 +7,20 @@ do case "$BUILD_STEP" in
 
     dev ) lib_load main; main_debug
 
-        #note "Pd help:"
-        # FIXME: "Something wrong with pd/std__help"
-        #(
-        #  ./projectdir.sh help || noop
-        #)
-        #./projectdir.sh test bats-specs bats
+        note "Pd help:"
+         FIXME: "Something wrong with pd/std__help"
+        (
+          ./projectdir.sh help || true
+        )
+        ./projectdir.sh test bats-specs bats || true
+
+        note "box"
+        (
+           box help || true
+        )
 
         # TODO install again? note "gtasks:"
         #./gtasks || noop
-
-        #note "Htd script:"
-        #htd script
 
         #note "basename-reg:"
         #./basename-reg ffnnec.py
@@ -66,10 +68,8 @@ do case "$BUILD_STEP" in
           note "Python unittests done"
         ) # || touch $failed
 
-        grep -qv '^not ok' $TEST_RESULTS || touch $failed
-
         test -e "$TEST_RESULTS" || error "Test results expected" 1
-
+        grep -qv '^not ok' $TEST_RESULTS || touch $failed
         not_falseish "$SHIPPABLE" && {
 
           perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
@@ -85,7 +85,6 @@ do case "$BUILD_STEP" in
         #(
         #  test_shell $(which bats)
         #) || true
-
 
         test -z "$failed" -o ! -e "$failed" && {
           r=0

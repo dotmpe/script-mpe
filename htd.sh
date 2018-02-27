@@ -9862,6 +9862,7 @@ htd_main()
     arguments= prefixes= options= \
     passed= skipped= error= failed=
 
+
   htd_init || exit $?
 
   case "$base" in
