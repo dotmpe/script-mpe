@@ -22,7 +22,12 @@ test "$(whoami)" = "travis" || {
 
 ./install-dependencies.sh all pip php dev bats-force-local
 
-test "$(whoami)" = "travis" || {
+test -x "$(which tap-json)" || npm install -g tap-json
+npm install nano
+
+test "$(whoami)" = "travis" && {
+  true
+} || {
   not_falseish "$SHIPPABLE" && {
     $sudo apt-get install perl
     cpan reload index
