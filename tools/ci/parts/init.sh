@@ -5,16 +5,6 @@
 note "Entry for CI pre-install / init phase"
 
 
-git remote add bitbucket https://dotmpe@bitbucket.org/dotmpe-personal/script-mpe.git
-git checkout --force bitbucket/$TRAVIS_BRANCH
-
-
-# Basicly if these don't run dont bother with anything,
-# But cannot abort/skip a Travis build without failure, can they?
-
-# This is also like the classic software ./configure.sh stage.
-
-
 note "PWD: $(pwd && pwd -P)"
 note "Whoami: $( whoami )"
 
@@ -25,6 +15,17 @@ note "CI Env:"
 
 note "Build Env:"
 build_params | sed 's/^/	/' >&2
+
+
+git remote add bitbucket https://dotmpe@bitbucket.org/dotmpe-personal/script-mpe.git
+git fetch bitbucket
+git checkout --force bitbucket/$TRAVIS_BRANCH
+
+
+# Basicly if these don't run dont bother with anything,
+# But cannot abort/skip a Travis build without failure, can they?
+
+# This is also like the classic software ./configure.sh stage.
 
 
 test -z "$BUILD_ID" || {
