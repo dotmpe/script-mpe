@@ -776,6 +776,22 @@ EOM
 }
 
 
+vc_checkout_git()
+{
+  git checkout "$@"
+}
+vc_checkout_hg() { false; }
+vc_checkout_svn() { false; }
+vc_checkout_bzr() { false; }
+
+# checkout
+vc_checkout()
+{
+  test -n "$scm" || vc_getscm
+  vc_checkout_${scm} "$@"
+}
+
+
 # Boilerplate
 #vc_status_git()
 #{

@@ -96,7 +96,7 @@ class FeatureContext implements SnippetAcceptingContext
         }
     }
 
-    /*
+    /**
      * @Then /^file "([^"]*)" should be created, and contain the same as "([^"]*)"\.?$/
      * @Then /^"([^"]*)" is created, same contents as "([^"]*)"\.?$/
      */
@@ -131,7 +131,7 @@ class FeatureContext implements SnippetAcceptingContext
      * match.
      *
      * @Then `:attr` :mode the pattern :arg1
-     * @Then /^`([^`]+)` (contain|match[es]*) '([^"]+)'\.?$/
+     * @Then `:attr` :mode :arg1
      */
     public function ctxPropertyPregForPattern($propertyName, $mode, $pattern)
     {
@@ -146,7 +146,8 @@ class FeatureContext implements SnippetAcceptingContext
      * Mode is 'contains' for Match-All for submatches, or 'match' for start-to
      * end.
      */
-    public function pregForPattern($string, $mode, $pattern) {
+    public function pregForPattern($string, $mode, $pattern)
+    {
         $matches = array();
         if (substr($mode, 0, 7) == 'contain') {
             preg_match_all("/$pattern/", $string, $matches);
@@ -161,6 +162,7 @@ class FeatureContext implements SnippetAcceptingContext
     /**
      * Test an attribute of context with every line from patterns as regex.
      *
+     * @Then `:attr` :mode:
      * @Then `:attr` :mode the patterns:
      * @Then /^`([^`]+)` ((contain|match)[es]*) the patterns:$/
      * @Then /^`([^`]+)` ((contain|match)[es]*) patterns:$/
@@ -175,7 +177,7 @@ class FeatureContext implements SnippetAcceptingContext
 
     /**
      * @Then each `:attr` line :mode the pattern :pattern
-     * @Then /^each `([^`]+)` line ((contain|match)[es]*) \'([^\']*)\'$/
+     * @Then /^each `([^`]+)` line ((?:contain|match)[es]*) \'([^\']*)\'$/
      */
     public function ctxPropertyLinesEachPreg($propertyName, $mode, $pattern)
     {
@@ -200,8 +202,9 @@ class FeatureContext implements SnippetAcceptingContext
         }
     }
 
-
     /**
+     * Compare all lines (contains), or some lines (has) or look for patterns.
+     *
      * @Then `:attr` :mode the lines:
      */
     public function ctxPropertyLinesMultiline($propertyName, $mode, PyStringNode $lines)
@@ -252,7 +255,6 @@ class FeatureContext implements SnippetAcceptingContext
         }
     }
 
-
     /**
      * Store a context value for later use by name.
      *
@@ -270,7 +272,8 @@ class FeatureContext implements SnippetAcceptingContext
      * @Then /^`([^`]+)` should equal \'([^\']*)\'$/
      * @Then /^`([^`]+)` equals \'([^\']*)\'$/
      */
-    public function ctxProperyShouldEqual($propertyName, $string) {
+    public function ctxPropertyShouldEqual($propertyName, $string)
+    {
         if ("$string" != "{$this->$propertyName}") {
             throw new Exception(" $propertyName is '{$this->$propertyName}' and does not match '$string'");
         }
@@ -385,7 +388,8 @@ class FeatureContext implements SnippetAcceptingContext
         $this->{"pathname_type_${type}"}($spec, False);
     }
 
-    public function pathname_type_directory($spec, $exists=True) {
+    public function pathname_type_directory($spec, $exists=True)
+    {
         foreach (glob($spec, GLOB_BRACE|GLOB_NOCHECK) as $pathname) {
             if ($exists) {
                 if (!is_dir($pathname)) {
@@ -399,7 +403,8 @@ class FeatureContext implements SnippetAcceptingContext
         }
     }
 
-    public function pathname_type_file($spec, $exists=True) {
+    public function pathname_type_file($spec, $exists=True)
+    {
         foreach (glob($spec, GLOB_BRACE|GLOB_NOCHECK) as $pathname) {
             if ($exists) {
                 if (!file_exists($pathname)) {

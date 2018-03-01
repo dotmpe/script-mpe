@@ -296,7 +296,7 @@ htd_load()
     p ) # set package file and id, update.
         # Set to detected PACKMETA file, set main package-id, and verify var
         # caches are up to date. Don't load vars.
-        # TODO: create var cache per package-id.
+        # TODO: create var cache per package-id. store in redis etc.
         pwd="$(pwd -P)"
         test -e "$PACKMETA" && {
             #|| error "No local package '$PACKMETA'" 1
@@ -848,7 +848,7 @@ htd__expand()
 
 
 htd_man_1__edit_main="Edit the main script file(s), and add arguments"
-htd_spc__edit_main="-E|edit-main [ --search REGEX ] [ID-or-PATHS]"
+htd_spc__edit_main="-E|edit-main [ -SREGEX | --search REGEX ] [ID-or-PATHS]"
 htd__edit_main()
 {
   local evoke= files="$(cat $arguments)" fn=

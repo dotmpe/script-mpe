@@ -1,5 +1,5 @@
 #!/bin/bash
 set -e
 
-T=16color watch -ctn60 "vlock-screen"
+watch -ctn60 "vlock-screen"
 #cwatch_sleep=60 cwatch "vlock-screen"

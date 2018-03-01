@@ -1267,6 +1267,77 @@ vc__age()
 }
 
 
+vc_man_1__checkout='Checkout'
+vc_run__checkout=f
+vc__checkout() # [Branch] [Remote]
+{
+  vc_getscm || return $?
+  test -n "$1" || set -- "$(vc_branch)" "$2"
+  test -n "$2" || set -- "$1" "$vc_rt_def"
+  vc_checkout "$1" || return $?
+}
+
+
+vc_man_1__switch='Checkout with submodule deinit/init'
+vc__switch() # [Branch] [Remote]
+{
+  vc_getscm || return $?
+  test -n "$1" || error "branch expected" 1
+  test "$1" = "$(vc_branch)" && return
+  test -n "$2" || set -- "$1" "$vc_rt_def"
+  {
+      git submodule deinit . &&
+      vc_checkout "$1" &&
+      git submodule update --init --recursive
+  } || return $?
+}
+
+
+vc_man_1__update='Fetch local from remote TODO: use gitflow config'
+vc_run__update=f
+vc__update() # [vc_dir=$scriptpath] checkout [Branch] [Remote] [Action]
+{
+  vc_getscm || return $?
+  test -n "$vc_sync" || vc_sync=0
+  test -d "$vc_dir" && note "Running SCM $act for '$vc_dir'" || error vc-dir 1
+  (
+    test "$(pwd -P)" = "$vc_dir" || cd $vc_dir
+    test -n "$1" || set -- "$(vc_branch)" "$2" "$3"
+    test -n "$2" || set -- "$1" "$vc_rt_def" "$3"
+    test -n "$3" || set -- "$1" "$2" "merge"
+    {
+      vc__checkout "$@" &&
+      #git pull "$2" "$1" || return $?
+      git fetch "$2" "$1" &&
+      git $3 "$2/$1"
+    } || return $?
+    trueish "$vc_sync" && {
+      git push "$2" "$1" || return $?
+    }
+  )
+}
+
+vc_man_1__update_from=''
+vc_run__update_from=f
+vc__update_from() # [Remote] [Branch] [Action]
+{
+  vc_getscm || return $?
+  test -n "$1" || set -- "$1" "$vc_rt_def" "$3"
+  test -n "$2" || set -- "$(vc_branch)" "$2" "$3"
+  test -n "$3" || set -- "$1" "$2" "merge"
+  git fetch "$1" "$2" || return $?
+  git $3 "$1/$2" || return $?
+}
+
+vc_run__abort=f
+vc__abort()
+{
+  test -n "$1" || set -- "merge"
+  git $1 --abort
+}
+
+
+
 # Run over UP/DOWN-stream branchname pairs and show info:
 # - wether branches have diverged
 # - how many commits each has
@@ -1592,23 +1663,6 @@ vc__conflicts()
 }
 
 
-vc__checkout()
-{
-  test -n "$vc_sync" || vc_sync=0
-  test -d "$vc_dir" && note "Running SCM $act for '$vc_dir'" || error vc-dir 1
-  (
-    test "$(pwd -P)" = "$vc_dir" || cd $vc_dir
-    test -n "$1" || set -- "$(git rev-parse --abbrev-ref HEAD)" "$2"
-    test -n "$2" || set -- "$1" "$vc_rt_def"
-    git checkout "$1" || return $?
-    git pull "$2" "$1" || return $?
-    trueish "$vc_sync" && {
-      git push "$2" "$1" || return $?
-    }
-  )
-}
-
-
 vc_man_1__cleanup_local='Remove local branches not in gitflow'
 vc__cleanup_local()
 {
@@ -1675,6 +1729,7 @@ vc__info()
 }
 
 
+vc_man_1__dist='Push commits to all remotes'
 vc__dist()
 {
   vc__remotes | while read remote url
@@ -1683,6 +1738,24 @@ vc__dist()
   done
 }
 
+
+vc_man_1__update_local='Update local branches from remote'
+vc_run__update_local=f
+vc__update_local()
+{
+  test -n "$1" || set -- "$vc_rt_def"
+  vc_getscm || return $?
+  local startbranch="$(vc_branch)"
+  for branch in $( vc_branches )
+  do
+      test -n "$branch" || continue ;
+      vc__switch "$branch" &&
+      vc__update_from "$1" "$branch" || {
+        vc__abort && touch $failed
+      }
+  done || touch $failed
+  vc__switch $startbranch
+}
 
 # -- vc box insert sentinel --
 
@@ -1696,25 +1769,21 @@ vc_main()
   # Do something if script invoked as 'vc.sh'
   local scriptname=vc base="$(basename "$0" .sh)" \
     subcmd=$1
-
   case "$base" in $scriptname )
 
         test -n "$scriptpath" || \
             scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
             pwd="$(pwd -P)" ppwd="$(pwd)" spwd=.
-
         export SCRIPTPATH=$scriptpath
         test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
         __load_lib=1 . $scriptpath/util.sh
 
         test -n "$verbosity" || verbosity=5
-
         local func=$(echo vc__$subcmd | tr '-' '_') \
             failed= \
             ext_sh_sub=
 
         lib_load str match main std stdio sys os src vc date
-
         type $func >/dev/null 2>&1 && {
           shift 1
           vc_load || return
@@ -1747,18 +1816,15 @@ vc_main()
 vc_load()
 {
   local __load_lib=1 cwd="$(pwd)"
-
   # FIXME: sh autocompletion
   #. ~/.conf/bash/git-completion.bash
 
   test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
   test -n "$uname" || uname=$(uname)
-
   test -n "$vc_dir" || vc_dir=$scriptpath
+  test -n "$vc_br_def" || vc_br_def=master
   test -n "$vc_rt_def" || vc_rt_def=origin
-
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
-
   gtd="$(vc_gitdir "$cwd")"
 
   # See ignores.rst for info on Global/Purgeable,Cleanable and Droppable

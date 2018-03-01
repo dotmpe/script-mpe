@@ -22,32 +22,49 @@ env_face=cosmike
 #env_face=cosmic
 #env_face=larry3d
 #env_face=rounded
-eval \
-    $vpadd
 
-test -n "$T" || T=$TERM
-#case "$T" in
-#    *256color ) figlet -c -w$cols -f $env_face $ENV_NAME | lolcat -f -S 10 -p 5.0 - ;;
-#    * ) printf -- "$esc[0;34m" ; figlet -c -w$cols -f $env_face $ENV_NAME ;;
-#esac
-#echo
-eval\
-    $vpadd
-eval \
-    $vpadd
-printf -- "$esc[0;35m"
-figlet -c -w$cols -f big $(date +%H:%M)
-eval \
-    $vpadd\
-    $vpadd
-echo
-printf -- "$esc[1;30m"
-figlet -c -w$cols -f term $(hostname) $TERM $SHELL $HISTNUM lines
-echo
-printf -- "$esc[0;30m"
-figlet -c -w$cols -f binary $(date +%H:%M)
-echo
-printf -- "$esc[1;30m"
-figlet -c -w$cols -f term $(uptime)
-printf -- "$esc[0m"
-eval $vpadd
+test -n "$vlock_screen" || vlock_screen=minimal
+test -z "$1" || vlock_screen=$1
+
+case "$vlock_screen" in
+
+    minimal )
+            eval $vpadd $vpadd $vpadd
+            printf -- "$esc[0;35m"
+            figlet -c -w$cols -f big $(date +%H:%M)
+            eval \
+                $vpadd\
+                $vpadd
+            echo
+            printf -- "$esc[1;30m"
+            figlet -c -w$cols -f term $(hostname) $TERM $SHELL $HISTNUM lines
+            echo
+            printf -- "$esc[0;30m"
+            figlet -c -w$cols -f binary $(date +%H:%M)
+            echo
+            printf -- "$esc[1;30m"
+            figlet -c -w$cols -f term $(uptime)
+            printf -- "$esc[0m"
+            eval $vpadd
+        ;;
+
+    host )
+            eval $vpadd $vpadd $vpadd
+            test $(tput colors) = 256 && {
+               figlet -c -w$cols -f $env_face $ENV_NAME | lolcat -f -S 10 -p 5.0 -
+            } || {
+               printf -- "$esc[0;34m" ;
+               figlet -c -w$cols -f $env_face $ENV_NAME
+            }
+            echo
+            printf -- "$esc[0;37m"
+            figlet -c -w$cols -f term $(date +"%C.%U %A %H:%M")
+            eval $vpadd $vpadd $vpadd
+            printf -- "$esc[1;30m"
+            figlet -c -w$cols -f term $(hostname) $TERM $SHELL $HISTNUM lines
+            figlet -c -w$cols -f term $(uptime)
+            echo '-------------'
+            printf -- "$esc[0m"
+        ;;
+
+esac
