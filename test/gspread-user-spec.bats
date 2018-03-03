@@ -1,8 +1,12 @@
+#!/usr/bin/env bats
+
 load init
+init
 
 setup()
 {
   ENV_NAME=gspread-boreas . ~/.bashrc
+  lib_load projectenv
 }
 
 @test "gspread user API" {

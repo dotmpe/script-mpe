@@ -196,7 +196,8 @@ retest()
           warn "Failure <$test>"
         }
     done
-    sleep 1 || return
+    note "Sleeping for a bit.."
+    sleep 60 || return
     note "Updating $out"
     cat "$out" | sort -u > "$out.tmp"
     diff -q "$in" "$out.tmp" >/dev/null && {

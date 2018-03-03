@@ -178,14 +178,14 @@ req_vars TEST_SHELL || export TEST_SHELL=sh
 req_vars REQ_SPECS ||
   export REQ_SPECS="util 1_1-helper"\
 " str sys os std stdio argv bash match.lib vc.lib matchbox src main"\
-" sh box-lib pd-meta esop"
+" sh box box-cmd box-lib box-src pd-meta esop finfo lst"
 
 # Specs for report but not counting in final test-result judgement
 req_vars TEST_SPECS || \
   export TEST_SPECS="statusdir htd basename-reg dckr"\
-" rsr edl finfo vc match"\
-" jsotk-py box box-cmd libcmd_stacked mimereg radical"\
-" meta pd disk diskdoc"
+" rsr edl vc match schema table"\
+" jsotk-py jsotk-xml libcmd_stacked mimereg radical"\
+" meta pd disk diskdoc py-lib-1"
 
 req_vars INSTALL_DEPS || {
   INSTALL_DEPS=" basher "

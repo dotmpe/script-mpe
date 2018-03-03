@@ -67,13 +67,13 @@ class FeatureContext implements SnippetAcceptingContext
         $stderr = ".{$this->session_id}.stderr";
         $env = $this->env or '';
         exec((string) "$env $command 2>$stderr", $output, $return_var);
-        if (!$withErrror and $return_var) {
-            throw new Exception("Command return non-zero: '$return_var' for '$command'");
-        }
         $this->status = $return_var;
         $this->output = trim(implode("\n", $output));
         $this->stderr = trim(file_get_contents($stderr));
         unlink($stderr);
+        if (!$withErrror and $return_var) {
+            throw new Exception("Command return non-zero: '$return_var' for '$command'");
+        }
     }
 
     /**
@@ -241,11 +241,15 @@ class FeatureContext implements SnippetAcceptingContext
      * @Then /^`([^`]+)` ((contain|match)[es]*) the patterns:$/
      * @Then /^`([^`]+)` ((contain|match)[es]*) patterns:$/
      */
-    public function ctxPropertyContainsThePatterns($propertyName, $mode, PyStringNode $patterns)
+    public function ctxPropertyContainsThePatterns($propertyName, $mode, PyStringNode $specs)
     {
-        $patterns = explode(PHP_EOL, $patterns);
-        foreach ($patterns as $idx => $pattern ) {
-            $this->ctxPropertyPregForPattern($propertyName, $mode, trim($pattern));
+        if ($mode=="equals") {
+            $this->ctxPropertyShouldEqualMultiline($propertyName, $specs);
+        } else {
+            $specs = explode(PHP_EOL, $specs);
+            foreach ($specs as $idx => $spec ) {
+                $this->ctxPropertyPregForPattern($propertyName, $mode, trim($spec));
+            }
         }
     }
 
@@ -310,7 +314,6 @@ class FeatureContext implements SnippetAcceptingContext
      * @Then `:propertyName` should equal:
      * @Then /^`([^`]+)` should be:$/
      * @Then /^`([^`]+)` should equal:$/
-     * @Then /^`([^`]+)` equals:$/
      * @Then /^`([^`]+)` matches:$/
      */
     public function ctxPropertyShouldEqualMultiline($propertyName, PyStringNode $string)
