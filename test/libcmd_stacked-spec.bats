@@ -1,20 +1,21 @@
 #!/usr/bin/env bats
 
 load init
+load helper
 base=libcmd_stacked_test.py
 init
 
 
 @test "${bin} -h " {
-  run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -n "${lines[*]}" # non-empty output
-  test "${#lines[@]}" -gt "10" # lines of output (stdout+stderr)
+  run ./$base -h
+  { test_ok_nonempty &&
+    test ${#lines[@]} -gt 10 # lines of output (stdout+stderr)
+  } || stdfail
 }
 
 @test "${bin} - No arguments should print config " {
-  run ./$bin
-  test ${status} -eq 0
-  test -n "${lines[*]}" # non-empty output
-  test "${#lines[@]}" = "3" # lines of output (stdout+stderr)
+  run ./$base
+  { test_ok_nonempty &&
+    test ${#lines[@]} -gt 3 # lines of output (stdout+stderr)
+  } || stdfail
 }

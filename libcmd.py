@@ -747,13 +747,13 @@ class SimpleCommand(object):
     def stat(self, opts=None, args=None):
         if not self.rc:
             log.err("Missing run-com for %s", self.NAME)
-        elif not self.rc.version:
+        elif not self.rc['version']:
             log.err("Missing version for run-com")
-        elif self.VERSION != self.rc.version:
-            if self.VERSION > self.rc.version:
+        elif self.VERSION != self.rc['version']:
+            if self.VERSION > self.rc['version']:
                 log.err("Run com requires upgrade")
             else:
-                log.err("Run com version mismatch: %s vs %s", self.rc.version,
+                log.err("Run com version mismatch: %s vs %s", self.rc['version'],
                         self.VERSION)
         print('args:', args)
         print('opts:', pformat(opts.todict()))

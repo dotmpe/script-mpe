@@ -166,7 +166,7 @@ tested()
 {
   local out=$1
   test -n "$out" || out=tested.list
-  cat $out
+  read_nix_style_file $out
 }
 totest()
 {
@@ -186,7 +186,7 @@ retest()
   while true
   do
     # TODO: do-test with lst watch
-    cat "$in" | while read test
+    read_nix_style_file "$in" | while read test
     do
         grep -qF "$test" "$out" && continue
         note "Running '$test'... ($(( $(count_lines "$in") - $(count_lines "$out") )) left)"
