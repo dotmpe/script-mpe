@@ -247,6 +247,7 @@ class FeatureContext implements SnippetAcceptingContext
             $this->ctxPropertyShouldEqualMultiline($propertyName, $specs);
         } else {
             $specs = explode(PHP_EOL, $specs);
+            array_pop($specs);
             foreach ($specs as $idx => $spec ) {
                 $this->ctxPropertyPregForPattern($propertyName, $mode, trim($spec));
             }
@@ -260,6 +261,7 @@ class FeatureContext implements SnippetAcceptingContext
     public function ctxPropertyLinesEachPreg($propertyName, $mode, $pattern)
     {
         $lines = explode(PHP_EOL, $this->$propertyName);
+        array_pop($lines);
         foreach ($lines as $line) {
             $matches = $this->pregForPattern($line, $mode, $pattern);
             if (!count($matches)) {
@@ -275,6 +277,7 @@ class FeatureContext implements SnippetAcceptingContext
     public function ctxPropertyLinesEachPregMultiline($propertyName, $mode, PyStringNode $pattern_ml)
     {
         $patterns = explode(PHP_EOL, $pattern_ml);
+        array_pop($patterns);
         foreach ($patterns as $pattern) {
             $this->ctxPropertyLinesEachPreg($propertyName, $mode, $pattern);
         }
@@ -299,7 +302,9 @@ class FeatureContext implements SnippetAcceptingContext
     public function ctxPropertyHasLinesMultiline($propertyName, $lines)
     {
         $arr_lines = explode(PHP_EOL, $lines);
+        array_pop($arr_lines);
         $content = explode(PHP_EOL, $this->$propertyName);
+        array_pop($content);
         foreach ($arr_lines as $line) {
             if (!in_array($line, $content)) {
                 throw new Exception("Expected '$line' line in $propertyName");
@@ -321,7 +326,9 @@ class FeatureContext implements SnippetAcceptingContext
         if ($string != $this->$propertyName) {
 
             $out = explode(PHP_EOL, $this->$propertyName);
+            array_pop($out);
             $str = explode(PHP_EOL, $string);
+            array_pop($str);
             $extra = array_diff( $out, $str );
             $missing = array_diff( $str, $out );
 

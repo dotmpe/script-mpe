@@ -10,6 +10,7 @@ setup()
 {
   . $lib/util.sh
   lib_load package sys
+  export package_id=
 }
 
 
@@ -74,13 +75,12 @@ setup()
 @test "${lib}/${base} - package test/var dirs" {
 
   cd test/var/package/0
-  #unset package_id
   package_lib_load
   package_lib_set_local .
   run package_sh id
   test_ok_nonempty "*id=script-bvb-test-0" || stdfail 1
-
 }
+
 
 @test "${lib}/${base} - package test/var/package/1 - main and secondary project" {
 

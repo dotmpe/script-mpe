@@ -7,11 +7,11 @@ Feature: srv
 
   Scenario: service container lifecycle
 
-    When the user runs `srv run`
-    Then the known states and current state for the service names are shown
+    When the user runs `srv run`...
+    #Then the known states and current state for the service names are shown
 
-    When the user runs `list_name=data/srv.txt htd storage Service status`
-    Then the identical data is shown
+    #When the user runs `list_name=data/srv.txt htd storage Service status`
+    #Then the identical data is shown
 
 
   Scenario: generic reports in summary, brief and complete formats
@@ -42,6 +42,7 @@ Feature: srv
   Scenario: given DB or LIST an object data serialization can be produced, and the instance data's scheme be validated
 
 
+  @todo
   Scenario: /srv is reflected to LIST or vice versa
 
     When the user runs `srv apply`
