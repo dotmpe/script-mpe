@@ -588,7 +588,9 @@ pd_prefix_filter_args()
 }
 
 
+# default-args handler for commands accepting [options] [ PREFIX | [:]TARGET ]
 # Filter out options and states from any given prefixes, or check enabled
+pd_registered_prefix_target_spec="[ PREFIX | [:]TARGET ]..."
 pd_registered_prefix_target_args()
 {
 # FIXME: quoting possible?
@@ -601,6 +603,7 @@ pd_registered_prefix_target_args()
   test -n "$choice_reg" || choice_reg=1
   pd_prefix_target_args "$@" || return $?
 }
+
 
 # Filter states, and either expand to enabled prefixes or found prefixes
 pd_prefix_target_args()

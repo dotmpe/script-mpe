@@ -3,18 +3,17 @@
 set -e
 
 
-sd_be_name=couchdb_sh
-
 couchdb_sh()
 {
   case "$1" in
-    get ) {
-          curl -sSf $COUCH_URL/$COUCH_DB/$2 | jsotk path - $COUCH_SD_VKEY
-        } || return $?
+    get )
+        local json="$( curl -sf $COUCH_URL/$COUCH_DB/$2 )" || return
+        test -n "$json" || return
+        echo "$json" | jsotk -Opy path - $COUCH_SD_VKEY
       ;;
     set )
-        test -n "$json_data" || json_data='{"'$COUCH_SD_VKEY'": "'$4'"}'
-        rev=$(curl -sSf $COUCH_URL/$COUCH_DB/$2 | jq  ._rev || printf "")
+        local json_data='{"'$COUCH_SD_VKEY'": "'$4'"}'
+        rev="$(eval echo $(curl -sf $COUCH_URL/$COUCH_DB/$2 | jq  ._rev))" || return
         test -n "$rev" &&
         {
           curl -X PUT -sSf $COUCH_URL/$COUCH_DB/$2 \
@@ -26,17 +25,36 @@ couchdb_sh()
         }
       ;;
     incr )
-        error TODO 1
+        eval "$( curl -sf $COUCH_URL/$COUCH_DB/$2 |
+            jq -r '@sh "rev=\(._rev) v=\(.value)"' )" || return
+        local json_data='{"'$COUCH_SD_VKEY'": "'$(( $v + 1 ))'"}'
+        curl -X PUT -sSf $COUCH_URL/$COUCH_DB/$2 \
+          -H If-Match:$rev \
+          -d "$json_data" >/dev/null || return $?
+        expr $v + 1
+      ;;
+    decr )
+        eval "$( curl -sf $COUCH_URL/$COUCH_DB/$2 |
+            jq -r '@sh "rev=\(._rev) v=\(.value)"' )" || return
+        local json_data='{"'$COUCH_SD_VKEY'": "'$(( $v - 1 ))'"}'
+        echo $(curl -X PUT -sSf $COUCH_URL/$COUCH_DB/$2 \
+          -H If-Match:$rev \
+          -d "$json_data" >/dev/null || return $?)
+        expr $v - 1
       ;;
     del|delete )
-        rev=$(curl -sSf $COUCH_URL/$COUCH_DB/$2 | jq  ._rev)
-        test -z "$rev" ||
-            curl -X DELETE -sSf $COUCH_URL/$COUCH_DB/$2 -H If-Match:$rev ||
-                return $?
+        local rev=$(curl -sf $COUCH_URL/$COUCH_DB/$2 | jq  ._rev) || return $?
+
+        curl -X DELETE -sSf $COUCH_URL/$COUCH_DB/$2 -H If-Match:$rev ||
+            return $?
       ;;
-    ping ) error "TODO couchdb $@"
+    ping )
+        curl -sSf $COUCH_URL/$COUCH_DB || return
       ;;
-    list ) error "TODO coucdb $@" 1
+    list ) error "TODO couchdb $@" 1
+      ;;
+    backend )
+        echo couchdb $COUCH_URL $COUCH_DB
       ;;
     x|be|info )
         curl -sSf $COUCH_URL || return
@@ -52,4 +70,3 @@ statusdir_couchdb_sh_lib_load()
   test -n "$COUCH_URL" || export COUCH_URL=http://localhost:5984
   test -n "$COUCH_SD_VKEY" || export COUCH_SD_VKEY=value
 }
-

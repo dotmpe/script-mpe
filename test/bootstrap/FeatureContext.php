@@ -17,6 +17,8 @@ class FeatureContext implements SnippetAcceptingContext
      */
     public function __construct()
     {
+        $this->session_id = uniqid();
+        $this->env = "";
     }
 
     /**
@@ -41,20 +43,30 @@ class FeatureContext implements SnippetAcceptingContext
     }
 
     /**
+     * @Given `:ctx` :arg1
+     */
+    public function env($ctx, $arg1)
+    {
+        $this->$ctx = $arg1;
+    }
+
+    /**
      * Execute command, and set `status`, `output`, `stderr`.
      * Use trailing period(s) or question-mark to allow non-zero exit status,
-     * otherwise fail step.
+     * otherwise fail step. Versions with different qoutes are offered to allow
+     * verbatim passing of other quotes. The multiline version allows anything.
      *
-     * @When /^the user runs `([^`]*)`(\?|\.+)?$/
-     * @When /^user runs "([^"]*)"(\?|\.+)?$/
-     * @When /^the user runs "([^"]*)"(\?|\.+)?$/
-     * @When /^user executes "([^"]*)"(\?|\.+)?$/
-     * @When /^the user executes "([^"]*)"(\?|\.+)?$/
+     * When user executes :arg1
+     * When the user runs :arg1
+     * @When /^(?:the )?user (?:(?:runs|executes) )?`([^`]*)`(\?|\.+)?$/
+     * @When /^(?:the )?user (?:(?:runs|executes) )?'([^']*)'(\?|\.+)?$/
+     * @When /^(?:the )?user (?:(?:runs|executes) )?"([^"]*)"(\?|\.+)?$/
      */
     public function theUserRuns($command, $withErrror='')
     {
-        $stderr = '.stderr'; # FIXME: proper session file
-        exec((string) "$command 2>$stderr", $output, $return_var);
+        $stderr = ".{$this->session_id}.stderr";
+        $env = $this->env or '';
+        exec((string) "$env $command 2>$stderr", $output, $return_var);
         if (!$withErrror and $return_var) {
             throw new Exception("Command return non-zero: '$return_var' for '$command'");
         }
@@ -127,17 +139,79 @@ class FeatureContext implements SnippetAcceptingContext
     }
 
     /**
-     * Test an attribute of the context with a regex, fail unless at least one
-     * match.
+     * Test an attribute of the context, compare modes are:
+     * equals, contains-string and contains-line for exact
+     * (partial) string comparisons. Modes contains and
+     * match(es) trigger regex comparison.
      *
+     * @Then `:attr` should :mode the pattern :arg1
+     * @Then `:attr` should :mode :arg1
      * @Then `:attr` :mode the pattern :arg1
      * @Then `:attr` :mode :arg1
      */
-    public function ctxPropertyPregForPattern($propertyName, $mode, $pattern)
+    public function ctxPropertyCmp($propertyName, $mode, $spec)
     {
-        $matches = $this->pregForPattern($this->$propertyName, $mode, $pattern);
-        if (!count($matches)) {
-            throw new Exception("Pattern '$pattern' not found");
+        if ("$spec" == "empty") {
+            if (!empty($this->$propertyName)) {
+                throw new Exception("Not empty (but '{$this->$propertyName}')");
+            }
+            return;
+        }
+        if ($mode=="be" or $mode=="is" or substr($mode, 0, 5)=='equal') {
+            if ("$spec" != "{$this->$propertyName}") {
+                throw new Exception("$propertyName is '{$this->$propertyName}' and does not equal '$spec'");
+            }
+        } else if (substr($mode, 0, 9) == 'contains-') {
+            throw new Exception("TODO $mode");
+        } else if (
+            substr($mode, 0, 7) == 'contain' ||
+            substr($mode, 0, 5) == 'match'
+        ) {
+            $matches = $this->pregForPattern($this->$propertyName, $mode, $spec);
+            if (!count($matches)) {
+                throw new Exception("Pattern '$spec' not found");
+            }
+        } else {
+            throw new Exception("Unknown property compare mode '$mode'");
+        }
+    }
+
+    /**
+     * Test an attribute of the context, compare modes are:
+     * equals, contains-string and contains-line for exact
+     * (partial) string comparisons. Modes contains and
+     * match(es) trigger regex comparison.
+     *
+     * @Then `:attr` should not :mode the pattern :arg1
+     * @Then `:attr` should not :mode :arg1
+     * @Then `:attr` not :mode the pattern :arg1
+     * @Then `:attr` not :mode :arg1
+     * @Then `:attr` :mode not :arg1
+     */
+    public function ctxPropertyNotCmp($propertyName, $mode, $spec)
+    {
+        if ("$spec" == "empty") {
+            if (empty($this->$propertyName)) {
+                throw new Exception("$propertyName is empty");
+            }
+            return;
+        }
+        if ($mode=="be" or $mode=="is" or substr($mode, 0, 5) == 'equal') {
+            if ("$spec" == "{$this->$propertyName}") {
+                throw new Exception(" $propertyName is '{$this->$propertyName}' and matches '$spec'");
+            }
+        } else if (substr($mode, 0, 9) == 'contains-') {
+            throw new Exception("TODO $mode");
+        } else if (
+            substr($mode, 0, 7) == 'contains' ||
+            substr($mode, 0, 5) == 'match'
+        ) {
+            $matches = $this->pregForPattern($this->$propertyName, $mode, $spec);
+            if (count($matches)) {
+                throw new Exception("Pattern '$spec' found");
+            }
+        } else {
+            throw new Exception("Unknown property compare mode '$mode'");
         }
     }
 
@@ -154,7 +228,7 @@ class FeatureContext implements SnippetAcceptingContext
         } else if (substr($mode, 0, 5) == 'match') {
             preg_match("/$pattern/", $string, $matches);
         } else {
-            throw new Exception("Unknown mode '$mode'");
+            throw new Exception("Unknown preg-for mode '$mode'");
         }
         return $matches;
     }
@@ -263,43 +337,6 @@ class FeatureContext implements SnippetAcceptingContext
     public function ctxPropertySetting($propertyName, $value)
     {
         $this->$propertyName = $value;
-    }
-
-    /**
-     * @Then `:propertyName` should match ':string'
-     * @Then `:propertyName` should equal ':string'
-     * @Then /^`([^`]+)` should be \'([^\']*)\'$/
-     * @Then /^`([^`]+)` should equal \'([^\']*)\'$/
-     * @Then /^`([^`]+)` equals \'([^\']*)\'$/
-     */
-    public function ctxPropertyShouldEqual($propertyName, $string)
-    {
-        if ("$string" != "{$this->$propertyName}") {
-            throw new Exception(" $propertyName is '{$this->$propertyName}' and does not match '$string'");
-        }
-    }
-
-    /**
-     * @Then `:propertyName` should not match ':string'
-     * @Then `:propertyName` should not equal ':string'
-     * @Then /^`([^`]+)` should not be \'([^\']*)\'$/
-     * @Then /^`([^`]+)` should not equal \'([^\']*)\'$/
-     */
-    public function ctxPropertyShouldNotEqual($propertyName, $string)
-    {
-        if ("$string" == "{$this->$propertyName}") {
-            throw new Exception(" $propertyName is '{$this->$propertyName}' and matches '$string'");
-        }
-    }
-
-    /**
-     * @Then /^`([^`]+)` should be empty.?$/
-     */
-    public function ctxPropertyShouldBeEmpty($propertyName)
-    {
-        if (!empty($this->$propertyName)) {
-            throw new Exception("Not empty (but '{$this->$propertyName}')");
-        }
     }
 
     /**
@@ -446,7 +483,7 @@ class FeatureContext implements SnippetAcceptingContext
                 throw new Exception("Length was $lines");
             }
         } else {
-            throw new Exception("Unknown mode '$mode'");
+            throw new Exception("Unknown count-file-lines '$mode'");
         }
     }
 }

@@ -78,6 +78,16 @@ project_tests() # [Units..|Comps..]
   done | sort -u
 }
 
+project_files()
+{
+  test -z "$1" && git ls-files ||
+  while test $# -gt 0
+  do
+    git ls-files "$1*sh"
+    shift
+  done | sort -u
+}
+
 any_unit()
 {
   test -n "$1" || set -- "*"
@@ -127,13 +137,12 @@ test_any_feature()
 test_watch()
 {
   local watch_flags=" -w test/bootstrap/FeatureContext.php "\
-" -w package.yaml -w '*.sh' -w htd "\
-" -w tools/sh/env.sh "
-  local tests="$(project_tests "$@")"
+" -w package.yaml -w build.lib.sh -w tools/sh/env.sh "
+  local tests="$(project_tests "$@")" files="$(project_files "$@")"
   test -n "$tests" || error "getting tests '$@'" 1
-  note "Watching files: $(echo $tests | tr '\n' ' ')"
-  watch_flags="$watch_flags $(echo $tests | sed 's/^/-w /g')"
-  #eval nodemon -x \"htd run project-test $(echo $tests | tr '\n' ' ')\" $watch_flags || return $?;
+  note "Watching files: $(echo $tests)"
+  watch_flags="$watch_flags $(echo "$tests" | sed 's/^/-w /g' | tr '\n' ' ' )"\
+" $(echo "$files" | sed 's/^/-w /g' | tr '\n' ' ' )"
   note "Watch flags '$watch_flags'"
   nodemon -x "htd run project-test $(echo $tests | tr '\n' ' ')" $watch_flags || return $?;
 }
@@ -153,32 +162,49 @@ feature_watch()
   }
 }
 
+tested()
+{
+  local out=$1
+  test -n "$out" || out=tested.list
+  cat $out
+}
+totest()
+{
+  local in=$1 out=$2 ; shift 2
+  test -n "$in" || in=totest.list
+  test -n "$out" || out=tested.list
+  comm -2 -3 $in $out
+}
 retest()
 {
-  test -n "$1" || set -- totest.list "$2"
-  test -n "$2" || set -- "$1" tested.list
-  test -s "$1" || {
-    project_tests | sort -u > $1
+  local in= out= #$1 out=$2 ; shift 2
+  test -n "$in" || in=totest.list
+  test -n "$out" || out=tested.list
+  test -s "$in" || {
+    project_tests "$@" | sort -u > $in
   }
   while true
   do
     # TODO: do-test with lst watch
-    cat "$1" | sponge | while read test
+    cat "$in" | while read test
     do
-        grep -qF "$test" "$2" && continue
-        wc -l "$@"
-        htd run test "$test" && {
-          echo $test >> "$2"
-        } || echo "Failure <$test>"
+        grep -qF "$test" "$out" && continue
+        note "Running '$test'... ($(( $(count_lines "$in") - $(count_lines "$out") )) left)"
+        ( htd run test "$test" ) && {
+          echo $test >> "$out"
+        } || {
+          warn "Failure <$test>"
+        }
     done
     sleep 1 || return
-    cat "$2" | sort -u > "$2.tmp"
-    diff -q "$1" "$2.tmp" && {
-      note "All tests completed" && rm "$@" "$2.tmp" && break
+    note "Updating $out"
+    cat "$out" | sort -u > "$out.tmp"
+    diff -q "$in" "$out.tmp" >/dev/null && {
+      note "All tests completed" && rm "$in" "$out.tmp" && break
     } || {
-      mv "$2.tmp" "$2"
+      mv "$out.tmp" "$out"
       sleep 5 &&
-        comm -2 -3 "$2" "$1" &&
+        comm -2 -3 "$out" "$in" &&
         continue
     }
   done

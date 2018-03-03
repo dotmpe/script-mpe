@@ -26,6 +26,11 @@ addons:
 # - rhash
 # - pytz
 
+services:
+- redis-server
+- memcached
+- couchdb
+
 before_install:
   - export scriptname="before-install" before_install_ts="$(date +%s)"
   - . ./tools/ci/env.sh
@@ -39,6 +44,7 @@ install:
 before_script:
   - export scriptname="before-script" before_script_ts="$(date +%s)"
   - . ./tools/ci/parts/check.sh
+  - curl -X PUT localhost:5984/$COUCH_DB
 
 script:
   - export scriptname=script script_ts="$(date +%s)"
@@ -83,6 +89,7 @@ env:
     - LOG=$PWD/log.sh
     - BATS_REPO=https://github.com/bvberkum/bats.git
     - PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python2.7/site-packages:$HOME/bin:$HOME/lib/py
+    - COUCH_DB=test
 
 branches:
   only:

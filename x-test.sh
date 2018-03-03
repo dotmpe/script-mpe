@@ -15,7 +15,7 @@ test___V() { test__version; }
 test____version() { test__version; }
 
 
-test__foo()
+test__ack()
 {
   echo Ack.
 }

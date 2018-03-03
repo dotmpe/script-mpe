@@ -792,6 +792,22 @@ vc_checkout()
 }
 
 
+vc_fetch_git()
+{
+  git fetch "$@"
+}
+vc_fetch_hg() { false; }
+vc_fetch_svn() { false; }
+vc_fetch_bzr() { false; }
+
+# fetch
+vc_fetch()
+{
+  test -n "$scm" || vc_getscm
+  vc_fetch_${scm} "$@"
+}
+
+
 # Boilerplate
 #vc_status_git()
 #{

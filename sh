@@ -2,6 +2,44 @@
 
 set -e
 
+export sd_be=redis
+export sd_be=membash
+
+statusdir.sh get mykey1 || true
+statusdir.sh set mykey1 foo
+statusdir.sh get mykey1
+statusdir.sh del mykey1
+exit $?
+
+export \
+sd_be=couchdb_sh \
+COUCH_URL="https://hari:vLh,9ujwktNqwfqr5K8dCN@couch.wtwta.org" \
+COUCH_DB=test
+
+statusdir.sh backends
+exit $?
+
+statusdir.sh get mykey1 || true
+statusdir.sh set mykey1 10
+statusdir.sh incr mykey1
+statusdir.sh incr mykey1
+statusdir.sh get mykey1
+statusdir.sh incr mykey1
+statusdir.sh get mykey1
+statusdir.sh decr mykey1
+statusdir.sh decr mykey1
+statusdir.sh decr mykey1
+statusdir.sh get mykey1
+statusdir.sh decr mykey1
+statusdir.sh get mykey1
+echo deleting
+statusdir.sh del mykey1
+statusdir.sh get mykey1 || true
+echo ok
+exit $?
+
+
+
 test sh-finfo.sqlite ||
   db_sa.py --dbref=sh-finfo.sqlite init
 

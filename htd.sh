@@ -9812,39 +9812,23 @@ htd__components()
       basename=$(filestripext "$name");
       c="-_" mkid "$basename";
       echo "$id $name"
-  done
-  #| join_lines - ' '
+  done | join_lines - ' '
 }
 
 
 htd_man_1__test_all=' '
 htd__test_all()
 {
-  local spwd=.
-  vc_tracked | while read name
-    do
-      basename=$(filestripext "$name");
-      c="-_" mkid "$basename";
-      echo "$id $name"
-  done | join_lines - ' ' | while read component files
+  htd__components | while read component files
   do
     htd run test $component
   done
 }
 
-htd__totest()
+htd__sort()
 {
-  comm -2 -3 totest.list tested.list
+    true
 }
-htd__tested()
-{
-  cat tested.list
-}
-htd__retest()
-{
-  htd run retest
-}
-
 
 # -- htd box insert sentinel --
 

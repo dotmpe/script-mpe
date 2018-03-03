@@ -1743,14 +1743,15 @@ vc_man_1__update_local='Update local branches from remote'
 vc_run__update_local=f
 vc__update_local()
 {
-  test -n "$1" || set -- "$vc_rt_def"
   vc_getscm || return $?
+  test -n "$1" || set -- "$vc_rt_def"
+  vc_fetch "$1" || return $?
   local startbranch="$(vc_branch)"
   for branch in $( vc_branches )
   do
       test -n "$branch" || continue ;
       vc__switch "$branch" &&
-      vc__update_from "$1" "$branch" || {
+      vc__update_from "$1" "$branch" "rebase" || {
         vc__abort && touch $failed
       }
   done || touch $failed

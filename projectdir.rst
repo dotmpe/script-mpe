@@ -5,12 +5,7 @@ Pd Specs
 
 Pd - unified project checkout handling.
 
-- Workflows for `project lifecycle`_.
 - Consolidation, registration of projects into projectdirs/-docs.
-- Frontend: projectdir.sh_.
-- Extensions: ``projectdir-*.inc.sh``.
-- YAML store backend: projectdir-meta_ (Python script for handing Pdocs).
-- Package_ for generic project metadata.
 
 :FIXME: test wether staged, unstaged changes or stash are recognized as dirt
    or cruft. Build some tests.
@@ -63,9 +58,20 @@ SCM (clean/dirty/crufty) handling depends on vc.sh_ script.
 
 Workflows
 ---------
-- `Project Lifecycle`_ (for basic dev or deployment scenarios)
-- For more simple installations of third-parties, see also tools_ schema.
+- `Feature: projectdir is a tool to handle projects as groups <test/projectdir.feature>`__
+
+  - `Feature: projectdoc specifies how to handle a project <test/project-lifecycle.feature>`__
+
 - `Other stack/project dev scenarios <test/dev.feature>`_
+- For more simple installations of third-parties, see also tools_ schema.
+
+
+Related source files
+---------------------
+- Frontend: projectdir.sh_.
+- Extensions: ``projectdir-*.inc.sh``.
+- YAML store backend: projectdir-meta_ (Python script for handing Pdocs).
+
 
 Components
 ------------
@@ -214,7 +220,6 @@ pd
       for each prefix.
 
 
-.. _project lifecycle: #workflows
 .. _projectdir.sh: ./projectdir.sh
 .. _projectdir-meta: ./projectdir-meta
 .. _package: ./package.rst

@@ -10,13 +10,17 @@ redis()
   case "$1" in
 
     get )
-        redis-cli get "$2" || return
+        v=$(redis-cli get "$2" || return)
+        test -n "$v" && eval echo $v || return
       ;;
     set )
         redis-cli set "$2" "$4" || return
       ;;
     incr )
         redis-cli incr "$2" || return
+      ;;
+    decr )
+        redis-cli decr "$2" || return
       ;;
     del )
         redis-cli del "$2" || return
@@ -27,6 +31,9 @@ redis()
     list )
         test -n "$2" || set -- "$1" 0
         redis-cli scan "$2" || return
+      ;;
+    backend )
+        echo redis
       ;;
     x|be|raw )
         shift 1

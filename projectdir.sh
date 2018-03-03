@@ -74,7 +74,7 @@ pd__meta_sq()
 
 
 pd_man_1__status="List prefixes and their state(s)"
-pd_spc__status='st|stat|status [ PREFIX | [:]TARGET ]...'
+pd_spc__status="st|stat|status $pd_registered_prefix_target_spec"
 pd__status()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
@@ -1418,9 +1418,7 @@ pd_load()
   str_lib_load
 
   test -x "$(which sponge)" || warn "dep 'sponge' missing, install 'moreutils'"
-
   test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR
-
   test -n "$PD_TMPDIR" || PD_TMPDIR=$(setup_tmpd $base)
   test -n "$PD_TMPDIR" -a -d "$PD_TMPDIR" || error "PD_TMPDIR load" 1
   # FIXME: test with this enabled

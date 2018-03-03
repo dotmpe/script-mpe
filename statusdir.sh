@@ -1,12 +1,14 @@
 #!/bin/sh
 statusdir__source=$_
 
-# Statusdir - a lightweight property store for bash
+# Statusdir - a property store for bash with lightweight backends
 
 # Does not store actual properties yet, and the tree files are not actually used.
 # The files in the index are used to store lists of keys, see env.sh
 
 set -e
+
+version=0.0.4-dev # script-mpe
 
 
 statusdir_load()
@@ -37,6 +39,7 @@ statusdir_load()
 
   # Load backend
   lib_load statusdir-$sd_be
+  test -n "$sd_be_name" && sd_be=$sd_be_name
 }
 
 statusdir_unload()
@@ -64,7 +67,7 @@ statusdir__backends()
 {
   for bn in $scriptpath/statusdir-*.sh
   do
-    sd_be_name=
+    sd_be_name=$(basename $bn .lib.sh | cut -d '-' -f 2)
     . $bn
     test -n "$sd_be_name" || error "Backend name expected ($(basename "$bn"))"
     $sd_be_name ping && note "$sd_be_name found" || warn "No $sd_be_name backend"
@@ -76,7 +79,7 @@ statusdir_als__bes=backends
 statusdir_man_1__backend="Print current backend's name"
 statusdir__backend()
 {
-  echo $sd_be
+  $sd_be backend
 }
 statusdir_als__be=backend
 
@@ -205,12 +208,21 @@ statusdir__cons_json()
   echo $status_json
 }
 
+statusdir__ping()
+{
+  test -z "$*" || error "unexpected arguments '$*'" 1
+  $sd_be ping $1 || return $?
+}
 
+statusdir__list()
+{
+  $sd_be list "$@"
+}
 
 statusdir__get()
 {
   test -n "$1" || error "key expected" 1
-  test -z "$2" || error "surplus arguments" 1
+  test -z "$2" || error "surplus arguments '$2'" 1
   $sd_be get $1 || return $?
 }
 
@@ -219,22 +231,23 @@ statusdir__set()
   test -n "$1" || error "key expected" 1
   test -n "$2" || error "value expected" 1
   test -n "$3" || set -- "$1" "$2" 0
-  test -z "$4" || error "surplus arguments" 1
-  $sd_be set $1 $3 $2 || return $?
+  test -z "$4" || error "surplus arguments '$4'" 1
+  $sd_be set "$1" "$3" "$2" || return $?
 }
 
+# FIXME: statusdir_als__delete=del
 statusdir__del()
 {
   test -n "$1" || error "key expected" 1
-  test -z "$2" || error "surplus arguments" 1
-  $sd_be delete $1 || return $?
+  test -z "$2" || error "surplus arguments '$2'" 1
+  $sd_be del $1 || return $?
 }
 
 statusdir__incr()
 {
   test -n "$1" || error "key expected" 1
   test -n "$2" || set -- "$1" 1
-  test -z "$3" || error "surplus arguments" 1
+  test -z "$3" || error "surplus arguments '$3'" 1
   $sd_be incr $1 $2 || return $?
 }
 
@@ -242,13 +255,8 @@ statusdir__decr()
 {
   test -n "$1" || error "key expected" 1
   test -n "$2" || set -- "$1" 1
-  test -z "$3" || error "surplus arguments" 1
+  test -z "$3" || error "surplus arguments '$3'" 1
   $sd_be decr $1 $2 || return $?
-}
-
-statusdir__list()
-{
-  $sd_be list "$@"
 }
 
 statusdir__be()
@@ -282,6 +290,8 @@ statusdir__version()
 #statusdir_als____version=version
 
 
+statusdir_man_1__edit='Edit this script and files'
+statusdir_spc__edit='-e|edit [FILES]'
 statusdir__edit()
 {
   $EDITOR $0 $(which $base.sh) "$@"

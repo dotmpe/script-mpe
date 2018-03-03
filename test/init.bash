@@ -26,34 +26,8 @@ init()
   __load_mode=load-ext . $scriptpath/util.sh
   lib_load os sys str std main
 
-  return # FIXME: cleanup rest
-
-  # init script env
-  test -n "$ENV_NAME" && {
-    # TODO: require (prim.) source file for env
-    # test -n "$ENV" || error "Expected ENV profile for $ENV_NAME" 1
-    printf -- " "
-  } || {
-    export SCR_SYS_SH=bash-sh
-    export ENV_NAME=testing
-    export ENV=./tools/sh/env.sh
-  }
-
-  # older script-mpe init
-  #main_init
-
-  test -n "$TMPDIR" || error TMPDIR 1
-
-  case "$uname" in Darwin )
-      export TMPDIR=$(cd $TMPDIR; pwd -P)
-      export BATS_TMPDIR=$(cd $BATS_TMPDIR; pwd -P)
-    ;;
-  esac
-
-  ## XXX does this overwrite bats load?
-  #. main.init.sh
-
-  export verbosity=
+  #export ENV=./tools/sh/env.sh
+  export ENV_NAME=testing
 }
 
 

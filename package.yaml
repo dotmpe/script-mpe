@@ -103,6 +103,8 @@
   prefixes: {} # See ~/.cllct.rc finfo
 
   scripts:
+    list-files:
+      - lib_load build ; project_files \"\$@\"
     init:
       - test -d ~/.pyvenv/du-ext || virtualenv ~/.pyvenv/du-ext
       - source ~/.pyvenv/du-ext/bin/activate
@@ -173,11 +175,15 @@
       - lib_load build ; test -n \"\$1\" || set -- \$REQ_SPECS ; project_test $@
     # TODO: Run complete test-suite, including WIP
     test-all:
-      - lib_load build ; test -n \"\$1\" || set -- \$REQ_SPECS \$TEST_SPECS ; project_test \$@
+      - lib_load build ; test -n \"\$1\" || set -- \$REQ_SPECS \$TEST_SPECS ; project_test \"\$@\"
     # Keep testfiles and tested list, and keep running while one or more fails
     retest:
         # TODO: restart only after changes
-      - lib_load build ; retest
+      - lib_load build ; retest \"\$@\"
+    tested:
+      - lib_load build ; tested \"\$@\"
+    totest:
+      - lib_load build ; totest \"\$@\"
     # Run unit & component tests
     project-test:
       - lib_load build ; project_test \$@
@@ -188,7 +194,7 @@
       - lib_load build ; project_tests \$@
     # Run and re-run after change
     watch-test:
-      - lib_load build ; test_watch \$@
+      - lib_load build ; test_watch \"\$@\"
     # NOTE: the only thing missing with this tools/sh/env test-watch setup is
     # a replay feature, and keep watching only failing specs. see htd
     # resolve-modified too.
