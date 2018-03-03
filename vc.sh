@@ -1773,8 +1773,9 @@ vc_main()
   case "$base" in $scriptname )
 
         test -n "$scriptpath" || \
-            scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-            pwd="$(pwd -P)" ppwd="$(pwd)" spwd=.
+            scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
+        pwd="$(pwd -P)" ppwd="$(pwd)" spwd=.
+
         export SCRIPTPATH=$scriptpath
         test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
         __load_lib=1 . $scriptpath/util.sh

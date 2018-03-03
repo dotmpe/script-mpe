@@ -178,7 +178,7 @@ req_vars TEST_SHELL || export TEST_SHELL=sh
 req_vars REQ_SPECS ||
   export REQ_SPECS="util 1_1-helper"\
 " str sys os std stdio argv bash match.lib vc.lib matchbox src main"\
-" sh box box-cmd box-lib box-src pd-meta esop finfo schema table"
+" sh box box-cmd box-lib box-src pd-meta esop finfo table"
 
 # Specs for report but not counting in final test-result judgement
 req_vars TEST_SPECS || \

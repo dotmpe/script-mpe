@@ -263,7 +263,7 @@ class FeatureContext implements SnippetAcceptingContext
         foreach ($lines as $line) {
             $matches = $this->pregForPattern($line, $mode, $pattern);
             if (!count($matches)) {
-                throw new Exception("Pattern '$pattern' not found");
+                throw new Exception("Pattern '$pattern' not found at '$line'");
             }
         }
     }

@@ -37,14 +37,14 @@ setup()
   test $status -eq 0
 }
 
-@test "$bin uf" "prints unversioned files" {
-  run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
+@test "vc uf" "prints unversioned files" {
+  run $bin uf
+  test $status -eq 0 || stdfail
 }
 
-@test "$bin ufx" "prints unversioned and excluded files" {
-  run $BATS_TEST_DESCRIPTION
-  test $status -eq 0
+@test "vc ufx" "prints unversioned and excluded files" {
+  run $bin ufx
+  test $status -eq 0 || stdfail
 }
 
 @test "$bin ps1" {
