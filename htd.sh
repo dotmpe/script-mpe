@@ -6294,14 +6294,7 @@ htd__tpaths()
       shift 1
       continue
     }
-
     path= rel_leaf= root= xml="$(htd__getxl "$1")"
-
-    wc -l $xml
-    cat $xml
-
-    htd__xproc2 "$xml" $scriptpath/rst-terms2path-2.xsl
-
 
     # Read multi-leaf paths, and split it up into relative leafs
     {
