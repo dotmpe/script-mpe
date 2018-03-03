@@ -6294,16 +6294,23 @@ htd__tpaths()
       shift 1
       continue
     }
+
     path= rel_leaf= root= xml="$(htd__getxl "$1")"
 
-    # Read multi-leaf paths, and split it up into relative leafs
+    wc -l $xml
+    cat $xml
 
+    htd__xproc2 "$xml" $scriptpath/rst-terms2path-2.xsl
+
+
+    # Read multi-leaf paths, and split it up into relative leafs
     {
       case "$xsl_ver" in
         1 ) htd__xproc "$xml" $scriptpath/rst-terms2path.xsl ;;
         2 ) htd__xproc2 "$xml" $scriptpath/rst-terms2path-2.xsl ;;
         * ) error "xsl-ver '$xsl_ver'" 1 ;;
       esac
+
     } | grep -Ev '^(#.*|\s*)$' \
       | sed 's/\([^\.]\)\/\.\./\1\
 ../g' \

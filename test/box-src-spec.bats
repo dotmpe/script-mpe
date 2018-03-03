@@ -6,7 +6,7 @@ init
 
 @test "htd src-info - prints (total) lines and functions in htd" {
   run htd src-info
-  test_ok_nonempty "*Functions*:*383.*" "*Lines*:*" || stdfail
+  test_ok_nonempty "*Functions*:*380.*" "*Lines*:*" || stdfail
 }
 
 @test "htd src-info - prints total functions in scripts" {

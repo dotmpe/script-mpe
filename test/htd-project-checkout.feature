@@ -1,5 +1,6 @@
 Feature: manage checkouts
 
+  @todo
   Scenario Outline: given repository URL, setup checkout working dir
 
       Given a directory "/srv/project-local/<dir>" doesn't exist
@@ -14,7 +15,6 @@ Feature: manage checkouts
       | git@github.com:bvberkum/x-ci.git | x-ci | |
 
       #/srv/git-local/bvberkum/script-mpe
-
 
   Scenario Outline: init and cleanup backup repo
       
