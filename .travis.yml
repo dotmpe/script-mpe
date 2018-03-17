@@ -71,7 +71,7 @@ cache:
      - ./vendor
      - $HOME/.local
      - $HOME/.basher
-     - $HOME/.cache/pip
+     #- $HOME/.cache/pip
      - $HOME/virtualenv
      - $HOME/.npm
 
