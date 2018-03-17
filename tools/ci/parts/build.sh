@@ -85,14 +85,15 @@ do case "$BUILD_STEP" in
           mv $TEST_RESULTS.tap $TEST_RESULTS-1.tap
 
           # Test feature files and report in JUnit XML
-          #$TEST_FEATURE $BUSINESS_SUITE || touch $failed
-          #note "Feature tests done"
-          #mv $TEST_RESULTS.xml $TEST_RESULTS-2.xml
+          $TEST_FEATURE $BUSINESS_SUITE || touch $failed
+          note "Feature tests done"
+          mv $TEST_RESULTS.xml $TEST_RESULTS-2.xml
 
           # Test Python unit files and report in ...
           # FIXME: new params for python tests python $PY_SUITE || touch $failed
-          python test/main.py || touch $failed
-          #py.test --junitxml $TEST_RESULTS.xml $PY_SUITE || touch $failed
+          #python test/main.py || touch $failed
+
+          py.test --junitxml $TEST_RESULTS.xml $PY_SUITE || touch $failed
           note "Python unittests done"
           mv $TEST_RESULTS.xml $TEST_RESULTS-3.xml
         )
@@ -105,7 +106,7 @@ do case "$BUILD_STEP" in
             touch $failed ||
             stderr ok "No errors in req-specs"
 
-        ## Other tests (TODO: complement?)
+        ## Other tests, allow to fail (TODO: complement from REQ_SPECS)
         #note "Testing all specs '$TEST_SPECS'"
         #build_test_init "$REQ_SPECS"
         #(
@@ -113,12 +114,9 @@ do case "$BUILD_STEP" in
         #) || true
 
         test ! -e "$failed" || {
-          test -s "$failed" && error "Failed: $(echo $(cat $failed))" ||
+          test -s "$failed" &&
+            error "Failed: $(echo $(cat $failed))" ||
             error "Build failed"
-          #rm $failed
-          #unset failed
-          #sleep 5
-          #return 1
         }
       ;;
 

@@ -260,3 +260,8 @@ tap2junit()
 {
   perl $(which tap-to-junit-xml) --input $1 --output $2
 }
+
+list_builds()
+{
+  sd_be=couchdb_sh COUCH_DB=build-log statusdir.sh be doc $package_vendor/$package_id
+}
