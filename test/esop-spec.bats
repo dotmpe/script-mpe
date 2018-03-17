@@ -7,21 +7,23 @@ init
 
 
 @test "${bin} - No arguments: default action is ..." {
-export verbosity=4
+  export verbosity=4
   run $bin
-  test ${status} -eq 1
-  fnmatch "*esop*No command given*" "${lines[*]}" ||
-    fail "1 Out: ${lines[*]}"
+  { test $status -eq 1 &&
+    test_nok_nonempty "*esop*No command given*"
+  }|| stdfail 1
 
   run /bin/bash "$bin"
-  fnmatch "*esop*Error:*please use sh, or bash -o 'posix'*" "${lines[*]}" ||
-    fail "2 Out: ${lines[*]}"
-  test ${status} -eq 5 || fail "2 Out($status): ${lines[*]}"
+  {
+    test_nok_nonempty "*esop*Error:*please use sh, or bash -o 'posix'*" &&
+    test ${status} -eq 5
+  } || stdfail 2
 
   run /bin/sh "$bin"
-  test ${status} -eq 1 || fail "3.1 Out: ${lines[*]}"
-  fnmatch "*esop*No command given*" "${lines[*]}" ||
-    fail "3.2 Out($status): ${lines[*]}"
+  {
+    test_nok_nonempty "*esop*No command given*" "${lines[*]}" &&
+    test ${status} -eq 1
+  } || stdfail 3
 
   run bash "$bin"
   test ${status} -eq 5
@@ -39,8 +41,7 @@ export verbosity=4
 
 @test ". ${bin} load-ext" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
+  test_ok_empty || stdfail
 }
 
 @test "source ${bin}" {
@@ -54,8 +55,7 @@ export verbosity=4
 
 @test "source ${bin} load-ext" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
+  test_ok_empty || stdfail
 }
 
 
@@ -64,14 +64,10 @@ export verbosity=4
   base=esop
 
   run try_value version man_1
-  test ${status} -eq 0 \
-    || fail "try_value version man_1: ${status}, out: ${lines[*]}"
-  test "${lines[*]}" = "Version info" \
-    || fail "try_value version man_1: ${status}, out: ${lines[*]}"
-  test ! -z "${lines[*]}" # non-empty output
+  test_ok_nonempty "Version info" || stdfail 1
 
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
+  test_ok_nonempty || stdfail 2
 }
 
 @test "${bin} -vv -n help" {
