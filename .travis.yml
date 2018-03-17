@@ -68,11 +68,16 @@ before_cache:
 #     - $HOME/.npm
 
 after_script:
-  - echo Starting after-script
   - export scriptname=after-script after_script_ts="$(date +%s)"
+  - echo Starting $scriptname
+after_success:
+  - export scriptname=after-success after_success_ts="$(date +%s)"
+  - echo Starting $scriptname
   - . ./tools/ci/parts/publish.sh
-
-#after_success:
+after_failure:
+  - export scriptname=after-failure after_failure_ts="$(date +%s)"
+  - echo Starting $scriptname
+  - . ./tools/ci/parts/publish.sh
 
 #matrix:
 #  include: []
