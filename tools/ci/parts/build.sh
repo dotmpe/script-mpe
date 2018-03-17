@@ -9,6 +9,9 @@ do case "$BUILD_STEP" in
 
         note "Esop:"
         (
+          export verbosity=7
+          esop.sh version || true
+          export verbosity=4
           esop.sh version || true
           esop.sh || true
           esop.sh -vv -n help || true
