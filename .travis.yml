@@ -53,6 +53,7 @@ script:
   - echo Starting $scriptname
   - failed=/tmp/htd-build-test-$(uuidgen).failed
   - . ./tools/ci/parts/build.sh
+  - set +e
   - test ! -e "$failed"
 
 #before_cache:
