@@ -37,6 +37,7 @@ before_install:
   - export scriptname="before-install" before_install_ts="$(date +%s)"
   - . ./tools/ci/env.sh
   - . ./tools/ci/parts/init.sh || { . ./tools/ci/env.sh ; . ./tools/ci/parts/init.sh ; }
+  - . ./tools/ci/parts/announce.sh
 
 install:
   - export scriptname=install install_ts="$(date +%s)"
@@ -67,6 +68,7 @@ before_cache:
 #     - $HOME/.npm
 
 after_script:
+  - echo Starting after-script
   - export scriptname=after-script after_script_ts="$(date +%s)"
   - . ./tools/ci/parts/publish.sh
 
