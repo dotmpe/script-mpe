@@ -7,6 +7,16 @@ do case "$BUILD_STEP" in
 
     dev ) lib_load main; main_debug
 
+        note "Esop:"
+        (
+          export verbosity=7
+          esop.sh version || true
+          export verbosity=4
+          esop.sh version || true
+          esop.sh || true
+          esop.sh -vv -n help || true
+        )
+
         note "Pd help:"
         (
           ./projectdir.sh help || true
@@ -63,34 +73,40 @@ do case "$BUILD_STEP" in
     test )
         lib_load build
 
-        local failed=/tmp/htd-build-test-$(uuidgen).failed
-
         ## start with essential tests
         note "Testing required specs '$REQ_SPECS'"
         build_test_init "$REQ_SPECS"
+
         note "Init done"
         (
+          # Test shell unit files and report in TAP
           test_shell $(which bats) || touch $failed
           note "Bats shell tests done"
-          $TEST_FEATURE $BUSINESS_SUITE || true # touch $failed
-          note "Feature tests done"
-          python $PY_SUITE || touch $failed
+          mv $TEST_RESULTS.tap $TEST_RESULTS-1.tap
+
+          # Test feature files and report in JUnit XML
+          #$TEST_FEATURE $BUSINESS_SUITE || touch $failed
+          #note "Feature tests done"
+          #mv $TEST_RESULTS.xml $TEST_RESULTS-2.xml
+
+          # Test Python unit files and report in ...
+          # FIXME: new params for python tests python $PY_SUITE || touch $failed
+          #python test/main.py || touch $failed
+
+          py.test --junitxml $TEST_RESULTS.xml $PY_SUITE || touch $failed
           note "Python unittests done"
+          mv $TEST_RESULTS.xml $TEST_RESULTS-3.xml
         )
 
-        test -e "$TEST_RESULTS" || error "Test results expected" 1
-        grep '^not\ ok' $TEST_RESULTS && touch $failed ||
+        test -e "$TEST_RESULTS-1.tap" || error "Test results 1 expected" 1
+        #test -e "$TEST_RESULTS-2.xml" || error "Test results 2 expected" 1
+        test -e "$TEST_RESULTS-3.xml" || error "Test results 3 expected" 1
+
+        grep '^not\ ok' $TEST_RESULTS-1.tap &&
+            touch $failed ||
             stderr ok "No errors in req-specs"
-        not_falseish "$SHIPPABLE" && {
 
-          perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
-            --output $(basepath $TEST_RESULTS .tap .xml)
-          wc -l $TEST_RESULTS $(basepath $TEST_RESULTS .tap .xml)
-        } || {
-          wc -l $TEST_RESULTS
-        }
-
-        ## Other tests (TODO: complement?)
+        ## Other tests, allow to fail (TODO: complement from REQ_SPECS)
         #note "Testing all specs '$TEST_SPECS'"
         #build_test_init "$REQ_SPECS"
         #(
@@ -98,10 +114,9 @@ do case "$BUILD_STEP" in
         #) || true
 
         test ! -e "$failed" || {
-          test -s "$failed" && error "Failed: $(echo $(cat $failed))" || error "Build failed"
-          rm $failed
-          unset failed
-          return 1
+          test -s "$failed" &&
+            error "Failed: $(echo $(cat $failed))" ||
+            error "Build failed"
         }
       ;;
 

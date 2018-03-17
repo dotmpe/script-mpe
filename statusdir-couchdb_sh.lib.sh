@@ -14,25 +14,29 @@ couchdb_sh()
 
   case "$1" in
     get )
-        local json="$( $curl $COUCH_URL/$COUCH_DB/$2 )" || return
+        local json="$( $curl "$COUCH_URL/$COUCH_DB/$2" )" || return
         test -n "$json" || return
         echo "$json" | jsotk -Opy path - $COUCH_SD_VKEY
       ;;
+    doc )
+        key="$(urlencode "$2")" || return
+        $curl "$COUCH_URL/$COUCH_DB/$key" || return
+      ;;
     set )
         local json_data='{"'$COUCH_SD_VKEY'": "'$4'"}'
-        rev="$(eval echo $( $curl $COUCH_URL/$COUCH_DB/$2 | jq  ._rev))" || return
+        rev="$(eval echo $( $curl "$COUCH_URL/$COUCH_DB/$2" | jq  ._rev))" || return
         test -n "$rev" &&
         {
-          $curl -X PUT -S $COUCH_URL/$COUCH_DB/$2 \
+          $curl -X PUT -S "$COUCH_URL/$COUCH_DB/$2" \
             -H If-Match:$rev \
             -d "$json_data" || return $?
         } || {
-          $curl -X PUT -S $COUCH_URL/$COUCH_DB/$2 \
+          $curl -X PUT -S "$COUCH_URL/$COUCH_DB/$2" \
             -d "$json_data" || return $?
         }
       ;;
     incr )
-        eval "$( $curl $COUCH_URL/$COUCH_DB/$2 |
+        eval "$( $curl "$COUCH_URL/$COUCH_DB/$2" |
             jq -r '@sh "rev=\(._rev) v=\(.value)"' )" || return
         local json_data='{"'$COUCH_SD_VKEY'": "'$(( $v + 1 ))'"}'
         $curl -X PUT -S $COUCH_URL/$COUCH_DB/$2 \
@@ -41,22 +45,22 @@ couchdb_sh()
         expr $v + 1
       ;;
     decr )
-        eval "$( $curl $COUCH_URL/$COUCH_DB/$2 |
+        eval "$( $curl "$COUCH_URL/$COUCH_DB/$2" |
             jq -r '@sh "rev=\(._rev) v=\(.value)"' )" || return
         local json_data='{"'$COUCH_SD_VKEY'": "'$(( $v - 1 ))'"}'
-        echo $( $curl -X PUT -S $COUCH_URL/$COUCH_DB/$2 \
+        echo $( $curl -X PUT -S "$COUCH_URL/$COUCH_DB/$2" \
           -H If-Match:$rev \
           -d "$json_data" >/dev/null || return $?)
         expr $v - 1
       ;;
     del|delete )
-        local rev=$( $curl $COUCH_URL/$COUCH_DB/$2 | jq  ._rev) || return $?
+        local rev=$( $curl "$COUCH_URL/$COUCH_DB/$2" | jq  ._rev) || return $?
 
-        $curl -X DELETE -S $COUCH_URL/$COUCH_DB/$2 -H If-Match:$rev ||
+        $curl -X DELETE -S "$COUCH_URL/$COUCH_DB/$2" -H If-Match:$rev ||
             return $?
       ;;
     ping )
-        $curl -So/dev/null $COUCH_URL/$COUCH_DB || return
+        $curl -So/dev/null "$COUCH_URL/$COUCH_DB" || return
       ;;
     list ) error "TODO couchdb $@" 1
       ;;

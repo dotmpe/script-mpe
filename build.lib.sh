@@ -37,8 +37,8 @@ test_shell()
 {
   test -n "$*" || set -- bats
   local verbosity=4
-  echo "test-shell: '$@' '$BATS_SUITE' | tee $TEST_RESULTS" >&2
-  eval $@ $BATS_SUITE | tee $TEST_RESULTS
+  echo "test-shell: '$@' '$BATS_SUITE' | tee $TEST_RESULTS.tap" >&2
+  eval $@ $BATS_SUITE | tee $TEST_RESULTS.tap
 }
 
 
@@ -254,4 +254,30 @@ before_test()
 {
   verbose=1 git-versioning check &&
   projectdir.sh run :bats:specs
+}
+
+tap2junit()
+{
+  perl $(which tap-to-junit-xml) --input $1 --output $2
+}
+
+list_builds()
+{
+  sd_be=couchdb_sh COUCH_DB=build-log \
+      statusdir.sh be doc $package_vendor/$package_id > .tmp.json
+  last_build_id=$( jq -r '.builds | keys[-1]' .tmp.json )
+
+  sd_be=couchdb_sh COUCH_DB=build-log \
+      statusdir.sh be doc $package_vendor/$package_id:$last_build_id > .tmp-2.json
+
+  {
+    jq '.stats.total,.stats.failed,.stats.passed' .tmp-2.json |
+        tr '\n' " "; echo ; } | { read total failed passed
+
+      test 0 -eq $failed && {
+          note "Last test $last_build_id passed (tested $passed of $total)"
+      } || {
+          error "Last test $last_build_id failed $failed tests (passed $passed of $total)"
+      }
+  }
 }

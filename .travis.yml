@@ -35,6 +35,7 @@ before_install:
   - export scriptname="before-install" before_install_ts="$(date +%s)"
   - . ./tools/ci/env.sh
   - . ./tools/ci/parts/init.sh || { . ./tools/ci/env.sh ; . ./tools/ci/parts/init.sh ; }
+  - . ./tools/ci/parts/announce.sh
 
 install:
   - export scriptname=install install_ts="$(date +%s)"
@@ -43,16 +44,22 @@ install:
 
 before_script:
   - export scriptname="before-script" before_script_ts="$(date +%s)"
+  - echo Starting $scriptname
   - . ./tools/ci/parts/check.sh
   - curl -X PUT localhost:5984/$COUCH_DB
 
 script:
   - export scriptname=script script_ts="$(date +%s)"
+  - echo Starting $scriptname
+  - failed=/tmp/htd-build-test-$(uuidgen).failed
   - . ./tools/ci/parts/build.sh
+  - set +e
+  - test ! -e "$failed"
 
-before_cache:
-  - export scriptname=before-cache before_cache_ts="$(date +%s)"
-  - rm -f $HOME/.cache/pip/log/debug.log
+#before_cache:
+#  - export scriptname=before-cache before_cache_ts="$(date +%s)"
+#  - echo Starting $scriptname
+#  - rm -f $HOME/.cache/pip/log/debug.log
 
 #cache:
 #  directories:
@@ -66,13 +73,21 @@ before_cache:
 
 after_script:
   - export scriptname=after-script after_script_ts="$(date +%s)"
+  - echo Starting $scriptname
+
+after_success:
+  - export scriptname=after-success after_success_ts="$(date +%s)"
+  - echo Starting $scriptname
   - . ./tools/ci/parts/publish.sh
 
-#after_success:
+after_failure:
+  - export scriptname=after-failure after_failure_ts="$(date +%s)"
+  - echo Starting $scriptname
+  - . ./tools/ci/parts/publish.sh
 
 #matrix:
 #  include: []
-#
+
 env:
   matrix:
     - TEST_ENV=testing TEST_SHELL=sh
@@ -84,7 +99,7 @@ env:
     - TEST_ENV=travis
     - UCONFDIR=$HOME/etc
     - PATH=$PATH:$PWD:$PWD/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
-    - TEST_RESULTS=shippable/testresults/test.tap
+    - TEST_RESULTS=shippable/testresults/test
     - Build_Deps_Default_Paths=1
     - LOG=$PWD/log.sh
     - BATS_REPO=https://github.com/bvberkum/bats.git

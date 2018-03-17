@@ -223,6 +223,9 @@
       # NOTE: behat cannot display outline only, but behave has problems with extended background syntax
       - $TEST_FEATURE_BIN --dry-run # --no-multiline --no-expand
 
+    ci:
+      - lib_load build ; list_builds \"\$@\"
+
     unique-filelines:
     - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' $f ; done | wc -l
     unique-lines:

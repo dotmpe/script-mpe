@@ -1,12 +1,10 @@
 #!/bin/sh
 set -e
-test -z "$scm_nok" || exit $scm_nok ; echo "pre-commit: Set scm_nok= to override exit" >&2
-set -e ; pd run htd:gitflow-check-doc :verbose=1:vchk :bats:specs
-exit $?
+  
 
 #diff build/test/list1.txt build/test/list2.txt
 #diff build/test/list1.txt build/test/list3.txt
-#exit $?
+exit $?
 
 cp test/var/list.txt/list1.txt build/test/list1.txt
 { echo 'Id-5: tralala'; } | list.py update-list build/test/list1.txt

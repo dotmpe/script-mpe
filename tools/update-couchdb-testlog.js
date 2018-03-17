@@ -92,6 +92,7 @@ db.get(key, function( err, buildlog, headers ) {
   if (!buildlog) {
     buildlog = {"builds": {}};
   }
+
   buildlog.builds[process.env.TRAVIS_JOB_NUMBER] = {
     "stats": build.stats,
     "cause": process.env.BUILD_CAUSE,
@@ -106,13 +107,12 @@ db.get(key, function( err, buildlog, headers ) {
     }
   };
 
-  db.insert( buildlog, key, function(error) {
-
+  db.update( buildlog, key, function(error) {
      if (err) {
        console.error(err.statusCode);
        process.exit(1);
      }
-     console.log("OK, updated", buildkey);
+     console.log("OK, updated", key);
   });
 });
 

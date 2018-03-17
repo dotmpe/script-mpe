@@ -50,10 +50,11 @@ tools/sh/tags.sh
 tools/sh/tags-filter.sh
 tools/sh/init.sh
 tools/sh/env.sh
-tools/ci/parts/build.sh
-tools/ci/parts/check.sh
 tools/ci/parts/init.sh
+tools/ci/parts/announce.sh
 tools/ci/parts/install.sh
+tools/ci/parts/check.sh
+tools/ci/parts/build.sh
 tools/ci/parts/publish.sh
 util.sh
 box-instance.sh
