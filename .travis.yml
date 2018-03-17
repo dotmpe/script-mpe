@@ -53,15 +53,15 @@ before_script:
 script:
   - export scriptname=script script_ts="$(date +%s)"
   - echo Starting $scriptname
-  - local failed=/tmp/htd-build-test-$(uuidgen).failed
+  - failed=/tmp/htd-build-test-$(uuidgen).failed
   - echo failed=$failed
   - . ./tools/ci/parts/build.sh
+  - test ! -e "$failed"
 
 before_cache:
   - export scriptname=before-cache before_cache_ts="$(date +%s)"
   - echo Starting $scriptname
   - rm -f $HOME/.cache/pip/log/debug.log
-  - test ! -e "$failed"
 
 #cache:
 #  directories:
