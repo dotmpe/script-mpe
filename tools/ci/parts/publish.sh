@@ -1,6 +1,5 @@
 #!/bin/sh
 # Publish build-report to CouchDB
-set -e
 
 dig +short myip.opendns.com @resolver1.opendns.com || true
 

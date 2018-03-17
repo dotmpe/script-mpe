@@ -1,4 +1,5 @@
 #!/bin/sh
+
 set -e
 
 # entry-point for CI pre-test phase, to do preflight checks, some verbose debugging
@@ -63,5 +64,6 @@ note "box-instance:"
 
 # Other commands in build #dev phase.
 
+set +e
 note "Done"
 # Id: script-mpe/0.0.4-dev tools/ci/parts/check.sh

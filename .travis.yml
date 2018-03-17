@@ -57,6 +57,7 @@ script:
   - echo failed=$failed
   - touch $failed
   #- . ./tools/ci/parts/build.sh
+  #- sleep 5
   - test ! -e "$failed"
 
 before_cache:
