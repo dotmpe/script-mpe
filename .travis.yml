@@ -54,7 +54,6 @@ script:
   - export scriptname=script script_ts="$(date +%s)"
   - echo Starting $scriptname
   - . ./tools/ci/parts/build.sh
-  - echo "?: $?"
 
 before_cache:
   - export scriptname=before-cache before_cache_ts="$(date +%s)"

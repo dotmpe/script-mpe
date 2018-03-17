@@ -104,12 +104,12 @@ do case "$BUILD_STEP" in
         #  test_shell $(which bats)
         #) || true
 
-        sleep 5
         test ! -e "$failed" || {
           test -s "$failed" && error "Failed: $(echo $(cat $failed))" ||
             error "Build failed"
           rm $failed
           unset failed
+          sleep 5
           return 1
         }
       ;;
