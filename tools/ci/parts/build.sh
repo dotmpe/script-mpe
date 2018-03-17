@@ -29,35 +29,8 @@ do case "$BUILD_STEP" in
            ./vagrant-sh.sh -h || true
         )
 
-        note "x-test"
-        (
-           ./x-test.sh -h || true
-           ./x-test.sh --version || true
-        )
-
-        note "box"
-        (
-           box help || true
-        )
-
         # TODO install again? note "gtasks:"
-        #./gtasks || noop
-
-        #note "basename-reg:"
-        #./basename-reg ffnnec.py
-
-        note "mimereg:"
-        (
-           ./mimereg ffnenc.py
-        ) || true
-
-        #note "lst names local:"
-        #892.2 https://travis-ci.org/dotmpe/script-mpe/jobs/191996789
-        #lst names local
-        # [lst.bash:names] Warning: No 'watch' backend
-        # [lst.bash:names] Resolved ignores to '.bzrignore etc:droppable.globs
-        # etc:purgeable.globs .gitignore .git/info/exclude'
-        #/home/travis/bin/lst: 1: exec: 10: not found
+        ./gtasks || noop
       ;;
 
     jekyll )

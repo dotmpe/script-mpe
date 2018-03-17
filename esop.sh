@@ -96,9 +96,13 @@ esop_main()
       base="$(basename $0 ".sh")" \
       scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
       failed=
+
+  debug esop-main
   case "$base" in
     $scriptname )
+      debug esop-init
       esop_init || return $?
+      debug esop-run-subcmd
       run_subcmd "$@" || return $?
       ;;
     * )
@@ -124,6 +128,7 @@ esop_init()
 # FIXME
 esop_lib()
 {
+  debug esop-lib
   # -- box box lib sentinel --
   set --
 }
