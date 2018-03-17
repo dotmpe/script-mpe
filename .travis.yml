@@ -33,6 +33,7 @@ services:
 
 before_install:
   - echo LOG="$LOG"
+  - echo PWD="$PWD"
   - export scriptname="before-install" before_install_ts="$(date +%s)"
   - . ./tools/ci/env.sh
   - . ./tools/ci/parts/init.sh || { . ./tools/ci/env.sh ; . ./tools/ci/parts/init.sh ; }
@@ -87,7 +88,7 @@ env:
     - PATH=$PATH:$PWD:$PWD/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
     - TEST_RESULTS=shippable/testresults/test
     - Build_Deps_Default_Paths=1
-    - LOG=$(pwd -P)/log.sh
+    - LOG=$PWD/log.sh
     - BATS_REPO=https://github.com/bvberkum/bats.git
     - PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python2.7/site-packages:$HOME/bin:$HOME/lib/py
     - COUCH_DB=test
