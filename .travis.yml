@@ -46,15 +46,19 @@ install:
 
 before_script:
   - export scriptname="before-script" before_script_ts="$(date +%s)"
+  - echo Starting $scriptname
   - . ./tools/ci/parts/check.sh
   - curl -X PUT localhost:5984/$COUCH_DB
 
 script:
   - export scriptname=script script_ts="$(date +%s)"
+  - echo Starting $scriptname
   - . ./tools/ci/parts/build.sh
+  - echo "?: $?"
 
 before_cache:
   - export scriptname=before-cache before_cache_ts="$(date +%s)"
+  - echo Starting $scriptname
   - rm -f $HOME/.cache/pip/log/debug.log
 
 #cache:
@@ -70,10 +74,12 @@ before_cache:
 after_script:
   - export scriptname=after-script after_script_ts="$(date +%s)"
   - echo Starting $scriptname
+
 after_success:
   - export scriptname=after-success after_success_ts="$(date +%s)"
   - echo Starting $scriptname
   - . ./tools/ci/parts/publish.sh
+
 after_failure:
   - export scriptname=after-failure after_failure_ts="$(date +%s)"
   - echo Starting $scriptname
