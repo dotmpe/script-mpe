@@ -32,8 +32,6 @@ services:
 - couchdb
 
 before_install:
-  - echo LOG="$LOG"
-  - echo PWD="$PWD"
   - export scriptname="before-install" before_install_ts="$(date +%s)"
   - . ./tools/ci/env.sh
   - . ./tools/ci/parts/init.sh || { . ./tools/ci/env.sh ; . ./tools/ci/parts/init.sh ; }
@@ -54,26 +52,23 @@ script:
   - export scriptname=script script_ts="$(date +%s)"
   - echo Starting $scriptname
   - failed=/tmp/htd-build-test-$(uuidgen).failed
-  - echo failed=$failed
-  - touch $failed
-  #- . ./tools/ci/parts/build.sh
-  #- sleep 5
+  - . ./tools/ci/parts/build.sh
   - test ! -e "$failed"
 
-before_cache:
-  - export scriptname=before-cache before_cache_ts="$(date +%s)"
-  - echo Starting $scriptname
-  - rm -f $HOME/.cache/pip/log/debug.log
+#before_cache:
+#  - export scriptname=before-cache before_cache_ts="$(date +%s)"
+#  - echo Starting $scriptname
+#  - rm -f $HOME/.cache/pip/log/debug.log
 
-cache:
-  directories:
-     - ./node_modules
-     - ./vendor
-     - $HOME/.local
-     - $HOME/.basher
-     #- $HOME/.cache/pip
-     - $HOME/virtualenv
-     - $HOME/.npm
+#cache:
+#  directories:
+#     - ./node_modules
+#     - ./vendor
+#     - $HOME/.local
+#     - $HOME/.basher
+#     - $HOME/.cache/pip
+#     - $HOME/virtualenv
+#     - $HOME/.npm
 
 after_script:
   - export scriptname=after-script after_script_ts="$(date +%s)"
