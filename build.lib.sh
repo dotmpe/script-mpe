@@ -263,5 +263,21 @@ tap2junit()
 
 list_builds()
 {
-  sd_be=couchdb_sh COUCH_DB=build-log statusdir.sh be doc $package_vendor/$package_id
+  sd_be=couchdb_sh COUCH_DB=build-log \
+      statusdir.sh be doc $package_vendor/$package_id > .tmp.json
+  last_build_id=$( jq -r '.builds | keys[-1]' .tmp.json )
+
+  sd_be=couchdb_sh COUCH_DB=build-log \
+      statusdir.sh be doc $package_vendor/$package_id:$last_build_id > .tmp-2.json
+
+  {
+    jq '.stats.total,.stats.failed,.stats.passed' .tmp-2.json |
+        tr '\n' " "; echo ; } | { read total failed passed
+
+      test 0 -eq $failed && {
+          note "Last test $last_build_id passed (tested $passed of $total)"
+      } || {
+          error "Last test $last_build_id failed $failed tests (passed $passed of $total)"
+      }
+  }
 }

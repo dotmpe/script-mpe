@@ -1,9 +1,10 @@
 #!/bin/sh
 set -e
+  
 
 #diff build/test/list1.txt build/test/list2.txt
 #diff build/test/list1.txt build/test/list3.txt
-#exit $?
+exit $?
 
 cp test/var/list.txt/list1.txt build/test/list1.txt
 { echo 'Id-5: tralala'; } | list.py update-list build/test/list1.txt
