@@ -7,6 +7,13 @@ do case "$BUILD_STEP" in
 
     dev ) lib_load main; main_debug
 
+        note "Esop:"
+        (
+          esop.sh version || true
+          esop.sh || true
+          esop.sh -vv -n help || true
+        )
+
         note "Pd help:"
         (
           ./projectdir.sh help || true

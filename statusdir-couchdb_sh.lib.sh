@@ -14,12 +14,13 @@ couchdb_sh()
 
   case "$1" in
     get )
-        echo "$curl $COUCH_URL/$COUCH_DB/$2"
-        $curl "$COUCH_URL/$COUCH_DB/$2"
-
         local json="$( $curl "$COUCH_URL/$COUCH_DB/$2" )" || return
         test -n "$json" || return
         echo "$json" | jsotk -Opy path - $COUCH_SD_VKEY
+      ;;
+    doc )
+        key="$(urlencode "$2")" || return
+        $curl "$COUCH_URL/$COUCH_DB/$key" || return
       ;;
     set )
         local json_data='{"'$COUCH_SD_VKEY'": "'$4'"}'

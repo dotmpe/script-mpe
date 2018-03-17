@@ -297,6 +297,12 @@ statusdir__rem()
 statusdir__be()
 {
   test -n "$1" || error "cmd expected" 1
+  $sd_be "$@"
+}
+
+statusdir__x()
+{
+  test -n "$1" || error "cmd expected" 1
   $sd_be x "$@"
 }
 

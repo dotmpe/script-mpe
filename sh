@@ -1,15 +1,5 @@
 #!/bin/sh
 set -e
-#sd_be=couchdb_sh COUCH_DB=build-log \
-#    statusdir.sh get "bvberkum%2Fscript-mpe%3A1283.1"
-curl -sSf --connect-timeout 3 \
-  https://hari:vLh,9ujwktNqwfqr5K8dCN@couch.wtwta.org/build-log/bvberkum%2Fscript-mpe%3A1283.1
-exit $?
-
-
-test -z "$scm_nok" || exit $scm_nok ; echo "pre-commit: Set scm_nok= to override exit" >&2
-set -e ; pd run htd:gitflow-check-doc :verbose=1:vchk :bats:specs
-exit $?
 
 #diff build/test/list1.txt build/test/list2.txt
 #diff build/test/list1.txt build/test/list3.txt
