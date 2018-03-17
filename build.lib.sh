@@ -37,8 +37,8 @@ test_shell()
 {
   test -n "$*" || set -- bats
   local verbosity=4
-  echo "test-shell: '$@' '$BATS_SUITE' | tee $TEST_RESULTS" >&2
-  eval $@ $BATS_SUITE | tee $TEST_RESULTS
+  echo "test-shell: '$@' '$BATS_SUITE' | tee $TEST_RESULTS.tap" >&2
+  eval $@ $BATS_SUITE | tee $TEST_RESULTS.tap
 }
 
 
@@ -254,4 +254,9 @@ before_test()
 {
   verbose=1 git-versioning check &&
   projectdir.sh run :bats:specs
+}
+
+tap2junit()
+{
+  perl $(which tap-to-junit-xml) --input $1 --output $2
 }

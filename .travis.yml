@@ -84,7 +84,7 @@ env:
     - TEST_ENV=travis
     - UCONFDIR=$HOME/etc
     - PATH=$PATH:$PWD:$PWD/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
-    - TEST_RESULTS=shippable/testresults/test.tap
+    - TEST_RESULTS=shippable/testresults/test
     - Build_Deps_Default_Paths=1
     - LOG=$PWD/log.sh
     - BATS_REPO=https://github.com/bvberkum/bats.git
