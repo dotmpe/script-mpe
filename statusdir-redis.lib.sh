@@ -28,10 +28,18 @@ redis()
     ping )
         redis-cli ping 2>&1 >/dev/null || return
       ;;
+
     list )
         test -n "$2" || set -- "$1" 0
         redis-cli scan "$2" || return
       ;;
+
+    exists ) shift ; test 1 -eq $( redis-cli --raw "exists" "$@" ) ;;
+    has ) shift ; test 1 -eq $( redis-cli --raw "sismember" "$@" ) ;;
+    members ) shift ; redis-cli --raw "smembers" "$@" ;;
+    add ) shift ; test 1 -eq $(redis-cli --raw "sadd" "$@" ) ;;
+    rem ) shift ; test 1 -eq $(redis-cli --raw "srem" "$@" ) ;;
+
     backend )
         echo redis
       ;;

@@ -218,9 +218,9 @@ vagrant_sh_init()
   export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
 
   test -n "$scriptpath"
-  . $scriptpath/util.sh load-ext
+  . $scriptpath/util.sh
   lib_load
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load main meta box doc date table remote
   # -- vagrant-sh box init sentinel --

@@ -53,7 +53,7 @@ from .taxus.init import SqlBase, get_session
 #from .taxus.net import Locator, Domain
 #from .taxus.model import Bookmark
 #from .taxus.ns import Namespace, Localname
-from .taxus.util import ORMMixin, ScriptMixin, current_hostname
+from .taxus.util import ORMMixin, ScriptMixin, current_hostname, sql_like_val
 #from .taxus.web import Resource, RemoteCachedResource
 from .taxus.media import Mediatype, MediatypeParameter, Genre, Mediameta
 from .taxus.fs import INode, Dir, File, Mount

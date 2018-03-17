@@ -115,7 +115,7 @@ esop_init()
   export SCRIPTPATH=$scriptpath
   . $scriptpath/util.sh load-ext
   lib_load
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   lib_load main
   box_run_sh_test
   # -- esop box init sentinel --

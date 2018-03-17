@@ -11,9 +11,19 @@ def iso8601_datetime_format(time_tuple):
     """
     Format datetime tuple to ISO 8601 format suitable for MIME messages.
 
-    NOTE: can use use datetime().isoformat() on instances.
+    NOTE: can use use datetime().isoformat() on instances too.
     """
     return time.strftime(ISO_8601_DATETIME, time_tuple)
+
+def iso8601_from_stamp(ts):
+    """
+    Go from (UTC) timestamp to formatted date time.
+    """
+    if isinstance(ts, basestring):
+        assert ts.isdigit()
+        ts = int(ts)
+    dt = datetime.fromtimestamp(ts)
+    return dt.isoformat()
 
 def parse_isodatetime(s):
     """

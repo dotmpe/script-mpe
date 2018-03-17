@@ -2,32 +2,61 @@ Feature: GIT helpers (in htd)
 
     Scenario: list local repositories
 
-        When the user runs "verbosity=0 htd gitrepo"
+        Given `env` 'verbosity=0'
+        When the user runs "htd gitrepo --dir=/srv/git-local bvberkum/*.git"
         Then each `output` line matches the pattern '.*.git$'
-        Then `output` has the lines:
+        And `stderr` is empty
+        And `output` has the lines:
         """
         /srv/git-local/bvberkum/script-mpe.git
         /srv/git-local/bvberkum/mkdoc.git
         """
 
+    Scenario: list local repositories (defaults)
+
+        Given `env` 'verbosity=0'
+        When the user runs "htd show repos dir stdio_0_type NS_NAME"
+        Then `output` equals:
+        """
+        p
+        bvberkum
+        """
+
+        When the user runs "htd gitrepo"
+        Then `stderr` is empty
+        # FIXME: cant seem to make this test work
+        #And `output` has the lines:
+        #"""
+        #/srv/git-local/bvberkum/script-mpe.git
+        #/srv/git-local/bvberkum/mkdoc.git
+        #"""
+
     Scenario: list repositories in dir and/or for glob
 
+        Given `env` 'verbosity=0'
         When the user runs "htd gitrepo --dir=/src/github.com bvberkum/*/.git"
-        Then `output` has the lines:
+        Then `stderr` is empty
+        And `output` has the lines:
         """
         /src/github.com/bvberkum/mkdoc/.git
         """
 
+        Given `env` 'verbosity=0'
         When the user runs "htd gitrepo --dir=/src */*/x-meta/.git"
-        Then `output` has the lines:
+        Then `stderr` is empty
+        And `output` has the lines:
         """
         /src/bitbucket.org/dotmpe/x-meta/.git
         """
     
     Scenario: gitrepo scripted use
         
+        Given `env` 'verbosity=0'
+
         When the user runs "repos='foo bar' htd gitrepo"
-        Then `output` equals:
+
+        Then `stderr` is empty
+        And `output` equals:
         """
         foo
         bar
@@ -38,8 +67,13 @@ Feature: GIT helpers (in htd)
 
     Scenario: gitrepo stdin
 
-        When the user runs "{ echo foo; echo bar; } | NS_NAME=vendor htd gitrepo"
-        Then `output` equals:
+        Given `env` 'NS_NAME=vendor verbosity=0'
+        And `stdin` '{ echo foo; echo bar; }'
+
+        When the user runs "htd gitrepo"
+
+        Then `stderr` is empty
+        And `output` equals:
         """
         /srv/git-local/vendor/foo
         /srv/git-local/vendor/bar

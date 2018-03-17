@@ -61,6 +61,16 @@ lib_load()
   done
 }
 
+dir_load()
+{
+  test -n "$1" || error dir-expected 1
+  test -n "$2" || set -- "$1" .sh
+  for scr in $1/*$2
+  do
+    . $scr
+  done
+}
+
 util_boot()
 {
   test -n "$__load_boot" || {
@@ -103,6 +113,7 @@ case "$0" in
 
       } || {
 
+        test -n "$__load_mode" || __load_mode=$__load
         case "$__load_mode" in
 
           # Setup SCRIPTPATH and include other scripts

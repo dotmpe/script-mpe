@@ -59,7 +59,7 @@ from sqlalchemy.schema import CreateTable
 import sadisplay
 
 from script_mpe.libhtd import *
-from script_mpe import reporter
+from script_mpe import reporter, mod
 
 
 
@@ -284,7 +284,10 @@ if __name__ == '__main__':
     # schema corresponds to module name
     if opts.args.schema:
         log.note("Using schema %r", opts.args.schema)
-        schema = __import__(os.path.splitext(opts.args.schema)[0])
+        p = opts.args.schema
+        if p.endswith('.py'):
+            p = os.path.splitext(p)[0]
+        schema = mod.load_module(p)
     else:
         log.note("Using local schema %s", __name__)
         schema = sys.modules[__name__]

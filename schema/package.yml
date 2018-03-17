@@ -64,6 +64,24 @@ items:
             XXX: require to choose for env to do this in, and revert some of
             the current isolation?
 
+    - type: object
+      properties:
+        flows:
+          type: object
+          short: Project shell script flows
+          description: |
+              A mapping of state IDs to tuples with script IDs or other states.
+              The scripts specify how to enter, check or close the state.
+              For simplicity, only the enter-state script ID is required. It
+              replaces the check-script when that is called for, and for deinit
+              or disabeling the state it simply assumes its disposed of with its
+              containg project.
+
+              By default states inherit all from the 'base' flow, meaning its
+              required before any other state. To make a flow that can run without
+              succesful 'base' flow init or check, select the reserved 'null'
+              flow.
+
 #    - type: object
 #      properties:
 #        pd-meta:

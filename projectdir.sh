@@ -1668,7 +1668,7 @@ pd_init()
   pd_preload || exit $?
   _lib_load=1 . $scriptpath/util.sh load-ext
   lib_load str sys os std stdio src match main argv
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   lib_load meta box package
   box_run_sh_test
   # -- pd box init sentinel --

@@ -92,7 +92,7 @@ rst_init()
   export SCRIPTPATH=$scriptpath
   . $scriptpath/util.sh
   util_init
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   . $scriptpath/box.lib.sh
   box_run_sh_test
   . $scriptpath/main.lib.sh load-ext

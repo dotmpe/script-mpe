@@ -88,6 +88,7 @@
 
     git-hooks:
       pre-commit: ./tools/git-hooks/pre-commit.sh
+      pre-commit-script: htd run check
 
     init: "./install-dependencies.sh git:init"
     # FIXME: what about git annex pre-commit .
@@ -116,13 +117,21 @@
       - htd package remotes-init
       - vc regenerate
         # XXX: interactve: python -c 'import nltk; nltk.download()'
+      - test -e Makefile || { rm Makefile ; ln -s /usr/share/mkdoc/Mkdoc-full.mk Makefile ; }
+      #- make symlinks
+
+    db-deinit:
+      - db=htd-test db_root_passwd=$BM_DB_PASS docker-sh.sh mysql drop-db
+    db-init:
+      - db=htd-test db_root_passwd=$BM_DB_PASS docker-sh.sh mysql create-db
+      - db_sa.py --dbref=$BM_DB init script_mpe.sa_migrate.bms.model
 
     #check: pd check
     check:
-      - htd vcflow check-doc
+      # - htd vcflow check-doc
       - verbosity=1 git-versioning check
-      #- projectdir.sh run :bats:specs
-      #- ./vendor/.bin/behat --dry-run --no-multiline
+      - projectdir.sh run :bats:specs
+      - ./vendor/.bin/behat --dry-run --strict
       #- projectdir.sh run :git:status
       - export SCR_SYS_SH=bash-sh
       - scriptname="check-includes"
@@ -170,15 +179,17 @@
     # Run main test-suite TODO: work at dependency
     #test: pd test
     test:
-      - test -n \"\$1\" || { verbose=1 git-versioning check &&
-            projectdir.sh run :bats:specs ; } 
-      - lib_load build ; test -n \"\$1\" || set -- \$REQ_SPECS ; project_test $@
+      - lib_load build
+      - test -n \"\$1\" || before_test
+      - test -n \"\$1\" || set -- \$REQ_SPECS
+      - project_test $@
     # TODO: Run complete test-suite, including WIP
     test-all:
       - lib_load build ; test -n \"\$1\" || set -- \$REQ_SPECS \$TEST_SPECS ; project_test \"\$@\"
     # Keep testfiles and tested list, and keep running while one or more fails
     retest:
-        # TODO: restart only after changes
+      - source ~/.pyvenv/du-ext/bin/activate
+      # TODO: restart only after changes
       - lib_load build ; retest \"\$@\"
     tested:
       - lib_load build ; tested \"\$@\"
@@ -211,6 +222,7 @@
     feature-specs:
       # NOTE: behat cannot display outline only, but behave has problems with extended background syntax
       - $TEST_FEATURE_BIN --dry-run # --no-multiline --no-expand
+
     unique-filelines:
     - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' $f ; done | wc -l
     unique-lines:

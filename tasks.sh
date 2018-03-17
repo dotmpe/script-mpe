@@ -107,7 +107,7 @@ tasks_init()
   . $scriptpath/util.sh load-ext
   util_init
   . $scriptpath/match.lib.sh
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   #. $scriptpath/htd.lib.sh
   lib_load main meta box date doc table remote tasks

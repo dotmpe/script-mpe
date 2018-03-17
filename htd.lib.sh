@@ -157,11 +157,8 @@ htd_repository_url() # Remote Url
 
   } || {
 
-    # Add hostname for remote disk
-    { fnmatch "/*" "$2" || fnmatch "~/*" "$2"
-    } || return
-    remote=$(echo $1 | cut -f2- -d'.')
-    url="$(echo $1 | cut -f1 -d'.'):$2"
+    remote="$1"
+    url="$2"
   }
 
   # Remove .$scm and .../.$scm suffix

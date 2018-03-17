@@ -107,7 +107,7 @@ var_isset()
   #   fiddling. Using SCR_SYS_SH=bash-sh to make some frontend exceptions.
   case "$SCR_SYS_SH" in
 
-    bash-sh|sh )
+    bash-sh|sh|zsh )
         # Aside from declare or typeset in newer reincarnations,
         # in posix or modern Bourne mode this seems to work best:
         ( set | grep -q '\<'"$1"'=' ) || return 1
@@ -484,4 +484,10 @@ req_profile() # Name Vars...
     } > "$SCR_ETC/${name}-temp.sh"
     mv "$SCR_ETC/${name}-temp.sh" "$SCR_ETC/$name.sh"
   }
+}
+
+rnd_passwd()
+{
+  test -n "$1" || set -- 11
+  cat /dev/urandom | LC_ALL=ascii tr -cd 'a-z0-9' | head -c $1
 }

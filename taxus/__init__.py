@@ -46,9 +46,9 @@ class CouchMixin(object):
 
     def init(self, metadata=None):
         g = self.settings
-        if not hasattr(g, 'no_db') and g.no_db:
+        if hasattr(g, 'no_db') and g.no_db:
             pass
-        if not hasattr(g, 'no_couch') and g.no_couch:
+        if hasattr(g, 'no_couch') and g.no_couch:
             if hasattr(g, 'couch') and g.couch:
                 self.couchdocs(g.couch)
 
@@ -95,9 +95,23 @@ class OutputMixin(object):
         for r in rs:
             self.out(r, tp=tp)
 
+    def get_renderer(self, name='node'):
+        g = self.settings
+        tpl_name = '%s.%s' % ( name, g.output_format )
+        tpl = out.get_template(tpl_name)
+        if tpl:
+            return tpl.render
+        else:
+            return lambda o: o
+
     def out(self, r, tp='node'):
         g = self.settings ; of = g.output_format
-        if isinstance(r, dict): d = r
+        if isinstance(r, dict):
+            d = r
+        elif isinstance(r, list):
+            for i in r:
+                self.out(i, tp)
+            return
         else:
             if g.struct_output: d = r.to_struct()
             else: d = r.to_dict()
@@ -125,11 +139,14 @@ class OutputMixin(object):
                 print(js.dumps(it))
 
         else:
-            if g.struct_output:
-                tpl = out.get_template("%sdoc.%s" % (g.tp, of))
-            else:
-                tpl = out.get_template("%s.%s" % (g.tp, of))
-            out_ = tpl.render
+            for it in self.output_buffer:
+                print(it)
+            # TODO:
+            #if g.struct_output:
+            #    tpl = out.get_template("%sdoc.%s" % (g.tp, of))
+            #else:
+            #    tpl = out.get_template("%s.%s" % (g.tp, of))
+            #out_ = tpl.render
 
         self.output_buffer = []
 
@@ -228,6 +245,7 @@ class Taxus(AbstractYamlDocs, OutputMixin, CouchMixin):
     def setmetadata(self, metadata):
         if not metadata:
             metadata = staticmetadata
+        assert isinstance(metadata, MetaData), metadata
         self.metadata_per_session[self.session] = metadata
 
     def load(self, version, session=DEFAULT_SESSION):
@@ -238,10 +256,10 @@ class Taxus(AbstractYamlDocs, OutputMixin, CouchMixin):
     def init_db(self, dbref, name=DEFAULT_SESSION):
         "Get connection"
         g = self.settings
-        if name not in ScriptMixin.sessions:
+        if name not in SessionMixin.sessions:
             if name not in self.metadata_per_session:
                 raise Exception("No metadata to initialize %s session" % name)
-            ScriptMixin.get_session(name, dbref, g.create_on_init,
+            SessionMixin.get_session(name, dbref, g.create_on_init,
                     self.metadata_per_session[name])
 
     def create(self, drop_all=None):

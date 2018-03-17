@@ -40,12 +40,12 @@ class Account(SqlBase, ORMMixin):
     __tablename__ = 'accs'
     number = Column('number', Integer, primary_key=True)
     balance = Column(Integer)
-    name = Column(String, unique=True, nullable=True)
+    name = Column(String(255), unique=True, nullable=True)
     # classifiers? to match transactions
     #nl_p_number = Column(Integer, unique=True, nullable=True)
     #nl_number = Column(Integer, unique=True, nullable=True)
-    #iban = Column(String, unique=True, nullable=True)
-    account_id = Column('id', String, nullable=True)
+    #iban = Column(String(255), unique=True, nullable=True)
+    account_id = Column('id', String(255), nullable=True)
     date_added = Column(DateTime, index=True, nullable=False)
     date_updated = Column(DateTime, index=True, nullable=False)
     deleted = Column(Boolean, index=True, default=False)
@@ -170,7 +170,7 @@ class Mutation(SqlBase, ORMMixin):
     to_account_nr = Column(Integer, ForeignKey('accs.number'), nullable=False)
     to_account = relationship(
             'Account', primaryjoin='Account.number==Mutation.to_account_nr')
-    category = Column(String, nullable=False)
+    category = Column(String(255), nullable=False)
     currency = Column(String(16), nullable=False)
     description = Column(Text)
     amount = Column(Float)

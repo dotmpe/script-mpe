@@ -5,6 +5,5 @@ default:
     default:
       contexts:
       - FeatureContext
-      - SrvFeatureContext
       paths:
       - %paths.base%/test/

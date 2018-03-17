@@ -71,7 +71,7 @@ mkvid()
 # For real pretty would want lookup for abbrev. Too complex so another function.
 mksid()
 {
-  test -n "$1" || error "mkcid argument expected" 1
+  test -n "$1" || error "mksid argument expected" 1
   var_isset c || c=_
   test -n "$upper" && {
     trueish "$upper" &&

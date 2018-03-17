@@ -8,13 +8,13 @@ init
 @test "${base} help" {
 
   run $BATS_TEST_DESCRIPTION
-  test_ok_nonempty
+  test_ok_nonempty || stdfail
 }
 
 @test "${base} version" {
 
   run $BATS_TEST_DESCRIPTION
-  test_ok_nonempty
+  test_ok_nonempty || stdfail
 }
 
 @test "${base} names" {

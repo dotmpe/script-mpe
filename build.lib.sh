@@ -180,6 +180,8 @@ retest()
   local in= out= #$1 out=$2 ; shift 2
   test -n "$in" || in=totest.list
   test -n "$out" || out=tested.list
+  test -e "$in" || touch totest.list
+  test -e "$out" || touch tested.list
   test -s "$in" || {
     project_tests "$@" | sort -u > $in
   }
@@ -246,4 +248,10 @@ checkout_for_rebuild()
   checkout_if_newer "$@" && export \
     BUILD_CAUSE=rebuild \
     BUILD_REBUILD_WITH="$(git describe --always)"
+}
+
+before_test()
+{
+  verbose=1 git-versioning check &&
+  projectdir.sh run :bats:specs
 }

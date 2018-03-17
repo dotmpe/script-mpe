@@ -1,73 +1,46 @@
 # Id: script-mpe/0.0.4-dev Rules.mk
 #
 # Non recursive make, partial rule file. See github mkdocs.
-include                $(MK_SHARE)Core/Main.dirstack.mk
-MK                  += $/Rules.mk
+include				$(MK_SHARE)Core/Main.dirstack.mk
+MK				  += $/Rules.mk
 #
-#      ------------ -- 
+#	  ------------ -- 
 
 
 VERSION = 0.0.4-dev# script-mpe
 
-$(eval $(shell [ -d $/.build ] || mkdir $/.build ))
+#$(eval $(shell [ -d $/.build ] || mkdir $/.build ))
 
-#      ------------ -- 
+DIR                 := $d
+include                $/.Rules.rdf.mk
+include                $/.Rules.sa.mk
+
+
+#	  ------------ -- 
 
 # XXX Keep long list of clean targets out of normal stat messages
 ifneq ($(call contains,$(MAKECMDGOALS),clean),)
-CLN                 += .test
-CLN                 += $(shell find ./ -iname '*.pyc')
-CLN                 += $(shell find ./ -iname '*.log')
-CLN                 += $(shell find ./ -iname '.coverage' -o -iname '.coverage-*')
+CLN				 += .test
+CLN				 += $(shell find ./ -iname '*.pyc')
+CLN				 += $(shell find ./ -iname '*.log')
+CLN				 += $(shell find ./ -iname '.coverage' -o -iname '.coverage-*')
 endif
 
 
-# RDF schemas in notation3 format
+###	Test targets
 #
-SCHEMAS_RDF := rdf owl rdfs dcam dc foaf skos
-
-RDF_CONV_N3_CURL := curl -sSf http://rdf-translator.appspot.com/convert/detect/n3/
-get_cdn_url = $(shell . .cdn.sh && printf -- "$$$2_$1")
-
-define fetch-n3
-	URL="$(call get_cdn_url,n3_http_packages,$(shell basename $@ .n3))"; \
-	test -n "$$URL" || exit 1
-endef
-define convert-n3
-	URL="$(call get_cdn_url,rdfxml_http_packages,$(shell basename $@ .n3))"; \
-	test -n "$$URL" || exit 1; \
-	$(RDF_CONV_N3_CURL)$$URL | sed 's/\<'$(shell basename $@)':/:/g' >$@
-endef
-define get-n3
-	$(fetch-n3) && exit 0 || true; \
-	$(convert-n3)
-endef
-
-schema/%.n3:
-	@$(get-n3)
-
-DEP += $(addprefix schema/,$(addsuffix .n3,$(SCHEMAS_RDF)))
-
-DEP += $/.cdn.sh
-
-$/.cdn.sh: $/cdn.yml
-	jsotk dump -Iyml -Ofkv $^ > $@
-
-
-###    Test targets
-#
-#      ------------ -- 
+#	  ------------ -- 
 
 
 ifeq ($(shell hostname -s),simza)
-TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d 
+TEST_$d			 := test_match_$d test_htd_$d test_other_bats_$d 
 #test_usr_$d 
 #test_sa_$d test_schema_$d test_py_$d 
 else
-TEST_$d             := test_match_$d test_htd_$d test_other_bats_$d test-ci
+TEST_$d			 := test_match_$d test_htd_$d test_other_bats_$d test-ci
 endif
 
-STRGT               += $(TEST_$d)
+STRGT			   += $(TEST_$d)
 
 TRGT += libcmdng.html
 
@@ -79,8 +52,12 @@ $Bpydoc/%.html: $/%.py
 test:: $(TEST_$d)
 
 test-ci::
-	. ./tools/sh/env.sh; \
-	. ./tools/ci/test.sh
+	scriptname=make:test-ci;\
+	. ./tools/ci/env.sh; \
+	. ./tools/ci/parts/check.sh; \
+	. ./tools/ci/parts/build.sh
+
+STRGT += test-ci
 
 test_py_$d test_sa_$d :: D := $/
 
@@ -94,13 +71,13 @@ test_py_$d::
 		TEST_LIB=confparse,confparse2,taxus,rsr,radical,workLog;\
 		HTML_DIR=test-coverage;\
 		VERBOSE=2;\
-    $(test-python) 2> test-py.log
+	$(test-python) 2> test-py.log
 	@if [ -n "$$(tail -1 test-py.log|grep OK)" ]; then \
-	    $(ll) Success "$@" "see" test-py.log; \
-    else \
-	    $(ll) Errors "$@" "$$(tail -1 test-py.log)"; \
-	    $(ll) Errors "$@" see test-py.log; \
-    fi
+		$(ll) Success "$@" "see" test-py.log; \
+	else \
+		$(ll) Errors "$@" "$$(tail -1 test-py.log)"; \
+		$(ll) Errors "$@" see test-py.log; \
+	fi
 
 # some system tests
 test_usr_$d:: TESTS:= 
@@ -111,16 +88,16 @@ test_usr_$d::
 	-./myCalendar.py || echo "Status 1=$$? OK"
 	-./myCalendar.py -h || echo "Status 1=$$? OK"
 	@\
-	    LOG=test-system.log;\
-        test/system.sh $(TESTS) | tee $$LOG 2>&1 | tee test-system.out ; \
-    \
-        PASSED=$$(echo $$(grep PASSED $$LOG | wc -l)); \
-        FAILED=$$(echo $$(grep FAILED $$LOG | wc -l)); \
-        [ $$FAILED -gt 0 ] && { \
-            $(ll) error "$@" "$$FAILED failures, see" $$LOG; \
-        } || { \
-            $(ll) Ok "$@" "$$PASSED passed" $$LOG; \
-        }
+		LOG=test-system.log;\
+		test/system.sh $(TESTS) | tee $$LOG 2>&1 | tee test-system.out ; \
+	\
+		PASSED=$$(echo $$(grep PASSED $$LOG | wc -l)); \
+		FAILED=$$(echo $$(grep FAILED $$LOG | wc -l)); \
+		[ $$FAILED -gt 0 ] && { \
+			$(ll) error "$@" "$$FAILED failures, see" $$LOG; \
+		} || { \
+			$(ll) Ok "$@" "$$PASSED passed" $$LOG; \
+		}
 
 test_match_$d::
 test_match_$d::
@@ -128,11 +105,11 @@ test_match_$d::
 	. ~/bin/{util,{match,{,.lib}}}.sh && . ~/bin/match.lib.sh && match_load
 	scriptname=make:$@ ; \
 	. ~/bin/{util,{match,{,.lib}}}.sh && . ~/bin/match.lib.sh && match_load \
-	    && match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART \
-	    && echo $$grep_pattern
+		&& match_name_pattern ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART \
+		&& echo $$grep_pattern
 	scriptname=make:$@ ; \
 	. ~/bin/{util,{match,{,.lib}}}.sh && . ~/bin/match.lib.sh && match_load \
-	    && match_name_pattern_opts ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART
+		&& match_name_pattern_opts ./@NAMEPARTS.@SHA1_CKS@PART.@EXT PART
 	bats ./test/match-spec.bats
 
 test_htd_$d::
@@ -154,10 +131,10 @@ test_other_bats_$d::
 	done; \
 	test ! -e $$failed || { echo Failed specs in files:; cat $$failed; rm $$failed; exit 1; }
 
-
 # Make SA do a test on the repo
 DB_SQLITE_TEST=.test/db.sqlite
-DB_SQLITE_DEV=/home/berend/.$(REPO)/db.sqlite
+
+DB_SQLITE_DEV=/home/berend/.bookmarks.sqlite
 test_sa_$d::
 	@$(call log_line,info,$@,Testing SQLAlchemy repository..)
 	@\
@@ -196,78 +173,6 @@ test_schema_$d:
 	@jsonschema schema/base.json
 
 
-###    SQL Alchemy repository schema control
-#
-#      ------------ -- 
-
-R ?= cllct
-REPO = $(R)
-#ALL_REPOS=cllct test
-
-sa-create::
-	@$(ll) attention $@ Starting...
-	@\
-	migrate create ./sa_migrate/$(REPO) $(REPO);\
-	tree ./sa_migrate/$(REPO)/;
-	@$(ll) info $@ Done
-
-sa-touch::
-	@$(ll) attention $@ Starting...
-	@\
-	dbpath=$$( ./sa_migrate/$(REPO)/manage.py dbpath );\
-	mkdir -p $$(dirname $$dbpath);\
-	echo "" | sqlite3 -batch $$dbpath
-
-#sa:: T :=
-sa::
-	@\
-	./sa_migrate/$(REPO)/manage.py $(T)
-
-session::
-	@\
-	dbpath=$$( ./sa_migrate/$(REPO)/manage.py dbpath );\
-	sqlite3 $$dbpath
-
-sa-vc:: T := version_control
-sa-vc:: sa
-
-sa-latest:: T := upgrade
-sa-latest:: sa
-
-sa-compare:: T := compare_model_to_db taxus.core:SqlBase.metadata
-sa-compare:: sa
-
-sa-reset:: T := reset
-sa-reset:: sa
-	@ls -la $$(./sa_migrate/$(REPO)/manage.py dbpath)
-
-sa-t::
-	@\
-	DB_VERSION=$$(./sa_migrate/$(REPO)/manage.py db_version);\
-	SCHEMA_VERSION=$$(./sa_migrate/$(REPO)/manage.py version);\
-	\
-	echo '"""' > oldmodel.py;\
-	./sa_migrate/$(REPO)/manage.py compare_model_to_db taxus:SqlBase.metadata >> oldmodel.py;\
-	echo '"""' >> oldmodel.py;\
-	./sa_migrate/$(REPO)/manage.py create_model >> oldmodel.py;\
-	./sa_migrate/$(REPO)/manage.py make_update_script_for_model \
-		--oldmodel=oldmodel:meta \
-		--model=taxus:SqlBase.metadata \
-			> sa_migrate_$(REPO)_autoscript_$$SCHEMA_VERSION.py
-
-stat:: sa-stat
-sa-stat::
-	@\
-    $(call log,header2,Repository,$(REPO));\
-    SCHEMA_VERSION=$$(python ./sa_migrate/$(REPO)/manage.py version );\
-    $(call log,header2,Repository version,$$SCHEMA_VERSION);\
-    DB_FORMAT=$$(file -bs $(DB_SQLITE_DEV));\
-    $(call log,header2,DB format,$$DB_FORMAT);\
-	DBREF=sqlite:///$(DB_SQLITE_DEV);\
-    DB_VERSION=$$(python ./sa_migrate/$(REPO)/manage.py db_version );\
-    $(call log,header2,DB schema version,$$DB_VERSION);
-
-#    [ -e manage.py ] || migrate manage manage.py --repository=$(REPO) --url=$$DBREF
 
 
 # Generate a coverage report of one or more runs to find stale code
@@ -284,16 +189,23 @@ debug_py_$d::
 		echo $$PASSED passed checks, $$ERRORS errors, see systemtest.log
 #		PYTHONPATH=$$PYTHONPATH:./;\
 #		PATH=$$PATH:~/bin;\
-#        TEST_PY="main.py txs:ls cmd:targets cmd:help";\
+#		TEST_PY="main.py txs:ls cmd:targets cmd:help";\
 #		TEST_LIB=cmdline,target,res,txs,taxus,lind,resourcer;\
 #		HTML_DIR=debug-coverage;\
 #		VERBOSE=2;\
-#    $(test-python) 2> debug.log
+#	$(test-python) 2> debug.log
+
+
 
 symlinks: $/.symlinks
 	@\
-    $(call log,header1,$@,Symlinking from,$^);\
-    SCRIPT_MPE=/srv/project-mpe/script-mpe ./init-symlinks.sh .symlinks
+	$(call log,header1,$@,Symlinking from,$^);\
+	#SCRIPT_MPE=/srv/project-mpe/script-mpe
+	SCRIPT_MPE=$(pwd) ./init-symlinks.sh .symlinks
+
+.PHONY: symlinks
+INSTALL += symlinks
+
 
 
 DEP += $(BUILD)pd-make-states.sh
@@ -325,6 +237,7 @@ $(BUILD)pd-make-states.sh: $(SRC) Rules.mk
 		> $@
 
 
+
 TRGT += TODO.list
 
 todo: TODO.list
@@ -334,8 +247,6 @@ TODO.list: $/
 	@#radical.py -vvvvv > $@
 	@$(ll) file_ok $@ 
 
-
-INSTALL += symlinks
 
 
 .versioned-files.list::
@@ -348,7 +259,8 @@ INSTALL += symlinks
 
 DEP += .versioned-files.list
 
-#      ------------ --
+
+#	  ------------ --
 #
-include                $(MK_SHARE)Core/Main.dirstack-pop.mk
+include				$(MK_SHARE)Core/Main.dirstack-pop.mk
 # vim:noet:

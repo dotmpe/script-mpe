@@ -6,7 +6,7 @@
 # Set default vars
 vcflow_lib_load()
 {
-  test -n "$DOC_EXTS" || DOC_EXTS=".tab .txt"
+  test -n "$VCFLOW_DOC_EXTS" || VCFLOW_DOC_EXTS=".tab .txt"
   test -n "$scm" || { vc_getscm || return 0; }
 }
 
@@ -17,14 +17,14 @@ vcflow_file_default()
   test -e "$1" || {
     for base in ./ ./. config/
     do
-      for ext in "" $DOC_EXTS
+      for ext in "" $VCFLOW_DOC_EXTS
       do
         test -e $base$1$ext || continue
         set -- $base$1$ext; break
       done
     done
   }
-  test -e $1 || error no-${scm}flow-doc 2
+  test -e $1 || error "No ${scm}flow doc ($1)" 2
   export vcflow="$1"
 }
 
@@ -129,6 +129,7 @@ htd_vcflow_check()
   test -n "$2" || set -- "$1" gitflow.tab
   test -e "$2" || error "missing gitflow file" 1
   note "Reading from '$2'"
+  test "$scm" = "git" || error "vcflow for GIT only" 1
   read_nix_style_file "$2" | while read upstream downstream isfeature
   do
     test -n "$upstream" -a -n "$downstream" || continue
@@ -173,7 +174,7 @@ htd_vcflow_check()
 
   done
   # Finally check if local branches are listed in gitflow.tab
-  for branch in $(git_branches)
+  for branch in $(vc_branches)
   do
     grep -qF "$branch" "$2" ||
       error "Missing gitflow for '$branch'"

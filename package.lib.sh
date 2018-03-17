@@ -368,6 +368,8 @@ htd_package_open_url()
   open "$url"
 }
 
+# Take PACKMETA file and read main package's 'repositories', looking for a local
+# remote repository or adding/updating each name/URL.
 htd_package_remotes_init()
 {
   package_lib_set_local "$(pwd -P)"
@@ -377,10 +379,15 @@ htd_package_remotes_init()
   jsotk.py path -O pkv "$PACKMETA_JS_MAIN" repositories |
       tr '=' ' ' | while read remote url
   do
+    # Get rid of quotes
+    eval remote=$remote url=$url
+
     test -n "$remote" -a -n "$url" || {
       warn "empty package repo var '$remote $url'"; continue; }
     # NOTE: multitype repo projects? determine type per suffix..
     fnmatch "*.$scm" "$url" || continue
+
+    note "scm: $scm; remote: '$remote' url: '$url'"
     htd_repository_url "$remote" "$url" || continue
     vc_git_update_remote "$remote" "$url"
   done

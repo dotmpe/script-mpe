@@ -5,14 +5,14 @@ load init
 
 setup()
 {
-  # non-zero exit for $py -h basenames
+  # Basenames with non-zero exit codes for -h
   r_calendartable=1
   r_schema_test=1
   r_fchardet=1
   r_dtd2dot=1
   r_domain1=1
   r_filesize_frequency=1
-  r_treemap=1
+
   # skip these (py) executables
   x_mkdocs=1 # FIXME: mkdocs PYTHONPATH/venv to dotmpe.du
   x_rst4bookmarks=1 # FIXME: rst2bookmarks idem
@@ -20,8 +20,11 @@ setup()
 
 get_py_files()
 {
-  git ls-files | { while read x
+  git ls-files |
+      grep -v '^munin\/' |
+      grep -v '^test\/' | { while read x
     do
+      test "$(basename "$x" | cut -c1)" = "_" && continue
       case "$x" in
 
         # Filter filenames to (executable) python scripts
@@ -62,14 +65,10 @@ get_py_files()
     test "1" = "$(eval echo \"\$x_$bn\")" && continue
 
     ./$x -h >/dev/null 2>&1 || { r=$?
-
       # continue still if non-zero matches expected
       test "$r" = "$(eval echo \"\$r_$bn\")" && continue
 
       fail "$x $r"
-    }
-    test ! -e "./-h" || {
-      fail "$x created ./-h"
     }
   done
 
@@ -92,7 +91,7 @@ get_py_files()
       # continue still if non-zero matches expected
       test "$r" = "$(eval echo \"\$r_$bn\")" && diag "Passed $bn" || {
 
-        diag "Failure at '$bn' ($r)"
+        diag "Failure at '$bn' ($r $x)"
         export nok=$r
       }
     } ; } >/dev/null 2>&1 

@@ -528,12 +528,13 @@ vc_status_hg() { false; }
 vc_status_svn() { false; }
 vc_status_bzr() { false; }
 
+
 # Report on various checkout/repo state
 vc_status()
 {
-  vc_diskuse
   vc_status_${scm}
 }
+
 
 # Cleanup the checkout, and report on the state
 vc_clean()
@@ -807,6 +808,29 @@ vc_fetch()
   vc_fetch_${scm} "$@"
 }
 
+
+git_ref_exists()
+{
+	git show-ref --verify -q "$1" || return $?
+}
+
+git_remote_branch()
+{
+	test -n "$1" || error "remote branch name missing" 1
+	test -n "$2" || set -- "$1" "$2"
+	git_ref_exists "refs/remotes/$2/$1" || return $?
+}
+
+git_local_branch()
+{
+	test -n "$1" || error "local branch name missing" 1
+	git_ref_exists "refs/heads/$1" || return $?
+}
+
+git_branch_exists()
+{
+	git_local_branch "$1" || git_remote_branch "$@"
+}
 
 # Boilerplate
 #vc_status_git()

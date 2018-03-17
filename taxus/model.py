@@ -89,6 +89,35 @@ class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
         # TODO: deal with URN's later
         return Bookmark.keyid(o.href)
 
+    @staticmethod
+    def forge(REF, NAME, TAGS, g, sa=None, seed=None):
+        if not sa: sa = Bookmark.get_session(g.session_name, g.dbref)
+
+        lctr = net.Locator.fetch((net.Locator.ref == REF,), exists=False)
+        if not lctr:
+            lctr = net.Locator( ref=REF, date_added=datetime.now() )
+            lctr.init_defaults()
+            #log.std("new: %s", lctr)
+            if not g.dry_run:
+                sa.add(lctr)
+
+        bm = Bookmark.fetch((Bookmark.location == lctr,), exists=False)
+        if bm:
+            raise Exception("Bookmark for location already exists")
+        if NAME:
+            bm = Bookmark.fetch((Bookmark.name == NAME,), exists=False)
+            if bm:
+                raise Exception("Name already exists for other location: %r at %r vs %r"
+                        % ( NAME, REF, bm.href ))
+
+        bm = Bookmark.from_(dict(location=lctr, name=NAME, tags=TAGS))
+        bm.init_defaults()
+        #log.std("new: %s", bm)
+        if not g.dry_run:
+            sa.add(bm)
+
+        return bm
+
     @classmethod
     def unique_tags(klass, NAME, g, ctx):
         tags = set()
@@ -142,7 +171,7 @@ class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
         d = web.Resource.to_dict(self, d=d)
         assert isinstance(d['tags'], basestring), d['tags']
         d.update(dict(
-            href=self.location.href(),
+            href=self.location.href,
             tags_list=d['tags'].split(', ')
         ))
         return d

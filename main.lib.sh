@@ -22,12 +22,13 @@ try_help()
   do
     help="$( try_value $2 man_$1 $b || continue )"
     test -n "$help" || continue
-    spec="$( try_value $2 spc $b || printf "" )"
-    test -n "$spec" && {
-      printf -- "$ $base $2\n\t$help\nUsage:\n\t$(eval echo "\"$base $spec\"")\n"
-    } || {
-      printf -- "$ $base $2\n\t$help\n"
-    }
+    #spec="$( try_value $2 spc $b || printf "" )"
+    #test -n "$spec" && {
+    #  printf -- "$ $base $2\n\t$help\nUsage:\n\t$(eval echo "\"$base $spec\"")\n"
+    #} || {
+    #  printf -- "$ $base $2\n\t$help\n"
+    #}
+    printf -- "\n  $help\n"
     return
   done
   return 1
@@ -152,6 +153,7 @@ get_subcmd_func()
     # Break on first existing function
     try_local_func "$@" && {
       subcmd_func="$(echo_local "$@")"
+      #test "$base" = "$b" || export base=$b
       return
     }
   done
@@ -208,7 +210,8 @@ std__help()
     spc="$(try_spec $1)"
     test -n "$spc" && {
       echo "Usage: "
-      echo "  $base $spc"
+      echo "  $scriptname $spc"
+      echo
     }
     printf "Help '$1': "
     echo_help "$1" || error "no help '$1'"
@@ -231,7 +234,7 @@ std__commands()
   test -n "$1" || set -- "$1" "$@"
   test -n "$2" || {
     locate_name $base
-    box_lib "$fn"
+    test -n "$box_lib" || box_lib "$fn"
     test -n "$box_lib" && set -- "$0" "$box_lib"
   }
 

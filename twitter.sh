@@ -106,7 +106,7 @@ twitter_init()
   . $scriptpath/util.sh
   util_init
   . $scriptpath/match.lib.sh
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   #. $scriptpath/htd.lib.sh
   . $scriptpath/main.lib.sh load-ext

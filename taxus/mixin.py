@@ -26,9 +26,30 @@ class CardMixin(object):
     keys = 'deleted date_added date_deleted date_updated'.split(' ')
 
 
+class ResourceMixin(object):
+
+    # XXX: not going to keep http (or proto) status except for abnormalities,
+    # 0 is ok.
+    #status_id = Column(ForeignKey('status.id'), index=True)
+    #status = relationship(Status, primaryjoin=status_id == Status.status_id)
+    status = Column(Integer)
+
+    # First and last time the resources was seen
+    first_access = Column(DateTime)
+    last_access = Column(DateTime)
+
+    # Last time the descriptor changed
+    last_update = Column(DateTime)
+
+    # Last time the content changed
+    last_modified = Column(DateTime)
+
+    keys = 'status first_access last_access last_update last_modified'.split(' ')
+
+
+
 def groupnode(klass, up='super', down='sub', name='node',
         keyattr='name', cascade="all, delete-orphan"):
-
 
     """
     Add Adjacency list attributes to klass.

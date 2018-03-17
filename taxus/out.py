@@ -195,7 +195,10 @@ tpl_dir = os.path.join( os.path.dirname(__file__), 'tpl' )
 
 def get_template(name):
     engine = Engine( loader=FileLoader([tpl_dir]), extensions=[ CoreExtension() ] )
-    return engine.get_template(name)
+    try:
+        return engine.get_template(name)
+    except IOError, e:
+        pass
 
 
 def format_args(args):

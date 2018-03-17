@@ -74,3 +74,13 @@ tools:
   ajv-cli:
     installer: npm
     bin: ajv-cli
+
+  memcached:
+    id: memcached
+    installer: brew
+    post-install:
+    - V=$(memcached --version | cut -f2 -d ' ')
+    - cp /usr/local/Cellar/memcached/$V/homebrew.mxcl.memcached.plist ~/Library/LaunchAgents/
+    - launchctl load -w ~/Library/LaunchAgents/homebrew.mxcl.memcached.plist
+    - echo $V
+

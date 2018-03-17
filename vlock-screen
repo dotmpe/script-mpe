@@ -32,6 +32,7 @@ case "$vlock_screen" in
             eval $vpadd $vpadd $vpadd
             printf -- "$esc[0;35m"
             figlet -c -w$cols -f big $(date +%H:%M)
+            figlet -c -w$cols -f term $(date +"%Y.%U %A %H:%M")
             eval \
                 $vpadd\
                 $vpadd

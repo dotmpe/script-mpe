@@ -150,9 +150,9 @@ def get_cmd_handlers(scope, prefix='cmd_'):
     """
 
     n = None
-    cmdids = [ ( n[4:].split('_'), scope[n] )
+    cmdids = [ ( n[len(prefix):].split('_'), scope[n] )
             for n in scope
-            if n.startswith('cmd_') ]
+            if n.startswith(prefix) ]
     commands = {}
     for path, handler in cmdids:
         _commands = commands

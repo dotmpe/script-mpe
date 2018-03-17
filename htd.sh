@@ -71,7 +71,7 @@ htd_load()
   default_env Htd-TMux-Default-Session "Htd"
   default_env Htd-TMux-Default-Cmd "$SHELL"
   default_env Htd-TMux-Default-Window "$(basename $SHELL)"
-  default_env Couch-URL "http://sandbox-3:5984"
+  #default_env Couch-URL "http://localhost:5984"
   default_env GitVer-Attr ".version-attributes"
   default_env Ns-Name "bvberkum"
 
@@ -163,9 +163,6 @@ htd_load()
 
   htd_rules=$UCONFDIR/rules/$hostname.tab
   ns_tab=$UCONFDIR/namespace/$hostname.tab
-
-  # Shell template
-  test -n "$pathnames" || pathnames=$UCONFDIR/pathnames.tab
 
   which tmux 1>/dev/null || {
     export PATH=/usr/local/bin:$PATH
@@ -297,18 +294,27 @@ htd_load()
         # Set to detected PACKMETA file, set main package-id, and verify var
         # caches are up to date. Don't load vars.
         # TODO: create var cache per package-id. store in redis etc.
-        pwd="$(pwd -P)"
-        test -e "$PACKMETA" && {
+        test -n "$PACKMETA" -a -e "$PACKMETA" && {
             #|| error "No local package '$PACKMETA'" 1
-            package_lib_set_local "$pwd" && update_package $pwd
+            package_lib_set_local "$CWD" && update_package $CWD
             test -n "$package_id" && note "Found package '$package_id'"
         }
       ;;
 
-    q )
+    q ) # set if not set, don't update and eval package main env
+        test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || {
+            test -n "$PACKMETA" -a -e "$PACKMETA" ||
+                error "No local package" 1
+            package_lib_set_local "$CWD" ||
+                error "Setting local package ($CWD)" 1
+        }
+
         # Evaluate package env
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
             . $PACKMETA_SH || error "No package Sh" 1
+
+            test "$package_type" = "application/vnd.org.wtwta.project" ||
+                error "Project package expected (not $package_type)" 1
         } ||
             error "No local package" 1
       ;;
@@ -436,7 +442,6 @@ htd_load_xsl()
 # Main aliases
 
 #htd_als__install=install-tool
-htd_als__update=update-checksums
 htd_als__doctor=check
 
 htd_man_1__check='Run diagnostics for CWD and system.
@@ -655,7 +660,7 @@ other_cmds()
   echo '  -e|edit                          Edit a local document or script.'
   echo '  alias                            Show bash aliases for this script.'
   echo '  -h|help                          Give a combined usage, command and docs. '
-  echo '  docs                             Echo manual page. '
+  echo '  docs                             Echo documentation (for CWD). '
   echo '  commands                         Echo this comand description listing.'
   echo "  usage                            List all commands. "
   echo "  info                             List env info. "
@@ -669,12 +674,6 @@ other_cmds()
 
 
 # Help (sub)commands:
-
-htd__help_docs()
-{
-  echo "Docs:"
-  echo ""
-}
 
 htd__help_files()
 {
@@ -735,6 +734,14 @@ htd__help()
     other_cmds
     choice_global=1 std__help "$@"
   } || {
+    spc="$(try_spec $1)"
+    test -n "$spc" && {
+      echo "Usage: "
+      echo "  $scriptname $spc"
+      echo
+    } || {
+      printf "Help '$scriptname $1': "
+    }
     echo_help $1 || {
       for func_id in "$1" "${base}__$1" "$base-$1"
       do
@@ -809,11 +816,22 @@ htd_als____version=version
 htd_run__version=p
 
 
+htd__show()
+{
+  while test $# -gt 0
+  do
+    eval echo \"\$$1\"
+    shift
+  done
+}
+
+
 htd__home()
 {
   req_dir_env HTDIR
   echo $HTDIR
 }
+
 
 htd__env_info()
 {
@@ -826,6 +844,7 @@ htd__env_info()
   log "Default GIT remote:    '$HTD_GIT_REMOTE' [HTD_GIT_REMOTE]"
   log "Ignored paths:         '$IGNORE_GLOBFILE' [IGNORE_GLOBFILE]"
 }
+
 
 htd_run__info=p
 htd__info()
@@ -1020,10 +1039,11 @@ XXX: replace pwd basename strip with prefix compat routine
 htd_spc__find_docs='find-docs [] [] [PROJECT]'
 htd__find_docs()
 {
+  note "'$package_docs_find' '$*'"
   $package_docs_find "$@"
   #doc_find_name "$@"
 }
-#htd_run__find_docs=x
+htd_run__find_docs=pqx
 
 
 htd__volumes()
@@ -1064,13 +1084,30 @@ htd__copy() # Sub-To-Script [ From-Project-Checkout ]
 }
 
 
-htd_man_1__status='Quick context status
-'
-htd_run__status=fSm
+## Local or global status
+
+htd_man_1__status='Quick context status'
+htd_als__st=status
+htd_als__stat=status
+htd_run__status=q
 htd__status()
 {
-  test -n "$failed" || error "status: failed exists" 1
+  local key=htd:status:$hostname:$(verbosity=0 htd__prefixes name $cwd)
+  statusdir.sh exists $key || warn 1
+  statusdir.sh members $key | while read status_key
+  do
+    note "$status_key"
+  done
+} # End status
 
+
+htd_man_1__update_status='Update quick status'
+htd_als__update_stats=update-status
+htd_run__update_status=f
+htd__update_status()
+{
+  test -n "$failed" -a ! -e "$failed" ||
+      error "status: failed env missing or already exists" 1
   local scm= scmdir=
   vc_getscm && {
     vc_status || {
@@ -1089,7 +1126,7 @@ htd__status()
 
     # Which of those are projects
     note "Open-paths SCM status: "
-    htd__current_cwd | while read p
+    htd__current_paths | while read p
     do verbosity=3
       { test -e "$p" && pd exists "$p"
       } || continue
@@ -1116,7 +1153,6 @@ htd__status()
       test -e "$path" || continue
       htd tpath-raw "$path" || warn "tpath-raw '$path'..."
     done
-
   }
 
   # TODO:
@@ -1133,10 +1169,15 @@ htd__status()
   #htd git-remote stat
 
   test -s "$failed" -o -s "$errored" && stderr ok "htd stat OK" || true
-}
-htd_als__st=status
-htd_als__stat=status
+} # End update-status
 
+htd__update_all()
+{
+  true
+} # End update-all
+
+#htd_als__update=update-checksums
+#htd_als__update=update-status
 
 htd_man_1__status_cwd="Short status_cwd for current working directory"
 htd_spc__status_cwd="status-cwd"
@@ -1157,9 +1198,7 @@ htd__status_cwd()
   } | tail -n 1
 }
 
-
-htd_als__update_stats=update-status
-htd__update_status()
+htd__update_status_old()
 {
   # Go to project root
   cd "$workspace/$prefix"
@@ -1261,8 +1300,8 @@ htd__projects()
   test -n "$1" || set -- info
   case "$1" in
 
-    list ) shift
-      ;;
+    list ) shift ;;
+
   esac
 }
 
@@ -2378,8 +2417,8 @@ htd__new_object()
 }
 
 
-# todo.txt/list.txt util
-
+htd_man_1__txt='todo.txt/list.txt util
+'
 htd__txt()
 {
   test -n "$1" || set --
@@ -2514,8 +2553,9 @@ htd_run__tasks_scan=ipqAO
 htd_grp__tasks_scan=tasks
 
 
-htd_man_1__tasks_grep="Use Htd's built-in todo grep list command to get local
- tasks. Output is like 'grep -nH': '<filename>:<linenumber>: <line-match>'"
+htd_man_1__tasks_grep="Htd's built-in todo grep list command for local tasks
+
+Output is like 'grep -nH': '<filename>:<linenumber>: <line-match>'"
 htd_spc__tasks_grep='tasks-grep [ --tasks-grep-expr | --Check-All-Tags] [ --Check-All-Files]'
 htd__tasks_grep()
 {
@@ -2569,8 +2609,16 @@ htd_run__tasks_local=ipqAO
 htd_grp__tasks_local=tasks
 
 
-htd_man_1__tasks_edit='Invoke htd todotxt-edit for local package
+htd_man_1__tasks_edit='Edit local todo/done.txt generated from to/do-{at,in}*
 
+Tasks are migrated between the local todo/.done.txt and buffers (ie. all
+to/do-at-<context>.list and to/do-in-<project>.list files found), moving
+to the todo/done files before the edit session and back to the buffers after
+closing it.
+
+This serves as a first step to manage tasks existing across project borders, and
+to use backends based on context. Ideally in this mode, every source is locked
+for editing so at the end of the editor session each change is a simple update.
 '
 htd_spc__tasks_edit="tasks-edit TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ] [ ADDITIONAL-PATHS ]"
 # This reproduces most of the essential todotxt-edit code, b/c before migrating
@@ -2960,21 +3008,21 @@ htd_tasks_load()
 
 htd_man_1__todo='Edit and mange todo.txt/done files.
 
-  todo is an alias for tasks-edit, see help there.
+(todo is an alias for tasks-edit, see help tasks-edit for command usage)
 
 Other commands:
 
-  htd todotxt-edit
-  htd todotxt-tags
-  htd todo-gtags
-
-  htd todotxt tree
-  htd todotxt list|list-all
-  htd todotxt count|count-all
-  htd todotxt edit
+  todotxt tree - TODO: treeview
+  todotxt list|list-all - TODO: files in UCONFDIR
+  todotxt count|count-all - count in UCONFDIR
+  todotxt edit
 
    todo-clean-descr
    todo-read-line
+
+  todotxt-edit
+  todotxt-tags
+  todo-gtags
 
   htd build-todo-list
 '
@@ -2982,14 +3030,15 @@ Other commands:
 htd_als__todo=tasks-edit
 
 
-htd_man_1__todotxt_edit='
-  Edit task descriptions. Files do not need to exist. First two files default to
-  todot.txt and .done.txt and will be created. "
+htd_man_1__todotxt_edit='Edit local todo/done.txt
 
-  This locks/unlocks all given files before starting the $TODOTXT_EDITOR, which
-  gets to edit only the first two arguments. The use is to aqcuire exclusive
-  read-write on todo.txt tasks which are included in other files. See htd tasks
-  for actually managing tasks spread over mutiple files.
+Edit task descriptions. Files do not need to exist. First two files default to
+todot.txt and .done.txt and will be created.
+
+This locks/unlocks all given files before starting the $TODOTXT_EDITOR, which
+gets to edit only the first two arguments. The use is to aqcuire exclusive
+read-write on todo.txt tasks which are included in other files. See htd tasks
+for actually managing tasks spread over mutiple files.
 '
 htd_spc__todotxt_edit="todotxt-edit TODO.TXT DONE.TXT [ ADDITIONAL-PATHS ]"
 htd__todotxt_edit()
@@ -3030,6 +3079,7 @@ htd__todotxt()
     # Print
     tree ) # TODO: somekind of todotxt in tree view?
       ;;
+
     list|list-all )
         for fn in $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
         do
@@ -3041,6 +3091,7 @@ htd__todotxt()
           }
         done
       ;;
+
     count|count-all )
         # List paths below current (proj/dirs with txtm files)
         { for fn in $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
@@ -3050,8 +3101,11 @@ htd__todotxt()
           done
         } | wc -l
       ;;
+
     edit ) htd__todotxt_edit "$2" "$3" ;;
+
     tags ) shift 1; htd__todotxt_tags "$@" ;;
+
   esac
 }
 
@@ -3793,21 +3847,22 @@ Defaults effectively are:
     --dir=/srv/git-local/$NS_NAME -
 '
 htd_spc__gitrepo='gitrepo [--repos=] [--dir=] [ GLOBS... | PATHS.. | - ]'
-htd_run__gitrepo=iAO
+htd_env__gitrepo="dir="
+htd_run__gitrepo=eiAO
 htd__gitrepo()
 {
   test -n "$repos" && {
     test -z "$*" || error no-args-expected 41
-    debug "Repos: '$repos'"
     echo $repos | words_to_lines
     return
   }
   info "Running '$*' ($(var2tags grep repos dir stdio_0_type))"
 
   test -n "$dir" || dir=/srv/git-local/$NS_NAME
-  test -z "$1" -a "t" != "$stdio_0_type" && set -- -
-  test -n "$1" || set -- *.git
+  test -z "$*" -a "t" != "$stdio_0_type" && set -- -
+  test -n "$*" || set -- *.git
 
+  # Normal behaviour is to expand arguments. Set to keep as-is.
   trueish "$gitrepo_args_asis" && gitrepo_args_asis=1 || gitrepo_args_asis=0
 
   { while test $# -gt 0
@@ -3818,8 +3873,8 @@ htd__gitrepo()
 
     while read arg
     do
-      test "$gitrepo_args_asis" = "1" -a -e "$1" && {
-        echo "$1"
+      test "$gitrepo_args_asis" = "1" -a -e "$arg" && {
+        echo "$arg"
       } || {
         for repo in $dir/$arg
           do
@@ -4459,23 +4514,23 @@ htd__resolve()
   set --
 }
 
-
-htd_man_1__update='Checkout/update GIT version for this $scriptpath
+htd_man_1__update_checkout='Checkout/update GIT version for this $scriptpath
 
 Without argument, pulls the currently checked out branch. With env `push` turned
 on, it completes syncing with the remote by returning the branch with a push.
 
 If "all" is given as remote, it expands to all remote names.
 '
-htd_env__update='push'
-htd_spc__update='update [<commit-ish> [<remote>...]]'
-htd__update()
+htd_env__update_checkout='push'
+htd_spc__update_checkout='update [<commit-ish> [<remote>...]]'
+htd__update_checkout()
 {
   test -n "$1" ||
       set -- "$(cd $scriptpath && git rev-parse --abbrev-ref HEAD)" $@
   test -n "$2" || set -- "$1" "$vc_rt_def"
   test "$2" = "all" &&
     set -- "$1" "$(cd $scriptpath && git remote | tr '\n' ' ')"
+
   # Perform checkout, pull and optional push
   test -n "$push" || push=0
   (
@@ -5526,7 +5581,7 @@ htd_spc__update_checksums="update-checksums [TABLE_EXT]..."
 htd__update_checksums()
 {
   test -n "$1" || set -- ck sha1 md5
-  failed=$(setup_tmpf .failed)
+  local failed=$(setup_tmpf .failed)
   test $(echo table.*) != "table.*" || error "No tables" 1
   for CK in $1
   do
@@ -6281,7 +6336,6 @@ htd_man_1__tpaths='List topic paths (nested dl terms) in document paths
 htd_load__tpaths="xsl"
 htd__tpaths()
 {
-  local verbosity=5
   test -n "$1" || error "At least one document expected" 1
   test -n "$print_src" || local print_src=
   test -n "$xsl_ver" || xsl_ver=1
@@ -6372,7 +6426,8 @@ htd__xproc2()
 {
   {
     fnmatch '<* *>' "$2" && {
-
+      # TODO: hack saxon to ignore offline DTD's
+      # https://www.scriptorium.com/2009/09/ignoring-doctype-in-xsl-transforms-using-saxon-9b/
       saxon - $1 <<EOM
 $2
 EOM
@@ -6680,23 +6735,25 @@ htd_of__ps='yaml json'
 htd__open()
 {
   test -n "$1" && {
-    stderr warn TODO 1 # tasks-ignore
+    stderr warn TODO 1
   } || {
-    htd__current_cwd || return
+    htd__current_paths || return
   }
 }
 
 
-htd_man_1__current_cwd='List open paths for user (beloning to shell processes only)'
-htd__current_cwd()
+htd_man_1__current_paths='List open paths for user (belonging to shells)'
+htd__current_paths() # User Cmd-Grep Cmd-Len
 {
-  lsof \
-    +c 15 \
-    -c '/^(bash|sh|ssh|dash|zsh)$/x' \
-    -u $(whoami) -a -d cwd | tail -n +2 | awk '{print $9}' | sort -u
+  test -n "$1" || set -- $(whoami) "$2" "$3"
+  test -n "$2" || set -- "$1" '/^(bash|sh|ssh|dash|zsh)$/x' "$3"
+  test -n "$3" || set -- $1 "$2" "15"
+
+  lsof +c $3 -c $2 -u "$1" -a -d cwd |
+      tail -n +2 | awk '{print $9}' | sort -u
 }
-htd_of__current_cwd='list'
-htd_als__current_paths=current-cwd
+htd_of__current_paths='list'
+htd_als__open_paths=current-paths
 
 
 htd_man_1__open_paths='Lists names of currently claimed by a process.
@@ -6771,7 +6828,7 @@ htd__open_paths_diff()
   {
     test -e "$lsof" && newer_than $lsof 10
   } || {
-    htd__current_cwd >$lsof
+    htd__current_paths >$lsof
 
     debug "Updated $lsof"
     info "Commands: $(echo $(
@@ -6824,17 +6881,20 @@ htd__recent_paths()
 
 htd_man_1__prefixes='Manage local prefix table and index, or query cache.
 
-  (op|open-files|read-lines)
+  (op|open-files)
     Default command. Pipe htd current-cwd to htd prefixes names.
-    Set htd_path=1 to get pairs output.
+    Set htd_path=1 to get full paths with prefix/localname pairs outputted in
+    one line.
 
-Table
-  list|names
+Read from table
+  list
     List prefix varnames from table.
-  table
+  table | raw-table
     Print user or default prefix-name lookup table
+  table-id
+    Print table filename
 
-Index
+Lookup with table
   name Path-Name
     Resolve to real, absolute path and echo <prefix>:<localpath> by scanning
     prefix index.
@@ -6844,14 +6904,21 @@ Index
     Get both path and name for each line or argument.
   expand (Prefix-Paths..|-)
     Expand <prefix>:<local-path> back to to absolute path.
-  check
-    ..
+  op 
+    Feed Htd-current-paths through htd-prefixes-names
 
 Cache
-  all-paths|tree
-    List cached prefixes and paths beneath them. See update-prefixes.
+  cache
+    List cached prefixes and paths beneath them.
   update [TTL=60min [<persist=false>]]
     Update cache, read below.
+  current
+    List but dont update, this is essentially the same as htd-prefixes-op but
+    tailored for htd-update-prefixes.
+
+Other
+  check
+    TODO htd prefixes check ..
 
 See prefix.rst for design and use-cases.
 
@@ -6887,55 +6954,54 @@ htd__prefixes()
 {
   test -n "$index" || local index=
   test -s "$index" || req_prefix_names_index
+
   test -n "$1" || set -- op
   case "$1" in
 
-    # Read from cache
-    all-paths | tree )       htd_list_prefixes || return $? ;;
-    update )                 htd_update_prefixes || return $? ;;
-
-    # Read from index
-    list )                   htd_prefix_names || return $? ;;
+    # Read from table
+    table-id ) shift ;       echo $UCONFDIR/$pathnames ; test -e "$pathnames" || return $? ;;
+    raw-table ) shift ;      cat $UCONFDIR/$pathnames || return $? ;;
     table )                  htd_path_prefix_names || return $? ;;
-    raw-table ) shift ;      cat $pathnames || return $? ;;
-    table-id ) shift ;       echo $pathnames ; test -e "$pathnames" || return $? ;;
+    list )                   htd_prefix_names || return $? ;;
+
+    # Lookup with table
     name ) shift ;           htd_prefix "$1" || return $? ;;
     names ) shift ;          htd_prefixes "$@" || return $? ;;
     pairs ) shift ;          htd_path_prefixes "$@" || return $? ;;
     expand ) shift ;         htd_prefix_expand "$@" || return $? ;;
 
+    # Update/fetch from cache
+    cache )                  htd_list_prefixes || return $? ;;
+    update )                 htd_update_prefixes || return $? ;;
+    current )
+        htd__current_paths | htd_path_prefixes - |
+          while IFS=' :' read path prefix localpath
+        do
+          trueish "$htd_act" && {
+            older_than $path $_1HOUR && act='- ' || act='+ '
+          }
+
+          trueish "$htd_path" &&
+              echo "$act$path" || echo "$act$prefix:$localpath"
+        done
+      ;;
+
+    op | open-files ) shift
+        htd__current_paths | htd_prefixes -
+      ;;
+
     check )
         # Read index and look for env vars
         htd_prefix_names | while read name
-        do
-            mkvid "$name"
+        do mkvid "$name"
             #val="${!vid}"
             val="$( eval echo \"\$$vid\" )"
             test -n "$val" || warn "No env for $name"
         done
       ;;
-
-    op | open-files | read-lines ) shift
-        htd__current_cwd | htd_prefixes -
-      ;;
-
-    current ) shift
-        htd__current_cwd | htd_path_prefixes - |
-          while IFS=' :' read path prefix localpath
-        do
-          trueish "$htd_act" && {
-            older_than $path $_1HOUR && act='-' || act='+'
-          }
-
-          trueish "$htd_path" &&
-              echo "$act $path $prefix:$localpath" ||
-              echo "$act $prefix:$localpath"
-        done
-      ;;
-
   esac
-  rm $index
-}
+  test ! -e "$index" || rm $index
+} # End prefixes
 
 htd_als__prefix=prefixes
 
@@ -9747,24 +9813,6 @@ htd__init()
 }
 
 
-htd_man_1__docs='Documents'
-htd_run__docs=f
-
-htd_man_1__doc='Document'
-htd_run__doc=f
-htd__doc()
-{
-  test -n "$1" || set -- main-files
-  upper=0 mkvid "$1"
-  shift ;
-  func_exists ${base}_doc_$vid && cmd=${base}_doc_$vid || {
-    func_exists doc_$vid || error "$vid" 1
-    cmd=doc_$vid
-  }
-  $cmd "$@" || return $?
-}
-
-
 htd_als__cal=calendar
 htd__calendar()
 {
@@ -9803,20 +9851,40 @@ htd__resolve_modified()
 }
 
 
-htd_man_1__components=' '
+htd_man_1__components='List component names, followed by associated paths
+
+Using component ID sets allows to structure a project or body of work at
+different levels, and serve to aid testing, or check for complete documentation.
+
+In the standard setup, the basenames of all tracked files make up the component
+ID set. This naive approach provides a starting point, but will miss many
+components that a more sophisticated project or work will care about. 
+
+Even though per-path instance specific handling may be required, this provides
+a basis to regroup file-based data and integrated with other
+address/identification layers.
+'
 htd__components()
 {
   local spwd=.
-  vc_tracked | while read name
+
+  { test "$stdio_0_type" = "t" -o \( -n "$1" -a "$1" != "-" \) && {
+      test -n "$package_components" || package_components=vc_tracked
+      $package_components
+
+    } || cat -
+  } | while read name
     do
       basename=$(filestripext "$name");
       c="-_" mkid "$basename";
       echo "$id $name"
   done | join_lines - ' '
 }
+htd_run__components=pq
 
 
-htd_man_1__test_all=' '
+htd_man_1__test_all='TODO: see htd run test-all for script.mpe, work towards
+dynamic req/test spec?'
 htd__test_all()
 {
   htd__components | while read component files
@@ -9825,10 +9893,57 @@ htd__test_all()
   done
 }
 
-htd__sort()
+
+htd_man_1__doc='Document'
+htd_run__doc=f
+htd__doc()
 {
-    true
+  test -n "$1" || set -- main-files
+  upper=0 mkvid "$1"
+  shift ;
+  func_exists ${base}_doc_$vid && cmd=${base}_doc_$vid || {
+    func_exists doc_$vid || error "$vid" 1
+    cmd=doc_$vid
+  }
+  $cmd "$@" || return $?
 }
+
+
+htd_man_1__docs='TODO: find and display main or matching sections
+
+CWD sensitive.
+
+See also doc-find/find-doc
+'
+htd__docs() # [<cmd>=list] <sections>... | [show] (<section>) | show main
+{
+  local cmd= ; case "$1" in list|show) cmd="$1" ; shift ;; * ) 
+    test -n "$2" && cmd=list || { cmd=show ; test -n "$1" || set -- main ; }
+      ;; esac
+
+  case "$cmd" in
+
+      show ) echo $cmd "$@"
+          ;;
+
+      list ) echo list "$@"
+          ;;
+
+      * ) error "? '$?'" 1 ;;
+  esac
+}
+
+
+htd__dangling_blobs()
+{
+  git fsck | grep 'dangling blob' | cut -f 3 -d ' ' | while read sha1
+  do
+    echo $sha1
+    #vc list-objects $sha1
+    #git show $sha1
+  done
+}
+
 
 # -- htd box insert sentinel --
 
@@ -9846,6 +9961,7 @@ htd_main()
     arguments= prefixes= options= \
     passed= skipped= error= failed=
 
+  test -n "$verbosity" || local verbosity=5
 
   htd_init || exit $?
 
@@ -9876,7 +9992,6 @@ htd_main()
           main_debug
 
           htd_load "$@" || warn "htd-load ($?)"
-          var_isset verbosity || local verbosity=5
           test -z "$arguments" -o ! -s "$arguments" || {
 
             info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
@@ -9925,7 +10040,7 @@ htd_init()
   export SCRIPTPATH=$scriptpath
   . $scriptpath/util.sh || return $?
   lib_load
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load htd meta
   lib_load box date doc table disk remote package service archive \

@@ -33,33 +33,46 @@ setup()
 
 
 func=mkid
-input="foo:/bar/el_baz.ext"
+input="foo:/bar_/El-Baz.1234.ext"
 
-@test "$lib $func with some special web chars, input is output" {
-  #run mkid "$input"
-  #test_ok_nonempty "$id"
+@test "$lib mkvid - with some special web chars, input is output" {
   c='\.\\\/:_'
   mkid "$input"
   test "$id" = "$input"
 }
 
-@test "$lib $func with no special chars, all are collapsed to '-' " {
+@test "$lib mkvid - with no special chars, all are collapsed to '-' " {
   c= mkid "$input"
-  test "$id" = "foo-bar-el-baz-ext" || fail "$id"
+  test "$id" = "foo-bar-El-Baz-1234-ext" || fail "$id"
 }
 
 
 
-func=mkvid
+@test "$lib mksid - default allows A-Za-z0-9:/_-. " {
+  mksid "$input"
+  test "$id" = "foo:/bar_/El-Baz.1234.ext" || stdfail "$id"
+}
 
-@test "$lib $func can make ID from path" {
+@test "$lib mksid - 2 " {
+  c=. mksid "$input"
+  test "$id" = "foo-bar-El-Baz.1234.ext" || stdfail "$id"
+}
+
+@test "$lib mksid - can make ID from path" {
+  c= mksid "$input"
+  test "$id" = "foo-bar-El-Baz-1234-ext" || stdfail "$id"
+}
+
+
+
+@test "$lib mkvid - can make ID from path" {
     mkvid "/var/lib"
     test "$vid" = "_var_lib"
     mkvid "/var/lib/"
     test "$vid" = "_var_lib_"
 }
 
-@test "$lib $func cleans up ID from path" {
+@test "$lib mkvid - cleans up ID from path" {
     mkvid "/var//lib//"
     test "$vid" = "_var_lib_"
     mkvid "/var//lib"
@@ -67,14 +80,12 @@ func=mkvid
 }
 
 
-func=str_replace
-
-@test "$lib $func " {
+@test "$lib str_replace" {
     test "$(str_replace "foo/bar" "o/b" "o-b")" = "foo-bar"
 }
 
 
-@test "resolve_prefix_element" {
+@test "$lib resolve_prefix_element" {
   element=$(resolve_prefix_element 1 123:456)
   test "${element}" = "123" || fail "${element}"
   element=$(resolve_prefix_element 2 123:456)
@@ -88,7 +99,7 @@ func=str_replace
 }
 
 
-@test "expr-substr - Should fail if not initialized" {
+@test "$lib expr-substr - Should fail if not initialized" {
 
   expr_old=$expr
   

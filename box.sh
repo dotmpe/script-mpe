@@ -476,17 +476,13 @@ box_main()
 
   # FIXME: only one instnce
   box_sock=/tmp/box-serv.sock
-
   box_init || return 0
-
   var_isset verbosity || verbosity=5
 
   case "$base" in $scriptname )
-
-      box_lib box || error "box-src-lib $scriptname" 1
-
-      # Execute
-      run_subcmd "$@"
+        box_lib box || error "box-src-lib $scriptname" 1
+        # Execute
+        run_subcmd "$@"
       ;;
 
     * )
@@ -495,38 +491,42 @@ box_main()
   esac
 }
 
-# FIXME: Pre-bootstrap init
 box_init()
 {
-  test -z "$BOX_INIT" || return 1
-  export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh load-ext
-  lib_load
-  . $scriptpath/box.init.sh
-  . $scriptpath/box.lib.sh "$@"
-  lib_load main
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
+  export SCRIPTPATH=$scriptpath
+  __load_mode=boot . $scriptpath/util.sh
+  lib_load box main
   # -- box box init sentinel --
 }
 
 box_lib()
 {
-  debug "Using $LOG_TERM log output"
   # -- box box lib sentinel --
   set --
 }
-
 
 # Pre-exec: post subcmd-boostrap init
 box_load()
 {
   test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
-  mkvid $(pwd)
-  nid_cwd=$vid
-  unset vid
+  mkvid $(pwd) && nid_cwd=$vid && unset vid
   box_name="${base}:${subcmd}"
   # -- box box load sentinel --
   set --
+
+  local flags="$(try_value "${subcmd}" run ${base} | sed 's/./&\ /g')"
+  test -z "$flags" -o -z "$DEBUG" || stderr debug "Flags for '$subcmd': $flags"
+  for x in $flags
+  do case "$x" in
+
+    f ) # failed: set/cleanup failed varname
+        export failed=$(setup_tmpf .failed)
+      ;;
+
+    esac
+  done
 }
 
 # Main entry - bootstrap script if requested
@@ -534,10 +534,8 @@ box_load()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  case "$1" in
-    load-ext ) ;;
-    * )
-      box_main "$@" ;;
+  case "$1" in load-ext ) ;;
+    * ) box_main "$@" ;;
 
   esac ;;
 esac

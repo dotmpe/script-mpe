@@ -4,7 +4,7 @@
 import re
 from collections import OrderedDict
 
-from script_mpe import log
+from .. import log, confparse
 
 import mb
 import task
@@ -252,6 +252,8 @@ class AbstractTxtListParser(object):
     def __init__(self, be={}, apply_contexts=[]):
         assert isinstance(apply_contexts, list), apply_contexts
         super(AbstractTxtListParser, self).__init__()
+        if not isinstance(be, confparse.Values):
+            be = confparse.Values(be)
         self.be = be
         self.apply_contexts = apply_contexts
 
@@ -282,12 +284,13 @@ class AbstractTxtListParser(object):
         else:
             self.doc_name = fn
             lines = open( fn ).readlines()
+        assert isinstance(self.doc_name, basestring), self.doc_name
         for itraw_str in lines:
             itraw = itraw_str.decode('utf-8')
             line += 1
             itraw_ = itraw.strip()
             if not itraw_ or itraw_[0] == '#': continue
-            it = self.parse(itraw, doc_name=fn, doc_line=line)
+            it = self.parse(itraw, doc_name=self.doc_name, doc_line=line)
             #self.load(it)
             for ctx in self.apply_contexts:
                 if ctx not in it.contexts:
@@ -352,12 +355,30 @@ class AbstractIdStrategy(AbstractTxtListParser):
 
 
 class AbstractTxtListWriter(object):
+
+    """
+    Helper for txt list writer.
+    TODO see res/todo.py writer and describe differences
+    """
+
     fields_append = ()
-    def __init__(self, parser):
+    def __init__(self, parser, ignore_hidden_fields=True,
+            ignore_hidden_attr=True, ignore_attr=['doc_name', 'doc_line']):
         self.parser = parser
+        self.ignore_hidden_attr = ignore_hidden_attr
+        self.ignore_hidden_fields = ignore_hidden_fields
+        self.ignore_attr = ignore_attr
+
+    def serialize_field_attrs(self, value):
+        r = ''
+        for k, v in value.items():
+            if k in self.ignore_attr: continue
+            if self.ignore_hidden_attr and k.startswith('_'): continue
+            r += ' %s:%s' % ( k, v )
+        return r.strip()
+
     def serialize_field(self, item, name, tag=None):
-        if not tag:
-            tag = name
+        if not tag: tag = name
         value = getattr(item, tag)
         if hasattr(self, 'serialize_field_'+name):
             return getattr(self, 'serialize_field_'+name)(value)
@@ -365,19 +386,35 @@ class AbstractTxtListWriter(object):
             if value:
                 return str(value)
             return ''
+
     def serialize(self, item):
+        """Concatenate serialized values
+        """
         values = [ item.text ]
+
+        fields = [ f for f in self.parser.item_parser.fields
+                if not self.ignore_hidden_fields or not f.startswith('_') ]
+
+        # Prepend fields
         values = [ self.serialize_field(item, *f.split(':'))
-                for f in self.parser.item_parser.fields
+                for f in fields
                 if f not in self.fields_append ] + values
+
+        # Append fields
         values += [ self.serialize_field(item, *f.split(':'))
-                for f in self.parser.item_parser.fields
+                for f in fields
                 if f in self.fields_append ]
+
         return " ".join([ v for v in values if v ])
+
     def write(self, fn, items=None):
+        """Serialize every item from the parser to file line,
+        see self.serialize() for details.
+        """
         fp = open( fn, 'w+' )
         if not items:
             items = self.parser.items()
         for it in items:
-            fp.write( self.serialize(it)+'\n' )
+            fp.write( self.serialize(it) )
+            fp.write('\n')
         fp.close()

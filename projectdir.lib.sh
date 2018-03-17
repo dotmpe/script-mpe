@@ -108,6 +108,7 @@ generate_git_hooks()
 {
   # Create default script from pd-check
   test -n "$package_pd_meta_git_hooks_pre_commit_script" || {
+    test -n "$package_pd_meta_check" || error "pre-commit hook script requried" 1
     package_pd_meta_git_hooks_pre_commit_script="set -e ; pd run $package_pd_meta_check"
   }
 
@@ -265,7 +266,7 @@ pd_finddoc()
   pd_prefix="$(normalize_relative "$go_to_before")"
 
   # Build path name based on real Pd path
-  mksid "$pd_realpath"
+  c= mksid "$pd_realpath"
   fnmatch "*/*" "$sid" && error "Illegal chars sid='$sid'" 11
 
   p="$sid"

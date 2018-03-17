@@ -56,7 +56,7 @@ Options:
                 Apply given tags to each item in file
   --paths
                 TODO: replace with --format=paths
-  --match
+  --match ATTRS
                 [default: item-id,hrefs,attr:unid]
   -d REF --dbref=REF
                 SQLAlchemy DB URL [default: %s]
@@ -103,14 +103,12 @@ def cmd_load_list(LIST, g):
     """
     Load items
     """
-    g = defaults(g, res.list.list_parse_defaults, return_parser=True)
     prsr, items = res.list.parse(LIST, g)
     assert not 'TODO', "load items to where? ..."
 
 
 def cmd_sync_list(LIST, g):
     """Update list for items found in a backend"""
-    g = defaults(g, res.list.list_parse_defaults, return_parser=True)
     prsr, items = res.list.parse(LIST, g)
     assert not 'TODO', "update providers..."
 
@@ -142,10 +140,12 @@ def cmd_update_list(LIST, g, opts):
     TODO: list.py update-list work out above details
     """
 
-    g = defaults(g, res.list.list_parse_defaults, return_parser=True)
+    g.return_parser = True
     prsr, items = res.list.parse(LIST, g)
+
     prsr2, updates = res.list.parse(sys.stdin, g)
-    opts.flags.match = opts.flags.split(',')
+    if not isinstance(opts.flags.match, list):
+        opts.flags.match = opts.flags.match.split(',')
     new = {}
     # Modes to match items on input with LIST entries
     if 'item-id' in opts.flags.match:
@@ -177,8 +177,10 @@ def cmd_update_list(LIST, g, opts):
                     if u.attrs[a] == r.attrs[a]: break
                 if not r or a not in r.attrs or u.attrs[a] != r.attrs[a]:
                     new.append(u)
-    for u in new:
-        prsr.handle_id(u, u.item_id)
+    for item_id in new:
+        record = prsr2.records[item_id]
+        prsr.handle_id(record, item_id)
+
     # Rewrite file
     w = res.list.ListTxtWriter(prsr)
     w.write(LIST)
@@ -201,20 +203,21 @@ def cmd_read_list(LIST, PROVIDERS, g):
     """
         Read items, resolving issues interactively and making sure items are
         committed to any backends.
+
+        TODO: apply-contexts for res.list.ListTxtParser.proc
     """
     global ctx
-    #g.be = confparse.Values(dict(sa_contexts=dict()))
+
+    g.be = confparse.Values(dict(sa_contexts=dict()))
+
     #g.apply_contexts = [ c[1:] for c in PROVIDERS if c.startswith('@') ]
     #if g.apply_contexts:
     #    load_be_schema(g)
     #    log.std("Applying contexts %r" % g.apply_contexts)
 
-    g = d.defaults(g, res.list.list_parse_defaults, return_parser=True)
+    g.return_parser = 1
     prsr, items = res.list.parse(LIST, g)
     prsr.proc( items )
-    for it in items:
-        print(str(it))
-    return
     log.std("Processed %i items" % len(items))
     if g.commit:
         ctx.sa_session.commit()
@@ -321,6 +324,7 @@ commands.update(dict(
 def defaults(opts, init={}):
     global cmd_default_settings, ctx
     libcmd_docopt.defaults(opts)
+    opts.flags.update(res.list.list_parse_defaults)
     opts.flags.update(cmd_default_settings)
     ctx.settings.update(opts.flags)
     opts.flags.update(ctx.settings)
@@ -341,7 +345,7 @@ def main(opts):
     global ctx, commands
 
     ctx.settings = settings = opts.flags
-    settings.apply_contexts = {}
+    settings.apply_contexts = []
     ctx.init()
 
     return libcmd_docopt.run_commands(commands, settings, opts)

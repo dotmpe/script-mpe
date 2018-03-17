@@ -9,11 +9,11 @@ import os
 import shelve
 import sys
 
-import res
-import confparse
-from res import Volumedir
-from res.fs import Dir
-from first20 import normalize
+from script_mpe import res
+from script_mpe import confparse
+from script_mpe.res import Volumedir
+from script_mpe.res.fs import Dir
+from script_mpe.first20 import normalize
 
 
 def key( obj ):
@@ -28,7 +28,7 @@ def key( obj ):
 if __name__ == '__main__':
     argv = list( sys.argv )
     script_name = argv.pop(0)
-    if '-h' in argv:
+    if '-h' in argv or '--help' in argv:
         print(__doc__)
         sys.exit()
 

@@ -512,6 +512,10 @@ vc__stat()
 }
 # TODO: alias
 #vc_als__status=stat
+vc__st()
+{
+  vc__stat "$@"
+}
 vc__status()
 {
   vc__stat "$@"

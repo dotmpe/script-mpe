@@ -168,7 +168,7 @@ match_lib()
   export SCRIPTPATH=$scriptpath
   __load=ext . $scriptpath/util.sh
   util_init
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   . $scriptpath/main.lib.sh load-ext
   # -- match box init sentinel --

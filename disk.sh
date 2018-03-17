@@ -499,7 +499,7 @@ disk_main()
 disk_init()
 {
   local __load_lib=1
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   . $scriptpath/box.lib.sh
   box_run_sh_test
   lib_load main htd meta box date doc table disk darwin remote match

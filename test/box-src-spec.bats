@@ -4,14 +4,10 @@ base=box-src
 load init
 init
 
-@test "htd src-info - prints (total) lines and functions in htd" {
-  run htd src-info
-  test_ok_nonempty "*Functions*:*380.*" "*Lines*:*" || stdfail
-}
-
-@test "htd src-info - prints total functions in scripts" {
-  run htd src-info box-instance.sh
-  test_ok_nonempty "*Total Functions*9*" "Total Lines*157*" || stdfail
+@test "htd src-info - prints (total) lines and functions" {
+  run htd src-info test/var/sh-src-*.sh
+  # NOTE: count (suppor for) one style of function declaration only
+  test_ok_nonempty "*Functions*:*2.*" "*Lines*:*46" || stdfail
 }
 
 @test "htd list-functions" {

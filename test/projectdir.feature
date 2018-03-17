@@ -34,10 +34,25 @@ Feature: projectdir is a tool to handle projects as groups
       check{,-*}
       {,*-}status
 
+
+    @todo
     Scenario: it intializes, checks, and then cleanup and deinitializes a compatible project without problems
 
         A project does something, it will need to tell something about what it does or wants. There are ways to assume a certain type of build, or stack, but it is hard to auto-detect what exactly is meant. If the goal is to check compliance to a certain build pipeline then ofcourse we can just impose a lifecycle on it, run that, but miss out on possibly many other aspects of the project. Unless the detection is all dynamic, but this adds too much complexity while it would be easy for the project to tell how its parts conforms to one or more pre-scribed contracts.
 
         NOTE: The first way for Pd to support project metadata is using `package.y*ml <package.rst>`. After some flows and commands have crystalized and its support and costs are more clear, then others can be added; `composer.json`, `package.json` are obvious candidates. Others may be plugged in in specific ways, ie. `bower.json`, `manifest.json`, even `Makefile`.
 
+
+    Scenario: list scm dirs
+
+        When the user executes "projectdir.py"
+        Then the `status` is '0'
+        #And the `output` is not empty
+
+    Scenario: list untracked files
+
+        When the user executes "projectdir.py find-untracked"
+        Then the `status` is '0'
+        #And the `output` is not empty
+        #And the `output` contains ''
 

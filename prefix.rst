@@ -4,24 +4,30 @@ Prefix_: an affix added in front of the word.
 
 .. _prefix: http://wordnetweb.princeton.edu/perl/webwn?s=prefix
 
-Objective: shorten path, URL and other locator, address, identifier strings.
+Objective: shorten path, URL and other locator. Refer to local paths by
+semi-global references, and map from any number of actual paths. Amend the
+user config or a sensible default thereof with environment variables.
+
+Feature tests and command usage may illustrate below notes better.
+``htd prefix`` is aliased to ``htd prefixes``.
 
 Use-case: Shell
 ----------------
 Shell vars, values can be anything but lets consider those bearing a local
-path name:
+path name for value. Three notable groups:
 
-1.    <name>DIR=<dirpath>
-2.    <name>=<path>
-3.    <lookuppath>=<path>[:<path>...]
+1. <name>=<path>, variables with (locally existing paths, specifically dir)
+2. <name>DIR=<dirpath>, and those explicitly named ...DIR
+3. <lookuppath>=<path>[:<path>...], or variants having colon-separated dir
+   seq.
 
-Value exists as either path, dir or other special filesystem node.
-Third variant allows bother multiple paths and ordering.
+The varname is usable as prefix.
+Third variant allows multiple paths and ordering.
 
 Given above pattern, we can get a list for all 'named' dirs or other paths
 on the current system/namespace.
 
-On some conditions, ie. paths must exist::
+TODO: On some conditions, ie. paths must exist::
 
     htd env pathvars
     htd env dirvars
@@ -32,7 +38,7 @@ And above `pathvars` will include some URL's as well.
 
 Alternatives:
 
-- template file
+- template file, see below
 - prescribed names and prefix/suffixes, iow. work by convention
 
 Template file

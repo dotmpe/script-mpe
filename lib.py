@@ -15,6 +15,8 @@ import readline
 from os.path import basename, join,\
         isdir
 
+from docutils.nodes import make_id
+
 from script_mpe import log
 #import confparse
 #
@@ -186,6 +188,13 @@ def class_name(o):
 
 cn = class_name
 
+
+def tag_id(s):
+    if not s.strip():
+        return
+    if s[0].isdigit():
+        s = 'n-%s' % s
+    return make_id(s)
 
 if __name__ == '__main__':
     print(get_sha1sum_sub("volume.py"));

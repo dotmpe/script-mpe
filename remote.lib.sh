@@ -70,6 +70,3 @@ wait_for()
     sleep 7
   done
 }
-
-
-

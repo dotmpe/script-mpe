@@ -126,10 +126,10 @@ import re
 import hashlib
 from pprint import pformat
 
-from lib import Prompt
-import log
-import libcmd_docopt
-import res
+from script_mpe.lib import Prompt
+from script_mpe import log
+from script_mpe import libcmd_docopt
+from script_mpe import res
 
 
 grep_nH_rs = re.compile('^([^:]+):([0-9]+):\ (.*)')

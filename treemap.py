@@ -22,8 +22,8 @@ from zope.component import \
         getGlobalSiteManager, \
         getUtility, queryUtility, createObject
 
-import res.js
-import res.primitive
+from script_mpe import res
+from script_mpe.res import primitive
 
 
 gsm = getGlobalSiteManager()

@@ -451,7 +451,6 @@ class ORMMixin(ScriptMixin, InstanceMixin, ModelMixin):
             sa.add(o)
         return o
 
-
     def to_dict(self, d={}):
         k = self.__class__.keys()
         for p in k:
@@ -585,3 +584,18 @@ def nameinfo(addr):
     print(DNSCache[ addr ][ 0 ])
 
     family, socktype, proto, canonname, sockaddr = DNSCache[ addr ][ 0 ]
+
+
+def sql_like_val(field, value, g):
+    invert = value.startswith('!')
+    if invert: value = value[1:]
+    if '*' in value:
+        filter = field.like( value.replace('*', '%') )
+    elif g.partial_match:
+        filter = field.like( '%'+value+'%' )
+    else:
+        filter = field == value
+    if invert:
+        return ~ filter
+    return filter
+

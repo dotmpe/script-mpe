@@ -560,7 +560,7 @@ diskdoc_main()
 diskdoc_init()
 {
   local __load_lib=1
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   lib_load box main
   box_run_sh_test
   #while test $# -gt 0

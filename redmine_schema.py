@@ -35,8 +35,8 @@ class AgileColor(SqlBase):
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('agile_colors_id_seq'::regclass)"))
     container_id = Column(Integer, index=True)
-    container_type = Column(String, index=True)
-    color = Column(String)
+    container_type = Column(String(255), index=True)
+    color = Column(String(255))
 
 
 class AgileDatum(SqlBase):
@@ -57,16 +57,16 @@ class Attachment(SqlBase):
     id = Column(Integer, primary_key=True, server_default=text("nextval('attachments_id_seq'::regclass)"))
     container_id = Column(Integer)
     container_type = Column(String(30))
-    filename = Column(String, nullable=False, server_default=text("''::character varying"))
-    disk_filename = Column(String, nullable=False, server_default=text("''::character varying"))
+    filename = Column(String(255), nullable=False, server_default=text("''::character varying"))
+    disk_filename = Column(String(255), nullable=False, server_default=text("''::character varying"))
     filesize = Column(BigInteger, nullable=False, server_default=text("0"))
-    content_type = Column(String, server_default=text("''::character varying"))
+    content_type = Column(String(255), server_default=text("''::character varying"))
     digest = Column(String(40), nullable=False, server_default=text("''::character varying"))
     downloads = Column(Integer, nullable=False, server_default=text("0"))
     author_id = Column(Integer, nullable=False, index=True, server_default=text("0"))
     created_on = Column(DateTime, index=True)
-    description = Column(String)
-    disk_directory = Column(String)
+    description = Column(String(255))
+    disk_directory = Column(String(255))
 
 
 class AuthSource(SqlBase):
@@ -80,8 +80,8 @@ class AuthSource(SqlBase):
     name = Column(String(60), nullable=False, server_default=text("''::character varying"))
     host = Column(String(60))
     port = Column(Integer)
-    account = Column(String)
-    account_password = Column(String, server_default=text("''::character varying"))
+    account = Column(String(255))
+    account_password = Column(String(255), server_default=text("''::character varying"))
     base_dn = Column(String(255))
     attr_login = Column(String(30))
     attr_firstname = Column(String(30))
@@ -98,8 +98,8 @@ class Board(SqlBase):
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('boards_id_seq'::regclass)"))
     project_id = Column(Integer, nullable=False, index=True)
-    name = Column(String, nullable=False, server_default=text("''::character varying"))
-    description = Column(String)
+    name = Column(String(255), nullable=False, server_default=text("''::character varying"))
+    description = Column(String(255))
     position = Column(Integer, server_default=text("1"))
     topics_count = Column(Integer, nullable=False, server_default=text("0"))
     messages_count = Column(Integer, nullable=False, server_default=text("0"))
@@ -115,9 +115,9 @@ class Change(SqlBase):
     action = Column(String(1), nullable=False, server_default=text("''::character varying"))
     path = Column(Text, nullable=False)
     from_path = Column(Text)
-    from_revision = Column(String)
-    revision = Column(String)
-    branch = Column(String)
+    from_revision = Column(String(255))
+    revision = Column(String(255))
+    branch = Column(String(255))
 
 
 t_changeset_parents = Table(
@@ -136,12 +136,12 @@ class Changeset(SqlBase):
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('changesets_id_seq'::regclass)"))
     repository_id = Column(Integer, nullable=False, index=True)
-    revision = Column(String, nullable=False)
-    committer = Column(String)
+    revision = Column(String(255), nullable=False)
+    committer = Column(String(255))
     committed_on = Column(DateTime, nullable=False, index=True)
     comments = Column(Text)
     commit_date = Column(Date)
-    scmid = Column(String)
+    scmid = Column(String(255))
     user_id = Column(Integer, index=True)
 
 
@@ -173,7 +173,7 @@ class CustomFieldEnumeration(SqlBase):
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('custom_field_enumerations_id_seq'::regclass)"))
     custom_field_id = Column(Integer, nullable=False)
-    name = Column(String, nullable=False)
+    name = Column(String(255), nullable=False)
     active = Column(Boolean, nullable=False, server_default=text("true"))
     position = Column(Integer, nullable=False, server_default=text("1"))
 
@@ -189,7 +189,7 @@ class CustomField(SqlBase):
     name = Column(String(30), nullable=False, server_default=text("''::character varying"))
     field_format = Column(String(30), nullable=False, server_default=text("''::character varying"))
     possible_values = Column(Text)
-    regexp = Column(String, server_default=text("''::character varying"))
+    regexp = Column(String(255), server_default=text("''::character varying"))
     min_length = Column(Integer)
     max_length = Column(Integer)
     is_required = Column(Boolean, nullable=False, server_default=text("false"))
@@ -248,7 +248,7 @@ class Document(SqlBase):
     id = Column(Integer, primary_key=True, server_default=text("nextval('documents_id_seq'::regclass)"))
     project_id = Column(Integer, nullable=False, index=True, server_default=text("0"))
     category_id = Column(Integer, nullable=False, index=True, server_default=text("0"))
-    title = Column(String, nullable=False, server_default=text("''::character varying"))
+    title = Column(String(255), nullable=False, server_default=text("''::character varying"))
     description = Column(Text)
     created_on = Column(DateTime, index=True)
 
@@ -258,7 +258,7 @@ class EmailAddress(SqlBase):
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('email_addresses_id_seq'::regclass)"))
     user_id = Column(Integer, nullable=False, index=True)
-    address = Column(String, nullable=False)
+    address = Column(String(255), nullable=False)
     is_default = Column(Boolean, nullable=False, server_default=text("false"))
     notify = Column(Boolean, nullable=False, server_default=text("true"))
     created_on = Column(DateTime, nullable=False)
@@ -270,7 +270,7 @@ class EnabledModule(SqlBase):
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('enabled_modules_id_seq'::regclass)"))
     project_id = Column(Integer, index=True)
-    name = Column(String, nullable=False)
+    name = Column(String(255), nullable=False)
 
 
 class Enumeration(SqlBase):
@@ -283,7 +283,7 @@ class Enumeration(SqlBase):
     name = Column(String(30), nullable=False, server_default=text("''::character varying"))
     position = Column(Integer, server_default=text("1"))
     is_default = Column(Boolean, nullable=False, server_default=text("false"))
-    type = Column(String)
+    type = Column(String(255))
     active = Column(Boolean, nullable=False, server_default=text("true"))
     project_id = Column(Integer, index=True)
     parent_id = Column(Integer)
@@ -312,9 +312,9 @@ class Import(SqlBase):
     __tablename__ = 'imports'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('imports_id_seq'::regclass)"))
-    type = Column(String)
+    type = Column(String(255))
     user_id = Column(Integer, nullable=False)
-    filename = Column(String)
+    filename = Column(String(255))
     settings = Column(Text)
     total_items = Column(Integer)
     finished = Column(Boolean, nullable=False, server_default=text("false"))
@@ -340,7 +340,7 @@ class IssueRelation(SqlBase):
     id = Column(Integer, primary_key=True, server_default=text("nextval('issue_relations_id_seq'::regclass)"))
     issue_from_id = Column(Integer, nullable=False, index=True)
     issue_to_id = Column(Integer, nullable=False, index=True)
-    relation_type = Column(String, nullable=False, server_default=text("''::character varying"))
+    relation_type = Column(String(255), nullable=False, server_default=text("''::character varying"))
     delay = Column(Integer)
 
 
@@ -363,7 +363,7 @@ class Issue(SqlBase):
     id = Column(Integer, primary_key=True, server_default=text("nextval('issues_id_seq'::regclass)"))
     tracker_id = Column(Integer, nullable=False, index=True)
     project_id = Column(Integer, nullable=False, index=True)
-    subject = Column(String, nullable=False, server_default=text("''::character varying"))
+    subject = Column(String(255), nullable=False, server_default=text("''::character varying"))
     description = Column(Text)
     due_date = Column(Date)
     category_id = Column(Integer, index=True)
@@ -442,7 +442,7 @@ class Message(SqlBase):
     id = Column(Integer, primary_key=True, server_default=text("nextval('messages_id_seq'::regclass)"))
     board_id = Column(Integer, nullable=False, index=True)
     parent_id = Column(Integer, index=True)
-    subject = Column(String, nullable=False, server_default=text("''::character varying"))
+    subject = Column(String(255), nullable=False, server_default=text("''::character varying"))
     content = Column(Text)
     author_id = Column(Integer, index=True)
     replies_count = Column(Integer, nullable=False, server_default=text("0"))
@@ -472,8 +472,8 @@ class OpenIdAuthenticationAssociation(SqlBase):
     id = Column(Integer, primary_key=True, server_default=text("nextval('open_id_authentication_associations_id_seq'::regclass)"))
     issued = Column(Integer)
     lifetime = Column(Integer)
-    handle = Column(String)
-    assoc_type = Column(String)
+    handle = Column(String(255))
+    assoc_type = Column(String(255))
     server_url = Column(LargeBinary)
     secret = Column(LargeBinary)
 
@@ -483,8 +483,8 @@ class OpenIdAuthenticationNonce(SqlBase):
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('open_id_authentication_nonces_id_seq'::regclass)"))
     timestamp = Column(Integer, nullable=False)
-    server_url = Column(String)
-    salt = Column(String, nullable=False)
+    server_url = Column(String(255))
+    salt = Column(String(255), nullable=False)
 
 
 class PendingEffort(SqlBase):
@@ -500,14 +500,14 @@ class Project(SqlBase):
     __tablename__ = 'projects'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('projects_id_seq'::regclass)"))
-    name = Column(String, nullable=False, server_default=text("''::character varying"))
+    name = Column(String(255), nullable=False, server_default=text("''::character varying"))
     description = Column(Text)
-    homepage = Column(String, server_default=text("''::character varying"))
+    homepage = Column(String(255), server_default=text("''::character varying"))
     is_public = Column(Boolean, nullable=False, server_default=text("true"))
     parent_id = Column(Integer)
     created_on = Column(DateTime)
     updated_on = Column(DateTime)
-    identifier = Column(String)
+    identifier = Column(String(255))
     status = Column(Integer, nullable=False, server_default=text("1"))
     lft = Column(Integer, index=True)
     rgt = Column(Integer, index=True)
@@ -529,13 +529,13 @@ class Query(SqlBase):
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('queries_id_seq'::regclass)"))
     project_id = Column(Integer, index=True)
-    name = Column(String, nullable=False, server_default=text("''::character varying"))
+    name = Column(String(255), nullable=False, server_default=text("''::character varying"))
     filters = Column(Text)
     user_id = Column(Integer, nullable=False, index=True, server_default=text("0"))
     column_names = Column(Text)
     sort_criteria = Column(Text)
-    group_by = Column(String)
-    type = Column(String)
+    group_by = Column(String(255))
+    type = Column(String(255))
     visibility = Column(Integer, server_default=text("0"))
     options = Column(Text)
 
@@ -553,15 +553,15 @@ class Repository(SqlBase):
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('repositories_id_seq'::regclass)"))
     project_id = Column(Integer, nullable=False, index=True, server_default=text("0"))
-    url = Column(String, nullable=False, server_default=text("''::character varying"))
+    url = Column(String(255), nullable=False, server_default=text("''::character varying"))
     login = Column(String(60), server_default=text("''::character varying"))
-    password = Column(String, server_default=text("''::character varying"))
+    password = Column(String(255), server_default=text("''::character varying"))
     root_url = Column(String(255), server_default=text("''::character varying"))
-    type = Column(String)
+    type = Column(String(255))
     path_encoding = Column(String(64))
     log_encoding = Column(String(64))
     extra_info = Column(Text)
-    identifier = Column(String)
+    identifier = Column(String(255))
     is_default = Column(Boolean, server_default=text("false"))
     created_on = Column(DateTime)
 
@@ -618,7 +618,7 @@ class Sprint(SqlBase):
     __tablename__ = 'sprints'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('sprints_id_seq'::regclass)"))
-    name = Column(String, nullable=False, index=True)
+    name = Column(String(255), nullable=False, index=True)
     description = Column(Text)
     sprint_start_date = Column(Date, nullable=False)
     sprint_end_date = Column(Date, nullable=False)
@@ -678,7 +678,7 @@ class UserPreference(SqlBase):
     user_id = Column(Integer, nullable=False, index=True, server_default=text("0"))
     others = Column(Text)
     hide_mail = Column(Boolean, server_default=text("true"))
-    time_zone = Column(String)
+    time_zone = Column(String(255))
 
 
 class User(SqlBase):
@@ -688,7 +688,7 @@ class User(SqlBase):
     )
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('users_id_seq'::regclass)"))
-    login = Column(String, nullable=False, server_default=text("''::character varying"))
+    login = Column(String(255), nullable=False, server_default=text("''::character varying"))
     hashed_password = Column(String(40), nullable=False, server_default=text("''::character varying"))
     firstname = Column(String(30), nullable=False, server_default=text("''::character varying"))
     lastname = Column(String(255), nullable=False, server_default=text("''::character varying"))
@@ -699,9 +699,9 @@ class User(SqlBase):
     auth_source_id = Column(Integer, index=True)
     created_on = Column(DateTime)
     updated_on = Column(DateTime)
-    type = Column(String, index=True)
-    identity_url = Column(String)
-    mail_notification = Column(String, nullable=False, server_default=text("''::character varying"))
+    type = Column(String(255), index=True)
+    identity_url = Column(String(255))
+    mail_notification = Column(String(255), nullable=False, server_default=text("''::character varying"))
     salt = Column(String(64))
     must_change_passwd = Column(Boolean, nullable=False, server_default=text("false"))
     passwd_changed_on = Column(DateTime)
@@ -712,14 +712,14 @@ class Version(SqlBase):
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('versions_id_seq'::regclass)"))
     project_id = Column(Integer, nullable=False, index=True, server_default=text("0"))
-    name = Column(String, nullable=False, server_default=text("''::character varying"))
-    description = Column(String, server_default=text("''::character varying"))
+    name = Column(String(255), nullable=False, server_default=text("''::character varying"))
+    description = Column(String(255), server_default=text("''::character varying"))
     effective_date = Column(Date)
     created_on = Column(DateTime)
     updated_on = Column(DateTime)
-    wiki_page_title = Column(String)
-    status = Column(String, server_default=text("'open'::character varying"))
-    sharing = Column(String, nullable=False, index=True, server_default=text("'none'::character varying"))
+    wiki_page_title = Column(String(255))
+    status = Column(String(255), server_default=text("'open'::character varying"))
+    sharing = Column(String(255), nullable=False, index=True, server_default=text("'none'::character varying"))
 
 
 class Watcher(SqlBase):
@@ -730,7 +730,7 @@ class Watcher(SqlBase):
     )
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('watchers_id_seq'::regclass)"))
-    watchable_type = Column(String, nullable=False, server_default=text("''::character varying"))
+    watchable_type = Column(String(255), nullable=False, server_default=text("''::character varying"))
     watchable_id = Column(Integer, nullable=False, server_default=text("0"))
     user_id = Column(Integer, index=True)
 
@@ -783,8 +783,8 @@ class WikiRedirect(SqlBase):
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('wiki_redirects_id_seq'::regclass)"))
     wiki_id = Column(Integer, nullable=False, index=True)
-    title = Column(String)
-    redirects_to = Column(String)
+    title = Column(String(255))
+    redirects_to = Column(String(255))
     created_on = Column(DateTime, nullable=False)
     redirects_to_wiki_id = Column(Integer, nullable=False)
 

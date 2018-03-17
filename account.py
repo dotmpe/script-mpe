@@ -281,7 +281,7 @@ def main(opts):
         assert settings.dbref
         ctx.session = 'default'
         ctx.setmetadata(None)
-        ctx.init(settings.dbref)
+        ctx.init()
 
     return libcmd_docopt.run_commands(commands, settings, opts)
 

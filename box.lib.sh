@@ -198,6 +198,7 @@ box_init_args()
   }
 }
 
+# Extract source lines from {base}-load routine in frontend script
 box_list_libs()
 {
   test -n "$1" || set -- "$0" "$2"
@@ -207,9 +208,7 @@ box_list_libs()
   local \
     line_offset="$(box_script_insert_point $1 "" lib $2)" \
     sentinel_grep=".*#.--.${2}.box.lib.sentinel.--"
-
   test -n "$line_offset" || error "box-list-libs: line_offset empty for '$1' lib '$2'" 1
-
   box_grep $sentinel_grep $1
   local line_diff=$(( $line_number - $line_offset - 2 ))
 
@@ -267,15 +266,19 @@ box_lib()
   export box_lib="$(box_lib_src "$@" | lines_to_words )"
 }
 
-#
+# return source paths, extract from lines found by box-list-libs
 box_lib_src()
 {
   dry_run= box_list_libs "$@" | while read src arg args
     do case "$src" in
       . | source ) eval echo $arg ;;
+      dir_load ) test -n "$args" || args=.sh
+          for scr in $(eval echo $arg/*$args) ; do
+              echo $scr
+          done ;;
       lib_load ) for lib in $arg $args ; do
-        eval lookup_test=lib_path_exists lookup_path SCRIPTPATH $lib
-      done ;;
+            eval lookup_test=lib_path_exists lookup_path SCRIPTPATH $lib
+          done ;;
       * ) ;;
     esac; done
 }

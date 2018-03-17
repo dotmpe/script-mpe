@@ -30,6 +30,7 @@ lst_spc__names="names GROUP.."
 lst_load__names=iI
 lst__names()
 {
+  note "$@"
   trueish "$choice_all" && {
     ignores_groups "$@"
   } || {
@@ -233,7 +234,7 @@ lst_main()
   local \
       scriptname=list \
       scriptalias=lst \
-      base=$(basename $0 .sh) \
+      base=lst \
       scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
       failed=
 
@@ -266,7 +267,7 @@ lst_main()
 lst_init()
 {
   test -n "$scriptpath"
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   lib_load box main
   box_run_sh_test
   # -- lst box init sentinel --
@@ -276,9 +277,9 @@ lst_init()
 lst_lib()
 {
   local __load_lib=1
-  lib_load meta list
-  lib_load ignores date
-  lst_load
+  lib_load date meta list
+  lib_load ignores
+  #lst_load
   # -- lst box lib sentinel --
   set --
 }

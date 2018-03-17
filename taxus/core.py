@@ -3,7 +3,6 @@ Docs are in taxus/__init__
 """
 from datetime import datetime
 
-from docutils.nodes import make_id
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
     ForeignKey, Table, Index, DateTime, select, func, or_
@@ -31,8 +30,9 @@ class Node(SqlBase, CardMixin, ORMMixin, object):
 
     # Node type
     ntype = Column(String(36), nullable=False, default="node")
-    __mapper_args__ = {'polymorphic_on': ntype,
-            'polymorphic_identity': 'node'}
+    __mapper_args__ = {
+            'polymorphic_on': ntype,
+            'polymorphic_identity': 'node' }
 
     # Numeric ID
     node_id = Column('id', Integer, primary_key=True)
@@ -74,6 +74,7 @@ class Folder(Node):
     title_id = Column(Integer, ForeignKey('names.id'))
     title = relationship('Name', primaryjoin='Folder.title_id==Name.name_id')
 
+# Add is_rootfolder and superfolder_id
 groupnode(Folder, name='folder', keyattr='title')
 
 
@@ -188,7 +189,7 @@ class Tag(Name):
     def dict_(klass, doc, **dockeys):
         r = Name.dict_(doc, **dockeys)
         if 'tag' not in r:
-            r['tag'] = make_id(r['name'])
+            r['tag'] = lib.tag_id(r['name'])
         return r
 
     @classmethod
@@ -238,23 +239,17 @@ class Tag(Name):
             print(record_inner(raw))
         sa.commit()
 
-    def __init__(self, name=None):
-        if name:
-            self.name = name
-            self.tag = make_id(self.name)
-        self.init_defaults()
-
     def __str__(self):
         if self.short_description:
             return "%s: %s define:%s" % ( self.name,
                     self.short_description, self.tag )
         else:
-            return "%s: %s define:%s" % ( self.name, self.self.tag )
+            return "%s: %s define:%s" % ( self.name, self.tag )
 
     def init_defaults(self):
         super(Tag, self).init_defaults()
         if not self.tag and self.name:
-            self.tag = make_id(self.name)
+            self.tag = lib.tag_id(self.name)
 
 
 # Populate Tag.context with optionally recorded tag-usage realtions

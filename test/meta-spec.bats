@@ -12,8 +12,15 @@ init
   } || stdfail
 }
 
-@test "$bin -h" "Lists commands" {
-  run $BATS_TEST_DESCRIPTION
+@test "$bin -h - Lists commands" {
+  run meta-sh.sh -h
+  { test $status -eq 0 &&
+    test ${#lines[@]} -gt 8
+  } || stdfail
+}
+
+@test "$bin help - Lists commands" {
+  run meta-sh.sh help
   { test $status -eq 0 &&
     # Output must at least be usage lines + nr of functions (12)
     test ${#lines[@]} -gt 8

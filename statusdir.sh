@@ -76,13 +76,12 @@ statusdir__backends()
 statusdir_als__bes=backends
 
 
-statusdir_man_1__backend="Print current backend's name"
+statusdir_man_1__backend="Print current backend's name. See 'be' to invoke it
+directly. "
 statusdir__backend()
 {
   $sd_be backend
 }
-statusdir_als__be=backend
-
 
 statusdir_man_1__assert="echos path. Default index is 'default'."
 statusdir_spc__assert="assert <path-expr> [<index-name-id>]"
@@ -256,8 +255,44 @@ statusdir__decr()
   test -n "$1" || error "key expected" 1
   test -n "$2" || set -- "$1" 1
   test -z "$3" || error "surplus arguments '$3'" 1
-  $sd_be decr $1 $2 || return $?
+  $sd_be decr "$@" || return $?
 }
+
+statusdir__exists()
+{
+  test -n "$1" || error "key expected" 1
+  test -z "$2" || error "surplus arguments '$3'" 1
+  $sd_be exists "$1" || return $?
+}
+
+statusdir__has()
+{
+  test -n "$1" -a -n "$2" || error "key/member expected" 1
+  test -z "$3" || error "surplus arguments '$3'" 1
+  $sd_be has "$@" || return $?
+}
+
+statusdir__members()
+{
+  test -n "$1" || error "key expected" 1
+  test -z "$2" || error "surplus arguments '$3'" 1
+  $sd_be members "$1" || return $?
+}
+
+statusdir__add()
+{
+  test -n "$1" -a -n "$2" || error "key/member expected" 1
+  test -z "$3" || error "surplus arguments '$3'" 1
+  $sd_be add "$@" || return $?
+}
+
+statusdir__rem()
+{
+  test -n "$1" -a -n "$2" || error "key/member expected" 1
+  test -z "$3" || error "surplus arguments '$3'" 1
+  $sd_be rem "$@" || return $?
+}
+
 
 statusdir__be()
 {
@@ -343,7 +378,7 @@ statusdir_init()
   test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
   . $scriptpath/util.sh load-ext
   lib_load
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load main box date
   # -- statusdir box init sentinel --
@@ -366,4 +401,3 @@ case "$0" in "" ) ;; "-"* ) ;; * )
     ;; esac
   }
 ;; esac
-

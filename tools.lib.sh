@@ -36,8 +36,8 @@ installed()
   test -z "$3" || error "installed-args:$3" 1
 
   # Get one name if any
-  local bin="$(jsotk.py -O py path $1 tools/$2/bin)"
-  test "$bin" = "True" && bin="$2"
+  local bin="$(jsotk.py -sq -O py path $1 tools/$2/bin)"
+  test -z "$bin" -o "$bin" = "True" && bin="$2"
   test -n "$bin" || {
     warn "Not installed '$2' (bin/$bin)"
     return 1
@@ -89,12 +89,20 @@ install_bin()
     test -n "$id" || id="$2"
     debug "installer=$installer id=$id"
     case "$installer" in
+
+      brew )
+          brew install $id || return 2
+          brew link $id || return 2
+        ;;
+
       npm )
           npm install -g $id || return 2
         ;;
+
       pip )
           pip install --user $id || return 2
         ;;
+
       git )
           url="$(jsotk.py -N -O py path $1 tools/$2/url)"
           test -d $HOME/.htd-tools/cellar/$id || (
@@ -113,6 +121,8 @@ install_bin()
             ln -s $HOME/.htd-tools/cellar/$id/$src $bin
           )
         ;;
+
+      * ) error "No installer '$installer'" 1 ;;
     esac
   } || {
     jsotk.py objectpath $1 '$.tools.'$2'.install'

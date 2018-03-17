@@ -7,24 +7,23 @@ note "Entry for CI pre-install / init phase"
 
 note "PWD: $(pwd && pwd -P)"
 note "Whoami: $( whoami )"
-
-env | grep -i even
-
 note "CI Env:"
 { env | grep -i 'shippable\|travis\|ci' | sed 's/^/	/' >&2; } || noop
-
 note "Build Env:"
 build_params | sed 's/^/	/' >&2
 
-note "Checkout for rebuild..."
-checkout_for_rebuild $TRAVIS_BRANCH \
-  bitbucket https://dotmpe@bitbucket.org/dotmpe-personal/script-mpe.git && {
-    note "Updated branch for rebuild (invalidates env)" ; return 1
-  } || note "nope ($?)"
+test -z "$TRAVIS_BRANCH" || {
 
-git describe --always
-env | grep '^BUILD_'
-echo '-------------------------------------'
+    # Update GIT anyway on Travis rebuilds, but from different remote
+    note "Checkout for rebuild..."
+    checkout_for_rebuild $TRAVIS_BRANCH \
+      bitbucket https://dotmpe@bitbucket.org/dotmpe-personal/script-mpe.git && {
+        note "Updated branch for rebuild (invalidates env)" ; return 1
+      } || note "nope ($?)"
+
+  }
+
+note "GIT version: $(git describe --always)"
 
 
 # Basicly if these don't run dont bother with anything,
@@ -52,8 +51,6 @@ fnmatch "* basename-reg *" " $TEST_SPECS " && {
     cp basename-reg.yaml ~/.basename-reg.yaml
 }
 
-
-head -n 10 /usr/local/bin/bats
 
 note "Done"
 # Id: script-mpe/0.0.4-dev tools/ci/parts/init.sh

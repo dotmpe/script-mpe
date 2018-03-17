@@ -5,51 +5,58 @@ set -e
 
 couchdb_sh()
 {
+  test -n "$sd_be_timeout" || sd_be_timeout=3
+  test -n "$ccurl_f" || ccurl_f=--connect-timeout\ $sd_be_timeout
+  #test -n "$sd_be_maxtime" || sd_be_maxtime=15
+  #test -n "$ccurl_f" || ccurl_f=--max-time\ 7\ --connect-timeout\ 3
+
+  curl="curl -sf $ccurl_f"
+
   case "$1" in
     get )
-        local json="$( curl -sf $COUCH_URL/$COUCH_DB/$2 )" || return
+        local json="$( $curl $COUCH_URL/$COUCH_DB/$2 )" || return
         test -n "$json" || return
         echo "$json" | jsotk -Opy path - $COUCH_SD_VKEY
       ;;
     set )
         local json_data='{"'$COUCH_SD_VKEY'": "'$4'"}'
-        rev="$(eval echo $(curl -sf $COUCH_URL/$COUCH_DB/$2 | jq  ._rev))" || return
+        rev="$(eval echo $( $curl $COUCH_URL/$COUCH_DB/$2 | jq  ._rev))" || return
         test -n "$rev" &&
         {
-          curl -X PUT -sSf $COUCH_URL/$COUCH_DB/$2 \
+          $curl -X PUT -S $COUCH_URL/$COUCH_DB/$2 \
             -H If-Match:$rev \
             -d "$json_data" || return $?
         } || {
-          curl -X PUT -sSf $COUCH_URL/$COUCH_DB/$2 \
+          $curl -X PUT -S $COUCH_URL/$COUCH_DB/$2 \
             -d "$json_data" || return $?
         }
       ;;
     incr )
-        eval "$( curl -sf $COUCH_URL/$COUCH_DB/$2 |
+        eval "$( $curl $COUCH_URL/$COUCH_DB/$2 |
             jq -r '@sh "rev=\(._rev) v=\(.value)"' )" || return
         local json_data='{"'$COUCH_SD_VKEY'": "'$(( $v + 1 ))'"}'
-        curl -X PUT -sSf $COUCH_URL/$COUCH_DB/$2 \
+        $curl -X PUT -S $COUCH_URL/$COUCH_DB/$2 \
           -H If-Match:$rev \
           -d "$json_data" >/dev/null || return $?
         expr $v + 1
       ;;
     decr )
-        eval "$( curl -sf $COUCH_URL/$COUCH_DB/$2 |
+        eval "$( $curl $COUCH_URL/$COUCH_DB/$2 |
             jq -r '@sh "rev=\(._rev) v=\(.value)"' )" || return
         local json_data='{"'$COUCH_SD_VKEY'": "'$(( $v - 1 ))'"}'
-        echo $(curl -X PUT -sSf $COUCH_URL/$COUCH_DB/$2 \
+        echo $( $curl -X PUT -S $COUCH_URL/$COUCH_DB/$2 \
           -H If-Match:$rev \
           -d "$json_data" >/dev/null || return $?)
         expr $v - 1
       ;;
     del|delete )
-        local rev=$(curl -sf $COUCH_URL/$COUCH_DB/$2 | jq  ._rev) || return $?
+        local rev=$( $curl $COUCH_URL/$COUCH_DB/$2 | jq  ._rev) || return $?
 
-        curl -X DELETE -sSf $COUCH_URL/$COUCH_DB/$2 -H If-Match:$rev ||
+        $curl -X DELETE -S $COUCH_URL/$COUCH_DB/$2 -H If-Match:$rev ||
             return $?
       ;;
     ping )
-        curl -sSf $COUCH_URL/$COUCH_DB || return
+        $curl -So/dev/null $COUCH_URL/$COUCH_DB || return
       ;;
     list ) error "TODO couchdb $@" 1
       ;;
@@ -57,7 +64,7 @@ couchdb_sh()
         echo couchdb $COUCH_URL $COUCH_DB
       ;;
     x|be|info )
-        curl -sSf $COUCH_URL || return
+        $curl -S $COUCH_URL || return
       ;;
     * ) echo "Error $0: $1 ($2)"; exit 101 ;;
   esac
