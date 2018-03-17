@@ -69,26 +69,26 @@ do case "$BUILD_STEP" in
         note "Testing required specs '$REQ_SPECS'"
         build_test_init "$REQ_SPECS"
         note "Init done"
-        #(
-        #  test_shell $(which bats) || touch $failed
-        #  note "Bats shell tests done"
-        #  $TEST_FEATURE $BUSINESS_SUITE || true # touch $failed
-        #  note "Feature tests done"
-        #  python $PY_SUITE || touch $failed
-        #  note "Python unittests done"
-        #)
+        (
+          test_shell $(which bats) || touch $failed
+          note "Bats shell tests done"
+          #$TEST_FEATURE $BUSINESS_SUITE || true # touch $failed
+          #note "Feature tests done"
+          #python $PY_SUITE || touch $failed
+          #note "Python unittests done"
+        )
 
-        #test -e "$TEST_RESULTS" || error "Test results expected" 1
-        #grep '^not\ ok' $TEST_RESULTS && touch $failed ||
-        #    stderr ok "No errors in req-specs"
-        #not_falseish "$SHIPPABLE" && {
+        test -e "$TEST_RESULTS" || error "Test results expected" 1
+        grep '^not\ ok' $TEST_RESULTS && touch $failed ||
+            stderr ok "No errors in req-specs"
+        not_falseish "$SHIPPABLE" && {
 
-        #  perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
-        #    --output $(basepath $TEST_RESULTS .tap .xml)
-        #  wc -l $TEST_RESULTS $(basepath $TEST_RESULTS .tap .xml)
-        #} || {
-        #  wc -l $TEST_RESULTS
-        #}
+          perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
+            --output $(basepath $TEST_RESULTS .tap .xml)
+          wc -l $TEST_RESULTS $(basepath $TEST_RESULTS .tap .xml)
+        } || {
+          wc -l $TEST_RESULTS
+        }
 
         ## Other tests (TODO: complement?)
         #note "Testing all specs '$TEST_SPECS'"
