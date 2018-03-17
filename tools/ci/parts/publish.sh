@@ -27,7 +27,7 @@ cp $TEST_RESULTS-1.json $TEST_RESULTS.json
 
       echo "Ignored publisher failure" >&2
       sleep 2
-      exit 0
+      return 0
     }
 
 # Id: script-mpe/0.0.4-dev tools/ci/parts/publish.sh

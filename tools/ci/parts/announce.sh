@@ -17,7 +17,7 @@ node --version
 #
 #      echo "Ignored announcer failure" >&2
 #      sleep 2
-#      exit 0
+#      return 0
 #    }
 
 # Id: script-mpe/0.0.4-dev tools/ci/parts/announce.sh
