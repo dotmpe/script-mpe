@@ -49,6 +49,7 @@ project_test() # [Units...|Comps..]
   local failed=/tmp/htd-project-test-$(uuidgen).failed
   while test $# -gt 0
   do
+    test "$(basename "$1" | cut -c1)" = "_" && continue
     case "$1" in
         *.feature ) $TEST_FEATURE -- "$1" || touch $failed ;;
         *.bats ) {
@@ -269,6 +270,9 @@ list_builds()
 
   sd_be=couchdb_sh COUCH_DB=build-log \
       statusdir.sh be doc $package_vendor/$package_id:$last_build_id > .tmp-2.json
+
+  #jq -r '.tests[] | ( ( .number|tostring ) +" "+ .name +" # "+ .comment )' .tmp-2.json
+  jq -r '.tests[] | "\(.number|tostring) \( if .ok then "pass" else "fail" end ) \(.name)"' .tmp-2.json
 
   {
     jq '.stats.total,.stats.failed,.stats.passed' .tmp-2.json |

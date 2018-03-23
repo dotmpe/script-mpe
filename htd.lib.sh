@@ -353,3 +353,46 @@ htd_find() # Dir [ Namespec ]
   } | grep -v '^'$p_'$' \
     | sed 's/'$p_'\///'
 }
+
+# Expand paths from arguments or stdin, echos existing paths at dir=$CWD.
+# Set expand-dir=false to exclude absolute working dir or given directory from
+# echoed expansion.
+htd_expand()
+{
+  test -n "$dir" || dir=$CWD
+
+  # Normal behaviour is to include dir in expansion, set trueish to give names only
+  test -n "$expand_dir" || expand_dir=1
+  trueish "$expand_dir" && expand_dir=1 || expand_dir=0
+
+  {
+    # First step, foreach arguments or stdin lines
+    test -n "$1" -a "$1" != "-" && {
+      while test $# -gt 0
+      do
+          echo "$1"
+          shift
+      done
+    } || cat -
+  } | {
+
+    local cwd= ; test "$expand_dir" = "1" || cd $dir
+
+    # Do echo as path, given name or expand paths from dir/arg
+    while read arg
+    do
+      test "$expand_dir" = "1" && {
+        for path in $dir/$arg
+          do
+            echo "$path"
+          done
+      } || {
+        for name in $arg
+        do
+          echo "$name"
+        done
+      }
+    done
+    test "$expand_dir" = "1" || cd $cwd
+  }
+}

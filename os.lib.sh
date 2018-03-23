@@ -626,3 +626,27 @@ find_broken_symlinks()
   #$find "$1" -type l -xtype l || return $?
   find "$1" -type l ! -exec test -e {} \; -print
 }
+
+abbrev_rename()
+{
+    while read oldpath junk newpath
+    do
+        local idx=1
+        while test "$(echo "$oldpath" | cut -c 1-$idx )" = "$(echo "$newpath" | cut -c 1-$idx )"
+        do
+            idx=$(( $idx + 1 ))
+        done
+        local end=$(( $idx - 1 ))
+        echo "Backed up path: $(echo $oldpath | cut -c 1-$end){$(echo $oldpath | cut -c $idx-) => $(echo $newpath | cut -c $idx-)}"
+    done
+}
+
+rotate_file()
+{
+  local dir=$(dirname "$1") cnt=1 base=$(basename "$1")
+  while test -e "$dir/$base-$cnt$2"
+  do
+    cnt=$(( $cnt + 1 ))
+  done
+  { mv -v "$1" "$dir/$base-$cnt$2" || return $?; } | abbrev_rename
+}

@@ -6,16 +6,26 @@ init
 #init_bin
 
 
-@test "${bin} -vv -n help" {
-  skip "reason"
+@test "$base -vv -n help" {
+  skip "some reason to skip test"
   run $BATS_TEST_DESCRIPTION
   test_ok_empty || stdfail
 }
 
-@test "${lib}/${base} - function should ..." {
-  TODO something # tasks-ignore
+@test "${base} - function should ..." {
+  TODO fix this or that # tasks-ignore
   run function args
   test_ok_nonempty || stdfail
+}
+
+@test "${base} - should succeed" {
+  run true
+  test_ok_empty || stdfail
+}
+
+@test "${base} - should fail" {
+  run false
+  test_ok_empty || stdfail
 }
 
 #@test "${lib}/${base} - function should ..." {

@@ -65,13 +65,16 @@ start_launchd_service()
 darwin_profile_xml()
 {
   local xml=$(setup_tmpf .xml) datatype=$1; shift
-  system_profiler $datatype -xml > $xml
+  xml=$HOME/.statusdir/system/$hostname/$datatype.xml
+  mkdir -vp $(dirname $xml)
+  test -e $xml || system_profiler $datatype -xml > $xml
   echo $xml
 }
 
 # XXX: darwin-profile-tab: unused
 darwin_profile_tab()
 {
+    return 1
   local xml=$(darwin_profile_xml "$@"); shift
   darwin.py plist-items $xml "$@"
   rm $xml

@@ -89,7 +89,7 @@ box_instance_main()
 box_instance_init()
 {
   __load=ext . $scriptpath/util.sh
-  lib_load main std str sys stdio
+  lib_load main std str sys stdio src
   . $scriptpath/tools/sh/box.env.sh
   lib_load box
   box_run_sh_test

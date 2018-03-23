@@ -649,7 +649,6 @@ class SimpleCommand(object):
         else:
             # FIXME: init default config
                 #print self.DEFAULT_RC, self.DEFAULT_CONFIG_KEY, self.INIT_RC
-                #print opts.config_file, opts.config_key
 
             prog.config_file = self.find_config_file(opts.config_file)
             self.load_config_( prog.config_file, opts )

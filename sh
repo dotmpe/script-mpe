@@ -1,7 +1,6 @@
 #!/bin/sh
 set -e
   
-
 #diff build/test/list1.txt build/test/list2.txt
 #diff build/test/list1.txt build/test/list3.txt
 exit $?

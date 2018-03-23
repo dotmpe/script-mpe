@@ -10,7 +10,7 @@ Feature: manage checkouts
 
       Given `env` '<env> PDIR=/srv/project-local/ SRCDIR=/src/ GITDIR=/srv/git-local/'
       And no directory path "/srv/project-local/<dir>" exists
-      When the user executes "echo <env> htd ... create <url> <dir>"...
+      When the user executes "echo <env> htd ... project create <url> <dir>"...
       Then a directory "/srv/project-local/<dir>/.git" exists
 
   Examples:

@@ -82,10 +82,10 @@ ck_read_catalog()
     test -n "$fname" && name="$(basename "$fname")" || {
         test -n "$name" && fname="$(find_one . "$name")"
     }
-    test -n "$fname" -a -e "$fname" || {
-        warn "Missing name/path for entry $l. $name" ; return 1; }
+    #test -n "$fname" -a -e "$fname" || {
+    #    warn "Missing name/path for entry $l. $name" ; return 1; }
 
-    test -f "$fname" && {
+    #test -f "$fname" && {
       for ck in $( echo $ck_exts | tr '-' '_' )
       do
         key="$(eval echo \"\$catalog__${l}_keys_${ck}\")"
@@ -95,11 +95,78 @@ ck_read_catalog()
         fnmatch "* *" "$fname" && fname="$(echo "$fname" | sed 's/\ /\\ /g')"
         echo "$key $ck $fname"
       done
-    }
+    #}
 
     l=$(( $l + 1))
   done
   info "Done reading checksums from catalog '$1'"
+}
+
+ck_run_catalog()
+{
+  dir="$(dirname "$catalog")"
+  cd "$cwd"
+  test -d "$dir" || { warn "Missing dir '$catalog'" ; continue ; }
+  test -f "$catalog.yml" || { warn "Missing file '$catalog'" ; continue ; }
+
+  cd "$dir"
+  {
+    ck_read_catalog "$(basename "$catalog.yml")"
+    test 0 -eq $? || { ret=1; break; }
+  } | {
+    while read key ck name ; do
+
+      debug "Key: '$key' CK: $ck Name: '$name'"
+      fnmatch "* $ck *" " $ck_exts " || continue
+      test -e "$name" || { error "No file '$name'" ; return 1 ; }
+      case "$ck" in
+
+          # Special case for some larger SHA-1
+          sha2* | sha3* | sha5* )
+                l=$(echo $ck | cut -c4-)
+                echo "$key  $name" | { r=0
+                    shasum -s -a $l -c - || r=$?
+                    test 0 -eq $r && echo "$name: ${ck} OK" || {
+                        warn "Failed $ck '$key' for '$name'"
+                        return $r
+                    }
+                }
+              ;;
+
+          # Special case for CK (CRC/Size)
+          ck )
+                cks=$(echo "$key" | cut -f 1 -d ' ')
+                sz=$(echo "$key" | cut -f 2 -d ' ')
+                SZ="$(filesize "$name")"
+                test "$SZ" = "$sz" || { error "File-size mismatch on '$p'"; return 1; }
+                CKS="$(cksum "$name" | awk '{print $1}')"
+                test "$CKS" = "$cks" || { error "Checksum mismatch on '$p'"; return 1; }
+                echo "$name: ${ck} OK"
+              ;;
+
+          # Default to generic <ck>sum CLI tools
+          * )
+                echo "$key  $name" | { r=0
+                    ${ck}sum -s -c - || r=$?
+                    test 0 -eq $r && echo "$name: ${ck} OK" || {
+                        warn "Failed $ck '$key' for '$name'"
+                        return $r
+                    }
+                }
+              ;;
+      esac
+
+      test 0 -eq $? || {
+        return 1
+      }
+    done
+  }
+  r=$?
+
+  test 0 -eq $r -a $ret -eq 0 || {
+    error "failure in '$catalog' ($r, $ret)"
+    return 1
+  }
 }
 
 # Check keys from catalog corresponding to known checksum algorithms
@@ -113,69 +180,7 @@ ck_run_catalogs()
     while read catalog
     do
       note "Found catalog at '$catalog'"
-      dir="$(dirname "$catalog")"
-      cd "$cwd"
-      test -d "$dir" || { warn "Missing dir '$catalog'" ; continue ; }
-      test -f "$catalog.yml" || { warn "Missing file '$catalog'" ; continue ; }
-
-      cd "$dir"
-      {
-        ck_read_catalog "$(basename "$catalog.yml")"
-        test 0 -eq $? || { ret=1; break; }
-      } | {
-        while read key ck name ; do
-
-          debug "Key: '$key' CK: $ck Name: '$name'"
-          fnmatch "* $ck *" " $ck_exts " || continue
-          test -e "$name" || { error "No file '$name'" ; return 1 ; }
-          case "$ck" in
-
-              # Special case for some larger SHA-1
-              sha2* | sha3* | sha5* )
-                    l=$(echo $ck | cut -c4-)
-                    echo "$key  $name" | { r=0
-                        shasum -s -a $l -c - || r=$?
-                        test 0 -eq $r && echo "$name: ${ck} OK" || {
-                            warn "Failed $ck '$key' for '$name'"
-                            return $r
-                        }
-                    }
-                  ;;
-
-              # Special case for CK (CRC/Size)
-              ck )
-                    cks=$(echo "$key" | cut -f 1 -d ' ')
-                    sz=$(echo "$key" | cut -f 2 -d ' ')
-                    SZ="$(filesize "$name")"
-                    test "$SZ" = "$sz" || { error "File-size mismatch on '$p'"; return 1; }
-                    CKS="$(cksum "$name" | awk '{print $1}')"
-                    test "$CKS" = "$cks" || { error "Checksum mismatch on '$p'"; return 1; }
-                    echo "$name: ${ck} OK"
-                  ;;
-
-              # Default to generic <ck>sum CLI tools
-              * )
-                    echo "$key  $name" | { r=0
-                        ${ck}sum -s -c - || r=$?
-                        test 0 -eq $r && echo "$name: ${ck} OK" || {
-                            warn "Failed $ck '$key' for '$name'"
-                            return $r
-                        }
-                    }
-                  ;;
-          esac
-
-          test 0 -eq $? || {
-            return 1
-          }
-        done
-      }
-      r=$?
-
-      test 0 -eq $r -a $ret -eq 0 || {
-        error "failure in '$catalog' ($r, $ret)"
-        return 1
-      }
+      ck_run_catalog "$catalog"
     done
   }
   test 0 -eq $? || ret=1

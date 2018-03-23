@@ -15,7 +15,7 @@ statusdir_load()
 {
   [ -z "$STATUSDIR_ROOT" ] && {
       STATUSDIR_ROOT="$(echo ~/.statusdir/)"
-      #export STATUSDIR_ROOT
+      export STATUSDIR_ROOT
   }
 
   # Get temporary dir
@@ -386,7 +386,7 @@ statusdir_init()
   lib_load
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
-  lib_load main box date
+  lib_load src main box date
   # -- statusdir box init sentinel --
 }
 

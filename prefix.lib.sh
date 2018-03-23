@@ -20,7 +20,6 @@ get_pathnames_tab()
       echo 'EOM'
     } > $tmpsh
     $SHELL $tmpsh
-    echo $tmpsh
     rm $tmpsh
   } || { cat <<EOM
 / ROOT
@@ -62,17 +61,19 @@ htd_prefix() # Local-Path
   fnmatch "/*" "$1" || set -- "$(pwd -P)/$1"
   # Add '/' for dir path
   fnmatch "*/" "$1" || { test -e "$1" -a -d "$1" && set -- "$1/" ; }
-  local path="$1"
+  local path="$1" p=
   # Find deepest named prefix
   while true
   do
+    p="^$(match_grep "$1")\ "
     # Travel to root, break on match
-    grep -qF "$1 " "$index" && break || set -- "$(dirname "$1")/"
+    grep -q "$p" "$index" && break || set -- "$(dirname "$1")/"
     test "$1" != "//" && continue || set -- /
     break
   done
   # Get first name for path
-  local prefix_name="$( grep -F "$1 " $index | head -n 1 | awk '{print $2}' )"
+  p="^$(match_grep "$1")\ "
+  local prefix_name="$( grep "$p" $index | head -n 1 | awk '{print $2}' )"
   fnmatch "*/" "$1" || set -- "$1/"
   # offset on furter for `cut`
   set -- "$1+"
