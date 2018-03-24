@@ -86,6 +86,13 @@ do case "$BUILD_STEP" in
             touch $failed ||
             stderr ok "No errors in req-specs"
 
+        ## Other tests, allow to fail (TODO: complement from REQ_SPECS)
+        #note "Testing all specs '$TEST_SPECS'"
+        #build_test_init "$REQ_SPECS"
+        #(
+        #  test_shell $(which bats)
+        #) || true
+
         test ! -e "$failed" || {
           test -s "$failed" &&
             error "Failed: $(echo $(cat $failed))" ||
