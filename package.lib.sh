@@ -389,6 +389,7 @@ htd_package_remotes_init()
 
     note "scm: $scm; remote: '$remote' url: '$url'"
     htd_repository_url "$remote" "$url" || continue
+    note "remote: '$remote' url: '$url'"
     vc_git_update_remote "$remote" "$url"
   done
 }

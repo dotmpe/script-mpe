@@ -135,7 +135,7 @@ htd_repository_url() # Remote Url
 {
   fnmatch "*.*" "$1" && {
 
-    # Disk on local host
+    # Remote has namespace and indicates disk on local host
     fnmatch "$hostname.*" "$1" && {
 
       # Cancel if repo is local checkout (and expand '~')
@@ -148,17 +148,27 @@ htd_repository_url() # Remote Url
 
     } || {
 
-      # Add hostname for remote disk
-      { fnmatch "/*" "$2" || fnmatch "~/*" "$2"
+      # Add hostname for remote disk (if name matches domain, or local name is
+      # explictly abs/relative path)
+      domain=$(echo $1 | cut -f1 -d'.')
+      { test -e $UCONFDIR/git/remote-dirs/$domain.sh ||
+        fnmatch "/*" "$2" || fnmatch "~/*" "$2"
       } || return
       remote=$(echo $1 | cut -f2- -d'.')
-      url="$(echo $1 | cut -f1 -d'.'):$2"
+      url="$domain:$2"
     }
 
   } || {
 
+    # No namespace
+    test -e $UCONFDIR/git/remote-dirs/$remote.sh &&  {
+      # treat remote name as remote hostname
+      test "$remote" = "$hostname" ||
+        url="$remote:$2"
+    } || {
+      url="$2"
+    }
     remote="$1"
-    url="$2"
   }
 
   # Remove .$scm and .../.$scm suffix
