@@ -1328,8 +1328,10 @@ htd__projects()
 htd_man_1__project='Deal with project at local dir, see also projects.
 
   exists - check that project is vendored
-  create - TODO: create a new remote if vendor supports this
-  new - TODO: create new project from remote
+  create - TODO: create new project
+  checkout - TODO: create new checkout for project
+  new - TODO: create new project
+  init - TODO: check that project is vendored
 
   sync - TODO: ensure project is entirely available at vendor
   update - TODO: update from vendor(s)
@@ -1348,6 +1350,7 @@ htd__project()
 
     create ) shift ; htd_project_create "$@" ;;
     new ) shift ; htd_project_new "$@" ;;
+    checkout ) shift ; htd_project_checkout "$@" ;;
     init ) shift ; htd_project_init "$@" ;;
     sync ) shift ; htd_project_sync "$@" ;;
     update ) shift ; htd_project_update "$@" ;;
@@ -3440,6 +3443,7 @@ htd_man_1__git='FIXME: cleanup below
     git-grep
     git-features
     gitrepo
+    git-import
 
 See also:
 
@@ -3870,6 +3874,25 @@ htd__gitrepo()
   test -n "$*" || set -- *.git
 
   htd_expand "$@"
+}
+
+
+htd__git_import()
+{
+  test -d "$1" || error "Source dir expected" 1
+  note "GIT import from '$1'..."
+  find $1 | cut -c$(( 2 + ${#1}))- | while read pathname
+  do
+    test -n "$pathname" || continue
+    test -d "$1/$pathname" && mkdir -vp "$pathname"
+    test -L "$pathname" && continue
+    test -f "$pathname" || continue
+    trueish "$dry_run" && {
+      echo mv -v "$1/$pathname" "$pathname"
+    } || {
+      mv -v "$1/$pathname" "$pathname"
+    }
+  done
 }
 
 
@@ -8050,7 +8073,9 @@ export`__.
   import RSync-Info Checkout-Dir [RSync-Options]
     Import from any rsync-spec, rsync first if not a local directory.
     Then call git annex import ... This passes extra arguments as options to
-    rsync, e.g. to use include/exclude patterns.
+    rsync, e.g. to use include/exclude patterns. Also before git-annex-import
+    all normal tracked files are copied from source.
+
 '
 htd__annex()
 {
@@ -8060,7 +8085,7 @@ htd__annex()
   local srcinfo= rsync_flags=avzui act=$1 ; shift 1
   falseish "$dry_run" || rsync_flags=${rsync_flags}n
 
-  get_srcinfo()
+  get_srcinfo() # Get URL for remote name
   {
     srcinfo=$(git config --local --get remote.${remote}.annex-rsyncurl)
     test -n "$srcinfo" || {
@@ -8087,27 +8112,39 @@ htd__annex()
       ;;
 
     import )
+        # Add remote-dir import to git-annex-import, and do not turn
+        # tracked files into annexed files
         test -n "$1" || error src 1
         test -n "$2" || error dest 1
         test -d "$2/.git/annex" || error annex-import 1
 
-        local tmpd=$(setup_tmpd) srcinfo=$1 dest=$2 ; shift 2
+        local tmpd=$(base=htd-annex setup_tmpd) srcinfo=$1 dest=$2 ; shift 2
         # See if remote-spec is local path, or else sync. Extra arguments
         # are used as rsync options (to pass on include/exclude patterns)
         test -e "$srcinfo" && tmpd=$srcinfo ||
           rsync -${rsync_flags} "$srcinfo" "$tmpd" "$@"
 
         {
-            cd "$dest" ; trueish "$dry_run" && {
-                echo git annex import --deduplicate $tmpd/*
+            cd "$dest" ;
+
+            # Copy normal tracked files so annex doesn't import them
+            htd__git_import "$tmpd" ||
+                warn "git-import $tmpd returned $?" 1
+            
+            trueish "$dry_run" && {
+              echo git annex import --deduplicate $tmpd/*
 
             } || {
-                git annex import --deduplicate $tmpd/* ||
-                  warn "import returned $?"
-                git status
+                
+              # Force is needed to take updates during import
+              git annex import --force --deduplicate $tmpd/* ||
+                  warn "annex-import $srcinfo returned $? ($tmpd)"
+
+              git status || true
             }
         }
-        test ! -e "$srcinfo" || rm -r $tmpd
+        # Remove tmpdir if not a local srcdir
+        test -e "$srcinfo" && note "Leaving localdir $srcinfo" || rm -r $tmpd
       ;;
 
     * ) error "'$act'?" 1 ;;

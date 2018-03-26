@@ -9,7 +9,7 @@
 # Verbose test + return status
 
 # Also simple default helper for lookup-path
-test_exists()
+test_exists() # Local-Name [ Base-Dir ]
 {
   test -z "$2" && {
     test -e "$1" || {
@@ -21,7 +21,7 @@ test_exists()
   }
 }
 
-test_dir()
+test_dir() # Path
 {
   test -d "$1" || {
     error "No such dir: $1"
@@ -29,7 +29,7 @@ test_dir()
   }
 }
 
-test_file()
+test_file() # Path
 {
   test -f "$1" || {
     error "No such file: $1"
@@ -37,15 +37,14 @@ test_file()
   }
 }
 
-test_glob()
+# XXX: test wether glob expands to itself
+test_glob() # Glob
 {
   test "$(echo $1)" = "$1" && return 1 || return 0
 }
 
-
-# arg-vars VARNAMES VALUES...
 # Echo arguments as sh vars (use with local, export, etc)
-arg_vars()
+arg_vars() # VARNAMES VALUES...
 {
   local vars=$1
   shift

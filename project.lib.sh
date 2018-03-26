@@ -25,8 +25,51 @@ htd_project_releases()
       jq -r '.Releases | to_entries[] as $k | $k.value.tag_name,$k.value.tarball_url' $gh_r_j
 }
 
+# TODO: go from project Id, to namespace and provider. use local SCM/package
+htd_project_args()
+{
+  test -n "$2" || {
+    test -n "$1" || error "TODO: get ns/name from package" 1
+    set -- "$1" "$(htd git-remote url dotmpe $1)"
+    #vc_getscm || return
+    #error "TODO get url" 1
+  #  #set -- "$()" "$2"
+  }
+
+  test -n "$1" || {
+    error "TODO get Ns-Name for recognized URLs" 1
+    set -- "$(basename "$2" .git)" "$2"
+  }
+  fnmatch "*/*" "$1" && ns=$(echo "$1" | cut -d'/' -f1) || set -- "$ns/$1"
+}
+# TODO: create new checkout for project
+htd_project_checkout()
+{
+  local ns=$NS_NAME
+  htd_project_args "$@" || return
+  test -n "$domain" || domain=github.com
+
+  test -e "/src/$domain/$ns/$name" || {
+    git clone "$2" "/src/$domain/$ns/$name"
+  }
+  test -e "/srv/project-local/$name" || {
+    ln -s "/src/$domain/$ns/$name" /srv/project-local/$name
+  }
+}
+# TODO: check that project is vendored
+htd_project_init() # [NS/]NAME | [ NAME URL ]]
+{
+  local ns=$NS_NAME
+  htd_project_args "$@" || return
+
+  test -e "/srv/git-local/git/$1.git" || {
+    git clone --bare -mirror "$2" "/srv/git-local/git/$1.git" && {
+      note "Local repo created for $1"
+    } || error "Clone error" 1
+  } && note "Local repo exists for $1"
+}
 # Create new for current
-htd_project_new()
+htd_project_create()
 {
   test -n "$1" || set -- "$(basename $(pwd))"
   htd__project exists "$1" && {
@@ -40,16 +83,10 @@ htd_project_new()
     htd__git_init_version
   ) || return 1
 }
-htd_project_init()
+# check that project is vendored
+htd_project_exists()
 {
-  # TODO: go from project Id, to namespace and provider
-  #git@github.com:bvberkum/x-docker-hub-build-monitor.git
-  false;
-}
-htd_project_create()
-{
-  test -n "$1" || error "url expected" 1
-  test -n "$2" || error "name expected" 1
+  false
 }
 htd_project_sync()
 {
