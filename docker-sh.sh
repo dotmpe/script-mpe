@@ -1144,7 +1144,9 @@ docker_sh_main()
 # FIXME: Pre-bootstrap init
 docker_sh_init()
 {
-  export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
+  echo docker_sh_init
+  test -n "$LOG" ||
+    export LOG=/usr/local/share/mkdoc/Core/log.sh
   test -z "$BOX_INIT" || return 1
   test -n "$scriptpath"
   export SCRIPTPATH=$scriptpath
@@ -1152,10 +1154,15 @@ docker_sh_init()
     test -w /var/run/docker.sock || sudo="sudo "
     dckr=${sudo}docker
   }
+  echo 1
   . $scriptpath/util.sh load-ext
+  echo 2
   lib_load
+  echo 3
   . $scriptpath/tools/sh/box.env.sh
+  echo 4
   lib_load main box projectdir
+  echo 5
   box_run_sh_test
   # -- dckr-sh box init sentinel --
 }

@@ -114,7 +114,8 @@ esop_main()
 # FIXME: Pre-bootstrap init
 esop_init()
 {
-  export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
+  test -n "$LOG" ||
+    export LOG=/usr/local/share/mkdoc/Core/log.sh
   export SCRIPTPATH=$scriptpath
   . $scriptpath/util.sh load-ext
   lib_load str sys os std stdio main argv bash box src

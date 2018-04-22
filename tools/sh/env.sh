@@ -50,7 +50,7 @@ test -n "$TEST_FEATURE_BIN" -o ! -x "./vendor/bin/behat" ||
 test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behat || true)"
 test -n "$TEST_FEATURE_BIN" && {
     # Command to run one or all feature tests
-    TEST_FEATURE="$TEST_FEATURE_BIN -f junit -o$TEST_RESULTS.xml --tags ~@todo&&~@skip --suite default"
+    TEST_FEATURE="$TEST_FEATURE_BIN -f junit -o$TEST_RESULTS --tags ~@todo&&~@skip --suite default"
     # XXX: --tags '~@todo&&~@skip&&~@skip.travis'
     # Command to print def lines
     TEST_FEATURE_DEFS="$TEST_FEATURE_BIN -dl"

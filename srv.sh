@@ -146,7 +146,8 @@ srv_main()
 # FIXME: Pre-bootstrap init
 srv_init()
 {
-  export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
+  test -n "$LOG" ||
+    export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
 
   test -n "$scriptpath"
   . $scriptpath/util.sh load-ext

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-LOG=~/project/mkdoc/usr/share/mkdoc/Core/log.sh
+test -n "$LOG" ||
+    export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
+#LOG=~/project/mkdoc/usr/share/mkdoc/Core/log.sh
+
 
 check_hosted() # hostnames ...
 {
@@ -19,8 +22,8 @@ do_symlink() # source destination host(s)
 	args=($@)
 	hosts=${args[@]:2}
 	check_hosted $hosts
-	if test -n "$hosts" -a $? -ne 0; then 
-		return; 
+	if test -n "$hosts" -a $? -ne 0; then
+		return;
 	fi;
 
 	# Get paths from args, expanding any ENV variables
@@ -85,7 +88,7 @@ while read line; do
 	if test -n "$line" -a "${line:0:1}" != "#"; then
 		do_symlink $line
 	fi
-done 
+done
 
 if test "$F" != "-"; then
 	exec 0<&6 6<&- # restore stdin and close fd#6

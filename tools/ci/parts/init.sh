@@ -15,10 +15,10 @@ build_params | sed 's/^/	/' >&2
 test -z "$TRAVIS_BRANCH" || {
 
     # Update GIT anyway on Travis rebuilds, but from different remote
-    note "Checkout for rebuild..."
+    note "Checking out '$TRAVIS_BRANCH' for rebuild..."
     checkout_for_rebuild $TRAVIS_BRANCH \
       bitbucket https://dotmpe@bitbucket.org/dotmpe-personal/script-mpe.git && {
-        note "Updated branch for rebuild (INVALIDATES ENV)"
+        note "Updated branch for rebuild (INVALIDATES ENV, new Build-Commit-Range: $BUILD_COMMIT_RANGE)"
       } || note "nope ($?)"
 
   }

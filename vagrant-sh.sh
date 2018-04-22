@@ -215,7 +215,8 @@ vagrant_sh_main()
 # FIXME: Pre-bootstrap init
 vagrant_sh_init()
 {
-  export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
+  test -n "$LOG" ||
+    export LOG=/usr/local/share/mkdoc/Core/log.sh
 
   test -n "$scriptpath"
   . $scriptpath/util.sh

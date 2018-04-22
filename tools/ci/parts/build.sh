@@ -65,13 +65,17 @@ do case "$BUILD_STEP" in
           mv $TEST_RESULTS.tap $TEST_RESULTS-1.tap
 
           # Test feature files and report in JUnit XML
-          #$TEST_FEATURE $BUSINESS_SUITE || touch $failed
-          #note "Feature tests done"
-          #mv $TEST_RESULTS.xml $TEST_RESULTS-2.xml
+          echo $TEST_FEATURE $BUSINESS_SUITE
+          $TEST_FEATURE $BUSINESS_SUITE || {
+            echo test-feature >> $failed
+            grep failure $TEST_RESULTS/default.xml
+          }
+          note "Feature tests done"
+          mv $TEST_RESULTS/default.xml $TEST_RESULTS-2.xml
 
           # Test Python unit files and report in ...
           # FIXME: new params for python tests python $PY_SUITE || touch $failed
-          #python test/main.py || touch $failed
+          python test/main.py || echo python:main >> $failed
 
           #py.test --junitxml $TEST_RESULTS.xml $PY_SUITE || touch $failed
           #note "Python unittests done"
@@ -79,7 +83,7 @@ do case "$BUILD_STEP" in
         )
 
         test -e "$TEST_RESULTS-1.tap" || error "Test results 1 expected" 1
-        #test -e "$TEST_RESULTS-2.xml" || error "Test results 2 expected" 1
+        test -e "$TEST_RESULTS-2.xml" || error "Test results 2 expected" 1
         #test -e "$TEST_RESULTS-3.xml" || error "Test results 3 expected" 1
 
         grep '^not\ ok' $TEST_RESULTS-1.tap &&

@@ -17,12 +17,14 @@ Feature: srv
   Scenario: generic reports in summary, brief and complete formats
 
 
+  @skip
   Scenario: on run, see about rogue paths
 
     When the user runs any subcommand '' of srv
     Then warnings are shown for rogue /srv/* paths
 
 
+  @skip
   Scenario: on inital run, volumes
 
     When unitialized

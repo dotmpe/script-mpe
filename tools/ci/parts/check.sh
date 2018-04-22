@@ -44,6 +44,11 @@ not_falseish "$SHIPPABLE" && {
 
 # Local commands should be on PATH and working OK
 
+
+note "docker-sh"
+{ { docker-sh.sh -V && docker-sh.sh --help
+} 2>&1 >/dev/null; } || error "docker-sh"
+
 note "sh-switch"
 { { sh_switch.py -V && sh_switch.py --help
 } 2>&1 >/dev/null; } || error "sh_switch"
