@@ -20,6 +20,8 @@ test "$(whoami)" = "travis" || {
   }
 }
 
+test -d ~/virtualenv || virtualenv ~/virtualenv
+
 ./install-dependencies.sh all pip php dev bats-force-local
 
 test -x "$(which tap-json)" || npm install -g tap-json
