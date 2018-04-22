@@ -46,7 +46,7 @@ not_falseish "$SHIPPABLE" && {
 
 note "sh-switch"
 { { sh_switch.py -V && sh_switch.py --help
-} 2>&1 >/dev/null; } || error "sh_switch" 1
+} 2>&1 >/dev/null; } || error "sh_switch"
 
 note "Htd tools"
 { { htd tools
