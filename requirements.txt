@@ -1,5 +1,3 @@
-#objectpath
-#py-mhash@1.2 malloc problems
 BeautifulSoup
 bencode
 cherrypy
@@ -8,18 +6,23 @@ docopt-mpe
 docutils
 fusepy
 git+https://github.com/hackerhelmut/ObjectPath.git
+gtasks
 hashids
 icalendar
 json-spec
-mysql-connector==2.1.6
+keyring
 #mysqlclient
+mysql-connector==2.1.6
 nltk
+#objectpath
 pbPlist
 pydelicious
 pydot
+#py-mhash@1.2 malloc problems
 pytz
 redis
 ruamel.yaml<=0.15
+requests-oauthlib
 sadisplay
 setuptools 
 shaarli-client
