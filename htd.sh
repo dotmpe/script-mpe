@@ -4960,7 +4960,7 @@ htd__run()
       eval $package_env
     }
 
-    # Write scriptlien with expanded vars
+    # Write scriptline with expanded vars
     info "Expanded '$(eval echo \"$@\")'"
     set -- $(eval echo \"$*\")
     run_scriptname="$1"
