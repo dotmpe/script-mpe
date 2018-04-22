@@ -36,7 +36,7 @@ import shlex
 
 from docopt import docopt
 
-import libcmd_docopt, confparse, jsotk_lib
+from script_mpe import libcmd_docopt, confparse, jsotk_lib
 
 
 re_ws = re.compile('^\s+$')
