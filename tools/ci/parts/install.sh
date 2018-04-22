@@ -21,7 +21,7 @@ test "$(whoami)" = "travis" || {
 }
 
 test -d ~/virtualenv || virtualenv ~/virtualenv
-source ~/.pyvenv/du-ext/bin/activate
+source ~/virtualenv/bin/activate
 
 ./install-dependencies.sh all pip php dev bats-force-local
 
