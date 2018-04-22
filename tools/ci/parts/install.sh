@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+#set -e
 
 note "Entry for CI install phase"
 
@@ -46,11 +46,10 @@ test "$(whoami)" = "travis" && {
 # FIXME: merge gh-pages into master
 #bundle install
 
-
 # FIXME: npm install parse-torrent lodash
 
 # FIXME: htd install json-spec
 
-set +e
+#set +e
 note "Done"
 # Id: script-mpe/0.0.4-dev tools/ci/parts/install.sh

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Announce build in CouchDB build-log record
-set -e
+#set -e
 
 curl -sSf https://$CI_DB_HOST/ || {
   echo "No remote DB, skipped build-log announce" >&2

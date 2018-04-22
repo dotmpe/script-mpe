@@ -37,6 +37,8 @@ test -z "$dry_run" || pref="echo $pref"
 #  test -n "$sudo" || pip_flags=--user
 #  test -n "$sudo" || py_setup_f=--user
 #}
+# -U : upgrade
+
 
 test -n "$SRC_PREFIX" ||
   stderr "Not sure where to checkout (SRC_PREFIX missing)" 1
@@ -224,10 +226,10 @@ main_entry()
   case "$1" in pip|python )
       which pip >/dev/null || {
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
-      $pref pip install -U $pip_flags appdirs packaging setuptools
-      $pref pip install -U $pip_flags objectpath ruamel.yaml
-      $pref pip install -U $pip_flags -r requirements.txt
-      $pref pip install -U $pip_flags -r test-requirements.txt
+      $pref pip install $pip_flags appdirs packaging setuptools
+      $pref pip install $pip_flags objectpath ruamel.yaml
+      $pref pip install $pip_flags -r requirements.txt
+      $pref pip install $pip_flags -r test-requirements.txt
     ;; esac
 
   case "$1" in bats-force-local )
