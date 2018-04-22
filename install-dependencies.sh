@@ -227,7 +227,7 @@ main_entry()
       which pip >/dev/null || {
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
       $pref pip install $pip_flags appdirs packaging setuptools
-      $pref pip install $pip_flags objectpath ruamel.yaml
+      $pref pip install $pip_flags objectpath ruamel.yaml keyring
       $pref pip install $pip_flags -r requirements.txt
       $pref pip install $pip_flags -r test-requirements.txt
     ;; esac

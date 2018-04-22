@@ -40,7 +40,6 @@ before_install:
 install:
   - export scriptname=install install_ts="$(date +%s)"
   - . ./tools/ci/parts/install.sh
-  - ls -la vendor vendor/bin
   - . ./tools/ci/env.sh
 
 before_script:

@@ -1,16 +1,14 @@
 #!/bin/bash
 
-#set -e
-
 note "Entry for CI install phase"
 
 
-echo APT_PACKAGES=$APT_PACKAGES
 test "$(whoami)" = "travis" || {
 
   test -x "$(which apt-get)" && {
     test -z "$APT_PACKAGES" ||
     {
+      echo APT_PACKAGES=$APT_PACKAGES
       {
         $sudo apt-get update &&
         $sudo apt-get install $APT_PACKAGES
@@ -20,10 +18,7 @@ test "$(whoami)" = "travis" || {
   }
 }
 
-#test -d ~/virtualenv || virtualenv ~/virtualenv
-#source ~/virtualenv/bin/activate
-#
-#./install-dependencies.sh all pip php dev bats-force-local
+./install-dependencies.sh all pip php dev bats-force-local
 
 test -x "$(which tap-json)" || npm install -g tap-json
 test -x "$(which any-json)" || npm install -g any-json

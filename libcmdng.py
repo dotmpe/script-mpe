@@ -202,7 +202,7 @@ class Options(UserDict):
     "A mapping of (meta)variable names to their option definition index. "
 
     @classmethod
-    def register(klass, ns, *options):
+    def register(klass, ns=None, *options):
 
         """
         Registers a standard list of options, compabible with optparse.

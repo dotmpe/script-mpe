@@ -6,7 +6,7 @@ docopt-mpe
 docutils
 fusepy
 git+https://github.com/hackerhelmut/ObjectPath.git
-gtasks
+#gtasks
 hashids
 icalendar
 json-spec
