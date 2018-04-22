@@ -49,21 +49,21 @@
   pd-meta:
     # TODO: move run/test/build to projects package iso. pd-meta.
     run:
-      behat: "./vendor/.bin/behat--tags:~@skip"
-      behat-defs: "./vendor/.bin/behat:-dl"
+      behat: "./vendor/bin/behat--tags:~@skip"
+      behat-defs: "./vendor/bin/behat:-dl"
 
       # NOTE: behat cannot display outline only
-      behat-specs: "./vendor/.bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip"
+      behat-specs: "./vendor/bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip"
 
       # XXX: this would be nice, and is one way to do file watching for BDD
-      behat-watch: "nodemon -x './vendor/.bin/behat test/$1.feature' -w test/bootstrap/FeatureContext.php -w test/$1.feature -w ./$1.*"
+      behat-watch: "nodemon -x './vendor/bin/behat test/$1.feature' -w test/bootstrap/FeatureContext.php -w test/$1.feature -w ./$1.*"
     stats: unique-filelines unique-lines
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
     check: "htd:gitflow-check-doc :verbose=1:vchk :bats:specs"
-    #./vendor/.bin/behat:--dry-run:--no-multiline :git:status"
+    #./vendor/bin/behat:--dry-run:--no-multiline :git:status"
     # TODO: check for /tmp usage, force TMPDIR use
-    test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats ./vendor/.bin/behat:--tags:~@skip"
+    test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats ./vendor/bin/behat:--tags:~@skip"
     # TODO: run tests at VM/... if available
     build: ":vagrant:tools/ci/vbox"
     #build: ":vagrant:tools/ci/vbox:ubuntu"
@@ -131,7 +131,7 @@
       # - htd vcflow check-doc
       - verbosity=1 git-versioning check
       - projectdir.sh run :bats:specs
-      - ./vendor/.bin/behat --dry-run --strict
+      - ./vendor/bin/behat --dry-run --strict
       #- projectdir.sh run :git:status
       - export SCR_SYS_SH=bash-sh
       - scriptname="check-includes"
@@ -252,7 +252,7 @@
            -e TMPDIR=/tmp \
            -e HOME=/home/treebox \
            localhost:5000/ubuntu-user-script:build \
-           'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
+           'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
 
     build-docs:
       - lib_load build ; build_docs \"\$@\"

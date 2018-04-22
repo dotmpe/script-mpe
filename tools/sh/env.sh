@@ -45,8 +45,8 @@ BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
 
 project_env_bin node npm lsof
 
-test -n "$TEST_FEATURE_BIN" -o ! -x "./vendor/.bin/behat" ||
-    TEST_FEATURE_BIN="./vendor/.bin/behat"
+test -n "$TEST_FEATURE_BIN" -o ! -x "./vendor/bin/behat" ||
+    TEST_FEATURE_BIN="./vendor/bin/behat"
 test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behat || true)"
 test -n "$TEST_FEATURE_BIN" && {
     # Command to run one or all feature tests

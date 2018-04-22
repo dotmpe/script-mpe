@@ -8128,12 +8128,12 @@ htd__annex()
             # Copy normal tracked files so annex doesn't import them
             htd__git_import "$tmpd" ||
                 warn "git-import $tmpd returned $?" 1
-            
+
             trueish "$dry_run" && {
               echo git annex import --deduplicate $tmpd/*
 
             } || {
-                
+
               # Force is needed to take updates during import
               git annex import --force --deduplicate $tmpd/* ||
                   warn "annex-import $srcinfo returned $? ($tmpd)"
@@ -8497,12 +8497,12 @@ htd__bdd()
 {
   test -n "$1" && {
     set -- test/$1.feature
-    nodemon -x "./vendor/.bin/behat $1" \
+    nodemon -x "./vendor/bin/behat $1" \
       --format=progress \
       -C $(htd__bdd_args)
   } || {
     set -- test/
-    nodemon -x "./vendor/.bin/behat $1" \
+    nodemon -x "./vendor/bin/behat $1" \
       --format=progress \
       $(htd__bdd_args)
   }

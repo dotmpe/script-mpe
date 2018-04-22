@@ -55,7 +55,7 @@ exit 0
 
 projectdir.sh run :git:status
 #projectdir.sh run :bats:specs
-#vendor/.bin/behat --dry-run --no-multiline
+#vendor/bin/behat --dry-run --no-multiline
 
 htd status
 htd rules
