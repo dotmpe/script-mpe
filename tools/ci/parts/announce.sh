@@ -4,10 +4,10 @@
 
 curl -sSf https://$CI_DB_HOST/ || {
   echo "No remote DB, skipped build-log announce" >&2
-  exit 0
+  #exit 0
 }
 
-node --version
+#node --version
 # FIXME: nodejs deps needed, use curl instead
 
 #  CI_DB_HOST="$CI_DB_HOST" \
