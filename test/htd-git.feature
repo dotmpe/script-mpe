@@ -1,85 +1,25 @@
 Feature: GIT helpers (in htd)
 
-    Scenario: list local repositories
+    Commands for getting or syncing checkouts from remote vendors, creating
+    new checkouts or creating new remotes for checkouts,
+    and misc. operations on checkouts.
 
-        Given `env` 'verbosity=0'
-        When the user runs "htd gitrepo --dir=/srv/git-local bvberkum/*.git"
-        Then each `output` line matches the pattern '.*.git$'
-        And `stderr` is empty
-        And `output` has the lines:
-        """
-        /srv/git-local/bvberkum/script-mpe.git
-        /srv/git-local/bvberkum/mkdoc.git
-        """
+    These are based on vc and vcflow libs.
 
-    Scenario: list local repositories (defaults)
+    Some work is needed on tests and feature descriptions.
+    The current suites:
 
-        Given `env` 'verbosity=0'
-        When the user runs "htd show repos dir stdio_0_type NS_NAME"
-        Then `output` equals:
-        """
-        p
-        bvberkum
-        """
-
-        When the user runs "htd gitrepo"
-        Then `stderr` is empty
-        # FIXME: cant seem to make this test work
-        #And `output` has the lines:
-        #"""
-        #/srv/git-local/bvberkum/script-mpe.git
-        #/srv/git-local/bvberkum/mkdoc.git
-        #"""
-
-    Scenario: list repositories in dir and/or for glob
-
-        Given `env` 'verbosity=0'
-        When the user runs "htd gitrepo --dir=/src/github.com bvberkum/*/.git"
-        Then `stderr` is empty
-        And `output` has the lines:
-        """
-        /src/github.com/bvberkum/mkdoc/.git
-        """
-
-        Given `env` 'verbosity=0'
-        When the user runs "htd gitrepo --dir=/src */*/x-meta/.git"
-        Then `stderr` is empty
-        And `output` has the lines:
-        """
-        /src/bitbucket.org/dotmpe/x-meta/.git
-        """
+    | htd-git                | bats | feature | |
+    | htd-gitrepo            | | feature | |
+    | htd-git-remote         | bats | | |
+    | vc.lib                 | bats | | |
+    | vc                     | bats | | |
     
-    Scenario: gitrepo scripted use
-        
-        Given `env` 'verbosity=0'
+	See also
+    - htd-project-checkout
 
-        When the user runs "repos='foo bar' htd gitrepo"
-
-        Then `stderr` is empty
-        And `output` equals:
-        """
-        foo
-        bar
-        """
-        
-        When the user runs "repos='foo bar' htd gitrepo x y z"...
-        Then `status` should not be '0'
-
-    Scenario: gitrepo stdin
-
-        Given `env` 'NS_NAME=vendor verbosity=0'
-        And `stdin` '{ echo foo; echo bar; }'
-
-        When the user runs "htd gitrepo"
-
-        Then `stderr` is empty
-        And `output` equals:
-        """
-        /srv/git-local/vendor/foo
-        /srv/git-local/vendor/bar
-        """
-
-    #Scenario: git grep
+	@todo
+    Scenario: git grep
         
         #When the user runs "htd git-grep -C='$(vc list-local-branches)' fs-casematch"
         #When the user runs "C='$(vc list-local-branches)' htd git-grep fs-casematch"

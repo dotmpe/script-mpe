@@ -104,12 +104,14 @@ disk__id()
   disk_id "$1"
 }
 
+
 disk_man_1__fdisk_id="Print ID as reported by fdisk"
 disk_spc__fdisk_id="fdisk-id DEV"
 disk__fdisk_id()
 {
   disk_fdisk_id "$1"
 }
+
 
 disk_man_1__rename_old="Rename fdisk catalog entry to one based on disk serial \
   number (Not good enough for some OEM SD cards)"
@@ -127,6 +129,7 @@ disk__rename_old()
     )
   done
 }
+
 
 disk_man_1__get_by_id="Only on *nix/systems with /dev/disk tree."
 disk__get_by_id()
@@ -154,6 +157,7 @@ disk__info()
 {
   disk_info "$@"
 }
+
 
 disk_man_1__local="Show disk info TODO: test this works at every platform"
 disk__local()
@@ -190,7 +194,13 @@ disk__local_devices()
   disk_list
 }
 
+disk__mounts()
+{
+  disk_mounts
+}
 
+# FIXME: can get at Darwin LVM (physical) ID, but not at osxfuse sshfs mounts
+# Need to skip/alternate some steps ie. for Htd ls-volumes
 disk__x_local()
 {
   test "$uname" = "Darwin" && {

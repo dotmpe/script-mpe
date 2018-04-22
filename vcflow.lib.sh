@@ -30,19 +30,38 @@ vcflow_file_default()
 
 vcflow_lib_set_local()
 {
-  vcflow_file_default
+  vcflow_file_default "$@"
 }
 
 htd_vcflow_doc()
 {
-  echo $vcflow
+  test -n "$1" || {
+      test -e "$vcflow" && set -- "$vcflow"
+  }
+  test -n "$1" || set -- gitflow.tab
+  test -e "$1" || error "missing gitflow file ($1)" 1
+  echo $1
 }
+
+#htd_vcflow_check_doc()
+#{
+#  test -z "$2" || error "surplus argument(s) '$2'" 1
+#  test -n "$1" || set -- gitflow.tab
+#  test -e "$1" || error "missing gitflow file ($1)" 1
+#  note "Reading from '$1'"
+#  # Finally check if local branches are listed in gitflow.tab
+#  for branch in $(vc_branches)
+#  do
+#    grep -qF "$branch" "$1" ||
+#      error "Missing gitflow for '$branch'"
+#  done
+#}
 
 htd_vcflow_check_doc()
 {
   test -n "$failed" || error failed 1
   test -z "$2" || error surplus-args 2
-  set -- "$(htd_vcflow_doc "$1")"
+  set -- "$(htd_vcflow_doc "$1")" || return
   exec 6>$failed
   vc.sh list-all-branches | while read branch
   do
@@ -73,9 +92,9 @@ htd_vcflow_status()
 gitflow_foreach_downstream()
 {
   test -z "$4" || error "foreach-downstream: surplus argument(s) '$4'" 1
-  test -n "$2" || set "$1" "echo \$downstream" "$3"
+  test -n "$2" || set -- "$1" "echo \$downstream" "$3"
   test -n "$1" || set -- gitflow.tab "$2" "$3"
-  test -e "$1" || error "foreach-downstream: missing gitflow file" 1
+  test -e "$1" || error "foreach-downstream: missing gitflow file ($1)" 1
   test -n "$3" || set -- "$1" "$2" "$(git rev-parse --abbrev-ref HEAD)"
   info "foreach-downstream: reading downstream for '$3' from '$1'"
   read_nix_style_file "$1" | while read upstream downstream isfeature
@@ -87,18 +106,17 @@ gitflow_foreach_downstream()
 
 gitflow_check_local_branches()
 {
-  test -z "$3" || error "surplus argument(s) '$3'" 1
-  test -n "$2" || set -- "$1" gitflow.tab
-  test -e "$2" || error "missing gitflow file" 1
-  note "Checking branches in '$2'"
+  test -z "$2" || error "surplus argument(s) '$2'" 1
+  set -- "$(htd_vcflow_doc "$1")" || return
+  note "Checking branches in '$1'"
   git_branches | while read branch
   do
-    grep -qF "$branch" "$2" && stderr ok "Found '$branch'" || {
+    grep -qF "$branch" "$1" && stderr ok "Found '$branch'" || {
       echo "check-local-branches:$branch" >>$failed
       warn "Missing entry for '$branch'"
     }
   done
-  test -s "$failed" || stderr ok "Checked branches in '$2'"
+  test -s "$failed" || stderr ok "Checked branches in '$1'"
 }
 
 gitflow_clean_local_features()
@@ -125,30 +143,32 @@ gitflow_clean_local_features()
 
 htd_vcflow_check()
 {
-  test -z "$3" || error "surplus argument(s) '$3'" 1
-  test -n "$2" || set -- "$1" gitflow.tab
-  test -e "$2" || error "missing gitflow file" 1
-  note "Reading from '$2'"
+  test -z "$2" || error "surplus argument(s) '$2'" 1
+  set -- "$(htd_vcflow_doc "$1")" || return
+  note "Reading from '$1'"
   test "$scm" = "git" || error "vcflow for GIT only" 1
-  read_nix_style_file "$2" | while read upstream downstream isfeature
+  read_nix_style_file "$1" | while read upstream downstream isfeature
   do
-    test -n "$upstream" -a -n "$downstream" || continue
+    test -n "$upstream" -a -n "$downstream" || {
+      warn "Incomplete line '$upstream $downstream $isfeature'"
+      continue
+    }
     test -n "$upstream" || error "Missing upstream $downstream"
     test -n "$downstream" || error "Missing downstream $upstream"
     test -n "$isfeature" || isfeature=true
 
-    git_local_branch "$upstream" || {
-      non_branch_err="Upstream not a local branch at gitflow:"
-      warn "$non_branch_err '$upstream $downstream $isfeature'" &&
-        continue
-    }
+    #git_local_branch "$upstream" || {
+    #  non_branch_err="Upstream not a local branch at gitflow:"
+    #  warn "$non_branch_err '$upstream $downstream $isfeature'" &&
+    #    continue
+    #}
 
-    git_local_branch "$downstream" || {
-      # Note: normally ignore missing downstreams features etc.
-      non_branch_err="Downstream not a local branch at gitflow:"
-      info "$non_branch_err '$upstream $downstream $isfeature'" &&
-        continue
-    }
+    #git_local_branch "$downstream" || {
+    #  # Note: normally ignore missing downstreams features etc.
+    #  non_branch_err="Downstream not a local branch at gitflow:"
+    #  info "$non_branch_err '$upstream $downstream $isfeature'" &&
+    #    continue
+    #}
 
     new_at_up=$(echo $(git log --oneline $downstream..$upstream | wc -l))
     new_at_down=$(echo $(git log --oneline $upstream..$downstream | wc -l))
@@ -164,7 +184,7 @@ htd_vcflow_check()
 
     test $new_at_down -eq 0 && {
       trueish "$isfeature" && {
-        note "downstream '$downstream' has no commits and could be removed"
+        note "downstream '$downstream' has no commits over '$upstream' and could be removed"
       } || true
     } ||
       note "$new_at_down commits '$upstream' <- '$downstream' "
@@ -173,45 +193,39 @@ htd_vcflow_check()
       note "$new_at_up commits '$upstream' -> '$downstream' "
 
   done
-  # Finally check if local branches are listed in gitflow.tab
-  for branch in $(vc_branches)
-  do
-    grep -qF "$branch" "$2" ||
-      error "Missing gitflow for '$branch'"
-  done
 }
 
 gitflow_update_downstream() # [gitflow.tab] [<recurse>=0] <abort-clean>=1] [<git-action>=merge]
 {
   test -z "$6" || error "surplus argument(s) '$6'" 1
-  test -n "$2" || set -- "$1" gitflow.tab "$3" "$4" "$5"
-  test -e "$2" || error "missing gitflow file" 1
+  test -n "$1" || set -- $(htd_vcflow_doc) "$3" "$4" "$5" || return
+  test -e "$1" || error "missing gitflow file ($1)" 1
   test -n "$recurse" || recurse=0
-  test -n "$3" || set -- "$1" "$2" "$recurse" "$4" "$5"
+  test -n "$2" || set -- "$1" "$recurse" "$3" "$4"
   test -n "$abort_clean" || abort_clean=1
-  test -n "$4" || set -- "$1" "$2" "$3" "$abort_clean" "$5"
+  test -n "$3" || set -- "$1" "$2" "$abort_clean" "$4"
   test -n "$git_act" || git_act=merge
-  test -n "$5" || set -- "$1" "$2" "$3" "$4" "$git_act"
+  test -n "$4" || set -- "$1" "$2" "$3" "$git_act"
 
   local current_branch="$(git rev-parse --abbrev-ref HEAD)"
-  trueish "$3" &&
-    note "Recursive $5 for ALL downstreams at '$current_branch'"
+  trueish "$2" &&
+    note "Recursive $4 for ALL downstreams at '$current_branch'"
   test ! -e sugarcrm/ || git submodule deinit sugarcrm/
-  gitflow_foreach_downstream "$2" "" "$current_branch" |
+  gitflow_foreach_downstream "$1" "" "$current_branch" |
     while read downstream
   do
-    note "$5'ing downstream for $current_branch: $downstream"
+    note "$4'ing downstream for $current_branch: $downstream"
     (
       git_checkout "$downstream" "" || return 1
-      git $5 $current_branch || return $?
+      git $4 $current_branch || return $?
       # Recursive call to downstreams of downstreams, etc.
-      trueish "$3" && gitflow_update_downstream "$2" || return 0
+      trueish "$2" && gitflow_update_downstream "$1" || return 0
     ) && stderr ok "$current_branch -> $downstream" || {
-      trueish "$4" && {
-        note "Cleaning up failed $5..."
-        git $5 --abort
+      trueish "$3" && {
+        note "Cleaning up failed $4..."
+        git $4 --abort
       } || git status
-      error "Failed $5 at $current_branch -> $downstream" 1
+      error "Failed $4 at $current_branch -> $downstream" 1
     }
   done
 

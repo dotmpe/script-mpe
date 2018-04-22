@@ -39,7 +39,7 @@ Feature: a std. CLI tool
       #| twitter.sh       |
       #| vagrant-sh.sh    |
       | vc.sh            | 
-      #| x-test.sh            | 
+      | x-test.sh            | 
 
 
   Scenario Outline: prints usage help
@@ -73,7 +73,7 @@ Feature: a std. CLI tool
       | topics.sh        | 
       | vagrant-sh.sh    |
       #| vc.sh            | 
-      #| x-test.sh            | 
+      | x-test.sh            | 
 
 
   Scenario Outline: handles "no such command" situations

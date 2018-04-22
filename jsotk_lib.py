@@ -354,7 +354,7 @@ class AbstractKVSerializer(object):
             r.extend(self.ser_dict(data, prefix))
         else:
             if isinstance(data, basestring) and re_non_escaped.search(data):
-                r.append( "%s=\"%s\"" % ( prefix, data ))
+                r.append( "%s=\"%s\"" % ( prefix, data.replace('"', '\\"' )))
             else:
                 r.append( "%s=%s" % ( prefix, data ))
         return r

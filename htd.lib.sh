@@ -135,7 +135,7 @@ htd_repository_url() # Remote Url
 {
   fnmatch "*.*" "$1" && {
 
-    # Disk on local host
+    # Remote has namespace and indicates disk on local host
     fnmatch "$hostname.*" "$1" && {
 
       # Cancel if repo is local checkout (and expand '~')
@@ -148,17 +148,27 @@ htd_repository_url() # Remote Url
 
     } || {
 
-      # Add hostname for remote disk
-      { fnmatch "/*" "$2" || fnmatch "~/*" "$2"
+      # Add hostname for remote disk (if name matches domain, or local name is
+      # explictly abs/relative path)
+      domain=$(echo $1 | cut -f1 -d'.')
+      { test -e $UCONFDIR/git/remote-dirs/$domain.sh ||
+        fnmatch "/*" "$2" || fnmatch "~/*" "$2"
       } || return
       remote=$(echo $1 | cut -f2- -d'.')
-      url="$(echo $1 | cut -f1 -d'.'):$2"
+      url="$domain:$2"
     }
 
   } || {
 
+    # No namespace
+    test -e $UCONFDIR/git/remote-dirs/$remote.sh &&  {
+      # treat remote name as remote hostname
+      test "$remote" = "$hostname" ||
+        url="$remote:$2"
+    } || {
+      url="$2"
+    }
     remote="$1"
-    url="$2"
   }
 
   # Remove .$scm and .../.$scm suffix
@@ -352,4 +362,47 @@ htd_find() # Dir [ Namespec ]
       || eval "find -L $1 $find_ignores -o \( $2 \) -a \( $find_match \) -print"
   } | grep -v '^'$p_'$' \
     | sed 's/'$p_'\///'
+}
+
+# Expand paths from arguments or stdin, echos existing paths at dir=$CWD.
+# Set expand-dir=false to exclude absolute working dir or given directory from
+# echoed expansion.
+htd_expand()
+{
+  test -n "$dir" || dir=$CWD
+
+  # Normal behaviour is to include dir in expansion, set trueish to give names only
+  test -n "$expand_dir" || expand_dir=1
+  trueish "$expand_dir" && expand_dir=1 || expand_dir=0
+
+  {
+    # First step, foreach arguments or stdin lines
+    test -n "$1" -a "$1" != "-" && {
+      while test $# -gt 0
+      do
+          echo "$1"
+          shift
+      done
+    } || cat -
+  } | {
+
+    local cwd= ; test "$expand_dir" = "1" || cd $dir
+
+    # Do echo as path, given name or expand paths from dir/arg
+    while read arg
+    do
+      test "$expand_dir" = "1" && {
+        for path in $dir/$arg
+          do
+            echo "$path"
+          done
+      } || {
+        for name in $arg
+        do
+          echo "$name"
+        done
+      }
+    done
+    test "$expand_dir" = "1" || cd $cwd
+  }
 }

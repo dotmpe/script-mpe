@@ -240,6 +240,3 @@ pd__bats()
   return 0
 }
 pd_defargs__bats=pd_bats_files_args
-
-
-

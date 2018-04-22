@@ -264,20 +264,18 @@ class Basename(libcmd.SimpleCommand):
 
         )
 
-    def run(self, prog, opts, *args):
+    def run(self, prog, opts, settings, *args):
         root = prog.pwd
-        # XXX
-        global conf, fullname
-        conf = self.rc
+        global fullname
         fullname = prog.config_file
 
         import sys
         out = BasenameOut(opts, sys.stdout, sys.stderr)
 
-        if 'ftype' not in self.rc:
+        if 'ftype' not in settings:
             log.warn('No file types loaded %s' % fullname)
             return 1
-        ftypes = [ t.title() for t in self.rc.ftype ]
+        ftypes = [ t.title() for t in settings.ftype ]
 
         store_mime = None
         for a in args:
@@ -313,9 +311,9 @@ class Basename(libcmd.SimpleCommand):
                 # FIXME: this does not replace uppercase tags yet
                 # translate tag andlookup tag in registry
                 ce = e
-                if ce in self.rc['ext_map']:
-                    while ce in self.rc['ext_map']:
-                        ce = self.rc['ext_map'][ce]
+                if ce in settings['ext_map']:
+                    while ce in settings['ext_map']:
+                        ce = settings['ext_map'][ce]
                 # replace last occurence of tag '.e'
                 n = "".join(n.rsplit('.'+e, 1))
 
@@ -323,11 +321,11 @@ class Basename(libcmd.SimpleCommand):
                     out.err("Error: non-canonical extension, rename required. ")
                     continue
 
-                if ce in self.rc['mime_ext_reg']:
+                if ce in settings['mime_ext_reg']:
                     # found it, print continue
-                    mime = self.rc['mime_ext_reg'][ce]
+                    mime = settings['mime_ext_reg'][ce]
                     #print '# XXX', ce, mime
-                    exts, ftype, descr = self.rc['mime_xref'][mime]
+                    exts, ftype, descr = settings['mime_xref'][mime]
                     out.emit_known_extension(a, n, ce, mime, exts, ftype, descr)
 
                 elif not os.path.exists(a):
@@ -336,9 +334,9 @@ class Basename(libcmd.SimpleCommand):
                 else:
                     # look for mime
                     mime = lib.cmd("file -bi %r" % a).strip()
-                    if mime in self.rc['mime_xref']:
+                    if mime in settings['mime_xref']:
                         # ok, have a mime, ask later wether to use it for ext
-                        exts, ftype, descr = self.rc['mime_xref'][mime]
+                        exts, ftype, descr = settings['mime_xref'][mime]
                         out.emit_new_extension_known_mime(a, n, ce, mime, exts, ftype, descr)
                     elif not opts.interactive:
                         log.note("Need to select ext for MIME %r, found for %s" %
@@ -348,7 +346,7 @@ class Basename(libcmd.SimpleCommand):
                         descr = lib.cmd("file -bs %r" % a).strip()
                         exts = [ce]
                         out.emit_mime_detect(a, n, ce, mime, descr, exts)
-                        qopts = list(self.rc['ftype']) + ['sKip', 'None']
+                        qopts = list(settings['ftype']) + ['sKip', 'None']
                         store_mime = lib.Prompt.query("New MIME: Give type or skip (all)", qopts)
                         if store_mime >= len(ftypes):
                             continue
@@ -357,7 +355,7 @@ class Basename(libcmd.SimpleCommand):
                             mime = lib.Prompt.input("Use MIME? ", mime)
                             descr = lib.Prompt.input("Use description? ", descr)
                             ftype = ftypes[store_mime]
-                            self.rc['mime_xref'][mime] = [exts, ftype, descr]
+                            settings['mime_xref'][mime] = [exts, ftype, descr]
                             save_config()
                     else:
                         assert False
@@ -371,15 +369,15 @@ class Basename(libcmd.SimpleCommand):
                         # XXX
                         cext = lib.Prompt.input("Register which? %s" % mime, ce)
 
-                    if cext in self.rc['mime_ext_reg']:
-                        mime2 = self.rc['mime_ext_reg'][cext]
+                    if cext in settings['mime_ext_reg']:
+                        mime2 = settings['mime_ext_reg'][cext]
                         if mime != mime2:
                             out.err("Error: Conflicting mime %r" % mime)
                     else:
                         v = lib.Prompt.ask("Store new extension? %r: %s [%s]" %
                                 (exts, descr, mime), "yN")
                         if v:
-                            self.rc['mime_ext_reg'][cext] = mime
+                            settings['mime_ext_reg'][cext] = mime
                             save_config()
                         print(v and 'OK' or 'Cancel')
 

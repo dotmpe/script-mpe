@@ -49,6 +49,7 @@ project_test() # [Units...|Comps..]
   local failed=/tmp/htd-project-test-$(uuidgen).failed
   while test $# -gt 0
   do
+    test "$(basename "$1" | cut -c1)" = "_" && continue
     case "$1" in
         *.feature ) $TEST_FEATURE -- "$1" || touch $failed ;;
         *.bats ) {
@@ -97,7 +98,7 @@ any_unit()
     mkvid "$1"
     for x in test/py/$id.py test/py/mod_$vid.py test/$id-lib-spec.bats test/$id-spec.bats test/$id.bats
     do
-      test -e "$x" && echo $x
+      test -x "$x" && echo $x
       continue
     done
     shift
@@ -110,18 +111,15 @@ any_feature()
   while test $# -gt 0
   do
     c="-_*" mkid "$1"
-    for x in test/$id.feature test/$id-lib-spec.feature test/$id-spec.feature
-    do
-      test -e "$x" && echo $x
-      continue
-    done
+    find test -iname "$id.feature" -o -iname "$id-lib-spec.feature" -o -iname "$id-spec.feature"
+    #| cut -c3-
     shift
   done
 }
 
 test_any_feature()
 {
-  pwd -P
+  test -n "$TEST_FEATURE" || error "Test-Feature env required" 1
   info "Test any feature '$*'"
   test -n "$1" && {
     local features="$(any_feature "$@" | tr '\n' ' ')"
@@ -270,6 +268,9 @@ list_builds()
   sd_be=couchdb_sh COUCH_DB=build-log \
       statusdir.sh be doc $package_vendor/$package_id:$last_build_id > .tmp-2.json
 
+  #jq -r '.tests[] | ( ( .number|tostring ) +" "+ .name +" # "+ .comment )' .tmp-2.json
+  jq -r '.tests[] | "\(.number|tostring) \( if .ok then "pass" else "fail" end ) \(.name)"' .tmp-2.json
+
   {
     jq '.stats.total,.stats.failed,.stats.passed' .tmp-2.json |
         tr '\n' " "; echo ; } | { read total failed passed
@@ -280,4 +281,67 @@ list_builds()
           error "Last test $last_build_id failed $failed tests (passed $passed of $total)"
       }
   }
+}
+
+list_sh_files()
+{
+  local exts="sh bash"
+  git ls-files | while read path ; do
+
+    test -s "$path" || continue
+
+    fnmatch "*.*" "$(basename "$path")" && {
+
+        for ext in $exts
+        do case "$path" in *.$ext ) echo "$path" ; break ;; esac
+        done
+        continue
+    }
+
+    head -n 1 "$path" | grep -q '^\#\!.*sh' || continue
+    echo "$path"
+  done
+}
+
+list_sh_calls()
+{
+  while read scriptfile
+  do
+      coffee $scriptpath/sh.coffee $scriptfile ||
+          error "in file $scriptfile"
+  done | sort -u
+}
+
+build_docs()
+{
+  local shell_deps=.shell-deps
+  test -e $shell_deps || {
+      list_sh_files | list_sh_calls > $shell_deps
+  }
+  read_nix_style_file $shell_deps | grep '^[A-Za-z_][A-Za-z0-9_\.-]*$' | while read execname
+  do
+      # Skip non-executables, aliases, functions
+      test -x "$(which "$execname")" || continue
+
+      # Ignore common shell commands
+      grep -qi "^$execname$" .shell-builtins && continue
+      grep -qi "^$execname$" .shell-regulars && continue
+
+      # Separate third-party from locally installed execs
+      test -e "$scriptpath/$execname" && {
+
+        # TODO make .build/docs/bin/$execname.html
+        echo $execname
+
+      } || {
+
+        # TODO: check/compile into tools.yaml
+        echo $execname
+      }
+  done
+
+  # TODO: generate docs, either from tools.yaml, project.yaml
+  # Generate:
+  #   per command man pages
+  #   appendix listing for internal or third-party shell regulars
 }

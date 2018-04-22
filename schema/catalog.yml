@@ -1,10 +1,10 @@
 id: "http://wtwta.org/project/script/schema/catalog#"
-$schema: http://json-schema.org/draft-04/schema#
+$schema: "http://json-schema.org/draft-04/schema#"
 description: JSON schema for catalog format, a file manifest in a YAML list
 type: array
 items:
   type: object
-  oneOf:
+  anyOf:
   - required:
     - name
   - required:
@@ -19,18 +19,18 @@ items:
     description:
       type: string
       description: Description or short note for file
-    date-added:
-      type: date-time
-    last-access:
-      type: date-time
-    date-updated:
-      type: date-time
-    last-modified:
-      type: date-time
-    date-deleted:
-      type: date-time
+    #date-added:
+    #  type: datetime
+    #last-access:
+    #  type: date-time
+    #date-updated:
+    #  type: date-time
+    #last-modified:
+    #  type: date-time
+    #date-deleted:
+    #  type: date-time
     deleted:
-      type: bool
+      type: boolean
     file-type:
       type: string
       description: Description of file type and format
@@ -44,6 +44,6 @@ items:
       type: object
       description: |
         Global ID's for file, including content checksums.
-      patternProperties:
-        "^[A-Za-z0-9,\._-]+$": 
-          - type: string
+#      patternProperties:
+#        '^[A-Za-z0-9,\._-]+$': 
+#          - type: string

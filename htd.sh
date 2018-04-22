@@ -1,6 +1,6 @@
 #!/bin/bash
-
 #FIXME: !/bin/sh
+# Created: 2014-12-17
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
@@ -64,13 +64,6 @@ htd_load()
   test -d "$HTD_BUILDDIR" || mkdir -p $HTD_BUILDDIR
   export B=$HTD_BUILDDIR
 
-  # Set default env to differentiate tmux server sockets based on, this allows
-  # distict CS env for tmux sessions
-  default_env Htd-TMux-Env "hostname CS"
-  # Initial session/window vars
-  default_env Htd-TMux-Default-Session "Htd"
-  default_env Htd-TMux-Default-Cmd "$SHELL"
-  default_env Htd-TMux-Default-Window "$(basename $SHELL)"
   #default_env Couch-URL "http://localhost:5984"
   default_env GitVer-Attr ".version-attributes"
   default_env Ns-Name "bvberkum"
@@ -163,10 +156,6 @@ htd_load()
 
   htd_rules=$UCONFDIR/rules/$hostname.tab
   ns_tab=$UCONFDIR/namespace/$hostname.tab
-
-  which tmux 1>/dev/null || {
-    export PATH=/usr/local/bin:$PATH
-  }
 
   which rst2xml 1>/dev/null && rst2xml=$(which rst2xml) || {
     which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) ||
@@ -278,8 +267,8 @@ htd_load()
         local htd_subcmd_optsv=$(echo_local $subcmd optsv)
         func_exists $htd_subcmd_optsv || {
           htd_subcmd_optsv="$(eval echo "\"\$$htd_subcmd_optsv\"")"
-          test -n "$htd_subcmd_optsv" || htd_subcmd_optsv=htd_optsv
         }
+        test -n "$htd_subcmd_optsv" || htd_subcmd_optsv=htd_optsv
         test -e "$options" && {
           $htd_subcmd_optsv "$(cat $options)"
         } || noop
@@ -857,12 +846,17 @@ htd__info()
 }
 
 
+htd_man_1__expand='Expand arguments or lines on stdin to existing paths.
+
+Default is to expand names with dir. set expand-dir to false to get names.
+Provide `dir` to use instead of CWD. With no arguments stdin is default.
+'
+htd_spc__expand='expand [--dir=] [--(,no-)expand-dir] [GLOBS | -]'
+htd_env__expand="dir="
+htd_run__expand=eiAO
 htd__expand()
 {
-  test -n "$1" || error "arguments expected" 1
-  for x in $@
-  do test -e "$x" && echo "$x"
-  done
+  htd_expand "$@"
 }
 
 
@@ -919,8 +913,13 @@ htd__ls_main_files()
 }
 
 
-htd_man_1__edit_local="Edit an existing local file, or abort. "
-htd_spc__edit_local="-e|edit <id>"
+htd_man_1__edit_local='Edit an existing local file, or abort.
+
+TODO: The search term must match an existing component, or set grep/glob mode
+to edit the first file.
+'
+htd_spc__edit_local="-e|edit [-g|--grep] [--glob] <search>"
+htd_run__edit_local=iAO
 htd__edit_local()
 {
   test -n "$1" || error "search term expected" 1
@@ -944,7 +943,6 @@ htd__edit_local()
   #find_paths="$(doc_find_name "$1")"
   #grep_paths="$(doc_grep_content "$1")"
   grep_paths="$(git grep -l "$1")"
-
   test -n "$find_paths" -o -n "$grep_paths" \
     || error "Nothing found to edit" 1
 
@@ -1046,16 +1044,32 @@ htd__find_docs()
 htd_run__find_docs=pqx
 
 
+htd_man_1__volumes='Volumes
+
+  list - list volume paths
+  check
+'
+htd_spc__volumes='volumes [--(,no-)catalog] [CMD]'
+htd_env__volumes="catalog=true"
+htd_run__volumes=eiAO
 htd__volumes()
 {
+  set -- "$(cat $arguments)" # Remove options from args
   test -n "$1" || set -- list
+  lib_load volume
   case "$1" in
-    list )
-        htd__ls_volumes
-      ;;
+
+    list ) shift ; htd_list_volumes "$@" ;;
+    check ) shift ; htd_check_volumes "$@" ;;
+    path?tab ) shift ; htd_path_names "$@" ;;
+
+    * ) error "? '$*'" 1 ;;
   esac
 }
 
+htd_als__ls_vol=volumes\ list
+htd_als__ls_volumes=volumes\ list
+htd_als__list_volumes=volumes\ list
 
 htd_man_1__copy='Copy script from other project. '
 htd_spc__copy='copy Sub-To-Script [ From-Project-Checkout ]'
@@ -1251,11 +1265,6 @@ htd__volume_status()
   htd__context
 }
 
-htd__project_status()
-{
-  htd__context
-}
-
 htd__workdir_status()
 {
   htd__context
@@ -1297,65 +1306,46 @@ htd_man_1__projects='Local project checkouts
 '
 htd__projects()
 {
-  test -n "$1" || set -- info
+  test -n "$1" || set -- list
   case "$1" in
 
-    list ) shift ;;
+    list ) shift
+        cd $PDIR && find -L . -type d -maxdepth 1 \
+            -exec test -e {}/.git \; -and -print | cut -c3-
+      ;;
 
   esac
 }
 
 
-htd_man_1__project='Project checkouts workingdirs
+htd_man_1__project='Deal with project at local dir, see also projects.
 
-TODO: another level to checkout management, see projects
+  exists - check that project is vendored
+  create - TODO: create a new remote if vendor supports this
+  new - TODO: create new project from remote
 
-  releases
-    List github releases
-  sync
-    ..
-  update
-    ..
-  new
-  exists
-  scm
-    TODO: init/update repo links
+  sync - TODO: ensure project is entirely available at vendor
+  update - TODO: update from vendor(s)
+  scm - TODO: init/update repo links
+  releases - List github releases
+
+Vendoring consists of selecting a vendor and using it as remote repository for
+the project.
 '
+htd_run__project=p
 htd__project()
 {
   test -n "$1" || set -- info
-  test -e /srv/project-local || error "project-local missing" 1
+  lib_load project
   case "$1" in
 
-    releases ) shift
-          github-release info --user $NS_NAME --repo $APP_ID -j |
-              jq -r '.Releases | to_entries[] as $k | $k.value.tag_name'
-      ;;
-
-    init ) shift
-        # TODO: go from project Id, to namespace and provider
-        #git@github.com:bvberkum/x-docker-hub-build-monitor.git
-      ;;
-
-    sync ) shift
-      ;;
-    update ) shift
-      ;;
-
-    new ) shift ; test -n "$1" || set -- "$(pwd)"
-        htd__project exists "$1" && {
-          warn "Project '$1' already exists"
-        } || true
-
-        ( cd "$1"
-          htd__git_init_remote &&
-          pd add . &&
-          pd update . &&
-          htd__git_init_version
-        ) || return 1
-      ;;
-
-    exists ) shift ; test -n "$1" || set -- "$(pwd)"
+    create ) shift ; htd_project_create "$@" ;;
+    new ) shift ; htd_project_new "$@" ;;
+    init ) shift ; htd_project_init "$@" ;;
+    sync ) shift ; htd_project_sync "$@" ;;
+    update ) shift ; htd_project_update "$@" ;;
+    exists ) shift ;
+        test -n "$1" || set -- "$(pwd)"
         test -d "$1" || error "Project directory missing '$1'" 1
         local name="$(basename "$1")"
         test -e "/srv/project-local/$name" || {
@@ -1364,13 +1354,13 @@ htd__project()
         }
       ;;
 
-    scm ) shift ; test -n "$1" || set -- "$(pwd)"
+    scm ) # Find local SCM references, add as remote for current/given project
+        shift ; test -n "$1" || set -- "$(pwd)"
         test -d "$1" || error "Project directory missing '$1'" 1
         local name="$(basename "$1")"
         (
           cd "$1"
           vc_getscm || return 1
-
           # TODO: add remotes, either
           # bare personal project /srv/<scm>-*/<project>.<scm>
           # annex checkout /srv/annex-*/<project>
@@ -1389,9 +1379,17 @@ htd__project()
         htd__project scm "$1" || return 1
       ;;
 
-    * ) error "? 'project $*'" 1
+    releases ) shift ; test -z "$*" || error "Unexpected arguments"
+        htd_project_releases
       ;;
+
+    * ) error "? 'project $*'" 1 ;;
   esac
+}
+
+htd__project_status()
+{
+  htd__context
 }
 
 
@@ -1893,6 +1891,12 @@ htd__today() # Jrnl-Dir YSep MSep DSep [ Tags... ]
   htd_jrnl_day_links "$@"
 }
 htd_grp__today=cabinet
+
+
+htd__week_nr()
+{
+  expr $(date +%U) + 1
+}
 
 
 htd_als__week=this-week
@@ -3434,6 +3438,7 @@ htd_man_1__git='FIXME: cleanup below
     git-files
     git-grep
     git-features
+    gitrepo
 
 See also:
 
@@ -3621,15 +3626,14 @@ htd__git_init_remote() # [ Repo ]
   local repo= remote=$HTD_GIT_REMOTE BARE=
 
   # Create local repo if needed
-  htd__git_init_local
+  htd__git_init_local || warn "Error initializing local repo ($?)"
 
-  # Remote repo, idem ditto
+  # Remote repo, idem.
   local $(htd__git_remote sh-env "$remote" "$repo")
   {
     test -n "$remote_hostinfo" && test -n "$remote_repo_dir"
   } ||
     error "Incomplete env" 1
-
 
   ssh_cmd="mkdir -v $remote_repo_dir"
   ssh $remote_hostinfo "$ssh_cmd" && {
@@ -3769,7 +3773,7 @@ htd__git_files()
 htd_argsv__git_files=arg-groups-r
 htd_arg_groups__git_files="repo glob"
 #htd_defargs_repo__git_files=/src/*/*/*/
-htd_defargs_repo__git_files=/srv/git-local/bvberkum/*.git
+htd_defargs_repo__git_files=/srv/git-local/$NS_NAME/*.git
 
 
 #
@@ -3837,16 +3841,16 @@ htd__git_grep()
 
 htd_man_1__gitrepo='List local GIT repositories
 
-Match globs in dir, unless repos is given literally, paths are passed verbatim.
+Arguments are passed to htd-expand, repo paths can be given verbatim.
 This does not check that paths are GIT repositories.
-With no arguments reads stdin for arguments.
-
 Defaults effectively are:
 
     --dir=/srv/git-local/$NS_NAME *.git``
     --dir=/srv/git-local/$NS_NAME -
+
+Depending on wether there is a terminal or pip/file at stdin (fd 0).
 '
-htd_spc__gitrepo='gitrepo [--repos=] [--dir=] [ GLOBS... | PATHS.. | - ]'
+htd_spc__gitrepo='gitrepo [--(,no-)expand-dir] [--repos=] [--dir=] [ GLOBS... | PATHS.. | - ]'
 htd_env__gitrepo="dir="
 htd_run__gitrepo=eiAO
 htd__gitrepo()
@@ -3857,32 +3861,13 @@ htd__gitrepo()
     return
   }
   info "Running '$*' ($(var2tags grep repos dir stdio_0_type))"
+  set -- "$(cat $arguments)" # Remove options from args
 
   test -n "$dir" || dir=/srv/git-local/$NS_NAME
   test -z "$*" -a "t" != "$stdio_0_type" && set -- -
   test -n "$*" || set -- *.git
 
-  # Normal behaviour is to expand arguments. Set to keep as-is.
-  trueish "$gitrepo_args_asis" && gitrepo_args_asis=1 || gitrepo_args_asis=0
-
-  { while test $# -gt 0
-    do test "$1" = "-" && cat - || echo "$1"
-        shift
-    done
-  } | {
-
-    while read arg
-    do
-      test "$gitrepo_args_asis" = "1" -a -e "$arg" && {
-        echo "$arg"
-      } || {
-        for repo in $dir/$arg
-          do
-            echo $repo
-          done
-      }
-    done
-  }
+  htd_expand "$@"
 }
 
 
@@ -3975,7 +3960,7 @@ TODO: see also vc gitflow
 htd_run__vcflow=f
 htd__vcflow()
 {
-  vcflow_lib_set_local
+  vcflow_lib_set_local "$2"
   test -n "$1" || set -- status
   upper=0 mkvid "$1" ; shift
   htd_vcflow_$vid "$@" || return $?
@@ -4975,7 +4960,7 @@ htd__run()
       eval $package_env
     }
 
-    # Write scriptlien with expanded vars
+    # Write scriptline with expanded vars
     info "Expanded '$(eval echo \"$@\")'"
     set -- $(eval echo \"$*\")
     run_scriptname="$1"
@@ -6741,6 +6726,11 @@ htd__open()
   }
 }
 
+htd_als__c=current-paths
+htd_als__of=open-paths
+htd_als__lsof=open-paths
+htd_als__open_files=open-paths
+
 
 htd_man_1__current_paths='List open paths for user (belonging to shells)'
 htd__current_paths() # User Cmd-Grep Cmd-Len
@@ -6792,6 +6782,7 @@ htd__open_paths()
   test -n "$1" || set -- "paths" "$2"
   test -n "$2" || set -- "paths" "."
   test_dir "$2" || return $?
+  note "Listing open paths for '$2'"
   set -- "$1" "$(cd "$2" && pwd -P)"
   case "$1" in
 
@@ -6862,9 +6853,6 @@ htd__open_paths_diff()
   note "Paths:"
   cat $lsof_paths
 }
-htd_als__of=open-paths
-htd_als__open_files=open-paths
-
 
 # List paths newer than recent-paths setting
 htd__recent_paths()
@@ -6904,7 +6892,7 @@ Lookup with table
     Get both path and name for each line or argument.
   expand (Prefix-Paths..|-)
     Expand <prefix>:<local-path> back to to absolute path.
-  op 
+  op
     Feed Htd-current-paths through htd-prefixes-names
 
 Cache
@@ -7848,79 +7836,6 @@ SRVS="archive archive-old scm-git src annex www-data cabinet htdocs shared \
 # TODO: use service names from disk catalog
 
 
-# Go over local disk to see if volume links are there
-htd__ls_volumes()
-{
-  disk.sh local-devices | while read disk
-  do
-    prefix=$(disk.sh prefix $disk 2>/dev/null)
-    test -n "$prefix" || {
-      warn "No prefix found for <$disk>"
-      continue
-    }
-
-    disk_index=$(disk.sh info $disk disk_index 2>/dev/null)
-
-    for volume in /mnt/$prefix-*
-    do
-      test -e $volume/.volumes.sh || continue
-      eval $(sed 's/^volumes_main_/vol_/' $volume/.volumes.sh)
-
-      test "$vol_prefix" = "$prefix" \
-        || error "Prefix mismatch '$vol_prefix' != '$prefix' ($volume)" 1
-
-      # Check for unknown service roots
-      test -n "$vol_export_all" || vol_export_all=1
-      trueish "$vol_export_all" && {
-        echo $volume/* | tr ' ' '\n' | while read vroot
-        do
-          test -n "$vroot" || continue
-          vdir=$(basename "$vroot")
-          echo $SRVS lost+found | grep -q $vdir || {
-            warn "Unkown volume dir $vdir" 1
-          }
-        done
-      }
-
-      # TODO: check all aliases, and all mapping aliases
-      test -n "$vol_aliases__1" \
-        || error "Expected one aliases ($volume)"
-
-      test -e "/srv/$vol_aliases__1"  || {
-        error "Missing volume alias '$vol_aliases__1' ($volume)" 1
-      }
-
-      # Go over known services
-      for srv in $SRVS
-      do
-        test -e $volume/$srv && {
-
-          t=/srv/$srv-local
-          test -e "$t" || warn "Missing $t ($volume/$srv)"
-
-          # TODO: check for global id as well
-          #t=/srv/$srv-${disk_idx}-${part_idx}-$(hostname -s)-$domain
-          #test -e "$t" || warn "Missing $t ($volume/$srv)"
-
-        }
-      done
-
-      note "Volumes OK: $disk_index.$vol_part_index $volume"
-
-      unset srv \
-        vol_prefix \
-        vol_aliases__1 \
-        vol_export_all
-
-    done
-
-    note "Disk OK: $disk_index. $prefix"
-
-  done
-}
-htd_als__list_volumes=ls-volumes
-
-
 htd__munin_ls()
 {
   test -n "$1" || set -- $DCKR_VOL/munin/db
@@ -8398,7 +8313,7 @@ htd_argsv__backup=htd_backup_argsv
 htd_optsv__backup=htd_backup_optsv
 
 
-htd_man_1__pack_create="Create archive for dir with ck manifest"
+htd_man_1__pack_create="Create archive for dir and add ck manifest"
 htd_man_1__pack_verify="Verify archive with manifest, see that all files in dir are there"
 htd_man_1__pack_check="Check file (w. checksum) TODO: dir with archive manifest"
 htd_run__pack=i
@@ -9674,23 +9589,40 @@ htd_als__venv=ispyvenv
 
 htd_man_1__catalog='Build file manifests
 
+  ck CATALOG
+    print file checksums
   fsck CATALOG
     verify file checksums
   validate CATALOG
     verify catalog document schema
-  list
-    find catalog documents
+  [CATALOG=] list
+    find catalog documents, cache paths and list pathnames
+  list-files
+    ..
+  add [DIR|FILE]
+    ..
+  drop-by-name CATALOG NAME
+    ..
+  move NAME [DIR|CATALOG]
+    ..
 '
 htd__catalog()
 {
-  upper=0 mkvid "$1" ; shift
-  htd_catalog_$vid "$@" || return $?
+  test -n "$1" && { upper=0 mkvid "$1" ; shift ; action=$vid
+    } || action=list
+  htd_catalog_$action "$@" || return $?
 }
 
 htd_man_1__catalog_list='Find local catalogs'
 htd_als__catalogs='catalog list'
 htd_man_1__catalog_fsck='File-check entries from catalog with checksums'
 htd_als__fsck_catalog='catalog fsck'
+
+
+htd__wherefrom()
+{
+  wherefrom "$@"
+}
 
 
 htd_man_1__foreach='Execute based on match for each argument or line
@@ -9786,14 +9718,17 @@ htd__filter_out()
 htd_man_1__init='Initialize project ID
 
 Look for vendorized dir <vendor>.com/$NS_NAME/<project-id> or get a checkout.
+
 Link onto prefix in Project-Dir if not there.
 Finish running local htd run init && pd init.
 '
 #htd_spc__init='init [ [Vendor:][Ns-Name][/]Project ]'
 htd_spc__init='init [ Project [Vendor] [Ns-Name] ]'
-htd_run_init=pqi
+htd_run_init=pq
 htd__init()
 {
+  test -n "$project_dir" || project_dir=
+
   #test -n "$1" || set -- . TODO: detect from cwd
   test -n "$2" || {
 
@@ -9858,7 +9793,7 @@ different levels, and serve to aid testing, or check for complete documentation.
 
 In the standard setup, the basenames of all tracked files make up the component
 ID set. This naive approach provides a starting point, but will miss many
-components that a more sophisticated project or work will care about. 
+components that a more sophisticated project or work will care about.
 
 Even though per-path instance specific handling may be required, this provides
 a basis to regroup file-based data and integrated with other
@@ -9869,7 +9804,8 @@ htd__components()
   local spwd=.
 
   { test "$stdio_0_type" = "t" -o \( -n "$1" -a "$1" != "-" \) && {
-      test -n "$package_components" || package_components=vc_tracked
+      test -n "$package_components" &&
+        eval $package_env || package_components=vc_tracked
       $package_components
 
     } || cat -
@@ -9917,7 +9853,7 @@ See also doc-find/find-doc
 '
 htd__docs() # [<cmd>=list] <sections>... | [show] (<section>) | show main
 {
-  local cmd= ; case "$1" in list|show) cmd="$1" ; shift ;; * ) 
+  local cmd= ; case "$1" in list|show) cmd="$1" ; shift ;; * )
     test -n "$2" && cmd=list || { cmd=show ; test -n "$1" || set -- main ; }
       ;; esac
 
@@ -10019,6 +9955,7 @@ htd_init_etc()
   #test ! -e $UCONFDIR/htd || echo $UCONFDIR
 }
 
+# The default optionparser for htd, see htd-subcmd-optsv
 htd_optsv()
 {
   set -- $(lines_to_words $options)
@@ -10042,7 +9979,7 @@ htd_init()
   lib_load
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
-  lib_load htd meta
+  lib_load htd meta match vc web src
   lib_load box date doc table disk remote package service archive \
       prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck net \
       catalog tasks journal

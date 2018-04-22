@@ -497,7 +497,7 @@ box_init()
   box_run_sh_test
   export SCRIPTPATH=$scriptpath
   __load_mode=boot . $scriptpath/util.sh
-  lib_load box main
+  lib_load box main src
   # -- box box init sentinel --
 }
 

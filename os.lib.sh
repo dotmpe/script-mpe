@@ -6,6 +6,7 @@
 os_lib_load()
 {
   test -n "$uname" || export uname="$(uname -s)"
+  test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
 }
 
 absdir()
@@ -13,6 +14,16 @@ absdir()
   # NOTE: somehow my Linux pwd makes a symbolic path to root into //bin,
   # using tr to collapse all sequences to one
   ( cd "$1" && pwd -P | tr -s '/' '/' )
+}
+
+dirname_()
+{
+  while test $1 -gt 0
+    do
+        set -- $(( $1 - 1 ))
+        set -- "$1" "$(dirname "$2")"
+    done
+  echo "$2"
 }
 
 # Combined dirname/basename to remove .ext(s) but return path
@@ -625,4 +636,33 @@ find_broken_symlinks()
   #test "$uname" = "Darwin" && find=gfind
   #$find "$1" -type l -xtype l || return $?
   find "$1" -type l ! -exec test -e {} \; -print
+}
+
+abbrev_rename()
+{
+    while read oldpath junk newpath
+    do
+        local idx=1
+        while test "$(echo "$oldpath" | cut -c 1-$idx )" = "$(echo "$newpath" | cut -c 1-$idx )"
+        do
+            idx=$(( $idx + 1 ))
+        done
+        local end=$(( $idx - 1 ))
+        echo "Backed up path: $(echo $oldpath | cut -c 1-$end){$(echo $oldpath | cut -c $idx-) => $(echo $newpath | cut -c $idx-)}"
+    done
+}
+
+rotate_file()
+{
+  local dir=$(dirname "$1") cnt=1 base=$(basename "$1")
+  while test -e "$dir/$base-$cnt$2"
+  do
+    cnt=$(( $cnt + 1 ))
+  done
+  { mv -v "$1" "$dir/$base-$cnt$2" || return $?; } | abbrev_rename
+}
+
+wherefrom()
+{
+  ${os}_wherefrom "$@"
 }

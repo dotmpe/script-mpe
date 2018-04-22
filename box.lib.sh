@@ -13,6 +13,8 @@ box_lib_load()
   nid_cwd=$vid
   unset vid
 
+  #lib_load src
+
   test -n "$box_name" || box_name=$hostname
 
   test -e "$BOX_DIR/bin/$box_name" \

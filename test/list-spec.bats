@@ -17,11 +17,18 @@ init
   test_ok_nonempty || stdfail
 }
 
-@test "${base} names" {
+@test "${base} names scm" {
 
   export verbosity=0
-  run $BATS_TEST_DESCRIPTION scm
+  run $BATS_TEST_DESCRIPTION
   test_ok_lines .bzrignore .git/info/exclude .gitignore || stdfail
+}
+
+@test "${base} names local" {
+
+  export verbosity=0
+  run $BATS_TEST_DESCRIPTION
+  test_ok_empty || stdfail
 }
 
 

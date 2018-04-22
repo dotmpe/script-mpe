@@ -58,41 +58,49 @@ disk_fdisk_id()
             # Dump partition table
               $fdisk -d $1 || return $?
           ;;
+
+    * ) error "Disk-fdisk-Id: $uname" 1 ;;
   esac
 }
 
 disk_id()
 {
-  case "$(uname)" in
+  case "$uname" in
+
     Linux )
         udevadm info --query=all --name=$1 | grep ID_SERIAL_SHORT \
           | cut -d '=' -f 2
       ;;
+
     Darwin )
         local bsd_name=$(basename $1) xml=
+        #diskutil info "$1" | grep 'UUID' >&2 || warn "No grep $dev"
 
         xml=$(darwin_profile_xml "SPSerialATADataType")
-        device_serial=$(darwin.py spserialata-disk $xml $bsd_name device_serial)
+        device_serial="$(darwin.py spserialata-disk $xml $bsd_name device_serial)" || true
         test -z "$device_serial" || {
+          debug "SPSerialATADataType $bsd_name device serial '$device_serial'"
           echo $device_serial; return
         }
 
         xml=$(darwin_profile_xml "SPUSBDataType")
-        serial_num=$(darwin.py spusb-disk $xml $bsd_name serial_num)
+        serial_num="$(darwin.py spusb-disk $xml $bsd_name serial_num)" || true
         test -z "$serial_num" || {
+          debug "SPUSBDataType $bsd_name serial number '$serial_num'"
           echo $serial_num; return
         }
 
         xml=$(darwin_profile_xml "SPStorageDataType")
-        serial_num=$(darwin.py spstorage-disk $xml $bsd_name serial_num)
+        serial_num="$(darwin.py spstorage-disk $xml $bsd_name serial_num)" || true
         test -z "$serial_num" || {
+          debug "SPStorageDataType $bsd_name serial number '$serial_num'"
           echo $serial_num; return
         }
 
         # Unfortunately need to dig trough volume group/mapping setup here.
         # Rather going to skip device ID and move to volumes directly.
 
-        error "unkown disk $bsd_name"
+        error "unkown disk $bsd_name" 1
         return
 
         # FIXME: this only works with one disk, would need to parse XML plist
@@ -102,14 +110,23 @@ disk_id()
         echo $(system_profiler SPSerialATADataType | grep Serial.Number \
           | cut -d ':' -f 2)
       ;;
+
+    * ) error "Disk-fdisk-Id: $uname" 1 ;;
   esac
 }
 
-
+disk_id_for_dev()
+{
+  local dev=$1 ; local disk_id="$(disk_id "$dev")"
+  test -z "$disk_id" && error "No disk Id: $dev" 1
+  info "Using Disk-ID '$disk_id' for '$dev'"
+  echo "$disk_id"
+}
 
 disk_model()
 {
-  case "$(uname)" in
+  case "$uname" in
+
     Linux )
         req_parted disk-model || return
         {
@@ -119,6 +136,7 @@ disk_model()
           }
         } | grep Model: | sed 's/^Model: //'
       ;;
+
     Darwin )
         # FIXME: this only works with one disk, would need to parse XML plist
         system_profiler SPSerialATADataType | grep -qv disk1 || {
@@ -127,12 +145,15 @@ disk_model()
         echo $(system_profiler SPSerialATADataType | head -n 15  | grep Model \
           | cut -d ':' -f 2)
       ;;
+
+    * ) error "Disk-Model: $uname" 1 ;;
   esac
 }
 
 disk_size()
 {
-  case "$(uname)" in
+  case "$uname" in
+
     Linux )
         req_parted disk-size || return
         {
@@ -142,16 +163,20 @@ disk_size()
           }
         } | grep Disk.*: | sed 's/^Disk[^:]*: //'
       ;;
+
     Darwin )
         echo $(system_profiler SPSerialATADataType | head -n 15 | grep Capacity \
           | cut -d ':' -f 2 | cut -d ' ' -f 2 )GB
       ;;
+
+    * ) error "Disk-Size: $uname" 1 ;;
   esac
 }
 
 disk_tabletype()
 {
   case "$(uname)" in
+
     Linux )
         req_parted disk-tabletype || return
         {
@@ -161,12 +186,15 @@ disk_tabletype()
           }
         } | grep Partition.Table: | sed 's/^Partition.Table: //'
       ;;
+
     Darwin )
         system_profiler SPSerialATADataType | grep -qv GPT || {
           error "Parse SPSerialATADataType plist" 1
         }
         echo gpt
       ;;
+
+    * ) error "Disk-Tabletype: $uname" 1 ;;
   esac
 }
 
@@ -205,25 +233,45 @@ disk_local()
   #  $(disk_tabletype $1) $(find_mount $1 | count_words)
 }
 
-# List local online disks (mounted or not)
+# List (local) disks by mount point
+disk_mounts()
+{
+  case "$uname" in
+
+    Darwin )
+        mount |
+            grep 'on\ ' |
+            sed 's/^.*\ on\ //g' | cut -d ' ' -f 1
+      ;;
+
+    #Linux ) ;;
+
+    * ) error "Disk-Mounts: $uname" 1 ;;
+  esac
+}
+
+# List (local) disks (from /dev, mounted or not)
 disk_list()
 {
-  case "$(uname)" in
+  case "$uname" in
+
     Linux )
         glob=/dev/sd*[a-z]
         test "$(echo $glob)" = "$glob" || {
           echo $glob | tr ' ' '\n'
         }
       ;;
+
     Darwin )
         # FIXME: deal with system_profiler plist datatypes
         echo /dev/disk[0-9]* |
             tr ' ' '\n' |
             grep -v '[0-9]s[0-9]*$'
       ;;
+
+    * ) error "Disk-List: $uname" 1 ;;
   esac
 }
-
 
 # List all local disk partitions
 disk_list_part_local()
@@ -231,7 +279,7 @@ disk_list_part_local()
   local glob=
   test -n "$1" || error no-disk-list-part-local-args 1
   test -z "$2" || error "disk-list-part-local surplus args '$2'" 1
-  case "$(uname)" in
+  case "$uname" in
     Linux )
         test -z "$1" && glob=/dev/sd*[a-z]*[0-9] \
           || glob=$1[0-9]
@@ -242,6 +290,7 @@ disk_list_part_local()
         test -z "$1" && glob=/dev/disk0s*[0-9] \
           || glob=$1[0-9]
       ;;
+    * ) error "Disk-List-Part-Local: $uname" 1 ;;
   esac
 
   test "$(echo $glob)" = "$glob" || {
@@ -360,11 +409,8 @@ disk_info()
   test -d "$DISK_CATALOG" || error "Missing catalog env" 1
   test -n "$2" || set -- "$1" "prefix"
   test -e "$DISK_CATALOG/disk/$1.sh" || {
-    # Find ID for device if given iso. ID
-    test -z "$(disk_id $1)" || set -- "$(disk_id "$1")" "$2"
-  }
-  test -e "$DISK_CATALOG/disk/$1.sh" \
-    || { error "No such known disk '$1'"; return 1; }
+      set -- "$(disk_id_for_dev)" "$2" || {
+        error "No such known disk '$1'"; return 1; }; }
   . $DISK_CATALOG/disk/$1.sh
   eval echo \$$2
 }
@@ -390,7 +436,7 @@ disk_catalog_put_disk()
   test -n "$disk_id" || error "disk-id not set" 1
   test -n "$volumes_main_id" || error "volumes-main-id not set" 1
   {
-    echo host=\"$host\"
+    echo disk_host=\"$disk_host\"
     echo disk_id=$volumes_main_disk_id
     echo disk_index=$volumes_main_disk_index
     test -n "$volumes" \
@@ -410,12 +456,12 @@ disk_catalog_update_disk()
   test "$disk_index" = "$volumes_main_disk_index" \
     || error "disk-index mismatch '$1'" 1
 
-  info "Current host: '$host'"
-  info "Existing volumes: '$volumes'"
+  info "Current host: '$disk_host'"
+  info "Existing volumes: '$disk_volumes'"
 
   local update=
-  fnmatch *"$volumes_main_id"* "$volumes" || update=1
-  test "$(hostname)" = "$host" || update=1
+  fnmatch *"$volumes_main_id"* "$disk_volumes" || update=1
+  test "$(hostname)" = "$disk_host" || update=1
 
   test -z "$update" ||  {
     disk_catalog_put_disk || return $?

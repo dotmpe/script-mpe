@@ -4,7 +4,9 @@ set -e
 # Scan for emmbedded tags and comments
 
 scriptname=tools/sh/tags
-test -n "$scriptpath" || scriptpath="$(dirname "$(dirname "$(dirname "$0")")")"
+# npm bash-parser cannot handle expr with nested subshells
+#test -n "$scriptpath" || scriptpath="$(dirname "$(dirname "$(dirname "$0")")")"
+test -n "$scriptpath" || scriptpath="$(dirname_ 3 "$0")"
 test -n "$verbose" || verbose=true
 test -n "$exit" || exit=true
 

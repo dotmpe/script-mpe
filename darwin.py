@@ -44,7 +44,7 @@ def cmd_plist_items(PLIST, KEY, settings):
         i += 1
         print(i,end='')
         for k in KEY:
-            print(item[k],end='')
+            print(item[k].strip(),end='')
         print('')
 
 
@@ -66,7 +66,7 @@ def cmd_spserialata_disk(PLIST, DISK, KEY, settings):
             #plst_dump(disk)
             for k in KEY:
                 if k in disk:
-                    print(disk[k], end='')
+                    print(disk[k].strip(), end='')
                 else:
                     print("", end='')
             print
@@ -84,7 +84,7 @@ def cmd_spserialata_disk_part(PLIST, KEY, settings):
                 #plst_dump(volume)
                 for k in KEY:
                     if k in volume:
-                        print(volume[k], end='')
+                        print(volume[k].strip(), end='')
                     else:
                         print("", end='')
                 print
@@ -104,7 +104,7 @@ def cmd_spusb_disk(PLIST, DISK, KEY, settings):
             #plst_dump(device)
             for k in KEY:
                 if k in device:
-                    print(device[k], end='')
+                    print(device[k].strip(), end='')
                 else:
                     print("", end='')
             print
@@ -121,7 +121,7 @@ def cmd_spusb_disk_part(PLIST, KEY, settings):
             #plst_dump(volume)
             for k in KEY:
                 if k in volume:
-                    print(volume[k], end='')
+                    print(volume[k].strip(), end='')
                 else:
                     print("", end='')
             print
@@ -137,7 +137,7 @@ def cmd_spstorage_disk_for_volume(PLIST, DISK, KEY, settings):
             continue
         if DISK and storage['bsd_name'] != DISK:
             continue
-        print(storage['com.apple.corestorage.pv'][0]['_name'])
+        print(storage['com.apple.corestorage.pv'][0]['_name'].strip())
         continue
 
 
@@ -151,7 +151,7 @@ def cmd_spstorage_disk(PLIST, DISK, KEY, settings):
             continue
         for k in KEY:
             if k in storage:
-                print(storage[k], end='\t')
+                print(storage[k].strip(), end='\t')
             else:
                 print("", end='\t')
         print('')

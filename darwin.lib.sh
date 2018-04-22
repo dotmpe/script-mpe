@@ -1,6 +1,12 @@
 #!/bin/sh
 
 
+darwin_lib_load()
+{
+  test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
+  test -n "$xattr" || xattr=xattr-2.7
+}
+
 setup_launchd_service()
 {
   test -n "$base" || error "base" 1
@@ -65,13 +71,16 @@ start_launchd_service()
 darwin_profile_xml()
 {
   local xml=$(setup_tmpf .xml) datatype=$1; shift
-  system_profiler $datatype -xml > $xml
+  xml=$HOME/.statusdir/system/$hostname/$datatype.xml
+  mkdir -vp $(dirname $xml)
+  test -e $xml || system_profiler $datatype -xml > $xml
   echo $xml
 }
 
 # XXX: darwin-profile-tab: unused
 darwin_profile_tab()
 {
+    return 1
   local xml=$(darwin_profile_xml "$@"); shift
   darwin.py plist-items $xml "$@"
   rm $xml
@@ -165,6 +174,18 @@ darwin_usb_data()
   darwin.py spusb-disk $xml "" bsd_name serial_num size_in_bytes manufacturer vendor_id product_id
 }
 
+darwin_wherefrom()
+{
+  $xattr -p com.apple.metadata:kMDItemWhereFroms "$1" \
+		| xxd -r -p \
+		| plutil -convert xml1 -o - - \
+		| grep string | sed 's/^.*<string>\(.*\)<\/string>.*/\1/' \
+		| {
+		    read line; printf -- "url='$line' "
+		    read line; printf -- "via='$line'"
+        } | xml-decode.py -
+}
+
 
 # Main
 
@@ -196,7 +217,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
           test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
           test -n "$verbosity" || verbosity=5
           export base=$scriptname
-          #darwin_lib_load || ...
+          darwin_lib_load
           type "$1" >/dev/null 2>&1 || {
 
             echo "Error loading $scriptname: $1" 1>&2

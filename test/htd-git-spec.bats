@@ -1,49 +1,28 @@
 #!/usr/bin/env bats
 
-base=htd
 load init
-init
-pwd=$(cd .;pwd -P)
 
 
-version=0.0.4-dev # script-mpe
-
-setup() {
-  scriptname=test-$base
-  #. $ENV
-}
-
-@test "$bin git-remote" {
-  run htd git-remote
+@test "htd git - help" {
+  run htd help git
   test_ok_nonempty || stdfail
 }
 
-@test "$bin git-remote dotmpe" {
-  # XXX: require_env ssh
-  run htd git-remote dotmpe
-  test_ok_nonempty || stdfail
-}
 
-@test "$bin git-remote dotmpe abc" {
-  export verbosity=0
-  run htd git-remote dotmpe abc
-  { test_ok_nonempty &&
-    fnmatch *"dotmpe:domains/dotmpe.com/htdocs/git/abc" "${lines[*]}"
-  } || stdfail
-}
-
-@test "$bin git-remote info dotmpe abc" {
-  export verbosity=0
-  run htd git-remote info dotmpe abc
-  { test_ok_nonempty &&
-  fnmatch *"remote.dotmpe.git.url=dotmpe:domains/dotmpe.com/htdocs/git/abc remote.dotmpe.scp.url=dotmpe:domains/dotmpe.com/htdocs/git/abc.git remote.dotmpe.repo.dir=domains/dotmpe.com/htdocs/git/abc.git remote.dotmpe.hostinfo=dotmpe" "${lines[*]}"
-  } || stdfail
-}
-
-@test "$bin git-remote url dotmpe abc" {
-  export verbosity=0
-  run htd git-remote url dotmpe abc
-  { test_ok_nonempty &&
-    fnmatch *"dotmpe:domains/dotmpe.com/htdocs/git/abc" "${lines[*]}"
-  } || stdfail
-}
+#@test "${lib}/${base} - function should ..." {
+#  check_skipped_envs || \
+#    TODO "envs $envs: implement lib (test) for env" # tasks-ignore
+#  diag $BATS_TEST_DESCRIPTION
+#  run function args
+#  test true && pass || fail
+#  test_ok_empty || stdfail
+#  test_nok_empty || stdfail
+#  test_nonempty || stdfail
+#  test_ok_nonempty "*match*" || stdfail
+#  { test_nok_nonempty "*match*" &&
+#    test ${status} -eq 1 &&
+#    fnmatch "*other*" &&
+#    test ${#lines[@]} -eq 3
+#  } || stdfail
+#  test_lines, test_ok_lines, test_nok_lines
+#}

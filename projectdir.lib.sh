@@ -696,6 +696,7 @@ pd_run()
 
     ## Built in targets
 
+    # Allow failure
     -* )
         note "Ignore ($1)"
         # Ignore return
@@ -713,7 +714,6 @@ pd_run()
       ;;
 
     # Shell exec
-
     sh:* )
         # NOTE: pd run sh automatically accepts env decl. beacuse 's/:/ /g'
         local shcmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
