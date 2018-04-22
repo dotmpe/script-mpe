@@ -52,5 +52,5 @@ fnmatch "* basename-reg *" " $TEST_SPECS " && {
 }
 
 
-note "Done"
+note "ci/parts/init Done"
 # Id: script-mpe/0.0.4-dev tools/ci/parts/init.sh
