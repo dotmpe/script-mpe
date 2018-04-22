@@ -64,13 +64,6 @@ htd_load()
   test -d "$HTD_BUILDDIR" || mkdir -p $HTD_BUILDDIR
   export B=$HTD_BUILDDIR
 
-  # Set default env to differentiate tmux server sockets based on, this allows
-  # distict CS env for tmux sessions
-  default_env Htd-TMux-Env "hostname CS"
-  # Initial session/window vars
-  default_env Htd-TMux-Default-Session "Htd"
-  default_env Htd-TMux-Default-Cmd "$SHELL"
-  default_env Htd-TMux-Default-Window "$(basename $SHELL)"
   #default_env Couch-URL "http://localhost:5984"
   default_env GitVer-Attr ".version-attributes"
   default_env Ns-Name "bvberkum"
@@ -163,10 +156,6 @@ htd_load()
 
   htd_rules=$UCONFDIR/rules/$hostname.tab
   ns_tab=$UCONFDIR/namespace/$hostname.tab
-
-  which tmux 1>/dev/null || {
-    export PATH=/usr/local/bin:$PATH
-  }
 
   which rst2xml 1>/dev/null && rst2xml=$(which rst2xml) || {
     which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) ||
@@ -278,8 +267,8 @@ htd_load()
         local htd_subcmd_optsv=$(echo_local $subcmd optsv)
         func_exists $htd_subcmd_optsv || {
           htd_subcmd_optsv="$(eval echo "\"\$$htd_subcmd_optsv\"")"
-          test -n "$htd_subcmd_optsv" || htd_subcmd_optsv=htd_optsv
         }
+        test -n "$htd_subcmd_optsv" || htd_subcmd_optsv=htd_optsv
         test -e "$options" && {
           $htd_subcmd_optsv "$(cat $options)"
         } || noop
@@ -924,8 +913,13 @@ htd__ls_main_files()
 }
 
 
-htd_man_1__edit_local="Edit an existing local file, or abort. "
-htd_spc__edit_local="-e|edit <id>"
+htd_man_1__edit_local='Edit an existing local file, or abort.
+
+TODO: The search term must match an existing component, or set grep/glob mode
+to edit the first file.
+'
+htd_spc__edit_local="-e|edit [-g|--grep] [--glob] <search>"
+htd_run__edit_local=iAO
 htd__edit_local()
 {
   test -n "$1" || error "search term expected" 1
@@ -949,7 +943,6 @@ htd__edit_local()
   #find_paths="$(doc_find_name "$1")"
   #grep_paths="$(doc_grep_content "$1")"
   grep_paths="$(git grep -l "$1")"
-
   test -n "$find_paths" -o -n "$grep_paths" \
     || error "Nothing found to edit" 1
 
@@ -1351,7 +1344,7 @@ htd__project()
     init ) shift ; htd_project_init "$@" ;;
     sync ) shift ; htd_project_sync "$@" ;;
     update ) shift ; htd_project_update "$@" ;;
-    exists ) shift ; 
+    exists ) shift ;
         test -n "$1" || set -- "$(pwd)"
         test -d "$1" || error "Project directory missing '$1'" 1
         local name="$(basename "$1")"
@@ -1898,6 +1891,12 @@ htd__today() # Jrnl-Dir YSep MSep DSep [ Tags... ]
   htd_jrnl_day_links "$@"
 }
 htd_grp__today=cabinet
+
+
+htd__week_nr()
+{
+  expr $(date +%U) + 1
+}
 
 
 htd_als__week=this-week
@@ -3627,15 +3626,14 @@ htd__git_init_remote() # [ Repo ]
   local repo= remote=$HTD_GIT_REMOTE BARE=
 
   # Create local repo if needed
-  htd__git_init_local
+  htd__git_init_local || warn "Error initializing local repo ($?)"
 
-  # Remote repo, idem ditto
+  # Remote repo, idem.
   local $(htd__git_remote sh-env "$remote" "$repo")
   {
     test -n "$remote_hostinfo" && test -n "$remote_repo_dir"
   } ||
     error "Incomplete env" 1
-
 
   ssh_cmd="mkdir -v $remote_repo_dir"
   ssh $remote_hostinfo "$ssh_cmd" && {
@@ -3775,7 +3773,7 @@ htd__git_files()
 htd_argsv__git_files=arg-groups-r
 htd_arg_groups__git_files="repo glob"
 #htd_defargs_repo__git_files=/src/*/*/*/
-htd_defargs_repo__git_files=/srv/git-local/bvberkum/*.git
+htd_defargs_repo__git_files=/srv/git-local/$NS_NAME/*.git
 
 
 #
@@ -3850,7 +3848,7 @@ Defaults effectively are:
     --dir=/srv/git-local/$NS_NAME *.git``
     --dir=/srv/git-local/$NS_NAME -
 
-Depending on wether there is a terminal or pip/file at stdin (fd 0). 
+Depending on wether there is a terminal or pip/file at stdin (fd 0).
 '
 htd_spc__gitrepo='gitrepo [--(,no-)expand-dir] [--repos=] [--dir=] [ GLOBS... | PATHS.. | - ]'
 htd_env__gitrepo="dir="
@@ -6894,7 +6892,7 @@ Lookup with table
     Get both path and name for each line or argument.
   expand (Prefix-Paths..|-)
     Expand <prefix>:<local-path> back to to absolute path.
-  op 
+  op
     Feed Htd-current-paths through htd-prefixes-names
 
 Cache
@@ -8315,7 +8313,7 @@ htd_argsv__backup=htd_backup_argsv
 htd_optsv__backup=htd_backup_optsv
 
 
-htd_man_1__pack_create="Create archive for dir with ck manifest"
+htd_man_1__pack_create="Create archive for dir and add ck manifest"
 htd_man_1__pack_verify="Verify archive with manifest, see that all files in dir are there"
 htd_man_1__pack_check="Check file (w. checksum) TODO: dir with archive manifest"
 htd_run__pack=i
@@ -9597,21 +9595,34 @@ htd_man_1__catalog='Build file manifests
     verify file checksums
   validate CATALOG
     verify catalog document schema
-  list
-    find catalog documents
+  [CATALOG=] list
+    find catalog documents, cache paths and list pathnames
+  list-files
+    ..
   add [DIR|FILE]
+    ..
+  drop-by-name CATALOG NAME
+    ..
+  move NAME [DIR|CATALOG]
     ..
 '
 htd__catalog()
 {
-  upper=0 mkvid "$1" ; shift
-  htd_catalog_$vid "$@" || return $?
+  test -n "$1" && { upper=0 mkvid "$1" ; shift ; action=$vid
+    } || action=list
+  htd_catalog_$action "$@" || return $?
 }
 
 htd_man_1__catalog_list='Find local catalogs'
 htd_als__catalogs='catalog list'
 htd_man_1__catalog_fsck='File-check entries from catalog with checksums'
 htd_als__fsck_catalog='catalog fsck'
+
+
+htd__wherefrom()
+{
+  wherefrom "$@"
+}
 
 
 htd_man_1__foreach='Execute based on match for each argument or line
@@ -9707,14 +9718,17 @@ htd__filter_out()
 htd_man_1__init='Initialize project ID
 
 Look for vendorized dir <vendor>.com/$NS_NAME/<project-id> or get a checkout.
+
 Link onto prefix in Project-Dir if not there.
 Finish running local htd run init && pd init.
 '
 #htd_spc__init='init [ [Vendor:][Ns-Name][/]Project ]'
 htd_spc__init='init [ Project [Vendor] [Ns-Name] ]'
-htd_run_init=pqi
+htd_run_init=pq
 htd__init()
 {
+  test -n "$project_dir" || project_dir=
+
   #test -n "$1" || set -- . TODO: detect from cwd
   test -n "$2" || {
 
@@ -9779,7 +9793,7 @@ different levels, and serve to aid testing, or check for complete documentation.
 
 In the standard setup, the basenames of all tracked files make up the component
 ID set. This naive approach provides a starting point, but will miss many
-components that a more sophisticated project or work will care about. 
+components that a more sophisticated project or work will care about.
 
 Even though per-path instance specific handling may be required, this provides
 a basis to regroup file-based data and integrated with other
@@ -9790,7 +9804,8 @@ htd__components()
   local spwd=.
 
   { test "$stdio_0_type" = "t" -o \( -n "$1" -a "$1" != "-" \) && {
-      test -n "$package_components" || package_components=vc_tracked
+      test -n "$package_components" &&
+        eval $package_env || package_components=vc_tracked
       $package_components
 
     } || cat -
@@ -9838,7 +9853,7 @@ See also doc-find/find-doc
 '
 htd__docs() # [<cmd>=list] <sections>... | [show] (<section>) | show main
 {
-  local cmd= ; case "$1" in list|show) cmd="$1" ; shift ;; * ) 
+  local cmd= ; case "$1" in list|show) cmd="$1" ; shift ;; * )
     test -n "$2" && cmd=list || { cmd=show ; test -n "$1" || set -- main ; }
       ;; esac
 
@@ -9940,6 +9955,7 @@ htd_init_etc()
   #test ! -e $UCONFDIR/htd || echo $UCONFDIR
 }
 
+# The default optionparser for htd, see htd-subcmd-optsv
 htd_optsv()
 {
   set -- $(lines_to_words $options)

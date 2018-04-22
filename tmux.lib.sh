@@ -1,8 +1,25 @@
 #!/bin/sh
 
+# Terminal Multiplexer shell routines
+
 tmux_lib_load()
 {
-  default_env TMux-SDir /opt/tmux-socket || true
+  # TODO: document where this was needded
+  #which tmux 1>/dev/null || {
+  #  export PATH=/usr/local/bin:$PATH
+  #}
+
+  default_env TMux-SDir /opt/tmux-socket
+  # Set default env to differentiate tmux server sockets based on, this allows
+  # distict CS env for tmux sessions
+  default_env Htd-TMux-Env "hostname CS"
+  # Initial session/window vars
+  default_env Htd-TMux-Default-Session "Htd"
+  default_env Htd-TMux-Default-Cmd "$SHELL"
+  default_env Htd-TMux-Default-Window "$(basename $SHELL)"
+
+  # default_env returns 1 to signal env var was already set
+  true
 }
 
 
@@ -142,6 +159,7 @@ htd_tmux_get()
   test -n "$2" || set -- "$1" "$2" "$HTD_TMUX_DEFAULT_CMD"
   test -z "$4" || error "Surplus arguments '$4'" 1
   tmux_env_req 0
+  test -n "$cwd" || cwd=$PWD
 
   # Look for running server with session name
   {
@@ -155,13 +173,13 @@ htd_tmux_get()
       info "Window '$2' exists with session '$1'"
       logger "Window '$2' exists with session '$1'"
     } || {
-      $tmux new-window -t "$1" -n "$2" "$3"
+      $tmux new-window -c "$cwd" -t "$1" -n "$2" "$3"
       info "Created window '$2' with session '$1'"
       logger "Created window '$2' with session '$1'"
     }
   } || {
     # Else start server/session and with initial window
-    eval $tmux new-session -d -s "$1" -n "$2" "$3" && {
+    eval $tmux new-session -c "$cwd" -d -s "$1" -n "$2" "$3" && {
       note "Started new session '$1'"
       logger "Started new session '$1'"
     } || {

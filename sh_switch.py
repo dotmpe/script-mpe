@@ -4,7 +4,6 @@ sh-switch
 =========
 Parse switch statements from Sh scripts
 ------------------------------------------
-
 :Created: 2016-06-16
 :Updated: 2017-07-09
 

@@ -6,6 +6,7 @@
 os_lib_load()
 {
   test -n "$uname" || export uname="$(uname -s)"
+  test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
 }
 
 absdir()
@@ -13,6 +14,16 @@ absdir()
   # NOTE: somehow my Linux pwd makes a symbolic path to root into //bin,
   # using tr to collapse all sequences to one
   ( cd "$1" && pwd -P | tr -s '/' '/' )
+}
+
+dirname_()
+{
+  while test $1 -gt 0
+    do
+        set -- $(( $1 - 1 ))
+        set -- "$1" "$(dirname "$2")"
+    done
+  echo "$2"
 }
 
 # Combined dirname/basename to remove .ext(s) but return path
@@ -649,4 +660,9 @@ rotate_file()
     cnt=$(( $cnt + 1 ))
   done
   { mv -v "$1" "$dir/$base-$cnt$2" || return $?; } | abbrev_rename
+}
+
+wherefrom()
+{
+  ${os}_wherefrom "$@"
 }

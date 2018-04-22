@@ -1,5 +1,5 @@
 id: "http://wtwta.org/project/script/schema/catalog#"
-$schema: http://json-schema.org/draft-04/schema#
+$schema: "http://json-schema.org/draft-04/schema#"
 description: JSON schema for catalog format, a file manifest in a YAML list
 type: array
 items:
@@ -45,5 +45,5 @@ items:
       description: |
         Global ID's for file, including content checksums.
       patternProperties:
-        "^[A-Za-z0-9,\._-]+$": 
+        '^[A-Za-z0-9,\._-]+$': 
           - type: string

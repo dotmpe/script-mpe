@@ -51,7 +51,7 @@ def parse_isodatetime(s):
 def obj_serialize_datetime_list(l, ctx):
     r = []
     for n, i in enumerate(l):
-      r[n] = obj_serialize_datetime(i, ctx)
+      r.append(obj_serialize_datetime(i, ctx))
     return r
 
 def obj_serialize_datetime_dict(o, ctx):
@@ -63,7 +63,7 @@ def obj_serialize_datetime_dict(o, ctx):
 def obj_serialize_datetime(o, ctx):
     if hasattr(o, 'items'):
       return obj_serialize_datetime_dict(o, ctx)
-    elif hasattr(o, 'iter'):
+    elif hasattr(o, 'iter') or hasattr(o, '__iter__'):
       return obj_serialize_datetime_list(o, ctx)
     else:
       if isinstance(o, datetime):

@@ -254,6 +254,10 @@
            localhost:5000/ubuntu-user-script:build \
            'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
 
+    build-docs:
+      - lib_load build ; build_docs \"\$@\"
+
+
     # End of [0]/scripts
 
   # For make data/*: or move to cllct.rc

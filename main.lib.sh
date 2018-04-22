@@ -367,6 +367,7 @@ get_cmd_alias()
     || try_local_var $1_alias $(echo "$2" | tr '-' '_') als std
 }
 
+# Parse some random stuff, define vars for any short/long opt
 main_options_v()
 {
   while test -n "$1"

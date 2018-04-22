@@ -58,6 +58,7 @@ ck_run()
 # Read checksums from catalog.yml
 ck_read_catalog()
 {
+  test -e "$1" || error ck_read_catalog 1
   local l=0 basedir="$(dirname "$1")" fname= name= host= \
       catalog_sh="$(dotname "$(pathname "$1" .yaml .yml)")"
 
@@ -104,14 +105,14 @@ ck_read_catalog()
 
 ck_run_catalog()
 {
-  dir="$(dirname "$catalog")"
+  local r=0 ret=0 dir="$(dirname "$1")"
   cd "$cwd"
-  test -d "$dir" || { warn "Missing dir '$catalog'" ; continue ; }
-  test -f "$catalog.yml" || { warn "Missing file '$catalog'" ; continue ; }
+  test -d "$dir" || { warn "Missing dir '$1'" ; continue ; }
+  test -f "$1" || { warn "Missing file '$1'" ; continue ; }
 
   cd "$dir"
   {
-    ck_read_catalog "$(basename "$catalog.yml")"
+    ck_read_catalog "$(basename "$1")"
     test 0 -eq $? || { ret=1; break; }
   } | {
     while read key ck name ; do
@@ -160,11 +161,11 @@ ck_run_catalog()
         return 1
       }
     done
-  }
-  r=$?
+
+  } || r=$?
 
   test 0 -eq $r -a $ret -eq 0 || {
-    error "failure in '$catalog' ($r, $ret)"
+    error "failure in '$1' ($r, $ret)"
     return 1
   }
 }
@@ -175,12 +176,12 @@ ck_run_catalogs()
   local cwd=$(pwd) dir= catalog= ret=0
 
   note "Running over catalogs found in '$cwd'..."
-  { htd_catalog_list || exit $?
+  { htd_catalog_list_files || exit $?
   } | {
     while read catalog
     do
       note "Found catalog at '$catalog'"
-      ck_run_catalog "$catalog"
+      ck_run_catalog "$catalog" || ret=$?
     done
   }
   test 0 -eq $? || ret=1

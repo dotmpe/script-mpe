@@ -1038,6 +1038,17 @@ vc__remotes()
         error "illegal $1" 1;;
     esac
   done
+  # FIXME: vc-remote lib
+  #test -n "$1" || set -- all
+  #vc_getscm "$(pwd)" || return $?
+  #vc_remotes "$(pwd)" "$@"
+}
+
+vc__remote()
+{
+  #test -n "$1" || set -- all
+  vc_getscm "$(pwd)" || return $?
+  vc_remote "$(pwd)" "$@"
 }
 
 vc__branch()

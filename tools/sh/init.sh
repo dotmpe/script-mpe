@@ -1,6 +1,7 @@
 #!/bin/sh
 
 # Must be started from project root.
+
 # Import minimal setup and shell util functions.
 test -n "$scriptpath" || export scriptpath="$(pwd -P)"
 
@@ -11,7 +12,7 @@ test -n "$SCRIPTPATH" || {
   test -n "$LIB" && { test -z "$DEBUG" || echo LIB=$LIB ; } || {
     test -n "$scriptpath" &&
       LIB=$scriptpath ||
-      LIB=$(cd $(dirname $(dirname $0)); pwd -P )
+      LIB=$(realdir_ 2 $0)
     test -n "$LIB" || {
       test -z "$DEBUG" || echo "Missing LIB" >&2
       exit 99

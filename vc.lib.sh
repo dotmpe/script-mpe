@@ -138,17 +138,43 @@ vc_remotes_git()
   git remote
 }
 
-vc_gitremote()
+vc_remotes_hg()
 {
-  test -n "$1" || set -- "." "origin"
-  test -d "$1" || error "vc-gitremote expected dir argument" 1
-  test -n "$2" || error "vc-gitremote expected remote name" 1
-  test -z "$3" || error "vc-gitremote surplus arguments" 1
+  hg paths
+}
 
-  test -n "$1" || set -- "."
+vc_remotes()
+{
+  test -d "$1" || error "vc-remote expected dir argument" 1
+  test -z "$3" || error "vc-remote surplus arguments" 1
+
   local pwd=$(pwd)
   cd "$1"
-  git config --get remote.$2.url
+  vc_remotes_$scm "$2"
+  cd "$pwd"
+}
+
+
+vc_remote_git()
+{
+  git config --get remote.$1.url
+}
+
+vc_remote_hg()
+{
+  hg paths "$1"
+}
+
+vc_remote()
+{
+  test -n "$1" || set -- "." "origin"
+  test -d "$1" || error "vc-remote expected dir argument" 1
+  test -n "$2" || error "vc-remote expected remote name" 1
+  test -z "$3" || error "vc-remote surplus arguments" 1
+
+  local pwd=$(pwd)
+  cd "$1"
+  vc_remote_$scm "$2"
   cd "$pwd"
 }
 
@@ -295,9 +321,10 @@ vc_tracked()
 {
   test -n "$spwd" || error spwd-13 13
 
-  # list paths not under version (including ignores)
+  # list paths under version control
   vc_tracked_$scm
 
+  # submodules too for GIT
   test "$scm" = "git" && {
 
     vc_git_submodules | while read prefix

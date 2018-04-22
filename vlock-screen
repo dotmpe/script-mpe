@@ -32,19 +32,19 @@ case "$vlock_screen" in
             eval $vpadd $vpadd $vpadd
             printf -- "$esc[0;35m"
             figlet -c -w$cols -f big $(date +%H:%M)
-            figlet -c -w$cols -f term $(date +"%Y.%U %A %H:%M")
+            figlet -c -w$cols -f term $(date +"%y.$(( 1 + $(date +"%U") )) %A")
             eval \
                 $vpadd\
                 $vpadd
             echo
-            printf -- "$esc[1;30m"
-            figlet -c -w$cols -f term $(hostname) $TERM $SHELL $HISTNUM lines
             echo
             printf -- "$esc[0;30m"
             figlet -c -w$cols -f binary $(date +%H:%M)
             echo
             printf -- "$esc[1;30m"
             figlet -c -w$cols -f term $(uptime)
+            printf -- "$esc[1;30m"
+            figlet -c -w$cols -f term $(hostname) $TERM $SHELL $HISTNUM lines
             printf -- "$esc[0m"
             eval $vpadd
         ;;
