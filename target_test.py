@@ -1,6 +1,6 @@
 from __future__ import print_function
 import lib
-from target import Name, Target, TargetResolver
+from script_mpe.libcmdng import Name, Target, TargetResolver
 
 
 class Core(TargetResolver):
