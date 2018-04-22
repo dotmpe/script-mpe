@@ -65,9 +65,9 @@ do case "$BUILD_STEP" in
           mv $TEST_RESULTS.tap $TEST_RESULTS-1.tap
 
           # Test feature files and report in JUnit XML
-          $TEST_FEATURE $BUSINESS_SUITE || touch $failed
-          note "Feature tests done"
-          mv $TEST_RESULTS.xml $TEST_RESULTS-2.xml
+          #$TEST_FEATURE $BUSINESS_SUITE || touch $failed
+          #note "Feature tests done"
+          #mv $TEST_RESULTS.xml $TEST_RESULTS-2.xml
 
           # Test Python unit files and report in ...
           # FIXME: new params for python tests python $PY_SUITE || touch $failed
