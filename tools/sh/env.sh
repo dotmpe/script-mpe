@@ -1,29 +1,29 @@
 #!/bin/sh
 
 # Keep current shell settings and mute while preparing env, restore at the end
-shopts=$-
-test -n "$DEBUG" && set -x || set +x
+#shopts=$-
+#test -n "$DEBUG" && set -x || set +x
 
 
 # Restore shell -e opt
-case "$shopts"
-
-  in *e* )
-      test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" && {
-        # undo Jenkins opt, unless EXIT_ON_ERROR is on
-        echo "[$0] Important: Shell will NOT exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
-        set +e
-      } || {
-        echo "[$0] Note: Shell will exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
-      }
-    ;;
-
-  * )
-      # Turn on again
-      test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" || set -e
-    ;;
-
-esac
+#case "$shopts"
+#
+#  in *e* )
+#      test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" && {
+#        # undo Jenkins opt, unless EXIT_ON_ERROR is on
+#        echo "[$0] Important: Shell will NOT exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
+#        set +e
+#      } || {
+#        echo "[$0] Note: Shell will exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
+#      }
+#    ;;
+#
+#  * )
+#      # Turn on again
+#      test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" || set -e
+#    ;;
+#
+#esac
 
 type error >/dev/null 2>&1 || { echo "std.lib missing" >&2 ; exit 1 ; }
 type req_vars >/dev/null 2>&1 || error "sys.lib missing" 1
