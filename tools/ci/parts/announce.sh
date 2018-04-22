@@ -1,14 +1,12 @@
 #!/bin/sh
 # Announce build in CouchDB build-log record
-#set -e
 
-echo announce
 curl -sSf https://$CI_DB_HOST/ || {
   echo "No remote DB, skipped build-log announce" >&2
-  #exit 0
+  return 0
 }
-echo announce2
 
+echo "TODO: announce travis build" >&2
 #node --version
 # FIXME: nodejs deps needed, use curl instead
 

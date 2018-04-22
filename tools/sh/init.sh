@@ -12,7 +12,7 @@ test -n "$SCRIPTPATH" || {
   test -n "$LIB" && { test -z "$DEBUG" || echo LIB=$LIB ; } || {
     test -n "$scriptpath" &&
       LIB=$scriptpath ||
-      LIB=$(realdir_ 2 $0)
+      LIB=$(cd $(dirname $(dirname $0)); pwd -P)
     test -n "$LIB" || {
       test -z "$DEBUG" || echo "Missing LIB" >&2
       exit 99

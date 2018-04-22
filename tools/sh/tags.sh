@@ -5,8 +5,8 @@ set -e
 
 scriptname=tools/sh/tags
 # npm bash-parser cannot handle expr with nested subshells
-#test -n "$scriptpath" || scriptpath="$(dirname "$(dirname "$(dirname "$0")")")"
-test -n "$scriptpath" || scriptpath="$(dirname_ 3 "$0")"
+test -n "$scriptpath" || scriptpath="$(dirname "$(dirname "$(dirname "$0")")")"
+#test -n "$scriptpath" || scriptpath="$(dirname_ 3 "$0")"
 test -n "$verbose" || verbose=true
 test -n "$exit" || exit=true
 
