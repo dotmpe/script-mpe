@@ -45,6 +45,8 @@ install:
 before_script:
   - export scriptname="before-script" before_script_ts="$(date +%s)"
   - echo Starting $scriptname
+  - echo BRANCH_NAMES=$BRANCH_NAMES
+  - echo REQ_SPECS=$REQ_SPECS
   - . ./tools/ci/env.sh
   - . ./tools/ci/parts/check.sh
   - curl -X PUT localhost:5984/$COUCH_DB
