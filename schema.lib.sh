@@ -21,7 +21,8 @@ htd_schema_validate()
   local jsonf="$(get_jsonfile "$1")" jsonschemaf="$(get_jsonfile "$2")"
 
   #jsonspec validate --document-file $jsonf --schema-file $jsonschemaf &&
-  #    stderr ok "schema" || error "schema" 1
+  #    stderr ok "schema" || { error "schema" ; return 1 ; }
+
   $ajv_cli -s $jsonschemaf -d $jsonf &&
       stderr ok "schema" || { error "schema" ; return 1 ; }
 }

@@ -43,21 +43,26 @@ htd_catalog_fsck_all()
 }
 
 
+htd_catalog_check()
+{
+  test -n "$Catalog_Status" || Catalog_Status=.cllct/catalog-status.vars
+  test -e $Catalog_Status -a $CATALOG -ot $Catalog_Status || {
+    {
+        ( htd_catalog_validate "$CATALOG" >/dev/null
+        ) && echo schema=0 || echo schema=$?
+
+        ( htd_catalog_fsck "$CATALOG" >/dev/null
+        ) && echo fsck=0 || echo fsck=$?
+
+    } > $Catalog_Status
+    note "Updated status"
+  }
+}
+
 htd_catalog_status()
 {
   local Catalog_Status=.cllct/catalog-status.vars
-  test -e $Catalog_Status -a $CATALOG -ot $Catalog_Status || {
-          {
-
-          echo schema=0
-          #( htd_catalog_validate "$CATALOG" >/dev/null
-          #) && echo schema=0 || echo schema=$?
-
-          ( htd_catalog_fsck "$CATALOG" >/dev/null
-          ) && echo fsck=0 || echo fsck=$?
-
-      } > $Catalog_Status
-  }
+  htd_catalog_check
 
   eval $(cat $Catalog_Status)
   status=$(echo "$schema + $fsck" | bc || return)
@@ -69,7 +74,7 @@ htd_catalog_status()
 # Check schema for given catalog
 htd_catalog_validate() # CATALOG
 {
-  test -n "$1" -a -e "$1" || error "catalog filename arguments expected" 1
+  test -n "$1" || set -- $CATALOG
   htd_schema_validate "$1" "$scriptpath/schema/catalog.yml"
 }
 
