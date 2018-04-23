@@ -180,10 +180,11 @@ darwin_wherefrom()
 		| xxd -r -p \
 		| plutil -convert xml1 -o - - \
 		| grep string | sed 's/^.*<string>\(.*\)<\/string>.*/\1/' \
+		| tr -d "\r" \
 		| {
-		    read line; printf -- "url='$line' "
-		    read line; printf -- "via='$line'"
-        } | xml-decode.py -
+		    read url ; read via ; echo "url='$url' via='$via' "
+        } \
+        | xml-decode.py -
 }
 
 

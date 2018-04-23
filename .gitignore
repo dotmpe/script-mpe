@@ -39,3 +39,4 @@ Makefile
 schema/*.json
 schema/*.n3
 .cdn.sh
+.shell-deps

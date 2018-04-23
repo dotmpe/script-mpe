@@ -1,14 +1,15 @@
+
 my_function()
 {
-    true
-}
+    true;
+};
 
 myFalseFunction()
 {
-    false
-}
+    false;
+};
 
 function some_other_style_function
 {
-    true
+    true;
 }

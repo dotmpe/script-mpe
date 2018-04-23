@@ -1,3 +1,4 @@
+#!/usr/bin/env coffee
 fs = require 'fs'
 parse = require 'bash-parser'
 

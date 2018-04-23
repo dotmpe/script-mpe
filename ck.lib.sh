@@ -36,7 +36,8 @@ ck_arg()
   T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
 }
 
-ck_run()
+# Run checksums from file
+ck_run() # CkTable
 {
   test -n "$1" || error "ck-run argument expected" 1
   test -z "$2" || error "surplus argumets '$2'" 1

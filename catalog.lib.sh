@@ -12,6 +12,7 @@ catalog_lib_load()
   test -d .cllct || mkdir .cllct
 }
 
+
 # Look for exact string match in catalog files
 htd_catalog_find()
 {
@@ -30,6 +31,7 @@ htd_catalog_ck() # CATALOG
   ck_read_catalog "$1"
 }
 
+
 # Run all checksums from catalogs
 htd_catalog_fsck()
 {
@@ -37,6 +39,7 @@ htd_catalog_fsck()
   ck_run_catalog "$@"
 }
 
+# Run all checksums for all catalogs
 htd_catalog_fsck_all()
 {
   ck_run_catalogs
@@ -58,6 +61,7 @@ htd_catalog_check()
     note "Updated status"
   }
 }
+
 
 htd_catalog_status()
 {
@@ -99,7 +103,8 @@ htd_catalog_has_file() # File
 {
   test -n "$CATALOG" || error "CATALOG env expected"
   test -s "$CATALOG" || return 1
-  grep -q "\\<name:\\ ['\"]\?"$(basename "$1") $CATALOG
+
+  grep -q "\\<name:\\ ['\"]\?$(match_grep "$(basename "$1")")" $CATALOG
 }
 
 htd_catalog_add_as_folder()
@@ -109,11 +114,13 @@ htd_catalog_add_as_folder()
 
 htd_catalog_add_file() # File
 {
-  htd_catalog_has_file "$1" && return 1
+  htd_catalog_has_file "$1" && {
+      warn "File '$(basename "$1")' already in catalog"
+      return 1
+  }
 
   { cat <<EOM
-- path: '$1'
-  name: '$(basename "$1")'
+- name: '$(basename "$1")'
   keys:
     ck: $(cksum "$1" | cut -d ' ' -f 1,2)
 EOM
@@ -170,9 +177,9 @@ htd_catalog_copy_by_name() # CATALOG NAME [ DIR | CATALOG ]
   rm $3.tmp
 }
 
-htd_catalog_copy()
+htd_catalog_copy() # CATALOG NAME [ DIR | CATALOG ]
 {
-  htd_catalog_copy_by_name "$CATALOG" "$2" "$3"
+  htd_catalog_copy_by_name "$1" "$2" "$3"
   src_path="$(echo "$record" | jq -r '.path')"
   dest_path="$dest_dir$src_path"
   rsync -azu $src_path $dest_path
