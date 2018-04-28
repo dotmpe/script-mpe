@@ -84,3 +84,4 @@ uris.py
 volume.py
 wordnet.py
 statusdir.sh
+cksum.py

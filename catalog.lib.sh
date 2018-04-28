@@ -6,12 +6,26 @@ catalog_lib_load()
   lib_load ck
   # Catalog files found at CWD
   default_env CATALOGS $(setup_tmpf .catalogs)
-  # Default catalog file
-  default_env CATALOG catalog.yaml
-
-  test -d .cllct || mkdir .cllct
+  # Default catalog file (or relative path) for PWD
+  test -n "$CATALOG_DEFAULT" || {
+    CATALOG_DEFAULT=$(htd_catalog_name) || CATALOG_DEFAULT=catalog.yaml
+  }
+  default_env CATALOG "$CATALOG_DEFAULT"
+  true
 }
 
+
+htd_catalog_name() # [Dir]
+{
+  test -z "$1" && dest_dir=. || {
+    test -d "$1" || return 2
+    fnmatch "*/" "$1" || set -- "$1/"
+    dest_dir="$1"
+  }
+  test -f "$1catalog.yml" && echo "$1catalog.yml"
+  test -f "$1catalog.yaml" && echo "$1catalog.yaml"
+  true
+}
 
 # Look for exact string match in catalog files
 htd_catalog_find()
@@ -115,35 +129,37 @@ htd_catalog_add_as_folder()
 htd_catalog_add_file() # File
 {
   htd_catalog_has_file "$1" && {
-      warn "File '$(basename "$1")' already in catalog"
-      return 1
+    warn "File '$(basename "$1")' already in catalog"
+    return 1
   }
 
+  mtype="$(filemtype "$1")"
+
+  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   { cat <<EOM
 - name: '$(basename "$1")'
+  mediatype: '$mtype'
+  format: '$(file -b "$1")'
+  host: $hostname
   keys:
     ck: $(cksum "$1" | cut -d ' ' -f 1,2)
+    crc32: $(cksum.py -a rhash-crc32 "$1" | cut -d ' ' -f 1,2)
+    md5: $(md5sum "$1" | awk '{print $1}')
+    sha1: $(sha1sum "$1" | awk '{print $1}')
+    sha2: $(shasum -a 256 "$1" | awk '{print $1}')
+    git: $(git hash-object "$1")
 EOM
   } >> $CATALOG
 
-  wherefrom_sh="$(wherefrom "$1" 2>/dev/null)"
-  test -z "$wherefrom_sh" || {
-    eval $wherefrom_sh
-    echo "  source-url: '$url'"
-    echo "  via: '$via'"
-  } >> $CATALOG
+  # TODO: see res/ck.py tlit
+  #fnmatch "text/*" "$mtype" && { {
+  #  echo "    tlit-md5: $(cksum.py -a tlit-md5 --format-from "$mtype" "$1")"
+  #  echo "    tlit-sha1: $(cksum.py -a tlit-sha1 --format-from "$mtype" "$1")"
+  #  echo "    tlit-sha2: $(cksum.py -a tlit-sha256 --format-from "$mtype" "$1")"
+  #} >> $CATALOG ; }
 
-  dob_ts=$(stat -f %B "$1")
-  dob=`date -r $dob_ts +"%Y-%m-%dT%H:%M:%S%z" | sed 's/^\(.*\)\(..\)$/\1:\2/'`
-  dob_utc=`TZ=GMT date -r $dob_ts +"%Y-%m-%dT%H:%M:%SZ"`
-  {
-    echo "  mediatype: '$(filemtype "$1")'"
-    echo "  format: '$(file -b "$1")'"
-	echo "  first-seen-local: $dob"
-	echo "  first-seen: $dob_utc"
-	test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
-	echo "  host: $hostname"
-  } >> $CATALOG
+  htd_catalog_file_wherefrom "$1" >> $CATALOG
+  htd_catalog_file_birth_date "$1" >> $CATALOG
 }
 
 htd_catalog_add() # File..
@@ -152,52 +168,126 @@ htd_catalog_add() # File..
   do
     test -n "$1" -a -e "$1" || error "File or dir expected" 1
     test -d "$1" && {
-      htd_catalog_add_as_folder "$1" || true
+      htd_catalog_add_as_folder "$1" && note "Added folder '$1'" || true
     } || {
-      htd_catalog_add_file "$1" || true
+      htd_catalog_add_file "$1" && note "Added file '$1'" || true
     }
     shift
   done
 }
 
+# Copy record between catalogs (eval record)
 htd_catalog_copy_by_name() # CATALOG NAME [ DIR | CATALOG ]
 {
   test -n "$1" || set -- $CATALOG "$2" "$3"
   record="$( jsotk yaml2json "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
-  test -f "$3" && dest_dir="$(dirname "$3")" || {
-    test -d "$3" || return 2
-    dest_dir="$3"
-    test -f "$3/catalog.yml" && set -- "$1" "$2" "$3/catalog.yml"
-    test -f "$3/catalog.yaml" && set -- "$1" "$2" "$3/catalog.yaml"
+  test -f "$3" && dest_dir="$(dirname "$3")/" || {
+    set -- "$1" "$2" "$(htd_catalog_name "$3")" || return
   }
-  fnmatch "*/" "$dest_dir" || dest_dir=$dest_dir/
 
-  mv $3 $3.tmp
-  jsotk yaml2json $3.tmp | eval jq -c \'. += [ $record ]\' | jsotk json2yaml - > $3
-  rm $3.tmp
+  rotate_file "$3" || return
+  jsotk yaml2json $dest | eval jq -c \'. += [ $record ]\' | jsotk json2yaml - > $3
 }
 
-htd_catalog_copy() # CATALOG NAME [ DIR | CATALOG ]
+# Get path for record, or find it by searching for basename
+htd_catalog_record_get_path() # Record [Name]
 {
-  htd_catalog_copy_by_name "$1" "$2" "$3"
-  src_path="$(echo "$record" | jq -r '.path')"
-  dest_path="$dest_dir$src_path"
-  rsync -azu $src_path $dest_path
+  src_path="$(echo "$1" | jq -r '.path')" || return
+  test -n "$src_path" -a "$src_path" != "null" || {
+    test -n "$2" || {
+      set -- "$1" "$(echo "$1" | jq -r '.name')" || return
+    }
+    test -n "$2" -a "$2" != "null" || {
+        error "No name for record" ; return 1 ; }
+    src_path="$(find . -iname "$2")" || return
+  }
+  test -e "$src_path"
+}
+
+# Remove record by name
+htd_catalog_drop() # NAME
+{
+  htd_catalog_drop_by_name "" "$1"
+}
+
+# Remove record and src-file by name
+htd_catalog_delete() # NAME
+{
+  htd_catalog_drop_by_name "" "$1"
+  htd_catalog_record_get_path "$record" "$1" && {
+    rm -v "$src_path" || return
+  } || {
+    warn "No file to delete, '$1' is already gone"
+  }
 }
 
 htd_catalog_drop_by_name() # [CATALOG] NAME
 {
   test -n "$1" || set -- $CATALOG "$2"
+
+  backup_file "$1" || return
   jsotk yaml2json $1 |
       jq -c ' del( .[] | select(.name=="'"$2"'")) ' |
       sponge | jsotk json2yaml - $1
 }
 
+# Copy record and file
+htd_catalog_copy() # CATALOG NAME [ DIR | CATALOG ]
+{
+  htd_catalog_copy_by_name "$1" "$2" "$3" || return
+  htd_catalog_record_get_path "$record" "$2"
+  mkdir -v "$(dirname "$dest_dir$src_path")"
+  rsync -avzu $src_path $dest_dir$src_path
+}
+
+# Transfer record and move file
 htd_catalog_move() # [CATALOG] NAME [ DIR | CATALOG ]
 {
-  htd_catalog_copy_by_name "$1" "$2" "$3"
-  src_path="$(echo "$record" | jq -r '.path')"
-  dest_path="$dest_dir$src_path"
-  mv -v $src_path $dest_path
+  htd_catalog_copy_by_name "$1" "$2" "$3" || return
+  htd_catalog_record_get_path "$record" "$2"
+  mkdir -v "$(dirname "$dest_dir$src_path")"
+  mv -v $src_path $dest_dir$src_path || return
   htd_catalog_drop_by_name "$1" "$2"
+}
+
+# Echo src/via URL YAML key-values to append to catalog in raw mode
+htd_catalog_file_wherefrom() # Src-File
+{
+  wherefrom_sh="$(wherefrom "$1" 2>/dev/null)"
+  test -z "$wherefrom_sh" || {
+    eval $wherefrom_sh
+    echo "  source-url: '$url'"
+    echo "  via: '$via'"
+  }
+}
+
+# Echo first-seen YAML key-values to append to catalog in raw mode
+htd_catalog_file_birth_date() # Src-File
+{
+  dob_ts=$(stat -f %B "$1")
+  dob=$(date -r $dob_ts +"%Y-%m-%dT%H:%M:%S%z" | sed 's/^\(.*\)\(..\)$/\1:\2/')
+  dob_utc=$(TZ=GMT date -r $dob_ts +"%Y-%m-%dT%H:%M:%SZ")
+  echo "  first-seen-local: '$dob'"
+  echo "  first-seen: '$dob_utc'"
+}
+
+# Set one key/string-value pair for one record in catalog
+htd_catalog_set() # [Catalog] Entry-Id Key Value [Entry-Key]
+{
+  test -n "$1" || set -- "$CATALOG" "$2" "$3" "$4" "$5"
+  test -n "$2" || error "catalog-set: 2:Entry-ID required" 1
+  test -n "$3" || error "catalog-set: 3:Key required" 1
+  test -n "$4" || error "catalog-set: 4:Value required" 1
+  test -n "$5" || set -- "$1" "$2" "$3" "$4" "name"
+
+  backup_file "$1" || return
+  {
+    jsotk yaml2json $1 |
+      jq -c "map(select(.$5==\""$2"\").$3 |= \"$4\" )" |
+      sponge | jsotk json2yaml - $1
+  } || { r=$?
+    # undo copy
+    mv "$dest" "$1"
+    return $?
+  }
 }

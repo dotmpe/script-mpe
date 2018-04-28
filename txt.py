@@ -5,7 +5,7 @@
 Commands:
   - todolist - TODO.txt format parser
   - urllist - annotated URL list
-  - doctree
+  - doctree - annotate text documents
   - memdebug
   - help [CMD]
 """
@@ -95,7 +95,7 @@ def cmd_doctree(LIST, DIR, g):
     if not DIR: DIR = ['.']
 
     docid = ctx.ws.id_path + '.catalog'
-    if docid in ctx.docs:
+    if ctx.docs and docid in ctx.docs:
         catalog = couch.catalog.Catalogdoc.load(ctx.docs, name)
 
     else:
@@ -193,6 +193,7 @@ def main(opts):
     """
     Execute command.
     """
+    global ctx
 
     ws = res.Workdir.require()
     ctx.ws = ws

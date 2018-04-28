@@ -1,4 +1,4 @@
-#!/usr/bin/env  python
+#!/usr/bin/env python
 """
 :Created: 2017-05-06
 
@@ -142,24 +142,18 @@ magnet. Otherwise open files and add the generated magnet as a reference.
 """ % ( __version__, )
 
 from datetime import datetime
-import hashlib
 import sys
 import os
 import re
-import subprocess
 import tempfile
 import urllib
 import urllib2
 from StringIO import StringIO
 
-
 import uriref
-import libcmd_docopt
-
-from confparse import yaml_load, yaml_safe_dumps
-
-mhashlib= None # FIXME: malloc troubs
-#import mhashlib # py-mhash 1.2
+from script_mpe import libcmd_docopt
+from script_mpe.confparse import yaml_load, yaml_safe_dumps
+from script_mpe.res.ck import *
 
 
 def cmd_magnet_rw(FILE, URI, CTX, DN, XS, AS, XT, opts, settings):
@@ -449,63 +443,16 @@ if mhashlib:
     })
 
 
-
-import zlib
-
-class crc32(object):
-    name = 'crc32'
-    digest_size = 4
-    block_size = 1
-
-    def __init__(self, arg=''):
-        self.__digest = 0
-        self.update(arg)
-
-    def copy(self):
-        copy = super(self.__class__, self).__new__(self.__class__)
-        copy.__digest = self.__digest
-        return copy
-
-    def digest(self):
-        return self.__digest
-
-    def hexdigest(self):
-        return '{:08x}'.format(self.__digest)
-
-    def update(self, arg):
-        self.__digest = zlib.crc32(arg, self.__digest) & 0xffffffff
-
-# Now you can define hashlib.crc32 = crc32
-import hashlib
-hashlib.crc32 = crc32
-
-# Python > 2.7: hashlib.algorithms += ('crc32',)
-hashlib.algorithms += ('crc32', )
-# Python > 3.2: hashlib.algorithms_available.add('crc32')
-
-
-
 for algo in hashlib.algorithms:
     k = 'urn:%s' % algo
     if k in resolvers: continue
     resolvers[k] = lambda data, info, path: getattr(hashlib, algo)(data).hexdigest().upper()
 
 
-lt = None
-try:
-  import libtorrent as lt
-except ImportError as e:
-  pass
-
 if lt:
     resolvers['urn:btih'] = lambda data, info, path: lt.torrent_info(data).info_hash()
 
 
-def rhash(path, name):
-    cmd = [ 'rhash', '--simple', '--%s' % name, path ]
-    line = subprocess.check_output(cmd)
-    line = line.split('  ')
-    return line[0]
 resolvers['urn:crc32'] = lambda data, info, path: rhash(path, 'crc32').upper()
 resolvers['urn:tree:tiger'] = lambda data, info, path: rhash(path,
         'tiger').upper()

@@ -43,7 +43,7 @@ ck_run() # CkTable
   test -z "$2" || error "surplus argumets '$2'" 1
   ext="$(filenamext "$1")"
   { case "$ext" in
-        sha256 )
+        sha2 | sha256 )
               shasum -a 256 -c $1 || return $?
             ;;
         ck )
@@ -64,7 +64,7 @@ ck_read_catalog()
       catalog_sh="$(dotname "$(pathname "$1" .yaml .yml)")"
 
   # TODO: look for document type, version
-  eval $( jsotk.py --output-prefix=catalog to-flat-kv "$1" || exit $? ) ||
+  eval $( jsotk.py --output-prefix=catalog to-flat-kv "$1") ||
     return $?
 
   while true
@@ -123,7 +123,7 @@ ck_run_catalog()
       test -e "$name" || { error "No file '$name'" ; return 1 ; }
       case "$ck" in
 
-          # Special case for some larger SHA-1
+          # Special case SHA-2
           sha2* | sha3* | sha5* )
                 l=$(echo $ck | cut -c4-)
                 echo "$key  $name" | { r=0
@@ -135,7 +135,7 @@ ck_run_catalog()
                 }
               ;;
 
-          # Special case for CK (CRC/Size)
+          # Special case for CK (a CRC+Size)
           ck )
                 cks=$(echo "$key" | cut -f 1 -d ' ')
                 sz=$(echo "$key" | cut -f 2 -d ' ')

@@ -61,7 +61,7 @@ htd_load()
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
   default_env Htd-BuildDir .build
   test -n "$HTD_BUILDDIR" || exit 121
-  test -d "$HTD_BUILDDIR" || mkdir -p $HTD_BUILDDIR
+  #test -d "$HTD_BUILDDIR" || mkdir -p $HTD_BUILDDIR
   export B=$HTD_BUILDDIR
 
   #default_env Couch-URL "http://localhost:5984"
@@ -3783,9 +3783,7 @@ htd_defargs_repo__git_files=/srv/git-local/$NS_NAME/*.git
 #
 htd_man_1__git_grep='Run git-grep for every repository
 
-
-, passing arguments
-to git-grep.
+passing arguments to git-grep.
 
 With `-C` interprets argument as shell command first, and passes ouput as
 argument(s) to `git grep`. Defaults to `git rev-list --all` output (which is no
@@ -9626,22 +9624,51 @@ htd_als__venv=ispyvenv
 
 htd_man_1__catalog='Build file manifests
 
-  ck CATALOG
+Sets of catalogs
+
+  [CATALOGS=.catalogs] list
+    find catalog documents, cache full paths at CATALOG and list pathnames
+  [CATALOG_DEFAULT=] name [DIR]
+    select and set CATALOG filename from existing catalog.y*ml
+  find
+    for every catalog from "htd catalog list", look for literal string in it
+
+Single catalogs
+
+  [CATALOG=] list-files
+    List file names or paths from catalog
+  [CATALOG=] check
+    Update cached status bits (see validate and fsck)
+  [CATALOG=] status
+    Run "check" and set return code according to status 
+  ck [CATALOG}
     print file checksums
-  fsck CATALOG
+  fsck [CATALOG]
     verify file checksums
-  validate CATALOG
+  validate [CATALOG]
     verify catalog document schema
-  [CATALOG=] list
-    find catalog documents, cache paths and list pathnames
-  list-files
-    ..
-  add [DIR|FILE]
-    ..
-  drop-by-name CATALOG NAME
-    ..
+
+Single catalog entry
+
+  [CATALOG=] add [DIR|FILE]
+    Add file, recording name, basic keys, and other file metadata.
+    TODO: add dir with category
+  [CATALOG=] get-path NAME
+  Get src-file (full path) for record
+  [CATALOG=] drop NAME
+    Remove record
+  [CATALOG=] delete NAME
+    Remove record and src-file
+
+  drop-by-name [CATALOG] NAME
+    See drop.
+  copy NAME [DIR|CATALOG]
+    Copy record and file to another catalog and relative src-path
   move NAME [DIR|CATALOG]
-    ..
+    Copy and drop record + delete file
+
+  set [CATALOG] NAME KEY VALUE
+    Add/set any string value for record.
 '
 htd__catalog()
 {
@@ -9650,9 +9677,7 @@ htd__catalog()
   htd_catalog_$action "$@" || return $?
 }
 
-htd_man_1__catalog_list='Find local catalogs'
 htd_als__catalogs='catalog list'
-htd_man_1__catalog_fsck='File-check entries from catalog with checksums'
 htd_als__fsck_catalog='catalog fsck'
 
 

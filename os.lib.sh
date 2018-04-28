@@ -20,8 +20,8 @@ dirname_()
 {
   while test $1 -gt 0
     do
-        set -- $(( $1 - 1 ))
-        set -- "$1" "$(dirname "$2")"
+      set -- $(( $1 - 1 ))
+      set -- "$1" "$(dirname "$2")"
     done
   echo "$2"
 }
@@ -146,6 +146,20 @@ filemtype() # File..
           file -bi "$1" || return 1
         ;;
       * ) error "filemtype: $uname?" 1 ;;
+    esac; shift
+  done
+}
+
+# Description of file contents, format
+fileformat()
+{
+  while test $# -gt 0
+  do
+    case "$uname" in
+      Darwin | Linux )
+          file -b "$1" || return 1
+        ;;
+      * ) error "fileformat: $uname?" 1 ;;
     esac; shift
   done
 }
@@ -431,10 +445,10 @@ line_count()
 
 xsed_rewrite()
 {
-    case "$uname" in
-        Darwin ) sed -i.applyBack "$@";;
-        Linux ) sed -i "$@";;
-    esac
+  case "$uname" in
+    Darwin ) sed -i.applyBack "$@";;
+    Linux ) sed -i "$@";;
+  esac
 }
 
 get_uuid()
@@ -566,14 +580,14 @@ filter_dirs()
   test "$1" = "-" && {
     while read d
     do
-        test -d "$d" || continue
-        echo "$d"
+      test -d "$d" || continue
+      echo "$d"
     done
   } || {
     for d in "$@"
     do
-        test -d "$d" || continue
-        echo "$d"
+      test -d "$d" || continue
+      echo "$d"
     done
   }
 }
@@ -583,14 +597,14 @@ filter_files()
   test "$1" = "-" && {
     while read f
     do
-        test -f "$f" || continue
-        echo "$f"
+      test -f "$f" || continue
+      echo "$f"
     done
   } || {
     for f in "$@"
     do
-        test -f "$f" || continue
-        echo "$f"
+      test -f "$f" || continue
+      echo "$f"
     done
   }
 }
@@ -624,9 +638,9 @@ find_num()
   local c=0
   find "$1" -iname "$2" | while read path
   do
-      c=$(( $c + 1 ))
-      test $c -le $3 || return 1
-      echo "$path"
+    c=$(( $c + 1 ))
+    test $c -le $3 || return 1
+    echo "$path"
   done
 }
 
@@ -640,26 +654,43 @@ find_broken_symlinks()
 
 abbrev_rename()
 {
-    while read oldpath junk newpath
+  while read oldpath junk newpath
+  do
+    local idx=1
+    while test "$(echo "$oldpath" | cut -c 1-$idx )" = "$(echo "$newpath" | cut -c 1-$idx )"
     do
-        local idx=1
-        while test "$(echo "$oldpath" | cut -c 1-$idx )" = "$(echo "$newpath" | cut -c 1-$idx )"
-        do
-            idx=$(( $idx + 1 ))
-        done
-        local end=$(( $idx - 1 ))
-        echo "Backed up path: $(echo $oldpath | cut -c 1-$end){$(echo $oldpath | cut -c $idx-) => $(echo $newpath | cut -c $idx-)}"
+        idx=$(( $idx + 1 ))
     done
+    local end=$(( $idx - 1 ))
+    echo "Backed up path: $( echo $oldpath | cut -c 1-$end 2>/dev/null){$(echo $oldpath | cut -c $idx- 2>/dev/null) => $(echo $newpath | cut -c $idx- 2>/dev/null)}"
+  done
 }
 
-rotate_file()
+# Add number to file, provide extension to split basename before adding suffix
+number_file() # [action=mv] Name [Ext]
 {
   local dir=$(dirname "$1") cnt=1 base=$(basename "$1")
+
   while test -e "$dir/$base-$cnt$2"
   do
     cnt=$(( $cnt + 1 ))
   done
-  { mv -v "$1" "$dir/$base-$cnt$2" || return $?; } | abbrev_rename
+  dest=$dir/$base-$cnt$2
+
+  test -n "$action" || action=mv
+  { $action -v "$1" "$dest" || return $?; } | abbrev_rename
+}
+
+# make numbered copy, see number-file
+backup_file() # [action=mv] Name [Ext]
+{
+  action=cp number_file "$1"
+}
+
+# rename to numbered file, see number-file
+rotate_file() # [action=mv] Name [Ext]
+{
+  action=mv number_file "$1"
 }
 
 wherefrom()

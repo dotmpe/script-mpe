@@ -1,9 +1,15 @@
 #!/bin/sh
+
 set -e
-  
+
+./txt.py doctree docs.list .
+exit $?
+
+
 #diff build/test/list1.txt build/test/list2.txt
 #diff build/test/list1.txt build/test/list3.txt
 exit $?
+
 
 cp test/var/list.txt/list1.txt build/test/list1.txt
 { echo 'Id-5: tralala'; } | list.py update-list build/test/list1.txt
@@ -17,23 +23,24 @@ echo ok 2
 
 exit $?
 
+
 diff test/var/list.txt/list1.txt build/test/list1.txt
 exit $?
 
 mkdir -vp build/test
 cp test/var/list.txt/list1.txt build/test/list1.txt
 { echo 'Id-5:'; } | list.py update-list build/test/list1.txt
-
 exit $?
 
 
-test sh-finfo.sqlite ||
-  db_sa.py --dbref=sh-finfo.sqlite init
+# TODO: create mediameta records, metadata cards with id, format, key, date info etc.
+finfo-app.py --name-and-categorize .
+exit $?
 
+test sh-finfo.sqlite || db_sa.py --dbref=sh-finfo.sqlite init
 finfo.py --dbref=sh-finfo.sqlite --update .
-
-
 exit $?
+
 
 hier.py import tags.list
 exit $?

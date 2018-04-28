@@ -57,9 +57,8 @@ mediameta_genre_table = Table('mediameta_genre', init.SqlBase.metadata,
 class Mediameta(core.Node):
 
     """
-    Metadata for certain distributions, releases, episodes, volumes, etc.
+    Basic metadata card
     """
-
     __tablename__ = 'mm'
     __mapper_args__ = {'polymorphic_identity': 'mediameta'}
 
@@ -78,9 +77,7 @@ class Mediameta(core.Node):
     #mediaformat = relationship(Mediaformat,
     #        primaryjoin=mediaformat_id==Mediaformat.mf_id)
 
-
     #genres = relationship(Genre, secondary=mediameta_genre_table)
-
 
 
 models = [ Mediatype, MediatypeParameter, Genre, Mediameta ]
