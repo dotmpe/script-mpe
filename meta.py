@@ -14,33 +14,39 @@ from script_mpe.res.metafile import MetafileFile, Meta, Metadir, Metafile
 
 
 
-vdir = list(Volumedir.find())
-if not vdir:
-    print("No volume here")
-    sys.exit(1)
+if __name__ == '__main__':
+    args = sys.argv[1:]
+    if '-h' in args:
+        print(__doc__)
+        sys.exit(0)
 
-meta = Meta(vdir)
-print(meta)
+    vdir = list(Volumedir.find())
+    if not vdir:
+        print("No volume here")
+        sys.exit(1)
 
-if sys.argv[1:]:
+    meta = Meta(vdir)
+    print(meta)
 
-    for path in sys.argv[1:]:
+    if args:
 
-        mff = MetafileFile(path)
-        try:
+        for path in args:
+
             mff = MetafileFile(path)
-        except Exception as e:
-            print(path, e, file=sys.stderr)
-            continue
+            try:
+                mff = MetafileFile(path)
+            except Exception as e:
+                print(path, e, file=sys.stderr)
+                continue
 
-        if not os.path.exists(mff.path):
-            print('Missing', mff.path, mff.data.keys())
+            if not os.path.exists(mff.path):
+                print('Missing', mff.path, mff.data.keys())
 
-else:
+    else:
 
-    #meta.dir.walk()
-    #for fn in Dir.walk('.'):
-    #    print Metafile(fn)
-    mf = Metafile(File('meta.py'))
-    print(mf)
-    print(mf.atime)
+        #meta.dir.walk()
+        #for fn in Dir.walk('.'):
+        #    print Metafile(fn)
+        mf = Metafile(File('meta.py'))
+        print(mf)
+        print(mf.atime)

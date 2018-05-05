@@ -1,4 +1,7 @@
 """
+:Created: 2017-10-03
+:updated: 2017-12-09
+
 Simple command-line program setup with docopt.
 
 Parse options using docopt, use data as a optparse.Values alike.
@@ -6,12 +9,14 @@ And match arguments and options with e.g. command handler function signature
 arguments by name getting for function arguments.
 """
 from __future__ import print_function
+import os
 import sys
 import inspect
-from pprint import pformat
+import resource
 
 import docopt
 
+import lib
 import confparse
 import log
 
@@ -113,15 +118,15 @@ def select_kwdargs(handler, settings, **override):
         else:
             func_arg_vars[i] = None
     # Set values for keywords arguments
-    if not func_defaults:
-        func_defaults = {}
-    for k, v in func_defaults.items():
-        if k in settings.kwdarg_aliases:
-            k = settings.kwdarg_aliases[k]
-        if k in override:
-            func_defaults[k] = override[k]
-        elif k in settings:
-            func_defaults[k] = settings[k]
+    #if not func_defaults:
+    func_defaults = {} # XXX: should be tuple of value items
+    #for v in func_defaults:#.items():
+    #    if k in settings.kwdarg_aliases:
+    #        k = settings.kwdarg_aliases[k]
+    #    if k in override:
+    #        func_defaults[k] = override[k]
+    #    elif k in settings:
+    #        func_defaults[k] = settings[k]
     return func_arg_vars, func_defaults
 
 
@@ -145,9 +150,9 @@ def get_cmd_handlers(scope, prefix='cmd_'):
     """
 
     n = None
-    cmdids = [ ( n[4:].split('_'), scope[n] )
+    cmdids = [ ( n[len(prefix):].split('_'), scope[n] )
             for n in scope
-            if n.startswith('cmd_') ]
+            if n.startswith(prefix) ]
     commands = {}
     for path, handler in cmdids:
         _commands = commands
@@ -203,21 +208,44 @@ def run_commands(commands, settings, opts):
             if ret: return ret # non-zero exit
 
 
-def cmd_help():
+def cmd_help(CMD):
     cmds = sys.modules['__main__'].commands
-    for c, cmd in cmds.items():
-        if isinstance(cmd, dict):
-            print(log.format_str("{blue}%s{default}" % c))
-            for sc, scmd in cmd.items():
-                print(log.format_str("  {bblue}%s{default}" % (sc)))
-                doc = scmd.__doc__ and ' '.join(map(str.strip,
-                        scmd.__doc__.split('\n'))) or '..'
+    if CMD and CMD not in cmds:
+        print(sys.modules['__main__'].__doc__.strip())
+        print("\nUsage:\n  hier.py help [ %s ]" % " | ".join(cmds.keys()))
+    else:
+        for c, cmd in cmds.items():
+            if CMD and c != CMD:
+                continue
+            if isinstance(cmd, dict):
+                print(log.format_str("{blue}%s{default}" % c))
+                for sc, scmd in cmd.items():
+                    print(log.format_str("  {bblue}%s{default}" % (sc)))
+                    doc = scmd.__doc__ and ' '.join(map(str.strip,
+                            scmd.__doc__.split('\n'))) or '..'
+                    print(log.format_str("    {bwhite}%s{default}" % doc))
+            else:
+                print(log.format_str("{bblue}%s{default}" % c))
+                doc = cmd.__doc__ and ' '.join(map(str.strip,
+                        cmd.__doc__.split('\n'))) or '..'
                 print(log.format_str("    {bwhite}%s{default}" % doc))
-        else:
-            print(log.format_str("{bblue}%s{default}" % c))
-            doc = cmd.__doc__ and ' '.join(map(str.strip,
-                    cmd.__doc__.split('\n'))) or '..'
-            print(log.format_str("    {bwhite}%s{default}" % doc))
+
+
+def cmd_memdebug(settings):
+    # peak memory usage (bytes on OS X, kilobytes on Linux)
+    res_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    if os.uname()[0] == 'Linux':
+        res_usage /= 1024; # kilobytes?
+    # XXX: http://stackoverflow.com/questions/938733/total-memory-used-by-python-process
+    #res_usage /= resource.getpagesize()
+
+    db_size = os.path.getsize(os.path.realpath(settings.dbref[10:]))
+    for l, v in (
+            ( 'Storage Size', lib.human_readable_bytesize( db_size ) ),
+            ( 'Resource Usage', lib.human_readable_bytesize(res_usage) ),
+        ):
+            log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
+
 
 def init_config(path, defaults={}, overrides={}, persist=[]):
 
@@ -243,3 +271,10 @@ def init_config(path, defaults={}, overrides={}, persist=[]):
             settings.volatile.append(k)
         setattr(settings, k, v)
     return settings
+
+def static_vars_from_env(usage, *specs):
+    for envname, default in specs:
+        value = os.getenv(envname, default)
+        if value is not default:
+            usage = usage.replace( default, value )
+    return usage

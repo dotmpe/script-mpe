@@ -198,7 +198,7 @@ daemonize_init()
 {
   test -z "$BOX_INIT" || return 1
   export SCRIPTPATH=$scriptpath
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   . $scriptpath/util.sh
   box_run_sh_test
   lib_load main box darwin

@@ -3,10 +3,10 @@ One unit-test on the logic in pd-meta clean-mode
 """
 import unittest
 import os, sys
-
-import pd_meta
-from confparse import yaml_load, yaml_safe_dumps, Values
 from StringIO import StringIO
+
+from script_mpe import pd_meta
+from script_mpe.confparse import yaml_load, yaml_safe_dumps, Values
 
 
 def V(**kw):
@@ -102,5 +102,3 @@ def get_cases():
 
 if __name__ == '__main__':
     unittest.main()
-
-

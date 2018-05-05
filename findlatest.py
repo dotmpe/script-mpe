@@ -59,4 +59,8 @@ def main():
                 print(paths[latest])
 
 if __name__ == '__main__':
+    if '-h' in sys.argv[1:]:
+        print(__doc__)
+        sys.exit(0)
+
     main()

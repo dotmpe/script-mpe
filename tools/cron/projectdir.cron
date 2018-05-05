@@ -1,0 +1,2 @@
+# TODO: easier cron config. For now piggy-back on ~/htdocs/tools/cron.d 5min schedule.
+*/3 * * * * projectdir.sh update-master

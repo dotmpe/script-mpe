@@ -1,8 +1,23 @@
 Bourne Shell Version Control Wrapper
 ====================================
 
-Deal with SCM checkout directories. GIT.
+Deal with SCM checkout directories. GIT mostly.
+Basics for SVN, Mercurial and Bazaar NG too but not much.
+Not every concept will map well across types.
 
+Features
+  * `Shell Lib <test/vc-lib-spec.bats>`__
+  * `Shell Frontend <test/vc-spec.bats>`__
+
+  `Manage project checkouts <test/htd-project-checkout.feature>`__
+      - Create checkout
+      - Update checkout
+      - Report on checkout state
+      - Sync checkout
+      - Cleanup checkout
+
+  - Manage changes: commit / distribute checkout
+  - Manage changes: sync / clean checkout
 
 UI
 --

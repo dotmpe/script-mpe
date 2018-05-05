@@ -38,11 +38,8 @@ w" | ed -s $file_name
 }
 
 
-# Replace entire line using Sed
-file_replace_at_spc=" ( FILE:LINE | ( FILE LINE ) ) INSERT "
-# file-replace-at 1:file-name[:line-number] 2:content
-# file-replace-at 1:file-name 2:line-number 3:content
-file_replace_at()
+# Replace entire line using Sed.
+file_replace_at() # ( FILE:LINE | ( FILE LINE ) ) INSERT
 {
   test -n "$*" || error "arguments required" 1
   test -z "$4" || error "too many arguments" 1
@@ -66,8 +63,8 @@ file_replace_at()
 }
 
 
-# 1:where-grep 2:file-path
-file_where_grep()
+# Quietly get the first grep match' into where-line and parse out line number
+file_where_grep() # 1:where-grep 2:file-path
 {
   test -n "$1" || error "where-grep arg required" 1
   test -e "$2" -o "$2" = "-" || error "file-path or input arg required" 1
@@ -75,7 +72,9 @@ file_where_grep()
   line_number=$(echo "$where_line" | sed 's/^\([0-9]*\):\(.*\)$/\1/')
 }
 
-file_where_grep_tail()
+
+# Like file-where-grep but grep starting at and after start-line if given.
+file_where_grep_tail() # 1:where-grep 2:file-path [3:start-line]
 {
   test -n "$1" || error "where-grep arg required" 1
   test -e "$2" || error "file expected '$1'" 1
@@ -90,6 +89,32 @@ file_where_grep_tail()
 }
 
 
+# Start at Line, verbosely output that line and all before matching Grep.
+# Stops at non-matching line, returns 0. first-line == 3:Line for not match
+grep_to_first() # 1:Grep 2:File-Path 3:Line
+{
+  while true
+  do
+    tail -n +$3 "$2" | head -n 1 | grep -q "$1" || break
+    set -- "$1" "$2" "$(( $3 - 1 ))"
+  done
+  first_line=$3
+}
+
+
+# Like grep-to-last but go backward matching for Grep.
+grep_to_last() # 1:Grep 2:File-Path 3:Line
+{
+  while true
+  do
+    tail -n +$3 "$2" | head -n 1 | grep -q "$1" || break
+    set -- "$1" "$2" "$(( $3 + 1 ))"
+  done
+  first_line=$3
+}
+
+
+# Like file-where-grep but set line-numer -= 1
 file_where_before()
 {
   file_where_grep "$@"
@@ -97,8 +122,7 @@ file_where_before()
 }
 
 
-# 1:where-grep 2:file-path 3:content
-file_insert_where_before()
+file_insert_where_before() # 1:where-grep 2:file-path 3:content
 {
   local where_line= line_number=
   test -e "$2" || error "no file $2" 1
@@ -112,7 +136,7 @@ file_insert_where_before()
 
 
 # Split file at line in two base on match, discard matched line
-split_file_where_grep()
+split_file_where_grep() # Grep [file-or-stdin]
 {
   local line_number= tmpf=
   test -e "$2" || {
@@ -137,8 +161,7 @@ split_file_where_grep()
 
 
 # Truncate whole, trailing or middle lines of file.
-# file-truncate-lines 1:file [2:start_line=0 [3:end_line=]]
-file_truncate_lines()
+file_truncate_lines() # 1:file [2:start_line=0 [3:end_line=]]
 {
   test -f "$1" || error "file-truncate-lines FILE '$1'" 1
   test -n "$2" && {
@@ -215,29 +238,44 @@ func_comment()
   test -n "$1" || error "function name expected" 1
   test -n "$2" -a -e "$2" || error "file expected: '$2'" 1
   test -z "$3" || error "surplus arguments: '$3'" 1
-  # find function line number, or return 0
-  grep_line="$(grep -n "^$1()" "$2" | cut -d ':' -f 1)"
-  case "$grep_line" in [0-9]* ) ;; * ) return 0;; esac
+
+  # find function line number, or return 1 ending function for no comment
+  grep_line="$(grep -n "^\s*$1()" "$2" | cut -d ':' -f 1)"
+  case "$grep_line" in [0-9]* ) ;; * ) return 1 ;; esac
+
   lines=$(echo "$grep_line" | count_words)
   test $lines -gt 1 && {
     error "Multiple lines for function '$1'"
     return 1
   }
-  # get line before function line
-  func_leading_line="$(head -n +$(( $grep_line - 1 )) "$2" | tail -n 1)"
-  # return if exact line is a comment
-  echo "$func_leading_line" | grep -q '^\s*#\ ' && {
-    echo "$func_leading_line" | sed 's/^\s*#\ //'
-  } || noop
+
+  # find first comment line
+  grep_to_first '^\s*#' "$2" "$(( $grep_line - 1 ))"
+
+  # return and reformat comment lines
+  source_lines "$2" $first_line $grep_line | sed -E 's/^\s*#\ ?//'
 }
 
+
+# TODO: Return matching lines, going backward starting at <line>
+grep_all_before() # File Line Grep
+{
+  while true
+  do
+    # get line before function line
+    func_leading_line="$(head -n +$2 "$1" | tail -n 1)"
+    echo "$func_leading_line" | grep -q "$3" && {
+      echo "$func_leading_line"
+    } || break
+    set -- "$1" "$(( $2 - 1 ))" "$3"
+  done
+}
 
 header_comment()
 {
   read_file_lines_while "$1" 'echo "$line" | grep -qE "^\s*#.*$"' || return $?
   export last_comment_line=$line_number
 }
-
 
 # Echo exact contents of the #-commented file header, or return 1
 # backup-header-comment file [suffix-or-abs-path]
@@ -252,20 +290,33 @@ backup_header_comment() # Src-File [.header]
 }
 
 
+# NOTE: its a bit fuzzy on the part after '<id>()' but works
+
 list_functions() # Sh-Files...
 {
   test -n "$1" || set -- $0
-  for file in $*
+  for file in $@
   do
     test_out list_functions_head
     trueish "$list_functions_scriptname" && {
-      grep '^[A-Za-z0-9_\/-]*()$' $file | sed "s#^#$file #"
+      grep '^\s*[A-Za-z0-9_\/-]*().*$' $file | sed "s#^#$file #"
     } ||
-      grep '^[A-Za-z0-9_\/-]*()$' $file
+      grep '^\s*[A-Za-z0-9_\/-]*().*$' $file
     test_out list_functions_tail
   done
 }
 
+find_functions() # Grep Sh-Files
+{
+  local grep="$1" ; shift
+  falseish "first_match" && first_match=
+  for file in $@
+  do
+    grep -q '^\s*'"$grep"'().*$' $file || continue
+    echo "$file"
+    test -n "$first_match" || break
+  done
+}
 
 # Return span of lines from Src, starting output at Start-Line and ending
 # Span-Lines later, or at before End-Line.
@@ -316,7 +367,10 @@ function_linenumber() # Func-Name File-Path
 {
   test -n "$1" -a -e "$2" || error "function-linenumber FUNC FILE" 1
   file_where_grep "^$1()\(\ {\)\?$" "$2"
-  test -n "$line_number" || return 1
+  test -n "$line_number" || {
+    error "No line-nr for '$1' in '$2'"
+    return 1
+  }
 }
 
 
@@ -370,6 +424,7 @@ cut_function()
 setup_temp_src()
 {
   test -n "$UCONFDIR" || error "metaf UCONFDIR" 1
+  mkdir -p "$UCONFDIR/temp-src"
   setup_tmpf "$@" "$UCONFDIR/temp-src"
 }
 
@@ -378,12 +433,14 @@ setup_temp_src()
 # Either copy-only, or replaces code with source line to new external script.
 copy_paste_function() # Func-Name Src-File
 {
-  test -n "$1" -a -f "$2" || return $?
+  test -n "$1" -a -f "$2" ||
+      error "copy-paste-function: Func-Name File expected " $?
   debug "copy_paste_function '$1' '$2' "
   var_isset copy_only || copy_only=1
   test -n "$cp" || {
     test -n "$cp_board" || cp_board="$(get_uuid)"
     cp=$(setup_temp_src .copy-paste-function.sh $cp_board)
+    test -n "$cp" || error copy-past-temp-src-required 1
   }
   function_linenumber "$@" || return
   local at_line=$(( $line_number - 1 ))
@@ -429,6 +486,7 @@ EOF
     info "copy-paste ok"
   }
 }
+
 
 expand_sentinel_line() # Src-File Line-Number
 {

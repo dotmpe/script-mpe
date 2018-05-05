@@ -4,10 +4,11 @@ jsotk
 =====
 Javascript Object toolkit
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+:Created: 2015-12-28
+:Updated: 2017-12-08
 
-:created: 2015-12-28
-:updated: 2016-05-21
 
+Read, convert, query or combine YAML or JSON-type data.
 
 """
 from __future__ import print_function
@@ -20,9 +21,8 @@ Usage:
     jsotk [options] path [--is-new] [--is-null] [--is-list] [--is-obj]
             [--is-int] [--is-str] [--is-bool] <srcfile> <pathexpr>
     jsotk [options] objectpath <srcfile> <expr>
-    jsotk [options] keys <srcfile> <pathexpr>
-    jsotk [options] items <srcfile> <pathexpr>
-    jsotk [options] (json2yaml|yaml2json) [<srcfile> [<destfile>]]
+    jsotk [options] ( keys | items ) <srcfile> <pathexpr>
+    jsotk [options] ( dump | json2yaml | yaml2json ) [<srcfile> [<destfile>]]
     jsotk [options] (from-kv|to-kv) [<srcfile> [<destfile>]]
     jsotk [options] (from-flat-kv|to-flat-kv) [<srcfile> [<destfile>]]
     jsotk [options] from-args <kv_args>...
@@ -30,7 +30,7 @@ Usage:
     jsotk [options] merge-one <srcfile> <srcfile2> [<destfile>]
     jsotk [options] merge <destfile> <srcfiles>...
     jsotk [options] append <destfile> <pathexpr> [<srcfiles>...]
-    jsotk [options] update <destfile> [<srcfiles>...]
+    jsotk [options] update <destfile> [<srcfiles>...] [--clear-paths=<path>...]
     jsotk [options] update-from-args <srcfiles> <kv-args> <destfile>
     jsotk [options] update-at <destfile> <expr> [<srcfiles>...]
     jsotk [options] encode <srcfile>
@@ -42,7 +42,10 @@ Usage:
 
 Options:
   -q, --quiet   Quiet operations
-  -s, --strict  Strict operations
+  -s, --strict  Strict(er) operations, step over less failure states.
+  --no-strict-types
+                Turn off type checking on updates, ie. overwrite value with
+                different type.
   -p, --pretty  Pretty output formatting.
   -I <format>, --input-format <format>
                 Override input format. See Formats_.
@@ -53,6 +56,8 @@ Options:
                 TODO: default is to autodetect from filename
                 if given, or set to [default: json].
   --no-indices  [default: false]
+  --serialize-datetime=FMT
+                [default: %Y-%m-%dT%H:%M:%SZ]
   --detect-format
   --no-detect-format
                 Auto-detect input/output format based on file-name extension
@@ -60,17 +65,14 @@ Options:
   --output-prefix PREFIX
                 Path prefix for output [default: ]
   --list-update
-                .
   --list-update-nodict
+  --list-union  .
+  --ignore-aliases
                 .
-  --list-union
-                .
-  --no-stdin
-                .
+  --no-stdin    .
   -N, --empty-null
                 Instead of null, print empty line.
-  --line-input
-                Parse input lines separately.
+  --line-input  Parse input lines separately.
                 Only with merge JSON.
   --background  Turns script into socket server. This does not actually fork,
                 detach or do anything else but enter an infinite server loop:
@@ -141,19 +143,31 @@ Dev
   caching needs to be added. jsotk (Sh) frontend is not in use yet.
 - Another improvement may be seeking out SHM filesystem support.
 
+..
+
+  TODO: simplify. Start with good use-case testing and update/merge.. can
+  we not create one command of those. Or change the mode:
+
+  | update src dest dest dest [ or update src src --- dest ]
+  | merge dest src src src [ or merge src src src dest ]
+
+  Ie. update = many dests from one or more src, merge = one or new dest from
+  many src. But both have same behaviour and options to do merge/update/union
+  etc.
+
 """
-import types
 from StringIO import StringIO
+import traceback
+import types
 
 from objectpath import Tree
-
 
 import libcmd_docopt, confparse
 from jsotk_lib import PathKVParser, FlatKVParser, \
         load_data, stdout_data, readers, open_file, \
         get_src_dest_defaults, set_format, get_format_for_fileext, \
         get_dest, get_src_dest, \
-        json_writer, \
+        json_writer, parse_json, \
         deep_union, deep_update, data_at_path, data_check_path, maptype
 
 
@@ -179,7 +193,9 @@ def H_merge_one(ctx):
 
 
 def H_merge(ctx, write=True):
-    """Merge srcfiles into last file. All srcfiles must be same format.
+    """
+    Merge srcfiles into last file. All srcfiles must be same format.
+
     Defaults to src-to-dest noop, iow. '- -' functions identical to
     'dump'.  """
 
@@ -230,6 +246,8 @@ def H_merge(ctx, write=True):
             raise ValueError(data)
 
     if write:
+        if not ctx.opts.flags.quiet:
+            sys.stderr.write("Writing to %s\n" % ctx.opts.args.destfile)
         outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
         return stdout_data( data, ctx, outf=outfile )
     else:
@@ -262,10 +280,21 @@ def H_update(ctx):
     data = load_data( ctx.opts.flags.output_format, updatefile, ctx )
     updatefile.close()
 
+    for cp in ctx.opts.flags.clear_paths:
+        if cp.startswith('['):
+            es = parse_json(cp)
+        else:
+            es = cp.split('/')
+        cl = es.pop()
+        v = data
+        while es:
+            el = es.pop(0)
+            v = v[el]
+        del v[cl]
+
     for src in ctx.opts.args.srcfiles:
         fmt = get_format_for_fileext(src) or ctx.opts.flags.input_format
         mdata = load_data( fmt, open_file( src, 'in', ctx=ctx ), ctx )
-
         deep_update([data, mdata], ctx)
 
     updatefile = get_dest(ctx, 'w+')
@@ -335,11 +364,13 @@ def H_path(ctx):
     try:
         data = data_at_path(ctx, infile)
         infile.close()
-    except (Exception) as e:
+    except (Exception) as err:
         if not ctx.opts.flags.is_new:
             if not ctx.opts.flags.quiet:
-                sys.stderr.write("Error: getting %r: %r" % (
-                    ctx.opts.args.pathexpr, e ))
+                tb = traceback.format_exc()
+                sys.stderr.write(tb)
+                sys.stderr.write("Error: getting %r: %r\n" % (
+                    ctx.opts.args.pathexpr, err ))
             return 1
 
     res = [ ]
@@ -430,10 +461,9 @@ def H_offsets(ctx):
         --keys
         --list-items
 
-    mloatk offsets --key redmine --list-items
-    mloatk offsets --path redmine.image --value
-    mloatk offsets --path redmine.image --value
-
+    jsotk offsets --key redmine --list-items
+    jsotk offsets --path redmine.image --value
+    jsotk offsets --path redmine.image --value
     """
 
 
@@ -497,6 +527,8 @@ for k, h in locals().items():
     handlers[k[2:].replace('_', '-')] = h
 
 
+### Service global(s) and setup/teardown handlers
+
 doc_cache = None
 def prerun(ctx, cmdline):
     global doc_cache
@@ -517,11 +549,8 @@ def main(func, ctx):
 
     Normally this returns after running a single subcommand.
     If backgrounded, There is at most one server per jsotk
-    document. The server remains in the working directory,
-    and while running is used to resolve any calls. Iow. subsequent executions
-    turn into UNIX domain socket clients in a transparent way, and the user
-    command invocation is relayed via line-based protocol to the background
-    server isntance.
+    document. The 'server' remains in the working directory,
+    and while running is used to resolve any calls instead.
 
     """
 
@@ -562,10 +591,8 @@ if __name__ == '__main__':
         opts=libcmd_docopt.get_opts(__usage__)
     ))
     ctx['in'] = ctx['inp']
-    if ctx.opts.flags.version:
-        ctx.opts.cmds = ['version']
-    if not ctx.opts.cmds:
-        ctx.opts.cmds = ['dump']
+    if ctx.opts.flags.version: ctx.opts.cmds = ['version']
+    if not ctx.opts.cmds: ctx.opts.cmds = ['dump']
     if ctx.opts.flags.no_detect_format:
         ctx.opts.flags.detect_format = False
     else:
@@ -575,8 +602,7 @@ if __name__ == '__main__':
         sys.exit( main( ctx.opts.cmds[0], ctx ) )
     except Exception as err:
         if not ctx.opts.flags.quiet:
-            import traceback
             tb = traceback.format_exc()
-            print(tb)
-            print('Unexpected Error:', err)
+            sys.stderr.write(tb)
+            sys.stderr.write('Unexpected Error: %s\n' % err)
         sys.exit(1)

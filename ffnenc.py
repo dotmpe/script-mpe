@@ -5,6 +5,7 @@ import sys
 import os
 from optparse import OptionParser
 
+
 class Application:
     options = None
     args =[]
@@ -32,7 +33,7 @@ class Application:
             print(message)
 
     def error(self,message):
-        print(>> sys.stderr,'ERROR: %s' % message)
+        print('ERROR: %s' % message, file=sys.stderr)
 
     def run(self):
         for path in self.args:

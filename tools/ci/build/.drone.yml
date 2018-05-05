@@ -19,7 +19,7 @@ pipeline:
              python-dev python-yaml python-tox
              libffi-dev ntpdate && sudo rm -rf /var/cache/apt/*
      - echo PATH=$PATH
-     - export PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/
+     - export PATH=$PATH:$HOME/bin:$HOME/bin/vendor/bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/
      #- export PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
      - echo PATH=$PATH
      - SCR_SYS_SH=bash-sh

@@ -56,10 +56,6 @@ match__name_vars()
   local var2 vars
   vars=$(match__name_pattern_opts "$pattern")
   match_name_pattern "$pattern"
-  #echo grep_pattern=$grep_pattern
-  #vars=$MATCH_NAME_VAR_matched
-  #echo path=$path grep_pattern=$grep_pattern
-  #echo vars=$vars
   echo "$path" | grep '^'"$grep_pattern"'$' > /dev/null && {
     for var2 in $vars
     do
@@ -168,11 +164,11 @@ match_main()
 match_lib()
 {
   test -z "$__load_lib" || return 1
-  test -n "$scriptpath"
+  test -n "$scriptpath" || return 1
   export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh
+  __load=ext . $scriptpath/util.sh
   util_init
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   . $scriptpath/main.lib.sh load-ext
   # -- match box init sentinel --
@@ -192,23 +188,20 @@ match_init()
   set --
 }
 
-test "$match_src" != "$0" && {
-  set -- load-ext
-}
-case "$1" in "." | "source" )
-  match_src=$2
-  set -- load-ext
-;; esac
+#test "$match_src" != "$0" && {
+#  set -- load-ext
+#}
+#case "$1" in "." | "source" )
+#  match_src=$2
+#  set -- load-ext
+#;; esac
 
 # Ignore login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  case "$1" in load-ext ) ;; * )
-
-    match_main "$@" || exit $? ;;
-
-  esac
-  ;;
-
-esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "$__load_lib" || {
+    match_main "$@" || exit $?
+  }
+;; esac

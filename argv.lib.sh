@@ -9,7 +9,7 @@
 # Verbose test + return status
 
 # Also simple default helper for lookup-path
-test_exists()
+test_exists() # Local-Name [ Base-Dir ]
 {
   test -z "$2" && {
     test -e "$1" || {
@@ -21,7 +21,7 @@ test_exists()
   }
 }
 
-test_dir()
+test_dir() # Path
 {
   test -d "$1" || {
     error "No such dir: $1"
@@ -29,7 +29,7 @@ test_dir()
   }
 }
 
-test_file()
+test_file() # Path
 {
   test -f "$1" || {
     error "No such file: $1"
@@ -37,18 +37,14 @@ test_file()
   }
 }
 
-test_glob()
+# XXX: test wether glob expands to itself
+test_glob() # Glob
 {
-  for x in $1
-  do
-    test -e "$x" || return 1
-  done
+  test "$(echo $1)" = "$1" && return 1 || return 0
 }
 
-
-# arg-vars VARNAMES VALUES...
 # Echo arguments as sh vars (use with local, export, etc)
-arg_vars()
+arg_vars() # VARNAMES VALUES...
 {
   local vars=$1
   shift
@@ -186,6 +182,9 @@ opt_args()
 }
 
 
+# Parse arguments as options
+# -o123 --opt=123 --any-opt --no-opt
+# o=123 op=123 any_opt=1 opt=0
 define_var_from_opt()
 {
   case "$1" in
@@ -197,9 +196,9 @@ define_var_from_opt()
     --no-* )
         eval $(echo "$1" | cut -c6- | tr '-' '_')=0
       ;;
-    -*=* )
-        key="$(str_strip_rx '=.*$' "$(echo "$1" | cut -c2-)")"
-        value="$(str_strip_rx '^[^=]*=' "$1")"
+    -* )
+        key="$(echo "$1" | cut -c2)"
+        value="$(echo "$1" | cut -c3- )"
         eval $(echo "$key" | tr '-' '_')="$value"
       ;;
     --* )
@@ -208,6 +207,8 @@ define_var_from_opt()
     -* )
         eval $(echo "$1" | cut -c2- | tr '-' '_')=1
       ;;
+
+    * ) error "Not an option '$1'" 1 ;;
   esac
 }
 

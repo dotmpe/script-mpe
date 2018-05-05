@@ -2,8 +2,7 @@
 
 # Keep current shell settings and mute while preparing env, restore at the end
 shopts=$-
-set +x
-set -e
+test -n "$DEBUG" && set -x || set +x
 
 
 # Restore shell -e opt
@@ -16,20 +15,22 @@ case "$shopts"
         set +e
       } || {
         echo "[$0] Note: Shell will exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
-        set -e
       }
     ;;
 
   * )
-      # Turn off again
-      set +e
+      # Turn on again
+      test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" || set -e
     ;;
 
 esac
 
-req_vars scriptname || error "scriptname=$scriptname" 1
-req_vars scriptpath || error "scriptpath=$scriptpath" 1
-req_vars SCRIPTPATH || error "SCRIPTPATH=$SCRIPTPATH" 1
+type error >/dev/null 2>&1 || { echo "std.lib missing" >&2 ; exit 1 ; }
+type req_vars >/dev/null 2>&1 || error "sys.lib missing" 1
+export scriptname scriptpath SCRIPTPATH
+var_isset scriptname || error "scriptname=$scriptname" 1
+var_isset scriptpath || error "scriptpath=$scriptpath" 1
+var_isset SCRIPTPATH || error "SCRIPTPATH=$SCRIPTPATH" 1
 #req_vars LIB || error "LIB=$LIB" 1
 
 req_vars verbosity || export verbosity=7
@@ -44,10 +45,37 @@ BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
 
 project_env_bin node npm lsof
 
+test -n "$TEST_FEATURE_BIN" -o ! -x "./vendor/bin/behat" ||
+    TEST_FEATURE_BIN="./vendor/bin/behat"
+test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behat || true)"
+test -n "$TEST_FEATURE_BIN" && {
+    # Command to run one or all feature tests
+    TEST_FEATURE="$TEST_FEATURE_BIN -f junit -o$TEST_RESULTS.xml --tags ~@todo&&~@skip --suite default"
+    # XXX: --tags '~@todo&&~@skip&&~@skip.travis'
+    # Command to print def lines
+    TEST_FEATURE_DEFS="$TEST_FEATURE_BIN -dl"
+}
+
+test -n "$TEST_FEATURE" || {
+    test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behave || true)"
+    test -n "$TEST_FEATURE_BIN" && {
+        TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo' --tags '~@skip' -k test"
+    }
+}
+
+test -n "$TEST_FEATURE" || {
+    error "Nothing to test features with"
+    TEST_FEATURE="echo"
+}
+
+TAP_COLORIZE="script-bats.sh colorize"
+
+test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results
+test -d "$(dirname "$TEST_RESULTS")" || mkdir -vp "$(dirname "$TEST_RESULTS")"
 
 
 
-## Per-env settings
+## Determine ENV
 
 case "$ENV_NAME" in dev|testing ) ;; *|dev?* )
       echo "Warning: No env '$ENV_NAME', overriding to 'dev'" >&2
@@ -70,6 +98,8 @@ test -n "$ENV_NAME" || {
 
   esac
 }
+
+## Per-env settings
 
 case "$ENV_NAME" in
 
@@ -105,6 +135,7 @@ esac
 
 ## Defaults
 
+
 # Sh
 test -n "$Build_Debug" ||       export Build_Debug=
 test -n "$Build_Offline" ||       export Build_Offline=
@@ -112,8 +143,7 @@ test -n "$Dry_Run" ||           export Dry_Run=
 
 # Sh (projectenv.lib)
 test -n "$Env_Param_Re" || export Env_Param_Re='^\(ENV\|ENV_NAME\|NAME\|TAG\|ENV_.*\)='
-test -n "$Job_Param_Re" ||
-  export Job_Param_Re='^\(Project\|Jenkins\|Build\|Job\)_'
+test -n "$Job_Param_Re" || export Job_Param_Re='^\(Project\|Jenkins\|Build\|Job\|Travis\)_'
 
 # install-dependencies
 #test -n "$Build_Deps_Default_Paths" || export Build_Deps_Default_Paths=1
@@ -139,29 +169,23 @@ test -n "$Jenkins_Skip" || {
 
 
 req_vars RUN_INIT || export RUN_INIT=
-req_vars RUN_FLOW || export RUN_FLOW=
-req_vars RUN_OPTIONS || export RUN_OPTIONS=
 req_vars BUILD_STEPS || export BUILD_STEPS="\
  dev test "
 
-req_vars TEST_COMPONENTS || export TEST_COMPONENTS="\
- basename-reg "
-
-req_vars TEST_FEATURES || export TEST_FEATURES=
-req_vars TEST_OPTIONS || export TEST_OPTIONS=
-
 req_vars TEST_SHELL || export TEST_SHELL=sh
 
-req_vars REQ_SPECS || 
-  export REQ_SPECS="helper util-lib str std os match matchbox vc-lib main"\
-" sh box-lib box-cmd box pd-meta esop disk diskdoc"
+# Required specs, each of these must test OK
+req_vars REQ_SPECS ||
+  export REQ_SPECS="util 1_1-helper"\
+" str sys os std stdio argv bash match.lib vc.lib matchbox src main"\
+" sh box box-cmd box-lib box-src pd-meta finfo table package"
 
+# Specs for report but not counting in final test-result judgement
 req_vars TEST_SPECS || \
-  export TEST_SPECS="statusdir htd basename-reg dckr"\
-" rsr edl finfo vc"\
-" jsotk-py libcmd_stacked mimereg radical"\
-" meta pd"
-
+  export TEST_SPECS="statusdir htd basename-reg dckr lst"\
+" rsr edl vc match schema table"\
+" jsotk-py jsotk-xml libcmd_stacked mimereg radical"\
+" meta pd disk diskdoc py-lib-1"
 
 req_vars INSTALL_DEPS || {
   INSTALL_DEPS=" basher "
@@ -169,13 +193,13 @@ req_vars INSTALL_DEPS || {
 }
 
 {
-  test "$USER" != "travis" && not_falseish "$SHIPPABLE" 
+  test "$USER" != "travis" && not_falseish "$SHIPPABLE"
 } && {
   req_vars APT_PACKAGES || export APT_PACKAGES="nodejs"\
 " perl python-dev"\
 " realpath uuid-runtime moreutils curl php5-cli"
 }
-# not o shippable: npm
+# not on shippable: npm
 
 test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 

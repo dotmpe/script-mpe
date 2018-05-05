@@ -2,11 +2,12 @@ from __future__ import print_function
 import re
 import sys
 import shlex
-
 from fnmatch import fnmatch
-from res import js
-from confparse import yaml_safe_dumps
 from pydoc import locate
+
+from script_mpe.res import js
+from script_mpe.confparse import yaml_dumps
+from script_mpe.res.dt import obj_serialize_datetime
 
 import ruamel.yaml
 
@@ -353,7 +354,7 @@ class AbstractKVSerializer(object):
             r.extend(self.ser_dict(data, prefix))
         else:
             if isinstance(data, basestring) and re_non_escaped.search(data):
-                r.append( "%s=\"%s\"" % ( prefix, data ))
+                r.append( "%s=\"%s\"" % ( prefix, data.replace('"', '\\"' )))
             else:
                 r.append( "%s=%s" % ( prefix, data ))
         return r
@@ -475,7 +476,8 @@ readers = dict(
 def write(writer, data, file, ctx):
     if ctx.opts.flags.no_indices:
         writer.write_indices = False
-    file.write(writer.serialize(data, ctx.opts.flags.output_prefix)+"\n")
+    file.write(writer.serialize(data, ctx.opts.flags.output_prefix))
+    #+"\n")
 
 def output_prefix(data, opts):
     if opts.flags.output_prefix:
@@ -501,6 +503,7 @@ def json_writer(data, file, ctx):
     if ctx.opts.flags.pretty:
         kwds.update(dict(indent=2))
     data = output_prefix(data, ctx.opts)
+    data = obj_serialize_datetime(data, ctx)
     if not data and ctx.opts.flags.empty_null:
         file.write('\n')
     else:
@@ -515,7 +518,9 @@ def yaml_writer(data, file, ctx):
     if not data and ctx.opts.flags.empty_null:
         file.write('\n')
     else:
-        yaml_safe_dumps(data, file, **kwds)
+        if ctx.opts.flags.ignore_aliases:
+            kwds['ignore_aliases'] = True
+        yaml_dumps(data, file, **kwds)
 
 def py_writer(data, file, ctx):
     if not data and ctx.opts.flags.empty_null:
@@ -684,14 +689,17 @@ def deep_update(dicts, ctx):
     assert len(dicts) > 1
     assert not isinstance( dicts[0], type(None) )
     assert not isinstance( dicts[1], type(None) )
-    data = dicts[0]
-    while len(dicts) > 1:
-        mdata = dicts.pop(1)
+    data = dicts.pop(0)
+    while len(dicts) > 0:
+        mdata = dicts.pop(0)
         if not isinstance(mdata, dict):
             raise ValueError("Expected %s but got %s" % (
                     type(data), type(mdata)))
         for k, v in mdata.iteritems():
             if k in data:
+                if not v:
+                    data[k] = v
+                    continue
                 if isinstance(data[k], dict):
                     try:
                         deep_update( [ data[k], v ], ctx )
@@ -702,7 +710,7 @@ def deep_update(dicts, ctx):
                 elif isinstance(data[k], list):
                     data[k] = deep_union( [ data[k], v ], ctx )
                 else:
-                    if ( not isinstance(data[k], type(v)) and not (
+                    if not ctx.opts.flags.no_strict_types and ( not isinstance(data[k], type(v)) and not (
                         isinstance(data[k], basestring) and
                         isinstance(v, basestring)
                     )):
@@ -737,9 +745,9 @@ def deep_union(lists, ctx):
     specific types, or path-expressions.
     """
 
-    data = lists[0]
-    while len(lists) > 1:
-        mdata = lists.pop(1)
+    data = lists.pop(0)
+    while len(lists) > 0:
+        mdata = lists.pop(0)
         if not isinstance(mdata, list):
             raise ValueError( "Expected %s but got %s" % (
                     type(data), type(mdata)))
@@ -779,11 +787,15 @@ def data_at_path(ctx, infile=None, data=None):
         return l
     while len(path_el):
         b = path_el.pop(0)
-        if isinstance(PathKVParser.get_data_instance(b), list):
-            b = int(b[1:-1])
-            l = l[b]
-        else:
-            l = l[b]
+        #print(isinstance(PathKVParser.get_data_instance(b), list))
+        #print('pop',b)
+        #if isinstance(PathKVParser.get_data_instance(b), list):
+        #    b = int(b[1:-1])
+        #    l = l[b]
+        #else:
+        if b.isdigit() and b not in l:
+            b = int(b)
+        l = l[b]
     return l
 
 
@@ -839,5 +851,3 @@ def maptype(typestr):
 def set_default_output_format(ctx, fmt):
     if '-O' not in ctx.opts.argv and '--output-format' not in ctx.opts.argv:
         ctx.opts.flags.output_format = fmt
-
-

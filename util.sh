@@ -28,8 +28,11 @@ lib_load()
   test -n "$LOG" || exit 102
   local f_lib_load= f_lib_path=
   # __load_lib: true if inside util.sh:lib-load
+  test -n "$default_lib" ||
+      export default_lib="str sys os std stdio src match main argv vc bash web"
+      #export default_lib="str sys os std stdio main argv bash"
   test -n "$__load_lib" || local __load_lib=1
-  test -n "$1" || set -- str sys os std stdio src match main argv vc
+  test -n "$1" || set -- $default_lib
   while test -n "$1"
   do
     lib_id=$(printf -- "${1}" | tr -Cs 'A-Za-z0-9_' '_')
@@ -56,6 +59,16 @@ lib_load()
         eval ${lib_id}_lib_loaded=1
     }
     shift
+  done
+}
+
+dir_load()
+{
+  test -n "$1" || error dir-expected 1
+  test -n "$2" || set -- "$1" .sh
+  for scr in $1/*$2
+  do
+    . $scr
   done
 }
 
@@ -96,10 +109,12 @@ case "$0" in
 
       test -n "$f_lib_load" && {
         # never
-        echo "util.sh assert failed: f-lib-load is set" >&2
+        echo "util.sh assert failed: f-lib-load is set ($0: $*)" >&2
+        exit 1
 
       } || {
 
+        test -n "$__load_mode" || __load_mode=$__load
         case "$__load_mode" in
 
           # Setup SCRIPTPATH and include other scripts
@@ -113,10 +128,10 @@ case "$0" in
         util_init
       }
       case "$__load_mode" in
-        load-* ) ;; # External include, do nothing
         boot )
             lib_load
           ;;
+        #ext|load-*|* ) ;; # External include, do nothing
       esac
     ;;
 esac

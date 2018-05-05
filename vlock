@@ -1,0 +1,5 @@
+#!/bin/bash
+set -e
+
+watch -ctn60 "vlock-screen"
+#cwatch_sleep=60 cwatch "vlock-screen"

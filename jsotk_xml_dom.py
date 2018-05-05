@@ -1,4 +1,6 @@
 """
+:Created: 2016-05-22
+
 XML writer module for Jsotk using minidom (xml.dom.minidom).
 """
 from __future__ import print_function

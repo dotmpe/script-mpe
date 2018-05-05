@@ -1,0 +1,48 @@
+id: "http://wtwta.org/project/script/schema/projectdir#"
+$schema: http://json-schema.org/draft-04/schema#
+description: JSON schema for projectdoc
+type: object
+properties:
+  repositories:
+    type: object
+    patternProperties:
+      "^[A-Za-z0-9\/,\\.%\\+_-]+$": 
+        type: object
+        properties:
+          id: { type: string }
+          vendor: { type: string }
+          type: { type: string }
+          description:
+            anyOf:
+            - type: string
+            - type: "null"
+          version:
+            anyOf:
+            - type: string
+            - type: "null"
+          urls:
+            anyOf:
+            - type: object
+            - type: "null"
+          roots:
+            type: array
+            items: [ type: string ]
+          remotes:
+            anyOf:
+            - type: object
+            - type: "null"
+          default:
+            anyOf:
+            - type: string
+            - type: "null"
+          pd-meta: { type: object }
+        required:
+        - id 
+        #- vendor
+        - type
+  $schema:
+    name: $schema
+    type: string
+additionalProperties: false
+required:
+- repositories

@@ -70,5 +70,7 @@ def main(torrentfile_path):
 if __name__ == "__main__":
     argv = list(sys.argv)
     scriptname = argv.pop(0)
+    if '-h' in argv:
+        print(__doc__)
+        sys.exit(0)
     main(argv.pop(0))
-

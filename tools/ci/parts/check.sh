@@ -1,4 +1,5 @@
 #!/bin/sh
+
 set -e
 
 # entry-point for CI pre-test phase, to do preflight checks, some verbose debugging
@@ -45,19 +46,24 @@ not_falseish "$SHIPPABLE" && {
 
 note "sh-switch"
 { { sh_switch.py -V && sh_switch.py --help
-} 2>&1 >/dev/null; } || error "sh_switch" 1
+} 2>&1 >/dev/null; } || error "sh_switch"
 
 note "Htd tools"
 { { htd tools
-} 2>&1 >/dev/null; } || error "htd tools" 1
+} 2>&1 >/dev/null; } || error "htd tools"
+
+note "Htd prefixes"
+{ { htd list-prefixes
+} 2>&1 >/dev/null; } || error "htd list-prefixes"
 
 note "box-instance:"
 { {
  box-instance.sh x foo bar && box-instance.sh y
-} 2>&1 >/dev/null; } || error "box-instance" 1
+} 2>&1 >/dev/null; } || error "box-instance"
 
 
 # Other commands in build #dev phase.
 
+set +e
 note "Done"
 # Id: script-mpe/0.0.4-dev tools/ci/parts/check.sh

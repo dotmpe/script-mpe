@@ -1,32 +1,25 @@
 #!/bin/sh
 
 
-# Init Bg service
-pd_meta_bg_setup()
+projectdir_lib_load()
 {
-  test -n "$no_background" && {
-    note "Forcing foreground/cleaning up background"
-    test ! -e "$pd_sock" || pd__meta exit \
-      || error "Exiting old" $?
-  } || {
-    test ! -e "$pd_sock" || error "pd meta bg already running" 1
-    pd__meta &
-    while test ! -e $pd_sock
-    do note "Waiting for server.." ; sleep 1 ; done
-    info "Backgrounded pd-meta for $pdoc (PID $!)"
-  }
+  . $scriptpath/projectdir-bats.inc.sh
+  . $scriptpath/projectdir-fs.inc.sh
+  . $scriptpath/projectdir-git.inc.sh
+  . $scriptpath/projectdir-git-versioning.inc.sh
+  . $scriptpath/projectdir-grunt.inc.sh
+  . $scriptpath/projectdir-npm.inc.sh
+  . $scriptpath/projectdir-make.inc.sh
+  . $scriptpath/projectdir-lizard.inc.sh
+  . $scriptpath/projectdir-vagrant.inc.sh
+
+  # Local pdoc name, used by most command to determine pdir
+  test -n "$pdoc" || pdoc=.projects.yaml
 }
 
-# Close Bg service
-pd_meta_bg_teardown()
+no_act()
 {
-  test ! -e "$pd_sock" || {
-    pd__meta exit
-    while test -e $pd_sock
-    do note "Waiting for background shutdown.." ; sleep 1 ; done
-    info "Closed background metadata server"
-    test -z "$no_background" || warn "no-background on while pd-sock existed"
-  }
+  test -n "$dry_run"
 }
 
 # TODO: run git clean, with ignore rules adjusted to exclude gitignore-clean
@@ -63,11 +56,11 @@ pd_clean()
 
   test "$pd_meta_clean_mode" = tracked || {
 
-    #cruft="$(cd $1; vc__excluded)"
+    #cruft="$(cd $1; vc.sh excluded)"
 
     test "$pd_meta_clean_mode" = excluded \
-      && cruft="$(cd $1; vc__excluded)" \
-      || cruft="$(cd $1; vc__unversioned_files)"
+      && cruft="$(cd $1; vc.sh excluded)" \
+      || cruft="$(cd $1; vc.sh unversioned-files)"
   }
 
 
@@ -115,6 +108,7 @@ generate_git_hooks()
 {
   # Create default script from pd-check
   test -n "$package_pd_meta_git_hooks_pre_commit_script" || {
+    test -n "$package_pd_meta_check" || error "pre-commit hook script requried" 1
     package_pd_meta_git_hooks_pre_commit_script="set -e ; pd run $package_pd_meta_check"
   }
 
@@ -166,7 +160,7 @@ pd_regenerate()
   debug "pd-regenerate pwd=$(pwd) 1=$1"
 
   # Regenerate .git/info/exclude
-  vc__regenerate "$1" || echo "pd-regenerate:$1" 1>&6
+  vc.sh "$1" || echo "pd-regenerate:$1" 1>&6
 
   test ! -e .package.sh || eval $(cat .package.sh)
 
@@ -249,7 +243,7 @@ pd_list_upstream()
     test "$branch" != "*" && {
       echo $remote $branch
     } || {
-      for branch in $(vc__list_local_branches "$prefix")
+      for branch in $(vc.sh list-local-branches "$prefix")
       do
         echo $remote $branch
       done
@@ -261,7 +255,7 @@ pd_list_upstream()
 pd_finddoc()
 {
   # set/check for Pd for subcmd
-  go_to_directory $pdoc || return $?
+  go_to_dir_with "$pdoc" || return $?
   test -e "$pdoc" || error "No projects file $pdoc" 1
 
   pd_root="$(dirname "$pdoc")"
@@ -272,7 +266,7 @@ pd_finddoc()
   pd_prefix="$(normalize_relative "$go_to_before")"
 
   # Build path name based on real Pd path
-  mksid "$pd_realpath"
+  c= mksid "$pd_realpath"
   fnmatch "*/*" "$sid" && error "Illegal chars sid='$sid'" 11
 
   p="$sid"
@@ -595,7 +589,9 @@ pd_prefix_filter_args()
 }
 
 
+# default-args handler for commands accepting [options] [ PREFIX | [:]TARGET ]
 # Filter out options and states from any given prefixes, or check enabled
+pd_registered_prefix_target_spec="[ PREFIX | [:]TARGET ]..."
 pd_registered_prefix_target_args()
 {
 # FIXME: quoting possible?
@@ -608,6 +604,7 @@ pd_registered_prefix_target_args()
   test -n "$choice_reg" || choice_reg=1
   pd_prefix_target_args "$@" || return $?
 }
+
 
 # Filter states, and either expand to enabled prefixes or found prefixes
 pd_prefix_target_args()
@@ -624,8 +621,8 @@ pd_prefix_target_args()
     shift
   done
 
-  stderr debug "choice-reg: $choice_reg"
   trueish "$choice_reg" && {
+    note "Going over enabled prefixes..."
 
     # Mixin enabled prefixes with existing dirs for default args,
     # or scan for any registered prefix args iso stat existing dirs only
@@ -647,6 +644,7 @@ pd_prefix_target_args()
     done
 
   } || {
+    note "Going over prefixes found..."
 
     # Stat only, don't check on (enabled) Pdoc prefixes
 
@@ -698,6 +696,7 @@ pd_run()
 
     ## Built in targets
 
+    # Allow failure
     -* )
         note "Ignore ($1)"
         # Ignore return
@@ -715,7 +714,6 @@ pd_run()
       ;;
 
     # Shell exec
-
     sh:* )
         # NOTE: pd run sh automatically accepts env decl. beacuse 's/:/ /g'
         local shcmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
@@ -911,7 +909,7 @@ pd_new_package()
 {
   { cat <<EOM
 
-- type: application/vnd.bvberkum.project
+- type: application/vnd.org.wtwta.project
   main: local/$(basename $pd_prefix)
   id: local/$(basename $pd_prefix)
   scripts:

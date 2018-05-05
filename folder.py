@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-""":created: 2014-09-28
+"""
+:created: 2014-09-28
 :updated: 2014-10-12
 
 TODO: keep open (active) vs. closed (inactive) indicators for groups
-TODO: group other nodes. See GroupNode 1--* Node from taxus.Core.
 TODO: find prelimanary way to represent nodes from other stores
 TODO: print path relative to current dir
 
@@ -16,6 +16,7 @@ Usage:
   folder.py [options] [info|list]
   folder.py [options] new NAME [REF]
   folder.py [options] group ID SUB...
+  folder.py [options] up SUB...
   folder.py [options] ungroup SUB...
 
 Options:
@@ -32,19 +33,21 @@ from datetime import datetime
 import os
 import re
 
-import log
-import libcmd_docopt
-import taxus
-from taxus.init import SqlBase, get_session
-from taxus import \
-    Node, Name, Tag, Folder
+from script_mpe.libhtd import *
+
+#import log
+#import libcmd_docopt
+#import taxus
+#from taxus.init import SqlBase, get_session
+#from taxus import \
+#    Node, Name, Tag, Folder
 
 
 metadata = SqlBase.metadata
 
 
 # used by db_sa
-models = [ Name, Tag, Folder ]
+#models = [ Name, Tag, Folder ]
 
 def print_Folder(folder):
     log.std(
@@ -92,7 +95,7 @@ def cmd_new(NAME, REF, settings):
     print_Folder(folder)
 
 
-# GroupNode operations
+# FIXME: cleanup GroupNode operations
 
 def cmd_group(ID, SUB, settings):
 

@@ -7,14 +7,15 @@ import socket
 import time
 import traceback
 import uuid
+from glob import glob
+from fnmatch import fnmatch
 
 import calendar
 
 from script_mpe import lib, log, confparse
 from script_mpe.res import fs
 
-import util
-from persistence import PersistedMetaObject
+from .persistence import PersistedMetaObject
 
 
 
@@ -282,8 +283,8 @@ class MetafileFile(object): # XXX: Metalink syntax
         ('X-Content-Description', lib.get_format_description_sub),
         ('Content-Type', lib.get_mediatype_sub),
         ('Content-Length', os.path.getsize),
-        #('Digest', util.md5_content_digest_header),
-        ('Digest', util.sha1_content_digest_header),
+        #('Digest', fs.md5_content_digest_header),
+        ('Digest', fs.sha1_content_digest_header),
         # TODO: Link, Location?
 #            'Content-MD5': lib.get_md5sum_sub,
 # not all instances qualify: the spec only covers the message body, which may be
@@ -346,14 +347,14 @@ class MetafileFile(object): # XXX: Metalink syntax
         if 'X-Last-Modified' in self.data:
             datestr = self.data['X-Last-Modified']
             return calendar.timegm( time.strptime(datestr,
-                util.ISO_8601_DATETIME)[0:6])
+                dt.ISO_8601_DATETIME)[0:6])
 
     @property
     def utime(self):
         if 'X-Last-Update' in self.data:
             datestr = self.data['X-Last-Update']
             return calendar.timegm( time.strptime(datestr,
-                util.ISO_8601_DATETIME)[0:6])
+                dt.ISO_8601_DATETIME)[0:6])
 
     def needs_update(self):
         """
@@ -410,7 +411,7 @@ class MetafileFile(object): # XXX: Metalink syntax
 
     def exists(self):
         #if self.data:# and self.non_zero():
-        #    self.data['X-Last-Seen'] = util.iso8601_datetime_format(now.timetuple())
+        #    self.data['X-Last-Seen'] = dt.iso8601_datetime_format(now.timetuple())
         return self.__class__.has_metafile(self.path, self.basedir)
 
     @classmethod
@@ -418,7 +419,7 @@ class MetafileFile(object): # XXX: Metalink syntax
         return os.path.exists(Class.get_metafile(path, basedir))
 
     @classmethod
-    def find(clss, path, shelve=None):
+    def find(klass, path, shelve=None):
         assert not shelve, 'TODO'
         metafile = Metafile.fetch(pathid)
         metafile = Metafile(path)
@@ -467,12 +468,12 @@ class MetafileFile(object): # XXX: Metalink syntax
     def update(self):
         now = datetime.datetime.now()
         if 'X-First-Seen' not in self.data:
-            self.data['X-First-Seen'] = util.iso8601_datetime_format(now.timetuple())
+            self.data['X-First-Seen'] = dt.iso8601_datetime_format(now.timetuple())
         envelope = (
                 #('X-Meta-Checksum', lambda x: self.get_meta_hash()),
-                ('X-Last-Modified', util.last_modified_header),
-                ('X-Last-Update', lambda x: util.iso8601_datetime_format(now.timetuple())),
-                ('X-Last-Seen', lambda x: util.iso8601_datetime_format(now.timetuple())),
+                ('X-Last-Modified', fs.last_modified_header),
+                ('X-Last-Update', lambda x: dt.iso8601_datetime_format(now.timetuple())),
+                ('X-Last-Seen', lambda x: dt.iso8601_datetime_format(now.timetuple())),
             )
         for handlers in self.handlers, envelope:
             for header, handler in handlers:
@@ -502,7 +503,7 @@ class MetafileFile(object): # XXX: Metalink syntax
         now = datetime.datetime.now() # XXX: ctime?
         envelope = {
                 'X-Meta-Checksum': self.get_meta_hash(),
-                'X-Last-Update': util.iso8601_datetime_format(now.timetuple()),
+                'X-Last-Update': dt.iso8601_datetime_format(now.timetuple()),
                 'Location': self.path,
             }
         for key in envelope.keys():
@@ -553,26 +554,30 @@ class Metadir(object):
     NAME_SUFFIXES = ['.id', '.uuid']
 
     @classmethod
-    def find_id(clss, *paths):
-        prefixes = clss.NAME_PREFIXES + ( '.'+clss.DOTNAME+'/', )
-        return list(confparse.find_config_path(clss.DOTID,
+    def find_id(klass, *paths):
+        prefixes = klass.NAME_PREFIXES + ( '.'+klass.DOTNAME+'/', )
+        return list(confparse.find_config_path(klass.DOTID,
             paths=list(paths),
             prefixes=prefixes,
-            suffixes=clss.NAME_SUFFIXES,
+            suffixes=klass.NAME_SUFFIXES,
             filesonly=True
         ))
 
     @classmethod
-    def find_meta(clss, *paths):
-        return list(confparse.find_config_path(clss.DOTNAME,
+    def find_meta(klass, *paths):
+        return list(confparse.find_config_path(klass.DOTNAME,
             paths=list(paths),
-            prefixes=clss.NAME_PREFIXES,
+            prefixes=klass.NAME_PREFIXES,
             suffixes=[''],
             filesonly=True
         ))
 
     @classmethod
-    def fetch(clss, *paths):
+    def find(klass, *paths):
+        raise NotImplementedError
+
+    @classmethod
+    def fetch(klass, *paths):
         """
         Find metadir by searching for markerleaf indicated by Class'
         DOTID property, using '.' DOTNAME '/' as one of the name prefixes.
@@ -582,17 +587,25 @@ class Metadir(object):
 
         Returning Class instance for first path, if any.
         """
-        configpaths = list(clss.find(*paths))
+        configpaths = list(set(klass.find(*paths)))
         if configpaths:
             if len(configpaths) > 1:
-                log.warn('Using first config file %s for %s', clss.DOTID, configpaths)
-            return clss(configpaths[0])
+                log.warn('Using first config file %s for %s', klass.DOTID, configpaths)
+            return klass(configpaths[0]+'/.'+klass.DOTNAME)
+
+    @classmethod
+    def require(klass, *paths):
+        o = klass.fetch(*paths)
+        if not o:
+            raise Exception("No %s" % klass.__name__)
+        return o
 
     def __init__(self, path):
         """
         Like metafile, the path here will be the directory itself,
         if it ends with the metadir and id file it, that is stripped.
         """
+        path = os.path.normpath( path )
         dotext = os.path.splitext( os.path.basename( path ))
         if dotext[0] == self.DOTID:
             assert dotext[1] in self.NAME_SUFFIXES
@@ -602,6 +615,8 @@ class Metadir(object):
         if self.path.endswith(self.DOTNAME) or self.path.endswith(self.DOTNAME+'/'):
             self.path = os.path.dirname( self.path )
             self.prefix = '.'+self.DOTNAME+'/'
+        else:
+            self.prefix = None
         assert self.DOTNAME not in self.path.strip('/').split('/'), self.path
         self.init()
 
@@ -625,7 +640,7 @@ class Metadir(object):
     def metadir_id(self):
         #if self.exists():
         #    return open(self.id_path).read().strip()
-        return self.__id
+        return self.__id.lower()
 
     def exists(self):
         return os.path.exists(self.id_path)
@@ -634,9 +649,12 @@ class Metadir(object):
         if self.exists() and not reset:
             assert not metadir_id
             self.__id = open(self.id_path).read().strip()
+            if ' ' in self.__id:
+                p = self.__id.split(' ')
+                self.__id, self.__label = p[:1], " ".join(p[2:])
         elif reset or create:
             if not metadir_id:
-                metadir_id = str(uuid.uuid4())
+                metadir_id = str(uuid.uuid4()).lower()
             assert isinstance(metadir_id, str)
             self.__id = metadir_id
             if not os.path.exists(self.full_path):
@@ -700,6 +718,22 @@ class Metadir(object):
                 setattr(obj, attr, data[attr])
         else:
             setattr(obj, trgt_spec, data)
+
+    # IDir, INode
+    def neighbours(self, name, extensions_only=True):
+        g = "%s.*" % name
+        for p in glob(g):
+            yield p
+
+    def find_names(self, name, basedir=None):
+        g = "%s.*" % name
+        # One filename based filter
+        file_fltrs = [ lambda name: fnmatch(os.path.basename(name), g) ]
+        if basedir: p = os.path.normpath(basedir)
+        else: p = self.path
+        for p in fs.Dir.walk(p, dict(recurse=True, files=True), (file_fltrs, None)):
+            yield p
+
 
 def get_global_attr(handler_spec):
     path = handler_spec.split('.')

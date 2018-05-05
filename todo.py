@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-""":created: 2014-08-31
+"""
+:Created: 2014-08-31
+
+Commands:
+    - info - Dump settings
+    - list
 
 TODO: interface this with Google tasks
 """
@@ -24,18 +29,11 @@ Usage:
   todo.py -h|--help
   todo.py --version
 
-Commands:
-    info
-        Dump settings
-    list
-
 Options:
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
     -i FILE --input=FILE
     -o FILE --output=FILE
-
-Other flags:
     -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
     --version     Show version (%s).
@@ -78,11 +76,10 @@ import re
 import hashlib
 from pprint import pformat
 
-import log
-import libcmd_docopt
-from taxus import Node
-from taxus.util import ORMMixin, ScriptMixin, get_session
-from res import js
+from script_mpe import log, libcmd_docopt
+from script_mpe.taxus.core import Node
+from script_mpe.taxus.util import ORMMixin, ScriptMixin, get_session
+from script_mpe.res import js
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, create_engine
 from sqlalchemy.orm import Session, relationship, backref,\
@@ -181,8 +178,6 @@ def indented_tasks(indent, sa, settings, roots):
 ### Commands
 
 def cmd_info(settings):
-    """
-    """
     print(pformat(settings.todict()))
 
 def cmd_list(settings):
@@ -320,7 +315,6 @@ def cmd_prerequisite(ID, PREREQUISITES, settings):
 def cmd_depends(ID, DEPENDENCIES, settings):
     """
         todo ID requires DEPENDENCIES...
-
     """
     sa = get_session(settings.dbref, metadata=SqlBase.metadata)
     node = Task.byKey(dict(task_id=ID), sa=sa)

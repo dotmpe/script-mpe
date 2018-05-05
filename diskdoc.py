@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-:created: 2016-02-22
+:Created: 2016-02-22
 
 Python helper to query/update disk metadatadocument 'disks.yaml'
 
@@ -70,7 +70,7 @@ Options:
   --version     Show version (%s).
 
 """ % ( __couch__, __version__, )
-import sys, socket
+import sys
 import os
 import re
 from fnmatch import fnmatch
@@ -82,10 +82,18 @@ from docopt import docopt
 import uuid
 from deep_eq import deep_eq
 
-from script_mpe import libcmd_docopt, confparse
-from script_mpe.res import js, Diskdoc
-from script_mpe.confparse import yaml_load, yaml_safe_dumps
+from script_mpe.libhtd import *
+#from script_mpe import libcmd_docopt, confparse, taxus
+#from script_mpe.res import js, Diskdoc, Homedir
+#from script_mpe.confparse import yaml_load, yaml_safe_dumps
+#from taxus import Taxus, v0
 
+
+
+cmd_default_settings = dict(
+        verbose=1,
+        no_db=True,
+    )
 
 
 def yaml_commit(diskdata, ctx):
@@ -258,12 +266,11 @@ def H_disks(diskdata, ctx):
 def get_local_doc(diskdata, ctx):
 
     """
-    Query host OS for disk info, the main bits we need is the UUID for the
-    partition devices. Which in udev terms seems to be something different
-    from the partuuid.
+    Query host OS for disk info, print known entries from diskdoc. Matches are
+    made based on volume UUID. Warning lines are emitted for local disks not
+    documented, and document entries without UUID.
 
-    And ofcourse we want at least the the device name or path and/or mount
-    point as lookup too.
+    NOTE the UUID is not the same as the partition UUID.
     """
 
     # Query OS for local partition info
@@ -308,6 +315,9 @@ def get_local_doc(diskdata, ctx):
 
             local_parts[part['UUID']] = lpart
 
+    for uuid in part_uuids:
+        if uuid not in local_parts:
+            print('  Undocumented disk', uuid, host_parts[uuid].todict())
 
     for disk_id, disk in local_.items():
 
@@ -344,6 +354,24 @@ def H_list_disks(diskdata, ctx):
 
     get_local_doc(diskdata, ctx)
 
+def H_check(ctx):
+
+    """
+    TODO: Regenerate status
+
+    - available and used space per partition.
+    - correct disk capacity
+    - age in days, smart info
+    - fstype, inode table usage
+    - disk location, portable bit
+    """
+
+def H_status(ctx):
+
+    """
+    TODO: enumerate volmes. Display storage size, usage, fstype.
+    """
+
 
 def H_couchdb_sync(diskdata, ctx):
     "Copy / integrate document with CouchDB, TODO: see generate doc?"
@@ -378,6 +406,8 @@ for k, h in locals().items():
 #commands['help'] = libcmd_docopt.cmd_help
 
 
+### Service global(s) and setup/teardown handlers
+
 # XXX: no sessions
 diskdata = None
 def prerun(ctx, cmdline):
@@ -394,53 +424,65 @@ def prerun(ctx, cmdline):
     return []
 
 
+### Util functions to run above functions from cmdline
+
+def defaults(opts, init={}):
+    global cmd_default_settings, ctx
+    libcmd_docopt.defaults(opts)
+    opts.flags.update(cmd_default_settings)
+    opts.flags.update(dict(
+        verbose = opts.flags.quiet and opts.flags.verbose or 1
+    ))
+    return init
+
 def main(ctx):
 
     """
     Run command, or start socket server.
-
-    Normally this returns after running a single subcommand. If backgrounded,
-    there is at most one server per projectdir document. The server remains in
-    the working directory, and while running is used to resolve any calls. Iow.
-    subsequent executions turn into UNIX domain socket clients in a transparent
-    way, and the user command invocation is relayed via line-based protocol to
-    the background server isntance.
-
-    For projectdir document, which currently is 15-20kb, this setup has a
-    minimal performance boost, while the Pd does not need to be loaded from and
-    committed back to disk on each execution.
-
     """
+    global commands
 
-    if ctx.opts.flags.background:
+    ws = Homedir.require()
+    #ws.yamldoc('disksync', defaults=dict(
+    #        last_sync=None
+    #    ))
+    ctx.ws = ws
+    ctx.settings = settings = opts.flags
+    ctx.init()
+
+    # Start background if requested, or pass command
+    if ctx.settings.background:
         localbg = __import__('local-bg')
         return localbg.serve(ctx, commands, prerun=prerun)
-    elif os.path.exists(ctx.opts.flags.address):
+    elif os.path.exists(ctx.settings.address):
         localbg = __import__('local-bg')
         return localbg.query(ctx)
-    elif ctx.opts.cmds and 'exit' == ctx.opts.cmds[0]:
-        print("No background process at %s" % ctx.opts.flags.address, file=ctx.err)
+    elif opts.cmds and 'exit' == opts.cmds[0]:
+        print("No background process at %s" % ctx.settings.address, file=ctx.err)
         return 1
     else:
-        settings = opts.flags
-        settings.diskdata = Diskdoc.from_user_path(ctx.opts.flags.file)
+
+        # Normal run
+        settings = settings
+        settings.diskdata = Diskdoc.from_user_path(ctx.settings.file)
+
         settings.ctx = ctx
-        #func = ctx.opts.cmds[0]
-        #assert func in commands
-        #return handlers[func](diskdata, ctx)
         return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'diskdoc/%s' % __version__
 
 
+
 if __name__ == '__main__':
-    opts = libcmd_docopt.get_opts(__description__ + __usage__,
-            version=get_version())
-    ctx = confparse.Values(dict(
-        uname=os.uname()[0],
-        hostname=socket.gethostname(),
-        usage=__description__ + __usage__,
+    usage = libcmd_docopt.static_vars_from_env(__usage__,
+        ( 'COUCH_DB', __couch__ ) )
+    opts = libcmd_docopt.get_opts(__description__ + usage,
+            version=get_version(), defaults=defaults)
+    # TODO: test local-bg after adding new context class
+    ctx = Taxus()
+    ctx.settings.update(dict(
+        usage=__description__ + usage,
         out=sys.stdout,
         err=sys.stderr,
         inp=sys.stdin,

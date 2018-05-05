@@ -8,18 +8,13 @@ import uriref
 from hashids import Hashids
 import shortuuid
 
+import mb
+
 
 hashids = Hashids(salt="this is my salt")
 
-tag_c = 'A-Za-z0-9_-'
-ref_c = 'A-Z_-'
-tag_seps = '/:._-'
-included_sep_c = '\/:;\.\-\+_'
-excluded_c = ',;\-'
-
-value_c = 'A-Za-z0-9%s' % included_sep_c
-prefixed_tag_c = value_c
-meta_tag_c = value_c
+prefixed_tag_c = mb.value_c
+meta_tag_c = mb.value_c
 
 re_issue_id = '[0-9a-z\/\.:;\-_]+'
 re_issue_id_match = '\s*\\b%s('+re_issue_id+'[\:\s]+)\ *'
@@ -29,11 +24,11 @@ re_numpath = re.compile('[0-9]+(\.[0-9]+)*\.?')
 
 # NOTE: 2 chars would be the minimal for a tag or else it could match '-'
 # 3 or 4 is more reasonable
-re_tag_id = re.compile( r'\b[%s]{3,}\b%s[\:\s]*' % ( ref_c, re_issue_id ) )
+re_tag_id = re.compile( r'\b[%s]{3,}\b%s[\:\s]*' % ( mb.capnumref_c, re_issue_id ) )
 
 def parse_tags(txt):
     for m in re_tag_id.finditer(txt):
-        yield txt[slice(*m.span())].strip(excluded_c+' ')
+        yield txt[slice(*m.span())].strip(mb.excluded_c+' ')
 
 seitag_todotxt_map = {
     'FIXME': '(C)', # tasks-ignore
@@ -146,4 +141,3 @@ class RedisSEIStore(object):
     def new_comment(self, issue_id, tag, id_len=9):
         newid = base64.urlsafe_b64encode(os.urandom(id_len))
         return "%s:%s" % ( tag, newid )
-

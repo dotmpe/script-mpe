@@ -7,34 +7,30 @@ do case "$BUILD_STEP" in
 
     dev ) lib_load main; main_debug
 
-        #note "Pd help:"
-        # FIXME: "Something wrong with pd/std__help"
-        #(
-        #  ./projectdir.sh help || noop
-        #)
-        #./projectdir.sh test bats-specs bats
+        note "Esop:"
+        (
+          export verbosity=7
+          esop.sh version || true
+          export verbosity=4
+          esop.sh version || true
+          esop.sh || true
+          esop.sh -vv -n help || true
+        )
+
+        note "Pd help:"
+        (
+          ./projectdir.sh help || true
+          ./projectdir.sh --version || true
+          ./projectdir.sh test bats-specs bats || true
+        )
+
+        note "vagrant-sh"
+        (
+           ./vagrant-sh.sh -h || true
+        )
 
         # TODO install again? note "gtasks:"
-        #./gtasks || noop
-
-        #note "Htd script:"
-        #htd script
-
-        #note "basename-reg:"
-        #./basename-reg ffnnec.py
-
-        note "mimereg:"
-        (
-           ./mimereg ffnenc.py
-        ) || true
-
-        #note "lst names local:"
-        #892.2 https://travis-ci.org/dotmpe/script-mpe/jobs/191996789
-        #lst names local
-        # [lst.bash:names] Warning: No 'watch' backend
-        # [lst.bash:names] Resolved ignores to '.bzrignore etc:droppable.globs
-        # etc:purgeable.globs .gitignore .git/info/exclude'
-        #/home/travis/bin/lst: 1: exec: 10: not found
+        ./gtasks || noop
       ;;
 
     jekyll )
@@ -44,64 +40,60 @@ do case "$BUILD_STEP" in
     test-vbox )
       ;;
 
-    test-feature )
-      ;;
+    test-required ) ;;
 
-    test )
-        lib_load build
+    test-others )
+        ## Other tests, allow to fail (TODO: complement from REQ_SPECS)
+        #note "Testing all specs '$TEST_SPECS'"
+        #build_test_init "$REQ_SPECS"
+        #(
+        #  test_shell $(which bats)
+        #) || true
+        ;;
 
-        test -n "$TEST_RESULTS" || TEST_RESULTS=build/test-results-specs.tap
-        test -d "$(dirname "$TEST_RESULTS")" ||
-          mkdir -vp "$(dirname "$TEST_RESULTS")"
-
-        failed=build/test-results-failed.list
-
+    test ) lib_load build
 
         ## start with essential tests
-        #note "Testing '$REQ_SPECS'"
+        note "Testing required specs '$REQ_SPECS'"
+        build_test_init "$REQ_SPECS"
 
-        #for spec in $REQ_SPECS ; do
-        #  SUITE="$spec" test_shell > $TEST_RESULTS
-        #done
-
+        note "Init done"
         (
-          SUITE="$REQ_SPECS" test_shell $TEST_SHELL $(which bats)
-        ) || touch $failed
+          # Test shell unit files and report in TAP
+          test_shell $(which bats) || echo test-shell >> $failed
+          note "Bats shell tests done"
+          mv $TEST_RESULTS.tap $TEST_RESULTS-1.tap
 
-        not_falseish "$SHIPPABLE" && {
-          perl $(which tap-to-junit-xml) --input $TEST_RESULTS \
-            --output $(basepath $TEST_RESULTS .tap .xml)
-          wc -l $TEST_RESULTS $(basepath $TEST_RESULTS .tap .xml)
-        } || {
-          wc -l $TEST_RESULTS
+          # Test feature files and report in JUnit XML
+          #$TEST_FEATURE $BUSINESS_SUITE || touch $failed
+          #note "Feature tests done"
+          #mv $TEST_RESULTS.xml $TEST_RESULTS-2.xml
+
+          # Test Python unit files and report in ...
+          # FIXME: new params for python tests python $PY_SUITE || touch $failed
+          #python test/main.py || touch $failed
+
+          #py.test --junitxml $TEST_RESULTS.xml $PY_SUITE || touch $failed
+          #note "Python unittests done"
+          #mv $TEST_RESULTS.xml $TEST_RESULTS-3.xml
+        )
+
+        test -e "$TEST_RESULTS-1.tap" || error "Test results 1 expected" 1
+        #test -e "$TEST_RESULTS-2.xml" || error "Test results 2 expected" 1
+        #test -e "$TEST_RESULTS-3.xml" || error "Test results 3 expected" 1
+
+        grep '^not\ ok' $TEST_RESULTS-1.tap &&
+            touch $failed ||
+            stderr ok "No errors in req-specs"
+
+        test ! -e "$failed" || {
+          test -s "$failed" &&
+            error "Failed: $(echo $(cat $failed))" ||
+            error "Build failed"
         }
-
-        ## Other tests
-        note "Testing '$TEST_SPECS'"
-        (
-          SUITE="$TEST_SPECS" test_shell
-        ) || noop
-
-        # TODO: integrate feature testing
-        (
-          test_features
-        ) || noop
-
-        test -z "$failed" -o ! -e "$failed" && {
-          r=0
-          test ! -s "$failed" || {
-            echo "Failed: $(echo $(cat $failed))"
-            rm $failed
-            r=1
-          }
-          unset failed
-        } || true
-
-        exit $r
       ;;
 
     noop )
-        # TODO: make sure nothing, or as little as possible has been installed
         note "Empty step ($BUILD_STEP)" 0
       ;;
 

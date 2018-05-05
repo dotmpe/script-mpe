@@ -3,6 +3,11 @@
 
 # std: logging and dealing with the shell's stdio decriptors
 
+std_lib_load()
+{
+  test -n "$uname" || export uname="$(uname -s)"
+}
+
 io_dev_path()
 {
   case "$uname" in
@@ -207,12 +212,12 @@ log_bw()
 
 log_16()
 {
-  printf "$1\n"
+  printf -- "$1\n"
 }
 
 log_256()
 {
-  printf "$1\n"
+  printf -- "$1\n"
 }
 
 # TODO: deprecate: use stderr or error
@@ -235,6 +240,7 @@ log()
   test -n "$stdout_type" || stdout_type="$stdio_1_type"
   test -n "$stdout_type" || stdout_type=t
 
+  local key=
   test -n "$SHELL" \
     && key="$scriptname.$(basename "$SHELL")" \
     || key="$scriptname.(sh)"

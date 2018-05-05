@@ -5,7 +5,9 @@
   treemap -fs blah..
 """
 from __future__ import print_function
-import libcmd
+
+#from script_mpe.libhtd import *
+from script_mpe import libcmd
 
 
 #class FileTreeTopic(Node):

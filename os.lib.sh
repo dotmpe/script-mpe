@@ -5,24 +5,36 @@
 
 os_lib_load()
 {
-  test -n "$uname" || export uname="$(uname)"
+  test -n "$uname" || export uname="$(uname -s)"
+  test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
 }
 
 absdir()
 {
-  # NOTE: somehow my Linux pwd makes a symbolic path to root into //bin.
+  # NOTE: somehow my Linux pwd makes a symbolic path to root into //bin,
+  # using tr to collapse all sequences to one
   ( cd "$1" && pwd -P | tr -s '/' '/' )
 }
 
-# Combined dirname/basename to replace .ext(s)
-# pathname PATH EXT...
-pathname()
+dirname_()
+{
+  while test $1 -gt 0
+    do
+        set -- $(( $1 - 1 ))
+        set -- "$1" "$(dirname "$2")"
+    done
+  echo "$2"
+}
+
+# Combined dirname/basename to remove .ext(s) but return path
+pathname() # PATH EXT...
 {
   local name="$1" dirname="$(dirname "$1")"
+  fnmatch "./*" "$1" && dirname="$(echo "$dirname" | cut -c3-)"
   shift 1
   for ext in $@
   do
-    name="./$(basename "$name" "$ext")"
+    name="$(basename "$name" "$ext")"
   done
   test -n "$dirname" -a "$dirname" != "." && {
     printf -- "$dirname/$name\n"
@@ -32,7 +44,8 @@ pathname()
 }
 # basepath: see pathname as alt. to basename for ext stripping
 
-pathnames()
+# Simple iterator over pathname
+pathnames() # exts=... [ - | PATHS ]
 {
   test -n "$exts" || exit 40
   test -n "$*" && {
@@ -59,9 +72,9 @@ basedir()
   done
 }
 
-dotname()
+dotname() # Path [Ext-to-Strip]
 {
-  echo $(dirname "$1")/.$(basename "$1")
+  echo $(dirname "$1")/.$(basename "$1" "$2")
 }
 
 short()
@@ -92,19 +105,24 @@ basenames()
   done
 }
 
-filenamext() # for each argument, echo just the filename-extension suffix
+# for each argument echo filename-extension suffix (last non-dot name element)
+filenamext() # Name..
 {
   while test -n "$1"; do
     echo "$1" | sed 's/^.*\.\([^\.]*\)$/\1/'
   shift; done
 }
 
-filestripext()
+# Return basename for one file, using filenamext to extract extension.
+# See basenames for multiple args, and pathname to preserve (relative) directory
+# elements for name.
+filestripext() # Name
 {
   basename "$1" ".$(filenamext "$1")"
 }
 
-fileisext()
+# Check wether name has extension, return 0 or 1
+fileisext() # Name Exts..
 {
   local f="$1" ext=$(filenamext "$1"); shift
   test -n "$*" || return
@@ -115,7 +133,8 @@ fileisext()
   return 1
 }
 
-filemtype()
+# Use `file` to get mediatype aka. MIME-type
+filemtype() # File..
 {
   while test $# -gt 0
   do
@@ -131,7 +150,8 @@ filemtype()
   done
 }
 
-filesize()
+# Use `stat` to get size in bytes
+filesize() # File..
 {
   while test $# -gt 0
   do
@@ -147,7 +167,8 @@ filesize()
   done
 }
 
-filemtime()
+# Use `stat` to get modification time
+filemtime() # File..
 {
   while test $# -gt 0
   do
@@ -161,6 +182,41 @@ filemtime()
       * ) error "filemtime: $1?" 1 ;;
     esac; shift
   done
+}
+
+# Split expression type from argument and set envs expr_/type_
+foreach_setexpr() # [Type:]Expression
+{
+  test -n "$1" || set -- '*'
+  expr_="$1"
+  fnmatch "*:*" "$expr_" && {
+    type_="$(echo "$expr_" | cut -c1)"
+    expr_="$(echo "$expr_" | sed 's/^[^:]*://')"
+  } || {
+    type_=g
+  }
+  info "Mode: $type_, Expression: '$expr_'"
+}
+
+# Execute act/no-act based on expression match, function/command or shell statement
+foreach() # [type_= expr_= act= no_act= ] [Subject...]
+{
+  test "$1" != "-" || shift
+  test -n "$act" || act=echo
+  test -n "$no_act" || no_act=/dev/null
+  # Read arguments or lines from stdin
+  { test -n "$*" && { for a in "$@"; do printf -- "$a\n" ; done; } || cat -
+  } | while read S ; do
+  # NOTE: Allow inline comments or processing instructions passthrough
+  fnmatch "#*" "$S" && { echo "$S" ; continue; }
+  # Execute, echo on success or do nothing except print on stdout in debug-type_
+  case "$type_" in
+      g ) fnmatch "$expr_" "$S" ;;
+      r ) echo "$S" | grep -q "$expr_" ;;
+      x ) $expr_ "$S" ;;
+      e ) eval "$expr_" ;;
+      * ) error "foreach-expr-type? '$type_'" 1 ;;
+  esac && $act "$S" || $no_act "$S" ; done
 }
 
 normalize_relative()
@@ -280,9 +336,9 @@ read_file_lines_while()
 
 
 # Change cwd to parent dir with existing local path element (dir/file/..) $1, leave go_to_before var in env.
-go_to_directory()
+go_to_dir_with()
 {
-  test -n "$1" || error "Missing filename arg" 1
+  test -n "$1" || error "go-to-dir: Missing filename arg" 1
 
   # Find dir with metafile
   go_to_before=.
@@ -296,6 +352,16 @@ go_to_directory()
 
   test -e "$1" || return 1
 }
+
+
+# Go to dir and set OLDPWD, but only if not already there
+#go_to_dir()
+#{
+#  test -n "$1" || set -- "."
+#  test "$1" = "." || cd "$1"
+#  # -o "$(pwd -P)" = "$(cd "$1" && pwd -P)" || cd $1
+#}
+
 
 # Resolve all symlinks in subtree, return a list with targets
 get_targets()
@@ -312,27 +378,27 @@ get_targets()
 
 count_lines()
 {
-  test -n "$1" && {
+  test -z "$1" -o "$1" = "-" && {
+    wc -l | awk '{print $1}'
+  } || {
     while test -n "$1"
     do
       wc -l $1 | awk '{print $1}'
       shift
     done
-  } || {
-    wc -l | awk '{print $1}'
   }
 }
 
 count_words()
 {
-  test -n "$1" && {
+  test -z "$1" -o "$1" = "-" && {
+    wc -w | awk '{print $1}'
+  } || {
     while test -n "$1"
     do
       wc -w $1 | awk '{print $1}'
       shift
     done
-  } || {
-    wc -w | awk '{print $1}'
   }
 }
 
@@ -527,4 +593,76 @@ filter_files()
         echo "$f"
     done
   }
+}
+
+disk_usage()
+{
+  test -n "$1" || set -- "." "$2"
+  test -n "$2" || set -- "$1" "h"
+  du -$2s $1 | awk '{print $1}'
+}
+
+isemptydir()
+{
+  test -d "$1" -a "$(echo $1/*)" = "$1/*"
+}
+
+isnonemptydir()
+{
+  test -d "$1" -a "$(echo $1/*)" != "$1/*"
+}
+
+find_one()
+{
+  find_num "$@"
+}
+
+find_num()
+{
+  test -n "$1" -a -n "$2" || error "find-num '$*'" 1
+  test -n "$3" || set -- "$@" 1
+  local c=0
+  find "$1" -iname "$2" | while read path
+  do
+      c=$(( $c + 1 ))
+      test $c -le $3 || return 1
+      echo "$path"
+  done
+}
+
+find_broken_symlinks()
+{
+  test -n "$1" || set -- .
+  #test "$uname" = "Darwin" && find=gfind
+  #$find "$1" -type l -xtype l || return $?
+  find "$1" -type l ! -exec test -e {} \; -print
+}
+
+abbrev_rename()
+{
+    while read oldpath junk newpath
+    do
+        local idx=1
+        while test "$(echo "$oldpath" | cut -c 1-$idx )" = "$(echo "$newpath" | cut -c 1-$idx )"
+        do
+            idx=$(( $idx + 1 ))
+        done
+        local end=$(( $idx - 1 ))
+        echo "Backed up path: $(echo $oldpath | cut -c 1-$end){$(echo $oldpath | cut -c $idx-) => $(echo $newpath | cut -c $idx-)}"
+    done
+}
+
+rotate_file()
+{
+  local dir=$(dirname "$1") cnt=1 base=$(basename "$1")
+  while test -e "$dir/$base-$cnt$2"
+  do
+    cnt=$(( $cnt + 1 ))
+  done
+  { mv -v "$1" "$dir/$base-$cnt$2" || return $?; } | abbrev_rename
+}
+
+wherefrom()
+{
+  ${os}_wherefrom "$@"
 }

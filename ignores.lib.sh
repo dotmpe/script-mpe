@@ -11,7 +11,9 @@ ignores_lib_load()
 
   export IGNORE_GLOBFILE_VAR=$varname
   export IGNORE_GLOBFILE=$(eval echo \"\$$IGNORE_GLOBFILE_VAR\")
-  test -n "$IGNORE_GLOBFILE" || warn "No IGNORE_GLOBFILE for $varname set"
+  test -z "$DEBUG" || {
+    test -n "$IGNORE_GLOBFILE" || warn "No IGNORE_GLOBFILE for $varname set"
+  }
 
   test -n "$(eval echo \"\$$varname\")" || eval $varname=$fname
   local value="$(eval echo "\$$varname")"
@@ -40,6 +42,7 @@ ignores_groups()
       purge ) set -- "$@" local-purge global-purge ;;
       clean ) set -- "$@" local-clean global-clean ;;
       drop ) set -- "$@"  local-drop global-drop ;;
+      ignore ) echo ".ignored" ;;
       local ) set -- "$@" local-clean local-purge local-drop ;;
       local-clean )
           echo $IGNORE_GLOBFILE-cleanable
@@ -103,9 +106,10 @@ ignores_groups_exist()
 # Convenient access to glob lists (cat files)
 ignores_cat()
 {
+  local src_a="$*"
   # Resolve arguments
   set -- $(ignores_groups "$@" | lines_to_words )
-  note "Resolved ignores to '$*'"
+  note "Resolved ignores source '$src_a' to files '$*'"
 
   while test -n "$1"
   do
@@ -140,6 +144,7 @@ glob_to_find_prune()
     sed -E 's/(.*)/ -o -path "*\1*" -prune /g')
 }
 
+# Return find ignore flags for given exclude pattern file
 find_ignores()
 {
   for a in $@
@@ -147,7 +152,5 @@ find_ignores()
     # Translate gitignore lines to find flags
     read_nix_style_file $a | while read glob
       do glob_to_find_prune "$glob"; done
-  done
+  done | grep -Ev '^(#.*|\s*)$'
 }
-
-

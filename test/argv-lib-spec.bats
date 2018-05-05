@@ -1,11 +1,11 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 base=argv.lib
 
 init
-. $lib/util.sh
 
+. $lib/util.sh
 
 setup()
 {
@@ -45,4 +45,3 @@ setup()
   run check_argc 1 "foo" "bar"
   test_nok_nonempty *"surplus arg"* || stdfail 2
 }
-

@@ -35,7 +35,3 @@ class MIMEHeader(PersistedMetaObject):
             value = self.headers[key]
             fl.write("%s: %s\n" % (key, value))
         fl.close()
-
-
-
-

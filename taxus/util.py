@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 
 import zope.interface
-
+from couchdb.mapping import Document
 from sqlalchemy import func, text
 from sqlalchemy.ext import declarative
 from sqlalchemy.ext.declarative import api
@@ -92,21 +92,21 @@ class ScriptModelFacade(object):
 class ScriptMixin(SessionMixin):
 
     @classmethod
-    def start_master_session(Klass, name='cllct'):
-        if name not in Klass.sessions:
-            session = Klass.start_session(name)
+    def start_master_session(klass, name='cllct'):
+        if name not in klass.sessions:
+            session = klass.start_session(name)
         else:
-            session = Klass.sessions[name]
+            session = klass.sessions[name]
 
-        master = ScriptModelFacade(Klass, session)
+        master = ScriptModelFacade(klass, session)
         return master
 
     @classmethod
-    def start_session(Klass, name, dbref=None):
+    def start_session(klass, name, dbref=None):
         if not dbref:
             schema = __import__(name)
-            dbref = Klass.assert_dbref(schema.__db__)
-        session = Klass.get_session(name, dbref)
+            dbref = klass.assert_dbref(schema.__db__)
+        session = klass.get_session(name, dbref)
         return session
 
     @staticmethod
@@ -118,22 +118,25 @@ class ScriptMixin(SessionMixin):
 
 class RecordMixin(object):
 
+    def __init__(self):
+        self.init_defaults()
+
     @classmethod
-    def fetch(Klass, filters=(), query=(), session='default', sa=None, exists=True):
+    def fetch(klass, filters=(), query=(), session='default', sa=None, exists=True):
 
         """
         Return exactly one or none for filtered query.
         """
 
         if not sa:
-            sa = Klass.get_session(session)
+            sa = klass.get_session(session)
 
         rs = None
 
         if query:
             q = sa.query(*query)
         else:
-            q = sa.query(Klass)
+            q = sa.query(klass)
 
         if filters:
             q = q.filter(*filters)
@@ -142,32 +145,32 @@ class RecordMixin(object):
             rs = q.one()
         except NoResultFound as e:
             if exists:
-                log.err("No results for %s.fetch(%r)", Klass.__name__, filters)
+                log.err("No results for %s.fetch(%r)", klass.__name__, filters)
                 raise e
 
         return rs
 
     @classmethod
-    def fetch_instance(Klass, nid, session='default', sa=None):
+    def fetch_instance(klass, nid, session='default', sa=None):
 
         """
         """
 
         if not sa:
-            sa = Klass.get_session(session)
-        q = sa.query(Klass).filter(Klass.__tablename__ + '.id' == nid)
+            sa = klass.get_session(session)
+        q = sa.query(klass).filter(klass.__tablename__ + '.id' == nid)
         return q.one()
 
     @classmethod
-    def get_instance(Klass, _session='default', _sa=None, _fetch=True, **match_attrs):
+    def get_instance(klass, _session='default', _sa=None, _fetch=True, **match_attrs):
         filters = []
         for attr in match_attrs:
-            #filters.append( text(Klass.__name__+'.'+attr+" = %r" % match_attrs[attr]) )
-            filters.append( getattr(Klass, attr) == match_attrs[attr] )
+            #filters.append( text(klass.__name__+'.'+attr+" = %r" % match_attrs[attr]) )
+            filters.append( getattr(klass, attr) == match_attrs[attr] )
 
         rec = None
         if _fetch:
-            rec = Klass.fetch(filters, sa=_sa, session=_session, exists=False)
+            rec = klass.fetch(filters, sa=_sa, session=_session, exists=False)
 
         if not rec:
             # FIXME: proper init per type, ie INode a/c/mtime
@@ -175,12 +178,13 @@ class RecordMixin(object):
                 if attr not in match_attrs or not match_attrs[attr]:
                     match_attrs[attr] = datetime.now()
 
-            rec = Klass(**match_attrs)
+            rec = klass(**match_attrs)
 
         return rec
 
     @classmethod
-    def find(Klass, _sa=None, _session='default', _exists=False, **keys):
+    def find(klass, _sa=None, _session='default', _exists=False,
+            _exact_match=True, **keys):
 
         """
         Return one (or none), with python keywords-to-like filters.
@@ -188,52 +192,54 @@ class RecordMixin(object):
 
         filters = []
         for k in keys:
-            filters.append(getattr(Klass, k).like("%%%s%%" % keys[k]))
-        return Klass.fetch(filters=tuple(filters), sa=_sa, session=_session,
+            if _exact_match:
+                filters.append(getattr(klass, k) == keys[k])
+            else:
+                filters.append(getattr(klass, k).like("%%%s%%" % keys[k]))
+        return klass.fetch(filters=tuple(filters), sa=_sa, session=_session,
                 exists=_exists)
 
     @classmethod
-    def byKey(Klass, key, session='default', sa=None, exists=False):
+    def byKey(klass, key, session='default', sa=None, exists=False):
         filters = tuple( [
-                getattr( Klass, a ) == key[a]
+                getattr( klass, a ) == key[a]
                 for a in key
             ] )
-        return Klass.fetch(filters, sa=sa, session=session, exists=exists)
+        return klass.fetch(filters, sa=sa, session=session, exists=exists)
 
     @classmethod
-    def byName(Klass, name=None, session='default', sa=None, exists=False):
+    def byName(klass, name=None, session='default', sa=None, exists=False):
         """
         Return one or none.
         """
-        return Klass.fetch((Klass.name == name,), sa=sa, session=session,
-                exists=exists)
+        return klass.find(_sa=sa, _session=session, name=name)
 
     @classmethod
-    def exists(Klass, keydict):
-        return Klass.fetch(keydict, sa=sa, session=session) != None
+    def exists(klass, _sa=None, _session='default', **q):
+        return klass.find(_sa=_sa, _session=_session, **q) != None
 
     @classmethod
-    def last_id(Klass, filters=None, session='default', sa=None):
+    def last_id(klass, filters=None, session='default', sa=None):
         """
         Return last ID or zero.
         """
         if not sa:
-            sa = Klass.get_session(session)
-        q = sa.query(func.max(Klass.node_id))
+            sa = klass.get_session(session)
+        q = sa.query(func.max(klass.node_id))
         one = q.one()
         return one and one[0] or 0
 
     @classmethod
-    def all(Klass, filters=None, session='default', sa=None):
+    def all(klass, filters=None, session='default', sa=None):
         """
         Return all for filtered query.
         """
         if not sa:
-            sa = Klass.get_session(session)
-        q = sa.query(Klass)
+            sa = klass.get_session(session)
+        q = sa.query(klass)
         if not filters and isinstance(filters, type(None)):
-            if hasattr(Klass, 'default_filters'):
-                filters = Klass.default_filters()
+            if hasattr(klass, 'default_filters'):
+                filters = klass.default_filters()
         if filters:
             for f in filters:
                 q = q.filter(f)
@@ -244,14 +250,27 @@ class RecordMixin(object):
             return []
 
     @classmethod
-    def search(Klass, _sa=None, _session='default', **keys):
+    def filter(klass, _filters=(), **keys):
+        filters = list(_filters)
+        for k in keys:
+            filters.append(getattr(klass, k).like("%%%s%%" % keys[k]))
+        return filters
+
+    @classmethod
+    def after_date(klass, dt, field='date_updated'):
+        return ( getattr(klass, field) > dt, )
+
+    @classmethod
+    def before_date(klass, dt, field='date_updated'):
+        return ( getattr(klass, field) < dt, )
+
+    @classmethod
+    def search(klass, _sa=None, _session='default', **keys):
         """
         Return all, with python keywords-to-filters.
         """
-        filters = []
-        for k in keys:
-            filters.append(getattr(Klass, k).like("%%%s%%" % keys[k]))
-        return Klass.all(filters=tuple(filters), sa=_sa, session=_session)
+        filters = klass.filter(**keys)
+        return klass.all(filters=tuple(filters), sa=_sa, session=_session)
 
     def taxus_id(self):
         """
@@ -270,16 +289,16 @@ class RecordMixin(object):
     registry = {}
 
     @classmethod
-    def root_type(Klass):
+    def root_type(klass):
 
         """
-        Return the most basic ORM model type for Klass.
+        Return the most basic ORM model type for klass.
 
         Traverse its MRO, stop before Base or any *Mixin root and return
-        the last class which is the same as or a supertype of given Klass.
+        the last class which is the same as or a supertype of given klass.
         """
 
-        root = Klass
+        root = klass
         def test_base(mro):
             "Return true when front of list has basetype"
             assert len(mro) > 2, \
@@ -295,11 +314,11 @@ class RecordMixin(object):
         return root
 
     @classmethod
-    def model_name(Klass):
-        return Klass.root_type().__name__
+    def model_name(klass):
+        return klass.root_type().__name__
 
     @classmethod
-    def init_ref(Klass, ref):
+    def init_ref(klass, ref):
         """
         Return proper type and ID for ref::
 
@@ -307,7 +326,7 @@ class RecordMixin(object):
             db:<tablename>:<id>
 
         """
-        Root = Klass.root_type()
+        Root = klass.root_type()
         if not Root.registry:
             for key, model in list(SqlBase._decl_class_registry.items()):
                 if not hasattr(model, '__mapper_args__'):
@@ -341,7 +360,7 @@ class ModelMixin(RecordMixin):
     key_names = ['id']
 
     @classmethod
-    def key(Klass, self, key_names=None):
+    def key(klass, self, key_names=None):
         key = {}
         if not key_names:
             key_names = self.key_names
@@ -353,23 +372,114 @@ class ModelMixin(RecordMixin):
         return self.exists(self.key())
 
     @classmethod
-    def className(Klass):
-        return Klass.classPathname().split('.')[-1]
+    def className(klass):
+        return klass.classPathname().split('.')[-1]
 
     @classmethod
-    def classPathname(Klass):
+    def classPathname(klass):
 
         """
-        Hack to get the Klass' name from its repr-string.
+        Hack to get the klass' name from its repr-string.
         """
 
-        return repr(Klass)[1:-1].split(' ')[1][1:-1]
+        return repr(klass)[1:-1].split(' ')[1][1:-1]
 
 
 class ORMMixin(ScriptMixin, InstanceMixin, ModelMixin):
-    pass
 
 
+    @staticmethod
+    def keyid(*a):
+        "Return unique ID for fields, for (couch) doc key"
+        raise NotImplementedError
+
+    @staticmethod
+    def key(o):
+        "Return unique ID for instance, for (couch) doc key"
+        # E.g. return Bookmark.keyid(o.href)
+        raise NotImplementedError
+
+
+    @classmethod
+    def keys(klass):
+        "Return SQL columns"
+        raise NotImplementedError
+
+
+    doc_schemas = {}
+
+    @classmethod
+    def dict_(klass, doc, **dockeys):
+        """
+        Return the contructor keywods to (re)create a copy of the records
+        """
+        if not doc:
+            return {}
+        if isinstance(doc, dict):
+            if 'type' in doc and doc['type']:
+                pass # XXX: look for transform?
+            return doc
+
+        doc_class = type(doc)
+        mod_name = doc_class.__module__ +'.'+ doc_class.__name__
+        if mod_name not in klass.doc_schemas \
+        or len(klass.doc_schemas[mod_name]) < 1 \
+        or not klass.doc_schemas[mod_name][0]:
+            raise KeyError("Expected %s doc to dict" % ( mod_name ))
+
+        return klass.doc_schemas[mod_name][0](doc)
+
+
+    @classmethod
+    def from_(klass, *docs, **dockeys):
+        "Return new instance, getting options from doc"
+        opts = klass.dict_(*docs, **dockeys)
+        o = klass()
+        for k, v in opts.items():
+            setattr(o, k, v)
+        return o
+
+    @classmethod
+    def forge(klass, source, settings, sa=None):
+        o = klass.from_(source)
+        o.init_defaults()
+        if not settings.quiet:
+            log.std("new: %s", o)
+        if not settings.dry_run:
+            if not sa:
+                sa = klass.get_session(settings.session_name)
+            sa.add(o)
+        return o
+
+    def to_dict(self, d={}):
+        k = self.__class__.keys()
+        for p in k:
+            d[p] = getattr(self, p)
+        return d
+
+    def to_struct(self, d={}):
+        return self.to_dict(d=d)
+
+    def update_from(self, *docs, **dockeys):
+        new = dict()
+        for source in docs:
+            # XXX: need an adapter for CouchDB docs
+            #new.update(iface.IPyDict(source).items())
+            if isinstance(source, Document):
+                for k in source:#.keys():
+                    if hasattr(source, k):
+                        new[k] = getattr(source, k)
+        new.update(dockeys)
+
+        updated = False
+        for k in new:
+            # Cannot update attributes that don't exist
+            if not hasattr(self, k): continue
+            if getattr(self, k) != new[k]:
+                print('updated', k, getattr(self, k), new[k])
+                setattr(self, k, new[k])
+                updated = True
+        return updated
 
 
 
@@ -377,6 +487,7 @@ class NodeSet(object):
     zope.interface.implements(iface.INodeSet)
     def __init__(self, iterable):
         self.nodes = iterable
+
 
 
 class ResultSet(NodeSet):
@@ -473,3 +584,18 @@ def nameinfo(addr):
     print(DNSCache[ addr ][ 0 ])
 
     family, socktype, proto, canonname, sockaddr = DNSCache[ addr ][ 0 ]
+
+
+def sql_like_val(field, value, g):
+    invert = value.startswith('!')
+    if invert: value = value[1:]
+    if '*' in value:
+        filter = field.like( value.replace('*', '%') )
+    elif g.partial_match:
+        filter = field.like( '%'+value+'%' )
+    else:
+        filter = field == value
+    if invert:
+        return ~ filter
+    return filter
+

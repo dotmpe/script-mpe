@@ -5,21 +5,31 @@
 note "Entry for CI pre-install / init phase"
 
 
+note "PWD: $(pwd && pwd -P)"
+note "Whoami: $( whoami )"
+note "CI Env:"
+{ env | grep -i 'shippable\|travis\|ci' | sed 's/^/	/' >&2; } || noop
+note "Build Env:"
+build_params | sed 's/^/	/' >&2
+
+test -z "$TRAVIS_BRANCH" || {
+
+    # Update GIT anyway on Travis rebuilds, but from different remote
+    note "Checkout for rebuild..."
+    checkout_for_rebuild $TRAVIS_BRANCH \
+      bitbucket https://dotmpe@bitbucket.org/dotmpe-personal/script-mpe.git && {
+        note "Updated branch for rebuild (INVALIDATES ENV)"
+      } || note "nope ($?)"
+
+  }
+
+note "GIT version: $(git describe --always)"
+
+
 # Basicly if these don't run dont bother with anything,
 # But cannot abort/skip a Travis build without failure, can they?
 
 # This is also like the classic software ./configure.sh stage.
-
-
-note "PWD: $(pwd && pwd -P)"
-note "Whoami: $( whoami )"
-
-note "CI Env:"
-{ env | grep -i 'shippable\|travis\|ci' | sed 's/^/	/' >&2; } || noop
-
-note "Build Env:"
-build_params | sed 's/^/	/' >&2
-
 
 test -z "$BUILD_ID" || {
   test ! -d build || {
@@ -36,11 +46,11 @@ not_trueish "$SHIPPABLE" || {
   test -d shippable/codecoverage
 }
 
-fnmatch "* basename-reg *" "$TEST_COMPONENTS" && {
+fnmatch "* basename-reg *" " $TEST_SPECS " && {
   test -e ~/.basename-reg.yaml ||
-    touch ~/.basename-reg.yaml
+    cp basename-reg.yaml ~/.basename-reg.yaml
 }
 
 
-note "Done"
+note "ci/parts/init Done"
 # Id: script-mpe/0.0.4-dev tools/ci/parts/init.sh

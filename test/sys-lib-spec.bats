@@ -1,11 +1,16 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 base=sys.lib
 
 init
 
-load main.inc
+setup()
+{
+  load main.inc
+  export SCR_SYS_SH=
+  sys_lib_load
+}
 
 
 # util / Try-Exec
@@ -103,18 +108,30 @@ load main.inc
 
 # util / Var Isset
 
+@test "${base} - var-isset depends on SCR-SYS-SH " {
+
+  diag "Shell: $SHELL, Scr-Sys-Sh: $SCR_SYS_SH"
+  {
+    fnmatch "bash-sh" "$SCR_SYS_SH" || fnmatch "sh" "$SCR_SYS_SH"
+  } && {
+    type set
+  } || {
+    true
+  }
+}
+
 @test "${base} - var-isset detects vars correctly even if empty" {
 
   ( 
     env | grep -v '^[A-Z0-9_]*=' | grep '\<foo_bar='
-  ) && fail "unexpected" || echo ""
-  var_isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
+  ) && fail "unexpected" || true
+  var_isset foo_bar && fail "1. Unexpected foo_bar set ($?)" || true
 
   run var_isset foo_bar
   test $status -eq 1 || fail "2. Unexpected foo_bar set ($status)"
 
-  # FIXME: must bats always be running as Bash
-  test "$(basename $SHELL)" = "sh" || skip "Sh: $SHELL"
+  # XXX: Bats with non-bash test subshell?
+  test -n "$SHELL" -a "$(basename $SHELL)" = "sh" || skip
 
   foo_bar=
   run var_isset foo_bar
@@ -170,8 +187,9 @@ load main.inc
 
 @test "${base} - var-isset detects vars correctly even if empty, local declaration" {
 
-  # FIXME: must bats always be running as Bash
-  test "$(basename $SHELL)" = "sh" || skip "Sh: $SHELL"
+  # XXX: Bats with non-bash test subshell?
+  diag "Sh: $SHELL"
+  test -n "$SHELL" -a "$(basename $SHELL)" = "sh" || skip
 
   local foo_bar_baz=
   run var_isset foo_bar_baz 
@@ -189,24 +207,7 @@ load main.inc
 
   func_exists noop
   run noop
-  test $status -eq 0
-  test -z "${lines[*]}"
-}
-
-
-# FIXME: this is far to slow
-@test "${base} - short" {
-  check_skipped_envs travis || skip "Nothing much to test anyway"
-
-  func_exists short
-  run short
-  test $status -eq 0 || fail "${lines[*]}"
-
-  fnmatch "$HOME*" "$lib" && {
-    fnmatch "~/*" "${lines[*]}"
-  } || {
-    test "$lib" = "${lines[*]}"
-  }
+  test_ok_empty || stdfail
 }
 
 

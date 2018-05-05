@@ -1,7 +1,10 @@
 
 id: "http://wtwta.org/project/script/schema/package#"
 $schema: http://json-schema.org/draft-04/schema#
-description: JSON based schema for package.yml
+description: |
+  JSON based schema for package.yml. There should be one list item with type
+  'application/vnd.org.wtwta.project' and below schema should apply.
+
 type: array
 items:
   allOf:
@@ -20,23 +23,30 @@ items:
           type: array
           items: 
             type: string
+        created:
+          type: date-time
+          description: "FIXME: jsotk doesnt handle date-time to JSON well"
+
+        ext:
+          type: object
+          description: |
+              metadata for any extension, that either does not fit with base
+              'application/vnd.org.wtwta.project' schema or does not wish its
+              own schema or package.yml entry. In addition the ext keys may be
+              used by the project to determine which components or features
+              are available and/or installed, and similar.
 
         pd-meta:
           type: object
+          description: Metadata for projectdir/projectdoc.
           properties:
-            init:
-              description: |
-                See also ``[]init``, but this holds the parsed cmd and other
-                settings/preferences.
-            check:
-              description: |
-                See also ``[]check``, idem ditto as init.
-            build:
-              description: |
-                See also ``[]build``, idem ditto as init.
-            test:
-              description: |
-                See also ``[]test``, idem ditto as init.
+            log:
+              description: Path to logbooks
+              type: string
+            # XXX: maybe overlay some workflow cycle scripts ids here, but with
+            # non-shell syntax maybe list.txt'ish.
+            # Also need to solve override vs. auto-detection of suite, ie. 
+            # build/init/config/test/check/run/update/status etc. lifecycles
   
       required:
         - type
@@ -44,42 +54,149 @@ items:
 
     - type: object
       properties:
-        init:
-          type: string
+        scripts:
+          type: object
+          short: Project shell scripts
           description: |
-            Shell script to further initialize a project after checkout has been (re)enabled.
-            Re-run as long as it returns continue err code.
+            Project scripts. Any string-id name is possible, but some are
+            special. In particular see workflows. The contents are plain shell
+            script lines, TODO: which should be executed in the same subshell.
+            XXX: require to choose for env to do this in, and revert some of
+            the current isolation?
 
     - type: object
       properties:
-        check:
-          type: string
+        flows:
+          type: object
+          short: Project shell script flows
           description: |
-            Shell script executed to perform a cursory, quick lookup of project weather.
+              A mapping of state IDs to tuples with script IDs or other states.
+              The scripts specify how to enter, check or close the state.
+              For simplicity, only the enter-state script ID is required. It
+              replaces the check-script when that is called for, and for deinit
+              or disabeling the state it simply assumes its disposed of with its
+              containg project.
 
-    - type: object
-      properties:
-        test:
-          type: string
-          description: |
-            Shell script executed to determine test status code, and identify passed/failed/errored tests.
+              By default states inherit all from the 'base' flow, meaning its
+              required before any other state. To make a flow that can run without
+              succesful 'base' flow init or check, select the reserved 'null'
+              flow.
 
-    - type: object
-      properties:
-        tasks:
-          type: string
-          description: |
-            The shell command executed to determine the status code and a report 
-            of the tasks of a project.
-
-            Nothing further is specified as of yet, but in the future some
-            protocol requirements will be added on the meaning of the output.
-
-    - type: object
-      properties:
-        build:
-          type: string
-          description: |
-            Build scripts.
-
+#    - type: object
+#      properties:
+#        pd-meta:
+#          type: object
+#          properties:
+#            anyOf:
+#            - type: object
+#              properties:
+#                init:
+#                  type: string
+#                  short: Setup project once.
+#                  description: |
+#                    Runs after a fresh checkout, or after metadata update.
+#
+#                    Shell script to further initialize a project after checkout
+#                    has been (re)enabled. E.g. config and dependent files.
+#                    Re-run as long as it returns continue err code. May require
+#                    interactive mode to setup.
+#
+#            - type: object
+#              properties:
+#                upgrade:
+#                  type: string
+#                  short: Get latest version, re-run relevant init parts
+#                  description: |
+#                    XXX: projects may want an auto-update channel, ie. "stable"
+#                    etc. here.
+#
+#            - type: object
+#              properties:
+#                build:
+#                  type: string
+#                  short: Build everything, auto-init if possible
+#
+#            - type: object
+#              properties:
+#                install:
+#                  type: string
+#                  short: Install build or requirements.
+#
+#            - type: object
+#              properties:
+#                test:
+#                  type: string
+#                  short: Test stacks.
+#                  description: |
+#                    Shell script executed to determine test status code, and
+#                    identify passed/failed/errored tests.
+#
+#            - type: object
+#              properties:
+#                check:
+#                  type: string
+#                  short: Diagnose or doctor after init/build/test
+#                  description: |
+#                    Shell script executed to perform a cursory, quick lookup of
+#                    project "weather", e.g. test/build stats or stack status (from
+#                    cache).
+#
+#            - type: object
+#              properties:
+#                stats: show
+#
+#            - type: object
+#              properties:
+#                update:
+#                  type: string
+#                  short: Update stats
+#                  description: |
+#                    For build/test/running states/benchmarks to update their
+#                    scores.
+#
+#                    Ie. may include versioning, new commits at remotes, branch
+#                    divergence, or metrics from static code analysis, stack
+#                    metrics like usage and latencies. Etc. etc.
+#
+#            - type: object
+#              properties:
+#                clean:
+#                  type: string
+#                  short: Remove build/test artefacts
+#                  description:
+#                    Undo build/test states.
+#                    In strict mode fail if uncleanables are present
+#
+#            - type: object
+#              properties:
+#                reset:
+#                  type: string
+#                  short: Restart entirely
+#                  descripts: |
+#                      Be even more thorough than clean, and re-run init steps
+#
+#            - type: object
+#              properties:
+#                tasks:
+#                  document:
+#                    type: string
+#                  done:
+#                    type: string
+#                  coops:
+#                    type: array
+#                  tags:
+#                    type: array
+#                  cmd:
+#                    type: string
+#                    short: Gather tasks
+#                    description: |
+#                      The shell command executed to determine the status code and a report 
+#                      of the tasks of a project.
+#
+#                      Nothing further is specified as of yet, but in the future some
+#                      protocol requirements will be added on the meaning of the output.
+#
+#            - type: object
+#              properties:
+#                show: dump configuration/package entry
 

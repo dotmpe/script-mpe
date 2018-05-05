@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 
 System Complexity
@@ -25,9 +26,10 @@ try:
     import bencode
 except:
     bencode = None
-import res.js
 
-from lib import human_readable_bytesize
+
+#from script_mpe import res
+from script_mpe.lib import human_readable_bytesize
 
 storage = {
         'a8c01c01': confparse.Values(dict(
@@ -64,7 +66,7 @@ def main( ):
     print('='*79)
     data.hostid = os.popen2( 'hostid' )[ 1 ].read().strip()
     data.date = datetime.datetime.now().isoformat()
-    print('Date:', data.date#.isoformat())
+    print('Date:', data.date)
     print('Host-ID:', data.hostid)
     fssttat = os.statvfs( os.sep )
     print('Filesystem:', os.sep)
@@ -131,4 +133,8 @@ def main( ):
 #    print fssttat.f_ffree * 100 / total_nodes
 
 if __name__ == '__main__':
-    main()
+    import sys
+    if '-h' in sys.argv or '--help' in sys.argv:
+        print(__doc__)
+    else:
+        main()

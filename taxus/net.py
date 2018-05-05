@@ -78,8 +78,9 @@ locators_checksums = Table('locators_checksums', SqlBase.metadata,
 # mapping table for Tag [*-*] Locator
 locators_tags = Table('locators_tags', SqlBase.metadata,
     Column('locator_ida', ForeignKey('ids_lctr.id')),
-    Column('tags_idb', ForeignKey('names_tag.id'))
+    Column('tags_idb', ForeignKey('tagnames.id'))
 )
+
 
 #class Locator(core.ID):
 class Locator(SqlBase, CardMixin, ORMMixin):
@@ -102,6 +103,8 @@ class Locator(SqlBase, CardMixin, ORMMixin):
 
     idtype = Column(String(50), nullable=False)
     __mapper_args__ = {'polymorphic_on': idtype, 'polymorphic_identity': 'id:locator'}
+
+    ref = Column(Text)
 
     @property
     def scheme(self):
@@ -155,34 +158,24 @@ class Locator(SqlBase, CardMixin, ORMMixin):
 
     @classmethod
     def keys(klass):
-        return 'status last_seen'.split(' ')
+        "Return SQL columns"
+        return CardMixin.keys + 'domain ref_md5 ref_sha1'.split(' ')
 
-    def to_dict(self):
-        d = dict(href=self.ref)
-        k = self.__class__.keys() + 'deleted date_added date_deleted date_updated'.split(' ')
-        for p in k:
-            d[p] = getattr(self, p)
-        return d
-
-
-class URL(Locator):
-
-    __tablename__ = 'ids_lctr_url'
-    __mapper_args__ = {'polymorphic_identity': 'id:locator:url'}
-
-    url_id = Column('id', Integer, ForeignKey('ids_lctr.id'), primary_key=True)
-
-    ref = Column(Text)
-
-    def href(self):
-        return self.ref
+    def to_dict(self, d={}):
+        d.update(dict(href=self.ref))
+        return ORMMixin.to_dict(self, d=d)
 
     @classmethod
-    def from_dict(klass, **kwds):
-        "Forget instance"
-        self.ref = kwds.href
-        del kwds.href
+    def from_bm(klass, doc):
+        return dict(ref=doc['href'])
 
+    def to_bm(self):
+        return dict(href=self.ref)
+
+
+Locator.doc_schemas = {
+    'taxus.docs.bookmark.Bookmark': (Locator.from_bm, Locator.to_bm)
+}
 
 
 token_locator_table = Table('token_locator', SqlBase.metadata,

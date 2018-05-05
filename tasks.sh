@@ -1,7 +1,5 @@
 #!/bin/sh
-
 tasks_src=$_
-test -z "$__load_lib" || set -- "load-ext"
 
 set -e
 
@@ -109,7 +107,7 @@ tasks_init()
   . $scriptpath/util.sh load-ext
   util_init
   . $scriptpath/match.lib.sh
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   #. $scriptpath/htd.lib.sh
   lib_load main meta box date doc table remote tasks
@@ -142,12 +140,6 @@ tasks_unload()
 
   for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
   do case "$x" in
-      y )
-          test -z "$sock" || {
-            tasks_meta_bg_teardown
-            unset bgd sock
-          }
-        ;;
       f )
           clean_failed || unload_ret=1
         ;;
@@ -167,13 +159,10 @@ tasks_unload()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux?
-  # fix using another mechanism:
-  # XXX: cleanup test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-      tasks_main "$@" ;;
-
-  esac ;;
-esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "$__load_lib" || {
+    tasks_main "$@" || exit $?
+  }
+;; esac
 
 # Id: script-mpe/0.0.4-dev tasks.sh

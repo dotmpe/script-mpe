@@ -71,7 +71,7 @@ mkvid()
 # For real pretty would want lookup for abbrev. Too complex so another function.
 mksid()
 {
-  test -n "$1" || error "mkcid argument expected" 1
+  test -n "$1" || error "mksid argument expected" 1
   var_isset c || c=_
   test -n "$upper" && {
     trueish "$upper" &&
@@ -175,9 +175,10 @@ x_re()
   echo $1 | grep -E "^$2$" > /dev/null && return 0 || return 1
 }
 
-# Use this to easily matching strings based on glob pettern, without
-# adding a Bash dependency (keep it vanilla Bourne-style shell).
-fnmatch()
+# Easy matching for strings based on glob pattern, without adding a Bash
+# dependency (keep it vanilla Bourne-style shell). Quote arguments with '*',
+# to prevent accidental expansion to local PWD filenames.
+fnmatch() # Glob Str
 {
   case "$2" in $1 ) return 0 ;; *) return 1 ;; esac
 }
@@ -260,22 +261,21 @@ properties2sh()
 sh_properties()
 {
   test -n "$*" || error "sh-properties expects args: '$*'" 1
-  test -e "$1" -o "$1" = "-" || error "sh-properties file" 1
+  test -e "$1" -o "$1" = "-" || error "sh-properties file '$1'" 1
   # NOTE: Always be carefull about accidentally introducing newlines, will give
   # hard-to-debug syntax failures here or in the local evaluation
   read_nix_style_file $1 | grep '^'"$2" | sed 's/^'"$2"'/'"$3"'/g' | properties2sh -
 }
 
 # A simple string based key-value lookup with some leniency and translation convenience
-# property PREFIX SUBST KEYS...
-property()
+property() # PROPSFILE PREFIX SUBST KEYS...
 {
   test -n "$1" || error "property expects props: '$*'" 1
   local props="$1" prefix="$2" subst="$3" vid=
   local tmpf=$(setup_tmpf)
   sh_properties "$1" "$2" "$3" > $tmpf
   shift 3
-  test -z "$subst" || mkvid "$subst"
+  test -z "$subst" || upper=0 mkvid "$subst"
   (
     . $tmpf
     rm $tmpf
@@ -283,11 +283,7 @@ property()
     do
       local __key= __value=
       test -n "$vid" && __key=${vid}$1 || __key=$1
-      __value="$(eval printf -- \"\$$__key\")"
-#      __value="$(cat <<EOM
-#\$$__key
-#EOM
-#      )"
+      __value="$(eval printf -- \'%s\' \"\$$__key\")"
       shift
       test -n "$__value" || continue
       print_var "$__key" "$__value"
@@ -298,7 +294,7 @@ property()
 # Get from a properties file
 get_property() # Properties-File Key
 {
-  test -e "$1" -a -n "$2" || error "File Key expected" 1
+  test -e "$1" -a -n "$2" || error "Args 'File Key' expected: '$1' '$2'" 1
   grep '^'$2'\ *\(=\|:\).*$' $1 | sed 's/^[^:=]*\ *[:=]\ *//'
 }
 
@@ -359,6 +355,7 @@ resolve_prefix_element()
   echo "$2" | sed "s/^\\([^$3]*\\)$3.*$/\\1/"
 }
 
+# XXX: wouldn't `pr` suffice?
 column_layout()
 {
   test -n "$colw" || local colw=22
@@ -391,4 +388,28 @@ str_title()
       first_word_only=1 str_title "$(echo "$1" | tr ' ' '\n')" | tr '\n' ' '
     }
   }
+}
+
+# Remove last n chars from stream at stdin
+strip_last_nchars() # Num
+{
+  rev | cut -c $(( 1 + $1 ))- | rev
+}
+
+# Join lines in file based on first field
+join_lines() # Src Delim
+{
+  awk '{
+		k=$2
+		for (i=3;i<=NF;i++)
+			k=k " " $i
+		if (! a[$1])
+			a[$1]=k
+		else
+			a[$1]=a[$1] "'"$2"'" k
+	}
+	END{
+		for (i in a)
+			print i "\t" a[i]
+	}' $1
 }

@@ -2,5 +2,22 @@
 
 master dev false
 dev test false
+
+dev dev_confparse_hier
 dev dev_hierexec
-dev gh-pages
+dev dev_munin
+dev dev_scraper
+dev dev_statusdir
+dev dev_taxus
+dev dev_treemap
+
+dev f_sh_parseopts
+dev features/radical
+dev features/travis-local
+
+# gh-pages
+# git-annex
+# synced/dev
+# synced/git-annex
+# synced/master
+test tests/bugs/1-radical-regression

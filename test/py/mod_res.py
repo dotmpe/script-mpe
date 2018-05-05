@@ -1,7 +1,7 @@
 import zope.component
 import unittest
 
-import res
+from script_mpe import res
 
 
 tests = (

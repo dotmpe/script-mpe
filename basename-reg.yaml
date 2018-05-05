@@ -1,0 +1,162 @@
+multi:
+  tgz: [tar, gz]
+ext_map:
+    htm: html
+    jpg: jpeg
+ftype: [aRchive, Compressed, Application, Script, Video, aUdio, Document, dIsk, Picture]
+mime_ext_reg:
+    bz2: application/x-bzip2
+    #doc: application/vnd.ms-office
+    #doc: application/msword
+    dtd: application/xml-dtd
+    empty: application/x-empty
+    flv: video/x-flv
+    html: text/html
+    ini: text/x-ini
+    jpeg: image/jpeg
+    log: text/plain
+    list: text/x-list
+    mk: text/x-make
+    mysql: text/x-mysql
+    mp4: video/mp4
+    pdf: application/pdf
+    php: text/x-php
+    pl: text/x-perl
+    png: image/png
+    py: text/x-python
+    pyc: application/x-python-compiled
+    rst: text/x-rst
+    sh: application/x-shellscript
+    #sh: text/x-bash
+    sql: application/x-sql
+    tab: text/x-tabulated
+    tar: application/x-tar
+    torrent: application/x-bittorrent
+    vcf: text/x-vcard
+    xml: text/xml
+mime_xref:
+  application/octet-stream:
+  - [pyc]
+  - Application
+  - Unspecified binary data
+  application/x-bzip2:
+  - [bz2]
+  - Compressed
+  - bzip2 compressed data
+  application/x-empty:
+  - [empty]
+  - Script
+  - Empty file
+  application/x-python-compiled:
+  - [pyc]
+  - Application
+  - Python script compiled
+  application/x-tar:
+  - [tar]
+  - Archive
+  - POSIX tar archive (GNU)
+  application/xml-dtd:
+  - [dtd]
+  - Document
+  - DTD schema text document
+  image/png:
+  - [png]
+  - Picture
+  - PNG image
+  text/html:
+  - [html]
+  - Document
+  - HTML document text
+  text/plain:
+  - [log]
+  - Document
+  - Log text
+  application/x-shellscript:
+  - [sh]
+  - Script
+  - a shell script text executable
+  text/x-bash:
+  - [sh, bash]
+  - Script
+  - a bash script text executable
+  text/x-ini:
+  - [ini]
+  - Script
+  - INI-dialect configuration text
+  text/x-make:
+  - [mk,make]
+  - Script
+  - Make script text
+  application/x-sql:
+  - [sql]
+  - Script
+  - SQL script text
+  text/x-mssql:
+  - [mssql]
+  - Script
+  - MySQL text script
+  text/x-mysql:
+  - [mysql]
+  - Script
+  - MySQL text script
+  text/x-perl:
+  - [pl]
+  - Script
+  - Perl script text
+  text/x-php:
+  - [php]
+  - Script
+  - PHP script text
+  text/x-python:
+  - [py]
+  - Script
+  - Python script text
+  text/x-rst:
+  - [rst, rest, rstx]
+  - Document
+  - ReStructuredText Plain Text Markup Document
+  text/x-tabulated:
+  - [tab]
+  - Script
+  - Tab-separated fields
+  text/xml:
+  - [xml]
+  - Document
+  - eXtensible Markup Language text file
+  video/x-flv:
+  - [flv]
+  - Video
+  - Macromedia Flash Video
+  video/mp4:
+  - [mp4]
+  - Video
+  - ISO Media, MPEG v4 system, version 2
+  application/msword:
+  - [doc]
+  - Document
+  - MS Word document
+  application/vnd.ms-office:
+  - [doc]
+  - Document
+  - MS Office file
+  application/pdf:
+  - [pdf]
+  - Document
+  - Portable Document Format
+  image/jpeg:
+  - [jpeg, jpg]
+  - Picture
+  - Joint-Picture Experts Group image file format
+  application/x-bittorrent:
+  - [torrent]
+  - Application
+  - Bittorrent meta file
+  text/x-vcard:
+  - [vcf]
+  - Application
+  - Contact Card
+  text/x-web-textile:
+  - [textile]
+  - Document
+  - Textile (markup language)
+mimereg:

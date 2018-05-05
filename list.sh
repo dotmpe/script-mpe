@@ -13,11 +13,24 @@ version=0.0.4-dev # script-mpe
 
 # See $scriptname help to get started
 
-lst_man_1__names="List names for groups"
-lst_spc__names="GROUP.."
+lst_man_1__names='List LIST-paths for group-name(s)
+
+Group
+    purge
+    clean
+    drop
+
+    ignore
+    local global
+    scm
+
+See ignores.rst
+'
+lst_spc__names="names GROUP.."
 lst_load__names=iI
 lst__names()
 {
+  note "$@"
   trueish "$choice_all" && {
     ignores_groups "$@"
   } || {
@@ -25,7 +38,8 @@ lst__names()
   }
 }
 
-lst_man_1__globs="List globs (in group)"
+
+lst_man_1__globs="Write globs (in group) to file and output"
 lst_als__list=globs
 lst_spc__globs="[GROUP]"
 lst_load__globs=iI
@@ -36,6 +50,8 @@ lst__globs()
   lst_init_ignores "$ext" local global
   read_nix_style_file $IGNORE_GLOBFILE$ext
 }
+lst_als__init_ignores=globs
+
 
 lst_man_1__local="List globs from local file only, without inherited patterns"
 lst_load__local=iI
@@ -50,8 +66,17 @@ lst__local()
     note "Local lines shown above"
 }
 
-lst_man_1__watch="Watch files for changes"
-lst_spc__watch="FILE|DIR [GLOB [[CMD]]"
+lst_man_1__watch="Watch files for changes
+
+TODO: test, TEST
+
+Executes CMD every time files have changed. Keep running forever regardless
+of CMD result, unless TEST is given.
+TEST is a function name, or for a trueish string reinvoke CMD (on changes)
+only while status was non-zero, and if falseish the opposite; run only while it
+was zero.
+"
+lst_spc__watch="FILE|DIR [ GLOB [ CMD [ TEST ]]]"
 lst_load__watch=iI
 lst__watch()
 {
@@ -60,8 +85,7 @@ lst__watch()
   test -n "$2" || set -- "$1" "*" "$3"
 
   # FIXME: write this into load phase
-  lst__watch_${lst_watch_be} "$@" \
-    || return $?
+  lst__watch_${lst_watch_be} "$@" || return $?
 }
 
 lst_spc__watch_fswatch="FILE|DIR [GLOB [CMD]]"
@@ -210,7 +234,7 @@ lst_main()
   local \
       scriptname=list \
       scriptalias=lst \
-      base=$(basename $0 .sh) \
+      base=lst \
       scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
       failed=
 
@@ -243,7 +267,7 @@ lst_main()
 lst_init()
 {
   test -n "$scriptpath"
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   lib_load box main
   box_run_sh_test
   # -- lst box init sentinel --
@@ -253,9 +277,9 @@ lst_init()
 lst_lib()
 {
   local __load_lib=1
-  lib_load meta list
-  lib_load ignores date
-  lst_load
+  lib_load date meta list
+  lib_load ignores
+  #lst_load
   # -- lst box lib sentinel --
   set --
 }
@@ -265,10 +289,9 @@ lst_lib()
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-      lst_main "$@"
-    ;;
-  esac ;;
+  test "$1" != load-ext || __load_lib=1
+  test -n "$__load_lib" || {
+    lst_main "$@" || exit $?
+  }
+  ;;
 esac
-

@@ -47,7 +47,7 @@ meta_sh__video_info()
 
   durms="$(mediadurationms "$1")"
   dar="$(mediadisplayaspectratio "$1")"
-  ft="$(filetype "$1")"
+  ft="$(file_mime "$1")"
   res="$(mediaresolution "$1")"
   test -n "$durms" || error "No duration <$1>" 1
   test -n "$res" || error "No resolution <$1>" 1
@@ -68,7 +68,7 @@ meta_sh__annex_update_video()
   do
     meta_sh__video_info "$1"
 
-    annex_md_update filetype $ft "$1"
+    annex_md_update mimetype $ft "$1"
     annex_md_update durationms $durms "$1"
     annex_md_update display_aspectratio $dar "$1"
     annex_md_update resolution $res "$1"
@@ -151,7 +151,7 @@ meta_sh_init()
   export SCRIPTPATH=$scriptpath
   . $scriptpath/util.sh load-ext
   lib_load
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load main box meta
 }
@@ -193,11 +193,11 @@ meta_sh_unload()
 
   clean_failed || unload_ret=$?
 
-  env | grep -i 'meta'
-
   unset subcmd subcmd_pref \
           def_subcmd func_exists func \
-          failed
+          failed base
+
+  env | grep -i 'meta'
 
   return $unload_ret
 }

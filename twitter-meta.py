@@ -3,7 +3,7 @@
 """
 from __future__ import print_function
 __description__ = "twitter-meta - twitter document proc"
-__version__ = '0.0.2-dev' # script-mpe
+__version__ = '0.0.4-dev' # script-mpe
 __usage__ = """
 Usage:
   twitter-meta.py [options] info

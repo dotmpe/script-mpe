@@ -26,7 +26,7 @@ pipeline:
      - export USER=treebox
      - export HOME=/home/treebox
      - echo PATH=$PATH
-     - export PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/
+     - export PATH=$PATH:$HOME/bin:$HOME/bin/vendor/bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/
      #- export PYTHONPATH=$PYTHONPATH:$HOME/bin:$HOME/lib/py
      - echo PATH=$PATH
      - SCR_SYS_SH=bash-sh

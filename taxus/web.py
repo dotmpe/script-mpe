@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship, backref
 
 from .init import SqlBase
 from .util import ORMMixin
-from .mixin import CardMixin
+from .mixin import CardMixin, ResourceMixin
 from . import core
 from . import net
 from . import fs
@@ -56,7 +56,7 @@ class Status(SqlBase, CardMixin, ORMMixin):
     ref = relationship('Localname', primaryjoin='Localname.localname_id==Status.ref_id')
 
 
-class Resource(SqlBase, CardMixin, ORMMixin):
+class Resource(SqlBase, CardMixin, ResourceMixin, ORMMixin):
 
     """
     A generic resource description. A (web) document.
@@ -77,26 +77,19 @@ class Resource(SqlBase, CardMixin, ORMMixin):
     location = relationship(net.Locator, primaryjoin=locator_id == net.Locator.lctr_id)
     "Content-Location. , size=0"
 
-    last_access = Column(DateTime)
-    last_modified = Column(DateTime)
-    last_update = Column(DateTime)
-
-    #status_id = Column(ForeignKey('status.id'), index=True)
-    #status = relationship(Status, primaryjoin=status_id == Status.status_id)
-    status = Column(Integer)
-
     # RFC 2616 headers
     allow = Column(String(255))
-
+    http_status = Column(Integer) # TODO: HEAD? GET?
     # extension_headers  = Column(String())
+
+    @classmethod
+    def keys(klass):
+        return CardMixin.keys + ResourceMixin.keys + \
+            'resource_id location http_status'.split(' ')
 
     @property
     def href(self):
         return self.location.href()
-
-    @classmethod
-    def keys(klass):
-        return 'last_access last_modified last_update status'.split(' ')
 
 
 class Invariant(Resource):

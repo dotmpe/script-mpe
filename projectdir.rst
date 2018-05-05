@@ -1,14 +1,11 @@
 Pd Specs
 ========
 :Created: 2016-01-24
-:Updated: 2017-01-14
+:Updated: 2018-01-20
 
 Pd - unified project checkout handling.
 
-- Frontend: projectdir.sh_
-- Extensions: ``projectdir-*.inc.sh``
-- YAML store backend: projectdir-meta_ (Python script for handing Pdocs)
-- Package_ for generic project metadata.
+- Consolidation, registration of projects into projectdirs/-docs.
 
 :FIXME: test wether staged, unstaged changes or stash are recognized as dirt
    or cruft. Build some tests.
@@ -18,7 +15,6 @@ Pd - unified project checkout handling.
 :TODO: annex support
 :TODO: reload bg command.
 :TODO: compile packaged scripts from literate style scripting like below. Package for subcommands, and with relations/decorations, with embedded scripts or to annotated external scripts.
-
 
 - Annotation like this should eliminate scattered metadata files
   like .pd-test
@@ -30,7 +26,6 @@ Pd - unified project checkout handling.
   See package_ also for some related TODO's.
   See below for some sketchups on pd subcommands,
 
-
 Definitions
 ------------
 Projectdir [Pd]
@@ -39,6 +34,12 @@ Projectdoc [Pdoc]
   - metadata file listing prefixes repo/remotes etc.
 Prefix
   - A directory below a Projectdir with package metadata files and/or SCM dirs.
+Workspace
+  - Per-host/context and/or nested Workdirs (ie. home, projectdir, public-html,
+    user-conf), or instances or unique basedir (local volumes, remote mounts,
+    synced dirs). Contexts as in levels, modes of user access.
+Current (working) dir [CWD]
+  - From where a script is run, relative to some workspace.
 Target
   - a specification of a command run on a prefix.
 Cruft
@@ -52,15 +53,29 @@ Dirt
     be required before purging local unmerged branches, stashed changes,
     dirty files, etc.
 
-
 SCM (clean/dirty/crufty) handling depends on vc.sh_ script.
+
+
+Workflows
+---------
+- `Feature: projectdir is a tool to handle projects as groups <test/projectdir.feature>`__
+
+  - `Feature: projectdoc specifies how to handle a project <test/project-lifecycle.feature>`__
+
+- `Other stack/project dev scenarios <test/dev.feature>`_
+- For more simple installations of third-parties, see also tools_ schema.
+
+
+Related source files
+---------------------
+- Frontend: projectdir.sh_.
+- Extensions: ``projectdir-*.inc.sh``.
+- YAML store backend: projectdir-meta_ (Python script for handing Pdocs).
 
 
 Components
 ------------
 pd
-  - annotate ./projectdir.sh
-
   Use cases
     1 Enable a known prefix, or reassert
       * checkout (1.1), add remotes (1.2)
@@ -205,7 +220,8 @@ pd
       for each prefix.
 
 
-.. _package: ./package.rst
 .. _projectdir.sh: ./projectdir.sh
 .. _projectdir-meta: ./projectdir-meta
+.. _package: ./package.rst
 .. _vc.sh: ./vc.sh
+.. _tools: ./schema/tools

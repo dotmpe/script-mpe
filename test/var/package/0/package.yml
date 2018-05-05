@@ -1,7 +1,7 @@
 
 # One main section, and matches ID
 
-- type: application/vnd.bvberkum.project
+- type: application/vnd.org.wtwta.project
   main: script-bvb-test-0
   id: script-bvb-test-0
 

@@ -9,27 +9,17 @@ x (F)     2017-05-13 2017-05-13 closed
  (F-123) 2017-05-13
  (XX)    2017-05-13 
  (YY)    2017-05-13 
+
  (ZZ)    2017-05-13 
-(A)    2017-04-01 ID-1: Just for testing REF-1 xy REF-99 REF-1001 @foo @bar @baz yeah +project
-(ABC)  2017-04-01 ID-1: Just for testing REF-1 xy REF-99 REF-1001 @foo @bar @baz yeah
-(B12)  2017-04-01 ID-2: BUG   Just for testing   BUG: REF-1 xy REF-99 REF-1001 yeah BUG
-(C/3)  2017-04-01 ID-3: FIXME Just for testing FIXME: REF-1 REF-99 REF-1001 yeah
-(D#3)  2017-04-01 ID-4: TODO Just for testing   TODO: REF-1 xy REF-99 REF-1001 yeah
-(E-3)  2017-04-01 ID-5: NOTE Just for testing   NOTE: REF-1 xy REF-99 NOT-123this OR AND meta:user foo:bar yeah NOTE
-(F:3)  2017-04-01 ID-15: XXX Just for testing    XXX: REF-1 xy REF-99 NOT-123this OR AND meta:user foo:bar yeah
-(G.3)  2017-04-01 ID-1235: Just for testing REF-1 xy REF-99 NOT-123this OR AND meta:user foo:bar yeah
-(H2.)  2017-04-01 ID-354: Just for testing REF-1 xy REF-99 NOT-123this OR AND meta:user foo:bar yeah
-(X)    2017-04-01 ID-1231: Just for testing REF-1 xy REF-99 NOT-123this OR AND meta:user foo:bar yeah
-(Z)    2017-04-01 ID-2213: Just for testing REF-1 xy REF-99 NOT-123this OR AND meta:user foo:bar yeah
- (XXX) or another ref [REF-1] REF-2 foo bar [REF-3] @dev
- (XXX) or another ref [REF-1] REF-2 foo bar [REF-3] @Dev
- (XXX) (1.1) 1.1: 1.1 REF 1.1 [REF 1.1]
- (XXX) (A1.1)  REF-1.1: 1.1 <1.1> 1.1 REF-1.1 [REF-1.1] XXX: FIXME: BUG FIXME TODO NOTE
- (XXX) 2017-04-01 ID-5: Just for testing REF-1 xy REF-99 NOT-123this OR AND NOT-
- (XXX) 34324.2341232.33432.21324
- (XXX) 841.2.143.248
- (XXX) human readable 400M
- (XXX) more 100Kb per 500sq/f2 0.1+10 005+38E 123.123 2231 123 123 123
+(A)      2017-04-01 ID-1: Just for testing REF-1 xy REF-99 REF-1001 @foo @bar @baz yeah +project
+(B12)    2017-04-01 ID-2: BUG   Just for testing   BUG: REF-1 xy REF-99 REF-1001 yeah BUG
+(C/3)    2017-04-01 ID-3: FIXME Just for testing FIXME: REF-1 REF-99 REF-1001 yeah
+(D#3)    2017-04-01 ID-4: TODO Just for testing   TODO: REF-1 xy REF-99 REF-1001 yeah
+(E-3)    2017-04-01 ID-5: NOTE Just for testing   NOTE: REF-1 xy REF-99 NOT-123this OR AND meta:user foo:bar yeah NOTE
+(F:3)    2017-04-01 ID-15: XXX Just for testing    XXX: REF-1 xy REF-99 NOT-123this OR AND meta:user foo:bar yeah
+(G.3)    2017-04-01 ID-1235: Just for testing REF-1 xy REF-99 NOT-123this OR AND meta:user foo:bar yeah
+ (XX.1) 1.1: 1.1 REF 1.1 [REF 1.1] (XXX) or another ref [REF-1] REF-2 foo bar [REF-3] @Dev REF-1.1: 1.1 <1.1> 1.1 REF-1.1 [REF-1.1] XXX: FIXME: BUG FIXME TODO NOTE
+ (XXX)  2017-04-01 ID-5: Just for testing REF-1 xy REF-99 NOT-123this OR AND NOT- 34324.2341232.33432.21324  841.2.143.248  human readable 400M  more 100Kb per 500sq/f2 0.1+10 005+38E 123.123 2231 123 123 123
  (XXX) urn:foo:bar item
 #_directive-my-foo:<arg>;(spec)
 

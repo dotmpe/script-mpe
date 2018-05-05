@@ -1,0 +1,71 @@
+#!/bin/bash
+cols=$(tput cols)
+vpadd="$(seq $(( $(tput lines) / 8 )) | while read; do printf 'echo;'; done)"
+case "$(uname)" in
+
+  Darwin ) esc=`echo '\033'` ;;
+  Linux | CYGWIN_NT-6.1 ) esc=`echo '\o33'` ;;
+
+esac
+
+#env_face=fraktur
+#env_face=graffiti
+#env_face=ogre
+env_face=roman
+env_face=smisome1
+#env_face=whimsy
+#env_face=isometric1
+#env_face=isometric2
+#env_face=isometric3
+#env_face=isometric4
+env_face=cosmike
+#env_face=cosmic
+#env_face=larry3d
+#env_face=rounded
+
+test -n "$vlock_screen" || vlock_screen=minimal
+test -z "$1" || vlock_screen=$1
+
+case "$vlock_screen" in
+
+    minimal )
+            eval $vpadd $vpadd $vpadd
+            printf -- "$esc[0;35m"
+            figlet -c -w$cols -f big $(date +%H:%M)
+            figlet -c -w$cols -f term $(date +"%y.$(( 1 + $(date +"%U") )) %A")
+            eval \
+                $vpadd\
+                $vpadd
+            echo
+            echo
+            printf -- "$esc[0;30m"
+            figlet -c -w$cols -f binary $(date +%H:%M)
+            echo
+            printf -- "$esc[1;30m"
+            figlet -c -w$cols -f term $(uptime)
+            printf -- "$esc[1;30m"
+            figlet -c -w$cols -f term $(hostname) $TERM $SHELL $HISTNUM lines
+            printf -- "$esc[0m"
+            eval $vpadd
+        ;;
+
+    host )
+            eval $vpadd $vpadd $vpadd
+            test $(tput colors) = 256 && {
+               figlet -c -w$cols -f $env_face $ENV_NAME | lolcat -f -S 10 -p 5.0 -
+            } || {
+               printf -- "$esc[0;34m" ;
+               figlet -c -w$cols -f $env_face $ENV_NAME
+            }
+            echo
+            printf -- "$esc[0;37m"
+            figlet -c -w$cols -f term $(date +"%C.%U %A %H:%M")
+            eval $vpadd $vpadd $vpadd
+            printf -- "$esc[1;30m"
+            figlet -c -w$cols -f term $(hostname) $TERM $SHELL $HISTNUM lines
+            figlet -c -w$cols -f term $(uptime)
+            echo '-------------'
+            printf -- "$esc[0m"
+        ;;
+
+esac

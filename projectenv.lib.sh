@@ -43,7 +43,7 @@ prepare_env()
   export $list="$( expand_deps $list | words_to_unique_lines | lines_to_words )"
 
   # Check/cache each
-  try_value "$list"
+  # XXX: try_var "$list"
   export $(for id in $value
     do
       out="$( provided_by_env $id || continue )"
@@ -71,6 +71,7 @@ require_env()
     }
   done
 }
+
 
 # Requirements are given as a tag-id that is either:
 #   an existing path
@@ -141,7 +142,8 @@ build_params()
   req_vars Env_Param_Re Job_Param_Re
   env | grep -i "$Env_Param_Re"
   env | grep -i "$Job_Param_Re"
-  note "Box_Env_Requirements=$Box_Env_Requirements"
+  env | grep '_ts='
+  note "Project_Env_Requirements=$Project_Env_Requirements"
 }
 
 
@@ -151,5 +153,3 @@ build_error()
   echo "$1" >> $build_errors
   error "$1"
 }
-
-

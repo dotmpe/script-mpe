@@ -7,8 +7,49 @@ import base64
 from UserDict import UserDict
 
 # local
+import mb
 import task
 import txt
+import txt2
+
+
+
+### Todo Lists
+
+class TodoListItemParser(
+    txt2.AbstractTxtLineParserRegexFields,
+    txt2.AbstractTxtLineParser,
+):
+    fields = (
+        "sections:sections::0",
+    )
+
+    sections_r = r"(^|\W|\ )([%s]+):(\ |$)" % ( mb.value_c )
+
+    def __init__(self, *args, **kwds):
+        self.field_names.update(dict(
+            sections= (self.sections_r, unicode, 0)
+        ))
+        super(TodoListItemParser, self).__init__(*args, **kwds)
+
+    def parse_fieldargs_sections(self, text, onto, name, descr, *args):
+        t = text
+        for sk_m in self.sections_re.finditer(t):
+            k = sk_m.group(2)
+            if k not in self.sections:
+                log.warn("Duplicate section %s at line %i" % ( k,
+                    self.attrs['doc_line'] ))
+                continue
+            self.sections[k] = sk_m.span()
+        return t
+
+
+class TodoListParser(
+    txt2.AbstractTxtListParser
+):
+    item_parser = TodoListItemParser
+    item_builder = txt2.SimpleTxtLineItem
+
 
 
 class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
@@ -18,16 +59,15 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
     All parts, except projects and contexts are removed.
     The non-std part `issue-id` is a leading tag+':' field.
     """
+
     fields = ("completed priority creation_date completion_date"\
         " projects contexts attrs hold issue_id").split(" ")
     prio_prefix_r = re.compile("^\s*\(([A-F])\)\ |$")
-    start_c = r'(^|\W)'
-    end_c = r'(?=\ |$|[%s])' % task.excluded_c
-    prj_r = re.compile(r"%s\+([%s]+)%s" % (start_c, task.prefixed_tag_c, end_c))
-    ctx_r = re.compile(r"%s@([%s]+)%s" % (start_c, task.prefixed_tag_c, end_c))
-    meta_r = re.compile(r"%s([%s]+):([%s]+)%s" % (start_c,
-        task.meta_tag_c, task.value_c, end_c ))
-    issue_id_r = re.compile(r"%s([%s]+):%s" % (start_c, task.meta_tag_c, end_c))
+    prj_r = re.compile(r"%s\+([%s]+)%s" % (mb.start_c, task.prefixed_tag_c, mb.end_c))
+    ctx_r = re.compile(r"%s@([%s]+)%s" % (mb.start_c, task.prefixed_tag_c, mb.end_c))
+    meta_r = re.compile(r"%s([%s]+):([%s]+)%s" % (mb.start_c,
+        task.meta_tag_c, mb.value_c, mb.end_c ))
+    issue_id_r = re.compile(r"%s([%s]+):%s" % (mb.start_c, task.meta_tag_c, mb.end_c))
 
     def __init__(self, raw, **attrs):
         super(TodoTxtTaskParser, self).__init__(raw, **attrs)
@@ -99,6 +139,7 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
     doc_id = property(get_doc_id)
     def todotxt(self):
         t = self.text
+        """
         if self.creation_date:
             t = self.creation_date+' '+t
         if self.completed:
@@ -107,6 +148,7 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
             t = 'x '+t
         elif self.priority:
             t = "(%s) "+t
+        """
         if self.attrs:
             t += ' '+self.attrs_str
         if self.hold:
@@ -199,4 +241,3 @@ class TodoTxtParser(UserDict):
             return True
         elif tagid in self.tag_ids:
             return True
-

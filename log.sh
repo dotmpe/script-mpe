@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # left align first columnt at:
-FIRSTTAB=32
+FIRSTTAB=${FIRSTTAB-24}
 
 if [ -z "$CS" ]
 then
@@ -95,16 +95,16 @@ __log ()
 		attention | crit* )
 			targets=$(printf "$mk_p_trgt_yellow" "$targets")
 			;;
-		file_target )
+		file[_-]target )
 			targets=$(printf "$mk_trgt_yellow" "$targets")
 			;;
-		file_ok )
+		file[_-]ok )
 			targets=$(printf "$mk_trgt_green" "$targets")
 			;;
-		file_warn* )
+		file[_-]warn* )
 			targets=$(printf "$mk_trgt_yellow" "$targets")
 			;;
-		file_err* ) # red
+		file[_-]err* ) # red
 			targets=$(printf "$mk_trgt_red" "$targets")
 			;;
 		err* | fatal | fail* ) # red
@@ -115,7 +115,7 @@ __log ()
 			;;
 	esac
 	case "$linetype" in
-		file_error|file_warn*|file_target|file_ok|header|header1|header2|header3|debug|info|attention|error|verbose)
+		file[_-]error|file[_-]warn*|file[_-]target|file[_-]ok|header|header1|header2|header3|debug|info|attention|error|verbose)
 			;;
 		fatal|ok|'done'|* )
 			if [ -n "$msg" ]

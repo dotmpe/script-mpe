@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""":created: 2017-04-08
+""":Created: 2017-04-08
 """
 from __future__ import print_function
 __description__ = ''

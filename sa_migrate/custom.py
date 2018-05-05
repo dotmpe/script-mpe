@@ -12,20 +12,39 @@ def read(repopath):
     return prsr
 
 def migrate_opts(repopath, config):
-    if not config.has_option('mpe', 'path'):
+    if config.has_option('mpe', 'postgres'):
+        url = config.get('mpe', 'postgres')
+        return dict(
+                url='postgresql+psycopg2:///postgres:mysecretpassword@%s' % url,
+                debug='False',
+                repository=repopath
+            )
+    elif config.has_option('mpe', 'mysql'):
+        url = config.get('mpe', 'mysql')
+        return dict(
+                url='mysql+mysqlconnector://%s' % url,
+                debug='False',
+                repository=repopath
+            )
+    elif config.has_option('mpe', 'path'):
+        path = config.get('mpe', 'path')
+        return dict(
+                url='sqlite:///%s' % path,
+                debug='False',
+                repository=repopath
+            )
+    else:
         name = config.get('db_settings', 'repository_id')
         path = os.path.join( os.getcwd(), '.cllct', name+'.sqlite' )
         config.add_section('mpe')
         config.set('mpe', 'path', path)
         cfgpath = os.path.join(repopath, "migrate.cfg")
         config.write(open(cfgpath, 'w+'))
-    else:
-        path = config.get('mpe', 'path')
-    return dict(
-            url='sqlite:///%s' % path,
-            debug='False',
-            repository=repopath
-        )
+        return dict(
+                url='sqlite:///%s' % path,
+                debug='False',
+                repository=repopath
+            )
 
 def main(env, path=None):
     if not path:
@@ -64,5 +83,3 @@ def main(env, path=None):
     print 'opts', opts
     #sys.argv.append('--url='+opts['url'])
     main(**opts)
-
-

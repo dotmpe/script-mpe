@@ -77,12 +77,10 @@ td__help()
 
 td__lib()
 {
-  local __load_lib=1
-  . ~/bin/std.lib.sh load-ext
-  std_load
-  . ~/bin/match.sh load-ext
-  match_load
-  . ~/bin/vc.sh load-ext
+  __load=ext . ~/bin/std.lib.sh
+  __load=ext . ~/bin/match.lib.sh
+  match_load_table
+  __load=ext . ~/bin/vc.sh
 }
 
 
@@ -121,4 +119,3 @@ case "$0" in "" ) ;; "-*" ) ;; * )
 
   esac
 esac
-

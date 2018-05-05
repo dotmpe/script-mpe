@@ -5,28 +5,20 @@ from datetime import datetime
 
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
-    ForeignKey, Table, Index, DateTime, select, func
+    ForeignKey, Table, Index, DateTime, select, func, or_
 #from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship, backref, remote, foreign
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-
 from . import iface
-from .mixin import CardMixin
+from .mixin import CardMixin, groupnode
 from .init import SqlBase
 from .util import ORMMixin
 
 from script_mpe import lib, log
 
 
-# mapping table for Node *-* Node
-#nodes_nodes = Table('nodes_nodes', SqlBase.metadata,
-#    Column('nodes_ida', Integer, ForeignKey('nodes.id'), nullable=False),
-#    Column('nodes_idb', Integer, ForeignKey('nodes.id'), nullable=False),
-#    Column('nodes_idc', Integer, ForeignKey('nodes.id'))
-#)
-
-class Node(SqlBase, CardMixin, ORMMixin):
+class Node(SqlBase, CardMixin, ORMMixin, object):
 
     """
     Provide lookup on numeric ID, and standard dates.
@@ -38,8 +30,9 @@ class Node(SqlBase, CardMixin, ORMMixin):
 
     # Node type
     ntype = Column(String(36), nullable=False, default="node")
-    __mapper_args__ = {'polymorphic_on': ntype,
-            'polymorphic_identity': 'node'}
+    __mapper_args__ = {
+            'polymorphic_on': ntype,
+            'polymorphic_identity': 'node' }
 
     # Numeric ID
     node_id = Column('id', Integer, primary_key=True)
@@ -55,9 +48,9 @@ class Node(SqlBase, CardMixin, ORMMixin):
         )
 
     @classmethod
-    def default_filters(Klass):
+    def default_filters(klass):
         return (
-            ( Klass.deleted == False ),
+            ( klass.deleted == False ),
         )
 
     def __repr__(self):
@@ -67,28 +60,7 @@ class Node(SqlBase, CardMixin, ORMMixin):
         return "%s for %r" % (lib.cn(self), self.node_id)
 
 
-groupnode_node_table = Table('groupnode_node', SqlBase.metadata,
-    Column('groupnode_id', Integer, ForeignKey('groupnodes.id'), primary_key=True),
-    Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True)
-)
-
-class GroupNode(Node):
-
-    """
-    A bit of a stop-gap mechanisms by lack of better containers
-    in the short run.
-    Like the group nodes in outlines and bookmark files.
-    """
-
-    __tablename__ = 'groupnodes'
-    __mapper_args__ = {'polymorphic_identity': 'group'}
-    group_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
-
-    subnodes = relationship(Node, secondary=groupnode_node_table, backref='supernode')
-    root = Column(Boolean)
-
-
-class Folder(GroupNode):
+class Folder(Node):
 
     """
     A group-node with a shared title?
@@ -97,11 +69,13 @@ class Folder(GroupNode):
     __tablename__ = 'folders'
 
     __mapper_args__ = {'polymorphic_identity': 'folder'}
-    folder_id = Column('id', Integer, ForeignKey('groupnodes.id'), primary_key=True)
+    folder_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
     title_id = Column(Integer, ForeignKey('names.id'))
     title = relationship('Name', primaryjoin='Folder.title_id==Name.name_id')
 
+# Add is_rootfolder and superfolder_id
+groupnode(Folder, name='folder', keyattr='title')
 
 
 class ID(SqlBase, CardMixin, ORMMixin):
@@ -131,6 +105,8 @@ class Space(ID):
 
     An abstraction to deal with segmented storage (ie. different databases,
     hosts).
+
+    NOTE: just storing some specs in this base for now
     """
 
     __tablename__ = 'spaces'
@@ -148,6 +124,7 @@ class Scheme(Space):
     """
     Reserved names for Locator schemes.
     """
+
     __tablename__ = 'schemes'
     __mapper_args__ = {'polymorphic_identity': 'scheme-space'}
     scheme_id = Column('id', Integer, ForeignKey('spaces.id'), primary_key=True)
@@ -158,6 +135,7 @@ class Protocol(Scheme):
     """
     Reserved names for Locator schemes.
     """
+
     __tablename__ = 'protocols'
     __mapper_args__ = {'polymorphic_identity': 'protocol-scheme-space'}
     protocol_id = Column('id', Integer, ForeignKey('schemes.id'), primary_key=True)
@@ -166,86 +144,186 @@ class Protocol(Scheme):
 class Name(Node):
 
     """
-    A local unique name; title or human identifier.
+    A local unique unicode string without character restrictions; a title or
+    name or other user-provided identifier.
     """
+
     __tablename__ = 'names'
     __mapper_args__ = {'polymorphic_identity': 'name'}
     name_id = Column('id', Integer, ForeignKey('nodes.id'), primary_key=True)
 
-    # Unique node Name (String ID)
+    # Unique string without character restrictions (aka User-ID-Label)
     name = Column(String(255), nullable=False, index=True, unique=True)
 
 
 class Tag(Name):
 
     """
+    A unique ASCII identifier for Names.
+
     XXX: name unique within some namespace?
+
+    Because tags are unqiue, there is no need for complex keys like in
+    materialized paths pattern. But it requires a complex query to get the path.
+
+    Importing a tag from an existing namespace should get it supernodes as well.
     """
 
     #zope.interface.implements(iface.IID)
 
-    __tablename__ = 'names_tag'
+    __tablename__ = 'tagnames'
     __mapper_args__ = {'polymorphic_identity': 'tag'}
 
     tag_id = Column('id', Integer, ForeignKey('names.id'), primary_key=True)
 
-    namespace_id = Column(Integer, ForeignKey('ns.id'))
-    tag = relationship('Namespace', backref='tags')
+    # Unqiue, normalized restricted char ASCII string
+    tag = Column(String(255), unique=True, nullable=False)
+
+    # One line defition, title, short description
+    short_description = Column(Text, nullable=True)
+
+    # Full user description
+    description = Column(Text, nullable=True)
+
+    @classmethod
+    def dict_(klass, doc, **dockeys):
+        r = Name.dict_(doc, **dockeys)
+        if 'tag' not in r:
+            r['tag'] = lib.tag_id(r['name'])
+        return r
+
+    @classmethod
+    def clean_tag(klass, raw):
+        yield raw.strip(' \n\r')
+
+    @classmethod
+    def record(klass, raw, sa, g):
+        """
+        Create and return. Existing record is error in strict-mode,
+        FIXME: cleanup
+        """
+        def record_inner(name):
+            tag = None
+            try:
+                tag = sa.query(Tag).filter(Tag.name == name).one()
+                print('exists')
+            except: pass
+            if tag:
+                if not g.strict:
+                    return tag
+                raise Exception("Exact tag match exists '%s'" % tag)
+
+            tag_matches = sa.query(Tag).filter(or_(
+                Tag.name.like('%'+stem+'%') for stem in
+                    klass.clean_tag(name) )).all()
+
+            if tag_matches:# and not g.override_prefix:
+                # TODO
+                g.interactive
+                print('Existing match for %s:' % name)
+                for t in tag_matches:
+                    print(t)
+                raise ValueError
+            else:#if not tag_matches:# or g.override_prefix:
+                tag = Tag(name=name, tag=name)
+                tag.add_self_to_session(name=g.session_name)
+                return tag
+
+        if '/' in raw:
+            els = raw.split('/')
+            while els:
+                tag = None
+                print(record_inner(els[0]))
+                els.pop(0)
+        else:
+            print(record_inner(raw))
+        sa.commit()
+
+    def __str__(self):
+        if self.short_description:
+            return "%s: %s define:%s" % ( self.name,
+                    self.short_description, self.tag )
+        else:
+            return "%s: %s define:%s" % ( self.name, self.tag )
+
+    def init_defaults(self):
+        super(Tag, self).init_defaults()
+        if not self.tag and self.name:
+            self.tag = lib.tag_id(self.name)
 
 
-tags_freq = Table('names_tags_stat', SqlBase.metadata,
-        Column('tag_id', ForeignKey('names_tag.id'), primary_key=True),
-        Column('node_type', String(36), primary_key=True),
-        Column('frequency', Integer)
+# Populate Tag.context with optionally recorded tag-usage realtions
+
+tag_context_table = Table('tag_context', SqlBase.metadata,
+        Column('tag_id', Integer, ForeignKey('tagnames.id'), primary_key=True),
+        Column('ctx_id', Integer, ForeignKey('tagnames.id'), primary_key=True),
+        Column('role', String(32), nullable=True)
 )
 
-topic_tag = Table('topic_tag', SqlBase.metadata,
-        Column('id', Integer, primary_key=True),
-        Column('topic_id', ForeignKey('names_topic.id'), primary_key=True),
-        Column('tag_id', ForeignKey('names_tag.id'), primary_key=True)
-    )
+Tag.contexts = relationship('Tag', secondary=tag_context_table,
+            primaryjoin=( Tag.tag_id == tag_context_table.columns.tag_id ),
+            secondaryjoin=( Tag.tag_id == tag_context_table.columns.ctx_id ),
+            backref='contains')
 
 
-class Topic(SqlBase, CardMixin, ORMMixin):
+# Record accumulated usage statistics for tag, populate Tag.freq
+tags_freq = Table('names_tags_stat', SqlBase.metadata,
+        Column('tag_id', ForeignKey('tagnames.id'), primary_key=True),
+        Column('frequency', Integer)
+)
+#Tag.freq =
 
-    __tablename__ = 'names_topic'
-    topic_id = Column('id', Integer, primary_key=True)
 
-    name = Column(String(255), nullable=False, index=True, unique=True)
-    #tag_id = Column(Integer, ForeignKey('names_tag.id'))
-    #tag = relationship(Tag, secondary=topic_tag, backref='topics')
+class Topic(Tag):
 
-    super_id = Column(Integer, ForeignKey('names_topic.id'))
-    subs = relationship("Topic",
-        cascade="all, delete-orphan",
-	backref=backref('super', remote_side=[topic_id]),
-        collection_class=attribute_mapped_collection('name'),
-    )
+    """
+    A Name/Tag node with XXX: ex/implicit about relations to path or resource.
+    """
 
-    # some plain metadata
-    explanation = Column(Text(65535))
-    location = Column(Boolean)
-    thing = Column(Boolean)
-    event = Column(Boolean)
-    plural = Column(String(255))
+    __tablename__ = 'tagnames_topic'
+    __mapper_args__ = {'polymorphic_identity': 'topic'}
+    topic_id = Column('id', Integer, ForeignKey('tagnames.id'), primary_key=True)
 
-    def __init__(self, name, super=None):
-        self.name = name
-        self.super = super
-        self.init_defaults()
+    # some plain metadata..
+    #explanation = Column(Text(65535))
+    #location = Column(Boolean)
+    #thing = Column(Boolean)
+    #event = Column(Boolean)
+    #plural = Column(String(255))
+
+    @classmethod
+    def proc_context(klass, item):
+        print 'TODO: Topic.proc_context', item
+
+    def __init__(self, name=None, supernode=None):
+        super(Topic, self).__init__(name)
+        if supernode:
+            self.supernode = supernode
+            self.supernode_id = supernode.node_id
+
+    def __str__(self):
+        if self.supernode:
+            if self.short_description:
+                return "%s: %s about:%s [%s]" % ( self.name,
+                        self.short_description, self.tag, self.supernode.tag )
+            else:
+                return "%s: %s about:%s [%s]" % (
+                        self.name, self.tag, self.supernode.tag)
+        else:
+            return Tag.__str__(self)
 
     def __repr__(self):
-        return "Topic(name=%r, id=%r, super_id=%r)" % (
+        return "Topic(name=%r, id=%r, supernode_id=%r)" % (
             self.name,
             self.topic_id,
-            self.super_id
+            self.supernode_id
         )
 
     def path(self, sep='/'):
         e = [self.name]
         c = self
-        while c.super:
-            c = c.super
+        while c.supernode:
+            c = c.supernode
             e.append(c.name)
         e.reverse()
         return sep.join(e)
@@ -253,7 +331,7 @@ class Topic(SqlBase, CardMixin, ORMMixin):
     def paths(self, sep='/', _indent=0):
         return "\t"*_indent + self.name + sep +"\n"+ "".join([
                 c.paths(_indent=_indent + 1)
-                for c in self.subs.values()
+                for c in self.subnodes.values()
             ])
 
     def dump(self, _indent=0):
@@ -261,12 +339,10 @@ class Topic(SqlBase, CardMixin, ORMMixin):
             "\n" + \
             "".join([
                 c.dump(_indent + 1)
-                for c in self.subs.values()
+                for c in self.subnodes.values()
             ])
 
-    @classmethod
-    def proc_context(clss, item):
-        print 'TODO: Topic.proc_context', item
+groupnode(Topic, keyattr='tag')
 
 
 doc_root_element_table = Table('doc_root_element', SqlBase.metadata,
@@ -345,8 +421,6 @@ class Document(Space):
 models = [
 
         Node, Space,
-
-        GroupNode,
 
         Document,
         ID,

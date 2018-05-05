@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 import sys
 import os
-from os import unlink, removedirs, makedirs, tmpnam, chdir, \
+from os import unlink, removedirs, makedirs, chdir, \
         getcwd, popen, rmdir
 from os.path import join, dirname, exists, isdir, realpath
 import unittest
 from pprint import pformat
+import tempfile
 
-import confparse
-from confparse import expand_config_path, load
+from script_mpe import confparse
+from script_mpe.confparse import expand_config_path, load
 
 
 
@@ -17,6 +18,9 @@ class AbstractConfparseTest(unittest.TestCase, object):
     RC_DATA = """\nfoo: \n   bar: {var: v}\n   test4: [{foo: bar}]"""
 
     def setUp(self):
+        # FIXME: path affects test, update params
+        #self.tmpf = tempfile.mkstemp()
+        #self.tmpdir = tempfile.mkdtemp()
         if sys.platform.lower() == 'darwin':
             self.tmpdir = '/private/var/tmp/'
         elif sys.platform.lower() == 'linux2':
@@ -24,7 +28,6 @@ class AbstractConfparseTest(unittest.TestCase, object):
         else:
             raise Exception ("Uknown platform: %s" % sys.platform)
         self.testrootdir = join(self.tmpdir, self.NAME)
-        #self.testrootdir = join(dirname(tmpnam()), self.NAME)
         makedirs(self.testrootdir)
 
         self.pwd = join(self.testrootdir, self.PWD)
@@ -386,4 +389,3 @@ def get_cases():
 
 if __name__ == '__main__':
 	unittest.main()
-

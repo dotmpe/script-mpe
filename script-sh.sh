@@ -216,7 +216,7 @@ script_sh_init()
 
   . $scriptpath/util.sh load-ext
   lib_load
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load box
 

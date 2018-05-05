@@ -1,9 +1,12 @@
 from datetime import datetime
+import hashlib
 
 import zope.interface
 from sqlalchemy import Column, Integer, String, Boolean, Text, \
-    ForeignKey, Table, Index, DateTime
+    ForeignKey, Table, Index, DateTime, or_
 from sqlalchemy.orm import relationship, backref
+
+from script_mpe.couch import bookmark
 
 from .init import SqlBase
 from .util import ORMMixin
@@ -66,9 +69,6 @@ class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
     __mapper_args__ = {'polymorphic_identity': 'resource:bookmark'}
     bm_id = Column('id', Integer, ForeignKey('res.id'), primary_key=True)
 
-    #ref_id = Column(Integer, ForeignKey('ids_lctr.id'))
-    #ref = relationship(net.Locator, primaryjoin=net.Locator.lctr_id==ref_id)
-
     name = Column(String(255))
 
     extended = Column(Text)#, index=True)
@@ -78,46 +78,110 @@ class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
     tags = Column(Text)# XXX: text param NA for postgres (10240))
     "Comma-separated list of all tags. "
 
+    @staticmethod
+    def keyid(*a):
+        "Return Couch doc key"
+        return hashlib.sha256(*a).hexdigest()
+
+    @staticmethod
+    def key(o):
+        "Return Couch doc key for object"
+        # TODO: deal with URN's later
+        return Bookmark.keyid(o.href)
+
+    @staticmethod
+    def forge(REF, NAME, TAGS, g, sa=None, seed=None):
+        if not sa: sa = Bookmark.get_session(g.session_name, g.dbref)
+
+        lctr = net.Locator.fetch((net.Locator.ref == REF,), exists=False)
+        if not lctr:
+            lctr = net.Locator( ref=REF, date_added=datetime.now() )
+            lctr.init_defaults()
+            #log.std("new: %s", lctr)
+            if not g.dry_run:
+                sa.add(lctr)
+
+        bm = Bookmark.fetch((Bookmark.location == lctr,), exists=False)
+        if bm:
+            raise Exception("Bookmark for location already exists")
+        if NAME:
+            bm = Bookmark.fetch((Bookmark.name == NAME,), exists=False)
+            if bm:
+                raise Exception("Name already exists for other location: %r at %r vs %r"
+                        % ( NAME, REF, bm.href ))
+
+        bm = Bookmark.from_(dict(location=lctr, name=NAME, tags=TAGS))
+        bm.init_defaults()
+        #log.std("new: %s", bm)
+        if not g.dry_run:
+            sa.add(bm)
+
+        return bm
+
+    @classmethod
+    def unique_tags(klass, NAME, g, ctx):
+        tags = set()
+        q = ctx.sa_session.query(Bookmark.tags)
+        filters = ()
+        for name in NAME:
+            if g.exact_match:
+                filters += or_(
+                            Bookmark.tags.like('%%, %s, %%' % name),
+                            # TODO: insert spaces to be able to like-match start/end/sa:
+                            Bookmark.tags.like(' %s, %%' % name),
+                            Bookmark.tags.like('%%, %s ' % name),
+                            Bookmark.tags.like(' %s ' % name),
+                        ),
+            else:
+                filters += ( Bookmark.tags.like('%%%s%%' % name), )
+        if filters:
+            q = q.filter(*filters).distinct()
+        rs = q.all()
+        for r in rs:
+            assert isinstance(r.tags, basestring), r.tags
+            tags = tags.union(r.tags.split(', '))
+        return tags
+
     @classmethod
     def keys(klass):
+        "Return SQL columns"
         return web.Resource.keys() + 'name extended public tags'.split(' ')
 
-    def to_dict(self):
-        d = dict(href=self.location.href())
-        k = self.__class__.keys() + 'deleted date_added date_deleted date_updated'.split(' ')
-        for p in k:
-            d[p] = getattr(self, p)
-        d['tags'] = d['tags'].split(', ')
+    def to_doc(self):
+        "Turn record into Couch doc"
+        d = self.to_dict()
+        d.update(dict(
+            type='bookmark',
+            id=Bookmark.key(self)
+        ))
+        return bookmark.Bookmark(**d)
+
+    def to_struct(self, d={}):
+        "Turn into struct for JSON or Couch doc use"
+        d = web.Resource.to_dict(self, d=d)
+        assert isinstance(d['tags'], basestring), d['tags']
+        d.update(dict(
+            location=self.location.to_struct(),
+            tags_list=d['tags'].split(', ')
+        ))
         return d
 
-    def update_from(self, **doc):
-        data = self.__class__.dict_from_doc(**doc)
-        updated = False
-        for k in data:
-            if getattr(self, k) != data[k]:
-                setattr(self, k, data[k])
-                updated = True
+    def to_dict(self, d={}):
+        "Turn into flat struct with simple and date/time types only, for JSON or Couch doc use"
+        d = web.Resource.to_dict(self, d=d)
+        assert isinstance(d['tags'], basestring), d['tags']
+        d.update(dict(
+            href=self.location.href,
+            tags_list=d['tags'].split(', ')
+        ))
+        return d
+
+    def update_from(self, *docs, **kwds):
+        updated = web.Resource.update_from(self, *docs, **kwds)
+        if updated:
+            assert isinstance(self.tags, basestring), self.tags
+            # self.tags = ', '.join( self.tags )
         return updated
-
-    @classmethod
-    def dict_from_doc(klass, **doc):
-        if not doc['location']:
-            raise Error("TODO")
-        opts = dict(location=doc['location'])
-        for k in klass.keys():
-            if k in doc:
-                opts[k] = doc[k]
-            if k == 'tags':
-                opts[k] = ", ".join(opts[k])
-            if k in opts and isinstance(opts[k], datetime):
-                opts[k] = datetime.strptime(opts[k], ISO_8601_DATETIME)
-        return opts
-
-    @classmethod
-    def from_dict(klass, **doc):
-        opts = klass.dict_from_doc(**doc)
-        return klass( **opts )
-
 
 
 workset_locator_table = Table('workset_locator', SqlBase.metadata,

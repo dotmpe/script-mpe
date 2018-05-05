@@ -1,10 +1,10 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 base=table.lib
 
 init
-. $lib/util.sh
+#. $lib/util.sh
 
 
 setup()
@@ -16,8 +16,6 @@ setup()
 @test "$base - fixed_table_hd_offset: returns column offset given headers" {
 
   cd $pwd
-  #. $lib/htd load-ext
-  #. $lib/table.lib.sh
 
   htd_rules=$BATS_TMPDIR/htd-rules.tab
   echo "#CMD FOO BAR BAZ BAM" >$htd_rules
@@ -56,9 +54,9 @@ setup()
   run fixed_table test/var/table-1.tab FOO BAR BAZ
   {
     test $status -eq 0 &&
-    test "${lines[0]}" = ' FOO="123.5"  BAR="-ABC"  BAZ="a b c"  line="123.5      -ABC           a b c" ' &&
-		test "${lines[1]}" = ' FOO="456.9"  BAR="-DEF"  BAZ="d e f"  line="456.9      -DEF           d e f" ' &&
-		test "${lines[2]}" = ' FOO="789.1"  BAR="-XYZ"  BAZ="x y z"  line="789.1      -XYZ           x y z" '
+    test "${lines[0]}" = ' FOO=\"123.5\"  BAR=\"-ABC\"  BAZ=\"a b c\"  row_nr=1  line=\"123.5      -ABC           a b c\" ' &&
+	test "${lines[1]}" = ' FOO=\"456.9\"  BAR=\"-DEF\"  BAZ=\"d e f\"  row_nr=2  line=\"456.9      -DEF           d e f\" ' &&
+	test "${lines[2]}" = ' FOO=\"789.1\"  BAR=\"-XYZ\"  BAZ=\"x y z\"  row_nr=3  line=\"789.1      -XYZ           x y z\" '
   } || stdfail
 }
 
@@ -66,9 +64,8 @@ setup()
   run fixed_table test/var/table-1.tab
   {
     test $status -eq 0 &&
-    test "${lines[0]}" = ' FOO="123.5"  BAR="-ABC"  BAZ="a b c"  line="123.5      -ABC           a b c" ' &&
-		test "${lines[1]}" = ' FOO="456.9"  BAR="-DEF"  BAZ="d e f"  line="456.9      -DEF           d e f" ' &&
-		test "${lines[2]}" = ' FOO="789.1"  BAR="-XYZ"  BAZ="x y z"  line="789.1      -XYZ           x y z" '
+    test "${lines[0]}" = ' FOO=\"123.5\"  BAR=\"-ABC\"  BAZ=\"a b c\"  row_nr=1  line=\"123.5      -ABC           a b c\" ' &&
+	test "${lines[1]}" = ' FOO=\"456.9\"  BAR=\"-DEF\"  BAZ=\"d e f\"  row_nr=2  line=\"456.9      -DEF           d e f\" ' &&
+	test "${lines[2]}" = ' FOO=\"789.1\"  BAR=\"-XYZ\"  BAZ=\"x y z\"  row_nr=3  line=\"789.1      -XYZ           x y z\" '
   } || stdfail
 }
-

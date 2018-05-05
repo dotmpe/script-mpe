@@ -1,3 +1,10 @@
+"""
+res.vc - find version-control repositories and list contents
+
+Python native scans to detect VC type per dir. Walk using res.fs.Dir and
+ignores defined there. Using `vc` script invocations to get data already
+extracted by a shell script function.
+"""
 import os
 
 from script_mpe import lib, log
@@ -81,10 +88,12 @@ class Repo(Dir):
 
     @classmethod
     def walk(Klass, path, bare=False, max_depth=-1, recursive=False,
-            max_repo_depth=-1):
+            max_repo_depth=-1, s=False):
         # XXX: maybe rewrite to Dir.walk
         """
         Walk all paths, yield basedirs which have version-control metadir.
+        The Repo.repo_type attribute maps the directory names to VCS
+        description, for all the types that this method `walk` can detect.
 
         `max-depth` is -1 default, to disregard path depth and to recurse into
         as many directories as are found.
@@ -102,12 +111,12 @@ class Repo(Dir):
             for node in list(nodes):
                 dirpath = os.path.join(root, node)
                 if not os.path.exists(dirpath):
-                    log.err("Error: reported non existant node %s", dirpath)
+                    if not s: log.err("Error: reported non existant node %s", dirpath)
                     nodes.remove(node)
                     continue
                 depth = dirpath.replace(path,'').strip('/').count('/')
                 if Dir.ignored(dirpath):
-                    log.err("Ignored directory %r", dirpath)
+                    if not s: log.err("Ignored directory %r", dirpath)
                     nodes.remove(node)
                     continue
                 elif max_depth != -1:
@@ -140,14 +149,15 @@ class Repo(Dir):
                 l.strip() ]
 
     @classmethod
-    def walk_untracked(Klass, path, include_excluded=True, ignore_symlinks=True, ignore_dirsymlinks=False):
+    def walk_untracked(Klass, path, include_excluded=True, ignore_symlinks=True,
+            ignore_basesymlinks=False, s=False):
         """
         With `untracked` on, instead yield all files not tracked by any VCS.
         If `excluded` is on, return existing files ignored by VCS as well.
 
         TODO: Lots of symlink handling may be needed. Added ignore_symlinks,
         but for leafs only.
-        If ignore_dirsymlinks is on, symlinks outside root are ignored too.
+        If ignore_basesymlinks is on, symlinks outside root are ignored too.
 
         Maybe hook in with symlinks.tab, but others too. Global excludes
         should be done in fs.{File,Dir} btw. Boils down to 1. Dir.walk filters
@@ -167,7 +177,7 @@ class Repo(Dir):
                 dirpath = os.path.join(root, node)
                 if os.path.islink(dirpath):
                     dirpath = os.path.realpath(dirpath)
-                    if ignore_dirsymlinks and not dirpath.startswith(root):
+                    if ignore_basesymlinks and not dirpath.startswith(root):
                         pass
                 if Repo.is_repo(dirpath):
                     repos.append((root, dirpath))
@@ -184,7 +194,7 @@ class Repo(Dir):
                         repos.append((root, realpath))
                         continue
                     elif not os.path.exists(realpath):
-                        log.stderr("Warning: broken symlink %s", leafpath)
+                        if not s: log.stderr("Warning: broken symlink %s", leafpath)
                 yield leafpath
 
         repos = sorted(set(repos))
@@ -193,7 +203,7 @@ class Repo(Dir):
             try:
                 repo = Repo(repodir)
             except Exception as e:
-                log.stderr("Error in %s" % repodir + str(e))
+                if not s: log.stderr("Error in %s" % repodir + str(e))
                 continue
             if include_excluded:
                 for p in repo.excluded():
@@ -201,3 +211,17 @@ class Repo(Dir):
             else:
                 for p in repo.untracked():
                     yield p
+
+    def filetype_histogram(self):
+        """
+        Return a 'histogram' of file types; count instances for each file extension.
+        """
+        lines = lib.cmd('vc tracked-files', cwd=self.path, allowerrors=True, allowempty=True)
+        counts = {'(total)':len(lines)}
+        for l in lines.split('\n'):
+            if not l.strip(): continue
+            _, ext = os.path.splitext(l)
+            if ext not in counts:
+                counts[ext] = 0
+            counts[ext] += 1
+        return counts

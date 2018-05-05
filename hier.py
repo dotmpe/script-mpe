@@ -1,228 +1,274 @@
 #!/usr/bin/env python
-""":created: 2016-09-04
+"""
+:Created: 2016-09-04
+:Updated: 2017-12-26
+
+- Record generic tags, as unicode strings with associated ASCII ID.
+- Track generic added, updated and deleted datetime and state for tags.
+- XXX: Annotate with number to wordnet noun or verb synset for precise semantic,
+  and automatic categorization.
+- Or turn tags into custom group for other tags, and imply transitive relations.
+- XXX: NLTK tokenize, base, infer singular<->plural. Record antonym relations.
+
+Commands:
+  - roots - List root tags
+  - find - List tags by name or group(s), or everything.
+  - tree - Like 'find' with structured output instead of plain list-lines.
+  - delete - Drop nodes by name, or groups, recursively.
+  - assert-tags - Create missing tags, fail on missing in strict mode.
+  - assert - Create missing node or fail in strict mode.
+  - group - Ungroup and move subs. Set ID's type to group.
+  - up | ungroup - Move nodes up until they are root. Or ungroup completely.
+  - cp - Create new node name, with attributes from src node.
+  - mv - Move nodes in src-spec to below dest group.
+
+  Database:
+    - info | init | stats | clear
 
 """
 from __future__ import print_function
 
 __description__ = "hier - tag hierarchies"
+__short_description__ = "Maintain records for a unique set of tags, and"+\
+    " annotate, disambiguate, link and categorize."
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.hier.sqlite'
 __couch__ = 'http://localhost:5984/the-registry'
 __usage__ = """
 Usage:
-  hier.py [options] init
-  hier.py [options] info
-  hier.py [options] list
-  hier.py [options] find LIKE
-  hier.py [options] tree TODO
-  hier.py [options] record [TAGS...]
-  hier.py [options] clear
+  hier.py [options] roots [ LIKE ]
+  hier.py [options] ( find | tree | delete ) [ LIKES... ]
+  hier.py [options] assertall TAGS...
+  hier.py [options] assert NAME [ TYPE ]
+  hier.py [options] show [ NAME ] [ TAG ]
+  hier.py [options] group ID SUB...
+  hier.py [options] ( up | ungroup ) SUB...
+  hier.py [options] cp SRC DEST
+  hier.py [options] mv SRC... DEST
+  hier.py [options] wordnet WORD
+  hier.py [options] import LIST
+  hier.py [options] backup
+  hier.py [options] info | init | stats | clear
+  hier.py -h|--help
+  hier.py help [CMD]
+  hier.py --version
 
 Options:
-    -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: %s]
-    --couch=REF
-                  Couch DB URL [default: %s]
-    -i FILE --input=FILE
-    -o FILE --output=FILE
-    --add-prefix=PREFIX
-                  Use this context with the provided tags.
-    -I --interactive
-    --force
-    --override-prefix
-                  ..
+  -d REF, --dbref=REF
+                SQLAlchemy DB URL [default: %s] (sh env 'HIER_DB')
+  --no-db       Don't initialize SQL DB connection or query DB.
+  --couch=REF
+                Couch DB URL [default: %s] (sh env 'COUCH_DB')
+  --no-couch
+  --auto-commit
+  -i FILE --input=FILE
+  -o FILE --output=FILE
+  --add-prefix=PREFIX
+                Use this context with the provided tags.
+  --names
+                Don't just operate on Tag names but every name, for commands
+                that do not use Tag-specific attributesi, methods or relations.
+  --interactive
+                Prompt to resolve or override certain warnings.
+                XXX: Normally interactive should be enabled if while process has a
+                terminal on stdin and stdout.
+  --batch
+                Overrules `interactive`, exit on errors or strict warnings.
+  --commit
+                Commit DB session at the end of the command [default].
+  --no-commit
+                Turn off commit, performs operations on SQL Alchemy ORM objects
+                but does not commit session.
+  --dry-run
+                Implies `no-commit`.
+  --recurse
+                Make action recursive.
+  --strict
+                Abort on first warning.
+  --force
+                Assume yes or override warning. Overrules `interactive` and
+                `strict`.
+  --override-prefix
+                ..
+  --print-memory
+                Print memory usage just before program ends.
+  -h --help     Show this usage description.
+                For a command and argument description use the command 'help'.
+  --version     Show version (%s).
 
-Other flags:
-    -h --help     Show this usage description.
-                  For a command and argument description use the command 'help'.
-    --version     Show version (%s).
-
+See 'help' for manual or per-command usage. This is '-h/--help' usage listing.
 """ % ( __db__, __couch__, __version__ )
 
 import os
-import resource
-from pprint import pformat
+import sys
 
-from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, \
-        Table, create_engine, or_
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.declarative import declarative_base
-
-import lib
-import log
-import libcmd_docopt
-from taxus.util import ORMMixin, ScriptMixin, get_session
+from script_mpe.libhtd import *
+from script_mpe.libwn import *
+from script_mpe.taxus.v0 import \
+    SqlBase, Node, Folder, ID, Space, Name, Tag, Topic
 
 
-SqlBase = declarative_base()
-metadata = SqlBase.metadata
+models = [ Node, Folder, ID, Space, Name, Tag, Topic ]
 
+ctx = Taxus(version='hier')
 
-# Util
-def clean_tag(s):
-    yield s.strip(' \n\r')
-
-
-### Object classes
-
-class Tag(ORMMixin, SqlBase):
-
-    """
-    """
-
-    __tablename__ = 'tags'
-
-    tag_id = Column('id', Integer, primary_key=True)
-    name = Column(String(255), unique=True, nullable=False)
-    label = Column(String(255), unique=True, nullable=True)
-    description = Column(Text, nullable=True)
-
-    def __str__(self):
-        if self.label:
-            return "%s %r" % ( self.name, self.label )
-        else:
-            return self.name
-
-    @classmethod
-    def record(cls, raw, sa, opts):
-        def record_inner(name):
-            try:
-                tag = sa.query(Tag).filter(Tag.name == name).one()
-                return tag
-            except:
-                tag_matches = sa.query(Tag).filter(or_(
-                    Tag.name.like('%'+stem+'%') for stem in
-                        clean_tag(name) )).all()
-                if tag_matches and not opts.flags.override_prefix:
-                    opts.flags.interactive
-                    print('Existing match for %s:' % name)
-                    for t in tag_matches:
-                        print(t)
-                    raise ValueError
-                elif not tag_matches or opts.flags.override_prefix:
-                    tag = Tag(name=name)
-                    sa.add(tag)
-                    return tag
-                else: pass
-        if '/' in raw:
-            els = raw.split('/')
-            while els:
-                tag = None
-                print(record_inner(els[0]))
-                els.pop(0)
-        else:
-            print(record_inner(raw))
-        sa.commit()
-
-
-tag_context_table = Table('tag_context', metadata,
-        Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True),
-        Column('ctx_id', Integer, ForeignKey('tags.id'), primary_key=True),
-        Column('role', String(32), nullable=True)
-)
-
-Tag.contexts = relationship('Tag', secondary=tag_context_table,
-            primaryjoin=( Tag.tag_id == tag_context_table.columns.tag_id ),
-            secondaryjoin=( Tag.tag_id == tag_context_table.columns.ctx_id ),
-            backref='contains')
+cmd_default_settings = dict( verbose=1,
+        commit=True,
+        session_name='default',
+        print_memory=False,
+        all_tables=True, # FIXME
+        database_tables=False
+    )
 
 
 ### Commands
 
-def cmd_info(settings):
 
+def cmd_roots(LIKE, g):
     """
-        Verify DB connection is working. Print some settings and storage stats.
+        List root tags, optionally filtered by like.
     """
 
-    for l, v in (
-            ( 'Settings Raw', pformat(settings.todict()) ),
-            ( 'DBRef', settings.dbref ),
-
-            ( "Tables in schema", ", ".join(metadata.tables.keys()) ),
-            ( "Table lengths", "" ),
-    ):
-        log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
-
-    sa = get_session(settings.dbref, metadata=metadata)
-
-    for t in metadata.tables:
-        try:
-            log.std("  {blue}%s{default}: {bwhite}%s{default}",
-                    t, sa.query(metadata.tables[t].count()).all()[0][0])
-        except Exception as e:
-            log.err("Count failed for %s: %s", t, e)
-
-    # peak memory usage (bytes on OS X, kilobytes on Linux)
-    res_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    if os.uname()[0] == 'Linux':
-        res_usage /= 1024; # kilobytes?
-    # XXX: http://stackoverflow.com/questions/938733/total-memory-used-by-python-process
-    #res_usage /= resource.getpagesize()
-
-    # FIXME: does not use dbref according to settings, may fail/report wrong file
-    db_size = os.path.getsize(os.path.expanduser(__db__))
-
-    for l, v in (
-            ( 'Storage Size', lib.human_readable_bytesize( db_size ) ),
-            ( 'Resource Usage', lib.human_readable_bytesize(res_usage) ),
-        ):
-            log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
-
-    log.std('\n{green}info {bwhite}OK{default}')
-
-
-def cmd_list(settings):
-    """
-        List to root tags.
-    """
-    sa = get_session(settings.dbref, metadata=metadata)
-    roots = sa.query(Tag).filter(Tag.contexts == None).all()
-    for root in roots:
+    global ctx
+    q = ctx.sa_session.query(Tag).filter(Tag.contexts == None)
+    if LIKE: q = q.Tag.name.like(LIKE)
+    for root in q.all():
         print(root.name)
 
 
-def cmd_find(settings, LIKE):
+def cmd_find(g, LIKES):
     """
-        Look for tag.
+        List (root) tags, or given argument(s) look for tag by LIKE
+        , everywhere or in
+        group(s).
+
+        FIXME: With `recurse` option, require group(s) and look over each sub too.
+        Use `max-depth` to control maximum recursion level, and `count` or
+        `first` to limit results.
     """
-    sa = get_session(settings.dbref, metadata=metadata)
-    alikes = sa.query(Tag).filter(Tag.name.like(LIKE)).all()
-    for tag in alikes:
-        print(tag.name)
+    global ctx
+    klass = g.names and Name or Tag
+    q = ctx.sa_session.query(klass)
+    #if opts.flags.recurse:
+    #q = q.filter(Tag.context == None)
+    for LIKE in LIKES:
+        q = q.filter(klass.name.like(LIKE))
+    for t in q.all():
+        print(t.name)
 
 
-def cmd_init(settings):
+def cmd_show(g, NAME, TAG):
     """
-        Commit SQL DDL to storage schema. Creates DB file if not present.
+        Retrieve one tag and print record, fetching by exact name or tag.
     """
-    sa = get_session(settings.dbref, initialize=True, metadata=metadata)
+    if not ( NAME or TAG ): return 1
+    global ctx
+    klass = g.names and Name or Tag
+    q = ctx.sa_session.query(klass)
+    if TAG: q = q.filter(klass.tag == TAG)
+    elif NAME: q = q.filter(klass.name == NAME)
+    try: tag = q.one()
+    except: return 1
+    print(tag)
 
 
-def cmd_clear(settings):
+def cmd_tree(SUB, GROUP, g):
     """
-        Drop all tables and re-create.
+        Like 'find' with structured output instead of plain list-lines.
     """
-    sa = get_session(settings.dbref, metadata=metadata)
-
-    for name, table in metadata.tables.items():
-
-        print(table.delete())
-        sa.execute(table.delete())
-
-    sa.commit()
-
-    sa = get_session(settings.dbref, initialize=True, metadata=metadata)
+    global ctx
+    # TODO
 
 
-def cmd_record(settings, opts, TAGS):
+def cmd_assertall(TAGS, g):
     """
         Record tags/paths. Report on inconsistencies.
     """
-    sa = get_session(settings.dbref, initialize=True, metadata=metadata)
+    global ctx
     assert TAGS # TODO: read from stdin
     for raw_tag in TAGS:
-        Tag.record(raw_tag, sa, opts)
+        Tag.record(raw_tag, ctx.sa_session, g)
+
+
+def cmd_delete(SUB, GROUP, g):
+    """
+        Drop nodes by name, or groups, recursively.
+    """
+    global ctx
+    # TODO
+
+
+def cmd_wordnet(WORD, g):
+    """
+        Import word and all of its hypernyms from wordnet and record as Topics.
+    """
+    global ctx
+    if not WORD: return 1
+    syn, syns = syn_or_syns(WORD)
+    if not syn and not syns:
+        log.stderr('{yellow}No results{default}')
+        return 1
+
+    i = 0
+    if not syn:
+        if not g.interactive:
+            log.stderr( "Multiple synonyms, enter an exact word name or "+
+                    "enable interactive mode")
+            return 1
+        items = [ short_def(s) for s in syns ]
+        if len(items) > 1:
+            i = Prompt.pick(None, items=items, num=True)
+        else:
+            i = 0
+        syn = syns[i]
+
+    nodes = []
+    path = [ (0, syn) ] + list( traverse_hypernyms(syn, d=1) )
+    path.reverse()
+    for i, (d, s) in enumerate(path):
+        print_short_def(s, d=d)
+
+        pos = wn_positions_label[s.pos()]
+        tag_name = wn_sense(s.name(), s)
+
+        n = Topic.byName(name=tag_name, sa=ctx.sa_session)
+        if not n:
+            _id = None
+            if i > 0: _id = nodes[-1].node_id
+            n = Topic.forge(dict(
+                    name=tag_name,
+                    supernode_id=_id,
+                    description=s.definition(),
+                    short_description=s.definition(),
+                ), g, sa=ctx.sa_session)
+
+            log.stdout('{default}imported %s: %s' % (pos, n))
+            if g.auto_commit:
+                ctx.sa_session.commit()
+        nodes.append(n)
+
+    if g.commit:
+        ctx.sa_session.commit()
+
+
+def cmd_backup(g):
+    global ctx
+
+    types = "node name tag topic".split(' ')
+    for n in Node.all():
+        if n.ntype not in types: continue
+        print(n)
+
+
+def cmd_import(LIST, g):
+    global ctx
+
+    prsr = res.todo.TodoTxtParser()
+    LIST = LIST or 'todo.txt'
+    list(prsr.load(LIST))
+    for k in prsr:
+        # TODO: finish up new todotxt parser
+        print(prsr[k].todict())
 
 
 """
@@ -237,35 +283,82 @@ def cmd_couchdb_prefix(settings, opts, NAME, BASE):
     """
 
 
+def cmd_stats(g):
+    global ctx
+    db_sa.cmd_sql_stats(g, sa=ctx.sa_session)
+
+
 ### Transform cmd_ function names to nested dict
 
 commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = libcmd_docopt.cmd_help
+commands.update(dict(
+        help = libcmd_docopt.cmd_help,
+        memdebug = libcmd_docopt.cmd_memdebug,
+        info = db_sa.cmd_info,
+        init = db_sa.cmd_init,
+        clear = db_sa.cmd_reset
+))
 
 
 ### Util functions to run above functions from cmdline
+
+def defaults(opts, init={}):
+    global cmd_default_settings, ctx
+    libcmd_docopt.defaults(opts)
+    if 'help' in opts.cmds:
+        opts.flags.no_db = True
+    opts.flags.update(cmd_default_settings)
+    ctx.settings.update(opts.flags)
+    opts.flags.update(ctx.settings)
+    opts.flags.update(dict(
+        dbref = ScriptMixin.assert_dbref(opts.flags.dbref),
+        commit = not opts.flags.no_commit and not opts.flags.dry_run,
+        interactive = not opts.flags.batch,
+        verbose = not opts.flags.quiet
+    ))
+    if not opts.flags.interactive:
+        if os.isatty(sys.stdout.fileno()) and os.isatty(sys.stdout.fileno()):
+            opts.flags.interactive = True
+
+    return init
 
 def main(opts):
 
     """
     Execute command.
     """
+    global ctx, commands
 
-    settings = opts.flags
-    values = opts.args
+    ws = Homedir.require()
+    ws.yamldoc('bmsync', defaults=dict(
+            last_sync=None
+        ))
+    ctx.ws = ws
+    ctx.settings = settings = opts.flags
+    # FIXME: want multiple SqlBase's
+    #metadata = SqlBase.metadata = ctx.reset_metadata()
+    ctx.init()#SqlBase.metadata)
 
-    return libcmd_docopt.run_commands(commands, settings, opts)
+    ret = libcmd_docopt.run_commands(commands, settings, opts)
+    if settings.print_memory:
+        libcmd_docopt.cmd_memdebug(settings)
+    return ret
 
 def get_version():
     return 'hier.mpe/%s' % __version__
 
+
 if __name__ == '__main__':
-    import sys
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+    usage = __description__ +'\n\n'+ __short_description__ +'\n'+ \
+            libcmd_docopt.static_vars_from_env(__usage__,
+        ( 'HIER_DB', __db__ ),
+        ( 'COUCH_DB', __couch__ ) )
 
-    couch = os.getenv( 'COUCH_DB', __couch__ )
-    if couch is not __couch__:
-        __usage__ = __usage__.replace(__couch__, couch)
+    db_sa.schema = sys.modules['__main__']
+    db_sa.metadata = SqlBase.metadata
 
-    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
-    opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
+    opts = libcmd_docopt.get_opts(usage,
+            version=get_version(), defaults=defaults)
     sys.exit(main(opts))

@@ -47,7 +47,7 @@ class Outline(SqlBase, CardMixin, ORMMixin):
         )
 
     @classmethod
-    def proc_context(clss, item):
+    def proc_context(klass, item):
         if item.record_id:
             topic = OulineFolder.get_instance(name=item.record_id)
             if not topic:
@@ -60,7 +60,7 @@ class Outline(SqlBase, CardMixin, ORMMixin):
             group = OutlineFolder.get_instance(name=item.cites[0])
             if item.hrefs:
                 assert len(item.hrefs) == 1, repr(item)
-                sa = clss.get_session()
+                sa = klass.get_session()
                 bm = sa.query(OutlineBookmark).filter(OutlineBookmark.href==item.hrefs[0]).all()
                 if bm:
                     print "Dupe", bm, item.hrefs
@@ -193,3 +193,170 @@ class MaterializedPath(SqlBase, ORMMixin):
 #    """
 
 models = []
+
+
+
+def cmd_x_tree(g):
+    """
+    Adjacency list model
+    """
+    session = Topic.get_session('default', g.dbref)
+    def msg(msg, *args):
+        msg = msg % args
+        print("\n\n\n" + "-" * len(msg.split("\n")[0]))
+        print(msg)
+        print("-" * len(msg.split("\n")[0]))
+
+    msg("Creating Tree Table:")
+
+    root = Topic('root(1)')
+    node1 = Topic('node(1)', root)
+    node3 = Topic('node(3)', root)
+
+    session.add(root)
+    session.commit() # otherwise subnodes['node4' isnt there
+
+    root2 = Topic('root(2)')
+    Topic('subnode(1)', root2)
+    root.subnodes['root-2'] = root2
+    Topic('subnode(2)', root.subnodes['root-2'])
+
+    msg("Created new tree structure:\n%s", root.dump())
+    msg("flush + commit:")
+    session.add(root)
+    session.commit()
+
+    msg("Tree After Save:\n %s", root.dump())
+    Topic('root(4)', root)
+    session.commit() # otherwise subnodes['root(4)' isnt there
+    Topic('subnode(3)', root.subnodes['root-4'])
+    Topic('subroot(4)', root.subnodes['root-4'])
+    Topic('subnodesubnode(1)', root.subnodes['root-4'].subnodes['subnode-3'])
+
+    # remove node-1 from the super, which will trigger a delete
+    # via the delete-orphan cascade.
+    del root.subnodes['node-1']
+
+    msg("Removed node(1).  flush + commit:")
+    session.commit()
+    msg("Tree after save:\n %s", root.dump())
+
+    msg("Emptying out the session entirely, selecting tree on root, using "
+        "eager loading to join four levels deep.")
+    session.expunge_all()
+    node_ = session.query(Topic).\
+        options(joinedload_all("subnodes", "subnodes",
+                               "subnodes", "subnodes")).\
+        filter(Topic.name == "rootnode").\
+        first()
+
+    msg("Paths:\n%s", root.paths())
+    #msg("Full Tree:\n%s", root.dump())
+
+    msg("Marking root root as deleted, flush + commit:")
+
+    session.delete(root)
+    session.commit()
+
+
+def cmd_x_mp(g):
+    """
+    Example using materialized paths pattern.
+    """
+    session = MaterializedPath.get_session('default', g.dbref)
+
+    print("-" * 80)
+    print("create a tree")
+    session.add_all([
+        MaterializedPath(id=1, path="1"),
+        MaterializedPath(id=2, path="1.2"),
+        MaterializedPath(id=3, path="1.3"),
+        MaterializedPath(id=4, path="1.3.4"),
+        MaterializedPath(id=5, path="1.3.5"),
+        MaterializedPath(id=6, path="1.3.6"),
+        MaterializedPath(id=7, path="1.7"),
+        MaterializedPath(id=8, path="1.7.8"),
+        MaterializedPath(id=9, path="1.7.9"),
+        MaterializedPath(id=10, path="1.7.9.10"),
+        MaterializedPath(id=11, path="1.7.11"),
+    ])
+    session.flush()
+    print(str(session.query(MaterializedPath).get(1)))
+
+    print("-" * 80)
+    print("move 7 under 3")
+    session.query(MaterializedPath).get(7).move_to(session.query(MaterializedPath).get(3))
+    session.flush()
+    print(str(session.query(MaterializedPath).get(1)))
+
+    print("-" * 80)
+    print("move 3 under 2")
+    session.query(MaterializedPath).get(3).move_to(session.query(MaterializedPath).get(2))
+    session.flush()
+    print(str(session.query(MaterializedPath).get(1)))
+
+    print("-" * 80)
+    print("find the ancestors of 10")
+    print([n.id for n in session.query(MaterializedPath).get(10).ancestors])
+
+    session.commit()
+    session.close()
+
+
+def cmd_x_al(g):
+    session = MaterializedPath.get_session('default', g.dbref)
+
+    def msg(msg, *args):
+        msg = msg % args
+        print("\n\n\n" + "-" * len(msg.split("\n")[0]))
+        print(msg)
+        print("-" * len(msg.split("\n")[0]))
+
+    node = MaterializedPath('rootnode')
+    MaterializedPath('node1', parent=node)
+    MaterializedPath('node3', parent=node)
+
+    node2 = MaterializedPath('node2')
+    MaterializedPath('subnode1', parent=node2)
+    node.children['node2'] = node2
+    MaterializedPath('subnode2', parent=node.children['node2'])
+
+    msg("Created new tree structure:\n%s", node.dump())
+
+    msg("flush + commit:")
+
+    session.add(node)
+    session.commit()
+
+    msg("Tree After Save:\n %s", node.dump())
+
+    MaterializedPath('node4', parent=node)
+    MaterializedPath('subnode3', parent=node.children['node4'])
+    MaterializedPath('subnode4', parent=node.children['node4'])
+    MaterializedPath('subsubnode1', parent=node.children['node4'].children['subnode3'])
+
+    # remove node1 from the parent, which will trigger a delete
+    # via the delete-orphan cascade.
+    del node.children['node1']
+
+    msg("Removed node1.  flush + commit:")
+    session.commit()
+
+    msg("Tree after save:\n %s", node.dump())
+
+    msg("Emptying out the session entirely, selecting tree on root, using "
+        "eager loading to join four levels deep.")
+    session.expunge_all()
+    node = session.query(MaterializedPath).\
+        options(joinedload_all("children", "children",
+                               "children", "children")).\
+        filter(MaterializedPath.name == "rootnode").\
+        first()
+
+    msg("Full Tree:\n%s", node.dump())
+
+    msg("Marking root node as deleted, flush + commit:")
+
+    session.delete(node)
+    session.commit()
+

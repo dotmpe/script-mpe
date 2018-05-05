@@ -1,23 +1,21 @@
 #!/usr/bin/env bats
 
+load init
 load helper
-base=libcmd_stacked.py
-
+base=libcmd_stacked_test.py
 init
 
 
 @test "${bin} -h " {
-  run python $bin -h
-  test ${status} -eq 0
-  test -n "${lines[*]}" # non-empty output
-  test "${#lines[@]}" -gt "10" # lines of output (stdout+stderr)
+  run ./$base -h
+  { test_ok_nonempty &&
+    test ${#lines[@]} -gt 10 # lines of output (stdout+stderr)
+  } || stdfail
 }
 
 @test "${bin} - No arguments should print config " {
-  run python $bin
-  test ${status} -eq 0
-  test -n "${lines[*]}" # non-empty output
-#FIXME: SA warning on Linux
-#test "${#lines[@]}" = "3" # lines of output (stdout+stderr)
+  run ./$base
+  { test_ok_nonempty &&
+    test ${#lines[@]} -gt 3 # lines of output (stdout+stderr)
+  } || stdfail
 }
-

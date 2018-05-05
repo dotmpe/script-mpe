@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
   
 base=box
-load helper
+load init
 init
 
 setup()

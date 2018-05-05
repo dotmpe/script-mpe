@@ -1,17 +1,37 @@
 # git-versioning main: script-mpe
 
 
-- type: application/vnd.bvberkum.project
+- type: application/vnd.org.wtwta.project
   main: script-mpe
   id: script-mpe
 
   version: 0.0.4-dev # script-mpe
-  env: # alias for 'environments'
+  environments:
     - dev
+
+  # FIXME: should allow matrices and multiline but package-sh does not handle
+  # that, should write literal scripts to external file
+  #
+  # Global env (for scripts)
+  env: . ./tools/ci/env.sh
 
   vendor: bvberkum
   distribution: public
-  license: GPL
+  license: GPL-3.0
+
+  urls:
+    license:
+      - https://www.gnu.org/licenses/gpl-3.0.txt
+      - https://choosealicense.com/licenses/gpl-3.0/
+      - https://opensource.org/licenses/gpl-license
+
+  repositories:
+      bb: git@bitbucket.org:dotmpe-personal/script-mpe.git
+      dotmpe: dotmpe:~/domains/dotmpe.com/htdocs/git/script-mpe.git
+      github: git@github.com:bvberkum/script-mpe.git
+      boreas.16-4-bare: /srv/git-16-4-boreas-brix/bvberkum/script-mpe.git
+      # TODO: package repo name alias _origin: dotmpe
+      #_local: 16-4-bare
 
   lists:
     default: "@Task @Dev +script-mpe +htdocs-mpe"
@@ -21,28 +41,37 @@
       do: "@Task"
       src: "@be.src +htdocs-mpe" # get the .list of sei for htdocs
 
+  ext:
+    topics:
+      id: script-mpe-2008a
+    # TODO: group settings per extension package
+
   pd-meta:
+    # TODO: move run/test/build to projects package iso. pd-meta.
     run:
-      behat: "./vendor/.bin/behat--tags:~@skip"
-      behat-defs: "./vendor/.bin/behat:-dl"
+      behat: "./vendor/bin/behat--tags:~@skip"
+      behat-defs: "./vendor/bin/behat:-dl"
 
       # NOTE: behat cannot display outline only
-      behat-specs: "./vendor/.bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip"
+      behat-specs: "./vendor/bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip"
 
       # XXX: this would be nice, and is one way to do file watching for BDD
-      behat-watch: "nodemon -x './vendor/.bin/behat test/$1.feature' -w test/bootstrap/FeatureContext.php -w test/$1.feature -w ./$1.*"
-
+      behat-watch: "nodemon -x './vendor/bin/behat test/$1.feature' -w test/bootstrap/FeatureContext.php -w test/$1.feature -w ./$1.*"
+    stats: unique-filelines unique-lines
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
     check: "htd:gitflow-check-doc :verbose=1:vchk :bats:specs"
-    #./vendor/.bin/behat:--dry-run:--no-multiline :git:status"
+    #./vendor/bin/behat:--dry-run:--no-multiline :git:status"
     # TODO: check for /tmp usage, force TMPDIR use
-    test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats ./vendor/.bin/behat:--tags:~@skip"
+    test: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats ./vendor/bin/behat:--tags:~@skip"
     # TODO: run tests at VM/... if available
     build: ":vagrant:tools/ci/vbox"
     #build: ":vagrant:tools/ci/vbox:ubuntu"
 
+    log: DevLog.rst
+
     tasks:
+      hub: ~/htdocs/to
       document: todo.txt
       done: .done.txt
       grep: ./tools/sh/tags.sh
@@ -59,9 +88,9 @@
 
     git-hooks:
       pre-commit: ./tools/git-hooks/pre-commit.sh
+      pre-commit-script: htd run check
 
     init: "./install-dependencies.sh git:init"
-
     # FIXME: what about git annex pre-commit .
 
   environment:
@@ -75,28 +104,51 @@
   prefixes: {} # See ~/.cllct.rc finfo
 
   scripts:
-    env: ./tools/sh/env.sh
+    list-files:
+      - lib_load build ; project_files \"\$@\"
     init:
-      # NOTE: somehow bash matching is needed, seems 'type' is not behaving as
-      # expected from a bourne shell
-      #- export SCR_SYS_SH=bash-sh
+      - test -d ~/.pyvenv/du-ext || virtualenv ~/.pyvenv/du-ext
+      - source ~/.pyvenv/du-ext/bin/activate
       - scriptname="init"
       - . ./tools/sh/init.sh
       - . ./tools/sh/env.sh
       - . ./tools/ci/parts/init.sh
+      - htd package update
+      - htd package remotes-init
+      - vc regenerate
+        # XXX: interactve: python -c 'import nltk; nltk.download()'
+      - test -e Makefile || { rm Makefile ; ln -s /usr/share/mkdoc/Mkdoc-full.mk Makefile ; }
+      #- make symlinks
+
+    db-deinit:
+      - db=htd-test db_root_passwd=$BM_DB_PASS docker-sh.sh mysql drop-db
+    db-init:
+      - db=htd-test db_root_passwd=$BM_DB_PASS docker-sh.sh mysql create-db
+      - db_sa.py --dbref=$BM_DB init script_mpe.sa_migrate.bms.model
+
     #check: pd check
     check:
-      - htd.sh gitflow-check-doc
-      - verbose=1 git-versioning check
+      # - htd vcflow check-doc
+      - verbosity=1 git-versioning check
       - projectdir.sh run :bats:specs
-      #- ./vendor/.bin/behat --dry-run --no-multiline
-      - projectdir.sh run :git:status
+      - ./vendor/bin/behat --dry-run --strict
+      #- projectdir.sh run :git:status
       - export SCR_SYS_SH=bash-sh
       - scriptname="check-includes"
       - . ./tools/sh/init.sh
       - . ./tools/sh/env.sh
       - . ./tools/ci/parts/init.sh
       - . ./tools/ci/check-env.sh
+
+    list-rst:
+      - . ~/.pyvenv/du-ext/bin/activate
+      - git ls-files | grep '\.rst$'
+    check-rst:
+      - . ~/.pyvenv/du-ext/bin/activate ; \
+        git ls-files | grep '\.rst$' | while read rst ; do \
+          rst2pseudoxml.py --report=4 --halt=4 --exit-status=2 $rst /dev/null; \
+        done
+
     install:
       - export SCR_SYS_SH=bash-sh
       - scriptname="before-install"
@@ -105,15 +157,14 @@
       - . ./tools/ci/parts/init.sh
       - scriptname=install
       - . ./tools/ci/parts/install.sh
-    #test: pd test
-    test:
-      - verbose=1 git-versioning check
-      - python test/main.py
-      - projectdir.sh run :bats:specs
-      - bats test/*-spec.bats | script-bats.sh colorize
-      - ./x-test.sh version
-    test-user:
-      - ENV_NAME=gspread-boreas . ~/.conf/bash/env.sh $ENV_NAME && python x-gspread.py
+    install-pyvenv:
+      - test -d ~/.pyvenv/du-ext || virtualenv ~/.pyvenv/du-ext
+      - source ~/.pyvenv/du-ext/bin/activate ; \
+        pip install -r requirements.txt; \
+        pip install -r test-requirements.txt
+    install-gv:
+      - sudo Build_Deps_Default_Paths=1 SRC_PREFIX=/src PREFIX=/usr/local ./install-dependencies.sh git-versioning && rm -rf /src/git-versioning
+
     #build: pd build
     build:
       - export SCR_SYS_SH=bash-sh
@@ -124,15 +175,61 @@
       #- vagrant tools/ci/vbox
       - scriptname=script
       - . ./tools/ci/parts/build.sh
-    # FIXME package scripts with raw YAML text blocks
-    #test-features: "
-    #  test -x \\\"$(which behave)\\\" &&
-    #      behave --tags '~@todo' --tags ~skip -k test/feature ||
-    #        ./vendor/.bin/behat--tags:~@skip "
-    # test-features: |
-    #   test -x "$(behave)" &&
-    #       behave --tags '~@todo' --tags ~skip -k test/feature ||
-    #         ./vendor/.bin/behat--tags:~@skip
+
+    # Run main test-suite TODO: work at dependency
+    #test: pd test
+    test:
+      - lib_load build
+      - test -n \"\$1\" || before_test
+      - test -n \"\$1\" || set -- \$REQ_SPECS
+      - project_test $@
+    # TODO: Run complete test-suite, including WIP
+    test-all:
+      - lib_load build ; test -n \"\$1\" || set -- \$REQ_SPECS \$TEST_SPECS ; project_test \"\$@\"
+    # Keep testfiles and tested list, and keep running while one or more fails
+    retest:
+      - source ~/.pyvenv/du-ext/bin/activate
+      # TODO: restart only after changes
+      - lib_load build ; retest \"\$@\"
+    tested:
+      - lib_load build ; tested \"\$@\"
+    totest:
+      - lib_load build ; totest \"\$@\"
+    # Run unit & component tests
+    project-test:
+      - lib_load build ; project_test \$@
+    tests:
+      - lib_load build ; project_tests \"\$@\"
+    # List unit & component testfiles
+    list-tests:
+      - lib_load build ; project_tests \$@
+    # Run and re-run after change
+    watch-test:
+      - lib_load build ; test_watch \"\$@\"
+    # NOTE: the only thing missing with this tools/sh/env test-watch setup is
+    # a replay feature, and keep watching only failing specs. see htd
+    # resolve-modified too.
+    test-unit:
+      - lib_load build ; test_any_unit \"\$@\"
+    test-feature:
+      - lib_load build ; test_any_feature \"\$@\"
+    test-features:
+      - lib_load build ; test_any_feature \"\$@\"
+    feature-watch:
+      - lib_load build ; feature_watch \"\$@\"
+    feature-defs:
+      - $TEST_FEATURE_DEFS
+    feature-specs:
+      # NOTE: behat cannot display outline only, but behave has problems with extended background syntax
+      - $TEST_FEATURE_BIN --dry-run # --no-multiline --no-expand
+
+    ci:
+      - lib_load build ; list_builds \"\$@\"
+
+    unique-filelines:
+    - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' $f ; done | wc -l
+    unique-lines:
+    - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; sort -u $f ; done | sort -u | wc -l
 
     tasks-list:
       - 'tasks.py -t todo.txt list-issues'
@@ -147,9 +244,6 @@
     test-docker:
       - drone exec
 
-    install-gv:
-      - sudo Build_Deps_Default_Paths=1 SRC_PREFIX=/src PREFIX=/usr/local ./install-dependencies.sh git-versioning && rm -rf /src/git-versioning
-
     test2:
       - docker run --rm \
            -v $PWD:/home/treebox/bin --workdir /home/treebox/bin \
@@ -158,7 +252,13 @@
            -e TMPDIR=/tmp \
            -e HOME=/home/treebox \
            localhost:5000/ubuntu-user-script:build \
-           'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/.bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
+           'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
+
+    build-docs:
+      - lib_load build ; build_docs \"\$@\"
+
+
+    # End of [0]/scripts
 
   # For make data/*: or move to cllct.rc
   data:
@@ -169,8 +269,9 @@
         # taxus.web.Invariant.mediatype
         - mime_type:lib...
 
+  default: dev
 
-- type: application/vnd.bvberkum.symlinks
+- type: application/vnd.org.wtwta.symlinks
   id: script-mpe-symlinks
   file: .symlinks.tab
   attrs: SRC DEST
@@ -195,11 +296,12 @@
     deinit:
      - vagrant destroy -f
 
+  type: application/vnd.org.wtwta.yaml-fragment
+  id: package-vagrant-scripts
 
-- type: application/vnd.bvberkum.environment
+- type: application/vnd.org.wtwta.environment
   id: script-mpe-test-vbox
   cwd: 'test/vagrant'
   env: '. ./env.sh'
   scripts:
     <<: *vagrant_scripts
-

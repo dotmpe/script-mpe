@@ -1,0 +1,16 @@
+n3:
+  http:
+    ext: .n3
+    packages:
+      rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns
+      rdfs: http://www.w3.org/2000/01/rdf-schema
+      dc: http://purl.org/dc/elements/1.1/
+      dcam: http://purl.org/dc/dcam/
+      owl: http://xmlns.com/foaf/spec/index.rdf
+rdfxml:
+  http:
+    ext: .rdf
+    packages:
+      foaf: http://xmlns.com/foaf/spec/index.rdf
+      # http://dublincore.org/documents/dc-rdf/
+      #skos: http://www.w3.org/2004/02/skos/core

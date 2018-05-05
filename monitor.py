@@ -7,8 +7,14 @@ XXX: integrate with cllct
 from __future__ import print_function
 import os, re, optparse, confparse, itertools
 
+import sys
+args = sys.argv[1:]
+if '-h' in args:
+        print(__doc__)
+        sys.exit(0)
 
-config = confparse.get_config('monitor')
+
+config = confparse.expand_config_path('monitor')
 settings = confparse.ini(config)
 
 # Predefined values, override in config file

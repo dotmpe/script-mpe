@@ -8,17 +8,21 @@ import sys
 from lib import Prompt
 
 
-argv = list(sys.argv)
-scriptname = argv.pop(0)
-if not argv:
-    sys.exit(1)
-filename = argv.pop()
-print filename
+if __name__ == '__main__':
+    argv = list(sys.argv)
+    scriptname = argv.pop(0)
+    if not argv:
+        sys.exit(1)
+    if '-h' in argv:
+        print(__doc__)
+        sys.exit(0)
 
-ok = False
-while not ok:
-    newfilename = Prompt.input('Filename: ', filename)
-    print 'Going to rename %r to %r' % (filename, newfilename)
-    ok = Prompt.ask('Ok?')
-#os.rename(filename, newfilename)
+    filename = argv.pop()
+    print filename
 
+    ok = False
+    while not ok:
+        newfilename = Prompt.input('Filename: ', filename)
+        print 'Going to rename %r to %r' % (filename, newfilename)
+        ok = Prompt.ask('Ok?')
+    #os.rename(filename, newfilename)

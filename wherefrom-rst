@@ -101,11 +101,15 @@ do
 		| xxd -r -p \
 		| plutil -convert xml1 -o - - \
 		| grep string | sed 's/^.*<string>\(.*\)<\/string>.*/\1/' \
+        | xml-decode.py - \
 		| while read line; do echo :${PREFIXES[$i]}: $line; i=`expr $i + 1`; done
 
+    # Get birth timestamp and record as first-seen
 	dob_ts=`stat -f %B "$file"`
-	dob=`date -r $dob_ts +"%Y-%m-%dT%H:%M:%SZ"`
-	echo ":first-seen: $dob"
+	dob=`date -r $dob_ts +"%Y-%m-%dT%H:%M:%S"`
+	dob_utc=`date -r $dob_ts +"%Y-%m-%dT%H:%M:%S%z"`
+	echo ":first-seen-local: $dob"
+	echo ":first-seen: $dob_utc"
 
 	test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
 	echo ":host: $hostname"

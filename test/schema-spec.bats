@@ -1,17 +1,22 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 
 
-@test "package schema" {
-
-  jsotk.py yaml2json schema/package.yml schema/package.json
+@test "package to JSON" {
 
   jsotk.py yaml2json package.yaml .package.json
+}
+
+@test "package schema to JSON" {
+
+  jsotk.py yaml2json schema/package.yml schema/package.json
+}
+
+@test "package schema validates" {
 
   jsonspec validate \
     --document-file .package.json \
     --schema-file schema/package.json \
       || fail $name
 }
-

@@ -1,23 +1,19 @@
 #!/bin/sh
 
 
-filetype()
+# Return mime-type (from BSD/GNU file) on Linux and Darwin
+file_mime()
 {
   test -e "$1" || error "expected existing path <$1>" 1
-
   case "$uname" in
 
-    Darwin )
-      file -b --mime-type "$1"
-      ;;
+    Darwin ) file -b --mime-type "$1" ;;
+    Linux ) file -bi "$1" ;;
 
-    * )
-      error "No filetype for $uname" 1
-      ;;
+    * ) error "No file MIME-type on $uname" 1 ;;
 
   esac
 }
-
 
 
 mediadurationms()

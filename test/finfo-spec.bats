@@ -2,7 +2,7 @@
 
 base=finfo.py
 
-load helper
+load init
 init
 
 

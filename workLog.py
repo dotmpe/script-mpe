@@ -25,20 +25,14 @@ from sqlalchemy.orm import relationship
 
 import zope
 
-import libcmd
-import txs
-import rsr
-import res
-import taxus
-from taxus import Taxus
-import taxus.semweb
-import taxus.generic
+from script_mpe import libcmd, txs, rsr, res, taxus
+from script_mpe.taxus import Taxus, semweb, core, generic
 
 
 
 # Data model
 
-class Project(taxus.semweb.Description):
+class Project(semweb.Description):
     """
     """
     __tablename__ = 'wlprojects'
@@ -47,7 +41,7 @@ class Project(taxus.semweb.Description):
     project_id = Column('id', Integer, ForeignKey('frags.id'), primary_key=True)
 
 
-class Ticket(taxus.semweb.Description):
+class Ticket(semweb.Description):
     """
     Represent a task with associated effort.
     """
@@ -63,12 +57,12 @@ class Ticket(taxus.semweb.Description):
     #worklog = relationship('Entry',
     #        primaryjoin='wltickets.id == wlrecords.ticket_id')
     comments = relationship(taxus.generic.Comment,
-            primaryjoin= taxus.Node.node_id == taxus.generic.Comment.annotated_node )
+            primaryjoin= core.Node.node_id == taxus.generic.Comment.annotated_node )
     #status = Column(Enum ...
     active = Column(Boolean)
 
 
-class Entry(taxus.semweb.Description):
+class Entry(semweb.Description):
     """
     Represent an expenditure of effort.
     """

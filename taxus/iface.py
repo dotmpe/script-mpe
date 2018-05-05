@@ -14,6 +14,7 @@ from zope.interface import Interface, Attribute, implements, \
         implementedBy, providedBy, classImplements
 from zope.interface.interface import adapter_hooks
 from zope.interface.adapter import AdapterRegistry
+from zope.interface.verify import verifyObject
 from zope.component import \
         getGlobalSiteManager
 
@@ -40,17 +41,32 @@ classImplements(dict, IPyDict)
 classImplements(list, IPyList)
 
 
-# output media types
 class IFormatted(Interface):
     """
-    The serialized representation of another object.
+    Can produce or has, an usually single part, serialized representation.
     """
-#class ISerialized(IFormatted):
-#    """
-#    The formatted object of an ISerializable, which may be deserialized.
-#    Otherwise use IFormatted.
-#    """
-# XXX: unused
+
+class ISerialized(IFormatted):
+    """
+    Can in addition deserialize from .
+    """
+
+class IFormatter(Interface):
+    """
+    Base for adapters to or astract class factories of IFormatted.
+    """
+
+class IStreamFormatter(IFormatter):
+    """
+    Produce IFormatted for existing file-like stream, by way of rewriter.
+    """
+
+class IObjectFormatter(IFormatter):
+    """
+    Produce IFormatted for object, by way of adapter.
+    """
+
+
 #class IInteractive(IFormatted):
 #    """
 #    The interactive interface implicates that besides serialization,
@@ -223,13 +239,16 @@ def registerAdapter(adapterClass, sifaces=[], tiface=None):
 
 def hook( provided, o ):
     global registry
-    if  o  == None:
-        from script_mpe.taxus import out
-        return out.PrimitiveFormatter(None)
+    #if o  == None:
+    #    from script_mpe.taxus import out
+    #    return out.PrimitiveFormatter(None)
+    #print('o', o)
+    #if provided.providedBy(o):
+    #    return o
     adapted = providedBy( o )
-    #libcmd.err("Adapting %s:%s",  o , adapted)
-    adapter = registry.lookup1(
-            adapted, provided, '')
+    #print('provided', provided)
+    print("Adapting %s:%s",  o , adapted)
+    adapter = registry.lookup1( adapted, provided, '')
     if not adapter:
         import sys
         #libcmd.err("Could not adapt %s:%s > %s",  o , adapted, provided)

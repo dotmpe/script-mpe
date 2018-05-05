@@ -5,6 +5,9 @@ matchbox - a (file)naming libcmd_docoptity based on regular expressions.
 A filename cleaning and reformatting libcmd_docoptity. See matchbox.rst.
 """
 from __future__ import print_function
+
+__version__ = '0.0.4-dev' # script-mpe
+
 import inspect
 import sys
 import os
@@ -12,19 +15,20 @@ import re
 from pprint import pformat
 #from optparse import Values
 
-from script_mpe.res import js
+from script_mpe import libcmd_docopt
+from script_mpe.res import js, mb
 from script_mpe.confparse import Values
 from script_mpe.confparse import yaml_load, yaml_safe_dumps
 
 
 
-escape_meta_re = re.compile(r'(?!\\)([^\\A-Za-z0-9{}(),!@+_])')
-name_var_match_re = re.compile('@([A-Z][A-Z0-9_]*)')
+escape_meta_rx = re.compile(mb.escape_meta_r)
+name_var_match_rx = re.compile('@(%s)' % mb.simple_varname_r)
 
 def name_template_opts(name_template):
     "Return place holders in name pattern"
     return [ varname for varname
-            in name_var_match_re.findall(name_template) ]
+            in name_var_match_rx.findall(name_template) ]
 
 vartable_basic = {}
 vartable = {}
@@ -70,7 +74,8 @@ def load_from_bre(filepath):
         # get simple bash regex as python regex
                 # remove escaping
                 # remove optgroup
-        vartable[ varname ] = re.sub(r'\\([\(){}|])', r'\1',
+        vartable[ varname ] = re.sub(
+                r'\\([\(){}|])', r'\1',
                 re.sub(r'^\\\((.*)\\\)\\\?$', r'\1', regexpat.strip("'")))
 
     print('# Loaded %s' % filepath)
@@ -130,7 +135,7 @@ def name_regex(name_template, var_names=None):
     """
     if not var_names:
         var_names = name_template_opts(name_template)
-    name_regexpat = escape_meta_re.sub(r'\\\1', name_template)
+    name_regexpat = escape_meta_rx.sub(r'\\\1', name_template)
     for name in var_names:
         if name not in vartable:
             raise Exception("No such var: %s" % name)
@@ -202,7 +207,8 @@ def c_help():
         c = globals()[x]
         if x.startswith('c_') and callable(c):
             print("matchbox.py", x[2:].replace('_', '-'), format_f_spec(c))
-            print('   ', c.__doc__.strip())
+            if hasattr(c, '__doc__') and c.__doc__:
+                print('   ', c.__doc__.strip())
 
 def format_f_spec(func):
     args, varargs, keywords, defaults = inspect.getargspec(func)
@@ -300,9 +306,9 @@ def c_match_names_vars(name_template_or_tag="@NAMEPART.@EXT"):
                 print("Mismatched '%s'" % line, file= sys.stderr)
             else:
                 mdict = match.groupdict()
-                print("\t".join([)
+                print("\t".join([
                     mdict[var] if var in mdict else '' for var in var_names
-                ])
+                ]))
 
 def c_rename(from_template, to_template, exists=None, stat=None):
     """Read filenames from lines at stdin, extract fields, reformat name
@@ -457,15 +463,27 @@ writers = dict(
     )
 
 
-### Main
+
+def c_version():
+    global __version__
+    return '%s' % __version__
+
+
+cmd_aliases = dict(
+    _h='help', __help='help',
+    _v='version', __version='version'
+)
 
 if __name__ == '__main__':
-    # XXX: use docopt for arg parsing maybe later, keep simple for now.
     argv = sys.argv
     scriptname = argv.pop(0)
+
     if not len(argv):
         cmdname = 'c_show'
     else:
-        cmdname = 'c_'+argv.pop(0).replace('-', '_')
+        cid = argv.pop(0).replace('-', '_')
+        while cid in cmd_aliases:
+            cid = cmd_aliases[cid]
+        cmdname = 'c_'+cid
     load_vars()
     sys.exit(locals()[cmdname](*argv))

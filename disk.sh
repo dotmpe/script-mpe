@@ -30,6 +30,7 @@ disk__status()
     do
       test -e "$vol_dev" || error "No such volume device '$vol_dev'" 1
       mount=$(find_mount $vol_dev)
+      # FIXME: shomehow fstype is not showing up. Also, want part size/free
       fstype="$(disk_partition_type "$vol_dev")"
       vol_idx=$(echo $vol_dev | sed -E 's/^.*([0-9]+)$/\1/')
       vol_id="$(disk_vol_info $disk_id-$vol_idx 2>/dev/null)"
@@ -103,12 +104,14 @@ disk__id()
   disk_id "$1"
 }
 
+
 disk_man_1__fdisk_id="Print ID as reported by fdisk"
 disk_spc__fdisk_id="fdisk-id DEV"
 disk__fdisk_id()
 {
   disk_fdisk_id "$1"
 }
+
 
 disk_man_1__rename_old="Rename fdisk catalog entry to one based on disk serial \
   number (Not good enough for some OEM SD cards)"
@@ -126,6 +129,7 @@ disk__rename_old()
     )
   done
 }
+
 
 disk_man_1__get_by_id="Only on *nix/systems with /dev/disk tree."
 disk__get_by_id()
@@ -184,16 +188,27 @@ disk__list_local()
 disk_load__list_local=f
 
 
+disk_man_1__list='List local devices'
 disk__local_devices()
 {
   disk_list
 }
 
+disk__mounts()
+{
+  disk_mounts
+}
 
+# FIXME: can get at Darwin LVM (physical) ID, but not at osxfuse sshfs mounts
+# Need to skip/alternate some steps ie. for Htd ls-volumes
 disk__x_local()
 {
   test "$uname" = "Darwin" && {
+
+    #xml=$(darwin_profile_xml "SPUSBDataType")
+    #echo '---------------------------'
     darwin_disk_table
+
   } || {
     test -n "$1" || set -- $(disk_list)
     while test $# -gt 0
@@ -253,6 +268,7 @@ disk__list_mount_paths()
 }
 
 disk_man_1__list_part_local="Print info for local partitions (from /dev/*)"
+
 disk__list_part_local()
 {
   disk_list_part_local "$@"
@@ -493,7 +509,7 @@ disk_main()
 disk_init()
 {
   local __load_lib=1
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   . $scriptpath/box.lib.sh
   box_run_sh_test
   lib_load main htd meta box date doc table disk darwin remote match

@@ -1,19 +1,21 @@
 #!/bin/sh
 statusdir__source=$_
 
-# Statusdir - a lightweight property store for bash
+# Statusdir - a property store for bash with lightweight backends
 
 # Does not store actual properties yet, and the tree files are not actually used.
 # The files in the index are used to store lists of keys, see env.sh
 
 set -e
 
+version=0.0.4-dev # script-mpe
+
 
 statusdir_load()
 {
   [ -z "$STATUSDIR_ROOT" ] && {
       STATUSDIR_ROOT="$(echo ~/.statusdir/)"
-      #export STATUSDIR_ROOT
+      export STATUSDIR_ROOT
   }
 
   # Get temporary dir
@@ -37,6 +39,7 @@ statusdir_load()
 
   # Load backend
   lib_load statusdir-$sd_be
+  test -n "$sd_be_name" && sd_be=$sd_be_name
 }
 
 statusdir_unload()
@@ -64,7 +67,7 @@ statusdir__backends()
 {
   for bn in $scriptpath/statusdir-*.sh
   do
-    sd_be_name=
+    sd_be_name=$(basename $bn .lib.sh | cut -d '-' -f 2)
     . $bn
     test -n "$sd_be_name" || error "Backend name expected ($(basename "$bn"))"
     $sd_be_name ping && note "$sd_be_name found" || warn "No $sd_be_name backend"
@@ -73,13 +76,12 @@ statusdir__backends()
 statusdir_als__bes=backends
 
 
-statusdir_man_1__backend="Print current backend's name"
+statusdir_man_1__backend="Print current backend's name. See 'be' to invoke it
+directly. "
 statusdir__backend()
 {
-  echo $sd_be
+  $sd_be backend
 }
-statusdir_als__be=backend
-
 
 statusdir_man_1__assert="echos path. Default index is 'default'."
 statusdir_spc__assert="assert <path-expr> [<index-name-id>]"
@@ -205,12 +207,21 @@ statusdir__cons_json()
   echo $status_json
 }
 
+statusdir__ping()
+{
+  test -z "$*" || error "unexpected arguments '$*'" 1
+  $sd_be ping $1 || return $?
+}
 
+statusdir__list()
+{
+  $sd_be list "$@"
+}
 
 statusdir__get()
 {
   test -n "$1" || error "key expected" 1
-  test -z "$2" || error "surplus arguments" 1
+  test -z "$2" || error "surplus arguments '$2'" 1
   $sd_be get $1 || return $?
 }
 
@@ -219,22 +230,23 @@ statusdir__set()
   test -n "$1" || error "key expected" 1
   test -n "$2" || error "value expected" 1
   test -n "$3" || set -- "$1" "$2" 0
-  test -z "$4" || error "surplus arguments" 1
-  $sd_be set $1 $3 $2 || return $?
+  test -z "$4" || error "surplus arguments '$4'" 1
+  $sd_be set "$1" "$3" "$2" || return $?
 }
 
+# FIXME: statusdir_als__delete=del
 statusdir__del()
 {
   test -n "$1" || error "key expected" 1
-  test -z "$2" || error "surplus arguments" 1
-  $sd_be delete $1 || return $?
+  test -z "$2" || error "surplus arguments '$2'" 1
+  $sd_be del $1 || return $?
 }
 
 statusdir__incr()
 {
   test -n "$1" || error "key expected" 1
   test -n "$2" || set -- "$1" 1
-  test -z "$3" || error "surplus arguments" 1
+  test -z "$3" || error "surplus arguments '$3'" 1
   $sd_be incr $1 $2 || return $?
 }
 
@@ -242,16 +254,53 @@ statusdir__decr()
 {
   test -n "$1" || error "key expected" 1
   test -n "$2" || set -- "$1" 1
-  test -z "$3" || error "surplus arguments" 1
-  $sd_be decr $1 $2 || return $?
+  test -z "$3" || error "surplus arguments '$3'" 1
+  $sd_be decr "$@" || return $?
 }
 
-statusdir__list()
+statusdir__exists()
 {
-  $sd_be list "$@"
+  test -n "$1" || error "key expected" 1
+  test -z "$2" || error "surplus arguments '$3'" 1
+  $sd_be exists "$1" || return $?
 }
+
+statusdir__has()
+{
+  test -n "$1" -a -n "$2" || error "key/member expected" 1
+  test -z "$3" || error "surplus arguments '$3'" 1
+  $sd_be has "$@" || return $?
+}
+
+statusdir__members()
+{
+  test -n "$1" || error "key expected" 1
+  test -z "$2" || error "surplus arguments '$3'" 1
+  $sd_be members "$1" || return $?
+}
+
+statusdir__add()
+{
+  test -n "$1" -a -n "$2" || error "key/member expected" 1
+  test -z "$3" || error "surplus arguments '$3'" 1
+  $sd_be add "$@" || return $?
+}
+
+statusdir__rem()
+{
+  test -n "$1" -a -n "$2" || error "key/member expected" 1
+  test -z "$3" || error "surplus arguments '$3'" 1
+  $sd_be rem "$@" || return $?
+}
+
 
 statusdir__be()
+{
+  test -n "$1" || error "cmd expected" 1
+  $sd_be "$@"
+}
+
+statusdir__x()
 {
   test -n "$1" || error "cmd expected" 1
   $sd_be x "$@"
@@ -282,6 +331,8 @@ statusdir__version()
 #statusdir_als____version=version
 
 
+statusdir_man_1__edit='Edit this script and files'
+statusdir_spc__edit='-e|edit [FILES]'
 statusdir__edit()
 {
   $EDITOR $0 $(which $base.sh) "$@"
@@ -333,9 +384,9 @@ statusdir_init()
   test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
   . $scriptpath/util.sh load-ext
   lib_load
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
-  lib_load main box date
+  lib_load src main box date
   # -- statusdir box init sentinel --
 }
 
@@ -356,4 +407,3 @@ case "$0" in "" ) ;; "-"* ) ;; * )
     ;; esac
   }
 ;; esac
-

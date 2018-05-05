@@ -6,15 +6,6 @@ set -e
 # Main: CLI helpers; init/run func as subcmd
 
 
-type noop >/dev/null 2>&1 || {
-  # No-Op(eration) see sys.lib
-  noop()
-  {
-    set -- # clear arguments
-  }
-}
-
-
 # Count arguments consumed
 incr_c()
 {
@@ -31,12 +22,13 @@ try_help()
   do
     help="$( try_value $2 man_$1 $b || continue )"
     test -n "$help" || continue
-    spec="$( try_value $2 spc $b || printf "" )"
-    test -n "$spec" && {
-      printf -- "$ $base $2\n\t$help\nUsage:\n\t$(eval echo "\"$base $spec\"")\n"
-    } || {
-      printf -- "$ $base $2\n\t$help\n"
-    }
+    #spec="$( try_value $2 spc $b || printf "" )"
+    #test -n "$spec" && {
+    #  printf -- "$ $base $2\n\t$help\nUsage:\n\t$(eval echo "\"$base $spec\"")\n"
+    #} || {
+    #  printf -- "$ $base $2\n\t$help\n"
+    #}
+    printf -- "\n  $help\n"
     return
   done
   return 1
@@ -147,19 +139,21 @@ get_subcmd_func()
     try_local_func "$@" || {
 
       # Try command alias
-      try_local_var cmd_als $1 als $b && {
-        test -n "$cmd_als" || error oops 1
-        subcmd=$(echo "$cmd_als" | cut -d ' ' -f 1)
-        subcmd_args_pre=$(echo "$cmd_als" | cut -d ' ' -f 2)
-      #test -z "$cmd_als" || {
-        #subcmd=$cmd_als
-        set -- "$(mkvid "$subcmd" && echo $vid)" "" "$b"
+      try_local_var subcmd_alias $1 als $b && {
+        #$LOG warn "main.lib" "aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
+        note "main.lib: aliased '$subcmd' sub-command to '$subcmd_alias'"
+        test -n "$subcmd_alias" || error oops 1
+        subcmd="$(echo "$subcmd_alias" | cut -d ' ' -f 1)"
+        subcmd_args_pre="$(echo "$subcmd_alias" | cut -d ' ' -f 2-)"
+        #warn "main.lib: alias prefix: '$subcmd' '$subcmd_args_pre ...'"
+        set -- "$(upper=0 mkvid "$subcmd" && echo $vid)" "" "$b"
       }
     }
 
     # Break on first existing function
     try_local_func "$@" && {
       subcmd_func="$(echo_local "$@")"
+      #test "$base" = "$b" || export base=$b
       return
     }
   done
@@ -187,7 +181,7 @@ try_subcmd()
         ( try_local_func usage || try_local_func usage '' std ) && {
           $func_name
         }
-        error "No such command: $subcmd ($func_name)" 1
+        error "No such command: $subcmd" 1
       } || {
         error "Command $subcmd returned $e" $e
       }
@@ -216,7 +210,8 @@ std__help()
     spc="$(try_spec $1)"
     test -n "$spc" && {
       echo "Usage: "
-      echo "  $base $spc"
+      echo "  $scriptname $spc"
+      echo
     }
     printf "Help '$1': "
     echo_help "$1" || error "no help '$1'"
@@ -239,7 +234,7 @@ std__commands()
   test -n "$1" || set -- "$1" "$@"
   test -n "$2" || {
     locate_name $base
-    box_lib "$fn"
+    test -n "$box_lib" || box_lib "$fn"
     test -n "$box_lib" && set -- "$0" "$box_lib"
   }
 
@@ -334,13 +329,14 @@ std__version()
 
 
 # Find shell script location with or without extension.
-# locate-name [ NAME || $scriptname ]
+# locate-name [ NAME || $scriptname ] [ .sh ]
 # :fn
 locate_name()
 {
   test -n "$1" || set -- "$scriptname" "$2"
   test -n "$2" || set -- "$1" .sh
   test -n "$1" || error "locate-name: script name required" 1
+  # Test with and without extension, export `fn`
   fn="$(which "$1")"
   test -n "$fn" || fn="$(which "$1$2")"
   test -n "$fn" && export fn || return 1
@@ -371,6 +367,7 @@ get_cmd_alias()
     || try_local_var $1_alias $(echo "$2" | tr '-' '_') als std
 }
 
+# Parse some random stuff, define vars for any short/long opt
 main_options_v()
 {
   while test -n "$1"
@@ -512,6 +509,7 @@ get_cmd_func_name()
 
   local cmd_alias="$(eval echo \$${func_pref}als$(echo "_${cmd_name}" | tr '-' '_'))"
   test -z "$cmd_alias" || {
+    $LOG warn "main.lib" "Aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
     cmd_name=$cmd_alias
     export ${1}_alias=$cmd_alias
   }
@@ -659,7 +657,6 @@ run_subcmd()
 
   main_init
 
-
   #func_exists ${base}_parse_subcmd_args
 
   test -n "$box_prefix" || box_prefix=$(mkvid $base; echo $vid)
@@ -667,10 +664,6 @@ run_subcmd()
   get_subcmd_args "$@" || {
     error "parsing args" $?
   }
-
-  #echo subcmd=$subcmd subcmd_func_pref=$subcmd_func_pref
-  #echo base=$base
-  #echo local_prefix=$local_prefix
 
   test $c -gt 0 && shift $c ; c=0
   main_debug $*
@@ -686,8 +679,7 @@ run_subcmd()
       error "No such command: $subcmd ($base)" 2
     }
   }
-
-  test -z "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
+  test -z "$subcmd_args_pre" || set -- "$subcmd_args_pre" "$@"
 
   load_subcmd $box_prefix || return $?
   debug "$base loaded"
@@ -755,4 +747,29 @@ stat_key()
   test -n "$1" || set -- stat
   mkvid "$(pwd)"
   export $1_key="$hnid:${base}-${subcmd}:$vid"
+}
+
+# Write/Parse simple line protocol from main_bg instance at main_sock
+main_bg_writeread()
+{
+  printf -- "$@\r\n" | socat -d - "UNIX-CONNECT:$main_sock" \
+    2>&1 | tr "\r" " " | while read line
+  do
+    case "$line" in
+      *" OK " )
+          return
+        ;;
+      "? "* )
+          return 1
+        ;;
+      "!! "* )
+          error "$line"
+          return 1
+        ;;
+      "! "*": "* )
+          return $(echo $line | sed 's/.*://g')
+        ;;
+    esac
+    echo $line
+  done
 }

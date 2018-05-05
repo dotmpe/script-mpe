@@ -9,7 +9,7 @@ import gdata.docs.service
 client = gdata.docs.service.DocsService()
 
 # Authenticate using your Google Docs email address and password.
-client.ClientLogin('berend.van.berkum@gmail.com', 'ros-en-vaybs-oy-wried-cop-om-ra')
+client.ClientLogin('berend.van.berkum@gmail.com', os.getenv('GOOGLE_GDAPI'))
 
 # Query the server for an Atom feed containing a list of your documents.
 documents_feed = client.GetDocumentListFeed()

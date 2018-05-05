@@ -52,6 +52,5 @@ Feature: Htd
   Scenario: I have list items updated by a metadata resolver matching the context
 
   
-
   Scenario: I have records creates for validated list items
 

@@ -66,7 +66,9 @@ lst_load()
 lst_init_etc()
 {
   test ! -e etc/htd || echo etc
-  test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
+  test -n "$1" || set -- $scriptpath
+  test -n "$1" || set -- $(dirname "$0")
+  test ! -e $1/etc/htd || echo $1/etc
   #XXX: test ! -e .conf || echo .conf
   #test ! -e $UCONFDIR/htd || echo $UCONFDIR
   #info "Set htd-etc to '$*'"
@@ -108,16 +110,14 @@ lst_init_ignores()
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
        error "lst:init-ignores: expected $lst_base ignore dotfile ($IGNORE_GLOBFILE)" 1
 
-  local suf=$1
-  {
-    test -n "$1" && {
-      shift
-    } || {
+  local suf=$1 ; shift
+
+  test -n "$*" || {
       set -- "$@" global-drop global-purge
       test ! -e .git || set -- "$@" scm
       debug "Set ignores for $base ($IGNORE_GLOBFILE$suf) to '$*'"
     }
-
+  {
     ignores_cat "$@"
   } >> $IGNORE_GLOBFILE$suf
   sort -u $IGNORE_GLOBFILE$suf | sponge $IGNORE_GLOBFILE$suf
@@ -138,7 +138,7 @@ htd_init_ignores()
 # Init empty find_ignores var
 htd_find_ignores()
 {
-  error "deprecated" 124
+  error "deprecated, see find_ignores usage" 124
 
   test -z "$find_ignores" || return
 
@@ -182,4 +182,47 @@ htd_find_path_locals()
     }
     path=$(dirname $path)
   done
+}
+
+# migrate lines matching tag to to another file, removing the tag
+# htd-move-tagged-and-untag-lines SRC DEST TAG
+htd_move_tagged_and_untag_lines()
+{
+  test -e "$1" || error src 1
+  test -n "$2" -a -d "$(dirname "$2")" || error dest 1
+  test -n "$3" || error tag 1
+  test -z "$4" || error surplus 1
+  # Get task lines with tag, move to buffer without tag
+  set -- "$1" "$2" "$(echo $3 | sed 's/[\/]/\\&/g')"
+  grep -F "$3" $1 |
+    sed 's/^\ *'"$3"'\ //g' |
+      sed 's/\ '"$3"'\ *$//g' |
+        sed 's/\ '"$3"'\ / /g' > $2
+  # echo '# vim:ft=todo.txt' >>$buffer
+  # Remove task lines with tag from main-doc
+  grep -vF "$3" $1 | sponge $1
+}
+
+# migrate lines to another file, ensuring tag by strip and re-add
+htd_move_and_retag_lines()
+{
+  test -e "$1" || error src 1
+  test -n "$2" -a -d "$(dirname "$2")" || error dest 1
+  test -n "$3" || error tag 1
+  test -z "$4" || error surplus 1
+  test -e "$2" || touch $2
+  set -- "$1" "$2" "$(echo $3 | sed 's/[\/]/\\&/g')"
+  cp $2 $2.tmp
+  {
+    # Get tasks lines from buffer to main doc, remove tag and re-add at end
+    grep -Ev '^\s*(#.*|\s*)$' $1 |
+      sed 's/^\ *'"$3"'\ //g' |
+        sed 's/\ '"$3"'\ *$//g' |
+          sed 's/\ '"$3"'\ / /g' |
+            sed 's/$/ '"$3"'/g'
+    # Insert above existing content
+    cat $2.tmp
+  } > $2
+  echo > $1
+  rm $2.tmp
 }

@@ -62,6 +62,7 @@ esop_load__help=f
 esop_spc__help='-h|help [ID]'
 esop__help()
 {
+  test $verbosity -gt 4 || export verbosity=4
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
   choice_global=1 std__help "$@"
   rm_failed || return
@@ -95,16 +96,19 @@ esop_main()
       base="$(basename $0 ".sh")" \
       scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
       failed=
-  case "$base" in
-    $scriptname )
-      esop_init || return $?
-      run_subcmd "$@" || return $?
-      ;;
+
+  esop_init || return $?
+  debug esop-main-init
+  case "$base" in $scriptname ) ;;
     * )
-        echo "$scriptname: not a frontend for $base" >&2
-        exit 1
+        error "$scriptname: not a frontend for $base" 1
       ;;
   esac
+
+  debug esop-main-lib
+  esop_lib || return $?
+  debug esop-main-run-subcmd
+  run_subcmd "$@" || return $?
 }
 
 # FIXME: Pre-bootstrap init
@@ -113,9 +117,8 @@ esop_init()
   export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
   export SCRIPTPATH=$scriptpath
   . $scriptpath/util.sh load-ext
-  lib_load
-  . $scriptpath/box.init.sh
-  lib_load main
+  lib_load str sys os std stdio main argv bash box src
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   # -- esop box init sentinel --
 }
@@ -123,6 +126,7 @@ esop_init()
 # FIXME
 esop_lib()
 {
+  debug esop-lib
   # -- box box lib sentinel --
   set --
 }

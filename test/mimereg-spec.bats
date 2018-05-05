@@ -2,7 +2,7 @@
 
 base=mimereg
 
-load helper
+load init
 init
 
 

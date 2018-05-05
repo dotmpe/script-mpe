@@ -140,6 +140,9 @@ Changelog
     perhaps looking to store files/comments/tags in SQL with taxus.
 2016-08-27
     Need task scripts for `Pd`. Reviewing.
+2018-01-06
+    Some updates last year while being use to scan for code tasks. Planning
+    for next revision.
 
 Issues
 ------
@@ -156,6 +159,7 @@ Further comments
 - Handles only Unix likebreaks. Could do a lot better con literal parsing,
   perhaps something enfiladic or based on parallel streams.. for now it should
   help this results in some content ranges.
+
 - There are two styles of comments recognized, line and block.
   Some other styles not implemented:
 
@@ -205,14 +209,7 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 
 #from cllct.oslibcmd_docopt import parse_argv_split
 
-import log
-import confparse
-import libcmd
-import taxus
-from taxus import Taxus
-from taxus.init import get_session
-import res
-import res.fs
+from script_mpe.libhtd import *
 
 
 # Storage model
@@ -311,10 +308,10 @@ class TrackedIssue(Base):
     filename = Column(String(255), index=True)
     last_seen_startline = Column(Integer)
 
+
 # tag ids:
 NO_ID = 0
 NEED_ID = -1
-
 
 
 class SrcDoc:
@@ -339,10 +336,7 @@ class SrcDoc:
 
 
 class CommentTag:
-    """ TODO: hold some types of tags:
-    TODO-10af
-    TODO-1234
-    BUG:1.2.3-a.b.c+d
+    """ TODO: hold some types of tags
     """
     def __init__(self, slug, id, matchbox):
         self.slug = slug
@@ -426,9 +420,9 @@ class EmbeddedIssue:
 
 
     formats = {
-            'id': lambda cmt, data: cmt.scei_id(False),
-            'full-id': lambda cmt, data: cmt.scei_id(),
-            'full-sh': lambda cmt, data: ":".join(
+            'id': lambda cmt, data, rc, opts: cmt.scei_id(False),
+            'full-id': lambda cmt, data, rc, opts: cmt.scei_id(),
+            'full-sh': lambda cmt, data, rc, opts: ":".join(
                 map(str, [
                     '',
                     cmt.srcdoc.source_name,
@@ -440,28 +434,33 @@ class EmbeddedIssue:
                     '', # line-offset-cmnt-span
                     ' '+repr(cmt.descr)[1:-1]
                 ])),
-            'grep': lambda cmt, data: ":".join([
+            'grep': lambda cmt, data, rc, opts: ":".join([
                     cmt.srcdoc.source_name,
                     "%i" % cmt.line_span[0],
                     ' '+repr(cmt.descr)[1:-1]
                 ]),
-            'todo.txt': lambda cmt, data: " ".join([
+            'todo.txt': lambda cmt, data, rc, opts: " ".join([
                     # FIXME: cleanup & parsing in EmbeddedIssue re.sub(r'\s+', ' ', cmt.descr),
                     re.sub(r'\s+', ' ', cmt.raw),
-                    '+'+cmt.srcdoc.source_name,
-                    "line:%i-%i" % tuple(cmt.line_span),
-                    "char:%i-%i" % tuple(cmt.description_span)
+                    opts.todotxt_paths and
+                        opts.todotxt_pathpref+cmt.srcdoc.source_name or '',
+                    opts.todotxt_lines and
+                        "line:%i-%i" % tuple(cmt.line_span) or '',
+                    opts.todotxt_chars and
+                        "char:%i-%i" % tuple(cmt.description_span) or ''
                 ]),
-            'raw': lambda cmt, data: " ".join(
+            'raw': lambda cmt, data, rc, opts: " ".join(
                 map(str, [ cmt.srcdoc.source_name,
                     cmt.line_span, \
                     cmt.comment_flavour, \
                     repr(cmt.raw), \
                     repr(cmt.descr) ])),
-            'raw2': lambda cmt, data: " ".join([ cmt.comment_flavour ] + [
+            'raw2': lambda cmt, data, rc, opts: " ".join([ cmt.comment_flavour ] + [
                 "%s '%s' <%s> %s" %(
                     tag, tag.raw, tag.canonical(data), cmt
-                ) for tag in cmt.tags ])
+                ) for tag in cmt.tags ]),
+            'json-stream': lambda cmt, data, rc, opts: res.js.dumps(cmt.to_dict()),
+            'null': lambda cmt, data, rc, opts: None,
         }
 
     def validate(self):
@@ -489,22 +488,20 @@ class EmbeddedIssue:
         Add or update tracker for current issue.
         """
 
-        # TODO: print('tags', self.tags)
+        # See if there is a tracker for the current Id slug
         if tag.slug in services:
             tracker = services[tag.slug]
+            raw_ei = self.to_dict()
 
             # Cleanup the SEI's Id, ie. normalize our tag-id
             refId = tag.canonical(self.srcdoc.data)
 
-            s = self.to_dict()
             # Find issue based on Tag-Id
             if refId == tag.slug:
-                issue = tracker.new(refId, s)
+                issue = tracker.new(refId, raw_ei)
             else:
-                issue = tracker.globalize(refId, s)
-                tracker.update(tag.slug, refId, s)
-
-            print(refId, issue)
+                issue = tracker.globalize(refId, raw_ei)
+                tracker.update(tag.slug, refId, raw_ei)
 
 
 class EmbeddedIssueOld:
@@ -600,7 +597,7 @@ def store_comments(session, data, comment_span, flavour_spec, tagname, matchbox)
 
 # Content data scanning
 
-end_of_description = re.compile('([\.?!](?:\ |$))', re.M + re.S).search
+end_of_description = re.compile('([\.?!](?:\ |$))', re.M | re.S).search
 
 def end_of_line(data):
     pos = 0
@@ -626,16 +623,17 @@ def at_line(offset, width, data, lines=None):
     if not lines:
         lines = get_lines(data)
     assert isinstance(lines, ( list, tuple )), lines
+    llines = len(lines)
     chars = 0
     for line, line_data in enumerate(lines):
         assert isinstance(line, int), "line: %r" % line
         assert isinstance(line_data, str), "line_data: %r " % line_data
         if offset < chars+len(line_data)+1:
-            return line, chars, len(line_data)+1
+            return line, chars, len(line_data)+1, llines
         chars += len(line_data)+1
     assert not (offset+width > chars),  \
 "Span is beyond document bounds: %r while document bytes:%r %r, lines:%s " % \
-((offset, width), chars, len(data), len(lines))
+((offset, width), chars, len(data), llines)
 
 
 collapse_ws_sub = re.compile(r'[\ \n]+').sub
@@ -648,9 +646,9 @@ def compile_rdc_matchbox(rc):
 
     for tagname in rc.tags:
         pattern = r"(%s)" % tagname
-        if rc.tags[tagname]:
-            pattern = rc.tags[tagname][0] % tagname
-        matchbox[tagname] = re.compile(pattern)
+        if rc.tag_specs[tagname]:
+            pattern = rc.tag_specs[tagname][0] % tagname
+        matchbox[tagname] = re.compile(pattern, re.VERBOSE)
 
     for flavour in rc.comment_scan:
         scan = rc.comment_scan[flavour]
@@ -661,12 +659,19 @@ def compile_rdc_matchbox(rc):
         else:
             matchbox[flavour] = (search_line.search, None, None)
 
+    for ignored_tag in rc.ignored_tags:
+        if ignored_tag not in rc.ignored_scans:
+            rc.ignored_scans[ignored_tag] = anywhere(ignored_tag)
+
+    for ignored_tag, ignored_re in rc.ignored_scans.items():
+        matchbox[ignored_tag] = re.compile(ignored_re)#, re.M | re.VERBOSE)
+
     return matchbox
 
 
 _parsed_file_comments = {}
 
-def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
+def get_tagged_comment(offset, width, data, lines, language_keys, ignored_scans, matchbox):
     """
     Return the comment span that has a tag embedded at offset/width.
 
@@ -679,9 +684,12 @@ def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
     metacharacters used to markup comments. Further parsing of the comment
     block is left to the caller.
     """
-    tag_line, line_offset, line_width = at_line(offset, width, data, lines)
+    tag_line, line_offset, line_width, lineslen = at_line(offset, width, data, lines)
 
-    #print 'get_tagged_comment', offset, width, 'tag', tag_line, line_offset, line_width, language_keys
+    # FIXME ignored scans
+    for ignored_name in ignored_scans:
+        if matchbox[ignored_name].match(lines[tag_line]):
+            return
 
     # Comment spans the entire range of chars (for the comments' lines)
     comment_offset, comment_end = -1, -1
@@ -707,7 +715,7 @@ def get_tagged_comment(offset, width, data, lines, language_keys, matchbox):
                 last_line = tag_line
                 comment_end = line_offset + line_width
                 description_end = comment_end
-                if last_line == 0:
+                if last_line == 0 or last_line == lineslen-1:
                     break
                 data = lines[last_line+1]
                 while search_line(data):
@@ -861,22 +869,25 @@ class SEIParser:
         self.lines = lines
         self.srcdoc = SrcDoc( self.source_name, len(self.lines), self.data )
 
-    def find_tags(self):
+    def find_tags(self, rc):
         "Scan for tags. return TagInstance"
         for tagname in rc.tags:
             for tag_match in self.matchbox[tagname].finditer(self.data):
+                # The matched text includes only the tag...
+                # print(tag_match.string[slice(*tag_match.span())])
                 tag_span = tag_match.start(), tag_match.end()
                 yield TagInstance(self.source_name, tagname, tag_span)
 
-    def for_tag(self, tag):
+    def for_tag(self, tag, matchbox, rc):
         "retrieve comment for TagInstance TODO: map streams"
 
-        # Get entire comment
+        # Get entire comment (specified in a tuple)
         comment = get_tagged_comment(tag.start, tag.end-tag.start,
                 self.data, self.lines,
-                rc.comment_flavours, self.matchbox)
+                rc.comment_flavours, rc.ignored_scans, self.matchbox)
         if not comment:
             return
+
         comment_flavour, comment_span, descr_span, lines = comment
 
         # Clean comment from markup and adjust source span
@@ -885,7 +896,7 @@ class SEIParser:
                                                             comment_span)
         (comment_start, comment_end) = comment_span
 
-        # XXX:
+        # Create instance with refs to srcdoc and helpers to access
         inline = None
         tags = []
         return EmbeddedIssue(self.srcdoc, comment_span, lines, descr_span,
@@ -1079,6 +1090,10 @@ def append_comment_scan(option, value, parser):
     log.stderr("TODO comment_scan", (option, value, parser))
     return -1
 
+def append_ignored_scan(option, value, parser):
+    log.stderr("TODO append_ignored_scan ", (option, value, parser))
+    return -1
+
 # Static metadata
 
 """
@@ -1103,6 +1118,8 @@ tags
 #        'xml': ('xml', 'xslt', 'xsd', 'relax', 'xhtml', 'html'),
 #        'sgml': ('sgml','html'),
 #    }
+def anywhere(r):
+    return r'^.*\b%s\b.*$' % r
 
 # Start/end regex patterns per comment flavour
 STD_COMMENT_SCAN = {
@@ -1111,17 +1128,36 @@ STD_COMMENT_SCAN = {
         'c_line': [ '(\/\/)' ]
     }
 # Tag pattern, format and index type
-DEFAULT_TAG_RE = r'\s*\b(%s)(?:[:_\ -]([A-Za-z0-9:_-]+))?\b[:]?\s+'
+DEFAULT_TAG_RE = r'''
+  (?: ^|\s+ )
+  (?:
+        (%s)
+        (?:
+              (?: [:\.,_-] )
+            | (?: [\s:\.,_-]* [\s\._0-9-]+ )
+            | (?: [:\.,_-]* [^\ ]+ )
+        )?
+  )
+  (?: $|\s+ )
+'''
+
 DEFAULT_TAGS = {
-    'FIXME': [ DEFAULT_TAG_RE ],
-    'TEST':  [ DEFAULT_TAG_RE, '%s:%i:', 'numeric_index' ],
-    'TODO':  [ DEFAULT_TAG_RE, '%s:%i:', 'numeric_index' ],
-    'XXX':   [ DEFAULT_TAG_RE ],
-    'NOTE':  [ DEFAULT_TAG_RE ],
-    'BUG':   [ DEFAULT_TAG_RE ]
+    'FIXME': [ DEFAULT_TAG_RE, '%s-%i:', 'todo_txt' ],
+    'TEST':  [ DEFAULT_TAG_RE, '%s-%i:', 'todo_txt' ],
+    'TODO':  [ DEFAULT_TAG_RE, '%s-%i:', 'todo_txt' ],
+    'XXX':   [ DEFAULT_TAG_RE, '%s-%i:', 'todo_txt' ],
+    'NOTE':  [ DEFAULT_TAG_RE, '%s-%i:', 'todo_txt' ],
+    'BUG':   [ DEFAULT_TAG_RE, '%s-%i:', 'todo_txt' ]
 }
 #    'BUG': [ '(\\b\s*%s)(?:[:_\s-]([0-9]+))?[:_\s-]*\\b' ]
+# Ignored tags
+STD_IGNORE_SCANS = {
+    'rad-ignore': anywhere('rad-ignore'),
+    'tasks-ignore': anywhere('tasks.ignore'),
+    'tasks-no-check': anywhere('tasks.no.check')
+}
 
+# FIXME: do away with global rc in radical
 rc = confparse.Values()
 
 tag_chars = 'A-Za-z0-9\/:\._-'
@@ -1133,7 +1169,6 @@ tag_match_re = re.compile('[%s]{2,}' % tag_chars)
 # Main
 
 # TODO see bookmarks, basename-reg, mimereg, flesh out Txs
-import rsr
 
 
 class Radical(rsr.Rsr):
@@ -1163,6 +1198,8 @@ class Radical(rsr.Rsr):
                 'rdc_init', 'rdc_paths', 'rsr_session', 'prepare_output' ],
             rdc_list_flavours = [ 'rdc_init', 'load_config', 'prepare_output' ],
             rdc_list_scans = [ 'load_config', 'prepare_output' ],
+            rdc_list_ignores = [ 'load_config', 'prepare_output' ],
+            rdc_list_formats = [ 'load_config', 'prepare_output' ],
             rdc_info = [ 'rdc_init' ]
         )
 
@@ -1189,6 +1226,22 @@ class Radical(rsr.Rsr):
                     'dest': 'input',
                     'help': "Read path arguments from file (or '-' for stdin)." }),
 
+                p(('-t', '--tag'),{
+                    'metavar': 'TAG',
+                    'dest': 'tags',
+                    'action': 'append', }),
+
+                p(('-T', '--ignore-tag'),{
+                    'metavar': 'TAG',
+                    'action': 'append',
+                    'dest': 'ignored_tags',
+                    'help': "Filter out matches that contain any this tag"}),
+
+                p(('-I', '--add-ignored'),{
+                    'action': 'callback',
+                    'callback': append_ignored_scan,
+                    'help': "Filter out these matches" }),
+
                 p(('-F', '--add-flavour'),{
                     'action': 'callback',
                     'callback': append_comment_scan,
@@ -1197,28 +1250,67 @@ class Radical(rsr.Rsr):
 
                 p(('--list-flavours',), libcmd.cmddict(inheritor.NAME)),
                 p(('--list-scans',), libcmd.cmddict(inheritor.NAME)),
+                p(('--list-formats',), libcmd.cmddict(inheritor.NAME)),
+                p(('--list-ignores',), libcmd.cmddict(inheritor.NAME)),
                 p(('--info',), libcmd.cmddict(inheritor.NAME)),
 
-                p(('--issue-format',), {
+                p(('-u', '--issue-format'), {
+                    'metavar': 'FMT',
                     'dest': 'issue_format',
                     'action': 'store',
-                    'default': 'id',
+                    'default': 'full-id',
                     'help': "" }),
+
+                p(('--todotxt-paths',), {
+                    'dest': 'todotxt_paths',
+                    'default': True, 'action': 'store_true',
+                    'help': "Add path-context to TODO.txt lines" }),
+                p(('--no-todotxt-paths',), {
+                    'dest': 'todotxt_paths',
+                    'action': 'store_false',
+                    'help': "Add path-context to TODO.txt lines" }),
+
+                p(('--todotxt-pathpref',), {
+                    'dest': 'todotxt_pathpref',
+                    'default': '@', 'help': "Use for path prefix" }),
+
+                p(('--todotxt-lines',), {
+                    'dest': 'todotxt_lines',
+                    'default': True, 'action': 'store_true',
+                    'help': "Add line-range meta to TODO.txt lines" }),
+                p(('--no-todotxt-lines',), {
+                    'dest': 'todotxt_lines',
+                    'action': 'store_false',
+                    'help': "Add line-range meta to TODO.txt lines" }),
+
+                p(('--todotxt-chars',), {
+                    'dest': 'todotxt_chars',
+                    'default': False, 'action': 'store_true',
+                    'help': "Add character-range meta to TODO.txt lines" }),
+
+
+                p(('--todotxt-store',), {
+                    'dest': 'todotxt_store',
+                    'default': 'todo.txt',
+                    'help': "Set another file for todo-txt backend" }),
 
                 #(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
                 #(('-r', '--recurse'),{'action':'store_true', 'default': True,
                 #    'help': 'Recurse into directory paths (default: %default)'}),
             )
 
-    def init_config_defaults(self, opts):
-        self.rc = confparse.Values(dict(
-            tags = DEFAULT_TAGS,
+    def init_config_defaults(self, prog, opts):
+        rc = confparse.Values(dict(
+            tags = DEFAULT_TAGS.keys(),
+            tag_specs = DEFAULT_TAGS,
             comment_scan = STD_COMMENT_SCAN,
             comment_flavours = STD_COMMENT_SCAN.keys(),
+            ignored_tags = STD_IGNORE_SCANS.keys(),
+            ignored_scans = STD_IGNORE_SCANS,
             dbref = self.DEFAULT_DB
         ))
-        self.settings[opts.config_key] = self.rc
-        return self.rc
+        # self.settings['(radical-static)'] = self.rc
+        return rc
 
     def rdc_list_flavours(self, args=None, opts=None):
         for flavour in self.rc.comment_scan:
@@ -1244,6 +1336,18 @@ class Radical(rsr.Rsr):
             print
         return
 
+    def rdc_list_ignores(self, opts=None):
+        for name, r in self.rc.ignored_scans.items():
+            if name not in self.rc.ignored_tags:
+                print(name, r)
+        log.stdout("{yellow}Ignored tags:{default}")
+        for name in self.rc.ignored_tags:
+            print(name)
+
+    def rdc_list_formats(self, opts=None):
+        for key in EmbeddedIssue.formats:
+            print(key)
+
     def rdc_paths(self, opts=None, *paths):
         if paths:
             paths = list(paths)
@@ -1256,10 +1360,7 @@ class Radical(rsr.Rsr):
                 paths += open(opts.input).readlines()
         yield dict( paths=paths )
 
-    def rdc_init(self, prog=None, issue_format=None):
-        # FIXME: do away with global config in radical
-        global rc
-        rc = self.rc
+    def rdc_init(self, opts=None, issue_format=None):
         # XXX: start db session, see rsr-session
         #dbsession = get_session(self.rc.dbref)
         #yield dict( dbsession=dbsession )
@@ -1268,11 +1369,12 @@ class Radical(rsr.Rsr):
             raise Exception("Unknown format '%r', %s" % (issue_format,
                 EmbeddedIssue.formats.keys()))
 
-        # get backend service
         services = confparse.Values({})
         for tagname in self.rc.tags:
-            if self.rc.tags[tagname] and len(self.rc.tags[tagname]) > 2:
-                services[tagname] = get_service(self.rc.tags[tagname][2])
+            spec = self.rc.tag_specs[tagname]
+            if len(spec) > 2:
+                services[tagname] = get_service(self.rc.tag_specs[tagname][2])
+                services[tagname].init(self.rc, opts)
                 log.info("Using backend %s for %s", services[tagname], tagname)
 
         yield dict( services=services )
@@ -1315,7 +1417,7 @@ class Radical(rsr.Rsr):
         source_iter = self.walk_paths(paths)
 
         # pre-compile patterns XXX: per context
-        matchbox = compile_rdc_matchbox(rc)
+        matchbox = compile_rdc_matchbox(self.rc)
         taskdocs = {}
 
         # TODO: old clean/rewrite functions
@@ -1333,11 +1435,11 @@ class Radical(rsr.Rsr):
             parser = SEIParser(sa, matchbox, source, context, data, lines)
 
             # Run over TagInstances
-            for tag in parser.find_tags():
+            for tag in parser.find_tags(self.rc):
 
                 # Get EmbeddedIssue instance for tag
                 try:
-                    cmt = parser.for_tag(tag)
+                    cmt = parser.for_tag(tag, matchbox, self.rc)
                 except (Exception) as e:
                     if not opts.quiet:
                         log.err("Unable to find comment span for tag '%s' at %s:%s " % (
@@ -1351,20 +1453,21 @@ class Radical(rsr.Rsr):
                 srcdoc.scei.append(cmt)
 
                 # Print requested format to stdout
-                if not opts.quiet:
-                    self.rdc_issue(cmt, data, issue_format=issue_format)
+                self.rdc_issue(cmt, data, issue_format=issue_format,
+                        opts=opts)
 
                 # Process comment with tracker service(s)
                 cmt.store(tag, services)
 
-    def rdc_issue(self, cmt, data, issue_format='id'):
+    def rdc_issue(self, cmt, data, issue_format='id', opts=None):
         if issue_format not in EmbeddedIssue.formats:
             raise Exception("Unknown format '%r', %s" % (issue_format,
                 EmbeddedIssue.formats.keys()))
         cmt.validate()
-        out = EmbeddedIssue.formats[issue_format](cmt, data)
-        assert not re.match('[\r\n]', out)
-        log.stdout(out)
+        formatted = EmbeddedIssue.formats[issue_format](cmt, data, self.rc, opts)
+        if formatted:
+            assert not re.match('[\r\n]', formatted)
+            print(formatted)
 
     def rdc_info(self, prog, sa):
         log.stdout('Radical info', prog, sa)

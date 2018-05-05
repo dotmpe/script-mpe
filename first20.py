@@ -46,6 +46,3 @@ if __name__ == '__main__':
                 store.shelve[ first20 ] = [ p ]
             else:
                 assert p in store.shelve[ first20 ]
-
-
-

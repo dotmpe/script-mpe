@@ -14,7 +14,9 @@ Usage:
   node.py [options] [info|list]
   node.py [options] get REF
   node.py [options] new NAME
+  node.py [options] info | init | stats | clear
   node.py -h|--help
+  node.py help [CMD]
   node.py --version
 
 Options:
@@ -33,22 +35,17 @@ from datetime import datetime
 import os
 import re
 
-import log
-import libcmd_docopt
-import reporter
-import taxus
-from taxus.init import SqlBase, get_session
-from taxus import \
-    Node, GroupNode, Name, Tag, Topic
+from script_mpe.libhtd import *
+from script_mpe.taxus import core
 
 
 metadata = SqlBase.metadata
 
 
 # used by db_sa
-models = [ Node, GroupNode ]#Name, Tag, Topic ]
+models = [ core.Node, ]#Name, Tag, Topic ]
 
-@reporter.stdout.register(Node, [])
+@reporter.stdout.register(core.Node, [])
 def format_Node_item(node):
     log.std(
 "{blue}%s{bblack}. {bwhite}%s {bblack}[ {bblack}] {default}" % (

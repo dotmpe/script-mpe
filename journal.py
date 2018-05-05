@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-""":created: 2017-05-08
+"""
+:Created: 2017-05-08
+:Updated: 2017-10-30
 """
 from __future__ import print_function
 
@@ -16,28 +18,26 @@ Usage:
     journal.py --version
 
 Options:
-    --couch=REF
-                  Couch DB URL [default: %s]
-    --verbose     ..
-    --quiet       ..
-    -h --help     Show this usage description.
-    --version     Show version (%s).
+  --couch=REF   Couch DB URL [default: %s]
+  --verbose     ..
+  -q, --quiet   Implies strict, and turns off verbosity.
+  -h --help     Show this usage description.
+  --version     Show version (%s).
 
 """ % ( __couch__, __version__ )
+__doc__ += __usage__
 
 import os
 
-import libcmd_docopt
-import res.jrnl
-
-from taxus.init import SqlBase, get_session
-from taxus import Node, Topic
-from res import Journal
-
 import couchdb
 
+from script_mpe import libcmd_docopt
+from script_mpe.res import jrnl, Journal
+from script_mpe.taxus.init import SqlBase, get_session
+from script_mpe.taxus.core import Node, Topic
 
-models = [ Node, Topic, Journal ]
+
+models = [ Node, Topic ]
 
 
 def cmd_journal_rw(LIST, opts, settings):
@@ -126,9 +126,8 @@ if __name__ == '__main__':
     reload(sys)
     sys.setdefaultencoding('utf-8')
 
-    couch = os.getenv( 'COUCH_DB', __couch__ )
-    if couch is not __couch__:
-        __usage__ = __usage__.replace(__couch__, couch)
+    usage = libcmd_docopt.static_vars_from_env( __usage__,
+        ( 'COUCH_DB', __couch__ ) )
 
-    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(__description__ + '\n' + usage, version=get_version())
     sys.exit(main(opts))

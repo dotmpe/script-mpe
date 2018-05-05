@@ -3,8 +3,9 @@ import unittest
 
 from zope.interface.verify import verifyObject
 
-import res.iface
-import res.fs
+from script_mpe import res
+from script_mpe.res import iface
+from script_mpe.res import fs
 
 
 class TestResFs(unittest.TestCase):
@@ -13,14 +14,14 @@ class TestResFs(unittest.TestCase):
         self.pwd = os.getcwd()
 
     def test_fs_iface(self):
-        root = res.fs.INode.factory('/')
+        root = fs.INode.factory('/')
         return # FIXME: test_fs_iface
-        assert res.iface.Node.providedBy(root), root
-        verifyObject( res.iface.Node, root)
+        assert iface.Node.providedBy(root), root
+        verifyObject( iface.Node, root)
 
-        tree = res.iface.ITree( root )
-        assert res.iface.ITree.providedBy(tree), tree
-        verifyObject( res.iface.ITree, tree )
+        tree = iface.ITree( root )
+        assert iface.ITree.providedBy(tree), tree
+        verifyObject( iface.ITree, tree )
 
     def tearDown(self):
         assert self.pwd == os.getcwd(), (self.pwd, os.getcwd())

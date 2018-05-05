@@ -126,10 +126,10 @@ import re
 import hashlib
 from pprint import pformat
 
-from lib import Prompt
-import log
-import libcmd_docopt
-import res
+from script_mpe.lib import Prompt
+from script_mpe import log
+from script_mpe import libcmd_docopt
+from script_mpe import res
 
 
 grep_nH_rs = re.compile('^([^:]+):([0-9]+):\ (.*)')
@@ -272,7 +272,7 @@ def try_parse_issue_id(tag, text):
     if m:
         tag = text[slice(*m.span(1))]
         text = text.replace(text[slice(*m.span())], '')
-        return tag.strip(res.task.tag_seps+' '), text
+        return tag.strip(res.mb.tag_seps+' '), text
     return None, None
 
 
@@ -413,6 +413,7 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
     print(len(issues), 'Issues')
     print(len(issues.dirty), 'Dirty')
     #issues.commit()
+
 
 def cmd_parse_list(settings, opts, TODOLIST):#='to/do.list'):
     """

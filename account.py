@@ -51,15 +51,9 @@ import datetime
 from UserDict import UserDict
 from sqlalchemy import MetaData
 
-import libcmd_docopt
-import log
-from libcmd_docopt import cmd_help
-from taxus import Taxus, ScriptMixin
-from res import Workdir, Repo, rabomut, ledger
+from script_mpe.libhtd import *
+from script_mpe.taxus import ledger as model
 
-# XXX: import entire schema
-import taxus.v0
-import taxus.ledger as model
 
 
 
@@ -136,7 +130,7 @@ class Ledgers(Taxus):
 
 ### A few more globals
 
-ctx = Ledgers(version='taxus.ledger')
+ctx = Ledgers(version='script_mpe.taxus.ledger')
 
 cmd_default_settings = dict(
         quiet=False,
@@ -260,8 +254,9 @@ commands['help'] = libcmd_docopt.cmd_help
 
 def defaults(opts, init={}):
     global cmd_default_settings, ctx
-    libcmd_docopt.defaults(opts.flags)
+    libcmd_docopt.defaults(opts)
     opts.flags.update(cmd_default_settings)
+    ctx.settings.update(opts.flags)
     opts.flags.update(ctx.settings)
     opts.flags.update(
         default_input_format = not (
@@ -279,13 +274,14 @@ def main(opts):
     """
     global ctx, commands
 
+    # Can safely replace ctx.settings too since defaults() has integrated it
     ctx.settings = settings = opts.flags
 
     if not settings.no_db:
         assert settings.dbref
         ctx.session = 'default'
         ctx.setmetadata(None)
-        ctx.init(settings.dbref)
+        ctx.init()
 
     return libcmd_docopt.run_commands(commands, settings, opts)
 

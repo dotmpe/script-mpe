@@ -1,4 +1,5 @@
+version: 123
 libcmd:
+    version: 123
 libcmd_stacked:
-
-
+    version: 123

@@ -37,6 +37,8 @@ test -z "$dry_run" || pref="echo $pref"
 #  test -n "$sudo" || pip_flags=--user
 #  test -n "$sudo" || py_setup_f=--user
 #}
+# -U : upgrade
+
 
 test -n "$SRC_PREFIX" ||
   stderr "Not sure where to checkout (SRC_PREFIX missing)" 1
@@ -47,9 +49,20 @@ test -n "$PREFIX" ||
 
 echo SRC_PREFIX=$SRC_PREFIX
 echo PREFIX=$PREFIX
+echo "install-dependencies: '$*'"
 test -d $SRC_PREFIX || ${pref} mkdir -vp $SRC_PREFIX
 test -d $PREFIX || ${pref} mkdir -vp $PREFIX
 
+
+
+uninstall_bats()
+{
+  stderr "Uninstalling bats"
+  ${pref} rm -rf $PREFIX/bin/bats \
+      $PREFIX/libexec/bats \
+      $PREFIX/share/man/man1/bats* \
+      $PREFIX/share/man/man7/bats*
+}
 
 
 install_bats()
@@ -213,10 +226,17 @@ main_entry()
   case "$1" in pip|python )
       which pip >/dev/null || {
         cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py; }
-      $pref pip install -U $pip_flags appdirs packaging setuptools
-      $pref pip install -U $pip_flags objectpath ruamel.yaml
-      $pref pip install -U $pip_flags -r requirements.txt
-      $pref pip install -U $pip_flags -r test-requirements.txt
+      $pref pip install $pip_flags appdirs packaging setuptools
+      $pref pip install $pip_flags objectpath ruamel.yaml keyring
+      $pref pip install $pip_flags -r requirements.txt
+      $pref pip install $pip_flags -r test-requirements.txt
+    ;; esac
+
+  case "$1" in bats-force-local )
+      uninstall_bats && stderr "BATS uninstall OK" || stderr "BATS uninstall failed ($?)"
+      install_bats || return $?
+      PATH=$PATH:$PREFIX/bin bats --version ||
+        stderr "BATS install to $PREFIX failed" 1
     ;; esac
 
   case "$1" in all|build|test|sh-test|bats )

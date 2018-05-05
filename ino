@@ -255,7 +255,7 @@ ino_init()
   export SCRIPTPATH=$scriptpath
   . $scriptpath/util.sh
   util_init
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load main box htd
 }

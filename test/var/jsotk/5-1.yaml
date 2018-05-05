@@ -1,0 +1,5 @@
+mydict:
+  entry: &id1
+    my: data
+  entries:
+  - *id1

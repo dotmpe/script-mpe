@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-""":created: 2014-09-07
-:updated: 2017-04-16
+"""
+:Created: 2014-09-07
+:Updated: 2017-04-16
 
 TODO figure out model. look at folder.py too
 TODO: create all nodes; name, description, hierarchy and dump/load json/xml
@@ -8,18 +9,33 @@ TODO: create all nodes; name, description, hierarchy and dump/load json/xml
     headings in ~/htdocs/personal/journal/*.rst
     files in ~/htdocs/note/*.rst
 
+Commands:
+  - list
+  - name | tag | topic | host | domain
+  - read-list
+  - new
+  - get
+  - get-name
+  - get-id
+
+  Database:
+    - info | init | stats | clear
+
 TODO:
   topic.py [options] search STR
   topic.py [options] find STR
   topic.py [options] bulk-get [PATHS...|-]
 """
 from __future__ import print_function
-__description__ = "topic - "
+__description__ = "topic - ..."
+__short_description__ = "topci - ..."
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.topic.sqlite'
+__couch__ = 'http://localhost:5984/the-registry'
 __usage__ = """
+
 Usage:
-  topic.py [options] [info|list]
+  topic.py [options] [list]
   topic.py [options] (name|tag|topic|host|domain) [NAME]
   topic.py [options] read-list LIST
   topic.py [options] new NAME [REF]
@@ -27,53 +43,63 @@ Usage:
   topic.py [options] get-name NAME
   topic.py [options] get-id ID
   topic.py [options] x-dump
-  topic.py [options] x-tree
-  topic.py [options] x-mp
-  topic.py [options] x-al
   topic.py [options] bulk-add [PATHS...|-]
+  topic.py [options] info | init | stats | clear
   topic.py -h|--help
+  topic.py help [CMD]
   topic.py --version
 
 Options:
-    --output-format FMT
-                  json, repr
-    --provider KEY=SPEC...
-                  Initialize projects or contexts API.
-    --apply-tag TAGSPEC...
-                  Apply given tags to each item in file.
-    --paths
-                  TODO: replace with --format=paths
-    -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: %s]
-    --no-commit   .
-    --commit      [default: true].
-    -h --help     Show this usage description.
-    --version     Show version (%s).
-""" % ( __db__, __version__ )
+  --output-format FMT
+                json, repr
+  --provider KEY=SPEC...
+                Initialize projects or contexts API.
+  --apply-tag TAGSPEC...
+                Apply given tags to each item in file.
+  --paths
+                TODO: replace with --format=paths
+  -d REF --dbref=REF
+                SQLAlchemy DB URL [default: %s]
+  --no-db       Don't initialize SQL DB connection.
+  --couch=REF
+                Couch DB URL [default: %s]
+  --interactive
+                Prompt to resolve or override certain warnings.
+                XXX: Normally interactive should be enabled if while process has a
+                terminal on stdin and stdout.
+  --batch
+                Overrules `interactive`, exit on errors or strict warnings.
+  --auto-commit .
+  --no-commit   .
+  --commit      [default: true].
+  --dry-run     Echo but don't make actual changes. This does all the
+  -h --help     Show this usage description.
+  --version     Show version (%s).
 
-from datetime import datetime
+See 'help' for manual or per-command usage.
+This is the short usage description '-h/--help'.
+""" % ( __db__, __couch__, __version__ )
+
 import os
 import re
+import sys
+from datetime import datetime
 
-import log
-import libcmd_docopt
-import reporter
-from taxus.init import SqlBase, get_session
-from taxus import \
-    Node, Name, Tag, Topic, Folder, GroupNode, \
-    ID, Space, MaterializedPath, AdjacencyList, \
-    ScriptMixin
-import res.list
-
-from sqlalchemy.orm import joinedload_all
+from script_mpe.libhtd import *
+from script_mpe.taxus.v0 import \
+    Name, Tag, Topic, Folder
 
 
-
-metadata = SqlBase.metadata
-
-
-# used by db_sa
 models = [ Name, Tag, Topic, Folder ]
+
+ctx = Taxus(version='topic')
+
+cmd_default_settings = dict( verbose=1,
+        debug=False,
+        all_tables=True,
+        database_tables=False
+    )
+
 
 @reporter.stdout.register(Topic, [])
 def format_Topic_item(topic):
@@ -81,7 +107,7 @@ def format_Topic_item(topic):
 "{blue}%s{bblack}. {bwhite}%s {bblack}[ about:{magenta}%s {bblack}] %s %s %s{default}" % (
                 topic.topic_id,
                 topic.path(),
-                topic.super_id,
+                topic.supernode_id,
 
                 str(topic.date_added).replace(' ', 'T'),
                 str(topic.date_updated).replace(' ', 'T'),
@@ -92,26 +118,38 @@ def format_Topic_item(topic):
 
 ### Commands
 
+
 def cmd_info(settings):
     for l, v in (
             ( 'DBRef', settings.dbref ),
-            ( "Tables in schema", ", ".join(metadata.tables.keys()) ),
+            ( "Tables in schema", ", ".join(SqlBase.metadata.tables.keys()) ),
     ):
         log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
 
-def cmd_list(settings):
-    sa = Topic.get_session('default', settings.dbref)
+
+def cmd_stats(g):
+    global ctx
+    db_sa.cmd_sql_stats(g, sa=ctx.sa_session)
+    if g.debug:
+        log.std('{green}info {bwhite}OK{default}')
+        g.print_memory = True
+
+
+def cmd_list(g):
+    global ctx
+    sa = Topic.get_session('default', g.dbref)
     out = reporter.Reporter()
     assert out.get_context_path() == ('rst', 'paragraph')
     #out.start_list()
     #assert out.get_context_path() == ('rst', 'list')
     for t in Topic.all():
-        if settings.paths:
+        if g.paths:
             out.out.write(t.path()+'\n')
         else:
             reporter.stdout.Topic(t)
             #out.print_item(t)
     out.finish()
+
 
 def cmd_new(NAME, REF, settings):
     sa = Topic.get_session('default', settings.dbref)
@@ -142,11 +180,13 @@ def cmd_new(NAME, REF, settings):
         log.std("Added new topic %s", topic.name)
     reporter.stdout.Topic(topic)
 
+
 def cmd_get(REF, settings):
     Topic.get_session('default', settings.dbref)
     if REF.isdigit() and not cmd_getId(REF, settings):
         return
     return cmd_getName(REF, settings)
+
 
 def cmd_getId(ID, settings):
     Topic.get_session('default', settings.dbref)
@@ -156,6 +196,7 @@ def cmd_getId(ID, settings):
     else:
         return 1
 
+
 def cmd_getName(NAME, settings):
     Topic.get_session('default', settings.dbref)
     topic = Topic.byName(NAME)
@@ -164,14 +205,15 @@ def cmd_getName(NAME, settings):
     else:
         return 1
 
+
 def cmd_x_dump(settings):
     Topic.get_session('default', settings.dbref)
     for t in Topic.all():
         reporter.stdout.Topic(t)
 	reporter.out.write(t.dump())
 
+
 def cmd_bulk_add(settings):
-    import sys
     sa = Topic.get_session('default', settings.dbref)
     for p in sys.stdin.readlines():
         p = p.strip()
@@ -194,176 +236,12 @@ def cmd_read_list(LIST, settings):
     committed to any backends. """
     res.list.parse(LIST, settings)
 
+
 def cmd_write_list(LIST, PROVIDERS, settings):
     """Retrieve all items from given backens and write to list file. """
     for provider in PROVIDERS:
         res.list.write(LIST, provider, settings)
 
-
-def cmd_x_tree(settings):
-    """
-    Adjacency list model
-    """
-    session = Topic.get_session('default', settings.dbref)
-    def msg(msg, *args):
-        msg = msg % args
-        print("\n\n\n" + "-" * len(msg.split("\n")[0]))
-        print(msg)
-        print("-" * len(msg.split("\n")[0]))
-
-    msg("Creating Tree Table:")
-
-    node = Topic('rootnode')
-    Topic('node1', super=node)
-    Topic('node3', super=node)
-
-    node2 = Topic('node2')
-    Topic('subnode1', super=node2)
-    node.subs['node2'] = node2
-    Topic('subnode2', super=node.subs['node2'])
-
-    msg("Created new tree structure:\n%s", node.dump())
-
-    msg("flush + commit:")
-
-    session.add(node)
-    session.commit()
-
-    msg("Tree After Save:\n %s", node.dump())
-
-    Topic('node4', super=node)
-    Topic('subnode3', super=node.subs['node4'])
-    Topic('subnode4', super=node.subs['node4'])
-    Topic('subsubnode1', super=node.subs['node4'].subs['subnode3'])
-
-    # remove node1 from the super, which will trigger a delete
-    # via the delete-orphan cascade.
-    del node.subs['node1']
-
-    msg("Removed node1.  flush + commit:")
-    session.commit()
-
-    msg("Tree after save:\n %s", node.dump())
-
-    msg("Emptying out the session entirely, selecting tree on root, using "
-        "eager loading to join four levels deep.")
-    session.expunge_all()
-    node = session.query(Topic).\
-        options(joinedload_all("subs", "subs",
-                               "subs", "subs")).\
-        filter(Topic.name == "rootnode").\
-        first()
-
-    msg("Paths:\n%s", node.paths())
-    #msg("Full Tree:\n%s", node.dump())
-
-    msg("Marking root node as deleted, flush + commit:")
-
-    session.delete(node)
-    session.commit()
-
-
-def cmd_x_mp(settings):
-    """
-    Example using materialized paths pattern.
-    """
-    session = MaterializedPath.get_session('default', settings.dbref)
-
-    print("-" * 80)
-    print("create a tree")
-    session.add_all([
-        MaterializedPath(id=1, path="1"),
-        MaterializedPath(id=2, path="1.2"),
-        MaterializedPath(id=3, path="1.3"),
-        MaterializedPath(id=4, path="1.3.4"),
-        MaterializedPath(id=5, path="1.3.5"),
-        MaterializedPath(id=6, path="1.3.6"),
-        MaterializedPath(id=7, path="1.7"),
-        MaterializedPath(id=8, path="1.7.8"),
-        MaterializedPath(id=9, path="1.7.9"),
-        MaterializedPath(id=10, path="1.7.9.10"),
-        MaterializedPath(id=11, path="1.7.11"),
-    ])
-    session.flush()
-    print(str(session.query(MaterializedPath).get(1)))
-
-    print("-" * 80)
-    print("move 7 under 3")
-    session.query(MaterializedPath).get(7).move_to(session.query(MaterializedPath).get(3))
-    session.flush()
-    print(str(session.query(MaterializedPath).get(1)))
-
-    print("-" * 80)
-    print("move 3 under 2")
-    session.query(MaterializedPath).get(3).move_to(session.query(MaterializedPath).get(2))
-    session.flush()
-    print(str(session.query(MaterializedPath).get(1)))
-
-    print("-" * 80)
-    print("find the ancestors of 10")
-    print([n.id for n in session.query(MaterializedPath).get(10).ancestors])
-
-    session.commit()
-    session.close()
-    #SqlBase.metadata.drop_all(SqlBase.metadata.bind)
-
-
-def cmd_x_al(settings):
-    session = AdjacencyList.get_session('default', settings.dbref)
-
-    def msg(msg, *args):
-        msg = msg % args
-        print("\n\n\n" + "-" * len(msg.split("\n")[0]))
-        print(msg)
-        print("-" * len(msg.split("\n")[0]))
-
-    node = AdjacencyList('rootnode')
-    AdjacencyList('node1', parent=node)
-    AdjacencyList('node3', parent=node)
-
-    node2 = AdjacencyList('node2')
-    AdjacencyList('subnode1', parent=node2)
-    node.children['node2'] = node2
-    AdjacencyList('subnode2', parent=node.children['node2'])
-
-    msg("Created new tree structure:\n%s", node.dump())
-
-    msg("flush + commit:")
-
-    session.add(node)
-    session.commit()
-
-    msg("Tree After Save:\n %s", node.dump())
-
-    AdjacencyList('node4', parent=node)
-    AdjacencyList('subnode3', parent=node.children['node4'])
-    AdjacencyList('subnode4', parent=node.children['node4'])
-    AdjacencyList('subsubnode1', parent=node.children['node4'].children['subnode3'])
-
-    # remove node1 from the parent, which will trigger a delete
-    # via the delete-orphan cascade.
-    del node.children['node1']
-
-    msg("Removed node1.  flush + commit:")
-    session.commit()
-
-    msg("Tree after save:\n %s", node.dump())
-
-    msg("Emptying out the session entirely, selecting tree on root, using "
-        "eager loading to join four levels deep.")
-    session.expunge_all()
-    node = session.query(AdjacencyList).\
-        options(joinedload_all("children", "children",
-                               "children", "children")).\
-        filter(AdjacencyList.name == "rootnode").\
-        first()
-
-    msg("Full Tree:\n%s", node.dump())
-
-    msg("Marking root node as deleted, flush + commit:")
-
-    session.delete(node)
-    session.commit()
 
 
 """
@@ -376,34 +254,67 @@ TODO: create item list from index, and vice versa uid:FEGl time:17:43Z
 """
 
 
-
 ### Transform cmd_ function names to nested dict
 
 commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
-commands['help'] = libcmd_docopt.cmd_help
+commands.update(dict(
+        help = libcmd_docopt.cmd_help,
+        memdebug = libcmd_docopt.cmd_memdebug,
+        info = db_sa.cmd_info,
+        init = db_sa.cmd_init,
+        clear = db_sa.cmd_reset,
+))
 
 
 ### Util functions to run above functions from cmdline
+
+def defaults(opts, init={}):
+    global cmd_default_settings, ctx
+    libcmd_docopt.defaults(opts)
+    opts.flags.update(cmd_default_settings)
+    ctx.settings.update(opts.flags)
+    opts.flags.update(ctx.settings)
+    opts.flags.update(dict(
+        default = 'info',
+        commit = not opts.flags.no_commit and not opts.flags.dry_run and not opts.flags.no_db,
+        verbose = opts.flags.quiet and opts.flags.verbose or 1,
+    ))
+    if not opts.flags.interactive:
+        if os.isatty(sys.stdout.fileno()) and os.isatty(sys.stdout.fileno()):
+            opts.flags.interactive = True
+    opts.flags.update(dict(
+        auto_commit = not opts.flags.no_commit and not opts.flags.no_db,
+        dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
+    ))
+    if opts.flags.auto_commit:
+        opts.flags.auto_commit = int(opts.flags.auto_commit)
+    return init
 
 def main(opts):
 
     """
     Execute command.
     """
+    global ctx, commands
 
-    settings = opts.flags
-    opts.default = 'info'
-    opts.flags.commit = not opts.flags.no_commit
+    ctx.settings = settings = opts.flags
     return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'topic.mpe/%s' % __version__
 
+
 if __name__ == '__main__':
-    import sys
     reload(sys)
     sys.setdefaultencoding('utf-8')
-    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
-    opts.flags.dbref = os.getenv('TOPIC_DB', opts.flags.dbref)
-    opts.flags.dbref = ScriptMixin.assert_dbref(opts.flags.dbref)
+    usage = __description__ +'\n\n'+ __short_description__ +'\n'+ \
+            libcmd_docopt.static_vars_from_env(__usage__,
+        ( 'TOPIC_DB', __db__ ),
+        ( 'COUCH_DB', __couch__ ) )
+
+    db_sa.schema = sys.modules['__main__']
+    db_sa.metadata = SqlBase.metadata
+
+    opts = libcmd_docopt.get_opts(usage,
+            version=get_version(), defaults=defaults)
     sys.exit(main(opts))

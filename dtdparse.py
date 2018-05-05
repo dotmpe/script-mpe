@@ -1,3 +1,6 @@
+"""
+:Created: 2013-12-21
+"""
 from __future__ import print_function
 # PyXML
 from xml.parsers.xmlproc.dtdparser import DTDParser

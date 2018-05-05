@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 base=box.lib
 
 init
@@ -10,7 +10,7 @@ setup() {
   test_lib=$lib/test/main.inc
   . ./util.sh load-ext
   lib_load os sys str std src
-  . $lib/box.init.sh
+  . $lib/tools/sh/box.env.sh
   lib_load box
   # XXX: I think this breaks BATS: bash -o posix && box_run_sh_test
   #bash -o posix
@@ -74,6 +74,7 @@ setup() {
 
 
 @test "${lib}/${base} box-list-libs" {
+TODO fixme
   run box_list_libs box.sh box
   { test ${status} -eq 0 &&
     test "${lines[*]}" = "  debug \"Using \$LOG_TERM log output\""

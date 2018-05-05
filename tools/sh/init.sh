@@ -1,6 +1,7 @@
 #!/bin/sh
 
 # Must be started from project root.
+
 # Import minimal setup and shell util functions.
 test -n "$scriptpath" || export scriptpath="$(pwd -P)"
 
@@ -8,12 +9,13 @@ test -n "$scriptpath" || export scriptpath="$(pwd -P)"
 # assuming execution starts in script dir (project root)
 test -n "$SCRIPTPATH" || {
 
-  test -n "$LIB" && echo LIB=$LIB || {
+  test -n "$LIB" && { test -z "$DEBUG" || echo LIB=$LIB ; } || {
     test -n "$scriptpath" &&
       LIB=$scriptpath ||
-      LIB=$(cd $(dirname $(dirname $0)); pwd -P )
+      LIB=$(cd $(dirname $(dirname $0)); pwd -P)
     test -n "$LIB" || {
-      echo "Missing LIB" >&2; exit 99
+      test -z "$DEBUG" || echo "Missing LIB" >&2
+      exit 99
     }
     export LIB
   }
@@ -33,10 +35,7 @@ test -n "$SCRIPTPATH" || {
 }
 
 # Now include script and run util_init to source other utils
-#f_lib_load=tools-sh-init . $scriptpath/util.sh load-ext
-
-__load_mode=boot . ./util.sh
-lib_load projectenv env-deps
+__load_mode=ext . ./util.sh
 
 
 # Id: script-mpe/0.0.4-dev tools/sh/init.sh

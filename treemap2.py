@@ -100,12 +100,15 @@ def echo(path):
         print("Local Files:", db[FC_KEY % path])
     #print 'Free space:', humanreadable(free_space(path))
 
+
 if __name__ == '__main__':
     import sys
+    args = sys.argv[1:]
+    if '-h' in args:
+        print(__doc__)
+        sys.exit(0)
 
     db = anydbm.open(os.path.expanduser('~/.x-pytreemap.db'), 'c')
-
-    args = sys.argv[1:]
 
     path = '.'
     if args:

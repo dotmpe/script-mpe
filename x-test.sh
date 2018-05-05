@@ -15,11 +15,19 @@ test___V() { test__version; }
 test____version() { test__version; }
 
 
-test__foo()
+test__ack()
 {
   echo Ack.
 }
 
+test___h()
+{
+  test__help
+}
+test__help()
+{
+  echo Help?
+}
 
 
 test_main()
@@ -35,8 +43,7 @@ test_main()
             pwd=$(pwd -P) ppwd=$(pwd) spwd=.
 
         export SCRIPTPATH=$scriptpath
-        . $scriptpath/util.sh load-ext
-
+        #. $scriptpath/util.sh load-ext
         test -n "$verbosity" || verbosity=5
 
         local func=$(echo test__$subcmd | tr '-' '_') \
@@ -69,7 +76,7 @@ test_main()
 # Ignore login console interpreter
 case "$0" in "" ) ;; "-"* ) ;; * )
   test -n "$f_lib_load" || {
-    __load_mode=main . ~/bin/util.sh
+    __load_mode=main . $(dirname "$0")/util.sh
     test "$1" = "$__load_mode" ||
       set -- "$__load_mode" "$@"
 

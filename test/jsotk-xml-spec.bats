@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 base=jsotk.py
 
 init
@@ -8,12 +8,12 @@ init
 
 
 @test "${bin} dump \$testf -O yaml --pretty" {
+  
+  TODO "specs for (XML-to-YAML/JSON mode-1):"
 
   testf=test/var/jsotk/xml-1.xml
   run eval $BATS_TEST_DESCRIPTION
   test ${status} -eq 0 || fail "Output: ${lines[*]}"
-  
-  TODO "specs for (XML-to-YAML/JSON mode-1):"
 
   expectf=test/var/jsotk/xml-1.yaml
   tmpf
@@ -43,5 +43,3 @@ init
   test ${status} -eq 0 || fail "Output: ${lines[*]}"
   TODO "YAML/JSON-to-XML mode-2"
 }
-
-

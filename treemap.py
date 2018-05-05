@@ -22,8 +22,8 @@ from zope.component import \
         getGlobalSiteManager, \
         getUtility, queryUtility, createObject
 
-import res.js
-import res.primitive
+from script_mpe import res
+from script_mpe.res import primitive
 
 
 gsm = getGlobalSiteManager()
@@ -200,5 +200,10 @@ def main():
 
 
 if __name__ == '__main__':
+    import sys
+    args = sys.argv[1:]
+    if '-h' in args:
+        print(__doc__)
+        sys.exit(0)
 
     main()

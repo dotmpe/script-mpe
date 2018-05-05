@@ -1,4 +1,6 @@
 """
+:Created: 2016-01-24
+
 Background script server in Python, Twisted.
 
 API:
@@ -34,6 +36,22 @@ API:
     'rs'
         - Use to pass exit code back from client to query method.
 
+
+Design
+-------
+The local-bg module is an experimental setup to 'background' a Python CLI
+script, to benefit from keeping cached and processed data in memory during
+multiple invocations.
+
+Subsequent executions are handled over a UNIX domain socket. The user commands
+are relayed via line-based protocol to the background server instance. The
+protocol is entirely line/text based, and has some overhead to re-interpret the
+result state (or error and message) from the response status line.
+
+Additional execution time can be shaved of by using a native command to open
+the socket and handle rx/tx. E.g projectdir.sh utilizes shell scripting with
+socat, instead of a new python process (and all dependend scripts and libs)
+just to talk to the backgrounded process.
 """
 from __future__ import print_function
 import os, sys
@@ -109,6 +127,8 @@ def query(ctx):
     factory.protocol = QueryProtocol
     factory.quiet = True
     factory.cmd = ' '.join(ctx.opts.argv)
+    # DEBUG:
+    # print('Passthrough command to backend via socket: %r' % factory.cmd, file=sys.stderr)
 
     endpoint = UNIXClientEndpoint(reactor, address.path)
     connected = endpoint.connect(factory)

@@ -1,31 +1,67 @@
+#!/bin/sh
 set -e
+  
+#diff build/test/list1.txt build/test/list2.txt
+#diff build/test/list1.txt build/test/list3.txt
+exit $?
 
-for pc in $(seq 1 100); do
-  printf -- "$pc%%\033[0K\r"
-  sleep .2
+cp test/var/list.txt/list1.txt build/test/list1.txt
+{ echo 'Id-5: tralala'; } | list.py update-list build/test/list1.txt
+diff build/test/list1.txt build/test/list2.txt
+echo ok 1
+
+{ echo '00003: oops'; } | list.py update-list build/test/list1.txt
+{ echo '4: oooops II'; } | list.py update-list build/test/list1.txt
+diff build/test/list1.txt build/test/list3.txt
+echo ok 2
+
+exit $?
+
+diff test/var/list.txt/list1.txt build/test/list1.txt
+exit $?
+
+mkdir -vp build/test
+cp test/var/list.txt/list1.txt build/test/list1.txt
+{ echo 'Id-5:'; } | list.py update-list build/test/list1.txt
+
+exit $?
+
+
+test sh-finfo.sqlite ||
+  db_sa.py --dbref=sh-finfo.sqlite init
+
+finfo.py --dbref=sh-finfo.sqlite --update .
+
+
+exit $?
+
+hier.py import tags.list
+exit $?
+
+# https://explainshell.com/explain?cmd=rst2html+--record-dependencies%3DFILE
+
+for x in test/*-spec.bats; do
+    bats "$x" && {
+        echo ""
+        continue
+    }
+    echo "Failed: $? $x"
+    echo ""
 done
-echo
+
+exit $?
 
 exit 0
 
-scrow regex --rx-multiline --fmt xtl \
-            "htd.sh" '^htd__rule_target\(\).*((?<!\n\})\n.*)*\n\}'
+projectdir.sh run :git:status
+#projectdir.sh run :bats:specs
+#vendor/bin/behat --dry-run --no-multiline
 
-{ cat <<EOM
-/Users/berend/bin/htd.sh?scrow=1.0&locspec=charspan:110025/592
-/Users/berend/bin/htd.sh?scrow=1.0&locspec=charspan:114073/502
-EOM
-} | scrow cstream ~/bin/htd.sh --input -
+htd status
+htd rules
+htd run-rules ~/.conf/rules/boreas.tab
 
-exit 0
-
-/Volumes/ram-tmpdir/htd/9ED6099D-38E2-4643-AB4F-3007BBFF40F5.xml
-
-
-pd status
-
-pd rules
-pd run-rules ~/.conf/rules/boreas.tab
+exit $?
 
 #htd filter-functions "run=..*" htd
 #htd filter-functions  "grp=htd-meta spc=..*" htd
@@ -63,32 +99,3 @@ htd filter-functions "grp=tmux" htd
 echo 2.json:
 export out_fmt=json
 htd filter-functions "grp=tmux" htd
-
-echo prefixes.json
-htd list-prefixes
-
-
-
-magnet.py \
-  "http://www.labirintoermetico.com/06Numerologia_Cabala/Crowley_%20Liber_777.pdf" \
-  ~/htdocs/Research/Esoteric/Crowley/Liber-777.magma \
-  --dn=Aleister_Crowley-Liber_777.pdf \
-  --mt=~/htdocs/Research/Esoteric/Crowley/Liber-777.list \
-  --mt=~/htdocs/Research/Esoteric/Crowley/Liber-777.rst \
-  --init-be
-
-magnet.py \
-  "http://www.labirintoermetico.com/06Numerologia_Cabala/Crowley_%20Liber_777.pdf" \
-  ~/htdocs/personal/journal/today.rst
-
-exit $?
-
-test -e "Crowley_ Liber_777.pdf" || wget "http://www.labirintoermetico.com/06Numerologia_Cabala/Crowley_%20Liber_777.pdf"
-
-md5sum "Crowley_ Liber_777.pdf"
-sha1sum "Crowley_ Liber_777.pdf"
-
-magnet.py "Crowley_ Liber_777.pdf"
-
-ls -la "Crowley_ Liber_777.pdf"
-

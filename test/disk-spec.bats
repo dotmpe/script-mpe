@@ -1,21 +1,28 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 base=disk.sh
 
 init
-. $lib/util.sh
+
+setup()
+{
+  export SCR_SYS_SH=
+  sys_lib_load
+}
 
 
 test -n "$device_id" || device_id=disk-id
 
 
 @test "${bin}" "default no-args" {
+  skip "FIXME boreas"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
 }
 
 @test "${bin} status" {
+  skip "FIXME boreas"
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
 }
@@ -34,24 +41,28 @@ test -n "$device_id" || device_id=disk-id
 }
 
 @test "${bin} enable $device_id" {
+  export verbosity=5
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*enable*Done*" "${lines[*]}"
 }
 
 @test "${bin} enable-volumes $device_id" {
+  export verbosity=5
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*enable-volumes*Done*" "${lines[*]}"
 }
 
 @test "${bin} load-catalog $device_id" {
+  export verbosity=5
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*load-catalog*Loaded*" "${lines[*]}"
 }
 
 @test "${bin} import-catalog $device_id" {
+  export verbosity=5
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
   fnmatch "*import-catalog*Imported*" "${lines[*]}"

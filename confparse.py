@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """confparse - persisted metadata
 
 This module stores and loads configuration settings. Once loaded,
@@ -32,9 +33,35 @@ from os import unlink, removedirs, makedirs, chdir, getcwd
 from os.path import join, dirname, exists, isdir, realpath, splitext
 from pprint import pformat
 
-try:
-    import ruamel
-    from ruamel import yaml
+import ruamel
+from ruamel import yaml
+
+
+def yaml_loads(*args, **kwds):
+    """
+    Load from stream or text.
+    """
+    kwds.update(dict(
+        Loader=ruamel.yaml.RoundTripLoader,
+        preserve_quotes=True
+    ))
+    return ruamel.yaml.load(*args, **kwds)
+
+def yaml_load(fl, *args, **kwds):
+    if not hasattr(fl, 'read'):
+        assert isinstance(fl, basestring)
+        fp = open(fl, 'r')
+    else:
+        fp = fl
+    return yaml_loads(fp.read(), *args, **kwds)
+
+
+
+class YamlDumper(ruamel.yaml.RoundTripDumper):
+    _ignore_aliases = False
+
+    def ignore_aliases(self, _data=None):
+        return self._ignore_aliases
 
     def process_scalar(self):
         """
@@ -74,63 +101,68 @@ try:
         if self.event.comment:
             self.write_post_comment(self.event)
 
-    def yaml_loads(*args, **kwds):
-        """
-        Load from stream or text.
-        """
-        kwds.update(dict(
-            Loader=ruamel.yaml.RoundTripLoader,
-            preserve_quotes=True
-        ))
-        return ruamel.yaml.load(*args, **kwds)
-
-    def yaml_load(fl, *args, **kwds):
-        if not hasattr(fl, 'read'):
-            assert isinstance(fl, basestring)
-            fp = open(fl, 'r')
-        else:
-            fp = fl
-        return yaml_loads(fp.read(), *args, **kwds)
+    def set_ignore_aliases(self, ia):
+        self._ignore_aliases = ia
 
 
+def yaml_dumps(*args, **kwds):
+    """
+    Dump to string, without kwds stream return string.
 
-    def yaml_dumps(*args, **kwds):
-        """
-        Dump to string, without kwds stream return string.
+    Does not set stream, but doesn't forbid it either.
+    Sets Dumper kwds item to ruamel.yaml.RoundTripDumper, using locally
+    defined process_scalar.
 
-        Does not set stream, but doesn't forbid it either.
-        Sets Dumper kwds item to ruamel.yaml.RoundTripDumper, using locally
-        defined process_scalar.
+    See ruamel.yaml.dump.
+    """
+    #dd = ruamel.yaml.RoundTripDumper
+    #dd.process_scalar = process_scalar
+    dd = YamlDumper
+    if 'ignore_aliases' in kwds:
+        dd._ignore_aliases = kwds['ignore_aliases']
+        del kwds['ignore_aliases']
+    kwds.update(dict( Dumper=dd ))
+    return ruamel.yaml.dump(*args, **kwds)
 
-        See ruamel.yaml.dump.
-        """
-        dd = ruamel.yaml.RoundTripDumper
-        dd.process_scalar = process_scalar
-        kwds.update(dict(
-            Dumper=dd
-        ))
-        return ruamel.yaml.dump(*args, **kwds)
-
-    yaml_safe_dumps = yaml_dumps
-
-
-    def yaml_dump(fl, *args, **kwds):
-        """
-        First argument is file path or stream.
-        """
-        if not hasattr(fl, 'write'):
-            assert isinstance(fl, basestring)
-            fp = open(fl, 'w+')
-        else:
-            fp = fl
-        kwds['stream'] = fp
-        return yaml_dumps(*args, **kwds)
+yaml_safe_dumps = yaml_dumps
 
 
+def yaml_dump(fl, *args, **kwds):
+    """
+    First argument is file path or stream.
+    """
+    if not hasattr(fl, 'write'):
+        assert isinstance(fl, basestring)
+        fp = open(fl, 'w+')
+    else:
+        fp = fl
+    kwds['stream'] = fp
+    return yaml_dumps(*args, **kwds)
 
-except ImportError as e:
-    print("confparse.py: no YAML parser", file=sys.stderr)
-# XXX: see also res/js.py
+
+def yaml_flatten_list(l):
+    r = []
+    for n, i in enumerate(l):
+        r[n] = yaml_flatten(i)
+    return r
+
+def yaml_flatten_dict(o):
+    r = {}
+    for k, v in o.items():
+        r[k] = yaml_flatten(v)
+    return r
+
+def yaml_flatten(o):
+    """
+    Reduce ``ruamel.yaml`` types to lists and dicts.
+    """
+    if hasattr(o, 'items'):
+        return yaml_flatten_dict(o)
+    elif hasattr(o, 'iter'):
+        return yaml_flatten_list(o)
+    else:
+        return o
+
 
 _ = None
 "In-mem. settings. "
@@ -235,7 +267,7 @@ def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
                     yield cleaf
 
 
-class DictDeepUpdate:
+class DictDeepUpdate(object):
 
     @classmethod
     def update_list(Klass, sub, k, v, key_h=None):
@@ -729,7 +761,5 @@ if __name__ == '__main__':
     configs = list(expand_config_path('cllct.rc'))
 
     print(yaml_loads("test: 1"))
-
     print(yaml_load(os.path.expanduser("~/project/.projects.yaml")) )
-
 #    assert configs == ['/Users/berend/.cllct.rc'], configs

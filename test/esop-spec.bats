@@ -1,32 +1,29 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 base=esop.sh
 
 init
 
-source $lib/util.sh
-source $lib/std.lib.sh
-source $lib/str.lib.sh
-
-#  echo "${lines[*]}" > /tmp/1
-#  echo "${status}" >> /tmp/1
 
 @test "${bin} - No arguments: default action is ..." {
+  export verbosity=4
   run $bin
-  test ${status} -eq 1
-  fnmatch "*esop*No command given*" "${lines[*]}" ||
-    fail "1 Out: ${lines[*]}"
+  { test $status -eq 1 &&
+    test_nok_nonempty "*esop*No command given*"
+  }|| stdfail 1
 
   run /bin/bash "$bin"
-  fnmatch "*esop*Error:*please use sh, or bash -o 'posix'*" "${lines[*]}" ||
-    fail "2 Out: ${lines[*]}"
-  test ${status} -eq 5 || fail "2 Out($status): ${lines[*]}"
+  {
+    test_nok_nonempty "*esop*Error:*please use sh, or bash -o 'posix'*" &&
+    test ${status} -eq 5
+  } || stdfail 2
 
   run /bin/sh "$bin"
-  test ${status} -eq 1 || fail "3.1 Out: ${lines[*]}"
-  fnmatch "*esop*No command given*" "${lines[*]}" ||
-    fail "3.2 Out($status): ${lines[*]}"
+  {
+    test_nok_nonempty "*esop*No command given*" "${lines[*]}" &&
+    test ${status} -eq 1
+  } || stdfail 3
 
   run bash "$bin"
   test ${status} -eq 5
@@ -34,33 +31,31 @@ source $lib/str.lib.sh
 
 @test ". ${bin}" {
   run sh -c "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 1
-  fnmatch "esop:*not a frontend for sh" "${lines[*]}"
+  test ${status} -ne 0
+  #fnmatch "esop:*not a frontend for sh" "${lines[*]}"
 
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 1
-  fnmatch "esop:*not a frontend for bats-exec-test" "${lines[*]}"
+  #fnmatch "esop:*not a frontend for bats-exec-test" "${lines[*]}"
 }
 
 @test ". ${bin} load-ext" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
+  test_ok_empty || stdfail
 }
 
 @test "source ${bin}" {
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 1
-  fnmatch "esop:*not a frontend for bats-exec-test" "${lines[*]}"
+  #fnmatch "esop:*not a frontend for bats-exec-test" "${lines[*]}"
   run bash -c "$BATS_TEST_DESCRIPTION"
-  test ${status} -eq 1
-  fnmatch "esop:*not a frontend for bash" "${lines[*]}"
+  test ${status} -ne 0
+  #fnmatch "esop:*not a frontend for bash" "${lines[*]}"
 }
 
 @test "source ${bin} load-ext" {
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -z "${lines[*]}" # empty output
+  test_ok_empty || stdfail
 }
 
 
@@ -69,30 +64,27 @@ source $lib/str.lib.sh
   base=esop
 
   run try_value version man_1
-  test ${status} -eq 0 \
-    || fail "try_value version man_1: ${status}, out: ${lines[*]}"
-  test "${lines[*]}" = "Version info" \
-    || fail "try_value version man_1: ${status}, out: ${lines[*]}"
-  test ! -z "${lines[*]}" # non-empty output
+  test_ok_nonempty "Version info" || stdfail 1
 
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
+  test_ok_nonempty || stdfail 2
 }
 
 @test "${bin} -vv -n help" {
+  export verbosity=5 # Go to level 7 with -vv
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test -n "${lines[*]}" # non-empty output
-  test ${#lines[@]} -gt 4  # lines of output (stdout+stderr)
+  test_ok_lines "*DRY-RUN*" "*esop loaded*" \
+    "*try-exec-func 'esop_load'*" \
+    "*cmd=esop args=" \
+    "*subcmd=help subcmd_alias= subcmd_def=" \
+    || stdfail
 }
 
 #@test "${lib}/${base} - function should ..." {
 #  check_skipped_envs || \
 #    TODO "envs $envs: implement lib (test) for env"
 #  run function args
-#  #echo ${status} > /tmp/1
-#  #echo "${lines[*]}" >> /tmp/1
-#  #echo "${#lines[@]}" >> /tmp/1
+#  { test_ok_nonempty && fnmatch "* ... * " "${lines[*]}" ; } || stdfail
+#  { test_ok_empty ; } || stdfail
 #  test ${status} -eq 0
 #}
-

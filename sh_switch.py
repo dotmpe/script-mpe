@@ -4,7 +4,6 @@ sh-switch
 =========
 Parse switch statements from Sh scripts
 ------------------------------------------
-
 :Created: 2016-06-16
 :Updated: 2017-07-09
 
@@ -42,7 +41,7 @@ import shlex
 
 from docopt import docopt
 
-import libcmd_docopt, confparse, jsotk_lib
+from script_mpe import libcmd_docopt, confparse, jsotk_lib
 
 
 

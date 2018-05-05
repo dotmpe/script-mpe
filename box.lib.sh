@@ -6,10 +6,14 @@ box_lib_load()
   test -n "$BOX_DIR" || error "box-load: expected BOX-DIR env" 1
   test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
-  test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
+  test -z "$DEBUG" || {
+    test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
+  }
   mkvid $(pwd)
   nid_cwd=$vid
   unset vid
+
+  #lib_load src
 
   test -n "$box_name" || box_name=$hostname
 
@@ -196,6 +200,7 @@ box_init_args()
   }
 }
 
+# Extract source lines from {base}-load routine in frontend script
 box_list_libs()
 {
   test -n "$1" || set -- "$0" "$2"
@@ -205,9 +210,7 @@ box_list_libs()
   local \
     line_offset="$(box_script_insert_point $1 "" lib $2)" \
     sentinel_grep=".*#.--.${2}.box.lib.sentinel.--"
-
   test -n "$line_offset" || error "box-list-libs: line_offset empty for '$1' lib '$2'" 1
-
   box_grep $sentinel_grep $1
   local line_diff=$(( $line_number - $line_offset - 2 ))
 
@@ -235,15 +238,15 @@ box_list_libs()
 
 box_init()
 {
-  test -n "$UCONF" || error "box-init: UCONF" 1
-  cd $UCONF
+  test -n "$UCONFDIR" || error "box-init: UCONFDIR" 1
+  cd $UCONFDIR
 }
 
 
 box_update()
 {
-  test -n "$UCONF" || error "box-update: UCONF" 1
-  cd $UCONF
+  test -n "$UCONFDIR" || error "box-update: UCONFDIR" 1
+  cd $UCONFDIR
 
   test -n "$box_host" || box_host=$hostname
   test -n "$box_user" || box_user=$(whoami)
@@ -265,16 +268,50 @@ box_lib()
   export box_lib="$(box_lib_src "$@" | lines_to_words )"
 }
 
-#
+# return source paths, extract from lines found by box-list-libs
 box_lib_src()
 {
   dry_run= box_list_libs "$@" | while read src arg args
     do case "$src" in
       . | source ) eval echo $arg ;;
+      dir_load ) test -n "$args" || args=.sh
+          for scr in $(eval echo $arg/*$args) ; do
+              echo $scr
+          done ;;
       lib_load ) for lib in $arg $args ; do
-        eval lookup_test=lib_path_exists lookup_path SCRIPTPATH $lib
-      done ;;
+            eval lookup_test=lib_path_exists lookup_path SCRIPTPATH $lib
+          done ;;
       * ) ;;
     esac; done
 }
 
+# Setup instance for script to use as background service
+box_bg_setup()
+{
+  not_trueish "$no_background" && {
+
+    test ! -e "$main_sock" || error "pd meta bg already running" 1
+    $main_bg &
+    PID=$!
+    while test ! -e $main_sock
+    do note "Waiting for server.." ; sleep 1 ; done
+    info "Backgrounded $main_bg (PID $PID)"
+
+  } || {
+    note "Forcing foreground/cleaning up background"
+    test ! -e "$main_sock" || $main_bg exit \
+      || error "Exiting old" $?
+  }
+}
+
+# Close backgrounded service script instance
+box_bg_teardown()
+{
+  test ! -e "$main_sock" || {
+    $main_bg exit
+    while test -e $main_sock
+    do note "Waiting for background shutdown.." ; sleep 1 ; done
+    info "Closed background metadata server"
+    test -z "$no_background" || warn "no-background on while pd-sock existed"
+  }
+}

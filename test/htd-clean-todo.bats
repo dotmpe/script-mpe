@@ -1,5 +1,7 @@
 #!/bin/bash
 
+load helper
+
 
 setup()
 {
@@ -12,23 +14,18 @@ setup()
     cd $tmpd
 
     # Test on collection of downloaded files
-    cp ~/Downloads/*.zip $tmpd
-
-    # unpack all zips into root except mytest
-    mkdir $tmpd/mytest
-#    unzip $tmpd/mytest.zip -d $tmpd/mytest
-    mv $tmpd/mytest.zip $tmpd/mytest/
+    #cp ~/Downloads/{dev/script/shadow,mytest,games/adventure,dev/electronics/ESPEasy_R120}.zip $tmpd
+    cp ~/Downloads/mytest.zip $tmpd
 
     for z in *.zip
     do diag "Found archive: $z" ; unzip $z -d $tmpd; done
-
-    mv $tmpd/mytest/mytest.zip $tmpd/
   }
 }
 
 @test "htd clean" {
 
+  TODO "get help from annex"
   test -e "$tmpd" || skip "No test dir found"
   run htd clean
-  test $status -eq 0
+  test_ok_nonempty || stdfail "Unexpected: $status <$tmpd>"
 }

@@ -1,46 +1,61 @@
 #!/usr/bin/env python
 """
-:created: 2013-12-30
-:updated: 2014-08-26
+:Created: 2013-12-30
+:Updated: 2018-03-09
 
 - Import old bookmarks from JSON, XML.
 
-::
+Commands:
+  - list
+  - add | modify | assert | show
+  - remove
+  - tags
+  - urls
+  - sync
 
-    <tag>:GroupNode
-        *<bm>:Bookmark
-
-    Bookmark
-
+  Database:
+    - info | init | stats | clear
 """
 from __future__ import print_function
+
+__description__ = "bookmarks - ..."
+__short_description__ = "..."
 __version__ = '0.0.4-dev' # script-mpe
-__db__ = '~/.bookmarks2.sqlite'
+__db__ = '~/.bookmarks.sqlite'
 __couch__ = 'http://localhost:5984/the-registry'
 chrome_bookmarks_path= '~/Library/Application Support/Google/Chrome/Default/Bookmarks'
 chrome_history_path=   '~/Library/Application Support/Google/Chrome/Default/History'
 __usage__ = """
 
 Usage:
-  bookmarks.py [options] dlcs (parse|import FILE|export)
-  bookmarks.py [options] chrome (all|roots|groups) [--group-name NAME]...
-  bookmarks.py [options] html (tree|groups) HTML
-  bookmarks.py [options] stats
-  bookmarks.py [options] (tag|href|domain) [NAME]
-  bookmarks.py [options] list [NAME] [TAGS...]
-  bookmarks.py [options] couchdb (stats|list)
-  bookmarks.py [options] couchdb (sync|update) [NAME]
-  bookmarks.py [options] couchdb (add|modify|remove) REF [ NAME [ TAGS... ] ]
-  bookmarks.py [options] (add|modify|remove|assert) REF [ NAME ] [ TAGS... ]
-  bookmarks.py [options] check [NAME]
-  bookmarks.py [options] webarchive [NAME]
+  bookmarks.py [-v... options] list [NAME] --tags=TAG...
+  bookmarks.py [-v... options] (add|modify|assert|show) REF [ NAME ] [ TAGS... ]
+  bookmarks.py [-v... options] remove REF
+  bookmarks.py [-v... options] tags [TAGS...]
+  bookmarks.py [-v... options] urls REF
+  bookmarks.py [-v... options] sync
+  bookmarks.py [-v... options] check [NAME]
+  bookmarks.py [-v... options] webarchive [NAME]
+  bookmarks.py [-v... options] (tag|href|domain) [NAME]
+  bookmarks.py [-v... options] x [ARG...]
+  bookmarks.py [-v... options] dlcs (parse|import FILE|export)
+  bookmarks.py [-v... options] chrome (all|roots|groups) [--group-name NAME]...
+  bookmarks.py [-v... options] html (tree|groups|import) HTML
+  bookmarks.py [-v... options] sql (stats|couch)
+  bookmarks.py [-v... options] couch (sql|stats|list|update|init)
+  bookmarks.py [-v... options] couch (add|modify) REF [ NAME [ TAGS... ] ]
+  bookmarks.py [-v... options] info | init | stats | clear | memdebug
   bookmarks.py --background
-  bookmarks.py -h|--help|help
+  bookmarks.py -h|--help
+  bookmarks.py help [CMD]
   bookmarks.py --version
 
 Options:
-  -d REF --dbref=REF
+  -s SESSION, --session-name SESSION
+                should be bookmarks [default: default].
+  -d REF, --dbref=REF
                 SQLAlchemy DB URL [default: %s]
+  --no-db       Don't initialize SQL DB connection.
   --couch=REF
                 Couch DB URL [default: %s]
   --tag-offset INT
@@ -52,16 +67,24 @@ Options:
   --domain-offset INT
                 Typical --*-offset, see before.
                 Defaults to avgFreq. [default: -1]
-  -s SESSION --session-name SESSION
-                should be bookmarks [default: default].
   --chrome-bookmarks-path PATH
                 [default: %s]
   --chrome-bookmarks-root GROUP
                 [default: bookmark_bar]
   --group-name NAME
                 Group name [default: bookmark_bar other]
-  --output-format FMT
+  -O FMT, --output-format FMT
                 json, repr [default: rst]
+  -i N, --interval N
+                Be verbose at least every N records [default: 100]
+  --interactive
+                Prompt to resolve or override certain warnings.
+                XXX: Normally interactive should be enabled if while process has a
+                terminal on stdin and stdout.
+  --batch
+                Overrules `interactive`, exit on errors or strict warnings.
+  --auto-commit N
+                Auto-commit every N records.
   --no-commit   .
   --commit      [default: true].
   --clear-unknown-keys
@@ -69,68 +92,65 @@ Options:
   --newer-only
                 Only update entries in target if source update time is more
                 recent.
+  --no-partial-match
   --partial-match
                 Treat input values as partial search values. This adds the
                 equivalent of '*' around all the values (without '*').
+  --update-hrefids
+                Walk over URLs (.href) and rename if found as key.
+  --update-tagstype
+                Correct couch document 'tags->tag_list' attribute.
   --deleted
+  --count       [default: false].
+  --status STATUS[,STATUS]
   --days N
   --weeks N
-  --status STATUS[,STATUS]
+  --from DATE
+  --to DATE
+  --on DAY
+  --older-than SPEC
+  --max-age SPEC
+                Datetime query window. [Default: 1y] Queries are always on
+                updated-time's.
+  --added       Use added time instead of update in match with date/time.
+  --matched-only
+  --exact-match
+  --struct-output
+  --update
   --delete STATUS[,STATUS]
   --delete-error
   --include-null
   --ignore-last-seen
   --dry-run     Echo but don't make actual changes. This does all the
                 document/record operations, but no commit.
-  -v            Increase verbosity.
-  --verbose     Default.
-  -q, --quiet   Turn off verbosity.
+  -v, --verbose  Increase verbosity, 3 is maxumim.
+  -q, --quiet   Turn off verbosity. Overrides verbosity flags.
   -h --help     Show this usage description.
                 For a command and argument description use the command 'help'.
   --version     Show version (%s).
-
 """ % ( __db__, __couch__, chrome_bookmarks_path, __version__, )
-from datetime import datetime, timedelta
 import os
-import re
+import sys
 import hashlib
 import urllib
 import urllib2
-from urlparse import urlparse
-import uriref
-from pprint import pprint
+from datetime import datetime, timedelta
 
-import couchdb
-#import zope.interface
-#import zope.component
+import uriref
 from pydelicious import dlcs_parse_xml
-from sqlalchemy import or_
 import BeautifulSoup
 
-import log
-import confparse
-import libcmd_docopt
-import libcmd
-import rsr
-import taxus.iface
-import res.iface
-import res.js
-import res.bm
-from res import Volumedir
-from res.util import isodatetime, ISO_8601_DATETIME
-from taxus import init as model
-from taxus.init import SqlBase, get_session
-from taxus.core import ID, Node, Name, Tag
-from taxus.net import URL, Locator, Domain
-from taxus.ns import Namespace, Localname
-from taxus.model import Bookmark
-from taxus.web import Resource, RemoteCachedResource
+from script_mpe.libhtd import *
+from script_mpe.bookmarks_model import *
+from script_mpe.res import bm_chrome
 
-models = [ Locator, Tag, Domain, Bookmark, Resource, Namespace, Localname ]
+ctx = Taxus(version='bookmarks')
 
-#import bookmarks_model as model
-#from bookmarks_model import Locator, Bookmark
-
+cmd_default_settings = dict(
+        verbose=1,
+        partial_match=True,
+        strict=True
+    )
 
 
 class bookmarks(rsr.Rsr):
@@ -187,7 +207,7 @@ class bookmarks(rsr.Rsr):
                 (('--moz-js-group-import',), libcmd.cmddict()),
 
                 (('--add-lctrs',), libcmd.cmddict(
-                    help="Add locator records for given URL's.")),
+                    help="Add locator records for given Locator's.")),
                 (('--add-ref-md5',), libcmd.cmddict(
                     help="Add MD5-refs missing (on all locators). ")),
 
@@ -274,7 +294,7 @@ class bookmarks(rsr.Rsr):
 
 
     def add_lctr_ref_md5(self, opts=None, sa=None, *refs):
-        "Add locator and ref_md5 attr for URLs"
+        "Add locator and ref_md5 attr for Locators"
         if refs:
             if isinstance( refs[0], basestring ):
                 opts.ref_md5 = True
@@ -353,303 +373,308 @@ class bookmarks(rsr.Rsr):
                 print(root['id'], root['title'])
 
 
+### Commands
 
 
-def tojson( d ):
-    for k in d:
-        if isinstance(d[k], datetime):
-            d[k] = d[k].isoformat()
-    return d
+def cmd__dlcs_import(FILE, opts, g):
 
-def cmd_dlcs_import(opts, settings):
     """
-    TODO: built into generic import/export (ie. complete set)  so heuristics can
-        update all stats each import.. or find some way to fragment dataset.
+    Import from (old pre-2009) del.icio.us posts XML export using
+    pydelicious library.
     """
-    importFile = opts.args.FILE
-    data = dlcs_parse_xml(open(importFile).read())
-    sa = URL.get_session('default', opts.flags.dbref)
-    tags_stat = {}
-    domains_stat = {}
-    # first pass: validate, track stats and create URL records where missing
+    global ctx
+
+    importer = res.bm.BmImporter(ctx.sa_session)
+    data = dlcs_parse_xml(open(FILE).read())
+
+    # Validate URL, track tag/domain and create records where missing
     for post in data['posts']:
         href = post['href']
         dt = datetime.strptime(post['time'], ISO_8601_DATETIME)
-# validate URL
-        url = urlparse(href)
-        domain = url[1]
-        if not domain:
-            log.std("Ignored domainless (non-net?) URIRef: %s", href)
+        lctr = importer.init_locator(href, dt)
+        if not lctr:
             continue
-        assert re.match('[a-z0-9]+(\.[a-z0-9]+)*', domain), domain
-# get/init URL
-        lctr = URL.fetch((URL.ref == href,), exists=False)
-        if lctr:
-            if lctr.date_added != dt:
-                lctr.date_added = dt
-                sa.add(lctr)
-        else:
-            lctr = URL(
-                    ref=href,
-                    date_added=datetime.strptime(post['time'], ISO_8601_DATETIME)
-                )
-            lctr.init_defaults()
-            log.std("new: %s", lctr)
-            sa.add(lctr)
-# get/init Bookmark
-        bm = Bookmark.fetch((Bookmark.location == lctr,), exists=False)
-        if bm:
-            if bm.date_added != dt:
-                bm.date_added = dt
-                sa.add(bm)
-            if bm.location != lctr:
-                bm.ref = lctr
-                sa.add(bm)
-        else:
-            bm = Bookmark.fetch((Bookmark.name == post['description'],), exists=False)
-            if bm:
-                log.std("Name already exists: %r" % post['description'])
-                continue
-            bm = Bookmark(
-                    location=lctr,
-                    name=post['description'],
-                    extended=post['extended'],
-                    tags=post['tag'].replace(' ', ', '),
-                    date_added=datetime.strptime(post['time'], ISO_8601_DATETIME)
-                )
-            bm.init_defaults()
-            log.std("new: %s", bm)
-            sa.add(bm)
-# track domain frequency
-        if domain in domains_stat:
-            domains_stat[domain] += 1
-        else:
-            domains_stat[domain] = 1
-# track tag frequency
-        for tag in post['tag'].split(' '):
-            if tag in tags_stat:
-                tags_stat[tag] += 1
-            else:
-                tags_stat[tag] = 1
+
+        tagcsv = unicode(post['tag'].replace(' ', ', '))
+        bm = importer.init_bookmark(lctr, dt,
+                post['description'], post['extended'], tagcsv )
+        if not bm:
+            continue
+
+        # commit every x records
+        importer.batch_flush(g)
+
     log.std("Checked %i locator references", len(data['posts']))
-    sa.commit()
-# Prepare domain stats
-    avgDomainFreq = sum(domains_stat.values())/(len(domains_stat)*1.0)
-    hiDomainFreq = max(domains_stat.values())
-    log.std("Found domain usage (max/avg): %i/%i", hiDomainFreq, avgDomainFreq)
-    domains = 0
-    domainOffset = int(opts.flags.domain_offset)
-    if domainOffset == 0:
-        domainOffset = hiFreq
-    elif domainOffset == -1:
-        domainOffset = round(hiDomainFreq * 0.2)
-    log.std("Setting domain-offset: %i", domainOffset)
-# get/init Domains
-    for domain in domains_stat:
-        freq = domains_stat[domain]
-        if freq >= domainOffset:
-            domains += 1
-            domain_record = Domain.fetch((Domain.name == domain,), exists=False)
-            if not domain_record:
-                domain_record = Domain(name=domain)
-                domain_record.init_defaults()
-                sa.add(domain_record)
-    sa.commit()
-    log.std("Checked %i domains", len(domains_stat))
-    log.std("Tracking %i domains", domains)
-# Prepare tag stats
-    avgFreq = sum(tags_stat.values())/(len(tags_stat)*1.0)
-    hiFreq = max(tags_stat.values())
-    log.std("Found tag usage (max/avg): %i/%i", hiFreq, avgFreq)
-    tagOffset = int(opts.flags.tag_offset)
-    if tagOffset == 0:
-        tagOffset = hiFreq
-    elif tagOffset == -1:
-        tagOffset = round(hiFreq * 0.1)
-    log.std("Setting tag-offset: %i", tagOffset)
-# get/init Tags
-    tags = 0
-    for tag in tags_stat:
-        freq = tags_stat[tag]
-        if not re.match('[A-Za-z0-9-]+', tag):
-            log.std("Non-std tag %s", tag)
-        if freq >= tagOffset:
-            # Store tags only if count exceeds offset
-            tags += 1
-            t = Name.fetch((Name.name == tag,), exists=False)
-            if not t:
-                t = Tag(name=tag)
-                t.init_defaults()
-                log.std("new tag %r for %r", t, tag)
-                sa.add(t)
-            # store frequencies
-            # TODO tags_freq
-    log.std("Checked %i tags", len(tags_stat))
-    log.std("Tracking %i tags", tags)
-    sa.commit()
+    importer.flush(g)
 
-def cmd_html_groups(HTML, settings):
-    data = open(HTML)
-    soup = BeautifulSoup.RobustHTMLParser(data)
-    res.bm.html_soup_formatters[of](soup, settings.output_format, False)
+    # proc/fetch/init Domains
+    importer.flush_domains(g)
 
-def cmd_html_tree(HTML, settings):
-    data = open(HTML)
-    soup = BeautifulSoup.RobustHTMLParser(data)
-    print(res.bm.html_soup_formatters[settings.output_format](soup))
+    # proc/fetch/init Tags
+    importer.flush_tags(g)
 
 
-def cmd_chrome_all(settings):
+def cmd__html_groups(HTML, g):
+    """
+    TODO: work on just the groups (folders) extracted from the bookmark.html.
+    """
+    soup = BeautifulSoup.RobustHTMLParser(open(HTML))
+    print(res.bm.html_soup_formatters[g.output_format](soup))
+
+def cmd__html_tree(HTML, g):
+    """
+    Extract folder/bookmark item lines from HTML.
+    """
+    soup = BeautifulSoup.RobustHTMLParser(open(HTML))
+    print(res.bm.html_soup_formatters[g.output_format](soup))
+
+def cmd__html_import(HTML, g):
+    """
+    """
+    global ctx
+    soup = BeautifulSoup.RobustHTMLParser(open(HTML))
+    importer = res.bm.BmImporter(ctx.sa_session)
+
+    def _folder(label, attrs):
+        return label, attrs
+    def _item(label, attrs):
+        href = attrs['href']
+        del attrs['href']
+        if 'parent' in attrs:
+            del attrs['parent']
+        if 'icon' in attrs:
+            del attrs['icon']
+
+        if 'add_date' in attrs:
+            ad = datetime.fromtimestamp(int(attrs['add_date']))
+            del attrs['add_date']
+        else:
+            ad = None
+
+        if 'last_modified' in attrs:
+            lmd = datetime.fromtimestamp(int(attrs['last_modified']))
+            del attrs['last_modified']
+        else:
+            lmd = None
+
+        lctr = importer.init_locator(href, datetime.now())
+        if not lctr:
+            return
+        print(label, attrs)
+
+        bm = importer.init_bookmark(lctr, ad, label, None, None)
+        return bm
+
+    items = res.bm.TxtBmOutline.bm_html_soup_items_gen(soup,
+            folder_class=_folder, item_class=_item)
+    if not items:
+        raise Exception("No definition lists in %s" % HTML)
+    for it in items:
+        pass#print(it)
+
+
+def cmd__chrome_all(g):
     "List Chrome bookmarks (from JSON) in different formats"
-    fn = os.path.expanduser(settings.chrome_bookmarks_path)
+    fn = os.path.expanduser(g.chrome_bookmarks_path)
     bms = confparse.Values(res.js.load(open(fn)))
-    # BUG: doopt 0.6.2. should split repeatable opt vals
-    if not isinstance(settings.group_name, list):
-        settings.group_name = settings.group_name.split(' ')
-    for group_name in settings.group_name:
+    # BUG: docopt 0.6.2. should split repeatable opt vals
+    if not isinstance(g.group_name, list):
+        g.group_name = g.group_name.split(' ')
+    for group_name in g.group_name:
         group = confparse.Values(bms.roots[group_name])
-        res.bm.moz_json_printer[settings.output_format](group)
+        res.bm.moz_json_printer['item'][g.output_format](group)
 
-def cmd_chrome_groups(settings):
-    "List Chrome bookmarks folders only (from JSON) in different formats"
-    fn = os.path.expanduser(settings.chrome_bookmarks_path)
-    bms = confparse.Values(res.js.load(open(fn)))
-    groups = bms.roots.keys()
-    of = settings.output_format
-    if of == 'json':
-        print(res.js.dumps(dict(
-            version=bms.version,
-            checksum=bms.checksum,
-            groups=groups
-        )))
-    else:
-        for group_name in groups:
-            print(group_name)
+def cmd__chrome_groups(g):
+    "List Chrome bookmarks folder paths (from JSON)"
+    fn = os.path.expanduser(g.chrome_bookmarks_path)
+    bms = bm_chrome.BookmarksJSON.load(fn)
+
+    for it in bm_chrome.flatten_norecurse(list(bms.groups())):
+        print(it)
 
 
-def cmd_html_check(HTML, settings):
-    print(HTML)
-
-
-def cmd_stats(settings):
-    sa = get_session(settings.dbref)
+def cmd__sql_stats(g):
+    global ctx
+    sa = ctx.sa_session
     for stat, label in (
-                (sa.query(Locator).count(), "Number of URLs: %s"),
+                (sa.query(Locator).count(), "Number of Locators: %s"),
                 (sa.query(Bookmark).count(), "Number of bookmarks: %s"),
                 (sa.query(Domain).count(), "Number of domains: %s"),
                 (sa.query(Tag).count(), "Number of tags: %s"),
             ):
         log.std(label, stat)
-    for lctr in sa.query(Locator).filter(Locator.global_id==None).all():
-        lctr.delete()
-        log.note("Deleted Locator without global_id %s", lctr)
-    for bm in sa.query(Bookmark).filter(Bookmark.ref_id==None).all():
-        bm.delete()
-        log.note("Deleted bookmark without ref %s", bm)
+    #for lctr in sa.query(Locator).filter(Locator.global_id==None).all():
+    #    lctr.delete()
+    #    log.note("Deleted Locator without global_id %s", lctr)
+    #for bm in sa.query(Bookmark).filter(Bookmark.ref_id==None).all():
+    #    bm.delete()
+    #    log.note("Deleted bookmark without ref %s", bm)
 
 
-def cmd_href(NAME, settings):
+def cmd__href(NAME, g):
     """List hyper-references"""
-    sa = Locator.get_session(settings.session_name, settings.dbref)
+    sa = Locator.get_session(g.session_name, g.dbref)
     if NAME:
         rs = Locator.search(ref=NAME)
     else:
         rs = Locator.all()
     if not rs:
-        log.std("Nothing")
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
     for r in rs:
         print(r.ref)
 
 
-def cmd_tag(NAME, settings):
-    """List tags"""
-    sa = Tag.get_session(settings.session_name, settings.dbref)
-    if NAME:
-        rs = Tag.search(name=NAME)
-    else:
-        rs = Tag.all()
-    if not rs:
-        log.std("Nothing")
-    for r in rs:
-        print(r.name)
-
-
-def cmd_domain(NAME, settings):
+def cmd__domain(NAME, g):
     """List domains"""
-    sa = Domain.get_session(settings.session_name, settings.dbref)
+    sa = Domain.get_session(g.session_name, g.dbref)
     if NAME:
         rs = Domain.search(name=NAME)
     else:
         rs = Domain.all()
     if not rs:
-        log.std("Nothing")
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
     for r in rs:
         print(r.name)
 
 
-def cmd_list(NAME, TAGS, settings, opts):
-
-    """
-    List bookmarks given NAME, TAGS filter.
-
-    Asterisks '*' in any of the input is turned into a like expression, to
-    make patterns for matching on partial values.
-    """
-
-    def _like_val(field, value):
-        if '*' in value:
-            return field.like( value.replace('*', '%') )
-        elif opts.flags.partial_match:
-            return field.like( '%'+value+'%' )
-        else:
-            return field == value
-
-    tag_filters = ()
-    if TAGS:
-        tag_filters = tuple([ _like_val(Bookmark.tags, T) for T in TAGS ])
-
-    sa = Bookmark.get_session(settings.session_name, settings.dbref)
+def cmd__tag(NAME, g):
+    """Get tag"""
+    sa = Tag.get_session(g.session_name, g.dbref)
     if NAME:
-        if TAGS:
-            rs = Bookmark.all(filters=( _like_val(Bookmark.name, NAME) ) )
-        else:
-            rs = Bookmark.search(name=NAME)
+        rs = Tag.search(name=NAME)
     else:
-        if TAGS:
-            rs = Bookmark.all(filters=tag_filters)
-        else:
-            rs = Bookmark.all()
+        rs = Tag.all()
     if not rs:
-        log.std("Nothing")
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
+    for r in rs:
+        print(r.name)
 
-    of = settings.output_format
-    if of == 'json':
-        def out( d ):
-            for k in d:
-                if isinstance(d[k], datetime):
-                    d[k] = d[k].isoformat()
-            return res.js.dumps(d)
-    else:
-        tpl = taxus.out.get_template("bookmark.%s" % of)
-        out = tpl.render
 
-    for bm in rs:
-        d = bm.to_dict()
-        d['tags'] = ', '.join(d['tags'])
-        print(out( d ))
+def cmd__tags(TAGS, g):
+    """
+    Dump all tags found on bookmarks. Filter by given tag, fuzzy by default.
+    Print all tags, ie. related tags (on the same record) too.
+    """
+    global ctx
 
+    tags = Bookmark.unique_tags(TAGS, g, ctx)
+    if tags:
+        for t in tags:
+            if g.matched_only:
+                if g.exact_match:
+                    if t in TAGS:
+                        print(t)
+                else:
+                    for n in TAGS:
+                        if n in t:
+                            print(t)
+            else:
+                print(t)
+        ctx.note("%i unique tags found on bookmarks", len(tags))
+
+
+def cmd__urls(REF, g, opts):
+    """List URLs from SQL.
+
+    Unless --exact-match is given, inputs are turned into LIKE expressions for
+    partial match.
+    """
+    global ctx
+
+    filters = ctx.opts_to_filters(Locator)
+    if REF:
+        filters += ( sql_like_val(Locator.ref, REF, g), )
+    if g.count:
+        cnt = ctx.sa_session.query(Locator).filter(*filters).count()
+        log.std("Records matched: %s", cnt)
+        return
+    if not rs:
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict: return 1
+    for r in rs:
+        print(r)
+    # FIXME ctx.lines_out(rs)
+
+
+def cmd__list(NAME, g, opts):
+
+    """
+    List bookmarks given NAME, TAGS filter from SQL.
+
+    All matches are partial (delimited by '%' and turned into LIKE expression),
+    unless --exact-match is given.
+    Asterisks '*' in any of the inputs are also handled as explicit LIKE expression.
+    """
+    global ctx
+
+    filters = ctx.opts_to_filters(Bookmark)
+    if g.tags:
+        filters += tuple([ sql_like_val(Bookmark.tags, T) for T in g.tags ])
+    if NAME:
+        filters += ( sql_like_val(Bookmark.name, NAME), )
+
+    if g.count:
+        cnt = ctx.sa_session.query(Bookmark).filter(*filters).count()
+        log.std("Records matched: %s", cnt)
+        return
+
+    rs = Bookmark.all(filters=filters)
+    if not rs:
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
+        return
+
+    render = ctx.get_renderer('bookmark')
+    for r in rs:
+        print(render(r.to_dict()))
+    ctx.flush()
     print('%i found' % len(rs))
 
 
-def cmd_check(NAME, settings):
+def cmd__add(REF, NAME, TAGS, g, sa=None):
+    global ctx
+    bm = Bookmark.forge(REF, NAME, TAGS, g, ctx.sa_session)
+    print(ctx.get_renderer('bookmark')(bm.to_dict()))
+
+
+def cmd__modify(REF, g):
+    assert 'todo'
+
+
+def cmd__remove(REF, g):
+    "Soft-delete Bookmark and Locator by Locator"
+    global ctx
+    sa = ctx.sa_session
+
+    lctr = sa.query(Locator).filter(Locator.ref == REF).one()
+    bm = sa.query(Bookmark).filter(Bookmark.location == lctr).one()
+
+    bm.delete()
+    lctr.delete()
+    if not g.dry_run:
+        sa.add(lctr)
+        sa.add(bm)
+        sa.commit()
+        ctx.note("Deleted %s", REF)
+    print(lctr, bm)
+
+
+def cmd__check(NAME, g):
 
     """
     Update last-seen time.
 
-    Visit the URL for each bookmark, and update the last-seen date if
+    Visit the Locator for each bookmark, and update the last-seen date if
     successful. Options below apply filters and specific actions.
 
-    If no filters are provided, the default is to select URLs not seen in
+    If no filters are provided, the default is to select Locators not seen in
     the last 52 weeks, and all those without status or last-seen fields.
 
     --deleted
@@ -669,7 +694,7 @@ def cmd_check(NAME, settings):
         Shortcut to --delete 0,4,5
     """
 
-    sa = Locator.get_session(settings.session_name, settings.dbref)
+    sa = Locator.get_session(g.session_name, g.dbref)
 
     delete = []
     if opts.flags.delete_error:
@@ -742,12 +767,12 @@ def cmd_check(NAME, settings):
         f.append( Resource.deleted!=True )
 
     rs = Resource.all(f)
-    print('%i URL\'s to check' % len(rs))
+    print('%i Locator\'s to check' % len(rs))
 
     for i, r in enumerate(rs):
         ref = r.location.href()
         print(i, r.status, r.deleted, r.last_access, ref)
-        if i > 0 and ( i % 10 ) == 0:
+        if i and ( i % 10 ) == 0:
             sa.commit()
             print('committed at %s items, %i to go' % ( i, len(rs)-i ))
 
@@ -759,7 +784,7 @@ def cmd_check(NAME, settings):
                 r.delete()
             sa.add(r)
             continue
-        except urllib2.URLError as e:
+        except urllib2.LocatorError as e:
             r.status = -2
             if 0 in delete or -1 in delete:
                 r.delete()
@@ -793,65 +818,70 @@ def cmd_check(NAME, settings):
     sa.commit()
 
 
-
-def cmd_assert(REF, NAME, TAGS, settings):
+def cmd__assert(REF, NAME, TAGS, g):
 
     """
-    Create an URL record if it does not exist yet.
+    Create an Locator record if it does not exist yet.
 
     If NAME and optionally TAGS is given, create a bookmark too but only
     if it does not exist yet.
     """
 
-    sa = Bookmark.get_session(settings.session_name, settings.dbref)
-
-    lctr = URL.fetch((URL.ref == REF,), exists=False)
-    if not lctr:
-        lctr = URL( ref=REF, date_added=datetime.now() )
-        lctr.init_defaults()
-        log.std("new: %s", lctr)
-        if not settings.dry_run:
-            sa.add(lctr)
-
-    bm = Bookmark.fetch((Bookmark.location == lctr,), exists=False)
-    if NAME and not bm:
-        bm = Bookmark.fetch((Bookmark.name == NAME,), exists=False)
-        if bm:
-            log.std("Name already exists for other location: %r at %r vs %r"
-                    % ( NAME, REF, bm.href ))
-        else:
-            bm = Bookmark.from_dict(location=lctr, name=NAME, tags=TAGS)
-            bm.init_defaults()
-            log.std("new: %s", bm)
-            if not settings.dry_run:
-                sa.add(bm)
-
-    if settings.dry_run:
+    sa = Bookmark.get_session(g.session_name, g.dbref)
+    bm = Bookmark.forge(REF, NAME, TAGS, g, sa)
+    print(bm)
+    if g.dry_run:
         log.std("Dry run")
     else:
         sa.commit()
 
 
+def cmd__show(REF, NAME, TAGS, g):
+    global ctx
+    sa = ctx.sa_session
+    filters = ()
+    if not g.deleted:
+        filters = ( Bookmark.deleted != True, )
 
-def cmd_webarchive(NAME, settings):
-    """
-    Sort out and rewrite web.archive locators.
+    if REF:
+        lctr = sa.query(Locator).filter(Locator.ref == REF).one()
+        filters += ( Bookmark.location == lctr, )
 
-    http://web.archive.org/web/20030208015752/
-    """
-    sa = Bookmark.get_session(settings.session_name, settings.dbref)
+    if TAGS:
+        filters += tuple([ sql_like_val(Bookmark.tags, T, g) for T in TAGS ])
+
     if NAME:
-        rs = Bookmark.search(name=NAME)
+        filters += ( sql_like_val(Bookmark.name, NAME, g), )
+
+    if filters:
+        rs = Bookmark.all(filters=filters)
     else:
         rs = Bookmark.all()
     if not rs:
-        log.std("Nothing")
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
         return
 
+    ctx.out(rs, 'bookmark')
+    ctx.note("%i items", len(rs))
+
+
+def cmd__webarchive(NAME, g):
+
+    """
+    Sort out and rewrite web.archive locators.
+
+
+    http://web.archive.org/web/20030208015752/
+    """
+    global ctx
+    sa = ctx.sa_session
+
     NS_WA = 'http://web.archive.org/web'
-    ns_lctr = URL.fetch((URL.ref == NS_WA,), exists=False)
+    ns_lctr = Locator.fetch((Locator.ref == NS_WA,), exists=False)
     if not ns_lctr:
-        ns_lctr = URL( ref=NS_WA )
+        ns_lctr = Locator( ref=NS_WA )
         ns_lctr.init_defaults()
         sa.add(ns_lctr)
 
@@ -862,209 +892,85 @@ def cmd_webarchive(NAME, settings):
         rcres_type.init_defaults()
         sa.add(rcres_type)
 
-    sa.commit()
-
-    i = 0
-    for r in rs:
-        if 'web.archive.org/web' in r.href:
-            i += 1
-            cache_path = r.href.split('web.archive.org/web/')[1]
-            p = cache_path.index('/')
-
-            res_ts = cache_path[:p]
-            res_url = cache_path[p+1:]
-            if not uriref.absoluteURI.match(res_url):
-                res_url = 'http://'+res_url
-
-            lctr = URL.fetch((URL.ref == res_url ,), exists=False)
-            if not lctr:
-                lctr = URL( ref=res_url )
-                lctr.init_defaults()
-                log.std("New: %s", lctr.href() )
-                sa.add(lctr)
-
-            if res_ts.isdigit():
-                DT_FMT='%Y%m%d%H%M%S'
-                dt = datetime.strptime(res_ts, DT_FMT)
-            else:
-                log.err("Unknown date tag: %s", res_ts)
-                continue
-
-            rcres = RemoteCachedResource( location=lctr, rcres_type=rcres_type,
-                    last_access=r.last_access,
-                    last_update=r.last_update,
-                    last_modified=r.last_modified,
-                    status=r.status,
-                    date_added=r.date_added,
-                    date_deleted=r.date_deleted,
-                    date_updated=dt )
-
-            sa.add(rcres)
-            sa.delete(r)
-            #sa.commit()
-
-            print('TODO %s' % lctr.href())
-
-    log.std("Found %i instances", i)
-    #sa.commit()
-
-
-def cmd_couchdb_update(settings):
-
-    """
-    Update SQL DB Bookmark records from CouchDB.
-    """
-
-    ref, dbname = settings.couch.rsplit('/', 1)
-    server = couchdb.client.Server(ref)
-    db = server[dbname]
-
-    sa = Bookmark.get_session(settings.session_name, settings.dbref)
-    for idref in db:
-        doc = db[idref]
-        href = db['href']
-
-        lctr = URL.fetch((URL.ref == href,), exists=False)
-        if not lctr:
-            lctr = URL.from_dict(**doc)
-            lctr.init_defaults()
-            log.std("new: %s", lctr)
-            if not settings.dry_run:
-                sa.add(lctr)
-
-        bm = Bookmark.fetch((Bookmark.location == lctr,), exists=False)
-        if not bm:
-            bm = Bookmark.fetch((Bookmark.name == doc['name'],), exists=False)
-            if bm:
-                log.std("Name already exists for other location: %r at %r vs %r"
-                        % ( doc['name'], href, bm.href ))
-                continue
-            bm = Bookmark.from_dict(location=lctr, **doc)
-            bm.init_defaults()
-            log.std("new: %s", bm)
-            if not settings.dry_run:
-                sa.add(bm)
-
-        if bm.update_from(location=lctr, **doc):
-            if not settings.dry_run:
-                sa.add(bm)
-            log.std("updated: %s", href)
-
-    if not settings.dry_run:
+    if g.commit:
         sa.commit()
 
 
-def cmd_couchdb_sync(NAME, ctx, opts, settings):
-
-    """
-    Update CouchDB bookmark-type documents from SQL.
-    """
-
-    ref, dbname = settings.couch.rsplit('/', 1)
-    server = couchdb.client.Server(ref)
-    db = server[dbname]
-
-    sa = Bookmark.get_session(settings.session_name, settings.dbref)
-    if NAME:
-        rs = Bookmark.search(name=NAME)
-    else:
-        rs = Bookmark.all()
+    rs = sa.query(Locator).filter(
+            Locator.ref.like('%/web.archive.org/web/%'),
+            Locator.deleted != True).all()
     if not rs:
-        log.std("Nothing")
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
         return
+    total_records = len(rs)
 
-    if opts.flags.verbose:
-        print('Going to sync %i SQL records to %s...' % ( len(rs), dbname ))
+    i = 0
+    for lctr in rs:
+        assert 'web.archive.org/web' in lctr.ref
 
-    new = []
-    updates = []
-    for r in rs:
+        i += 1
+        bm = Bookmark.fetch((Bookmark.location == lctr,), exists=False)
+        if not bm:
+            continue
 
-        # NOTE: simply mapping column-names in result to couchdb doc
-        d = tojson( r.to_dict() )
-        d['type'] = 'bookmark'
+        cache_path = lctr.ref.split('web.archive.org/web/')[1]
+        p = cache_path.index('/')
+        res_ts = cache_path[:p]
+        res_url = cache_path[p+1:]
+        if not uriref.absoluteURI.match(res_url):
+            res_url = 'http://'+res_url
 
-        href = d['href']
-        idref = hashlib.sha256(href).hexdigest()
-        if idref in db or href in db:
+        lctr_new = Locator.fetch((Locator.ref == res_url,), exists=False)
+        if not lctr_new:
+            lctr_new = Locator( ref=res_url )
+            lctr_new.init_defaults()
+            log.std("New: %s", lctr_new.href() )
 
-            updated = False
-
-            # 'upgrade' bare URL key entry
-            map_id = href in db
-            if map_id:
-                c = db[href]
-            else:
-                c = db[idref]
-
-            # NOTE: not doing anything else than bookmarks
-            if c['type'] != 'bookmark':
-                print(
-                    "Document {0} exists but is not of required type: {1}".format(
-                    href, c['type']),
-                    file=opts.stderr)
-                continue
-
-            # We can stop right there.
-            if r.deleted:
-                if c['deleted']:
-                    continue
-                c['deleted'] = true
-                c['date_deleted'] = r.date_deleted
-                # Soft delete, for archival/cleanup by someone else.
-                continue
-
-            # Check on update time to things speed up
-            if opts.flags.clear_unknown_keys:
-                c_dt = isodatetime(c['date_updated'])
-                if c_dt >= r.date_updated:
-                    continue
-
-            # Delete missing keys
-            if opts.flags.clear_unknown_keys:
-                for k in c.keys():
-                    if k in [ '_rev', '_id', 'type' ]:
-                        continue
-                    if k not in d:
-                        del c[k]
-                        updated = True
-
-            # Set new or changed values
-            for k in d.keys():
-                if k not in c or c[k] != d[k]:
-                    c[k] = d[k]
-                    updated = True
-            if updated or map_id:
-                c['date_updated'] = r.date_updated.isoformat()
-                if not settings.dry_run:
-                    if map_id:
-                        del db[href]
-                        db[idref] = c
-                    else:
-                        db.update([c])
-                updates.append(c)
-                if opts.flags.verbose:
-                    print('updated %s' % href)
-
+        if res_ts.isdigit():
+            DT_FMT='%Y%m%d%H%M%S'
+            dt = datetime.strptime(res_ts, DT_FMT)
         else:
+            log.err("Unknown date tag: %s", res_ts)
+            continue
 
-            # New entry
-            if not settings.dry_run:
-                db[idref] = d
-            new.append(d)
-            if opts.flags.verbose:
-                print('new %s' % href)
+        rcres = RemoteCachedResource( location=lctr, rcres_type=rcres_type,
+                last_access=bm.last_access,
+                last_update=bm.last_update,
+                last_modified=bm.last_modified,
+                status=bm.status,
+                date_added=lctr.date_added,
+                date_deleted=lctr.date_deleted,
+                date_updated=dt )
 
-    print('%i new' % len(new))
-    print('%i updated' % len(updates))
+        if not g.dry_run:
+            sa.add(lctr_new)
+            sa.add(rcres)
+            #sa.delete(lctr)
+        if g.auto_commit and i and i % g.auto_commit == 0:
+            if g.verbose > 1:
+                ctx.note("Auto-commit at %i of %i", i, total_records)
+            sa.commit()
+
+        ctx.note('TODO %s', lctr.href())
+    if g.commit:
+        sa.commit()
+    ctx.note("Found %i instances", i)
 
 
-def cmd_couchdb_stats(settings):
+def cmd__sync(g): pass
+def cmd__update(g): pass
+def cmd__x(g):
 
-    ref, dbname = settings.couch.rsplit('/', 1)
-    server = couchdb.client.Server(ref)
+    """
+    XXX: hacky hack hack
+    """
 
-    stats = server.stats()
+
+def cmd__couch_stats(g):
+    global ctx
+    stats = ctx.couchconn.stats()
     print('# couchdb-stat current max min mean stddev sum description')
     for k in stats['couchdb']:
         print(k, end=' ')
@@ -1073,32 +979,345 @@ def cmd_couchdb_stats(settings):
         print()
 
 
-def cmd_couchdb_list(settings):
+couch_views = {
+    '_design/bookmarks': dict( views=dict( list=dict( map= """function(doc) {
 
-    ref, dbname = settings.couch.rsplit('/', 1)
-    server = couchdb.client.Server(ref)
+    if (doc.type && doc.type == 'bookmark') emit(doc.id, doc.href);
 
-    db = server[dbname]
-    for _id in db:
-        doc = db[_id]
-        if ( hasattr(doc, 'type') and doc.type == 'bookmark' ) or 'href' in doc:
-            print(doc['href'])
+}"""))),
+}
 
 
-def cmd_couchdb_add(URL, TITLE, TAGS, settings):
+def cmd__couch_init(g):
 
-    ref, dbname = settings.couch.rsplit('/', 1)
-    opts.flags.couchdb = dbname
+    """
+    /<db-name>/_design/<design-doc>/_view/<view-name>
+    """
+    global ctx
 
-    server = couchdb.client.Server(ref)
-    db = server[dbname]
+    for k, v in couch_views.items():
+        if k in ctx.docs:
+            if g.update:
+                ctx.note("Updating view %s...", k)
+                del ctx.docs[k]
+        else:
+            ctx.note("Adding view %s...", k)
+        if k not in ctx.docs:
+            ctx.docs[k] = v
 
-    print(server, dbname, URL, TITLE, TAGS)
-    db[URL] = {
-      'type': 'bookmark',
-      'href': URL,
-      'tags': TAGS
-    }
+
+def cmd__couch_list(g):
+    global ctx
+    for ls in ctx.docs.view('bookmarks/list'):
+        print(ls.id, ls.value)
+
+
+def cmd__couch_add(Locator, TITLE, TAGS, g):
+    """
+    Add record directly to Couch. NOTE: should be using SQL API instead.
+    """
+    global ctx
+    #[Locator] = {
+    #  'type': 'bookmark',
+    #  'href': Locator,
+    #  'tags': TAGS
+    #}
+    assert isinstance(TAGS, list), TAGS
+    bm = bookmark.Bookmark(id=Bookmark.keyid(Locator), href=Locator, tag_list=TAGS)
+    bm.store(ctx.docs)
+
+
+def cmd__sql_couch(g):
+
+    """
+    Update SQL DB Bookmark records from CouchDB.
+    """
+
+    global ctx
+    total_docs = len(ctx.docs)
+    i, c = 0, 0
+
+    sa = Bookmark.get_session(g.session_name, g.dbref)
+    for idref in ctx.docs:
+        bmdoc = bookmark.Bookmark.load(ctx.docs, idref)
+        zope.interface.classImplements(bmdoc.__class__, taxus.iface.IPyDict)
+        i += 1
+        ctx.note("Processing %i of %i", i, total_docs, num=i)
+
+        lctr = Locator.fetch((Locator.ref == bmdoc.href,), exists=False)
+        if not lctr:
+            lctr = Locator.forge(bmdoc, g, sa=sa)
+
+        bm = Bookmark.fetch((Bookmark.location == lctr,), exists=False)
+        if not bm:
+            bm = Bookmark.fetch((Bookmark.name == bmdoc.name,), exists=False)
+            if bm:
+                ctx.note("Name already exists for other location: %r at %r vs %r",
+                        bmdoc.name, bmdoc.href, bmdoc.href )
+                continue
+            bm = Bookmark.forge(dict(location=lctr, **bmdoc), g, sa=sa)
+
+        if not bm.update_from(bmdoc, location=lctr):
+            if g.verbose > 2:
+                ctx.note("No-op: %s", bmdoc.href)
+            continue
+
+        c += 1
+        if not g.dry_run:
+            sa.add(bm)
+        if not g.quiet:
+            ctx.note(bmdoc.href)
+
+        if g.auto_commit and c and c % g.auto_commit == 0:
+            if g.verbose > 1:
+                ctx.note("Auto-commit at %i of %i", c, total_docs)
+            sa.commit()
+
+    if g.commit:
+        sa.commit()
+
+
+def cmd__couch_sql(NAME, opts, g):
+
+    """
+    Update CouchDB bookmark-type documents from SQL.
+    """
+
+    global ctx
+    total_docs = len(ctx.docs)
+    c, i = 0, 0
+
+    # Get records to sync
+    rs = ctx.get_records(Bookmark, name=NAME)
+    if not rs:
+        log.stdout("{yellow}Nothing found{default}")
+        if g.strict:
+            return 1
+        return
+    total_records = len(rs)
+    ctx.note('Going to sync %i SQL records to %s...', total_records, ctx.couch[1])
+
+    n, u, e = 0, 0, 0
+    for r in rs:
+        d = r.to_doc()
+        i += 1
+        _id = d.id
+
+        map_id = d.href in ctx.docs
+        if map_id:
+            e += 1
+            log.stderr("HREF %s", d.href)
+            continue
+
+        if _id not in ctx.docs:
+
+            # New entry
+            if not g.dry_run:
+                d.store(ctx.docs)
+            n += 1
+            ctx.note('new %s', d.href)
+
+        else:
+            bm = bookmark.Bookmark.load(ctx.docs, _id)
+            updated = False
+
+            # NOTE: not doing anything else than bookmarks
+            if bm.type != 'bookmark':
+                log.stderr((
+                    "Document {0} exists but is not of required type: {1}".format(
+                    href, bm['type'])))
+                continue
+
+            # We can stop right there.
+            if r.deleted:
+                if bm.deleted:
+                    continue
+                bm.deleted = true
+                bm.date_deleted = r.date_deleted
+                # Soft delete, for archival/cleanup by someone else.
+                continue
+
+            # Check on update time to things speed up
+            if g.clear_unknown_keys:
+                c_dt = iso8601_datetime_format(bm.date_updated)
+                if c_dt >= r.date_updated:
+                    continue
+
+            # Delete missing keys
+            #if g.clear_unknown_keys:
+            #    for k in bm.keys():
+            #        if k in [ '_rev', '_id', 'type' ]:
+            #            continue
+            #        if k not in d:
+            #            del bm[k]
+            #            updated = True
+
+            #if r.update_from(bm)
+            #raise NotImplementedError
+            # Set new or changed values
+            for k in d.keys():
+              if k not in bm or bm[k] != d[k]:
+                  print(k, d[k], bm[k])
+                  bm[k] = d[k]
+                  updated = True
+
+            if updated:
+                # XXX: should I take now? rather not increment on non-descr changes
+                bm['date_updated'] = r.date_updated
+                if not g.dry_run:
+                    bm.store(ctx.docs)
+                u += 1
+                if g.verbose:
+                    print('updated %s' % href)
+
+        if u:
+            ctx.note("Updated doc-from-record %i, at %i from %i...", u, i, total_records, num=u)
+        elif i:
+            ctx.note("No doc-from-record changes at %i from %i...", i, total_records, num=i)
+
+    ctx.note('%i new', n)
+    ctx.note('%i updated', u)
+
+
+def cmd__couch_update(g):
+
+    """
+    Update couchdb, preping data and fixing common errors before doing actual
+    syncs. Fixes are controlled through flags.
+
+    Unless no-db is on, an initial second run is done using all records from
+    SQL. This allows to fix records using data from SQL.
+    """
+
+    global ctx
+    total_docs = len(ctx.docs)
+    # doc num, record num, updated from SQL, updated, skip
+    d, i, c, u, e = 0, 0, 0, 0, 0
+
+    if not g.no_db:
+        # Starting with records from SQL, check every one with couch
+        rs = ctx.get_records(Bookmark)
+        if not rs:
+            log.stdout("{yellow}Nothing found{default}")
+            if g.strict:
+                return 1
+            return
+        total_records = len(rs)
+        ctx.note('Going to sync %i SQL records to %s...', total_records, ctx.couch[1])
+
+        for r in rs:
+            i += 1
+
+            ### Fix document, or skip further updates by continueing to next doc
+
+            # ID rename cleanup
+            if g.update_hrefids:
+                map_id = r.href in ctx.docs
+                if map_id:
+                    u += 1
+                    doc = r.to_doc()
+                    _id = doc.id
+                    if not g.dry_run:
+                        del ctx.docs[doc.href]
+                        assert doc.href not in ctx.docs, doc.href
+                        doc.store(ctx.docs)
+                    log.stderr("Renamed href at %i to %s", i, _id)
+                    continue
+
+            if g.update_tagstype:
+                _id = Bookmark.keyid(r.href)
+                doc = ctx.docs[_id]
+                if 'tags' in doc and isinstance(doc['tags'], list):
+                    tags_split_from_string_error = None
+                    for t in doc['tags']:
+                        if len(t) == 1:
+                            tags_split_from_string_error = True
+                        if len(t) != 1:
+                            tags_split_from_string_error = False
+                    if tags_split_from_string_error:
+                        u += 1
+                        tags = "".join(doc['tags'])
+                        doc['tag_list'] = tags.split(', ')
+                        del doc['tags']
+                        ctx.docs[doc.id] = doc
+
+                elif 'tags' in doc:
+                    u += 1
+                    tags = doc['tags']
+                    assert isinstance(tags, basestring), tags
+                    assert ', ' in tags, tags
+                    doc['tag_list'] = tags.split(', ')
+                    del doc['tags']
+                    ctx.docs[doc.id] = doc
+
+            # TODO: other generic SQL-to-Couch updates here
+            if u:
+                ctx.note("Updated doc-from-record %i, at %i from %i...", u, i, total_records, num=u)
+            elif i:
+                ctx.note("No doc-from-record changes at %i from %i...", i, total_records, num=i)
+
+    if c:
+        ctx.note("Updated %i from %i", c, total_records)
+    else:
+        ctx.note("Nothing to do for %i SQL records", total_records)
+
+
+    # Now loop over ID's from database again
+    log.std("Checking %i docs..", total_docs)
+    for idref in ctx.docs:
+        d += 1
+        doc = ctx.docs[idref]
+
+        ### Fix document, or skip further updates by continueing to next doc
+
+
+        # ID rename cleanup
+        if idref == doc['href']:
+            if not g.update_hrefids:
+                e += 1
+                continue
+            c += 1
+            bm = bookmark.Bookmark.load(ctx.docs, idref)
+            bm.id = bookmark.Bookmark.key(bm)
+            if not g.dry_run:
+                bm.store(ctx.docs)
+        assert not doc['href'] in ctx.docs, doc['href']
+
+
+        # Migrate tags
+        if 'tags' in doc:
+            if not g.update_tagstype:
+                e += 1
+                continue
+            c += 1
+            bm = bookmark.Bookmark.load(ctx.docs, idref)
+
+            if g.verbose > 1:
+                print(idref, doc['href'], bm.date_added )
+
+            if isinstance(doc['tags'], list):
+                bm.tag_list = bm.tags
+                assert isinstance(bm.tags, list)
+
+            else:
+                assert ', ' in bm.tags
+                bm.tag_list = bm.tags.split(', ')
+
+            del bm['tags']
+            if not g.dry_run:
+                #del ctx.docs[idref]
+                bm.store(ctx.docs)
+
+
+        if c:
+            ctx.note("Updated %i, at %i from %i...", d, i, total_docs, num=c)
+        else:
+            ctx.note("Nothing to do at %i from %i...", i, total_docs, num=i)
+
+    if c:
+        ctx.note("Updated %i from %i", d, total_docs)
+    else:
+        ctx.note("Nothing to do for %i documents", total_docs)
 
 
 """
@@ -1110,33 +1329,69 @@ Also google/firefox bookmarks, chrome outliner.
 from shaarli_client.client import ShaarliV1Client, InvalidEndpointParameters
 
 
-def cmd_shaarli_update(settings):
+def cmd__shaarli_update(g):
     """
-    Update SQL DB Bookmark records from Shaarli.
-    """
-
-def cmd_shaarli_sync(NAME, opts, settings):
-    """
-    Update Shaarli bookmark-type documents from SQL.
+    TODO: Update SQL DB Bookmark records from Shaarli.
     """
 
+def cmd__shaarli_sync(NAME, opts, g):
+    """
+    TODO: Update Shaarli bookmark-type documents from SQL.
+    """
 
-### Transform cmd_ function names to nested dict
 
-commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = libcmd_docopt.cmd_help
+### Transform cmd__ function names to nested dict
+
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd__')
+commands.update(dict(
+        help = libcmd_docopt.cmd_help,
+        memdebug = libcmd_docopt.cmd_memdebug,
+        info = db_sa.cmd_info,
+        init = db_sa.cmd_init,
+        clear = db_sa.cmd_reset
+))
+
 
 ### Util functions to run above functions from cmdline
+
+def defaults(opts, init={}):
+    global cmd_default_settings, ctx
+    libcmd_docopt.defaults(opts)
+    opts.flags.update(cmd_default_settings)
+    ctx.settings.update(opts.flags)
+    opts.flags.update(ctx.settings)
+    opts.flags.update(dict(
+        commit = not opts.flags.no_commit and not opts.flags.dry_run,
+        verbose = opts.flags.quiet and opts.flags.verbose or 1,
+    ))
+    if not opts.flags.interactive:
+        if os.isatty(sys.stdout.fileno()) and os.isatty(sys.stdout.fileno()):
+            opts.flags.interactive = True
+    opts.flags.update(dict(
+        partial_match = not opts.flags.exact_match,
+        auto_commit = not opts.flags.no_commit and opts.flags.auto_commit,
+        dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
+    ))
+    if opts.flags.interval:
+        opts.flags.interval = int(opts.flags.interval)
+    if opts.flags.auto_commit:
+        opts.flags.auto_commit = int(opts.flags.auto_commit)
+    return init
 
 def main(opts):
 
     """
     Execute using docopt-mpe options.
     """
+    global ctx, commands
 
-    settings = opts.flags
-    opts.flags.commit = not opts.flags.no_commit
-    opts.flags.verbose = not opts.flags.quiet
+    ws = Homedir.require()
+    ws.yamldoc('bmsync', defaults=dict(
+            last_sync=None
+        ))
+    ctx.ws = ws
+    ctx.settings = settings = opts.flags
+    ctx.init()
     return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
@@ -1144,22 +1399,18 @@ def get_version():
 
 
 if __name__ == '__main__':
-    import sys
     reload(sys)
     sys.setdefaultencoding('utf-8')
-    # TODO : vdir = Volumedir.find()
+    usage = __description__ +'\n\n'+ __short_description__ +'\n'+ \
+            libcmd_docopt.static_vars_from_env(__usage__,
+        ( 'BM_DB', __db__ ),
+        ( 'COUCH_DB', __couch__ ) )
 
-    db = os.getenv( 'BOOKMARKS_DB', __db__ )
-    if db is not __db__:
-        __usage__ = __usage__.replace(__db__, db)
+    db_sa.schema = sys.modules['__main__']
+    db_sa.metadata = SqlBase.metadata
 
-    couch = os.getenv( 'COUCH_DB', __couch__ )
-    if couch is not __couch__:
-        __usage__ = __usage__.replace(__couch__, couch)
-
-    opts = libcmd_docopt.get_opts(__doc__ + __usage__, version=get_version())
-    opts.stderr = sys.stderr
-    opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
+    opts = libcmd_docopt.get_opts(usage,
+            version=get_version(), defaults=defaults)
     # TODO: mask secrets
     #log.std("Connecting to %s", opts.flags.dbref)
     #log.std("Connecting to %s", opts.flags.couch)

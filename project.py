@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-"""project -
-:created: 2014-02-26
-:updated: 2015-06-30
+"""
+:Created: 2014-02-26
 """
 from __future__ import print_function
 
 __version__ = '0.0.4-dev' # script-mpe
+__description__ = "project - ..."
 __db__ = '~/.taxus-code.sqlite'
 __usage__ = """
 
@@ -13,6 +13,7 @@ Usage:
   project.py [options] ( find <ref>...
                        | info [ <ref>... ]
                        | init [ -p... ]
+                       | stats [ --update-fileext-freq ] [ --no-update ]
                        | list
                        | new -p...
                        | update -p... <ref> )
@@ -24,11 +25,14 @@ Usage:
 TODO: <ref> would be an ID, name or path of a project
 
 Options:
+    -f FILE, --file FILE
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
     -p --props=NAME=VALUE
                   Give additional properties for new records or record updates.
     -y --yes      Force questions asked to yes.
+    --no-update
+    --update-fileext-freq
     -v            Increase verbosity.
     -h --help     Show this usage description.
                   For a command and argument description use the command 'help'.
@@ -37,17 +41,19 @@ Options:
 """ % ( __db__, __version__ )
 __doc__ += __usage__
 
+from pprint import pprint
 import os
 import re
 from datetime import datetime
 
-import rsr
-import libcmd_docopt
-import log
-from libcmd_docopt import cmd_help
-from taxus import ScriptMixin, SqlBase, get_session
-from taxus.v0 import Node, Topic, Host, Project, VersionControl
-from res import Workdir, Repo
+from script_mpe import rsr
+from script_mpe import libcmd_docopt
+from script_mpe import log
+from script_mpe.confparse import yaml_load, yaml_dump, yaml_dumps
+from script_mpe.libcmd_docopt import cmd_help
+from script_mpe.taxus import ScriptMixin, SqlBase, get_session
+from script_mpe.taxus.v0 import Node, Topic, Host, Project, VersionControl
+from script_mpe.res import Workspace, Workdir, Repo
 
 
 models = [ Project, VersionControl ]
@@ -62,6 +68,7 @@ def cmd_db_init(settings):
     SqlBase.metadata.create_all()
     print("Updated schema", settings.dbref)
 
+
 def cmd_db_reset(settings):
     """
     Drop all tables and recreate schema.
@@ -75,6 +82,7 @@ def cmd_db_reset(settings):
     SqlBase.metadata.create_all()
     print("Done", settings.dbref)
 
+
 def cmd_db_stats(settings):
     """
     Print table record stats.
@@ -84,6 +92,7 @@ def cmd_db_stats(settings):
         print(m.__name__+':', sa.query(m).count())
     print("Done", settings.dbref)
 
+
 def cmd_find(settings):
     """
     Default command. TODO: res.ws.Workdir.
@@ -91,6 +100,7 @@ def cmd_find(settings):
     #sa = get_session(settings.dbref)
     project = Workdir.find()
     print(project)
+
 
 def cmd_info(settings):
     sa = Project.get_session('default', settings.dbref)
@@ -115,12 +125,12 @@ def cmd_info(settings):
 
 
 def cmd_init(settings):
-    sa = Workspace.get_session('project', __version__)
+    #sa = Workspace.get_session('project', __version__)
     sa = Project.get_session('default', settings.dbref)
     #sa = get_session(settings.dbref)
     pwd = os.getcwd()
     name = os.path.basename(pwd)
-    projdir = Workdir.find(pwd)
+    projdir = Workdir.fetch(pwd)
     rs = Project.search(name=name)
     if projdir:
         if not rs:
@@ -147,16 +157,58 @@ def cmd_init(settings):
     projdir.init(create=True)
     log.std("Created project", name, projdir.metadir_id)
 
+
 def cmd_new():
     print('TODO: project-new')
+
 
 def cmd_update():
     print('TODO: project-update')
 
-def cmd_list(settings):
-    sa = Project.get_session('default', settings.dbref)
+
+def cmd_list(g):
+    sa = Project.get_session('default', g.dbref)
     for p in sa.query(Project).all():
         print(p)
+
+
+def cmd_stats(g):
+    """
+    Show latest statistics, or generate new and print.
+
+    Stats are kept in a YAML doc, in a metadir.
+    """
+    repo = Repo.fetch()
+
+    doc, statsdoc = None, None
+    if not g.file:
+        ws = Workdir.fetch()
+        if ws:
+            ws.yamldoc('stats')
+            statsdoc = ws.statsdoc
+            log.stderr("Loaded doc %r" % statsdoc)
+        else:
+            log.stderr("No workspace, no stats doc")
+
+    prefix = ws.relpath()
+
+    if g.update_fileext_freq:
+        fe = repo.filetype_histogram().items()
+        fe.sort(lambda x, y: cmp(x[1], y[1]))
+        #fe.reverse()
+        d = dict( date=datetime.now(), data=dict(fe))
+        pprint(d)
+        if doc:
+            if prefix not in doc['stats']:
+                doc['stats'][prefix] = {}
+            if 'fileext-freq' not in doc['stats'][prefix]:
+                doc['stats'][prefix]['fileext-freq'] = dict(log=[], last={})
+            doc['stats'][prefix]['fileext-freq']['last'] = d
+            doc['stats'][prefix]['fileext-freq']['log'].append(d)
+
+    if doc is not None and not g.no_update:
+        yaml_dumps(doc, stream=open(statsdoc, 'w+'), default_flow_style=True)
+        log.stderr("Dumped doc %r" % statsdoc)
 
 
 
@@ -169,7 +221,7 @@ commands['help'] = libcmd_docopt.cmd_help
 ### Util functions to run above functions from cmdline
 
 def defaults(opts, init={}):
-    libcmd_docopt.defaults(opts.flags)
+    libcmd_docopt.defaults(opts)
     return init
 
 def main(opts):

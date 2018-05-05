@@ -533,7 +533,8 @@ diskdoc_main()
           diskdoc_default=status \
           func_exists= \
           func= \
-          sock= \
+          main_bg=diskdoc__meta \
+          main_sock= \
           c=0
 
 				export SCRIPTPATH=$scriptpath
@@ -559,8 +560,8 @@ diskdoc_main()
 diskdoc_init()
 {
   local __load_lib=1
-  . $scriptpath/box.init.sh
-  lib_load box main
+  . $scriptpath/tools/sh/box.env.sh
+  lib_load box main src
   box_run_sh_test
   #while test $# -gt 0
   #do
@@ -620,7 +621,7 @@ diskdoc_load()
 
         test -e "$diskdoc" || error "No projects file $diskdoc" 1
         p="$(realpath $diskdoc | sed 's/[^A-Za-z0-9_-]/-/g' | tr -s '_' '-')"
-        sock=/tmp/diskdoc-$p-serv.sock
+        main_sock=/tmp/diskdoc-$p-serv.sock
         ;;
 
       f )
@@ -634,8 +635,8 @@ diskdoc_load()
         ;;
 
       b )
-        # run metadata server in background for subcmd
-        diskdoc_meta_bg_setup
+          # run metadata server in background for subcmd
+          box_bg_setup
         ;;
 
     esac
@@ -662,9 +663,9 @@ diskdoc_unload()
   for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
   do case "$x" in
       y )
-          test -z "$sock" || {
-            diskdoc_meta_bg_teardown
-            unset bgd sock
+          test -z "$main_sock" || {
+            box_bg_teardown
+            unset bgd main_sock
           }
         ;;
       f )

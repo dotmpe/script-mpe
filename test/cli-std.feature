@@ -17,9 +17,9 @@ Feature: a std. CLI tool
     Then `output` contains the pattern "script-mpe\/[0-9A-Za-z\._-]*"
     And `status` should be '0'
 
+  # FIXME: not all commands handle --version, or -h
   Examples:
       | cmd              |
-      # FIXME: not all commands handle --version 
       #| box.sh           |
       #| box-instance.sh  |
       #| disk.sh          |
@@ -39,6 +39,7 @@ Feature: a std. CLI tool
       #| twitter.sh       |
       #| vagrant-sh.sh    |
       | vc.sh            | 
+      | x-test.sh            | 
 
 
   Scenario Outline: prints usage help
@@ -72,6 +73,7 @@ Feature: a std. CLI tool
       | topics.sh        | 
       | vagrant-sh.sh    |
       #| vc.sh            | 
+      | x-test.sh            | 
 
 
   Scenario Outline: handles "no such command" situations
@@ -101,5 +103,5 @@ Feature: a std. CLI tool
       | twitter.sh       |
       | vagrant-sh.sh    |
       | vc.sh            |
-
+      | x-test.sh        | 
 

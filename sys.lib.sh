@@ -3,16 +3,26 @@
 # Sys: lower level Sh helpers; dealing with vars, functions, env and other shell
 # ideosyncracities
 
-set -e
-
 
 
 sys_lib_load()
 {
+  _14MB=14680064
+  _6MB=7397376
+  _5k=5120
+
+  #test -n "$MIN_SIZE" || MIN_SIZE=1
+  test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
+
+  test -n "$uname" || export uname="$(uname -s)"
+  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  test -n "$architecture" || architecture="$(uname -p)"
+  test -n "$machine_hw" || machine_hw="$(uname -m)"
+
   test -n "$SCR_SYS_SH" ||  {
     test -n "$SHELL" &&
-    SCR_SYS_SH="$(basename "$SHELL")" ||
-    SCR_SYS_SH=bash
+        SCR_SYS_SH="$(basename "$SHELL")" ||
+        SCR_SYS_SH=bash
   }
 
   test -n "$TMPDIR" && {
@@ -25,7 +35,7 @@ sys_lib_load()
   } || {
     test -d /tmp || error "No /tmp" 1
     export TMPDIR=/tmp
-    sh $scriptpath/std.lib.sh info "TMPDIR=$TMPDIR (should be in shell profile)"
+    $LOG info "$scriptname" "TMPDIR=$TMPDIR (should be in shell profile)" >&2
   }
 }
 
@@ -38,24 +48,24 @@ require_fs_casematch()
   }
   test -e ".fs-casematch" || {
     test -e ".fs-nocasematch" && {
-      sh $scriptpath/std.lib.sh warn "Case-insensitive fs '$1' detected!"
+      $LOG warn "$scriptname" "Case-insensitive fs '$1' detected!" >&2
     } || {
 
       echo 'ok' > abc
       echo 'notok' > ABC
       test "$(echo $( cat abc ABC))" = "ok notok" && {
-        sh $scriptpath/std.lib.sh debug "Case-sensitive fs '$1' OK"
+        $LOG debug "$scriptname" "Case-sensitive fs '$1' OK" >&2
         rm abc ABC || noop
         touch .fs-casematch
       } || {
         test "$(echo $( cat abc ABC))" = "notok notok" && {
           rm abc || noop
-          sh $scriptpath/std.lib.sh warn "Case-insensitive fs '$1' detected!"
+          $LOG warn "$scriptname" "Case-insensitive fs '$1' detected!" >&2
           touch .fs-nocasematch
         } || {
           rm abc ABC || noop
           cd "$CWD"
-          sh $scriptpath/std.lib.sh error "Unknown error" 1
+          $LOG error "$scriptname" "Unknown error" 1 >&2
         }
       }
     }
@@ -97,10 +107,10 @@ var_isset()
   #   fiddling. Using SCR_SYS_SH=bash-sh to make some frontend exceptions.
   case "$SCR_SYS_SH" in
 
-    bash-sh|sh )
+    bash-sh|sh|zsh )
         # Aside from declare or typeset in newer reincarnations,
         # in posix or modern Bourne mode this seems to work best:
-        ( set | grep -q '\<'$1'=' ) || return 1
+        ( set | grep -q '\<'"$1"'=' ) || return 1
       ;;
 
     bash )
@@ -135,7 +145,7 @@ noop()
   #return # since we're in a function
 }
 
-# Error unless non-empty and true-ish
+# Error unless non-empty and true-ish value
 trueish()
 {
   test -n "$1" || return 1
@@ -148,7 +158,7 @@ trueish()
 }
 
 # No error on empty or value unless matches trueish
-not_trueish()
+not_trueish() # falsish or non-empty, ie. cannot anything other than unset or false
 {
   test -n "$1" || return 0
   trueish "$1" && return 1 || return 0
@@ -167,7 +177,7 @@ falseish()
 }
 
 # Error on empty or other falseish, but not other values
-not_falseish()
+not_falseish() # trueish or nonempty, ie. only be unset or trueish
 {
   test -n "$1" || return 1
   falseish "$1" && return 1 || return 0
@@ -237,16 +247,13 @@ create_ram_disk()
 # setup-tmp [(RAM_)TMPDIR]
 setup_tmpd()
 {
-  test -n "$1" || set -- "$base" "$2"
+  test -n "$1" || set -- "$base-$(get_uuid)" "$2"
+  test -n "$2" -o -z "$RAM_TMPDIR" || set -- "$1" "$RAM_TMPDIR"
+  test -n "$2" -o -z "$TMPDIR" || set -- "$1" "$TMPDIR"
   test -n "$2" || {
-    test -n "$TMPDIR" && set -- "$1" "$TMPDIR" || {
-      test -n "$RAM_TMPDIR" || {
         warn "No RAM tmpdir/No tmpdir settings found"
         test -w "/dev/shm" && RAM_TMPDIR=/dev/shm/tmp
       }
-    }
-    test -n "$RAM_TMPDIR" && set -- "$1" "$RAM_TMPDIR"
-  }
   test -d $2/$1 || mkdir -p $2/$1
   test -n "$2" -a -d "$2" || error "Not a dir: '$2'" 1
   echo "$2/$1"
@@ -265,8 +272,8 @@ setup_tmpf() # [Ext [UUID [TMPDIR]]]
   test -n "$3" || set -- "$1" "$2" "$(setup_tmpd)"
   test -n "$3" -a -d "$3" || error "Not a dir: '$3'" 1
 
-  test -d $(dirname $3/$2$1) \
-    || mkdir -p $(dirname $3/$2$1)
+  test -n "$(dirname $3/$2$1)" -a "$(dirname $3/$2$1)" \
+    || mkdir -p "$(dirname $3/$2$1)"
   echo $3/$2$1
 }
 
@@ -286,6 +293,29 @@ sys_confirm()
   local choice_confirm=
   sys_prompt "$1" choice_confirm
   trueish "$choice_confirm"
+}
+
+# If any of VALUES it not in variable LIST, add it
+assert_list() # LIST VALUES...
+{
+	local to_add= list=$1 items="$(eval echo "\$$1")"
+	shift 1
+	to_add="$( for value in $@;
+		do
+			fnmatch "* $value *" " $items " && continue;
+			echo $value;
+		done )"
+	export $list="$(echo $items $to_add)"
+}
+
+# If ITEM is in items of LIST, add VALUES not already in list
+expand_item() # LIST ITEM VALUES...
+{
+	local to_add= list=$1 item=$2 items="$(eval echo "\$$1")"
+	shift 2
+	fnmatch "* $item *" " $items " && {
+		assert_list $list "$@"
+	} || true
 }
 
 pretty_print_var()
@@ -308,21 +338,63 @@ print_var()
 {
   case "$2" in
     *'"'*|*" "*|*"'"* )
-      printf -- "$1=\"$2\"\n" ;;
+      printf -- '%s\n' "$1=\"$2\"" ;;
     * )
-      printf -- "$1=$2\n" ;;
+      printf -- '%s\n' "$1=$2" ;;
   esac
-  return # XXX
-  printf -- "$2" | grep -Eq "[\ \"\']" && {
-    printf -- "$1=\"$2\"\n"
+}
+
+# Add an entry to PATH, see add-env-path-lookup for solution to other env vars
+add_env_path() # Prepend-Value Append-Value
+{
+  test -e "$1" -o -e "$2" || {
+    echo "No such file or directory '$*'" >&2
+    return 1
+  }
+  test -n "$1" && {
+    case "$PATH" in
+      $1:* | *:$1 | *:$1:* ) ;;
+      * ) export PATH=$1:$PATH ;;
+    esac
   } || {
-    printf -- "$1=$2\n"
+    test -n "$2" && {
+      case "$PATH" in
+        $2:* | *:$2 | *:$2:* ) ;;
+        * ) export PATH=$PATH:$2 ;;
+      esac
+    }
+  }
+  #test "$uname" != "Darwin" || {
+  #  launchctl setenv "$1" "$(eval echo "\$$1")" ||
+  #    echo "Darwin setenv '$1' failed ($?)" >&2
+  #}
+}
+
+# Add an entry to colon-separated paths, ie. PATH, CLASSPATH alike lookup paths
+add_env_path_lookup() # Var-Name Prepend-Value Append-Value
+{
+  local val="$(eval echo "\$$1")"
+  test -e "$2" -o -e "$3" || {
+    echo "No such file or directory '$*'" >&2
+    return 1
+  }
+  test -n "$2" && {
+    case "$val" in
+      $2:* | *:$2 | *:$2:* ) ;;
+      * ) test -n "$val" && export $1=$2:$val || export $1=$2;;
+    esac
+  } || {
+    test -n "$3" && {
+      case "$val" in
+        $3:* | *:$3 | *:$3:* ) ;;
+        * ) test -n "$val" && export $1=$val:$3 || export $1=$3;;
+      esac
+    }
   }
 }
 
-# lookup-paths Lists individual paths in lookup path env var (ie. PATH or CLASSPATH)
-# VAR-NAME
-lookup_path_list()
+# List individual entries/paths in lookup path env-var (ie. PATH or CLASSPATH)
+lookup_path_list() # VAR-NAME
 {
   test -n "$1" || error "lookup-path varname expected" 1
   eval echo \"\$$1\" | tr ':' '\n'
@@ -412,4 +484,10 @@ req_profile() # Name Vars...
     } > "$SCR_ETC/${name}-temp.sh"
     mv "$SCR_ETC/${name}-temp.sh" "$SCR_ETC/$name.sh"
   }
+}
+
+rnd_passwd()
+{
+  test -n "$1" || set -- 11
+  cat /dev/urandom | LC_ALL=ascii tr -cd 'a-z0-9' | head -c $1
 }

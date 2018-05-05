@@ -4,8 +4,8 @@ import re
 
 from nose_parameterized import parameterized
 
-import res
-from res import attrmap
+import script_mpe.res
+from script_mpe.res import attrmap
 
 
 test_data = [
@@ -38,7 +38,7 @@ class AttributeMapWrapperTestCase(unittest.TestCase):
 
 def get_cases():
     return [
-            TodoTestCase
+            AttributeMapWrapperTestCase
         ]
 
 

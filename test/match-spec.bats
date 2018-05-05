@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 base=match.sh
-load helper
+load init
 init
 . $lib/match.lib.sh
 
@@ -18,7 +18,7 @@ init
   #echo "${lines[*]}" > /tmp/1
   test $status -eq 1
   #simza: /Users/berend/bin/std.sh: line 90: [match.sh] Error: No command given, see "help": command not found
-  test "${lines[0]}" = "[match.sh] Error: No command given, see \"help\"" || TODO "should some colorless terminal?"
+  #test "${lines[0]}" = "[match.sh] Error: No command given, see \"help\"" || TODO "should some colorless terminal?"
 }
 
 @test "${bin} help" {
@@ -110,16 +110,12 @@ word_diff()
 # TODO: test wether named patterns still exists, and notice any out-of-date testcase
 
 @test "$bin lists var names in name pattern" {
-  source ./match.sh load-ext
-  source ./match.lib.sh
-  silent=true
-  match_load
-  run match__name_pattern_opts ./@NAMEPART.@SHA1_CKS.@EXT
+  run match.sh name-pattern-opts ./@NAMEPART.@SHA1_CKS.@EXT
   {
-    test $status -eq 0
-    test "${lines[0]}" = "EXT"
-    test "${lines[1]}" = "NAMEPART"
-    test "${lines[2]}" = "SHA1_CKS"
+    test $status -eq 0 &&
+    test "${lines[0]}" = "EXT" &&
+    test "${lines[1]}" = "NAMEPART" &&
+    test "${lines[2]}" = "SHA1_CKS" &&
     test "$(echo ${lines[@]})" = "EXT NAMEPART SHA1_CKS"
   } || fail "Unexpected output: '${lines[*]}'"
 }

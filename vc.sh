@@ -69,7 +69,7 @@ vc__commands()
   echo 'File Patterns'
   echo '  excludes           Patterns to paths kept out of version control '
   echo '                     (unversioned-files [uf]). '
-  echo '  temp-patterns      Patterns to excluded files that will be '
+  echo '  temp-patterns      Patterns to excluded files that will or need to be '
   echo '                     regenerated if removed . '
   echo '  cleanables         Patterns to excluded files that can be cleaned '
   echo '                     but are required while the checkout exists. '
@@ -119,17 +119,25 @@ vc__help()
     echo "  $scriptname ps1"
     echo
     echo "Tokens:"
-    echo "  *      modified"
-    echo "  +      stage"
-    echo "  $      stash"
-    echo "  ~      untracked"
-    echo "  #      no HEAD"
-    echo "  GIT_DIR!:  "
-    echo "  BARE:  "
+    echo "      *     modified"
+    echo "      +     stage"
+    echo "      $     stash"
+    echo "      ~     untracked"
+    echo "      #     no HEAD"
+    echo "   DIR!:    inside checkout metafolder"
+    echo "   BARE:    inside bare repository"
     echo ''
     vc__docs
   } || {
-    echo_help $1
+
+    echo_help $1 || {
+      for func_id in "$1" "${base}__$1" "$base-$1"
+      do
+          htd_function_comment $func_id 2>/dev/null || continue
+          htd_function_help $func_id 2>/dev/null && return 1
+      done
+      error "Got nothing on '$1'" 1
+    }
   }
 }
 
@@ -153,24 +161,15 @@ vc__edit()
   [ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
   [ -n "$fn" ] || fn=$(which $scriptname.sh)
   [ -n "$fn" ] || error "Nothing to edit" 1
-  $EDITOR $fn
+  ( __load_lib= $EDITOR $fn )
 }
 vc___e() { vc__edit; }
 
 
-### Internal functions
-
-homepath()
-{
-    test -n "$1" || exit 212
-    test -n "$HOME" || exit 213
-  # Bash, BSD Sh?
-    str_replace_start "$1" "$HOME" "~"
-}
 
 # Vars legenda:
 #
-# __vc_git_flags : cbwisur
+# vc_flags_git : cbwisur
 # c: ''|'BARE:'
 # b: branchname
 # w: '*'
@@ -196,127 +195,11 @@ __vc_git_codir()
   dirname "$git"
 }
 
-# __vc_git_flags accepts 0 or 1 arguments (i.e., format string)
-# returns text to add to bash PS1 prompt (includes branch name)
-__vc_git_flags()
+
+vc__type()
 {
-  test -n "$1" || set -- "$(pwd)"
-  g="$(vc_gitdir "$1")"
-  if [ -e "$g" ]
-  then
-    test "$(echo $g/refs/heads/*)" != "$g/refs/heads/*" || {
-      echo "(git:unborn)"
-      return
-    }
-    cd $1
-    local r
-    local b
-    if [ -f "$g/rebase-merge/interactive" ]; then
-      r="|REBASE-i"
-      b="$(cat "$g/rebase-merge/head-name")"
-    elif [ -d "$g/rebase-merge" ]; then
-      r="|REBASE-m"
-      b="$(cat "$g/rebase-merge/head-name")"
-    else
-      if [ -d "$g/rebase-apply" ]; then
-        if [ -f "$g/rebase-apply/rebasing" ]; then
-          r="|REBASE"
-        elif [ -f "$g/rebase-apply/applying" ]; then
-          r="|AM"
-        else
-          r="|AM/REBASE"
-        fi
-      elif [ -f "$g/MERGE_HEAD" ]; then
-        r="|MERGING"
-      elif [ -f "$g/BISECT_LOG" ]; then
-        r="|BISECTING"
-      fi
-
-      b="$(git symbolic-ref HEAD 2>/dev/null)" || {
-
-        b="$(
-        case "${GIT_PS1_DESCRIBE_STYLE-}" in
-        (contains)
-          git describe --contains HEAD ;;
-        (branch)
-          git describe --contains --all HEAD ;;
-        (describe)
-          git describe HEAD ;;
-        (* | default)
-          git describe --exact-match HEAD ;;
-        esac 2>/dev/null)" ||
-
-        b="$(cut -c1-11 "$g/HEAD" 2>/dev/null)" || b="unknown"
-        # XXX b="($b)"
-      }
-    fi
-
-    local w= i= s= u= c=
-
-    if [ "true" = "$(git rev-parse --is-inside-git-dir 2>/dev/null)" ]; then
-      if [ "true" = "$(git rev-parse --is-bare-repository 2>/dev/null)" ]; then
-        c="BARE:"
-      else
-        b="GIT_DIR!"
-      fi
-    elif [ "true" = "$(git rev-parse --is-inside-work-tree 2>/dev/null)" ]; then
-      if [ -n "${GIT_PS1_SHOWDIRTYSTATE-}" ]; then
-
-        if [ "$(git config --bool bash.showDirtyState)" != "false" ]; then
-
-          git diff --no-ext-diff --ignore-submodules \
-            --quiet --exit-code || w='*'
-
-          if git rev-parse --quiet --verify HEAD >/dev/null; then
-
-            git diff-index --cached --quiet \
-              --ignore-submodules HEAD -- || i="+"
-          else
-            i="#"
-          fi
-        fi
-      fi
-      if [ -n "${GIT_PS1_SHOWSTASHSTATE-}" ]; then
-        git rev-parse --verify refs/stash >/dev/null 2>&1 && s="$"
-      fi
-
-      if [ -n "${GIT_PS1_SHOWUNTRACKEDFILES-}" ]; then
-        if [ -n "$(git ls-files --others --exclude-standard)" ]; then
-          u="~"
-        fi
-      fi
-    fi
-
-    repotype="$c"
-    branch="${b##refs/heads/}"
-    modified="$w"
-    staged="$i"
-    stashed="$s"
-    untracked="$u"
-    state="$r"
-
-    x=
-    rg=$g
-    test -f "$g" && {
-      g=$(dirname $g)/$(cat .git | cut -d ' ' -f 2)
-    }
-
-    # TODO: move to extended escription cmd
-    #x="; $(git count-objects -H | sed 's/objects/obj/' )"
-
-    if [ -d $g/annex ]; then
-      #x="$x; annex: $(echo $(du -hs $g/annex/objects|cut -f1)))"
-      x="$x annex"
-    fi
-
-    if [ -n "${2-}" ]; then
-      printf "$2" "$c${b##refs/heads/}$w$i$s$u$r$x"
-    else
-      printf "(%s)" "$c${b##refs/heads/}$w$i$s$u$r$x"
-    fi
-
-    cd "$cwd"
-  fi
+  vc_getscm || return $?
+  echo $scm
 }
 
 # Switch the version control system detected for the current directory.
@@ -339,7 +222,7 @@ __vc_status()
   local pwd="$(pwd)"
 
   realcwd="$(cd "$1"; pwd -P)"
-  short="$(homepath "$1")"
+  short="$(realpath "$1")"
   test -n "$short" || err "homepath" 1
 
   local git="$(vc_gitdir "$realcwd")"
@@ -347,7 +230,7 @@ __vc_status()
 
   if [ -n "$git" ]; then
 
-    test "$(echo $git/refs/heads/*)" != "$git/refs/heads/*" || {
+    vc_git_initialized "$git" || {
       echo "$realcwd (git:unborn)"
       return
     }
@@ -369,7 +252,7 @@ __vc_status()
     }
 
     short="${short%$sub}"
-    echo "$short" $(__vc_git_flags $realcwd "[git:%s $rev]")$sub
+    echo "$short" $(vc_flags_git "$realcwd" "[git:%s%s%s%s%s%s%s%s $rev]")"$sub"
 
   else if [ -n "$bzr" ]; then
     #if [ "$bzr" = "." ];then bzr="./"; fi
@@ -406,12 +289,12 @@ __vc_screen ()
   test -n "$1" || set -- "$(pwd)"
 
   realcwd="$(pwd -P)"
-  short=$(homepath "$1")
+  short=$(realpath "$1")
 
   local git=$(vc_gitdir "$1")
   if [ "$git" ]; then
 
-    test "$(echo $git/refs/heads/*)" != "$git/refs/heads/*" || {
+    vc_git_initialized "$git" || {
       echo "$realcwd (git:unborn)"
       return
     }
@@ -425,7 +308,7 @@ __vc_screen ()
       realgit="$(basename "$realgitdir")"
       sub="${realcwd##$realgit}"
     }
-    echo $(basename "$realcwd") $(__vc_git_flags $git "[git:%s $rev]")
+    echo $(basename "$realcwd") $(vc_flags_git "$git" "[git:%s%s%s%s%s%s%s%s $rev]")
   else
     echo "$short"
   fi
@@ -621,11 +504,18 @@ vc__ls_errors()
 vc_run__stat=f
 vc__stat()
 {
-  test -n "$1" || set -- .
-  __vc_status "$1" || return $?
+  test -n "$1" || set -- . "$2"
+  test -n "$2" || set -- "$1" "%s%s%s%s%s%s%s%s"
+  local scm= scmdir=
+  vc_getscm "$1"
+  vc_flags_${scm} "$@" || return $?
 }
 # TODO: alias
-vc_als__status=stat
+#vc_als__status=stat
+vc__st()
+{
+  vc__stat "$@"
+}
 vc__status()
 {
   vc__stat "$@"
@@ -644,16 +534,16 @@ vc__flags()
   scmdir="$(basename "$(vc_scmdir "$1")")"
   case "$scmdir" in
     .git )
-        echo "$scmdir$(__vc_git_flags "$1" || return $?)"
+        echo "$scmdir$(vc_flags_git "$1" || return $?)"
       ;;
     .bzr )
-        echo "$scmdir$(__vc_bzr_flags "$1" || return $?)"
+        echo "$scmdir$(vc_flags_bzr "$1" || return $?)"
       ;;
     .svn )
-        echo "$scmdir$(__vc_svn_flags "$1" || return $?)"
+        echo "$scmdir$(vc_flags_svn "$1" || return $?)"
       ;;
     .hg )
-        echo "$scmdir$(__vc_hg_flags "$1" || return $?)"
+        echo "$scmdir$(vc_flags_hg "$1" || return $?)"
       ;;
     * )
         error "$scmdir" 1
@@ -694,8 +584,8 @@ vc__mtime()
 
   # Return highest mtime
   (
-    filemtime $1/index
-    filemtime $1/HEAD
+    filemtime "$1"/index
+    filemtime "$1"/HEAD
   ) \
     | awk '$0>x{x=$0};END{print x}'
 }
@@ -714,7 +604,7 @@ vc__flush()
 # print all fuctions/results for paths in arguments
 vc__print_all()
 {
-  for path in $@
+  for path in "$@"
   do
     [ ! -e "$path" ] && continue
     echo vc-status[$path]=\"$(__vc_status "$path")\"
@@ -730,10 +620,10 @@ vc__prompt_command()
 
   # cache response in file
   pwdref="$(echo "$1" | tr '/' '-' )"
-  cache="$(statusdir.sh assert-dir vc prompt-command $pwdref)"
+  cache="$(statusdir.sh assert-dir vc prompt-command "$pwdref")"
 
-  test ! -e "$cache" -o $1/.git -nt "$cache" && {
-    __vc_status $1 > "$cache"
+  test ! -e "$cache" -o "$1"/.git -nt "$cache" && {
+    __vc_status "$1" > "$cache"
   }
 
   cat "$cache"
@@ -749,7 +639,8 @@ vc__list_submodules()
 
 vc_man_1__gh="Clone from Github to subdir, adding as submodule if already in checkout. "
 vc_spc__gh="gh <repo> [<prefix>]"
-vc__gh() {
+vc__gh()
+{
   test -n "$1" || error "Need repo name argument" 1
   str_match "$1" "[^/]*" && {
     repo=dotmpe/$1; prefix=$1; } || {
@@ -778,7 +669,7 @@ vc__gh() {
     }
   } || {
     log "Cloning $giturl to $(pwd)/$prefix.."
-    ${git} clone $giturl $prefix
+    ${git} clone "$giturl" "$prefix"
     log "Cloned $giturl to $(pwd)/$prefix"
   }
 }
@@ -787,7 +678,7 @@ vc__largest_objects()
 {
   test -n "$1" || set -- 10
   test -n "$scriptpath" || error scriptpath 1
-  $scriptpath/git-largest-objects.sh $1
+  $scriptpath/git-largest-objects.sh "$1"
 }
 
 # list commits for object sha1
@@ -837,7 +728,10 @@ vc__object_contents()
 
 ## List Exclude Patterns
 
-vc_man_1__excludes="List path ignore patterns"
+vc_man_1__excludes='List path ignore patterns
+
+TODO: see ignores
+'
 vc__excludes()
 {
   # (global) core.excludesfile setting
@@ -873,12 +767,22 @@ vc__cleanables() { eval read_nix_style_file $vc_clean_gl || return $?; }
 vc__cleanables_regex() { globlist_to_regex $vc_clean_gl || return $?; }
 
 
+vc__tracked_files()
+{
+  test -z "$*" || error "unexpected arguments" 1
+
+  local scm= scmdir=
+  vc_getscm || return $?
+  vc_tracked
+}
+
+
 # List unversioned files (including temp, cleanable and any excluded)
 vc__ufx() { vc__untracked_files "$@"; }
 vc__excluded() { vc__untracked_files "$@"; }
 vc__untracked_files()
 {
-  test -z "$1" || error "unexpected arguments" 1
+  test -z "$*" || error "unexpected arguments" 1
 
   local scm= scmdir=
   vc_getscm || return $?
@@ -889,7 +793,7 @@ vc__untracked_files()
 vc__uf() { vc__unversioned_files "$@"; }
 vc__unversioned_files()
 {
-  test -z "$1" || error "unexpected arguments" 1
+  test -z "$*" || error "unexpected arguments" 1
 
   local scm= scmdir=
   vc_getscm || return $?
@@ -936,6 +840,27 @@ vc__unversioned_uncleanable_files()
 #vc_load__ufu=f
 #vc_load__unversioned_uncleanable_files=f
 
+vc__modified() { vc__modified_files ; }
+vc__modified_files()
+{
+  test -z "$*" || error "unexpected arguments" 1
+
+  local scm= scmdir=
+  vc_getscm || return $?
+  vc_modified
+}
+
+vc__staged() { vc__staged_files ; }
+vc__staged_files()
+{
+  test -z "$*" || error "unexpected arguments" 1
+
+  local scm= scmdir=
+  vc_getscm || return $?
+  vc_staged
+}
+
+
 
 # Annex diag.
 vc__annex_unused()
@@ -978,7 +903,7 @@ vc__annex_clear_unused()
       error 'Cancelled' 1
     }
   } || {
-    git annex move --unused --to $1
+    git annex move --unused --to "$1"
   }
 }
 
@@ -1113,31 +1038,46 @@ vc__remotes()
         error "illegal $1" 1;;
     esac
   done
+  # FIXME: vc-remote lib
+  #test -n "$1" || set -- all
+  #vc_getscm "$(pwd)" || return $?
+  #vc_remotes "$(pwd)" "$@"
 }
 
+vc__remote()
+{
+  #test -n "$1" || set -- all
+  vc_getscm "$(pwd)" || return $?
+  vc_remote "$(pwd)" "$@"
+}
+
+vc__branch()
+{
+  local pwd=$(pwd)
+  test -z "$1" || cd "$1"
+  vc_getscm "." || return $?
+  vc_branch
+  test -z "$1" || cd "$pwd"
+}
+
+vc_als__branches=list-local-branches
 vc__list_local_branches()
 {
   local pwd=$(pwd)
   test -z "$1" || cd "$1"
-  # use git output, replace asterix and spaces
-  git show-ref --heads | cut -c53-
+  vc_getscm "." || return $?
+  vc_branches
   test -z "$1" || cd "$pwd"
 }
 
-# instead of git -a sort into unqiue branche names
 vc__list_all_branches()
 {
   local pwd=$(pwd)
   test -z "$1" || cd "$1"
-  # use git output, replace asterix and spaces
-  # NOTE: hardcoded annex branch ignore
-  # And HEAD. Not sure if git-branch has an option to
-  git branch --list -a | \
-    grep -v 'HEAD' | \
-    grep -v 'git-annex\|synced\/.*' | \
-    sed -E 's/\*|[[:space:]]//g' | \
-    sed -E 's/^remotes\/[^\/]*\///g' | \
-    sort -u
+  vc_getscm "." || return $?
+  # Read branches and strip remote/ prefix (GIT only)
+  vc_branches all | sed 's/^'"$vc_rt_def"'\///g' | sort -u
+  #vc_branches all | while read f ; do basename "$f"; done | sort -u
   test -z "$1" || cd "$pwd"
 }
 
@@ -1164,11 +1104,12 @@ vc__branch_refs()
   return $r
 }
 
-# List branches
+# List branches, both local and remote by default
 vc__branches()
 {
-  #git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
-  git for-each-ref --format='%(refname:short)' refs/heads
+  test -n "$1" || set -- all
+  vc_getscm "$(pwd)" || return $?
+  vc_branches "$@"
 }
 
 # Check wether the literal ref exists, ie:
@@ -1189,12 +1130,13 @@ vc__branch_exists()
 
 
 # regenerate .git/info/exclude
-# NOTE: a duplication is happening, but not no recursion, only one. As
+# NOTE: a duplication is happening, but not no recursion, only once. As
 # accumulated patterns (current contents) is unique listed first, and then all
 # items are added again grouped with each source path
 vc__regenerate()
 {
-  local excludes=.git/info/exclude
+  local gitdir="$(vc_gitrepo "$1")"
+  local excludes=$gitdir/info/exclude
 
   test -e $excludes.header || backup_header_comment $excludes
 
@@ -1208,12 +1150,11 @@ vc__regenerate()
   do
     test "$(basename "$x" .regex)" = "$(basename "$x")" || continue
     test -e $x || continue
-    fnmatch "$x: text/*" "$(file --mime $x)" || continue
     echo "# Source: $x" >> $excludes
     read_nix_style_file $x >> $excludes
   done
 
-  note "Local excludes successfully regenerated"
+  note "Local excludes successfully regenerated <$excludes>"
 }
 
 
@@ -1320,12 +1261,97 @@ vc__git_branch_exists()
   return 1
 }
 
-# List branches
-vc__git_branches()
+
+vc__roots()
 {
-  #git branch | awk -F ' +' '! /\(no branch\)/ {print $2}'
-  git for-each-ref --format='%(refname:short)' refs/heads
+  vc_rootcommits
 }
+
+
+vc__epoch()
+{
+  vc_getscm || return $?
+  vc_epoch_$scm
+}
+
+
+vc__age()
+{
+  vc_getscm || return $?
+  vc_age_$scm
+}
+
+
+vc_man_1__checkout='Checkout'
+vc_run__checkout=f
+vc__checkout() # [Branch] [Remote]
+{
+  vc_getscm || return $?
+  test -n "$1" || set -- "$(vc_branch)" "$2"
+  test -n "$2" || set -- "$1" "$vc_rt_def"
+  vc_checkout "$1" || return $?
+}
+
+
+vc_man_1__switch='Checkout with submodule deinit/init'
+vc__switch() # [Branch] [Remote]
+{
+  vc_getscm || return $?
+  test -n "$1" || error "branch expected" 1
+  test "$1" = "$(vc_branch)" && return
+  test -n "$2" || set -- "$1" "$vc_rt_def"
+  {
+      git submodule deinit . &&
+      vc_checkout "$1" &&
+      git submodule update --init --recursive
+  } || return $?
+}
+
+
+vc_man_1__update='Fetch local from remote TODO: use gitflow config'
+vc_run__update=f
+vc__update() # [vc_dir=$scriptpath] checkout [Branch] [Remote] [Action]
+{
+  vc_getscm || return $?
+  test -n "$vc_sync" || vc_sync=0
+  test -d "$vc_dir" && note "Running SCM $act for '$vc_dir'" || error vc-dir 1
+  (
+    test "$(pwd -P)" = "$vc_dir" || cd $vc_dir
+    test -n "$1" || set -- "$(vc_branch)" "$2" "$3"
+    test -n "$2" || set -- "$1" "$vc_rt_def" "$3"
+    test -n "$3" || set -- "$1" "$2" "merge"
+    {
+      vc__checkout "$@" &&
+      #git pull "$2" "$1" || return $?
+      git fetch "$2" "$1" &&
+      git $3 "$2/$1"
+    } || return $?
+    trueish "$vc_sync" && {
+      git push "$2" "$1" || return $?
+    }
+  )
+}
+
+vc_man_1__update_from=''
+vc_run__update_from=f
+vc__update_from() # [Remote] [Branch] [Action]
+{
+  vc_getscm || return $?
+  test -n "$1" || set -- "$1" "$vc_rt_def" "$3"
+  test -n "$2" || set -- "$(vc_branch)" "$2" "$3"
+  test -n "$3" || set -- "$1" "$2" "merge"
+  git fetch "$1" "$2" || return $?
+  git $3 "$1/$2" || return $?
+}
+
+vc_run__abort=f
+vc__abort()
+{
+  test -n "$1" || set -- "merge"
+  git $1 --abort
+}
+
+
 
 # Run over UP/DOWN-stream branchname pairs and show info:
 # - wether branches have diverged
@@ -1375,7 +1401,7 @@ vc__gitflow()
           test $new_at_up -eq 0 ||
             echo "$new_at_up commits '$upstream' -> '$downstream' "
         done
-        for branch in $(vc__git_branches)
+        for branch in $(vc__branches)
         do
           grep -qF "$branch" "$2" ||
             error "Missing gitflow for '$branch'"
@@ -1652,23 +1678,6 @@ vc__conflicts()
 }
 
 
-vc__checkout()
-{
-  test -n "$vc_sync" || vc_sync=0
-  test -d "$vc_dir" && note "Running SCM $act for '$vc_dir'" || error vc-dir 1
-  (
-    test "$(pwd -P)" = "$vc_dir" || cd $vc_dir
-    test -n "$1" || set -- "$(git rev-parse --abbrev-ref HEAD)" "$2"
-    test -n "$2" || set -- "$1" "$vc_rt_def"
-    git checkout "$1" || return $?
-    git pull "$2" "$1" || return $?
-    trueish "$vc_sync" && {
-      git push "$2" "$1" || return $?
-    }
-  )
-}
-
-
 vc_man_1__cleanup_local='Remove local branches not in gitflow'
 vc__cleanup_local()
 {
@@ -1678,6 +1687,9 @@ vc__cleanup_local()
   done
 }
 
+
+vc_man_1__sync='
+'
 vc__sync()
 {
   test -n "$vc_rebase" || vc_rebase=0
@@ -1700,10 +1712,71 @@ vc__sync()
 }
 
 
+vc_man_1__stats='Count files (tracked, untracked, ignored and subgroups)
+'
+vc__stats()
+{
+  test -n "$1" || set -- "." "$2"
+  test -n "$2" || set -- "$1" "  "
+  local scm= scmdir=
+  vc_getscm "$1" || return $?
+  vc_stats "$@"
+}
+
+
+vc__git_annex_list() # remote..
+{
+  vc_git_annex_list $(for remote in "$@"; do printf -- "-i $remote "; done)
+}
+
+
+vc__info()
+{
+  test -n "$1" || set -- "." "$2"
+  test -n "$2" || set -- "$1" "  "
+  local scm= scmdir=
+  vc_getscm "$1" || return $?
+  test -n "$scm" || {
+      note "No checkout at '$1'"
+  }
+  vc_info "$@"
+  note "See help for info on status tokens"
+}
+
+
+vc_man_1__dist='Push commits to all remotes'
+vc__dist()
+{
+  vc__remotes | while read remote url
+  do
+      git push $remote --all
+  done
+}
+
+
+vc_man_1__update_local='Update local branches from remote'
+vc_run__update_local=f
+vc__update_local()
+{
+  vc_getscm || return $?
+  test -n "$1" || set -- "$vc_rt_def"
+  vc_fetch "$1" || return $?
+  local startbranch="$(vc_branch)"
+  for branch in $( vc_branches )
+  do
+      test -n "$branch" || continue ;
+      vc__switch "$branch" &&
+      vc__update_from "$1" "$branch" "rebase" || {
+        vc__abort && touch $failed
+      }
+  done || touch $failed
+  vc__switch $startbranch
+}
+
+# -- vc box insert sentinel --
+
+
 # ----
-
-
-
 
 # Script main functions
 
@@ -1712,25 +1785,22 @@ vc_main()
   # Do something if script invoked as 'vc.sh'
   local scriptname=vc base="$(basename "$0" .sh)" \
     subcmd=$1
-
   case "$base" in $scriptname )
 
         test -n "$scriptpath" || \
-            scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-            pwd=$(pwd -P) ppwd=$(pwd) spwd=.
+            scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
+        pwd="$(pwd -P)" ppwd="$(pwd)" spwd=.
 
         export SCRIPTPATH=$scriptpath
         test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
-        . $scriptpath/util.sh load-ext
+        __load_lib=1 . $scriptpath/util.sh
 
         test -n "$verbosity" || verbosity=5
-
         local func=$(echo vc__$subcmd | tr '-' '_') \
             failed= \
             ext_sh_sub=
 
-        lib_load str match main std stdio sys os src vc
-
+        lib_load str match main std stdio sys os src vc date
         type $func >/dev/null 2>&1 && {
           shift 1
           vc_load || return
@@ -1763,23 +1833,20 @@ vc_main()
 vc_load()
 {
   local __load_lib=1 cwd="$(pwd)"
-
   # FIXME: sh autocompletion
   #. ~/.conf/bash/git-completion.bash
 
   test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
   test -n "$uname" || uname=$(uname)
-
   test -n "$vc_dir" || vc_dir=$scriptpath
+  test -n "$vc_br_def" || vc_br_def=master
   test -n "$vc_rt_def" || vc_rt_def=origin
-
   statusdir.sh assert vc_status > /dev/null || error vc_status 1
-
   gtd="$(vc_gitdir "$cwd")"
 
+  # See ignores.rst for info on Global/Purgeable,Cleanable and Droppable
   test -n "$vc_clean_gl" || {
-    test -e .gitignore-clean \
-      && export vc_clean_gl=.gitignore-clean
+    test -e .gitignore-clean && export vc_clean_gl=.gitignore-clean
     test -e ~/.gitignore-clean-global \
       && export vc_clean_gl="$vc_clean_gl $HOME/.gitignore-clean-global"
   }
@@ -1854,8 +1921,8 @@ vc_unload()
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-    vc_main "$@"
-  ;; esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "$__load_lib" || {
+    vc_main "$@" || exit $?
+  }
 ;; esac

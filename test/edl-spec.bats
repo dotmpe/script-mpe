@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 base=edl
-load helper
+load init
 init
 
 

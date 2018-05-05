@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 base=projectdir.sh
 
 init
@@ -12,15 +12,12 @@ setup()
 
 
 @test "${bin}" "0.1.1.1 default no-args" {
-  case "$(current_test_env)" in
-      travis ) TODO "$BATS_TEST_DESCRIPTION at travis";;
-  esac
   run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 1
+  { test ${status} -eq 1 && fnmatch *"help"* "${lines[*]}"
+  } || stdfail
 }
 
 @test "${bin} help" "0.1.1.2"  {
-  skip "Something wrong with pd/std__help"
 
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
@@ -65,6 +62,8 @@ EOF
 
 
 @test "${bin} show" "" {
+
+  TODO "Fix meta{f,sh,main} basedir; either package checkout or projectdir path."
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 0 || fail "1 Out($status): ${lines[*]}"
@@ -115,9 +114,9 @@ cleanup_tmpd()
 
 @test "${bin} ls-targets check" "Reads .pd-checks" {
 
-  check_skipped_envs boreas || TODO "need to fix Pdoc context"
+  TODO "Fix ls-targets"
 
-  export verbosity=0
+#export verbosity=0
 
   setup_empty_pd
   {
@@ -143,8 +142,8 @@ cleanup_tmpd()
 
 @test "${bin} ls-targets test" "Reads .pd-test, and autodetect test targets" {
 
-  check_skipped_envs boreas || TODO "need to fix Pdoc context"
-  export verbosity=0
+  TODO "Fix ls-targets"
+#  export verbosity=0
 
   setup_empty_pd
   {
@@ -154,12 +153,12 @@ cleanup_tmpd()
   diag "tmpd=$tmpd"
   
   run $BATS_TEST_DESCRIPTION
-  test $status -eq 0 || fail "1 Out($status): ${lines[*]}"
+  {
+    test $status -eq 16 &&
+    test "${lines[8]}" = ":vchk"
+    test ${#lines[@]} -eq 8
+  } || stdfail
 
-  test ${#lines[@]} -eq 1 \
-    || fail "${#lines[@]} Out: ${lines[*]}"
-
-  test "${lines[0]}" = ":vchk"
   rm .pd-test
 
   touch Makefile
@@ -214,8 +213,7 @@ cleanup_tmpd()
 
 @test "${bin} status" "" {
 
-  TODO "need to fix Pdoc context"
-
+  TODO "Consolidate pdocs"
   export verbosity=6
 
   setup_empty_pd

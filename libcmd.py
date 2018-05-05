@@ -1,5 +1,7 @@
-#!/usr/bin/env python
-"""libcmd - a command-line program toolkit based on optparse (XXX: and yaml, zope?)
+"""
+:Created: 2011-06-10
+
+libcmd - a command-line program toolkit based on optparse (XXX: and yaml, zope?)
 
 .. note::
 
@@ -383,6 +385,30 @@ class SimpleCommand(object):
             return optnames, attrs
         return add_option_prefix
 
+    @classmethod
+    def main(Klass, argv=None, optionparser=None, result_adapter=None, default_reporter=None):
+
+        self = Klass()
+        self.globaldict = Values(dict(
+            prog=Values(),
+            opts=Values(),
+            args=[] ))
+
+        self.globaldict.prog.handlers = self.BOOTSTRAP
+        for handler_name in self.resolve_handlers():
+            target = handler_name.replace('_', ':', 1)
+            log.debug("%s.main deferring to %s", lib.cn(self), target)
+            self.execute( handler_name )
+            log.info("%s.main returned from %s", lib.cn(self), target)
+
+        return self
+
+    def __init__(self):
+        super(SimpleCommand, self).__init__()
+
+        self.settings = Values()
+        "Global settings, set to Values loaded from config_file. "
+
     def get_optspecs(self):
         """
         Collect all options for the current class if used as Main command.
@@ -443,24 +469,6 @@ class SimpleCommand(object):
                 optsd[name] = v
 
         return parser, optsd, args
-
-    @classmethod
-    def main(Klass, argv=None, optionparser=None, result_adapter=None, default_reporter=None):
-
-        self = Klass()
-        self.globaldict = Values(dict(
-            prog=Values(),
-            opts=Values(),
-            args=[] ))
-
-        self.globaldict.prog.handlers = self.BOOTSTRAP
-        for handler_name in self.resolve_handlers():
-            target = handler_name.replace('_', ':', 1)
-            log.debug("%s.main deferring to %s", lib.cn(self), target)
-            self.execute( handler_name )
-            log.info("%s.main returned from %s", lib.cn(self), target)
-
-        return self
 
     def resolve_handlers( self ):
         """
@@ -629,16 +637,22 @@ class SimpleCommand(object):
         and load returning its dict.
         If set but path is non-existant, call self.INIT_RC if exists.
         """
-        if 'config_file' not in opts or not opts.config_file:
-            log.err( "Nothing to load configuration from")
+        if self.INIT_RC and hasattr(self, self.INIT_RC):
+            self.default_rc = getattr(self, self.INIT_RC)(prog, opts)
         else:
-	    # FIXME: init default config
-            #print self.DEFAULT_RC, self.DEFAULT_CONFIG_KEY, self.INIT_RC
-            #print opts.config_file, opts.config_key
+            self.default_rc = dict()
+
+        if 'config_file' not in opts or not opts.config_file:
+            self.rc = self.default_rc
+            log.err( "Nothing to load configuration from")
+
+        else:
+            # FIXME: init default config
+                #print self.DEFAULT_RC, self.DEFAULT_CONFIG_KEY, self.INIT_RC
+
             prog.config_file = self.find_config_file(opts.config_file)
-            #self.main_user_defaults()
             self.load_config_( prog.config_file, opts )
-            yield dict(settings=confparse.Values(self.settings))
+            yield dict(settings=self.settings)
 
     def find_config_file(self, rc):
         rcfile = list(confparse.expand_config_path(rc))
@@ -646,7 +660,6 @@ class SimpleCommand(object):
         if rcfile:
             config_file = rcfile.pop()
         # FIXME :if not config_file:
-
         assert config_file, \
                 "Missing config-file for %s, perhaps use init_config_file" %( rc, )
         assert isinstance(config_file, str), config_file
@@ -660,22 +673,22 @@ class SimpleCommand(object):
         config_key = opts.config_key
         if not config_key:
             self.rc = 'global'
-            self.settings = settings
+            self.settings.update(settings)
             return
 
-        if not hasattr(settings, config_key):
-            if self.INIT_RC and hasattr(self, self.INIT_RC):
-                self.rc = getattr(self, self.INIT_RC)(opts)
-            else:
-                log.warn("Config key %s does not exist in %s" % (config_key,
-                    config_file))
+        if hasattr(settings, config_key):
+            self.rc = self.default_rc
+            if getattr(settings, config_key):
+                self.rc.update(getattr(settings, config_key))
+            self.rc.update({ k: v for k, v in opts.items() if v })
         else:
-            self.rc = getattr(settings, config_key)
+            log.warn("Config key %s does not exist in %s" % (config_key,
+                config_file))
 
         settings.set_source_key('config_file')
         settings.config_file = config_file
         self.config_key = config_key
-        self.settings = settings
+        self.settings.update(settings)
 
     def prepare_output( self, prog, opts ):
 # XXX
@@ -695,7 +708,7 @@ class SimpleCommand(object):
         import taxus.model
         prog.module = (
                 ( iface.INode, taxus.core.Node ),
-                ( iface.IGroupNode, taxus.core.GroupNode ),
+                #( iface.IGroupNode, taxus.core.GroupNode ),
                 ( iface.ILocator, taxus.net.Locator ),
                 ( iface.IBookmark, taxus.model.Bookmark ),
             )
@@ -733,13 +746,13 @@ class SimpleCommand(object):
     def stat(self, opts=None, args=None):
         if not self.rc:
             log.err("Missing run-com for %s", self.NAME)
-        elif not self.rc.version:
+        elif not self.rc['version']:
             log.err("Missing version for run-com")
-        elif self.VERSION != self.rc.version:
-            if self.VERSION > self.rc.version:
+        elif self.VERSION != self.rc['version']:
+            if self.VERSION > self.rc['version']:
                 log.err("Run com requires upgrade")
             else:
-                log.err("Run com version mismatch: %s vs %s", self.rc.version,
+                log.err("Run com version mismatch: %s vs %s", self.rc['version'],
                         self.VERSION)
         print('args:', args)
         print('opts:', pformat(opts.todict()))
@@ -839,9 +852,6 @@ class StackedCommand(SimpleCommand):
     def __init__(self):
         super(StackedCommand, self).__init__()
 
-        self.settings = Values()
-        "Global settings, set to Values loaded from config_file. "
-
         self.rc = None
         "Runtime settings for this script. "
 
@@ -936,6 +946,7 @@ class StackedCommand(SimpleCommand):
         #else:
         #    rc = settings
 
+        assert False, 'TODO update iso reset settings'
         self.settings = settings
         self.rc = rc
 
@@ -972,12 +983,3 @@ class StackedCommand(SimpleCommand):
         if self.rc:
             confparse.yaml_dump(self.rc.copy(), sys.stdout)
         return False
-
-
-if __name__ == '__main__':
-    if StackedCommand.NAME == 'libcmd_stacked':
-        StackedCommand.NAME = 'libcmd'
-        StackedCommand.DEFAULT_RC = 'libcmdrc'
-        StackedCommand.main()
-    else:
-        SimpleCommand.main()

@@ -6,10 +6,7 @@ from StringIO import StringIO
 
 from nose_parameterized import parameterized
 
-import deep_eq
-from script_mpe import confparse
-from script_mpe import libcmd_docopt
-import jsotk, jsotk_lib
+from script_mpe import confparse, deep_eq, libcmd_docopt, jsotk, jsotk_lib
 
 
 

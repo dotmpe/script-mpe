@@ -1,5 +1,2 @@
-test -z "$scm_ok" || exit 0
-htd gitflow-check-doc &&
-pd vchk
-#set -e ; pd run htd:gitflow-check-doc :verbose=1:vchk :bats:specs
-#behat:--dry-run:--no-multiline :git:status
+test -z "$scm_nok" || exit $scm_nok ; echo "pre-commit: Set scm_nok= to override exit" >&2
+set -e ; pd run htd:gitflow-check-doc :verbose=1:vchk :bats:specs

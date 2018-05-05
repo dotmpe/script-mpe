@@ -48,6 +48,7 @@ pd__new()
 
 
 pd_load__meta=y
+#B
 pd_man_1__meta="Defer a command to the python script for YAML parsing"
 pd__meta()
 {
@@ -56,27 +57,9 @@ pd__meta()
 
   fnmatch "$1" "-*" || {
     test -x "$(which socat)" -a -e "$pd_sock" && {
-      printf -- "$*\r\n" | socat -d - "UNIX-CONNECT:$pd_sock" \
-        2>&1 | tr "\r" " " | while read line
-      do
-        case "$line" in
-          *" OK " )
-              return
-            ;;
-          "? "* )
-              return 1
-            ;;
-          "!! "* )
-              error "$line"
-              return 1
-            ;;
-          "! "*": "* )
-              return $(echo $line | sed 's/.*://g')
-            ;;
-        esac
-        echo $line
-      done
-      return
+
+      main_sock=$pd_sock main_bg_writeread "$@"
+      return $?
     }
   }
   test -n "$pd_sock" && set -- --address $pd_sock "$@"
@@ -91,7 +74,7 @@ pd__meta_sq()
 
 
 pd_man_1__status="List prefixes and their state(s)"
-pd_spc__status='st|stat|status [ PREFIX | [:]TARGET ]...'
+pd_spc__status="st|stat|status $pd_registered_prefix_target_spec"
 pd__status()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
@@ -245,10 +228,13 @@ pd__clean()
 
   test -n "$1" || error "Prefix expected" 1
   test -z "$2" || pd_meta_clean_mode="$2"
-  test -n "$pd_meta_clean_mode" \
-    || pd_meta_clean_mode="$( pd__meta clean-mode "$1" )"
+  test -n "$pd_meta_clean_mode" ||
+      pd_meta_clean_mode="$( pd__meta clean-mode "$1" )"
 
-  info "Checkout: $1, Clean Mode: $pd_meta_clean_mode"
+  local scm= scmdir=
+  vc_getscm "$1"
+
+  info "Checkout at $1 ($scm), Clean Mode: $pd_meta_clean_mode"
 
   pd_auto_clean "$1" || {
     error "Auto-clean failure for checkout '$1'"
@@ -259,20 +245,20 @@ pd__clean()
 
   case "$R" in
     0|"" )
-        info "OK $(vc__stat "$1")"
+        info "OK $(vc_flags_${scm} "$1")"
       ;;
     1 )
-        warn "Dirty: $(vc__stat "$1")"
+        warn "Dirty: $(vc_flags_${scm} "$1")"
         return 1
       ;;
     2 )
         cruft_lines="$(echo $(echo "$cruft" | wc -l))"
         test $verbosity -gt 6 \
           && {
-            warn "Crufty: $(vc__stat "$1"):"
+            warn "Crufty: $(vc_flags_${scm} "$1"):"
             printf "$cruft\n"
           } || {
-            warn "Crufty: $(vc__stat "$1"), $cruft_lines path(s)"
+            warn "Crufty: $(vc_flags_${scm} "$1"), $cruft_lines path(s)"
           }
         return 2
       ;;
@@ -293,8 +279,10 @@ pd__disable_clean()
   do
     test ! -d $prefix || {
       cd $pwd/$prefix
+      local scm= scmdir=
+      vc_getscm || continue
       git diff --quiet && {
-        test -z "$(vc__ufx)" && {
+        test -z "$(vc_untracked)" && {
           warn "TODO remove $prefix if synced"
           # XXX need to fetch remotes, compare local branches
           #pd__meta list-push-remotes $prefix | while read remote
@@ -439,10 +427,10 @@ pd__list()
 
 pd__list_all()
 {
-  test -d "$UCONF/project/" || error list-all-UCONF 1
+  test -d "$UCONFDIR/project/" || error list-all-UCONFDIR 1
   local pdoc=
   {
-    for pdoc in $UCONF/project/*/*.y*ml
+    for pdoc in $UCONFDIR/project/*/*.y*ml
     do
       pd__meta list-prefixes
     done
@@ -465,19 +453,18 @@ pd__compile_ignores()
 
 # prepare Pd var, failedfn
 pd_load__sync=yf
-# Update remotes and check refs
+pd_man_1__sync='Update remotes and check refs
+'
 pd__sync()
 {
   test -n "$1" || error "prefix argument expected" 1
   remotes=/tmp/pd--sync-$(get_uuid)
   prefix=$1
-
   shift 1
-  test -n "$1" || set -- $(vc__list_local_branches $prefix)
+  test -n "$1" || set -- $(vc.sh list-local-branches $prefix)
+
   pwd=$(pwd -P)
-
   cd $pwd/$prefix
-
   test -d .git || error "Not a standalone .git: $prefix" 1
 
   test ! -d .git/annex || {
@@ -659,7 +646,7 @@ pd__init()
     git submodule update --init --recursive
 
     # Regenerate .git/info/exclude
-    vc__regenerate || echo "init:vc-regenerate:$1" >>$failed
+    vc.sh regenerate || echo "init:vc-regenerate:$1" >>$failed
 
     test ! -e .versioned-files.list || {
       echo "git-versioning check" > .git/hooks/pre-commit
@@ -743,15 +730,15 @@ pd__disable()
 
 
   pd__meta_sq disabled "$1" && {
-    info "Already disabled: '$1'"
+    info "Already disabled: prefix '$1' in '$pdoc'"
   } || {
-    pd__meta disable $1 && note "Disabled $1"
+    pd__meta disable $1 && note "Disabled prefix '$1' in '$pdoc'"
   }
 
   test ! -d "$1" && {
-    info "No checkout, nothing to do"
+    info "No dir '$1', nothing to do"
   } || {
-    note "Found checkout, running pd-clean..."
+    note "Found dir at '$1', running pd-clean..."
     pd__clean $1 || return $?
 
     choice_sync_dismiss=1 \
@@ -862,7 +849,7 @@ pd__update_repo()
 
   # scan checkout remotes
 
-  # FIXME: move here props="$props $(verbosity=0;cd $1;echo "$(vc__remotes sh)")"
+  # FIXME: move here props="$props $(verbosity=0;cd $1;echo "$(vc.sh remotes sh)")"
 
   local remotes=
   for remote in $(cd $prefix; git remote)
@@ -895,24 +882,26 @@ pd__update_repo()
 }
 
 
-# Copy prefix from other host
-pd__copy()
+# TODO: Copy prefix from other local or remote pdoc
+pd__copy() # HOST PREFIX [ VOLUME ]
 {
   test -n "$1" || error "expected hostname" 1
   test -n "$2" || error "expected prefix" 1
+  test -z "$3" || error "unexpected arg '$3'" 1
   test -n "$hostname" || error "expected env hostname" 1
+
   for host in $hostname $1
   do
-    test -d ~/.conf/project/$host || \
-        error "No dir for host $host" 1
-    test -e ~/.conf/project/$1/projects.yaml || \
-        error "No projectdoc for host $1" 1
+    test -d $PD_CONFDIR/$host || error "No dir for host $host" 1
+    test -e $PD_CONFDIR/$host/$PD_DEFDIR.yaml || \
+        error "No projectdoc for host $host" 1
   done
-  test "$hostname" != "$1" || error "You ARE at host '$2'" 1
+  test "$hostname" != "$1" || error "You ARE at host '$1'" 1
 
 
   $scriptpath/$scriptname.sh meta -sq get-repo "$2" \
     && error "Prefix '$2' already exists at $hostname" 1 || noop
+
 
   pdoc=~/.conf/project/$1/projects.yaml \
     $scriptpath/$scriptname.sh meta dump $2 \
@@ -923,16 +912,15 @@ pd__copy()
 
 
 # Run (project) helper commands and track results
-pd_load__run=yiIap
+pd_load__run=yiIapq
 pd_defargs__run=pd_prefix_target_args
 pd_spc__run='run [ PREFIX | [:]TARGET ]...'
 pd__run()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   #record_env_keys pd-run pd-subcmd pd-env
-  info "Pd targets requested: $*"
-  info "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
-
+  note "Pd targets requested: $*"
+  note "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
 
   while read pd_prefix
   do
@@ -940,24 +928,17 @@ pd__run()
     cd $pd_realdir/$pd_prefix
 
     # Iterate targets
-
     set -- $(cat $arguments | lines_to_words )
     test -n "$1" || {
       info "Setting targets to states of 'init' for '$pd_root/$pd_prefix'"
       set -- $(pd__ls_targets init 2>/dev/null)
     }
-
     while test -n "$1"
     do
       fnmatch ":*" "$1" && target=$(echo "$1" | cut -c2- ) || target=$1
 
-      test -n .package.sh || error package 31
-
-      #note "1=$1 target=$target"
-
       #record_env_keys pd-target pd-run pd-subcmd pd-env
       #pd_debug start $target pd-target pd_prefix
-
       (
         export $(pd__env)
         subcmd="$subcmd $pd_prefix#$target" \
@@ -967,14 +948,10 @@ pd__run()
             echo "$pd_prefix#$target" >&5
           }
       )
-
       #pd_debug end $target pd-target pd_prefix
-
       shift
-
     done
   done < $prefixes
-
   cd $pd_realdir
 }
 
@@ -1006,7 +983,7 @@ pd__test()
 
 
 pd_load__check_all=ybf
-# Check if setup, with remote refs
+pd_man_1__check_all='Check if setup, with remote refs '
 pd__check_all()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
@@ -1020,6 +997,7 @@ pd__check_all()
 }
 
 
+pd_man_1__check='Run targets for "check" suite of local project'
 pd_load__check=yiIap
 pd_defargs__check=pd_registered_prefix_target_args
 pd__check()
@@ -1241,7 +1219,7 @@ pd__loc()
   do
     read_nix_style_file "$1"
     shift
-  done | line_count
+  done | count_lines
 }
 
 
@@ -1308,11 +1286,8 @@ pd_man_1__exists='Path exists as dir with mechanism to handle local names.
 pd__exists()
 {
   test -z "$2" || error "One dir at a time" 1
-  vc_getscm "$1" && {
-      echo scm=$scm
-      echo scmdir=$scmdir
-      return
-  }
+  vc_getscm "$1" || return $?
+  note "Found '$1'"
   # XXX: cleanup
   #echo choice_known=$choice_known
   #echo choice_unknown=$choice_unknown
@@ -1336,6 +1311,70 @@ pd_optsv__exists()
 }
 
 
+pd_man_1__doc='
+
+Commands `update`, `check`, `init` etc. are all used for per-prefix tasks. So
+`doc` is reserved for working on the PD_CONFDIR, and tasks related to managing
+pdoc/pdir instances.
+
+    doctor
+        Verify that we can map pdir names to paths.
+'
+
+pd__doc_update_all()
+{
+   for host in $PD_CONFDIR/*/
+   do echo
+   done
+}
+
+pd__doc_update()
+{
+    echo ok
+    logger "update-master ok"
+}
+
+pd__doctor()
+{
+  for hostdir in $PD_CONFDIR/*/
+  do
+    host=$(basename $hostdir)
+    test "$host" = "$hostname" && {
+
+      for pdoc in $hostdir/*.yaml
+      do
+        name=$(basename $pdoc .yaml)-local
+
+        # 1. Path exists (dir or symlink)
+        test -e $PD_VOLDIR/$name-local || {
+            warn "Missing volume for $hostname '$name'"
+        }
+
+        # 2. Local path(s) to pdir below volume can be retrieved
+
+        # 3. host/domain can be retrieved and matches
+        continue
+      done
+
+    } || {
+
+        # Remote volumes
+        echo TODO remote domain host $host
+    }
+  done
+}
+
+
+pd_run__info=p
+pd__info()
+{
+  local
+  echo '-----------------'
+  env
+  echo '-----------------'
+}
+
+
 # ----
 
 
@@ -1351,7 +1390,14 @@ pd__help()
   test -z "$1" && {
     choice_global=1 std__help "$@"
   } || {
-    echo_help $1
+    echo_help $1 || {
+      for func_id in "$1" "${base}__$1" "$base-$1"
+      do
+          htd_function_comment $func_id 2>/dev/null || continue
+          htd_function_help $func_id 2>/dev/null && return 1
+      done
+      error "Got nothing on '$1'" 1
+    }
   }
 }
 
@@ -1372,23 +1418,26 @@ pd_load()
   str_lib_load
 
   test -x "$(which sponge)" || warn "dep 'sponge' missing, install 'moreutils'"
-
-  test -n "$pdoc" || pdoc=.projects.yaml
-
   test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR
-
   test -n "$PD_TMPDIR" || PD_TMPDIR=$(setup_tmpd $base)
   test -n "$PD_TMPDIR" -a -d "$PD_TMPDIR" || error "PD_TMPDIR load" 1
-
-  test -n "$UCONF" || {
-    test -e $HOME/.conf \
-      && UCONF=$HOME/.conf \
-      || error env-UCONF 1
-  }
   # FIXME: test with this enabled
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
 
+  test -n "$UCONFDIR" || {
+    test -e $HOME/.conf && UCONFDIR=$HOME/.conf || error env-UCONFDIR 1
+  }
+
+  # Master dir for per-host pdocs, used by some pdoc management commands
+  test -n "$PD_CONFDIR" || PD_CONFDIR=$UCONFDIR/project
+
+  # Default local project doc/volume
+  test -n "$PD_DEFDIR" || PD_DEFDIR=projects
+
+  # Keep symlinks /srv/*-local to map Pdoc name to local path.
+
+  # FIXME: ignore files for projectdir commands
   ignores_lib_load $lst_base || error "pd-load: failed loading ignores.lib" 1
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
     test -n "$PD_IGNORE" -a -e "$PD_IGNORE" ||
@@ -1396,9 +1445,10 @@ pd_load()
     lst_init_ignores
   }
 
+  ### Finish env setup with per-command flags
+
   pd_inputs="arguments prefixes options"
   pd_outputs="passed skipped errored failed"
-
 
   pd_cid=pd-cid
   test -n "$pd_session_id" || pd_session_id=$(get_uuid)
@@ -1417,7 +1467,12 @@ pd_load()
 
     b )
         # run metadata server in background for subcmd
-        pd_meta_bg_setup
+        main_sock=$pd_sock main_bg=pd__meta box_bg_setup
+      ;;
+
+    B )
+        # test for bg and allow passthrouh, but don't require running instance
+        # and allow for inline executing of command
       ;;
 
     d ) # XXX: Stub for no Pd context?
@@ -1494,12 +1549,15 @@ pd_load()
       ;;
 
     P )
+        package_lib_set_local "$pd_root/$pd_prefix"
         pd__meta_sq get-repo "$pd_prefix" && {
+          echo update_package "$pd_prefix"
+
           update_package "$pd_prefix" || { r=$?
             test  $r -eq 1 || error "update_package" $r
             continue
           }
-        }
+        } || warn "No repo for '$pd_prefix'"
 
         test -e $pd_root/$pd_prefix/.package.sh \
           && eval $(cat $pd_root/$pd_prefix/.package.sh)
@@ -1515,16 +1573,26 @@ pd_load()
       ;;
 
     p ) # Load/Update package meta at prefix; should imply y or d
-
         test -n "$prefixes" -a -s "$prefixes" \
           && pd_prefixes="$(cat $prefixes | words_to_lines )" \
           || pd_prefixes=$pd_prefix
 
+        note "Checking '$pd_prefixes'..."
         local pref=
         for pref in $pd_prefixes; do
-          pd__meta_sq get-repo "$pref" && update_package "$pref" || continue
+          pd__meta_sq get-repo "$pref" && {
+              update_package "$pref" || warn "No repo for '$pref'"
+            }
         done
         unset pref
+      ;;
+
+    q )
+        # Evaluate package env
+        test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
+            . $PACKMETA_SH || error "No package Sh" 1
+        } ||
+            error "No local package" 1
       ;;
 
     y )
@@ -1572,7 +1640,7 @@ pd_unload()
       ;;
     y )
         test -z "$pd_sock" || {
-          pd_meta_bg_teardown
+          main_sock=$pd_sock main_bg=pd__meta box_bg_teardown
           unset bgd pd_sock
         }
       ;;
@@ -1600,7 +1668,7 @@ pd_init()
   pd_preload || exit $?
   _lib_load=1 . $scriptpath/util.sh load-ext
   lib_load str sys os std stdio src match main argv
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   lib_load meta box package
   box_run_sh_test
   # -- pd box init sentinel --
@@ -1621,18 +1689,8 @@ pd_lib()
   test -z "$__load_lib" || return 14
   local __load_lib=1
   test -n "$scriptpath" || return 12
-  lib_load box meta list match date doc table ignores vc
-  f_lib_load=1 . $scriptpath/vc.sh
-  . $scriptpath/projectdir.lib.sh "$@"
-  . $scriptpath/projectdir-bats.inc.sh
-  . $scriptpath/projectdir-fs.inc.sh
-  . $scriptpath/projectdir-git.inc.sh
-  . $scriptpath/projectdir-git-versioning.inc.sh
-  . $scriptpath/projectdir-grunt.inc.sh
-  . $scriptpath/projectdir-npm.inc.sh
-  . $scriptpath/projectdir-make.inc.sh
-  . $scriptpath/projectdir-lizard.inc.sh
-  . $scriptpath/projectdir-vagrant.inc.sh
+  lib_load box meta list match date doc table ignores vc projectdir
+  . $scriptpath/vc.sh
   # -- pd box lib sentinel --
 }
 

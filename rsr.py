@@ -9,21 +9,15 @@ from datetime import datetime
 from glob import glob
 import os
 from os.path import sep
+import sys
 import re
 import shelve
 from pprint import pformat
-import lib
-import log
-import confparse
-import res
-from res.session import Session
-import taxus
-from taxus import SessionMixin, SqlBase, get_session
-from taxus.v0 import Node, Name, Tag
 
-import sys
-import os
-import libcmd
+from script_mpe import lib, log, confparse, libcmd, res, taxus
+from script_mpe.res.session import Session
+from script_mpe.taxus import SessionMixin, SqlBase, get_session
+from script_mpe.taxus.v0 import Node, Name, Tag, INode, Locator
 
 
 
@@ -365,7 +359,7 @@ class Rsr(libcmd.StackedCommand):
     def rsr_info(self, prog, context, opts, sa, nodes):
         "Log some session statistics and info"
         log.note("SQLAlchemy session: %s", sa)
-        models = taxus.core.ID, Node, Name, Tag, taxus.GroupNode, taxus.INode, taxus.Locator
+        models = taxus.core.ID, Node, Name, Tag, INode, Locator
         cnt = {}
         for m in models:
             cnt[m] = sa.query(m).count()
@@ -619,4 +613,3 @@ class Rsr(libcmd.StackedCommand):
 
 if __name__ == '__main__':
     Rsr.main()
-

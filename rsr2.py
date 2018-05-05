@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 from __future__ import print_function
-from . import rsr
-from .libname import Namespace
-from .libcmdng import Targets, Arguments, Keywords, Options,\
+
+from script_mpe import rsr
+from script_mpe.libname import Namespace
+from script_mpe.libcmdng import Targets, Arguments, Keywords, Options,\
     Target, TargetResolver
 
 # register
-from . import cmdline2
+from script_mpe import main
 
 
 NS = Namespace.register(
@@ -106,5 +107,3 @@ def rsr_volume(prog=None, opts=None):
 
 if __name__ == '__main__':
     TargetResolver().main(['cmd:options'])
-
-

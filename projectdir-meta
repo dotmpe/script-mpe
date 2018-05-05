@@ -21,6 +21,7 @@ Usage:
     projectdir-meta [options] list-upstream <prefix> [<branches>...]
     projectdir-meta [options] status [<prefix>]
     projectdir-meta [options] package [<prefix>]
+    projectdir-meta [options] sort
     projectdir-meta [options] exit
     projectdir-meta [options] x-conv
     projectdir-meta [options] x-check
@@ -42,13 +43,13 @@ Options:
                 [default: ./.projects.yaml]
   --filesystem PATH
                 Run filesystem server and mount at path. A background process
-                must be running t
+                must be running. TODO: no vfs impl. yet.
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
   -g, --glob    Change from root prefix matching to glob matching.
   -G, --global  Use global enabled status, instead of per host.
   -a, --all     List all prefixes
-  -l, --local   List all prefixes
+  -l, --local   List local prefixes
   -H NAME, --host NAME
                 Hostname to use for current entries.
 
@@ -146,6 +147,7 @@ from socket import gethostname
 
 import uuid
 from deep_eq import deep_eq
+from ruamel.yaml import comments
 
 from script_mpe import libcmd_docopt, confparse
 from script_mpe.res import js
@@ -302,6 +304,16 @@ def check_host(record, ctx):
 
 def yaml_commit(pdhdata, ctx):
     yaml_safe_dumps(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+
+def yaml_sort(doc, key, recurse=True):
+    o = dict(doc[key])
+    new_o = comments.CommentedMap()
+    for k in sorted(o):
+        v = o[k]
+        if isinstance(v, dict):
+            v = yaml_sort(o, k)
+        new_o[k] = v
+    doc[key] = new_o
 
 def repo_kv_to_dict( kwdargs ):
     new = dict(remotes={})
@@ -527,6 +539,14 @@ def H_drop_repo(pdhdata, ctx):
     del pdhdata['repositories'][p]
     yaml_commit(pdhdata, ctx)
 
+def H_sort(pdhdata, ctx):
+    """
+    Sort repositories and sub-objects.
+    """
+    p = ctx.opts.args.prefix
+    yaml_sort(pdhdata, 'repositories')
+    yaml_commit(pdhdata, ctx)
+
 def H_list_prefixes(pdhdata, ctx):
     # List all project repo prefixes
     for k in list(pdhdata['repositories'].keys()):
@@ -710,6 +730,8 @@ def H_package(pdhdata, ctx):
     Show current package metadata at prefix. Loads and merges .package.sh
     """
     pref = ctx.opts.args.prefix
+    if not pref: return 1
+
     m = pdhdata['repositories'][pref]
 
     lpack = os.path.join(pref, '.package.sh')
@@ -721,7 +743,7 @@ def H_package(pdhdata, ctx):
         pack_id = pref
 
     pack = [ dict(
-          type='application/vnd.bvberkum.project',
+          type='application/vnd.org.wtwta.project',
           main=pack_id,
           id=pack_id
       ) ]
@@ -734,6 +756,7 @@ def H_package(pdhdata, ctx):
             del pack[0][k]
 
     ctx.out.write(yaml_safe_dumps(pack, default_flow_style=False) + "\n")
+
 
 
 handlers = {}

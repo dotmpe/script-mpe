@@ -151,7 +151,7 @@ srv_init()
   test -n "$scriptpath"
   . $scriptpath/util.sh load-ext
   lib_load
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load main meta box doc date table remote
   # -- srv box init sentinel --

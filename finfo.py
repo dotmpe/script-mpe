@@ -77,21 +77,30 @@ Schema
 from __future__ import print_function
 
 __description__ = "finfo - walk paths, using ignore dotfiles, get attributes"
-__version__ = '0.0.2-dev' # script-mpe
+__version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.finfo.sqlite'
 __usage__ = """
 Usage:
   finfo.py [options] [--env name=VAR]... [--name name=VAR]... (CTX|FILE...|DIR...)
+  finfo.py --list
+  finfo.py [options] --delete PATH
   finfo.py --show-info
   finfo.py --list-prefixes
   finfo.py -h|--help
   finfo.py --version
 
+Manage INode collection: track local files with res.metafile.
+use named basedirs to convert local paths to global IDs.
+
 Options:
     --auto-prefix
                   Look for prefix per given argument.
     --update
-                  Update records.
+                  Update records from files.
+    --list
+                  List records, don't use filesystem.
+    --names-only
+                  Print prefix with names only, don't use records.
     -d REF --dbref=REF
                   SQLAlchemy DB URL [default: %s]
     -n name=PATH --name name=PATH[:PATH]
@@ -101,8 +110,6 @@ Options:
                   Bind env 'VAR' to named set 'name'. If env isset overrides any
                   named set (see --name).
                   [default: PWD=pwd] (and PWD evaluates to .)
-    --names-only
-                  Print prefix with names only, instead of record report.
     -f --files
                   Return files only.
     -d --directories
@@ -116,6 +123,7 @@ Options:
     --filter INCLUDE...
                   ..
     --show-info   ..
+    --dry-run     ..
 
 Other flags:
     -v            Increase verbosity.
@@ -134,32 +142,8 @@ from sqlalchemy import Column, Integer, String, Boolean, Text, create_engine,\
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
 
-import confparse
-import lib
-import libcmd
-import log
-import res.fs
-import res.metafile
-import res.persistence
-import rsr
-import taxus.core
-import taxus.checksum
-import taxus.fs
-import taxus.generic
-import taxus.htd
-import taxus.media
-import taxus.model
-import taxus.net
-import taxus.semweb
-import taxus.web
-import libcmd_docopt
+from script_mpe.libhtd import *
 
-from taxus.core import Node, Name
-from taxus.media import Mediatype, MediatypeParameter, Genre, Mediameta
-from taxus.fs import INode, Dir, File, Mount
-from taxus.init import SqlBase, get_session
-from taxus.htd import TNode
-#from txs import Txs
 
 models = [
         Mediatype,
@@ -410,6 +394,23 @@ def main(argv, doc=__doc__, usage=__usage__):
         print(ctx.opts.flags.dbref)
         print(ctx.config_file)
         return
+
+    elif ctx.opts.flags.list:
+        records = INode.all(sa=ctx.sa)
+        # TODO: filter by prefix? INode.name.like("%%:%s" % name)).all()
+        for record in records:
+            print(record, record.date_updated, record.date_modified)
+        return
+
+    elif ctx.opts.flags.delete:
+        records = INode.all((INode.name.like(ctx.opts.args.PATH),), sa=ctx.sa)
+        for record in records:
+            print(record, record.date_updated, record.date_modified)
+            ctx.sa.delete(record)
+        if not ctx.opts.flags.dry_run:
+            ctx.sa.commit()
+        return
+
     # DEBUG:
     #pprint(ctx.settings.todict())
 
@@ -448,6 +449,8 @@ def main(argv, doc=__doc__, usage=__usage__):
     ))
     if 'homedir' not in ctx.prefixes.map:
         ctx.prefixes.map['homedir'] = 'HOME=%s' % os.path.expanduser('~')
+
+    # TODO: check pwd, or args, fail on missing prefix-name
     if 'current' not in ctx.prefixes.map:
         ctx.prefixes.map['current'] = '$PWD:$HOME'
     if 'pwd' not in ctx.prefixes.map:
@@ -461,7 +464,9 @@ def main(argv, doc=__doc__, usage=__usage__):
                         ctx.prefixes.env[envvar], prefix )
             ctx.prefixes.env[envvar] = prefix
 
-    # Pre-pocess binds from env flags
+
+
+    # Pre-process binds from env flags
 
     if not isinstance(ctx.opts.flags.env, list):
         ctx.opts.flags.env = [ ctx.opts.flags.env ]
@@ -505,6 +510,11 @@ def main(argv, doc=__doc__, usage=__usage__):
             set_.append(path)
 
         ctx.prefixes.map_[prefix] = set_
+
+    ctx_name = ctx.opts.args.CTX
+    if ctx_name not in ctx.prefixes.map_:
+        raise Exception("No context '%s' among %s" % ( ctx_name,
+            ctx.prefixes.map_.keys()))
 
     ctx.pathrefs = ctx.prefixes.map_[ctx.opts.args.CTX]
 
@@ -603,26 +613,20 @@ def main(argv, doc=__doc__, usage=__usage__):
             # TODO: get INode through context? Also add mediatype & parameters
             # resolver. But needs access to finfo ctx..
 
-            records = ctx.sa.query(taxus.INode).filter(
-                    taxus.INode.name.like("%%:%s" % name)).all()
+            records = ctx.sa.query(INode).filter(
+                    INode.name.like("%%:%s" % name)).all()
             if not records:
-                record = taxus.INode.get_instance(name=ref, _sa=ctx.sa,
+                record = INode.get_instance(name=ref, _sa=ctx.sa,
                         _fetch=False)
             elif len(records) > 1:
                 raise Exception("Multiple path ID matches %r" % name)
             else:
                 record = records[0]
 
-            # GNU/Linux: -bi = --brief --mime
-            # Darwin/BSD: -bI = --brief --mime
-            #mediatype = lib.cmd('file --brief --mime "%s"', path).strip()
-            # XXX: see basename-reg?
-
-            #if ctx.opts.flags.update == True:
-
-            # TODO: repopulate metadata;
-
+            # TODO: update existing
             mf = res.metafile.Metafile(f)
+            #mediatype = lib.cmd('--mime "%s"', path).strip()
+            # XXX: see basename-reg?
 
             assert mf.date_accessed
             record.date_accessed = mf.date_accessed
@@ -631,9 +635,9 @@ def main(argv, doc=__doc__, usage=__usage__):
 
             if not record.node_id:
                 ctx.sa.add(record)
-
-            print(record, record.date_updated, record.date_modified)
-            #sys.exit()
+                print('new', record, record.date_updated, record.date_modified)
+            else:
+                print('new', record, record.date_updated, record.date_modified)
 
             if ctx.opts.flags.update:
                 ctx.sa.commit()

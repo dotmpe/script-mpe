@@ -3,8 +3,7 @@ import os, sys
 
 from nose_parameterized import parameterized
 
-import deep_eq
-from script_mpe import sh_switch
+from script_mpe import sh_switch, deep_eq
 
 
 class ShSwitchTest(unittest.TestCase):

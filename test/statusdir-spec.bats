@@ -1,56 +1,69 @@
 #!/usr/bin/env bats
 
-load helper
+load init
 base=statusdir.sh
 init
 
-
-@test "${bin}" "default no-args" {
-  #case $(current_test_env) in travis )
-  #    TODO "$BATS_TEST_DESCRIPTION at travis";;
-  #esac
-
-  rt()
-  {
-    echo $BATS_TEST_DESCRIPTION > /tmp/1
-    $BATS_TEST_DESCRIPTION >> /tmp/1 2>&1 || echo "$?" >> /tmp/1
-  }
-  rt
-
-  run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 1
-  echo "${status}" >> /tmp/1
-  echo "${lines[*]}" >> /tmp/1
+setup()
+{
+  export \
+    COUCH_DB=test \
+    MC_PORT=11211
 }
 
-@test "${bin} help" {
+@test "statusdir.sh" "default no-args" {
+  run $bin
+  test_nok_nonempty || stdfail
+}
+
+@test "statusdir.sh help" {
+  run $bin help
+  test_ok_nonempty "*statusdir <cmd> *" || stdfail
+}
+
+@test "statusdir.sh root" {
+  run $bin root
+  test_ok_lines "$HOME/.statusdir/" || stdfail
+}
+
+@test "statusdir.sh assert-state $HOME/project/git-versioning/package.yaml project/git-versioning {}" {
+  TODO
   run $BATS_TEST_DESCRIPTION
   test ${status} -eq 0
-  fnmatch "*statusdir <cmd> *" "${lines[*]}"
 }
 
-@test "${bin} root" {
-  run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  test "$HOME/.statusdir/" = "${lines[*]}"
-}
-
-#@test "${bin} assert-state $HOME/project/git-versioning/package.yaml project/git-versioning {}" {
-#  run $BATS_TEST_DESCRIPTION
-#  test ${status} -eq 0
-#}
-
-@test "${bin} assert-json" {
-  run $BATS_TEST_DESCRIPTION
+@test "statusdir.sh assert-json" {
+  run $bin assert-json
   test ${status} -eq 0
   test "$HOME/.statusdir/index/state.json" = "${lines[*]}"
 }
 
-
-
-@test "${bin} list" {
-  require_env couchdb
-  run statusdir.sh 
+@test "sd_be=redis statusdir.sh list" {
+  #lib_load projectenv
+  #require_env couchdb || req
+  run sd_be=redis $bin list
 }
+
+@test "statusdir.sh backends" {
+  run $bin backends
+  test_ok_lines \
+      "*fsdir found*" \
+      "*redis found*" \
+      "*membash_f found*" \
+      "*couchdb_sh found*" \
+      || stdfail
+}
+
+@test "sd_be=couchdb_sh statusdir.sh backend" {
+  export sd_be=couchdb_sh
+  run $bin backend
+  test_ok_lines "couchdb $COUCH_URL $COUCH_DB" || stdfail
+} 
+
+@test "sd_be=membash statusdir.sh backend" {
+  export sd_be=membash
+  run $bin backend
+  test_ok_lines "memcache $MC_PORT" || stdfail
+} 
 
 # vim:ft=sh:

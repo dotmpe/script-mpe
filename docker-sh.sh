@@ -505,34 +505,29 @@ docker_sh__build_openwrt()
 }
 
 
-rnd_passwd()
-{
-  test -n "$1" || set -- 11
-  cat /dev/urandom | tr -cd 'a-z0-9' | head -c $1
-}
-
-
 # MySQL
 docker_sh__mysql()
 {
-  req_profile dckr-mysql \
+  #req_profile dckr-mysql \
+  export \
       db_ext_port=3306 \
       docker_name=$(whoami)-mysql \
       db_name=data \
       db_user=$(whoami) \
-      db_user_passwd=$(whoami) \
-      db_root_passwd= \
-      image_name=mysql/mysql-server:latest
+      image_name=mysql/mysql-server:latest \
+      #db_user_passwd=$(whoami) \
+      #db_root_passwd= \
 
   test -n "$db_user_passwd" || {
      export db_user_passwd=$(rnd_passwd 8)
      stderr note "Set random 8-char password for user '$db_user': '$db_user_passwd' (given only once)"
   }
-  
+
   test -n "$db_root_passwd" || {
      export db_root_passwd=$(rnd_passwd 16)
      stderr note "Set random 16-char password for root: '$db_root_passwd' (given only once)"
   }
+
 
   test -n "$1" || set -- list
   case "$1" in
@@ -543,11 +538,11 @@ docker_sh__mysql()
       ;;
 
     status )
-        ${dckr} inspect -f '{{.State.Running}}' $docker_name || 
+        ${dckr} inspect -f '{{.State.Running}}' $docker_name ||
            stderr warn "Not running: '$docker_name'" 1
       ;;
 
-    --run )
+    run )
         docker_sh_run \
           -p $db_ext_port:3306 \
           --env MYSQL_DATABASE=$db_name \
@@ -557,18 +552,54 @@ docker_sh__mysql()
         || return $?
       ;;
 
-    --open-root-tcp )
-         # Open up root account for non-localhost connections
-         { cat <<EOM
-GRANT ALL PRIVILEGES ON *.* TO root@'%' IDENTIFIED BY "$db_root_passwd";
+    grant-user )
+        test -n "$user" || user=$db_user
+        test -n "$db" || db='*'
+        { cat <<EOM
+GRANT ALL PRIVILEGES ON \`$db\`.* TO '$user'@'%' ;
 FLUSH PRIVILEGES;
 EOM
-         } | ${dckr} exec -i \
+        } | ${dckr} exec -i \
                   $docker_name \
                   mysql --password="$db_root_passwd" || return $?
       ;;
 
-    --wait )
+    open-root-tcp )
+        test -n "$db" || db='*'
+        # Open up root account for non-localhost connections
+        { cat <<EOM
+GRANT ALL PRIVILEGES ON \`$db\`.* TO 'root'@'%' IDENTIFIED BY "$db_root_passwd";
+FLUSH PRIVILEGES;
+EOM
+        } | ${dckr} exec -i \
+                  $docker_name \
+                  mysql --password="$db_root_passwd" || return $?
+      ;;
+
+    create-db )
+        test -n "$db" || error "DB to create expected" 1
+        test -n "$user" || user=$db_user
+        { cat <<EOM
+CREATE DATABASE \`$db\` CHARACTER SET utf8 COLLATE utf8_general_ci ;
+GRANT ALL PRIVILEGES ON \`$db\`.* TO '$user'@'%' ;
+FLUSH PRIVILEGES ;
+EOM
+        } | ${dckr} exec -i \
+                  $docker_name \
+                  mysql --password="$db_root_passwd" || return $?
+      ;;
+
+    drop-db )
+        test -n "$db" || error "DB to drop expected" 1
+        { cat <<EOM
+DROP DATABASE \`$db\`;
+EOM
+        } | ${dckr} exec -i \
+                  $docker_name \
+                  mysql --password="$db_root_passwd" || return $?
+      ;;
+
+    wait )
         printf -- "Waiting for mysql.."
         until ${dckr} exec -i $docker_name mysql -hlocalhost -P$db_ext_port \
           -uroot -p"$db_root_passwd" -e "show databases"
@@ -593,10 +624,10 @@ EOM
       ;;
 
     init )
-        docker_sh__mysql --run || return $?
-        docker_sh__mysql --wait || return $?
-        docker_sh__mysql --open-root-tcp || return $?
-        docker_sh__mysql --test || return $?
+        docker_sh__mysql run || return $?
+        docker_sh__mysql wait || return $?
+        docker_sh__mysql open-root-tcp || return $?
+        docker_sh__mysql test || return $?
       ;;
 
     * ) stderr error "? 'mysql $*'" 1
@@ -1123,7 +1154,7 @@ docker_sh_init()
   }
   . $scriptpath/util.sh load-ext
   lib_load
-  . $scriptpath/box.init.sh
+  . $scriptpath/tools/sh/box.env.sh
   lib_load main box projectdir
   box_run_sh_test
   # -- dckr-sh box init sentinel --
@@ -1141,7 +1172,7 @@ docker_sh_lib()
 docker_sh_load()
 {
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
-  test -e "$UCONFDIR" || error "Missing user config dir $UCONF" 1
+  test -e "$UCONFDIR" || error "Missing user config dir $UCONFDIR" 1
 
   test -n "$DCKR_UCONF" || DCKR_UCONF=$UCONFDIR/dckr
   test -n "$DCKR_VOL" || DCKR_VOL=/srv/docker-volumes-local/

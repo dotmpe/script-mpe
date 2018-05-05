@@ -199,7 +199,7 @@ EOF
 
 # FIXME new script
 
-box__main_1_new="Initialize new script"
+box__main_1_new="Initialize new localscript"
 box_spc_new="-n|new [<name>=$hostname]"
 box__als__n=new
 box__new()
@@ -232,9 +232,12 @@ box_spc_function="-n|function [[<name>=$hostname] <cmd>=run]"
 box__function()
 {
   local name= cmd=run c=0
+  upper=0 default_env scope "box"
+  upper=0 default_env action "insert"
   box_name_args $@
   test -e $script || error "script $name does not exist" 1
   echo TODO add function to script
+  echo "# -- $base $scope $action sentinel"
 }
 box__als__f=function
 
@@ -248,7 +251,7 @@ box__list()
     debug "'$BOX_BIN_DIR/*'"
     info "** DRY RUN ends **" 0
   }
-  info "TODO box list: work in progress"
+  info "TODO box list: get script names for local box command"
   grep -srI ${nid_cwd} $BOX_BIN_DIR/*
 }
 box__als__l=list
@@ -399,6 +402,37 @@ box__log_demo()
 }
 
 
+box_man_1__d='Query, or start instance in/to background
+
+Starts a new box.py, or queries an existing instance via Unix domain
+socket. With no arguments request an instance to run at pd_sock, to be
+backgrounded as helper for script. A simple line protocol is used, the
+quoted command arguments are passed in as line, and some simple str glob
+patterns are used to return/output various result states. '
+box__d()
+{
+  test -n "$1" || set -- --background
+  fnmatch "$1" "-*" || {
+    test -x "$(which socat)" -a -e "$box_sock" && {
+
+      main_sock=$box_sock main_bg_writeread "$@"
+      return $?
+    }
+  }
+  test -n "$box_sock" && set -- --address $box_sock "$@"
+  $scriptpath/box.py "$@" || return $?
+}
+
+
+box__specs()
+{
+  htd list-functions "$@" | box__d specs -
+}
+
+
+# -- box box insert sentinel --
+
+
 
 # Generic subcmd's
 
@@ -429,6 +463,8 @@ box__commands()
 box__als_c=commands
 
 
+search="htd\ box\ insert\ sentinel"
+
 
 
 # Script main functions
@@ -436,18 +472,17 @@ box__als_c=commands
 box_main()
 {
   local scriptname=box base=$(basename "$0" .sh) \
-    scriptpath="$(cd $(dirname "$0"); pwd -P)"
+      scriptpath="$(cd $(dirname "$0"); pwd -P)" box_sock=
 
+  # FIXME: only one instnce
+  box_sock=/tmp/box-serv.sock
   box_init || return 0
-
   var_isset verbosity || verbosity=5
 
   case "$base" in $scriptname )
-
-      box_lib box || error "box-src-lib $scriptname" 1
-
-      # Execute
-      run_subcmd "$@"
+        box_lib box || error "box-src-lib $scriptname" 1
+        # Execute
+        run_subcmd "$@"
       ;;
 
     * )
@@ -456,38 +491,42 @@ box_main()
   esac
 }
 
-# FIXME: Pre-bootstrap init
 box_init()
 {
-  test -z "$BOX_INIT" || return 1
-  export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh load-ext
-  lib_load
-  . $scriptpath/box.init.sh
-  . $scriptpath/box.lib.sh "$@"
-  lib_load main
+  . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
+  export SCRIPTPATH=$scriptpath
+  __load_mode=boot . $scriptpath/util.sh
+  lib_load box main src
   # -- box box init sentinel --
 }
 
 box_lib()
 {
-  debug "Using $LOG_TERM log output"
   # -- box box lib sentinel --
   set --
 }
-
 
 # Pre-exec: post subcmd-boostrap init
 box_load()
 {
   test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
-  mkvid $(pwd)
-  nid_cwd=$vid
-  unset vid
+  mkvid $(pwd) && nid_cwd=$vid && unset vid
   box_name="${base}:${subcmd}"
   # -- box box load sentinel --
   set --
+
+  local flags="$(try_value "${subcmd}" run ${base} | sed 's/./&\ /g')"
+  test -z "$flags" -o -z "$DEBUG" || stderr debug "Flags for '$subcmd': $flags"
+  for x in $flags
+  do case "$x" in
+
+    f ) # failed: set/cleanup failed varname
+        export failed=$(setup_tmpf .failed)
+      ;;
+
+    esac
+  done
 }
 
 # Main entry - bootstrap script if requested
@@ -495,10 +534,8 @@ box_load()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  case "$1" in
-    load-ext ) ;;
-    * )
-      box_main "$@" ;;
+  case "$1" in load-ext ) ;;
+    * ) box_main "$@" ;;
 
   esac ;;
 esac

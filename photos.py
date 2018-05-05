@@ -1,51 +1,81 @@
 #!/usr/bin/env python
 """
+:Created: 2017-06-25
+:Updated: 2017-12-26
+
+Commands:
+  - into | stats
 """
 from __future__ import print_function
 
-__description__ = "photos - "
+__description__ = "photos - photos folder management"
+__short_description__ = "Photos folder management"
 __version__ = '0.0.4-dev' # script-mpe
+__couch__ = 'http://localhost:5984/the-registry'
 __db__ = '~/.photos.sqlite'
+__osx_photos_folder__ = "~/Photos/Photos Library.photoslibrary"
+__photos_folder__ = "~/Photos"
 __usage__ = """
 Usage:
-  photos.py [options] stats
   photos.py [options] (update) [NAME]
+  photos.py [options] info | init | stats | clear
+  photos.py help [CMD]
   photos.py -h|--help
   photos.py --version
 
 Options:
-    -d REF --dbref=REF
-                  SQLAlchemy DB URL [default: %s]
-    -v            Increase verbosity.
-    --no-commit   .
-    --commit      [default: true].
-    --verbose     ..
-    --quiet       ..
-    -h --help     Show this usage description.
-                  For a command and argument description use the command 'help'.
-    --version     Show version (%s).
+  -d REF, --dbref=REF
+                SQLAlchemy DB URL [default: %s] (sh env 'HIER_DB')
+  --no-db       Don't initialize SQL DB connection or query DB.
+  --couch=REF
+                Couch DB URL [default: %s] (sh env 'COUCH_DB')
+  --auto-commit
+  --photos-folder DIR
+                [default: %s] (shell env. 'PHOTOS_FOLDER')
+  --interactive
+                Prompt to resolve or override certain warnings.
+                XXX: Normally interactive should be enabled if while process has a
+                terminal on stdin and stdout.
+  --batch
+                Overrules `interactive`, exit on errors or strict warnings.
+  --commit
+                Commit DB session at the end of the command [default].
+  --no-commit
+                Turn off commit, performs operations on SQL Alchemy ORM objects
+                but does not commit session.
+  --dry-run
+                Implies `no-commit`.
+  --print-memory
+                Print memory usage just before program ends.
+  -v            Increase verbosity.
+  --verbose     ..
+  --quiet       ..
+  -h --help     Show this usage description.
+                For a command and argument description use the command 'help'.
+  --version     Show version (%s).
 
-""" % ( __db__, __version__, )
+""" % ( __db__, __couch__, __photos_folder__, __version__, )
 
 from datetime import datetime
 import os
 import re
 import hashlib
 
-from script_mpe import log
-from script_mpe import confparse
-from script_mpe import libcmd_docopt
-from script_mpe import taxus
-from script_mpe import libcmd
-from script_mpe.res import Volumedir
-from script_mpe.res.util import ISO_8601_DATETIME
-from script_mpe.taxus import init as model
-from script_mpe.taxus.init import SqlBase, get_session
-from script_mpe.taxus.core import ID, Node, Name, Tag, Topic
-from script_mpe.taxus.img import Photo
+from script_mpe.libhtd import *
+from script_mpe.taxus import core, img
 
-models = [ ID, Tag, Topic, Photo ]
 
+models = [ core.ID, core.Tag, core.Topic, img.Photo ]
+
+ctx = Taxus(version='photos')
+
+cmd_default_settings = dict(verbose=1,
+        commit=True,
+        session_name='default',
+        print_memory=False,
+        all_tables=True, # FIXME
+        database_tables=False
+    )
 
 
 
@@ -87,38 +117,70 @@ def cmd_stats(settings, opts):
     print('TODO')
 
 
+def cmd_stats(g):
+    global ctx
+    db_sa.cmd_sql_stats(g, sa=ctx.sa_session)
+
 
 ### Transform cmd_ function names to nested dict
 
 commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
-commands['help'] = libcmd_docopt.cmd_help
+commands.update(dict(
+        help = libcmd_docopt.cmd_help,
+        memdebug = libcmd_docopt.cmd_memdebug,
+        info = db_sa.cmd_info,
+        init = db_sa.cmd_init,
+        clear = db_sa.cmd_reset
+))
 
 
 ### Util functions to run above functions from cmdline
+
+def defaults(opts, init={}):
+    global cmd_default_settings, ctx
+    libcmd_docopt.defaults(opts)
+    opts.flags.update(cmd_default_settings)
+    opts.flags.update(dict(
+        dbref = ScriptMixin.assert_dbref(opts.flags.dbref),
+        photos_folder = os.path.expanduser(opts.flags.photos_folder),
+        commit = not opts.flags.no_commit and not opts.flags.dry_run,
+        interactive = not opts.flags.batch,
+        verbose = not opts.flags.quiet
+    ))
+    if not opts.flags.interactive:
+        if os.isatty(sys.stdout.fileno()) and os.isatty(sys.stdout.fileno()):
+            opts.flags.interactive = True
+
+    return init
 
 def main(opts):
 
     """
     Execute using docopt-mpe options.
     """
+    global ctx, commands
 
-    settings = opts.flags
-    opts.flags.commit = not opts.flags.no_commit
-    opts.flags.verbose = not opts.flags.quiet
+    ctx.settings = settings = opts.flags
     return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():
     return 'photos.mpe/%s' % __version__
 
 if __name__ == '__main__':
-    #photos.main()
     import sys
     reload(sys)
     sys.setdefaultencoding('utf-8')
-    db = os.getenv( 'PHOTOS_DB', __db__ )
-    # TODO : vdir = Volumedir.find()
-    if db is not __db__:
-        __usage__ = __usage__.replace(__db__, db)
-    opts = libcmd_docopt.get_opts(__doc__ + __usage__, version=get_version())
+
+    db_sa.schema = sys.modules['__main__']
+    db_sa.metadata = SqlBase.metadata
+
+    usage = __description__ +'\n\n'+ __short_description__ +'\n'+ \
+            libcmd_docopt.static_vars_from_env(__usage__,
+        ( 'PHOTOS_DB', __db__ ),
+        ( 'PHOTOS_FOLDER', __photos_folder__ ),
+        ( 'COUCH_DB', __couch__ ) )
+
+    opts = libcmd_docopt.get_opts(__usage__, version=get_version(),
+            defaults=defaults)
     opts.flags.dbref = taxus.ScriptMixin.assert_dbref(opts.flags.dbref)
     sys.exit(main(opts))

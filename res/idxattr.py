@@ -1,3 +1,6 @@
+"""
+NOTE: experimenting with zope.interfaces, components. move out of res. prolly?
+"""
 class IndexAttributeWrapper(object):
 
     """

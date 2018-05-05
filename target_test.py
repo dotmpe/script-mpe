@@ -1,6 +1,6 @@
 from __future__ import print_function
-import lib
-from target import Name, Target, TargetResolver
+from script_mpe import lib
+from script_mpe.libcmdng import Name, Target, TargetResolver
 
 
 class Core(TargetResolver):
@@ -26,8 +26,8 @@ class Core(TargetResolver):
         yield 'rsr:addon'
 
 
-lib.namespaces.update((Core.namespace,))
-Target.register(Core)
+#lib.namespaces.update((Core.namespace,))
+#Target.register(Core)
 
 
 class Addon(object):
@@ -48,7 +48,7 @@ class Addon(object):
     def rsr_addon(self, opts=None):
         print('rsr:addon')
 
-Target.register(Addon)
+#Target.register(Addon)
 
 
 class App(Core):
@@ -64,13 +64,13 @@ class App(Core):
     def rsr_test2(self):
         print("Test2")
 
-Target.register(App)
+#Target.register(App)
 
 
-if __name__ == '__main__':
-
-    print('-------------- Core')
-    Core().main()
-
-    print('--------------- App')
-    App().main()
+#if __name__ == '__main__':
+#
+#    print('-------------- Core')
+#    Core().main()
+#
+#    print('--------------- App')
+#    App().main()
