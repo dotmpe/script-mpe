@@ -4,8 +4,10 @@
 - type: application/vnd.org.wtwta.project
   main: script-mpe
   id: script-mpe
-
   version: 0.0.4-dev # script-mpe
+  vendor: bvberkum
+  distribution: public
+  license: GPL-3.0
   environments:
     - dev
 
@@ -14,10 +16,8 @@
   #
   # Global env (for scripts)
   env: . ./tools/ci/env.sh
-
-  vendor: bvberkum
-  distribution: public
-  license: GPL-3.0
+  build:
+    unit-spec: test/py/\$id.py test/py/mod_\$vid.py test/\$id-lib-spec.bats test/\$id-spec.bats test/\$id.bats
 
   urls:
     license:

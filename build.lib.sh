@@ -45,22 +45,33 @@ test_shell()
 # Run tests for DUT's
 project_test() # [Units...|Comps..]
 {
+  test -n "$base" || error "project-test: base required" 1
   set -- $(project_tests "$@")
-  local failed=/tmp/htd-project-test-$(uuidgen).failed
+  local failed=/tmp/$base-project-test-$(uuidgen).failed
+
   while test $# -gt 0
   do
-    test "$(basename "$1" | cut -c1)" = "_" && continue
+    test -z "$1" -o "$(basename "$1" | cut -c1)" = "_" && continue
+    note "Testing '$1'..."
     case "$1" in
-        *.feature ) $TEST_FEATURE -- "$1" || touch $failed ;;
+        *.feature ) $TEST_FEATURE -- "$1" || echo "$1" >>$failed ;;
         *.bats ) {
-                bats "$1" || touch $failed
+                bats "$1" || echo "$1" >>$failed
             } | $TAP_COLORIZE ;;
-        *.py ) python "$1" || touch $failed ;;
+        *.py ) python "$1" || echo "$1" >>$failed ;;
+        * ) warn "Unrecognized DUT '$1'" ;;
     esac
     shift
   done
 
-  test -e "$failed" && { rm "$failed" ; return 1 ; }
+  test -e "$failed" && {
+    test ! -s "$failed" || {
+      warn "Failed components:"
+      cat $failed
+    }
+    rm "$failed"
+    return 1
+  }
   note "Project test completed succesfully"
 }
 
@@ -92,11 +103,14 @@ project_files()
 any_unit()
 {
   test -n "$1" || set -- "*"
+  test -n "$package_build_unit_spec" ||
+      package_build_unit_spec='test/py/$id.py test/$id-lib-spec.bats test/$id-spec.bats test/$id.bats'
+
   while test $# -gt 0
   do
     c="-_*" mkid "$1"
     mkvid "$1"
-    for x in test/py/$id.py test/py/mod_$vid.py test/$id-lib-spec.bats test/$id-spec.bats test/$id.bats
+    for x in $(eval echo "$package_build_unit_spec")
     do
       test -x "$x" && echo $x
       continue
