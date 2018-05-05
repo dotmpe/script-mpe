@@ -751,22 +751,14 @@ htd__ls_main_files()
 }
 
 
-htd_man_1__edit_local="Edit an existing local file, or abort. "
-htd_spc__edit_local="-e|edit <id>"
+htd_man_1__edit="Edit script or profile
+
+Without arguments, edit script and ENV.
+
+No an existing local file, or abort. "
+htd_spc__edit="-e|edit <id>"
 htd__edit()
 {
-  test -n "$1" || error "search term expected" 1
-  case "$1" in
-    # NEW
-    sandbox-jenkins-mpe | sandbox-mpe-new )
-        cd $UCONFDIR/vagrant/sandbox-trusty64-jenkins-mpe
-        vim Vagrantfile
-      ;;
-    treebox-new )
-        cd $UCONFDIR/vagrant/
-        vim Vagrantfile
-      ;;
-  esac
   doc_path_args
   find_paths="$(doc_find_name "$1")"
   grep_paths="$(doc_grep_content "$1")"
@@ -9079,10 +9071,6 @@ htd__couchdb_htd_scripts()
   done
 }
 
-#f0720d16cd6bb61319a08aafbf97a1352537ac61
-
-#02/92/80b80c532636930b43ecd92dafaa04fd7bd1644ff7b077ac4959f7883a98
-#029280b80c532636930b43ecd92dafaa04fd7bd1644ff7b077ac4959f7883a98
 
 htd__lfs_files()
 {
