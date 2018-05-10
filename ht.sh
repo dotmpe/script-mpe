@@ -83,6 +83,12 @@ ht_als__prefixes_update=prefixes\ update
 ht_als__update_prefixes=prefixes\ update
 
 
+htd__filesize()
+{
+  filesize "$1"
+}
+
+
 # Script main functions
 
 ht_main()
