@@ -136,14 +136,15 @@ fileisext() # Name Exts..
 # Use `file` to get mediatype aka. MIME-type
 filemtype() # File..
 {
+  local flags= ; not_falseish "$file_deref" && flags=Lb || flags=b
   while test $# -gt 0
   do
     case "$uname" in
       Darwin )
-          file -bI "$1" || return 1
+          file -${flags}I "$1" || return 1
         ;;
       Linux )
-          file -bi "$1" || return 1
+          file -${flags}i "$1" || return 1
         ;;
       * ) error "filemtype: $uname?" 1 ;;
     esac; shift
@@ -153,11 +154,12 @@ filemtype() # File..
 # Description of file contents, format
 fileformat()
 {
+  local flags= ; not_falseish "$file_deref" && flags=Lb || flags=b
   while test $# -gt 0
   do
     case "$uname" in
       Darwin | Linux )
-          file -b "$1" || return 1
+          file -${flags} "$1" || return 1
         ;;
       * ) error "fileformat: $uname?" 1 ;;
     esac; shift

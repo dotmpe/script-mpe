@@ -31,6 +31,23 @@ htd_catalog_name() # [Dir]
   true
 }
 
+htd_catalog_asjson()
+{
+  test -n "$1" || set -- "$CATALOG"
+  local jsonfn="$(pathname "$1" .yml .yaml)"
+  test -e "$jsonfn" -a "$jsonfn" -nt "$1" || {
+    jsotk yaml2json "$1" "$jsonfn"
+  }
+  cat "$jsonfn"
+}
+
+htd_catalog_fromjson()
+{
+  test -n "$1" || set -- "$CATALOG"
+  local jsonfn="$(pathname "$1" .yml .yaml)"
+  jsotk json2yaml "$jsonfn" "$1"
+}
+
 
 # Look for exact string match in catalog files
 htd_catalog_find()
@@ -210,7 +227,7 @@ htd_catalog_check_keys() # CKS...
 
 htd_catalog_get_by_name() # [CATALOG] NAME
 {
-  record="$( jsotk yaml2json "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
+  record="$( htd_catalog_asjson "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
   echo $record | jsotk --pretty json2yaml -
 }
 
@@ -219,7 +236,7 @@ htd_catalog_get_by_key() # [CATALOG] CKS...
   local cat="$1" ; shift ; test -n "$cat" || cat=$CATALOG
   while test $# -gt 0
   do
-    record="$( jsotk yaml2json "$cat" | jq -c ' .[] | select(.keys[]=="'"$1"'")' )" && {
+    record="$( htd_catalog_asjson "$cat" | jq -c ' .[] | select(.keys[]=="'"$1"'")' )" && {
         echo $record | jsotk --pretty json2yaml
         return
     }
@@ -264,7 +281,7 @@ htd_catalog_add_file() # File
   { cat <<EOM
 - name: "$basename"
   mediatype: '$mtype'
-  format: '$(file -b "$1")'
+  format: '$(fileformat "$1")'
   host: $hostname
   tags:
   keys:
@@ -328,13 +345,13 @@ htd_catalog_add_all_larger() # SIZE
 htd_catalog_copy_by_name() # CATALOG NAME [ DIR | CATALOG ]
 {
   test -n "$1" || set -- $CATALOG "$2" "$3"
-  record="$( jsotk yaml2json "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
+  record="$( htd_catalog_asjson "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
   test -f "$3" && dest_dir="$(dirname "$3")/" || {
     set -- "$1" "$2" "$(htd_catalog_name "$3")" || return
   }
 
   rotate_file "$3" || return
-  jsotk yaml2json $dest | eval jq -c \'. += [ $record ]\' | jsotk json2yaml - > $3
+  htd_catalog_asjson "$dest" | eval jq -c \'. += [ $record ]\' | jsotk json2yaml - > $3
 }
 
 # Get path for record, or find it by searching for basename
@@ -374,9 +391,9 @@ htd_catalog_drop_by_name() # [CATALOG] NAME
   test -n "$1" || set -- $CATALOG "$2"
 
   backup_file "$1" || return
-  jsotk yaml2json $1 |
+  htd_catalog_asjson "$1" |
       jq -c ' del( .[] | select(.name=="'"$2"'")) ' |
-      sponge | jsotk json2yaml - $1
+      htd_catalog_fromjson "$1"
 }
 
 # Copy record and file
@@ -440,14 +457,13 @@ htd_catalog_set_key() # [Catalog] Entry-Id Key Value [Entry-Key]
     backup_file "$1" || return
   }
   {
-    jsotk yaml2json $1 | {
+    htd_catalog_asjson "$1" | {
         trueish "$json_value" && {
           jq -c "map(select(.$5==\""$2"\").$3 |= $4 )"
         } || {
           jq -c "map(select(.$5==\""$2"\").$3 |= \"$4\" )"
         }
-      }
-      #| sponge | jsotk json2yaml - $1
+      } | jsotk json2yaml - $1
   } || { r=$?
     # undo copy
     not_trueish "$catalog_backup" || mv "$dest" "$1"
@@ -467,7 +483,7 @@ htd_catalog_update() # [Catalog] Entry-Id Value [Entry-Key]
     backup_file "$1" || return
   #}
   {
-    jsotk yaml2json $dest | {
+    htd_catalog_asjson "$dest" | {
         jq -c "map(select(.$4==\""$2"\") += $3 )"
     } | jsotk json2yaml - $1
 
@@ -528,5 +544,37 @@ htd_catalog_separate() # PATH
        htd_catalog_move "" "$filename" "$1"
     done
     shift
+  done
+}
+
+htd_catalog_update()
+{
+  local fn="$1" ; shift
+  local bn="$(basename "$fn" | sed 's/"/\\"/g')" pn="$(find . -iname "$fn" | head -n 1)"
+  while test $# -gt 0
+  do
+    case "$1" in
+      mediatype ) htd_catalog_set_key "" "$bn" "mediatype" "$(filemtype "$pn")" ;;
+      format ) htd_catalog_set_key "" "$bn" "format" "$(fileformat "$pn")" ;;
+      * ) error "unknown update '$1'" 1 ;;
+    esac
+    shift
+  done
+}
+
+htd_catalog_update_all()
+{
+  htd_catalog_listtree | while read fn
+  do
+    test -f "$fn" || {
+      warn "File expected '$fn'"
+      continue
+    }
+    htd_catalog_has_file "$1" || continue
+
+    htd_catalog_update "$fn" "$@" || {
+      error "Updating '$fn"
+      continue
+    }
   done
 }
