@@ -36,8 +36,6 @@ or tar.gz
 """
 from __future__ import print_function
 import os
-import optparse
-import inspect
 
 import ruamel.yaml as yaml
 
@@ -331,9 +329,10 @@ class Basename(libcmd.SimpleCommand):
                 elif not os.path.exists(a):
                     out.err("Not a real file, cannot detect MIME: %s" % a)
                     continue
+
                 else:
                     # look for mime
-                    mime = lib.cmd("file -bi %r" % a).strip()
+                    mime = libfile.filemtype(a)
                     if mime in settings['mime_xref']:
                         # ok, have a mime, ask later wether to use it for ext
                         exts, ftype, descr = settings['mime_xref'][mime]
@@ -343,7 +342,7 @@ class Basename(libcmd.SimpleCommand):
                                 ( mime, a))
                         continue
                     elif store_mime != 'a':
-                        descr = lib.cmd("file -bs %r" % a).strip()
+                        descr = libfile.file_brief_description(a)
                         exts = [ce]
                         out.emit_mime_detect(a, n, ce, mime, descr, exts)
                         qopts = list(settings['ftype']) + ['sKip', 'None']

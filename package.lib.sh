@@ -394,4 +394,13 @@ htd_package_remotes_init()
   done
 }
 
+htd_package_remotes_reset()
+{
+  git remote | while read remote
+  do
+      git remote remove $remote
+  done
+  htd_package_remotes_init
+}
+
 # Id: script-mpe/0.0.4-dev package.lib.sh

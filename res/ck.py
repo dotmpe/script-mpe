@@ -54,6 +54,11 @@ def rhash(path, name):
   return line[0]
 
 
+def git_hash(path):
+  cmd = [ 'git', 'hash-object', path ]
+  return subprocess.check_output(cmd).split(' ')[0]
+
+
 # Get checksums as int and pair with size
 
 def unix_cksum(path):
@@ -69,9 +74,9 @@ def rhash_cksum(f, algo='crc32b'):
   cks = rhash(f, 'crc32')
   return int(cks, 16), os.path.getsize(f)
 
-def hashlib_cksum(f):
+def hashlib_cksum(f, algo='crc32'):
   data = open(f, 'rb').read()
-  cks = hashlib.crc32(data).digest()
+  cks = getattr(hashlib, algo)(data).hexdigest()
   return cks, len(data)
 
 def php_crc32b_zip(f):
@@ -114,7 +119,18 @@ def tlit_cksum(f, format='plain', algo='crc32'):
   return int(subprocess.check_output(cmd))
 
 
+# resolvers reading data at local filename
 file_resolvers = {
+
+  'md5': lambda f: hashlib_cksum(f, 'md5')[0],
+  'sha1': lambda f: hashlib_cksum(f, 'sha1')[0],
+  'sha224': lambda f: hashlib_cksum(f, 'sha224')[0],
+  'sha2': lambda f: hashlib_cksum(f, 'sha256')[0],
+  'sha256': lambda f: hashlib_cksum(f, 'sha256')[0],
+  'sha384': lambda f: hashlib_cksum(f, 'sha384')[0],
+  'sha512': lambda f: hashlib_cksum(f, 'sha512')[0],
+
+  'git': git_hash,
 
   # Crazy UNIX CRC32
   'ck': unix_cksum,
@@ -144,10 +160,10 @@ file_resolvers = {
   'rhash-btih': lambda f: rhash(f, 'btih'),
 
   # Transliterature checksums (unicode, universal line-ends and collapsed whitespace)
-  'tlit-crc32': lambda f: tlit_cksum(f, 'crc32'),
-  'tlit-md5': lambda f: tlit_cksum(f, 'md5'),
-  'tlit-sha1': lambda f: tlit_cksum(f, 'sha1'),
-  'tlit-sha2': lambda f: tlit_cksum(f, 'sha256')
+  #'tlit-crc32': lambda f: tlit_cksum(f, 'crc32'),
+  #'tlit-md5': lambda f: tlit_cksum(f, 'md5'),
+  #'tlit-sha1': lambda f: tlit_cksum(f, 'sha1'),
+  #'tlit-sha2': lambda f: tlit_cksum(f, 'sha256')
 }
 
 # CRC32 direct/lookup table B/... (ZIP)
@@ -158,3 +174,16 @@ algos_crc32_cksum_unix = "ck ckpy".split(' ')
 
 # CRC32 lookup table (Ethernet)
 algos_crc32_ethernet = ["php-crc32"]
+
+
+class Table:
+
+    @staticmethod
+    def read(fl):
+        for line in fl.readlines():
+            if line.strip().startswith('#'): continue
+            p = line.index('  ')
+            ck = line[:p]
+            fn = line[p+2:-1]
+            yield ck, fn
+

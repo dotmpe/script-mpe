@@ -196,7 +196,7 @@ lines_to_words()
 {
   test -n "$1" && {
     { while test -n "$1"
-      do cat "$1"; shift; done
+      do test -e "$1" && cat "$1" || echo "$1"; shift; done
     } | tr '\n' ' '
   } || {
     tr '\n' ' '

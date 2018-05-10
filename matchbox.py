@@ -359,7 +359,7 @@ def c_check_name(line, *tags):
     """
     Given line with path name, match against entire matchbox.
     Returns an error if not a single match was found,
-    or if the match does not have a tag field listed in given `tags`.
+    or if the match does not have a tag listed in given `tags`.
     """
     load_templates()
     matchbox = {}
@@ -371,11 +371,16 @@ def c_check_name(line, *tags):
     invalid = []
     for name in matchbox:
         match = matchbox[name].match(line)
-        if match:
-            if not tags or name in tags:
+        if tags:
+            if name in tags:
+                if match:
+                    passed.append(name)
+            continue
+        else:
+            if match:
                 passed.append(name)
-            else:
-                invalid.append(name)
+                continue
+        invalid.append(name)
 
     if not invalid:
         if not passed:
@@ -383,6 +388,7 @@ def c_check_name(line, *tags):
             return 2
         else:
             print('OK', ','.join(passed), line)
+
     else:
         print('INVALID', ','.join(invalid), ','.join(passed), line)
         return 1

@@ -201,11 +201,19 @@ def run_commands(commands, settings, opts):
             f = cmd[subcmdid]
             args, kwds = select_kwdargs(f, settings, opts=opts, **opts.args)
             ret = f(*args, **kwds)
-            if ret: return ret # non-zero exit
+            return ret_(ret) # non-zero exit
         else:
             args, kwds = select_kwdargs(cmd, settings, opts=opts, **opts.args)
             ret = cmd(*args, **kwds)
-            if ret: return ret # non-zero exit
+            return ret_(ret) # non-zero exit
+
+
+def ret_(ret):
+    if isinstance(ret, bool):
+        if ret: return 0
+        else: return 1
+    else:
+        return ret # non-zero exit
 
 
 def cmd_help(CMD):
@@ -271,6 +279,9 @@ def init_config(path, defaults={}, overrides={}, persist=[]):
             settings.volatile.append(k)
         setattr(settings, k, v)
     return settings
+
+# XXX: static_vars_from_env is little use with docopt as it does not process
+# flags/values unless needed for parsing. Might as well override static itself.
 
 def static_vars_from_env(usage, *specs):
     for envname, default in specs:

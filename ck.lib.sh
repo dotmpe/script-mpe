@@ -7,7 +7,7 @@
 ck_lib_load()
 {
   test -n "$ck_tab" || ck_tab=table
-  test -n "$ck_exts" || ck_exts="ck md5 sha1 sha256"
+  test -n "$ck_exts" || ck_exts="ck crc32 md5 sha1 sha2 sha256"
 }
 
 ck_exists()
@@ -46,6 +46,9 @@ ck_run() # CkTable
         sha2 | sha256 )
               shasum -a 256 -c $1 || return $?
             ;;
+        git | rhash-* )
+              cksum.py -a $ext -c $1 || return $?
+            ;;
         ck )
               htd__cksum $1 || return $?
             ;;
@@ -56,22 +59,28 @@ ck_run() # CkTable
   } | sed 's/:\ /: '$ext' /g'
 }
 
-# Read checksums from catalog.yml
+# Read checksums from catalog.yml.
 ck_read_catalog()
 {
   test -e "$1" || error ck_read_catalog 1
-  local l=0 basedir="$(dirname "$1")" fname= name= host= \
+  local l=0 basedir="$(dirname "$1")" fname= name= host= fkv= keys= \
       catalog_sh="$(dotname "$(pathname "$1" .yaml .yml)")"
 
-  # TODO: look for document type, version
-  eval $( jsotk.py --output-prefix=catalog to-flat-kv "$1") ||
-    return $?
+  fkv="$( jsotk.py --output-prefix=catalog to-flat-kv "$1")" || return $?
+  trueish "$all_keys" && {
+      keys="$( echo "$fkv" | grep '[0-9]*_keys_' | sed 's/^catalog__[0-9]*_keys_\([^=]*\)=.*/\1/' | sort -u)"
+  } || {
+      keys="$( echo $ck_exts | tr '-' '_' )"
+  }
+  eval "$fkv" || return $?
 
+  note "Scanning '$(lines_to_words "$keys")' in $1.."
   while true
   do
     host="$(eval echo \"\$catalog__${l}_host\")"
-    test -z "$host" -o "$hostname" = "$(canon_host '' $host)" || {
-        l=$(( $l + 1)) ; continue
+    # TODO canon="$(canon_host '' "$host" || echo "$host")"
+    test -z "$host" -o "$hostname" = "$host" || {
+        warn "Not on host? $host $l" ; l=$(( $l + 1)) ; continue
     }
 
     name="$(eval echo \"\$catalog__${l}_name\")"
@@ -84,11 +93,12 @@ ck_read_catalog()
     test -n "$fname" && name="$(basename "$fname")" || {
         test -n "$name" && fname="$(find_one . "$name")"
     }
+
     #test -n "$fname" -a -e "$fname" || {
     #    warn "Missing name/path for entry $l. $name" ; return 1; }
 
     #test -f "$fname" && {
-      for ck in $( echo $ck_exts | tr '-' '_' )
+      for ck in $keys
       do
         key="$(eval echo \"\$catalog__${l}_keys_${ck}\")"
         test -n "$key" || continue
@@ -106,7 +116,7 @@ ck_read_catalog()
 
 ck_run_catalog()
 {
-  local r=0 ret=0 dir="$(dirname "$1")"
+  local r=0 ret=0 dir="$(dirname "$1")" keys="$ck_exts"
   cd "$cwd"
   test -d "$dir" || { warn "Missing dir '$1'" ; continue ; }
   test -f "$1" || { warn "Missing file '$1'" ; continue ; }
@@ -119,7 +129,6 @@ ck_run_catalog()
     while read key ck name ; do
 
       debug "Key: '$key' CK: $ck Name: '$name'"
-      fnmatch "* $ck *" " $ck_exts " || continue
       test -e "$name" || { error "No file '$name'" ; return 1 ; }
       case "$ck" in
 
@@ -127,6 +136,7 @@ ck_run_catalog()
           sha2* | sha3* | sha5* )
                 l=$(echo $ck | cut -c4-)
                 echo "$key  $name" | { r=0
+                    test "$l" != "2" || l=256
                     shasum -s -a $l -c - || r=$?
                     test 0 -eq $r && echo "$name: ${ck} OK" || {
                         warn "Failed $ck '$key' for '$name'"
@@ -136,14 +146,29 @@ ck_run_catalog()
               ;;
 
           # Special case for CK (a CRC+Size)
-          ck )
+          ck | *crc32 )
                 cks=$(echo "$key" | cut -f 1 -d ' ')
                 sz=$(echo "$key" | cut -f 2 -d ' ')
                 SZ="$(filesize "$name")"
                 test "$SZ" = "$sz" || { error "File-size mismatch on '$p'"; return 1; }
-                CKS="$(cksum "$name" | awk '{print $1}')"
+                test $ck = ck && {
+                  CKS="$(cksum "$name" | awk '{print $1}')"
+                } || {
+                  test $ck != crc32 || ck=rhash-crc32
+                  CKS="$(cksum.py -a $ck "$name" | awk '{print $1}')"
+                }
                 test "$CKS" = "$cks" || { error "Checksum mismatch on '$p'"; return 1; }
                 echo "$name: ${ck} OK"
+              ;;
+
+          git | rhash-* )
+                echo "$key  $name" | { r=0
+                    cksum.py -a $ck -c - || r=$?
+                    test 0 -eq $r && echo "$name: ${ck} OK" || {
+                        warn "Failed $ck '$key' for '$name'"
+                        return $r
+                    }
+                }
               ;;
 
           # Default to generic <ck>sum CLI tools

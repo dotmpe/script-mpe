@@ -205,9 +205,3 @@ class FileExtensionRegistry(libcmd.SimpleCommand):
 
 if __name__ == '__main__':
     FileExtensionRegistry.main()
-
-"""
-
-
-"""
-

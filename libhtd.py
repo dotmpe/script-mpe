@@ -40,6 +40,7 @@ from . import log
 from . import libcmd
 from . import reporter
 from . import rsr
+from . import libfile
 
 #import taxus.iface
 from . import taxus

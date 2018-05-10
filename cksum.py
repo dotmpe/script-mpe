@@ -1,5 +1,13 @@
 #!/usr/bin/env python
-"""
+"""Process file checksum, one algorithm at a time.
+
+CRC checks include size, and are separated by spaces. All other tables
+are split at the double space.
+
+Three algorithms for CRC32 are tested in test/ck-spec.bats: the common
+UNIX cksum, and ZIP and Ethernet variants. A working but slow pure python
+UNIX cksum 'ckpy' is provided. Other algorithms are taken from hashlib, or
+wrapped are invocations of rhash or php.
 """
 from __future__ import print_function
 __description__ = "cksum.py - "
@@ -12,13 +20,18 @@ __algos__ = file_resolvers.keys()
 __default_algo__ = "ck"
 __usage__ = """
 Usage:
+  cksum.py [-v... options] (-c|check) TABLE...
+  cksum.py [-v... options] -l|list
   cksum.py [-v... options] [ FILES... | calc FILES... ]
-  cksum.py [-v... options] check TABLE
   cksum.py -h|--help
   cksum.py help [CMD]
   cksum.py --version
 
 Options:
+  -c, --check
+                 Check all entries from file
+  -l, --list
+                 List algos
   -a ALGO, --algorithm ALGO
                  Calculate one of available checkum algorithms:
                  %s [default: %s]
@@ -39,23 +52,53 @@ from itertools import chain
 # as with other algos
 cksums = algos_crc32b + algos_crc32_cksum_unix + algos_crc32_ethernet
 
+def cmd_list(opts):
+    for algo in file_resolvers:
+        print(algo)
+
 def cmd_calc(FILES, opts):
     num = len(FILES)
     algo = opts.flags.algorithm
     for fname in FILES:
         if algo in cksums:
-            cksum, size = file_resolvers[algo](fname)
+            try:
+                cksum, size = file_resolvers[algo](fname)
+            except Exception as e:
+                print("Error for %s of %s: %s" % (algo, fname, e), file=sys.stderr)
+                #traceback.print_exc()
+                continue
             print( "%d %d %s" % (cksum, size, fname))
         else:
-            cksum = file_resolvers[algo](fname)
+            try:
+                cksum = file_resolvers[algo](fname)
+            except Exception as e:
+                print("Error for %s of %s: %s" % (algo, fname, e), file=sys.stderr)
+                #traceback.print_exc()
+                continue
             if num > 1:
                 print( "%s  %s" % (cksum, fname))
             else:
                 print(cksum)
 
 def cmd_check(TABLE):
-    for t in TABLE:
-        print(t)
+    v = True
+    algo = opts.flags.algorithm
+    for tabfn in TABLE:
+        if tabfn == '-': tab = sys.stdin
+        else: tab = open(tabfn)
+        for ck, fname in res.ck.Table.read(tab):
+            try:
+                cksum = file_resolvers[algo](fname)
+            except Exception as e:
+                print("Error for %s of %s: %s" % (ck, fname, e), file=sys.stderr)
+                #traceback.print_exc()
+                continue
+            if ck != cksum:
+                print("%s: Failed" % fname)
+                v = False
+            else:
+                print("%s: OK" % fname)
+    return v
 
 
 ### Transform cmd_ function names to nested dict
@@ -75,6 +118,8 @@ def defaults(opts, init={}):
 def main(opts):
     opts.default = 'calc'
     settings = opts.flags
+    if settings.list: opts.cmds = ['list']
+    if settings.check: opts.cmds = ['check']
     return libcmd_docopt.run_commands(commands, settings, opts)
 
 def get_version():

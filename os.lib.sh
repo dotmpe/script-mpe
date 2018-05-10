@@ -697,3 +697,9 @@ wherefrom()
 {
   ${os}_wherefrom "$@"
 }
+
+sameas()
+{
+  test -f "$1" -a -f "$2" || error "sameas: two file name expected: $*" 1
+  test $(stat -f "%i" "$1") -eq $(stat -f "%i" "$2")
+}

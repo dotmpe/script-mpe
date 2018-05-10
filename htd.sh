@@ -4881,10 +4881,12 @@ htd_man_1__package='Get local (project/workingdir) metadata
      Take all repository names/urls directly from YAML, and create remotes or
      update URL for same in local repository. The remote name and exact
      remote-url is determined with htd-repository-url (htd.lib.sh).
+  package remotes-reset
+     Remove all remotes and reset
   package urls
      TODO: List URLs for package.
   package openurl|open-url [URL]
-
+     ..
   package debug
      Log each Sh package settings.
 
@@ -9626,12 +9628,12 @@ htd_man_1__catalog='Build file manifests
 
 Sets of catalogs
 
-  [CATALOGS=.catalogs] list
+  [CATALOGS=.catalogs] list-local
     find catalog documents, cache full paths at CATALOG and list pathnames
   [CATALOG_DEFAULT=] name [DIR]
     select and set CATALOG filename from existing catalog.y*ml
   find
-    for every catalog from "htd catalog list", look for literal string in it
+    for every catalog from "htd catalog list-local", look for literal string in it
 
 Single catalogs
 
@@ -9673,9 +9675,10 @@ Single catalog entry
 htd__catalog()
 {
   test -n "$1" && { upper=0 mkvid "$1" ; shift ; action=$vid
-    } || action=list
+    } || action=status
   htd_catalog_$action "$@" || return $?
 }
+htd_run__catalog=f
 
 htd_als__catalogs='catalog list'
 htd_als__fsck_catalog='catalog fsck'
@@ -10044,7 +10047,7 @@ htd_init()
   lib_load htd meta match vc web src
   lib_load box date doc table disk remote package service archive \
       prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck net \
-      catalog tasks journal
+      catalog tasks journal annex lfs
   case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh
   disk_run

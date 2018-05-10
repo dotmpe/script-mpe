@@ -37,3 +37,12 @@ setup()
   } || stdfail
 }
 
+@test "$bin -c <file> - Loose check on mediatype/extension match, warn about alias" {
+
+  run basename-reg 
+}
+
+@test "$bin -cq <file> - Loose check, quiet" {
+
+  run basename-reg 
+}

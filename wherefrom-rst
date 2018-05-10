@@ -92,8 +92,8 @@ do
 	else
 		path=`pwd -P`
 	fi
-	echo ":$PPREFIX: $path"
-	echo ":$PREFIX: $base"
+	test -z "$PPREFIX" || echo ":$PPREFIX: $path"
+	test -z "$PREFIX" || echo ":$PREFIX: $base"
 
 	i=0
 	#$xattr -p com.apple.metadata:kMDItemWhereFroms "$file" | xxd -r -p | plutil -convert xml1 -o - - | xmllint --xpath "/plist/array/string/text()" -
@@ -102,7 +102,8 @@ do
 		| plutil -convert xml1 -o - - \
 		| grep string | sed 's/^.*<string>\(.*\)<\/string>.*/\1/' \
         | xml-decode.py - \
-		| while read line; do echo :${PREFIXES[$i]}: $line; i=`expr $i + 1`; done
+		| while read line; do test -n "$line" || continue ;
+	        echo :${PREFIXES[$i]}: $line; i=`expr $i + 1`; done
 
     # Get birth timestamp and record as first-seen
 	dob_ts=`stat -f %B "$file"`

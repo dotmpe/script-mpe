@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # ENV-NAME: gspread-boreas
 from __future__ import print_function
 import os
