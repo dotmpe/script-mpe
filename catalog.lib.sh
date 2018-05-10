@@ -192,7 +192,9 @@ htd_catalog_has_file() # File
   test -n "$CATALOG" || error "CATALOG env expected"
   test -s "$CATALOG" || return 1
 
-  grep -q "\\<name:\\ ['\"]\?$(match_grep "$(basename "$1")")" $CATALOG
+  local basename="$(basename "$1" | sed 's/"/\\"/g')"
+
+  grep -q "\\<name:\\ ['\"]\?$(match_grep "$basename")" $CATALOG
 }
 
 # Return error state unless every key is found.
@@ -248,10 +250,10 @@ htd_catalog_add_file() # File
     info "New keys for '$1' generated.."
   }
 
-  local mtype="$(filemtype "$1")"
+  local mtype="$(filemtype "$1")" basename="$(basename "$1" | sed 's/"/\\"/g')"
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   { cat <<EOM
-- name: '$(basename "$1")'
+- name: "$basename"
   mediatype: '$mtype'
   format: '$(file -b "$1")'
   host: $hostname
