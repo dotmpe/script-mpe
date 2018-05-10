@@ -10,8 +10,8 @@ catalog_lib_load()
   test -n "$CATALOG_DEFAULT" || {
     CATALOG_DEFAULT=$(htd_catalog_name) || CATALOG_DEFAULT=catalog.yaml
   }
-  default_env CATALOG "$CATALOG_DEFAULT"
-
+  # FIXME linux default_env CATALOG "$CATALOG_DEFAULT"
+  test -n "$CATALOG" || export CATALOG="$CATALOG_DEFAULT"
   test -n "$Catalog_Status" || Catalog_Status=.cllct/catalog-status.vars
   test -n "$Catalog_Ignores" || Catalog_Ignores=.cllct/ignores
   test -d .cllct || mkdir .cllct
@@ -385,10 +385,16 @@ htd_catalog_file_wherefrom() # Src-File
 # Echo first-seen YAML key-values to append to catalog in raw mode
 htd_catalog_file_birth_date() # Src-File
 {
-  dob_ts=$(stat -f %B "$1")
-  test $dob_ts -ne 0 || dob_ts=$(stat -f %m "$1")
-  dob=$(date -r $dob_ts +"%Y-%m-%dT%H:%M:%S%z" | sed 's/^\(.*\)\(..\)$/\1:\2/')
-  dob_utc=$(TZ=GMT date -r $dob_ts +"%Y-%m-%dT%H:%M:%SZ")
+  dob_ts=$(filebtime "$1")
+  test $dob_ts -ne 0 || dob_ts=$(filemtime "$1")
+  # Darwin/BSD
+  test "$uname" = "Darwin" && {
+    dob=$(date -r $dob_ts +"%Y-%m-%dT%H:%M:%S%z" | sed 's/^\(.*\)\(..\)$/\1:\2/')
+    dob_utc=$(TZ=GMT date -r $dob_ts +"%Y-%m-%dT%H:%M:%SZ")
+  } || {
+    dob=$(date --date="@$dob_ts" +"%Y-%m-%dT%H:%M:%S%z" | sed 's/^\(.*\)\(..\)$/\1:\2/')
+    dob_utc=$(TZ=GMT date --date="@$dob_ts" +"%Y-%m-%dT%H:%M:%SZ")
+  }
   echo "  first-seen-local: '$dob'"
   echo "  first-seen: '$dob_utc'"
 }

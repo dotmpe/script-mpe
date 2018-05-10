@@ -181,7 +181,7 @@ filesize() # File..
   done
 }
 
-# Use `stat` to get modification time
+# Use `stat` to get modification time (in epoch seconds)
 filemtime() # File..
 {
   while test $# -gt 0
@@ -194,6 +194,23 @@ filemtime() # File..
           stat -L -c '%Y' "$1" || return 1
         ;;
       * ) error "filemtime: $1?" 1 ;;
+    esac; shift
+  done
+}
+
+# Use `stat` to get birth time (in epoch seconds)
+filebtime() # File...
+{
+  while test $# -gt 0
+  do
+    case "$uname" in
+      Darwin )
+          stat -L -f '%B' "$1" || return 1
+        ;;
+      Linux )
+          stat -L -c '%W' "$1" || return 1
+        ;;
+      * ) error "filebtime: $1?" 1 ;;
     esac; shift
   done
 }
