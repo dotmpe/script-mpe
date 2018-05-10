@@ -3,7 +3,7 @@ ht__source=$_
 
 # Ht - trying to optimize htd.sh a bit
 
-set -o posix
+#set -o posix
 set -e
 
 version=0.0.4-dev # script-mpe
@@ -83,7 +83,7 @@ ht_als__prefixes_update=prefixes\ update
 ht_als__update_prefixes=prefixes\ update
 
 
-htd__filesize()
+ht__filesize()
 {
   filesize "$1"
 }

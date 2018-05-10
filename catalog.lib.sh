@@ -10,8 +10,8 @@ catalog_lib_load()
   test -n "$CATALOG_DEFAULT" || {
     CATALOG_DEFAULT=$(htd_catalog_name) || CATALOG_DEFAULT=catalog.yaml
   }
-  default_env CATALOG "$CATALOG_DEFAULT"
-
+  # FIXME linux default_env CATALOG "$CATALOG_DEFAULT"
+  test -n "$CATALOG" || export CATALOG="$CATALOG_DEFAULT"
   test -n "$Catalog_Status" || Catalog_Status=.cllct/catalog-status.vars
   test -n "$Catalog_Ignores" || Catalog_Ignores=.cllct/ignores
   test -d .cllct || mkdir .cllct
