@@ -276,13 +276,14 @@ htd_catalog_add_file() # File
     info "New keys for '$1' generated.."
   }
 
-  local mtype="$(filemtype "$1")" basename="$(basename "$1" | sed 's/"/\\"/g')"
+  local mtype="$(filemtype "$1")" \
+    basename="$(basename "$1" | sed 's/"/\\"/g')" \
+    format="$(fileformat "$1" | sed 's/"/\\"/g')"
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   { cat <<EOM
 - name: "$basename"
   mediatype: '$mtype'
-  format: '$(fileformat "$1")'
-  host: $hostname
+  format: '$format'
   tags:
   keys:
     ck: $(cksum "$1" | cut -d ' ' -f 1,2)
