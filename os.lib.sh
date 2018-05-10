@@ -709,6 +709,7 @@ backup_file() # [action=mv] Name [Ext]
 # rename to numbered file, see number-file
 rotate_file() # [action=mv] Name [Ext]
 {
+  test -s "$1" || return
   action=mv number_file "$1"
 }
 
