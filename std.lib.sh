@@ -258,12 +258,13 @@ log()
   esac
 }
 
-stderr()
+stderr() # level msg exit
 {
   test -z "$4" || {
     echo "Surplus arguments '$4'" >&2
     exit 200
   }
+  fnmatch "*%*" "$2" && set -- "$1" "$(echo "$2" | sed 's/%/%%/g')" "$3"
   # XXX seems ie grep strips colors anyway?
   test -n "$stdout_type" || stdout_type=$stdio_2_type
   case "$(echo $1 | tr 'A-Z' 'a-z')" in

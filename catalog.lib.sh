@@ -335,9 +335,6 @@ htd_catalog_add_all_larger() # SIZE
   test -n "$1" || set -- 1048576
   htd_catalog_listtree | while read fn
   do
-      echo "fn='$fn'"
-      warn "fn='$fn'"
-      continue
     test -f "$fn" || {
       warn "File expected '$fn'"
       continue
