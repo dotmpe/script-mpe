@@ -318,10 +318,16 @@ htd_catalog_add() # File..
     test -d "$1" && {
       htd_catalog_add_as_folder "$1" && note "Added folder '$1'" || true
     } || {
-      htd_catalog_add_file "$1" && note "Added file '$1'" || true
+      htd_catalog_add_file "$1" &&
+        note "Added file '$1'" || true
     }
     shift
   done
+}
+
+htd_catalog_add_all()
+{
+  htd_catalog_add_all_larger -1
 }
 
 htd_catalog_add_all_larger() # SIZE
@@ -329,6 +335,9 @@ htd_catalog_add_all_larger() # SIZE
   test -n "$1" || set -- 1048576
   htd_catalog_listtree | while read fn
   do
+      echo "fn='$fn'"
+      warn "fn='$fn'"
+      continue
     test -f "$fn" || {
       warn "File expected '$fn'"
       continue
