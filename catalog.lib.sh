@@ -14,6 +14,7 @@ catalog_lib_load()
   test -n "$CATALOG" || export CATALOG="$CATALOG_DEFAULT"
   test -n "$Catalog_Status" || Catalog_Status=.cllct/catalog-status.vars
   test -n "$Catalog_Ignores" || Catalog_Ignores=.cllct/ignores
+  test -n "$Catalog_Duplicates" || Catalog_Duplicates=.cllct/duplicates
   test -d .cllct || mkdir .cllct
 }
 
@@ -238,13 +239,21 @@ htd_catalog_add_file() # File
     warn "File '$(basename "$1")' already in catalog"
     return 1
   }
+
+  local \
+      sha1sum=$(sha1sum "$1" | awk '{print $1}')
+  htd_catalog_check_keys "$sha1sum" && {
+    warn "Keys for '$1' present, matching record:"
+    htd_catalog_get_by_key "" "$sha1sum" | tee -a $Catalog_Duplicates
+    return 1
+  }
+
   local \
       md5sum=$(md5sum "$1" | awk '{print $1}') \
-      sha1sum=$(sha1sum "$1" | awk '{print $1}') \
       sha2sum=$(shasum -a 256 "$1" | awk '{print $1}')
-  htd_catalog_check_keys "$md5sum" "$sha1sum" "$sha2sum" && {
+  htd_catalog_check_keys "$md5sum" "$sha2sum" && {
     warn "Keys for '$1' present, matching record:"
-    htd_catalog_get_by_key "" "$md5sum" "$sha1sum" "$sha2sum"
+    htd_catalog_get_by_key "" "$md5sum" "$sha2sum" | tee -a $Catalog_Duplicates
     return 1
   } || {
     info "New keys for '$1' generated.."
@@ -295,6 +304,23 @@ htd_catalog_add() # File..
       htd_catalog_add_file "$1" && note "Added file '$1'" || true
     }
     shift
+  done
+}
+
+htd_catalog_add_all_larger() # SIZE
+{
+  test -n "$1" || set -- 1048576
+  htd_catalog_listtree | while read fn
+  do
+    test -f "$fn" || {
+      warn "File expected '$fn'"
+      continue
+    }
+    test $1 -lt $(ht filesize "$fn") || continue
+    htd_catalog_add "$fn" || {
+      error "Adding '$fn"
+      continue
+    }
   done
 }
 
