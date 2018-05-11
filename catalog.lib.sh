@@ -264,6 +264,7 @@ htd_catalog_add_file() # File
   local \
       sha1sum=$(sha1sum "$1" | awk '{print $1}')
   htd_catalog_check_keys "$sha1sum" && {
+    echo "$1" >>$Catalog_Duplicates
     warn "Keys for '$1' present, matching record:"
     htd_catalog_get_by_key "" "$sha1sum" | tee -a $Catalog_Duplicates
     return 1
@@ -273,6 +274,7 @@ htd_catalog_add_file() # File
       md5sum=$(md5sum "$1" | awk '{print $1}') \
       sha2sum=$(shasum -a 256 "$1" | awk '{print $1}')
   htd_catalog_check_keys "$md5sum" "$sha2sum" && {
+    echo "$1" >>$Catalog_Duplicates
     warn "Keys for '$1' present, matching record:"
     htd_catalog_get_by_key "" "$md5sum" "$sha2sum" | tee -a $Catalog_Duplicates
     return 1
