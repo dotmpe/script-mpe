@@ -97,6 +97,7 @@ htd_catalog_index()
   htd_catalog_listtree "$1" |
       while read fname
       do
+          test -f "$fname" || { warn "File expected '$fname'" ; continue ; }
           htd_catalog_has_file "$fname" || {
             warn "Missing '$fname'"
             touch "$failed"
@@ -336,10 +337,7 @@ htd_catalog_add_all_larger() # SIZE
   test -n "$1" || set -- 1048576
   htd_catalog_listtree | while read fn
   do
-    test -f "$fn" || {
-      warn "File expected '$fn'"
-      continue
-    }
+    test -f "$fn" || { warn "File expected '$fn'" ; continue ; }
     test $1 -lt $(ht filesize "$fn") || continue
     htd_catalog_add "$fn" || {
       error "Adding '$fn"
@@ -573,10 +571,7 @@ htd_catalog_update_all()
 {
   htd_catalog_listtree | while read fn
   do
-    test -f "$fn" || {
-      warn "File expected '$fn'"
-      continue
-    }
+    test -f "$fn" || { warn "File expected '$fn'" ; continue ; }
     htd_catalog_has_file "$1" || continue
 
     htd_catalog_update "$fn" "$@" || {
