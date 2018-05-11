@@ -136,7 +136,7 @@ fileisext() # Name Exts..
 # Use `file` to get mediatype aka. MIME-type
 filemtype() # File..
 {
-  local flags= ; not_falseish "$file_deref" && flags=Lb || flags=b
+  local flags= ; falseish "$file_deref" && flags=b || flags=Lb
   while test $# -gt 0
   do
     case "$uname" in
@@ -154,7 +154,7 @@ filemtype() # File..
 # Description of file contents, format
 fileformat()
 {
-  local flags= ; not_falseish "$file_deref" && flags=Lb || flags=b
+  local flags= ; falseish "$file_deref" && flags=b || flags=Lb
   while test $# -gt 0
   do
     case "$uname" in
@@ -709,6 +709,7 @@ backup_file() # [action=mv] Name [Ext]
 # rename to numbered file, see number-file
 rotate_file() # [action=mv] Name [Ext]
 {
+  test -s "$1" || return
   action=mv number_file "$1"
 }
 

@@ -10,6 +10,7 @@ catalog_lib_load()
   test -n "$CATALOG_DEFAULT" || {
     CATALOG_DEFAULT=$(htd_catalog_name) || CATALOG_DEFAULT=catalog.yaml
   }
+  test -n "$CATALOG_IGNORE_DIR" || CATALOG_IGNORE_DIR=.catalog-ignore
   # FIXME linux default_env CATALOG "$CATALOG_DEFAULT"
   test -n "$CATALOG" || export CATALOG="$CATALOG_DEFAULT"
   test -n "$Catalog_Status" || Catalog_Status=.cllct/catalog-status.vars
@@ -26,15 +27,16 @@ htd_catalog_name() # [Dir]
     fnmatch "*/" "$1" || set -- "$1/"
     dest_dir="$1"
   }
-  test -f "$1catalog.yml" && echo "$1catalog.yml"
-  test -f "$1catalog.yaml" && echo "$1catalog.yaml"
-  true
+  test -f "$1catalog.yml" &&
+    echo "$1catalog.yml" || {
+      test -f "$1catalog.yaml" && echo "$1catalog.yaml" || return
+    }
 }
 
 htd_catalog_asjson()
 {
   test -n "$1" || set -- "$CATALOG"
-  local jsonfn="$(pathname "$1" .yml .yaml)"
+  local jsonfn="$(pathname "$1" .yml .yaml).json"
   test -e "$jsonfn" -a "$jsonfn" -nt "$1" || {
     jsotk yaml2json "$1" "$jsonfn"
   }
@@ -44,7 +46,7 @@ htd_catalog_asjson()
 htd_catalog_fromjson()
 {
   test -n "$1" || set -- "$CATALOG"
-  local jsonfn="$(pathname "$1" .yml .yaml)"
+  local jsonfn="$(pathname "$1" .yml .yaml).json"
   jsotk json2yaml "$jsonfn" "$1"
 }
 
@@ -67,29 +69,31 @@ htd_catalog_ignores()
 
 htd_catalog_update_ignores()
 {
-  htd_catalog_ignores > $Catalog_Ignores
+  htd_catalog_ignores > "$Catalog_Ignores"
 }
 
 # List local files for cataloging, excluding dirs but including symlinked
 htd_catalog_listdir()
 {
   test -n "$1" || set -- "."
-  { test -e $Catalog_Ignores && newer_than $Catalog_Ignores $_1DAY
+  { test -e "$Catalog_Ignores" && newer_than "$Catalog_Ignores" $_1DAY
   } || htd_catalog_update_ignores
-  globlist_to_regex $Catalog_Ignores >/dev/null
-  for lname in $1/*
+  globlist_to_regex "$Catalog_Ignores" >/dev/null
+  for lname in "$1"/*
   do test -f "$lname" || continue ; echo "$lname"
-  done | grep -vf $Catalog_Ignores.regex
+  done | grep -vf "$Catalog_Ignores.regex"
 }
 
 # Like listdir but recurse, uses find
 htd_catalog_listtree()
 {
   test -n "$1" || set -- "."
-  { test -e $Catalog_Ignores && newer_than $Catalog_Ignores $_1DAY
+  { test -e "$Catalog_Ignores" && newer_than "$Catalog_Ignores" $_1DAY
   } || htd_catalog_update_ignores
-  local find_ignores="-false $(find_ignores $Catalog_Ignores)"
-  eval find $1 $find_ignores -o -print
+  local find_ignores="-false $(find_ignores "$Catalog_Ignores") "\
+" -o -exec test ! \"{}\" = \"$1\" -a -e \"{}/$CATALOG_DEFAULT\" ';' -a -prune "\
+" -o -exec test -e \"{}/$CATALOG_IGNORE_DIR\" ';' -a -prune"
+  eval find "$1" -not -type d $find_ignores -o -type f -a -print
 }
 
 htd_catalog_index()
@@ -248,14 +252,14 @@ htd_catalog_get_by_key() # [CATALOG] CKS...
 
 htd_catalog_add_as_folder()
 {
-  false # TODO
+  htd_catalog_add_all_larger "$1" -1
 }
 
 htd_catalog_add_file() # File
 {
   htd_catalog_has_file "$1" && {
-    warn "File '$(basename "$1")' already in catalog"
-    return 1
+    debug "File '$(basename "$1")' already in catalog"
+    return 2
   }
 
   local \
@@ -292,8 +296,8 @@ htd_catalog_add_file() # File
     md5: $md5sum
     sha1: $sha1sum
     sha2: $sha2sum
-    git: $(git hash-object "$1")
 EOM
+    # git: $(git hash-object "$1")
     fnmatch "*/*" "$1" && { cat <<EOM
   categories:
   - $(dirname "$1")/
@@ -320,8 +324,10 @@ htd_catalog_add() # File..
     test -d "$1" && {
       htd_catalog_add_as_folder "$1" && note "Added folder '$1'" || true
     } || {
-      htd_catalog_add_file "$1" &&
-        note "Added file '$1'" || true
+      htd_catalog_add_file "$1" && note "Added file '$1'" || { r=$?
+        test $r -eq 2 && continue
+        error "Adding '$1' ($r)"
+      }
     }
     shift
   done
@@ -329,19 +335,20 @@ htd_catalog_add() # File..
 
 htd_catalog_add_all()
 {
-  htd_catalog_add_all_larger -1
+  htd_catalog_add_all_larger "." -1
 }
 
 htd_catalog_add_all_larger() # SIZE
 {
-  test -n "$1" || set -- 1048576
-  htd_catalog_listtree | while read fn
+  test -n "$1" || set -- . "$2"
+  test -n "$2" || set -- "$1" 1048576
+  htd_catalog_listtree "$1" | while read fn
   do
     test -f "$fn" || { warn "File expected '$fn'" ; continue ; }
-    test $1 -lt $(ht filesize "$fn") || continue
-    htd_catalog_add "$fn" || {
-      error "Adding '$fn"
-      continue
+    test $2 -lt $(ht filesize "$fn") || continue
+    htd_catalog_add_file "$fn" || { r=$?
+      test $r -eq 2 && continue
+      error "Adding '$fn' ($r)"
     }
   done
 }
@@ -351,25 +358,33 @@ htd_catalog_copy_by_name() # CATALOG NAME [ DIR | CATALOG ]
 {
   test -n "$1" || set -- $CATALOG "$2" "$3"
   record="$( htd_catalog_asjson "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
-  test -f "$3" && dest_dir="$(dirname "$3")/" || {
-    set -- "$1" "$2" "$(htd_catalog_name "$3")" || return
+  test -f "$3" || {
+    test -d "$3" && {
+      set -- "$1" "$2" "$(htd_catalog_name "$3" || echo $CATALOG_DEFAULT)"
+    }
   }
+  dest_dir="$(dirname "$3")/"
 
-  rotate_file "$3" || return
-  htd_catalog_asjson "$dest" | eval jq -c \'. += [ $record ]\' | jsotk json2yaml - > $3
+  test -s "$3" || echo "[]" > $3
+  rotate_file "$3"
+  htd_catalog_asjson "$3" | eval jq -c \'. += [ $record ]\' | jsotk json2yaml - > $3
 }
 
 # Get path for record, or find it by searching for basename
 htd_catalog_record_get_path() # Record [Name]
 {
-  src_path="$(echo "$1" | jq -r '.path')" || return
+  src_path="$(echo "$1" | jq -r '.path')"
   test -n "$src_path" -a "$src_path" != "null" || {
     test -n "$2" || {
-      set -- "$1" "$(echo "$1" | jq -r '.name')" || return
+      set -- "$1" "$(echo "$1" | jq -r '.name')" || {
+        error "No name given or path or name in record"
+        return 1
+      }
     }
     test -n "$2" -a "$2" != "null" || {
         error "No name for record" ; return 1 ; }
-    src_path="$(find . -iname "$2")" || return
+    iname="$(echo "$2" | sed 's/[][?\*]/\\&/g')"
+    export src_path="$(find . -iname "$iname")" || return
   }
   test -e "$src_path"
 }
@@ -394,29 +409,30 @@ htd_catalog_delete() # NAME
 htd_catalog_drop_by_name() # [CATALOG] NAME
 {
   test -n "$1" || set -- $CATALOG "$2"
-
-  backup_file "$1" || return
+  test -s "$1" && backup_file "$1" || echo "[]" > $1
   htd_catalog_asjson "$1" |
       jq -c ' del( .[] | select(.name=="'"$2"'")) ' |
-      htd_catalog_fromjson "$1"
+      jsotk json2yaml --pretty - "$1"
 }
 
 # Copy record and file
 htd_catalog_copy() # CATALOG NAME [ DIR | CATALOG ]
 {
   htd_catalog_copy_by_name "$1" "$2" "$3" || return
-  htd_catalog_record_get_path "$record" "$2"
-  mkdir -v "$(dirname "$dest_dir$src_path")"
-  rsync -avzu $src_path $dest_dir$src_path
+  htd_catalog_record_get_path "$record" "$2" || error "Lookup up file '$2'" 1
+  test -e "$src_path" || error "Can't find file '$2'" 1
+  mkdir -v "$(dirname "$dest_dir$src_path")" || return
+  rsync -avzu "$src_path" "$dest_dir$src_path"
 }
 
 # Transfer record and move file
 htd_catalog_move() # [CATALOG] NAME [ DIR | CATALOG ]
 {
   htd_catalog_copy_by_name "$1" "$2" "$3" || return
-  htd_catalog_record_get_path "$record" "$2"
-  mkdir -v "$(dirname "$dest_dir$src_path")"
-  mv -v $src_path $dest_dir$src_path || return
+  htd_catalog_record_get_path "$record" "$2" || error "Lookup up file '$2'" 1
+  test -e "$src_path" || error "Can't find file '$2'" 1
+  mkdir -vp "$(dirname "$dest_dir$src_path")" || return
+  mv -v "$src_path" "$dest_dir$src_path" || return
   htd_catalog_drop_by_name "$1" "$2"
 }
 
@@ -458,20 +474,23 @@ htd_catalog_set_key() # [Catalog] Entry-Id Key Value [Entry-Key]
   test -n "$4" || error "catalog-set: 4:Value required" 1
   test -n "$5" || set -- "$1" "$2" "$3" "$4" "name"
 
-  trueish "$catalog_backup" && {
+  #trueish "$catalog_backup" && {
     backup_file "$1" || return
-  }
+  #}
   {
     htd_catalog_asjson "$1" | {
         trueish "$json_value" && {
-          jq -c "map(select(.$5==\""$2"\").$3 |= $4 )"
+          jq -c "map(select(.$5==\""$2"\").$3 |= $4 )" || return
+
         } || {
-          jq -c "map(select(.$5==\""$2"\").$3 |= \"$4\" )"
+          jq -c "map(select(.$5==\""$2"\").$3 |= \"$4\" )" || return
+
         }
       } | jsotk json2yaml - $1
   } || { r=$?
     # undo copy
-    not_trueish "$catalog_backup" || mv "$dest" "$1"
+    #not_trueish "$catalog_backup" ||
+    mv "$dest" "$1"
     return $?
   }
 }
@@ -483,12 +502,11 @@ htd_catalog_update() # [Catalog] Entry-Id Value [Entry-Key]
   test -n "$3" || error "catalog-set: 3:Value required" 1
   test -n "$4" || set -- "$1" "$2" "$3" "name"
 
-  # XXX: sponge not working?
   #trueish "$catalog_backup" && {
     backup_file "$1" || return
   #}
   {
-    htd_catalog_asjson "$dest" | {
+    htd_catalog_asjson "$1" | {
         jq -c "map(select(.$4==\""$2"\") += $3 )"
     } | jsotk json2yaml - $1
 
@@ -512,8 +530,7 @@ htd_catalog_annex_import()
   done
   return $?
 
-  # JSON directly makes it hard to filter -lastchanged out
-  annex_metadata_json
+  # XXX: JSON directly makes it hard to filter -lastchanged out
   annex_metadata_json |
       while { read file && read fields ; }
       do
@@ -539,12 +556,13 @@ htd_catalog_consolidate()
   done
 }
 
-# TODO: separate subtree entries. Go about by moving each file individually
+# Separate subtree entries. Go about by moving each file individually
 htd_catalog_separate() # PATH
 {
+  test -d "$1" || error "dir expected" 1
   while test $# -gt 0
   do
-    htd_catalog_listree "$1" | while read filename
+    htd_catalog_listtree "$1" | while read filename
     do
        htd_catalog_move "" "$filename" "$1"
     done
@@ -554,13 +572,17 @@ htd_catalog_separate() # PATH
 
 htd_catalog_update()
 {
+  test -n "$1" || error "expected properties to update" 1
   local fn="$1" ; shift
   local bn="$(basename "$fn" | sed 's/"/\\"/g')" pn="$(find . -iname "$fn" | head -n 1)"
+  test -e "$pn" || error "No file '$pn'" 1
   while test $# -gt 0
   do
     case "$1" in
       mediatype ) htd_catalog_set_key "" "$bn" "mediatype" "$(filemtype "$pn")" ;;
-      format ) htd_catalog_set_key "" "$bn" "format" "$(fileformat "$pn")" ;;
+      format )
+        echo htd_catalog_set_key "" "$bn" "format" "$(fileformat "$pn")"
+        htd_catalog_set_key "" "$bn" "format" "$(fileformat "$pn")" ;;
       * ) error "unknown update '$1'" 1 ;;
     esac
     shift
@@ -569,14 +591,42 @@ htd_catalog_update()
 
 htd_catalog_update_all()
 {
+  test -n "$1" || error "expected properties to update" 1
   htd_catalog_listtree | while read fn
   do
-    test -f "$fn" || { warn "File expected '$fn'" ; continue ; }
+    test -f "$fn" || continue
     htd_catalog_has_file "$1" || continue
-
     htd_catalog_update "$fn" "$@" || {
       error "Updating '$fn"
       continue
     }
   done
+}
+
+htd_catalog_add_empty_file()
+{
+  test -n "$1" || set -- "$CATALOG"
+  htd_catalog_get_by_key "$1" \
+    e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 && {
+      warn "Existing record found" 1
+    }
+
+  test -f "$1" || {
+    test -d "$1" && {
+      set -- "$(htd_catalog_name "$1" || echo $CATALOG_DEFAULT)"
+    }
+  }
+  { cat <<EOM
+- name: .empty
+  format: empty
+  mediatype: inode/x-empty; charset=binary
+  keys:
+    ck: 4294967295 0
+    crc32: 0 0
+    md5: d41d8cd98f00b204e9800998ecf8427e
+    sha1: da39a3ee5e6b4b0d3255bfef95601890afd80709
+    sha2: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    git: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+EOM
+  } >> "$1"
 }
