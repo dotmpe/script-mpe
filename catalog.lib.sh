@@ -216,7 +216,6 @@ htd_catalog_has_file() # File
   test -s "$CATALOG" || return 1
 
   local basename="$(basename "$1" | sed 's/"/\\"/g')"
-
   grep -q "\\<name:\\ ['\"]\?$(match_grep "$basename")" $CATALOG
 }
 
@@ -258,7 +257,7 @@ htd_catalog_add_as_folder()
 htd_catalog_add_file() # File
 {
   htd_catalog_has_file "$1" && {
-    debug "File '$(basename "$1")' already in catalog"
+    info "File '$(basename "$1")' already in catalog"
     return 2
   }
 
