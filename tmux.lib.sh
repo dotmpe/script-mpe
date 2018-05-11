@@ -4,6 +4,7 @@
 
 tmux_lib_load()
 {
+  local upper=1
   # TODO: document where this was needded
   #which tmux 1>/dev/null || {
   #  export PATH=/usr/local/bin:$PATH
@@ -28,6 +29,7 @@ tmux_env_req()
   test -n "$TMUX_SOCK" && {
     debug "Using TMux-Sock env '$TMUX_SOCK'"
   } || {
+    test -n "$TMUX_SDIR" || error "TMUX socket dir env missing" 1
     test -d "$TMUX_SDIR" || mkdir -vp $TMUX_SDIR
     # NOTE: By default have one server per host. Add Htd-TMux-Env var-names
     # for distinct servers based on currnet shell environment.
@@ -73,6 +75,7 @@ htd_tmux_init()
     logger "Session $1 exists"
     note "Session $1 exists"
   } || {
+    test -d "$(dirname "$TMUX_SOCK")" || mkdir -vp "$(dirname "$TMUX_SOCK")"
     $tmux new-session -dP -s "$1" "$2" && {
     #>/dev/null 2>&1 && {
       note "started new session '$1'"
@@ -158,6 +161,7 @@ htd_tmux_get()
   test -n "$2" || set -- "$1" "$HTD_TMUX_DEFAULT_WINDOW" "$3"
   test -n "$2" || set -- "$1" "$2" "$HTD_TMUX_DEFAULT_CMD"
   test -z "$4" || error "Surplus arguments '$4'" 1
+  test -n "$1" -a -n "$2" || error "at least two arguments expected" 1
   tmux_env_req 0
   test -n "$cwd" || cwd=$PWD
 
@@ -178,6 +182,7 @@ htd_tmux_get()
       logger "Created window '$2' with session '$1'"
     }
   } || {
+    test -d "$(dirname "$TMUX_SOCK")" || mkdir -vp "$(dirname "$TMUX_SOCK")"
     # Else start server/session and with initial window
     eval $tmux new-session -c "$cwd" -d -s "$1" -n "$2" "$3" && {
       note "Started new session '$1'"

@@ -136,6 +136,11 @@ stdio_type()
         ncolors=$(tput -T xterm colors)
       ;;
 
+    screen )
+        LOG_TERM=16
+        ncolors=$(tput colors)
+      ;;
+
     dumb | '' )
         LOG_TERM=bw
       ;;

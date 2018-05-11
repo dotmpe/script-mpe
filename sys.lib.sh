@@ -425,7 +425,7 @@ default_env() # VAR-NAME DEFAULT-VALUE
   mkvid "$1"
   mksid "$1"
   test -n "$(eval echo \$$vid)" || {
-    debug "No $sid env, using '$2'"
+    debug "No $sid env ($vid), using '$2'"
     export $vid="$2"
     return 0
   }
