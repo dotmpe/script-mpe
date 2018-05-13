@@ -1,0 +1,209 @@
+#!/usr/bin/env python
+"""
+:created: 2018-05-09
+
+"""
+from __future__ import print_function
+__description__ = "basename-reg - query Wordnet corpus with Python NLTK"
+__version__ = '0.0.4-dev' # script-mpe
+__config__ = '~/.basename-reg.yaml'
+__usage__ = """
+Usage:
+  basename-reg [-v... -q... options] (-c|check) PATH...
+  basename-reg mediatypes
+  basename-reg extensions
+  basename-reg info
+  basename-reg -h|--help
+  basename-reg help [ CMD ]
+  basename-reg --version
+
+Options:
+    -q, --quiet
+                 Be quiet, no warnings. Use twice to output nothing at all.
+    -c, --check
+                 Verify that extension matches one known to be in use for
+                 file mediatype.
+    --num-exts NUM
+                 ..
+    --no-mime-check
+                 ..
+    -D FILE, --database FILE
+                 Use given MIME/extension YAML database file, the default
+                 setting can be changed by BASENAME_YAML env [default: %s]
+    --print-memory
+                 Print memory usage just before program ends.
+    -h --help    Show this usage description.
+                 For a command and argument description use the command 'help'.
+    --version    Show version (%s).
+""" % (__config__, __version__)
+import os
+import ruamel.yaml as yaml
+from pprint import pformat, pprint
+
+from script_mpe.libhtd import *
+
+
+cmd_default_settings = dict(
+        verbose=1,
+        print_memory=False,
+        database=__config__,
+        mime_check=True
+    )
+
+
+### Commands
+
+
+def cmd_info(g, opts):
+    pprint(opts.database)
+    pass #print(g.database)
+
+def cmd_extensions(opts):
+    """List extension tags
+    """
+    for ext in opts.database['mime_ext_reg']:
+        print(ext)
+
+def cmd_mediatypes(opts):
+    """List MIME types
+    """
+    for mime in opts.database['mime_xref']:
+        print(mime)
+
+def cmd_check(PATH, g, opts):
+    """
+    Split all exts, check against registry and MIME type. Normally this splits
+    at all '.' and treats the suffix as an extension, checked against the
+    database. It is an error if the extension is unknown, or if it is not
+    registered with the detected MIME.
+
+    --no-mime-check
+    --num-exts NUM
+                  Get at least NUM extensions, but don't go further if no
+                  tags matching known extensions are found. This is usefull to
+                  parse filenames that use '.' for non-extension tags, while
+                  still catching nested schemes (ie. .tar.gz)
+    -q, --quiet   Suppress warnings
+    """
+    db = opts.database
+    num_exts = int(getattr(g, 'num_exts') or 0)
+    v = True
+
+    for a in PATH:
+        if not os.path.isfile(a): continue
+
+        mime = libfile.filemtype(a)
+        name_parts = a.lower().split('.')#[1:][::-1]
+        name = name_parts.pop(0)
+        exts, unknown_exts, mime_mismatch = [], [], []
+        n = a
+        while name_parts:
+            e = name_parts.pop()
+            if not e.strip(): continue
+
+            ce = e
+            if ce in db['ext_map']:
+                while ce in db['ext_map']:
+                    ce = db['ext_map'][ce]
+                for sce in ce.split('.'):
+                    name_parts.append(sce)
+                continue
+
+            if ce in db['mime_ext_reg']:
+                # Found known extension, XXX: can only check MIME for outer mediatype
+                if exts or not g.mime_check:
+                    exts.insert(0, ce)
+                else:
+                    if db['mime_ext_reg'][ce] == mime:
+                        # Found known extension for mime
+                        exts.append(ce)
+                    else:
+                        # Mismatching MIME
+                        mime_mismatch.append(ce)
+                        if not g.quiet:
+                            print("MIME mismatch for extension %s, expected %s but file is %s. Suggestions for extension: %s" % (
+                                ce, mime, db['mime_ext_reg'][ce],
+                                ",".join(db['mime_xref'][mime][0])
+                            ), file=sys.stderr)
+
+            elif num_exts and len(exts) >= num_exts:
+                break
+
+            else:
+                if mime in db['mime_xref']:
+                    if not g.quiet:
+                        print("Unknown extension %s for %s, suggestions: %s" % (
+                            ce, mime, ",".join(db['mime_xref'][mime][0])
+                        ), file=sys.stderr)
+                else:
+                    if not g.quiet:
+                        print("Unknown mime %s" % ( mime, ), file=sys.stderr)
+                # Found new extension
+                unknown_exts.append(ce)
+     
+        if not ( mime_mismatch or unknown_exts ):
+            if g.quiet < 2:
+                print("%s  %s" % (a, " ".join(exts)))
+        else:
+            v = False
+            if g.quiet < 2:
+                print("%s: Failed" % (a,))
+    
+    return v
+
+
+### Transform cmd_ function names to nested dict
+
+commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
+commands.update(dict(
+        help = libcmd_docopt.cmd_help,
+        memdebug = libcmd_docopt.cmd_memdebug
+))
+
+
+### Util functions to run above functions from cmdline
+
+def defaults(opts, init={}):
+    global cmd_default_settings
+    libcmd_docopt.defaults(opts)
+
+    opts.flags.update(cmd_default_settings)
+    if not hasattr(opts.flags, 'database'):
+        opts.flags.database = os.getenv('BASENAME_YAML', __config__)
+    opts.database_fn = os.path.expanduser(opts.flags.database)
+    opts.database = yaml.safe_load(open(opts.database_fn))
+    if hasattr(opts.flags, 'no_mime_check'):
+        opts.flags.mime_check = not opts.flags.no_mime_check
+    return init
+
+def main(opts):
+
+    """
+    Execute command.
+    """
+    global ctx, commands
+
+    settings = opts.flags
+    if settings.check: opts.cmds = ['check']
+
+    ret = libcmd_docopt.run_commands(commands, settings, opts)
+    if settings.print_memory:
+        libcmd_docopt.cmd_memdebug(settings)
+    return ret
+
+def get_version():
+    return 'basename-reg.mpe/%s' % __version__
+
+
+if __name__ == '__main__':
+    import sys
+
+    if os.getenv('TERM', None) == 'dumb':
+        log.formatting_enabled = False
+
+    usage = __description__+'\n'+ \
+            libcmd_docopt.static_vars_from_env(__usage__,
+        ( 'BASENAME_YAML', __config__ ) )
+    opts = libcmd_docopt.get_opts(usage,
+            version=get_version(), defaults=defaults)
+    sys.exit(main(opts))
