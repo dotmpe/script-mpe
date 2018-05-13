@@ -175,15 +175,23 @@ algos_crc32_cksum_unix = "ck ckpy".split(' ')
 # CRC32 lookup table (Ethernet)
 algos_crc32_ethernet = ["php-crc32"]
 
+# CRC32 output includes size and is single space separated, iso. double space
+# as with other algos
+cksums = algos_crc32b + algos_crc32_cksum_unix + algos_crc32_ethernet
+
 
 class Table:
 
     @staticmethod
-    def read(fl):
+    def read(fl, algo=None):
         for line in fl.readlines():
             if line.strip().startswith('#'): continue
-            p = line.index('  ')
-            ck = line[:p]
-            fn = line[p+2:-1]
+            if not algo or algo not in cksums:
+                p = line.index('  ')
+                ck = line[:p]
+                fn = line[p+2:-1]
+            else:
+                p = line.index(' ', line.index(' ')+1)
+                ck = tuple(map(int, line[:p].split(' ')))
+                fn = line[p+1:-1]
             yield ck, fn
-

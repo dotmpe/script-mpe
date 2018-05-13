@@ -249,7 +249,7 @@ htd_catalog_get_by_key() # [CATALOG] CKS...
   return 1
 }
 
-htd_catalog_add_as_folder()
+htd_catalog_add_from_folder()
 {
   htd_catalog_add_all_larger "$1" -1
 }
@@ -323,7 +323,8 @@ htd_catalog_add() # File..
   do
     test -n "$1" -a -e "$1" || error "File or dir expected" 1
     test -d "$1" && {
-      htd_catalog_add_as_folder "$1" && note "Added folder '$1'" || true
+      #htd_catalog_add_as_folder "$1" && note "Added folder '$1'" || true
+      htd_catalog_add_from_folder "$1" && note "Added folder '$1'" || true
     } || {
       htd_catalog_add_file "$1" && note "Added file '$1'" || { r=$?
         test $r -eq 2 && continue
@@ -339,7 +340,7 @@ htd_catalog_add_all()
   htd_catalog_add_all_larger "." -1
 }
 
-htd_catalog_add_all_larger() # SIZE
+htd_catalog_add_all_larger() # DIR SIZE
 {
   test -n "$1" || set -- . "$2"
   test -n "$2" || set -- "$1" 1048576
@@ -541,10 +542,16 @@ htd_catalog_annex_import()
       done
 }
 
-# Import files from LFS test-server content dir (by SHA2)
+# TODO: Import files from LFS test-server content dir (by SHA2)
 htd_catalog_lfs_import()
 {
   lfs_content_list "$1"
+}
+
+# TODO: import all checksum table files
+htd_catalog_ck_import()
+{
+  catalog.py --catalog="$CATALOG" importcks "$@"
 }
 
 # TODO: merge all local catalogs (from subtrees to PWD)

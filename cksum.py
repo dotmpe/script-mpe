@@ -48,10 +48,6 @@ import os
 from itertools import chain
 
 
-# CRC32 output includes size and is single space separated, iso. double space
-# as with other algos
-cksums = algos_crc32b + algos_crc32_cksum_unix + algos_crc32_ethernet
-
 def cmd_list(opts):
     for algo in file_resolvers:
         print(algo)

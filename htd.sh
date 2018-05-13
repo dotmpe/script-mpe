@@ -510,22 +510,27 @@ Besides ck-validate and annex-fsck, look for local catalog.yml to validate too.
 htd_run__fsck=i
 htd__fsck()
 {
+  note "Running: ck_tab='*' htd ck..."
   # Go over local cksum/filename table files
   ck_tab='*' htd__ck || return $?
 
+  note "Running checksums from all catalogs..."
   # Look for catalogdocs, go over any checksums there too
   ck_run_catalogs || return $?
 
   test -e .sync-rules.list && {
 
+    note "Checking synchronized annex.."
     # Use sync-rules to mark annex (sub)repos as fsck-enable/disable'd
-    subcmd=annex-fsck htd__annex_fsck
+    subcmd=annex-fsck htd__annex_fsck || return $?
+
   } || {
 
     # Look for and fsck local annex as last step
     vc_getscm || return 0
     vc_fsck || return
     test -d "$scmdir/annex" && {
+        note "Checking local annex.."
         git annex fsck . || return
     } || true
   }
@@ -5612,29 +5617,27 @@ htd_man_1__ck='Validate given table-ext, ck-files, or default table.$ck-exts set
 Arguments are files with checksums to validate, or basenames and extensions to
 check. With no file given, checks table.*
 '
-htd_spc__ck='ck [ TAB | CK ]...'
+htd_spc__ck='ck [CK... | TAB...]'
 htd__ck()
 {
-  local exts=
-  for a in "$@" ; do
-    test -e "$a" && continue
-    exts="$exts $a"
+  local exts= ck_files=
+  test -z "$*" && {
+    exts="$ck_exts"
+  }
+  test -e "$1" && {
+      ck_files="$*"
+  } || {
+    exts="$( for a in "$@" ; do \
+      test -e "$a" && continue || echo "$a"; done | lines_to_words)"
+    ck_files="$(ck_files "." $exts)"
+  }
+
+  for tab in $ck_files
+  do
+    # Skip unexpanded names and non-existing checksum tables
+    test -e "$tab" || continue
+    ck_run $tab || return $?
   done
-
-  #test -n "$1" || set -- main
-  #while test $# -gt 0
-  #do
-  #  test -e "$1" || { shift; continue; }
-
-    #local ck_ext=$(filenamext "$1") ck_tab="$(basename "$1" .$ck_ext)"
-
-    for tab in $(ck_files "." $exts)
-    do
-      test -e "$tab" || continue
-      ck_run $tab || return $?
-    done
-  #  shift
-  #done
 }
 
 htd_man_1__ck_add='Add new entries but dont hash'

@@ -42,6 +42,7 @@ ck_run() # CkTable
   test -n "$1" || error "ck-run argument expected" 1
   test -z "$2" || error "surplus argumets '$2'" 1
   ext="$(filenamext "$1")"
+  note "Using $ext external to check '$1'"
   { case "$ext" in
         sha2 | sha256 )
               shasum -a 256 -c $1 || return $?
