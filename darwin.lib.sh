@@ -67,6 +67,21 @@ start_launchd_service()
 }
 
 
+htd_darwin_list()
+{
+  system_profiler -listDataTypes
+}
+
+htd_darwin_profiles()
+{
+  for dtype in "$@"
+  do
+      note "Type: $dtype"
+      system_profiler $dtype
+  done
+}
+
+
 # Retrieve OS/X plist XML from system_profiler
 darwin_profile_xml()
 {

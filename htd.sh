@@ -9143,6 +9143,15 @@ htd__volumestat()
 }
 
 
+htd__darwin()
+{
+  test -n "$1" && { upper=0 mkvid "$1" ; shift ; action=$vid
+    } || action=list
+  htd_darwin_$action "$@" || return $?
+}
+htd_run__darwin=f
+
+
 htd__darwin_profile()
 {
   local grep="$1"
